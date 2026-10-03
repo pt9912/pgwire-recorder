@@ -45,7 +45,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Für einen stabilen Release wird die Formel erzeugt, und die Installation auf macOS und Linux meldet die Version (Smoke auf beiden Plattformen).
+- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Das Release-Verfahren erzeugt die Formel aus den Release-Binaries eines Probe-Releases, die Prüfsummen stimmen (Test ohne Veröffentlichung); die Installation auf macOS und Linux (Abnahmeszenario 11) wird mit dem ersten stabilen Release nachgewiesen.
 - [ ] Eine Vorabversion verändert den Tap nicht (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor

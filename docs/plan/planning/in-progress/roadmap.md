@@ -45,7 +45,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 |---|---|---|---|
 | M1 | welle-walking-skeleton | `SELECT 1;` Record, PostgreSQL stoppen, Replay mit demselben Ergebnis | offen |
 | M2 | welle-extended-query | Clients mit Standardtreibern (Extended Query) funktionieren mit Host/Port-Umstellung: Abnahmeszenario 7 nachweisbar | offen |
-| M3 | welle-replay-semantik, welle-v1-abschluss | Produkt fertig: alle Anforderungen (MUSS und SOLL) umgesetzt, alle elf Abnahmeszenarien nachweisbar | offen |
+| M3 | welle-replay-semantik, welle-v1-abschluss | Produkt fertig: alle Anforderungen (MUSS und SOLL) umgesetzt, die Abnahmeszenarien 1 bis 10, 12 und 13 nachweisbar; Szenario 11 (Homebrew) wird mit dem ersten stabilen Release nachgewiesen | offen |
 
 ## Abhängigkeitsgraph
 

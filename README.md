@@ -7,7 +7,8 @@
 `pgwire-recorder` ist ein Kommandozeilenwerkzeug, das zwischen einer Anwendung
 und PostgreSQL vermittelt. Im Modus `record` leitet es die Kommunikation an eine
 echte Datenbank weiter und speichert sie in einer Datei, im Modus `replay`
-beantwortet es dieselben Anfragen aus dieser Datei, ohne Datenbank. Es richtet
+beantwortet es dieselben Anfragen aus dieser Datei, ohne Datenbank, und im Modus
+`play` führt es die aufgezeichneten Anfragen gegen eine Datenbank aus. Es richtet
 sich an Entwickler, Tester und CI-Systeme. Die vollständige Beschreibung steht
 im [Lastenheft](spec/lastenheft.md).
 
@@ -31,6 +32,10 @@ lokale Umgebungen und CI-Systeme und kann Tests langsamer, komplexer und weniger
 deterministisch machen. Für viele dieser Tests ist nicht die Datenbank selbst der
 Gegenstand, sondern das aus Sicht der Anwendung beobachtbare Verhalten der
 PostgreSQL-Kommunikation. Genau dieses Verhalten zeichnet `pgwire-recorder` auf.
+Dieselbe Aufzeichnung lässt sich außerdem in eine Datenbank einspielen, um die
+Wirkung der aufgezeichneten Anfragen dort herzustellen, zum Beispiel um eine
+Komponente zu testen, die Änderungen der Datenbank verarbeitet (Change Data
+Capture).
 
 ## Kerngedanke
 

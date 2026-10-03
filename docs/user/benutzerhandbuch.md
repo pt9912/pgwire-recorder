@@ -15,7 +15,7 @@ PostgreSQL-Datenbank auf und spielt sie später ohne die Datenbank wieder ab.
 Damit laufen Tests Ihrer Anwendung reproduzierbar, ohne dass dafür eine
 PostgreSQL-Instanz bereitstehen muss.
 
-Das Werkzeug arbeitet in zwei Betriebsarten:
+Das Werkzeug arbeitet in drei Betriebsarten:
 
 * **Aufzeichnen (`record`):** Ihre Anwendung verbindet sich mit
   `pgwire-recorder` statt direkt mit PostgreSQL. Das Werkzeug leitet alles an
@@ -23,6 +23,8 @@ Das Werkzeug arbeitet in zwei Betriebsarten:
 * **Wiedergeben (`replay`):** Ihre Anwendung verbindet sich wieder mit
   `pgwire-recorder`. Das Werkzeug beantwortet die Anfragen aus der Datei. Eine
   Datenbank ist nicht nötig.
+* **Einspielen (`play`):** Das Werkzeug führt die aufgezeichneten Anfragen aus der
+  Datei gegen eine Datenbank aus. Ihre Anwendung ist nicht beteiligt.
 
 ### Zielgruppe
 
@@ -150,6 +152,9 @@ dem Ende jeder Verbindung und beim Beenden neu geschrieben.
 
 #### Hinweise
 
+* Mit `--record-timing` hält die Aufzeichnung den zeitlichen Abstand der Anfragen
+  fest. Zwei Aufzeichnungen derselben Anwendung unterscheiden sich dann in diesen
+  Angaben.
 * Existiert die Zieldatei bereits, bricht das Werkzeug ab (`PGR-E2002`). Wollen
   Sie sie ersetzen, ergänzen Sie `--force`.
 * Jede Verbindung Ihrer Anwendung mit mindestens einer Anfrage wird als eigene
@@ -181,11 +186,55 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   Protokoll auch in Namen, Parametern, Formaten und Zeilenlimit). Eine abweichende
   Anfrage wird als Fehler gemeldet; das Werkzeug liefert dann keine geratene
   Antwort (`PGR-E5001`).
-* Die erste Verbindung erhält die erste aufgezeichnete Sitzung, die zweite die
-  zweite, und so weiter. Bauen Sie die Verbindungen nacheinander auf; bei
-  gleichzeitigem Aufbau ist die Zuordnung nicht festgelegt. Eine Verbindung
-  über die aufgezeichneten Sitzungen hinaus wird als Abweichung gemeldet
-  (`PGR-E5003`).
+* Die erste Verbindung mit einer Anfrage erhält die erste aufgezeichnete Sitzung,
+  die zweite die zweite, und so weiter. Verbindungen ohne Anfrage zählen nicht.
+  Nutzen Sie die Verbindungen nacheinander; bei gleichzeitiger Nutzung ist die
+  Zuordnung nicht festgelegt. Eine Anfrage über die aufgezeichneten Sitzungen
+  hinaus wird als Abweichung gemeldet (`PGR-E5003`).
+
+### Eine Aufzeichnung in eine Datenbank einspielen
+
+Damit erzeugen Sie dieselbe Last reproduzierbar, zum Beispiel um eine Komponente
+zu testen, die Änderungen der Datenbank verarbeitet (Change Data Capture).
+
+#### Voraussetzung
+
+Eine Aufzeichnung liegt vor, und die Zieldatenbank ist erreichbar. Der Benutzer
+und die Datenbank aus der Aufzeichnung existieren dort oder Sie geben sie
+ausdrücklich an.
+
+#### Vorgehen
+
+1. Setzen Sie bei Bedarf das Passwort in der Umgebungsvariable
+   `PGWIRE_RECORDER_PASSWORD`; es gibt dafür keine Option.
+2. Starten Sie das Einspielen:
+
+   ```bash
+   pgwire-recorder play \
+     --upstream postgres:5432 \
+     --input ./recordings/users.yaml
+   ```
+
+3. Warten Sie, bis das Werkzeug endet.
+
+#### Ergebnis
+
+Die Anfragen der Aufzeichnung sind in der aufgezeichneten Reihenfolge gegen die
+Datenbank ausgeführt; sie enthält danach deren Wirkung. Jede Sitzung der
+Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
+
+#### Hinweise
+
+* Das Einspielen läuft nacheinander. Ohne weitere Option gibt es keine
+  Wartezeiten. Mit `--keep-timing` bleibt der aufgezeichnete zeitliche Abstand der
+  Anfragen erhalten, sofern Sie die Aufzeichnung mit `--record-timing` erzeugt
+  haben; eine Pause wird nie verkürzt.
+* Das Werkzeug vergleicht die Antworten der Datenbank nicht mit der Aufzeichnung.
+* Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
+  ab (`PGR-E4004`). Mit `--continue-on-error` läuft es weiter und endet am Ende
+  mit Exit-Code 4.
+* Das Einspielen führt Anfragen aus. Verwenden Sie es nicht gegen eine Datenbank,
+  deren Inhalt Sie nicht verändern dürfen.
 
 ### Mit einem Datenbanktreiber arbeiten
 
@@ -247,12 +296,18 @@ Umgebungsvariablen vor dem Standardwert durch.
 | Option | Betriebsart | Umgebungsvariable | Standard |
 |---|---|---|---|
 | `--listen` | `record`, `replay` | `PGWIRE_RECORDER_LISTEN` | Pflicht |
-| `--upstream` | `record` | `PGWIRE_RECORDER_UPSTREAM` | Pflicht |
+| `--upstream` | `record`, `play` | `PGWIRE_RECORDER_UPSTREAM` | Pflicht |
 | `--output` | `record` | `PGWIRE_RECORDER_OUTPUT` | Pflicht |
 | `--force` | `record` | `PGWIRE_RECORDER_FORCE` | `false` |
-| `--input` | `replay` | `PGWIRE_RECORDER_INPUT` | Pflicht |
+| `--record-timing` | `record` | `PGWIRE_RECORDER_RECORD_TIMING` | `false` |
+| `--input` | `replay`, `play` | `PGWIRE_RECORDER_INPUT` | Pflicht |
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` |
-| `--log-level` | `record`, `replay` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` |
+| `--user` | `play` | `PGWIRE_RECORDER_USER` | Daten aus der Aufzeichnung |
+| `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Daten aus der Aufzeichnung |
+| `--continue-on-error` | `play` | `PGWIRE_RECORDER_CONTINUE_ON_ERROR` | `false` |
+| `--keep-timing` | `play` | `PGWIRE_RECORDER_KEEP_TIMING` | `false` |
+| — (nur Umgebung) | `play` | `PGWIRE_RECORDER_PASSWORD` | — |
+| `--log-level` | `record`, `replay`, `play` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` |
 
 Wahrheitswerte lauten `true` oder `false`. Mögliche Log-Level sind `error`,
 `warn`, `info` und `debug`. Meldungen gehen nach `stderr`.
@@ -298,6 +353,7 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-E1000` | sonstiger Fehler | Unerwarteter Fehler. Starten Sie mit `--log-level debug` neu, und melden Sie das Problem mit der Ausgabe. |
 | `PGR-E2000`, `PGR-E2001` | ungültiger Aufruf oder ungültige Konfiguration | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert. Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
+| `PGR-E2003` | zeitgetreues Einspielen ohne Zeitangaben | Die Aufzeichnung enthält keine Zeitangaben. Zeichnen Sie mit `--record-timing` erneut auf, oder starten Sie ohne `--keep-timing`. |
 | `PGR-E3000`, `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, oder Sie haben keine Rechte. Prüfen Sie Pfad und Dateirechte. |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Zeichnen Sie erneut auf. |
@@ -305,9 +361,10 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-E4000`, `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
+| `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Anfrage und die Antwort der Datenbank. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
 | `PGR-E5000`, `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
-| `PGR-E5003` | Verbindung ohne aufgezeichnete Sitzung | Ihre Anwendung hat mehr Verbindungen geöffnet als aufgezeichnet. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
+| `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen aufgezeichnet sind. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
 | `PGR-E6000`, `PGR-E6001` | nicht unterstützte Nachricht | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls. Verwenden Sie einen Treiber, der sie nutzt. |
 

@@ -1,4 +1,4 @@
-# Slice slice-v1-abschluss-sessions: Mehrere Sessions und Verbindungsfehler
+# Slice slice-v1-abschluss-einspielen: Einspielen einer Aufzeichnung
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md)
+**Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md)
 
-**Berührte Spec-Stellen:** `LH-FA-12.a` · `LH-FA-13.b` · `LH-FA-02.b` · `SPEC-017` · `SPEC-028` · `SPEC-034` · `ARC-002`
+**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-21.a` · `SPEC-017` · `SPEC-041` · `ARC-002` · `ARC-003` · `ARC-005` · `ARC-007`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,12 +29,12 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Mehrere Client-Verbindungen werden im Record parallel als eigene Sessions aufgezeichnet (Verbindungen ohne Anfrage nicht); im Replay erhält die n-te Verbindung mit einer Anfrage die n-te Session; Verbindungsende und Verbindungsfehler verhalten sich wie spezifiziert.
+**Ziel:** `pgwire-recorder play` führt die Client-Anfragen einer Aufzeichnung (einfach und Extended) gegen einen PostgreSQL-Server aus und meldet Fehler des Servers.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Eine deterministische Zuordnung bei gleichzeitigem Verbindungsaufbau — Out-of-Scope von LH-FA-12.
-- Signalbehandlung — `slice-v1-abschluss-betrieb`.
+- Vergleich der Serverantworten mit der Aufzeichnung — Out-of-Scope von LH-FA-20.
+- Paralleles Einspielen — Out-of-Scope von LH-FA-20 und LH-FA-21.
 
 
 ## 2. Definition of Done
@@ -44,8 +44,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen): Zwei parallele Verbindungen erzeugen zwei Sessions mit je geordneten Interaktionen, eine Verbindung ohne Anfrage keine; im Replay erhält die n-te Verbindung mit einer Anfrage die n-te Session, eine Anfrage darüber hinaus ist ein Mismatch (Test).
-- [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Ein Verbindungsfehler beendet nur die Verbindung, der Prozess merkt sich die Klasse (Test).
+- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen wird gegen eine leere Instanz eingespielt, und die Datenbank enthält danach deren Wirkung, auch für eine Extended-Interaktion (Abnahmeszenario 12, Integrationstest).
+- [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4); mit `--continue-on-error` läuft es weiter und endet mit Exit-Code 4 (Test).
+- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, `--keep-timing` hält die Pausen ein und lehnt eine Aufzeichnung ohne Zeitangaben ab (`PGR-E2003`); Test mit einer Fake-Uhr.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -63,9 +64,11 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` | update | Session-Verwaltung, Recording-Zustand mit Synchronisierung |
-| `internal/adapters/driving/pgwire` | update | Verbindungen nebenläufig |
-| `test/integration` | update | Happy/Boundary/Negative |
+| `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driving` | neu | Einspiel-Use-Case; nutzt nur Driven Ports |
+| `internal/adapters/driving/cli` | update | Kommando `play`, Optionen (`--keep-timing`, `--record-timing`), Passwort aus der Umgebung |
+| Uhr-Port und Systemuhr im Composition Root | neu | Zeitangaben und zeitgetreues Warten, Fake-Uhr in Tests |
+| `internal/adapters/driven/postgres` | update | Authentifizierung als Client, Nachrichten der Gruppen senden |
+| `test/integration` | update | Happy/Boundary/Negative nach LH-FA-20 |
 
 ## 4. Trigger
 
@@ -76,8 +79,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: Parallelität verlangt eine Änderung des Recording-Formats — zurück zur Zerlegung.
-- `in-progress` → `open`: Die Zuordnungsregel (n-te Verbindung mit Anfrage, n-te Session) ändert sich durch eine Entscheidung des Auftraggebers — Carveout.
+- `in-progress` → `next`: die Authentifizierungsverfahren des Servers sprengen den Slice — zurück zur Zerlegung.
+- `in-progress` → `open`: Das Recording enthält Interaktionen, die sich nicht einspielen lassen — Carveout.
 
 
 ## 5. Closure-Trigger
@@ -95,7 +98,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Ein Connection-Pool baut Verbindungen gleichzeitig auf; die Zuordnung ist dann nicht zugesichert — **Ausgang:** offen bis Closure.
+- Die Authentifizierung als Client (z. B. SCRAM) ist im Upstream-Adapter bisher nur als Vermittlung vorgesehen — **Ausgang:** offen bis Closure.
+- Das Einspielen verändert eine Datenbank; ein Fehlgebrauch gegen eine falsche Instanz ist durch das Handbuch nur gewarnt — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

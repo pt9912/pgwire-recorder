@@ -35,17 +35,20 @@ Ein Release liefert:
   `pt9912/homebrew-pgwire-recorder` für macOS und Linux; Vorabversionen ändern
   den Tap nicht.
 
-Binary und Image müssen reproduzierbar gebaut werden können. Die zugesicherten
-Plattformen und die Anforderungen an Container und Reproduzierbarkeit stehen im
-Lastenheft und in der Spezifikation (`LH-FA-16`, `LH-QA-03`).
+Binary und Image müssen reproduzierbar gebaut werden können; das verlangt dieses
+Release-Verfahren, das Lastenheft fordert nur die Bereitstellbarkeit
+(`LH-QA-03`). Die zugesicherten Plattformen und das Image-Format legt die
+Spezifikation fest (`SPEC-035`, `SPEC-031`).
 
 ## 3. Versionierung
 
 Die Version der Software folgt SemVer 2.0 (`MAJOR.MINOR.PATCH`). Der Tag hat die
-Form `v<SemVer>`, zum Beispiel `v1.0.0` oder `v1.1.0-rc.1`.
+Form `v<SemVer>`, zum Beispiel `v0.1.0` oder `v0.2.0-rc.1`. Welche Versionsnummer
+der erste Release trägt, wird beim Release festgelegt; die Produktstufe „v1“ des
+Lastenhefts ist ein Umfang und keine Versionsnummer.
 
-Die Version des Lastenhefts ist davon unabhängig; ihre Zählregel steht in
-`harness/conventions.md`.
+Die Version des Lastenhefts ist davon unabhängig; ihre Zählregel steht in dessen
+Kopf.
 
 Offen: Die Datei, die die Version der Software als Quelle der Wahrheit trägt,
 wird festgelegt, wenn der Build existiert.
@@ -53,13 +56,11 @@ wird festgelegt, wenn der Build existiert.
 ## 4. Einen Release auslösen
 
 Festgelegt ist: Ein Release entsteht durch einen Git-Tag der Form `v<SemVer>`. Das
-Verfahren ist noch nicht ausgeführt worden. Die erste Version `v1.0.0` wird
-getaggt, wenn der Meilenstein M3 der Roadmap erreicht ist (alle Anforderungen
-umgesetzt):
+Verfahren ist noch nicht ausgeführt worden:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v<SemVer>
+git push origin v<SemVer>
 ```
 
 Vor dem Tag gilt:
