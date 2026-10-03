@@ -1,6 +1,6 @@
 # Lastenheft — pgwire-recorder
 
-**Version:** 0.1.0 (`Major.Minor.Patch`). Ab `Accepted` ist der Bump der
+**Version:** 0.1.0 (SemVer 2.0, `Major.Minor.Patch`). Ab `Accepted` ist der Bump der
 Fußabdruck des Change Requests: **Major** bei Änderung oder Streichung einer
 bestehenden Anforderung, **Minor** bei einer neuen Anforderung, **Patch** bei
 einer Tatsachenberichtigung ohne Änderung einer Aussage (Baseline-Regelwerk
