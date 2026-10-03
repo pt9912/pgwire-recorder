@@ -35,7 +35,7 @@ Application Core -> Outbound Port <- Driven Adapter -> Driven Actor
 ```
 
 Der Application Core kennt keine konkreten Adapter. Insbesondere kennt er nicht
-`pgproto3`, TCP-Sockets, YAML, das Dateisystem, CLI-Frameworks und konkrete
+die PGWire-Bibliothek, TCP-Sockets, YAML-Serialisierung, das Dateisystem, CLI-Frameworks und konkrete
 PostgreSQL-Verbindungen.
 
 Die Architektur priorisiert:
@@ -106,20 +106,20 @@ umfasst sie mehrere, bleibt die Spalte leer und die Constraint gilt für alle.
 
 | Komponente(n) | Schicht | Verantwortlichkeit | Darf importieren | Darf NICHT importieren |
 |---|---|---|---|---|
-| `ARC-001` | Domain | Fachliche Typen und Invarianten, rein | — | Services, Ports, Adapter, `pgproto3`, YAML-Bibliothek, Dateisystem |
-| `ARC-003`, `ARC-004` | Ports | Fachlich formulierte Schnittstellen des Cores | Domain | Adapter, `pgproto3` |
-| `ARC-002` | Application | Use-Case-Logik, Matching, Zustände; erfüllt die Driving Ports | Domain, Driven Ports | Driving Ports, Adapter, `pgproto3`, Prozessbeendigung |
+| `ARC-001` | Domain | Fachliche Typen und Invarianten, rein | — | Services, Ports, Adapter, die PGWire-Bibliothek, YAML-Serialisierungsbibliothek, Dateisystem |
+| `ARC-003`, `ARC-004` | Ports | Fachlich formulierte Schnittstellen des Cores | Domain | Adapter, die PGWire-Bibliothek |
+| `ARC-002` | Application | Use-Case-Logik, Matching, Zustände; erfüllt die Driving Ports | Domain, Driven Ports | Driving Ports, Adapter, die PGWire-Bibliothek, Prozessbeendigung |
 | `ARC-005`, `ARC-006` | Driving Adapter | Externe Eingaben in Inbound-Port-Aufrufe übersetzen | Driving Ports, Domain | Driven Ports, Driven Adapter, andere Driving Adapter |
 | `ARC-007`, `ARC-008` | Driven Adapter | Outbound Ports implementieren | Driven Ports, Domain | Driving Ports, Driving Adapter, andere Driven Adapter |
 | `ARC-009` | Composition Root | Konkrete Implementierungen verdrahten | alles | — |
 
 Zusätzliche Einschränkungen:
 
-- `pgproto3` ist ausschließlich in `ARC-006` und `ARC-007` zulässig; die
-  YAML-Bibliothek ausschließlich in `ARC-008`. YAML-spezifische Annotationen oder
+- die PGWire-Bibliothek ist ausschließlich in `ARC-006` und `ARC-007` zulässig; die
+  YAML-Serialisierungsbibliothek ausschließlich in `ARC-008`. YAML-spezifische Annotationen oder
   Bibliothekstypen gelangen nicht in das Domain Model.
 - Mapping-Funktionen zwischen Bibliothekstypen und Domain-Typen liegen in dem
-  jeweiligen Adapter; kein `pgproto3`-Typ verlässt einen Adapter.
+  jeweiligen Adapter; kein Typ der PGWire-Bibliothek verlässt einen Adapter.
 - Kein inneres Package beendet den Prozess.
 - Der Core verwendet einen Abbruch-/Kontext-Mechanismus, kennt aber keine
   POSIX-Signale.
@@ -193,14 +193,16 @@ Alternativ kann die PGWire-Session über kleinere fachliche Requests an den Core
 
 | Port | Operationen |
 |---|---|
-| `RecordingRepository` | Recording anhand eines Pfads laden; Recording unter einem Pfad speichern |
+| `RecordingRepository` | Recording anhand eines Pfads laden; Recording unter einem Pfad speichern (wird nach dem Ende jeder Session und beim kontrollierten Beenden aufgerufen) |
 | PostgreSQL-Upstream | Upstream-Session für einen Startup eröffnen; je Session eine Query ausführen und die Responses liefern; Session schließen |
 
 Die Query-Operation kann streaming-orientiert gestaltet werden (Antworten einzeln
 abrufen, Stream schließen), um große Resultsets nicht vollständig zu puffern.
 Die Ports schließen eine Streaming-Implementierung nicht aus. Der Record-Service
-reicht dann jede Antwort in das Recording und über den Driving Adapter an den
-Client weiter, ohne ein komplettes Resultset im Speicher zu halten.
+reicht dann jede Antwort über den Driving Adapter an den Client weiter, ohne
+eine zusätzliche Kopie des Resultsets neben der Aufzeichnung zu halten; eine
+Interaktion wird mit dem abschließenden `ReadyForQuery` Teil der Session, und
+eine Session wird bis zum Schreiben des Recordings im Speicher gehalten.
 
 ### 2.4 Domain Model
 
@@ -245,8 +247,8 @@ System (Baseline-Regelwerk `grundlagen-source-precedence.md` §ID-Schema als Kla
 |---|---|---|---|
 | `ARC-010` | PostgreSQL | Driven Actor im Record-Modus, angebunden über `ARC-007`; im Replay-Modus nicht vorhanden | Über `ARC-004` austauschbar; Tests verwenden einen Fake |
 | `ARC-011` | Dateisystem | Driven Actor für Recordings, angebunden über `ARC-008` | Über `RecordingRepository` austauschbar; Tests verwenden einen Fake |
-| `ARC-012` | `pgproto3` | PGWire-Nachrichtenkodierung, nur in `ARC-006` und `ARC-007` | Auf die beiden PGWire-Adapter begrenzt |
-| `ARC-013` | YAML-Bibliothek | Serialisierung, nur in `ARC-008` | Auf den Recording Adapter begrenzt; ein anderes Recording-Backend (zum Beispiel JSONL oder SQLite) implementiert denselben Port |
+| `ARC-012` | PGWire-Bibliothek | PGWire-Nachrichtenkodierung, nur in `ARC-006` und `ARC-007` | Auf die beiden PGWire-Adapter begrenzt |
+| `ARC-013` | YAML-Serialisierungsbibliothek | Serialisierung, nur in `ARC-008` | Auf den Recording Adapter begrenzt; ein anderes Recording-Backend (zum Beispiel JSONL oder SQLite) implementiert denselben Port |
 
 ## 4. Sequenz-Diagramme
 
@@ -266,6 +268,7 @@ sequenceDiagram
     PG-->>Rec: Responses bis ReadyForQuery
     Rec-->>PGW: Responses
     PGW-->>Client: PGWire-Nachrichten
+    Note over Rec,Repo: nach Session-Ende und beim Herunterfahren
     Rec->>Repo: Save(Recording)
 ```
 
@@ -398,7 +401,7 @@ Driving Adapter; fachlich relevante Startup-Daten werden in Domain-Typen
 
 **PGWire Server (`ARC-006`)** ist verantwortlich für: TCP-Verbindungen
 annehmen, PGWire-Framing, `SSLRequest` erkennen, Startup-Nachrichten
-dekodieren, Frontend-Nachrichten mit `pgproto3` dekodieren, in
+dekodieren, Frontend-Nachrichten mit die PGWire-Bibliothek dekodieren, in
 Domain-/Application-Typen übersetzen, Inbound Ports aufrufen,
 Domain-Responses in PGWire-Nachrichten übersetzen und Bytes an den Client
 senden. Er ist **nicht** verantwortlich für Query-Matching,
@@ -406,12 +409,12 @@ Recording-Reihenfolge, Auswahl der nächsten Replay-Interaktion, Persistenz und
 fachliche Mismatch-Entscheidungen.
 
 **PostgreSQL Upstream (`ARC-007`)** implementiert den PostgreSQL-Outbound-Port
-und verwendet `pgproto3` beziehungsweise geeignete PGWire-Funktionalität für die
-Verbindung zum realen Server. Er bildet `model.Query` auf PGWire ab und die
-Serverantworten zurück auf `model.Response`.
+und verwendet die PGWire-Bibliothek beziehungsweise geeignete PGWire-Funktionalität für die
+Verbindung zum realen Server. Er bildet die Domain-Query auf PGWire ab und die
+Serverantworten zurück auf die Domain-Response.
 
 **Recording (`ARC-008`)** implementiert `RecordingRepository`: Beim Speichern
-wird `model.Recording` in die YAML-Darstellung überführt und im Dateisystem
+wird das Domain-Recording in die YAML-Darstellung überführt und im Dateisystem
 abgelegt, beim Laden in umgekehrter Richtung. Das Serialisierungsschema gehört
 zum Driven Adapter und breitet sich nicht in den Core aus; separate
 Persistenz-DTOs im Adapter trennen Domain- und YAML-Modell, sobald beide
@@ -438,6 +441,7 @@ konzeptionell, keine verbindliche API.
 | Fachliche Fehler (`Mismatch`, `UnsupportedInteraction`, `RecordingExhausted`, `InvalidRecording`) | im Core definiert beziehungsweise klassifiziert (`ARC-002`) | Fehlerkategorie, Session-ID, Interaction Sequence |
 | Infrastrukturfehler (`ConnectionRefused`, `FileNotFound`, `PermissionDenied`, `MalformedYAML`) | entstehen in den Driven Adaptern (`ARC-007`, `ARC-008`) und werden in für den Port geeignete Fehler übersetzt | Fehlerkategorie, Remote-Adresse im Adapterkontext |
 | Abbildung auf Exit Codes | äußerster Rand: CLI (`ARC-005`) | Fehlertext nach `stderr` |
+| Verbindungsfehler (Mismatch, nicht unterstützte Interaktion, Upstream-Fehler, unerwartetes Verbindungsende) | beenden die Application Session; der Driving Adapter beendet die Verbindung, der Prozess läuft weiter und der Rand merkt sich die Klasse des ersten Fehlers | Fehlerkategorie, Session-ID, Interaction Sequence |
 | OS-Signale | CLI / Bootstrap (`ARC-005`, `ARC-009`) lösen den Abbruch über den Kontext-Mechanismus aus | Modus |
 
 **Graceful Shutdown.** Signalbehandlung gehört zum äußersten Anwendungsrand:
@@ -473,8 +477,9 @@ enthalten.
 - *End-to-End:* PostgreSQL starten, Record-Modus mit echtem PG-Client,
   Recording, PostgreSQL stoppen, Replay-Modus mit demselben Client.
 
-**Architektur-Gate.** Die Abhängigkeitsregeln aus §2 werden mit **a-check** geprüft;
-die Konfiguration liegt in der Repository-Wurzel (`.a-check.yml`). Rollen und
+**Architektur-Gate.** Die Abhängigkeitsregeln aus §2 sind die Vorgabe für das Architektur-Gate
+(**a-check**); die Konfiguration liegt in der Repository-Wurzel
+(`.a-check.yml`). Rollen und
 Richtungen:
 
 ```text
@@ -490,7 +495,7 @@ Erlaubt sind ausschließlich diese Kanten: Application → Domain und Driven
 Ports; Driving Ports → Domain; Driven Ports → Domain; Driving Adapter → Driving
 Ports und Domain; Driven Adapter → Driven Ports und Domain. Geprüft werden
 damit unter anderem Domain-, Application- und Port-Reinheit, keine lateralen
-Adapter-Abhängigkeiten, korrekte Schichtrichtung, dass `pgproto3` in den
+Adapter-Abhängigkeiten, korrekte Schichtrichtung, dass die PGWire-Bibliothek in den
 PGWire-/PostgreSQL-Adaptern und YAML im Recording-Adapter bleibt. Die Composition Root ist von den Schichtregeln ausgenommen:
 
 ```text
@@ -518,6 +523,6 @@ Eine Verletzung dieser Grenzen ist ein Befund des Gates.
 | Risiko | Maßnahme |
 |---|---|
 | Viele PostgreSQL-Treiber verwenden standardmäßig Extended Query | Kompatiblen Simple-Query-Modus dokumentieren und Extended Query als nächste Protokollerweiterung vorsehen |
-| PGWire-Details sickern in den Core | Import-Regeln im Architektur-Gate, die `pgproto3` außerhalb der beiden PGWire-Adapter verbieten |
+| PGWire-Details sickern in den Core | Import-Regeln im Architektur-Gate, die die PGWire-Bibliothek außerhalb der beiden PGWire-Adapter verbieten |
 | YAML wird zum Domain Model | Separate Persistenz-DTOs im Recording Adapter, sobald Domain- und YAML-Modell auseinanderlaufen |
-| Zu breite Port-Interfaces (Durchreichen roher Connections oder `pgproto3`-Typen wäre nur scheinbar hexagonal) | Ports in fachlichen Begriffen definieren und bewusst klein halten |
+| Zu breite Port-Interfaces (Durchreichen roher Connections oder Typ der PGWire-Bibliotheken wäre nur scheinbar hexagonal) | Ports in fachlichen Begriffen definieren und bewusst klein halten |

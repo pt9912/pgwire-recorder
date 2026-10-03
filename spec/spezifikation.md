@@ -59,6 +59,8 @@ Verpflichtende Optionen von `record`:
 | `--upstream` | Adresse des realen PostgreSQL-Servers |
 | `--output` | Zieldatei des Recordings |
 
+Optional: `--force` (Zieldatei überschreiben, Default aus; siehe LH-FA-07.a).
+
 Beispiel:
 
 ```bash
@@ -80,8 +82,9 @@ pgwire-recorder record \
    Antworten des Upstreams an den Client. Der Recorder verändert fachliche
    Inhalte nicht.
 
-**Fehlermodi:** Listen-Port nicht zu öffnen und Upstream nicht erreichbar →
-Exit-Code `4` (`SPEC-017`).
+**Fehlermodi:** Listen-Port nicht zu öffnen → Startfehler, Exit-Code `4`
+(`PGR-E4001`); Upstream nicht erreichbar → Verbindungsfehler, `PGR-E4002`
+(Fehlerebenen: LH-FA-13.b).
 
 ---
 
@@ -89,6 +92,14 @@ Exit-Code `4` (`SPEC-017`).
 
 Eine Simple-Query-Interaktion gilt als abgeschlossen, sobald das zugehörige
 `ReadyForQuery` des Servers verarbeitet wurde.
+
+**Verbindungsende.** Endet die Client-Verbindung nach einem `ReadyForQuery`,
+mit oder ohne `Terminate`, ist das regulär; die Session wird mit ihren
+abgeschlossenen Interaktionen übernommen. Bricht die Client- oder die
+Upstream-Verbindung vor dem `ReadyForQuery` einer laufenden Interaktion ab, ist
+das ein unerwartetes Verbindungsende (Verbindungsfehler, `PGR-E4003`); die
+unvollständige Interaktion wird nicht in das Recording übernommen, die
+vorherigen Interaktionen der Session bleiben erhalten.
 
 ---
 
@@ -104,6 +115,9 @@ Verpflichtende Optionen von `replay`:
 | `--listen` | Adresse, auf der der Replay-Server Clients annimmt |
 | `--input` | Zu verwendendes Recording |
 
+Optional: `--fail-on-unconsumed` (nicht verbrauchte Interaktionen als Fehler
+werten, Default aus; siehe LH-FA-03.b).
+
 Beispiel:
 
 ```bash
@@ -116,9 +130,14 @@ pgwire-recorder replay \
 
 1. Im Replay-Modus wird keine Verbindung zu einem realen PostgreSQL-Server
    benötigt.
-2. Jede eingehende Client-Verbindung erhält einen eigenen Replay-Cursor.
-3. Der Cursor zeigt auf die nächste erwartete Interaktion der zugeordneten
-   Recording-Session.
+2. Beim Start wird das Recording geladen und geprüft. Ein nicht lesbares oder
+   beschädigtes Recording oder eine unbekannte Version endet als Startfehler
+   mit Exit-Code `3`; ein Recording ohne Session ist nicht verwendbar (Exit-Code `3`,
+   `PGR-E3004`); ein Recording mit mehr als einer Session wird als nicht
+   unterstützt abgelehnt (Exit-Code `6`, `PGR-E6003`; siehe LH-FA-12.a).
+3. Jede eingehende Client-Verbindung erhält einen eigenen Replay-Cursor.
+4. Der Cursor zeigt auf die nächste erwartete Interaktion der Session des
+   Recordings; er beginnt je Verbindung am Anfang dieser Session.
 
 ---
 
@@ -127,9 +146,11 @@ pgwire-recorder replay \
 Wird eine Replay-Session beendet, bevor alle ihr zugeordneten Interaktionen
 verbraucht wurden, wird dies mindestens als Warnung mit dem Meldungscode `PGR-W2001` protokolliert (`SPEC-034`).
 
-Für CI ist optional ein Strictness-Schalter vorgesehen, mit dem dies als Fehler
-gewertet wird. Der Default dieses Zusatzschalters wird bei der Implementierung
-festgelegt (`SPEC-012`); Query-Mismatches selbst bleiben immer Fehler.
+Die Option `--fail-on-unconsumed` (Umgebungsvariable
+`PGWIRE_RECORDER_FAIL_ON_UNCONSUMED`) wertet dies als Fehler: Die Verbindung
+zählt als fehlerhaft beendet (`PGR-E5002`, Exit-Code `5`, Fehlerebenen:
+LH-FA-13.b). Der Default ist aus (`SPEC-012`); Query-Mismatches sind unabhängig
+davon immer Fehler.
 
 ---
 
@@ -164,14 +185,16 @@ werden in ihrer Reihenfolge aufgezeichnet. Dazu gehören insbesondere:
 - `ParameterStatus`
 - `ReadyForQuery`
 
-Die konkrete Menge ist nicht auf diese Liste beschränkt.
+Die konkrete Menge ist nicht auf diese Liste beschränkt. Eine Serverantwort,
+die die PGWire-Bibliothek nicht verlustfrei repräsentiert, ist eine nicht
+unterstützte Interaktion (`PGR-E6001`).
 
 **Nicht unterstützte Protokollnachrichten.** Trifft v1 auf eine
 Client-Interaktion, die als nicht unterstützt klassifiziert ist, schlägt das Tool
 kontrolliert fehl beziehungsweise beendet die betroffene Verbindung mit einer
 verständlichen Diagnose (Exit-Code `6`, `SPEC-019`). Es wird keine scheinbar
-erfolgreiche Aufzeichnung erzeugt, wenn für die betreffende Session wesentliche
-Nachrichten nicht korrekt verarbeitet wurden.
+erfolgreiche Aufzeichnung erzeugt: Eine Session, in der eine nicht unterstützte
+Interaktion auftrat, wird nicht in das Recording übernommen.
 
 **Extended Query Protocol.** Nicht Teil des zugesicherten v1-Scopes sind
 insbesondere `Parse`, `Bind`, `Describe`, `Execute`, `Sync` und Prepared
@@ -200,10 +223,11 @@ kontrollierten Testumgebung.
 TLS-Passthrough ohne Protokolleinsicht reicht für Recording nicht aus. TLS-
 Terminierung beziehungsweise TLS-Unterstützung ist daher **kein Muss für v1**.
 
-Versucht ein Client eine in v1 nicht unterstützte SSL/TLS-Aushandlung, ist das
-Verhalten eindeutig und dokumentiert. Für den initialen v1-Umfang darf der
-Recorder TLS ablehnen und einen unverschlüsselten PGWire-Verbindungsaufbau
-verlangen. TLS-Unterstützung ist eine spätere Erweiterung.
+Versucht ein Client eine SSL/TLS-Aushandlung (`SSLRequest`), lehnt der Recorder
+sie mit dem Einzelbyte `N` ab und erwartet einen unverschlüsselten
+PGWire-Verbindungsaufbau auf derselben Verbindung. Besteht der Client auf TLS
+und bricht ab, ist das kein Fehler des Recorders. TLS-Unterstützung ist eine
+spätere Erweiterung.
 
 ---
 
@@ -215,6 +239,32 @@ andere Query-Nachrichten aufgezeichnet und strikt sequenziell wiedergegeben.
 Der Recorder implementiert im Replay-Modus keine eigene Transaktionslogik. Der
 beobachtbare Transaktionsstatus wird durch die aufgezeichneten Serverantworten,
 insbesondere `ReadyForQuery`, reproduziert.
+
+---
+
+### LH-FA-05.e — Protokollversion und Protokollrand
+
+**Protokollversion.** v1 unterstützt PGWire-Protokollversion 3.0. Enthält die
+`StartupMessage` eine andere Protokollversion, beantwortet der Recorder sie mit
+einer `ErrorResponse` und beendet die Verbindung (`PGR-E6002`, Klasse
+„nicht unterstützt", Exit-Code `6`). Im Record-Modus ist jeder PostgreSQL-Server
+zulässig, der PGWire 3.0 spricht (`SPEC-029`).
+
+**Protokollrand.** Folgende Interaktionen sind in v1 eindeutig behandelt:
+
+| Interaktion | Verhalten |
+|---|---|
+| `SSLRequest` | mit `N` abgelehnt (LH-FA-05.c) |
+| `GSSENCRequest` | mit `N` abgelehnt |
+| `CancelRequest` | Verbindung wird geschlossen, nicht an den Upstream weitergeleitet; kein Verbindungsfehler, Warnung `PGR-W3001` |
+| Extended-Query-Nachrichten (`Parse`, `Bind`, `Describe`, `Execute`, `Sync`) | nicht unterstützt (`PGR-E6001`) |
+| `COPY`-Nachrichten | nicht unterstützt (`PGR-E6001`) |
+| `FunctionCall` | nicht unterstützt (`PGR-E6001`) |
+| `NotificationResponse` (asynchron, z. B. nach `LISTEN`) | nicht unterstützt (`PGR-E6001`) |
+| SQL-Befehle `LISTEN`/`NOTIFY` als `Query` | wie jede andere Query aufgezeichnet |
+
+Bei einer nicht unterstützten Interaktion wird die betroffene Verbindung mit
+einer `ErrorResponse` beendet; Fehlerebenen: LH-FA-13.b.
 
 ---
 
@@ -236,21 +286,34 @@ Voraussetzung für ein erfolgreiches Replay.
 
 ### LH-FA-07.a — Sicheres Schreiben des Recordings
 
-**Eingabe:** abgeschlossene oder abgebrochene Record-Läufe. **Ausgabe:** Datei
-unter dem `--output`-Pfad.
+**Eingabe:** Sessions eines Record-Laufs. **Ausgabe:** Datei unter dem
+`--output`-Pfad.
 
-**Schritte:**
+**Zielpfad beim Start.** Existiert der `--output`-Pfad bereits und ist `--force`
+nicht gesetzt, endet `record` als Startfehler mit Exit-Code `2` (`PGR-E2002`),
+bevor eine Verbindung angenommen wird. Mit `--force` ersetzt der erste
+Schreibvorgang die vorhandene Datei.
 
-1. Die Implementierung schreibt zunächst in eine temporäre Datei.
-2. Beim erfolgreichen Abschluss wird sie atomar beziehungsweise bestmöglich
-   atomar auf die Zieldatei verschoben.
+**Schreibzeitpunkt.** Das Recording wird nach dem Ende jeder Session und beim
+kontrollierten Beenden (LH-FA-13.a) als Ganzes neu geschrieben; es enthält alle
+bis dahin beendeten Sessions. Ein Lauf, in dem sich kein Client verbunden hat,
+schreibt ein gültiges Recording ohne Sessions; eine Session ohne Anfrage wird
+als Session ohne Interaktionen aufgezeichnet.
 
-Ein erfolgreich beendeter Record-Lauf hinterlässt keine syntaktisch
-unvollständige Recording-Datei. Bei einem Abbruch darf eine temporäre
-beziehungsweise als unvollständig erkennbare Datei verbleiben; sie wird nicht
-stillschweigend als gültiges Recording behandelt.
+**Schritte je Schreibvorgang:**
 
-**Fehlermodi:** Recording nicht lesbar/schreibbar, unbekannte Version oder
+1. Die Implementierung schreibt zunächst in eine temporäre Datei im Verzeichnis
+   der Zieldatei.
+2. Sie verschiebt die temporäre Datei atomar beziehungsweise bestmöglich atomar
+   auf die Zieldatei.
+
+Die Zieldatei ist damit zu jedem Zeitpunkt entweder nicht vorhanden oder ein
+vollständiges Recording; sie ist nie syntaktisch unvollständig. Bei einem
+Abbruch darf eine temporäre Datei verbleiben; sie wird nicht stillschweigend als
+gültiges Recording behandelt.
+
+**Fehlermodi:** vorhandenes `--output` ohne `--force` → Exit-Code `2`
+(`PGR-E2002`); Recording nicht lesbar/schreibbar, unbekannte Version oder
 beschädigt → Exit-Code `3` (`SPEC-016`).
 
 ---
@@ -264,7 +327,7 @@ bestimmt (siehe LH-FA-02.a und LH-FA-03.a).
 
 ### LH-FA-09.a — Strict sequential matching
 
-v1 verwendet **strict sequential matching**; Replay ist standardmäßig strict
+v1 verwendet als einziges Matching-Verfahren **strict sequential matching**
 (`SPEC-011`): Anfragen müssen in der erwarteten Reihenfolge zur Aufzeichnung
 passen.
 
@@ -324,12 +387,13 @@ Recording (`SPEC-002`) erhalten die Reihenfolge der Interaktionen.
 **Recording.** Mehrere Client-Verbindungen dürfen parallel angenommen werden.
 Jede Verbindung wird als separate Session im Recording geführt.
 
-**Replay.** v1 garantiert deterministisches Replay für Recordings mit einer
-einzelnen Session. Mehrere aufgezeichnete Sessions dürfen im Format
-repräsentiert werden, gelten aber erst dann als vollständig unterstützter
-Replay-Anwendungsfall, wenn eine eindeutige Session-Zuordnungsstrategie
-implementiert und getestet ist. Damit wird verhindert, dass v1 bei parallelen
-Verbindungen nichtdeterministisch eine falsche Session auswählt.
+**Replay.** v1 garantiert deterministisches Replay für Recordings mit genau
+einer Session. Ein Recording mit mehr als einer Session wird beim Start
+abgelehnt (`PGR-E6003`, Exit-Code `6`): Eine Session-Zuordnungsstrategie gibt es
+in v1 nicht, damit Replay bei parallelen Verbindungen nicht
+nichtdeterministisch eine falsche Session auswählt. Mehrere Client-Verbindungen
+gegen ein Ein-Session-Recording sind zulässig; jede Verbindung beginnt am Anfang
+der Session (LH-FA-03.a).
 
 ---
 
@@ -339,8 +403,35 @@ Auf `SIGINT` und `SIGTERM` fährt der Prozess kontrolliert herunter:
 
 - keine neuen Verbindungen annehmen,
 - laufende Schreiboperationen soweit möglich abschließen,
-- Recording konsistent abschließen, wenn der Zustand dies erlaubt,
-- andernfalls das Recording als unvollständig behandeln (siehe LH-FA-07.a).
+- Sessions, die noch laufen, nach Abschluss ihrer laufenden Interaktion
+  beenden; eine nicht abgeschlossene Interaktion wird nicht übernommen
+  (LH-FA-02.b),
+- das Recording schreiben (LH-FA-07.a); schlägt das Schreiben fehl, bleibt die
+  Zieldatei der letzte vollständig geschriebene Stand.
+
+Der Exit-Code nach einem kontrollierten Herunterfahren folgt LH-FA-13.b.
+
+---
+
+### LH-FA-13.b — Fehlerebenen und Prozessstatus
+
+**Startfehler** (ungültige Konfiguration, Listen-Port nicht zu öffnen,
+Recording nicht ladbar, vorhandenes `--output` ohne `--force`, Recording mit
+mehr als einer Session im Replay) beenden den Prozess sofort mit dem Exit-Code
+der Klasse (`SPEC-013` bis `SPEC-019`), bevor eine Verbindung angenommen wird.
+
+**Verbindungsfehler** (Upstream nicht erreichbar, Replay-Mismatch, nicht
+unterstützte Interaktion, unerwartetes Verbindungsende, bei
+`--fail-on-unconsumed` nicht verbrauchte Interaktionen) beenden nur die
+betroffene Verbindung. Dem Client wird, wo das Protokoll es erlaubt, eine
+`ErrorResponse` mit dem Meldungscode im Meldungstext zugestellt. Der Prozess
+läuft weiter und merkt sich die Klasse des ersten aufgetretenen
+Verbindungsfehlers.
+
+**Prozessende.** Nach einem kontrollierten Herunterfahren ist der Exit-Code der
+der gemerkten Klasse, sonst `0`. Schlägt dabei das Schreiben des Recordings
+fehl, ist er `3` und hat Vorrang vor der gemerkten Klasse. Beendet der Prozess nicht kontrolliert (zum Beispiel durch
+`SIGKILL`), gilt kein Exit-Code der Spezifikation.
 
 ---
 
@@ -349,7 +440,8 @@ Auf `SIGINT` und `SIGTERM` fährt der Prozess kontrolliert herunter:
 Logs werden nach `stderr` geschrieben (`SPEC-006`); Nutzdaten beziehungsweise
 maschinenlesbare Ausgaben auf `stdout` werden dadurch nicht verunreinigt.
 Unterstützte Log-Level sind mindestens `error`, `warn`, `info`, `debug`;
-Standard ist `info` (`SPEC-005`).
+Standard ist `info` (`SPEC-005`). Die Detailstufe wird über `--log-level`
+(Umgebungsvariable `PGWIRE_RECORDER_LOG_LEVEL`) gesetzt.
 
 Passwörter aus Verbindungsdaten werden nicht absichtlich in Logs ausgegeben.
 
@@ -396,6 +488,20 @@ angegeben, gilt (`SPEC-007`):
 CLI-Argument > Umgebungsvariable > Standardwert
 ```
 
+Der Name der Umgebungsvariablen einer Option ist das Präfix, gefolgt vom
+Optionsnamen in Großbuchstaben mit `_` statt `-`; boolesche Werte lauten `true`
+oder `false`.
+
+| Option | Kommando | Umgebungsvariable | Default |
+|---|---|---|---|
+| `--listen` | `record`, `replay` | `PGWIRE_RECORDER_LISTEN` | — (Pflicht) |
+| `--upstream` | `record` | `PGWIRE_RECORDER_UPSTREAM` | — (Pflicht) |
+| `--output` | `record` | `PGWIRE_RECORDER_OUTPUT` | — (Pflicht) |
+| `--force` | `record` | `PGWIRE_RECORDER_FORCE` | `false` |
+| `--input` | `replay` | `PGWIRE_RECORDER_INPUT` | — (Pflicht) |
+| `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` (`SPEC-012`) |
+| `--log-level` | `record`, `replay` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` (`SPEC-005`) |
+
 ---
 
 ## 2. Datenstrukturen und Schemas
@@ -418,7 +524,11 @@ format: pgwire-recorder
 version: 1
 ```
 
-Unbekannte Major-Versionen werden abgelehnt (Exit-Code `3`, `SPEC-016`).
+`version` ist eine einzelne ganze Zahl und zählt inkompatible Änderungen des
+Formats; abwärtskompatible Ergänzungen (neue optionale Felder) ändern sie nicht.
+Ein Leser lehnt jede `version` ab, die er nicht kennt (`PGR-E3002`), und ein
+Recording ohne oder mit abweichender `format`-Kennung als beschädigt
+(`PGR-E3003`); beides endet mit Exit-Code `3` (`SPEC-016`).
 
 ### SPEC-002 — Recording: logisches Modell
 
@@ -462,6 +572,10 @@ ursprünglichen Bytes.
 
 Die Ausgabe ist deterministisch, soweit keine fachlich notwendige Information
 dagegen spricht. Das reduziert unnötige Änderungen in Versionskontrollsystemen.
+Der Recorder trägt keine rechnerspezifischen Angaben (Dateipfade, Hostnamen,
+Adressen) in das Recording ein; vom Client oder Server gelieferte Werte
+(Startup-Parameter, `ParameterStatus`) werden unverändert aufgezeichnet. Das
+Recording ist damit auf einen anderen Rechner kopierbar.
 
 ## 3. Defaults und Konstanten
 
@@ -481,8 +595,8 @@ Sensor bemerkt, wenn eine umbenannt wird.
 | `SPEC-008` | Präfix der Umgebungsvariablen | `PGWIRE_RECORDER_` | eindeutiger Namensraum (LH-FA-17) |
 | `SPEC-009` | Dateiendung des Recordings | `.yaml` | menschenlesbar, diff-freundlich (LH-FA-07) |
 | `SPEC-010` | Formatkennung / Formatversion | `pgwire-recorder` / `1` | Erkennbarkeit inkompatibler Änderungen (LH-QA-06) |
-| `SPEC-011` | Replay-Matching | strict sequential | Determinismus (LH-FA-09, LH-QA-01) |
-| `SPEC-012` | Strictness-Schalter für nicht verbrauchte Interaktionen | Default bei Implementierung festzulegen | CI-Eignung; Query-Mismatches bleiben immer Fehler (LH-FA-10) |
+| `SPEC-011` | Replay-Matching | strict sequential (einziges Verfahren in v1) | Determinismus (LH-FA-09, LH-QA-01) |
+| `SPEC-012` | `--fail-on-unconsumed` | `false` | nicht verbrauchte Interaktionen sind standardmäßig eine Warnung; Query-Mismatches bleiben immer Fehler (LH-FA-10) |
 
 ## 4. Fehler-Codes und Logging-Felder
 
@@ -497,13 +611,13 @@ Implementierung darf intern detailliertere Fehler unterscheiden, solange diese
 
 | ID | Code | Bedingung | Aktion |
 |---|---|---|---|
-| `SPEC-013` | 0 | erfolgreicher Programmabschluss | Prozess endet mit Erfolg |
-| `SPEC-014` | 2 | ungültige CLI-Verwendung oder Konfiguration | Fehlertext auf `stderr`, Prozess endet |
+| `SPEC-013` | 0 | erfolgreicher Programmabschluss, auch kontrolliertes Herunterfahren ohne zuvor aufgetretenen Verbindungsfehler | Prozess endet mit Erfolg |
+| `SPEC-014` | 2 | ungültige CLI-Verwendung oder Konfiguration, vorhandenes `--output` ohne `--force` | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-015` | 1 | sonstiger Fehler | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-016` | 3 | Recording-Datei ungültig oder nicht zugreifbar | Fehlertext auf `stderr`, Prozess endet |
-| `SPEC-017` | 4 | Netzwerk-/Upstream-Fehler | Fehlertext auf `stderr`, Prozess endet |
-| `SPEC-018` | 5 | Replay-Mismatch | Diagnose nach LH-FA-10.a, Prozess endet |
-| `SPEC-019` | 6 | nicht unterstützte PGWire-Funktion | Diagnose, Verbindung wird beendet beziehungsweise Prozess endet |
+| `SPEC-017` | 4 | Netzwerk-/Upstream-Fehler | Startfehler: Prozess endet; Verbindungsfehler: Verbindung endet, Prozessende nach LH-FA-13.b |
+| `SPEC-018` | 5 | Replay-Mismatch, bei `--fail-on-unconsumed` auch nicht verbrauchte Interaktionen | Diagnose nach LH-FA-10.a, Verbindung endet, Prozessende nach LH-FA-13.b |
+| `SPEC-019` | 6 | nicht unterstützte PGWire-Funktion | Diagnose, Verbindung endet, Prozessende nach LH-FA-13.b; Startfehler (Mehr-Session-Recording): Prozess endet |
 
 **Fehlerklassen.** Mindestens folgende Klassen werden unterschieden und
 erzeugen einen für Entwickler verständlichen Text:
@@ -537,7 +651,7 @@ der Klasse: ein klassifizierter Fehler ohne Einzelursache trägt den Rückfall
 seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 
 **Warnungen.** Die erste Ziffer ist der Bereich: 1 Record, 2 Replay,
-5 Konfiguration und Start, 9 reserviert. Eine Warnung trägt keine Klasse und
+3 Protokollrand (beide Modi), 5 Konfiguration und Start, 9 reserviert. Eine Warnung trägt keine Klasse und
 ändert den Exit Code nicht.
 
 | Code | Klasse / Bereich | Bedeutung |
@@ -545,19 +659,25 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E1000` | sonstiger Fehler (Exit 1) | Rückfall; unerwarteter interner Fehler |
 | `PGR-E2000` | Konfiguration (Exit 2) | Rückfall |
 | `PGR-E2001` | Konfiguration (Exit 2) | ungültige CLI-Verwendung oder Konfiguration (`SPEC-020`) |
+| `PGR-E2002` | Konfiguration (Exit 2) | `--output` existiert bereits und `--force` ist nicht gesetzt (LH-FA-07.a) |
 | `PGR-E3000` | Recording (Exit 3) | Rückfall |
 | `PGR-E3001` | Recording (Exit 3) | Recording nicht lesbar oder nicht schreibbar (`SPEC-023`) |
 | `PGR-E3002` | Recording (Exit 3) | unbekannte Recording-Version (`SPEC-024`) |
 | `PGR-E3003` | Recording (Exit 3) | beschädigtes Recording (`SPEC-025`) |
+| `PGR-E3004` | Recording (Exit 3) | Recording ohne Session im Replay nicht verwendbar (LH-FA-03.a) |
 | `PGR-E4000` | Netzwerk (Exit 4) | Rückfall |
 | `PGR-E4001` | Netzwerk (Exit 4) | Listen-Port nicht zu öffnen (`SPEC-021`) |
 | `PGR-E4002` | Netzwerk (Exit 4) | Upstream nicht erreichbar (`SPEC-022`) |
 | `PGR-E4003` | Netzwerk (Exit 4) | unerwartetes Verbindungsende (`SPEC-028`) |
 | `PGR-E5000` | Replay (Exit 5) | Rückfall |
 | `PGR-E5001` | Replay (Exit 5) | Replay-Mismatch (`SPEC-027`) |
+| `PGR-E5002` | Replay (Exit 5) | nicht verbrauchte Interaktionen bei `--fail-on-unconsumed` (LH-FA-03.b) |
 | `PGR-E6000` | nicht unterstützt (Exit 6) | Rückfall |
 | `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`) |
+| `PGR-E6002` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Protokollversion (LH-FA-05.e) |
+| `PGR-E6003` | nicht unterstützt (Exit 6) | Recording mit mehreren Sessions im Replay (LH-FA-12.a) |
 | `PGR-W2001` | Replay | Sitzung endet vor Verbrauch aller Interaktionen (LH-FA-03.b) |
+| `PGR-W3001` | Protokollrand | `CancelRequest` empfangen und nicht weitergeleitet (LH-FA-05.e) |
 
 **Ausgabe.** Der Fehlertext (Fehlerwert, Zeile beim Prozessende, Attribut
 `error` einer Log-Zeile) beginnt mit dem Kopf `<klasse> [<code>]: <Ursache>`
@@ -582,7 +702,7 @@ Für v1 sind keine Metriken und Tracing-Felder festgelegt.
 
 | ID | System | Version | Vertrag-Datei |
 |---|---|---|---|
-| `SPEC-029` | PostgreSQL (Upstream im Record-Modus), PGWire | unterstützte Versionen offen | — |
+| `SPEC-029` | PostgreSQL (Upstream im Record-Modus), PGWire | PGWire-Protokollversion 3.0; jeder Server, der sie spricht | — |
 | `SPEC-030` | `github.com/jackc/pgx/v5/pgproto3` (Verarbeitung von PGWire-Nachrichten) | Major 5 | — |
 | `SPEC-031` | Container-Image `pgwire-recorder` | — | — |
 
@@ -595,7 +715,8 @@ folgende Ziele:
 
 - Streaming statt vollständigem Puffern großer Resultsets, soweit mit
   Recording-Format und Konsistenz vereinbar,
-- keine künstliche Speicherung kompletter Datenbanksitzungen im RAM,
+- keine zusätzliche Kopie von Resultsets neben der Aufzeichnung; eine Session
+  wird bis zum Schreiben des Recordings im Speicher gehalten,
 - zusätzlicher Proxy-Overhead bleibt für typische Integrationstests praktisch
   vertretbar.
 
@@ -611,7 +732,15 @@ Für v1 werden keine harten Latenz- oder Durchsatz-SLAs zugesichert.
   erforderlich sind.
 - Replay lauscht standardmäßig nur auf der explizit angegebenen Listen-Adresse.
 
+### SPEC-035 — Zielplattformen
+
+Das Binary ist für Linux auf `amd64` und `arm64` bereitgestellt; sie sind die
+in v1 zugesicherten Plattformen. Weitere Umgebungen sind nicht ausgeschlossen,
+aber nicht zugesichert.
+
 ## 8. Technische Leitentscheidungen und Architekturvorgabe
+
+### SPEC-036 — Technische Leitentscheidungen
 
 Für v1 gelten folgende Festlegungen:
 
@@ -621,12 +750,14 @@ Für v1 gelten folgende Festlegungen:
   abdeckt (`SPEC-030`).
 - Unterstützung des **Simple Query Protocol** als fachlicher Kern; das Extended
   Query Protocol ist keine zugesicherte v1-Funktion.
-- Replay ist standardmäßig **strict** (`SPEC-011`).
+- Das einzige Replay-Matching ist **strict sequential** (`SPEC-011`).
 - Keine automatische Maskierung oder Redaktion von Recording-Inhalten.
 - Das Tool ist für lokale Entwicklung, automatisierte Tests, CI und
   Containerbetrieb ausgelegt.
 
-**Architektur.** Die Implementierung folgt einer **hexagonalen Architektur
+### SPEC-037 — Architekturvorgabe
+
+Die Implementierung folgt einer **hexagonalen Architektur
 (Ports & Adapters)** mit folgender Terminologie:
 
 ```text
@@ -638,14 +769,16 @@ Konkrete Infrastrukturabhängigkeiten wie `pgproto3`, YAML, TCP und Dateisystem
 sind nicht Bestandteil des Domain Models. Detaillierte Regeln und
 Package-Grenzen stehen in `spec/architecture.md`.
 
-**Architektur-Gate.** Die hexagonalen Abhängigkeitsregeln werden über eine
-`.a-check.yml` mit **a-check** automatisiert geprüft. Das Gate ist für CI
-vorgesehen und meldet Architekturverletzungen als fehlgeschlagenen Check.
-Driving Adapter verwenden Inbound Ports; Driven Adapter implementieren
-beziehungsweise verwenden Outbound Ports. Infrastrukturtechnologien wie
-`pgproto3` und YAML sind auf die dafür vorgesehenen Adapter begrenzt.
+**Architektur-Gate.** Die hexagonalen Abhängigkeitsregeln sind die Vorgabe für
+ein Architektur-Gate (a-check, Konfiguration `.a-check.yml`), das Verletzungen
+als fehlgeschlagenen Check meldet. Driving Adapter verwenden Inbound Ports;
+Driven Adapter implementieren beziehungsweise verwenden Outbound Ports.
+Infrastrukturtechnologien wie `pgproto3` und YAML sind auf die dafür
+vorgesehenen Adapter begrenzt.
 
 ## 9. Testanforderungen
+
+### SPEC-038 — Unit-, Integrations- und Kompatibilitätstests
 
 **Unit Tests** decken mindestens ab:
 
@@ -672,6 +805,8 @@ erwünscht, aber kein v1-Muss.
 
 ## 10. Nicht zugesichert in v1
 
+### SPEC-039 — Abgrenzung
+
 Nicht zugesichert sind insbesondere:
 
 - Extended Query Protocol,
@@ -690,9 +825,13 @@ Nicht zugesichert sind insbesondere:
 - garantierter Multi-Session-Replay bei parallelen Clients.
 
 Diese Punkte benötigen vor Aufnahme in den Produktumfang eigene Anforderungen
-und Tests.
+und Tests. „Nicht zugesichert" heißt: Die Funktion fehlt; Nachrichten und
+Interaktionen daraus werden nach LH-FA-05.e abgelehnt beziehungsweise
+behandelt, nicht still ignoriert.
 
 ## 11. Fertigstellungskriterien für v1
+
+### SPEC-040 — Fertigstellungskriterien
 
 v1 ist technisch fertig, wenn:
 
@@ -705,7 +844,8 @@ v1 ist technisch fertig, wenn:
 5. Mismatches deterministisch erkannt werden,
 6. das Recording-Format versioniert und dokumentiert ist,
 7. CLI-Hilfe, Exit Codes und grundlegende Betriebsdokumentation vorhanden sind,
-8. das Binary und ein Container-Image reproduzierbar gebaut werden können.
+8. das Binary reproduzierbar gebaut werden kann; sofern das Container-Image
+   (LH-FA-16, SOLL) umgesetzt ist, gilt das auch für das Image.
 
 ## 12. Historie
 
