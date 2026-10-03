@@ -59,7 +59,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
-- Blockiert: Welle welle-replay-semantik (Mismatch, Fehlerreplay und Exit Codes bauen auf Recorder und Replay-Pfad auf).
+- Blockiert: Welle welle-extended-query (baut auf Recorder und Replay-Pfad auf).
 - Wird blockiert von: — (nach erfüllten Start-Triggern keine weitere Welle).
 - Innerhalb der Welle: `slice-walking-skeleton-record` und `slice-walking-skeleton-replay` setzen `slice-walking-skeleton-build-gates` voraus; `slice-walking-skeleton-replay` nutzt das Recording aus `slice-walking-skeleton-record`.
 
@@ -73,7 +73,8 @@ der Closure-Trigger unerreichbar wird.
 - Mismatch-Diagnose, Exit-Code-Zuordnung und Fehlerreplay — Gegenstand von welle-replay-semantik.
 - Mehrere Client-Sessions und Parallelität — Gegenstand von welle-v1-abschluss.
 - Signalbehandlung, Container-Image und Betriebsdokumentation — Gegenstand von welle-v1-abschluss.
-- TLS, Extended Query Protocol, COPY, CancelRequest — nicht Teil von v1.
+- Extended Query Protocol — Gegenstand von welle-extended-query.
+- TLS, COPY, CancelRequest — nicht Teil von v1.
 - Entscheidungen zu den offenen Spec-Punkten (Exit-Code bei Signal, vorhandenes `--output`, PGWire-Versionen, Strictness-Schalter) — fallen vor der jeweiligen Folge-Welle an, nicht hier.
 
 ## 7. Closure-Notiz

@@ -17,6 +17,9 @@ Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
 Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 - [welle-walking-skeleton](../welle-walking-skeleton.md)
+- [welle-extended-query](../welle-extended-query.md)
+- [welle-replay-semantik](../welle-replay-semantik.md)
+- [welle-v1-abschluss](../welle-v1-abschluss.md)
 
 
 
@@ -27,10 +30,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 Vorschau: je Zeile Welle, Trigger als beobachtbare Bedingung, wichtigste Slices
 und geschätzter Aufwand (S/M/L, kein Termin).
 
-| Welle | Trigger | Wichtigste Slices | Geschätzter Aufwand |
-|---|---|---|---|
-| welle-replay-semantik | welle-walking-skeleton done | Mismatch-Diagnose und Exit Codes · Fehlerreplay · Meldungs- und Fehlercodes | M |
-| welle-v1-abschluss | welle-replay-semantik done | Sessions und Parallelität · Signalbehandlung und atomares Schreiben · Container-Image · Betriebsdokumentation | L |
+Keine; alle geplanten Wellen haben eine Datei unter *Offene Wellen*.
 
 ## Meilensteine
 
@@ -42,7 +42,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 | Meilenstein | Welle(n) | Trigger | Status |
 |---|---|---|---|
 | M1 | welle-walking-skeleton | `SELECT 1;` Record, PostgreSQL stoppen, Replay mit demselben Ergebnis | offen |
-| M2 | welle-replay-semantik, welle-v1-abschluss | alle Abnahmeszenarien des Lastenhefts nachweisbar | offen |
+| M2 | welle-extended-query | Clients mit Standardtreibern (Extended Query) funktionieren mit Host/Port-Umstellung: Abnahmeszenario 7 nachweisbar | offen |
+| M3 | welle-replay-semantik, welle-v1-abschluss | Produkt fertig: alle Anforderungen (MUSS und SOLL) umgesetzt, alle sieben Abnahmeszenarien nachweisbar | offen |
 
 ## Abhängigkeitsgraph
 
@@ -55,11 +56,13 @@ eine Phantom-Welle.
 ```mermaid
 flowchart LR
     W1[welle-walking-skeleton]
-    W2[welle-replay-semantik]
-    W3[welle-v1-abschluss]
+    W2[welle-extended-query]
+    W3[welle-replay-semantik]
+    W4[welle-v1-abschluss]
 
     W1 --> W2
     W2 --> W3
+    W3 --> W4
 ```
 
 ## Abgeschlossene Wellen

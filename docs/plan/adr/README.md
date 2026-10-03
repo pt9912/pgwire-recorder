@@ -15,6 +15,7 @@
 | [0009](0009-implementierungssprache-go.md) | Implementierungssprache Go | Proposed | [`LH-FA-01`](../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung) |
 | [0010](0010-verwendung-von-pgproto3.md) | Verwendung von pgproto3 | Proposed | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
 | [0011](0011-meldungscodes-praefix-pgr.md) | Meldungscodes mit Präfix PGR | Proposed | [`LH-QA-05`](../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler) |
+| [0012](0012-extended-query-ereignisfolge.md) | Extended Query als ereignisbasierte Interaktion | Proposed | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
 
 ## Konventionen
 
