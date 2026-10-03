@@ -223,8 +223,8 @@ Protocol unterstützen. Der Funktionsumfang von v1 umfasst den Verbindungsaufbau
 (Start-up einschließlich Authentifizierung), Anfragen (`Query`), das
 Verbindungsende (`Terminate`) und die Serverantworten einer Anfrage bis
 `ReadyForQuery`, einschließlich Fehler- und Hinweisantworten sowie
-Transaktionsbefehlen als gewöhnliche Anfragen. TLS-Aushandlung ist nicht Teil
-des Funktionsumfangs.
+Transaktionsbefehlen als gewöhnliche Anfragen. TLS-Aushandlung ist nur als
+Verschlüsselung zum Client nach LH-FA-23 Teil des Funktionsumfangs.
 
 **Akzeptanzkriterien:**
 
@@ -232,7 +232,8 @@ des Funktionsumfangs.
   sie über den Recorder läuft, then wird sie aufgezeichnet beziehungsweise
   wiedergegeben.
 - **Boundary:** Given eine Interaktion am Rand des unterstützten Umfangs, when
-  sie auftritt (etwa eine TLS-Anfrage, ein Abbruchwunsch oder eine
+  sie auftritt (etwa eine TLS-Anfrage ohne Verschlüsselung nach LH-FA-23, ein
+  Abbruchwunsch oder eine
   Datenübertragung per `COPY`), then ist ihr Status (unterstützt / nicht
   unterstützt) eindeutig und dokumentiert; eine nicht unterstützte Interaktion
   wird nicht still ignoriert.
@@ -587,7 +588,9 @@ Paketmanager Homebrew installieren lassen.
 Client-Anfragen gegen einen PostgreSQL-Server ausführen können (Einspielen),
 ohne dass eine Anwendung beteiligt ist. Das Einspielen führt ausschließlich
 aufgezeichnete Anfragen aus. Es authentifiziert sich gegenüber dem Server und
-verbindet sich auf Wunsch verschlüsselt.
+verbindet sich auf Wunsch verschlüsselt; dabei prüft es das Zertifikat des Servers
+und lässt sich eine eigene Zertifizierungsstelle des Anwenders hinterlegen. Ein
+Überspringen der Prüfung gibt es nicht.
 
 **Akzeptanzkriterien:**
 
@@ -609,9 +612,9 @@ verbindet sich auf Wunsch verschlüsselt.
   gemeldet, und das Einspielen bricht ab, sofern der Anwender nicht ausdrücklich
   verlangt weiterzulaufen (siehe LH-QA-05).
 
-**Out-of-Scope:** Vergleich der Serverantworten mit der Aufzeichnung; paralleles
-Einspielen mehrerer Sessions; zeitgetreues Abspielen (siehe LH-FA-21, nur auf
-Wunsch).
+**Out-of-Scope:** Vergleich der Serverantworten mit der Aufzeichnung (nur auf
+Wunsch, siehe LH-FA-24); paralleles Einspielen mehrerer Sessions; zeitgetreues
+Abspielen (siehe LH-FA-21, nur auf Wunsch).
 
 ---
 
@@ -670,6 +673,67 @@ gleich und erkennen das Format der Datei selbst.
 
 **Out-of-Scope:** Umwandlung einer Aufzeichnung von einem Format in das andere;
 weitere Formate.
+
+---
+
+### LH-FA-23 — Verschlüsselung zum Client
+
+**Priorität:** SOLL
+
+**Beschreibung:** Das Produkt soll im Record- und im Replay-Modus auf Wunsch
+verschlüsselte Verbindungen von Clients annehmen, mit einem vom Anwender
+bereitgestellten Zertifikat und Schlüssel. Ohne diesen Wunsch lehnt es eine
+Verschlüsselungsanfrage wie bisher erkennbar ab und erwartet eine unverschlüsselte
+Verbindung (LH-FA-05). Die Verbindung zum PostgreSQL-Server im Record-Modus bleibt
+unverschlüsselt. Die Aufzeichnung enthält keine Angaben zur Verschlüsselung der
+Client-Verbindung; dieselbe Aufzeichnung ist mit und ohne Verschlüsselung
+wiedergebbar.
+
+**Akzeptanzkriterien:**
+
+- **Happy Path:** Given Zertifikat und Schlüssel, when ein Client verschlüsselt
+  verbindet, then läuft die Aufzeichnung beziehungsweise Wiedergabe wie bei einer
+  unverschlüsselten Verbindung (siehe Abnahmeszenario 15 in §7).
+- **Boundary:** Given kein Wunsch nach Verschlüsselung, when ein Client sie
+  anfragt, then wird sie erkennbar abgelehnt; given ein Wunsch nach
+  Verschlüsselung, when ein Client unverschlüsselt verbindet, then lehnt der
+  Recorder die Verbindung ab, sofern der Anwender nicht ausdrücklich beides
+  zulässt.
+- **Negative:** Given ein fehlendes oder ungültiges Zertifikat oder ein
+  nicht passender Schlüssel, when das Produkt startet, then endet der Start mit
+  einem eindeutigen Konfigurationsfehler (siehe LH-QA-05).
+
+**Out-of-Scope:** Verschlüsselung zum PostgreSQL-Server im Record-Modus;
+Prüfung von Client-Zertifikaten; Zertifikatsverwaltung und -erneuerung.
+
+---
+
+### LH-FA-24 — Vergleich der Antworten beim Einspielen
+
+**Priorität:** SOLL
+
+**Beschreibung:** Das Produkt soll beim Einspielen auf Wunsch die Antworten des
+Servers mit der Aufzeichnung vergleichen und Abweichungen melden. Verglichen werden
+die Struktur der Antwort einer Interaktion (Art und Reihenfolge der Antworten,
+Spaltenbeschreibung, Befehlsabschluss) und Fehler (Vorhandensein und SQLSTATE),
+nicht die Werte der Zeilen. Ohne den Wunsch findet kein Vergleich statt (LH-FA-20).
+
+**Akzeptanzkriterien:**
+
+- **Happy Path:** Given eine Aufzeichnung und ein Server, dessen Antworten in
+  Struktur und Fehlern der Aufzeichnung entsprechen, when mit Vergleich
+  eingespielt wird, then endet der Lauf mit Erfolg (siehe Abnahmeszenario 16 in
+  §7).
+- **Boundary:** Given Antworten, die sich nur in Zeilenwerten unterscheiden, when
+  verglichen wird, then gilt das nicht als Abweichung; given kein Wunsch nach
+  Vergleich, when eingespielt wird, then wird nicht verglichen.
+- **Negative:** Given eine Antwort mit abweichender Struktur oder einem
+  abweichenden Fehler, when verglichen wird, then wird die Abweichung mit
+  Interaktion und Art der Abweichung gemeldet, und der Lauf endet mit einem
+  eigenen Fehlerstatus (siehe LH-QA-05).
+
+**Out-of-Scope:** Vergleich der Zeilenwerte; Toleranzregeln für einzelne Felder;
+Veränderung der Aufzeichnung anhand des Vergleichs.
 
 ---
 
@@ -881,6 +945,21 @@ Eine Testanwendung wird mit dem Wunsch nach dem Datenbankdatei-Format aufgezeich
 anschließend ohne PostgreSQL im Replay-Modus ausgeführt; sie erhält dasselbe
 Verhalten wie mit der Textaufzeichnung. Dieselbe Aufzeichnung lässt sich in eine
 Datenbank einspielen. Bezug: LH-FA-22.
+
+### Abnahmeszenario 15 — Verschlüsselte Verbindung zum Client
+
+Ein Client verbindet sich verschlüsselt mit dem Recorder im Record-Modus; die
+Aufzeichnung entsteht wie bei einer unverschlüsselten Verbindung. Dieselbe
+Aufzeichnung wird im Replay-Modus einem verschlüsselt verbindenden Client
+geliefert. Ohne Wunsch nach Verschlüsselung wird die Anfrage erkennbar abgelehnt.
+Bezug: LH-FA-23.
+
+### Abnahmeszenario 16 — Vergleich beim Einspielen
+
+Eine Aufzeichnung wird mit Vergleich gegen eine PostgreSQL-Instanz eingespielt, die
+dieselbe Struktur liefert; der Lauf endet mit Erfolg. Gegen eine Instanz, deren
+Antwort in Struktur oder Fehler abweicht, meldet der Lauf die Abweichung und endet
+mit einem Fehlerstatus. Bezug: LH-FA-24.
 
 ## 8. Historie
 
