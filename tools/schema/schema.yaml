@@ -1,0 +1,86 @@
+# Neutrales Schemamodell der SQLite-Aufzeichnung (Format `sqlite`): die Quelle der
+# Schema-Form — das SQL für SQLite wird aus dieser Datei erzeugt, nicht von Hand
+# geschrieben. Die Tabellen und Spalten stehen in der Spezifikation (SPEC-043).
+schema_format: "1.0"
+name: "pgwire-recorder-recording"
+version: "1.0.0"
+description: "Aufzeichnung im SQLite-Format"
+encoding: "utf-8"
+
+tables:
+  meta:
+    description: "Formatkennung und Version der Aufzeichnung"
+    columns:
+      key:
+        type: text
+        required: true
+      value:
+        type: text
+        required: true
+    primary_key: [key]
+
+  session:
+    description: "Eine aufgezeichnete Session"
+    columns:
+      id:
+        type: integer
+        required: true
+      startup:
+        type: json
+        required: true
+    primary_key: [id]
+
+  interaction:
+    description: "Eine Interaktion einer Session (einfach oder Extended)"
+    columns:
+      session_id:
+        type: integer
+        required: true
+        references:
+          table: session
+          column: id
+          on_delete: cascade
+      sequence:
+        type: integer
+        required: true
+      type:
+        type: text
+        required: true
+        max_length: 16
+      offset_ms:
+        type: biginteger
+      sql:
+        type: text
+    primary_key: [session_id, sequence]
+
+  message:
+    description: "Eine Nachricht einer Interaktion, in Reihenfolge"
+    columns:
+      session_id:
+        type: integer
+        required: true
+        references:
+          table: session
+          column: id
+          on_delete: cascade
+      sequence:
+        type: integer
+        required: true
+      position:
+        type: integer
+        required: true
+      direction:
+        type: text
+        required: true
+        max_length: 8
+      group_no:
+        type: integer
+      kind:
+        type: text
+        required: true
+        max_length: 64
+      fields:
+        type: json
+      bytes:
+        type: binary
+    primary_key: [session_id, sequence, position]

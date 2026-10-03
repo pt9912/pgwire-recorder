@@ -71,6 +71,8 @@ Diese Datei dupliziert sie nicht.
 |---|---|---|
 | `make slice-mv` | bewegt einen Slice zwischen den Lifecycle-Verzeichnissen und zieht die Verweise nach, prüft nichts | kein Gate |
 | `make archive-welle` | archiviert die Zeitdokumente einer geschlossenen Welle | kein Gate |
+| `make schema-validate` | prüft das neutrale Schema der SQLite-Aufzeichnung mit d-migrate (netzlos), prüft sonst nichts | kein Gate |
+| `make schema-generate` | gibt das SQL für SQLite aus dem neutralen Schema auf stdout aus | kein Gate |
 | `make hooks-install` | aktiviert den git-eigenen `commit-msg`-Träger im Klon | kein Gate |
 | `make a-check-graph` | gibt den Architektur-Graphen (Mermaid) aus `.a-check.yml` aus, prüft nichts | kein Gate |
 | `make doc-trace` | gibt die Requirements Traceability Matrix aus (Anforderung, Entscheidungen, Slices), prüft nichts | kein Gate |
