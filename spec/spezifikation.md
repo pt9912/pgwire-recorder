@@ -154,7 +154,7 @@ davon immer Fehler.
 
 ---
 
-### LH-FA-05.a — Unterstützter Umfang: Simple Query Protocol
+### LH-FA-05.a — Unterstützter Umfang: Startup, Simple Query und Extended Query
 
 Startup, Simple Query Protocol, Extended Query Protocol (LH-FA-18.a) und
 Serverantworten bilden den unterstützten Umfang von v1.
@@ -164,7 +164,7 @@ notwendige Startup-Sequenz, soweit sie für die definierten Record-/Replay-
 Szenarien erforderlich ist. Startup-Parameter werden als Teil einer Session
 erfasst, soweit sie für das Replay relevant sind.
 
-**Client-Nachrichten.** Für den Kern von v1 sind relevant:
+**Client-Nachrichten.** Für das Simple Query Protocol sind relevant:
 
 - `Query`
 - `Terminate`
@@ -233,8 +233,8 @@ spätere Erweiterung.
 
 ### LH-FA-05.d — Transaktionen
 
-SQL-Transaktionsbefehle, die über Simple Query übertragen werden, werden wie
-andere Query-Nachrichten aufgezeichnet und strikt sequenziell wiedergegeben.
+SQL-Transaktionsbefehle, die über Simple Query oder Extended Query übertragen
+werden, werden wie andere Anfragen aufgezeichnet und strikt sequenziell wiedergegeben.
 
 Der Recorder implementiert im Replay-Modus keine eigene Transaktionslogik. Der
 beobachtbare Transaktionsstatus wird durch die aufgezeichneten Serverantworten,
@@ -270,12 +270,13 @@ einer `ErrorResponse` beendet; Fehlerebenen: LH-FA-13.b.
 
 ### LH-FA-06.a — Inhalt der Aufzeichnung
 
-Für jede unterstützte Query wird mindestens gespeichert:
+Für jede unterstützte Interaktion (einfache Query oder Extended-Interaktion) wird
+mindestens gespeichert:
 
 - Session-Zuordnung,
 - fortlaufende Interaktionsnummer,
-- Anfrageart,
-- SQL-Text,
+- Anfrageart (einfach oder Extended),
+- SQL-Text beziehungsweise die Client-Nachrichten der Extended-Interaktion,
 - geordnete Folge der zugehörigen Serverantworten,
 - für das Replay notwendige PGWire-Felder.
 
@@ -364,7 +365,7 @@ Bei einem Mismatch enthält die Diagnose mindestens:
 - tatsächlich empfangene Query.
 
 Der Recorder springt nicht zur nächsten Interaktion und führt keine Fuzzy-Suche
-durch. Sendet ein Client weitere Queries, obwohl keine aufgezeichnete
+durch. Sendet ein Client weitere Anfragen, obwohl keine aufgezeichnete
 Interaktion mehr verfügbar ist, wird dies als Replay-Mismatch behandelt.
 
 **Fehlermodi:** Replay-Mismatch → Exit-Code `5` (`SPEC-018`).
@@ -382,7 +383,7 @@ einschließlich des abschließenden `ReadyForQuery`, wiedergegeben.
 ### LH-FA-12.a — Reihenfolge, Sessions und Parallelität
 
 **Interaktionsreihenfolge.** `sequence` und die geordnete Response-Liste im
-Recording (`SPEC-002`) erhalten die Reihenfolge der Interaktionen.
+Recording (`SPEC-002`, `SPEC-041`) erhalten die Reihenfolge der Interaktionen.
 
 **Recording.** Mehrere Client-Verbindungen dürfen parallel angenommen werden.
 Jede Verbindung wird als separate Session im Recording geführt.
@@ -399,7 +400,8 @@ der Session (LH-FA-03.a).
 
 ### LH-FA-13.a — Signalbehandlung
 
-Auf `SIGINT` und `SIGTERM` fährt der Prozess kontrolliert herunter:
+Auf `SIGINT` und `SIGTERM` fährt der Prozess kontrolliert herunter. Unter
+Windows entspricht der Konsolenabbruch (`Strg+C`, `Strg+Break`) einem `SIGINT`:
 
 - keine neuen Verbindungen annehmen,
 - laufende Schreiboperationen soweit möglich abschließen,
@@ -458,8 +460,12 @@ Alle Kommandos sind vollständig nicht-interaktiv; sie fragen keine Eingaben ab
 
 ### LH-FA-16.a — Containerbetrieb
 
-Das Projekt kann ein Container-Image bereitstellen (`SPEC-031`). Das Binary hat
-keine Laufzeitabhängigkeit auf eine lokale PostgreSQL-Installation.
+Das Projekt stellt ein Docker/OCI-konformes Container-Image bereit
+(`SPEC-031`): ein Linux-Image für `linux/amd64` und `linux/arm64` in einer
+einzigen Manifestliste, das das Binary ohne weitere Laufzeitabhängigkeit
+enthält. Das Binary hat keine Laufzeitabhängigkeit auf eine lokale
+PostgreSQL-Installation. Das Image läuft mit jedem OCI-kompatiblen
+Container-Laufzeitsystem.
 
 Beispiel:
 
@@ -513,23 +519,53 @@ oder `false`.
 `NoticeResponse`, `ReadyForQuery`.
 
 **Interaktion.** Eine Extended-Interaktion beginnt mit der ersten
-Extended-Nachricht und endet mit dem `ReadyForQuery`, das auf ein `Sync`
-folgt. Eine Session mischt Simple- und Extended-Interaktionen in der
-aufgezeichneten Reihenfolge.
+Extended-Nachricht nach dem Sessionbeginn oder nach dem `Sync` der vorherigen
+Interaktion und endet mit dem `ReadyForQuery`, das auf ihr `Sync` folgt.
+Client-Nachrichten, die nach einem `Sync` eintreffen, bevor dessen
+`ReadyForQuery` eingetroffen ist, gehören zur nächsten Interaktion. Eine Session
+mischt Simple- und Extended-Interaktionen in der aufgezeichneten Reihenfolge.
+
+**Abbruch.** Endet die Verbindung, bevor das `ReadyForQuery` einer Interaktion
+verarbeitet wurde, auch nach einem `Terminate` oder nach einem `Flush` ohne
+`Sync`, ist das ein unerwartetes Verbindungsende (`PGR-E4003`, LH-FA-02.b): die
+unvollständige Interaktion wird nicht übernommen, die vorherigen Interaktionen
+der Session bleiben erhalten.
 
 **Record.** Der Recorder leitet alle Nachrichten unverändert und in
 Ankunftsreihenfolge weiter, auch wenn der Client mehrere Nachrichten sendet,
-ohne auf Antworten zu warten (Pipelining). Er zeichnet die Interaktion als
-geordnete Ereignisfolge auf (`SPEC-041`): jede Client- und jede
-Server-Nachricht ist ein Ereignis. Zeitverhalten wird nicht aufgezeichnet.
+ohne auf Antworten zu warten (Pipelining). Zeichnet er die Interaktion auf,
+gruppiert er sie (`SPEC-041`); Zeitverhalten wird nicht aufgezeichnet.
 
-**Replay.** Der Replay-Cursor zeigt auf das nächste erwartete Client-Ereignis.
-Jede eingehende Client-Nachricht muss in allen Feldern dem erwarteten Ereignis
-entsprechen: Nachrichtentyp, Statement- und Portalname, SQL-Text,
-Parametertypen, Format-Codes, Parameterwerte (bytegenau), `max_rows`. Nach
-einer Übereinstimmung sendet der Recorder die aufgezeichneten Server-Ereignisse,
-die diesem Client-Ereignis folgen, bis zum nächsten Client-Ereignis, das er
-noch nicht empfangen hat; `ReadyForQuery` folgt erst nach dem `Sync`. Das
+**Gruppen.** Eine Extended-Interaktion besteht aus einer oder mehreren Gruppen.
+Eine Gruppe endet mit einem `Sync` oder einem `Flush`. Innerhalb einer Gruppe
+stehen in der Aufzeichnung zuerst alle Client-Nachrichten in Sendereihenfolge,
+danach alle Server-Nachrichten, die auf die Gruppe antworten, in
+Empfangsreihenfolge. Welche Server-Nachrichten zu welcher Gruppe gehören:
+
+* Endet die Gruppe mit `Sync`, sind es alle Server-Nachrichten bis
+  einschließlich des zugehörigen `ReadyForQuery`; jedes `Sync` erzeugt genau
+  ein `ReadyForQuery`. Die Zuordnung hängt nicht vom Zeitverhalten ab, auch
+  nicht, wenn der Client weitere Gruppen sendet, ohne zu warten.
+* Endet die Gruppe mit `Flush`, sind es die Server-Nachrichten, die vor der
+  nächsten Client-Nachricht eintreffen. Wartet der Client nach dem `Flush` nicht
+  auf die Antwort, ist die Zuordnung zeitabhängig; das ist eine bekannte Grenze
+  von v1. Für diesen Fall ist die Aufzeichnung nicht reproduzierbar, die
+  Wiedergabe einer vorhandenen Aufzeichnung bleibt deterministisch.
+
+Die Aufzeichnung derselben Anwendung ist damit für alle Interaktionen mit
+`Sync`-Gruppen und für `Flush`-Gruppen mit wartendem Client unabhängig vom
+Zeitverhalten gleich.
+
+**Replay.** Der Replay-Cursor zeigt auf die nächste erwartete Gruppe. Jede
+eingehende Client-Nachricht muss in allen Feldern der erwarteten Client-Nachricht
+der Gruppe entsprechen: Nachrichtentyp, Statement- und Portalname, SQL-Text,
+Parametertypen, Format-Codes für Parameter und Ergebnis, Parameterwerte
+(bytegenau), `max_rows`, bei
+`Describe` und `Close` auch die Zielart (Statement oder Portal). Nachdem der
+Recorder die letzte Client-Nachricht der Gruppe (`Flush` oder `Sync`) empfangen
+und verglichen hat, sendet er alle aufgezeichneten Server-Nachrichten dieser
+Gruppe. Vorher sendet er keine; die Freigabe hängt damit nur von der
+Aufzeichnung ab, nicht vom Zeitverhalten des Clients. Das
 Matching ist strict sequential wie in LH-FA-09.a; Namen werden nicht
 normalisiert. Ein Client, der nichtdeterministische Statement-Namen erzeugt,
 passt deshalb nicht zur Aufzeichnung (Mismatch, `PGR-E5001`); das ist eine
@@ -537,13 +573,25 @@ bekannte Grenze von v1.
 
 **Fehler.** Nach einer `ErrorResponse` verwirft ein Server Nachrichten bis zum
 nächsten `Sync`. Die Aufzeichnung enthält die empfangenen Client-Nachrichten
-und die Server-Ereignisse in dieser Reihenfolge; Replay reproduziert sie, ohne
-eigene Fehlerlogik.
+und die Server-Nachrichten der Gruppe; Replay reproduziert sie, ohne eigene
+Fehlerlogik.
 
 **Mismatch.** Die Diagnose nach LH-FA-10.a nennt zusätzlich den Index des
-Ereignisses in der Interaktion sowie erwarteten und empfangenen Nachrichtentyp;
+Gruppe und Nachricht in der Interaktion sowie erwarteten und empfangenen Nachrichtentyp;
 Parameterwerte erscheinen nicht im Klartext der Diagnose, wenn der Log-Level
 nicht `debug` ist (`SPEC-033`).
+
+---
+
+### LH-FA-19.a — Bereitstellung über Homebrew
+
+Die Bereitstellung erfolgt über einen eigenen Tap `pt9912/homebrew-pgwire-recorder`
+(Tap `pt9912/pgwire-recorder`, Formel `pgwire-recorder`). Die Formel installiert
+das veröffentlichte Binary des Release-Tags für macOS und Linux, jeweils
+`amd64` und `arm64`, und prüft es gegen die SHA-256-Summe desselben Releases;
+sie baut nicht aus dem Quelltext und hat keine Abhängigkeiten. Die Formel
+entsteht bei jedem stabilen Release. Eine Vorabversion ändert den Tap nicht.
+Windows wird über Homebrew nicht bedient (`SPEC-042`).
 
 ---
 
@@ -569,7 +617,10 @@ version: 1
 
 `version` ist eine einzelne ganze Zahl und zählt inkompatible Änderungen des
 Formats; abwärtskompatible Ergänzungen (neue optionale Felder) ändern sie nicht.
-Ein Leser lehnt jede `version` ab, die er nicht kennt (`PGR-E3002`), und ein
+Version 1 umfasst einfache und Extended-Interaktionen (`type: query`,
+`type: extended`); ein Wert von `type`, den ein Leser nicht kennt, macht das
+Recording zu einem beschädigten (`PGR-E3003`). Ein Leser lehnt jede `version`
+ab, die er nicht kennt (`PGR-E3002`), und ein
 Recording ohne oder mit abweichender `format`-Kennung als beschädigt
 (`PGR-E3003`); beides endet mit Exit-Code `3` (`SPEC-016`).
 
@@ -607,37 +658,54 @@ definiert.
 ### SPEC-041 — Recording: Extended-Interaktion
 
 Eine Extended-Interaktion trägt `type: extended` und eine geordnete Liste
-`exchange` aus Client- und Server-Ereignissen:
+`groups`; jede Gruppe hat die Client-Nachrichten (`client`) und die
+Server-Nachrichten (`server`), die auf sie antworten (`LH-FA-18.a`):
 
 ```yaml
 - sequence: 2
   type: extended
-  exchange:
-    - client: parse
-      statement: "s1"
-      sql: "SELECT name FROM users WHERE id = $1"
-      param_types: [23]
-    - client: bind
-      portal: ""
-      statement: "s1"
-      param_formats: [0]
-      params:
-        - text: "1"
-      result_formats: [0]
-    - client: execute
-      portal: ""
-      max_rows: 0
-    - client: sync
-    - server: parse_complete
-    - server: bind_complete
-    - server: data_row
-      values:
-        - text: "alice"
-    - server: command_complete
-      tag: "SELECT 1"
-    - server: ready_for_query
-      tx_status: "I"
+  groups:
+    - client:
+        - type: parse
+          statement: "s1"
+          sql: "SELECT name FROM users WHERE id = $1"
+          param_types: [23]
+        - type: bind
+          portal: ""
+          statement: "s1"
+          param_formats: [0]
+          params:
+            - text: "1"
+          result_formats: [0]
+        - type: describe
+          target: portal
+          name: ""
+        - type: execute
+          portal: ""
+          max_rows: 0
+        - type: sync
+      server:
+        - type: parse_complete
+        - type: bind_complete
+        - type: row_description
+          # protokollrelevante Felder
+        - type: data_row
+          values:
+            - text: "alice"
+        - type: command_complete
+          tag: "SELECT 1"
+        - type: ready_for_query
+          tx_status: "I"
 ```
+
+Die Nachrichtentypen heißen wie die PGWire-Nachrichten in Kleinbuchstaben mit
+Unterstrich (`parse`, `bind`, `describe`, `execute`, `close`, `flush`, `sync`,
+`parse_complete`, `bind_complete`, `close_complete`, `parameter_description`,
+`row_description`, `no_data`, `data_row`, `command_complete`,
+`empty_query_response`, `portal_suspended`, `error_response`,
+`notice_response`, `ready_for_query`). `describe` und `close` tragen `target`
+(`statement` oder `portal`) und `name`; ein NULL-Parameter steht als
+`null: true`, Binärwerte folgen `SPEC-003`.
 
 Simple-Interaktionen behalten `request`/`responses` (`SPEC-002`). Formatkennung
 und Version (`SPEC-001`) gelten für beide Arten; Binärdaten folgen `SPEC-003`.
@@ -785,7 +853,8 @@ Für v1 sind keine Metriken und Tracing-Felder festgelegt.
 |---|---|---|---|
 | `SPEC-029` | PostgreSQL (Upstream im Record-Modus), PGWire | PGWire-Protokollversion 3.0; jeder Server, der sie spricht | — |
 | `SPEC-030` | `github.com/jackc/pgx/v5/pgproto3` (Verarbeitung von PGWire-Nachrichten) | Major 5 | — |
-| `SPEC-031` | Container-Image `pgwire-recorder` | — | — |
+| `SPEC-031` | Docker/OCI-Image `pgwire-recorder` | OCI-Image-Format, `linux/amd64` und `linux/arm64` | — |
+| `SPEC-042` | Homebrew-Tap `pt9912/homebrew-pgwire-recorder` | eine Formel je stabilem Release | — |
 
 ## 7. Querschnittsvorgaben
 
@@ -812,12 +881,14 @@ Für v1 werden keine harten Latenz- oder Durchsatz-SLAs zugesichert.
 - Logs erzeugen keine zusätzlichen Geheimnisse, die nicht für Diagnosezwecke
   erforderlich sind.
 - Replay lauscht standardmäßig nur auf der explizit angegebenen Listen-Adresse.
+- Diagnosen nennen SQL-Text im Klartext, auch mit Literalen darin; verborgen
+  werden nur die Parameterwerte der Extended-Interaktion (LH-FA-18.a).
 
 ### SPEC-035 — Zielplattformen
 
-Das Binary ist für Linux auf `amd64` und `arm64` bereitgestellt; sie sind die
-in v1 zugesicherten Plattformen. Weitere Umgebungen sind nicht ausgeschlossen,
-aber nicht zugesichert.
+Das Binary ist für Linux, macOS und Windows bereitgestellt, jeweils für `amd64`
+und `arm64`. Das Container-Image ist ein Linux-Image für `amd64` und `arm64`.
+Weitere Umgebungen sind nicht ausgeschlossen, aber nicht zugesichert.
 
 ## 8. Technische Leitentscheidungen und Architekturvorgabe
 
@@ -909,29 +980,7 @@ und Tests. „Nicht zugesichert" heißt: Die Funktion fehlt; Nachrichten und
 Interaktionen daraus werden nach LH-FA-05.e abgelehnt beziehungsweise
 behandelt, nicht still ignoriert.
 
-## 11. Fertigstellungskriterien
-
-### SPEC-040 — Fertigstellungskriterien
-
-Das Produkt ist fertig, wenn alle Anforderungen des Lastenhefts (MUSS und
-SOLL) umgesetzt sind. v1 ist technisch fertig, wenn:
-
-1. alle Muss-Abnahmekriterien des Lastenhefts automatisiert getestet sind,
-2. Record und Replay für mindestens einen realen PostgreSQL-End-to-End-Test
-   funktionieren,
-3. Replay ohne laufenden PostgreSQL-Server funktioniert,
-4. Simple und Extended Queries mit Resultsets, Commands ohne Rows und
-   PostgreSQL-Fehlern abgedeckt sind,
-5. Mismatches deterministisch erkannt werden,
-6. das Recording-Format versioniert und dokumentiert ist,
-7. CLI-Hilfe, Exit Codes und grundlegende Betriebsdokumentation vorhanden sind,
-8. das Binary und das Container-Image (LH-FA-16) reproduzierbar gebaut werden
-   können,
-9. die SOLL-Anforderungen LH-FA-14, LH-FA-16 und LH-FA-17 umgesetzt sind,
-10. Extended Query (LH-FA-18) umgesetzt und Abnahmeszenario 7 des Lastenhefts
-    automatisiert getestet ist.
-
-## 12. Historie
+## 11. Historie
 
 Regeln dieser Sektion: **kein ADR- und kein Slice-Verweis.** Die Decken-Regel
 gilt für alle drei Spec-Straten, auch hier — welche ADR eine Festlegung

@@ -194,7 +194,7 @@ Alternativ kann die PGWire-Session über kleinere fachliche Requests an den Core
 | Port | Operationen |
 |---|---|
 | `RecordingRepository` | Recording anhand eines Pfads laden; Recording unter einem Pfad speichern (wird nach dem Ende jeder Session und beim kontrollierten Beenden aufgerufen) |
-| PostgreSQL-Upstream | Upstream-Session für einen Startup eröffnen; je Session eine Query ausführen und die Responses liefern; Session schließen |
+| PostgreSQL-Upstream | Upstream-Session für einen Startup eröffnen; je Anfrage (einfach) oder je Gruppe (Extended) die Client-Nachrichten senden und die Server-Nachrichten liefern; Session schließen |
 
 Die Query-Operation kann streaming-orientiert gestaltet werden (Antworten einzeln
 abrufen, Stream schließen), um große Resultsets nicht vollständig zu puffern.
@@ -212,8 +212,9 @@ Das Domain Model enthält keine Typen der PGWire-Bibliothek.
 |---|---|
 | Recording | Formatkennung, Version, Sessions |
 | Session | ID, Startup, Interaktionen |
-| Interaction | Sequenz, Request, geordnete Responses |
+| Interaction | Sequenz, Art (einfach oder Extended), bei einfach Request mit geordneten Responses, bei Extended geordnete Gruppen |
 | Query | SQL-Text |
+| Gruppe | geordnete Client-Nachrichten (`Parse`, `Bind`, `Describe`, `Execute`, `Close`, `Flush`, `Sync`) und die Server-Nachrichten, die darauf antworten |
 | Value | Null-Kennzeichen und Bytes |
 
 Antworten sind eigene Typen mit ausschließlich protokollrelevanten Daten:
@@ -223,10 +224,10 @@ Antworten des Extended Query Protocol (`ParseComplete`, `BindComplete`,
 `CloseComplete`, `ParameterDescription`, `NoData`, `PortalSuspended`).
 
 Eine Interaktion ist entweder eine einfache Anfrage mit ihren Antworten oder
-eine geordnete Ereignisfolge aus Client- und Server-Nachrichten (Extended
-Query). Der Matcher arbeitet auf dieser Folge: Er vergleicht jedes eingehende
-Client-Ereignis mit dem erwarteten und gibt die folgenden Server-Ereignisse
-frei.
+eine geordnete Folge von Gruppen aus Client- und Server-Nachrichten (Extended
+Query). Der Matcher arbeitet auf diesen Gruppen: Er vergleicht jede eingehende
+Client-Nachricht mit der erwarteten und gibt die Server-Nachrichten einer
+Gruppe erst frei, wenn die letzte Client-Nachricht der Gruppe verglichen ist.
 
 `DataRow` wird nicht als reine String-Struktur modelliert; nach Load/Save sind
 die Domain-Bytes identisch. SQL ist fachlich Payload des Requests; das Modell
@@ -237,9 +238,11 @@ enthält keinen SQL-Parser.
 - Session-IDs sind eindeutig,
 - Interaktionen sind geordnet,
 - Sequenzen sind innerhalb einer Session eindeutig,
-- jede Interaktion besitzt einen gültigen Request,
-- eine abgeschlossene Simple-Query-Interaktion besitzt einen gültigen
-  Abschlusszustand.
+- jede einfache Interaktion besitzt einen gültigen Request, jede
+  Extended-Interaktion mindestens eine Gruppe,
+- jede Gruppe endet mit `Flush` oder `Sync`,
+- eine abgeschlossene Interaktion besitzt einen gültigen Abschlusszustand
+  (`ReadyForQuery`; bei Extended das `ReadyForQuery` nach dem `Sync`).
 
 Rein serialisierungstechnische Prüfungen liegen im Recording Adapter: Syntax der
 Persistenzdarstellung, Dekodierbarkeit binärer Felder, Formatkennung vorhanden,
@@ -315,6 +318,31 @@ Im Replay-Modus existiert kein PostgreSQL-Upstream. Der Replay-Service besitzt
 den fachlichen Cursor auf die nächste erwartete Interaktion; der PGWire Adapter
 kennt diesen Cursor nicht.
 
+### Use-Case: LH-FA-18 — Extended Query
+
+```mermaid
+sequenceDiagram
+    participant Client as PG Client
+    participant PGW as PGWire Adapter
+    participant Svc as Record- oder ReplayService
+    participant PG as PostgreSQL Port
+    Client->>PGW: Parse, Bind, Execute, Sync
+    PGW->>Svc: Client-Nachrichten einer Gruppe
+    alt Record
+        Svc->>PG: Nachrichten der Gruppe
+        PG-->>Svc: Server-Nachrichten bis ReadyForQuery
+        Svc-->>PGW: Server-Nachrichten
+    else Replay
+        Svc->>Svc: jede Nachricht gegen die erwartete prüfen
+        Svc-->>PGW: Server-Nachrichten der Gruppe, erst nach der letzten Client-Nachricht
+    end
+    PGW-->>Client: PGWire-Nachrichten
+```
+
+Im Record-Modus bildet der Core die Gruppe aus den Nachrichten zwischen zwei
+Abschlüssen (`Flush` oder `Sync`); im Replay-Modus gibt er die Server-Nachrichten
+einer Gruppe erst frei, wenn deren letzte Client-Nachricht verglichen ist.
+
 ### Use-Case: LH-FA-10 — Replay-Mismatch
 
 ```mermaid
@@ -344,14 +372,19 @@ Nicht durchgeführt werden SQL-Normalisierung, Whitespace-Normalisierung,
 semantischer Vergleich, Regex, Fuzzy Matching und die Suche nach einer späteren
 passenden Interaktion.
 
-Schnittstelle: Der Matcher erhält den tatsächlichen Request und die erwartete
-Interaktion und liefert entweder Erfolg oder einen Mismatch-Fehler.
+Für Extended Query vergleicht der Matcher jede Client-Nachricht in allen Feldern
+mit der erwarteten Nachricht der aktuellen Gruppe.
+
+Schnittstelle: Der Matcher erhält die tatsächliche Nachricht beziehungsweise
+den tatsächlichen Request und die erwartete Interaktion samt Position und
+liefert entweder Erfolg oder einen Mismatch-Fehler.
 
 ### 4.2 Replay-Session-State
 
 Replay-Zustand ist Application State und gehört nicht in den PGWire Adapter. Er
-besteht aus der zugeordneten Recording-Session und dem Index der nächsten
-erwarteten Interaktion.
+besteht aus der zugeordneten Recording-Session, dem Index der nächsten
+erwarteten Interaktion und, innerhalb einer Extended-Interaktion, dem Index der
+nächsten erwarteten Gruppe und Nachricht.
 
 Der Service entscheidet: Bei Match werden Responses gesendet und der Cursor
 rückt vor; bei Mismatch entsteht ein Application-Fehler.
@@ -369,6 +402,9 @@ stateDiagram-v2
     STARTUP --> READY
     READY --> RECORDING_QUERY: Query
     RECORDING_QUERY --> READY: ReadyForQuery
+    READY --> RECORDING_GROUP: Extended-Nachricht
+    RECORDING_GROUP --> RECORDING_GROUP: weitere Gruppe
+    RECORDING_GROUP --> READY: ReadyForQuery nach Sync
     READY --> CLOSED: Terminate
     READY --> FAILED: unsupported
 ```
@@ -383,6 +419,12 @@ stateDiagram-v2
     MATCH --> RESPOND: match
     MATCH --> FAILED: mismatch
     RESPOND --> READY
+    READY --> MATCH_GROUP: Extended-Nachricht
+    MATCH_GROUP --> MATCH_GROUP: match, Gruppe nicht vollständig
+    MATCH_GROUP --> RESPOND_GROUP: match, letzte Nachricht der Gruppe
+    MATCH_GROUP --> FAILED: mismatch
+    RESPOND_GROUP --> MATCH_GROUP: Gruppe beantwortet, Interaktion läuft
+    RESPOND_GROUP --> READY: ReadyForQuery nach Sync
     READY --> FAILED: unsupported
     READY --> CLOSED: Terminate
 ```
