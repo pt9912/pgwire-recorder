@@ -37,7 +37,7 @@ PostgreSQL-Kommunikation.
 
 **Produktziel.** `pgwire-recorder` ist ein eigenständig ausführbares
 Kommandozeilenwerkzeug, das als Vermittler zwischen PostgreSQL-Clients und
-PostgreSQL-Servern eingesetzt wird. Es bietet zwei Betriebsarten:
+PostgreSQL-Servern eingesetzt wird. Es bietet drei Betriebsarten:
 
 - **Record:** Die Anwendung verbindet sich mit `pgwire-recorder` statt direkt
   mit PostgreSQL. Der Recorder leitet die unterstützte Kommunikation an einen
@@ -47,6 +47,9 @@ PostgreSQL-Servern eingesetzt wird. Es bietet zwei Betriebsarten:
   die aufgezeichneten und unterstützten Interaktionen ist kein realer
   PostgreSQL-Server erforderlich; der Recorder beantwortet die Anfragen anhand
   einer zuvor erzeugten Aufzeichnung.
+- **Einspielen:** Der Recorder führt die in einer Aufzeichnung enthaltenen
+  Client-Anfragen gegen einen PostgreSQL-Server aus, ohne dass eine Anwendung
+  beteiligt ist.
 
 ```text
 Record:  Application --PG Wire--> pgwire-recorder --> PostgreSQL
@@ -55,6 +58,9 @@ Record:  Application --PG Wire--> pgwire-recorder --> PostgreSQL
 
 Replay:  Application --PG Wire--> pgwire-recorder <-- Recording
                                   (kein PostgreSQL-Server erforderlich)
+
+Einspielen:  Recording --> pgwire-recorder --PG Wire--> PostgreSQL
+                           (keine Anwendung beteiligt)
 ```
 
 **Produktgrenzen.** `pgwire-recorder` ist kein vollständiger Ersatz für
@@ -63,7 +69,8 @@ SQL-Ausführung, Transaktionen oder Datenhaltung. Im Replay-Modus wird
 ausschließlich Verhalten reproduziert, das durch eine geeignete Aufzeichnung
 abgedeckt und vom jeweiligen Produktstand unterstützt wird. Das Produkt ist
 ebenfalls kein allgemeiner Netzwerk-Paketmitschnitt und kein
-Datenbankadministrationswerkzeug.
+Datenbankadministrationswerkzeug; das Einspielen führt ausschließlich
+aufgezeichnete Anfragen aus.
 
 **Primäre Anwendungsfälle.**
 
@@ -74,6 +81,12 @@ Datenbankadministrationswerkzeug.
 - *Aufzeichnung wiedergeben:* Ein Entwickler oder ein CI-System startet
   `pgwire-recorder` im Replay-Modus mit einer vorhandenen Aufzeichnung; die
   Anwendung erhält die zuvor aufgezeichneten Antworten.
+- *Aufzeichnung in eine Datenbank einspielen:* Ein Entwickler oder ein
+  CI-System startet `pgwire-recorder` im Einspiel-Modus mit einer vorhandenen
+  Aufzeichnung und einem PostgreSQL-Server; die aufgezeichneten Anfragen werden
+  gegen diesen Server ausgeführt. Damit lässt sich eine aufgezeichnete Last
+  reproduzierbar erzeugen, zum Beispiel um eine Komponente zu testen, die
+  Änderungen der Datenbank verarbeitet (Change Data Capture).
 - *Aufzeichnung versionieren:* Eine Aufzeichnung liegt als Datei oder als
   zusammengehöriger Satz von Dateien vor und kann gemeinsam mit Testcode
   gespeichert, transportiert und — sofern vom Anwender gewünscht — versioniert
@@ -388,9 +401,9 @@ der aufgezeichneten Interaktionen erhalten.
 - **Boundary:** Given mehrere Client-Verbindungen, when sie aufgezeichnet
   werden, then wird jede Verbindung mit Anfragen als eigene Session
   aufgezeichnet, und die Reihenfolge der Interaktionen bleibt je Session
-  erhalten. Given ein Recording mit mehreren Sessions, when sich Clients
-  nacheinander verbinden, then erhält die n-te Verbindung die n-te
-  aufgezeichnete Session.
+  erhalten. Given ein Recording mit mehreren Sessions, when Clients nacheinander
+  Verbindungen aufbauen und Anfragen stellen, then erhält die n-te Verbindung
+  mit einer Anfrage die n-te aufgezeichnete Session.
 - **Negative:** Given eine Folge, die der aufgezeichneten Reihenfolge
   widerspricht und für die Reihenfolge relevant ist, when sie im Replay
   eintrifft, then wird sie nach LH-FA-10 behandelt.
@@ -559,6 +572,60 @@ Paketmanager Homebrew installieren lassen.
 
 ---
 
+### LH-FA-20 — Einspielen einer Aufzeichnung
+
+**Priorität:** MUSS
+
+**Beschreibung:** Das Produkt muss die in einer Aufzeichnung enthaltenen
+Client-Anfragen gegen einen PostgreSQL-Server ausführen können (Einspielen),
+ohne dass eine Anwendung beteiligt ist. Das Einspielen führt ausschließlich
+aufgezeichnete Anfragen aus.
+
+**Akzeptanzkriterien:**
+
+- **Happy Path:** Given eine Aufzeichnung und ein erreichbarer PostgreSQL-Server,
+  when das Einspielen gestartet wird, then werden die aufgezeichneten Anfragen in
+  der aufgezeichneten Reihenfolge ausgeführt, und der Server enthält danach die
+  Wirkung der Anfragen (siehe Abnahmeszenario 12 in §7).
+- **Boundary:** Given eine Aufzeichnung mit mehreren Sessions, when sie
+  eingespielt wird, then wird jede Session über eine eigene Verbindung
+  ausgeführt, die Sessions nacheinander in der aufgezeichneten Reihenfolge.
+- **Negative:** Given ein nicht erreichbarer Server oder eine Anfrage, die der
+  Server mit einem Fehler beantwortet, when das Einspielen läuft, then wird der
+  Fehler eindeutig gemeldet, und das Einspielen bricht ab, sofern der Anwender
+  nicht ausdrücklich verlangt weiterzulaufen (siehe LH-QA-05).
+
+**Out-of-Scope:** Vergleich der Serverantworten mit der Aufzeichnung; paralleles
+Einspielen mehrerer Sessions; zeitgetreues Abspielen (siehe LH-FA-21, nur auf Wunsch).
+
+---
+
+### LH-FA-21 — Zeitgetreues Einspielen
+
+**Priorität:** SOLL
+
+**Beschreibung:** Das Produkt soll beim Aufzeichnen auf Wunsch den zeitlichen
+Abstand der Anfragen festhalten und beim Einspielen auf Wunsch wiederherstellen.
+Ohne diese Wünsche enthält eine Aufzeichnung keine Zeitangaben, und das
+Einspielen führt die Anfragen nacheinander und ohne Wartezeiten aus (LH-FA-20).
+
+**Akzeptanzkriterien:**
+
+- **Happy Path:** Given eine Aufzeichnung mit Zeitangaben, when der Anwender
+  zeitgetreues Einspielen verlangt, then ist der Abstand zwischen zwei Anfragen
+  nicht kürzer als aufgezeichnet (siehe Abnahmeszenario 13 in §7).
+- **Boundary:** Given keine Zeitaufzeichnung verlangt, when aufgezeichnet wird,
+  then enthält die Aufzeichnung keine Zeitangaben; given keine zeitgetreue
+  Wiedergabe verlangt, when eine Aufzeichnung mit Zeitangaben eingespielt wird,
+  then werden die Zeitangaben ignoriert.
+- **Negative:** Given eine Aufzeichnung ohne Zeitangaben, when zeitgetreues
+  Einspielen verlangt wird, then wird dies als ungültige Verwendung gemeldet.
+
+**Out-of-Scope:** Paralleles Einspielen mehrerer Sessions; zeitgetreue Antworten
+im Replay-Modus.
+
+---
+
 ## 4. Nichtfunktionale Anforderungen und Randbedingungen
 
 ### LH-QA-01 — Determinismus
@@ -657,6 +724,7 @@ Funktionsumfangs von v1** und können Gegenstand späterer Versionen werden:
 | Recording / Aufzeichnung | Persistente Datei oder zusammengehöriger Satz von Dateien mit den aufgezeichneten Interaktionen zwischen Client und PostgreSQL |
 | Record-Modus | Betriebsart, in der der Recorder zwischen Client und realem PostgreSQL-Server vermittelt und aufzeichnet |
 | Replay-Modus | Betriebsart, in der der Recorder Anfragen anhand eines Recordings ohne PostgreSQL-Server beantwortet |
+| Einspielen | Betriebsart, in der der Recorder die Client-Anfragen eines Recordings gegen einen PostgreSQL-Server ausführt |
 | Simple Query Protocol | PostgreSQL-Protokollvariante für Anfragen als einzelne Textnachricht; Teil von v1 (LH-FA-05) |
 | Extended Query Protocol | PostgreSQL-Protokollvariante mit getrennten Parse-/Bind-/Execute-Schritten; Teil von v1 (LH-FA-18) |
 | Unterstützt | Teil des in LH-FA-05 und LH-FA-18 beschriebenen Funktionsumfangs von v1 und nicht in §5 ausgeschlossen |
@@ -744,6 +812,20 @@ Auf einem Rechner mit Homebrew unter macOS oder Linux wird das Produkt mit den
 dokumentierten Befehlen installiert. `pgwire-recorder version` meldet die
 installierte Version, und ein Replay-Lauf startet ohne weitere Installation.
 Bezug: LH-FA-19.
+
+### Abnahmeszenario 12 — Einspielen
+
+Eine Aufzeichnung mit DDL- und DML-Anweisungen (aus Abnahmeszenario 1) wird
+gegen eine leere PostgreSQL-Instanz eingespielt. Danach enthält die Datenbank die
+Wirkung der aufgezeichneten Anweisungen, und der Lauf endet mit Erfolg. Bezug:
+LH-FA-20.
+
+### Abnahmeszenario 13 — Zeitgetreues Einspielen
+
+Eine Aufzeichnung mit Zeitangaben, in der zwischen zwei Anfragen eine Pause
+liegt, wird auf Wunsch zeitgetreu eingespielt. Der Abstand zwischen den beiden
+Anfragen ist nicht kürzer als aufgezeichnet. Ohne den Wunsch läuft dieselbe
+Aufzeichnung ohne Wartezeit. Bezug: LH-FA-21.
 
 ## 8. Historie
 
