@@ -1,6 +1,6 @@
 # ADR-0016: Einspielen: Anmeldung und TLS als Client
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-03
 
@@ -52,5 +52,6 @@ Wenn ein Anwender eine eigene Zertifizierungsstelle pro Aufruf angeben muss oder
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-03 | Proposed | — |
+| 2026-10-03 | Accepted | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
