@@ -1,6 +1,6 @@
 # ADR-0010: Verwendung von pgproto3
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-03
 
@@ -51,5 +51,6 @@ Wenn die Bibliothek benötigte Nachrichtentypen nicht abdeckt oder nicht mehr ge
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-03 | Proposed | — |
+| 2026-10-03 | Accepted | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

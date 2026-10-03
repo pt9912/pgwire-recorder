@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- Die Architekturentscheidungen [ADR-0001](../adr/0001-hexagonale-architektur.md), [ADR-0003](../adr/0003-pgwire-server-ist-driving-adapter.md), [ADR-0004](../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0005](../adr/0005-recording-store-ist-driven-adapter.md), [ADR-0006](../adr/0006-kanonisches-domain-model.md), [ADR-0009](../adr/0009-implementierungssprache-go.md) und [ADR-0010](../adr/0010-verwendung-von-pgproto3.md) sind `Accepted`; die übrigen ADRs aus dem Index sind mindestens `Proposed`.
+- Die Architekturentscheidungen [ADR-0001](../adr/0001-hexagonale-architektur.md), [ADR-0003](../adr/0003-pgwire-server-ist-driving-adapter.md), [ADR-0004](../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0005](../adr/0005-recording-store-ist-driven-adapter.md), [ADR-0006](../adr/0006-kanonisches-domain-model.md), [ADR-0009](../adr/0009-implementierungssprache-go.md) und [ADR-0010](../adr/0010-verwendung-von-pgproto3.md) sind `Accepted`.
 - `make gates` ist auf dem Stand der Spec-Erstfassung grün.
 
 ## 3. Closure-Trigger (Welle schließt)

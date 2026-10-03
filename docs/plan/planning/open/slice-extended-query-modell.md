@@ -43,7 +43,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): `LH-FA-18.a` und `SPEC-041` stimmen mit dem Domain-Modell überein; die Entscheidung dazu steht in [ADR-0012](../../adr/0012-extended-query-ereignisfolge.md) und ist `Accepted`.
+- [ ] [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): `LH-FA-18.a` und `SPEC-041` stimmen mit dem Domain-Modell überein; die Entscheidung dazu steht in [ADR-0012](../../adr/0012-extended-query-gruppen.md).
 - [ ] Das Domain-Modell trägt Request- und Response-Typen des Extended Query Protocol (Domain-Tests).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -63,7 +63,6 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` (`LH-FA-18.a`, `SPEC-041`) | update | Abgleich mit dem Domain-Modell; Änderungen nur bei Abweichung |
-| `docs/plan/adr/0012-extended-query-ereignisfolge.md` | update | Status `Accepted` setzen (Entscheidung des Auftraggebers) |
 | `internal/hexagon/model` | update | Neue Typen |
 
 ## 4. Trigger
