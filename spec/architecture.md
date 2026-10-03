@@ -85,11 +85,11 @@ importieren, und nutzt die Driven Ports.
 | ID | Komponente | Rolle |
 |---|---|---|
 | `ARC-001` | Domain Model (`internal/hexagon/model`) | Kanonische Typen für Recording, Session, Interaktion, Request, Response und Wert; frei von Drittbibliotheken |
-| `ARC-002` | Application Services (`internal/hexagon/services`) | Record-Service, Replay-Service, Play-Service und Strict Matcher; Record-/Replay-Zustandslogik und Replay-Cursor |
+| `ARC-002` | Application Services (`internal/hexagon/services`) | Record-Service, Replay-Service, Play-Service und Strict Matcher; Record-/Replay-Zustandslogik und Replay-Cursor; Antwortvergleich des Play-Service |
 | `ARC-003` | Driving Ports / Inbound (`internal/hexagon/ports/driving`) | Use Cases, die der Core anbietet (Record, Replay, Play) |
 | `ARC-004` | Driven Ports / Outbound (`internal/hexagon/ports/driven`) | Infrastrukturleistungen, die der Core benötigt: Recording-Repository, PostgreSQL-Upstream, Uhr |
-| `ARC-005` | CLI Adapter (`internal/adapters/driving/cli`) | Driving Adapter: Argumente parsen, Konfiguration aufbauen, Modus wählen, Use Case starten, Fehler auf Exit Codes abbilden |
-| `ARC-006` | PGWire Server Adapter (`internal/adapters/driving/pgwire`) | Driving Adapter: TCP, PGWire-Framing, `SSLRequest`, Startup, Übersetzung von und nach Domain-Typen |
+| `ARC-005` | CLI Adapter (`internal/adapters/driving/cli`) | Driving Adapter: Argumente, Umgebung und Konfigurationsdatei zu einer Konfiguration zusammenführen (einschließlich Platzhalter und Passwort), Modus wählen, Use Case starten, Fehler auf Exit Codes abbilden |
+| `ARC-006` | PGWire Server Adapter (`internal/adapters/driving/pgwire`) | Driving Adapter: TCP, TLS-Terminierung auf Wunsch, PGWire-Framing, `SSLRequest`, Startup, Übersetzung von und nach Domain-Typen |
 | `ARC-007` | PostgreSQL Upstream Adapter (`internal/adapters/driven/postgres`) | Driven Adapter: Verbindung zum realen PostgreSQL |
 | `ARC-008` | Recording Adapter (`internal/adapters/driven/recording`) | Driven Adapter: Serialisierung (YAML oder SQLite) und Dateisystemzugriff |
 | `ARC-009` | Bootstrap / Composition Root (`cmd/pgwire-recorder`, `internal/bootstrap`) | Verdrahtet konkrete Adapter mit Ports und Services |
@@ -339,6 +339,7 @@ sequenceDiagram
             Play->>Clock: warten bis zum Zeitpunkt (nur mit --keep-timing)
             Play->>PG: Client-Nachrichten der Interaktion
             PG-->>Play: Server-Nachrichten bis ReadyForQuery
+            Play->>Play: Antworten mit der Aufzeichnung vergleichen (nur mit --compare-responses)
         end
         Play->>PG: Session schließen
     end
@@ -348,9 +349,10 @@ sequenceDiagram
 Der Play-Service nutzt nur Driven Ports (Recording-Repository,
 PostgreSQL-Upstream, Uhr); ein PGWire-Server ist nicht beteiligt. Authentifizierung
 und TLS gegenüber dem Server liegen im Upstream-Adapter, Optionen und Zugangsdaten
-stellt die CLI aus der Konfiguration bereit. Er wertet nur
-`ErrorResponse` aus und vergleicht die Serverantworten nicht mit der
-Aufzeichnung.
+stellt die CLI aus der Konfiguration bereit. Der Play-Service wertet
+`ErrorResponse` aus und vergleicht die Serverantworten nur auf Wunsch mit der
+Aufzeichnung; der Vergleich ist reine Fachlogik im Core und kennt weder PGWire-Typen
+noch Verbindung.
 
 ### Use-Case: LH-FA-18 — Extended Query
 
@@ -476,10 +478,13 @@ Driving Adapter; fachlich relevante Startup-Daten werden in Domain-Typen
   erforderlichen PGWire-Handshake anhand der vom Replay Use Case gelieferten
   Sessioninformationen. Authentifizierung im Replay-Modus ist keine
   Sicherheitsgrenze.
-- **`SSLRequest`:** PGWire-Infrastruktur, vom Driving Adapter behandelt. v1
-  unterstützt keine TLS-Terminierung; der Adapter kann die SSL-Nutzung gemäß
-  PGWire ablehnen und unverschlüsselt fortfahren, sofern der Client dies
-  akzeptiert. Der Application Core muss `SSLRequest` nicht kennen.
+- **`SSLRequest`:** PGWire-Infrastruktur, vom Driving Adapter behandelt. Ist TLS
+  konfiguriert, nimmt der Adapter die Aushandlung an, terminiert TLS und führt den
+  Verbindungsaufbau auf der verschlüsselten Verbindung aus; sonst lehnt er die
+  SSL-Nutzung gemäß PGWire ab und fährt unverschlüsselt fort, sofern der Client dies
+  akzeptiert. Zertifikat und Schlüssel lädt der Adapter beim Start. Der Application
+  Core muss `SSLRequest` und TLS nicht kennen; die Verbindung zum Upstream im
+  Record-Modus ist unverschlüsselt.
 
 Beim Einspielen baut der Upstream-Adapter die Verbindung zum Server als Client auf:
 Authentifizierung und TLS (auf Wunsch) gehören ihm; der Core kennt weder Passwort
@@ -488,7 +493,7 @@ noch Zertifikate, sondern erhält eine geöffnete Upstream-Session.
 ### 4.5 Adapter-Verantwortung
 
 **PGWire Server (`ARC-006`)** ist verantwortlich für: TCP-Verbindungen
-annehmen, PGWire-Framing, `SSLRequest` erkennen, Startup-Nachrichten
+annehmen, auf Wunsch TLS terminieren, PGWire-Framing, `SSLRequest` erkennen, Startup-Nachrichten
 dekodieren, Frontend-Nachrichten mit die PGWire-Bibliothek dekodieren, in
 Domain-/Application-Typen übersetzen, Inbound Ports aufrufen,
 Domain-Responses in PGWire-Nachrichten übersetzen und Bytes an den Client
@@ -510,9 +515,11 @@ Persistenz-DTOs im Adapter trennen Domain- und YAML-Modell, sobald beide
 auseinanderlaufen. Die persistente Darstellung eines `Value` entscheidet der
 Adapter, beispielsweise `text: hello`, `null: true` oder `base64: AP8Q`.
 
-**CLI (`ARC-005`)** parst Argumente, baut die Konfiguration auf, wählt den
-Modus, startet den Use Case und bildet Fehler auf Exit Codes ab. Sie enthält
-keine Record-/Replay-Fachlogik.
+**CLI (`ARC-005`)** parst Argumente, führt sie mit Umgebung und Konfigurationsdatei
+zur Konfiguration zusammen (Rang, Platzhalter und Passwort eingeschlossen), wählt den
+Modus, startet den Use Case und bildet Fehler auf Exit Codes ab; ein Ladefehler der
+Konfiguration ist ein Startfehler. Der Core erhält nur die fertige Konfiguration,
+nie die Datei. Die CLI enthält keine Record-/Replay-Fachlogik.
 
 ### 4.6 Composition Root
 
