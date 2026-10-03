@@ -13,7 +13,7 @@ Historie-Zeile; ab `Accepted` ist jede Änderung eine Vertragsänderung
 
 **Autor:** pt9912, **Datum:** 2026-10-03.
 
-**Zielversion des Produkts:** v1
+**Zielversion des Produkts:** v1. Das Produkt ist fertig, wenn alle Anforderungen dieses Lastenhefts (MUSS und SOLL) umgesetzt sind.
 
 ---
 
@@ -98,11 +98,12 @@ Bedarf ersatzlos entfällt, wird **nicht gelöscht**, sondern trägt den Vermerk
 
 **Priorität:** **MUSS** = erforderlich für v1 · **SOLL** = erwünscht für v1,
 sofern ohne unverhältnismäßigen Aufwand realisierbar · **KANN** = mögliche
-spätere Erweiterung.
+spätere Erweiterung. Fertig ist das Produkt erst, wenn auch die SOLL-Anforderungen
+umgesetzt sind.
 
 **Globaler Funktionsumfang v1:** PostgreSQL-Kommunikation über das Simple Query
-Protocol. Anfragen und Interaktionen außerhalb dieses Umfangs gelten als „nicht
-unterstützt" (siehe LH-FA-05 und §5).
+Protocol und das Extended Query Protocol. Anfragen und Interaktionen außerhalb
+dieses Umfangs gelten als „nicht unterstützt" (siehe LH-FA-05, LH-FA-18 und §5).
 
 ### LH-FA-01 — Kommandozeilenanwendung
 
@@ -146,7 +147,7 @@ PostgreSQL-Server vermittelt und aufgezeichnet wird.
 - **Negative:** Given ein nicht erreichbarer PostgreSQL-Server, when ein Client
   sich verbindet, then wird ein Verbindungsfehler signalisiert (siehe LH-QA-05).
 
-**Out-of-Scope:** Extended Query Protocol; Veränderung von Serverantworten.
+**Out-of-Scope:** Veränderung von Serverantworten.
 
 ---
 
@@ -225,8 +226,7 @@ des Funktionsumfangs.
   auftritt, then wird sie mit einem klar erkennbaren Fehler abgelehnt (siehe
   LH-QA-05).
 
-**Out-of-Scope:** Extended Query Protocol; Prepared Statements über das
-Extended Query Protocol.
+**Out-of-Scope:** — (das Extended Query Protocol regelt LH-FA-18).
 
 ---
 
@@ -502,6 +502,34 @@ sollen über nicht-interaktive Mechanismen festgelegt werden können.
 
 ---
 
+### LH-FA-18 — Extended Query Protocol
+
+**Priorität:** MUSS
+
+**Beschreibung:** Das Produkt muss PostgreSQL-Kommunikation über das Extended
+Query Protocol (`Parse`, `Bind`, `Describe`, `Execute`, `Sync`, Prepared
+Statements) im Record- und im Replay-Modus unterstützen. Damit genügt für
+Clients, die dieses Protokoll standardmäßig verwenden, die Umstellung von Host
+und Port (LH-FA-04).
+
+**Akzeptanzkriterien:**
+
+- **Happy Path:** Given ein Client, der das Extended Query Protocol verwendet,
+  when seine Interaktion über den Recorder aufgezeichnet und später im Replay
+  wiedergegeben wird, then erhält er das aufgezeichnete, aus Sicht des Clients
+  relevante Verhalten (siehe Abnahmeszenario 7 in §7).
+- **Boundary:** Given dasselbe Prepared Statement, das mehrfach mit
+  unterschiedlichen Parameterwerten ausgeführt wird, when es im Replay
+  wiedergegeben wird, then wird jede Ausführung ihrer aufgezeichneten Position
+  zugeordnet.
+- **Negative:** Given eine Extended-Query-Interaktion, die nicht zur
+  Aufzeichnung passt, when sie im Replay eintrifft, then wird sie wie in
+  LH-FA-10 als Abweichung gemeldet.
+
+**Out-of-Scope:** `COPY`; Replikationsprotokoll.
+
+---
+
 ## 4. Nichtfunktionale Anforderungen und Randbedingungen
 
 ### LH-QA-01 — Determinismus
@@ -586,8 +614,6 @@ sollen über nicht-interaktive Mechanismen festgelegt werden können.
 Folgende Funktionen sind ausdrücklich **nicht Bestandteil des verpflichtenden
 Funktionsumfangs von v1** und können Gegenstand späterer Versionen werden:
 
-- Extended Query Protocol,
-- Prepared Statements über das Extended Query Protocol,
 - automatische Maskierung sensibler Daten,
 - SQL-semantische Analyse als Voraussetzung für Record oder Replay,
 - Veränderung oder Manipulation aufgezeichneter Datenbankantworten,
@@ -602,9 +628,9 @@ Funktionsumfangs von v1** und können Gegenstand späterer Versionen werden:
 | Recording / Aufzeichnung | Persistente Datei oder zusammengehöriger Satz von Dateien mit den aufgezeichneten Interaktionen zwischen Client und PostgreSQL |
 | Record-Modus | Betriebsart, in der der Recorder zwischen Client und realem PostgreSQL-Server vermittelt und aufzeichnet |
 | Replay-Modus | Betriebsart, in der der Recorder Anfragen anhand eines Recordings ohne PostgreSQL-Server beantwortet |
-| Simple Query Protocol | PostgreSQL-Protokollvariante für Anfragen als einzelne Textnachricht; einziger Protokollumfang von v1 |
-| Extended Query Protocol | PostgreSQL-Protokollvariante mit getrennten Parse-/Bind-/Execute-Schritten; nicht Teil von v1 |
-| Unterstützt | Teil des in LH-FA-05 beschriebenen Funktionsumfangs von v1 und nicht in §5 ausgeschlossen |
+| Simple Query Protocol | PostgreSQL-Protokollvariante für Anfragen als einzelne Textnachricht; Teil von v1 (LH-FA-05) |
+| Extended Query Protocol | PostgreSQL-Protokollvariante mit getrennten Parse-/Bind-/Execute-Schritten; Teil von v1 (LH-FA-18) |
+| Unterstützt | Teil des in LH-FA-05 und LH-FA-18 beschriebenen Funktionsumfangs von v1 und nicht in §5 ausgeschlossen |
 
 ## 7. Abnahmekriterien für v1
 
@@ -650,6 +676,15 @@ einem automatisierten Testlauf verwendet werden. Bezug: LH-FA-15, LH-QA-04.
 Eine während Record auftretende und vom Produkt unterstützte
 PostgreSQL-Fehlerantwort wird aufgezeichnet. Beim entsprechenden Replay erhält
 der Client ein äquivalentes beobachtbares Fehlerverhalten. Bezug: LH-FA-11.
+
+### Abnahmeszenario 7 — Extended Query
+
+Eine Testanwendung, die das Extended Query Protocol mit Prepared Statements
+verwendet (zum Beispiel mit dem Standardmodus eines verbreiteten
+PostgreSQL-Treibers), wird über den Recorder gegen eine reale PostgreSQL-Instanz
+aufgezeichnet und anschließend ohne PostgreSQL im Replay-Modus ausgeführt; sie
+erhält dasselbe beobachtbare Verhalten, ohne dass die Treiberkonfiguration über
+Host und Port hinaus geändert wird. Bezug: LH-FA-18, LH-FA-04.
 
 ## 8. Nicht in diesem Dokument entschiedene Punkte
 
