@@ -17,6 +17,10 @@
 | [0011](0011-meldungscodes-praefix-pgr.md) | Meldungscodes mit Präfix PGR | Accepted | [`LH-QA-05`](../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler) |
 | [0012](0012-extended-query-gruppen.md) | Extended Query als Gruppen aus Client- und Server-Nachrichten | Accepted | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
 | [0013](0013-sqlite-recording-backend.md) | SQLite als zweites Aufzeichnungsformat | Accepted | [`LH-FA-22`](../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat) |
+| [0014](0014-konfigurationsdatei.md) | Konfigurationsdatei mit benannten Verbindungen | Proposed | [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
+| [0015](0015-uhr-port.md) | Zeit über einen Uhr-Port | Proposed | [`LH-FA-21`](../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen) |
+| [0016](0016-einspielen-anmeldung-und-tls.md) | Einspielen: Anmeldung und TLS als Client | Proposed | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
+| [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) | Einspielen: sequenziell, Antworten verworfen, Fehlersemantik | Proposed | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
 
 ## Konventionen
 
