@@ -1,6 +1,10 @@
 # Neutrales Schemamodell der SQLite-Aufzeichnung (Format `sqlite`): die Quelle der
 # Schema-Form — das SQL für SQLite wird aus dieser Datei erzeugt, nicht von Hand
-# geschrieben. Die Tabellen und Spalten stehen in der Spezifikation (SPEC-043).
+# geschrieben. Tabellen, Spalten, Typen und Schlüssel stehen allein in dieser Datei;
+# die Bedeutung der Spalten legt die Spezifikation fest (SPEC-043). Dass eine
+# Nachricht zu einer Interaktion (session_id, sequence) gehört, lässt sich im
+# neutralen Modell nicht als zusammengesetzter Fremdschlüssel ausdrücken; der
+# Adapter stellt es sicher.
 schema_format: "1.0"
 name: "pgwire-recorder-recording"
 version: "1.0.0"

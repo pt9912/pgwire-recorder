@@ -8,7 +8,7 @@
 
 **Bezug:** [`LH-FA-22`](../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat), [`LH-QA-06`](../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats), [ADR-0005](0005-recording-store-ist-driven-adapter.md)
 
-**Schärft:** [`LH-FA-22.a`](../../../spec/spezifikation.md#lh-fa-22a--aufzeichnungsformat), [`SPEC-043`](../../../spec/spezifikation.md#spec-043--recording-sqlite-format)
+**Schärft:** [`LH-FA-22.a`](../../../spec/spezifikation.md#lh-fa-22a--aufzeichnungsformat), [`SPEC-001`](../../../spec/spezifikation.md#spec-001--recording-serialisierung-und-versionierung), [`SPEC-043`](../../../spec/spezifikation.md#spec-043--recording-sqlite-format), [`SPEC-044`](../../../spec/spezifikation.md#6-externe-verträge), [`ARC-008`](../../../spec/architecture.md#1-komponenten-übersicht), [`ARC-014`](../../../spec/architecture.md#3-externe-abhängigkeiten)
 
 **Regeln:** Baseline-Regelwerk `modul-04-adrs.md` §Ziel-Form: ADR (MADR).
 
@@ -20,16 +20,16 @@ Das Standardformat der Aufzeichnung ist YAML: lesbar, diff-freundlich, versionie
 
 ## Entscheidung
 
-Wir wählen: Der Recorder speichert Aufzeichnungen wahlweise (`--format sqlite`) als SQLite-Datei; YAML bleibt der Standard. Beide Formate tragen dasselbe logische Modell, und Replay und Einspielen erkennen das Format der Datei selbst. Jede beendete Session wird in einer Transaktion ergänzt. Die Tabellenform steht im neutralen Schema-Format von d-migrate (`tools/schema/schema.yaml`); das SQL für SQLite wird daraus erzeugt und nicht von Hand geschrieben, wie bei den Schwester-Projekten.
+Wir wählen: Der Recorder speichert Aufzeichnungen wahlweise (`--format sqlite`) als SQLite-Datei; YAML bleibt der Standard. Beide Formate tragen dasselbe logische Modell, und Replay und Einspielen erkennen das Format der Datei selbst. Jede beendete Session wird in einer Transaktion ergänzt. Die Tabellenform steht im neutralen Schema-Format von d-migrate (`tools/schema/schema.yaml`); das SQL für SQLite wird daraus erzeugt und nicht von Hand geschrieben,.
 
 ## Verglichene Alternativen
 
 | Option | Pro | Contra |
 |---|---|---|
 | A — Nur YAML | ein Format, diff-freundlich | Neuschreiben der ganzen Datei je Session; ganzer Bestand im Speicher |
-| D — SQLite mit handgeschriebenem DDL | keine zusätzliche Schema-Datei | zwei Quellen für dieselbe Schema-Form (DDL und Spezifikation), Abweichung unbemerkt |
 | B — Zeilenorientierter Textstrom (ein Dokument je Session oder Interaktion, nur anhängen) | streambar, diff-freundlich, ohne Zusatzabhängigkeit | ein abgebrochener Schreibvorgang hinterlässt ein unvollständiges letztes Stück; ohne Transaktionsschutz und ohne wahlfreien Zugriff |
-| **C — SQLite als zweites Format (gewählt)** | inkrementell und transaktional ohne Neuschreiben; wahlfreier Zugriff; ein Format, das sich unabhängig prüfen lässt | binär und nicht diff-freundlich; zusätzliche Bibliothek im Recording-Adapter; Pflege zweier Formate |
+| **C — SQLite als zweites Format mit neutralem Schema (gewählt)** | inkrementell und transaktional ohne Neuschreiben; wahlfreier Zugriff; die Tabellenform hat eine Quelle | binär und nicht diff-freundlich; zusätzliche Bibliothek im Recording-Adapter; Pflege zweier Formate |
+| D — SQLite mit handgeschriebenem DDL | keine zusätzliche Schema-Datei | zwei Quellen für dieselbe Schema-Form (DDL und Spezifikation), Abweichung unbemerkt |
 
 ## Konsequenzen
 
@@ -42,7 +42,7 @@ Wir wählen: Der Recorder speichert Aufzeichnungen wahlweise (`--format sqlite`)
 | Tooling | Regel | Make-Target |
 |---|---|---|
 | a-check mit `.a-check.yml` | die SQLite-Bibliothek nur im Recording-Adapter (`tech`-Regel, sobald die Bibliothek feststeht) | — |
-| d-migrate | das neutrale Schema `tools/schema/schema.yaml` ist gültig | `make schema-validate` |
+| d-migrate | das neutrale Schema `tools/schema/schema.yaml` ist gültig | `make schema-validate` (Werkzeug, kein Gate) |
 
 ## Re-Evaluierungs-Trigger
 
