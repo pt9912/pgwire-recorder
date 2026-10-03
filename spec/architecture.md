@@ -87,11 +87,11 @@ importieren, und nutzt die Driven Ports.
 | `ARC-001` | Domain Model (`internal/hexagon/model`) | Kanonische Typen für Recording, Session, Interaktion, Request, Response und Wert; frei von Drittbibliotheken |
 | `ARC-002` | Application Services (`internal/hexagon/services`) | Record-Service, Replay-Service, Play-Service und Strict Matcher; Record-/Replay-Zustandslogik und Replay-Cursor |
 | `ARC-003` | Driving Ports / Inbound (`internal/hexagon/ports/driving`) | Use Cases, die der Core anbietet (Record, Replay, Play) |
-| `ARC-004` | Driven Ports / Outbound (`internal/hexagon/ports/driven`) | Infrastrukturleistungen, die der Core benötigt: Recording-Repository, PostgreSQL-Upstream |
+| `ARC-004` | Driven Ports / Outbound (`internal/hexagon/ports/driven`) | Infrastrukturleistungen, die der Core benötigt: Recording-Repository, PostgreSQL-Upstream, Uhr |
 | `ARC-005` | CLI Adapter (`internal/adapters/driving/cli`) | Driving Adapter: Argumente parsen, Konfiguration aufbauen, Modus wählen, Use Case starten, Fehler auf Exit Codes abbilden |
 | `ARC-006` | PGWire Server Adapter (`internal/adapters/driving/pgwire`) | Driving Adapter: TCP, PGWire-Framing, `SSLRequest`, Startup, Übersetzung von und nach Domain-Typen |
 | `ARC-007` | PostgreSQL Upstream Adapter (`internal/adapters/driven/postgres`) | Driven Adapter: Verbindung zum realen PostgreSQL |
-| `ARC-008` | Recording Adapter (`internal/adapters/driven/recording`) | Driven Adapter: YAML-Serialisierung und Dateisystemzugriff |
+| `ARC-008` | Recording Adapter (`internal/adapters/driven/recording`) | Driven Adapter: Serialisierung (YAML oder SQLite) und Dateisystemzugriff |
 | `ARC-009` | Bootstrap / Composition Root (`cmd/pgwire-recorder`, `internal/bootstrap`) | Verdrahtet konkrete Adapter mit Ports und Services |
 
 ## 2. Schichten und Constraints
@@ -185,6 +185,7 @@ Replay-Fachlogik.
 |---|---|
 | Record-Use-Case | Verarbeitet eine Client-Session im Record-Modus |
 | Replay-Use-Case | Verarbeitet eine Client-Session im Replay-Modus |
+| Play-Use-Case | Führt die Anfragen einer Aufzeichnung gegen einen Server aus; wird von der CLI gestartet, nicht von einer Client-Verbindung |
 
 Alternativ kann die PGWire-Session über kleinere fachliche Requests an den Core
 übergeben werden.
@@ -260,7 +261,8 @@ System (Baseline-Regelwerk `grundlagen-source-precedence.md` §ID-Schema als Kla
 | `ARC-010` | PostgreSQL | Driven Actor im Record-Modus, angebunden über `ARC-007`; im Replay-Modus nicht vorhanden | Über `ARC-004` austauschbar; Tests verwenden einen Fake |
 | `ARC-011` | Dateisystem | Driven Actor für Recordings, angebunden über `ARC-008` | Über `RecordingRepository` austauschbar; Tests verwenden einen Fake |
 | `ARC-012` | PGWire-Bibliothek | PGWire-Nachrichtenkodierung, nur in `ARC-006` und `ARC-007` | Auf die beiden PGWire-Adapter begrenzt |
-| `ARC-013` | YAML-Serialisierungsbibliothek | Serialisierung, nur in `ARC-008` | Auf den Recording Adapter begrenzt; ein anderes Recording-Backend (zum Beispiel JSONL oder SQLite) implementiert denselben Port |
+| `ARC-013` | YAML-Serialisierungsbibliothek | Serialisierung, nur in `ARC-008` | Auf den Recording Adapter begrenzt; ein anderes Recording-Backend implementiert denselben Port |
+| `ARC-014` | SQLite-Bibliothek | Speicherung im SQLite-Format, nur in `ARC-008` | Auf den Recording Adapter begrenzt; der Port `RecordingRepository` bleibt für beide Formate gleich |
 
 ## 4. Sequenz-Diagramme
 
@@ -341,7 +343,9 @@ sequenceDiagram
 ```
 
 Der Play-Service nutzt nur Driven Ports (Recording-Repository,
-PostgreSQL-Upstream); ein PGWire-Server ist nicht beteiligt. Er wertet nur
+PostgreSQL-Upstream, Uhr); ein PGWire-Server ist nicht beteiligt. Authentifizierung
+und TLS gegenüber dem Server liegen im Upstream-Adapter, Optionen und Zugangsdaten
+stellt die CLI aus der Konfiguration bereit. Er wertet nur
 `ErrorResponse` aus und vergleicht die Serverantworten nicht mit der
 Aufzeichnung.
 
@@ -474,6 +478,10 @@ Driving Adapter; fachlich relevante Startup-Daten werden in Domain-Typen
   PGWire ablehnen und unverschlüsselt fortfahren, sofern der Client dies
   akzeptiert. Der Application Core muss `SSLRequest` nicht kennen.
 
+Beim Einspielen baut der Upstream-Adapter die Verbindung zum Server als Client auf:
+Authentifizierung und TLS (auf Wunsch) gehören ihm; der Core kennt weder Passwort
+noch Zertifikate, sondern erhält eine geöffnete Upstream-Session.
+
 ### 4.5 Adapter-Verantwortung
 
 **PGWire Server (`ARC-006`)** ist verantwortlich für: TCP-Verbindungen
@@ -490,9 +498,10 @@ und verwendet die PGWire-Bibliothek beziehungsweise geeignete PGWire-Funktionali
 Verbindung zum realen Server. Er bildet die Domain-Query auf PGWire ab und die
 Serverantworten zurück auf die Domain-Response.
 
-**Recording (`ARC-008`)** implementiert `RecordingRepository`: Beim Speichern
-wird das Domain-Recording in die YAML-Darstellung überführt und im Dateisystem
-abgelegt, beim Laden in umgekehrter Richtung. Das Serialisierungsschema gehört
+**Recording (`ARC-008`)** implementiert `RecordingRepository` für zwei Formate: Beim
+Speichern wird das Domain-Recording in die YAML-Darstellung überführt und im
+Dateisystem abgelegt, oder (SQLite) je Session in einer Transaktion ergänzt; beim
+Laden erkennt der Adapter das Format und führt in umgekehrter Richtung zurück. Das Serialisierungsschema gehört
 zum Driven Adapter und breitet sich nicht in den Core aus; separate
 Persistenz-DTOs im Adapter trennen Domain- und YAML-Modell, sobald beide
 auseinanderlaufen. Die persistente Darstellung eines `Value` entscheidet der
