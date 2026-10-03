@@ -78,13 +78,15 @@ Installation mit `pgwire-recorder version`.
 
 Das Docker/OCI-Image für `linux/amd64` und `linux/arm64` enthält das Binary und
 braucht keine weitere Software; es läuft mit jedem OCI-kompatiblen
-Container-Laufzeitsystem, zum Beispiel Docker oder Podman. Ein Beispiel für eine
-Wiedergabe in Docker Compose (setzen Sie den Namen Ihres Images ein):
+Container-Laufzeitsystem, zum Beispiel Docker oder Podman. Sie finden es in der
+GitHub Container Registry (`ghcr.io/pt9912/pgwire-recorder`) und auf Docker Hub
+(`pt9912/pgwire-recorder`). Ein Beispiel für eine Wiedergabe in Docker Compose
+(setzen Sie die Version ein):
 
 ```yaml
 services:
   recorder:
-    image: <Name Ihres Images>
+    image: ghcr.io/pt9912/pgwire-recorder:<Version>
     command:
       - replay
       - --listen=0.0.0.0:5432
@@ -150,10 +152,9 @@ dem Ende jeder Verbindung und beim Beenden neu geschrieben.
 
 * Existiert die Zieldatei bereits, bricht das Werkzeug ab (`PGR-E2002`). Wollen
   Sie sie ersetzen, ergänzen Sie `--force`.
-* Verwenden Sie für einen Ablauf eine einzige Datenbankverbindung. Öffnet Ihre
-  Anwendung mehrere Verbindungen, entsteht eine Aufzeichnung mit mehreren
-  Verbindungen, die sich nicht wiedergeben lässt (siehe
-  [Fehlerbehebung](#7-fehlerbehebung)).
+* Jede Verbindung Ihrer Anwendung mit mindestens einer Anfrage wird als eigene
+  Sitzung aufgezeichnet. Verbindungen ohne Anfrage, zum Beispiel
+  Probe-Verbindungen eines Connection-Pools, werden nicht aufgezeichnet.
 
 ### Eine Aufzeichnung wiedergeben
 
@@ -180,7 +181,11 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   Protokoll auch in Namen, Parametern, Formaten und Zeilenlimit). Eine abweichende
   Anfrage wird als Fehler gemeldet; das Werkzeug liefert dann keine geratene
   Antwort (`PGR-E5001`).
-* Jede neue Verbindung beginnt wieder am Anfang der Aufzeichnung.
+* Die erste Verbindung erhält die erste aufgezeichnete Sitzung, die zweite die
+  zweite, und so weiter. Bauen Sie die Verbindungen nacheinander auf; bei
+  gleichzeitigem Aufbau ist die Zuordnung nicht festgelegt. Eine Verbindung
+  über die aufgezeichneten Sitzungen hinaus wird als Abweichung gemeldet
+  (`PGR-E5003`).
 
 ### Mit einem Datenbanktreiber arbeiten
 
@@ -301,10 +306,10 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
 | `PGR-E5000`, `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
-| `PGR-E5002` | aufgezeichnete Anfragen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
+| `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
+| `PGR-E5003` | Verbindung ohne aufgezeichnete Sitzung | Ihre Anwendung hat mehr Verbindungen geöffnet als aufgezeichnet. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
 | `PGR-E6000`, `PGR-E6001` | nicht unterstützte Nachricht | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls. Verwenden Sie einen Treiber, der sie nutzt. |
-| `PGR-E6003` | Aufzeichnung mit mehreren Verbindungen | Eine Aufzeichnung mit mehr als einer Verbindung lässt sich nicht wiedergeben. Zeichnen Sie den Ablauf mit einer einzigen Verbindung auf, zum Beispiel mit einer Pool-Größe von 1. |
 
 ### Warnungen
 

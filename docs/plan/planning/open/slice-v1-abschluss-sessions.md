@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md)
 
-**Berührte Spec-Stellen:** `LH-FA-12.a` · `LH-FA-13.b` · `LH-FA-02.b` · `SPEC-017` · `SPEC-028` · `ARC-002`
+**Berührte Spec-Stellen:** `LH-FA-12.a` · `LH-FA-13.b` · `LH-FA-02.b` · `SPEC-017` · `SPEC-028` · `SPEC-034` · `ARC-002`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,11 +29,11 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Mehrere Client-Verbindungen werden im Record parallel als eigene Sessions aufgezeichnet; Verbindungsende, Verbindungsfehler und Mehr-Session-Recordings im Replay verhalten sich wie spezifiziert.
+**Ziel:** Mehrere Client-Verbindungen werden im Record parallel als eigene Sessions aufgezeichnet (Verbindungen ohne Anfrage nicht); im Replay erhält die n-te Verbindung die n-te Session; Verbindungsende und Verbindungsfehler verhalten sich wie spezifiziert.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Eine Strategie, mehrere aufgezeichnete Sessions im Replay zuzuordnen — nicht Teil von v1 (Lastenheft: Out-of-Scope LH-FA-12).
+- Eine deterministische Zuordnung bei gleichzeitigem Verbindungsaufbau — Out-of-Scope von LH-FA-12.
 - Signalbehandlung — `slice-v1-abschluss-betrieb`.
 
 
@@ -44,7 +44,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen): Zwei parallele Verbindungen erzeugen zwei Sessions mit je geordneten Interaktionen; ein Mehr-Session-Recording wird im Replay abgelehnt (Test).
+- [ ] [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen): Zwei parallele Verbindungen erzeugen zwei Sessions mit je geordneten Interaktionen, eine Verbindung ohne Anfrage keine; im Replay erhält die n-te Verbindung die n-te Session, eine Verbindung darüber hinaus ist ein Mismatch (Test).
 - [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Ein Verbindungsfehler beendet nur die Verbindung, der Prozess merkt sich die Klasse (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -77,7 +77,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next`: Parallelität verlangt eine Änderung des Recording-Formats — zurück zur Zerlegung.
-- `in-progress` → `open`: Das Verhalten bei Mehr-Session-Recordings ändert sich durch eine Entscheidung des Auftraggebers — Carveout.
+- `in-progress` → `open`: Die Zuordnungsregel (n-te Verbindung, n-te Session) ändert sich durch eine Entscheidung des Auftraggebers — Carveout.
 
 
 ## 5. Closure-Trigger
@@ -95,7 +95,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Test-Treiber mit Connection-Pool erzeugen Mehr-Session-Recordings, die im Replay abgelehnt werden — **Ausgang:** offen bis Closure.
+- Ein Connection-Pool baut Verbindungen gleichzeitig auf; die Zuordnung ist dann nicht zugesichert — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

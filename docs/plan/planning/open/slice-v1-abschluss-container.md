@@ -33,7 +33,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Veröffentlichung in einer Registry — kein Bestandteil der Anforderungen.
+- Der Veröffentlichungs-Mechanismus der Registries (`ghcr.io`, `docker.io`) — Gegenstand des Release-Verfahrens in `docs/maintainer/releasing.md`; dieser Slice liefert das Image.
 - Gate für Code-Tabelle und Katalog — Folge-Slice.
 
 

@@ -28,7 +28,9 @@ Ein Release liefert:
 - das Binary `pgwire-recorder` für Linux, macOS und Windows, jeweils für
   `amd64` und `arm64`,
 - ein Docker/OCI-Image für `linux/amd64` und `linux/arm64` in einer
-  Manifestliste, das das Binary ohne weitere Laufzeitabhängigkeit enthält,
+  Manifestliste, das das Binary ohne weitere Laufzeitabhängigkeit enthält und
+  in `ghcr.io/pt9912/pgwire-recorder` sowie `docker.io/pt9912/pgwire-recorder`
+  veröffentlicht wird,
 - bei einem stabilen Release eine Formel im Homebrew-Tap
   `pt9912/homebrew-pgwire-recorder` für macOS und Linux; Vorabversionen ändern
   den Tap nicht.

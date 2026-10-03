@@ -161,7 +161,7 @@ sie gilt für jeden Lauf.
   für Verzeichniskonvention, Lifecycle-Regeln, Carveout-Disziplin,
   ID-Schema (`<PREFIX>-FA-*`, `<PREFIX>-QA-*`, `<PREFIX>-RB-*`, `SPEC-<NNN>`, `ARC-<NNN>`,
   `ADR-<NNNN>`, `CO-<NNN>`, `slice-<Kennung>`, `MR-<NNN>`, `BEO-<NNN>`, `RC-<NNN>` — nur das
-  Vertrags-Präfix wird repo-weit festgelegt, z. B. `LH`; `SPEC-*` und
+  Vertrags-Präfix wird repo-weit festgelegt, hier `LH`; `SPEC-*` und
   `ARC-*` kodieren das Stratum und sind fest, siehe Baseline-Regelwerk
   `grundlagen-source-precedence.md` §ID-Schema als Klammer;
   bei mehreren gleichzeitig schreibenden Entwicklern für die Artefakte mit
@@ -169,7 +169,6 @@ sie gilt für jeden Lauf.
   Bereichssegment und damit den Zählraum je Sub-Area festlegen —
   `SPEC-*`/`ARC-*` bleiben davon ausgenommen und zählen fortlaufend je
   Datei, siehe Baseline-Regelwerk `grundlagen-source-precedence.md` §Vergabe).*
-- **Vertrags-Präfix:** `LH` (`LH-FA-*`, `LH-QA-*`, `LH-RB-*`).
 - **Begründung:** Initial-Setzung. Spätere Adaptionen werden als
   `MR-<NNN>` nachgetragen.
 - **Auflösungs-Trigger:** permanent.
@@ -178,26 +177,25 @@ sie gilt für jeden Lauf.
 
 
 
-Keine aktiven Adaptionen.
+| MR | Titel | Geltungsbereich | Ersetzt-Baseline-Regel |
+|---|---|---|---|
+| \<NNN\> <a id="mr-<NNN>"></a> | <Titel> | <Dateien / Sub-Areas> | <§Abschnitt der Baseline> |
 
 ### Aufgelöste Adaptionen
 
 
 
-Keine aufgelösten Adaptionen.
-
-## Versionierung des Lastenhefts
-
-Die Version des Lastenhefts steht in `Major.Minor.Patch`; ab `Accepted` steigt
-sie je angenommenem Change Request: **Major** bei Änderung oder Streichung einer
-bestehenden Anforderung, **Minor** bei einer neuen Anforderung, **Patch** bei
-einer Tatsachenberichtigung oder Klarstellung ohne Änderung einer Aussage.
+| MR | aufgelöst durch |
+|---|---|
+| \<NNN\> <a id="mr-<NNN>"></a> | MR-\<NNN\> |
 
 ## Zusatzklassen-Deklaration für Sensors-Bindung
 
 
 
-Keine Zusatzklassen.
+| Klasse | Form | Bedeutung | Beispiel |
+|---|---|---|---|
+| <z. B. LH-Bindung> | `LH-<...>` | <z. B. Gate prüft eine bestimmte LH-Anforderung> | <z. B. `LH-QA-01` für Determinismus-Gate> |
 
 
 
