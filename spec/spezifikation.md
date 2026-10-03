@@ -132,19 +132,21 @@ pgwire-recorder replay \
    benötigt.
 2. Beim Start wird das Recording geladen und geprüft. Ein nicht lesbares oder
    beschädigtes Recording oder eine unbekannte Version endet als Startfehler
-   mit Exit-Code `3`; ein Recording ohne Session ist nicht verwendbar (Exit-Code `3`,
-   `PGR-E3004`); ein Recording mit mehr als einer Session wird als nicht
-   unterstützt abgelehnt (Exit-Code `6`, `PGR-E6003`; siehe LH-FA-12.a).
-3. Jede eingehende Client-Verbindung erhält einen eigenen Replay-Cursor.
-4. Der Cursor zeigt auf die nächste erwartete Interaktion der Session des
-   Recordings; er beginnt je Verbindung am Anfang dieser Session.
+   mit Exit-Code `3`; ein Recording ohne Session ist nicht verwendbar (Exit-Code
+   `3`, `PGR-E3004`).
+3. Jede eingehende Client-Verbindung erhält einen eigenen Replay-Cursor und die
+   Session, die ihrer Position in der Reihenfolge der Verbindungsannahme
+   entspricht: die n-te Verbindung die n-te aufgezeichnete Session (LH-FA-12.a).
+4. Der Cursor zeigt auf die nächste erwartete Interaktion dieser Session; er
+   beginnt am Anfang der Session. Eine Verbindung, zu der es keine
+   aufgezeichnete Session mehr gibt, ist ein Replay-Mismatch (`PGR-E5003`).
 
 ---
 
 ### LH-FA-03.b — Nicht verbrauchte Interaktionen
 
 Wird eine Replay-Session beendet, bevor alle ihr zugeordneten Interaktionen
-verbraucht wurden, wird dies mindestens als Warnung mit dem Meldungscode `PGR-W2001` protokolliert (`SPEC-034`).
+verbraucht wurden, oder wird eine aufgezeichnete Session nie verbunden, wird dies mindestens als Warnung mit dem Meldungscode `PGR-W2001` protokolliert (`SPEC-034`).
 
 Die Option `--fail-on-unconsumed` (Umgebungsvariable
 `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED`) wertet dies als Fehler: Die Verbindung
@@ -297,9 +299,10 @@ Schreibvorgang die vorhandene Datei.
 
 **Schreibzeitpunkt.** Das Recording wird nach dem Ende jeder Session und beim
 kontrollierten Beenden (LH-FA-13.a) als Ganzes neu geschrieben; es enthält alle
-bis dahin beendeten Sessions. Ein Lauf, in dem sich kein Client verbunden hat,
-schreibt ein gültiges Recording ohne Sessions; eine Session ohne Anfrage wird
-als Session ohne Interaktionen aufgezeichnet.
+bis dahin beendeten Sessions mit mindestens einer abgeschlossenen Interaktion.
+Eine Verbindung ohne Anfrage (zum Beispiel eine Probe-Verbindung eines
+Connection-Pools) wird nicht aufgezeichnet. Ein Lauf, in dem keine solche
+Verbindung auftrat, schreibt ein gültiges Recording ohne Sessions.
 
 **Schritte je Schreibvorgang:**
 
@@ -386,15 +389,17 @@ einschließlich des abschließenden `ReadyForQuery`, wiedergegeben.
 Recording (`SPEC-002`, `SPEC-041`) erhalten die Reihenfolge der Interaktionen.
 
 **Recording.** Mehrere Client-Verbindungen dürfen parallel angenommen werden.
-Jede Verbindung wird als separate Session im Recording geführt.
+Jede Verbindung mit mindestens einer abgeschlossenen Interaktion wird als
+separate Session im Recording geführt, in der Reihenfolge der
+Verbindungsannahme; `id` zählt diese Sessions fortlaufend.
 
-**Replay.** v1 garantiert deterministisches Replay für Recordings mit genau
-einer Session. Ein Recording mit mehr als einer Session wird beim Start
-abgelehnt (`PGR-E6003`, Exit-Code `6`): Eine Session-Zuordnungsstrategie gibt es
-in v1 nicht, damit Replay bei parallelen Verbindungen nicht
-nichtdeterministisch eine falsche Session auswählt. Mehrere Client-Verbindungen
-gegen ein Ein-Session-Recording sind zulässig; jede Verbindung beginnt am Anfang
-der Session (LH-FA-03.a).
+**Replay.** Die n-te Verbindung, in der Reihenfolge der Verbindungsannahme,
+erhält die Session mit der n-ten `id`. Das ist deterministisch, wenn die
+Clients ihre Verbindungen nacheinander aufbauen; bei gleichzeitigem
+Verbindungsaufbau hängt die Zuordnung von der Reihenfolge der Annahme ab und
+ist nicht zugesichert. Mehr Verbindungen als aufgezeichnete Sessions sind ein
+Replay-Mismatch (`PGR-E5003`). Wird eine aufgezeichnete Session nie verbunden,
+gilt sie als nicht verbraucht (LH-FA-03.b).
 
 ---
 
@@ -418,8 +423,7 @@ Der Exit-Code nach einem kontrollierten Herunterfahren folgt LH-FA-13.b.
 ### LH-FA-13.b — Fehlerebenen und Prozessstatus
 
 **Startfehler** (ungültige Konfiguration, Listen-Port nicht zu öffnen,
-Recording nicht ladbar, vorhandenes `--output` ohne `--force`, Recording mit
-mehr als einer Session im Replay) beenden den Prozess sofort mit dem Exit-Code
+Recording nicht ladbar, vorhandenes `--output` ohne `--force`) beenden den Prozess sofort mit dem Exit-Code
 der Klasse (`SPEC-013` bis `SPEC-019`), bevor eine Verbindung angenommen wird.
 
 **Verbindungsfehler** (Upstream nicht erreichbar, Replay-Mismatch, nicht
@@ -465,7 +469,9 @@ Das Projekt stellt ein Docker/OCI-konformes Container-Image bereit
 einzigen Manifestliste, das das Binary ohne weitere Laufzeitabhängigkeit
 enthält. Das Binary hat keine Laufzeitabhängigkeit auf eine lokale
 PostgreSQL-Installation. Das Image läuft mit jedem OCI-kompatiblen
-Container-Laufzeitsystem.
+Container-Laufzeitsystem. Es wird in der GitHub Container Registry
+(`ghcr.io/pt9912/pgwire-recorder`) und auf Docker Hub
+(`docker.io/pt9912/pgwire-recorder`) veröffentlicht.
 
 Beispiel:
 
@@ -766,7 +772,7 @@ Implementierung darf intern detailliertere Fehler unterscheiden, solange diese
 | `SPEC-016` | 3 | Recording-Datei ungültig oder nicht zugreifbar | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-017` | 4 | Netzwerk-/Upstream-Fehler | Startfehler: Prozess endet; Verbindungsfehler: Verbindung endet, Prozessende nach LH-FA-13.b |
 | `SPEC-018` | 5 | Replay-Mismatch, bei `--fail-on-unconsumed` auch nicht verbrauchte Interaktionen | Diagnose nach LH-FA-10.a, Verbindung endet, Prozessende nach LH-FA-13.b |
-| `SPEC-019` | 6 | nicht unterstützte PGWire-Funktion | Diagnose, Verbindung endet, Prozessende nach LH-FA-13.b; Startfehler (Mehr-Session-Recording): Prozess endet |
+| `SPEC-019` | 6 | nicht unterstützte PGWire-Funktion | Diagnose, Verbindung endet, Prozessende nach LH-FA-13.b |
 
 **Fehlerklassen.** Mindestens folgende Klassen werden unterschieden und
 erzeugen einen für Entwickler verständlichen Text:
@@ -820,11 +826,11 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E4003` | Netzwerk (Exit 4) | unerwartetes Verbindungsende (`SPEC-028`) |
 | `PGR-E5000` | Replay (Exit 5) | Rückfall |
 | `PGR-E5001` | Replay (Exit 5) | Replay-Mismatch (`SPEC-027`) |
-| `PGR-E5002` | Replay (Exit 5) | nicht verbrauchte Interaktionen bei `--fail-on-unconsumed` (LH-FA-03.b) |
+| `PGR-E5002` | Replay (Exit 5) | nicht verbrauchte Interaktionen oder Sessions bei `--fail-on-unconsumed` (LH-FA-03.b) |
+| `PGR-E5003` | Replay (Exit 5) | Verbindung ohne aufgezeichnete Session (LH-FA-12.a) |
 | `PGR-E6000` | nicht unterstützt (Exit 6) | Rückfall |
 | `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`) |
 | `PGR-E6002` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Protokollversion (LH-FA-05.e) |
-| `PGR-E6003` | nicht unterstützt (Exit 6) | Recording mit mehreren Sessions im Replay (LH-FA-12.a) |
 | `PGR-W2001` | Replay | Sitzung endet vor Verbrauch aller Interaktionen (LH-FA-03.b) |
 | `PGR-W3001` | Protokollrand | `CancelRequest` empfangen und nicht weitergeleitet (LH-FA-05.e) |
 
@@ -853,7 +859,7 @@ Für v1 sind keine Metriken und Tracing-Felder festgelegt.
 |---|---|---|---|
 | `SPEC-029` | PostgreSQL (Upstream im Record-Modus), PGWire | PGWire-Protokollversion 3.0; jeder Server, der sie spricht | — |
 | `SPEC-030` | `github.com/jackc/pgx/v5/pgproto3` (Verarbeitung von PGWire-Nachrichten) | Major 5 | — |
-| `SPEC-031` | Docker/OCI-Image `pgwire-recorder` | OCI-Image-Format, `linux/amd64` und `linux/arm64` | — |
+| `SPEC-031` | Docker/OCI-Image `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder` | OCI-Image-Format, `linux/amd64` und `linux/arm64` | — |
 | `SPEC-042` | Homebrew-Tap `pt9912/homebrew-pgwire-recorder` | eine Formel je stabilem Release | — |
 
 ## 7. Querschnittsvorgaben

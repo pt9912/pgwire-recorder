@@ -503,8 +503,8 @@ nebenläufig verarbeiten; die Parallelitätsmechanik ist Infrastruktur. Fachlich
 Session-State bleibt je Verbindung getrennt (Verbindung *n* → Application
 Session *n*). Gemeinsamer Recording-State wird über einen dafür vorgesehenen
 Application Service beziehungsweise eine synchronisierte Implementierung
-koordiniert. Deterministisches Replay ist nur für Single-Session-Recordings
-garantiert.
+koordiniert. Im Replay erhält die n-te Verbindung die n-te aufgezeichnete
+Session; deterministisch ist das bei nacheinander aufgebauten Verbindungen.
 
 **Observability.** Logging wird an den Rändern injiziert beziehungsweise über
 eine kleine Abstraktion bereitgestellt. Logs können Modus, Session-ID,
