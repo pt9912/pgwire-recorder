@@ -1,8 +1,9 @@
 # Lastenheft — pgwire-recorder
 
 **Version:** 0.1.0 (`Major.Minor.Patch`). Ab `Accepted` ist der Bump der
-Fußabdruck des Change Requests; **welche Stelle** steigt, ist
-in `harness/conventions.md` deklariert (Baseline-Regelwerk
+Fußabdruck des Change Requests: **Major** bei Änderung oder Streichung einer
+bestehenden Anforderung, **Minor** bei einer neuen Anforderung, **Patch** bei
+einer Tatsachenberichtigung ohne Änderung einer Aussage (Baseline-Regelwerk
 `grundlagen-source-precedence.md` §Spec-Stratifizierung).
 
 **Status:** Draft — gilt dem **Dokument**, nicht der
@@ -142,8 +143,8 @@ PostgreSQL-Server vermittelt und aufgezeichnet wird.
   Simple-Query-Interaktion ausführt, then erhält der Client die Serverantwort
   und eine Aufzeichnung entsteht (siehe Abnahmeszenario 1 in §7).
 - **Boundary:** Given ein Client, der keine Anfrage stellt, when die Verbindung
-  endet, then ist das Ergebnis eine gültige Aufzeichnung ohne
-  Interaktionen; der Recorder bleibt nicht hängen.
+  endet, then wird diese Verbindung nicht aufgezeichnet, die
+  Aufzeichnung bleibt gültig; der Recorder bleibt nicht hängen.
 - **Negative:** Given ein nicht erreichbarer PostgreSQL-Server, when ein Client
   sich verbindet, then wird ein Verbindungsfehler signalisiert (siehe LH-QA-05).
 
@@ -385,13 +386,17 @@ der aufgezeichneten Interaktionen erhalten.
 - **Happy Path:** Given mehrere nacheinander aufgezeichnete Interaktionen, when
   sie wiedergegeben werden, then entspricht die Reihenfolge der aufgezeichneten.
 - **Boundary:** Given mehrere Client-Verbindungen, when sie aufgezeichnet
-  werden, then wird jede Verbindung als eigene Session aufgezeichnet,
-  und die Reihenfolge der Interaktionen bleibt je Session erhalten.
+  werden, then wird jede Verbindung mit Anfragen als eigene Session
+  aufgezeichnet, und die Reihenfolge der Interaktionen bleibt je Session
+  erhalten. Given ein Recording mit mehreren Sessions, when sich Clients
+  nacheinander verbinden, then erhält die n-te Verbindung die n-te
+  aufgezeichnete Session.
 - **Negative:** Given eine Folge, die der aufgezeichneten Reihenfolge
   widerspricht und für die Reihenfolge relevant ist, when sie im Replay
   eintrifft, then wird sie nach LH-FA-10 behandelt.
 
-**Out-of-Scope:** Deterministisches Replay bei mehreren aufgezeichneten Sessions.
+**Out-of-Scope:** Eine deterministische Zuordnung bei gleichzeitigem
+Verbindungsaufbau.
 
 ---
 
@@ -740,31 +745,7 @@ dokumentierten Befehlen installiert. `pgwire-recorder version` meldet die
 installierte Version, und ein Replay-Lauf startet ohne weitere Installation.
 Bezug: LH-FA-19.
 
-## 8. Nicht in diesem Dokument entschiedene Punkte
-
-Die folgenden Punkte werden bewusst nicht in diesem Lastenheft technisch
-entschieden; sie sind keine Anforderungen dieses Dokuments und werden in den
-nachgelagerten Dokumenten festgelegt:
-
-- genaue CLI-Kommandos und Optionen,
-- Konfigurationsquellen und deren Priorität,
-- Matching-Verfahren zwischen aufgezeichneten und eingehenden Anfragen,
-- Verhalten bei mehrfach identischen Queries,
-- Umgang mit Sessions und mehreren Client-Verbindungen,
-- Umfang der unterstützten Start-up- und Authentifizierungssequenzen,
-- Verhalten bei Transaktionen im Rahmen des Simple Query Protocols,
-- persistentes Recording-Format,
-- Versionierung und Kompatibilität von Recordings,
-- Logging und Log-Level,
-- Exit Codes,
-- Signalbehandlung und kontrolliertes Beenden,
-- Netzwerk- und Verbindungsfehler,
-- unterstützte PostgreSQL-/PGWire-Versionen,
-- TLS-Unterstützung,
-- Parallelität und Reihenfolge bei mehreren Verbindungen,
-- konkrete Leistungsanforderungen.
-
-## 9. Historie
+## 8. Historie
 
 Regeln dieser Sektion: Ab Status `Accepted` ist **jede** Änderung an diesem
 Dokument eine Vertragsänderung — auch das **Hinzufügen** einer neuen
