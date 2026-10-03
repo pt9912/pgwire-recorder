@@ -61,33 +61,26 @@ Diese Datei dupliziert sie nicht.
 | Target | Vertrag | Bindung |
 |---|---|---|
 | `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | — |
-| `<make-target>` | <was prüft es> | — |
-| `<make-target>` | <…> | — |
-| `<make-target>` | <…> | ADR-<NNNN> |
-| `<make-target>` | <…>, bootstrap-aware | Schwelle X %, M<n> → Y % |
-| `<make-target>` | <…> | bootstrap via `CO-<NNN>` bis <Slice/Welle> |
+| `make baseline-verify` | vendored Baseline gegen `SHA256SUMS` (Integrität und Vollständigkeit, netzlos) | — |
 | `make gates` | alle inneren Gates | — |
-| `<make-target>` | gates + extras | — |
-| `<make-target>` | volle Closure | Image-Hash `sha256:…` (Modul 14) |
-| `make <gate-mit-grenze>` | <…>; Grenze und Ausgänge in der verlinkten Datei | ADR-<NNNN> |
 
 **Werkzeuge — genannt, weil der Lauf sie braucht, aber kein Gate:**
 
 | Target | Tut was | Bindung |
 |---|---|---|
-| `make <mover>` | bewegt <…>, prüft nichts | kein Gate |
-| `make <messung>` | misst <…> gegen <Schwelle> | kein Gate, ADR-<NNNN> |
-| `make <vorschau>` | sagt, was <schreibender Lauf> täte; Ausgänge und Sperren in der verlinkten Datei | kein Gate |
+| `make slice-mv` | bewegt einen Slice zwischen den Lifecycle-Verzeichnissen und zieht die Verweise nach, prüft nichts | kein Gate |
+| `make archive-welle` | archiviert die Zeitdokumente einer geschlossenen Welle | kein Gate |
+| `make hooks-install` | aktiviert den git-eigenen `commit-msg`-Träger im Klon | kein Gate |
 
 **Aktueller Lauf-Status:** CI-Badge bzw. lokal `make help` / `make gates`.
-**Rote Gates:** Begründung im verlinkten `CO-<NNN>` (siehe Bindung-Spalte), Modul 7.
-**Nicht behauptet** (geplant): `<make-target-1>`, `<make-target-2>` (Welle <n>).
+**Rote Gates:** Begründung in einem Carveout (Modul 7); bisher keiner.
+**Nicht behauptet** (geplant): Build, Test und Architektur-Gate; sie existieren, sobald die Umsetzung sie anlegt.
 
 
 
 ## Traceability rules
 
-- PRs/Commits **müssen** mindestens eine `<LH-*>` oder `ADR-*`-ID nennen.
+- PRs/Commits **müssen** mindestens eine `LH-*`-, `ADR-*`-, `MR-*`- oder `slice-*`-Kennung nennen.
 - Neue oder geänderte Anforderungen brauchen einen Beleg: Test, Gate, Demo oder ADR.
 - Neue ADRs müssen im ADR-Index ergänzt werden.
 - Änderungen an Planning-Dokumenten müssen die Lifecycle-Regeln beachten (open → next → in-progress → done; reine `git mv`-Commits siehe AGENTS.md §3.3).
@@ -96,8 +89,8 @@ Diese Datei dupliziert sie nicht.
 
 
 
-- <…>
-- <…>
+- Docker-only: kein lokaler Toolchain-Install, alles läuft über `make` (`AGENTS.md` §3.1).
+- Recordings können sensible Daten enthalten; das Produkt maskiert nichts (`LH-RB-01`).
 
 ## Minimal agent workflow
 
@@ -123,6 +116,6 @@ Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-harness-dateien.md`
 drei bis fünf **geordnete** Zeiger, was ein neuer Mensch zuerst liest und was
 bei Bedarf; eine Leseordnung, die alles nennt, ist keine.
 
-1. <zuerst — z. B. `AGENTS.md` §Hard Rules>
-2. <dann — z. B. `spec/lastenheft.md`>
-3. <bei Bedarf — z. B. `harness/conventions.md`>
+1. `AGENTS.md` §Harte Regeln
+2. `spec/lastenheft.md`, danach `spec/spezifikation.md` und `spec/architecture.md`
+3. bei Bedarf `harness/conventions.md`

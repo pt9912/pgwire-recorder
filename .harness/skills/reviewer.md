@@ -1,8 +1,8 @@
-# Reviewer-Skill — <Repo-Name>
+# Reviewer-Skill — pgwire-recorder
 
 * Status: Accepted
-* Bezug: <ADR-NNNN, AGENTS.md §"Review-Regeln"> · <!-- d-check:ignore (Kurs-/ADR-Referenzen; Anker gelten im Ziel-Repo) -->
-* Gilt für: `<agent-review-Make-Target>`
+* Bezug: `AGENTS.md` §3 (Harte Regeln) und §6 (Minimal Agent Workflow)
+* Gilt für: den Review-Lauf nach Schritt 8 des Minimal Agent Workflow; ein eigenes Make-Target gibt es nicht
 
 ## Kontext-Eingang (Pflicht)
 
@@ -25,7 +25,7 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
 **HIGH** — eines der folgenden:
 - ADR-Verstoß (Layer, Tool, Hard Rule)
 - Sicherheits-Anti-Pattern (Injection, fehlende Auth-Prüfung)
-- Korrektheitsfehler im *kritischen* Pfad (<z. B. Index-Schreiben, Auth>)
+- Korrektheitsfehler im *kritischen* Pfad (Record-/Replay-Pfad: unpassende oder geratene Antwort, verletzte Reihenfolge, Byte-Verlust zwischen Aufzeichnung und Wiedergabe)
 - Suppression eines Gates (`#noqa`, `//nolint`, `[SuppressMessage]`) ohne ADR
 - **Norm nur im Template-Kommentar** — eine Regel steht im `<!-- -->`-Block
   eines `.template.md` und nirgends sonst. Sie ist beim Adopter weg, sobald er
@@ -42,9 +42,17 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   Schließungen und erreichte Meilensteine. Kein Gate fängt das (siehe
   Baseline-Regelwerk `grundlagen-harness-dateien.md` §Was ein Kommentar trägt,
   *Dieselbe Regel für Zustandsfelder*)
-- <**repo-spezifisch #1** — eine Regel, die ein generischer Skill nicht abdeckt,
-  z. B. „git mv + Inhalt = zwei Commits" oder „Accepted-ADRs immutable">
-- <**repo-spezifisch #2** — eine zweite solche Regel>
+- **Spec-Stratum nennt Artefakt unterhalb oder außerhalb** — Lastenheft,
+  Spezifikation oder Architektur nennen eine ADR, einen Slice, eine Welle, einen
+  Commit oder (Lastenheft) die darunterliegenden Spec-Dateien; die Sicht trägt
+  zudem keine Sprach-Artefakte (Code, Dateiendungen, Bibliotheksnamen,
+  sprachspezifische Konstrukte, `AGENTS.md` §3.4)
+- **ADR oder Move verletzt Immutabilität/Commit-Regel** — eine `Accepted`-ADR
+  wird inhaltlich überschrieben (`AGENTS.md` §3.5), oder ein Move und eine
+  Inhaltsänderung stehen im selben Commit (`AGENTS.md` §3.3)
+- **Core-Reinheit verletzt** — `internal/hexagon/**` importiert Adapter,
+  `pgproto3`, eine YAML-Bibliothek oder das Dateisystem, oder `pgproto3` liegt
+  außerhalb der beiden PGWire-Adapter
 
 **MEDIUM** — eines der folgenden:
 - unklare Fehlerbehandlung am Rand des Spec-Bereichs
@@ -56,11 +64,6 @@ unbenutzte Imports.
 
 **INFO** — Hinweis ohne erwartete Aktion (z. B. „diese Stelle hat ein passendes
 ArchUnit-Pendant, das du nicht kennst").
-
-> **Pflicht beim Ausfüllen (Modul 10 §Übungen):** Die HIGH-Liste muss mindestens
-> *zwei* repo-spezifische Regeln nennen, die ein generischer Skill nicht abdeckt.
-> Ist der Skill ohne sie, ist er noch nicht scharf genug — dann kommt bei einem
-> Lauf auf einem realen Diff keines deiner Repo-HIGHs zur Anwendung.
 
 ## Was dieser Skill NICHT macht
 

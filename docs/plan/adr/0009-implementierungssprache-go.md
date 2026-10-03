@@ -8,7 +8,7 @@
 
 **Bezug:** [`LH-FA-01`](../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung)
 
-**Schärft:** [Spezifikation §8](../../../spec/spezifikation.md#8-technische-leitentscheidungen-und-architekturvorgabe)
+**Schärft:** [`SPEC-036`](../../../spec/spezifikation.md#spec-036--technische-leitentscheidungen)
 
 **Regeln:** Baseline-Regelwerk `modul-04-adrs.md` §Ziel-Form: ADR (MADR).
 

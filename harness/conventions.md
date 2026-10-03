@@ -26,9 +26,9 @@ bringend für *Form*-Fragen, nicht autoritativ über Inhalt.
 
 
 
-- **Konvention:** <Name, z. B. "AI-Harness-Kurs", interner Standard, Industrie-Norm>
-- **Stand:** <Version/Tag des adoptierten Standes, z. B. "v5.13.1">
-- **Datum der Adoption:** <Datum>
+- **Konvention:** AI-Harness-Kurs (ai-harness-course)
+- **Stand:** v6.13.0
+- **Datum der Adoption:** 2026-10-03
 
 
 
@@ -36,7 +36,7 @@ bringend für *Form*-Fragen, nicht autoritativ über Inhalt.
 
 
 
-- **Extern (Lehrmaterial):** <Pfad oder URL>
+- **Extern (Lehrmaterial):** https://github.com/pt9912/ai-harness-course
 - **Vendored Baseline (Regelwerk + Templates):** aus dem self-contained
   Release-Asset
   https://github.com/pt9912/ai-harness-course/releases/download/v6.13.0/lab-regelwerk.zip
@@ -45,10 +45,11 @@ bringend für *Form*-Fragen, nicht autoritativ über Inhalt.
   `regelwerk/README.md`, z. B. „Kurs-Welle 24 · 2026-07-16"; Wellen-Register:
   CHANGELOG.md im Kurs-Repo); für harte Reproduzierbarkeit das Asset eines Tags
   ziehen statt `latest`.
-- **In-Repo (verkörperte Form):** <Pfade zu deinen kopiert-und-ausgefüllten
-  Artefakten> — die vendored `.harness/baseline/<tag>/templates/` sind die
-  Referenz-Form („Ziel-Form" des Regelwerks); deine eigenen Dateien sind daraus
-  kopiert und ausgefüllt.
+- **In-Repo (verkörperte Form):** `AGENTS.md`, `harness/README.md`,
+  `harness/conventions.md`, `spec/` (Lastenheft, Spezifikation, Architektur),
+  `docs/plan/` (ADRs, Planung), `.harness/skills/reviewer.md` — die vendored
+  `.harness/baseline/<tag>/templates/` sind die Referenz-Form („Ziel-Form" des
+  Regelwerks); diese Dateien sind daraus kopiert und ausgefüllt.
 
 ### Was der mitgelieferte Baum ist — und was er nicht verspricht
 
@@ -152,7 +153,7 @@ Agentenlauf — aufgelöste Adaptionen gehören nicht in diesen Pfad
 Bleibt hier: Sie ist keine Adaption, sondern die Adoptions-Erklärung, und
 sie gilt für jeden Lauf.
 
-- **Datum:** <Datum>
+- **Datum:** 2026-10-03
 - **Geltungsbereich:** gesamtes Repo
 - **Ersetzt-Baseline-Regel:** — *(keine; dieser Eintrag ist die
   Adoptions-Erklärung, keine Adaption)*
@@ -168,6 +169,7 @@ sie gilt für jeden Lauf.
   Bereichssegment und damit den Zählraum je Sub-Area festlegen —
   `SPEC-*`/`ARC-*` bleiben davon ausgenommen und zählen fortlaufend je
   Datei, siehe Baseline-Regelwerk `grundlagen-source-precedence.md` §Vergabe).*
+- **Vertrags-Präfix:** `LH` (`LH-FA-*`, `LH-QA-*`, `LH-RB-*`).
 - **Begründung:** Initial-Setzung. Spätere Adaptionen werden als
   `MR-<NNN>` nachgetragen.
 - **Auflösungs-Trigger:** permanent.
@@ -176,25 +178,26 @@ sie gilt für jeden Lauf.
 
 
 
-| MR | Titel | Geltungsbereich | Ersetzt-Baseline-Regel |
-|---|---|---|---|
-| \<NNN\> <a id="mr-<NNN>"></a> | <Titel> | <Dateien / Sub-Areas> | <§Abschnitt der Baseline> |
+Keine aktiven Adaptionen.
 
 ### Aufgelöste Adaptionen
 
 
 
-| MR | aufgelöst durch |
-|---|---|
-| \<NNN\> <a id="mr-<NNN>"></a> | MR-\<NNN\> |
+Keine aufgelösten Adaptionen.
+
+## Versionierung des Lastenhefts
+
+Die Version des Lastenhefts steht in `Major.Minor.Patch`; ab `Accepted` steigt
+sie je angenommenem Change Request: **Major** bei Änderung oder Streichung einer
+bestehenden Anforderung, **Minor** bei einer neuen Anforderung, **Patch** bei
+einer Tatsachenberichtigung oder Klarstellung ohne Änderung einer Aussage.
 
 ## Zusatzklassen-Deklaration für Sensors-Bindung
 
 
 
-| Klasse | Form | Bedeutung | Beispiel |
-|---|---|---|---|
-| <z. B. LH-Bindung> | `LH-<...>` | <z. B. Gate prüft eine bestimmte LH-Anforderung> | <z. B. `LH-QA-01` für Determinismus-Gate> |
+Keine Zusatzklassen.
 
 
 
@@ -207,9 +210,9 @@ streicht sie. Regel: Baseline-Regelwerk `grundlagen-harness-dateien.md`
 
 
 
-| Sub-Area (Pfad / Modul) | Kürzel | Modus | Begründung | Graduation-Bedingung / Folge-Slice |
-|---|---|---|---|---|
-| `*` (Default für gesamtes Repo) | `<KUERZEL>` | <Greenfield / Brownfield / Hybrid> | <warum> | <Bedingung oder "n/a (GF)" oder "permanent + slice-Ref"> |
+| Sub-Area (Pfad / Modul) | Modus | Begründung | Graduation-Bedingung / Folge-Slice |
+|---|---|---|---|
+| `*` (Default für gesamtes Repo) | Greenfield | Das Repo enthält Spezifikation, Entscheidungen und Harness, aber noch keinen Produktionscode; Kennungen zählen ohne Bereichssegment | n/a (GF) |
 
 ## Glossar (optional)
 
@@ -217,4 +220,4 @@ streicht sie. Regel: Baseline-Regelwerk `grundlagen-harness-dateien.md`
 
 | Begriff | Bedeutung |
 |---|---|
-| <repo-spezifischer Begriff> | <Bedeutung in diesem Repo> |
+| `PGR-…` | Meldungscode des Produkts (Fehler, Warnung); nicht zu verwechseln mit den Kennungen dieses Repos (`LH-*`, `SPEC-*`, `ARC-*`, `ADR-*`) |
