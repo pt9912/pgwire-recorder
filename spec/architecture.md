@@ -85,8 +85,8 @@ importieren, und nutzt die Driven Ports.
 | ID | Komponente | Rolle |
 |---|---|---|
 | `ARC-001` | Domain Model (`internal/hexagon/model`) | Kanonische Typen für Recording, Session, Interaktion, Request, Response und Wert; frei von Drittbibliotheken |
-| `ARC-002` | Application Services (`internal/hexagon/services`) | Record-Service, Replay-Service und Strict Matcher; Record-/Replay-Zustandslogik und Replay-Cursor |
-| `ARC-003` | Driving Ports / Inbound (`internal/hexagon/ports/driving`) | Use Cases, die der Core anbietet |
+| `ARC-002` | Application Services (`internal/hexagon/services`) | Record-Service, Replay-Service, Play-Service und Strict Matcher; Record-/Replay-Zustandslogik und Replay-Cursor |
+| `ARC-003` | Driving Ports / Inbound (`internal/hexagon/ports/driving`) | Use Cases, die der Core anbietet (Record, Replay, Play) |
 | `ARC-004` | Driven Ports / Outbound (`internal/hexagon/ports/driven`) | Infrastrukturleistungen, die der Core benötigt: Recording-Repository, PostgreSQL-Upstream |
 | `ARC-005` | CLI Adapter (`internal/adapters/driving/cli`) | Driving Adapter: Argumente parsen, Konfiguration aufbauen, Modus wählen, Use Case starten, Fehler auf Exit Codes abbilden |
 | `ARC-006` | PGWire Server Adapter (`internal/adapters/driving/pgwire`) | Driving Adapter: TCP, PGWire-Framing, `SSLRequest`, Startup, Übersetzung von und nach Domain-Typen |
@@ -194,6 +194,7 @@ Alternativ kann die PGWire-Session über kleinere fachliche Requests an den Core
 | Port | Operationen |
 |---|---|
 | `RecordingRepository` | Recording anhand eines Pfads laden; Recording unter einem Pfad speichern (wird nach dem Ende jeder Session und beim kontrollierten Beenden aufgerufen) |
+| Uhr | aktuelle Zeit lesen und bis zu einem Zeitpunkt warten (Zeitangaben beim Aufzeichnen, zeitgetreues Einspielen); der Composition Root stellt die Systemuhr bereit, Tests eine Fake-Uhr |
 | PostgreSQL-Upstream | Upstream-Session für einen Startup eröffnen; je Anfrage (einfach) oder je Gruppe (Extended) die Client-Nachrichten senden und die Server-Nachrichten liefern; Session schließen |
 
 Die Query-Operation kann streaming-orientiert gestaltet werden (Antworten einzeln
@@ -212,7 +213,7 @@ Das Domain Model enthält keine Typen der PGWire-Bibliothek.
 |---|---|
 | Recording | Formatkennung, Version, Sessions |
 | Session | ID, Startup, Interaktionen |
-| Interaction | Sequenz, Art (einfach oder Extended), bei einfach Request mit geordneten Responses, bei Extended geordnete Gruppen |
+| Interaction | Sequenz, Art (einfach oder Extended), optional Zeitabstand seit Sessionbeginn, bei einfach Request mit geordneten Responses, bei Extended geordnete Gruppen |
 | Query | SQL-Text |
 | Gruppe | geordnete Client-Nachrichten (`Parse`, `Bind`, `Describe`, `Execute`, `Close`, `Flush`, `Sync`) und die Server-Nachrichten, die darauf antworten |
 | Value | Null-Kennzeichen und Bytes |
@@ -317,6 +318,32 @@ sequenceDiagram
 Im Replay-Modus existiert kein PostgreSQL-Upstream. Der Replay-Service besitzt
 den fachlichen Cursor auf die nächste erwartete Interaktion; der PGWire Adapter
 kennt diesen Cursor nicht.
+
+### Use-Case: LH-FA-20 — Einspielen
+
+```mermaid
+sequenceDiagram
+    participant CLI as CLI Adapter
+    participant Play as PlayService
+    participant Repo as RecordingRepository
+    participant PG as PostgreSQL Port
+    CLI->>Play: Einspielen starten (Aufzeichnung, Upstream)
+    Play->>Repo: Load(Recording)
+    loop je Session, in Reihenfolge
+        Play->>PG: OpenSession(Startup)
+        loop je Interaktion
+            Play->>PG: Client-Nachrichten der Interaktion
+            PG-->>Play: Server-Nachrichten bis ReadyForQuery
+        end
+        Play->>PG: Session schließen
+    end
+    Play-->>CLI: Ergebnis oder Fehlerklasse
+```
+
+Der Play-Service nutzt nur Driven Ports (Recording-Repository,
+PostgreSQL-Upstream); ein PGWire-Server ist nicht beteiligt. Er wertet nur
+`ErrorResponse` aus und vergleicht die Serverantworten nicht mit der
+Aufzeichnung.
 
 ### Use-Case: LH-FA-18 — Extended Query
 

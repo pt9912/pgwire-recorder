@@ -37,6 +37,7 @@ v1 stellt mindestens folgende Kommandos bereit:
 ```text
 pgwire-recorder record
 pgwire-recorder replay
+pgwire-recorder play
 pgwire-recorder version
 ```
 
@@ -134,12 +135,17 @@ pgwire-recorder replay \
    beschädigtes Recording oder eine unbekannte Version endet als Startfehler
    mit Exit-Code `3`; ein Recording ohne Session ist nicht verwendbar (Exit-Code
    `3`, `PGR-E3004`).
-3. Jede eingehende Client-Verbindung erhält einen eigenen Replay-Cursor und die
-   Session, die ihrer Position in der Reihenfolge der Verbindungsannahme
-   entspricht: die n-te Verbindung die n-te aufgezeichnete Session (LH-FA-12.a).
-4. Der Cursor zeigt auf die nächste erwartete Interaktion dieser Session; er
-   beginnt am Anfang der Session. Eine Verbindung, zu der es keine
-   aufgezeichnete Session mehr gibt, ist ein Replay-Mismatch (`PGR-E5003`).
+3. Jede eingehende Client-Verbindung erhält einen eigenen Replay-Cursor. Die
+   Session ordnet der Recorder mit der ersten Anfrage der Verbindung zu: die
+   n-te Verbindung mit einer Anfrage erhält die n-te aufgezeichnete Session
+   (LH-FA-12.a). Der Handshake vor der ersten Anfrage nutzt die Startup-Daten
+   der nächsten noch nicht zugeordneten Session; gibt es keine mehr, die der
+   letzten Session.
+4. Der Cursor zeigt auf die nächste erwartete Interaktion der zugeordneten
+   Session; er beginnt am Anfang der Session. Stellt eine Verbindung eine
+   Anfrage, zu der es keine nicht zugeordnete Session mehr gibt, ist das ein
+   Replay-Mismatch (`PGR-E5003`); eine Verbindung ohne Anfrage verbraucht keine
+   Session.
 
 ---
 
@@ -282,8 +288,8 @@ mindestens gespeichert:
 - geordnete Folge der zugehörigen Serverantworten,
 - für das Replay notwendige PGWire-Felder.
 
-Zeitstempel dürfen zur Diagnose gespeichert werden, sind aber keine
-Voraussetzung für ein erfolgreiches Replay.
+Zeitangaben enthält die Aufzeichnung nur auf Wunsch (`--record-timing`,
+LH-FA-21.a); sie sind keine Voraussetzung für ein erfolgreiches Replay.
 
 ---
 
@@ -393,12 +399,14 @@ Jede Verbindung mit mindestens einer abgeschlossenen Interaktion wird als
 separate Session im Recording geführt, in der Reihenfolge der
 Verbindungsannahme; `id` zählt diese Sessions fortlaufend.
 
-**Replay.** Die n-te Verbindung, in der Reihenfolge der Verbindungsannahme,
-erhält die Session mit der n-ten `id`. Das ist deterministisch, wenn die
-Clients ihre Verbindungen nacheinander aufbauen; bei gleichzeitigem
-Verbindungsaufbau hängt die Zuordnung von der Reihenfolge der Annahme ab und
-ist nicht zugesichert. Mehr Verbindungen als aufgezeichnete Sessions sind ein
-Replay-Mismatch (`PGR-E5003`). Wird eine aufgezeichnete Session nie verbunden,
+**Replay.** Die n-te Verbindung mit einer Anfrage, in der Reihenfolge der
+ersten Anfragen, erhält die Session mit der n-ten `id`. Verbindungen ohne
+Anfrage zählen nicht; das entspricht dem Record, der sie nicht aufzeichnet. Das
+ist deterministisch, wenn die Clients ihre Verbindungen nacheinander aufbauen und
+nutzen; bei gleichzeitiger Nutzung hängt die Zuordnung von der Reihenfolge der
+ersten Anfragen ab und ist nicht zugesichert. Eine Anfrage einer weiteren
+Verbindung, zu der es keine nicht zugeordnete Session mehr gibt, ist ein
+Replay-Mismatch (`PGR-E5003`). Wird eine aufgezeichnete Session nie zugeordnet,
 gilt sie als nicht verbraucht (LH-FA-03.b).
 
 ---
@@ -428,13 +436,16 @@ der Klasse (`SPEC-013` bis `SPEC-019`), bevor eine Verbindung angenommen wird.
 
 **Verbindungsfehler** (Upstream nicht erreichbar, Replay-Mismatch, nicht
 unterstützte Interaktion, unerwartetes Verbindungsende, bei
-`--fail-on-unconsumed` nicht verbrauchte Interaktionen) beenden nur die
-betroffene Verbindung. Dem Client wird, wo das Protokoll es erlaubt, eine
+`--fail-on-unconsumed` nicht verbrauchte Interaktionen, Anfrage ohne
+nicht zugeordnete Session) beenden nur die betroffene Verbindung. Dem Client wird, wo das Protokoll es erlaubt, eine
 `ErrorResponse` mit dem Meldungscode im Meldungstext zugestellt. Der Prozess
 läuft weiter und merkt sich die Klasse des ersten aufgetretenen
 Verbindungsfehlers.
 
-**Prozessende.** Nach einem kontrollierten Herunterfahren ist der Exit-Code der
+**Prozessende.** Sessions, die bis zum kontrollierten Herunterfahren nie
+zugeordnet wurden, zählen bei `--fail-on-unconsumed` als Fehler der Klasse 5
+(`PGR-E5002`), sonst als Warnung (`PGR-W2001`). Nach einem kontrollierten
+Herunterfahren ist der Exit-Code der
 der gemerkten Klasse, sonst `0`. Schlägt dabei das Schreiben des Recordings
 fehl, ist er `3` und hat Vorrang vor der gemerkten Klasse. Beendet der Prozess nicht kontrolliert (zum Beispiel durch
 `SIGKILL`), gilt kein Exit-Code der Spezifikation.
@@ -507,12 +518,18 @@ oder `false`.
 | Option | Kommando | Umgebungsvariable | Default |
 |---|---|---|---|
 | `--listen` | `record`, `replay` | `PGWIRE_RECORDER_LISTEN` | — (Pflicht) |
-| `--upstream` | `record` | `PGWIRE_RECORDER_UPSTREAM` | — (Pflicht) |
+| `--upstream` | `record`, `play` | `PGWIRE_RECORDER_UPSTREAM` | — (Pflicht) |
 | `--output` | `record` | `PGWIRE_RECORDER_OUTPUT` | — (Pflicht) |
 | `--force` | `record` | `PGWIRE_RECORDER_FORCE` | `false` |
-| `--input` | `replay` | `PGWIRE_RECORDER_INPUT` | — (Pflicht) |
+| `--record-timing` | `record` | `PGWIRE_RECORDER_RECORD_TIMING` | `false` |
+| `--input` | `replay`, `play` | `PGWIRE_RECORDER_INPUT` | — (Pflicht) |
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` (`SPEC-012`) |
-| `--log-level` | `record`, `replay` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` (`SPEC-005`) |
+| `--user` | `play` | `PGWIRE_RECORDER_USER` | Startup-Daten der Session |
+| `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Startup-Daten der Session |
+| `--continue-on-error` | `play` | `PGWIRE_RECORDER_CONTINUE_ON_ERROR` | `false` |
+| `--keep-timing` | `play` | `PGWIRE_RECORDER_KEEP_TIMING` | `false` |
+| — (nur Umgebung) | `play` | `PGWIRE_RECORDER_PASSWORD` | — |
+| `--log-level` | `record`, `replay`, `play` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` (`SPEC-005`) |
 
 ---
 
@@ -540,7 +557,8 @@ der Session bleiben erhalten.
 **Record.** Der Recorder leitet alle Nachrichten unverändert und in
 Ankunftsreihenfolge weiter, auch wenn der Client mehrere Nachrichten sendet,
 ohne auf Antworten zu warten (Pipelining). Zeichnet er die Interaktion auf,
-gruppiert er sie (`SPEC-041`); Zeitverhalten wird nicht aufgezeichnet.
+gruppiert er sie (`SPEC-041`); Zeitangaben enthält die Aufzeichnung nur mit
+`--record-timing` (LH-FA-21.a).
 
 **Gruppen.** Eine Extended-Interaktion besteht aus einer oder mehreren Gruppen.
 Eine Gruppe endet mit einem `Sync` oder einem `Flush`. Innerhalb einer Gruppe
@@ -598,6 +616,73 @@ das veröffentlichte Binary des Release-Tags für macOS und Linux, jeweils
 sie baut nicht aus dem Quelltext und hat keine Abhängigkeiten. Die Formel
 entsteht bei jedem stabilen Release. Eine Vorabversion ändert den Tap nicht.
 Windows wird über Homebrew nicht bedient (`SPEC-042`).
+
+---
+
+### LH-FA-20.a — Einspielen
+
+Das Kommando `play` führt die Client-Anfragen einer Aufzeichnung gegen einen
+PostgreSQL-Server aus. Es nimmt keine Client-Verbindungen an.
+
+Verpflichtende Optionen: `--upstream` (Adresse des Servers) und `--input`
+(Aufzeichnung). Optional: `--user` und `--database` (sonst die Startup-Daten der
+jeweiligen Session), `--continue-on-error` (Default `false`). Das Passwort wird
+ausschließlich über die Umgebungsvariable `PGWIRE_RECORDER_PASSWORD` gesetzt,
+nicht über eine Option; die Authentifizierung gegenüber dem Server übernimmt der
+Recorder als Client.
+
+Beispiel:
+
+```bash
+pgwire-recorder play \
+  --upstream postgres:5432 \
+  --input ./recordings/users.yaml
+```
+
+**Schritte:**
+
+1. Die Aufzeichnung wird geladen und geprüft (Fehler wie bei `replay`, Exit-Code
+   `3`).
+2. Für jede Session der Aufzeichnung, in ihrer Reihenfolge, baut der Recorder eine
+   eigene Verbindung zum Server auf.
+3. Die Client-Nachrichten der Interaktionen werden in der aufgezeichneten
+   Reihenfolge gesendet: bei einer einfachen Anfrage die `Query`, bei einer
+   Extended-Interaktion die Nachrichten jeder Gruppe (`SPEC-041`). Nach jeder
+   Interaktion wartet der Recorder auf das `ReadyForQuery`.
+4. Die Serverantworten werden gelesen und verworfen, mit Ausnahme einer
+   `ErrorResponse`. Ein Vergleich mit den aufgezeichneten Antworten findet nicht
+   statt.
+5. Antwortet der Server auf eine Anfrage mit einer `ErrorResponse`, endet das
+   Einspielen mit Exit-Code `4` (`PGR-E4004`). Mit `--continue-on-error` läuft es
+   mit der nächsten Interaktion weiter und endet am Ende mit Exit-Code `4`.
+   Eine nicht aufbaubare oder abgebrochene Verbindung ist `PGR-E4002`
+   beziehungsweise `PGR-E4003` und beendet das Einspielen immer.
+
+Das Einspielen ist sequenziell: die Anfragen einer Session nacheinander und die
+Sessions nacheinander. Ohne `--keep-timing` gibt es keine Wartezeiten; mit
+`--keep-timing` gilt LH-FA-21.a.
+
+---
+
+### LH-FA-21.a — Zeitangaben
+
+**Aufzeichnen.** Mit `--record-timing` (Umgebungsvariable
+`PGWIRE_RECORDER_RECORD_TIMING`, Default `false`) trägt der Recorder an jeder
+Interaktion das Feld `offset_ms` ein: die Millisekunden zwischen dem Beginn der
+Session (Annahme der Verbindung) und dem Eintreffen der ersten Client-Nachricht
+der Interaktion, gemessen mit einer monotonen Uhr. Ohne die Option fehlt das
+Feld. Eine Aufzeichnung mit Zeitangaben ist nicht reproduzierbar im Sinne von
+`SPEC-004`: zwei Läufe derselben Anwendung unterscheiden sich in `offset_ms`.
+
+**Einspielen.** Mit `--keep-timing` (Umgebungsvariable
+`PGWIRE_RECORDER_KEEP_TIMING`, Default `false`) wartet `play` vor der ersten
+Client-Nachricht jeder Interaktion, bis seit dem Beginn der Session (Aufbau der
+Verbindung zum Server) mindestens `offset_ms` vergangen sind. Eine Pause wird nie
+verkürzt; ist der Server langsamer als aufgezeichnet, wird sofort gesendet und
+nicht aufgeholt. Jede Session beginnt mit eigener Uhr, die Sessions laufen
+weiterhin nacheinander. Fehlt einer Interaktion `offset_ms`, ist die Verwendung
+ungültig (`PGR-E2003`, Exit-Code `2`, Startfehler). Ohne `--keep-timing` werden
+vorhandene Zeitangaben ignoriert; der Replay-Modus ignoriert sie immer.
 
 ---
 
@@ -727,6 +812,7 @@ ursprünglichen Bytes.
 
 Die Ausgabe ist deterministisch, soweit keine fachlich notwendige Information
 dagegen spricht. Das reduziert unnötige Änderungen in Versionskontrollsystemen.
+Ohne `--record-timing` ist die Ausgabe unabhängig vom Zeitverhalten des Laufs (`SPEC-041`, LH-FA-21.a).
 Der Recorder trägt keine rechnerspezifischen Angaben (Dateipfade, Hostnamen,
 Adressen) in das Recording ein; vom Client oder Server gelieferte Werte
 (Startup-Parameter, `ParameterStatus`) werden unverändert aufgezeichnet. Das
@@ -770,8 +856,8 @@ Implementierung darf intern detailliertere Fehler unterscheiden, solange diese
 | `SPEC-014` | 2 | ungültige CLI-Verwendung oder Konfiguration, vorhandenes `--output` ohne `--force` | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-015` | 1 | sonstiger Fehler | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-016` | 3 | Recording-Datei ungültig oder nicht zugreifbar | Fehlertext auf `stderr`, Prozess endet |
-| `SPEC-017` | 4 | Netzwerk-/Upstream-Fehler | Startfehler: Prozess endet; Verbindungsfehler: Verbindung endet, Prozessende nach LH-FA-13.b |
-| `SPEC-018` | 5 | Replay-Mismatch, bei `--fail-on-unconsumed` auch nicht verbrauchte Interaktionen | Diagnose nach LH-FA-10.a, Verbindung endet, Prozessende nach LH-FA-13.b |
+| `SPEC-017` | 4 | Netzwerk-/Upstream-Fehler, beim Einspielen auch eine Fehlerantwort des Servers | Startfehler: Prozess endet; Verbindungsfehler: Verbindung endet, Prozessende nach LH-FA-13.b; Einspielen: Abbruch beziehungsweise Exit-Code 4 am Ende (LH-FA-20.a) |
+| `SPEC-018` | 5 | Replay-Mismatch (`PGR-E5001`), Anfrage ohne nicht zugeordnete Session (`PGR-E5003`), bei `--fail-on-unconsumed` auch nicht verbrauchte Interaktionen oder Sessions (`PGR-E5002`) | Diagnose nach LH-FA-10.a, Verbindung endet, Prozessende nach LH-FA-13.b |
 | `SPEC-019` | 6 | nicht unterstützte PGWire-Funktion | Diagnose, Verbindung endet, Prozessende nach LH-FA-13.b |
 
 **Fehlerklassen.** Mindestens folgende Klassen werden unterschieden und
@@ -786,7 +872,7 @@ erzeugen einen für Entwickler verständlichen Text:
 | `SPEC-024` | unbekannte Recording-Version | 3 | `PGR-E3002` |
 | `SPEC-025` | beschädigtes Recording | 3 | `PGR-E3003` |
 | `SPEC-026` | nicht unterstützte PGWire-Nachricht | 6 | `PGR-E6001` |
-| `SPEC-027` | Replay-Mismatch | 5 | `PGR-E5001` |
+| `SPEC-027` | Replay-Mismatch | 5 | `PGR-E5001`, `PGR-E5003` |
 | `SPEC-028` | unerwartetes Verbindungsende | 4 | `PGR-E4003` |
 
 **Logging-Felder.** Log-Level, Ziel und Geheimnisschutz stehen in LH-FA-14.a
@@ -815,6 +901,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E2000` | Konfiguration (Exit 2) | Rückfall |
 | `PGR-E2001` | Konfiguration (Exit 2) | ungültige CLI-Verwendung oder Konfiguration (`SPEC-020`) |
 | `PGR-E2002` | Konfiguration (Exit 2) | `--output` existiert bereits und `--force` ist nicht gesetzt (LH-FA-07.a) |
+| `PGR-E2003` | Konfiguration (Exit 2) | zeitgetreues Einspielen verlangt, aber die Aufzeichnung enthält keine Zeitangaben (LH-FA-21.a) |
 | `PGR-E3000` | Recording (Exit 3) | Rückfall |
 | `PGR-E3001` | Recording (Exit 3) | Recording nicht lesbar oder nicht schreibbar (`SPEC-023`) |
 | `PGR-E3002` | Recording (Exit 3) | unbekannte Recording-Version (`SPEC-024`) |
@@ -824,10 +911,11 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E4001` | Netzwerk (Exit 4) | Listen-Port nicht zu öffnen (`SPEC-021`) |
 | `PGR-E4002` | Netzwerk (Exit 4) | Upstream nicht erreichbar (`SPEC-022`) |
 | `PGR-E4003` | Netzwerk (Exit 4) | unerwartetes Verbindungsende (`SPEC-028`) |
+| `PGR-E4004` | Netzwerk (Exit 4) | Server beantwortet eine eingespielte Anfrage mit einem Fehler (LH-FA-20.a) |
 | `PGR-E5000` | Replay (Exit 5) | Rückfall |
 | `PGR-E5001` | Replay (Exit 5) | Replay-Mismatch (`SPEC-027`) |
 | `PGR-E5002` | Replay (Exit 5) | nicht verbrauchte Interaktionen oder Sessions bei `--fail-on-unconsumed` (LH-FA-03.b) |
-| `PGR-E5003` | Replay (Exit 5) | Verbindung ohne aufgezeichnete Session (LH-FA-12.a) |
+| `PGR-E5003` | Replay (Exit 5) | Anfrage einer Verbindung, zu der keine nicht zugeordnete Session mehr existiert (LH-FA-12.a, `SPEC-027`) |
 | `PGR-E6000` | nicht unterstützt (Exit 6) | Rückfall |
 | `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`) |
 | `PGR-E6002` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Protokollversion (LH-FA-05.e) |
