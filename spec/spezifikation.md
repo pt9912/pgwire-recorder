@@ -1,0 +1,106 @@
+# Spezifikation — <Projektname>
+
+**Bezug zum Lastenheft:** Diese Spezifikation präzisiert die in
+`spec/lastenheft.md` formulierten Anforderungen (`LH-*`-IDs). Bei
+Konflikt gewinnt das Lastenheft — präzisieren ja, erweitern nie.
+
+**Rolle:** Technik-Stratum — fortschreibbar ohne Change Request; eine ADR darf
+sie schärfen, das Lastenheft nicht. Regeln: Baseline-Regelwerk
+`modul-03-spec.md` §Ziel-Form: Spezifikation.
+
+---
+
+## 1. Algorithmen und Datenflüsse
+
+Regeln dieser Sektion: Tatsächlicher Code gehört in `src/`, nicht hierher.
+ID-Schema `<PREFIX>-FA-<NN>.<Buchstabe>` für Verfeinerungen einzelner
+Lastenheft-IDs (Baseline-Regelwerk `grundlagen-source-precedence.md`
+§ID-Schema als Klammer). Was **keine** einzelne Lastenheft-ID verfeinert,
+trägt eine `SPEC-<NNN>` — siehe §2 bis §6.
+
+
+
+### LH-FA-01.a — Algorithmus für <…>
+
+**Eingabe:** <…>. **Ausgabe:** <…>. **Schritte:**
+
+1. <…>
+2. <…>
+
+**Komplexität:** <O(n log n)>, **Fehlermodi:** <…>.
+
+---
+
+## 2. Datenstrukturen und Schemas
+
+Regeln dieser Sektion: Jede Struktur trägt eine `SPEC-<NNN>` — eine Adresse,
+keine Anforderung (Baseline-Regelwerk `grundlagen-source-precedence.md`
+§ID-Schema als Klammer). Gezählt wird fortlaufend je Datei, nicht je Sektion
+(Baseline-Regelwerk `grundlagen-source-precedence.md` §Vergabe).
+
+
+
+### SPEC-001 — <Datenstruktur 1>
+
+```json
+{
+  "field": "type"
+}
+```
+
+## 3. Defaults und Konstanten
+
+Regeln dieser Sektion: Die ADR, die einen Wert festlegt, deklariert das
+aufwärts in ihrem `Schärft:`-Feld — kein ADR-Rückzeiger hier
+(Baseline-Regelwerk `grundlagen-referenz-richtung.md` §Referenz-Richtung (SDP)).
+Die `SPEC-<NNN>` ist das, was ihr `Schärft:`-Feld **benennt**; ohne sie kann
+eine ADR nur den ganzen Abschnitt nennen. Der Link zeigt weiter auf die
+Sektion — Kennungen in Tabellenzellen haben keinen eigenen Anker, und kein
+Sensor bemerkt, wenn eine umbenannt wird.
+
+
+
+| ID | Name | Wert | Begründung |
+|---|---|---|---|
+| `SPEC-002` | `MAX_BATCH_SIZE` | 100 | <…> |
+
+## 4. Fehler-Codes und Logging-Felder
+
+Regeln dieser Sektion: Der Fehler-Code ist ein Laufzeit-Symbol, die
+`SPEC-<NNN>` benennt die *Festlegung* darüber — beide stehen nebeneinander,
+sonst hätte eine ADR, die die Fehlerbehandlung schärft, kein Ziel
+(Baseline-Regelwerk `grundlagen-source-precedence.md` §ID-Schema als Klammer).
+
+
+
+| ID | Code | Bedingung | Aktion |
+|---|---|---|---|
+| `SPEC-003` | E001 | <…> | <…> |
+
+## 5. Metriken und Tracing-Felder
+
+Regeln dieser Sektion: verbindliche OTel-Felder pro Span
+(Baseline-Regelwerk `modul-15-observability.md`).
+
+| ID | Span | Pflicht-Attribute | Quelle |
+|---|---|---|---|
+| `SPEC-004` | `<service>.<operation>` | `<feldname>`, `<feldname>` | <…> |
+
+## 6. Externe Verträge
+
+
+
+| ID | System | Version | Vertrag-Datei |
+|---|---|---|---|
+| `SPEC-005` | <…> | <…> | <Pfad> |
+
+## 7. Historie
+
+Regeln dieser Sektion: **kein ADR- und kein Slice-Verweis.** Die Decken-Regel
+gilt für alle drei Spec-Straten, auch hier — welche ADR eine Festlegung
+schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
+(Baseline-Regelwerk `modul-03-spec.md` §Ziel-Form: Spezifikation).
+
+| Datum | Änderung |
+|---|---|
+| YYYY-MM-DD | Initial |
