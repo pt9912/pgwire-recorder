@@ -66,7 +66,7 @@ git push origin v<SemVer>
 Vor dem Tag gilt:
 
 1. `make gates` ist grün.
-2. Alle Slices der Welle, die den Release trägt, liegen in `done/`.
+2. Alle Slices von `welle-v1-abschluss` liegen in `done/`; der Release selbst ist Gegenstand von `welle-erster-release`.
 3. Die Versionsquelle (§3) trägt die neue Version und ist committet.
 
 Wer taggen darf, bestimmt die Konfiguration des Repositorys, nicht dieses

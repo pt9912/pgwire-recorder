@@ -1,4 +1,4 @@
-# Slice slice-v1-abschluss-sessions: Mehrere Sessions und Verbindungsfehler
+# Slice slice-v1-abschluss-zeitangaben: Zeitangaben beim Aufzeichnen und Einspielen
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md)
+**Bezug:** [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen)
 
-**Berührte Spec-Stellen:** `LH-FA-12.a` · `LH-FA-13.b` · `LH-FA-02.b` · `SPEC-017` · `SPEC-028` · `SPEC-034` · `ARC-002`
+**Berührte Spec-Stellen:** `LH-FA-21.a` · `SPEC-001` · `SPEC-002` · `SPEC-004` · `SPEC-041` · `SPEC-034` · `ARC-001` · `ARC-004`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,12 +29,12 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Mehrere Client-Verbindungen werden im Record parallel als eigene Sessions aufgezeichnet (Verbindungen ohne Anfrage nicht); im Replay erhält die n-te Verbindung mit einer Anfrage die n-te Session; Verbindungsende und Verbindungsfehler verhalten sich wie spezifiziert.
+**Ziel:** `--record-timing` schreibt `offset_ms` je Interaktion, und `play --keep-timing` stellt den Abstand wahlweise relativ oder absolut (Bezugspunkt Verbindungsaufbau oder erste Anfrage) her.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Eine deterministische Zuordnung bei gleichzeitigem Verbindungsaufbau — Out-of-Scope von LH-FA-12.
-- Signalbehandlung — `slice-v1-abschluss-betrieb`.
+- Zeitgetreue Antworten im Replay-Modus — Out-of-Scope von LH-FA-21.
+- Paralleles Einspielen — Out-of-Scope von LH-FA-20 und LH-FA-21.
 
 
 ## 2. Definition of Done
@@ -44,8 +44,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen): Zwei parallele Verbindungen erzeugen zwei Sessions mit je geordneten Interaktionen, eine Verbindung ohne Anfrage keine; im Replay erhält die n-te Verbindung mit einer Anfrage die n-te Session, eine Anfrage darüber hinaus ist ein Mismatch; `--record-empty-sessions` und `--session-assignment connection` verhalten sich wie spezifiziert (Test).
-- [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Ein Verbindungsfehler beendet nur die Verbindung, der Prozess merkt sich die Klasse (Test).
+- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, das Recording lässt sich per Roundtrip laden, ein ungültiger Wert ist `PGR-E3003` (Test).
+- [ ] `--keep-timing` hält die Pausen in beiden Modi und beiden Bezugspunkten ein, ohne sie zu verkürzen (Abnahmeszenario 13, Test mit Fake-Uhr).
+- [ ] Eine Aufzeichnung ohne `offset_ms` wird bei `--keep-timing` mit `PGR-E2003` (Exit-Code 2) abgelehnt (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -63,21 +64,22 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` | update | Session-Verwaltung, Recording-Zustand mit Synchronisierung |
-| `internal/adapters/driving/pgwire` | update | Verbindungen nebenläufig |
-| `test/integration` | update | Happy/Boundary/Negative |
+| `internal/hexagon/model`, Uhr-Port | update | `offset_ms` in der Interaktion; Uhr als Driven Port |
+| `internal/adapters/driving/pgwire` | update | Messpunkt: Annahme der Verbindung und erste Client-Nachricht |
+| `internal/adapters/driven/recording` | update | Feld `offset_ms` im YAML, Prüfung |
+| `internal/adapters/driving/cli` | update | Optionen `--record-timing`, `--keep-timing`, `--timing-mode`, `--timing-reference` |
 
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` ist `done`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: Parallelität verlangt eine Änderung des Recording-Formats — zurück zur Zerlegung.
-- `in-progress` → `open`: Die Zuordnungsregel (n-te Verbindung mit Anfrage, n-te Session) ändert sich durch eine Entscheidung des Auftraggebers — Carveout.
+- `in-progress` → `next`: das Zeitmodell verlangt eine Änderung am Recording-Format über ein optionales Feld hinaus — zurück zur Zerlegung.
+- `in-progress` → `open`: Die Fake-Uhr bildet die monotone Uhr nicht ab — Carveout.
 
 
 ## 5. Closure-Trigger
@@ -95,7 +97,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Ein Connection-Pool baut Verbindungen gleichzeitig auf; die Zuordnung ist dann nicht zugesichert — **Ausgang:** offen bis Closure.
+- Zeitabstände auf einem ausgelasteten Rechner schwanken; der Test prüft deshalb nur die Untergrenze (Pausen nie kürzer) — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

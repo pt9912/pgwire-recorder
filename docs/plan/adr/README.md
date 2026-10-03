@@ -16,6 +16,7 @@
 | [0010](0010-verwendung-von-pgproto3.md) | Verwendung von pgproto3 | Accepted | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
 | [0011](0011-meldungscodes-praefix-pgr.md) | Meldungscodes mit Präfix PGR | Accepted | [`LH-QA-05`](../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler) |
 | [0012](0012-extended-query-gruppen.md) | Extended Query als Gruppen aus Client- und Server-Nachrichten | Accepted | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
+| [0013](0013-sqlite-recording-backend.md) | SQLite als zweites Aufzeichnungsformat | Proposed | [`LH-FA-22`](../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat) |
 
 ## Konventionen
 

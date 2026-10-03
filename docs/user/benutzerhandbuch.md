@@ -152,6 +152,11 @@ dem Ende jeder Verbindung und beim Beenden neu geschrieben.
 
 #### Hinweise
 
+* Mit `--format sqlite` speichert das Werkzeug die Aufzeichnung als SQLite-Datei
+  statt als Textdatei. Die SQLite-Datei wächst mit jeder beendeten Sitzung und ist
+  für große Aufzeichnungen geeignet; sie ist binär und lässt sich nicht sinnvoll
+  vergleichen. Beim Wiedergeben und Einspielen erkennt das Werkzeug das Format
+  selbst.
 * Mit `--record-timing` hält die Aufzeichnung den zeitlichen Abstand der Anfragen
   fest. Zwei Aufzeichnungen derselben Anwendung unterscheiden sich dann in diesen
   Angaben.
@@ -159,7 +164,8 @@ dem Ende jeder Verbindung und beim Beenden neu geschrieben.
   Sie sie ersetzen, ergänzen Sie `--force`.
 * Jede Verbindung Ihrer Anwendung mit mindestens einer Anfrage wird als eigene
   Sitzung aufgezeichnet. Verbindungen ohne Anfrage, zum Beispiel
-  Probe-Verbindungen eines Connection-Pools, werden nicht aufgezeichnet.
+  Probe-Verbindungen eines Connection-Pools, werden nur mit
+  `--record-empty-sessions` aufgezeichnet.
 
 ### Eine Aufzeichnung wiedergeben
 
@@ -188,6 +194,9 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   Antwort (`PGR-E5001`).
 * Die erste Verbindung mit einer Anfrage erhält die erste aufgezeichnete Sitzung,
   die zweite die zweite, und so weiter. Verbindungen ohne Anfrage zählen nicht.
+  Mit `--session-assignment connection` zählt stattdessen die Reihenfolge der
+  Verbindungen, auch ohne Anfrage; das passt zu Aufzeichnungen mit
+  `--record-empty-sessions`.
   Nutzen Sie die Verbindungen nacheinander; bei gleichzeitiger Nutzung ist die
   Zuordnung nicht festgelegt. Eine Anfrage über die aufgezeichneten Sitzungen
   hinaus wird als Abweichung gemeldet (`PGR-E5003`).
@@ -206,7 +215,8 @@ ausdrücklich an.
 #### Vorgehen
 
 1. Setzen Sie bei Bedarf das Passwort in der Umgebungsvariable
-   `PGWIRE_RECORDER_PASSWORD`; es gibt dafür keine Option.
+   `PGWIRE_RECORDER_PASSWORD` oder legen Sie es als Platzhalter `${VAR}` in einer
+   benannten Verbindung der Konfigurationsdatei ab; es gibt dafür keine Option.
 2. Starten Sie das Einspielen:
 
    ```bash
@@ -228,11 +238,20 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
 * Das Einspielen läuft nacheinander. Ohne weitere Option gibt es keine
   Wartezeiten. Mit `--keep-timing` bleibt der aufgezeichnete zeitliche Abstand der
   Anfragen erhalten, sofern Sie die Aufzeichnung mit `--record-timing` erzeugt
-  haben; eine Pause wird nie verkürzt.
+  haben; eine Pause wird nie verkürzt. Mit `--timing-mode relative` (Standard)
+  gilt der Abstand zur vorigen Anfrage, mit `--timing-mode absolute` der Abstand
+  zu einem Bezugspunkt, den `--timing-reference` wählt (`connect`: Aufbau der
+  Verbindung, `first-request`: erste Anfrage).
 * Das Werkzeug vergleicht die Antworten der Datenbank nicht mit der Aufzeichnung.
 * Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
   ab (`PGR-E4004`). Mit `--continue-on-error` läuft es weiter und endet am Ende
-  mit Exit-Code 4.
+  mit Exit-Code 4. Mit `--allow-recorded-errors` gilt ein Fehler nicht, wenn auch
+  die Aufzeichnung an dieser Stelle einen Fehler hat.
+* Mit `--upstream-tls` verbindet sich das Werkzeug verschlüsselt mit der
+  Datenbank. Verlangt die Datenbank Verschlüsselung und die Option fehlt, oder
+  schlägt die Anmeldung fehl, meldet es `PGR-E4005`.
+* Bei `Strg+C` oder `SIGTERM` endet das Einspielen nach der laufenden Anfrage; mit
+  `--finish-session-on-interrupt` erst nach der laufenden Sitzung.
 * Das Einspielen führt Anfragen aus. Verwenden Sie es nicht gegen eine Datenbank,
   deren Inhalt Sie nicht verändern dürfen.
 
@@ -289,25 +308,79 @@ nicht alle aufgezeichneten Anfragen ausführt.
 
 ## 5. Einstellungen
 
-Alle Einstellungen lassen sich über Optionen und über Umgebungsvariablen
-festlegen. Gilt dieselbe Einstellung mehrfach, setzt sich das Argument vor der
-Umgebungsvariablen vor dem Standardwert durch.
+Alle Einstellungen lassen sich über Optionen, über Umgebungsvariablen und über
+eine Konfigurationsdatei festlegen. Gilt dieselbe Einstellung mehrfach, setzt sich
+das Argument vor der Umgebungsvariablen vor der Konfigurationsdatei vor dem
+Standardwert durch.
 
 | Option | Betriebsart | Umgebungsvariable | Standard |
 |---|---|---|---|
 | `--listen` | `record`, `replay` | `PGWIRE_RECORDER_LISTEN` | Pflicht |
-| `--upstream` | `record`, `play` | `PGWIRE_RECORDER_UPSTREAM` | Pflicht |
+| `--upstream` | `record`, `play` | `PGWIRE_RECORDER_UPSTREAM` | Pflicht (`host:port` oder Name einer Verbindung) |
 | `--output` | `record` | `PGWIRE_RECORDER_OUTPUT` | Pflicht |
 | `--force` | `record` | `PGWIRE_RECORDER_FORCE` | `false` |
+| `--format` | `record` | `PGWIRE_RECORDER_FORMAT` | `yaml` (oder `sqlite`) |
 | `--record-timing` | `record` | `PGWIRE_RECORDER_RECORD_TIMING` | `false` |
+| `--record-empty-sessions` | `record` | `PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS` | `false` |
 | `--input` | `replay`, `play` | `PGWIRE_RECORDER_INPUT` | Pflicht |
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` |
+| `--session-assignment` | `replay` | `PGWIRE_RECORDER_SESSION_ASSIGNMENT` | `first-request` (oder `connection`) |
 | `--user` | `play` | `PGWIRE_RECORDER_USER` | Daten aus der Aufzeichnung |
 | `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Daten aus der Aufzeichnung |
 | `--continue-on-error` | `play` | `PGWIRE_RECORDER_CONTINUE_ON_ERROR` | `false` |
+| `--allow-recorded-errors` | `play` | `PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS` | `false` |
+| `--upstream-tls` | `play` | `PGWIRE_RECORDER_UPSTREAM_TLS` | `false` |
+| `--finish-session-on-interrupt` | `play` | `PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT` | `false` |
 | `--keep-timing` | `play` | `PGWIRE_RECORDER_KEEP_TIMING` | `false` |
+| `--timing-mode` | `play` | `PGWIRE_RECORDER_TIMING_MODE` | `relative` (oder `absolute`) |
+| `--timing-reference` | `play` | `PGWIRE_RECORDER_TIMING_REFERENCE` | `connect` (oder `first-request`) |
 | — (nur Umgebung) | `play` | `PGWIRE_RECORDER_PASSWORD` | — |
+| `--config` | `record`, `replay`, `play`, `config show` | `PGWIRE_RECORDER_CONFIG` | `.pgwire-recorder.yaml` im aktuellen Verzeichnis |
 | `--log-level` | `record`, `replay`, `play` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` |
+
+### Konfigurationsdatei
+
+Das Werkzeug verwendet genau **eine** Konfigurationsdatei, in dieser Reihenfolge:
+
+1. die Datei aus `--config`,
+2. der Pfad aus der Umgebungsvariable `PGWIRE_RECORDER_CONFIG`,
+3. die Datei `.pgwire-recorder.yaml` im aktuellen Verzeichnis, falls es sie gibt.
+
+Die Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne `--`. Einstellungen
+für alle Betriebsarten (`log_level`) und benannte Verbindungen stehen oben, die
+übrigen in einem Abschnitt je Betriebsart (`record:`, `replay:`, `play:`):
+
+```yaml
+log_level: info
+connections:
+  lokal: "postgresql://dev@localhost:5432/myapp"
+  staging: "postgresql://app:${STAGING_PASSWORD}@staging.example.com:5432/myapp?sslmode=require"
+play:
+  upstream: staging
+  input: ./recordings/users.yaml
+  keep_timing: true
+  timing_mode: relative
+```
+
+Danach genügt `--upstream staging`. Der Parameter `sslmode=require` verbindet
+verschlüsselt (entspricht `--upstream-tls`), `sslmode=disable` ohne
+Verschlüsselung.
+
+Passwörter geben Sie als Platzhalter `${VAR}` an; das Werkzeug ersetzt ihn beim Laden
+aus der gleichnamigen Umgebungsvariable (`$${VAR}` bleibt wörtlich). Ein
+Klartext-Passwort in der Datei lehnt das Werkzeug ab, ebenso einen unbekannten
+Schlüssel, einen ungültigen Wert oder eine nicht gesetzte Variable (`PGR-E2001`).
+
+Welche Datei gegriffen hat und was darin steht, zeigt:
+
+```bash
+pgwire-recorder config show
+```
+
+Die Ausgabe ist der Inhalt der gewählten Datei als eingerückter Baum. Passwörter
+erscheinen als `***`, `${VAR}`-Platzhalter werden nicht aufgelöst, und aktive
+`PGWIRE_RECORDER_*`-Umgebungsvariablen stehen am Ende mit ihrem Namen, ohne Wert.
+Sie können die Ausgabe also gefahrlos in ein Ticket kopieren.
 
 Wahrheitswerte lauten `true` oder `false`. Mögliche Log-Level sind `error`,
 `warn`, `info` und `debug`. Meldungen gehen nach `stderr`.
@@ -353,7 +426,7 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-E1000` | sonstiger Fehler | Unerwarteter Fehler. Starten Sie mit `--log-level debug` neu, und melden Sie das Problem mit der Ausgabe. |
 | `PGR-E2000`, `PGR-E2001` | ungültiger Aufruf oder ungültige Konfiguration | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert. Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
-| `PGR-E2003` | zeitgetreues Einspielen ohne Zeitangaben | Die Aufzeichnung enthält keine Zeitangaben. Zeichnen Sie mit `--record-timing` erneut auf, oder starten Sie ohne `--keep-timing`. |
+| `PGR-E2003` | zeitgetreues Einspielen ohne Zeitangaben | Mindestens einer Anfrage der Aufzeichnung fehlt die Zeitangabe. Zeichnen Sie mit `--record-timing` erneut auf, oder starten Sie ohne `--keep-timing`. |
 | `PGR-E3000`, `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, oder Sie haben keine Rechte. Prüfen Sie Pfad und Dateirechte. |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Zeichnen Sie erneut auf. |
@@ -361,6 +434,7 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-E4000`, `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
+| `PGR-E4005` | Anmeldung an der Datenbank fehlgeschlagen oder nicht unterstützt, oder die Datenbank verlangt Verschlüsselung | Prüfen Sie Benutzer und Passwort (`PGWIRE_RECORDER_PASSWORD`). Unterstützt sind Klartext-Passwort, MD5 und SCRAM-SHA-256. Setzen Sie `--upstream-tls`, wenn die Datenbank Verschlüsselung verlangt. |
 | `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Anfrage und die Antwort der Datenbank. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
 | `PGR-E5000`, `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
@@ -387,8 +461,8 @@ ab (zum Beispiel `sslmode=disable`).
 Nein. Die Wiedergabe beantwortet alle aufgezeichneten Anfragen aus der Datei.
 
 **Kann ich eine Aufzeichnung in die Versionsverwaltung legen?**
-Ja. Die Datei ist Text (YAML) und ändert sich nur, wenn sich die Aufzeichnung
-ändert. Beachten Sie den Hinweis zu vertraulichen Daten in der Einleitung.
+Ja. Die Standard-Datei ist Text (YAML) und ändert sich nur, wenn sich die
+Aufzeichnung ändert; eine SQLite-Aufzeichnung ist binär. Beachten Sie den Hinweis zu vertraulichen Daten in der Einleitung.
 
 **Kann ich die Datei von Hand bearbeiten?**
 Das Werkzeug unterstützt das nicht. Zeichnen Sie stattdessen erneut auf.

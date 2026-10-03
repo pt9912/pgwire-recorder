@@ -20,6 +20,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-extended-query](../welle-extended-query.md)
 - [welle-replay-semantik](../welle-replay-semantik.md)
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
+- [welle-erster-release](../welle-erster-release.md)
 
 In Arbeit: nichts (kein Slice in `in-progress/`).
 
@@ -45,7 +46,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 |---|---|---|---|
 | M1 | welle-walking-skeleton | `SELECT 1;` Record, PostgreSQL stoppen, Replay mit demselben Ergebnis | offen |
 | M2 | welle-extended-query | Clients mit Standardtreibern (Extended Query) funktionieren mit Host/Port-Umstellung: Abnahmeszenario 7 nachweisbar | offen |
-| M3 | welle-replay-semantik, welle-v1-abschluss | Produkt fertig: alle Anforderungen (MUSS und SOLL) umgesetzt, die Abnahmeszenarien 1 bis 10, 12 und 13 nachweisbar; Szenario 11 (Homebrew) wird mit dem ersten stabilen Release nachgewiesen | offen |
+| M3 | welle-replay-semantik, welle-v1-abschluss | Produkt fertig: alle Anforderungen (MUSS und SOLL) umgesetzt, die Abnahmeszenarien 1 bis 10 und 12 bis 14 nachweisbar | offen |
+| M4 | welle-erster-release | erster Release veröffentlicht, Abnahmeszenario 11 (Homebrew) nachgewiesen | offen |
 
 ## Abhängigkeitsgraph
 
@@ -61,10 +63,12 @@ flowchart LR
     W2[welle-extended-query]
     W3[welle-replay-semantik]
     W4[welle-v1-abschluss]
+    W5[welle-erster-release]
 
     W1 --> W2
     W2 --> W3
     W3 --> W4
+    W4 --> W5
 ```
 
 ## Abgeschlossene Wellen
@@ -86,4 +90,5 @@ Roadmap, jede Zeile voll heißt treibende.
 
 | Datum | Was wurde geändert? | Warum? |
 |---|---|---|
+| 2026-10-03 | welle-erster-release angelegt; Abnahmeszenario 11 (Homebrew) wandert von M3 nach M4 | Die Homebrew-Formel entsteht erst bei einem veröffentlichten, stabilen Release; M3 und der erste Release bildeten einen Zirkel |
 | 2026-10-03 | welle-extended-query vor welle-replay-semantik gezogen; Start-Trigger von welle-replay-semantik von „welle-walking-skeleton done“ auf „welle-extended-query done“ geändert; Meilensteine M2 und M3 neu zugeschnitten | Extended Query gehört zu v1: verbreitete Treiber nutzen es standardmäßig, ohne es genügt die Umstellung von Host und Port nicht |

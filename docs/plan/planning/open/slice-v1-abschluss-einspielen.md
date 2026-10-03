@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md)
+**Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md)
 
-**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-21.a` · `SPEC-017` · `SPEC-041` · `ARC-002` · `ARC-003` · `ARC-005` · `ARC-007`
+**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-17.a` · `SPEC-017` · `SPEC-034` · `SPEC-041` · `ARC-002` · `ARC-003` · `ARC-005` · `ARC-007`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,12 +29,12 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** `pgwire-recorder play` führt die Client-Anfragen einer Aufzeichnung (einfach und Extended) gegen einen PostgreSQL-Server aus und meldet Fehler des Servers.
+**Ziel:** `pgwire-recorder play` führt die Client-Anfragen einer Aufzeichnung (einfach und Extended) gegen einen PostgreSQL-Server aus, authentifiziert sich als Client, verbindet sich auf Wunsch mit TLS und verhält sich bei Serverfehlern und Abbruchsignalen wie spezifiziert.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Vergleich der Serverantworten mit der Aufzeichnung — Out-of-Scope von LH-FA-20.
-- Paralleles Einspielen — Out-of-Scope von LH-FA-20 und LH-FA-21.
+- Zeitangaben und zeitgetreues Einspielen — `slice-v1-abschluss-zeitangaben`.
+- Vergleich der Serverantworten mit der Aufzeichnung und paralleles Einspielen — Out-of-Scope von LH-FA-20.
 
 
 ## 2. Definition of Done
@@ -44,9 +44,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen wird gegen eine leere Instanz eingespielt, und die Datenbank enthält danach deren Wirkung, auch für eine Extended-Interaktion (Abnahmeszenario 12, Integrationstest).
-- [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4); mit `--continue-on-error` läuft es weiter und endet mit Exit-Code 4 (Test).
-- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, `--keep-timing` hält die Pausen ein und lehnt eine Aufzeichnung ohne Zeitangaben ab (`PGR-E2003`); Test mit einer Fake-Uhr.
+- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen, einfach und Extended, wird gegen eine leere Instanz eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); Authentifizierung mit Klartext, MD5 und SCRAM-SHA-256 sowie `--upstream-tls` funktionieren, eine fehlgeschlagene Anmeldung oder TLS-Pflicht ohne Option meldet `PGR-E4005` (Integrationstest).
+- [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4); `--continue-on-error` läuft weiter und endet mit Exit-Code 4; `--allow-recorded-errors` lässt aufgezeichnete Fehler zu; ein Verbindungsfehler bricht immer ab (Test).
+- [ ] `SIGINT` und `SIGTERM` beenden nach der laufenden Interaktion, mit `--finish-session-on-interrupt` nach der laufenden Session; der Exit-Code ist 0 ohne vorherigen Fehler, sonst 4 (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -65,9 +65,8 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driving` | neu | Einspiel-Use-Case; nutzt nur Driven Ports |
-| `internal/adapters/driving/cli` | update | Kommando `play`, Optionen (`--keep-timing`, `--record-timing`), Passwort aus der Umgebung |
-| Uhr-Port und Systemuhr im Composition Root | neu | Zeitangaben und zeitgetreues Warten, Fake-Uhr in Tests |
-| `internal/adapters/driven/postgres` | update | Authentifizierung als Client, Nachrichten der Gruppen senden |
+| `internal/adapters/driving/cli` | update | Kommando `play`, Optionen, Passwort aus der Umgebung, Konfigurationsdatei |
+| `internal/adapters/driven/postgres` | update | Authentifizierung und TLS als Client, Nachrichten der Gruppen senden |
 | `test/integration` | update | Happy/Boundary/Negative nach LH-FA-20 |
 
 ## 4. Trigger
@@ -75,7 +74,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`.
+**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, und die Signalbehandlung aus `slice-v1-abschluss-betrieb` liegt vor.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -98,8 +97,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Authentifizierung als Client (z. B. SCRAM) ist im Upstream-Adapter bisher nur als Vermittlung vorgesehen — **Ausgang:** offen bis Closure.
 - Das Einspielen verändert eine Datenbank; ein Fehlgebrauch gegen eine falsche Instanz ist durch das Handbuch nur gewarnt — **Ausgang:** offen bis Closure.
+- Eine Serverantwort mit `FATAL` beendet die Verbindung; die Behandlung gemäß Spezifikation ist erst im Test belegbar — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
