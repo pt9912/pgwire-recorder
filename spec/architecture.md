@@ -218,7 +218,15 @@ Das Domain Model enthält keine Typen der PGWire-Bibliothek.
 
 Antworten sind eigene Typen mit ausschließlich protokollrelevanten Daten:
 `RowDescription`, `DataRow`, `CommandComplete`, `EmptyQueryResponse`,
-`ErrorResponse`, `NoticeResponse`, `ParameterStatus`, `ReadyForQuery`.
+`ErrorResponse`, `NoticeResponse`, `ParameterStatus`, `ReadyForQuery` sowie die
+Antworten des Extended Query Protocol (`ParseComplete`, `BindComplete`,
+`CloseComplete`, `ParameterDescription`, `NoData`, `PortalSuspended`).
+
+Eine Interaktion ist entweder eine einfache Anfrage mit ihren Antworten oder
+eine geordnete Ereignisfolge aus Client- und Server-Nachrichten (Extended
+Query). Der Matcher arbeitet auf dieser Folge: Er vergleicht jedes eingehende
+Client-Ereignis mit dem erwarteten und gibt die folgenden Server-Ereignisse
+frei.
 
 `DataRow` wird nicht als reine String-Struktur modelliert; nach Load/Save sind
 die Domain-Bytes identisch. SQL ist fachlich Payload des Requests; das Modell
@@ -507,10 +515,6 @@ Eine Verletzung dieser Grenzen ist ein Befund des Gates.
 
 ## 7. Erweiterungspunkte
 
-- **Extended Query Protocol** (`Parse`, `Bind`, `Describe`, `Execute`, `Sync`)
-  erweitert primär Domain Request Types, das Mapping der beiden PGWire-Adapter,
-  den Record-Service, den Replay Matcher und das Recording-Schema. Die
-  hexagonale Grenze bleibt unverändert.
 - **Anderes Recording-Backend:** Ein alternatives Backend implementiert
   denselben Outbound Port (`RecordingRepository`); der Replay-Service bleibt
   unverändert.
@@ -522,7 +526,6 @@ Eine Verletzung dieser Grenzen ist ein Befund des Gates.
 
 | Risiko | Maßnahme |
 |---|---|
-| Viele PostgreSQL-Treiber verwenden standardmäßig Extended Query | Kompatiblen Simple-Query-Modus dokumentieren und Extended Query als nächste Protokollerweiterung vorsehen |
 | PGWire-Details sickern in den Core | Import-Regeln im Architektur-Gate, die die PGWire-Bibliothek außerhalb der beiden PGWire-Adapter verbieten |
 | YAML wird zum Domain Model | Separate Persistenz-DTOs im Recording Adapter, sobald Domain- und YAML-Modell auseinanderlaufen |
 | Zu breite Port-Interfaces (Durchreichen roher Connections oder Typ der PGWire-Bibliotheken wäre nur scheinbar hexagonal) | Ports in fachlichen Begriffen definieren und bewusst klein halten |

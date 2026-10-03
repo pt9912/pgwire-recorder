@@ -156,8 +156,8 @@ davon immer Fehler.
 
 ### LH-FA-05.a — Unterstützter Umfang: Simple Query Protocol
 
-Startup, Simple Query Protocol und Serverantworten bilden den unterstützten
-Umfang von v1.
+Startup, Simple Query Protocol, Extended Query Protocol (LH-FA-18.a) und
+Serverantworten bilden den unterstützten Umfang von v1.
 
 **Startup.** Der Recorder unterstützt die für typische PostgreSQL-Clients
 notwendige Startup-Sequenz, soweit sie für die definierten Record-/Replay-
@@ -196,9 +196,9 @@ verständlichen Diagnose (Exit-Code `6`, `SPEC-019`). Es wird keine scheinbar
 erfolgreiche Aufzeichnung erzeugt: Eine Session, in der eine nicht unterstützte
 Interaktion auftrat, wird nicht in das Recording übernommen.
 
-**Extended Query Protocol.** Nicht Teil des zugesicherten v1-Scopes sind
-insbesondere `Parse`, `Bind`, `Describe`, `Execute`, `Sync` und Prepared
-Statements über diesen Ablauf. Eine spätere Erweiterung muss möglich bleiben.
+**Extended Query Protocol.** `Parse`, `Bind`, `Describe`, `Execute`, `Close`,
+`Flush`, `Sync` und Prepared Statements sind unterstützt; Ablauf, Aufzeichnung
+und Matching legt LH-FA-18.a fest.
 
 ---
 
@@ -257,7 +257,7 @@ zulässig, der PGWire 3.0 spricht (`SPEC-029`).
 | `SSLRequest` | mit `N` abgelehnt (LH-FA-05.c) |
 | `GSSENCRequest` | mit `N` abgelehnt |
 | `CancelRequest` | Verbindung wird geschlossen, nicht an den Upstream weitergeleitet; kein Verbindungsfehler, Warnung `PGR-W3001` |
-| Extended-Query-Nachrichten (`Parse`, `Bind`, `Describe`, `Execute`, `Sync`) | nicht unterstützt (`PGR-E6001`) |
+| Extended-Query-Nachrichten (`Parse`, `Bind`, `Describe`, `Execute`, `Close`, `Flush`, `Sync`) | unterstützt (LH-FA-18.a) |
 | `COPY`-Nachrichten | nicht unterstützt (`PGR-E6001`) |
 | `FunctionCall` | nicht unterstützt (`PGR-E6001`) |
 | `NotificationResponse` (asynchron, z. B. nach `LISTEN`) | nicht unterstützt (`PGR-E6001`) |
@@ -504,6 +504,49 @@ oder `false`.
 
 ---
 
+### LH-FA-18.a — Extended Query: Ablauf, Aufzeichnung, Matching
+
+**Nachrichten.** Client: `Parse`, `Bind`, `Describe`, `Execute`, `Close`,
+`Flush`, `Sync`. Server: `ParseComplete`, `BindComplete`, `CloseComplete`,
+`ParameterDescription`, `RowDescription`, `NoData`, `DataRow`,
+`CommandComplete`, `EmptyQueryResponse`, `PortalSuspended`, `ErrorResponse`,
+`NoticeResponse`, `ReadyForQuery`.
+
+**Interaktion.** Eine Extended-Interaktion beginnt mit der ersten
+Extended-Nachricht und endet mit dem `ReadyForQuery`, das auf ein `Sync`
+folgt. Eine Session mischt Simple- und Extended-Interaktionen in der
+aufgezeichneten Reihenfolge.
+
+**Record.** Der Recorder leitet alle Nachrichten unverändert und in
+Ankunftsreihenfolge weiter, auch wenn der Client mehrere Nachrichten sendet,
+ohne auf Antworten zu warten (Pipelining). Er zeichnet die Interaktion als
+geordnete Ereignisfolge auf (`SPEC-041`): jede Client- und jede
+Server-Nachricht ist ein Ereignis. Zeitverhalten wird nicht aufgezeichnet.
+
+**Replay.** Der Replay-Cursor zeigt auf das nächste erwartete Client-Ereignis.
+Jede eingehende Client-Nachricht muss in allen Feldern dem erwarteten Ereignis
+entsprechen: Nachrichtentyp, Statement- und Portalname, SQL-Text,
+Parametertypen, Format-Codes, Parameterwerte (bytegenau), `max_rows`. Nach
+einer Übereinstimmung sendet der Recorder die aufgezeichneten Server-Ereignisse,
+die diesem Client-Ereignis folgen, bis zum nächsten Client-Ereignis, das er
+noch nicht empfangen hat; `ReadyForQuery` folgt erst nach dem `Sync`. Das
+Matching ist strict sequential wie in LH-FA-09.a; Namen werden nicht
+normalisiert. Ein Client, der nichtdeterministische Statement-Namen erzeugt,
+passt deshalb nicht zur Aufzeichnung (Mismatch, `PGR-E5001`); das ist eine
+bekannte Grenze von v1.
+
+**Fehler.** Nach einer `ErrorResponse` verwirft ein Server Nachrichten bis zum
+nächsten `Sync`. Die Aufzeichnung enthält die empfangenen Client-Nachrichten
+und die Server-Ereignisse in dieser Reihenfolge; Replay reproduziert sie, ohne
+eigene Fehlerlogik.
+
+**Mismatch.** Die Diagnose nach LH-FA-10.a nennt zusätzlich den Index des
+Ereignisses in der Interaktion sowie erwarteten und empfangenen Nachrichtentyp;
+Parameterwerte erscheinen nicht im Klartext der Diagnose, wenn der Log-Level
+nicht `debug` ist (`SPEC-033`).
+
+---
+
 ## 2. Datenstrukturen und Schemas
 
 Regeln dieser Sektion: Jede Struktur trägt eine `SPEC-<NNN>` — eine Adresse,
@@ -560,6 +603,44 @@ sessions:
 
 Das endgültige Schema wird durch Go-Datentypen und Schema-Tests verbindlich
 definiert.
+
+### SPEC-041 — Recording: Extended-Interaktion
+
+Eine Extended-Interaktion trägt `type: extended` und eine geordnete Liste
+`exchange` aus Client- und Server-Ereignissen:
+
+```yaml
+- sequence: 2
+  type: extended
+  exchange:
+    - client: parse
+      statement: "s1"
+      sql: "SELECT name FROM users WHERE id = $1"
+      param_types: [23]
+    - client: bind
+      portal: ""
+      statement: "s1"
+      param_formats: [0]
+      params:
+        - text: "1"
+      result_formats: [0]
+    - client: execute
+      portal: ""
+      max_rows: 0
+    - client: sync
+    - server: parse_complete
+    - server: bind_complete
+    - server: data_row
+      values:
+        - text: "alice"
+    - server: command_complete
+      tag: "SELECT 1"
+    - server: ready_for_query
+      tx_status: "I"
+```
+
+Simple-Interaktionen behalten `request`/`responses` (`SPEC-002`). Formatkennung
+und Version (`SPEC-001`) gelten für beide Arten; Binärdaten folgen `SPEC-003`.
 
 ### SPEC-003 — Recording: Binärdaten
 
@@ -748,8 +829,8 @@ Für v1 gelten folgende Festlegungen:
 - Verwendung von `github.com/jackc/pgx/v5/pgproto3` für die Verarbeitung von
   PGWire-Nachrichten, soweit die Bibliothek die benötigten Nachrichtentypen
   abdeckt (`SPEC-030`).
-- Unterstützung des **Simple Query Protocol** als fachlicher Kern; das Extended
-  Query Protocol ist keine zugesicherte v1-Funktion.
+- Unterstützung des **Simple Query Protocol** und des **Extended Query
+  Protocol**.
 - Das einzige Replay-Matching ist **strict sequential** (`SPEC-011`).
 - Keine automatische Maskierung oder Redaktion von Recording-Inhalten.
 - Das Tool ist für lokale Entwicklung, automatisierte Tests, CI und
@@ -800,7 +881,8 @@ mindestens:
 6. absichtlicher Query-Mismatch führt zum erwarteten Fehler.
 
 **Kompatibilitätstests.** Mindestens ein verbreiteter PostgreSQL-Go-Client wird
-für End-to-End-Tests verwendet. Zusätzliche Clients anderer Sprachen sind
+in seinem Standardmodus (Extended Query) und im Simple-Query-Modus für
+End-to-End-Tests verwendet. Zusätzliche Clients anderer Sprachen sind
 erwünscht, aber kein v1-Muss.
 
 ## 10. Nicht zugesichert in v1
@@ -809,8 +891,6 @@ erwünscht, aber kein v1-Muss.
 
 Nicht zugesichert sind insbesondere:
 
-- Extended Query Protocol,
-- Prepared Statements,
 - COPY,
 - TLS-Terminierung,
 - CancelRequest,
@@ -829,23 +909,27 @@ und Tests. „Nicht zugesichert" heißt: Die Funktion fehlt; Nachrichten und
 Interaktionen daraus werden nach LH-FA-05.e abgelehnt beziehungsweise
 behandelt, nicht still ignoriert.
 
-## 11. Fertigstellungskriterien für v1
+## 11. Fertigstellungskriterien
 
 ### SPEC-040 — Fertigstellungskriterien
 
-v1 ist technisch fertig, wenn:
+Das Produkt ist fertig, wenn alle Anforderungen des Lastenhefts (MUSS und
+SOLL) umgesetzt sind. v1 ist technisch fertig, wenn:
 
 1. alle Muss-Abnahmekriterien des Lastenhefts automatisiert getestet sind,
 2. Record und Replay für mindestens einen realen PostgreSQL-End-to-End-Test
    funktionieren,
 3. Replay ohne laufenden PostgreSQL-Server funktioniert,
-4. Simple Queries mit Resultsets, Commands ohne Rows und PostgreSQL-Fehlern
-   abgedeckt sind,
+4. Simple und Extended Queries mit Resultsets, Commands ohne Rows und
+   PostgreSQL-Fehlern abgedeckt sind,
 5. Mismatches deterministisch erkannt werden,
 6. das Recording-Format versioniert und dokumentiert ist,
 7. CLI-Hilfe, Exit Codes und grundlegende Betriebsdokumentation vorhanden sind,
-8. das Binary reproduzierbar gebaut werden kann; sofern das Container-Image
-   (LH-FA-16, SOLL) umgesetzt ist, gilt das auch für das Image.
+8. das Binary und das Container-Image (LH-FA-16) reproduzierbar gebaut werden
+   können,
+9. die SOLL-Anforderungen LH-FA-14, LH-FA-16 und LH-FA-17 umgesetzt sind,
+10. Extended Query (LH-FA-18) umgesetzt und Abnahmeszenario 7 des Lastenhefts
+    automatisiert getestet ist.
 
 ## 12. Historie
 
