@@ -464,20 +464,21 @@ sein, damit es in automatisierten Tests und CI-Systemen eingesetzt werden kann.
 
 **Priorität:** SOLL
 
-**Beschreibung:** Das Produkt soll so betreibbar sein, dass es ohne besondere
-Anforderungen in containerisierten Testumgebungen eingesetzt werden kann.
+**Beschreibung:** Das Produkt soll als Docker/OCI-Image bereitgestellt werden
+und so betreibbar sein, dass es ohne besondere Anforderungen in
+containerisierten Testumgebungen eingesetzt werden kann.
 
 **Akzeptanzkriterien:**
 
-- **Happy Path:** Given eine containerisierte Testumgebung, when das Werkzeug
-  dort gestartet wird, then funktionieren Record und Replay ohne zusätzliche
-  Sonderkonfiguration.
+- **Happy Path:** Given eine containerisierte Testumgebung, when das
+  bereitgestellte Image dort gestartet wird, then funktionieren Record und
+  Replay ohne zusätzliche Sonderkonfiguration.
 - **Boundary:** Given eine Umgebung ohne Terminal, when das Werkzeug startet,
   then ist das unproblematisch (siehe LH-FA-15).
 - **Negative:** Given eine Umgebung ohne Netzzugang zu PostgreSQL, when Replay
   läuft, then funktioniert es (siehe LH-FA-03).
 
-**Out-of-Scope:** Bereitstellung orchestrierter Deployments.
+**Out-of-Scope:** Bereitstellung orchestrierter Deployments; Windows-Container.
 
 ---
 
@@ -527,6 +528,29 @@ und Port (LH-FA-04).
   LH-FA-10 als Abweichung gemeldet.
 
 **Out-of-Scope:** `COPY`; Replikationsprotokoll.
+
+---
+
+### LH-FA-19 — Bereitstellung über Homebrew
+
+**Priorität:** SOLL
+
+**Beschreibung:** Das Produkt soll sich unter macOS und Linux über den
+Paketmanager Homebrew installieren lassen.
+
+**Akzeptanzkriterien:**
+
+- **Happy Path:** Given ein Rechner mit Homebrew unter macOS oder Linux, when der
+  Anwender die dokumentierten Installationsbefehle ausführt, then ist
+  `pgwire-recorder` ausführbar und meldet seine Version (siehe
+  Abnahmeszenario 11 in §7).
+- **Boundary:** Given eine Vorabversion, when sie veröffentlicht wird, then
+  ändert sie die über Homebrew bereitgestellte Version nicht.
+- **Negative:** Given Windows, auf dem Homebrew nicht verfügbar ist, when der
+  Anwender das Produkt installieren will, then steht das Binary direkt zur
+  Verfügung (siehe LH-FA-01).
+
+**Out-of-Scope:** Aufnahme in das Standard-Repository von Homebrew.
 
 ---
 
@@ -685,6 +709,36 @@ PostgreSQL-Treibers), wird über den Recorder gegen eine reale PostgreSQL-Instan
 aufgezeichnet und anschließend ohne PostgreSQL im Replay-Modus ausgeführt; sie
 erhält dasselbe beobachtbare Verhalten, ohne dass die Treiberkonfiguration über
 Host und Port hinaus geändert wird. Bezug: LH-FA-18, LH-FA-04.
+
+### Abnahmeszenario 8 — Diagnoseausgaben
+
+Es werden drei Störungen herbeigeführt: eine nicht erreichbare PostgreSQL-Instanz
+im Record-Modus, eine ungültige Aufzeichnung im Replay-Modus und eine Anfrage,
+die nicht zur Aufzeichnung passt. In jedem Fall nennt die Ausgabe des Werkzeugs
+die Art und die Ursache des Problems, und die drei Fälle sind an der Meldung
+unterscheidbar. Bezug: LH-FA-14.
+
+### Abnahmeszenario 9 — Containerbetrieb
+
+Record und Replay werden mit dem bereitgestellten Docker/OCI-Image in einer
+containerisierten Testumgebung gestartet, ohne besondere Sonderkonfiguration
+über die Verbindungsparameter hinaus. Der
+Replay-Lauf braucht dabei weder eine PostgreSQL-Instanz noch eine Eingabe.
+Bezug: LH-FA-16.
+
+### Abnahmeszenario 10 — Maschinenlesbare Konfiguration
+
+Alle Einstellungen, die für einen Record- und einen Replay-Lauf nötig sind,
+werden ohne interaktive Eingabe gesetzt, einmal über Argumente und einmal über
+Umgebungsvariablen. Wird dieselbe Einstellung über beide Wege gesetzt, gilt die
+dokumentierte Priorität. Bezug: LH-FA-17.
+
+### Abnahmeszenario 11 — Homebrew
+
+Auf einem Rechner mit Homebrew unter macOS oder Linux wird das Produkt mit den
+dokumentierten Befehlen installiert. `pgwire-recorder version` meldet die
+installierte Version, und ein Replay-Lauf startet ohne weitere Installation.
+Bezug: LH-FA-19.
 
 ## 8. Nicht in diesem Dokument entschiedene Punkte
 
