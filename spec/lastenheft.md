@@ -1,8 +1,8 @@
 # Lastenheft — pgwire-recorder
 
 **Version:** 0.1.0 (`Major.Minor.Patch`). Ab `Accepted` ist der Bump der
-Fußabdruck des Change Requests; **welche Stelle** steigt, deklariert dein Repo
-in `harness/conventions.md` (Baseline-Regelwerk
+Fußabdruck des Change Requests; **welche Stelle** steigt, ist
+in `harness/conventions.md` deklariert (Baseline-Regelwerk
 `grundlagen-source-precedence.md` §Spec-Stratifizierung).
 
 **Status:** Draft — gilt dem **Dokument**, nicht der
@@ -23,8 +23,8 @@ Dieses Lastenheft beschreibt die fachlichen Anforderungen an `pgwire-recorder`
 aus Sicht der Anwender und Auftraggeber. Es beschreibt, **was** das Produkt
 leisten soll und welche Ziele damit verfolgt werden. Technische Entscheidungen
 zu Implementierung, Programmiersprache, Bibliotheken, internen Datenstrukturen
-und Softwarearchitektur gehören nicht in dieses Dokument; sie werden in
-`spec/spezifikation.md` und `spec/architecture.md` festgelegt.
+und Softwarearchitektur gehören nicht in dieses Dokument; sie werden in den
+nachgelagerten Dokumenten festgelegt.
 
 **Ausgangssituation.** Automatisierte Tests von Anwendungen mit
 PostgreSQL-Abhängigkeiten benötigen häufig eine reale oder eigens bereitgestellte
@@ -141,8 +141,8 @@ PostgreSQL-Server vermittelt und aufgezeichnet wird.
   Simple-Query-Interaktion ausführt, then erhält der Client die Serverantwort
   und eine Aufzeichnung entsteht (siehe Abnahmeszenario 1 in §7).
 - **Boundary:** Given ein Client, der keine Anfrage stellt, when die Verbindung
-  endet, then ist das Ergebnis eine gültige, ggf. leere Aufzeichnung oder ein
-  klar benannter Zustand; der Recorder bleibt nicht hängen.
+  endet, then ist das Ergebnis eine gültige Aufzeichnung ohne
+  Interaktionen; der Recorder bleibt nicht hängen.
 - **Negative:** Given ein nicht erreichbarer PostgreSQL-Server, when ein Client
   sich verbindet, then wird ein Verbindungsfehler signalisiert (siehe LH-QA-05).
 
@@ -204,9 +204,12 @@ beziehungsweise Host und Port auf `pgwire-recorder` umzustellen.
 **Priorität:** MUSS
 
 **Beschreibung:** v1 muss PostgreSQL-Kommunikation über das Simple Query
-Protocol für den definierten Funktionsumfang unterstützen. Der „definierte
-Funktionsumfang" wird in `spec/spezifikation.md` konkretisiert (Start-up- und
-Authentifizierungssequenzen, Transaktionen, PostgreSQL-/PGWire-Versionen, TLS).
+Protocol unterstützen. Der Funktionsumfang von v1 umfasst den Verbindungsaufbau
+(Start-up einschließlich Authentifizierung), Anfragen (`Query`), das
+Verbindungsende (`Terminate`) und die Serverantworten einer Anfrage bis
+`ReadyForQuery`, einschließlich Fehler- und Hinweisantworten sowie
+Transaktionsbefehlen als gewöhnliche Anfragen. TLS-Aushandlung ist nicht Teil
+des Funktionsumfangs.
 
 **Akzeptanzkriterien:**
 
@@ -214,8 +217,10 @@ Authentifizierungssequenzen, Transaktionen, PostgreSQL-/PGWire-Versionen, TLS).
   sie über den Recorder läuft, then wird sie aufgezeichnet beziehungsweise
   wiedergegeben.
 - **Boundary:** Given eine Interaktion am Rand des unterstützten Umfangs, when
-  sie auftritt, then ist ihr Status (unterstützt / nicht unterstützt) eindeutig
-  und in der Spezifikation festgelegt.
+  sie auftritt (etwa eine TLS-Anfrage, ein Abbruchwunsch oder eine
+  Datenübertragung per `COPY`), then ist ihr Status (unterstützt / nicht
+  unterstützt) eindeutig und dokumentiert; eine nicht unterstützte Interaktion
+  wird nicht still ignoriert.
 - **Negative:** Given eine nicht unterstützte Protokollinteraktion, when sie
   auftritt, then wird sie mit einem klar erkennbaren Fehler abgelehnt (siehe
   LH-QA-05).
@@ -264,7 +269,8 @@ Testcode gespeichert, transportiert und versioniert werden.
   gestartet wird, then ist sie für ein Replay verwendbar.
 - **Boundary:** Given eine Aufzeichnung, die in ein anderes Verzeichnis oder auf
   einen anderen Rechner kopiert wurde, when sie dort verwendet wird, then
-  funktioniert das Replay unverändert.
+  funktioniert das Replay unverändert; der Recorder trägt keine
+  rechnerspezifischen Angaben in die Aufzeichnung ein.
 - **Negative:** Given eine unvollständige oder beschädigte Datei, when sie
   geladen wird, then wird sie als ungültiges Recording erkannt.
 
@@ -284,8 +290,8 @@ beziehungsweise für ein Replay verwendet wird.
 - **Happy Path:** Given mehrere Aufzeichnungen, when der Anwender eine davon
   benennt, then wird genau diese erzeugt beziehungsweise wiedergegeben.
 - **Boundary:** Given ein Aufnahmeziel, das bereits existiert, when Record
-  gestartet wird, then ist das Verhalten (Überschreiben oder Ablehnen) in der
-  Spezifikation festgelegt und nicht zufällig.
+  gestartet wird, then wird das Ziel nicht stillschweigend überschrieben; der
+  Anwender kann das Überschreiben ausdrücklich verlangen.
 - **Negative:** Given eine nicht existierende Aufzeichnung für Replay, when das
   Werkzeug startet, then wird ein Fehler signalisiert.
 
@@ -306,8 +312,8 @@ der Replay-Modus das aufgezeichnete Verhalten reproduzierbar bereitstellen.
   Anfrage, when sie mehrfach wiedergegeben wird, then ist das beobachtbare
   Verhalten jedes Mal gleich.
 - **Boundary:** Given mehrfach identische Queries in einer Aufzeichnung, when
-  sie wiedergegeben werden, then ist die Zuordnung eindeutig und in der
-  Spezifikation festgelegt.
+  sie wiedergegeben werden, then erhält jede Anfrage die zu ihrer Position in der
+  Aufzeichnung gehörende Antwort.
 - **Negative:** Given eine Anfrage ohne passende Aufzeichnung, when sie
   eintrifft, then greift LH-FA-10.
 
@@ -331,9 +337,9 @@ oder offensichtlich unpassende Antwort verwenden.
   passt, when sie im Replay eintrifft, then liefert beziehungsweise signalisiert
   der Recorder einen eindeutigen Fehler (siehe Abnahmeszenario 4 in §7).
 - **Boundary:** Given eine Anfrage, die einer aufgezeichneten nur ähnlich ist,
-  when sie eintrifft, then wird sie nach dem in der Spezifikation festgelegten
-  Matching-Verfahren entweder bedient oder als Abweichung gemeldet — nie mit
-  einer geratenen Antwort.
+  when sie eintrifft, then wird sie nur bedient, wenn sie der aufgezeichneten
+  Anfrage entspricht, andernfalls als Abweichung gemeldet — nie mit einer
+  geratenen Antwort.
 - **Negative:** Given eine Abweichung, when sie auftritt, then wird keine
   aufgezeichnete Antwort einer anderen Anfrage geliefert.
 
@@ -357,8 +363,10 @@ entsprechende beobachtbare Fehlerverhalten beim Replay reproduziert werden kann.
 - **Boundary:** Given eine Fehlerantwort innerhalb einer Folge mehrerer
   Interaktionen, when sie wiedergegeben wird, then bleibt ihre Position in der
   Reihenfolge erhalten (siehe LH-FA-12).
-- **Negative:** Given eine nicht unterstützte Fehlerart, when sie auftritt, then
-  wird dies als nicht unterstützte Protokollinteraktion gemeldet.
+- **Negative:** Given eine Fehlerantwort, die nicht verlustfrei aufgezeichnet
+  werden kann, when sie im Record auftritt, then wird dies als nicht
+  unterstützte Protokollinteraktion gemeldet, statt eine unvollständige
+  Aufzeichnung abzulegen.
 
 **Out-of-Scope:** Erzeugen frei definierter Fehlerantworten ohne vorheriges
 Recording.
@@ -377,13 +385,13 @@ der aufgezeichneten Interaktionen erhalten.
 - **Happy Path:** Given mehrere nacheinander aufgezeichnete Interaktionen, when
   sie wiedergegeben werden, then entspricht die Reihenfolge der aufgezeichneten.
 - **Boundary:** Given mehrere Client-Verbindungen, when sie aufgezeichnet
-  werden, then ist der Umgang mit Sessions und Reihenfolge in der Spezifikation
-  festgelegt.
+  werden, then wird jede Verbindung als eigene Session aufgezeichnet,
+  und die Reihenfolge der Interaktionen bleibt je Session erhalten.
 - **Negative:** Given eine Folge, die der aufgezeichneten Reihenfolge
   widerspricht und für die Reihenfolge relevant ist, when sie im Replay
   eintrifft, then wird sie nach LH-FA-10 behandelt.
 
-**Out-of-Scope:** Garantien für Parallelität über die Spezifikation hinaus.
+**Out-of-Scope:** Deterministisches Replay bei mehreren aufgezeichneten Sessions.
 
 ---
 
@@ -399,12 +407,14 @@ automatisierte Umgebungen erkennbar signalisieren.
 - **Happy Path:** Given ein fehlerfreier Lauf, when das Werkzeug endet, then
   signalisiert der Prozessstatus Erfolg.
 - **Boundary:** Given ein kontrolliertes Beenden durch Signal, when es
-  eintritt, then ist der Prozessstatus in der Spezifikation festgelegt.
+  eintritt, then signalisiert der Prozessstatus Erfolg, wenn bis dahin kein
+  Fehler aufgetreten ist, andernfalls den Fehler.
 - **Negative:** Given ein Betriebs- oder Konfigurationsfehler, when er auftritt,
-  then signalisiert der Prozessstatus Misserfolg und unterscheidet die
-  Fehlerklassen aus LH-QA-05.
+  then wird er mit seiner Fehlerklasse gemeldet, und der
+  Prozessstatus signalisiert Misserfolg, sobald der Prozess endet; er
+  unterscheidet die Fehlerklassen aus LH-QA-05.
 
-**Out-of-Scope:** Konkrete Exit-Code-Werte (Spezifikation).
+**Out-of-Scope:** Eine bestimmte Wertebelegung der Exit Codes.
 
 ---
 
@@ -421,8 +431,7 @@ Replay-Abweichungen.
 - **Happy Path:** Given eines der genannten Problemszenarien, when es eintritt,
   then nennt die Ausgabe Art und Ursache des Problems.
 - **Boundary:** Given ein Lauf ohne Probleme, when er endet, then bleibt die
-  Ausgabe auf der konfigurierten Detailstufe (Logging und Log-Level in der
-  Spezifikation).
+  Ausgabe auf der konfigurierten Detailstufe; die Detailstufe ist einstellbar.
 - **Negative:** Given ein Fehler, when er gemeldet wird, then enthält die Meldung
   keine irreführende Fehlerklasse.
 
@@ -477,9 +486,7 @@ Anforderungen in containerisierten Testumgebungen eingesetzt werden kann.
 **Priorität:** SOLL
 
 **Beschreibung:** Alle für automatisierte Testläufe erforderlichen Einstellungen
-sollen über nicht-interaktive Mechanismen festgelegt werden können. Die konkrete
-Form (Konfigurationsquellen und deren Priorität) wird in
-`spec/spezifikation.md` definiert.
+sollen über nicht-interaktive Mechanismen festgelegt werden können.
 
 **Akzeptanzkriterien:**
 
@@ -487,7 +494,7 @@ Form (Konfigurationsquellen und deren Priorität) wird in
   startet, then sind alle für Record und Replay nötigen Einstellungen darüber
   setzbar.
 - **Boundary:** Given dieselbe Einstellung aus mehreren Quellen, when das
-  Werkzeug startet, then gilt die in der Spezifikation festgelegte Priorität.
+  Werkzeug startet, then gilt eine eindeutige, dokumentierte Priorität.
 - **Negative:** Given eine ungültige Konfiguration, when das Werkzeug startet,
   then wird ein Konfigurationsfehler signalisiert (siehe LH-FA-13).
 
@@ -502,8 +509,8 @@ Form (Konfigurationsquellen und deren Priorität) wird in
 - **Anforderung:** Replay-Läufe sollen für identische unterstützte Eingaben und
   identische Aufzeichnungen ein reproduzierbares Verhalten zeigen.
 - **Messmethode:** Wiederholter Replay-Lauf mit identischer Aufzeichnung und
-  identischer Eingabe; das beobachtbare Verhalten ist jedes Mal gleich.
-  Konkretisierung in `spec/spezifikation.md`.
+  identischer Eingabe, mindestens zehn aufeinanderfolgende Läufe; das
+  beobachtbare Verhalten ist in allen Läufen gleich.
 
 ### LH-QA-02 — Geringe Eingriffe in die Anwendung
 
@@ -518,8 +525,8 @@ Form (Konfigurationsquellen und deren Priorität) wird in
 - **Anforderung:** Das Werkzeug soll für typische lokale Entwicklungs- und
   CI-Umgebungen bereitstellbar sein.
 - **Messmethode:** Lauf der Abnahmeszenarien in einer lokalen
-  Entwicklungsumgebung und einer CI-Umgebung; Plattformumfang in
-  `spec/spezifikation.md`.
+  Entwicklungsumgebung und einer CI-Umgebung; die für die Abnahme verwendeten
+  Umgebungen werden bei der Abnahme benannt.
 
 ### LH-QA-04 — Automatisierbarkeit
 
@@ -568,8 +575,8 @@ Form (Konfigurationsquellen und deren Priorität) wird in
   erzeugt. Die Anwendung kann so konfiguriert werden, dass sie Host und Port des
   Recorders anstelle des PostgreSQL-Servers verwendet. Die für einen
   Replay-Test benötigten Interaktionen wurden zuvor erfolgreich aufgezeichnet.
-  Nicht unterstützte PGWire-Funktionen dürfen mit einem klar erkennbaren Fehler
-  abgelehnt werden.
+  Nicht unterstützte PGWire-Funktionen werden mit einem klar erkennbaren Fehler
+  abgelehnt.
 - **Nachweis:** Abnahmeszenarien in §7 laufen unter diesen Bedingungen.
 
 ---
@@ -597,7 +604,7 @@ Funktionsumfangs von v1** und können Gegenstand späterer Versionen werden:
 | Replay-Modus | Betriebsart, in der der Recorder Anfragen anhand eines Recordings ohne PostgreSQL-Server beantwortet |
 | Simple Query Protocol | PostgreSQL-Protokollvariante für Anfragen als einzelne Textnachricht; einziger Protokollumfang von v1 |
 | Extended Query Protocol | PostgreSQL-Protokollvariante mit getrennten Parse-/Bind-/Execute-Schritten; nicht Teil von v1 |
-| Unterstützt | Innerhalb des für v1 definierten Funktionsumfangs |
+| Unterstützt | Teil des in LH-FA-05 beschriebenen Funktionsumfangs von v1 und nicht in §5 ausgeschlossen |
 
 ## 7. Abnahmekriterien für v1
 
@@ -644,10 +651,11 @@ Eine während Record auftretende und vom Produkt unterstützte
 PostgreSQL-Fehlerantwort wird aufgezeichnet. Beim entsprechenden Replay erhält
 der Client ein äquivalentes beobachtbares Fehlerverhalten. Bezug: LH-FA-11.
 
-## 8. Offene Punkte für die Spezifikation
+## 8. Nicht in diesem Dokument entschiedene Punkte
 
 Die folgenden Punkte werden bewusst nicht in diesem Lastenheft technisch
-entschieden und sind in `spec/spezifikation.md` zu konkretisieren:
+entschieden; sie sind keine Anforderungen dieses Dokuments und werden in den
+nachgelagerten Dokumenten festgelegt:
 
 - genaue CLI-Kommandos und Optionen,
 - Konfigurationsquellen und deren Priorität,
