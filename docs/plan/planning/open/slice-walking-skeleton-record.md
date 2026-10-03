@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-walking-skeleton.
 
-**Bezug:** [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-06`](../../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [ADR-0003](../../adr/0003-pgwire-server-ist-driving-adapter.md), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0005](../../adr/0005-recording-store-ist-driven-adapter.md), [ADR-0006](../../adr/0006-kanonisches-domain-model.md)
+**Bezug:** [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-06`](../../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats), [ADR-0003](../../adr/0003-pgwire-server-ist-driving-adapter.md), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0005](../../adr/0005-recording-store-ist-driven-adapter.md), [ADR-0006](../../adr/0006-kanonisches-domain-model.md)
 
 **Berührte Spec-Stellen:** `ARC-001` · `ARC-002` · `ARC-003` · `ARC-004` · `ARC-005` · `ARC-006` · `ARC-007` · `ARC-008` · `ARC-009` · `SPEC-001` · `SPEC-002`
 
@@ -72,6 +72,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driven/postgres`, `…/recording` | neu | Upstream-Session, YAML-Schreiben |
 | `internal/bootstrap` | neu | Verdrahtung |
 | `test/integration` | neu | Happy: `SELECT 1;`; Negative: Upstream nicht erreichbar |
+| `tools/harness/run-integration-tests.sh`, `docs/user/e2e-abdeckung.md`, `.d-check.yml` (`trace.coverage`) | neu | Der Integrationstest-Runner schreibt die E2E-Abdeckungstabelle aus den Deklarationen der Tests; `.d-check.yml` bindet sie unter `trace.coverage` ein (Vorbild: `pg-change-feed`) |
 
 ## 4. Trigger
 

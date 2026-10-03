@@ -61,6 +61,7 @@ Diese Datei dupliziert sie nicht.
 | Target | Vertrag | Bindung |
 |---|---|---|
 | `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | — |
+| `make a-check` | Architektur-Regeln des Hexagons gemäß `.a-check.yml` (a-check, netzlos, schreibgeschützt); prüft Import-Richtungen, sobald Packages existieren | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md) |
 | `make baseline-verify` | vendored Baseline gegen `SHA256SUMS` (Integrität und Vollständigkeit, netzlos) | — |
 | `make gates` | alle inneren Gates | — |
 
@@ -71,10 +72,12 @@ Diese Datei dupliziert sie nicht.
 | `make slice-mv` | bewegt einen Slice zwischen den Lifecycle-Verzeichnissen und zieht die Verweise nach, prüft nichts | kein Gate |
 | `make archive-welle` | archiviert die Zeitdokumente einer geschlossenen Welle | kein Gate |
 | `make hooks-install` | aktiviert den git-eigenen `commit-msg`-Träger im Klon | kein Gate |
+| `make a-check-graph` | gibt den Architektur-Graphen (Mermaid) aus `.a-check.yml` aus, prüft nichts | kein Gate |
+| `make doc-trace` | gibt die Requirements Traceability Matrix aus (Anforderung, Entscheidungen, Slices), prüft nichts | kein Gate |
 
 **Aktueller Lauf-Status:** CI-Badge bzw. lokal `make help` / `make gates`.
 **Rote Gates:** Begründung in einem Carveout (Modul 7); bisher keiner.
-**Nicht behauptet** (geplant): Build, Test und Architektur-Gate; sie existieren, sobald die Umsetzung sie anlegt.
+**Nicht behauptet** (geplant): Build und Test; sie existieren, sobald die Umsetzung sie anlegt.
 
 
 

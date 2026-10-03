@@ -118,3 +118,16 @@ matrix:
   # seiner eigenen Kopie; bis dahin ist die Deckung die strengere Vorgabe.
   exempt-paths: ["docs/plan/adr/README.md", "docs/reviews/**"]
   exclude-sections: [Geschichte]
+
+# Quellen der Requirements Traceability Matrix (make doc-trace). Die Kennungen dieses
+# Repos tragen das Praefix LH und eine laufende Nummer (LH-FA-01, LH-QA-01, LH-RB-01);
+# die Slices heissen slice-<welle>-<aspekt>. Als Nachweis zaehlen nur Slices in done/:
+# ein Slice in open/, next/ oder in-progress/ ist geplant oder in Arbeit, nicht geliefert.
+trace:
+  requirements:
+    source: spec/lastenheft.md
+    id-pattern: 'LH-(?:FA|QA|RB)-\d+'
+    format: headings
+  slices:
+    dir: docs/plan/planning/done
+    file-pattern: '^(slice-.+)\.md$'

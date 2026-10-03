@@ -29,7 +29,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Ein Go-Modul mit der Package-Struktur des Hexagons existiert, und Build, Test und Architektur-Gate laufen ausschließlich über `make` in Docker; `make gates` führt sie mit.
+**Ziel:** Ein Go-Modul mit der Package-Struktur des Hexagons existiert, und Build und Test laufen ausschließlich über `make` in Docker; das bereits verdrahtete Architektur-Gate (`make a-check`) prüft die Packages, und `make gates` führt alles mit.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -45,7 +45,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] `make build` und `make test` bauen und testen das Go-Modul in Docker ohne Host-Toolchain ([`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit)).
-- [ ] Das Architektur-Gate prüft `.a-check.yml` über ein `make`-Target und hängt an `make gates`; eine absichtliche Verletzung (Import von `pgproto3` in `internal/hexagon/model`) lässt es fehlschlagen.
+- [ ] Das Architektur-Gate (`make a-check`, an `make gates` gehängt) prüft die angelegten Packages gegen `.a-check.yml`; eine absichtliche Verletzung (Import von `pgproto3` in `internal/hexagon/model`) lässt es fehlschlagen.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -65,7 +65,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `go.mod`, `cmd/pgwire-recorder/`, `internal/…` (leere Packages gemäß Package-Struktur) | neu | Gerüst für das Hexagon; Gate braucht Code-Pfade |
 | `Dockerfile` bzw. Build-Image, `harness/mk/build.mk` | neu | Docker-only Build/Test (`AGENTS.md` §3.1) |
-| `harness/mk/arch-check.mk` | neu | Architektur-Gate gemäß `.a-check.yml`, Image per Digest gepinnt |
+| `a-check.mk`, `harness/mk/arch-gate.mk` | vorhanden | Architektur-Gate gemäß `.a-check.yml`, Image per Digest gepinnt; keine Änderung nötig |
 | `harness/README.md` §Sensors | update | Bindung des neuen Gates deklarieren |
 | Test: Negativfall des Gates | neu | Happy/Negative — Gate grün bei sauberer Struktur, rot bei verbotenem Import |
 
@@ -79,7 +79,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next`: das Gate verlangt mehr als einen Slice (z. B. zusätzlich Lint und Coverage) — zurück zur Zerlegung.
-- `in-progress` → `open`: kein lauffähiges, per Digest pinnbares a-check-Image verfügbar — als Carveout klären.
+- `in-progress` → `open`: das gepinnte a-check-Image prüft die Go-Packages nicht wie erwartet — als Carveout klären.
 
 ## 5. Closure-Trigger
 
@@ -96,7 +96,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Verfügbarkeit und Aufruf-Form von a-check als Docker-Image sind nicht belegt — **Ausgang:** offen bis Closure.
+- Ob a-check die Go-Importe der Packages wie in `.a-check.yml` modelliert erkennt, ist erst mit Code belegbar — **Ausgang:** offen bis Closure.
 - Die Gate-Konfiguration ist Go-spezifisch; Schwellen dürfen nicht ohne ADR gesenkt werden (`AGENTS.md` §3.6) — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
