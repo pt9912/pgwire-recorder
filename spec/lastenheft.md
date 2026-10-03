@@ -405,7 +405,7 @@ der aufgezeichneten Interaktionen erhalten.
   aufgezeichnet. Given ein Recording mit mehreren Sessions, when Clients
   nacheinander Verbindungen aufbauen, then erhält die n-te Verbindung mit einer
   Anfrage die n-te aufgezeichnete Session; auf Wunsch zählt stattdessen die n-te
-  Verbindung.
+  Verbindung, was eine Aufzeichnung mit Verbindungen ohne Anfrage voraussetzt.
 - **Negative:** Given eine Folge, die der aufgezeichneten Reihenfolge
   widerspricht und für die Reihenfolge relevant ist, when sie im Replay
   eintrifft, then wird sie nach LH-FA-10 behandelt.
@@ -509,7 +509,7 @@ containerisierten Testumgebungen eingesetzt werden kann.
 **Beschreibung:** Alle für automatisierte Testläufe erforderlichen Einstellungen
 sollen über nicht-interaktive Mechanismen festgelegt werden können: über
 Argumente, Umgebungsvariablen und eine Konfigurationsdatei, in der sich auch
-Verbindungen zu Datenbanken benennen lassen. Die wirksame Konfiguration lässt sich
+Verbindungen zu Datenbanken benennen lassen. Die gewählte Konfiguration lässt sich
 anzeigen, ohne Geheimnisse preiszugeben.
 
 **Akzeptanzkriterien:**
@@ -520,7 +520,7 @@ anzeigen, ohne Geheimnisse preiszugeben.
 - **Boundary:** Given dieselbe Einstellung aus mehreren Quellen, when das
   Werkzeug startet, then gilt eine eindeutige, dokumentierte Priorität; Geheimnisse
   wie ein Passwort stehen nicht im Klartext in der Konfigurationsdatei, sondern
-  werden aus der Umgebung eingesetzt, und die Anzeige der Konfiguration verbirgt sie.
+  werden aus der Umgebung eingesetzt, und die Anzeige der Konfiguration zeigt sie nicht.
 - **Negative:** Given eine ungültige Konfiguration, when das Werkzeug startet,
   then wird ein Konfigurationsfehler signalisiert (siehe LH-FA-13).
 
@@ -629,8 +629,10 @@ nacheinander und ohne Wartezeiten aus (LH-FA-20).
 **Akzeptanzkriterien:**
 
 - **Happy Path:** Given eine Aufzeichnung mit Zeitangaben, when der Anwender
-  zeitgetreues Einspielen verlangt, then ist der Abstand zwischen zwei Anfragen
-  nicht kürzer als aufgezeichnet (siehe Abnahmeszenario 13 in §7).
+  zeitgetreues Einspielen verlangt, then ist bei der relativen Wiedergabe der
+  Abstand zwischen zwei aufeinander folgenden Anfragen nicht kürzer als
+  aufgezeichnet, und bei der absoluten Wiedergabe liegt keine Anfrage früher als im
+  aufgezeichneten Abstand zum Bezugspunkt (siehe Abnahmeszenario 13 in §7).
 - **Boundary:** Given keine Zeitaufzeichnung verlangt, when aufgezeichnet wird,
   then enthält die Aufzeichnung keine Zeitangaben; given keine zeitgetreue
   Wiedergabe verlangt, when eine Aufzeichnung mit Zeitangaben eingespielt wird,
@@ -650,20 +652,20 @@ im Replay-Modus.
 **Priorität:** SOLL
 
 **Beschreibung:** Das Produkt soll Aufzeichnungen wahlweise als Textdatei
-(Standard, diff-freundlich und versionierbar) oder als SQLite-Datei (für große
+(Standard, diff-freundlich und versionierbar) oder als Datenbankdatei (für große
 Aufzeichnungen) speichern können. Replay und Einspielen verwenden beide Formate
 gleich und erkennen das Format der Datei selbst.
 
 **Akzeptanzkriterien:**
 
-- **Happy Path:** Given der Wunsch nach dem SQLite-Format, when aufgezeichnet
-  wird, then entsteht eine SQLite-Aufzeichnung, die Replay und Einspielen wie die
+- **Happy Path:** Given der Wunsch nach dem Datenbankdatei-Format, when aufgezeichnet
+  wird, then entsteht eine Aufzeichnung als Datenbankdatei, die Replay und Einspielen wie die
   Textaufzeichnung verwenden (siehe Abnahmeszenario 14 in §7).
 - **Boundary:** Given kein Wunsch nach einem Format, when aufgezeichnet wird,
   then entsteht eine Textdatei; given eine vorhandene Aufzeichnung, when sie
   verwendet wird, then erkennt das Produkt ihr Format.
 - **Negative:** Given eine Datei, die weder eine gültige Text- noch eine gültige
-  SQLite-Aufzeichnung ist, when sie verwendet wird, then wird sie als ungültiges
+  Datenbankdatei-Aufzeichnung ist, when sie verwendet wird, then wird sie als ungültiges
   Recording erkannt (siehe LH-FA-07).
 
 **Out-of-Scope:** Umwandlung einer Aufzeichnung von einem Format in das andere;
@@ -873,9 +875,9 @@ liegt, wird auf Wunsch zeitgetreu eingespielt. Der Abstand zwischen den beiden
 Anfragen ist nicht kürzer als aufgezeichnet. Ohne den Wunsch läuft dieselbe
 Aufzeichnung ohne Wartezeit. Bezug: LH-FA-21.
 
-### Abnahmeszenario 14 — SQLite-Aufzeichnung
+### Abnahmeszenario 14 — Aufzeichnung als Datenbankdatei
 
-Eine Testanwendung wird mit dem Wunsch nach dem SQLite-Format aufgezeichnet und
+Eine Testanwendung wird mit dem Wunsch nach dem Datenbankdatei-Format aufgezeichnet und
 anschließend ohne PostgreSQL im Replay-Modus ausgeführt; sie erhält dasselbe
 Verhalten wie mit der Textaufzeichnung. Dieselbe Aufzeichnung lässt sich in eine
 Datenbank einspielen. Bezug: LH-FA-22.
