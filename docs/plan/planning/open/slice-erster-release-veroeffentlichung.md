@@ -45,6 +45,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Der erste echte Tag veröffentlicht das Image mit `linux/amd64` und `linux/arm64` in beiden Registries, und es besteht den Smoke aus Abnahmeszenario 9.
+- [ ] Die Release-Notes des GitHub-Releases entstehen aus der neuen Zeile der Änderungshistorie des Handbuchs; ein `CHANGELOG.md` wird nicht geführt.
 - [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität): Die Binaries für Linux, macOS und Windows (`amd64`, `arm64`) hängen mit SHA-256-Summen am Release.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor

@@ -1,6 +1,6 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.1
+Version: 0.2
 Stand: 2026-10-03
 
 ## 1. Zweck und Zielgruppe
@@ -77,7 +77,15 @@ Vor dem Tag gilt:
 Wer taggen darf, bestimmt die Konfiguration des Repositorys, nicht dieses
 Dokument.
 
-## 5. Rollback
+## 5. Release-Notes
+
+Das Projekt führt kein `CHANGELOG.md`. Die Änderungshistorie des
+Benutzerhandbuchs (`docs/user/benutzerhandbuch.md`, letztes Kapitel) ist die einzige
+Quelle: eine Zeile je Version in Betreibersicht, ohne interne Kennungen. Vor dem Tag
+trägt der Release dort seine Zeile ein; der Text des GitHub-Releases entsteht aus
+dieser Zeile.
+
+## 6. Rollback
 
 Es gibt keinen automatisierten Rollback. Ein fehlerhafter Release wird durch
 einen neuen, höheren Tag mit einer korrigierten Version ersetzt; bereits
@@ -88,3 +96,4 @@ gesetzte Tags werden nicht verändert oder gelöscht.
 | Version | Datum | Änderung |
 |---|---|---|
 | 0.1 | 2026-10-03 | Erste Fassung — beschreibt, was ein Release liefert; keine Automatisierung |
+| 0.2 | 2026-10-03 | Abschnitt Release-Notes: Quelle ist die Änderungshistorie des Handbuchs, kein `CHANGELOG.md` |
