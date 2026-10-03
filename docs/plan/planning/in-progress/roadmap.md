@@ -16,7 +16,7 @@ Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
 `Welle:`-Feld der Slices in `in-progress/`. Ziel, Trigger und
 Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
-- <welle-id>
+- [welle-walking-skeleton](../welle-walking-skeleton.md)
 
 
 
@@ -29,8 +29,8 @@ und geschätzter Aufwand (S/M/L, kein Termin).
 
 | Welle | Trigger | Wichtigste Slices | Geschätzter Aufwand |
 |---|---|---|---|
-| <welle-id-a> | <Vorgänger-Welle> done | <…> | S/M/L |
-| <welle-id-b> | <welle-id-a> done + ADR-<NNNN> accepted | <…> | S/M/L |
+| welle-replay-semantik | welle-walking-skeleton done | Mismatch-Diagnose und Exit Codes · Fehlerreplay · Meldungs- und Fehlercodes | M |
+| welle-v1-abschluss | welle-replay-semantik done | Sessions und Parallelität · Signalbehandlung und atomares Schreiben · Container-Image · Betriebsdokumentation | L |
 
 ## Meilensteine
 
@@ -41,7 +41,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 | Meilenstein | Welle(n) | Trigger | Status |
 |---|---|---|---|
-| M1 | <welle-id> | <…> | erreicht / offen |
+| M1 | welle-walking-skeleton | `SELECT 1;` Record, PostgreSQL stoppen, Replay mit demselben Ergebnis | offen |
+| M2 | welle-replay-semantik, welle-v1-abschluss | alle Abnahmeszenarien des Lastenhefts nachweisbar | offen |
 
 ## Abhängigkeitsgraph
 
@@ -53,15 +54,12 @@ eine Phantom-Welle.
 
 ```mermaid
 flowchart LR
-    W1[Welle 1]
-    W2[Welle 2]
-    W3[Welle 3]
-    W4[Welle 4]
-    
+    W1[welle-walking-skeleton]
+    W2[welle-replay-semantik]
+    W3[welle-v1-abschluss]
+
     W1 --> W2
-    W1 --> W3
-    W2 --> W4
-    W3 --> W4
+    W2 --> W3
 ```
 
 ## Abgeschlossene Wellen
@@ -71,7 +69,6 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 | Welle | Abschluss | Closure-Notiz |
 |---|---|---|
-| <welle-id> | YYYY-MM-DD | `<welle-id>-results.md` |
 
 ## Historische Trigger-Verschiebungen
 
@@ -84,4 +81,3 @@ Roadmap, jede Zeile voll heißt treibende.
 
 | Datum | Was wurde geändert? | Warum? |
 |---|---|---|
-| YYYY-MM-DD | <…> | <…> |
