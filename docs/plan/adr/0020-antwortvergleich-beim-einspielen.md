@@ -41,7 +41,7 @@ Wir wählen: `play --compare-responses` vergleicht nach jeder Interaktion die St
 
 | Tooling | Regel | Make-Target |
 |---|---|---|
-| a-check | der Vergleich liegt im Core und importiert keine PGWire-Bibliothek | `make a-check` |
+| a-check | die PGWire-Bibliothek ist nur in den beiden PGWire-Adaptern erlaubt (`tech`-Regel), der Vergleich im Core importiert sie nicht | `make a-check` |
 
 ## Re-Evaluierungs-Trigger
 

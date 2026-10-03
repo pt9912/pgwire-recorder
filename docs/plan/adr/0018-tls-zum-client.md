@@ -41,7 +41,7 @@ Wir wählen: Der PGWire-Server-Adapter terminiert TLS **auf Wunsch**, mit Zertif
 
 | Tooling | Regel | Make-Target |
 |---|---|---|
-| a-check | TLS-Typen der Standardbibliothek nur im PGWire-Server-Adapter | `make a-check` |
+| a-check | `crypto/tls` nur in den beiden PGWire-Adaptern (Server und Upstream), nie im Core | `make a-check` |
 
 ## Re-Evaluierungs-Trigger
 
