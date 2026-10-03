@@ -401,9 +401,11 @@ der aufgezeichneten Interaktionen erhalten.
 - **Boundary:** Given mehrere Client-Verbindungen, when sie aufgezeichnet
   werden, then wird jede Verbindung mit Anfragen als eigene Session
   aufgezeichnet, und die Reihenfolge der Interaktionen bleibt je Session
-  erhalten. Given ein Recording mit mehreren Sessions, when Clients nacheinander
-  Verbindungen aufbauen und Anfragen stellen, then erhält die n-te Verbindung
-  mit einer Anfrage die n-te aufgezeichnete Session.
+  erhalten; auf Wunsch werden auch Verbindungen ohne Anfrage als Session
+  aufgezeichnet. Given ein Recording mit mehreren Sessions, when Clients
+  nacheinander Verbindungen aufbauen, then erhält die n-te Verbindung mit einer
+  Anfrage die n-te aufgezeichnete Session; auf Wunsch zählt stattdessen die n-te
+  Verbindung.
 - **Negative:** Given eine Folge, die der aufgezeichneten Reihenfolge
   widerspricht und für die Reihenfolge relevant ist, when sie im Replay
   eintrifft, then wird sie nach LH-FA-10 behandelt.
@@ -505,15 +507,20 @@ containerisierten Testumgebungen eingesetzt werden kann.
 **Priorität:** SOLL
 
 **Beschreibung:** Alle für automatisierte Testläufe erforderlichen Einstellungen
-sollen über nicht-interaktive Mechanismen festgelegt werden können.
+sollen über nicht-interaktive Mechanismen festgelegt werden können: über
+Argumente, Umgebungsvariablen und eine Konfigurationsdatei, in der sich auch
+Verbindungen zu Datenbanken benennen lassen. Die wirksame Konfiguration lässt sich
+anzeigen, ohne Geheimnisse preiszugeben.
 
 **Akzeptanzkriterien:**
 
 - **Happy Path:** Given eine nicht-interaktive Konfiguration, when das Werkzeug
-  startet, then sind alle für Record und Replay nötigen Einstellungen darüber
-  setzbar.
+  startet, then sind alle für Record, Replay und Einspielen nötigen
+  Einstellungen darüber setzbar.
 - **Boundary:** Given dieselbe Einstellung aus mehreren Quellen, when das
-  Werkzeug startet, then gilt eine eindeutige, dokumentierte Priorität.
+  Werkzeug startet, then gilt eine eindeutige, dokumentierte Priorität; Geheimnisse
+  wie ein Passwort stehen nicht im Klartext in der Konfigurationsdatei, sondern
+  werden aus der Umgebung eingesetzt, und die Anzeige der Konfiguration verbirgt sie.
 - **Negative:** Given eine ungültige Konfiguration, when das Werkzeug startet,
   then wird ein Konfigurationsfehler signalisiert (siehe LH-FA-13).
 
@@ -579,7 +586,8 @@ Paketmanager Homebrew installieren lassen.
 **Beschreibung:** Das Produkt muss die in einer Aufzeichnung enthaltenen
 Client-Anfragen gegen einen PostgreSQL-Server ausführen können (Einspielen),
 ohne dass eine Anwendung beteiligt ist. Das Einspielen führt ausschließlich
-aufgezeichnete Anfragen aus.
+aufgezeichnete Anfragen aus. Es authentifiziert sich gegenüber dem Server und
+verbindet sich auf Wunsch verschlüsselt.
 
 **Akzeptanzkriterien:**
 
@@ -590,13 +598,20 @@ aufgezeichnete Anfragen aus.
 - **Boundary:** Given eine Aufzeichnung mit mehreren Sessions, when sie
   eingespielt wird, then wird jede Session über eine eigene Verbindung
   ausgeführt, die Sessions nacheinander in der aufgezeichneten Reihenfolge.
-- **Negative:** Given ein nicht erreichbarer Server oder eine Anfrage, die der
-  Server mit einem Fehler beantwortet, when das Einspielen läuft, then wird der
-  Fehler eindeutig gemeldet, und das Einspielen bricht ab, sofern der Anwender
-  nicht ausdrücklich verlangt weiterzulaufen (siehe LH-QA-05).
+  Given ein Fehler des Servers bei einer Anfrage, die auch in der Aufzeichnung
+  mit einem Fehler beantwortet wurde, when der Anwender das ausdrücklich wählt,
+  then gilt dieser Fehler als erwartet. Given ein Abbruchsignal, when es
+  eintrifft, then endet das Einspielen kontrolliert; auf Wunsch wird zuvor die
+  laufende Session beendet.
+- **Negative:** Given ein nicht erreichbarer Server, eine fehlgeschlagene
+  Authentifizierung oder eine Anfrage, die der Server mit einem unerwarteten
+  Fehler beantwortet, when das Einspielen läuft, then wird der Fehler eindeutig
+  gemeldet, und das Einspielen bricht ab, sofern der Anwender nicht ausdrücklich
+  verlangt weiterzulaufen (siehe LH-QA-05).
 
 **Out-of-Scope:** Vergleich der Serverantworten mit der Aufzeichnung; paralleles
-Einspielen mehrerer Sessions; zeitgetreues Abspielen (siehe LH-FA-21, nur auf Wunsch).
+Einspielen mehrerer Sessions; zeitgetreues Abspielen (siehe LH-FA-21, nur auf
+Wunsch).
 
 ---
 
@@ -605,9 +620,11 @@ Einspielen mehrerer Sessions; zeitgetreues Abspielen (siehe LH-FA-21, nur auf Wu
 **Priorität:** SOLL
 
 **Beschreibung:** Das Produkt soll beim Aufzeichnen auf Wunsch den zeitlichen
-Abstand der Anfragen festhalten und beim Einspielen auf Wunsch wiederherstellen.
-Ohne diese Wünsche enthält eine Aufzeichnung keine Zeitangaben, und das
-Einspielen führt die Anfragen nacheinander und ohne Wartezeiten aus (LH-FA-20).
+Abstand der Anfragen festhalten und beim Einspielen auf Wunsch wiederherstellen,
+wahlweise relativ zur jeweils vorigen Anfrage oder absolut ab einem Bezugspunkt
+(Verbindungsaufbau oder erste Anfrage). Ohne diese Wünsche enthält eine
+Aufzeichnung keine Zeitangaben, und das Einspielen führt die Anfragen
+nacheinander und ohne Wartezeiten aus (LH-FA-20).
 
 **Akzeptanzkriterien:**
 
@@ -617,12 +634,40 @@ Einspielen führt die Anfragen nacheinander und ohne Wartezeiten aus (LH-FA-20).
 - **Boundary:** Given keine Zeitaufzeichnung verlangt, when aufgezeichnet wird,
   then enthält die Aufzeichnung keine Zeitangaben; given keine zeitgetreue
   Wiedergabe verlangt, when eine Aufzeichnung mit Zeitangaben eingespielt wird,
-  then werden die Zeitangaben ignoriert.
+  then werden die Zeitangaben ignoriert; given die absolute Wiedergabe, when der
+  Bezugspunkt gewählt wird, then gilt der Verbindungsaufbau oder die erste
+  Anfrage.
 - **Negative:** Given eine Aufzeichnung ohne Zeitangaben, when zeitgetreues
   Einspielen verlangt wird, then wird dies als ungültige Verwendung gemeldet.
 
 **Out-of-Scope:** Paralleles Einspielen mehrerer Sessions; zeitgetreue Antworten
 im Replay-Modus.
+
+---
+
+### LH-FA-22 — Wählbares Aufzeichnungsformat
+
+**Priorität:** SOLL
+
+**Beschreibung:** Das Produkt soll Aufzeichnungen wahlweise als Textdatei
+(Standard, diff-freundlich und versionierbar) oder als SQLite-Datei (für große
+Aufzeichnungen) speichern können. Replay und Einspielen verwenden beide Formate
+gleich und erkennen das Format der Datei selbst.
+
+**Akzeptanzkriterien:**
+
+- **Happy Path:** Given der Wunsch nach dem SQLite-Format, when aufgezeichnet
+  wird, then entsteht eine SQLite-Aufzeichnung, die Replay und Einspielen wie die
+  Textaufzeichnung verwenden (siehe Abnahmeszenario 14 in §7).
+- **Boundary:** Given kein Wunsch nach einem Format, when aufgezeichnet wird,
+  then entsteht eine Textdatei; given eine vorhandene Aufzeichnung, when sie
+  verwendet wird, then erkennt das Produkt ihr Format.
+- **Negative:** Given eine Datei, die weder eine gültige Text- noch eine gültige
+  SQLite-Aufzeichnung ist, when sie verwendet wird, then wird sie als ungültiges
+  Recording erkannt (siehe LH-FA-07).
+
+**Out-of-Scope:** Umwandlung einer Aufzeichnung von einem Format in das andere;
+weitere Formate.
 
 ---
 
@@ -801,10 +846,11 @@ Bezug: LH-FA-16.
 
 ### Abnahmeszenario 10 — Maschinenlesbare Konfiguration
 
-Alle Einstellungen, die für einen Record- und einen Replay-Lauf nötig sind,
-werden ohne interaktive Eingabe gesetzt, einmal über Argumente und einmal über
-Umgebungsvariablen. Wird dieselbe Einstellung über beide Wege gesetzt, gilt die
-dokumentierte Priorität. Bezug: LH-FA-17.
+Alle Einstellungen, die für einen Record-, einen Replay- und einen
+Einspiel-Lauf nötig sind, werden ohne interaktive Eingabe gesetzt, einmal über
+Argumente, einmal über Umgebungsvariablen und einmal über eine
+Konfigurationsdatei. Wird dieselbe Einstellung über mehrere Wege gesetzt, gilt
+die dokumentierte Priorität. Bezug: LH-FA-17.
 
 ### Abnahmeszenario 11 — Homebrew
 
@@ -826,6 +872,13 @@ Eine Aufzeichnung mit Zeitangaben, in der zwischen zwei Anfragen eine Pause
 liegt, wird auf Wunsch zeitgetreu eingespielt. Der Abstand zwischen den beiden
 Anfragen ist nicht kürzer als aufgezeichnet. Ohne den Wunsch läuft dieselbe
 Aufzeichnung ohne Wartezeit. Bezug: LH-FA-21.
+
+### Abnahmeszenario 14 — SQLite-Aufzeichnung
+
+Eine Testanwendung wird mit dem Wunsch nach dem SQLite-Format aufgezeichnet und
+anschließend ohne PostgreSQL im Replay-Modus ausgeführt; sie erhält dasselbe
+Verhalten wie mit der Textaufzeichnung. Dieselbe Aufzeichnung lässt sich in eine
+Datenbank einspielen. Bezug: LH-FA-22.
 
 ## 8. Historie
 
