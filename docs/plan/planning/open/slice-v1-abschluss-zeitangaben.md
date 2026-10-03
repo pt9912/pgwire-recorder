@@ -44,7 +44,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, das Recording lässt sich per Roundtrip laden, ein ungültiger Wert ist `PGR-E3003` (Test).
+- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, das Recording lässt sich in YAML und in SQLite per Roundtrip laden, ein ungültiger Wert ist `PGR-E3003` (Test).
 - [ ] `--keep-timing` hält die Pausen in beiden Modi und beiden Bezugspunkten ein, ohne sie zu verkürzen (Abnahmeszenario 13, Test mit Fake-Uhr).
 - [ ] Eine Aufzeichnung ohne `offset_ms` wird bei `--keep-timing` mit `PGR-E2003` (Exit-Code 2) abgelehnt (Test).
 - [ ] `make gates` grün.
@@ -74,7 +74,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` ist `done`.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-sqlite-format` sind `done`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

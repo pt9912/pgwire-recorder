@@ -1,4 +1,4 @@
-# Welle welle-v1-abschluss: v1-Abschluss: Sessions, Protokollrand, Betrieb, Container
+# Welle welle-v1-abschluss: v1-Abschluss: Sessions, Protokollrand, Betrieb, Einspielen, Zeitangaben, SQLite, Container, Homebrew
 
 **Lifecycle:** Diese Datei entsteht bei der **Eröffnung** der Welle und liegt
 flach unter `docs/plan/planning/`; bei Closure wandert sie per `git mv` nach
@@ -18,7 +18,7 @@ zwei Positionen, nicht drei.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Wann Arbeit eine Welle braucht.
 
-Alle v1-Anforderungen sind umgesetzt: parallele Sessions im Record, definierter Protokollrand, kontrolliertes Herunterfahren mit atomarem Schreiben, nicht-interaktive Konfiguration und ein Container-Image mit Betriebsdokumentation. Die Abnahmeszenarien 1 bis 10 und 12 bis 14 des Lastenhefts sind nachweisbar, Szenario 11 (Homebrew) weist `welle-erster-release` nach, und alle Anforderungen (MUSS und SOLL) sind umgesetzt ([`LH-FA-12`](../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen), [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)).
+Alle v1-Anforderungen sind umgesetzt: parallele Sessions im Record, definierter Protokollrand, kontrolliertes Herunterfahren mit atomarem Schreiben, nicht-interaktive Konfiguration, Einspielen einer Aufzeichnung (auch zeitgetreu), die Aufzeichnung als Datenbankdatei, ein Container-Image mit Betriebsdokumentation und die Homebrew-Formel. Die Abnahmeszenarien 1 bis 10 und 12 bis 14 des Lastenhefts sind nachweisbar, Szenario 11 (Homebrew) weist `welle-erster-release` nach, und alle Anforderungen (MUSS und SOLL) sind umgesetzt ([`LH-FA-12`](../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen), [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)).
 
 ## 2. Trigger (Welle startet)
 
@@ -54,7 +54,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-v1-abschluss-protokollrand | Protokollversion und Protokollrand | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
 | slice-v1-abschluss-betrieb | Signale, Schreiben und Konfiguration | [`LH-FA-07`](../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-08`](../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../spec/lastenheft.md#lh-fa-15--ci-eignung), [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
 | slice-v1-abschluss-homebrew | Homebrew-Bereitstellung | [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew) |
-| slice-v1-abschluss-einspielen | Einspielen einer Aufzeichnung, auch zeitgetreu | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-21`](../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen) |
+| slice-v1-abschluss-einspielen | Einspielen einer Aufzeichnung | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
 | slice-v1-abschluss-zeitangaben | Zeitangaben beim Aufzeichnen und Einspielen | [`LH-FA-21`](../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen) |
 | slice-v1-abschluss-sqlite-format | SQLite als Aufzeichnungsformat | [`LH-FA-22`](../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat) |
 | slice-v1-abschluss-container | Container-Image und Betriebsdokumentation | [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
@@ -66,7 +66,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - Blockiert: Welle [welle-erster-release](welle-erster-release.md).
 - Wird blockiert von: Welle [welle-replay-semantik](welle-replay-semantik.md).
-- Innerhalb der Welle: `slice-v1-abschluss-container` setzt die übrigen Slices außer `slice-v1-abschluss-homebrew` voraus (Image und Doku bilden den Endstand ab); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` voraus (Release-Artefakte).
+- Innerhalb der Welle: `slice-v1-abschluss-einspielen` setzt `slice-v1-abschluss-betrieb` voraus (Signalbehandlung, Konfigurationsdatei); `slice-v1-abschluss-zeitangaben` setzt `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-sqlite-format` voraus; `slice-v1-abschluss-container` setzt die übrigen Slices außer `slice-v1-abschluss-homebrew` voraus (Image und Doku bilden den Endstand ab); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` voraus (Release-Artefakte).
 
 ## 6. Out-of-Scope für diese Welle
 

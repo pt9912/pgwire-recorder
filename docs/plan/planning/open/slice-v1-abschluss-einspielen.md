@@ -44,7 +44,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen, einfach und Extended, wird gegen eine leere Instanz eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); Authentifizierung mit Klartext, MD5 und SCRAM-SHA-256 sowie `--upstream-tls` funktionieren, eine fehlgeschlagene Anmeldung oder TLS-Pflicht ohne Option meldet `PGR-E4005` (Integrationstest).
+- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen, einfach und Extended, wird gegen eine leere Instanz eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); mehrere Sessions laufen über eigene Verbindungen nacheinander; Authentifizierung mit Klartext, MD5 und SCRAM-SHA-256 sowie `--upstream-tls` funktionieren, eine fehlgeschlagene Anmeldung oder TLS-Pflicht ohne Option meldet `PGR-E4005` (Integrationstest).
 - [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4); `--continue-on-error` läuft weiter und endet mit Exit-Code 4; `--allow-recorded-errors` lässt aufgezeichnete Fehler zu; ein Verbindungsfehler bricht immer ab (Test).
 - [ ] `SIGINT` und `SIGTERM` beenden nach der laufenden Interaktion, mit `--finish-session-on-interrupt` nach der laufenden Session; der Exit-Code ist 0 ohne vorherigen Fehler, sonst 4 (Test).
 - [ ] `make gates` grün.
@@ -74,7 +74,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, und die Signalbehandlung aus `slice-v1-abschluss-betrieb` liegt vor.
+**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, und `slice-v1-abschluss-betrieb` ist `done` (Signalbehandlung und Konfigurationsdatei).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

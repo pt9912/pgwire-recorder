@@ -53,6 +53,11 @@ Kopf.
 Offen: Die Datei, die die Version der Software als Quelle der Wahrheit trägt,
 wird festgelegt, wenn der Build existiert.
 
+Zwei Begriffe dieses Dokuments: Ein **Probe-Tag** ist ein Vorabversions-Tag
+(`v<SemVer>-probe.<N>`), mit dem das Release-Verfahren geprüft wird, ohne einen
+Release zu veröffentlichen. Ein **Probe-Tap** ist ein Tap außerhalb von
+`pt9912/homebrew-pgwire-recorder`, in den die Formel eines Probe-Tags geschrieben wird.
+
 ## 4. Einen Release auslösen
 
 Festgelegt ist: Ein Release entsteht durch einen Git-Tag der Form `v<SemVer>`. Das

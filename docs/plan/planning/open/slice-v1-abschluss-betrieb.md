@@ -45,7 +45,8 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Herunterfahren schreibt das Recording atomar und liefert den Exit-Code der gemerkten Klasse, für alle Klassen aus `SPEC-013` bis `SPEC-019` (Test mit Signal).
-- [ ] [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Vorhandenes `--output` wird ohne `--force` abgelehnt; Priorität CLI vor Umgebungsvariable vor Konfigurationsdatei vor Default; `config show` zeigt die gewählte Datei mit verborgenen Passwörtern; eine ungültige Konfigurationsdatei, eine nicht gesetzte Variable oder ein Klartext-Passwort darin ist `PGR-E2001` (Test).
+- [ ] [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Vorhandenes `--output` wird ohne `--force` abgelehnt; Priorität CLI vor Umgebungsvariable vor Konfigurationsdatei vor Default; `config show` zeigt die gewählte Datei, ohne einen aufgelösten Wert (Test).
+- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Benannte Verbindungen (`connections`, `--upstream <Name>`, `sslmode`), `--config`, `PGWIRE_RECORDER_CONFIG`, die Standarddatei und `$${VAR}` verhalten sich wie spezifiziert; eine ungültige Datei, eine nicht gesetzte Variable und ein Klartext-Passwort sind `PGR-E2004` bis `PGR-E2006` (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des

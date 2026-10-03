@@ -46,6 +46,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-22`](../../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat): Eine Aufzeichnung mit `--format sqlite` liefert im Replay und beim Einspielen dasselbe Verhalten wie dieselbe Aufzeichnung als YAML (Roundtrip-Gleichheit, Abnahmeszenario 14); die Datei enthält zu jedem Zeitpunkt nur vollständige Sessions.
 - [ ] [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats): Eine Datei mit unbekannter Version (`PGR-E3002`) oder ohne gültige Aufzeichnung (`PGR-E3003`) wird in beiden Formaten erkannt (Test).
+- [ ] Die SQLite-Bibliothek ist im Architektur-Gate (`.a-check.yml`, `tech`-Regel) auf den Recording-Adapter begrenzt; eine absichtliche Verletzung lässt `make a-check` fehlschlagen (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -74,7 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-walking-skeleton-record` ist `done` (YAML-Format liegt vor).
+**Start** (`next` → `in-progress`): `slice-walking-skeleton-record` ist `done` (YAML-Format liegt vor), und [ADR-0013](../../adr/0013-sqlite-recording-backend.md) ist `Accepted`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

@@ -96,7 +96,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Das Verhalten von Homebrew gegenüber Drittanbieter-Taps kann sich ändern; der Ausgang zeigt sich erst im ersten Release — **Ausgang:** offen bis Closure.
+- Das Verhalten von Homebrew gegenüber Drittanbieter-Taps zeigt sich erst mit dem echten Tap — **Ausgang:** weiter offen, übergeben an `welle-erster-release`.
 - Zugangsdaten für den Tap-Push sind eine externe Betreiber-Handlung — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
