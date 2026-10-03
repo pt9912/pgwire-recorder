@@ -1,4 +1,4 @@
-# Slice slice-v1-abschluss-einspielen: Einspielen einer Aufzeichnung
+# Slice slice-v1-abschluss-tls-client: TLS zum Client bei record und replay
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -11,11 +11,12 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md)
+**Bezug:** [`LH-FA-23`](../../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client), [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0018](../../adr/0018-tls-zum-client.md)
 
-**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-17.a` · `SPEC-017` · `SPEC-034` · `SPEC-041` · `ARC-002` · `ARC-003` · `ARC-005` · `ARC-007`
+**Berührte Spec-Stellen:** `LH-FA-23.a` · `LH-FA-05.c` · `LH-FA-05.e` · `SPEC-034` · `SPEC-033` · `ARC-006` · `ARC-005`
 
 **Verantwortlich:** —
+
 **Autor:** pt9912. **Datum:** 2026-10-03.
 
 ---
@@ -29,14 +30,12 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** `pgwire-recorder play` führt die Client-Anfragen einer Aufzeichnung (einfach und Extended) gegen einen PostgreSQL-Server aus, authentifiziert sich als Client, verbindet sich auf Wunsch mit TLS und verhält sich bei Serverfehlern und Abbruchsignalen wie spezifiziert.
+**Ziel:** `record` und `replay` nehmen auf Wunsch TLS von Clients an (`--tls-cert`, `--tls-key`), weisen unverschlüsselte Clients dann ab, sofern sie nicht zugelassen sind (`--allow-plaintext`), und verhalten sich ohne Konfiguration wie bisher.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Zeitangaben und zeitgetreues Einspielen — `slice-v1-abschluss-zeitangaben`.
-- Vergleich der Serverantworten mit der Aufzeichnung — `slice-v1-abschluss-antwortvergleich`.
-- Paralleles Einspielen — Out-of-Scope von LH-FA-20.
-
+- TLS zum Upstream im Record-Modus — Out-of-Scope von LH-FA-23; die Verbindung zum Server bleibt unverschlüsselt.
+- Prüfung von Client-Zertifikaten und Zertifikatsverwaltung — Out-of-Scope von LH-FA-23.
 
 ## 2. Definition of Done
 
@@ -45,17 +44,18 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen, einfach und Extended, wird gegen eine leere Instanz eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); mehrere Sessions laufen über eigene Verbindungen nacheinander; Authentifizierung mit Klartext, MD5 und SCRAM-SHA-256 sowie `--upstream-tls` (auch mit `--upstream-ca` für eine eigene Zertifizierungsstelle) funktionieren, eine fehlgeschlagene Anmeldung oder TLS-Pflicht ohne Option meldet `PGR-E4005`, eine unlesbare CA-Datei `PGR-E2007` (Integrationstest).
-- [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4); `--continue-on-error` läuft weiter und endet mit Exit-Code 4; `--allow-recorded-errors` lässt aufgezeichnete Fehler zu; ein Verbindungsfehler bricht immer ab (Test).
-- [ ] `SIGINT` und `SIGTERM` beenden nach der laufenden Interaktion, mit `--finish-session-on-interrupt` nach der laufenden Session; der Exit-Code ist 0 ohne vorherigen Fehler, sonst 4 (Test).
+- [ ] [`LH-FA-23`](../../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client): Ein Client verbindet sich verschlüsselt, `record` zeichnet auf und `replay` liefert die Aufzeichnung aus, jeweils wie bei einer unverschlüsselten Verbindung; dieselbe Aufzeichnung ist über beide Verbindungsarten gleich (Abnahmeszenario 15; Integrationstest).
+- [ ] Ohne Konfiguration wird `SSLRequest` mit `N` beantwortet; mit Konfiguration wird ein unverschlüsselter Client mit `PGR-E6003` abgewiesen, mit `--allow-plaintext` zugelassen (Test).
+- [ ] Nicht lesbare, ungültige oder nicht passende Dateien beenden den Start mit `PGR-E2007` und Exit-Code 2, ein gescheiterter Handshake endet mit `PGR-W3002` ohne Wirkung auf den Exit-Code; Schlüssel erscheinen weder in Logs noch in `config show` (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -65,23 +65,21 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driving` | neu | Einspiel-Use-Case; nutzt nur Driven Ports |
-| `internal/adapters/driving/cli` | update | Kommando `play`, Optionen, Passwort aus der Umgebung, Konfigurationsdatei |
-| `internal/adapters/driven/postgres` | update | Authentifizierung und TLS als Client, Nachrichten der Gruppen senden |
-| `test/integration` | update | Happy/Boundary/Negative nach LH-FA-20 |
+| `internal/adapters/driving/pgwire` | update | TLS-Terminierung, Aushandlung nach `SSLRequest`, Abweisung unverschlüsselter Clients |
+| `internal/adapters/driving/cli` | update | Optionen `--tls-cert`, `--tls-key`, `--allow-plaintext`, Fehlerabbildung auf `PGR-E2001` und `PGR-E2007` |
+| `test/integration` | update | Happy/Boundary/Negative nach LH-FA-23 |
 
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, und `slice-v1-abschluss-betrieb` ist `done` (Signalbehandlung und Konfigurationsdatei), und [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md) ist `Accepted`.
+**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, und [ADR-0018](../../adr/0018-tls-zum-client.md) ist `Accepted`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: die Authentifizierungsverfahren des Servers sprengen den Slice — zurück zur Zerlegung.
-- `in-progress` → `open`: Das Recording enthält Interaktionen, die sich nicht einspielen lassen — Carveout.
-
+- `in-progress` → `next`: Handshake und Abweisung der Klartext-Verbindungen sprengen den Slice — zurück zur Zerlegung.
+- `in-progress` → `open`: Die TLS-Bibliothek verlangt eine Abhängigkeit außerhalb des PGWire-Adapters — Carveout.
 
 ## 5. Closure-Trigger
 
@@ -98,8 +96,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Das Einspielen verändert eine Datenbank; ein Fehlgebrauch gegen eine falsche Instanz ist durch das Handbuch nur gewarnt — **Ausgang:** offen bis Closure.
-- Eine Serverantwort mit `FATAL` beendet die Verbindung; die Behandlung gemäß Spezifikation ist erst im Test belegbar — **Ausgang:** offen bis Closure.
+- Test-Zertifikate müssen im Testlauf erzeugt werden; ein fest eingecheckter Schlüssel wäre ein Geheimnis im Repository — **Ausgang:** offen bis Closure.
+- Clients mit eigener Zertifikatsprüfung scheitern an einem selbst signierten Zertifikat; das Handbuch muss den Weg beschreiben — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
