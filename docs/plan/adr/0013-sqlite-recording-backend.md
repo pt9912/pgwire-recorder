@@ -1,6 +1,6 @@
 # ADR-0013: SQLite als zweites Aufzeichnungsformat
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-03
 
@@ -53,5 +53,6 @@ Wenn Aufzeichnungen so groß werden, dass auch SQLite nicht genügt, oder wenn e
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-03 | Proposed | — |
+| 2026-10-03 | Accepted | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
