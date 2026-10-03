@@ -194,7 +194,7 @@ Alternativ kann die PGWire-Session über kleinere fachliche Requests an den Core
 
 | Port | Operationen |
 |---|---|
-| `RecordingRepository` | Recording anhand eines Pfads laden; Recording unter einem Pfad speichern (wird nach dem Ende jeder Session und beim kontrollierten Beenden aufgerufen) |
+| `RecordingRepository` | Recording anhand eines Pfads laden (das Format erkennt der Adapter); Recording unter einem Pfad neu anlegen (Format, Zielpfad, Ersetzen); eine beendete Session ergänzen (nach dem Ende jeder Session und beim kontrollierten Beenden; `yaml` schreibt dabei das ganze Recording neu, `sqlite` ergänzt in einer Transaktion) |
 | Uhr | aktuelle Zeit lesen und bis zu einem Zeitpunkt warten (Zeitangaben beim Aufzeichnen, zeitgetreues Einspielen); der Composition Root stellt die Systemuhr bereit, Tests eine Fake-Uhr |
 | PostgreSQL-Upstream | Upstream-Session für einen Startup eröffnen; je Anfrage (einfach) oder je Gruppe (Extended) die Client-Nachrichten senden und die Server-Nachrichten liefern; Session schließen |
 
@@ -263,6 +263,7 @@ System (Baseline-Regelwerk `grundlagen-source-precedence.md` §ID-Schema als Kla
 | `ARC-012` | PGWire-Bibliothek | PGWire-Nachrichtenkodierung, nur in `ARC-006` und `ARC-007` | Auf die beiden PGWire-Adapter begrenzt |
 | `ARC-013` | YAML-Serialisierungsbibliothek | Serialisierung, nur in `ARC-008` | Auf den Recording Adapter begrenzt; ein anderes Recording-Backend implementiert denselben Port |
 | `ARC-014` | SQLite-Bibliothek | Speicherung im SQLite-Format, nur in `ARC-008` | Auf den Recording Adapter begrenzt; der Port `RecordingRepository` bleibt für beide Formate gleich |
+| `ARC-015` | Systemuhr | Zeit lesen und warten (Zeitangaben, zeitgetreues Einspielen); der Composition Root stellt sie über den Uhr-Port bereit | Fake-Uhr in Tests |
 
 ## 4. Sequenz-Diagramme
 
@@ -329,11 +330,13 @@ sequenceDiagram
     participant Play as PlayService
     participant Repo as RecordingRepository
     participant PG as PostgreSQL Port
-    CLI->>Play: Einspielen starten (Aufzeichnung, Upstream)
+    participant Clock as Uhr-Port
+    CLI->>Play: Einspielen starten (Aufzeichnung, Upstream, Optionen, Zugangsdaten)
     Play->>Repo: Load(Recording)
     loop je Session, in Reihenfolge
         Play->>PG: OpenSession(Startup)
         loop je Interaktion
+            Play->>Clock: warten bis zum Zeitpunkt (nur mit --keep-timing)
             Play->>PG: Client-Nachrichten der Interaktion
             PG-->>Play: Server-Nachrichten bis ReadyForQuery
         end

@@ -61,7 +61,9 @@ Verpflichtende Optionen von `record`:
 | `--upstream` | Adresse des realen PostgreSQL-Servers |
 | `--output` | Zieldatei des Recordings |
 
-Optional: `--force` (Zieldatei überschreiben, Default aus; siehe LH-FA-07.a).
+Optional: `--force` (Zieldatei überschreiben, Default aus; siehe LH-FA-07.a),
+`--format` (`yaml` oder `sqlite`, siehe LH-FA-22.a), `--record-timing` (siehe
+LH-FA-21.a) und `--record-empty-sessions` (siehe LH-FA-12.a).
 
 Beispiel:
 
@@ -118,7 +120,8 @@ Verpflichtende Optionen von `replay`:
 | `--input` | Zu verwendendes Recording |
 
 Optional: `--fail-on-unconsumed` (nicht verbrauchte Interaktionen als Fehler
-werten, Default aus; siehe LH-FA-03.b).
+werten, Default aus; siehe LH-FA-03.b) und `--session-assignment` (siehe
+LH-FA-12.a).
 
 Beispiel:
 
@@ -136,17 +139,12 @@ pgwire-recorder replay \
    beschädigtes Recording oder eine unbekannte Version endet als Startfehler
    mit Exit-Code `3`; ein Recording ohne Session ist nicht verwendbar (Exit-Code
    `3`, `PGR-E3004`).
-3. Jede eingehende Client-Verbindung erhält einen eigenen Replay-Cursor. Die
-   Session ordnet der Recorder je nach `--session-assignment` zu: mit
-   `first-request` (Default) mit der ersten Anfrage der Verbindung, mit
-   `connection` bei der Annahme der Verbindung (LH-FA-12.a). Bei `first-request`
-   nutzt der Handshake vor der ersten Anfrage die Startup-Daten der nächsten noch
-   nicht zugeordneten Session; gibt es keine mehr, die der letzten Session.
+3. Jede eingehende Client-Verbindung erhält einen eigenen Replay-Cursor und, je
+   nach `--session-assignment`, eine Session (LH-FA-12.a).
 4. Der Cursor zeigt auf die nächste erwartete Interaktion der zugeordneten
    Session; er beginnt am Anfang der Session. Stellt eine Verbindung eine
    Anfrage, zu der es keine nicht zugeordnete Session mehr gibt, ist das ein
-   Replay-Mismatch (`PGR-E5003`); eine Verbindung ohne Anfrage verbraucht keine
-   Session.
+   Replay-Mismatch (`PGR-E5003`).
 
 ---
 
@@ -296,21 +294,22 @@ LH-FA-21.a); sie sind keine Voraussetzung für ein erfolgreiches Replay.
 
 ### LH-FA-07.a — Sicheres Schreiben des Recordings
 
+Dieser Abschnitt beschreibt das Format `yaml`; für `sqlite` gilt `LH-FA-22.a`.
+
 **Eingabe:** Sessions eines Record-Laufs. **Ausgabe:** Datei unter dem
 `--output`-Pfad.
 
 **Zielpfad beim Start.** Existiert der `--output`-Pfad bereits und ist `--force`
 nicht gesetzt, endet `record` als Startfehler mit Exit-Code `2` (`PGR-E2002`),
-bevor eine Verbindung angenommen wird. Mit `--force` ersetzt der erste
+bevor eine Verbindung angenommen wird. Mit `--force` ersetzt bei `yaml` der erste
 Schreibvorgang die vorhandene Datei.
 
 **Schreibzeitpunkt.** Das Recording wird nach dem Ende jeder Session und beim
 kontrollierten Beenden (LH-FA-13.a) als Ganzes neu geschrieben; es enthält alle
-bis dahin beendeten Sessions mit mindestens einer abgeschlossenen Interaktion.
-Eine Verbindung ohne Anfrage (zum Beispiel eine Probe-Verbindung eines
-Connection-Pools) wird nicht aufgezeichnet, außer mit `--record-empty-sessions`
-(LH-FA-12.a). Ein Lauf, in dem keine solche
-Verbindung auftrat, schreibt ein gültiges Recording ohne Sessions.
+bis dahin beendeten Sessions. Eine Verbindung ohne Anfrage (zum Beispiel eine
+Probe-Verbindung eines Connection-Pools) wird nicht aufgezeichnet, außer mit
+`--record-empty-sessions` (LH-FA-12.a). Ein Lauf ohne aufgezeichnete Session
+schreibt ein gültiges Recording ohne Sessions.
 
 **Schritte je Schreibvorgang:**
 
@@ -396,26 +395,38 @@ einschließlich des abschließenden `ReadyForQuery`, wiedergegeben.
 **Interaktionsreihenfolge.** `sequence` und die geordnete Response-Liste im
 Recording (`SPEC-002`, `SPEC-041`) erhalten die Reihenfolge der Interaktionen.
 
-**Recording.** Mehrere Client-Verbindungen dürfen parallel angenommen werden.
-Jede Verbindung mit mindestens einer abgeschlossenen Interaktion wird als
-separate Session im Recording geführt, in der Reihenfolge ihrer ersten Anfrage;
-`id` zählt diese Sessions fortlaufend. Mit `--record-empty-sessions` werden alle
-Verbindungen in der Reihenfolge der Annahme aufgezeichnet, auch Verbindungen ohne
-Anfrage (als Session ohne Interaktionen).
+**Recording.** Mehrere Client-Verbindungen dürfen parallel angenommen werden. Jede
+Verbindung mit mindestens einer abgeschlossenen Interaktion wird als eigene Session
+geführt; mit `--record-empty-sessions` jede angenommene Verbindung, auch eine ohne
+Anfrage (als Session ohne Interaktionen). Die `id` ist eine fortlaufende Zahl ab 1
+ohne Lücken und wird beim Schreiben der Session vergeben, in der Reihenfolge der
+Sessionenden; eine verworfene Session (LH-FA-05.a) erhält keine `id`. Werden die
+Verbindungen nacheinander genutzt, ist das die Reihenfolge der ersten Anfragen. Mit
+`--record-empty-sessions` trägt das Recording die Kennzeichnung `empty_sessions:
+true` (YAML: Feld auf der obersten Ebene neben `format` und `version`; SQLite: Zeile
+in `meta`, `SPEC-043`).
 
-**Replay.** `--session-assignment` wählt die Zuordnung. Mit `first-request`
-(Default) erhält die n-te Verbindung mit einer Anfrage, in der Reihenfolge der
-ersten Anfragen, die Session mit der n-ten `id`; Verbindungen ohne Anfrage
-zählen nicht, wie im Record ohne `--record-empty-sessions`. Mit `connection`
-erhält die n-te angenommene Verbindung die Session mit der n-ten `id`, auch wenn
-sie keine Anfrage stellt; das passt zu einem Recording mit
-`--record-empty-sessions`. Das
-ist deterministisch, wenn die Clients ihre Verbindungen nacheinander aufbauen und
-nutzen; bei gleichzeitiger Nutzung hängt die Zuordnung von der Reihenfolge der
-ersten Anfragen ab und ist nicht zugesichert. Eine Anfrage einer weiteren
-Verbindung, zu der es keine nicht zugeordnete Session mehr gibt, ist ein
-Replay-Mismatch (`PGR-E5003`). Wird eine aufgezeichnete Session nie zugeordnet,
-gilt sie als nicht verbraucht (LH-FA-03.b).
+**Replay.** `--session-assignment` wählt die Zuordnung der Sessions zu den
+Verbindungen in der Reihenfolge der `id`:
+
+* `first-request` (Default): Die n-te Verbindung mit einer Anfrage, in der
+  Reihenfolge der ersten Anfragen, erhält die n-te Session mit mindestens einer
+  Interaktion. Sessions ohne Interaktion werden übersprungen; Verbindungen ohne
+  Anfrage zählen nicht.
+* `connection`: Die n-te angenommene Verbindung erhält die Session mit der `id` n,
+  auch wenn sie keine Anfrage stellt. Das setzt ein Recording mit
+  `empty_sessions: true` voraus; fehlt die Kennzeichnung, ist das ein Startfehler
+  (`PGR-E2001`).
+
+Der Handshake nutzt bei `connection` die Startup-Daten der zugeordneten Session; bei
+`first-request` vor der ersten Anfrage die der nächsten noch nicht zugeordneten Session
+mit Interaktion, gibt es keine mehr, die der letzten. Die Zuordnung ist deterministisch,
+wenn die Clients ihre Verbindungen nacheinander aufbauen und nutzen; bei gleichzeitiger
+Nutzung hängt sie von der Reihenfolge der Verbindungen beziehungsweise der ersten
+Anfragen ab und ist nicht zugesichert. Eine Anfrage einer Verbindung, zu der es keine
+nicht zugeordnete Session mehr gibt, ist ein Replay-Mismatch (`PGR-E5003`). Eine
+Session mit Interaktionen, die nie zugeordnet wird, gilt als nicht verbraucht
+(LH-FA-03.b). Das Einspielen (`play`) führt Sessions ohne Interaktion nicht aus.
 
 ---
 
@@ -437,6 +448,9 @@ Der Exit-Code nach einem kontrollierten Herunterfahren folgt LH-FA-13.b.
 ---
 
 ### LH-FA-13.b — Fehlerebenen und Prozessstatus
+
+Diese Fehlerebenen gelten für `record` und `replay`; `play` nimmt keine
+Verbindungen an und endet am Ende seines Laufs (`LH-FA-20.a`).
 
 **Startfehler** (ungültige Konfiguration, Listen-Port nicht zu öffnen,
 Recording nicht ladbar, vorhandenes `--output` ohne `--force`) beenden den Prozess sofort mit dem Exit-Code
@@ -510,14 +524,20 @@ services:
 
 ### LH-FA-17.a — Konfiguration
 
-Alle für CI erforderlichen Einstellungen sind über CLI-Argumente verfügbar.
-Umgebungsvariablen und eine Konfigurationsdatei dürfen ergänzend genutzt werden;
-die Namen der Umgebungsvariablen tragen das Präfix `PGWIRE_RECORDER_`
-(`SPEC-008`). Wird dieselbe Einstellung mehrfach angegeben, gilt (`SPEC-007`):
+Alle für CI erforderlichen Einstellungen sind über CLI-Argumente verfügbar, mit zwei
+Ausnahmen: das Passwort und die benannten Verbindungen. Umgebungsvariablen und eine
+Konfigurationsdatei dürfen ergänzend genutzt werden. Wird dieselbe Einstellung
+mehrfach angegeben, gilt (`SPEC-007`):
 
 ```text
 CLI-Argument > Umgebungsvariable > Konfigurationsdatei > Standardwert
 ```
+
+Der Name der Umgebungsvariablen einer Option ist das Präfix `PGWIRE_RECORDER_`
+(`SPEC-008`), gefolgt vom Optionsnamen in Großbuchstaben mit `_` statt `-`; boolesche
+Werte lauten `true` oder `false`. Das **Passwort** hat eine eigene Regel: Es kommt
+aus dem Passwort der benutzten benannten Verbindung (nur als Platzhalter `${VAR}`),
+sonst aus `PGWIRE_RECORDER_PASSWORD`; eine Option dafür gibt es nicht.
 
 **Konfigurationsdatei.** Es gilt genau **eine** Datei, in dieser Reihenfolge:
 
@@ -526,11 +546,11 @@ CLI-Argument > Umgebungsvariable > Konfigurationsdatei > Standardwert
 3. die Datei `.pgwire-recorder.yaml` im aktuellen Verzeichnis, sofern sie existiert.
 
 Findet sich keine Datei, wird keine gelesen. Eine mit `--config` oder
-`PGWIRE_RECORDER_CONFIG` genannte Datei, die fehlt, ist ein Konfigurationsfehler.
-Die Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne die führenden
-`--` (`keep_timing` für `--keep-timing`). `log_level` und die benannten
-Verbindungen stehen auf der obersten Ebene, die übrigen Schlüssel in einem Abschnitt
-je Kommando (`record:`, `replay:`, `play:`):
+`PGWIRE_RECORDER_CONFIG` genannte Datei, die fehlt, ist ein Konfigurationsfehler. Die
+Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne die führenden `--`
+(`keep_timing` für `--keep-timing`). `log_level` und die benannten Verbindungen stehen
+auf der obersten Ebene, die übrigen Schlüssel in einem Abschnitt je Kommando
+(`record:`, `replay:`, `play:`):
 
 ```yaml
 log_level: info
@@ -546,26 +566,50 @@ play:
 
 **Benannte Verbindungen.** Der Wert unter `connections:` ist eine URL der Form
 `postgresql://[benutzer[:passwort]@]host[:port]/datenbank[?parameter]`. Der
-Parameter `sslmode=require` entspricht `--upstream-tls`, `sslmode=disable` (Default)
-ist ohne TLS. `--upstream` und der Schlüssel `upstream` nehmen den Namen einer
-Verbindung oder `host:port`; benutzt wird eine URL nur über ihren Namen.
+einzige Parameter ist `sslmode` mit den Werten `disable` (Default) und `require`;
+`require` verbindet mit TLS und prüft das Serverzertifikat gegen den
+Zertifikatsspeicher des Systems (strenger als bei libpq); jeder andere Parameter
+oder Wert ist ein Konfigurationsfehler. `--upstream` und der Schlüssel `upstream`
+nehmen den Namen einer Verbindung oder `host:port`; ein Name hat Vorrang vor
+`host:port`. Die Wirkung einer URL:
 
-**Geheimnisse.** Der Platzhalter `${VAR}` wird beim Laden aus der gleichnamigen
-Umgebungsvariable ersetzt (`$${VAR}` bleibt wörtlich). Ist die Variable nicht
-gesetzt, ist das ein Konfigurationsfehler. Ein Klartext-Passwort in der Datei ist
-ebenfalls ein Konfigurationsfehler. `PGWIRE_RECORDER_PASSWORD` gilt als Rückfall, wenn
-eine Verbindung kein Passwort trägt.
+* `play`: Host und Port, Benutzer und Datenbank. Benutzer und Datenbank aus
+  `--user` und `--database` gehen vor denen der URL, diese vor den Startup-Daten der
+  Session. TLS gilt, wenn `--upstream-tls` (Option, Umgebungsvariable oder
+  Schlüssel) gesetzt ist; ist es nicht gesetzt, entscheidet `sslmode`. Ein
+  ausdrücklich gesetztes `--upstream-tls` geht dem `sslmode` vor.
+* `record`: nur Host und Port. Benutzer, Passwort und Datenbank der URL werden
+  ignoriert, weil `record` die Anmeldung des Clients vermittelt; `sslmode=require`
+  ist ein Konfigurationsfehler, weil `record` kein TLS zum Upstream kennt
+  (`LH-FA-05.c`).
 
-**Fehler.** Ein unbekannter Schlüssel, ein Schlüssel im falschen Abschnitt, ein
-ungültiger Wert, eine nicht lesbare Datei, eine nicht gesetzte Variable und ein
-Klartext-Passwort sind ein Konfigurationsfehler (`PGR-E2001`, Exit-Code `2`).
+**Geheimnisse.** Der Platzhalter `${VAR}` ist nur in der URL einer benannten
+Verbindung erlaubt und wird für die benutzte Verbindung aus der gleichnamigen
+Umgebungsvariable ersetzt (`$${VAR}` bleibt wörtlich); die Variablen nicht benutzter
+Verbindungen bleiben unbeachtet. Ein **Klartext-Passwort** ist ein Passwortteil
+hinter dem `:` im Benutzerteil einer URL, der nicht genau ein `${VAR}` ist, oder ein
+Parameter `password`.
 
-**Anzeige.** `pgwire-recorder config show` gibt den Inhalt der wirksamen Datei als
-eingerückten Baum aus und nennt die gewählte Datei. Passwörter erscheinen als `***`;
-`${VAR}`-Platzhalter werden nicht aufgelöst; Werte, die nicht in der Datei stehen,
-erscheinen nicht. Aktive `PGWIRE_RECORDER_*`-Umgebungsvariablen listet der Befehl
-am Ende mit Namen und ohne Werte. Der Befehl verbindet sich nicht und liest keine
-Aufzeichnung.
+**Fehler.** Jede Ursache trägt einen eigenen Code und nennt in der Meldung die
+Stelle (Schlüssel oder Verbindungsname), nie einen Wert:
+
+| Ursache | Code |
+|---|---|
+| Datei nicht lesbar oder nicht vorhanden, ungültiges YAML, unbekannter Schlüssel, Schlüssel im falschen Abschnitt, ungültiger Wert, ungültiger `sslmode`, Platzhalter außerhalb einer URL | `PGR-E2004` |
+| nicht gesetzte Umgebungsvariable eines Platzhalters der benutzten Verbindung | `PGR-E2005` |
+| Klartext-Passwort in der Datei | `PGR-E2006` |
+
+Alle drei sind Startfehler mit Exit-Code `2`. Ein ungültiger Wert einer Option oder
+Umgebungsvariable (auch ein Wert außerhalb einer Aufzählung) ist `PGR-E2001`.
+
+**Anzeige.** `pgwire-recorder config show` gibt den Inhalt der gewählten Datei als
+eingerückten Baum auf `stdout` aus und nennt die Datei; Exit-Code `0`. Findet sich
+keine Datei, meldet der Befehl das und endet mit Exit-Code `0`. Ist die Datei
+ungültig, endet er mit dem Fehlercode des Ladens (`PGR-E2004` bis `PGR-E2006`) und
+zeigt nichts. Platzhalter erscheinen unaufgelöst; die Ausgabe enthält nie einen
+aufgelösten Wert, aber Hosts, Benutzer und Pfade der Datei. Aktive
+`PGWIRE_RECORDER_*`-Umgebungsvariablen listet der Befehl am Ende mit Namen und ohne
+Werte. Er verbindet sich nicht und liest keine Aufzeichnung.
 
 | Option | Kommando | Umgebungsvariable | Default |
 |---|---|---|---|
@@ -683,24 +727,21 @@ Windows wird über Homebrew nicht bedient (`SPEC-042`).
 ### LH-FA-20.a — Einspielen
 
 Das Kommando `play` führt die Client-Anfragen einer Aufzeichnung gegen einen
-PostgreSQL-Server aus. Es nimmt keine Client-Verbindungen an.
+PostgreSQL-Server aus. Es nimmt keine Client-Verbindungen an; sein Prozess endet am
+Ende des Laufs und folgt nicht den Fehlerebenen von `LH-FA-13.b`.
 
-Verpflichtende Optionen: `--upstream` (Adresse des Servers) und `--input`
-(Aufzeichnung). Optional (Defaults in `LH-FA-17.a`):
+Verpflichtende Optionen: `--upstream` (Adresse des Servers oder Name einer
+benannten Verbindung, `LH-FA-17.a`) und `--input` (Aufzeichnung). Optional (Defaults
+in `LH-FA-17.a`):
 
 | Option | Wirkung |
 |---|---|
-| `--user`, `--database` | überschreiben die Startup-Daten der jeweiligen Session |
-| `--continue-on-error` | ein Serverfehler beendet das Einspielen nicht sofort |
-| `--allow-recorded-errors` | ein Serverfehler an einer Stelle, an der auch die Aufzeichnung einen hat, gilt als erwartet |
+| `--user`, `--database` | überschreiben Benutzer und Datenbank der Verbindung und die Startup-Daten der jeweiligen Session |
+| `--continue-on-error` | ein Serverfehler einer Anfrage beendet das Einspielen nicht sofort |
+| `--allow-recorded-errors` | ein Serverfehler in einer Interaktion, deren Aufzeichnung ebenfalls eine `ErrorResponse` enthält, gilt als erwartet |
 | `--upstream-tls` | die Verbindung zum Server wird mit TLS aufgebaut |
 | `--finish-session-on-interrupt` | ein Abbruchsignal beendet zuvor die laufende Session |
 | `--keep-timing`, `--timing-mode`, `--timing-reference` | zeitgetreues Einspielen (`LH-FA-21.a`) |
-
-`--upstream` nimmt `host:port` oder den Namen einer Verbindung der
-Konfigurationsdatei (`LH-FA-17.a`). Das Passwort steht nie im Klartext in einer
-Option oder Datei: Es kommt aus der Umgebungsvariable `PGWIRE_RECORDER_PASSWORD`
-oder als Platzhalter `${VAR}` aus einer benannten Verbindung.
 
 Beispiel:
 
@@ -714,13 +755,11 @@ pgwire-recorder play \
 
 1. Die Aufzeichnung wird geladen und geprüft (Fehler wie bei `replay`, Exit-Code
    `3`).
-2. Für jede Session der Aufzeichnung, in ihrer Reihenfolge, baut der Recorder eine
-   eigene Verbindung zum Server auf. Er authentifiziert sich als Client mit
-   Klartext-Passwort, MD5 oder SCRAM-SHA-256; ein anderes Verfahren oder eine
-   fehlgeschlagene Anmeldung ist `PGR-E4005`. Verlangt der Server TLS und
-   `--upstream-tls` ist nicht gesetzt, ist das ebenfalls `PGR-E4005`. Mit
-   `--upstream-tls` wird das Serverzertifikat gegen den Zertifikatsspeicher des
-   Systems geprüft; ein Überspringen der Prüfung gibt es nicht.
+2. Für jede Session mit Interaktionen, in der Reihenfolge ihrer `id`, baut der
+   Recorder eine eigene Verbindung zum Server auf. TLS gilt wie in `LH-FA-17.a`
+   beschrieben; mit TLS wird das Serverzertifikat gegen den Zertifikatsspeicher des
+   Systems geprüft, ein Überspringen der Prüfung gibt es nicht. Er authentifiziert
+   sich als Client mit Klartext-Passwort, MD5 oder SCRAM-SHA-256.
 3. Die Client-Nachrichten der Interaktionen werden in der aufgezeichneten
    Reihenfolge gesendet: bei einer einfachen Anfrage die `Query`, bei einer
    Extended-Interaktion die Nachrichten jeder Gruppe (`SPEC-041`). Nach jeder
@@ -728,19 +767,29 @@ pgwire-recorder play \
 4. Die Serverantworten werden gelesen und verworfen, mit Ausnahme einer
    `ErrorResponse`. Ein Vergleich mit den aufgezeichneten Antworten findet nicht
    statt.
-5. Antwortet der Server auf eine Anfrage mit einer `ErrorResponse`, endet das
-   Einspielen mit Exit-Code `4` (`PGR-E4004`). Mit `--continue-on-error` läuft es
-   mit der nächsten Interaktion weiter und endet am Ende mit Exit-Code `4`. Mit
-   `--allow-recorded-errors` zählt eine `ErrorResponse` nicht, wenn die
-   aufgezeichnete Interaktion ebenfalls eine `ErrorResponse` enthält; bei einer
-   Extended-Interaktion verwirft der Server danach bis zum `Sync`, und der
-   Recorder sendet weiter wie aufgezeichnet. Eine nicht aufbaubare oder
-   abgebrochene Verbindung (auch ein `FATAL`) ist `PGR-E4002` beziehungsweise
-   `PGR-E4003` und beendet das Einspielen immer.
-6. Bei `SIGINT` oder `SIGTERM` endet das Einspielen nach der laufenden
-   Interaktion; mit `--finish-session-on-interrupt` zuvor nach der laufenden
-   Session. Die Verbindung wird mit `Terminate` geschlossen. Der Exit-Code ist
-   `0`, wenn bis dahin kein Fehler auftrat, sonst `4`.
+5. **Fehler beim Aufbau** (vor dem ersten `ReadyForQuery`): Ein nicht erreichbarer
+   Server und jeder `FATAL`, der nicht die Anmeldung betrifft (zum Beispiel eine
+   fehlende Datenbank), ist `PGR-E4002`. Eine fehlgeschlagene Anmeldung
+   (SQLSTATE-Klasse 28), ein nicht unterstütztes Verfahren, ein abgelehntes TLS
+   (der Server antwortet auf die TLS-Anfrage mit `N`), ein ungültiges Zertifikat und
+   ein Server, der unverschlüsselte Verbindungen ablehnt, sind `PGR-E4005`.
+   **Fehler danach:** Bricht die Verbindung nach dem ersten `ReadyForQuery` ab, auch
+   durch einen `FATAL`, ist das `PGR-E4003`. Alle drei beenden das Einspielen immer,
+   auch mit `--continue-on-error`.
+6. **Fehlerantwort einer Anfrage:** Antwortet der Server mit einer `ErrorResponse`,
+   endet das Einspielen mit Exit-Code `4` (`PGR-E4004`). Mit `--continue-on-error`
+   läuft es mit der nächsten Interaktion weiter und endet am Ende mit Exit-Code
+   `4`. Mit `--allow-recorded-errors` zählt eine `ErrorResponse` nicht, wenn die
+   aufgezeichnete Interaktion mindestens eine `ErrorResponse` enthält; bei einer
+   Extended-Interaktion verwirft der Server danach bis zum `Sync`, und der Recorder
+   sendet weiter wie aufgezeichnet. Bei jedem Abbruch schließt der Recorder die
+   Verbindung, soweit möglich, mit `Terminate`.
+7. **Abbruchsignal:** Bei `SIGINT` oder `SIGTERM` endet das Einspielen nach der
+   laufenden Interaktion; eine Wartezeit (`LH-FA-21.a`) wird abgebrochen. Mit
+   `--finish-session-on-interrupt` zuvor nach der laufenden Session. Ein zweites
+   Signal beendet den Prozess sofort. Die Verbindung wird mit `Terminate`
+   geschlossen. Der Exit-Code ist `0`, wenn bis dahin kein Fehler auftrat, sonst
+   `4`.
 
 Das Einspielen ist sequenziell: die Anfragen einer Session nacheinander und die
 Sessions nacheinander. Ohne `--keep-timing` gibt es keine Wartezeiten; mit
@@ -754,53 +803,72 @@ Sessions nacheinander. Ohne `--keep-timing` gibt es keine Wartezeiten; mit
 jeder Interaktion das Feld `offset_ms` ein: eine ganze Zahl größer oder gleich
 null, die Millisekunden zwischen der Annahme der Verbindung und dem Eintreffen der
 ersten Client-Nachricht der Interaktion, gemessen mit einer monotonen Uhr. Das
-Feld steht auf der Ebene der Interaktion (`SPEC-002`, `SPEC-041`); ohne die Option
-fehlt es. Eine Aufzeichnung mit Zeitangaben ist nicht reproduzierbar im Sinne von
-`SPEC-004`: zwei Läufe derselben Anwendung unterscheiden sich in `offset_ms`. Ein
-Wert, der keine ganze Zahl ≥ 0 ist, oder Werte, die innerhalb einer Session
-absteigen, machen das Recording zu einem beschädigten (`PGR-E3003`).
+Feld steht auf der Ebene der Interaktion (`SPEC-002`, `SPEC-041`, `SPEC-043`) und
+fehlt ohne die Option. Eine Aufzeichnung mit Zeitangaben ist nicht reproduzierbar
+im Sinne von `SPEC-004`: zwei Läufe derselben Anwendung unterscheiden sich in
+`offset_ms`. Ein Wert, der keine ganze Zahl ≥ 0 ist, oder Werte, die innerhalb einer
+Session absteigen, machen das Recording zu einem beschädigten (`PGR-E3003`).
 
 **Einspielen.** Mit `--keep-timing` (Default `false`) stellt `play` den zeitlichen
-Abstand her. `--timing-mode` wählt:
+Abstand her; `--timing-mode` wählt:
 
 * `relative` (Default): vor jeder Interaktion außer der ersten einer Session wartet
   `play`, bis seit dem Beginn der vorigen Interaktion mindestens der Unterschied
-  ihrer beiden `offset_ms` vergangen ist.
+  ihrer beiden `offset_ms` vergangen ist. Der Abstand zwischen zwei aufeinander
+  folgenden Interaktionen ist damit nie kürzer als aufgezeichnet; ist der Server
+  langsamer, wird sofort gesendet, und die Verspätung wird nicht aufgeholt.
 * `absolute`: vor jeder Interaktion wartet `play`, bis seit dem Bezugspunkt
   mindestens der aufgezeichnete Abstand zum aufgezeichneten Bezugspunkt vergangen
-  ist. `--timing-reference` wählt den Bezugspunkt: `connect` (Default, der
-  Aufbau der Verbindung zum Server; aufgezeichnet gilt `offset_ms` = 0) oder
-  `first-request` (der Beginn der ersten Interaktion der Session; aufgezeichnet
-  gilt der `offset_ms` der ersten Interaktion).
+  ist. Keine Interaktion liegt damit früher als aufgezeichnet, gemessen am
+  Bezugspunkt; eine Verspätung wird aufgeholt, der Abstand zwischen zwei
+  aufeinander folgenden Interaktionen kann dabei kürzer sein als aufgezeichnet.
+  `--timing-reference` wählt den Bezugspunkt: `connect` (Default) ist der Beginn des
+  Verbindungsaufbaus zum Server, vor TLS und Anmeldung; aufgezeichnet gilt
+  `offset_ms` = 0. Die Dauer von Aufbau und Anmeldung zählt als Verspätung.
+  `first-request` ist der Beginn der ersten Interaktion der Session; aufgezeichnet
+  gilt der `offset_ms` der ersten Interaktion.
 
-Eine Pause wird nie verkürzt; ist der Server langsamer als aufgezeichnet, wird
-sofort gesendet und nicht aufgeholt. Jede Session beginnt mit eigener Uhr, die
-Sessions laufen weiterhin nacheinander. Fehlt irgendeiner Interaktion `offset_ms`,
-ist die Verwendung ungültig (`PGR-E2003`, Exit-Code `2`, Startfehler). Ohne
-`--keep-timing` werden vorhandene Zeitangaben ignoriert; der Replay-Modus
-ignoriert sie immer.
+Jede Session beginnt mit eigener Uhr, die Sessions laufen weiterhin nacheinander.
+Ungültige Verwendung sind (`PGR-E2001`, Exit-Code `2`, Startfehler): `--timing-mode`
+oder `--timing-reference` ohne `--keep-timing`, `--timing-reference` zusammen mit
+`relative`, ein Wert außerhalb der Aufzählungen. Fehlt irgendeiner Interaktion der
+Aufzeichnung `offset_ms`, ist die Verwendung ebenfalls ungültig (`PGR-E2003`,
+Exit-Code `2`, Startfehler). Ohne `--keep-timing` werden vorhandene Zeitangaben
+ignoriert; der Replay-Modus ignoriert sie immer.
 
 ---
 
 ### LH-FA-22.a — Aufzeichnungsformat
 
-`record` wählt das Format mit `--format` (Umgebungsvariable
-`PGWIRE_RECORDER_FORMAT`, Werte `yaml` und `sqlite`, Default `yaml`). `replay` und
-`play` erkennen das Format der Eingabedatei selbst: eine Datei, die mit der
-SQLite-Kopfzeile `SQLite format 3` beginnt, ist eine SQLite-Aufzeichnung, jede
+**Wahl und Erkennung.** `record` wählt das Format mit `--format` (Umgebungsvariable
+`PGWIRE_RECORDER_FORMAT`, Werte `yaml` und `sqlite`, Default `yaml`). Die
+Dateiendung hat keine Bedeutung; üblich sind `.yaml` und `.sqlite` (`SPEC-009`).
+`replay` und `play` erkennen das Format der Eingabedatei selbst: eine Datei, die mit
+der SQLite-Kopfzeile `SQLite format 3` beginnt, ist eine SQLite-Aufzeichnung, jede
 andere wird als YAML gelesen. Eine Datei, die in ihrem Format keine gültige
-Aufzeichnung ist (falsche Formatkennung, fehlende Tabellen, unlesbarer Inhalt), ist
-beschädigt (`PGR-E3003`); eine unbekannte `version` ist `PGR-E3002`.
+Aufzeichnung ist (falsche Formatkennung, fehlende Tabellen, unlesbarer oder
+widersprüchlicher Inhalt), ist beschädigt (`PGR-E3003`); eine unbekannte `version`
+ist `PGR-E3002`.
 
-**Schreiben mit `sqlite`.** Beim Start legt `record` die Datei mit einer gültigen
-Aufzeichnung ohne Sessions an (Zielpfad und `--force` wie in `LH-FA-07.a`). Jede
-beendete Session wird in einer Transaktion hinzugefügt; die Datei enthält damit zu
-jedem Zeitpunkt nur vollständige Sessions und wird nie neu geschrieben. Eine
-temporäre Datei ist nicht nötig.
+**Lesen von `sqlite`.** Die Datei wird nur lesend geöffnet, auch auf einem
+schreibgeschützten Mount. Ist sie gesperrt oder nicht lesbar, ist das `PGR-E3001`.
+
+**Schreiben von `sqlite`.** Beim Start prüft `record` den Zielpfad wie in
+`LH-FA-07.a`. Danach legt es in einer temporären Datei im Verzeichnis der Zieldatei
+eine gültige Aufzeichnung ohne Sessions an (Schema aus `SPEC-043`, `meta` gefüllt) und
+verschiebt sie atomar auf den Zielpfad; mit `--force` ersetzt dieser Schritt die
+vorhandene Datei. Jede beendete Session wird danach in einer Transaktion ergänzt; die
+Datei enthält zu jedem Zeitpunkt nur vollständige Sessions und wird nie als Ganzes
+neu geschrieben. Der Journalmodus ist das Rollback-Journal (`journal_mode=DELETE`),
+es entstehen keine WAL-Nebendateien, und Fremdschlüssel sind eingeschaltet
+(`foreign_keys=ON`).
 
 **Beide Formate** tragen dasselbe logische Modell (`SPEC-002`, `SPEC-041`,
 `SPEC-043`); eine Aufzeichnung in einem Format und dieselbe Aufzeichnung im anderen
-liefern im Replay und beim Einspielen dasselbe Verhalten.
+liefern im Replay und beim Einspielen dasselbe Verhalten. Die Zusagen von `SPEC-001`
+und `SPEC-004` (textbasiert, diff-freundlich, deterministisch) gelten für `yaml`; eine
+SQLite-Datei ist binär, und zwei Läufe derselben Anwendung liefern logisch, aber nicht
+byte-gleiche Dateien.
 
 ---
 
@@ -813,8 +881,8 @@ keine Anforderung (Baseline-Regelwerk `grundlagen-source-precedence.md`
 
 ### SPEC-001 — Recording: Serialisierung und Versionierung
 
-Das Recording ist ein **versionsbehaftetes, textbasiertes und diff-freundliches**
-Format. Standard ist **YAML** als menschenlesbare Serialisierung; die
+Das Recording ist ein **versionsbehaftetes** Format; `yaml` ist textbasiert und
+diff-freundlich. Standard ist **YAML** als menschenlesbare Serialisierung; die
 Dateiendung ist standardmäßig `.yaml`. Wahlweise speichert der Recorder eine
 SQLite-Datei (`LH-FA-22.a`, `SPEC-043`); beide Formate tragen dasselbe
 logische Modell.
@@ -863,8 +931,10 @@ sessions:
             tx_status: "I"
 ```
 
-Das endgültige Schema wird durch Go-Datentypen und Schema-Tests verbindlich
-definiert.
+Das endgültige Schema des Formats `yaml` wird durch Go-Datentypen und Schema-Tests
+verbindlich definiert, das des Formats `sqlite` durch `tools/schema/schema.yaml`
+(`SPEC-043`). `offset_ms` (`LH-FA-21.a`) und `empty_sessions` (`LH-FA-12.a`)
+ergänzen das Beispiel.
 
 ### SPEC-041 — Recording: Extended-Interaktion
 
@@ -925,22 +995,32 @@ und Version (`SPEC-001`) gelten für beide Arten; Binärdaten folgen `SPEC-003`.
 
 ### SPEC-043 — Recording: SQLite-Format
 
-Eine SQLite-Aufzeichnung enthält diese Tabellen:
+Die Tabellenform (Tabellen, Spalten, Typen, Schlüssel) steht ausschließlich im
+neutralen Schema-Format von d-migrate in `tools/schema/schema.yaml`
+(`schema_format: "1.0"`); das SQL für SQLite entsteht daraus mit `d-migrate schema
+generate --target sqlite`, nicht von Hand. Diese Spezifikation legt die Bedeutung
+fest:
 
-| Tabelle | Spalten (Auswahl) | Inhalt |
-|---|---|---|
-| `meta` | `key`, `value` | `format` = `pgwire-recorder`, `version` = `1` |
-| `session` | `id`, `startup` | Session, `startup` als JSON-Text der Startup-Parameter |
-| `interaction` | `session_id`, `sequence`, `type`, `offset_ms`, `sql` | Interaktion; `type` ist `query` oder `extended`, `offset_ms` ist `NULL` ohne Zeitangaben |
-| `message` | `session_id`, `sequence`, `position`, `direction`, `group_no`, `kind`, `fields`, `bytes` | Nachrichten der Interaktion in Reihenfolge; `direction` ist `client` oder `server`, `group_no` nur bei Extended, `fields` ein JSON-Text der protokollrelevanten Felder |
-
-Die Tabellenform ist im neutralen Schema-Format von d-migrate deklariert
-(`tools/schema/schema.yaml`, `schema_format: "1.0"`); das SQL für SQLite entsteht
-daraus mit `d-migrate schema generate --target sqlite`, nicht von Hand. Binärwerte
-stehen als `BLOB` (Spalte `bytes`, neutraler Typ `binary`) ohne Base64, die
-JSON-Texte als neutraler Typ `json`. Die Formatkennung und die
-Version stehen in `meta`; die Version zählt wie in `SPEC-001` inkompatible
-Änderungen. Das Format ist ein Dateiformat von SQLite 3 (`SPEC-044`).
+* `meta` trägt `format` = `pgwire-recorder`, `version` (die Formatversion nach
+  `SPEC-001`, unabhängig von der `version` der Schema-Datei) und bei
+  `--record-empty-sessions` die Zeile `empty_sessions` = `true`.
+* `session.startup` ist der JSON-Text der Startup-Parameter. `session.id` ist die
+  fortlaufende Nummer nach `LH-FA-12.a`.
+* `interaction.type` ist `query` oder `extended`; `interaction.sql` trägt den
+  SQL-Text bei `query` und ist sonst `NULL`; `interaction.offset_ms` ist `NULL` ohne
+  Zeitangaben, sonst eine ganze Zahl ≥ 0 (`LH-FA-21.a`).
+* `message` trägt die Nachrichten einer Interaktion in `position`-Reihenfolge. Bei
+  `query` stehen nur die Server-Nachrichten dort (`direction` = `server`), die
+  Anfrage steht in `interaction.sql`; bei `extended` stehen Client- und
+  Server-Nachrichten dort mit `group_no` (`SPEC-041`). `kind` nennt die
+  Nachrichtenart wie in `SPEC-041`. `bytes` ist die vollständige Nachricht im
+  Wire-Format (Binärwerte also ohne Base64), `fields` dieselbe Nachricht als
+  JSON-Text zur Prüfung. Beim Lesen gilt `bytes`; widersprechen sich beide, ist die
+  Aufzeichnung beschädigt (`PGR-E3003`).
+* Die Zugehörigkeit einer Nachricht zu einer Interaktion (`session_id`, `sequence`)
+  lässt sich im neutralen Modell nicht als zusammengesetzter Fremdschlüssel
+  ausdrücken; der Adapter stellt sie sicher. Die Fremdschlüssel auf `session` sind
+  eingeschaltet (`LH-FA-22.a`).
 
 ### SPEC-003 — Recording: Binärdaten
 
@@ -951,7 +1031,7 @@ ursprünglichen Bytes.
 
 ### SPEC-004 — Recording: stabile Ausgabe
 
-Die Ausgabe ist deterministisch, soweit keine fachlich notwendige Information
+Die Ausgabe des Formats `yaml` ist deterministisch, soweit keine fachlich notwendige Information
 dagegen spricht. Das reduziert unnötige Änderungen in Versionskontrollsystemen.
 Ohne `--record-timing` ist die Ausgabe unabhängig vom Zeitverhalten des Laufs, ausgenommen `Flush`-Gruppen ohne wartenden Client (`SPEC-041`, LH-FA-18.a, LH-FA-21.a).
 Der Recorder trägt keine rechnerspezifischen Angaben (Dateipfade, Hostnamen,
@@ -973,9 +1053,9 @@ Sensor bemerkt, wenn eine umbenannt wird.
 |---|---|---|---|
 | `SPEC-005` | Standard-Log-Level | `info` | Diagnose ohne Debug-Rauschen (LH-FA-14) |
 | `SPEC-006` | Log-Ziel | `stderr` | `stdout` bleibt frei von Logs (LH-FA-14) |
-| `SPEC-007` | Konfigurationspriorität | CLI-Argument > Umgebungsvariable > Standardwert | eindeutige Auflösung (LH-FA-17) |
+| `SPEC-007` | Konfigurationspriorität | CLI-Argument > Umgebungsvariable > Konfigurationsdatei > Standardwert (Passwort: `LH-FA-17.a`) | eindeutige Auflösung (LH-FA-17) |
 | `SPEC-008` | Präfix der Umgebungsvariablen | `PGWIRE_RECORDER_` | eindeutiger Namensraum (LH-FA-17) |
-| `SPEC-009` | Dateiendung des Recordings | `.yaml` | menschenlesbar, diff-freundlich (LH-FA-07) |
+| `SPEC-009` | Dateiendung des Recordings | `.yaml` (Format `yaml`), `.sqlite` üblich (Format `sqlite`); die Endung hat keine Bedeutung für die Erkennung | menschenlesbar, diff-freundlich (LH-FA-07) |
 | `SPEC-010` | Formatkennung / Formatversion | `pgwire-recorder` / `1` | Erkennbarkeit inkompatibler Änderungen (LH-QA-06) |
 | `SPEC-011` | Replay-Matching | strict sequential (einziges Verfahren in v1) | Determinismus (LH-FA-09, LH-QA-01) |
 | `SPEC-012` | `--fail-on-unconsumed` | `false` | nicht verbrauchte Interaktionen sind standardmäßig eine Warnung; Query-Mismatches bleiben immer Fehler (LH-FA-10) |
@@ -997,7 +1077,7 @@ Implementierung darf intern detailliertere Fehler unterscheiden, solange diese
 | `SPEC-014` | 2 | ungültige CLI-Verwendung oder Konfiguration, vorhandenes `--output` ohne `--force` | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-015` | 1 | sonstiger Fehler | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-016` | 3 | Recording-Datei ungültig oder nicht zugreifbar | Fehlertext auf `stderr`, Prozess endet |
-| `SPEC-017` | 4 | Netzwerk-/Upstream-Fehler, beim Einspielen auch eine Fehlerantwort des Servers | Startfehler: Prozess endet; Verbindungsfehler: Verbindung endet, Prozessende nach LH-FA-13.b; Einspielen: Abbruch beziehungsweise Exit-Code 4 am Ende (LH-FA-20.a) |
+| `SPEC-017` | 4 | Netzwerk-/Upstream-Fehler, beim Einspielen auch Anmeldefehler (`PGR-E4005`) und eine Fehlerantwort des Servers (`PGR-E4004`) | Startfehler: Prozess endet; Verbindungsfehler: Verbindung endet, Prozessende nach LH-FA-13.b; Einspielen: Abbruch beziehungsweise Exit-Code 4 am Ende (LH-FA-20.a) |
 | `SPEC-018` | 5 | Replay-Mismatch (`PGR-E5001`), Anfrage ohne nicht zugeordnete Session (`PGR-E5003`), bei `--fail-on-unconsumed` auch nicht verbrauchte Interaktionen oder Sessions (`PGR-E5002`) | Diagnose nach LH-FA-10.a, Verbindung endet, Prozessende nach LH-FA-13.b |
 | `SPEC-019` | 6 | nicht unterstützte PGWire-Funktion | Diagnose, Verbindung endet, Prozessende nach LH-FA-13.b |
 
@@ -1006,9 +1086,9 @@ erzeugen einen für Entwickler verständlichen Text:
 
 | ID | Fehlerklasse | Exit Code | Meldungscode |
 |---|---|---|---|
-| `SPEC-020` | ungültige CLI-Konfiguration | 2 | `PGR-E2001` |
+| `SPEC-020` | ungültige CLI-Verwendung oder Konfiguration | 2 | `PGR-E2001`, `PGR-E2004`, `PGR-E2005`, `PGR-E2006` |
 | `SPEC-021` | Listen-Port kann nicht geöffnet werden | 4 | `PGR-E4001` |
-| `SPEC-022` | Upstream nicht erreichbar | 4 | `PGR-E4002` |
+| `SPEC-022` | Upstream nicht erreichbar oder lehnt ab | 4 | `PGR-E4002`, `PGR-E4004`, `PGR-E4005` |
 | `SPEC-023` | Recording kann nicht gelesen/geschrieben werden | 3 | `PGR-E3001` |
 | `SPEC-024` | unbekannte Recording-Version | 3 | `PGR-E3002` |
 | `SPEC-025` | beschädigtes Recording | 3 | `PGR-E3003` |
@@ -1040,20 +1120,23 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 |---|---|---|
 | `PGR-E1000` | sonstiger Fehler (Exit 1) | Rückfall; unerwarteter interner Fehler |
 | `PGR-E2000` | Konfiguration (Exit 2) | Rückfall |
-| `PGR-E2001` | Konfiguration (Exit 2) | ungültige CLI-Verwendung oder Konfiguration (`SPEC-020`) |
+| `PGR-E2001` | Konfiguration (Exit 2) | ungültige CLI-Verwendung: unbekannte Option, fehlende Pflichtoption, ungültiger Wert oder ungültige Kombination (`SPEC-020`) |
 | `PGR-E2002` | Konfiguration (Exit 2) | `--output` existiert bereits und `--force` ist nicht gesetzt (LH-FA-07.a) |
 | `PGR-E2003` | Konfiguration (Exit 2) | zeitgetreues Einspielen verlangt, aber mindestens einer Interaktion der Aufzeichnung fehlt `offset_ms` (LH-FA-21.a) |
+| `PGR-E2004` | Konfiguration (Exit 2) | Konfigurationsdatei nicht lesbar oder ungültig: YAML, Schlüssel, Abschnitt, Wert, `sslmode`, Platzhalter außerhalb einer URL (LH-FA-17.a) |
+| `PGR-E2005` | Konfiguration (Exit 2) | Umgebungsvariable eines Platzhalters der benutzten Verbindung nicht gesetzt (LH-FA-17.a) |
+| `PGR-E2006` | Konfiguration (Exit 2) | Klartext-Passwort in der Konfigurationsdatei (LH-FA-17.a) |
 | `PGR-E3000` | Recording (Exit 3) | Rückfall |
 | `PGR-E3001` | Recording (Exit 3) | Recording nicht lesbar oder nicht schreibbar (`SPEC-023`) |
 | `PGR-E3002` | Recording (Exit 3) | unbekannte Recording-Version (`SPEC-024`) |
 | `PGR-E3003` | Recording (Exit 3) | beschädigtes Recording (`SPEC-025`) |
-| `PGR-E3004` | Recording (Exit 3) | Recording ohne Session im Replay nicht verwendbar (LH-FA-03.a) |
+| `PGR-E3004` | Recording (Exit 3) | Recording ohne Session, die sich im Replay zuordnen lässt (LH-FA-03.a) |
 | `PGR-E4000` | Netzwerk (Exit 4) | Rückfall |
 | `PGR-E4001` | Netzwerk (Exit 4) | Listen-Port nicht zu öffnen (`SPEC-021`) |
 | `PGR-E4002` | Netzwerk (Exit 4) | Upstream nicht erreichbar (`SPEC-022`) |
 | `PGR-E4003` | Netzwerk (Exit 4) | unerwartetes Verbindungsende (`SPEC-028`) |
 | `PGR-E4004` | Netzwerk (Exit 4) | Server beantwortet eine eingespielte Anfrage mit einem Fehler (LH-FA-20.a) |
-| `PGR-E4005` | Netzwerk (Exit 4) | Authentifizierung am Server fehlgeschlagen oder nicht unterstützt, oder der Server verlangt TLS (LH-FA-20.a) |
+| `PGR-E4005` | Netzwerk (Exit 4) | Anmeldung am Server fehlgeschlagen, Verfahren nicht unterstützt, TLS abgelehnt oder ungültiges Zertifikat, oder der Server lehnt unverschlüsselte Verbindungen ab (LH-FA-20.a) |
 | `PGR-E5000` | Replay (Exit 5) | Rückfall |
 | `PGR-E5001` | Replay (Exit 5) | Replay-Mismatch (`SPEC-027`) |
 | `PGR-E5002` | Replay (Exit 5) | nicht verbrauchte Interaktionen oder Sessions bei `--fail-on-unconsumed` (LH-FA-03.b) |
