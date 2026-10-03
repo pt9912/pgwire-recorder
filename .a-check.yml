@@ -1,0 +1,58 @@
+# Architecture fitness functions for pgwire-recorder.
+# Roles and directions follow the terminology in ARCHITECTURE.md:
+# Driving Adapter -> Inbound Port; Outbound Port -> Driven Adapter.
+version: 1
+
+languages:
+  go: ["**/*.go"]
+
+layers:
+  model:
+    globs: ["internal/hexagon/model/**"]
+    role: domain
+
+  services:
+    globs: ["internal/hexagon/services/**"]
+    role: app
+
+  ports-driving:
+    globs: ["internal/hexagon/ports/driving/**"]
+    role: port
+    direction: inbound
+
+  ports-driven:
+    globs: ["internal/hexagon/ports/driven/**"]
+    role: port
+    direction: outbound
+
+  adapters-driving:
+    globs: ["internal/adapters/driving/**"]
+    role: adapter
+    direction: driving
+
+  adapters-driven:
+    globs: ["internal/adapters/driven/**"]
+    role: adapter
+    direction: driven
+
+edges:
+  - {from: services,         to: model}
+  - {from: services,         to: ports-driven}
+  - {from: ports-driving,    to: model}
+  - {from: ports-driven,     to: model}
+  - {from: adapters-driving, to: ports-driving}
+  - {from: adapters-driving, to: model}
+  - {from: adapters-driven,  to: ports-driven}
+  - {from: adapters-driven,  to: model}
+
+tech:
+  - {pattern: "github.com/jackc/pgx/v5/pgproto3", adapter: "internal/adapters/driving/pgwire"}
+  - {pattern: "github.com/jackc/pgx/v5/pgproto3", adapter: "internal/adapters/driven/postgres"}
+  - {pattern: "gopkg.in/yaml", adapter: "internal/adapters/driven/recording"}
+
+composition_root:
+  - "cmd/**"
+  - "internal/bootstrap/**"
+
+markers:
+  ignore_symbols: []
