@@ -29,7 +29,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Der Replay-Modus beantwortet eine Extended-Query-Interaktion strict sequential aus der Aufzeichnung; Abweichungen werden als Mismatch gemeldet.
+**Ziel:** Der Replay-Modus beantwortet eine Extended-Query-Interaktion strict sequential aus der Aufzeichnung; Abweichungen und Fehlerantworten werden erkannt beziehungsweise reproduziert.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -44,7 +44,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): Mit gestoppter PostgreSQL liefert Replay dem Go-Client mit Prepared Statements dasselbe Ergebnis (Abnahmeszenario 7).
-- [ ] [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage): Eine Extended-Query-Abweichung wird wie ein Simple-Query-Mismatch gemeldet.
+- [ ] [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage): Eine Extended-Query-Abweichung wird erkannt und nicht beantwortet; eine aufgezeichnete `ErrorResponse` samt Verwerfen bis zum `Sync` wird reproduziert (Abnahmeszenario 6, Extended). Diagnose und Klasse folgen `slice-replay-semantik-mismatch`.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -63,7 +63,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/services` | update | Matcher für Extended Query |
-| `internal/adapters/driving/pgwire` | update | Handshake und Nachrichten |
+| `internal/adapters/driving/pgwire` | update | Handshake für den Standardmodus des Go-Clients, Nachrichten |
 | `test/integration` | update | Abnahmeszenario 7 |
 
 ## 4. Trigger

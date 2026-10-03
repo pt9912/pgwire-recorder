@@ -25,9 +25,13 @@ Meldungskatalog stehen in der Betriebsdokumentation für Anwender.
 
 Ein Release liefert:
 
-- das Binary `pgwire-recorder` für Linux auf `amd64` und `arm64`,
-- ein Container-Image, das das Binary ohne weitere Laufzeitabhängigkeit
-  enthält.
+- das Binary `pgwire-recorder` für Linux, macOS und Windows, jeweils für
+  `amd64` und `arm64`,
+- ein Docker/OCI-Image für `linux/amd64` und `linux/arm64` in einer
+  Manifestliste, das das Binary ohne weitere Laufzeitabhängigkeit enthält,
+- bei einem stabilen Release eine Formel im Homebrew-Tap
+  `pt9912/homebrew-pgwire-recorder` für macOS und Linux; Vorabversionen ändern
+  den Tap nicht.
 
 Binary und Image müssen reproduzierbar gebaut werden können. Die zugesicherten
 Plattformen und die Anforderungen an Container und Reproduzierbarkeit stehen im
@@ -46,7 +50,10 @@ wird festgelegt, wenn der Build existiert.
 
 ## 4. Einen Release auslösen
 
-Ein Release entsteht durch einen Git-Tag der Form `v<SemVer>`:
+Festgelegt ist: Ein Release entsteht durch einen Git-Tag der Form `v<SemVer>`. Das
+Verfahren ist noch nicht ausgeführt worden. Die erste Version `v1.0.0` wird
+getaggt, wenn der Meilenstein M3 der Roadmap erreicht ist (alle Anforderungen
+umgesetzt):
 
 ```bash
 git tag v1.0.0
@@ -66,7 +73,7 @@ Dokument.
 
 Es gibt keinen automatisierten Rollback. Ein fehlerhafter Release wird durch
 einen neuen, höheren Tag mit einer korrigierten Version ersetzt; bereits
-veröffentlichte Tags und Artefakte werden nicht verändert oder gelöscht.
+gesetzte Tags werden nicht verändert oder gelöscht.
 
 ### Änderungshistorie
 

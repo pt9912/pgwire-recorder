@@ -75,7 +75,6 @@ der Closure-Trigger unerreichbar wird.
 - Signalbehandlung, Container-Image und Betriebsdokumentation — Gegenstand von welle-v1-abschluss.
 - Extended Query Protocol — Gegenstand von welle-extended-query.
 - TLS, COPY, CancelRequest — nicht Teil von v1.
-- Entscheidungen zu den offenen Spec-Punkten (Exit-Code bei Signal, vorhandenes `--output`, PGWire-Versionen, Strictness-Schalter) — fallen vor der jeweiligen Folge-Welle an, nicht hier.
 
 ## 7. Closure-Notiz
 

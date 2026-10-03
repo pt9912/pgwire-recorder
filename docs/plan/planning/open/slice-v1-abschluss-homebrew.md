@@ -1,4 +1,4 @@
-# Slice slice-extended-query-record: Extended Query im Record
+# Slice slice-v1-abschluss-homebrew: Homebrew-Bereitstellung
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -9,11 +9,11 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-extended-query.
+**Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-06`](../../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md)
+**Bezug:** [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
 
-**Berührte Spec-Stellen:** `LH-FA-18.a` · `SPEC-041` · `SPEC-002` · `ARC-006` · `ARC-007`
+**Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-042` · `SPEC-035`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,11 +29,13 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Der Recorder vermittelt `Parse`, `Bind`, `Describe`, `Execute`, `Close`, `Flush` und `Sync` zwischen Client und Upstream und zeichnet sie geordnet auf.
+**Ziel:** Bei jedem stabilen Release entsteht die Formel im Tap `pt9912/homebrew-pgwire-recorder`, und die dokumentierten Installationsbefehle liefern auf macOS und Linux das Binary der Version.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Replay — `slice-extended-query-replay`.
+- Aufnahme in das Standard-Repository von Homebrew — Out-of-Scope von LH-FA-19.
+- Windows — Homebrew trägt Windows nicht; dort gilt das Binary direkt (LH-FA-01).
+- Docker/OCI-Image — `slice-v1-abschluss-container`.
 
 
 ## 2. Definition of Done
@@ -43,8 +45,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): Ein Go-Client mit Prepared Statements läuft über den Recorder, und die Aufzeichnung enthält die Nachrichtenfolge (Integrationstest).
-- [ ] Das Recording-Format trägt die neuen Interaktionen und lässt sich per Roundtrip laden.
+- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Für einen stabilen Release wird die Formel erzeugt, und die Installation auf macOS und Linux meldet die Version (Smoke auf beiden Plattformen).
+- [ ] Eine Vorabversion verändert den Tap nicht (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -62,21 +64,21 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driving/pgwire`, `…/driven/postgres` | update | Neue Nachrichten |
-| `internal/hexagon/services` | update | Record-Service |
-| `internal/adapters/driven/recording` | update | Format |
+| Release-Verfahren (`docs/maintainer/releasing.md`) | update | Formel und Tap-Aktualisierung beschreiben |
+| Tap-Repository `pt9912/homebrew-pgwire-recorder` | neu (extern) | Formel je stabilem Release |
+| Smoke-Test der Installation | neu | Happy/Boundary nach LH-FA-19 |
 
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-extended-query-modell` ist `done`.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-container` ist `done` (Release-Artefakte liegen vor).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: der Slice verlangt mehr als drei Liefer-Punkte — zurück zur Zerlegung.
-- `in-progress` → `open`: Der Upstream-Adapter braucht eine neue Port-Operation — Entscheidung klären.
+- `in-progress` → `next`: der Tap-Zugang verlangt eine Entscheidung zu Zugangsdaten — zurück zur Zerlegung.
+- `in-progress` → `open`: Das Release-Binary für eine Plattform fehlt — Carveout.
 
 
 ## 5. Closure-Trigger
@@ -94,7 +96,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Asynchrone Nachrichtenfolgen (Pipelining) sind in der Aufzeichnung nicht eindeutig geordnet — **Ausgang:** offen bis Closure.
+- Das Verhalten von Homebrew gegenüber Drittanbieter-Taps kann sich ändern; der Ausgang zeigt sich erst im ersten Release — **Ausgang:** offen bis Closure.
+- Zugangsdaten für den Tap-Push sind eine externe Betreiber-Handlung — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

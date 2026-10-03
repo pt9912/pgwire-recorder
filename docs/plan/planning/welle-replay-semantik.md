@@ -18,7 +18,7 @@ zwei Positionen, nicht drei.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Wann Arbeit eine Welle braucht.
 
-Replay und Record verhalten sich bei Abweichungen und Fehlern wie spezifiziert: Mismatches werden eindeutig diagnostiziert, PostgreSQL-Fehlerantworten werden aufgezeichnet und reproduziert, und Fehler tragen stabile Meldungscodes. Das sind Abnahmeszenario 4 und 6, für Simple und Extended Query, des Lastenhefts ([`LH-FA-10`](../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-11`](../../../spec/lastenheft.md#lh-fa-11--fehler-des-postgresql-servers)).
+Replay und Record verhalten sich bei Abweichungen und Fehlern wie spezifiziert: Mismatches werden eindeutig diagnostiziert, PostgreSQL-Fehlerantworten werden aufgezeichnet und reproduziert, und Fehler tragen stabile Meldungscodes. Das sind Abnahmeszenario 4 und 6 des Lastenhefts ([`LH-FA-10`](../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-11`](../../../spec/lastenheft.md#lh-fa-11--fehler-des-postgresql-servers)).
 
 ## 2. Trigger (Welle startet)
 
@@ -37,7 +37,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 
 - Alle Slices der Welle liegen in `done/`.
-- Abnahmeszenario 4 (Replay-Abweichung) und 6 (Fehlerreplay) sind end-to-end automatisiert nachgewiesen — das *Mehr* gegenüber den Slice-DoDs.
+- Abnahmeszenario 4 (Replay-Abweichung) und 6 (Fehlerreplay) sind für Simple Query end-to-end automatisiert nachgewiesen (Extended: `welle-extended-query`); der Exit-Code beim Herunterfahren folgt in `welle-v1-abschluss` — das *Mehr* gegenüber den Slice-DoDs.
 - `make gates` grün.
 - Closure-Notiz in `welle-replay-semantik-results.md`.
 

@@ -2,7 +2,9 @@
 
 Version: 0.1  
 Software-Version: noch nicht veröffentlicht  
-Stand: 03.10.2026
+Stand: 03.10.2026  
+Autor: Projektteam pgwire-recorder  
+Gültigkeitsbereich: gilt für `pgwire-recorder` ab der ersten veröffentlichten Version
 
 ## 1. Einleitung
 
@@ -33,7 +35,8 @@ CI-Systemen ausführen.
 * Ihre Anwendung kann Host und Port der Datenbankverbindung einstellen. Weitere
   Änderungen an der Anwendung sind nicht nötig.
 * Zum Aufzeichnen: eine erreichbare PostgreSQL-Datenbank.
-* Linux auf `amd64` oder `arm64`, oder ein Container-Laufzeitsystem.
+* Linux, macOS oder Windows auf `amd64` oder `arm64`, oder ein
+  Container-Laufzeitsystem.
 * Die Verbindung zum Werkzeug läuft ohne Verschlüsselung (siehe
   [Fehlerbehebung](#7-fehlerbehebung)).
 
@@ -48,20 +51,40 @@ Sie Aufzeichnungen so, wie es zu ihrem Inhalt passt.
 
 ### Binary
 
-1. Laden Sie das Binary `pgwire-recorder` für Ihre Plattform herunter
-   (`linux/amd64` oder `linux/arm64`).
-2. Machen Sie die Datei ausführbar.
+Das Binary `pgwire-recorder` gibt es für Linux, macOS und Windows, jeweils für
+`amd64` und `arm64`.
+
+1. Legen Sie das Binary für Ihre Plattform in ein Verzeichnis Ihres Suchpfads.
+2. Machen Sie die Datei unter Linux und macOS ausführbar.
 3. Prüfen Sie die Installation mit `pgwire-recorder version`.
+
+### Homebrew (macOS und Linux)
+
+Das Werkzeug liegt in einem eigenen Tap, nicht im Standard-Repository von
+Homebrew; `brew install pgwire-recorder` allein findet es deshalb nicht. Aktuelle
+Homebrew-Versionen laden Formeln aus Drittanbieter-Taps außerdem nur, wenn Sie
+den Tap als vertrauenswürdig markiert haben. Sie brauchen alle drei Schritte:
+
+```bash
+brew tap pt9912/pgwire-recorder
+brew trust pt9912/pgwire-recorder
+brew install pgwire-recorder
+```
+
+Der Tap enthält nur veröffentlichte, stabile Versionen. Prüfen Sie die
+Installation mit `pgwire-recorder version`.
 
 ### Container
 
-Das Container-Image enthält das Binary und braucht keine weitere Software. Ein
-Beispiel für eine Wiedergabe in Docker Compose:
+Das Docker/OCI-Image für `linux/amd64` und `linux/arm64` enthält das Binary und
+braucht keine weitere Software; es läuft mit jedem OCI-kompatiblen
+Container-Laufzeitsystem, zum Beispiel Docker oder Podman. Ein Beispiel für eine
+Wiedergabe in Docker Compose (setzen Sie den Namen Ihres Images ein):
 
 ```yaml
 services:
   recorder:
-    image: pgwire-recorder:latest
+    image: <Name Ihres Images>
     command:
       - replay
       - --listen=0.0.0.0:5432
@@ -153,7 +176,8 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
 #### Hinweise
 
 * Die Wiedergabe ist streng: Jede Anfrage muss genau der aufgezeichneten
-  Anfrage an dieser Stelle entsprechen, Zeichen für Zeichen. Eine abweichende
+  Anfrage an dieser Stelle entsprechen, Zeichen für Zeichen (beim erweiterten
+  Protokoll auch in Namen, Parametern, Formaten und Zeilenlimit). Eine abweichende
   Anfrage wird als Fehler gemeldet; das Werkzeug liefert dann keine geratene
   Antwort (`PGR-E5001`).
 * Jede neue Verbindung beginnt wieder am Anfang der Aufzeichnung.
@@ -162,16 +186,39 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
 
 Das Werkzeug unterstützt das einfache und das erweiterte Anfrageprotokoll von
 PostgreSQL. Viele Treiber nutzen standardmäßig das erweiterte Protokoll mit
-vorbereiteten Anweisungen. Sie müssen am Treiber nur Host und Port ändern.
+vorbereiteten Anweisungen. Dafür müssen Sie am Treiber nur Host und Port ändern.
+
+#### Voraussetzung
+
+Ihr Treiber verwendet Version 3.0 des PostgreSQL-Protokolls und lässt sich ohne
+Verschlüsselung betreiben.
+
+#### Vorgehen
+
+1. Starten Sie `pgwire-recorder record` oder `pgwire-recorder replay`.
+2. Tragen Sie in der Verbindungszeichenfolge Ihres Treibers Host und Port aus
+   `--listen` ein.
+3. Stellen Sie die Verschlüsselung in der Verbindungszeichenfolge ab, zum Beispiel
+   mit `sslmode=disable`.
+4. Führen Sie Ihren Ablauf aus.
+
+#### Ergebnis
+
+Ihre Anwendung läuft wie gegen die Datenbank. Beim Aufzeichnen enthält die Datei
+alle Anfragen, beim Wiedergeben erhält Ihre Anwendung die aufgezeichneten
+Antworten.
 
 #### Hinweise
 
-* Erzeugt ein Treiber bei jedem Lauf andere Namen für vorbereitete Anweisungen,
-  passt die Wiedergabe nicht zur Aufzeichnung. Stellen Sie den Treiber dann so
-  ein, dass er feste Namen verwendet oder keine Anweisungen zwischenspeichert.
-* Die Verschlüsselung der Verbindung wird abgelehnt. Stellen Sie in Ihrer
-  Verbindungszeichenfolge die Verschlüsselung ab, zum Beispiel mit
-  `sslmode=disable`.
+* Beim erweiterten Protokoll müssen bei der Wiedergabe die Namen vorbereiteter
+  Anweisungen und Portale, die SQL-Texte, die Parametertypen, die Parameterwerte,
+  die Formate und das Zeilenlimit mit der Aufzeichnung übereinstimmen. Erzeugt
+  ein Treiber bei jedem Lauf andere Namen, meldet das Werkzeug eine Abweichung
+  (`PGR-E5001`).
+* Sendet ein Treiber nach einer Anforderung `Flush` weitere Nachrichten, ohne auf
+  die Antwort zu warten, kann sich die Aufzeichnung zwischen zwei Läufen
+  unterscheiden; die Wiedergabe einer vorhandenen Aufzeichnung bleibt davon
+  unberührt.
 
 ### Das Werkzeug in der Testautomatisierung verwenden
 
@@ -226,9 +273,10 @@ erst, wenn Sie es beenden.
 
 ## 6. Rollen und Rechte
 
-Das Werkzeug kennt keine Benutzer, Rollen oder Anmeldung. Es prüft keine
-Zugangsdaten selbst: Beim Aufzeichnen leitet es die Anmeldung an die Datenbank
-weiter, beim Wiedergeben nimmt es jede Anmeldung an. Betreiben Sie es nur in
+Das Werkzeug kennt keine Benutzer, Rollen oder Anmeldung. Beim Aufzeichnen
+leitet es die Anmeldung an die Datenbank weiter; beim Wiedergeben ist die
+Anmeldung keine Sicherheitsgrenze, verlassen Sie sich nicht darauf, dass
+Zugangsdaten geprüft werden. Betreiben Sie es nur in
 einer kontrollierten Testumgebung, und lassen Sie es nur auf der Adresse
 lauschen, die Sie mit `--listen` angegeben haben.
 
@@ -285,7 +333,9 @@ Das Werkzeug unterstützt das nicht. Zeichnen Sie stattdessen erneut auf.
 
 **Funktioniert die Wiedergabe, wenn ich die Anfragen umformuliere?**
 Nein. Die Anfrage muss Zeichen für Zeichen der aufgezeichneten entsprechen,
-auch in Leerzeichen, Kommentaren und Groß- und Kleinschreibung.
+auch in Leerzeichen, Kommentaren und Groß- und Kleinschreibung. Beim erweiterten
+Protokoll gilt das auch für Namen, Parametertypen, Parameterwerte, Formate und
+das Zeilenlimit.
 
 **Kann ich Aufzeichnungen auf einem anderen Rechner verwenden?**
 Ja. Die Datei enthält keine rechnerspezifischen Angaben des Werkzeugs.

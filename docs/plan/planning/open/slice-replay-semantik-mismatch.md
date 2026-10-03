@@ -29,7 +29,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Eine abweichende Query oder Extended-Query-Nachricht im Replay wird mit Diagnose (Session, erwartete Interaktionsnummer, erwartete und empfangene Query) an den Client gemeldet, die Verbindung endet, und der Prozess meldet beim Beenden Exit-Code 5.
+**Ziel:** Eine abweichende Query oder Extended-Query-Nachricht im Replay wird mit Diagnose (Session, erwartete Interaktionsnummer, Gruppe und Nachricht, erwarteter und empfangener Nachrichtentyp) an den Client gemeldet, die Verbindung endet, und der Prozess merkt sich die Klasse 5. Die Erkennung der Abweichung bei Extended liefert `slice-extended-query-replay`; die Diagnose und Klasse für beide Protokollvarianten liefert dieser Slice.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -45,7 +45,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage): Abweichende Query und Query nach Ende des Recordings werden als Mismatch gemeldet; keine fremde Antwort wird geliefert (Test).
-- [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Der Prozess endet nach einem Mismatch mit Exit-Code 5 (Test).
+- [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Nach einem Mismatch endet die Verbindung mit einer `ErrorResponse`, und der Prozess merkt sich die Klasse 5 (Test); die Abbildung auf den Exit-Code beim Herunterfahren prüft `slice-v1-abschluss-betrieb`.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des

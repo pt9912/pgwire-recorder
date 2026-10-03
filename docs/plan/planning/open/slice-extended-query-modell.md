@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [ADR-0006](../../adr/0006-kanonisches-domain-model.md), [ADR-0007](../../adr/0007-strict-replay.md)
 
-**Berührte Spec-Stellen:** `LH-FA-18.a` (neu) · `SPEC-002` · `SPEC-039` · `ARC-001`
+**Berührte Spec-Stellen:** `LH-FA-18.a` · `SPEC-041` · `SPEC-002` · `SPEC-039` · `ARC-001`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,7 +29,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die Verfeinerung des Extended Query Protocol steht in der Spezifikation (Nachrichtenfolge, Zuordnung von Prepared Statements und Portals, Matching, Recording-Format), und das Domain-Modell trägt die neuen Typen.
+**Ziel:** Das Domain-Modell trägt die Typen des Extended Query Protocol (Nachrichten, Gruppen), die Verfeinerung in der Spezifikation (`LH-FA-18.a`, `SPEC-041`) ist mit dem Modell abgeglichen, und die Entscheidung dazu ist als ADR angenommen.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -62,8 +62,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` | update | `LH-FA-18.a`, Recording-Format, Defaults |
-| `docs/plan/adr/` | neu | ADR zu Matching und Format |
+| `spec/spezifikation.md` (`LH-FA-18.a`, `SPEC-041`) | update | Abgleich mit dem Domain-Modell; Änderungen nur bei Abweichung |
+| `docs/plan/adr/0012-extended-query-ereignisfolge.md` | update | Status `Accepted` setzen (Entscheidung des Auftraggebers) |
 | `internal/hexagon/model` | update | Neue Typen |
 
 ## 4. Trigger
@@ -94,7 +94,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Das Recording-Format braucht eine neue Version (`SPEC-001`) — **Ausgang:** offen bis Closure.
+- Das Domain-Modell zeigt eine Lücke in `SPEC-041` (Format Version 1 umfasst Extended, `SPEC-001`) — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

@@ -37,7 +37,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 
 - Alle Slices der Welle liegen in `done/`.
-- Abnahmeszenario 7 ist end-to-end mit einem verbreiteten Go-Client im Standardmodus automatisiert nachgewiesen, und der Walking-Skeleton-Smoke läuft weiter — das *Mehr* gegenüber den Slice-DoDs.
+- Abnahmeszenario 7 und der Fehlerfall von Abnahmeszenario 6 sind end-to-end mit einem verbreiteten Go-Client im Standardmodus automatisiert nachgewiesen, und der Walking-Skeleton-Smoke läuft weiter — das *Mehr* gegenüber den Slice-DoDs.
 - `make gates` grün.
 - Closure-Notiz in `welle-extended-query-results.md`.
 

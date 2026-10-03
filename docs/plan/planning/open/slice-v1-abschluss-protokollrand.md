@@ -44,7 +44,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol): Jede Zeile der Tabelle in `LH-FA-05.e` ist durch einen Test belegt (Happy/Boundary/Negative).
-- [ ] Replay stellt einen Handshake bereit, den ein verbreiteter PostgreSQL-Go-Client ohne Datenbank akzeptiert.
+- [ ] Der Replay-Handshake emuliert eine feste, dokumentierte Auswahl von Authentifizierungsnachrichten (Test); der Handshake für den Go-Client im Standardmodus stammt aus `slice-extended-query-replay`.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des

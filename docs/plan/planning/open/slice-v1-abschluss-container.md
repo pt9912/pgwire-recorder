@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit)
 
-**Berührte Spec-Stellen:** `LH-FA-16.a` · `SPEC-031` · `SPEC-035` · `SPEC-040`
+**Berührte Spec-Stellen:** `LH-FA-16.a` · `SPEC-031` · `SPEC-035`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,7 +29,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Ein Container-Image und ein reproduzierbarer Binary-Build existieren, und die Betriebsdokumentation nennt Optionen, Exit-Codes, Meldungskatalog und verwendete Umgebungen.
+**Ziel:** Ein Docker/OCI-Image (`linux/amd64`, `linux/arm64`) und ein reproduzierbarer Binary-Build existieren, und die Betriebsdokumentation nennt Optionen, Exit-Codes, Meldungskatalog und verwendete Umgebungen.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -45,7 +45,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Das Image startet `replay` ohne PostgreSQL und besteht den Walking-Skeleton-Smoke im Container.
-- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit): Binary und Image sind reproduzierbar gebaut; die Betriebsdokumentation ist vorhanden und benennt die Abnahme-Umgebungen.
+- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit): Binary (für alle Zielplattformen aus `SPEC-035`) und Image sind reproduzierbar gebaut; die Betriebsdokumentation ist vorhanden und benennt die Abnahme-Umgebungen.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -64,7 +64,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `Dockerfile`, `harness/mk/…` | neu/update | Image-Build per `make`, Docker-only |
-| Betriebsdokumentation unter `docs/user/` | neu | Optionen, Exit-Codes, Meldungskatalog, Recording-Format |
+| `docs/user/benutzerhandbuch.md`, `docs/maintainer/releasing.md` | update | auf den Stand der umgesetzten Funktionen prüfen und anpassen |
 | `test/integration` | update | Smoke im Container |
 
 ## 4. Trigger
@@ -95,7 +95,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Verzeichnis `docs/user/` ist in Source Precedence optional und existiert noch nicht — **Ausgang:** offen bis Closure.
+- Handbuch und Releasing-Dokument beschreiben Verhalten vor der Software; Abweichungen zeigen sich erst im Bau — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

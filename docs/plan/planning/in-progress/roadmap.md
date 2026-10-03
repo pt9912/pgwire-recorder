@@ -21,6 +21,8 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-replay-semantik](../welle-replay-semantik.md)
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 
+In Arbeit: nichts (kein Slice in `in-progress/`).
+
 
 
 ## Nächste Wellen
@@ -43,7 +45,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 |---|---|---|---|
 | M1 | welle-walking-skeleton | `SELECT 1;` Record, PostgreSQL stoppen, Replay mit demselben Ergebnis | offen |
 | M2 | welle-extended-query | Clients mit Standardtreibern (Extended Query) funktionieren mit Host/Port-Umstellung: Abnahmeszenario 7 nachweisbar | offen |
-| M3 | welle-replay-semantik, welle-v1-abschluss | Produkt fertig: alle Anforderungen (MUSS und SOLL) umgesetzt, alle sieben Abnahmeszenarien nachweisbar | offen |
+| M3 | welle-replay-semantik, welle-v1-abschluss | Produkt fertig: alle Anforderungen (MUSS und SOLL) umgesetzt, alle elf Abnahmeszenarien nachweisbar | offen |
 
 ## Abhängigkeitsgraph
 
@@ -84,3 +86,4 @@ Roadmap, jede Zeile voll heißt treibende.
 
 | Datum | Was wurde geändert? | Warum? |
 |---|---|---|
+| 2026-10-03 | welle-extended-query vor welle-replay-semantik gezogen; Start-Trigger von welle-replay-semantik von „welle-walking-skeleton done“ auf „welle-extended-query done“ geändert; Meilensteine M2 und M3 neu zugeschnitten | Extended Query gehört zu v1: verbreitete Treiber nutzen es standardmäßig, ohne es genügt die Umstellung von Host und Port nicht |

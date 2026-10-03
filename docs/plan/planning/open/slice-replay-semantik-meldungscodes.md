@@ -45,7 +45,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben): Fehlerklassen aus `SPEC-020` bis `SPEC-028` liefern ihren Code im Kopf des Fehlertexts und als Log-Attribut (Test je Klasse).
-- [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Exit-Codes entsprechen `SPEC-013` bis `SPEC-019` (Test je Klasse).
+- [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Die Klasse eines Fehlers entspricht `SPEC-013` bis `SPEC-019` (Test je Klasse, deren Auslöser in dieser Welle existiert; die Abbildung auf den Exit-Code beim Herunterfahren und die übrigen Klassen prüft `slice-v1-abschluss-betrieb`).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des

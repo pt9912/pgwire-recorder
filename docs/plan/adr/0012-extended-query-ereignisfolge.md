@@ -1,4 +1,4 @@
-# ADR-0012: Extended Query als ereignisbasierte Interaktion
+# ADR-0012: Extended Query als Gruppen aus Client- und Server-Nachrichten
 
 **Status:** Proposed
 
@@ -20,7 +20,7 @@ Verbreitete Treiber verwenden standardmäßig das Extended Query Protocol. Ohne 
 
 ## Entscheidung
 
-Wir wählen: Eine Extended-Interaktion wird als geordnete Ereignisfolge aus Client- und Server-Nachrichten aufgezeichnet und strict sequential wiedergegeben. Jedes eingehende Client-Ereignis muss in allen Feldern dem erwarteten entsprechen; die folgenden Server-Ereignisse werden bis zum nächsten noch nicht empfangenen Client-Ereignis freigegeben.
+Wir wählen: Eine Extended-Interaktion wird als Folge von Gruppen aufgezeichnet. Eine Gruppe endet mit `Flush` oder `Sync`; sie enthält die Client-Nachrichten und die Server-Nachrichten, die auf sie antworten. Die Wiedergabe vergleicht strict sequential jede eingehende Client-Nachricht in allen Feldern mit der erwarteten und sendet die Server-Nachrichten einer Gruppe, nachdem deren letzte Client-Nachricht verglichen ist.
 
 ## Verglichene Alternativen
 
@@ -28,12 +28,13 @@ Wir wählen: Eine Extended-Interaktion wird als geordnete Ereignisfolge aus Clie
 |---|---|---|
 | A — Extended in Simple umschreiben (Parameter einsetzen) | nur ein Interaktionsmodell | verändert, was der Client sendet; verliert Parametertypen, Format-Codes und Portal-Semantik; Aufzeichnung gibt nicht wieder, was die Anwendung getan hat |
 | B — Je Nachricht eine eigene Anfrage-Antwort-Interaktion | nah am Simple-Modell | passt nicht zu Pipelining, `Flush` und Fehlerverwerfung bis `Sync`; Antworten lassen sich keiner einzelnen Nachricht zuordnen |
-| **C — Ereignisfolge je `Sync`-Interaktion (gewählt)** | bildet Pipelining und Fehlerverhalten ab; gleiches strict-sequential-Prinzip | neuer Interaktionstyp im Modell und im Recording-Format |
+| C — Ereignisfolge in Ankunftsreihenfolge | einfach aufzuzeichnen | Position der Server-Nachrichten hängt bei Pipelining vom Zeitverhalten ab; dieselbe Anwendung erzeugt unterschiedliche Aufzeichnungen |
+| **D — Gruppen je `Flush`/`Sync` (gewählt)** | Aufzeichnung unabhängig vom Zeitverhalten (Zuordnung über `Sync`/`ReadyForQuery`); bildet Pipelining und Fehlerverhalten ab; gleiches strict-sequential-Prinzip | neuer Interaktionstyp; bei `Flush` ohne wartenden Client bleibt die Zuordnung zeitabhängig |
 
 ## Konsequenzen
 
 - Positiv: Clients mit Standardtreibern genügt die Umstellung von Host und Port.
-- Negativ: Treiber mit nichtdeterministischen Statement-Namen passen nicht zur Aufzeichnung; das ist eine bekannte Grenze.
+- Negativ: Treiber mit nichtdeterministischen Statement-Namen passen nicht zur Aufzeichnung; ein Client, der nach `Flush` nicht auf die Antwort wartet, erzeugt eine zeitabhängige Aufzeichnung. Beides sind bekannte Grenzen.
 - Folgepflicht: Domain-Modell, beide PGWire-Adapter, Matcher und Recording-Schema tragen den neuen Interaktionstyp.
 
 ## Fitness Function (falls maschinell prüfbar)
