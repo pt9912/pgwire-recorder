@@ -38,7 +38,7 @@ einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 
 - Alle Slices der Welle liegen in `done/`.
 - Die Abnahmeszenarien 1 bis 10 und 12 bis 16 des Lastenhefts laufen automatisiert; Szenario 11 ist keine Bedingung der Welle und wird in `welle-erster-release` nachgewiesen — das *Mehr* gegenüber den Slice-DoDs.
-- Container-Image und Binary sind reproduzierbar gebaut.
+- Das Binary ist reproduzierbar gebaut (gleiche Prüfsumme bei zwei Builds); das Container-Image ist gebaut.
 - `make gates` grün.
 - Closure-Notiz in `welle-v1-abschluss-results.md`.
 

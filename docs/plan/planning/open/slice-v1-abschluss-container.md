@@ -77,7 +77,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next`: die Doku wächst über einen Liefer-Punkt hinaus — zurück zur Zerlegung.
-- `in-progress` → `open`: Reproduzierbarkeit des Builds ist ohne Entscheidung zur Basis-Image-Pinning nicht erreichbar — Carveout.
+- `in-progress` → `open`: Das Binary lässt sich ohne Entscheidung zu Build-Flags und Toolchain-Pin nicht reproduzierbar bauen — Carveout.
 
 
 ## 5. Closure-Trigger

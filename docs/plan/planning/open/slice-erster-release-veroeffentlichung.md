@@ -29,7 +29,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Ein Tag `v<SemVer>` baut reproduzierbar die Binaries für die Zielplattformen und das Docker/OCI-Image und veröffentlicht das Image in `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder`.
+**Ziel:** Ein Tag `v<SemVer>` baut die Binaries für die Zielplattformen reproduzierbar und das Docker/OCI-Image und veröffentlicht das Image in `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder`.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 

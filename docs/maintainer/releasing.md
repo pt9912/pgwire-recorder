@@ -1,6 +1,6 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.2
+Version: 0.3
 Stand: 2026-10-03
 
 ## 1. Zweck und Zielgruppe
@@ -35,10 +35,10 @@ Ein Release liefert:
   `pt9912/homebrew-pgwire-recorder` für macOS und Linux; Vorabversionen ändern
   den Tap nicht.
 
-Binary und Image müssen reproduzierbar gebaut werden können; das verlangt dieses
-Release-Verfahren, das Lastenheft fordert nur die Bereitstellbarkeit
-(`LH-QA-03`). Die zugesicherten Plattformen und das Image-Format legt die
-Spezifikation fest (`SPEC-035`, `SPEC-031`).
+Das Binary wird reproduzierbar gebaut: zwei Builds desselben Quellstands für
+dieselbe Plattform liefern dieselbe Prüfsumme (`LH-QA-01`). Für das Image gilt das
+nicht. Die Plattformen und die Registries stehen im Lastenheft (`LH-QA-03`,
+`LH-FA-16`), das Image-Format in der Spezifikation (`SPEC-031`).
 
 ## 3. Versionierung
 
@@ -97,3 +97,4 @@ gesetzte Tags werden nicht verändert oder gelöscht.
 |---|---|---|
 | 0.1 | 2026-10-03 | Erste Fassung — beschreibt, was ein Release liefert; keine Automatisierung |
 | 0.2 | 2026-10-03 | Abschnitt Release-Notes: Quelle ist die Änderungshistorie des Handbuchs, kein `CHANGELOG.md` |
+| 0.3 | 2026-10-04 | Reproduzierbarkeit nur für das Binary; Plattformen und Registries aus dem Lastenheft |

@@ -62,3 +62,22 @@ S-31, S-32, S-36, S-41, S-43, S-35 (siehe A).
 ## Entscheidungsbedarf
 
 Die Widersprüche S-11 und S-21 sind aufgelöst: S-11 durch eine Lastenheft-Änderung, S-21 war ein Lesefehler. Die Zeilen mit **heben** machen die Spezifikation tragfähig, ohne dass sich das Verhalten ändert. Nach der Entscheidung geht jede gehobene Setzung als Lastenheft-Commit voraus; die abhängigen Dokumente ziehen danach nach.
+
+## Stand nach der Entscheidung (2026-10-04)
+
+Der Auftraggeber hat die Empfehlungen der Gruppe A übernommen; S-9 abgeschwächt.
+
+| Nr. | Ergebnis |
+|---|---|
+| S-1 | gehoben in `LH-QA-03` (`b725e50`) |
+| S-2 | gehoben in `LH-FA-16` (`b725e50`) |
+| S-8 | gehoben in `LH-FA-13` Boundary (`b725e50`) |
+| S-9 | abgeschwächt gehoben in `LH-QA-01`: nur das Binary ist reproduzierbar (gleiche Prüfsumme); Welle, Releasing und Slices nachgezogen |
+| S-11 | erledigt durch Lastenheft-Änderung (`e0ea6a5`) |
+| S-12, S-22 | gehoben in `LH-FA-20` (`b725e50`) |
+| S-13 | gehoben in `LH-FA-21` (`b725e50`) |
+| S-15, S-20 | übernommen, ohne Lastenheft-Änderung |
+| S-21 | übernommen, kein Widerspruch |
+| S-28 | gehoben als „zeitgemäße TLS-Version" in `LH-FA-23`; die Mindestversion 1.2 bleibt Präzisierung der Spezifikation |
+| S-44 | gehoben in `LH-FA-24` (`b725e50`) |
+| Gruppen B und C | übernommen |
