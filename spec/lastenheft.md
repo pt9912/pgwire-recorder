@@ -973,7 +973,8 @@ Eine Aufzeichnung wird mit Vergleich gegen eine PostgreSQL-Instanz eingespielt, 
 dieselbe Struktur liefert; der Lauf endet mit Erfolg. Gegen eine Instanz, deren
 Antwort in Struktur oder Fehler abweicht, meldet der Lauf die Abweichung und endet
 mit einem Fehlerstatus, der sich von dem eines Serverfehlers ohne Vergleich
-unterscheidet. Bezug: LH-FA-24.
+unterscheidet. Endet die Aufzeichnung mit einem Verbindungsende, das der Server
+genauso verursacht, gilt es als erwartet und der Lauf geht weiter. Bezug: LH-FA-24.
 
 ## 8. Historie
 
