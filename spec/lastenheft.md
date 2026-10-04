@@ -715,8 +715,11 @@ Prüfung von Client-Zertifikaten; Zertifikatsverwaltung und -erneuerung.
 **Beschreibung:** Das Produkt soll beim Einspielen auf Wunsch die Antworten des
 Servers mit der Aufzeichnung vergleichen und Abweichungen melden. Verglichen werden
 die Struktur der Antwort einer Interaktion (Art und Reihenfolge der Antworten,
-Spaltenbeschreibung, Befehlsabschluss) und Fehler (Vorhandensein und SQLSTATE),
-nicht die Werte der Zeilen. Ohne den Wunsch findet kein Vergleich statt (LH-FA-20).
+Spaltenbeschreibung einschließlich der Datentypen, Beschreibung der Parameter, der
+ausgeführte Befehl, der Transaktionsstatus) und Fehler (Vorhandensein und
+Fehlercode). Nicht verglichen werden die Werte und die Anzahl der Zeilen, Hinweise
+und Einstellungen des Servers. Ohne den Wunsch findet kein Vergleich statt
+(LH-FA-20).
 
 **Akzeptanzkriterien:**
 
@@ -724,13 +727,16 @@ nicht die Werte der Zeilen. Ohne den Wunsch findet kein Vergleich statt (LH-FA-2
   Struktur und Fehlern der Aufzeichnung entsprechen, when mit Vergleich
   eingespielt wird, then endet der Lauf mit Erfolg (siehe Abnahmeszenario 16 in
   §7).
-- **Boundary:** Given Antworten, die sich nur in Zeilenwerten unterscheiden, when
-  verglichen wird, then gilt das nicht als Abweichung; given kein Wunsch nach
+- **Boundary:** Given Antworten, die sich nur in Zeilenwerten, Zeilenanzahl oder
+  Hinweisen unterscheiden, when verglichen wird, then gilt das nicht als
+  Abweichung; given kein Wunsch nach
   Vergleich, when eingespielt wird, then wird nicht verglichen.
 - **Negative:** Given eine Antwort mit abweichender Struktur oder einem
-  abweichenden Fehler, when verglichen wird, then wird die Abweichung mit
+  abweichenden Fehler, wozu auch ein Fehler des Servers gehört, den die
+  Aufzeichnung nicht enthält, when verglichen wird, then wird die Abweichung mit
   Interaktion und Art der Abweichung gemeldet, und der Lauf endet mit einem
-  eigenen Fehlerstatus (siehe LH-QA-05).
+  Fehlerstatus, der sich von dem eines Serverfehlers ohne Vergleich unterscheidet
+  (siehe LH-QA-05).
 
 **Out-of-Scope:** Vergleich der Zeilenwerte; Toleranzregeln für einzelne Felder;
 Veränderung der Aufzeichnung anhand des Vergleichs.
@@ -959,7 +965,7 @@ Bezug: LH-FA-23.
 Eine Aufzeichnung wird mit Vergleich gegen eine PostgreSQL-Instanz eingespielt, die
 dieselbe Struktur liefert; der Lauf endet mit Erfolg. Gegen eine Instanz, deren
 Antwort in Struktur oder Fehler abweicht, meldet der Lauf die Abweichung und endet
-mit einem Fehlerstatus. Bezug: LH-FA-24.
+mit einem Fehlerstatus, der sich von dem eines Serverfehlers ohne Vergleich unterscheidet. Bezug: LH-FA-24.
 
 ## 8. Historie
 
