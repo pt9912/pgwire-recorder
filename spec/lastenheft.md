@@ -429,7 +429,8 @@ automatisierte Umgebungen erkennbar signalisieren.
   signalisiert der Prozessstatus Erfolg.
 - **Boundary:** Given ein kontrolliertes Beenden durch Signal, when es
   eintritt, then signalisiert der Prozessstatus Erfolg, wenn bis dahin kein
-  Fehler aufgetreten ist, andernfalls den Fehler.
+  Fehler aufgetreten ist, andernfalls den Fehler; unter Windows gilt der
+  Konsolenabbruch (`Strg+C`, `Strg+Break`) als solches Signal.
 - **Negative:** Given ein Betriebs- oder Konfigurationsfehler, when er auftritt,
   then wird er mit seiner Fehlerklasse gemeldet, und der
   Prozessstatus signalisiert Misserfolg, sobald der Prozess endet; er
@@ -485,8 +486,9 @@ sein, damit es in automatisierten Tests und CI-Systemen eingesetzt werden kann.
 
 **Priorität:** SOLL
 
-**Beschreibung:** Das Produkt soll als Docker/OCI-Image bereitgestellt werden
-und so betreibbar sein, dass es ohne besondere Anforderungen in
+**Beschreibung:** Das Produkt soll als Docker/OCI-Image bereitgestellt werden,
+öffentlich abrufbar in der GitHub Container Registry und auf Docker Hub, und so
+betreibbar sein, dass es ohne besondere Anforderungen in
 containerisierten Testumgebungen eingesetzt werden kann.
 
 **Akzeptanzkriterien:**
@@ -587,8 +589,10 @@ Paketmanager Homebrew installieren lassen.
 **Beschreibung:** Das Produkt muss die in einer Aufzeichnung enthaltenen
 Client-Anfragen gegen einen PostgreSQL-Server ausführen können (Einspielen),
 ohne dass eine Anwendung beteiligt ist. Das Einspielen führt ausschließlich
-aufgezeichnete Anfragen aus. Es authentifiziert sich gegenüber dem Server und
-verbindet sich auf Wunsch verschlüsselt; dabei prüft es das Zertifikat des Servers
+aufgezeichnete Anfragen aus. Es authentifiziert sich gegenüber dem Server mit
+den gängigen Passwortverfahren (Klartext, MD5, SCRAM-SHA-256), ohne das Passwort
+als Kommandozeilenargument zu übernehmen, und verbindet sich auf Wunsch
+verschlüsselt; dabei prüft es das Zertifikat des Servers
 und lässt sich eine eigene Zertifizierungsstelle des Anwenders hinterlegen. Ein
 Überspringen der Prüfung gibt es nicht.
 
@@ -629,7 +633,8 @@ Abstand der Anfragen festhalten und beim Einspielen auf Wunsch wiederherstellen,
 wahlweise relativ zur jeweils vorigen Anfrage oder absolut ab einem Bezugspunkt
 (Verbindungsaufbau oder erste Anfrage). Ohne diese Wünsche enthält eine
 Aufzeichnung keine Zeitangaben, und das Einspielen führt die Anfragen
-nacheinander und ohne Wartezeiten aus (LH-FA-20).
+nacheinander und ohne Wartezeiten aus (LH-FA-20). Die Zeit zählt je Session; die
+Sessions laufen nacheinander und ohne gegenseitigen Zeitbezug.
 
 **Akzeptanzkriterien:**
 
@@ -684,7 +689,8 @@ weitere Formate.
 
 **Beschreibung:** Das Produkt soll im Record- und im Replay-Modus auf Wunsch
 verschlüsselte Verbindungen von Clients annehmen, mit einem vom Anwender
-bereitgestellten Zertifikat und Schlüssel. Ohne diesen Wunsch lehnt es eine
+bereitgestellten Zertifikat und Schlüssel und mit einer zeitgemäßen TLS-Version.
+Ohne diesen Wunsch lehnt es eine
 Verschlüsselungsanfrage wie bisher erkennbar ab und erwartet eine unverschlüsselte
 Verbindung (LH-FA-05). Die Verbindung zum PostgreSQL-Server im Record-Modus bleibt
 unverschlüsselt. Die Aufzeichnung enthält keine Angaben zur Verschlüsselung der
@@ -720,7 +726,9 @@ die Struktur der Antwort einer Interaktion (Art und Reihenfolge der Antworten,
 Spaltenbeschreibung einschließlich der Datentypen, Beschreibung der Parameter, der
 ausgeführte Befehl, der Transaktionsstatus) und Fehler (Vorhandensein und
 Fehlercode). Nicht verglichen werden die Werte und die Anzahl der Zeilen, Hinweise
-und Einstellungen des Servers. Mit diesem Wunsch gilt ein Fehler des Servers, den
+und Einstellungen des Servers. Am Ende des Laufs nennt eine Zusammenfassung die
+Zahl der eingespielten, verglichenen und abweichenden Interaktionen. Mit diesem
+Wunsch gilt ein Fehler des Servers, den
 die Aufzeichnung genauso enthält, als erwartet; der Wunsch ist die ausdrückliche
 Wahl nach LH-FA-20. Ohne den Wunsch findet kein Vergleich statt (LH-FA-20).
 
@@ -761,6 +769,9 @@ Veränderung der Aufzeichnung anhand des Vergleichs.
 - **Messmethode:** Wiederholter Replay-Lauf mit identischer Aufzeichnung und
   identischer Eingabe, mindestens zehn aufeinanderfolgende Läufe; das
   beobachtbare Verhalten ist in allen Läufen gleich.
+- **Bereitstellung:** Das Binary entsteht aus einem Quellstand reproduzierbar;
+  zwei Builds desselben Quellstands für dieselbe Plattform liefern dieselbe
+  Prüfsumme.
 
 ### LH-QA-02 — Geringe Eingriffe in die Anwendung
 
@@ -773,7 +784,9 @@ Veränderung der Aufzeichnung anhand des Vergleichs.
 ### LH-QA-03 — Portabilität
 
 - **Anforderung:** Das Werkzeug soll für typische lokale Entwicklungs- und
-  CI-Umgebungen bereitstellbar sein.
+  CI-Umgebungen bereitstellbar sein: als ausführbare Datei für Linux, macOS und
+  Windows, jeweils für `amd64` und `arm64`, und als Container-Image für Linux auf
+  `amd64` und `arm64`.
 - **Messmethode:** Lauf der Abnahmeszenarien in einer lokalen
   Entwicklungsumgebung und einer CI-Umgebung; die für die Abnahme verwendeten
   Umgebungen werden bei der Abnahme benannt.
