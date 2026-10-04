@@ -977,8 +977,10 @@ aufgezeichnete Server-Nachrichten gibt es nichts zu vergleichen.
 Session, Sequenznummer, die Position der Nachricht in der normalisierten Folge und
 die Art: Nachrichtenart, Spaltenbeschreibung, Befehl, Fehler oder Transaktionsstatus.
 Werte des Servers erscheinen in der Meldung nicht, nur Typen und Namen von Spalten.
-Die Folgen einer Abweichung beschreibt `LH-FA-20.a`, Schritt 6. Ohne
-`--compare-responses` findet kein Vergleich statt.
+Je Interaktion wird die erste Abweichung gemeldet. Am Ende des Laufs steht auf
+`stderr` eine Zusammenfassung mit der Zahl der eingespielten, der verglichenen und
+der abweichenden Interaktionen. Die Folgen einer Abweichung beschreibt `LH-FA-20.a`
+(Fehlerregeln beim Einspielen). Ohne `--compare-responses` findet kein Vergleich statt.
 
 ---
 

@@ -24,7 +24,8 @@
 | [0018](0018-tls-zum-client.md) | TLS-Terminierung zum Client | Accepted | [`LH-FA-23`](../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client) |
 | [0019](0019-eigene-zertifizierungsstelle-beim-einspielen.md) | Eigene Zertifizierungsstelle beim Einspielen | Accepted | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
 | [0020](0020-antwortvergleich-beim-einspielen.md) | Antwortvergleich beim Einspielen | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
-| [0021](0021-vergleichsregeln-beim-einspielen.md) | Vergleichsregeln beim Einspielen | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
+| [0021](0021-vergleichsregeln-beim-einspielen.md) | Vergleichsregeln beim Einspielen | Superseded by [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
+| [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | Vergleichsregeln beim Einspielen, präzisiert | Proposed | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 
 ## Konventionen
 
@@ -46,3 +47,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0019](0019-eigene-zertifizierungsstelle-beim-einspielen.md) | ergänzt [0016](0016-einspielen-anmeldung-und-tls.md) um eine eigene Zertifizierungsstelle |
 | [0020](0020-antwortvergleich-beim-einspielen.md) | ergänzt [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) um den Antwortvergleich |
 | [0021](0021-vergleichsregeln-beim-einspielen.md) | ergänzt [0020](0020-antwortvergleich-beim-einspielen.md); mit `--compare-responses` ersetzt der Vergleich die Fehlerregel von [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) für Fehlerantworten, sonst gilt [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) unverändert |
+| [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | ersetzt [0021](0021-vergleichsregeln-beim-einspielen.md) mit gleicher Entscheidung und genauerem Text |
