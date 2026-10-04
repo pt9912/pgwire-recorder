@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-23`](../../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client), [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0018](../../adr/0018-tls-zum-client.md)
 
-**Berührte Spec-Stellen:** `LH-FA-23.a` · `LH-FA-05.c` · `LH-FA-05.e` · `SPEC-034` · `SPEC-033` · `ARC-006` · `ARC-005`
+**Berührte Spec-Stellen:** `LH-FA-23.a` · `LH-FA-05.c` · `LH-FA-05.e` · `SPEC-018` · `SPEC-019` · `SPEC-020` · `SPEC-034` · `SPEC-033` · `ARC-006` · `ARC-005`
 
 **Verantwortlich:** —
 
@@ -45,8 +45,8 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-23`](../../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client): Ein Client verbindet sich verschlüsselt, `record` zeichnet auf und `replay` liefert die Aufzeichnung aus, jeweils wie bei einer unverschlüsselten Verbindung; dieselbe Aufzeichnung ist über beide Verbindungsarten gleich (Abnahmeszenario 15; Integrationstest).
-- [ ] Ohne Konfiguration wird `SSLRequest` mit `N` beantwortet; mit Konfiguration wird ein unverschlüsselter Client mit `PGR-E6003` abgewiesen, mit `--allow-plaintext` zugelassen (Test).
-- [ ] Nicht lesbare, ungültige oder nicht passende Dateien beenden den Start mit `PGR-E2007` und Exit-Code 2, ein gescheiterter Handshake endet mit `PGR-W3002` ohne Wirkung auf den Exit-Code; Schlüssel erscheinen weder in Logs noch in `config show` (Test).
+- [ ] Ohne Konfiguration wird `SSLRequest` mit `N` beantwortet; mit Konfiguration wird ein unverschlüsselter Client (auch nach `GSSENCRequest`) mit `PGR-E6003` abgewiesen, mit `--allow-plaintext` zugelassen, ein Klartext-`CancelRequest` bleibt `PGR-W3001`; mehrere Verbindungen nacheinander funktionieren; `--tls-key` allein und `--allow-plaintext` ohne `--tls-cert` sind `PGR-E2001` (Test).
+- [ ] Nicht lesbare, ungültige, abgelaufene, verschlüsselte oder nicht passende Dateien beenden den Start mit `PGR-E2007` und Exit-Code 2, ein gescheiterter Handshake endet mit `PGR-W3002` ohne Wirkung auf den Exit-Code; Schlüssel erscheinen weder in Logs noch in `config show` (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -74,7 +74,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, und [ADR-0018](../../adr/0018-tls-zum-client.md) ist `Accepted`.
+**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, `slice-v1-abschluss-sessions` ist `done`, und [ADR-0018](../../adr/0018-tls-zum-client.md) ist `Accepted`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

@@ -2,7 +2,7 @@
 
 Version: 0.1  
 Software-Version: noch nicht veröffentlicht  
-Stand: 03.10.2026  
+Stand: 04.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für `pgwire-recorder` ab der ersten veröffentlichten Version
 
@@ -210,7 +210,15 @@ zum Beispiel wenn ein Treiber Verschlüsselung verlangt.
 
 #### Voraussetzung
 
-Ein Zertifikat samt privatem Schlüssel liegt als PEM-Datei vor.
+Ein Zertifikat samt privatem Schlüssel liegt als PEM-Datei vor. Der Schlüssel darf
+nicht mit einem Passwort geschützt sein. Für einen Test erzeugen Sie beides zum
+Beispiel mit OpenSSL (der Name `localhost` ist der, den Ihre Anwendung verwendet):
+
+```bash
+openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
+  -keyout server-key.pem -out server.pem \
+  -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost"
+```
 
 #### Vorgehen
 
@@ -235,9 +243,13 @@ lässt sich mit und ohne sie wiedergeben.
 
 #### Hinweise
 
-* Die Optionen gelten nur zusammen. Ist eine Datei nicht lesbar, ungültig oder
-  gehören Zertifikat und Schlüssel nicht zusammen, endet der Start mit
-  `PGR-E2007`.
+* Die Optionen gelten nur zusammen. Ist eine Datei nicht lesbar oder kein gültiges
+  PEM, ist das Zertifikat abgelaufen, ist der Schlüssel mit einem Passwort geschützt
+  oder gehören Zertifikat und Schlüssel nicht zusammen, endet der Start mit
+  `PGR-E2007`. Relative Pfade gelten ab dem aktuellen Verzeichnis.
+* Ob der Name im Zertifikat zum Host passt und ob das Zertifikat vertrauenswürdig
+  ist, prüft Ihre Anwendung. Bei einem selbst erzeugten Zertifikat hinterlegen Sie
+  es dort als vertrauenswürdig.
 * Ist Verschlüsselung eingerichtet, weist das Werkzeug unverschlüsselte
   Verbindungen ab (`PGR-E6003`). Mit `--allow-plaintext` lässt es beides zu.
 * Scheitert die Verschlüsselung einer einzelnen Verbindung, schließt das Werkzeug
@@ -296,7 +308,10 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   Name, Typ), den Befehl, Fehler (Fehlercode) und den Transaktionsstatus. Zeilenwerte,
   Zeilenzahlen und Hinweise der Datenbank vergleicht es nicht. Bei einer Abweichung
   endet das Einspielen mit `PGR-E5004` und Exit-Code 5; mit `--continue-on-error`
-  läuft es weiter.
+  läuft es weiter. Auch ein Fehler der Datenbank, den die Aufzeichnung nicht
+  enthält, ist dann eine Abweichung (`PGR-E5004` statt `PGR-E4004`). Treten mehrere
+  Ursachen auf, gilt der Exit-Code der zuerst aufgetretenen. Anfragen, deren
+  Aufzeichnung nicht bis zum Ende der Antwort reicht, vergleicht das Werkzeug nicht.
 * Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
   ab (`PGR-E4004`). Mit `--continue-on-error` läuft es weiter und endet am Ende
   mit Exit-Code 4. Mit `--allow-recorded-errors` gilt ein Fehler nicht, wenn auch
@@ -517,7 +532,7 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte und `sslmode` (erlaubt sind `disable` und `require`). |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Setzen Sie die Variable, die als `${VAR}` in der benutzten Verbindung steht. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Ersetzen Sie das Passwort in der URL durch einen Platzhalter `${VAR}`. |
-| `PGR-E2007` | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht verwendbar | Die Datei fehlt, ist nicht lesbar oder kein gültiges PEM, oder Zertifikat und Schlüssel gehören nicht zusammen. Prüfen Sie `--tls-cert`, `--tls-key` und `--upstream-ca`. |
+| `PGR-E2007` | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht verwendbar | Die Datei fehlt, ist nicht lesbar oder kein gültiges PEM, oder Zertifikat und Schlüssel gehören nicht zusammen. Prüfen Sie `--tls-cert`, `--tls-key` und `--upstream-ca`; ein abgelaufenes Zertifikat und ein Schlüssel mit Passwort sind nicht zulässig. |
 | `PGR-E3000`, `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, oder Sie haben keine Rechte. Prüfen Sie Pfad und Dateirechte. |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Zeichnen Sie erneut auf. |
@@ -540,8 +555,8 @@ Beispiel `Replay [PGR-E5001]: …`.
 | Code | Bedeutung | Hinweis |
 |---|---|---|
 | `PGR-W2001` | Wiedergabe endete vor der letzten aufgezeichneten Anfrage | Ihr Test hat nicht alle aufgezeichneten Anfragen ausgeführt. Mit `--fail-on-unconsumed` wird das zum Fehler. |
-| `PGR-W3002` | Verschlüsselung einer Verbindung gescheitert | Die Anwendung hat die Aushandlung abgebrochen oder das Zertifikat nicht akzeptiert. Prüfen Sie, ob die Anwendung dem Zertifikat des Werkzeugs vertraut. |
 | `PGR-W3001` | Abbruchwunsch nicht weitergeleitet | Die Anwendung hat versucht, eine laufende Anfrage abzubrechen. Das Werkzeug leitet diesen Wunsch nicht weiter und schließt die Verbindung. |
+| `PGR-W3002` | Verschlüsselung einer Verbindung gescheitert | Die Anwendung hat die Aushandlung abgebrochen oder das Zertifikat nicht akzeptiert. Prüfen Sie, ob die Anwendung dem Zertifikat des Werkzeugs vertraut. |
 
 ### Die Anwendung kann sich nicht verbinden
 
