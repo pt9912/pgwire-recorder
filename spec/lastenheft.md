@@ -733,8 +733,11 @@ Wahl nach LH-FA-20. Ohne den Wunsch findet kein Vergleich statt (LH-FA-20).
   Abweichung; given ein Fehler des Servers, den die Aufzeichnung genauso enthält,
   when verglichen wird, then bricht er den Lauf nicht ab und ist keine Abweichung;
   given eine Aufzeichnung, die nicht bis zum Ende der Antwort reicht, when
-  verglichen wird, then wird verglichen, soweit sie reicht; given kein Wunsch nach
-  Vergleich, when eingespielt wird, then wird nicht verglichen.
+  verglichen wird, then wird verglichen, soweit sie reicht, und ein Fehler des
+  Servers ohne Vorbild in der Aufzeichnung bleibt eine Abweichung; given ein
+  Verbindungsende, das die Aufzeichnung ebenfalls zeigt und das der Server genauso
+  verursacht, when verglichen wird, then gilt es als erwartet; given kein Wunsch
+  nach Vergleich, when eingespielt wird, then wird nicht verglichen.
 - **Negative:** Given eine Antwort mit abweichender Struktur oder einem
   abweichenden Fehler, wozu auch ein Fehler des Servers gehört, den die
   Aufzeichnung nicht enthält, when verglichen wird, then wird die Abweichung mit
