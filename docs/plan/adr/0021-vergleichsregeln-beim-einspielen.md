@@ -1,6 +1,6 @@
 # ADR-0021: Vergleichsregeln beim Einspielen
 
-**Status:** Superseded by [ADR-0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md)
+**Status:** Superseded by [ADR-0023](0023-antwortvergleich-entscheidung.md)
 
 **Datum:** 2026-10-04
 

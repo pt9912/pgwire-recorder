@@ -1,6 +1,6 @@
 # ADR-0022: Vergleichsregeln beim Einspielen, präzisiert
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0023](0023-antwortvergleich-entscheidung.md)
 
 **Datum:** 2026-10-04
 
@@ -53,5 +53,6 @@ Wenn Gruppen in der Meldung bestimmbar sein müssen, Anwender einzelne aufgezeic
 |---|---|---|
 | 2026-10-04 | Proposed; Supersedes ADR-0021 | [ADR-0021](0021-vergleichsregeln-beim-einspielen.md) |
 | 2026-10-04 | Accepted | — |
+| 2026-10-04 | Superseded by ADR-0023 | [ADR-0023](0023-antwortvergleich-entscheidung.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

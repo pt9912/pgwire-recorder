@@ -160,6 +160,21 @@ Was daneben steht, liest jeder Lauf mit und bezahlt es mit Kontext.
 
 
 
+### 3.8 Eine ADR trägt Entscheidung und Gründe, keine Regeldetails
+
+Eine ADR hält fest, was entschieden wurde und warum. Die Regeln im Einzelnen
+(Fälle, Ausnahmen, Codes, Rangfolgen) stehen in der Spezifikation; die ADR zeigt
+über `Schärft:` auf sie und wiederholt sie nicht.
+
+**Falsch:** die Fallunterscheidungen einer Spezifikationsstelle in der ADR
+nacherzählen.
+**Richtig:** die Entscheidung, die Alternativen und die Gründe nennen und für die
+Einzelregeln auf die Spezifikationsstelle zeigen.
+
+**Begründung:** Angenommene ADRs sind unveränderlich (3.5). Eine wiederholte Regel
+veraltet mit der Spezifikation und zwingt zu einer Ersetzungs-ADR, die nur den
+Text berichtigt.
+
 ## 4. Quality Gates
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-harness-dateien.md`
