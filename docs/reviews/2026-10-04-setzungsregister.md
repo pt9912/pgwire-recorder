@@ -9,7 +9,6 @@
 | Empfehlung | Bedeutung |
 |---|---|
 | **heben** | ins Lastenheft aufnehmen (Lastenheft-Commit vor den abhängigen Dokumenten; das Lastenheft ist `Draft`, ein Change Request entfällt) |
-| **angleichen** | die Spezifikation widerspricht dem Lastenheft; eine der beiden Seiten ändern |
 | **übernehmen** | bleibt Präzisierung in der Spezifikation, das Lastenheft engt nicht ein |
 | **erledigt** | durch spätere Änderungen getragen |
 
@@ -21,12 +20,12 @@
 | S-2 | Veröffentlichung in `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder` | LH-FA-16.a, SPEC-031, Releasing | **heben** in `LH-FA-16`: das Abnahmeszenario 9 braucht einen Fundort | |
 | S-8 | Windows-Konsolenabbruch entspricht `SIGINT` | LH-FA-13.a | **übernehmen**, sofern S-1 gehoben wird (Folge der Plattformwahl) | |
 | S-9 | Reproduzierbarer Build für Binary und Image als Closure-Bedingung | Releasing, Welle, Slice | **heben** in `LH-QA-01` oder streichen; ohne Lastenheft-Anker ist es eine Prozessforderung | |
-| S-11 | `PGR-E4002` und `PGR-E4003` beenden das Einspielen immer | LH-FA-20.a | **angleichen**: `LH-FA-20` (Negative) lässt Weiterlaufen bei „nicht erreichbarer Server" zu. Empfehlung: Lastenheft präzisieren (Verbindungsfehler beenden immer) | |
+| S-11 | `PGR-E4002` und `PGR-E4003` beenden das Einspielen immer | LH-FA-20.a | **erledigt** (`e0ea6a5`): das Lastenheft sagt jetzt, dass nicht erreichbarer Server, fehlgeschlagene Anmeldung und abgebrochene Verbindung immer abbrechen; Weiterlaufen gilt nur für Fehlerantworten auf Anfragen | |
 | S-12 | Passwort nur über `PGWIRE_RECORDER_PASSWORD` oder Platzhalter; `--user` und `--database` für alle Sessions | LH-FA-20.a, LH-FA-17.a | **heben** in `LH-FA-20`: „Zugangsdaten nicht als Option" | |
 | S-13 | Zeitmodell: `offset_ms` ab Sessionbeginn, je Session eigene Uhr, kein Zeitbezug zwischen Sessions | LH-FA-21.a | **übernehmen** mit einem Satz im Lastenheft („Sessions laufen ohne gegenseitigen Zeitbezug") | |
 | S-15 | Abnahmeszenario 11 (Homebrew) ist keine Bedingung von M3; Nachweis mit dem ersten stabilen Release | Roadmap, Welle, Releasing | **übernehmen** als Planungsentscheidung; das Lastenheft nennt Szenario 11 weiter als Abnahmekriterium von v1 | |
 | S-20 | `PGWIRE_RECORDER_PASSWORD` ist Rückfall hinter dem Passwort der Verbindung | LH-FA-17.a, LH-FA-20.a | **übernehmen**, mit S-12 heben | |
-| S-21 | `config show` zeigt den Dateiinhalt, nicht die wirksame Konfiguration aus allen Quellen | LH-FA-17.a | **angleichen**: `LH-FA-17` sagt „Die wirksame Konfiguration lässt sich anzeigen". Entweder das Lastenheft auf „Inhalt der gewählten Datei" ändern oder die Anzeige um Umgebung und Optionen erweitern (ohne Geheimnisse) | |
+| S-21 | `config show` zeigt den Dateiinhalt, die aktiven Umgebungsvariablen nur mit Namen | LH-FA-17.a | **übernehmen**: `LH-FA-17` sagt „Die gewählte Konfiguration lässt sich anzeigen, ohne Geheimnisse preiszugeben"; die frühere Lesart „wirksame Konfiguration" stand nicht im Lastenheft. Kein Widerspruch | |
 | S-22 | Anmeldung am Server mit Klartext, MD5 und SCRAM-SHA-256; Zertifikat gegen den Systemspeicher, kein Überspringen | LH-FA-20.a | **heben** in `LH-FA-20` (Authentifizierung und Prüfung stehen dort schon allgemein); das Problem der selbst signierten Zertifikate ist durch `--upstream-ca` gelöst | |
 | S-28 | TLS-Mindestversion 1.2 | LH-FA-23.a | **übernehmen**, in `LH-FA-23` ein Satz „zeitgemäße Verfahren" ohne Zahl | |
 | S-35 | Interaktion ohne `ready_for_query` wird nicht verglichen | LH-FA-24.a | **erledigt**: das Lastenheft sagt jetzt „verglichen, soweit sie reicht" | |
@@ -62,4 +61,4 @@ S-31, S-32, S-36, S-41, S-43, S-35 (siehe A).
 
 ## Entscheidungsbedarf
 
-Die Zeilen mit **angleichen** (S-11, S-21) sind echte Widersprüche zwischen Spezifikation und Lastenheft; dort gilt das Lastenheft, bis es geändert wird. Die Zeilen mit **heben** machen die Spezifikation tragfähig, ohne dass sich das Verhalten ändert. Nach der Entscheidung geht jede gehobene Setzung als Lastenheft-Commit voraus; die abhängigen Dokumente ziehen danach nach.
+Die Widersprüche S-11 und S-21 sind aufgelöst: S-11 durch eine Lastenheft-Änderung, S-21 war ein Lesefehler. Die Zeilen mit **heben** machen die Spezifikation tragfähig, ohne dass sich das Verhalten ändert. Nach der Entscheidung geht jede gehobene Setzung als Lastenheft-Commit voraus; die abhängigen Dokumente ziehen danach nach.
