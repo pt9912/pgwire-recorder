@@ -11,12 +11,19 @@ import (
 	"github.com/pt9912/pgwire-recorder/internal/bootstrap"
 )
 
-// version setzt der Build per -ldflags (Dockerfile, Stufe build).
+// version setzt der Build per -ldflags (Dockerfile, Stufe build); das Kommando
+// `version` gibt sie aus.
 var version = "dev"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	code := bootstrap.Run(ctx, os.Args[1:], os.Stdout, os.Stderr)
+	// Nach dem ersten Signal gilt wieder das Standardverhalten: ein zweites
+	// beendet den Prozess sofort.
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
+	code := bootstrap.Run(ctx, os.Args[1:], version, os.Stdout, os.Stderr)
 	stop()
 	os.Exit(code)
 }

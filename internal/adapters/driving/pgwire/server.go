@@ -1,18 +1,28 @@
 package pgwire
 
 import (
+	"bufio"
 	"context"
+	"encoding/binary"
 	"errors"
 	"io"
 	"log/slog"
 	"net"
-	"strconv"
 	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driving"
+)
+
+// Startcodes der ersten Client-Nachricht (PGWire).
+const (
+	codeProtocol30    = 196608   // 3.0
+	codeCancelRequest = 80877102 // 1234.5678
+	codeSSLRequest    = 80877103 // 1234.5679
+	codeGSSEncRequest = 80877104 // 1234.5680
 )
 
 // Server nimmt PostgreSQL-Clients an und übersetzt ihre Nachrichten in Aufrufe
@@ -22,6 +32,9 @@ type Server struct {
 	Log      *slog.Logger
 
 	wg sync.WaitGroup
+
+	mu        sync.Mutex
+	firstCode string
 }
 
 // Listen öffnet den TCP-Endpunkt; ein nicht zu öffnender Port ist PGR-E4001.
@@ -33,14 +46,28 @@ func Listen(address string) (net.Listener, error) {
 	return l, nil
 }
 
-// Serve nimmt Verbindungen an, bis der Listener geschlossen wird, und wartet
-// danach, bis alle Verbindungen beendet sind.
+// FirstErrorCode liefert den Meldungscode des ersten Verbindungsfehlers des
+// Laufs oder "" (LH-FA-13.b).
+func (s *Server) FirstErrorCode() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.firstCode
+}
+
+// Serve nimmt Verbindungen an, bis der Listener geschlossen wird. Endet ctx,
+// endet jede Verbindung nach ihrer laufenden Interaktion; Serve kehrt zurück,
+// wenn alle Verbindungen beendet sind.
 func (s *Server) Serve(ctx context.Context, l net.Listener) {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			s.wg.Wait()
-			return
+			if errors.Is(err, net.ErrClosed) {
+				s.wg.Wait()
+				return
+			}
+			s.Log.Error("Verbindung nicht anzunehmen", "code", model.CodeListen, "error", err.Error())
+			time.Sleep(100 * time.Millisecond)
+			continue
 		}
 		s.wg.Add(1)
 		go func() {
@@ -52,9 +79,23 @@ func (s *Server) Serve(ctx context.Context, l net.Listener) {
 
 func (s *Server) handle(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
-	be := pgproto3.NewBackend(conn, conn)
 
-	startup, ok := s.startup(conn, be)
+	// Endet ctx, bricht das Lesen der nächsten Client-Nachricht ab; eine
+	// laufende Interaktion läuft zu Ende.
+	fertig := make(chan struct{})
+	defer close(fertig)
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.SetReadDeadline(time.Now())
+		case <-fertig:
+		}
+	}()
+
+	br := bufio.NewReader(conn)
+	be := pgproto3.NewBackend(br, conn)
+
+	startup, ok := s.startup(conn, br, be)
 	if !ok {
 		return
 	}
@@ -66,19 +107,25 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 	}
 	if id == 0 {
 		// Der Server hat den Aufbau mit einer Fehlerantwort beendet.
-		s.send(be, responses)
+		if err := s.send(be, responses); err != nil {
+			s.Log.Warn("Fehlerantwort des Servers nicht an den Client zu senden", "code", model.CodeConnectionLost, "error", err.Error())
+		}
 		return
 	}
 	be.Send(&pgproto3.AuthenticationOk{})
-	s.send(be, responses)
+	if err := s.send(be, responses); err != nil {
+		s.lost(err)
+		s.close(ctx, id, model.EndNormal)
+		return
+	}
 
 	for {
 		msg, err := be.Receive()
 		if err != nil {
-			if !errors.Is(err, io.EOF) {
-				s.Log.Warn("Client-Verbindung beendet", "error", err.Error())
+			if !errors.Is(err, io.EOF) && ctx.Err() == nil {
+				s.lost(err)
 			}
-			s.close(ctx, id)
+			s.close(ctx, id, model.EndNormal)
 			return
 		}
 		switch m := msg.(type) {
@@ -86,28 +133,52 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 			out, err := s.Recorder.Query(ctx, id, m.String)
 			if err != nil {
 				s.fail(be, err)
-				s.close(ctx, id)
+				s.close(ctx, id, endFor(err))
 				return
 			}
-			s.send(be, out)
+			if err := s.send(be, out); err != nil {
+				s.lost(err)
+				s.close(ctx, id, model.EndLost)
+				return
+			}
 		case *pgproto3.Terminate:
-			s.close(ctx, id)
+			s.close(ctx, id, model.EndNormal)
 			return
 		default:
 			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "Client-Nachricht %T wird nicht unterstützt", m))
-			s.close(ctx, id)
+			s.close(ctx, id, model.EndUnsupported)
 			return
 		}
 	}
 }
 
-// startup liest die StartupMessage. SSL- und GSS-Anfragen beantwortet er mit
-// „N“ (LH-FA-05.c); ein CancelRequest schließt die Verbindung (PGR-W3001).
-func (s *Server) startup(conn net.Conn, be *pgproto3.Backend) (*pgproto3.StartupMessage, bool) {
+// startup liest die erste Client-Nachricht. SSL- und GSS-Anfragen beantwortet
+// er mit „N“ (LH-FA-05.c), ein CancelRequest schließt die Verbindung
+// (PGR-W3001), eine andere Protokollversion als 3.0 ist PGR-E6002 (LH-FA-05.e).
+// Der Startcode wird vor pgproto3 gelesen, weil die Bibliothek unbekannte
+// Codes ohne Antwort ablehnt.
+func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) (*pgproto3.StartupMessage, bool) {
 	for {
+		kopf, err := br.Peek(8)
+		if err != nil {
+			// Eine Verbindung ohne Startnachricht, zum Beispiel eine TCP-Probe.
+			s.Log.Debug("Verbindung ohne Startnachricht beendet", "error", err.Error())
+			return nil, false
+		}
+		code := binary.BigEndian.Uint32(kopf[4:8])
+		switch {
+		case code == codeSSLRequest || code == codeGSSEncRequest || code == codeCancelRequest || code == codeProtocol30:
+		case code>>16 >= 1 && code>>16 <= 3:
+			s.fail(be, model.Errorf(model.CodeProtocolVersion, nil, "Protokollversion %d.%d wird nicht unterstützt", code>>16, code&0xffff))
+			return nil, false
+		default:
+			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "unbekannte Startnachricht (Code %d)", code))
+			return nil, false
+		}
+
 		msg, err := be.ReceiveStartupMessage()
 		if err != nil {
-			s.Log.Warn("Verbindungsaufbau des Clients gescheitert", "error", err.Error())
+			s.fail(be, model.Errorf(model.CodeUnsupported, err, "Startnachricht nicht lesbar"))
 			return nil, false
 		}
 		switch m := msg.(type) {
@@ -119,53 +190,83 @@ func (s *Server) startup(conn net.Conn, be *pgproto3.Backend) (*pgproto3.Startup
 			s.Log.Warn("CancelRequest empfangen und nicht weitergeleitet", "code", model.CodeCancelRequest)
 			return nil, false
 		case *pgproto3.StartupMessage:
-			if m.ProtocolVersion != pgproto3.ProtocolVersionNumber {
-				s.fail(be, model.Errorf(model.CodeProtocolVersion, nil, "Protokollversion %d wird nicht unterstützt", m.ProtocolVersion))
-				return nil, false
-			}
 			return m, true
 		default:
-			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "Startup-Nachricht %T wird nicht unterstützt", m))
+			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "Startnachricht %T wird nicht unterstützt", m))
 			return nil, false
 		}
 	}
 }
 
-func (s *Server) close(ctx context.Context, id model.SessionID) {
-	if err := s.Recorder.CloseSession(ctx, id); err != nil {
-		s.logError(err)
+func endFor(err error) model.SessionEnd {
+	var me *model.Error
+	if errors.As(err, &me) && me.Code == model.CodeUnsupported {
+		return model.EndUnsupported
+	}
+	return model.EndNormal
+}
+
+func (s *Server) close(ctx context.Context, id model.SessionID, end model.SessionEnd) {
+	if err := s.Recorder.CloseSession(context.WithoutCancel(ctx), id, end); err != nil {
+		s.note(err)
 	}
 }
 
-// fail protokolliert den Fehler und stellt ihn dem Client als FATAL-ErrorResponse
-// mit dem Meldungscode im Text zu.
+// fail merkt sich den Fehler und stellt ihn dem Client als FATAL-ErrorResponse
+// mit dem Meldungscode im Text zu (LH-FA-13.b).
 func (s *Server) fail(be *pgproto3.Backend, err error) {
-	s.logError(err)
-	be.Send(&pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "08006", Message: err.Error()})
+	code := s.note(err)
+	be.Send(&pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: sqlstate(code), Message: err.Error()})
 	_ = be.Flush()
 }
 
-func (s *Server) logError(err error) {
+// lost meldet ein unerwartetes Ende der Client-Verbindung (PGR-E4003).
+func (s *Server) lost(err error) {
+	s.note(model.Errorf(model.CodeConnectionLost, err, "Client-Verbindung unerwartet beendet"))
+}
+
+// note protokolliert einen Verbindungsfehler, merkt sich den ersten und
+// liefert seinen Meldungscode.
+func (s *Server) note(err error) string {
 	code := model.CodeInternal
 	var me *model.Error
 	if errors.As(err, &me) {
 		code = me.Code
 	}
+	s.mu.Lock()
+	if s.firstCode == "" {
+		s.firstCode = code
+	}
+	s.mu.Unlock()
 	s.Log.Error("Verbindungsfehler", "code", code, "error", err.Error())
+	return code
 }
 
-func (s *Server) send(be *pgproto3.Backend, responses []model.Response) {
+// sqlstate wählt den SQLSTATE der Fehlerantwort nach der Klasse des
+// Meldungscodes: nicht unterstützt 0A000, Netzwerk 08006, sonst XX000.
+func sqlstate(code string) string {
+	switch {
+	case len(code) >= 6 && code[5] == '6':
+		return "0A000"
+	case len(code) >= 6 && code[5] == '4':
+		return "08006"
+	default:
+		return "XX000"
+	}
+}
+
+func (s *Server) send(be *pgproto3.Backend, responses []model.Response) error {
 	for _, r := range responses {
-		if msg := toMessage(r); msg != nil {
-			be.Send(msg)
+		msg, err := toMessage(r)
+		if err != nil {
+			return err
 		}
+		be.Send(msg)
 	}
-	if err := be.Flush(); err != nil {
-		s.Log.Warn("Antwort an den Client nicht zu senden", "error", err.Error())
-	}
+	return be.Flush()
 }
 
-func toMessage(r model.Response) pgproto3.BackendMessage {
+func toMessage(r model.Response) (pgproto3.BackendMessage, error) {
 	switch r.Type {
 	case model.ResponseRowDescription:
 		fields := make([]pgproto3.FieldDescription, len(r.Columns))
@@ -180,7 +281,7 @@ func toMessage(r model.Response) pgproto3.BackendMessage {
 				Format:               c.Format,
 			}
 		}
-		return &pgproto3.RowDescription{Fields: fields}
+		return &pgproto3.RowDescription{Fields: fields}, nil
 	case model.ResponseDataRow:
 		vals := make([][]byte, len(r.Values))
 		for i, v := range r.Values {
@@ -188,72 +289,25 @@ func toMessage(r model.Response) pgproto3.BackendMessage {
 				vals[i] = append([]byte{}, v.Bytes...)
 			}
 		}
-		return &pgproto3.DataRow{Values: vals}
+		return &pgproto3.DataRow{Values: vals}, nil
 	case model.ResponseCommandComplete:
-		return &pgproto3.CommandComplete{CommandTag: []byte(r.Tag)}
+		return &pgproto3.CommandComplete{CommandTag: []byte(r.Tag)}, nil
 	case model.ResponseEmptyQueryResponse:
-		return &pgproto3.EmptyQueryResponse{}
+		return &pgproto3.EmptyQueryResponse{}, nil
 	case model.ResponseErrorResponse:
 		e := errorResponse(r.Fields)
-		return &e
+		return &e, nil
 	case model.ResponseNoticeResponse:
 		e := pgproto3.NoticeResponse(errorResponse(r.Fields))
-		return &e
+		return &e, nil
 	case model.ResponseParameterStatus:
-		return &pgproto3.ParameterStatus{Name: r.Name, Value: r.Value}
+		return &pgproto3.ParameterStatus{Name: r.Name, Value: r.Value}, nil
 	case model.ResponseReadyForQuery:
-		tx := byte('I')
-		if r.TxStatus != "" {
-			tx = r.TxStatus[0]
+		if len(r.TxStatus) != 1 {
+			return nil, model.Errorf(model.CodeInternal, nil, "ReadyForQuery ohne Transaktionsstatus")
 		}
-		return &pgproto3.ReadyForQuery{TxStatus: tx}
+		return &pgproto3.ReadyForQuery{TxStatus: r.TxStatus[0]}, nil
 	default:
-		return nil
+		return nil, model.Errorf(model.CodeInternal, nil, "Antworttyp %q ohne Abbildung", r.Type)
 	}
-}
-
-func errorResponse(f map[string]string) pgproto3.ErrorResponse {
-	num := func(code string) int32 {
-		n, _ := strconv.ParseInt(f[code], 10, 32)
-		return int32(n)
-	}
-	e := pgproto3.ErrorResponse{
-		Severity:            f["S"],
-		SeverityUnlocalized: f["V"],
-		Code:                f["C"],
-		Message:             f["M"],
-		Detail:              f["D"],
-		Hint:                f["H"],
-		Position:            num("P"),
-		InternalPosition:    num("p"),
-		InternalQuery:       f["q"],
-		Where:               f["W"],
-		SchemaName:          f["s"],
-		TableName:           f["t"],
-		ColumnName:          f["c"],
-		DataTypeName:        f["d"],
-		ConstraintName:      f["n"],
-		File:                f["F"],
-		Line:                num("L"),
-		Routine:             f["R"],
-	}
-	known := "SVCMDHPpqWstcdnFLR"
-	for k, v := range f {
-		if len(k) == 1 && !containsByte(known, k[0]) {
-			if e.UnknownFields == nil {
-				e.UnknownFields = map[byte]string{}
-			}
-			e.UnknownFields[k[0]] = v
-		}
-	}
-	return e
-}
-
-func containsByte(s string, b byte) bool {
-	for i := 0; i < len(s); i++ {
-		if s[i] == b {
-			return true
-		}
-	}
-	return false
 }

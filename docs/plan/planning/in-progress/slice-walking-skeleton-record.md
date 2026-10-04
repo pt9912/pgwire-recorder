@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-06`](../../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats), [ADR-0003](../../adr/0003-pgwire-server-ist-driving-adapter.md), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0005](../../adr/0005-recording-store-ist-driven-adapter.md), [ADR-0006](../../adr/0006-kanonisches-domain-model.md)
 
-**Berührte Spec-Stellen:** `ARC-001` · `ARC-002` · `ARC-003` · `ARC-004` · `ARC-005` · `ARC-006` · `ARC-007` · `ARC-008` · `ARC-009` · `SPEC-001` · `SPEC-002`
+**Berührte Spec-Stellen:** `ARC-001` · `ARC-002` · `ARC-003` · `ARC-004` · `ARC-005` · `ARC-006` · `ARC-007` · `ARC-008` · `ARC-009` · `ARC-013` · `SPEC-001` · `SPEC-002` · `SPEC-003` · `SPEC-004` · `SPEC-034` · `LH-FA-02.a` · `LH-FA-02.b` · `LH-FA-05.c` · `LH-FA-05.e` · `LH-FA-07.a` · `LH-FA-13.b`
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -34,9 +34,10 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Replay — `slice-walking-skeleton-replay`; hier genügt ein Roundtrip-Test des Recording-Adapters.
-- Fehlerantworten und Fehlerreplay — welle-replay-semantik; hier nur die erfolgreiche Query.
-- Mehrere parallele Sessions — welle-v1-abschluss; hier genau eine Session.
-- Atomares Schreiben und Signalbehandlung — welle-v1-abschluss; hier wird das Recording am Ende des Laufs geschrieben.
+- Fehlerreplay — welle-replay-semantik; Fehlerantworten des Servers werden hier nur vermittelt und aufgezeichnet.
+- Zuordnung und Kennungen paralleler Sessions nach LH-FA-12.a — welle-v1-abschluss; hier werden gleichzeitige Verbindungen vermittelt und in der Reihenfolge ihres Endes übernommen.
+- Signalbehandlung nach LH-FA-13.a (zweites Signal, Abschluss der laufenden Session) — welle-v1-abschluss; hier endet der Lauf auf SIGINT oder SIGTERM nach der laufenden Interaktion, ein zweites Signal beendet sofort.
+- Anmeldeverfahren des Upstreams — hier nur ein Upstream ohne Passwort-Anmeldung (siehe §6).
 
 
 ## 2. Definition of Done
@@ -74,7 +75,10 @@ Aussagen-Berührung steht hier gar nicht.
 | `test/integration` | neu | Happy: `SELECT 1;`; Negative: Upstream nicht erreichbar |
 | `tools/test/run-integration-tests.sh`, `harness/mk/integration.mk`, `docs/user/e2e-abdeckung.md`, `.d-check.yml` (`trace.coverage`) | neu | Der Integrationstest-Runner startet PostgreSQL und das Testimage in einem eigenen Docker-Netz und schreibt die E2E-Abdeckungstabelle aus den Abdeckungs-Zeilen der Tests; `.d-check.yml` bindet sie unter `trace.coverage` ein (Vorbild: `pg-change-feed`) |
 | `Dockerfile`, `.dockerignore`, `harness/mk/build.mk`, `go.mod`, `go.sum` | neu / update | Multistage-Build nach [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md): Download-Stufe mit Netz, Build-, Test- und Integrationsstufe netzlos, Produkt-Image als `runtime`; `make go-mod-tidy` als Werkzeug |
-| `.a-check.yml` (`tech`) | update | YAML-Bibliothek `go.yaml.in/yaml/v3`, der gepflegte Nachfolger von `gopkg.in/yaml.v3` |
+| `.a-check.yml` (`tech`) | update | YAML-Bibliothek `go.yaml.in/yaml/v3` nach [ADR-0027](../../adr/0027-yaml-bibliothek.md); beide Modulpfade auf den Recording-Adapter beschränkt |
+| `tools/test/abdeckung.sh`, `harness/mk/abdeckung.mk`, `docs/user/*-abdeckung.md`, `docs/user/abdeckung-gesamt.md`, `docs/user/abdeckung-vollstaendig.md` | neu | Abdeckung je Anforderung und Pfad aus den Deklarationen der Tests; `trace.coverage` liest nur die vollständig belegten Anforderungen |
+| `internal/adapters/*/…_test.go`, `internal/hexagon/services/record_test.go` | neu / update | Protokollrand, Upstream-Fälle, Session-Ende, Nebenläufigkeit, Leser-Prüfungen |
+| `harness/mk/vorgaben.mk` | neu | Verweis-Nachzug von `make slice-mv` lässt die Review-Reports aus |
 
 ## 4. Trigger
 
@@ -104,7 +108,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Startup-/Authentifizierungsverfahren des Upstreams (z. B. SCRAM) sind für die Weiterleitung noch nicht eingegrenzt; dieser Stand vermittelt nur einen Upstream ohne Passwort-Anmeldung und meldet jedes Anmeldeverfahren mit `PGR-E6001` — **Ausgang:** offen bis Closure.
-- Der Recording-Zeitpunkt (Ende des Laufs) lässt bei einem Abbruch kein Recording zurück — bewusst, Behandlung in welle-v1-abschluss — **Ausgang:** offen bis Closure.
+- Die Aufzeichnung wird nach jeder beendeten Session und am Ende des Laufs geschrieben; ein Abbruch per SIGKILL verliert die laufenden Sessions — bewusst, Behandlung in welle-v1-abschluss — **Ausgang:** offen bis Closure.
 - `make build` und `make test` laufen netzlos; mit `pgproto3` braucht das Modul eine netzlose Quelle der Abhängigkeiten (zum Beispiel ein vendored Verzeichnis), sonst scheitert der Build — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz

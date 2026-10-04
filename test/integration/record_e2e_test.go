@@ -4,9 +4,9 @@
 // PostgreSQL-Instanz. Den Lauf startet `make test-integration`
 // (tools/test/run-integration-tests.sh); er setzt PGR_BINARY und PGR_UPSTREAM.
 //
-// Jeder Test TestE2E* trägt direkt darüber eine Zeile
-// `// Abdeckung: <Kennungen> — <Kurzbeschreibung>`; der Runner bildet daraus
-// docs/user/e2e-abdeckung.md.
+// Jeder Test TestE2E* trägt direkt darüber eine Abdeckungs-Deklaration
+// `// Abdeckung: <Anforderung>/<Pfad>, … — <Kurzbeschreibung>`; `make abdeckung`
+// bildet daraus docs/user/e2e-abdeckung.md.
 package integration
 
 import (
@@ -40,7 +40,10 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// Abdeckung: LH-FA-02, LH-FA-06, LH-FA-07 — ein Client führt `SELECT 1;` über `record` gegen eine reale PostgreSQL-Instanz aus und erhält deren Ergebnis; nach dem Beenden des Laufs steht die Interaktion geordnet in einer Aufzeichnung mit Formatkennung und Version.
+// Abdeckung: LH-FA-02/Happy, LH-FA-06/Happy, LH-FA-07/Happy — ein Client führt
+// `SELECT 1;` über `record` gegen eine reale PostgreSQL-Instanz aus und erhält
+// deren Ergebnis; nach dem Beenden des Laufs steht die Interaktion geordnet in
+// einer Aufzeichnung mit Formatkennung und Version.
 func TestE2ERecordSelect1(t *testing.T) {
 	output := filepath.Join(t.TempDir(), "rec.yaml")
 	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
@@ -97,7 +100,10 @@ func TestE2ERecordSelect1(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-02, LH-FA-13 — ist der Upstream nicht erreichbar, erhält der Client eine Fehlerantwort mit PGR-E4002; der Lauf geht weiter und endet beim Beenden mit Exit-Code 0 und einer gültigen Aufzeichnung ohne Session.
+// Abdeckung: LH-FA-02/Negative, LH-FA-13/Negative — ist der Upstream nicht
+// erreichbar, erhält der Client eine Fehlerantwort mit PGR-E4002; der Lauf geht
+// weiter und endet beim Beenden mit dem Exit-Code der Klasse dieses Fehlers (4)
+// und einer gültigen Aufzeichnung ohne Session.
 func TestE2ERecordUpstreamNichtErreichbar(t *testing.T) {
 	output := filepath.Join(t.TempDir(), "rec.yaml")
 	rec := startRecorder(t, "127.0.0.1:1", output)
@@ -109,11 +115,119 @@ func TestE2ERecordUpstreamNichtErreichbar(t *testing.T) {
 		t.Fatalf("erwartet Fehler mit %s, erhalten %v", codeUpstream, err)
 	}
 
-	rec.stop(t, 0)
+	rec.stop(t, 4)
 
 	text := lies(t, output)
 	if !strings.Contains(text, "format: pgwire-recorder") || !strings.Contains(text, "sessions: []") {
 		t.Fatalf("erwartet eine gültige Aufzeichnung ohne Session:\n%s", text)
+	}
+}
+
+// Abdeckung: LH-FA-06/Boundary, LH-FA-13/Happy — mehrere Interaktionen mit
+// mehreren Spalten und NULL stehen in Reihenfolge und mit ihren Werten in der
+// Aufzeichnung; ein fehlerfreier Lauf endet nach SIGTERM mit Exit-Code 0.
+func TestE2ERecordMehrereInteraktionen(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, err := pgconn.Connect(ctx, dsn(rec.listen))
+	if err != nil {
+		t.Fatalf("Verbindung über den Recorder: %v", err)
+	}
+	for _, q := range []string{"SELECT 'a' AS spalte_a, NULL AS spalte_b;", "SELECT 2 AS z;"} {
+		if _, err := conn.Exec(ctx, q).ReadAll(); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	_ = conn.Close(ctx)
+	rec.stop(t, 0)
+
+	text := lies(t, output)
+	reihe := []string{
+		"- sequence: 1", "sql: SELECT 'a' AS spalte_a, NULL AS spalte_b;", "name: spalte_a", "name: spalte_b", "- text: a", `- "null": true`,
+		"- sequence: 2", "sql: SELECT 2 AS z;", "name: z", `- text: "2"`,
+	}
+	pos := 0
+	for _, z := range reihe {
+		i := strings.Index(text[pos:], z)
+		if i < 0 {
+			t.Fatalf("%q fehlt oder steht nicht in der Reihenfolge:\n%s", z, text)
+		}
+		pos += i + len(z)
+	}
+}
+
+// Abdeckung: LH-FA-05/Boundary — fordert der Client TLS an (sslmode=prefer),
+// lehnt der Recorder ab, und der Client verbindet sich unverschlüsselt.
+func TestE2ERecordSSLAbgelehnt(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, err := pgconn.Connect(ctx, strings.Replace(dsn(rec.listen), "sslmode=disable", "sslmode=prefer", 1))
+	if err != nil {
+		t.Fatalf("Verbindung mit sslmode=prefer: %v", err)
+	}
+	if _, err := conn.Exec(ctx, "SELECT 1;").ReadAll(); err != nil {
+		t.Fatal(err)
+	}
+	_ = conn.Close(ctx)
+	rec.stop(t, 0)
+}
+
+// Abdeckung: LH-FA-05/Negative, LH-FA-13/Negative — eine nicht unterstützte
+// Interaktion (`COPY … TO STDOUT`) beendet die Verbindung mit PGR-E6001; die
+// Session wird nicht aufgezeichnet, auch nicht ihre vorherige Interaktion, und
+// der Lauf endet mit Exit-Code 6.
+func TestE2ERecordNichtUnterstuetzt(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, err := pgconn.Connect(ctx, dsn(rec.listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(ctx, "SELECT 1;").ReadAll(); err != nil {
+		t.Fatal(err)
+	}
+	_, err = conn.Exec(ctx, "COPY (SELECT 1) TO STDOUT;").ReadAll()
+	if err == nil || !strings.Contains(err.Error(), "PGR-E6001") {
+		t.Fatalf("erwartet PGR-E6001, erhalten %v", err)
+	}
+	_ = conn.Close(ctx)
+	rec.stop(t, 6)
+
+	if text := lies(t, output); !strings.Contains(text, "sessions: []") {
+		t.Fatalf("verworfene Session aufgezeichnet:\n%s", text)
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — eine offene, ruhende Client-Verbindung hält das
+// Beenden nach SIGTERM nicht auf; ihre abgeschlossenen Interaktionen stehen in
+// der Aufzeichnung.
+func TestE2ERecordBeendenMitOffenerVerbindung(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, err := pgconn.Connect(ctx, dsn(rec.listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close(ctx)
+	if _, err := conn.Exec(ctx, "SELECT 1;").ReadAll(); err != nil {
+		t.Fatal(err)
+	}
+	rec.stop(t, 0)
+
+	if text := lies(t, output); !strings.Contains(text, "sql: SELECT 1;") {
+		t.Fatalf("Interaktion der offenen Verbindung fehlt:\n%s", text)
 	}
 }
 

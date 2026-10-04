@@ -1,0 +1,270 @@
+package pgwire
+
+import (
+	"context"
+	"encoding/binary"
+	"io"
+	"log/slog"
+	"net"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgproto3"
+
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+)
+
+type fakeRecorder struct {
+	mu     sync.Mutex
+	opened int
+	ends   []model.SessionEnd
+	err    error
+}
+
+func (f *fakeRecorder) OpenSession(context.Context, map[string]string) (model.SessionID, []model.Response, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.err != nil {
+		return 0, nil, f.err
+	}
+	f.opened++
+	return 1, []model.Response{
+		{Type: model.ResponseParameterStatus, Name: "server_version", Value: "17.0"},
+		{Type: model.ResponseReadyForQuery, TxStatus: "I"},
+	}, nil
+}
+
+func (f *fakeRecorder) Query(_ context.Context, _ model.SessionID, sql string) ([]model.Response, error) {
+	return []model.Response{
+		{Type: model.ResponseRowDescription, Columns: []model.Column{{Name: "a", TypeOID: 25, TypeSize: -1, TypeModifier: -1}, {Name: "b", TypeOID: 25, TypeSize: -1, TypeModifier: -1}}},
+		{Type: model.ResponseDataRow, Values: []model.Value{{Bytes: []byte("x")}, {Null: true}}},
+		{Type: model.ResponseCommandComplete, Tag: "SELECT 1"},
+		{Type: model.ResponseReadyForQuery, TxStatus: "T"},
+	}, nil
+}
+
+func (f *fakeRecorder) CloseSession(_ context.Context, _ model.SessionID, end model.SessionEnd) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.ends = append(f.ends, end)
+	return nil
+}
+
+func (f *fakeRecorder) lastEnd(t *testing.T) model.SessionEnd {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		f.mu.Lock()
+		if len(f.ends) > 0 {
+			e := f.ends[len(f.ends)-1]
+			f.mu.Unlock()
+			return e
+		}
+		f.mu.Unlock()
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("CloseSession nicht aufgerufen")
+	return 0
+}
+
+// verbinde startet den Server-Handler auf einer Seite eines net.Pipe.
+func verbinde(t *testing.T, rec *fakeRecorder) (net.Conn, *Server) {
+	t.Helper()
+	client, serverSeite := net.Pipe()
+	s := &Server{Recorder: rec, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	go s.handle(context.Background(), serverSeite)
+	t.Cleanup(func() { client.Close() })
+	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+	return client, s
+}
+
+func startup(t *testing.T, fe *pgproto3.Frontend) {
+	t.Helper()
+	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "app"}})
+	if err := fe.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	for {
+		msg, err := fe.Receive()
+		if err != nil {
+			t.Fatalf("Startup: %v", err)
+		}
+		if _, ok := msg.(*pgproto3.ReadyForQuery); ok {
+			return
+		}
+	}
+}
+
+func fehlerantwort(t *testing.T, fe *pgproto3.Frontend) *pgproto3.ErrorResponse {
+	t.Helper()
+	msg, err := fe.Receive()
+	if err != nil {
+		t.Fatalf("Antwort lesen: %v", err)
+	}
+	e, ok := msg.(*pgproto3.ErrorResponse)
+	if !ok {
+		t.Fatalf("erwartet ErrorResponse, erhalten %T", msg)
+	}
+	return e
+}
+
+// Abdeckung: LH-FA-05/Boundary — auf SSLRequest und GSSENCRequest antwortet der
+// Recorder mit „N“ und erwartet danach einen unverschlüsselten Aufbau
+// (LH-FA-05.c).
+func TestSSLUndGSSMitN(t *testing.T) {
+	for _, code := range []uint32{codeSSLRequest, codeGSSEncRequest} {
+		rec := &fakeRecorder{}
+		client, _ := verbinde(t, rec)
+		anfrage := make([]byte, 8)
+		binary.BigEndian.PutUint32(anfrage[0:4], 8)
+		binary.BigEndian.PutUint32(anfrage[4:8], code)
+		if _, err := client.Write(anfrage); err != nil {
+			t.Fatal(err)
+		}
+		antwort := make([]byte, 1)
+		if _, err := io.ReadFull(client, antwort); err != nil || antwort[0] != 'N' {
+			t.Fatalf("Code %d: Antwort %q, Fehler %v", code, antwort, err)
+		}
+		startup(t, pgproto3.NewFrontend(client, client))
+	}
+}
+
+// Abdeckung: LH-FA-02/Happy — eine Anfrage geht an den Use Case, die Antworten
+// gehen in Reihenfolge und Inhalt unverändert an den Client; Terminate beendet
+// die Session regulär.
+func TestQueryUndTerminate(t *testing.T) {
+	rec := &fakeRecorder{}
+	client, _ := verbinde(t, rec)
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	fe.Send(&pgproto3.Query{String: "SELECT 'x', NULL"})
+	if err := fe.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	var typen []string
+	for {
+		msg, err := fe.Receive()
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch m := msg.(type) {
+		case *pgproto3.RowDescription:
+			typen = append(typen, "row_description:"+string(m.Fields[0].Name)+","+string(m.Fields[1].Name))
+		case *pgproto3.DataRow:
+			if string(m.Values[0]) != "x" || m.Values[1] != nil {
+				t.Fatalf("Werte: %q", m.Values)
+			}
+			typen = append(typen, "data_row")
+		case *pgproto3.CommandComplete:
+			typen = append(typen, "command_complete:"+string(m.CommandTag))
+		case *pgproto3.ReadyForQuery:
+			typen = append(typen, "ready_for_query:"+string(m.TxStatus))
+		}
+		if _, ok := msg.(*pgproto3.ReadyForQuery); ok {
+			break
+		}
+	}
+	want := "row_description:a,b data_row command_complete:SELECT 1 ready_for_query:T"
+	if strings.Join(typen, " ") != want {
+		t.Fatalf("Antworten: %v", typen)
+	}
+	fe.Send(&pgproto3.Terminate{})
+	_ = fe.Flush()
+	if end := rec.lastEnd(t); end != model.EndNormal {
+		t.Fatalf("Session-Ende: %v", end)
+	}
+}
+
+// Abdeckung: LH-FA-05/Negative — eine nicht unterstützte Client-Nachricht
+// beendet die Verbindung mit einer ErrorResponse (PGR-E6001, SQLSTATE 0A000),
+// und die Session wird verworfen.
+func TestNichtUnterstuetzteNachricht(t *testing.T) {
+	rec := &fakeRecorder{}
+	client, s := verbinde(t, rec)
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	fe.Send(&pgproto3.Parse{Query: "SELECT 1"})
+	_ = fe.Flush()
+	e := fehlerantwort(t, fe)
+	if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) {
+		t.Fatalf("ErrorResponse: %+v", e)
+	}
+	if end := rec.lastEnd(t); end != model.EndUnsupported {
+		t.Fatalf("Session-Ende: %v", end)
+	}
+	if s.FirstErrorCode() != model.CodeUnsupported {
+		t.Fatalf("erster Fehler: %q", s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-05/Negative — eine andere Protokollversion als 3.0 erhält eine
+// ErrorResponse mit PGR-E6002 (LH-FA-05.e).
+func TestAndereProtokollversion(t *testing.T) {
+	for _, version := range []uint32{2 << 16, 3<<16 | 1, 3<<16 | 2} {
+		rec := &fakeRecorder{}
+		client, _ := verbinde(t, rec)
+		msg := make([]byte, 9)
+		binary.BigEndian.PutUint32(msg[0:4], 9)
+		binary.BigEndian.PutUint32(msg[4:8], version)
+		if _, err := client.Write(msg); err != nil {
+			t.Fatal(err)
+		}
+		e := fehlerantwort(t, pgproto3.NewFrontend(client, client))
+		if !strings.Contains(e.Message, model.CodeProtocolVersion) || e.Code != "0A000" {
+			t.Fatalf("Version %x: %+v", version, e)
+		}
+		if rec.opened != 0 {
+			t.Fatalf("Version %x: Session geöffnet", version)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-05/Boundary — ein CancelRequest wird nicht weitergeleitet; die
+// Verbindung endet ohne Session (PGR-W3001).
+func TestCancelRequest(t *testing.T) {
+	rec := &fakeRecorder{}
+	client, _ := verbinde(t, rec)
+	msg := make([]byte, 16)
+	binary.BigEndian.PutUint32(msg[0:4], 16)
+	binary.BigEndian.PutUint32(msg[4:8], codeCancelRequest)
+	if _, err := client.Write(msg); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Read(make([]byte, 1)); err == nil {
+		t.Fatal("Verbindung nicht beendet")
+	}
+	if rec.opened != 0 {
+		t.Fatal("Session geöffnet")
+	}
+}
+
+// Abdeckung: LH-FA-02/Negative — ist der Upstream nicht erreichbar, erhält der
+// Client eine ErrorResponse mit PGR-E4002 und SQLSTATE 08006; der Lauf merkt sich
+// den Fehler für den Exit-Code (LH-FA-13.b).
+func TestUpstreamNichtErreichbar(t *testing.T) {
+	rec := &fakeRecorder{err: model.Errorf(model.CodeUpstream, nil, "weg")}
+	client, s := verbinde(t, rec)
+	fe := pgproto3.NewFrontend(client, client)
+	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "app"}})
+	_ = fe.Flush()
+	e := fehlerantwort(t, fe)
+	if e.Code != "08006" || !strings.Contains(e.Message, model.CodeUpstream) {
+		t.Fatalf("ErrorResponse: %+v", e)
+	}
+	if s.FirstErrorCode() != model.CodeUpstream {
+		t.Fatalf("erster Fehler: %q", s.FirstErrorCode())
+	}
+}
+
+// Eine Antwort ohne Transaktionsstatus oder mit unbekanntem Typ wird nicht
+// erfunden, sondern ist ein Fehler.
+func TestToMessageErfindetNichts(t *testing.T) {
+	if _, err := toMessage(model.Response{Type: model.ResponseReadyForQuery}); err == nil {
+		t.Fatal("ReadyForQuery ohne Status angenommen")
+	}
+	if _, err := toMessage(model.Response{Type: "bogus"}); err == nil {
+		t.Fatal("unbekannter Typ angenommen")
+	}
+}

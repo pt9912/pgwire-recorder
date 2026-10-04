@@ -16,9 +16,9 @@ type Recorder interface {
 	// endet der Aufbau mit einer Fehlerantwort, ist die Kennung 0.
 	OpenSession(ctx context.Context, startup map[string]string) (model.SessionID, []model.Response, error)
 	// Query leitet eine einfache Anfrage weiter und liefert die Serverantworten
-	// bis einschließlich ReadyForQuery.
+	// bis einschließlich ReadyForQuery. Die Interaktion gilt als abgeschlossen;
+	// erreicht ihre Antwort den Client nicht, endet die Session mit EndLost.
 	Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error)
-	// CloseSession beendet die Session. Sie wird übernommen, wenn sie
-	// mindestens eine abgeschlossene Interaktion trägt.
-	CloseSession(ctx context.Context, id model.SessionID) error
+	// CloseSession beendet die Session aus dem genannten Grund (model.SessionEnd).
+	CloseSession(ctx context.Context, id model.SessionID, end model.SessionEnd) error
 }

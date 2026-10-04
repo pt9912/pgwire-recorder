@@ -12,8 +12,8 @@ DOCKER_BUILD ?= $(DOCKER) build --progress=plain
 
 .PHONY: build test go-mod-tidy
 
-build: ## Binary bauen (Dockerfile, Stufe build; netzlos ausser deps)
-	$(DOCKER_BUILD) --target build -t pgwire-recorder:build .
+build: ## Binary und Produkt-Image bauen (Dockerfile, Stufe runtime; netzlos ausser deps)
+	$(DOCKER_BUILD) --target runtime -t pgwire-recorder:dev .
 
 test: ## vet und Unit-Tests (Dockerfile, Stufe test; netzlos ausser deps)
 	$(DOCKER_BUILD) --target test -t pgwire-recorder:test .

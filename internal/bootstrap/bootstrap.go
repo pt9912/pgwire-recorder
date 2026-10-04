@@ -19,8 +19,9 @@ import (
 var _ driving.Recorder = (*services.RecordService)(nil)
 
 // Run führt einen Aufruf aus und liefert den Exit-Code (SPEC-013 bis SPEC-019).
-// Er endet, wenn ctx endet; die Signalbehandlung liegt beim Aufrufer.
-func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+// `record` läuft, bis ctx endet; danach endet jede Verbindung nach ihrer
+// laufenden Interaktion. Die Signalbehandlung liegt beim Aufrufer.
+func Run(ctx context.Context, args []string, version string, stdout, stderr io.Writer) int {
 	log := slog.New(slog.NewTextHandler(stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	cmd, err := cli.Parse(args, stdout)
@@ -32,6 +33,9 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 
 	switch cmd.Name {
+	case "version":
+		fmt.Fprintln(stdout, "pgwire-recorder", version)
+		return 0
 	case "record":
 		return record(ctx, cmd.Record, log, stderr)
 	default:
@@ -65,7 +69,16 @@ func record(ctx context.Context, o cli.RecordOptions, log *slog.Logger, stderr i
 		return fail(stderr, err)
 	}
 	log.Info("record beendet", "output", o.Output)
-	return 0
+	return exitCode(server.FirstErrorCode())
+}
+
+// exitCode ist 0 ohne Verbindungsfehler, sonst der Exit-Code der Klasse des
+// ersten Verbindungsfehlers (LH-FA-13.b).
+func exitCode(code string) int {
+	if code == "" {
+		return 0
+	}
+	return (&model.Error{Code: code}).ExitCode()
 }
 
 func fail(stderr io.Writer, err error) int {

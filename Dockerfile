@@ -17,9 +17,10 @@ RUN go mod download && go mod verify
 FROM deps AS source
 COPY . .
 
-# --- test: vet und Unit-Tests.
+# --- test: vet über allen Code einschließlich der Integrationstests, dazu die
+# Unit-Tests.
 FROM source AS test
-RUN --network=none go vet ./... && go test -trimpath -buildvcs=false ./...
+RUN --network=none go vet -tags integration ./... && go test -trimpath -buildvcs=false ./...
 
 # --- build: das Binary für die Zielplattform, reproduzierbar (-trimpath,
 # ohne VCS-Stempel).

@@ -63,11 +63,12 @@ Diese Datei dupliziert sie nicht.
 | `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | — |
 | `make build` | baut das Binary über das Multistage-`Dockerfile` (Stufe `build`, netzlos außer der Download-Stufe) | [ADR-0009](../docs/plan/adr/0009-implementierungssprache-go.md), [ADR-0026](../docs/plan/adr/0026-build-und-test-im-multistage-dockerfile.md) |
 | `make test` | `go vet` und Unit-Tests über das `Dockerfile` (Stufe `test`, netzlos außer der Download-Stufe) | [ADR-0026](../docs/plan/adr/0026-build-und-test-im-multistage-dockerfile.md) |
-| `make test-integration` | Integrationstests des Binaries gegen ein gepinntes PostgreSQL-Image in einem eigenen Docker-Netz; schreibt `docs/user/e2e-abdeckung.md` | [ADR-0026](../docs/plan/adr/0026-build-und-test-im-multistage-dockerfile.md) |
+| `make test-integration` | Integrationstests des Binaries gegen ein gepinntes PostgreSQL-Image in einem eigenen Docker-Netz; schreibt nichts in den Arbeitsbaum | [ADR-0026](../docs/plan/adr/0026-build-und-test-im-multistage-dockerfile.md) |
 | `make a-check` | Architektur-Regeln des Hexagons gemäß `.a-check.yml` (a-check, netzlos, schreibgeschützt): Import-Richtungen der Packages und Bibliotheken je Adapter | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md) |
 | `make a-check-negativ` | Gegenprobe des Architektur-Gates in Kopien des Arbeitsbaums: `pgproto3` und `crypto/tls` werden im Domain Model und im Recording-Adapter abgelehnt, in beiden PGWire-Adaptern zugelassen | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md), [ADR-0010](../docs/plan/adr/0010-verwendung-von-pgproto3.md) |
 | `make baseline-verify` | vendored Baseline gegen `SHA256SUMS` (Integrität und Vollständigkeit, netzlos) | — |
 | `make hook-gegenprobe` | Gegenprobe des Commit-Trägers `.githooks/commit-msg`: Kennung eines vorhandenen Slice angenommen, erfundene und fehlende Kennung abgelehnt (bash, ohne Docker) | [ADR-0025](../docs/plan/adr/0025-benannte-slice-kennungen-im-commit-hook.md) |
+| `make abdeckung-check` | die Abdeckungstabellen unter `docs/user/` entsprechen den Abdeckungs-Deklarationen der Tests (Anforderung und Pfad) | [ADR-0026](../docs/plan/adr/0026-build-und-test-im-multistage-dockerfile.md) |
 | `make gates` | alle inneren Gates | — |
 
 **Werkzeuge — genannt, weil der Lauf sie braucht, aber kein Gate:**
@@ -79,6 +80,7 @@ Diese Datei dupliziert sie nicht.
 | `make schema-validate` | prüft das neutrale Schema der SQLite-Aufzeichnung mit d-migrate (netzlos), prüft sonst nichts | kein Gate |
 | `make schema-generate` | gibt das SQL für SQLite aus dem neutralen Schema auf stdout aus | kein Gate |
 | `make hooks-install` | aktiviert den git-eigenen `commit-msg`-Träger im Klon | kein Gate |
+| `make abdeckung` | schreibt die Abdeckungstabellen aus den Test-Deklarationen, prüft nichts | kein Gate |
 | `make go-mod-tidy` | aktualisiert `go.mod` und `go.sum` mit Netz im gepinnten Go-Image, prüft nichts | kein Gate |
 | `make a-check-graph` | gibt den Architektur-Graphen (Mermaid) aus `.a-check.yml` aus, prüft nichts | kein Gate |
 | `make doc-trace` | gibt die Requirements Traceability Matrix aus (Anforderung, Entscheidungen, Slices), prüft nichts | kein Gate |

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
@@ -22,9 +23,12 @@ type RecordService struct {
 	sessions map[model.SessionID]*laufend
 }
 
+// laufend ist eine offene Session. Ihre Felder berührt nur die Goroutine der
+// zugehörigen Client-Verbindung; die Map schützt mu.
 type laufend struct {
-	upstream driven.UpstreamSession
-	session  model.Session
+	upstream    driven.UpstreamSession
+	session     model.Session
+	unsupported bool
 }
 
 // NewRecordService prüft den Zielpfad und liefert den Service.
@@ -64,7 +68,8 @@ func (s *RecordService) OpenSession(ctx context.Context, startup map[string]stri
 }
 
 // Query leitet die Anfrage weiter; eine Interaktion wird mit dem ReadyForQuery
-// des Servers Teil der Session (LH-FA-02.b).
+// des Servers Teil der Session (LH-FA-02.b). Eine nicht unterstützte
+// Serverantwort markiert die Session als nicht übernehmbar.
 func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error) {
 	l, err := s.laufende(id)
 	if err != nil {
@@ -72,6 +77,10 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 	}
 	responses, err := l.upstream.Query(ctx, sql)
 	if err != nil {
+		var me *model.Error
+		if errors.As(err, &me) && me.Code == model.CodeUnsupported {
+			l.unsupported = true
+		}
 		return responses, err
 	}
 	l.session.Interactions = append(l.session.Interactions, model.Interaction{
@@ -82,9 +91,11 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 	return responses, nil
 }
 
-// CloseSession beendet die Session und übernimmt sie, wenn sie mindestens eine
-// Interaktion trägt; die Kennung in der Aufzeichnung zählt lückenlos ab 1.
-func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID) error {
+// CloseSession beendet die Session. Übernommen wird sie, wenn sie nach dem
+// Grund des Endes mindestens eine Interaktion trägt und keine nicht
+// unterstützte Interaktion enthielt; die Kennung in der Aufzeichnung zählt
+// lückenlos ab 1 (LH-FA-12.a).
+func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, end model.SessionEnd) error {
 	l, err := s.laufende(id)
 	if err != nil {
 		return err
@@ -94,9 +105,15 @@ func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID) er
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.sessions, id)
-	if len(l.session.Interactions) == 0 {
+
+	interactions := l.session.Interactions
+	if end == model.EndLost && len(interactions) > 0 {
+		interactions = interactions[:len(interactions)-1]
+	}
+	if end == model.EndUnsupported || l.unsupported || len(interactions) == 0 {
 		return upErr
 	}
+	l.session.Interactions = interactions
 	l.session.ID = len(s.rec.Sessions) + 1
 	s.rec.Sessions = append(s.rec.Sessions, l.session)
 	if err := s.repo.Write(ctx, s.path, s.rec); err != nil {

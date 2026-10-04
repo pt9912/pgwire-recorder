@@ -1,11 +1,20 @@
-# E2E-Abdeckung je Anforderung
+# E2E-Abdeckung je Anforderung und Pfad
 
-Erzeugt von `make test-integration` über `tools/test/run-integration-tests.sh`
-aus den Zeilen `// Abdeckung: …` direkt über jedem `func TestE2E*` unter
-`test/integration/`. Die Datei ändert sich nur, wenn sich eine Deklaration oder
-ihr Ort ändert. Sie ist eine Abdeckungs-Deklaration, kein Lauf-Beleg.
+Erzeugt von `make abdeckung` (`tools/test/abdeckung.sh`) aus den
+Abdeckungs-Deklarationen über den Tests (`test/integration/`, gegen eine reale PostgreSQL-Instanz). Die Datei ist eine
+Abdeckungs-Deklaration, kein Lauf-Beleg; dass die Tests grün laufen, sichert
+`make gates`. Die Gesamtsicht steht in `abdeckung-gesamt.md`.
 
-| Anforderung | Kurzbeschreibung | Nachweis | Ort |
-| --- | --- | --- | --- |
-| [`LH-FA-02`](../../spec/lastenheft.md), [`LH-FA-06`](../../spec/lastenheft.md), [`LH-FA-07`](../../spec/lastenheft.md) | ein Client führt `SELECT 1;` über `record` gegen eine reale PostgreSQL-Instanz aus und erhält deren Ergebnis; nach dem Beenden des Laufs steht die Interaktion geordnet in einer Aufzeichnung mit Formatkennung und Version. | `TestE2ERecordSelect1` | `test/integration/record_e2e_test.go:44` |
-| [`LH-FA-02`](../../spec/lastenheft.md), [`LH-FA-13`](../../spec/lastenheft.md) | ist der Upstream nicht erreichbar, erhält der Client eine Fehlerantwort mit PGR-E4002; der Lauf geht weiter und endet beim Beenden mit Exit-Code 0 und einer gültigen Aufzeichnung ohne Session. | `TestE2ERecordUpstreamNichtErreichbar` | `test/integration/record_e2e_test.go:101` |
+| Anforderung | Pfad | Kurzbeschreibung | Nachweis | Ort |
+| --- | --- | --- | --- | --- |
+| [`LH-FA-02`](../../spec/lastenheft.md) | Happy | ein Client führt `SELECT 1;` über `record` gegen eine reale PostgreSQL-Instanz aus und erhält deren Ergebnis; nach dem Beenden des Laufs steht die Interaktion geordnet in einer Aufzeichnung mit Formatkennung und Version. | `TestE2ERecordSelect1` | `test/integration/record_e2e_test.go` |
+| [`LH-FA-02`](../../spec/lastenheft.md) | Negative | ist der Upstream nicht erreichbar, erhält der Client eine Fehlerantwort mit PGR-E4002; der Lauf geht weiter und endet beim Beenden mit dem Exit-Code der Klasse dieses Fehlers (4) und einer gültigen Aufzeichnung ohne Session. | `TestE2ERecordUpstreamNichtErreichbar` | `test/integration/record_e2e_test.go` |
+| [`LH-FA-05`](../../spec/lastenheft.md) | Boundary | fordert der Client TLS an (sslmode=prefer), lehnt der Recorder ab, und der Client verbindet sich unverschlüsselt. | `TestE2ERecordSSLAbgelehnt` | `test/integration/record_e2e_test.go` |
+| [`LH-FA-05`](../../spec/lastenheft.md) | Negative | eine nicht unterstützte Interaktion (`COPY … TO STDOUT`) beendet die Verbindung mit PGR-E6001; die Session wird nicht aufgezeichnet, auch nicht ihre vorherige Interaktion, und der Lauf endet mit Exit-Code 6. | `TestE2ERecordNichtUnterstuetzt` | `test/integration/record_e2e_test.go` |
+| [`LH-FA-06`](../../spec/lastenheft.md) | Boundary | mehrere Interaktionen mit mehreren Spalten und NULL stehen in Reihenfolge und mit ihren Werten in der Aufzeichnung; ein fehlerfreier Lauf endet nach SIGTERM mit Exit-Code 0. | `TestE2ERecordMehrereInteraktionen` | `test/integration/record_e2e_test.go` |
+| [`LH-FA-06`](../../spec/lastenheft.md) | Happy | ein Client führt `SELECT 1;` über `record` gegen eine reale PostgreSQL-Instanz aus und erhält deren Ergebnis; nach dem Beenden des Laufs steht die Interaktion geordnet in einer Aufzeichnung mit Formatkennung und Version. | `TestE2ERecordSelect1` | `test/integration/record_e2e_test.go` |
+| [`LH-FA-07`](../../spec/lastenheft.md) | Happy | ein Client führt `SELECT 1;` über `record` gegen eine reale PostgreSQL-Instanz aus und erhält deren Ergebnis; nach dem Beenden des Laufs steht die Interaktion geordnet in einer Aufzeichnung mit Formatkennung und Version. | `TestE2ERecordSelect1` | `test/integration/record_e2e_test.go` |
+| [`LH-FA-13`](../../spec/lastenheft.md) | Boundary | eine offene, ruhende Client-Verbindung hält das Beenden nach SIGTERM nicht auf; ihre abgeschlossenen Interaktionen stehen in der Aufzeichnung. | `TestE2ERecordBeendenMitOffenerVerbindung` | `test/integration/record_e2e_test.go` |
+| [`LH-FA-13`](../../spec/lastenheft.md) | Happy | mehrere Interaktionen mit mehreren Spalten und NULL stehen in Reihenfolge und mit ihren Werten in der Aufzeichnung; ein fehlerfreier Lauf endet nach SIGTERM mit Exit-Code 0. | `TestE2ERecordMehrereInteraktionen` | `test/integration/record_e2e_test.go` |
+| [`LH-FA-13`](../../spec/lastenheft.md) | Negative | eine nicht unterstützte Interaktion (`COPY … TO STDOUT`) beendet die Verbindung mit PGR-E6001; die Session wird nicht aufgezeichnet, auch nicht ihre vorherige Interaktion, und der Lauf endet mit Exit-Code 6. | `TestE2ERecordNichtUnterstuetzt` | `test/integration/record_e2e_test.go` |
+| [`LH-FA-13`](../../spec/lastenheft.md) | Negative | ist der Upstream nicht erreichbar, erhält der Client eine Fehlerantwort mit PGR-E4002; der Lauf geht weiter und endet beim Beenden mit dem Exit-Code der Klasse dieses Fehlers (4) und einer gültigen Aufzeichnung ohne Session. | `TestE2ERecordUpstreamNichtErreichbar` | `test/integration/record_e2e_test.go` |

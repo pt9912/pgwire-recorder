@@ -28,6 +28,7 @@ const usage = `Aufruf: pgwire-recorder <kommando> [optionen]
 
 Kommandos:
   record   vermittelt Clients zu PostgreSQL und zeichnet die Kommunikation auf
+  version  gibt die Programmversion aus
 
 Optionen von record:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
@@ -51,6 +52,11 @@ func Parse(args []string, out io.Writer) (Command, error) {
 		return Command{}, ErrHelp
 	case "record":
 		return parseRecord(args[1:], out)
+	case "version":
+		if len(args) > 1 {
+			return Command{}, model.Errorf(model.CodeUsage, nil, "version nimmt keine Argumente")
+		}
+		return Command{Name: "version"}, nil
 	default:
 		return Command{}, model.Errorf(model.CodeUsage, nil, "unbekanntes Kommando %q; --help zeigt die Kommandos", args[0])
 	}

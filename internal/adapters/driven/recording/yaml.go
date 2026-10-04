@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -28,10 +29,31 @@ func (YAML) Prepare(_ context.Context, path string, replace bool) error {
 	case err == nil && !replace:
 		return model.Errorf(model.CodeOutputExists, nil, "%s existiert bereits; --force ersetzt die Datei", path)
 	case err == nil, errors.Is(err, fs.ErrNotExist):
-		return nil
 	default:
 		return model.Errorf(model.CodeRecordingIO, err, "%s nicht prüfbar", path)
 	}
+	// Das Zielverzeichnis muss beim Start beschreibbar sein, nicht erst nach der
+	// ersten Session.
+	probe, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*.probe")
+	if err != nil {
+		return model.Errorf(model.CodeRecordingIO, err, "Verzeichnis von %s nicht beschreibbar", path)
+	}
+	name := probe.Name()
+	return errors.Join(closeErr(probe.Close()), removeErr(os.Remove(name)))
+}
+
+func closeErr(err error) error {
+	if err != nil {
+		return model.Errorf(model.CodeRecordingIO, err, "Probedatei nicht zu schließen")
+	}
+	return nil
+}
+
+func removeErr(err error) error {
+	if err != nil {
+		return model.Errorf(model.CodeRecordingIO, err, "Probedatei nicht zu entfernen")
+	}
+	return nil
 }
 
 // Write schreibt in eine temporäre Datei im Zielverzeichnis und benennt sie
@@ -46,9 +68,10 @@ func (YAML) Write(_ context.Context, path string, rec model.Recording) error {
 		return model.Errorf(model.CodeRecordingIO, err, "temporäre Datei für %s nicht anzulegen", path)
 	}
 	_, werr := tmp.Write(data)
+	merr := tmp.Chmod(0o644)
 	serr := tmp.Sync()
 	cerr := tmp.Close()
-	if err := errors.Join(werr, serr, cerr); err != nil {
+	if err := errors.Join(werr, merr, serr, cerr); err != nil {
 		return model.Errorf(model.CodeRecordingIO, err, "temporäre Datei für %s nicht zu schreiben", path)
 	}
 	if err := os.Rename(tmp.Name(), path); err != nil {
@@ -152,6 +175,42 @@ type valueDTO struct {
 	Base64 *string `yaml:"base64,omitempty"`
 }
 
+// UnmarshalYAML liest einen Wert. Der Schlüssel `null` darf ungequotet stehen
+// (`- null: true`, SPEC-041); YAML liest ihn dann als Null-Schlüssel.
+func (v *valueDTO) UnmarshalYAML(node *yaml.Node) error {
+	if node.Kind != yaml.MappingNode {
+		return fmt.Errorf("Wert ist keine Abbildung")
+	}
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		key, val := node.Content[i], node.Content[i+1]
+		name := key.Value
+		if key.Tag == "!!null" {
+			name = "null"
+		}
+		switch name {
+		case "text":
+			var s string
+			if err := val.Decode(&s); err != nil {
+				return err
+			}
+			v.Text = &s
+		case "base64":
+			var s string
+			if err := val.Decode(&s); err != nil {
+				return err
+			}
+			v.Base64 = &s
+		case "null":
+			if err := val.Decode(&v.Null); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unbekannter Schlüssel %q in einem Wert", name)
+		}
+	}
+	return nil
+}
+
 func toDTO(rec model.Recording) recordingDTO {
 	d := recordingDTO{Format: rec.Format, Version: rec.Version, Sessions: []sessionDTO{}}
 	for _, s := range rec.Sessions {
@@ -191,11 +250,27 @@ func valueToDTO(v model.Value) valueDTO {
 	return valueDTO{Base64: &b}
 }
 
+// bekannteAntworten sind die Antworttypen, die dieser Leser kennt; ein anderer
+// Typ macht die Aufzeichnung zu einer beschädigten (SPEC-001).
+var bekannteAntworten = map[model.ResponseType]bool{
+	model.ResponseRowDescription:     true,
+	model.ResponseDataRow:            true,
+	model.ResponseCommandComplete:    true,
+	model.ResponseEmptyQueryResponse: true,
+	model.ResponseErrorResponse:      true,
+	model.ResponseNoticeResponse:     true,
+	model.ResponseParameterStatus:    true,
+	model.ResponseReadyForQuery:      true,
+}
+
 func fromDTO(d recordingDTO) (model.Recording, error) {
 	rec := model.Recording{Format: d.Format, Version: d.Version}
 	for _, sd := range d.Sessions {
 		s := model.Session{ID: sd.ID, Startup: sd.Startup, ServerParameters: sd.ServerParameters}
 		for _, id := range sd.Interactions {
+			if model.RequestType(id.Request.Type) != model.RequestQuery {
+				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Anfrage-Typ %q unbekannt", id.Request.Type)
+			}
 			i := model.Interaction{Sequence: id.Sequence, Request: model.Request{Type: model.RequestType(id.Request.Type), SQL: id.Request.SQL}}
 			for _, rd := range id.Responses {
 				r, err := responseFromDTO(rd)
@@ -212,6 +287,9 @@ func fromDTO(d recordingDTO) (model.Recording, error) {
 }
 
 func responseFromDTO(d responseDTO) (model.Response, error) {
+	if !bekannteAntworten[model.ResponseType(d.Type)] {
+		return model.Response{}, model.Errorf(model.CodeRecordingBroken, nil, "Antwort-Typ %q unbekannt", d.Type)
+	}
 	r := model.Response{Type: model.ResponseType(d.Type), Tag: d.Tag, Fields: d.Notice, Name: d.Name, Value: d.Value, TxStatus: d.TxStatus}
 	for _, c := range d.Fields {
 		r.Columns = append(r.Columns, model.Column(c))
@@ -227,6 +305,15 @@ func responseFromDTO(d responseDTO) (model.Response, error) {
 }
 
 func valueFromDTO(d valueDTO) (model.Value, error) {
+	gesetzt := 0
+	for _, b := range []bool{d.Null, d.Text != nil, d.Base64 != nil} {
+		if b {
+			gesetzt++
+		}
+	}
+	if gesetzt > 1 {
+		return model.Value{}, model.Errorf(model.CodeRecordingBroken, nil, "Wert mit mehr als einem von text, null und base64")
+	}
 	switch {
 	case d.Null:
 		return model.Value{Null: true}, nil

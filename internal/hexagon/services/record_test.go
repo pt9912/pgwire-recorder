@@ -2,36 +2,45 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
 )
 
-type fakeUpstream struct{ sessions int }
+type fakeUpstream struct{ queryErr error }
 
 func (f *fakeUpstream) Open(context.Context, map[string]string) (driven.UpstreamSession, []model.Response, error) {
-	f.sessions++
-	return fakeSession{}, []model.Response{
+	return &fakeSession{err: f.queryErr}, []model.Response{
 		{Type: model.ResponseParameterStatus, Name: "server_version", Value: "17.0"},
 		{Type: model.ResponseReadyForQuery, TxStatus: "I"},
 	}, nil
 }
 
-type fakeSession struct{}
+type fakeSession struct{ err error }
 
-func (fakeSession) Query(_ context.Context, sql string) ([]model.Response, error) {
+func (f *fakeSession) Query(_ context.Context, sql string) ([]model.Response, error) {
+	if f.err != nil && sql == "FEHLER" {
+		return nil, f.err
+	}
 	return []model.Response{
-		{Type: model.ResponseCommandComplete, Tag: "SELECT 1"},
+		{Type: model.ResponseCommandComplete, Tag: sql},
 		{Type: model.ResponseReadyForQuery, TxStatus: "I"},
 	}, nil
 }
-func (fakeSession) Close() error { return nil }
+func (f *fakeSession) Close() error { return nil }
 
-type fakeRepo struct{ writes []model.Recording }
+type fakeRepo struct {
+	mu     sync.Mutex
+	writes []model.Recording
+}
 
 func (f *fakeRepo) Prepare(context.Context, string, bool) error { return nil }
 func (f *fakeRepo) Write(_ context.Context, _ string, rec model.Recording) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.writes = append(f.writes, rec)
 	return nil
 }
@@ -39,32 +48,51 @@ func (f *fakeRepo) Load(context.Context, string) (model.Recording, error) {
 	return model.Recording{}, nil
 }
 
-// LH-FA-02, LH-FA-06: Die Interaktion steht geordnet in der Session; die Session
-// wird beim Ende übernommen und die Aufzeichnung geschrieben.
-func TestRecordSessionMitInteraktion(t *testing.T) {
-	ctx := context.Background()
+func (f *fakeRepo) last(t *testing.T) model.Recording {
+	t.Helper()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if len(f.writes) == 0 {
+		t.Fatal("keine Aufzeichnung geschrieben")
+	}
+	return f.writes[len(f.writes)-1]
+}
+
+func neu(t *testing.T, up driven.Upstream) (*RecordService, *fakeRepo) {
+	t.Helper()
 	repo := &fakeRepo{}
-	s, err := NewRecordService(ctx, &fakeUpstream{}, repo, "rec.yaml", false)
+	s, err := NewRecordService(context.Background(), up, repo, "rec.yaml", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, startup, err := s.OpenSession(ctx, map[string]string{"user": "app"})
+	return s, repo
+}
+
+func session(t *testing.T, s *RecordService, queries ...string) model.SessionID {
+	t.Helper()
+	ctx := context.Background()
+	id, _, err := s.OpenSession(ctx, map[string]string{"user": "app"})
 	if err != nil || id == 0 {
 		t.Fatalf("OpenSession: id=%d err=%v", id, err)
 	}
-	if len(startup) != 2 {
-		t.Fatalf("Antworten des Verbindungsaufbaus: %d", len(startup))
+	for _, q := range queries {
+		if _, err := s.Query(ctx, id, q); err != nil {
+			t.Fatalf("Query %q: %v", q, err)
+		}
 	}
-	if _, err := s.Query(ctx, id, "SELECT 1"); err != nil {
+	return id
+}
+
+// Abdeckung: LH-FA-06/Happy — die Interaktionen einer Session stehen mit
+// fortlaufender Nummer, Anfrage und Antworten in der Aufzeichnung; die Session
+// trägt Startup-Parameter und Serverparameter.
+func TestRecordSessionMitInteraktionen(t *testing.T) {
+	s, repo := neu(t, &fakeUpstream{})
+	id := session(t, s, "SELECT 1", "SELECT 2")
+	if err := s.CloseSession(context.Background(), id, model.EndNormal); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.CloseSession(ctx, id); err != nil {
-		t.Fatal(err)
-	}
-	if len(repo.writes) != 1 {
-		t.Fatalf("Schreibvorgänge: %d", len(repo.writes))
-	}
-	rec := repo.writes[0]
+	rec := repo.last(t)
 	if len(rec.Sessions) != 1 || rec.Sessions[0].ID != 1 {
 		t.Fatalf("Sessions: %#v", rec.Sessions)
 	}
@@ -72,27 +100,130 @@ func TestRecordSessionMitInteraktion(t *testing.T) {
 	if got.ServerParameters["server_version"] != "17.0" || got.Startup["user"] != "app" {
 		t.Fatalf("Session-Daten: %#v", got)
 	}
-	if len(got.Interactions) != 1 || got.Interactions[0].Sequence != 1 || got.Interactions[0].Request.SQL != "SELECT 1" {
-		t.Fatalf("Interaktionen: %#v", got.Interactions)
+	for i, want := range []string{"SELECT 1", "SELECT 2"} {
+		in := got.Interactions[i]
+		if in.Sequence != i+1 || in.Request.SQL != want || in.Responses[0].Tag != want {
+			t.Fatalf("Interaktion %d: %#v", i+1, in)
+		}
 	}
 }
 
-// LH-FA-07.a: Eine Session ohne Anfrage wird nicht aufgezeichnet.
+// Abdeckung: LH-FA-07/Boundary — eine Verbindung ohne Anfrage wird nicht
+// aufgezeichnet; ein Lauf ohne Session schreibt eine Aufzeichnung ohne Sessions.
 func TestRecordSessionOhneAnfrage(t *testing.T) {
-	ctx := context.Background()
-	repo := &fakeRepo{}
-	s, _ := NewRecordService(ctx, &fakeUpstream{}, repo, "rec.yaml", false)
-	id, _, _ := s.OpenSession(ctx, nil)
-	if err := s.CloseSession(ctx, id); err != nil {
+	s, repo := neu(t, &fakeUpstream{})
+	id := session(t, s)
+	if err := s.CloseSession(context.Background(), id, model.EndNormal); err != nil {
 		t.Fatal(err)
 	}
 	if len(repo.writes) != 0 {
 		t.Fatalf("Session ohne Anfrage geschrieben: %#v", repo.writes)
 	}
-	if err := s.Finish(ctx); err != nil {
+	if err := s.Finish(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if len(repo.writes) != 1 || len(repo.writes[0].Sessions) != 0 {
-		t.Fatalf("Ende des Laufs: %#v", repo.writes)
+	if rec := repo.last(t); len(rec.Sessions) != 0 {
+		t.Fatalf("Ende des Laufs: %#v", rec)
+	}
+}
+
+// Abdeckung: LH-FA-05/Negative — eine Session mit einer nicht unterstützten
+// Interaktion wird nicht übernommen, weder bei einer nicht unterstützten
+// Client-Nachricht noch bei einer nicht unterstützten Serverantwort.
+func TestRecordSessionNichtUnterstuetzt(t *testing.T) {
+	t.Run("Client-Nachricht", func(t *testing.T) {
+		s, repo := neu(t, &fakeUpstream{})
+		id := session(t, s, "SELECT 1")
+		if err := s.CloseSession(context.Background(), id, model.EndUnsupported); err != nil {
+			t.Fatal(err)
+		}
+		if len(repo.writes) != 0 {
+			t.Fatalf("verworfene Session geschrieben: %#v", repo.writes)
+		}
+	})
+	t.Run("Serverantwort", func(t *testing.T) {
+		s, repo := neu(t, &fakeUpstream{queryErr: model.Errorf(model.CodeUnsupported, nil, "COPY")})
+		id := session(t, s, "SELECT 1")
+		if _, err := s.Query(context.Background(), id, "FEHLER"); err == nil {
+			t.Fatal("Fehler erwartet")
+		}
+		if err := s.CloseSession(context.Background(), id, model.EndNormal); err != nil {
+			t.Fatal(err)
+		}
+		if len(repo.writes) != 0 {
+			t.Fatalf("verworfene Session geschrieben: %#v", repo.writes)
+		}
+	})
+}
+
+// Abdeckung: LH-FA-02/Boundary — erreicht die Antwort der letzten Interaktion den
+// Client nicht, entfällt diese Interaktion; die vorherigen bleiben. Ein
+// Abbruch des Upstreams vor ReadyForQuery nimmt die Interaktion nicht auf.
+func TestRecordSessionVerbindungsende(t *testing.T) {
+	t.Run("Antwort nicht zugestellt", func(t *testing.T) {
+		s, repo := neu(t, &fakeUpstream{})
+		id := session(t, s, "SELECT 1", "SELECT 2")
+		if err := s.CloseSession(context.Background(), id, model.EndLost); err != nil {
+			t.Fatal(err)
+		}
+		got := repo.last(t).Sessions[0].Interactions
+		if len(got) != 1 || got[0].Request.SQL != "SELECT 1" {
+			t.Fatalf("Interaktionen: %#v", got)
+		}
+	})
+	t.Run("Upstream bricht ab", func(t *testing.T) {
+		s, repo := neu(t, &fakeUpstream{queryErr: model.Errorf(model.CodeConnectionLost, nil, "weg")})
+		id := session(t, s, "SELECT 1")
+		if _, err := s.Query(context.Background(), id, "FEHLER"); err == nil {
+			t.Fatal("Fehler erwartet")
+		}
+		if err := s.CloseSession(context.Background(), id, model.EndNormal); err != nil {
+			t.Fatal(err)
+		}
+		got := repo.last(t).Sessions[0].Interactions
+		if len(got) != 1 || got[0].Request.SQL != "SELECT 1" {
+			t.Fatalf("Interaktionen: %#v", got)
+		}
+	})
+}
+
+// Abdeckung: LH-FA-12/Boundary — gleichzeitige Sessions erhalten lückenlose
+// Kennungen in der Reihenfolge ihres Endes; keine Interaktion geht verloren.
+func TestRecordGleichzeitigeSessions(t *testing.T) {
+	s, repo := neu(t, &fakeUpstream{})
+	const n = 20
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			ctx := context.Background()
+			id, _, err := s.OpenSession(ctx, nil)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if _, err := s.Query(ctx, id, fmt.Sprintf("SELECT %d", i)); err != nil {
+				t.Error(err)
+			}
+			if err := s.CloseSession(ctx, id, model.EndNormal); err != nil {
+				t.Error(err)
+			}
+		}(i)
+	}
+	wg.Wait()
+	rec := repo.last(t)
+	if len(rec.Sessions) != n {
+		t.Fatalf("Sessions: %d", len(rec.Sessions))
+	}
+	seen := map[string]bool{}
+	for i, sess := range rec.Sessions {
+		if sess.ID != i+1 {
+			t.Fatalf("Kennung %d an Stelle %d", sess.ID, i+1)
+		}
+		seen[sess.Interactions[0].Request.SQL] = true
+	}
+	if len(seen) != n {
+		t.Fatalf("verschiedene Anfragen: %d", len(seen))
 	}
 }

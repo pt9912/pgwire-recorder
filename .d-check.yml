@@ -131,8 +131,10 @@ trace:
   slices:
     dir: docs/plan/planning/done
     file-pattern: '^(slice-.+)\.md$'
-  # Nachweise aus den Integrationstests: der Runner von `make test-integration`
-  # schreibt die Tabelle aus den Abdeckungs-Zeilen der Tests (ADR-0026).
+  # Nachweise aus Tests: gelesen wird nur die Datei mit den Anforderungen, deren
+  # drei Pfade (Happy, Boundary, Negative) belegt sind. `make abdeckung` schreibt
+  # sie aus den Abdeckungs-Deklarationen der Tests; die Tabellen je Nachweisart
+  # und die Gesamtsicht mit Teilabdeckung stehen daneben unter docs/user/.
   coverage:
-    - files: [docs/user/e2e-abdeckung.md]
-      label: E2E
+    - files: [docs/user/abdeckung-vollstaendig.md]
+      label: Tests

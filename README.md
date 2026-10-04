@@ -21,7 +21,7 @@ einfache Anfragen zwischen einem Client und PostgreSQL und schreibt eine
 YAML-Aufzeichnung; Replay und Einspielen fehlen noch.
 
 - `make gates` läuft grün (Build, Unit- und Integrationstests über das
-  `Dockerfile`, Architekturregeln samt Gegenproben, Doku-Referenzen und vendored
+  `Dockerfile`, Abdeckungstabellen, Architekturregeln samt Gegenproben, Doku-Referenzen und vendored
   Baseline); `make help` zeigt alle Targets.
 - Lastenheft, Spezifikation, Architektur, die angenommenen Entscheidungen und die
   Planung (Roadmap, Wellen, Slices) liegen vor.
