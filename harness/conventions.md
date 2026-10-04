@@ -179,7 +179,7 @@ sie gilt für jeden Lauf.
 
 | MR | Titel | Geltungsbereich | Ersetzt-Baseline-Regel |
 |---|---|---|---|
-| \<NNN\> <a id="mr-<NNN>"></a> | <Titel> | <Dateien / Sub-Areas> | <§Abschnitt der Baseline> |
+| — | — | — | — |
 
 ### Aufgelöste Adaptionen
 
@@ -187,7 +187,7 @@ sie gilt für jeden Lauf.
 
 | MR | aufgelöst durch |
 |---|---|
-| \<NNN\> <a id="mr-<NNN>"></a> | MR-\<NNN\> |
+| — | — |
 
 ## Zusatzklassen-Deklaration für Sensors-Bindung
 
@@ -195,7 +195,7 @@ sie gilt für jeden Lauf.
 
 | Klasse | Form | Bedeutung | Beispiel |
 |---|---|---|---|
-| <z. B. LH-Bindung> | `LH-<...>` | <z. B. Gate prüft eine bestimmte LH-Anforderung> | <z. B. `LH-QA-01` für Determinismus-Gate> |
+| — | — | — | — |
 
 
 

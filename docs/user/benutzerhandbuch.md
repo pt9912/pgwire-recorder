@@ -58,22 +58,25 @@ Sie Aufzeichnungen so, wie es zu ihrem Inhalt passt.
 Das Binary `pgwire-recorder` gibt es für Linux, macOS und Windows, jeweils für
 `amd64` und `arm64`.
 
-1. Legen Sie das Binary für Ihre Plattform in ein Verzeichnis Ihres Suchpfads.
+1. Laden Sie das Binary für Ihre Plattform von den Releases des Projekt-Repositorys
+   auf GitHub herunter, und legen Sie es in ein Verzeichnis Ihres Suchpfads.
 2. Machen Sie die Datei unter Linux und macOS ausführbar.
 3. Prüfen Sie die Installation mit `pgwire-recorder version`.
 
 ### Homebrew (macOS und Linux)
 
 Das Werkzeug liegt in einem eigenen Tap, nicht im Standard-Repository von
-Homebrew; `brew install pgwire-recorder` allein findet es deshalb nicht. Aktuelle
-Homebrew-Versionen laden Formeln aus Drittanbieter-Taps außerdem nur, wenn Sie
-den Tap als vertrauenswürdig markiert haben. Sie brauchen alle drei Schritte:
+Homebrew; `brew install pgwire-recorder` allein findet es deshalb nicht. Sie
+brauchen zwei Schritte:
 
 ```bash
 brew tap pt9912/pgwire-recorder
-brew trust pt9912/pgwire-recorder
 brew install pgwire-recorder
 ```
+
+Verlangt Ihre Homebrew-Version, einen Drittanbieter-Tap vor der Installation als
+vertrauenswürdig zu markieren, führen Sie diesen Schritt vor der Installation aus;
+die Meldung von Homebrew nennt den Befehl.
 
 Der Tap enthält nur veröffentlichte, stabile Versionen. Prüfen Sie die
 Installation mit `pgwire-recorder version`.
