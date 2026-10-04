@@ -8,6 +8,11 @@
 # die kein Kommando-Zeilen-Matcher zuverlaessig erkennt. Die Pruefung liegt in
 # tools/harness/commit-msg-traceability.sh; dieser Aufruf reicht sie weiter.
 #
+# BENANNTE SLICES (ADR-0025): Traegt eine Zeile der Message, die keine
+# Kommentarzeile ist, die Kennung eines vorhandenen Slice — den Namen einer Datei
+# slice-<name>.md unter docs/plan/planning/ —, endet der Traeger mit Exit 0. Jede
+# andere Message geht unveraendert an die mitgelieferte Pruefung.
+#
 # AKTIVIERUNG. `core.hooksPath` ist lokale Konfiguration und reist nicht mit dem
 # Klon; `make hooks-install` setzt sie. Ein Klon ohne diesen Aufruf ist
 # ungeprueft, und `git commit --no-verify` umgeht diesen Traeger auch danach.
@@ -18,4 +23,18 @@
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec bash "$here/../tools/harness/commit-msg-traceability.sh" "$@"
+root="$here/.."
+msg_file="${1:-}"
+
+if [ -n "$msg_file" ] && [ -r "$msg_file" ]; then
+  kennungen="$(grep -v '^[[:space:]]*#' "$msg_file" | grep -oE 'slice-[a-z0-9]+(-[a-z0-9]+)*' || true)"
+  for kennung in $kennungen; do
+    for datei in "$root"/docs/plan/planning/*/"$kennung".md; do
+      if [ -f "$datei" ]; then
+        exit 0
+      fi
+    done
+  done
+fi
+
+exec bash "$root/tools/harness/commit-msg-traceability.sh" "$@"
