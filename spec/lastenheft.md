@@ -969,7 +969,8 @@ Bezug: LH-FA-23.
 Eine Aufzeichnung wird mit Vergleich gegen eine PostgreSQL-Instanz eingespielt, die
 dieselbe Struktur liefert; der Lauf endet mit Erfolg. Gegen eine Instanz, deren
 Antwort in Struktur oder Fehler abweicht, meldet der Lauf die Abweichung und endet
-mit einem Fehlerstatus, der sich von dem eines Serverfehlers ohne Vergleich unterscheidet. Bezug: LH-FA-24.
+mit einem Fehlerstatus, der sich von dem eines Serverfehlers ohne Vergleich
+unterscheidet. Bezug: LH-FA-24.
 
 ## 8. Historie
 
