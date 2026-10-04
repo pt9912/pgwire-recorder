@@ -96,6 +96,8 @@ dasteht.
 
 - Wiederholte Ausführung desselben Prepared Statements: Zuordnung über Position — **Ausgang:** offen bis Closure.
 
+- Leere Liste und nil sind im Domain-Modell gleichbedeutend; der YAML-Leser liefert nil, der PGWire-Adapter womöglich leere Listen. Ein Feldvergleich per `reflect.DeepEqual` meldete dann eine Abweichung, die keine ist (aus `slice-extended-query-modell`) — **Ausgang:** offen bis Closure.
+
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`

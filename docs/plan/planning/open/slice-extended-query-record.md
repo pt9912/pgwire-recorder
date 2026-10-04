@@ -34,6 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Replay — `slice-extended-query-replay`.
+- Domain-Typen, Formregeln (`Interaction.Validate`) sowie Schreiber und Leser des Formats `yaml` für `type: extended` — geliefert von `slice-extended-query-modell`; dieser Slice bildet die PGWire-Nachrichten auf diese Typen ab.
 
 
 ## 2. Definition of Done
@@ -44,7 +45,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): Ein Go-Client mit Prepared Statements läuft über den Recorder, und die Aufzeichnung enthält die Nachrichtenfolge (Integrationstest).
-- [ ] Das Recording-Format trägt die neuen Interaktionen und lässt sich per Roundtrip laden.
+- [ ] Der Record-Service gruppiert die Nachrichten nach `LH-FA-18.a` (Flush- und Sync-Gruppen, Pipelining, Abbruch), und jede aufgezeichnete Interaktion besteht `Interaction.Validate` (Unit-Tests).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -64,7 +65,6 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/adapters/driving/pgwire`, `…/driven/postgres` | update | Neue Nachrichten |
 | `internal/hexagon/services` | update | Record-Service |
-| `internal/adapters/driven/recording` | update | Format |
 
 ## 4. Trigger
 
@@ -95,6 +95,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Asynchrone Nachrichtenfolgen (Pipelining) sind in der Aufzeichnung nicht eindeutig geordnet — **Ausgang:** offen bis Closure.
+
+- `Interaction.Validate` prüft nicht, ob eine Client-Nachricht nur die Felder ihres Typs trägt; der YAML-Schreiber gibt nur diese aus, ein fremd belegtes Feld fiele beim Schreiben still weg. Das Mapping aus den PGWire-Nachrichten belegt daher nur die Felder des Typs (aus `slice-extended-query-modell`) — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

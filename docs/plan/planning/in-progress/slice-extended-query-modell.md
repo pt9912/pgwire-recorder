@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-extended-query.
 
-**Bezug:** [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [ADR-0006](../../adr/0006-kanonisches-domain-model.md), [ADR-0007](../../adr/0007-strict-replay.md)
+**Bezug:** [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [ADR-0006](../../adr/0006-kanonisches-domain-model.md), [ADR-0007](../../adr/0007-strict-replay.md), [ADR-0012](../../adr/0012-extended-query-gruppen.md)
 
-**Berührte Spec-Stellen:** `LH-FA-18.a` · `SPEC-041` · `SPEC-002` · `SPEC-039` · `ARC-001`
+**Berührte Spec-Stellen:** `LH-FA-18.a` · `SPEC-041` · `SPEC-001` · `SPEC-002` · `SPEC-039` · `ARC-001` · `ARC-008`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,11 +29,16 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Das Domain-Modell trägt die Typen des Extended Query Protocol (Nachrichten, Gruppen), die Verfeinerung in der Spezifikation (`LH-FA-18.a`, `SPEC-041`) ist mit dem Modell abgeglichen, und die Entscheidung dazu ist als ADR angenommen.
+**Ziel:** Das Domain-Modell trägt die Typen des Extended Query Protocol (Client-Nachrichten, Server-Nachrichten, Gruppen) und die Formregeln einer Interaktion (`Interaction.Validate`); die Verfeinerung in der Spezifikation (`LH-FA-18.a`, `SPEC-041`) ist mit dem Modell abgeglichen, und die Entscheidung dazu ist als ADR angenommen. Der Recording-Adapter (Format `yaml`) schreibt und liest `type: extended` nach `SPEC-041`.
+
+Der Leser gehört in diesen Slice, weil `SPEC-001` Extended-Interaktionen schon zur Formatversion 1 zählt: ohne ihn lehnt jeder Lauf eine gültige Aufzeichnung als beschädigt ab, und das Modell hätte keinen Pfad, auf dem seine Formregeln greifen. Der Schreiber gehört dazu, weil `toDTO` eine Extended-Interaktion sonst still ohne ihre Gruppen schreibt. Damit liefert dieser Slice den Format-Punkt, den `slice-extended-query-record` bisher in seiner DoD trug.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Umsetzung in den PGWire-Adaptern — `slice-extended-query-record` und `slice-extended-query-replay`.
+- Umsetzung in den PGWire-Adaptern und im Record-Service (Gruppieren nach `LH-FA-18.a`) — `slice-extended-query-record`.
+- Replay und Matcher, einschließlich des Feldvergleichs einer Client-Nachricht — `slice-extended-query-replay`. Der Replay-Service bleibt unverändert: eine Extended-Interaktion am Cursor ist für eine einfache Anfrage eine Abweichung (`PGR-E5001`).
+- SQLite-Format (`SPEC-043`) — `slice-v1-abschluss-sqlite-format`; es gibt noch keinen SQLite-Adapter.
+- Eine Abdeckungs-Deklaration für `LH-FA-18`: kein Akzeptanzkriterium von `LH-FA-18` ist ohne Record und Replay belegbar; die Domain-Tests tragen keine. Die Lese-Negativfälle zählen zu `LH-FA-07`/Negative.
 
 
 ## 2. Definition of Done
@@ -44,7 +49,8 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): `LH-FA-18.a` und `SPEC-041` stimmen mit dem Domain-Modell überein; die Entscheidung dazu steht in [ADR-0012](../../adr/0012-extended-query-gruppen.md).
-- [ ] Das Domain-Modell trägt Request- und Response-Typen des Extended Query Protocol (Domain-Tests).
+- [ ] Das Domain-Modell trägt Request- und Response-Typen des Extended Query Protocol und ihre Formregeln (Domain-Tests, je Regel ein Negativfall).
+- [ ] [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings): Der Recording-Adapter schreibt und liest `type: extended` nach `SPEC-041` (Roundtrip, Beispiel aus `SPEC-041`); eine abgeschnittene oder fremd geformte Extended-Interaktion ist beschädigt (`PGR-E3003`, Unit-Tests).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -62,8 +68,12 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` (`LH-FA-18.a`, `SPEC-041`) | update | Abgleich mit dem Domain-Modell; Änderungen nur bei Abweichung |
-| `internal/hexagon/model` | update | Neue Typen |
+| `spec/spezifikation.md` (`LH-FA-18.a`, `SPEC-041`) | update | Abgleich mit dem Domain-Modell: `ParameterStatus` fehlte unter den Server-Nachrichten (`LH-FA-24.a` setzt es voraus); Felder je Client-Nachricht und `param_types` der `parameter_description` festgelegt; Historienzeile |
+| `spec/architecture.md` (`ARC-001`) | update | Komponentenzeile nennt Extended-Gruppe, Client-Nachricht und die Formregeln |
+| `internal/hexagon/model` | update | Neue Typen (`ClientMessage`, `Group`, Server-Nachrichten, `RequestExtended`), `Interaction.Validate` mit den Formregeln beider Arten; die Menge der Antworttypen einer einfachen Anfrage zieht aus dem Leser hierher |
+| `internal/adapters/driven/recording` | update | DTOs für `type: extended`; Schreiber mit genau den Feldern je Client-Nachricht; Leser prüft Schlüssel je Typ und ruft `Validate` |
+| `docs/user/abdeckung-*.md` | update | `make abdeckung` nach der neuen Deklaration (`LH-FA-07`/Negative) |
+| `docs/plan/planning/open/slice-extended-query-record.md` | update | Format-Punkt ist hier geliefert (`AGENTS.md` §3.9) |
 
 ## 4. Trigger
 
@@ -93,9 +103,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Das Domain-Modell zeigt eine Lücke in `SPEC-041` (Format Version 1 umfasst Extended, `SPEC-001`) — **Ausgang:** offen bis Closure.
+- Das Domain-Modell zeigt eine Lücke in `SPEC-041` (Format Version 1 umfasst Extended, `SPEC-001`) — Stand: zwei Lücken gefunden und in der Spezifikation geschlossen: `ParameterStatus` fehlte unter den Server-Nachrichten von `LH-FA-18.a`/`SPEC-041`, und `SPEC-041` legte die Felder je Client-Nachricht und die der `parameter_description` nicht fest. **Ausgang:** offen bis Closure.
 
-- Der Leser des Recording-Adapters lehnt `type: extended` noch als beschädigt ab; dieser Slice muss Extended-Interaktionen lesen — **Ausgang:** offen bis Closure.
+- Der Leser des Recording-Adapters lehnt `type: extended` noch als beschädigt ab; dieser Slice muss Extended-Interaktionen lesen — Stand: in §1 aufgenommen, Leser und Schreiber liefern `type: extended`. **Ausgang:** offen bis Closure.
+
+- Leere Liste und nil sind im Modell gleichbedeutend; der Leser liefert nil, ein PGWire-Adapter kann leere Listen liefern. Ein Matcher, der Client-Nachrichten mit `reflect.DeepEqual` vergleicht, meldet dann eine Abweichung, die keine ist — betrifft `slice-extended-query-replay`. **Ausgang:** offen bis Closure.
+
+- `Validate` prüft je Client-Nachricht Typ, Stellung und Zielart, nicht, ob nur die Felder ihres Typs belegt sind; das prüft allein der YAML-Leser über die Schlüssel. Der Schreiber gibt nur die Felder des Typs aus, ein fremd belegtes Feld einer Modell-Nachricht fiele beim Schreiben still weg — betrifft das Mapping in `slice-extended-query-record`. **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
@@ -124,6 +138,12 @@ nicht mehr.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
+**Vorgelagert — offene Beobachtungen sichten:** Register `../observations/BEO-REPO/` durchgegangen; einschlägig sind:
 
-**Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (offen, 2×): der Slice führt einen neuen Lese-Vertrag ein. Jede Formregel von `Validate` und jede Leser-Regel hat einen Negativfall, dessen Meldungstext die gemeinte Regel nennt; die rot färbende Mutation je Regel ist einmal gesehen worden (Bericht an den Reviewer).
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (offen, 2×): die Kommentare von `Validate`, `fromDTO` und `clientFelder` nennen nur, was geprüft wird; die Grenze von `Validate` (keine Feldprüfung je Typ) steht in §6.
+- `BEO-REPO/plan-folgt-korrektur-nicht` (verkörpert in `AGENTS.md` §3.9): §1, §3, §6 und der Kopf folgen dem Umschnitt; `slice-extended-query-record` nennt, was hier geliefert ist.
+
+Nicht einschlägig: `gate-konfiguration-wirkt-anders-als-gelesen`, `gate-regel-ersetzt-statt-ergaenzt`, `kern-fremdimporte-nur-ueber-tech-liste` (keine Gate- oder Architektur-Konfiguration berührt), `record-fehlerantwort-im-aufbau-ungeregelt` (Record unberührt), `werkzeug-commit-ohne-zugelassene-kennung` (behoben).
+
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF (deklariert in `harness/conventions.md`; der Slice ergänzt Typen und Format ohne Bestand, der konvergieren müsste).

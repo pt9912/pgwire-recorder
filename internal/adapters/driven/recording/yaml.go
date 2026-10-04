@@ -161,11 +161,106 @@ type sessionDTO struct {
 	Interactions     []interactionDTO  `yaml:"interactions"`
 }
 
+// interactionDTO trägt beide Arten einer Interaktion: eine einfache Anfrage mit
+// request und responses (SPEC-002), eine Extended-Interaktion mit
+// `type: extended` und groups (SPEC-041). Ein anderer Wert von type ist
+// beschädigt (SPEC-001).
 type interactionDTO struct {
 	Sequence  int           `yaml:"sequence"`
 	OffsetMS  *int64        `yaml:"offset_ms,omitempty"`
-	Request   requestDTO    `yaml:"request"`
-	Responses []responseDTO `yaml:"responses"`
+	Type      string        `yaml:"type,omitempty"`
+	Request   *requestDTO   `yaml:"request,omitempty"`
+	Responses []responseDTO `yaml:"responses,omitempty"`
+	Groups    []groupDTO    `yaml:"groups,omitempty"`
+}
+
+// interactionExtended ist der Wert von type einer Extended-Interaktion.
+const interactionExtended = "extended"
+
+type groupDTO struct {
+	Client []clientMessageDTO `yaml:"client"`
+	Server []responseDTO      `yaml:"server"`
+}
+
+// clientFelder nennt je Client-Nachricht die Schlüssel neben type in der
+// Reihenfolge der Ausgabe (SPEC-041). Der Schreiber schreibt genau diese, auch
+// leer; der Leser lehnt jeden anderen Schlüssel und jeden anderen Typ ab.
+var clientFelder = map[string][]string{
+	"parse":    {"statement", "sql", "param_types"},
+	"bind":     {"portal", "statement", "param_formats", "params", "result_formats"},
+	"describe": {"target", "name"},
+	"execute":  {"portal", "max_rows"},
+	"close":    {"target", "name"},
+	"flush":    nil,
+	"sync":     nil,
+}
+
+// clientMessageDTO ist eine Client-Nachricht; welche Felder zu einem Typ
+// gehören, legt clientFelder fest.
+type clientMessageDTO struct {
+	Type          string     `yaml:"type"`
+	Statement     string     `yaml:"statement"`
+	Portal        string     `yaml:"portal"`
+	SQL           string     `yaml:"sql"`
+	ParamTypes    []uint32   `yaml:"param_types,flow"`
+	ParamFormats  []int16    `yaml:"param_formats,flow"`
+	Params        []valueDTO `yaml:"params"`
+	ResultFormats []int16    `yaml:"result_formats,flow"`
+	Target        string     `yaml:"target"`
+	Name          string     `yaml:"name"`
+	MaxRows       uint32     `yaml:"max_rows"`
+}
+
+// clientMessageRoh ist clientMessageDTO ohne die eigenen YAML-Methoden.
+type clientMessageRoh clientMessageDTO
+
+// MarshalYAML schreibt type und danach die Schlüssel aus clientFelder.
+func (m clientMessageDTO) MarshalYAML() (any, error) {
+	felder, ok := clientFelder[m.Type]
+	if !ok {
+		return nil, fmt.Errorf("Client-Nachricht %q unbekannt", m.Type)
+	}
+	var alle yaml.Node
+	if err := alle.Encode(clientMessageRoh(m)); err != nil {
+		return nil, err
+	}
+	werte := map[string]*yaml.Node{}
+	for i := 0; i+1 < len(alle.Content); i += 2 {
+		werte[alle.Content[i].Value] = alle.Content[i+1]
+	}
+	out := &yaml.Node{Kind: yaml.MappingNode}
+	for _, f := range append([]string{"type"}, felder...) {
+		out.Content = append(out.Content, &yaml.Node{Kind: yaml.ScalarNode, Value: f}, werte[f])
+	}
+	return out, nil
+}
+
+// UnmarshalYAML liest eine Client-Nachricht; ein unbekannter Typ oder ein
+// Schlüssel, der nicht zu ihm gehört, ist ein Fehler.
+func (m *clientMessageDTO) UnmarshalYAML(node *yaml.Node) error {
+	if node.Kind != yaml.MappingNode {
+		return fmt.Errorf("Client-Nachricht ist keine Abbildung")
+	}
+	typ := ""
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		if node.Content[i].Value == "type" {
+			typ = node.Content[i+1].Value
+		}
+	}
+	felder, ok := clientFelder[typ]
+	if !ok {
+		return fmt.Errorf("Client-Nachricht %q unbekannt", typ)
+	}
+	erlaubt := map[string]bool{"type": true}
+	for _, f := range felder {
+		erlaubt[f] = true
+	}
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		if k := node.Content[i].Value; !erlaubt[k] {
+			return fmt.Errorf("Schlüssel %q gehört nicht zu %s", k, typ)
+		}
+	}
+	return node.Decode((*clientMessageRoh)(m))
 }
 
 type requestDTO struct {
@@ -182,6 +277,8 @@ type responseDTO struct {
 	Name     string            `yaml:"name,omitempty"`
 	Value    string            `yaml:"value,omitempty"`
 	TxStatus string            `yaml:"tx_status,omitempty"`
+	// ParamTypes trägt die Typ-OIDs einer parameter_description.
+	ParamTypes []uint32 `yaml:"param_types,omitempty,flow"`
 }
 
 type columnDTO struct {
@@ -249,19 +346,52 @@ func toDTO(rec model.Recording) recordingDTO {
 	for _, s := range rec.Sessions {
 		sd := sessionDTO{ID: s.ID, Startup: s.Startup, ServerParameters: s.ServerParameters, Interactions: []interactionDTO{}}
 		for _, i := range s.Interactions {
-			id := interactionDTO{Sequence: i.Sequence, OffsetMS: i.OffsetMS, Request: requestDTO{Type: string(i.Request.Type), SQL: i.Request.SQL}}
-			for _, r := range i.Responses {
-				id.Responses = append(id.Responses, responseToDTO(r))
-			}
-			sd.Interactions = append(sd.Interactions, id)
+			sd.Interactions = append(sd.Interactions, interactionToDTO(i))
 		}
 		sessions = append(sessions, sd)
 	}
 	return d
 }
 
+// interactionToDTO schreibt eine Extended-Interaktion mit type und groups, jede
+// andere mit request und responses.
+func interactionToDTO(i model.Interaction) interactionDTO {
+	d := interactionDTO{Sequence: i.Sequence, OffsetMS: i.OffsetMS}
+	if i.Request.Type == model.RequestExtended {
+		d.Type = interactionExtended
+		for _, g := range i.Groups {
+			var gd groupDTO
+			for _, m := range g.Client {
+				gd.Client = append(gd.Client, clientMessageToDTO(m))
+			}
+			for _, r := range g.Server {
+				gd.Server = append(gd.Server, responseToDTO(r))
+			}
+			d.Groups = append(d.Groups, gd)
+		}
+		return d
+	}
+	d.Request = &requestDTO{Type: string(i.Request.Type), SQL: i.Request.SQL}
+	for _, r := range i.Responses {
+		d.Responses = append(d.Responses, responseToDTO(r))
+	}
+	return d
+}
+
+func clientMessageToDTO(m model.ClientMessage) clientMessageDTO {
+	d := clientMessageDTO{
+		Type: string(m.Type), Statement: m.Statement, Portal: m.Portal, SQL: m.SQL,
+		ParamTypes: m.ParamTypes, ParamFormats: m.ParamFormats, ResultFormats: m.ResultFormats,
+		Target: string(m.Target), Name: m.Name, MaxRows: m.MaxRows,
+	}
+	for _, v := range m.Params {
+		d.Params = append(d.Params, valueToDTO(v))
+	}
+	return d
+}
+
 func responseToDTO(r model.Response) responseDTO {
-	d := responseDTO{Type: string(r.Type), Tag: r.Tag, Notice: r.Fields, Name: r.Name, Value: r.Value, TxStatus: r.TxStatus}
+	d := responseDTO{Type: string(r.Type), Tag: r.Tag, Notice: r.Fields, Name: r.Name, Value: r.Value, TxStatus: r.TxStatus, ParamTypes: r.ParamTypes}
 	for _, c := range r.Columns {
 		d.Fields = append(d.Fields, columnDTO(c))
 	}
@@ -283,24 +413,13 @@ func valueToDTO(v model.Value) valueDTO {
 	return valueDTO{Base64: &b}
 }
 
-// bekannteAntworten sind die Antworttypen, die dieser Leser kennt; ein anderer
-// Typ macht die Aufzeichnung zu einer beschädigten (SPEC-001).
-var bekannteAntworten = map[model.ResponseType]bool{
-	model.ResponseRowDescription:     true,
-	model.ResponseDataRow:            true,
-	model.ResponseCommandComplete:    true,
-	model.ResponseEmptyQueryResponse: true,
-	model.ResponseErrorResponse:      true,
-	model.ResponseNoticeResponse:     true,
-	model.ResponseParameterStatus:    true,
-	model.ResponseReadyForQuery:      true,
-}
-
 // fromDTO prüft die Struktur, an der eine abgeschnittene Datei auffällt: Die
 // Liste der Sessions fehlt nicht, jede Session trägt Interaktionen mit
-// fortlaufender Nummer, und jede Interaktion endet mit ready_for_query
-// (LH-FA-07). Eine Datei, die genau an einer Session-Grenze endet, bleibt eine
-// gültige kürzere Aufzeichnung.
+// fortlaufender Nummer, und jede Interaktion hat die Form, die
+// model.Interaction.Validate verlangt — eine einfache endet mit ready_for_query,
+// eine Extended-Interaktion mit der Sync-Gruppe und deren ready_for_query
+// (LH-FA-07, LH-FA-18.a). Eine Datei, die genau an einer Session-Grenze endet,
+// bleibt eine gültige kürzere Aufzeichnung.
 func fromDTO(d recordingDTO) (model.Recording, error) {
 	rec := model.Recording{Format: d.Format, Version: d.Version, EmptySessions: d.EmptySessions}
 	if d.Sessions == nil {
@@ -315,25 +434,18 @@ func fromDTO(d recordingDTO) (model.Recording, error) {
 		}
 		s := model.Session{ID: sd.ID, Startup: sd.Startup, ServerParameters: sd.ServerParameters}
 		for ii, id := range sd.Interactions {
-			if model.RequestType(id.Request.Type) != model.RequestQuery {
-				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Anfrage-Typ %q unbekannt", id.Request.Type)
-			}
 			if id.Sequence != ii+1 {
 				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d: Interaktion %d trägt die Nummer %d", sd.ID, ii+1, id.Sequence)
-			}
-			if n := len(id.Responses); n == 0 || id.Responses[n-1].Type != string(model.ResponseReadyForQuery) {
-				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d endet nicht mit ready_for_query", sd.ID, id.Sequence)
 			}
 			if id.OffsetMS != nil && *id.OffsetMS < 0 {
 				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d: offset_ms negativ", sd.ID, id.Sequence)
 			}
-			i := model.Interaction{Sequence: id.Sequence, OffsetMS: id.OffsetMS, Request: model.Request{Type: model.RequestType(id.Request.Type), SQL: id.Request.SQL}}
-			for _, rd := range id.Responses {
-				r, err := responseFromDTO(rd)
-				if err != nil {
-					return model.Recording{}, err
-				}
-				i.Responses = append(i.Responses, r)
+			i, err := interactionFromDTO(id)
+			if err == nil {
+				err = i.Validate()
+			}
+			if err != nil {
+				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Session %d, Interaktion %d", sd.ID, id.Sequence)
 			}
 			s.Interactions = append(s.Interactions, i)
 		}
@@ -342,11 +454,87 @@ func fromDTO(d recordingDTO) (model.Recording, error) {
 	return rec, nil
 }
 
-func responseFromDTO(d responseDTO) (model.Response, error) {
-	if !bekannteAntworten[model.ResponseType(d.Type)] {
-		return model.Response{}, model.Errorf(model.CodeRecordingBroken, nil, "Antwort-Typ %q unbekannt", d.Type)
+// interactionFromDTO liest die Art aus type: fehlt es, ist es eine einfache
+// Anfrage mit request und responses, bei `extended` eine Extended-Interaktion
+// mit groups. Ein anderer Wert und jede Mischung der beiden Formen sind ein
+// Fehler (SPEC-001, SPEC-041).
+func interactionFromDTO(d interactionDTO) (model.Interaction, error) {
+	i := model.Interaction{Sequence: d.Sequence, OffsetMS: d.OffsetMS}
+	switch d.Type {
+	case "":
+		if d.Request == nil || d.Groups != nil {
+			return model.Interaction{}, fmt.Errorf("einfache Anfrage braucht request und trägt keine groups")
+		}
+		if model.RequestType(d.Request.Type) != model.RequestQuery {
+			return model.Interaction{}, fmt.Errorf("Anfrage-Typ %q unbekannt", d.Request.Type)
+		}
+		i.Request = model.Request{Type: model.RequestQuery, SQL: d.Request.SQL}
+		for _, rd := range d.Responses {
+			r, err := responseFromDTO(rd)
+			if err != nil {
+				return model.Interaction{}, err
+			}
+			i.Responses = append(i.Responses, r)
+		}
+	case interactionExtended:
+		if d.Request != nil || d.Responses != nil {
+			return model.Interaction{}, fmt.Errorf("Extended-Interaktion trägt weder request noch responses")
+		}
+		i.Request = model.Request{Type: model.RequestExtended}
+		for _, gd := range d.Groups {
+			g, err := groupFromDTO(gd)
+			if err != nil {
+				return model.Interaction{}, err
+			}
+			i.Groups = append(i.Groups, g)
+		}
+	default:
+		return model.Interaction{}, fmt.Errorf("Interaktions-Typ %q unbekannt", d.Type)
 	}
-	r := model.Response{Type: model.ResponseType(d.Type), Tag: d.Tag, Fields: d.Notice, Name: d.Name, Value: d.Value, TxStatus: d.TxStatus}
+	return i, nil
+}
+
+func groupFromDTO(d groupDTO) (model.Group, error) {
+	var g model.Group
+	for _, md := range d.Client {
+		m := model.ClientMessage{
+			Type: model.ClientMessageType(md.Type), Statement: md.Statement, Portal: md.Portal, SQL: md.SQL,
+			ParamTypes: leerAlsNil(md.ParamTypes), ParamFormats: leerAlsNil(md.ParamFormats),
+			ResultFormats: leerAlsNil(md.ResultFormats),
+			Target:        model.Target(md.Target), Name: md.Name, MaxRows: md.MaxRows,
+		}
+		for _, vd := range md.Params {
+			v, err := valueFromDTO(vd)
+			if err != nil {
+				return model.Group{}, err
+			}
+			m.Params = append(m.Params, v)
+		}
+		g.Client = append(g.Client, m)
+	}
+	for _, rd := range d.Server {
+		r, err := responseFromDTO(rd)
+		if err != nil {
+			return model.Group{}, err
+		}
+		g.Server = append(g.Server, r)
+	}
+	return g, nil
+}
+
+// leerAlsNil liest eine leere Liste als nil; der Schreiber gibt nil als []
+// aus.
+func leerAlsNil[T any](s []T) []T {
+	if len(s) == 0 {
+		return nil
+	}
+	return s
+}
+
+// responseFromDTO übernimmt die Felder; welche Typen in welcher Art zulässig
+// sind, prüft model.Interaction.Validate.
+func responseFromDTO(d responseDTO) (model.Response, error) {
+	r := model.Response{Type: model.ResponseType(d.Type), Tag: d.Tag, Fields: d.Notice, Name: d.Name, Value: d.Value, TxStatus: d.TxStatus, ParamTypes: leerAlsNil(d.ParamTypes)}
 	for _, c := range d.Fields {
 		r.Columns = append(r.Columns, model.Column(c))
 	}

@@ -35,7 +35,9 @@ type Session struct {
 }
 
 // Interaction ist eine abgeschlossene Anfrage mit allen Serverantworten bis
-// einschließlich ReadyForQuery (LH-FA-02.b).
+// einschließlich ReadyForQuery (LH-FA-02.b, LH-FA-18.a). Request.Type nennt die
+// Art: Eine einfache Anfrage trägt SQL und Responses, eine Extended-Interaktion
+// nur Groups (SPEC-041). Validate prüft diese Form.
 type Interaction struct {
 	Sequence int
 	// OffsetMS ist der Abstand zum Beginn der Session in Millisekunden, nur mit
@@ -43,15 +45,22 @@ type Interaction struct {
 	OffsetMS  *int64
 	Request   Request
 	Responses []Response
+	Groups    []Group
 }
 
 // RequestType ist die Art einer Anfrage.
 type RequestType string
 
-// RequestQuery ist eine einfache Anfrage (Simple Query Protocol).
-const RequestQuery RequestType = "query"
+const (
+	// RequestQuery ist eine einfache Anfrage (Simple Query Protocol).
+	RequestQuery RequestType = "query"
+	// RequestExtended ist eine Extended-Interaktion (Extended Query Protocol,
+	// LH-FA-18.a); ihre Nachrichten stehen in Interaction.Groups.
+	RequestExtended RequestType = "extended"
+)
 
-// Request ist die Anfrage einer Interaktion.
+// Request ist die Anfrage einer Interaktion; SQL ist nur bei RequestQuery
+// belegt.
 type Request struct {
 	Type RequestType
 	SQL  string

@@ -249,3 +249,224 @@ func TestFelderDerVersion1(t *testing.T) {
 		t.Fatalf("leere Session mit Kennzeichnung: %v", err)
 	}
 }
+
+// extendedBeispiel trägt eine Extended-Interaktion mit Flush- und Sync-Gruppe
+// nach einer einfachen Anfrage; sie nutzt jedes Feld einer Client-Nachricht,
+// einen NULL- und einen Binärparameter und eine parameter_description.
+func extendedBeispiel() model.Recording {
+	rec := beispiel()
+	rec.Sessions[0].Interactions = append(rec.Sessions[0].Interactions, model.Interaction{
+		Sequence: 2,
+		Request:  model.Request{Type: model.RequestExtended},
+		Groups: []model.Group{
+			{
+				Client: []model.ClientMessage{
+					{Type: model.ClientParse, Statement: "s1", SQL: "SELECT name FROM users WHERE id = $1", ParamTypes: []uint32{23}},
+					{Type: model.ClientDescribe, Target: model.TargetStatement, Name: "s1"},
+					{Type: model.ClientFlush},
+				},
+				Server: []model.Response{
+					{Type: model.ResponseParseComplete},
+					{Type: model.ResponseParameterDescription, ParamTypes: []uint32{23}},
+					{Type: model.ResponseNoData},
+				},
+			},
+			{
+				Client: []model.ClientMessage{{Type: model.ClientClose, Target: model.TargetPortal, Name: "p0"}, {Type: model.ClientFlush}},
+			},
+			{
+				Client: []model.ClientMessage{
+					{Type: model.ClientBind, Portal: "p1", Statement: "s1", ParamFormats: []int16{0, 1}, Params: []model.Value{{Null: true}, {Bytes: []byte{0x00, 0xff}}}, ResultFormats: []int16{1}},
+					{Type: model.ClientExecute, Portal: "p1", MaxRows: 5},
+					{Type: model.ClientSync},
+				},
+				Server: []model.Response{
+					{Type: model.ResponseCloseComplete},
+					{Type: model.ResponseBindComplete},
+					{Type: model.ResponseDataRow, Values: []model.Value{{Bytes: []byte("alice")}}},
+					{Type: model.ResponsePortalSuspended},
+					{Type: model.ResponseParameterStatus, Name: "application_name", Value: "x"},
+					{Type: model.ResponseReadyForQuery, TxStatus: "T"},
+				},
+			},
+		},
+	})
+	return rec
+}
+
+// Eine Extended-Interaktion übersteht den Roundtrip in allen Feldern; die Datei
+// trägt die Form aus SPEC-041 (type: extended, groups mit client und server, die
+// Felder jeder Client-Nachricht auch leer), bleibt deterministisch, und die
+// einfache Anfrage davor behält ihre Form aus SPEC-002.
+func TestExtendedRoundtrip(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "rec.yaml")
+	want := extendedBeispiel()
+	if err := (YAML{}).Write(ctx, path, want); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	got, err := YAML{}.Load(ctx, path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Roundtrip weicht ab:\n got %#v\nwant %#v", got, want)
+	}
+	data, _ := os.ReadFile(path)
+	text := string(data)
+	for _, s := range []string{
+		"      - sequence: 1\n        request:\n",
+		"      - sequence: 2\n        type: extended\n        groups:\n          - client:\n              - type: parse\n                statement: s1\n                sql: SELECT name FROM users WHERE id = $1\n                param_types: [23]\n",
+		"              - type: describe\n                target: statement\n                name: s1\n              - type: flush\n            server:\n              - type: parse_complete\n              - type: parameter_description\n                param_types: [23]\n",
+		"              - type: flush\n            server: []\n",
+		"              - type: bind\n                portal: p1\n                statement: s1\n                param_formats: [0, 1]\n                params:\n                  - \"null\": true\n                  - base64: AP8=\n                result_formats: [1]\n",
+		"              - type: execute\n                portal: p1\n                max_rows: 5\n              - type: sync\n",
+	} {
+		if !strings.Contains(text, s) {
+			t.Errorf("Aufzeichnung enthält nicht:\n%s\n---\n%s", s, text)
+		}
+	}
+	nochmal, err := Marshal(got)
+	if err != nil || string(nochmal) != text {
+		t.Fatalf("zweites Schreiben weicht ab (%v):\n%s\n---\n%s", err, nochmal, text)
+	}
+}
+
+// Leere Felder einer Client-Nachricht stehen in der Datei (`portal: ""`,
+// `param_types: []`, `max_rows: 0` wie in SPEC-041), und eine leere Liste kommt
+// als nil zurück; der Roundtrip bleibt damit gleich.
+func TestExtendedLeereFelder(t *testing.T) {
+	want := model.NewRecording()
+	want.Sessions = []model.Session{{ID: 1, Interactions: []model.Interaction{{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
+		Client: []model.ClientMessage{{Type: model.ClientParse}, {Type: model.ClientBind}, {Type: model.ClientExecute}, {Type: model.ClientSync}},
+		Server: []model.Response{{Type: model.ResponseParameterDescription}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}},
+	}}}}}}
+	leer, err := Marshal(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{"statement: \"\"", "sql: \"\"", "param_types: []", "portal: \"\"", "param_formats: []", "params: []", "result_formats: []", "max_rows: 0"} {
+		if !strings.Contains(string(leer), s) {
+			t.Errorf("leere Felder: %q fehlt:\n%s", s, leer)
+		}
+	}
+	got, err := Unmarshal(leer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Roundtrip weicht ab:\n got %#v\nwant %#v", got, want)
+	}
+}
+
+// Das Beispiel aus SPEC-041 wird gelesen, wie es dort steht.
+func TestUnmarshalSpec041(t *testing.T) {
+	data := `format: pgwire-recorder
+version: 1
+sessions:
+  - id: 1
+    interactions:
+      - sequence: 1
+        request: {type: query, sql: BEGIN}
+        responses:
+          - type: ready_for_query
+            tx_status: T
+      - sequence: 2
+        type: extended
+        groups:
+          - client:
+              - type: parse
+                statement: "s1"
+                sql: "SELECT name FROM users WHERE id = $1"
+                param_types: [23]
+              - type: bind
+                portal: ""
+                statement: "s1"
+                param_formats: [0]
+                params:
+                  - text: "1"
+                result_formats: [0]
+              - type: describe
+                target: portal
+                name: ""
+              - type: execute
+                portal: ""
+                max_rows: 0
+              - type: sync
+            server:
+              - type: parse_complete
+              - type: bind_complete
+              - type: row_description
+                # protokollrelevante Felder
+              - type: data_row
+                values:
+                  - text: "alice"
+              - type: command_complete
+                tag: "SELECT 1"
+              - type: ready_for_query
+                tx_status: "I"
+`
+	rec, err := Unmarshal([]byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	i := rec.Sessions[0].Interactions[1]
+	if i.Request.Type != model.RequestExtended || len(i.Groups) != 1 {
+		t.Fatalf("Interaktion: %#v", i)
+	}
+	g := i.Groups[0]
+	bind := g.Client[1]
+	if len(g.Client) != 5 || len(g.Server) != 6 || g.Client[0].SQL != "SELECT name FROM users WHERE id = $1" ||
+		!reflect.DeepEqual(g.Client[0].ParamTypes, []uint32{23}) || string(bind.Params[0].Bytes) != "1" ||
+		!reflect.DeepEqual(bind.ResultFormats, []int16{0}) || g.Client[2].Target != model.TargetPortal ||
+		g.Server[5].TxStatus != "I" {
+		t.Fatalf("Gruppe: %#v", g)
+	}
+}
+
+// extendedText ist eine Aufzeichnung mit einer Extended-Interaktion; gruppen
+// steht eingerückt unter `groups:`.
+func extendedText(gruppen string) string {
+	return "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        type: extended\n        groups:\n" + gruppen
+}
+
+const syncGruppe = "          - client:\n              - type: sync\n            server:\n              - type: ready_for_query\n                tx_status: I\n"
+
+// Abdeckung: LH-FA-07/Negative — eine Extended-Interaktion, die abgeschnitten
+// ist, eine unbekannte Nachricht, einen fremden Schlüssel oder eine Mischung mit
+// der einfachen Form trägt, macht die Aufzeichnung zu einer beschädigten
+// (PGR-E3003); die Meldung nennt die verletzte Regel.
+func TestUnmarshalExtendedFehler(t *testing.T) {
+	cases := []struct{ name, data, want string }{
+		{"unbekannter Interaktions-Typ", strings.Replace(extendedText(syncGruppe), "type: extended", "type: bogus", 1), "Interaktions-Typ \"bogus\""},
+		{"type: query auf Interaktionsebene", strings.Replace(extendedText(syncGruppe), "type: extended", "type: query", 1), "Interaktions-Typ \"query\""},
+		{"Anfrage-Typ extended in request", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: extended, sql: x}\n        responses:\n          - type: ready_for_query\n            tx_status: I\n", "Anfrage-Typ \"extended\""},
+		{"extended mit request", extendedText(syncGruppe) + "        request: {type: query, sql: x}\n", "weder request noch responses"},
+		{"extended mit responses", extendedText(syncGruppe) + "        responses: []\n", "weder request noch responses"},
+		{"einfache Anfrage mit groups", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - type: ready_for_query\n            tx_status: I\n        groups: []\n", "keine groups"},
+		{"einfache Anfrage ohne request", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        responses:\n          - type: ready_for_query\n            tx_status: I\n", "braucht request"},
+		{"ohne groups", strings.TrimSuffix(extendedText(""), "        groups:\n") + "\n", "ohne Gruppe"},
+		{"unbekannte Client-Nachricht", extendedText("          - client:\n              - type: copy_data\n              - type: sync\n            server:\n              - type: ready_for_query\n"), "Client-Nachricht \"copy_data\""},
+		{"fremder Schlüssel an sync", extendedText("          - client:\n              - type: sync\n                sql: x\n            server:\n              - type: ready_for_query\n"), "\"sql\" gehört nicht zu sync"},
+		{"Schlüssel von bind an parse", extendedText("          - client:\n              - type: parse\n                portal: p\n              - type: sync\n            server:\n              - type: ready_for_query\n"), "\"portal\" gehört nicht zu parse"},
+		{"doppelter Schlüssel", extendedText("          - client:\n              - type: parse\n                sql: a\n                sql: b\n              - type: sync\n            server:\n              - type: ready_for_query\n"), "already defined"},
+		{"Zielart fehlt", extendedText("          - client:\n              - type: describe\n                name: s\n              - type: sync\n            server:\n              - type: ready_for_query\n"), "Zielart"},
+		{"unbekannte Server-Nachricht", extendedText("          - client:\n              - type: sync\n            server:\n              - type: copy_out_response\n              - type: ready_for_query\n"), "Server-Nachricht \"copy_out_response\""},
+		{"widersprüchlicher Parameter", extendedText("          - client:\n              - type: bind\n                params:\n                  - {text: a, null: true}\n              - type: sync\n            server:\n              - type: ready_for_query\n"), "mehr als einem"},
+		{"abgeschnitten nach der Flush-Gruppe", extendedText("          - client:\n              - type: flush\n            server: []\n"), "sync steht"},
+		{"abgeschnitten nach den Client-Nachrichten", extendedText("          - client:\n              - type: sync\n"), "endet nicht mit ready_for_query"},
+		{"abgeschnitten in den Server-Nachrichten", extendedText("          - client:\n              - type: sync\n            server:\n              - type: command_complete\n                tag: x\n"), "endet nicht mit ready_for_query"},
+		{"abgeschnitten in den Client-Nachrichten", extendedText("          - client:\n              - type: parse\n"), "nur als letzte Nachricht"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := Unmarshal([]byte(c.data))
+			if code(err) != model.CodeRecordingBroken || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("erwartet %s mit %q, erhalten %v", model.CodeRecordingBroken, c.want, err)
+			}
+		})
+	}
+	if _, err := Unmarshal([]byte(extendedText(syncGruppe))); err != nil {
+		t.Fatalf("Gegenstück ohne Fehler: %v", err)
+	}
+}

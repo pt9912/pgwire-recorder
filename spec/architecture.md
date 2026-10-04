@@ -1,6 +1,6 @@
 # Architektur — pgwire-recorder
 
-**Status:** Aktiv. **Letzte Änderung:** 2026-10-03.
+**Status:** Aktiv. **Letzte Änderung:** 2026-10-04.
 
 **Rolle:** Sicht-Stratum — *keine* eigenen Anforderungen, derivativ. Regeln:
 Baseline-Regelwerk `modul-03-spec.md` §Ziel-Form: Architektur-Sicht.
@@ -84,7 +84,7 @@ importieren, und nutzt die Driven Ports.
 
 | ID | Komponente | Rolle |
 |---|---|---|
-| `ARC-001` | Domain Model (`internal/hexagon/model`) | Kanonische Typen für Recording, Session, Interaktion, Request, Response und Wert; frei von Drittbibliotheken |
+| `ARC-001` | Domain Model (`internal/hexagon/model`) | Kanonische Typen für Recording, Session, Interaktion, Request, Response, Extended-Gruppe, Client-Nachricht und Wert samt der Formregeln einer Interaktion; frei von Drittbibliotheken |
 | `ARC-002` | Application Services (`internal/hexagon/services`) | Record-Service, Replay-Service, Play-Service und Strict Matcher; Record-/Replay-Zustandslogik und Replay-Cursor; Antwortvergleich des Play-Service |
 | `ARC-003` | Driving Ports / Inbound (`internal/hexagon/ports/driving`) | Use Cases, die der Core anbietet (Record, Replay, Play) |
 | `ARC-004` | Driven Ports / Outbound (`internal/hexagon/ports/driven`) | Infrastrukturleistungen, die der Core benötigt: Recording-Repository, PostgreSQL-Upstream, Uhr |

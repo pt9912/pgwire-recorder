@@ -655,7 +655,7 @@ Werte. Er verbindet sich nicht und liest keine Aufzeichnung.
 `Flush`, `Sync`. Server: `ParseComplete`, `BindComplete`, `CloseComplete`,
 `ParameterDescription`, `RowDescription`, `NoData`, `DataRow`,
 `CommandComplete`, `EmptyQueryResponse`, `PortalSuspended`, `ErrorResponse`,
-`NoticeResponse`, `ReadyForQuery`.
+`NoticeResponse`, `ParameterStatus` (etwa nach einem `SET`), `ReadyForQuery`.
 
 **Interaktion.** Eine Extended-Interaktion beginnt mit der ersten
 Extended-Nachricht nach dem Sessionbeginn oder nach dem `Sync` der vorherigen
@@ -1112,8 +1112,22 @@ Unterstrich (`parse`, `bind`, `describe`, `execute`, `close`, `flush`, `sync`,
 `parse_complete`, `bind_complete`, `close_complete`, `parameter_description`,
 `row_description`, `no_data`, `data_row`, `command_complete`,
 `empty_query_response`, `portal_suspended`, `error_response`,
-`notice_response`, `ready_for_query`). `describe` und `close` tragen `target`
-(`statement` oder `portal`) und `name`; ein NULL-Parameter steht als
+`notice_response`, `parameter_status`, `ready_for_query`).
+
+Jede Client-Nachricht trägt neben `type` genau die Felder ihres Typs, auch wenn sie
+leer sind (`portal: ""`, `param_types: []`, `max_rows: 0`):
+
+| Typ | Felder |
+|---|---|
+| `parse` | `statement`, `sql`, `param_types` |
+| `bind` | `portal`, `statement`, `param_formats`, `params`, `result_formats` |
+| `describe`, `close` | `target` (`statement` oder `portal`), `name` |
+| `execute` | `portal`, `max_rows` |
+| `flush`, `sync` | — |
+
+Ein anderes Feld oder ein anderer Typ macht das Recording zu einem beschädigten
+(`PGR-E3003`). `parameter_description` trägt die Typ-OIDs der Parameter als
+`param_types`. Ein NULL-Parameter steht als
 `null: true`; ein Leser nimmt den Schlüssel `null` gequotet (`"null": true`) und
 ungequotet an. Binärwerte folgen `SPEC-003`.
 
@@ -1451,3 +1465,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-03 | Initial |
 | 2026-10-03 | TLS zum Client (`LH-FA-23.a`), Antwortvergleich beim Einspielen (`LH-FA-24.a`), eigene Zertifizierungsstelle (`LH-FA-20.a`), Codes `PGR-E2007`, `PGR-E5004`, `PGR-E6003`, `PGR-W3002` |
 | 2026-10-04 | Protokollrand: Verbindung ohne erste Nachricht und erste Nachricht ohne PGWire-Form (`PGR-W3003`, `SPEC-045`) |
+| 2026-10-04 | Extended Query: `ParameterStatus` unter den Server-Nachrichten (`LH-FA-18.a`, `SPEC-041`, wie schon in `LH-FA-24.a` vorausgesetzt); Felder je Client-Nachricht und `param_types` der `parameter_description` (`SPEC-041`) |
