@@ -18,25 +18,14 @@ import (
 )
 
 // aufnehmen zeichnet die Anfragen über record gegen die reale Instanz auf und
-// liefert den Pfad der Aufzeichnung.
-func aufnehmen(t *testing.T, queries ...string) string {
+// liefert den Pfad der Aufzeichnung und die Sicht des Clients beim Aufzeichnen.
+func aufnehmen(t *testing.T, queries ...string) (string, string) {
 	t.Helper()
 	output := filepath.Join(t.TempDir(), "rec.yaml")
 	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	conn, err := pgconn.Connect(ctx, dsn(rec.listen))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, q := range queries {
-		if _, err := conn.Exec(ctx, q).ReadAll(); err != nil {
-			t.Fatalf("%s: %v", q, err)
-		}
-	}
-	_ = conn.Close(ctx)
+	sicht := beobachten(t, rec.listen, queries...)
 	rec.stop(t, 0)
-	return output
+	return output, sicht
 }
 
 // beobachten führt die Anfragen über replay aus und liefert das beobachtbare
@@ -69,29 +58,41 @@ func beobachten(t *testing.T, listen string, queries ...string) string {
 	return b.String()
 }
 
-// Abdeckung: LH-FA-07/Happy, LH-FA-09/Happy, LH-QA-01/Messung —
-// eine von record geschriebene Aufzeichnung beantwortet replay ohne Upstream
-// mit dem Verhalten der realen Instanz; zehn aufeinanderfolgende Läufe zeigen
-// dasselbe beobachtbare Verhalten.
+// Abdeckung: LH-FA-07/Happy, LH-FA-09/Happy — eine von record geschriebene
+// Aufzeichnung beantwortet replay mit derselben Sicht des Clients wie beim
+// Aufzeichnen (Spaltennamen, Typ-OIDs, Zeilen, Befehlsabschluss); zehn
+// aufeinanderfolgende Läufe zeigen dieselbe Sicht.
 func TestE2EReplaySelect1(t *testing.T) {
 	queries := []string{"SELECT 1 AS eins;", "SELECT 'a' AS text, NULL AS leer;"}
-	input := aufnehmen(t, queries...)
-
-	var erstes string
+	input, aufgezeichnet := aufnehmen(t, queries...)
+	if !strings.Contains(aufgezeichnet, `zeile ["1"]`) || !strings.Contains(aufgezeichnet, "spalte eins 23") {
+		t.Fatalf("Sicht beim Aufzeichnen:\n%s", aufgezeichnet)
+	}
 	for lauf := 1; lauf <= 10; lauf++ {
 		rep := startProzess(t, "replay", "--input", input)
 		got := beobachten(t, rep.listen, queries...)
 		rep.stop(t, 0)
-		if lauf == 1 {
-			erstes = got
-			if !strings.Contains(got, `zeile ["1"]`) || !strings.Contains(got, "befehl SELECT 1") {
-				t.Fatalf("Replay-Ergebnis:\n%s", got)
-			}
-			continue
+		if got != aufgezeichnet {
+			t.Fatalf("Lauf %d weicht von der Sicht beim Aufzeichnen ab:\n%s\n--- aufgezeichnet:\n%s", lauf, got, aufgezeichnet)
 		}
-		if got != erstes {
-			t.Fatalf("Lauf %d weicht ab:\n%s\n--- erster Lauf:\n%s", lauf, got, erstes)
-		}
+	}
+}
+
+// Abdeckung: LH-FA-02/Happy — Vorbereitung der Phase ohne PostgreSQL: zwei
+// Verbindungen werden über record aufgezeichnet; die Aufzeichnung und die Sicht
+// der ersten Verbindung liegen danach unter PGR_DATEN.
+func TestE2EVorbereitungOhnePostgres(t *testing.T) {
+	daten := os.Getenv("PGR_DATEN")
+	if daten == "" {
+		t.Skip("ohne PGR_DATEN keine zweite Phase")
+	}
+	output := filepath.Join(daten, "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+	sicht := beobachten(t, rec.listen, "SELECT 1;")
+	_ = beobachten(t, rec.listen, "SELECT 2;")
+	rec.stop(t, 0)
+	if err := os.WriteFile(filepath.Join(daten, "sicht.txt"), []byte(sicht), 0o644); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -99,7 +100,7 @@ func TestE2EReplaySelect1(t *testing.T) {
 // Aufzeichnung passt, erhält einen eindeutigen Fehler mit PGR-E5001 und keine
 // Antwort; der Lauf endet mit Exit-Code 5.
 func TestE2EReplayAbweichung(t *testing.T) {
-	input := aufnehmen(t, "SELECT 1;")
+	input, _ := aufnehmen(t, "SELECT 1;")
 	rep := startProzess(t, "replay", "--input", input)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -149,9 +150,10 @@ func exitCodeOf(err error) int {
 }
 
 // Abdeckung: LH-FA-03/Happy — bei gestoppter PostgreSQL-Instanz beantwortet
-// replay `SELECT 1;` aus einer Aufzeichnung mit dem aufgezeichneten Ergebnis; eine
-// nie zugeordnete Session meldet der Lauf am Ende als Warnung PGR-W2001. Läuft
-// nur in der zweiten Phase des Runners (PGR_OHNE_POSTGRES=1).
+// replay `SELECT 1;` aus der in der ersten Phase von record geschriebenen
+// Aufzeichnung mit derselben Sicht wie beim Aufzeichnen; die nie zugeordnete
+// zweite Session meldet der Lauf am Ende als Warnung PGR-W2001. Läuft nur in
+// der zweiten Phase des Runners (PGR_OHNE_POSTGRES=1).
 func TestE2EOhnePostgresReplay(t *testing.T) {
 	if os.Getenv("PGR_OHNE_POSTGRES") != "1" {
 		t.Skip("nur in der Phase ohne PostgreSQL")
@@ -160,11 +162,16 @@ func TestE2EOhnePostgresReplay(t *testing.T) {
 		c.Close()
 		t.Fatalf("PostgreSQL unter %s ist noch erreichbar", os.Getenv("PGR_UPSTREAM"))
 	}
-	rep := startProzess(t, "replay", "--input", filepath.Join(os.Getenv("PGR_FIXTURES"), "select1.yaml"))
+	daten := os.Getenv("PGR_DATEN")
+	aufgezeichnet, err := os.ReadFile(filepath.Join(daten, "sicht.txt"))
+	if err != nil {
+		t.Fatalf("Sicht der ersten Phase: %v", err)
+	}
+	rep := startProzess(t, "replay", "--input", filepath.Join(daten, "rec.yaml"))
 	got := beobachten(t, rep.listen, "SELECT 1;")
 	rep.stop(t, 0)
-	if !strings.Contains(got, `zeile ["1"]`) || !strings.Contains(got, "befehl SELECT 1") {
-		t.Fatalf("Replay-Ergebnis:\n%s", got)
+	if got != string(aufgezeichnet) {
+		t.Fatalf("Replay-Sicht:\n%s\n--- aufgezeichnet:\n%s", got, aufgezeichnet)
 	}
 	if !strings.Contains(rep.stderr.String(), "PGR-W2001") {
 		t.Fatalf("Warnung PGR-W2001 fehlt:\n%s", rep.stderr.String())

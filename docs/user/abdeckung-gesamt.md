@@ -17,5 +17,4 @@ Vollständig belegte Anforderungen stehen zusätzlich in
 | [`LH-FA-09`](../../spec/lastenheft.md) | E2E | Unit | Unit | n/a | vollständig |
 | [`LH-FA-10`](../../spec/lastenheft.md) | E2E | Unit | Unit | n/a | vollständig |
 | [`LH-FA-13`](../../spec/lastenheft.md) | E2E | E2E | E2E | n/a | vollständig |
-| [`LH-QA-01`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E | vollständig |
 | [`LH-QA-06`](../../spec/lastenheft.md) | n/a | n/a | n/a | Unit | vollständig |

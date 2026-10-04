@@ -45,16 +45,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay): Mit gestoppter PostgreSQL liefert Replay dem Client für `SELECT 1;` dasselbe Ergebnis wie im Record (End-to-End-Test).
-- [ ] [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus): Zwei aufeinanderfolgende Replay-Läufe mit demselben Recording zeigen identisches Verhalten.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay): Mit gestoppter PostgreSQL liefert Replay dem Client für `SELECT 1;` dasselbe Ergebnis wie im Record (End-to-End-Test).
+- [x] [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus): Zwei aufeinanderfolgende Replay-Läufe mit demselben Recording zeigen identisches Verhalten.
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **mit** Wellen von der nächsten Welle-Closure geprüft.
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -65,11 +65,11 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/ports/driving` (Port `Replayer`), `internal/hexagon/services` (Replay-Service) | neu | Cursor, exakter SQL-Vergleich, Zuordnung `first-request`, Warnung `PGR-W2001` |
-| `internal/adapters/driving/pgwire` | update | Handshake ohne Upstream; Responses an den Client |
+| `internal/adapters/driving/pgwire` | update | Server für Record und Replay über `NewRecordServer`/`NewReplayServer`; Handshake ohne Upstream; Warnungen als `model.Warning` |
 | `internal/adapters/driving/cli` | update | Kommando `replay` |
 | `internal/adapters/driven/recording` | update | Laden; die Felder `offset_ms` und `empty_sessions` der Version 1 werden gelesen |
 | `internal/bootstrap` | update | Verdrahtung Replay |
-| `internal/hexagon/services/replay_test.go`, `internal/adapters/driving/pgwire/server_test.go`, `test/integration/replay_e2e_test.go` | neu | Unit: Matching, Mismatch, Zuordnung, Startfehler, Replay-Modus des Adapters; E2E: Record → zehn Replay-Läufe, Abweichung mit Exit-Code 5, beschädigte Aufzeichnung |
+| `internal/hexagon/services/replay_test.go`, `internal/adapters/driving/pgwire/server_test.go`, `test/integration/replay_e2e_test.go`, `tools/test/run-integration-tests.sh` | neu / update | Unit: Matching, Diagnose, Zuordnung, Handshake, Startfehler, Replay-Modus des Adapters; E2E: Record → zehn Replay-Läufe mit der Sicht beim Aufzeichnen, Abweichung mit Exit-Code 5, beschädigte Aufzeichnung; zweite Runner-Phase mit gestopptem PostgreSQL über ein gemeinsames Volume |
 
 ## 4. Trigger
 
@@ -98,9 +98,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Authentifizierungsnachrichten, die typische Treiber im Replay akzeptieren, sind noch nicht festgelegt — **Ausgang:** offen bis Closure.
+- Die Authentifizierungsnachrichten, die typische Treiber im Replay akzeptieren, sind noch nicht festgelegt — **Ausgang:** entfallen: AuthenticationOk, sortierte Serverparameter der Session und ReadyForQuery tragen `pgconn` (E2E) und `psql` 17 (Review-Sonde); weitere Treiber prüft der Validator der Welle.
 
-- Der Leser des Recording-Adapters lehnt die für Version 1 spezifizierten Felder `offset_ms`, `empty_sessions` und `type: extended` noch ab (`KnownFields`); Replay muss sie lesen oder gezielt ablehnen — **Ausgang:** offen bis Closure.
+- Der Leser des Recording-Adapters lehnt die für Version 1 spezifizierten Felder `offset_ms`, `empty_sessions` und `type: extended` noch ab (`KnownFields`); Replay muss sie lesen oder gezielt ablehnen — **Ausgang:** eingetreten: `offset_ms` und `empty_sessions` liest der Leser jetzt; `type: extended` übernimmt `slice-extended-query-modell`.
 
 ## 7. Closure-Notiz
 
@@ -116,7 +116,14 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+- **Was hat funktioniert:** `replay` beantwortet Anfragen aus einer von `record` geschriebenen Aufzeichnung mit derselben Sicht des Clients wie beim Aufzeichnen, auch bei gestopptem PostgreSQL; strict sequential matching, Diagnose nach LH-FA-10.a und Exit-Code 5 laufen. Die zweite Runner-Phase belegt den DoD-Punkt „mit gestoppter PostgreSQL“ wörtlich.
+- **Was ging anders als geplant:** Der Slice lieferte mehr als geplant (Mismatch einfacher Anfragen, Exit-Code 5, Zuordnung mehrerer Verbindungen); Plan, Welle und Folge-Slices wurden nachgezogen. Die handgeschriebene Fixture wich von einer echten Aufzeichnung ab und ist ersetzt.
+- **Steering-Loop-Eintrag:** Sensor ergänzt: zweite Phase des Integrations-Runners mit gestopptem PostgreSQL, die die Aufzeichnung der ersten Phase gegen die Sicht beim Aufzeichnen prüft — liegt in `harness/mk/integration.mk` (Herkunft `· seit slice-walking-skeleton-replay`). Auslöser: Review F-280, Verifikation V-9 und V-11; `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (2×).
+- **Beobachtungs-Register (`../observations/`):** `BEO-REPO/plan-folgt-korrektur-nicht/` Beleg `evidence/slice-walking-skeleton-replay.md` ergänzt — Zähler 3×, geht in die Closure von `welle-walking-skeleton`; `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/` neu mit Belegen aus record und replay — 2×.
+- **Folge-Slices:** `slice-replay-semantik-mismatch` (Extended-Mismatch, `--fail-on-unconsumed`), `slice-v1-abschluss-sessions` (`--session-assignment connection`, `--record-empty-sessions`), `slice-extended-query-modell` (Leser für `type: extended`) — alle Dateien in `open/`.
+- **Risiken aus §6:** jedes mit genau einem Ausgang — siehe §6.
+- **Drei Paarungen:** Repo mit Wellen-Betrieb — geprüft von der Closure von `welle-walking-skeleton`.
+- **Belege:** Review `docs/reviews/2026-10-04-review-slice-walking-skeleton-replay.md`, Verifikation `docs/reviews/2026-10-04-verifikation-slice-walking-skeleton-replay.md`; die Korrekturen nach der Verifikation (Phase 2 mit echter Aufzeichnung, volle Sicht, Rücknahme von LH-QA-01) sind durch `make gates` belegt, kein weiteres Review.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

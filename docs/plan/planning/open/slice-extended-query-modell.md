@@ -95,6 +95,8 @@ dasteht.
 
 - Das Domain-Modell zeigt eine Lücke in `SPEC-041` (Format Version 1 umfasst Extended, `SPEC-001`) — **Ausgang:** offen bis Closure.
 
+- Der Leser des Recording-Adapters lehnt `type: extended` noch als beschädigt ab; dieser Slice muss Extended-Interaktionen lesen — **Ausgang:** offen bis Closure.
+
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`

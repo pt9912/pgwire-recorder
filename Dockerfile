@@ -38,7 +38,7 @@ RUN --network=none GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -buildvc
 FROM source AS integration
 RUN --network=none go build -trimpath -buildvcs=false -o /out/pgwire-recorder ./cmd/pgwire-recorder \
  && go test -c -tags integration -trimpath -buildvcs=false -o /out/integration.test ./test/integration
-ENV PGR_BINARY=/out/pgwire-recorder PGR_FIXTURES=/src/test/integration/testdata
+ENV PGR_BINARY=/out/pgwire-recorder
 ENTRYPOINT ["/out/integration.test", "-test.v", "-test.count=1"]
 
 # --- runtime: distroless, nonroot, nur das Binary.

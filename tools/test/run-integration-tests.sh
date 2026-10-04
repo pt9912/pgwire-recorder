@@ -2,8 +2,10 @@
 # run-integration-tests — startet eine PostgreSQL-Instanz und das Testimage
 # (Dockerfile, Stufe integration) in einem eigenen, nach außen abgeschlossenen
 # Docker-Netz, führt die Integrationstests aus und räumt Container und Netz
-# danach auf, auch nach einem Abbruch. In einer zweiten Phase stoppt es
-# PostgreSQL und führt die Tests TestE2EOhnePostgres* aus (PGR_OHNE_POSTGRES=1).
+# danach auf, auch nach einem Abbruch. Beide Phasen teilen ein Docker-Volume
+# (PGR_DATEN): Die erste schreibt dort eine Aufzeichnung über record, danach
+# stoppt der Runner PostgreSQL, und die zweite führt TestE2EOhnePostgres* gegen
+# diese Aufzeichnung aus (PGR_OHNE_POSTGRES=1).
 # Es schreibt nichts in den Arbeitsbaum;
 # die Abdeckungstabellen erzeugt `make abdeckung`.
 #
@@ -16,21 +18,24 @@ lauf="pgr-it-$$"
 netz="$lauf-net"
 pg="$lauf-pg"
 tests="$lauf-tests"
+daten="$lauf-daten"
 
 aufraeumen() {
   "$docker" rm -f "$tests" "$pg" >/dev/null 2>&1 || true
   "$docker" network rm "$netz" >/dev/null 2>&1 || true
+  "$docker" volume rm "$daten" >/dev/null 2>&1 || true
 }
 trap aufraeumen EXIT
 
 "$docker" build --progress=plain --target integration -t pgwire-recorder:integration .
 "$docker" network create --internal "$netz" >/dev/null
+"$docker" volume create "$daten" >/dev/null
 "$docker" run -d --name "$pg" --network "$netz" \
   -e POSTGRES_HOST_AUTH_METHOD=trust "$postgres_image" >/dev/null
 
 status=0
-"$docker" run --rm --name "$tests" --network "$netz" -e PGR_UPSTREAM="$pg:5432" \
-  pgwire-recorder:integration || status=$?
+"$docker" run --rm --name "$tests" --network "$netz" -v "$daten":/daten -e PGR_DATEN=/daten \
+  -e PGR_UPSTREAM="$pg:5432" pgwire-recorder:integration || status=$?
 
 if [ "$status" -ne 0 ]; then
   echo "run-integration-tests: Testlauf rot (Exit-Code $status)" >&2
@@ -39,7 +44,8 @@ if [ "$status" -ne 0 ]; then
 fi
 
 "$docker" stop "$pg" >/dev/null
-"$docker" run --rm --name "$tests" --network "$netz" -e PGR_UPSTREAM="$pg:5432" -e PGR_OHNE_POSTGRES=1 \
+"$docker" run --rm --name "$tests" --network "$netz" -v "$daten":/daten -e PGR_DATEN=/daten \
+  -e PGR_UPSTREAM="$pg:5432" -e PGR_OHNE_POSTGRES=1 \
   pgwire-recorder:integration -test.run '^TestE2EOhnePostgres' || status=$?
 if [ "$status" -ne 0 ]; then
   echo "run-integration-tests: Phase ohne PostgreSQL rot (Exit-Code $status)" >&2
