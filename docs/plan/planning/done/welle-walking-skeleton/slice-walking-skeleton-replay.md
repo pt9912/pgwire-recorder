@@ -5,4 +5,4 @@
 
 **Welle:** [welle-walking-skeleton](welle-walking-skeleton.md)
 **Archiviert mit:** welle-walking-skeleton · **Geschlossen:** 2026-10-04
-**Hervorgegangen:** [`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`](../../observations/BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/observation.md) · [`BEO-REPO/plan-folgt-korrektur-nicht`](../../observations/BEO-REPO/plan-folgt-korrektur-nicht/observation.md) · [slice-extended-query-modell](../../next/slice-extended-query-modell.md) · [slice-replay-semantik-mismatch](../../open/slice-replay-semantik-mismatch.md) · [slice-v1-abschluss-sessions](../../open/slice-v1-abschluss-sessions.md)
+**Hervorgegangen:** [`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`](../../observations/BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/observation.md) · [`BEO-REPO/plan-folgt-korrektur-nicht`](../../observations/BEO-REPO/plan-folgt-korrektur-nicht/observation.md) · [slice-extended-query-modell](../../in-progress/slice-extended-query-modell.md) · [slice-replay-semantik-mismatch](../../open/slice-replay-semantik-mismatch.md) · [slice-v1-abschluss-sessions](../../open/slice-v1-abschluss-sessions.md)
