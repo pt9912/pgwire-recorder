@@ -69,7 +69,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `a-check.mk`, `harness/mk/arch-gate.mk` | vorhanden | Architektur-Gate gemäß `.a-check.yml`, Image per Digest gepinnt; keine Änderung nötig |
 | `.a-check.yml` (`tech`) | update | Eine Regel je Bibliothek mit Liste beider PGWire-Adapter; zwei Einträge mit demselben Muster wertet a-check nur einmal aus |
 | `harness/README.md` §Sensors | update | Bindung des neuen Gates deklarieren |
-| `tools/arch/a-check-negativ.sh`, `harness/mk/arch-negativ.mk` | neu | Gegenprobe als Gate: rot, wenn a-check den `pgproto3`-Import im Domain Model durchlässt |
+| `tools/arch/a-check-negativ.sh`, `harness/mk/arch-negativ.mk` | neu | Gegenprobe als Gate in fünf Fällen: rot, wenn a-check `pgproto3` oder `crypto/tls` außerhalb der PGWire-Adapter durchlässt oder in einem der beiden ablehnt |
 
 ## 4. Trigger
 

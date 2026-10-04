@@ -64,7 +64,7 @@ Diese Datei dupliziert sie nicht.
 | `make build` | baut das Go-Modul in Docker (gepinntes Image, netzlos, schreibgeschützt) | [ADR-0009](../docs/plan/adr/0009-implementierungssprache-go.md) |
 | `make test` | führt die Go-Tests in Docker aus (gepinntes Image, netzlos, schreibgeschützt) | [ADR-0009](../docs/plan/adr/0009-implementierungssprache-go.md) |
 | `make a-check` | Architektur-Regeln des Hexagons gemäß `.a-check.yml` (a-check, netzlos, schreibgeschützt): Import-Richtungen der Packages und Bibliotheken je Adapter | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md) |
-| `make a-check-negativ` | Gegenprobe des Architektur-Gates in Kopien des Arbeitsbaums: `pgproto3` im Domain Model und im Recording-Adapter wird abgelehnt, im Upstream-Adapter zugelassen | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md), [ADR-0010](../docs/plan/adr/0010-verwendung-von-pgproto3.md) |
+| `make a-check-negativ` | Gegenprobe des Architektur-Gates in Kopien des Arbeitsbaums: `pgproto3` und `crypto/tls` werden im Domain Model und im Recording-Adapter abgelehnt, in beiden PGWire-Adaptern zugelassen | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md), [ADR-0010](../docs/plan/adr/0010-verwendung-von-pgproto3.md) |
 | `make baseline-verify` | vendored Baseline gegen `SHA256SUMS` (Integrität und Vollständigkeit, netzlos) | — |
 | `make gates` | alle inneren Gates | — |
 

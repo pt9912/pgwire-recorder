@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 # a-check-negativ — Gegenprobe des Architektur-Gates in Kopien des Arbeitsbaums.
-# Der Arbeitsbaum selbst bleibt unberuehrt. Drei Faelle:
+# Der Arbeitsbaum selbst bleibt unberuehrt. Fuenf Faelle:
 #
 #   1. internal/hexagon/model importiert pgproto3      → a-check meldet die Datei
 #   2. internal/adapters/driven/recording importiert
 #      pgproto3                                         → a-check meldet tech-leak
-#   3. internal/adapters/driven/postgres importiert
+#   3. internal/adapters/driven/recording importiert
+#      crypto/tls                                       → a-check meldet tech-leak
+#   4. internal/adapters/driven/postgres importiert
+#      pgproto3 und crypto/tls                          → a-check meldet nichts
+#   5. internal/adapters/driving/pgwire importiert
 #      pgproto3 und crypto/tls                          → a-check meldet nichts
 #
-# Fall 3 haelt fest, dass beide PGWire-Adapter die Bibliothek nutzen duerfen
-# (ADR-0010); die Faelle 1 und 2, dass jeder andere Ort abgelehnt wird.
+# Die Faelle 4 und 5 halten fest, dass beide PGWire-Adapter beide Bibliotheken
+# nutzen duerfen (ADR-0010); die Faelle 1 bis 3, dass ein anderer Ort abgelehnt
+# wird. Andere Regeln von .a-check.yml prueft die Gegenprobe nicht.
 #
-# Ausgang: 0, wenn alle drei Faelle das erwartete Ergebnis liefern, sonst 1.
+# Ausgang: 0, wenn alle Faelle das erwartete Ergebnis liefern, sonst 1.
 # Aufruf ueber `make a-check-negativ` (harness/mk/arch-negativ.mk), das Image und
 # Runtime aus a-check.mk uebernimmt.
 set -euo pipefail
@@ -55,10 +60,14 @@ fall model internal/hexagon/model/negativprobe.go model \
   "github.com/jackc/pgx/v5/pgproto3" rot "internal/hexagon/model/negativprobe.go"
 fall recording internal/adapters/driven/recording/negativprobe.go recording \
   "github.com/jackc/pgx/v5/pgproto3" rot "tech-leak"
+fall recording-tls internal/adapters/driven/recording/negativprobe.go recording \
+  "crypto/tls" rot "tech-leak"
 fall postgres internal/adapters/driven/postgres/negativprobe.go postgres \
+  "github.com/jackc/pgx/v5/pgproto3 crypto/tls" gruen ""
+fall pgwire internal/adapters/driving/pgwire/negativprobe.go pgwire \
   "github.com/jackc/pgx/v5/pgproto3 crypto/tls" gruen ""
 
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "a-check-negativ: gruen — Domain Model und Recording-Adapter abgelehnt, Upstream-Adapter zugelassen"
+echo "a-check-negativ: gruen — pgproto3 und crypto/tls ausserhalb der PGWire-Adapter abgelehnt, in beiden zugelassen"
