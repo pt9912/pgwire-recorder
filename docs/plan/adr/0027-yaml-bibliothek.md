@@ -1,6 +1,6 @@
 # ADR-0027: YAML-Bibliothek go.yaml.in/yaml/v3
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-04
 
@@ -52,5 +52,6 @@ Wenn die Bibliothek nicht mehr gepflegt wird oder eine YAML-Version gefordert wi
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-04 | Proposed | — |
+| 2026-10-04 | Accepted | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
