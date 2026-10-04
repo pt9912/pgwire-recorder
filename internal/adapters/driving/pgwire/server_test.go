@@ -425,3 +425,59 @@ func TestToMessageErfindetNichts(t *testing.T) {
 		t.Fatal("unbekannter Typ angenommen")
 	}
 }
+
+type fakeReplayer struct {
+	mu      sync.Mutex
+	closed  int
+	warnung *model.Error
+}
+
+func (f *fakeReplayer) OpenConnection(context.Context) (model.SessionID, []model.Response) {
+	return 7, []model.Response{
+		{Type: model.ResponseParameterStatus, Name: "server_version", Value: "17.0"},
+		{Type: model.ResponseReadyForQuery, TxStatus: "I"},
+	}
+}
+
+func (f *fakeReplayer) Query(_ context.Context, _ model.SessionID, sql string) ([]model.Response, error) {
+	if sql != "SELECT 1" {
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "erwartet %q, empfangen %q", "SELECT 1", sql)
+	}
+	return []model.Response{{Type: model.ResponseCommandComplete, Tag: "SELECT 1"}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}}, nil
+}
+
+func (f *fakeReplayer) CloseConnection(context.Context, model.SessionID) *model.Error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.closed++
+	return f.warnung
+}
+
+// Im Replay-Modus beantwortet der Adapter Startup und Anfragen aus dem
+// Replay-Use-Case; eine Abweichung erhält eine ErrorResponse mit PGR-E5001 und
+// zählt als Fehler der Klasse 5; eine unverbrauchte Session ist nur eine Warnung.
+func TestReplayModus(t *testing.T) {
+	rep := &fakeReplayer{warnung: model.Errorf(model.CodeUnconsumed, nil, "nicht verbraucht")}
+	client, serverSeite := net.Pipe()
+	var log syncBuffer
+	s := &Server{Replayer: rep, Log: slog.New(slog.NewTextHandler(&log, nil))}
+	go s.handle(context.Background(), serverSeite)
+	defer client.Close()
+	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	fe.Send(&pgproto3.Query{String: "SELECT 2"})
+	_ = fe.Flush()
+	e := fehlerantwort(t, fe)
+	if !strings.Contains(e.Message, model.CodeReplayMismatch) {
+		t.Fatalf("ErrorResponse: %+v", e)
+	}
+	time.Sleep(50 * time.Millisecond)
+	if s.FirstErrorCode() != model.CodeReplayMismatch {
+		t.Fatalf("erster Fehler: %q", s.FirstErrorCode())
+	}
+	if !strings.Contains(log.String(), model.CodeUnconsumed) {
+		t.Fatalf("Warnung %s fehlt: %s", model.CodeUnconsumed, log.String())
+	}
+}

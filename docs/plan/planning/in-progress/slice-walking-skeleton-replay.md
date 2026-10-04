@@ -64,12 +64,12 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` (Replay-Service, Strict Matcher) | neu | Cursor und exakter SQL-Vergleich |
+| `internal/hexagon/ports/driving` (Port `Replayer`), `internal/hexagon/services` (Replay-Service) | neu | Cursor, exakter SQL-Vergleich, Zuordnung `first-request`, Warnung `PGR-W2001` |
 | `internal/adapters/driving/pgwire` | update | Handshake ohne Upstream; Responses an den Client |
 | `internal/adapters/driving/cli` | update | Kommando `replay` |
-| `internal/adapters/driven/recording` | update | Laden |
+| `internal/adapters/driven/recording` | update | Laden; die Felder `offset_ms` und `empty_sessions` der Version 1 werden gelesen |
 | `internal/bootstrap` | update | Verdrahtung Replay |
-| Tests | neu | Happy: Replay `SELECT 1;`; Boundary: zweiter Lauf; Negative: abweichende Query wird nicht beantwortet |
+| `internal/hexagon/services/replay_test.go`, `internal/adapters/driving/pgwire/server_test.go`, `test/integration/replay_e2e_test.go` | neu | Unit: Matching, Mismatch, Zuordnung, Startfehler, Replay-Modus des Adapters; E2E: Record → zehn Replay-Läufe, Abweichung mit Exit-Code 5, beschädigte Aufzeichnung |
 
 ## 4. Trigger
 

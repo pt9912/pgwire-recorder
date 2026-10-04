@@ -9,9 +9,12 @@ const (
 // Recording ist eine Aufzeichnung: geordnete Sessions mit ihren Interaktionen
 // (SPEC-002).
 type Recording struct {
-	Format   string
-	Version  int
-	Sessions []Session
+	Format  string
+	Version int
+	// EmptySessions kennzeichnet eine Aufzeichnung, die auch Verbindungen ohne
+	// Anfrage als Session trägt (LH-FA-12.a).
+	EmptySessions bool
+	Sessions      []Session
 }
 
 // NewRecording liefert eine leere Aufzeichnung mit Formatkennung und Version.
@@ -34,7 +37,10 @@ type Session struct {
 // Interaction ist eine abgeschlossene Anfrage mit allen Serverantworten bis
 // einschließlich ReadyForQuery (LH-FA-02.b).
 type Interaction struct {
-	Sequence  int
+	Sequence int
+	// OffsetMS ist der Abstand zum Beginn der Session in Millisekunden, nur mit
+	// Zeitaufzeichnung (LH-FA-21.a); sonst nil.
+	OffsetMS  *int64
 	Request   Request
 	Responses []Response
 }

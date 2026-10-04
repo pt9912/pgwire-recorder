@@ -344,9 +344,16 @@ type recorder struct {
 
 func startRecorder(t *testing.T, upstream, output string) *recorder {
 	t.Helper()
+	return startProzess(t, "record", "--upstream", upstream, "--output", output)
+}
+
+// startProzess startet das Binary mit einem Kommando, einer freien
+// --listen-Adresse und den übrigen Argumenten und wartet, bis es lauscht.
+func startProzess(t *testing.T, kommando string, args ...string) *recorder {
+	t.Helper()
 	listen := freieAdresse(t)
 	var stderr strings.Builder
-	cmd := exec.Command(os.Getenv("PGR_BINARY"), "record", "--listen", listen, "--upstream", upstream, "--output", output)
+	cmd := exec.Command(os.Getenv("PGR_BINARY"), append([]string{kommando, "--listen", listen}, args...)...)
 	cmd.Stderr = &stderr
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("Recorder starten: %v", err)

@@ -19,6 +19,19 @@ func TestParseRecord(t *testing.T) {
 	}
 }
 
+func TestParseReplay(t *testing.T) {
+	cmd, err := Parse([]string{"replay", "--listen", ":15432", "--input", "r.yaml"}, &bytes.Buffer{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cmd.Name != "replay" || cmd.Replay != (ReplayOptions{Listen: ":15432", Input: "r.yaml"}) {
+		t.Fatalf("erhalten %#v", cmd)
+	}
+	if _, err := Parse([]string{"replay", "--listen", ":1"}, &bytes.Buffer{}); err == nil {
+		t.Fatal("fehlendes --input angenommen")
+	}
+}
+
 func TestParseFehler(t *testing.T) {
 	for _, args := range [][]string{
 		nil,

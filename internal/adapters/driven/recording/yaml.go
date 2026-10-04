@@ -148,9 +148,10 @@ func Unmarshal(data []byte) (model.Recording, error) {
 }
 
 type recordingDTO struct {
-	Format   string        `yaml:"format"`
-	Version  int           `yaml:"version"`
-	Sessions *[]sessionDTO `yaml:"sessions"`
+	Format        string        `yaml:"format"`
+	Version       int           `yaml:"version"`
+	EmptySessions bool          `yaml:"empty_sessions,omitempty"`
+	Sessions      *[]sessionDTO `yaml:"sessions"`
 }
 
 type sessionDTO struct {
@@ -162,6 +163,7 @@ type sessionDTO struct {
 
 type interactionDTO struct {
 	Sequence  int           `yaml:"sequence"`
+	OffsetMS  *int64        `yaml:"offset_ms,omitempty"`
 	Request   requestDTO    `yaml:"request"`
 	Responses []responseDTO `yaml:"responses"`
 }
@@ -243,11 +245,11 @@ func (v *valueDTO) UnmarshalYAML(node *yaml.Node) error {
 
 func toDTO(rec model.Recording) recordingDTO {
 	sessions := []sessionDTO{}
-	d := recordingDTO{Format: rec.Format, Version: rec.Version, Sessions: &sessions}
+	d := recordingDTO{Format: rec.Format, Version: rec.Version, EmptySessions: rec.EmptySessions, Sessions: &sessions}
 	for _, s := range rec.Sessions {
 		sd := sessionDTO{ID: s.ID, Startup: s.Startup, ServerParameters: s.ServerParameters, Interactions: []interactionDTO{}}
 		for _, i := range s.Interactions {
-			id := interactionDTO{Sequence: i.Sequence, Request: requestDTO{Type: string(i.Request.Type), SQL: i.Request.SQL}}
+			id := interactionDTO{Sequence: i.Sequence, OffsetMS: i.OffsetMS, Request: requestDTO{Type: string(i.Request.Type), SQL: i.Request.SQL}}
 			for _, r := range i.Responses {
 				id.Responses = append(id.Responses, responseToDTO(r))
 			}
@@ -300,7 +302,7 @@ var bekannteAntworten = map[model.ResponseType]bool{
 // (LH-FA-07). Eine Datei, die genau an einer Session-Grenze endet, bleibt eine
 // gültige kürzere Aufzeichnung.
 func fromDTO(d recordingDTO) (model.Recording, error) {
-	rec := model.Recording{Format: d.Format, Version: d.Version}
+	rec := model.Recording{Format: d.Format, Version: d.Version, EmptySessions: d.EmptySessions}
 	if d.Sessions == nil {
 		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Liste der Sessions fehlt")
 	}
@@ -308,7 +310,7 @@ func fromDTO(d recordingDTO) (model.Recording, error) {
 		if sd.ID != si+1 {
 			return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d trägt die Kennung %d", si+1, sd.ID)
 		}
-		if len(sd.Interactions) == 0 {
+		if len(sd.Interactions) == 0 && !d.EmptySessions {
 			return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d ohne Interaktion", sd.ID)
 		}
 		s := model.Session{ID: sd.ID, Startup: sd.Startup, ServerParameters: sd.ServerParameters}
@@ -322,7 +324,10 @@ func fromDTO(d recordingDTO) (model.Recording, error) {
 			if n := len(id.Responses); n == 0 || id.Responses[n-1].Type != string(model.ResponseReadyForQuery) {
 				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d endet nicht mit ready_for_query", sd.ID, id.Sequence)
 			}
-			i := model.Interaction{Sequence: id.Sequence, Request: model.Request{Type: model.RequestType(id.Request.Type), SQL: id.Request.SQL}}
+			if id.OffsetMS != nil && *id.OffsetMS < 0 {
+				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d: offset_ms negativ", sd.ID, id.Sequence)
+			}
+			i := model.Interaction{Sequence: id.Sequence, OffsetMS: id.OffsetMS, Request: model.Request{Type: model.RequestType(id.Request.Type), SQL: id.Request.SQL}}
 			for _, rd := range id.Responses {
 				r, err := responseFromDTO(rd)
 				if err != nil {

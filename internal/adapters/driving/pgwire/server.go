@@ -33,9 +33,10 @@ const (
 )
 
 // Server nimmt PostgreSQL-Clients an und übersetzt ihre Nachrichten in Aufrufe
-// des Record-Use-Cases (ARC-006).
+// des Record- oder des Replay-Use-Cases (ARC-006); genau einer ist gesetzt.
 type Server struct {
 	Recorder driving.Recorder
+	Replayer driving.Replayer
 	Log      *slog.Logger
 
 	wg sync.WaitGroup
@@ -109,7 +110,7 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 
 	// Der Verbindungsaufbau zum Upstream läuft auch bei endendem ctx zu Ende;
 	// er ist Teil der laufenden Interaktion.
-	id, responses, err := s.Recorder.OpenSession(context.WithoutCancel(ctx), startup.Parameters)
+	id, responses, err := s.open(context.WithoutCancel(ctx), startup.Parameters)
 	if err != nil {
 		s.fail(be, err)
 		return
@@ -144,7 +145,7 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 		}
 		switch m := msg.(type) {
 		case *pgproto3.Query:
-			out, err := s.Recorder.Query(ctx, id, m.String)
+			out, err := s.query(ctx, id, m.String)
 			if err != nil {
 				s.fail(be, err)
 				s.close(ctx, id, endFor(err))
@@ -262,7 +263,30 @@ func endFor(err error) model.SessionEnd {
 	return model.EndNormal
 }
 
+func (s *Server) open(ctx context.Context, startup map[string]string) (model.SessionID, []model.Response, error) {
+	if s.Replayer != nil {
+		id, out := s.Replayer.OpenConnection(ctx)
+		return id, out, nil
+	}
+	return s.Recorder.OpenSession(ctx, startup)
+}
+
+func (s *Server) query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error) {
+	if s.Replayer != nil {
+		return s.Replayer.Query(ctx, id, sql)
+	}
+	return s.Recorder.Query(ctx, id, sql)
+}
+
+// close beendet die Session. Im Replay ist eine unverbrauchte Session eine
+// Warnung (PGR-W2001), kein Verbindungsfehler.
 func (s *Server) close(ctx context.Context, id model.SessionID, end model.SessionEnd) {
+	if s.Replayer != nil {
+		if w := s.Replayer.CloseConnection(context.WithoutCancel(ctx), id); w != nil {
+			s.Log.Warn(w.Msg, "code", w.Code)
+		}
+		return
+	}
 	if err := s.Recorder.CloseSession(context.WithoutCancel(ctx), id, end); err != nil {
 		s.note(err)
 	}

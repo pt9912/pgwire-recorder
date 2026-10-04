@@ -18,7 +18,9 @@ im [Lastenheft](spec/lastenheft.md).
 
 Das Projekt steht am Beginn der Umsetzung. `pgwire-recorder record` vermittelt
 einfache Anfragen zwischen einem Client und PostgreSQL und schreibt eine
-YAML-Aufzeichnung; Replay und Einspielen fehlen noch.
+YAML-Aufzeichnung; `pgwire-recorder replay` beantwortet dieselben Anfragen daraus
+ohne Datenbank. Das erweiterte Protokoll, die Passwort-Anmeldung und das
+Einspielen fehlen noch.
 
 - `make gates` läuft grün (Build, Unit- und Integrationstests über das
   `Dockerfile`, Abdeckungstabellen, Architekturregeln samt Gegenproben, Doku-Referenzen und vendored

@@ -18,16 +18,25 @@ type RecordOptions struct {
 	Force    bool
 }
 
+// ReplayOptions sind die Optionen von `replay` (LH-FA-03.a), soweit dieser Stand
+// sie kennt.
+type ReplayOptions struct {
+	Listen string
+	Input  string
+}
+
 // Command ist das gewählte Kommando mit seinen Optionen.
 type Command struct {
 	Name   string
 	Record RecordOptions
+	Replay ReplayOptions
 }
 
 const usage = `Aufruf: pgwire-recorder <kommando> [optionen]
 
 Kommandos:
   record   vermittelt Clients zu PostgreSQL und zeichnet die Kommunikation auf
+  replay   beantwortet Anfragen aus einer Aufzeichnung, ohne PostgreSQL
   version  gibt die Programmversion aus
 
 Optionen von record:
@@ -35,6 +44,10 @@ Optionen von record:
   --upstream  Adresse des PostgreSQL-Servers, host:port (Pflicht)
   --output    Zieldatei der Aufzeichnung (Pflicht)
   --force     vorhandene Zieldatei ersetzen
+
+Optionen von replay:
+  --listen    Adresse, auf der Clients angenommen werden (Pflicht)
+  --input     Aufzeichnung (Pflicht)
 `
 
 // ErrHelp meldet, dass die Hilfe angefordert und ausgegeben wurde.
@@ -52,6 +65,8 @@ func Parse(args []string, out io.Writer) (Command, error) {
 		return Command{}, ErrHelp
 	case "record":
 		return parseRecord(args[1:], out)
+	case "replay":
+		return parseReplay(args[1:], out)
 	case "version":
 		if len(args) > 1 {
 			return Command{}, model.Errorf(model.CodeUsage, nil, "version nimmt keine Argumente")
@@ -86,4 +101,28 @@ func parseRecord(args []string, out io.Writer) (Command, error) {
 		}
 	}
 	return Command{Name: "record", Record: o}, nil
+}
+
+func parseReplay(args []string, out io.Writer) (Command, error) {
+	fs := flag.NewFlagSet("replay", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var o ReplayOptions
+	fs.StringVar(&o.Listen, "listen", "", "")
+	fs.StringVar(&o.Input, "input", "", "")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			fmt.Fprint(out, usage)
+			return Command{}, ErrHelp
+		}
+		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von replay")
+	}
+	if fs.NArg() > 0 {
+		return Command{}, model.Errorf(model.CodeUsage, nil, "unerwartetes Argument %q", fs.Arg(0))
+	}
+	for _, p := range []struct{ name, value string }{{"--listen", o.Listen}, {"--input", o.Input}} {
+		if p.value == "" {
+			return Command{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption %s fehlt", p.name)
+		}
+	}
+	return Command{Name: "replay", Replay: o}, nil
 }
