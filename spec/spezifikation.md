@@ -769,14 +769,18 @@ pgwire-recorder play \
    beschrieben; mit TLS wird das Serverzertifikat gegen den Zertifikatsspeicher des
    Systems und die Zertifikate aus `--upstream-ca` geprüft, und der Host der
    Verbindung muss zum Zertifikat passen. Ein Überspringen der Prüfung gibt es nicht.
+   Der Recorder authentifiziert sich als Client mit Klartext-Passwort, MD5 oder
+   SCRAM-SHA-256.
+
    `--upstream-ca` nennt eine PEM-Datei mit einem oder mehreren Zertifikaten; sie
    ergänzt den Zertifikatsspeicher des Systems und ersetzt ihn nicht. Ohne TLS ist
    die Option eine ungültige Verwendung (`PGR-E2001`). Die Datei wird beim Start
    gelesen, vor der ersten Verbindung; eine Datei, die nicht lesbar ist oder kein
-   gültiges Zertifikat enthält, ist ein Startfehler `PGR-E2007` (Exit-Code `2`).
-   Ein relativer Pfad gilt ab dem aktuellen Verzeichnis, auch wenn er in der
-   Konfigurationsdatei steht. Er authentifiziert
-   sich als Client mit Klartext-Passwort, MD5 oder SCRAM-SHA-256.
+   gültiges PEM-Zertifikat enthält, ist ein Startfehler `PGR-E2007` (Exit-Code `2`).
+   Der Ablauf eines Zertifikats der Datei oder des Servers wird nicht beim Start,
+   sondern bei jedem Verbindungsaufbau geprüft und ist dort `PGR-E4005`. Ein relativer
+   Pfad gilt ab dem aktuellen Verzeichnis, auch wenn er in der Konfigurationsdatei
+   steht.
 3. Die Client-Nachrichten der Interaktionen werden in der aufgezeichneten
    Reihenfolge gesendet: bei einer einfachen Anfrage die `Query`, bei einer
    Extended-Interaktion die Nachrichten jeder Gruppe (`SPEC-041`). Nach jeder
@@ -800,22 +804,23 @@ pgwire-recorder play \
    `4`. Mit `--allow-recorded-errors` zählt eine `ErrorResponse` nicht, wenn die
    aufgezeichnete Interaktion mindestens eine `ErrorResponse` enthält; bei einer
    Extended-Interaktion verwirft der Server danach bis zum `Sync`, und der Recorder
-   sendet weiter wie aufgezeichnet. **Mit `--compare-responses`** ersetzt der
-   Vergleich (`LH-FA-24.a`) diese Regel für Fehlerantworten: Enthält die
-   aufgezeichnete Interaktion keine `ErrorResponse`, oder eine mit anderem
-   SQLSTATE, ist die Fehlerantwort eine Abweichung (`PGR-E5004`, Exit-Code `5`) und
-   nicht `PGR-E4004`; enthält sie eine mit gleichem SQLSTATE, gilt die Regel dieses
-   Schritts unverändert (`PGR-E4004`, Exit-Code `4`, außer mit
-   `--allow-recorded-errors`). Je Interaktion entsteht höchstens eine Meldung. Eine
-   Abweichung beendet das Einspielen; mit `--continue-on-error` läuft es weiter.
-   Der Exit-Code am Ende ist der der zuerst aufgetretenen Ursache. Bei jedem
-   Abbruch schließt der Recorder die Verbindung, soweit möglich, mit `Terminate`.
+   sendet weiter wie aufgezeichnet. **Mit `--compare-responses`**
+   ersetzt der Vergleich (`LH-FA-24.a`) diese Regel für Fehlerantworten: Eine
+   `ErrorResponse`, die die aufgezeichnete Interaktion an der Stelle mit gleichem
+   SQLSTATE enthält, gilt als erwartet und weder bricht sie ab noch zählt sie als
+   Abweichung; jede andere ist eine Abweichung (`PGR-E5004`, Exit-Code `5`) und nicht
+   `PGR-E4004`. Je Interaktion wird die erste Abweichung in der Reihenfolge der
+   Nachrichten gemeldet. Eine Abweichung beendet das Einspielen; mit
+   `--continue-on-error` läuft es weiter. Der Exit-Code am Ende ist ohne Vergleich
+   `4`, mit Vergleich `5`; ein Verbindungsfehler (`PGR-E4002`, `PGR-E4003`,
+   `PGR-E4005`) beendet immer sofort mit `4`. Bei jedem Abbruch schließt der Recorder
+   die Verbindung, soweit möglich, mit `Terminate`.
 7. **Abbruchsignal:** Bei `SIGINT` oder `SIGTERM` endet das Einspielen nach der
    laufenden Interaktion; eine Wartezeit (`LH-FA-21.a`) wird abgebrochen. Mit
    `--finish-session-on-interrupt` zuvor nach der laufenden Session. Ein zweites
    Signal beendet den Prozess sofort. Die Verbindung wird mit `Terminate`
-   geschlossen. Der Exit-Code ist `0`, wenn bis dahin kein Fehler auftrat, sonst der
-   der zuerst aufgetretenen Ursache (`4`, mit `--compare-responses` auch `5`).
+   geschlossen. Der Exit-Code ist `0`, wenn bis dahin kein Fehler auftrat, sonst `4`,
+   mit `--compare-responses` nach einer Abweichung `5`.
 
 Das Einspielen ist sequenziell: die Anfragen einer Session nacheinander und die
 Sessions nacheinander. Ohne `--keep-timing` gibt es keine Wartezeiten; mit
@@ -921,8 +926,8 @@ bisher mit `N` abgelehnt.
 Verbindungsaufbau mit einer `StartupMessage` ohne vorherigen `SSLRequest` (auch nach
 einem mit `N` abgelehnten `GSSENCRequest`) mit einer `ErrorResponse` und beendet die
 Verbindung (`PGR-E6003`, Klasse „nicht unterstützt", ein Verbindungsfehler mit
-Exit-Code `6` nach `LH-FA-13.b`). Ein `CancelRequest` trägt keine Daten und gilt wie
-sonst (`LH-FA-05.e`, `PGR-W3001`), auch ohne Verschlüsselung. Mit `--allow-plaintext` (nur zusammen mit `--tls-cert`, sonst
+Exit-Code `6` nach `LH-FA-13.b`). Ein `CancelRequest` trägt keine Anfrage- und keine Antwortdaten und gilt wie sonst
+(`LH-FA-05.e`, `PGR-W3001`), auch ohne Verschlüsselung. Mit `--allow-plaintext` (nur zusammen mit `--tls-cert`, sonst
 `PGR-E2001`) bleibt die unverschlüsselte Verbindung zulässig; der Recorder bietet
 dann beides an. Ohne TLS-Konfiguration gilt `LH-FA-05.c`.
 
@@ -936,33 +941,38 @@ unterscheiden, und `replay` liefert sie über beide Verbindungsarten gleich aus.
 ### LH-FA-24.a — Vergleich der Antworten
 
 Gilt für `play` mit `--compare-responses`. Nach jeder Interaktion vergleicht der
-Recorder die Serverantworten mit den aufgezeichneten; bei einer Extended-Interaktion
-ist das die Folge aller Server-Nachrichten ihrer Gruppen, ohne die Gruppengrenzen
-(die Zuordnung zu einer Gruppe ohne `Sync` ist zeitabhängig, `LH-FA-18.a`). Beide
-Seiten werden zuvor wie folgt normalisiert: Nachrichten
-vom Typ `data_row`, `notice_response` und `parameter_status` entfallen. Die übrigen
-Nachrichten werden in ihrer Reihenfolge Stück für Stück verglichen:
+Recorder die Serverantworten mit den aufgezeichneten. Bei einer Extended-Interaktion
+ist das die Folge aller Server-Nachrichten ihrer Gruppen, ohne die Gruppengrenzen,
+weil die Zuordnung zu einer Gruppe ohne `Sync` zeitabhängig ist (`LH-FA-18.a`). Beide
+Seiten werden zuvor normalisiert: Nachrichten vom Typ `data_row`, `notice_response`
+und `parameter_status` entfallen. Die übrigen Nachrichten werden in ihrer Reihenfolge
+Stück für Stück verglichen:
 
 | Nachricht | Verglichen wird |
 |---|---|
 | jede | der Nachrichtentyp; eine zusätzliche oder fehlende Nachricht ist eine Abweichung |
 | `row_description` | die Anzahl der Spalten und je Spalte Name und Typ-OID |
 | `parameter_description` | die Liste der Typ-OIDs |
-| `command_complete` | das erste Wort des Tags (der Befehl), nicht die Zeilenzahl |
+| `command_complete` | der Tag ohne die abschließenden Zahlen (`INSERT 0 1` gilt als `INSERT`, `CREATE TABLE` bleibt `CREATE TABLE`), also der Befehl, nicht die Zeilenzahl |
 | `error_response` | der SQLSTATE (Feld `C`), nicht der Text |
 | `ready_for_query` | der Transaktionsstatus |
 
 Zeilenwerte und Zeilenzahlen werden nicht verglichen. Eine `ErrorResponse` des
 Servers in einer Extended-Interaktion ändert den Vergleich nicht: die Folge ab dem
-Fehler bis zum `ReadyForQuery` wird wie aufgezeichnet verglichen. Eine aufgezeichnete
-Interaktion, die nicht mit `ready_for_query` endet (Verbindungsende, `FATAL`) oder
-keine Server-Nachrichten trägt, wird nicht verglichen; das Einspielen sendet sie
-wie ohne Vergleich, und das Log vermerkt es auf der Stufe `info`. Die Abweichung wird als
-`PGR-E5004` gemeldet (Exit-Code `5`) und nennt Session, Sequenznummer, bei Extended
-den Gruppenindex, und die Art: Nachrichtenart, Spaltenbeschreibung, Befehlsabschluss,
-Fehler oder Transaktionsstatus; Werte des Servers erscheinen in der Meldung nicht,
-nur Typen und Namen von Spalten. Die Folgen einer Abweichung und der Vorrang
-vor `PGR-E4004` beschreibt `LH-FA-20.a`, Schritt 6. Ohne `--compare-responses` findet kein Vergleich statt.
+Fehler bis zum `ReadyForQuery` wird wie aufgezeichnet verglichen.
+
+**Unvollständige Aufzeichnung.** Endet eine aufgezeichnete Interaktion nicht mit
+`ready_for_query` (Verbindungsende, `FATAL`) oder trägt sie keine Server-Nachrichten,
+wird verglichen, soweit die Aufzeichnung reicht: Die aufgezeichneten Nachrichten
+müssen übereinstimmen; weitere Nachrichten des Servers danach sind keine Abweichung.
+Eine `ErrorResponse`, die die Aufzeichnung nicht enthält, bleibt eine Abweichung.
+
+**Meldung.** Die Abweichung wird als `PGR-E5004` gemeldet (Exit-Code `5`) und nennt
+Session, Sequenznummer, die Position der Nachricht in der normalisierten Folge und
+die Art: Nachrichtenart, Spaltenbeschreibung, Befehl, Fehler oder Transaktionsstatus.
+Werte des Servers erscheinen in der Meldung nicht, nur Typen und Namen von Spalten.
+Die Folgen einer Abweichung beschreibt `LH-FA-20.a`, Schritt 6. Ohne
+`--compare-responses` findet kein Vergleich statt.
 
 ---
 
