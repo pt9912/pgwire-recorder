@@ -271,22 +271,53 @@ func (s *syncBuffer) String() string {
 	return s.b.String()
 }
 
-// Eine unbekannte Sonderanfrage und eine erste Nachricht, die keine
-// Startnachricht sein kann (etwa HTTP), sind PGR-E6001.
-func TestUnbekannteStartnachricht(t *testing.T) {
+// Eine unbekannte Sonderanfrage ist PGR-E6001.
+func TestUnbekannteSonderanfrage(t *testing.T) {
 	sonder := make([]byte, 8)
 	binary.BigEndian.PutUint32(sonder[0:4], 8)
 	binary.BigEndian.PutUint32(sonder[4:8], majorSpezial<<16|9999)
-	for name, msg := range map[string][]byte{"Sonderanfrage": sonder, "HTTP": []byte("GET / HTTP/1.1\r\n\r\n")} {
-		rec := &fakeRecorder{}
-		client, _ := verbinde(t, rec)
-		if _, err := client.Write(msg); err != nil {
-			t.Fatal(err)
-		}
-		e := fehlerantwort(t, pgproto3.NewFrontend(client, client))
-		if !strings.Contains(e.Message, model.CodeUnsupported) {
-			t.Fatalf("%s: %+v", name, e)
-		}
+	rec := &fakeRecorder{}
+	client, _ := verbinde(t, rec)
+	if _, err := client.Write(sonder); err != nil {
+		t.Fatal(err)
+	}
+	e := fehlerantwort(t, pgproto3.NewFrontend(client, client))
+	if !strings.Contains(e.Message, model.CodeUnsupported) {
+		t.Fatalf("ErrorResponse: %+v", e)
+	}
+}
+
+// Abdeckung: LH-FA-05/Boundary — eine erste Nachricht, die keine
+// PGWire-Startnachricht ist (HTTP), schließt die Verbindung ohne Antwort; der
+// Lauf zählt keinen Fehler, die Warnung trägt PGR-W3003.
+func TestFremdeErsteNachricht(t *testing.T) {
+	rec := &fakeRecorder{}
+	var log syncBuffer
+	client, s := verbindeMitLog(t, rec, &log)
+	if _, err := client.Write([]byte("GET / HTTP/1.1\r\nHost: x\r\n\r\n")); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := client.Read(make([]byte, 1)); err == nil {
+		t.Fatalf("Antwort erhalten (%d Bytes) statt geschlossener Verbindung", n)
+	}
+	time.Sleep(50 * time.Millisecond)
+	if s.FirstErrorCode() != "" || rec.opened != 0 {
+		t.Fatalf("Fehler gemerkt %q, Sessions %d", s.FirstErrorCode(), rec.opened)
+	}
+	if !strings.Contains(log.String(), model.CodeForeignProtocol) {
+		t.Fatalf("Warnung ohne %s: %s", model.CodeForeignProtocol, log.String())
+	}
+}
+
+// Eine Verbindung ohne erste Nachricht endet still: kein Fehler, keine Warnung.
+func TestVerbindungOhneNachricht(t *testing.T) {
+	rec := &fakeRecorder{}
+	var log syncBuffer
+	client, s := verbindeMitLog(t, rec, &log)
+	client.Close()
+	time.Sleep(50 * time.Millisecond)
+	if s.FirstErrorCode() != "" || strings.Contains(log.String(), "level=WARN") {
+		t.Fatalf("Fehler %q, Log %s", s.FirstErrorCode(), log.String())
 	}
 }
 

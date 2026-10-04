@@ -27,8 +27,8 @@ const (
 	codeGSSEncRequest = 80877104 // 1234.5680
 	majorSpezial      = 1234     // Hauptnummer der Sonderanfragen
 
-	// maxStartLaenge begrenzt die Länge einer Startnachricht; eine längere
-	// erste Nachricht ist keine PGWire-Startnachricht (etwa eine HTTP-Anfrage).
+	// maxStartLaenge begrenzt die Länge einer Startnachricht (SPEC-045); eine
+	// längere erste Nachricht ist keine PGWire-Startnachricht.
 	maxStartLaenge = 10000
 )
 
@@ -168,10 +168,12 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 
 // startup liest die erste Client-Nachricht. SSL- und GSS-Anfragen beantwortet
 // er mit „N“ (LH-FA-05.c), ein CancelRequest schließt die Verbindung
-// (PGR-W3001). Jede andere Protokollversion als 3.0 ist PGR-E6002 (LH-FA-05.e);
-// eine unbekannte Sonderanfrage (Hauptnummer 1234) und eine erste Nachricht, die
-// keine Startnachricht sein kann, sind PGR-E6001. Der Startcode wird vor
-// pgproto3 gelesen, weil die Bibliothek unbekannte Codes ohne Antwort ablehnt.
+// (PGR-W3001). Jede andere Protokollversion als 3.0 ist PGR-E6002, eine
+// unbekannte Sonderanfrage (Hauptnummer 1234) PGR-E6001. Eine erste Nachricht,
+// die keine PGWire-Startnachricht sein kann, schließt die Verbindung ohne Antwort
+// und nur mit der Warnung PGR-W3003; eine Verbindung ohne erste Nachricht endet
+// still (LH-FA-05.e). Der Startcode wird vor pgproto3 gelesen, weil die
+// Bibliothek unbekannte Codes ohne Antwort ablehnt.
 func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) (*pgproto3.StartupMessage, bool) {
 	for {
 		kopf, err := br.Peek(8)
@@ -184,7 +186,7 @@ func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) 
 		code := binary.BigEndian.Uint32(kopf[4:8])
 		switch {
 		case laenge < 8 || laenge > maxStartLaenge:
-			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "erste Nachricht ist keine PGWire-Startnachricht"))
+			s.Log.Warn("erste Nachricht ist keine PGWire-Startnachricht", "code", model.CodeForeignProtocol, "remote", conn.RemoteAddr().String())
 			return nil, false
 		case code == codeSSLRequest || code == codeGSSEncRequest || code == codeCancelRequest || code == codeProtocol30:
 		case code>>16 == majorSpezial:

@@ -108,7 +108,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Startup-/Authentifizierungsverfahren des Upstreams (z. B. SCRAM) sind für die Weiterleitung noch nicht eingegrenzt; dieser Stand vermittelt nur einen Upstream ohne Passwort-Anmeldung und meldet jedes Anmeldeverfahren mit `PGR-E6001` — **Ausgang:** offen bis Closure.
-- Jede erste Nachricht, die keine PGWire-Startnachricht ist (HTTP-Probe, Port-Scan), zählt als `PGR-E6001` und setzt den Exit-Code des Laufs auf 6; ob sie eine nicht unterstützte Interaktion nach LH-FA-13.b ist, legt die Spezifikation nicht fest — **Ausgang:** offen bis Closure.
+- Eine erste Nachricht, die keine PGWire-Startnachricht ist (HTTP-Probe, Port-Scan), war in der Spezifikation nicht festgelegt — **Ausgang:** entfallen: `LH-FA-05.e` legt sie als Warnung `PGR-W3003` ohne Wirkung auf den Exit-Code fest (`SPEC-045`), umgesetzt und getestet.
 - Die Aufzeichnung wird nach jeder beendeten Session und am Ende des Laufs geschrieben; ein Abbruch per SIGKILL verliert die laufenden Sessions — bewusst, Behandlung in welle-v1-abschluss — **Ausgang:** offen bis Closure.
 - `make build` und `make test` laufen netzlos; mit `pgproto3` braucht das Modul eine netzlose Quelle der Abhängigkeiten (zum Beispiel ein vendored Verzeichnis), sonst scheitert der Build — **Ausgang:** offen bis Closure.
 

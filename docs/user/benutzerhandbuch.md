@@ -573,6 +573,7 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-W2001` | Wiedergabe endete vor der letzten aufgezeichneten Anfrage | Ihr Test hat nicht alle aufgezeichneten Anfragen ausgeführt. Mit `--fail-on-unconsumed` wird das zum Fehler. |
 | `PGR-W3001` | Abbruchwunsch nicht weitergeleitet | Die Anwendung hat versucht, eine laufende Anfrage abzubrechen. Das Werkzeug leitet diesen Wunsch nicht weiter und schließt die Verbindung. |
 | `PGR-W3002` | Verschlüsselung einer Verbindung gescheitert | Die Anwendung hat die Aushandlung abgebrochen oder das Zertifikat nicht akzeptiert. Prüfen Sie, ob die Anwendung dem Zertifikat des Werkzeugs vertraut. |
+| `PGR-W3003` | Verbindung ohne PostgreSQL-Protokoll | Etwas anderes als ein PostgreSQL-Client hat den Port angesprochen, zum Beispiel ein HTTP-Gesundheitscheck. Das Werkzeug schließt die Verbindung; der Exit-Code ändert sich nicht. Ein reiner TCP-Check ohne Daten erzeugt keine Warnung. |
 
 ### Die Anwendung kann sich nicht verbinden
 

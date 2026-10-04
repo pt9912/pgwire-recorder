@@ -302,6 +302,31 @@ func TestE2ERecordSchreibfehlerAmEnde(t *testing.T) {
 	}
 }
 
+// Abdeckung: LH-FA-05/Boundary, LH-FA-13/Happy — eine HTTP-Anfrage an den Port
+// des Recorders (etwa ein Gesundheitscheck) wird ohne Antwort geschlossen; sie
+// zählt nicht als Fehler, und der Lauf endet mit Exit-Code 0.
+func TestE2ERecordFremdeAnfrage(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+
+	c, err := net.DialTimeout("tcp", rec.listen, 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = c.SetDeadline(time.Now().Add(5 * time.Second))
+	if _, err := c.Write([]byte("GET /health HTTP/1.1\r\nHost: x\r\n\r\n")); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := c.Read(make([]byte, 1)); err == nil {
+		t.Fatalf("Antwort erhalten (%d Bytes) statt geschlossener Verbindung", n)
+	}
+	c.Close()
+	rec.stop(t, 0)
+	if !strings.Contains(rec.stderr.String(), "PGR-W3003") {
+		t.Fatalf("Warnung PGR-W3003 fehlt:\n%s", rec.stderr.String())
+	}
+}
+
 func lies(t *testing.T, path string) string {
 	t.Helper()
 	data, err := os.ReadFile(path)

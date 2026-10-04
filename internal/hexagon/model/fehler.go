@@ -18,6 +18,7 @@ const (
 	CodeUnsupported      = "PGR-E6001"
 	CodeProtocolVersion  = "PGR-E6002"
 	CodeCancelRequest    = "PGR-W3001"
+	CodeForeignProtocol  = "PGR-W3003"
 )
 
 // Klassen je Exit-Code (SPEC-034, Kopf „<klasse> [<code>]: <Ursache>“).

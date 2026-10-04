@@ -266,6 +266,10 @@ zulässig, der PGWire 3.0 spricht (`SPEC-029`).
 | `SSLRequest` | mit `N` abgelehnt (LH-FA-05.c); mit Zertifikat und Schlüssel angenommen (LH-FA-23.a) |
 | `GSSENCRequest` | mit `N` abgelehnt |
 | `CancelRequest` | Verbindung wird geschlossen, nicht an den Upstream weitergeleitet; kein Verbindungsfehler, Warnung `PGR-W3001` |
+| Verbindung ohne erste Nachricht (etwa eine TCP-Probe) | Verbindung wird geschlossen; kein Verbindungsfehler, keine Warnung |
+| erste Nachricht, die keine PGWire-Startnachricht ist: Längenfeld unter 8 oder über `SPEC-045` (etwa eine HTTP-Anfrage) | Verbindung wird ohne Antwort geschlossen; kein Verbindungsfehler, Warnung `PGR-W3003` |
+| Startnachricht mit anderer Protokollversion als 3.0 | `ErrorResponse` mit `PGR-E6002` (siehe oben) |
+| Sonderanfrage mit unbekanntem Code (Hauptnummer 1234) | nicht unterstützt (`PGR-E6001`) |
 | Extended-Query-Nachrichten (`Parse`, `Bind`, `Describe`, `Execute`, `Close`, `Flush`, `Sync`) | unterstützt (LH-FA-18.a) |
 | `COPY`-Nachrichten | nicht unterstützt (`PGR-E6001`) |
 | `FunctionCall` | nicht unterstützt (`PGR-E6001`) |
@@ -1184,6 +1188,7 @@ Sensor bemerkt, wenn eine umbenannt wird.
 | `SPEC-010` | Formatkennung / Formatversion | `pgwire-recorder` / `1` | Erkennbarkeit inkompatibler Änderungen (LH-QA-06) |
 | `SPEC-011` | Replay-Matching | strict sequential (einziges Verfahren in v1) | Determinismus (LH-FA-09, LH-QA-01) |
 | `SPEC-012` | `--fail-on-unconsumed` | `false` | nicht verbrauchte Interaktionen sind standardmäßig eine Warnung; Query-Mismatches bleiben immer Fehler (LH-FA-10) |
+| `SPEC-045` | Höchstlänge der ersten Client-Nachricht | 10000 Bytes | eine längere erste Nachricht ist keine PGWire-Startnachricht (LH-FA-05.e) |
 
 ## 4. Fehler-Codes und Logging-Felder
 
@@ -1275,6 +1280,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-W2001` | Replay | Sitzung endet vor Verbrauch aller Interaktionen (LH-FA-03.b) |
 | `PGR-W3001` | Protokollrand | `CancelRequest` empfangen und nicht weitergeleitet (LH-FA-05.e) |
 | `PGR-W3002` | Protokollrand | TLS-Aushandlung eines Clients gescheitert (LH-FA-23.a) |
+| `PGR-W3003` | Protokollrand | erste Nachricht einer Verbindung ist keine PGWire-Startnachricht (LH-FA-05.e) |
 
 **Ausgabe.** Der Fehlertext (Fehlerwert, Zeile beim Prozessende, Attribut
 `error` einer Log-Zeile) beginnt mit dem Kopf `<klasse> [<code>]: <Ursache>`
@@ -1444,3 +1450,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 |---|---|
 | 2026-10-03 | Initial |
 | 2026-10-03 | TLS zum Client (`LH-FA-23.a`), Antwortvergleich beim Einspielen (`LH-FA-24.a`), eigene Zertifizierungsstelle (`LH-FA-20.a`), Codes `PGR-E2007`, `PGR-E5004`, `PGR-E6003`, `PGR-W3002` |
+| 2026-10-04 | Protokollrand: Verbindung ohne erste Nachricht und erste Nachricht ohne PGWire-Form (`PGR-W3003`, `SPEC-045`) |
