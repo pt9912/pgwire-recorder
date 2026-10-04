@@ -1,6 +1,6 @@
 # ADR-0022: Vergleichsregeln beim Einspielen, präzisiert
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-04
 
@@ -52,5 +52,6 @@ Wenn Gruppen in der Meldung bestimmbar sein müssen, Anwender einzelne aufgezeic
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-04 | Proposed; Supersedes ADR-0021 | [ADR-0021](0021-vergleichsregeln-beim-einspielen.md) |
+| 2026-10-04 | Accepted | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

@@ -25,7 +25,7 @@
 | [0019](0019-eigene-zertifizierungsstelle-beim-einspielen.md) | Eigene Zertifizierungsstelle beim Einspielen | Accepted | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
 | [0020](0020-antwortvergleich-beim-einspielen.md) | Antwortvergleich beim Einspielen | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 | [0021](0021-vergleichsregeln-beim-einspielen.md) | Vergleichsregeln beim Einspielen | Superseded by [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
-| [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | Vergleichsregeln beim Einspielen, präzisiert | Proposed | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
+| [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | Vergleichsregeln beim Einspielen, präzisiert | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 
 ## Konventionen
 
