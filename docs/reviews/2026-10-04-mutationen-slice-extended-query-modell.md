@@ -4,7 +4,7 @@
 
 **Vorgehen:** Jede Mutation einzeln im Arbeitsbaum angewandt (`perl` auf genau eine Stelle), `make test` gelaufen (`go vet` und Unit-Tests im `Dockerfile`, Stufe `test`), Datei danach aus der Sicherung zurückgeschrieben. Ein Kontrolllauf ohne Mutation war jeweils grün. „Rot“ heißt: `make test` endet mit Exit-Code ungleich 0, und der genannte Test schlägt fehl, nicht ein Übersetzungsfehler.
 
-**Stand:** M1 bis M11 gegen den Code von Commit `cd03e09`; N1 bis N10 gegen die Fassung nach den Review-Findings F-283 bis F-289 (Commit `6b4967d`); O1 bis O9 gegen die Fassung nach den Verifikations-Befunden V-16 bis V-18. Mit dieser Fassung heißt die Vorprüfung `formVorpruefung` (vorher `formSchluesselNull`), und die Ablehnung von `param_types` an anderen Antworten liegt dort statt in `responseFromDTO`; N7 und N10 treffen seither `formVorpruefung` (O1, O8).
+**Stand:** M1 bis M11 gegen den Code von Commit `cd03e09`; N1 bis N10 gegen die Fassung nach den Review-Findings F-283 bis F-289 (Commit `6b4967d`); O1 bis O9 gegen die Fassung nach den Verifikations-Befunden V-16 bis V-18. P1 bis P4 gegen die Fassung nach dem Folge-Review (F-294 bis F-298). Mit dieser Fassung heißt die Vorprüfung `formVorpruefung` (vorher `formSchluesselNull`), und die Ablehnung von `param_types` an anderen Antworten liegt dort statt in `responseFromDTO`; N7 und N10 treffen seither `formVorpruefung` (O1, O8).
 
 ## Erste Runde (Formregeln und Leser)
 
@@ -55,7 +55,17 @@ Zusätzlich: Ein Lauf, in dem der Schreiber nil-Listen nicht vorher durch leere 
 
 Gültige Gegenstücke im selben Test: Sync-Gruppe, Flush-Gruppe mit `server: []`, `parameter_description` mit und ohne Parameter.
 
+## Vierte Runde (Folge-Review)
+
+| # | Finding | Mutation | Ort | Rot in |
+|---|---|---|---|---|
+| P1 | F-294, F-295 | Prüfung auf Anker, Aliase und Merge-Keys ganz entfernt | `internal/adapters/driven/recording/yaml.go` (`Unmarshal`, Aufruf von `ohneVerweise`) | `TestUnmarshalVerweise` (Anker allein, Alias auf eine Gruppe, Merge-Key in einer Antwort mit param_types, Alias auf null) |
+| P2 | F-294, F-295 | Anker zugelassen | `internal/adapters/driven/recording/yaml.go` (`ohneVerweise`) | `TestUnmarshalVerweise` (Anker allein, Alias auf eine Gruppe, Alias auf null) |
+| P3 | F-295 | Merge-Key zugelassen | ebenda | `TestUnmarshalVerweise` (Merge-Key in einer Antwort mit param_types) |
+| P4 | F-298 | Meldung der Vorprüfung ohne Session und Interaktion | `internal/adapters/driven/recording/yaml.go` (`formVorpruefung`) | `TestVorpruefungNenntOrt` |
+
+Ein Alias setzt einen Anker davor voraus (sonst ist die Datei kein lesbares YAML, Fall „Alias ohne Anker“ in `TestUnmarshalVerweise`); `ohneVerweise` lehnt ihn deshalb über den Anker ab und prüft ihn nicht eigens. Weiter gelesen werden die Ausgabe des Schreibers (`TestRoundtrip`, `TestExtendedRoundtrip`, `TestExtendedLeereFelder`) und das Beispiel aus `SPEC-041` (`TestUnmarshalSpec041`).
+
 ## Nicht abgedeckt
 
 - Felder einer Serverantwort außer `param_types` sind nicht je Typ gebunden (etwa `tag` an `data_row`); das galt schon vor diesem Slice.
-- Anker und Aliase im YAML-Baum sieht `formVorpruefung` nicht aufgelöst; eine Aufzeichnung, die `null` über einen Alias setzt, prüft sie nicht.

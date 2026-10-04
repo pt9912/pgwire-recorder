@@ -1028,10 +1028,14 @@ Version 1 umfasst einfache und Extended-Interaktionen: Bei einer einfachen steht
 `type: query` in `request` (`SPEC-002`), bei einer Extended-Interaktion steht
 `type: extended` an der Interaktion selbst (`SPEC-041`); eine einfache trägt dort
 kein `type`. Ein anderer Wert von `type` an einer dieser Stellen, auch ein leerer
-oder `null`, macht das Recording zu einem beschädigten (`PGR-E3003`). Ein Leser lehnt jede `version`
-ab, die er nicht kennt (`PGR-E3002`), und ein
-Recording ohne oder mit abweichender `format`-Kennung als beschädigt
-(`PGR-E3003`); beides endet mit Exit-Code `3` (`SPEC-016`).
+oder `null`, macht das Recording zu einem beschädigten (`PGR-E3003`). Ein Leser
+lehnt jede `version` ab, die er nicht kennt (`PGR-E3002`), und ein Recording ohne
+oder mit abweichender `format`-Kennung als beschädigt (`PGR-E3003`); beides endet
+mit Exit-Code `3` (`SPEC-016`).
+
+Anker, Aliase und Merge-Keys von YAML (`&`, `*`, `<<`) sind nicht Teil des
+Formats; ein Recording, das einen davon enthält, ist beschädigt (`PGR-E3003`).
+Der Recorder schreibt keine.
 
 ### SPEC-002 — Recording: logisches Modell
 
@@ -1135,15 +1139,15 @@ Server-Nachricht, auch mit dem Wert `null`, ist das Recording beschädigt. Eine
 Interaktion mit `request`, `responses` oder `groups` mit dem Wert `null` ist
 beschädigt. Jede Gruppe trägt `client` und `server`; fehlt einer der beiden oder
 steht er mit `null`, ist das Recording beschädigt. `server: []` ist zulässig (eine
-`Flush`-Gruppe, auf die der Server nichts gesendet hat). Ein NULL-Parameter steht als
-`null: true`; ein Leser nimmt den Schlüssel `null` gequotet (`"null": true`) und
-ungequotet an. Binärwerte folgen `SPEC-003`.
+`Flush`-Gruppe, auf die der Server nichts gesendet hat). Ein NULL-Parameter steht
+als `null: true`; ein Leser nimmt den Schlüssel `null` gequotet (`"null": true`)
+und ungequotet an. Binärwerte folgen `SPEC-003`.
 
 Jede Interaktion, einfach oder Extended, kann das Feld `offset_ms` tragen (ganze
-Zahl ≥ 0, `LH-FA-21.a`); es steht neben `sequence`, bei einer Extended-Interaktion auch neben `type`.
-Simple-Interaktionen
-behalten `request`/`responses` (`SPEC-002`). Formatkennung
-und Version (`SPEC-001`) gelten für beide Arten; Binärdaten folgen `SPEC-003`.
+Zahl ≥ 0, `LH-FA-21.a`); es steht neben `sequence`, bei einer Extended-Interaktion
+auch neben `type`. Simple-Interaktionen behalten `request`/`responses`
+(`SPEC-002`). Formatkennung und Version (`SPEC-001`) gelten für beide Arten;
+Binärdaten folgen `SPEC-003`.
 
 ### SPEC-043 — Recording: SQLite-Format
 
@@ -1477,3 +1481,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-04 | Extended Query: `ParameterStatus` unter den Server-Nachrichten (`LH-FA-18.a`, `SPEC-041`, wie schon in `LH-FA-24.a` vorausgesetzt); Felder je Client-Nachricht und `param_types` der `parameter_description` (`SPEC-041`) |
 | 2026-10-04 | Recording: Stelle von `type` bei einfacher und Extended-Interaktion (`SPEC-001`, `SPEC-041`); fehlendes oder mit `null` belegtes Feld einer Client-Nachricht, `param_types` nur und stets an `parameter_description`, `request`/`responses`/`groups` mit `null` als beschädigt (`SPEC-041`) |
 | 2026-10-04 | Recording: leerer oder `null`-Wert von `type` (`SPEC-001`), `param_types` mit `null` an einer anderen Server-Nachricht, `client` und `server` je Gruppe Pflicht, `server: []` zulässig (`SPEC-041`) |
+| 2026-10-04 | Recording: Anker, Aliase und Merge-Keys von YAML sind beschädigt (`SPEC-001`) |

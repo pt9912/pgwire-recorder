@@ -129,9 +129,17 @@ func Marshal(rec model.Recording) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Unmarshal liest die YAML-Darstellung. Eine fremde Formatkennung oder ein
-// unlesbarer Inhalt ist PGR-E3003, eine unbekannte Version PGR-E3002.
+// Unmarshal liest die YAML-Darstellung. Ein unlesbarer Inhalt, ein Anker, Alias
+// oder Merge-Key, eine fremde Formatkennung und jede Form, die formVorpruefung
+// oder fromDTO ablehnt, ist PGR-E3003, eine unbekannte Version PGR-E3002.
 func Unmarshal(data []byte) (model.Recording, error) {
+	var doc yaml.Node
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
+	}
+	if err := ohneVerweise(&doc); err != nil {
+		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
+	}
 	var d recordingDTO
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
@@ -144,14 +152,35 @@ func Unmarshal(data []byte) (model.Recording, error) {
 	if d.Version != model.Version {
 		return model.Recording{}, model.Errorf(model.CodeRecordingVersion, nil, "Version %d wird nicht unterstützt", d.Version)
 	}
-	if err := formVorpruefung(data); err != nil {
+	if err := formVorpruefung(&doc); err != nil {
 		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
 	}
 	return fromDTO(d)
 }
 
-// formVorpruefung prüft am YAML-Baum, was der Decoder nicht unterscheidet, weil
-// er null wie einen fehlenden Schlüssel liest (SPEC-001, SPEC-041):
+// ohneVerweise lehnt jeden Anker und jeden Merge-Key im Baum ab (SPEC-001); ein
+// Alias setzt einen Anker davor voraus und ist damit ebenfalls abgelehnt. So ist
+// der Baum, den formVorpruefung liest, derselbe, den der Decoder liest.
+func ohneVerweise(n *yaml.Node) error {
+	if n.Anchor != "" {
+		return fmt.Errorf("Anker &%s in Zeile %d", n.Anchor, n.Line)
+	}
+	for i, c := range n.Content {
+		if n.Kind == yaml.MappingNode && i%2 == 0 && c.Kind == yaml.ScalarNode && (c.Value == "<<" || c.Tag == "!!merge") {
+			return fmt.Errorf("Merge-Key in Zeile %d", c.Line)
+		}
+		if err := ohneVerweise(c); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// formVorpruefung prüft am YAML-Baum, den ohneVerweise frei von Ankern, Aliasen
+// und Merge-Keys gefunden hat, Formen, die der Leser an den dekodierten Werten
+// nicht sieht (der Decoder liest null wie einen fehlenden Schlüssel) oder hier an
+// einer Stelle für einfache und Extended-Antworten prüft (SPEC-001, SPEC-041).
+// Die Meldung nennt Session und Interaktion nach ihrer Stellung in der Datei.
 //
 //   - request, responses und groups einer Interaktion stehen nicht mit null;
 //     interactionFromDTO unterscheidet die beiden Formen damit allein an der
@@ -160,36 +189,42 @@ func Unmarshal(data []byte) (model.Recording, error) {
 //     Interaktion eine einfache.
 //   - jede Gruppe trägt client und server, beide nicht mit null.
 //   - param_types steht an keiner Serverantwort außer parameter_description,
-//     auch nicht mit null.
-func formVorpruefung(data []byte) error {
-	var doc yaml.Node
-	if err := yaml.Unmarshal(data, &doc); err != nil || len(doc.Content) == 0 {
-		return err
+//     mit Wert oder mit null.
+func formVorpruefung(doc *yaml.Node) error {
+	if len(doc.Content) == 0 {
+		return nil
 	}
-	for _, s := range wert(doc.Content[0], "sessions").Content {
-		for _, i := range wert(s, "interactions").Content {
-			for _, k := range []string{"request", "responses", "groups"} {
-				if v := wert(i, k); v != ohneWert && v.Tag == "!!null" {
-					return fmt.Errorf("Interaktion mit %s: null", k)
-				}
+	for si, s := range wert(doc.Content[0], "sessions").Content {
+		for ii, i := range wert(s, "interactions").Content {
+			if err := interaktionVorpruefung(i); err != nil {
+				return fmt.Errorf("Session %d, Interaktion %d: %w", si+1, ii+1, err)
 			}
-			if v := wert(i, "type"); v != ohneWert && (v.Tag == "!!null" || v.Value == "") {
-				return fmt.Errorf("Interaktion mit type null oder leer")
+		}
+	}
+	return nil
+}
+
+func interaktionVorpruefung(i *yaml.Node) error {
+	for _, k := range []string{"request", "responses", "groups"} {
+		if v := wert(i, k); v != ohneWert && v.Tag == "!!null" {
+			return fmt.Errorf("%s: null", k)
+		}
+	}
+	if v := wert(i, "type"); v != ohneWert && (v.Tag == "!!null" || v.Value == "") {
+		return fmt.Errorf("type null oder leer")
+	}
+	antworten := wert(i, "responses").Content
+	for gi, g := range wert(i, "groups").Content {
+		for _, k := range []string{"client", "server"} {
+			if v := wert(g, k); v == ohneWert || v.Tag == "!!null" {
+				return fmt.Errorf("Gruppe %d ohne %s", gi+1, k)
 			}
-			antworten := wert(i, "responses").Content
-			for gi, g := range wert(i, "groups").Content {
-				for _, k := range []string{"client", "server"} {
-					if v := wert(g, k); v == ohneWert || v.Tag == "!!null" {
-						return fmt.Errorf("Gruppe %d ohne %s", gi+1, k)
-					}
-				}
-				antworten = append(antworten, wert(g, "server").Content...)
-			}
-			for _, r := range antworten {
-				if typ := wert(r, "type").Value; wert(r, "param_types") != ohneWert && typ != string(model.ResponseParameterDescription) {
-					return fmt.Errorf("Schlüssel \"param_types\" gehört nicht zu %s", typ)
-				}
-			}
+		}
+		antworten = append(antworten, wert(g, "server").Content...)
+	}
+	for _, r := range antworten {
+		if typ := wert(r, "type").Value; wert(r, "param_types") != ohneWert && typ != string(model.ResponseParameterDescription) {
+			return fmt.Errorf("Schlüssel \"param_types\" gehört nicht zu %s", typ)
 		}
 	}
 	return nil
@@ -350,8 +385,10 @@ type responseDTO struct {
 	Name     string            `yaml:"name,omitempty"`
 	Value    string            `yaml:"value,omitempty"`
 	TxStatus string            `yaml:"tx_status,omitempty"`
-	// ParamTypes trägt die Typ-OIDs einer parameter_description, auch leer; an
-	// jeder anderen Antwort fehlt der Schlüssel (SPEC-041).
+	// ParamTypes trägt die Typ-OIDs einer parameter_description. Der Schreiber
+	// setzt den Schlüssel genau dort, auch leer; der Leser verlangt ihn dort
+	// (responseFromDTO) und lehnt ihn an jeder anderen Antwort ab, auch mit null
+	// (formVorpruefung) (SPEC-041).
 	ParamTypes *[]uint32 `yaml:"param_types,omitempty,flow"`
 }
 

@@ -537,3 +537,40 @@ func TestUnmarshalExtendedFehler(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-07/Negative — ein Anker, damit jeder Alias (ein Alias ohne
+// Anker ist schon kein lesbares YAML), und ein Merge-Key
+// machen die Aufzeichnung zu einer beschädigten (PGR-E3003), bevor eine andere
+// Prüfung läuft; die Meldung nennt die Zeile.
+func TestUnmarshalVerweise(t *testing.T) {
+	syncGruppe := gruppe([]string{syncNachricht}, rfqNachricht)
+	flushMitAnker := "          - &g\n            client:\n              - {type: flush}\n            server: []\n"
+	cases := []struct{ name, data, want string }{
+		{"Anker allein", strings.Replace(extendedText(syncGruppe), "type: extended", "type: &t extended", 1), "Anker &t in Zeile 7"},
+		{"Alias auf eine Gruppe", extendedText(flushMitAnker + "          - *g\n" + syncGruppe), "Anker &g in Zeile 9"},
+		{"Merge-Key in einer Antwort mit param_types", einfacherText("{type: command_complete, tag: x, <<: {param_types: [23]}}", ""), "Merge-Key in Zeile 9"},
+		{"Alias ohne Anker", extendedText(syncGruppe + "          - *g\n"), "unknown anchor"},
+		{"Alias auf null", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    startup: {user: &n ~}\n    interactions:\n      - sequence: 1\n        type: extended\n        request: *n\n        groups:\n" + syncGruppe, "Anker &n in Zeile 5"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := Unmarshal([]byte(c.data))
+			if code(err) != model.CodeRecordingBroken || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("erwartet %s mit %q, erhalten %v", model.CodeRecordingBroken, c.want, err)
+			}
+		})
+	}
+}
+
+// Eine Meldung der Vorprüfung nennt Session und Interaktion nach ihrer Stellung
+// in der Datei.
+func TestVorpruefungNenntOrt(t *testing.T) {
+	data := "format: pgwire-recorder\nversion: 1\nsessions:\n" +
+		"  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - " + rfqNachricht + "\n" +
+		"  - id: 2\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - " + rfqNachricht + "\n" +
+		"      - sequence: 2\n        type: extended\n        groups:\n" + gruppe([]string{syncNachricht})
+	_, err := Unmarshal([]byte(data))
+	if code(err) != model.CodeRecordingBroken || !strings.Contains(err.Error(), "Session 2, Interaktion 2: Gruppe 1 ohne server") {
+		t.Fatalf("erwartet %s mit Ort, erhalten %v", model.CodeRecordingBroken, err)
+	}
+}
