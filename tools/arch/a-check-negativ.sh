@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # a-check-negativ — Gegenprobe des Architektur-Gates in Kopien des Arbeitsbaums.
-# Der Arbeitsbaum selbst bleibt unberuehrt. Fuenf Faelle:
+# Der Arbeitsbaum selbst bleibt unberuehrt. Sieben Faelle:
 #
 #   1. internal/hexagon/model importiert pgproto3      → a-check meldet die Datei
 #   2. internal/adapters/driven/recording importiert
@@ -11,10 +11,14 @@
 #      pgproto3 und crypto/tls                          → a-check meldet nichts
 #   5. internal/adapters/driving/pgwire importiert
 #      pgproto3 und crypto/tls                          → a-check meldet nichts
+#   6. internal/hexagon/model importiert go.yaml.in/yaml/v3 → a-check meldet die Datei
+#   7. internal/adapters/driven/postgres importiert
+#      gopkg.in/yaml.v3                                 → a-check meldet tech-leak
 #
 # Die Faelle 4 und 5 halten fest, dass beide PGWire-Adapter beide Bibliotheken
 # nutzen duerfen (ADR-0010); die Faelle 1 bis 3, dass ein anderer Ort abgelehnt
-# wird. Andere Regeln von .a-check.yml prueft die Gegenprobe nicht.
+# wird; die Faelle 6 und 7, dass beide YAML-Modulpfade nur im Recording-Adapter
+# stehen (ADR-0027). Andere Regeln von .a-check.yml prueft die Gegenprobe nicht.
 #
 # Ausgang: 0, wenn alle Faelle das erwartete Ergebnis liefern, sonst 1.
 # Aufruf ueber `make a-check-negativ` (harness/mk/arch-negativ.mk), das Image und
@@ -66,8 +70,12 @@ fall postgres internal/adapters/driven/postgres/negativprobe.go postgres \
   "github.com/jackc/pgx/v5/pgproto3 crypto/tls" gruen ""
 fall pgwire internal/adapters/driving/pgwire/negativprobe.go pgwire \
   "github.com/jackc/pgx/v5/pgproto3 crypto/tls" gruen ""
+fall model-yaml internal/hexagon/model/negativprobe.go model \
+  "go.yaml.in/yaml/v3" rot "internal/hexagon/model/negativprobe.go"
+fall postgres-yaml internal/adapters/driven/postgres/negativprobe.go postgres \
+  "gopkg.in/yaml.v3" rot "tech-leak"
 
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "a-check-negativ: gruen — pgproto3 und crypto/tls ausserhalb der PGWire-Adapter abgelehnt, in beiden zugelassen"
+echo "a-check-negativ: gruen — PGWire- und TLS-Bibliothek nur in den PGWire-Adaptern, YAML nur im Recording-Adapter"

@@ -34,7 +34,7 @@ func beispiel() model.Recording {
 	return rec
 }
 
-// Abdeckung: LH-FA-07/Happy, LH-QA-06/Messung — die Aufzeichnung trägt
+// Abdeckung: LH-QA-06/Messung — die Aufzeichnung trägt
 // Formatkennung und Version und lässt sich per Roundtrip laden; Binärwerte und
 // NULL bleiben erhalten, und kein temporärer Rest bleibt liegen.
 func TestRoundtrip(t *testing.T) {
@@ -172,8 +172,8 @@ sessions:
 }
 
 // Abdeckung: LH-FA-07/Negative, LH-QA-06/Messung — eine fremde Formatkennung,
-// eine unbekannte Version, ein unbekannter Typ oder ein widersprüchlicher Wert
-// machen die Aufzeichnung zu einer beschädigten.
+// eine unbekannte Version, ein unbekannter Typ, ein widersprüchlicher Wert oder
+// eine abgeschnittene Datei machen die Aufzeichnung zu einer beschädigten.
 func TestUnmarshalFehler(t *testing.T) {
 	cases := []struct {
 		name, data, want string
@@ -184,6 +184,11 @@ func TestUnmarshalFehler(t *testing.T) {
 		{"unbekannter Schlüssel", "format: pgwire-recorder\nversion: 1\nsessions: []\nextra: 1\n", model.CodeRecordingBroken},
 		{"unbekannter Anfrage-Typ", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: bogus, sql: x}\n        responses: []\n", model.CodeRecordingBroken},
 		{"unbekannter Antwort-Typ", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - type: bogus\n", model.CodeRecordingBroken},
+		{"Sessions fehlen (abgeschnitten nach version)", "format: pgwire-recorder\nversion: 1\n", model.CodeRecordingBroken},
+		{"abgeschnitten nach data_row", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - type: data_row\n            values:\n              - text: a\n", model.CodeRecordingBroken},
+		{"abgeschnitten nach request", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n", model.CodeRecordingBroken},
+		{"Session ohne Interaktion", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions: []\n", model.CodeRecordingBroken},
+		{"Lücke in den Kennungen", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 2\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - type: ready_for_query\n            tx_status: I\n", model.CodeRecordingBroken},
 		{"doppelter Schlüssel im Wert", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - type: data_row\n            values:\n              - {text: a, text: b}\n", model.CodeRecordingBroken},
 		{"text und base64", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - type: data_row\n            values:\n              - {text: a, base64: YQ==}\n", model.CodeRecordingBroken},
 	}

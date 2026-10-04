@@ -148,9 +148,9 @@ func Unmarshal(data []byte) (model.Recording, error) {
 }
 
 type recordingDTO struct {
-	Format   string       `yaml:"format"`
-	Version  int          `yaml:"version"`
-	Sessions []sessionDTO `yaml:"sessions"`
+	Format   string        `yaml:"format"`
+	Version  int           `yaml:"version"`
+	Sessions *[]sessionDTO `yaml:"sessions"`
 }
 
 type sessionDTO struct {
@@ -242,7 +242,8 @@ func (v *valueDTO) UnmarshalYAML(node *yaml.Node) error {
 }
 
 func toDTO(rec model.Recording) recordingDTO {
-	d := recordingDTO{Format: rec.Format, Version: rec.Version, Sessions: []sessionDTO{}}
+	sessions := []sessionDTO{}
+	d := recordingDTO{Format: rec.Format, Version: rec.Version, Sessions: &sessions}
 	for _, s := range rec.Sessions {
 		sd := sessionDTO{ID: s.ID, Startup: s.Startup, ServerParameters: s.ServerParameters, Interactions: []interactionDTO{}}
 		for _, i := range s.Interactions {
@@ -252,7 +253,7 @@ func toDTO(rec model.Recording) recordingDTO {
 			}
 			sd.Interactions = append(sd.Interactions, id)
 		}
-		d.Sessions = append(d.Sessions, sd)
+		sessions = append(sessions, sd)
 	}
 	return d
 }
@@ -293,13 +294,33 @@ var bekannteAntworten = map[model.ResponseType]bool{
 	model.ResponseReadyForQuery:      true,
 }
 
+// fromDTO prüft die Struktur, an der eine abgeschnittene Datei auffällt: Die
+// Liste der Sessions fehlt nicht, jede Session trägt Interaktionen mit
+// fortlaufender Nummer, und jede Interaktion endet mit ready_for_query
+// (LH-FA-07). Eine Datei, die genau an einer Session-Grenze endet, bleibt eine
+// gültige kürzere Aufzeichnung.
 func fromDTO(d recordingDTO) (model.Recording, error) {
 	rec := model.Recording{Format: d.Format, Version: d.Version}
-	for _, sd := range d.Sessions {
+	if d.Sessions == nil {
+		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Liste der Sessions fehlt")
+	}
+	for si, sd := range *d.Sessions {
+		if sd.ID != si+1 {
+			return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d trägt die Kennung %d", si+1, sd.ID)
+		}
+		if len(sd.Interactions) == 0 {
+			return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d ohne Interaktion", sd.ID)
+		}
 		s := model.Session{ID: sd.ID, Startup: sd.Startup, ServerParameters: sd.ServerParameters}
-		for _, id := range sd.Interactions {
+		for ii, id := range sd.Interactions {
 			if model.RequestType(id.Request.Type) != model.RequestQuery {
 				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Anfrage-Typ %q unbekannt", id.Request.Type)
+			}
+			if id.Sequence != ii+1 {
+				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d: Interaktion %d trägt die Nummer %d", sd.ID, ii+1, id.Sequence)
+			}
+			if n := len(id.Responses); n == 0 || id.Responses[n-1].Type != string(model.ResponseReadyForQuery) {
+				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d endet nicht mit ready_for_query", sd.ID, id.Sequence)
 			}
 			i := model.Interaction{Sequence: id.Sequence, Request: model.Request{Type: model.RequestType(id.Request.Type), SQL: id.Request.SQL}}
 			for _, rd := range id.Responses {

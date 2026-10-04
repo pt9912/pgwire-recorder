@@ -1,4 +1,4 @@
-# Slice slice-walking-skeleton-replay: Replay-Pfad für SELECT 1
+# Slice slice-v1-abschluss-anmeldung: Anmeldung des Clients im Record-Modus vermitteln
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -9,13 +9,14 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-walking-skeleton.
+**Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [ADR-0007](../../adr/0007-strict-replay.md), [ADR-0008](../../adr/0008-kein-sql-parser-in-v1.md)
+**Bezug:** [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md)
 
-**Berührte Spec-Stellen:** `ARC-002` · `ARC-003` · `ARC-004` · `ARC-005` · `ARC-006` · `ARC-008` · `ARC-009` · `SPEC-011`
+**Berührte Spec-Stellen:** `LH-FA-05.b` · `LH-FA-02.a` · `SPEC-034` · `ARC-006` · `ARC-007` · `architecture.md §4.4`
 
 **Verantwortlich:** —
+
 **Autor:** pt9912. **Datum:** 2026-10-03.
 
 ---
@@ -29,14 +30,12 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** `pgwire-recorder replay` beantwortet `SELECT 1;` aus dem Recording des Record-Slice, ohne PostgreSQL, mit strict sequential matching.
+**Ziel:** `record` vermittelt die Anmeldung des Clients beim Upstream transparent (Klartext-Passwort, MD5, SCRAM-SHA-256), sodass Anwendungen gegen Server mit Passwort-Anmeldung aufgezeichnet werden können.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Mismatch-Diagnose und Exit-Code `5` — welle-replay-semantik; hier genügt, dass eine abweichende Query nicht mit einer Aufzeichnung beantwortet wird.
-- Fehlerreplay — welle-replay-semantik.
-- Mehrere aufgezeichnete Sessions — welle-v1-abschluss; hier ein Recording mit einer Session.
-
+- Anmeldung beim Einspielen (`play`) — `slice-v1-abschluss-einspielen`.
+- Client-Zertifikate und GSSAPI/SSPI — außerhalb des Funktionsumfangs von v1 (`LH-FA-05.b`).
 
 ## 2. Definition of Done
 
@@ -45,16 +44,18 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay): Mit gestoppter PostgreSQL liefert Replay dem Client für `SELECT 1;` dasselbe Ergebnis wie im Record (End-to-End-Test).
-- [ ] [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus): Zwei aufeinanderfolgende Replay-Läufe mit demselben Recording zeigen identisches Verhalten.
+- [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol): Ein Client meldet sich über `record` an einem Server mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an und führt eine Anfrage aus; Passwort und Anmeldenachrichten stehen nicht in der Aufzeichnung (Integrationstest).
+- [ ] Eine fehlgeschlagene Anmeldung geht als Fehlerantwort des Servers unverändert an den Client; ein nicht vermitteltes Verfahren endet mit eindeutigem Meldungscode (Test).
+- [ ] Der Port zwischen PGWire-Adapter, Record-Service und Upstream-Adapter trägt den Anmeldeaustausch, ohne dass der Core PGWire-Typen kennt (`make a-check`).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
 - [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -64,12 +65,9 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` (Replay-Service, Strict Matcher) | neu | Cursor und exakter SQL-Vergleich |
-| `internal/adapters/driving/pgwire` | update | Handshake ohne Upstream; Responses an den Client |
-| `internal/adapters/driving/cli` | update | Kommando `replay` |
-| `internal/adapters/driven/recording` | update | Laden |
-| `internal/bootstrap` | update | Verdrahtung Replay |
-| Tests | neu | Happy: Replay `SELECT 1;`; Boundary: zweiter Lauf; Negative: abweichende Query wird nicht beantwortet |
+| `internal/hexagon/ports/driving`, `…/driven`, `internal/hexagon/services` | update | Anmeldeaustausch als Folge fachlicher Nachrichten zwischen Client und Upstream |
+| `internal/adapters/driving/pgwire`, `internal/adapters/driven/postgres` | update | Weiterleitung der Anmeldenachrichten, `SetAuthType` für SASL |
+| `test/integration` | update | Server mit `password`, `md5` und `scram-sha-256` in `pg_hba.conf` |
 
 ## 4. Trigger
 
@@ -80,8 +78,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: der Replay-Handshake braucht mehr als die geplanten Authentifizierungsnachrichten — zurück zur Zerlegung.
-- `in-progress` → `open`: das Recording enthält Nachrichten, die Replay nicht reproduzieren kann — Carveout.
+- `in-progress` → `next`: Der Anmeldeaustausch verlangt einen anderen Zuschnitt des Record-Ports als eine Erweiterung — zurück zur Zerlegung.
+- `in-progress` → `open`: SCRAM mit Kanalbindung lässt sich ohne TLS zum Upstream nicht vermitteln — Carveout.
 
 ## 5. Closure-Trigger
 
@@ -89,7 +87,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
 Lerneintrag; ohne ihn ist der Slice nur abgelegt.
 
-DoD vollständig, Review-Report liegt vor, Closure-Notiz mit Lerneintrag geschrieben; der Welle-Smoke (Record, PostgreSQL stoppen, Replay) ist durchlaufen.
+DoD vollständig, Review-Report liegt vor, Closure-Notiz mit Lerneintrag geschrieben.
 
 ## 6. Risiken und offene Punkte
 
@@ -98,9 +96,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Die Authentifizierungsnachrichten, die typische Treiber im Replay akzeptieren, sind noch nicht festgelegt — **Ausgang:** offen bis Closure.
-
-- Der Leser des Recording-Adapters lehnt die für Version 1 spezifizierten Felder `offset_ms`, `empty_sessions` und `type: extended` noch ab (`KnownFields`); Replay muss sie lesen oder gezielt ablehnen — **Ausgang:** offen bis Closure.
+- Die Vermittlung muss die Anmeldenachrichten aus der Aufzeichnung heraushalten, sonst stehen Passwort-Hashes darin (LH-RB-01) — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
@@ -127,7 +123,7 @@ Slice-Typ) und die **vier Pflichtkriterien** (Konventionen-Dichte ·
 Phase-Reife · Evidenz-/Diskrepanz-Risiko · Reconciliation-Aufwand), vier und
 nicht mehr.
 
-**Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert in `harness/conventions.md` noch keine Sub-Areas; berührt wird das gesamte Repo als eine Sub-Area. Sub-Area-Wahl: eine Sub-Area für das gesamte Repo.
+**Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 

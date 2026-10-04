@@ -6,7 +6,7 @@
 //
 // Jeder Test TestE2E* trägt direkt darüber eine Abdeckungs-Deklaration
 // `// Abdeckung: <Anforderung>/<Pfad>, … — <Kurzbeschreibung>`; `make abdeckung`
-// bildet daraus docs/user/e2e-abdeckung.md.
+// bildet daraus docs/user/abdeckung-e2e.md.
 package integration
 
 import (
@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// Abdeckung: LH-FA-02/Happy, LH-FA-05/Happy, LH-FA-07/Boundary — ein Client führt
+// Abdeckung: LH-FA-02/Happy — ein Client führt
 // `SELECT 1;` über `record` gegen eine reale PostgreSQL-Instanz aus und erhält
 // deren Ergebnis; nach dem Beenden des Laufs steht die Interaktion geordnet in
 // einer Aufzeichnung mit Formatkennung und Version, ohne Adressen und Pfade des
