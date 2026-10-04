@@ -57,8 +57,9 @@ type Request struct {
 	SQL  string
 }
 
-// SessionID kennzeichnet eine laufende Session innerhalb eines Laufs; 0 heißt
-// „keine Session“.
+// SessionID kennzeichnet eine offene Client-Verbindung innerhalb eines Laufs;
+// im Record ist sie zugleich die laufende Session, im Replay die Verbindung, der
+// der Service eine aufgezeichnete Session zuordnet. 0 heißt „keine“.
 type SessionID int64
 
 // SessionEnd ist der Grund, aus dem eine Session endet.

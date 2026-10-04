@@ -96,7 +96,7 @@ func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string)
 			c.session.ID, c.pos, sql)
 	}
 	erwartet := c.session.Interactions[c.pos]
-	if erwartet.Request.SQL != sql {
+	if erwartet.Request.Type != model.RequestQuery || erwartet.Request.SQL != sql {
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d, Interaktion %d: erwartet %q, empfangen %q",
 			c.session.ID, erwartet.Sequence, erwartet.Request.SQL, sql)
 	}
@@ -106,7 +106,7 @@ func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string)
 
 // CloseConnection beendet die Verbindung; unverbrauchte Interaktionen der
 // zugeordneten Session sind die Warnung PGR-W2001 (LH-FA-03.b).
-func (s *ReplayService) CloseConnection(_ context.Context, id model.SessionID) *model.Error {
+func (s *ReplayService) CloseConnection(_ context.Context, id model.SessionID) *model.Warning {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	c := s.verbindung[id]
@@ -114,18 +114,18 @@ func (s *ReplayService) CloseConnection(_ context.Context, id model.SessionID) *
 	if c == nil || c.session == nil || c.pos >= len(c.session.Interactions) {
 		return nil
 	}
-	return model.Errorf(model.CodeUnconsumed, nil, "Session %d: %d von %d Interaktionen nicht verbraucht",
+	return model.Warnf(model.CodeUnconsumed, "Session %d: %d von %d Interaktionen nicht verbraucht",
 		c.session.ID, len(c.session.Interactions)-c.pos, len(c.session.Interactions))
 }
 
 // Unassigned liefert die Warnung PGR-W2001 für Sessions mit Interaktionen, die
 // bis zum Ende des Laufs keiner Verbindung zugeordnet wurden, oder nil.
-func (s *ReplayService) Unassigned() *model.Error {
+func (s *ReplayService) Unassigned() *model.Warning {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if len(s.frei) == 0 {
 		return nil
 	}
-	return model.Errorf(model.CodeUnconsumed, nil, "%d aufgezeichnete Session(s) nie zugeordnet, die erste mit Kennung %d",
+	return model.Warnf(model.CodeUnconsumed, "%d aufgezeichnete Session(s) nie zugeordnet, die erste mit Kennung %d",
 		len(s.frei), s.frei[0].ID)
 }

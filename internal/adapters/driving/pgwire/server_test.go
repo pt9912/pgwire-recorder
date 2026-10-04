@@ -82,7 +82,7 @@ func verbinde(t *testing.T, rec *fakeRecorder) (net.Conn, *Server) {
 func verbindeMitLog(t *testing.T, rec *fakeRecorder, log io.Writer) (net.Conn, *Server) {
 	t.Helper()
 	client, serverSeite := net.Pipe()
-	s := &Server{Recorder: rec, Log: slog.New(slog.NewTextHandler(log, nil))}
+	s := NewRecordServer(rec, slog.New(slog.NewTextHandler(log, nil)))
 	go s.handle(context.Background(), serverSeite)
 	t.Cleanup(func() { client.Close() })
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
@@ -389,7 +389,7 @@ func TestUnlesbareNachricht(t *testing.T) {
 
 // Der Lauf merkt sich den ersten Verbindungsfehler, nicht den letzten.
 func TestErsterFehlerZaehlt(t *testing.T) {
-	s := &Server{Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	s := &Server{log: slog.New(slog.NewTextHandler(io.Discard, nil))}
 	s.note(model.Errorf(model.CodeUpstream, nil, "erster"))
 	s.note(model.Errorf(model.CodeUnsupported, nil, "zweiter"))
 	if s.FirstErrorCode() != model.CodeUpstream {
@@ -429,7 +429,7 @@ func TestToMessageErfindetNichts(t *testing.T) {
 type fakeReplayer struct {
 	mu      sync.Mutex
 	closed  int
-	warnung *model.Error
+	warnung *model.Warning
 }
 
 func (f *fakeReplayer) OpenConnection(context.Context) (model.SessionID, []model.Response) {
@@ -446,7 +446,7 @@ func (f *fakeReplayer) Query(_ context.Context, _ model.SessionID, sql string) (
 	return []model.Response{{Type: model.ResponseCommandComplete, Tag: "SELECT 1"}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}}, nil
 }
 
-func (f *fakeReplayer) CloseConnection(context.Context, model.SessionID) *model.Error {
+func (f *fakeReplayer) CloseConnection(context.Context, model.SessionID) *model.Warning {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.closed++
@@ -457,10 +457,10 @@ func (f *fakeReplayer) CloseConnection(context.Context, model.SessionID) *model.
 // Replay-Use-Case; eine Abweichung erhält eine ErrorResponse mit PGR-E5001 und
 // zählt als Fehler der Klasse 5; eine unverbrauchte Session ist nur eine Warnung.
 func TestReplayModus(t *testing.T) {
-	rep := &fakeReplayer{warnung: model.Errorf(model.CodeUnconsumed, nil, "nicht verbraucht")}
+	rep := &fakeReplayer{warnung: model.Warnf(model.CodeUnconsumed, "nicht verbraucht")}
 	client, serverSeite := net.Pipe()
 	var log syncBuffer
-	s := &Server{Replayer: rep, Log: slog.New(slog.NewTextHandler(&log, nil))}
+	s := NewReplayServer(rep, slog.New(slog.NewTextHandler(&log, nil)))
 	go s.handle(context.Background(), serverSeite)
 	defer client.Close()
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))

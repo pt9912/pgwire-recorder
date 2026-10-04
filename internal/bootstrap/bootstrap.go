@@ -59,7 +59,7 @@ func record(ctx context.Context, o cli.RecordOptions, log *slog.Logger, stderr i
 	}
 	log.Info("record gestartet", "listen", l.Addr().String(), "upstream", o.Upstream)
 
-	server := &pgwire.Server{Recorder: service, Log: log}
+	server := pgwire.NewRecordServer(service, log)
 	done := make(chan struct{})
 	go func() {
 		server.Serve(ctx, l)
@@ -88,7 +88,7 @@ func replay(ctx context.Context, o cli.ReplayOptions, log *slog.Logger, stderr i
 	}
 	log.Info("replay gestartet", "listen", l.Addr().String(), "input", o.Input)
 
-	server := &pgwire.Server{Replayer: service, Log: log}
+	server := pgwire.NewReplayServer(service, log)
 	done := make(chan struct{})
 	go func() {
 		server.Serve(ctx, l)

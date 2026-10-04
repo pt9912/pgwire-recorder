@@ -34,7 +34,9 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Meldungscodes und Fehlertext-Kopf — `slice-replay-semantik-meldungscodes`; hier genügt der Klartext der Diagnose.
-- Warnung und Fehler bei nicht verbrauchten Interaktionen — welle-v1-abschluss.
+- Warnung bei nicht verbrauchten Interaktionen — geliefert von `slice-walking-skeleton-replay` (`PGR-W2001`).
+
+**Bereits geliefert** von `slice-walking-skeleton-replay`: Mismatch einfacher Anfragen mit Diagnose (Session, erwartete Nummer, erwartete und empfangene Anfrage), `ErrorResponse` mit `PGR-E5001` und Exit-Code 5 beim Herunterfahren. Dieser Slice ergänzt die Extended-Nachrichten und `--fail-on-unconsumed` (`PGR-E5002`).
 
 
 ## 2. Definition of Done

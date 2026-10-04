@@ -2,7 +2,9 @@
 # run-integration-tests — startet eine PostgreSQL-Instanz und das Testimage
 # (Dockerfile, Stufe integration) in einem eigenen, nach außen abgeschlossenen
 # Docker-Netz, führt die Integrationstests aus und räumt Container und Netz
-# danach auf, auch nach einem Abbruch. Es schreibt nichts in den Arbeitsbaum;
+# danach auf, auch nach einem Abbruch. In einer zweiten Phase stoppt es
+# PostgreSQL und führt die Tests TestE2EOhnePostgres* aus (PGR_OHNE_POSTGRES=1).
+# Es schreibt nichts in den Arbeitsbaum;
 # die Abdeckungstabellen erzeugt `make abdeckung`.
 #
 # Ausgang: der Exit-Code des Testlaufs; ungleich 0, wenn der Aufbau scheitert.
@@ -33,6 +35,14 @@ status=0
 if [ "$status" -ne 0 ]; then
   echo "run-integration-tests: Testlauf rot (Exit-Code $status)" >&2
   "$docker" logs "$pg" 2>&1 | tail -n 20 >&2 || true
+  exit "$status"
+fi
+
+"$docker" stop "$pg" >/dev/null
+"$docker" run --rm --name "$tests" --network "$netz" -e PGR_UPSTREAM="$pg:5432" -e PGR_OHNE_POSTGRES=1 \
+  pgwire-recorder:integration -test.run '^TestE2EOhnePostgres' || status=$?
+if [ "$status" -ne 0 ]; then
+  echo "run-integration-tests: Phase ohne PostgreSQL rot (Exit-Code $status)" >&2
   exit "$status"
 fi
 echo "run-integration-tests: gruen"

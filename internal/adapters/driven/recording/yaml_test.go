@@ -209,3 +209,43 @@ func code(err error) string {
 	}
 	return ""
 }
+
+// Die Felder offset_ms und empty_sessions der Version 1 überstehen den
+// Roundtrip; ein negativer offset_ms ist beschädigt; eine Session ohne
+// Interaktion ist nur mit empty_sessions gültig (LH-FA-12.a, LH-FA-21.a).
+func TestFelderDerVersion1(t *testing.T) {
+	ctx := context.Background()
+	rec := beispiel()
+	off := int64(42)
+	rec.EmptySessions = true
+	rec.Sessions[0].Interactions[0].OffsetMS = &off
+	rec.Sessions = append(rec.Sessions, model.Session{ID: 2})
+	path := filepath.Join(t.TempDir(), "rec.yaml")
+	if err := (YAML{}).Write(ctx, path, rec); err != nil {
+		t.Fatal(err)
+	}
+	got, err := YAML{}.Load(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.EmptySessions || got.Sessions[0].Interactions[0].OffsetMS == nil || *got.Sessions[0].Interactions[0].OffsetMS != 42 || len(got.Sessions) != 2 {
+		t.Fatalf("Felder: %#v", got)
+	}
+	data, _ := os.ReadFile(path)
+	for _, z := range []string{"empty_sessions: true", "offset_ms: 42"} {
+		if !strings.Contains(string(data), z) {
+			t.Fatalf("%q fehlt:\n%s", z, data)
+		}
+	}
+	for name, text := range map[string]string{
+		"negativer offset_ms":              "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        offset_ms: -1\n        request: {type: query, sql: x}\n        responses:\n          - type: ready_for_query\n            tx_status: I\n",
+		"leere Session ohne Kennzeichnung": "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions: []\n",
+	} {
+		if _, err := Unmarshal([]byte(text)); code(err) != model.CodeRecordingBroken {
+			t.Fatalf("%s: erwartet %s, erhalten %v", name, model.CodeRecordingBroken, err)
+		}
+	}
+	if _, err := Unmarshal([]byte("format: pgwire-recorder\nversion: 1\nempty_sessions: true\nsessions:\n  - id: 1\n    interactions: []\n")); err != nil {
+		t.Fatalf("leere Session mit Kennzeichnung: %v", err)
+	}
+}

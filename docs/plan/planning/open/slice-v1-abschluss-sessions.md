@@ -29,6 +29,8 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
+**Bereits geliefert** vom Walking Skeleton: gleichzeitige Verbindungen im Record, Übernahme in der Reihenfolge der Sessionenden, Zuordnung `first-request` im Replay. Dieser Slice ergänzt `--record-empty-sessions`, `--session-assignment connection` und belegt LH-FA-12 vollständig.
+
 **Ziel:** Mehrere Client-Verbindungen werden im Record parallel als eigene Sessions aufgezeichnet (Verbindungen ohne Anfrage nicht); im Replay erhält die n-te Verbindung mit einer Anfrage die n-te Session; Verbindungsende und Verbindungsfehler verhalten sich wie spezifiziert.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:

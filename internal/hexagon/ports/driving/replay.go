@@ -21,5 +21,5 @@ type Replayer interface {
 	Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error)
 	// CloseConnection beendet die Verbindung. Bleiben Interaktionen der
 	// zugeordneten Session unverbraucht, liefert sie die Warnung PGR-W2001.
-	CloseConnection(ctx context.Context, id model.SessionID) *model.Error
+	CloseConnection(ctx context.Context, id model.SessionID) *model.Warning
 }

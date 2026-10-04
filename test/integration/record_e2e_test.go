@@ -29,6 +29,10 @@ import (
 const codeUpstream = "PGR-E4002"
 
 func TestMain(m *testing.M) {
+	if os.Getenv("PGR_OHNE_POSTGRES") == "1" {
+		// Zweite Phase des Runners: PostgreSQL ist gestoppt.
+		os.Exit(m.Run())
+	}
 	if os.Getenv("PGR_BINARY") == "" || os.Getenv("PGR_UPSTREAM") == "" {
 		fmt.Fprintln(os.Stderr, "PGR_BINARY und PGR_UPSTREAM fehlen; der Lauf gehört zu make test-integration")
 		os.Exit(2)

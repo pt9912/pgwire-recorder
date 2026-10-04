@@ -70,8 +70,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
 der Closure-Trigger unerreichbar wird.
 
-- Mismatch-Diagnose, Exit-Code-Zuordnung und Fehlerreplay — Gegenstand von welle-replay-semantik.
-- Mehrere Client-Sessions und Parallelität — Gegenstand von welle-v1-abschluss.
+- Mismatch bei Extended-Nachrichten und Fehlerreplay — Gegenstand von welle-replay-semantik; der Mismatch einfacher Anfragen mit Diagnose und Exit-Code 5 liegt schon in `slice-walking-skeleton-replay`.
+- `--session-assignment connection`, `--record-empty-sessions` und `--fail-on-unconsumed` — Gegenstand von welle-v1-abschluss; vermittelt und zugeordnet werden mehrere Verbindungen schon im Walking Skeleton.
 - Signalbehandlung, Container-Image und Betriebsdokumentation — Gegenstand von welle-v1-abschluss.
 - Extended Query Protocol — Gegenstand von welle-extended-query.
 - TLS, COPY, CancelRequest — nicht Teil von v1.

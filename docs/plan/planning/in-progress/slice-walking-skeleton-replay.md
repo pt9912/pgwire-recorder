@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-walking-skeleton.
 
-**Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [ADR-0007](../../adr/0007-strict-replay.md), [ADR-0008](../../adr/0008-kein-sql-parser-in-v1.md)
+**Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [ADR-0007](../../adr/0007-strict-replay.md), [ADR-0008](../../adr/0008-kein-sql-parser-in-v1.md)
 
-**Berührte Spec-Stellen:** `ARC-002` · `ARC-003` · `ARC-004` · `ARC-005` · `ARC-006` · `ARC-008` · `ARC-009` · `SPEC-011`
+**Berührte Spec-Stellen:** `ARC-002` · `ARC-003` · `ARC-004` · `ARC-005` · `ARC-006` · `ARC-008` · `ARC-009` · `SPEC-011` · `SPEC-018` · `SPEC-027` · `SPEC-034` · `LH-FA-03.a` · `LH-FA-03.b` · `LH-FA-09.a` · `LH-FA-10.a` · `LH-FA-12.a`
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -33,9 +33,9 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Mismatch-Diagnose und Exit-Code `5` — welle-replay-semantik; hier genügt, dass eine abweichende Query nicht mit einer Aufzeichnung beantwortet wird.
+- Mismatch bei Extended-Nachrichten — `slice-replay-semantik-mismatch` (mit `slice-extended-query-replay`); hier liefert der Replay-Service für einfache Anfragen schon den Mismatch mit Diagnose nach LH-FA-10.a (`PGR-E5001`) und Exit-Code 5.
 - Fehlerreplay — welle-replay-semantik.
-- Mehrere aufgezeichnete Sessions — welle-v1-abschluss; hier ein Recording mit einer Session.
+- `--session-assignment connection` und `--fail-on-unconsumed` — `slice-v1-abschluss-sessions` und `slice-replay-semantik-mismatch`; hier gilt die Zuordnung `first-request`, nicht verbrauchte Interaktionen sind die Warnung `PGR-W2001`.
 
 
 ## 2. Definition of Done

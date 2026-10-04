@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,7 +69,7 @@ func beobachten(t *testing.T, listen string, queries ...string) string {
 	return b.String()
 }
 
-// Abdeckung: LH-FA-03/Happy, LH-FA-07/Happy, LH-FA-09/Happy, LH-QA-01/Messung —
+// Abdeckung: LH-FA-07/Happy, LH-FA-09/Happy, LH-QA-01/Messung —
 // eine von record geschriebene Aufzeichnung beantwortet replay ohne Upstream
 // mit dem Verhalten der realen Instanz; zehn aufeinanderfolgende Läufe zeigen
 // dasselbe beobachtbare Verhalten.
@@ -145,4 +146,27 @@ func exitCodeOf(err error) int {
 		return -1
 	}
 	return 0
+}
+
+// Abdeckung: LH-FA-03/Happy — bei gestoppter PostgreSQL-Instanz beantwortet
+// replay `SELECT 1;` aus einer Aufzeichnung mit dem aufgezeichneten Ergebnis; eine
+// nie zugeordnete Session meldet der Lauf am Ende als Warnung PGR-W2001. Läuft
+// nur in der zweiten Phase des Runners (PGR_OHNE_POSTGRES=1).
+func TestE2EOhnePostgresReplay(t *testing.T) {
+	if os.Getenv("PGR_OHNE_POSTGRES") != "1" {
+		t.Skip("nur in der Phase ohne PostgreSQL")
+	}
+	if c, err := net.DialTimeout("tcp", os.Getenv("PGR_UPSTREAM"), 2*time.Second); err == nil {
+		c.Close()
+		t.Fatalf("PostgreSQL unter %s ist noch erreichbar", os.Getenv("PGR_UPSTREAM"))
+	}
+	rep := startProzess(t, "replay", "--input", filepath.Join(os.Getenv("PGR_FIXTURES"), "select1.yaml"))
+	got := beobachten(t, rep.listen, "SELECT 1;")
+	rep.stop(t, 0)
+	if !strings.Contains(got, `zeile ["1"]`) || !strings.Contains(got, "befehl SELECT 1") {
+		t.Fatalf("Replay-Ergebnis:\n%s", got)
+	}
+	if !strings.Contains(rep.stderr.String(), "PGR-W2001") {
+		t.Fatalf("Warnung PGR-W2001 fehlt:\n%s", rep.stderr.String())
+	}
 }

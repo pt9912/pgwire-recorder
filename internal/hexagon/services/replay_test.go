@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
@@ -73,8 +74,16 @@ func TestReplayMismatch(t *testing.T) {
 	ctx := context.Background()
 	s, _ := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{interaktion(1, "SELECT 1", "A")})}, "rec.yaml")
 	id, _ := s.OpenConnection(ctx)
-	if _, err := s.Query(ctx, id, "SELECT  1"); code(err) != model.CodeReplayMismatch {
+	_, err := s.Query(ctx, id, "SELECT  1")
+	if code(err) != model.CodeReplayMismatch {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeReplayMismatch, err)
+	}
+	// Diagnose nach LH-FA-10.a: Session, erwartete Nummer, erwartete und
+	// empfangene Anfrage.
+	for _, teil := range []string{"Session 1", "Interaktion 1", `"SELECT 1"`, `"SELECT  1"`} {
+		if !strings.Contains(err.Error(), teil) {
+			t.Fatalf("Diagnose ohne %s: %v", teil, err)
+		}
 	}
 	if out, err := s.Query(ctx, id, "SELECT 1"); err != nil || out[0].Tag != "A" {
 		t.Fatalf("Cursor nach Mismatch verschoben: %#v, %v", out, err)
@@ -133,5 +142,51 @@ func TestReplayStartfehler(t *testing.T) {
 	ladefehler := model.Errorf(model.CodeRecordingBroken, nil, "kaputt")
 	if _, err := NewReplayService(ctx, ladeRepo{err: ladefehler}, "rec.yaml"); code(err) != model.CodeRecordingBroken {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeRecordingBroken, err)
+	}
+}
+
+// Der Handshake trägt die Serverparameter der nächsten noch nicht zugeordneten
+// Session, gibt es keine mehr, der letzten; die Parameter stehen sortiert nach
+// Namen (LH-FA-12.a, SPEC-004).
+func TestReplayHandshake(t *testing.T) {
+	ctx := context.Background()
+	rec := model.NewRecording()
+	for i, v := range []string{"16", "17"} {
+		rec.Sessions = append(rec.Sessions, model.Session{ID: i + 1,
+			ServerParameters: map[string]string{"server_version": v, "a": "1", "z": "2", "m": "3", "c": "4"},
+			Interactions:     []model.Interaction{interaktion(1, "S", "x")}})
+	}
+	s, _ := NewReplayService(ctx, ladeRepo{rec: rec}, "rec.yaml")
+	version := func(out []model.Response) string {
+		for _, r := range out {
+			if r.Name == "server_version" {
+				return r.Value
+			}
+		}
+		return ""
+	}
+	a, hs := s.OpenConnection(ctx)
+	var namen []string
+	for _, r := range hs[:len(hs)-1] {
+		namen = append(namen, r.Name)
+	}
+	if strings.Join(namen, ",") != "a,c,m,server_version,z" {
+		t.Fatalf("Reihenfolge: %v", namen)
+	}
+	if version(hs) != "16" {
+		t.Fatalf("erste Verbindung: %v", hs)
+	}
+	if _, err := s.Query(ctx, a, "S"); err != nil {
+		t.Fatal(err)
+	}
+	b, hs := s.OpenConnection(ctx)
+	if version(hs) != "17" {
+		t.Fatalf("zweite Verbindung: %v", hs)
+	}
+	if _, err := s.Query(ctx, b, "S"); err != nil {
+		t.Fatal(err)
+	}
+	if _, hs := s.OpenConnection(ctx); version(hs) != "17" {
+		t.Fatalf("ohne freie Session: %v", hs)
 	}
 }

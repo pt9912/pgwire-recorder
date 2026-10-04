@@ -64,3 +64,15 @@ func (e *Error) ExitCode() int {
 	}
 	return 1
 }
+
+// Warning ist eine Warnung mit Meldungscode (`PGR-W…`). Sie trägt keine
+// Fehlerklasse und ändert den Exit-Code nicht (SPEC-034).
+type Warning struct {
+	Code string
+	Msg  string
+}
+
+// Warnf liefert eine Warnung mit Meldungscode.
+func Warnf(code string, format string, args ...any) *Warning {
+	return &Warning{Code: code, Msg: fmt.Sprintf(format, args...)}
+}

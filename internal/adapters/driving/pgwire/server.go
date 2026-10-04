@@ -33,16 +33,27 @@ const (
 )
 
 // Server nimmt PostgreSQL-Clients an und übersetzt ihre Nachrichten in Aufrufe
-// des Record- oder des Replay-Use-Cases (ARC-006); genau einer ist gesetzt.
+// des Record- oder des Replay-Use-Cases (ARC-006). NewRecordServer und
+// NewReplayServer setzen genau einen der beiden.
 type Server struct {
-	Recorder driving.Recorder
-	Replayer driving.Replayer
-	Log      *slog.Logger
+	recorder driving.Recorder
+	replayer driving.Replayer
+	log      *slog.Logger
 
 	wg sync.WaitGroup
 
 	mu        sync.Mutex
 	firstCode string
+}
+
+// NewRecordServer liefert einen Server für den Record-Modus.
+func NewRecordServer(r driving.Recorder, log *slog.Logger) *Server {
+	return &Server{recorder: r, log: log}
+}
+
+// NewReplayServer liefert einen Server für den Replay-Modus.
+func NewReplayServer(r driving.Replayer, log *slog.Logger) *Server {
+	return &Server{replayer: r, log: log}
 }
 
 // Listen öffnet den TCP-Endpunkt; ein nicht zu öffnender Port ist PGR-E4001.
@@ -73,7 +84,7 @@ func (s *Server) Serve(ctx context.Context, l net.Listener) {
 				s.wg.Wait()
 				return
 			}
-			s.Log.Error("Verbindung nicht anzunehmen", "code", model.CodeNetwork, "error", err.Error())
+			s.log.Error("Verbindung nicht anzunehmen", "code", model.CodeNetwork, "error", err.Error())
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
@@ -180,14 +191,14 @@ func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) 
 		kopf, err := br.Peek(8)
 		if err != nil {
 			// Eine Verbindung ohne Startnachricht, zum Beispiel eine TCP-Probe.
-			s.Log.Debug("Verbindung ohne Startnachricht beendet", "error", err.Error())
+			s.log.Debug("Verbindung ohne Startnachricht beendet", "error", err.Error())
 			return nil, false
 		}
 		laenge := binary.BigEndian.Uint32(kopf[0:4])
 		code := binary.BigEndian.Uint32(kopf[4:8])
 		switch {
 		case laenge < 8 || laenge > maxStartLaenge:
-			s.Log.Warn("erste Nachricht ist keine PGWire-Startnachricht", "code", model.CodeForeignProtocol, "remote", conn.RemoteAddr().String())
+			s.log.Warn("erste Nachricht ist keine PGWire-Startnachricht", "code", model.CodeForeignProtocol, "remote", conn.RemoteAddr().String())
 			return nil, false
 		case code == codeSSLRequest || code == codeGSSEncRequest || code == codeCancelRequest || code == codeProtocol30:
 		case code>>16 == majorSpezial:
@@ -209,7 +220,7 @@ func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) 
 				return nil, false
 			}
 		case *pgproto3.CancelRequest:
-			s.Log.Warn("CancelRequest empfangen und nicht weitergeleitet", "code", model.CodeCancelRequest)
+			s.log.Warn("CancelRequest empfangen und nicht weitergeleitet", "code", model.CodeCancelRequest)
 			return nil, false
 		case *pgproto3.StartupMessage:
 			return m, true
@@ -264,30 +275,30 @@ func endFor(err error) model.SessionEnd {
 }
 
 func (s *Server) open(ctx context.Context, startup map[string]string) (model.SessionID, []model.Response, error) {
-	if s.Replayer != nil {
-		id, out := s.Replayer.OpenConnection(ctx)
+	if s.replayer != nil {
+		id, out := s.replayer.OpenConnection(ctx)
 		return id, out, nil
 	}
-	return s.Recorder.OpenSession(ctx, startup)
+	return s.recorder.OpenSession(ctx, startup)
 }
 
 func (s *Server) query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error) {
-	if s.Replayer != nil {
-		return s.Replayer.Query(ctx, id, sql)
+	if s.replayer != nil {
+		return s.replayer.Query(ctx, id, sql)
 	}
-	return s.Recorder.Query(ctx, id, sql)
+	return s.recorder.Query(ctx, id, sql)
 }
 
 // close beendet die Session. Im Replay ist eine unverbrauchte Session eine
 // Warnung (PGR-W2001), kein Verbindungsfehler.
 func (s *Server) close(ctx context.Context, id model.SessionID, end model.SessionEnd) {
-	if s.Replayer != nil {
-		if w := s.Replayer.CloseConnection(context.WithoutCancel(ctx), id); w != nil {
-			s.Log.Warn(w.Msg, "code", w.Code)
+	if s.replayer != nil {
+		if w := s.replayer.CloseConnection(context.WithoutCancel(ctx), id); w != nil {
+			s.log.Warn(w.Msg, "code", w.Code)
 		}
 		return
 	}
-	if err := s.Recorder.CloseSession(context.WithoutCancel(ctx), id, end); err != nil {
+	if err := s.recorder.CloseSession(context.WithoutCancel(ctx), id, end); err != nil {
 		s.note(err)
 	}
 }
@@ -313,7 +324,7 @@ func (s *Server) note(err error) string {
 		s.firstCode = code
 	}
 	s.mu.Unlock()
-	s.Log.Error("Fehler", "code", code, "error", err.Error())
+	s.log.Error("Fehler", "code", code, "error", err.Error())
 	return code
 }
 
