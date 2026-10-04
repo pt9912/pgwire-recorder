@@ -61,7 +61,10 @@ Diese Datei dupliziert sie nicht.
 | Target | Vertrag | Bindung |
 |---|---|---|
 | `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | — |
-| `make a-check` | Architektur-Regeln des Hexagons gemäß `.a-check.yml` (a-check, netzlos, schreibgeschützt); prüft Import-Richtungen, sobald Packages existieren | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md) |
+| `make build` | baut das Go-Modul in Docker (gepinntes Image, netzlos, schreibgeschützt) | [ADR-0009](../docs/plan/adr/0009-implementierungssprache-go.md) |
+| `make test` | führt die Go-Tests in Docker aus (gepinntes Image, netzlos, schreibgeschützt) | [ADR-0009](../docs/plan/adr/0009-implementierungssprache-go.md) |
+| `make a-check` | Architektur-Regeln des Hexagons gemäß `.a-check.yml` (a-check, netzlos, schreibgeschützt): Import-Richtungen der Packages und Bibliotheken je Adapter | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md) |
+| `make a-check-negativ` | Gegenprobe des Architektur-Gates: ein `pgproto3`-Import im Domain Model muss in einer Kopie des Arbeitsbaums scheitern | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md) |
 | `make baseline-verify` | vendored Baseline gegen `SHA256SUMS` (Integrität und Vollständigkeit, netzlos) | — |
 | `make gates` | alle inneren Gates | — |
 
@@ -79,7 +82,7 @@ Diese Datei dupliziert sie nicht.
 
 **Aktueller Lauf-Status:** CI-Badge bzw. lokal `make help` / `make gates`.
 **Rote Gates:** Begründung in einem Carveout (Modul 7); bisher keiner.
-**Nicht behauptet** (geplant): Build und Test; sie existieren, sobald die Umsetzung sie anlegt.
+**Nicht behauptet:** Lint und Testabdeckung; das Go-Modul trägt noch keine Tests.
 
 
 

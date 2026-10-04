@@ -64,10 +64,10 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `go.mod`, `cmd/pgwire-recorder/`, `internal/…` (leere Packages gemäß Package-Struktur) | neu | Gerüst für das Hexagon; Gate braucht Code-Pfade |
-| `Dockerfile` bzw. Build-Image, `harness/mk/build.mk` | neu | Docker-only Build/Test (`AGENTS.md` §3.1) |
+| `harness/mk/build.mk` (gepinntes `golang`-Image, kein eigenes `Dockerfile`) | neu | Docker-only Build/Test (`AGENTS.md` §3.1) |
 | `a-check.mk`, `harness/mk/arch-gate.mk` | vorhanden | Architektur-Gate gemäß `.a-check.yml`, Image per Digest gepinnt; keine Änderung nötig |
 | `harness/README.md` §Sensors | update | Bindung des neuen Gates deklarieren |
-| Test: Negativfall des Gates | neu | Happy/Negative — Gate grün bei sauberer Struktur, rot bei verbotenem Import |
+| `tools/arch/a-check-negativ.sh`, `harness/mk/arch-negativ.mk` | neu | Gegenprobe als Gate: rot, wenn a-check den `pgproto3`-Import im Domain Model durchlässt |
 
 ## 4. Trigger
 
