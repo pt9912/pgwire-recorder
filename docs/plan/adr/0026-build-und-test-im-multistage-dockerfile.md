@@ -1,6 +1,6 @@
 # ADR-0026: Build, Test und Integration über ein Multistage-Dockerfile
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-04
 
@@ -60,5 +60,6 @@ Wenn der Gate-Lauf durch die Integrationstests zu lang wird, oder wenn ein Build
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-04 | Proposed | — |
+| 2026-10-04 | Accepted | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
