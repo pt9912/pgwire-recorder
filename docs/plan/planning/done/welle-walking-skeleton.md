@@ -18,7 +18,7 @@ zwei Positionen, nicht drei.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Wann Arbeit eine Welle braucht.
 
-Ein `SELECT 1;` läuft end-to-end durch das gesamte Hexagon: Im Record-Modus gegen eine reale PostgreSQL-Instanz entsteht ein Recording, und mit gestoppter PostgreSQL liefert der Replay-Modus dem Client dasselbe beobachtbare Ergebnis. Das ist [Abnahmeszenario 1](../../../spec/lastenheft.md#7-abnahmekriterien-für-v1) und [Abnahmeszenario 2](../../../spec/lastenheft.md#7-abnahmekriterien-für-v1) des Lastenhefts, begrenzt auf eine Query. Die Welle validiert die Architekturgrenzen, bevor weitere PGWire-Nachrichten implementiert werden.
+Ein `SELECT 1;` läuft end-to-end durch das gesamte Hexagon: Im Record-Modus gegen eine reale PostgreSQL-Instanz entsteht ein Recording, und mit gestoppter PostgreSQL liefert der Replay-Modus dem Client dasselbe beobachtbare Ergebnis. Das ist [Abnahmeszenario 1](../../../../spec/lastenheft.md#7-abnahmekriterien-für-v1) und [Abnahmeszenario 2](../../../../spec/lastenheft.md#7-abnahmekriterien-für-v1) des Lastenhefts, begrenzt auf eine Query. Die Welle validiert die Architekturgrenzen, bevor weitere PGWire-Nachrichten implementiert werden.
 
 ## 2. Trigger (Welle startet)
 
@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- Die Architekturentscheidungen [ADR-0001](../adr/0001-hexagonale-architektur.md), [ADR-0003](../adr/0003-pgwire-server-ist-driving-adapter.md), [ADR-0004](../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0005](../adr/0005-recording-store-ist-driven-adapter.md), [ADR-0006](../adr/0006-kanonisches-domain-model.md), [ADR-0009](../adr/0009-implementierungssprache-go.md) und [ADR-0010](../adr/0010-verwendung-von-pgproto3.md) sind `Accepted`.
+- Die Architekturentscheidungen [ADR-0001](../../adr/0001-hexagonale-architektur.md), [ADR-0003](../../adr/0003-pgwire-server-ist-driving-adapter.md), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0005](../../adr/0005-recording-store-ist-driven-adapter.md), [ADR-0006](../../adr/0006-kanonisches-domain-model.md), [ADR-0009](../../adr/0009-implementierungssprache-go.md) und [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md) sind `Accepted`.
 - `make gates` ist auf dem Stand der Spec-Erstfassung grün.
 
 ## 3. Closure-Trigger (Welle schließt)
@@ -50,9 +50,9 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 
 | Slice | Titel | Bezug |
 |---|---|---|
-| slice-walking-skeleton-build-gates | Docker-only Build, Test und Architektur-Gate | [`LH-FA-01`](../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
-| slice-walking-skeleton-record | Record-Pfad für `SELECT 1;` | [`LH-FA-02`](../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-06`](../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [`LH-FA-07`](../../../spec/lastenheft.md#lh-fa-07--persistente-recordings) |
-| slice-walking-skeleton-replay | Replay-Pfad für `SELECT 1;` | [`LH-FA-03`](../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-09`](../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-QA-01`](../../../spec/lastenheft.md#lh-qa-01--determinismus) |
+| slice-walking-skeleton-build-gates | Docker-only Build, Test und Architektur-Gate | [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
+| slice-walking-skeleton-record | Record-Pfad für `SELECT 1;` | [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-06`](../../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings) |
+| slice-walking-skeleton-replay | Replay-Pfad für `SELECT 1;` | [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus) |
 
 ## 5. Abhängigkeiten
 
