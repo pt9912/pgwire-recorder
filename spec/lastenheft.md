@@ -997,7 +997,7 @@ Ticket-Form, nicht der Vorgang. Dann trägt der **Commit** die Trennung: Die
 sie umsetzt — und „Verweis" nennt diesen Vorgang statt eines Tickets.
 
 **Auch hier gilt die Decken-Regel:** keine ADR, kein Slice, kein Carveout,
-keine Welle, kein Verweis auf `spezifikation.md` oder `architecture.md` — in
+keine Welle, kein Verweis auf nachgelagerte Dokumente — in
 keiner Spalte. Kein Spec-Stratum nimmt seine Historie davon aus. Die Spalte
 „Verweis" trägt den **externen** CR; der steht außerhalb des Repos und damit
 außerhalb der Referenz-Richtung. Wer im Repo bemerkt hat, dass eine Änderung
