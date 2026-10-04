@@ -21,7 +21,7 @@
 #   Name einer Closure-Notiz einer Welle (-results)             abgelehnt
 #
 # Slices und Wellen fuer die Positivfaelle stammen aus dem Index (Slices aus
-# open/ und done/, Wellen flach und unter done/); fehlt einer, bricht die
+# open/ und done/ samt Archiv-Ordnern, Wellen flach und unter done/); fehlt einer, bricht die
 # Gegenprobe ab. Ausgang: 0, wenn jeder Fall wie erwartet endet.
 set -euo pipefail
 
@@ -29,8 +29,11 @@ traeger=".githooks/commit-msg"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "$arbeit"' EXIT
 
+# erster <lifecycle> — der erste Slice im Index unter diesem Verzeichnis, auch im
+# Archiv-Ordner einer Welle darunter.
 erster() {
-  git ls-files --cached -- "docs/plan/planning/$1/slice-*.md" | sort | head -n 1 | xargs -r basename -s .md
+  git ls-files --cached -- "docs/plan/planning/$1/*slice-*.md" | grep -E '/slice-[^/]*\.md$' \
+    | sort | head -n 1 | xargs -r basename -s .md
 }
 offen="$(erster open)"
 fertig="$(erster done)"
