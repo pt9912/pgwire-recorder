@@ -36,7 +36,7 @@ Der Leser gehört in diesen Slice, weil `SPEC-001` Extended-Interaktionen schon 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Umsetzung in den PGWire-Adaptern und im Record-Service (Gruppieren nach `LH-FA-18.a`) — `slice-extended-query-record`.
-- Replay und Matcher, einschließlich des Feldvergleichs einer Client-Nachricht — `slice-extended-query-replay`. Der Replay-Service bleibt unverändert: eine Extended-Interaktion am Cursor ist für eine einfache Anfrage eine Abweichung (`PGR-E5001`).
+- Replay und Matcher, einschließlich des Feldvergleichs einer Client-Nachricht — `slice-extended-query-replay`. Der Replay-Service bleibt im Code unverändert: eine Extended-Interaktion am Cursor ist für eine einfache Anfrage eine Abweichung (`PGR-E5001`); ein Test hält diese Prüfung fest, weil der Leser die Interaktion jetzt liefert.
 - SQLite-Format (`SPEC-043`) — `slice-v1-abschluss-sqlite-format`; es gibt noch keinen SQLite-Adapter.
 - Eine Abdeckungs-Deklaration für `LH-FA-18`: kein Akzeptanzkriterium von `LH-FA-18` ist ohne Record und Replay belegbar; die Domain-Tests tragen keine. Die Lese-Negativfälle zählen zu `LH-FA-07`/Negative.
 
@@ -68,12 +68,16 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` (`LH-FA-18.a`, `SPEC-041`) | update | Abgleich mit dem Domain-Modell: `ParameterStatus` fehlte unter den Server-Nachrichten (`LH-FA-24.a` setzt es voraus); Felder je Client-Nachricht und `param_types` der `parameter_description` festgelegt; Historienzeile |
+| `spec/spezifikation.md` (`LH-FA-18.a`, `SPEC-001`, `SPEC-041`) | update | Abgleich mit dem Domain-Modell: `ParameterStatus` fehlte unter den Server-Nachrichten (`LH-FA-24.a` setzt es voraus); Felder je Client-Nachricht und `param_types` der `parameter_description` festgelegt. Nach Review: Stelle von `type` je Art (`SPEC-001`, `SPEC-041`); fehlendes oder mit `null` belegtes Feld, `param_types` nur und stets an `parameter_description`, Form-Schlüssel mit `null` sind beschädigt. Historienzeilen |
 | `spec/architecture.md` (`ARC-001`) | update | Komponentenzeile nennt Extended-Gruppe, Client-Nachricht und die Formregeln |
 | `internal/hexagon/model` | update | Neue Typen (`ClientMessage`, `Group`, Server-Nachrichten, `RequestExtended`), `Interaction.Validate` mit den Formregeln beider Arten; die Menge der Antworttypen einer einfachen Anfrage zieht aus dem Leser hierher |
-| `internal/adapters/driven/recording` | update | DTOs für `type: extended`; Schreiber mit genau den Feldern je Client-Nachricht; Leser prüft Schlüssel je Typ und ruft `Validate` |
+| `internal/adapters/driven/recording` | update | DTOs für `type: extended`; Schreiber mit genau den Feldern je Client-Nachricht und mit `param_types` an jeder `parameter_description`; Leser verlangt die Schlüssel je Typ mit Wert, lehnt fremde ab, lehnt `request`/`responses`/`groups` mit `null` ab und ruft `Validate` |
+| `internal/hexagon/services/replay_test.go` | update | Test für die Typprüfung des Matchers: Extended-Interaktion am Cursor gegen einfache Anfrage, auch die leere |
 | `docs/user/abdeckung-*.md` | update | `make abdeckung` nach der neuen Deklaration (`LH-FA-07`/Negative) |
-| `docs/plan/planning/open/slice-extended-query-record.md` | update | Format-Punkt ist hier geliefert (`AGENTS.md` §3.9) |
+| `docs/plan/planning/open/slice-extended-query-record.md` | update | Format-Punkt ist hier geliefert (`AGENTS.md` §3.9); DoD-Punkt ersetzt, Risiken zur Feldbelegung und zum Schreiben ohne `Validate` übergeben |
+| `docs/plan/planning/open/slice-extended-query-replay.md` | update | Risiko nil gegenüber leerer Liste übergeben (`AGENTS.md` §3.9) |
+| `docs/reviews/2026-10-04-review-slice-extended-query-modell.md`, `docs/reviews/2026-10-04-mutationen-slice-extended-query-modell.md` | neu | Review-Report; Mutationstabelle für den Verifier |
+| `docs/plan/planning/observations/BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/evidence/slice-extended-query-modell.md`, `docs/plan/planning/observations/BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/evidence/slice-extended-query-modell.md` | neu | Beleg je Klasse aus dem Review |
 
 ## 4. Trigger
 
@@ -103,13 +107,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Das Domain-Modell zeigt eine Lücke in `SPEC-041` (Format Version 1 umfasst Extended, `SPEC-001`) — Stand: zwei Lücken gefunden und in der Spezifikation geschlossen: `ParameterStatus` fehlte unter den Server-Nachrichten von `LH-FA-18.a`/`SPEC-041`, und `SPEC-041` legte die Felder je Client-Nachricht und die der `parameter_description` nicht fest. **Ausgang:** offen bis Closure.
+- Das Domain-Modell zeigt eine Lücke in `SPEC-041` (Format Version 1 umfasst Extended, `SPEC-001`) — Stand: zwei Lücken gefunden und in der Spezifikation geschlossen: `ParameterStatus` fehlte unter den Server-Nachrichten von `LH-FA-18.a`/`SPEC-041`, und `SPEC-041` legte die Felder je Client-Nachricht und die der `parameter_description` nicht fest. Nach Review zwei weitere: der Wortlaut zur Stelle von `type` je Art und die Behandlung fehlender Felder (F-285, F-286), ebenfalls in der Spezifikation geschlossen. **Ausgang:** offen bis Closure.
 
 - Der Leser des Recording-Adapters lehnt `type: extended` noch als beschädigt ab; dieser Slice muss Extended-Interaktionen lesen — Stand: in §1 aufgenommen, Leser und Schreiber liefern `type: extended`. **Ausgang:** offen bis Closure.
 
 - Leere Liste und nil sind im Modell gleichbedeutend; der Leser liefert nil, ein PGWire-Adapter kann leere Listen liefern. Ein Matcher, der Client-Nachrichten mit `reflect.DeepEqual` vergleicht, meldet dann eine Abweichung, die keine ist — betrifft `slice-extended-query-replay`. **Ausgang:** offen bis Closure.
 
-- `Validate` prüft je Client-Nachricht Typ, Stellung und Zielart, nicht, ob nur die Felder ihres Typs belegt sind; das prüft allein der YAML-Leser über die Schlüssel. Der Schreiber gibt nur die Felder des Typs aus, ein fremd belegtes Feld einer Modell-Nachricht fiele beim Schreiben still weg — betrifft das Mapping in `slice-extended-query-record`. **Ausgang:** offen bis Closure.
+- `Validate` prüft je Client-Nachricht Typ, Stellung und Zielart, nicht, ob nur die Felder ihres Typs belegt sind; das prüft allein der YAML-Leser über die Schlüssel (fremde abgelehnt, fehlende und `null` ebenso). Der Schreiber gibt nur die Felder des Typs aus, ein fremd belegtes Feld einer Modell-Nachricht fiele beim Schreiben still weg — betrifft das Mapping in `slice-extended-query-record`. **Ausgang:** offen bis Closure.
+
+- Der Schreiber prüft nicht mit `Validate`: eine Gruppe mit zwei `sync` wird geschrieben und erst beim Laden als beschädigt erkannt (Review F-292) — betrifft das Gruppieren in `slice-extended-query-record`, dessen DoD `Validate` je aufgezeichneter Interaktion verlangt. **Ausgang:** offen bis Closure.
+
+- Der Schreiber prüft nicht mit `Validate`: eine Gruppe mit zwei `sync` wird geschrieben und erst beim Laden als beschädigt erkannt (Review F-292) — betrifft das Gruppieren in `slice-extended-query-record`, dessen DoD `Validate` je aufgezeichneter Interaktion verlangt. **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
@@ -140,8 +148,8 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register `../observations/BEO-REPO/` durchgegangen; einschlägig sind:
 
-- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (offen, 2×): der Slice führt einen neuen Lese-Vertrag ein. Jede Formregel von `Validate` und jede Leser-Regel hat einen Negativfall, dessen Meldungstext die gemeinte Regel nennt; die rot färbende Mutation je Regel ist einmal gesehen worden (Bericht an den Reviewer).
-- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (offen, 2×): die Kommentare von `Validate`, `fromDTO` und `clientFelder` nennen nur, was geprüft wird; die Grenze von `Validate` (keine Feldprüfung je Typ) steht in §6.
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (offen; mit dem Beleg dieses Slice 3×): der Slice führt einen neuen Lese-Vertrag ein. Jede Formregel von `Validate` und jede Leser-Regel hat einen Negativfall, dessen Meldungstext die gemeinte Regel nennt; die rot färbende Mutation je Regel ist einmal gesehen worden; die Tabelle steht in `docs/reviews/2026-10-04-mutationen-slice-extended-query-modell.md`. Das Review fand dennoch zwei ungehaltene Zusagen (F-283, F-284); der Beleg dazu liegt im Register.
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (offen; mit dem Beleg dieses Slice 3×): die Kommentare von `Validate`, `fromDTO` und `clientFelder` nennen nur, was geprüft wird; die Grenze von `Validate` (keine Feldprüfung je Typ) steht in §6. Das Review fand eine Zusage weiter als die Prüfung (F-289, `request: null`); behoben, Beleg im Register.
 - `BEO-REPO/plan-folgt-korrektur-nicht` (verkörpert in `AGENTS.md` §3.9): §1, §3, §6 und der Kopf folgen dem Umschnitt; `slice-extended-query-record` nennt, was hier geliefert ist.
 
 Nicht einschlägig: `gate-konfiguration-wirkt-anders-als-gelesen`, `gate-regel-ersetzt-statt-ergaenzt`, `kern-fremdimporte-nur-ueber-tech-liste` (keine Gate- oder Architektur-Konfiguration berührt), `record-fehlerantwort-im-aufbau-ungeregelt` (Record unberührt), `werkzeug-commit-ohne-zugelassene-kennung` (behoben).

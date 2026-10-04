@@ -49,7 +49,8 @@ func queryBeispiel() Interaction {
 	}
 }
 
-// Gültige Formen: einfache Anfrage, Extended mit Flush- und Sync-Gruppe, Extended
+// Gültige Formen: einfache Anfrage, auch mit jedem Antworttyp des Simple Query
+// Protocol (LH-FA-05.a), Extended mit Flush- und Sync-Gruppe, Extended
 // mit nur einer Sync-Gruppe, eine Flush-Gruppe ohne Server-Nachricht, jede
 // Client- und Server-Nachricht aus LH-FA-18.a einschließlich parameter_status.
 func TestValidateGueltig(t *testing.T) {
@@ -75,8 +76,15 @@ func TestValidateGueltig(t *testing.T) {
 			},
 		},
 	}}
+	queryAlle := queryBeispiel()
+	queryAlle.Responses = []Response{
+		{Type: ResponseRowDescription}, {Type: ResponseDataRow}, {Type: ResponseCommandComplete},
+		{Type: ResponseEmptyQueryResponse}, {Type: ResponseErrorResponse}, {Type: ResponseNoticeResponse},
+		{Type: ResponseParameterStatus}, {Type: ResponseReadyForQuery},
+	}
 	for name, i := range map[string]Interaction{
 		"query":                       queryBeispiel(),
+		"query mit jedem Antworttyp":  queryAlle,
 		"extended mit Flush und Sync": extendedBeispiel(),
 		"extended nur Sync":           nurSync,
 		"alle Nachrichtentypen":       alle,

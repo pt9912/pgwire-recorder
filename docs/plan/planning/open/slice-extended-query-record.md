@@ -98,6 +98,8 @@ dasteht.
 
 - `Interaction.Validate` prüft nicht, ob eine Client-Nachricht nur die Felder ihres Typs trägt; der YAML-Schreiber gibt nur diese aus, ein fremd belegtes Feld fiele beim Schreiben still weg. Das Mapping aus den PGWire-Nachrichten belegt daher nur die Felder des Typs (aus `slice-extended-query-modell`) — **Ausgang:** offen bis Closure.
 
+- Der YAML-Schreiber prüft nicht mit `Interaction.Validate`: eine fehlerhaft gruppierte Interaktion (etwa zwei `sync` in einer Gruppe) wird geschrieben und fällt erst beim Laden im Replay als beschädigt auf. Der Record-Service prüft daher jede Interaktion mit `Validate`, bevor er sie übernimmt (aus `slice-extended-query-modell`, Review F-292) — **Ausgang:** offen bis Closure.
+
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`

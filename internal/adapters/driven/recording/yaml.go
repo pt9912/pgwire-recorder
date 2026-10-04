@@ -144,7 +144,45 @@ func Unmarshal(data []byte) (model.Recording, error) {
 	if d.Version != model.Version {
 		return model.Recording{}, model.Errorf(model.CodeRecordingVersion, nil, "Version %d wird nicht unterstützt", d.Version)
 	}
+	if err := formSchluesselNull(data); err != nil {
+		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
+	}
 	return fromDTO(d)
+}
+
+// formSchluesselNull lehnt request, responses und groups mit dem Wert null an
+// einer Interaktion ab. Der Decoder liest null als fehlenden Schlüssel; so
+// unterscheidet interactionFromDTO die beiden Formen allein an der Anwesenheit.
+func formSchluesselNull(data []byte) error {
+	var doc yaml.Node
+	if err := yaml.Unmarshal(data, &doc); err != nil || len(doc.Content) == 0 {
+		return err
+	}
+	for _, s := range wert(doc.Content[0], "sessions").Content {
+		for _, i := range wert(s, "interactions").Content {
+			for _, k := range []string{"request", "responses", "groups"} {
+				if v := wert(i, k); v != ohneWert && v.Tag == "!!null" {
+					return fmt.Errorf("Interaktion mit %s: null", k)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// ohneWert steht für einen fehlenden Wert.
+var ohneWert = &yaml.Node{}
+
+// wert liefert den Wert zu key in einer Abbildung oder ohneWert.
+func wert(m *yaml.Node, key string) *yaml.Node {
+	if m.Kind == yaml.MappingNode {
+		for i := 0; i+1 < len(m.Content); i += 2 {
+			if m.Content[i].Value == key {
+				return m.Content[i+1]
+			}
+		}
+	}
+	return ohneWert
 }
 
 type recordingDTO struct {
@@ -184,7 +222,8 @@ type groupDTO struct {
 
 // clientFelder nennt je Client-Nachricht die Schlüssel neben type in der
 // Reihenfolge der Ausgabe (SPEC-041). Der Schreiber schreibt genau diese, auch
-// leer; der Leser lehnt jeden anderen Schlüssel und jeden anderen Typ ab.
+// leer; der Leser verlangt jeden davon mit einem Wert und lehnt jeden anderen
+// Schlüssel und jeden anderen Typ ab.
 var clientFelder = map[string][]string{
 	"parse":    {"statement", "sql", "param_types"},
 	"bind":     {"portal", "statement", "param_formats", "params", "result_formats"},
@@ -235,8 +274,9 @@ func (m clientMessageDTO) MarshalYAML() (any, error) {
 	return out, nil
 }
 
-// UnmarshalYAML liest eine Client-Nachricht; ein unbekannter Typ oder ein
-// Schlüssel, der nicht zu ihm gehört, ist ein Fehler.
+// UnmarshalYAML liest eine Client-Nachricht; ein unbekannter Typ, ein Schlüssel,
+// der nicht zu ihm gehört, und ein fehlender oder mit null belegter Schlüssel
+// seines Typs sind ein Fehler.
 func (m *clientMessageDTO) UnmarshalYAML(node *yaml.Node) error {
 	if node.Kind != yaml.MappingNode {
 		return fmt.Errorf("Client-Nachricht ist keine Abbildung")
@@ -255,9 +295,17 @@ func (m *clientMessageDTO) UnmarshalYAML(node *yaml.Node) error {
 	for _, f := range felder {
 		erlaubt[f] = true
 	}
+	belegt := map[string]bool{}
 	for i := 0; i+1 < len(node.Content); i += 2 {
-		if k := node.Content[i].Value; !erlaubt[k] {
+		k := node.Content[i].Value
+		if !erlaubt[k] {
 			return fmt.Errorf("Schlüssel %q gehört nicht zu %s", k, typ)
+		}
+		belegt[k] = node.Content[i+1].Tag != "!!null"
+	}
+	for _, f := range felder {
+		if !belegt[f] {
+			return fmt.Errorf("Schlüssel %q fehlt an %s", f, typ)
 		}
 	}
 	return node.Decode((*clientMessageRoh)(m))
@@ -277,8 +325,9 @@ type responseDTO struct {
 	Name     string            `yaml:"name,omitempty"`
 	Value    string            `yaml:"value,omitempty"`
 	TxStatus string            `yaml:"tx_status,omitempty"`
-	// ParamTypes trägt die Typ-OIDs einer parameter_description.
-	ParamTypes []uint32 `yaml:"param_types,omitempty,flow"`
+	// ParamTypes trägt die Typ-OIDs einer parameter_description, auch leer; an
+	// jeder anderen Antwort fehlt der Schlüssel (SPEC-041).
+	ParamTypes *[]uint32 `yaml:"param_types,omitempty,flow"`
 }
 
 type columnDTO struct {
@@ -391,7 +440,11 @@ func clientMessageToDTO(m model.ClientMessage) clientMessageDTO {
 }
 
 func responseToDTO(r model.Response) responseDTO {
-	d := responseDTO{Type: string(r.Type), Tag: r.Tag, Notice: r.Fields, Name: r.Name, Value: r.Value, TxStatus: r.TxStatus, ParamTypes: r.ParamTypes}
+	d := responseDTO{Type: string(r.Type), Tag: r.Tag, Notice: r.Fields, Name: r.Name, Value: r.Value, TxStatus: r.TxStatus}
+	if r.Type == model.ResponseParameterDescription {
+		typen := append([]uint32{}, r.ParamTypes...)
+		d.ParamTypes = &typen
+	}
 	for _, c := range r.Columns {
 		d.Fields = append(d.Fields, columnDTO(c))
 	}
@@ -457,7 +510,8 @@ func fromDTO(d recordingDTO) (model.Recording, error) {
 // interactionFromDTO liest die Art aus type: fehlt es, ist es eine einfache
 // Anfrage mit request und responses, bei `extended` eine Extended-Interaktion
 // mit groups. Ein anderer Wert und jede Mischung der beiden Formen sind ein
-// Fehler (SPEC-001, SPEC-041).
+// Fehler (SPEC-001, SPEC-041); einen dieser Schlüssel mit dem Wert null lehnt
+// Unmarshal vorher über formSchluesselNull ab.
 func interactionFromDTO(d interactionDTO) (model.Interaction, error) {
 	i := model.Interaction{Sequence: d.Sequence, OffsetMS: d.OffsetMS}
 	switch d.Type {
@@ -531,10 +585,21 @@ func leerAlsNil[T any](s []T) []T {
 	return s
 }
 
-// responseFromDTO übernimmt die Felder; welche Typen in welcher Art zulässig
-// sind, prüft model.Interaction.Validate.
+// responseFromDTO übernimmt die Felder; param_types steht genau an einer
+// parameter_description. Welche Typen in welcher Art zulässig sind, prüft
+// model.Interaction.Validate.
 func responseFromDTO(d responseDTO) (model.Response, error) {
-	r := model.Response{Type: model.ResponseType(d.Type), Tag: d.Tag, Fields: d.Notice, Name: d.Name, Value: d.Value, TxStatus: d.TxStatus, ParamTypes: leerAlsNil(d.ParamTypes)}
+	beschreibung := model.ResponseType(d.Type) == model.ResponseParameterDescription
+	switch {
+	case beschreibung && d.ParamTypes == nil:
+		return model.Response{}, fmt.Errorf("Schlüssel \"param_types\" fehlt an parameter_description")
+	case !beschreibung && d.ParamTypes != nil:
+		return model.Response{}, fmt.Errorf("Schlüssel \"param_types\" gehört nicht zu %s", d.Type)
+	}
+	r := model.Response{Type: model.ResponseType(d.Type), Tag: d.Tag, Fields: d.Notice, Name: d.Name, Value: d.Value, TxStatus: d.TxStatus}
+	if d.ParamTypes != nil {
+		r.ParamTypes = leerAlsNil(*d.ParamTypes)
+	}
 	for _, c := range d.Fields {
 		r.Columns = append(r.Columns, model.Column(c))
 	}

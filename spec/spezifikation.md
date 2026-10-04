@@ -1024,8 +1024,10 @@ version: 1
 
 `version` ist eine einzelne ganze Zahl und zählt inkompatible Änderungen des
 Formats; abwärtskompatible Ergänzungen (neue optionale Felder) ändern sie nicht.
-Version 1 umfasst einfache und Extended-Interaktionen (`type: query`,
-`type: extended`); ein Wert von `type`, den ein Leser nicht kennt, macht das
+Version 1 umfasst einfache und Extended-Interaktionen: Bei einer einfachen steht
+`type: query` in `request` (`SPEC-002`), bei einer Extended-Interaktion steht
+`type: extended` an der Interaktion selbst (`SPEC-041`); eine einfache trägt dort
+kein `type`. Ein anderer Wert von `type` an einer dieser Stellen macht das
 Recording zu einem beschädigten (`PGR-E3003`). Ein Leser lehnt jede `version`
 ab, die er nicht kennt (`PGR-E3002`), und ein
 Recording ohne oder mit abweichender `format`-Kennung als beschädigt
@@ -1125,14 +1127,18 @@ leer sind (`portal: ""`, `param_types: []`, `max_rows: 0`):
 | `execute` | `portal`, `max_rows` |
 | `flush`, `sync` | — |
 
-Ein anderes Feld oder ein anderer Typ macht das Recording zu einem beschädigten
-(`PGR-E3003`). `parameter_description` trägt die Typ-OIDs der Parameter als
-`param_types`. Ein NULL-Parameter steht als
+Ein fehlendes Feld des Typs, ein Feld mit dem Wert `null`, ein anderes Feld oder
+ein anderer Typ macht das Recording zu einem beschädigten (`PGR-E3003`).
+`parameter_description` trägt die Typ-OIDs der Parameter als `param_types`, auch
+leer (`param_types: []`); fehlt das Feld dort oder steht es an einer anderen
+Server-Nachricht, ist das Recording beschädigt. Eine Interaktion mit `request`,
+`responses` oder `groups` mit dem Wert `null` ist beschädigt. Ein NULL-Parameter steht als
 `null: true`; ein Leser nimmt den Schlüssel `null` gequotet (`"null": true`) und
 ungequotet an. Binärwerte folgen `SPEC-003`.
 
 Jede Interaktion, einfach oder Extended, kann das Feld `offset_ms` tragen (ganze
-Zahl ≥ 0, `LH-FA-21.a`); es steht neben `sequence` und `type`. Simple-Interaktionen
+Zahl ≥ 0, `LH-FA-21.a`); es steht neben `sequence`, bei einer Extended-Interaktion auch neben `type`.
+Simple-Interaktionen
 behalten `request`/`responses` (`SPEC-002`). Formatkennung
 und Version (`SPEC-001`) gelten für beide Arten; Binärdaten folgen `SPEC-003`.
 
@@ -1466,3 +1472,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-03 | TLS zum Client (`LH-FA-23.a`), Antwortvergleich beim Einspielen (`LH-FA-24.a`), eigene Zertifizierungsstelle (`LH-FA-20.a`), Codes `PGR-E2007`, `PGR-E5004`, `PGR-E6003`, `PGR-W3002` |
 | 2026-10-04 | Protokollrand: Verbindung ohne erste Nachricht und erste Nachricht ohne PGWire-Form (`PGR-W3003`, `SPEC-045`) |
 | 2026-10-04 | Extended Query: `ParameterStatus` unter den Server-Nachrichten (`LH-FA-18.a`, `SPEC-041`, wie schon in `LH-FA-24.a` vorausgesetzt); Felder je Client-Nachricht und `param_types` der `parameter_description` (`SPEC-041`) |
+| 2026-10-04 | Recording: Stelle von `type` bei einfacher und Extended-Interaktion (`SPEC-001`, `SPEC-041`); fehlendes oder mit `null` belegtes Feld einer Client-Nachricht, `param_types` nur und stets an `parameter_description`, `request`/`responses`/`groups` mit `null` als beschädigt (`SPEC-041`) |

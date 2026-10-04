@@ -333,8 +333,9 @@ func TestExtendedRoundtrip(t *testing.T) {
 }
 
 // Leere Felder einer Client-Nachricht stehen in der Datei (`portal: ""`,
-// `param_types: []`, `max_rows: 0` wie in SPEC-041), und eine leere Liste kommt
-// als nil zurück; der Roundtrip bleibt damit gleich.
+// `param_types: []`, `max_rows: 0` wie in SPEC-041), ebenso die leeren
+// `param_types` einer parameter_description, und eine leere Liste kommt als nil
+// zurück; der Roundtrip bleibt damit gleich.
 func TestExtendedLeereFelder(t *testing.T) {
 	want := model.NewRecording()
 	want.Sessions = []model.Session{{ID: 1, Interactions: []model.Interaction{{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
@@ -345,7 +346,7 @@ func TestExtendedLeereFelder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, s := range []string{"statement: \"\"", "sql: \"\"", "param_types: []", "portal: \"\"", "param_formats: []", "params: []", "result_formats: []", "max_rows: 0"} {
+	for _, s := range []string{"statement: \"\"", "sql: \"\"", "param_types: []", "portal: \"\"", "param_formats: []", "params: []", "result_formats: []", "max_rows: 0", "- type: parameter_description\n                param_types: []\n"} {
 		if !strings.Contains(string(leer), s) {
 			t.Errorf("leere Felder: %q fehlt:\n%s", s, leer)
 		}
@@ -432,31 +433,74 @@ func extendedText(gruppen string) string {
 
 const syncGruppe = "          - client:\n              - type: sync\n            server:\n              - type: ready_for_query\n                tx_status: I\n"
 
+// gruppe ist eine Gruppe in der Einrückung von extendedText; client und server
+// sind die Einträge der beiden Listen, ohne server fehlt der Schlüssel.
+func gruppe(client []string, server ...string) string {
+	g := "          - client:\n"
+	for _, c := range client {
+		g += "              - " + c + "\n"
+	}
+	if server != nil {
+		g += "            server:\n"
+		for _, s := range server {
+			g += "              - " + s + "\n"
+		}
+	}
+	return g
+}
+
+// einfacherText ist eine Aufzeichnung mit einer einfachen Anfrage; zusatz steht
+// in der Einrückung ihrer Schlüssel am Ende.
+func einfacherText(antwort, zusatz string) string {
+	return "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - " + antwort + "\n          - {type: ready_for_query, tx_status: I}\n" + zusatz
+}
+
+const (
+	rfqNachricht   = "{type: ready_for_query, tx_status: I}"
+	syncNachricht  = "{type: sync}"
+	parseNachricht = "{type: parse, statement: s, sql: x, param_types: []}"
+)
+
 // Abdeckung: LH-FA-07/Negative — eine Extended-Interaktion, die abgeschnitten
-// ist, eine unbekannte Nachricht, einen fremden Schlüssel oder eine Mischung mit
-// der einfachen Form trägt, macht die Aufzeichnung zu einer beschädigten
-// (PGR-E3003); die Meldung nennt die verletzte Regel.
+// ist, eine unbekannte Nachricht, einen fremden, fehlenden oder mit null
+// belegten Schlüssel oder eine Mischung mit der einfachen Form trägt, macht die
+// Aufzeichnung zu einer beschädigten (PGR-E3003), ebenso param_types an einer
+// anderen Antwort als parameter_description; die Meldung nennt die verletzte
+// Regel.
 func TestUnmarshalExtendedFehler(t *testing.T) {
+	syncGruppe := gruppe([]string{syncNachricht}, rfqNachricht)
 	cases := []struct{ name, data, want string }{
 		{"unbekannter Interaktions-Typ", strings.Replace(extendedText(syncGruppe), "type: extended", "type: bogus", 1), "Interaktions-Typ \"bogus\""},
 		{"type: query auf Interaktionsebene", strings.Replace(extendedText(syncGruppe), "type: extended", "type: query", 1), "Interaktions-Typ \"query\""},
-		{"Anfrage-Typ extended in request", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: extended, sql: x}\n        responses:\n          - type: ready_for_query\n            tx_status: I\n", "Anfrage-Typ \"extended\""},
+		{"Anfrage-Typ extended in request", strings.Replace(einfacherText("{type: command_complete, tag: x}", ""), "type: query", "type: extended", 1), "Anfrage-Typ \"extended\""},
 		{"extended mit request", extendedText(syncGruppe) + "        request: {type: query, sql: x}\n", "weder request noch responses"},
 		{"extended mit responses", extendedText(syncGruppe) + "        responses: []\n", "weder request noch responses"},
-		{"einfache Anfrage mit groups", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - type: ready_for_query\n            tx_status: I\n        groups: []\n", "keine groups"},
-		{"einfache Anfrage ohne request", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        responses:\n          - type: ready_for_query\n            tx_status: I\n", "braucht request"},
+		{"extended mit request: null", extendedText(syncGruppe) + "        request: null\n", "request: null"},
+		{"extended mit responses: null", extendedText(syncGruppe) + "        responses:\n", "responses: null"},
+		{"einfache Anfrage mit groups", einfacherText("{type: command_complete, tag: x}", "        groups: []\n"), "keine groups"},
+		{"einfache Anfrage mit groups: null", einfacherText("{type: command_complete, tag: x}", "        groups: ~\n"), "groups: null"},
+		{"einfache Anfrage ohne request", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        responses:\n          - " + rfqNachricht + "\n", "braucht request"},
 		{"ohne groups", strings.TrimSuffix(extendedText(""), "        groups:\n") + "\n", "ohne Gruppe"},
-		{"unbekannte Client-Nachricht", extendedText("          - client:\n              - type: copy_data\n              - type: sync\n            server:\n              - type: ready_for_query\n"), "Client-Nachricht \"copy_data\""},
-		{"fremder Schlüssel an sync", extendedText("          - client:\n              - type: sync\n                sql: x\n            server:\n              - type: ready_for_query\n"), "\"sql\" gehört nicht zu sync"},
-		{"Schlüssel von bind an parse", extendedText("          - client:\n              - type: parse\n                portal: p\n              - type: sync\n            server:\n              - type: ready_for_query\n"), "\"portal\" gehört nicht zu parse"},
-		{"doppelter Schlüssel", extendedText("          - client:\n              - type: parse\n                sql: a\n                sql: b\n              - type: sync\n            server:\n              - type: ready_for_query\n"), "already defined"},
-		{"Zielart fehlt", extendedText("          - client:\n              - type: describe\n                name: s\n              - type: sync\n            server:\n              - type: ready_for_query\n"), "Zielart"},
-		{"unbekannte Server-Nachricht", extendedText("          - client:\n              - type: sync\n            server:\n              - type: copy_out_response\n              - type: ready_for_query\n"), "Server-Nachricht \"copy_out_response\""},
-		{"widersprüchlicher Parameter", extendedText("          - client:\n              - type: bind\n                params:\n                  - {text: a, null: true}\n              - type: sync\n            server:\n              - type: ready_for_query\n"), "mehr als einem"},
-		{"abgeschnitten nach der Flush-Gruppe", extendedText("          - client:\n              - type: flush\n            server: []\n"), "sync steht"},
-		{"abgeschnitten nach den Client-Nachrichten", extendedText("          - client:\n              - type: sync\n"), "endet nicht mit ready_for_query"},
-		{"abgeschnitten in den Server-Nachrichten", extendedText("          - client:\n              - type: sync\n            server:\n              - type: command_complete\n                tag: x\n"), "endet nicht mit ready_for_query"},
-		{"abgeschnitten in den Client-Nachrichten", extendedText("          - client:\n              - type: parse\n"), "nur als letzte Nachricht"},
+		{"unbekannte Client-Nachricht", extendedText(gruppe([]string{"{type: copy_data}", syncNachricht}, rfqNachricht)), "Client-Nachricht \"copy_data\""},
+		{"fremder Schlüssel an sync", extendedText(gruppe([]string{"{type: sync, sql: x}"}, rfqNachricht)), "\"sql\" gehört nicht zu sync"},
+		{"Schlüssel von bind an parse", extendedText(gruppe([]string{"{type: parse, statement: s, sql: x, param_types: [], portal: p}", syncNachricht}, rfqNachricht)), "\"portal\" gehört nicht zu parse"},
+		{"parse ohne sql", extendedText(gruppe([]string{"{type: parse, statement: s, param_types: []}", syncNachricht}, rfqNachricht)), "\"sql\" fehlt an parse"},
+		{"parse mit sql: null", extendedText(gruppe([]string{"{type: parse, statement: s, sql: null, param_types: []}", syncNachricht}, rfqNachricht)), "\"sql\" fehlt an parse"},
+		{"bind ohne params", extendedText(gruppe([]string{"{type: bind, portal: '', statement: s, param_formats: [], result_formats: []}", syncNachricht}, rfqNachricht)), "\"params\" fehlt an bind"},
+		{"execute ohne max_rows", extendedText(gruppe([]string{"{type: execute, portal: ''}", syncNachricht}, rfqNachricht)), "\"max_rows\" fehlt an execute"},
+		{"describe ohne name", extendedText(gruppe([]string{"{type: describe, target: portal}", syncNachricht}, rfqNachricht)), "\"name\" fehlt an describe"},
+		{"close ohne target", extendedText(gruppe([]string{"{type: close, name: s}", syncNachricht}, rfqNachricht)), "\"target\" fehlt an close"},
+		{"doppelter Schlüssel", extendedText(gruppe([]string{"{type: parse, statement: s, sql: a, sql: b, param_types: []}", syncNachricht}, rfqNachricht)), "already defined"},
+		{"Zielart leer", extendedText(gruppe([]string{"{type: describe, target: '', name: s}", syncNachricht}, rfqNachricht)), "Zielart"},
+		{"unbekannte Server-Nachricht", extendedText(gruppe([]string{syncNachricht}, "{type: copy_out_response}", rfqNachricht)), "Server-Nachricht \"copy_out_response\""},
+		{"widersprüchlicher Parameter", extendedText(gruppe([]string{"{type: bind, portal: '', statement: s, param_formats: [], params: [{text: a, null: true}], result_formats: []}", syncNachricht}, rfqNachricht)), "mehr als einem"},
+		{"parameter_description ohne param_types", extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parameter_description}", rfqNachricht)), "\"param_types\" fehlt an parameter_description"},
+		{"param_types an parse_complete", extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parse_complete, param_types: [23]}", rfqNachricht)), "\"param_types\" gehört nicht zu parse_complete"},
+		{"param_types in einfacher Anfrage", einfacherText("{type: command_complete, tag: x, param_types: [23]}", ""), "\"param_types\" gehört nicht zu command_complete"},
+		{"abgeschnitten nach der Flush-Gruppe", extendedText(gruppe([]string{"{type: flush}"}, []string{}...)), "sync steht"},
+		{"abgeschnitten nach den Client-Nachrichten", extendedText(gruppe([]string{syncNachricht})), "endet nicht mit ready_for_query"},
+		{"abgeschnitten in den Server-Nachrichten", extendedText(gruppe([]string{syncNachricht}, "{type: command_complete, tag: x}")), "endet nicht mit ready_for_query"},
+		{"abgeschnitten in den Client-Nachrichten", extendedText(gruppe([]string{parseNachricht})), "nur als letzte Nachricht"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -466,7 +510,13 @@ func TestUnmarshalExtendedFehler(t *testing.T) {
 			}
 		})
 	}
-	if _, err := Unmarshal([]byte(extendedText(syncGruppe))); err != nil {
-		t.Fatalf("Gegenstück ohne Fehler: %v", err)
+	for name, text := range map[string]string{
+		"Sync-Gruppe":                          extendedText(syncGruppe),
+		"parameter_description mit Typen":      extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parameter_description, param_types: [23]}", rfqNachricht)),
+		"parameter_description ohne Parameter": extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parameter_description, param_types: []}", rfqNachricht)),
+	} {
+		if _, err := Unmarshal([]byte(text)); err != nil {
+			t.Fatalf("Gegenstück %s ohne Fehler erwartet: %v", name, err)
+		}
 	}
 }

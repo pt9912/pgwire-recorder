@@ -190,3 +190,27 @@ func TestReplayHandshake(t *testing.T) {
 		t.Fatalf("ohne freie Session: %v", hs)
 	}
 }
+
+// Steht am Cursor eine Extended-Interaktion, ist jede einfache Anfrage eine
+// Abweichung (PGR-E5001), auch die leere, deren SQL-Text dem leeren der
+// Extended-Interaktion gleicht; der Cursor bleibt stehen.
+func TestReplayExtendedAmCursor(t *testing.T) {
+	ctx := context.Background()
+	extended := model.Interaction{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
+		Client: []model.ClientMessage{{Type: model.ClientSync}},
+		Server: []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}},
+	}}}
+	s, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{extended})}, "rec.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, _ := s.OpenConnection(ctx)
+	for _, sql := range []string{"", "SELECT 1"} {
+		if out, err := s.Query(ctx, id, sql); code(err) != model.CodeReplayMismatch {
+			t.Fatalf("Anfrage %q: erwartet %s, erhalten %#v, %v", sql, model.CodeReplayMismatch, out, err)
+		}
+	}
+	if w := s.CloseConnection(ctx, id); w == nil {
+		t.Fatal("Cursor ist vorgerückt: keine Warnung über die nicht verbrauchte Interaktion")
+	}
+}
