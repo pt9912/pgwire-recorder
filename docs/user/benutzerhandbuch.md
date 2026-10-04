@@ -308,10 +308,12 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   Name, Typ), den Befehl, Fehler (Fehlercode) und den Transaktionsstatus. Zeilenwerte,
   Zeilenzahlen und Hinweise der Datenbank vergleicht es nicht. Bei einer Abweichung
   endet das Einspielen mit `PGR-E5004` und Exit-Code 5; mit `--continue-on-error`
-  läuft es weiter. Auch ein Fehler der Datenbank, den die Aufzeichnung nicht
-  enthält, ist dann eine Abweichung (`PGR-E5004` statt `PGR-E4004`). Treten mehrere
-  Ursachen auf, gilt der Exit-Code der zuerst aufgetretenen. Anfragen, deren
-  Aufzeichnung nicht bis zum Ende der Antwort reicht, vergleicht das Werkzeug nicht.
+  läuft es weiter und endet am Ende mit Exit-Code 5. Ein Fehler der Datenbank, den
+  die Aufzeichnung genauso enthält, gilt dann als erwartet und bricht nicht ab; ein
+  Fehler, den sie nicht enthält, ist eine Abweichung (`PGR-E5004` statt
+  `PGR-E4004`). Reicht die Aufzeichnung einer Anfrage nicht bis zum Ende der
+  Antwort, vergleicht das Werkzeug, soweit sie reicht. Ein Verbindungsfehler beendet
+  das Einspielen immer mit Exit-Code 4.
 * Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
   ab (`PGR-E4004`). Mit `--continue-on-error` läuft es weiter und endet am Ende
   mit Exit-Code 4. Mit `--allow-recorded-errors` gilt ein Fehler nicht, wenn auch
@@ -532,7 +534,7 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte und `sslmode` (erlaubt sind `disable` und `require`). |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Setzen Sie die Variable, die als `${VAR}` in der benutzten Verbindung steht. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Ersetzen Sie das Passwort in der URL durch einen Platzhalter `${VAR}`. |
-| `PGR-E2007` | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht verwendbar | Die Datei fehlt, ist nicht lesbar oder kein gültiges PEM, oder Zertifikat und Schlüssel gehören nicht zusammen. Prüfen Sie `--tls-cert`, `--tls-key` und `--upstream-ca`; ein abgelaufenes Zertifikat und ein Schlüssel mit Passwort sind nicht zulässig. |
+| `PGR-E2007` | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht verwendbar | Die Datei fehlt, ist nicht lesbar oder kein gültiges PEM, oder Zertifikat und Schlüssel gehören nicht zusammen. Prüfen Sie `--tls-cert`, `--tls-key` und `--upstream-ca`; ein abgelaufenes eigenes Zertifikat und ein Schlüssel mit Passwort sind nicht zulässig. Läuft ein Zertifikat der Datenbank oder der Zertifizierungsstelle ab, meldet das Werkzeug beim Verbinden `PGR-E4005`. |
 | `PGR-E3000`, `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, oder Sie haben keine Rechte. Prüfen Sie Pfad und Dateirechte. |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Zeichnen Sie erneut auf. |

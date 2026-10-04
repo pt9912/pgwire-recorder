@@ -47,7 +47,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen, einfach und Extended, wird gegen eine leere Instanz eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); mehrere Sessions laufen über eigene Verbindungen nacheinander; Authentifizierung mit Klartext, MD5 und SCRAM-SHA-256 sowie `--upstream-tls` (auch mit `--upstream-ca` für eine eigene Zertifizierungsstelle) funktionieren, eine fehlgeschlagene Anmeldung oder TLS-Pflicht ohne Option meldet `PGR-E4005`, eine unlesbare CA-Datei beim Start `PGR-E2007`, `--upstream-ca` ohne TLS `PGR-E2001` (Integrationstest).
 - [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4); `--continue-on-error` läuft weiter und endet mit Exit-Code 4; `--allow-recorded-errors` lässt aufgezeichnete Fehler zu; ein Verbindungsfehler bricht immer ab (Test).
-- [ ] `SIGINT` und `SIGTERM` beenden nach der laufenden Interaktion, mit `--finish-session-on-interrupt` nach der laufenden Session; der Exit-Code ist 0 ohne vorherigen Fehler, sonst 4 (Test).
+- [ ] `SIGINT` und `SIGTERM` beenden nach der laufenden Interaktion, mit `--finish-session-on-interrupt` nach der laufenden Session; der Exit-Code ist 0 ohne vorherigen Fehler, sonst 4; die Rangfolge mit Vergleich (Exit-Code 5) prüft `slice-v1-abschluss-antwortvergleich` (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
