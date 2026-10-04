@@ -32,6 +32,7 @@
 | [0026](0026-build-und-test-im-multistage-dockerfile.md) | Build, Test und Integration über ein Multistage-Dockerfile | Accepted | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 | [0027](0027-yaml-bibliothek.md) | YAML-Bibliothek go.yaml.in/yaml/v3 | Accepted | [`LH-QA-06`](../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats) |
 | [0028](0028-abdeckung-je-anforderung-und-pfad.md) | Abdeckung je Anforderung und Pfad | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
+| [0029](0029-benannte-welle-kennungen-im-commit-hook.md) | Benannte Welle-Kennungen im Commit-Hook | Proposed | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
 
 ## Konventionen
 
@@ -55,3 +56,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0021](0021-vergleichsregeln-beim-einspielen.md) | ergänzt [0020](0020-antwortvergleich-beim-einspielen.md); mit `--compare-responses` ersetzt der Vergleich die Fehlerregel von [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) für Fehlerantworten, sonst gilt [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) unverändert |
 | [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | ersetzt [0021](0021-vergleichsregeln-beim-einspielen.md) mit gleicher Entscheidung und genauerem Text; gilt damit für die Teilersetzung der Fehlerregel von [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) bei `--compare-responses` und ergänzt [0020](0020-antwortvergleich-beim-einspielen.md) |
 | [0023](0023-antwortvergleich-entscheidung.md) | ersetzt [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) und trägt nur die Entscheidung; die Einzelregeln stehen in der Spezifikation; für die Teilersetzung der Fehlerregel von [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) bei `--compare-responses` und die Ergänzung von [0020](0020-antwortvergleich-beim-einspielen.md) gilt diese ADR |
+| [0029](0029-benannte-welle-kennungen-im-commit-hook.md) | ergänzt [0025](0025-benannte-slice-kennungen-im-commit-hook.md) um die Namen vorhandener Wellen |
