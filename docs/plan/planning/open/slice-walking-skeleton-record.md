@@ -103,6 +103,7 @@ dasteht.
 
 - Startup-/Authentifizierungsverfahren des Upstreams (z. B. SCRAM) sind für die Weiterleitung noch nicht eingegrenzt — **Ausgang:** offen bis Closure.
 - Der Recording-Zeitpunkt (Ende des Laufs) lässt bei einem Abbruch kein Recording zurück — bewusst, Behandlung in welle-v1-abschluss — **Ausgang:** offen bis Closure.
+- `make build` und `make test` laufen netzlos; mit `pgproto3` braucht das Modul eine netzlose Quelle der Abhängigkeiten (zum Beispiel ein vendored Verzeichnis), sonst scheitert der Build — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

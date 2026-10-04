@@ -216,16 +216,17 @@ diese Datei verweisen darf; bei Abweichung gilt das Lastenheft.
 
 ## Modus-Deklaration pro Sub-Area
 
-Die **Kürzel**-Spalte tragen nur Repos, deren Kennungen ein Bereichssegment
-führen (`ADR-<KUERZEL>-NNNN`, `slice-<KUERZEL>-NNN`); wer ohne Segment zählt,
-streicht sie. Regel: Baseline-Regelwerk `grundlagen-harness-dateien.md`
-§Konventionsspeicher.
+Die **Kürzel**-Spalte trägt das Sub-Area-Kürzel, das das Beobachtungs-Register
+für seine Kennungen `BEO-<KUERZEL>/<slug>` nachschlägt
+(`docs/plan/planning/observations/README.md`). ADR- und Slice-Kennungen dieses
+Repos führen kein Bereichssegment. Regel: Baseline-Regelwerk
+`grundlagen-harness-dateien.md` §Konventionsspeicher.
 
 
 
-| Sub-Area (Pfad / Modul) | Modus | Begründung | Graduation-Bedingung / Folge-Slice |
-|---|---|---|---|
-| `*` (Default für gesamtes Repo) | Greenfield | Das Repo enthält Spezifikation, Entscheidungen und Harness, aber noch keinen Produktionscode; Kennungen zählen ohne Bereichssegment | n/a (GF) |
+| Sub-Area (Pfad / Modul) | Kürzel | Modus | Begründung | Graduation-Bedingung / Folge-Slice |
+|---|---|---|---|---|
+| `*` (Default für gesamtes Repo) | `REPO` | Greenfield | Das Repo enthält Spezifikation, Entscheidungen, Harness und ein Go-Gerüst ohne Funktion; Kennungen zählen ohne Bereichssegment | n/a (GF) |
 
 ## Glossar (optional)
 
