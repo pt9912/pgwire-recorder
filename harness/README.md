@@ -67,7 +67,7 @@ Diese Datei dupliziert sie nicht.
 | `make a-check` | Architektur-Regeln des Hexagons gemäß `.a-check.yml` (a-check, netzlos, schreibgeschützt): Import-Richtungen der Packages und Bibliotheken je Adapter | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md) |
 | `make a-check-negativ` | Gegenprobe des Architektur-Gates in Kopien des Arbeitsbaums: `pgproto3` und `crypto/tls` werden im Domain Model und im Recording-Adapter abgelehnt, in beiden PGWire-Adaptern zugelassen | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md), [ADR-0010](../docs/plan/adr/0010-verwendung-von-pgproto3.md) |
 | `make baseline-verify` | vendored Baseline gegen `SHA256SUMS` (Integrität und Vollständigkeit, netzlos) | — |
-| `make hook-gegenprobe` | Gegenprobe des Commit-Trägers `.githooks/commit-msg`: Kennung eines vorhandenen Slice angenommen, erfundene und fehlende Kennung abgelehnt (bash, ohne Docker) | [ADR-0025](../docs/plan/adr/0025-benannte-slice-kennungen-im-commit-hook.md) |
+| `make hook-gegenprobe` | Gegenprobe des Commit-Trägers `.githooks/commit-msg`: Kennung eines vorhandenen Slice oder einer vorhandenen Welle angenommen, erfundene Kennung, Name einer Closure-Notiz und fehlende Kennung abgelehnt (bash, ohne Docker) | [ADR-0025](../docs/plan/adr/0025-benannte-slice-kennungen-im-commit-hook.md), [ADR-0029](../docs/plan/adr/0029-benannte-welle-kennungen-im-commit-hook.md) |
 | `make abdeckung-check` | die Abdeckungstabellen `docs/user/abdeckung-*.md` entsprechen den Abdeckungs-Deklarationen der Tests (Anforderung und Pfad); jeder E2E-Test trägt eine (bash, ohne Docker) | [ADR-0028](../docs/plan/adr/0028-abdeckung-je-anforderung-und-pfad.md) |
 | `make abdeckung-gegenprobe` | Gegenprobe des Abdeckungs-Skripts in Temp-Bäumen: Fehlformen abgelehnt, `--check` schreibt nicht (bash, ohne Docker) | [ADR-0028](../docs/plan/adr/0028-abdeckung-je-anforderung-und-pfad.md) |
 | `make gates` | alle inneren Gates | — |
@@ -94,7 +94,7 @@ Diese Datei dupliziert sie nicht.
 
 ## Traceability rules
 
-- PRs/Commits **müssen** mindestens eine `LH-*`-, `ADR-*`-, `MR-*`- oder `slice-*`-Kennung nennen; eine benannte Slice-Kennung zählt, wenn sie als eigenes Wort in der Message (ohne Kommentarzeilen, vor dem Diff von `git commit -v`) steht und der Slice als Datei unter `docs/plan/planning/<lifecycle>/` im Index liegt ([ADR-0025](../docs/plan/adr/0025-benannte-slice-kennungen-im-commit-hook.md)).
+- PRs/Commits **müssen** mindestens eine `LH-*`-, `ADR-*`-, `MR-*`- oder `slice-*`-Kennung nennen; eine benannte Slice-Kennung zählt, wenn sie als eigenes Wort in der Message (ohne Kommentarzeilen, vor dem Diff von `git commit -v`) steht und der Slice als Datei unter `docs/plan/planning/<lifecycle>/` im Index liegt ([ADR-0025](../docs/plan/adr/0025-benannte-slice-kennungen-im-commit-hook.md)); ebenso eine Welle-Kennung, deren Welle-Datei unter `docs/plan/planning/` im Index liegt, flach, in `done/` oder im Archiv-Ordner darunter, nicht aber der Name einer Closure-Notiz ([ADR-0029](../docs/plan/adr/0029-benannte-welle-kennungen-im-commit-hook.md)).
 - Neue oder geänderte Anforderungen brauchen einen Beleg: Test, Gate, Demo oder ADR.
 - Neue ADRs müssen im ADR-Index ergänzt werden.
 - Änderungen an Planning-Dokumenten müssen die Lifecycle-Regeln beachten (open → next → in-progress → done; reine `git mv`-Commits siehe AGENTS.md §3.3).

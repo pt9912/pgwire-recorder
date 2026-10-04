@@ -1,6 +1,6 @@
 # ADR-0029: Benannte Welle-Kennungen im Commit-Hook
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-04
 
@@ -61,6 +61,7 @@ Wenn die mitgelieferte Prüfung benannte Welle-Kennungen selbst kennt oder das A
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-04 | Proposed | — |
+| 2026-10-04 | Accepted | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

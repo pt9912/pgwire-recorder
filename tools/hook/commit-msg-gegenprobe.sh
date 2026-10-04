@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# commit-msg-gegenprobe — prueft den Traeger .githooks/commit-msg (ADR-0025) mit
-# Message-Dateien in einem Temp-Verzeichnis; der Arbeitsbaum bleibt unberuehrt.
+# commit-msg-gegenprobe — prueft den Traeger .githooks/commit-msg (ADR-0025,
+# ADR-0029) mit Message-Dateien in einem Temp-Verzeichnis; der Arbeitsbaum bleibt
+# unberuehrt.
 #
 #   Message                                                     erwartet
 #   ohne jede Kennung                                           abgelehnt
@@ -14,10 +15,14 @@
 #   Kennung nur in einer Kommentarzeile                         abgelehnt
 #   Kennung nur unter der Scissors-Zeile von `git commit -v`    abgelehnt
 #   mit einer Lastenheft-Kennung                                angenommen
+#   Kennung einer offenen Welle (flach in planning/)            angenommen
+#   Kennung einer geschlossenen Welle (done/ oder Archiv)       angenommen
+#   mit erfundener Welle-Kennung                                abgelehnt
+#   Name einer Closure-Notiz einer Welle (-results)             abgelehnt
 #
-# Die Slices fuer die Positivfaelle stammen aus dem Index (open/ und done/);
-# fehlt einer, bricht die Gegenprobe ab. Ausgang: 0, wenn jeder Fall wie
-# erwartet endet.
+# Slices und Wellen fuer die Positivfaelle stammen aus dem Index (Slices aus
+# open/ und done/, Wellen flach und unter done/); fehlt einer, bricht die
+# Gegenprobe ab. Ausgang: 0, wenn jeder Fall wie erwartet endet.
 set -euo pipefail
 
 traeger=".githooks/commit-msg"
@@ -31,6 +36,18 @@ offen="$(erster open)"
 fertig="$(erster done)"
 if [ -z "$offen" ] || [ -z "$fertig" ]; then
   echo "commit-msg-gegenprobe: kein Slice in open/ oder done/ im Index gefunden" >&2
+  exit 1
+fi
+welle_offen="$(git ls-files --cached -- 'docs/plan/planning/welle-*.md' \
+  | grep -E '^docs/plan/planning/welle-[^/]*\.md$' | grep -v -- '-results\.md$' \
+  | sort | head -n 1 | xargs -r basename -s .md)"
+welle_fertig="$(git ls-files --cached -- 'docs/plan/planning/done/*welle-*.md' \
+  | grep -E '/welle-[^/]*\.md$' | grep -v -- '-results\.md$' \
+  | sort | head -n 1 | xargs -r basename -s .md)"
+notiz="$(git ls-files --cached -- 'docs/plan/planning/done/*welle-*-results.md' \
+  | sort | head -n 1 | xargs -r basename -s .md)"
+if [ -z "$welle_offen" ] || [ -z "$welle_fertig" ] || [ -z "$notiz" ]; then
+  echo "commit-msg-gegenprobe: keine offene oder geschlossene Welle oder keine Closure-Notiz im Index gefunden" >&2
   exit 1
 fi
 
@@ -62,8 +79,12 @@ fall ab "x$offen: Arbeit"
 fall ab "$(printf 'Arbeit ohne Kennung\n# %s' "$offen")"
 fall ab "$(printf 'Arbeit ohne Kennung\n%s\ndiff --git a/x b/x\n+%s' "$schere" "$offen")"
 fall an "Arbeit (LH-QA-04)"
+fall an "$welle_offen: Arbeit"
+fall an "$welle_fertig: Arbeit"
+fall ab "welle-erfunden-gegenprobe: Arbeit"
+fall ab "$notiz: Arbeit"
 
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "commit-msg-gegenprobe: gruen — vorhandene Slice-Kennungen angenommen, erfundene, verlaengerte, kommentierte und fehlende abgelehnt"
+echo "commit-msg-gegenprobe: gruen — vorhandene Slice- und Welle-Kennungen angenommen, erfundene, verlaengerte, kommentierte, Closure-Notizen und fehlende abgelehnt"

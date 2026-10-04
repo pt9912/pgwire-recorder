@@ -32,7 +32,7 @@
 | [0026](0026-build-und-test-im-multistage-dockerfile.md) | Build, Test und Integration über ein Multistage-Dockerfile | Accepted | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 | [0027](0027-yaml-bibliothek.md) | YAML-Bibliothek go.yaml.in/yaml/v3 | Accepted | [`LH-QA-06`](../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats) |
 | [0028](0028-abdeckung-je-anforderung-und-pfad.md) | Abdeckung je Anforderung und Pfad | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
-| [0029](0029-benannte-welle-kennungen-im-commit-hook.md) | Benannte Welle-Kennungen im Commit-Hook | Proposed | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
+| [0029](0029-benannte-welle-kennungen-im-commit-hook.md) | Benannte Welle-Kennungen im Commit-Hook | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
 
 ## Konventionen
 

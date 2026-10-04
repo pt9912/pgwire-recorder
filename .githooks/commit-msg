@@ -12,6 +12,11 @@
 # `git commit -v` vor den angehaengten Diff setzt, ohne Kommentarzeilen. Steht darin
 # als eigenes Wort die Kennung eines Slice, dessen Datei slice-<name>.md unter
 # docs/plan/planning/<lifecycle>/ im Index liegt, endet der Traeger mit Exit 0.
+#
+# BENANNTE WELLEN (ADR-0029): Ebenso endet er mit Exit 0, wenn eine Welle-Kennung
+# als eigenes Wort steht und welle-<name>.md im Index unter docs/plan/planning/
+# liegt — flach, in done/ oder im Archiv-Ordner darunter. Eine Kennung mit der
+# Endung -results ist eine Closure-Notiz und zaehlt nicht.
 # Jede andere Message geht unveraendert an die mitgelieferte Pruefung.
 #
 # AKTIVIERUNG. `core.hooksPath` ist lokale Konfiguration und reist nicht mit dem
@@ -31,11 +36,16 @@ if [ -n "$msg_file" ] && [ -r "$msg_file" ]; then
   kennungen="$(
     sed '/^# -\{24\} >8 -\{24\}$/,$d' "$msg_file" \
       | grep -v '^[[:space:]]*#' \
-      | grep -oE '(^|[^A-Za-z0-9_-])slice-[a-z0-9]+(-[a-z0-9]+)*' \
-      | sed -E 's/^[^s]*//' || true
+      | grep -oE '(^|[^A-Za-z0-9_-])(slice|welle)-[a-z0-9]+(-[a-z0-9]+)*' \
+      | sed -E 's/^[^sw]*//' || true
   )"
   for kennung in $kennungen; do
-    if git -C "$root" ls-files --cached -- "docs/plan/planning/*/$kennung.md" | grep -q .; then
+    case "$kennung" in
+      slice-*) muster=("docs/plan/planning/*/$kennung.md") ;;
+      *-results) continue ;;
+      *) muster=("docs/plan/planning/$kennung.md" "docs/plan/planning/*/$kennung.md") ;;
+    esac
+    if git -C "$root" ls-files --cached -- "${muster[@]}" | grep -q .; then
       exit 0
     fi
   done
