@@ -1,1 +1,3 @@
-**Stand:** offen
+**Stand:** verkörpert
+
+Zielort: `AGENTS.md §3.9` — Herkunfts-Anker `seit welle-walking-skeleton`.

@@ -175,6 +175,23 @@ Einzelregeln auf die Spezifikationsstelle zeigen.
 veraltet mit der Spezifikation und zwingt zu einer Ersetzungs-ADR, die nur den
 Text berichtigt.
 
+### 3.9 Der Slice-Plan folgt jeder Korrektur (seit welle-walking-skeleton)
+
+Wer im Slice Code, Gates, Tests oder die Spezifikation ändert, zieht im selben
+Commit §1 (Ziel und Abgrenzung), §3 (Plan) und §6 (Risiken) des Slice-Plans nach,
+dazu den Kopf (`Bezug`, `Berührte Spec-Stellen`) und betroffene Folge-Slices.
+
+**Falsch:** den Mismatch liefern, während §1 ihn noch „welle-replay-semantik“
+zuweist.
+**Richtig:** §1 nennt, was der Slice liefert und was er abgibt; der Folge-Slice
+nennt, was schon geliefert ist.
+
+**Begründung:** Review und Verifikation messen gegen den Plan; ein Plan, der dem
+Code nicht folgt, erzeugt in jeder Runde dieselben Findings
+(`BEO-REPO/plan-folgt-korrektur-nicht`). Entfernen oder Lockern dieser Regel
+setzt den Retirement-Check voraus: Ist die Beobachtung seit welle-walking-skeleton
+wieder aufgetreten?
+
 ## 4. Quality Gates
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-harness-dateien.md`
