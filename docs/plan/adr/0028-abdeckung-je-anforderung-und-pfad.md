@@ -1,6 +1,6 @@
 # ADR-0028: Abdeckung je Anforderung und Pfad
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-04
 
@@ -53,5 +53,6 @@ Wenn eine weitere Nachweisart (Bench, CI-Matrix) hinzukommt, die keine Tests tr�
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-04 | Proposed | — |
+| 2026-10-04 | Accepted | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
