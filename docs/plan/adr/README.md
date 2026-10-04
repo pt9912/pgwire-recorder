@@ -28,7 +28,7 @@
 | [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | Vergleichsregeln beim Einspielen, präzisiert | Superseded by [0023](0023-antwortvergleich-entscheidung.md) | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 | [0023](0023-antwortvergleich-entscheidung.md) | Antwortvergleich beim Einspielen ersetzt die Fehlerregel | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 | [0024](0024-sqlite-bibliothek.md) | SQLite-Bibliothek ohne native Abhängigkeit | Accepted | [`LH-FA-22`](../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat) |
-| [0025](0025-benannte-slice-kennungen-im-commit-hook.md) | Benannte Slice-Kennungen im Commit-Hook | Accepted | — |
+| [0025](0025-benannte-slice-kennungen-im-commit-hook.md) | Benannte Slice-Kennungen im Commit-Hook | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
 
 ## Konventionen
 

@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (Modul 11). Geprüft wird, ob die Umsetzung Plan und DoD erfüllt, also ob richtig gebaut wurde. Ob das Richtige gebaut wurde, prüft der Validator; Diff gegen Entscheidungen und Hard Rules prüft der Reviewer.
 
-**Gegenstand:** Slice-Plan `docs/plan/planning/done/slice-walking-skeleton-build-gates.md` (§1 bis §3, §6) gegen `git diff 759fc4f HEAD` bei HEAD `a834db1` (Commits `1703db5`, `554bd0b`, `d04e43c`, `8143a47`, `a834db1`).
+**Gegenstand:** Slice-Plan `docs/plan/planning/in-progress/slice-walking-skeleton-build-gates.md` <!-- d-check:ignore (Pfad beim geprüften Stand) --> (§1 bis §3, §6) gegen `git diff 759fc4f HEAD` bei HEAD `a834db1` (Commits `1703db5`, `554bd0b`, `d04e43c`, `8143a47`, `a834db1`).
 
 **Eingang:** DoD-Bestätigung und Sensor-Angaben des Implementers; Review-Report `docs/reviews/2026-10-04-review-slice-walking-skeleton-build-gates.md` (Stand `8143a47`).
 

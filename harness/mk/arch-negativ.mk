@@ -1,4 +1,5 @@
-# harness/mk/arch-negativ.mk — Gegenprobe des Architektur-Gates (ADR-0001, ADR-0010).
+# harness/mk/arch-negativ.mk — Gegenprobe des Architektur-Gates (ADR-0001, ADR-0010)
+# · seit slice-walking-skeleton-build-gates.
 # Sie haengt an GATE_CHECKS. Sie belegt fuer pgproto3 und crypto/tls, dass a-check
 # einen Import im Domain Model und im Recording-Adapter ablehnt und in beiden
 # PGWire-Adaptern zulaesst; andere Regeln von .a-check.yml prueft sie nicht.

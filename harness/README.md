@@ -89,7 +89,7 @@ Diese Datei dupliziert sie nicht.
 
 ## Traceability rules
 
-- PRs/Commits **müssen** mindestens eine `LH-*`-, `ADR-*`-, `MR-*`- oder `slice-*`-Kennung nennen; eine benannte Slice-Kennung zählt, wenn der Slice als Datei unter `docs/plan/planning/` liegt ([ADR-0025](../docs/plan/adr/0025-benannte-slice-kennungen-im-commit-hook.md)).
+- PRs/Commits **müssen** mindestens eine `LH-*`-, `ADR-*`-, `MR-*`- oder `slice-*`-Kennung nennen; eine benannte Slice-Kennung zählt, wenn sie als eigenes Wort in der Message (ohne Kommentarzeilen, vor dem Diff von `git commit -v`) steht und der Slice als Datei unter `docs/plan/planning/<lifecycle>/` im Index liegt ([ADR-0025](../docs/plan/adr/0025-benannte-slice-kennungen-im-commit-hook.md)).
 - Neue oder geänderte Anforderungen brauchen einen Beleg: Test, Gate, Demo oder ADR.
 - Neue ADRs müssen im ADR-Index ergänzt werden.
 - Änderungen an Planning-Dokumenten müssen die Lifecycle-Regeln beachten (open → next → in-progress → done; reine `git mv`-Commits siehe AGENTS.md §3.3).

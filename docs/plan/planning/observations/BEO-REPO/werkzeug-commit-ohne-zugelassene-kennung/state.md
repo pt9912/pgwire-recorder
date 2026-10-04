@@ -1,5 +1,6 @@
-**Stand:** gestrichen
+**Stand:** offen
 
-Die Ursache ist entfallen: Der Träger `.githooks/commit-msg` nimmt seit
+Für Slices ist die Ursache behoben: Der Träger `.githooks/commit-msg` nimmt seit
 [ADR-0025](../../../../adr/0025-benannte-slice-kennungen-im-commit-hook.md) die
-Kennung jedes vorhandenen Slice an; `make hook-gegenprobe` hält das fest.
+Kennung jedes Slice im Index an. Für Wellen nicht: eine Message, die nur eine
+Welle-Kennung trägt, lehnt der Träger weiter ab.

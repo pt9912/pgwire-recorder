@@ -2,28 +2,37 @@
 # commit-msg-gegenprobe — prueft den Traeger .githooks/commit-msg (ADR-0025) mit
 # Message-Dateien in einem Temp-Verzeichnis; der Arbeitsbaum bleibt unberuehrt.
 #
-#   Message                                         erwartet
-#   ohne jede Kennung                               abgelehnt
-#   mit erfundener Slice-Kennung                    abgelehnt
-#   mit dem Namen des Lifecycle-Werkzeugs allein    abgelehnt
-#   mit der Kennung eines vorhandenen Slice         angenommen
-#   mit einer Lastenheft-Kennung                    angenommen
-#   Kennung nur in einer Kommentarzeile             abgelehnt
+#   Message                                                     erwartet
+#   ohne jede Kennung                                           abgelehnt
+#   mit erfundener Slice-Kennung                                abgelehnt
+#   mit dem Namen des Lifecycle-Werkzeugs allein                abgelehnt
+#   Kennung eines Slice in open/ im Betreff                     angenommen
+#   Kennung eines Slice in done/ im Betreff                     angenommen
+#   Kennung eines vorhandenen Slice nur im Rumpf                angenommen
+#   Kennung mit angehaengtem Suffix                             abgelehnt
+#   Kennung mit vorangestelltem Wortteil                        abgelehnt
+#   Kennung nur in einer Kommentarzeile                         abgelehnt
+#   Kennung nur unter der Scissors-Zeile von `git commit -v`    abgelehnt
+#   mit einer Lastenheft-Kennung                                angenommen
 #
-# Der vorhandene Slice ist der erste unter docs/plan/planning/*/; ohne Slice
-# bricht die Gegenprobe ab. Ausgang: 0, wenn jeder Fall wie erwartet endet.
+# Die Slices fuer die Positivfaelle stammen aus dem Index (open/ und done/);
+# fehlt einer, bricht die Gegenprobe ab. Ausgang: 0, wenn jeder Fall wie
+# erwartet endet.
 set -euo pipefail
 
 traeger=".githooks/commit-msg"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "$arbeit"' EXIT
 
-vorhanden="$(find docs/plan/planning -mindepth 2 -maxdepth 2 -name 'slice-*.md' | sort | head -n 1)"
-if [ -z "$vorhanden" ]; then
-  echo "commit-msg-gegenprobe: kein Slice unter docs/plan/planning/*/ gefunden" >&2
+erster() {
+  git ls-files --cached -- "docs/plan/planning/$1/slice-*.md" | sort | head -n 1 | xargs -r basename -s .md
+}
+offen="$(erster open)"
+fertig="$(erster done)"
+if [ -z "$offen" ] || [ -z "$fertig" ]; then
+  echo "commit-msg-gegenprobe: kein Slice in open/ oder done/ im Index gefunden" >&2
   exit 1
 fi
-vorhanden="$(basename "$vorhanden" .md)"
 
 fehler=0
 nr=0
@@ -40,14 +49,21 @@ fall() {
   fi
 }
 
+schere='# ------------------------ >8 ------------------------'
+
 fall ab "Arbeit ohne Kennung"
 fall ab "slice-erfunden-gegenprobe: Arbeit"
 fall ab "slice-mv: Arbeit"
-fall an "$vorhanden: Arbeit"
+fall an "$offen: Arbeit"
+fall an "$fertig: Arbeit"
+fall an "$(printf 'Arbeit ohne Kennung im Betreff\n\nBetrifft %s.' "$offen")"
+fall ab "$offen-zusatz: Arbeit"
+fall ab "x$offen: Arbeit"
+fall ab "$(printf 'Arbeit ohne Kennung\n# %s' "$offen")"
+fall ab "$(printf 'Arbeit ohne Kennung\n%s\ndiff --git a/x b/x\n+%s' "$schere" "$offen")"
 fall an "Arbeit (LH-QA-04)"
-fall ab "$(printf 'Arbeit ohne Kennung\n# %s' "$vorhanden")"
 
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "commit-msg-gegenprobe: gruen — vorhandene Slice-Kennung angenommen, erfundene und fehlende abgelehnt"
+echo "commit-msg-gegenprobe: gruen — vorhandene Slice-Kennungen angenommen, erfundene, verlaengerte, kommentierte und fehlende abgelehnt"

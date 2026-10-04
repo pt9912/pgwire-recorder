@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-walking-skeleton.
 
-**Bezug:** [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [ADR-0001](../../adr/0001-hexagonale-architektur.md), [ADR-0009](../../adr/0009-implementierungssprache-go.md), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md)
+**Bezug:** [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [ADR-0001](../../adr/0001-hexagonale-architektur.md), [ADR-0009](../../adr/0009-implementierungssprache-go.md), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md)
 
 **Berührte Spec-Stellen:** `ARC-009` · Architektur-Gate (architecture.md §6)
 
@@ -54,7 +54,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
 - [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **mit** Wellen von der nächsten Welle-Closure geprüft.
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -119,8 +119,8 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 - **Was hat funktioniert:** Build und Test laufen netzlos und schreibgeschützt im per Digest gepinnten Image; die Package-Struktur entspricht `spec/architecture.md` §2.1. Rollen-Trennung hat gewirkt: der Reviewer fand den Fehlschnitt der `tech`-Regel, den ein grünes Gate verdeckte.
 - **Was ging anders als geplant:** Plan §3 sah `a-check.mk` und `.a-check.yml` als unverändert; die `tech`-Regel musste als Liste beider PGWire-Adapter neu gefasst werden (F-204). Die Lifecycle-Moves liefen von Hand, bis [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md) den Commit-Hook für benannte Slices öffnete. Die Gegenprobe wuchs von einem auf fünf Fälle.
-- **Steering-Loop-Eintrag:** Sensor ergänzt: Gegenprobe des Architektur-Gates mit erlaubten und verbotenen Fällen je Bibliothek — liegt in `harness/mk/arch-negativ.mk`. Sensor ergänzt: Gegenprobe des Commit-Trägers — liegt in `harness/mk/hook-gegenprobe.mk`. Auslöser: Review-Finding F-204 und `BEO-REPO/werkzeug-commit-ohne-zugelassene-kennung` (je 1×).
-- **Beobachtungs-Register (`../observations/`):** `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen/` neu angelegt, Beleg `evidence/slice-walking-skeleton-build-gates.md` — Zähler 1×; `BEO-REPO/kern-fremdimporte-nur-ueber-tech-liste/` neu angelegt, Zähler 1×; `BEO-REPO/werkzeug-commit-ohne-zugelassene-kennung/` neu angelegt und gestrichen (Ursache durch [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md) entfallen).
+- **Steering-Loop-Eintrag:** Sensor ergänzt: Gegenprobe des Architektur-Gates mit erlaubten und verbotenen Fällen je Bibliothek — liegt in `harness/mk/arch-negativ.mk` (Herkunft `· seit slice-walking-skeleton-build-gates`). Auslöser: Review-Finding F-204, keine Registerklasse mit 3×. Die Gegenprobe des Commit-Trägers folgt aus [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md) und ist kein Lerneintrag dieses Slice.
+- **Beobachtungs-Register (`../observations/`):** `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen/` neu angelegt, Beleg `evidence/slice-walking-skeleton-build-gates.md` — Zähler 1×; `BEO-REPO/kern-fremdimporte-nur-ueber-tech-liste/` neu angelegt, Zähler 1×; `BEO-REPO/werkzeug-commit-ohne-zugelassene-kennung/` neu angelegt, Zähler 1×, offen (für Slices durch [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md) behoben, für Wellen nicht); `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/` neu angelegt, Zähler 1× (F-210 und F-214 im selben Vorgang).
 - **Folge-Slices:** `slice-walking-skeleton-record` (Walking Skeleton: Record-Modus) — ist eine Datei in `open/`; trägt das Risiko der netzlosen Abhängigkeiten.
 - **Risiken aus §6:** jedes mit genau einem Ausgang — siehe §6.
 - **Drei Paarungen:** Repo mit Wellen-Betrieb — geprüft von der Closure von `welle-walking-skeleton`.
