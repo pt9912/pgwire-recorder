@@ -63,7 +63,8 @@ Verpflichtende Optionen von `record`:
 
 Optional: `--force` (Zieldatei überschreiben, Default aus; siehe LH-FA-07.a),
 `--format` (`yaml` oder `sqlite`, siehe LH-FA-22.a), `--record-timing` (siehe
-LH-FA-21.a) und `--record-empty-sessions` (siehe LH-FA-12.a).
+LH-FA-21.a), `--record-empty-sessions` (siehe LH-FA-12.a) sowie `--tls-cert`,
+`--tls-key` und `--allow-plaintext` (siehe LH-FA-23.a).
 
 Beispiel:
 
@@ -120,8 +121,9 @@ Verpflichtende Optionen von `replay`:
 | `--input` | Zu verwendendes Recording |
 
 Optional: `--fail-on-unconsumed` (nicht verbrauchte Interaktionen als Fehler
-werten, Default aus; siehe LH-FA-03.b) und `--session-assignment` (siehe
-LH-FA-12.a).
+werten, Default aus; siehe LH-FA-03.b), `--session-assignment` (siehe
+LH-FA-12.a) sowie `--tls-cert`, `--tls-key` und `--allow-plaintext` (siehe
+LH-FA-23.a).
 
 Beispiel:
 
@@ -769,8 +771,11 @@ pgwire-recorder play \
    Verbindung muss zum Zertifikat passen. Ein Überspringen der Prüfung gibt es nicht.
    `--upstream-ca` nennt eine PEM-Datei mit einem oder mehreren Zertifikaten; sie
    ergänzt den Zertifikatsspeicher des Systems und ersetzt ihn nicht. Ohne TLS ist
-   die Option eine ungültige Verwendung (`PGR-E2001`); eine Datei, die nicht lesbar
-   ist oder kein gültiges Zertifikat enthält, ist `PGR-E2007`. Er authentifiziert
+   die Option eine ungültige Verwendung (`PGR-E2001`). Die Datei wird beim Start
+   gelesen, vor der ersten Verbindung; eine Datei, die nicht lesbar ist oder kein
+   gültiges Zertifikat enthält, ist ein Startfehler `PGR-E2007` (Exit-Code `2`).
+   Ein relativer Pfad gilt ab dem aktuellen Verzeichnis, auch wenn er in der
+   Konfigurationsdatei steht. Er authentifiziert
    sich als Client mit Klartext-Passwort, MD5 oder SCRAM-SHA-256.
 3. Die Client-Nachrichten der Interaktionen werden in der aufgezeichneten
    Reihenfolge gesendet: bei einer einfachen Anfrage die `Query`, bei einer
@@ -795,20 +800,22 @@ pgwire-recorder play \
    `4`. Mit `--allow-recorded-errors` zählt eine `ErrorResponse` nicht, wenn die
    aufgezeichnete Interaktion mindestens eine `ErrorResponse` enthält; bei einer
    Extended-Interaktion verwirft der Server danach bis zum `Sync`, und der Recorder
-   sendet weiter wie aufgezeichnet. Eine Abweichung beim Vergleich (`PGR-E5004`,
-   Exit-Code `5`) wird wie eine Fehlerantwort behandelt: Sie beendet das Einspielen;
-   mit `--continue-on-error` läuft es weiter. Antwortet der Server mit einer
-   `ErrorResponse`, gilt zuerst die Regel dieses Schritts für Fehlerantworten; der
-   Vergleich der übrigen Interaktion findet danach statt, sofern das Einspielen
-   weiterläuft. Der Exit-Code am Ende ist der der zuerst aufgetretenen Ursache.
-   Bei jedem Abbruch schließt der Recorder die Verbindung, soweit möglich, mit
-   `Terminate`.
+   sendet weiter wie aufgezeichnet. **Mit `--compare-responses`** ersetzt der
+   Vergleich (`LH-FA-24.a`) diese Regel für Fehlerantworten: Enthält die
+   aufgezeichnete Interaktion keine `ErrorResponse`, oder eine mit anderem
+   SQLSTATE, ist die Fehlerantwort eine Abweichung (`PGR-E5004`, Exit-Code `5`) und
+   nicht `PGR-E4004`; enthält sie eine mit gleichem SQLSTATE, gilt die Regel dieses
+   Schritts unverändert (`PGR-E4004`, Exit-Code `4`, außer mit
+   `--allow-recorded-errors`). Je Interaktion entsteht höchstens eine Meldung. Eine
+   Abweichung beendet das Einspielen; mit `--continue-on-error` läuft es weiter.
+   Der Exit-Code am Ende ist der der zuerst aufgetretenen Ursache. Bei jedem
+   Abbruch schließt der Recorder die Verbindung, soweit möglich, mit `Terminate`.
 7. **Abbruchsignal:** Bei `SIGINT` oder `SIGTERM` endet das Einspielen nach der
    laufenden Interaktion; eine Wartezeit (`LH-FA-21.a`) wird abgebrochen. Mit
    `--finish-session-on-interrupt` zuvor nach der laufenden Session. Ein zweites
    Signal beendet den Prozess sofort. Die Verbindung wird mit `Terminate`
-   geschlossen. Der Exit-Code ist `0`, wenn bis dahin kein Fehler auftrat, sonst
-   `4`.
+   geschlossen. Der Exit-Code ist `0`, wenn bis dahin kein Fehler auftrat, sonst der
+   der zuerst aufgetretenen Ursache (`4`, mit `--compare-responses` auch `5`).
 
 Das Einspielen ist sequenziell: die Anfragen einer Session nacheinander und die
 Sessions nacheinander. Ohne `--keep-timing` gibt es keine Wartezeiten; mit
@@ -896,10 +903,13 @@ byte-gleiche Dateien.
 Gilt für `record` und `replay`. Mit `--tls-cert` und `--tls-key` (PEM-Dateien) nimmt
 der Recorder TLS von Clients an; die Optionen stehen nur zusammen, jede allein ist
 eine ungültige Verwendung (`PGR-E2001`). Beim Start werden Zertifikat und Schlüssel
-geladen und auf Zusammengehörigkeit geprüft; eine nicht lesbare, ungültige oder
-nicht passende Datei ist ein Startfehler `PGR-E2007` (Exit-Code `2`), bevor ein
-Listen-Port geöffnet wird. Die Zertifikatskette steht in der Zertifikatsdatei; der
-Recorder prüft weder Ablauf noch Namen des eigenen Zertifikats.
+geladen und geprüft; eine nicht lesbare Datei, ein Inhalt ohne gültiges PEM, ein
+Zertifikat, das abgelaufen oder noch nicht gültig ist, ein nicht zum Zertifikat
+passender Schlüssel und ein verschlüsselter Schlüssel sind Startfehler `PGR-E2007`
+(Exit-Code `2`), bevor ein Listen-Port geöffnet wird. Die Zertifikatskette steht in
+der Zertifikatsdatei. Die Namen des Zertifikats prüft der Recorder nicht; das ist
+Sache des Clients. Ein relativer Pfad gilt ab dem aktuellen Verzeichnis, auch wenn
+er in der Konfigurationsdatei steht.
 
 **Aushandlung.** Auf einen `SSLRequest` antwortet der Recorder mit `S` und führt den
 TLS-Handshake aus, mindestens TLS 1.2; danach folgt der PGWire-Verbindungsaufbau auf
@@ -908,9 +918,11 @@ Warnung `PGR-W3002`; der Prozessausgang bleibt unverändert. `GSSENCRequest` wir
 bisher mit `N` abgelehnt.
 
 **Unverschlüsselte Clients.** Ist TLS konfiguriert, beantwortet der Recorder einen
-Verbindungsaufbau ohne vorherigen `SSLRequest` mit einer `ErrorResponse` und beendet
-die Verbindung (`PGR-E6003`, Klasse „nicht unterstützt", Exit-Code `6` nach
-`LH-FA-13.b`). Mit `--allow-plaintext` (nur zusammen mit `--tls-cert`, sonst
+Verbindungsaufbau mit einer `StartupMessage` ohne vorherigen `SSLRequest` (auch nach
+einem mit `N` abgelehnten `GSSENCRequest`) mit einer `ErrorResponse` und beendet die
+Verbindung (`PGR-E6003`, Klasse „nicht unterstützt", ein Verbindungsfehler mit
+Exit-Code `6` nach `LH-FA-13.b`). Ein `CancelRequest` trägt keine Daten und gilt wie
+sonst (`LH-FA-05.e`, `PGR-W3001`), auch ohne Verschlüsselung. Mit `--allow-plaintext` (nur zusammen mit `--tls-cert`, sonst
 `PGR-E2001`) bleibt die unverschlüsselte Verbindung zulässig; der Recorder bietet
 dann beides an. Ohne TLS-Konfiguration gilt `LH-FA-05.c`.
 
@@ -923,9 +935,11 @@ unterscheiden, und `replay` liefert sie über beide Verbindungsarten gleich aus.
 
 ### LH-FA-24.a — Vergleich der Antworten
 
-Gilt für `play` mit `--compare-responses`. Nach jeder Interaktion (bei einer
-Extended-Interaktion nach jeder Gruppe) vergleicht der Recorder die Serverantworten
-mit den aufgezeichneten, nachdem beide Seiten wie folgt normalisiert wurden: Nachrichten
+Gilt für `play` mit `--compare-responses`. Nach jeder Interaktion vergleicht der
+Recorder die Serverantworten mit den aufgezeichneten; bei einer Extended-Interaktion
+ist das die Folge aller Server-Nachrichten ihrer Gruppen, ohne die Gruppengrenzen
+(die Zuordnung zu einer Gruppe ohne `Sync` ist zeitabhängig, `LH-FA-18.a`). Beide
+Seiten werden zuvor wie folgt normalisiert: Nachrichten
 vom Typ `data_row`, `notice_response` und `parameter_status` entfallen. Die übrigen
 Nachrichten werden in ihrer Reihenfolge Stück für Stück verglichen:
 
@@ -938,12 +952,17 @@ Nachrichten werden in ihrer Reihenfolge Stück für Stück verglichen:
 | `error_response` | der SQLSTATE (Feld `C`), nicht der Text |
 | `ready_for_query` | der Transaktionsstatus |
 
-Zeilenwerte und Zeilenzahlen werden nicht verglichen. Die Abweichung wird als
+Zeilenwerte und Zeilenzahlen werden nicht verglichen. Eine `ErrorResponse` des
+Servers in einer Extended-Interaktion ändert den Vergleich nicht: die Folge ab dem
+Fehler bis zum `ReadyForQuery` wird wie aufgezeichnet verglichen. Eine aufgezeichnete
+Interaktion, die nicht mit `ready_for_query` endet (Verbindungsende, `FATAL`) oder
+keine Server-Nachrichten trägt, wird nicht verglichen; das Einspielen sendet sie
+wie ohne Vergleich, und das Log vermerkt es auf der Stufe `info`. Die Abweichung wird als
 `PGR-E5004` gemeldet (Exit-Code `5`) und nennt Session, Sequenznummer, bei Extended
 den Gruppenindex, und die Art: Nachrichtenart, Spaltenbeschreibung, Befehlsabschluss,
 Fehler oder Transaktionsstatus; Werte des Servers erscheinen in der Meldung nicht,
-nur Typen und Namen von Spalten. Die Folgen einer Abweichung beschreibt
-`LH-FA-20.a`, Schritt 6. Ohne `--compare-responses` findet kein Vergleich statt.
+nur Typen und Namen von Spalten. Die Folgen einer Abweichung und der Vorrang
+vor `PGR-E4004` beschreibt `LH-FA-20.a`, Schritt 6. Ohne `--compare-responses` findet kein Vergleich statt.
 
 ---
 
@@ -1153,7 +1172,7 @@ Implementierung darf intern detailliertere Fehler unterscheiden, solange diese
 | `SPEC-015` | 1 | sonstiger Fehler | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-016` | 3 | Recording-Datei ungültig oder nicht zugreifbar | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-017` | 4 | Netzwerk-/Upstream-Fehler, beim Einspielen auch Anmeldefehler (`PGR-E4005`) und eine Fehlerantwort des Servers (`PGR-E4004`) | Startfehler: Prozess endet; Verbindungsfehler: Verbindung endet, Prozessende nach LH-FA-13.b; Einspielen: Abbruch beziehungsweise Exit-Code 4 am Ende (LH-FA-20.a) |
-| `SPEC-018` | 5 | Replay-Mismatch (`PGR-E5001`), Anfrage ohne nicht zugeordnete Session (`PGR-E5003`), bei `--fail-on-unconsumed` auch nicht verbrauchte Interaktionen oder Sessions (`PGR-E5002`), beim Einspielen mit `--compare-responses` eine Abweichung der Serverantwort (`PGR-E5004`) | Diagnose nach LH-FA-10.a, Verbindung endet, Prozessende nach LH-FA-13.b |
+| `SPEC-018` | 5 | Replay-Mismatch (`PGR-E5001`), Anfrage ohne nicht zugeordnete Session (`PGR-E5003`), bei `--fail-on-unconsumed` auch nicht verbrauchte Interaktionen oder Sessions (`PGR-E5002`), beim Einspielen mit `--compare-responses` eine Abweichung der Serverantwort (`PGR-E5004`) | Diagnose nach LH-FA-10.a, Verbindung endet, Prozessende nach LH-FA-13.b; Einspielen: Abbruch beziehungsweise Exit-Code 5 am Ende (LH-FA-20.a) |
 | `SPEC-019` | 6 | nicht unterstützte PGWire-Funktion, auch eine unverschlüsselte Verbindung, die nicht zugelassen ist (`PGR-E6003`) | Diagnose, Verbindung endet, Prozessende nach LH-FA-13.b |
 
 **Fehlerklassen.** Mindestens folgende Klassen werden unterschieden und
@@ -1201,7 +1220,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E2004` | Konfiguration (Exit 2) | Konfigurationsdatei nicht lesbar oder ungültig: YAML, Schlüssel, Abschnitt, Wert, `sslmode`, Platzhalter außerhalb einer URL (LH-FA-17.a) |
 | `PGR-E2005` | Konfiguration (Exit 2) | Umgebungsvariable eines Platzhalters der benutzten Verbindung nicht gesetzt (LH-FA-17.a) |
 | `PGR-E2006` | Konfiguration (Exit 2) | Klartext-Passwort in der Konfigurationsdatei (LH-FA-17.a) |
-| `PGR-E2007` | Konfiguration (Exit 2) | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht lesbar, ungültig oder nicht zueinander passend (LH-FA-20.a, LH-FA-23.a) |
+| `PGR-E2007` | Konfiguration (Exit 2) | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht lesbar, ungültig (auch abgelaufen), verschlüsselt oder nicht zueinander passend (LH-FA-20.a, LH-FA-23.a) |
 | `PGR-E3000` | Recording (Exit 3) | Rückfall |
 | `PGR-E3001` | Recording (Exit 3) | Recording nicht lesbar oder nicht schreibbar (`SPEC-023`) |
 | `PGR-E3002` | Recording (Exit 3) | unbekannte Recording-Version (`SPEC-024`) |
@@ -1217,7 +1236,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E5001` | Replay (Exit 5) | Replay-Mismatch (`SPEC-027`) |
 | `PGR-E5002` | Replay (Exit 5) | nicht verbrauchte Interaktionen oder Sessions bei `--fail-on-unconsumed` (LH-FA-03.b) |
 | `PGR-E5003` | Replay (Exit 5) | Anfrage einer Verbindung, zu der keine nicht zugeordnete Session mehr existiert (LH-FA-12.a, `SPEC-027`) |
-| `PGR-E5004` | Replay (Exit 5) | Serverantwort beim Einspielen weicht von der Aufzeichnung ab (`SPEC-027`, LH-FA-24.a) |
+| `PGR-E5004` | Replay (Exit 5) | Serverantwort beim Einspielen weicht von der Aufzeichnung ab, auch ein Serverfehler ohne Vorbild in der Aufzeichnung (`SPEC-027`, LH-FA-24.a) |
 | `PGR-E6000` | nicht unterstützt (Exit 6) | Rückfall |
 | `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`) |
 | `PGR-E6002` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Protokollversion (LH-FA-05.e) |
