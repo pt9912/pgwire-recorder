@@ -21,9 +21,9 @@
 | [0015](0015-uhr-port.md) | Zeit über einen Uhr-Port | Accepted | [`LH-FA-21`](../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen) |
 | [0016](0016-einspielen-anmeldung-und-tls.md) | Einspielen: Anmeldung und TLS als Client | Accepted | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
 | [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) | Einspielen: sequenziell, Antworten verworfen, Fehlersemantik | Accepted | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
-| [0018](0018-tls-zum-client.md) | TLS-Terminierung zum Client | Proposed | [`LH-FA-23`](../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client) |
-| [0019](0019-eigene-zertifizierungsstelle-beim-einspielen.md) | Eigene Zertifizierungsstelle beim Einspielen | Proposed | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
-| [0020](0020-antwortvergleich-beim-einspielen.md) | Antwortvergleich beim Einspielen | Proposed | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
+| [0018](0018-tls-zum-client.md) | TLS-Terminierung zum Client | Accepted | [`LH-FA-23`](../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client) |
+| [0019](0019-eigene-zertifizierungsstelle-beim-einspielen.md) | Eigene Zertifizierungsstelle beim Einspielen | Accepted | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
+| [0020](0020-antwortvergleich-beim-einspielen.md) | Antwortvergleich beim Einspielen | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 
 ## Konventionen
 
