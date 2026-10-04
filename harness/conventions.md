@@ -173,6 +173,21 @@ sie gilt für jeden Lauf.
   `MR-<NNN>` nachgetragen.
 - **Auflösungs-Trigger:** permanent.
 
+### Versionierung des Lastenhefts
+
+Welche Stelle der Lastenheft-Version steigt, entscheidet dieses Repo (Baseline-Regelwerk
+`grundlagen-source-precedence.md` §Spec-Stratifizierung); sie ist keine Adaption einer
+Baseline-Regel. Ab Status `Accepted` ist der Bump der Fußabdruck des Change Requests:
+
+| Stelle | Steigt bei |
+|---|---|
+| Major | Änderung oder Streichung einer bestehenden Anforderung |
+| Minor | neuer Anforderung |
+| Patch | Tatsachenberichtigung ohne Änderung einer Aussage |
+
+Das Lastenheft nennt dieselbe Regel in seinem Kopf, weil ein Spec-Stratum nicht auf
+diese Datei verweisen darf; bei Abweichung gilt das Lastenheft.
+
 ### Aktive Adaptionen
 
 
