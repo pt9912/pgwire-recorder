@@ -53,5 +53,6 @@ Wenn Anwender einzelne aufgezeichnete Fehler getrennt zulassen wollen oder alle 
 |---|---|---|
 | 2026-10-04 | Proposed; Supersedes ADR-0022 | [ADR-0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) |
 | 2026-10-04 | Accepted | — |
+| 2026-10-04 | Ersetzt über ADR-0022 auch ADR-0021 | [ADR-0021](0021-vergleichsregeln-beim-einspielen.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

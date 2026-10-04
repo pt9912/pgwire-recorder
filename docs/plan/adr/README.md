@@ -24,7 +24,7 @@
 | [0018](0018-tls-zum-client.md) | TLS-Terminierung zum Client | Accepted | [`LH-FA-23`](../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client) |
 | [0019](0019-eigene-zertifizierungsstelle-beim-einspielen.md) | Eigene Zertifizierungsstelle beim Einspielen | Accepted | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
 | [0020](0020-antwortvergleich-beim-einspielen.md) | Antwortvergleich beim Einspielen | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
-| [0021](0021-vergleichsregeln-beim-einspielen.md) | Vergleichsregeln beim Einspielen | Superseded by [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
+| [0021](0021-vergleichsregeln-beim-einspielen.md) | Vergleichsregeln beim Einspielen | Superseded by [0023](0023-antwortvergleich-entscheidung.md) (über [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md)) | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 | [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | Vergleichsregeln beim Einspielen, präzisiert | Superseded by [0023](0023-antwortvergleich-entscheidung.md) | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 | [0023](0023-antwortvergleich-entscheidung.md) | Antwortvergleich beim Einspielen ersetzt die Fehlerregel | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 

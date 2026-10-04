@@ -797,7 +797,9 @@ pgwire-recorder play \
    Interaktion weiter; bei einer Extended-Interaktion verwirft der Server nach einem
    Fehler bis zum `Sync`. Bricht das Einspielen ab, sendet der Recorder keine weiteren
    Nachrichten der Interaktion (auch keine weiteren Gruppen) und schließt die
-   Verbindung, soweit möglich, mit `Terminate`.
+   Verbindung, soweit möglich, mit `Terminate`. Mit Vergleich wird eine Abweichung
+   am Ende der Interaktion festgestellt (Schritt 4); der Abbruch erfolgt dann vor der
+   nächsten Interaktion.
 7. **Abbruchsignal:** Bei `SIGINT` oder `SIGTERM` endet das Einspielen nach der
    laufenden Interaktion; eine Wartezeit (`LH-FA-21.a`) wird abgebrochen. Mit
    `--finish-session-on-interrupt` zuvor nach der laufenden Session. Ein zweites
@@ -812,13 +814,15 @@ wiederholen sie nicht.
 |---|---|---|---|
 | Server nicht erreichbar; `FATAL` beim Aufbau, der nicht die Anmeldung betrifft (zum Beispiel fehlende Datenbank) | `PGR-E4002`, Exit-Code `4` | gleich | immer sofort |
 | Anmeldung fehlgeschlagen (SQLSTATE-Klasse 28), Verfahren nicht unterstützt, TLS abgelehnt (der Server antwortet mit `N`), Zertifikat ungültig oder abgelaufen, Server lehnt unverschlüsselte Verbindung ab | `PGR-E4005`, Exit-Code `4` | gleich | immer sofort |
-| Verbindung bricht nach dem ersten `ReadyForQuery` ab, auch durch einen `FATAL` | `PGR-E4003`, Exit-Code `4` | gleich, außer das Verbindungsende ist aufgezeichnet und der Server verursacht es mit gleichem SQLSTATE: dann gilt es als erwartet, die Session endet, und das Einspielen macht mit der nächsten Session weiter | immer sofort, außer bei erwartetem Verbindungsende |
+| Verbindung endet nach dem ersten `ReadyForQuery`, auch durch einen `FATAL` | `PGR-E4003`, Exit-Code `4`, immer | **Aufgezeichnetes Ende, das der Server genauso verursacht** (gleicher SQLSTATE; ohne aufgezeichnete `ErrorResponse` ohne SQLSTATE-Vergleich): erwartet, die Session endet, das Einspielen macht mit der nächsten Session weiter. **`FATAL` ohne Vorbild oder mit anderem SQLSTATE, oder ein `ReadyForQuery`, wo die Aufzeichnung das Ende zeigt**: Abweichung `PGR-E5004`, Exit-Code `5`; die Verbindung ist beendet, die Session endet, mit `--continue-on-error` läuft die nächste Session. **Verbindungsverlust ohne Fehlerantwort des Servers** (zum Beispiel Netzwerkabbruch): `PGR-E4003`, Exit-Code `4` | `PGR-E4003`: immer sofort; erwartetes Ende: nein; `PGR-E5004`: ohne `--continue-on-error` sofort |
 | `ErrorResponse` des Servers auf eine Anfrage | `PGR-E4004`, Exit-Code `4` am Ende; zählt nicht, wenn `--allow-recorded-errors` gesetzt ist und die aufgezeichnete Interaktion eine `ErrorResponse` enthält | der Vergleich entscheidet: gleicher SQLSTATE an der aufgezeichneten Stelle gilt als erwartet, jeder andere Fehler ist eine Abweichung; `PGR-E4004` entfällt | ohne `--continue-on-error` sofort, außer bei erwartetem Fehler |
 | Abweichung der Antwort (`LH-FA-24.a`) | kein Vergleich | `PGR-E5004`, Exit-Code `5` am Ende; je Interaktion die erste Abweichung | ohne `--continue-on-error` sofort |
-| Abbruchsignal (Schritt 7) | Exit-Code `0`, wenn bis dahin kein Fehler auftrat, sonst `4` | `0`, nach einer Abweichung `5`, nach einem Verbindungsfehler `4` | nach der laufenden Interaktion (oder Session) |
+| Abbruchsignal (Schritt 7) | Exit-Code `0`, wenn bis dahin kein Fehler auftrat, sonst `4` | `0`, nach einer Abweichung `5` | nach der laufenden Interaktion (oder Session) |
 
-Ein Abbruch durch einen Verbindungsfehler endet immer mit Exit-Code `4`, auch nach
-einer früheren Abweichung. Ohne Abbruch ist der Exit-Code am Ende `0`, `4` (ohne
+Ein Verbindungsverlust ohne Fehlerantwort (`PGR-E4002`, `PGR-E4003`, `PGR-E4005`)
+endet immer mit Exit-Code `4`, auch nach einer früheren Abweichung. Wo die
+Aufzeichnung ein Verbindungsende zeigt, wartet der Recorder wie bei jeder Antwort
+ohne eigene Frist darauf. Ohne Abbruch ist der Exit-Code am Ende `0`, `4` (ohne
 Vergleich nach einer Fehlerantwort) oder `5` (mit Vergleich nach einer Abweichung).
 
 Das Einspielen ist sequenziell: die Anfragen einer Session nacheinander und die
@@ -970,8 +974,9 @@ aufgezeichneten Nachrichten müssen übereinstimmen; was der Server danach sende
 verglichen und ist keine Abweichung, mit einer Ausnahme: Eine `ErrorResponse` ohne
 Vorbild in der Aufzeichnung ist stets eine Abweichung, auch nach dem aufgezeichneten
 Ende und bei einer Interaktion ohne aufgezeichnete Server-Nachrichten. Ein
-aufgezeichnetes Verbindungsende gilt als erwartet, wenn der Server es mit gleichem
-SQLSTATE verursacht (Fehlerregeln beim Einspielen).
+aufgezeichnetes Verbindungsende gilt als erwartet, wenn der Server es genauso
+verursacht: mit gleichem SQLSTATE, bei einem Ende ohne aufgezeichnete
+`ErrorResponse` ohne SQLSTATE-Vergleich (Fehlerregeln beim Einspielen).
 
 **Meldung.** Die Abweichung wird als `PGR-E5004` gemeldet (Exit-Code `5`) und nennt
 Session, Sequenznummer, die Position der Nachricht in der normalisierten Folge und
@@ -981,8 +986,13 @@ Je Interaktion wird die erste Abweichung gemeldet. Bei jedem Ende des Laufs (auc
 Abbruch und Signal) schreibt der Recorder eine Log-Zeile der Stufe `info` auf
 `stderr` (`SPEC-006`) mit den Attributen `eingespielt`, `verglichen` und
 `abweichend`, ohne Meldungscode. `verglichen` zählt jede Interaktion, deren Antworten
-mit Vergleich geprüft wurden, auch eine unvollständig aufgezeichnete. Die Folgen einer Abweichung beschreibt `LH-FA-20.a`
-(Fehlerregeln beim Einspielen). Ohne `--compare-responses` findet kein Vergleich statt.
+mit Vergleich geprüft wurden, auch eine unvollständig aufgezeichnete. Ohne
+`--compare-responses` gibt es keine Vergleiche, `verglichen` und `abweichend` sind
+`0`. Die Zeile steht auf der Stufe `info` und erscheint daher nicht bei
+`--log-level warn` oder `error`; sie erscheint auch, wenn der Lauf endet, bevor eine
+Interaktion eingespielt wurde (alle Zähler `0`). Die Folgen einer Abweichung
+beschreibt `LH-FA-20.a` (Fehlerregeln beim Einspielen). Ohne `--compare-responses`
+findet kein Vergleich statt.
 
 ---
 
