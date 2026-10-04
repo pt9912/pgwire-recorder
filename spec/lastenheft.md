@@ -607,10 +607,12 @@ und lässt sich eine eigene Zertifizierungsstelle des Anwenders hinterlegen. Ein
   eintrifft, then endet das Einspielen kontrolliert; auf Wunsch wird zuvor die
   laufende Session beendet.
 - **Negative:** Given ein nicht erreichbarer Server, eine fehlgeschlagene
-  Authentifizierung oder eine Anfrage, die der Server mit einem unerwarteten
-  Fehler beantwortet, when das Einspielen läuft, then wird der Fehler eindeutig
-  gemeldet, und das Einspielen bricht ab, sofern der Anwender nicht ausdrücklich
-  verlangt weiterzulaufen (siehe LH-QA-05).
+  Authentifizierung oder eine abgebrochene Verbindung, when das Einspielen läuft,
+  then wird der Fehler eindeutig gemeldet, und das Einspielen bricht ab. Given eine
+  Anfrage, die der Server mit einem unerwarteten Fehler beantwortet, when das
+  Einspielen läuft, then wird der Fehler eindeutig gemeldet, und das Einspielen
+  bricht ab, sofern der Anwender nicht ausdrücklich verlangt weiterzulaufen (siehe
+  LH-QA-05).
 
 **Out-of-Scope:** Vergleich der Serverantworten mit der Aufzeichnung (nur auf
 Wunsch, siehe LH-FA-24); paralleles Einspielen mehrerer Sessions; zeitgetreues
