@@ -44,8 +44,9 @@ Capture).
 Im Modus `replay` gibt der Recorder nur wieder, was er aufgezeichnet hat, strikt
 in der aufgezeichneten Reihenfolge. Eine Anfrage, die nicht zur Aufzeichnung
 passt, ist ein Fehler und bekommt nie eine geratene Antwort. Im Modus `play`
-führt er die aufgezeichneten Anfragen nacheinander aus und beurteilt Antworten nur
-auf Wunsch, nach festgelegten Regeln.
+führt er die aufgezeichneten Anfragen nacheinander aus, wertet Fehlerantworten
+des Servers und vergleicht auf Wunsch die Struktur der Antworten nach festgelegten
+Regeln.
 
 ## Was macht es vertrauenswürdig?
 

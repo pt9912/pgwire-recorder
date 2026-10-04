@@ -314,12 +314,16 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   `PGR-E4004`). `--allow-recorded-errors` hat mit Vergleich keine Wirkung; die
   Kombination ist kein Fehler. Reicht die Aufzeichnung einer Anfrage nicht bis zum
   Ende der Antwort, vergleicht das Werkzeug, soweit sie reicht; was der Server danach
-  sendet, ist keine Abweichung. Das Werkzeug meldet je Anfrage die erste Abweichung;
-  am Ende nennt eine Zusammenfassung, wie viele Anfragen es eingespielt, verglichen
-  und als abweichend gefunden hat. Ein Verbindungsfehler beendet das Einspielen
+  sendet, ist keine Abweichung, außer einer Fehlerantwort, die die Aufzeichnung nicht
+  enthält. Endet die Aufzeichnung mit einem Verbindungsende und der Server
+  verursacht es genauso, gilt es als erwartet, und das Werkzeug macht mit der
+  nächsten Sitzung weiter. Das Werkzeug meldet je Anfrage die erste Abweichung; bei
+  jedem Ende des Laufs steht eine Zeile im Log (Stufe `info`) mit der Zahl der
+  eingespielten, verglichenen und abweichenden Anfragen. Ein Verbindungsfehler beendet das Einspielen
   immer mit Exit-Code 4, auch nach einer Abweichung.
 * Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
-  ab (`PGR-E4004`; mit `--compare-responses` gilt stattdessen der Vergleich). Mit `--continue-on-error` läuft es weiter und endet am Ende
+  ab (`PGR-E4004`; mit `--compare-responses` gilt
+  stattdessen der Vergleich). Mit `--continue-on-error` läuft es weiter und endet am Ende
   mit Exit-Code 4. Mit `--allow-recorded-errors` gilt ein Fehler nicht, wenn auch
   die aufgezeichnete Anfrage mit einem Fehler beantwortet wurde.
 * Mit `--upstream-tls` verbindet sich das Werkzeug verschlüsselt mit der
