@@ -3,7 +3,9 @@ package recording
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -57,18 +59,23 @@ func removeErr(err error) error {
 }
 
 // Write schreibt in eine temporäre Datei im Zielverzeichnis und benennt sie
-// danach um; die Zieldatei ist damit vollständig oder unverändert.
+// danach um; die Zieldatei ist damit vollständig oder unverändert. Eine neue
+// Datei erhält die Rechte nach der umask des Prozesses (0666 vor der umask),
+// eine ersetzte behält ihre bisherigen (SPEC-033).
 func (YAML) Write(_ context.Context, path string, rec model.Recording) error {
 	data, err := Marshal(rec)
 	if err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*.tmp")
+	tmp, err := neueTempDatei(path)
 	if err != nil {
 		return model.Errorf(model.CodeRecordingIO, err, "temporäre Datei für %s nicht anzulegen", path)
 	}
+	var merr error
+	if info, err := os.Stat(path); err == nil {
+		merr = tmp.Chmod(info.Mode().Perm())
+	}
 	_, werr := tmp.Write(data)
-	merr := tmp.Chmod(0o644)
 	serr := tmp.Sync()
 	cerr := tmp.Close()
 	if err := errors.Join(werr, merr, serr, cerr); err != nil {
@@ -78,6 +85,24 @@ func (YAML) Write(_ context.Context, path string, rec model.Recording) error {
 		return model.Errorf(model.CodeRecordingIO, err, "%s nicht zu schreiben", path)
 	}
 	return nil
+}
+
+// neueTempDatei legt im Verzeichnis von path eine neue Datei an; die Rechte
+// 0666 schränkt die umask ein (anders als os.CreateTemp mit fest 0600).
+func neueTempDatei(path string) (*os.File, error) {
+	var zufall [8]byte
+	for i := 0; i < 10; i++ {
+		if _, err := rand.Read(zufall[:]); err != nil {
+			return nil, err
+		}
+		name := filepath.Join(filepath.Dir(path), "."+filepath.Base(path)+"."+hex.EncodeToString(zufall[:])+".tmp")
+		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o666)
+		if errors.Is(err, fs.ErrExist) {
+			continue
+		}
+		return f, err
+	}
+	return nil, errors.New("kein freier Name für die temporäre Datei")
 }
 
 // Load liest eine Aufzeichnung.
@@ -181,12 +206,17 @@ func (v *valueDTO) UnmarshalYAML(node *yaml.Node) error {
 	if node.Kind != yaml.MappingNode {
 		return fmt.Errorf("Wert ist keine Abbildung")
 	}
+	gesehen := map[string]bool{}
 	for i := 0; i+1 < len(node.Content); i += 2 {
 		key, val := node.Content[i], node.Content[i+1]
 		name := key.Value
 		if key.Tag == "!!null" {
 			name = "null"
 		}
+		if gesehen[name] {
+			return fmt.Errorf("Schlüssel %q doppelt in einem Wert", name)
+		}
+		gesehen[name] = true
 		switch name {
 		case "text":
 			var s string

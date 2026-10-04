@@ -40,10 +40,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// Abdeckung: LH-FA-02/Happy, LH-FA-06/Happy, LH-FA-07/Happy — ein Client führt
+// Abdeckung: LH-FA-02/Happy, LH-FA-05/Happy, LH-FA-07/Boundary — ein Client führt
 // `SELECT 1;` über `record` gegen eine reale PostgreSQL-Instanz aus und erhält
 // deren Ergebnis; nach dem Beenden des Laufs steht die Interaktion geordnet in
-// einer Aufzeichnung mit Formatkennung und Version.
+// einer Aufzeichnung mit Formatkennung und Version, ohne Adressen und Pfade des
+// Laufs.
 func TestE2ERecordSelect1(t *testing.T) {
 	output := filepath.Join(t.TempDir(), "rec.yaml")
 	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
@@ -86,6 +87,11 @@ func TestE2ERecordSelect1(t *testing.T) {
 			t.Errorf("Aufzeichnung enthält %q nicht:\n%s", zeile, text)
 		}
 	}
+	for _, fremd := range []string{rec.listen, os.Getenv("PGR_UPSTREAM"), output, filepath.Dir(output)} {
+		if strings.Contains(text, fremd) {
+			t.Errorf("Aufzeichnung enthält die rechnerspezifische Angabe %q:\n%s", fremd, text)
+		}
+	}
 	if strings.Count(text, "- sequence:") != 1 || strings.Count(text, "- id:") != 1 {
 		t.Errorf("erwartet genau eine Session mit einer Interaktion:\n%s", text)
 	}
@@ -100,7 +106,7 @@ func TestE2ERecordSelect1(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-02/Negative, LH-FA-13/Negative — ist der Upstream nicht
+// Abdeckung: LH-FA-02/Negative, LH-FA-13/Boundary, LH-FA-13/Negative — ist der Upstream nicht
 // erreichbar, erhält der Client eine Fehlerantwort mit PGR-E4002; der Lauf geht
 // weiter und endet beim Beenden mit dem Exit-Code der Klasse dieses Fehlers (4)
 // und einer gültigen Aufzeichnung ohne Session.
@@ -123,7 +129,7 @@ func TestE2ERecordUpstreamNichtErreichbar(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-06/Boundary, LH-FA-13/Happy — mehrere Interaktionen mit
+// Abdeckung: LH-FA-13/Happy — mehrere Interaktionen mit
 // mehreren Spalten und NULL stehen in Reihenfolge und mit ihren Werten in der
 // Aufzeichnung; ein fehlerfreier Lauf endet nach SIGTERM mit Exit-Code 0.
 func TestE2ERecordMehrereInteraktionen(t *testing.T) {
@@ -178,7 +184,7 @@ func TestE2ERecordSSLAbgelehnt(t *testing.T) {
 	rec.stop(t, 0)
 }
 
-// Abdeckung: LH-FA-05/Negative, LH-FA-13/Negative — eine nicht unterstützte
+// Abdeckung: LH-FA-05/Negative, LH-FA-06/Negative, LH-FA-13/Negative — eine nicht unterstützte
 // Interaktion (`COPY … TO STDOUT`) beendet die Verbindung mit PGR-E6001; die
 // Session wird nicht aufgezeichnet, auch nicht ihre vorherige Interaktion, und
 // der Lauf endet mit Exit-Code 6.
@@ -228,6 +234,71 @@ func TestE2ERecordBeendenMitOffenerVerbindung(t *testing.T) {
 
 	if text := lies(t, output); !strings.Contains(text, "sql: SELECT 1;") {
 		t.Fatalf("Interaktion der offenen Verbindung fehlt:\n%s", text)
+	}
+}
+
+// Abdeckung: LH-FA-02/Boundary — ein Client, der sich anmeldet und ohne Anfrage
+// trennt, wird nicht aufgezeichnet; der Recorder bleibt nicht hängen, und die
+// Aufzeichnung ist gültig.
+func TestE2ERecordVerbindungOhneAnfrage(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, err := pgconn.Connect(ctx, dsn(rec.listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = conn.Close(ctx)
+	rec.stop(t, 0)
+
+	if text := lies(t, output); !strings.Contains(text, "sessions: []") {
+		t.Fatalf("Verbindung ohne Anfrage aufgezeichnet:\n%s", text)
+	}
+}
+
+// Abdeckung: LH-FA-13/Happy — trennt ein Client nach seiner Anfrage ohne
+// Terminate, ist das ein reguläres Ende: die Session wird aufgezeichnet, und der
+// Lauf endet mit Exit-Code 0 (LH-FA-02.b).
+func TestE2ERecordEndeOhneTerminate(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, err := pgconn.Connect(ctx, dsn(rec.listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(ctx, "SELECT 1;").ReadAll(); err != nil {
+		t.Fatal(err)
+	}
+	// Socket schließen, ohne Terminate zu senden.
+	_ = conn.Conn().Close()
+	time.Sleep(200 * time.Millisecond)
+	rec.stop(t, 0)
+
+	if text := lies(t, output); !strings.Contains(text, "sql: SELECT 1;") {
+		t.Fatalf("Session ohne Terminate fehlt:\n%s", text)
+	}
+}
+
+// Abdeckung: LH-FA-13/Negative — scheitert das Schreiben der Aufzeichnung beim
+// Ende des Laufs, endet er mit Exit-Code 3 (Klasse Recording), auch ohne
+// vorherigen Verbindungsfehler.
+func TestE2ERecordSchreibfehlerAmEnde(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "ziel")
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), filepath.Join(dir, "rec.yaml"))
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatal(err)
+	}
+	rec.stop(t, 3)
+	if !strings.Contains(rec.stderr.String(), "PGR-E3001") {
+		t.Fatalf("erwartet PGR-E3001 in der Ausgabe:\n%s", rec.stderr.String())
 	}
 }
 

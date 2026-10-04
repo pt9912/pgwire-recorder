@@ -35,7 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Replay — `slice-walking-skeleton-replay`; hier genügt ein Roundtrip-Test des Recording-Adapters.
 - Fehlerreplay — welle-replay-semantik; Fehlerantworten des Servers werden hier nur vermittelt und aufgezeichnet.
-- Zuordnung und Kennungen paralleler Sessions nach LH-FA-12.a — welle-v1-abschluss; hier werden gleichzeitige Verbindungen vermittelt und in der Reihenfolge ihres Endes übernommen.
+- Zuordnung und Kennungen paralleler Sessions nach LH-FA-12.a — welle-v1-abschluss; hier werden gleichzeitige Verbindungen vermittelt und in der Reihenfolge ihres Endes übernommen, ohne dass LH-FA-12 als belegt gilt.
 - Signalbehandlung nach LH-FA-13.a (zweites Signal, Abschluss der laufenden Session) — welle-v1-abschluss; hier endet der Lauf auf SIGINT oder SIGTERM nach der laufenden Interaktion, ein zweites Signal beendet sofort.
 - Anmeldeverfahren des Upstreams — hier nur ein Upstream ohne Passwort-Anmeldung (siehe §6).
 
@@ -69,14 +69,14 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/model` | neu | Recording, Session, Interaction, Request, Response, Value |
 | `internal/hexagon/services` (Record-Service) | neu | Interaktion aus Request und Responses bilden |
 | `internal/hexagon/ports/driving`, `…/driven` | neu | Record-Use-Case, Recording-Repository, PostgreSQL-Upstream |
-| `internal/adapters/driving/pgwire`, `…/cli` | neu | Startup, `Query`, `Terminate`; Kommando `record` |
+| `internal/adapters/driving/pgwire`, `…/cli` | neu | Startup samt Protokollrand, `Query`, `Terminate`, Verbindungsende; Kommandos `record` und `version` |
 | `internal/adapters/driven/postgres`, `…/recording` | neu | Upstream-Session, YAML-Schreiben |
 | `internal/bootstrap` | neu | Verdrahtung |
-| `test/integration` | neu | Happy: `SELECT 1;`; Negative: Upstream nicht erreichbar |
-| `tools/test/run-integration-tests.sh`, `harness/mk/integration.mk`, `docs/user/e2e-abdeckung.md`, `.d-check.yml` (`trace.coverage`) | neu | Der Integrationstest-Runner startet PostgreSQL und das Testimage in einem eigenen Docker-Netz und schreibt die E2E-Abdeckungstabelle aus den Abdeckungs-Zeilen der Tests; `.d-check.yml` bindet sie unter `trace.coverage` ein (Vorbild: `pg-change-feed`) |
+| `test/integration` | neu | Black-Box-E2E gegen PostgreSQL: `SELECT 1;`, mehrere Interaktionen, SSL-Ablehnung, Verbindung ohne Anfrage, Ende ohne Terminate, nicht unterstützte Interaktion, Upstream nicht erreichbar, Beenden mit offener Verbindung, Schreibfehler am Ende |
+| `tools/test/run-integration-tests.sh`, `harness/mk/integration.mk` | neu | Der Integrationstest-Runner startet PostgreSQL und das Testimage in einem eigenen Docker-Netz, räumt alles auf und schreibt nichts in den Arbeitsbaum |
 | `Dockerfile`, `.dockerignore`, `harness/mk/build.mk`, `go.mod`, `go.sum` | neu / update | Multistage-Build nach [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md): Download-Stufe mit Netz, Build-, Test- und Integrationsstufe netzlos, Produkt-Image als `runtime`; `make go-mod-tidy` als Werkzeug |
 | `.a-check.yml` (`tech`) | update | YAML-Bibliothek `go.yaml.in/yaml/v3` nach [ADR-0027](../../adr/0027-yaml-bibliothek.md); beide Modulpfade auf den Recording-Adapter beschränkt |
-| `tools/test/abdeckung.sh`, `harness/mk/abdeckung.mk`, `docs/user/*-abdeckung.md`, `docs/user/abdeckung-gesamt.md`, `docs/user/abdeckung-vollstaendig.md` | neu | Abdeckung je Anforderung und Pfad aus den Deklarationen der Tests; `trace.coverage` liest nur die vollständig belegten Anforderungen |
+| `tools/test/abdeckung.sh`, `tools/test/abdeckung-gegenprobe.sh`, `harness/mk/abdeckung.mk`, `docs/user/abdeckung-*.md`, `.d-check.yml` (`trace.coverage`) | neu | Abdeckung je Anforderung und Pfad nach [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md); `trace.coverage` liest nur die vollständig belegten Anforderungen; die Gegenprobe hält das Skript |
 | `internal/adapters/*/…_test.go`, `internal/hexagon/services/record_test.go` | neu / update | Protokollrand, Upstream-Fälle, Session-Ende, Nebenläufigkeit, Leser-Prüfungen |
 | `harness/mk/vorgaben.mk` | neu | Verweis-Nachzug von `make slice-mv` lässt die Review-Reports aus |
 
@@ -108,6 +108,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Startup-/Authentifizierungsverfahren des Upstreams (z. B. SCRAM) sind für die Weiterleitung noch nicht eingegrenzt; dieser Stand vermittelt nur einen Upstream ohne Passwort-Anmeldung und meldet jedes Anmeldeverfahren mit `PGR-E6001` — **Ausgang:** offen bis Closure.
+- Jede erste Nachricht, die keine PGWire-Startnachricht ist (HTTP-Probe, Port-Scan), zählt als `PGR-E6001` und setzt den Exit-Code des Laufs auf 6; ob sie eine nicht unterstützte Interaktion nach LH-FA-13.b ist, legt die Spezifikation nicht fest — **Ausgang:** offen bis Closure.
 - Die Aufzeichnung wird nach jeder beendeten Session und am Ende des Laufs geschrieben; ein Abbruch per SIGKILL verliert die laufenden Sessions — bewusst, Behandlung in welle-v1-abschluss — **Ausgang:** offen bis Closure.
 - `make build` und `make test` laufen netzlos; mit `pgproto3` braucht das Modul eine netzlose Quelle der Abhängigkeiten (zum Beispiel ein vendored Verzeichnis), sonst scheitert der Build — **Ausgang:** offen bis Closure.
 

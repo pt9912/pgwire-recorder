@@ -8,7 +8,9 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"os"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
@@ -23,6 +25,11 @@ const (
 	codeCancelRequest = 80877102 // 1234.5678
 	codeSSLRequest    = 80877103 // 1234.5679
 	codeGSSEncRequest = 80877104 // 1234.5680
+	majorSpezial      = 1234     // Hauptnummer der Sonderanfragen
+
+	// maxStartLaenge begrenzt die Länge einer Startnachricht; eine längere
+	// erste Nachricht ist keine PGWire-Startnachricht (etwa eine HTTP-Anfrage).
+	maxStartLaenge = 10000
 )
 
 // Server nimmt PostgreSQL-Clients an und übersetzt ihre Nachrichten in Aufrufe
@@ -65,7 +72,7 @@ func (s *Server) Serve(ctx context.Context, l net.Listener) {
 				s.wg.Wait()
 				return
 			}
-			s.Log.Error("Verbindung nicht anzunehmen", "code", model.CodeListen, "error", err.Error())
+			s.Log.Error("Verbindung nicht anzunehmen", "code", model.CodeNetwork, "error", err.Error())
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
@@ -100,21 +107,24 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 		return
 	}
 
-	id, responses, err := s.Recorder.OpenSession(ctx, startup.Parameters)
+	// Der Verbindungsaufbau zum Upstream läuft auch bei endendem ctx zu Ende;
+	// er ist Teil der laufenden Interaktion.
+	id, responses, err := s.Recorder.OpenSession(context.WithoutCancel(ctx), startup.Parameters)
 	if err != nil {
 		s.fail(be, err)
 		return
 	}
 	if id == 0 {
-		// Der Server hat den Aufbau mit einer Fehlerantwort beendet.
+		// Der Server hat den Aufbau mit einer Fehlerantwort beendet; sie geht
+		// ohne AuthenticationOk an den Client.
 		if err := s.send(be, responses); err != nil {
-			s.Log.Warn("Fehlerantwort des Servers nicht an den Client zu senden", "code", model.CodeConnectionLost, "error", err.Error())
+			s.sendFailed(err)
 		}
 		return
 	}
 	be.Send(&pgproto3.AuthenticationOk{})
 	if err := s.send(be, responses); err != nil {
-		s.lost(err)
+		s.sendFailed(err)
 		s.close(ctx, id, model.EndNormal)
 		return
 	}
@@ -122,10 +132,14 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 	for {
 		msg, err := be.Receive()
 		if err != nil {
-			if !errors.Is(err, io.EOF) && ctx.Err() == nil {
-				s.lost(err)
+			if verbindungsende(err) || ctx.Err() != nil {
+				// Ende nach einem ReadyForQuery, mit oder ohne Terminate, ist
+				// regulär (LH-FA-02.b).
+				s.close(ctx, id, model.EndNormal)
+				return
 			}
-			s.close(ctx, id, model.EndNormal)
+			s.fail(be, model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
+			s.close(ctx, id, model.EndUnsupported)
 			return
 		}
 		switch m := msg.(type) {
@@ -137,8 +151,8 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 				return
 			}
 			if err := s.send(be, out); err != nil {
-				s.lost(err)
-				s.close(ctx, id, model.EndLost)
+				s.sendFailed(err)
+				s.close(ctx, id, endForSend(err))
 				return
 			}
 		case *pgproto3.Terminate:
@@ -154,9 +168,10 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 
 // startup liest die erste Client-Nachricht. SSL- und GSS-Anfragen beantwortet
 // er mit „N“ (LH-FA-05.c), ein CancelRequest schließt die Verbindung
-// (PGR-W3001), eine andere Protokollversion als 3.0 ist PGR-E6002 (LH-FA-05.e).
-// Der Startcode wird vor pgproto3 gelesen, weil die Bibliothek unbekannte
-// Codes ohne Antwort ablehnt.
+// (PGR-W3001). Jede andere Protokollversion als 3.0 ist PGR-E6002 (LH-FA-05.e);
+// eine unbekannte Sonderanfrage (Hauptnummer 1234) und eine erste Nachricht, die
+// keine Startnachricht sein kann, sind PGR-E6001. Der Startcode wird vor
+// pgproto3 gelesen, weil die Bibliothek unbekannte Codes ohne Antwort ablehnt.
 func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) (*pgproto3.StartupMessage, bool) {
 	for {
 		kopf, err := br.Peek(8)
@@ -165,14 +180,18 @@ func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) 
 			s.Log.Debug("Verbindung ohne Startnachricht beendet", "error", err.Error())
 			return nil, false
 		}
+		laenge := binary.BigEndian.Uint32(kopf[0:4])
 		code := binary.BigEndian.Uint32(kopf[4:8])
 		switch {
+		case laenge < 8 || laenge > maxStartLaenge:
+			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "erste Nachricht ist keine PGWire-Startnachricht"))
+			return nil, false
 		case code == codeSSLRequest || code == codeGSSEncRequest || code == codeCancelRequest || code == codeProtocol30:
-		case code>>16 >= 1 && code>>16 <= 3:
-			s.fail(be, model.Errorf(model.CodeProtocolVersion, nil, "Protokollversion %d.%d wird nicht unterstützt", code>>16, code&0xffff))
+		case code>>16 == majorSpezial:
+			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "unbekannte Sonderanfrage (Code %d)", code))
 			return nil, false
 		default:
-			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "unbekannte Startnachricht (Code %d)", code))
+			s.fail(be, model.Errorf(model.CodeProtocolVersion, nil, "Protokollversion %d.%d wird nicht unterstützt", code>>16, code&0xffff))
 			return nil, false
 		}
 
@@ -198,6 +217,41 @@ func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) 
 	}
 }
 
+// verbindungsende meldet, ob ein Lesefehler das Ende der Client-Verbindung ist
+// und nicht eine unlesbare Nachricht.
+func verbindungsende(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) ||
+		errors.Is(err, net.ErrClosed) || errors.Is(err, syscall.ECONNRESET) ||
+		errors.Is(err, os.ErrDeadlineExceeded)
+}
+
+// abbildungsfehler kennzeichnet eine Antwort, die nicht auf eine PGWire-Nachricht
+// abbildbar ist; send liefert ihn statt eines Schreibfehlers.
+type abbildungsfehler struct{ err error }
+
+func (a abbildungsfehler) Error() string { return a.err.Error() }
+func (a abbildungsfehler) Unwrap() error { return a.err }
+
+func endForSend(err error) model.SessionEnd {
+	var a abbildungsfehler
+	if errors.As(err, &a) {
+		return model.EndUnsupported
+	}
+	return model.EndLost
+}
+
+// sendFailed merkt sich einen gescheiterten Versand: Eine nicht abbildbare
+// Antwort ist ein interner Fehler, ein Schreibfehler ein unerwartetes Ende der
+// Client-Verbindung (PGR-E4003).
+func (s *Server) sendFailed(err error) {
+	var a abbildungsfehler
+	if errors.As(err, &a) {
+		s.note(a.err)
+		return
+	}
+	s.note(model.Errorf(model.CodeConnectionLost, err, "Antwort nicht an den Client zu senden"))
+}
+
 func endFor(err error) model.SessionEnd {
 	var me *model.Error
 	if errors.As(err, &me) && me.Code == model.CodeUnsupported {
@@ -220,11 +274,6 @@ func (s *Server) fail(be *pgproto3.Backend, err error) {
 	_ = be.Flush()
 }
 
-// lost meldet ein unerwartetes Ende der Client-Verbindung (PGR-E4003).
-func (s *Server) lost(err error) {
-	s.note(model.Errorf(model.CodeConnectionLost, err, "Client-Verbindung unerwartet beendet"))
-}
-
 // note protokolliert einen Verbindungsfehler, merkt sich den ersten und
 // liefert seinen Meldungscode.
 func (s *Server) note(err error) string {
@@ -238,7 +287,7 @@ func (s *Server) note(err error) string {
 		s.firstCode = code
 	}
 	s.mu.Unlock()
-	s.Log.Error("Verbindungsfehler", "code", code, "error", err.Error())
+	s.Log.Error("Fehler", "code", code, "error", err.Error())
 	return code
 }
 
@@ -259,7 +308,7 @@ func (s *Server) send(be *pgproto3.Backend, responses []model.Response) error {
 	for _, r := range responses {
 		msg, err := toMessage(r)
 		if err != nil {
-			return err
+			return abbildungsfehler{err}
 		}
 		be.Send(msg)
 	}

@@ -83,7 +83,7 @@ func session(t *testing.T, s *RecordService, queries ...string) model.SessionID 
 	return id
 }
 
-// Abdeckung: LH-FA-06/Happy — die Interaktionen einer Session stehen mit
+// Die Interaktionen einer Session stehen mit
 // fortlaufender Nummer, Anfrage und Antworten in der Aufzeichnung; die Session
 // trägt Startup-Parameter und Serverparameter.
 func TestRecordSessionMitInteraktionen(t *testing.T) {
@@ -108,7 +108,7 @@ func TestRecordSessionMitInteraktionen(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-07/Boundary — eine Verbindung ohne Anfrage wird nicht
+// Abdeckung: LH-FA-02/Boundary — eine Verbindung ohne Anfrage wird nicht
 // aufgezeichnet; ein Lauf ohne Session schreibt eine Aufzeichnung ohne Sessions.
 func TestRecordSessionOhneAnfrage(t *testing.T) {
 	s, repo := neu(t, &fakeUpstream{})
@@ -127,7 +127,7 @@ func TestRecordSessionOhneAnfrage(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-05/Negative — eine Session mit einer nicht unterstützten
+// Abdeckung: LH-FA-05/Negative, LH-FA-06/Negative — eine Session mit einer nicht unterstützten
 // Interaktion wird nicht übernommen, weder bei einer nicht unterstützten
 // Client-Nachricht noch bei einer nicht unterstützten Serverantwort.
 func TestRecordSessionNichtUnterstuetzt(t *testing.T) {
@@ -156,7 +156,7 @@ func TestRecordSessionNichtUnterstuetzt(t *testing.T) {
 	})
 }
 
-// Abdeckung: LH-FA-02/Boundary — erreicht die Antwort der letzten Interaktion den
+// Erreicht die Antwort der letzten Interaktion den
 // Client nicht, entfällt diese Interaktion; die vorherigen bleiben. Ein
 // Abbruch des Upstreams vor ReadyForQuery nimmt die Interaktion nicht auf.
 func TestRecordSessionVerbindungsende(t *testing.T) {
@@ -187,7 +187,7 @@ func TestRecordSessionVerbindungsende(t *testing.T) {
 	})
 }
 
-// Abdeckung: LH-FA-12/Boundary — gleichzeitige Sessions erhalten lückenlose
+// Gleichzeitige Sessions erhalten lückenlose
 // Kennungen in der Reihenfolge ihres Endes; keine Interaktion geht verloren.
 func TestRecordGleichzeitigeSessions(t *testing.T) {
 	s, repo := neu(t, &fakeUpstream{})

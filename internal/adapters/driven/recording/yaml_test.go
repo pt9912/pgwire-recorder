@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
@@ -33,10 +34,9 @@ func beispiel() model.Recording {
 	return rec
 }
 
-// Abdeckung: LH-FA-07/Happy, LH-QA-06/Happy — die Aufzeichnung trägt
+// Abdeckung: LH-FA-07/Happy, LH-QA-06/Messung — die Aufzeichnung trägt
 // Formatkennung und Version und lässt sich per Roundtrip laden; Binärwerte und
-// NULL bleiben erhalten, die Datei ist danach lesbar für andere (0644) und kein
-// temporärer Rest bleibt liegen.
+// NULL bleiben erhalten, und kein temporärer Rest bleibt liegen.
 func TestRoundtrip(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "rec.yaml")
@@ -57,10 +57,6 @@ func TestRoundtrip(t *testing.T) {
 		t.Fatalf("Roundtrip weicht ab:\n got %#v\nwant %#v", got, want)
 	}
 
-	info, err := os.Stat(path)
-	if err != nil || info.Mode().Perm() != 0o644 {
-		t.Fatalf("Dateirechte: %v %v", info.Mode(), err)
-	}
 	reste, _ := filepath.Glob(filepath.Join(filepath.Dir(path), ".*"))
 	if len(reste) != 0 {
 		t.Fatalf("temporäre Reste: %v", reste)
@@ -75,7 +71,7 @@ func TestRoundtrip(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-QA-01/Boundary — gleiche Aufzeichnungen ergeben gleiche Bytes
+// Gleiche Aufzeichnungen ergeben gleiche Bytes
 // (SPEC-004).
 func TestMarshalDeterministisch(t *testing.T) {
 	a, err := Marshal(beispiel())
@@ -93,7 +89,7 @@ func TestMarshalDeterministisch(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-07/Negative — eine vorhandene Zieldatei ohne --force und ein
+// Eine vorhandene Zieldatei ohne --force und ein
 // nicht beschreibbares Zielverzeichnis sind Startfehler.
 func TestPrepareVorhandeneDatei(t *testing.T) {
 	ctx := context.Background()
@@ -111,6 +107,40 @@ func TestPrepareVorhandeneDatei(t *testing.T) {
 	fehlt := filepath.Join(t.TempDir(), "gibt-es-nicht", "rec.yaml")
 	if err := (YAML{}).Prepare(ctx, fehlt, false); code(err) != model.CodeRecordingIO {
 		t.Fatalf("fehlendes Verzeichnis: erwartet %s, erhalten %v", model.CodeRecordingIO, err)
+	}
+}
+
+// Eine neue Aufzeichnung erhält die Rechte nach der umask, eine ersetzte behält
+// ihre bisherigen (SPEC-033); ersetzt wird per Umbenennen, also auch eine
+// schreibgeschützte Datei in einem beschreibbaren Verzeichnis (LH-FA-07.a).
+func TestWriteRechteUndAtomar(t *testing.T) {
+	ctx := context.Background()
+	alt := syscall.Umask(0o077)
+	defer syscall.Umask(alt)
+
+	neuPfad := filepath.Join(t.TempDir(), "neu.yaml")
+	if err := (YAML{}).Write(ctx, neuPfad, beispiel()); err != nil {
+		t.Fatal(err)
+	}
+	if info, _ := os.Stat(neuPfad); info.Mode().Perm() != 0o600 {
+		t.Fatalf("neue Datei unter umask 077: %v", info.Mode().Perm())
+	}
+
+	vorhanden := filepath.Join(t.TempDir(), "vorhanden.yaml")
+	if err := os.WriteFile(vorhanden, []byte("alt"), 0o400); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(vorhanden, 0o440); err != nil {
+		t.Fatal(err)
+	}
+	if err := (YAML{}).Write(ctx, vorhanden, beispiel()); err != nil {
+		t.Fatalf("schreibgeschützte Datei nicht ersetzt: %v", err)
+	}
+	if info, _ := os.Stat(vorhanden); info.Mode().Perm() != 0o440 {
+		t.Fatalf("Rechte der ersetzten Datei: %v", info.Mode().Perm())
+	}
+	if got, err := (YAML{}).Load(ctx, vorhanden); err != nil || len(got.Sessions) != 1 {
+		t.Fatalf("ersetzte Datei: %v %v", got, err)
 	}
 }
 
@@ -141,7 +171,7 @@ sessions:
 	}
 }
 
-// Abdeckung: LH-FA-07/Negative, LH-QA-06/Negative — eine fremde Formatkennung,
+// Abdeckung: LH-FA-07/Negative, LH-QA-06/Messung — eine fremde Formatkennung,
 // eine unbekannte Version, ein unbekannter Typ oder ein widersprüchlicher Wert
 // machen die Aufzeichnung zu einer beschädigten.
 func TestUnmarshalFehler(t *testing.T) {
@@ -154,6 +184,7 @@ func TestUnmarshalFehler(t *testing.T) {
 		{"unbekannter Schlüssel", "format: pgwire-recorder\nversion: 1\nsessions: []\nextra: 1\n", model.CodeRecordingBroken},
 		{"unbekannter Anfrage-Typ", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: bogus, sql: x}\n        responses: []\n", model.CodeRecordingBroken},
 		{"unbekannter Antwort-Typ", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - type: bogus\n", model.CodeRecordingBroken},
+		{"doppelter Schlüssel im Wert", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - type: data_row\n            values:\n              - {text: a, text: b}\n", model.CodeRecordingBroken},
 		{"text und base64", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - type: data_row\n            values:\n              - {text: a, base64: YQ==}\n", model.CodeRecordingBroken},
 	}
 	for _, c := range cases {

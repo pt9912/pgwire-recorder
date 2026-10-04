@@ -73,7 +73,7 @@ func ctx(t *testing.T) context.Context {
 	return c
 }
 
-// Abdeckung: LH-FA-02/Happy, LH-FA-06/Happy — Verbindungsaufbau und Anfrage
+// Abdeckung: LH-FA-02/Happy — Verbindungsaufbau und Anfrage
 // liefern die Serverantworten in Reihenfolge; die Abbruchkennung des Servers
 // (BackendKeyData) ist nicht darunter (SPEC-004).
 func TestOpenUndQuery(t *testing.T) {

@@ -11,6 +11,7 @@ const (
 	CodeRecordingIO      = "PGR-E3001"
 	CodeRecordingVersion = "PGR-E3002"
 	CodeRecordingBroken  = "PGR-E3003"
+	CodeNetwork          = "PGR-E4000"
 	CodeListen           = "PGR-E4001"
 	CodeUpstream         = "PGR-E4002"
 	CodeConnectionLost   = "PGR-E4003"

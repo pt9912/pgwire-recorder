@@ -17,10 +17,11 @@ import (
 )
 
 type fakeRecorder struct {
-	mu     sync.Mutex
-	opened int
-	ends   []model.SessionEnd
-	err    error
+	mu           sync.Mutex
+	opened       int
+	ends         []model.SessionEnd
+	err          error
+	aufbauFehler bool
 }
 
 func (f *fakeRecorder) OpenSession(context.Context, map[string]string) (model.SessionID, []model.Response, error) {
@@ -28,6 +29,9 @@ func (f *fakeRecorder) OpenSession(context.Context, map[string]string) (model.Se
 	defer f.mu.Unlock()
 	if f.err != nil {
 		return 0, nil, f.err
+	}
+	if f.aufbauFehler {
+		return 0, []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"S": "FATAL", "C": "3D000", "M": "database does not exist"}}}, nil
 	}
 	f.opened++
 	return 1, []model.Response{
@@ -72,8 +76,13 @@ func (f *fakeRecorder) lastEnd(t *testing.T) model.SessionEnd {
 // verbinde startet den Server-Handler auf einer Seite eines net.Pipe.
 func verbinde(t *testing.T, rec *fakeRecorder) (net.Conn, *Server) {
 	t.Helper()
+	return verbindeMitLog(t, rec, io.Discard)
+}
+
+func verbindeMitLog(t *testing.T, rec *fakeRecorder, log io.Writer) (net.Conn, *Server) {
+	t.Helper()
 	client, serverSeite := net.Pipe()
-	s := &Server{Recorder: rec, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	s := &Server{Recorder: rec, Log: slog.New(slog.NewTextHandler(log, nil))}
 	go s.handle(context.Background(), serverSeite)
 	t.Cleanup(func() { client.Close() })
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
@@ -177,7 +186,7 @@ func TestQueryUndTerminate(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-05/Negative — eine nicht unterstützte Client-Nachricht
+// Abdeckung: LH-FA-05/Negative, LH-FA-06/Negative — eine nicht unterstützte Client-Nachricht
 // beendet die Verbindung mit einer ErrorResponse (PGR-E6001, SQLSTATE 0A000),
 // und die Session wird verworfen.
 func TestNichtUnterstuetzteNachricht(t *testing.T) {
@@ -202,7 +211,7 @@ func TestNichtUnterstuetzteNachricht(t *testing.T) {
 // Abdeckung: LH-FA-05/Negative — eine andere Protokollversion als 3.0 erhält eine
 // ErrorResponse mit PGR-E6002 (LH-FA-05.e).
 func TestAndereProtokollversion(t *testing.T) {
-	for _, version := range []uint32{2 << 16, 3<<16 | 1, 3<<16 | 2} {
+	for _, version := range []uint32{2 << 16, 3<<16 | 1, 3<<16 | 2, 4 << 16, 0} {
 		rec := &fakeRecorder{}
 		client, _ := verbinde(t, rec)
 		msg := make([]byte, 9)
@@ -222,10 +231,11 @@ func TestAndereProtokollversion(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-05/Boundary — ein CancelRequest wird nicht weitergeleitet; die
-// Verbindung endet ohne Session (PGR-W3001).
+// Verbindung endet ohne Session, und die Warnung trägt PGR-W3001.
 func TestCancelRequest(t *testing.T) {
 	rec := &fakeRecorder{}
-	client, _ := verbinde(t, rec)
+	var log syncBuffer
+	client, _ := verbindeMitLog(t, rec, &log)
 	msg := make([]byte, 16)
 	binary.BigEndian.PutUint32(msg[0:4], 16)
 	binary.BigEndian.PutUint32(msg[4:8], codeCancelRequest)
@@ -237,6 +247,122 @@ func TestCancelRequest(t *testing.T) {
 	}
 	if rec.opened != 0 {
 		t.Fatal("Session geöffnet")
+	}
+	time.Sleep(50 * time.Millisecond)
+	if !strings.Contains(log.String(), model.CodeCancelRequest) {
+		t.Fatalf("Warnung ohne %s: %s", model.CodeCancelRequest, log.String())
+	}
+}
+
+type syncBuffer struct {
+	mu sync.Mutex
+	b  strings.Builder
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.String()
+}
+
+// Eine unbekannte Sonderanfrage und eine erste Nachricht, die keine
+// Startnachricht sein kann (etwa HTTP), sind PGR-E6001.
+func TestUnbekannteStartnachricht(t *testing.T) {
+	sonder := make([]byte, 8)
+	binary.BigEndian.PutUint32(sonder[0:4], 8)
+	binary.BigEndian.PutUint32(sonder[4:8], majorSpezial<<16|9999)
+	for name, msg := range map[string][]byte{"Sonderanfrage": sonder, "HTTP": []byte("GET / HTTP/1.1\r\n\r\n")} {
+		rec := &fakeRecorder{}
+		client, _ := verbinde(t, rec)
+		if _, err := client.Write(msg); err != nil {
+			t.Fatal(err)
+		}
+		e := fehlerantwort(t, pgproto3.NewFrontend(client, client))
+		if !strings.Contains(e.Message, model.CodeUnsupported) {
+			t.Fatalf("%s: %+v", name, e)
+		}
+	}
+}
+
+// Endet der Aufbau beim Server mit einer Fehlerantwort, erhält der Client genau
+// diese, ohne vorheriges AuthenticationOk.
+func TestFehlerantwortImAufbau(t *testing.T) {
+	rec := &fakeRecorder{aufbauFehler: true}
+	client, _ := verbinde(t, rec)
+	fe := pgproto3.NewFrontend(client, client)
+	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "app"}})
+	_ = fe.Flush()
+	e := fehlerantwort(t, fe)
+	if e.Code != "3D000" {
+		t.Fatalf("ErrorResponse: %+v", e)
+	}
+}
+
+// Trennt der Client nach ReadyForQuery ohne Terminate, endet die Session
+// regulär, und der Lauf merkt sich keinen Fehler (LH-FA-02.b).
+func TestEndeOhneTerminate(t *testing.T) {
+	rec := &fakeRecorder{}
+	client, s := verbinde(t, rec)
+	startup(t, pgproto3.NewFrontend(client, client))
+	client.Close()
+	if end := rec.lastEnd(t); end != model.EndNormal {
+		t.Fatalf("Session-Ende: %v", end)
+	}
+	if s.FirstErrorCode() != "" {
+		t.Fatalf("Fehler gemerkt: %q", s.FirstErrorCode())
+	}
+}
+
+// Erreicht die Antwort einer Anfrage den Client nicht, endet die Session mit
+// EndLost und PGR-E4003 (LH-FA-02.b).
+func TestAntwortNichtZugestellt(t *testing.T) {
+	rec := &fakeRecorder{}
+	client, s := verbinde(t, rec)
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	fe.Send(&pgproto3.Query{String: "SELECT 1"})
+	_ = fe.Flush()
+	client.Close()
+	if end := rec.lastEnd(t); end != model.EndLost {
+		t.Fatalf("Session-Ende: %v", end)
+	}
+	if s.FirstErrorCode() != model.CodeConnectionLost {
+		t.Fatalf("erster Fehler: %q", s.FirstErrorCode())
+	}
+}
+
+// Eine nicht lesbare Client-Nachricht (unbekannter Typ) erhält eine
+// ErrorResponse mit PGR-E6001, und die Session wird verworfen.
+func TestUnlesbareNachricht(t *testing.T) {
+	rec := &fakeRecorder{}
+	client, _ := verbinde(t, rec)
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	if _, err := client.Write([]byte{'z', 0, 0, 0, 4}); err != nil {
+		t.Fatal(err)
+	}
+	e := fehlerantwort(t, fe)
+	if !strings.Contains(e.Message, model.CodeUnsupported) {
+		t.Fatalf("ErrorResponse: %+v", e)
+	}
+	if end := rec.lastEnd(t); end != model.EndUnsupported {
+		t.Fatalf("Session-Ende: %v", end)
+	}
+}
+
+// Der Lauf merkt sich den ersten Verbindungsfehler, nicht den letzten.
+func TestErsterFehlerZaehlt(t *testing.T) {
+	s := &Server{Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	s.note(model.Errorf(model.CodeUpstream, nil, "erster"))
+	s.note(model.Errorf(model.CodeUnsupported, nil, "zweiter"))
+	if s.FirstErrorCode() != model.CodeUpstream {
+		t.Fatalf("erster Fehler: %q", s.FirstErrorCode())
 	}
 }
 

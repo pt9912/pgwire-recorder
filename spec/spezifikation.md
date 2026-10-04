@@ -1110,7 +1110,8 @@ Unterstrich (`parse`, `bind`, `describe`, `execute`, `close`, `flush`, `sync`,
 `empty_query_response`, `portal_suspended`, `error_response`,
 `notice_response`, `ready_for_query`). `describe` und `close` tragen `target`
 (`statement` oder `portal`) und `name`; ein NULL-Parameter steht als
-`null: true`, Binärwerte folgen `SPEC-003`.
+`null: true`; ein Leser nimmt den Schlüssel `null` gequotet (`"null": true`) und
+ungequotet an. Binärwerte folgen `SPEC-003`.
 
 Jede Interaktion, einfach oder Extended, kann das Feld `offset_ms` tragen (ganze
 Zahl ≥ 0, `LH-FA-21.a`); es steht neben `sequence` und `type`. Simple-Interaktionen
