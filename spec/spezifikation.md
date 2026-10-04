@@ -745,7 +745,7 @@ in `LH-FA-17.a`):
 |---|---|
 | `--user`, `--database` | überschreiben Benutzer und Datenbank der Verbindung und die Startup-Daten der jeweiligen Session |
 | `--continue-on-error` | ein Serverfehler einer Anfrage beendet das Einspielen nicht sofort |
-| `--allow-recorded-errors` | ein Serverfehler in einer Interaktion, deren Aufzeichnung ebenfalls eine `ErrorResponse` enthält, gilt als erwartet |
+| `--allow-recorded-errors` | ein Serverfehler in einer Interaktion, deren Aufzeichnung ebenfalls eine `ErrorResponse` enthält, gilt als erwartet; mit `--compare-responses` ohne Wirkung, ohne dass die Kombination ein Fehler ist |
 | `--upstream-tls` | die Verbindung zum Server wird mit TLS aufgebaut |
 | `--upstream-ca` | eine zusätzliche Zertifizierungsstelle für die Prüfung des Serverzertifikats (nur mit TLS) |
 | `--compare-responses` | die Serverantworten werden mit der Aufzeichnung verglichen (`LH-FA-24.a`) |
@@ -789,38 +789,41 @@ pgwire-recorder play \
    `ErrorResponse`. Ein Vergleich mit den aufgezeichneten Antworten findet nur mit
    `--compare-responses` statt (`LH-FA-24.a`); die Antworten werden dann bis zum
    Ende der Interaktion gehalten.
-5. **Fehler beim Aufbau** (vor dem ersten `ReadyForQuery`): Ein nicht erreichbarer
-   Server und jeder `FATAL`, der nicht die Anmeldung betrifft (zum Beispiel eine
-   fehlende Datenbank), ist `PGR-E4002`. Eine fehlgeschlagene Anmeldung
-   (SQLSTATE-Klasse 28), ein nicht unterstütztes Verfahren, ein abgelehntes TLS
-   (der Server antwortet auf die TLS-Anfrage mit `N`), ein ungültiges Zertifikat und
-   ein Server, der unverschlüsselte Verbindungen ablehnt, sind `PGR-E4005`.
-   **Fehler danach:** Bricht die Verbindung nach dem ersten `ReadyForQuery` ab, auch
-   durch einen `FATAL`, ist das `PGR-E4003`. Alle drei beenden das Einspielen immer,
-   auch mit `--continue-on-error`.
-6. **Fehlerantwort einer Anfrage:** Antwortet der Server mit einer `ErrorResponse`,
-   endet das Einspielen mit Exit-Code `4` (`PGR-E4004`). Mit `--continue-on-error`
-   läuft es mit der nächsten Interaktion weiter und endet am Ende mit Exit-Code
-   `4`. Mit `--allow-recorded-errors` zählt eine `ErrorResponse` nicht, wenn die
-   aufgezeichnete Interaktion mindestens eine `ErrorResponse` enthält; bei einer
-   Extended-Interaktion verwirft der Server danach bis zum `Sync`, und der Recorder
-   sendet weiter wie aufgezeichnet. **Mit `--compare-responses`**
-   ersetzt der Vergleich (`LH-FA-24.a`) diese Regel für Fehlerantworten: Eine
-   `ErrorResponse`, die die aufgezeichnete Interaktion an der Stelle mit gleichem
-   SQLSTATE enthält, gilt als erwartet und weder bricht sie ab noch zählt sie als
-   Abweichung; jede andere ist eine Abweichung (`PGR-E5004`, Exit-Code `5`) und nicht
-   `PGR-E4004`. Je Interaktion wird die erste Abweichung in der Reihenfolge der
-   Nachrichten gemeldet. Eine Abweichung beendet das Einspielen; mit
-   `--continue-on-error` läuft es weiter. Der Exit-Code am Ende ist ohne Vergleich
-   `4`, mit Vergleich `5`; ein Verbindungsfehler (`PGR-E4002`, `PGR-E4003`,
-   `PGR-E4005`) beendet immer sofort mit `4`. Bei jedem Abbruch schließt der Recorder
-   die Verbindung, soweit möglich, mit `Terminate`.
+5. **Fehler und Abweichungen** folgen der Tabelle unten. Beim Aufbau (vor dem ersten
+   `ReadyForQuery`) ist ein nicht erreichbarer Server und jeder `FATAL`, der nicht
+   die Anmeldung betrifft (zum Beispiel eine fehlende Datenbank), `PGR-E4002`; eine
+   fehlgeschlagene Anmeldung (SQLSTATE-Klasse 28), ein nicht unterstütztes
+   Verfahren, ein abgelehntes TLS (der Server antwortet auf die TLS-Anfrage mit `N`),
+   ein ungültiges oder abgelaufenes Zertifikat und ein Server, der unverschlüsselte
+   Verbindungen ablehnt, sind `PGR-E4005`. Bricht die Verbindung nach dem ersten
+   `ReadyForQuery` ab, auch durch einen `FATAL`, ist das `PGR-E4003`.
+6. **Fortsetzung.** Läuft das Einspielen nach einer Fehlerantwort oder einer Abweichung
+   weiter (`--continue-on-error`, erwarteter Fehler), sendet der Recorder den Rest der
+   Interaktion wie aufgezeichnet und macht mit der nächsten Interaktion weiter; bei
+   einer Extended-Interaktion verwirft der Server nach einem Fehler bis zum `Sync`.
+   Bei jedem Abbruch schließt der Recorder die Verbindung, soweit möglich, mit
+   `Terminate`.
 7. **Abbruchsignal:** Bei `SIGINT` oder `SIGTERM` endet das Einspielen nach der
    laufenden Interaktion; eine Wartezeit (`LH-FA-21.a`) wird abgebrochen. Mit
    `--finish-session-on-interrupt` zuvor nach der laufenden Session. Ein zweites
    Signal beendet den Prozess sofort. Die Verbindung wird mit `Terminate`
    geschlossen. Der Exit-Code ist `0`, wenn bis dahin kein Fehler auftrat, sonst `4`,
    mit `--compare-responses` nach einer Abweichung `5`.
+
+**Fehlerregeln beim Einspielen.** Die Tabelle ist die einzige Quelle für Code,
+Exit-Code und Abbruch.
+
+| Ursache | Ohne `--compare-responses` | Mit `--compare-responses` | Abbruch |
+|---|---|---|---|
+| Server nicht erreichbar, `FATAL` beim Aufbau | `PGR-E4002`, Exit-Code `4` | gleich | immer sofort |
+| Anmeldung, Verfahren, TLS, Zertifikat, Klartext abgelehnt | `PGR-E4005`, Exit-Code `4` | gleich | immer sofort |
+| Verbindung bricht nach dem ersten `ReadyForQuery` ab | `PGR-E4003`, Exit-Code `4` | gleich | immer sofort |
+| `ErrorResponse` des Servers auf eine Anfrage | `PGR-E4004`, Exit-Code `4` am Ende; zählt nicht, wenn `--allow-recorded-errors` gesetzt ist und die aufgezeichnete Interaktion eine `ErrorResponse` enthält | der Vergleich entscheidet: gleicher SQLSTATE an der aufgezeichneten Stelle gilt als erwartet, jeder andere Fehler ist eine Abweichung; `PGR-E4004` entfällt | ohne `--continue-on-error` sofort, außer bei erwartetem Fehler |
+| Abweichung der Antwort (`LH-FA-24.a`) | kein Vergleich | `PGR-E5004`, Exit-Code `5` am Ende; je Interaktion die erste Abweichung | ohne `--continue-on-error` sofort |
+
+Ein Abbruch durch einen Verbindungsfehler endet immer mit Exit-Code `4`, auch nach
+einer früheren Abweichung. Ohne Abbruch ist der Exit-Code am Ende `0`, `4` (ohne
+Vergleich nach einer Fehlerantwort) oder `5` (mit Vergleich nach einer Abweichung).
 
 Das Einspielen ist sequenziell: die Anfragen einer Session nacheinander und die
 Sessions nacheinander. Ohne `--keep-timing` gibt es keine Wartezeiten; mit
@@ -914,7 +917,8 @@ passender Schlüssel und ein verschlüsselter Schlüssel sind Startfehler `PGR-E
 (Exit-Code `2`), bevor ein Listen-Port geöffnet wird. Die Zertifikatskette steht in
 der Zertifikatsdatei. Die Namen des Zertifikats prüft der Recorder nicht; das ist
 Sache des Clients. Ein relativer Pfad gilt ab dem aktuellen Verzeichnis, auch wenn
-er in der Konfigurationsdatei steht.
+er in der Konfigurationsdatei steht. Zertifikat und Schlüssel werden nur beim Start
+geladen; ein Ablauf danach ändert laufende und neue Verbindungen nicht.
 
 **Aushandlung.** Auf einen `SSLRequest` antwortet der Recorder mit `S` und führt den
 TLS-Handshake aus, mindestens TLS 1.2; danach folgt der PGWire-Verbindungsaufbau auf
@@ -963,9 +967,11 @@ Fehler bis zum `ReadyForQuery` wird wie aufgezeichnet verglichen.
 
 **Unvollständige Aufzeichnung.** Endet eine aufgezeichnete Interaktion nicht mit
 `ready_for_query` (Verbindungsende, `FATAL`) oder trägt sie keine Server-Nachrichten,
-wird verglichen, soweit die Aufzeichnung reicht: Die aufgezeichneten Nachrichten
-müssen übereinstimmen; weitere Nachrichten des Servers danach sind keine Abweichung.
-Eine `ErrorResponse`, die die Aufzeichnung nicht enthält, bleibt eine Abweichung.
+wird nach der Normalisierung verglichen, soweit die Aufzeichnung reicht: Die
+aufgezeichneten Nachrichten müssen übereinstimmen; was der Server danach sendet
+(auch eine `ErrorResponse` oder das `ReadyForQuery` nach einem aufgezeichneten
+`FATAL`), wird nicht verglichen und ist keine Abweichung. Im Fall ohne
+aufgezeichnete Server-Nachrichten gibt es nichts zu vergleichen.
 
 **Meldung.** Die Abweichung wird als `PGR-E5004` gemeldet (Exit-Code `5`) und nennt
 Session, Sequenznummer, die Position der Nachricht in der normalisierten Folge und
@@ -1181,7 +1187,7 @@ Implementierung darf intern detailliertere Fehler unterscheiden, solange diese
 | `SPEC-014` | 2 | ungültige CLI-Verwendung oder Konfiguration, vorhandenes `--output` ohne `--force` | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-015` | 1 | sonstiger Fehler | Fehlertext auf `stderr`, Prozess endet |
 | `SPEC-016` | 3 | Recording-Datei ungültig oder nicht zugreifbar | Fehlertext auf `stderr`, Prozess endet |
-| `SPEC-017` | 4 | Netzwerk-/Upstream-Fehler, beim Einspielen auch Anmeldefehler (`PGR-E4005`) und eine Fehlerantwort des Servers (`PGR-E4004`) | Startfehler: Prozess endet; Verbindungsfehler: Verbindung endet, Prozessende nach LH-FA-13.b; Einspielen: Abbruch beziehungsweise Exit-Code 4 am Ende (LH-FA-20.a) |
+| `SPEC-017` | 4 | Netzwerk-/Upstream-Fehler, beim Einspielen auch Anmeldefehler (`PGR-E4005`) und eine Fehlerantwort des Servers (`PGR-E4004`, ohne `--compare-responses`) | Startfehler: Prozess endet; Verbindungsfehler: Verbindung endet, Prozessende nach LH-FA-13.b; Einspielen: Abbruch beziehungsweise Exit-Code 4 am Ende (LH-FA-20.a) |
 | `SPEC-018` | 5 | Replay-Mismatch (`PGR-E5001`), Anfrage ohne nicht zugeordnete Session (`PGR-E5003`), bei `--fail-on-unconsumed` auch nicht verbrauchte Interaktionen oder Sessions (`PGR-E5002`), beim Einspielen mit `--compare-responses` eine Abweichung der Serverantwort (`PGR-E5004`) | Diagnose nach LH-FA-10.a, Verbindung endet, Prozessende nach LH-FA-13.b; Einspielen: Abbruch beziehungsweise Exit-Code 5 am Ende (LH-FA-20.a) |
 | `SPEC-019` | 6 | nicht unterstützte PGWire-Funktion, auch eine unverschlüsselte Verbindung, die nicht zugelassen ist (`PGR-E6003`) | Diagnose, Verbindung endet, Prozessende nach LH-FA-13.b |
 
@@ -1192,7 +1198,7 @@ erzeugen einen für Entwickler verständlichen Text:
 |---|---|---|---|
 | `SPEC-020` | ungültige CLI-Verwendung oder Konfiguration | 2 | `PGR-E2001`, `PGR-E2004`, `PGR-E2005`, `PGR-E2006`, `PGR-E2007` |
 | `SPEC-021` | Listen-Port kann nicht geöffnet werden | 4 | `PGR-E4001` |
-| `SPEC-022` | Upstream nicht erreichbar oder lehnt ab | 4 | `PGR-E4002`, `PGR-E4004`, `PGR-E4005` |
+| `SPEC-022` | Upstream nicht erreichbar oder lehnt ab | 4 | `PGR-E4002`, `PGR-E4004` (ohne `--compare-responses`), `PGR-E4005` |
 | `SPEC-023` | Recording kann nicht gelesen/geschrieben werden | 3 | `PGR-E3001` |
 | `SPEC-024` | unbekannte Recording-Version | 3 | `PGR-E3002` |
 | `SPEC-025` | beschädigtes Recording | 3 | `PGR-E3003` |
@@ -1230,7 +1236,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E2004` | Konfiguration (Exit 2) | Konfigurationsdatei nicht lesbar oder ungültig: YAML, Schlüssel, Abschnitt, Wert, `sslmode`, Platzhalter außerhalb einer URL (LH-FA-17.a) |
 | `PGR-E2005` | Konfiguration (Exit 2) | Umgebungsvariable eines Platzhalters der benutzten Verbindung nicht gesetzt (LH-FA-17.a) |
 | `PGR-E2006` | Konfiguration (Exit 2) | Klartext-Passwort in der Konfigurationsdatei (LH-FA-17.a) |
-| `PGR-E2007` | Konfiguration (Exit 2) | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht lesbar, ungültig (auch abgelaufen), verschlüsselt oder nicht zueinander passend (LH-FA-20.a, LH-FA-23.a) |
+| `PGR-E2007` | Konfiguration (Exit 2) | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht lesbar oder kein gültiges PEM; eigenes Zertifikat abgelaufen oder noch nicht gültig, Schlüssel verschlüsselt oder nicht zum Zertifikat passend (LH-FA-20.a, LH-FA-23.a) |
 | `PGR-E3000` | Recording (Exit 3) | Rückfall |
 | `PGR-E3001` | Recording (Exit 3) | Recording nicht lesbar oder nicht schreibbar (`SPEC-023`) |
 | `PGR-E3002` | Recording (Exit 3) | unbekannte Recording-Version (`SPEC-024`) |
@@ -1240,8 +1246,8 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E4001` | Netzwerk (Exit 4) | Listen-Port nicht zu öffnen (`SPEC-021`) |
 | `PGR-E4002` | Netzwerk (Exit 4) | Upstream nicht erreichbar (`SPEC-022`) |
 | `PGR-E4003` | Netzwerk (Exit 4) | unerwartetes Verbindungsende (`SPEC-028`) |
-| `PGR-E4004` | Netzwerk (Exit 4) | Server beantwortet eine eingespielte Anfrage mit einem Fehler (LH-FA-20.a) |
-| `PGR-E4005` | Netzwerk (Exit 4) | Anmeldung am Server fehlgeschlagen, Verfahren nicht unterstützt, TLS abgelehnt oder ungültiges Zertifikat, oder der Server lehnt unverschlüsselte Verbindungen ab (LH-FA-20.a) |
+| `PGR-E4004` | Netzwerk (Exit 4) | Server beantwortet eine eingespielte Anfrage mit einem Fehler, nur ohne `--compare-responses` (LH-FA-20.a) |
+| `PGR-E4005` | Netzwerk (Exit 4) | Anmeldung am Server fehlgeschlagen, Verfahren nicht unterstützt, TLS abgelehnt, ungültiges oder abgelaufenes Zertifikat des Servers oder der Zertifizierungsstelle, oder der Server lehnt unverschlüsselte Verbindungen ab (LH-FA-20.a) |
 | `PGR-E5000` | Replay (Exit 5) | Rückfall |
 | `PGR-E5001` | Replay (Exit 5) | Replay-Mismatch (`SPEC-027`) |
 | `PGR-E5002` | Replay (Exit 5) | nicht verbrauchte Interaktionen oder Sessions bei `--fail-on-unconsumed` (LH-FA-03.b) |
