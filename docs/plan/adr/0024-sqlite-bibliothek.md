@@ -20,7 +20,7 @@
 
 ## Entscheidung
 
-Wir wählen `modernc.org/sqlite`, eine SQLite-Bibliothek in reinem Go ohne cgo. Sie wird nur im Recording-Adapter verwendet. Der Wartungsstand und die Lizenz werden vor der Annahme geprüft; fällt die Prüfung negativ aus, wird die Entscheidung neu gefasst.
+Wir wählen `modernc.org/sqlite`, eine SQLite-Bibliothek in reinem Go ohne cgo. Sie wird nur im Recording-Adapter verwendet. Geprüft am 2026-10-04: aktuelle Version v1.60.1 (veröffentlicht am 2026-09-29), Lizenz BSD-3-Clause (SQLite selbst gemeinfrei), kein cgo, Windows, macOS und Linux jeweils für `amd64` und `arm64` unterstützt, das Repository wird aktiv gepflegt (über 800 Commits).
 
 ## Verglichene Alternativen
 
@@ -34,7 +34,7 @@ Wir wählen `modernc.org/sqlite`, eine SQLite-Bibliothek in reinem Go ohne cgo. 
 ## Konsequenzen
 
 - Positiv: Cross-Builds für alle Zielplattformen bleiben einfach; das Image braucht keine C-Laufzeit.
-- Negativ: Schreib- und Lesegeschwindigkeit liegen unter der nativen Bibliothek; die Binärgröße wächst.
+- Negativ: Die Bibliothek ist nach eigener Angabe etwa 1,3- bis 2-mal langsamer als native SQLite; die Binärgröße wächst; sie hängt von `modernc.org/libc` in genau der Version ab, die ihre `go.mod` festlegt (Abhängigkeit exakt pinnen).
 - Folgepflicht: Eine `tech`-Regel in `.a-check.yml` beschränkt die Bibliothek auf den Recording-Adapter; der Roundtrip-Test beider Formate (siehe [ADR-0013](0013-sqlite-recording-backend.md)) läuft mit ihr.
 
 ## Fitness Function (falls maschinell prüfbar)
