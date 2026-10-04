@@ -1,0 +1,8 @@
+# Build-Kontext als Allowlist: nur was der Go-Build braucht (ADR-0026). Doku,
+# Spec und Harness bleiben draußen und brechen den Build-Cache nicht.
+*
+!go.mod
+!go.sum
+!cmd/
+!internal/
+!test/

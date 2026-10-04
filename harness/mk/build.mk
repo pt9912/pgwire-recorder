@@ -1,27 +1,26 @@
-# harness/mk/build.mk — Build und Test des Go-Moduls, nur in Docker (AGENTS.md §3.1).
-# Beide Ziele haengen an GATE_CHECKS; der Root-Aggregator faehrt sie via make gates.
+# harness/mk/build.mk — Build und Test über das Multistage-Dockerfile (ADR-0026).
+# `build` und `test` haengen an GATE_CHECKS; der Root-Aggregator faehrt sie via
+# make gates. Netz braucht nur die Stufe deps des Dockerfiles, und nur bei leerem
+# Build-Cache oder geaenderten Abhaengigkeiten.
 #
-# GO_IMAGE ist per Digest gepinnt (Manifestliste fuer amd64 und arm64); eine Anhebung
-# ist ein bewusster Commit. Der Lauf ist netzlos: das Modul hat keine externen
-# Abhaengigkeiten, GOTOOLCHAIN=local verhindert einen Toolchain-Download.
-# `go build ./...` schreibt kein Binary in den Arbeitsbaum.
+# `go-mod-tidy` ist ein Werkzeug, kein Gate: es aktualisiert go.mod und go.sum mit
+# Netz im gepinnten Go-Image und schreibt beide in den Arbeitsbaum.
 GO_IMAGE ?= golang:1.27-alpine@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414
 
 DOCKER ?= docker
+DOCKER_BUILD ?= $(DOCKER) build --progress=plain
 
-GO_RUN = $(DOCKER) run --rm --network none \
-	-u "$$(id -u):$$(id -g)" \
-	-v "$(CURDIR)":/src:ro -w /src \
-	-e GOTOOLCHAIN=local -e GOFLAGS=-mod=readonly -e CGO_ENABLED=0 \
-	-e GOCACHE=/tmp/go-cache -e GOPATH=/tmp/go -e HOME=/tmp \
-	$(GO_IMAGE)
+.PHONY: build test go-mod-tidy
 
-.PHONY: build test
+build: ## Binary bauen (Dockerfile, Stufe build; netzlos ausser deps)
+	$(DOCKER_BUILD) --target build -t pgwire-recorder:build .
 
-build: ## Go-Modul bauen (Docker, netzlos, schreibgeschuetzt)
-	$(GO_RUN) go build -trimpath -buildvcs=false ./...
+test: ## vet und Unit-Tests (Dockerfile, Stufe test; netzlos ausser deps)
+	$(DOCKER_BUILD) --target test -t pgwire-recorder:test .
 
-test: ## Go-Tests (Docker, netzlos, schreibgeschuetzt)
-	$(GO_RUN) go test -trimpath -buildvcs=false ./...
+go-mod-tidy: ## go.mod und go.sum mit Netz aktualisieren (Werkzeug, kein Gate)
+	$(DOCKER) run --rm -u "$$(id -u):$$(id -g)" -v "$(CURDIR)":/src -w /src \
+		-e GOTOOLCHAIN=local -e GOCACHE=/tmp/go-cache -e GOPATH=/tmp/go -e HOME=/tmp \
+		$(GO_IMAGE) go mod tidy
 
 GATE_CHECKS += build test

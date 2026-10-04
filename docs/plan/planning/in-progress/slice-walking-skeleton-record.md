@@ -72,7 +72,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driven/postgres`, `…/recording` | neu | Upstream-Session, YAML-Schreiben |
 | `internal/bootstrap` | neu | Verdrahtung |
 | `test/integration` | neu | Happy: `SELECT 1;`; Negative: Upstream nicht erreichbar |
-| `tools/harness/run-integration-tests.sh`, `docs/user/e2e-abdeckung.md`, `.d-check.yml` (`trace.coverage`) | neu | Der Integrationstest-Runner schreibt die E2E-Abdeckungstabelle aus den Deklarationen der Tests; `.d-check.yml` bindet sie unter `trace.coverage` ein (Vorbild: `pg-change-feed`) |
+| `tools/test/run-integration-tests.sh`, `harness/mk/integration.mk`, `docs/user/e2e-abdeckung.md`, `.d-check.yml` (`trace.coverage`) | neu | Der Integrationstest-Runner startet PostgreSQL und das Testimage in einem eigenen Docker-Netz und schreibt die E2E-Abdeckungstabelle aus den Abdeckungs-Zeilen der Tests; `.d-check.yml` bindet sie unter `trace.coverage` ein (Vorbild: `pg-change-feed`) |
+| `Dockerfile`, `.dockerignore`, `harness/mk/build.mk`, `go.mod`, `go.sum` | neu / update | Multistage-Build nach [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md): Download-Stufe mit Netz, Build-, Test- und Integrationsstufe netzlos, Produkt-Image als `runtime`; `make go-mod-tidy` als Werkzeug |
+| `.a-check.yml` (`tech`) | update | YAML-Bibliothek `go.yaml.in/yaml/v3`, der gepflegte Nachfolger von `gopkg.in/yaml.v3` |
 
 ## 4. Trigger
 
@@ -101,7 +103,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Startup-/Authentifizierungsverfahren des Upstreams (z. B. SCRAM) sind für die Weiterleitung noch nicht eingegrenzt — **Ausgang:** offen bis Closure.
+- Startup-/Authentifizierungsverfahren des Upstreams (z. B. SCRAM) sind für die Weiterleitung noch nicht eingegrenzt; dieser Stand vermittelt nur einen Upstream ohne Passwort-Anmeldung und meldet jedes Anmeldeverfahren mit `PGR-E6001` — **Ausgang:** offen bis Closure.
 - Der Recording-Zeitpunkt (Ende des Laufs) lässt bei einem Abbruch kein Recording zurück — bewusst, Behandlung in welle-v1-abschluss — **Ausgang:** offen bis Closure.
 - `make build` und `make test` laufen netzlos; mit `pgproto3` braucht das Modul eine netzlose Quelle der Abhängigkeiten (zum Beispiel ein vendored Verzeichnis), sonst scheitert der Build — **Ausgang:** offen bis Closure.
 
