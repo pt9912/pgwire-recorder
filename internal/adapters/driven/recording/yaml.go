@@ -144,16 +144,24 @@ func Unmarshal(data []byte) (model.Recording, error) {
 	if d.Version != model.Version {
 		return model.Recording{}, model.Errorf(model.CodeRecordingVersion, nil, "Version %d wird nicht unterstützt", d.Version)
 	}
-	if err := formSchluesselNull(data); err != nil {
+	if err := formVorpruefung(data); err != nil {
 		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
 	}
 	return fromDTO(d)
 }
 
-// formSchluesselNull lehnt request, responses und groups mit dem Wert null an
-// einer Interaktion ab. Der Decoder liest null als fehlenden Schlüssel; so
-// unterscheidet interactionFromDTO die beiden Formen allein an der Anwesenheit.
-func formSchluesselNull(data []byte) error {
+// formVorpruefung prüft am YAML-Baum, was der Decoder nicht unterscheidet, weil
+// er null wie einen fehlenden Schlüssel liest (SPEC-001, SPEC-041):
+//
+//   - request, responses und groups einer Interaktion stehen nicht mit null;
+//     interactionFromDTO unterscheidet die beiden Formen damit allein an der
+//     Anwesenheit.
+//   - type einer Interaktion steht nicht mit null oder leer; fehlt er, ist die
+//     Interaktion eine einfache.
+//   - jede Gruppe trägt client und server, beide nicht mit null.
+//   - param_types steht an keiner Serverantwort außer parameter_description,
+//     auch nicht mit null.
+func formVorpruefung(data []byte) error {
 	var doc yaml.Node
 	if err := yaml.Unmarshal(data, &doc); err != nil || len(doc.Content) == 0 {
 		return err
@@ -163,6 +171,23 @@ func formSchluesselNull(data []byte) error {
 			for _, k := range []string{"request", "responses", "groups"} {
 				if v := wert(i, k); v != ohneWert && v.Tag == "!!null" {
 					return fmt.Errorf("Interaktion mit %s: null", k)
+				}
+			}
+			if v := wert(i, "type"); v != ohneWert && (v.Tag == "!!null" || v.Value == "") {
+				return fmt.Errorf("Interaktion mit type null oder leer")
+			}
+			antworten := wert(i, "responses").Content
+			for gi, g := range wert(i, "groups").Content {
+				for _, k := range []string{"client", "server"} {
+					if v := wert(g, k); v == ohneWert || v.Tag == "!!null" {
+						return fmt.Errorf("Gruppe %d ohne %s", gi+1, k)
+					}
+				}
+				antworten = append(antworten, wert(g, "server").Content...)
+			}
+			for _, r := range antworten {
+				if typ := wert(r, "type").Value; wert(r, "param_types") != ohneWert && typ != string(model.ResponseParameterDescription) {
+					return fmt.Errorf("Schlüssel \"param_types\" gehört nicht zu %s", typ)
 				}
 			}
 		}
@@ -200,9 +225,9 @@ type sessionDTO struct {
 }
 
 // interactionDTO trägt beide Arten einer Interaktion: eine einfache Anfrage mit
-// request und responses (SPEC-002), eine Extended-Interaktion mit
-// `type: extended` und groups (SPEC-041). Ein anderer Wert von type ist
-// beschädigt (SPEC-001).
+// request und responses und ohne type (SPEC-002), eine Extended-Interaktion mit
+// `type: extended` und groups (SPEC-041). Welche Formen der Leser ablehnt,
+// sagen interactionFromDTO und formVorpruefung.
 type interactionDTO struct {
 	Sequence  int           `yaml:"sequence"`
 	OffsetMS  *int64        `yaml:"offset_ms,omitempty"`
@@ -507,11 +532,12 @@ func fromDTO(d recordingDTO) (model.Recording, error) {
 	return rec, nil
 }
 
-// interactionFromDTO liest die Art aus type: fehlt es, ist es eine einfache
-// Anfrage mit request und responses, bei `extended` eine Extended-Interaktion
-// mit groups. Ein anderer Wert und jede Mischung der beiden Formen sind ein
-// Fehler (SPEC-001, SPEC-041); einen dieser Schlüssel mit dem Wert null lehnt
-// Unmarshal vorher über formSchluesselNull ab.
+// interactionFromDTO liest die Art aus type. Fehlt type, ist es eine einfache
+// Anfrage: request muss stehen, groups darf nicht stehen. Bei `extended` ist es
+// eine Extended-Interaktion: request und responses dürfen nicht stehen. Jeder
+// andere Wert von type ist ein Fehler (SPEC-001, SPEC-041). type, request,
+// responses oder groups mit dem Wert null und einen leeren type lehnt Unmarshal
+// vorher über formVorpruefung ab.
 func interactionFromDTO(d interactionDTO) (model.Interaction, error) {
 	i := model.Interaction{Sequence: d.Sequence, OffsetMS: d.OffsetMS}
 	switch d.Type {
@@ -585,16 +611,13 @@ func leerAlsNil[T any](s []T) []T {
 	return s
 }
 
-// responseFromDTO übernimmt die Felder; param_types steht genau an einer
-// parameter_description. Welche Typen in welcher Art zulässig sind, prüft
+// responseFromDTO übernimmt die Felder und verlangt param_types an einer
+// parameter_description; dass es an keiner anderen Antwort steht, prüft
+// formVorpruefung. Welche Typen in welcher Art zulässig sind, prüft
 // model.Interaction.Validate.
 func responseFromDTO(d responseDTO) (model.Response, error) {
-	beschreibung := model.ResponseType(d.Type) == model.ResponseParameterDescription
-	switch {
-	case beschreibung && d.ParamTypes == nil:
+	if model.ResponseType(d.Type) == model.ResponseParameterDescription && d.ParamTypes == nil {
 		return model.Response{}, fmt.Errorf("Schlüssel \"param_types\" fehlt an parameter_description")
-	case !beschreibung && d.ParamTypes != nil:
-		return model.Response{}, fmt.Errorf("Schlüssel \"param_types\" gehört nicht zu %s", d.Type)
 	}
 	r := model.Response{Type: model.ResponseType(d.Type), Tag: d.Tag, Fields: d.Notice, Name: d.Name, Value: d.Value, TxStatus: d.TxStatus}
 	if d.ParamTypes != nil {

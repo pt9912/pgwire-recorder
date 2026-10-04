@@ -434,13 +434,16 @@ func extendedText(gruppen string) string {
 const syncGruppe = "          - client:\n              - type: sync\n            server:\n              - type: ready_for_query\n                tx_status: I\n"
 
 // gruppe ist eine Gruppe in der Einrückung von extendedText; client und server
-// sind die Einträge der beiden Listen, ohne server fehlt der Schlüssel.
+// sind die Einträge der beiden Listen. Ohne server fehlt der Schlüssel, mit einer
+// leeren Liste steht `server: []`.
 func gruppe(client []string, server ...string) string {
 	g := "          - client:\n"
 	for _, c := range client {
 		g += "              - " + c + "\n"
 	}
-	if server != nil {
+	if server != nil && len(server) == 0 {
+		g += "            server: []\n"
+	} else if server != nil {
 		g += "            server:\n"
 		for _, s := range server {
 			g += "              - " + s + "\n"
@@ -461,12 +464,15 @@ const (
 	parseNachricht = "{type: parse, statement: s, sql: x, param_types: []}"
 )
 
-// Abdeckung: LH-FA-07/Negative — eine Extended-Interaktion, die abgeschnitten
-// ist, eine unbekannte Nachricht, einen fremden, fehlenden oder mit null
-// belegten Schlüssel oder eine Mischung mit der einfachen Form trägt, macht die
-// Aufzeichnung zu einer beschädigten (PGR-E3003), ebenso param_types an einer
-// anderen Antwort als parameter_description; die Meldung nennt die verletzte
-// Regel.
+// Abdeckung: LH-FA-07/Negative — die Aufzeichnung ist beschädigt (PGR-E3003),
+// und die Meldung nennt die verletzte Regel, wenn eine Interaktion einen
+// unbekannten, leeren oder mit null belegten type trägt, die einfache und die
+// Extended-Form mischt oder request, responses oder groups mit null trägt; wenn
+// einer Gruppe client oder server fehlt oder mit null steht; wenn eine
+// Client-Nachricht unbekannt ist, einen fremden Schlüssel trägt oder einem
+// Schlüssel ihres Typs fehlt oder null steht; wenn param_types an
+// parameter_description fehlt oder an einer anderen Antwort steht, auch mit
+// null; und wenn die Interaktion abgeschnitten ist.
 func TestUnmarshalExtendedFehler(t *testing.T) {
 	syncGruppe := gruppe([]string{syncNachricht}, rfqNachricht)
 	cases := []struct{ name, data, want string }{
@@ -497,10 +503,20 @@ func TestUnmarshalExtendedFehler(t *testing.T) {
 		{"parameter_description ohne param_types", extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parameter_description}", rfqNachricht)), "\"param_types\" fehlt an parameter_description"},
 		{"param_types an parse_complete", extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parse_complete, param_types: [23]}", rfqNachricht)), "\"param_types\" gehört nicht zu parse_complete"},
 		{"param_types in einfacher Anfrage", einfacherText("{type: command_complete, tag: x, param_types: [23]}", ""), "\"param_types\" gehört nicht zu command_complete"},
+		{"type null an Extended", strings.Replace(extendedText(syncGruppe), "type: extended", "type: null", 1), "type null oder leer"},
+		{"type leer an Extended", strings.Replace(extendedText(syncGruppe), "type: extended", "type: ''", 1), "type null oder leer"},
+		{"type null an einfacher Anfrage", einfacherText("{type: command_complete, tag: x}", "        type: ~\n"), "type null oder leer"},
+		{"type leer an einfacher Anfrage", einfacherText("{type: command_complete, tag: x}", "        type: \"\"\n"), "type null oder leer"},
+		{"Gruppe ohne client", extendedText("          - server:\n              - " + rfqNachricht + "\n"), "Gruppe 1 ohne client"},
+		{"Gruppe mit client: null", extendedText("          - client: ~\n            server:\n              - " + rfqNachricht + "\n"), "Gruppe 1 ohne client"},
+		{"Flush-Gruppe ohne server", extendedText(gruppe([]string{"{type: flush}"}) + syncGruppe), "Gruppe 1 ohne server"},
+		{"Flush-Gruppe mit server: null", extendedText(gruppe([]string{"{type: flush}"}) + "            server: ~\n" + syncGruppe), "Gruppe 1 ohne server"},
+		{"param_types: null an parse_complete", extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parse_complete, param_types: null}", rfqNachricht)), "\"param_types\" gehört nicht zu parse_complete"},
+		{"param_types: null in einfacher Anfrage", einfacherText("{type: command_complete, tag: x, param_types: ~}", ""), "\"param_types\" gehört nicht zu command_complete"},
 		{"abgeschnitten nach der Flush-Gruppe", extendedText(gruppe([]string{"{type: flush}"}, []string{}...)), "sync steht"},
-		{"abgeschnitten nach den Client-Nachrichten", extendedText(gruppe([]string{syncNachricht})), "endet nicht mit ready_for_query"},
+		{"abgeschnitten nach den Client-Nachrichten", extendedText(gruppe([]string{syncNachricht})), "Gruppe 1 ohne server"},
 		{"abgeschnitten in den Server-Nachrichten", extendedText(gruppe([]string{syncNachricht}, "{type: command_complete, tag: x}")), "endet nicht mit ready_for_query"},
-		{"abgeschnitten in den Client-Nachrichten", extendedText(gruppe([]string{parseNachricht})), "nur als letzte Nachricht"},
+		{"Gruppe ohne flush oder sync", extendedText(gruppe([]string{parseNachricht}, rfqNachricht)), "nur als letzte Nachricht"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -512,6 +528,7 @@ func TestUnmarshalExtendedFehler(t *testing.T) {
 	}
 	for name, text := range map[string]string{
 		"Sync-Gruppe":                          extendedText(syncGruppe),
+		"Flush-Gruppe mit server: []":          extendedText(gruppe([]string{"{type: flush}"}, []string{}...) + syncGruppe),
 		"parameter_description mit Typen":      extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parameter_description, param_types: [23]}", rfqNachricht)),
 		"parameter_description ohne Parameter": extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parameter_description, param_types: []}", rfqNachricht)),
 	} {

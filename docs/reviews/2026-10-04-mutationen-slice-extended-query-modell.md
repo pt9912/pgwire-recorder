@@ -4,7 +4,7 @@
 
 **Vorgehen:** Jede Mutation einzeln im Arbeitsbaum angewandt (`perl` auf genau eine Stelle), `make test` gelaufen (`go vet` und Unit-Tests im `Dockerfile`, Stufe `test`), Datei danach aus der Sicherung zurückgeschrieben. Ein Kontrolllauf ohne Mutation war jeweils grün. „Rot“ heißt: `make test` endet mit Exit-Code ungleich 0, und der genannte Test schlägt fehl, nicht ein Übersetzungsfehler.
 
-**Stand:** M1 bis M11 gegen den Code von Commit `cd03e09`; N1 bis N10 gegen die Fassung nach den Review-Findings F-283 bis F-289.
+**Stand:** M1 bis M11 gegen den Code von Commit `cd03e09`; N1 bis N10 gegen die Fassung nach den Review-Findings F-283 bis F-289 (Commit `6b4967d`); O1 bis O9 gegen die Fassung nach den Verifikations-Befunden V-16 bis V-18. Mit dieser Fassung heißt die Vorprüfung `formVorpruefung` (vorher `formSchluesselNull`), und die Ablehnung von `param_types` an anderen Antworten liegt dort statt in `responseFromDTO`; N7 und N10 treffen seither `formVorpruefung` (O1, O8).
 
 ## Erste Runde (Formregeln und Leser)
 
@@ -37,9 +37,25 @@ Zusätzlich: Ein Lauf, in dem der Schreiber nil-Listen nicht vorher durch leere 
 | N7 | F-287 | `param_types` an jeder Antwort angenommen | `internal/adapters/driven/recording/yaml.go` (`responseFromDTO`) | `TestUnmarshalExtendedFehler` (param_types an parse_complete, in einfacher Anfrage) |
 | N8 | F-288 | `param_types` an `parameter_description` nicht verlangt | ebenda | `TestUnmarshalExtendedFehler` (parameter_description ohne param_types) |
 | N9 | F-288 | leere `param_types` einer `parameter_description` nicht geschrieben | `internal/adapters/driven/recording/yaml.go` (`responseToDTO`) | `TestExtendedLeereFelder` |
-| N10 | F-289 | Vorprüfung auf `null` an `request`/`responses`/`groups` abgeschaltet | `internal/adapters/driven/recording/yaml.go` (`formSchluesselNull`) | `TestUnmarshalExtendedFehler` (extended mit request: null, mit responses: null, einfache Anfrage mit groups: null) |
+| N10 | F-289 | Vorprüfung auf `null` an `request`/`responses`/`groups` abgeschaltet | `internal/adapters/driven/recording/yaml.go` (Vorprüfung, heute `formVorpruefung`) | `TestUnmarshalExtendedFehler` (extended mit request: null, mit responses: null, einfache Anfrage mit groups: null) |
+
+## Dritte Runde (Verifikations-Befunde)
+
+| # | Befund | Mutation | Ort | Rot in |
+|---|---|---|---|---|
+| O1 | V-16 | Prüfung von `param_types` an anderen Antworten entfernt | `internal/adapters/driven/recording/yaml.go` (`formVorpruefung`) | `TestUnmarshalExtendedFehler` (param_types an parse_complete, in einfacher Anfrage, je auch mit null) |
+| O2 | V-16 | `param_types: null` an anderen Antworten zugelassen | ebenda | `TestUnmarshalExtendedFehler` (param_types: null an parse_complete, in einfacher Anfrage) |
+| O3 | V-17 | fehlendes `client`/`server` einer Gruppe zugelassen | ebenda | `TestUnmarshalExtendedFehler` (Gruppe ohne client, Flush-Gruppe ohne server, abgeschnitten nach den Client-Nachrichten) |
+| O4 | V-17 | `client: null`/`server: null` zugelassen | ebenda | `TestUnmarshalExtendedFehler` (Gruppe mit client: null, Flush-Gruppe mit server: null) |
+| O5 | V-18 | Prüfung von `type` auf null oder leer entfernt | ebenda | `TestUnmarshalExtendedFehler` (type null und leer, je an Extended und einfacher Anfrage) |
+| O6 | V-18 | nur `type: null` abgelehnt, leerer `type` zugelassen | ebenda | `TestUnmarshalExtendedFehler` (type leer an Extended, an einfacher Anfrage) |
+| O7 | V-17 | nur `server` geprüft, `client` nicht | ebenda | `TestUnmarshalExtendedFehler` (Gruppe ohne client, mit client: null) |
+| O8 | V-16 | `param_types` nur in `responses`, nicht in den Gruppen geprüft | ebenda | `TestUnmarshalExtendedFehler` (param_types an parse_complete, auch mit null) |
+| O9 | V-18 | nur leerer `type` abgelehnt, `type: null` zugelassen | ebenda | `TestUnmarshalExtendedFehler` (type null an Extended, an einfacher Anfrage) |
+
+Gültige Gegenstücke im selben Test: Sync-Gruppe, Flush-Gruppe mit `server: []`, `parameter_description` mit und ohne Parameter.
 
 ## Nicht abgedeckt
 
-- Ein mit `null` belegter `param_types`-Schlüssel an einer anderen Antwort als `parameter_description` wird als fehlend gelesen und angenommen; geprüft ist nur die Anwesenheit eines Werts.
-- `client: null` oder `server: null` einer Gruppe wird als leere Liste gelesen; eine leere Client-Liste lehnt `Validate` ab, eine leere Server-Liste ist an einer Flush-Gruppe gültig.
+- Felder einer Serverantwort außer `param_types` sind nicht je Typ gebunden (etwa `tag` an `data_row`); das galt schon vor diesem Slice.
+- Anker und Aliase im YAML-Baum sieht `formVorpruefung` nicht aufgelöst; eine Aufzeichnung, die `null` über einen Alias setzt, prüft sie nicht.
