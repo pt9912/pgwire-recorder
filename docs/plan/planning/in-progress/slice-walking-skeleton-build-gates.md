@@ -35,6 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Fachlogik, PGWire- und Recording-Code — gehören zu `slice-walking-skeleton-record` und `slice-walking-skeleton-replay`; hier entstehen nur leere Package-Gerüste, an denen das Gate seine Regeln prüft.
 - Container-Image des Produkts — Gegenstand von welle-v1-abschluss.
+- `test/integration/` aus der Package-Struktur — entsteht mit dem ersten Integrationstest in `slice-walking-skeleton-record`; ein leeres Verzeichnis trägt git nicht.
 
 
 ## 2. Definition of Done
@@ -66,6 +67,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `go.mod`, `cmd/pgwire-recorder/`, `internal/…` (leere Packages gemäß Package-Struktur) | neu | Gerüst für das Hexagon; Gate braucht Code-Pfade |
 | `harness/mk/build.mk` (gepinntes `golang`-Image, kein eigenes `Dockerfile`) | neu | Docker-only Build/Test (`AGENTS.md` §3.1) |
 | `a-check.mk`, `harness/mk/arch-gate.mk` | vorhanden | Architektur-Gate gemäß `.a-check.yml`, Image per Digest gepinnt; keine Änderung nötig |
+| `.a-check.yml` (`tech`) | update | Eine Regel je Bibliothek mit Liste beider PGWire-Adapter; zwei Einträge mit demselben Muster wertet a-check nur einmal aus |
 | `harness/README.md` §Sensors | update | Bindung des neuen Gates deklarieren |
 | `tools/arch/a-check-negativ.sh`, `harness/mk/arch-negativ.mk` | neu | Gegenprobe als Gate: rot, wenn a-check den `pgproto3`-Import im Domain Model durchlässt |
 
@@ -98,6 +100,8 @@ dasteht.
 
 - Ob a-check die Go-Importe der Packages wie in `.a-check.yml` modelliert erkennt, ist erst mit Code belegbar — **Ausgang:** offen bis Closure.
 - Die Gate-Konfiguration ist Go-spezifisch; Schwellen dürfen nicht ohne ADR gesenkt werden (`AGENTS.md` §3.6) — **Ausgang:** offen bis Closure.
+- Der netzlose Build trägt nur ohne externe Abhängigkeiten; mit `pgproto3` braucht der nächste Slice eine netzlose Quelle der Module (zum Beispiel ein vendored Verzeichnis) — **Ausgang:** offen bis Closure.
+- Das Architektur-Gate erkennt einen Zugriff des Domain Models auf das Dateisystem (`os`) nicht — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

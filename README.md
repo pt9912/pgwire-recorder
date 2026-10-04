@@ -53,6 +53,6 @@ Regeln.
 
 - **Prozess:** [`AGENTS.md`](AGENTS.md) (Hard Rules: die Regeln, die jede Änderung einhalten muss), [`harness/README.md`](harness/README.md) (Source Precedence: welche Quelle bei Konflikt gewinnt, und die Gates).
 - **Verträge:** [`spec/lastenheft.md`](spec/lastenheft.md) (`LH-*`-IDs mit Akzeptanzkriterien), danach [`spec/spezifikation.md`](spec/spezifikation.md) und [`spec/architecture.md`](spec/architecture.md).
-- **Gates:** `make gates` führt `make build` und `make test` (Go-Modul in Docker), `make a-check` (Architekturregeln) mit der Gegenprobe `make a-check-negativ`, `make docs-check` (Doku-Referenzen) und `make baseline-verify` (Integrität der vendored Baseline) aus.
+- **Gates:** `make gates` führt `make build` und `make test` (Go-Modul in Docker), `make a-check` (Architekturregeln) mit der Gegenprobe `make a-check-negativ` (PGWire-Bibliothek nur in den PGWire-Adaptern), `make docs-check` (Doku-Referenzen) und `make baseline-verify` (Integrität der vendored Baseline) aus.
 - **Auditierbarkeit:** Entscheidungen in [`docs/plan/adr/`](docs/plan/adr/), Planung in [`docs/plan/planning/`](docs/plan/planning/), Reviews in [`docs/reviews/`](docs/reviews/).
 - **Rückverfolgbarkeit:** `make doc-trace` gibt die Requirements Traceability Matrix aus (Anforderung, Entscheidungen, Slices); sie ist ein Bericht und kein Gate.

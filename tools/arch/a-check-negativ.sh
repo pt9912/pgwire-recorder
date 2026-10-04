@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
-# a-check-negativ — Gegenprobe des Architektur-Gates: In einer Kopie des
-# Arbeitsbaums importiert internal/hexagon/model die PGWire-Bibliothek (pgproto3);
-# a-check muss diese Kopie ablehnen. Der Arbeitsbaum selbst bleibt unberuehrt.
+# a-check-negativ — Gegenprobe des Architektur-Gates in Kopien des Arbeitsbaums.
+# Der Arbeitsbaum selbst bleibt unberuehrt. Drei Faelle:
 #
-# Ausgang: 0, wenn a-check die Verletzung meldet; 1, wenn es sie durchlaesst.
+#   1. internal/hexagon/model importiert pgproto3      → a-check meldet die Datei
+#   2. internal/adapters/driven/recording importiert
+#      pgproto3                                         → a-check meldet tech-leak
+#   3. internal/adapters/driven/postgres importiert
+#      pgproto3 und crypto/tls                          → a-check meldet nichts
+#
+# Fall 3 haelt fest, dass beide PGWire-Adapter die Bibliothek nutzen duerfen
+# (ADR-0010); die Faelle 1 und 2, dass jeder andere Ort abgelehnt wird.
+#
+# Ausgang: 0, wenn alle drei Faelle das erwartete Ergebnis liefern, sonst 1.
 # Aufruf ueber `make a-check-negativ` (harness/mk/arch-negativ.mk), das Image und
 # Runtime aus a-check.mk uebernimmt.
 set -euo pipefail
@@ -11,30 +19,46 @@ set -euo pipefail
 image="${A_CHECK_IMAGE:?A_CHECK_IMAGE fehlt}"
 docker="${DOCKER:-docker}"
 
-kopie="$(mktemp -d)"
-trap 'rm -rf "$kopie"' EXIT
+arbeit="$(mktemp -d)"
+trap 'rm -rf "$arbeit"' EXIT
 
-tar --exclude=./.git -cf - . | tar -xf - -C "$kopie"
+fehler=0
 
-cat > "$kopie/internal/hexagon/model/verletzung_negativprobe.go" <<'EOF'
-package model
+# fall <name> <datei> <package> <imports> <erwartung> <muster>
+#   erwartung: "rot" (a-check muss scheitern und <muster> ausgeben) oder "gruen"
+fall() {
+  local name="$1" datei="$2" paket="$3" imports="$4" erwartung="$5" muster="$6"
+  local kopie="$arbeit/$name" log="$arbeit/$name.log"
+  mkdir -p "$kopie"
+  tar --exclude=./.git -cf - . | tar -xf - -C "$kopie"
+  {
+    printf 'package %s\n\nimport (\n' "$paket"
+    for i in $imports; do printf '\t_ "%s"\n' "$i"; done
+    printf ')\n'
+  } > "$kopie/$datei"
 
-import _ "github.com/jackc/pgx/v5/pgproto3"
-EOF
+  local ergebnis=gruen
+  "$docker" run --rm --network none -v "$kopie":/src:ro "$image" /src >"$log" 2>&1 || ergebnis=rot
 
-if "$docker" run --rm --network none -v "$kopie":/src:ro "$image" /src >"$kopie.log" 2>&1; then
-  echo "a-check-negativ: ROT — a-check laesst den pgproto3-Import im Domain Model durch" >&2
-  cat "$kopie.log" >&2
-  rm -f "$kopie.log"
+  if [ "$ergebnis" != "$erwartung" ]; then
+    echo "a-check-negativ: ROT in Fall '$name' — erwartet $erwartung, a-check war $ergebnis" >&2
+    cat "$log" >&2
+    fehler=1
+  elif [ "$erwartung" = rot ] && ! grep -q -- "$muster" "$log"; then
+    echo "a-check-negativ: ROT in Fall '$name' — a-check scheitert, nennt aber '$muster' nicht" >&2
+    cat "$log" >&2
+    fehler=1
+  fi
+}
+
+fall model internal/hexagon/model/negativprobe.go model \
+  "github.com/jackc/pgx/v5/pgproto3" rot "internal/hexagon/model/negativprobe.go"
+fall recording internal/adapters/driven/recording/negativprobe.go recording \
+  "github.com/jackc/pgx/v5/pgproto3" rot "tech-leak"
+fall postgres internal/adapters/driven/postgres/negativprobe.go postgres \
+  "github.com/jackc/pgx/v5/pgproto3 crypto/tls" gruen ""
+
+if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-
-if ! grep -q "pgproto3" "$kopie.log"; then
-  echo "a-check-negativ: ROT — a-check scheitert, nennt aber den pgproto3-Import nicht" >&2
-  cat "$kopie.log" >&2
-  rm -f "$kopie.log"
-  exit 1
-fi
-
-rm -f "$kopie.log"
-echo "a-check-negativ: gruen — a-check lehnt den pgproto3-Import im Domain Model ab"
+echo "a-check-negativ: gruen — Domain Model und Recording-Adapter abgelehnt, Upstream-Adapter zugelassen"
