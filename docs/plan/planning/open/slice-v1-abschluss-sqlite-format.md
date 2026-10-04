@@ -67,7 +67,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driven/recording` | update | zweiter Adapter hinter `RecordingRepository`: SQLite, Formaterkennung, Transaktion je Session |
 | `internal/adapters/driving/cli` | update | Option `--format` |
 | `tools/schema/schema.yaml`, `harness/mk/schema.mk` | vorhanden | neutrales Schema der Tabellenform (d-migrate); das SQL für SQLite wird daraus erzeugt und im Adapter eingebettet |
-| `.a-check.yml` (`tech`-Regel) | update | SQLite-Bibliothek nur im Recording-Adapter, sobald die Bibliothek gewählt ist |
+| `.a-check.yml` (`tech`-Regel) | prüfen | Die Regel für `modernc.org/sqlite` liegt vor; der Slice belegt sie mit einer absichtlichen Verletzung |
 | `test/integration` | update | Roundtrip-Gleichheit beider Formate |
 
 ## 4. Trigger
@@ -98,7 +98,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Eine SQLite-Bibliothek ohne native Abhängigkeit für Linux, macOS und Windows (`amd64`, `arm64`) ist nicht belegt — **Ausgang:** offen bis Closure.
+- Die gewählte Bibliothek (reines Go, siehe [ADR-0024](../../adr/0024-sqlite-bibliothek.md)) ist für die sechs Zielplattformen erst durch den Build im Slice belegt — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

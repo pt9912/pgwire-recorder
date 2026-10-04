@@ -27,7 +27,7 @@
 | [0021](0021-vergleichsregeln-beim-einspielen.md) | Vergleichsregeln beim Einspielen | Superseded by [0023](0023-antwortvergleich-entscheidung.md) (über [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md)) | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 | [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | Vergleichsregeln beim Einspielen, präzisiert | Superseded by [0023](0023-antwortvergleich-entscheidung.md) | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 | [0023](0023-antwortvergleich-entscheidung.md) | Antwortvergleich beim Einspielen ersetzt die Fehlerregel | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
-| [0024](0024-sqlite-bibliothek.md) | SQLite-Bibliothek ohne native Abhängigkeit | Proposed | [`LH-FA-22`](../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat) |
+| [0024](0024-sqlite-bibliothek.md) | SQLite-Bibliothek ohne native Abhängigkeit | Accepted | [`LH-FA-22`](../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat) |
 
 ## Konventionen
 
