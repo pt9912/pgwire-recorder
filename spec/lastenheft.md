@@ -718,8 +718,9 @@ die Struktur der Antwort einer Interaktion (Art und Reihenfolge der Antworten,
 Spaltenbeschreibung einschließlich der Datentypen, Beschreibung der Parameter, der
 ausgeführte Befehl, der Transaktionsstatus) und Fehler (Vorhandensein und
 Fehlercode). Nicht verglichen werden die Werte und die Anzahl der Zeilen, Hinweise
-und Einstellungen des Servers. Ohne den Wunsch findet kein Vergleich statt
-(LH-FA-20).
+und Einstellungen des Servers. Mit diesem Wunsch gilt ein Fehler des Servers, den
+die Aufzeichnung genauso enthält, als erwartet; der Wunsch ist die ausdrückliche
+Wahl nach LH-FA-20. Ohne den Wunsch findet kein Vergleich statt (LH-FA-20).
 
 **Akzeptanzkriterien:**
 
@@ -729,7 +730,10 @@ und Einstellungen des Servers. Ohne den Wunsch findet kein Vergleich statt
   §7).
 - **Boundary:** Given Antworten, die sich nur in Zeilenwerten, Zeilenanzahl oder
   Hinweisen unterscheiden, when verglichen wird, then gilt das nicht als
-  Abweichung; given kein Wunsch nach
+  Abweichung; given ein Fehler des Servers, den die Aufzeichnung genauso enthält,
+  when verglichen wird, then bricht er den Lauf nicht ab und ist keine Abweichung;
+  given eine Aufzeichnung, die nicht bis zum Ende der Antwort reicht, when
+  verglichen wird, then wird verglichen, soweit sie reicht; given kein Wunsch nach
   Vergleich, when eingespielt wird, then wird nicht verglichen.
 - **Negative:** Given eine Antwort mit abweichender Struktur oder einem
   abweichenden Fehler, wozu auch ein Fehler des Servers gehört, den die
