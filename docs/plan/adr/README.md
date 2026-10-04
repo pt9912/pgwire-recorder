@@ -36,3 +36,13 @@
   als Kennung (`SPEC-*`, `ARC-*`, `<PREFIX>-FA-*.<Buchstabe>`), ersatzweise als
   Abschnitt, wo die Sektion keine Kennungen vergibt.
   Prozess-ADRs ohne Spec-Stratum tragen `—`.
+
+## Beziehungen zwischen ADRs
+
+Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenommenen ADRs bleiben unverändert und gelten, soweit unten nichts anderes steht.
+
+| ADR | Beziehung |
+|---|---|
+| [0019](0019-eigene-zertifizierungsstelle-beim-einspielen.md) | ergänzt [0016](0016-einspielen-anmeldung-und-tls.md) um eine eigene Zertifizierungsstelle |
+| [0020](0020-antwortvergleich-beim-einspielen.md) | ergänzt [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) um den Antwortvergleich |
+| [0021](0021-vergleichsregeln-beim-einspielen.md) | ergänzt [0020](0020-antwortvergleich-beim-einspielen.md); mit `--compare-responses` ersetzt der Vergleich die Fehlerregel von [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) für Fehlerantworten, sonst gilt [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) unverändert |

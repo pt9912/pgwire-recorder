@@ -311,11 +311,13 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   läuft es weiter und endet am Ende mit Exit-Code 5. Ein Fehler der Datenbank, den
   die Aufzeichnung genauso enthält, gilt dann als erwartet und bricht nicht ab; ein
   Fehler, den sie nicht enthält, ist eine Abweichung (`PGR-E5004` statt
-  `PGR-E4004`). Reicht die Aufzeichnung einer Anfrage nicht bis zum Ende der
-  Antwort, vergleicht das Werkzeug, soweit sie reicht. Ein Verbindungsfehler beendet
-  das Einspielen immer mit Exit-Code 4.
+  `PGR-E4004`). `--allow-recorded-errors` hat mit Vergleich keine Wirkung; die
+  Kombination ist kein Fehler. Reicht die Aufzeichnung einer Anfrage nicht bis zum
+  Ende der Antwort, vergleicht das Werkzeug, soweit sie reicht; was der Server danach
+  sendet, ist keine Abweichung. Ein Verbindungsfehler beendet das Einspielen immer
+  mit Exit-Code 4, auch nach einer Abweichung.
 * Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
-  ab (`PGR-E4004`). Mit `--continue-on-error` läuft es weiter und endet am Ende
+  ab (`PGR-E4004`; mit `--compare-responses` gilt stattdessen der Vergleich). Mit `--continue-on-error` läuft es weiter und endet am Ende
   mit Exit-Code 4. Mit `--allow-recorded-errors` gilt ein Fehler nicht, wenn auch
   die aufgezeichnete Anfrage mit einem Fehler beantwortet wurde.
 * Mit `--upstream-tls` verbindet sich das Werkzeug verschlüsselt mit der
@@ -542,8 +544,8 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-E4000`, `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
-| `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Anfrage und die Antwort der Datenbank. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
-| `PGR-E4005` | Anmeldung an der Datenbank fehlgeschlagen oder nicht unterstützt, oder die Datenbank verlangt Verschlüsselung | Prüfen Sie Benutzer und Passwort (`PGWIRE_RECORDER_PASSWORD`). Unterstützt sind Klartext-Passwort, MD5 und SCRAM-SHA-256. Setzen Sie `--upstream-tls`, wenn die Datenbank Verschlüsselung verlangt. |
+| `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler (ohne `--compare-responses`) | Die Meldung nennt die Anfrage und die Antwort der Datenbank. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
+| `PGR-E4005` | Anmeldung an der Datenbank fehlgeschlagen oder nicht unterstützt, Zertifikat der Datenbank oder der Zertifizierungsstelle ungültig oder abgelaufen, oder die Datenbank verlangt Verschlüsselung | Prüfen Sie Benutzer und Passwort (`PGWIRE_RECORDER_PASSWORD`). Unterstützt sind Klartext-Passwort, MD5 und SCRAM-SHA-256. Setzen Sie `--upstream-tls`, wenn die Datenbank Verschlüsselung verlangt. |
 | `PGR-E5000`, `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen aufgezeichnet sind. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
