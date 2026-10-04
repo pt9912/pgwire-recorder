@@ -26,6 +26,7 @@
 | [0020](0020-antwortvergleich-beim-einspielen.md) | Antwortvergleich beim Einspielen | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 | [0021](0021-vergleichsregeln-beim-einspielen.md) | Vergleichsregeln beim Einspielen | Superseded by [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 | [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | Vergleichsregeln beim Einspielen, präzisiert | Accepted | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
+| [0023](0023-antwortvergleich-entscheidung.md) | Antwortvergleich beim Einspielen ersetzt die Fehlerregel | Proposed | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 
 ## Konventionen
 
@@ -48,3 +49,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0020](0020-antwortvergleich-beim-einspielen.md) | ergänzt [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) um den Antwortvergleich |
 | [0021](0021-vergleichsregeln-beim-einspielen.md) | ergänzt [0020](0020-antwortvergleich-beim-einspielen.md); mit `--compare-responses` ersetzt der Vergleich die Fehlerregel von [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) für Fehlerantworten, sonst gilt [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) unverändert |
 | [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | ersetzt [0021](0021-vergleichsregeln-beim-einspielen.md) mit gleicher Entscheidung und genauerem Text; gilt damit für die Teilersetzung der Fehlerregel von [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) bei `--compare-responses` und ergänzt [0020](0020-antwortvergleich-beim-einspielen.md) |
+| [0023](0023-antwortvergleich-entscheidung.md) | soll [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) ersetzen und trägt nur die Entscheidung; die Einzelregeln stehen in der Spezifikation |
