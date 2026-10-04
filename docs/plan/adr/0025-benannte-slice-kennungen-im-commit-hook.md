@@ -16,20 +16,20 @@
 
 ## Kontext
 
-Der Commit-Hook verlangt in jeder Commit-Message eine Kennung. Die mitgelieferte Prüfung kennt für Slices nur die Form mit Ziffern (`slice-<Nummer>`). Dieses Repo vergibt Slice-Kennungen als Namen (`slice-<welle>-<aspekt>`), und `harness/README.md` sagt „`slice-*`“ zu. Das Lifecycle-Werkzeug `make slice-mv` committet mit dem Slice-Namen als einziger Kennung und scheitert deshalb am Hook; Moves müssen von Hand laufen. Die mitgelieferte Prüfung wird bei jedem Bootstrap neu geschrieben und ist kein Ort für eine Repo-Regel; der Träger `.githooks/commit-msg` gehört dem Repo.
+Der Commit-Hook verlangt in jeder Commit-Message eine Kennung. Die mitgelieferte Prüfung kennt für Slices nur die Kennung mit Ziffern. Dieses Repo vergibt Slice-Kennungen als Namen aus Welle und Aspekt, und `harness/README.md` sagt jede Slice-Kennung als zulässig zu. Das Lifecycle-Werkzeug (Make-Ziel für den Wechsel eines Slice) committet mit dem Slice-Namen als einziger Kennung und scheitert deshalb am Hook; Moves müssen von Hand laufen. Die mitgelieferte Prüfung wird bei jedem Bootstrap neu geschrieben und ist kein Ort für eine Repo-Regel; der Träger `.githooks/commit-msg` gehört dem Repo.
 
 ## Entscheidung
 
-Wir wählen: Der Träger `.githooks/commit-msg` lässt eine Commit-Message zusätzlich durch, wenn sie den Namen eines vorhandenen Slice trägt, also einer Datei `slice-<name>.md` unter `docs/plan/planning/`. Alle anderen Fälle reicht er unverändert an die mitgelieferte Prüfung weiter.
+Wir wählen: Der Träger `.githooks/commit-msg` lässt eine Commit-Message zusätzlich durch, wenn sie die Kennung eines vorhandenen Slice trägt, also den Namen einer Slice-Datei unter `docs/plan/planning/`. Alle anderen Fälle reicht er unverändert an die mitgelieferte Prüfung weiter.
 
 ## Verglichene Alternativen
 
 | Option | Pro | Contra |
 |---|---|---|
-| A — So lassen, Moves von Hand | keine Änderung am Hook | `make slice-mv` ist unbenutzbar; die Zusage „`slice-*`“ in `harness/README.md` stimmt nicht |
+| A — So lassen, Moves von Hand | keine Änderung am Hook | das Lifecycle-Werkzeug ist unbenutzbar; die Zusage in `harness/README.md` stimmt nicht |
 | B — Slices künftig mit Ziffern benennen | Hook bleibt unverändert | alle bestehenden Slices, Wellen und Verweise wären umzubenennen |
-| C — Jedes Wort der Form `slice-…` durchlassen | einfachste Änderung | auch Tippfehler und Werkzeugnamen (`slice-mv`) gälten als Kennung |
-| **D — Nur Namen vorhandener Slices durchlassen** | `make slice-mv` funktioniert; ein erfundener Name fällt weiter durch | der Hook liest das Planungsverzeichnis |
+| C — Jedes Wort mit dem Slice-Präfix durchlassen | einfachste Änderung | auch Tippfehler und der Name des Lifecycle-Werkzeugs gälten als Kennung |
+| **D — Nur Namen vorhandener Slices durchlassen** | das Lifecycle-Werkzeug funktioniert; ein erfundener Name fällt weiter durch | der Hook liest das Planungsverzeichnis |
 
 ## Konsequenzen
 
