@@ -1,0 +1,3 @@
+**Vorgang:** slice-extended-query-lebendpruefung
+**Fund:** Ob `\v` Leerraum einer Lebendprüfung ist, hängt an der Serverversion; die Spezifikation zählte ihn ohne Version, und erst das Review fand die Abweichung gegen PostgreSQL 16 (F-350, Entscheidung des Nutzers: `server_version` der Session, ab 17).
+**Fund (weitere Randformen):** Der Startfehler einer Aufzeichnung nur aus Lebendprüfungen war im Code abgeleitet, Spezifikation und Handbuch deckten ihn nicht (F-355, Entscheidung des Nutzers: `PGR-E3004`); der Satz im Lastenheft nahm nur die eingehende Lebendprüfung aus, nicht die ausbleibende aufgezeichnete (F-357). Die Randformen, die der Plan vor dem Code nannte, entschied die ADR vorab; keine davon öffnete ein Review wieder.
