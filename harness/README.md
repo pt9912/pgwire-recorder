@@ -84,7 +84,7 @@ Diese Datei dupliziert sie nicht.
 | `make abdeckung` | schreibt die Abdeckungstabellen aus den Test-Deklarationen, prüft nichts | kein Gate |
 | `make go-mod-tidy` | aktualisiert `go.mod` und `go.sum` mit Netz im gepinnten Go-Image, prüft nichts | kein Gate |
 | `make a-check-graph` | gibt den Architektur-Graphen (Mermaid) aus `.a-check.yml` aus, prüft nichts | kein Gate |
-| `make doc-trace` | gibt die Requirements Traceability Matrix aus (Anforderung, Entscheidungen, Slices), prüft nichts | kein Gate |
+| `make doc-trace` | gibt die Requirements Traceability Matrix aus (Anforderung, Entscheidungen, Slices), prüft nichts; als Slice zählt nur eine Datei flach in `done/`, ein archivierter Slice unter `done/<welle-id>/` nicht | kein Gate |
 
 **Aktueller Lauf-Status:** CI-Badge bzw. lokal `make help` / `make gates`.
 **Rote Gates:** Begründung in einem Carveout (Modul 7); bisher keiner.

@@ -143,6 +143,10 @@ ist eine Lifecycle-Rücksprungkante (11).
     ist, gehört sie in den Mutations-Sensor deines Repos (falls vorhanden); wo sie einmalig ist, in
     den Bericht. **Keine Antwort ist ein Befund**, kein Formfehler — die Klasse „Zusage greift
     weiter als Abdeckung" ist in der Praxis teuer erkauft.
+    **Für einen neuen Vertrag gilt das für jede Zusage, nicht nur für Wächter**
+    (`AGENTS.md` §3.10, seit welle-extended-query): je Zusage ein Test, der die Mutation
+    fängt, und die Mutation fährst du selbst, bevor du übergibst — im Bericht je Zeile
+    Zusage · Mutation · roter Test.
 20. **Jeden in diesem Lauf neu geschriebenen oder geänderten Kommentar gegen `AGENTS.md` §3.7
     prüfen** (Code, Konfiguration, Skripte). Die Probe: beschreibt der Satz den **Ist-Zustand**
     (indikativ, auflösbar), oder trägt er eine Slice-Nummer als Begründung, ein „(… , entschieden)"
@@ -151,6 +155,10 @@ ist eine Lifecycle-Rücksprungkante (11).
     auflösbares Feld in den dort genannten Formen (`LH-*`, `ADR-*`, `· seit welle-<NN>`, wellenlos
     `· seit slice-<NNN>`) — alles andere ist Zustand, keine Chronik, und wird vor der Übergabe
     umformuliert statt mitgeschleift.
+    **Und ein Kommentar sagt nur zu, was ein Test prüft** (`AGENTS.md` §3.11, seit
+    welle-extended-query) — ebenso Hilfetext, Abdeckungs-Deklaration und Plan-Zeile: Zu
+    jeder Zusage im geänderten Text den Test nennen; fehlt er, den Satz enger fassen oder
+    den Test schreiben.
 
 Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontexten** (Modul 8).
 

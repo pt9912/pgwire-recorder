@@ -192,6 +192,36 @@ Code nicht folgt, erzeugt in jeder Runde dieselben Findings
 setzt den Retirement-Check voraus: Ist die Beobachtung seit welle-walking-skeleton
 wieder aufgetreten?
 
+### 3.10 Jede Zusage eines neuen Vertrags fängt eine Mutation (seit welle-extended-query)
+
+Wer einen neuen Vertrag liefert (Protokollrand, Format, Leser, Diagnose, Option,
+Gate), schreibt zu jeder seiner Zusagen einen Test, der rot wird, wenn der Code die
+Zusage bricht, und fährt diese Mutation vor der Übergabe selbst. Der Bericht nennt je
+Zusage: Zusage · Mutation · roter Test.
+
+**Falsch:** Die Tests decken den Gutfall; dass eine Mutation grün bleibt, findet erst
+das Review.
+**Richtig:** Je Zusage eine Mutation, vom Implementer selbst rot gesehen.
+
+**Begründung:** Ein grünes Gate belegt, dass nichts bricht, nicht, dass eine Zusage
+geprüft ist (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`). Entfernen oder
+Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
+welle-extended-query wieder aufgetreten?
+
+### 3.11 Ein Kommentar sagt nur zu, was ein Test prüft (seit welle-extended-query)
+
+Kommentar, Hilfetext, Abdeckungs-Deklaration und Plan-Zeile sagen nur zu, was ein
+Test oder Gate prüft. Reicht der Satz weiter, wird er enger gefasst oder bekommt
+seinen Test (§3.10).
+
+**Falsch:** „prüft beide Adapter“ über einer Gegenprobe, die einen prüft.
+**Richtig:** „prüft den Recording-Adapter“, oder die Gegenprobe prüft beide.
+
+**Begründung:** Eine Zusage ohne Prüfung liest jeder Lauf als geprüft
+(`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`). Entfernen oder Lockern setzt
+den Retirement-Check voraus: Ist die Beobachtung seit welle-extended-query wieder
+aufgetreten?
+
 ## 4. Quality Gates
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-harness-dateien.md`
