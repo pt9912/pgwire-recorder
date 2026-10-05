@@ -1,6 +1,6 @@
 # pgwire-recorder
 
-> **Zeichnet die Kommunikation zwischen Ihrer Anwendung und PostgreSQL auf und spielt sie später ohne Datenbank wieder ab.**
+> **Zeichnet die Kommunikation zwischen Ihrer Anwendung und PostgreSQL auf, spielt sie ohne Datenbank wieder ab oder führt sie erneut gegen eine Datenbank aus und vergleicht die Antworten.**
 
 ## Was ist pgwire-recorder?
 
@@ -20,7 +20,11 @@ Das Projekt steht am Beginn der Umsetzung. `pgwire-recorder record` vermittelt
 einfache Anfragen und das erweiterte Protokoll (vorbereitete Anweisungen, etwa
 von pgx im Standardmodus) zwischen einem Client und PostgreSQL und schreibt eine
 YAML-Aufzeichnung; `pgwire-recorder replay` beantwortet beide daraus ohne
-Datenbank. Die Passwort-Anmeldung und das Einspielen fehlen noch. Beim Beenden wartet `record`
+Datenbank. Lebendprüfungen von Verbindungspools (`pgxpool`, `database/sql`)
+beantwortet `replay` unabhängig davon, ob sie in der Aufzeichnung stehen; mit
+`--fail-on-unconsumed` endet `replay` mit einem Fehler, wenn aufgezeichnete
+Interaktionen nicht abgerufen wurden. Die Passwort-Anmeldung und das Einspielen
+(`play`) fehlen noch. Beim Beenden wartet `record`
 ohne Frist auf laufende Anfragen; was das im Container bedeutet, sagt das
 Benutzerhandbuch.
 
