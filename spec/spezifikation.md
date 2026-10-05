@@ -44,6 +44,18 @@ pgwire-recorder version
 
 Globale Hilfetexte sind über `--help` beziehungsweise `-h` verfügbar.
 
+**Hilfe vor Prüfung.** Steht unter den Argumenten eines Kommandos `--help` oder
+`-h` (auch `-help`, mit oder ohne `=`-Wert), gibt das Programm die Hilfe auf
+`stdout` aus und endet mit Exit-Code `0`. Es prüft dann nichts weiter: keine
+Option, auch keine unbekannte oder ungültige und keine fehlende Pflichtoption,
+gleich ob vor oder nach der Hilfe-Angabe, keine Umgebungsvariable und keine
+Konfigurationsdatei (LH-FA-17.a). Das gilt für jedes Kommando und ohne Kommando.
+Ein Argument, das wörtlich `--help` oder `-h` lautet, ist immer die
+Hilfe-Angabe, auch an der Stelle eines Optionswerts; ein solcher Wert geht nur
+mit `=` (`--input=--help`). Nach `--` ist es ein gewöhnliches Argument.
+`version` liest weder Umgebungsvariablen noch Konfigurationsdatei; eine Option
+`--version` gibt es nicht (`PGR-E2001`).
+
 **Fehlermodi:** ungültige CLI-Verwendung → Exit-Code `2` (`SPEC-014`).
 
 ---
@@ -673,7 +685,8 @@ mehrfach, gilt die letzte Angabe. Die Umgebungsvariable einer Option, die das
 Kommando nicht kennt, bleibt unbeachtet. Geprüft wird jeder gesetzte Wert einer
 Option des Kommandos, unabhängig von der Priorität: Eine gesetzte
 Umgebungsvariable mit ungültigem Wert ist `PGR-E2001`, auch wenn die Kommandozeile
-dieselbe Option setzt und damit vorgeht. Das **Passwort** hat eine eigene Regel: Es kommt
+dieselbe Option setzt und damit vorgeht. Fordert der Aufruf die Hilfe an, wird
+keine Quelle gelesen oder geprüft (LH-FA-01.a). Das **Passwort** hat eine eigene Regel: Es kommt
 aus dem Passwort der benutzten benannten Verbindung (nur als Platzhalter `${VAR}`),
 sonst aus `PGWIRE_RECORDER_PASSWORD`; eine Option dafür gibt es nicht.
 
@@ -1661,3 +1674,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Replay: vertikaler Tabulator als Leerraum einer Lebendprüfung erst ab PostgreSQL 17, nach `server_version` der Session, vor der Zuordnung nicht (`LH-FA-09.a`); Startfehler bei Sessions nur aus Lebendprüfungen (`LH-FA-03.a`); Einspielen und `connection` bei Sessions nur aus Lebendprüfungen (`LH-FA-12.a`) |
 | 2026-10-05 | Replay: verbraucht, Zeitpunkte der Prüfung, Meldung je Session und für nie zugeordnete Sessions, Rangfolge und keine Zustellung von `PGR-E5002`, Option bei anderen Kommandos (`LH-FA-03.b`, `LH-FA-13.b`); Konfiguration: Werte boolescher Optionen, leere Umgebungsvariable, Mehrfachangabe, Umgebungsvariable einer fremden Option (`LH-FA-17.a`); `PGR-W2001` auch für nie zugeordnete Sessions (`SPEC-034`) |
 | 2026-10-05 | Konfiguration: ungültige Umgebungsvariable ist ein Fehler, auch wenn die Kommandozeile dieselbe Option setzt (`LH-FA-17.a`) |
+| 2026-10-05 | Hilfe geht jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei vor; `version` liest keine Konfiguration (`LH-FA-01.a`, `LH-FA-17.a`) |

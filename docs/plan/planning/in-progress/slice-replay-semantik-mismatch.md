@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
 
-**Berührte Spec-Stellen:** `LH-FA-03.b` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-10.a` · `SPEC-012` · `SPEC-018` · `SPEC-034` · `ARC-002` · `ARC-006`
+**Berührte Spec-Stellen:** `LH-FA-01.a` · `LH-FA-03.b` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-10.a` · `SPEC-012` · `SPEC-018` · `SPEC-034` · `ARC-002` · `ARC-006`
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -124,6 +124,7 @@ dasteht.
 - Konfigurationsweg: Option und Umgebungsvariable, CLI vor Umgebungsvariable; Schlüssel der Konfigurationsdatei mit `slice-v1-abschluss-betrieb` — Optionstabelle in `LH-FA-17.a`, §1.
 - Werte: ohne Wert `true`; `=true`/`=false`; jeder andere Wert, auch leer und `1`, `PGR-E2001`; leere Umgebungsvariable gilt als nicht gesetzt; mehrfach auf der Kommandozeile gilt die letzte Angabe — `LH-FA-17.a`.
 - Ungültige Umgebungsvariable neben gesetzter Option (etwa `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED=1` mit `--fail-on-unconsumed=false`): `PGR-E2001`, Startfehler mit Exit-Code `2`, obwohl die Kommandozeile vorgeht; jeder gesetzte Wert wird geprüft — `LH-FA-17.a`. Vorgabe an den Implementer (Randform-Rückgabe, Stand 6e8d2dd): Verhalten bleibt, wie der Code es heute liest; dazu ein Test, der mit ungültiger Variable und gesetzter Option `PGR-E2001` erwartet und rot wird, wenn die Variable bei gesetzter Option übersprungen wird; daneben bleibt geprüft, dass eine leere Variable nicht gesetzt ist.
+- Hilfe neben ungültiger Konfiguration (F-382; etwa `replay --help` mit `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED=1`, ebenso `replay --bogus --help` oder `replay --fail-on-unconsumed=1 -h`): Hilfe auf `stdout`, Exit-Code `0`, keine Prüfung von Optionen, Umgebungsvariablen oder Konfigurationsdatei — `LH-FA-01.a` §Hilfe vor Prüfung, `LH-FA-17.a`. Vorgabe an den Implementer: Der Parser erkennt die Hilfe-Angabe vor jeder Prüfung (vor dem Lesen der Variable und vor `fs.Parse`); Tests je Kommando `record` und `replay`: Hilfe mit ungültiger Variable, mit unbekannter Option vor der Hilfe-Angabe und mit ungültigem Optionswert erwartet Hilfe und Exit-Code `0`; rot, wenn die Variable vor der Hilfe geprüft wird (heutiger Stand) oder `fs.Parse` zuerst an der unbekannten Option scheitert; dazu `--input=--help` als Wert und `--` vor `--help` ohne Hilfe.
 
 ## 7. Closure-Notiz
 
