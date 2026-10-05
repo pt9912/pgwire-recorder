@@ -133,6 +133,23 @@ func TestParseFailOnUnconsumedUmgebung(t *testing.T) {
 	}
 }
 
+// Abdeckung: LH-FA-17/Negative — eine gesetzte
+// PGWIRE_RECORDER_FAIL_ON_UNCONSUMED mit ungültigem Wert ist PGR-E2001, auch
+// wenn die Kommandozeile die Option setzt; eine leere gilt daneben als nicht
+// gesetzt.
+func TestParseFailOnUnconsumedUmgebungNebenOption(t *testing.T) {
+	for _, args := range [][]string{{"--fail-on-unconsumed"}, {"--fail-on-unconsumed=true"}, {"--fail-on-unconsumed=false"}} {
+		t.Setenv(envFailOnUnconsumed, "1")
+		if _, err := replayFail(args...); !istUsage(err) {
+			t.Errorf("Umgebung \"1\", %v: erwartet %s, erhalten %v", args, model.CodeUsage, err)
+		}
+		t.Setenv(envFailOnUnconsumed, "")
+		if _, err := replayFail(args...); err != nil {
+			t.Errorf("leere Umgebung, %v: %v", args, err)
+		}
+	}
+}
+
 // Abdeckung: LH-FA-17/Negative, LH-FA-03/Negative — record kennt
 // --fail-on-unconsumed nicht (PGR-E2001) und lässt ihre Umgebungsvariable
 // unbeachtet, auch mit ungültigem Wert.
