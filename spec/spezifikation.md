@@ -44,15 +44,23 @@ pgwire-recorder version
 
 Globale Hilfetexte sind über `--help` beziehungsweise `-h` verfügbar.
 
-**Hilfe vor Prüfung.** Steht unter den Argumenten eines Kommandos `--help` oder
-`-h` (auch `-help`, mit oder ohne `=`-Wert), gibt das Programm die Hilfe auf
-`stdout` aus und endet mit Exit-Code `0`. Es prüft dann nichts weiter: keine
-Option, auch keine unbekannte oder ungültige und keine fehlende Pflichtoption,
-gleich ob vor oder nach der Hilfe-Angabe, keine Umgebungsvariable und keine
-Konfigurationsdatei (LH-FA-17.a). Das gilt für jedes Kommando und ohne Kommando.
-Ein Argument, das wörtlich `--help` oder `-h` lautet, ist immer die
-Hilfe-Angabe, auch an der Stelle eines Optionswerts; ein solcher Wert geht nur
-mit `=` (`--input=--help`). Nach `--` ist es ein gewöhnliches Argument.
+**Hilfe vor Prüfung.** Eine *Hilfe-Angabe* ist ein Argument, das genau eine der
+vier Formen `-h`, `--h`, `-help` oder `--help` lautet, ohne oder mit `=` und
+beliebigem Wert dahinter, auch leerem oder `false` (`--help=`, `-h=x`,
+`-help=false` sind Hilfe-Angaben); andere Schreibweisen (`---help`, `-H`,
+`--Help`) sind es nicht. Die Liste ist abgeschlossen. Steht unter den Argumenten
+vor einem `--` eine Hilfe-Angabe, an welcher Stelle auch immer, gibt das
+Programm die Hilfe auf `stdout` aus und endet mit Exit-Code `0`; das gilt auch
+vor dem Kommando (`--listen x --help`), ohne Kommando und nach einem unbekannten
+Kommando (`bogus --help`). Ist das erste Argument ein bekanntes Kommando, ist es
+dessen Hilfe, sonst die globale. Es prüft dann nichts weiter: kein Kommando,
+keine Option, auch keine unbekannte oder ungültige und keine fehlende
+Pflichtoption, gleich ob vor oder nach der Hilfe-Angabe, keine
+Umgebungsvariable und keine Konfigurationsdatei (LH-FA-17.a). Eine Hilfe-Angabe
+an der Stelle eines Optionswerts ist die Hilfe, nicht der Wert (`--input -help`
+gibt die Hilfe aus); ein solcher Wert geht nur mit `=` (`--input=--help`), denn
+eine Hilfe-Angabe ist nur ein ganzes Argument. Nach `--` ist sie ein
+gewöhnliches Argument.
 `version` liest weder Umgebungsvariablen noch Konfigurationsdatei; eine Option
 `--version` gibt es nicht (`PGR-E2001`).
 
@@ -1675,3 +1683,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Replay: verbraucht, Zeitpunkte der Prüfung, Meldung je Session und für nie zugeordnete Sessions, Rangfolge und keine Zustellung von `PGR-E5002`, Option bei anderen Kommandos (`LH-FA-03.b`, `LH-FA-13.b`); Konfiguration: Werte boolescher Optionen, leere Umgebungsvariable, Mehrfachangabe, Umgebungsvariable einer fremden Option (`LH-FA-17.a`); `PGR-W2001` auch für nie zugeordnete Sessions (`SPEC-034`) |
 | 2026-10-05 | Konfiguration: ungültige Umgebungsvariable ist ein Fehler, auch wenn die Kommandozeile dieselbe Option setzt (`LH-FA-17.a`) |
 | 2026-10-05 | Hilfe geht jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei vor; `version` liest keine Konfiguration (`LH-FA-01.a`, `LH-FA-17.a`) |
+| 2026-10-05 | Hilfe-Angabe abgeschlossen: vier Formen mit beliebigem `=`-Wert, auch an Wertstelle, vor dem Kommando und nach unbekanntem Kommando (`LH-FA-01.a`) |
