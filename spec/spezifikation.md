@@ -146,7 +146,8 @@ pgwire-recorder replay \
 4. Der Cursor zeigt auf die nächste erwartete Interaktion der zugeordneten
    Session; er beginnt am Anfang der Session. Stellt eine Verbindung eine
    Anfrage, zu der es keine nicht zugeordnete Session mehr gibt, ist das ein
-   Replay-Mismatch (`PGR-E5003`).
+   Replay-Mismatch (`PGR-E5003`); eine Lebendprüfung (LH-FA-09.a) ist dafür
+   keine Anfrage.
 
 ---
 
@@ -154,6 +155,10 @@ pgwire-recorder replay \
 
 Wird eine Replay-Session beendet, bevor alle ihr zugeordneten Interaktionen
 verbraucht wurden, oder wird eine aufgezeichnete Session nie verbunden, wird dies mindestens als Warnung mit dem Meldungscode `PGR-W2001` protokolliert (`SPEC-034`).
+
+Aufgezeichnete Lebendprüfungen (LH-FA-09.a) zählen dabei nicht zu den
+Interaktionen einer Session: Bleiben sie in der Wiedergabe aus, ist das keine
+nicht verbrauchte Interaktion, und die Warnung zählt nur die übrigen.
 
 Die Option `--fail-on-unconsumed` (Umgebungsvariable
 `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED`) wertet dies als Fehler: Die Verbindung
@@ -353,9 +358,11 @@ passen.
 
 **Schritte:**
 
-1. Der eingehende SQL-Text wird mit dem aufgezeichneten SQL-Text der
-   Interaktion am Cursor verglichen: `eingehender SQL-Text == aufgezeichneter
-   SQL-Text`.
+1. Ist die eingehende Anfrage eine Lebendprüfung (unten) und steht der Cursor
+   zwischen zwei Interaktionen, wird sie außerhalb der Reihe beantwortet, und
+   die Schritte 2 und 3 entfallen. Sonst wird der eingehende SQL-Text mit dem
+   aufgezeichneten SQL-Text der Interaktion am Cursor verglichen:
+   `eingehender SQL-Text == aufgezeichneter SQL-Text`.
 2. Bei Gleichheit werden die für die Interaktion aufgezeichneten
    Backend-Nachrichten in der gespeicherten Reihenfolge an den Client gesendet
    und der Cursor rückt vor.
@@ -365,9 +372,44 @@ Der Vergleich erfolgt byte- beziehungsweise stringgenau nach der
 PGWire-Dekodierung. v1 normalisiert SQL nicht. Insbesondere werden nicht
 automatisch ignoriert: Whitespace-Unterschiede, Kommentare,
 Groß-/Kleinschreibung, Literalwerte und semantisch äquivalente SQL-Varianten.
+Die einzige Ausnahme ist die Lebendprüfung.
 
 Mehrfach identische Queries werden über die Position am Cursor zugeordnet; jede
 aufgezeichnete Interaktion wird höchstens einmal verbraucht.
+
+**Lebendprüfung.** Connection-Pools und Treiber prüfen eine ruhende Verbindung
+mit einer Anfrage ohne Anweisung, etwa `-- ping`.
+
+* *Definition.* Eine Lebendprüfung ist eine `Query`, deren SQL-Text nach den
+  lexikalischen Regeln von PostgreSQL nur aus Leerraum, Zeilenkommentaren und
+  geschlossenen Blockkommentaren besteht; der leere Text zählt dazu. Leerraum
+  sind die Zeichen Leerzeichen, Tabulator (`\t`), Zeilenvorschub (`\n`),
+  Wagenrücklauf (`\r`), Seitenvorschub (`\f`) und vertikaler Tabulator (`\v`).
+  Ein Zeilenkommentar beginnt mit `--` und reicht bis zum nächsten `\n` oder
+  `\r` oder bis zum Ende des Texts. Ein Blockkommentar beginnt mit `/*` und
+  endet mit dem dazu passenden `*/`; Blockkommentare sind verschachtelt, jedes
+  `/*` darin öffnet eine weitere Ebene, und innerhalb eines Blockkommentars hat
+  `--` keine Bedeutung. Keine Lebendprüfung ist ein Text mit einem nicht
+  geschlossenen Blockkommentar oder mit einem anderen Zeichen, auch einem
+  einzelnen `;` oder einem Leerraum außerhalb von ASCII. Die Klasse ist
+  lexikalisch und gilt für jede solche Anfrage, gleich wozu sie gesendet wird.
+* *Antwort.* Zwischen zwei Interaktionen, auch vor der ersten und nach der
+  letzten der Session, beantwortet das Replay eine Lebendprüfung mit
+  `EmptyQueryResponse` und `ReadyForQuery`, wie PostgreSQL. Der Cursor bleibt
+  stehen, und die Lebendprüfung löst keine Session-Zuordnung aus
+  (LH-FA-12.a). Das `ReadyForQuery` trägt den Transaktionsstatus des letzten
+  `ReadyForQuery`, das das Replay auf dieser Verbindung gesendet hat, nach dem
+  Handshake `I`. Mitten in einer Extended-Interaktion ist eine Lebendprüfung
+  eine Abweichung (LH-FA-18.a).
+* *Aufgezeichnete Lebendprüfungen.* Das Replay liest eine Aufzeichnung so, als
+  stünden die Interaktionen mit einer Lebendprüfung als Anfrage nicht darin: Der
+  Cursor überspringt sie, für die Session-Zuordnung (LH-FA-12.a) und die nicht
+  verbrauchten Interaktionen (LH-FA-03.b) zählen sie nicht, und ihre
+  aufgezeichneten Antworten verwendet es nicht. Eine Aufzeichnung, deren
+  Sessions nur Lebendprüfungen enthalten, enthält damit keine Session mit
+  Interaktion (`PGR-E3004`, LH-FA-03.a). Diagnosen nennen weiter die
+  aufgezeichnete Interaktionsnummer (`sequence`). Record und Einspielen
+  behandeln Lebendprüfungen wie jede andere Anfrage.
 
 ---
 
@@ -382,7 +424,8 @@ Bei einem Mismatch enthält die Diagnose mindestens:
 
 Der Recorder springt nicht zur nächsten Interaktion und führt keine Fuzzy-Suche
 durch. Sendet ein Client weitere Anfragen, obwohl keine aufgezeichnete
-Interaktion mehr verfügbar ist, wird dies als Replay-Mismatch behandelt.
+Interaktion mehr verfügbar ist, wird dies als Replay-Mismatch behandelt; eine
+Lebendprüfung beantwortet das Replay auch dann (LH-FA-09.a).
 
 **Fehlermodi:** Replay-Mismatch → Exit-Code `5` (`SPEC-018`).
 
@@ -432,7 +475,13 @@ Nutzung hängt sie von der Reihenfolge der Verbindungen beziehungsweise der erst
 Anfragen ab und ist nicht zugesichert. Eine Anfrage einer Verbindung, zu der es keine
 nicht zugeordnete Session mehr gibt, ist ein Replay-Mismatch (`PGR-E5003`). Eine
 Session mit Interaktionen, die nie zugeordnet wird, gilt als nicht verbraucht
-(LH-FA-03.b). Das Einspielen (`play`) führt Sessions ohne Interaktion nicht aus.
+(LH-FA-03.b).
+
+Eine Lebendprüfung (LH-FA-09.a) ist für die Zuordnung keine Anfrage: Sie löst
+keine Zuordnung aus, auch nicht, wenn keine Session mehr frei ist, und eine
+Verbindung, die nur Lebendprüfungen stellt, ist eine Verbindung ohne Anfrage.
+Eine Session, deren Interaktionen alle Lebendprüfungen sind, ist eine Session
+ohne Interaktion; bei `first-request` wird sie übersprungen. Das Einspielen (`play`) führt Sessions ohne Interaktion nicht aus.
 
 ---
 
@@ -750,6 +799,15 @@ Matching ist strict sequential wie in LH-FA-09.a; Namen werden nicht
 normalisiert. Ein Client, der nichtdeterministische Statement-Namen erzeugt,
 passt deshalb nicht zur Aufzeichnung (Mismatch, `PGR-E5001`); das ist eine
 bekannte Grenze von v1.
+
+Eine Client-Nachricht der falschen Protokollart am Cursor ist ein Mismatch
+(`PGR-E5001`): eine Extended-Nachricht, wo eine einfache Anfrage erwartet wird,
+und eine `Query`, wo eine Extended-Interaktion erwartet wird. Dazu gehört jede
+`Query` mitten in einer Extended-Interaktion, also nach deren erster Nachricht
+und vor deren `Sync`, auch eine Lebendprüfung. Ausgenommen ist nur eine
+Lebendprüfung zwischen zwei Interaktionen (LH-FA-09.a), auch wenn am Cursor eine
+Extended-Interaktion steht. Ein `Parse` mit leerem SQL-Text ist keine
+Lebendprüfung und wird verglichen wie jede andere Nachricht.
 
 **Fehler.** Nach einer `ErrorResponse` verwirft ein Server Nachrichten bis zum
 nächsten `Sync`. Die Aufzeichnung enthält die empfangenen Client-Nachrichten
@@ -1255,7 +1313,7 @@ Sensor bemerkt, wenn eine umbenannt wird.
 | `SPEC-008` | Präfix der Umgebungsvariablen | `PGWIRE_RECORDER_` | eindeutiger Namensraum (LH-FA-17) |
 | `SPEC-009` | Dateiendung des Recordings | `.yaml` (Format `yaml`), `.sqlite` üblich (Format `sqlite`); die Endung hat keine Bedeutung für die Erkennung | menschenlesbar, diff-freundlich (LH-FA-07) |
 | `SPEC-010` | Formatkennung / Formatversion | `pgwire-recorder` / `1` | Erkennbarkeit inkompatibler Änderungen (LH-QA-06) |
-| `SPEC-011` | Replay-Matching | strict sequential (einziges Verfahren in v1) | Determinismus (LH-FA-09, LH-QA-01) |
+| `SPEC-011` | Replay-Matching | strict sequential (einziges Verfahren in v1); Lebendprüfungen außerhalb der Reihe (LH-FA-09.a) | Determinismus (LH-FA-09, LH-QA-01); eine Lebendprüfung ändert den Zustand der Session nicht |
 | `SPEC-012` | `--fail-on-unconsumed` | `false` | nicht verbrauchte Interaktionen sind standardmäßig eine Warnung; Query-Mismatches bleiben immer Fehler (LH-FA-10) |
 | `SPEC-045` | Höchstlänge der ersten Client-Nachricht | 10000 Bytes | eine längere erste Nachricht ist keine PGWire-Startnachricht (LH-FA-05.e) |
 | `SPEC-046` | `--shutdown-timeout` | `5s` | liegt unter der üblichen Stopp-Frist von Containern (10 s vor `SIGKILL`), sodass das Recording geschrieben wird (LH-FA-13) |
@@ -1532,3 +1590,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Herunterfahren: danach beginnt keine neue Interaktion, die Session endet nach der laufenden (`LH-FA-13.a`); Ende einer Session schließt die Client-Verbindung (`LH-FA-18.a`) |
 | 2026-10-05 | Herunterfahren: eine Client-Nachricht um das Signal herum wird entweder noch verarbeitet oder nicht weitergeleitet, statt an den Lesestand beim Beginn gebunden (`LH-FA-13.a`) |
 | 2026-10-05 | Herunterfahren: Frist `--shutdown-timeout` ab dem ersten Signal, Zwangsende mit `PGR-E4006`, weiteres Signal lässt die Frist ablaufen, Info-Zeile beim Beginn (`LH-FA-13.a`, `SPEC-046`) |
+| 2026-10-05 | Replay: Lebendprüfungen außerhalb der Reihe beantwortet, aufgezeichnete übersprungen (`LH-FA-09.a`, `LH-FA-03.a`, `LH-FA-03.b`, `LH-FA-10.a`, `LH-FA-12.a`, `SPEC-011`); falsche Protokollart am Cursor, auch mitten in einer Extended-Interaktion, ist ein Mismatch (`LH-FA-18.a`) |
