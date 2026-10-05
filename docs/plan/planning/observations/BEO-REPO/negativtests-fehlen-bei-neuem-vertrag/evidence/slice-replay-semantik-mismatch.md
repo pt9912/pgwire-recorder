@@ -1,0 +1,2 @@
+**Vorgang:** slice-replay-semantik-mismatch
+**Fund:** Die Zusage „`Sent` meldet die Antworten dieser Verbindung“ war nur mit einer Verbindung geprüft, die Mutation „`Sent` setzt alle Verbindungen zurück“ blieb grün (Review M6, F-385; behoben mit `TestReplaySentJeVerbindung`, VM21 rot). Die `play`-Zusage hatte keinen Test (F-384, an `slice-v1-abschluss-einspielen`). Die Zusage zu `version` und `--version` in `LH-FA-01.a` (235b9d1) hatte keinen Test (V-49; `TestParseVersion`, `TestRunVersion` in 29d02a1, Mutation nur vom Implementer gefahren).

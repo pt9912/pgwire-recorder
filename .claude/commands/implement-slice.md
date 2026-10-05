@@ -158,6 +158,14 @@ Der Slice bleibt in `in-progress/`; weiter geht es erst nach der Entscheidung.
     (`AGENTS.md` §3.10, seit welle-extended-query): je Zusage ein Test, der die Mutation
     fängt, und die Mutation fährst du selbst, bevor du übergibst — im Bericht je Zeile
     Zusage · Mutation · roter Test.
+    **Der Mutant muss im Build ankommen** (seit slice-replay-semantik-mismatch): Ein Lauf
+    über den Docker-Build-Kontext (`make build`, `make test`, `make test-integration`)
+    überträgt eine Datei nicht neu, deren Größe und mtime dem zuletzt übertragenen Stand
+    desselben Pfads gleichen; `--no-cache` ändert daran nichts. Mutation und Zurücksetzen
+    also nie mit einem Werkzeug, das die mtime erhält (`cp -p`, `rsync -a`, `touch -r`,
+    Entpacken aus `tar` oder `git archive` in denselben Pfad); nach jeder Änderung `touch`
+    auf die Datei, oder je Mutant ein frischer Pfad, oder die Tests per Bind-Mount statt
+    Build-Kontext. Der Bericht nennt den Weg.
 20. **Jeden in diesem Lauf neu geschriebenen oder geänderten Kommentar gegen `AGENTS.md` §3.7
     prüfen** (Code, Konfiguration, Skripte). Die Probe: beschreibt der Satz den **Ist-Zustand**
     (indikativ, auflösbar), oder trägt er eine Slice-Nummer als Begründung, ein „(… , entschieden)"

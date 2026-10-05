@@ -1,0 +1,2 @@
+**Vorgang:** slice-replay-semantik-mismatch
+**Fund:** Die neuen Abdeckungs-Deklarationen machten `LH-FA-03` und `LH-FA-17` „vollständig“, obwohl die deklarierten Tests die Kriterien des Lastenhefts verfehlten, etwa die Boundary von `LH-FA-03` und Konfigurationsdatei, `play` und `config show` bei `LH-FA-17` (Review F-383; behoben in a205cbc, Rest V-51 an `slice-v1-abschluss-betrieb`). Dazu sagte das Handbuch nach 4e0aab0 weiter „die Option geht ihr vor“ (F-387, laut Zeile *Register* der Negativbefunde; die Summary-Zeile nennt keinen Eintrag).
