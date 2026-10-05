@@ -491,8 +491,10 @@ func TestReplayExtendedDiagnoseArt(t *testing.T) {
 	if want := `erwartet Anfrage "SELECT 7", empfangen Client-Nachricht parse (Anweisung "SELECT 42")`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
 		t.Errorf("P4b: %v", err)
 	}
-	_, err = s.ClientMessage(ctx, id, bind("s1"))
-	if want := `empfangen Client-Nachricht bind (Anweisung unbekannt)`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
+	_, err = s.ClientMessage(ctx, id, bind("s1", text("geheim-art")))
+	if want := `empfangen Client-Nachricht bind (Anweisung unbekannt)`; strings.Contains(err.Error(), "geheim-art") || strings.Contains(err.Error(), "103 101 104") {
+		t.Errorf("P4b bind nennt den Parameterwert: %v", err)
+	} else if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
 		t.Errorf("P4b bind: %v", err)
 	}
 
@@ -513,8 +515,10 @@ func TestReplayExtendedDiagnoseArt(t *testing.T) {
 	if want := `keine aufgezeichnete Interaktion mehr nach 1; empfangen Client-Nachricht parse (Anweisung "SELECT 42")`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
 		t.Errorf("P4c: %v", err)
 	}
-	_, err = s.ClientMessage(ctx, id, bind("s1"))
-	if want := `empfangen Client-Nachricht bind (Anweisung "SELECT 1")`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
+	_, err = s.ClientMessage(ctx, id, bind("s1", text("geheim-ende")))
+	if want := `empfangen Client-Nachricht bind (Anweisung "SELECT 1")`; strings.Contains(err.Error(), "geheim-ende") || strings.Contains(err.Error(), "103 101 104") {
+		t.Errorf("P4c bind nennt den Parameterwert: %v", err)
+	} else if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
 		t.Errorf("P4c bind: %v", err)
 	}
 }

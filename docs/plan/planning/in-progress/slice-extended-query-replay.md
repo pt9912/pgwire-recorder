@@ -75,7 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/test/run-integration-tests.sh` | update | Kopfkommentar: die erste Phase schreibt mehrere Aufzeichnungen |
 | `docs/user/abdeckung-*.md`, `README.md` | update | Abdeckungstabellen (`make abdeckung`); Stand der Wiedergabe |
 | `docs/plan/planning/open/slice-replay-semantik-mismatch.md`, `docs/plan/planning/welle-replay-semantik.md`, `docs/plan/planning/open/slice-v1-abschluss-betrieb.md` | update | Betrieb: Frist auch für `replay`; Mismatch: Ziel, DoD und Plan nennen nur noch `--fail-on-unconsumed`; „Bereits geliefert“ nennt die Diagnose der Extended-Abweichung |
-| `docs/reviews/` (Review, drei Folge-Reviews, Verifikation zu `slice-extended-query-replay`) | new | Berichte der Review- und Verifikationsrollen, Belege der Korrekturen |
+| `docs/reviews/` (Review, vier Folge-Reviews, Verifikation, Validierung zu `slice-extended-query-replay`) | new | Berichte der Review- und Verifikationsrollen, Belege der Korrekturen |
 
 ## 4. Trigger
 
