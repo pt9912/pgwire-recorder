@@ -75,7 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/services/replay_test.go` | update | Test für die Typprüfung des Matchers: Extended-Interaktion am Cursor gegen einfache Anfrage, auch die leere |
 | `docs/user/abdeckung-*.md` | update | `make abdeckung` nach der neuen Deklaration (`LH-FA-07`/Negative) |
 | `docs/plan/planning/done/slice-extended-query-record.md` | update | Format-Punkt ist hier geliefert (`AGENTS.md` §3.9); DoD-Punkt ersetzt, Risiken zur Feldbelegung und zum Schreiben ohne `Validate` übergeben |
-| `docs/plan/planning/next/slice-extended-query-replay.md` | update | Risiko nil gegenüber leerer Liste übergeben (`AGENTS.md` §3.9) |
+| `docs/plan/planning/in-progress/slice-extended-query-replay.md` | update | Risiko nil gegenüber leerer Liste übergeben (`AGENTS.md` §3.9) |
 | `docs/plan/planning/open/slice-v1-abschluss-zeitangaben.md` | update | Rückführungs-Trigger folgt F-300: schon ein neues optionales Feld erhöht `version` (`AGENTS.md` §3.9) |
 | `docs/reviews/2026-10-04-review-slice-extended-query-modell.md`, `docs/reviews/2026-10-04-verifikation-slice-extended-query-modell.md`, `docs/reviews/2026-10-04-folge-review-slice-extended-query-modell.md`, `docs/reviews/2026-10-04-mutationen-slice-extended-query-modell.md` | neu | Review-Report, Verifikationsbericht, Folge-Review; Mutationstabelle für den Verifier |
 | `docs/plan/planning/observations/BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/evidence/slice-extended-query-modell.md`, `docs/plan/planning/observations/BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/evidence/slice-extended-query-modell.md` | neu | Beleg je Klasse aus dem Review |

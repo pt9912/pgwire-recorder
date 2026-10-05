@@ -89,7 +89,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/reviews/2026-10-05-mutationen-slice-extended-query-record.md` | new | Mutationstabelle (Runden eins bis drei und Nachtrag aus der Verifikation) |
 | `docs/reviews/2026-10-05-review-slice-extended-query-record.md`, `docs/reviews/2026-10-05-folge-review-slice-extended-query-record.md`, `docs/reviews/2026-10-05-verifikation-slice-extended-query-record.md` | new | Review, Folge-Review und Verifikation, mitcommittet |
 | `docs/plan/adr/0030-full-duplex-im-record-pfad.md`, `docs/plan/adr/README.md` | new, update | [ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md) und ADR-Index, mitcommittet |
-| `docs/plan/planning/next/slice-extended-query-replay.md` | update | Folge-Slice: §1 (geliefert, `replaySitzung`), §6 (Risiko aus F-308) |
+| `docs/plan/planning/in-progress/slice-extended-query-replay.md` | update | Folge-Slice: §1 (geliefert, `replaySitzung`), §6 (Risiko aus F-308) |
 | `docs/plan/planning/observations/BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/evidence/slice-extended-query-record.md`, `…/spec-randform-erst-im-review-entschieden/evidence/slice-extended-query-record.md`, `…/zusage-im-kommentar-weiter-als-pruefung/evidence/slice-extended-query-record.md`, `…/plan-folgt-korrektur-nicht/evidence/slice-extended-query-record.md` | new | Register-Belege (F-301/F-303/F-313/V-22, F-305/F-311/F-317/F-318/Validierung, F-311/F-319/V-22, F-307/F-315/V-23) |
 | `docs/reviews/2026-10-05-validierung-slice-extended-query-record.md` | new | Validierung (Herunterfahren), mitcommittet bei Closure |
 | `docs/plan/planning/open/slice-v1-abschluss-betrieb.md` | update | Folge-Slice: Frist für das Herunterfahren in §1 und §6 (F-309, F-317, Validierung Frage 1) |
