@@ -445,8 +445,9 @@ Windows entspricht der Konsolenabbruch (`Strg+C`, `Strg+Break`) einem `SIGINT`:
 - laufende Schreiboperationen soweit möglich abschließen,
 - Sessions, die noch laufen, nach Abschluss ihrer laufenden Interaktion
   beenden; eine nicht abgeschlossene Interaktion wird nicht übernommen
-  (LH-FA-02.b). Eine Client-Nachricht, die beim Beginn des Herunterfahrens
-  schon vollständig gelesen ist, wird noch verarbeitet. Danach beginnt keine
+  (LH-FA-02.b). Eine Client-Nachricht, die um das Signal herum eintrifft, wird
+  entweder noch verarbeitet oder nicht weitergeleitet; aufgezeichnet wird sie
+  nur mit ihrer abgeschlossenen Interaktion. Danach beginnt keine
   neue Interaktion: Eine Client-Nachricht, die eine neue begänne (eine `Query`
   oder eine Nachricht nach dem `Sync` einer Extended-Interaktion), wird nicht
   weitergeleitet, und die Session endet regulär nach der laufenden Interaktion;
@@ -1516,3 +1517,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Extended Query im Record: Server-Nachrichten nach der nächsten Client-Nachricht gehören zur folgenden Gruppe; Herunterfahren nach dem `ReadyForQuery` der laufenden Extended-Interaktion; `Query` während einer laufenden Extended-Interaktion, Zielart außer `S`/`P` und Interaktionen ohne die Form der Aufzeichnung sind nicht unterstützt (`LH-FA-18.a`) |
 | 2026-10-05 | Record: beide Richtungen unabhängig vermittelt, Ende der Client-Verbindung beim Senden an oder Warten auf den Server (`LH-FA-18.a`); beim Herunterfahren schon gelesene Client-Nachricht wird verarbeitet (`LH-FA-13.a`) |
 | 2026-10-05 | Herunterfahren: danach beginnt keine neue Interaktion, die Session endet nach der laufenden (`LH-FA-13.a`); Ende einer Session schließt die Client-Verbindung (`LH-FA-18.a`) |
+| 2026-10-05 | Herunterfahren: eine Client-Nachricht um das Signal herum wird entweder noch verarbeitet oder nicht weitergeleitet, statt an den Lesestand beim Beginn gebunden (`LH-FA-13.a`) |

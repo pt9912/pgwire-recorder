@@ -1,2 +1,3 @@
 **Vorgang:** slice-extended-query-record
 **Fund:** Der Kommentar an `RecordService.Shutdown` sagte zu, die Session ende nach dem `ReadyForQuery` der laufenden Interaktion; der Code nahm weiter neue Interaktionen an (Folge-Review F-311). Die Architektur-Sicht §5 sagte „ohne über einem blockierenden Port-Aufruf zu sperren“, während `CloseSession` das Schreiben der Aufzeichnung sitzungsübergreifend unter der Sperre hält (F-319).
+**Fund (Verifikation):** Die Kommentare an `beende` und `meldeFrist` sagten zu, die Fehlerantwort beim Ende werde höchstens eine Sekunde lang geschrieben; kein Test fing das (V-22).

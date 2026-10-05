@@ -1,0 +1,2 @@
+**Vorgang:** slice-extended-query-record
+**Fund:** Trotz `AGENTS.md` §3.9 folgte der Plan dem Code nicht: §1 begründete das Replay mit einer Schleife, die es nach dem Umbau nicht mehr gab (Review F-307); §4 vermerkte eine Rückführung als ausgelöst und aufgelöst, ohne den nicht vollzogenen Übergang zu begründen (Folge-Review F-315); §3 führte nach drei Commits nicht jede geänderte Datei (Verifikation V-23).

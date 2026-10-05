@@ -1,2 +1,3 @@
 **Vorgang:** slice-extended-query-record
 **Fund:** Ob eine beim Beginn des Herunterfahrens schon gelesene, noch nicht übergebene Client-Nachricht zur laufenden Interaktion zählt, entschied der Code still (sie wurde verworfen); `LH-FA-13.a` regelte es nicht (Review F-305, Entscheidung des Nutzers: sie wird verarbeitet).
+**Fund (Folge-Review, Verifikation, Validierung):** Weitere Randformen des Herunterfahrens und des Session-Endes entschied erst eine Prüfrunde: neue Interaktionen nach dem Beginn des Herunterfahrens (F-311, entschieden in `LH-FA-13.a`), Ende einer Session bei einem Client, der nicht liest (F-318, entschieden in `LH-FA-18.a`), der Beginn des Herunterfahrens als innerer Zeitpunkt (F-317, V-24; bei Closure in `LH-FA-13.a` beobachtbar gefasst).

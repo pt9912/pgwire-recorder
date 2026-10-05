@@ -17,10 +17,13 @@ im [Lastenheft](spec/lastenheft.md).
 ## Was kann ich heute tun?
 
 Das Projekt steht am Beginn der Umsetzung. `pgwire-recorder record` vermittelt
-einfache Anfragen zwischen einem Client und PostgreSQL und schreibt eine
-YAML-Aufzeichnung; `pgwire-recorder replay` beantwortet dieselben Anfragen daraus
-ohne Datenbank. Das erweiterte Protokoll, die Passwort-Anmeldung und das
-Einspielen fehlen noch.
+einfache Anfragen und das erweiterte Protokoll (vorbereitete Anweisungen, etwa
+von pgx im Standardmodus) zwischen einem Client und PostgreSQL und schreibt eine
+YAML-Aufzeichnung; `pgwire-recorder replay` beantwortet die einfachen Anfragen
+daraus ohne Datenbank. Die Wiedergabe des erweiterten Protokolls, die
+Passwort-Anmeldung und das Einspielen fehlen noch. Beim Beenden wartet `record`
+ohne Frist auf laufende Anfragen; was das im Container bedeutet, sagt das
+Benutzerhandbuch.
 
 - `make gates` läuft grün (Build, Unit- und Integrationstests über das
   `Dockerfile`, Abdeckungstabellen, Architekturregeln samt Gegenproben, Doku-Referenzen und vendored

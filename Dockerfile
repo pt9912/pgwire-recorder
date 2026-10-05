@@ -19,6 +19,7 @@ COPY . .
 
 # --- test: Formatierung (gofmt; nennt die nicht formatierten Dateien), vet
 # über allen Code einschließlich der Integrationstests, dazu die Unit-Tests.
+# Formatierung · seit slice-extended-query-record.
 FROM source AS test
 RUN --network=none f="$(gofmt -l .)" && { [ -z "$f" ] || { echo "nicht gofmt-formatiert:"; echo "$f"; exit 1; }; } \
  && go vet -tags integration ./... && go test -trimpath -buildvcs=false ./...

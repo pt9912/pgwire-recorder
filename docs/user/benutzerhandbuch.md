@@ -171,6 +171,34 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
   Sitzung aufgezeichnet. Verbindungen ohne Anfrage, zum Beispiel
   Probe-Verbindungen eines Connection-Pools, werden nur mit
   `--record-empty-sessions` aufgezeichnet.
+* Beim Beenden wartet das Werkzeug ohne Frist, bis jede Verbindung ihre laufende
+  Anfrage oder Folge abgeschlossen hat; erst dann schreibt es die Aufzeichnung
+  und endet. Läuft eine lange Anfrage, antwortet die Datenbank nicht, oder wartet
+  eine Folge des erweiterten Protokolls nach `Flush` auf ihr `Sync`, kann das
+  beliebig lange dauern. Das Werkzeug gibt dabei keine Meldung aus.
+* Ein zweites `Strg+C` oder `SIGTERM` beendet das Werkzeug sofort. Die
+  Aufzeichnung jeder Verbindung, die dann noch nicht beendet war, fehlt ganz,
+  auch mit ihren schon abgeschlossenen Anfragen; bereits beendete Verbindungen
+  bleiben erhalten.
+* Im Container gilt dasselbe für die Stopp-Frist des Laufzeitsystems: Nach ihr
+  (bei Docker 10 Sekunden) beendet es das Werkzeug hart (`SIGKILL`, Exit-Code
+  137), und jede noch wartende Verbindung fehlt in der Aufzeichnung. Wählen Sie
+  die Stopp-Frist länger als die längste Anfrage, die beim Beenden noch laufen
+  kann, in Docker Compose zum Beispiel mit `stop_grace_period`:
+
+  ```yaml
+  services:
+    recorder:
+      image: ghcr.io/pt9912/pgwire-recorder:<Version>
+      command:
+        - record
+        - --listen=0.0.0.0:5432
+        - --upstream=postgres:5432
+        - --output=/recordings/test.yaml
+      volumes:
+        - ./recordings:/recordings
+      stop_grace_period: 60s
+  ```
 
 ### Eine Aufzeichnung wiedergeben
 
@@ -429,6 +457,11 @@ Umgebungsvariablen vollständig steuern (siehe [Einstellungen](#5-einstellungen)
 2. Führen Sie Ihre Tests gegen die Adresse aus `--listen` aus.
 3. Beenden Sie das Werkzeug mit `SIGTERM`.
 4. Werten Sie den Exit-Code aus (siehe [Exit-Codes](#exit-codes)).
+
+Zeichnen Sie in der Testautomatisierung auf, lassen Sie die Tests vor dem
+`SIGTERM` zur Ruhe kommen: Beim Beenden wartet `record` ohne Frist auf laufende
+Anfragen (siehe [Eine Anwendung aufzeichnen](#eine-anwendung-aufzeichnen),
+Hinweise).
 
 Mit `--fail-on-unconsumed` wertet das Werkzeug es als Fehler, wenn ein Test
 nicht alle aufgezeichneten Anfragen ausführt.

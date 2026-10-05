@@ -31,6 +31,16 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Prozess fährt auf `SIGINT`/`SIGTERM` kontrolliert herunter, das Recording wird atomar geschrieben, `--output`/`--force` verhalten sich wie spezifiziert, und alle Optionen sind per CLI und Umgebungsvariable setzbar.
 
+**Übernommen aus `slice-extended-query-record`** (Risiko F-309/F-317, Validierung `docs/reviews/2026-10-05-validierung-slice-extended-query-record.md`, Frage 1): Das Herunterfahren bekommt eine Obergrenze. Heute wartet `record` ohne Frist auf die laufende Interaktion jeder Session; im Container beendet der `SIGKILL` nach der Stopp-Frist den Prozess, und die Aufzeichnung jeder noch wartenden Session fehlt ganz.
+
+- Frist, gezählt ab dem Signal, Default 5 s, setzbar per Option und Umgebungsvariable ([`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)); `0` heißt ohne Frist.
+- Nach Ablauf endet jede noch laufende Session zwangsweise wie bei einem Abbruch nach `LH-FA-02.b`: die laufende Interaktion wird nicht übernommen, die abgeschlossenen bleiben; danach wird die Aufzeichnung geschrieben.
+- Eigener Meldungscode der Klasse 4 (Vergabe nach `SPEC-034`, nicht `PGR-E4003`), Exit-Code `4`; das Log nennt je abgebrochener Session die Session und die verworfene Interaktion.
+- Ein zweites Signal lässt die Frist sofort ablaufen, statt den Prozess hart zu beenden.
+- Beim Beginn des Herunterfahrens eine Info-Zeile mit der Zahl der Sessions, auf die gewartet wird.
+
+Die Ergänzung von [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) Boundary (begrenzte, einstellbare Zeit für das kontrollierte Beenden) wartet auf die Bestätigung des Nutzers; erst danach folgen `LH-FA-13.a`, `LH-FA-13.b` und die Optionstabelle der Spezifikation. Ob der Gegenstand in DoD-Punkt 1 passt oder einen eigenen Slice der `welle-v1-abschluss` braucht, entscheidet der Schnitt nach dieser Bestätigung.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Container-Image — `slice-v1-abschluss-container`.
@@ -97,6 +107,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Atomarität des Verschiebens ist plattformabhängig ("bestmöglich atomar") — **Ausgang:** offen bis Closure.
+
+- Herunterfahren ohne Obergrenze (aus `slice-extended-query-record`, Review F-309, Folge-Review F-317, Validierung Frage 1): Eine Session mit laufender Interaktion — einfache Anfrage oder Extended-Interaktion ohne `Sync` — hält das Herunterfahren beliebig lange; der Container-Stopp verliert dann ihre Aufzeichnung ganz, ohne Log-Zeile und mit Exit-Code `137`. Gegenstand siehe §1; die Lastenheft-Änderung wartet auf die Bestätigung des Nutzers — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
