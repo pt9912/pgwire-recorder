@@ -65,6 +65,7 @@ Wenn ein verbreiteter Treiber Lebendprüfungen anders sendet (über das Extended
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-05 | Proposed | [Validierungsbeleg](../../reviews/2026-10-05-validierung-slice-extended-query-replay.md) |
+| 2026-10-05 | Accepted | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit
