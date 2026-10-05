@@ -31,7 +31,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Abnahmeszenario 6 ist für Simple Query end-to-end nachgewiesen, und die Randformen der Fehler- und Hinweisantworten stehen in der Spezifikation: Fehlerantworten, mehrzeilige und leere Ergebnismengen, Befehle ohne Zeilen, mehrere Ergebnisse einer Anfrage, `NoticeResponse`, `ParameterStatus` nach `SET` und der Transaktionsstatus im `ReadyForQuery` werden aufgezeichnet und in der aufgezeichneten Reihenfolge reproduziert.
 
-**Der Slice ist im Kern ein Test-Nachweis.** Record und Replay führen jede Serverantwort einer Interaktion schon als geordnete Liste (unten, „Bereits geliefert“); Produktionscode wird nicht erwartet. Neu als Vertrag sind nur drei Festlegungen der Spezifikation, die bestehendes Verhalten festschreiben (§6, Zeilen 1, 9 und 10): Weitergabe an den Client (`LH-FA-02.b`), Nachrichten zwischen Interaktionen (`LH-FA-05.a`), Diagnosefelder (`LH-FA-11.a`). Jede bekommt ihren Test mit Mutation (`AGENTS.md` §3.10). Zeigt ein Test eine Abweichung von der Spezifikation, ist die Korrektur im betroffenen Adapter Teil dieses Slice und wird in §3 nachgetragen.
+**Der Slice ist im Kern ein Test-Nachweis** (Zuschnitt vom Nutzer am 2026-10-05 bestätigt). Record und Replay führen jede Serverantwort einer Interaktion schon als geordnete Liste (unten, „Bereits geliefert“). Neu als Vertrag sind drei Festlegungen der Spezifikation, die bestehendes Verhalten festschreiben (§6, Zeilen 1, 9 und 10): Weitergabe an den Client (`LH-FA-02.b`), Nachrichten zwischen Interaktionen (`LH-FA-05.a`), Diagnosefelder (`LH-FA-11.a`). Dazu kommt eine Festlegung mit Produktionscode (§6, Zeile 11, Nutzerentscheid vom 2026-10-05): Eine Fehlerantwort, nach der der Upstream ohne `ReadyForQuery` abbricht, ist `PGR-E6001` statt `PGR-E4003` (`LH-FA-02.b` §Fehlerantwort vor dem Abbruch). Das ändert den Upstream-Adapter und den Record-Service. Jede Festlegung bekommt ihren Test mit Mutation (`AGENTS.md` §3.10). Zeigt ein Test eine Abweichung von der Spezifikation, ist die Korrektur im betroffenen Adapter Teil dieses Slice und wird in §3 nachgetragen.
 
 **Bereits geliefert** — mit Test:
 
@@ -61,7 +61,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-11`](../../../../spec/lastenheft.md#lh-fa-11--fehler-des-postgresql-servers): Abnahmeszenario 6 für Simple Query — eine einzelne Fehlerantwort, ein Fehler in der zweiten Anweisung einer Anfrage nach dem Ergebnis der ersten und ein Fehler in einer Transaktion mit `ReadyForQuery` im Status `E` und anschließendem `ROLLBACK` zeigen im Replay dieselbe Sicht des Clients (Ergebnisse, SQLSTATE, Meldung, Transaktionsstatus) wie beim Aufzeichnen und wie direkt gegen PostgreSQL; Abdeckung `LH-FA-11/Happy`, `LH-FA-11/Boundary` (E2E).
 - [ ] [`LH-FA-06`](../../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen): Simple Query — mehrzeilige und leere Ergebnismenge, Befehle ohne Zeilen (`CREATE TABLE`, `INSERT`, `UPDATE`), mehrere Ergebnismengen einer Anfrage, zwei `NoticeResponse` in ihrer Reihenfolge, `ParameterStatus` nach `SET` und ein Binärwert über einen Binär-Cursor (`SPEC-003`) erscheinen im Replay in Reihenfolge und Inhalt wie beim Aufzeichnen; Abdeckung `LH-FA-06/Happy`, `LH-FA-06/Boundary`, `LH-FA-12/Happy` (E2E).
-- [ ] Die drei Festlegungen aus §6 (Zeilen 1, 9, 10) mit je einem Test, der unter ihrer Mutation rot wird: Weitergabe (`LH-FA-02.b`) — `SELECT 1; COPY (SELECT 1) TO STDOUT` liefert dem Client kein Ergebnis, nur `PGR-E6001` (E2E); Nachrichten zwischen Interaktionen (`LH-FA-05.a`) — Unit-Test am Upstream-Adapter mit Fake-Server; Diagnosefelder (`LH-FA-11.a`) — Unit-Test am Upstream-Adapter mit rohen Bytes einer `ErrorResponse` mit leerem Feld und `P` = `0`.
+- [ ] Die drei Festlegungen aus §6 (Zeilen 1, 9, 10) mit je einem Test, der unter ihrer Mutation rot wird: Weitergabe (`LH-FA-02.b`) — `SELECT 1; COPY (SELECT 1) TO STDOUT` liefert dem Client kein Ergebnis, nur `PGR-E6001` (E2E); Nachrichten zwischen Interaktionen (`LH-FA-05.a`) — Unit-Test am Upstream-Adapter mit Fake-Server; Diagnosefelder (`LH-FA-11.a`) — Unit-Test am Upstream-Adapter mit rohen Bytes einer `ErrorResponse` mit leerem Feld und `P` = `0`; Fehlerantwort vor dem Abbruch (`LH-FA-02.b`) — `PGR-E6001` mit dem SQLSTATE des Servers statt `PGR-E4003`, Session nicht übernommen, auch im Extended Query Protocol (Unit-Tests am Upstream-Adapter mit Fake-Server und am Record-Service, Vorgabe in §6).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -82,9 +82,12 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `spec/spezifikation.md` | update (Architect, vor dem Code) | `LH-FA-02.b` Weitergabe an den Client, `LH-FA-05.a` Nachrichten zwischen Interaktionen, `LH-FA-11.a` Diagnosefelder — liegt im Commit des Architect |
 | `test/integration/` (neue Datei für einfache Anfragen) | add | DoD 1 und 2 sowie die Weitergabe aus DoD 3: Ablauf über record, replay und direkt gegen PostgreSQL, Sicht des Clients als Text verglichen (Muster `extendedAblauf`), mit Abdeckungs-Deklarationen |
-| `internal/adapters/driven/postgres/upstream_test.go` | update | DoD 3: Nachrichten zwischen Interaktionen und Diagnosefelder am Fake-Server |
-| `docs/user/abdeckung-*.md` | update | von `make abdeckung` aus den neuen Deklarationen geschrieben |
-| Produktionscode | — | keiner erwartet; zeigt ein Test eine Abweichung von der Spezifikation, wird die Korrektur hier mit Datei nachgetragen |
+| `internal/adapters/driven/postgres/upstream.go` | update | DoD 3: die Session merkt sich die letzte `ErrorResponse` seit dem letzten `ReadyForQuery`; endet die Verbindung davor, liefern `Query` und `Receive` `PGR-E6001` mit SQLSTATE und Meldung des Servers statt `PGR-E4003` |
+| `internal/adapters/driven/postgres/upstream_test.go` | update | DoD 3: Nachrichten zwischen Interaktionen, Diagnosefelder und Fehlerantwort vor dem Abbruch am Fake-Server |
+| `internal/hexagon/services/record.go` | update | DoD 3: `AwaitServer` markiert die Session bei `PGR-E6001` aus `Receive` als nicht übernehmbar, wie `Query` es schon tut (`LH-FA-05.a`) |
+| `internal/hexagon/services/record_extended_test.go` | update | DoD 3: `Receive` mit `PGR-E6001` nach einer übernommenen Interaktion — die Session wird nicht übernommen |
+| `docs/user/abdeckung-*.md` | update | von `make abdeckung` aus den neuen Deklarationen geschrieben, darunter `LH-FA-11/Negative` |
+| weiterer Produktionscode | — | keiner erwartet; zeigt ein Test eine Abweichung von der Spezifikation, wird die Korrektur hier mit Datei nachgetragen |
 
 ## 4. Trigger
 
@@ -128,7 +131,25 @@ dasteht.
 | 8 | mehrere Anweisungen in einer Anfrage, Fehler in der zweiten | eine Interaktion; Ergebnis der ersten, `ErrorResponse`, `ReadyForQuery` in Reihenfolge | `LH-FA-05.a`, `LH-FA-02.b`, `LH-FA-11.a` | E2E (DoD 1) |
 | 9 | Antworten auf dem Weg zum Client beim Aufzeichnen, auch `NoticeResponse`; nicht unterstützte Antwort nach Ergebnissen | Reihenfolge des Upstreams; ist eine Antwort nicht unterstützt, erhält der Client keine der Interaktion, nur `PGR-E6001` | `LH-FA-02.b` §Weitergabe | E2E (DoD 2, DoD 3) |
 | 10 | Diagnosefeld mit leerem Wert, Zahlenfeld `0` oder ohne Zahl, Reihenfolge der Felder | gilt als fehlend, wird weder aufgezeichnet noch gesendet; Reihenfolge nicht aufgezeichnet. Die Bibliothek unterscheidet beides nicht; das ist eine bisher nicht dokumentierte Lockerung der Folge aus [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md) („nicht verlustfrei heißt nicht unterstützt“), die nicht erkennbare Fälle betrifft und mit dieser Zeile dokumentiert ist | `LH-FA-11.a` §Diagnosefelder | Unit, Upstream-Adapter (DoD 3) |
-| 11 | `ErrorResponse` (etwa `FATAL`), nach der der Upstream die Verbindung ohne `ReadyForQuery` beendet | **offen — Nutzerentscheid vor dem Code.** Heute gilt `LH-FA-02.b`: unerwartetes Verbindungsende, `PGR-E4003`, Interaktion nicht übernommen. Alternative nach der Negative-Zeile von `LH-FA-11`: nicht unterstützt, `PGR-E6001`. Bis zur Entscheidung berührt der Implementer den Fall nicht | `LH-FA-02.b` (heute) | nach Entscheid in DoD 3 |
+| 11 | `ErrorResponse`, nach der der Upstream die Verbindung ohne `ReadyForQuery` beendet | nicht unterstützt, `PGR-E6001`, Exit-Code 6 (Nutzerentscheid 2026-10-05); ohne `ErrorResponse` davor bleibt es `PGR-E4003` | `LH-FA-02.b` §Fehlerantwort vor dem Abbruch, `LH-FA-11.a` | Unit (DoD 3, Vorgabe unten) |
+| 11a | Schweregrad `FATAL` gegenüber `ERROR` (auch `PANIC`) | zählt nicht, alle gleich | `LH-FA-02.b` §Fehlerantwort vor dem Abbruch, *Schweregrad* | Test b |
+| 11b | `ErrorResponse` mitten in der Antwortliste, nach Ergebnissen; als erste Antwort aus der Zeit zwischen zwei Interaktionen; `ErrorResponse` mit folgendem `ReadyForQuery` vor einer späteren Interaktion | jede Stelle zählt; zwischen Interaktionen gehört sie zur nächsten; nach einem `ReadyForQuery` zählt sie für spätere Interaktionen nicht; ohne weitere Anfrage endet die Session regulär | *Stelle* | Tests a, e, f |
+| 11c | Was der Client vor dem Abbruch erhält | einfache Anfrage: keine ihrer Antworten, nur `PGR-E6001`; Extended: schon weitergegebene Server-Nachrichten bleiben beim Client, danach `PGR-E6001`, soweit die Verbindung sie annimmt; der Meldungstext nennt SQLSTATE und Meldung der letzten `ErrorResponse` | *Client*, *Diagnose* | Tests a, d |
+| 11d | Was aufgezeichnet wird | nichts aus der Session, auch nicht ihre vorherigen Interaktionen (anders als bei `PGR-E4003`) | *Aufzeichnung*, `LH-FA-05.a` | Test g |
+| 11e | Replay einer solchen Interaktion | kommt nicht vor; eine Interaktion, die nicht mit `ready_for_query` endet, macht die Aufzeichnung beschädigt (`PGR-E3003`) | *Replay* | Bestand (`model.Interaction.Validate` beim Lesen) |
+
+**Vorgabe für Zeile 11 an den Implementer** — Verhalten, Test, Mutation (`AGENTS.md` §3.10):
+
+- *Verhalten.* Der Upstream-Adapter merkt sich je Session die letzte `ErrorResponse` seit dem letzten `ReadyForQuery` und vergisst sie mit jedem `ReadyForQuery`. Endet die Verbindung in `Query` oder `Receive` mit gemerkter `ErrorResponse`, liefert er `PGR-E6001` (Klasse nicht unterstützt) mit SQLSTATE und Meldung im Text, sonst wie bisher `PGR-E4003`. `RecordService.AwaitServer` setzt bei `PGR-E6001` die Session auf nicht übernehmbar, wie `Query` es tut.
+- *Tests* (Fake-Server mit `pgproto3.Backend` in `upstream_test.go`, außer g):
+  a. Einfache Anfrage: `RowDescription`, `DataRow`, `CommandComplete`, `ErrorResponse` mit `FATAL`/`57P01`, dann Schließen — `Query` liefert `PGR-E6001`, der Text enthält `57P01`.
+  b. Wie a, Schweregrad `ERROR` — ebenfalls `PGR-E6001`.
+  c. Schließen ohne `ErrorResponse` — `PGR-E4003`.
+  d. Extended: `Receive` liefert die `ErrorResponse`; der nächste `Receive` nach dem Schließen liefert `PGR-E6001` mit `57P01`.
+  e. Interaktion 1 mit `ErrorResponse` und `ReadyForQuery`, Interaktion 2 ohne Antwort geschlossen — `PGR-E4003`.
+  f. `ErrorResponse` vor der Anfrage gesendet (zwischen Interaktionen), dann Schließen — `Query` liefert `PGR-E6001`.
+  g. `record_extended_test.go`: Fake-`Receive` mit `PGR-E6001` nach einer übernommenen Interaktion — die Session steht nicht in der Aufzeichnung.
+- *Mutationen*, je selbst rot gesehen: Einordnung entfernt (immer `PGR-E4003`) → a, b, d, f rot · Prüfung auf `FATAL` beschränkt → b rot · Merker beim `ReadyForQuery` nicht zurückgesetzt → e rot · SQLSTATE nicht im Text → a, d rot · Markierung in `AwaitServer` entfernt → g rot.
 
 **Akzeptierte Negative** — entschieden, kein eigener Folgeauftrag:
 
@@ -138,6 +159,7 @@ dasteht.
 **Risiken:**
 
 - Nachrichten, die die Bibliothek nicht verlustfrei abbildet, sind als nicht unterstützt zu klassifizieren — für Diagnosefelder in `LH-FA-11.a` entschieden (Zeile 10), für Nachrichtentypen Bestand (`PGR-E6001`) — **Ausgang:** offen bis Closure.
+- `LH-FA-20.a` Schritt 3 und `LH-FA-24.a` §Unvollständige Aufzeichnung beschreiben Einspielen und Vergleich für aufgezeichnete Interaktionen ohne `ReadyForQuery`; nach Zeile 11e schreibt der Recorder keine, und der Leser lehnt sie ab. Die Zweige sind damit unerreichbar und gehören bereinigt, wenn `play` entsteht (`slice-v1-abschluss-einspielen`, `slice-v1-abschluss-antwortvergleich`); dieser Slice ändert sie nicht — **Ausgang:** offen bis Closure.
 - Ein Ablauf vergleicht Meldungstexte des Servers; ändern sie sich zwischen Läufen (etwa mit der Sprache oder einem Zeitstempel in der Meldung), wird der Vergleich instabil — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz

@@ -131,9 +131,35 @@ Eine Simple-Query-Interaktion gilt als abgeschlossen, sobald das zugehörige
 mit oder ohne `Terminate`, ist das regulär; die Session wird mit ihren
 abgeschlossenen Interaktionen übernommen. Bricht die Client- oder die
 Upstream-Verbindung vor dem `ReadyForQuery` einer laufenden Interaktion ab, ist
-das ein unerwartetes Verbindungsende (Verbindungsfehler, `PGR-E4003`); die
+das, ohne Fehlerantwort davor, ein unerwartetes Verbindungsende (Verbindungsfehler, `PGR-E4003`); die
 unvollständige Interaktion wird nicht in das Recording übernommen, die
 vorherigen Interaktionen der Session bleiben erhalten.
+
+**Fehlerantwort vor dem Abbruch.** Endet die Upstream-Verbindung vor dem
+`ReadyForQuery` einer laufenden Interaktion, nachdem der Upstream in dieser
+Interaktion eine `ErrorResponse` gesendet hat, ist die Interaktion nicht
+unterstützt (`PGR-E6001`, Exit-Code `6`, LH-FA-13.b):
+
+* *Schweregrad.* Er zählt nicht: `FATAL`, `PANIC` und `ERROR` gelten gleich.
+* *Stelle.* Die `ErrorResponse` darf an jeder Stelle der Antworten stehen, auch
+  nach Ergebnissen einer anderen Anweisung derselben Anfrage oder als erste
+  Antwort, wenn der Upstream sie zwischen zwei Interaktionen gesendet hat (sie
+  gehört dann zur nächsten, LH-FA-05.a). Eine `ErrorResponse`, auf die ein
+  `ReadyForQuery` folgt, gehört zu ihrer abgeschlossenen Interaktion und zählt
+  für eine spätere nicht. Sendet der Client nach einer solchen Nachricht keine
+  Anfrage mehr, endet die Session wie nach einem `ReadyForQuery` (oben).
+* *Diagnose.* Meldung und Fehlerantwort an den Client nennen SQLSTATE (`C`) und
+  Meldung (`M`) der letzten `ErrorResponse` des Upstreams vor dem Abbruch.
+* *Client.* Von einer einfachen Anfrage erhält der Client keine der Antworten,
+  nur die `ErrorResponse` mit `PGR-E6001` (Weitergabe, unten). Bei einer
+  Extended-Interaktion bleiben die Server-Nachrichten, die schon weitergegeben
+  waren, beim Client, auch die `ErrorResponse` des Upstreams (LH-FA-18.a);
+  danach folgt die mit `PGR-E6001`, soweit die Verbindung sie noch annimmt.
+* *Aufzeichnung.* Die Session wird nicht übernommen, auch nicht ihre vorherigen
+  Interaktionen (LH-FA-05.a) — anders als beim Abbruch ohne Fehlerantwort.
+* *Replay.* Eine Aufzeichnung enthält keine solche Interaktion. Eine Interaktion,
+  die nicht mit `ready_for_query` endet, macht die Aufzeichnung zu
+  einer beschädigten (`PGR-E3003`).
 
 **Weitergabe an den Client.** Im Record-Modus gehen die Serverantworten einer
 einfachen Anfrage in der Reihenfolge an den Client, in der der Upstream sie
@@ -545,6 +571,11 @@ nicht von einem fehlenden, ebenso ein Zahlenfeld (`P`, `p`, `L`) mit dem Wert `0
 oder ohne lesbare Zahl; solche Felder gelten als fehlend und gehen weder in die
 Aufzeichnung noch an den Client, im Record- wie im Replay-Modus. Der Client
 erhält damit in beiden Modi dieselbe Nachricht.
+
+**Nicht aufzeichenbare Fehlerantwort.** Eine `ErrorResponse`, nach der der
+Upstream die Verbindung ohne `ReadyForQuery` beendet, ist nicht verlustfrei
+aufzuzeichnen und nicht unterstützt (`PGR-E6001`); die Regeln stehen in
+LH-FA-02.b §Fehlerantwort vor dem Abbruch.
 
 ---
 
@@ -1720,4 +1751,5 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Hilfe geht jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei vor; `version` liest keine Konfiguration (`LH-FA-01.a`, `LH-FA-17.a`) |
 | 2026-10-05 | Hilfe-Angabe abgeschlossen: vier Formen mit beliebigem `=`-Wert, auch an Wertstelle, vor dem Kommando und nach unbekanntem Kommando (`LH-FA-01.a`) |
 | 2026-10-05 | `--` beendet die Optionen auch an der Stelle eines Optionswerts; der Wert `--` nur mit `=` (`LH-FA-01.a`) |
+| 2026-10-05 | Record: Fehlerantwort vor dem Abbruch der Upstream-Verbindung ohne `ReadyForQuery` ist nicht unterstützt (`PGR-E6001`), gleich welcher Schweregrad und welche Stelle; Diagnose mit SQLSTATE des Servers, Session nicht übernommen, Aufzeichnung ohne `ready_for_query` am Ende beschädigt (`LH-FA-02.b`, `LH-FA-11.a`) |
 | 2026-10-05 | Record: Weitergabe der Antworten einer einfachen Anfrage an den Client, auch bei einer nicht unterstützten Antwort nach Ergebnissen (`LH-FA-02.b`); Nachrichten des Upstreams zwischen Interaktionen gehören zur nächsten (`LH-FA-05.a`); Diagnosefelder mit leerem Wert oder Zahl `0` gelten als fehlend, Feldreihenfolge nicht aufgezeichnet (`LH-FA-11.a`) |
