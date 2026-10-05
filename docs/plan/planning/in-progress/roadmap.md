@@ -20,7 +20,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: `slice-harness-randformen-vor-code` (wellenlos).
+In Arbeit: `slice-harness-kopf-sensor` (wellenlos).
 
 
 
