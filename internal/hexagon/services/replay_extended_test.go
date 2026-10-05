@@ -329,7 +329,7 @@ func TestReplayExtendedDiagnoseAnweisung(t *testing.T) {
 	ctx := context.Background()
 	zwei := model.Interaction{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
 		Client: []model.ClientMessage{parse("s1", "SELECT 1"), parse("s2", "SELECT 2"), bind("s1"), {Type: model.ClientExecute, Portal: ""}, syncNachricht},
-		Server: []model.Response{rfq},
+		Server: append(bestaetigungen(parse("s1", ""), parse("s2", ""), bind("s1")), rfq),
 	}}}
 	faelle := []struct {
 		name      string
@@ -354,10 +354,38 @@ func TestReplayExtendedDiagnoseAnweisung(t *testing.T) {
 
 // ext ist eine Extended-Interaktion aus einer Sync-Gruppe, deren
 // ready_for_query den Transaktionsstatus tx trägt.
+// Jedes parse, bind und close bestätigt der Server.
 func ext(seq int, tx string, msgs ...model.ClientMessage) model.Interaction {
 	return model.Interaction{Sequence: seq, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
 		Client: append(msgs, syncNachricht),
-		Server: []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: tx}},
+		Server: append(bestaetigungen(msgs...), model.Response{Type: model.ResponseReadyForQuery, TxStatus: tx}),
+	}}}
+}
+
+// bestaetigungen sind die Bestätigungen des Servers für die angenommenen
+// Nachrichten.
+func bestaetigungen(msgs ...model.ClientMessage) []model.Response {
+	var out []model.Response
+	for _, m := range msgs {
+		switch m.Type {
+		case model.ClientParse:
+			out = append(out, model.Response{Type: model.ResponseParseComplete})
+		case model.ClientBind:
+			out = append(out, model.Response{Type: model.ResponseBindComplete})
+		case model.ClientClose:
+			out = append(out, model.Response{Type: model.ResponseCloseComplete})
+		}
+	}
+	return out
+}
+
+// abgelehnt ist eine Extended-Interaktion, deren erste Nachricht der Server
+// ablehnt; die übrigen verwirft er bis zum Sync. tx ist der
+// Transaktionsstatus danach.
+func abgelehnt(seq int, tx string, msgs ...model.ClientMessage) model.Interaction {
+	return model.Interaction{Sequence: seq, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
+		Client: append(msgs, syncNachricht),
+		Server: []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"C": "42601"}}, {Type: model.ResponseReadyForQuery, TxStatus: tx}},
 	}}}
 }
 
@@ -399,6 +427,15 @@ func TestReplayExtendedDiagnoseLebensdauer(t *testing.T) {
 		{"D1 Portal behält das Statement des bind", []model.Interaction{
 			ext(1, "I", parse("", "SELECT 1"), bind(""), parse("", "SELECT 2"), exec),
 		}, 0, 3, model.ClientMessage{Type: model.ClientExecute, MaxRows: 5}, `Anweisung erwartet "SELECT 1", empfangen "SELECT 1"`},
+		{"S1 abgelehntes parse legt nichts an", []model.Interaction{
+			abgelehnt(1, "I", parse("s1", "SELEC 1"), bind("s1")), ext(2, "I", parse("s1", "SELECT 1"), bind("s1")),
+		}, 1, 0, bind("s1"), `Anweisung erwartet "SELECT 1", empfangen unbekannt`},
+		{"S2 abgelehntes parse überschreibt nicht", []model.Interaction{
+			ext(1, "I", parse("s1", "SELECT 1")), abgelehnt(2, "I", parse("s1", "SELECT 2")), ext(3, "I", parse("s2", "SELECT 3"), bind("s2")),
+		}, 2, 0, bind("s1"), `Anweisung erwartet "SELECT 3", empfangen "SELECT 1"`},
+		{"verworfenes bind legt kein Portal an", []model.Interaction{
+			ext(1, "T", parse("s1", "SELECT 1")), abgelehnt(2, "E", parse("s9", "SELEC"), bind("s1")), ext(3, "E", bind("s1"), execute),
+		}, 2, 0, model.ClientMessage{Type: model.ClientExecute}, `Anweisung erwartet "SELECT 1", empfangen unbekannt`},
 		{"D2 Nachricht am Cursor zählt nicht", []model.Interaction{
 			ext(1, "I", parse("s3", "SELECT 3"), bind("s3")),
 		}, 0, 0, bind("s3"), `Anweisung erwartet "SELECT 3", empfangen unbekannt`},

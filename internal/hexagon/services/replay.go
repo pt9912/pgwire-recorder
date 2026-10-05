@@ -209,11 +209,15 @@ type objekte struct {
 	portale    map[string]string
 }
 
-// objekte spielt die aufgezeichneten Nachrichten der Session vor dem Cursor
-// nach: parse legt ein Statement an oder überschreibt das unbenannte, bind ein
-// Portal, close entfernt sein Ziel. Eine einfache Anfrage entfernt das
-// unbenannte Statement und das unbenannte Portal. Endet eine Interaktion mit
-// ready_for_query im Status "I" (keine Transaktion), enden alle Portale.
+// objekte spielt die aufgezeichneten Protokollnachrichten der Session vor dem
+// Cursor nach, soweit der Server sie bestätigt hat: parse legt ein Statement an
+// oder überschreibt das unbenannte, bind ein Portal, close entfernt sein Ziel;
+// ein abgelehntes oder bis zum Sync verworfenes parse oder bind legt nichts an.
+// Eine einfache Anfrage entfernt das unbenannte Statement und das unbenannte
+// Portal. Endet eine Interaktion mit ready_for_query im Status "I" (keine
+// Transaktion), enden alle Portale. SQL-Befehle, die Objekte beenden
+// (DEALLOCATE, DISCARD ALL, CLOSE, ROLLBACK TO SAVEPOINT), bildet es nicht
+// nach; danach kann die Diagnose ein beendetes Objekt als bestehend nennen.
 func (c *cursor) objekte() objekte {
 	o := objekte{statements: map[string]string{}, portale: map[string]string{}}
 	for pi, in := range c.session.Interactions[:c.pos+1] {
@@ -224,11 +228,21 @@ func (c *cursor) objekte() objekte {
 			continue
 		}
 		for gi, g := range in.Groups {
+			// Der Server bestätigt jedes angenommene parse, bind und close;
+			// nach einer Ablehnung verwirft er bis zum Sync. Die ersten n
+			// Nachrichten einer Art mit n Bestätigungen gelten als angenommen.
+			bestaetigt := map[model.ClientMessageType]int{}
+			for _, r := range g.Server {
+				bestaetigt[bestaetigung[r.Type]]++
+			}
 			for ni, m := range g.Client {
 				if pi == c.pos && (gi > c.gruppe || gi == c.gruppe && ni >= c.nachricht) {
 					return o
 				}
-				o.nachspielen(m)
+				if bestaetigt[m.Type] > 0 {
+					bestaetigt[m.Type]--
+					o.nachspielen(m)
+				}
 			}
 		}
 		o.transaktionsende(in.Groups[len(in.Groups)-1].Server)
@@ -236,6 +250,15 @@ func (c *cursor) objekte() objekte {
 	return o
 }
 
+// bestaetigung ordnet jeder Bestätigung des Servers die Client-Nachricht zu,
+// die sie bestätigt.
+var bestaetigung = map[model.ResponseType]model.ClientMessageType{
+	model.ResponseParseComplete: model.ClientParse,
+	model.ResponseBindComplete:  model.ClientBind,
+	model.ResponseCloseComplete: model.ClientClose,
+}
+
+// nachspielen wendet eine vom Server angenommene Nachricht an.
 func (o objekte) nachspielen(m model.ClientMessage) {
 	switch m.Type {
 	case model.ClientParse:
