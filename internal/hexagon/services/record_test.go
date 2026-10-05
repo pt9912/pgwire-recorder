@@ -10,26 +10,63 @@ import (
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
 )
 
-type fakeUpstream struct{ queryErr error }
+type fakeUpstream struct {
+	queryErr error
+	mu       sync.Mutex
+	// letzte ist die zuletzt geöffnete Session.
+	letzte *fakeSession
+}
 
 func (f *fakeUpstream) Open(context.Context, map[string]string) (driven.UpstreamSession, []model.Response, error) {
-	return &fakeSession{err: f.queryErr}, []model.Response{
+	session := &fakeSession{err: f.queryErr}
+	f.mu.Lock()
+	f.letzte = session
+	f.mu.Unlock()
+	return session, []model.Response{
 		{Type: model.ResponseParameterStatus, Name: "server_version", Value: "17.0"},
 		{Type: model.ResponseReadyForQuery, TxStatus: "I"},
 	}, nil
 }
 
-type fakeSession struct{ err error }
+type fakeSession struct {
+	err error
+	// gesendet sammelt je Send die gesendeten Client-Nachrichten; empfang
+	// liefert Receive der Reihe nach.
+	gesendet [][]model.ClientMessage
+	empfang  [][]model.Response
+	sendErr  error
+}
 
 func (f *fakeSession) Query(_ context.Context, sql string) ([]model.Response, error) {
 	if f.err != nil && sql == "FEHLER" {
 		return nil, f.err
+	}
+	if sql == "EXTENDED-ANTWORT" {
+		return []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}}, nil
 	}
 	return []model.Response{
 		{Type: model.ResponseCommandComplete, Tag: sql},
 		{Type: model.ResponseReadyForQuery, TxStatus: "I"},
 	}, nil
 }
+
+func (f *fakeSession) Send(_ context.Context, msgs []model.ClientMessage) error {
+	if f.sendErr != nil {
+		return f.sendErr
+	}
+	f.gesendet = append(f.gesendet, append([]model.ClientMessage(nil), msgs...))
+	return nil
+}
+
+func (f *fakeSession) Receive(context.Context) ([]model.Response, error) {
+	if len(f.empfang) == 0 {
+		return nil, model.Errorf(model.CodeConnectionLost, nil, "nichts mehr")
+	}
+	out := f.empfang[0]
+	f.empfang = f.empfang[1:]
+	return out, nil
+}
+
 func (f *fakeSession) Close() error { return nil }
 
 type fakeRepo struct {

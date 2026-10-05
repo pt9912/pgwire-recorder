@@ -668,13 +668,27 @@ mischt Simple- und Extended-Interaktionen in der aufgezeichneten Reihenfolge.
 verarbeitet wurde, auch nach einem `Terminate` oder nach einem `Flush` ohne
 `Sync`, ist das ein unerwartetes Verbindungsende (`PGR-E4003`, LH-FA-02.b): die
 unvollständige Interaktion wird nicht übernommen, die vorherigen Interaktionen
-der Session bleiben erhalten.
+der Session bleiben erhalten. Beim kontrollierten Herunterfahren endet eine
+Session erst nach dem `ReadyForQuery` ihrer laufenden Extended-Interaktion, auch
+wenn deren `Sync` noch aussteht (LH-FA-13.a).
 
 **Record.** Der Recorder leitet alle Nachrichten unverändert und in
 Ankunftsreihenfolge weiter, auch wenn der Client mehrere Nachrichten sendet,
 ohne auf Antworten zu warten (Pipelining). Zeichnet er die Interaktion auf,
 gruppiert er sie (`SPEC-041`); Zeitangaben enthält die Aufzeichnung nur mit
 `--record-timing` (LH-FA-21.a).
+
+Nicht unterstützt (`PGR-E6001`, die Session wird nicht übernommen, LH-FA-05.a)
+sind im Record:
+
+* eine `Query` während einer laufenden Extended-Interaktion, also nach deren
+  erster Nachricht und vor deren `Sync`,
+* ein `Describe` oder `Close` mit einer anderen Zielart als Statement (`S`) oder
+  Portal (`P`),
+* eine Interaktion, einfach oder Extended, deren Nachrichten nicht die Form nach
+  `SPEC-002` beziehungsweise `SPEC-041` ergeben, etwa ein `ReadyForQuery` ohne
+  `Sync` oder eine Server-Nachricht des Extended Query Protocol in der Antwort auf
+  eine `Query`.
 
 **Gruppen.** Eine Extended-Interaktion besteht aus einer oder mehreren Gruppen.
 Eine Gruppe endet mit einem `Sync` oder einem `Flush`. Innerhalb einer Gruppe
@@ -687,7 +701,8 @@ Empfangsreihenfolge. Welche Server-Nachrichten zu welcher Gruppe gehören:
   ein `ReadyForQuery`. Die Zuordnung hängt nicht vom Zeitverhalten ab, auch
   nicht, wenn der Client weitere Gruppen sendet, ohne zu warten.
 * Endet die Gruppe mit `Flush`, sind es die Server-Nachrichten, die vor der
-  nächsten Client-Nachricht eintreffen. Wartet der Client nach dem `Flush` nicht
+  nächsten Client-Nachricht eintreffen; eine danach eintreffende gehört zur
+  folgenden Gruppe. Wartet der Client nach dem `Flush` nicht
   auf die Antwort, ist die Zuordnung zeitabhängig; das ist eine bekannte Grenze
   von v1. Für diesen Fall ist die Aufzeichnung nicht reproduzierbar, die
   Wiedergabe einer vorhandenen Aufzeichnung bleibt deterministisch.
@@ -1485,3 +1500,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-04 | Recording: leerer oder `null`-Wert von `type` (`SPEC-001`), `param_types` mit `null` an einer anderen Server-Nachricht, `client` und `server` je Gruppe Pflicht, `server: []` zulässig (`SPEC-041`) |
 | 2026-10-04 | Recording: Anker, Aliase und Merge-Keys von YAML sind beschädigt (`SPEC-001`) |
 | 2026-10-05 | Recording: jedes neue Feld erhöht `version`; ein Leser lehnt unbekannte Felder ab und liest jede `version` bis zu seiner eigenen (`SPEC-001`) |
+| 2026-10-05 | Extended Query im Record: Server-Nachrichten nach der nächsten Client-Nachricht gehören zur folgenden Gruppe; Herunterfahren nach dem `ReadyForQuery` der laufenden Extended-Interaktion; `Query` während einer laufenden Extended-Interaktion, Zielart außer `S`/`P` und Interaktionen ohne die Form der Aufzeichnung sind nicht unterstützt (`LH-FA-18.a`) |

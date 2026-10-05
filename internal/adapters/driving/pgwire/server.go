@@ -99,10 +99,9 @@ func (s *Server) Serve(ctx context.Context, l net.Listener) {
 func (s *Server) handle(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
 
-	// Endet ctx, bricht das Lesen der nächsten Client-Nachricht ab; eine
-	// laufende Interaktion läuft zu Ende.
+	// Endet ctx im Verbindungsaufbau, bricht das Lesen der Startnachricht ab.
+	// Danach wacht sitzung selbst über ctx.
 	fertig := make(chan struct{})
-	defer close(fertig)
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -116,12 +115,14 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 
 	startup, ok := s.startup(conn, br, be)
 	if !ok {
+		close(fertig)
 		return
 	}
 
 	// Der Verbindungsaufbau zum Upstream läuft auch bei endendem ctx zu Ende;
 	// er ist Teil der laufenden Interaktion.
 	id, responses, err := s.open(context.WithoutCancel(ctx), startup.Parameters)
+	close(fertig)
 	if err != nil {
 		s.fail(be, err)
 		return
@@ -140,42 +141,252 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 		s.close(ctx, id, model.EndNormal)
 		return
 	}
+	s.sitzung(ctx, be, id)
+}
 
-	for {
-		msg, err := be.Receive()
-		if err != nil {
-			if verbindungsende(err) || ctx.Err() != nil {
-				// Ende nach einem ReadyForQuery, mit oder ohne Terminate, ist
-				// regulär (LH-FA-02.b).
-				s.close(ctx, id, model.EndNormal)
-				return
-			}
-			s.fail(be, model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
-			s.close(ctx, id, model.EndUnsupported)
-			return
+// eingang ist eine gelesene Client-Nachricht, abgebildet, bevor der Leser die
+// nächste liest (pgproto3 überschreibt die vorige): genau eines von query,
+// terminate, extended oder fremd ist belegt, oder err.
+type eingang struct {
+	query     *string
+	terminate bool
+	extended  *model.ClientMessage
+	fremd     error
+	err       error
+}
+
+// ausgang sind Server-Nachrichten einer Extended-Interaktion vom Upstream.
+type ausgang struct {
+	responses []model.Response
+	err       error
+}
+
+// sitzung verarbeitet die Client-Nachrichten einer Session bis zu ihrem Ende.
+//
+// Ein Leser liest je Anforderung genau eine Client-Nachricht; nach einem Sync
+// fordert sitzung die nächste erst an, wenn das ReadyForQuery der Interaktion
+// an den Client gegangen ist (LH-FA-18.a). Hat eine Extended-Interaktion eine
+// Gruppe an den Upstream gesendet, wartet AwaitServer nebenher auf
+// Server-Nachrichten, bis ihr ReadyForQuery eintrifft; Client- und
+// Server-Nachrichten gehen in der Reihenfolge, in der sitzung sie entgegennimmt,
+// an den Record-Use-Case.
+//
+// Endet ctx, endet die Session, sobald keine Extended-Interaktion läuft
+// (LH-FA-13.a). Endet die Client-Verbindung oder kommt Terminate, während eine
+// läuft, ist das PGR-E4003 (LH-FA-18.a).
+func (s *Server) sitzung(ctx context.Context, be *pgproto3.Backend, id model.SessionID) {
+	anfrage := make(chan struct{})
+	clientCh := make(chan eingang, 1)
+	defer close(anfrage)
+	go func() {
+		for range anfrage {
+			msg, err := be.Receive()
+			clientCh <- lese(msg, err)
 		}
-		switch m := msg.(type) {
-		case *pgproto3.Query:
-			out, err := s.query(ctx, id, m.String)
-			if err != nil {
-				s.fail(be, err)
-				s.close(ctx, id, endFor(err))
-				return
-			}
-			if err := s.send(be, out); err != nil {
-				s.sendFailed(err)
-				s.close(ctx, id, endForSend(err))
-				return
-			}
-		case *pgproto3.Terminate:
+	}()
+	serverCh := make(chan ausgang, 1)
+
+	var (
+		clientAngefordert, serverAngefordert bool
+		// offen: eine Extended-Interaktion läuft; gesendet: eine ihrer Gruppen
+		// ist an den Upstream gegangen; sync: ihr Sync ist gesendet.
+		offen, gesendet, sync bool
+	)
+	for {
+		if !offen && ctx.Err() != nil {
 			s.close(ctx, id, model.EndNormal)
 			return
-		default:
-			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "Client-Nachricht %T wird nicht unterstützt", m))
-			s.close(ctx, id, model.EndUnsupported)
+		}
+		if !clientAngefordert && !sync {
+			anfrage <- struct{}{}
+			clientAngefordert = true
+		}
+		if gesendet && !serverAngefordert {
+			serverAngefordert = true
+			go func() {
+				out, err := s.recorder.AwaitServer(context.WithoutCancel(ctx), id)
+				serverCh <- ausgang{out, err}
+			}()
+		}
+		var stopp <-chan struct{}
+		if !offen {
+			stopp = ctx.Done()
+		}
+
+		select {
+		case <-stopp:
+			s.close(ctx, id, model.EndNormal)
 			return
+
+		case a := <-serverCh:
+			serverAngefordert = false
+			if a.err != nil {
+				s.fail(be, a.err)
+				s.close(ctx, id, endFor(a.err))
+				return
+			}
+			abgeschlossen := false
+			for _, r := range a.responses {
+				ende, err := s.recorder.ServerMessage(ctx, id, r)
+				if err != nil {
+					s.fail(be, err)
+					s.close(ctx, id, endFor(err))
+					return
+				}
+				abgeschlossen = abgeschlossen || ende
+			}
+			if err := s.send(be, a.responses); err != nil {
+				s.sendFailed(err)
+				end := endForSend(err)
+				if end == model.EndLost && !abgeschlossen {
+					// Die laufende Interaktion verwirft CloseSession ohnehin;
+					// die vorige hat ihr ReadyForQuery erreicht.
+					end = model.EndNormal
+				}
+				s.close(ctx, id, end)
+				return
+			}
+			if abgeschlossen {
+				offen, gesendet, sync = false, false, false
+			}
+
+		case e := <-clientCh:
+			clientAngefordert = false
+			switch {
+			case e.err != nil:
+				if !verbindungsende(e.err) {
+					s.fail(be, model.Errorf(model.CodeUnsupported, e.err, "Client-Nachricht nicht lesbar"))
+					s.close(ctx, id, model.EndUnsupported)
+					return
+				}
+				// Ende nach einem ReadyForQuery, mit oder ohne Terminate, ist
+				// regulär (LH-FA-02.b).
+				if offen {
+					s.note(model.Errorf(model.CodeConnectionLost, e.err, "Client-Verbindung vor dem ReadyForQuery der Extended-Interaktion beendet"))
+				}
+				s.close(ctx, id, model.EndNormal)
+				return
+			case e.terminate:
+				if offen {
+					s.note(model.Errorf(model.CodeConnectionLost, nil, "Terminate vor dem ReadyForQuery der Extended-Interaktion"))
+				}
+				s.close(ctx, id, model.EndNormal)
+				return
+			case e.query != nil:
+				out, err := s.query(ctx, id, *e.query)
+				if err != nil {
+					s.fail(be, err)
+					s.close(ctx, id, endFor(err))
+					return
+				}
+				if err := s.send(be, out); err != nil {
+					s.sendFailed(err)
+					s.close(ctx, id, endForSend(err))
+					return
+				}
+			case e.extended != nil && s.recorder != nil:
+				if err := s.recorder.ClientMessage(ctx, id, *e.extended); err != nil {
+					s.fail(be, err)
+					s.close(ctx, id, endFor(err))
+					return
+				}
+				offen = true
+				switch e.extended.Type {
+				case model.ClientSync:
+					gesendet, sync = true, true
+				case model.ClientFlush:
+					gesendet = true
+				}
+			default:
+				err := e.fremd
+				if err == nil {
+					err = model.Errorf(model.CodeUnsupported, nil, "Client-Nachricht %s wird im Replay nicht unterstützt", e.extended.Type)
+				}
+				s.fail(be, err)
+				s.close(ctx, id, model.EndUnsupported)
+				return
+			}
 		}
 	}
+}
+
+// lese bildet eine gelesene Client-Nachricht ab. Extended-Nachrichten werden zu
+// Client-Nachrichten des Domain Models; eine Zielart von Describe oder Close
+// außer 'S' und 'P' und jede andere Nachricht sind PGR-E6001 (LH-FA-05.e,
+// LH-FA-18.a).
+func lese(msg pgproto3.FrontendMessage, err error) eingang {
+	if err != nil {
+		return eingang{err: err}
+	}
+	switch m := msg.(type) {
+	case *pgproto3.Query:
+		sql := m.String
+		return eingang{query: &sql}
+	case *pgproto3.Terminate:
+		return eingang{terminate: true}
+	}
+	cm, err := toClientMessage(msg)
+	if err != nil {
+		return eingang{fremd: err}
+	}
+	return eingang{extended: &cm}
+}
+
+// toClientMessage belegt je Typ genau dessen Felder (SPEC-041) und kopiert jede
+// Liste und jeden Wert; eine leere Liste wird nil, wie sie der Leser der
+// Aufzeichnung liefert. Ein Parameter NULL wird Value.Null, jeder andere seine
+// Bytes, auch leer.
+func toClientMessage(msg pgproto3.FrontendMessage) (model.ClientMessage, error) {
+	switch m := msg.(type) {
+	case *pgproto3.Parse:
+		return model.ClientMessage{Type: model.ClientParse, Statement: m.Name, SQL: m.Query, ParamTypes: kopieOderNil(m.ParameterOIDs)}, nil
+	case *pgproto3.Bind:
+		var params []model.Value
+		for _, p := range m.Parameters {
+			if p == nil {
+				params = append(params, model.Value{Null: true})
+			} else {
+				params = append(params, model.Value{Bytes: append([]byte{}, p...)})
+			}
+		}
+		return model.ClientMessage{
+			Type: model.ClientBind, Portal: m.DestinationPortal, Statement: m.PreparedStatement,
+			ParamFormats: kopieOderNil(m.ParameterFormatCodes), Params: params, ResultFormats: kopieOderNil(m.ResultFormatCodes),
+		}, nil
+	case *pgproto3.Describe:
+		ziel, err := zielart(m.ObjectType, "Describe")
+		return model.ClientMessage{Type: model.ClientDescribe, Target: ziel, Name: m.Name}, err
+	case *pgproto3.Close:
+		ziel, err := zielart(m.ObjectType, "Close")
+		return model.ClientMessage{Type: model.ClientClose, Target: ziel, Name: m.Name}, err
+	case *pgproto3.Execute:
+		return model.ClientMessage{Type: model.ClientExecute, Portal: m.Portal, MaxRows: m.MaxRows}, nil
+	case *pgproto3.Flush:
+		return model.ClientMessage{Type: model.ClientFlush}, nil
+	case *pgproto3.Sync:
+		return model.ClientMessage{Type: model.ClientSync}, nil
+	default:
+		return model.ClientMessage{}, model.Errorf(model.CodeUnsupported, nil, "Client-Nachricht %T wird nicht unterstützt", m)
+	}
+}
+
+func zielart(b byte, typ string) (model.Target, error) {
+	switch b {
+	case 'S':
+		return model.TargetStatement, nil
+	case 'P':
+		return model.TargetPortal, nil
+	default:
+		return "", model.Errorf(model.CodeUnsupported, nil, "%s mit Zielart %q wird nicht unterstützt", typ, b)
+	}
+}
+
+// kopieOderNil kopiert eine Liste; eine leere wird nil.
+func kopieOderNil[T any](s []T) []T {
+	if len(s) == 0 {
+		return nil
+	}
+	return append([]T(nil), s...)
 }
 
 // startup liest die erste Client-Nachricht. SSL- und GSS-Anfragen beantwortet
@@ -388,6 +599,18 @@ func toMessage(r model.Response) (pgproto3.BackendMessage, error) {
 		return &e, nil
 	case model.ResponseParameterStatus:
 		return &pgproto3.ParameterStatus{Name: r.Name, Value: r.Value}, nil
+	case model.ResponseParseComplete:
+		return &pgproto3.ParseComplete{}, nil
+	case model.ResponseBindComplete:
+		return &pgproto3.BindComplete{}, nil
+	case model.ResponseCloseComplete:
+		return &pgproto3.CloseComplete{}, nil
+	case model.ResponseParameterDescription:
+		return &pgproto3.ParameterDescription{ParameterOIDs: append([]uint32{}, r.ParamTypes...)}, nil
+	case model.ResponseNoData:
+		return &pgproto3.NoData{}, nil
+	case model.ResponsePortalSuspended:
+		return &pgproto3.PortalSuspended{}, nil
 	case model.ResponseReadyForQuery:
 		if len(r.TxStatus) != 1 {
 			return nil, model.Errorf(model.CodeInternal, nil, "ReadyForQuery ohne Transaktionsstatus")

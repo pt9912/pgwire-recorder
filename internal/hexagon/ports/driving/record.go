@@ -19,6 +19,24 @@ type Recorder interface {
 	// bis einschließlich ReadyForQuery. Die Interaktion gilt als abgeschlossen;
 	// erreicht ihre Antwort den Client nicht, endet die Session mit EndLost.
 	Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error)
+
+	// ClientMessage übernimmt eine Client-Nachricht einer Extended-Interaktion
+	// in Ankunftsreihenfolge (LH-FA-18.a); mit Flush oder Sync geht ihre Gruppe
+	// an den Upstream. Nach einem Sync nimmt die Session erst wieder eine
+	// Client-Nachricht an, wenn ServerMessage die Interaktion abgeschlossen hat.
+	ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) error
+	// AwaitServer wartet auf die nächsten Server-Nachrichten einer
+	// Extended-Interaktion; es ändert die Aufzeichnung nicht und darf
+	// gleichzeitig mit ClientMessage laufen. Jede gelieferte Nachricht geht
+	// danach einzeln an ServerMessage, bevor sie an den Client geht.
+	AwaitServer(ctx context.Context, id model.SessionID) ([]model.Response, error)
+	// ServerMessage ordnet eine Server-Nachricht der Gruppe zu, die gerade
+	// Antworten aufnimmt. abgeschlossen meldet das ReadyForQuery, mit dem die
+	// Interaktion Teil der Session wurde; erreicht es den Client nicht, endet die
+	// Session mit EndLost.
+	ServerMessage(ctx context.Context, id model.SessionID, r model.Response) (abgeschlossen bool, err error)
+
 	// CloseSession beendet die Session aus dem genannten Grund (model.SessionEnd).
+	// Eine nicht abgeschlossene Extended-Interaktion wird nie übernommen.
 	CloseSession(ctx context.Context, id model.SessionID, end model.SessionEnd) error
 }

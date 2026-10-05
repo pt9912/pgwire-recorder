@@ -96,6 +96,44 @@ func (s *session) Query(ctx context.Context, sql string) ([]model.Response, erro
 	}
 }
 
+// Send bildet die Client-Nachrichten auf PGWire ab und sendet sie in einem
+// Schreibvorgang. Send und Receive berühren getrennte Puffer des Frontends
+// (Schreibpuffer und Lesepuffer); darum dürfen sie gleichzeitig laufen.
+func (s *session) Send(_ context.Context, msgs []model.ClientMessage) error {
+	for _, m := range msgs {
+		msg, err := toFrontendMessage(m)
+		if err != nil {
+			return err
+		}
+		s.fe.Send(msg)
+	}
+	if err := s.fe.Flush(); err != nil {
+		return model.Errorf(model.CodeConnectionLost, err, "Nachrichten an den Upstream nicht zu senden")
+	}
+	return nil
+}
+
+// Receive wartet auf eine Server-Nachricht und liest weiter, solange der
+// Lesepuffer schon Bytes der nächsten enthält; ein ReadyForQuery beendet die
+// Folge.
+func (s *session) Receive(context.Context) ([]model.Response, error) {
+	var out []model.Response
+	for {
+		msg, err := s.fe.Receive()
+		if err != nil {
+			return nil, model.Errorf(model.CodeConnectionLost, err, "Verbindung zum Upstream vor ReadyForQuery beendet")
+		}
+		r, err := toResponse(msg)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+		if r.Type == model.ResponseReadyForQuery || s.fe.ReadBufferLen() == 0 {
+			return out, nil
+		}
+	}
+}
+
 func (s *session) Close() error {
 	s.fe.Send(&pgproto3.Terminate{})
 	flushErr := s.fe.Flush()
@@ -141,9 +179,72 @@ func toResponse(msg pgproto3.BackendMessage) (model.Response, error) {
 		return model.Response{Type: model.ResponseParameterStatus, Name: m.Name, Value: m.Value}, nil
 	case *pgproto3.ReadyForQuery:
 		return model.Response{Type: model.ResponseReadyForQuery, TxStatus: string(m.TxStatus)}, nil
+	case *pgproto3.ParseComplete:
+		return model.Response{Type: model.ResponseParseComplete}, nil
+	case *pgproto3.BindComplete:
+		return model.Response{Type: model.ResponseBindComplete}, nil
+	case *pgproto3.CloseComplete:
+		return model.Response{Type: model.ResponseCloseComplete}, nil
+	case *pgproto3.ParameterDescription:
+		return model.Response{Type: model.ResponseParameterDescription, ParamTypes: kopieOderNil(m.ParameterOIDs)}, nil
+	case *pgproto3.NoData:
+		return model.Response{Type: model.ResponseNoData}, nil
+	case *pgproto3.PortalSuspended:
+		return model.Response{Type: model.ResponsePortalSuspended}, nil
 	default:
 		return model.Response{}, model.Errorf(model.CodeUnsupported, nil, "Serverantwort %T wird nicht unterstützt", m)
 	}
+}
+
+// toFrontendMessage bildet eine Client-Nachricht einer Extended-Interaktion
+// auf PGWire ab; ein Parameter mit Value.Null wird zu NULL, jeder andere zu
+// seinen Bytes, auch leer. Eine Zielart außer statement und portal und ein
+// unbekannter Typ sind PGR-E1000.
+func toFrontendMessage(m model.ClientMessage) (pgproto3.FrontendMessage, error) {
+	switch m.Type {
+	case model.ClientParse:
+		return &pgproto3.Parse{Name: m.Statement, Query: m.SQL, ParameterOIDs: m.ParamTypes}, nil
+	case model.ClientBind:
+		params := make([][]byte, len(m.Params))
+		for i, v := range m.Params {
+			if !v.Null {
+				params[i] = append([]byte{}, v.Bytes...)
+			}
+		}
+		return &pgproto3.Bind{
+			DestinationPortal: m.Portal, PreparedStatement: m.Statement,
+			ParameterFormatCodes: m.ParamFormats, Parameters: params, ResultFormatCodes: m.ResultFormats,
+		}, nil
+	case model.ClientDescribe, model.ClientClose:
+		ziel, ok := zielart[m.Target]
+		if !ok {
+			return nil, model.Errorf(model.CodeInternal, nil, "%s mit Zielart %q", m.Type, m.Target)
+		}
+		if m.Type == model.ClientDescribe {
+			return &pgproto3.Describe{ObjectType: ziel, Name: m.Name}, nil
+		}
+		return &pgproto3.Close{ObjectType: ziel, Name: m.Name}, nil
+	case model.ClientExecute:
+		return &pgproto3.Execute{Portal: m.Portal, MaxRows: m.MaxRows}, nil
+	case model.ClientFlush:
+		return &pgproto3.Flush{}, nil
+	case model.ClientSync:
+		return &pgproto3.Sync{}, nil
+	default:
+		return nil, model.Errorf(model.CodeInternal, nil, "Client-Nachricht %q ohne Abbildung", m.Type)
+	}
+}
+
+// zielart ist das PGWire-Byte der Zielart von Describe und Close.
+var zielart = map[model.Target]byte{model.TargetStatement: 'S', model.TargetPortal: 'P'}
+
+// kopieOderNil kopiert eine Liste; eine leere wird nil, wie sie der Leser der
+// Aufzeichnung liefert.
+func kopieOderNil[T any](s []T) []T {
+	if len(s) == 0 {
+		return nil
+	}
+	return append([]T(nil), s...)
 }
 
 // noticeFields bildet die Felder einer Fehler- oder Hinweisantwort auf ihre

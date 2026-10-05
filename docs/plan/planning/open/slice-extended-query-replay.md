@@ -34,6 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Parametermatching über den exakten Vergleich hinaus — Folge-Anforderung, falls gewünscht.
+- Abbildung der Extended-Nachrichten im PGWire-Adapter (`toClientMessage`, `toMessage`) und die Ereignisschleife `sitzung` — geliefert von `slice-extended-query-record`; im Replay-Modus lehnt `sitzung` Extended-Nachrichten bisher mit `PGR-E6001` ab, dieser Slice leitet sie an den Replay-Use-Case.
 
 
 ## 2. Definition of Done

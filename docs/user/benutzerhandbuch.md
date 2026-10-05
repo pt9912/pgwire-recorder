@@ -2,7 +2,7 @@
 
 Version: 0.1  
 Software-Version: noch nicht veröffentlicht  
-Stand: 04.10.2026  
+Stand: 05.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für `pgwire-recorder` ab der ersten veröffentlichten Version
 
@@ -411,6 +411,13 @@ Antworten.
   die Antwort zu warten, kann sich die Aufzeichnung zwischen zwei Läufen
   unterscheiden; die Wiedergabe einer vorhandenen Aufzeichnung bleibt davon
   unberührt.
+* Beim Aufzeichnen beendet das Werkzeug die Verbindung mit `PGR-E6001`, wenn ein
+  Treiber eine einfache Anfrage sendet, während eine Folge des erweiterten
+  Protokolls noch auf ihr `Sync` wartet; die Verbindung wird dann nicht
+  aufgezeichnet.
+* Beim Beenden wartet das Werkzeug, bis eine laufende Folge des erweiterten
+  Protokolls mit ihrem `Sync` abgeschlossen ist. Schließen Sie solche Folgen ab,
+  bevor Sie das Werkzeug beenden.
 
 ### Das Werkzeug in der Testautomatisierung verwenden
 

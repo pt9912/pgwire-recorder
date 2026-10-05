@@ -22,6 +22,48 @@ type fakeRecorder struct {
 	ends         []model.SessionEnd
 	err          error
 	aufbauFehler bool
+
+	// ereignisse protokolliert ClientMessage („c:<typ>“), ServerMessage
+	// („s:<typ>“) und CloseSession („ende“) in Aufrufreihenfolge; client trägt
+	// die übergebenen Client-Nachrichten. AwaitServer liefert die Folgen aus
+	// server der Reihe nach; ein geschlossener Kanal ist PGR-E4003.
+	ereignisse []string
+	client     []model.ClientMessage
+	server     chan []model.Response
+	// serverErr liefert ServerMessage für diesen Typ als Fehler.
+	serverErr map[model.ResponseType]error
+}
+
+func (f *fakeRecorder) ClientMessage(_ context.Context, _ model.SessionID, m model.ClientMessage) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.ereignisse = append(f.ereignisse, "c:"+string(m.Type))
+	f.client = append(f.client, m)
+	return nil
+}
+
+func (f *fakeRecorder) AwaitServer(context.Context, model.SessionID) ([]model.Response, error) {
+	out, ok := <-f.server
+	if !ok {
+		return nil, model.Errorf(model.CodeConnectionLost, nil, "Upstream weg")
+	}
+	return out, nil
+}
+
+func (f *fakeRecorder) ServerMessage(_ context.Context, _ model.SessionID, r model.Response) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if err := f.serverErr[r.Type]; err != nil {
+		return false, err
+	}
+	f.ereignisse = append(f.ereignisse, "s:"+string(r.Type))
+	return r.Type == model.ResponseReadyForQuery, nil
+}
+
+func (f *fakeRecorder) protokoll() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return strings.Join(f.ereignisse, " ")
 }
 
 func (f *fakeRecorder) OpenSession(context.Context, map[string]string) (model.SessionID, []model.Response, error) {
@@ -53,6 +95,7 @@ func (f *fakeRecorder) CloseSession(_ context.Context, _ model.SessionID, end mo
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.ends = append(f.ends, end)
+	f.ereignisse = append(f.ereignisse, "ende")
 	return nil
 }
 
@@ -194,7 +237,7 @@ func TestNichtUnterstuetzteNachricht(t *testing.T) {
 	client, s := verbinde(t, rec)
 	fe := pgproto3.NewFrontend(client, client)
 	startup(t, fe)
-	fe.Send(&pgproto3.Parse{Query: "SELECT 1"})
+	fe.Send(&pgproto3.FunctionCall{Function: 1})
 	_ = fe.Flush()
 	e := fehlerantwort(t, fe)
 	if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) {
