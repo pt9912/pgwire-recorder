@@ -43,7 +43,7 @@ func enthaeltInReihe(t *testing.T, text string, teile ...string) {
 	}
 }
 
-// Abdeckung: LH-FA-03/Negative, LH-FA-13/Negative, LH-FA-17/Happy — endet eine
+// Abdeckung: LH-FA-13/Happy, LH-FA-13/Negative, LH-FA-17/Boundary — endet eine
 // Verbindung vor dem Verbrauch aller Interaktionen, warnt replay ohne
 // --fail-on-unconsumed mit PGR-W2001 und endet mit Exit-Code 0; mit der Option
 // oder PGWIRE_RECORDER_FAIL_ON_UNCONSUMED=true ist es PGR-E5002 mit demselben
@@ -88,7 +88,7 @@ func TestE2EReplayNichtVerbraucht(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-03/Negative, LH-FA-13/Negative — mit --fail-on-unconsumed
+// Abdeckung: LH-FA-13/Negative — mit --fail-on-unconsumed
 // bestimmen nie zugeordnete Sessions den Exit-Code 5, wenn kein
 // Verbindungsfehler auftrat; endet eine Verbindung durch einen anderen
 // Verbindungsfehler (PGR-E6001), steht er vor PGR-E5002 ihrer Session und
@@ -180,7 +180,7 @@ func bisTyp(t *testing.T, r *bufio.Reader, typ byte) byte {
 	}
 }
 
-// Abdeckung: LH-FA-03/Boundary, LH-FA-13/Negative — nach einem Startfehler
+// Abdeckung: LH-FA-13/Negative — nach einem Startfehler
 // (Listen-Port belegt, PGR-E4001) prüft replay auch mit --fail-on-unconsumed
 // keine nie zugeordneten Sessions: Exit-Code 4, weder PGR-E5002 noch
 // PGR-W2001.
@@ -201,7 +201,7 @@ func TestE2EReplayNichtVerbrauchtStartfehler(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-03/Negative, LH-FA-13/Boundary — beendet das Herunterfahren
+// Abdeckung: LH-FA-13/Boundary — beendet das Herunterfahren
 // eine offene, ruhende Verbindung, deren Session nicht verbraucht ist, meldet
 // replay mit --fail-on-unconsumed PGR-E5002 für diese Session und endet mit
 // Exit-Code 5.

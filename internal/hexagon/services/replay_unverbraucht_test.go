@@ -51,7 +51,9 @@ func zerlege(t *testing.T, w *model.Warning, err error) (string, string, int) {
 	return "", "", 0
 }
 
-// Abdeckung: LH-FA-03/Negative — endet eine Verbindung vor dem Verbrauch aller
+// Abdeckung: LH-FA-13/Negative — mit FailOnUnconsumed ist eine Session, deren
+// Verbindung vor dem Verbrauch aller Interaktionen endet, der Fehler PGR-E5002
+// der Klasse 5. Dazu: Endet eine Verbindung vor dem Verbrauch aller
 // Interaktionen ihrer Session, nennt die Meldung die Session, die Zahl der
 // nicht verbrauchten und aller Interaktionen ohne aufgezeichnete
 // Lebendprüfungen und die aufgezeichnete Nummer der ersten nicht verbrauchten;
@@ -83,7 +85,7 @@ func TestReplayNichtVerbrauchtMeldung(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-03/Boundary — verbraucht ist eine einfache Interaktion erst,
+// Verbraucht ist eine einfache Interaktion erst,
 // wenn ihre Antworten als gesendet gemeldet sind, eine Extended-Interaktion
 // erst mit den gesendeten Antworten ihrer letzten Gruppe; eine vor dem Sync
 // ihrer letzten Gruppe beendete Extended-Interaktion ist nicht verbraucht,
@@ -133,7 +135,7 @@ func TestReplayVerbraucht(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-03/Negative — nie zugeordnete Sessions mit Interaktionen
+// Abdeckung: LH-FA-13/Negative — nie zugeordnete Sessions mit Interaktionen
 // ergeben eine Meldung mit ihrer Zahl und der Kennung der ersten: ohne
 // FailOnUnconsumed die Warnung PGR-W2001, mit ihr der Fehler PGR-E5002 mit
 // demselben Text.
@@ -168,7 +170,7 @@ func TestReplayNieZugeordnetMeldung(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-03/Boundary — auch mit FailOnUnconsumed meldet eine
+// Auch mit FailOnUnconsumed meldet eine
 // Verbindung ohne zugeordnete Session nichts, auch nach Lebendprüfungen, und
 // eine Session ohne Interaktion oder nur aus aufgezeichneten Lebendprüfungen
 // ist weder nicht verbraucht noch nie zugeordnet.
@@ -199,5 +201,31 @@ func TestReplayNichtsZuMelden(t *testing.T) {
 	w, err := s.Unassigned()
 	if c, msg, _ := zerlege(t, w, err); c != "" {
 		t.Fatalf("Sessions ohne Interaktion gelten als nie zugeordnet: %s %q", c, msg)
+	}
+}
+
+// Sent meldet nur die Antworten der eigenen Verbindung als gesendet: Meldet
+// eine zweite Verbindung Sent, bleibt die zuletzt gelieferte Interaktion der
+// ersten nicht verbraucht.
+func TestReplaySentJeVerbindung(t *testing.T) {
+	ctx := context.Background()
+	s := ladenMit(t, streng,
+		[]model.Interaction{interaktion(1, "S1", "A")},
+		[]model.Interaction{interaktion(1, "S2", "B")},
+	)
+	a, _ := s.OpenConnection(ctx)
+	b, _ := s.OpenConnection(ctx)
+	if _, err := s.Query(ctx, a, "S1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Query(ctx, b, "S2"); err != nil {
+		t.Fatal(err)
+	}
+	s.Sent(ctx, b)
+	if c, msg, _ := meldungBeimSchliessen(t, s, a); c != model.CodeReplayUnconsumed || msg != "Session 1: 1 von 1 Interaktionen nicht verbraucht, die erste mit Nummer 1" {
+		t.Fatalf("Sent der zweiten Verbindung hat die erste verbraucht: %s %q", c, msg)
+	}
+	if c, msg, _ := meldungBeimSchliessen(t, s, b); c != "" {
+		t.Fatalf("gesendete Session gemeldet: %s %q", c, msg)
 	}
 }

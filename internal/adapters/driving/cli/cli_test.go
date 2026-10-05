@@ -69,10 +69,9 @@ func istUsage(err error) bool {
 	return errors.As(err, &me) && me.Code == model.CodeUsage && me.ExitCode() == 2
 }
 
-// Abdeckung: LH-FA-17/Happy, LH-FA-03/Happy — --fail-on-unconsumed ist ohne
-// Wert true und nimmt mit = genau true oder false; ohne Option und ohne
-// Umgebungsvariable ist sie false; nennt die Kommandozeile sie mehrfach, gilt
-// die letzte Angabe.
+// --fail-on-unconsumed ist ohne Wert true und nimmt mit = genau true oder
+// false; ohne Option und ohne Umgebungsvariable ist sie false; nennt die
+// Kommandozeile sie mehrfach, gilt die letzte Angabe.
 func TestParseFailOnUnconsumed(t *testing.T) {
 	t.Setenv(envFailOnUnconsumed, "")
 	for _, fall := range []struct {
@@ -150,7 +149,7 @@ func TestParseFailOnUnconsumedUmgebungNebenOption(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-17/Negative, LH-FA-03/Negative — record kennt
+// Abdeckung: LH-FA-17/Negative — record kennt
 // --fail-on-unconsumed nicht (PGR-E2001) und lässt ihre Umgebungsvariable
 // unbeachtet, auch mit ungültigem Wert.
 func TestParseFailOnUnconsumedRecord(t *testing.T) {

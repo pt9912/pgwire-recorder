@@ -654,7 +654,7 @@ func warte(t *testing.T, fertig chan struct{}) {
 	}
 }
 
-// Abdeckung: LH-FA-03/Negative, LH-FA-13/Negative — liefert der Use Case beim
+// Abdeckung: LH-FA-13/Negative — liefert der Use Case beim
 // Ende der Verbindung den Fehler PGR-E5002, merkt der Adapter ihn als
 // Verbindungsfehler und stellt ihn dem Client nicht zu; endete die Verbindung
 // durch eine Abweichung (PGR-E5001), wird diese zuerst gemerkt und
@@ -698,7 +698,7 @@ func TestReplayNichtVerbrauchtFehler(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-03/Boundary — der Adapter meldet dem Use Case gesendete
+// Der Adapter meldet dem Use Case gesendete
 // Antworten (Sent) nach jeder Antwort auf eine Anfrage und auf eine
 // abschließende Extended-Nachricht, nicht nach einer Nachricht ohne Antwort
 // und nicht, wenn das Senden scheitert.

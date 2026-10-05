@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../../spec/lastenheft.md#lh-fa-15--ci-eignung), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
+**Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../../spec/lastenheft.md#lh-fa-15--ci-eignung), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
 
 **Berührte Spec-Stellen:** `LH-FA-01.a` · `LH-FA-07.a` · `LH-FA-13.a` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-02.b` · `LH-FA-03.b` · `SPEC-007` · `SPEC-008` · `SPEC-012` · `SPEC-013` bis `SPEC-019` · `SPEC-034` · `SPEC-046`
 
@@ -56,9 +56,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Herunterfahren schreibt das Recording atomar und liefert den Exit-Code der gemerkten Klasse, für alle Klassen aus `SPEC-013` bis `SPEC-019`; die Frist `--shutdown-timeout` begrenzt das Warten in `record` und `replay`, und eine dabei unvollständige Interaktion ist `PGR-E4006` (Test mit Signal, je Modus).
-- [ ] [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Vorhandenes `--output` wird ohne `--force` abgelehnt; Priorität CLI vor Umgebungsvariable vor Konfigurationsdatei vor Default; `config show` zeigt die gewählte Datei, ohne einen aufgelösten Wert (Test).
-- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Benannte Verbindungen (`connections`, `--upstream <Name>`, `sslmode`), `--config`, `PGWIRE_RECORDER_CONFIG`, die Standarddatei und `$${VAR}` verhalten sich wie spezifiziert; eine ungültige Datei, eine nicht gesetzte Variable und ein Klartext-Passwort sind `PGR-E2004` bis `PGR-E2006` (Test).
+- [ ] [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Herunterfahren schreibt das Recording atomar und liefert den Exit-Code der gemerkten Klasse, für alle Klassen aus `SPEC-013` bis `SPEC-019`; die Frist `--shutdown-timeout` begrenzt das Warten in `record` und `replay`, und eine dabei unvollständige Interaktion ist `PGR-E4006`; eine so beendete Replay-Session mit `--fail-on-unconsumed` merkt `PGR-E4006` vor `PGR-E5002` und endet mit Exit-Code 4 (Test mit Signal, je Modus).
+- [ ] [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Vorhandenes `--output` wird ohne `--force` abgelehnt; `--force` und jede boolesche Option nehmen nur `true` oder `false`; Priorität CLI vor Umgebungsvariable vor Konfigurationsdatei vor Default, und jede gesetzte Umgebungsvariable einer Option des Kommandos wird geprüft, auch wenn die Kommandozeile vorgeht (`PGR-E2001`); die Hilfe geht jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei vor, auch für `config show` und `--config`; `config show` zeigt die gewählte Datei, ohne einen aufgelösten Wert (Test).
+- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Benannte Verbindungen (`connections`, `--upstream <Name>`, `sslmode`), `--config`, `PGWIRE_RECORDER_CONFIG`, die Standarddatei, der Schlüssel `fail_on_unconsumed` im Abschnitt `replay:` und `$${VAR}` verhalten sich wie spezifiziert; eine ungültige Datei, eine nicht gesetzte Variable und ein Klartext-Passwort sind `PGR-E2004` bis `PGR-E2006` (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -76,7 +76,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driving/cli` | update | Optionstabelle, Priorität, Signale |
+| `internal/adapters/driving/cli` | update | Optionstabelle, Priorität, Signale; allgemeiner Leser für Umgebungsvariablen, der jeden gesetzten Wert prüft; strenge boolesche Werte auch für `--force`; Hilfe vor jeder Prüfung; Schlüssel `fail_on_unconsumed` (übernommen aus `slice-replay-semantik-mismatch`) |
 | `internal/adapters/driving/pgwire`, `internal/bootstrap` | update | Frist in `recordSitzung` und `replaySitzung`; `replay` schließt bei Ablauf die Client-Verbindung und merkt `PGR-E4006` |
 | `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben |
 | `test/integration` | update | Happy/Boundary/Negative |

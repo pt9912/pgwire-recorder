@@ -502,7 +502,8 @@ eine aufgezeichnete Sitzung nie verwendet; ohne die Option ist es eine Warnung
 `=true` beziehungsweise `=false`; jeder andere Wert, auch `=` ohne Wert und
 `=1`, ist ein ungültiger Aufruf (`PGR-E2001`). Die Umgebungsvariable
 `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` nimmt `true` oder `false`, leer gilt sie als
-nicht gesetzt; die Option geht ihr vor. Die Option gibt es nur bei `replay`.
+nicht gesetzt; die Option geht ihr vor. Ein anderer Wert der Variable ist ein
+ungültiger Aufruf (`PGR-E2001`), auch wenn Sie die Option zugleich angeben. Die Option gibt es nur bei `replay`.
 
 ## 5. Einstellungen
 

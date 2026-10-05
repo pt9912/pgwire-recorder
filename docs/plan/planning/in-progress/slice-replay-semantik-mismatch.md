@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
 
-**Berührte Spec-Stellen:** `LH-FA-01.a` · `LH-FA-03.b` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-10.a` · `SPEC-012` · `SPEC-018` · `SPEC-034` · `ARC-002` · `ARC-006`
+**Berührte Spec-Stellen:** `LH-FA-01.a` · `LH-FA-03.b` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-10.a` · `SPEC-012` · `SPEC-018` · `SPEC-034` · `ARC-002` · `ARC-003` · `ARC-005` · `ARC-006` · `ARC-009`
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -41,6 +41,7 @@ Geliefert werden die Option, ihre Umgebungsvariable `PGWIRE_RECORDER_FAIL_ON_UNC
 - Schlüssel `fail_on_unconsumed` der Konfigurationsdatei — `slice-v1-abschluss-betrieb`, der die Konfigurationsdatei für alle Optionen liefert; heute liest das Binary keine.
 - Frist `--shutdown-timeout` und weiteres Signal — `slice-v1-abschluss-betrieb`; die Regel für eine dabei zwangsweise beendete Session steht in `LH-FA-03.b` und wird dort mit der Frist geprüft, weil es sie hier noch nicht gibt.
 - Strenge Werte boolescher Optionen für `--force` — `slice-v1-abschluss-betrieb`, der `--force` hält; dieser Slice wendet die Regel nur auf die eigene Option an.
+- `play` kennt `--fail-on-unconsumed` nicht und lässt ihre Umgebungsvariable unbeachtet (`LH-FA-03.b` §Andere Kommandos) — `slice-v1-abschluss-einspielen`, der das Kommando `play` liefert und den Test dafür übernimmt; heute gibt es `play` nicht, ein Aufruf ist ein unbekanntes Kommando.
 
 **Bereits geliefert** von `slice-walking-skeleton-replay`: Mismatch einfacher Anfragen mit Diagnose (Session, erwartete Nummer, erwartete und empfangene Anfrage), `ErrorResponse` mit `PGR-E5001` und Exit-Code 5 beim Herunterfahren. Von `slice-extended-query-replay`: Mismatch der Extended-Nachrichten mit Diagnose nach `LH-FA-10.a` (Session, Interaktion, Gruppe, Nachricht, erwarteter und empfangener Nachrichtentyp, abweichendes Feld, SQL der erwarteten und der empfangenen Anweisung, ohne Parameterwerte; `TestReplayExtendedDiagnoseAnweisung`), auch für eine einfache Anfrage, wo eine Extended-Nachricht erwartet ist, und umgekehrt (`TestReplayExtendedAbweichung`, `TestReplayExtendedFalscheArt`, `TestE2EReplayExtendedAbweichung`). Dieser Slice ergänzt `--fail-on-unconsumed` (`PGR-E5002`). Titel und Bezug folgen diesem Rest: Die Folgepflicht aus [ADR-0007](../../adr/0007-strict-replay.md), die Diagnose der Abweichung, ist für beide Protokollvarianten geliefert; `--fail-on-unconsumed` schärft [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), nicht das Matching.
 
