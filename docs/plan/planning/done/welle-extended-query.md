@@ -18,7 +18,7 @@ zwei Positionen, nicht drei.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Wann Arbeit eine Welle braucht.
 
-Das Extended Query Protocol ist im Record- und Replay-Modus umgesetzt; ein Client mit Prepared Statements wird aufgezeichnet und ohne PostgreSQL wiedergegeben ([`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), Abnahmeszenario 7).
+Das Extended Query Protocol ist im Record- und Replay-Modus umgesetzt; ein Client mit Prepared Statements wird aufgezeichnet und ohne PostgreSQL wiedergegeben ([`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), Abnahmeszenario 7).
 
 ## 2. Trigger (Welle startet)
 
@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- Welle [welle-walking-skeleton](done/welle-walking-skeleton/welle-walking-skeleton.md) done.
+- Welle [welle-walking-skeleton](welle-walking-skeleton/welle-walking-skeleton.md) done.
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -49,18 +49,18 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 
 | Slice | Titel | Bezug |
 |---|---|---|
-| slice-extended-query-modell | Spezifikation und Domain-Modell | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
-| slice-extended-query-record | Extended Query im Record | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-06`](../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten) |
-| slice-extended-query-replay | Extended Query im Replay | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-09`](../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-FA-10`](../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage) |
-| slice-extended-query-lebendpruefung | Lebendprüfungen im Replay | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-09`](../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-QA-02`](../../../spec/lastenheft.md#lh-qa-02--geringe-eingriffe-in-die-anwendung) |
+| slice-extended-query-modell | Spezifikation und Domain-Modell | [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
+| slice-extended-query-record | Extended Query im Record | [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-06`](../../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten) |
+| slice-extended-query-replay | Extended Query im Replay | [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage) |
+| slice-extended-query-lebendpruefung | Lebendprüfungen im Replay | [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-QA-02`](../../../../spec/lastenheft.md#lh-qa-02--geringe-eingriffe-in-die-anwendung) |
 
 ## 5. Abhängigkeiten
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
-- Blockiert: Welle [welle-replay-semantik](welle-replay-semantik.md).
-- Wird blockiert von: Welle [welle-walking-skeleton](done/welle-walking-skeleton/welle-walking-skeleton.md).
+- Blockiert: Welle [welle-replay-semantik](../welle-replay-semantik.md).
+- Wird blockiert von: Welle [welle-walking-skeleton](welle-walking-skeleton/welle-walking-skeleton.md).
 - Innerhalb der Welle: `slice-extended-query-record` und `slice-extended-query-replay` setzen `slice-extended-query-modell` voraus. `slice-extended-query-lebendpruefung` setzt `slice-extended-query-replay` voraus.
 
 ## 6. Out-of-Scope für diese Welle

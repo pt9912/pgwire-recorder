@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- Welle [welle-extended-query](welle-extended-query.md) done.
+- Welle [welle-extended-query](done/welle-extended-query.md) done.
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -59,7 +59,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: Welle [welle-v1-abschluss](welle-v1-abschluss.md) (Sessions und Betrieb bauen auf Fehlerebenen und Meldungscodes auf).
-- Wird blockiert von: Welle [welle-extended-query](welle-extended-query.md).
+- Wird blockiert von: Welle [welle-extended-query](done/welle-extended-query.md).
 - Innerhalb der Welle: `slice-replay-semantik-meldungscodes` setzt `slice-replay-semantik-mismatch` voraus.
 
 ## 6. Out-of-Scope für diese Welle
