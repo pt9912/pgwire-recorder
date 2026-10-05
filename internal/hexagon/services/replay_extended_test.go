@@ -477,7 +477,7 @@ func TestReplayExtendedDiagnoseLebensdauer(t *testing.T) {
 // Extended-Seite: erwartet ein parse und kommt eine einfache Anfrage, das
 // erwartete SQL; kommt ein parse statt einer einfachen Anfrage oder nach der
 // letzten Interaktion, das empfangene; bei bind das hergeleitete oder
-// „unbekannt“.
+// „unbekannt“, wobei eine einfache Anfrage am Cursor noch nicht zählt.
 func TestReplayExtendedDiagnoseArt(t *testing.T) {
 	ctx := context.Background()
 	s, id := replayMit(t, []model.Interaction{vorbereitung(1)})
@@ -494,6 +494,16 @@ func TestReplayExtendedDiagnoseArt(t *testing.T) {
 	_, err = s.ClientMessage(ctx, id, bind("s1"))
 	if want := `empfangen Client-Nachricht bind (Anweisung unbekannt)`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
 		t.Errorf("P4b bind: %v", err)
+	}
+
+	// Q1: Die einfache Anfrage am Cursor ist noch nicht geschehen und hat das
+	// unbenannte Statement nicht zerstört.
+	vor := ext(1, "T", parse("", "SELECT 1"), bind(""))
+	s, id = replayMit(t, []model.Interaction{vor, interaktion(2, "SELECT 7", "SELECT 1")})
+	sendeAlle(t, s, id, vor.Groups[0].Client...)
+	_, err = s.ClientMessage(ctx, id, bind(""))
+	if want := `erwartet Anfrage "SELECT 7", empfangen Client-Nachricht bind (Anweisung "SELECT 1")`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
+		t.Errorf("Q1: %v", err)
 	}
 
 	in := ext(1, "I", parse("s1", "SELECT 1"))
