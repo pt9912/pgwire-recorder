@@ -258,3 +258,33 @@ func TestReplayLetzteNummer(t *testing.T) {
 		t.Fatalf("mit Interaktionen: %d", n)
 	}
 }
+
+// Eine NoticeResponse und ein ParameterStatus, die eine aufgezeichnete
+// Lebendprüfung trägt (beim Aufzeichnen zwischen zwei Interaktionen
+// eingetroffen), gibt das Replay nicht wieder: weder mit der Lebendprüfung
+// noch mit der folgenden Interaktion (LH-FA-05.a §Nachrichten zwischen
+// Interaktionen).
+func TestReplayLebendpruefungOhneHinweise(t *testing.T) {
+	ctx := context.Background()
+	ping := interaktion(2, "-- ping", "")
+	ping.Responses = []model.Response{
+		{Type: model.ResponseNoticeResponse, Fields: map[string]string{"M": "zwischen"}},
+		{Type: model.ResponseParameterStatus, Name: "application_name", Value: "zwischen"},
+		{Type: model.ResponseEmptyQueryResponse},
+		{Type: model.ResponseReadyForQuery, TxStatus: "I"},
+	}
+	danach := interaktion(3, "SELECT 2", "B")
+	s, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{interaktion(1, "SELECT 1", "A"), ping, danach})}, "rec.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, _ := s.OpenConnection(ctx)
+	if _, err := s.Query(ctx, id, "SELECT 1"); err != nil {
+		t.Fatal(err)
+	}
+	pruefeLebend(t, s, id, "-- ping", "I")
+	out, err := s.Query(ctx, id, "SELECT 2")
+	if err != nil || !reflect.DeepEqual(out, danach.Responses) {
+		t.Fatalf("Interaktion nach der Lebendprüfung: %#v, %v", out, err)
+	}
+}

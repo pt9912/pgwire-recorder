@@ -48,10 +48,12 @@ type fakeSession struct {
 	receiveHalt chan struct{}
 	// receiveErr liefert Receive, wenn er nicht nil ist.
 	receiveErr error
+	// empfangsFehler liefert ein wartendes Receive als Fehler.
+	empfangsFehler chan error
 }
 
 func neueFakeSession(err error) *fakeSession {
-	return &fakeSession{err: err, empfang: make(chan []model.Response, 16), zu: make(chan struct{})}
+	return &fakeSession{err: err, empfang: make(chan []model.Response, 16), empfangsFehler: make(chan error, 1), zu: make(chan struct{})}
 }
 
 func (f *fakeSession) Query(_ context.Context, sql string) ([]model.Response, error) {
@@ -98,6 +100,8 @@ func (f *fakeSession) Receive(context.Context) ([]model.Response, error) {
 	select {
 	case out := <-f.empfang:
 		return out, nil
+	case err := <-f.empfangsFehler:
+		return nil, err
 	case <-f.zu:
 		return nil, model.Errorf(model.CodeConnectionLost, nil, "Upstream geschlossen")
 	}

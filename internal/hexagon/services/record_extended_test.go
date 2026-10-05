@@ -306,6 +306,97 @@ func TestRecordExtendedFehlerantwortVorDemAbbruch(t *testing.T) {
 	}
 }
 
+// Abdeckung: LH-FA-11/Negative — hat die Server-Richtung eine ErrorResponse
+// gelesen und scheitern danach Senden und Empfangen mit PGR-E6001, wird die
+// Session nicht übernommen, gleich welche Richtung das Ende zuerst meldet:
+// meldet es die Client-Richtung, ist die Session nicht übernehmbar, bevor
+// ClientMessage den Fehler liefert und CloseSession läuft; meldet es die
+// Server-Richtung, liefert ein späteres ClientMessage ErrSessionEnded.
+func TestRecordExtendedSendefehlerNachFehlerantwort(t *testing.T) {
+	e6001 := model.Errorf(model.CodeUnsupported, nil, "Fehlerantwort 57P01 vor dem Abbruch")
+	vorbereiten := func(t *testing.T) (*RecordService, *fakeRepo, *fakeUpstream, model.SessionID) {
+		t.Helper()
+		up := &fakeUpstream{}
+		s, repo := neu(t, up)
+		id := session(t, s, "SELECT 1")
+		client(t, s, id, cParse, cFlush)
+		server(t, s, up, id, sErr)
+		up.letzte.mu.Lock()
+		up.letzte.sendErr = e6001
+		up.letzte.mu.Unlock()
+		return s, repo, up, id
+	}
+	t.Run("Client-Richtung zuerst", func(t *testing.T) {
+		s, repo, up, id := vorbereiten(t)
+		empfangen := make(chan error, 1)
+		go func() {
+			_, err := s.AwaitServer(context.Background(), id)
+			empfangen <- err
+		}()
+		if err := s.ClientMessage(context.Background(), id, cSync); codeOf(err) != model.CodeUnsupported {
+			t.Fatalf("ClientMessage: erwartet %s, erhalten %v", model.CodeUnsupported, err)
+		}
+		if err := s.CloseSession(context.Background(), id, model.EndFailed); err != nil {
+			t.Fatal(err)
+		}
+		up.letzte.empfangsFehler <- e6001
+		if err := <-empfangen; err != model.ErrSessionEnded {
+			t.Fatalf("AwaitServer nach CloseSession: %v", err)
+		}
+		if len(repo.writes) != 0 {
+			t.Fatalf("Session übernommen: %#v", repo.writes)
+		}
+	})
+	t.Run("Server-Richtung zuerst", func(t *testing.T) {
+		s, repo, up, id := vorbereiten(t)
+		up.letzte.empfangsFehler <- e6001
+		if _, err := s.AwaitServer(context.Background(), id); codeOf(err) != model.CodeUnsupported {
+			t.Fatalf("AwaitServer: erwartet %s, erhalten %v", model.CodeUnsupported, err)
+		}
+		if err := s.CloseSession(context.Background(), id, model.EndFailed); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.ClientMessage(context.Background(), id, cSync); err != model.ErrSessionEnded {
+			t.Fatalf("ClientMessage nach CloseSession: %v", err)
+		}
+		if len(repo.writes) != 0 {
+			t.Fatalf("Session übernommen: %#v", repo.writes)
+		}
+	})
+}
+
+// Eine Server-Nachricht nach dem ReadyForQuery der letzten Interaktion liest
+// AwaitServer nicht: Es wartet auf eine gesendete Gruppe, bis CloseSession es
+// mit ErrSessionEnded beendet, und die Session trägt nur ihre Interaktionen
+// (LH-FA-05.a §Nachrichten zwischen Interaktionen).
+func TestRecordNachDerLetztenInteraktion(t *testing.T) {
+	up := &fakeUpstream{}
+	s, repo := neu(t, up)
+	id := session(t, s, "SELECT 1")
+	client(t, s, id, cParse, cSync)
+	server(t, s, up, id, sParse, sRFQ)
+	hinweis := model.Response{Type: model.ResponseNoticeResponse, Fields: map[string]string{"M": "danach"}}
+	up.letzte.empfang <- []model.Response{hinweis}
+	empfangen := make(chan error, 1)
+	go func() {
+		_, err := s.AwaitServer(context.Background(), id)
+		empfangen <- err
+	}()
+	select {
+	case err := <-empfangen:
+		t.Fatalf("AwaitServer ohne laufende Interaktion zurückgekehrt: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+	schliessen(t, s, id, model.EndClosed)
+	if err := <-empfangen; err != model.ErrSessionEnded {
+		t.Fatalf("AwaitServer nach CloseSession: %v", err)
+	}
+	got := repo.last(t).Sessions[0].Interactions
+	if len(got) != 2 || !reflect.DeepEqual(got[1].Groups[0].Server, []model.Response{sParse, sRFQ}) {
+		t.Fatalf("Interaktionen: %#v", got)
+	}
+}
+
 // Eine einfache Anfrage nach dem Sync einer laufenden Extended-Interaktion
 // wartet, bis deren Antworten zugestellt sind, und läuft nie gleichzeitig mit
 // dem Empfang der Gegenrichtung; sie wird die nächste Interaktion.

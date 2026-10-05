@@ -222,7 +222,7 @@ func oeffne(t *testing.T, addr string) *session {
 
 // Abdeckung: LH-FA-11/Negative — endet die Verbindung zum Upstream nach einer
 // ErrorResponse vor dem ReadyForQuery, liefert der Upstream-Adapter PGR-E6001
-// mit SQLSTATE und Meldung der ErrorResponse im Text: bei FATAL, ERROR und
+// mit SQLSTATE und Meldung der letzten ErrorResponse im Text: bei FATAL, ERROR und
 // PANIC, nach Ergebnissen einer einfachen Anfrage, als Nachricht zwischen zwei
 // Interaktionen und im Extended Query Protocol nach einer schon gelieferten
 // ErrorResponse. Ohne ErrorResponse und nach einer ErrorResponse, auf die ein
@@ -245,6 +245,15 @@ func TestFehlerantwortVorDemAbbruch(t *testing.T) {
 			}
 		})
 	}
+	t.Run("zwei Fehlerantworten, die letzte zählt", func(t *testing.T) {
+		erste := &pgproto3.ErrorResponse{Severity: "ERROR", Code: "XX001", Message: "erste"}
+		s := oeffne(t, abbruchServer(t, nil, mit(ergebnis, erste, beendet)))
+		_, err := s.Query(ctx(t), "SELECT 1")
+		pruefeAbbruch(t, err, model.CodeUnsupported, beendet)
+		if strings.Contains(err.Error(), "XX001") {
+			t.Fatalf("Text nennt die erste Fehlerantwort: %v", err)
+		}
+	})
 	t.Run("ohne Fehlerantwort", func(t *testing.T) {
 		s := oeffne(t, abbruchServer(t, nil, ergebnis))
 		_, err := s.Query(ctx(t), "SELECT 1")
@@ -352,9 +361,9 @@ func TestNachrichtenZwischenInteraktionen(t *testing.T) {
 }
 
 // rohFelder ist der Rumpf einer Fehler- oder Hinweisantwort mit leerer Meldung,
-// leerem Detail, einer Position 0, einer internen Position ohne Zahl und einer
-// leeren Zeilennummer.
-const rohFelder = "SERROR\x00VERROR\x00CXX000\x00M\x00D\x00P0\x00pabc\x00L\x00Rfn\x00\x00"
+// leerem Detail, einer Position 0, einer internen Position ohne Zahl, einer
+// leeren Zeilennummer und dem unbekannten Feldcode Y mit leerem Wert.
+const rohFelder = "SERROR\x00VERROR\x00CXX000\x00M\x00D\x00P0\x00pabc\x00L\x00Rfn\x00Y\x00\x00"
 
 func rohNachricht(typ byte, rumpf string) []byte {
 	b := []byte{typ, 0, 0, 0, 0}
@@ -362,9 +371,10 @@ func rohNachricht(typ byte, rumpf string) []byte {
 	return append(b, rumpf...)
 }
 
-// Ein Diagnosefeld mit leerem Wert und ein Zahlenfeld mit 0 oder ohne Zahl
-// fehlen in den Feldern, die der Upstream-Adapter für ErrorResponse und
-// NoticeResponse liefert (LH-FA-11.a).
+// Ein benanntes Diagnosefeld mit leerem Wert und ein Zahlenfeld mit 0 oder
+// ohne Zahl fehlen in den Feldern, die der Upstream-Adapter für ErrorResponse
+// und NoticeResponse liefert; ein unbekannter Feldcode steht auch mit leerem
+// Wert darin (LH-FA-11.a).
 func TestDiagnosefelder(t *testing.T) {
 	addr := rohServer(t, func(be *pgproto3.Backend, conn net.Conn) {
 		if _, err := be.Receive(); err != nil {
@@ -382,9 +392,105 @@ func TestDiagnosefelder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]string{"S": "ERROR", "V": "ERROR", "C": "XX000", "R": "fn"}
+	want := map[string]string{"S": "ERROR", "V": "ERROR", "C": "XX000", "R": "fn", "Y": ""}
 	if len(out) != 3 || out[0].Type != model.ResponseErrorResponse || out[1].Type != model.ResponseNoticeResponse ||
 		!reflect.DeepEqual(out[0].Fields, want) || !reflect.DeepEqual(out[1].Fields, want) {
 		t.Fatalf("Antworten: %#v", out)
+	}
+}
+
+// schreibhaelfteZu schließt die Schreibhälfte der Upstream-Verbindung, sodass
+// das nächste Senden sicher scheitert.
+func schreibhaelfteZu(t *testing.T, s *session) {
+	t.Helper()
+	if err := s.conn.(*net.TCPConn).CloseWrite(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Abdeckung: LH-FA-11/Negative — scheitert im Extended Query Protocol das
+// Senden, nachdem die Leserichtung eine ErrorResponse der laufenden
+// Interaktion gelesen hat, liefert Send PGR-E6001 mit deren SQLSTATE; ohne
+// gelesene ErrorResponse und nach einem ReadyForQuery ist es PGR-E4003.
+func TestSendNachFehlerantwort(t *testing.T) {
+	parse := []model.ClientMessage{{Type: model.ClientParse, SQL: "SELECT 1"}, {Type: model.ClientFlush}}
+	sync := []model.ClientMessage{{Type: model.ClientSync}}
+	lies := func(t *testing.T, s *session, bis model.ResponseType) {
+		t.Helper()
+		for {
+			rs, err := s.Receive(ctx(t))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if rs[len(rs)-1].Type == bis {
+				return
+			}
+		}
+	}
+	t.Run("ErrorResponse gelesen", func(t *testing.T) {
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet}})
+		s := oeffne(t, addr)
+		if err := s.Send(ctx(t), parse); err != nil {
+			t.Fatal(err)
+		}
+		lies(t, s, model.ResponseErrorResponse)
+		schreibhaelfteZu(t, s)
+		pruefeAbbruch(t, s.Send(ctx(t), sync), model.CodeUnsupported, beendet)
+	})
+	t.Run("ohne ErrorResponse", func(t *testing.T) {
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{&pgproto3.ParseComplete{}}})
+		s := oeffne(t, addr)
+		if err := s.Send(ctx(t), parse); err != nil {
+			t.Fatal(err)
+		}
+		lies(t, s, model.ResponseParseComplete)
+		schreibhaelfteZu(t, s)
+		pruefeAbbruch(t, s.Send(ctx(t), sync), model.CodeConnectionLost, nil)
+	})
+	t.Run("ErrorResponse und ReadyForQuery gelesen", func(t *testing.T) {
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet, &pgproto3.ReadyForQuery{TxStatus: 'I'}}})
+		s := oeffne(t, addr)
+		if err := s.Send(ctx(t), append(parse[:1:1], sync...)); err != nil {
+			t.Fatal(err)
+		}
+		lies(t, s, model.ResponseReadyForQuery)
+		schreibhaelfteZu(t, s)
+		pruefeAbbruch(t, s.Send(ctx(t), parse), model.CodeConnectionLost, nil)
+	})
+}
+
+// Abdeckung: LH-FA-05/Negative — eine Serverantwort, die die Bibliothek nicht
+// lesen kann, während die Verbindung besteht (unbekannter Nachrichtentyp,
+// ReadyForQuery ohne Status), ist PGR-E6001 mit „nicht lesbar“ im Text, auch
+// nach einer ErrorResponse derselben Interaktion, deren SQLSTATE der Text dann
+// nicht nennt.
+func TestNichtLesbareServerantwort(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		vorher []pgproto3.BackendMessage
+		roh    []byte
+	}{
+		{"unbekannter Typ", nil, rohNachricht('Y', "")},
+		{"unbekannter Typ nach ErrorResponse", []pgproto3.BackendMessage{beendet}, rohNachricht('Y', "")},
+		{"ReadyForQuery ohne Status", nil, rohNachricht('Z', "")},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			addr := rohServer(t, func(be *pgproto3.Backend, conn net.Conn) {
+				if _, err := be.Receive(); err != nil {
+					return
+				}
+				for _, m := range c.vorher {
+					be.Send(m)
+				}
+				_ = be.Flush()
+				_, _ = conn.Write(c.roh)
+				_, _ = be.Receive()
+			})
+			s := oeffne(t, addr)
+			_, err := s.Query(ctx(t), "SELECT 1")
+			if code(err) != model.CodeUnsupported || !strings.Contains(err.Error(), "nicht lesbar") || strings.Contains(err.Error(), "57P01") {
+				t.Fatalf("erwartet %s „nicht lesbar“ ohne 57P01, erhalten %v", model.CodeUnsupported, err)
+			}
+		})
 	}
 }

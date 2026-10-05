@@ -45,7 +45,7 @@ func rohAblauf(t *testing.T, listen string, anfragen ...string) string {
 			t.Fatalf("Verbindungsaufbau über %s: %v", listen, err)
 		}
 		if typ == 'E' {
-			t.Fatalf("Verbindungsaufbau über %s: %s", listen, nachrichtText(typ, rumpf))
+			t.Fatalf("Verbindungsaufbau über %s: %s", listen, lesbar(t, typ, rumpf))
 		}
 		if typ == 'Z' {
 			break
@@ -63,7 +63,7 @@ func rohAblauf(t *testing.T, listen string, anfragen ...string) string {
 				fmt.Fprintf(&b, "Ende: %v\n", err)
 				return b.String()
 			}
-			fmt.Fprintf(&b, "%s\n", nachrichtText(typ, rumpf))
+			fmt.Fprintf(&b, "%s\n", lesbar(t, typ, rumpf))
 			if typ == 'Z' {
 				break
 			}
@@ -91,6 +91,18 @@ func leseNachricht(r *bufio.Reader) (byte, []byte, error) {
 	rumpf := make([]byte, n-4)
 	_, err := io.ReadFull(r, rumpf)
 	return kopf[0], rumpf, err
+}
+
+// lesbar ist nachrichtText; eine zu kurze Nachricht beendet den Test mit
+// Diagnose.
+func lesbar(t *testing.T, typ byte, rumpf []byte) (text string) {
+	t.Helper()
+	defer func() {
+		if p := recover(); p != nil {
+			t.Fatalf("Nachricht %c %q nicht lesbar: %v", typ, rumpf, p)
+		}
+	}()
+	return nachrichtText(typ, rumpf)
 }
 
 // nachrichtText beschreibt eine Server-Nachricht mit Name und Inhalt.
@@ -203,8 +215,8 @@ func enthaeltInFolge(t *testing.T, sicht string, teile ...string) {
 // Abdeckung: LH-FA-11/Happy, LH-FA-11/Boundary — Abnahmeszenario 6 für einfache
 // Anfragen: eine einzelne Fehlerantwort, ein Fehler in der zweiten Anweisung
 // einer Anfrage nach dem Ergebnis der ersten und ein Fehler in einer
-// Transaktion mit ReadyForQuery im Status E und anschließendem ROLLBACK, jeweils
-// zwischen fehlerfreien Interaktionen, zeigen im Replay dieselben
+// Transaktion mit ReadyForQuery im Status E und anschließendem ROLLBACK, in
+// einer Folge von Interaktionen, die mit fehlerfreien beginnt und endet, zeigen im Replay dieselben
 // Server-Nachrichten in derselben Reihenfolge (Ergebnisse, SQLSTATE, Meldung,
 // Transaktionsstatus) wie beim Aufzeichnen und wie direkt gegen PostgreSQL.
 func TestE2EFehlerreplayEinfach(t *testing.T) {

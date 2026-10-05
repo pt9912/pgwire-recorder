@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -78,9 +80,11 @@ type session struct {
 	conn      net.Conn
 	fe        *pgproto3.Frontend
 	schreiben sync.Mutex
+	// merker schützt fehler: Die Leserichtung setzt es, Lese- und
+	// Senderichtung stufen danach ein.
+	merker sync.Mutex
 	// fehler sind die Felder der letzten ErrorResponse seit dem letzten
-	// ReadyForQuery, sonst nil; sie gehören wie der Lesepuffer dem laufenden
-	// Query oder Receive.
+	// ReadyForQuery, sonst nil.
 	fehler map[string]string
 }
 
@@ -109,7 +113,9 @@ func (s *session) Query(ctx context.Context, sql string) ([]model.Response, erro
 }
 
 // Send bildet die Client-Nachrichten auf PGWire ab und sendet sie in einem
-// Schreibvorgang; es blockiert, solange der Server nicht liest.
+// Schreibvorgang; es blockiert, solange der Server nicht liest. Scheitert das
+// Senden, stuft es wie lies nach einer gelesenen ErrorResponse ein
+// (LH-FA-02.b).
 func (s *session) Send(_ context.Context, msgs []model.ClientMessage) error {
 	s.schreiben.Lock()
 	defer s.schreiben.Unlock()
@@ -121,7 +127,7 @@ func (s *session) Send(_ context.Context, msgs []model.ClientMessage) error {
 		s.fe.Send(msg)
 	}
 	if err := s.fe.Flush(); err != nil {
-		return model.Errorf(model.CodeConnectionLost, err, "Nachrichten an den Upstream nicht zu senden")
+		return s.verbindungsende(err, "Nachrichten an den Upstream nicht zu senden")
 	}
 	return nil
 }
@@ -144,17 +150,17 @@ func (s *session) Receive(context.Context) ([]model.Response, error) {
 }
 
 // lies liest die nächste Server-Nachricht und bildet sie ab. Eine
-// ErrorResponse merkt es sich bis zum nächsten ReadyForQuery. Scheitert das
-// Lesen, ist das mit gemerkter ErrorResponse PGR-E6001 mit deren SQLSTATE und
-// Meldung, sonst PGR-E4003 (LH-FA-02.b).
+// ErrorResponse merkt es sich bis zum nächsten ReadyForQuery. Endet die
+// Verbindung (istVerbindungsende), stuft verbindungsende ein; jeder andere
+// Lesefehler ist eine nicht lesbare Serverantwort, PGR-E6001 ohne Blick auf
+// den Merker (LH-FA-02.b, LH-FA-05.a).
 func (s *session) lies() (model.Response, error) {
 	msg, err := s.fe.Receive()
 	if err != nil {
-		if s.fehler != nil {
-			return model.Response{}, model.Errorf(model.CodeUnsupported, err,
-				"Verbindung zum Upstream nach der Fehlerantwort %s „%s“ vor ReadyForQuery beendet", s.fehler["C"], s.fehler["M"])
+		if istVerbindungsende(err) {
+			return model.Response{}, s.verbindungsende(err, "Verbindung zum Upstream vor ReadyForQuery beendet")
 		}
-		return model.Response{}, model.Errorf(model.CodeConnectionLost, err, "Verbindung zum Upstream vor ReadyForQuery beendet")
+		return model.Response{}, model.Errorf(model.CodeUnsupported, err, "Serverantwort des Upstreams nicht lesbar")
 	}
 	r, err := toResponse(msg)
 	if err != nil {
@@ -162,11 +168,39 @@ func (s *session) lies() (model.Response, error) {
 	}
 	switch r.Type {
 	case model.ResponseErrorResponse:
-		s.fehler = r.Fields
+		s.merke(r.Fields)
 	case model.ResponseReadyForQuery:
-		s.fehler = nil
+		s.merke(nil)
 	}
 	return r, nil
+}
+
+func (s *session) merke(fehler map[string]string) {
+	s.merker.Lock()
+	defer s.merker.Unlock()
+	s.fehler = fehler
+}
+
+// verbindungsende stuft das Ende der Verbindung ein: mit gemerkter
+// ErrorResponse PGR-E6001 mit deren SQLSTATE und Meldung, sonst PGR-E4003
+// mit text (LH-FA-02.b).
+func (s *session) verbindungsende(err error, text string) error {
+	s.merker.Lock()
+	fehler := s.fehler
+	s.merker.Unlock()
+	if fehler != nil {
+		return model.Errorf(model.CodeUnsupported, err,
+			"Verbindung zum Upstream nach der Fehlerantwort %s „%s“ vor ReadyForQuery beendet", fehler["C"], fehler["M"])
+	}
+	return model.Errorf(model.CodeConnectionLost, err, "%s", text)
+}
+
+// istVerbindungsende ist wahr für das Ende des Datenstroms, auch mitten in
+// einer Nachricht, und für einen Fehler der Verbindung selbst.
+func istVerbindungsende(err error) bool {
+	var ne net.Error
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) ||
+		errors.Is(err, net.ErrClosed) || errors.As(err, &ne)
 }
 
 // Close sendet Terminate nur, wenn gerade kein Send oder Query schreibt, und

@@ -197,7 +197,8 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 // an den Upstream, ohne mu zu halten. Nach Shutdown nimmt es nur noch
 // Nachrichten der laufenden Interaktion vor deren Sync an; eine Nachricht, die
 // eine neue Interaktion begänne, liefert ErrShutdown und geht nicht weiter
-// (LH-FA-13.a).
+// (LH-FA-13.a). Scheitert das Senden mit PGR-E6001, ist die Session nicht
+// übernehmbar, bevor der Fehler zurückgeht (LH-FA-02.b).
 func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) error {
 	l, err := s.laufende(id)
 	if err != nil {
@@ -239,6 +240,7 @@ func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m
 	if err := l.upstream.Send(ctx, gruppe); err != nil {
 		l.mu.Lock()
 		defer l.mu.Unlock()
+		l.merkeNichtUnterstuetzt(err)
 		return l.beendetErr(err)
 	}
 	return nil
