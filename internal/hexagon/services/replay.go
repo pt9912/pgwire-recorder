@@ -117,8 +117,9 @@ func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string)
 // mit der erwarteten am Cursor (LH-FA-18.a). Bei Gleichheit rückt der Cursor
 // um eine Nachricht vor; schließt sie ihre Gruppe ab, liefert ClientMessage die
 // aufgezeichneten Server-Nachrichten der Gruppe, sonst keine. Die Abweichung
-// nennt das abweichende Feld, Parameterwerte nennt sie nicht (SPEC-033); der
-// Cursor bleibt dann stehen.
+// nennt das abweichende Feld und das SQL der betroffenen Anweisungen
+// (anweisungen), Parameterwerte nennt sie nicht (SPEC-033); der Cursor bleibt
+// dann stehen.
 func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m model.ClientMessage) ([]model.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -142,8 +143,8 @@ func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m m
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: %s weicht in sql ab, erwartet %q, empfangen %q",
 			c.stelle(), e.Type, e.SQL, m.SQL)
 	default:
-		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: erwartet %s, empfangen %s, abweichend in %s",
-			c.stelle(), e.Type, m.Type, feld)
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: erwartet %s, empfangen %s, abweichend in %s%s",
+			c.stelle(), e.Type, m.Type, feld, c.anweisungen(e, m))
 	}
 	g := erwartet.Groups[c.gruppe]
 	c.nachricht++
@@ -175,6 +176,85 @@ func (s *ReplayService) zuordnen(id model.SessionID, empfangen string) (*cursor,
 		c.session = &sess
 	}
 	return c, nil
+}
+
+// anweisungen nennt für die Diagnose das SQL der Anweisungen, auf die sich die
+// erwartete und die empfangene Nachricht beziehen (LH-FA-10.a): bei parse ihr
+// SQL, bei bind das des Statements, bei execute das des Statements hinter dem
+// Portal, bei describe und close das ihres Ziels. Gesucht wird in den
+// aufgezeichneten Client-Nachrichten der Session vor dem Cursor; ist keine
+// Anweisung bekannt, steht dort „unbekannt“, bezieht sich eine Nachricht auf
+// keine, „keine“. Bezieht sich keine der beiden auf eine Anweisung, liefert es
+// "".
+func (c *cursor) anweisungen(e, m model.ClientMessage) string {
+	vorher := c.vorher()
+	se, okE := anweisung(vorher, e)
+	sm, okM := anweisung(vorher, m)
+	if !okE && !okM {
+		return ""
+	}
+	if !okE {
+		se = "keine"
+	}
+	if !okM {
+		sm = "keine"
+	}
+	return fmt.Sprintf(", Anweisung erwartet %s, empfangen %s", se, sm)
+}
+
+// vorher sind die aufgezeichneten Client-Nachrichten der Session vor dem
+// Cursor in Sendereihenfolge.
+func (c *cursor) vorher() []model.ClientMessage {
+	var out []model.ClientMessage
+	for pi, in := range c.session.Interactions[:c.pos+1] {
+		for gi, g := range in.Groups {
+			for ni, m := range g.Client {
+				if pi == c.pos && (gi > c.gruppe || gi == c.gruppe && ni >= c.nachricht) {
+					return out
+				}
+				out = append(out, m)
+			}
+		}
+	}
+	return out
+}
+
+// anweisung liefert das SQL der Anweisung, auf die sich m bezieht, gequotet
+// oder „unbekannt“; ok ist falsch, wenn sich m auf keine Anweisung bezieht.
+func anweisung(vorher []model.ClientMessage, m model.ClientMessage) (string, bool) {
+	switch {
+	case m.Type == model.ClientParse:
+		return fmt.Sprintf("%q", m.SQL), true
+	case m.Type == model.ClientBind:
+		return statementSQL(vorher, len(vorher), m.Statement), true
+	case m.Type == model.ClientExecute:
+		return portalSQL(vorher, m.Portal), true
+	case (m.Type == model.ClientDescribe || m.Type == model.ClientClose) && m.Target == model.TargetStatement:
+		return statementSQL(vorher, len(vorher), m.Name), true
+	case m.Type == model.ClientDescribe || m.Type == model.ClientClose:
+		return portalSQL(vorher, m.Name), true
+	}
+	return "", false
+}
+
+// statementSQL sucht das letzte parse des Statements name vor bis.
+func statementSQL(vorher []model.ClientMessage, bis int, name string) string {
+	for i := bis - 1; i >= 0; i-- {
+		if vorher[i].Type == model.ClientParse && vorher[i].Statement == name {
+			return fmt.Sprintf("%q", vorher[i].SQL)
+		}
+	}
+	return "unbekannt"
+}
+
+// portalSQL sucht das letzte bind des Portals und das Statement dahinter.
+func portalSQL(vorher []model.ClientMessage, portal string) string {
+	for i := len(vorher) - 1; i >= 0; i-- {
+		if vorher[i].Type == model.ClientBind && vorher[i].Portal == portal {
+			return statementSQL(vorher, i, vorher[i].Statement)
+		}
+	}
+	return "unbekannt"
 }
 
 // erwarteteNachricht ist die Client-Nachricht am Cursor; die Interaktion am

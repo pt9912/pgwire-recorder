@@ -173,8 +173,10 @@ type eingang struct {
 // Session, ohne die nächste Nachricht zu lesen; läuft eine Extended-Interaktion,
 // liest die Sitzung weiter und beantwortet ihre Nachrichten bis zu ihrem Sync
 // (LH-FA-13.a). Eine schon gelesene Nachricht wird vorher noch beantwortet.
-// Wer das Warten begrenzt, schließt conn; das beendet das Lesen wie jedes
-// Verbindungsende.
+// Das Warten ist nicht begrenzt; die Frist --shutdown-timeout (LH-FA-13.a) ist
+// hier nicht verdrahtet. Ein Schließen von conn beendet das Lesen wie jedes
+// Verbindungsende, und die Session endet regulär: Wer die Frist so durchsetzt,
+// merkt PGR-E4006 für eine unvollständige Interaktion selbst.
 func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID) {
 	fertig := make(chan struct{})
 	defer close(fertig)

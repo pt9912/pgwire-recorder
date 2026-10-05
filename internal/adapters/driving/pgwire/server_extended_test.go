@@ -700,3 +700,61 @@ func TestReplayHerunterfahren(t *testing.T) {
 func geschlossen(err error) bool {
 	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)
 }
+
+// spaeteFrist hält jedes Setzen einer Lesefrist außer dem Zurücksetzen an,
+// bis freigabe geschlossen ist; so setzt der Wächter seine Frist erst, wenn der
+// Test es erlaubt.
+type spaeteFrist struct {
+	net.Conn
+	freigabe chan struct{}
+}
+
+func (c spaeteFrist) SetReadDeadline(t time.Time) error {
+	if !t.IsZero() {
+		<-c.freigabe
+	}
+	return c.Conn.SetReadDeadline(t)
+}
+
+// Abdeckung: LH-FA-13/Boundary — Replay im Adapter: setzt der Wächter die
+// Lesefrist erst, nachdem die Sitzung beim Herunterfahren eine Nachricht der
+// laufenden Interaktion verarbeitet hat, wartet die Sitzung darauf, bevor sie
+// die Frist zurücksetzt; die Interaktion wird bis zu ihrem Sync beantwortet.
+func TestReplayHerunterfahrenSpaeteFrist(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rep := &fakeReplayer{}
+	client, serverSeite := net.Pipe()
+	freigabe := make(chan struct{})
+	s := NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	go s.handle(ctx, spaeteFrist{Conn: serverSeite, freigabe: freigabe})
+	t.Cleanup(func() { client.Close() })
+	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+
+	warteNachrichten := func(n int) {
+		deadline := time.Now().Add(2 * time.Second)
+		for len(rep.nachrichten()) < n {
+			if time.Now().After(deadline) {
+				t.Fatalf("%d Nachrichten statt %d beim Use Case", len(rep.nachrichten()), n)
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+	}
+	sende(fe, &pgproto3.Parse{Name: "s1", Query: "SELECT 1"})
+	warteNachrichten(1)
+	cancel()
+	sende(fe, &pgproto3.Bind{PreparedStatement: "s1"})
+	warteNachrichten(2)
+	time.Sleep(50 * time.Millisecond)
+	close(freigabe)
+	time.Sleep(50 * time.Millisecond)
+	sende(fe, &pgproto3.Execute{}, &pgproto3.Sync{})
+	if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
+		t.Fatalf("an den Client: %s", got)
+	}
+	if _, err := fe.Receive(); !geschlossen(err) {
+		t.Fatalf("Verbindung nach dem Sync nicht geschlossen: %v", err)
+	}
+}

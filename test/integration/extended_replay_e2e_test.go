@@ -205,12 +205,13 @@ func TestE2EReplayExtendedGegendruck(t *testing.T) {
 
 // Abdeckung: LH-FA-13/Boundary — Replay: kommt SIGTERM, nachdem die
 // Flush-Gruppe einer Pipeline beantwortet ist und bevor ihre Sync-Gruppe
-// eintrifft, beantwortet replay die Sync-Gruppe noch wie aufgezeichnet,
-// schließt danach die Verbindung und endet von selbst mit Exit-Code 0.
+// eintrifft, beantwortet replay die Sync-Gruppe noch wie aufgezeichnet (die
+// Sicht des Clients gleicht der beim Aufzeichnen), schließt danach die
+// Verbindung und endet von selbst mit Exit-Code 0.
 func TestE2EReplayExtendedSigtermMittenInFolge(t *testing.T) {
 	input := filepath.Join(t.TempDir(), "rec.yaml")
 	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), input)
-	pipelineAblauf(t, rec.listen)
+	aufgezeichnet := pipelineAblauf(t, rec.listen)
 	rec.stop(t, 0)
 	rep := startProzess(t, "replay", "--input", input)
 
@@ -227,8 +228,12 @@ func TestE2EReplayExtendedSigtermMittenInFolge(t *testing.T) {
 	if err := p.Flush(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := p.GetResults(); err != nil {
-		t.Fatalf("Prepare: %v", err)
+	var b strings.Builder
+	r, err := p.GetResults()
+	if sd, ok := r.(*pgconn.StatementDescription); ok {
+		fmt.Fprintf(&b, "prepare: %v %d\n", sd.ParamOIDs, len(sd.Fields))
+	} else {
+		t.Fatalf("Prepare: %#v, %v", r, err)
 	}
 	if err := rep.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		t.Fatal(err)
@@ -245,12 +250,14 @@ func TestE2EReplayExtendedSigtermMittenInFolge(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Ausführung %d nach SIGTERM: %v", i+1, err)
 		}
-		if res := r.(*pgconn.ResultReader).Read(); res.Err != nil || len(res.Rows) != 1 {
-			t.Fatalf("Ausführung %d nach SIGTERM: %#v", i+1, res)
-		}
+		res := r.(*pgconn.ResultReader).Read()
+		fmt.Fprintf(&b, "ausführung %d: %q %s %v\n", i+1, res.Rows, res.CommandTag, res.Err)
 	}
 	if _, err := p.GetResults(); err != nil {
 		t.Fatalf("Sync nach SIGTERM: %v", err)
+	}
+	if b.String() != aufgezeichnet {
+		t.Fatalf("Sicht nach SIGTERM:\n%s\n--- aufgezeichnet:\n%s", b.String(), aufgezeichnet)
 	}
 
 	done := make(chan error, 1)

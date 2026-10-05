@@ -49,7 +49,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 
 | Slice | Titel | Bezug |
 |---|---|---|
-| slice-replay-semantik-mismatch | Mismatch-Diagnose und Exit-Codes | [`LH-FA-10`](../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) |
+| slice-replay-semantik-mismatch | Mismatch-Diagnose und Exit-Codes (Gegenstand: `--fail-on-unconsumed`) | [`LH-FA-03`](../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) |
 | slice-replay-semantik-fehlerreplay | Fehlerantworten, Resultsets und Transaktionen | [`LH-FA-11`](../../../spec/lastenheft.md#lh-fa-11--fehler-des-postgresql-servers), [`LH-FA-06`](../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [`LH-FA-12`](../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen) |
 | slice-replay-semantik-meldungscodes | Meldungscodes, Fehlertext und Logging | [`LH-FA-14`](../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) |
 

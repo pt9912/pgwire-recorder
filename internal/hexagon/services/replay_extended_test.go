@@ -188,7 +188,7 @@ func TestReplayExtendedAbweichung(t *testing.T) {
 	if code(err) != model.CodeReplayMismatch || out != nil {
 		t.Fatalf("Sync statt Execute: %#v, %v", out, err)
 	}
-	for _, teil := range []string{"Session 1", "Interaktion 1", "Gruppe 2", "Nachricht 2", "erwartet execute", "empfangen sync", "abweichend in type"} {
+	for _, teil := range []string{"Session 1", "Interaktion 1", "Gruppe 2", "Nachricht 2", "erwartet execute", "empfangen sync", "abweichend in type", `Anweisung erwartet "SELECT $1::text", empfangen keine`} {
 		if !strings.Contains(err.Error(), teil) {
 			t.Fatalf("Diagnose ohne %q: %v", teil, err)
 		}
@@ -206,7 +206,7 @@ func TestReplayExtendedAbweichung(t *testing.T) {
 	_, err = s.ClientMessage(ctx, id, bind("s1", text("geheim-wert")))
 	var me *model.Error
 	if !errors.As(err, &me) || me.Code != model.CodeReplayMismatch ||
-		me.Msg != "Session 1, Interaktion 1, Gruppe 2, Nachricht 1: erwartet bind, empfangen bind, abweichend in params" || me.Err != nil {
+		me.Msg != `Session 1, Interaktion 1, Gruppe 2, Nachricht 1: erwartet bind, empfangen bind, abweichend in params, Anweisung erwartet "SELECT $1::text", empfangen "SELECT $1::text"` || me.Err != nil {
 		t.Fatalf("abweichender Parameterwert: die Diagnose nennt mehr als Stelle, Typen und Feld: %v", err)
 	}
 }
@@ -316,6 +316,38 @@ func TestReplayStartformExtended(t *testing.T) {
 	} {
 		if _, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{in})}, "rec.yaml"); code(err) != model.CodeRecordingBroken {
 			t.Errorf("%s: erwartet %s, erhalten %v", name, model.CodeRecordingBroken, err)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-10/Boundary — die Diagnose einer Abweichung in bind,
+// execute, describe oder close nennt das SQL der erwarteten und der empfangenen
+// Anweisung, soweit die Aufzeichnung es vor dem Cursor kennt: bei bind über das
+// Statement, bei execute über das Portal und dessen Statement; sonst
+// „unbekannt“.
+func TestReplayExtendedDiagnoseAnweisung(t *testing.T) {
+	ctx := context.Background()
+	zwei := model.Interaction{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
+		Client: []model.ClientMessage{parse("s1", "SELECT 1"), parse("s2", "SELECT 2"), bind("s1"), {Type: model.ClientExecute, Portal: ""}, syncNachricht},
+		Server: []model.Response{rfq},
+	}}}
+	faelle := []struct {
+		name      string
+		vorher    int
+		empfangen model.ClientMessage
+		want      string
+	}{
+		{"bind auf anderes Statement", 2, bind("s2"), `abweichend in statement, Anweisung erwartet "SELECT 1", empfangen "SELECT 2"`},
+		{"bind auf unbekanntes Statement", 2, bind("s9"), `Anweisung erwartet "SELECT 1", empfangen unbekannt`},
+		{"execute mit anderem max_rows", 3, model.ClientMessage{Type: model.ClientExecute, MaxRows: 5}, `abweichend in max_rows, Anweisung erwartet "SELECT 1", empfangen "SELECT 1"`},
+		{"describe des Statements", 3, model.ClientMessage{Type: model.ClientDescribe, Target: model.TargetStatement, Name: "s2"}, `Anweisung erwartet "SELECT 1", empfangen "SELECT 2"`},
+	}
+	for _, f := range faelle {
+		s, id := replayMit(t, []model.Interaction{zwei})
+		sendeAlle(t, s, id, zwei.Groups[0].Client[:f.vorher]...)
+		_, err := s.ClientMessage(ctx, id, f.empfangen)
+		if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), f.want) {
+			t.Errorf("%s: %v", f.name, err)
 		}
 	}
 }

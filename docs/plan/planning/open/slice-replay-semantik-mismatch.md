@@ -33,10 +33,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Meldungscodes und Fehlertext-Kopf — `slice-replay-semantik-meldungscodes`; hier genügt der Klartext der Diagnose.
+- Meldungscodes und Fehlertext-Kopf — `slice-replay-semantik-meldungscodes`.
+- Diagnose einer Abweichung — geliefert (siehe „Bereits geliefert“); dieser Slice ändert sie nicht.
 - Warnung bei nicht verbrauchten Interaktionen — geliefert von `slice-walking-skeleton-replay` (`PGR-W2001`).
 
-**Bereits geliefert** von `slice-walking-skeleton-replay`: Mismatch einfacher Anfragen mit Diagnose (Session, erwartete Nummer, erwartete und empfangene Anfrage), `ErrorResponse` mit `PGR-E5001` und Exit-Code 5 beim Herunterfahren. Von `slice-extended-query-replay`: Mismatch der Extended-Nachrichten mit Diagnose (Session, Interaktion, Gruppe, Nachricht, erwarteter und empfangener Nachrichtentyp, abweichendes Feld, ohne Parameterwerte), auch für eine einfache Anfrage, wo eine Extended-Nachricht erwartet ist, und umgekehrt (`TestReplayExtendedAbweichung`, `TestReplayExtendedFalscheArt`, `TestE2EReplayExtendedAbweichung`). Dieser Slice ergänzt `--fail-on-unconsumed` (`PGR-E5002`).
+**Bereits geliefert** von `slice-walking-skeleton-replay`: Mismatch einfacher Anfragen mit Diagnose (Session, erwartete Nummer, erwartete und empfangene Anfrage), `ErrorResponse` mit `PGR-E5001` und Exit-Code 5 beim Herunterfahren. Von `slice-extended-query-replay`: Mismatch der Extended-Nachrichten mit Diagnose nach `LH-FA-10.a` (Session, Interaktion, Gruppe, Nachricht, erwarteter und empfangener Nachrichtentyp, abweichendes Feld, SQL der erwarteten und der empfangenen Anweisung, ohne Parameterwerte; `TestReplayExtendedDiagnoseAnweisung`), auch für eine einfache Anfrage, wo eine Extended-Nachricht erwartet ist, und umgekehrt (`TestReplayExtendedAbweichung`, `TestReplayExtendedFalscheArt`, `TestE2EReplayExtendedAbweichung`). Dieser Slice ergänzt `--fail-on-unconsumed` (`PGR-E5002`).
 
 
 ## 2. Definition of Done
@@ -78,7 +79,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: die Diagnose verlangt eine Änderung am Recording-Format — zurück zur Zerlegung.
+- `in-progress` → `next`: `--fail-on-unconsumed` verlangt eine Änderung am Recording-Format — zurück zur Zerlegung.
 - `in-progress` → `open`: Der Replay-Pfad des Walking Skeleton ist unvollständig — Carveout.
 
 

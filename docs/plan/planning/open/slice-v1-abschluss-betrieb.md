@@ -31,10 +31,10 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Prozess fährt auf `SIGINT`/`SIGTERM` kontrolliert herunter, das Recording wird atomar geschrieben, `--output`/`--force` verhalten sich wie spezifiziert, und alle Optionen sind per CLI und Umgebungsvariable setzbar.
 
-**Übernommen aus `slice-extended-query-record`** (Risiko F-309/F-317, Validierung `docs/reviews/2026-10-05-validierung-slice-extended-query-record.md`, Frage 1): Das Herunterfahren bekommt eine Obergrenze. Heute wartet `record` ohne Frist auf die laufende Interaktion jeder Session; im Container beendet der `SIGKILL` nach der Stopp-Frist den Prozess, und die Aufzeichnung jeder noch wartenden Session fehlt ganz.
+**Übernommen aus `slice-extended-query-record`** (Risiko F-309/F-317, Validierung `docs/reviews/2026-10-05-validierung-slice-extended-query-record.md`, Frage 1): Das Herunterfahren bekommt eine Obergrenze, in `record` und in `replay` (Optionstabelle, `LH-FA-13.a`). Heute wartet `record` ohne Frist auf die laufende Interaktion jeder Session; im Container beendet der `SIGKILL` nach der Stopp-Frist den Prozess, und die Aufzeichnung jeder noch wartenden Session fehlt ganz. **Übernommen aus `slice-extended-query-replay`** (Folge-Review F-330): `replay` beantwortet beim Herunterfahren eine begonnene Extended-Interaktion bis zu ihrem `Sync` und wartet dabei ebenso ohne Frist auf einen pausierenden Client. `replay` setzt die Frist durch Schließen der Client-Verbindung durch (`replaySitzung`); dieses Ende behandelt `replaySitzung` heute als regulär, die Frist muss es für eine unvollständige Interaktion als `PGR-E4006` merken.
 
 - Frist, gezählt ab dem Signal, Default 5 s, setzbar per Option und Umgebungsvariable ([`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)); `0` heißt ohne Frist.
-- Nach Ablauf endet jede noch laufende Session zwangsweise wie bei einem Abbruch nach `LH-FA-02.b`: die laufende Interaktion wird nicht übernommen, die abgeschlossenen bleiben; danach wird die Aufzeichnung geschrieben.
+- Nach Ablauf endet jede noch laufende Session zwangsweise wie bei einem Abbruch nach `LH-FA-02.b`: die laufende Interaktion wird nicht übernommen, die abgeschlossenen bleiben; danach wird die Aufzeichnung geschrieben. In `replay` endet die Session durch Schließen der Client-Verbindung, und eine unvollständige Interaktion ist `PGR-E4006`.
 - Eigener Meldungscode der Klasse 4 (Vergabe nach `SPEC-034`, nicht `PGR-E4003`), Exit-Code `4`; das Log nennt je abgebrochener Session die Session und die verworfene Interaktion.
 - Ein zweites Signal lässt die Frist sofort ablaufen, statt den Prozess hart zu beenden.
 - Beim Beginn des Herunterfahrens eine Info-Zeile mit der Zahl der Sessions, auf die gewartet wird.
@@ -54,7 +54,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Herunterfahren schreibt das Recording atomar und liefert den Exit-Code der gemerkten Klasse, für alle Klassen aus `SPEC-013` bis `SPEC-019` (Test mit Signal).
+- [ ] [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Herunterfahren schreibt das Recording atomar und liefert den Exit-Code der gemerkten Klasse, für alle Klassen aus `SPEC-013` bis `SPEC-019`; die Frist `--shutdown-timeout` begrenzt das Warten in `record` und `replay`, und eine dabei unvollständige Interaktion ist `PGR-E4006` (Test mit Signal, je Modus).
 - [ ] [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Vorhandenes `--output` wird ohne `--force` abgelehnt; Priorität CLI vor Umgebungsvariable vor Konfigurationsdatei vor Default; `config show` zeigt die gewählte Datei, ohne einen aufgelösten Wert (Test).
 - [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Benannte Verbindungen (`connections`, `--upstream <Name>`, `sslmode`), `--config`, `PGWIRE_RECORDER_CONFIG`, die Standarddatei und `$${VAR}` verhalten sich wie spezifiziert; eine ungültige Datei, eine nicht gesetzte Variable und ein Klartext-Passwort sind `PGR-E2004` bis `PGR-E2006` (Test).
 - [ ] `make gates` grün.
@@ -75,6 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/adapters/driving/cli` | update | Optionstabelle, Priorität, Signale |
+| `internal/adapters/driving/pgwire`, `internal/bootstrap` | update | Frist in `recordSitzung` und `replaySitzung`; `replay` schließt bei Ablauf die Client-Verbindung und merkt `PGR-E4006` |
 | `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben |
 | `test/integration` | update | Happy/Boundary/Negative |
 
@@ -109,6 +110,8 @@ dasteht.
 - Atomarität des Verschiebens ist plattformabhängig ("bestmöglich atomar") — **Ausgang:** offen bis Closure.
 
 - Herunterfahren ohne Obergrenze (aus `slice-extended-query-record`, Review F-309, Folge-Review F-317, Validierung Frage 1): Eine Session mit laufender Interaktion — einfache Anfrage oder Extended-Interaktion ohne `Sync` — hält das Herunterfahren beliebig lange; der Container-Stopp verliert dann ihre Aufzeichnung ganz, ohne Log-Zeile und mit Exit-Code `137`. Gegenstand siehe §1; Lastenheft und Spezifikation sind ergänzt — **Ausgang:** offen bis Closure.
+
+- Herunterfahren ohne Obergrenze im Replay (aus `slice-extended-query-replay`, Folge-Review F-330): Ein Client, der mitten in einer Extended-Interaktion pausiert, hält `replay` nach `SIGTERM` beliebig lange; endet die Session durch Schließen der Verbindung, behandelt `replaySitzung` das heute als reguläres Ende (Exit-Code 0 statt 4) — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
