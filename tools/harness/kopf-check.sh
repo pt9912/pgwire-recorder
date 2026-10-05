@@ -12,16 +12,20 @@
 #     jede Kennung dazwischen, im Kopf wie in §1 und §2, auch über einen
 #     Zeilenumbruch im Absatz.
 #   - Gleichheit ist exakt: Haupt- und Unterkennung decken einander nicht.
-#   - Kopf sind die Absätze, die mit **Bezug:** und **Berührte Spec-Stellen:**
-#     beginnen, vor der ersten Zeile `## `, je bis zur nächsten Leerzeile; geprüft
-#     wird gegen ihre Vereinigung. Eine Leerzeile darf Leerzeichen und Tabs tragen.
+#   - Kopf sind die Zeilen, die mit **Bezug:** und **Berührte Spec-Stellen:**
+#     beginnen, vor der ersten Zeile `## `, je mit ihren Folgezeilen bis zur nächsten
+#     Leerzeile; geprüft wird gegen ihre Vereinigung. Eine Leerzeile darf
+#     Leerzeichen und Tabs tragen.
 #   - §1 und §2 reichen von der Zeile `## 1.` bzw. `## 2.` bis zur nächsten Zeile
 #     `## `; der Absatz, der mit „Regeln dieser Sektion“ beginnt, zählt nicht.
 #   - Fehlt ein Kopf-Feld oder einer der beiden Abschnitte, ist das ein Befund.
 #
 # GRENZE. Ob eine Kennung existiert, in welchem Kopf-Feld sie steht und was
 # außerhalb von §1 und §2 steht, prüft das Skript nicht; eine Zeile `## ` in einem
-# Codeblock beendet den Abschnitt.
+# Codeblock beendet den Abschnitt. Eine Feldmarke zählt an jedem Zeilenanfang im
+# Kopf, auch mitten in einem Absatz, den ADR-0032 Nr. 5 nennt; ein nicht lesbarer
+# Plan endet je nach Position mit Exit 0 oder 2. Beides liegt beim Architect
+# (Slice-Plan §6, Offen beim Architect).
 #
 # Aufruf: kopf-check.sh [<wurzel>]
 # Ausgabe: je Befund eine Zeile auf stderr, `<pfad>: <abschnitt>: <befund>`,

@@ -2,7 +2,9 @@
 # `kopf-check` und `kopf-check-gegenprobe` haengen an GATE_CHECKS: das eine
 # prueft, dass der Kopf jedes Slice-Plans in open/, next/ und in-progress/ die
 # Kennungen aus §1 und §2 fuehrt, das andere haelt das Skript an Temp-Baeumen je
-# Nummer der ADR. Beide laufen auf dem Host (bash, awk, sort, find).
+# Nummer der ADR. Beide laufen auf dem Host: kopf-check braucht bash, awk, sort
+# und find; die Gegenprobe dazu make, mktemp, grep, GNU sed (sed -i) und die
+# Werkzeuge von coreutils (cp, mkdir, cat, rm, dirname).
 .PHONY: kopf-check kopf-check-gegenprobe
 
 kopf-check: ## Kopf der lebenden Slice-Plaene gegen die Kennungen aus §1 und §2 pruefen

@@ -5,7 +5,8 @@
 # (grün) oder Exit 1 mit einer bestimmten Befund-Zeile auf stderr (rot). Die Fälle
 # sind nach den Nummern der ADR gruppiert; die akzeptierten Negative der ADR
 # (Kennung außerhalb von §1/§2, Feldwahl, Existenz der Kennung) stehen als
-# grüne Fälle darunter.
+# grüne Fälle darunter. Für Nr. 9 kopiert sie Makefile und harness/mk/kopf-check.mk
+# aus dem Arbeitsbaum in einen Temp-Baum und ruft dort make.
 #
 # Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.
 set -euo pipefail
@@ -157,6 +158,7 @@ einzeln_gruen nr6-ausserhalb "—" "—" "Nichts." "- [ ] nichts." "SPEC-004 in 
 einzeln_gruen nr6-regel-absatz "—" "—" "Regeln dieser Sektion: SPEC-004
 und LH-FA-05 in der Folgezeile." "-"
 einzeln_rot nr6-nach-regel-absatz "§1: SPEC-004 fehlt im Kopf" "—" "—" "$(printf 'Regeln dieser Sektion: x.\n\nSPEC-004')" "-"
+einzeln_rot nr6-leerzeichen-nach-regel-absatz "§1: SPEC-004 fehlt im Kopf" "—" "—" "$(printf 'Regeln dieser Sektion: x.\n \t\nSPEC-004')" "-"
 einzeln_rot nr6-regel-mitten-im-absatz "§1: SPEC-004 fehlt im Kopf" "—" "—" "$(printf 'Vorher.\nRegeln dieser Sektion: SPEC-004')" "-"
 einzeln_rot nr6-unterueberschrift "§1: SPEC-004 fehlt im Kopf" "—" "—" "$(printf '### Teil\n\nSPEC-004')" "-"
 einzeln_rot nr6-abgrenzung "§1: LH-FA-20 fehlt im Kopf" "—" "—" "- Paralleles Einspielen — Out-of-Scope von LH-FA-20." "-"
@@ -164,6 +166,10 @@ einzeln_rot nr6-abgrenzung "§1: LH-FA-20 fehlt im Kopf" "—" "—" "- Parallel
 neu; plan "$w/$P1" "—" "—" "SPEC-004" "ARC-004"
 sed -i 's/^## 1\. Ziel und Abgrenzung$/## 1. Anderer Titel/; s/^## 2\. Definition of Done$/## 2./' "$w/$P1"
 rot nr6-titel "$w" "$P1: §1: SPEC-004 fehlt im Kopf" "$P1: §2: ARC-004 fehlt im Kopf"
+# Die Zeile `## 1.` bzw. `## 2.` gehört zum Abschnitt.
+neu; plan "$w/$P1" "—" "—" "x" "-"
+sed -i 's/^## 1\. Ziel und Abgrenzung$/## 1. Ziel SPEC-004/; s/^## 2\. Definition of Done$/## 2. DoD ARC-004/' "$w/$P1"
+rot nr6-ueberschrift-zaehlt "$w" "$P1: §1: SPEC-004 fehlt im Kopf" "$P1: §2: ARC-004 fehlt im Kopf"
 
 # --- Nr. 7: Formfehler -------------------------------------------------------
 neu; plan "$w/$P1" "—" "—" "x" "-"; sed -i '/^\*\*Bezug:\*\*/d' "$w/$P1"
@@ -222,12 +228,27 @@ set +e; (cd "$w" && bash "$skript") 2>"$arbeit/err"; code=$?; set -e
   || melde "Fall 'nr8-wurzel-aktuell' erwartet Exit 1 mit Befund, bekam $code"
 
 # --- Nr. 9: Start ohne Stufung -----------------------------------------------
-# Das Gate-Ziel hängt an GATE_CHECKS; ein Befund ist Exit 1 (Fälle oben).
+# In einem Temp-Baum mit dem Makefile und dem Fragment des Arbeitsbaums: Beide
+# Ziele stehen in GATE_CHECKS, und beide Ziele enden über make mit Exit ungleich 0,
+# wenn ihr Skript rot ist — kopf-check gegen einen Plan mit Befund, die Gegenprobe
+# gegen ein Ersatzskript, das mit Exit 1 endet.
+neu
+cp "$hier/../../Makefile" "$w/Makefile"
+mkdir -p "$w/harness/mk" "$w/tools/harness"
+cp "$hier/../../harness/mk/kopf-check.mk" "$w/harness/mk/"
+cp "$skript" "$w/tools/harness/kopf-check.sh"
+printf 'exit 1\n' > "$w/tools/harness/kopf-check-gegenprobe.sh"
+plan "$w/$P1" "—" "—" "SPEC-004" "-"
 # make -q endet ungleich 0, wenn das Ziel nicht aktuell ist; gelesen wird nur -p.
-datenbank="$(make -C "$hier/../.." -pq help 2>/dev/null || true)"
-if ! printf '%s\n' "$datenbank" | awk '/^GATE_CHECKS :?= / { for (i = 3; i <= NF; i++) if ($i == "kopf-check") t = 1 } END { exit !t }'; then
-  melde "Fall 'nr9-gate-checks': kopf-check hängt nicht an GATE_CHECKS"
-fi
+datenbank="$(make -C "$w" -pq help 2>/dev/null || true)"
+for ziel in kopf-check kopf-check-gegenprobe; do
+  if ! printf '%s\n' "$datenbank" | awk -v z="$ziel" '/^GATE_CHECKS :?= / { for (i = 3; i <= NF; i++) if ($i == z) t = 1 } END { exit !t }'; then
+    melde "Fall 'nr9-gate-checks': $ziel hängt nicht an GATE_CHECKS"
+  fi
+  if make -s -C "$w" "$ziel" >/dev/null 2>&1; then
+    melde "Fall 'nr9-scharf': make $ziel endet bei rotem Skript mit Exit 0"
+  fi
+done
 
 # --- Akzeptierte Negative (ADR-0032 §Konsequenzen) ---------------------------
 einzeln_gruen neg-existenz "LH-ZZ-99" "SPEC-999" "LH-ZZ-99 und SPEC-999" "-"

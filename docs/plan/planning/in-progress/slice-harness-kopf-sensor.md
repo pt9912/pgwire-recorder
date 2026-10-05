@@ -112,7 +112,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `tools/harness/kopf-check.sh` | neu | liest Kopf, §1 und §2 jedes Slice-Plans und vergleicht die Kennungs-Mengen |
-| `tools/harness/kopf-check-gegenprobe.sh` | neu | Fehlformen in Temp-Bäumen, wie `make abdeckung-gegenprobe`; Fälle je Nummer von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), dazu die akzeptierten Negative |
+| `tools/harness/kopf-check-gegenprobe.sh` | neu | Fehlformen in Temp-Bäumen, wie `make abdeckung-gegenprobe`; Fälle je Nummer von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), dazu die akzeptierten Negative; Nr. 9 in einem Temp-Baum mit Makefile und Fragment: beide Ziele in `GATE_CHECKS`, beide enden über `make` bei rotem Skript mit Exit ≠ 0 |
 | `harness/mk/kopf-check.mk` | neu | zwei Ziele, `kopf-check` und `kopf-check-gegenprobe`, beide an `GATE_CHECKS` |
 | `harness/README.md` | update | zwei Zeilen in §Sensors, Bindung [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) |
 | Kopf von fünf Plänen in `open/` (§6 *Bestand*) | update | Bestand gegen den Sensor berichtigt |
@@ -184,9 +184,10 @@ Implementer nicht, er gibt es zurück (`AGENTS.md` §3.12).
   (`LH-FA-10.a`), `slice-v1-abschluss-betrieb` (`LH-FA-02.b`, `SPEC-013` bis
   `SPEC-019`, `SPEC-034`), `slice-v1-abschluss-homebrew` (`LH-FA-01`),
   `slice-v1-abschluss-zeitangaben` (`LH-FA-20`). Kein gestufter Start
-  ([ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 9): Der Slice ergänzt je Plan den Kopf, Lastenheft-Kennungen
-  (`LH-FA-01`, `LH-FA-20`) unter `Bezug` als Anker-Link, Unterkennungen und `SPEC-*`
-  unter `Berührte Spec-Stellen` (ein Bereich bleibt ein Bereich); umformuliert würde
+  ([ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 9): Der Slice ergänzt je Plan `Berührte Spec-Stellen` als Code-Span
+  (ein Bereich bleibt ein Bereich). `LH-FA-01` (homebrew) und `LH-FA-20` (zeitangaben)
+  nennt §1 nur als Abgrenzung; sie stehen darum nicht im Scope-Feld `Bezug`
+  ([ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) §Verglichene Alternativen, C; Review F-376); umformuliert würde
   nur, wo die Nennung in §1/§2 selbst falsch ist — geprüft, keine der acht ist es. Das
   bleibt im ersten Liefer-Punkt; die Rückführungs-Bedingung aus §4 (mehr als
   eine Handvoll Pläne) ist mit fünf Kopfzeilen nicht erreicht. — **Ausgang:** offen bis Closure.
@@ -209,7 +210,7 @@ Implementer nicht, er gibt es zurück (`AGENTS.md` §3.12).
   (2) „in `open/` …“ heißt flach; die Lifecycle-Position ist das Verzeichnis selbst,
   Unterordner gibt es nur in `done/` (Nr. 1) — `nr1-nicht-geprueft`;
   (3) eine Zeile nur aus Leerzeichen und Tabs ist eine Leerzeile, wie in Markdown
-  (Nr. 5, 6) — `nr5-leerzeile-mit-leerzeichen`;
+  (Nr. 5, 6) — `nr5-leerzeile-mit-leerzeichen`, `nr6-leerzeichen-nach-regel-absatz`;
   (4) ein Bereich reicht über einen Zeilenumbruch im Absatz; ein Umbruch ist dort
   Leerraum (Nr. 3) — `nr3-bereich-zeilenumbruch`;
   (5) Exit 2 nur ohne `docs/plan/planning/`; ein fehlendes Lifecycle-Verzeichnis
@@ -217,6 +218,13 @@ Implementer nicht, er gibt es zurück (`AGENTS.md` §3.12).
   leeres `next/` seine `.gitkeep` verliert (Nr. 8) — `nr8-leere-ablage`.
   Keine Code-Änderung. — **Ausgang:** entfällt mit Closure (bestätigt, im Skript
   verkörpert).
+- **Offen beim Architect** (Randform-Rückgabe nach Review F-372 und F-377, `AGENTS.md`
+  §3.12; kein Code dazu): (a) Feldmarke nur am Absatzanfang
+  ([ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 5/7) — ist eine Zeile direkt nach einer Überschriftzeile (`# …`) oder
+  einer Linie `---` ohne Leerzeile ein Absatzanfang? (b) Nicht lesbarer Plan — Befund
+  mit Exit 1 steht in keiner Nummer der ADR; welche Zeile meldet ihn (Abschnitt, Text)?
+  Bis zur Entscheidung erkennt das Skript eine Feldmarke an jedem Zeilenanfang im Kopf,
+  und ein Lesefehler hängt im Ausgang von der Position ab. — **Ausgang:** offen bis Closure.
 - **Bereich über eine Absatzgrenze in §1/§2** — das Skript fügt die Absätze eines
   Abschnitts zusammen; `SPEC-013 bis` am Absatzende und `SPEC-015` am Anfang des
   nächsten gelten als Bereich (am 2026-10-05 gegen 1dd6ad6 probiert). Akzeptiertes
