@@ -430,7 +430,12 @@ automatisierte Umgebungen erkennbar signalisieren.
 - **Boundary:** Given ein kontrolliertes Beenden durch Signal, when es
   eintritt, then signalisiert der Prozessstatus Erfolg, wenn bis dahin kein
   Fehler aufgetreten ist, andernfalls den Fehler; unter Windows gilt der
-  Konsolenabbruch (`Strg+C`, `Strg+Break`) als solches Signal.
+  Konsolenabbruch (`Strg+C`, `Strg+Break`) als solches Signal. Läuft beim
+  Signal noch eine Interaktion, endet der Prozess spätestens nach einer
+  einstellbaren Frist; die bis dahin abgeschlossenen Interaktionen bleiben im
+  Recording erhalten, und endet dabei eine Interaktion unvollständig,
+  signalisiert der Prozessstatus einen Fehler. Ein zweites Signal lässt die
+  Frist sofort ablaufen.
 - **Negative:** Given ein Betriebs- oder Konfigurationsfehler, when er auftritt,
   then wird er mit seiner Fehlerklasse gemeldet, und der
   Prozessstatus signalisiert Misserfolg, sobald der Prozess endet; er
