@@ -42,6 +42,10 @@ Kopf nicht führt — geprüft gegen die Vereinigung von `Bezug` und `Berührte
 Spec-Stellen`, exakt und ohne Markierung für Nennungen ohne Anspruch. Die Regeln im
 Einzelnen (Gegenstand, Kennungsform, Bereich, Abschnitte, Formfehler, Ausgabe) sind
 in [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) entschieden; der Code folgt ihnen, §6 zeigt je Randform auf die Nummer.
+Geliefert als `make kopf-check` (`tools/harness/kopf-check.sh`) mit der Gegenprobe
+`make kopf-check-gegenprobe` (`tools/harness/kopf-check-gegenprobe.sh`), beide an
+`GATE_CHECKS` über `harness/mk/kopf-check.mk`; dazu die Kopf-Berichtigung der fünf
+Pläne aus §6 *Bestand*.
 
 **Herkunft:** `AGENTS.md` §3.9 verlangt seit welle-walking-skeleton, dass der Kopf
 jeder Korrektur folgt. Die Beobachtung `BEO-REPO/plan-folgt-korrektur-nicht` trat
@@ -107,13 +111,13 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Prüfskript unter `tools/harness/` (Name im ersten Lauf) | neu | liest Kopf, §1 und §2 jedes Slice-Plans und vergleicht die Kennungs-Mengen |
-| Gegenprobe unter `tools/harness/` | neu | Fehlformen in Temp-Bäumen, wie `make abdeckung-gegenprobe`; Fälle je Nummer von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) |
-| Fragment unter `harness/mk/` | neu | zwei Ziele, beide an `GATE_CHECKS` |
+| `tools/harness/kopf-check.sh` | neu | liest Kopf, §1 und §2 jedes Slice-Plans und vergleicht die Kennungs-Mengen |
+| `tools/harness/kopf-check-gegenprobe.sh` | neu | Fehlformen in Temp-Bäumen, wie `make abdeckung-gegenprobe`; Fälle je Nummer von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), dazu die akzeptierten Negative |
+| `harness/mk/kopf-check.mk` | neu | zwei Ziele, `kopf-check` und `kopf-check-gegenprobe`, beide an `GATE_CHECKS` |
 | `harness/README.md` | update | zwei Zeilen in §Sensors, Bindung [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) |
 | Kopf von fünf Plänen in `open/` (§6 *Bestand*) | update | Bestand gegen den Sensor berichtigt |
 | `AGENTS.md` | update | §3.9 nennt den Sensor |
-| `docs/plan/planning/observations/BEO-REPO/plan-folgt-korrektur-nicht/state.md` | update | Sensor-Zeile verkörpert |
+| `docs/plan/planning/observations/BEO-REPO/plan-folgt-korrektur-nicht/state.md` | update (Closure) | Sensor-Zeile verkörpert; geschrieben mit der Closure, nicht mit der Implementation |
 
 ## 4. Trigger
 
@@ -149,7 +153,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 Randformen des Vertrags — vor dem Code entschieden in [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) (Architect,
-2026-10-05; Status `Proposed`, Annahme durch den Nutzer vor dem ersten Code-Commit).
+2026-10-05; Status `Accepted`).
 Je Randform die Nummer der Entscheidung; was dort nicht steht, entscheidet der
 Implementer nicht, er gibt es zurück (`AGENTS.md` §3.12).
 
@@ -180,10 +184,19 @@ Implementer nicht, er gibt es zurück (`AGENTS.md` §3.12).
   (`LH-FA-10.a`), `slice-v1-abschluss-betrieb` (`LH-FA-02.b`, `SPEC-013` bis
   `SPEC-019`, `SPEC-034`), `slice-v1-abschluss-homebrew` (`LH-FA-01`),
   `slice-v1-abschluss-zeitangaben` (`LH-FA-20`). Kein gestufter Start
-  ([ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 9): Der Slice ergänzt je Plan `Berührte Spec-Stellen` (ein Bereich
-  bleibt ein Bereich); umformuliert wird nur, wo die Nennung in §1/§2 selbst falsch
-  ist. Das bleibt im ersten Liefer-Punkt; die Rückführungs-Bedingung aus §4 (mehr als
+  ([ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 9): Der Slice ergänzt je Plan den Kopf, Lastenheft-Kennungen
+  (`LH-FA-01`, `LH-FA-20`) unter `Bezug` als Anker-Link, Unterkennungen und `SPEC-*`
+  unter `Berührte Spec-Stellen` (ein Bereich bleibt ein Bereich); umformuliert würde
+  nur, wo die Nennung in §1/§2 selbst falsch ist — geprüft, keine der acht ist es. Das
+  bleibt im ersten Liefer-Punkt; die Rückführungs-Bedingung aus §4 (mehr als
   eine Handvoll Pläne) ist mit fünf Kopfzeilen nicht erreicht. — **Ausgang:** offen bis Closure.
+- **Lesarten des ADR-Wortlauts, die der Code trägt** — zur Bestätigung beim Architect
+  zurückgegeben (`AGENTS.md` §3.12), nicht hier entschieden: „ganzes Wort“ mit den
+  Wortzeichen Buchstabe, Ziffer, Unterstrich (ein Punkt endet das Wort,
+  `LH-FA-03.ab` zählt als `LH-FA-03`); nur Dateien flach in den drei Verzeichnissen;
+  eine Zeile nur aus Leerzeichen ist eine Leerzeile; ein Bereich darf innerhalb eines
+  Absatzes über einen Zeilenumbruch reichen; eine Ablage ohne Lifecycle-Verzeichnisse
+  ist grün, Exit 2 nur ohne `docs/plan/planning/`. — **Ausgang:** offen bis Closure.
 - **Akzeptierte Negative** — Existenz der Kennung, Feldzuordnung, Kennungen außerhalb
   von §1/§2, Zeilen `## ` in Codeblöcken: nicht geprüft, Grund in [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md)
   §Konsequenzen. Kein Risiko mit eigenem Ausgang.

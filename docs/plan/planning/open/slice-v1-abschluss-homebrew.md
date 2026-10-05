@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
+**Bezug:** [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew), [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung)
 
 **Berührte Spec-Stellen:** `LH-FA-19.a` · `SPEC-042` · `SPEC-035`
 

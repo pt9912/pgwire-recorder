@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../../spec/lastenheft.md#lh-fa-15--ci-eignung), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
 
-**Berührte Spec-Stellen:** `LH-FA-07.a` · `LH-FA-13.a` · `LH-FA-13.b` · `LH-FA-17.a` · `SPEC-007` · `SPEC-008` · `SPEC-012` · `SPEC-046`
+**Berührte Spec-Stellen:** `LH-FA-07.a` · `LH-FA-13.a` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-02.b` · `SPEC-007` · `SPEC-008` · `SPEC-012` · `SPEC-013` bis `SPEC-019` · `SPEC-034` · `SPEC-046`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.

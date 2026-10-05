@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-11`](../../../../spec/lastenheft.md#lh-fa-11--fehler-des-postgresql-servers), [`LH-FA-06`](../../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen), [ADR-0006](../../adr/0006-kanonisches-domain-model.md)
 
-**Berührte Spec-Stellen:** `LH-FA-11.a` · `LH-FA-05.d` · `SPEC-002` · `ARC-001`
+**Berührte Spec-Stellen:** `LH-FA-11.a` · `LH-FA-05.d` · `SPEC-002` · `SPEC-003` · `ARC-001`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.

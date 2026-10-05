@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus)
 
-**Berührte Spec-Stellen:** `LH-FA-03.b` · `LH-FA-13.b` · `SPEC-012` · `SPEC-018` · `ARC-002` · `ARC-006`
+**Berührte Spec-Stellen:** `LH-FA-03.b` · `LH-FA-13.b` · `LH-FA-10.a` · `SPEC-012` · `SPEC-018` · `ARC-002` · `ARC-006`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.

@@ -181,6 +181,12 @@ Wer im Slice Code, Gates, Tests oder die Spezifikation ändert, zieht im selben
 Commit §1 (Ziel und Abgrenzung), §3 (Plan) und §6 (Risiken) des Slice-Plans nach,
 dazu den Kopf (`Bezug`, `Berührte Spec-Stellen`) und betroffene Folge-Slices.
 
+**Sensor für die Kopf-Hälfte** (seit slice-harness-kopf-sensor): `make kopf-check`
+meldet rot, wenn §1 oder §2 eines Slice-Plans in `open/`, `next/` oder
+`in-progress/` eine Lastenheft-, Spezifikations- oder Sicht-Kennung nennt, die der
+Kopf nicht führt ([ADR-0032](docs/plan/adr/0032-kopf-sensor-fuer-slice-plaene.md)).
+Ob §1, §3 und §6 inhaltlich dem Diff folgen, bleibt Urteil von Review und Verifikation.
+
 **Falsch:** den Mismatch liefern, während §1 ihn noch „welle-replay-semantik“
 zuweist.
 **Richtig:** §1 nennt, was der Slice liefert und was er abgibt; der Folge-Slice

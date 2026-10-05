@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen)
+**Bezug:** [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen), [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung)
 
 **Berührte Spec-Stellen:** `LH-FA-21.a` · `SPEC-001` · `SPEC-002` · `SPEC-004` · `SPEC-041` · `SPEC-034` · `ARC-001` · `ARC-004`
 
