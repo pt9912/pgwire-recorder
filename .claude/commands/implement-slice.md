@@ -155,10 +155,10 @@ ist eine Lifecycle-Rücksprungkante (11).
     auflösbares Feld in den dort genannten Formen (`LH-*`, `ADR-*`, `· seit welle-<NN>`, wellenlos
     `· seit slice-<NNN>`) — alles andere ist Zustand, keine Chronik, und wird vor der Übergabe
     umformuliert statt mitgeschleift.
-    **Und ein Kommentar sagt nur zu, was ein Test prüft** (`AGENTS.md` §3.11, seit
-    welle-extended-query) — ebenso Hilfetext, Abdeckungs-Deklaration und Plan-Zeile: Zu
-    jeder Zusage im geänderten Text den Test nennen; fehlt er, den Satz enger fassen oder
-    den Test schreiben.
+    **Und ein Kommentar sagt nur zu, was ein Test prüft**
+    (`AGENTS.md` §3.11, seit welle-extended-query) — ebenso Hilfetext,
+    Abdeckungs-Deklaration und Plan-Zeile: Zu jeder Zusage im geänderten Text den Test
+    nennen; fehlt er, den Satz enger fassen oder den Test schreiben.
 
 Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontexten** (Modul 8).
 
