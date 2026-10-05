@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-randformen-vor-code
+**Fund:** Für wellenlose Slices fehlt der Auslöser des Architect vor dem Code (Review F-367); Schritt 12 von `implement-slice.md` greift nur bei einer Randform, die §6 nennt und offen lässt (Verifikation V-37). Am Fall F-350 hätte auch bei einem Slice einer Welle allein Schritt 13 mit der Randform-Rückgabe gegriffen (Verifikation, Abschnitt 3). Risiko 3 des Slice-Plans, Ausgang weiter offen.

@@ -127,7 +127,7 @@ zurück zum **Plan** (13) — den Plan verfeinern, nicht den Kontext neu lesen. 
 Schritt 1 signalisiert einen Kontext-Defekt. Ein struktureller Fehlschnitt (zu groß / blockiert)
 ist eine Lifecycle-Rücksprungkante (11).
 
-**Randform-Rückgabe (Modul 8, Übergabe-Artefakt):** Eine nicht genannte oder offene Randform
+**Randform-Rückgabe (Modul 8, Übergabe-Artefakt; `AGENTS.md` §3.12, seit slice-harness-randformen-vor-code):** Eine nicht genannte oder offene Randform
 entscheidest du weder im Code noch in der Spezifikation noch in §6. Du hältst an und gibst sie im Bericht als Liste
 *Randform · Frage* an den **Architect** zurück; er entscheidet sie oder legt sie dem Nutzer vor.
 Der Slice bleibt in `in-progress/`; weiter geht es erst nach der Entscheidung.
