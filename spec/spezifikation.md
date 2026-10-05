@@ -135,6 +135,15 @@ das ein unerwartetes Verbindungsende (Verbindungsfehler, `PGR-E4003`); die
 unvollständige Interaktion wird nicht in das Recording übernommen, die
 vorherigen Interaktionen der Session bleiben erhalten.
 
+**Weitergabe an den Client.** Im Record-Modus gehen die Serverantworten einer
+einfachen Anfrage in der Reihenfolge an den Client, in der der Upstream sie
+sendet, auch `NoticeResponse` und `ParameterStatus`. Ist eine davon nicht
+unterstützt (LH-FA-05.a), erhält der Client keine von ihnen, sondern die
+`ErrorResponse` mit `PGR-E6001`, auch wenn vorher Ergebnisse einer anderen
+Anweisung derselben Anfrage kamen. v1 sagt nicht zu, dass eine Antwort vor dem
+`ReadyForQuery` ihrer Interaktion beim Client ankommt; bis dahin hält der
+Recorder die Antworten im Speicher, auch eine große Ergebnismenge (`SPEC-032`).
+
 ---
 
 ### LH-FA-03.a — Replay: Aufruf, Upstream-Freiheit, Session-Cursor
@@ -276,6 +285,15 @@ werden in ihrer Reihenfolge aufgezeichnet. Dazu gehören insbesondere:
 Die konkrete Menge ist nicht auf diese Liste beschränkt. Eine Serverantwort,
 die die PGWire-Bibliothek nicht verlustfrei repräsentiert, ist eine nicht
 unterstützte Interaktion (`PGR-E6001`).
+
+**Nachrichten zwischen Interaktionen.** Eine `NoticeResponse` oder ein
+`ParameterStatus`, die der Upstream außerhalb einer laufenden Interaktion sendet,
+gehören zur nächsten Interaktion der Session und stehen vor deren übrigen
+Serverantworten; welcher Gruppe einer Extended-Interaktion sie zugeordnet sind,
+regelt LH-FA-18.a. Das Replay gibt sie mit dieser Interaktion wieder; ist die
+Interaktion eine Lebendprüfung, gibt es sie nicht wieder (LH-FA-09.a). Was der Upstream nach der letzten Interaktion
+einer Session sendet, wird nicht aufgezeichnet. `NotificationResponse` ist nicht
+unterstützt (LH-FA-05.e).
 
 **Nicht unterstützte Protokollnachrichten.** Trifft v1 auf eine
 Client-Interaktion, die als nicht unterstützt klassifiziert ist, schlägt das Tool
@@ -519,6 +537,14 @@ Lebendprüfung beantwortet das Replay auch dann (LH-FA-09.a).
 `ErrorResponse` wird als Teil der geordneten Serverantworten der Interaktion
 aufgezeichnet (siehe LH-FA-05.a) und im Replay in gespeicherter Reihenfolge,
 einschließlich des abschließenden `ReadyForQuery`, wiedergegeben.
+
+**Diagnosefelder.** `ErrorResponse` und `NoticeResponse` werden je Feldcode
+aufgezeichnet; die Reihenfolge der Felder innerhalb der Nachricht ist nicht Teil
+der Aufzeichnung. Die PGWire-Bibliothek unterscheidet ein Feld mit leerem Wert
+nicht von einem fehlenden, ebenso ein Zahlenfeld (`P`, `p`, `L`) mit dem Wert `0`
+oder ohne lesbare Zahl; solche Felder gelten als fehlend und gehen weder in die
+Aufzeichnung noch an den Client, im Record- wie im Replay-Modus. Der Client
+erhält damit in beiden Modi dieselbe Nachricht.
 
 ---
 
@@ -1694,3 +1720,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Hilfe geht jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei vor; `version` liest keine Konfiguration (`LH-FA-01.a`, `LH-FA-17.a`) |
 | 2026-10-05 | Hilfe-Angabe abgeschlossen: vier Formen mit beliebigem `=`-Wert, auch an Wertstelle, vor dem Kommando und nach unbekanntem Kommando (`LH-FA-01.a`) |
 | 2026-10-05 | `--` beendet die Optionen auch an der Stelle eines Optionswerts; der Wert `--` nur mit `=` (`LH-FA-01.a`) |
+| 2026-10-05 | Record: Weitergabe der Antworten einer einfachen Anfrage an den Client, auch bei einer nicht unterstützten Antwort nach Ergebnissen (`LH-FA-02.b`); Nachrichten des Upstreams zwischen Interaktionen gehören zur nächsten (`LH-FA-05.a`); Diagnosefelder mit leerem Wert oder Zahl `0` gelten als fehlend, Feldreihenfolge nicht aufgezeichnet (`LH-FA-11.a`) |
