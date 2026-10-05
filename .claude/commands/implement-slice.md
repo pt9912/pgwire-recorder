@@ -7,7 +7,8 @@ Rollen-Sequenz Planner → Architect → Implementer → Reviewer → Verifier �
 Planner-Closure (Modul 8). **Rollen-Trennung ist Kontext-Trennung:** die nachgelagerten Rollen
 (Review, Verifikation, Validation, Closure) laufen in **frischem Kontext** (Subagent / geleerter
 Kontext), nie im Kontext, der den Code schrieb — sonst wiederholt sich derselbe blinde Fleck.
-Keine Rolle springt rückwärts ohne Übergabe-Artefakt (Findings · Folge-ADR · Carveout, Modul 8).
+Keine Rolle springt rückwärts ohne Übergabe-Artefakt (Findings · Folge-ADR · Carveout, Modul 8;
+Implementer → Architect: Liste *Randform · Frage*, siehe Randform-Rückgabe).
 
 Kanonische Quellen (vendored Regelwerk, `.harness/baseline/<tag>/regelwerk/`): Modul 9
 (Implementierung), Modul 5 (Lifecycle), Modul 8 (Rollen), Modul 10 (Review), Modul 11
@@ -127,7 +128,7 @@ Schritt 1 signalisiert einen Kontext-Defekt. Ein struktureller Fehlschnitt (zu g
 ist eine Lifecycle-Rücksprungkante (11).
 
 **Randform-Rückgabe (Modul 8, Übergabe-Artefakt):** Eine nicht genannte oder offene Randform
-entscheidest du weder im Code noch in §6. Du hältst an und gibst sie im Bericht als Liste
+entscheidest du weder im Code noch in der Spezifikation noch in §6. Du hältst an und gibst sie im Bericht als Liste
 *Randform · Frage* an den **Architect** zurück; er entscheidet sie oder legt sie dem Nutzer vor.
 Der Slice bleibt in `in-progress/`; weiter geht es erst nach der Entscheidung.
 
