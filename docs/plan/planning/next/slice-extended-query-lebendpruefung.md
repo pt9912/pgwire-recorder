@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-09.a` · `LH-FA-18.a` · `LH-FA-06.a` · `SPEC-011` · `ARC-002` · `ARC-006`
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-05.
 
 ---
