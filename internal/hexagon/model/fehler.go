@@ -20,6 +20,7 @@ const (
 	CodeUpstream           = "PGR-E4002"
 	CodeConnectionLost     = "PGR-E4003"
 	CodeReplayMismatch     = "PGR-E5001"
+	CodeReplayUnconsumed   = "PGR-E5002"
 	CodeReplaySession      = "PGR-E5003"
 	CodeUnsupported        = "PGR-E6001"
 	CodeProtocolVersion    = "PGR-E6002"

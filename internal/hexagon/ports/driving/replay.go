@@ -32,7 +32,13 @@ type Replayer interface {
 	// (LH-FA-13.a). Es ändert keinen Zustand und darf mehrfach gerufen werden;
 	// dass danach keine neue Interaktion beginnt, hält der Aufrufer ein.
 	Shutdown(ctx context.Context, id model.SessionID) bool
+	// Sent meldet, dass die Antworten, die Query oder ClientMessage zuletzt
+	// geliefert hat, an den Client gesendet sind; eine Interaktion ist erst
+	// danach verbraucht (LH-FA-03.b).
+	Sent(ctx context.Context, id model.SessionID)
 	// CloseConnection beendet die Verbindung. Bleiben Interaktionen der
-	// zugeordneten Session unverbraucht, liefert sie die Warnung PGR-W2001.
-	CloseConnection(ctx context.Context, id model.SessionID) *model.Warning
+	// zugeordneten Session unverbraucht, liefert sie eine Meldung: die Warnung
+	// PGR-W2001 oder, bei --fail-on-unconsumed, den Fehler PGR-E5002; nie
+	// beide (LH-FA-03.b).
+	CloseConnection(ctx context.Context, id model.SessionID) (*model.Warning, error)
 }

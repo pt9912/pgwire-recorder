@@ -16,6 +16,10 @@ import (
 // (`first-request`, LH-FA-12.a). Lebendprüfungen beantwortet er außerhalb der
 // Reihe, aufgezeichnete überspringt er (ADR-0031).
 type ReplayService struct {
+	// streng meldet nicht verbrauchte Interaktionen und nie zugeordnete
+	// Sessions als Fehler PGR-E5002 statt als Warnung PGR-W2001 (LH-FA-03.b).
+	streng bool
+
 	mu sync.Mutex
 	// frei sind die Sessions mit Interaktionen, die noch keiner Verbindung
 	// zugeordnet sind, in der Reihenfolge ihrer Kennung.
@@ -32,15 +36,25 @@ type ReplayService struct {
 // ist der Transaktionsstatus des letzten ReadyForQuery, das die Verbindung
 // erhalten hat, nach dem Handshake "I"; vt sagt, ob \v für Lebendprüfungen als
 // Leerraum zählt: nach der Zuordnung nach der Version der Session, vorher nicht
-// (LH-FA-09.a).
+// (LH-FA-09.a). ungesendet ist wahr, solange die Antworten der Interaktion vor
+// pos geliefert, aber noch nicht als gesendet gemeldet sind (Sent); diese
+// Interaktion ist dann nicht verbraucht (LH-FA-03.b).
 type cursor struct {
-	session   *model.Session
-	pos       int
-	gruppe    int
-	nachricht int
-	status    string
-	vt        bool
+	session    *model.Session
+	pos        int
+	gruppe     int
+	nachricht  int
+	status     string
+	vt         bool
+	ungesendet bool
 }
+
+// ReplayOption stellt einen ReplayService ein.
+type ReplayOption func(*ReplayService)
+
+// FailOnUnconsumed meldet nicht verbrauchte Interaktionen und nie zugeordnete
+// Sessions als Fehler PGR-E5002 statt als Warnung PGR-W2001 (LH-FA-03.b).
+func FailOnUnconsumed(s *ReplayService) { s.streng = true }
 
 // NewReplayService lädt die Aufzeichnung. Jede Interaktion muss Validate
 // bestehen, sonst ist die Aufzeichnung beschädigt (PGR-E3003); auf diese Form
@@ -49,12 +63,15 @@ type cursor struct {
 // Sessions auf; eine Session ohne
 // andere Interaktion ist damit eine Session ohne Interaktion (LH-FA-09.a). Eine
 // Aufzeichnung ohne Session mit Interaktion ist PGR-E3004 (LH-FA-03.a).
-func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path string) (*ReplayService, error) {
+func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path string, opts ...ReplayOption) (*ReplayService, error) {
 	rec, err := repo.Load(ctx, path)
 	if err != nil {
 		return nil, err
 	}
 	s := &ReplayService{verbindung: map[model.SessionID]*cursor{}}
+	for _, o := range opts {
+		o(s)
+	}
 	for _, sess := range rec.Sessions {
 		for _, in := range sess.Interactions {
 			if err := in.Validate(); err != nil {
@@ -145,6 +162,7 @@ func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string)
 			c.session.ID, erwartet.Sequence, erwartet.Request.SQL, sql)
 	}
 	c.pos++
+	c.ungesendet = true
 	c.merke(erwartet.Responses)
 	return erwartet.Responses, nil
 }
@@ -217,6 +235,7 @@ func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m m
 	if c.gruppe == len(erwartet.Groups) {
 		c.gruppe = 0
 		c.pos++
+		c.ungesendet = true
 	}
 	c.merke(g.Server)
 	return g.Server, nil
@@ -416,28 +435,62 @@ func (s *ReplayService) Shutdown(_ context.Context, id model.SessionID) bool {
 	return c == nil || c.gruppe == 0 && c.nachricht == 0
 }
 
-// CloseConnection beendet die Verbindung; unverbrauchte Interaktionen der
-// zugeordneten Session sind die Warnung PGR-W2001 (LH-FA-03.b).
-func (s *ReplayService) CloseConnection(_ context.Context, id model.SessionID) *model.Warning {
+// Sent meldet, dass die zuletzt gelieferten Antworten gesendet sind; erst
+// damit ist eine Interaktion, deren letzte Antworten sie waren, verbraucht
+// (LH-FA-03.b).
+func (s *ReplayService) Sent(_ context.Context, id model.SessionID) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if c := s.verbindung[id]; c != nil {
+		c.ungesendet = false
+	}
+}
+
+// CloseConnection beendet die Verbindung. Hat sie eine Session mit nicht
+// verbrauchten Interaktionen, liefert sie eine Meldung, die die Session, die
+// Zahl der nicht verbrauchten und aller Interaktionen und die aufgezeichnete
+// Nummer der ersten nicht verbrauchten nennt: mit FailOnUnconsumed als Fehler
+// PGR-E5002, sonst als Warnung PGR-W2001 (LH-FA-03.b). Eine Verbindung ohne
+// Session meldet nichts.
+func (s *ReplayService) CloseConnection(_ context.Context, id model.SessionID) (*model.Warning, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	c := s.verbindung[id]
 	delete(s.verbindung, id)
-	if c == nil || c.session == nil || c.pos >= len(c.session.Interactions) {
-		return nil
+	if c == nil || c.session == nil {
+		return nil, nil
 	}
-	return model.Warnf(model.CodeUnconsumed, "Session %d: %d von %d Interaktionen nicht verbraucht",
-		c.session.ID, len(c.session.Interactions)-c.pos, len(c.session.Interactions))
+	verbraucht := c.pos
+	if c.ungesendet {
+		verbraucht--
+	}
+	alle := len(c.session.Interactions)
+	if verbraucht >= alle {
+		return nil, nil
+	}
+	return s.meldung("Session %d: %d von %d Interaktionen nicht verbraucht, die erste mit Nummer %d",
+		c.session.ID, alle-verbraucht, alle, c.session.Interactions[verbraucht].Sequence)
 }
 
-// Unassigned liefert die Warnung PGR-W2001 für Sessions mit Interaktionen, die
-// bis zum Ende des Laufs keiner Verbindung zugeordnet wurden, oder nil.
-func (s *ReplayService) Unassigned() *model.Warning {
+// Unassigned meldet die Sessions mit Interaktionen, die bis zum Ende des Laufs
+// keiner Verbindung zugeordnet wurden, mit ihrer Zahl und der Kennung der
+// ersten: mit FailOnUnconsumed als Fehler PGR-E5002, sonst als Warnung
+// PGR-W2001 (LH-FA-03.b). Ohne solche Session liefert es nil, nil.
+func (s *ReplayService) Unassigned() (*model.Warning, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if len(s.frei) == 0 {
-		return nil
+		return nil, nil
 	}
-	return model.Warnf(model.CodeUnconsumed, "%d aufgezeichnete Session(s) nie zugeordnet, die erste mit Kennung %d",
+	return s.meldung("%d aufgezeichnete Session(s) nie zugeordnet, die erste mit Kennung %d",
 		len(s.frei), s.frei[0].ID)
+}
+
+// meldung liefert denselben Text als Fehler PGR-E5002, wenn der Service
+// streng ist, sonst als Warnung PGR-W2001.
+func (s *ReplayService) meldung(format string, args ...any) (*model.Warning, error) {
+	if s.streng {
+		return nil, model.Errorf(model.CodeReplayUnconsumed, nil, format, args...)
+	}
+	return model.Warnf(model.CodeUnconsumed, format, args...), nil
 }

@@ -78,7 +78,11 @@ func record(ctx context.Context, o cli.RecordOptions, log *slog.Logger, stderr i
 }
 
 func replay(ctx context.Context, o cli.ReplayOptions, log *slog.Logger, stderr io.Writer) int {
-	service, err := services.NewReplayService(ctx, recording.YAML{}, o.Input)
+	var opts []services.ReplayOption
+	if o.FailOnUnconsumed {
+		opts = append(opts, services.FailOnUnconsumed)
+	}
+	service, err := services.NewReplayService(ctx, recording.YAML{}, o.Input, opts...)
 	if err != nil {
 		return fail(stderr, err)
 	}
@@ -99,11 +103,22 @@ func replay(ctx context.Context, o cli.ReplayOptions, log *slog.Logger, stderr i
 	l.Close()
 	<-done
 
-	if w := service.Unassigned(); w != nil {
+	// Nie zugeordnete Sessions werden nach allen Verbindungsfehlern gemerkt und
+	// bestimmen den Exit-Code nur ohne einen solchen (LH-FA-03.b, LH-FA-13.b).
+	code := server.FirstErrorCode()
+	w, err := service.Unassigned()
+	if w != nil {
 		log.Warn(w.Msg, "code", w.Code)
 	}
+	var me *model.Error
+	if errors.As(err, &me) {
+		log.Error("Fehler", "code", me.Code, "error", me.Error())
+		if code == "" {
+			code = me.Code
+		}
+	}
 	log.Info("replay beendet")
-	return exitCode(server.FirstErrorCode())
+	return exitCode(code)
 }
 
 // exitCode ist 0 ohne Verbindungsfehler, sonst der Exit-Code der Klasse des

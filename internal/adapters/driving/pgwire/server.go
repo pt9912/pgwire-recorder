@@ -214,7 +214,7 @@ func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 			if verbindungsende(err) {
 				// Ein Ende der Client-Verbindung ist im Replay regulär, auch
 				// mitten in einer Extended-Interaktion; was unverbraucht
-				// bleibt, meldet closeReplay als Warnung (LH-FA-03.b).
+				// bleibt, meldet closeReplay (LH-FA-03.b).
 				return
 			}
 			s.fail(be, model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
@@ -232,6 +232,7 @@ func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 				s.sendFailed(err)
 				return
 			}
+			s.replayer.Sent(ctx, id)
 		case e.terminate:
 			return
 		case e.fremd != nil:
@@ -250,6 +251,7 @@ func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 				s.sendFailed(err)
 				return
 			}
+			s.replayer.Sent(ctx, id)
 		}
 	}
 }
@@ -657,10 +659,18 @@ func (s *Server) open(ctx context.Context, startup map[string]string) (model.Ses
 	return s.recorder.OpenSession(ctx, startup)
 }
 
-// closeReplay beendet eine Replay-Verbindung. Eine unverbrauchte Session ist
-// eine Warnung (PGR-W2001), kein Verbindungsfehler.
+// closeReplay beendet eine Replay-Verbindung und meldet, was der Use Case
+// über nicht verbrauchte Interaktionen liefert: eine Warnung (PGR-W2001) im
+// Log, einen Fehler (PGR-E5002) als Verbindungsfehler, der nach einem
+// Fehler, der die Verbindung beendet hat, gemerkt und dem Client nicht
+// zugestellt wird (LH-FA-03.b, LH-FA-13.b).
 func (s *Server) closeReplay(ctx context.Context, id model.SessionID) {
-	if w := s.replayer.CloseConnection(context.WithoutCancel(ctx), id); w != nil {
+	w, err := s.replayer.CloseConnection(context.WithoutCancel(ctx), id)
+	if err != nil {
+		s.note(err)
+		return
+	}
+	if w != nil {
 		s.log.Warn(w.Msg, "code", w.Code)
 	}
 }

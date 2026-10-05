@@ -70,12 +70,15 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` (Replay-Service) | update | nicht verbrauchte Interaktionen und Sessions als `PGR-E5002` bei gesetzter Option, sonst `PGR-W2001`; Text mit der Nummer der ersten nicht verbrauchten Interaktion (`LH-FA-03.b`) |
-| `internal/adapters/driving/pgwire` | update | `PGR-E5002` am Ende jeder Verbindung als Verbindungsfehler merken, nach dem Fehler, der sie beendet, ohne `ErrorResponse` |
+| `internal/hexagon/model` | update | Meldungscode `PGR-E5002` |
+| `internal/hexagon/ports/driving` (Replayer) | update | `CloseConnection` liefert Warnung oder Fehler; `Sent` meldet gesendete Antworten, weil eine Interaktion erst mit ihren gesendeten Antworten verbraucht ist (`LH-FA-03.b` §Verbraucht) |
+| `internal/hexagon/services` (Replay-Service) | update | Option `FailOnUnconsumed`: nicht verbrauchte Interaktionen und Sessions als `PGR-E5002` bei gesetzter Option, sonst `PGR-W2001`, derselbe Text mit der Nummer der ersten nicht verbrauchten Interaktion (`LH-FA-03.b`); verbraucht erst nach `Sent` |
+| `internal/adapters/driving/pgwire` | update | `Sent` nach jedem erfolgreichen Senden von Antworten; `PGR-E5002` am Ende jeder Verbindung als Verbindungsfehler merken, nach dem Fehler, der sie beendet, ohne `ErrorResponse` |
 | `internal/bootstrap` | update | nie zugeordnete Sessions nach dem Ende aller Verbindungen als `PGR-E5002` merken, bevor der Exit-Code gebildet wird; nach einem Startfehler keine Prüfung |
 | `internal/adapters/driving/cli` | update | Option `--fail-on-unconsumed` nur bei `replay` (bei `record` unbekannt), Umgebungsvariable, Werte `true`/`false` (`LH-FA-17.a`) |
-| `test/integration` | update | Exit-Code 5 mit, Warnung und Exit-Code 0 ohne die Option; Rangfolge nach einem Mismatch |
+| `test/integration` | update | Exit-Code 5 mit, Warnung und Exit-Code 0 ohne die Option, auch über die Umgebungsvariable; Herunterfahren mit offener Verbindung; Rangfolge nach `PGR-E6001` (Exit-Code 6) und nie zugeordnete Sessions zuletzt; keine Prüfung nach einem Startfehler. Die Rangfolge nach einem Mismatch (`PGR-E5001`) prüft der Adapter-Test, weil beide Exit-Code 5 tragen |
 | `docs/user/benutzerhandbuch.md` | update | Exit-Code 5, `PGR-W2001` auch für nie geöffnete Sitzungen, Rangfolge, Werte der Option |
+| `docs/user/abdeckung-*.md` | update | aus den Abdeckungs-Deklarationen der neuen Tests erzeugt (`make abdeckung`) |
 
 ## 4. Trigger
 

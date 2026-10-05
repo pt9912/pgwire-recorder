@@ -549,6 +549,8 @@ type fakeReplayer struct {
 	mu       sync.Mutex
 	closed   int
 	warnung  *model.Warning
+	fehler   error
+	gesendet int
 	extended []model.ClientMessage
 	// laufend ist wahr nach einer Extended-Nachricht außer Sync.
 	laufend bool
@@ -602,11 +604,144 @@ func (f *fakeReplayer) nachrichten() []model.ClientMessage {
 	return append([]model.ClientMessage(nil), f.extended...)
 }
 
-func (f *fakeReplayer) CloseConnection(context.Context, model.SessionID) *model.Warning {
+// Sent zählt die Meldungen gesendeter Antworten.
+func (f *fakeReplayer) Sent(context.Context, model.SessionID) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.gesendet++
+}
+
+func (f *fakeReplayer) sentAufrufe() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.gesendet
+}
+
+// CloseConnection liefert warnung und fehler, wie sie gesetzt sind.
+func (f *fakeReplayer) CloseConnection(context.Context, model.SessionID) (*model.Warning, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.closed++
-	return f.warnung
+	return f.warnung, f.fehler
+}
+
+// replayVerbindung startet eine Replay-Verbindung über net.Pipe, liest den
+// Verbindungsaufbau und liefert Server, Client-Seite und Log; fertig ist
+// geschlossen, wenn die Verbindung beendet ist.
+func replayVerbindung(t *testing.T, rep *fakeReplayer) (*Server, net.Conn, *pgproto3.Frontend, *syncBuffer, chan struct{}) {
+	t.Helper()
+	client, serverSeite := net.Pipe()
+	log := &syncBuffer{}
+	s := NewReplayServer(rep, slog.New(slog.NewTextHandler(log, nil)))
+	fertig := make(chan struct{})
+	go func() {
+		s.handle(context.Background(), serverSeite)
+		close(fertig)
+	}()
+	t.Cleanup(func() { client.Close() })
+	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	return s, client, fe, log, fertig
+}
+
+func warte(t *testing.T, fertig chan struct{}) {
+	t.Helper()
+	select {
+	case <-fertig:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Verbindung endet nicht")
+	}
+}
+
+// Abdeckung: LH-FA-03/Negative, LH-FA-13/Negative — liefert der Use Case beim
+// Ende der Verbindung den Fehler PGR-E5002, merkt der Adapter ihn als
+// Verbindungsfehler und stellt ihn dem Client nicht zu; endete die Verbindung
+// durch eine Abweichung (PGR-E5001), wird diese zuerst gemerkt und
+// protokolliert und bestimmt den ersten Fehler.
+func TestReplayNichtVerbrauchtFehler(t *testing.T) {
+	unverbraucht := model.Errorf(model.CodeReplayUnconsumed, nil, "Session 1: 1 von 1 Interaktionen nicht verbraucht, die erste mit Nummer 1")
+
+	rep := &fakeReplayer{fehler: unverbraucht}
+	s, _, fe, log, fertig := replayVerbindung(t, rep)
+	fe.Send(&pgproto3.Terminate{})
+	_ = fe.Flush()
+	if msg, err := fe.Receive(); err == nil {
+		t.Fatalf("PGR-E5002 dem Client zugestellt: %#v", msg)
+	}
+	warte(t, fertig)
+	if s.FirstErrorCode() != model.CodeReplayUnconsumed {
+		t.Fatalf("erster Fehler %q, erwartet %s", s.FirstErrorCode(), model.CodeReplayUnconsumed)
+	}
+	if !strings.Contains(log.String(), "level=ERROR") || !strings.Contains(log.String(), unverbraucht.Error()) {
+		t.Fatalf("Fehler nicht protokolliert: %s", log.String())
+	}
+
+	rep = &fakeReplayer{fehler: unverbraucht}
+	s, _, fe, log, fertig = replayVerbindung(t, rep)
+	fe.Send(&pgproto3.Query{String: "SELECT 2"})
+	_ = fe.Flush()
+	if e := fehlerantwort(t, fe); !strings.Contains(e.Message, model.CodeReplayMismatch) {
+		t.Fatalf("ErrorResponse: %+v", e)
+	}
+	if msg, err := fe.Receive(); err == nil {
+		t.Fatalf("nach der Abweichung weitere Nachricht zugestellt: %#v", msg)
+	}
+	warte(t, fertig)
+	if s.FirstErrorCode() != model.CodeReplayMismatch {
+		t.Fatalf("erster Fehler %q, erwartet %s", s.FirstErrorCode(), model.CodeReplayMismatch)
+	}
+	text := log.String()
+	i, j := strings.Index(text, model.CodeReplayMismatch), strings.Index(text, model.CodeReplayUnconsumed)
+	if i < 0 || j < 0 || i > j {
+		t.Fatalf("erwartet %s vor %s im Log: %s", model.CodeReplayMismatch, model.CodeReplayUnconsumed, text)
+	}
+}
+
+// Abdeckung: LH-FA-03/Boundary — der Adapter meldet dem Use Case gesendete
+// Antworten (Sent) nach jeder Antwort auf eine Anfrage und auf eine
+// abschließende Extended-Nachricht, nicht nach einer Nachricht ohne Antwort
+// und nicht, wenn das Senden scheitert.
+func TestReplaySent(t *testing.T) {
+	rep := &fakeReplayer{}
+	_, _, fe, _, fertig := replayVerbindung(t, rep)
+	fe.Send(&pgproto3.Query{String: "SELECT 1"})
+	_ = fe.Flush()
+	bisBereit(t, fe)
+	fe.Send(&pgproto3.Parse{Name: "s1", Query: "SELECT 1"})
+	fe.Send(&pgproto3.Sync{})
+	_ = fe.Flush()
+	bisBereit(t, fe)
+	fe.Send(&pgproto3.Terminate{})
+	_ = fe.Flush()
+	warte(t, fertig)
+	if n := rep.sentAufrufe(); n != 2 {
+		t.Fatalf("Sent %d-mal gemeldet, erwartet 2", n)
+	}
+
+	rep = &fakeReplayer{}
+	_, client, fe, _, fertig := replayVerbindung(t, rep)
+	fe.Send(&pgproto3.Query{String: "SELECT 1"})
+	_ = fe.Flush()
+	client.Close()
+	warte(t, fertig)
+	if n := rep.sentAufrufe(); n != 0 {
+		t.Fatalf("Sent nach gescheitertem Senden gemeldet (%d)", n)
+	}
+}
+
+// bisBereit liest bis zum nächsten ReadyForQuery.
+func bisBereit(t *testing.T, fe *pgproto3.Frontend) {
+	t.Helper()
+	for {
+		msg, err := fe.Receive()
+		if err != nil {
+			t.Fatalf("Antwort lesen: %v", err)
+		}
+		if _, ok := msg.(*pgproto3.ReadyForQuery); ok {
+			return
+		}
+	}
 }
 
 // Im Replay-Modus beantwortet der Adapter Startup und Anfragen aus dem

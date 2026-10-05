@@ -57,7 +57,7 @@ func TestReplayLebendpruefungAusserDerReihe(t *testing.T) {
 		pruefeLebend(t, s, b, "-- ping", sch.tx)
 		pruefeLebend(t, s, b, "/* a */ -- b", sch.tx)
 	}
-	if w := s.CloseConnection(ctx, b); w != nil {
+	if w := gesendetSchliessen(t, s, b); w != nil {
 		t.Fatalf("Lebendprüfungen haben den Cursor bewegt: %v", w)
 	}
 	if _, err := s.Query(ctx, a, "BEGIN"); code(err) != model.CodeReplaySession {
@@ -100,7 +100,7 @@ func TestReplayLebendpruefungAufgezeichnet(t *testing.T) {
 	if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), "nach Interaktion 4 erwartet die Aufzeichnung keine weitere") {
 		t.Fatalf("nach der letzten Interaktion: %v", err)
 	}
-	if w := s.CloseConnection(ctx, a); w != nil {
+	if w := gesendetSchliessen(t, s, a); w != nil {
 		t.Fatalf("aufgezeichnete Lebendprüfung gilt als unverbraucht: %v", w)
 	}
 	b, _ := s.OpenConnection(ctx)
@@ -110,7 +110,7 @@ func TestReplayLebendpruefungAufgezeichnet(t *testing.T) {
 	if out, err := s.Query(ctx, b, "/* offen"); err != nil || out[0].Tag != "D" {
 		t.Fatalf("offener Blockkommentar bleibt Interaktion: %#v, %v", out, err)
 	}
-	if w := s.Unassigned(); w != nil {
+	if w := unassigned(t, s); w != nil {
 		t.Fatalf("Session nur aus Lebendprüfungen gilt als unzugeordnet: %v", w)
 	}
 
@@ -121,7 +121,7 @@ func TestReplayLebendpruefungAufgezeichnet(t *testing.T) {
 	if _, err := s.Query(ctx, c, "SELECT 1"); err != nil {
 		t.Fatal(err)
 	}
-	if w := s.CloseConnection(ctx, c); w == nil || !strings.Contains(w.Msg, "1 von 2") {
+	if w := gesendetSchliessen(t, s, c); w == nil || !strings.Contains(w.Msg, "1 von 2") {
 		t.Fatalf("Warnung zählt die Lebendprüfungen mit: %v", w)
 	}
 
@@ -159,7 +159,7 @@ func TestReplayLebendpruefungExtended(t *testing.T) {
 	}
 	sendeAlle(t, s, id, in.Groups[1].Client...)
 	pruefeLebend(t, s, id, "-- ping", "T")
-	if w := s.CloseConnection(ctx, id); w != nil {
+	if w := gesendetSchliessen(t, s, id); w != nil {
 		t.Fatalf("Warnung trotz verbrauchter Session: %v", w)
 	}
 }
@@ -222,7 +222,7 @@ func TestReplayLebendpruefungServerversion(t *testing.T) {
 		t.Fatalf("PostgreSQL 17: aufgezeichnete Lebendprüfung mit \\v übersprungen: %#v, %v", out, err)
 	}
 	pruefeLebend(t, s, b, vtPing, "I")
-	if w := s.CloseConnection(ctx, b); w != nil {
+	if w := gesendetSchliessen(t, s, b); w != nil {
 		t.Fatalf("PostgreSQL 17: %v", w)
 	}
 	if _, err := s.Query(ctx, a, vtPing); code(err) != model.CodeReplayMismatch {

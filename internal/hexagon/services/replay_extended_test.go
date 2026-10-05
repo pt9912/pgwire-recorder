@@ -99,7 +99,7 @@ func TestReplayExtendedGruppen(t *testing.T) {
 	if out, err := s.Query(context.Background(), id, "SELECT 7"); err != nil || out[0].Tag != "SELECT 1" {
 		t.Fatalf("einfache Anfrage nach der Extended-Interaktion: %#v, %v", out, err)
 	}
-	if w := s.CloseConnection(context.Background(), id); w != nil {
+	if w := gesendetSchliessen(t, s, id); w != nil {
 		t.Fatalf("Warnung trotz verbrauchter Session: %v", w)
 	}
 }
@@ -249,7 +249,7 @@ func TestReplayExtendedFalscheArt(t *testing.T) {
 	if _, err := s.ClientMessage(ctx, a, bind("s1", text("a"))); code(err) != model.CodeReplaySession {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeReplaySession, err)
 	}
-	if w := s.CloseConnection(ctx, b); w == nil || w.Code != model.CodeUnconsumed {
+	if w := gesendetSchliessen(t, s, b); w == nil || w.Code != model.CodeUnconsumed {
 		t.Fatalf("mitten in der Interaktion beendet ohne Warnung: %v", w)
 	}
 }

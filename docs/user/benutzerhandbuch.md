@@ -235,6 +235,17 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   Nutzen Sie die Verbindungen nacheinander; bei gleichzeitiger Nutzung ist die
   Zuordnung nicht festgelegt. Eine Anfrage über die aufgezeichneten Sitzungen
   hinaus wird als Abweichung gemeldet (`PGR-E5003`).
+* Endet eine Verbindung, bevor alle Anfragen ihrer Sitzung gestellt und
+  beantwortet sind, warnt das Werkzeug (`PGR-W2001`), gleich ob die Anwendung
+  die Verbindung schließt, ein Fehler sie beendet oder das Werkzeug beim
+  Beenden. Eine Folge des erweiterten Protokolls zählt erst mit der Antwort auf
+  ihr letztes `Sync` als gestellt. Die Meldung nennt die Sitzung, wie viele
+  ihrer Anfragen offen sind, wie viele sie hat, und die Nummer der ersten
+  offenen; Lebendprüfungen zählen nicht mit. Aufgezeichnete Sitzungen, die nie
+  eine Verbindung erhalten haben, meldet das Werkzeug beim Beenden mit ihrer
+  Zahl und der Kennung der ersten. Mit `--fail-on-unconsumed` ist beides ein
+  Fehler (`PGR-E5002`, Exit-Code 5) mit demselben Text; die Anwendung erhält
+  ihn nicht, weil die Verbindung dann schon endet.
 
 ### Verschlüsselte Verbindungen annehmen
 
@@ -484,8 +495,14 @@ Zeichnen Sie in der Testautomatisierung auf, lassen Sie die Tests vor dem
 Anfragen (siehe [Eine Anwendung aufzeichnen](#eine-anwendung-aufzeichnen),
 Hinweise).
 
-Mit `--fail-on-unconsumed` wertet das Werkzeug es als Fehler, wenn ein Test
-nicht alle aufgezeichneten Anfragen ausführt.
+Mit `--fail-on-unconsumed` wertet das Werkzeug es als Fehler (`PGR-E5002`,
+Exit-Code 5), wenn ein Test nicht alle aufgezeichneten Anfragen ausführt oder
+eine aufgezeichnete Sitzung nie verwendet; ohne die Option ist es eine Warnung
+(`PGR-W2001`), und der Exit-Code bleibt 0. Die Option nimmt keinen Wert oder
+`=true` beziehungsweise `=false`; jeder andere Wert, auch `=` ohne Wert und
+`=1`, ist ein ungültiger Aufruf (`PGR-E2001`). Die Umgebungsvariable
+`PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` nimmt `true` oder `false`, leer gilt sie als
+nicht gesetzt; die Option geht ihr vor. Die Option gibt es nur bei `replay`.
 
 ## 5. Einstellungen
 
@@ -577,12 +594,16 @@ Mit `--help` oder `-h` zeigt das Werkzeug die Hilfe an, mit
 | 2 | ungültiger Aufruf oder ungültige Konfiguration |
 | 3 | Aufzeichnung ungültig oder nicht zugreifbar |
 | 4 | Netzwerk- oder Datenbankfehler |
-| 5 | Abweichung bei der Wiedergabe, oder beim Einspielen mit `--compare-responses` eine abweichende Antwort |
+| 5 | Abweichung bei der Wiedergabe, mit `--fail-on-unconsumed` auch nicht gestellte Anfragen oder nie verwendete Sitzungen, oder beim Einspielen mit `--compare-responses` eine abweichende Antwort |
 | 6 | nicht unterstützte Funktion des Protokolls |
 
 Ein Fehler, der nur eine Verbindung betrifft, beendet diese Verbindung. Das
 Werkzeug läuft weiter und liefert den Exit-Code des ersten aufgetretenen Fehlers
-erst, wenn Sie es beenden.
+erst, wenn Sie es beenden. Endet eine Verbindung durch einen Fehler und bleiben
+dabei Anfragen ihrer Sitzung offen, zählt der Fehler, der sie beendet hat, vor
+`PGR-E5002`; beide stehen im Log. Nie verwendete Sitzungen zählen zuletzt und
+bestimmen den Exit-Code nur, wenn vorher kein Fehler auftrat. Scheitert schon
+der Start, prüft das Werkzeug keine Sitzungen.
 
 ## 6. Rollen und Rechte
 
@@ -632,7 +653,7 @@ Beispiel `Replay [PGR-E5001]: …`.
 
 | Code | Bedeutung | Hinweis |
 |---|---|---|
-| `PGR-W2001` | Wiedergabe endete vor der letzten aufgezeichneten Anfrage | Ihr Test hat nicht alle aufgezeichneten Anfragen ausgeführt. Mit `--fail-on-unconsumed` wird das zum Fehler. |
+| `PGR-W2001` | Wiedergabe endete vor der letzten aufgezeichneten Anfrage, oder aufgezeichnete Sitzungen wurden nie verwendet | Ihr Test hat nicht alle aufgezeichneten Anfragen ausgeführt oder weniger Verbindungen mit Anfragen geöffnet als aufgezeichnet. Mit `--fail-on-unconsumed` wird das zum Fehler (`PGR-E5002`). |
 | `PGR-W3001` | Abbruchwunsch nicht weitergeleitet | Die Anwendung hat versucht, eine laufende Anfrage abzubrechen. Das Werkzeug leitet diesen Wunsch nicht weiter und schließt die Verbindung. |
 | `PGR-W3002` | Verschlüsselung einer Verbindung gescheitert | Die Anwendung hat die Aushandlung abgebrochen oder das Zertifikat nicht akzeptiert. Prüfen Sie, ob die Anwendung dem Zertifikat des Werkzeugs vertraut. |
 | `PGR-W3003` | Verbindung ohne PostgreSQL-Protokoll | Etwas anderes als ein PostgreSQL-Client hat den Port angesprochen, zum Beispiel ein HTTP-Gesundheitscheck. Das Werkzeug schließt die Verbindung; der Exit-Code ändert sich nicht. Ein reiner TCP-Check ohne Daten erzeugt keine Warnung. |

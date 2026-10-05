@@ -33,6 +33,35 @@ func aufzeichnung(sessions ...[]model.Interaction) model.Recording {
 	return rec
 }
 
+// replaySchliessen beendet die Verbindung ohne Fehler und liefert die Warnung.
+func replaySchliessen(t *testing.T, s *ReplayService, id model.SessionID) *model.Warning {
+	t.Helper()
+	w, err := s.CloseConnection(context.Background(), id)
+	if err != nil {
+		t.Fatalf("Fehler statt Warnung: %v", err)
+	}
+	return w
+}
+
+// gesendetSchliessen meldet die zuletzt gelieferten Antworten als gesendet, wie
+// es der Adapter nach jedem Senden tut, und beendet dann die Verbindung.
+func gesendetSchliessen(t *testing.T, s *ReplayService, id model.SessionID) *model.Warning {
+	t.Helper()
+	s.Sent(context.Background(), id)
+	return replaySchliessen(t, s, id)
+}
+
+// unassigned liefert die Warnung über nie zugeordnete Sessions; ein Fehler
+// bricht ab.
+func unassigned(t *testing.T, s *ReplayService) *model.Warning {
+	t.Helper()
+	w, err := s.Unassigned()
+	if err != nil {
+		t.Fatalf("Fehler statt Warnung: %v", err)
+	}
+	return w
+}
+
 func code(err error) string {
 	var me *model.Error
 	if errors.As(err, &me) {
@@ -62,7 +91,7 @@ func TestReplayStrictSequential(t *testing.T) {
 			t.Fatalf("erwartet %s, erhalten %#v, %v", want, out, err)
 		}
 	}
-	if w := s.CloseConnection(ctx, id); w != nil {
+	if w := gesendetSchliessen(t, s, id); w != nil {
 		t.Fatalf("Warnung trotz verbrauchter Session: %v", w)
 	}
 }
@@ -113,13 +142,13 @@ func TestReplaySessionZuordnung(t *testing.T) {
 	if out, err := s.Query(ctx, a, "S2"); err != nil || out[0].Tag != "zwei" {
 		t.Fatalf("zweite Anfrage erhält Session 2: %#v %v", out, err)
 	}
-	if w := s.CloseConnection(ctx, b); w == nil || w.Code != model.CodeUnconsumed {
+	if w := gesendetSchliessen(t, s, b); w == nil || w.Code != model.CodeUnconsumed {
 		t.Fatalf("unverbrauchte Interaktion ohne Warnung: %v", w)
 	}
-	if w := s.CloseConnection(ctx, leer); w != nil {
+	if w := replaySchliessen(t, s, leer); w != nil {
 		t.Fatalf("Verbindung ohne Anfrage gewarnt: %v", w)
 	}
-	if w := s.Unassigned(); w == nil || w.Code != model.CodeUnconsumed {
+	if w := unassigned(t, s); w == nil || w.Code != model.CodeUnconsumed {
 		t.Fatalf("nie zugeordnete Session ohne Warnung: %v", w)
 	}
 	c, _ := s.OpenConnection(ctx)
@@ -213,7 +242,7 @@ func TestReplayExtendedAmCursor(t *testing.T) {
 			t.Fatalf("Anfrage %q: erwartet %s, erhalten %#v, %v", sql, model.CodeReplayMismatch, out, err)
 		}
 	}
-	if w := s.CloseConnection(ctx, id); w == nil {
+	if w := gesendetSchliessen(t, s, id); w == nil {
 		t.Fatal("Cursor ist vorgerückt: keine Warnung über die nicht verbrauchte Interaktion")
 	}
 }

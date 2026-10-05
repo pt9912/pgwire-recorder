@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
@@ -21,9 +22,14 @@ type RecordOptions struct {
 // ReplayOptions sind die Optionen von `replay` (LH-FA-03.a), soweit dieser Stand
 // sie kennt.
 type ReplayOptions struct {
-	Listen string
-	Input  string
+	Listen           string
+	Input            string
+	FailOnUnconsumed bool
 }
+
+// envFailOnUnconsumed ist die Umgebungsvariable von --fail-on-unconsumed
+// (LH-FA-17.a).
+const envFailOnUnconsumed = "PGWIRE_RECORDER_FAIL_ON_UNCONSUMED"
 
 // Command ist das gewählte Kommando mit seinen Optionen.
 type Command struct {
@@ -48,6 +54,10 @@ Optionen von record:
 Optionen von replay:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
   --input     Aufzeichnung (Pflicht)
+  --fail-on-unconsumed[=true|false]
+              nicht verbrauchte Interaktionen und nie zugeordnete Sessions
+              sind ein Fehler (PGR-E5002, Exit-Code 5) statt einer Warnung;
+              Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
 `
 
 // ErrHelp meldet, dass die Hilfe angefordert und ausgegeben wurde.
@@ -109,6 +119,16 @@ func parseReplay(args []string, out io.Writer) (Command, error) {
 	var o ReplayOptions
 	fs.StringVar(&o.Listen, "listen", "", "")
 	fs.StringVar(&o.Input, "input", "", "")
+	fail := wahrheitswert{&o.FailOnUnconsumed}
+	// Die Umgebungsvariable setzt den Wert vor der Kommandozeile, die ihn
+	// danach überschreibt (CLI vor Umgebungsvariable); leer gilt sie als nicht
+	// gesetzt (LH-FA-17.a).
+	if v := os.Getenv(envFailOnUnconsumed); v != "" {
+		if err := fail.Set(v); err != nil {
+			return Command{}, model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envFailOnUnconsumed)
+		}
+	}
+	fs.Var(fail, "fail-on-unconsumed", "")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			fmt.Fprint(out, usage)
@@ -125,4 +145,32 @@ func parseReplay(args []string, out io.Writer) (Command, error) {
 		}
 	}
 	return Command{Name: "replay", Replay: o}, nil
+}
+
+// wahrheitswert ist der Wert einer booleschen Option nach LH-FA-17.a: ohne
+// Wert true, mit Wert genau "true" oder "false"; jeder andere Wert, auch der
+// leere und "1", ist ein Fehler. Nennt die Kommandozeile die Option mehrfach,
+// gilt die letzte Angabe.
+type wahrheitswert struct{ wert *bool }
+
+// IsBoolFlag lässt die Option ohne Wert zu; flag setzt dann "true".
+func (w wahrheitswert) IsBoolFlag() bool { return true }
+
+func (w wahrheitswert) String() string {
+	if w.wert == nil {
+		return "false"
+	}
+	return fmt.Sprint(*w.wert)
+}
+
+func (w wahrheitswert) Set(v string) error {
+	switch v {
+	case "true":
+		*w.wert = true
+	case "false":
+		*w.wert = false
+	default:
+		return errors.New("erlaubt sind true und false")
+	}
+	return nil
 }
