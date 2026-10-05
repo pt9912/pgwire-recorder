@@ -3,24 +3,28 @@
 package integration
 
 import (
+	"bufio"
+	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgproto3"
 )
 
 // rohAblauf meldet sich über listen ohne Treiber an und sendet die Anfragen
 // einzeln als einfache Anfragen. Es liefert jede Server-Nachricht nach dem
-// Verbindungsaufbau als Zeile mit Typ und Inhalt, so wie der Client sie
-// empfängt, in Reihenfolge.
+// Verbindungsaufbau als Zeile (nachrichtText), so wie der Client sie empfängt,
+// in Reihenfolge. Der Test liest PGWire selbst; die PGWire-Bibliothek gehört
+// den Adaptern (.a-check.yml).
 func rohAblauf(t *testing.T, listen string, anfragen ...string) string {
 	t.Helper()
 	conn, err := net.DialTimeout("tcp", listen, 10*time.Second)
@@ -29,50 +33,128 @@ func rohAblauf(t *testing.T, listen string, anfragen ...string) string {
 	}
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(30 * time.Second))
-	fe := pgproto3.NewFrontend(conn, conn)
-	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber,
-		Parameters: map[string]string{"user": "postgres", "database": "postgres"}})
-	if err := fe.Flush(); err != nil {
+	r := bufio.NewReader(conn)
+	start := binary.BigEndian.AppendUint32(nil, 196608) // Protokoll 3.0
+	start = append(start, "user\x00postgres\x00database\x00postgres\x00\x00"...)
+	if _, err := conn.Write(append(binary.BigEndian.AppendUint32(nil, uint32(4+len(start))), start...)); err != nil {
 		t.Fatal(err)
 	}
 	for {
-		msg, err := fe.Receive()
+		typ, rumpf, err := leseNachricht(r)
 		if err != nil {
 			t.Fatalf("Verbindungsaufbau über %s: %v", listen, err)
 		}
-		if e, ok := msg.(*pgproto3.ErrorResponse); ok {
-			t.Fatalf("Verbindungsaufbau über %s: %s %s", listen, e.Code, e.Message)
+		if typ == 'E' {
+			t.Fatalf("Verbindungsaufbau über %s: %s", listen, nachrichtText(typ, rumpf))
 		}
-		if _, ok := msg.(*pgproto3.ReadyForQuery); ok {
+		if typ == 'Z' {
 			break
 		}
 	}
 	var b strings.Builder
 	for _, q := range anfragen {
 		fmt.Fprintf(&b, "> %q\n", q)
-		fe.Send(&pgproto3.Query{String: q})
-		if err := fe.Flush(); err != nil {
+		if _, err := conn.Write(clientNachricht('Q', q+"\x00")); err != nil {
 			t.Fatal(err)
 		}
 		for {
-			msg, err := fe.Receive()
+			typ, rumpf, err := leseNachricht(r)
 			if err != nil {
 				fmt.Fprintf(&b, "Ende: %v\n", err)
 				return b.String()
 			}
-			j, err := json.Marshal(msg)
-			if err != nil {
-				t.Fatal(err)
-			}
-			fmt.Fprintf(&b, "%s\n", j)
-			if _, ok := msg.(*pgproto3.ReadyForQuery); ok {
+			fmt.Fprintf(&b, "%s\n", nachrichtText(typ, rumpf))
+			if typ == 'Z' {
 				break
 			}
 		}
 	}
-	fe.Send(&pgproto3.Terminate{})
-	_ = fe.Flush()
+	_, _ = conn.Write(clientNachricht('X', ""))
 	return b.String()
+}
+
+func clientNachricht(typ byte, rumpf string) []byte {
+	b := binary.BigEndian.AppendUint32([]byte{typ}, uint32(4+len(rumpf)))
+	return append(b, rumpf...)
+}
+
+// leseNachricht liest eine Server-Nachricht: Typ, Länge, Rumpf.
+func leseNachricht(r *bufio.Reader) (byte, []byte, error) {
+	kopf := make([]byte, 5)
+	if _, err := io.ReadFull(r, kopf); err != nil {
+		return 0, nil, err
+	}
+	n := binary.BigEndian.Uint32(kopf[1:])
+	if n < 4 {
+		return 0, nil, fmt.Errorf("Länge %d", n)
+	}
+	rumpf := make([]byte, n-4)
+	_, err := io.ReadFull(r, rumpf)
+	return kopf[0], rumpf, err
+}
+
+// nachrichtText beschreibt eine Server-Nachricht mit Name und Inhalt.
+// ErrorResponse und NoticeResponse nennen ihre Felder nach Feldcode sortiert,
+// weil die Reihenfolge der Felder nicht Teil der Aufzeichnung ist
+// (LH-FA-11.a); jede andere Nachricht nennt ihren Rumpf vollständig.
+func nachrichtText(typ byte, rumpf []byte) string {
+	cstr := func(b []byte) (string, []byte) {
+		i := bytes.IndexByte(b, 0)
+		if i < 0 {
+			return string(b), nil
+		}
+		return string(b[:i]), b[i+1:]
+	}
+	switch typ {
+	case 'E', 'N':
+		var felder []string
+		for len(rumpf) > 0 && rumpf[0] != 0 {
+			code := rumpf[0]
+			var v string
+			v, rumpf = cstr(rumpf[1:])
+			felder = append(felder, fmt.Sprintf("%c=%s", code, v))
+		}
+		sort.Strings(felder)
+		name := map[byte]string{'E': "ErrorResponse", 'N': "NoticeResponse"}[typ]
+		return name + " " + strings.Join(felder, " | ")
+	case 'C':
+		tag, _ := cstr(rumpf)
+		return "CommandComplete " + tag
+	case 'Z':
+		return "ReadyForQuery " + string(rumpf)
+	case 'S':
+		name, rest := cstr(rumpf)
+		wert, _ := cstr(rest)
+		return "ParameterStatus " + name + "=" + wert
+	case 'T':
+		var spalten []string
+		for n, rest := int(binary.BigEndian.Uint16(rumpf)), rumpf[2:]; n > 0; n-- {
+			var name string
+			name, rest = cstr(rest)
+			spalten = append(spalten, fmt.Sprintf("%s tabelle=%d spalte=%d typ=%d größe=%d mod=%d format=%d", name,
+				binary.BigEndian.Uint32(rest), binary.BigEndian.Uint16(rest[4:]), binary.BigEndian.Uint32(rest[6:]),
+				int16(binary.BigEndian.Uint16(rest[10:])), int32(binary.BigEndian.Uint32(rest[12:])), binary.BigEndian.Uint16(rest[16:])))
+			rest = rest[18:]
+		}
+		return "RowDescription " + strings.Join(spalten, " | ")
+	case 'D':
+		var werte []string
+		for n, rest := int(binary.BigEndian.Uint16(rumpf)), rumpf[2:]; n > 0; n-- {
+			l := int32(binary.BigEndian.Uint32(rest))
+			rest = rest[4:]
+			if l < 0 {
+				werte = append(werte, "NULL")
+				continue
+			}
+			werte = append(werte, fmt.Sprintf("%q", rest[:l]))
+			rest = rest[l:]
+		}
+		return "DataRow " + strings.Join(werte, " ")
+	case 'I':
+		return "EmptyQueryResponse"
+	default:
+		return fmt.Sprintf("Nachricht %c %q", typ, rumpf)
+	}
 }
 
 // dreiSichten führt die Anfragen direkt gegen PostgreSQL, über record und über
@@ -137,13 +219,13 @@ func TestE2EFehlerreplayEinfach(t *testing.T) {
 		"SELECT 4 AS c",
 	)
 	enthaeltInFolge(t, sicht,
-		`> "SELECT 1/0"`, `"Code":"22012"`, `"Message":"division by zero"`, `"TxStatus":"I"`,
-		`> "SELECT 2 AS b; SELECT 1/0"`, `"CommandTag":"SELECT 1"`, `"Code":"22012"`, `"TxStatus":"I"`,
-		`> "BEGIN"`, `"TxStatus":"T"`,
-		`> "SELECT 1/0"`, `"Code":"22012"`, `"TxStatus":"E"`,
-		`> "SELECT 3"`, `"Code":"25P02"`, `"TxStatus":"E"`,
-		`> "ROLLBACK"`, `"CommandTag":"ROLLBACK"`, `"TxStatus":"I"`,
-		`> "SELECT 4 AS c"`, `"CommandTag":"SELECT 1"`, `"TxStatus":"I"`,
+		`> "SELECT 1/0"`, "ErrorResponse C=22012 | ", " | M=division by zero | ", "ReadyForQuery I",
+		`> "SELECT 2 AS b; SELECT 1/0"`, "RowDescription b ", `DataRow "2"`, "CommandComplete SELECT 1", "ErrorResponse C=22012 | ", "ReadyForQuery I",
+		`> "BEGIN"`, "ReadyForQuery T",
+		`> "SELECT 1/0"`, "ErrorResponse C=22012 | ", "ReadyForQuery E",
+		`> "SELECT 3"`, "ErrorResponse C=25P02 | ", "ReadyForQuery E",
+		`> "ROLLBACK"`, "CommandComplete ROLLBACK", "ReadyForQuery I",
+		`> "SELECT 4 AS c"`, "CommandComplete SELECT 1", "ReadyForQuery I",
 	)
 }
 
@@ -170,13 +252,13 @@ func TestE2EErgebnisartenEinfach(t *testing.T) {
 		"COMMIT",
 	)
 	enthaeltInFolge(t, sicht,
-		`"CommandTag":"SELECT 3"`,
-		`> "SELECT 1 AS a WHERE false"`, `"RowDescription"`, `"CommandTag":"SELECT 0"`,
-		`"CommandTag":"CREATE TABLE"`, `"CommandTag":"INSERT 0 2"`, `"CommandTag":"UPDATE 1"`,
-		`"Name":"a"`, `"CommandTag":"SELECT 1"`, `"Name":"b"`, `"CommandTag":"SELECT 1"`,
-		`"Message":"eins"`, `"Message":"zwei"`, `"CommandTag":"DO"`,
-		`"CommandTag":"SET"`, `"Name":"application_name","Value":"ergebnisarten"`,
-		`> "FETCH ALL FROM c"`, `"Format":1`, `"binary":"00000102"`, `"binary":"00ff"`, `"CommandTag":"FETCH 1"`,
+		`DataRow "1" "z1"`, `DataRow "2" "z2"`, `DataRow "3" "z3"`, "CommandComplete SELECT 3",
+		`> "SELECT 1 AS a WHERE false"`, "RowDescription a ", "CommandComplete SELECT 0",
+		"CommandComplete CREATE TABLE", "CommandComplete INSERT 0 2", "CommandComplete UPDATE 1",
+		"RowDescription a ", `DataRow "1" NULL`, "CommandComplete SELECT 1", "RowDescription b ", `DataRow "x" "2.5"`, "CommandComplete SELECT 1",
+		"NoticeResponse ", " | M=eins | ", "NoticeResponse ", " | M=zwei | ", "CommandComplete DO",
+		"CommandComplete SET", "ParameterStatus application_name=ergebnisarten",
+		`> "FETCH ALL FROM c"`, "format=1 | b ", "format=1", `DataRow "\x00\x00\x01\x02" "\x00\xff"`, "CommandComplete FETCH 1",
 	)
 }
 
