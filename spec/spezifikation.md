@@ -139,8 +139,9 @@ pgwire-recorder replay \
    benötigt.
 2. Beim Start wird das Recording geladen und geprüft. Ein nicht lesbares oder
    beschädigtes Recording oder eine unbekannte Version endet als Startfehler
-   mit Exit-Code `3`; ein Recording ohne Session ist nicht verwendbar (Exit-Code
-   `3`, `PGR-E3004`).
+   mit Exit-Code `3`; ein Recording ohne Session mit Interaktion ist nicht
+   verwendbar (Exit-Code `3`, `PGR-E3004`), auch eines, dessen Sessions nur
+   aufgezeichnete Lebendprüfungen enthalten (LH-FA-09.a).
 3. Jede eingehende Client-Verbindung erhält einen eigenen Replay-Cursor und, je
    nach `--session-assignment`, eine Session (LH-FA-12.a).
 4. Der Cursor zeigt auf die nächste erwartete Interaktion der zugeordneten
@@ -384,7 +385,9 @@ mit einer Anfrage ohne Anweisung, etwa `-- ping`.
   lexikalischen Regeln von PostgreSQL nur aus Leerraum, Zeilenkommentaren und
   geschlossenen Blockkommentaren besteht; der leere Text zählt dazu. Leerraum
   sind die Zeichen Leerzeichen, Tabulator (`\t`), Zeilenvorschub (`\n`),
-  Wagenrücklauf (`\r`), Seitenvorschub (`\f`) und vertikaler Tabulator (`\v`).
+  Wagenrücklauf (`\r`) und Seitenvorschub (`\f`), ab PostgreSQL 17 auch der
+  vertikale Tabulator (`\v`); PostgreSQL 14 bis 16 beantworten eine Anfrage mit
+  `\v` außerhalb eines Kommentars mit einem Syntaxfehler.
   Ein Zeilenkommentar beginnt mit `--` und reicht bis zum nächsten `\n` oder
   `\r` oder bis zum Ende des Texts. Ein Blockkommentar beginnt mit `/*` und
   endet mit dem dazu passenden `*/`; Blockkommentare sind verschachtelt, jedes
@@ -393,6 +396,13 @@ mit einer Anfrage ohne Anweisung, etwa `-- ping`.
   geschlossenen Blockkommentar oder mit einem anderen Zeichen, auch einem
   einzelnen `;` oder einem Leerraum außerhalb von ASCII. Die Klasse ist
   lexikalisch und gilt für jede solche Anfrage, gleich wozu sie gesendet wird.
+* *Serverversion.* Maßgeblich ist die Hauptversion im Serverparameter
+  `server_version` einer Session, also seine führenden Ziffern: für eine
+  aufgezeichnete Lebendprüfung die ihrer Session, für eine eingehende die der
+  Session, die der Verbindung zugeordnet ist. Vor der Zuordnung, und wenn
+  `server_version` fehlt, nicht mit einer Ziffer beginnt oder keine lesbare Zahl
+  ergibt, ist `\v` kein Leerraum; eine Anfrage mit `\v` außerhalb eines
+  Kommentars wird dann wie jede andere Anfrage behandelt.
 * *Antwort.* Zwischen zwei Interaktionen, auch vor der ersten und nach der
   letzten der Session, beantwortet das Replay eine Lebendprüfung mit
   `EmptyQueryResponse` und `ReadyForQuery`, wie PostgreSQL. Der Cursor bleibt
@@ -475,13 +485,16 @@ Nutzung hängt sie von der Reihenfolge der Verbindungen beziehungsweise der erst
 Anfragen ab und ist nicht zugesichert. Eine Anfrage einer Verbindung, zu der es keine
 nicht zugeordnete Session mehr gibt, ist ein Replay-Mismatch (`PGR-E5003`). Eine
 Session mit Interaktionen, die nie zugeordnet wird, gilt als nicht verbraucht
-(LH-FA-03.b).
+(LH-FA-03.b). Das Einspielen (`play`) führt Sessions ohne Interaktion nicht aus.
 
-Eine Lebendprüfung (LH-FA-09.a) ist für die Zuordnung keine Anfrage: Sie löst
-keine Zuordnung aus, auch nicht, wenn keine Session mehr frei ist, und eine
-Verbindung, die nur Lebendprüfungen stellt, ist eine Verbindung ohne Anfrage.
-Eine Session, deren Interaktionen alle Lebendprüfungen sind, ist eine Session
-ohne Interaktion; bei `first-request` wird sie übersprungen. Das Einspielen (`play`) führt Sessions ohne Interaktion nicht aus.
+Eine Lebendprüfung (LH-FA-09.a) ist für die Zuordnung im Replay keine Anfrage:
+Sie löst keine Zuordnung aus, auch nicht, wenn keine Session mehr frei ist, und
+eine Verbindung, die nur Lebendprüfungen stellt, ist eine Verbindung ohne
+Anfrage. Für das Replay ist eine Session, deren Interaktionen alle
+Lebendprüfungen sind, eine Session ohne Interaktion: Bei `first-request` wird
+sie übersprungen; bei `connection` erhält die n-te Verbindung sie wie jede
+Session ohne Interaktion. Das Einspielen behandelt Lebendprüfungen wie jede
+andere Anfrage und führt eine solche Session aus.
 
 ---
 
@@ -1591,3 +1604,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Herunterfahren: eine Client-Nachricht um das Signal herum wird entweder noch verarbeitet oder nicht weitergeleitet, statt an den Lesestand beim Beginn gebunden (`LH-FA-13.a`) |
 | 2026-10-05 | Herunterfahren: Frist `--shutdown-timeout` ab dem ersten Signal, Zwangsende mit `PGR-E4006`, weiteres Signal lässt die Frist ablaufen, Info-Zeile beim Beginn (`LH-FA-13.a`, `SPEC-046`) |
 | 2026-10-05 | Replay: Lebendprüfungen außerhalb der Reihe beantwortet, aufgezeichnete übersprungen (`LH-FA-09.a`, `LH-FA-03.a`, `LH-FA-03.b`, `LH-FA-10.a`, `LH-FA-12.a`, `SPEC-011`); falsche Protokollart am Cursor, auch mitten in einer Extended-Interaktion, ist ein Mismatch (`LH-FA-18.a`) |
+| 2026-10-05 | Replay: vertikaler Tabulator als Leerraum einer Lebendprüfung erst ab PostgreSQL 17, nach `server_version` der Session, vor der Zuordnung nicht (`LH-FA-09.a`); Startfehler bei Sessions nur aus Lebendprüfungen (`LH-FA-03.a`); Einspielen und `connection` bei Sessions nur aus Lebendprüfungen (`LH-FA-12.a`) |
