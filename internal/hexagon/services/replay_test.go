@@ -191,9 +191,11 @@ func TestReplayHandshake(t *testing.T) {
 	}
 }
 
-// Steht am Cursor eine Extended-Interaktion, ist jede einfache Anfrage eine
-// Abweichung (PGR-E5001), auch die leere, deren SQL-Text dem leeren der
-// Extended-Interaktion gleicht; der Cursor bleibt stehen.
+// Steht am Cursor eine Extended-Interaktion, ist jede einfache Anfrage außer
+// einer Lebendprüfung eine Abweichung (PGR-E5001), auch `;`; die leere Anfrage,
+// deren SQL-Text dem leeren der Extended-Interaktion gleicht, ist eine
+// Lebendprüfung und erhält EmptyQueryResponse (LH-FA-09.a). Der Cursor bleibt
+// in beiden Fällen stehen.
 func TestReplayExtendedAmCursor(t *testing.T) {
 	ctx := context.Background()
 	extended := model.Interaction{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
@@ -205,7 +207,8 @@ func TestReplayExtendedAmCursor(t *testing.T) {
 		t.Fatal(err)
 	}
 	id, _ := s.OpenConnection(ctx)
-	for _, sql := range []string{"", "SELECT 1"} {
+	pruefeLebend(t, s, id, "", "I")
+	for _, sql := range []string{";", "SELECT 1"} {
 		if out, err := s.Query(ctx, id, sql); code(err) != model.CodeReplayMismatch {
 			t.Fatalf("Anfrage %q: erwartet %s, erhalten %#v, %v", sql, model.CodeReplayMismatch, out, err)
 		}

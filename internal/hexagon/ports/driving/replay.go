@@ -17,7 +17,9 @@ type Replayer interface {
 	// Query ordnet der Verbindung bei ihrer ersten Anfrage eine Session zu und
 	// liefert die aufgezeichneten Antworten der Interaktion am Cursor; eine
 	// abweichende Anfrage ist PGR-E5001, eine Anfrage ohne freie Session
-	// PGR-E5003 (LH-FA-09.a, LH-FA-10.a).
+	// PGR-E5003 (LH-FA-09.a, LH-FA-10.a). Eine Lebendprüfung zwischen zwei
+	// Interaktionen beantwortet es außerhalb der Reihe mit EmptyQueryResponse
+	// und ReadyForQuery, ohne zuzuordnen und ohne den Cursor zu bewegen.
 	Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error)
 	// ClientMessage ordnet wie Query zu und vergleicht eine Client-Nachricht
 	// des Extended Query Protocol mit der erwarteten am Cursor. Schließt sie

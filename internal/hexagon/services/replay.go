@@ -13,7 +13,8 @@ import (
 // ReplayService erfüllt den Replay-Use-Case: Er beantwortet Anfragen aus einer
 // Aufzeichnung mit strict sequential matching (LH-FA-09.a). Die Sessions werden
 // den Verbindungen in der Reihenfolge ihrer ersten Anfrage zugeordnet
-// (`first-request`, LH-FA-12.a).
+// (`first-request`, LH-FA-12.a). Lebendprüfungen beantwortet er außerhalb der
+// Reihe, aufgezeichnete überspringt er (ADR-0031).
 type ReplayService struct {
 	mu sync.Mutex
 	// frei sind die Sessions mit Interaktionen, die noch keiner Verbindung
@@ -27,18 +28,23 @@ type ReplayService struct {
 // cursor ist der Replay-Cursor einer Verbindung; session ist nil, solange die
 // Verbindung keine Anfrage gestellt hat. pos ist die nächste erwartete
 // Interaktion, gruppe und nachricht innerhalb einer Extended-Interaktion die
-// nächste erwartete Gruppe und Client-Nachricht (ARC-002, LH-FA-18.a).
+// nächste erwartete Gruppe und Client-Nachricht (ARC-002, LH-FA-18.a). status
+// ist der Transaktionsstatus des letzten ReadyForQuery, das die Verbindung
+// erhalten hat, nach dem Handshake "I" (LH-FA-09.a).
 type cursor struct {
 	session   *model.Session
 	pos       int
 	gruppe    int
 	nachricht int
+	status    string
 }
 
 // NewReplayService lädt die Aufzeichnung. Jede Interaktion muss Validate
 // bestehen, sonst ist die Aufzeichnung beschädigt (PGR-E3003); auf diese Form
-// verlassen sich Query und ClientMessage. Eine Aufzeichnung ohne Session mit
-// Interaktion ist PGR-E3004 (LH-FA-03.a).
+// verlassen sich Query und ClientMessage. Interaktionen, deren Anfrage eine
+// Lebendprüfung ist, nimmt es nicht in die Sessions auf; eine Session ohne
+// andere Interaktion ist damit eine Session ohne Interaktion (LH-FA-09.a). Eine
+// Aufzeichnung ohne Session mit Interaktion ist PGR-E3004 (LH-FA-03.a).
 func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path string) (*ReplayService, error) {
 	rec, err := repo.Load(ctx, path)
 	if err != nil {
@@ -51,6 +57,7 @@ func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path
 				return nil, model.Errorf(model.CodeRecordingBroken, err, "%s: Session %d, Interaktion %d", path, sess.ID, in.Sequence)
 			}
 		}
+		sess.Interactions = ohneLebendpruefungen(sess.Interactions)
 		if len(sess.Interactions) > 0 {
 			s.frei = append(s.frei, sess)
 		}
@@ -62,13 +69,27 @@ func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path
 	return s, nil
 }
 
+// ohneLebendpruefungen liefert die Interaktionen ohne die einfachen Anfragen,
+// die Lebendprüfungen sind, in einer neuen Liste; Sequence bleibt die
+// aufgezeichnete Nummer.
+func ohneLebendpruefungen(ins []model.Interaction) []model.Interaction {
+	out := make([]model.Interaction, 0, len(ins))
+	for _, in := range ins {
+		if in.Request.Type == model.RequestQuery && istLebendpruefung(in.Request.SQL) {
+			continue
+		}
+		out = append(out, in)
+	}
+	return out
+}
+
 // OpenConnection liefert den Handshake mit den Serverparametern der nächsten
 // noch nicht zugeordneten Session, gibt es keine mehr, der letzten.
 func (s *ReplayService) OpenConnection(context.Context) (model.SessionID, []model.Response) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.next++
-	s.verbindung[s.next] = &cursor{}
+	s.verbindung[s.next] = &cursor{status: "I"}
 	vorlage := s.letzte
 	if len(s.frei) > 0 {
 		vorlage = s.frei[0]
@@ -87,18 +108,28 @@ func (s *ReplayService) OpenConnection(context.Context) (model.SessionID, []mode
 }
 
 // Query vergleicht die Anfrage mit der Interaktion am Cursor und liefert deren
-// Antworten; der Cursor rückt nur bei Gleichheit vor. Erwartet der Cursor eine
-// Extended-Nachricht, ist jede Anfrage eine Abweichung (LH-FA-18.a).
+// Antworten; der Cursor rückt nur bei Gleichheit vor. Eine Lebendprüfung
+// zwischen zwei Interaktionen beantwortet es mit EmptyQueryResponse und
+// ReadyForQuery im Status des letzten ReadyForQuery, ohne Cursor und Zuordnung zu
+// berühren (LH-FA-09.a). Erwartet der Cursor eine Extended-Nachricht, ist jede
+// andere Anfrage eine Abweichung, mitten in einer Extended-Interaktion auch
+// eine Lebendprüfung (LH-FA-18.a).
 func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string) ([]model.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if c, ok := s.verbindung[id]; ok && !c.mitten() && istLebendpruefung(sql) {
+		return []model.Response{
+			{Type: model.ResponseEmptyQueryResponse},
+			{Type: model.ResponseReadyForQuery, TxStatus: c.status},
+		}, nil
+	}
 	c, err := s.zuordnen(id, fmt.Sprintf("Anfrage %q", sql))
 	if err != nil {
 		return nil, err
 	}
 	if c.pos >= len(c.session.Interactions) {
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: keine aufgezeichnete Interaktion mehr nach %d; empfangen %q",
-			c.session.ID, c.pos, sql)
+			c.session.ID, c.letzteNummer(), sql)
 	}
 	erwartet := c.session.Interactions[c.pos]
 	if erwartet.Request.Type != model.RequestQuery {
@@ -110,7 +141,29 @@ func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string)
 			c.session.ID, erwartet.Sequence, erwartet.Request.SQL, sql)
 	}
 	c.pos++
+	c.merke(erwartet.Responses)
 	return erwartet.Responses, nil
+}
+
+// mitten liefert true, wenn der Cursor innerhalb einer Extended-Interaktion
+// steht: nach ihrer ersten Nachricht und vor ihrem Sync (LH-FA-18.a).
+func (c *cursor) mitten() bool {
+	return c.gruppe > 0 || c.nachricht > 0
+}
+
+// merke hält den Transaktionsstatus des letzten ReadyForQuery in rs fest.
+func (c *cursor) merke(rs []model.Response) {
+	for _, r := range rs {
+		if r.Type == model.ResponseReadyForQuery {
+			c.status = r.TxStatus
+		}
+	}
+}
+
+// letzteNummer ist die aufgezeichnete Nummer der letzten Interaktion der
+// Session; die Session hat mindestens eine.
+func (c *cursor) letzteNummer() int {
+	return c.session.Interactions[len(c.session.Interactions)-1].Sequence
 }
 
 // ClientMessage vergleicht eine Client-Nachricht des Extended Query Protocol
@@ -129,7 +182,7 @@ func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m m
 	}
 	if c.pos >= len(c.session.Interactions) {
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: keine aufgezeichnete Interaktion mehr nach %d; empfangen %s",
-			c.session.ID, c.pos, c.nachrichtText(m))
+			c.session.ID, c.letzteNummer(), c.nachrichtText(m))
 	}
 	erwartet := c.session.Interactions[c.pos]
 	if erwartet.Request.Type != model.RequestExtended {
@@ -157,6 +210,7 @@ func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m m
 		c.gruppe = 0
 		c.pos++
 	}
+	c.merke(g.Server)
 	return g.Server, nil
 }
 
@@ -229,6 +283,9 @@ type objekte struct {
 // Transaktion), enden alle Portale. SQL-Befehle, die Objekte beenden
 // (DEALLOCATE, DISCARD ALL, CLOSE, ROLLBACK TO SAVEPOINT), bildet es nicht
 // nach; danach kann die Diagnose ein beendetes Objekt als bestehend nennen.
+// Lebendprüfungen stehen nicht in der Session (NewReplayService); dass
+// PostgreSQL bei ihnen das unbenannte Statement entfernt, bildet es ebenfalls
+// nicht nach.
 func (c *cursor) objekte() objekte {
 	o := objekte{statements: map[string]string{}, portale: map[string]string{}}
 	for pi, in := range c.session.Interactions {

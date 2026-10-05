@@ -224,7 +224,9 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   Anfrage an dieser Stelle entsprechen, Zeichen für Zeichen (beim erweiterten
   Protokoll auch in Namen, Parametern, Formaten und Zeilenlimit). Eine abweichende
   Anfrage wird als Fehler gemeldet; das Werkzeug liefert dann keine geratene
-  Antwort (`PGR-E5001`).
+  Antwort (`PGR-E5001`). Ausgenommen sind Anfragen, die nur aus Leerraum und
+  Kommentaren bestehen, wie Treiber sie als Lebendprüfung senden (siehe
+  [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)).
 * Die erste Verbindung mit einer Anfrage erhält die erste aufgezeichnete Sitzung,
   die zweite die zweite, und so weiter. Verbindungen ohne Anfrage zählen nicht.
   Mit `--session-assignment connection` zählt stattdessen die Reihenfolge der
@@ -447,6 +449,20 @@ Antworten.
   Protokolls mit ihrem `Sync` abgeschlossen ist; eine neue Anfrage oder Folge
   beginnt danach nicht mehr, und die Verbindung wird geschlossen. Schließen Sie
   solche Folgen ab, bevor Sie das Werkzeug beenden.
+* Connection-Pools und `database/sql` prüfen eine Verbindung, die eine Weile
+  geruht hat, vor der nächsten Nutzung mit einer Lebendprüfung: einer Anfrage,
+  die nur aus einem Kommentar besteht, bei pgx `-- ping` nach mehr als einer
+  Sekunde Ruhe. Ob sie kommt, hängt also davon ab, wie schnell Ihr Ablauf
+  läuft. Die Wiedergabe beantwortet eine solche Anfrage zwischen zwei Anfragen
+  Ihres Ablaufs wie die Datenbank, ohne die Aufzeichnung zu verbrauchen, und
+  überspringt aufgezeichnete Lebendprüfungen, die beim Wiedergeben ausbleiben.
+  Sie müssen die Lebendprüfung am Treiber deshalb nicht abschalten (bei pgx
+  `ShouldPing`). Das gilt für jede Anfrage, die nur aus Leerraum und
+  Kommentaren besteht; eine Anfrage mit einer Anweisung, auch ein einzelnes `;`,
+  muss weiter der Aufzeichnung entsprechen. Mitten in einer Folge des
+  erweiterten Protokolls, vor ihrem `Sync`, ist auch eine Lebendprüfung eine
+  Abweichung (`PGR-E5001`). Aufzeichnen und Einspielen behandeln
+  Lebendprüfungen wie jede andere Anfrage.
 
 ### Das Werkzeug in der Testautomatisierung verwenden
 
@@ -640,7 +656,9 @@ Das Werkzeug unterstützt das nicht. Zeichnen Sie stattdessen erneut auf.
 Nein. Die Anfrage muss Zeichen für Zeichen der aufgezeichneten entsprechen,
 auch in Leerzeichen, Kommentaren und Groß- und Kleinschreibung. Beim erweiterten
 Protokoll gilt das auch für Namen, Parametertypen, Parameterwerte, Formate und
-das Zeilenlimit.
+das Zeilenlimit. Ausgenommen sind nur Anfragen, die nur aus Leerraum und
+Kommentaren bestehen (Lebendprüfungen, siehe
+[Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)).
 
 **Kann ich Aufzeichnungen auf einem anderen Rechner verwenden?**
 Ja. Die Datei enthält keine rechnerspezifischen Angaben des Werkzeugs.
