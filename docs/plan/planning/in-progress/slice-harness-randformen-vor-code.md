@@ -63,7 +63,10 @@ genannten fielen erst dort auf.
 - Randformen bestehender Verträge nachträglich sammeln — ein anderer Vorgang; die
   offenen gehören in die Slices, die die Verträge berühren.
 - Produkt-Code, Spezifikation, Lastenheft — Schicht-Abgrenzung: Der Slice ändert
-  Rollen-Typen, Commands und `AGENTS.md`.
+  Rollen-Typen, Commands und `AGENTS.md`, dazu den Stand seines Register-Eintrags.
+- Die übrigen Rollen-Typen (`planner.md`, `implementer.md`) und die Reviewer-Skill —
+  Bestand bleibt: Sie zeigen auf ihre Commands bzw. prüfen gegen `AGENTS.md` §3, und
+  die Regel steht nur dort (Pointer statt zweiter Formulierung).
 
 ## 2. Definition of Done
 
@@ -102,10 +105,10 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `.claude/commands/plan-welle.md` | update | Randformen-Liste in §6 beim Bereitstellen eines Slice |
-| `.claude/agents/architect.md` | update | Prüfung und Entscheidung der Liste vor dem Code |
-| `.claude/commands/implement-slice.md` | update | Rückgabe einer nicht genannten Randform |
-| `AGENTS.md` | update | Hard Rule mit Herkunfts-Anker |
+| `.claude/commands/plan-welle.md` | update | Schritt 6 (Slices bereitstellen): Randformen-Liste in §6, Zeiger auf `AGENTS.md` §3.12 |
+| `.claude/agents/architect.md` | update | Kontext-Zuschnitt: Prüfung und Entscheidung der Liste vor dem Code, Zeiger auf §3.12 |
+| `.claude/commands/implement-slice.md` | update | Schritt 13: Rückgabe einer offenen oder nicht genannten Randform als Plan-Defekt |
+| `AGENTS.md` | update | §3.12 als Hard Rule mit Herkunfts-Anker `seit slice-harness-randformen-vor-code`; Prüfweg ist Architect vor dem Code und Review gegen §3 |
 | `docs/plan/planning/observations/BEO-REPO/spec-randform-erst-im-review-entschieden/state.md` | update | Ausgang verkörpert |
 
 ## 4. Trigger
@@ -144,8 +147,11 @@ dasteht.
   die Liste lang zu machen; der Architect hält sie nach seiner Regel „Lösungen, nicht
   neue Hürden“ klein — **Ausgang:** offen bis Closure.
 - Was „neuer Vertrag“ heißt, ist Urteil; zu eng gefasst, greift der Schritt bei einer
-  Diagnose-Änderung nicht (die Klasse von slice-extended-query-replay) — **Ausgang:**
-  offen bis Closure.
+  Diagnose-Änderung nicht (die Klasse von slice-extended-query-replay). §3.12 bindet den
+  Begriff an die Liste von §3.10, die Diagnose nennt — **Ausgang:** offen bis Closure.
+- Ein wellenloser Slice wird nicht über `plan-welle` bereitgestellt; Schritt 6 erreicht
+  ihn nicht. Ihn trägt §3.12 selbst, geprüft vom Architect und vom Review —
+  **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

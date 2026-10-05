@@ -109,6 +109,10 @@ emittierten Durchsetzungsschicht):
     `edit`) — Geschwister-Slices lassen Pläne altern (gelöschte Pfade, verschobene
     Lifecycle-Dateien). Drift zuerst abgleichen; keinen veralteten Plan blind abarbeiten.
 13. Die kleinste sinnvolle Änderung gegen die DoD planen. Erst planen, dann coden.
+    **Randformen** (`AGENTS.md` §3.12): Ist eine in §6 genannte noch nicht entschieden, oder
+    triffst du — hier oder beim Implementieren — auf eine, die §6 nicht nennt, entscheidest du
+    sie nicht im Code: Du gibst sie als Plan-Defekt zurück (Rücksprung unten) und wartest auf
+    die Entscheidung.
 
 ## Implementieren und gaten (Modul 9, Schritte 5–6)
 

@@ -20,6 +20,11 @@ die alte ablöst.
 `docs/plan/adr/`; du schreibst Entscheidungen und ihren Index. Du prüfst den **Plan** gegen die
 Entscheidungslage, **bevor** Code existiert.
 
+**Randformen eines neuen Vertrags** (`AGENTS.md` §3.12): Du prüfst die Liste in §6 des Plans
+und führst jede genannte Randform zu einer Entscheidung — Spezifikation, ADR oder Frage an den
+Nutzer —, bevor der erste Code-Commit entsteht. Fehlt eine, die der Vertrag offensichtlich hat,
+ergänzt der Plan sie.
+
 **Was du NICHT bist:** der Reviewer. Er prüft den Diff gegen Plan, Entscheidungen und Hard Rules,
 also Text, den es schon gibt. Zwei Rollen an derselben Frage sind nur dann sauber, wenn jede einen
 **anderen Eingabe-Kontext** hat — sonst ist es doppelte Arbeit mit denselben blinden Flecken.

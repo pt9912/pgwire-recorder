@@ -222,6 +222,27 @@ seinen Test (§3.10).
 den Retirement-Check voraus: Ist die Beobachtung seit welle-extended-query wieder
 aufgetreten?
 
+### 3.12 Randformen eines neuen Vertrags sind vor dem Code entschieden (seit slice-harness-randformen-vor-code)
+
+Ein Slice, der einen neuen Vertrag liefert (§3.10), nennt in §6 des Slice-Plans dessen
+Randformen, etwa fehlender, leerer oder unbekannter Wert, Alias, Abbruch und
+Herunterfahren, was ein Diagnose-Feld je Nachrichtenart heißt, Verhalten je
+Serverversion. Jede genannte ist vor dem ersten Code-Commit entschieden — in der
+Spezifikation, einer ADR oder als Entscheidung des Nutzers, die §6 festhält. Der
+Architect prüft die Liste vor dem Code. Trifft der Implementer auf eine nicht
+genannte, gibt er sie an den Plan zurück, statt sie im Code zu entscheiden.
+
+**Falsch:** Der Leser behandelt `null` wie einen fehlenden Schlüssel, die
+Spezifikation sagt nichts dazu, und das Review findet es.
+**Richtig:** §6 nennt `null` und fehlenden Schlüssel, die Spezifikation entscheidet
+beide, dann folgt der Code.
+
+**Begründung:** Was der Code still entscheidet, findet erst das Review, Runde um Runde
+eine weitere Randform (`BEO-REPO/spec-randform-erst-im-review-entschieden`). Ein Diff,
+der eine Randform entscheidet, die §6 nicht nennt, ist ein Review-Befund gegen diese
+Regel. Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung
+seit slice-harness-randformen-vor-code wieder aufgetreten?
+
 ## 4. Quality Gates
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-harness-dateien.md`
