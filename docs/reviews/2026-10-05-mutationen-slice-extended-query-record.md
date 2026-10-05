@@ -114,3 +114,11 @@ Gegen den Commit, der diese Runde einträgt. Wiederholt und rot: M1 bis M4, M7, 
 | E6 | ein pipelinender Client hält das Herunterfahren nicht auf (F-311) | wie H2 | `TestE2ERecordExtendedSigtermBeimPipelining` (endet nicht binnen 5 s) |
 
 **Gegenprobe gegen `0dbcf9d`:** In einer Kopie mit den neuen E2E-Tests ist `TestE2ERecordExtendedSigtermBeimPipelining` rot („Recorder endet nicht binnen 5 s nach SIGTERM“), mit dieser Runde grün.
+
+## Nachtrag aus der Verifikation (V-22)
+
+| # | Zusage | Mutation | Ort | Rot in |
+|---|---|---|---|---|
+| X1 | die Fehlerantwort beim Ende schreibt der Adapter höchstens `meldeFrist` lang, auch wenn der Client nicht liest; danach endet die Session | Schreibfrist vor der Fehlerantwort entfernt | `pgwire/server.go` (`beende`) | `TestFehlerantwortMitFrist` (Sitzung kehrt nicht zurück) |
+
+Vor dem Test blieb X1 grün (Verifikation, Mutation X1, Sonde V-S5).

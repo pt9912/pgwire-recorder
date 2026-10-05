@@ -569,7 +569,8 @@ Session-State bleibt je Verbindung getrennt (Verbindung *n* → Application
 Session *n*). Im Record-Modus laufen je Session beide Richtungen nebenläufig; der
 Record-Service ordnet ihre Aufrufe je Session, ohne über einem blockierenden
 Upstream-Aufruf zu sperren; das Schreiben der Aufzeichnung beim Session-Ende ist
-sitzungsübergreifend serialisiert. Gemeinsamer Recording-State wird über einen dafür vorgesehenen
+sitzungsübergreifend serialisiert, und während es läuft, wartet jeder Aufruf
+jeder Session. Gemeinsamer Recording-State wird über einen dafür vorgesehenen
 Application Service beziehungsweise eine synchronisierte Implementierung
 koordiniert. Im Replay erhält die n-te Verbindung die n-te aufgezeichnete
 Session; deterministisch ist das bei nacheinander aufgebauten Verbindungen.

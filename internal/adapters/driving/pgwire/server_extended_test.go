@@ -545,3 +545,36 @@ func TestToMessageExtended(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-13/Negative — endet eine Session mit einer Fehlerantwort,
+// während die Server-Richtung an einem Client schreibt, der nicht liest,
+// schreibt der Adapter höchstens meldeFrist lang, meldet PGR-E6001 und kehrt
+// danach zurück.
+func TestFehlerantwortMitFrist(t *testing.T) {
+	rec := &fakeRecorder{server: make(chan []model.Response, 1)}
+	client, serverSeite := net.Pipe()
+	defer client.Close()
+	s := NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	zurueck := make(chan struct{})
+	go func() {
+		s.handle(context.Background(), serverSeite)
+		close(zurueck)
+	}()
+	_ = client.SetDeadline(time.Now().Add(10 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	sende(fe, &pgproto3.Sync{})
+	warteAuf(t, rec, "c:sync")
+	// Der Client liest nicht: das Schreiben der Server-Richtung blockiert.
+	rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+	time.Sleep(50 * time.Millisecond)
+	sende(fe, &pgproto3.FunctionCall{Function: 1})
+	select {
+	case <-zurueck:
+	case <-time.After(meldeFrist + time.Second):
+		t.Fatalf("Sitzung kehrt nicht binnen %v zurück, solange der Client nicht liest", meldeFrist+time.Second)
+	}
+	if end := rec.lastEnd(t); end != model.EndUnsupported || s.FirstErrorCode() != model.CodeUnsupported {
+		t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+	}
+}
