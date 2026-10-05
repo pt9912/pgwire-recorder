@@ -670,7 +670,10 @@ Werte lauten `true` oder `false`. Eine boolesche Option ohne Wert ist `true`; mi
 `PGR-E2001`. Für die Umgebungsvariable gilt dieselbe Wertemenge; eine leere
 Umgebungsvariable gilt als nicht gesetzt. Nennt die Kommandozeile eine Option
 mehrfach, gilt die letzte Angabe. Die Umgebungsvariable einer Option, die das
-Kommando nicht kennt, bleibt unbeachtet. Das **Passwort** hat eine eigene Regel: Es kommt
+Kommando nicht kennt, bleibt unbeachtet. Geprüft wird jeder gesetzte Wert einer
+Option des Kommandos, unabhängig von der Priorität: Eine gesetzte
+Umgebungsvariable mit ungültigem Wert ist `PGR-E2001`, auch wenn die Kommandozeile
+dieselbe Option setzt und damit vorgeht. Das **Passwort** hat eine eigene Regel: Es kommt
 aus dem Passwort der benutzten benannten Verbindung (nur als Platzhalter `${VAR}`),
 sonst aus `PGWIRE_RECORDER_PASSWORD`; eine Option dafür gibt es nicht.
 
@@ -1657,3 +1660,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Replay: Lebendprüfungen außerhalb der Reihe beantwortet, aufgezeichnete übersprungen (`LH-FA-09.a`, `LH-FA-03.a`, `LH-FA-03.b`, `LH-FA-10.a`, `LH-FA-12.a`, `SPEC-011`); falsche Protokollart am Cursor, auch mitten in einer Extended-Interaktion, ist ein Mismatch (`LH-FA-18.a`) |
 | 2026-10-05 | Replay: vertikaler Tabulator als Leerraum einer Lebendprüfung erst ab PostgreSQL 17, nach `server_version` der Session, vor der Zuordnung nicht (`LH-FA-09.a`); Startfehler bei Sessions nur aus Lebendprüfungen (`LH-FA-03.a`); Einspielen und `connection` bei Sessions nur aus Lebendprüfungen (`LH-FA-12.a`) |
 | 2026-10-05 | Replay: verbraucht, Zeitpunkte der Prüfung, Meldung je Session und für nie zugeordnete Sessions, Rangfolge und keine Zustellung von `PGR-E5002`, Option bei anderen Kommandos (`LH-FA-03.b`, `LH-FA-13.b`); Konfiguration: Werte boolescher Optionen, leere Umgebungsvariable, Mehrfachangabe, Umgebungsvariable einer fremden Option (`LH-FA-17.a`); `PGR-W2001` auch für nie zugeordnete Sessions (`SPEC-034`) |
+| 2026-10-05 | Konfiguration: ungültige Umgebungsvariable ist ein Fehler, auch wenn die Kommandozeile dieselbe Option setzt (`LH-FA-17.a`) |

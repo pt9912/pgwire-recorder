@@ -123,6 +123,7 @@ dasteht.
 - Andere Kommandos: bei `record` und `play` unbekannte Option (`PGR-E2001`), ihre Umgebungsvariable bleibt dort unbeachtet — `LH-FA-03.b` §Andere Kommandos, `LH-FA-17.a`.
 - Konfigurationsweg: Option und Umgebungsvariable, CLI vor Umgebungsvariable; Schlüssel der Konfigurationsdatei mit `slice-v1-abschluss-betrieb` — Optionstabelle in `LH-FA-17.a`, §1.
 - Werte: ohne Wert `true`; `=true`/`=false`; jeder andere Wert, auch leer und `1`, `PGR-E2001`; leere Umgebungsvariable gilt als nicht gesetzt; mehrfach auf der Kommandozeile gilt die letzte Angabe — `LH-FA-17.a`.
+- Ungültige Umgebungsvariable neben gesetzter Option (etwa `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED=1` mit `--fail-on-unconsumed=false`): `PGR-E2001`, Startfehler mit Exit-Code `2`, obwohl die Kommandozeile vorgeht; jeder gesetzte Wert wird geprüft — `LH-FA-17.a`. Vorgabe an den Implementer (Randform-Rückgabe, Stand 6e8d2dd): Verhalten bleibt, wie der Code es heute liest; dazu ein Test, der mit ungültiger Variable und gesetzter Option `PGR-E2001` erwartet und rot wird, wenn die Variable bei gesetzter Option übersprungen wird; daneben bleibt geprüft, dass eine leere Variable nicht gesetzt ist.
 
 ## 7. Closure-Notiz
 
