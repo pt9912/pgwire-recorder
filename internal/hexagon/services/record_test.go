@@ -46,6 +46,8 @@ type fakeSession struct {
 	// receiveHalt lässt Receive vor seiner Antwort warten, bis der Kanal
 	// geschlossen ist, auch nach Close; nil heißt: nicht warten.
 	receiveHalt chan struct{}
+	// receiveErr liefert Receive, wenn er nicht nil ist.
+	receiveErr error
 }
 
 func neueFakeSession(err error) *fakeSession {
@@ -86,6 +88,9 @@ func (f *fakeSession) gruppen() [][]model.ClientMessage {
 }
 
 func (f *fakeSession) Receive(context.Context) ([]model.Response, error) {
+	if f.receiveErr != nil {
+		return nil, f.receiveErr
+	}
 	if f.receiveHalt != nil {
 		<-f.receiveHalt
 		return <-f.empfang, nil

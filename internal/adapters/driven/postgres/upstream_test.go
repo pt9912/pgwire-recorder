@@ -2,8 +2,11 @@ package postgres
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"net"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -145,5 +148,243 @@ func TestUpstreamNichtErreichbar(t *testing.T) {
 	l.Close()
 	if _, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}); code(err) != model.CodeUpstream {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeUpstream, err)
+	}
+}
+
+// abbruchServer schickt nach dem Aufbau die Nachrichten aus zwischen und
+// beantwortet danach jede Query mit der nächsten Folge aus antworten; nach der
+// letzten schließt er die Verbindung.
+func abbruchServer(t *testing.T, zwischen []pgproto3.BackendMessage, antworten ...[]pgproto3.BackendMessage) string {
+	t.Helper()
+	return rohServer(t, func(be *pgproto3.Backend, _ net.Conn) {
+		for _, m := range zwischen {
+			be.Send(m)
+		}
+		_ = be.Flush()
+		for _, antwort := range antworten {
+			for {
+				msg, err := be.Receive()
+				if err != nil {
+					return
+				}
+				if _, ok := msg.(*pgproto3.Query); ok {
+					break
+				}
+			}
+			for _, m := range antwort {
+				be.Send(m)
+			}
+			_ = be.Flush()
+		}
+	})
+}
+
+// beendet ist die Fehlerantwort, mit der PostgreSQL eine Verbindung auf
+// Anweisung des Administrators beendet.
+var beendet = &pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "57P01", Message: "terminating connection due to administrator command"}
+
+var ergebnis = []pgproto3.BackendMessage{
+	&pgproto3.RowDescription{Fields: []pgproto3.FieldDescription{{Name: []byte("a"), DataTypeOID: 23, DataTypeSize: 4, TypeModifier: -1}}},
+	&pgproto3.DataRow{Values: [][]byte{[]byte("1")}},
+	&pgproto3.CommandComplete{CommandTag: []byte("SELECT 1")},
+}
+
+func mit(folge []pgproto3.BackendMessage, weitere ...pgproto3.BackendMessage) []pgproto3.BackendMessage {
+	return append(append([]pgproto3.BackendMessage{}, folge...), weitere...)
+}
+
+// pruefeAbbruch prüft den Meldungscode von err und bei PGR-E6001, dass der
+// Text SQLSTATE und Meldung der Fehlerantwort nennt.
+func pruefeAbbruch(t *testing.T, err error, want string, fehler *pgproto3.ErrorResponse) {
+	t.Helper()
+	if code(err) != want {
+		t.Fatalf("erwartet %s, erhalten %v", want, err)
+	}
+	if want == model.CodeUnsupported && (!strings.Contains(err.Error(), fehler.Code) || !strings.Contains(err.Error(), fehler.Message)) {
+		t.Fatalf("Text ohne SQLSTATE %s und Meldung %q: %v", fehler.Code, fehler.Message, err)
+	}
+}
+
+// oeffne baut die Session zu addr auf und begrenzt ihr Lesen auf fünf
+// Sekunden: Ein Lesen über das Ende der Antworten hinaus endet so mit einem
+// Fehler, statt auf den Server zu warten.
+func oeffne(t *testing.T, addr string) *session {
+	t.Helper()
+	s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	ss := s.(*session)
+	_ = ss.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	return ss
+}
+
+// Abdeckung: LH-FA-11/Negative — endet die Verbindung zum Upstream nach einer
+// ErrorResponse vor dem ReadyForQuery, liefert der Upstream-Adapter PGR-E6001
+// mit SQLSTATE und Meldung der ErrorResponse im Text: bei FATAL, ERROR und
+// PANIC, nach Ergebnissen einer einfachen Anfrage, als Nachricht zwischen zwei
+// Interaktionen und im Extended Query Protocol nach einer schon gelieferten
+// ErrorResponse. Ohne ErrorResponse und nach einer ErrorResponse, auf die ein
+// ReadyForQuery folgte, ist es PGR-E4003.
+func TestFehlerantwortVorDemAbbruch(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		fehler *pgproto3.ErrorResponse
+	}{
+		{"nach Ergebnissen, FATAL", beendet},
+		{"Schweregrad ERROR", &pgproto3.ErrorResponse{Severity: "ERROR", SeverityUnlocalized: "ERROR", Code: "XX000", Message: "interner Fehler"}},
+		{"Schweregrad PANIC", &pgproto3.ErrorResponse{Severity: "PANIC", SeverityUnlocalized: "PANIC", Code: "XX000", Message: "Panik"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			s := oeffne(t, abbruchServer(t, nil, mit(ergebnis, c.fehler)))
+			out, err := s.Query(ctx(t), "SELECT 1; SELECT pg_terminate_backend(pg_backend_pid())")
+			pruefeAbbruch(t, err, model.CodeUnsupported, c.fehler)
+			if len(out) != 4 || out[3].Type != model.ResponseErrorResponse {
+				t.Fatalf("Antworten vor dem Abbruch: %#v", out)
+			}
+		})
+	}
+	t.Run("ohne Fehlerantwort", func(t *testing.T) {
+		s := oeffne(t, abbruchServer(t, nil, ergebnis))
+		_, err := s.Query(ctx(t), "SELECT 1")
+		pruefeAbbruch(t, err, model.CodeConnectionLost, nil)
+	})
+	t.Run("ReadyForQuery nach der Fehlerantwort", func(t *testing.T) {
+		s := oeffne(t, abbruchServer(t, nil, []pgproto3.BackendMessage{beendet, &pgproto3.ReadyForQuery{TxStatus: 'I'}}, nil))
+		if _, err := s.Query(ctx(t), "SELECT 1/0"); err != nil {
+			t.Fatal(err)
+		}
+		_, err := s.Query(ctx(t), "SELECT 2")
+		pruefeAbbruch(t, err, model.CodeConnectionLost, nil)
+	})
+	t.Run("zwischen zwei Interaktionen", func(t *testing.T) {
+		s := oeffne(t, abbruchServer(t, []pgproto3.BackendMessage{beendet}, nil))
+		out, err := s.Query(ctx(t), "SELECT 1")
+		pruefeAbbruch(t, err, model.CodeUnsupported, beendet)
+		if len(out) != 1 || out[0].Fields["C"] != "57P01" {
+			t.Fatalf("Antworten vor dem Abbruch: %#v", out)
+		}
+	})
+	t.Run("Extended", func(t *testing.T) {
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet}, nil})
+		s := oeffne(t, addr)
+		if err := s.Send(ctx(t), []model.ClientMessage{{Type: model.ClientParse, SQL: "SELECT 1"}, {Type: model.ClientFlush}}); err != nil {
+			t.Fatal(err)
+		}
+		rs, err := s.Receive(ctx(t))
+		if err != nil || len(rs) != 1 || rs[0].Type != model.ResponseErrorResponse || rs[0].Fields["C"] != "57P01" {
+			t.Fatalf("Receive: %#v, %v", rs, err)
+		}
+		if err := s.Send(ctx(t), []model.ClientMessage{{Type: model.ClientSync}}); err != nil {
+			t.Fatal(err)
+		}
+		_, err = s.Receive(ctx(t))
+		pruefeAbbruch(t, err, model.CodeUnsupported, beendet)
+	})
+}
+
+// Eine NoticeResponse und ein ParameterStatus, die der Server nach dem
+// ReadyForQuery einer Interaktion sendet, liefert der Upstream-Adapter mit der
+// nächsten Interaktion vor deren übrigen Antworten, bei einer einfachen Anfrage
+// wie im Extended Query Protocol (LH-FA-05.a).
+func TestNachrichtenZwischenInteraktionen(t *testing.T) {
+	hinweis := &pgproto3.NoticeResponse{Severity: "NOTICE", Code: "00000", Message: "zwischen"}
+	status := &pgproto3.ParameterStatus{Name: "application_name", Value: "zwischen"}
+	wantZwischen := []model.Response{
+		{Type: model.ResponseNoticeResponse, Fields: map[string]string{"S": "NOTICE", "C": "00000", "M": "zwischen"}},
+		{Type: model.ResponseParameterStatus, Name: "application_name", Value: "zwischen"},
+	}
+	rfq := model.Response{Type: model.ResponseReadyForQuery, TxStatus: "I"}
+	t.Run("einfache Anfrage", func(t *testing.T) {
+		addr := abbruchServer(t, nil,
+			[]pgproto3.BackendMessage{&pgproto3.CommandComplete{CommandTag: []byte("SET")}, &pgproto3.ReadyForQuery{TxStatus: 'I'}, hinweis, status},
+			[]pgproto3.BackendMessage{&pgproto3.CommandComplete{CommandTag: []byte("SET")}, &pgproto3.ReadyForQuery{TxStatus: 'I'}})
+		s := oeffne(t, addr)
+		erste, err := s.Query(ctx(t), "SET a = 1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		zweite, err := s.Query(ctx(t), "SET b = 2")
+		if err != nil {
+			t.Fatal(err)
+		}
+		set := model.Response{Type: model.ResponseCommandComplete, Tag: "SET"}
+		if want := []model.Response{set, rfq}; !reflect.DeepEqual(erste, want) {
+			t.Fatalf("erste Interaktion: %#v", erste)
+		}
+		if want := append(append([]model.Response{}, wantZwischen...), set, rfq); !reflect.DeepEqual(zweite, want) {
+			t.Fatalf("zweite Interaktion: %#v", zweite)
+		}
+	})
+	t.Run("Extended", func(t *testing.T) {
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{
+			{&pgproto3.ParseComplete{}, &pgproto3.ReadyForQuery{TxStatus: 'I'}, hinweis, status},
+			{&pgproto3.ParseComplete{}, &pgproto3.ReadyForQuery{TxStatus: 'I'}},
+		})
+		s := oeffne(t, addr)
+		gruppe := []model.ClientMessage{{Type: model.ClientParse, SQL: "SELECT 1"}, {Type: model.ClientSync}}
+		lies := func() []model.Response {
+			var out []model.Response
+			for len(out) == 0 || out[len(out)-1].Type != model.ResponseReadyForQuery {
+				rs, err := s.Receive(ctx(t))
+				if err != nil {
+					t.Fatal(err)
+				}
+				out = append(out, rs...)
+			}
+			return out
+		}
+		if err := s.Send(ctx(t), gruppe); err != nil {
+			t.Fatal(err)
+		}
+		parse := model.Response{Type: model.ResponseParseComplete}
+		if erste := lies(); !reflect.DeepEqual(erste, []model.Response{parse, rfq}) {
+			t.Fatalf("erste Interaktion: %#v", erste)
+		}
+		if err := s.Send(ctx(t), gruppe); err != nil {
+			t.Fatal(err)
+		}
+		if zweite, want := lies(), append(append([]model.Response{}, wantZwischen...), parse, rfq); !reflect.DeepEqual(zweite, want) {
+			t.Fatalf("zweite Interaktion: %#v", zweite)
+		}
+	})
+}
+
+// rohFelder ist der Rumpf einer Fehler- oder Hinweisantwort mit leerer Meldung,
+// leerem Detail, einer Position 0, einer internen Position ohne Zahl und einer
+// leeren Zeilennummer.
+const rohFelder = "SERROR\x00VERROR\x00CXX000\x00M\x00D\x00P0\x00pabc\x00L\x00Rfn\x00\x00"
+
+func rohNachricht(typ byte, rumpf string) []byte {
+	b := []byte{typ, 0, 0, 0, 0}
+	binary.BigEndian.PutUint32(b[1:], uint32(4+len(rumpf)))
+	return append(b, rumpf...)
+}
+
+// Ein Diagnosefeld mit leerem Wert und ein Zahlenfeld mit 0 oder ohne Zahl
+// fehlen in den Feldern, die der Upstream-Adapter für ErrorResponse und
+// NoticeResponse liefert (LH-FA-11.a).
+func TestDiagnosefelder(t *testing.T) {
+	addr := rohServer(t, func(be *pgproto3.Backend, conn net.Conn) {
+		if _, err := be.Receive(); err != nil {
+			return
+		}
+		var b []byte
+		b = append(b, rohNachricht('E', rohFelder)...)
+		b = append(b, rohNachricht('N', rohFelder)...)
+		b = append(b, rohNachricht('Z', "I")...)
+		_, _ = conn.Write(b)
+		_, _ = be.Receive()
+	})
+	s := oeffne(t, addr)
+	out, err := s.Query(ctx(t), "SELECT 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{"S": "ERROR", "V": "ERROR", "C": "XX000", "R": "fn"}
+	if len(out) != 3 || out[0].Type != model.ResponseErrorResponse || out[1].Type != model.ResponseNoticeResponse ||
+		!reflect.DeepEqual(out[0].Fields, want) || !reflect.DeepEqual(out[1].Fields, want) {
+		t.Fatalf("Antworten: %#v", out)
 	}
 }

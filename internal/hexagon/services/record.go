@@ -81,6 +81,15 @@ func (l *laufend) beendetErr(err error) error {
 	return err
 }
 
+// merkeNichtUnterstuetzt macht die Session nicht übernehmbar, wenn err
+// PGR-E6001 ist. Aufrufer hält mu.
+func (l *laufend) merkeNichtUnterstuetzt(err error) {
+	var me *model.Error
+	if errors.As(err, &me) && me.Code == model.CodeUnsupported {
+		l.unsupported = true
+	}
+}
+
 // NewRecordService prüft den Zielpfad und liefert den Service.
 func NewRecordService(ctx context.Context, upstream driven.Upstream, repo driven.RecordingRepository, path string, replace bool) (*RecordService, error) {
 	if err := repo.Prepare(ctx, path, replace); err != nil {
@@ -163,10 +172,7 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 	defer l.cond.Broadcast()
 	l.einfach = false
 	if err != nil {
-		var me *model.Error
-		if errors.As(err, &me) && me.Code == model.CodeUnsupported {
-			l.unsupported = true
-		}
+		l.merkeNichtUnterstuetzt(err)
 		return responses, l.beendetErr(err)
 	}
 	if l.beendet {
@@ -243,7 +249,8 @@ func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m
 // Upstream und ordnet jede Nachricht der Gruppe zu, die Antworten aufnimmt. Mit
 // ReadyForQuery ist die Interaktion abgeschlossen und wird nach Validate Teil
 // der Session; lehnt Validate sie ab, ist das PGR-E6001, und die Session wird
-// nicht übernommen. Ein Aufruf, bevor die vorigen Nachrichten als zugestellt
+// nicht übernommen, ebenso nach PGR-E6001 aus dem Empfang (LH-FA-02.b,
+// LH-FA-05.a). Ein Aufruf, bevor die vorigen Nachrichten als zugestellt
 // gemeldet sind, ist ein Fehler des Aufrufers (PGR-E1000).
 func (s *RecordService) AwaitServer(ctx context.Context, id model.SessionID) ([]model.Response, error) {
 	l, err := s.laufende(id)
@@ -270,8 +277,12 @@ func (s *RecordService) AwaitServer(ctx context.Context, id model.SessionID) ([]
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	defer l.cond.Broadcast()
-	if err != nil || l.beendet {
+	if err != nil {
+		l.merkeNichtUnterstuetzt(err)
 		return nil, l.beendetErr(err)
+	}
+	if l.beendet {
+		return nil, model.ErrSessionEnded
 	}
 	for _, r := range rs {
 		if len(l.offen) == 0 {

@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md), [ADR-0023](../../adr/0023-antwortvergleich-entscheidung.md)
 
-**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-17.a` · `LH-FA-03.b` · `SPEC-017` · `SPEC-034` · `SPEC-041` · `ARC-002` · `ARC-003` · `ARC-005` · `ARC-007`
+**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-17.a` · `LH-FA-03.b` · `LH-FA-02.b` · `SPEC-017` · `SPEC-034` · `SPEC-041` · `ARC-002` · `ARC-003` · `ARC-005` · `ARC-007`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -32,6 +32,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ziel:** `pgwire-recorder play` führt die Client-Anfragen einer Aufzeichnung (einfach und Extended) gegen einen PostgreSQL-Server aus, authentifiziert sich als Client, verbindet sich auf Wunsch mit TLS und verhält sich bei Serverfehlern und Abbruchsignalen wie spezifiziert.
 
 **Übernommen aus `slice-replay-semantik-mismatch`:** `play` kennt die Option `--fail-on-unconsumed` nicht (`PGR-E2001`, Exit-Code 2) und lässt ihre Umgebungsvariable `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` unbeachtet, auch mit ungültigem Wert (`LH-FA-03.b` §Andere Kommandos, `LH-FA-17.a`); der Test dafür gehört zu den Optionen von `play`.
+
+**Bereinigung aus `slice-replay-semantik-fehlerreplay`:** Die Teile von `LH-FA-20.a` Schritt 3, die aufgezeichnete Interaktionen ohne `ReadyForQuery` behandeln, sind seit der Entscheidung in `LH-FA-02.b` §Fehlerantwort vor dem Abbruch nicht mehr erreichbar: Der Recorder schreibt keine solche Interaktion, und der Leser lehnt sie als beschädigt ab (`PGR-E3003`). Dieser Slice bereinigt sie in der Spezifikation, und mit ihnen die Zusage der DoD, eine aufgezeichnete Interaktion ohne `ReadyForQuery` werde wie jede andere eingespielt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 

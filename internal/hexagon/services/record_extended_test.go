@@ -287,6 +287,25 @@ func TestRecordExtendedNichtDarstellbar(t *testing.T) {
 	})
 }
 
+// Abdeckung: LH-FA-11/Negative — liefert der Empfang vom Upstream in einer
+// Extended-Interaktion PGR-E6001 (Fehlerantwort vor dem Abbruch), gibt
+// AwaitServer den Fehler weiter, und die Session wird nicht übernommen, auch
+// nicht ihre vorherige Interaktion.
+func TestRecordExtendedFehlerantwortVorDemAbbruch(t *testing.T) {
+	up := &fakeUpstream{}
+	s, repo := neu(t, up)
+	id := session(t, s, "SELECT 1")
+	up.letzte.receiveErr = model.Errorf(model.CodeUnsupported, nil, "Fehlerantwort 57P01 vor dem Abbruch")
+	client(t, s, id, cParse, cFlush)
+	if _, err := s.AwaitServer(context.Background(), id); codeOf(err) != model.CodeUnsupported {
+		t.Fatalf("erwartet %s, erhalten %v", model.CodeUnsupported, err)
+	}
+	schliessen(t, s, id, model.EndFailed)
+	if len(repo.writes) != 0 {
+		t.Fatalf("Session übernommen: %#v", repo.writes)
+	}
+}
+
 // Eine einfache Anfrage nach dem Sync einer laufenden Extended-Interaktion
 // wartet, bis deren Antworten zugestellt sind, und läuft nie gleichzeitig mit
 // dem Empfang der Gegenrichtung; sie wird die nächste Interaktion.

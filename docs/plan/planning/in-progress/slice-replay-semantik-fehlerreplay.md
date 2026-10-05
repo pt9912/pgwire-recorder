@@ -81,13 +81,15 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` | update (Architect, vor dem Code) | `LH-FA-02.b` Weitergabe an den Client, `LH-FA-05.a` Nachrichten zwischen Interaktionen, `LH-FA-11.a` Diagnosefelder — liegt im Commit des Architect |
-| `test/integration/` (neue Datei für einfache Anfragen) | add | DoD 1 und 2 sowie die Weitergabe aus DoD 3: Ablauf über record, replay und direkt gegen PostgreSQL, Sicht des Clients als Text verglichen (Muster `extendedAblauf`), mit Abdeckungs-Deklarationen |
+| `test/integration/einfach_e2e_test.go` | add | DoD 1 und 2 sowie die Weitergabe aus DoD 3: Ablauf direkt gegen PostgreSQL, über record und über replay; die Sicht des Clients sind die Server-Nachrichten nach dem Verbindungsaufbau in Reihenfolge, je Nachricht als JSON der PGWire-Bibliothek, mit einem Client ohne Treiber (`rohAblauf`), mit Abdeckungs-Deklarationen |
 | `internal/adapters/driven/postgres/upstream.go` | update | DoD 3: die Session merkt sich die letzte `ErrorResponse` seit dem letzten `ReadyForQuery`; endet die Verbindung davor, liefern `Query` und `Receive` `PGR-E6001` mit SQLSTATE und Meldung des Servers statt `PGR-E4003` |
-| `internal/adapters/driven/postgres/upstream_test.go` | update | DoD 3: Nachrichten zwischen Interaktionen, Diagnosefelder und Fehlerantwort vor dem Abbruch am Fake-Server |
-| `internal/hexagon/services/record.go` | update | DoD 3: `AwaitServer` markiert die Session bei `PGR-E6001` aus `Receive` als nicht übernehmbar, wie `Query` es schon tut (`LH-FA-05.a`) |
-| `internal/hexagon/services/record_extended_test.go` | update | DoD 3: `Receive` mit `PGR-E6001` nach einer übernommenen Interaktion — die Session wird nicht übernommen |
+| `internal/adapters/driven/postgres/upstream_test.go` | update | DoD 3: Nachrichten zwischen Interaktionen, Diagnosefelder und Fehlerantwort vor dem Abbruch (Tests a bis f) am Fake-Server; das Lesen der Session ist dort auf fünf Sekunden begrenzt |
+| `internal/hexagon/services/record.go` | update | DoD 3: `AwaitServer` markiert die Session bei `PGR-E6001` aus `Receive` als nicht übernehmbar, wie `Query` es schon tut (`LH-FA-05.a`); beide über dieselbe Hilfsfunktion |
+| `internal/hexagon/services/record_extended_test.go` | update | DoD 3: `Receive` mit `PGR-E6001` nach einer übernommenen Interaktion — die Session wird nicht übernommen (Test g) |
+| `internal/hexagon/services/record_test.go` | update | Fake-Session: `Receive` liefert auf Wunsch einen Fehler (für Test g) |
+| `docs/plan/planning/open/slice-v1-abschluss-einspielen.md`, `docs/plan/planning/open/slice-v1-abschluss-antwortvergleich.md` | update | §1 beziehungsweise §6 vermerken die seit Zeile 11e unerreichbaren Teile von `LH-FA-20.a` und `LH-FA-24.a` (Risiko 2) |
 | `docs/user/abdeckung-*.md` | update | von `make abdeckung` aus den neuen Deklarationen geschrieben, darunter `LH-FA-11/Negative` |
-| weiterer Produktionscode | — | keiner erwartet; zeigt ein Test eine Abweichung von der Spezifikation, wird die Korrektur hier mit Datei nachgetragen |
+| weiterer Produktionscode | — | keiner; kein Test zeigte eine Abweichung von der Spezifikation |
 
 ## 4. Trigger
 
@@ -159,7 +161,7 @@ dasteht.
 **Risiken:**
 
 - Nachrichten, die die Bibliothek nicht verlustfrei abbildet, sind als nicht unterstützt zu klassifizieren — für Diagnosefelder in `LH-FA-11.a` entschieden (Zeile 10), für Nachrichtentypen Bestand (`PGR-E6001`) — **Ausgang:** offen bis Closure.
-- `LH-FA-20.a` Schritt 3 und `LH-FA-24.a` §Unvollständige Aufzeichnung beschreiben Einspielen und Vergleich für aufgezeichnete Interaktionen ohne `ReadyForQuery`; nach Zeile 11e schreibt der Recorder keine, und der Leser lehnt sie ab. Die Zweige sind damit unerreichbar und gehören bereinigt, wenn `play` entsteht (`slice-v1-abschluss-einspielen`, `slice-v1-abschluss-antwortvergleich`); dieser Slice ändert sie nicht — **Ausgang:** offen bis Closure.
+- `LH-FA-20.a` Schritt 3 und `LH-FA-24.a` §Unvollständige Aufzeichnung beschreiben Einspielen und Vergleich für aufgezeichnete Interaktionen ohne `ReadyForQuery`; nach Zeile 11e schreibt der Recorder keine, und der Leser lehnt sie ab. Die Zweige sind damit unerreichbar und gehören bereinigt, wenn `play` entsteht (`slice-v1-abschluss-einspielen` §1, `slice-v1-abschluss-antwortvergleich` §6 vermerken es); dieser Slice ändert sie nicht — **Ausgang:** offen bis Closure.
 - Ein Ablauf vergleicht Meldungstexte des Servers; ändern sie sich zwischen Läufen (etwa mit der Sprache oder einem Zeitstempel in der Meldung), wird der Vergleich instabil — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz

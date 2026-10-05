@@ -78,6 +78,10 @@ type session struct {
 	conn      net.Conn
 	fe        *pgproto3.Frontend
 	schreiben sync.Mutex
+	// fehler sind die Felder der letzten ErrorResponse seit dem letzten
+	// ReadyForQuery, sonst nil; sie gehören wie der Lesepuffer dem laufenden
+	// Query oder Receive.
+	fehler map[string]string
 }
 
 // terminateFrist begrenzt das Senden von Terminate in Close.
@@ -93,11 +97,7 @@ func (s *session) Query(ctx context.Context, sql string) ([]model.Response, erro
 	}
 	var responses []model.Response
 	for {
-		msg, err := s.fe.Receive()
-		if err != nil {
-			return responses, model.Errorf(model.CodeConnectionLost, err, "Verbindung zum Upstream vor ReadyForQuery beendet")
-		}
-		r, err := toResponse(msg)
+		r, err := s.lies()
 		if err != nil {
 			return responses, err
 		}
@@ -132,11 +132,7 @@ func (s *session) Send(_ context.Context, msgs []model.ClientMessage) error {
 func (s *session) Receive(context.Context) ([]model.Response, error) {
 	var out []model.Response
 	for {
-		msg, err := s.fe.Receive()
-		if err != nil {
-			return nil, model.Errorf(model.CodeConnectionLost, err, "Verbindung zum Upstream vor ReadyForQuery beendet")
-		}
-		r, err := toResponse(msg)
+		r, err := s.lies()
 		if err != nil {
 			return nil, err
 		}
@@ -145,6 +141,32 @@ func (s *session) Receive(context.Context) ([]model.Response, error) {
 			return out, nil
 		}
 	}
+}
+
+// lies liest die nächste Server-Nachricht und bildet sie ab. Eine
+// ErrorResponse merkt es sich bis zum nächsten ReadyForQuery. Scheitert das
+// Lesen, ist das mit gemerkter ErrorResponse PGR-E6001 mit deren SQLSTATE und
+// Meldung, sonst PGR-E4003 (LH-FA-02.b).
+func (s *session) lies() (model.Response, error) {
+	msg, err := s.fe.Receive()
+	if err != nil {
+		if s.fehler != nil {
+			return model.Response{}, model.Errorf(model.CodeUnsupported, err,
+				"Verbindung zum Upstream nach der Fehlerantwort %s „%s“ vor ReadyForQuery beendet", s.fehler["C"], s.fehler["M"])
+		}
+		return model.Response{}, model.Errorf(model.CodeConnectionLost, err, "Verbindung zum Upstream vor ReadyForQuery beendet")
+	}
+	r, err := toResponse(msg)
+	if err != nil {
+		return model.Response{}, err
+	}
+	switch r.Type {
+	case model.ResponseErrorResponse:
+		s.fehler = r.Fields
+	case model.ResponseReadyForQuery:
+		s.fehler = nil
+	}
+	return r, nil
 }
 
 // Close sendet Terminate nur, wenn gerade kein Send oder Query schreibt, und
