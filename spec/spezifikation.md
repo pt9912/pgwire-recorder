@@ -138,12 +138,27 @@ vorherigen Interaktionen der Session bleiben erhalten.
 **Fehlerantwort vor dem Abbruch.** Endet die Upstream-Verbindung vor dem
 `ReadyForQuery` einer laufenden Interaktion, nachdem der Upstream in dieser
 Interaktion eine `ErrorResponse` gesendet hat, ist die Interaktion nicht
-unterstützt (`PGR-E6001`, Exit-Code `6`, LH-FA-13.b). Maßgeblich ist eine
-`ErrorResponse`, die der Recorder gelesen hat. Scheitert schon das Senden der
-Anfrage an den Upstream, liest der Recorder nicht weiter; das ist ein
-unerwartetes Verbindungsende (`PGR-E4003`), auch wenn der Upstream zuvor eine
-`ErrorResponse` gesendet hatte, etwa wenn er die Verbindung danach mit einem
-TCP-Reset statt eines geordneten Abschlusses beendet:
+unterstützt (`PGR-E6001`, Exit-Code `6`, LH-FA-13.b):
+
+* *Gelesen.* Maßgeblich ist eine `ErrorResponse` der laufenden Interaktion, die
+  der Recorder gelesen hat, bevor er das Verbindungsende bemerkt. Gleich ist,
+  ob er das Ende beim Lesen vom Upstream oder beim Senden an ihn bemerkt, und bei
+  einer Extended-Interaktion, welche der beiden Richtungen es zuerst bemerkt:
+  Beide stufen nach demselben Stand ein, und die Session wird bei `PGR-E6001`
+  in jedem Fall nicht übernommen. Eine `ErrorResponse`, die der Recorder bis
+  dahin nicht gelesen hat, zählt nicht; das Verbindungsende ist dann
+  `PGR-E4003`. Das gilt etwa, wenn der Upstream nach einer `ErrorResponse`
+  zwischen zwei Interaktionen mit einem TCP-Reset schließt und schon das Senden
+  der nächsten Anfrage scheitert: Nach einem Sendefehler liest der Recorder
+  nicht weiter.
+* *Verbindungsende* ist das Ende des Datenstroms vom Upstream, auch mitten in
+  einer Nachricht, oder ein Fehler der Verbindung selbst (etwa ein Reset). Kann
+  der Recorder eine Nachricht des Upstreams nicht lesen, ohne dass die
+  Verbindung endet — die Bibliothek kennt den Nachrichtentyp nicht oder kann
+  die Nachricht nicht dekodieren —, ist das eine nicht unterstützte
+  Serverantwort (`PGR-E6001`, LH-FA-05.a). Eine vorher gelesene `ErrorResponse`
+  ändert daran nichts, weder die Klasse noch den Meldungstext: Der nennt die
+  nicht lesbare Nachricht, nicht die `ErrorResponse`.
 
 * *Schweregrad.* Er zählt nicht: `FATAL`, `PANIC` und `ERROR` gelten gleich.
 * *Stelle.* Die `ErrorResponse` darf an jeder Stelle der Antworten stehen, auch
@@ -1759,6 +1774,7 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Hilfe geht jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei vor; `version` liest keine Konfiguration (`LH-FA-01.a`, `LH-FA-17.a`) |
 | 2026-10-05 | Hilfe-Angabe abgeschlossen: vier Formen mit beliebigem `=`-Wert, auch an Wertstelle, vor dem Kommando und nach unbekanntem Kommando (`LH-FA-01.a`) |
 | 2026-10-05 | `--` beendet die Optionen auch an der Stelle eines Optionswerts; der Wert `--` nur mit `=` (`LH-FA-01.a`) |
+| 2026-10-05 | Fehlerantwort vor dem Abbruch: maßgeblich ist der Lesestand beim Bemerken des Verbindungsendes, gleich in welcher Richtung; Sendefehler mit gelesener `ErrorResponse` ist `PGR-E6001`; nicht lesbare Nachricht ohne Verbindungsende ist `PGR-E6001` unabhängig von der Vorgeschichte (`LH-FA-02.b`) |
 | 2026-10-05 | Diagnosefelder: leerer Wert gilt nur bei den von der Bibliothek benannten Feldcodes als fehlend, ein anderer Code wird auch leer aufgezeichnet (`LH-FA-11.a`); Fehlerantwort vor dem Abbruch zählt nur gelesen, Sendefehler der Anfrage bleibt `PGR-E4003` (`LH-FA-02.b`) |
 | 2026-10-05 | Record: Fehlerantwort vor dem Abbruch der Upstream-Verbindung ohne `ReadyForQuery` ist nicht unterstützt (`PGR-E6001`), gleich welcher Schweregrad und welche Stelle; Diagnose mit SQLSTATE des Servers, Session nicht übernommen, Aufzeichnung ohne `ready_for_query` am Ende beschädigt (`LH-FA-02.b`, `LH-FA-11.a`) |
 | 2026-10-05 | Record: Weitergabe der Antworten einer einfachen Anfrage an den Client, auch bei einer nicht unterstützten Antwort nach Ergebnissen (`LH-FA-02.b`); Nachrichten des Upstreams zwischen Interaktionen gehören zur nächsten (`LH-FA-05.a`); Diagnosefelder mit leerem Wert oder Zahl `0` gelten als fehlend, Feldreihenfolge nicht aufgezeichnet (`LH-FA-11.a`) |
