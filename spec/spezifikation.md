@@ -61,6 +61,15 @@ an der Stelle eines Optionswerts ist die Hilfe, nicht der Wert (`--input -help`
 gibt die Hilfe aus); ein solcher Wert geht nur mit `=` (`--input=--help`), denn
 eine Hilfe-Angabe ist nur ein ganzes Argument. Nach `--` ist sie ein
 gewöhnliches Argument.
+
+**Ende der Optionen.** Das erste Argument, das genau `--` lautet, beendet die
+Optionen, an jeder Stelle, auch an der Stelle eines Optionswerts; für die
+Hilfe-Suche und das Lesen der Optionen gilt dieselbe Lesart. Was danach steht,
+ist ein gewöhnliches Argument; `record` und `replay` nehmen keines an
+(`PGR-E2001`, unerwartetes Argument). Fehlt einer Option vor `--` dadurch ihr
+Wert (`--input --`), ist das `PGR-E2001` (Option ohne Wert). Der Wert `--` geht
+nur mit `=` (`--input=--`). Kein Fehlertext nennt die Hilfe-Anforderung des
+Parsers; eine Hilfe-Angabe ergibt immer die Hilfe, nie einen Fehler.
 `version` liest weder Umgebungsvariablen noch Konfigurationsdatei; eine Option
 `--version` gibt es nicht (`PGR-E2001`).
 
@@ -1684,3 +1693,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Konfiguration: ungültige Umgebungsvariable ist ein Fehler, auch wenn die Kommandozeile dieselbe Option setzt (`LH-FA-17.a`) |
 | 2026-10-05 | Hilfe geht jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei vor; `version` liest keine Konfiguration (`LH-FA-01.a`, `LH-FA-17.a`) |
 | 2026-10-05 | Hilfe-Angabe abgeschlossen: vier Formen mit beliebigem `=`-Wert, auch an Wertstelle, vor dem Kommando und nach unbekanntem Kommando (`LH-FA-01.a`) |
+| 2026-10-05 | `--` beendet die Optionen auch an der Stelle eines Optionswerts; der Wert `--` nur mit `=` (`LH-FA-01.a`) |

@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-replay-semantik.
 
-**Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
+**Bezug:** [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
 
 **Berührte Spec-Stellen:** `LH-FA-01.a` · `LH-FA-03.b` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-10.a` · `SPEC-012` · `SPEC-018` · `SPEC-034` · `ARC-002` · `ARC-003` · `ARC-005` · `ARC-006` · `ARC-009`
 
@@ -31,7 +31,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Mit `--fail-on-unconsumed` sind nicht verbrauchte Interaktionen und nie zugeordnete Sessions im Replay ein Fehler (`PGR-E5002`, Exit-Code 5) statt der Warnung `PGR-W2001`. Erkennung und Diagnose der Abweichung sind für beide Protokollvarianten geliefert (siehe unten).
 
-Geliefert werden die Option, ihre Umgebungsvariable `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` mit den Werten aus [`LH-FA-17.a`](../../../../spec/spezifikation.md#lh-fa-17a--konfiguration) (nur `true`/`false`, leer heißt nicht gesetzt, CLI vor Umgebungsvariable), die Regeln aus [`LH-FA-03.b`](../../../../spec/spezifikation.md#lh-fa-03b--nicht-verbrauchte-interaktionen) für Verbrauch, Zeitpunkte, Meldung und Rangfolge, mit und ohne Option, und das Handbuch, das diese Regeln für den Anwender nennt.
+Geliefert werden die Option, ihre Umgebungsvariable `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` mit den Werten aus [`LH-FA-17.a`](../../../../spec/spezifikation.md#lh-fa-17a--konfiguration) (nur `true`/`false`, leer heißt nicht gesetzt, CLI vor Umgebungsvariable), die Regeln aus [`LH-FA-03.b`](../../../../spec/spezifikation.md#lh-fa-03b--nicht-verbrauchte-interaktionen) für Verbrauch, Zeitpunkte, Meldung und Rangfolge, mit und ohne Option, die Regeln aus [`LH-FA-01.a`](../../../../spec/spezifikation.md#lh-fa-01a--kommandos-und-hilfe) zu „Hilfe vor Prüfung“ und „Ende der Optionen“ für `record`, `replay` und den Aufruf ohne oder mit unbekanntem Kommando, und das Handbuch, das diese Regeln für den Anwender nennt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -40,6 +40,7 @@ Geliefert werden die Option, ihre Umgebungsvariable `PGWIRE_RECORDER_FAIL_ON_UNC
 - Warnung bei nicht verbrauchten Interaktionen — geliefert von `slice-walking-skeleton-replay` (`PGR-W2001`); dieser Slice ergänzt nur die Nummer der ersten nicht verbrauchten Interaktion in ihrem Text, weil Warnung und Fehler denselben Text tragen.
 - Schlüssel `fail_on_unconsumed` der Konfigurationsdatei — `slice-v1-abschluss-betrieb`, der die Konfigurationsdatei für alle Optionen liefert; heute liest das Binary keine.
 - Frist `--shutdown-timeout` und weiteres Signal — `slice-v1-abschluss-betrieb`; die Regel für eine dabei zwangsweise beendete Session steht in `LH-FA-03.b` und wird dort mit der Frist geprüft, weil es sie hier noch nicht gibt.
+- Hilfe vor Prüfung für `config show` und `--config` — `slice-v1-abschluss-betrieb`, der beide liefert; heute gibt es sie nicht.
 - Strenge Werte boolescher Optionen für `--force` — `slice-v1-abschluss-betrieb`, der `--force` hält; dieser Slice wendet die Regel nur auf die eigene Option an.
 - `play` kennt `--fail-on-unconsumed` nicht und lässt ihre Umgebungsvariable unbeachtet (`LH-FA-03.b` §Andere Kommandos) — `slice-v1-abschluss-einspielen`, der das Kommando `play` liefert und den Test dafür übernimmt; heute gibt es `play` nicht, ein Aufruf ist ein unbekanntes Kommando.
 
@@ -132,6 +133,7 @@ dasteht.
   - Vor dem Kommando und nach unbekanntem Kommando: globale Hilfe — Tests `bogus --help` und `--listen x --help`.
   - `=`-Wert: jede der vier Formen mit beliebigem Wert, auch leer und `false`, ist Hilfe — Tests `replay --help=false`, `replay -h=x`, `replay --help=`.
   - Wertstelle: `--input -help` ist die Hilfe, nicht der Wert — Test `replay --listen x --input -help`; Gegenfall `replay --input=-help --listen x` ist keine Hilfe-Angabe.
+- `--` an der Stelle eines Optionswerts (V-45): `--` beendet die Optionen überall, für Hilfe-Suche und Parser gleich; der Wert `--` nur mit `=`; die Meldung des Parsers zur Hilfe-Anforderung entsteht nach außen nie — `LH-FA-01.a` §Ende der Optionen. Vorgabe an den Implementer: Die Argumente werden am ersten `--` geteilt, bevor Hilfe-Suche und `fs.Parse` laufen; `fs.Parse` erhält nur den Teil davor, der Rest sind Argumente. Testfälle: `replay --input -- --help` ist `PGR-E2001` (Option ohne Wert), Exit `2`, und der Fehlertext enthält nicht `help requested`; `replay --listen x --input --` ist `PGR-E2001` (Option ohne Wert), ohne eine Datei zu lesen; `replay --listen x --input=--` nimmt `--` als Wert (Fehler erst beim Laden, `PGR-E3001`); `replay --listen x --input y -- z` ist `PGR-E2001` (unerwartetes Argument).
 
 ## 7. Closure-Notiz
 
