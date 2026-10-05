@@ -218,13 +218,40 @@ Implementer nicht, er gibt es zurück (`AGENTS.md` §3.12).
   leeres `next/` seine `.gitkeep` verliert (Nr. 8) — `nr8-leere-ablage`.
   Keine Code-Änderung. — **Ausgang:** entfällt mit Closure (bestätigt, im Skript
   verkörpert).
-- **Offen beim Architect** (Randform-Rückgabe nach Review F-372 und F-377, `AGENTS.md`
-  §3.12; kein Code dazu): (a) Feldmarke nur am Absatzanfang
-  ([ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 5/7) — ist eine Zeile direkt nach einer Überschriftzeile (`# …`) oder
-  einer Linie `---` ohne Leerzeile ein Absatzanfang? (b) Nicht lesbarer Plan — Befund
-  mit Exit 1 steht in keiner Nummer der ADR; welche Zeile meldet ihn (Abschnitt, Text)?
-  Bis zur Entscheidung erkennt das Skript eine Feldmarke an jedem Zeilenanfang im Kopf,
-  und ein Lesefehler hängt im Ausgang von der Position ab. — **Ausgang:** offen bis Closure.
+- **Absatzanfang im Kopf und nicht lesbarer Plan** (Randform-Rückgabe nach Review
+  F-372 und F-377, `AGENTS.md` §3.12; Architect 2026-10-05, Stand 6ad6319) — beide
+  entschieden als Lesart des Wortlauts von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), keine ergänzende ADR:
+  (a) **Ein Absatz beginnt nur in der ersten Zeile der Datei oder nach einer
+  Leerzeile** (Leerzeile wie Lesart 3). Eine Zeile direkt nach `# …`, nach `---` oder
+  nach einer anderen Kopfzeile ist kein Absatzanfang; eine Feldmarke dort ist kein
+  Feld, und fehlt das Feld sonst, ist das der Befund aus Nr. 7. Grund: Die ADR nennt
+  die Leerzeile als einzige Absatzgrenze (Nr. 5 „bis zur nächsten Leerzeile“); beide
+  Enden eines Absatzes an derselben Grenze zu messen ist die Lesart, die keine zweite
+  Grenze einführt. Eine Abweichung wird laut (Feld fehlt) und mit einer Leerzeile
+  behoben; Bestand und Vorlage stehen nach einer Leerzeile.
+  (b) **Ein nicht lesbarer Plan ist ein Befund (Exit 1), gleich an welcher Position**;
+  die übrigen Pläne werden weiter gelesen. Befund-Zeile
+  `kopf-check: <pfad>: Datei: nicht lesbar`, einzige Zeile dieses Plans, sortiert wie
+  jede andere (unter `LC_ALL=C` steht `Datei` vor `Kopf` und `§1`). Grund: Nr. 8
+  behält Exit 2 der fehlenden Ablage vor, und ein Plan, den der Sensor nicht
+  bestätigen kann, ist nicht bestätigt (Nr. 7: Befund statt Überspringen). Exit 2
+  dafür ginge über die ADR hinaus.
+  **Vorgabe an den Implementer:** Feldmarke nur, wenn sie am Zeilenanfang steht und
+  die Zeile die erste der Datei ist oder auf eine Leerzeile folgt; sonst gehört die
+  Zeile zum laufenden Absatz (zum Feld, wenn er eines ist). Vor dem Lesen `-r`
+  prüfen, und ein Fehlschlag von `awk` an einem Plan ist derselbe Befund; Exit 2 nur
+  aus Nr. 8. ZUSAGE-Kopf um (a) und (b) ergänzen, die zwei Sätze dazu aus GRENZE
+  streichen — im selben Commit wie der Code (§3.11). Gegenprobe, je rot mit Befund:
+  `**Welle:** x` und in der Folgezeile `**Bezug:** …` → `Kopf: Feld Bezug fehlt`;
+  `# Titel` bzw. `---` direkt vor `**Bezug:**` → dasselbe; `**Bezug:** …` direkt
+  vor `**Berührte Spec-Stellen:** …` → `Kopf: Feld Berührte Spec-Stellen fehlt`;
+  Feldmarke mitten in einer Zeile → Feld fehlt (fängt `index(…) == 1` → `> 0`);
+  grün: Feld in der ersten Zeile der Datei. Nicht lesbarer Plan (`chmod 000`) vor
+  einem lesbaren und als letzter: je Exit 1 mit der Zeile oben, der lesbare Plan
+  meldet seine Befunde trotzdem. Läuft die Gegenprobe als root (Datei bleibt
+  lesbar), ist der Fall nicht herstellbar: Er meldet das auf stderr und wird
+  übersprungen, ohne die Gegenprobe rot zu machen — laut, nicht still. — **Ausgang:** offen bis Closure
+  (entfällt, wenn Code und Gegenprobe der Vorgabe folgen).
 - **Bereich über eine Absatzgrenze in §1/§2** — das Skript fügt die Absätze eines
   Abschnitts zusammen; `SPEC-013 bis` am Absatzende und `SPEC-015` am Anfang des
   nächsten gelten als Bereich (am 2026-10-05 gegen 1dd6ad6 probiert). Akzeptiertes
