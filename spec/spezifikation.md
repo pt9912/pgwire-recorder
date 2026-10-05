@@ -455,6 +455,16 @@ Windows entspricht der Konsolenabbruch (`Strg+C`, `Strg+Break`) einem `SIGINT`:
 - das Recording schreiben (LH-FA-07.a); schlägt das Schreiben fehl, bleibt die
   Zieldatei der letzte vollständig geschriebene Stand.
 
+Beim Beginn des Herunterfahrens schreibt der Prozess eine Zeile der Stufe `info`.
+Die Frist `--shutdown-timeout` (`SPEC-046`) zählt ab dem ersten Signal. Ist bei
+ihrem Ablauf eine Session nicht beendet, endet sie zwangsweise wie bei einem
+Abbruch (LH-FA-02.b): ihre laufende Interaktion wird nicht übernommen, die
+abgeschlossenen bleiben, und die Verbindungen zu Client und Server werden
+geschlossen. Endet dabei eine Interaktion unvollständig, ist das `PGR-E4006`
+(Verbindungsfehler der Klasse 4, LH-FA-13.b); danach wird das Recording
+geschrieben. Der Wert `0` schaltet die Frist ab. Ein weiteres Signal lässt die
+Frist sofort ablaufen.
+
 Der Exit-Code nach einem kontrollierten Herunterfahren folgt LH-FA-13.b.
 
 ---
@@ -634,6 +644,7 @@ Werte. Er verbindet sich nicht und liest keine Aufzeichnung.
 | `--record-empty-sessions` | `record` | `PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS` | `false` |
 | `--input` | `replay`, `play` | `PGWIRE_RECORDER_INPUT` | — (Pflicht) |
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` (`SPEC-012`) |
+| `--shutdown-timeout` | `record`, `replay` | `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT` | `5s` (`SPEC-046`; Dauer mit Einheit `ms`, `s` oder `m`, `0` ohne Frist) |
 | `--session-assignment` | `replay` | `PGWIRE_RECORDER_SESSION_ASSIGNMENT` | `first-request` (Werte `first-request`, `connection`) |
 | `--user` | `play` | `PGWIRE_RECORDER_USER` | Startup-Daten der Session |
 | `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Startup-Daten der Session |
@@ -1247,6 +1258,7 @@ Sensor bemerkt, wenn eine umbenannt wird.
 | `SPEC-011` | Replay-Matching | strict sequential (einziges Verfahren in v1) | Determinismus (LH-FA-09, LH-QA-01) |
 | `SPEC-012` | `--fail-on-unconsumed` | `false` | nicht verbrauchte Interaktionen sind standardmäßig eine Warnung; Query-Mismatches bleiben immer Fehler (LH-FA-10) |
 | `SPEC-045` | Höchstlänge der ersten Client-Nachricht | 10000 Bytes | eine längere erste Nachricht ist keine PGWire-Startnachricht (LH-FA-05.e) |
+| `SPEC-046` | `--shutdown-timeout` | `5s` | liegt unter der üblichen Stopp-Frist von Containern (10 s vor `SIGKILL`), sodass das Recording geschrieben wird (LH-FA-13) |
 
 ## 4. Fehler-Codes und Logging-Felder
 
@@ -1326,6 +1338,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E4003` | Netzwerk (Exit 4) | unerwartetes Verbindungsende (`SPEC-028`) |
 | `PGR-E4004` | Netzwerk (Exit 4) | Server beantwortet eine eingespielte Anfrage mit einem Fehler, nur ohne `--compare-responses` (LH-FA-20.a) |
 | `PGR-E4005` | Netzwerk (Exit 4) | Anmeldung am Server fehlgeschlagen, Verfahren nicht unterstützt, TLS abgelehnt, ungültiges oder abgelaufenes Zertifikat des Servers oder der Zertifizierungsstelle, oder der Server lehnt unverschlüsselte Verbindungen ab (LH-FA-20.a) |
+| `PGR-E4006` | Netzwerk (Exit 4) | Frist beim Herunterfahren abgelaufen, eine Interaktion endete unvollständig (LH-FA-13.a) |
 | `PGR-E5000` | Replay (Exit 5) | Rückfall |
 | `PGR-E5001` | Replay (Exit 5) | Replay-Mismatch (`SPEC-027`) |
 | `PGR-E5002` | Replay (Exit 5) | nicht verbrauchte Interaktionen oder Sessions bei `--fail-on-unconsumed` (LH-FA-03.b) |
@@ -1518,3 +1531,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Record: beide Richtungen unabhängig vermittelt, Ende der Client-Verbindung beim Senden an oder Warten auf den Server (`LH-FA-18.a`); beim Herunterfahren schon gelesene Client-Nachricht wird verarbeitet (`LH-FA-13.a`) |
 | 2026-10-05 | Herunterfahren: danach beginnt keine neue Interaktion, die Session endet nach der laufenden (`LH-FA-13.a`); Ende einer Session schließt die Client-Verbindung (`LH-FA-18.a`) |
 | 2026-10-05 | Herunterfahren: eine Client-Nachricht um das Signal herum wird entweder noch verarbeitet oder nicht weitergeleitet, statt an den Lesestand beim Beginn gebunden (`LH-FA-13.a`) |
+| 2026-10-05 | Herunterfahren: Frist `--shutdown-timeout` ab dem ersten Signal, Zwangsende mit `PGR-E4006`, weiteres Signal lässt die Frist ablaufen, Info-Zeile beim Beginn (`LH-FA-13.a`, `SPEC-046`) |

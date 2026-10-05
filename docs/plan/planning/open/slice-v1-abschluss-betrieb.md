@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Ein zweites Signal lässt die Frist sofort ablaufen, statt den Prozess hart zu beenden.
 - Beim Beginn des Herunterfahrens eine Info-Zeile mit der Zahl der Sessions, auf die gewartet wird.
 
-Die Ergänzung von [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) Boundary (begrenzte, einstellbare Zeit für das kontrollierte Beenden) wartet auf die Bestätigung des Nutzers; erst danach folgen `LH-FA-13.a`, `LH-FA-13.b` und die Optionstabelle der Spezifikation. Ob der Gegenstand in DoD-Punkt 1 passt oder einen eigenen Slice der `welle-v1-abschluss` braucht, entscheidet der Schnitt nach dieser Bestätigung.
+Die Ergänzung von [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) Boundary ist bestätigt und steht im Lastenheft; `LH-FA-13.a` (Frist, Zwangsende, `PGR-E4006`, weiteres Signal, Info-Zeile), die Optionstabelle (`--shutdown-timeout`) und `SPEC-046` sind spezifiziert. Ob der Gegenstand in DoD-Punkt 1 passt oder einen eigenen Slice der `welle-v1-abschluss` braucht, entscheidet der Schnitt beim Start dieses Slice.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -108,7 +108,7 @@ dasteht.
 
 - Atomarität des Verschiebens ist plattformabhängig ("bestmöglich atomar") — **Ausgang:** offen bis Closure.
 
-- Herunterfahren ohne Obergrenze (aus `slice-extended-query-record`, Review F-309, Folge-Review F-317, Validierung Frage 1): Eine Session mit laufender Interaktion — einfache Anfrage oder Extended-Interaktion ohne `Sync` — hält das Herunterfahren beliebig lange; der Container-Stopp verliert dann ihre Aufzeichnung ganz, ohne Log-Zeile und mit Exit-Code `137`. Gegenstand siehe §1; die Lastenheft-Änderung wartet auf die Bestätigung des Nutzers — **Ausgang:** offen bis Closure.
+- Herunterfahren ohne Obergrenze (aus `slice-extended-query-record`, Review F-309, Folge-Review F-317, Validierung Frage 1): Eine Session mit laufender Interaktion — einfache Anfrage oder Extended-Interaktion ohne `Sync` — hält das Herunterfahren beliebig lange; der Container-Stopp verliert dann ihre Aufzeichnung ganz, ohne Log-Zeile und mit Exit-Code `137`. Gegenstand siehe §1; Lastenheft und Spezifikation sind ergänzt — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
