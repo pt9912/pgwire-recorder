@@ -67,8 +67,8 @@ die Antwort und wird notiert.
    Plans trägt dieselbe Register-Sichtung noch einmal je Slice** (Modul 5, *Zwei Schritte vor der
    Modus-Begründung*) — und ist damit für alles **unter** 3× der einzige Leser; keine Treffer sind
    dort ebenfalls eine Antwort und werden notiert. **Liefert der Slice einen neuen Vertrag, nennt
-   §6 dessen Randformen** (`AGENTS.md` §3.12); entschieden werden sie vor dem Code, mit dem
-   Architect.
+   §6 dessen Randformen** (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code);
+   entschieden werden sie vor dem Code, mit dem Architect.
 
 ## Welle-Plan per cp anlegen und füllen (der Kern-Schritt)
 

@@ -36,10 +36,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Ablauf von Planner, Architect und Implementer hat einen Schritt
 „Randformen vor dem Code entscheiden“: Ein Slice, der einen neuen Vertrag liefert
-(Format, Leser, Protokollrand, Diagnose, Option), nennt in §6 dessen Randformen;
-jede ist entschieden — in der Spezifikation, einer ADR oder als Entscheidung des
-Nutzers —, bevor der erste Code-Commit entsteht. Trifft der Implementer auf eine
-nicht genannte, entscheidet er sie nicht still, sondern gibt sie zurück.
+(Format, Leser, Protokollrand, Diagnose, Option, Gate — die Liste von `AGENTS.md`
+§3.10), nennt in §6 dessen Randformen und wo jede entschieden ist; entschieden ist
+sie in der Spezifikation oder einer ADR, auch als Entscheidung des Nutzers, bevor der
+erste Code-Commit entsteht. Trifft der Implementer auf eine nicht genannte oder offene,
+entscheidet er sie nicht still, sondern gibt sie dem Architect zurück.
 
 **Herkunft:** In allen vier Slices von welle-extended-query entschied der Code eine
 Randform still, und erst Review oder Verifikation fanden sie, Runde um Runde eine
@@ -63,7 +64,8 @@ genannten fielen erst dort auf.
 - Randformen bestehender Verträge nachträglich sammeln — ein anderer Vorgang; die
   offenen gehören in die Slices, die die Verträge berühren.
 - Produkt-Code, Spezifikation, Lastenheft — Schicht-Abgrenzung: Der Slice ändert
-  Rollen-Typen, Commands und `AGENTS.md`, dazu den Stand seines Register-Eintrags.
+  Rollen-Typen, Commands und `AGENTS.md`. Den Stand seines Register-Eintrags setzt
+  die Closure (`implement-slice.md` Schritt 25), nicht die Implementation.
 - Die übrigen Rollen-Typen (`planner.md`, `implementer.md`) und die Reviewer-Skill —
   Bestand bleibt: Sie zeigen auf ihre Commands bzw. prüfen gegen `AGENTS.md` §3, und
   die Regel steht nur dort (Pointer statt zweiter Formulierung).
@@ -77,15 +79,15 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Planner und Architect: `.claude/commands/plan-welle.md` (Slice bereitstellen)
       verlangt die Randformen-Liste in §6 für jeden neuen Vertrag;
-      `.claude/agents/architect.md` prüft sie vor dem Code und führt jede zu einer
-      Entscheidung (Spezifikation, ADR oder Frage an den Nutzer).
-- [ ] Implementer: `.claude/commands/implement-slice.md` Schritt 12/13 — eine nicht
-      genannte Randform wird zurückgegeben (Plan-Defekt-Rücksprung), nicht still
-      entschieden.
-- [ ] Regel mit Herkunfts-Anker `seit slice-harness-randformen-vor-code` (oder
-      `seit welle-<Kennung>`, falls eine Welle ihn einsammelt) in `AGENTS.md` §3;
-      `state.md` von `BEO-REPO/spec-randform-erst-im-review-entschieden` von
-      `geplant` auf `verkörpert` mit Zielort.
+      `.claude/agents/architect.md` prüft sie vor dem Code und entscheidet jede an dem
+      Ort, den `AGENTS.md` §3.12 nennt, oder legt sie dem Nutzer vor.
+- [ ] Implementer: `.claude/commands/implement-slice.md` Schritt 12/13 und
+      Randform-Rückgabe — eine nicht genannte oder offene Randform wird als Liste
+      „Randform · Frage“ an den Architect zurückgegeben, nicht still entschieden.
+- [ ] Regel in `AGENTS.md` §3; sie und jeder Zielort (plan-welle Schritt 6,
+      `architect.md`, implement-slice Schritt 12/13) tragen den Herkunfts-Anker
+      `seit slice-harness-randformen-vor-code` (oder `seit welle-<Kennung>`, falls eine
+      Welle ihn einsammelt). Den Register-Stand setzt die Closure.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -105,11 +107,11 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `.claude/commands/plan-welle.md` | update | Schritt 6 (Slices bereitstellen): Randformen-Liste in §6, Zeiger auf `AGENTS.md` §3.12 |
-| `.claude/agents/architect.md` | update | Kontext-Zuschnitt: Prüfung und Entscheidung der Liste vor dem Code, Zeiger auf §3.12 |
-| `.claude/commands/implement-slice.md` | update | Schritt 13: Rückgabe einer offenen oder nicht genannten Randform als Plan-Defekt |
+| `.claude/commands/plan-welle.md` | update | Schritt 6 (Slices bereitstellen): Randformen-Liste in §6, Zeiger auf `AGENTS.md` §3.12 mit Anker |
+| `.claude/agents/architect.md` | update | Kontext-Zuschnitt: Prüfung und Entscheidung der Liste und der Rückgaben vor dem Code, fehlende an den Planner, Zeiger auf §3.12 mit Anker |
+| `.claude/commands/implement-slice.md` | update | Schritt 12 (Auslöser vor dem Code, auch für wellenlose Slices), Schritt 13 (beim Implementieren gefunden), Absatz „Randform-Rückgabe“ bei den Rücksprungkanten (Liste „Randform · Frage“ an den Architect, Slice bleibt in `in-progress/`) |
 | `AGENTS.md` | update | §3.12 als Hard Rule mit Herkunfts-Anker `seit slice-harness-randformen-vor-code`; Prüfweg ist Architect vor dem Code und Review gegen §3 |
-| `docs/plan/planning/observations/BEO-REPO/spec-randform-erst-im-review-entschieden/state.md` | update | Ausgang verkörpert |
+| `docs/plan/planning/observations/BEO-REPO/spec-randform-erst-im-review-entschieden/state.md` | update bei Closure | Ausgang verkörpert (Schritt 25, nicht in der Implementation) |
 
 ## 4. Trigger
 
@@ -150,8 +152,10 @@ dasteht.
   Diagnose-Änderung nicht (die Klasse von slice-extended-query-replay). §3.12 bindet den
   Begriff an die Liste von §3.10, die Diagnose nennt — **Ausgang:** offen bis Closure.
 - Ein wellenloser Slice wird nicht über `plan-welle` bereitgestellt; Schritt 6 erreicht
-  ihn nicht. Ihn trägt §3.12 selbst, geprüft vom Architect und vom Review —
-  **Ausgang:** offen bis Closure.
+  ihn nicht. Den Auslöser trägt implement-slice Schritt 12: Ist eine Randform in §6
+  nicht entschieden, geht sie vor dem Code als Rückgabe an den Architect. Eine
+  Randform, die §6 gar nicht nennt und die der Implementer nicht bemerkt, findet erst
+  das Review — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

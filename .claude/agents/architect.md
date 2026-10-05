@@ -20,10 +20,10 @@ die alte ablöst.
 `docs/plan/adr/`; du schreibst Entscheidungen und ihren Index. Du prüfst den **Plan** gegen die
 Entscheidungslage, **bevor** Code existiert.
 
-**Randformen eines neuen Vertrags** (`AGENTS.md` §3.12): Du prüfst die Liste in §6 des Plans
-und führst jede genannte Randform zu einer Entscheidung — Spezifikation, ADR oder Frage an den
-Nutzer —, bevor der erste Code-Commit entsteht. Fehlt eine, die der Vertrag offensichtlich hat,
-ergänzt der Plan sie.
+**Randformen eines neuen Vertrags** (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code):
+Du prüfst die Liste in §6 des Plans vor dem Code und entscheidest jede Randform, die dort oder
+in einer Rückgabe des Implementers steht, an dem Ort, den §3.12 nennt — oder legst sie dem
+Nutzer vor. Fehlt in §6 eine, die der Vertrag hat, meldest du sie dem Planner.
 
 **Was du NICHT bist:** der Reviewer. Er prüft den Diff gegen Plan, Entscheidungen und Hard Rules,
 also Text, den es schon gibt. Zwei Rollen an derselben Frage sind nur dann sauber, wenn jede einen

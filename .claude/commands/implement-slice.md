@@ -108,11 +108,12 @@ emittierten Durchsetzungsschicht):
 12. **Den Ist-Zustand gegen den Slice-Plan messen, bevor du editierst** (`grep`/`diff`, nicht
     `edit`) — Geschwister-Slices lassen Pläne altern (gelöschte Pfade, verschobene
     Lifecycle-Dateien). Drift zuerst abgleichen; keinen veralteten Plan blind abarbeiten.
-13. Die kleinste sinnvolle Änderung gegen die DoD planen. Erst planen, dann coden.
-    **Randformen** (`AGENTS.md` §3.12): Ist eine in §6 genannte noch nicht entschieden, oder
-    triffst du — hier oder beim Implementieren — auf eine, die §6 nicht nennt, entscheidest du
-    sie nicht im Code: Du gibst sie als Plan-Defekt zurück (Rücksprung unten) und wartest auf
-    die Entscheidung.
+    Liefert der Slice einen neuen Vertrag und ist eine Randform in §6 nicht entschieden, gilt
+    die Randform-Rückgabe unten, bevor Code entsteht (`AGENTS.md` §3.12,
+    seit slice-harness-randformen-vor-code).
+13. Die kleinste sinnvolle Änderung gegen die DoD planen. Erst planen, dann coden. Triffst du
+    hier oder beim Implementieren auf eine Randform, die §6 nicht nennt, gilt dieselbe
+    Rückgabe (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code).
 
 ## Implementieren und gaten (Modul 9, Schritte 5–6)
 
@@ -124,6 +125,11 @@ emittierten Durchsetzungsschicht):
 zurück zum **Plan** (13) — den Plan verfeinern, nicht den Kontext neu lesen. Ein Rücksprung zu
 Schritt 1 signalisiert einen Kontext-Defekt. Ein struktureller Fehlschnitt (zu groß / blockiert)
 ist eine Lifecycle-Rücksprungkante (11).
+
+**Randform-Rückgabe (Modul 8, Übergabe-Artefakt):** Eine nicht genannte oder offene Randform
+entscheidest du weder im Code noch in §6. Du hältst an und gibst sie im Bericht als Liste
+*Randform · Frage* an den **Architect** zurück; er entscheidet sie oder legt sie dem Nutzer vor.
+Der Slice bleibt in `in-progress/`; weiter geht es erst nach der Entscheidung.
 
 ## Pre-completion-Checkliste (Modul 9, Schritt 8 — letzte Handlung der Implementer-Rolle)
 

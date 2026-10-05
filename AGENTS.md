@@ -227,15 +227,16 @@ aufgetreten?
 Ein Slice, der einen neuen Vertrag liefert (§3.10), nennt in §6 des Slice-Plans dessen
 Randformen, etwa fehlender, leerer oder unbekannter Wert, Alias, Abbruch und
 Herunterfahren, was ein Diagnose-Feld je Nachrichtenart heißt, Verhalten je
-Serverversion. Jede genannte ist vor dem ersten Code-Commit entschieden — in der
-Spezifikation, einer ADR oder als Entscheidung des Nutzers, die §6 festhält. Der
-Architect prüft die Liste vor dem Code. Trifft der Implementer auf eine nicht
-genannte, gibt er sie an den Plan zurück, statt sie im Code zu entscheiden.
+Serverversion, und je Randform, wo sie entschieden ist. Entschieden ist jede vor dem
+ersten Code-Commit, in der Spezifikation oder einer ADR; auch eine Entscheidung des
+Nutzers wird dort festgehalten. Der Architect prüft die Liste vor dem Code. Eine nicht
+genannte oder offene Randform entscheidet der Implementer nicht, er hält an und gibt
+sie dem Architect zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
 
 **Falsch:** Der Leser behandelt `null` wie einen fehlenden Schlüssel, die
 Spezifikation sagt nichts dazu, und das Review findet es.
-**Richtig:** §6 nennt `null` und fehlenden Schlüssel, die Spezifikation entscheidet
-beide, dann folgt der Code.
+**Richtig:** §6 nennt `null` und fehlenden Schlüssel und zeigt auf die Stelle der
+Spezifikation, die beide entscheidet; dann folgt der Code.
 
 **Begründung:** Was der Code still entscheidet, findet erst das Review, Runde um Runde
 eine weitere Randform (`BEO-REPO/spec-randform-erst-im-review-entschieden`). Ein Diff,
