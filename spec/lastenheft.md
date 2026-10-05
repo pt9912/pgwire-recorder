@@ -333,7 +333,8 @@ der Replay-Modus das aufgezeichnete Verhalten reproduzierbar bereitstellen.
   eintrifft, then greift LH-FA-10; ausgenommen ist eine Anfrage, die nur aus
   Leerraum und Kommentaren besteht (Lebendprüfung eines Pools): Zwischen zwei
   Interaktionen beantwortet das Replay sie wie PostgreSQL, ohne die
-  Aufzeichnung zu verbrauchen.
+  Aufzeichnung zu verbrauchen, und eine aufgezeichnete Lebendprüfung, die in der
+  Wiedergabe ausbleibt, ist keine Abweichung.
 
 **Out-of-Scope:** Veränderung oder Manipulation aufgezeichneter
 Datenbankantworten.
