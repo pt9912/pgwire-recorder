@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-extended-query.
 
-**Bezug:** [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-QA-02`](../../../../spec/lastenheft.md#lh-qa-02--geringe-eingriffe-in-die-anwendung), [ADR-0007](../../adr/0007-strict-replay.md)
+**Bezug:** [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-QA-02`](../../../../spec/lastenheft.md#lh-qa-02--geringe-eingriffe-in-die-anwendung), [ADR-0007](../../adr/0007-strict-replay.md), [ADR-0031](../../adr/0031-lebendpruefungen-im-replay.md)
 
-**Berührte Spec-Stellen:** `LH-FA-09.a` · `LH-FA-18.a` · `LH-FA-06.a` · `SPEC-011` · `ARC-002` · `ARC-006`
+**Berührte Spec-Stellen:** `LH-FA-09.a` · `LH-FA-18.a` · `LH-FA-12.a` · `LH-FA-03.b` · `SPEC-011` · `ARC-002` · `ARC-006`
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-05.
@@ -34,13 +34,15 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Herkunft:** Validierung von `slice-extended-query-replay` (`docs/reviews/2026-10-05-validierung-slice-extended-query-replay.md`, Frage 2, Sonden S4 bis S7). Ob die Lebendprüfung in der Aufzeichnung oder in der Wiedergabe steht, hängt an Pausen über 1 s; das strenge Replay meldet dann `PGR-E5001`. Der Nutzer hat entschieden, solche Anfragen zu tolerieren, statt die Zusage „nur Host und Port“ aus [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) zu verengen.
 
 - Eine einfache Anfrage, deren Text nur aus Leerraum und Kommentaren besteht, beantwortet das Replay zwischen zwei Interaktionen mit `EmptyQueryResponse` und `ReadyForQuery`, wie PostgreSQL es tut; der Cursor bleibt stehen.
-- Eine aufgezeichnete Lebendprüfung, die in der Wiedergabe ausbleibt, führt nicht zur Abweichung. Ob der Record sie gar nicht erst aufzeichnet oder das Replay sie am Cursor überspringt, entscheidet die ADR; vorhandene Aufzeichnungen mit Lebendprüfungen bleiben lesbar.
+- Eine aufgezeichnete Lebendprüfung, die in der Wiedergabe ausbleibt, führt nicht zur Abweichung: Das Replay liest die Aufzeichnung für Cursor, Session-Zuordnung und nicht verbrauchte Interaktionen so, als stünde sie nicht darin ([ADR-0031](../../adr/0031-lebendpruefungen-im-replay.md)); vorhandene Aufzeichnungen mit Lebendprüfungen bleiben ohne Umwandlung verwendbar. Das `ReadyForQuery` der Antwort außerhalb der Reihe trägt den Transaktionsstatus des letzten `ReadyForQuery` auf dieser Verbindung.
 - Jede andere einfache Anfrage außer der Reihe bleibt eine Abweichung, auch eine, die mitten in einer Extended-Interaktion kommt (`PGR-E5001`). Diesen Fall nennt `LH-FA-18.a` §Replay heute nicht ausdrücklich (Review F-327 zu `slice-extended-query-replay`); der Satz, der die Ausnahme für Lebendprüfungen schreibt, grenzt ihn mit ab.
-- **ADR:** Die Lockerung widerspricht [ADR-0007](../../adr/0007-strict-replay.md) und `LH-FA-09.a` („Kommentare werden nicht ignoriert“). Der Architect schreibt in diesem Slice eine neue ADR, die [ADR-0007](../../adr/0007-strict-replay.md) für Lebendprüfungen einschränkt (ob als Ergänzung oder mit `Supersedes`, entscheidet er), angenommen vor dem ersten Code-Commit. Die Spezifikation (`LH-FA-09.a`, `LH-FA-18.a` §Replay, bei Bedarf `LH-FA-06.a`) folgt ihr im selben Slice.
+- **ADR:** Die Lockerung widerspricht [ADR-0007](../../adr/0007-strict-replay.md) und `LH-FA-09.a` („Kommentare werden nicht ignoriert“). [ADR-0031](../../adr/0031-lebendpruefungen-im-replay.md) ergänzt [ADR-0007](../../adr/0007-strict-replay.md) um die Ausnahme für Lebendprüfungen (kein `Supersedes`); sie wird vor dem ersten Code-Commit angenommen. Die Spezifikation (`LH-FA-09.a`, `LH-FA-18.a` §Replay, `LH-FA-12.a`, `LH-FA-03.b`) folgt ihr im selben Slice; `LH-FA-06.a` bleibt unverändert, weil der Record unverändert bleibt.
 - **Handbuch:** Der Abschnitt „Mit einem Datenbanktreiber arbeiten“ nennt das Verhalten bei Lebendprüfungen von Pools und `database/sql` (`ShouldPing`).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
+- Record und `play` — bleiben bewusst unverändert: Sie zeichnen Lebendprüfungen weiter auf beziehungsweise senden sie, damit Aufzeichnung und Einspielen wiedergeben, was die Anwendung tat; das Replay allein trägt die Toleranz, auch für vorhandene Aufzeichnungen ([ADR-0031](../../adr/0031-lebendpruefungen-im-replay.md), Option B verworfen). Keine Änderung am Recording-Format.
+- Anfragen mit Anweisung, auch ein einzelnes `;` — bleiben strikt ([ADR-0031](../../adr/0031-lebendpruefungen-im-replay.md), Option D verworfen); kein beobachteter Treiber sendet sie als Lebendprüfung.
 - Toleranz für andere Anfragen (Normalisierung, Kommentare in fachlichen Anfragen, Reihenfolge) — [ADR-0007](../../adr/0007-strict-replay.md) bleibt für alles außer Lebendprüfungen bestehen; Out-of-Scope der Welle.
 - Gleichzeitig genutzte Verbindungen eines Pools (Validierung, Sonde S8) — `slice-v1-abschluss-sessions` §6 führt sie.
 - Frist beim Herunterfahren im Replay — `slice-v1-abschluss-betrieb`.
@@ -76,8 +78,9 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `docs/plan/adr/` (neue ADR, Index) | new, update | Einschränkung von [ADR-0007](../../adr/0007-strict-replay.md) für Lebendprüfungen; Architect |
-| `spec/spezifikation.md` (`LH-FA-09.a`, `LH-FA-18.a` §Replay, bei Bedarf `LH-FA-06.a`) | update | Ausnahme für Lebendprüfungen; falsche Protokollart im Replay (F-327) |
-| `internal/hexagon/services` (Replay-Service, Matcher; bei Bedarf Record-Service) | update | Lebendprüfung erkennen und außerhalb der Reihe beantworten; aufgezeichnete Lebendprüfung nach der ADR behandeln |
+| `spec/spezifikation.md` (`LH-FA-09.a`, `LH-FA-18.a` §Replay, `LH-FA-12.a`, `LH-FA-03.b`) | update | Ausnahme für Lebendprüfungen, ihre Wirkung auf Session-Zuordnung und nicht verbrauchte Interaktionen; falsche Protokollart im Replay (F-327) |
+| `spec/lastenheft.md` (`LH-FA-09`) | update | nur nach Bestätigung des Nutzers (§6): Negative nimmt Lebendprüfungen aus |
+| `internal/hexagon/services` (Replay-Service, Matcher) | update | Lebendprüfung erkennen und außerhalb der Reihe beantworten; aufgezeichnete Lebendprüfung für Cursor, Session-Zuordnung und nicht verbrauchte Interaktionen überspringen; `TestReplayExtendedAmCursor` erwartet für die leere Anfrage heute `PGR-E5001` und folgt der ADR |
 | `internal/adapters/driving/pgwire` | update | nur falls die Antwort außerhalb der Reihe eine Übersetzung braucht, die der Adapter heute nicht hat |
 | `test/integration` | new | `pgxpool` und `database/sql` mit und ohne Pausen (Lagen S4 bis S7) |
 | `docs/user/benutzerhandbuch.md`, `docs/user/abdeckung-*.md` | update | Verhalten bei Lebendprüfungen; Abdeckungstabellen |
@@ -109,10 +112,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Transaktionsstatus im `ReadyForQuery` der Antwort außerhalb der Reihe: Er muss dem Stand nach der letzten beantworteten Interaktion entsprechen, auch innerhalb einer Transaktion oder nach einem Fehler in ihr — **Ausgang:** offen bis Closure.
-- Eine fachliche Anfrage, die nur aus Kommentar besteht, ist von einer Lebendprüfung nicht zu unterscheiden. PostgreSQL antwortet auf beide gleich (`EmptyQueryResponse`); ob die Ausnahme damit für jede solche Anfrage gelten darf, entscheidet die ADR — **Ausgang:** offen bis Closure.
-- Vorhandene Aufzeichnungen enthalten Lebendprüfungen als Interaktionen (Validierung, Sonde S6). Bleibt die Wiedergabe einer solchen Aufzeichnung verträglich, wenn der Record sie künftig nicht mehr aufzeichnet? — **Ausgang:** offen bis Closure.
-- Ob [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay) im Lastenheft einen Satz braucht oder die Spezifikation genügt, bestätigt der Nutzer vor dem ersten Code-Commit — **Ausgang:** offen bis Closure.
+- Transaktionsstatus im `ReadyForQuery` der Antwort außerhalb der Reihe: Er muss dem Stand nach der letzten beantworteten Interaktion entsprechen, auch innerhalb einer Transaktion oder nach einem Fehler in ihr. Entschieden in [ADR-0031](../../adr/0031-lebendpruefungen-im-replay.md): der Status des letzten `ReadyForQuery` auf der Verbindung, nach dem Handshake `I`; offen ist, ob die Tests es fangen — **Ausgang:** offen bis Closure.
+- Eine fachliche Anfrage, die nur aus Kommentar besteht, ist von einer Lebendprüfung nicht zu unterscheiden. PostgreSQL antwortet auf beide gleich (`EmptyQueryResponse`); ob die Ausnahme damit für jede solche Anfrage gelten darf, entscheidet die ADR. Entschieden in [ADR-0031](../../adr/0031-lebendpruefungen-im-replay.md): ja, als akzeptiertes Negativ (keine Zustandsänderung, gleiche Antwort wie PostgreSQL) — **Ausgang:** offen bis Closure.
+- Vorhandene Aufzeichnungen enthalten Lebendprüfungen als Interaktionen (Validierung, Sonde S6). Bleibt die Wiedergabe einer solchen Aufzeichnung verträglich? Entschieden in [ADR-0031](../../adr/0031-lebendpruefungen-im-replay.md): Der Record zeichnet weiter auf, das Replay überspringt aufgezeichnete Lebendprüfungen; keine Formatänderung, die Rückführung aus §4 tritt nicht ein — **Ausgang:** offen bis Closure.
+- Ob [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay) im Lastenheft einen Satz braucht oder die Spezifikation genügt, bestätigt der Nutzer vor dem ersten Code-Commit. Empfehlung des Architect: ein Satz in der Negative von `LH-FA-09`, weil eine tolerierte Lebendprüfung sonst „eine Anfrage ohne passende Aufzeichnung“ ist, für die das Lastenheft `LH-FA-10` verlangt, und eine ADR das Lastenheft nicht schärfen darf — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
