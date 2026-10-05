@@ -34,7 +34,7 @@
 | [0028](0028-abdeckung-je-anforderung-und-pfad.md) | Abdeckung je Anforderung und Pfad | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
 | [0029](0029-benannte-welle-kennungen-im-commit-hook.md) | Benannte Welle-Kennungen im Commit-Hook | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
 | [0030](0030-full-duplex-im-record-pfad.md) | Full-Duplex im Record-Pfad mit Zustand im Record-Service | Accepted | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
-| [0031](0031-lebendpruefungen-im-replay.md) | Lebendprüfungen im Replay außerhalb der Reihe | Proposed | [`LH-FA-09`](../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay) |
+| [0031](0031-lebendpruefungen-im-replay.md) | Lebendprüfungen im Replay außerhalb der Reihe | Accepted | [`LH-FA-09`](../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay) |
 
 ## Konventionen
 

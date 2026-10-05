@@ -1,6 +1,6 @@
 # ADR-0031: Lebendprüfungen im Replay außerhalb der Reihe
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-05
 
