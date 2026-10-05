@@ -276,3 +276,46 @@ func TestReplayExtendedFehlerantwort(t *testing.T) {
 		t.Fatalf("abweichende verworfene Nachricht: %v", err)
 	}
 }
+
+// Abdeckung: LH-FA-13/Boundary — Replay: beim Herunterfahren darf eine
+// Verbindung enden, solange ihr Cursor nicht innerhalb einer
+// Extended-Interaktion steht: vor der ersten Nachricht und nach dem Sync ja,
+// nach der ersten Nachricht und zwischen zwei Gruppen nein.
+func TestReplayExtendedHerunterfahren(t *testing.T) {
+	ctx := context.Background()
+	s, id := replayMit(t, []model.Interaction{vorbereitung(1)})
+	if !s.Shutdown(ctx, id) || !s.Shutdown(ctx, 99) {
+		t.Fatal("ohne Anfrage kein Ende freigegeben")
+	}
+	in := vorbereitung(1)
+	schritte := []struct {
+		msg  model.ClientMessage
+		ende bool
+	}{
+		{in.Groups[0].Client[0], false}, {in.Groups[0].Client[1], false}, {in.Groups[0].Client[2], false},
+		{in.Groups[1].Client[0], false}, {in.Groups[1].Client[1], false}, {in.Groups[1].Client[2], true},
+	}
+	for i, sch := range schritte {
+		if _, err := s.ClientMessage(ctx, id, sch.msg); err != nil {
+			t.Fatal(err)
+		}
+		if got := s.Shutdown(ctx, id); got != sch.ende {
+			t.Fatalf("nach Nachricht %d (%s): Ende freigegeben %v", i+1, sch.msg.Type, got)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-03/Negative — eine Aufzeichnung, deren Interaktion die Form
+// nach SPEC-041 verfehlt (Extended ohne Gruppe, Gruppe ohne Client-Nachricht),
+// ist beim Start PGR-E3003, statt im Replay an der fehlenden Gruppe zu enden.
+func TestReplayStartformExtended(t *testing.T) {
+	ctx := context.Background()
+	for name, in := range map[string]model.Interaction{
+		"ohne Gruppe":           {Sequence: 1, Request: model.Request{Type: model.RequestExtended}},
+		"ohne Client-Nachricht": {Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{Server: []model.Response{rfq}}}},
+	} {
+		if _, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{in})}, "rec.yaml"); code(err) != model.CodeRecordingBroken {
+			t.Errorf("%s: erwartet %s, erhalten %v", name, model.CodeRecordingBroken, err)
+		}
+	}
+}

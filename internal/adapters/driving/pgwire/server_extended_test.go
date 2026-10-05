@@ -225,7 +225,7 @@ func TestExtendedEreignisse(t *testing.T) {
 				t.Fatalf("ErrorResponse: %+v", e)
 			}
 			// Die Client-Richtung endet mit: der Adapter schließt die Verbindung.
-			if _, err := fe.Receive(); !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+			if _, err := fe.Receive(); !geschlossen(err) && !errors.Is(err, io.ErrUnexpectedEOF) {
 				t.Fatalf("Verbindung nach dem Ende nicht geschlossen: %v", err)
 			}
 		}, model.EndFailed, model.CodeConnectionLost},
@@ -309,11 +309,11 @@ func TestExtendedNichtUnterstuetzt(t *testing.T) {
 }
 
 // verbindeReplay startet den Handler im Replay-Modus.
-func verbindeReplay(t *testing.T, rep *fakeReplayer) (*pgproto3.Frontend, *Server) {
+func verbindeReplay(t *testing.T, ctx context.Context, rep *fakeReplayer) (*pgproto3.Frontend, *Server) {
 	t.Helper()
 	client, serverSeite := net.Pipe()
 	s := NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	go s.handle(context.Background(), serverSeite)
+	go s.handle(ctx, serverSeite)
 	t.Cleanup(func() { client.Close() })
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 	fe := pgproto3.NewFrontend(client, client)
@@ -326,7 +326,7 @@ func verbindeReplay(t *testing.T, rep *fakeReplayer) (*pgproto3.Frontend, *Serve
 // Replay-Use-Case, und was er zurückgibt, geht in Reihenfolge an den Client.
 func TestReplayExtended(t *testing.T) {
 	rep := &fakeReplayer{}
-	fe, s := verbindeReplay(t, rep)
+	fe, s := verbindeReplay(t, context.Background(), rep)
 	msgs := []pgproto3.FrontendMessage{
 		&pgproto3.Parse{Name: "s1", Query: "SELECT $1::text", ParameterOIDs: []uint32{25}},
 		&pgproto3.Bind{PreparedStatement: "s1", ParameterFormatCodes: []int16{0}, Parameters: [][]byte{[]byte("a")}},
@@ -355,17 +355,21 @@ func TestReplayExtended(t *testing.T) {
 
 // Abdeckung: LH-FA-10/Happy — Replay im Adapter: meldet der Use Case zu einer
 // Extended-Nachricht eine Abweichung, erhält der Client eine ErrorResponse mit
-// PGR-E5001, der Lauf merkt sich die Klasse 5, und die Verbindung endet.
+// PGR-E5001, der Lauf merkt sich die Klasse 5, und der Adapter schließt die
+// Verbindung, ohne eine weitere Nachricht des Clients zu lesen.
 func TestReplayExtendedAbweichungImAdapter(t *testing.T) {
 	rep := &fakeReplayer{}
-	fe, s := verbindeReplay(t, rep)
+	fe, s := verbindeReplay(t, context.Background(), rep)
 	sende(fe, &pgproto3.Execute{Portal: "abweichend"})
 	e := fehlerantwort(t, fe)
 	if !strings.Contains(e.Message, model.CodeReplayMismatch) {
 		t.Fatalf("ErrorResponse: %+v", e)
 	}
-	if _, err := fe.Receive(); err == nil {
-		t.Fatal("Verbindung nach der Abweichung offen")
+	if _, err := fe.Receive(); !geschlossen(err) {
+		t.Fatalf("Verbindung nach der Abweichung nicht geschlossen: %v", err)
+	}
+	if n := rep.nachrichten(); len(n) != 1 {
+		t.Fatalf("nach der Abweichung weitergelesen: %#v", n)
 	}
 	if s.FirstErrorCode() != model.CodeReplayMismatch {
 		t.Fatalf("erster Fehler: %q", s.FirstErrorCode())
@@ -644,4 +648,55 @@ func TestFehlerantwortMitFrist(t *testing.T) {
 	if end := rec.lastEnd(t); end != model.EndUnsupported || s.FirstErrorCode() != model.CodeUnsupported {
 		t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
 	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Replay im Adapter: beim Herunterfahren
+// beantwortet der Adapter eine laufende Extended-Interaktion bis zu ihrem Sync
+// und schließt danach die Verbindung, ohne eine weitere Nachricht zu lesen;
+// läuft keine Interaktion, schließt er sie sofort.
+func TestReplayHerunterfahren(t *testing.T) {
+	t.Run("laufende Interaktion", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		rep := &fakeReplayer{}
+		fe, s := verbindeReplay(t, ctx, rep)
+		sende(fe, &pgproto3.Parse{Name: "s1", Query: "SELECT 1"})
+		deadline := time.Now().Add(2 * time.Second)
+		for len(rep.nachrichten()) < 1 {
+			if time.Now().After(deadline) {
+				t.Fatal("Parse erreicht den Use Case nicht")
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		cancel()
+		time.Sleep(100 * time.Millisecond)
+		sende(fe, &pgproto3.Bind{PreparedStatement: "s1"}, &pgproto3.Execute{}, &pgproto3.Sync{})
+		if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
+			t.Fatalf("an den Client: %s", got)
+		}
+		if _, err := fe.Receive(); !geschlossen(err) {
+			t.Fatalf("Verbindung nach dem Sync nicht geschlossen: %v", err)
+		}
+		if n := len(rep.nachrichten()); n != 4 || s.FirstErrorCode() != "" {
+			t.Fatalf("%d Nachrichten, Fehler %q", n, s.FirstErrorCode())
+		}
+	})
+	t.Run("ohne laufende Interaktion", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		rep := &fakeReplayer{}
+		fe, _ := verbindeReplay(t, ctx, rep)
+		sende(fe, &pgproto3.Parse{Name: "s1", Query: "SELECT 1"}, &pgproto3.Sync{})
+		empfange(t, fe, 5)
+		cancel()
+		if _, err := fe.Receive(); !geschlossen(err) {
+			t.Fatalf("Verbindung nach dem Herunterfahren nicht geschlossen: %v", err)
+		}
+	})
+}
+
+// geschlossen meldet, ob ein Lesefehler des Clients das Schließen der
+// Verbindung durch den Server ist und nicht die Frist des Clients.
+func geschlossen(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)
 }

@@ -166,26 +166,53 @@ type eingang struct {
 
 // replaySitzung beantwortet die Client-Nachrichten einer Replay-Session
 // nacheinander: Anfragen und Extended-Nachrichten gehen an den Replay-Use-Case,
-// und was er liefert, geht an den Client. Endet ctx, bricht das Lesen der
-// nächsten Client-Nachricht ab; eine laufende Anfrage läuft zu Ende.
+// und was er liefert, geht an den Client.
+//
+// Endet ctx, weckt ein Wächter das Lesen. Vor jedem weiteren Lesen fragt die
+// Sitzung dann den Use Case (Shutdown): Läuft keine Interaktion, endet die
+// Session, ohne die nächste Nachricht zu lesen; läuft eine Extended-Interaktion,
+// liest die Sitzung weiter und beantwortet ihre Nachrichten bis zu ihrem Sync
+// (LH-FA-13.a). Eine schon gelesene Nachricht wird vorher noch beantwortet.
+// Wer das Warten begrenzt, schließt conn; das beendet das Lesen wie jedes
+// Verbindungsende.
 func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID) {
 	fertig := make(chan struct{})
 	defer close(fertig)
+	// geweckt ist geschlossen, sobald der Wächter die Lesefrist gesetzt hat;
+	// erst danach setzt die Sitzung sie zurück.
+	geweckt := make(chan struct{})
 	go func() {
 		select {
 		case <-ctx.Done():
 			_ = conn.SetReadDeadline(time.Now())
+			close(geweckt)
 		case <-fertig:
 		}
 	}()
 	defer s.closeReplay(ctx, id)
 
+	herunterfahren := false
 	for {
+		if ctx.Err() != nil {
+			if s.replayer.Shutdown(ctx, id) {
+				return
+			}
+			if !herunterfahren {
+				herunterfahren = true
+				<-geweckt
+				_ = conn.SetReadDeadline(time.Time{})
+			}
+		}
 		msg, err := be.Receive()
 		if err != nil {
-			if verbindungsende(err) || ctx.Err() != nil {
-				// Ende nach einem ReadyForQuery, mit oder ohne Terminate, ist
-				// regulär (LH-FA-02.b).
+			if errors.Is(err, os.ErrDeadlineExceeded) && ctx.Err() != nil && !herunterfahren {
+				// Geweckt durch den Wächter: oben entscheidet der Use Case.
+				continue
+			}
+			if verbindungsende(err) {
+				// Ein Ende der Client-Verbindung ist im Replay regulär, auch
+				// mitten in einer Extended-Interaktion; was unverbraucht
+				// bleibt, meldet closeReplay als Warnung (LH-FA-03.b).
 				return
 			}
 			s.fail(be, model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))

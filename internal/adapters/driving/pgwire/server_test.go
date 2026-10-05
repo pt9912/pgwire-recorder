@@ -550,6 +550,8 @@ type fakeReplayer struct {
 	closed   int
 	warnung  *model.Warning
 	extended []model.ClientMessage
+	// laufend ist wahr nach einer Extended-Nachricht außer Sync.
+	laufend bool
 }
 
 func (f *fakeReplayer) OpenConnection(context.Context) (model.SessionID, []model.Response) {
@@ -573,6 +575,7 @@ func (f *fakeReplayer) ClientMessage(_ context.Context, _ model.SessionID, m mod
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.extended = append(f.extended, m)
+	f.laufend = m.Type != model.ClientSync
 	switch {
 	case m.Type == model.ClientExecute && m.Portal == "abweichend":
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "erwartet execute, empfangen execute, abweichend in portal")
@@ -584,6 +587,13 @@ func (f *fakeReplayer) ClientMessage(_ context.Context, _ model.SessionID, m mod
 		}, nil
 	}
 	return nil, nil
+}
+
+// Shutdown gibt das Ende frei, solange keine Extended-Interaktion läuft.
+func (f *fakeReplayer) Shutdown(context.Context, model.SessionID) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return !f.laufend
 }
 
 func (f *fakeReplayer) nachrichten() []model.ClientMessage {

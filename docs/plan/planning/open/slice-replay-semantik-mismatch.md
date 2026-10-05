@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-replay-semantik.
 
-**Bezug:** [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [ADR-0007](../../adr/0007-strict-replay.md)
+**Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [ADR-0007](../../adr/0007-strict-replay.md)
 
-**Berührte Spec-Stellen:** `SPEC-018` · `SPEC-027` · `SPEC-011` · `ARC-002` · `ARC-006`
+**Berührte Spec-Stellen:** `LH-FA-03.b` · `LH-FA-13.b` · `SPEC-012` · `SPEC-018` · `ARC-002` · `ARC-006`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,14 +29,14 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Eine abweichende Query oder Extended-Query-Nachricht im Replay wird mit Diagnose (Session, erwartete Interaktionsnummer, Gruppe und Nachricht, erwarteter und empfangener Nachrichtentyp) an den Client gemeldet, die Verbindung endet, und der Prozess merkt sich die Klasse 5. Die Erkennung der Abweichung bei Extended liefert `slice-extended-query-replay`; die Diagnose und Klasse für beide Protokollvarianten liefert dieser Slice.
+**Ziel:** Mit `--fail-on-unconsumed` sind nicht verbrauchte Interaktionen und nie zugeordnete Sessions im Replay ein Fehler (`PGR-E5002`, Exit-Code 5) statt der Warnung `PGR-W2001`. Erkennung und Diagnose der Abweichung sind für beide Protokollvarianten geliefert (siehe unten).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Meldungscodes und Fehlertext-Kopf — `slice-replay-semantik-meldungscodes`; hier genügt der Klartext der Diagnose.
 - Warnung bei nicht verbrauchten Interaktionen — geliefert von `slice-walking-skeleton-replay` (`PGR-W2001`).
 
-**Bereits geliefert** von `slice-walking-skeleton-replay`: Mismatch einfacher Anfragen mit Diagnose (Session, erwartete Nummer, erwartete und empfangene Anfrage), `ErrorResponse` mit `PGR-E5001` und Exit-Code 5 beim Herunterfahren. Von `slice-extended-query-replay`: Mismatch der Extended-Nachrichten mit Diagnose (Session, Interaktion, Gruppe, Nachricht, erwarteter und empfangener Nachrichtentyp, abweichendes Feld, ohne Parameterwerte), auch für eine einfache Anfrage, wo eine Extended-Nachricht erwartet ist, und umgekehrt (`TestReplayExtendedAbweichung`, `TestReplayExtendedFalscheArt`, `TestE2EReplayExtendedAbweichung`). Dieser Slice ergänzt `--fail-on-unconsumed` (`PGR-E5002`) und prüft die Diagnose beider Protokollvarianten gegen `LH-FA-10.a`.
+**Bereits geliefert** von `slice-walking-skeleton-replay`: Mismatch einfacher Anfragen mit Diagnose (Session, erwartete Nummer, erwartete und empfangene Anfrage), `ErrorResponse` mit `PGR-E5001` und Exit-Code 5 beim Herunterfahren. Von `slice-extended-query-replay`: Mismatch der Extended-Nachrichten mit Diagnose (Session, Interaktion, Gruppe, Nachricht, erwarteter und empfangener Nachrichtentyp, abweichendes Feld, ohne Parameterwerte), auch für eine einfache Anfrage, wo eine Extended-Nachricht erwartet ist, und umgekehrt (`TestReplayExtendedAbweichung`, `TestReplayExtendedFalscheArt`, `TestE2EReplayExtendedAbweichung`). Dieser Slice ergänzt `--fail-on-unconsumed` (`PGR-E5002`).
 
 
 ## 2. Definition of Done
@@ -46,7 +46,6 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage): Eine abweichende Extended-Nachricht wird als Mismatch gemeldet, mit Gruppe und Nachricht in der Diagnose; keine fremde Antwort wird geliefert (Test). Für einfache Anfragen liefert das `slice-walking-skeleton-replay`.
 - [ ] [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus): Mit `--fail-on-unconsumed` sind nicht verbrauchte Interaktionen und nie zugeordnete Sessions `PGR-E5002` mit Exit-Code 5 statt der Warnung `PGR-W2001` (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -65,10 +64,10 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` (Matcher, Replay-Service) | update | Mismatch-Fehler mit Diagnose-Daten |
-| `internal/adapters/driving/pgwire` | update | `ErrorResponse` an den Client, Verbindung beenden |
-| `internal/adapters/driving/cli` | update | Fehlerklasse auf Exit-Code abbilden |
-| `test/integration` | update | Happy/Boundary/Negative nach LH-FA-10 |
+| `internal/hexagon/services` (Replay-Service) | update | nicht verbrauchte Interaktionen und Sessions als `PGR-E5002` bei gesetzter Option |
+| `internal/adapters/driving/pgwire` | update | `PGR-E5002` beim Ende der Verbindung als Verbindungsfehler merken |
+| `internal/adapters/driving/cli` | update | Option `--fail-on-unconsumed` und Umgebungsvariable |
+| `test/integration` | update | Exit-Code 5 mit, Warnung ohne die Option |
 
 ## 4. Trigger
 

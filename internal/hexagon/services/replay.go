@@ -35,7 +35,9 @@ type cursor struct {
 	nachricht int
 }
 
-// NewReplayService lädt die Aufzeichnung. Eine Aufzeichnung ohne Session mit
+// NewReplayService lädt die Aufzeichnung. Jede Interaktion muss Validate
+// bestehen, sonst ist die Aufzeichnung beschädigt (PGR-E3003); auf diese Form
+// verlassen sich Query und ClientMessage. Eine Aufzeichnung ohne Session mit
 // Interaktion ist PGR-E3004 (LH-FA-03.a).
 func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path string) (*ReplayService, error) {
 	rec, err := repo.Load(ctx, path)
@@ -44,6 +46,11 @@ func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path
 	}
 	s := &ReplayService{verbindung: map[model.SessionID]*cursor{}}
 	for _, sess := range rec.Sessions {
+		for _, in := range sess.Interactions {
+			if err := in.Validate(); err != nil {
+				return nil, model.Errorf(model.CodeRecordingBroken, err, "%s: Session %d, Interaktion %d", path, sess.ID, in.Sequence)
+			}
+		}
 		if len(sess.Interactions) > 0 {
 			s.frei = append(s.frei, sess)
 		}
@@ -181,6 +188,15 @@ func (c *cursor) erwarteteNachricht() model.ClientMessage {
 func (c *cursor) stelle() string {
 	return fmt.Sprintf("Session %d, Interaktion %d, Gruppe %d, Nachricht %d",
 		c.session.ID, c.session.Interactions[c.pos].Sequence, c.gruppe+1, c.nachricht+1)
+}
+
+// Shutdown liefert true, wenn die Verbindung beim Herunterfahren enden darf:
+// Der Cursor steht nicht innerhalb einer Extended-Interaktion (LH-FA-13.a).
+func (s *ReplayService) Shutdown(_ context.Context, id model.SessionID) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c := s.verbindung[id]
+	return c == nil || c.gruppe == 0 && c.nachricht == 0
 }
 
 // CloseConnection beendet die Verbindung; unverbrauchte Interaktionen der

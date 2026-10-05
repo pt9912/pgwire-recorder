@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -200,6 +201,72 @@ func TestE2EReplayExtendedGegendruck(t *testing.T) {
 	rep := startProzess(t, "replay", "--input", input)
 	gegendruckAblauf(t, rep.listen)
 	rep.stop(t, 0)
+}
+
+// Abdeckung: LH-FA-13/Boundary — Replay: kommt SIGTERM, nachdem die
+// Flush-Gruppe einer Pipeline beantwortet ist und bevor ihre Sync-Gruppe
+// eintrifft, beantwortet replay die Sync-Gruppe noch wie aufgezeichnet,
+// schließt danach die Verbindung und endet von selbst mit Exit-Code 0.
+func TestE2EReplayExtendedSigtermMittenInFolge(t *testing.T) {
+	input := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), input)
+	pipelineAblauf(t, rec.listen)
+	rec.stop(t, 0)
+	rep := startProzess(t, "replay", "--input", input)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, err := pgconn.Connect(ctx, dsn(rep.listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close(ctx)
+	p := conn.StartPipeline(ctx)
+	p.SendPrepare("s1", "SELECT $1::text AS t", nil)
+	p.SendFlushRequest()
+	if err := p.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.GetResults(); err != nil {
+		t.Fatalf("Prepare: %v", err)
+	}
+	if err := rep.cmd.Process.Signal(syscall.SIGTERM); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(300 * time.Millisecond)
+	p.SendQueryPrepared("s1", [][]byte{[]byte("a")}, nil, nil)
+	p.SendQueryPrepared("s1", [][]byte{nil}, nil, nil)
+	p.SendPipelineSync()
+	if err := p.Flush(); err != nil {
+		t.Fatalf("Sync-Gruppe nach SIGTERM: %v", err)
+	}
+	for i := 0; i < 2; i++ {
+		r, err := p.GetResults()
+		if err != nil {
+			t.Fatalf("Ausführung %d nach SIGTERM: %v", i+1, err)
+		}
+		if res := r.(*pgconn.ResultReader).Read(); res.Err != nil || len(res.Rows) != 1 {
+			t.Fatalf("Ausführung %d nach SIGTERM: %#v", i+1, res)
+		}
+	}
+	if _, err := p.GetResults(); err != nil {
+		t.Fatalf("Sync nach SIGTERM: %v", err)
+	}
+
+	done := make(chan error, 1)
+	go func() { done <- rep.cmd.Wait() }()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		_ = rep.cmd.Process.Kill()
+		t.Fatalf("replay endet nach dem Sync nicht von selbst\n%s", rep.stderr.String())
+	}
+	if code := rep.cmd.ProcessState.ExitCode(); code != 0 {
+		t.Fatalf("Exit-Code %d\n%s", code, rep.stderr.String())
+	}
+	if strings.Contains(rep.stderr.String(), "PGR-W2001") {
+		t.Fatalf("Interaktion nicht verbraucht:\n%s", rep.stderr.String())
+	}
 }
 
 // Abdeckung: LH-FA-18/Negative, LH-FA-10/Happy — führt pgx im Replay dasselbe

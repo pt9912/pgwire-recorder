@@ -25,6 +25,10 @@ type Replayer interface {
 	// Server-Nachrichten der Gruppe, vorher keine; eine abweichende Nachricht
 	// ist PGR-E5001 (LH-FA-18.a).
 	ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) ([]model.Response, error)
+	// Shutdown meldet den Beginn des Herunterfahrens und liefert true, wenn
+	// die Verbindung enden darf: Es läuft keine Extended-Interaktion, deren
+	// Sync noch aussteht (LH-FA-13.a).
+	Shutdown(ctx context.Context, id model.SessionID) bool
 	// CloseConnection beendet die Verbindung. Bleiben Interaktionen der
 	// zugeordneten Session unverbraucht, liefert sie die Warnung PGR-W2001.
 	CloseConnection(ctx context.Context, id model.SessionID) *model.Warning
