@@ -512,7 +512,7 @@ func TestReplayExtendedDiagnoseArt(t *testing.T) {
 	s, id = replayMit(t, []model.Interaction{in})
 	sendeAlle(t, s, id, in.Groups[0].Client...)
 	_, err = s.ClientMessage(ctx, id, parse("s2", "SELECT 42"))
-	if want := `keine aufgezeichnete Interaktion mehr nach 1; empfangen Client-Nachricht parse (Anweisung "SELECT 42")`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
+	if want := `nach Interaktion 1 erwartet die Aufzeichnung keine weitere; empfangen Client-Nachricht parse (Anweisung "SELECT 42")`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
 		t.Errorf("P4c: %v", err)
 	}
 	_, err = s.ClientMessage(ctx, id, bind("s1", text("geheim-ende")))

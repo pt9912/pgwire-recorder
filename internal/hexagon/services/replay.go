@@ -30,19 +30,23 @@ type ReplayService struct {
 // Interaktion, gruppe und nachricht innerhalb einer Extended-Interaktion die
 // nächste erwartete Gruppe und Client-Nachricht (ARC-002, LH-FA-18.a). status
 // ist der Transaktionsstatus des letzten ReadyForQuery, das die Verbindung
-// erhalten hat, nach dem Handshake "I" (LH-FA-09.a).
+// erhalten hat, nach dem Handshake "I"; vt sagt, ob \v für Lebendprüfungen als
+// Leerraum zählt: nach der Zuordnung nach der Version der Session, vorher nicht
+// (LH-FA-09.a).
 type cursor struct {
 	session   *model.Session
 	pos       int
 	gruppe    int
 	nachricht int
 	status    string
+	vt        bool
 }
 
 // NewReplayService lädt die Aufzeichnung. Jede Interaktion muss Validate
 // bestehen, sonst ist die Aufzeichnung beschädigt (PGR-E3003); auf diese Form
-// verlassen sich Query und ClientMessage. Interaktionen, deren Anfrage eine
-// Lebendprüfung ist, nimmt es nicht in die Sessions auf; eine Session ohne
+// verlassen sich Query und ClientMessage. Interaktionen, deren Anfrage nach
+// der Version ihrer Session eine Lebendprüfung ist, nimmt es nicht in die
+// Sessions auf; eine Session ohne
 // andere Interaktion ist damit eine Session ohne Interaktion (LH-FA-09.a). Eine
 // Aufzeichnung ohne Session mit Interaktion ist PGR-E3004 (LH-FA-03.a).
 func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path string) (*ReplayService, error) {
@@ -57,7 +61,7 @@ func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path
 				return nil, model.Errorf(model.CodeRecordingBroken, err, "%s: Session %d, Interaktion %d", path, sess.ID, in.Sequence)
 			}
 		}
-		sess.Interactions = ohneLebendpruefungen(sess.Interactions)
+		sess.Interactions = ohneLebendpruefungen(sess.Interactions, vtLeerraum(sess.ServerParameters))
 		if len(sess.Interactions) > 0 {
 			s.frei = append(s.frei, sess)
 		}
@@ -70,12 +74,12 @@ func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path
 }
 
 // ohneLebendpruefungen liefert die Interaktionen ohne die einfachen Anfragen,
-// die Lebendprüfungen sind, in einer neuen Liste; Sequence bleibt die
-// aufgezeichnete Nummer.
-func ohneLebendpruefungen(ins []model.Interaction) []model.Interaction {
+// die Lebendprüfungen sind, mit vt auch solche mit \v, in einer neuen Liste;
+// Sequence bleibt die aufgezeichnete Nummer.
+func ohneLebendpruefungen(ins []model.Interaction, vt bool) []model.Interaction {
 	out := make([]model.Interaction, 0, len(ins))
 	for _, in := range ins {
-		if in.Request.Type == model.RequestQuery && istLebendpruefung(in.Request.SQL) {
+		if in.Request.Type == model.RequestQuery && istLebendpruefung(in.Request.SQL, vt) {
 			continue
 		}
 		out = append(out, in)
@@ -109,7 +113,7 @@ func (s *ReplayService) OpenConnection(context.Context) (model.SessionID, []mode
 
 // Query vergleicht die Anfrage mit der Interaktion am Cursor und liefert deren
 // Antworten; der Cursor rückt nur bei Gleichheit vor. Eine Lebendprüfung
-// zwischen zwei Interaktionen beantwortet es mit EmptyQueryResponse und
+// (Leerraum nach cursor.vt) zwischen zwei Interaktionen beantwortet es mit EmptyQueryResponse und
 // ReadyForQuery im Status des letzten ReadyForQuery, ohne Cursor und Zuordnung zu
 // berühren (LH-FA-09.a). Erwartet der Cursor eine Extended-Nachricht, ist jede
 // andere Anfrage eine Abweichung, mitten in einer Extended-Interaktion auch
@@ -117,7 +121,7 @@ func (s *ReplayService) OpenConnection(context.Context) (model.SessionID, []mode
 func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string) ([]model.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if c, ok := s.verbindung[id]; ok && !c.mitten() && istLebendpruefung(sql) {
+	if c, ok := s.verbindung[id]; ok && !c.mitten() && istLebendpruefung(sql, c.vt) {
 		return []model.Response{
 			{Type: model.ResponseEmptyQueryResponse},
 			{Type: model.ResponseReadyForQuery, TxStatus: c.status},
@@ -128,7 +132,7 @@ func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string)
 		return nil, err
 	}
 	if c.pos >= len(c.session.Interactions) {
-		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: keine aufgezeichnete Interaktion mehr nach %d; empfangen %q",
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: nach Interaktion %d erwartet die Aufzeichnung keine weitere; empfangen %q",
 			c.session.ID, c.letzteNummer(), sql)
 	}
 	erwartet := c.session.Interactions[c.pos]
@@ -160,8 +164,9 @@ func (c *cursor) merke(rs []model.Response) {
 	}
 }
 
-// letzteNummer ist die aufgezeichnete Nummer der letzten Interaktion der
-// Session; die Session hat mindestens eine.
+// letzteNummer ist die aufgezeichnete Nummer der letzten erwarteten
+// Interaktion der Session, aufgezeichnete Lebendprüfungen nicht gezählt; die
+// Session hat mindestens eine.
 func (c *cursor) letzteNummer() int {
 	return c.session.Interactions[len(c.session.Interactions)-1].Sequence
 }
@@ -181,7 +186,7 @@ func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m m
 		return nil, err
 	}
 	if c.pos >= len(c.session.Interactions) {
-		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: keine aufgezeichnete Interaktion mehr nach %d; empfangen %s",
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: nach Interaktion %d erwartet die Aufzeichnung keine weitere; empfangen %s",
 			c.session.ID, c.letzteNummer(), c.nachrichtText(m))
 	}
 	erwartet := c.session.Interactions[c.pos]
@@ -228,6 +233,7 @@ func (s *ReplayService) zuordnen(id model.SessionID, empfangen string) (*cursor,
 		sess := s.frei[0]
 		s.frei = s.frei[1:]
 		c.session = &sess
+		c.vt = vtLeerraum(sess.ServerParameters)
 	}
 	return c, nil
 }

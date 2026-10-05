@@ -97,7 +97,7 @@ func TestReplayLebendpruefungAufgezeichnet(t *testing.T) {
 		}
 	}
 	_, err = s.Query(ctx, a, "SELECT 3")
-	if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), "nach 4") {
+	if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), "nach Interaktion 4 erwartet die Aufzeichnung keine weitere") {
 		t.Fatalf("nach der letzten Interaktion: %v", err)
 	}
 	if w := s.CloseConnection(ctx, a); w != nil {
@@ -161,5 +161,86 @@ func TestReplayLebendpruefungExtended(t *testing.T) {
 	pruefeLebend(t, s, id, "-- ping", "T")
 	if w := s.CloseConnection(ctx, id); w != nil {
 		t.Fatalf("Warnung trotz verbrauchter Session: %v", w)
+	}
+}
+
+// Abdeckung: LH-FA-10/Boundary — Extended: eine Client-Nachricht nach der
+// letzten erwarteten Interaktion nennt deren aufgezeichnete Nummer, auch wenn
+// davor und danach aufgezeichnete Lebendprüfungen stehen.
+func TestReplayLebendpruefungNummerNachDemEnde(t *testing.T) {
+	ctx := context.Background()
+	s, id := replayMit(t, []model.Interaction{
+		interaktion(1, "-- ping", ""), ausfuehrung(2, "s1", "a", "A"), interaktion(3, "-- ping", ""),
+	})
+	sendeAlle(t, s, id, ausfuehrung(2, "s1", "a", "A").Groups[0].Client...)
+	_, err := s.ClientMessage(ctx, id, syncNachricht)
+	if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), "Session 1: nach Interaktion 2 erwartet die Aufzeichnung keine weitere") {
+		t.Fatalf("Extended-Nachricht nach dem Ende: %v", err)
+	}
+}
+
+// sessionMit ist eine Session mit den Serverparametern params.
+func sessionMit(id int, params map[string]string, ins ...model.Interaction) model.Session {
+	return model.Session{ID: id, ServerParameters: params, Interactions: ins}
+}
+
+// Abdeckung: LH-FA-09/Negative — ob \v Leerraum einer Lebendprüfung ist,
+// richtet sich nach server_version der Session: Gegen PostgreSQL 16
+// aufgezeichnet, bleibt eine Anfrage aus \v und Kommentar eine Interaktion,
+// und eine eingehende ist eine Abweichung; gegen 17 aufgezeichnet, wird sie
+// übersprungen beziehungsweise außerhalb der Reihe beantwortet. Vor der
+// Zuordnung und ohne lesbare Version ist \v kein Leerraum: Die Anfrage
+// ordnet dann eine Session zu und wird verglichen.
+func TestReplayLebendpruefungServerversion(t *testing.T) {
+	ctx := context.Background()
+	laden := func(sessions ...model.Session) *ReplayService {
+		t.Helper()
+		rec := model.NewRecording()
+		rec.Sessions = sessions
+		s, err := NewReplayService(ctx, ladeRepo{rec: rec}, "rec.yaml")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	v16 := map[string]string{"server_version": "16.4"}
+	v17 := map[string]string{"server_version": "17.0"}
+	ohne := map[string]string{"client_encoding": "UTF8"}
+	vtPing := "\v-- ping\v"
+
+	s := laden(
+		sessionMit(1, v16, interaktion(1, vtPing, "V16"), interaktion(2, "SELECT 1", "A")),
+		sessionMit(2, v17, interaktion(1, vtPing, "V17"), interaktion(2, "SELECT 2", "B")),
+	)
+	a, _ := s.OpenConnection(ctx)
+	if out, err := s.Query(ctx, a, vtPing); err != nil || out[0].Tag != "V16" {
+		t.Fatalf("PostgreSQL 16: aufgezeichnete Anfrage mit \\v ist eine Interaktion: %#v, %v", out, err)
+	}
+	pruefeLebend(t, s, a, "-- ping", "I")
+	b, _ := s.OpenConnection(ctx)
+	if out, err := s.Query(ctx, b, "SELECT 2"); err != nil || out[0].Tag != "B" {
+		t.Fatalf("PostgreSQL 17: aufgezeichnete Lebendprüfung mit \\v übersprungen: %#v, %v", out, err)
+	}
+	pruefeLebend(t, s, b, vtPing, "I")
+	if w := s.CloseConnection(ctx, b); w != nil {
+		t.Fatalf("PostgreSQL 17: %v", w)
+	}
+	if _, err := s.Query(ctx, a, vtPing); code(err) != model.CodeReplayMismatch {
+		t.Fatalf("PostgreSQL 16: eingehende Anfrage mit \\v: erwartet %s, erhalten %v", model.CodeReplayMismatch, err)
+	}
+
+	s = laden(sessionMit(1, v17, interaktion(1, "SELECT 1", "A")))
+	c, _ := s.OpenConnection(ctx)
+	if out, err := s.Query(ctx, c, "\v"); code(err) != model.CodeReplayMismatch {
+		t.Fatalf("vor der Zuordnung: erwartet %s, erhalten %#v, %v", model.CodeReplayMismatch, out, err)
+	}
+
+	s = laden(sessionMit(1, ohne, interaktion(1, vtPing, "OHNE"), interaktion(2, "SELECT 1", "A")))
+	d, _ := s.OpenConnection(ctx)
+	if out, err := s.Query(ctx, d, vtPing); err != nil || out[0].Tag != "OHNE" {
+		t.Fatalf("ohne server_version: aufgezeichnete Anfrage mit \\v ist eine Interaktion: %#v, %v", out, err)
+	}
+	if _, err := s.Query(ctx, d, "\v"); code(err) != model.CodeReplayMismatch {
+		t.Fatalf("ohne server_version: eingehende Anfrage mit \\v: %v", err)
 	}
 }

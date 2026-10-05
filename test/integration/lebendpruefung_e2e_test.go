@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -141,11 +142,34 @@ func TestE2EReplayLebendpruefungDatabaseSQL(t *testing.T) {
 	lebendLagen(t, sqlAblauf)
 }
 
-// lebendTexte sind Lebendprüfungen nach LH-FA-09.a: Leerraum, Zeilenkommentare
-// bis Zeilen- oder Textende, verschachtelte Blockkommentare.
+// lebendTexte sind Lebendprüfungen nach LH-FA-09.a gegen jede Serverversion:
+// Leerraum ohne \v, Zeilenkommentare bis Zeilen- oder Textende, auch mit \v
+// darin, verschachtelte Blockkommentare.
 var lebendTexte = []string{
-	"", " ", "\t\n\r\f\v", "-- ping", "--", "-- a\r-- b\n", "-- a\fb", "-- a /* b",
-	"/**/", "/* a /* b */ c */", "/* -- */", "/* a */ -- b\n\v",
+	"", " ", "\t\n\r\f", "-- ping", "--", "-- a\r-- b\n", "-- a\fb", "-- a\vb", "-- a /* b",
+	"/**/", "/* a /* b */ c */", "/* -- */", "/* a */ -- b\n",
+}
+
+// vtTexte sind Lebendprüfungen nach LH-FA-09.a nur, wenn \v nach der
+// Serverversion Leerraum ist.
+var vtTexte = []string{"\v", "\t\n\r\f\v", "\v-- ping\v", "/* a */ -- b\n\v"}
+
+// vtAbVersion ist die Hauptversion, ab der \v nach LH-FA-09.a Leerraum ist.
+const vtAbVersion = 17
+
+// hauptversion liest die führenden Ziffern von server_version der Verbindung.
+func hauptversion(t *testing.T, conn *pgconn.PgConn) int {
+	t.Helper()
+	v := conn.ParameterStatus("server_version")
+	n := 0
+	for n < len(v) && v[n] >= '0' && v[n] <= '9' {
+		n++
+	}
+	major, err := strconv.Atoi(v[:n])
+	if err != nil {
+		t.Fatalf("server_version %q: %v", v, err)
+	}
+	return major
 }
 
 // antwortArt beschreibt die Antwort auf die einfache Anfrage text: Fehler mit
@@ -169,8 +193,11 @@ func antwortArt(t *testing.T, conn *pgconn.PgConn, text string) string {
 
 // lebendAblauf führt über listen eine Transaktion mit einem Fehler aus und
 // sendet, wenn mitPruefungen, vor, zwischen und nach ihren Anweisungen jede
-// Lebendprüfung aus lebendTexte; es liefert die Antworten als Text.
-func lebendAblauf(t *testing.T, listen string, mitPruefungen bool) string {
+// Lebendprüfung aus lebendTexte, nach der ersten Anweisung mit vt auch die aus
+// vtTexte; es liefert die Antworten als Text. Vor der ersten Anweisung ist der
+// Verbindung im Replay keine Session zugeordnet, und \v ist dort kein
+// Leerraum (LH-FA-09.a).
+func lebendAblauf(t *testing.T, listen string, mitPruefungen, vt bool) string {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -180,17 +207,21 @@ func lebendAblauf(t *testing.T, listen string, mitPruefungen bool) string {
 	}
 	defer conn.Close(ctx)
 	var b strings.Builder
-	pruefen := func() {
-		for _, text := range lebendTexte {
+	pruefen := func(texte []string) {
+		for _, text := range texte {
 			if mitPruefungen {
 				fmt.Fprintf(&b, "  %q: %s\n", text, antwortArt(t, conn, text))
 			}
 		}
 	}
-	pruefen()
+	nachZuordnung := lebendTexte
+	if vt {
+		nachZuordnung = append(append([]string{}, lebendTexte...), vtTexte...)
+	}
+	pruefen(lebendTexte)
 	for _, anweisung := range []string{"BEGIN", "SELECT 1/0", "ROLLBACK"} {
 		fmt.Fprintf(&b, "%s: %s\n", anweisung, antwortArt(t, conn, anweisung))
-		pruefen()
+		pruefen(nachZuordnung)
 	}
 	return b.String()
 }
@@ -198,7 +229,9 @@ func lebendAblauf(t *testing.T, listen string, mitPruefungen bool) string {
 // Abdeckung: LH-FA-09/Negative — jede Lebendprüfung nach LH-FA-09.a erhält im
 // Replay dieselbe Antwort wie von PostgreSQL, auch in einer Transaktion und
 // nach einem Fehler darin, ohne in der Aufzeichnung zu stehen; PostgreSQL
-// beantwortet jede wie die leere Anfrage. Ein offener Blockkommentar, Leerraum
+// beantwortet jede wie die leere Anfrage. Texte mit \v als Leerraum beantwortet
+// PostgreSQL ab Hauptversion 17 wie die leere Anfrage, davor nicht; das Replay
+// folgt der Version in der Aufzeichnung. Ein offener Blockkommentar, Leerraum
 // außerhalb von ASCII und eine Anweisung nach `\r` sind auch für PostgreSQL
 // keine leere Anfrage; ein einzelnes `;` beantwortet PostgreSQL wie die leere
 // Anfrage, das Replay aber als Abweichung (PGR-E5001, Exit-Code 5).
@@ -216,6 +249,13 @@ func TestE2EReplayLebendpruefungWiePostgres(t *testing.T) {
 			t.Errorf("PostgreSQL beantwortet die Lebendprüfung %q mit %s, die leere Anfrage mit %s", text, got, leer)
 		}
 	}
+	vt := hauptversion(t, pg) >= vtAbVersion
+	for _, text := range vtTexte {
+		if got := antwortArt(t, pg, text); (got == leer) != vt {
+			t.Errorf("PostgreSQL %s beantwortet %q mit %s, die leere Anfrage mit %s; \\v Leerraum laut LH-FA-09.a: %v",
+				pg.ParameterStatus("server_version"), text, got, leer, vt)
+		}
+	}
 	for _, text := range []string{"/* offen", "/* a /* b */", "\u00a0", "-- a\rSELECT 1"} {
 		if got := antwortArt(t, pg, text); got == leer {
 			t.Errorf("PostgreSQL beantwortet %q wie die leere Anfrage: %s", text, got)
@@ -229,13 +269,13 @@ func TestE2EReplayLebendpruefungWiePostgres(t *testing.T) {
 		t.FailNow()
 	}
 
-	sichtPG := lebendAblauf(t, upstream, true)
+	sichtPG := lebendAblauf(t, upstream, true, vt)
 	input := filepath.Join(t.TempDir(), "rec.yaml")
 	rec := startRecorder(t, upstream, input)
-	lebendAblauf(t, rec.listen, false)
+	lebendAblauf(t, rec.listen, false, vt)
 	rec.stop(t, 0)
 	rep := startProzess(t, "replay", "--input", input)
-	got := lebendAblauf(t, rep.listen, true)
+	got := lebendAblauf(t, rep.listen, true, vt)
 	rep.stop(t, 0)
 	if got != sichtPG {
 		t.Fatalf("Replay:\n%s\n--- PostgreSQL:\n%s\n--- stderr:\n%s", got, sichtPG, rep.stderr.String())

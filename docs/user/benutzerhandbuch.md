@@ -459,7 +459,9 @@ Antworten.
   Sie müssen die Lebendprüfung am Treiber deshalb nicht abschalten (bei pgx
   `ShouldPing`). Das gilt für jede Anfrage, die nur aus Leerraum und
   Kommentaren besteht; eine Anfrage mit einer Anweisung, auch ein einzelnes `;`,
-  muss weiter der Aufzeichnung entsprechen. Mitten in einer Folge des
+  muss weiter der Aufzeichnung entsprechen. Einen vertikalen Tabulator zählt die
+  Wiedergabe wie PostgreSQL erst ab Version 17 zum Leerraum, nach der Version der
+  aufgezeichneten Datenbank. Mitten in einer Folge des
   erweiterten Protokolls, vor ihrem `Sync`, ist auch eine Lebendprüfung eine
   Abweichung (`PGR-E5001`). Aufzeichnen und Einspielen behandeln
   Lebendprüfungen wie jede andere Anfrage.
@@ -609,7 +611,7 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-E3000`, `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, oder Sie haben keine Rechte. Prüfen Sie Pfad und Dateirechte. |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Zeichnen Sie erneut auf. |
-| `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt. Zeichnen Sie erneut auf. |
+| `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
 | `PGR-E4000`, `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
