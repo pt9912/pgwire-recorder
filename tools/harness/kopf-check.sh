@@ -12,20 +12,22 @@
 #     jede Kennung dazwischen, im Kopf wie in §1 und §2, auch über einen
 #     Zeilenumbruch im Absatz.
 #   - Gleichheit ist exakt: Haupt- und Unterkennung decken einander nicht.
-#   - Kopf sind die Zeilen, die mit **Bezug:** und **Berührte Spec-Stellen:**
-#     beginnen, vor der ersten Zeile `## `, je mit ihren Folgezeilen bis zur nächsten
-#     Leerzeile; geprüft wird gegen ihre Vereinigung. Eine Leerzeile darf
-#     Leerzeichen und Tabs tragen.
+#   - Kopf sind die Absätze, die mit **Bezug:** und **Berührte Spec-Stellen:**
+#     beginnen, vor der ersten Zeile `## `, je bis zur nächsten Leerzeile; geprüft
+#     wird gegen ihre Vereinigung. Eine Leerzeile darf Leerzeichen und Tabs tragen.
+#     Ein Absatz beginnt nur in der ersten Zeile der Datei oder nach einer
+#     Leerzeile; eine Feldmarke mitten in einer Zeile oder in einer Folgezeile
+#     (etwa direkt nach `# …`, `---` oder einem anderen Feld) ist kein Feld.
 #   - §1 und §2 reichen von der Zeile `## 1.` bzw. `## 2.` bis zur nächsten Zeile
 #     `## `; der Absatz, der mit „Regeln dieser Sektion“ beginnt, zählt nicht.
 #   - Fehlt ein Kopf-Feld oder einer der beiden Abschnitte, ist das ein Befund.
+#   - Ein Plan, der nicht lesbar ist oder an dem awk scheitert, ist genau ein
+#     Befund `<pfad>: Datei: nicht lesbar`, gleich an welcher Position; die übrigen
+#     Pläne werden weiter gelesen.
 #
 # GRENZE. Ob eine Kennung existiert, in welchem Kopf-Feld sie steht und was
 # außerhalb von §1 und §2 steht, prüft das Skript nicht; eine Zeile `## ` in einem
-# Codeblock beendet den Abschnitt. Eine Feldmarke zählt an jedem Zeilenanfang im
-# Kopf, auch mitten in einem Absatz, den ADR-0032 Nr. 5 nennt; ein nicht lesbarer
-# Plan endet je nach Position mit Exit 0 oder 2. Beides liegt beim Architect
-# (Slice-Plan §6, Offen beim Architect).
+# Codeblock beendet den Abschnitt.
 #
 # Aufruf: kopf-check.sh [<wurzel>]
 # Ausgabe: je Befund eine Zeile auf stderr, `<pfad>: <abschnitt>: <befund>`,
@@ -48,7 +50,8 @@ befunde="$(
     [ -d "$ablage/$lc" ] || continue
     find "$ablage/$lc" -mindepth 1 -maxdepth 1 -type f -name 'slice-*.md'
   done | sort | while IFS= read -r plan; do
-    awk -v pfad="$plan" '
+    # Ein Plan, der nicht lesbar ist oder an dem awk scheitert, ist genau ein Befund.
+    if [ -r "$plan" ] && aus="$(awk -v pfad="$plan" '
       function wortzeichen(c) { return c ~ /[A-Za-z0-9_]/ }
       # vorzeichen(s, st) — das Zeichen vor Position st in s, leer am Anfang.
       function vorzeichen(s, st) { return (st > 1) ? substr(s, st - 1, 1) : "" }
@@ -98,9 +101,11 @@ befunde="$(
           next
         }
         if (imkopf) {
-          if (leer) { feld = ""; next }
-          if (index($0, "**Bezug:**") == 1) { feld = "b"; hatbezug = 1 }
-          if (index($0, "**Berührte Spec-Stellen:**") == 1) { feld = "s"; hatstellen = 1 }
+          if (leer) { feld = ""; nachleer = 1; next }
+          # Eine Feldmarke zählt nur am Absatzanfang: erste Zeile der Datei oder nach einer Leerzeile.
+          anfang = (NR == 1 || nachleer); nachleer = 0
+          if (anfang && index($0, "**Bezug:**") == 1) { feld = "b"; hatbezug = 1 }
+          else if (anfang && index($0, "**Berührte Spec-Stellen:**") == 1) { feld = "s"; hatstellen = 1 }
           if (feld != "") kopf = kopf " " $0
           next
         }
@@ -122,7 +127,11 @@ befunde="$(
           for (id in genannt) if (!(id in imk)) befund("§" a, id " fehlt im Kopf")
         }
       }
-    ' "$plan"
+    ' "$plan" 2>/dev/null)"; then
+      [ -z "$aus" ] || printf '%s\n' "$aus"
+    else
+      printf '%s\tDatei\tnicht lesbar\n' "$plan"
+    fi
   done
 )"
 

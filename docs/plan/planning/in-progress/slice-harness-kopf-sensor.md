@@ -112,7 +112,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `tools/harness/kopf-check.sh` | neu | liest Kopf, §1 und §2 jedes Slice-Plans und vergleicht die Kennungs-Mengen |
-| `tools/harness/kopf-check-gegenprobe.sh` | neu | Fehlformen in Temp-Bäumen, wie `make abdeckung-gegenprobe`; Fälle je Nummer von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), dazu die akzeptierten Negative; Nr. 9 in einem Temp-Baum mit Makefile und Fragment: beide Ziele in `GATE_CHECKS`, beide enden über `make` bei rotem Skript mit Exit ≠ 0 |
+| `tools/harness/kopf-check-gegenprobe.sh` | neu | Fehlformen in Temp-Bäumen, wie `make abdeckung-gegenprobe`; Fälle je Nummer von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), dazu die akzeptierten Negative; Nr. 9 in einem Temp-Baum mit Makefile und Fragment: beide Ziele in `GATE_CHECKS`, beide enden über `make` bei rotem Skript mit Exit ≠ 0; Feldmarke nur am Absatzanfang, nicht lesbarer Plan als Befund |
 | `harness/mk/kopf-check.mk` | neu | zwei Ziele, `kopf-check` und `kopf-check-gegenprobe`, beide an `GATE_CHECKS` |
 | `harness/README.md` | update | zwei Zeilen in §Sensors, Bindung [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) |
 | Kopf von fünf Plänen in `open/` (§6 *Bestand*) | update | Bestand gegen den Sensor berichtigt |
@@ -250,8 +250,11 @@ Implementer nicht, er gibt es zurück (`AGENTS.md` §3.12).
   einem lesbaren und als letzter: je Exit 1 mit der Zeile oben, der lesbare Plan
   meldet seine Befunde trotzdem. Läuft die Gegenprobe als root (Datei bleibt
   lesbar), ist der Fall nicht herstellbar: Er meldet das auf stderr und wird
-  übersprungen, ohne die Gegenprobe rot zu machen — laut, nicht still. — **Ausgang:** offen bis Closure
-  (entfällt, wenn Code und Gegenprobe der Vorgabe folgen).
+  übersprungen, ohne die Gegenprobe rot zu machen — laut, nicht still. — **Stand:** umgesetzt;
+  Fälle `nr5-welle-vor-bezug`, `nr5-titel-vor-bezug`, `nr5-linie-vor-bezug`,
+  `nr5-bezug-vor-stellen`, `nr5-mitten-in-zeile`, `nr5-mitten-in-zeile-stellen`,
+  `nr5-erste-zeile`, `nr8-unlesbar-davor`, `nr8-unlesbar-zuletzt`, `nr8-awk-scheitert`
+  (`awk`-Ersatz im `PATH`). — **Ausgang:** entfällt mit Closure (umgesetzt, im Skript verkörpert).
 - **Bereich über eine Absatzgrenze in §1/§2** — das Skript fügt die Absätze eines
   Abschnitts zusammen; `SPEC-013 bis` am Absatzende und `SPEC-015` am Anfang des
   nächsten gelten als Bereich (am 2026-10-05 gegen 1dd6ad6 probiert). Akzeptiertes

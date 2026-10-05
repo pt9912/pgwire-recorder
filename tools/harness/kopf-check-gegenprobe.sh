@@ -44,7 +44,7 @@ neu() {
 # lauf <wurzel> — führt das Skript aus; setzt code, aus (stdout), err (stderr).
 lauf() {
   set +e
-  bash "$skript" "$1" >"$arbeit/out" 2>"$arbeit/err"
+  PATH="${vorpfad:-}$PATH" bash "$skript" "$1" >"$arbeit/out" 2>"$arbeit/err"
   code=$?
   set -e
   aus="$(cat "$arbeit/out")"
@@ -152,6 +152,29 @@ rot nr5-anderes-feld "$w" "$P1: §1: SPEC-004 fehlt im Kopf"
 # Ein Feld nach der ersten Zeile „## “ ist kein Kopf.
 neu; plan "$w/$P1" "—" "—" "SPEC-004" "-" "$(printf '**Berührte Spec-Stellen:** SPEC-004')"
 rot nr5-feld-nach-ueberschrift "$w" "$P1: §1: SPEC-004 fehlt im Kopf"
+# Eine Feldmarke zählt nur am Absatzanfang: erste Zeile der Datei oder nach einer
+# Leerzeile.
+neu; plan "$w/$P1" "—" "—" "x" "-"
+sed -z -i 's/\(\*\*Welle:\*\* ohne Welle\.\)\n\n/\1\n/' "$w/$P1"
+rot nr5-welle-vor-bezug "$w" "$P1: Kopf: Feld Bezug fehlt"
+neu; plan "$w/$P1" "—" "—" "x" "-"
+sed -z -i 's/\n\n\*\*Welle:\*\* ohne Welle\.\n\n/\n/' "$w/$P1"
+rot nr5-titel-vor-bezug "$w" "$P1: Kopf: Feld Bezug fehlt"
+neu; plan "$w/$P1" "—" "—" "x" "-"
+sed -z -i 's/\*\*Welle:\*\* ohne Welle\.\n\n/---\n/' "$w/$P1"
+rot nr5-linie-vor-bezug "$w" "$P1: Kopf: Feld Bezug fehlt"
+neu; plan "$w/$P1" "—" "—" "x" "-"
+sed -z -i 's/\(\*\*Bezug:\*\* —\)\n\n/\1\n/' "$w/$P1"
+rot nr5-bezug-vor-stellen "$w" "$P1: Kopf: Feld Berührte Spec-Stellen fehlt"
+neu; plan "$w/$P1" "—" "—" "x" "-"
+sed -i 's/^\*\*Bezug:\*\*/Feld **Bezug:**/' "$w/$P1"
+rot nr5-mitten-in-zeile "$w" "$P1: Kopf: Feld Bezug fehlt"
+neu; plan "$w/$P1" "—" "—" "x" "-"
+sed -i 's/^\*\*Berührte Spec-Stellen:\*\*/Feld **Berührte Spec-Stellen:**/' "$w/$P1"
+rot nr5-mitten-in-zeile-stellen "$w" "$P1: Kopf: Feld Berührte Spec-Stellen fehlt"
+neu; plan "$w/$P1" "SPEC-004" "—" "SPEC-004" "-"
+sed -i '1,4d' "$w/$P1"
+gruen nr5-erste-zeile "$w"
 
 # --- Nr. 6: §1 und §2 --------------------------------------------------------
 einzeln_gruen nr6-ausserhalb "—" "—" "Nichts." "- [ ] nichts." "SPEC-004 in §3"
@@ -214,6 +237,39 @@ rot nr8-sortiert "$w" \
   "$P/open/slice-z.md: §1: SPEC-002 fehlt im Kopf" \
   "$P/open/slice-z.md: §1: SPEC-009 fehlt im Kopf" \
   "$P/open/slice-z.md: §2: SPEC-009 fehlt im Kopf"
+# Ein nicht lesbarer Plan ist genau ein Befund, gleich an welcher Position; die
+# übrigen Pläne werden weiter gelesen. Als root bleibt eine Datei mit Rechten 000
+# lesbar; dann ist der Fall nicht herstellbar und wird laut übersprungen.
+neu
+plan "$w/$P/open/slice-a.md" "—" "—" "x" "-"
+plan "$w/$P/open/slice-b.md" "—" "—" "SPEC-004" "-"
+chmod 000 "$w/$P/open/slice-a.md"
+if [ -r "$w/$P/open/slice-a.md" ]; then
+  echo "kopf-check-gegenprobe: Fall 'nr8-unlesbar-davor' übersprungen — Datei mit Rechten 000 ist lesbar (root?)" >&2
+else
+  rot nr8-unlesbar-davor "$w" "$P/open/slice-a.md: Datei: nicht lesbar" "$P/open/slice-b.md: §1: SPEC-004 fehlt im Kopf"
+fi
+neu
+plan "$w/$P/open/slice-a.md" "—" "—" "x" "-"
+plan "$w/$P/open/slice-z.md" "—" "—" "x" "-"
+chmod 000 "$w/$P/open/slice-z.md"
+if [ -r "$w/$P/open/slice-z.md" ]; then
+  echo "kopf-check-gegenprobe: Fall 'nr8-unlesbar-zuletzt' übersprungen — Datei mit Rechten 000 ist lesbar (root?)" >&2
+else
+  rot nr8-unlesbar-zuletzt "$w" "$P/open/slice-z.md: Datei: nicht lesbar"
+fi
+# Scheitert awk an einem lesbaren Plan, ist das derselbe Befund (awk-Ersatz im PATH,
+# der an diesem einen Plan eine Fehlermeldung schreibt und mit Exit 2 endet; die
+# Meldung erscheint nicht).
+neu
+mkdir -p "$w/bin"
+printf '#!/usr/bin/env bash\nfor a in "$@"; do case "$a" in *slice-kaputt.md) echo "awk: Lesefehler" >&2; exit 2 ;; esac; done\nexec %s "$@"\n' "$(command -v awk)" > "$w/bin/awk"
+chmod +x "$w/bin/awk"
+plan "$w/$P/open/slice-kaputt.md" "—" "—" "x" "-"
+plan "$w/$P/open/slice-m.md" "—" "—" "SPEC-004" "-"
+vorpfad="$w/bin:"
+rot nr8-awk-scheitert "$w" "$P/open/slice-kaputt.md: Datei: nicht lesbar" "$P/open/slice-m.md: §1: SPEC-004 fehlt im Kopf"
+vorpfad=""
 # Ohne Ablage: Exit 2.
 mkdir -p "$arbeit/ohne-ablage/docs/plan"
 lauf "$arbeit/ohne-ablage"
