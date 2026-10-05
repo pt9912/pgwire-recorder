@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-extended-query.
 
-**Bezug:** [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-06`](../../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0012](../../adr/0012-extended-query-gruppen.md)
+**Bezug:** [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-06`](../../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0012](../../adr/0012-extended-query-gruppen.md), [ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md)
 
-**Berührte Spec-Stellen:** `LH-FA-18.a` · `SPEC-041` · `SPEC-002` · `ARC-002` · `ARC-003` · `ARC-004` · `ARC-006` · `ARC-007`
+**Berührte Spec-Stellen:** `LH-FA-18.a` · `LH-FA-13.a` · `SPEC-041` · `SPEC-002` · `ARC-002` · `ARC-003` · `ARC-004` · `ARC-006` · `ARC-007`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -31,11 +31,17 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Recorder vermittelt `Parse`, `Bind`, `Describe`, `Execute`, `Close`, `Flush` und `Sync` zwischen Client und Upstream und zeichnet sie geordnet auf.
 
-Geliefert: Der Upstream-Port trägt `Send` (Client-Nachrichten einer Gruppe) und `Receive` (nächste Server-Nachrichten), wie `ARC-004` sie für Extended nennt; der Record-Use-Case trägt `ClientMessage`, `AwaitServer` und `ServerMessage`. Der Record-Service gruppiert nach `LH-FA-18.a` und übernimmt jede Interaktion, einfach oder Extended, erst nach `Interaction.Validate`. Der PGWire-Adapter führt die Session als Ereignisschleife (`sitzung`): ein Leser je Client-Nachricht, nach einem `Sync` erst nach dessen `ReadyForQuery` weiter; nach einer gesendeten Gruppe wartet `AwaitServer` nebenher. Die Randformen, die `LH-FA-18.a` nicht regelte, sind dort entschieden (Historienzeile 2026-10-05): späte Server-Nachrichten einer Flush-Gruppe, Herunterfahren mit laufender Interaktion, `Query` in laufender Interaktion, Zielart außer `S`/`P`, Interaktion ohne die Form der Aufzeichnung.
+Geliefert nach [ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md): Der Record-Pfad vermittelt je Session in zwei unabhängigen Richtungen, und der Record-Service führt den Interaktionszustand allein.
+
+- Upstream-Port: `Query` (einfach, synchron), `Send` (Client-Nachrichten einer Gruppe), `Receive` (nächste Server-Nachrichten), `Close`. Am Port steht der Vertrag: `Send` und `Receive` laufen gleichzeitig und blockieren nur an ihrer Richtung; `Close` blockiert nicht und beendet jedes wartende `Send`, `Receive` und `Query` mit einem Fehler.
+- Record-Use-Case: `Query`, `ClientMessage`, `AwaitServer`, `Delivered`, `Shutdown`, `CloseSession`. Beide Richtungen rufen gleichzeitig; `CloseSession` beendet jeden wartenden Aufruf mit `ErrSessionEnded`. Der Service gruppiert nach `LH-FA-18.a`, ordnet Server-Nachrichten der ältesten laufenden Interaktion zu (Pipelining über mehrere `Sync`), übernimmt jede Interaktion erst nach `Interaction.Validate`, entscheidet die Einstufung jedes gemeldeten Endes (`PGR-E4003`, verworfene nicht zugestellte Interaktion) und ob das Herunterfahren wartet. Eine einfache Anfrage nach einem `Sync` wartet, bis dessen Antworten zugestellt sind; sie läuft nie gleichzeitig mit dem Empfang.
+- PGWire-Adapter: im Record `recordSitzung` mit `clientRichtung` und `serverRichtung` als Transport ohne Interaktionszustand; er meldet Client-Nachricht, Verbindungsende, `Terminate`, Schreibfehler zum Client und Herunterfahren. Im Replay `replaySitzung`, synchron.
+- Spezifikation: Randformen in `LH-FA-18.a` (späte Server-Nachrichten einer Flush-Gruppe, Herunterfahren mit laufender Interaktion, `Query` in laufender Interaktion, Zielart außer `S`/`P`, Form der Interaktion, beide Richtungen unabhängig, Ende der Client-Verbindung beim Senden oder Warten) und in `LH-FA-13.a` (schon gelesene Client-Nachricht beim Herunterfahren); Architektur-Sicht §2.3, §4, §4.5, §5.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Replay — `slice-extended-query-replay`. Im Replay-Modus lehnt `sitzung` Extended-Nachrichten mit `PGR-E6001` ab, wie zuvor die Schleife des Adapters.
+- Replay — `slice-extended-query-replay`. Im Replay-Modus lehnt `replaySitzung` Extended-Nachrichten mit `PGR-E6001` ab.
+- `CancelRequest` ohne Schlüssel (Review F-310) — `slice-v1-abschluss-cancel-ohne-schluessel`; betrifft den Protokollrand, nicht Extended Query.
 - Domain-Typen, Formregeln (`Interaction.Validate`) sowie Schreiber und Leser des Formats `yaml` für `type: extended` — geliefert von `slice-extended-query-modell`; dieser Slice bildet die PGWire-Nachrichten auf diese Typen ab.
 - Asynchrone Server-Nachrichten zwischen zwei Interaktionen (etwa `NoticeResponse` ohne Anfrage) — unverändert wie bei einfachen Anfragen: der Recorder liest sie mit der nächsten Interaktion; keine Anforderung regelt sie anders.
 
@@ -66,11 +72,15 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driving/pgwire`, `…/driven/postgres` | update | Neue Nachrichten; Ereignisschleife `sitzung` im PGWire-Adapter |
-| `internal/hexagon/ports/driving`, `…/ports/driven` | update | `ClientMessage`, `AwaitServer`, `ServerMessage`; `Send`, `Receive` (`ARC-004` nennt „je Gruppe senden, Server-Nachrichten liefern“, keine neue Entscheidung) |
-| `internal/hexagon/services` | update | Record-Service: Gruppieren, `Validate` vor dem Übernehmen |
-| `test/integration` | update | pgx im Standardmodus, Pipeline mit Flush- und Sync-Gruppen, Abbruch ohne `Sync` |
-| `spec/spezifikation.md` | update | Randformen in `LH-FA-18.a` |
+| `internal/adapters/driving/pgwire` | update | Neue Nachrichten; `recordSitzung` mit zwei Richtungen, `replaySitzung` |
+| `internal/adapters/driven/postgres` | update | Neue Nachrichten; `Send`, `Receive`, nicht blockierendes `Close` |
+| `internal/hexagon/ports/driving`, `…/ports/driven` | update | Ereignis-Operationen des Record-Use-Case und `Send`/`Receive` mit Gleichzeitigkeits- und Abbruchvertrag ([ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md)) |
+| `internal/hexagon/model` | update | `SessionEnd` als Ereignis der Verbindung, `ErrSessionEnded` |
+| `internal/hexagon/services` | update | Record-Service: Zustand je Session unter eigener Sperre, Gruppieren, Pipelining, `Validate` vor dem Übernehmen, Einstufung des Endes, Herunterfahren |
+| Tests je Schicht | update | Fakes mit begrenztem Puffer (Gegendruck), Abbruchvertrag beider Ports |
+| `test/integration` | update | pgx im Standardmodus, Pipeline mit Flush- und Sync-Gruppen, Abbruch ohne `Sync`, Gegendruck mit großer Ausgabe und großem Parameter, SIGTERM nach Blockade |
+| `spec/spezifikation.md`, `spec/architecture.md` | update | Randformen in `LH-FA-18.a` und `LH-FA-13.a`; Ports, Sequenz, Adapter-Verantwortung, Nebenläufigkeit |
+| `docs/plan/planning/open/slice-v1-abschluss-cancel-ohne-schluessel.md`, `docs/plan/planning/welle-v1-abschluss.md` | new, update | Folge-Slice für F-310 |
 | `docs/user/abdeckung-*.md` | update | `make abdeckung` |
 | `docs/user/benutzerhandbuch.md` | update | Hinweise: einfache Anfrage in laufender Extended-Folge, Beenden mit laufender Folge |
 | `docs/reviews/` | new | Mutationstabelle |
@@ -85,7 +95,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next`: der Slice verlangt mehr als drei Liefer-Punkte — zurück zur Zerlegung.
-- `in-progress` → `open`: Der Upstream-Adapter braucht eine neue Port-Operation — Entscheidung klären.
+- `in-progress` → `open`: Der Upstream-Adapter braucht eine neue Port-Operation — Entscheidung klären. Am 2026-10-05 ausgelöst (Review F-301, F-302: Zuschnitt von `Receive`/`AwaitServer` und Gegendruck); aufgelöst durch [ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md). Der Slice blieb in `in-progress/`.
 
 
 ## 5. Closure-Trigger
@@ -103,15 +113,19 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Asynchrone Nachrichtenfolgen (Pipelining) sind in der Aufzeichnung nicht eindeutig geordnet. Stand: Sync-Gruppen ordnet der Service nach `Sync`/`ReadyForQuery`, und `sitzung` liest nach einem `Sync` erst nach dessen `ReadyForQuery` weiter (`TestExtendedSyncGruppe`, `TestE2ERecordExtendedPipeline`); zeitabhängig bleibt nur die Flush-Gruppe ohne wartenden Client, die `LH-FA-18.a` als Grenze von v1 nennt — **Ausgang:** offen bis Closure.
+- Asynchrone Nachrichtenfolgen (Pipelining) sind in der Aufzeichnung nicht eindeutig geordnet. Stand: Der Service ordnet Server-Nachrichten der ältesten laufenden Interaktion zu, bis deren `ReadyForQuery` eintrifft, auch wenn Client-Nachrichten der nächsten schon übergeben sind (`TestRecordExtendedPipelining`, `TestE2ERecordExtendedPipeline`); zeitabhängig bleibt nur die Flush-Gruppe ohne wartenden Client, die `LH-FA-18.a` als Grenze von v1 nennt — **Ausgang:** offen bis Closure.
 
 - `Interaction.Validate` prüft nicht, ob eine Client-Nachricht nur die Felder ihres Typs trägt; der YAML-Schreiber gibt nur diese aus, ein fremd belegtes Feld fiele beim Schreiben still weg. Ebenso schreibt er `Response.ParamTypes` nur an `parameter_description`; an jeder anderen Antwort fiele es still weg. Stand: Die Abbildungen `toClientMessage` (PGWire-Adapter) und `toResponse` (Upstream-Adapter) belegen nur die Felder des Typs, geprüft per Gleichheit des ganzen Modellwerts (`TestToClientMessage`, `TestExtendedSyncGruppe`, `TestSendUndReceive`); `Validate` selbst prüft es weiterhin nicht (aus `slice-extended-query-modell`) — **Ausgang:** offen bis Closure.
 
 - Der YAML-Schreiber prüft nicht mit `Interaction.Validate`: eine fehlerhaft gruppierte Interaktion (etwa zwei `sync` in einer Gruppe) wird geschrieben und fällt erst beim Laden im Replay als beschädigt auf. Stand: Der Record-Service prüft jede Interaktion, einfach und Extended, mit `Validate`, bevor er sie übernimmt; eine abgelehnte ist `PGR-E6001` (`TestRecordExtendedNichtDarstellbar`). Der Schreiber selbst prüft weiterhin nicht (aus `slice-extended-query-modell`, Review F-292) — **Ausgang:** offen bis Closure.
 
-- Beim Herunterfahren wartet eine Session mit laufender Extended-Interaktion auf deren `ReadyForQuery` (`LH-FA-18.a`, `LH-FA-13.a`); ein Client, der nach einem `Flush` nie `Sync` sendet, hält das Herunterfahren auf, bis er die Verbindung schließt — **Ausgang:** offen bis Closure.
+- Selbstblockade bei großer Gruppe mit großer Ausgabe (Review F-301, HIGH): Das synchrone Senden einer Gruppe hielt den Empfang an; Server und Recorder blockierten sich, und die Session endete weder beim Schließen des Clients noch nach `SIGTERM`. Stand: behoben nach [ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md) mit zwei unabhängigen Richtungen; Belege `TestRecordGegendruck`, `TestExtendedZweiRichtungen`, `TestSendUndReceiveGleichzeitig`, `TestE2ERecordExtendedGegendruck` und `TestE2ERecordExtendedSigtermNachBlockade` (die beiden E2E-Tests sind gegen `5d666db` rot, jetzt grün) — **Ausgang:** offen bis Closure.
 
-- `Send` und `Receive` laufen auf derselben Upstream-Verbindung gleichzeitig; das trägt, weil `pgproto3.Frontend` Schreib- und Lesepuffer getrennt hält (Race-Detector-Lauf grün, kein Gate) — eine andere Bibliotheksversion kann das ändern — **Ausgang:** offen bis Closure.
+- Schon gelesene Client-Nachricht beim Herunterfahren (Review F-305): Entschieden in `LH-FA-13.a`, sie wird verarbeitet; `clientRichtung` verarbeitet jede gelesene Nachricht und prüft das Ende erst beim nächsten Lesen (`TestExtendedHerunterfahren`, „gelesene Anfrage“) — **Ausgang:** offen bis Closure.
+
+- Herunterfahren ohne Obergrenze (Review F-309): Eine Session mit laufender Extended-Interaktion wartet beim Herunterfahren auf deren `ReadyForQuery` (`LH-FA-18.a`, `LH-FA-13.a`); ein Client, der nach einem `Flush` ruht, etwa eine Verbindung in einem Pool, hält den Prozess beliebig lange. Frage an den Validator: Trifft unbegrenztes Warten den Bedarf in CI ([`LH-FA-15`](../../../../spec/lastenheft.md#lh-fa-15--ci-eignung))? — **Ausgang:** weiter offen.
+
+- Gleichzeitigkeit vertraglich am Port: `Send` und `Receive` laufen auf derselben Upstream-Verbindung gleichzeitig, und `Close` beendet beide; der Vertrag steht an `UpstreamSession` und am Record-Use-Case und wird mit Fakes geprüft (`TestSendUndReceiveGleichzeitig`, `TestCloseBeendetWartende`, `TestRecordCloseBeendetWartende`). Er trägt, weil `pgproto3.Frontend` Schreib- und Lesepuffer getrennt hält (Race-Detector-Lauf grün, kein Gate); eine andere Bibliotheksversion kann das ändern — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

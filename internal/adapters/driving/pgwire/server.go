@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -100,7 +101,7 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
 
 	// Endet ctx im Verbindungsaufbau, bricht das Lesen der Startnachricht ab.
-	// Danach wacht sitzung selbst über ctx.
+	// Danach wachen recordSitzung und replaySitzung selbst über ctx.
 	fertig := make(chan struct{})
 	go func() {
 		select {
@@ -136,176 +137,238 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 		return
 	}
 	be.Send(&pgproto3.AuthenticationOk{})
-	if err := s.send(be, responses); err != nil {
-		s.sendFailed(err)
-		s.close(ctx, id, model.EndNormal)
+	sendErr := s.send(be, responses)
+	if s.replayer != nil {
+		if sendErr != nil {
+			s.sendFailed(sendErr)
+			s.closeReplay(ctx, id)
+			return
+		}
+		s.replaySitzung(ctx, conn, be, id)
 		return
 	}
-	s.sitzung(ctx, be, id)
+	if sendErr != nil {
+		s.closeRecord(ctx, id, endBeiSchreibfehler(s, sendErr))
+		return
+	}
+	s.recordSitzung(ctx, conn, be, id)
 }
 
 // eingang ist eine gelesene Client-Nachricht, abgebildet, bevor der Leser die
 // nächste liest (pgproto3 überschreibt die vorige): genau eines von query,
-// terminate, extended oder fremd ist belegt, oder err.
+// terminate, extended oder fremd ist belegt.
 type eingang struct {
 	query     *string
 	terminate bool
 	extended  *model.ClientMessage
 	fremd     error
-	err       error
 }
 
-// ausgang sind Server-Nachrichten einer Extended-Interaktion vom Upstream.
-type ausgang struct {
-	responses []model.Response
-	err       error
-}
-
-// sitzung verarbeitet die Client-Nachrichten einer Session bis zu ihrem Ende.
-//
-// Ein Leser liest je Anforderung genau eine Client-Nachricht; nach einem Sync
-// fordert sitzung die nächste erst an, wenn das ReadyForQuery der Interaktion
-// an den Client gegangen ist (LH-FA-18.a). Hat eine Extended-Interaktion eine
-// Gruppe an den Upstream gesendet, wartet AwaitServer nebenher auf
-// Server-Nachrichten, bis ihr ReadyForQuery eintrifft; Client- und
-// Server-Nachrichten gehen in der Reihenfolge, in der sitzung sie entgegennimmt,
-// an den Record-Use-Case.
-//
-// Endet ctx, endet die Session, sobald keine Extended-Interaktion läuft
-// (LH-FA-13.a). Endet die Client-Verbindung oder kommt Terminate, während eine
-// läuft, ist das PGR-E4003 (LH-FA-18.a).
-func (s *Server) sitzung(ctx context.Context, be *pgproto3.Backend, id model.SessionID) {
-	anfrage := make(chan struct{})
-	clientCh := make(chan eingang, 1)
-	defer close(anfrage)
+// replaySitzung beantwortet die Anfragen einer Replay-Session nacheinander.
+// Endet ctx, bricht das Lesen der nächsten Client-Nachricht ab; eine laufende
+// Anfrage läuft zu Ende. Extended-Nachrichten sind im Replay PGR-E6001.
+func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID) {
+	fertig := make(chan struct{})
+	defer close(fertig)
 	go func() {
-		for range anfrage {
-			msg, err := be.Receive()
-			clientCh <- lese(msg, err)
+		select {
+		case <-ctx.Done():
+			_ = conn.SetReadDeadline(time.Now())
+		case <-fertig:
 		}
 	}()
-	serverCh := make(chan ausgang, 1)
+	defer s.closeReplay(ctx, id)
 
-	var (
-		clientAngefordert, serverAngefordert bool
-		// offen: eine Extended-Interaktion läuft; gesendet: eine ihrer Gruppen
-		// ist an den Upstream gegangen; sync: ihr Sync ist gesendet.
-		offen, gesendet, sync bool
-	)
 	for {
-		if !offen && ctx.Err() != nil {
-			s.close(ctx, id, model.EndNormal)
-			return
-		}
-		if !clientAngefordert && !sync {
-			anfrage <- struct{}{}
-			clientAngefordert = true
-		}
-		if gesendet && !serverAngefordert {
-			serverAngefordert = true
-			go func() {
-				out, err := s.recorder.AwaitServer(context.WithoutCancel(ctx), id)
-				serverCh <- ausgang{out, err}
-			}()
-		}
-		var stopp <-chan struct{}
-		if !offen {
-			stopp = ctx.Done()
-		}
-
-		select {
-		case <-stopp:
-			s.close(ctx, id, model.EndNormal)
-			return
-
-		case a := <-serverCh:
-			serverAngefordert = false
-			if a.err != nil {
-				s.fail(be, a.err)
-				s.close(ctx, id, endFor(a.err))
-				return
-			}
-			abgeschlossen := false
-			for _, r := range a.responses {
-				ende, err := s.recorder.ServerMessage(ctx, id, r)
-				if err != nil {
-					s.fail(be, err)
-					s.close(ctx, id, endFor(err))
-					return
-				}
-				abgeschlossen = abgeschlossen || ende
-			}
-			if err := s.send(be, a.responses); err != nil {
-				s.sendFailed(err)
-				end := endForSend(err)
-				if end == model.EndLost && !abgeschlossen {
-					// Die laufende Interaktion verwirft CloseSession ohnehin;
-					// die vorige hat ihr ReadyForQuery erreicht.
-					end = model.EndNormal
-				}
-				s.close(ctx, id, end)
-				return
-			}
-			if abgeschlossen {
-				offen, gesendet, sync = false, false, false
-			}
-
-		case e := <-clientCh:
-			clientAngefordert = false
-			switch {
-			case e.err != nil:
-				if !verbindungsende(e.err) {
-					s.fail(be, model.Errorf(model.CodeUnsupported, e.err, "Client-Nachricht nicht lesbar"))
-					s.close(ctx, id, model.EndUnsupported)
-					return
-				}
+		msg, err := be.Receive()
+		if err != nil {
+			if verbindungsende(err) || ctx.Err() != nil {
 				// Ende nach einem ReadyForQuery, mit oder ohne Terminate, ist
 				// regulär (LH-FA-02.b).
-				if offen {
-					s.note(model.Errorf(model.CodeConnectionLost, e.err, "Client-Verbindung vor dem ReadyForQuery der Extended-Interaktion beendet"))
-				}
-				s.close(ctx, id, model.EndNormal)
-				return
-			case e.terminate:
-				if offen {
-					s.note(model.Errorf(model.CodeConnectionLost, nil, "Terminate vor dem ReadyForQuery der Extended-Interaktion"))
-				}
-				s.close(ctx, id, model.EndNormal)
-				return
-			case e.query != nil:
-				out, err := s.query(ctx, id, *e.query)
-				if err != nil {
-					s.fail(be, err)
-					s.close(ctx, id, endFor(err))
-					return
-				}
-				if err := s.send(be, out); err != nil {
-					s.sendFailed(err)
-					s.close(ctx, id, endForSend(err))
-					return
-				}
-			case e.extended != nil && s.recorder != nil:
-				if err := s.recorder.ClientMessage(ctx, id, *e.extended); err != nil {
-					s.fail(be, err)
-					s.close(ctx, id, endFor(err))
-					return
-				}
-				offen = true
-				switch e.extended.Type {
-				case model.ClientSync:
-					gesendet, sync = true, true
-				case model.ClientFlush:
-					gesendet = true
-				}
-			default:
-				err := e.fremd
-				if err == nil {
-					err = model.Errorf(model.CodeUnsupported, nil, "Client-Nachricht %s wird im Replay nicht unterstützt", e.extended.Type)
-				}
-				s.fail(be, err)
-				s.close(ctx, id, model.EndUnsupported)
 				return
 			}
+			s.fail(be, model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
+			return
+		}
+		e := lese(msg)
+		switch {
+		case e.query != nil:
+			out, err := s.replayer.Query(ctx, id, *e.query)
+			if err != nil {
+				s.fail(be, err)
+				return
+			}
+			if err := s.send(be, out); err != nil {
+				s.sendFailed(err)
+				return
+			}
+		case e.terminate:
+			return
+		case e.fremd != nil:
+			s.fail(be, e.fremd)
+			return
+		default:
+			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "Client-Nachricht %s wird im Replay nicht unterstützt", e.extended.Type))
+			return
+		}
+	}
+}
+
+// recordSitzung vermittelt eine Record-Session in zwei Richtungen, die
+// unabhängig voneinander blockieren (LH-FA-18.a): clientRichtung liest
+// Client-Nachrichten und übergibt sie dem Record-Use-Case, serverRichtung holt
+// Server-Nachrichten über AwaitServer und schreibt sie an den Client. Beide
+// schreiben an den Client unter schreiben. Den Interaktionszustand und den
+// Grund des Session-Endes führt der Use Case; die Sitzung meldet Ereignisse.
+// Wer zuerst ein Ende meldet, beendet die Session; CloseSession beendet die
+// wartenden Aufrufe der anderen Richtung, und eine Lesefrist bricht das Lesen
+// vom Client ab.
+func (s *Server) recordSitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID) {
+	r := &richtungen{s: s, conn: conn, be: be, id: id, ctx: context.WithoutCancel(ctx)}
+
+	var wg sync.WaitGroup
+	stopp := make(chan struct{})
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		select {
+		case <-ctx.Done():
+			if s.recorder.Shutdown(r.ctx, id) {
+				r.unterbrechen()
+			}
+		case <-stopp:
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		r.serverRichtung()
+	}()
+	r.clientRichtung(ctx)
+	close(stopp)
+	wg.Wait()
+}
+
+// richtungen hält, was beide Richtungen einer Record-Session teilen.
+type richtungen struct {
+	s    *Server
+	conn net.Conn
+	be   *pgproto3.Backend
+	id   model.SessionID
+	ctx  context.Context
+
+	schreiben sync.Mutex
+	beendet   atomic.Bool
+	einmal    sync.Once
+}
+
+// unterbrechen bricht das laufende oder nächste Lesen vom Client ab.
+func (r *richtungen) unterbrechen() {
+	_ = r.conn.SetReadDeadline(time.Now())
+}
+
+// beende meldet das Ende der Session genau einmal.
+func (r *richtungen) beende(end model.SessionEnd) {
+	r.einmal.Do(func() {
+		r.beendet.Store(true)
+		r.s.closeRecord(r.ctx, r.id, end)
+		r.unterbrechen()
+	})
+}
+
+// melde stellt dem Client einen Fehler zu und merkt ihn (LH-FA-13.b).
+func (r *richtungen) melde(err error) {
+	r.schreiben.Lock()
+	defer r.schreiben.Unlock()
+	r.s.fail(r.be, err)
+}
+
+// schreibe schreibt Antworten an den Client und meldet sie danach als
+// zugestellt; endet die Session dabei mit dem Herunterfahren, bricht es das
+// Lesen vom Client ab. Scheitert das Schreiben, beendet es die Session.
+func (r *richtungen) schreibe(rs []model.Response) bool {
+	r.schreiben.Lock()
+	err := r.s.send(r.be, rs)
+	r.schreiben.Unlock()
+	if err != nil {
+		r.beende(endBeiSchreibfehler(r.s, err))
+		return false
+	}
+	if r.s.recorder.Delivered(r.ctx, r.id) {
+		r.unterbrechen()
+	}
+	return true
+}
+
+// fehler beendet die Session nach einem Fehler des Use Case; nach dem Ende der
+// Session ist nichts mehr zu tun.
+func (r *richtungen) fehler(err error) {
+	if errors.Is(err, model.ErrSessionEnded) {
+		return
+	}
+	r.melde(err)
+	r.beende(model.EndFailed)
+}
+
+func (r *richtungen) serverRichtung() {
+	for {
+		rs, err := r.s.recorder.AwaitServer(r.ctx, r.id)
+		if err != nil {
+			r.fehler(err)
+			return
+		}
+		if !r.schreibe(rs) {
+			return
+		}
+	}
+}
+
+// clientRichtung liest Client-Nachrichten, bis die Session endet. Eine
+// Lesefrist nach dem Beginn des Herunterfahrens beendet die Session nur, wenn
+// der Use Case es freigibt; sonst liest sie weiter. Eine schon gelesene
+// Nachricht wird verarbeitet (LH-FA-13.a).
+func (r *richtungen) clientRichtung(ctx context.Context) {
+	for {
+		msg, err := r.be.Receive()
+		if err != nil {
+			switch {
+			case r.beendet.Load():
+			case ctx.Err() != nil && errors.Is(err, os.ErrDeadlineExceeded):
+				if !r.s.recorder.Shutdown(r.ctx, r.id) {
+					_ = r.conn.SetReadDeadline(time.Time{})
+					continue
+				}
+				r.beende(model.EndShutdown)
+			case verbindungsende(err):
+				r.beende(model.EndClosed)
+			default:
+				r.melde(model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
+				r.beende(model.EndUnsupported)
+			}
+			return
+		}
+		e := lese(msg)
+		switch {
+		case e.query != nil:
+			out, err := r.s.recorder.Query(r.ctx, r.id, *e.query)
+			if err != nil {
+				r.fehler(err)
+				return
+			}
+			if !r.schreibe(out) {
+				return
+			}
+		case e.terminate:
+			r.beende(model.EndTerminate)
+			return
+		case e.extended != nil:
+			if err := r.s.recorder.ClientMessage(r.ctx, r.id, *e.extended); err != nil {
+				r.fehler(err)
+				return
+			}
+		default:
+			r.melde(e.fremd)
+			r.beende(model.EndUnsupported)
+			return
 		}
 	}
 }
@@ -314,10 +377,7 @@ func (s *Server) sitzung(ctx context.Context, be *pgproto3.Backend, id model.Ses
 // Client-Nachrichten des Domain Models; eine Zielart von Describe oder Close
 // außer 'S' und 'P' und jede andere Nachricht sind PGR-E6001 (LH-FA-05.e,
 // LH-FA-18.a).
-func lese(msg pgproto3.FrontendMessage, err error) eingang {
-	if err != nil {
-		return eingang{err: err}
-	}
+func lese(msg pgproto3.FrontendMessage) eingang {
 	switch m := msg.(type) {
 	case *pgproto3.Query:
 		sql := m.String
@@ -457,17 +517,24 @@ type abbildungsfehler struct{ err error }
 func (a abbildungsfehler) Error() string { return a.err.Error() }
 func (a abbildungsfehler) Unwrap() error { return a.err }
 
-func endForSend(err error) model.SessionEnd {
+// endBeiSchreibfehler meldet das Ereignis eines gescheiterten Versands an den
+// Client: Eine nicht abbildbare Antwort ist nicht unterstützt und wird als
+// interner Fehler gemerkt; ein Schreibfehler ist EndWriteFailed, und seine
+// Einstufung trifft der Use Case.
+func endBeiSchreibfehler(s *Server, err error) model.SessionEnd {
 	var a abbildungsfehler
 	if errors.As(err, &a) {
+		s.note(a.err)
 		return model.EndUnsupported
 	}
-	return model.EndLost
+	return model.EndWriteFailed
 }
 
-// sendFailed merkt sich einen gescheiterten Versand: Eine nicht abbildbare
-// Antwort ist ein interner Fehler, ein Schreibfehler ein unerwartetes Ende der
-// Client-Verbindung (PGR-E4003).
+// sendFailed merkt sich einen gescheiterten Versand im Replay und im
+// Verbindungsaufbau ohne Session: Eine nicht abbildbare Antwort ist ein
+// interner Fehler, ein Schreibfehler ein unerwartetes Ende der
+// Client-Verbindung (PGR-E4003). Im Record leitet der Use Case die Einstufung
+// aus EndWriteFailed ab (endBeiSchreibfehler).
 func (s *Server) sendFailed(err error) {
 	var a abbildungsfehler
 	if errors.As(err, &a) {
@@ -475,14 +542,6 @@ func (s *Server) sendFailed(err error) {
 		return
 	}
 	s.note(model.Errorf(model.CodeConnectionLost, err, "Antwort nicht an den Client zu senden"))
-}
-
-func endFor(err error) model.SessionEnd {
-	var me *model.Error
-	if errors.As(err, &me) && me.Code == model.CodeUnsupported {
-		return model.EndUnsupported
-	}
-	return model.EndNormal
 }
 
 func (s *Server) open(ctx context.Context, startup map[string]string) (model.SessionID, []model.Response, error) {
@@ -493,22 +552,17 @@ func (s *Server) open(ctx context.Context, startup map[string]string) (model.Ses
 	return s.recorder.OpenSession(ctx, startup)
 }
 
-func (s *Server) query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error) {
-	if s.replayer != nil {
-		return s.replayer.Query(ctx, id, sql)
+// closeReplay beendet eine Replay-Verbindung. Eine unverbrauchte Session ist
+// eine Warnung (PGR-W2001), kein Verbindungsfehler.
+func (s *Server) closeReplay(ctx context.Context, id model.SessionID) {
+	if w := s.replayer.CloseConnection(context.WithoutCancel(ctx), id); w != nil {
+		s.log.Warn(w.Msg, "code", w.Code)
 	}
-	return s.recorder.Query(ctx, id, sql)
 }
 
-// close beendet die Session. Im Replay ist eine unverbrauchte Session eine
-// Warnung (PGR-W2001), kein Verbindungsfehler.
-func (s *Server) close(ctx context.Context, id model.SessionID, end model.SessionEnd) {
-	if s.replayer != nil {
-		if w := s.replayer.CloseConnection(context.WithoutCancel(ctx), id); w != nil {
-			s.log.Warn(w.Msg, "code", w.Code)
-		}
-		return
-	}
+// closeRecord meldet dem Record-Use-Case das Ende der Session und merkt den
+// Fehler, den er daraus ableitet.
+func (s *Server) closeRecord(ctx context.Context, id model.SessionID, end model.SessionEnd) {
 	if err := s.recorder.CloseSession(context.WithoutCancel(ctx), id, end); err != nil {
 		s.note(err)
 	}

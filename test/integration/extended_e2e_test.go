@@ -224,3 +224,117 @@ func TestE2ERecordExtendedAbbruch(t *testing.T) {
 	}
 	laedt(t, output)
 }
+
+// Größen der Gegendruck-Tests: Ausgabe und Parameter übersteigen die Puffer
+// der Verbindungen weit.
+const (
+	zeilenMB    = 32
+	parameterMB = 16
+)
+
+// Abdeckung: LH-FA-18/Happy — Record-Hälfte: Gegendruck in beiden Richtungen:
+// pgx im Standardmodus sendet einen Batch (eine Sync-Gruppe) aus einer Anfrage
+// mit 32 MB Ausgabe und einer mit 16 MB Parameter, und eine Pipeline sendet
+// nach einer Flush-Gruppe mit verzögerter großer Ausgabe ohne Warten eine
+// Sync-Gruppe mit großem Parameter; beides läuft über `record` binnen des
+// Zeitlimits durch, und der Lauf endet mit Exit-Code 0.
+func TestE2ERecordExtendedGegendruck(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+	gross := strings.Repeat("y", parameterMB<<20)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	conn, err := pgx.Connect(ctx, dsn(rec.listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	batch := &pgx.Batch{}
+	batch.Queue("SELECT repeat('x', 1000000) FROM generate_series(1, $1::int)", zeilenMB)
+	batch.Queue("SELECT length($1::text)", gross)
+	br := conn.SendBatch(ctx, batch)
+	rows, err := br.Query()
+	if err != nil {
+		t.Fatalf("Batch, Ausgabe: %v", err)
+	}
+	n := 0
+	for rows.Next() {
+		n++
+	}
+	if rows.Err() != nil || n != zeilenMB {
+		t.Fatalf("Batch, Ausgabe: %d Zeilen, %v", n, rows.Err())
+	}
+	var laenge int
+	if err := br.QueryRow().Scan(&laenge); err != nil || laenge != parameterMB<<20 {
+		t.Fatalf("Batch, Parameter: %d, %v", laenge, err)
+	}
+	if err := br.Close(); err != nil {
+		t.Fatal(err)
+	}
+	_ = conn.Close(ctx)
+
+	pc, err := pgconn.Connect(ctx, dsn(rec.listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := pc.StartPipeline(ctx)
+	p.SendQueryParams("WITH s AS MATERIALIZED (SELECT pg_sleep(1)) SELECT repeat('x', 1000000) FROM s, generate_series(1, 32)", nil, nil, nil, nil)
+	p.SendFlushRequest()
+	if err := p.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	p.SendQueryParams("SELECT length($1::text)", [][]byte{[]byte(gross)}, nil, nil, nil)
+	p.SendPipelineSync()
+	if err := p.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		r, err := p.GetResults()
+		if err != nil {
+			t.Fatalf("Pipeline, Ergebnis %d: %v", i+1, err)
+		}
+		if res := r.(*pgconn.ResultReader).Read(); res.Err != nil {
+			t.Fatalf("Pipeline, Ergebnis %d: %v", i+1, res.Err)
+		}
+	}
+	if _, err := p.GetResults(); err != nil {
+		t.Fatalf("Pipeline, Sync: %v", err)
+	}
+	if err := p.Close(); err != nil {
+		t.Fatal(err)
+	}
+	_ = pc.Close(ctx)
+	rec.stop(t, 0)
+}
+
+// Abdeckung: LH-FA-13/Boundary — liest ein Client die Antworten auf eine große
+// Gruppe nicht und schließt dann die Verbindung, endet die Session, obwohl
+// der Recorder beim Senden an den Server und beim Schreiben an den Client
+// stand; der Lauf endet danach auf SIGTERM mit dem Exit-Code der Klasse
+// Netzwerk (4), weil die Interaktion unvollständig abbrach.
+func TestE2ERecordExtendedSigtermNachBlockade(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	pc, err := pgconn.Connect(ctx, dsn(rec.listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := pc.StartPipeline(ctx)
+	p.SendQueryParams("SELECT repeat('x', 1000000) FROM generate_series(1, 64)", nil, nil, nil, nil)
+	p.SendQueryParams("SELECT length($1::text)", [][]byte{[]byte(strings.Repeat("y", parameterMB<<20))}, nil, nil, nil)
+	p.SendPipelineSync()
+	if err := p.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	// Die Antworten bleiben ungelesen; nach einer Weile staut sich alles.
+	time.Sleep(2 * time.Second)
+	_ = pc.Conn().Close()
+	time.Sleep(500 * time.Millisecond)
+	rec.stop(t, 4)
+	if !strings.Contains(rec.stderr.String(), "PGR-E4003") {
+		t.Fatalf("PGR-E4003 fehlt:\n%s", rec.stderr.String())
+	}
+}

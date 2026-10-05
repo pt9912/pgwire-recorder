@@ -52,6 +52,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 |---|---|---|
 | slice-v1-abschluss-sessions | Mehrere Sessions und Verbindungsfehler | [`LH-FA-12`](../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) |
 | slice-v1-abschluss-protokollrand | Protokollversion und Protokollrand | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
+| slice-v1-abschluss-cancel-ohne-schluessel | CancelRequest ohne Schlüssel | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) |
 | slice-v1-abschluss-anmeldung | Anmeldung des Clients im Record-Modus vermitteln | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
 | slice-v1-abschluss-betrieb | Signale, Schreiben und Konfiguration | [`LH-FA-07`](../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-08`](../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../spec/lastenheft.md#lh-fa-15--ci-eignung), [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
 | slice-v1-abschluss-homebrew | Homebrew-Bereitstellung | [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew) |
@@ -69,7 +70,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - Blockiert: Welle [welle-erster-release](welle-erster-release.md).
 - Wird blockiert von: Welle [welle-replay-semantik](welle-replay-semantik.md).
-- Innerhalb der Welle: `slice-v1-abschluss-einspielen` setzt `slice-v1-abschluss-betrieb` voraus (Signalbehandlung, Konfigurationsdatei); `slice-v1-abschluss-zeitangaben` setzt `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-sqlite-format` voraus; `slice-v1-abschluss-antwortvergleich` setzt `slice-v1-abschluss-einspielen` voraus; `slice-v1-abschluss-tls-client` setzt `slice-v1-abschluss-sessions` voraus (mehrere Verbindungen); `slice-v1-abschluss-container` setzt die übrigen Slices außer `slice-v1-abschluss-homebrew` voraus (Image und Doku bilden den Endstand ab); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` voraus (Release-Artefakte).
+- Innerhalb der Welle: `slice-v1-abschluss-einspielen` setzt `slice-v1-abschluss-betrieb` voraus (Signalbehandlung, Konfigurationsdatei); `slice-v1-abschluss-zeitangaben` setzt `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-sqlite-format` voraus; `slice-v1-abschluss-antwortvergleich` setzt `slice-v1-abschluss-einspielen` voraus; `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` voraus; `slice-v1-abschluss-tls-client` setzt `slice-v1-abschluss-sessions` voraus (mehrere Verbindungen); `slice-v1-abschluss-container` setzt die übrigen Slices außer `slice-v1-abschluss-homebrew` voraus (Image und Doku bilden den Endstand ab); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` voraus (Release-Artefakte).
 
 ## 6. Out-of-Scope für diese Welle
 

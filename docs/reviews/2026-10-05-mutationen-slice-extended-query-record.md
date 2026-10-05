@@ -4,7 +4,7 @@
 
 **Vorgehen:** Jede Mutation einzeln im Arbeitsbaum auf genau eine Textstelle angewandt (E3 und E4: zwei Stellen gemeinsam), danach die Datei aus der Sicherung zurückgeschrieben. M-Zeilen: `go test -count=1` des betroffenen Pakets im gepinnten Go-Image des `Dockerfile` (dasselbe Image wie `make test`). E-Zeilen: `make test-integration`. Ein Kontrolllauf ohne Mutation (`make test`, `make test-integration`) war grün. „Rot“ heißt: der genannte Test schlägt fehl, kein Übersetzungsfehler.
 
-**Stand:** gegen den Code des Commits, der diese Tabelle einführt.
+**Stand:** Erste Runde (M, E1 bis E4) gegen `5d666db`. Zweite Runde (Wiederholung, N, E5) gegen den Umbau nach [ADR-0030](../plan/adr/0030-full-duplex-im-record-pfad.md) (Review F-301 bis F-307), den Commit, der sie einträgt. Mit dem Umbau entfallen `ServerMessage` und die Ereignisschleife `sitzung`; die Zeilen M5, M6, M8b bis M12b treffen Code, den es nicht mehr gibt, und ihre Zusagen prüfen jetzt N-Zeilen (Zuordnung N11/N12, Fehler des Aufrufers `TestRecordExtendedAufruferfehler`, Ende N7/N8/N13 bis N17, Herunterfahren N9/N10/N14).
 
 ## Unit (Record-Service, PGWire-Adapter, Upstream-Adapter)
 
@@ -51,3 +51,42 @@
 ## Ohne Mutation
 
 - Race-Detector (`go test -race -count=30 ./internal/...` im gepinnten Go-Image mit `gcc`), kein Gate: grün. Er fand zwei Datenrennen in Test-Fakes (`fakeUpstream.letzte`, Hilfsfunktion `sende`), beide behoben; im Produktcode keines.
+
+## Zweite Runde (Umbau nach ADR-0030)
+
+Wiederholt gegen den neuen Code, jeweils rot: M1 (zusätzlich `TestRecordGegendruck`, `TestRecordCloseBeendetWartende`), M2, M2c, M3, M4 (Zeitüberschreitung: die Query wartet auf die offene Interaktion, statt abgelehnt zu werden), M7 (in `AwaitServer`; `TestRecordExtendedSyncGruppe`, `TestRecordExtendedPipelining`), M13 bis M23 wie in der ersten Runde.
+
+| # | Zusage | Mutation | Ort | Rot in |
+|---|---|---|---|---|
+| N1 | Empfang beginnt, sobald eine Gruppe an `Send` übergeben ist, nicht erst nach dessen Rückkehr (F-301) | `gesendet` erst nach `Send` setzen | `services/record.go` (`ClientMessage`) | `TestRecordGegendruck` |
+| N1b | `ClientMessage` hält keine Sperre über `Send` | Sperre über `Send` gehalten | `services/record.go` (`ClientMessage`) | `TestRecordGegendruck`, `TestRecordCloseBeendetWartende` |
+| N2 | `CloseSession` weckt jeden Wartenden | `Broadcast` beim Beenden entfernt | `services/record.go` (`CloseSession`) | Zeitüberschreitung in `TestRecordQueryWartetAufExtended` |
+| N3 | `CloseSession` beendet ein am Upstream blockiertes `Send` | Upstream nicht geschlossen | `services/record.go` (`CloseSession`) | `TestRecordCloseBeendetWartende` |
+| N4 | eine einfache Anfrage nach einem `Sync` wartet auf dessen Interaktion | Warten auf laufende Interaktionen entfernt | `services/record.go` (`Query`) | `TestRecordQueryWartetAufExtended`, `TestRecordCloseBeendetWartende` |
+| N5 | … und auf die Zustellung ihres `ReadyForQuery` | Warten auf `empfaengt` entfernt | `services/record.go` (`Query`) | `TestRecordQueryWartetAufExtended` |
+| N6 | eine laufende einfache Anfrage hält das Herunterfahren auf | `einfach` aus `laeuft` entfernt | `services/record.go` (`laeuft`) | `TestRecordHerunterfahren` |
+| N7 | Verbindungsende oder Terminate während einer laufenden Interaktion ist PGR-E4003 (F-304: Entscheidung im Service) | Einstufung abgeschaltet | `services/record.go` (`CloseSession`) | `TestRecordExtendedEnde` |
+| N8 | bei einem Schreibfehler entfällt die nicht zugestellte Interaktion | nichts verworfen | `services/record.go` (`CloseSession`) | `TestRecordExtendedEnde`, `TestRecordSessionVerbindungsende` |
+| N9 | Herunterfahren wartet auf eine laufende Interaktion | `laeuft` nicht geprüft | `services/record.go` (`Shutdown`) | `TestRecordHerunterfahren` |
+| N9b | … und auf die Zustellung des letzten `ReadyForQuery` | `unzugestellt` nicht geprüft | `services/record.go` (`Shutdown`) | `TestRecordHerunterfahren` |
+| N10 | `Delivered` gibt das Ende nur beim Herunterfahren frei | `herunterfahren` nicht geprüft | `services/record.go` (`Delivered`) | `TestRecordHerunterfahren` |
+| N11 | nach einem `Sync` beginnt die nächste Client-Nachricht eine neue Interaktion (Pipelining) | an die synchronisierte Interaktion angehängt | `services/record.go` (`ClientMessage`) | `TestRecordExtendedPipelining` |
+| N12 | Server-Nachrichten gehören der ältesten laufenden Interaktion | der jüngsten zugeordnet | `services/record.go` (`AwaitServer`) | `TestRecordExtendedPipelining` |
+| N13 | der Adapter meldet jede geschriebene Antwort als zugestellt | `Delivered` nicht gerufen | `pgwire/server.go` (`schreibe`) | `TestExtendedSyncGruppe`, `TestExtendedZweiRichtungen`, `TestExtendedHerunterfahren`, `TestQueryUndTerminate` |
+| N14 | eine Lesefrist beim Herunterfahren beendet nur, wenn der Use Case es freigibt | sofort `EndShutdown` | `pgwire/server.go` (`clientRichtung`) | `TestExtendedHerunterfahren` (laufende Interaktion) |
+| N15 | beide Richtungen laufen gleichzeitig (F-301) | Server-Richtung erst nach der Client-Richtung gestartet | `pgwire/server.go` (`recordSitzung`) | `TestExtendedZweiRichtungen`, `TestExtendedSyncGruppe`, `TestExtendedFlush`, `TestExtendedEreignisse`, `TestExtendedHerunterfahren` |
+| N16 | endet die Session aus der Server-Richtung, endet auch das Lesen vom Client | Lesefrist beim Beenden nicht gesetzt | `pgwire/server.go` (`beende`) | `TestExtendedEreignisse` (Fehler aus AwaitServer) |
+| N17 | ein Schreibfehler wird als `EndWriteFailed` gemeldet | als `EndClosed` gemeldet | `pgwire/server.go` (`endBeiSchreibfehler`) | `TestExtendedEreignisse`, `TestAntwortNichtZugestellt` |
+| N18 | `Close` blockiert nicht hinter einem wartenden `Send` | `Lock` statt `TryLock` | `postgres/upstream.go` (`Close`) | `TestCloseBeendetWartende` |
+| N19 | `Send` und `Receive` laufen gleichzeitig | `Receive` nimmt die Schreibsperre | `postgres/upstream.go` (`Receive`) | `TestSendUndReceiveGleichzeitig` |
+| N20 | `Close` beendet wartendes `Send` und `Receive` | Verbindung nicht geschlossen | `postgres/upstream.go` (`Close`) | `TestCloseBeendetWartende` |
+
+**Grün gebliebene Mutationen, Code bereinigt:** N5 und N6 in ihrer ersten Fassung (`unzugestellt > 0` im Warten von `Query`; `einfach` im Warten von `AwaitServer`) und `!empfaengt` in `Shutdown` blieben grün, weil andere Bedingungen sie abdecken: `empfaengt` hält `Query` bis zur Zustellung, und `AwaitServer` braucht eine laufende Extended-Interaktion, die nur dieselbe Richtung beginnt, die gerade in `Query` steht. Die drei Bedingungen sind entfernt; der Kommentar an `Query` nennt den Grund. N9b blieb zuerst grün; `TestRecordHerunterfahren` prüft seither `Shutdown` vor der Zustellung.
+
+| # | Zusage | Mutation | Rot in |
+|---|---|---|---|
+| E5 | ein Batch mit großer Ausgabe und großem Parameter läuft durch; nach dem Schließen eines Clients mit blockierter Gruppe endet der Prozess auf SIGTERM (F-301) | wie N1 | `TestE2ERecordExtendedGegendruck` (Zeitüberschreitung), `TestE2ERecordExtendedSigtermNachBlockade` (endet nicht nach SIGTERM) |
+
+**Gegenprobe gegen `5d666db`:** In einer Kopie von `5d666db` mit den neuen E2E-Tests sind `TestE2ERecordExtendedGegendruck` (Zeitüberschreitung nach 60 s) und `TestE2ERecordExtendedSigtermNachBlockade` („Recorder endet nicht nach SIGTERM“) rot; mit dem Umbau grün.
+
+**Race-Detector** (`go test -race -count=30 ./internal/...`, kein Gate) nach dem Umbau: grün.

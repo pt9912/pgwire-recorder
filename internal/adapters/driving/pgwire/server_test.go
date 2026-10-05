@@ -3,6 +3,7 @@ package pgwire
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -16,6 +17,12 @@ import (
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
 
+// fakeRecorder bildet den Record-Use-Case nach. ereignisse protokolliert die
+// Aufrufe in ihrer Reihenfolge: „q:<sql>“, „c:<typ>“, „zugestellt“,
+// „shutdown“ und „ende:<grund>“. AwaitServer liefert die Folgen aus server und
+// wartet sonst bis CloseSession (dann ErrSessionEnded); ein geschlossener Kanal
+// server ist PGR-E4003. halt[typ] lässt ClientMessage für diesen Typ warten, bis
+// der Kanal geschlossen ist oder CloseSession läuft.
 type fakeRecorder struct {
 	mu           sync.Mutex
 	opened       int
@@ -23,41 +30,29 @@ type fakeRecorder struct {
 	err          error
 	aufbauFehler bool
 
-	// ereignisse protokolliert ClientMessage („c:<typ>“), ServerMessage
-	// („s:<typ>“) und CloseSession („ende“) in Aufrufreihenfolge; client trägt
-	// die übergebenen Client-Nachrichten. AwaitServer liefert die Folgen aus
-	// server der Reihe nach; ein geschlossener Kanal ist PGR-E4003.
-	ereignisse []string
-	client     []model.ClientMessage
-	server     chan []model.Response
-	// serverErr liefert ServerMessage für diesen Typ als Fehler.
-	serverErr map[model.ResponseType]error
+	ereignisse      []string
+	client          []model.ClientMessage
+	server          chan []model.Response
+	halt            map[model.ClientMessageType]chan struct{}
+	queryHalt       chan struct{}
+	clientErr       error
+	closeErr        error
+	shutdownEndet   bool
+	zugestelltEndet bool
+
+	zuEin sync.Once
+	zuCh  chan struct{}
 }
 
-func (f *fakeRecorder) ClientMessage(_ context.Context, _ model.SessionID, m model.ClientMessage) error {
+func (f *fakeRecorder) zu() chan struct{} {
+	f.zuEin.Do(func() { f.zuCh = make(chan struct{}) })
+	return f.zuCh
+}
+
+func (f *fakeRecorder) protokolliere(e string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.ereignisse = append(f.ereignisse, "c:"+string(m.Type))
-	f.client = append(f.client, m)
-	return nil
-}
-
-func (f *fakeRecorder) AwaitServer(context.Context, model.SessionID) ([]model.Response, error) {
-	out, ok := <-f.server
-	if !ok {
-		return nil, model.Errorf(model.CodeConnectionLost, nil, "Upstream weg")
-	}
-	return out, nil
-}
-
-func (f *fakeRecorder) ServerMessage(_ context.Context, _ model.SessionID, r model.Response) (bool, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if err := f.serverErr[r.Type]; err != nil {
-		return false, err
-	}
-	f.ereignisse = append(f.ereignisse, "s:"+string(r.Type))
-	return r.Type == model.ResponseReadyForQuery, nil
+	f.ereignisse = append(f.ereignisse, e)
 }
 
 func (f *fakeRecorder) protokoll() string {
@@ -83,6 +78,10 @@ func (f *fakeRecorder) OpenSession(context.Context, map[string]string) (model.Se
 }
 
 func (f *fakeRecorder) Query(_ context.Context, _ model.SessionID, sql string) ([]model.Response, error) {
+	f.protokolliere("q:" + sql)
+	if f.queryHalt != nil {
+		<-f.queryHalt
+	}
 	return []model.Response{
 		{Type: model.ResponseRowDescription, Columns: []model.Column{{Name: "a", TypeOID: 25, TypeSize: -1, TypeModifier: -1}, {Name: "b", TypeOID: 25, TypeSize: -1, TypeModifier: -1}}},
 		{Type: model.ResponseDataRow, Values: []model.Value{{Bytes: []byte("x")}, {Null: true}}},
@@ -91,12 +90,62 @@ func (f *fakeRecorder) Query(_ context.Context, _ model.SessionID, sql string) (
 	}, nil
 }
 
-func (f *fakeRecorder) CloseSession(_ context.Context, _ model.SessionID, end model.SessionEnd) error {
+func (f *fakeRecorder) ClientMessage(_ context.Context, _ model.SessionID, m model.ClientMessage) error {
+	f.mu.Lock()
+	f.ereignisse = append(f.ereignisse, "c:"+string(m.Type))
+	f.client = append(f.client, m)
+	halt := f.halt[m.Type]
+	err := f.clientErr
+	f.mu.Unlock()
+	if halt != nil {
+		select {
+		case <-halt:
+		case <-f.zu():
+			return model.ErrSessionEnded
+		}
+	}
+	return err
+}
+
+func (f *fakeRecorder) AwaitServer(context.Context, model.SessionID) ([]model.Response, error) {
+	select {
+	case out, ok := <-f.server:
+		if !ok {
+			return nil, model.Errorf(model.CodeConnectionLost, nil, "Upstream weg")
+		}
+		return out, nil
+	case <-f.zu():
+		return nil, model.ErrSessionEnded
+	}
+}
+
+func (f *fakeRecorder) Delivered(context.Context, model.SessionID) bool {
+	f.protokolliere("zugestellt")
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	return f.zugestelltEndet
+}
+
+func (f *fakeRecorder) Shutdown(context.Context, model.SessionID) bool {
+	f.protokolliere("shutdown")
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.shutdownEndet
+}
+
+func (f *fakeRecorder) CloseSession(_ context.Context, _ model.SessionID, end model.SessionEnd) error {
+	f.mu.Lock()
 	f.ends = append(f.ends, end)
-	f.ereignisse = append(f.ereignisse, "ende")
-	return nil
+	f.ereignisse = append(f.ereignisse, fmt.Sprintf("ende:%d", end))
+	err := f.closeErr
+	f.mu.Unlock()
+	f.zuEin.Do(func() { f.zuCh = make(chan struct{}) })
+	select {
+	case <-f.zuCh:
+	default:
+		close(f.zuCh)
+	}
+	return err
 }
 
 func (f *fakeRecorder) lastEnd(t *testing.T) model.SessionEnd {
@@ -184,8 +233,8 @@ func TestSSLUndGSSMitN(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-02/Happy — eine Anfrage geht an den Use Case, die Antworten
-// gehen in Reihenfolge und Inhalt unverändert an den Client; Terminate beendet
-// die Session regulär.
+// gehen in Reihenfolge und Inhalt unverändert an den Client und werden danach
+// als zugestellt gemeldet; Terminate meldet das Ende EndTerminate.
 func TestQueryUndTerminate(t *testing.T) {
 	rec := &fakeRecorder{}
 	client, _ := verbinde(t, rec)
@@ -224,8 +273,11 @@ func TestQueryUndTerminate(t *testing.T) {
 	}
 	fe.Send(&pgproto3.Terminate{})
 	_ = fe.Flush()
-	if end := rec.lastEnd(t); end != model.EndNormal {
+	if end := rec.lastEnd(t); end != model.EndTerminate {
 		t.Fatalf("Session-Ende: %v", end)
+	}
+	if got := rec.protokoll(); got != "q:SELECT 'x', NULL zugestellt ende:1" {
+		t.Fatalf("Protokoll %q", got)
 	}
 }
 
@@ -378,14 +430,14 @@ func TestFehlerantwortImAufbau(t *testing.T) {
 	}
 }
 
-// Trennt der Client nach ReadyForQuery ohne Terminate, endet die Session
-// regulär, und der Lauf merkt sich keinen Fehler (LH-FA-02.b).
+// Trennt der Client ohne Terminate, meldet der Adapter EndClosed; einen
+// Fehler merkt er nur, wenn der Use Case einen liefert (LH-FA-02.b).
 func TestEndeOhneTerminate(t *testing.T) {
 	rec := &fakeRecorder{}
 	client, s := verbinde(t, rec)
 	startup(t, pgproto3.NewFrontend(client, client))
 	client.Close()
-	if end := rec.lastEnd(t); end != model.EndNormal {
+	if end := rec.lastEnd(t); end != model.EndClosed {
 		t.Fatalf("Session-Ende: %v", end)
 	}
 	if s.FirstErrorCode() != "" {
@@ -393,17 +445,18 @@ func TestEndeOhneTerminate(t *testing.T) {
 	}
 }
 
-// Erreicht die Antwort einer Anfrage den Client nicht, endet die Session mit
-// EndLost und PGR-E4003 (LH-FA-02.b).
+// Erreicht die Antwort einer Anfrage den Client nicht, meldet der Adapter
+// EndWriteFailed und merkt den Fehler, den der Use Case daraus ableitet
+// (LH-FA-02.b).
 func TestAntwortNichtZugestellt(t *testing.T) {
-	rec := &fakeRecorder{}
+	rec := &fakeRecorder{closeErr: model.Errorf(model.CodeConnectionLost, nil, "Antwort nicht zugestellt")}
 	client, s := verbinde(t, rec)
 	fe := pgproto3.NewFrontend(client, client)
 	startup(t, fe)
 	fe.Send(&pgproto3.Query{String: "SELECT 1"})
 	_ = fe.Flush()
 	client.Close()
-	if end := rec.lastEnd(t); end != model.EndLost {
+	if end := rec.lastEnd(t); end != model.EndWriteFailed {
 		t.Fatalf("Session-Ende: %v", end)
 	}
 	if s.FirstErrorCode() != model.CodeConnectionLost {

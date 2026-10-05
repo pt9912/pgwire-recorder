@@ -15,6 +15,13 @@ type Upstream interface {
 }
 
 // UpstreamSession ist eine offene Verbindung zum Server.
+//
+// Gleichzeitigkeit: Send und Receive dürfen gleichzeitig laufen; jedes
+// blockiert nur an seiner Richtung (Send, solange der Server nicht liest;
+// Receive, solange er nichts sendet). Query läuft nie gleichzeitig mit Send oder
+// Receive, und von jeder Operation läuft höchstens ein Aufruf. Close darf
+// jederzeit laufen, blockiert nicht an einem Server, der nicht liest, und
+// beendet ein wartendes Send, Receive oder Query mit einem Fehler.
 type UpstreamSession interface {
 	// Query sendet eine einfache Anfrage und liefert die Antworten bis
 	// einschließlich ReadyForQuery.
@@ -24,9 +31,7 @@ type UpstreamSession interface {
 	Send(ctx context.Context, msgs []model.ClientMessage) error
 	// Receive wartet auf die nächste Server-Nachricht einer Extended-Interaktion
 	// und liefert sie zusammen mit den Nachrichten, die schon dahinter empfangen
-	// sind, höchstens bis einschließlich ReadyForQuery. Receive darf gleichzeitig
-	// mit Send und Close laufen, nicht mit Query oder einem zweiten Receive;
-	// Close beendet es mit einem Fehler.
+	// sind, höchstens bis einschließlich ReadyForQuery.
 	Receive(ctx context.Context) ([]model.Response, error)
 	Close() error
 }

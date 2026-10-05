@@ -33,7 +33,7 @@
 | [0027](0027-yaml-bibliothek.md) | YAML-Bibliothek go.yaml.in/yaml/v3 | Accepted | [`LH-QA-06`](../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats) |
 | [0028](0028-abdeckung-je-anforderung-und-pfad.md) | Abdeckung je Anforderung und Pfad | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
 | [0029](0029-benannte-welle-kennungen-im-commit-hook.md) | Benannte Welle-Kennungen im Commit-Hook | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
-| [0030](0030-full-duplex-im-record-pfad.md) | Full-Duplex im Record-Pfad mit Zustand im Record-Service | Proposed | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
+| [0030](0030-full-duplex-im-record-pfad.md) | Full-Duplex im Record-Pfad mit Zustand im Record-Service | Accepted | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
 
 ## Konventionen
 
@@ -58,4 +58,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) | ersetzt [0021](0021-vergleichsregeln-beim-einspielen.md) mit gleicher Entscheidung und genauerem Text; gilt damit für die Teilersetzung der Fehlerregel von [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) bei `--compare-responses` und ergänzt [0020](0020-antwortvergleich-beim-einspielen.md) |
 | [0023](0023-antwortvergleich-entscheidung.md) | ersetzt [0022](0022-vergleichsregeln-beim-einspielen-praezisiert.md) und trägt nur die Entscheidung; die Einzelregeln stehen in der Spezifikation; für die Teilersetzung der Fehlerregel von [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) bei `--compare-responses` und die Ergänzung von [0020](0020-antwortvergleich-beim-einspielen.md) gilt diese ADR |
 | [0029](0029-benannte-welle-kennungen-im-commit-hook.md) | ergänzt [0025](0025-benannte-slice-kennungen-im-commit-hook.md) um die Namen vorhandener Wellen |
-| [0030](0030-full-duplex-im-record-pfad.md) | (Proposed) ergänzt [0004](0004-postgresql-upstream-ist-driven-adapter.md) um den Gegendruck im Zuschnitt der Record-Ports und [0003](0003-pgwire-server-ist-driving-adapter.md) um die Grenze zwischen Transportmechanik im Adapter und Interaktionszustand im Service; die Gruppen-Semantik von [0012](0012-extended-query-gruppen.md) bleibt unverändert |
+| [0030](0030-full-duplex-im-record-pfad.md) | ergänzt [0004](0004-postgresql-upstream-ist-driven-adapter.md) um den Gegendruck im Zuschnitt der Record-Ports und [0003](0003-pgwire-server-ist-driving-adapter.md) um die Grenze zwischen Transportmechanik im Adapter und Interaktionszustand im Service; die Gruppen-Semantik von [0012](0012-extended-query-gruppen.md) bleibt unverändert |

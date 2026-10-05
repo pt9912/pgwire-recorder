@@ -18,7 +18,7 @@ type fakeUpstream struct {
 }
 
 func (f *fakeUpstream) Open(context.Context, map[string]string) (driven.UpstreamSession, []model.Response, error) {
-	session := &fakeSession{err: f.queryErr}
+	session := neueFakeSession(f.queryErr)
 	f.mu.Lock()
 	f.letzte = session
 	f.mu.Unlock()
@@ -28,16 +28,32 @@ func (f *fakeUpstream) Open(context.Context, map[string]string) (driven.Upstream
 	}, nil
 }
 
+// fakeSession ist eine Upstream-Session ohne Server: Send sammelt die
+// Gruppen, Receive liefert die Folgen aus empfang der Reihe nach und wartet,
+// solange keine bereitsteht. Close beendet ein wartendes Receive mit PGR-E4003.
 type fakeSession struct {
-	err error
-	// gesendet sammelt je Send die gesendeten Client-Nachrichten; empfang
-	// liefert Receive der Reihe nach.
+	err     error
+	mu      sync.Mutex
 	gesendet [][]model.ClientMessage
-	empfang  [][]model.Response
-	sendErr  error
+	empfang chan []model.Response
+	sendErr error
+	zuEin   sync.Once
+	zu      chan struct{}
+	// queryLaeuft meldet den Beginn einer Query, die danach bis queryHalt wartet;
+	// beide sind nil, wenn Query nicht wartet.
+	queryLaeuft chan struct{}
+	queryHalt   chan struct{}
+}
+
+func neueFakeSession(err error) *fakeSession {
+	return &fakeSession{err: err, empfang: make(chan []model.Response, 16), zu: make(chan struct{})}
 }
 
 func (f *fakeSession) Query(_ context.Context, sql string) ([]model.Response, error) {
+	if f.queryHalt != nil {
+		f.queryLaeuft <- struct{}{}
+		<-f.queryHalt
+	}
 	if f.err != nil && sql == "FEHLER" {
 		return nil, f.err
 	}
@@ -51,6 +67,8 @@ func (f *fakeSession) Query(_ context.Context, sql string) ([]model.Response, er
 }
 
 func (f *fakeSession) Send(_ context.Context, msgs []model.ClientMessage) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if f.sendErr != nil {
 		return f.sendErr
 	}
@@ -58,16 +76,25 @@ func (f *fakeSession) Send(_ context.Context, msgs []model.ClientMessage) error 
 	return nil
 }
 
-func (f *fakeSession) Receive(context.Context) ([]model.Response, error) {
-	if len(f.empfang) == 0 {
-		return nil, model.Errorf(model.CodeConnectionLost, nil, "nichts mehr")
-	}
-	out := f.empfang[0]
-	f.empfang = f.empfang[1:]
-	return out, nil
+func (f *fakeSession) gruppen() [][]model.ClientMessage {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.gesendet
 }
 
-func (f *fakeSession) Close() error { return nil }
+func (f *fakeSession) Receive(context.Context) ([]model.Response, error) {
+	select {
+	case out := <-f.empfang:
+		return out, nil
+	case <-f.zu:
+		return nil, model.Errorf(model.CodeConnectionLost, nil, "Upstream geschlossen")
+	}
+}
+
+func (f *fakeSession) Close() error {
+	f.zuEin.Do(func() { close(f.zu) })
+	return nil
+}
 
 type fakeRepo struct {
 	mu     sync.Mutex
@@ -116,6 +143,7 @@ func session(t *testing.T, s *RecordService, queries ...string) model.SessionID 
 		if _, err := s.Query(ctx, id, q); err != nil {
 			t.Fatalf("Query %q: %v", q, err)
 		}
+		s.Delivered(ctx, id)
 	}
 	return id
 }
@@ -126,7 +154,7 @@ func session(t *testing.T, s *RecordService, queries ...string) model.SessionID 
 func TestRecordSessionMitInteraktionen(t *testing.T) {
 	s, repo := neu(t, &fakeUpstream{})
 	id := session(t, s, "SELECT 1", "SELECT 2")
-	if err := s.CloseSession(context.Background(), id, model.EndNormal); err != nil {
+	if err := s.CloseSession(context.Background(), id, model.EndClosed); err != nil {
 		t.Fatal(err)
 	}
 	rec := repo.last(t)
@@ -150,7 +178,7 @@ func TestRecordSessionMitInteraktionen(t *testing.T) {
 func TestRecordSessionOhneAnfrage(t *testing.T) {
 	s, repo := neu(t, &fakeUpstream{})
 	id := session(t, s)
-	if err := s.CloseSession(context.Background(), id, model.EndNormal); err != nil {
+	if err := s.CloseSession(context.Background(), id, model.EndClosed); err != nil {
 		t.Fatal(err)
 	}
 	if len(repo.writes) != 0 {
@@ -184,7 +212,7 @@ func TestRecordSessionNichtUnterstuetzt(t *testing.T) {
 		if _, err := s.Query(context.Background(), id, "FEHLER"); err == nil {
 			t.Fatal("Fehler erwartet")
 		}
-		if err := s.CloseSession(context.Background(), id, model.EndNormal); err != nil {
+		if err := s.CloseSession(context.Background(), id, model.EndFailed); err != nil {
 			t.Fatal(err)
 		}
 		if len(repo.writes) != 0 {
@@ -194,14 +222,18 @@ func TestRecordSessionNichtUnterstuetzt(t *testing.T) {
 }
 
 // Erreicht die Antwort der letzten Interaktion den
-// Client nicht, entfällt diese Interaktion; die vorherigen bleiben. Ein
-// Abbruch des Upstreams vor ReadyForQuery nimmt die Interaktion nicht auf.
+// Client nicht (EndWriteFailed), entfällt diese Interaktion, die vorherigen
+// bleiben, und das Ende ist PGR-E4003. Ein Abbruch des Upstreams vor
+// ReadyForQuery nimmt die Interaktion nicht auf.
 func TestRecordSessionVerbindungsende(t *testing.T) {
 	t.Run("Antwort nicht zugestellt", func(t *testing.T) {
 		s, repo := neu(t, &fakeUpstream{})
-		id := session(t, s, "SELECT 1", "SELECT 2")
-		if err := s.CloseSession(context.Background(), id, model.EndLost); err != nil {
+		id := session(t, s, "SELECT 1")
+		if _, err := s.Query(context.Background(), id, "SELECT 2"); err != nil {
 			t.Fatal(err)
+		}
+		if err := s.CloseSession(context.Background(), id, model.EndWriteFailed); codeOf(err) != model.CodeConnectionLost {
+			t.Fatalf("Fehler: %v", err)
 		}
 		got := repo.last(t).Sessions[0].Interactions
 		if len(got) != 1 || got[0].Request.SQL != "SELECT 1" {
@@ -214,7 +246,7 @@ func TestRecordSessionVerbindungsende(t *testing.T) {
 		if _, err := s.Query(context.Background(), id, "FEHLER"); err == nil {
 			t.Fatal("Fehler erwartet")
 		}
-		if err := s.CloseSession(context.Background(), id, model.EndNormal); err != nil {
+		if err := s.CloseSession(context.Background(), id, model.EndFailed); err != nil {
 			t.Fatal(err)
 		}
 		got := repo.last(t).Sessions[0].Interactions
@@ -243,7 +275,8 @@ func TestRecordGleichzeitigeSessions(t *testing.T) {
 			if _, err := s.Query(ctx, id, fmt.Sprintf("SELECT %d", i)); err != nil {
 				t.Error(err)
 			}
-			if err := s.CloseSession(ctx, id, model.EndNormal); err != nil {
+			s.Delivered(ctx, id)
+			if err := s.CloseSession(ctx, id, model.EndClosed); err != nil {
 				t.Error(err)
 			}
 		}(i)

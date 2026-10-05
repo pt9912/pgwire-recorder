@@ -2,9 +2,10 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
+	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
@@ -69,14 +70,25 @@ func (u *Upstream) Open(ctx context.Context, startup map[string]string) (driven.
 	}
 }
 
+// session ist eine Verbindung zum Server. schreiben hält den Schreibpuffer des
+// Frontends für Query, Send und das Terminate von Close; der Lesepuffer gehört
+// dem einen laufenden Query oder Receive. Das Frontend hält beide Puffer
+// getrennt, darum laufen Send und Receive gleichzeitig.
 type session struct {
-	conn net.Conn
-	fe   *pgproto3.Frontend
+	conn     net.Conn
+	fe       *pgproto3.Frontend
+	schreiben sync.Mutex
 }
 
+// terminateFrist begrenzt das Senden von Terminate in Close.
+const terminateFrist = 100 * time.Millisecond
+
 func (s *session) Query(ctx context.Context, sql string) ([]model.Response, error) {
+	s.schreiben.Lock()
 	s.fe.Send(&pgproto3.Query{String: sql})
-	if err := s.fe.Flush(); err != nil {
+	err := s.fe.Flush()
+	s.schreiben.Unlock()
+	if err != nil {
 		return nil, model.Errorf(model.CodeConnectionLost, err, "Anfrage an den Upstream nicht zu senden")
 	}
 	var responses []model.Response
@@ -97,9 +109,10 @@ func (s *session) Query(ctx context.Context, sql string) ([]model.Response, erro
 }
 
 // Send bildet die Client-Nachrichten auf PGWire ab und sendet sie in einem
-// Schreibvorgang. Send und Receive berühren getrennte Puffer des Frontends
-// (Schreibpuffer und Lesepuffer); darum dürfen sie gleichzeitig laufen.
+// Schreibvorgang; es blockiert, solange der Server nicht liest.
 func (s *session) Send(_ context.Context, msgs []model.ClientMessage) error {
+	s.schreiben.Lock()
+	defer s.schreiben.Unlock()
 	for _, m := range msgs {
 		msg, err := toFrontendMessage(m)
 		if err != nil {
@@ -134,11 +147,18 @@ func (s *session) Receive(context.Context) ([]model.Response, error) {
 	}
 }
 
+// Close sendet Terminate nur, wenn gerade kein Send oder Query schreibt, und
+// höchstens terminateFrist lang; ein Fehler dabei ist ohne Folge, denn die
+// Verbindung endet ohnehin. Das Schließen der Verbindung beendet ein wartendes
+// Send, Receive oder Query mit einem Fehler.
 func (s *session) Close() error {
-	s.fe.Send(&pgproto3.Terminate{})
-	flushErr := s.fe.Flush()
-	closeErr := s.conn.Close()
-	return errors.Join(flushErr, closeErr)
+	if s.schreiben.TryLock() {
+		_ = s.conn.SetWriteDeadline(time.Now().Add(terminateFrist))
+		s.fe.Send(&pgproto3.Terminate{})
+		_ = s.fe.Flush()
+		s.schreiben.Unlock()
+	}
+	return s.conn.Close()
 }
 
 func toResponse(msg pgproto3.BackendMessage) (model.Response, error) {

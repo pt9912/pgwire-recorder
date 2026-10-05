@@ -10,33 +10,46 @@ import (
 // Upstream und zeichnet ihre Interaktionen auf. Die Signaturen tragen nur
 // Typen des Domain Models, damit der Record-Service den Port erfüllt, ohne ihn
 // zu importieren (architecture.md §2).
+//
+// Der Driving Adapter betreibt je Session zwei Richtungen: Client → Server ruft
+// Query, ClientMessage und Delivered; Server → Client ruft AwaitServer und
+// Delivered. Aufrufe der beiden Richtungen dürfen für dieselbe Session
+// gleichzeitig laufen. Den Zustand der Interaktionen führt allein der Use Case;
+// der Adapter meldet Ereignisse und führt aus, was zurückkommt. CloseSession
+// beendet jeden wartenden Aufruf der Session mit model.ErrSessionEnded, und
+// jeder spätere Aufruf liefert ihn ebenso.
 type Recorder interface {
 	// OpenSession baut für eine Client-Verbindung die Upstream-Session auf.
 	// Die Antworten des Verbindungsaufbaus gehen unverändert an den Client;
 	// endet der Aufbau mit einer Fehlerantwort, ist die Kennung 0.
 	OpenSession(ctx context.Context, startup map[string]string) (model.SessionID, []model.Response, error)
 	// Query leitet eine einfache Anfrage weiter und liefert die Serverantworten
-	// bis einschließlich ReadyForQuery. Die Interaktion gilt als abgeschlossen;
-	// erreicht ihre Antwort den Client nicht, endet die Session mit EndLost.
+	// bis einschließlich ReadyForQuery. Laufen Extended-Interaktionen, deren
+	// Sync schon gesendet ist, wartet Query, bis ihre Antworten zugestellt sind.
+	// Danach gehen die Antworten an den Client, und der Adapter meldet Delivered.
 	Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error)
-
 	// ClientMessage übernimmt eine Client-Nachricht einer Extended-Interaktion
-	// in Ankunftsreihenfolge (LH-FA-18.a); mit Flush oder Sync geht ihre Gruppe
-	// an den Upstream. Nach einem Sync nimmt die Session erst wieder eine
-	// Client-Nachricht an, wenn ServerMessage die Interaktion abgeschlossen hat.
+	// in Ankunftsreihenfolge (LH-FA-18.a); mit Flush oder Sync sendet es ihre
+	// Gruppe an den Upstream und blockiert dabei nur, solange der Upstream nicht
+	// liest.
 	ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) error
-	// AwaitServer wartet auf die nächsten Server-Nachrichten einer
-	// Extended-Interaktion; es ändert die Aufzeichnung nicht und darf
-	// gleichzeitig mit ClientMessage laufen. Jede gelieferte Nachricht geht
-	// danach einzeln an ServerMessage, bevor sie an den Client geht.
+	// AwaitServer wartet, bis eine Gruppe gesendet ist, liest die nächsten
+	// Server-Nachrichten vom Upstream und ordnet sie ihren Gruppen zu. Der
+	// Adapter schreibt sie an den Client und meldet danach Delivered, bevor er
+	// AwaitServer erneut ruft.
 	AwaitServer(ctx context.Context, id model.SessionID) ([]model.Response, error)
-	// ServerMessage ordnet eine Server-Nachricht der Gruppe zu, die gerade
-	// Antworten aufnimmt. abgeschlossen meldet das ReadyForQuery, mit dem die
-	// Interaktion Teil der Session wurde; erreicht es den Client nicht, endet die
-	// Session mit EndLost.
-	ServerMessage(ctx context.Context, id model.SessionID, r model.Response) (abgeschlossen bool, err error)
-
-	// CloseSession beendet die Session aus dem genannten Grund (model.SessionEnd).
-	// Eine nicht abgeschlossene Extended-Interaktion wird nie übernommen.
+	// Delivered meldet, dass die zuletzt gelieferten Antworten (aus Query oder
+	// AwaitServer) beim Client sind. endet sagt, dass die Session herunterfährt
+	// und keine Interaktion mehr läuft: der Adapter beendet sie dann mit
+	// EndShutdown.
+	Delivered(ctx context.Context, id model.SessionID) (endet bool)
+	// Shutdown meldet den Beginn des Herunterfahrens. endet sagt, dass keine
+	// Interaktion läuft und der Adapter die Session mit EndShutdown beenden
+	// kann; sonst meldet Delivered das spätere Ende.
+	Shutdown(ctx context.Context, id model.SessionID) (endet bool)
+	// CloseSession beendet die Session mit dem gemeldeten Ereignis
+	// (model.SessionEnd) und schließt den Upstream. Der Fehler nennt einen
+	// Verbindungsfehler, den der Use Case aus dem Ereignis ableitet (etwa
+	// PGR-E4003), und einen Fehler beim Schreiben der Aufzeichnung.
 	CloseSession(ctx context.Context, id model.SessionID, end model.SessionEnd) error
 }

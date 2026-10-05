@@ -1,0 +1,2 @@
+**Vorgang:** slice-extended-query-record
+**Fund:** Gleichzeitigkeits- und Abbruchzusagen der neuen Ports ohne fangenden Test: `Close` beendet ein wartendes `Receive`, `Send` und `Receive` laufen gleichzeitig, `CloseSession` beendet ein wartendes `AwaitServer`, kein zusätzliches `AwaitServer` nach dem `ReadyForQuery` (Review F-303, Mutationen R1, R2); dazu fehlte der Fall einer großen Gruppe mit großer Ausgabe ganz (F-301).

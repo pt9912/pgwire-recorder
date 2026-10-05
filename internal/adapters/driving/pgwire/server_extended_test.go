@@ -2,6 +2,8 @@ package pgwire
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -18,9 +20,11 @@ import (
 
 // verbindeExtended startet den Handler im Record-Modus mit einem Recorder, der
 // Server-Nachrichten aus seinem Kanal liefert.
-func verbindeExtended(t *testing.T, ctx context.Context) (net.Conn, *pgproto3.Frontend, *fakeRecorder, *Server) {
+func verbindeExtended(t *testing.T, ctx context.Context, rec *fakeRecorder) (net.Conn, *pgproto3.Frontend, *Server) {
 	t.Helper()
-	rec := &fakeRecorder{server: make(chan []model.Response, 4)}
+	if rec.server == nil {
+		rec.server = make(chan []model.Response, 4)
+	}
 	client, serverSeite := net.Pipe()
 	s := NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	go s.handle(ctx, serverSeite)
@@ -28,7 +32,7 @@ func verbindeExtended(t *testing.T, ctx context.Context) (net.Conn, *pgproto3.Fr
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 	fe := pgproto3.NewFrontend(client, client)
 	startup(t, fe)
-	return client, fe, rec, s
+	return client, fe, s
 }
 
 // sendeMu hält den Schreibpuffer des Frontends von Send bis zum Ende des
@@ -48,13 +52,13 @@ func sende(fe *pgproto3.Frontend, msgs ...pgproto3.FrontendMessage) {
 	}()
 }
 
-// warteAuf wartet, bis das Protokoll des Recorders mit want endet.
+// warteAuf wartet, bis das Protokoll des Recorders want enthält.
 func warteAuf(t *testing.T, rec *fakeRecorder, want string) {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Second)
-	for !strings.HasSuffix(rec.protokoll(), want) {
+	for !strings.Contains(rec.protokoll(), want) {
 		if time.Now().After(deadline) {
-			t.Fatalf("Protokoll %q endet nicht mit %q", rec.protokoll(), want)
+			t.Fatalf("Protokoll %q enthält %q nicht", rec.protokoll(), want)
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
@@ -74,13 +78,15 @@ func empfange(t *testing.T, fe *pgproto3.Frontend, n int) []string {
 	return typen
 }
 
-// Abdeckung: LH-FA-18/Happy — Record-Hälfte: die Nachrichten einer Sync-Gruppe gehen in
-// Ankunftsreihenfolge an den Use Case, jede mit genau den Feldern ihres Typs;
-// die Server-Nachrichten gehen in Reihenfolge an den Client. Eine ohne Warten
-// nachgeschickte Gruppe erreicht den Use Case erst nach dem ReadyForQuery der
-// ersten (Pipelining).
+func endeName(e model.SessionEnd) string { return fmt.Sprintf("ende:%d", e) }
+
+// Abdeckung: LH-FA-18/Happy — Record-Hälfte: die Client-Nachrichten gehen in
+// Ankunftsreihenfolge an den Use Case, jede mit genau den Feldern ihres Typs,
+// auch die ohne Warten nach dem Sync gesendeten; die Server-Nachrichten gehen
+// in Reihenfolge an den Client und werden danach als zugestellt gemeldet.
 func TestExtendedSyncGruppe(t *testing.T) {
-	_, fe, rec, s := verbindeExtended(t, context.Background())
+	rec := &fakeRecorder{}
+	_, fe, s := verbindeExtended(t, context.Background(), rec)
 	sende(fe,
 		&pgproto3.Parse{Name: "s1", Query: "SELECT $1, $2, $3", ParameterOIDs: []uint32{23, 25, 25}},
 		&pgproto3.Bind{DestinationPortal: "p", PreparedStatement: "s1", ParameterFormatCodes: []int16{0}, Parameters: [][]byte{[]byte("1"), nil, {}}, ResultFormatCodes: []int16{1}},
@@ -90,16 +96,14 @@ func TestExtendedSyncGruppe(t *testing.T) {
 		&pgproto3.Close{ObjectType: 'S', Name: "s1"},
 		&pgproto3.Sync{},
 	)
-	warteAuf(t, rec, "c:sync")
-	time.Sleep(50 * time.Millisecond)
-	if got := rec.protokoll(); got != "c:parse c:bind c:describe c:execute c:sync" {
-		t.Fatalf("vor dem ReadyForQuery übergeben: %q", got)
-	}
+	warteAuf(t, rec, "c:parse c:bind c:describe c:execute c:sync c:close c:sync")
 	want := []model.ClientMessage{
 		{Type: model.ClientParse, Statement: "s1", SQL: "SELECT $1, $2, $3", ParamTypes: []uint32{23, 25, 25}},
 		{Type: model.ClientBind, Portal: "p", Statement: "s1", ParamFormats: []int16{0}, Params: []model.Value{{Bytes: []byte("1")}, {Null: true}, {Bytes: []byte{}}}, ResultFormats: []int16{1}},
 		{Type: model.ClientDescribe, Target: model.TargetPortal, Name: "p"},
 		{Type: model.ClientExecute, Portal: "p", MaxRows: 5},
+		{Type: model.ClientSync},
+		{Type: model.ClientClose, Target: model.TargetStatement, Name: "s1"},
 		{Type: model.ClientSync},
 	}
 	rec.mu.Lock()
@@ -119,28 +123,42 @@ func TestExtendedSyncGruppe(t *testing.T) {
 	if got := strings.Join(empfange(t, fe, 6), " "); got != "ParseComplete BindComplete RowDescription DataRow PortalSuspended ReadyForQuery" {
 		t.Fatalf("an den Client: %s", got)
 	}
-	warteAuf(t, rec, "s:ready_for_query c:close c:sync")
 	rec.server <- []model.Response{{Type: model.ResponseCloseComplete}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}}
 	if got := strings.Join(empfange(t, fe, 2), " "); got != "CloseComplete ReadyForQuery" {
 		t.Fatalf("an den Client: %s", got)
 	}
-	rec.mu.Lock()
-	closeMsg := rec.client[5]
-	rec.mu.Unlock()
-	if !reflect.DeepEqual(closeMsg, model.ClientMessage{Type: model.ClientClose, Target: model.TargetStatement, Name: "s1"}) {
-		t.Fatalf("Close: %#v", closeMsg)
-	}
+	warteAuf(t, rec, "zugestellt zugestellt zugestellt")
 	sende(fe, &pgproto3.Terminate{})
-	if end := rec.lastEnd(t); end != model.EndNormal || s.FirstErrorCode() != "" {
+	if end := rec.lastEnd(t); end != model.EndTerminate || s.FirstErrorCode() != "" {
 		t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
 	}
 }
 
-// Abdeckung: LH-FA-18/Happy — Record-Hälfte: nach einem Flush gehen die Server-Nachrichten
-// an den Client, ohne dass ein Sync folgt; die nächste Client-Nachricht
-// erreicht den Use Case nach ihnen.
+// Abdeckung: LH-FA-18/Happy — Record-Hälfte: die beiden Richtungen blockieren
+// unabhängig: solange der Use Case beim Senden einer Gruppe wartet (der Server
+// liest nicht), gehen Server-Nachrichten an den Client, und weitere
+// Client-Nachrichten warten nicht auf das Lesen der Antworten.
+func TestExtendedZweiRichtungen(t *testing.T) {
+	halt := make(chan struct{})
+	rec := &fakeRecorder{halt: map[model.ClientMessageType]chan struct{}{model.ClientSync: halt}}
+	_, fe, _ := verbindeExtended(t, context.Background(), rec)
+	sende(fe, &pgproto3.Parse{Query: "SELECT 1"}, &pgproto3.Bind{}, &pgproto3.Execute{}, &pgproto3.Sync{})
+	warteAuf(t, rec, "c:sync")
+	rec.server <- []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}}
+	if got := strings.Join(empfange(t, fe, 2), " "); got != "ParseComplete BindComplete" {
+		t.Fatalf("an den Client: %s", got)
+	}
+	warteAuf(t, rec, "zugestellt")
+	close(halt)
+	rec.server <- []model.Response{{Type: model.ResponseCommandComplete, Tag: "SELECT 1"}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+	empfange(t, fe, 2)
+}
+
+// Abdeckung: LH-FA-18/Happy — Record-Hälfte: nach einem Flush gehen die
+// Server-Nachrichten an den Client, ohne dass ein Sync folgt.
 func TestExtendedFlush(t *testing.T) {
-	_, fe, rec, _ := verbindeExtended(t, context.Background())
+	rec := &fakeRecorder{}
+	_, fe, _ := verbindeExtended(t, context.Background(), rec)
 	sende(fe, &pgproto3.Parse{Name: "s1", Query: "SELECT $1"}, &pgproto3.Describe{ObjectType: 'S', Name: "s1"}, &pgproto3.Flush{})
 	warteAuf(t, rec, "c:flush")
 	rec.server <- []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseParameterDescription, ParamTypes: []uint32{23}}, {Type: model.ResponseNoData}}
@@ -162,59 +180,42 @@ func TestExtendedFlush(t *testing.T) {
 	if !reflect.DeepEqual(oids, []uint32{23}) {
 		t.Fatalf("ParameterDescription: %v", oids)
 	}
-	sende(fe, &pgproto3.Sync{})
-	warteAuf(t, rec, "c:sync")
-	rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
-	empfange(t, fe, 1)
-	want := "c:parse c:describe c:flush s:parse_complete s:parameter_description s:no_data c:sync s:ready_for_query"
-	if got := rec.protokoll(); got != want {
-		t.Fatalf("Protokoll %q", got)
-	}
 }
 
-// Abdeckung: LH-FA-13/Negative — endet die Client-Verbindung
-// oder kommt Terminate, bevor das ReadyForQuery der laufenden
-// Extended-Interaktion verarbeitet ist, ist das PGR-E4003; nach dem
-// ReadyForQuery ist das Ende regulär. Erreicht das ReadyForQuery den Client
-// nicht, endet die Session mit EndLost, eine frühere Server-Nachricht mit
-// EndNormal; ein Abbruch des Upstreams ist PGR-E4003.
-func TestExtendedAbbruch(t *testing.T) {
+// Abdeckung: LH-FA-13/Negative — der Adapter meldet, was an der Verbindung
+// geschah, und merkt den Fehler, den der Use Case daraus ableitet:
+// Verbindungsende EndClosed, Terminate EndTerminate, ein Schreibfehler zum
+// Client EndWriteFailed, ein Fehler aus AwaitServer geht als FATAL an den Client
+// und endet mit EndFailed; danach schließt der Adapter die Verbindung, auch wenn
+// die Client-Richtung gerade liest. Jede Session endet genau einmal.
+func TestExtendedEreignisse(t *testing.T) {
+	verloren := model.Errorf(model.CodeConnectionLost, nil, "vom Use Case")
 	cases := []struct {
 		name     string
 		ablauf   func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder)
 		wantEnd  model.SessionEnd
 		wantCode string
 	}{
-		{"Verbindungsende nach Parse", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
+		{"Verbindungsende", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
 			sende(fe, &pgproto3.Parse{Query: "SELECT 1"})
 			warteAuf(t, rec, "c:parse")
 			client.Close()
-		}, model.EndNormal, model.CodeConnectionLost},
-		{"Terminate nach Flush", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
+		}, model.EndClosed, model.CodeConnectionLost},
+		{"Terminate", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
 			sende(fe, &pgproto3.Parse{Query: "SELECT 1"}, &pgproto3.Flush{})
 			warteAuf(t, rec, "c:flush")
 			sende(fe, &pgproto3.Terminate{})
-		}, model.EndNormal, model.CodeConnectionLost},
-		{"Verbindungsende nach ReadyForQuery", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
-			sende(fe, &pgproto3.Sync{})
-			warteAuf(t, rec, "c:sync")
-			rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
-			empfange(t, fe, 1)
-			client.Close()
-		}, model.EndNormal, ""},
-		{"ReadyForQuery nicht zugestellt", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
+		}, model.EndTerminate, model.CodeConnectionLost},
+		{"Schreibfehler, während ClientMessage wartet", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
+			rec.mu.Lock()
+			rec.halt = map[model.ClientMessageType]chan struct{}{model.ClientSync: make(chan struct{})}
+			rec.mu.Unlock()
 			sende(fe, &pgproto3.Sync{})
 			warteAuf(t, rec, "c:sync")
 			client.Close()
 			rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
-		}, model.EndLost, model.CodeConnectionLost},
-		{"frühere Server-Nachricht nicht zugestellt", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
-			sende(fe, &pgproto3.Parse{Query: "SELECT 1"}, &pgproto3.Sync{})
-			warteAuf(t, rec, "c:sync")
-			client.Close()
-			rec.server <- []model.Response{{Type: model.ResponseParseComplete}}
-		}, model.EndNormal, model.CodeConnectionLost},
-		{"Upstream bricht ab", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
+		}, model.EndWriteFailed, model.CodeConnectionLost},
+		{"Fehler aus AwaitServer", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
 			sende(fe, &pgproto3.Sync{})
 			warteAuf(t, rec, "c:sync")
 			close(rec.server)
@@ -222,30 +223,46 @@ func TestExtendedAbbruch(t *testing.T) {
 			if !strings.Contains(e.Message, model.CodeConnectionLost) {
 				t.Fatalf("ErrorResponse: %+v", e)
 			}
-		}, model.EndNormal, model.CodeConnectionLost},
+			// Die Client-Richtung endet mit: der Adapter schließt die Verbindung.
+			if _, err := fe.Receive(); !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+				t.Fatalf("Verbindung nach dem Ende nicht geschlossen: %v", err)
+			}
+		}, model.EndFailed, model.CodeConnectionLost},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			client, fe, rec, s := verbindeExtended(t, context.Background())
+			rec := &fakeRecorder{}
+			if c.wantEnd != model.EndFailed {
+				rec.closeErr = verloren
+			}
+			client, fe, s := verbindeExtended(t, context.Background(), rec)
 			c.ablauf(t, client, fe, rec)
 			if end := rec.lastEnd(t); end != c.wantEnd {
 				t.Fatalf("Session-Ende %v, erwartet %v", end, c.wantEnd)
 			}
+			time.Sleep(20 * time.Millisecond)
 			if got := s.FirstErrorCode(); got != c.wantCode {
 				t.Fatalf("erster Fehler %q, erwartet %q", got, c.wantCode)
+			}
+			rec.mu.Lock()
+			n := len(rec.ends)
+			rec.mu.Unlock()
+			if n != 1 {
+				t.Fatalf("%d Session-Enden gemeldet", n)
 			}
 		})
 	}
 }
 
-// Abdeckung: LH-FA-06/Negative — ein Describe mit einer
-// anderen Zielart als 'S' oder 'P', eine Server-Nachricht, die der Use Case
-// als nicht unterstützt ablehnt, und eine Extended-Nachricht im Replay-Modus
-// beenden die Verbindung mit PGR-E6001 (SQLSTATE 0A000); im Record-Modus endet
-// die Session mit EndUnsupported.
+// Abdeckung: LH-FA-06/Negative — ein Describe mit einer anderen Zielart als 'S'
+// oder 'P', ein Fehler des Use Case zu einer Client-Nachricht und eine
+// Extended-Nachricht im Replay-Modus beenden die Verbindung mit PGR-E6001
+// (SQLSTATE 0A000); im Record-Modus meldet der Adapter EndUnsupported
+// beziehungsweise EndFailed.
 func TestExtendedNichtUnterstuetzt(t *testing.T) {
 	t.Run("Zielart", func(t *testing.T) {
-		client, fe, rec, s := verbindeExtended(t, context.Background())
+		rec := &fakeRecorder{}
+		client, fe, s := verbindeExtended(t, context.Background(), rec)
 		go func() { _, _ = client.Write([]byte{'D', 0, 0, 0, 6, 'X', 0}) }()
 		e := fehlerantwort(t, fe)
 		if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) {
@@ -258,17 +275,15 @@ func TestExtendedNichtUnterstuetzt(t *testing.T) {
 			t.Fatalf("an den Use Case übergeben: %s", rec.protokoll())
 		}
 	})
-	t.Run("Server-Nachricht abgelehnt", func(t *testing.T) {
-		_, fe, rec, s := verbindeExtended(t, context.Background())
-		rec.serverErr = map[model.ResponseType]error{model.ResponseReadyForQuery: model.Errorf(model.CodeUnsupported, nil, "Form")}
+	t.Run("Fehler des Use Case", func(t *testing.T) {
+		rec := &fakeRecorder{clientErr: model.Errorf(model.CodeUnsupported, nil, "Form")}
+		_, fe, s := verbindeExtended(t, context.Background(), rec)
 		sende(fe, &pgproto3.Sync{})
-		warteAuf(t, rec, "c:sync")
-		rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
 		e := fehlerantwort(t, fe)
 		if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) {
 			t.Fatalf("ErrorResponse: %+v", e)
 		}
-		if end := rec.lastEnd(t); end != model.EndUnsupported || s.FirstErrorCode() != model.CodeUnsupported {
+		if end := rec.lastEnd(t); end != model.EndFailed || s.FirstErrorCode() != model.CodeUnsupported {
 			t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
 		}
 	})
@@ -289,35 +304,64 @@ func TestExtendedNichtUnterstuetzt(t *testing.T) {
 	})
 }
 
-// Abdeckung: LH-FA-13/Boundary — endet der Lauf, während eine
-// Extended-Interaktion läuft, endet die Session erst nach deren ReadyForQuery,
-// ohne Verbindungsfehler; eine ruhende Session endet sofort (LH-FA-13.a).
+// Abdeckung: LH-FA-13/Boundary — beim Herunterfahren fragt der Adapter den Use
+// Case: gibt er das Ende frei, endet die Session mit EndShutdown; sonst liest
+// der Adapter weiter, bis Delivered das Ende freigibt. Eine Anfrage, die beim
+// Beginn schon gelesen ist, wird noch beantwortet (LH-FA-13.a).
 func TestExtendedHerunterfahren(t *testing.T) {
 	t.Run("laufende Interaktion", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		_, fe, rec, s := verbindeExtended(t, ctx)
+		rec := &fakeRecorder{}
+		_, fe, s := verbindeExtended(t, ctx, rec)
 		sende(fe, &pgproto3.Parse{Query: "SELECT 1"})
 		warteAuf(t, rec, "c:parse")
 		cancel()
+		warteAuf(t, rec, "shutdown")
 		time.Sleep(50 * time.Millisecond)
 		sende(fe, &pgproto3.Bind{}, &pgproto3.Execute{}, &pgproto3.Sync{})
 		warteAuf(t, rec, "c:sync")
+		if strings.Contains(rec.protokoll(), "ende") {
+			t.Fatalf("Session vor dem ReadyForQuery beendet: %s", rec.protokoll())
+		}
+		rec.mu.Lock()
+		rec.zugestelltEndet = true
+		rec.shutdownEndet = true
+		rec.mu.Unlock()
 		rec.server <- []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}}
 		empfange(t, fe, 3)
-		if end := rec.lastEnd(t); end != model.EndNormal || s.FirstErrorCode() != "" {
+		if end := rec.lastEnd(t); end != model.EndShutdown || s.FirstErrorCode() != "" {
 			t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
 		}
-		if got := rec.protokoll(); !strings.HasSuffix(got, "s:ready_for_query ende") {
+		if got := rec.protokoll(); !strings.HasSuffix(got, "zugestellt shutdown "+endeName(model.EndShutdown)) {
 			t.Fatalf("Protokoll %q", got)
 		}
 	})
 	t.Run("ruhend", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
-		_, _, rec, s := verbindeExtended(t, ctx)
+		rec := &fakeRecorder{shutdownEndet: true}
+		_, _, s := verbindeExtended(t, ctx, rec)
 		cancel()
-		if end := rec.lastEnd(t); end != model.EndNormal || s.FirstErrorCode() != "" {
+		if end := rec.lastEnd(t); end != model.EndShutdown || s.FirstErrorCode() != "" {
 			t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+		}
+	})
+	t.Run("gelesene Anfrage", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		halt := make(chan struct{})
+		rec := &fakeRecorder{queryHalt: halt, shutdownEndet: true, zugestelltEndet: true}
+		_, fe, _ := verbindeExtended(t, ctx, rec)
+		sende(fe, &pgproto3.Query{String: "SELECT 1"})
+		warteAuf(t, rec, "q:SELECT 1")
+		cancel()
+		warteAuf(t, rec, "shutdown")
+		close(halt)
+		if got := strings.Join(empfange(t, fe, 4), " "); got != "RowDescription DataRow CommandComplete ReadyForQuery" {
+			t.Fatalf("an den Client: %s", got)
+		}
+		if end := rec.lastEnd(t); end != model.EndShutdown {
+			t.Fatalf("Ende %v", end)
 		}
 	})
 }

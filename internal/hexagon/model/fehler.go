@@ -1,6 +1,9 @@
 package model
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // Meldungscodes (SPEC-034), soweit dieser Stand sie erzeugt. Die erste Ziffer
 // ist der Exit-Code der Fehlerklasse.
@@ -76,3 +79,7 @@ type Warning struct {
 func Warnf(code string, format string, args ...any) *Warning {
 	return &Warning{Code: code, Msg: fmt.Sprintf(format, args...)}
 }
+
+// ErrSessionEnded liefert ein Aufruf des Record-Use-Case, der auf eine schon
+// beendete Session trifft oder durch ihr Beenden abgebrochen wird.
+var ErrSessionEnded = errors.New("Session beendet")

@@ -1,6 +1,6 @@
 # Architektur — pgwire-recorder
 
-**Status:** Aktiv. **Letzte Änderung:** 2026-10-04.
+**Status:** Aktiv. **Letzte Änderung:** 2026-10-05.
 
 **Rolle:** Sicht-Stratum — *keine* eigenen Anforderungen, derivativ. Regeln:
 Baseline-Regelwerk `modul-03-spec.md` §Ziel-Form: Architektur-Sicht.
@@ -179,16 +179,19 @@ Begriffen definiert und reichen weder rohe Connections noch Typen der
 PGWire-Bibliothek durch.
 
 **Inbound (`ARC-003`).** Der PGWire-Adapter übernimmt keine Record- oder
-Replay-Fachlogik.
+Replay-Fachlogik. Er führt keinen eigenen Interaktionszustand, meldet dem Use
+Case die Ereignisse der Verbindung (Client-Nachricht, Verbindungsende,
+`Terminate`, Schreibfehler zum Client, Herunterfahren) und führt aus, was der Use
+Case zurückgibt.
 
 | Port | Verantwortung |
 |---|---|
-| Record-Use-Case | Verarbeitet eine Client-Session im Record-Modus |
+| Record-Use-Case | Verarbeitet eine Client-Session im Record-Modus. Operationen beider Richtungen (Client → Server, Server → Client) dürfen für dieselbe Session gleichzeitig laufen; das Beenden der Session beendet jeden wartenden Aufruf mit einem Fehler |
 | Replay-Use-Case | Verarbeitet eine Client-Session im Replay-Modus |
 | Play-Use-Case | Führt die Anfragen einer Aufzeichnung gegen einen Server aus; wird von der CLI gestartet, nicht von einer Client-Verbindung |
 
-Alternativ kann die PGWire-Session über kleinere fachliche Requests an den Core
-übergeben werden.
+Im Record-Modus übergibt der Adapter die Session als fachliche Ereignisse beider
+Richtungen; im Replay-Modus über fachliche Requests je Anfrage.
 
 **Outbound (`ARC-004`).**
 
@@ -196,11 +199,13 @@ Alternativ kann die PGWire-Session über kleinere fachliche Requests an den Core
 |---|---|
 | `RecordingRepository` | Recording anhand eines Pfads laden (das Format erkennt der Adapter); Recording unter einem Pfad neu anlegen (Format, Zielpfad, Ersetzen); eine beendete Session ergänzen (nach dem Ende jeder Session und beim kontrollierten Beenden; `yaml` schreibt dabei das ganze Recording neu, `sqlite` ergänzt in einer Transaktion) |
 | Uhr | aktuelle Zeit lesen und bis zu einem Zeitpunkt warten (Zeitangaben beim Aufzeichnen, zeitgetreues Einspielen); der Composition Root stellt die Systemuhr bereit, Tests eine Fake-Uhr |
-| PostgreSQL-Upstream | Upstream-Session für einen Startup eröffnen; je Anfrage (einfach) oder je Gruppe (Extended) die Client-Nachrichten senden und die Server-Nachrichten liefern; Session schließen |
+| PostgreSQL-Upstream | Upstream-Session für einen Startup eröffnen; einfach: Anfrage senden und die Server-Nachrichten bis `ReadyForQuery` liefern; Extended: die Client-Nachrichten einer Gruppe senden und unabhängig davon die nächsten Server-Nachrichten liefern. Senden und Empfangen laufen gleichzeitig, jedes blockiert nur an seiner Richtung; Session schließen beendet wartendes Senden und Empfangen mit einem Fehler |
 
 Die Query-Operation kann streaming-orientiert gestaltet werden (Antworten einzeln
 abrufen, Stream schließen), um große Resultsets nicht vollständig zu puffern.
-Die Ports schließen eine Streaming-Implementierung nicht aus. Der Record-Service
+Die Ports schließen eine Streaming-Implementierung nicht aus. Keine Richtung
+puffert über die laufende Gruppe hinaus; ein Ziel, das nicht liest, hält nur
+seine Richtung an. Der Record-Service
 reicht dann jede Antwort über den Driving Adapter an den Client weiter, ohne
 eine zusätzliche Kopie des Resultsets neben der Aufzeichnung zu halten; eine
 Interaktion wird mit dem abschließenden `ReadyForQuery` Teil der Session, und
@@ -362,17 +367,25 @@ sequenceDiagram
     participant PGW as PGWire Adapter
     participant Svc as Record- oder ReplayService
     participant PG as PostgreSQL Port
-    Client->>PGW: Parse, Bind, Execute, Sync
-    PGW->>Svc: Client-Nachrichten einer Gruppe
     alt Record
-        Svc->>PG: Nachrichten der Gruppe
-        PG-->>Svc: Server-Nachrichten bis ReadyForQuery
-        Svc-->>PGW: Server-Nachrichten
+        par Client → Server
+            Client->>PGW: Parse, Bind, Execute, Sync
+            PGW->>Svc: je Client-Nachricht
+            Svc->>PG: Nachrichten der Gruppe mit Flush oder Sync
+        and Server → Client
+            PGW->>Svc: nächste Server-Nachrichten
+            Svc->>PG: Empfangen
+            PG-->>Svc: Server-Nachrichten
+            Svc-->>PGW: Server-Nachrichten, der Gruppe zugeordnet
+            PGW-->>Client: PGWire-Nachrichten
+        end
     else Replay
+        Client->>PGW: Parse, Bind, Execute, Sync
+        PGW->>Svc: Client-Nachrichten einer Gruppe
         Svc->>Svc: jede Nachricht gegen die erwartete prüfen
         Svc-->>PGW: Server-Nachrichten der Gruppe, erst nach der letzten Client-Nachricht
+        PGW-->>Client: PGWire-Nachrichten
     end
-    PGW-->>Client: PGWire-Nachrichten
 ```
 
 Im Record-Modus bildet der Core die Gruppe aus den Nachrichten zwischen zwei
@@ -497,9 +510,11 @@ annehmen, auf Wunsch TLS terminieren, PGWire-Framing, `SSLRequest` erkennen, Sta
 dekodieren, Frontend-Nachrichten mit die PGWire-Bibliothek dekodieren, in
 Domain-/Application-Typen übersetzen, Inbound Ports aufrufen,
 Domain-Responses in PGWire-Nachrichten übersetzen und Bytes an den Client
-senden. Er ist **nicht** verantwortlich für Query-Matching,
-Recording-Reihenfolge, Auswahl der nächsten Replay-Interaktion, Persistenz und
-fachliche Mismatch-Entscheidungen.
+senden. Im Record-Modus betreibt er je Session beide Richtungen als Transport.
+Er ist **nicht** verantwortlich für Query-Matching,
+Recording-Reihenfolge, Auswahl der nächsten Replay-Interaktion, Persistenz,
+fachliche Mismatch-Entscheidungen, den Interaktionszustand, die Einstufung eines
+Verbindungsendes und den Grund des Session-Endes.
 
 **PostgreSQL Upstream (`ARC-007`)** implementiert den PostgreSQL-Outbound-Port
 und verwendet die PGWire-Bibliothek beziehungsweise geeignete PGWire-Funktionalität für die
@@ -542,12 +557,16 @@ konzeptionell, keine verbindliche API.
 
 **Graceful Shutdown.** Signalbehandlung gehört zum äußersten Anwendungsrand:
 CLI/Bootstrap lösen einen Abbruch über den Kontext-Mechanismus aus, die den Driving Server
-stoppt, die Application Sessions beendet und die Repositories abschließt.
+stoppt, die Application Sessions beendet und die Repositories abschließt. Ob eine
+Session auf ihre laufende Interaktion wartet, entscheidet der Service; das
+Beenden einer Session beendet jeden wartenden Port-Aufruf.
 
 **Concurrency.** Der PGWire Driving Adapter darf jede Client-Verbindung
 nebenläufig verarbeiten; die Parallelitätsmechanik ist Infrastruktur. Fachlicher
 Session-State bleibt je Verbindung getrennt (Verbindung *n* → Application
-Session *n*). Gemeinsamer Recording-State wird über einen dafür vorgesehenen
+Session *n*). Im Record-Modus laufen je Session beide Richtungen nebenläufig; der
+Record-Service ordnet ihre Aufrufe je Session, ohne über einem blockierenden
+Port-Aufruf zu sperren. Gemeinsamer Recording-State wird über einen dafür vorgesehenen
 Application Service beziehungsweise eine synchronisierte Implementierung
 koordiniert. Im Replay erhält die n-te Verbindung die n-te aufgezeichnete
 Session; deterministisch ist das bei nacheinander aufgebauten Verbindungen.

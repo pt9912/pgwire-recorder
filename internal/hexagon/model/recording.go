@@ -71,18 +71,25 @@ type Request struct {
 // der Service eine aufgezeichnete Session zuordnet. 0 heißt „keine“.
 type SessionID int64
 
-// SessionEnd ist der Grund, aus dem eine Session endet.
+// SessionEnd ist das Ereignis der Verbindung, mit dem eine Session endet. Der
+// Driving Adapter meldet, was geschah; welche Interaktionen übernommen werden
+// und ob das Ende ein Verbindungsfehler ist, entscheidet der Use Case.
 type SessionEnd int
 
 const (
-	// EndNormal: Die Verbindung endete nach einem ReadyForQuery; die Session
-	// wird mit allen abgeschlossenen Interaktionen übernommen.
-	EndNormal SessionEnd = iota
-	// EndLost: Die Antwort der zuletzt gelieferten Interaktion erreichte den
-	// Client nicht (PGR-E4003); diese Interaktion entfällt, die vorherigen
-	// bleiben (LH-FA-02.b).
-	EndLost
-	// EndUnsupported: In der Session trat eine nicht unterstützte Interaktion
-	// auf; die Session wird nicht übernommen (LH-FA-05.a).
+	// EndClosed: Die Client-Verbindung endete ohne Terminate.
+	EndClosed SessionEnd = iota
+	// EndTerminate: Der Client sandte Terminate.
+	EndTerminate
+	// EndWriteFailed: Eine Antwort ließ sich nicht an den Client schreiben.
+	EndWriteFailed
+	// EndShutdown: Der Lauf endet, und der Use Case hat das Ende der Session
+	// freigegeben.
+	EndShutdown
+	// EndUnsupported: Der Client sandte eine nicht unterstützte oder nicht
+	// lesbare Nachricht, oder eine Antwort ließ sich nicht auf eine
+	// PGWire-Nachricht abbilden.
 	EndUnsupported
+	// EndFailed: Ein Aufruf des Use Case endete mit einem Fehler.
+	EndFailed
 )

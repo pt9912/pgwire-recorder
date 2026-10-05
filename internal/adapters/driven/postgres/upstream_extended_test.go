@@ -4,6 +4,7 @@ import (
 	"net"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
@@ -232,4 +233,139 @@ func TestReceiveFehler(t *testing.T) {
 			t.Fatalf("erwartet %s, erhalten %v", model.CodeInternal, err)
 		}
 	})
+}
+
+// rohServer nimmt eine Verbindung an, schickt den Aufbau und übergibt die
+// Verbindung danach an weiter. Er liefert die Adresse.
+func rohServer(t *testing.T, weiter func(be *pgproto3.Backend, conn net.Conn)) string {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { l.Close() })
+	go func() {
+		conn, err := l.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		be := pgproto3.NewBackend(conn, conn)
+		if _, err := be.ReceiveStartupMessage(); err != nil {
+			return
+		}
+		for _, m := range bereit {
+			be.Send(m)
+		}
+		_ = be.Flush()
+		weiter(be, conn)
+	}()
+	return l.Addr().String()
+}
+
+// grosserBind ist eine Gruppe mit einem Parameter, der die Puffer der
+// Verbindung weit übersteigt.
+func grosserBind() []model.ClientMessage {
+	return []model.ClientMessage{
+		{Type: model.ClientBind, Params: []model.Value{{Bytes: make([]byte, 32<<20)}}},
+		{Type: model.ClientSync},
+	}
+}
+
+// fertigBinnen meldet einen Fehler, wenn f nicht binnen d zurückkehrt.
+func fertigBinnen(t *testing.T, d time.Duration, was string, f func()) {
+	t.Helper()
+	fertig := make(chan struct{})
+	go func() {
+		defer close(fertig)
+		f()
+	}()
+	select {
+	case <-fertig:
+	case <-time.After(d):
+		t.Fatalf("%s kehrt nicht binnen %v zurück", was, d)
+	}
+}
+
+// Send und Receive laufen gleichzeitig: Der Server schreibt zuerst eine
+// Ausgabe, die die Puffer der Verbindung übersteigt, und liest erst danach;
+// ein Send, das bis zu ihrem Lesen wartete, käme nie zurück.
+func TestSendUndReceiveGleichzeitig(t *testing.T) {
+	addr := rohServer(t, func(be *pgproto3.Backend, conn net.Conn) {
+		zeile := &pgproto3.DataRow{Values: [][]byte{make([]byte, 1<<20)}}
+		for i := 0; i < 32; i++ {
+			be.Send(zeile)
+			if err := be.Flush(); err != nil {
+				return
+			}
+		}
+		be.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
+		_ = be.Flush()
+		for {
+			if _, err := be.Receive(); err != nil {
+				return
+			}
+		}
+	})
+	s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	sendeFehler := make(chan error, 1)
+	go func() { sendeFehler <- s.Send(ctx(t), grosserBind()) }()
+	fertigBinnen(t, 10*time.Second, "Receive bis ReadyForQuery", func() {
+		for {
+			rs, err := s.Receive(ctx(t))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if rs[len(rs)-1].Type == model.ResponseReadyForQuery {
+				return
+			}
+		}
+	})
+	fertigBinnen(t, 10*time.Second, "Send", func() {
+		if err := <-sendeFehler; err != nil {
+			t.Error(err)
+		}
+	})
+}
+
+// Close kehrt zurück, auch wenn der Server nicht liest, und beendet ein Send,
+// das an diesem Server wartet, und ein Receive, das auf ihn wartet, mit einem
+// Fehler.
+func TestCloseBeendetWartende(t *testing.T) {
+	stumm := make(chan struct{})
+	t.Cleanup(func() { close(stumm) })
+	addr := rohServer(t, func(*pgproto3.Backend, net.Conn) { <-stumm })
+	s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sendeFehler := make(chan error, 1)
+	go func() { sendeFehler <- s.Send(ctx(t), grosserBind()) }()
+	empfangsFehler := make(chan error, 1)
+	go func() {
+		_, err := s.Receive(ctx(t))
+		empfangsFehler <- err
+	}()
+	time.Sleep(100 * time.Millisecond)
+	select {
+	case err := <-sendeFehler:
+		t.Fatalf("Send kehrte zurück, obwohl der Server nicht liest: %v", err)
+	default:
+	}
+	fertigBinnen(t, 2*time.Second, "Close", func() { _ = s.Close() })
+	for name, ch := range map[string]chan error{"Send": sendeFehler, "Receive": empfangsFehler} {
+		select {
+		case err := <-ch:
+			if err == nil {
+				t.Fatalf("%s nach Close ohne Fehler", name)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatalf("%s endet nicht nach Close", name)
+		}
+	}
 }

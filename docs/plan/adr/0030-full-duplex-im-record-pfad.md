@@ -1,6 +1,6 @@
 # ADR-0030: Full-Duplex im Record-Pfad mit Zustand im Record-Service
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-05
 
@@ -66,6 +66,7 @@ Wenn der Replay-Pfad oder einfache Anfragen denselben Zwei-Richtungs-Ablauf brau
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-05 | Proposed | [Review-Report](../../reviews/2026-10-05-review-slice-extended-query-record.md) |
+| 2026-10-05 | Accepted | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

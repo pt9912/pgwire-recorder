@@ -445,7 +445,8 @@ Windows entspricht der Konsolenabbruch (`Strg+C`, `Strg+Break`) einem `SIGINT`:
 - laufende Schreiboperationen soweit möglich abschließen,
 - Sessions, die noch laufen, nach Abschluss ihrer laufenden Interaktion
   beenden; eine nicht abgeschlossene Interaktion wird nicht übernommen
-  (LH-FA-02.b),
+  (LH-FA-02.b). Eine Client-Nachricht, die beim Beginn des Herunterfahrens
+  schon vollständig gelesen ist, wird noch verarbeitet,
 - das Recording schreiben (LH-FA-07.a); schlägt das Schreiben fehl, bleibt die
   Zieldatei der letzte vollständig geschriebene Stand.
 
@@ -670,11 +671,17 @@ verarbeitet wurde, auch nach einem `Terminate` oder nach einem `Flush` ohne
 unvollständige Interaktion wird nicht übernommen, die vorherigen Interaktionen
 der Session bleiben erhalten. Beim kontrollierten Herunterfahren endet eine
 Session erst nach dem `ReadyForQuery` ihrer laufenden Extended-Interaktion, auch
-wenn deren `Sync` noch aussteht (LH-FA-13.a).
+wenn deren `Sync` noch aussteht (LH-FA-13.a). Endet die Client-Verbindung,
+während der Recorder an den Server sendet oder auf ihn wartet, endet die Session
+ohne weiteres Warten, sobald der Recorder das Ende beim Lesen vom oder Schreiben
+zum Client bemerkt, auch beim Herunterfahren.
 
 **Record.** Der Recorder leitet alle Nachrichten unverändert und in
 Ankunftsreihenfolge weiter, auch wenn der Client mehrere Nachrichten sendet,
-ohne auf Antworten zu warten (Pipelining). Zeichnet er die Interaktion auf,
+ohne auf Antworten zu warten (Pipelining). Er vermittelt beide Richtungen
+unabhängig: Das Weiterleiten an den Server wartet nicht auf das Lesen von
+Antworten, das Weiterleiten an den Client nicht auf weitere Client-Nachrichten;
+ein Gegenüber, das nicht liest, hält nur die Richtung zu ihm an. Zeichnet er die Interaktion auf,
 gruppiert er sie (`SPEC-041`); Zeitangaben enthält die Aufzeichnung nur mit
 `--record-timing` (LH-FA-21.a).
 
@@ -1501,3 +1508,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-04 | Recording: Anker, Aliase und Merge-Keys von YAML sind beschädigt (`SPEC-001`) |
 | 2026-10-05 | Recording: jedes neue Feld erhöht `version`; ein Leser lehnt unbekannte Felder ab und liest jede `version` bis zu seiner eigenen (`SPEC-001`) |
 | 2026-10-05 | Extended Query im Record: Server-Nachrichten nach der nächsten Client-Nachricht gehören zur folgenden Gruppe; Herunterfahren nach dem `ReadyForQuery` der laufenden Extended-Interaktion; `Query` während einer laufenden Extended-Interaktion, Zielart außer `S`/`P` und Interaktionen ohne die Form der Aufzeichnung sind nicht unterstützt (`LH-FA-18.a`) |
+| 2026-10-05 | Record: beide Richtungen unabhängig vermittelt, Ende der Client-Verbindung beim Senden an oder Warten auf den Server (`LH-FA-18.a`); beim Herunterfahren schon gelesene Client-Nachricht wird verarbeitet (`LH-FA-13.a`) |
