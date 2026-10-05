@@ -2,14 +2,14 @@
 
 **Rolle:** Verifier (Modul 11). Ich prüfe, ob die Umsetzung Plan und DoD erfüllt, also ob richtig gebaut wurde. Ob das Richtige gebaut wurde, prüft der Validator. Den Diff gegen Entscheidungen und Hard Rules prüft der Reviewer.
 
-**Gegenstand:** Slice-Plan [`slice-replay-semantik-mismatch`](../plan/planning/in-progress/slice-replay-semantik-mismatch.md) (Kopf, §1 bis §6, §8) gegen den Gesamt-Diff `8538d1a..cf38617` bei HEAD `cf38617`. Spezifikation: `001403f`, `4e0aab0`, `235b9d1`, `56732d6`. Code: `6e8d2dd`, `19c9951`, `a205cbc`, `cf38617`. Review-Report: `ea75e75`.
+**Gegenstand:** Slice-Plan `docs/plan/planning/in-progress/slice-replay-semantik-mismatch.md` (Kopf, §1 bis §6, §8) gegen den Gesamt-Diff `8538d1a..cf38617` bei HEAD `cf38617`. Spezifikation: `001403f`, `4e0aab0`, `235b9d1`, `56732d6`. Code: `6e8d2dd`, `19c9951`, `a205cbc`, `cf38617`. Review-Report: `ea75e75`.
 
 **Eingang:**
 
 - der DoD-Liefer-Punkt und die Commit-Messages
 - der [Review-Report](2026-10-05-review-slice-replay-semantik-mismatch.md) (F-381 bis F-389, Stand `19c9951`). Die Nacharbeit `a205cbc` und `cf38617` hat kein eigenes Review gesehen. Ich habe sie mit eigenen Mutationen geprüft (Abschnitt 2).
 - [`LH-FA-01`](../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-03`](../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-17`](../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration); in der Spezifikation [`LH-FA-01.a`](../../spec/spezifikation.md#lh-fa-01a--kommandos-und-hilfe), [`LH-FA-03.b`](../../spec/spezifikation.md#lh-fa-03b--nicht-verbrauchte-interaktionen), [`LH-FA-13.b`](../../spec/spezifikation.md#lh-fa-13b--fehlerebenen-und-prozessstatus), [`LH-FA-17.a`](../../spec/spezifikation.md#lh-fa-17a--konfiguration)
-- Folge-Slices [`slice-v1-abschluss-betrieb`](../plan/planning/open/slice-v1-abschluss-betrieb.md) und [`slice-v1-abschluss-einspielen`](../plan/planning/open/slice-v1-abschluss-einspielen.md); [ADR-0028](../plan/adr/0028-abdeckung-je-anforderung-und-pfad.md)
+- Folge-Slices `docs/plan/planning/open/slice-v1-abschluss-betrieb.md` und `docs/plan/planning/open/slice-v1-abschluss-einspielen.md`; [ADR-0028](../plan/adr/0028-abdeckung-je-anforderung-und-pfad.md)
 
 Der Arbeitsbaum war bei meinem Start sauber.
 
