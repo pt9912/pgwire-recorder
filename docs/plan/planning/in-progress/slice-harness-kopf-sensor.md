@@ -197,6 +197,31 @@ Implementer nicht, er gibt es zurück (`AGENTS.md` §3.12).
   eine Zeile nur aus Leerzeichen ist eine Leerzeile; ein Bereich darf innerhalb eines
   Absatzes über einen Zeilenumbruch reichen; eine Ablage ohne Lifecycle-Verzeichnisse
   ist grün, Exit 2 nur ohne `docs/plan/planning/`. — **Ausgang:** offen bis Closure.
+- **Lesarten des Wortlauts** (Randform-Rückgabe des Implementers nach 1dd6ad6,
+  Architect 2026-10-05) — alle fünf bestätigt; sie folgen aus dem Wortlaut von
+  [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) und sind Regeldetails im Sinn von `AGENTS.md` §3.8, keine neue
+  Entscheidung. Eine ergänzende ADR wiederholte nur Regeltext. Festgehalten sind sie
+  im Kopfkommentar von `tools/harness/kopf-check.sh` (ZUSAGE), je mit einem Fall der
+  Gegenprobe:
+  (1) Wortzeichen sind Buchstabe, Ziffer und Unterstrich; `.ab` hinter einer
+  Hauptkennung ist keine Unterkennung `.x`, die Hauptkennung zählt (Nr. 2; laut
+  statt still) — `nr2-punkt-endet-wort`;
+  (2) „in `open/` …“ heißt flach; die Lifecycle-Position ist das Verzeichnis selbst,
+  Unterordner gibt es nur in `done/` (Nr. 1) — `nr1-nicht-geprueft`;
+  (3) eine Zeile nur aus Leerzeichen und Tabs ist eine Leerzeile, wie in Markdown
+  (Nr. 5, 6) — `nr5-leerzeile-mit-leerzeichen`;
+  (4) ein Bereich reicht über einen Zeilenumbruch im Absatz; ein Umbruch ist dort
+  Leerraum (Nr. 3) — `nr3-bereich-zeilenumbruch`;
+  (5) Exit 2 nur ohne `docs/plan/planning/`; ein fehlendes Lifecycle-Verzeichnis
+  enthält keinen Plan, Exit 0 ist wahr, und ein Exit 2 machte das Gate rot, sobald ein
+  leeres `next/` seine `.gitkeep` verliert (Nr. 8) — `nr8-leere-ablage`.
+  Keine Code-Änderung. — **Ausgang:** entfällt mit Closure (bestätigt, im Skript
+  verkörpert).
+- **Bereich über eine Absatzgrenze in §1/§2** — das Skript fügt die Absätze eines
+  Abschnitts zusammen; `SPEC-013 bis` am Absatzende und `SPEC-015` am Anfang des
+  nächsten gelten als Bereich (am 2026-10-05 gegen 1dd6ad6 probiert). Akzeptiertes
+  Negativ: Das macht §1/§2 nur strenger, nie still grün, und der Kopf kann es nicht,
+  weil die Feldmarke zwischen seinen Absätzen steht. Kein Risiko mit eigenem Ausgang.
 - **Akzeptierte Negative** — Existenz der Kennung, Feldzuordnung, Kennungen außerhalb
   von §1/§2, Zeilen `## ` in Codeblöcken: nicht geprüft, Grund in [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md)
   §Konsequenzen. Kein Risiko mit eigenem Ausgang.
