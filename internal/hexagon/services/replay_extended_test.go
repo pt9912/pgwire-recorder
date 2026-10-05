@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -203,8 +204,10 @@ func TestReplayExtendedAbweichung(t *testing.T) {
 	}
 	sendeAlle(t, s, id, in.Groups[0].Client...)
 	_, err = s.ClientMessage(ctx, id, bind("s1", text("geheim-wert")))
-	if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), "abweichend in params") || strings.Contains(err.Error(), "geheim-wert") || strings.Contains(err.Error(), `"a"`) {
-		t.Fatalf("abweichender Parameterwert: %v", err)
+	var me *model.Error
+	if !errors.As(err, &me) || me.Code != model.CodeReplayMismatch ||
+		me.Msg != "Session 1, Interaktion 1, Gruppe 2, Nachricht 1: erwartet bind, empfangen bind, abweichend in params" || me.Err != nil {
+		t.Fatalf("abweichender Parameterwert: die Diagnose nennt mehr als Stelle, Typen und Feld: %v", err)
 	}
 }
 
