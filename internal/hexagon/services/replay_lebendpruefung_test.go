@@ -244,3 +244,17 @@ func TestReplayLebendpruefungServerversion(t *testing.T) {
 		t.Fatalf("ohne server_version: eingehende Anfrage mit \\v: %v", err)
 	}
 }
+
+// Eine Session ohne erwartete Interaktion, etwa nur aus Lebendprüfungen, hat
+// als letzte Nummer 0; mit Interaktionen ist es die aufgezeichnete Nummer der
+// letzten.
+func TestReplayLetzteNummer(t *testing.T) {
+	leer := &cursor{session: &model.Session{ID: 1}}
+	if n := leer.letzteNummer(); n != 0 {
+		t.Fatalf("ohne Interaktion: %d", n)
+	}
+	voll := &cursor{session: &model.Session{ID: 1, Interactions: []model.Interaction{interaktion(2, "A", ""), interaktion(4, "B", "")}}}
+	if n := voll.letzteNummer(); n != 4 {
+		t.Fatalf("mit Interaktionen: %d", n)
+	}
+}

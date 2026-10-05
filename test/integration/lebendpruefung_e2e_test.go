@@ -230,8 +230,10 @@ func lebendAblauf(t *testing.T, listen string, mitPruefungen, vt bool) string {
 // Replay dieselbe Antwort wie von PostgreSQL, auch in einer Transaktion und
 // nach einem Fehler darin, ohne in der Aufzeichnung zu stehen; PostgreSQL
 // beantwortet jede wie die leere Anfrage. Texte mit \v als Leerraum beantwortet
-// PostgreSQL ab Hauptversion 17 wie die leere Anfrage, davor nicht; das Replay
-// folgt der Version in der Aufzeichnung. Ein offener Blockkommentar, Leerraum
+// PostgreSQL ab Hauptversion 17 wie die leere Anfrage, davor mit einem
+// Syntaxfehler; das Replay folgt der Version in der Aufzeichnung: Mit ihnen
+// aufgezeichnet, liefert es ab 17 die leere Antwort außerhalb der Reihe und
+// davor den aufgezeichneten Fehler samt Transaktionsstatus. Ein offener Blockkommentar, Leerraum
 // außerhalb von ASCII und eine Anweisung nach `\r` sind auch für PostgreSQL
 // keine leere Anfrage; ein einzelnes `;` beantwortet PostgreSQL wie die leere
 // Anfrage, das Replay aber als Abweichung (PGR-E5001, Exit-Code 5).
@@ -279,6 +281,25 @@ func TestE2EReplayLebendpruefungWiePostgres(t *testing.T) {
 	rep.stop(t, 0)
 	if got != sichtPG {
 		t.Fatalf("Replay:\n%s\n--- PostgreSQL:\n%s\n--- stderr:\n%s", got, sichtPG, rep.stderr.String())
+	}
+
+	// Die Texte mit \v nach der Zuordnung gegen jede Version, aufgezeichnet:
+	// unter 17 sind sie Interaktionen mit Syntaxfehler, ab 17 Lebendprüfungen.
+	sichtVT := lebendAblauf(t, upstream, true, true)
+	inputVT := filepath.Join(t.TempDir(), "rec-vt.yaml")
+	rec = startRecorder(t, upstream, inputVT)
+	if got := lebendAblauf(t, rec.listen, true, true); got != sichtVT {
+		t.Fatalf("Aufzeichnen mit \\v:\n%s\n--- PostgreSQL:\n%s", got, sichtVT)
+	}
+	rec.stop(t, 0)
+	if fehler := strings.Contains(sichtVT, "42601"); fehler == vt {
+		t.Fatalf("Syntaxfehler für \\v bei \\v als Leerraum %v:\n%s", vt, sichtVT)
+	}
+	rep = startProzess(t, "replay", "--input", inputVT)
+	got = lebendAblauf(t, rep.listen, true, true)
+	rep.stop(t, 0)
+	if got != sichtVT {
+		t.Fatalf("Replay mit \\v:\n%s\n--- PostgreSQL:\n%s\n--- stderr:\n%s", got, sichtVT, rep.stderr.String())
 	}
 
 	rep = startProzess(t, "replay", "--input", input)

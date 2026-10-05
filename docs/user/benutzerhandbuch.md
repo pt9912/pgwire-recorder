@@ -461,7 +461,10 @@ Antworten.
   Kommentaren besteht; eine Anfrage mit einer Anweisung, auch ein einzelnes `;`,
   muss weiter der Aufzeichnung entsprechen. Einen vertikalen Tabulator zählt die
   Wiedergabe wie PostgreSQL erst ab Version 17 zum Leerraum, nach der Version der
-  aufgezeichneten Datenbank. Mitten in einer Folge des
+  aufgezeichneten Datenbank. Vor der ersten Anfrage einer Verbindung zählt er nie
+  dazu: Eine Anfrage mit vertikalem Tabulator wird dort wie jede andere mit der
+  Aufzeichnung verglichen und ist meist eine Abweichung (`PGR-E5001`, ohne freie
+  Sitzung `PGR-E5003`). Mitten in einer Folge des
   erweiterten Protokolls, vor ihrem `Sync`, ist auch eine Lebendprüfung eine
   Abweichung (`PGR-E5001`). Aufzeichnen und Einspielen behandeln
   Lebendprüfungen wie jede andere Anfrage.

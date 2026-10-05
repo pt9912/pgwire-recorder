@@ -165,9 +165,12 @@ func (c *cursor) merke(rs []model.Response) {
 }
 
 // letzteNummer ist die aufgezeichnete Nummer der letzten erwarteten
-// Interaktion der Session, aufgezeichnete Lebendprüfungen nicht gezählt; die
-// Session hat mindestens eine.
+// Interaktion der Session, aufgezeichnete Lebendprüfungen nicht gezählt; ohne
+// erwartete Interaktion 0.
 func (c *cursor) letzteNummer() int {
+	if len(c.session.Interactions) == 0 {
+		return 0
+	}
 	return c.session.Interactions[len(c.session.Interactions)-1].Sequence
 }
 
