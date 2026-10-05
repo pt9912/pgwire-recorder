@@ -234,20 +234,28 @@ const (
 	parameterMB = 16
 )
 
-// Abdeckung: LH-FA-18/Happy — Record-Hälfte: Gegendruck in beiden Richtungen:
-// pgx im Standardmodus sendet einen Batch (eine Sync-Gruppe) aus einer Anfrage
-// mit 32 MB Ausgabe und einer mit 16 MB Parameter, und eine Pipeline sendet
-// nach einer Flush-Gruppe mit verzögerter großer Ausgabe ohne Warten eine
-// Sync-Gruppe mit großem Parameter; beides läuft über `record` binnen des
-// Zeitlimits durch, und der Lauf endet mit Exit-Code 0.
+// Abdeckung: LH-FA-18/Happy — Record-Hälfte: Gegendruck in beiden Richtungen
+// (gegendruckAblauf) läuft über `record` binnen des Zeitlimits durch, und der
+// Lauf endet mit Exit-Code 0.
 func TestE2ERecordExtendedGegendruck(t *testing.T) {
 	output := filepath.Join(t.TempDir(), "rec.yaml")
 	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+	gegendruckAblauf(t, rec.listen)
+	rec.stop(t, 0)
+}
+
+// gegendruckAblauf: pgx im Standardmodus sendet einen Batch (eine Sync-Gruppe)
+// aus einer Anfrage mit 32 MB Ausgabe und einer mit 16 MB Parameter, und eine
+// Pipeline sendet nach einer Flush-Gruppe mit verzögerter großer Ausgabe ohne
+// Warten eine Sync-Gruppe mit großem Parameter; der Client erhält jedes
+// Ergebnis binnen des Zeitlimits.
+func gegendruckAblauf(t *testing.T, listen string) {
+	t.Helper()
 	gross := strings.Repeat("y", parameterMB<<20)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	conn, err := pgx.Connect(ctx, dsn(rec.listen))
+	conn, err := pgx.Connect(ctx, dsn(listen))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -275,7 +283,7 @@ func TestE2ERecordExtendedGegendruck(t *testing.T) {
 	}
 	_ = conn.Close(ctx)
 
-	pc, err := pgconn.Connect(ctx, dsn(rec.listen))
+	pc, err := pgconn.Connect(ctx, dsn(listen))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,7 +314,6 @@ func TestE2ERecordExtendedGegendruck(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = pc.Close(ctx)
-	rec.stop(t, 0)
 }
 
 // Abdeckung: LH-FA-13/Boundary — liest ein Client die Antworten auf eine große

@@ -3,9 +3,9 @@
 # (Dockerfile, Stufe integration) in einem eigenen, nach außen abgeschlossenen
 # Docker-Netz, führt die Integrationstests aus und räumt Container und Netz
 # danach auf, auch nach einem Abbruch. Beide Phasen teilen ein Docker-Volume
-# (PGR_DATEN): Die erste schreibt dort eine Aufzeichnung über record, danach
+# (PGR_DATEN): Die erste schreibt dort Aufzeichnungen über record, danach
 # stoppt der Runner PostgreSQL, und die zweite führt TestE2EOhnePostgres* gegen
-# diese Aufzeichnung aus (PGR_OHNE_POSTGRES=1).
+# diese Aufzeichnungen aus (PGR_OHNE_POSTGRES=1).
 # Es schreibt nichts in den Arbeitsbaum;
 # die Abdeckungstabellen erzeugt `make abdeckung`.
 #

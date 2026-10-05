@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -24,10 +25,14 @@ type ReplayService struct {
 }
 
 // cursor ist der Replay-Cursor einer Verbindung; session ist nil, solange die
-// Verbindung keine Anfrage gestellt hat.
+// Verbindung keine Anfrage gestellt hat. pos ist die nächste erwartete
+// Interaktion, gruppe und nachricht innerhalb einer Extended-Interaktion die
+// nächste erwartete Gruppe und Client-Nachricht (ARC-002, LH-FA-18.a).
 type cursor struct {
-	session *model.Session
-	pos     int
+	session   *model.Session
+	pos       int
+	gruppe    int
+	nachricht int
 }
 
 // NewReplayService lädt die Aufzeichnung. Eine Aufzeichnung ohne Session mit
@@ -75,33 +80,107 @@ func (s *ReplayService) OpenConnection(context.Context) (model.SessionID, []mode
 }
 
 // Query vergleicht die Anfrage mit der Interaktion am Cursor und liefert deren
-// Antworten; der Cursor rückt nur bei Gleichheit vor.
+// Antworten; der Cursor rückt nur bei Gleichheit vor. Erwartet der Cursor eine
+// Extended-Nachricht, ist jede Anfrage eine Abweichung (LH-FA-18.a).
 func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string) ([]model.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	c, ok := s.verbindung[id]
-	if !ok {
-		return nil, model.Errorf(model.CodeInternal, nil, "unbekannte Verbindung %d", id)
-	}
-	if c.session == nil {
-		if len(s.frei) == 0 {
-			return nil, model.Errorf(model.CodeReplaySession, nil, "Verbindung %d: keine aufgezeichnete Session mehr frei für %q", id, sql)
-		}
-		sess := s.frei[0]
-		s.frei = s.frei[1:]
-		c.session = &sess
+	c, err := s.zuordnen(id, fmt.Sprintf("Anfrage %q", sql))
+	if err != nil {
+		return nil, err
 	}
 	if c.pos >= len(c.session.Interactions) {
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: keine aufgezeichnete Interaktion mehr nach %d; empfangen %q",
 			c.session.ID, c.pos, sql)
 	}
 	erwartet := c.session.Interactions[c.pos]
-	if erwartet.Request.Type != model.RequestQuery || erwartet.Request.SQL != sql {
+	if erwartet.Request.Type != model.RequestQuery {
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: erwartet Client-Nachricht %s, empfangen Anfrage %q",
+			c.stelle(), c.erwarteteNachricht().Type, sql)
+	}
+	if erwartet.Request.SQL != sql {
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d, Interaktion %d: erwartet %q, empfangen %q",
 			c.session.ID, erwartet.Sequence, erwartet.Request.SQL, sql)
 	}
 	c.pos++
 	return erwartet.Responses, nil
+}
+
+// ClientMessage vergleicht eine Client-Nachricht des Extended Query Protocol
+// mit der erwarteten am Cursor (LH-FA-18.a). Bei Gleichheit rückt der Cursor
+// um eine Nachricht vor; schließt sie ihre Gruppe ab, liefert ClientMessage die
+// aufgezeichneten Server-Nachrichten der Gruppe, sonst keine. Die Abweichung
+// nennt das abweichende Feld, Parameterwerte nennt sie nicht (SPEC-033); der
+// Cursor bleibt dann stehen.
+func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m model.ClientMessage) ([]model.Response, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, err := s.zuordnen(id, fmt.Sprintf("Client-Nachricht %s", m.Type))
+	if err != nil {
+		return nil, err
+	}
+	if c.pos >= len(c.session.Interactions) {
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: keine aufgezeichnete Interaktion mehr nach %d; empfangen Client-Nachricht %s",
+			c.session.ID, c.pos, m.Type)
+	}
+	erwartet := c.session.Interactions[c.pos]
+	if erwartet.Request.Type != model.RequestExtended {
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d, Interaktion %d: erwartet Anfrage %q, empfangen Client-Nachricht %s",
+			c.session.ID, erwartet.Sequence, erwartet.Request.SQL, m.Type)
+	}
+	e := c.erwarteteNachricht()
+	switch feld := abweichung(m, e); feld {
+	case "":
+	case "sql":
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: %s weicht in sql ab, erwartet %q, empfangen %q",
+			c.stelle(), e.Type, e.SQL, m.SQL)
+	default:
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: erwartet %s, empfangen %s, abweichend in %s",
+			c.stelle(), e.Type, m.Type, feld)
+	}
+	g := erwartet.Groups[c.gruppe]
+	c.nachricht++
+	if c.nachricht < len(g.Client) {
+		return nil, nil
+	}
+	c.nachricht = 0
+	c.gruppe++
+	if c.gruppe == len(erwartet.Groups) {
+		c.gruppe = 0
+		c.pos++
+	}
+	return g.Server, nil
+}
+
+// zuordnen liefert den Cursor der Verbindung und ordnet ihr bei der ersten
+// Anfrage die nächste freie Session zu; ist keine mehr frei, ist das PGR-E5003.
+func (s *ReplayService) zuordnen(id model.SessionID, empfangen string) (*cursor, error) {
+	c, ok := s.verbindung[id]
+	if !ok {
+		return nil, model.Errorf(model.CodeInternal, nil, "unbekannte Verbindung %d", id)
+	}
+	if c.session == nil {
+		if len(s.frei) == 0 {
+			return nil, model.Errorf(model.CodeReplaySession, nil, "Verbindung %d: keine aufgezeichnete Session mehr frei für %s", id, empfangen)
+		}
+		sess := s.frei[0]
+		s.frei = s.frei[1:]
+		c.session = &sess
+	}
+	return c, nil
+}
+
+// erwarteteNachricht ist die Client-Nachricht am Cursor; die Interaktion am
+// Cursor ist eine Extended-Interaktion.
+func (c *cursor) erwarteteNachricht() model.ClientMessage {
+	return c.session.Interactions[c.pos].Groups[c.gruppe].Client[c.nachricht]
+}
+
+// stelle nennt Session, Interaktion, Gruppe und Nachricht am Cursor, Gruppe und
+// Nachricht ab 1 gezählt.
+func (c *cursor) stelle() string {
+	return fmt.Sprintf("Session %d, Interaktion %d, Gruppe %d, Nachricht %d",
+		c.session.ID, c.session.Interactions[c.pos].Sequence, c.gruppe+1, c.nachricht+1)
 }
 
 // CloseConnection beendet die Verbindung; unverbrauchte Interaktionen der

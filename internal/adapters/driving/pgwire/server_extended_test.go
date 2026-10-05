@@ -256,10 +256,10 @@ func TestExtendedEreignisse(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-06/Negative — ein Describe mit einer anderen Zielart als 'S'
-// oder 'P', ein Fehler des Use Case zu einer Client-Nachricht und eine
-// Extended-Nachricht im Replay-Modus beenden die Verbindung mit PGR-E6001
-// (SQLSTATE 0A000); im Record-Modus meldet der Adapter EndUnsupported
-// beziehungsweise EndFailed.
+// oder 'P', im Record- wie im Replay-Modus, und ein Fehler des Use Case zu einer
+// Client-Nachricht beenden die Verbindung mit PGR-E6001 (SQLSTATE 0A000); im
+// Record-Modus meldet der Adapter EndUnsupported beziehungsweise EndFailed, im
+// Replay-Modus erreicht die Nachricht den Use Case nicht.
 func TestExtendedNichtUnterstuetzt(t *testing.T) {
 	t.Run("Zielart", func(t *testing.T) {
 		rec := &fakeRecorder{}
@@ -297,12 +297,79 @@ func TestExtendedNichtUnterstuetzt(t *testing.T) {
 		_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 		fe := pgproto3.NewFrontend(client, client)
 		startup(t, fe)
-		sende(fe, &pgproto3.Parse{Query: "SELECT 1"})
+		go func() { _, _ = client.Write([]byte{'D', 0, 0, 0, 6, 'X', 0}) }()
 		e := fehlerantwort(t, fe)
-		if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) || !strings.Contains(e.Message, "Replay") {
+		if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) {
 			t.Fatalf("ErrorResponse: %+v", e)
 		}
+		if n := rep.nachrichten(); len(n) != 0 {
+			t.Fatalf("an den Use Case übergeben: %#v", n)
+		}
 	})
+}
+
+// verbindeReplay startet den Handler im Replay-Modus.
+func verbindeReplay(t *testing.T, rep *fakeReplayer) (*pgproto3.Frontend, *Server) {
+	t.Helper()
+	client, serverSeite := net.Pipe()
+	s := NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	go s.handle(context.Background(), serverSeite)
+	t.Cleanup(func() { client.Close() })
+	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	return fe, s
+}
+
+// Abdeckung: LH-FA-18/Happy — Replay-Hälfte im Adapter: jede Extended-Nachricht
+// geht in Ankunftsreihenfolge mit den Feldern ihres Typs an den
+// Replay-Use-Case, und was er zurückgibt, geht in Reihenfolge an den Client.
+func TestReplayExtended(t *testing.T) {
+	rep := &fakeReplayer{}
+	fe, s := verbindeReplay(t, rep)
+	msgs := []pgproto3.FrontendMessage{
+		&pgproto3.Parse{Name: "s1", Query: "SELECT $1::text", ParameterOIDs: []uint32{25}},
+		&pgproto3.Bind{PreparedStatement: "s1", ParameterFormatCodes: []int16{0}, Parameters: [][]byte{[]byte("a")}},
+		&pgproto3.Execute{MaxRows: 3},
+		&pgproto3.Sync{},
+	}
+	sende(fe, msgs...)
+	if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
+		t.Fatalf("an den Client: %s", got)
+	}
+	var want []model.ClientMessage
+	for _, m := range msgs {
+		cm, err := toClientMessage(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want = append(want, cm)
+	}
+	if got := rep.nachrichten(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("an den Use Case:\n%#v\nstatt\n%#v", got, want)
+	}
+	if s.FirstErrorCode() != "" {
+		t.Fatalf("Fehler gemerkt: %s", s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-10/Happy — Replay im Adapter: meldet der Use Case zu einer
+// Extended-Nachricht eine Abweichung, erhält der Client eine ErrorResponse mit
+// PGR-E5001, der Lauf merkt sich die Klasse 5, und die Verbindung endet.
+func TestReplayExtendedAbweichungImAdapter(t *testing.T) {
+	rep := &fakeReplayer{}
+	fe, s := verbindeReplay(t, rep)
+	sende(fe, &pgproto3.Execute{Portal: "abweichend"})
+	e := fehlerantwort(t, fe)
+	if !strings.Contains(e.Message, model.CodeReplayMismatch) {
+		t.Fatalf("ErrorResponse: %+v", e)
+	}
+	if _, err := fe.Receive(); err == nil {
+		t.Fatal("Verbindung nach der Abweichung offen")
+	}
+	if s.FirstErrorCode() != model.CodeReplayMismatch {
+		t.Fatalf("erster Fehler: %q", s.FirstErrorCode())
+	}
 }
 
 // Abdeckung: LH-FA-13/Boundary — beim Herunterfahren fragt der Adapter den Use

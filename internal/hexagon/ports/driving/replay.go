@@ -19,6 +19,12 @@ type Replayer interface {
 	// abweichende Anfrage ist PGR-E5001, eine Anfrage ohne freie Session
 	// PGR-E5003 (LH-FA-09.a, LH-FA-10.a).
 	Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error)
+	// ClientMessage ordnet wie Query zu und vergleicht eine Client-Nachricht
+	// des Extended Query Protocol mit der erwarteten am Cursor. Schließt sie
+	// ihre Gruppe ab (Flush oder Sync), liefert es die aufgezeichneten
+	// Server-Nachrichten der Gruppe, vorher keine; eine abweichende Nachricht
+	// ist PGR-E5001 (LH-FA-18.a).
+	ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) ([]model.Response, error)
 	// CloseConnection beendet die Verbindung. Bleiben Interaktionen der
 	// zugeordneten Session unverbraucht, liefert sie die Warnung PGR-W2001.
 	CloseConnection(ctx context.Context, id model.SessionID) *model.Warning

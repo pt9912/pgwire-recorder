@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-extended-query.
 
-**Bezug:** [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-04`](../../../../spec/lastenheft.md#lh-fa-04--transparenz-für-clients), [`LH-QA-02`](../../../../spec/lastenheft.md#lh-qa-02--geringe-eingriffe-in-die-anwendung), [ADR-0007](../../adr/0007-strict-replay.md)
+**Bezug:** [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-11`](../../../../spec/lastenheft.md#lh-fa-11--fehler-des-postgresql-servers), [`LH-FA-04`](../../../../spec/lastenheft.md#lh-fa-04--transparenz-für-clients), [`LH-QA-02`](../../../../spec/lastenheft.md#lh-qa-02--geringe-eingriffe-in-die-anwendung), [ADR-0007](../../adr/0007-strict-replay.md)
 
-**Berührte Spec-Stellen:** `LH-FA-18.a` · `SPEC-041` · `SPEC-011` · `ARC-002`
+**Berührte Spec-Stellen:** `LH-FA-18.a` · `LH-FA-09.a` · `LH-FA-10.a` · `SPEC-041` · `SPEC-011` · `ARC-002` · `ARC-003` · `ARC-006`
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -31,10 +31,15 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Replay-Modus beantwortet eine Extended-Query-Interaktion strict sequential aus der Aufzeichnung; Abweichungen und Fehlerantworten werden erkannt beziehungsweise reproduziert.
 
+**Liefert:** Der Replay-Use-Case nimmt Extended-Nachrichten an (`ClientMessage` am Port `Replayer`), vergleicht jede in allen Feldern mit der erwarteten am Cursor (Strict Matcher `abweichung`, eine leere Liste gleicht nil) und gibt die Server-Nachrichten einer Gruppe nach deren `Flush` oder `Sync` frei, vorher keine. Der Cursor führt Interaktion, Gruppe und Nachricht (`ARC-002`). Eine Abweichung ist `PGR-E5001`; ihre Diagnose nennt Session, Interaktion, Gruppe, Nachricht, erwarteten und empfangenen Nachrichtentyp und das abweichende Feld, bei SQL beide Texte, nie Parameterwerte. Eine einfache Anfrage, wo eine Extended-Nachricht erwartet ist, und umgekehrt, ist eine Abweichung (aus `LH-FA-18.a` „jede eingehende Client-Nachricht muss … entsprechen“ abgeleitet). `replaySitzung` leitet Extended-Nachrichten an den Use Case, statt sie mit `PGR-E6001` abzulehnen; der vorhandene Handshake genügt pgx im Standardmodus.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Parametermatching über den exakten Vergleich hinaus — Folge-Anforderung, falls gewünscht.
-- Abbildung der Extended-Nachrichten im PGWire-Adapter (`toClientMessage`, `toMessage`) — geliefert von `slice-extended-query-record`. Der Replay-Modus läuft in `replaySitzung` synchron und lehnt Extended-Nachrichten bisher mit `PGR-E6001` ab; dieser Slice leitet sie an den Replay-Use-Case. Den Zwei-Richtungs-Ablauf des Record ([ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md)) übernimmt das Replay nicht automatisch.
+- Abbildung der Extended-Nachrichten im PGWire-Adapter (`toClientMessage`, `toMessage`) — geliefert von `slice-extended-query-record`.
+- Zwei-Richtungs-Ablauf des Record ([ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md)) im Replay — bleibt bewusst stehen: `replaySitzung` liest und antwortet abwechselnd wie ein PostgreSQL-Server; der Gegendruck-Ablauf des Record läuft über `replay` durch (`TestE2EReplayExtendedGegendruck`).
+- `--fail-on-unconsumed` und eine Diagnose über das Nötige hinaus — `slice-replay-semantik-mismatch`; die Diagnose der Extended-Abweichung oben ist dort als geliefert vermerkt.
+- Herunterfahren mitten in einer Extended-Interaktion im Replay — anderer Vorgang (`LH-FA-13.a`, §6); `replaySitzung` bleibt beim bisherigen Verhalten.
 
 
 ## 2. Definition of Done
@@ -63,9 +68,13 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` | update | Matcher für Extended Query |
-| `internal/adapters/driving/pgwire` | update | Handshake für den Standardmodus des Go-Clients, Nachrichten |
-| `test/integration` | update | Abnahmeszenario 7 |
+| `internal/hexagon/services` (`matcher.go`, `replay.go`) | new, update | Strict Matcher für Extended-Nachrichten; Cursor mit Gruppe und Nachricht, `ClientMessage`, Abweichung bei falscher Art |
+| `internal/hexagon/ports/driving/replay.go` | update | `ClientMessage` am Replay-Use-Case |
+| `internal/adapters/driving/pgwire` (`server.go`, Tests) | update | `replaySitzung` leitet Extended-Nachrichten an den Use Case; Handshake unverändert, er genügt pgx im Standardmodus (`TestE2EOhnePostgresExtendedReplay`) |
+| `test/integration` (`extended_replay_e2e_test.go`, `extended_e2e_test.go`) | new, update | Abnahmeszenario 7, Abweichung, Pipeline, Gegendruck im Replay; `gegendruckAblauf` aus dem Record-Test herausgelöst |
+| `tools/test/run-integration-tests.sh` | update | Kopfkommentar: die erste Phase schreibt mehrere Aufzeichnungen |
+| `docs/user/abdeckung-*.md`, `README.md` | update | Abdeckungstabellen (`make abdeckung`); Stand der Wiedergabe |
+| `docs/plan/planning/open/slice-replay-semantik-mismatch.md` | update | „Bereits geliefert“ nennt die Diagnose der Extended-Abweichung |
 
 ## 4. Trigger
 
@@ -95,11 +104,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Wiederholte Ausführung desselben Prepared Statements: Zuordnung über Position — **Ausgang:** offen bis Closure.
+- Wiederholte Ausführung desselben Prepared Statements: Zuordnung über Position. Stand: strict sequential über den Cursor; belegt mit `TestReplayExtendedWiederholung` (Werte a, b, a mit je eigener Antwort, außer der Reihe `PGR-E5001`) und `TestE2EReplayExtendedPgx` (pgx, Werte eins, zwei, eins) — **Ausgang:** offen bis Closure.
 
-- Späte Antworten einer Flush-Gruppe: Server-Nachrichten, die im Record erst nach der ersten Client-Nachricht der folgenden Gruppe eintrafen, stehen in der folgenden Gruppe (`LH-FA-18.a`). Das Replay gibt sie erst nach deren `Flush` oder `Sync` frei; ein Client, der zwischen Beginn und Ende dieser Gruppe auf die Antwort der vorigen wartet, hält im Replay mit seiner eigenen Aufzeichnung an. Die Spezifikation nennt die Folge nicht; zudem sagt [ADR-0012](../../adr/0012-extended-query-gruppen.md), eine Gruppe enthalte die Server-Nachrichten, „die auf sie antworten“ (aus `slice-extended-query-record`, Review F-308) — **Ausgang:** offen bis Closure.
+- Späte Antworten einer Flush-Gruppe: Server-Nachrichten, die im Record erst nach der ersten Client-Nachricht der folgenden Gruppe eintrafen, stehen in der folgenden Gruppe (`LH-FA-18.a`). Das Replay gibt sie erst nach deren `Flush` oder `Sync` frei; ein Client, der zwischen Beginn und Ende dieser Gruppe auf die Antwort der vorigen wartet, hält im Replay mit seiner eigenen Aufzeichnung an. Die Spezifikation nennt die Folge nicht; zudem sagt [ADR-0012](../../adr/0012-extended-query-gruppen.md), eine Gruppe enthalte die Server-Nachrichten, „die auf sie antworten“ (aus `slice-extended-query-record`, Review F-308). Stand: umgesetzt, wie `LH-FA-18.a` es sagt (Freigabe nur nach `Flush` oder `Sync` der Gruppe, `TestReplayExtendedGruppen`); ein Client, der nicht wartet, läuft durch (`TestE2EReplayExtendedGegendruck`, verzögerte Ausgabe einer Flush-Gruppe), der Fall eines wartenden Clients mit später Antwort ist nicht geprüft — **Ausgang:** offen bis Closure.
 
-- Leere Liste und nil sind im Domain-Modell gleichbedeutend; der YAML-Leser liefert nil, der PGWire-Adapter womöglich leere Listen. Ein Feldvergleich per `reflect.DeepEqual` meldete dann eine Abweichung, die keine ist (aus `slice-extended-query-modell`) — **Ausgang:** offen bis Closure.
+- Leere Liste und nil sind im Domain-Modell gleichbedeutend; der YAML-Leser liefert nil, der PGWire-Adapter womöglich leere Listen. Ein Feldvergleich per `reflect.DeepEqual` meldete dann eine Abweichung, die keine ist (aus `slice-extended-query-modell`). Stand: Der Matcher vergleicht Listen nach Länge und Elementen, Werte nach `Null` und Bytes; belegt mit `TestReplayExtendedFelder` (leere Listen und leerer Wert gegen nil gleich, NULL gegen leeren Wert verschieden) — **Ausgang:** offen bis Closure.
+
+- Herunterfahren im Replay mitten in einer Extended-Interaktion: Endet ctx, bricht `replaySitzung` das Lesen der nächsten Client-Nachricht ab, auch zwischen zwei Nachrichten einer Gruppe; die Session endet dann vor dem `Sync`, und die Interaktion zählt als nicht verbraucht (`PGR-W2001`). `LH-FA-13.a` sagt, laufende Sessions endeten nach Abschluss ihrer laufenden Interaktion, ohne den Replay-Modus für Extended zu nennen; die Randform ist offen, nicht im Code entschieden — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

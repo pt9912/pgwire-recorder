@@ -546,9 +546,10 @@ func TestToMessageErfindetNichts(t *testing.T) {
 }
 
 type fakeReplayer struct {
-	mu      sync.Mutex
-	closed  int
-	warnung *model.Warning
+	mu       sync.Mutex
+	closed   int
+	warnung  *model.Warning
+	extended []model.ClientMessage
 }
 
 func (f *fakeReplayer) OpenConnection(context.Context) (model.SessionID, []model.Response) {
@@ -563,6 +564,32 @@ func (f *fakeReplayer) Query(_ context.Context, _ model.SessionID, sql string) (
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "erwartet %q, empfangen %q", "SELECT 1", sql)
 	}
 	return []model.Response{{Type: model.ResponseCommandComplete, Tag: "SELECT 1"}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}}, nil
+}
+
+// ClientMessage merkt sich jede Extended-Nachricht; ein Sync erhält eine
+// vollständige Antwort, ein Execute auf das Portal "abweichend" PGR-E5001, jede
+// andere Nachricht keine Antwort.
+func (f *fakeReplayer) ClientMessage(_ context.Context, _ model.SessionID, m model.ClientMessage) ([]model.Response, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.extended = append(f.extended, m)
+	switch {
+	case m.Type == model.ClientExecute && m.Portal == "abweichend":
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "erwartet execute, empfangen execute, abweichend in portal")
+	case m.Type == model.ClientSync:
+		return []model.Response{
+			{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete},
+			{Type: model.ResponseDataRow, Values: []model.Value{{Bytes: []byte("a")}}},
+			{Type: model.ResponseCommandComplete, Tag: "SELECT 1"}, {Type: model.ResponseReadyForQuery, TxStatus: "I"},
+		}, nil
+	}
+	return nil, nil
+}
+
+func (f *fakeReplayer) nachrichten() []model.ClientMessage {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]model.ClientMessage(nil), f.extended...)
 }
 
 func (f *fakeReplayer) CloseConnection(context.Context, model.SessionID) *model.Warning {

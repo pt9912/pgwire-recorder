@@ -19,9 +19,8 @@ im [Lastenheft](spec/lastenheft.md).
 Das Projekt steht am Beginn der Umsetzung. `pgwire-recorder record` vermittelt
 einfache Anfragen und das erweiterte Protokoll (vorbereitete Anweisungen, etwa
 von pgx im Standardmodus) zwischen einem Client und PostgreSQL und schreibt eine
-YAML-Aufzeichnung; `pgwire-recorder replay` beantwortet die einfachen Anfragen
-daraus ohne Datenbank. Die Wiedergabe des erweiterten Protokolls, die
-Passwort-Anmeldung und das Einspielen fehlen noch. Beim Beenden wartet `record`
+YAML-Aufzeichnung; `pgwire-recorder replay` beantwortet beide daraus ohne
+Datenbank. Die Passwort-Anmeldung und das Einspielen fehlen noch. Beim Beenden wartet `record`
 ohne Frist auf laufende Anfragen; was das im Container bedeutet, sagt das
 Benutzerhandbuch.
 

@@ -164,9 +164,10 @@ type eingang struct {
 	fremd     error
 }
 
-// replaySitzung beantwortet die Anfragen einer Replay-Session nacheinander.
-// Endet ctx, bricht das Lesen der nächsten Client-Nachricht ab; eine laufende
-// Anfrage läuft zu Ende. Extended-Nachrichten sind im Replay PGR-E6001.
+// replaySitzung beantwortet die Client-Nachrichten einer Replay-Session
+// nacheinander: Anfragen und Extended-Nachrichten gehen an den Replay-Use-Case,
+// und was er liefert, geht an den Client. Endet ctx, bricht das Lesen der
+// nächsten Client-Nachricht ab; eine laufende Anfrage läuft zu Ende.
 func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID) {
 	fertig := make(chan struct{})
 	defer close(fertig)
@@ -208,8 +209,18 @@ func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 			s.fail(be, e.fremd)
 			return
 		default:
-			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "Client-Nachricht %s wird im Replay nicht unterstützt", e.extended.Type))
-			return
+			out, err := s.replayer.ClientMessage(ctx, id, *e.extended)
+			if err != nil {
+				s.fail(be, err)
+				return
+			}
+			if len(out) == 0 {
+				continue
+			}
+			if err := s.send(be, out); err != nil {
+				s.sendFailed(err)
+				return
+			}
 		}
 	}
 }
