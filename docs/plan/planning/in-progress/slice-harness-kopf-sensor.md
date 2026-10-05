@@ -13,7 +13,8 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
 nächsten Welle-Closure.
 
-**Bezug:** — (Harness-Arbeit; keine Produkt-Anforderung). Herkunft:
+**Bezug:** — (Harness-Arbeit; keine Produkt-Anforderung). Randformen des Vertrags
+entschieden in [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md). Herkunft:
 `BEO-REPO/plan-folgt-korrektur-nicht`, Lese-Schritt der Closure von
 welle-extended-query.
 
@@ -34,11 +35,13 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Ein Gate meldet rot, wenn ein Slice-Plan in §1 oder §2 eine
-Anforderungs-, Spezifikations- oder Architektur-Kennung nennt, die sein Kopf nicht
-führt: eine Lastenheft-Kennung (Form `LH-XX-NN`) unter `Bezug`, eine Kennung der
-Spezifikation (`SPEC-NNN`, `LH-XX-NN.x`) oder der Sicht (`ARC-NNN`) unter
-`Berührte Spec-Stellen`.
+**Ziel:** Ein Gate meldet rot, wenn ein lebender Slice-Plan (`open/`, `next/`,
+`in-progress/`) in §1 oder §2 eine Kennung aus Lastenheft (`LH-XX-NN`,
+`LH-XX-NN.x`), Spezifikation (`SPEC-NNN`) oder Sicht (`ARC-NNN`) nennt, die sein
+Kopf nicht führt — geprüft gegen die Vereinigung von `Bezug` und `Berührte
+Spec-Stellen`, exakt und ohne Markierung für Nennungen ohne Anspruch. Die Regeln im
+Einzelnen (Gegenstand, Kennungsform, Bereich, Abschnitte, Formfehler, Ausgabe) sind
+in [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) entschieden; der Code folgt ihnen, §6 zeigt je Randform auf die Nummer.
 
 **Herkunft:** `AGENTS.md` §3.9 verlangt seit welle-walking-skeleton, dass der Kopf
 jeder Korrektur folgt. Die Beobachtung `BEO-REPO/plan-folgt-korrektur-nicht` trat
@@ -57,8 +60,12 @@ ist.
 - Folge-Slices auf die Übernahme prüfen (ob der Nehmer nennt, was ihm zugewiesen
   ist) — ein anderer Vorgang mit eigener Randform (Zeiger in Prosa); wird er
   gebraucht, ist er ein eigener Slice aus dem Register.
-- Archivierte Stubs unter `done/<welle-id>/` — sie tragen weder §1 noch §2; der
-  Sensor hat dort keinen Gegenstand.
+- Pläne in `done/`, flach wie archiviert (Stubs tragen weder §1 noch §2) — ein
+  geschlossener Plan ist eingefroren und stand vor `done/` unter dem Sensor;
+  [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 1.
+- Ob eine Kennung existiert und ob sie im Feld steht, das ihre Klasse nahelegt —
+  Urteil bzw. ein anderer Abgleich (gegen die Spec); akzeptiertes Negativ in
+  [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) §Konsequenzen.
 - Produkt-Code, Spezifikation, Lastenheft — Schicht-Abgrenzung: Der Slice ändert
   Harness-Werkzeuge und ihre Doku.
 
@@ -69,13 +76,14 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Prüfskript (bash, ohne Docker) mit einem Gate-Ziel an `GATE_CHECKS`; der
-      Bestand unter `open/`, `next/`, `in-progress/` und flach in `done/` ist grün
-      oder im Plan begründet berichtigt.
-- [ ] Gegenprobe als eigenes Gate-Ziel in Temp-Bäumen: je Kennungs-Klasse (`LH-XX-NN`
-      in §1, `LH-XX-NN.x`, `SPEC-NNN`, `ARC-NNN` in §2) ein Plan, dem der Kopf die
-      Kennung nicht führt, wird abgelehnt; ein vollständiger Kopf wird angenommen. Je
-      Zusage des Skripts ist die Mutation gesehen (`AGENTS.md` §3.10).
+- [ ] Prüfskript (bash, ohne Docker) mit einem Gate-Ziel an `GATE_CHECKS`, nach den
+      Regeln von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md); der Bestand unter `open/`, `next/` und `in-progress/` ist
+      grün, die Befunde aus §6 *Bestand* sind in ihren Plänen berichtigt.
+- [ ] Gegenprobe als eigenes Gate-Ziel in Temp-Bäumen: je Kennungs-Klasse (`LH-XX-NN`,
+      `LH-XX-NN.x`, `SPEC-NNN`, `ARC-NNN`, je in §1 und §2) ein Plan, dem der Kopf die
+      Kennung nicht führt, wird abgelehnt; ein vollständiger Kopf wird angenommen;
+      dazu je Nummer von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), die eine Mutation fangen kann, ein Fall. Je Zusage
+      des Skripts ist die Mutation gesehen (`AGENTS.md` §3.10).
 - [ ] `harness/README.md` §Sensors führt beide Ziele mit ihrem Vertrag;
       `AGENTS.md` §3.9 nennt den Sensor für die Kopf-Hälfte der Regel.
 - [ ] `make gates` grün.
@@ -100,9 +108,10 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | Prüfskript unter `tools/harness/` (Name im ersten Lauf) | neu | liest Kopf, §1 und §2 jedes Slice-Plans und vergleicht die Kennungs-Mengen |
-| Gegenprobe unter `tools/harness/` | neu | Fehlformen in Temp-Bäumen, wie `make abdeckung-gegenprobe` |
+| Gegenprobe unter `tools/harness/` | neu | Fehlformen in Temp-Bäumen, wie `make abdeckung-gegenprobe`; Fälle je Nummer von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) |
 | Fragment unter `harness/mk/` | neu | zwei Ziele, beide an `GATE_CHECKS` |
-| `harness/README.md` | update | zwei Zeilen in §Sensors |
+| `harness/README.md` | update | zwei Zeilen in §Sensors, Bindung [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) |
+| Kopf von fünf Plänen in `open/` (§6 *Bestand*) | update | Bestand gegen den Sensor berichtigt |
 | `AGENTS.md` | update | §3.9 nennt den Sensor |
 | `docs/plan/planning/observations/BEO-REPO/plan-folgt-korrektur-nicht/state.md` | update | Sensor-Zeile verkörpert |
 
@@ -139,18 +148,45 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-Randformen, vor dem Code zu entscheiden (Architect oder Nutzer):
+Randformen des Vertrags — vor dem Code entschieden in [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) (Architect,
+2026-10-05; Status `Proposed`, Annahme durch den Nutzer vor dem ersten Code-Commit).
+Je Randform die Nummer der Entscheidung; was dort nicht steht, entscheidet der
+Implementer nicht, er gibt es zurück (`AGENTS.md` §3.12).
 
-- **Kennung im Fließtext ohne Anspruch** — §1 nennt eine Kennung als Abgrenzung
-  („nicht die Fehlerantwort“) oder als Herkunft. Zählt sie? Vorschlag: §1 zählt ganz,
-  wer abgrenzt, berührt; sonst braucht der Sensor eine Markierung. — **Ausgang:** offen bis Closure.
-- **Unterkennung gegen Hauptkennung** — `LH-FA-18.a` in §2: Genügt `LH-FA-18` unter
-  `Bezug`, oder muss `LH-FA-18.a` unter `Berührte Spec-Stellen` stehen? Der Bestand
-  führt beides. — **Ausgang:** offen bis Closure.
-- **Pläne in `done/`** — frieren ein; ein später geschärfter Sensor färbte sie rot.
-  Prüfen oder nicht? — **Ausgang:** offen bis Closure.
-- **Kennungen in Code-Spans und Links** — gelten gleich; ein Link-Ziel mit Anker
-  (`#lh-fa-18--…`) ist keine zweite Nennung. — **Ausgang:** offen bis Closure.
+- **Kennung im Fließtext ohne Anspruch** (Abgrenzung, Herkunft, Bereits-Geliefertes)
+  — zählt; keine Markierung. Entschieden: [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 6. — **Ausgang:** offen bis Closure.
+- **Unterkennung gegen Hauptkennung** — exakte Gleichheit, keine deckt die andere.
+  Entschieden: [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 4. — **Ausgang:** offen bis Closure.
+- **Pläne in `done/`** — nicht geprüft, flach wie archiviert. Entschieden: [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md)
+  Nr. 1. — **Ausgang:** offen bis Closure.
+- **Kennungen in Code-Spans und Links, Link-Ziele mit Anker** — Auszeichnung ohne
+  Belang; Anker sind klein geschrieben und keine Nennung. Entschieden: [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 2.
+  — **Ausgang:** offen bis Closure.
+- **Abschnitts-Erkennung und Regel-Absätze** — an der Nummer `## 1.`/`## 2.`; der
+  Absatz `Regeln dieser Sektion` ist ausgenommen. Entschieden: [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 6. —
+  **Ausgang:** offen bis Closure.
+- **Kopf-Form: `—`, Mehrfachnennung, andere Schreibweise, Feldwahl** — leere Menge;
+  ohne Belang; keine Kennung; Vereinigung beider Felder. Entschieden: [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 2
+  und 5. — **Ausgang:** offen bis Closure.
+- **Bereich `SPEC-NNN bis SPEC-MMM`** — steht für jede Kennung dazwischen, im Kopf wie
+  in §1/§2 (der Bestand führt diese Form an beiden Stellen). Entschieden: [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md)
+  Nr. 3. — **Ausgang:** offen bis Closure.
+- **Plan ohne Kopf-Feld oder ohne §1/§2; Ausgabe und Exit-Codes** — Befund, kein
+  Überspringen; eine Zeile je Befund auf stderr, Exit 1/0/2. Entschieden: [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md)
+  Nr. 7 und 8. — **Ausgang:** offen bis Closure.
+- **Bestand** — Prototyp-Abgleich nach [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) am Stand af67ba2: fünf Pläne in
+  `open/`, acht Kennungen (13 mit aufgelöstem Bereich); dieser Plan grün:
+  `slice-replay-semantik-fehlerreplay` (`SPEC-003`), `slice-replay-semantik-mismatch`
+  (`LH-FA-10.a`), `slice-v1-abschluss-betrieb` (`LH-FA-02.b`, `SPEC-013` bis
+  `SPEC-019`, `SPEC-034`), `slice-v1-abschluss-homebrew` (`LH-FA-01`),
+  `slice-v1-abschluss-zeitangaben` (`LH-FA-20`). Kein gestufter Start
+  ([ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) Nr. 9): Der Slice ergänzt je Plan `Berührte Spec-Stellen` (ein Bereich
+  bleibt ein Bereich); umformuliert wird nur, wo die Nennung in §1/§2 selbst falsch
+  ist. Das bleibt im ersten Liefer-Punkt; die Rückführungs-Bedingung aus §4 (mehr als
+  eine Handvoll Pläne) ist mit fünf Kopfzeilen nicht erreicht. — **Ausgang:** offen bis Closure.
+- **Akzeptierte Negative** — Existenz der Kennung, Feldzuordnung, Kennungen außerhalb
+  von §1/§2, Zeilen `## ` in Codeblöcken: nicht geprüft, Grund in [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md)
+  §Konsequenzen. Kein Risiko mit eigenem Ausgang.
 
 ## 7. Closure-Notiz
 
