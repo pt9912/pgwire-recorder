@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-kopf-sensor
+**Fund:** Nach der Bestätigung der fünf Lesarten (3eb3555) und den Lesarten (a) und (b) (436a385, 7c29e5f) blieb in §6 der Eintrag „zur Bestätigung beim Architect zurückgegeben, nicht hier entschieden“ mit Ausgang *offen bis Closure* stehen, und §1 sagte weiter, die Regeln im Einzelnen stünden in der ADR, obwohl sieben Lesarten in §6 und im Skript-Kopf stehen (Verifikation V-41). Der neue Kopf-Sensor war auf diesem Plan grün: Der Fund liegt in der Hälfte von §3.9, die Urteil bleibt.

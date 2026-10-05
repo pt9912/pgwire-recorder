@@ -1,4 +1,5 @@
-# harness/mk/kopf-check.mk — Kopf-Sensor fuer Slice-Plaene (ADR-0032).
+# harness/mk/kopf-check.mk — Kopf-Sensor fuer Slice-Plaene (ADR-0032)
+# · seit slice-harness-kopf-sensor.
 # `kopf-check` und `kopf-check-gegenprobe` haengen an GATE_CHECKS: das eine
 # prueft, dass der Kopf jedes Slice-Plans in open/, next/ und in-progress/ die
 # Kennungen aus §1 und §2 fuehrt, das andere haelt das Skript an Temp-Baeumen je

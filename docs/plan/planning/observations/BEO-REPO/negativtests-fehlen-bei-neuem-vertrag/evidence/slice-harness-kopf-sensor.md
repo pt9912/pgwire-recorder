@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-kopf-sensor
+**Fund:** Die Gegenprobe des Kopf-Sensors hielt von der Gate-Bindung nur den Eintrag in `GATE_CHECKS`; `|| true`, `-@bash`, ein Rezept `@true` und das Streichen der Gegenprobe aus `GATE_CHECKS` blieben grün (Review F-374). Dazu blieben die Leerzeile aus Leerzeichen nach dem Regel-Absatz und die Überschriftzeile von §1/§2 ohne fangenden Fall (F-375). Behoben in 6ad6319; die Verifikation sah 67 von 70 Mutationen rot, drei äquivalent.

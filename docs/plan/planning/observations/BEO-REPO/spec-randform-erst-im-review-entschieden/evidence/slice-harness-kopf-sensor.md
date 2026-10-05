@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-kopf-sensor
+**Fund:** Der Vertrag des Kopf-Sensors war vor dem Code in einer ADR entschieden, §6 nannte seine Randformen. Zwei weitere fand erst das Review: die Position der Feldmarke im Kopf, die das Skript still weiter las als der Wortlaut (F-372), und der nicht lesbare Plan, dessen Ausgang von seiner Position abhing (F-377); beide hat der Architect danach als Lesart entschieden (436a385). Eine dritte fand erst die Verifikation: das nicht lesbare Lifecycle-Verzeichnis (V-40), weiter offen.

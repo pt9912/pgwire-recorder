@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-kopf-sensor
+**Fund:** `make kopf-check` endete bei einem nicht lesbaren Plan je nach Position mit 0 ohne Befund oder mit 2 (Review F-377, behoben als Lesart (b) in 7c29e5f). Eine Ebene höher offen: `open/` mit Rechten 000 ergibt Exit 0, ein roter Plan darin bleibt ungesehen (Verifikation V-40); ein Symlink `slice-*.md` wird nicht geprüft (V-43). Plan §6, beide weiter offen.

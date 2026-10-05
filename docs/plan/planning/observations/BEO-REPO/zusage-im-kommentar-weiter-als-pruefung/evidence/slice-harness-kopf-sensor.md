@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-kopf-sensor
+**Fund:** Lesart (3) in Plan §6 nannte die Leerzeile aus Leerzeichen für „Nr. 5, 6“, ein Fall hielt sie nur für den Kopf (Review F-375); der ZUSAGE-Kopf sagte, die Gegenprobe halte jeden Punkt, während die Position der Feldmarke ungeprüft war (F-372); Fragment-Kommentar und Commit-Message sagten „voll scharf“, die Gegenprobe hielt nur den Listeneintrag (F-374). Behoben in 6ad6319 und 7c29e5f. Offen bleibt die Sensors-Zeile „jeder Slice-Plan in `open/` …“ bei nicht lesbarem Verzeichnis (Verifikation V-40).

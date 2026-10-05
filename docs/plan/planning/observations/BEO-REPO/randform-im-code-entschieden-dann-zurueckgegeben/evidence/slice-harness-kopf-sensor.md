@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-kopf-sensor
+**Fund:** Fünf Lesarten des ADR-Wortlauts standen in 1dd6ad6 im Code und im selben Commit in §6 als „zur Bestätigung beim Architect zurückgegeben“; bestätigt wurden sie danach (3eb3555), ohne Code-Änderung (Review F-373). Erstes Auftreten unter `AGENTS.md` §3.12, im ersten Slice nach der Regel. Die Nacharbeit hielt die Reihenfolge ein: Rückgabe 6ad6319 ohne Code-Entscheidung, Architect 436a385, Code 7c29e5f (Verifikation, Abschnitt 2).

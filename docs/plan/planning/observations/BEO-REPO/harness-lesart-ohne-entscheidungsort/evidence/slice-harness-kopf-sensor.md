@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-kopf-sensor
+**Fund:** Sieben Lesarten von [ADR-0032](../../../../../adr/0032-kopf-sensor-fuer-slice-plaene.md) stehen in Plan §6 und im ZUSAGE-Kopf von `tools/harness/kopf-check.sh`, nicht in der ADR. Lesart (1) (`.ab` endet das Wort) ist laut Review eine Wahl zwischen zwei Lesarten (F-380), Lesart (b) führt eine Befund-Form ein, die Nr. 8 nicht nennt (Verifikation V-42); der Architect hat beide als Lesart eingestuft.
