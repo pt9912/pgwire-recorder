@@ -134,3 +134,40 @@ Der Ablauf „App“ ist breiter als `TestE2EReplayExtendedPgx`. Er nutzt ein `p
 | — | Aufnahme nur mit `trust` | bekannt | `slice-v1-abschluss-anmeldung`; optional Hinweis im Handbuch |
 
 Keiner dieser Punkte blockiert die Closure dieses Slice, sofern Punkt 2 vorher als Beobachtung oder benannte Spec-Lücke mit Weg zum Auftraggeber festgehalten ist und das Handbuch die Abhilfe für die Zwischenzeit nennt. Vor der nächsten Welle, die Replay-Semantik oder Sessions anfasst, sollte Punkt 2 entschieden sein.
+
+---
+
+## Nachvalidierung zu `7bc1605`
+
+**Gegenstand:** Frage 2 nach dem Fix in `slice-extended-query-lebendpruefung` mit [ADR-0031](../plan/adr/0031-lebendpruefungen-im-replay.md). Gefragt ist, ob ein Anwender mit `pgxpool` oder `database/sql` über `pgx/v5/stdlib` jetzt bekommt, was [LH-FA-18](../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) und [LH-QA-02](../../spec/lastenheft.md#lh-qa-02--geringe-eingriffe-in-die-anwendung) versprechen. Am Treiber sind nur Host und Port umgestellt, und das Ergebnis darf nicht vom Zeitverhalten abhängen. Die Verifikation des Slice (V-33 bis V-35) ist hier Eingang, kein Beleg.
+
+**Sonde.** Wie in §1: Kopie per `git archive HEAD` (`7bc1605`) im Scratchpad. Das Binary ist unverändert aus der Stufe `runtime` des `Dockerfile` gebaut. Daneben liegt ein eigenes Sondenprogramm, nur im Scratchpad, mit pgx v5.11.0 aus `go.mod`/`go.sum` des Repos. `puddle` steht inzwischen in `go.sum`, ein zusätzlicher Netzabruf war nicht nötig. Der Ablauf ist wie damals: drei Anfragen `SELECT $1::int + 1` nacheinander, je mit `pgxpool` (`MaxConns=1`, sonst Default) oder mit `database/sql` (`SetMaxOpenConns(1)`, sonst Default), dazwischen die angegebene Pause. Gelaufen ist alles in einem eigenen Docker-Netz, mit PostgreSQL aus dem gepinnten Image von `harness/mk/integration.mk` (17, `POSTGRES_HOST_AUTH_METHOD=trust` wie in S12). Aufgezeichnet wurde gegen PostgreSQL, wiedergegeben bei gestoppter PostgreSQL, jede Lage mit eigener Aufzeichnung. Danach waren Images, Container und Netz gelöscht. Produktcode und Arbeitsbaum sind bis auf diesen Abschnitt unverändert.
+
+| # | Lage | damals (`5a1da90`) | jetzt (`7bc1605`) |
+|---|---|---|---|
+| S4 | `pgxpool`, ohne Pause aufgezeichnet, ohne Pause wiedergegeben | grün | **grün.** Exit-Code `0`, Ausgabe byte-gleich, kein `PGR-W2001`. |
+| S5 | `pgxpool`, ohne Pause aufgezeichnet (0 Pings in der Datei), mit 1,5 s Pause wiedergegeben (2 Pings eingehend) | rot | **grün** in drei von drei Läufen. Exit-Code `0`, Ausgabe byte-gleich, keine Warnung. |
+| S6 | `pgxpool`, mit 1,5 s Pause aufgezeichnet (2 Pings in der Datei), ohne Pause wiedergegeben | rot | **grün** in drei von drei Läufen. Exit-Code `0`, Ausgabe byte-gleich. Kein `PGR-W2001`, die übersprungenen Pings zählen also nicht als unverbraucht. Mit gleicher Pause wiedergegeben ebenfalls grün. |
+| S7 | `database/sql`, ohne Pause aufgezeichnet, mit 1,5 s Pause wiedergegeben | rot | **grün** in drei von drei Läufen. Exit-Code `0`, Ausgabe byte-gleich. |
+| S7′ | `database/sql`, mit 1,5 s Pause aufgezeichnet (2 Pings), ohne Pause wiedergegeben (Spiegel zu S7, damals nicht gelaufen) | — | **grün** in drei von drei Läufen. |
+| S8 | `pgxpool` (`MaxConns=4`), vier Goroutinen gleichzeitig, ohne Pause, nur zur Information | 5 von 5 rot | **4 von 5 rot**, 1 grün. Jede Verbindung erhält die erste freie Sitzung, deren Parameter nicht passen: `PGR-E5001` „abweichend in params“ bei identischem SQL, Exit-Code `5`, je Sitzung `PGR-W2001`. `PGR-E5003` trat nicht auf. Unverändert dokumentiert und an `slice-v1-abschluss-sessions` adressiert. Lebendprüfungen sind daran nicht beteiligt (0 Pings in der Datei). |
+
+**Beobachtung aus den Aufzeichnungen:** `database/sql` sendet auch **ohne** Pause eine Lebendprüfung. In drei von drei Aufzeichnungen ohne Pause steht genau ein `-- ping` zwischen der zweiten und der dritten Anfrage. Die Ursache ist hier nicht untersucht. Für den Bedarf heißt das: Auch ein Test ohne jede Pause hätte vor dem Fix bei `database/sql` vom Zeitverhalten abhängen können. Jetzt ist das gleichgültig, denn in S7 kamen beim Wiedergeben zwei Pings gegen einen aufgezeichneten an, und die Wiedergabe war grün.
+
+### Urteil zu Frage 2
+
+**Urteil: trägt.** Frage 2 ist jetzt grün. Verifikation und Validierung sind beide grün, Prozess-Drift liegt nicht vor.
+
+- Die Lagen, die damals rot waren (S5 bis S7), sind in beiden Richtungen grün: mehr Pings beim Wiedergeben als beim Aufzeichnen, weniger, und für `database/sql` auch eine abweichende Zahl auf beiden Seiten. Am Treiber war nur die Adresse geändert, `ShouldPing` blieb auf dem Default. Damit hält die Zusage „nur Host und Port“ aus [LH-FA-18](../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) und [LH-QA-02](../../spec/lastenheft.md#lh-qa-02--geringe-eingriffe-in-die-anwendung) für die häufigste Form, in der Go-Anwendungen pgx nutzen, für nacheinander genutzte Verbindungen. Das Ergebnis hing in keinem der zwölf Läufe von S5 bis S7′ an der Pause ([LH-FA-09](../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay)).
+- Das Handbuch, Abschnitt „Mit einem Datenbanktreiber arbeiten“, beschreibt das Verhalten so, wie es die Sonde zeigt. Es sagt ausdrücklich, dass `ShouldPing` nicht abgeschaltet werden muss.
+- Die Grenzen aus [ADR-0031](../plan/adr/0031-lebendpruefungen-im-replay.md) (Ping mitten in einer Extended-Folge, Lebendprüfung über `Parse`, `;`) trifft pgx im Standardablauf nicht: Der Pool und `ResetSession` pingen nur beim Ausleihen einer Verbindung, also zwischen zwei Interaktionen. Gegen den Bedarf ist das kein Mangel.
+- **Grenze dieser Aussage:** Sie gilt für Verbindungen, die nacheinander genutzt werden. Gleichzeitig genutzte Verbindungen eines Pools (S8) bleiben rot. Das liegt nicht an der Lebendprüfung, sondern an der Zuordnung der Sitzungen, und ist nicht Teil dieser Zusage. Wer mit `pgxpool` parallel arbeitet, bekommt die Zusage erst mit `slice-v1-abschluss-sessions`. Das Handbuch sagt das heute („Nutzen Sie die Verbindungen nacheinander“).
+
+**Empfehlung:** keine Änderung. **Zielort:** keiner. Punkt 2 der Übergabe in §4 ist damit erledigt.
+
+### Neue Befunde
+
+- **`--fail-on-unconsumed` steht im Handbuch, das Binary kennt die Option nicht.** Der Aufruf `replay … --fail-on-unconsumed` endet mit `PGR-E2001` „flag provided but not defined“ und Exit-Code `2`. Das ist geplant: `slice-replay-semantik-mismatch` liegt in `open/`, und das Handbuch trägt den Kopf „noch nicht veröffentlicht“. Die Option-Tabelle in §5 des Handbuchs, der Abschnitt zur Testautomatisierung und die Codes `PGR-E5002`/`PGR-W2001` beschreiben die Option aber ohne Hinweis darauf, dass sie fehlt. Ein Anwender, der heute danach greift, stößt auf einen Konfigurationsfehler. Für diesen Beleg ist das ohne Folgen: Dass übersprungene Pings nicht als unverbraucht zählen, zeigt das Fehlen von `PGR-W2001` in S6. **Zielort:** keiner neu. Ob das Handbuch bis zur Lieferung den Zielstand beschreiben darf, ist eine Frage an den Planner und betrifft nicht nur diese Option.
+- **S8 rot in 4 von 5 Läufen statt 5 von 5:** keine Änderung am Bedarf, nur Information. Ob ein paralleler Ablauf grün wird, hängt an der Reihenfolge, in der die Verbindungen ihre erste Anfrage stellen. Genau das ist die Zeitabhängigkeit, die `slice-v1-abschluss-sessions` lösen soll.
+
+**Modell:** claude-opus-5-5 · **Datum:** 2026-10-05
