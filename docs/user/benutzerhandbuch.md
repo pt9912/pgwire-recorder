@@ -590,7 +590,12 @@ Hilfe, sonst die allgemeine. Die Hilfe geht jeder Prüfung vor: Unbekannte
 Optionen, ungültige Werte, fehlende Pflichtoptionen und ungültige
 Umgebungsvariablen meldet das Werkzeug dann nicht. Auch an der Stelle eines
 Optionswerts ist `--help` die Hilfe; als Wert geht es nur mit `=`
-(`--input=--help`), und nach `--` ist es ein gewöhnliches Argument.
+(`--input=--help`), und nach `--` ist es ein gewöhnliches Argument. Das erste
+`--` beendet die Optionen an jeder Stelle, auch dort, wo ein Optionswert stünde:
+`--input --` ist eine Option ohne Wert (`PGR-E2001`), den Wert `--` geben Sie
+mit `--input=--` an. `record` und `replay` nehmen nach `--` kein Argument an
+(`PGR-E2001`). Eine Option `--version` gibt es nicht; die Version zeigt
+`pgwire-recorder version`.
 
 ### Exit-Codes
 

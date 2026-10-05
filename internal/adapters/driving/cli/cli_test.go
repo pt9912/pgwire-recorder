@@ -255,3 +255,48 @@ func TestParseKeineHilfe(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-01/Negative — das erste -- beendet die Optionen an jeder
+// Stelle, auch an der eines Optionswerts: Fehlt einer Option davor dadurch
+// ihr Wert, ist das PGR-E2001, ohne die Hilfe-Anforderung des Parsers zu
+// nennen; ein Argument danach ist PGR-E2001 (unerwartetes Argument); der Wert
+// -- geht nur mit =.
+func TestParseEndeDerOptionen(t *testing.T) {
+	t.Setenv(envFailOnUnconsumed, "")
+	for _, args := range [][]string{
+		{"replay", "--input", "--", "--help"},
+		{"replay", "--listen", "x", "--input", "--"},
+		{"record", "--listen", "x", "--upstream", "pg:5432", "--output", "--"},
+	} {
+		_, err := keineHilfe(t, args...)
+		if !istUsage(err) || strings.Contains(err.Error(), "help requested") || !strings.Contains(err.Error(), "needs an argument") {
+			t.Errorf("%q: erwartet %s ohne Wert der Option, erhalten %v", args, model.CodeUsage, err)
+		}
+	}
+	for _, args := range [][]string{
+		{"replay", "--listen", "x", "--input", "y", "--", "z"},
+		{"record", "--listen", "x", "--upstream", "pg:5432", "--output", "y", "--", "z"},
+	} {
+		_, err := keineHilfe(t, args...)
+		if !istUsage(err) || !strings.Contains(err.Error(), `unerwartetes Argument "z"`) {
+			t.Errorf("%q: erwartet %s mit unerwartetem Argument, erhalten %v", args, model.CodeUsage, err)
+		}
+	}
+	cmd, err := keineHilfe(t, "replay", "--listen", "x", "--input=--")
+	if err != nil || cmd.Replay.Input != "--" {
+		t.Errorf("--input=--: erhalten %#v, %v", cmd, err)
+	}
+}
+
+// Abdeckung: LH-FA-01/Negative — eine Option --version gibt es nicht, weder
+// als Kommando noch nach version (PGR-E2001).
+func TestParseVersion(t *testing.T) {
+	if cmd, err := keineHilfe(t, "version"); err != nil || cmd.Name != "version" {
+		t.Fatalf("version: %#v, %v", cmd, err)
+	}
+	for _, args := range [][]string{{"--version"}, {"version", "--version"}} {
+		if _, err := keineHilfe(t, args...); !istUsage(err) {
+			t.Errorf("%q: erwartet %s, erhalten %v", args, model.CodeUsage, err)
+		}
+	}
+}

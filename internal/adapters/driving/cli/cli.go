@@ -122,11 +122,12 @@ func parseRecord(args []string) (Command, error) {
 	fs.StringVar(&o.Upstream, "upstream", "", "")
 	fs.StringVar(&o.Output, "output", "", "")
 	fs.BoolVar(&o.Force, "force", false, "")
-	if err := fs.Parse(args); err != nil {
+	optionen, rest := endeDerOptionen(args)
+	if err := fs.Parse(optionen); err != nil {
 		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von record")
 	}
-	if fs.NArg() > 0 {
-		return Command{}, model.Errorf(model.CodeUsage, nil, "unerwartetes Argument %q", fs.Arg(0))
+	if rest = append(fs.Args(), rest...); len(rest) > 0 {
+		return Command{}, model.Errorf(model.CodeUsage, nil, "unerwartetes Argument %q", rest[0])
 	}
 	for _, p := range []struct{ name, value string }{{"--listen", o.Listen}, {"--upstream", o.Upstream}, {"--output", o.Output}} {
 		if p.value == "" {
@@ -152,11 +153,12 @@ func parseReplay(args []string) (Command, error) {
 		}
 	}
 	fs.Var(fail, "fail-on-unconsumed", "")
-	if err := fs.Parse(args); err != nil {
+	optionen, rest := endeDerOptionen(args)
+	if err := fs.Parse(optionen); err != nil {
 		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von replay")
 	}
-	if fs.NArg() > 0 {
-		return Command{}, model.Errorf(model.CodeUsage, nil, "unerwartetes Argument %q", fs.Arg(0))
+	if rest = append(fs.Args(), rest...); len(rest) > 0 {
+		return Command{}, model.Errorf(model.CodeUsage, nil, "unerwartetes Argument %q", rest[0])
 	}
 	for _, p := range []struct{ name, value string }{{"--listen", o.Listen}, {"--input", o.Input}} {
 		if p.value == "" {
@@ -217,4 +219,16 @@ func hilfeVerlangt(args []string) bool {
 		}
 	}
 	return false
+}
+
+// endeDerOptionen teilt die Argumente am ersten "--", an jeder Stelle, auch an
+// der eines Optionswerts: optionen sind die Argumente davor, rest die danach,
+// gewöhnliche Argumente; "--" selbst gehört zu keinem (LH-FA-01.a).
+func endeDerOptionen(args []string) (optionen, rest []string) {
+	for i, a := range args {
+		if a == "--" {
+			return args[:i], args[i+1:]
+		}
+	}
+	return args, nil
 }
