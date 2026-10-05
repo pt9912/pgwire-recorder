@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-18.a` · `SPEC-041` · `SPEC-011` · `ARC-002`
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
 
 ---
@@ -128,6 +128,13 @@ nicht mehr.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
+**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (Stand `main`, 2026-10-05). Alle Einträge liegen in der einzigen Sub-Area `REPO`; für diesen Slice einschlägig:
 
-**Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — 4×, `offen`. Der Replay-Pfad für Extended Query ist ein neuer Vertrag am Protokollrand; die Zusagen aus `LH-FA-18.a` und `LH-FA-10` brauchen Tests, die eine Mutation fangen.
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — 4×, `offen`. Kommentare am Matcher sagen nur zu, was ein Test prüft.
+- `BEO-REPO/spec-randform-erst-im-review-entschieden` — 2×, `offen`. Trifft dieser Slice sie erneut, erreicht sie 3× und braucht einen Folge-Slice.
+- `BEO-REPO/plan-folgt-korrektur-nicht` — `verkörpert` (`AGENTS.md` §3.9); gilt für diesen Slice als Regel.
+
+Die beiden 4×-Einträge stehen über der Schwelle ohne Ausgang; ihr Ausgang wird bei der Closure von welle-extended-query vergeben (Lese-Schritt), nicht in diesem Slice. Die übrigen Einträge (`gate-*`, `kern-fremdimporte-*`, `record-fehlerantwort-*`, `werkzeug-commit-*`) betreffen Gates, Architektur-Regeln oder den Record-Pfad — keine Treffer für diesen Slice.
+
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Spezifikation führt, der Code folgt ihr; `harness/conventions.md` deklariert `*` als Greenfield).
