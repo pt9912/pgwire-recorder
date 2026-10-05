@@ -351,3 +351,86 @@ func TestReplayExtendedDiagnoseAnweisung(t *testing.T) {
 		}
 	}
 }
+
+// ext ist eine Extended-Interaktion aus einer Sync-Gruppe, deren
+// ready_for_query den Transaktionsstatus tx trägt.
+func ext(seq int, tx string, msgs ...model.ClientMessage) model.Interaction {
+	return model.Interaction{Sequence: seq, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
+		Client: append(msgs, syncNachricht),
+		Server: []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: tx}},
+	}}}
+}
+
+func closeS(name string) model.ClientMessage {
+	return model.ClientMessage{Type: model.ClientClose, Target: model.TargetStatement, Name: name}
+}
+
+// Abdeckung: LH-FA-10/Boundary — die Anweisung in der Diagnose folgt der
+// Lebensdauer der Protokollobjekte: ein geschlossenes Statement, das von einer
+// einfachen Anfrage zerstörte unbenannte Statement und ein Portal nach dem Ende
+// der Transaktion sind „unbekannt“, ein Portal innerhalb einer Transaktion
+// bleibt bekannt; ein Portal trägt das Statement zum Zeitpunkt seines bind, auch
+// wenn das unbenannte Statement danach überschrieben wird; die Nachricht am
+// Cursor zählt nicht; close und describe nennen das SQL ihres Statement- oder
+// Portal-Ziels.
+func TestReplayExtendedDiagnoseLebensdauer(t *testing.T) {
+	ctx := context.Background()
+	exec := model.ClientMessage{Type: model.ClientExecute}
+	faelle := []struct {
+		name      string
+		sitzung   []model.Interaction
+		fertig    int // vollständig gesendete Interaktionen
+		vorher    int // gesendete Nachrichten der Interaktion am Cursor
+		empfangen model.ClientMessage
+		want      string
+	}{
+		{"P1 geschlossenes Statement", []model.Interaction{
+			ext(1, "I", parse("s1", "SELECT 1")), ext(2, "I", closeS("s1")), ext(3, "I", parse("s1", "SELECT 1b"), bind("s1"), exec),
+		}, 2, 0, bind("s1"), `Anweisung erwartet "SELECT 1b", empfangen unbekannt`},
+		{"P2 einfache Anfrage zerstört das unbenannte Statement", []model.Interaction{
+			ext(1, "I", parse("", "SELECT 1")), interaktion(2, "SELECT 7", "SELECT 1"), ext(3, "I", parse("", "SELECT 2"), bind(""), exec),
+		}, 2, 0, bind(""), `Anweisung erwartet "SELECT 2", empfangen unbekannt`},
+		{"P3 Portal endet mit der Transaktion", []model.Interaction{
+			ext(1, "I", parse("", "SELECT 1"), bind(""), exec), ext(2, "I", bind(""), exec),
+		}, 1, 0, exec, `Anweisung erwartet "SELECT 1", empfangen unbekannt`},
+		{"P3 Portal in offener Transaktion", []model.Interaction{
+			ext(1, "T", parse("", "SELECT 1"), bind(""), exec), ext(2, "T", bind(""), exec),
+		}, 1, 0, exec, `Anweisung erwartet "SELECT 1", empfangen "SELECT 1"`},
+		{"D1 Portal behält das Statement des bind", []model.Interaction{
+			ext(1, "I", parse("", "SELECT 1"), bind(""), parse("", "SELECT 2"), exec),
+		}, 0, 3, model.ClientMessage{Type: model.ClientExecute, MaxRows: 5}, `Anweisung erwartet "SELECT 1", empfangen "SELECT 1"`},
+		{"D2 Nachricht am Cursor zählt nicht", []model.Interaction{
+			ext(1, "I", parse("s3", "SELECT 3"), bind("s3")),
+		}, 0, 0, bind("s3"), `Anweisung erwartet "SELECT 3", empfangen unbekannt`},
+		{"close auf ein anderes Statement", []model.Interaction{
+			ext(1, "I", parse("s1", "SELECT 1"), parse("s2", "SELECT 2"), closeS("s1")),
+		}, 0, 2, closeS("s2"), `Anweisung erwartet "SELECT 1", empfangen "SELECT 2"`},
+		{"describe auf ein anderes Portal", []model.Interaction{
+			ext(1, "I", parse("s1", "SELECT 1"), bind("s1"), model.ClientMessage{Type: model.ClientDescribe, Target: model.TargetPortal, Name: ""}),
+		}, 0, 2, model.ClientMessage{Type: model.ClientDescribe, Target: model.TargetPortal, Name: "p9"}, `Anweisung erwartet "SELECT 1", empfangen unbekannt`},
+		{"close auf ein Portal", []model.Interaction{
+			ext(1, "I", parse("s1", "SELECT 1"), bind("s1"), model.ClientMessage{Type: model.ClientClose, Target: model.TargetPortal, Name: ""}),
+		}, 0, 2, closeS("s1"), `Anweisung erwartet "SELECT 1", empfangen "SELECT 1"`},
+	}
+	for _, f := range faelle {
+		s, id := replayMit(t, f.sitzung)
+		for _, in := range f.sitzung[:f.fertig] {
+			if in.Request.Type == model.RequestQuery {
+				if _, err := s.Query(ctx, id, in.Request.SQL); err != nil {
+					t.Fatalf("%s: %v", f.name, err)
+				}
+				continue
+			}
+			sendeAlle(t, s, id, in.Groups[0].Client...)
+		}
+		for _, m := range f.sitzung[f.fertig].Groups[0].Client[:f.vorher] {
+			if _, err := s.ClientMessage(ctx, id, m); err != nil {
+				t.Fatalf("%s: %v", f.name, err)
+			}
+		}
+		_, err := s.ClientMessage(ctx, id, f.empfangen)
+		if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), f.want) {
+			t.Errorf("%s: %v", f.name, err)
+		}
+	}
+}

@@ -180,16 +180,15 @@ func (s *ReplayService) zuordnen(id model.SessionID, empfangen string) (*cursor,
 
 // anweisungen nennt für die Diagnose das SQL der Anweisungen, auf die sich die
 // erwartete und die empfangene Nachricht beziehen (LH-FA-10.a): bei parse ihr
-// SQL, bei bind das des Statements, bei execute das des Statements hinter dem
-// Portal, bei describe und close das ihres Ziels. Gesucht wird in den
-// aufgezeichneten Client-Nachrichten der Session vor dem Cursor; ist keine
-// Anweisung bekannt, steht dort „unbekannt“, bezieht sich eine Nachricht auf
-// keine, „keine“. Bezieht sich keine der beiden auf eine Anweisung, liefert es
-// "".
+// SQL, bei bind das des Statements, bei execute das des Portals, bei describe
+// und close das ihres Ziels. Was ein Statement oder Portal vor dem Cursor
+// bedeutet, ergibt der Verlauf der Aufzeichnung (objekte); ein dort nicht
+// bestehendes Objekt ist „unbekannt“. Bezieht sich eine Nachricht auf keine
+// Anweisung, steht „keine“; gilt das für beide, liefert es "".
 func (c *cursor) anweisungen(e, m model.ClientMessage) string {
-	vorher := c.vorher()
-	se, okE := anweisung(vorher, e)
-	sm, okM := anweisung(vorher, m)
+	o := c.objekte()
+	se, okE := o.anweisung(e)
+	sm, okM := o.anweisung(m)
 	if !okE && !okM {
 		return ""
 	}
@@ -202,59 +201,90 @@ func (c *cursor) anweisungen(e, m model.ClientMessage) string {
 	return fmt.Sprintf(", Anweisung erwartet %s, empfangen %s", se, sm)
 }
 
-// vorher sind die aufgezeichneten Client-Nachrichten der Session vor dem
-// Cursor in Sendereihenfolge.
-func (c *cursor) vorher() []model.ClientMessage {
-	var out []model.ClientMessage
+// objekte sind die Statements und Portale einer Session mit dem SQL ihrer
+// Anweisung; ein Portal trägt das SQL seines Statements zum Zeitpunkt des
+// bind.
+type objekte struct {
+	statements map[string]string
+	portale    map[string]string
+}
+
+// objekte spielt die aufgezeichneten Nachrichten der Session vor dem Cursor
+// nach: parse legt ein Statement an oder überschreibt das unbenannte, bind ein
+// Portal, close entfernt sein Ziel. Eine einfache Anfrage entfernt das
+// unbenannte Statement und das unbenannte Portal. Endet eine Interaktion mit
+// ready_for_query im Status "I" (keine Transaktion), enden alle Portale.
+func (c *cursor) objekte() objekte {
+	o := objekte{statements: map[string]string{}, portale: map[string]string{}}
 	for pi, in := range c.session.Interactions[:c.pos+1] {
+		if in.Request.Type == model.RequestQuery {
+			delete(o.statements, "")
+			delete(o.portale, "")
+			o.transaktionsende(in.Responses)
+			continue
+		}
 		for gi, g := range in.Groups {
 			for ni, m := range g.Client {
 				if pi == c.pos && (gi > c.gruppe || gi == c.gruppe && ni >= c.nachricht) {
-					return out
+					return o
 				}
-				out = append(out, m)
+				o.nachspielen(m)
 			}
 		}
+		o.transaktionsende(in.Groups[len(in.Groups)-1].Server)
 	}
-	return out
+	return o
+}
+
+func (o objekte) nachspielen(m model.ClientMessage) {
+	switch m.Type {
+	case model.ClientParse:
+		o.statements[m.Statement] = m.SQL
+	case model.ClientBind:
+		if sql, ok := o.statements[m.Statement]; ok {
+			o.portale[m.Portal] = sql
+		} else {
+			delete(o.portale, m.Portal)
+		}
+	case model.ClientClose:
+		if m.Target == model.TargetStatement {
+			delete(o.statements, m.Name)
+		} else {
+			delete(o.portale, m.Name)
+		}
+	}
+}
+
+// transaktionsende entfernt alle Portale, wenn die Antworten mit
+// ready_for_query im Status "I" enden.
+func (o objekte) transaktionsende(rs []model.Response) {
+	if n := len(rs); n > 0 && rs[n-1].Type == model.ResponseReadyForQuery && rs[n-1].TxStatus == "I" {
+		clear(o.portale)
+	}
 }
 
 // anweisung liefert das SQL der Anweisung, auf die sich m bezieht, gequotet
 // oder „unbekannt“; ok ist falsch, wenn sich m auf keine Anweisung bezieht.
-func anweisung(vorher []model.ClientMessage, m model.ClientMessage) (string, bool) {
+func (o objekte) anweisung(m model.ClientMessage) (string, bool) {
+	nachschlagen := func(tabelle map[string]string, name string) (string, bool) {
+		if sql, ok := tabelle[name]; ok {
+			return fmt.Sprintf("%q", sql), true
+		}
+		return "unbekannt", true
+	}
 	switch {
 	case m.Type == model.ClientParse:
 		return fmt.Sprintf("%q", m.SQL), true
 	case m.Type == model.ClientBind:
-		return statementSQL(vorher, len(vorher), m.Statement), true
+		return nachschlagen(o.statements, m.Statement)
 	case m.Type == model.ClientExecute:
-		return portalSQL(vorher, m.Portal), true
+		return nachschlagen(o.portale, m.Portal)
 	case (m.Type == model.ClientDescribe || m.Type == model.ClientClose) && m.Target == model.TargetStatement:
-		return statementSQL(vorher, len(vorher), m.Name), true
+		return nachschlagen(o.statements, m.Name)
 	case m.Type == model.ClientDescribe || m.Type == model.ClientClose:
-		return portalSQL(vorher, m.Name), true
+		return nachschlagen(o.portale, m.Name)
 	}
 	return "", false
-}
-
-// statementSQL sucht das letzte parse des Statements name vor bis.
-func statementSQL(vorher []model.ClientMessage, bis int, name string) string {
-	for i := bis - 1; i >= 0; i-- {
-		if vorher[i].Type == model.ClientParse && vorher[i].Statement == name {
-			return fmt.Sprintf("%q", vorher[i].SQL)
-		}
-	}
-	return "unbekannt"
-}
-
-// portalSQL sucht das letzte bind des Portals und das Statement dahinter.
-func portalSQL(vorher []model.ClientMessage, portal string) string {
-	for i := len(vorher) - 1; i >= 0; i-- {
-		if vorher[i].Type == model.ClientBind && vorher[i].Portal == portal {
-			return statementSQL(vorher, i, vorher[i].Statement)
-		}
-	}
-	return "unbekannt"
 }
 
 // erwarteteNachricht ist die Client-Nachricht am Cursor; die Interaktion am

@@ -158,13 +158,34 @@ func pipelineAblauf(t *testing.T, listen string) string {
 			t.Fatalf("Ausführung %d: %v", i+1, err)
 		}
 		res := r.(*pgconn.ResultReader).Read()
-		fmt.Fprintf(&b, "ausführung %d: %q %s %v\n", i+1, res.Rows, res.CommandTag, res.Err)
+		fmt.Fprintf(&b, "ausführung %d: %s %s %v\n", i+1, zeilenText(res.Rows), res.CommandTag, res.Err)
 	}
 	if _, err := p.GetResults(); err != nil {
 		t.Fatalf("Sync: %v", err)
 	}
 	if err := p.Close(); err != nil {
 		t.Fatal(err)
+	}
+	return b.String()
+}
+
+// zeilenText schreibt Zeilen so, dass NULL und leerer Text verschieden sind:
+// NULL als NULL, jeder andere Wert gequotet.
+func zeilenText(rows [][][]byte) string {
+	var b strings.Builder
+	for _, row := range rows {
+		b.WriteString("[")
+		for i, v := range row {
+			if i > 0 {
+				b.WriteString(" ")
+			}
+			if v == nil {
+				b.WriteString("NULL")
+			} else {
+				fmt.Fprintf(&b, "%q", v)
+			}
+		}
+		b.WriteString("]")
 	}
 	return b.String()
 }
@@ -178,7 +199,7 @@ func TestE2EReplayExtendedPipeline(t *testing.T) {
 	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), input)
 	aufgezeichnet := pipelineAblauf(t, rec.listen)
 	rec.stop(t, 0)
-	if !strings.Contains(aufgezeichnet, "prepare: [25] 1") || !strings.Contains(aufgezeichnet, `ausführung 1: [["a"]] SELECT 1 <nil>`) {
+	if !strings.Contains(aufgezeichnet, "prepare: [25] 1") || !strings.Contains(aufgezeichnet, `ausführung 1: ["a"] SELECT 1 <nil>`) || !strings.Contains(aufgezeichnet, `ausführung 2: [NULL] SELECT 1 <nil>`) {
 		t.Fatalf("Sicht beim Aufzeichnen:\n%s", aufgezeichnet)
 	}
 	rep := startProzess(t, "replay", "--input", input)
@@ -251,7 +272,7 @@ func TestE2EReplayExtendedSigtermMittenInFolge(t *testing.T) {
 			t.Fatalf("Ausführung %d nach SIGTERM: %v", i+1, err)
 		}
 		res := r.(*pgconn.ResultReader).Read()
-		fmt.Fprintf(&b, "ausführung %d: %q %s %v\n", i+1, res.Rows, res.CommandTag, res.Err)
+		fmt.Fprintf(&b, "ausführung %d: %s %s %v\n", i+1, zeilenText(res.Rows), res.CommandTag, res.Err)
 	}
 	if _, err := p.GetResults(); err != nil {
 		t.Fatalf("Sync nach SIGTERM: %v", err)

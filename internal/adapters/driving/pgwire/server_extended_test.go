@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -702,18 +703,29 @@ func geschlossen(err error) bool {
 }
 
 // spaeteFrist hält jedes Setzen einer Lesefrist außer dem Zurücksetzen an,
-// bis freigabe geschlossen ist; so setzt der Wächter seine Frist erst, wenn der
-// Test es erlaubt.
+// bis freigabe geschlossen ist, und schließt danach gesetzt; liest meldet, ob
+// gerade ein Read auf der Verbindung wartet.
 type spaeteFrist struct {
 	net.Conn
 	freigabe chan struct{}
+	gesetzt  chan struct{}
+	liest    *atomic.Bool
 }
 
 func (c spaeteFrist) SetReadDeadline(t time.Time) error {
-	if !t.IsZero() {
-		<-c.freigabe
+	if t.IsZero() {
+		return c.Conn.SetReadDeadline(t)
 	}
-	return c.Conn.SetReadDeadline(t)
+	<-c.freigabe
+	err := c.Conn.SetReadDeadline(t)
+	close(c.gesetzt)
+	return err
+}
+
+func (c spaeteFrist) Read(p []byte) (int, error) {
+	c.liest.Store(true)
+	defer c.liest.Store(false)
+	return c.Conn.Read(p)
 }
 
 // Abdeckung: LH-FA-13/Boundary — Replay im Adapter: setzt der Wächter die
@@ -725,31 +737,43 @@ func TestReplayHerunterfahrenSpaeteFrist(t *testing.T) {
 	defer cancel()
 	rep := &fakeReplayer{}
 	client, serverSeite := net.Pipe()
-	freigabe := make(chan struct{})
+	conn := spaeteFrist{Conn: serverSeite, freigabe: make(chan struct{}), gesetzt: make(chan struct{}), liest: &atomic.Bool{}}
 	s := NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	go s.handle(ctx, spaeteFrist{Conn: serverSeite, freigabe: freigabe})
+	go s.handle(ctx, conn)
 	t.Cleanup(func() { client.Close() })
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 	fe := pgproto3.NewFrontend(client, client)
 	startup(t, fe)
 
-	warteNachrichten := func(n int) {
-		deadline := time.Now().Add(2 * time.Second)
-		for len(rep.nachrichten()) < n {
+	// bis wartet, bis bedingung gilt, höchstens frist lang, und meldet, ob sie
+	// galt.
+	bis := func(frist time.Duration, bedingung func() bool) bool {
+		deadline := time.Now().Add(frist)
+		for !bedingung() {
 			if time.Now().After(deadline) {
-				t.Fatalf("%d Nachrichten statt %d beim Use Case", len(rep.nachrichten()), n)
+				return false
 			}
-			time.Sleep(5 * time.Millisecond)
+			time.Sleep(time.Millisecond)
 		}
+		return true
 	}
 	sende(fe, &pgproto3.Parse{Name: "s1", Query: "SELECT 1"})
-	warteNachrichten(1)
+	// Die Sitzung hat das Parse verarbeitet und wartet im nächsten Read; erst
+	// dann endet ctx, und der Wächter hängt bis zur Freigabe.
+	if !bis(2*time.Second, func() bool { return len(rep.nachrichten()) == 1 && conn.liest.Load() }) {
+		t.Fatal("Sitzung liest nach dem Parse nicht weiter")
+	}
 	cancel()
 	sende(fe, &pgproto3.Bind{PreparedStatement: "s1"})
-	warteNachrichten(2)
-	time.Sleep(50 * time.Millisecond)
-	close(freigabe)
-	time.Sleep(50 * time.Millisecond)
+	if !bis(2*time.Second, func() bool { return len(rep.nachrichten()) == 2 }) {
+		t.Fatal("Bind erreicht den Use Case nicht")
+	}
+	// Richtig wartet die Sitzung jetzt auf geweckt und liest nicht; ohne das
+	// Warten stünde sie schon wieder im Read. Freigegeben wird nach diesem
+	// Stand oder nach 200 ms.
+	bis(200*time.Millisecond, conn.liest.Load)
+	close(conn.freigabe)
+	<-conn.gesetzt
 	sende(fe, &pgproto3.Execute{}, &pgproto3.Sync{})
 	if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
 		t.Fatalf("an den Client: %s", got)

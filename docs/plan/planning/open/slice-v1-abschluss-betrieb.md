@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../../spec/lastenheft.md#lh-fa-15--ci-eignung), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
 
-**Berührte Spec-Stellen:** `LH-FA-07.a` · `LH-FA-13.a` · `LH-FA-13.b` · `LH-FA-17.a` · `SPEC-007` · `SPEC-008` · `SPEC-012`
+**Berührte Spec-Stellen:** `LH-FA-07.a` · `LH-FA-13.a` · `LH-FA-13.b` · `LH-FA-17.a` · `SPEC-007` · `SPEC-008` · `SPEC-012` · `SPEC-046`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -35,7 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Frist, gezählt ab dem Signal, Default 5 s, setzbar per Option und Umgebungsvariable ([`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)); `0` heißt ohne Frist.
 - Nach Ablauf endet jede noch laufende Session zwangsweise wie bei einem Abbruch nach `LH-FA-02.b`: die laufende Interaktion wird nicht übernommen, die abgeschlossenen bleiben; danach wird die Aufzeichnung geschrieben. In `replay` endet die Session durch Schließen der Client-Verbindung, und eine unvollständige Interaktion ist `PGR-E4006`.
-- Eigener Meldungscode der Klasse 4 (Vergabe nach `SPEC-034`, nicht `PGR-E4003`), Exit-Code `4`; das Log nennt je abgebrochener Session die Session und die verworfene Interaktion.
+- Meldungscode `PGR-E4006` der Klasse 4 (vergeben in `SPEC-034`, nicht `PGR-E4003`), Exit-Code `4`; das Log nennt je abgebrochener Session die Session und die verworfene Interaktion.
 - Ein zweites Signal lässt die Frist sofort ablaufen, statt den Prozess hart zu beenden.
 - Beim Beginn des Herunterfahrens eine Info-Zeile mit der Zahl der Sessions, auf die gewartet wird.
 
