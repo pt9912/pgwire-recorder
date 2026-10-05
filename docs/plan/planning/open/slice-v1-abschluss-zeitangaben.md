@@ -78,7 +78,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: das Zeitmodell verlangt eine Änderung am Recording-Format über ein optionales Feld hinaus — zurück zur Zerlegung.
+- `in-progress` → `next`: das Zeitmodell verlangt eine Änderung am Recording-Format über das in Version 1 enthaltene Feld `offset_ms` hinaus; jedes neue Feld, auch ein optionales, erhöht `version` (`SPEC-001`) — zurück zur Zerlegung.
 - `in-progress` → `open`: Die Fake-Uhr bildet die monotone Uhr nicht ab — Carveout.
 
 

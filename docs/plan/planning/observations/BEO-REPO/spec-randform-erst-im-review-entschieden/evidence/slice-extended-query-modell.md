@@ -1,0 +1,2 @@
+**Vorgang:** slice-extended-query-modell
+**Fund:** In vier Runden je weitere ungeregelte Randformen von `SPEC-001`/`SPEC-041`: fehlende und `null`-Felder einer Client-Nachricht, Stelle von `type` (Review F-285, F-286); `param_types: null`, `client`/`server` je Gruppe, leerer `type` (Verifikation V-16 bis V-18); Anker, Aliase, Merge-Keys (Folge-Review F-294, F-295); `version` gegen unbekannte Felder (Folge-Review F-300).

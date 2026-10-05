@@ -1022,16 +1022,18 @@ format: pgwire-recorder
 version: 1
 ```
 
-`version` ist eine einzelne ganze Zahl und zählt inkompatible Änderungen des
-Formats; abwärtskompatible Ergänzungen (neue optionale Felder) ändern sie nicht.
+`version` ist eine einzelne ganze Zahl und zählt Änderungen des Formats. Ein
+Leser lehnt jedes Feld ab, das er für seine Version nicht kennt (`PGR-E3003`);
+darum erhöht auch ein neues optionales Feld `version`.
 Version 1 umfasst einfache und Extended-Interaktionen: Bei einer einfachen steht
 `type: query` in `request` (`SPEC-002`), bei einer Extended-Interaktion steht
 `type: extended` an der Interaktion selbst (`SPEC-041`); eine einfache trägt dort
 kein `type`. Ein anderer Wert von `type` an einer dieser Stellen, auch ein leerer
-oder `null`, macht das Recording zu einem beschädigten (`PGR-E3003`). Ein Leser
-lehnt jede `version` ab, die er nicht kennt (`PGR-E3002`), und ein Recording ohne
-oder mit abweichender `format`-Kennung als beschädigt (`PGR-E3003`); beides endet
-mit Exit-Code `3` (`SPEC-016`).
+oder `null`, macht das Recording zu einem beschädigten (`PGR-E3003`).
+
+Ein Leser liest jede `version` von 1 bis zu seiner eigenen; jede andere lehnt er ab
+(`PGR-E3002`). Ein Recording ohne oder mit abweichender `format`-Kennung ist
+beschädigt (`PGR-E3003`). Beides endet mit Exit-Code `3` (`SPEC-016`).
 
 Anker, Aliase und Merge-Keys von YAML (`&`, `*`, `<<`) sind nicht Teil des
 Formats; ein Recording, das einen davon enthält, ist beschädigt (`PGR-E3003`).
@@ -1482,3 +1484,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-04 | Recording: Stelle von `type` bei einfacher und Extended-Interaktion (`SPEC-001`, `SPEC-041`); fehlendes oder mit `null` belegtes Feld einer Client-Nachricht, `param_types` nur und stets an `parameter_description`, `request`/`responses`/`groups` mit `null` als beschädigt (`SPEC-041`) |
 | 2026-10-04 | Recording: leerer oder `null`-Wert von `type` (`SPEC-001`), `param_types` mit `null` an einer anderen Server-Nachricht, `client` und `server` je Gruppe Pflicht, `server: []` zulässig (`SPEC-041`) |
 | 2026-10-04 | Recording: Anker, Aliase und Merge-Keys von YAML sind beschädigt (`SPEC-001`) |
+| 2026-10-05 | Recording: jedes neue Feld erhöht `version`; ein Leser lehnt unbekannte Felder ab und liest jede `version` bis zu seiner eigenen (`SPEC-001`) |
