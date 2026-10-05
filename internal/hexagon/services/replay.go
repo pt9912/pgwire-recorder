@@ -102,8 +102,8 @@ func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string)
 	}
 	erwartet := c.session.Interactions[c.pos]
 	if erwartet.Request.Type != model.RequestQuery {
-		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: erwartet Client-Nachricht %s, empfangen Anfrage %q",
-			c.stelle(), c.erwarteteNachricht().Type, sql)
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: erwartet %s, empfangen Anfrage %q",
+			c.stelle(), c.nachrichtText(c.erwarteteNachricht()), sql)
 	}
 	if erwartet.Request.SQL != sql {
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d, Interaktion %d: erwartet %q, empfangen %q",
@@ -128,13 +128,13 @@ func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m m
 		return nil, err
 	}
 	if c.pos >= len(c.session.Interactions) {
-		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: keine aufgezeichnete Interaktion mehr nach %d; empfangen Client-Nachricht %s",
-			c.session.ID, c.pos, m.Type)
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: keine aufgezeichnete Interaktion mehr nach %d; empfangen %s",
+			c.session.ID, c.pos, c.nachrichtText(m))
 	}
 	erwartet := c.session.Interactions[c.pos]
 	if erwartet.Request.Type != model.RequestExtended {
-		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d, Interaktion %d: erwartet Anfrage %q, empfangen Client-Nachricht %s",
-			c.session.ID, erwartet.Sequence, erwartet.Request.SQL, m.Type)
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d, Interaktion %d: erwartet Anfrage %q, empfangen %s",
+			c.session.ID, erwartet.Sequence, erwartet.Request.SQL, c.nachrichtText(m))
 	}
 	e := c.erwarteteNachricht()
 	switch feld := abweichung(m, e); feld {
@@ -176,6 +176,17 @@ func (s *ReplayService) zuordnen(id model.SessionID, empfangen string) (*cursor,
 		c.session = &sess
 	}
 	return c, nil
+}
+
+// nachrichtText nennt eine Client-Nachricht für die Diagnose einer
+// Abweichung der Art oder nach dem Ende der Aufzeichnung: ihren Typ und, wenn
+// sie sich auf eine Anweisung bezieht, deren SQL wie in anweisungen
+// (LH-FA-10.a), etwa `Client-Nachricht parse (Anweisung "SELECT 1")`.
+func (c *cursor) nachrichtText(m model.ClientMessage) string {
+	if sql, ok := c.objekte().anweisung(m); ok {
+		return fmt.Sprintf("Client-Nachricht %s (Anweisung %s)", m.Type, sql)
+	}
+	return fmt.Sprintf("Client-Nachricht %s", m.Type)
 }
 
 // anweisungen nennt für die Diagnose das SQL der Anweisungen, auf die sich die
@@ -220,21 +231,28 @@ type objekte struct {
 // nach; danach kann die Diagnose ein beendetes Objekt als bestehend nennen.
 func (c *cursor) objekte() objekte {
 	o := objekte{statements: map[string]string{}, portale: map[string]string{}}
-	for pi, in := range c.session.Interactions[:c.pos+1] {
+	for pi, in := range c.session.Interactions {
+		if pi > c.pos || pi == c.pos && in.Request.Type == model.RequestQuery {
+			return o
+		}
 		if in.Request.Type == model.RequestQuery {
 			delete(o.statements, "")
 			delete(o.portale, "")
 			o.transaktionsende(in.Responses)
 			continue
 		}
-		for gi, g := range in.Groups {
-			// Der Server bestätigt jedes angenommene parse, bind und close;
-			// nach einer Ablehnung verwirft er bis zum Sync. Die ersten n
-			// Nachrichten einer Art mit n Bestätigungen gelten als angenommen.
-			bestaetigt := map[model.ClientMessageType]int{}
+		// Der Server bestätigt jedes angenommene parse, bind und close; nach
+		// einer Ablehnung verwirft er bis zum Sync. Die ersten n Nachrichten
+		// einer Art mit n Bestätigungen in der Interaktion gelten als
+		// angenommen; gezählt wird je Interaktion, weil eine späte Bestätigung
+		// in der folgenden Gruppe steht (LH-FA-18.a).
+		bestaetigt := map[model.ClientMessageType]int{}
+		for _, g := range in.Groups {
 			for _, r := range g.Server {
 				bestaetigt[bestaetigung[r.Type]]++
 			}
+		}
+		for gi, g := range in.Groups {
 			for ni, m := range g.Client {
 				if pi == c.pos && (gi > c.gruppe || gi == c.gruppe && ni >= c.nachricht) {
 					return o

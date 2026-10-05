@@ -471,3 +471,60 @@ func TestReplayExtendedDiagnoseLebensdauer(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-10/Boundary — die Diagnose einer Abweichung der Art und
+// einer Extended-Nachricht nach dem Ende der Aufzeichnung nennt das SQL der
+// Extended-Seite: erwartet ein parse und kommt eine einfache Anfrage, das
+// erwartete SQL; kommt ein parse statt einer einfachen Anfrage oder nach der
+// letzten Interaktion, das empfangene; bei bind das hergeleitete oder
+// „unbekannt“.
+func TestReplayExtendedDiagnoseArt(t *testing.T) {
+	ctx := context.Background()
+	s, id := replayMit(t, []model.Interaction{vorbereitung(1)})
+	_, err := s.Query(ctx, id, "SELECT 99")
+	if want := `erwartet Client-Nachricht parse (Anweisung "SELECT $1::text"), empfangen Anfrage "SELECT 99"`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
+		t.Errorf("P4a: %v", err)
+	}
+
+	s, id = replayMit(t, []model.Interaction{interaktion(1, "SELECT 7", "SELECT 1")})
+	_, err = s.ClientMessage(ctx, id, parse("s1", "SELECT 42"))
+	if want := `erwartet Anfrage "SELECT 7", empfangen Client-Nachricht parse (Anweisung "SELECT 42")`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
+		t.Errorf("P4b: %v", err)
+	}
+	_, err = s.ClientMessage(ctx, id, bind("s1"))
+	if want := `empfangen Client-Nachricht bind (Anweisung unbekannt)`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
+		t.Errorf("P4b bind: %v", err)
+	}
+
+	in := ext(1, "I", parse("s1", "SELECT 1"))
+	s, id = replayMit(t, []model.Interaction{in})
+	sendeAlle(t, s, id, in.Groups[0].Client...)
+	_, err = s.ClientMessage(ctx, id, parse("s2", "SELECT 42"))
+	if want := `keine aufgezeichnete Interaktion mehr nach 1; empfangen Client-Nachricht parse (Anweisung "SELECT 42")`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
+		t.Errorf("P4c: %v", err)
+	}
+	_, err = s.ClientMessage(ctx, id, bind("s1"))
+	if want := `empfangen Client-Nachricht bind (Anweisung "SELECT 1")`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
+		t.Errorf("P4c bind: %v", err)
+	}
+}
+
+// Abdeckung: LH-FA-10/Boundary — steht die Bestätigung eines parse aus einer
+// Flush-Gruppe spät in der folgenden Gruppe (LH-FA-18.a), gilt das Statement
+// als angelegt: Bestätigungen zählen je Interaktion.
+func TestReplayExtendedDiagnoseSpaeteBestaetigung(t *testing.T) {
+	ctx := context.Background()
+	in := model.Interaction{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{
+		{Client: []model.ClientMessage{parse("s1", "SELECT 2"), flushNachricht}, Server: []model.Response{}},
+		{
+			Client: []model.ClientMessage{bind("s1"), execute, syncNachricht},
+			Server: []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}, tag("SELECT 1"), rfq},
+		},
+	}}
+	s, id := replayMit(t, []model.Interaction{in})
+	sendeAlle(t, s, id, in.Groups[0].Client...)
+	_, err := s.ClientMessage(ctx, id, bind("s2"))
+	if want := `Anweisung erwartet "SELECT 2", empfangen unbekannt`; code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), want) {
+		t.Errorf("P5: %v", err)
+	}
+}
