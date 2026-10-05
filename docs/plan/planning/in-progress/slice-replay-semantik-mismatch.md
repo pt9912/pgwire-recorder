@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-replay-semantik.
 
-**Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus)
+**Bezug:** [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
 
-**Berührte Spec-Stellen:** `LH-FA-03.b` · `LH-FA-13.b` · `LH-FA-10.a` · `SPEC-012` · `SPEC-018` · `ARC-002` · `ARC-006`
+**Berührte Spec-Stellen:** `LH-FA-03.b` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-10.a` · `SPEC-012` · `SPEC-018` · `SPEC-034` · `ARC-002` · `ARC-006`
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -31,11 +31,16 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Mit `--fail-on-unconsumed` sind nicht verbrauchte Interaktionen und nie zugeordnete Sessions im Replay ein Fehler (`PGR-E5002`, Exit-Code 5) statt der Warnung `PGR-W2001`. Erkennung und Diagnose der Abweichung sind für beide Protokollvarianten geliefert (siehe unten).
 
+Geliefert werden die Option, ihre Umgebungsvariable `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` mit den Werten aus [`LH-FA-17.a`](../../../../spec/spezifikation.md#lh-fa-17a--konfiguration) (nur `true`/`false`, leer heißt nicht gesetzt, CLI vor Umgebungsvariable), die Regeln aus [`LH-FA-03.b`](../../../../spec/spezifikation.md#lh-fa-03b--nicht-verbrauchte-interaktionen) für Verbrauch, Zeitpunkte, Meldung und Rangfolge, mit und ohne Option, und das Handbuch, das diese Regeln für den Anwender nennt.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Meldungscodes und Fehlertext-Kopf — `slice-replay-semantik-meldungscodes`.
 - Diagnose einer Abweichung — geliefert (siehe „Bereits geliefert“); dieser Slice ändert sie nicht.
-- Warnung bei nicht verbrauchten Interaktionen — geliefert von `slice-walking-skeleton-replay` (`PGR-W2001`).
+- Warnung bei nicht verbrauchten Interaktionen — geliefert von `slice-walking-skeleton-replay` (`PGR-W2001`); dieser Slice ergänzt nur die Nummer der ersten nicht verbrauchten Interaktion in ihrem Text, weil Warnung und Fehler denselben Text tragen.
+- Schlüssel `fail_on_unconsumed` der Konfigurationsdatei — `slice-v1-abschluss-betrieb`, der die Konfigurationsdatei für alle Optionen liefert; heute liest das Binary keine.
+- Frist `--shutdown-timeout` und weiteres Signal — `slice-v1-abschluss-betrieb`; die Regel für eine dabei zwangsweise beendete Session steht in `LH-FA-03.b` und wird dort mit der Frist geprüft, weil es sie hier noch nicht gibt.
+- Strenge Werte boolescher Optionen für `--force` — `slice-v1-abschluss-betrieb`, der `--force` hält; dieser Slice wendet die Regel nur auf die eigene Option an.
 
 **Bereits geliefert** von `slice-walking-skeleton-replay`: Mismatch einfacher Anfragen mit Diagnose (Session, erwartete Nummer, erwartete und empfangene Anfrage), `ErrorResponse` mit `PGR-E5001` und Exit-Code 5 beim Herunterfahren. Von `slice-extended-query-replay`: Mismatch der Extended-Nachrichten mit Diagnose nach `LH-FA-10.a` (Session, Interaktion, Gruppe, Nachricht, erwarteter und empfangener Nachrichtentyp, abweichendes Feld, SQL der erwarteten und der empfangenen Anweisung, ohne Parameterwerte; `TestReplayExtendedDiagnoseAnweisung`), auch für eine einfache Anfrage, wo eine Extended-Nachricht erwartet ist, und umgekehrt (`TestReplayExtendedAbweichung`, `TestReplayExtendedFalscheArt`, `TestE2EReplayExtendedAbweichung`). Dieser Slice ergänzt `--fail-on-unconsumed` (`PGR-E5002`). Titel und Bezug folgen diesem Rest: Die Folgepflicht aus [ADR-0007](../../adr/0007-strict-replay.md), die Diagnose der Abweichung, ist für beide Protokollvarianten geliefert; `--fail-on-unconsumed` schärft [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), nicht das Matching.
 
@@ -65,10 +70,12 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` (Replay-Service) | update | nicht verbrauchte Interaktionen und Sessions als `PGR-E5002` bei gesetzter Option |
-| `internal/adapters/driving/pgwire` | update | `PGR-E5002` beim Ende der Verbindung als Verbindungsfehler merken |
-| `internal/adapters/driving/cli` | update | Option `--fail-on-unconsumed` und Umgebungsvariable |
-| `test/integration` | update | Exit-Code 5 mit, Warnung ohne die Option |
+| `internal/hexagon/services` (Replay-Service) | update | nicht verbrauchte Interaktionen und Sessions als `PGR-E5002` bei gesetzter Option, sonst `PGR-W2001`; Text mit der Nummer der ersten nicht verbrauchten Interaktion (`LH-FA-03.b`) |
+| `internal/adapters/driving/pgwire` | update | `PGR-E5002` am Ende jeder Verbindung als Verbindungsfehler merken, nach dem Fehler, der sie beendet, ohne `ErrorResponse` |
+| `internal/bootstrap` | update | nie zugeordnete Sessions nach dem Ende aller Verbindungen als `PGR-E5002` merken, bevor der Exit-Code gebildet wird; nach einem Startfehler keine Prüfung |
+| `internal/adapters/driving/cli` | update | Option `--fail-on-unconsumed` nur bei `replay` (bei `record` unbekannt), Umgebungsvariable, Werte `true`/`false` (`LH-FA-17.a`) |
+| `test/integration` | update | Exit-Code 5 mit, Warnung und Exit-Code 0 ohne die Option; Rangfolge nach einem Mismatch |
+| `docs/user/benutzerhandbuch.md` | update | Exit-Code 5, `PGR-W2001` auch für nie geöffnete Sitzungen, Rangfolge, Werte der Option |
 
 ## 4. Trigger
 
@@ -99,6 +106,20 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Exit-Code erst beim Prozessende (Verbindungsfehler beenden nur die Verbindung) — **Ausgang:** offen bis Closure.
+
+**Randformen des Vertrags** (`AGENTS.md` §3.12) — je Randform die Stelle, die sie entscheidet; vom Architect vor dem ersten Code-Commit geprüft:
+
+- Zeitpunkt der Prüfung: am Ende jeder Verbindung, gleich aus welchem Grund (Client schließt, Verbindungsfehler, Herunterfahren nach der laufenden Interaktion, Frist oder weiteres Signal), und für nie zugeordnete Sessions einmal beim Prozessende; nach einem Startfehler nicht — `LH-FA-03.b` §Zeitpunkte.
+- Verbindungsfehler beenden nur die Verbindung; `PGR-E5002` wird beim Entstehen gemerkt, der Exit-Code entsteht beim Prozessende — `LH-FA-03.b` §Fehlerebene, `LH-FA-13.b`.
+- Rangfolge bei einem anderen Fehler (`PGR-E5001`, `PGR-E6001`, `PGR-E4006` durch die Frist): der Fehler, der die Verbindung beendet, wird zuerst gemerkt, beide Meldungen stehen im Log, der Exit-Code ist der des ersten; nie zugeordnete Sessions zuletzt — `LH-FA-03.b` §Fehlerebene, `LH-FA-13.b` §Prozessende.
+- Zustellung: `PGR-E5002` geht nicht als `ErrorResponse` an den Client — `LH-FA-03.b` §Fehlerebene, `LH-FA-13.b`.
+- Verbraucht: einfache Interaktion mit gesendeten Antworten, Extended-Interaktion erst mit ihrer letzten Gruppe; eine vor dem letzten `Sync` abgebrochene zählt als nicht verbraucht — `LH-FA-03.b` §Verbraucht.
+- Aufgezeichnete Lebendprüfungen zählen nicht; Sessions ohne Interaktion oder nur aus Lebendprüfungen sind weder nicht verbraucht noch nie zugeordnet, auch bei `connection` — `LH-FA-03.b`, `LH-FA-09.a`, `LH-FA-12.a`.
+- Verbindung ohne zugeordnete Session (nur Handshake oder nur Lebendprüfungen) meldet nichts — `LH-FA-03.b` §Zeitpunkte.
+- Meldung: je Verbindung eine für ihre Session (Session, Zahl nicht verbraucht von allen, `sequence` der ersten nicht verbrauchten), eine Summe für nie zugeordnete Sessions (Zahl, `id` der ersten); derselbe Text mit und ohne Option, Stufe `warn` bzw. `error` — `LH-FA-03.b` §Meldung, `SPEC-034`.
+- Andere Kommandos: bei `record` und `play` unbekannte Option (`PGR-E2001`), ihre Umgebungsvariable bleibt dort unbeachtet — `LH-FA-03.b` §Andere Kommandos, `LH-FA-17.a`.
+- Konfigurationsweg: Option und Umgebungsvariable, CLI vor Umgebungsvariable; Schlüssel der Konfigurationsdatei mit `slice-v1-abschluss-betrieb` — Optionstabelle in `LH-FA-17.a`, §1.
+- Werte: ohne Wert `true`; `=true`/`=false`; jeder andere Wert, auch leer und `1`, `PGR-E2001`; leere Umgebungsvariable gilt als nicht gesetzt; mehrfach auf der Kommandozeile gilt die letzte Angabe — `LH-FA-17.a`.
 
 ## 7. Closure-Notiz
 

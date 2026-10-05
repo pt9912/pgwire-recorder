@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../../spec/lastenheft.md#lh-fa-15--ci-eignung), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
 
-**Berührte Spec-Stellen:** `LH-FA-07.a` · `LH-FA-13.a` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-02.b` · `SPEC-007` · `SPEC-008` · `SPEC-012` · `SPEC-013` bis `SPEC-019` · `SPEC-034` · `SPEC-046`
+**Berührte Spec-Stellen:** `LH-FA-07.a` · `LH-FA-13.a` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-02.b` · `LH-FA-03.b` · `SPEC-007` · `SPEC-008` · `SPEC-012` · `SPEC-013` bis `SPEC-019` · `SPEC-034` · `SPEC-046`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -40,6 +40,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Beim Beginn des Herunterfahrens eine Info-Zeile mit der Zahl der Sessions, auf die gewartet wird.
 
 Die Ergänzung von [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) Boundary ist bestätigt und steht im Lastenheft; `LH-FA-13.a` (Frist, Zwangsende, `PGR-E4006`, weiteres Signal, Info-Zeile), die Optionstabelle (`--shutdown-timeout`) und `SPEC-046` sind spezifiziert. Ob der Gegenstand in DoD-Punkt 1 passt oder einen eigenen Slice der `welle-v1-abschluss` braucht, entscheidet der Planner beim `open` → `next` dieses Slice (zweites Folge-Review zu `slice-extended-query-replay`, F-345: DoD-Punkt 1 bündelt atomares Schreiben, Exit-Code aller Klassen und die Frist in zwei Modi; §3 führt vier Komponenten). Zeigt sich erst in der Arbeit, dass DoD-Punkt 1 nicht in eine Review-Sitzung passt, gilt die Rückführung in §4.
+
+**Übernommen aus `slice-replay-semantik-mismatch`:** der Schlüssel `fail_on_unconsumed` im Abschnitt `replay:` (mit der Konfigurationsdatei für alle Optionen); die Werte boolescher Optionen nach `LH-FA-17.a` auch für `--force` (heute nimmt es `1` und `t` an); und der Test, dass eine durch die Frist zwangsweise beendete Replay-Session mit `--fail-on-unconsumed` `PGR-E4006` vor `PGR-E5002` merkt und mit Exit-Code `4` endet (`LH-FA-03.b`).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 

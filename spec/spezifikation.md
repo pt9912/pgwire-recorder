@@ -167,6 +167,50 @@ zählt als fehlerhaft beendet (`PGR-E5002`, Exit-Code `5`, Fehlerebenen:
 LH-FA-13.b). Der Default ist aus (`SPEC-012`); Query-Mismatches sind unabhängig
 davon immer Fehler.
 
+**Verbraucht.** Eine einfache Interaktion ist verbraucht, sobald ihre
+aufgezeichneten Antworten gesendet sind; eine Extended-Interaktion erst mit den
+Antworten ihrer letzten Gruppe (LH-FA-18.a). Eine Extended-Interaktion, die vor
+dem `Sync` ihrer letzten Gruppe endet, ist nicht verbraucht, auch wenn schon
+Gruppen beantwortet sind. Eine Session ohne Interaktion, auch eine nur aus
+Lebendprüfungen (LH-FA-12.a), hat nichts zu verbrauchen: Sie ist weder nicht
+verbraucht noch nie zugeordnet, auch nicht bei `connection`.
+
+**Zeitpunkte.** Geprüft wird an zwei Stellen, mit und ohne Option gleich:
+
+1. *Ende einer Verbindung*, gleich aus welchem Grund: der Client schließt sie,
+   ein Verbindungsfehler beendet sie, das Herunterfahren beendet sie nach der
+   laufenden Interaktion, oder die Frist `--shutdown-timeout` beziehungsweise
+   ein weiteres Signal beendet sie zwangsweise (LH-FA-13.a). Hat die Verbindung
+   eine Session und ist darin eine Interaktion nicht verbraucht, entsteht eine
+   Meldung für diese Session. Eine Verbindung ohne zugeordnete Session meldet
+   nichts.
+2. *Prozessende* nach dem kontrollierten Herunterfahren, wenn alle
+   Verbindungen beendet sind: Sessions mit Interaktionen, die nie zugeordnet
+   wurden, ergeben zusammen eine Meldung. Nach einem Startfehler (LH-FA-13.b)
+   wird nicht geprüft.
+
+**Meldung.** Mit und ohne Option dieselbe Stelle und derselbe Text; die
+Option ändert nur Code und Stufe (`PGR-W2001` als `warn`, `PGR-E5002` als
+`error` mit dem Kopf aus `SPEC-034`). Die Meldung am Ende einer Verbindung nennt
+die Session, die Zahl der nicht verbrauchten und aller Interaktionen der Session
+(Lebendprüfungen nicht gezählt) und die aufgezeichnete Nummer (`sequence`) der
+ersten nicht verbrauchten. Die Meldung beim Prozessende nennt die Zahl der nie
+zugeordneten Sessions und die `id` der ersten.
+
+**Fehlerebene.** `PGR-E5002` ist ein Verbindungsfehler (LH-FA-13.b) und wird
+gemerkt, wenn er entsteht; der Prozess läuft weiter. Er wird dem Client nicht
+zugestellt: Er entsteht erst, wenn die Verbindung schon endet. Endet eine
+Verbindung durch einen anderen Verbindungsfehler (etwa `PGR-E5001`, `PGR-E6001`
+oder `PGR-E4006` durch die Frist), wird dieser zuerst gemerkt und danach die
+Meldung über die nicht verbrauchten Interaktionen geschrieben; beide stehen im
+Log, und der Exit-Code ist der des zuerst gemerkten (LH-FA-13.b). Nie
+zugeordnete Sessions werden zuletzt gemerkt und bestimmen den Exit-Code nur,
+wenn bis dahin kein Verbindungsfehler auftrat.
+
+**Andere Kommandos.** Die Option gibt es nur bei `replay`. Bei `record` und
+`play` ist sie eine unbekannte Option (`PGR-E2001`, Exit-Code `2`); ihre
+Umgebungsvariable lassen sie unbeachtet (LH-FA-17.a).
+
 ---
 
 ### LH-FA-05.a — Unterstützter Umfang: Startup, Simple Query und Extended Query
@@ -544,13 +588,15 @@ der Klasse (`SPEC-013` bis `SPEC-019`), bevor eine Verbindung angenommen wird.
 unterstützte Interaktion, unerwartetes Verbindungsende, bei
 `--fail-on-unconsumed` nicht verbrauchte Interaktionen, Anfrage ohne
 nicht zugeordnete Session) beenden nur die betroffene Verbindung. Dem Client wird, wo das Protokoll es erlaubt, eine
-`ErrorResponse` mit dem Meldungscode im Meldungstext zugestellt. Der Prozess
+`ErrorResponse` mit dem Meldungscode im Meldungstext zugestellt; `PGR-E5002`
+entsteht erst beim Ende der Verbindung und wird nicht zugestellt (LH-FA-03.b). Der Prozess
 läuft weiter und merkt sich die Klasse des ersten aufgetretenen
 Verbindungsfehlers.
 
 **Prozessende.** Sessions, die bis zum kontrollierten Herunterfahren nie
 zugeordnet wurden, zählen bei `--fail-on-unconsumed` als Fehler der Klasse 5
-(`PGR-E5002`), sonst als Warnung (`PGR-W2001`). Nach einem kontrollierten
+(`PGR-E5002`), sonst als Warnung (`PGR-W2001`); sie werden nach allen
+Verbindungsfehlern gemerkt (LH-FA-03.b). Nach einem kontrollierten
 Herunterfahren ist der Exit-Code der
 der gemerkten Klasse, sonst `0`. Schlägt dabei das Schreiben des Recordings
 fehl, ist er `3` und hat Vorrang vor der gemerkten Klasse. Beendet der Prozess nicht kontrolliert (zum Beispiel durch
@@ -619,7 +665,12 @@ CLI-Argument > Umgebungsvariable > Konfigurationsdatei > Standardwert
 
 Der Name der Umgebungsvariablen einer Option ist das Präfix `PGWIRE_RECORDER_`
 (`SPEC-008`), gefolgt vom Optionsnamen in Großbuchstaben mit `_` statt `-`; boolesche
-Werte lauten `true` oder `false`. Das **Passwort** hat eine eigene Regel: Es kommt
+Werte lauten `true` oder `false`. Eine boolesche Option ohne Wert ist `true`; mit
+`=` nimmt sie `true` oder `false`, jeder andere Wert, auch der leere und `1`, ist
+`PGR-E2001`. Für die Umgebungsvariable gilt dieselbe Wertemenge; eine leere
+Umgebungsvariable gilt als nicht gesetzt. Nennt die Kommandozeile eine Option
+mehrfach, gilt die letzte Angabe. Die Umgebungsvariable einer Option, die das
+Kommando nicht kennt, bleibt unbeachtet. Das **Passwort** hat eine eigene Regel: Es kommt
 aus dem Passwort der benutzten benannten Verbindung (nur als Platzhalter `${VAR}`),
 sonst aus `PGWIRE_RECORDER_PASSWORD`; eine Option dafür gibt es nicht.
 
@@ -1419,7 +1470,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`) |
 | `PGR-E6002` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Protokollversion (LH-FA-05.e) |
 | `PGR-E6003` | nicht unterstützt (Exit 6) | unverschlüsselte Verbindung, obwohl TLS konfiguriert und `--allow-plaintext` nicht gesetzt ist (LH-FA-23.a) |
-| `PGR-W2001` | Replay | Sitzung endet vor Verbrauch aller Interaktionen (LH-FA-03.b) |
+| `PGR-W2001` | Replay | Sitzung endet vor Verbrauch aller Interaktionen, oder Sessions nie zugeordnet (LH-FA-03.b) |
 | `PGR-W3001` | Protokollrand | `CancelRequest` empfangen und nicht weitergeleitet (LH-FA-05.e) |
 | `PGR-W3002` | Protokollrand | TLS-Aushandlung eines Clients gescheitert (LH-FA-23.a) |
 | `PGR-W3003` | Protokollrand | erste Nachricht einer Verbindung ist keine PGWire-Startnachricht (LH-FA-05.e) |
@@ -1605,3 +1656,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Herunterfahren: Frist `--shutdown-timeout` ab dem ersten Signal, Zwangsende mit `PGR-E4006`, weiteres Signal lässt die Frist ablaufen, Info-Zeile beim Beginn (`LH-FA-13.a`, `SPEC-046`) |
 | 2026-10-05 | Replay: Lebendprüfungen außerhalb der Reihe beantwortet, aufgezeichnete übersprungen (`LH-FA-09.a`, `LH-FA-03.a`, `LH-FA-03.b`, `LH-FA-10.a`, `LH-FA-12.a`, `SPEC-011`); falsche Protokollart am Cursor, auch mitten in einer Extended-Interaktion, ist ein Mismatch (`LH-FA-18.a`) |
 | 2026-10-05 | Replay: vertikaler Tabulator als Leerraum einer Lebendprüfung erst ab PostgreSQL 17, nach `server_version` der Session, vor der Zuordnung nicht (`LH-FA-09.a`); Startfehler bei Sessions nur aus Lebendprüfungen (`LH-FA-03.a`); Einspielen und `connection` bei Sessions nur aus Lebendprüfungen (`LH-FA-12.a`) |
+| 2026-10-05 | Replay: verbraucht, Zeitpunkte der Prüfung, Meldung je Session und für nie zugeordnete Sessions, Rangfolge und keine Zustellung von `PGR-E5002`, Option bei anderen Kommandos (`LH-FA-03.b`, `LH-FA-13.b`); Konfiguration: Werte boolescher Optionen, leere Umgebungsvariable, Mehrfachangabe, Umgebungsvariable einer fremden Option (`LH-FA-17.a`); `PGR-W2001` auch für nie zugeordnete Sessions (`SPEC-034`) |
