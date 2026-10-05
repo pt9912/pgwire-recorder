@@ -1,0 +1,3 @@
+**Vorgang:** slice-extended-query-replay
+**Fund:** Trotz `AGENTS.md` §3.9 folgten die Folge-Slices der Teillieferung in drei Läufen hintereinander nicht vollständig: Ziel und DoD von `slice-replay-semantik-mismatch` (Review F-323, Folge-Review F-331), Titel und Welle-Zeile (F-344), die Annahme der Frist im Replay durch `slice-v1-abschluss-betrieb` (F-330).
+**Fund (Kopf):** Der Kopf nannte berührte Spec-Stellen nicht, dreimal im Slice und einmal im Folge-Slice (F-325, F-334, F-343, V-28); §3 führte nicht jede geänderte Datei (V-27, V-32). Diese Form ist am Text prüfbar: Kennungen in §1 und DoD, die der Kopf nicht nennt.

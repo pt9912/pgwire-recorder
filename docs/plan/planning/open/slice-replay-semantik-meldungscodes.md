@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-replay-semantik.
 
-**Bezug:** [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md)
+**Bezug:** [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md)
 
-**Berührte Spec-Stellen:** `SPEC-034` · `SPEC-005` · `SPEC-006` · `SPEC-013` bis `SPEC-028`
+**Berührte Spec-Stellen:** `SPEC-034` · `SPEC-005` · `SPEC-006` · `SPEC-013` bis `SPEC-028` · `LH-FA-18.a` · `SPEC-033`
 
 **Verantwortlich:** —
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -31,6 +31,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Jeder Fehler und jede Warnung trägt einen `PGR-…`-Meldungscode; der Fehlertext beginnt mit `<klasse> [<code>]: `, Logs gehen nach `stderr` mit einstellbarem Level.
 
+**Übernommen aus `slice-extended-query-replay`** (Review F-328, Validierung `docs/reviews/2026-10-05-validierung-slice-extended-query-replay.md`, Befund 3): Mit `--log-level` wird die Regel zu Parameterwerten in der Diagnose wirksam, und die Spezifikation fasst sie zweimal verschieden — `LH-FA-18.a` §Mismatch verbietet Klartext-Werte nur, „wenn der Log-Level nicht `debug` ist“, `SPEC-033` verbirgt sie ohne Bedingung. Die Diagnose geht zudem als `ErrorResponse` an den Client, ein Log-Level wirkte also auch dort. Dazu nennt die Diagnose einer Parameter-Abweichung den Index des abweichenden Parameters nicht, obwohl er keinen Wert verrät. Beides entscheidet der Nutzer als Änderung von `LH-FA-18.a` §Mismatch und `SPEC-033`, bevor dieser Slice beginnt (§4); die Umsetzung liefert DoD-Punkt 3.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Gate, das Code-Tabelle und Katalog abgleicht — Folge-Slice, sobald der Katalog in der Betriebsdokumentation (welle-v1-abschluss) steht.
@@ -46,6 +48,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben): Fehlerklassen aus `SPEC-020` bis `SPEC-028` liefern ihren Code im Kopf des Fehlertexts und als Log-Attribut (Test je Klasse).
 - [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Die Klasse eines Fehlers entspricht `SPEC-013` bis `SPEC-019` (Test je Klasse, deren Auslöser in dieser Welle existiert; die Abbildung auf den Exit-Code beim Herunterfahren und die übrigen Klassen prüft `slice-v1-abschluss-betrieb`).
+- [ ] [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage): Die Diagnose einer Parameter-Abweichung nennt den Index des abweichenden Parameters ohne seinen Wert, und Parameterwerte erscheinen in Diagnose und `ErrorResponse` so, wie die vor Beginn bestätigte Fassung von `LH-FA-18.a` §Mismatch und `SPEC-033` es sagt, auf jedem Log-Level (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -72,7 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-replay-semantik-mismatch` ist `done`.
+**Start** (`next` → `in-progress`): `slice-replay-semantik-mismatch` ist `done`, und die Fassung von `LH-FA-18.a` §Mismatch und `SPEC-033` zu Parameterwerten und Parameter-Index ist vom Nutzer bestätigt (§1).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -96,6 +99,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Vorrangfolge bei Fehlerketten mit mehreren Codes ist nicht festgelegt — **Ausgang:** offen bis Closure.
+
+- Parameterwerte bei `debug` (aus `slice-extended-query-replay`, Review F-328): Liest man `LH-FA-18.a` §Mismatch als Erlaubnis für `debug`, verletzt das `SPEC-033`, und die Werte gingen auch an den Client — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Ein zweites Signal lässt die Frist sofort ablaufen, statt den Prozess hart zu beenden.
 - Beim Beginn des Herunterfahrens eine Info-Zeile mit der Zahl der Sessions, auf die gewartet wird.
 
-Die Ergänzung von [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) Boundary ist bestätigt und steht im Lastenheft; `LH-FA-13.a` (Frist, Zwangsende, `PGR-E4006`, weiteres Signal, Info-Zeile), die Optionstabelle (`--shutdown-timeout`) und `SPEC-046` sind spezifiziert. Ob der Gegenstand in DoD-Punkt 1 passt oder einen eigenen Slice der `welle-v1-abschluss` braucht, entscheidet der Schnitt beim Start dieses Slice.
+Die Ergänzung von [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) Boundary ist bestätigt und steht im Lastenheft; `LH-FA-13.a` (Frist, Zwangsende, `PGR-E4006`, weiteres Signal, Info-Zeile), die Optionstabelle (`--shutdown-timeout`) und `SPEC-046` sind spezifiziert. Ob der Gegenstand in DoD-Punkt 1 passt oder einen eigenen Slice der `welle-v1-abschluss` braucht, entscheidet der Planner beim `open` → `next` dieses Slice (zweites Folge-Review zu `slice-extended-query-replay`, F-345: DoD-Punkt 1 bündelt atomares Schreiben, Exit-Code aller Klassen und die Frist in zwei Modi; §3 führt vier Komponenten). Zeigt sich erst in der Arbeit, dass DoD-Punkt 1 nicht in eine Review-Sitzung passt, gilt die Rückführung in §4.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -78,6 +78,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driving/pgwire`, `internal/bootstrap` | update | Frist in `recordSitzung` und `replaySitzung`; `replay` schließt bei Ablauf die Client-Verbindung und merkt `PGR-E4006` |
 | `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben |
 | `test/integration` | update | Happy/Boundary/Negative |
+| `docs/user/benutzerhandbuch.md` | update | Herunterfahren mit Frist in `record` und `replay`; der Abschnitt nennt auch `replay` im Container (heute `SIGKILL` nach der Stopp-Frist, Exit-Code `137`, keine Log-Zeile; Validierung zu `slice-extended-query-replay`, Frage 5) |
 
 ## 4. Trigger
 
@@ -89,6 +90,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next`: Atomares Schreiben verlangt plattformspezifische Lösungen — zurück zur Zerlegung.
+- `in-progress` → `next`: DoD-Punkt 1 passt nicht in eine Review-Sitzung (F-345) — die Frist `--shutdown-timeout` in beiden Modi geht als eigener Slice der `welle-v1-abschluss` heraus.
 - `in-progress` → `open`: Signalbehandlung ist im Container nicht prüfbar — Carveout.
 
 
@@ -111,7 +113,7 @@ dasteht.
 
 - Herunterfahren ohne Obergrenze (aus `slice-extended-query-record`, Review F-309, Folge-Review F-317, Validierung Frage 1): Eine Session mit laufender Interaktion — einfache Anfrage oder Extended-Interaktion ohne `Sync` — hält das Herunterfahren beliebig lange; der Container-Stopp verliert dann ihre Aufzeichnung ganz, ohne Log-Zeile und mit Exit-Code `137`. Gegenstand siehe §1; Lastenheft und Spezifikation sind ergänzt — **Ausgang:** offen bis Closure.
 
-- Herunterfahren ohne Obergrenze im Replay (aus `slice-extended-query-replay`, Folge-Review F-330): Ein Client, der mitten in einer Extended-Interaktion pausiert, hält `replay` nach `SIGTERM` beliebig lange; endet die Session durch Schließen der Verbindung, behandelt `replaySitzung` das heute als reguläres Ende (Exit-Code 0 statt 4) — **Ausgang:** offen bis Closure.
+- Herunterfahren ohne Obergrenze im Replay (aus `slice-extended-query-replay`, Folge-Review F-330): Ein Client, der mitten in einer Extended-Interaktion pausiert, hält `replay` nach `SIGTERM` beliebig lange; endet die Session durch Schließen der Verbindung, behandelt `replaySitzung` das heute als reguläres Ende (Exit-Code 0 statt 4). Im Container endet ein solches Warten nach der Stopp-Frist mit `SIGKILL`, Exit-Code `137` und ohne Log-Zeile nach dem Start; verloren geht nichts, weil `replay` nichts schreibt (Validierung zu `slice-extended-query-replay`, Frage 5, Sonde S10) — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

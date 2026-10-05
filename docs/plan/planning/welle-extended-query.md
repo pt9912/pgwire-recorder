@@ -52,6 +52,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-extended-query-modell | Spezifikation und Domain-Modell | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
 | slice-extended-query-record | Extended Query im Record | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-06`](../../../spec/lastenheft.md#lh-fa-06--aufzeichnung-von-anfragen-und-antworten) |
 | slice-extended-query-replay | Extended Query im Replay | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-09`](../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-FA-10`](../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage) |
+| slice-extended-query-lebendpruefung | Lebendprüfungen im Replay | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-09`](../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [`LH-QA-02`](../../../spec/lastenheft.md#lh-qa-02--geringe-eingriffe-in-die-anwendung) |
 
 ## 5. Abhängigkeiten
 
@@ -60,7 +61,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - Blockiert: Welle [welle-replay-semantik](welle-replay-semantik.md).
 - Wird blockiert von: Welle [welle-walking-skeleton](done/welle-walking-skeleton/welle-walking-skeleton.md).
-- Innerhalb der Welle: `slice-extended-query-record` und `slice-extended-query-replay` setzen `slice-extended-query-modell` voraus.
+- Innerhalb der Welle: `slice-extended-query-record` und `slice-extended-query-replay` setzen `slice-extended-query-modell` voraus. `slice-extended-query-lebendpruefung` setzt `slice-extended-query-replay` voraus.
 
 ## 6. Out-of-Scope für diese Welle
 

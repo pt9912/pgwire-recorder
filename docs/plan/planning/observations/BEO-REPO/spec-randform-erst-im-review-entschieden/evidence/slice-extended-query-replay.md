@@ -1,0 +1,3 @@
+**Vorgang:** slice-extended-query-replay
+**Fund:** Ob das Replay beim Herunterfahren eine begonnene Extended-Interaktion bis zu ihrem `Sync` beantwortet, entschied der Code still (er brach vor dem `Sync` ab); `LH-FA-13.a` unterscheidet nicht nach Modus (Review F-321, Entscheidung des Nutzers: bis zum `Sync` beantworten).
+**Fund (Folge-Reviews, Verifikation):** Was „erwartete Query“ und „tatsächlich empfangene Query“ aus `LH-FA-10.a` bei `bind`, `execute`, `describe` und `close` bedeuten, entschied der Code Runde um Runde, und jede Prüfrunde fand eine weitere Form: Lebensdauer der Objekte (F-339), Antwort des Servers (F-347), Art-Abweichung und Ende der Aufzeichnung (V-25), späte Bestätigung einer Flush-Gruppe (V-26), einfache Anfrage am Cursor (F-349).

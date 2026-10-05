@@ -1,0 +1,3 @@
+**Vorgang:** slice-extended-query-replay
+**Fund (Validierung, Frage 2):** `pgxpool` und `database/sql` senden nach mehr als 1 s Leerlauf die einfache Anfrage `-- ping`; je nach Pausen steht sie in der Aufzeichnung, in der Wiedergabe oder in beiden, und das strenge Replay meldet eine Abweichung (Sonden S5 bis S7). Spezifikation, ADRs und Planung führten den Fall nicht; Folge-Slice `slice-extended-query-lebendpruefung`.
+**Fund (Plan §6):** Eine Flush-Gruppe, nach der der Client nicht wartet, kann ihre Antwort in der folgenden Gruppe haben; ein Client, der dann mitten in dieser Gruppe auf sie wartet, hält im Replay an. Die Grenze nennt `LH-FA-18.a` §Gruppen, die Folge im Replay nicht; nicht geprüft (Risiko weiter offen).
