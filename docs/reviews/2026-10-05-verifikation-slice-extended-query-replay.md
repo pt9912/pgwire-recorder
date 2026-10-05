@@ -234,3 +234,91 @@ Der Code hält [ADR-0007](../plan/adr/0007-strict-replay.md) im Matching, [ADR-0
 3. V-27, V-28: Plan §3 und den Kopf nachziehen — Implementer/Planner.
 4. Über ein Review für `f528c90` entscheiden — Planner.
 5. V-30 als Kandidat für einen Lerneintrag (neuer Sensor oder Runner-Option) in die Closure-Notiz nehmen — Planner.
+
+---
+
+## Nachverifikation zu 5a1da90
+
+**Gegenstand:** Die Commits `1ab9db2` (V-25 bis V-28) und `5a1da90` (Test Q1 zu F-349) bei HEAD `5a1da90`. Geprüft wird nur dreierlei: DoD-Punkt 2 gegen `LH-FA-10`/`LH-FA-10.a` und `LH-FA-18.a` §Mismatch, mit Schwerpunkt auf der Diagnose bei Art-Abweichung und nach dem Ende der Aufzeichnung (P4a bis P4c); der Stand von V-26 bis V-28; ob DoD 1 und 3 schlechter geworden sind.
+
+**Eingang:** dieser Bericht (V-25 bis V-30), das [vierte Folge-Review](2026-10-05-folge-review-4-slice-extended-query-replay.md) (F-349) und die Commit-Messages. Der Arbeitsbaum war bei meinem Start sauber.
+
+**Modell:** claude-opus-5-5 · **Datum:** 2026-10-05
+
+**Selbst gefahren.** Mutationen und Sonden liefen nur in Kopien von `git archive 5a1da90` im Scratchpad: je Kopie `go test -count=1` netzlos in einem Container aus der Stufe `source` des `Dockerfile` (Hilfs-Tag `pgr-verif2:source`). Kopien und Hilfs-Images (`pgr-verif2:source`, `pgr-verif2:test`) sind gelöscht.
+
+### N1. DoD-Punkt 2 — **bestätigt**
+
+**Bewusstes Brechen: der Zustand ohne den Fix.** Mutante NA setzt `replay.go` auf den Stand `f528c90` zurück, die Tests bleiben auf `5a1da90`. Ergebnis: `TestReplayExtendedDiagnoseArt` ist rot, und zwar aus dem richtigen Grund. Jede Meldung trägt Stelle, Typ und Klasse `PGR-E5001`, aber kein SQL der Extended-Seite. Das ist genau die Lücke aus V-25:
+
+- P4a: `erwartet Client-Nachricht parse, empfangen Anfrage "SELECT 99"`
+- P4b: `erwartet Anfrage "SELECT 7", empfangen Client-Nachricht parse`
+- P4c: `keine aufgezeichnete Interaktion mehr nach 1; empfangen Client-Nachricht parse`
+
+Ebenfalls rot ist `TestReplayExtendedDiagnoseSpaeteBestaetigung` (P5: `Anweisung erwartet unbekannt`). Unverändert ist das Paket grün.
+
+**Einzelne Mutationen**, je eine Kopie:
+
+| # | Mutation | Ergebnis |
+|---|---|---|
+| NB | `Query` ohne `nachrichtText` für die erwartete Nachricht (P4a) | rot nur in `…DiagnoseArt` P4a |
+| NC | Ende der Aufzeichnung ohne `nachrichtText` (P4c) | rot nur in `…DiagnoseArt` P4c, P4c bind |
+| ND | Art-Abweichung in `ClientMessage` ohne `nachrichtText` (P4b) | rot nur in `…DiagnoseArt` P4b, P4b bind, Q1 |
+| NE | Bestätigungen je Gruppe statt je Interaktion (V-26 zurückgedreht) | rot nur in `…DiagnoseSpaeteBestaetigung` |
+| NF | Grenze an der einfachen Anfrage am Cursor entfernt (F-349) | rot nur in `…DiagnoseArt` Q1: `bind (Anweisung unbekannt)` statt `"SELECT 1"` |
+| NG | `nachrichtText` hängt immer die Parameterwerte an | rot in `…DiagnoseArt`, aber nur zufällig: in P4a reicht der geprüfte Teilstring über das angehängte `[]` hinaus |
+| NG2 | `nachrichtText` nennt die Parameterwerte, sobald die Nachricht welche trägt | **grün** im ganzen Baum `./internal/...` (V-31) |
+
+**Eigene Sonden** (zusätzliche Testdatei in der Kopie):
+
+| # | Lage | Diagnose |
+|---|---|---|
+| P6 | `parse s1` in Interaktion 1; Interaktion 2 erwartet `bind s1`; empfangen wird eine einfache Anfrage | `erwartet Client-Nachricht bind (Anweisung "SELECT 1"), empfangen Anfrage "SELECT 99"`, richtig |
+| P7 | mitten in einer Interaktion nach der Flush-Gruppe; erwartet `bind s1`; empfangen wird eine einfache Anfrage | `… Gruppe 2, Nachricht 1: erwartet Client-Nachricht bind (Anweisung "SELECT $1::text") …`, richtig |
+| P8 | erwartet `execute` auf das unbenannte Portal in offener Transaktion; empfangen wird eine einfache Anfrage | `erwartet Client-Nachricht execute (Anweisung "SELECT 5")`, richtig |
+| P9 | `bind` mit dem Wert `GEHEIM`, einmal bei der Art-Abweichung und einmal nach dem Ende | `… bind (Anweisung unbekannt)` bzw. `… bind (Anweisung "SELECT 1")`; der Wert erscheint nicht |
+
+**Gegen die Spec.** `LH-FA-10.a` verlangt erwartete und tatsächlich empfangene Query. Beide stehen jetzt in allen drei Lagen der Art-Abweichung und nach dem Ende, soweit die Nachricht sich auf eine Anweisung bezieht. Wo die Aufzeichnung das Objekt nicht kennt, steht „unbekannt“. Die Session und die Interaktionsnummer stehen ebenfalls drin. `LH-FA-18.a` §Mismatch verlangt Gruppe, Nachricht und die Nachrichtentypen: Bei P4a, P6 bis P8 steht die Stelle mit Gruppe und Nachricht. Bei P4b fehlt sie zu Recht, denn erwartet war eine einfache Anfrage. Parameterwerte erscheinen nach Code-Lesung und P9 nicht (`SPEC-033`); dass kein Test diese Zusage auf den neuen Pfaden hält, ist V-31. Damit sind alle vier Teilbehauptungen von DoD-Punkt 2 bestätigt (2a, 2b, 2d unverändert aus dem Hauptteil, 2c jetzt vollständig). **V-25 ist behoben.**
+
+### N2. Stand V-26 bis V-28
+
+| ID | Stand | Beleg |
+|---|---|---|
+| V-25 | behoben | N1; NA bis ND rot |
+| V-26 | behoben | Zählung je Interaktion (`replay.go`, `objekte`); NE rot in `TestReplayExtendedDiagnoseSpaeteBestaetigung`, und dieser Test ist die frühere Sonde P5 |
+| V-27 | behoben, mit Rest (V-32) | §3 nennt `replay_extended_test.go` und die Berichte unter `docs/reviews/` |
+| V-28 | behoben | Der Kopf nennt [ADR-0012](../plan/adr/0012-extended-query-gruppen.md) im `Bezug` und `LH-FA-11.a` in den berührten Spec-Stellen |
+| F-349 (Review) | behoben | NF rot in Q1 |
+
+### N3. DoD 1 und 3 — **unverändert bestätigt**
+
+- **`make gates` an `5a1da90`, eigener Lauf, Exit 0:**
+  - `abdeckung-gegenprobe` grün, `make abdeckung-check` gesondert Exit 0
+  - `a-check` 0 Befunde, `a-check-negativ` grün
+  - `baseline-verify` v6.13.0 OK, 54 Dateien
+  - `d-check` 162 Dateien, 0 Befunde
+  - `commit-msg-gegenprobe` grün
+  - `run-integration-tests: gruen`, in beiden Phasen; darunter alle `TestE2EReplayExtended*` und in der zweiten Phase `TestE2EOhnePostgresExtendedReplay`, also Abnahmeszenario 7
+- Die Stufe `test` kam im Gate-Lauf aus dem Cache. In der Kopie lief sie deshalb mit `--no-cache-filter test`: `gofmt -l` leer, `go vet -tags integration` und alle sechs Unit-Pakete `ok`.
+- **DoD 1:** Die beiden Commits ändern nur den Mismatch-Zweig des Use Case (`nachrichtText`, `objekte`), den Plan und die Abdeckungstabelle. Matching, Freigabe der Gruppen, Herunterfahren und `Validate` beim Start sind nicht berührt, und die Belege aus 1a bis 1c sind im Gate-Lauf grün. `objekte` läuft weiter unter `mu`. Nach dem Ende der Aufzeichnung kann es den Bereich nicht überschreiten, weil die Schleife über alle Interaktionen läuft (P4c, P9). Die getrennten Phasen aus 1a habe ich nicht wiederholt, weil der Replay-Pfad außerhalb der Diagnose unverändert ist.
+
+### N4. Neue Befunde
+
+| ID | Kategorie | Befund | Beleg |
+|---|---|---|---|
+| V-31 | LOW | **Auf den neuen Pfaden hält kein Test die Zusage „nie Parameterwerte“.** `nachrichtText` liest nur Typ, Namen und SQL; der Code ist richtig (P9). Fügt man aber Parameterwerte in die Diagnose ein, sobald die Nachricht welche trägt, bleibt der ganze Baum grün (NG2). Grund: `TestReplayExtendedDiagnoseArt` sendet `bind` stets ohne Werte und vergleicht nur Teilstrings. U9 im Hauptteil deckt den Pfad innerhalb einer Interaktion (`anweisungen`), nicht die Art-Abweichung und nicht das Ende. DoD-Punkt 2 und §1 sagen „ohne Parameterwerte“ beziehungsweise „nie Parameterwerte“ ohne Einschränkung (`SPEC-033`). Es ist dieselbe Klasse wie F-349: eine Zusage der Diagnose ohne Test, der sie bricht. Die DoD-Aussage selbst stimmt. | Mutation NG2; Sonde P9; `internal/hexagon/services/replay.go` (`nachrichtText`); `replay_extended_test.go` (`TestReplayExtendedDiagnoseArt`) |
+| V-32 | INFO | **Plan §3 zählt die Berichte nicht mehr richtig.** Die Zeile `docs/reviews/` nennt „drei Folge-Reviews“; seit `e017ac2` liegen vier vor. Die Verzeichnis-Zeile deckt die Datei ab, nur die Zählung ist veraltet (`AGENTS.md` §3.9). | `git diff --stat d0e5d3b..5a1da90`; Plan §3 |
+
+### N5. Gesamturteil der Nachverifikation
+
+| DoD-Punkt | Urteil |
+|---|---|
+| 1 ([LH-FA-18](../../spec/lastenheft.md#lh-fa-18--extended-query-protocol)) | **bestätigt**, unverändert |
+| 2 ([LH-FA-10](../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage)) | **bestätigt**. 2c ist jetzt vollständig; ohne den Fix ist `TestReplayExtendedDiagnoseArt` aus dem richtigen Grund rot (NA). |
+| 3 (`make gates`) | **bestätigt**, Exit 0 an `5a1da90` |
+
+**Kein Befund ist HIGH oder MEDIUM.** Vor der Closure empfohlen:
+
+1. V-31: in `TestReplayExtendedDiagnoseArt` ein `bind` mit Wert senden und prüfen, dass der Wert fehlt, bei der Art-Abweichung und nach dem Ende — Implementer.
+2. V-32: Zählung in §3 nachziehen — Implementer.
+3. Die Klasse „Zusage der Diagnose ohne Test, der sie bricht“ ist jetzt der vierte Fund (F-339, F-347, F-349, V-31) und gehört als Kandidat in die Closure-Notiz — Planner.
