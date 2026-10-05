@@ -83,3 +83,9 @@ func Warnf(code string, format string, args ...any) *Warning {
 // ErrSessionEnded liefert ein Aufruf des Record-Use-Case, der auf eine schon
 // beendete Session trifft oder durch ihr Beenden abgebrochen wird.
 var ErrSessionEnded = errors.New("Session beendet")
+
+// ErrShutdown liefert ein Aufruf des Record-Use-Case, wenn die Client-Nachricht
+// nach dem Beginn des Herunterfahrens eine neue Interaktion begänne; sie wird
+// nicht weitergeleitet, und die Session endet nach der laufenden Interaktion
+// (LH-FA-13.a).
+var ErrShutdown = errors.New("Herunterfahren: keine neue Interaktion")

@@ -416,8 +416,9 @@ Antworten.
   Protokolls noch auf ihr `Sync` wartet; die Verbindung wird dann nicht
   aufgezeichnet.
 * Beim Beenden wartet das Werkzeug, bis eine laufende Folge des erweiterten
-  Protokolls mit ihrem `Sync` abgeschlossen ist. Schließen Sie solche Folgen ab,
-  bevor Sie das Werkzeug beenden.
+  Protokolls mit ihrem `Sync` abgeschlossen ist; eine neue Anfrage oder Folge
+  beginnt danach nicht mehr, und die Verbindung wird geschlossen. Schließen Sie
+  solche Folgen ab, bevor Sie das Werkzeug beenden.
 
 ### Das Werkzeug in der Testautomatisierung verwenden
 

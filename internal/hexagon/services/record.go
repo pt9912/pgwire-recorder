@@ -128,7 +128,9 @@ func (s *RecordService) OpenSession(ctx context.Context, startup map[string]stri
 // nicht unterstützte Serverantwort, eine Anfrage während einer
 // Extended-Interaktion vor deren Sync und eine Interaktion, die Validate
 // ablehnt, sind PGR-E6001 und markieren die Session als nicht übernehmbar
-// (LH-FA-18.a); die Antworten gehen dann nicht zurück.
+// (LH-FA-18.a); die Antworten gehen dann nicht zurück. Nach Shutdown beginnt
+// eine einfache Anfrage keine Interaktion mehr: Query liefert ErrShutdown, ohne
+// sie weiterzuleiten (LH-FA-13.a).
 func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error) {
 	l, err := s.laufende(id)
 	if err != nil {
@@ -139,6 +141,10 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 		l.unsupported = true
 		l.mu.Unlock()
 		return nil, model.Errorf(model.CodeUnsupported, nil, "einfache Anfrage während einer laufenden Extended-Interaktion")
+	}
+	if l.herunterfahren {
+		l.mu.Unlock()
+		return nil, model.ErrShutdown
 	}
 	for !l.beendet && (len(l.offen) > 0 || l.empfaengt) {
 		l.cond.Wait()
@@ -182,7 +188,10 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 // eine neue Interaktion. Die erste Nachricht nach einem Flush beginnt eine neue
 // Gruppe, und ab ihr gehen eintreffende Server-Nachrichten an diese Gruppe
 // (LH-FA-18.a). Mit Flush oder Sync sendet es die Client-Nachrichten der Gruppe
-// an den Upstream, ohne mu zu halten.
+// an den Upstream, ohne mu zu halten. Nach Shutdown nimmt es nur noch
+// Nachrichten der laufenden Interaktion vor deren Sync an; eine Nachricht, die
+// eine neue Interaktion begänne, liefert ErrShutdown und geht nicht weiter
+// (LH-FA-13.a).
 func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) error {
 	l, err := s.laufende(id)
 	if err != nil {
@@ -195,6 +204,10 @@ func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m
 	}
 	n := len(l.offen)
 	if n == 0 || l.offen[n-1].sync {
+		if l.herunterfahren {
+			l.mu.Unlock()
+			return model.ErrShutdown
+		}
 		l.offen = append(l.offen, &offeneInteraktion{})
 		n++
 	}
@@ -297,10 +310,12 @@ func (s *RecordService) Delivered(_ context.Context, id model.SessionID) bool {
 	return l.herunterfahren && !l.laeuft()
 }
 
-// Shutdown merkt das Herunterfahren vor. Die Session darf sofort enden, wenn
-// keine Interaktion läuft und keine Antwort auf ihre Zustellung wartet; sonst
-// endet sie nach dem ReadyForQuery der laufenden Interaktion, auch wenn deren
-// Sync noch aussteht (LH-FA-13.a, LH-FA-18.a).
+// Shutdown merkt das Herunterfahren vor; ab dann beginnt keine neue
+// Interaktion (Query und ClientMessage liefern ErrShutdown). Das Ergebnis gibt
+// das Ende frei, wenn keine Interaktion läuft und keine Antwort auf ihre
+// Zustellung wartet. Sonst gibt Delivered es frei, sobald die Antworten der
+// laufenden Interaktionen zugestellt sind; eine laufende Extended-Interaktion
+// nimmt bis dahin noch ihre Client-Nachrichten an (LH-FA-13.a, LH-FA-18.a).
 func (s *RecordService) Shutdown(_ context.Context, id model.SessionID) bool {
 	l, err := s.laufende(id)
 	if err != nil {

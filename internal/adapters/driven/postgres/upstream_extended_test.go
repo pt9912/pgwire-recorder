@@ -369,3 +369,12 @@ func TestCloseBeendetWartende(t *testing.T) {
 		}
 	}
 }
+
+// Close kehrt auch zurück, wenn es die Schreibsperre bekommt, der Server aber
+// nicht liest: das Terminate hat eine Schreibfrist.
+func TestCloseMitSchreibfrist(t *testing.T) {
+	a, b := net.Pipe()
+	defer b.Close()
+	s := &session{conn: a, fe: pgproto3.NewFrontend(a, a)}
+	fertigBinnen(t, 2*time.Second, "Close", func() { _ = s.Close() })
+}

@@ -32,17 +32,20 @@ func (f *fakeUpstream) Open(context.Context, map[string]string) (driven.Upstream
 // Gruppen, Receive liefert die Folgen aus empfang der Reihe nach und wartet,
 // solange keine bereitsteht. Close beendet ein wartendes Receive mit PGR-E4003.
 type fakeSession struct {
-	err     error
-	mu      sync.Mutex
+	err      error
+	mu       sync.Mutex
 	gesendet [][]model.ClientMessage
-	empfang chan []model.Response
-	sendErr error
-	zuEin   sync.Once
-	zu      chan struct{}
+	empfang  chan []model.Response
+	sendErr  error
+	zuEin    sync.Once
+	zu       chan struct{}
 	// queryLaeuft meldet den Beginn einer Query, die danach bis queryHalt wartet;
 	// beide sind nil, wenn Query nicht wartet.
 	queryLaeuft chan struct{}
 	queryHalt   chan struct{}
+	// receiveHalt lässt Receive vor seiner Antwort warten, bis der Kanal
+	// geschlossen ist, auch nach Close; nil heißt: nicht warten.
+	receiveHalt chan struct{}
 }
 
 func neueFakeSession(err error) *fakeSession {
@@ -83,6 +86,10 @@ func (f *fakeSession) gruppen() [][]model.ClientMessage {
 }
 
 func (f *fakeSession) Receive(context.Context) ([]model.Response, error) {
+	if f.receiveHalt != nil {
+		<-f.receiveHalt
+		return <-f.empfang, nil
+	}
 	select {
 	case out := <-f.empfang:
 		return out, nil

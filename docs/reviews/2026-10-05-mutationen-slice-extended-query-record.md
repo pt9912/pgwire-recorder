@@ -90,3 +90,27 @@ Wiederholt gegen den neuen Code, jeweils rot: M1 (zusätzlich `TestRecordGegendr
 **Gegenprobe gegen `5d666db`:** In einer Kopie von `5d666db` mit den neuen E2E-Tests sind `TestE2ERecordExtendedGegendruck` (Zeitüberschreitung nach 60 s) und `TestE2ERecordExtendedSigtermNachBlockade` („Recorder endet nicht nach SIGTERM“) rot; mit dem Umbau grün.
 
 **Race-Detector** (`go test -race -count=30 ./internal/...`, kein Gate) nach dem Umbau: grün.
+
+## Dritte Runde (Folge-Review F-311 bis F-319)
+
+Gegen den Commit, der diese Runde einträgt. Wiederholt und rot: M1 bis M4, M7, N1 bis N12, N15, N17 bis N20. N13 als N13b angepasst (`Delivered` nicht gerufen; rot in `TestExtendedHerunterfahren`, `TestExtendedSyncGruppe`, `TestExtendedZweiRichtungen`, `TestHerunterfahrenWeckenNichtVerloren`, `TestQueryUndTerminate`). N14 und N16 treffen Code, den es nicht mehr gibt; ihre Zusagen prüfen W2 und V1.
+
+| # | Zusage | Mutation | Ort | Rot in |
+|---|---|---|---|---|
+| C | `Close` blockiert nicht an einem Server, der nicht liest, auch wenn es die Schreibsperre bekommt (F-313a) | Schreibfrist vor `Terminate` entfernt | `postgres/upstream.go` (`Close`) | `TestCloseMitSchreibfrist` |
+| D | ein `Query`, dessen Upstream-Aufruf nach dem Ende der Session erfolgreich zurückkommt, liefert `ErrSessionEnded` (F-313b) | Prüfung von `beendet` nach dem Aufruf entfernt | `services/record.go` (`Query`) | `TestRecordEndeNachErfolgreichemUpstream` (Query) |
+| G | ebenso `AwaitServer` (F-313b) | nur der Fehler von `Receive` geprüft | `services/record.go` (`AwaitServer`) | `TestRecordEndeNachErfolgreichemUpstream` (AwaitServer) |
+| H1 | nach `Shutdown` beginnt keine einfache Anfrage (F-311) | Prüfung in `Query` entfernt | `services/record.go` (`Query`) | Zeitüberschreitung in `TestRecordHerunterfahren` |
+| H2 | nach `Shutdown` beginnt keine Extended-Interaktion (F-311) | Prüfung in `ClientMessage` entfernt | `services/record.go` (`ClientMessage`) | `TestRecordHerunterfahren` |
+| H3 | auf `ErrShutdown` liest der Adapter nicht weiter und wartet auf das Ende (F-311) | `ErrShutdown` wie ein Fehler behandelt | `pgwire/server.go` (`fehler`) | `TestExtendedHerunterfahren` (neue Interaktion nach dem Beginn) |
+| H4 | eine schon gelesene Nachricht wird vor der Meldung des Herunterfahrens verarbeitet (F-305) | Wächter meldet `Shutdown` selbst | `pgwire/server.go` (`recordSitzung`) | `TestExtendedHerunterfahren` (gelesene Anfrage) |
+| W1 | Zurücksetzen der Lesefrist löscht kein Wecken (F-312) | Signal in `weiterlesen` nicht geprüft | `pgwire/server.go` (`weiterlesen`) | `TestWeiterlesenNachWecken`, `TestHerunterfahrenWeckenNichtVerloren` |
+| W2 | dasselbe, Zurücksetzen nach `Shutdown` wie vor dem Umbau (F-312, Sonde S2) | Frist nach `Shutdown` ohne Sperre zurückgesetzt | `pgwire/server.go` (`clientRichtung`) | `TestHerunterfahrenWeckenNichtVerloren` |
+| V1 | das Ende einer Session schließt die Client-Verbindung und beendet ein blockiertes Schreiben (F-318) | nur Lesefrist gesetzt | `pgwire/server.go` (`beende`) | `TestEndeSchliesstVerbindung` |
+| F | die Stufe `test` lehnt nicht formatierten Code ab (F-314) | eine Zeile in `services/record.go` falsch eingerückt, in einer Kopie | `Dockerfile` (Stufe `test`) | `make test` (Exit 2, nennt `internal/hexagon/services/record.go`) |
+
+| # | Zusage | Mutation | Rot in |
+|---|---|---|---|
+| E6 | ein pipelinender Client hält das Herunterfahren nicht auf (F-311) | wie H2 | `TestE2ERecordExtendedSigtermBeimPipelining` (endet nicht binnen 5 s) |
+
+**Gegenprobe gegen `0dbcf9d`:** In einer Kopie mit den neuen E2E-Tests ist `TestE2ERecordExtendedSigtermBeimPipelining` rot („Recorder endet nicht binnen 5 s nach SIGTERM“), mit dieser Runde grün.

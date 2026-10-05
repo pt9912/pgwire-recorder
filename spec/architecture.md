@@ -191,7 +191,7 @@ Case zurückgibt.
 | Play-Use-Case | Führt die Anfragen einer Aufzeichnung gegen einen Server aus; wird von der CLI gestartet, nicht von einer Client-Verbindung |
 
 Im Record-Modus übergibt der Adapter die Session als fachliche Ereignisse beider
-Richtungen; im Replay-Modus über fachliche Requests je Anfrage.
+Richtungen.
 
 **Outbound (`ARC-004`).**
 
@@ -558,15 +558,18 @@ konzeptionell, keine verbindliche API.
 **Graceful Shutdown.** Signalbehandlung gehört zum äußersten Anwendungsrand:
 CLI/Bootstrap lösen einen Abbruch über den Kontext-Mechanismus aus, die den Driving Server
 stoppt, die Application Sessions beendet und die Repositories abschließt. Ob eine
-Session auf ihre laufende Interaktion wartet, entscheidet der Service; das
-Beenden einer Session beendet jeden wartenden Port-Aufruf.
+Session auf ihre laufende Interaktion wartet und ob eine Client-Nachricht noch
+eine Interaktion beginnt, entscheidet der Service; das Beenden einer Session
+beendet jeden wartenden Port-Aufruf, und der Driving Adapter schließt die
+Client-Verbindung.
 
 **Concurrency.** Der PGWire Driving Adapter darf jede Client-Verbindung
 nebenläufig verarbeiten; die Parallelitätsmechanik ist Infrastruktur. Fachlicher
 Session-State bleibt je Verbindung getrennt (Verbindung *n* → Application
 Session *n*). Im Record-Modus laufen je Session beide Richtungen nebenläufig; der
 Record-Service ordnet ihre Aufrufe je Session, ohne über einem blockierenden
-Port-Aufruf zu sperren. Gemeinsamer Recording-State wird über einen dafür vorgesehenen
+Upstream-Aufruf zu sperren; das Schreiben der Aufzeichnung beim Session-Ende ist
+sitzungsübergreifend serialisiert. Gemeinsamer Recording-State wird über einen dafür vorgesehenen
 Application Service beziehungsweise eine synchronisierte Implementierung
 koordiniert. Im Replay erhält die n-te Verbindung die n-te aufgezeichnete
 Session; deterministisch ist das bei nacheinander aufgebauten Verbindungen.

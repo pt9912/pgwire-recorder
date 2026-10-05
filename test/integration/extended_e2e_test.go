@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -336,5 +338,74 @@ func TestE2ERecordExtendedSigtermNachBlockade(t *testing.T) {
 	rec.stop(t, 4)
 	if !strings.Contains(rec.stderr.String(), "PGR-E4003") {
 		t.Fatalf("PGR-E4003 fehlt:\n%s", rec.stderr.String())
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — ein Client, der ohne Pause pipelinet (zwei
+// Interaktionen unterwegs, nach jedem ReadyForQuery die nächste), hält das
+// Herunterfahren nicht auf: Nach SIGTERM beginnt keine neue Interaktion, der
+// Prozess endet binnen 5 s mit Exit-Code 0, und die Aufzeichnung trägt höchstens
+// die zwei beim Signal unterwegs gewesenen Interaktionen mehr, als der Client bis
+// dahin abgeschlossen hatte.
+func TestE2ERecordExtendedSigtermBeimPipelining(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	pc, err := pgconn.Connect(ctx, dsn(rec.listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pc.Close(context.Background())
+	p := pc.StartPipeline(ctx)
+	senden := func() error {
+		p.SendQueryParams("SELECT pg_sleep(0.05)", nil, nil, nil, nil)
+		p.SendPipelineSync()
+		return p.Flush()
+	}
+	var fertig atomic.Int64
+	go func() {
+		if senden() != nil || senden() != nil {
+			return
+		}
+		for {
+			for i := 0; i < 2; i++ {
+				r, err := p.GetResults()
+				if err != nil {
+					return
+				}
+				if rr, ok := r.(*pgconn.ResultReader); ok {
+					if rr.Read().Err != nil {
+						return
+					}
+				}
+			}
+			fertig.Add(1)
+			if senden() != nil {
+				return
+			}
+		}
+	}()
+	time.Sleep(time.Second)
+	if err := rec.cmd.Process.Signal(syscall.SIGTERM); err != nil {
+		t.Fatal(err)
+	}
+	vorSignal := fertig.Load()
+	beendet := make(chan error, 1)
+	go func() { beendet <- rec.cmd.Wait() }()
+	select {
+	case <-beendet:
+	case <-time.After(5 * time.Second):
+		t.Fatalf("Recorder endet nicht binnen 5 s nach SIGTERM, obwohl der Client weiter pipelinet\n%s", rec.stderr.String())
+	}
+	if code := rec.cmd.ProcessState.ExitCode(); code != 0 {
+		t.Fatalf("Exit-Code %d\n%s", code, rec.stderr.String())
+	}
+	if vorSignal < 3 {
+		t.Fatalf("vor dem Signal nur %d Interaktionen abgeschlossen", vorSignal)
+	}
+	if n := int64(strings.Count(lies(t, output), "type: extended")); n > vorSignal+2 {
+		t.Fatalf("%d Interaktionen aufgezeichnet, vor dem Signal %d abgeschlossen", n, vorSignal)
 	}
 }

@@ -220,23 +220,25 @@ func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 // Server-Nachrichten über AwaitServer und schreibt sie an den Client. Beide
 // schreiben an den Client unter schreiben. Den Interaktionszustand und den
 // Grund des Session-Endes führt der Use Case; die Sitzung meldet Ereignisse.
-// Wer zuerst ein Ende meldet, beendet die Session; CloseSession beendet die
-// wartenden Aufrufe der anderen Richtung, und eine Lesefrist bricht das Lesen
-// vom Client ab.
+// Wer zuerst ein Ende meldet, beendet die Session und schließt die
+// Client-Verbindung; das beendet blockiertes Lesen und Schreiben der anderen
+// Richtung, CloseSession ihre wartenden Aufrufe des Use Case.
+//
+// Endet ctx, weckt ein Wächter die Client-Richtung; sie meldet das
+// Herunterfahren selbst, bevor sie die nächste Nachricht liest. Eine schon
+// gelesene Nachricht verarbeitet sie also vorher (LH-FA-13.a).
 func (s *Server) recordSitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID) {
-	r := &richtungen{s: s, conn: conn, be: be, id: id, ctx: context.WithoutCancel(ctx)}
+	r := &richtungen{s: s, conn: conn, be: be, id: id, ctx: context.WithoutCancel(ctx),
+		weck: make(chan struct{}, 1), ende: make(chan struct{})}
 
 	var wg sync.WaitGroup
-	stopp := make(chan struct{})
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
 		select {
 		case <-ctx.Done():
-			if s.recorder.Shutdown(r.ctx, id) {
-				r.unterbrechen()
-			}
-		case <-stopp:
+			r.wecke()
+		case <-r.ende:
 		}
 	}()
 	go func() {
@@ -244,7 +246,6 @@ func (s *Server) recordSitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 		r.serverRichtung()
 	}()
 	r.clientRichtung(ctx)
-	close(stopp)
 	wg.Wait()
 }
 
@@ -259,61 +260,122 @@ type richtungen struct {
 	schreiben sync.Mutex
 	beendet   atomic.Bool
 	einmal    sync.Once
+	// ende ist geschlossen, sobald die Session beendet ist.
+	ende chan struct{}
+
+	// frist ordnet das Wecken (Signal in weck, Lesefrist sofort) gegen das
+	// Zurücksetzen der Lesefrist: wer zurücksetzt, sieht unter derselben Sperre,
+	// ob seither geweckt wurde, und kein Wecken geht verloren.
+	frist sync.Mutex
+	weck  chan struct{}
 }
 
-// unterbrechen bricht das laufende oder nächste Lesen vom Client ab.
-func (r *richtungen) unterbrechen() {
+// meldeFrist begrenzt das Schreiben der Fehlerantwort beim Ende einer Session,
+// auch wenn der Client nicht liest.
+const meldeFrist = time.Second
+
+// wecke bricht das laufende oder nächste Lesen vom Client ab und hinterlegt
+// ein Signal in weck.
+func (r *richtungen) wecke() {
+	r.frist.Lock()
+	defer r.frist.Unlock()
+	select {
+	case r.weck <- struct{}{}:
+	default:
+	}
 	_ = r.conn.SetReadDeadline(time.Now())
 }
 
-// beende meldet das Ende der Session genau einmal.
-func (r *richtungen) beende(end model.SessionEnd) {
+// weiterlesen setzt die Lesefrist zurück, wenn seit dem letzten Wecken keines
+// hinzukam; sonst lässt es sie stehen und meldet das Wecken.
+func (r *richtungen) weiterlesen() (geweckt bool) {
+	r.frist.Lock()
+	defer r.frist.Unlock()
+	select {
+	case <-r.weck:
+		return true
+	default:
+	}
+	_ = r.conn.SetReadDeadline(time.Time{})
+	return false
+}
+
+// beende meldet das Ende der Session genau einmal. Mit meldung stellt es dem
+// Client vorher eine Fehlerantwort zu und merkt sie (LH-FA-13.b); das Schreiben
+// dauert höchstens meldeFrist, auch wenn der Client nicht liest. Danach schließt
+// es die Client-Verbindung.
+func (r *richtungen) beende(end model.SessionEnd, meldung error) {
 	r.einmal.Do(func() {
 		r.beendet.Store(true)
+		if meldung != nil {
+			_ = r.conn.SetWriteDeadline(time.Now().Add(meldeFrist))
+			r.schreiben.Lock()
+			r.s.fail(r.be, meldung)
+			r.schreiben.Unlock()
+		}
 		r.s.closeRecord(r.ctx, r.id, end)
-		r.unterbrechen()
+		_ = r.conn.Close()
+		close(r.ende)
 	})
 }
 
-// melde stellt dem Client einen Fehler zu und merkt ihn (LH-FA-13.b).
-func (r *richtungen) melde(err error) {
-	r.schreiben.Lock()
-	defer r.schreiben.Unlock()
-	r.s.fail(r.be, err)
-}
-
 // schreibe schreibt Antworten an den Client und meldet sie danach als
-// zugestellt; endet die Session dabei mit dem Herunterfahren, bricht es das
-// Lesen vom Client ab. Scheitert das Schreiben, beendet es die Session.
+// zugestellt; gibt der Use Case damit das Ende frei, weckt es die
+// Client-Richtung. Scheitert das Schreiben, beendet es die Session.
 func (r *richtungen) schreibe(rs []model.Response) bool {
 	r.schreiben.Lock()
 	err := r.s.send(r.be, rs)
 	r.schreiben.Unlock()
 	if err != nil {
-		r.beende(endBeiSchreibfehler(r.s, err))
+		r.beende(endBeiSchreibfehler(r.s, err), nil)
 		return false
 	}
 	if r.s.recorder.Delivered(r.ctx, r.id) {
-		r.unterbrechen()
+		r.wecke()
 	}
 	return true
 }
 
-// fehler beendet die Session nach einem Fehler des Use Case; nach dem Ende der
-// Session ist nichts mehr zu tun.
+// fehler beendet die Session nach einem Fehler des Use Case. Nach dem Ende der
+// Session ist nichts mehr zu tun; beim Herunterfahren wartet die
+// Client-Richtung auf das Ende (wartenAufEnde).
 func (r *richtungen) fehler(err error) {
 	if errors.Is(err, model.ErrSessionEnded) {
 		return
 	}
-	r.melde(err)
-	r.beende(model.EndFailed)
+	if errors.Is(err, model.ErrShutdown) {
+		r.wartenAufEnde()
+		return
+	}
+	r.beende(model.EndFailed, err)
+}
+
+// wartenAufEnde liest nicht weiter und beendet die Session mit EndShutdown,
+// sobald der Use Case das Ende freigibt; es fragt nach jedem Wecken erneut.
+func (r *richtungen) wartenAufEnde() {
+	for {
+		if r.beendet.Load() {
+			return
+		}
+		if r.s.recorder.Shutdown(r.ctx, r.id) {
+			r.beende(model.EndShutdown, nil)
+			return
+		}
+		select {
+		case <-r.weck:
+		case <-r.ende:
+			return
+		}
+	}
 }
 
 func (r *richtungen) serverRichtung() {
 	for {
 		rs, err := r.s.recorder.AwaitServer(r.ctx, r.id)
 		if err != nil {
-			r.fehler(err)
+			if !errors.Is(err, model.ErrSessionEnded) {
+				r.beende(model.EndFailed, err)
+			}
 			return
 		}
 		if !r.schreibe(rs) {
@@ -322,27 +384,31 @@ func (r *richtungen) serverRichtung() {
 	}
 }
 
-// clientRichtung liest Client-Nachrichten, bis die Session endet. Eine
-// Lesefrist nach dem Beginn des Herunterfahrens beendet die Session nur, wenn
-// der Use Case es freigibt; sonst liest sie weiter. Eine schon gelesene
-// Nachricht wird verarbeitet (LH-FA-13.a).
+// clientRichtung liest Client-Nachrichten, bis die Session endet. Ist ctx
+// beendet, meldet sie vor jedem Lesen das Herunterfahren; gibt der Use Case
+// das Ende frei, endet die Session mit EndShutdown. Eine Lesefrist aus dem
+// Wecken setzt sie über weiterlesen zurück und fragt erneut.
 func (r *richtungen) clientRichtung(ctx context.Context) {
 	for {
+		if r.beendet.Load() {
+			return
+		}
+		if ctx.Err() != nil && r.s.recorder.Shutdown(r.ctx, r.id) {
+			r.beende(model.EndShutdown, nil)
+			return
+		}
 		msg, err := r.be.Receive()
 		if err != nil {
 			switch {
 			case r.beendet.Load():
-			case ctx.Err() != nil && errors.Is(err, os.ErrDeadlineExceeded):
-				if !r.s.recorder.Shutdown(r.ctx, r.id) {
-					_ = r.conn.SetReadDeadline(time.Time{})
-					continue
-				}
-				r.beende(model.EndShutdown)
+				return
+			case errors.Is(err, os.ErrDeadlineExceeded):
+				r.weiterlesen()
+				continue
 			case verbindungsende(err):
-				r.beende(model.EndClosed)
+				r.beende(model.EndClosed, nil)
 			default:
-				r.melde(model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
-				r.beende(model.EndUnsupported)
+				r.beende(model.EndUnsupported, model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
 			}
 			return
 		}
@@ -358,7 +424,7 @@ func (r *richtungen) clientRichtung(ctx context.Context) {
 				return
 			}
 		case e.terminate:
-			r.beende(model.EndTerminate)
+			r.beende(model.EndTerminate, nil)
 			return
 		case e.extended != nil:
 			if err := r.s.recorder.ClientMessage(r.ctx, r.id, *e.extended); err != nil {
@@ -366,8 +432,7 @@ func (r *richtungen) clientRichtung(ctx context.Context) {
 				return
 			}
 		default:
-			r.melde(e.fremd)
-			r.beende(model.EndUnsupported)
+			r.beende(model.EndUnsupported, e.fremd)
 			return
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -355,7 +356,7 @@ func TestExtendedHerunterfahren(t *testing.T) {
 		sende(fe, &pgproto3.Query{String: "SELECT 1"})
 		warteAuf(t, rec, "q:SELECT 1")
 		cancel()
-		warteAuf(t, rec, "shutdown")
+		time.Sleep(50 * time.Millisecond)
 		close(halt)
 		if got := strings.Join(empfange(t, fe, 4), " "); got != "RowDescription DataRow CommandComplete ReadyForQuery" {
 			t.Fatalf("an den Client: %s", got)
@@ -363,7 +364,130 @@ func TestExtendedHerunterfahren(t *testing.T) {
 		if end := rec.lastEnd(t); end != model.EndShutdown {
 			t.Fatalf("Ende %v", end)
 		}
+		if got := rec.protokoll(); got != "q:SELECT 1 zugestellt shutdown "+endeName(model.EndShutdown) {
+			t.Fatalf("Protokoll %q: Herunterfahren nicht erst nach der gelesenen Anfrage gemeldet", got)
+		}
 	})
+	t.Run("neue Interaktion nach dem Beginn", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		rec := &fakeRecorder{neueNachShutdown: true}
+		_, fe, s := verbindeExtended(t, ctx, rec)
+		sende(fe, &pgproto3.Sync{})
+		warteAuf(t, rec, "c:sync")
+		cancel()
+		warteAuf(t, rec, "shutdown")
+		sende(fe, &pgproto3.Parse{Query: "SELECT 2"}, &pgproto3.Bind{}, &pgproto3.Sync{})
+		warteAuf(t, rec, "c:parse")
+		rec.mu.Lock()
+		rec.shutdownEndet = true
+		rec.zugestelltEndet = true
+		rec.mu.Unlock()
+		rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+		empfange(t, fe, 1)
+		if end := rec.lastEnd(t); end != model.EndShutdown || s.FirstErrorCode() != "" {
+			t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+		}
+		if got := rec.protokoll(); strings.Contains(got, "c:bind") {
+			t.Fatalf("nach der abgelehnten Nachricht weitergelesen: %q", got)
+		}
+	})
+}
+
+// Ein Wecken während des Fragens geht nicht verloren: Gibt Shutdown das Ende
+// nicht frei, und gibt Delivered es frei, während die Client-Richtung noch
+// fragt, endet die Session mit EndShutdown, ohne dass der Client weiter sendet.
+func TestHerunterfahrenWeckenNichtVerloren(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	halt := make(chan struct{})
+	rec := &fakeRecorder{shutdownAntworten: []bool{false, false}, shutdownHalt: map[int]chan struct{}{2: halt}}
+	_, fe, s := verbindeExtended(t, ctx, rec)
+	sende(fe, &pgproto3.Sync{})
+	warteAuf(t, rec, "c:sync")
+	cancel()
+	warteAuf(t, rec, "shutdown shutdown")
+	rec.mu.Lock()
+	rec.zugestelltEndet = true
+	rec.shutdownEndet = true
+	rec.mu.Unlock()
+	rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+	empfange(t, fe, 1)
+	warteAuf(t, rec, "zugestellt")
+	close(halt)
+	if end := rec.lastEnd(t); end != model.EndShutdown || s.FirstErrorCode() != "" {
+		t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+	}
+}
+
+// weiterlesen setzt die Lesefrist nicht zurück, wenn vorher geweckt wurde;
+// ohne Wecken setzt es sie zurück.
+func TestWeiterlesenNachWecken(t *testing.T) {
+	a, b := net.Pipe()
+	defer a.Close()
+	defer b.Close()
+	r := &richtungen{conn: a, weck: make(chan struct{}, 1)}
+	r.wecke()
+	if !r.weiterlesen() {
+		t.Fatal("Wecken nicht gemeldet")
+	}
+	fehler := make(chan error, 1)
+	go func() {
+		_, err := a.Read(make([]byte, 1))
+		fehler <- err
+	}()
+	select {
+	case err := <-fehler:
+		if !errors.Is(err, os.ErrDeadlineExceeded) {
+			t.Fatalf("Lesen: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Lesefrist nach dem Wecken zurückgesetzt")
+	}
+	if r.weiterlesen() {
+		t.Fatal("Wecken ohne Signal gemeldet")
+	}
+	go func() {
+		_, err := a.Read(make([]byte, 1))
+		fehler <- err
+	}()
+	select {
+	case err := <-fehler:
+		t.Fatalf("Lesefrist nicht zurückgesetzt: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — endet eine Session, schließt der Adapter die
+// Client-Verbindung; ein Schreiben an einen Client, der nicht liest, endet
+// damit, und die Sitzung kehrt zurück.
+func TestEndeSchliesstVerbindung(t *testing.T) {
+	rec := &fakeRecorder{server: make(chan []model.Response, 1)}
+	client, serverSeite := net.Pipe()
+	defer client.Close()
+	s := NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	zurueck := make(chan struct{})
+	go func() {
+		s.handle(context.Background(), serverSeite)
+		close(zurueck)
+	}()
+	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	sende(fe, &pgproto3.Sync{})
+	warteAuf(t, rec, "c:sync")
+	// Der Client liest nicht: das Schreiben der Server-Richtung blockiert.
+	rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+	time.Sleep(50 * time.Millisecond)
+	sende(fe, &pgproto3.Terminate{})
+	select {
+	case <-zurueck:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Sitzung kehrt nach Terminate nicht zurück, solange der Client nicht liest")
+	}
+	if end := rec.lastEnd(t); end != model.EndTerminate {
+		t.Fatalf("Ende %v", end)
+	}
 }
 
 // Die Abbildung belegt je Client-Nachricht genau die Felder ihres Typs

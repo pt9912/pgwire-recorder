@@ -348,10 +348,12 @@ func TestRecordQueryWartetAufExtended(t *testing.T) {
 	}
 }
 
-// Shutdown gibt das Ende frei, wenn keine Interaktion läuft; läuft eine,
-// Extended oder einfach, meldet Delivered das Ende nach ihrem ReadyForQuery,
-// auch wenn ihr Sync beim Beginn des Herunterfahrens noch ausstand
-// (LH-FA-13.a).
+// Abdeckung: LH-FA-13/Boundary — nach Shutdown nimmt die laufende
+// Extended-Interaktion noch ihre Nachrichten bis zum Sync an, eine neue
+// Interaktion (Extended oder einfach) beginnt nicht (ErrShutdown, nichts geht an
+// den Upstream). Shutdown gibt das Ende frei, wenn keine Interaktion läuft und
+// keine Antwort auf Zustellung wartet; sonst gibt Delivered es nach dem
+// ReadyForQuery frei, auch bei einer laufenden einfachen Anfrage.
 func TestRecordHerunterfahren(t *testing.T) {
 	ctx := context.Background()
 	up := &fakeUpstream{}
@@ -362,6 +364,17 @@ func TestRecordHerunterfahren(t *testing.T) {
 		t.Fatal("Ende freigegeben, während eine Interaktion läuft")
 	}
 	client(t, s, id, cSync)
+	// Nach dem Beginn beginnt keine neue Interaktion: weder Extended noch
+	// einfach, und nichts geht an den Upstream.
+	if err := s.ClientMessage(ctx, id, cParse); !errors.Is(err, model.ErrShutdown) {
+		t.Fatalf("neue Extended-Interaktion: %v", err)
+	}
+	if _, err := s.Query(ctx, id, "SELECT 2"); !errors.Is(err, model.ErrShutdown) {
+		t.Fatalf("neue einfache Anfrage: %v", err)
+	}
+	if g := up.letzte.gruppen(); len(g) != 1 {
+		t.Fatalf("an den Upstream: %#v", g)
+	}
 	up.letzte.empfang <- []model.Response{sParse, sRFQ}
 	if _, err := s.AwaitServer(ctx, id); err != nil {
 		t.Fatal(err)
@@ -457,9 +470,9 @@ func (e *engpassUpstream) Open(context.Context, map[string]string) (driven.Upstr
 }
 
 type engpassSession struct {
-	ein  chan model.ClientMessage
-	aus  chan model.Response
-	zu   chan struct{}
+	ein   chan model.ClientMessage
+	aus   chan model.Response
+	zu    chan struct{}
 	zuEin sync.Once
 }
 
@@ -657,4 +670,55 @@ func TestRecordCloseBeendetWartende(t *testing.T) {
 			t.Fatalf("%s endet nicht nach CloseSession", name)
 		}
 	}
+}
+
+// CloseSession beendet auch einen Aufruf, dessen Upstream-Aufruf nach dem Ende
+// erfolgreich zurückkommt: Query und AwaitServer liefern dann ErrSessionEnded
+// statt Antworten, und nichts wird übernommen.
+func TestRecordEndeNachErfolgreichemUpstream(t *testing.T) {
+	ctx := context.Background()
+	t.Run("Query", func(t *testing.T) {
+		up := &fakeUpstream{}
+		s, repo := neu(t, up)
+		id := session(t, s, "SELECT 1")
+		up.letzte.queryLaeuft = make(chan struct{})
+		up.letzte.queryHalt = make(chan struct{})
+		fertig := make(chan error, 1)
+		go func() {
+			_, err := s.Query(ctx, id, "SELECT 2")
+			fertig <- err
+		}()
+		<-up.letzte.queryLaeuft
+		if err := s.CloseSession(ctx, id, model.EndClosed); codeOf(err) != model.CodeConnectionLost {
+			t.Fatalf("CloseSession: %v", err)
+		}
+		close(up.letzte.queryHalt)
+		if err := <-fertig; !errors.Is(err, model.ErrSessionEnded) {
+			t.Fatalf("Query: %v", err)
+		}
+		if got := repo.last(t).Sessions[0].Interactions; len(got) != 1 {
+			t.Fatalf("Interaktionen: %#v", got)
+		}
+	})
+	t.Run("AwaitServer", func(t *testing.T) {
+		up := &fakeUpstream{}
+		s, _ := neu(t, up)
+		id := session(t, s)
+		client(t, s, id, cSync)
+		up.letzte.receiveHalt = make(chan struct{})
+		up.letzte.empfang <- []model.Response{sRFQ}
+		fertig := make(chan error, 1)
+		go func() {
+			_, err := s.AwaitServer(ctx, id)
+			fertig <- err
+		}()
+		time.Sleep(50 * time.Millisecond)
+		if err := s.CloseSession(ctx, id, model.EndClosed); codeOf(err) != model.CodeConnectionLost {
+			t.Fatalf("CloseSession: %v", err)
+		}
+		close(up.letzte.receiveHalt)
+		if err := <-fertig; !errors.Is(err, model.ErrSessionEnded) {
+			t.Fatalf("AwaitServer: %v", err)
+		}
+	})
 }

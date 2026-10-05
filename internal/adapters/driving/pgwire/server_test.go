@@ -39,6 +39,15 @@ type fakeRecorder struct {
 	closeErr        error
 	shutdownEndet   bool
 	zugestelltEndet bool
+	// shutdownAntworten beantwortet die ersten Shutdown-Aufrufe der Reihe nach,
+	// danach gilt shutdownEndet; shutdownHalt[n] lässt den n-ten Aufruf (ab 1)
+	// warten, bis der Kanal geschlossen ist.
+	shutdownAntworten []bool
+	shutdownHalt      map[int]chan struct{}
+	shutdownAufrufe   int
+	// neueNachShutdown: nach dem ersten Shutdown liefert ClientMessage für
+	// parse ErrShutdown, wie der Use Case für eine neue Interaktion.
+	neueNachShutdown bool
 
 	zuEin sync.Once
 	zuCh  chan struct{}
@@ -96,6 +105,9 @@ func (f *fakeRecorder) ClientMessage(_ context.Context, _ model.SessionID, m mod
 	f.client = append(f.client, m)
 	halt := f.halt[m.Type]
 	err := f.clientErr
+	if f.neueNachShutdown && f.shutdownAufrufe > 0 && m.Type == model.ClientParse {
+		err = model.ErrShutdown
+	}
 	f.mu.Unlock()
 	if halt != nil {
 		select {
@@ -129,7 +141,18 @@ func (f *fakeRecorder) Delivered(context.Context, model.SessionID) bool {
 func (f *fakeRecorder) Shutdown(context.Context, model.SessionID) bool {
 	f.protokolliere("shutdown")
 	f.mu.Lock()
+	f.shutdownAufrufe++
+	n := f.shutdownAufrufe
+	halt := f.shutdownHalt[n]
+	f.mu.Unlock()
+	if halt != nil {
+		<-halt
+	}
+	f.mu.Lock()
 	defer f.mu.Unlock()
+	if n <= len(f.shutdownAntworten) {
+		return f.shutdownAntworten[n-1]
+	}
 	return f.shutdownEndet
 }
 

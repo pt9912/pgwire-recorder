@@ -446,7 +446,11 @@ Windows entspricht der Konsolenabbruch (`Strg+C`, `Strg+Break`) einem `SIGINT`:
 - Sessions, die noch laufen, nach Abschluss ihrer laufenden Interaktion
   beenden; eine nicht abgeschlossene Interaktion wird nicht übernommen
   (LH-FA-02.b). Eine Client-Nachricht, die beim Beginn des Herunterfahrens
-  schon vollständig gelesen ist, wird noch verarbeitet,
+  schon vollständig gelesen ist, wird noch verarbeitet. Danach beginnt keine
+  neue Interaktion: Eine Client-Nachricht, die eine neue begänne (eine `Query`
+  oder eine Nachricht nach dem `Sync` einer Extended-Interaktion), wird nicht
+  weitergeleitet, und die Session endet regulär nach der laufenden Interaktion;
+  diese nimmt bis zu ihrem `Sync` noch ihre Client-Nachrichten an,
 - das Recording schreiben (LH-FA-07.a); schlägt das Schreiben fehl, bleibt die
   Zieldatei der letzte vollständig geschriebene Stand.
 
@@ -674,7 +678,9 @@ Session erst nach dem `ReadyForQuery` ihrer laufenden Extended-Interaktion, auch
 wenn deren `Sync` noch aussteht (LH-FA-13.a). Endet die Client-Verbindung,
 während der Recorder an den Server sendet oder auf ihn wartet, endet die Session
 ohne weiteres Warten, sobald der Recorder das Ende beim Lesen vom oder Schreiben
-zum Client bemerkt, auch beim Herunterfahren.
+zum Client bemerkt, auch beim Herunterfahren. Endet eine Session, schließt der
+Recorder die Client-Verbindung; ein blockiertes Schreiben an den Client endet
+damit.
 
 **Record.** Der Recorder leitet alle Nachrichten unverändert und in
 Ankunftsreihenfolge weiter, auch wenn der Client mehrere Nachrichten sendet,
@@ -1509,3 +1515,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Recording: jedes neue Feld erhöht `version`; ein Leser lehnt unbekannte Felder ab und liest jede `version` bis zu seiner eigenen (`SPEC-001`) |
 | 2026-10-05 | Extended Query im Record: Server-Nachrichten nach der nächsten Client-Nachricht gehören zur folgenden Gruppe; Herunterfahren nach dem `ReadyForQuery` der laufenden Extended-Interaktion; `Query` während einer laufenden Extended-Interaktion, Zielart außer `S`/`P` und Interaktionen ohne die Form der Aufzeichnung sind nicht unterstützt (`LH-FA-18.a`) |
 | 2026-10-05 | Record: beide Richtungen unabhängig vermittelt, Ende der Client-Verbindung beim Senden an oder Warten auf den Server (`LH-FA-18.a`); beim Herunterfahren schon gelesene Client-Nachricht wird verarbeitet (`LH-FA-13.a`) |
+| 2026-10-05 | Herunterfahren: danach beginnt keine neue Interaktion, die Session endet nach der laufenden (`LH-FA-13.a`); Ende einer Session schließt die Client-Verbindung (`LH-FA-18.a`) |

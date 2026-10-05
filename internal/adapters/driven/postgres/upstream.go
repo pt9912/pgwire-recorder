@@ -75,8 +75,8 @@ func (u *Upstream) Open(ctx context.Context, startup map[string]string) (driven.
 // dem einen laufenden Query oder Receive. Das Frontend hält beide Puffer
 // getrennt, darum laufen Send und Receive gleichzeitig.
 type session struct {
-	conn     net.Conn
-	fe       *pgproto3.Frontend
+	conn      net.Conn
+	fe        *pgproto3.Frontend
 	schreiben sync.Mutex
 }
 

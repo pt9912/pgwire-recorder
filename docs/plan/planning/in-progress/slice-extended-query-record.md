@@ -35,8 +35,10 @@ Geliefert nach [ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md): Der Rec
 
 - Upstream-Port: `Query` (einfach, synchron), `Send` (Client-Nachrichten einer Gruppe), `Receive` (nächste Server-Nachrichten), `Close`. Am Port steht der Vertrag: `Send` und `Receive` laufen gleichzeitig und blockieren nur an ihrer Richtung; `Close` blockiert nicht und beendet jedes wartende `Send`, `Receive` und `Query` mit einem Fehler.
 - Record-Use-Case: `Query`, `ClientMessage`, `AwaitServer`, `Delivered`, `Shutdown`, `CloseSession`. Beide Richtungen rufen gleichzeitig; `CloseSession` beendet jeden wartenden Aufruf mit `ErrSessionEnded`. Der Service gruppiert nach `LH-FA-18.a`, ordnet Server-Nachrichten der ältesten laufenden Interaktion zu (Pipelining über mehrere `Sync`), übernimmt jede Interaktion erst nach `Interaction.Validate`, entscheidet die Einstufung jedes gemeldeten Endes (`PGR-E4003`, verworfene nicht zugestellte Interaktion) und ob das Herunterfahren wartet. Eine einfache Anfrage nach einem `Sync` wartet, bis dessen Antworten zugestellt sind; sie läuft nie gleichzeitig mit dem Empfang.
-- PGWire-Adapter: im Record `recordSitzung` mit `clientRichtung` und `serverRichtung` als Transport ohne Interaktionszustand; er meldet Client-Nachricht, Verbindungsende, `Terminate`, Schreibfehler zum Client und Herunterfahren. Im Replay `replaySitzung`, synchron.
-- Spezifikation: Randformen in `LH-FA-18.a` (späte Server-Nachrichten einer Flush-Gruppe, Herunterfahren mit laufender Interaktion, `Query` in laufender Interaktion, Zielart außer `S`/`P`, Form der Interaktion, beide Richtungen unabhängig, Ende der Client-Verbindung beim Senden oder Warten) und in `LH-FA-13.a` (schon gelesene Client-Nachricht beim Herunterfahren); Architektur-Sicht §2.3, §4, §4.5, §5.
+- Herunterfahren: Die Client-Richtung meldet es vor dem Lesen der nächsten Nachricht, eine schon gelesene wird also verarbeitet. Danach beginnt keine neue Interaktion (`ErrShutdown` aus `Query` und `ClientMessage`); die laufende nimmt bis zu ihrem `Sync` noch ihre Nachrichten an, und die Session endet nach deren `ReadyForQuery`. Wecken und Zurücksetzen der Lesefrist sind unter einer Sperre geordnet.
+- PGWire-Adapter: im Record `recordSitzung` mit `clientRichtung` und `serverRichtung` als Transport ohne Interaktionszustand; er meldet Client-Nachricht, Verbindungsende, `Terminate`, Schreibfehler zum Client und Herunterfahren. Endet die Session, schließt er die Client-Verbindung; eine Fehlerantwort dazu schreibt er höchstens eine Sekunde lang. Im Replay `replaySitzung`, synchron.
+- Gate: Die Stufe `test` des `Dockerfile` prüft die Formatierung (`gofmt -l`).
+- Spezifikation: Randformen in `LH-FA-18.a` (späte Server-Nachrichten einer Flush-Gruppe, Herunterfahren mit laufender Interaktion, `Query` in laufender Interaktion, Zielart außer `S`/`P`, Form der Interaktion, beide Richtungen unabhängig, Ende der Client-Verbindung beim Senden oder Warten) und in `LH-FA-13.a` (schon gelesene Client-Nachricht beim Herunterfahren, danach keine neue Interaktion); Ende einer Session schließt die Client-Verbindung; Architektur-Sicht §2.3, §4, §4.5, §5.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -81,6 +83,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `test/integration` | update | pgx im Standardmodus, Pipeline mit Flush- und Sync-Gruppen, Abbruch ohne `Sync`, Gegendruck mit großer Ausgabe und großem Parameter, SIGTERM nach Blockade |
 | `spec/spezifikation.md`, `spec/architecture.md` | update | Randformen in `LH-FA-18.a` und `LH-FA-13.a`; Ports, Sequenz, Adapter-Verantwortung, Nebenläufigkeit |
 | `docs/plan/planning/open/slice-v1-abschluss-cancel-ohne-schluessel.md`, `docs/plan/planning/welle-v1-abschluss.md` | new, update | Folge-Slice für F-310 |
+| `Dockerfile` (Stufe `test`), `harness/README.md` §Sensors | update | Formatierungsprüfung als Teil von `make test` (Folge-Review F-314) |
 | `docs/user/abdeckung-*.md` | update | `make abdeckung` |
 | `docs/user/benutzerhandbuch.md` | update | Hinweise: einfache Anfrage in laufender Extended-Folge, Beenden mit laufender Folge |
 | `docs/reviews/` | new | Mutationstabelle |
@@ -95,7 +98,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next`: der Slice verlangt mehr als drei Liefer-Punkte — zurück zur Zerlegung.
-- `in-progress` → `open`: Der Upstream-Adapter braucht eine neue Port-Operation — Entscheidung klären. Am 2026-10-05 ausgelöst (Review F-301, F-302: Zuschnitt von `Receive`/`AwaitServer` und Gegendruck); aufgelöst durch [ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md). Der Slice blieb in `in-progress/`.
+- `in-progress` → `open`: Der Upstream-Adapter braucht eine neue Port-Operation — Entscheidung klären. Die Bedingung trat in der Sache ein: Der Upstream-Port bekam einen neuen Gleichzeitigkeitsvertrag (Review F-302). Vollzogen wurde die Rückführung nicht, weil [ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md) vor dem nächsten Code-Commit angenommen wurde; der Slice blieb in `in-progress/`.
 
 
 ## 5. Closure-Trigger
@@ -123,9 +126,15 @@ dasteht.
 
 - Schon gelesene Client-Nachricht beim Herunterfahren (Review F-305): Entschieden in `LH-FA-13.a`, sie wird verarbeitet; `clientRichtung` verarbeitet jede gelesene Nachricht und prüft das Ende erst beim nächsten Lesen (`TestExtendedHerunterfahren`, „gelesene Anfrage“) — **Ausgang:** offen bis Closure.
 
-- Herunterfahren ohne Obergrenze (Review F-309): Eine Session mit laufender Extended-Interaktion wartet beim Herunterfahren auf deren `ReadyForQuery` (`LH-FA-18.a`, `LH-FA-13.a`); ein Client, der nach einem `Flush` ruht, etwa eine Verbindung in einem Pool, hält den Prozess beliebig lange. Frage an den Validator: Trifft unbegrenztes Warten den Bedarf in CI ([`LH-FA-15`](../../../../spec/lastenheft.md#lh-fa-15--ci-eignung))? — **Ausgang:** weiter offen.
+- Herunterfahren ohne Obergrenze (Review F-309): Eine Session mit laufender Extended-Interaktion wartet beim Herunterfahren auf deren `ReadyForQuery` (`LH-FA-18.a`, `LH-FA-13.a`); ein Client, der nach einem `Flush` ruht, etwa eine Verbindung in einem Pool, hält den Prozess beliebig lange. Frage an den Validator: Trifft unbegrenztes Warten den Bedarf in CI ([`LH-FA-15`](../../../../spec/lastenheft.md#lh-fa-15--ci-eignung))? Dazu (Folge-Review F-317): Die Sätze in `LH-FA-18.a` („sobald der Recorder das Ende bemerkt“) und `LH-FA-13.a` („schon vollständig gelesen“) binden das Verhalten an innere Zeitpunkte ohne Obergrenze; steht die Client-Richtung in `Send` an einem Server, der weder liest noch antwortet, bemerkt niemand einen geschlossenen Client, bis der Server weitermacht. Geprüft ist nur der Fall mit Datenfluss (`TestE2ERecordExtendedSigtermNachBlockade`) — **Ausgang:** weiter offen.
 
-- Gleichzeitigkeit vertraglich am Port: `Send` und `Receive` laufen auf derselben Upstream-Verbindung gleichzeitig, und `Close` beendet beide; der Vertrag steht an `UpstreamSession` und am Record-Use-Case und wird mit Fakes geprüft (`TestSendUndReceiveGleichzeitig`, `TestCloseBeendetWartende`, `TestRecordCloseBeendetWartende`). Er trägt, weil `pgproto3.Frontend` Schreib- und Lesepuffer getrennt hält (Race-Detector-Lauf grün, kein Gate); eine andere Bibliotheksversion kann das ändern — **Ausgang:** offen bis Closure.
+- Herunterfahren mit pipelinendem Client (Folge-Review F-311): Die Session nahm nach dem Beginn des Herunterfahrens weiter neue Interaktionen an und endete erst in einer Pause des Clients. Stand: entschieden in `LH-FA-13.a`, nach dem Beginn beginnt keine neue Interaktion; Belege `TestRecordHerunterfahren`, `TestExtendedHerunterfahren` („neue Interaktion nach dem Beginn“), `TestE2ERecordExtendedSigtermBeimPipelining` — **Ausgang:** offen bis Closure.
+
+- Verlorenes Aufwecken beim Herunterfahren (Folge-Review F-312): Das Zurücksetzen der Lesefrist konnte ein gleichzeitiges Wecken löschen. Stand: Wecken (Signal und Frist) und Zurücksetzen laufen unter derselben Sperre; wer zurücksetzt, sieht ein Wecken und setzt nicht zurück (`TestWeiterlesenNachWecken`, `TestHerunterfahrenWeckenNichtVerloren`) — **Ausgang:** offen bis Closure.
+
+- Ende einer Session bei einem Client, der nicht liest (Folge-Review F-318): Stand: entschieden in `LH-FA-18.a`, das Ende schließt die Client-Verbindung; ein blockiertes Schreiben endet damit, die Fehlerantwort dazu hat eine Frist von einer Sekunde (`TestEndeSchliesstVerbindung`). Die Fehlerantwort kann dabei hinter einem noch laufenden Stapel der Server-Richtung stehen oder bei nicht lesendem Client ausfallen — **Ausgang:** offen bis Closure.
+
+- Gleichzeitigkeit vertraglich am Port: `Send` und `Receive` laufen auf derselben Upstream-Verbindung gleichzeitig, und `Close` beendet beide; der Vertrag steht an `UpstreamSession` und am Record-Use-Case und wird mit Fakes geprüft (`TestSendUndReceiveGleichzeitig`, `TestCloseBeendetWartende`, `TestCloseMitSchreibfrist`, `TestRecordCloseBeendetWartende`, `TestRecordEndeNachErfolgreichemUpstream`). Er trägt, weil `pgproto3.Frontend` Schreib- und Lesepuffer getrennt hält (Race-Detector-Lauf grün, kein Gate); eine andere Bibliotheksversion kann das ändern — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

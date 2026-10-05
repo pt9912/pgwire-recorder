@@ -62,7 +62,7 @@ Diese Datei dupliziert sie nicht.
 |---|---|---|
 | `make docs-check` | Doku-Referenzen (d-check); das Gate, das die Vorlage mitbringt | — |
 | `make build` | baut Binary und Produkt-Image über das Multistage-`Dockerfile` (Stufe `runtime`, netzlos außer der Download-Stufe) | [ADR-0009](../docs/plan/adr/0009-implementierungssprache-go.md), [ADR-0026](../docs/plan/adr/0026-build-und-test-im-multistage-dockerfile.md) |
-| `make test` | `go vet` und Unit-Tests über das `Dockerfile` (Stufe `test`, netzlos außer der Download-Stufe) | [ADR-0026](../docs/plan/adr/0026-build-und-test-im-multistage-dockerfile.md) |
+| `make test` | Formatierung (`gofmt -l` leer, sonst die Dateien), `go vet` und Unit-Tests über das `Dockerfile` (Stufe `test`, netzlos außer der Download-Stufe) | [ADR-0026](../docs/plan/adr/0026-build-und-test-im-multistage-dockerfile.md) |
 | `make test-integration` | Integrationstests des Binaries gegen ein gepinntes PostgreSQL-Image in einem eigenen Docker-Netz; schreibt nichts in den Arbeitsbaum | [ADR-0026](../docs/plan/adr/0026-build-und-test-im-multistage-dockerfile.md) |
 | `make a-check` | Architektur-Regeln des Hexagons gemäß `.a-check.yml` (a-check, netzlos, schreibgeschützt): Import-Richtungen der Packages und Bibliotheken je Adapter | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md) |
 | `make a-check-negativ` | Gegenprobe des Architektur-Gates in Kopien des Arbeitsbaums: `pgproto3` und `crypto/tls` werden im Domain Model und im Recording-Adapter abgelehnt, in beiden PGWire-Adaptern zugelassen | [ADR-0001](../docs/plan/adr/0001-hexagonale-architektur.md), [ADR-0010](../docs/plan/adr/0010-verwendung-von-pgproto3.md) |

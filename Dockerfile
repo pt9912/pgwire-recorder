@@ -17,10 +17,11 @@ RUN go mod download && go mod verify
 FROM deps AS source
 COPY . .
 
-# --- test: vet über allen Code einschließlich der Integrationstests, dazu die
-# Unit-Tests.
+# --- test: Formatierung (gofmt; nennt die nicht formatierten Dateien), vet
+# über allen Code einschließlich der Integrationstests, dazu die Unit-Tests.
 FROM source AS test
-RUN --network=none go vet -tags integration ./... && go test -trimpath -buildvcs=false ./...
+RUN --network=none f="$(gofmt -l .)" && { [ -z "$f" ] || { echo "nicht gofmt-formatiert:"; echo "$f"; exit 1; }; } \
+ && go vet -tags integration ./... && go test -trimpath -buildvcs=false ./...
 
 # --- build: das Binary für die Zielplattform, reproduzierbar (-trimpath,
 # ohne VCS-Stempel).

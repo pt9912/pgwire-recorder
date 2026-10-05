@@ -17,7 +17,13 @@ import (
 // gleichzeitig laufen. Den Zustand der Interaktionen führt allein der Use Case;
 // der Adapter meldet Ereignisse und führt aus, was zurückkommt. CloseSession
 // beendet jeden wartenden Aufruf der Session mit model.ErrSessionEnded, und
-// jeder spätere Aufruf liefert ihn ebenso.
+// jeder spätere Aufruf liefert ihn ebenso, auch wenn sein Upstream-Aufruf nach
+// dem Ende erfolgreich zurückkam.
+//
+// Nach Shutdown beginnt keine neue Interaktion: Query und ClientMessage liefern
+// für eine Nachricht, die eine neue begänne, model.ErrShutdown und leiten sie
+// nicht weiter. Der Adapter liest dann nicht weiter und beendet die Session mit
+// EndShutdown, sobald Shutdown oder Delivered das Ende freigibt.
 type Recorder interface {
 	// OpenSession baut für eine Client-Verbindung die Upstream-Session auf.
 	// Die Antworten des Verbindungsaufbaus gehen unverändert an den Client;
@@ -43,9 +49,11 @@ type Recorder interface {
 	// und keine Interaktion mehr läuft: der Adapter beendet sie dann mit
 	// EndShutdown.
 	Delivered(ctx context.Context, id model.SessionID) (endet bool)
-	// Shutdown meldet den Beginn des Herunterfahrens. endet sagt, dass keine
-	// Interaktion läuft und der Adapter die Session mit EndShutdown beenden
-	// kann; sonst meldet Delivered das spätere Ende.
+	// Shutdown meldet das Herunterfahren; die Client-Richtung ruft es vor dem
+	// Lesen der nächsten Nachricht, damit eine schon gelesene noch verarbeitet
+	// wird (LH-FA-13.a). endet sagt, dass keine Interaktion läuft und keine
+	// Antwort auf Zustellung wartet; der Adapter beendet die Session dann mit
+	// EndShutdown. Sonst gibt Delivered das Ende später frei.
 	Shutdown(ctx context.Context, id model.SessionID) (endet bool)
 	// CloseSession beendet die Session mit dem gemeldeten Ereignis
 	// (model.SessionEnd) und schließt den Upstream. Der Fehler nennt einen
