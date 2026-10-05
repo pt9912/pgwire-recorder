@@ -583,8 +583,14 @@ lehnt das Werkzeug ab (`PGR-E2006`), ebenso eine nicht gesetzte Variable
 Wahrheitswerte lauten `true` oder `false`. Mögliche Log-Level sind `error`,
 `warn`, `info` und `debug`. Meldungen gehen nach `stderr`.
 
-Mit `--help` oder `-h` zeigt das Werkzeug die Hilfe an, mit
-`pgwire-recorder version` die Version.
+Mit `--help` oder `-h` (ebenso `--h` und `-help`, auch mit `=` und einem Wert)
+zeigt das Werkzeug die Hilfe an und endet mit Exit-Code 0, mit
+`pgwire-recorder version` die Version. Steht ein Kommando vorn, ist es dessen
+Hilfe, sonst die allgemeine. Die Hilfe geht jeder Prüfung vor: Unbekannte
+Optionen, ungültige Werte, fehlende Pflichtoptionen und ungültige
+Umgebungsvariablen meldet das Werkzeug dann nicht. Auch an der Stelle eines
+Optionswerts ist `--help` die Hilfe; als Wert geht es nur mit `=`
+(`--input=--help`), und nach `--` ist es ein gewöhnliches Argument.
 
 ### Exit-Codes
 

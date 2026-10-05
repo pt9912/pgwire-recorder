@@ -7,6 +7,7 @@ Abdeckungs-Deklaration, kein Lauf-Beleg; dass die Tests grün laufen, sichert
 
 | Anforderung | Pfad | Kurzbeschreibung | Nachweis | Ort |
 | --- | --- | --- | --- | --- |
+| [`LH-FA-01`](../../spec/lastenheft.md) | Negative | keine Hilfe-Angabe sind andere Schreibweisen (--Help, ---help, -H), eine Hilfe-Angabe als Teil eines Arguments (--input=-help, --input=--help) und eine Hilfe-Angabe nach --; sie werden geprüft wie jedes andere Argument, und ein ungültiger Aufruf ist PGR-E2001. | `TestParseKeineHilfe` | `internal/adapters/driving/cli/cli_test.go` |
 | [`LH-FA-02`](../../spec/lastenheft.md) | Boundary | eine Verbindung ohne Anfrage wird nicht aufgezeichnet; ein Lauf ohne Session schreibt eine Aufzeichnung ohne Sessions. | `TestRecordSessionOhneAnfrage` | `internal/hexagon/services/record_test.go` |
 | [`LH-FA-02`](../../spec/lastenheft.md) | Happy | Verbindungsaufbau und Anfrage liefern die Serverantworten in Reihenfolge; die Abbruchkennung des Servers (BackendKeyData) ist nicht darunter (SPEC-004). | `TestOpenUndQuery` | `internal/adapters/driven/postgres/upstream_test.go` |
 | [`LH-FA-02`](../../spec/lastenheft.md) | Happy | eine Anfrage geht an den Use Case, die Antworten gehen in Reihenfolge und Inhalt unverändert an den Client und werden danach als zugestellt gemeldet; Terminate meldet das Ende EndTerminate. | `TestQueryUndTerminate` | `internal/adapters/driving/pgwire/server_test.go` |

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
@@ -38,20 +39,14 @@ type Command struct {
 	Replay ReplayOptions
 }
 
-const usage = `Aufruf: pgwire-recorder <kommando> [optionen]
-
-Kommandos:
-  record   vermittelt Clients zu PostgreSQL und zeichnet die Kommunikation auf
-  replay   beantwortet Anfragen aus einer Aufzeichnung, ohne PostgreSQL
-  version  gibt die Programmversion aus
-
-Optionen von record:
+const optionenRecord = `Optionen von record:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
   --upstream  Adresse des PostgreSQL-Servers, host:port (Pflicht)
   --output    Zieldatei der Aufzeichnung (Pflicht)
   --force     vorhandene Zieldatei ersetzen
+`
 
-Optionen von replay:
+const optionenReplay = `Optionen von replay:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
   --input     Aufzeichnung (Pflicht)
   --fail-on-unconsumed[=true|false]
@@ -60,23 +55,55 @@ Optionen von replay:
               Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
 `
 
+// usage ist die globale Hilfe.
+const usage = `Aufruf: pgwire-recorder <kommando> [optionen]
+
+Kommandos:
+  record   vermittelt Clients zu PostgreSQL und zeichnet die Kommunikation auf
+  replay   beantwortet Anfragen aus einer Aufzeichnung, ohne PostgreSQL
+  version  gibt die Programmversion aus
+
+` + optionenRecord + `
+` + optionenReplay
+
+// hilfen ist die Hilfe je bekanntem Kommando (LH-FA-01.a).
+var hilfen = map[string]string{
+	"record":  "Aufruf: pgwire-recorder record [optionen]\n\n" + optionenRecord,
+	"replay":  "Aufruf: pgwire-recorder replay [optionen]\n\n" + optionenReplay,
+	"version": "Aufruf: pgwire-recorder version\n\nGibt die Programmversion aus.\n",
+}
+
 // ErrHelp meldet, dass die Hilfe angefordert und ausgegeben wurde.
 var ErrHelp = errors.New("Hilfe ausgegeben")
 
-// Parse liest Kommando und Optionen. Eine ungültige Verwendung ist PGR-E2001;
-// --help und -h geben die Hilfe auf out aus und liefern ErrHelp.
+// Parse liest Kommando und Optionen. Eine ungültige Verwendung ist PGR-E2001.
+// Steht vor dem ersten "--" eine Hilfe-Angabe (hilfeAngabe), an welcher Stelle
+// auch immer, gibt Parse vor jeder anderen Prüfung die Hilfe auf out aus und
+// liefert ErrHelp: die des Kommandos, wenn das erste Argument ein bekanntes
+// Kommando ist, sonst die globale (LH-FA-01.a). Das Kommando help gibt die
+// globale Hilfe aus.
 func Parse(args []string, out io.Writer) (Command, error) {
+	if hilfeVerlangt(args) {
+		text := usage
+		if len(args) > 0 {
+			if h, ok := hilfen[args[0]]; ok {
+				text = h
+			}
+		}
+		fmt.Fprint(out, text)
+		return Command{}, ErrHelp
+	}
 	if len(args) == 0 {
 		return Command{}, model.Errorf(model.CodeUsage, nil, "kein Kommando angegeben; --help zeigt die Kommandos")
 	}
 	switch args[0] {
-	case "-h", "--help", "help":
+	case "help":
 		fmt.Fprint(out, usage)
 		return Command{}, ErrHelp
 	case "record":
-		return parseRecord(args[1:], out)
+		return parseRecord(args[1:])
 	case "replay":
-		return parseReplay(args[1:], out)
+		return parseReplay(args[1:])
 	case "version":
 		if len(args) > 1 {
 			return Command{}, model.Errorf(model.CodeUsage, nil, "version nimmt keine Argumente")
@@ -87,7 +114,7 @@ func Parse(args []string, out io.Writer) (Command, error) {
 	}
 }
 
-func parseRecord(args []string, out io.Writer) (Command, error) {
+func parseRecord(args []string) (Command, error) {
 	fs := flag.NewFlagSet("record", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	var o RecordOptions
@@ -96,10 +123,6 @@ func parseRecord(args []string, out io.Writer) (Command, error) {
 	fs.StringVar(&o.Output, "output", "", "")
 	fs.BoolVar(&o.Force, "force", false, "")
 	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprint(out, usage)
-			return Command{}, ErrHelp
-		}
 		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von record")
 	}
 	if fs.NArg() > 0 {
@@ -113,7 +136,7 @@ func parseRecord(args []string, out io.Writer) (Command, error) {
 	return Command{Name: "record", Record: o}, nil
 }
 
-func parseReplay(args []string, out io.Writer) (Command, error) {
+func parseReplay(args []string) (Command, error) {
 	fs := flag.NewFlagSet("replay", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	var o ReplayOptions
@@ -130,10 +153,6 @@ func parseReplay(args []string, out io.Writer) (Command, error) {
 	}
 	fs.Var(fail, "fail-on-unconsumed", "")
 	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprint(out, usage)
-			return Command{}, ErrHelp
-		}
 		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von replay")
 	}
 	if fs.NArg() > 0 {
@@ -173,4 +192,29 @@ func (w wahrheitswert) Set(v string) error {
 		return errors.New("erlaubt sind true und false")
 	}
 	return nil
+}
+
+// hilfeAngabe meldet, ob ein ganzes Argument eine Hilfe-Angabe ist: genau -h,
+// --h, -help oder --help, ohne oder mit "=" und beliebigem Wert (LH-FA-01.a).
+func hilfeAngabe(arg string) bool {
+	name, _, _ := strings.Cut(arg, "=")
+	switch name {
+	case "-h", "--h", "-help", "--help":
+		return true
+	}
+	return false
+}
+
+// hilfeVerlangt meldet, ob unter den Argumenten vor dem ersten "--" eine
+// Hilfe-Angabe steht; danach ist sie ein gewöhnliches Argument (LH-FA-01.a).
+func hilfeVerlangt(args []string) bool {
+	for _, a := range args {
+		if a == "--" {
+			return false
+		}
+		if hilfeAngabe(a) {
+			return true
+		}
+	}
+	return false
 }

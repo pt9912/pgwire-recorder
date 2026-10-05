@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
@@ -160,5 +161,97 @@ func TestParseFailOnUnconsumedRecord(t *testing.T) {
 	}
 	if _, err := Parse(record, &bytes.Buffer{}); err != nil {
 		t.Fatalf("record wertet die Umgebungsvariable aus: %v", err)
+	}
+}
+
+// hilfe ruft Parse und liefert die Ausgabe, wenn Parse die Hilfe meldet; sonst
+// bricht es ab.
+func hilfe(t *testing.T, args ...string) string {
+	t.Helper()
+	var out bytes.Buffer
+	cmd, err := Parse(args, &out)
+	if !errors.Is(err, ErrHelp) || out.Len() == 0 {
+		t.Fatalf("%q: erwartet Hilfe, erhalten %#v, %v, Ausgabe %q", args, cmd, err, out.String())
+	}
+	return out.String()
+}
+
+// keineHilfe ruft Parse und bricht ab, wenn Parse die Hilfe meldet oder etwas
+// ausgibt; es liefert Kommando und Fehler.
+func keineHilfe(t *testing.T, args ...string) (Command, error) {
+	t.Helper()
+	var out bytes.Buffer
+	cmd, err := Parse(args, &out)
+	if errors.Is(err, ErrHelp) || out.Len() > 0 {
+		t.Fatalf("%q: Hilfe statt Prüfung: %v, Ausgabe %q", args, err, out.String())
+	}
+	return cmd, err
+}
+
+// Eine Hilfe-Angabe geht jeder Prüfung vor (LH-FA-01.a): Bei
+// record und replay geben -h, --h, -help und --help, auch mit beliebigem
+// =-Wert, an jeder Stelle vor dem ersten --, auch an der Stelle eines
+// Optionswerts, die Hilfe des Kommandos aus, ohne die ungültige
+// Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED, eine unbekannte Option
+// davor, einen ungültigen Optionswert oder fehlende Pflichtoptionen zu prüfen.
+func TestParseHilfeVorPruefung(t *testing.T) {
+	t.Setenv(envFailOnUnconsumed, "1")
+	for kommando, args := range map[string][][]string{
+		"replay": {
+			{"--help"}, {"-h"}, {"--h"}, {"-help"},
+			{"--bogus", "--help"},
+			{"--fail-on-unconsumed=1", "-h"},
+			{"--help=false"}, {"-h=x"}, {"--help="}, {"-help=false"},
+			{"--listen", "x", "--input", "-help"},
+		},
+		"record": {
+			{"--help"}, {"--h"},
+			{"--bogus", "--help"},
+			{"--force=yes", "-h"},
+			{"--listen", "x", "--output", "--h=1"},
+		},
+	} {
+		for _, a := range args {
+			text := hilfe(t, append([]string{kommando}, a...)...)
+			if !strings.Contains(text, "Optionen von "+kommando) || strings.Contains(text, "Kommandos:") {
+				t.Errorf("%s %q: nicht die Hilfe von %s:\n%s", kommando, a, kommando, text)
+			}
+		}
+	}
+	if text := hilfe(t, "version", "--help"); !strings.Contains(text, "pgwire-recorder version") || strings.Contains(text, "Kommandos:") {
+		t.Errorf("version --help: nicht die Hilfe von version:\n%s", text)
+	}
+}
+
+// Vor dem Kommando, ohne Kommando und nach
+// einem unbekannten Kommando gibt eine Hilfe-Angabe die globale Hilfe aus.
+func TestParseHilfeGlobal(t *testing.T) {
+	for _, args := range [][]string{{"--help"}, {"-h"}, {"bogus", "--help"}, {"--listen", "x", "--help"}, {"--h", "replay"}} {
+		if text := hilfe(t, args...); !strings.Contains(text, "Kommandos:") {
+			t.Errorf("%q: nicht die globale Hilfe:\n%s", args, text)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-01/Negative — keine Hilfe-Angabe sind andere Schreibweisen
+// (--Help, ---help, -H), eine Hilfe-Angabe als Teil eines Arguments
+// (--input=-help, --input=--help) und eine Hilfe-Angabe nach --; sie werden
+// geprüft wie jedes andere Argument, und ein ungültiger Aufruf ist PGR-E2001.
+func TestParseKeineHilfe(t *testing.T) {
+	t.Setenv(envFailOnUnconsumed, "")
+	for _, args := range [][]string{
+		{"replay", "--Help"}, {"replay", "---help"}, {"replay", "-H"},
+		{"replay", "--listen", "x", "--input", "r.yaml", "--", "--help"},
+		{"--", "--help"},
+	} {
+		if _, err := keineHilfe(t, args...); !istUsage(err) {
+			t.Errorf("%q: erwartet %s, erhalten %v", args, model.CodeUsage, err)
+		}
+	}
+	for _, wert := range []string{"-help", "--help"} {
+		cmd, err := keineHilfe(t, "replay", "--input="+wert, "--listen", "x")
+		if err != nil || cmd.Replay.Input != wert {
+			t.Errorf("--input=%s: erhalten %#v, %v", wert, cmd, err)
+		}
 	}
 }
