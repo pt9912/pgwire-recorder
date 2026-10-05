@@ -138,7 +138,12 @@ vorherigen Interaktionen der Session bleiben erhalten.
 **Fehlerantwort vor dem Abbruch.** Endet die Upstream-Verbindung vor dem
 `ReadyForQuery` einer laufenden Interaktion, nachdem der Upstream in dieser
 Interaktion eine `ErrorResponse` gesendet hat, ist die Interaktion nicht
-unterstützt (`PGR-E6001`, Exit-Code `6`, LH-FA-13.b):
+unterstützt (`PGR-E6001`, Exit-Code `6`, LH-FA-13.b). Maßgeblich ist eine
+`ErrorResponse`, die der Recorder gelesen hat. Scheitert schon das Senden der
+Anfrage an den Upstream, liest der Recorder nicht weiter; das ist ein
+unerwartetes Verbindungsende (`PGR-E4003`), auch wenn der Upstream zuvor eine
+`ErrorResponse` gesendet hatte, etwa wenn er die Verbindung danach mit einem
+TCP-Reset statt eines geordneten Abschlusses beendet:
 
 * *Schweregrad.* Er zählt nicht: `FATAL`, `PANIC` und `ERROR` gelten gleich.
 * *Stelle.* Die `ErrorResponse` darf an jeder Stelle der Antworten stehen, auch
@@ -566,11 +571,14 @@ einschließlich des abschließenden `ReadyForQuery`, wiedergegeben.
 
 **Diagnosefelder.** `ErrorResponse` und `NoticeResponse` werden je Feldcode
 aufgezeichnet; die Reihenfolge der Felder innerhalb der Nachricht ist nicht Teil
-der Aufzeichnung. Die PGWire-Bibliothek unterscheidet ein Feld mit leerem Wert
-nicht von einem fehlenden, ebenso ein Zahlenfeld (`P`, `p`, `L`) mit dem Wert `0`
-oder ohne lesbare Zahl; solche Felder gelten als fehlend und gehen weder in die
-Aufzeichnung noch an den Client, im Record- wie im Replay-Modus. Der Client
-erhält damit in beiden Modi dieselbe Nachricht.
+der Aufzeichnung. Für die Feldcodes, die die PGWire-Bibliothek benennt
+(`S`, `V`, `C`, `M`, `D`, `H`, `P`, `p`, `q`, `W`, `s`, `t`, `c`, `d`, `n`, `F`,
+`L`, `R`), unterscheidet sie ein Feld mit leerem Wert nicht von einem fehlenden,
+ebenso ein Zahlenfeld (`P`, `p`, `L`) mit dem Wert `0` oder ohne lesbare Zahl;
+solche Felder gelten als fehlend und gehen weder in die Aufzeichnung noch an den
+Client, im Record- wie im Replay-Modus. Ein anderer Feldcode wird mit seinem Wert
+aufgezeichnet und gesendet, auch wenn der Wert leer ist. Der Client erhält damit
+in beiden Modi dieselbe Nachricht.
 
 **Nicht aufzeichenbare Fehlerantwort.** Eine `ErrorResponse`, nach der der
 Upstream die Verbindung ohne `ReadyForQuery` beendet, ist nicht verlustfrei
@@ -1751,5 +1759,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Hilfe geht jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei vor; `version` liest keine Konfiguration (`LH-FA-01.a`, `LH-FA-17.a`) |
 | 2026-10-05 | Hilfe-Angabe abgeschlossen: vier Formen mit beliebigem `=`-Wert, auch an Wertstelle, vor dem Kommando und nach unbekanntem Kommando (`LH-FA-01.a`) |
 | 2026-10-05 | `--` beendet die Optionen auch an der Stelle eines Optionswerts; der Wert `--` nur mit `=` (`LH-FA-01.a`) |
+| 2026-10-05 | Diagnosefelder: leerer Wert gilt nur bei den von der Bibliothek benannten Feldcodes als fehlend, ein anderer Code wird auch leer aufgezeichnet (`LH-FA-11.a`); Fehlerantwort vor dem Abbruch zählt nur gelesen, Sendefehler der Anfrage bleibt `PGR-E4003` (`LH-FA-02.b`) |
 | 2026-10-05 | Record: Fehlerantwort vor dem Abbruch der Upstream-Verbindung ohne `ReadyForQuery` ist nicht unterstützt (`PGR-E6001`), gleich welcher Schweregrad und welche Stelle; Diagnose mit SQLSTATE des Servers, Session nicht übernommen, Aufzeichnung ohne `ready_for_query` am Ende beschädigt (`LH-FA-02.b`, `LH-FA-11.a`) |
 | 2026-10-05 | Record: Weitergabe der Antworten einer einfachen Anfrage an den Client, auch bei einer nicht unterstützten Antwort nach Ergebnissen (`LH-FA-02.b`); Nachrichten des Upstreams zwischen Interaktionen gehören zur nächsten (`LH-FA-05.a`); Diagnosefelder mit leerem Wert oder Zahl `0` gelten als fehlend, Feldreihenfolge nicht aufgezeichnet (`LH-FA-11.a`) |
