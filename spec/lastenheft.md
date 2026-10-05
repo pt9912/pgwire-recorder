@@ -330,7 +330,10 @@ der Replay-Modus das aufgezeichnete Verhalten reproduzierbar bereitstellen.
   sie wiedergegeben werden, then erhält jede Anfrage die zu ihrer Position in der
   Aufzeichnung gehörende Antwort.
 - **Negative:** Given eine Anfrage ohne passende Aufzeichnung, when sie
-  eintrifft, then greift LH-FA-10.
+  eintrifft, then greift LH-FA-10; ausgenommen ist eine Anfrage, die nur aus
+  Leerraum und Kommentaren besteht (Lebendprüfung eines Pools): Zwischen zwei
+  Interaktionen beantwortet das Replay sie wie PostgreSQL, ohne die
+  Aufzeichnung zu verbrauchen.
 
 **Out-of-Scope:** Veränderung oder Manipulation aufgezeichneter
 Datenbankantworten.
