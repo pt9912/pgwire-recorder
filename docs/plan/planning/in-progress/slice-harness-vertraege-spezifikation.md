@@ -304,8 +304,8 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   `inhalt-gesamt`, `inhalt-vollstaendig`, dazu Exit genau 1 mit Datei und Zeile auf
   stderr in jedem abgelehnten Fall und in `check-veraltet`. Kein Fall brauchte einen
   Eingriff ins Werkzeug.
-- **Lesarten beim Übertragen** (Implementer, 2026-10-06; zur Bestätigung beim
-  Architect, nicht hier entschieden) — der Abschnitt schreibt sie nach
+- **Lesarten beim Übertragen** (Implementer, 2026-10-06; **bestätigt vom Architect am
+  2026-10-06**, alle vier unverändert, der Wortlaut in `SPEC-047` und `SPEC-048` bleibt) — der Abschnitt schreibt sie nach
   *Lesart-Rangfolge* in der genaueren Fassung des Skripts, je mit Fall:
   `TestE2E` als Name, nicht als Ort, „jeder E2E-Test“ in
   [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) heißt also jeder
@@ -319,6 +319,20 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   (`BEO-REPO/gate-uebergeht-ablage-eintrag-still`); der Abschnitt sagt „Dateien“ wie
   [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), die Sensor-Datei nennt
   beides als offen.
+  Gründe der Bestätigung: (1) *E2E-Test nach Name* präzisiert
+  [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md), es widerspricht ihr
+  nicht — die ADR bestimmt den Begriff nicht, die Namensform ist die des Repos, und
+  `TestMain` ist Go-Einrichtung, kein Test; die Nachweisart bleibt nach Ort.
+  Akzeptiertes Negativ: Ein Test unter `test/integration/`, dessen Name nicht mit
+  `TestE2E` beginnt, braucht keine Deklaration; heute gibt es außer `TestMain` keinen
+  (geprüft per `grep`), eine Pflicht nach Ort wäre eine Verhaltensänderung und gehört
+  nicht in diesen Slice. (2) Ausgenommen sind die Testdateien *unter* `.git/` und
+  `.harness/` — fremder Baum und Kurs-Inhalt, keine Tests dieses Repos. (3) Das
+  Lastenheft führt jede Anforderung als Überschrift dritter Ebene; die Ebene ist die
+  Form, an der die Kennung als Anforderung erkennbar ist, nicht als bloße Nennung.
+  (4) Die Ausgänge sind die der Prüfung; dass `make` jeden Ausgang ungleich 0 als
+  Fehler meldet, ist Verhalten von `make`, `nr9-scharf` hält es für Ausgang 1, den
+  Ausgang 2 hält der Fall *Ohne Ablage*.
 - **Welche Targets eine Sensor-Datei bekommen** — `harness/sensors/kopf-check.md` und
   `harness/sensors/abdeckung-check.md`, je per `cp` aus der vendored Vorlage. Die
   Gegenproben bekommen keine: Was sie prüfen, ist die Frage, ob das Werkzeug richtig
