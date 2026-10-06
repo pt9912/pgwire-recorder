@@ -1,5 +1,15 @@
 # AGENTS.md — Briefing für AI-Coding-Agenten
 
+> **Template-Hinweis.** Diese Datei ist eine Vorlage für die
+> Repo-Root-`AGENTS.md`. Kopiere nach `AGENTS.md` deines Repos,
+> ersetze `<Platzhalter>` und lösche diesen Block. AGENTS.md *trägt
+> Hard Rules und Pointer auf kanonische Quellen*, sie *dupliziert deren
+> Inhalt nicht* — sonst entsteht Drift (siehe
+> [Baseline-Regelwerk §AGENTS.md-Regeln](../regelwerk/modul-09-implementierung.md#agentsmd-regeln-modul-9)).
+> **Pointer-Artefakt:** verweist auf andere kanonische Quellen — zuletzt
+> füllen bzw. re-syncen, sobald die Ziele stehen; veraltete
+> `(folgt)`/Klartext-Verweise fängt kein Linter (Reviewer-Sache).
+
 ---
 
 ## 1. Was diese Datei ist
@@ -70,23 +80,42 @@ In dieser Reihenfolge:
 
 ## 3. Harte Regeln
 
+<!--
+Eigene Hard Rules ergänzen, basierend auf der Repo-Klasse. Beispiele
+zur Inspiration:
 
+Wächst diese Liste, trägt sie dasselbe Schnitt-Prinzip wie
+harness/conventions.md: eine kurze Zeile/ein kurzer Absatz bleibt hier,
+der Volltext (Begründung, Grund-Codes, Randfälle) wandert in eine eigene
+Datei unter harness/rules/<name>.md (Baseline-Regelwerk
+grundlagen-harness-dateien.md §harness/conventions.md als
+Konventionsspeicher — Gegenmittel zu "Guide-Datei-Wildwuchs",
+grundlagen-klassifikation.md §Entropy Management). Form ist Wahl, lohnt
+erst beim tatsächlichen Wachstum, nicht vorab.
+-->
 
 ### 3.1 Docker-only
 
-
+<!-- Wenn das Repo Docker-only ist (typisch für Multi-Toolchain-Repos): -->
 
 Kein lokales <venv/SDK/Toolchain-Install>. Alles läuft über `make`
 (das Docker nutzt). Host braucht nur Docker und GNU `make`.
 
 **Falsch:** <z.B. `pip install ...`>
-**Richtig:** <z.B. `<make-target>`>
+**Richtig:** <z.B. `make test`>
 
 **Begründung:** Toolchain-Reproduzierbarkeit + Supply-Chain-Defense.
 
 ### 3.2 Suppression-Verbot
 
-
+<!--
+Pro Sprache eine Variante. Beispiele:
+- Python: # noqa
+- Go: //nolint
+- C#: #pragma warning disable, [SuppressMessage]
+- Kotlin: @Suppress
+- Java: @SuppressWarnings
+-->
 
 Inline-Suppression bricht das `<suppression>-gate`. Ausnahmen leben in
 <zentraler Konfigurations-Datei> mit Begründung.
@@ -156,113 +185,45 @@ Umplanungen, keine Schließungen und keine erreichten Meilensteine.
 Herkunft in **ein** auflösbares Feld (`LH-*`, `ADR-*`, `· seit welle-<Kennung>`).
 Was daneben steht, liest jeder Lauf mit und bezahlt es mit Kontext.
 
+<!--
+In emittierten Artefakten (ein Werkzeug erzeugt Repos) entfällt der
+Herkunfts-Anker: Die Slice-Kennung des Erzeugers existiert im erzeugten Repo
+nicht und löst ins Leere auf.
+-->
 
-
-
-
-### 3.8 Eine ADR trägt Entscheidung und Gründe, keine Regeldetails
-
-Eine ADR hält fest, was entschieden wurde und warum. Die Regeln im Einzelnen
-(Fälle, Ausnahmen, Codes, Rangfolgen) stehen in der Spezifikation; die ADR zeigt
-über `Schärft:` auf sie und wiederholt sie nicht.
-
-**Falsch:** die Fallunterscheidungen einer Spezifikationsstelle in der ADR
-nacherzählen.
-**Richtig:** die Entscheidung, die Alternativen und die Gründe nennen und für die
-Einzelregeln auf die Spezifikationsstelle zeigen.
-
-**Begründung:** Angenommene ADRs sind unveränderlich (3.5). Eine wiederholte Regel
-veraltet mit der Spezifikation und zwingt zu einer Ersetzungs-ADR, die nur den
-Text berichtigt.
-
-### 3.9 Der Slice-Plan folgt jeder Korrektur (seit welle-walking-skeleton)
-
-Wer im Slice Code, Gates, Tests oder die Spezifikation ändert, zieht im selben
-Commit §1 (Ziel und Abgrenzung), §3 (Plan) und §6 (Risiken) des Slice-Plans nach,
-dazu den Kopf (`Bezug`, `Berührte Spec-Stellen`) und betroffene Folge-Slices.
-
-**Sensor für die Kopf-Hälfte** (seit slice-harness-kopf-sensor): `make kopf-check`
-meldet rot, wenn §1 oder §2 eines Slice-Plans in `open/`, `next/` oder
-`in-progress/` eine Lastenheft-, Spezifikations- oder Sicht-Kennung nennt, die der
-Kopf nicht führt ([ADR-0032](docs/plan/adr/0032-kopf-sensor-fuer-slice-plaene.md)).
-Ob §1, §3 und §6 inhaltlich dem Diff folgen, bleibt Urteil von Review und Verifikation.
-
-**Falsch:** den Mismatch liefern, während §1 ihn noch „welle-replay-semantik“
-zuweist.
-**Richtig:** §1 nennt, was der Slice liefert und was er abgibt; der Folge-Slice
-nennt, was schon geliefert ist.
-
-**Begründung:** Review und Verifikation messen gegen den Plan; ein Plan, der dem
-Code nicht folgt, erzeugt in jeder Runde dieselben Findings
-(`BEO-REPO/plan-folgt-korrektur-nicht`). Entfernen oder Lockern dieser Regel
-setzt den Retirement-Check voraus: Ist die Beobachtung seit welle-walking-skeleton
-wieder aufgetreten?
-
-### 3.10 Jede Zusage eines neuen Vertrags fängt eine Mutation (seit welle-extended-query)
-
-Wer einen neuen Vertrag liefert (Protokollrand, Format, Leser, Diagnose, Option,
-Gate), schreibt zu jeder seiner Zusagen einen Test, der rot wird, wenn der Code die
-Zusage bricht, und fährt diese Mutation vor der Übergabe selbst. Der Bericht nennt je
-Zusage: Zusage · Mutation · roter Test.
-
-**Falsch:** Die Tests decken den Gutfall; dass eine Mutation grün bleibt, findet erst
-das Review.
-**Richtig:** Je Zusage eine Mutation, vom Implementer selbst rot gesehen.
-
-**Begründung:** Ein grünes Gate belegt, dass nichts bricht, nicht, dass eine Zusage
-geprüft ist (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`). Entfernen oder
-Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
-welle-extended-query wieder aufgetreten?
-
-### 3.11 Ein Kommentar sagt nur zu, was ein Test prüft (seit welle-extended-query)
-
-Kommentar, Hilfetext, Abdeckungs-Deklaration und Plan-Zeile sagen nur zu, was ein
-Test oder Gate prüft. Reicht der Satz weiter, wird er enger gefasst oder bekommt
-seinen Test (§3.10).
-
-**Falsch:** „prüft beide Adapter“ über einer Gegenprobe, die einen prüft.
-**Richtig:** „prüft den Recording-Adapter“, oder die Gegenprobe prüft beide.
-
-**Begründung:** Eine Zusage ohne Prüfung liest jeder Lauf als geprüft
-(`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`). Entfernen oder Lockern setzt
-den Retirement-Check voraus: Ist die Beobachtung seit welle-extended-query wieder
-aufgetreten?
-
-### 3.12 Randformen eines neuen Vertrags sind vor dem Code entschieden (seit slice-harness-randformen-vor-code)
-
-Ein Slice, der einen neuen Vertrag liefert (§3.10), nennt in §6 des Slice-Plans dessen
-Randformen, etwa fehlender, leerer oder unbekannter Wert, Alias, Abbruch und
-Herunterfahren, was ein Diagnose-Feld je Nachrichtenart heißt, Verhalten je
-Serverversion, und je Randform, wo sie entschieden ist. Entschieden ist jede vor dem
-ersten Code-Commit, in der Spezifikation (Technik-Stratum), auch für
-Harness-Werkzeuge (seit slice-lastenheft-pruefbarkeit), oder einer ADR; auch eine Entscheidung des
-Nutzers wird dort festgehalten. Der Architect prüft die Liste vor dem Code. Eine nicht
-genannte oder offene Randform entscheidet der Implementer nicht, er hält an und gibt
-sie dem Architect zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
-
-**Falsch:** Der Leser behandelt `null` wie einen fehlenden Schlüssel, die
-Spezifikation sagt nichts dazu, und das Review findet es.
-**Richtig:** §6 nennt `null` und fehlenden Schlüssel und zeigt auf die Stelle der
-Spezifikation, die beide entscheidet; dann folgt der Code.
-
-**Begründung:** Was der Code still entscheidet, findet erst das Review, Runde um Runde
-eine weitere Randform (`BEO-REPO/spec-randform-erst-im-review-entschieden`). Ein Diff,
-der eine Randform entscheidet, die §6 nicht nennt, ist ein Review-Befund gegen diese
-Regel. Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung
-seit slice-harness-randformen-vor-code wieder aufgetreten?
+<!--
+Repo-spezifische Hard Rules ergänzen, z.B. für Safety/Control:
+- "Optimierer darf nie direkt aufs Gerät schreiben."
+- "Protokoll-Adapter dürfen keine Marktentscheidungen enthalten."
+- "Produktion-Profile müssen fail-closed sein."
+-->
 
 ## 4. Quality Gates
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-harness-dateien.md`
 §harness/README.md als Einstiegspunkt. Der Gate-Index steht **einmal**, in
 [`harness/README.md`](harness/README.md) §Sensors — dort steht auch die
-*Bindung* jedes Targets. Diese Datei führt die Liste nicht.
+*Bindung* jedes Targets; Targets aus Werkzeug-Fragmenten stehen in dem Teil des
+Werkzeugs, den §Sensors verlinkt. Diese Datei führt die Liste nicht.
 
 Kein Target nennen, das im Makefile nicht existiert — auch nicht in Prosa.
 
 ## 5. Dokumentations-Regeln
 
-
+<!--
+Index-Tabelle nach dem Muster des Adaptions-Blocks in
+harness/conventions.md (Baseline-Regelwerk grundlagen-harness-dateien.md
+§harness/conventions.md als Konventionsspeicher — dort ist die
+Verzeichnis-Form ebenfalls von Anfang an der Default, keine spätere
+Umstellung, "weil sie mit der Adaptions-Zahl nicht mitwächst"). Kurze
+Regeln stehen vollständig in der Tabelle (Datei-Spalte: "—"); wächst eine
+Regel über einen Satz hinaus oder kommt eine mit eigener Begründung/
+Grund-Codes dazu, wandert ihr Volltext nach harness/rules/<name>.md und
+die Tabellenzeile bleibt der Kurzform-Zeiger darauf. Gegenmittel zu
+"Guide-Datei-Wildwuchs" (grundlagen-klassifikation.md §Entropy
+Management). `file.max-lines` (falls aktiviert) deckt nur die ganze
+Datei, nicht diesen Abschnitt gezielt.
+-->
 
 | # | Regel | Datei |
 |---|---|---|

@@ -27,8 +27,8 @@ bringend für *Form*-Fragen, nicht autoritativ über Inhalt.
 
 
 - **Konvention:** AI-Harness-Kurs (ai-harness-course)
-- **Stand:** v6.13.0
-- **Datum der Adoption:** 2026-10-03
+- **Stand:** v6.16.0
+- **Datum der Adoption:** 2026-10-06
 
 
 
@@ -39,10 +39,10 @@ bringend für *Form*-Fragen, nicht autoritativ über Inhalt.
 - **Extern (Lehrmaterial):** https://github.com/pt9912/ai-harness-course
 - **Vendored Baseline (Regelwerk + Templates):** aus dem self-contained
   Release-Asset
-  https://github.com/pt9912/ai-harness-course/releases/download/v6.13.0/lab-regelwerk.zip
+  https://github.com/pt9912/ai-harness-course/releases/download/v6.16.0/lab-regelwerk.zip
   nach `.harness/baseline/<tag>/{regelwerk,templates}/` entpackt (netzlos,
-  `SHA256SUMS`) — adoptierten Stand notieren (Stand-Zeile in
-  `regelwerk/README.md`, z. B. „Kurs-Welle 24 · 2026-07-16"; Wellen-Register:
+  `SHA256SUMS`) — adoptierter Stand: Stand-Zeile in
+  `regelwerk/README.md` „Kurs-Welle 159 · 2026-10-06"; Wellen-Register:
   CHANGELOG.md im Kurs-Repo); für harte Reproduzierbarkeit das Asset eines Tags
   ziehen statt `latest`.
 - **In-Repo (verkörperte Form):** `AGENTS.md`, `harness/README.md`,
@@ -99,7 +99,7 @@ nichts — gleichgültig, ob er sie geschrieben oder stehen gelassen hat. Ohne A
 erkennbar ist es am Inhalt: eine Datei, die der Bootstrap geschrieben hat, trägt
 seinen Text; eine, die er stehen ließ, den dieses Repos.
 
-**Gemessen gegen den Kurs-Stand `v6.13.0`, und die Tabelle wandert nicht mit.** Sie
+**Gemessen gegen den Kurs-Stand `v6.16.0`, und die Tabelle wandert nicht mit.** Sie
 nennt Regelblöcke beim Namen; ein Baseline-Sprung kann einen umbenennen, hinzufügen
 oder wegnehmen. Dieses Dokument wird von einem erneuten Bootstrap **nicht**
 überschrieben, und kein Lauf dieses Repos hält die Tabelle gegen den Baum, der hier

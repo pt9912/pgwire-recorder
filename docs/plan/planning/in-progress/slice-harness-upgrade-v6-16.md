@@ -382,8 +382,42 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 - **Drei Paarungen:** <…>
-- **Belege:** <sha256 des Assets und Herkunft, Image-Digest mit Kommando, `diff -r` der Bäume, Zahl der neuen d-check-Befunde je Ausgang>
-- **Weitergereicht an das Kurs-Repo bzw. an ai-harness-init:** <Widerspruch Regelwerk-Text und `baseline-verify.sh` zur alten Baseline (§6); ggf. Stand für die Antwort zum Technik-Stratum; weitere offene Fragen an die Baseline>
+- **Belege:**
+  - *Asset:* `lab-regelwerk.zip` des Tags `v6.16.0`, sha256
+    `feb4d7444c92ec4d11fcf88035ce2eaef48da64ae990eb8bbcf44550a5e87063`, geprüft gegen
+    Rang (1) aus §6 *Netzzugriff*: das Asset `SHA256SUMS` desselben Releases, vom
+    Kurs-Repo veröffentlicht (`sha256sum -c`: OK); das Feld `digest` des Assets in der
+    Release-API (Rang 2) nennt denselben Wert. Abruf einmalig im Image der Stufe `deps`
+    mit `--user`, Mount nur eines Temp-Verzeichnisses. Vor dem Entpacken: 68 Einträge,
+    oberste Ebene nur `regelwerk/` und `templates/`, kein absoluter Pfad, kein `..`,
+    kein Symlink (Unix-Modus je Eintrag aus dem Central Directory: 54 × `100644`,
+    14 × `40755`); das Asset bringt keine eigene Prüfsummenliste mit. `SHA256SUMS` nach
+    dem Entpacken neu erzeugt, 54 Zeilen; `make baseline-verify` meldet `v6.16.0 OK`.
+  - *d-check:* `docker image inspect ghcr.io/pt9912/d-check:v0.82.0 --format
+    '{{json .RepoDigests}}'` nach `docker pull` meldet
+    `sha256:d28e9437888554a262ad9a2e8a63fdb1717e5b5860824fdef263a877d532e0c8`; die
+    Release-Notes von d-check `v0.82.0` nennen denselben Digest-Pin. Neu erzeugtes
+    Fragment gegen das alte: Unterschied nur in Kopf und Pin-Zeilen. Probe je aktives
+    Modul (`links`, `anchors`, `ids`, `matrix`, `spans`) in einer HEAD-Kopie: unter
+    `v0.79.0` und `v0.82.0` je ein Befund und Exit 1.
+  - *`diff -r` der Bäume* (Temp-Baum, vor dem Tausch): dieselben 54 Dateien, keine
+    neue, umbenannte oder entfallene; alle 26 Regelwerk-Dateien und 14 Vorlagen
+    geändert. In 18 Regelwerk-Dateien nur die Quell-Zeile mit dem Tag; Inhalt in
+    `grundlagen-begriffe.md`, `grundlagen-harness-dateien.md`,
+    `grundlagen-referenz-richtung.md`, `modul-03-spec.md`, `modul-10-review-harness.md`,
+    `modul-13-quality-gates.md`, `modul-15-observability.md` und in `README.md`
+    (Stand-Zeile „Kurs-Welle 159 · 2026-10-06“).
+  - *d-check-Befunde:* `v0.82.0` am Stand vor dem Tausch 0; nach dem Tausch 1
+    (`target-missing` in
+    `harness/conventions/done/MR-001-spezifikations-ort-werkzeugvertraege.md`),
+    behoben nach §6 *Befunde in eingefrorenen Dokumenten* (a): Link zu Code-Span mit
+    unverändertem Pfad samt `v6.13.0` und Anker, Text unverändert. Danach 0.
+- **Weitergereicht an das Kurs-Repo bzw. an ai-harness-init:** (1) Kurs-Repo:
+  `modul-02-harness-bootstrap.md` §Freshness-Audit lässt alte und neue Form nebeneinander
+  liegen („Das alte Verzeichnis fällt erst, wenn der Review durch ist“), das emittierte
+  `tools/harness/baseline-verify.sh` endet bei zwei Tag-Verzeichnissen rot (§6 *Alte
+  Baseline*). (2) Die Antwort zum Technik-Stratum trägt die Baseline seit `v6.16.0` in
+  `grundlagen-referenz-richtung.md` §Spec-Straten; keine offene Frage mehr.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
