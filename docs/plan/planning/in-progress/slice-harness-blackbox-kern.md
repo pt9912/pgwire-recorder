@@ -111,7 +111,8 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/model/extended_test.go`, `fehler_test.go` | refactor | `package model_test` |
 | `internal/hexagon/services/*_test.go` (sieben Dateien) | refactor | `package services_test`; Fakes der Ports und Testhelfer wandern mit |
 | `internal/hexagon/model/export_test.go` | neu | Brücke nach `SPEC-049` Punkt 7: `Klasse` reicht an `klassen` weiter |
-| `internal/hexagon/services/export_test.go` | neu | Brücke nach `SPEC-049` Punkt 7: `IstLebendpruefung`, `VTLeerraum`, `Abweichung`, `ParameterStelle` reichen weiter; `LetzteNummer` ruft `letzteNummer` an einem Cursor auf der übergebenen Session |
+| `internal/hexagon/services/export_test.go` | neu | Brücke nach `SPEC-049` Punkt 7: `IstLebendpruefung`, `VTLeerraum`, `Abweichung`, `ParameterStelle` reichen weiter; keine Brücke für `letzteNummer` (§6 *Brücke mit Cursor*) |
+| `internal/hexagon/services/replay_lebendpruefung_test.go` | update | `TestReplayLetzteNummer` prüft die letzte Nummer über `ReplayService` (§6 *Brücke mit Cursor*) |
 | dieselben Testdateien | update | übrige Befunde aus `make lint` in den Dateien, die der Umbau ohnehin umschreibt: `contextcheck` 5 (je Subtest `ctx := t.Context()` in `TestRecordEndeNachErfolgreichemUpstream` statt des geteilten neuen Kontexts), `gochecknoglobals` 17 (Testdaten als Funktionen, die je Aufruf den Wert liefern) |
 | `internal/hexagon/model/fehler_test.go` | update | `model.Meldung`-Literale mit Feldnamen: `go vet` (`composites`) lehnt ungeschlüsselte Literale eines fremden Pakets ab |
 
@@ -165,7 +166,9 @@ steht, gibt der Implementer an den Architect zurück.
   `export_test.go` im Paket des Codes, nur Typ-Aliase, Konstanten und Funktionen oder
   Methoden, die an Unexportiertes weiterreichen; Zustand nur an einem übergebenen Wert,
   nie auf Paketebene (eine Frist für einen Test verkürzt sie nur an einem übergebenen
-  Wert). Eine Variable oder eine Funktion `Test…` darin ist ein Befund.
+  Wert). Eine Variable oder eine Funktion `Test…` darin ist ein Befund. Einen Wert
+  eines unexportierten Typs legt nur der Produkt-Code an, weder Brücke noch Test
+  (entschieden vom Architect am 2026-10-06 nach F-441/F-442, `SPEC-049` Punkt 7).
 - **Übrige Befunde der Testdateien** — `contextcheck`: `t.Context()` statt eines neuen Kontexts; `gochecknoglobals`: Testdaten und Fakes in Funktionen oder als Konstanten. Kein `_ =` vor einem Fehler, den
   `errcheck` meldet, und keine Ausnahme, die nur Bestand aussetzt (Entscheidung 5).
 - **White-Box-Zugriffe im Bestand** — Namensabgleich per Suche am Stand `ce50a10`
@@ -173,8 +176,9 @@ steht, gibt der Implementer an den Architect zurück.
   Je Zugriff: über die exportierte Schnittstelle prüfbar, über die Brücke, oder
   Befund. Gemessen beim Umbau (Bezeichner der Testdateien gegen die Paketebene des
   Produkt-Codes, per AST): in `model` `klassen` (Fehltreffer der Suche), in `services`
-  `istLebendpruefung`, `vtLeerraum`, `abweichung`, `parameterStelle` und `cursor` mit
-  `letzteNummer`; alle über die Brücke, keiner als Befund. `laufende` und `mitten`
+  `istLebendpruefung`, `vtLeerraum`, `abweichung`, `parameterStelle` über die Brücke,
+  `cursor` mit `letzteNummer` über die exportierte Schnittstelle (*Brücke mit Cursor*);
+  keiner als Befund. `laufende` und `mitten`
   waren Fehltreffer (Kommentartext). Die Services-Tests prüfen Zwischenstände des Replays (Cursor, laufende Nummer); ob das Verhalten über `ReplayService` allein beobachtbar ist, entscheidet je Fall die Brücke.
 - **Fakes der Ports** — die Ports sind exportiert (`internal/hexagon/ports/...`); ein
   Fake in einem `_test`-Paket implementiert sie unverändert. Ein Fake, der auf
@@ -182,10 +186,22 @@ steht, gibt der Implementer an den Architect zurück.
 - **Mutationstests auf unexportierte Teile** — eine Mutation, die bisher ein Test auf
   eine unexportierte Funktion fing, muss auch nach dem Umbau fangen; sonst fehlt eine
   Prüfung, obwohl die Testliste gleich ist.
-- **Brücke mit Cursor** — `LetzteNummer` legt einen Cursor auf der übergebenen
-  Session an und ruft `letzteNummer`; Zustand nur an diesem Wert, nicht auf
-  Paketebene (`SPEC-049` Punkt 7). Ob das noch Weiterreichen ist, prüft das Werkzeug
-  nicht (Grenze von `SPEC-049`), das ist Urteil des Review.
+- **Brücke mit Cursor** — entschieden vom Architect am 2026-10-06 nach F-441/F-442
+  (`SPEC-049` Punkt 7): Die Brücke legt keinen `cursor` an; die Funktion
+  `LetzteNummer` entfällt aus `export_test.go`. Der Produkt-Code legt seine Cursor mit
+  `status: "I"` an, ein Cursor nur mit `session` ist ein Zustand, den das Produkt nie
+  erzeugt. `TestReplayLetzteNummer` bleibt unter seinem Namen und prüft über
+  `ReplayService`: Session mit den Interaktionen 2 und 4, beide Anfragen gesendet, eine
+  dritte Anfrage ist `PGR-E5001` mit „nach Interaktion 4 erwartet die Aufzeichnung keine
+  weitere“ (wie `TestReplayLebendpruefungNummerNachDemEnde` für den Extended-Weg). Ohne
+  Abdeckungs-Deklaration, wie bisher. Rot sein muss danach die Mutation „Zahl der
+  Interaktionen statt Nummer“ und „erste statt letzte Interaktion“ in `letzteNummer`.
+  **Akzeptiertes Negativ:** Der Fall „ohne Interaktion 0“ entfällt. Das Produkt ordnet
+  keine Session ohne erwartete Interaktion zu (`NewReplayService` nimmt sie nicht auf),
+  der Zweig ist über die Schnittstelle nicht erreichbar; der Fall prüfte einen Zustand,
+  den das Produkt nicht erzeugt, und ist keine entfallene Prüfung im Sinn der DoD.
+  Den Zweig selbst lässt dieser Slice stehen (kein Produkt-Code, §1); er hat keinen
+  eigenen Folge-Slice, die Abdeckung misst `slice-harness-coverage`.
 
 **Risiken:**
 

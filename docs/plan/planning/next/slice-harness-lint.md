@@ -266,7 +266,9 @@ Bestand am Stand `79f40e1`.
   Werten (Punkt 7). Keine Ausnahme für `gochecknoglobals` oder `revive` in der Brücke:
   eine Variable dort ist ein Befund. Rot-Fälle nach F-407: `internal_test.go` im
   Paket des Codes (an der Brücke vorbei, `testpackage`) und `func Test…` in
-  `export_test.go` (eigene Prüfung), dazu eine Variable in der Brücke.
+  `export_test.go` (eigene Prüfung), dazu eine Variable in der Brücke. Dass Brücke und
+  Test keinen Wert eines unexportierten Typs anlegen (Punkt 7), prüft das Werkzeug
+  nicht (Grenze); dafür gibt es keinen Rot-Fall, es bleibt Urteil des Review.
 - **`forbidigo`** — `fmt.Print…`, `print`, `println`, dazu `os.Stdout` und `os.Stderr`
   außerhalb von `cmd/` und `test/` (Punkt 5, dauerhafte Regel nach Punkt 8); Bestand
   ohne Befund.

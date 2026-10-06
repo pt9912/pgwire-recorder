@@ -2033,7 +2033,12 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
    gehört zum Paket `<name>` und ist dort die einzige Testdatei. Sie enthält nur
    Typ-Aliase, Konstanten und Funktionen oder Methoden, die an Unexportiertes
    weiterreichen. Zustand setzt sie nur an einem Wert, den sie übergeben bekommt, nie
-   auf Paketebene. Jede andere Testdatei im Paket `<name>` ist ein Befund von
+   auf Paketebene. Einen Wert eines unexportierten Typs legt nur der Produkt-Code an:
+   Weder die Brücke noch ein Test erzeugt ihn selbst, auch nicht als lokalen Wert, als
+   Literal oder über einen Typ-Alias. Die Brücke bekommt ihn übergeben oder reicht an
+   eine Funktion des Pakets weiter, die ihn erzeugt; so prüft ein Test nur Zustände,
+   die das Produkt erzeugt. Was nur an einem solchen Wert zu sehen ist, prüft der Test
+   über die exportierte Schnittstelle. Jede andere Testdatei im Paket `<name>` ist ein Befund von
    `testpackage`; eine Variable auf Paketebene in der Brücke ist ein Befund von
    `gochecknoglobals`; eine Funktion, deren Name mit `Test`, `Benchmark`, `Example`
    oder `Fuzz` beginnt, meldet in der Brücke eine eigene Prüfung.
@@ -2090,8 +2095,8 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
     `make gates`. Ohne Befund im Bestand hängt es an der Gate-Kette und endet `make
     gates` mit Fehlerstatus, wenn es rot ist.
 
-**Grenze.** Ob ein `Why:` zutrifft und ob die Brücke nur weiterreicht, prüft das
-Werkzeug nicht. Dateien mit der Markierung für generierten Code nimmt golangci-lint nach
+**Grenze.** Ob ein `Why:` zutrifft, ob die Brücke nur weiterreicht und ob ein Wert
+eines unexportierten Typs nur aus dem Produkt-Code stammt, prüft das Werkzeug nicht. Dateien mit der Markierung für generierten Code nimmt golangci-lint nach
 seinem Default aus; das Modul hat keine. Ebenso wenig prüft es, ob eine Einstellung
 nach Punkt 5 ihren Grund als Kommentar trägt und ob unter `exclusions` nur die Schlüssel
 nach Punkt 8 stehen. Eine Regel, die `config verify` annimmt und golangci-lint erst
@@ -2139,5 +2144,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Lint-Profil: fehlendes Profil, Prüfung gegen das Schema, ungenutzte Regel als `lint:`-Zeile, jede Meldung ein Befund (`SPEC-049`) |
 | 2026-10-06 | Lint-Profil: feste Form des Ausnahme-Abschnitts, zweites Kommentarzeichen vor `nolint`, Zeile der ungenutzten Regel, generierter Code nach Default (`SPEC-049`) |
 | 2026-10-06 | Lint-Profil: Einzug der Regel-Einträge unter `rules`, Ablehnung beim Laden als Grenze (`SPEC-049`) |
+| 2026-10-06 | Lint-Profil: Brücke und Test legen keinen Wert eines unexportierten Typs an (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |

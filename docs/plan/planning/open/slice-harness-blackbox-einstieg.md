@@ -171,7 +171,11 @@ steht, gibt der Implementer an den Architect zurück.
   `export_test.go` im Paket des Codes, nur Typ-Aliase, Konstanten und Funktionen oder
   Methoden, die an Unexportiertes weiterreichen; Zustand nur an einem übergebenen Wert,
   nie auf Paketebene (eine Frist für einen Test verkürzt sie nur an einem übergebenen
-  Wert). Eine Variable oder eine Funktion `Test…` darin ist ein Befund.
+  Wert). Eine Variable oder eine Funktion `Test…` darin ist ein Befund. Einen Wert
+  eines unexportierten Typs legt nur der Produkt-Code an, weder Brücke noch Test, auch
+  nicht lokal oder über einen Alias; was nur an ihm zu sehen ist, prüft der Test über
+  die exportierte Schnittstelle (Architect 2026-10-06, F-441/F-442 in
+  `slice-harness-blackbox-kern`).
 - **Übrige Befunde der Testdateien** — `errcheck` an `Close` einer Datei oder Datenbank: den Fehler prüfen (etwa in `t.Cleanup` mit `t.Error`); `gochecknoglobals`: Testdaten in Funktionen oder als Konstanten; `revive`, `staticcheck`: nach der Meldung. Kein `_ =` vor einem Fehler, den
   `errcheck` meldet, und keine Ausnahme, die nur Bestand aussetzt (Entscheidung 5).
 - **White-Box-Zugriffe im Bestand** — Namensabgleich per Suche am Stand `ce50a10`
