@@ -56,7 +56,7 @@ Vorgänge, Arbeit am Werkzeug und Arbeit am Gegenstand, in einem Review.
 
 - Der Anschluss an `GATE_CHECKS`, die Gegenprobe `make lint-gegenprobe` und die Doku
   in `AGENTS.md` §3.2 und `harness/README.md` §Sensors — übernimmt `slice-harness-lint`,
-  wenn der Bestand grün ist; vorher machte das Ziel `make gates` rot (96 Befunde).
+  wenn der Bestand grün ist; vorher machte das Ziel `make gates` rot (103 Befunde).
 - Die Bereinigung eines Befunds — Bestand bleibt bewusst stehen: Die Testdateien
   bereinigen die vier Umstellungs-Slices, den Produkt-Code `slice-lint-bestand-kern-driven`
   und `slice-lint-bestand-driving`. Dieser Slice ändert keine Datei `*.go`.
@@ -83,17 +83,20 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       unverändert.
 - [ ] Eigene Prüfungen, Ausgabe und Ausgang: die Prüfungen nach `SPEC-049` Punkt 6
       (`//nolint`), 7 (Funktion `Test…`, `Benchmark…`, `Example…`, `Fuzz…` in
-      `export_test.go`) und 8 (Regel ohne `# Why:`, ungenutzte Regel über
-      `warn-unused`) laufen in der Stufe, jede auch bei einem Befund einer anderen, mit
-      Zeilen `lint: <pfad>:<zeile>: <befund>` und dem Ausgang nach Punkt 9. Je Zusage ist
+      `export_test.go`) und 8 (Regel ohne `# Why:`) laufen in der Stufe, jede auch bei
+      einem Befund einer anderen, mit Zeilen `lint: <pfad>:<zeile>: <befund>`; dazu nach
+      Punkt 9 fehlendes Profil, Schema-Prüfung (`config verify`) und ungenutzte Regel
+      (`warn-unused`) mit Zeilen `lint: .golangci.yml: <befund>` und der Ausgang nach
+      Punkt 9. Je Zusage ist
       die Mutation einmal von Hand rot gesehen und im Bericht als Zusage · Mutation ·
       roter Lauf genannt (`AGENTS.md` §3.10); die bleibende Gegenprobe liefert
       `slice-harness-lint`.
 - [ ] Ziel und Messung: `harness/mk/lint.mk` führt `make lint` ohne Eintrag in
       `GATE_CHECKS`; `harness/README.md` nennt es in der Tabelle der Werkzeuge mit
       „kein Gate“ und Bindung an die ADR. Ein Lauf am Stand des Slice reproduziert die
-      Messung der ADR: 96 Befunde nach den dauerhaften Ausnahmen, je Linter und Paket
-      wie die Messtabelle abzüglich der Ausnahmen, keine ungenutzte Regel; eine
+      Messung der ADR: 103 Befunde nach den dauerhaften Ausnahmen (`SPEC-049` Punkt 9,
+      `uniq-by-line: false`; mit `uniq-by-line: true` 96, je Linter und Paket wie die
+      Messtabelle abzüglich der Ausnahmen), keine ungenutzte Regel; eine
       Abweichung ist im Bericht erklärt oder geht an den Architect (§4).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -114,11 +117,12 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `.golangci.yml` | neu | Profil nach `SPEC-049` Punkt 1 bis 5 und 8 (`relative-path-mode: cfg`, Pfade mit `^`, `build-tags: integration`, ungekürzte Ausgabe, `warn-unused: true`); dauerhafte Ausnahmen nach Entscheidung 2 der [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Testdatei-Ausnahmen des Vorbilds, `ST1005`, `gochecknoglobals` für die zehn Nachschlage-Tabellen und Sentinel-Werte je Datei und Name, `forbidigo` für `cmd/` und `test/`), je mit `# Why:`; Kopfkommentar nennt die Hard Rule aus `AGENTS.md` §3.2 nur so weit, wie die eigene Prüfung sie hält (`AGENTS.md` §3.11) |
-| `Dockerfile` | update | Stufe `lint` aus `golangci/golangci-lint:v2.14.0@sha256:ad862ba6b3798cbe0fd9fd7408d498fd74fbd2623a92406b2fd3898faf0bf98f` auf `$BUILDPLATFORM`, Module aus `deps`, `RUN --network=none`, `GOTOOLCHAIN=local`, `GOFLAGS=-mod=readonly`; darin die drei eigenen Prüfungen, golangci-lint und die Auswertung von `warn-unused`, alle laufen, Ausgang nach Punkt 9 |
-| `tools/harness/lint-eigene-pruefungen.sh` (Name vorläufig) | neu, nur falls die Prüfungen nicht als `RUN` in der Stufe stehen | die drei eigenen Prüfungen als ein Skript für die Stufe; Kopf nennt `SPEC-049` Punkt 6 bis 8 und, was es nicht prüft (*Grenze* von `SPEC-049`) |
-| `.dockerignore` | update | `.golangci.yml` und gegebenenfalls das Skript in die Allowlist ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)); ohne sie läuft das Image mit Default-Profil |
+| `Dockerfile` | update | Stufe `lint` aus `golangci/golangci-lint:v2.14.0@sha256:ad862ba6b3798cbe0fd9fd7408d498fd74fbd2623a92406b2fd3898faf0bf98f` auf `$BUILDPLATFORM`, Module aus `deps`, `RUN --network=none`, `GOTOOLCHAIN=local`, `GOFLAGS=-mod=readonly`; ruft `tools/harness/lint.sh`; Kommentar der Stufe `source` nennt die erweiterte Allowlist |
+| `tools/harness/lint.sh` | neu | die Stufe als ein Skript: die drei eigenen Prüfungen (`SPEC-049` Punkt 6 bis 8), dann nach Punkt 9 Profil vorhanden, `golangci-lint config verify`, `golangci-lint run -c .golangci.yml ./...` und die Warnungen von `warn-unused` als `lint:`-Zeilen; Ausgang nach Punkt 9; Kopf nennt, was es nicht prüft (*Grenze* von `SPEC-049`) |
+| `.dockerignore` | update | `.golangci.yml` und `tools/harness/lint.sh` in die Allowlist ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)); ohne sie läuft das Image mit Default-Profil |
 | `harness/mk/lint.mk` | neu | Ziel `lint` (`docker build --target lint`), Hilfe-Text „Werkzeug, kein Gate“; kein `GATE_CHECKS +=` |
-| `harness/README.md` | update | Tabelle der Werkzeuge: Zeile `make lint`, kein Gate, mit Verweis auf `SPEC-049` Punkt 10 |
+| `harness/README.md` | update | Tabelle der Werkzeuge: Zeile `make lint`, kein Gate, Bindung an [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) |
+| `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint` | update | Zählungen nach `SPEC-049` Punkt 9 (16, 16, 32 im Produkt-Code, acht Funktionen) (`AGENTS.md` §3.9) |
 
 ## 4. Trigger
 
@@ -154,7 +158,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Lerneintrag; ohne ihn ist der Slice nur abgelegt.
 
 DoD vollständig, `make gates` grün ohne `lint` in der Gate-Kette, `make lint` meldet
-die 96 Befunde der Messung, Closure-Notiz mit Lerneintrag.
+die 103 Befunde der Messung (`SPEC-049` Punkt 9), Closure-Notiz mit Lerneintrag.
 
 ## 6. Risiken und offene Punkte
 
@@ -164,8 +168,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen** (`AGENTS.md` §3.12) — entschieden vom Architect am 2026-10-06 in
-`SPEC-049` und [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md), gemessen am Stand `79f40e1`; dieser Slice
-entscheidet keine. Was dort nicht steht, gibt der Implementer an den Architect zurück.
+`SPEC-049` und [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md), gemessen am Stand `79f40e1`; die vier aus der Rückgabe des
+Implementer (Profil fehlt, Schema, ungenutzte Regel, Zählregel) am 2026-10-06 in
+`SPEC-049` Punkt 9. Dieser Slice entscheidet keine. Was dort nicht steht, gibt der Implementer an den Architect zurück.
 Für das Werkzeug tragend:
 
 - **Werkzeug, dann Gate** — `make lint` endet bei Befund mit Ausgang ungleich 0, auch
@@ -174,7 +179,20 @@ Für das Werkzeug tragend:
 - **Ort der eigenen Prüfungen** — in der Stufe `lint`, nicht auf dem Host (Punkt 2, 6
   bis 8); ob als `RUN`-Zeilen oder als Skript, ist eine Form, kein Vertrag.
 - **Ungenutzte Regel** — `warn-unused` ist ein Befund (Punkt 8); jede dauerhafte
-  Ausnahme muss im Bestand etwas ausblenden, sonst ist sie falsch geschrieben.
+  Ausnahme muss im Bestand etwas ausblenden, sonst ist sie falsch geschrieben. Je
+  Warnung eine Zeile `lint: .golangci.yml: Regel ohne Befund: …` ohne Zeilennummer
+  (Punkt 9).
+- **Profil fehlt** — Zeile `lint: .golangci.yml: fehlt`, Schema-Prüfung und
+  golangci-lint laufen nicht, die eigenen Prüfungen nach Punkt 6 und 7 schon; das
+  Profil nur über `-c` (Punkt 9).
+- **Profil vom Schema abgelehnt** (etwa ein unbekannter Schlüssel, den `golangci-lint
+  run` still übergeht) — `golangci-lint config verify` ohne Netz, Zeile `lint:
+  .golangci.yml: von golangci-lint abgelehnt` mit der Meldung, golangci-lint läuft
+  trotzdem (Punkt 9).
+- **Zählregel** — jede Meldung ist ein Befund, auch mehrere auf derselben Zeile
+  (`uniq-by-line: false`, Punkt 9). [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) Kontext: 96 gemessen mit `uniq-by-line`
+  true; nach `SPEC-049` Punkt 9 sind es 103 bei acht Komplexitäts-Funktionen;
+  Entscheidung unberührt, keine Folge-ADR.
 
 **Risiken:**
 

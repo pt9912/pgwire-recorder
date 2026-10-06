@@ -84,6 +84,7 @@ Diese Datei dupliziert sie nicht.
 | `make schema-generate` | gibt das SQL für SQLite aus dem neutralen Schema auf stdout aus | kein Gate |
 | `make hooks-install` | aktiviert den git-eigenen `commit-msg`-Träger im Klon | kein Gate |
 | `make abdeckung` | schreibt die Abdeckungstabellen aus den Test-Deklarationen, prüft nichts | kein Gate |
+| `make lint` | prüft den Go-Code mit golangci-lint nach `.golangci.yml` und mit eigenen Prüfungen (Stufe `lint` des `Dockerfile`, netzlos außer der Download-Stufe), meldet alle Befunde mit Pfad und endet bei einem Befund mit Fehlerstatus; hängt nicht an `make gates` | kein Gate, [ADR-0034](../docs/plan/adr/0034-lint-gate-mit-solid-nahem-profil.md) |
 | `make go-mod-tidy` | aktualisiert `go.mod` und `go.sum` mit Netz im gepinnten Go-Image, prüft nichts | kein Gate |
 | `make a-check-graph` | gibt den Architektur-Graphen (Mermaid) aus `.a-check.yml` aus, prüft nichts | kein Gate |
 | `make doc-trace` | gibt die Requirements Traceability Matrix aus (Anforderung, Entscheidungen, Slices), prüft nichts; als Slice zählt nur eine Datei flach in `done/`, ein archivierter Slice unter `done/<welle-id>/` nicht | kein Gate |

@@ -1,4 +1,4 @@
-# Dockerfile — Build, Test, Integration und Produkt-Image (ADR-0026).
+# Dockerfile — Build, Test, Integration, Lint und Produkt-Image (ADR-0026).
 # Eingangs-Images sind per Digest gepinnt; eine Anhebung ist ein bewusster
 # Commit. Netz braucht nur die Stufe deps; alle Stufen danach laufen mit
 # `RUN --network=none`.
@@ -13,7 +13,7 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 # --- source: der Quellstand; .dockerignore lässt nur go.mod, go.sum, cmd/,
-# internal/ und test/ in den Kontext.
+# internal/, test/, .golangci.yml und tools/harness/lint.sh in den Kontext.
 FROM deps AS source
 COPY . .
 
@@ -42,6 +42,16 @@ RUN --network=none go build -trimpath -buildvcs=false -o /out/pgwire-recorder ./
  && go test -c -tags integration -trimpath -buildvcs=false -o /out/integration.test ./test/integration
 ENV PGR_BINARY=/out/pgwire-recorder
 ENTRYPOINT ["/out/integration.test", "-test.v", "-test.count=1"]
+
+# --- lint: golangci-lint nach dem Profil .golangci.yml und die eigenen
+# Prüfungen aus tools/harness/lint.sh, auf der Plattform des Bau-Hosts, mit den
+# Modulen aus deps, ohne Netz. Kein Teil der Gate-Kette (`make lint`).
+FROM --platform=$BUILDPLATFORM golangci/golangci-lint:v2.14.0@sha256:ad862ba6b3798cbe0fd9fd7408d498fd74fbd2623a92406b2fd3898faf0bf98f AS lint
+WORKDIR /src
+ENV CGO_ENABLED=0 GOTOOLCHAIN=local GOFLAGS=-mod=readonly
+COPY --from=deps /go/pkg/mod /go/pkg/mod
+COPY . .
+RUN --network=none bash tools/harness/lint.sh
 
 # --- runtime: distroless, nonroot, nur das Binary.
 FROM gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab AS runtime

@@ -88,10 +88,10 @@ Stufen; dieser Slice ging dafür nach `next/` zurück (§4).
   Nachweisart Gate vor ihm nicht. Teil 3 von LH-QA-07 gilt ab diesem Slice, weil
   `testpackage` erst mit dem Gate für alle Pfade scharf ist.
 - Bereinigung des Produkt-Codes — gemessen (§6 *Bestand*,
-  [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)): 25 Befunde nach den
-  dauerhaften Ausnahmen, in Kern, Driven und Driving. Sie übernehmen
-  `slice-lint-bestand-kern-driven` (13) und `slice-lint-bestand-driving` (12), nach den
-  Umstellungs-Slices. Dieser Slice ändert keinen Produkt-Code außer dem Kommentar in
+  [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)): nach den dauerhaften
+  Ausnahmen und `SPEC-049` Punkt 9 (`uniq-by-line: false`) 32 Befunde, in Kern, Driven und
+  Driving. Sie übernehmen `slice-lint-bestand-kern-driven` (16) und
+  `slice-lint-bestand-driving` (16), nach den Umstellungs-Slices. Dieser Slice ändert keinen Produkt-Code außer dem Kommentar in
   `internal/hexagon/model/fehler.go` (§3).
 - Importrichtungen im Hexagon und Bibliotheken je Adapter — das hält
   `make a-check` ([ADR-0001](../../adr/0001-hexagonale-architektur.md)).
@@ -298,8 +298,10 @@ Bestand am Stand `79f40e1`.
 **Risiken:**
 
 - **Bestand** (Hauptrisiko) — gemessen ([ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)): 142 Befunde ohne `testpackage`,
-  166 mit; nach den dauerhaften Ausnahmen 96, davon 25 im Produkt-Code in allen
-  Schichten (sieben Funktionen über den Komplexitäts-Schwellen) und 71 in Testdateien.
+  166 mit; nach den dauerhaften Ausnahmen 96 mit `uniq-by-line: true`, nach `SPEC-049`
+  Punkt 9 103, davon 32 im Produkt-Code in allen Schichten (acht Funktionen über den
+  Komplexitäts-Schwellen) und 71 in Testdateien (`make lint`, Stand des
+  Werkzeug-Slice).
   Eingetreten: Rückführung nach `next/` (§4); den Bestand bereinigen die vier
   Umstellungs-Slices, `slice-lint-bestand-kern-driven` und `slice-lint-bestand-driving`
   vor dem Start dieses Slice. — **Ausgang:** — (bei Closure)

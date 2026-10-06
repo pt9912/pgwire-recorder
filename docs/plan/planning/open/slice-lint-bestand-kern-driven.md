@@ -15,7 +15,7 @@ Eingesammelt wird er von der nächsten Welle-Closure. Angelegt nach Entscheidung
 Nutzers vom 2026-10-06 (Bereinigung vor dem Gate, ohne Stufen); Reihenfolge in §4
 *Start*.
 
-**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 1: Bestand ohne Befund vor dem Gate). Bindung an Entscheidungen: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Messung des Bestands, Entscheidung 5: Bereinigung vor dem Gate, Kern und Driven mit 13 Befunden), [ADR-0001](../../adr/0001-hexagonale-architektur.md) (Schichten des Hexagons; die Bereinigung verschiebt nichts über eine Schichtgrenze).
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 1: Bestand ohne Befund vor dem Gate). Bindung an Entscheidungen: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Messung des Bestands, Entscheidung 5: Bereinigung vor dem Gate, Kern und Driven; nach `SPEC-049` Punkt 9 16 Befunde), [ADR-0001](../../adr/0001-hexagonale-architektur.md) (Schichten des Hexagons; die Bereinigung verschiebt nichts über eine Schichtgrenze).
 
 **Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Profil und Schwellen, gegen die bereinigt wird; der Slice ändert die Stelle nicht)
 
@@ -37,15 +37,18 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ziel:** `make lint` meldet unter `internal/hexagon/model`, `internal/hexagon/services`,
 `internal/adapters/driven/postgres` und `internal/adapters/driven/recording` keinen
 Befund; die dauerhaften Ausnahmen nach `SPEC-049` Punkt 8 blendet das Profil aus. Dafür
-behebt der Slice die 13 Befunde im Produkt-Code dieser Pakete aus der Messung in
+behebt der Slice die 16 Befunde im Produkt-Code dieser Pakete, ohne das Verhalten zu
+ändern. Die Messung in
 [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Stand `79f40e1`;
-Aufteilung je Paketgruppe in der Fassung `92d1b86` der ADR), ohne das Verhalten zu
-ändern:
+Aufteilung je Paketgruppe in der Fassung `92d1b86` der ADR) zählt 13 mit
+`uniq-by-line: true`; `make lint` zählt nach `SPEC-049` Punkt 9 jede Meldung, auch
+mehrere auf derselben Zeile:
 
-- **Komplexität (4)** — `gocognit` bzw. `gocyclo` über der Schwelle aus Punkt 4:
-  `Group.validate` (`internal/hexagon/model/extended.go`), `(*cursor).objekte`
+- **Komplexität (7) in vier Funktionen** — `gocognit`, `gocyclo` bzw. `cyclop` über
+  der Schwelle aus Punkt 4: `Group.validate` (`internal/hexagon/model/extended.go`,
+  alle drei), `(*cursor).objekte`
   (`internal/hexagon/services/replay.go`), `toResponse`
-  (`internal/adapters/driven/postgres/upstream.go`), `fromDTO`
+  (`internal/adapters/driven/postgres/upstream.go`, `gocyclo` und `cyclop`), `fromDTO`
   (`internal/adapters/driven/recording/yaml.go`).
 - **`revive` (8)** — sieben Doc-Kommentare in `internal/hexagon/model` ohne die Form
   von `exported` bzw. `package-comments`, ein ungenutzter Parameter in
@@ -56,7 +59,7 @@ Maßgeblich ist die Liste, die `make lint` beim Start unter diesen Pfaden ausgib
 sie von der Aufzählung ab, gilt der Lauf, und der Plan folgt ihm (`AGENTS.md` §3.9).
 
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-06: Der Bestand wird vor dem Gate
-bereinigt, ohne Stufen; die 25 Befunde im Produkt-Code tragen zwei Bereinigungs-Slices,
+bereinigt, ohne Stufen; die 32 Befunde im Produkt-Code (`SPEC-049` Punkt 9) tragen zwei Bereinigungs-Slices,
 dieser für Kern und Driven, `slice-lint-bestand-driving` für die treibende Seite.
 Geschnitten ist nach Paketgruppe wie bei den Umstellungs-Slices: Domain Model und
 Services gelten dort als eine Schicht, der Kern; dieser Slice berührt damit zwei, Kern

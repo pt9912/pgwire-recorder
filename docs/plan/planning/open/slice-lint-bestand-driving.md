@@ -15,7 +15,7 @@ Eingesammelt wird er von der nächsten Welle-Closure. Angelegt nach Entscheidung
 Nutzers vom 2026-10-06 (Bereinigung vor dem Gate, ohne Stufen); Reihenfolge in §4
 *Start*.
 
-**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 1: Bestand ohne Befund vor dem Gate). Bindung an Entscheidungen: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Messung des Bestands, Entscheidung 5: Bereinigung vor dem Gate, Driving mit 12 Befunden, erwartete Bereinigung der Kontexte mit `context.WithoutCancel`), [ADR-0001](../../adr/0001-hexagonale-architektur.md) (Schichten des Hexagons), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md) (`pgproto3` im PGWire-Adapter).
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 1: Bestand ohne Befund vor dem Gate). Bindung an Entscheidungen: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Messung des Bestands, Entscheidung 5: Bereinigung vor dem Gate, Driving; nach `SPEC-049` Punkt 9 16 Befunde, erwartete Bereinigung der Kontexte mit `context.WithoutCancel`), [ADR-0001](../../adr/0001-hexagonale-architektur.md) (Schichten des Hexagons), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md) (`pgproto3` im PGWire-Adapter).
 
 **Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Profil und Schwellen, gegen die bereinigt wird; der Slice ändert die Stelle nicht)
 
@@ -38,15 +38,17 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 `internal/adapters/driving/cli` und `internal/bootstrap` keinen Befund; die dauerhaften
 Ausnahmen nach `SPEC-049` Punkt 8 blendet das Profil aus. Damit hat der ganze Bestand
 keinen Befund mehr, und `slice-harness-lint` kann das Gate anschließen. Dafür behebt der
-Slice die 12 Befunde im Produkt-Code dieser Pakete aus der Messung in
-[ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Stand `79f40e1`;
-Aufteilung je Paketgruppe in der Fassung `92d1b86` der ADR), ohne das Verhalten zu
-ändern:
+Slice die 16 Befunde im Produkt-Code dieser Pakete, ohne das Verhalten zu ändern. Die
+Messung in [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Stand
+`79f40e1`; Aufteilung je Paketgruppe in der Fassung `92d1b86` der ADR) zählt 12 mit
+`uniq-by-line: true`; `make lint` zählt nach `SPEC-049` Punkt 9 jede Meldung, auch
+mehrere auf derselben Zeile:
 
-- **Komplexität (4)** in `internal/adapters/driving/pgwire/server.go` — `gocognit`,
-  `gocyclo` bzw. `cyclop` über der Schwelle aus Punkt 4: `(*Server).replaySitzung`
-  (`gocognit` 37, Schwelle 20), `(*richtungen).clientRichtung`, `(*Server).startup`,
-  `toMessage`.
+- **Komplexität (8) in vier Funktionen** in `internal/adapters/driving/pgwire/server.go`
+  — `gocognit`, `gocyclo` bzw. `cyclop` über der Schwelle aus Punkt 4:
+  `(*Server).replaySitzung` (alle drei, `gocognit` 37, Schwelle 20),
+  `(*richtungen).clientRichtung` (`gocognit`, `cyclop`), `(*Server).startup`
+  (`cyclop`), `toMessage` (`gocyclo`, `cyclop`).
 - **Kontexte (6)** — `containedctx` für den Kontext im Struct `richtungen`;
   `contextcheck` an drei Stellen in `pgwire` und an einer in `internal/bootstrap`
   (neuer Kontext statt des übergebenen, etwa `service.Finish(context.Background())`);
@@ -58,7 +60,7 @@ sie von der Aufzählung ab, gilt der Lauf, und der Plan folgt ihm (`AGENTS.md` �
 `cmd/` hat in der Messung keinen Befund.
 
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-06: Der Bestand wird vor dem Gate
-bereinigt, ohne Stufen; die 25 Befunde im Produkt-Code tragen zwei Bereinigungs-Slices,
+bereinigt, ohne Stufen; die 32 Befunde im Produkt-Code (`SPEC-049` Punkt 9) tragen zwei Bereinigungs-Slices,
 `slice-lint-bestand-kern-driven` für Kern und Driven, dieser für die treibende Seite.
 Er berührt zwei Schichten, den Driving Adapter (`pgwire`, `cli`) und das Bootstrap, das
 `pgwire.Listen` ruft.

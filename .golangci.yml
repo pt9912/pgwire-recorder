@@ -1,0 +1,266 @@
+# .golangci.yml — Lint-Profil von pgwire-recorder, gelesen von der Stufe `lint`
+# des Dockerfile (`make lint`). Vertrag: spec/spezifikation.md SPEC-049.
+#
+# Ausnahmen stehen nur hier: als Einstellung unter `settings` oder als Regel unter
+# `exclusions.rules`, jede Regel mit einem Kommentarblock, dessen erste Zeile mit
+# `# Why:` beginnt. Eine Direktive `//nolint` im Code, eine Regel ohne `# Why:`
+# und eine Regel, die nichts ausblendet, meldet `make lint` als Befund
+# (tools/harness/lint.sh).
+
+version: "2"
+
+run:
+  # Pfade in diesem Profil gelten relativ zu dieser Datei und beginnen mit `^`.
+  relative-path-mode: cfg
+  # Die Integrationstests unter test/ tragen den Build-Tag `integration`.
+  build-tags:
+    - integration
+
+output:
+  formats:
+    text:
+      path: stdout
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: false
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - containedctx
+    - contextcheck
+    - cyclop
+    - dupl
+    - fatcontext
+    - forbidigo
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - gocyclo
+    - gomodguard_v2
+    - iface
+    - inamedparam
+    - interfacebloat
+    - ireturn
+    - maintidx
+    - nestif
+    - noctx
+    - reassign
+    - revive
+    - testpackage
+    - unparam
+
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (net.Conn).Close
+        - (net.Listener).Close
+
+    cyclop:
+      max-complexity: 15
+
+    dupl:
+      threshold: 150
+
+    forbidigo:
+      forbid:
+        - pattern: ^fmt\.Print(f|ln)?$
+          msg: schreibe über einen übergebenen io.Writer
+        - pattern: ^print(ln)?$
+          msg: schreibe über einen übergebenen io.Writer
+        - pattern: ^os\.Std(out|err)$
+          msg: nur cmd/ und test/ greifen auf os.Stdout und os.Stderr zu
+
+    funlen:
+      lines: 100
+      statements: 60
+
+    gocognit:
+      min-complexity: 20
+
+    gocyclo:
+      min-complexity: 15
+
+    interfacebloat:
+      max: 10
+
+    ireturn:
+      allow:
+        - error
+        - empty
+        - anon
+        - stdlib
+        - generic
+        - ^github\.com/pt9912/pgwire-recorder/internal/hexagon/ports(/[^.]+)?\.
+        - ^github\.com/jackc/pgx/v5/pgproto3\.
+
+    maintidx:
+      under: 20
+
+    nestif:
+      min-complexity: 5
+
+    gomodguard_v2:
+      # Importe aus der Standardbibliothek und aus diesem Modul meldet der Linter
+      # ohne Eintrag nicht; jedes andere Modul aus go.mod braucht einen.
+      allowed:
+        - module: github.com/jackc/pgx/v5
+        - module: go.yaml.in/yaml/v3
+
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: var-declaration
+        - name: var-naming
+        - name: unused-receiver
+
+    testpackage:
+      skip-regexp: (^|/)export_test\.go$
+
+  exclusions:
+    generated: lax
+    warn-unused: true
+    rules:
+      # Why: Tabellengetriebene Tests haben höhere Komplexität ohne Entwurfsmangel.
+      - linters:
+          - cyclop
+          - gocognit
+          - gocyclo
+          - nestif
+          - funlen
+        path: ^.+_test\.go$
+
+      # Why: Tests brauchen weder Kontext-Weitergabe noch ausgeschöpfte Parameter.
+      - linters:
+          - noctx
+          - unparam
+        path: ^.+_test\.go$
+
+      # Why: Fakes in Testdateien erfüllen ein Interface mit Parametern, die sie
+      # nicht brauchen.
+      - linters:
+          - revive
+        path: ^.+_test\.go$
+        text: ^unused-parameter
+
+      # Why: Fakes in Testdateien erfüllen ein Interface ohne Zustand und tragen
+      # einen ungenutzten Receiver.
+      - linters:
+          - revive
+        path: ^.+_test\.go$
+        text: ^unused-receiver
+
+      # Why: Die Fehlertexte sind deutsch und beginnen mit einem Substantiv, also
+      # mit einem Großbuchstaben.
+      - linters:
+          - staticcheck
+        text: ^ST1005
+
+      # Why: Nachschlage-Tabelle Zielart zu PGWire-Byte, nach der Initialisierung nur gelesen;
+      # Go kennt keine konstante Map.
+      - linters:
+          - gochecknoglobals
+        path: ^internal/adapters/driven/postgres/upstream\.go$
+        text: ^zielart is a global variable$
+
+      # Why: Sentinel-Wert für einen fehlenden YAML-Wert, nach der Initialisierung nur gelesen;
+      # Go kennt keinen konstanten Zeiger.
+      - linters:
+          - gochecknoglobals
+        path: ^internal/adapters/driven/recording/yaml\.go$
+        text: ^ohneWert is a global variable$
+
+      # Why: Nachschlage-Tabelle Felder je Client-Nachricht, nach der Initialisierung nur gelesen;
+      # Go kennt keine konstante Map.
+      - linters:
+          - gochecknoglobals
+        path: ^internal/adapters/driven/recording/yaml\.go$
+        text: ^clientFelder is a global variable$
+
+      # Why: Nachschlage-Tabelle Hilfe je Kommando, nach der Initialisierung nur gelesen;
+      # Go kennt keine konstante Map.
+      - linters:
+          - gochecknoglobals
+        path: ^internal/adapters/driving/cli/cli\.go$
+        text: ^hilfen is a global variable$
+
+      # Why: Nachschlage-Tabelle Log-Level zu Stufe des Loggers, nach der Initialisierung nur gelesen;
+      # Go kennt keine konstante Map.
+      - linters:
+          - gochecknoglobals
+        path: ^internal/bootstrap/bootstrap\.go$
+        text: ^stufen is a global variable$
+
+      # Why: Nachschlage-Tabelle der Client-Nachrichten, nach der Initialisierung nur gelesen;
+      # Go kennt keine konstante Map.
+      - linters:
+          - gochecknoglobals
+        path: ^internal/hexagon/model/extended\.go$
+        text: ^clientMessages is a global variable$
+
+      # Why: Nachschlage-Tabelle Klasse je Exit-Code, nach der Initialisierung nur gelesen;
+      # Go kennt keine konstante Map.
+      - linters:
+          - gochecknoglobals
+        path: ^internal/hexagon/model/fehler\.go$
+        text: ^klassen is a global variable$
+
+      # Why: Nachschlage-Tabelle der Antworten einer einfachen Anfrage, nach der Initialisierung nur gelesen;
+      # Go kennt keine konstante Map.
+      - linters:
+          - gochecknoglobals
+        path: ^internal/hexagon/model/response\.go$
+        text: ^simpleResponses is a global variable$
+
+      # Why: Nachschlage-Tabelle der Antworten einer Extended-Interaktion, nach der Initialisierung nur gelesen;
+      # Go kennt keine konstante Map.
+      - linters:
+          - gochecknoglobals
+        path: ^internal/hexagon/model/response\.go$
+        text: ^extendedResponses is a global variable$
+
+      # Why: Nachschlage-Tabelle Bestätigung zu Client-Nachricht, nach der Initialisierung nur gelesen;
+      # Go kennt keine konstante Map.
+      - linters:
+          - gochecknoglobals
+        path: ^internal/hexagon/services/replay\.go$
+        text: ^bestaetigung is a global variable$
+
+      # Why: Der Einstieg unter cmd/ und die Integrationstests unter test/ sind die
+      # Stellen, die den Prozess mit seinen Standard-Strömen verbinden.
+      - linters:
+          - forbidigo
+        path: ^(cmd|test)/
+        text: os\.Std(out|err)
