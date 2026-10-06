@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-lint-werkzeug
+**Fund:** DoD Punkt 2 verlangte je Zusage „Zusage · Mutation · roter Lauf“ im Bericht. Die Tabelle des Implementers lag dem Review (für `2461551`) und der Verifikation (für `8d9f0ee`) nicht vor (Review, Schwerpunkt 5; Verifikation V-73); beide haben die Mutationen selbst gefahren. Für V-72 hat die Closure die Tabelle des Implementers in §7 des Slice-Plans übernommen.

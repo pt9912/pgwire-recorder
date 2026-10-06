@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-lint-werkzeug
+**Fund:** Der Kopf von `.golangci.yml` und der Kommentar zu Punkt 8 in `tools/harness/lint.sh` sagten die Meldung einer Regel ohne `# Why:` ohne Bedingung zu; die Prüfung hing am Einzug (Review F-428). Nach der Nacharbeit sagten dieselben zwei Kommentare und Plan §6 *Form des Profils* „jede andere Form ist `Form nicht erkannt`“ zu, tiefere Einträge unter `rules` blieben ohne Zeile (Verifikation V-72). Berichtigt in `8d9f0ee` und `17daf26`, Summary des Review: Klasse `zusage-im-kommentar-weiter-als-pruefung`.

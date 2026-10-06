@@ -73,15 +73,24 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Profil und Stufe: `.golangci.yml` nach `SPEC-049` Punkt 1 bis 5 und 8, mit genau
+- [x] Profil und Stufe: `.golangci.yml` nach `SPEC-049` Punkt 1 bis 5 und 8, mit genau
       den dauerhaften Ausnahmen aus Entscheidung 2 der ADR, je mit einem Kommentarblock
       `# Why:` unmittelbar darüber; Stufe `lint` im `Dockerfile` nach Punkt 2
       (`golangci/golangci-lint:v2.14.0` per Digest, `$BUILDPLATFORM`, Module aus `deps`,
       `--network=none`, `GOTOOLCHAIN=local`, `GOFLAGS=-mod=readonly`); `.dockerignore`
       lässt `.golangci.yml` und, falls die eigenen Prüfungen als Skript liegen, dieses
       in den Build-Kontext. Die Stufen `test`, `build` und `integration` bleiben
-      unverändert.
-- [ ] Eigene Prüfungen, Ausgabe und Ausgang: die Prüfungen nach `SPEC-049` Punkt 6
+      unverändert. — bestätigt an `8d9f0ee` und `17daf26` (Verifikation, Punkt 1 und
+      Nachtrag): Linter und `revive`-Regeln mechanisch gleich `SPEC-049`, Schwellen und
+      Ausnahmen nach Punkt 4, 5 und 8, `git diff` des `Dockerfile` berührt die übrigen
+      Stufen nicht. Rot ohne die Einstellung: ohne `(net.Conn).Close` steigt `errcheck`
+      von 14 auf 48 (`p5a`), `os.Stdout` unter `internal/` liefert `forbidigo` (`p5b`,
+      Review `f1`), ohne das Ports-Muster drei `ireturn` mehr (Review `i1`), ein indirektes
+      Modul liefert `gomodguard_v2` (Review `g1`), ohne `build-tags` 83 statt 103 (Review
+      `t1`). Ohne Mutation, die der Lauf unterscheidet (`relative-path-mode: cfg`, Pfade
+      mit `^`, `--network=none`, `GOFLAGS`, `GOTOOLCHAIN`, Pin und Plattform): übergeben an
+      die Gegenprobe von `slice-harness-lint` (§6, §7).
+- [x] Eigene Prüfungen, Ausgabe und Ausgang: die Prüfungen nach `SPEC-049` Punkt 6
       (`//nolint`), 7 (Funktion `Test…`, `Benchmark…`, `Example…`, `Fuzz…` in
       `export_test.go`) und 8 (Regel ohne `# Why:`) laufen in der Stufe, jede auch bei
       einem Befund einer anderen, mit Zeilen `lint: <pfad>:<zeile>: <befund>`; dazu nach
@@ -90,22 +99,38 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Punkt 9. Je Zusage ist
       die Mutation einmal von Hand rot gesehen und im Bericht als Zusage · Mutation ·
       roter Lauf genannt (`AGENTS.md` §3.10); die bleibende Gegenprobe liefert
-      `slice-harness-lint`.
-- [ ] Ziel und Messung: `harness/mk/lint.mk` führt `make lint` ohne Eintrag in
+      `slice-harness-lint`. — bestätigt an `17daf26` (Verifikation, Punkt 2 und Nachtrag),
+      je Zusage rot aus dem richtigen Grund: Punkt 6 `p6`, Werkzeug gebrochen `p6w` ohne
+      Zeile; Punkt 7 `p7`; Punkt 8 `p8b`, `p8a`, `p8c`, `p8d`, `p8f`, `p8g`; Punkt 9 `p9a`,
+      `p9b`, `p9c`, Werkzeug gebrochen `p9cw` ohne `Pfad außer`, `p9e`. Rot ohne den Fix
+      von V-72: `p8d` am Stand `8d9f0ee` ohne `lint:`-Zeile, an `17daf26` mit
+      `Form nicht erkannt` (Tabelle des Implementers in §7). Der Bericht des Implementers
+      mit Zusage · Mutation · roter Lauf lag Review und Verifikation für `2461551` und
+      `8d9f0ee` nicht vor (V-73); der Beleg je Zusage sind dort die Läufe der Verifikation.
+- [x] Ziel und Messung: `harness/mk/lint.mk` führt `make lint` ohne Eintrag in
       `GATE_CHECKS`; `harness/README.md` nennt es in der Tabelle der Werkzeuge mit
       „kein Gate“ und Bindung an die ADR. Ein Lauf am Stand des Slice reproduziert die
       Messung der ADR: 103 Befunde nach den dauerhaften Ausnahmen (`SPEC-049` Punkt 9,
       `uniq-by-line: false`; mit `uniq-by-line: true` 96, je Linter und Paket wie die
       Messtabelle abzüglich der Ausnahmen), keine ungenutzte Regel; eine
-      Abweichung ist im Bericht erklärt oder geht an den Architect (§4).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      Abweichung ist im Bericht erklärt oder geht an den Architect (§4). — bestätigt an
+      `8d9f0ee` und `17daf26` (Verifikation, Punkt 3 und Nachtrag): `GATE_CHECKS` aus
+      `make -pn gates` ohne `lint`, Grundlauf 103 Befunde (32 Produkt-Code, 71
+      Testdateien), keine `lint:`-Zeile; mit `uniq-by-line: true` 96, je Linter wie die
+      Messtabelle abzüglich der Ausnahmen (`q1`).
+- [x] `make gates` grün. — an `8d9f0ee` (Verifikation, Abschnitt 5) und an `17daf26`
+      (Nachtrag, alle 12 Gates); die Closure ändert nur Planungsdokumente, Register und
+      einen Satz in `.claude/commands/implement-slice.md` Schritt 19 (`make docs-check`,
+      `make kopf-check` grün).
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
-      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8). — Review bis
+      `2461551` (F-428 bis F-433); die Nacharbeit `8d9f0ee` und `17daf26` hat kein eigenes
+      Review, die Verifikation hat jedes Finding nachgeprüft (Abschnitt 2 und Nachtrag).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -132,7 +157,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`): `slice-harness-lint` liegt nicht mehr in
 `in-progress/` (zurück in `next/`, WIP-Limit 1), und
 [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) ist `Accepted`. Reihenfolge
-nach Entscheidung des Nutzers vom 2026-10-06: dieser Slice, `slice-harness-blackbox-kern`,
+nach Entscheidung des Nutzers vom 2026-10-06: dieser Slice, `slice-harness-upgrade-v6-16`
+(eingeschoben nach Entscheidung des Nutzers vom 2026-10-06), `slice-harness-blackbox-kern`,
 `slice-harness-blackbox-driven`, `slice-harness-blackbox-pgwire`,
 `slice-harness-blackbox-einstieg`, `slice-lint-bestand-kern-driven`,
 `slice-lint-bestand-driving`, `slice-harness-lint`, `slice-harness-abdeckung-gate`,
@@ -213,7 +239,16 @@ Für das Werkzeug tragend:
   liest sich als Zusage und greift nicht
   (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`, 1×). Der Abgleich mit der
   Messtabelle der ADR (DoD, Punkt 3) und `warn-unused` fangen es für diesen Stand.
-  — **Ausgang:** — (bei Closure)
+  — **Ausgang:** eingetreten, an den Folge-Slice `slice-harness-lint`. Viermal las sich
+  die Konfiguration anders, als sie wirkt: `exclusions.generated: lax` ohne Wirkung
+  (F-433, entfernt in `8d9f0ee`); ein Eintrag für das Modul selbst in `gomodguard_v2`
+  wäre ohne Wirkung, weil der Linter Importe aus dem eigenen Modul nicht meldet
+  (Implementer, Kommentar im Profil; nicht aufgenommen); Regeln unter `rules` mit
+  anderem Einzug wandte golangci-lint an, die Why-Prüfung las sie nicht (V-72, behoben
+  in `17daf26`); `config verify` nimmt Regeln an, die golangci-lint erst beim Laden
+  ablehnt (V-74, Grenze von `SPEC-049`). Offen bleiben V-74, die Einzüge 8 und 2 und
+  V-75; sie stehen als Fälle in der DoD der Gegenprobe von `slice-harness-lint`.
+  Register: Beleg in `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (§7).
 - **Eigene Prüfungen bis zum Gate ohne Gegenprobe** — die Mutationen sieht der
   Implementer einmal von Hand; die bleibende Gegenprobe kommt erst mit
   `slice-harness-lint`. Bricht eine Prüfung dazwischen still, misst jeder
@@ -233,14 +268,26 @@ Für das Werkzeug tragend:
     Einzug 8 und 2), Ablehnung erst beim Laden (Grenze), `// x //nolint` als
     Befund und `// siehe nolint` als keiner, Ausgang ungleich 0 bei einer `lint:`-Zeile
     allein.
-  — **Ausgang:** — (bei Closure)
+  — **Ausgang:** eingetreten, an den Folge-Slice `slice-harness-lint`. Die
+  Why-Prüfung war zweimal stumpf, ohne dass ein Lauf des Implementers es zeigte: bei
+  Einzug +2 (F-428, Review) und bei tieferen Einträgen unter `rules` (V-72,
+  Verifikation); beide behoben (`8d9f0ee`, `17daf26`). Bis zum Gate misst jeder
+  Bereinigungs-Slice mit dem Stand `17daf26`; die Gegenprobe von `slice-harness-lint`
+  fährt jede Zusage der beiden Listen oben, dazu V-74 und V-75 (DoD dort).
 - **Mutant kommt im Build-Kontext nicht an** — BuildKit überträgt eine Datei gleicher
   Größe und mtime nicht neu (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`, 1×);
   die Mutationen von Hand laufen in einer Kopie unter eigenem Temp-Pfad.
-  — **Ausgang:** — (bei Closure)
+  — **Ausgang:** entfallen: Jede Mutation von Review und Verifikation lief in einer
+  frischen Kopie aus `git archive` ohne `cp -p` (Review, *Ausgeführte Läufe*;
+  Verifikation, *Wie die Proben gebaut wurden* und Nachtrag); kein Lauf dieses Slice
+  baut mehr. Die Gegenprobe von `slice-harness-lint` führt dasselbe Risiko in ihrem §6
+  selbst (*Gegenprobe sieht den Mutanten nicht*).
 - **Bestehende Prüfung fällt weg** — `gofmt` und `go vet` in der Stufe `test` bleiben;
   die Stufe `lint` tritt daneben, nicht an ihre Stelle
-  (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`, 1×). — **Ausgang:** — (bei Closure)
+  (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`, 1×). — **Ausgang:** entfallen: `git diff 2ee9527..8d9f0ee -- Dockerfile` berührt nur
+  Kopfkommentar, Kommentar der Stufe `source` und die neue Stufe (Verifikation, Punkt
+  1); `make gates` mit `gofmt`, `go vet` und Unit-Tests der Stufe `test` grün an
+  `17daf26`.
 
 ## 7. Closure-Notiz
 
@@ -256,12 +303,34 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
+- **Was hat funktioniert:** Der Schnitt aus §8 hielt: drei Liefer-Punkte in einer Schicht, keine Datei `*.go` im Diff, keine Rückführung aus §4. Die vier Randformen aus der Rückgabe des Implementers (Profil fehlt, Schema, ungenutzte Regel, Zählregel) entschied der Architect vor dem ersten Code-Commit (`4ab7e7b` vor `2461551`); die Abweichung 96 gegen 103 löste damit keine Rückführung `in-progress` → `open` aus, sie ist Folge von `uniq-by-line: false` und in `SPEC-049` Punkt 9 festgelegt. Die Messung trug: 103 Befunde, je Paket und Linter gleich den Zählungen der Folge-Slices (Review, Schwerpunkt 6; Verifikation, Abschnitt 3). `make gates` blieb grün, `make lint` rot, wie Punkt 10 es für das Werkzeug vorsieht.
+- **Was ging anders als geplant:** Zwei Prüfrunden. Das Review fand ein MEDIUM, die Why-Prüfung war falsch grün bei anderem Einzug (F-428), dazu zwei Randformen im Code entschieden (F-429), einen Plan-Satz auf altem Stand (F-430) und eine Übergabe an `slice-harness-lint` ohne Artefakt (F-431), F-432 und F-433 als Hinweis. Die Nacharbeit `8d9f0ee` behob F-428 nur für die gemeldete Ausprägung; die Verifikation fand dieselbe Klasse an den Einträgen unter `rules` (V-72). Der Architect entschied sie in `SPEC-049` Punkt 8 (`42d90e8`), `17daf26` schloss sie; die Nacharbeit hat kein eigenes Review, der Nachtrag der Verifikation hat sie geprüft. V-74 steht als Grenze in `SPEC-049` und als Fall in `slice-harness-lint`. V-75 (Hinweis) ist mit dieser Closure in den Gegenproben-Punkt von `slice-harness-lint` eingetragen.
+  - **V-73, Tabelle des Implementers zu V-72** (am Stand `17daf26` gegen `8d9f0ee`; Zusage: `SPEC-049` Punkt 8, jeder Eintrag unter `rules` mit anderem Einzug ist `Form nicht erkannt`):
+
+    | Mutation | mit Fix (`17daf26`) | ohne Fix (`8d9f0ee`) |
+    |---|---|---|
+    | `p8d`, Einträge unter `rules` tiefer, am Prüfstand | Exit 1, `lint: .golangci.yml:159`, `:160`, `:161` `Form nicht erkannt` | Exit 0 |
+    | `p8d` am echten Baum | 66 Zeilen `lint:` | keine |
+    | Einzug 2 (YAML ungültig) | eine Zeile `Form nicht erkannt`, dazu `von golangci-lint abgelehnt` | nur `von golangci-lint abgelehnt`; der Lauf endet ohnehin rot, weil das YAML ungültig ist |
+
+    Die Verifikation hat dieselben Fälle unabhängig gefahren (Nachtrag, `p8d`, `p8f`, `p8g`). Für `2461551` und `8d9f0ee` lag die Tabelle Review und Verifikation nicht vor; dort sind ihre Läufe der Beleg (DoD, Punkt 2).
+  - **Summary-Zeilen der Review-Reports:** Review `2026-10-06-review-slice-harness-lint-werkzeug.md`: „1 MEDIUM (F-428 …), 3 LOW (F-429, F-430, F-431), 2 INFO; keine HIGH. Wiederkehrende Klassen: `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (F-428), `BEO-REPO/plan-folgt-korrektur-nicht` (F-430).“ Verifikation `2026-10-06-verifikation-slice-harness-lint-werkzeug.md`, Urteil des Nachtrags: drei Liefer-Punkte erfüllt, V-72 behoben, V-74 getragen, V-73 und V-75 Hinweise.
+- **Steering-Loop-Eintrag:** Geschärfte Regel: Ein Befund aus Review oder Verifikation wird als Klasse behoben; die Nacharbeit nennt das Merkmal, an dem der Wächter scheiterte, und fährt je weitere Ausprägung eine Mutation — liegt in `.claude/commands/implement-slice.md Schritt 19`.
+  Auslöser: F-428 und V-72, dieselbe Klasse über zwei Prüfrunden (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`, mit diesem Slice 13×). Herkunfts-Anker `seit slice-harness-lint-werkzeug` im Satz nach dem zur mehrteiligen Zusage. **Warum dieser Eintrag:** §3.10 und der Satz zur mehrteiligen Zusage verlangen je Zusage und je Bedingung eine Mutation; die Nacharbeit hat das getan und die gemeldete Mutation (`w4b`, alles +2) rot gesehen. Durch ging nur die Nachbar-Ausprägung desselben Merkmals (`p8d`, nur `rules` tiefer). Der neue Satz setzt an der Nacharbeit an, nicht an der ersten Lieferung. Retirement-Check von §3.9, §3.10, §3.11 und §3.12: alle wieder aufgetreten, alle bleiben.
+- **Beobachtungs-Register (`../observations/`):**
+  - `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen/` — Beleg `evidence/slice-harness-lint-werkzeug.md` (F-433, das Modul selbst in `gomodguard_v2`, V-72, V-74), **2×**. Erreicht die Schwelle nicht; der nächste Beleg macht ihn zur Lücke, die einen Folge-Slice braucht.
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/` (verkörpert in `AGENTS.md` §3.11 seit welle-extended-query) — Beleg (F-428, V-72), **14×**.
+  - `BEO-REPO/plan-folgt-korrektur-nicht/` (verkörpert in `AGENTS.md` §3.9 seit welle-walking-skeleton, Sensor `make kopf-check` seit slice-harness-kopf-sensor) — Beleg (F-430, F-431), **13×**; `make kopf-check` war grün, §3 und §6 liest er nicht.
+  - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/` (verkörpert in `AGENTS.md` §3.10 seit welle-extended-query) — Beleg (F-428, V-72), **13×**.
+  - `BEO-REPO/spec-randform-erst-im-review-entschieden/` (verkörpert in `AGENTS.md` §3.12 seit slice-harness-randformen-vor-code) — Beleg (F-429, V-72), **11×**. Nicht `randform-im-code-entschieden-dann-zurueckgegeben` (bleibt 2×): Zurückgegeben hat der Implementer die vier Randformen vor dem Code; F-429 kam nicht als Rückgabe, sondern im Review.
+  - `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht/` — **neu**, Beleg (V-73), **1×**.
+  - Ohne Beleg: `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (bleibt 1×; §4 nannte den Architect vor dem Code, und die Rückgabe erreichte ihn vor `2461551`), `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` und `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (bleiben 1×; Ausgänge in §6).
+
+  Einmalig und nicht eingetragen: F-432 (Hinweis, übergeben an `slice-harness-lint`), V-75 (Hinweis, eingetragen dort). Kein Eintrag erreicht mit diesem Slice die Schwelle 3× neu; über ihr stehen nur verkörperte Einträge (`zusage-im-kommentar-weiter-als-pruefung` 14×, `plan-folgt-korrektur-nicht` 13×, `negativtests-fehlen-bei-neuem-vertrag` 13×, `spec-randform-erst-im-review-entschieden` 11×); ihnen gibt diese Closure keinen Ausgang, den Lese-Schritt führt die nächste Welle-Closure.
+- **Folge-Slices:** `slice-harness-lint` (Gate, Gegenprobe mit den Fällen aus §6, V-74 und V-75), `slice-harness-upgrade-v6-16` (als nächster in der Reihe, §4), dann `slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`, `slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`, `slice-lint-bestand-kern-driven` und `slice-lint-bestand-driving`, die je ihr Ergebnis mit `make lint` messen.
+- **Risiken aus §6:** vier. *Konfiguration wirkt anders, als sie gelesen wird* und *Eigene Prüfungen bis zum Gate ohne Gegenprobe*: **eingetreten**, an `slice-harness-lint`. *Mutant kommt im Build-Kontext nicht an* und *Bestehende Prüfung fällt weg*: **entfallen**, mit Begründung. Die Randformen in §6 sind Entscheidungen, keine Risiken.
+- **Drei Paarungen:** Anker — `liegt in` nennt `.claude/commands/implement-slice.md Schritt 19`; `grep -n "seit slice-harness-lint-werkzeug" .claude/commands/implement-slice.md` findet ihn in Schritt 19. Folge-Slice — `slice-harness-lint` liegt in `next/` und führt V-74, die Einzüge 8 und 2 und V-75 im Gegenproben-Punkt seiner DoD; `slice-harness-upgrade-v6-16` und die übrigen genannten liegen in `open/`. Register — die sechs Kennungen mit Beleg und die drei ohne bestehen als Verzeichnis, jedes mit nicht leerem `evidence/`. Die nächste Welle-Closure prüft erneut.
+- **Belege:** Review `docs/reviews/2026-10-06-review-slice-harness-lint-werkzeug.md` (bis `2461551`; F-428 bis F-433), Verifikation `docs/reviews/2026-10-06-verifikation-slice-harness-lint-werkzeug.md` (bis `8d9f0ee`, Nachtrag bis `17daf26`; V-72 bis V-75; `make gates` grün an beiden Ständen), Entscheidung [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) unverändert. Validierung: n/a, der Slice ändert die Prüfumgebung, kein End-Nutzer-Verhalten.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

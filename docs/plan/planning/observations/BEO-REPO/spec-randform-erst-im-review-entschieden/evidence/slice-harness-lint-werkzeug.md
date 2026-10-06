@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-lint-werkzeug
+**Fund:** Zwei Randformen entschied `tools/harness/lint.sh` still, `SPEC-049` und Plan §6 nannten sie nicht: ein zweites Kommentarzeichen vor `nolint` und die Felder der Zeile zur ungenutzten Regel (Review F-429; entschieden in `f09e7c1`). Ob ein Eintrag unter `rules` mit anderem Einzug ein Befund ist, entschied der Architect erst nach der Verifikation (V-72; `SPEC-049` Punkt 8 in `42d90e8`). Die vier Randformen der Rückgabe vor dem Code (`4ab7e7b`) kamen rechtzeitig; diese drei nicht.

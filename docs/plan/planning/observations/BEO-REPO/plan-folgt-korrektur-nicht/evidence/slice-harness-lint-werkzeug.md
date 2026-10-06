@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-lint-werkzeug
+**Fund:** Plan §3 begründete die Zeile `.dockerignore` mit dem Stand vor der Entscheidung in `SPEC-049` Punkt 9 („Default-Profil“ statt `lint: .golangci.yml: fehlt`, Review F-430). Die nicht mutierbaren und die neu entschiedenen Zusagen standen nur im Bericht des Implementers, weder in Plan §6 noch in der DoD von `slice-harness-lint` (F-431). Berichtigt in `8d9f0ee`; `make kopf-check` war grün, beide Stellen liest er nicht. Summary des Review: Klasse `plan-folgt-korrektur-nicht`.

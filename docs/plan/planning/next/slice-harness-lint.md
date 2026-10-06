@@ -131,7 +131,11 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `gomodguard_v2`, ein Integrationstest hinter dem Build-Tag, eine ungenutzte Regel,
       eine Regel ohne `Why:`; nach `SPEC-049` Punkt 6, 8 und 9 zudem ein fehlendes
       Profil, ein vom Schema abgelehntes Profil, ein Profil außerhalb der festen Form
-      (Einzug, Flussform, Einträge unter `rules` mit Einzug 8 und 2), eine Regel, die
+      (Einzug, Flussform, Einträge unter `rules` mit Einzug 8 und 2; bei Einzug 2 prüft
+      der Fall nur `Form nicht erkannt` an der ersten Eintragszeile und Ausgang 1, nicht
+      die vollständige Liste der Zeilen, weil die Why-Prüfung bei ungültigem YAML
+      Folgezeilen falsch einordnet, V-75 der Verifikation von
+      `slice-harness-lint-werkzeug`), eine Regel, die
       `config verify` annimmt und golangci-lint erst beim Laden ablehnt (rot ohne
       `lint:`-Zeile), die Zeile der ungenutzten Regel mit Feldfolge und ohne
       erkannte Felder, `// x //nolint` als Befund und `// siehe nolint` als keiner, eine

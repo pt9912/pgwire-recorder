@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-lint-werkzeug
+**Fund:** Zwei Mutationen an der Why-Prüfung (`SPEC-049` Punkt 8) blieben im Lauf des Implementers ungesehen und fielen erst danach auf: Einzug des ganzen Profils +2 mit fehlendem `# Why:` ohne `lint:`-Zeile (Review F-428, `w4b`); nach der Nacharbeit nur die Einträge unter `rules` tiefer, ebenfalls ohne Zeile (Verifikation V-72, `p8d`). Behoben wurde F-428 zuerst nur für die gemeldete Ausprägung des Merkmals Einzug; erst `17daf26` schloss die Klasse.
