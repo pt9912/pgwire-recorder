@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- Welle [welle-replay-semantik](done/welle-replay-semantik.md) done.
+- Welle [welle-replay-semantik](done/welle-replay-semantik/welle-replay-semantik.md) done.
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -70,7 +70,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: Welle [welle-erster-release](welle-erster-release.md).
-- Wird blockiert von: Welle [welle-replay-semantik](done/welle-replay-semantik.md).
+- Wird blockiert von: Welle [welle-replay-semantik](done/welle-replay-semantik/welle-replay-semantik.md).
 - Innerhalb der Welle: `slice-v1-abschluss-einspielen` setzt `slice-v1-abschluss-betrieb` voraus (Signalbehandlung, Konfigurationsdatei); `slice-v1-abschluss-zeitangaben` setzt `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-sqlite-format` voraus; `slice-v1-abschluss-antwortvergleich` setzt `slice-v1-abschluss-einspielen` voraus; `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` voraus; `slice-v1-abschluss-postgres-versionen` setzt `slice-extended-query-lebendpruefung` aus welle-extended-query voraus (Erkennung der Lebendprüfung); `slice-v1-abschluss-tls-client` setzt `slice-v1-abschluss-sessions` voraus (mehrere Verbindungen); `slice-v1-abschluss-container` setzt die übrigen Slices außer `slice-v1-abschluss-homebrew` voraus (Image und Doku bilden den Endstand ab); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` voraus (Release-Artefakte).
 
 ## 6. Out-of-Scope für diese Welle
