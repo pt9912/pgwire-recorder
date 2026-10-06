@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-blackbox-kern
+**Fund:** DoD Punkt 2 verlangte die Zeilen von `make lint` unter den beiden Pfaden vor und nach dem Umbau „im Bericht“. Der Verifikation lag der Bericht nur als Zusammenfassung mit Zahlen vor (V-82); sie hat beide Läufe selbst gefahren und die Zeilen in ihren Abschnitt 1 geschrieben. Die Mutationstabelle dagegen stand in §7 des Slice-Plans und erreichte Review (F-443) und Verifikation (Abschnitt 4): Was im Plan stand, kam an, was nur im Bericht stand, nicht.

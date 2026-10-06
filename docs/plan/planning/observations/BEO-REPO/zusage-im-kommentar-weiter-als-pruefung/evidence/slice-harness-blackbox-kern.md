@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-blackbox-kern
+**Fund:** Der Kommentar über `(*cursor).letzteNummer` (`internal/hexagon/services/replay.go`) sagt „ohne erwartete Interaktion 0“ zu. Seit `ebbf5b8` prüft das kein Test mehr, und über `ReplayService` ist der Zweig nicht erreichbar (Verifikation V-81, Abschnitt 3). Der Slice ändert keinen Produkt-Code; Zweig und Satz übernimmt `slice-lint-bestand-kern-driven` (streichen oder als Invariante benennen).

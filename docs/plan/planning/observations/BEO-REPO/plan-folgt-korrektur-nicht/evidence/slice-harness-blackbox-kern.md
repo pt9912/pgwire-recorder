@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-blackbox-kern
+**Fund:** `b0b2286` änderte `SPEC-049` Punkt 7 und *Grenze* unter der Kennung dieses Slice; Kopf (`Berührte Spec-Stellen`: „der Slice ändert die Stelle nicht“) und der letzte Ausschluss in §1 („Spezifikation … Der Slice ändert Testdateien“) blieben auf dem Stand davor (Verifikation V-80). Nachgezogen vom Architect in `3f948ed`. `make kopf-check` war grün; den Zusatz im Kopf und die Abgrenzung in §1 liest er nicht.

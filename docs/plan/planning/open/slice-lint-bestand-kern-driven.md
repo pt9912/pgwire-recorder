@@ -58,6 +58,14 @@ mehrere auf derselben Zeile:
 Maßgeblich ist die Liste, die `make lint` beim Start unter diesen Pfaden ausgibt; weicht
 sie von der Aufzählung ab, gilt der Lauf, und der Plan folgt ihm (`AGENTS.md` §3.9).
 
+Dazu übernimmt der Slice aus `slice-harness-blackbox-kern` (Verifikation V-81) eine
+Zusage ohne Prüfung im Produkt-Code dieser Pakete: Der Kommentar über
+`(*cursor).letzteNummer` (`internal/hexagon/services/replay.go`) sagt „ohne erwartete
+Interaktion 0“ zu. Kein Test prüft das, und über `ReplayService` ist der Zweig nicht
+erreichbar, weil `NewReplayService` keine Session ohne erwartete Interaktion aufnimmt
+(`AGENTS.md` §3.11). Der Slice streicht Zweig und Satz oder benennt den Fall als
+Invariante; welches von beiden, steht vor dem Code in §6.
+
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-06: Der Bestand wird vor dem Gate
 bereinigt, ohne Stufen; die 32 Befunde im Produkt-Code (`SPEC-049` Punkt 9) tragen zwei Bereinigungs-Slices,
 dieser für Kern und Driven, `slice-lint-bestand-driving` für die treibende Seite.
@@ -99,6 +107,12 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `internal/adapters/driven/postgres` und `internal/adapters/driven/recording` keinen
       Befund, ohne neue Ausnahme in `.golangci.yml` und ohne `//nolint`; die Zeilen der
       Ausgabe unter diesen Pfaden vor und nach dem Slice stehen im Bericht.
+- [ ] `(*cursor).letzteNummer` sagt nichts zu, was kein Test prüft (V-81 aus
+      `slice-harness-blackbox-kern`): Zweig `len(c.session.Interactions) == 0` und der
+      Satz „ohne erwartete Interaktion 0“ sind gestrichen, oder der Kommentar nennt den
+      Fall als Invariante mit ihrem Grund (`NewReplayService` nimmt keine Session ohne
+      erwartete Interaktion auf) statt als Zusage — nach der Entscheidung in §6; die
+      Liste der Tests bleibt gleich.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -120,6 +134,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/model/extended.go` | refactor | `Group.validate` unter die Schwelle, etwa durch Herauslösen der Prüfung je Nachrichtenart in unexportierte Funktionen |
 | `internal/hexagon/model/*.go` (Doc-Kommentare) | update | sieben Kommentare in der Form von `exported` bzw. `package-comments`; nur Kommentare |
 | `internal/hexagon/services/replay.go` | refactor | `(*cursor).objekte` unter die Schwelle |
+| `internal/hexagon/services/replay.go` | update | `(*cursor).letzteNummer`: Zweig und Satz „ohne erwartete Interaktion 0“ gestrichen oder als Invariante benannt (V-81, §6) |
 | `internal/adapters/driven/postgres/upstream.go` | refactor | `toResponse` unter die Schwelle (`gocyclo`), etwa als Tabelle oder Aufteilung je Nachrichtenart; ungenutzter Parameter entfernt oder als `_` benannt, wo eine Signatur ihn verlangt |
 | `internal/adapters/driven/recording/yaml.go` | refactor | `fromDTO` unter die Schwelle |
 | Stelle des `QF1001` | update | Vereinfachung nach dem Vorschlag von `staticcheck`, ohne andere Wirkung |
@@ -173,6 +188,15 @@ Schwellen und Ausnahmen stehen in `SPEC-049`. Für den Umbau gilt:
   Fehler und Fehlertexte, gleiche Reihenfolge der Prüfungen, wo sie beobachtbar ist
   (etwa welcher von zwei Fehlern zuerst gemeldet wird). Ändert ein Umbau eines davon,
   geht er an den Architect, nicht in den Diff.
+- **Zusage ohne Prüfung in `letzteNummer`** (V-81 aus `slice-harness-blackbox-kern`) —
+  offen; der Architect entscheidet vor dem ersten Code-Commit (§4) zwischen zwei Wegen:
+  Zweig und Satz streichen (ein Cursor ohne erwartete Interaktion entsteht im Produkt
+  nicht, Verifikation von `slice-harness-blackbox-kern`, Abschnitt 3; der Zugriff auf
+  das letzte Element setzt dann die Invariante voraus) oder den Fall im Kommentar als
+  Invariante mit Grund benennen und den Zweig stehen lassen. Einen Test bekommt keiner
+  der beiden Wege: Über die Schnittstelle ist der Fall nicht herzustellen, und eine
+  Brücke oder ein Test legt keinen `cursor` an (`SPEC-049` Punkt 7). Kein
+  beobachtbares Verhalten ändert sich; die Testliste bleibt gleich.
 - **Kontexte** — betreffen diesen Slice nicht; die Befunde von `contextcheck`,
   `containedctx` und `noctx` im Produkt-Code liegen in `slice-lint-bestand-driving`.
 
