@@ -36,6 +36,7 @@
 | [0030](0030-full-duplex-im-record-pfad.md) | Full-Duplex im Record-Pfad mit Zustand im Record-Service | Accepted | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
 | [0031](0031-lebendpruefungen-im-replay.md) | Lebendprüfungen im Replay außerhalb der Reihe | Accepted | [`LH-FA-09`](../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay) |
 | [0032](0032-kopf-sensor-fuer-slice-plaene.md) | Kopf-Sensor für Slice-Pläne | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
+| [0033](0033-gate-nachweise-in-der-abdeckung.md) | Gate-Nachweise und geteilte Messung in der Abdeckung | Proposed | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
 
 ## Konventionen
 
@@ -62,3 +63,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0029](0029-benannte-welle-kennungen-im-commit-hook.md) | ergänzt [0025](0025-benannte-slice-kennungen-im-commit-hook.md) um die Namen vorhandener Wellen |
 | [0030](0030-full-duplex-im-record-pfad.md) | ergänzt [0004](0004-postgresql-upstream-ist-driven-adapter.md) um den Gegendruck im Zuschnitt der Record-Ports und [0003](0003-pgwire-server-ist-driving-adapter.md) um die Grenze zwischen Transportmechanik im Adapter und Interaktionszustand im Service; die Gruppen-Semantik von [0012](0012-extended-query-gruppen.md) bleibt unverändert |
 | [0031](0031-lebendpruefungen-im-replay.md) | ergänzt [0007](0007-strict-replay.md) um eine Ausnahme für Lebendprüfungen (einfache Anfragen nur aus Leerraum und Kommentaren) zwischen zwei Interaktionen; für jede andere Anfrage gilt [0007](0007-strict-replay.md) unverändert |
+| [0033](0033-gate-nachweise-in-der-abdeckung.md) | ergänzt [0028](0028-abdeckung-je-anforderung-und-pfad.md) um die Nachweisart Gate (Deklaration im Kopf einer Gegenprobe) und um die geteilte Messung einer Qualitätsanforderung; Deklarationen an Tests und der ungeteilte Pfad *Messung* gelten nach [0028](0028-abdeckung-je-anforderung-und-pfad.md) unverändert |
