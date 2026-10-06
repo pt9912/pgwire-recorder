@@ -78,32 +78,69 @@ func kopf(code string) string {
 }
 
 // ursache ist der Text eines Fehlers ohne Kopf: bei einem klassifizierten
-// Fehler seine Meldung und die Ursache des inneren, bei nebeneinander
-// entstandenen Fehlern (errors.Join) deren Ursachen durch "; " getrennt, sonst
-// der Text des Fehlers, in dem ein darin eingebetteter klassifizierter Fehler
-// ohne Kopf steht.
+// Fehler seine Meldung und die Ursache des inneren, bei einer reinen
+// Zusammenfassung (zusammenfassung) die Ursachen ihrer Teile durch "; "
+// getrennt, sonst der ganze Text des Fehlers, in dem jeder innere Fehler mit
+// seiner Ursache statt seines Textes steht, also ohne inneren Kopf.
 func ursache(err error) string {
-	switch x := err.(type) {
-	case *Error:
+	if x, ok := err.(*Error); ok {
 		if x.Err == nil {
 			return x.Msg
 		}
 		return x.Msg + ": " + ursache(x.Err)
-	case interface{ Unwrap() []error }:
-		var teile []string
-		for _, e := range x.Unwrap() {
-			if e != nil {
-				teile = append(teile, ursache(e))
-			}
+	}
+	if teile, ok := zusammenfassung(err); ok {
+		texte := make([]string, len(teile))
+		for i, e := range teile {
+			texte[i] = ursache(e)
 		}
-		return strings.Join(teile, "; ")
+		return strings.Join(texte, "; ")
 	}
 	text := err.Error()
-	var me *Error
-	if inner := errors.Unwrap(err); inner != nil && errors.As(inner, &me) {
+	for _, inner := range innere(err) {
 		text = strings.Replace(text, inner.Error(), ursache(inner), 1)
 	}
 	return text
+}
+
+// innere liefert die nicht leeren inneren Fehler, ob über Unwrap() error oder
+// Unwrap() []error, in ihrer Reihenfolge.
+func innere(err error) []error {
+	switch x := err.(type) {
+	case interface{ Unwrap() error }:
+		if e := x.Unwrap(); e != nil {
+			return []error{e}
+		}
+	case interface{ Unwrap() []error }:
+		var out []error
+		for _, e := range x.Unwrap() {
+			if e != nil {
+				out = append(out, e)
+			}
+		}
+		return out
+	}
+	return nil
+}
+
+// zusammenfassung meldet, ob ein Fehler mehrere andere ohne eigenen Text
+// zusammenfasst, wie errors.Join: Er hat Unwrap() []error, und sein Text ist
+// genau der seiner nicht leeren Teile, durch Zeilenumbrüche getrennt. Eine Hülle
+// mit eigenem Text um mehrere Ursachen, etwa fmt.Errorf mit mehreren %w, ist
+// keine; sie ist eine Kette (SPEC-034 §Ausgabe *Fehlerkette*).
+func zusammenfassung(err error) ([]error, bool) {
+	if _, ok := err.(interface{ Unwrap() []error }); !ok {
+		return nil, false
+	}
+	teile := innere(err)
+	texte := make([]string, len(teile))
+	for i, e := range teile {
+		texte[i] = e.Error()
+	}
+	if err.Error() != strings.Join(texte, "\n") {
+		return nil, false
+	}
+	return teile, true
 }
 
 // umbruch ist ein Zeilenumbruch (LF, CR LF, einzelnes CR) mit dem Leerraum
@@ -126,13 +163,14 @@ type Meldung struct {
 func (m Meldung) ExitCode() int { return exitCode(m.Code) }
 
 // Meldungen ordnet einen Fehler nach SPEC-034 §Ausgabe ein und liefert
-// mindestens eine Meldung. Jeder klassifizierte unter nebeneinander
-// entstandenen Fehlern (errors.Join) ist eine eigene Meldung mit eigenem Kopf,
-// in der Reihenfolge des Join; die erste ist die gemerkte. Ein nicht
-// klassifizierter daneben folgt als Ursache der ersten klassifizierten; sind
-// alle nicht klassifiziert, ist es eine Meldung PGR-E1000, die Texte durch "; "
-// getrennt. In einem Fehler, der einen klassifizierten umhüllt, gilt dessen
-// Code. Für nil liefert sie nil.
+// mindestens eine Meldung. Jeder klassifizierte Teil einer reinen
+// Zusammenfassung (errors.Join) ist eine eigene Meldung mit eigenem Kopf, in
+// ihrer Reihenfolge; die erste ist die gemerkte. Ein nicht klassifizierter
+// daneben folgt als Ursache der ersten klassifizierten; sind alle nicht
+// klassifiziert, ist es eine Meldung PGR-E1000, die Texte durch "; " getrennt.
+// Jeder andere Fehler ist eine Kette: eine Meldung mit seinem ganzen Text und
+// dem Code des ersten klassifizierten Fehlers unter ihm, außen nach innen und
+// in der Reihenfolge seiner Ursachen, sonst PGR-E1000. Für nil liefert sie nil.
 func Meldungen(err error) []Meldung {
 	if err == nil {
 		return nil
@@ -159,19 +197,18 @@ func Meldungen(err error) []Meldung {
 	return out
 }
 
-// nebeneinander zerlegt verschachtelte errors.Join in ihre nicht leeren
-// Bestandteile, in deren Reihenfolge; jeder andere Fehler, auch ein
-// klassifizierter mit innerem Fehler, ist ein Bestandteil.
+// nebeneinander zerlegt verschachtelte reine Zusammenfassungen
+// (zusammenfassung) in ihre nicht leeren Bestandteile, in deren Reihenfolge;
+// jeder andere Fehler, auch ein klassifizierter mit innerem Fehler und eine
+// Hülle mit eigenem Text um mehrere Ursachen, ist ein Bestandteil.
 func nebeneinander(err error) []error {
-	j, ok := err.(interface{ Unwrap() []error })
+	teile, ok := zusammenfassung(err)
 	if !ok {
 		return []error{err}
 	}
 	var out []error
-	for _, e := range j.Unwrap() {
-		if e != nil {
-			out = append(out, nebeneinander(e)...)
-		}
+	for _, e := range teile {
+		out = append(out, nebeneinander(e)...)
 	}
 	return out
 }

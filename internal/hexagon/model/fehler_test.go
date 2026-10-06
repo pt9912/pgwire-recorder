@@ -64,6 +64,33 @@ func TestFehlerKette(t *testing.T) {
 	if n := strings.Count(aussen.Error(), "[PGR-"); n != 1 {
 		t.Fatalf("%d Köpfe: %q", n, aussen.Error())
 	}
+
+	// Eine Hülle mit eigenem Text um mehrere Ursachen ist eine Kette: eine
+	// Meldung mit ihrem ganzen Text, Code des ersten klassifizierten Fehlers
+	// unter ihr, kein innerer Kopf (SPEC-034 §Ausgabe *Fehlerkette*).
+	a := Errorf(CodeUnsupported, nil, "a")
+	b := Errorf(CodeRecordingIO, nil, "b")
+	x := errors.New("x")
+	for _, f := range []struct {
+		name string
+		err  error
+		want Meldung
+	}{
+		{"S1", fmt.Errorf("Kontext %w und %w", a, b), Meldung{CodeUnsupported, "nicht unterstützt [PGR-E6001]: Kontext a und b"}},
+		{"S1 fremd zuerst", fmt.Errorf("Kontext %w und %w", x, b), Meldung{CodeRecordingIO, "Recording [PGR-E3001]: Kontext x und b"}},
+		{"S1 ohne Klasse", fmt.Errorf("K %w / %w", x, errors.New("y")), Meldung{CodeInternal, "sonstiger Fehler [PGR-E1000]: K x / y"}},
+		{"S2", Errorf(CodeUpstream, fmt.Errorf("K %w / %w", a, x), "aussen"), Meldung{CodeUpstream, "Netzwerk [PGR-E4002]: aussen: K a / x"}},
+		{"S3", fmt.Errorf("Kontext: %w", errors.Join(b, a)), Meldung{CodeRecordingIO, "Recording [PGR-E3001]: Kontext: b; a"}},
+		{"Hülle innen", fmt.Errorf("K %w / %w", fmt.Errorf("i %w", x), Errorf(CodeUsage, a, "u")), Meldung{CodeUsage, "Konfiguration [PGR-E2001]: K i x / u: a"}},
+	} {
+		if got := Meldungen(f.err); !reflect.DeepEqual(got, []Meldung{f.want}) {
+			t.Errorf("%s: %#v, erwartet %#v", f.name, got, f.want)
+		}
+	}
+	// Ohne eigenen Text ist auch eine Hülle mit mehreren %w eine Zusammenfassung.
+	if got := Meldungen(fmt.Errorf("%w\n%w", a, b)); len(got) != 2 {
+		t.Errorf("Hülle ohne eigenen Text: %#v", got)
+	}
 }
 
 // Abdeckung: LH-FA-14/Negative — ein nicht eingeordneter Fehler ist PGR-E1000

@@ -259,3 +259,36 @@ func TestInfoOhneZeileJeVerbindung(t *testing.T) {
 	warte(t, fertig)
 	ohneZeileUnterWarn(t, "replay", repLog.String())
 }
+
+// Abdeckung: LH-FA-13/Negative, LH-FA-14/Negative — ergibt ein Fehler mehrere
+// Meldungen, stellt fail genau eine ErrorResponse zu, mit Text und SQLSTATE der
+// ersten, gemerkten Meldung; jede Meldung steht als eigene Zeile der Stufe
+// error im Log (SPEC-034 §Ausgabe *Zustellung an den Client*).
+func TestFailGleichrangig(t *testing.T) {
+	var log, netz bytes.Buffer
+	s := &Server{log: slog.New(slog.NewTextHandler(&log, nil))}
+	s.fail(pgproto3.NewBackend(&bytes.Buffer{}, &netz), errors.Join(
+		model.Errorf(model.CodeUnsupported, nil, "nicht unterstützt"),
+		model.Errorf(model.CodeConnectionLost, nil, "weg"),
+	))
+	fe := pgproto3.NewFrontend(&netz, io.Discard)
+	msg, err := fe.Receive()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "0A000", Message: "nicht unterstützt [PGR-E6001]: nicht unterstützt"}
+	if e, ok := msg.(*pgproto3.ErrorResponse); !ok || !reflect.DeepEqual(*e, want) {
+		t.Fatalf("ErrorResponse %#v, erwartet %+v", msg, want)
+	}
+	if netz.Len() > 0 {
+		t.Fatalf("nach der ersten ErrorResponse noch %d Bytes", netz.Len())
+	}
+	zeilen := logZeilen(t, log.String())
+	if len(zeilen) != 2 || zeilen[0]["level"] != "ERROR" || zeilen[0]["code"] != model.CodeUnsupported ||
+		zeilen[1]["level"] != "ERROR" || zeilen[1]["code"] != model.CodeConnectionLost {
+		t.Fatalf("Log: %s", log.String())
+	}
+	if s.FirstErrorCode() != model.CodeUnsupported {
+		t.Fatalf("gemerkt %q", s.FirstErrorCode())
+	}
+}

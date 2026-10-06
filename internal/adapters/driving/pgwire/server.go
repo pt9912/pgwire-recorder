@@ -685,11 +685,11 @@ func (s *Server) closeRecord(ctx context.Context, id model.SessionID, end model.
 	}
 }
 
-// fail merkt sich den Fehler und stellt ihn dem Client als ErrorResponse zu:
-// FATAL, SQLSTATE nach der Klasse, als Meldungstext derselbe Fehlertext wie das
-// Attribut error der Log-Zeile, keine weiteren Felder (SPEC-034 §Ausgabe,
-// LH-FA-13.b). Das gilt für einen Fehler mit einer Meldung; welche Meldung ein
-// Fehler mit mehreren erhält, legt SPEC-034 nicht fest.
+// fail merkt sich den Fehler und stellt dem Client genau eine ErrorResponse
+// zu, die der ersten, gemerkten Meldung: FATAL, SQLSTATE nach ihrer Klasse, als
+// Meldungstext derselbe Fehlertext wie das Attribut error ihrer Log-Zeile,
+// keine weiteren Felder; weitere Meldungen stehen nur im Log (SPEC-034
+// §Ausgabe *Zustellung an den Client*, LH-FA-13.b).
 func (s *Server) fail(be *pgproto3.Backend, err error) {
 	m := s.note(err)
 	be.Send(&pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: sqlstate(m.Code), Message: m.Text})
