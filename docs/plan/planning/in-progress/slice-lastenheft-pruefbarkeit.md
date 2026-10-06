@@ -288,11 +288,15 @@ dasteht.
     `slice-harness-abdeckung-gate`; jede zugesagte Randform braucht dort einen Fall in
     `make abdeckung-gegenprobe`.
 - **Spezifikation** — **entschieden (Architect, 2026-10-06): keine
-  Spezifikationsstelle.** Die Spezifikation beschreibt Produktverhalten und externe
-  Verträge; Regelprofil, Schwelle und Testanordnung betreffen den Quellstand und die
-  Gate-Kette. Die ADRs der Gates nennen die Anforderung im `Bezug` und tragen
-  `Schärft: —` wie [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) und [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md). Die Rückführung aus §4
-  („zusätzlich eine Spezifikationsstelle“) ist damit nicht ausgelöst.
+  Spezifikationsstelle für `LH-QA-07` selbst.** Die Anforderung wird nicht in der
+  Spezifikation präzisiert; die ADRs der Gates nennen sie im `Bezug`. Die Verträge der
+  Gates, die `LH-QA-07` nachweisen, liegen dagegen im Abschnitt für Harness-Werkzeuge
+  der Spezifikation (Antwort des Kurs-Repos auf den Change Request, 2026-10-06), den
+  `slice-harness-vertraege-spezifikation` anlegt; neue Gate-ADRs zeigen mit `Schärft:`
+  dorthin. Wie das `Schärft: —`
+  der angenommenen [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) und [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) dazu steht, entscheidet jener Slice. Die
+  Rückführung aus §4 („zusätzlich eine Spezifikationsstelle“) ist nicht ausgelöst:
+  Den Abschnitt schreibt nicht dieser Slice.
 
 **Risiken:**
 
