@@ -68,8 +68,10 @@ selbst fährt; die Funde lagen in Mutationen, die er nicht gewählt hatte
   Vorgang: Je Mutant ein Lauf mit PostgreSQL in einem eigenen Docker-Netz kostet
   Minuten. Ob die Integrationstests als Prüfer zählen, ist Randform *Umfang* in §6;
   eine Einbeziehung mit eigenem Lauf ist ein eigener Slice.
-- Produkt-Code, Spezifikation, Lastenheft — Schicht-Abgrenzung: Der Slice ändert
-  `Dockerfile` oder ein eigenes Werkzeug-Image, Harness und ihre Doku.
+- Produkt-Code, Lastenheft und die Spezifikation außerhalb ihres Abschnitts für
+  Harness-Werkzeuge — Schicht-Abgrenzung: Der Slice ändert `Dockerfile` oder ein
+  eigenes Werkzeug-Image, Harness und ihre Doku; in der Spezifikation nur die
+  Randformen seines Gates in jenem Abschnitt.
 
 ## 2. Definition of Done
 
@@ -79,8 +81,8 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Gate: Das Werkzeug läuft netzlos aus einem per Digest gepinnten Image oder einer
-      gepinnten Stufe, als Ziel an `GATE_CHECKS`, nach den Randformen aus der ADR des
-      Gates (§6); es endet rot, wenn der Anteil getöteter Mutanten unter der Schwelle
+      gepinnten Stufe, als Ziel an `GATE_CHECKS`, nach den Randformen am Ort aus §6;
+      es endet rot, wenn der Anteil getöteter Mutanten unter der Schwelle
       liegt. Die Messung des Bestands, aus der die Schwelle folgt, steht mit Quellstand
       in der ADR; der Bestand ist grün.
 - [ ] Gegenprobe als eigenes Ziel an `GATE_CHECKS`: ein Stand mit einem Test weniger
@@ -168,9 +170,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **offen**. Entschieden werden
-sie vor dem ersten Code-Commit in der ADR des Gates (Architect; eine Entscheidung des
-Nutzers wird dort festgehalten). Was dort nicht steht, entscheidet der Implementer
-nicht, er gibt es zurück.
+sie vor dem ersten Code-Commit vom Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, Kennungen vergibt der Slice, der die Randform entscheidet); die ADR des
+Gates trägt Entscheidung und Gründe und verweist mit `Schärft:` auf die Stelle. Eine
+Entscheidung des Nutzers wird dort festgehalten. Was dort nicht steht, entscheidet der
+Implementer nicht, er gibt es zurück.
 
 - **Werkzeug** — gremlins, go-mutesting oder ein anderes; Kriterien: gepflegt, läuft
   mit der Go-Version des `Dockerfile`, netzlos nach dem Download, Ausgabe
@@ -266,8 +269,9 @@ Dateien unter `evidence/`). Treffer:
   und ein Risiko in §6.
 - `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (1×) — dieser Slice ist
   wellenlos; §4 *Start* nennt den Architect-Schritt vor dem Code ausdrücklich.
-- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — für Harness-Gates gibt es
-  keine Spezifikation; Entscheidungsort der Randformen ist die ADR des Gates.
+- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — Entscheidungsort der
+  Randformen ist der Abschnitt für Harness-Werkzeuge der Spezifikation, angelegt von
+  `slice-harness-vertraege-spezifikation`; die ADR trägt Entscheidung und Gründe.
 - `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (1×) und
   `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (1×) — je ein Risiko oder ein Fall der
   Gegenprobe; das Gate kommt hinzu, keine bestehende Prüfung der Stufe `test` fällt

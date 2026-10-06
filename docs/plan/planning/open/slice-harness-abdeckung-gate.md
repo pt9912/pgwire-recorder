@@ -66,9 +66,11 @@ Slice mit seinem Platz in der Reihe entschieden.
 - Deklarationen an Tests und der ungeteilte Pfad `Messung` — Bestand bleibt bewusst
   stehen ([ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md)); die heute
   mit ungeteilter Messung belegten Qualitätsanforderungen werden nicht umgeschrieben.
-- Lastenheft, Spezifikation, Produkt-Code — Schicht-Abgrenzung: Der Slice ändert das
-  Abdeckungs-Skript, seine Gegenprobe, den Kopf der Lint-Gegenprobe, die erzeugten
-  Tabellen unter `docs/user/` und `harness/README.md`.
+- Lastenheft, Produkt-Code und die Spezifikation außerhalb ihres Abschnitts für
+  Harness-Werkzeuge — Schicht-Abgrenzung: Der Slice ändert das Abdeckungs-Skript,
+  seine Gegenprobe, den Kopf der Lint-Gegenprobe, die erzeugten Tabellen unter
+  `docs/user/` und `harness/README.md`, in der Spezifikation nur den Abdeckungs-Vertrag
+  in jenem Abschnitt.
 
 ## 2. Definition of Done
 
@@ -82,7 +84,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Randformen aus §6, schreibt die Tabelle der Nachweisart Gate und zählt eine
       geteilte Messung erst mit allen Teilen als vollständig; die Deklarationen an Tests
       und der Pfad `Messung` bleiben gültig, die übrigen Tabellen unverändert bis auf die
-      neue Nachweisart. Die Randformen stehen am Ort aus §6 (Spezifikation, Abschnitt für Harness-Werkzeuge (Technik-Stratum), angelegt von einem eigenen Folge-Slice), und
+      neue Nachweisart. Die Randformen stehen am Ort aus §6 (Abschnitt für Harness-Werkzeuge der Spezifikation, angelegt von `slice-harness-vertraege-spezifikation`), und
       `harness/README.md` §Sensors nennt beim Vertrag von `make abdeckung-check` die
       Nachweisart Gate und die geteilte Messung, mit Bindung an [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md);
       beide sagen nur zu, was die Gegenprobe prüft (`AGENTS.md` §3.11).
@@ -161,7 +163,7 @@ dasteht.
 **Randformen des Vertrags** (`AGENTS.md` §3.12). Vorgegeben durch
 [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) und §6 *Nachweis* von
 `slice-lastenheft-pruefbarkeit` (Architect, 2026-10-06); vor dem Code zu bestätigen.
-**Ort** (F-406): Spezifikation, Abschnitt für Harness-Werkzeuge (Technik-Stratum), angelegt von einem eigenen Folge-Slice; die ADR trägt Entscheidung und Gründe. Jede dort zugesagte Randform bekommt einen Fall in
+**Ort** (F-406): der Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum), angelegt von `slice-harness-vertraege-spezifikation`; dort steht der Vertrag von `abdeckung`, den dieser Slice erweitert, und die Kennungen der neuen Randformen vergibt dieser Slice. Die ADR trägt Entscheidung und Gründe. Jede dort zugesagte Randform bekommt einen Fall in
 `make abdeckung-gegenprobe` (`AGENTS.md` §3.10, §3.11). Bis zum Code stehen sie hier:
 
 - **Pfad-Schreibweise** — `Messung-<i>-von-<n>` mit 2 ≤ n und 1 ≤ i ≤ n.

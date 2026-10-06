@@ -76,8 +76,9 @@ keine Schwelle; es ist Kontext, kein Vorbild.
   Eine Anhebung bleibt ein bewusster Commit.
 - Ein Bericht als Datei (HTML, Profil im Arbeitsbaum) — ein Werkzeug, kein Gate;
   wird es gebraucht, ist es ein eigenes Werkzeug-Ziel.
-- Produkt-Code, Spezifikation, Lastenheft — Schicht-Abgrenzung: Der Slice ändert
-  `Dockerfile`, Harness und ihre Doku.
+- Produkt-Code, Lastenheft und die Spezifikation außerhalb ihres Abschnitts für
+  Harness-Werkzeuge — Schicht-Abgrenzung: Der Slice ändert `Dockerfile`, Harness und
+  ihre Doku; in der Spezifikation nur die Randformen seines Gates in jenem Abschnitt.
 
 ## 2. Definition of Done
 
@@ -181,9 +182,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **offen**. Entschieden werden
-sie vor dem ersten Code-Commit in der ADR des Gates (Architect; eine Entscheidung des
-Nutzers wird dort festgehalten). Was dort nicht steht, entscheidet der Implementer
-nicht, er gibt es zurück.
+sie vor dem ersten Code-Commit vom Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, Kennungen vergibt der Slice, der die Randform entscheidet); die ADR des
+Gates trägt Entscheidung und Gründe und verweist mit `Schärft:` auf die Stelle. Eine
+Entscheidung des Nutzers wird dort festgehalten. Was dort nicht steht, entscheidet der
+Implementer nicht, er gibt es zurück.
 
 - **Die Zahl** — erst nach der Messung des heutigen Stands, mit Quellstand in der
   ADR. Offen: Schwelle gleich dem gemessenen Wert, abgerundet auf welche Stelle, oder
@@ -305,8 +307,9 @@ Dateien unter `evidence/`). Treffer:
   Auftreten in diesem Slice erreichte der zweite Eintrag die Schwelle.
 - `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (1×) — dieser Slice ist
   wellenlos; §4 *Start* nennt den Architect-Schritt vor dem Code ausdrücklich.
-- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — für Harness-Gates gibt es
-  keine Spezifikation; Entscheidungsort der Randformen ist die ADR des Gates.
+- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — Entscheidungsort der
+  Randformen ist der Abschnitt für Harness-Werkzeuge der Spezifikation, angelegt von
+  `slice-harness-vertraege-spezifikation`; die ADR trägt Entscheidung und Gründe.
 - `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (1×),
   `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (1×) und
   `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (1×) — je ein Risiko in §6.

@@ -151,9 +151,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen** (`AGENTS.md` §3.12) — offen, entschieden in der ADR von
-`slice-harness-lint` vor dessen Code; was dort nicht steht, gibt der Implementer an
-den Architect zurück.
+**Randformen** (`AGENTS.md` §3.12) — offen, entschieden von `slice-harness-lint` vor
+dessen Code und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation
+(angelegt von `slice-harness-vertraege-spezifikation`), mit Entscheidung und Gründen in
+der ADR von `slice-harness-lint`; was dort nicht steht, gibt der Implementer an den
+Architect zurück.
 
 - **Export-Test-Brücke** — ob sie zulässig ist und in welcher Form: `export_test.go`
   im Paket selbst (`package <name>`), das unexportierte Funktionen, Typen oder

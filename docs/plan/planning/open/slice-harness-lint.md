@@ -98,9 +98,10 @@ werden auf Black-Box-Pakete umgestellt, in eigenen Slices.
 - Ein Freshness-Sensor für die golangci-lint-Version — er bräuchte Netz über
   `bash`, `git` und `docker` hinaus (`harness/conventions.md` §Baseline, dieselbe
   Begründung); die Anhebung bleibt ein bewusster Commit wie bei jedem gepinnten Image.
-- Spezifikation und Lastenheft — Schicht-Abgrenzung: Der Slice ändert Harness,
-  `Dockerfile`, Lint-Konfiguration und ihre Doku; Produkt-Code nur, soweit die
-  Bestands-Bereinigung aus §6 im Umfang bleibt.
+- Lastenheft und die Spezifikation außerhalb ihres Abschnitts für Harness-Werkzeuge —
+  Schicht-Abgrenzung: Der Slice ändert Harness, `Dockerfile`, Lint-Konfiguration und
+  ihre Doku, in der Spezifikation nur die Randformen seines Gates in jenem Abschnitt;
+  Produkt-Code nur, soweit die Bestands-Bereinigung aus §6 im Umfang bleibt.
 
 ## 2. Definition of Done
 
@@ -170,9 +171,10 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay` und
-`slice-lastenheft-pruefbarkeit` liegen in `done/` (WIP-Limit 1). Reihenfolge nach
-Entscheidung des Nutzers vom 2026-10-05 und 2026-10-06: `slice-lastenheft-pruefbarkeit`,
+**Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay`,
+`slice-lastenheft-pruefbarkeit` und `slice-harness-vertraege-spezifikation` liegen in
+`done/` (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05 und
+2026-10-06: `slice-lastenheft-pruefbarkeit`, `slice-harness-vertraege-spezifikation`,
 dieser Slice, `slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`,
 `slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`,
 `slice-harness-abdeckung-gate`, `slice-harness-coverage`. Die Umstellungs-Slices folgen dem Lint-Gate, damit jede
@@ -217,10 +219,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — offen, soweit nicht als
-Entscheidung des Nutzers markiert. Entschieden werden sie vor dem ersten Code-Commit in
-der ADR des Gates (Architect; die Entscheidungen des Nutzers vom 2026-10-05 werden
-dort festgehalten). Was dort nicht steht, entscheidet der Implementer nicht, er gibt
-es zurück.
+Entscheidung des Nutzers markiert. Entschieden werden sie vor dem ersten Code-Commit vom
+Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, Kennungen vergibt der Slice, der die Randform entscheidet); die ADR des Gates trägt Entscheidung und Gründe
+und verweist mit `Schärft:` auf die Stelle. Die Entscheidungen des Nutzers vom
+2026-10-05 werden dort festgehalten. Was dort nicht steht, entscheidet der Implementer
+nicht, er gibt es zurück.
 
 - **`testpackage`** — der Bestand testet ausnahmslos White-Box: alle Unit-Tests unter
   `internal/` liegen im Paket des Codes (`package services`, `package pgwire`, …),
@@ -375,8 +378,9 @@ Dateien unter `evidence/`). Treffer:
   Auftreten in diesem Slice erreichte der zweite Eintrag die Schwelle.
 - `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (1×) — dieser Slice ist
   wellenlos; §4 *Start* nennt den Architect-Schritt vor dem Code ausdrücklich.
-- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — für Harness-Gates gibt es
-  keine Spezifikation; Entscheidungsort der Randformen ist die ADR des Gates.
+- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — Entscheidungsort der
+  Randformen ist der Abschnitt für Harness-Werkzeuge der Spezifikation, angelegt von
+  `slice-harness-vertraege-spezifikation`; die ADR trägt Entscheidung und Gründe.
 - `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (1×),
   `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (1×) und
   `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (1×) — je ein Risiko in §6.
