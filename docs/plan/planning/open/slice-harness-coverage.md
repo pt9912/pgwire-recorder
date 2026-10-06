@@ -138,9 +138,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-harness-lint` und die vier
 Umstellungs-Slices (`slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`,
-`slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`) liegen in `done/`
-oder sind ausdrücklich zurückgestellt, und `slice-harness-abdeckung-gate` liegt in
-`done/` (WIP-Limit 1). Dieser Slice ist der letzte der Reihe vor M3 nach Entscheidung
+`slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`) und
+`slice-harness-abdeckung-gate` liegen in `done/` (WIP-Limit 1). Dieser Slice ist der letzte der Reihe vor M3 nach Entscheidung
 des Nutzers vom 2026-10-05 und 2026-10-06 (Lastenheft, Lint, Umstellung,
 `slice-harness-abdeckung-gate`, Coverage). Vom Abdeckungs-Gate hängt dieser Slice
 technisch ab: Ohne es kennt `tools/test/abdeckung.sh` die Deklaration von Teil 2

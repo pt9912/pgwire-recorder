@@ -45,10 +45,11 @@ lehnt die Fehlformen aus §6 ab. Die Gegenprobe des Lint-Gates deklariert Teil 1
 steht damit in den Abdeckungstabellen als *teilweise*. `harness/README.md` §Sensors
 nennt die Nachweisart beim Vertrag von `make abdeckung-check`.
 
-**Herkunft:** Entscheidung des Nutzers vom 2026-10-06 bei `slice-lastenheft-pruefbarkeit`:
-LH-QA-07 darf in den Abdeckungstabellen nicht als unbelegt stehen bleiben; der
-Nachweis-Weg ist [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), deren
-Folgepflicht einen eigenen Harness-Slice verlangt.
+**Herkunft:** Bei `slice-lastenheft-pruefbarkeit` hat das Team entschieden, dass
+LH-QA-07 in den Abdeckungstabellen nicht als unbelegt stehen bleibt (2026-10-06). Den
+Nachweis-Weg hat der Architect vorgeschlagen; der Nutzer hat am 2026-10-06
+[ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) angenommen, deren Folgepflicht einen eigenen Harness-Slice verlangt, und diesen
+Slice mit seinem Platz in der Reihe entschieden.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -76,22 +77,23 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Werkzeug: `tools/test/abdeckung.sh` liest Deklarationen im Kopf von Gegenproben
-      (Nachweisart Gate) und den Pfad `Messung-<i>-von-<n>` nach den Randformen aus §6,
-      schreibt die Tabelle der Nachweisart Gate und zählt eine geteilte Messung erst mit
-      allen Teilen als vollständig; die Deklarationen an Tests und der Pfad `Messung`
-      bleiben gültig, die übrigen Tabellen unverändert bis auf die neue Nachweisart.
-      `make abdeckung-gegenprobe` führt je Fehlform aus §6 einen Fall, der abgelehnt
-      wird, und je Gutform einen, der angenommen wird; je Zusage ist die Mutation
-      gesehen (`AGENTS.md` §3.10).
+- [ ] Werkzeug und Vertrag: `tools/test/abdeckung.sh` liest Deklarationen im Kopf von
+      Gegenproben (Nachweisart Gate) und den Pfad `Messung-<i>-von-<n>` nach den
+      Randformen aus §6, schreibt die Tabelle der Nachweisart Gate und zählt eine
+      geteilte Messung erst mit allen Teilen als vollständig; die Deklarationen an Tests
+      und der Pfad `Messung` bleiben gültig, die übrigen Tabellen unverändert bis auf die
+      neue Nachweisart. Die Randformen stehen im ZUSAGE-Kopf des Skripts, und
+      `harness/README.md` §Sensors nennt beim Vertrag von `make abdeckung-check` die
+      Nachweisart Gate und die geteilte Messung, mit Bindung an [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)
+      (Ort nach [MR-001](../../../../harness/conventions.md#mr-001)); beide sagen nur zu, was die Gegenprobe prüft (`AGENTS.md` §3.11).
+- [ ] Gegenprobe: `make abdeckung-gegenprobe` führt je Fehlform aus §6 einen Fall, der
+      abgelehnt wird, und je Gutform einen, der angenommen wird; die vorhandenen Fälle
+      bleiben; je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10). Ihre Zeile in
+      `harness/README.md` §Sensors nennt die neuen Fälle.
 - [ ] Erste Gate-Deklarationen: Die Gegenprobe des Lint-Gates trägt im Kopf die
       Deklaration von LH-QA-07, Teil 1 und Teil 3 von 3; die Tabellen sind mit
       `make abdeckung` neu geschrieben, LH-QA-07 steht in der Gesamtsicht als
       *teilweise* und nicht in `abdeckung-vollstaendig.md`; `make abdeckung-check` ist grün.
-- [ ] Doku: `harness/README.md` §Sensors nennt beim Vertrag von `make abdeckung-check`
-      und `make abdeckung-gegenprobe` die Nachweisart Gate und die geteilte Messung,
-      mit Bindung an [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), und
-      sagt nur zu, was die Gegenprobe prüft (`AGENTS.md` §3.11).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -198,6 +200,14 @@ zurück:
   Nachweisart Gate nennt.
 - **Label der RTM-Quelle** — `trace.coverage` in `.d-check.yml` trägt das Label `Tests`;
   ob es mit Gate-Nachweisen in `abdeckung-vollstaendig.md` angepasst wird.
+- **Geteilte Messung an Go-Tests** — ob `Messung-<i>-von-<n>` auch in einer
+  Deklaration an einem Test zulässig ist ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) sagt „jeder Nachweis“) oder nur
+  an Gegenproben.
+- **Deklaration außerhalb von `tools/**/*-gegenprobe.sh`** — was mit einer
+  Gate-Deklaration in einem Skript geschieht, das nicht unter das Muster fällt (etwa
+  eine Gegenprobe an der Gate-Kette mit anderem Namen): still überlesen oder Fehler,
+  wie bei der eingerückten Deklaration an Tests.
+- **Zahlform von i und n** — führende Null, Leerraum, mehrstellige Zahlen.
 
 **Risiken:**
 
@@ -207,7 +217,10 @@ zurück:
   ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), Re-Evaluierungs-
   Trigger). — **Ausgang:** — (bei Closure)
 - **Deklaration sagt mehr zu, als die Gegenprobe prüft** — Teil 3 an der
-  Lint-Gegenprobe trägt nur, wenn sie je Paketgruppe einen White-Box-Fall führt
+  Lint-Gegenprobe trägt nur, wenn sie für beide Bedingungen von Messmethode 3 einen
+  Rot-Fall führt: je Paketgruppe einen White-Box-Test (der Test liegt in der Einheit)
+  und die Fälle zur Brücke aus `slice-harness-lint` (Zugriff auf Internes an der
+  Brücke vorbei, Test in der Brückendatei)
   (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, 11×). Vor dem Code gegen die
   Fälle der Lint-Gegenprobe abgleichen. — **Ausgang:** — (bei Closure)
 - **Bestehende Prüfung fällt weg** — die Erweiterung tritt neben die Prüfung der

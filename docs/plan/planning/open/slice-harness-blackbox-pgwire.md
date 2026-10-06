@@ -41,7 +41,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 braucht, geht er über eine Export-Test-Brücke (`export_test.go`) in der Form, die die
 ADR von `slice-harness-lint` festlegt, oder wird gegen die exportierte Schnittstelle
 umgeschrieben. Die Fälle und ihre Prüfungen bleiben erhalten; der Slice ist ein Umbau
-der Tests, keine neue Prüfung.
+der Tests, keine neue Prüfung. Der White-Box-Fall in der Lint-Gegenprobe (§2) belegt für
+diese Pfade die erste Bedingung von Messmethode 3 von LH-QA-07.
 
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-05: Die Tests werden auf
 Black-Box-Pakete umgestellt; bis dahin führt `slice-harness-lint` `testpackage`
@@ -79,7 +80,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [ ] `testpackage` ist für `internal/adapters/driving/pgwire` scharf: Die Stufe aus `.golangci.yml` ist für diese
       Pfade aufgehoben (Hochschalt-Trigger nach der ADR), `make lint` ist grün, und die
       Gegenprobe des Lint-Gates führt einen Fall, in dem ein White-Box-Test in einem
-      dieser Pfade rot wird; die Mutation ist gesehen (`AGENTS.md` §3.10).
+      dieser Pfade rot wird; die Mutation ist gesehen (`AGENTS.md` §3.10). Der Fall gehört
+      zum Nachweis der ersten Bedingung von Messmethode 3 von LH-QA-07.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des

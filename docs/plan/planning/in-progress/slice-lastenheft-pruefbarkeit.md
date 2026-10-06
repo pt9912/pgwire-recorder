@@ -11,12 +11,13 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Der Slice legt
 das neue Abnahmeszenario 17 an, das zu M3 gehört; nachweisbar wird es erst mit
-`slice-harness-coverage`, dem letzten Slice der Reihe. Eingesammelt wird er von der
+`slice-harness-coverage`, dem letzten Slice der Reihe vor M3; die Reihe endet mit
+`slice-harness-mutation`. Eingesammelt wird er von der
 nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
 Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (von diesem Slice geschrieben). Entscheidungen des Nutzers vom 2026-10-05 und 2026-10-06; Abnahmeszenario vom Team entschieden (Koordinator, 2026-10-06). Nachweis-Weg: [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Architect, 2026-10-06; Accepted mit dem Lastenheft-Commit), ergänzt [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md).
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (von diesem Slice geschrieben). Entscheidungen des Nutzers vom 2026-10-05 und 2026-10-06; Abnahmeszenario vom Team entschieden (Koordinator, 2026-10-06), sein Text vom Nutzer bestätigt (2026-10-06). Nachweis-Weg: [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Architect, 2026-10-06; vom Nutzer am 2026-10-06 angenommen, Accepted mit dem Lastenheft-Commit), ergänzt [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md).
 
 **Berührte Spec-Stellen:** `lastenheft.md §4` · `lastenheft.md §7`
 
@@ -48,7 +49,9 @@ Anforderung zur Wartbarkeit bzw. Prüfbarkeit des Quellcodes, damit Lint, Black-
 und Testabdeckung einen Vertragsbezug haben. Der Planner legt einen Wortlaut vor; er
 schreibt ihn nicht ins Lastenheft. Am 2026-10-06 hat der Nutzer den Wortlaut bestätigt
 und MUSS gewählt; das Abnahmeszenario hat das Team entschieden, ebenso, dass die
-Anforderung in den Abdeckungstabellen nicht als unbelegt erscheinen darf.
+Anforderung in den Abdeckungstabellen nicht als unbelegt erscheinen darf. Ebenfalls am
+2026-10-06 hat der Nutzer den Text des Szenarios bestätigt, [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) angenommen
+und `slice-harness-abdeckung-gate` mit seinem Platz in der Reihe entschieden.
 
 **Warum ein eigener Slice und nicht der erste Schritt von `slice-harness-lint`:**
 (1) andere Schicht — der Lint-Slice ändert Harness und `Dockerfile` und grenzt
@@ -142,7 +145,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay` liegt in
 `done/` (der Wortlaut ist seit 2026-10-06 bestätigt). Erster Slice der Reihe
 (Lastenheft, Lint, die vier Umstellungs-Slices, `slice-harness-abdeckung-gate`,
-Coverage). Vor dem Lastenheft-Commit
+Coverage, `slice-harness-mutation`). Vor dem Lastenheft-Commit
 entscheidet der Architect §6 *Nachweis*.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
@@ -258,7 +261,8 @@ dasteht.
   - *Wer deklariert wann:* `slice-harness-lint` und die vier Umstellungs-Slices
     liefern die Gegenprobe, deklarieren aber nicht — das Werkzeug kennt die Form noch
     nicht, und Teil (3) gilt erst, wenn `testpackage` überall scharf ist.
-    `slice-harness-abdeckung-gate` (nach `slice-harness-blackbox-einstieg`) erweitert
+    `slice-harness-abdeckung-gate` (nach `slice-harness-blackbox-einstieg`; Platz vom
+    Architect vorgeschlagen, vom Nutzer am 2026-10-06 entschieden) erweitert
     `tools/test/abdeckung.sh` und `make abdeckung-gegenprobe` und deklariert Teil 1
     und 3 an der Gegenprobe des Lint-Gates → Stand *teilweise*.
     `slice-harness-coverage` deklariert Teil 2 an seiner Gegenprobe → *vollständig*,
@@ -342,8 +346,11 @@ Dateien unter `evidence/`). Treffer:
   `make kopf-check`) — der zweite Liefer-Punkt zieht sechs Köpfe nach; der Sensor
   prüft, dass §1 und §2 keine Kennung nennen, die der Kopf nicht führt.
 - `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — eine Vertragsanforderung
-  gibt den Harness-Gates einen Bezug, aber keinen Entscheidungsort für Lesarten; der
-  bleibt die ADR.
+  gibt den Harness-Gates einen Bezug, aber keinen Entscheidungsort für Lesarten. Der
+  Ort einer Randform eines Werkzeugvertrags ist nach [MR-001](../../../../harness/conventions.md#mr-001) der ZUSAGE-Kopf des
+  Skripts mit der Vertragszeile in `harness/README.md` §Sensors; die ADR trägt
+  Entscheidung und Gründe. Mit diesem Slice ist es das zweite Auftreten (Review F-406),
+  der Beleg folgt mit der Closure.
 
 Keiner der Einträge erreicht mit diesem Slice allein die Schwelle 3×; keine neue
 Lücke vor dem Code.

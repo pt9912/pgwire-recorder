@@ -84,8 +84,9 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Gegenprobe des Lint-Gates führt einen Fall, in dem ein White-Box-Test in einem
       dieser Pfade rot wird; die Mutation ist gesehen (`AGENTS.md` §3.10). Mit diesem
       Slice ist keine `testpackage`-Stufe mehr übrig; mit den Fällen der drei übrigen
-      Umstellungs-Slices ist die Gegenprobe des Lint-Gates Nachweis von Teil 3 (Lage
-      der Unit-Tests) von LH-QA-07. Deklariert wird er nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) nicht hier,
+      Umstellungs-Slices (erste Bedingung von Messmethode 3) und den Fällen zur Brücke
+      aus `slice-harness-lint` (zweite Bedingung) ist die Gegenprobe des Lint-Gates
+      Nachweis von Teil 3 (Lage der Unit-Tests) von LH-QA-07. Deklariert wird er nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) nicht hier,
       sondern in `slice-harness-abdeckung-gate` (`make abdeckung-check` grün, ohne neue
       Deklaration).
 - [ ] `make gates` grün.

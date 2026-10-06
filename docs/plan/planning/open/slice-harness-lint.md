@@ -122,7 +122,10 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       eine Mutation fangen kann, ein Fall, der rot wird (mindestens ein Verstoß je
       aktivierter Linter-Gruppe, ein `//nolint`, ein Modul außerhalb der Liste von
       `gomodguard_v2`, ein Integrationstest hinter dem Build-Tag, ein White-Box-Test in
-      einem Pfad außerhalb der `testpackage`-Stufe), dazu ein grüner Fall je zentraler
+      einem Pfad außerhalb der `testpackage`-Stufe, und für die zweite Bedingung von
+      Messmethode 3 je ein Fall, in dem ein Test an der Brücke nach der ADR vorbei auf
+      Internes zugreift und in dem ein Test in der Brückendatei selbst steht, beide in
+      der Form, die die ADR für die Brücke festlegt), dazu ein grüner Fall je zentraler
       Ausnahme und je Stufe; je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10).
       Die Gegenprobe liegt unter `tools/harness/lint-gegenprobe.sh` und ist der Nachweis
       von Teil 1 (statische Analyse) von LH-QA-07, mit den Fällen der Umstellungs-Slices
@@ -156,7 +159,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `Dockerfile` | update | Stufe `lint` aus dem per Digest gepinnten golangci-lint-Image, Modul-Cache aus `deps`, `RUN --network=none`; Build-Tag `integration` für `test/integration` |
 | `.dockerignore` | update | `.golangci.yml` in die Allowlist des Build-Kontexts ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)); ohne sie läuft das Image mit Default-Profil |
 | `harness/mk/lint.mk` | neu | `lint` und `lint-gegenprobe`, beide an `GATE_CHECKS` |
-| `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in einer Kopie des Arbeitsbaums unter einem Temp-Pfad, je Fall `make lint` bzw. der Docker-Build dort mit erwartetem Exit; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ`; ohne Abdeckungs-Deklaration (§1) |
+| `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in einer Kopie des Arbeitsbaums unter einem Temp-Pfad, je Fall `make lint` bzw. der Docker-Build dort mit erwartetem Exit; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ`; Rot-Fälle für beide Bedingungen von Messmethode 3 (White-Box-Test, Zugriff an der Brücke vorbei, Test in der Brückendatei); ohne Abdeckungs-Deklaration (§1) |
 | Produkt-Code unter `cmd/`, `internal/`, `test/` | refactor | nur die Bestands-Befunde, die nach der Messung (§6 *Bestand*) im Umfang dieses Slice bleiben |
 | `internal/hexagon/model/fehler.go` | update | Kommentar an `Meldungen` (Zeilen 171 bis 173) nennt die Tiefensuche der Spezifikation statt „außen nach innen und in der Reihenfolge seiner Ursachen“ (`AGENTS.md` §3.11); übernommen aus der Closure von welle-replay-semantik, Nebenbefund 2. Nur der Kommentar, kein Verhalten |
 | `AGENTS.md` | update | §3.2 mit echtem Träger, Falsch/Richtig mit diesem Repo |
