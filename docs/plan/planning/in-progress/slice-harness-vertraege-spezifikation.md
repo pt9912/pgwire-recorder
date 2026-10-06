@@ -150,7 +150,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/harness/kopf-check.sh`, `tools/test/abdeckung.sh` | update (nur Kommentare) | ZUSAGE- bzw. Beschreibungskopf → Verweis auf den Abschnitt plus Zuordnung Vertragspunkt → Fall der Gegenprobe |
 | `tools/harness/kopf-check-gegenprobe.sh`, `tools/test/abdeckung-gegenprobe.sh` | update | bestehende Fälle behalten ihre Eingaben; ein Fall kommt hinzu, wo einem Vertragspunkt keiner gilt (§6 *Vertragspunkt ohne Gegenprobe-Fall*, Stand dort), je gegen eine Mutation rot gesehen; bei `abdeckung` ist die Erwartung abgelehnter Fälle geschärft (Exit genau 1, Datei und Zeile auf stderr) und die Prüfungen im gültigen Baum tragen Fall-Namen; ihr Kopf nennt den Vertrag statt der ADR |
 | `docs/plan/planning/open/slice-harness-abdeckung-gate.md` | update | Kopf `Berührte Spec-Stellen` und §6 *Ort*: schreibt den Vertrag von `abdeckung` in `SPEC-048` fort und vergibt keine neue Kennung (§6 *Kennungen*; `AGENTS.md` §3.9) |
-| `docs/plan/planning/open/slice-harness-coverage.md`, `docs/plan/planning/open/slice-harness-mutation.md` | update | je ein Satz mit der Entscheidung des Nutzers vom 2026-10-06 zum Ort der Schwelle (§1 bzw. §2, Liefer-Punkte unverändert; §6 *Schwellen künftiger Gates*) |
+| `docs/plan/planning/open/slice-harness-coverage.md`, `docs/plan/planning/open/slice-harness-mutation.md`, `docs/plan/planning/open/slice-harness-lint.md` | update | Coverage und Mutation: Ort der Schwelle nach der Entscheidung des Nutzers vom 2026-10-06 in §1 bzw. §2, im Ort der Schwelle der DoD (Coverage), in §3 (ADR-Zeile, Zeile der Spezifikation) und §6 *Die Zahl* bzw. *Schwelle*; Umfang der Liefer-Punkte unverändert (§6 *Schwellen künftiger Gates*). Lint, Coverage, Mutation §6: ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie (§6 *Kennungen*) |
 
 ## 4. Trigger
 
@@ -295,15 +295,23 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   Ein Punkt als „Grenze“ im Abschnitt ist dafür kein Ausweg: Die Grenze sagt, was
   das Gate nicht prüft, nicht, was am Werkzeug ungeprüft ist. Ist ein Fall nicht ohne
   Eingriff ins Werkzeug herstellbar, ist das eine Randform-Rückgabe.
-  **Stand** (Implementer, 2026-10-06): ergänzt, je gegen eine Mutation in einer Kopie
-  des Skripts rot gesehen, die alte Gegenprobe bleibt gegen dieselbe Mutation grün —
-  bei `kopf-check` `nr3-bereich-zeilenumbruch-abschnitt` (Bereich über einen
-  Zeilenumbruch in §1) und die Abbruchzeile in `nr8-ohne-ablage`; bei `abdeckung`
-  `doppelt`, `dateiende`, `qa-happy`, `fa-messung`, `ueberschrift-ebene`,
-  `ohne-deklaration-unit`, `nicht-gelesen`, `inhalt-e2e`, `inhalt-unit`,
-  `inhalt-gesamt`, `inhalt-vollstaendig`, dazu Exit genau 1 mit Datei und Zeile auf
-  stderr in jedem abgelehnten Fall und in `check-veraltet`. Kein Fall brauchte einen
-  Eingriff ins Werkzeug.
+  **Stand** (Implementer, 2026-10-06, nach Review F-417 bis F-424 berichtigt): ergänzt,
+  je gegen eine Mutation in einer Kopie des Skripts rot gesehen, die Gegenprobe vor
+  dem Fall bleibt gegen dieselbe Mutation grün — bei `kopf-check`
+  `nr3-bereich-zeilenumbruch-abschnitt` (Bereich über einen Zeilenumbruch in §1), die
+  Abbruchzeile in `nr8-ohne-ablage`, `neg-bereich-absatzgrenze` und
+  `neg-bereich-regel-absatz` (Bereich über Absatzgrenzen, *Grenze* von `SPEC-047`);
+  bei `abdeckung` `doppelt`, `dateiende`, `qa-happy`, `fa-messung`,
+  `ueberschrift-ebene`, `ohne-deklaration-unit`, `ohne-deklaration-zeile`,
+  `nicht-gelesen`, `verschachtelt`, `ohne-lastenheft`, `lastenheft-ohne-anforderung`,
+  `inhalt-e2e`, `inhalt-unit`, `inhalt-gesamt`, `check-zwei-veraltet`,
+  `schreiben-fehlend`, `schreiben-nur-geaendert`, `schreiben-rechte`,
+  `schreiben-unberuehrt`, dazu Exit genau 1 mit Datei und Zeile auf stderr in jedem
+  abgelehnten Fall und in `check-veraltet`. `inhalt-vollstaendig` und `inhalt-gesamt`
+  hielten in der ersten Runde nur die Bedingung `Boundary` rot (F-417); mit
+  `LH-FA-04` ohne `Happy` und `LH-FA-05` ohne `Negative` im Baum sind alle drei
+  Bedingungen von `vollstaendig()` je gegen ihre Mutation rot. Kein Fall brauchte
+  einen Eingriff ins Werkzeug.
 - **Lesarten beim Übertragen** (Implementer, 2026-10-06; **bestätigt vom Architect am
   2026-10-06**, alle vier unverändert, der Wortlaut in `SPEC-047` und `SPEC-048` bleibt) — der Abschnitt schreibt sie nach
   *Lesart-Rangfolge* in der genaueren Fassung des Skripts, je mit Fall:
@@ -322,7 +330,11 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   Gründe der Bestätigung: (1) *E2E-Test nach Name* präzisiert
   [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md), es widerspricht ihr
   nicht — die ADR bestimmt den Begriff nicht, die Namensform ist die des Repos, und
-  `TestMain` ist Go-Einrichtung, kein Test; die Nachweisart bleibt nach Ort.
+  `TestMain` ist Go-Einrichtung, kein Test, und braucht darum keine Deklaration; die
+  Nachweisart bleibt nach Ort. Berichtigt nach Review F-426: Eine Deklaration direkt
+  über `func TestMain` wird dennoch angenommen und erscheint mit Nachweis `TestMain`
+  in der Tabelle, weil `SPEC-048` (1) jede Funktion `func Test…` als Test liest; die
+  Pflicht nach Name betrifft nur `TestE2E…`.
   Akzeptiertes Negativ: Ein Test unter `test/integration/`, dessen Name nicht mit
   `TestE2E` beginnt, braucht keine Deklaration; heute gibt es außer `TestMain` keinen
   (geprüft per `grep`), eine Pflicht nach Ort wäre eine Verhaltensänderung und gehört
@@ -368,11 +380,9 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   Ersetzungs-ADR. `AGENTS.md` §3.6 bleibt unberührt: Eine **Senkung** braucht
   weiterhin eine ADR, die die Kennung schärft; eine Anhebung ist Fortschreibung. Die
   Messung ist ein Zeitdokument und gehört in die ADR, nicht in den Abschnitt.
-  Betroffen: §1 *Ziel* von `slice-harness-coverage` und §2 von
-  `slice-harness-mutation`; hier ist je ein Satz mit der Entscheidung nachgezogen, die
-  Liefer-Punkte bleiben unverändert und werden in deren Architect-Schritt
-  angeglichen (DoD von `slice-harness-coverage` nennt noch „Schwelle aus der ADR des
-  Gates“).
+  Betroffen: `slice-harness-coverage` und `slice-harness-mutation`; nachgezogen nach
+  Review F-425 in §1 bzw. §2, im Ort der Schwelle der DoD von Coverage, in §3 und §6;
+  der Umfang der Liefer-Punkte bleibt unverändert.
 
 **Risiken:**
 

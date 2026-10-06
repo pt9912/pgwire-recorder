@@ -1863,7 +1863,8 @@ Plans.
    im Kopf noch in §1 oder §2.
 3. **Bereich.** `SPEC-NNN bis SPEC-MMM`, ebenso mit `ARC`, steht im Kopf wie in §1 und
    §2 für jede Kennung von NNN bis MMM. Backticks um die beiden Enden sind erlaubt, und
-   ein Zeilenumbruch innerhalb eines Absatzes zählt als Leerraum. Für die Kennungen
+   ein Zeilenumbruch innerhalb eines Absatzes zählt als Leerraum; in §1 und §2 reicht
+   ein Bereich auch über Absatzgrenzen (siehe *Grenze*). Für die Kennungen
    dazwischen steht der Bereich nur, wenn beide Enden ganze Wörter derselben Klasse
    sind und NNN kleiner als MMM ist. Andere Bereichsformen (Gedankenstrich,
    Bindestrich) gibt es nicht.
@@ -1890,7 +1891,9 @@ Plans.
    der beiden Abschnitte, ist das ein Befund.
 8. **Ausgabe und Ausgang.** Je Befund eine Zeile auf stderr,
    `kopf-check: <pfad>: <abschnitt>: <befund>`, mit dem Pfad relativ zur Wurzel des
-   Repos; der Abschnitt ist `Kopf`, `§1`, `§2` oder `Datei`. Eine Kennung erscheint
+   Repos; der Abschnitt ist `Kopf`, `§1`, `§2` oder `Datei`. Der Befund lautet
+   `<Kennung> fehlt im Kopf`, `Feld Bezug fehlt`, `Feld Berührte Spec-Stellen fehlt`,
+   `Abschnitt ## 1. fehlt`, `Abschnitt ## 2. fehlt` oder `nicht lesbar`. Eine Kennung erscheint
    je Abschnitt einmal. Sortiert wird nach Pfad, Abschnitt und Befund in Bytefolge
    (`Kopf` vor `§1` und `§2`); stdout bleibt leer. Ein Plan, der nicht lesbar ist
    oder an dessen Auswertung die Prüfung scheitert, ist genau ein Befund
@@ -1901,12 +1904,15 @@ Plans.
    `docs/plan/planning/` fehlt. Ein fehlendes Lifecycle-Verzeichnis enthält keinen
    Plan und ist kein Abbruch.
 9. **Start ohne Stufung.** Die Prüfung ist vom ersten Lauf an voll scharf:
-   `make kopf-check` und seine Gegenprobe `make kopf-check-gegenprobe` hängen an der
-   Gate-Kette von `make gates` und enden mit Fehlerstatus, wenn ihre Prüfung rot ist.
+   `make kopf-check` hängt an der Gate-Kette von `make gates` und endet mit
+   Fehlerstatus, wenn die Prüfung rot ist.
 
 **Grenze.** Ob eine Kennung existiert, in welchem Kopf-Feld sie steht und was
 außerhalb von §1 und §2 steht, prüft das Werkzeug nicht. Codeblöcke werden nicht
-gesondert verfolgt: Eine Zeile `## ` in einem Codeblock beendet den Abschnitt.
+gesondert verfolgt: Eine Zeile `## ` in einem Codeblock beendet den Abschnitt. In §1
+und §2 werden die gezählten Zeilen eines Abschnitts aneinandergehängt; ein Bereich
+reicht dort auch über eine Leerzeile und über einen ausgenommenen Absatz
+`Regeln dieser Sektion` hinweg. Das macht §1 und §2 nur strenger, nie still grün.
 
 ### SPEC-048 — Abdeckung je Anforderung und Pfad (`abdeckung`)
 
@@ -1915,8 +1921,9 @@ Abdeckungs-Deklarationen der Tests; `make abdeckung-check` prüft, dass sie dem
 erzeugten Stand entsprechen, und schreibt nichts. Beide wenden dieselben Regeln an.
 
 1. **Deklaration.** Gelesen werden die Testdateien (Name auf `_test.go`) im Repo außer
-   unter `.git/` und `.harness/`. Dort steht direkt über `func Test…`, ohne Leerzeile
-   und am Zeilenanfang:
+   unter den Verzeichnissen `.git/` und `.harness/` an der Wurzel des Repos; ein
+   gleichnamiges Verzeichnis tiefer im Baum wird gelesen. In einer gelesenen
+   Testdatei steht direkt über `func Test…`, ohne Leerzeile und am Zeilenanfang:
 
    ```text
    // Abdeckung: <Anforderung>/<Pfad>, … — <Kurzbeschreibung>
@@ -1949,16 +1956,21 @@ erzeugten Stand entsprechen, und schreibt nichts. Beide wenden dieselben Regeln 
      Anforderungen, je mit den beteiligten Nachweisarten. Vollständig ist eine
      `LH-FA` mit `Happy`, `Boundary` und `Negative`, gleich aus welcher Nachweisart,
      eine `LH-QA` oder `LH-RB` mit `Messung`; Teilabdeckung steht hier nicht.
-5. **Schreiben und Prüfen.** `make abdeckung` schreibt die vier Tabellen mit den
-   Rechten 0644. `make abdeckung-check` vergleicht nur und meldet je veralteter
-   Tabelle eine Zeile mit ihrem Pfad auf stderr.
+5. **Schreiben und Prüfen.** `make abdeckung` schreibt nur die Tabellen, die vom
+   erzeugten Stand abweichen oder fehlen, setzt deren Rechte auf 0644 und meldet je
+   geschriebener Tabelle eine Zeile `abdeckung: <pfad> geschrieben` auf stdout; eine
+   aktuelle Tabelle bleibt unberührt, auch in ihren Rechten. `make abdeckung-check`
+   vergleicht nur und meldet je veralteter Tabelle eine Zeile mit ihrem Pfad auf
+   stderr.
 6. **Ausgang.** Die Prüfung endet mit 0 ohne Fehlform und, beim Prüfen, ohne
    veraltete Tabelle. Sie endet mit 1 bei mindestens einer Fehlform, je mit einer
-   Zeile auf stderr, die Datei und Zeile nennt, oder beim Prüfen bei mindestens
-   einer veralteten Tabelle.
+   Zeile auf stderr, die Datei und Zeile nennt (bei einem Test `TestE2E…` ohne
+   Deklaration die Zeile des Tests), oder beim Prüfen bei mindestens einer veralteten
+   Tabelle. Fehlt das Lastenheft, endet sie mit 2 und einer Meldung auf stderr.
 
 **Grenze.** Ob eine Deklaration ihren Pfad tatsächlich belegt, prüft das Werkzeug
-nicht: Es liest Deklarationen, es führt keine Tests aus.
+nicht: Es liest Deklarationen, es führt keine Tests aus. Führt das Lastenheft keine
+Überschrift `### LH-…`, endet die Prüfung mit 1 ohne eine Zeile auf stderr.
 
 ## 12. Historie
 

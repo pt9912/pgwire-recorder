@@ -122,7 +122,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/plan/adr/<NNNN>-mutationstests-als-gate.md`, `docs/plan/adr/README.md` | neu / update | ADR des Gates (Architect, vor dem Code): Werkzeug, Messung mit Quellstand, Schwelle, Randformen aus §6; Index-Zeile |
+| `docs/plan/adr/<NNNN>-mutationstests-als-gate.md`, `docs/plan/adr/README.md` | neu / update | ADR des Gates (Architect, vor dem Code): Werkzeug, Messung mit Quellstand, Regel, nach der die Schwelle folgt, `Schärft:` auf die Kennung des Gates; Index-Zeile |
+| `spec/spezifikation.md` | update | Abschnitt für Harness-Werkzeuge: Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
 | `Dockerfile` oder eigenes Werkzeug-Image | update / neu | Stufe oder Image mit dem gepinnten Werkzeug; netzlos außer der Download-Stufe |
 | `harness/mk/<mutation>.mk` | neu | Ziel des Gates und der Gegenprobe an `GATE_CHECKS`, Schwelle als eine benannte Stelle |
 | `tools/harness/<gegenprobe>.sh` | neu | Mutanten in einer Kopie unter eigenem Pfad: ein Test entfernt (rot), Stand genau an der Schwelle (grün), je Randform ein Fall |
@@ -175,7 +176,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **offen**. Entschieden werden
-sie vor dem ersten Code-Commit vom Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, Kennungen vergibt der Slice, der die Randform entscheidet); die ADR des
+sie vor dem ersten Code-Commit vom Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie Kennung, vergeben vom Slice, der es liefert); die ADR des
 Gates trägt Entscheidung und Gründe und verweist mit `Schärft:` auf die Stelle. Eine
 Entscheidung des Nutzers wird dort festgehalten. Was dort nicht steht, entscheidet der
 Implementer nicht, er gibt es zurück.
@@ -184,7 +185,9 @@ Implementer nicht, er gibt es zurück.
   mit der Go-Version des `Dockerfile`, netzlos nach dem Download, Ausgabe
   maschinenlesbar, Operatoren wählbar. Offen, ebenso der Weg ins Image (Modul in
   `deps`, eigenes Image per Digest, Binary per Prüfsumme).
-- **Schwelle** — die Zahl erst nach der Messung, mit Quellstand in der ADR. Offen:
+- **Schwelle** — die Zahl erst nach der Messung; die Messung steht mit Quellstand in
+  der ADR, die Zahl in der Kennung des Gates in der Spezifikation (Entscheidung des
+  Nutzers vom 2026-10-06). Offen:
   Anteil getöteter Mutanten gesamt, je Paket oder beides; gleich dem gemessenen Wert
   oder mit Abstand darunter; Rundung; der Stand genau an der Schwelle grün oder rot.
 - **Umfang** — der ganze Bestand oder nur geänderte Pakete (gegen welchen

@@ -220,7 +220,7 @@ dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — offen, soweit nicht als
 Entscheidung des Nutzers markiert. Entschieden werden sie vor dem ersten Code-Commit vom
-Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, Kennungen vergibt der Slice, der die Randform entscheidet); die ADR des Gates trägt Entscheidung und Gründe
+Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie Kennung, vergeben vom Slice, der es liefert); die ADR des Gates trägt Entscheidung und Gründe
 und verweist mit `Schärft:` auf die Stelle. Die Entscheidungen des Nutzers vom
 2026-10-05 werden dort festgehalten. Was dort nicht steht, entscheidet der Implementer
 nicht, er gibt es zurück.

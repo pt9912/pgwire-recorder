@@ -92,7 +92,8 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Gate mit Schwelle: Die Stufe `test` erzeugt das Profil, prüft es gegen die
-      Schwelle aus der ADR des Gates (nach den Randformen aus §6) und endet rot
+      Schwelle aus der Kennung des Gates im Abschnitt für Harness-Werkzeuge der
+      Spezifikation (nach den Randformen aus §6) und endet rot
       darunter; `gofmt`, `go vet` und die Unit-Tests der Stufe bleiben unverändert. Die
       Messung des Stands, aus der die Schwelle folgt, steht mit Quellstand in der ADR;
       der Bestand ist grün.
@@ -128,7 +129,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/plan/adr/<NNNN>-schwelle-testabdeckung.md`, `docs/plan/adr/README.md` | neu / update | ADR des Gates (Architect, vor dem Code): Messung mit Quellstand, Schwelle, Randformen aus §6; Index-Zeile |
+| `docs/plan/adr/<NNNN>-schwelle-testabdeckung.md`, `docs/plan/adr/README.md` | neu / update | ADR des Gates (Architect, vor dem Code): Messung mit Quellstand, Regel, nach der die Schwelle folgt, `Schärft:` auf die Kennung des Gates; Index-Zeile |
+| `spec/spezifikation.md` | update | Abschnitt für Harness-Werkzeuge: Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
 | `Dockerfile` | update | Stufe `test`: Profil erzeugen und gegen die Schwelle prüfen, netzlos; die bestehenden Prüfungen der Stufe bleiben |
 | Prüfung der Schwelle (Ort nach §6 *Werkzeug*) | neu | wertet das Profil aus, nennt je Paket und gesamt den Wert und die Schwelle |
 | `harness/mk/build.mk` oder eigenes Fragment unter `harness/mk/` | update / neu | Schwelle als eine benannte Stelle (Build-Argument oder Konfiguration), Ziel der Gegenprobe an `GATE_CHECKS` |
@@ -186,13 +188,15 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **offen**. Entschieden werden
-sie vor dem ersten Code-Commit vom Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, Kennungen vergibt der Slice, der die Randform entscheidet); die ADR des
+sie vor dem ersten Code-Commit vom Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie Kennung, vergeben vom Slice, der es liefert); die ADR des
 Gates trägt Entscheidung und Gründe und verweist mit `Schärft:` auf die Stelle. Eine
 Entscheidung des Nutzers wird dort festgehalten. Was dort nicht steht, entscheidet der
 Implementer nicht, er gibt es zurück.
 
-- **Die Zahl** — erst nach der Messung des heutigen Stands, mit Quellstand in der
-  ADR. Offen: Schwelle gleich dem gemessenen Wert, abgerundet auf welche Stelle, oder
+- **Die Zahl** — erst nach der Messung des heutigen Stands; die Messung steht mit
+  Quellstand in der ADR, die Zahl in der Kennung des Gates in der Spezifikation
+  (Entscheidung des Nutzers vom 2026-10-06). Offen: Schwelle gleich dem gemessenen
+  Wert, abgerundet auf welche Stelle, oder
   mit Abstand darunter (Spielraum für Refactorings, aber weniger Biss).
 - **Gesamt oder je Paket** — eine Schwelle über alle Pakete (ein gut getestetes Paket
   verdeckt ein schwaches), je Paket (strenger; Pakete wie `bootstrap` oder `cli` mit
