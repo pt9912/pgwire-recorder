@@ -1,0 +1,2 @@
+**Vorgang:** slice-lastenheft-pruefbarkeit
+**Fund:** §6 von `slice-harness-abdeckung-gate` nannte fünf offene Randformen, aber nicht alle: ob `Messung-<i>-von-<n>` auch an Go-Tests zulässig ist, was mit einer Deklaration in einem Skript außerhalb von `tools/**/*-gegenprobe.sh` geschieht, und die Zahlform von i und n (Review F-408, MEDIUM). Erst das Review nannte sie; nachgetragen in b9eae96, entschieden werden sie vor dem Code jenes Slice.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-lastenheft-pruefbarkeit
+**Fund:** Messmethode (3) von `LH-QA-07` hat zwei Bedingungen (Test außerhalb der Einheit; Zugriff auf Internes nur über eine für Tests vorgesehene Stelle). Die Folge-Pläne sahen nur für die erste einen Rot-Fall vor (je Paketgruppe ein White-Box-Test); für die zweite nannte keiner einen Fall (Review F-407, MEDIUM). Im Plan adressiert in b9eae96: Lint-DoD und §3 verlangen je einen Rot-Fall „Zugriff an der Brücke vorbei“ und „Test in der Brückendatei“; ob sie tragen, zeigt erst der Code.

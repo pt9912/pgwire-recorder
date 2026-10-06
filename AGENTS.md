@@ -235,7 +235,7 @@ Randformen, etwa fehlender, leerer oder unbekannter Wert, Alias, Abbruch und
 Herunterfahren, was ein Diagnose-Feld je Nachrichtenart heißt, Verhalten je
 Serverversion, und je Randform, wo sie entschieden ist. Entschieden ist jede vor dem
 ersten Code-Commit, in der Spezifikation (Technik-Stratum), auch für
-Harness-Werkzeuge, oder einer ADR; auch eine Entscheidung des
+Harness-Werkzeuge (seit slice-lastenheft-pruefbarkeit), oder einer ADR; auch eine Entscheidung des
 Nutzers wird dort festgehalten. Der Architect prüft die Liste vor dem Code. Eine nicht
 genannte oder offene Randform entscheidet der Implementer nicht, er hält an und gibt
 sie dem Architect zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).

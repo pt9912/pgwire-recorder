@@ -1,1 +1,3 @@
-**Stand:** offen
+**Stand:** gestrichen
+
+Begründung: Die Ursache ist weggefallen. Der Ort einer Randform eines Harness-Vertrags ist entschieden — die Spezifikation (Technik-Stratum), dort auch nach Annahme der Gate-ADR ohne Folge-ADR fortgeschrieben (Antwort des Kurs-Repos ai-harness-course auf den Change Request, 2026-10-06; `AGENTS.md` §3.12, Anker `seit slice-lastenheft-pruefbarkeit`). Den Abschnitt legt `slice-harness-vertraege-spezifikation` an. Eine Randform, die trotzdem im Skriptkopf oder im Plan entschieden wird, verstößt gegen §3.12 und zählt bei `BEO-REPO/spec-randform-erst-im-review-entschieden` bzw. `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`.

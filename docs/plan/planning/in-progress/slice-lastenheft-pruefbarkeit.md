@@ -58,7 +58,9 @@ und `slice-harness-abdeckung-gate` mit seinem Platz in der Reihe entschieden.
 Lastenheft und Spezifikation ausdrücklich aus; eine Vertragsänderung darin hebt diese
 Selbstbindung auf; (2) Größe — der Lint-Slice hat schon drei Liefer-Punkte; (3)
 Reihenfolge — die Kennung muss im Lastenheft stehen, bevor ein Kopf sie verlinken
-kann (das Doku-Gate verlangt für jede Lastenheft-Kennung einen auflösenden Link), und
+kann (ein Link auf ihren Anker löst erst auf, wenn die Überschrift im Lastenheft steht,
+sonst meldet das Doku-Gate `anchor-missing`; einen Link verlangt es nur für
+ADR-Kennungen, nicht für Lastenheft-Kennungen), und
 der Wortlaut braucht die Bestätigung des Nutzers vor dem Start des Lint-Slice; (4) ein
 Wortlaut, den der Nutzer verwirft, lässt diesen Slice entfallen, ohne den Lint-Slice
 zu berühren.
@@ -78,13 +80,23 @@ zu berühren.
   `slice-harness-abdeckung-gate` (von diesem Slice in `open/` angelegt, zwischen
   `slice-harness-blackbox-einstieg` und `slice-harness-coverage`, §6 *Nachweis*).
   Dieser Slice legt den Weg und die ADR fest.
-- Eine Stelle in Spezifikation oder Sicht — das Lastenheft nennt die Anforderung,
-  ihre technische Schärfung tragen die ADRs; eine Spezifikationsstelle entsteht nur,
-  wenn §6 *Spezifikation* das anders entscheidet.
+- Eine Stelle in Spezifikation oder Sicht für die Anforderung selbst — das Lastenheft
+  nennt die Anforderung, ihre technische Schärfung tragen die ADRs der Gates (§6
+  *Spezifikation*).
+- Die Verträge der Gates und ihre Randformen in der Spezifikation (Abschnitt für
+  Harness-Werkzeuge, Technik-Stratum) — ein Folge-Slice übernimmt sie:
+  `slice-harness-vertraege-spezifikation` legt den Abschnitt an (nach der Antwort des
+  Kurs-Repos auf den Change Request, 2026-10-06; §6 *Ort dieser Randformen*); die
+  Folge-Slices der Reihe schreiben ihre Randformen dorthin.
 - Produkt-Code und Harness-Werkzeuge — Schicht-Abgrenzung: Der Slice ändert das
   Lastenheft, die Roadmap, die Pläne von sechs Slices (dazu die Reihenfolge in §4 von
   `slice-harness-mutation`), legt `slice-harness-abdeckung-gate` an und schreibt
-  [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) mit Index-Zeile.
+  [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) mit Index-Zeile. Aus
+  Review F-406 ändert er dazu `AGENTS.md` §3.12 (die Spezifikation ist der Ort einer
+  Randform auch für Harness-Werkzeuge), führt die befristete Adaption
+  [MR-001](../../../../harness/conventions.md#mr-001) ein und löst sie nach der
+  Kurs-Antwort wieder auf (Eintrag in `harness/conventions/done/`, Index-Zeile in
+  `harness/conventions.md`).
 
 ## 2. Definition of Done
 
@@ -93,17 +105,21 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Lastenheft: §4 führt die Anforderung im bestätigten Wortlaut aus §6 unter der
+- [x] Lastenheft: §4 führt die Anforderung im bestätigten Wortlaut aus §6 unter der
       nächsten freien Kennung der Qualitätsanforderungen, mit Priorität MUSS (§6
       *Priorität*); §7 führt das Abnahmeszenario 17 mit Bezug auf die Anforderung;
-      Version und Historie nach §6 *Version*.
-- [ ] Roadmap: Der Trigger von M3 nennt das Abnahmeszenario 17 (vom Planner am
+      Version und Historie nach §6 *Version* — bestätigt an `b098fb3` (Verifikation,
+      Punkt 1: Wortlaut und Szenario per `diff` gleich, zwei Hunks, Proben PR1 bis PR3
+      rot).
+- [x] Roadmap: Der Trigger von M3 nennt das Abnahmeszenario 17 (vom Planner am
       2026-10-06 vorgezogen, mit Drift-Log-Zeile; bei Closure gegen §7 des
       Lastenhefts geprüft). Der Kopf (`Bezug`) von `slice-harness-lint`,
       `slice-harness-coverage` und der vier Umstellungs-Slices verlinkt die
       Anforderung, die Platzhalter-Sätze dort sind entfernt; `make kopf-check` und
-      `make docs-check` sind grün.
-- [ ] Nachweis-Weg entschieden (Architect, vor dem Lastenheft-Commit, `AGENTS.md`
+      `make docs-check` sind grün — bestätigt an `b098fb3` (Verifikation, Punkt 2:
+      Proben PK1 bis PK7, PD1, PD3 rot); dass die Köpfe *verlinken*, ist gelesen, nicht
+      von einem Sensor gehalten (V-64, §1 (3) berichtigt).
+- [x] Nachweis-Weg entschieden (Architect, vor dem Lastenheft-Commit, `AGENTS.md`
       §3.12): wie jede der Messmethoden 1 bis 3 in den Abdeckungstabellen belegt
       erscheint und wann die Anforderung als vollständig zählt (§6 *Nachweis*):
       [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) liegt vor und ergänzt
@@ -111,15 +127,20 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Lastenheft-Commit `Accepted` und mit der Kennung im `Bezug`;
       `slice-harness-abdeckung-gate` liegt in `open/`; `slice-harness-lint`,
       `slice-harness-blackbox-einstieg` und `slice-harness-coverage` nennen in ihrer
-      DoD, welchen Teil des Nachweises sie liefern.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      DoD, welchen Teil des Nachweises sie liefern — bestätigt an `b098fb3`
+      (Verifikation, Punkt 3).
+- [x] `make gates` grün — an `b098fb3` (Verifikation, Abschnitt 5); die Closure ändert
+      Planungsdokumente, Register und eine Anker-Stelle in `AGENTS.md` §3.12
+      (`make docs-check`, `make kopf-check` grün).
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
-      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8) — Review bis
+      `9d85fa4` (F-406 bis F-416); die Nacharbeit `b9eae96` bis `b098fb3` hat die
+      Verifikation geprüft (V-62 bis V-66), siehe §7.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -136,6 +157,8 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/plan/planning/open/slice-harness-mutation.md` | update | Reihenfolge in §4 *Start* mit `slice-harness-abdeckung-gate` |
 | `docs/plan/planning/in-progress/roadmap.md` | geprüft / update | Trigger von M3 mit Abnahmeszenario 17 steht seit der Planung (2026-10-06); bei Closure gegen §7 abgeglichen. Drift-Log-Zeile 2026-10-06 zur Reihenfolge mit `slice-harness-abdeckung-gate` |
 | `docs/plan/adr/0033-gate-nachweise-in-der-abdeckung.md`, `docs/plan/adr/README.md` | neu / update | [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) ergänzt [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) um Gate-Nachweise und geteilte Messung (Architect, Proposed); mit dem Lastenheft-Commit Kennung im `Bezug`, Status `Accepted`, Index nachgezogen |
+| `AGENTS.md` §3.12 | update | aus Review F-406: Die Spezifikation (Technik-Stratum) ist der Ort einer Randform auch für Harness-Werkzeuge; Endfassung nach der Antwort des Kurs-Repos |
+| `harness/conventions.md`, `harness/conventions/done/MR-001-spezifikations-ort-werkzeugvertraege.md` | neu / update | befristete Adaption [MR-001](../../../../harness/conventions.md#mr-001) bis zur Antwort auf den Change Request; aufgelöst am selben Tag, per `git mv` nach `done/`, Index-Zeile unter *Aufgelöste Adaptionen* |
 
 ## 4. Trigger
 
@@ -144,8 +167,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay` liegt in
 `done/` (der Wortlaut ist seit 2026-10-06 bestätigt). Erster Slice der Reihe
-(Lastenheft, Lint, die vier Umstellungs-Slices, `slice-harness-abdeckung-gate`,
-Coverage, `slice-harness-mutation`). Vor dem Lastenheft-Commit
+(Lastenheft, `slice-harness-vertraege-spezifikation`, Lint, die vier
+Umstellungs-Slices, `slice-harness-abdeckung-gate`, Coverage, `slice-harness-mutation`). Vor dem Lastenheft-Commit
 entscheidet der Architect §6 *Nachweis*.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
@@ -282,7 +305,7 @@ dasteht.
     Nachweis-Spalte ist der Skriptpfad; eigene Tabelle der Nachweisart Gate neben E2E
     und Unit; ob die Gegenprobe an `GATE_CHECKS` hängt, prüft das Skript nicht
     (Grenze im Skriptkopf, Review).
-  - *Ort dieser Randformen* (F-406): Spezifikation, Abschnitt für Harness-Werkzeuge (Technik-Stratum), angelegt von einem eigenen Folge-Slice, nicht
+  - *Ort dieser Randformen* (F-406): Spezifikation, Abschnitt für Harness-Werkzeuge (Technik-Stratum), angelegt von `slice-harness-vertraege-spezifikation`, nicht
     [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), die Entscheidung und
     Gründe trägt. Bis zum Code stehen sie hier und in §6 von
     `slice-harness-abdeckung-gate`; jede zugesagte Randform braucht dort einen Fall in
@@ -303,9 +326,22 @@ dasteht.
 - **Vertrag bindet die Abnahme an Harness-Gates** — eine spätere Lockerung eines Gates
   berührt dann die Abnahme; das ist gewollt, macht aber jede Senkung zur
   Vertragsfrage. Da die Rot-Hälfte von Abnahmeszenario 17 auf den Gegenproben beruht,
-  gilt das auch für das Entfernen eines Gegenfalls. — **Ausgang:** — (bei Closure)
+  gilt das auch für das Entfernen eines Gegenfalls. — **Ausgang:** entfallen: Die
+  Bindung ist die gewollte Folge der Team-Entscheidung vom 2026-10-06 und kein Ereignis,
+  das noch eintreten kann. Eine Schwellen-Senkung braucht ohnehin eine ADR
+  (`AGENTS.md` §3.6), und eine ADR darf das Lastenheft nicht ändern; wer Szenario 17
+  damit unerfüllbar machte, braucht eine Lastenheft-Änderung. Dass ein einzelner
+  Gegenfall still wegfällt, ist die Klasse von `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`
+  (verkörpert in §3.10, Sensor geplant mit `slice-harness-mutation`), kein eigenes
+  Risiko dieses Slice.
 - **Zahl oder Werkzeug wandern ins Lastenheft** — eine Schwelle im Vertrag veraltet mit
-  der ADR; der Wortlaut sagt darum „festgelegt“. — **Ausgang:** — (bei Closure)
+  der ADR; der Wortlaut sagt darum „festgelegt“. — **Ausgang:** entfallen: Der
+  gelieferte Wortlaut von `LH-QA-07` und Szenario 17 nennt keine Zahl, kein Werkzeug,
+  keine ADR und keinen Slice (Verifikation, Punkt 1, gelesen); Links auf ADR, Slice
+  oder Skript macht das Doku-Gate rot (Proben PR1 bis PR3). Ein Werkzeugname als
+  blanker Text bliebe grün (PR4); eine solche Änderung wäre aber eine spätere
+  Lastenheft-Änderung, ein anderer Vorgang mit eigener Prüfung, kein Rest dieses
+  Slice.
 
 ## 7. Closure-Notiz
 
@@ -321,12 +357,25 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
+- **Was hat funktioniert:** Jede Randform von Lastenheft und ADR war vor dem Lastenheft-Commit entschieden (`a238108` vor `daef83b`), Wortlaut und Szenariotext lagen dem Nutzer vor und stehen Byte für Byte im Lastenheft (Verifikation, Punkt 1). Die Referenz-Richtung hielt: Szenario 17 nennt weder Gate noch Werkzeug, die Proben PR1 bis PR3 werden rot. Der Weg aus F-406 trug in einem Tag: Die Regel des Repos (`AGENTS.md` §3.12) setzte einen Ort voraus, den die Baseline für Harness-Werkzeuge nicht ausdrücklich bot; statt ihn still zu setzen, ging ein Change Request an das Kurs-Repo, die Lücke überbrückte die befristete Adaption [MR-001](../../../../harness/conventions.md#mr-001) mit benanntem Auflösungs-Trigger (`c2b8d32`), und nach der Antwort vom 2026-10-06 wurde sie aufgelöst (`6ca20bc`, `566782c`, `3dfef35`) und der Folge-Slice `slice-harness-vertraege-spezifikation` angelegt (`8e98bc4`). Die Verifikation hat die drei Liefer-Punkte an `b098fb3` bestätigt; der Kopf-Sensor wurde in allen sieben Folge-Plänen rot, sobald `LH-QA-07` aus dem `Bezug` fiel (PK1 bis PK7).
+- **Was ging anders als geplant:** Der Slice wuchs um eine Regel- und Adaptions-Arbeit, die §1 nicht nannte: `AGENTS.md` §3.12 und MR-001 (V-63), dazu ein neuer Slice in der Reihe, dem §1, §4 und §6 nicht folgten (V-62); beides mit dieser Closure nachgezogen. Die Begründung (3) in §1 berief sich auf eine Eigenschaft des Doku-Gates, die es nicht gibt (V-64; Probe PD2 grün); berichtigt. Das Review fand drei MEDIUM an den Folge-Plänen: den fehlenden Ort der Randformen (F-406), die zweite Bedingung von Messmethode 3 ohne Rot-Fall (F-407) und drei ungenannte Randformen von `slice-harness-abdeckung-gate` (F-408). Eine Prüfrunde mit Nacharbeit; die Nacharbeit `b9eae96` bis `b098fb3` hat kein eigenes Review, die Verifikation hat jedes Finding nachgeprüft (Abschnitt 2).
+  - **V-65, Ausgänge:** (a) Der Satz von [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), der Form der Deklaration, Pfad-Schreibweise und Fehlformen in den Kopf des Abdeckungs-Skripts legt, bleibt (Accepted, `AGENTS.md` §3.5); Adresse ist `slice-harness-vertraege-spezifikation` §6 *Lesart-Rangfolge bei Doppelung*, die ihn mit dieser Closure nennt: Der Abschnitt der Spezifikation geht vor. (b) F-413 („Messmethode“ in zwei Bedeutungen, Zuschreibung an [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md)) — entfallen: Der Text steht im Kontext und in der Begründung der Regel, nicht in ihrer Anwendung; die Teilung ist in §6 *Teilmessung* dieses Plans und in §6 von `slice-harness-abdeckung-gate` je Anforderung geschrieben (drei Teile für `LH-QA-07`), und ihre Randformen schreibt `slice-harness-abdeckung-gate` in den Abschnitt der Spezifikation, der im Rang über der ADR steht. Eine ersetzende ADR nur für den Wortlaut wäre der Fall, den §3.8 vermeiden soll.
+  - **V-66, vermerkt:** Den Kopf dieses Plans und den von `slice-harness-vertraege-spezifikation` hält kein Sensor, weil ihr §1 und §2 `LH-QA-07` nicht nennen (Grenze von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), Klasse von F-410). Für diesen Plan ohne Wirkung, er geht nach `done/`, wo der Sensor nicht liest; für den offenen Plan ist es dessen Sache bei seinem Start.
+  - **F-415** (Messmethode 3 misst schwächer als die Anforderung) bleibt Frage an Validator und Nutzer; der Wortlaut ist bestätigt.
+- **Steering-Loop-Eintrag:** Geschärfte Regel: Der Ort einer Randform ist die Spezifikation (Technik-Stratum) auch für Harness-Werkzeuge; eine angenommene Gate-ADR verweist darauf, Randformen nach `Accepted` werden dort fortgeschrieben — liegt in `AGENTS.md §3.12`.
+  Auslöser: `BEO-REPO/harness-lesart-ohne-entscheidungsort` (slice-harness-kopf-sensor; mit diesem Slice 2×), beantwortet vom Kurs-Repo auf den Change Request (2026-10-06). Herkunfts-Anker `seit slice-lastenheft-pruefbarkeit` im Satz von §3.12, der die Harness-Werkzeuge nennt (mit der Closure nachgetragen; die Überschrift trägt weiter `seit slice-harness-randformen-vor-code`). **Warum dieser Eintrag:** Er ist der einzige der drei Kandidaten, der eine Regel dieses Repos ändert, und er beseitigt die Ursache einer Beobachtung, die zweimal Nacharbeit gekostet hat (F-380/V-42, F-406). Die Ablehnung eines neuen Register-Ausgangs durch das Kurs-Repo bestätigt nur die bestehende Form (drei Ausgänge, Prosa-Begründung, wo kein Sensor möglich ist); sie ändert hier nichts. V-66 ist eine bekannte, in [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) entschiedene Grenze ohne Auftreten eines Fehlers; ein Sensor dafür bräuchte eine ersetzende ADR. Retirement-Check von §3.12: wieder aufgetreten (F-408, unten), die Regel bleibt.
+- **Beobachtungs-Register (`../observations/`):**
+  - `BEO-REPO/harness-lesart-ohne-entscheidungsort/` — Beleg `evidence/slice-lastenheft-pruefbarkeit.md` (F-406), **2×**. Ausgang **gestrichen** in `state.md`, mit Begründung: Die Ursache ist weggefallen — der Ort ist entschieden (Kurs-Antwort, `AGENTS.md` §3.12), die Spezifikation ist fortschreibbar und braucht nach `Accepted` keine Folge-ADR. `gestrichen` ist an die Schwelle nicht gebunden (Register-README §Die drei Ausgänge). Landet eine Randform trotzdem im Skriptkopf oder im Plan, ist das ein Verstoß gegen §3.12 und zählt bei `spec-randform-erst-im-review-entschieden` oder `randform-im-code-entschieden-dann-zurueckgegeben`. Damit ist der Zusatz in §5 von `slice-harness-vertraege-spezifikation` („dazu den Ausgang … im Register“) vorweg erfüllt; der Plan zieht das bei seinem Start nach (§3.9).
+  - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/` (verkörpert in `AGENTS.md` §3.10 seit welle-extended-query) — Beleg `evidence/slice-lastenheft-pruefbarkeit.md` (F-407), **11×**. Retirement-Check von §3.10: wieder aufgetreten.
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/` (verkörpert in `AGENTS.md` §3.11 seit welle-extended-query) — Beleg `evidence/slice-lastenheft-pruefbarkeit.md` (F-407 laut Review-Summary, V-64), **12×**. Retirement-Check von §3.11: wieder aufgetreten.
+  - `BEO-REPO/spec-randform-erst-im-review-entschieden/` (verkörpert in `AGENTS.md` §3.12 seit slice-harness-randformen-vor-code) — Beleg `evidence/slice-lastenheft-pruefbarkeit.md` (F-408), **9×**.
+  - `BEO-REPO/plan-folgt-korrektur-nicht/` (verkörpert in `AGENTS.md` §3.9 seit welle-walking-skeleton, Sensor `make kopf-check` seit slice-harness-kopf-sensor) — Beleg `evidence/slice-lastenheft-pruefbarkeit.md` (F-410, F-411, F-412, F-414, V-62, V-63), **11×**. Retirement-Check von §3.9: wieder aufgetreten; `make kopf-check` war jedes Mal grün, die Funde liegen in der Urteils-Hälfte.
+
+  Einmalig und nicht eingetragen: F-409 (Zählweise der Liefer-Punkte, behoben), F-413 (Wortlaut einer angenommenen ADR, Ausgang oben), V-65 (Ausgang oben), V-66 (Grenze von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md)), F-415 und F-416 (INFO). Über der Schwelle stehen nur verkörperte Einträge (`plan-folgt-korrektur-nicht` 11×, `negativtests-fehlen-bei-neuem-vertrag` 11×, `zusage-im-kommentar-weiter-als-pruefung` 12×, `spec-randform-erst-im-review-entschieden` 9×); ihnen gibt diese Closure keinen Ausgang, den Lese-Schritt führt die nächste Welle-Closure.
+- **Folge-Slices:** `slice-harness-vertraege-spezifikation` (Abschnitt der Spezifikation für Harness-Werkzeuge; dazu der Satz von [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) aus V-65) und `slice-harness-abdeckung-gate` (Nachweisart Gate, Deklaration von Teil 1 und 3); die übrigen der Reihe (`slice-harness-lint`, die vier Umstellungs-Slices, `slice-harness-coverage`, `slice-harness-mutation`) führen `LH-QA-07` im `Bezug` bzw. ihren Platz in der Reihe, Lint, Einstieg und Coverage dazu ihren Nachweis-Teil in der DoD.
+- **Risiken aus §6:** zwei, beide **entfallen** mit Begründung (Bindung der Abnahme an die Gates als gewollte Folge; Wortlaut ohne Zahl und Werkzeug, Proben PR1 bis PR3). Die Randformen in §6 sind Entscheidungen, keine Risiken; die Rückführungen aus §4 sind begründet nicht ausgelöst (§6 *Rückführung*, *Spezifikation*).
+- **Drei Paarungen:** Anker — `liegt in` nennt `AGENTS.md §3.12`; `grep -n "seit slice-lastenheft-pruefbarkeit" AGENTS.md` findet ihn in §3.12. Folge-Slice — `slice-harness-vertraege-spezifikation`, `slice-harness-abdeckung-gate` und die übrigen genannten liegen als Datei in `open/`. Register — die fünf genannten Kennungen bestehen als Verzeichnis, jedes mit nicht leerem `evidence/` und einer Datei `slice-lastenheft-pruefbarkeit.md`. Die nächste Welle-Closure prüft erneut.
+- **Belege:** Review `docs/reviews/2026-10-06-review-slice-lastenheft-pruefbarkeit.md` (bis `9d85fa4`; F-406 bis F-416), Verifikation `docs/reviews/2026-10-06-verifikation-slice-lastenheft-pruefbarkeit.md` (bis `b098fb3`; V-62 bis V-66; DoD 1 bis 3 bestätigt, `make gates` grün an `b098fb3`), Entscheidung [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Accepted), Adaption [MR-001](../../../../harness/conventions.md#mr-001) (aufgelöst). Validierung: n/a, der Slice ändert Vertrag und Planung, kein End-Nutzer-Verhalten; F-415 liegt beim Validator.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -349,7 +398,7 @@ Dateien unter `evidence/`). Treffer:
   prüft, dass §1 und §2 keine Kennung nennen, die der Kopf nicht führt.
 - `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — eine Vertragsanforderung
   gibt den Harness-Gates einen Bezug, aber keinen Entscheidungsort für Lesarten. Der
-  Ort einer Randform eines Werkzeugvertrags ist die Spezifikation, Abschnitt für Harness-Werkzeuge (Technik-Stratum), angelegt von einem eigenen Folge-Slice; die ADR trägt
+  Ort einer Randform eines Werkzeugvertrags ist die Spezifikation, Abschnitt für Harness-Werkzeuge (Technik-Stratum), angelegt von `slice-harness-vertraege-spezifikation`; die ADR trägt
   Entscheidung und Gründe. Mit diesem Slice ist es das zweite Auftreten (Review F-406),
   der Beleg folgt mit der Closure.
 

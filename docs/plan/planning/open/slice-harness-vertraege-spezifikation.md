@@ -235,7 +235,13 @@ entscheidet der Implementer nicht, er gibt es zurück.
   Spezifikation steht im Rang über der ADR (`harness/README.md` §Source precedence):
   Weicht der Abschnitt ab, gilt er. Offen: ob der Abschnitt den Wortlaut der ADR
   übernimmt oder in eigener Fassung schreibt; eine eigene Fassung darf inhaltlich
-  nichts ändern (§1, *Verhaltensänderung*).
+  nichts ändern (§1, *Verhaltensänderung*). Dieselbe Doppelung trägt
+  [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Accepted, bleibt
+  unverändert): Ihr Satz „Form der Deklaration, Pfad-Schreibweise und Fehlformen stehen
+  im Kopf des Abdeckungs-Skripts“ nennt einen Ort, den die Kurs-Antwort ersetzt. Der
+  Abschnitt übersteuert ihn: Form, Pfad-Schreibweise und Fehlformen stehen dort, weil
+  die Spezifikation im Rang über der ADR steht, und der Skriptkopf trägt nur, womit das
+  Werkzeug geprüft ist (Verifikation V-65 von `slice-lastenheft-pruefbarkeit`).
 - **Was der Abschnitt nennen darf** — `spec-straten → aussen` ist verboten: Der
   Abschnitt verlinkt weder Skript noch Sensor-Datei noch Makefile. Offen: ob er
   Werkzeug und Pfade als Text nennt (etwa `make kopf-check`,

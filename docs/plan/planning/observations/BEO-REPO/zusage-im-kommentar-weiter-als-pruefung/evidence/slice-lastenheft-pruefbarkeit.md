@@ -1,0 +1,2 @@
+**Vorgang:** slice-lastenheft-pruefbarkeit
+**Fund:** Die geplante Deklaration „Teil 3 von 3“ an der Lint-Gegenprobe hätte mehr zugesagt, als die Gegenprobe prüft — nur eine der zwei Bedingungen von Messmethode (3) (Review F-407; Zuordnung laut Review-Summary). Der Slice-Plan begründete in §1 (3), das Doku-Gate verlange für jede Lastenheft-Kennung einen auflösenden Link; `.d-check.yml` verlangt ihn nur für ADR-Kennungen, die Probe mit blanker Kennung blieb grün (Verifikation V-64, PD2). Beide im Plan berichtigt.
