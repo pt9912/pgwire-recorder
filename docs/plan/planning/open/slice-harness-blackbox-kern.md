@@ -16,9 +16,9 @@ nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
 Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 3). Bindung: die ADR von `slice-harness-lint` (Stufung von `testpackage` mit Hochschalt-Trigger auf diesen Slice), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckungs-Deklarationen an den Tests bleiben unverändert).
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 3; Messmethode 1 für die Testdateien dieser Pakete). Bindung: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Export-Test-Brücke, Entscheidung 4; Bereinigung vor dem Gate ohne Stufen, Entscheidung 5: die Befunde der Testdateien dieser Pakete behebt dieser Slice), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckungs-Deklarationen an den Tests bleiben unverändert).
 
-**Berührte Spec-Stellen:** —
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Punkt 7 und 8: Brücke und dauerhafte Ausnahmen, gegen die umgestellt wird; der Slice ändert die Stelle nicht)
 
 **Verantwortlich:** —
 
@@ -37,16 +37,18 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Die Unit-Tests unter `internal/hexagon/model` und `internal/hexagon/services` laufen als Black-Box-Pakete
 (`package <name>_test`) und prüfen über die exportierte Schnittstelle des Pakets;
-`testpackage` ist für diese Pfade scharf. Wo ein Test einen unexportierten Teil
-braucht, geht er über eine Export-Test-Brücke (`export_test.go`) in der Form, die die
-ADR von `slice-harness-lint` festlegt, oder wird gegen die exportierte Schnittstelle
-umgeschrieben. Die Fälle und ihre Prüfungen bleiben erhalten; der Slice ist ein Umbau
-der Tests, keine neue Prüfung. Der White-Box-Fall in der Lint-Gegenprobe (§2) belegt für
-diese Pfade die erste Bedingung von Messmethode 3 von LH-QA-07.
+keine Testdatei unter diesen Pfaden hat in `make lint` einen Befund. Dafür behebt der
+Slice in den Testdateien, die er umschreibt, die 31 Befunde aus der Messung in
+[ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Stand `79f40e1`; Aufteilung je Paketgruppe in der Fassung `92d1b86`
+der ADR): `testpackage` 9, `contextcheck` 5, `gochecknoglobals` 17. Wo ein Test einen unexportierten Teil braucht, geht
+er über die Export-Test-Brücke nach `SPEC-049` Punkt 7 (`export_test.go`) oder wird
+gegen die exportierte Schnittstelle umgeschrieben. Die Fälle und ihre Prüfungen
+bleiben erhalten; der Slice ist ein Umbau der Tests, keine neue Prüfung.
 
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-05: Die Tests werden auf
-Black-Box-Pakete umgestellt; bis dahin führt `slice-harness-lint` `testpackage`
-gestuft, mit Hochschalt-Trigger auf die vier Umstellungs-Slices
+Black-Box-Pakete umgestellt; am 2026-10-06, nach der Messung: Bereinigung vor dem
+Gate, ohne Stufen, und die vier Umstellungs-Slices beheben dabei auch die übrigen
+Befunde ihrer Testdateien
 (`slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`,
 `slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`). Geschnitten ist
 nach Paketgruppe, je in einer Schicht des Hexagons, damit jeder Schnitt einzeln
@@ -62,8 +64,14 @@ lieferbar und in einer Review-Sitzung prüfbar bleibt.
 - Neue Fälle oder geänderte Erwartungen — ein anderer Vorgang; der Umbau soll an
   derselben Testliste messbar sein (§2). Die Schwelle der Testabdeckung übernimmt
   `slice-harness-coverage`, gemessen erst nach allen vier Umstellungs-Slices.
+- Das Scharfschalten am Gate und der White-Box-Fall für diese Pfade in der
+  Lint-Gegenprobe — übernimmt `slice-harness-lint`: Vor dem Gate gibt es weder eine
+  Stufe noch eine Gegenprobe (Entscheidung 5); dieser Slice belegt sein Ergebnis mit
+  dem Werkzeug `make lint`.
+- Befunde im Produkt-Code dieser Pakete — übernimmt `slice-lint-bestand-kern-driven` nach den
+  Umstellungs-Slices.
 - Produkt-Verhalten, Spezifikation, Lastenheft — Schicht-Abgrenzung: Der Slice ändert
-  Testdateien, `.golangci.yml` und die Gegenprobe des Lint-Gates.
+  Testdateien; `.golangci.yml` und die Gegenprobe des Lint-Gates ändert er nicht.
 
 ## 2. Definition of Done
 
@@ -76,12 +84,12 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       (`go test -list .` je Paket, im gepinnten Go-Image) ist vor und nach dem Umbau gleich, keine Prüfung ist
       entfallen, die Abdeckungs-Deklarationen nach [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) stehen unverändert und
       `make abdeckung-check` ist grün. Unexportierte Teile erreicht ein Test nur über
-      die Brücke nach der ADR des Lint-Gates.
-- [ ] `testpackage` ist für `internal/hexagon/model` und `internal/hexagon/services` scharf: Die Stufe aus `.golangci.yml` ist für diese
-      Pfade aufgehoben (Hochschalt-Trigger nach der ADR), `make lint` ist grün, und die
-      Gegenprobe des Lint-Gates führt einen Fall, in dem ein White-Box-Test in einem
-      dieser Pfade rot wird; die Mutation ist gesehen (`AGENTS.md` §3.10). Der Fall gehört
-      zum Nachweis der ersten Bedingung von Messmethode 3 von LH-QA-07.
+      die Brücke nach `SPEC-049` Punkt 7.
+- [ ] `make lint` meldet in den Testdateien unter `internal/hexagon/model` und `internal/hexagon/services` keinen Befund: Die
+      31 Befunde der Messung sind behoben, ohne `//nolint` und ohne Änderung an
+      `.golangci.yml`; die dauerhaften Ausnahmen nach `SPEC-049` Punkt 8 blendet das
+      Profil aus. Die Zeilen der Ausgabe unter diesen Pfaden vor und nach dem Umbau
+      stehen im Bericht; Befunde im Produkt-Code bleiben für `slice-lint-bestand-kern-driven`.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -100,21 +108,23 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/model/extended_test.go` | refactor | `package model_test` |
+| `internal/hexagon/model/extended_test.go`, `fehler_test.go` | refactor | `package model_test` |
 | `internal/hexagon/services/*_test.go` (sieben Dateien) | refactor | `package services_test`; Fakes der Ports und Testhelfer wandern mit |
-| `export_test.go` je Paket, nur wo nötig | neu | Brücke zu unexportierten Teilen nach der ADR des Lint-Gates |
-| `.golangci.yml` | update | Stufe von `testpackage` für diese Pfade aufheben |
-| `tools/harness/lint-gegenprobe.sh` | update | Fall: White-Box-Test in einem dieser Pfade wird rot |
+| `export_test.go` je Paket, nur wo nötig | neu | Brücke zu unexportierten Teilen nach `SPEC-049` Punkt 7 |
+| dieselben Testdateien | update | übrige Befunde aus `make lint` (`contextcheck` 5, `gochecknoglobals` 17) in den Dateien, die der Umbau ohnehin umschreibt |
 
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-lint` liegt in `done/` (WIP-Limit 1,
-Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05 und 2026-10-06: Lastenheft, Lint,
-die vier Umstellungs-Slices, `slice-harness-abdeckung-gate`, Coverage). Vor dem ersten Code-Commit prüft der Architect §6 gegen
-die ADR des Lint-Gates (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
+**Start** (`next` → `in-progress`): `slice-harness-lint-werkzeug` liegt in `done/` (WIP-Limit 1,
+Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05 und 2026-10-06:
+`slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
+`slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
+`slice-harness-abdeckung-gate`, Coverage, Mutation). Gemessen wird mit dem Werkzeug
+`make lint` aus `slice-harness-lint-werkzeug`. Vor dem ersten Code-Commit prüft der
+Architect §6 gegen `SPEC-049` (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -123,8 +133,9 @@ die ADR des Lint-Gates (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
   umgestellt werden muss; dann je Paket ein eigener Slice.
 - `in-progress` → `open` (blockiert — Carveout?): Ein Test erreicht einen Teil, den er
   prüfen muss, weder über die exportierte Schnittstelle noch über die Brücke, die die
-  ADR zulässt; dann zuerst eine Entscheidung des Architect (Brücke erweitern oder
-  Schnittstelle des Pakets ändern).
+  ADR zulässt, oder ein Befund in einer Testdatei lässt sich nur mit einer neuen
+  Ausnahme beheben; dann zuerst eine Entscheidung des Architect (Brücke erweitern,
+  Schnittstelle des Pakets ändern, Ausnahme mit dauerhaftem Grund).
 
 ## 5. Closure-Trigger
 
@@ -132,7 +143,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
 Lerneintrag; ohne ihn ist der Slice nur abgelegt.
 
-DoD vollständig, `make gates` grün mit scharfem `testpackage` für diese Pfade,
+DoD vollständig, `make gates` grün, `make lint` ohne Befund in den Testdateien dieser
+Pfade,
 Closure-Notiz mit Lerneintrag.
 
 ## 6. Risiken und offene Punkte
@@ -142,17 +154,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen** (`AGENTS.md` §3.12) — offen, entschieden von `slice-harness-lint` vor
-dessen Code und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation
-(angelegt von `slice-harness-vertraege-spezifikation`), mit Entscheidung und Gründen in
-der ADR von `slice-harness-lint`; was dort nicht steht, gibt der Implementer an den
-Architect zurück.
+**Randformen** (`AGENTS.md` §3.12) — entschieden vom Architect am 2026-10-06 in
+`SPEC-049` Punkt 7 und 8 und [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) Entscheidung 4 und 5; was dort nicht
+steht, gibt der Implementer an den Architect zurück.
 
-- **Export-Test-Brücke** — ob sie zulässig ist und in welcher Form: `export_test.go`
-  im Paket selbst (`package <name>`), das unexportierte Funktionen, Typen oder
-  Konstanten unter exportiertem Namen für die `_test`-Dateien sichtbar macht; Name der
-  Datei, Benennung der Aliase, und ob sie Zustand setzen darf (etwa eine Frist für
-  einen Test verkürzen) oder nur lesen.
+- **Export-Test-Brücke** — entschieden (`SPEC-049` Punkt 7): einzige Datei
+  `export_test.go` im Paket des Codes, nur Typ-Aliase, Konstanten und Funktionen oder
+  Methoden, die an Unexportiertes weiterreichen; Zustand nur an einem übergebenen Wert,
+  nie auf Paketebene (eine Frist für einen Test verkürzt sie nur an einem übergebenen
+  Wert). Eine Variable oder eine Funktion `Test…` darin ist ein Befund.
+- **Übrige Befunde der Testdateien** — `contextcheck`: `t.Context()` statt eines neuen Kontexts; `gochecknoglobals`: Testdaten und Fakes in Funktionen oder als Konstanten. Kein `_ =` vor einem Fehler, den
+  `errcheck` meldet, und keine Ausnahme, die nur Bestand aussetzt (Entscheidung 5).
 - **White-Box-Zugriffe im Bestand** — Namensabgleich per Suche am Stand `ce50a10`
   (ungemessen, kann Fehltreffer enthalten, wo ein Testhelfer gleich heißt): in `model` keine; in `services` u. a. `abweichung`, `cursor`, `istLebendpruefung`, `vtLeerraum`, `laufende`, `letzteNummer`, `mitten`.
   Je Zugriff: über die exportierte Schnittstelle prüfbar, über die Brücke, oder
@@ -173,9 +185,10 @@ Architect zurück.
 - **Abdeckung sinkt** — Black-Box-Tests erreichen unexportierte Pfade seltener; die
   Zahl misst erst `slice-harness-coverage` nach allen vier Umstellungs-Slices.
   — **Ausgang:** — (bei Closure)
-- **Gegenprobe sieht den Mutanten nicht** — Build-Kontext
-  (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`, 1×); die Gegenprobe baut aus einer
-  Kopie unter eigenem Temp-Pfad. — **Ausgang:** — (bei Closure)
+- **Befund verdeckt statt behoben** — `_ =` vor einem ungeprüften Fehler, eine Globale
+  als Funktion mit demselben geteilten Zustand: `make lint` ist grün, der Test nicht
+  besser. Review prüft die Form, das Werkzeug nur die Zahl (Grenze von `SPEC-049`).
+  — **Ausgang:** — (bei Closure)
 
 ## 7. Closure-Notiz
 
@@ -211,14 +224,15 @@ nicht mehr.
 (Kürzel `REPO`, Greenfield); dieser Slice berührt nur sie.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register
-`docs/plan/planning/observations/BEO-REPO/` am Stand `ce50a10` gesichtet (Zähler =
+`docs/plan/planning/observations/BEO-REPO/` am Stand `175fd2d` gesichtet (Zähler =
 Dateien unter `evidence/`). Treffer:
 
-- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (8×, verkörpert in `AGENTS.md`
-  §3.10) — das Scharfschalten von `testpackage` für diese Pfade ist eine neue Zusage
-  des Lint-Gates und bekommt ihren roten Fall (§2).
-- `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (1×) und
-  `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (1×) — je ein Risiko in §6.
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (12×, verkörpert in `AGENTS.md`
+  §3.10) — der rote Fall für diese Pfade gehört zum Gate und liegt bei
+  `slice-harness-lint`; dieser Slice liefert keinen neuen Vertrag.
+- `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (1×) — ein Risiko in §6.
+  `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (1×) betrifft diesen Slice nicht
+  mehr, er führt keine Gegenprobe.
 - `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (1×) — wellenlos; §4 nennt den
   Architect vor dem Code.
 - `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (2×) — die Brücke ist
