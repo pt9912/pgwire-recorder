@@ -20,7 +20,7 @@ Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
 **Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Punkt 7 und 8: Brücke und dauerhafte Ausnahmen, gegen die umgestellt wird; der Slice ändert die Stelle nicht)
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-06.
 
