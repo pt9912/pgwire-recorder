@@ -111,7 +111,7 @@ liegt — wer den Baum tauscht, prüft sie von Hand gegen das Kommando oben.
 | `grundlagen-begriffe.md` | liegt bei, nicht verdrahtet | Begriffs-Definitionen ohne eigene Mechanik — der Text ist sein eigener Träger und hängt an keinem Trigger. |
 | `grundlagen-bootstrap.md` | Träger kommt mit | `harness/conventions.md` führt den Abschnitt *Modus-Deklaration pro Sub-Area*, in dem Sub-Area, Kürzel, Modus und Graduation deklariert werden. |
 | `grundlagen-durchsetzungsschicht.md` | Träger kommt mit | `.claude/hooks/pretooluse-command-guard.sh`, `.claude/hooks/stop-require-gates.sh`, `tools/harness/record-gates.sh`, `tools/harness/working-tree-hash.sh` und der Eintrag in `.claude/settings.json`. |
-| `grundlagen-harness-dateien.md` | Träger kommt mit | `AGENTS.md`, `harness/README.md` und `harness/conventions.md` liegen als ausgefüllte Dateien, nicht als Vorlagen. |
+| `grundlagen-harness-dateien.md` | Träger kommt mit | `AGENTS.md`, `harness/README.md` und `harness/conventions.md` liegen als ausgefüllte Dateien, nicht als Vorlagen. Einen Teil des Gate-Index unter `harness/mk/` legt der Bootstrap nicht ab; `harness/README.md` §Sensors führt auch die Targets seiner Fragmente. |
 | `grundlagen-klassifikation.md` | liegt bei, nicht verdrahtet | Die Einordnung von Sensoren und der Steering Loop sind Lesestoff; kein Artefakt des Ziels hängt daran. |
 | `grundlagen-referenz-richtung.md` | Träger kommt mit | Das Doku-Gate führt die Klasse `spec-straten` mit `direction: no-downward` in `.d-check.yml`; `make docs-check` fährt sie. |
 | `grundlagen-source-precedence.md` | Träger kommt mit | `harness/README.md` §Source precedence und der Kopf von `AGENTS.md` tragen die Rangfolge. |
@@ -202,7 +202,7 @@ diese Datei verweisen darf; bei Abweichung gilt das Lastenheft.
 
 | MR | aufgelöst durch |
 |---|---|
-| <a id="mr-001"></a>[MR-001](conventions/done/MR-001-spezifikations-ort-werkzeugvertraege.md) | kein Nachfolger: Antwort des Kurs-Repos auf den Change Request (2026-10-06), der Ort ist die Spezifikation |
+| <a id="mr-001"></a>[MR-001](conventions/done/MR-001-spezifikations-ort-werkzeugvertraege.md) | kein Nachfolger: Antwort des Kurs-Repos auf den Change Request (2026-10-06), der Ort ist die Spezifikation; die Baseline trägt sie seit `v6.16.0` in `grundlagen-referenz-richtung.md` §Spec-Straten |
 
 ## Zusatzklassen-Deklaration für Sensors-Bindung
 

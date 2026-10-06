@@ -412,6 +412,30 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
     `harness/conventions/done/MR-001-spezifikations-ort-werkzeugvertraege.md`),
     behoben nach §6 *Befunde in eingefrorenen Dokumenten* (a): Link zu Code-Span mit
     unverändertem Pfad samt `v6.13.0` und Anker, Text unverändert. Danach 0.
+  - *Abgleich v6.13.0 → v6.16.0, Befunde und Ausgänge:* Regelblöcke: keiner neu,
+    umbenannt oder entfallen; die Tabelle in `harness/conventions.md` führt alle 26
+    Dateien, die Werte bleiben, die Zeile `grundlagen-harness-dateien.md` nennt den
+    fehlenden Teil des Werkzeugs. `MR-000` bleibt wahr (keine aktive Adaption; die
+    aufgelöste `MR-001` ist nach §6 *Klarstellung zum Technik-Stratum* behandelt).
+    (1) Reviewer ohne Stil-Finding, HIGH und MEDIUM nur mit Failure-Szenario, LOW mit
+    Konventions-Anker, `pfad` als Kurzzitat (`modul-10-review-harness.md`, Vorlagen der
+    beiden Skills) — behoben in `.harness/skills/reviewer.md` und
+    `.harness/skills/closure-note-reviewer.md`. (2) Werkzeug-Festlegungen im
+    Technik-Stratum (`grundlagen-referenz-richtung.md` §Spec-Straten, `modul-03-spec.md`,
+    Vorlagen der Spezifikation, der ADR, des ADR-Index und der Sensor-Datei) — behoben:
+    Zeile `MR-001` in §Aufgelöste Adaptionen nennt Stand und Abschnitt, der ADR-Index
+    nennt die Regel in *Konventionen*; Spezifikation §11, beide Sensor-Dateien und die
+    Pläne der Lint-Reihe folgen ihr schon; angenommene Gate-ADRs, deren `Schärft:` eine
+    Anforderung nennt, bleiben unverändert (`AGENTS.md` §3.5). (3) Teil des Gate-Index,
+    der einem Werkzeug gehört (`grundlagen-harness-dateien.md`, `modul-13-quality-gates.md`,
+    Vorlagen von `AGENTS.md`, `harness/README.md`, `Makefile`, `.d-check.yml`) —
+    Folge-Slice `slice-harness-gate-index-werkzeug-teil` in `open/`. (4) Form der
+    Register-Kennung und Ablage `observations/` in den Vorlagen — kein Befund: lebende
+    Harness-Dateien führen die neue Form schon, Pläne sind wiederkehrende Vorlagen
+    (append-only). (5) Pflicht-Feld ohne Wert in `modul-15-observability.md` — kein
+    Befund: `harness/erfassung-feldliste.md` (werkzeug-erzeugt) sagt „leer heißt
+    unbekannt“ und nennt die Quelle. Stichprobe ohne Delta: `modul-05-planning-harness.md`
+    §Offene Risiken gegen §6 dieses Plans und die offenen Pläne — ohne Befund.
 - **Weitergereicht an das Kurs-Repo bzw. an ai-harness-init:** (1) Kurs-Repo:
   `modul-02-harness-bootstrap.md` §Freshness-Audit lässt alte und neue Form nebeneinander
   liegen („Das alte Verzeichnis fällt erst, wenn der Review durch ist“), das emittierte
