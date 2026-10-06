@@ -43,6 +43,12 @@ Wellen-Closure), Modul 7 (Carveouts), Modul 5 (Lifecycle). Bei Konflikt gilt der
    Das ist die **beobachtbare** Bedingung, nicht der Kalendertag. Fehlt ein Beleg (ein Slice nicht
    `done`, ein Gate rot), **schließt die Welle nicht** — kein halbfertiges `done/`. Erzeuge die Belege
    **real** (Gate-Ausgabe, Smoke-Lauf), behaupte sie nicht.
+   **Ein Abnahmeszenario gilt erst mit roter Mutation je Zusage** (seit slice-replay-semantik-fehlerreplay):
+   Nennt §3 der Welle ein Abnahmeszenario, hält jede seiner Zusagen — auch die verneinende, etwa
+   „keine Antwort“ — ein Test, der unter ihrer Mutation rot wird (Mutationsweg nach
+   `implement-slice` Schritt 19). Eine Abdeckungs-Deklaration oder ein Bestands-Test, der die Zusage
+   nennt, ist kein Beleg. Den Lauf fährt die Verifikation eines Slice der Welle oder ein eigener
+   Verifier-Lauf; bleibt eine Mutation grün, schließt die Welle nicht, bis ein Slice den Nachweis liefert.
 3. **Schritt 2 — Trigger-Audit der Welle.** Drei Artefaktklassen tragen einen Trigger, alle drei
    werden geprüft: **Carveout** (Modul 7) → aufgelöst · verlängert (mit Folge-Slice) · permanent ·
    **bootstrap-aware Gate** (Modul 13) → Stufe hochschalten, oder Carveout eröffnen, wenn die neue

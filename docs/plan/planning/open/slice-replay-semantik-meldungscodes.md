@@ -33,6 +33,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-extended-query-replay`** (Review F-328, Validierung `docs/reviews/2026-10-05-validierung-slice-extended-query-replay.md`, Befund 3): Mit `--log-level` wird die Regel zu Parameterwerten in der Diagnose wirksam, und die Spezifikation fasst sie zweimal verschieden — `LH-FA-18.a` §Mismatch verbietet Klartext-Werte nur, „wenn der Log-Level nicht `debug` ist“, `SPEC-033` verbirgt sie ohne Bedingung. Die Diagnose geht zudem als `ErrorResponse` an den Client, ein Log-Level wirkte also auch dort. Dazu nennt die Diagnose einer Parameter-Abweichung den Index des abweichenden Parameters nicht, obwohl er keinen Wert verrät. Beides entscheidet der Nutzer als Änderung von `LH-FA-18.a` §Mismatch und `SPEC-033`, bevor dieser Slice beginnt (§4); die Umsetzung liefert DoD-Punkt 3.
 
+**Übernommen aus `slice-replay-semantik-fehlerreplay`** (Verifikation `docs/reviews/2026-10-06-verifikation-slice-replay-semantik-fehlerreplay.md`, V-52): Abnahmeszenario 4 ist für Simple Query nur zur Hälfte nachgewiesen. `TestE2EReplayAbweichung` prüft `PGR-E5001` und Exit-Code 5, deklariert auch „keine Antwort“, verwirft aber die Ergebnisse von `ReadAll`; `TestReplayMismatch` deklariert `LH-FA-10/Negative` und prüft nur Code und Cursor. Die Mutation „bei abweichender Anfrage liefert das Replay die Antworten der aufgezeichneten Anfrage, der Driving-Adapter sendet sie vor `PGR-E5001`“ bleibt grün (VF24). Der Code ist richtig, es fehlt nur der Nachweis für `LH-FA-10` Negative („statt eine unpassende aufgezeichnete Antwort zu verwenden“). Ohne ihn schließt welle-replay-semantik nicht (Closure-Trigger, Abnahmeszenario 4). Der Nachweis gehört in DoD-Punkt 3, weil er dieselbe Anforderung und dieselbe Diagnose einer Abweichung betrifft; er braucht keinen Produktionscode.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Gate, das Code-Tabelle und Katalog abgleicht — Folge-Slice, sobald der Katalog in der Betriebsdokumentation (welle-v1-abschluss) steht.
@@ -48,7 +50,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben): Fehlerklassen aus `SPEC-020` bis `SPEC-028` liefern ihren Code im Kopf des Fehlertexts und als Log-Attribut (Test je Klasse).
 - [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Die Klasse eines Fehlers entspricht `SPEC-013` bis `SPEC-019` (Test je Klasse, deren Auslöser in dieser Welle existiert; die Abbildung auf den Exit-Code beim Herunterfahren und die übrigen Klassen prüft `slice-v1-abschluss-betrieb`).
-- [ ] [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage): Die Diagnose einer Parameter-Abweichung nennt den Index des abweichenden Parameters ohne seinen Wert, und Parameterwerte erscheinen in Diagnose und `ErrorResponse` so, wie die vor Beginn bestätigte Fassung von `LH-FA-18.a` §Mismatch und `SPEC-033` es sagt, auf jedem Log-Level (Test).
+- [ ] [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage): Die Diagnose einer Parameter-Abweichung nennt den Index des abweichenden Parameters ohne seinen Wert, und Parameterwerte erscheinen in Diagnose und `ErrorResponse` so, wie die vor Beginn bestätigte Fassung von `LH-FA-18.a` §Mismatch und `SPEC-033` es sagt, auf jedem Log-Level (Test). Bei einer abweichenden einfachen Anfrage erhält der Client keine aufgezeichnete Antwort, nur `PGR-E5001` (Abnahmeszenario 4, `LH-FA-10` Negative, übernommen aus `slice-replay-semantik-fehlerreplay`): `TestE2EReplayAbweichung` verlangt, dass `ReadAll` kein Ergebnis liefert, `TestReplayMismatch`, dass `Query` bei Abweichung keine Antworten liefert; beide werden rot, wenn das Replay die Antworten der aufgezeichneten Anfrage vor `PGR-E5001` liefert (E2E und Unit, Abdeckung `LH-FA-10/Negative`).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -69,6 +71,9 @@ Aussagen-Berührung steht hier gar nicht.
 | Code-Tabelle (Paket im Core) | neu | Quelle der Wahrheit der Codes |
 | `internal/adapters/driving/cli` | update | Kopf, Exit-Code-Abbildung, `--log-level` |
 | Tests je Fehlerklasse | neu | Happy/Negative nach `SPEC-034` |
+| `test/integration/replay_e2e_test.go` | update | DoD 3, Abnahmeszenario 4: `TestE2EReplayAbweichung` prüft die Ergebnisse von `ReadAll` (keine), Deklaration `LH-FA-10/Negative` ergänzt |
+| `internal/hexagon/services/replay_test.go` | update | DoD 3: `TestReplayMismatch` prüft, dass `Query` bei Abweichung keine Antworten liefert |
+| `docs/user/abdeckung-*.md` | update | von `make abdeckung` aus den geänderten Deklarationen geschrieben |
 
 ## 4. Trigger
 
