@@ -1,39 +1,24 @@
 #!/usr/bin/env bash
-# kopf-check — prüft, dass der Kopf jedes lebenden Slice-Plans die Kennungen
-# führt, die §1 oder §2 des Plans nennt (ADR-0032).
+# kopf-check — prüft, dass der Kopf jedes lebenden Slice-Plans die Kennungen führt,
+# die §1 oder §2 des Plans nennen.
+# Vertrag: spec/spezifikation.md SPEC-047 (Punkte 1 bis 9 und Grenze); wie ein Lauf
+# zu lesen ist: harness/sensors/kopf-check.md.
+# Aufruf: kopf-check.sh [<wurzel>] (ohne Wurzel das aktuelle Verzeichnis)
 #
-# ZUSAGE (je Punkt hält ihn tools/harness/kopf-check-gegenprobe.sh):
-#   - Geprüft werden Dateien slice-*.md flach in docs/plan/planning/open/, next/
-#     und in-progress/; done/ und andere Dateien nicht.
-#   - Kennungen sind LH-XX-NN, LH-XX-NN.x, SPEC-NNN und ARC-NNN als ganzes Wort
-#     (Wortzeichen: Buchstabe, Ziffer, Unterstrich); Auszeichnung ist ohne Belang,
-#     eine andere Schreibweise ist keine Kennung.
-#   - `SPEC-NNN bis SPEC-MMM` (ebenso ARC, Backticks erlaubt, NNN < MMM) steht für
-#     jede Kennung dazwischen, im Kopf wie in §1 und §2, auch über einen
-#     Zeilenumbruch im Absatz.
-#   - Gleichheit ist exakt: Haupt- und Unterkennung decken einander nicht.
-#   - Kopf sind die Absätze, die mit **Bezug:** und **Berührte Spec-Stellen:**
-#     beginnen, vor der ersten Zeile `## `, je bis zur nächsten Leerzeile; geprüft
-#     wird gegen ihre Vereinigung. Eine Leerzeile darf Leerzeichen und Tabs tragen.
-#     Ein Absatz beginnt nur in der ersten Zeile der Datei oder nach einer
-#     Leerzeile; eine Feldmarke mitten in einer Zeile oder in einer Folgezeile
-#     (etwa direkt nach `# …`, `---` oder einem anderen Feld) ist kein Feld.
-#   - §1 und §2 reichen von der Zeile `## 1.` bzw. `## 2.` bis zur nächsten Zeile
-#     `## `; der Absatz, der mit „Regeln dieser Sektion“ beginnt, zählt nicht.
-#   - Fehlt ein Kopf-Feld oder einer der beiden Abschnitte, ist das ein Befund.
-#   - Ein Plan, der nicht lesbar ist oder an dem awk scheitert, ist genau ein
-#     Befund `<pfad>: Datei: nicht lesbar`, gleich an welcher Position; die übrigen
-#     Pläne werden weiter gelesen.
-#
-# GRENZE. Ob eine Kennung existiert, in welchem Kopf-Feld sie steht und was
-# außerhalb von §1 und §2 steht, prüft das Skript nicht; eine Zeile `## ` in einem
-# Codeblock beendet den Abschnitt.
-#
-# Aufruf: kopf-check.sh [<wurzel>]
-# Ausgabe: je Befund eine Zeile auf stderr, `<pfad>: <abschnitt>: <befund>`,
-# sortiert nach Pfad, Abschnitt und Kennung; jede Kennung je Abschnitt einmal.
-# Ausgang: 0 ohne Befund, 1 bei mindestens einem Befund, 2 wenn
-# docs/plan/planning/ fehlt.
+# GEPRÜFT DURCH tools/harness/kopf-check-gegenprobe.sh:
+#   (1) Gegenstand — nr1-*
+#   (2) Kennungen — nr2-*, vollstaendig
+#   (3) Bereich — nr3-*
+#   (4) Gleichheit ist exakt — nr4-*
+#   (5) Kopf — nr5-*, leerer-kopf-ohne-nennung
+#   (6) §1 und §2 — nr6-*
+#   (7) Formfehler — nr7-*
+#   (8) Ausgabe und Ausgang — nr8-sortiert, nr8-unlesbar-davor, nr8-unlesbar-zuletzt,
+#       nr8-awk-scheitert, nr8-ohne-ablage, nr8-leere-ablage
+#   (9) Start ohne Stufung — Abschnitt „Nr. 9: Start ohne Stufung“ (nr9-gate-checks,
+#       nr9-scharf)
+#   Grenze — neg-*
+#   Aufruf ohne Wurzel — nr8-wurzel-aktuell
 set -euo pipefail
 export LC_ALL=C
 

@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
-# kopf-check-gegenprobe — prüft tools/harness/kopf-check.sh (ADR-0032) an kleinen
-# Bäumen in einem Temp-Verzeichnis; der Arbeitsbaum bleibt unberührt. Je Fall ein
-# Baum mit einem oder mehreren Plänen; erwartet ist entweder Exit 0 ohne Ausgabe
-# (grün) oder Exit 1 mit einer bestimmten Befund-Zeile auf stderr (rot). Die Fälle
-# sind nach den Nummern der ADR gruppiert; die akzeptierten Negative der ADR
-# (Kennung außerhalb von §1/§2, Feldwahl, Existenz der Kennung) stehen als
-# grüne Fälle darunter. Für Nr. 9 kopiert sie Makefile und harness/mk/kopf-check.mk
-# aus dem Arbeitsbaum in einen Temp-Baum und ruft dort make.
+# kopf-check-gegenprobe — prüft tools/harness/kopf-check.sh gegen seinen Vertrag
+# (spec/spezifikation.md SPEC-047) an kleinen Bäumen in einem Temp-Verzeichnis; der
+# Arbeitsbaum bleibt unberührt. Je Fall ein Baum mit einem oder mehreren Plänen;
+# erwartet ist Exit 0 ohne Ausgabe (grün), Exit 1 mit bestimmten Befund-Zeilen auf
+# stderr (rot) oder, ohne Ablage, Exit 2 mit der Abbruchzeile. Die Fälle sind nach den
+# Punkten des Vertrags gruppiert (Präfix nr<n>-); die Grenze des Vertrags (Existenz
+# der Kennung, Feldwahl, Kennung außerhalb von §1/§2, Zeile `## ` im Codeblock) steht
+# als grüne Fälle neg-* darunter. Für Punkt 9 kopiert sie Makefile und
+# harness/mk/kopf-check.mk aus dem Arbeitsbaum in einen Temp-Baum und ruft dort make.
+#
+# GRENZE der Gegenprobe: Als root bleibt eine Datei mit Rechten 000 lesbar; dann sind
+# nr8-unlesbar-davor und nr8-unlesbar-zuletzt nicht herstellbar und werden laut
+# übersprungen.
 #
 # Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.
 set -euo pipefail
@@ -126,6 +131,8 @@ einzeln_rot nr2-schreibweise-kopf "§1: LH-FA-01 fehlt im Kopf" "\`lh-fa-01\`" "
 einzeln_gruen nr3-bereich-kopf "—" "\`SPEC-013\` bis \`SPEC-019\` · ARC-001 bis ARC-003" "SPEC-016 und ARC-002" "-"
 einzeln_gruen nr3-bereich-abschnitt "—" "SPEC-013 · SPEC-014 · SPEC-015" "\`SPEC-013\` bis \`SPEC-015\`" "-"
 einzeln_gruen nr3-bereich-zeilenumbruch "—" "$(printf 'SPEC-013 bis\nSPEC-019')" "SPEC-015" "-"
+einzeln_rot nr3-bereich-zeilenumbruch-abschnitt "$(printf '§1: SPEC-014 fehlt im Kopf\n§1: SPEC-015 fehlt im Kopf')" \
+  "—" "SPEC-013 · SPEC-016" "$(printf 'SPEC-013 bis\nSPEC-016')" "-"
 einzeln_rot nr3-bereich-abschnitt-luecke "$(printf '§1: SPEC-014 fehlt im Kopf\n§1: SPEC-015 fehlt im Kopf')" \
   "—" "SPEC-013 · SPEC-016" "SPEC-013 bis SPEC-016" "-"
 einzeln_rot nr3-absteigend "§1: SPEC-015 fehlt im Kopf" "—" "SPEC-019 bis SPEC-013" "SPEC-015" "-"
@@ -270,10 +277,14 @@ plan "$w/$P/open/slice-m.md" "—" "—" "SPEC-004" "-"
 vorpfad="$w/bin:"
 rot nr8-awk-scheitert "$w" "$P/open/slice-kaputt.md: Datei: nicht lesbar" "$P/open/slice-m.md: §1: SPEC-004 fehlt im Kopf"
 vorpfad=""
-# Ohne Ablage: Exit 2.
+# Ohne Ablage: Exit 2 mit einer Abbruchzeile, die die fehlende Ablage nennt.
 mkdir -p "$arbeit/ohne-ablage/docs/plan"
 lauf "$arbeit/ohne-ablage"
 [ "$code" -eq 2 ] || melde "Fall 'nr8-ohne-ablage' erwartet Exit 2, bekam $code"
+case "$err" in
+  "kopf-check: docs/plan/planning fehlt"*) ;;
+  *) melde "Fall 'nr8-ohne-ablage' erwartet die Zeile 'kopf-check: docs/plan/planning fehlt …', bekam: $err" ;;
+esac
 # Ablage ohne Lifecycle-Verzeichnisse: nichts zu prüfen.
 mkdir -p "$arbeit/leer/$P"
 gruen nr8-leere-ablage "$arbeit/leer"
@@ -306,7 +317,7 @@ for ziel in kopf-check kopf-check-gegenprobe; do
   fi
 done
 
-# --- Akzeptierte Negative (ADR-0032 §Konsequenzen) ---------------------------
+# --- Grenze (SPEC-047; akzeptierte Negative von ADR-0032) ------------------
 einzeln_gruen neg-existenz "LH-ZZ-99" "SPEC-999" "LH-ZZ-99 und SPEC-999" "-"
 einzeln_gruen neg-feldwahl "SPEC-001 · ARC-001" "LH-FA-01" "LH-FA-01, SPEC-001, ARC-001" "-"
 neu; plan "$w/$P1" "—" "—" "x" "-" "SPEC-004 in §3"
