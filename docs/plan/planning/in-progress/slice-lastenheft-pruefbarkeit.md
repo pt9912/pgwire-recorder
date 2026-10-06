@@ -278,6 +278,13 @@ dasteht.
     Nachweis-Spalte ist der Skriptpfad; eigene Tabelle der Nachweisart Gate neben E2E
     und Unit; ob die Gegenprobe an `GATE_CHECKS` hängt, prüft das Skript nicht
     (Grenze im Skriptkopf, Review).
+  - *Ort dieser Randformen* (F-406): Für Harness-Werkzeuge ist der Spezifikations-Ort
+    im Sinn von §3.12 nach [MR-001](../../../../harness/conventions.md#mr-001) der ZUSAGE-Kopf von `tools/test/abdeckung.sh` mit der
+    Vertragszeile von `make abdeckung-check` in `harness/README.md` §Sensors, nicht
+    [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), die Entscheidung und
+    Gründe trägt. Bis zum Code stehen sie hier und in §6 von
+    `slice-harness-abdeckung-gate`; jede zugesagte Randform braucht dort einen Fall in
+    `make abdeckung-gegenprobe`.
 - **Spezifikation** — **entschieden (Architect, 2026-10-06): keine
   Spezifikationsstelle.** Die Spezifikation beschreibt Produktverhalten und externe
   Verträge; Regelprofil, Schwelle und Testanordnung betreffen den Quellstand und die

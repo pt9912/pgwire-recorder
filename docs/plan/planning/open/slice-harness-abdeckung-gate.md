@@ -158,7 +158,11 @@ dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12). Vorgegeben durch
 [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) und §6 *Nachweis* von
-`slice-lastenheft-pruefbarkeit` (Architect, 2026-10-06); vor dem Code zu bestätigen:
+`slice-lastenheft-pruefbarkeit` (Architect, 2026-10-06); vor dem Code zu bestätigen.
+**Ort** (F-406): nach [MR-001](../../../../harness/conventions.md#mr-001) der ZUSAGE-Kopf von `tools/test/abdeckung.sh` zusammen mit
+der Vertragszeile von `make abdeckung-check` in `harness/README.md` §Sensors; die ADR
+trägt Entscheidung und Gründe. Jede dort zugesagte Randform bekommt einen Fall in
+`make abdeckung-gegenprobe` (`AGENTS.md` §3.10, §3.11). Bis zum Code stehen sie hier:
 
 - **Pfad-Schreibweise** — `Messung-<i>-von-<n>` mit 2 ≤ n und 1 ≤ i ≤ n.
 - **Abgelehnt** — i > n; n < 2; verschiedene n für dieselbe Anforderung;
@@ -178,8 +182,9 @@ dasteht.
   ist darum 3.
 - **Anschluss an `GATE_CHECKS`** — prüft das Skript nicht; Grenze im Skriptkopf, Review.
 
-**Offen** — vor dem Code vom Architect zu entscheiden; was dort nicht steht,
-entscheidet der Implementer nicht, er gibt es zurück:
+**Offen** — vor dem Code vom Architect zu entscheiden und am selben Ort festzuhalten
+(Ort oben); was dort nicht steht, entscheidet der Implementer nicht, er gibt es
+zurück:
 
 - **Form des Kopfes** — wo der Kopf einer Gegenprobe endet (nach der Shebang-Zeile bis
   zur ersten Zeile ohne `#`?), ob Folgezeilen wie bei Tests fortsetzen, ob der Trenner
