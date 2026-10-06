@@ -16,7 +16,7 @@ nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
 Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** — (dieser Slice schreibt die Anforderung; ihre Kennung entsteht mit ihm). Entscheidungen des Nutzers vom 2026-10-05 und 2026-10-06; Abnahmeszenario vom Team entschieden (Koordinator, 2026-10-06). Nachweis-Weg: [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Architect, 2026-10-06, Proposed), ergänzt [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md).
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (von diesem Slice geschrieben). Entscheidungen des Nutzers vom 2026-10-05 und 2026-10-06; Abnahmeszenario vom Team entschieden (Koordinator, 2026-10-06). Nachweis-Weg: [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Architect, 2026-10-06; Accepted mit dem Lastenheft-Commit), ergänzt [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md).
 
 **Berührte Spec-Stellen:** `lastenheft.md §4` · `lastenheft.md §7`
 
@@ -72,14 +72,15 @@ zu berühren.
   Nachweis seiner Messmethode auf dem Weg, den dieser Slice festlegt.
 - Die Erweiterung von `make abdeckung` nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) und die ersten
   Gate-Deklarationen — ein anderer Vorgang am Werkzeug; sie übernimmt
-  `slice-harness-abdeckung-gate` (vom Planner anzulegen, zwischen
+  `slice-harness-abdeckung-gate` (von diesem Slice in `open/` angelegt, zwischen
   `slice-harness-blackbox-einstieg` und `slice-harness-coverage`, §6 *Nachweis*).
   Dieser Slice legt den Weg und die ADR fest.
 - Eine Stelle in Spezifikation oder Sicht — das Lastenheft nennt die Anforderung,
   ihre technische Schärfung tragen die ADRs; eine Spezifikationsstelle entsteht nur,
   wenn §6 *Spezifikation* das anders entscheidet.
 - Produkt-Code und Harness-Werkzeuge — Schicht-Abgrenzung: Der Slice ändert das
-  Lastenheft, die Roadmap, die Pläne von sechs Slices und schreibt
+  Lastenheft, die Roadmap, die Pläne von sechs Slices (dazu die Reihenfolge in §4 von
+  `slice-harness-mutation`), legt `slice-harness-abdeckung-gate` an und schreibt
   [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) mit Index-Zeile.
 
 ## 2. Definition of Done
@@ -127,8 +128,10 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/lastenheft.md` | update | neue Anforderung in §4 mit Priorität MUSS; Abnahmeszenario 17 in §7 |
-| `docs/plan/planning/open/slice-harness-lint.md`, `slice-harness-coverage.md`, `slice-harness-blackbox-*.md` | update | Kopf `Bezug` mit Link auf die Anforderung; DoD-Zeile zum Nachweis nach dem entschiedenen Weg |
-| `docs/plan/planning/in-progress/roadmap.md` | geprüft | Trigger von M3 mit Abnahmeszenario 17 steht seit der Planung (2026-10-06); bei Closure gegen §7 abgeglichen |
+| `docs/plan/planning/open/slice-harness-lint.md`, `slice-harness-coverage.md`, `slice-harness-blackbox-*.md` | update | Kopf `Bezug` mit Link auf die Anforderung; DoD-Zeile zum Nachweis nach dem entschiedenen Weg (lint, blackbox-einstieg, coverage); Reihenfolge in §4 *Start* mit `slice-harness-abdeckung-gate` |
+| `docs/plan/planning/open/slice-harness-abdeckung-gate.md` | neu | aus der vendored Vorlage kopiert: Erweiterung von `make abdeckung` nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), erste Gate-Deklarationen, Randformen in §6 |
+| `docs/plan/planning/open/slice-harness-mutation.md` | update | Reihenfolge in §4 *Start* mit `slice-harness-abdeckung-gate` |
+| `docs/plan/planning/in-progress/roadmap.md` | geprüft / update | Trigger von M3 mit Abnahmeszenario 17 steht seit der Planung (2026-10-06); bei Closure gegen §7 abgeglichen. Drift-Log-Zeile 2026-10-06 zur Reihenfolge mit `slice-harness-abdeckung-gate` |
 | `docs/plan/adr/0033-gate-nachweise-in-der-abdeckung.md`, `docs/plan/adr/README.md` | neu / update | [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) ergänzt [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) um Gate-Nachweise und geteilte Messung (Architect, Proposed); mit dem Lastenheft-Commit Kennung im `Bezug`, Status `Accepted`, Index nachgezogen |
 
 ## 4. Trigger
@@ -138,7 +141,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay` liegt in
 `done/` (der Wortlaut ist seit 2026-10-06 bestätigt). Erster Slice der Reihe
-(Lastenheft, Lint, die vier Umstellungs-Slices, Coverage). Vor dem Lastenheft-Commit
+(Lastenheft, Lint, die vier Umstellungs-Slices, `slice-harness-abdeckung-gate`,
+Coverage). Vor dem Lastenheft-Commit
 entscheidet der Architect §6 *Nachweis*.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
@@ -169,9 +173,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Vorschlag des Planners für den Wortlaut** — zur Entscheidung durch den Nutzer,
-nicht geschrieben (Überschrift unter der nächsten freien Nummer in §4, heute die
-siebte Qualitätsanforderung):
+**Wortlaut** — Vorschlag des Planners, vom Nutzer am 2026-10-06 bestätigt und so in
+§4 des Lastenhefts geschrieben (Überschrift `LH-QA-07`, siehe *Nummer und Ort*):
 
 > **— Prüfbarkeit des Quellcodes**
 >
@@ -222,8 +225,8 @@ siebte Qualitätsanforderung):
   Handschritt, wo Messmethode (4) „ohne Eingaben“ verlangt. Das Szenario nennt darum
   keine eigenen Quellstände, sondern einen automatisierten Gegenfall je Prüfung, der
   mit den Prüfungen läuft; Gate und Gegenprobe nennt es nicht (Lastenheft §1,
-  Referenz-Richtung). **Text — endgültiger Vorschlag des Architects, dem Nutzer vor
-  dem Lastenheft-Commit vorzulegen; bis zu seiner Bestätigung offen:**
+  Referenz-Richtung). **Text — entschieden (Nutzer, 2026-10-06):** der Vorschlag des
+  Architects, unverändert übernommen:
 
   > **Abnahmeszenario 17 — Prüfbarkeit des Quellcodes**
   >

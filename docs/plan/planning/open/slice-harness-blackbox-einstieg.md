@@ -16,7 +16,7 @@ nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
 Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** — (Harness-Arbeit; keine Produkt-Anforderung). Die neue Qualitätsanforderung an die Prüfbarkeit des Quellcodes trägt `slice-lastenheft-pruefbarkeit` hier nach, sobald sie im Lastenheft steht. Bindung: die ADR von `slice-harness-lint` (Stufung von `testpackage` mit Hochschalt-Trigger auf diesen Slice), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckungs-Deklarationen an den Tests bleiben unverändert).
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 3). Bindung: die ADR von `slice-harness-lint` (Stufung von `testpackage` mit Hochschalt-Trigger auf diesen Slice), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckungs-Deklarationen an den Tests bleiben unverändert), [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (die Deklaration von Teil 3 an der Lint-Gegenprobe setzt `slice-harness-abdeckung-gate`).
 
 **Berührte Spec-Stellen:** —
 
@@ -61,6 +61,9 @@ lieferbar und in einer Review-Sitzung prüfbar bleibt.
 - Neue Fälle oder geänderte Erwartungen — ein anderer Vorgang; der Umbau soll an
   derselben Testliste messbar sein (§2). Die Schwelle der Testabdeckung übernimmt
   `slice-harness-coverage`, gemessen erst nach allen vier Umstellungs-Slices.
+- Die Abdeckungs-Deklaration von Teil 3 von LH-QA-07 — übernimmt
+  `slice-harness-abdeckung-gate` nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md); das Abdeckungs-Skript kennt die
+  Nachweisart Gate vor ihm nicht.
 - Produkt-Verhalten, Spezifikation, Lastenheft — Schicht-Abgrenzung: Der Slice ändert
   Testdateien, `.golangci.yml` und die Gegenprobe des Lint-Gates.
 
@@ -80,9 +83,11 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Pfade aufgehoben (Hochschalt-Trigger nach der ADR), `make lint` ist grün, und die
       Gegenprobe des Lint-Gates führt einen Fall, in dem ein White-Box-Test in einem
       dieser Pfade rot wird; die Mutation ist gesehen (`AGENTS.md` §3.10). Mit diesem
-      Slice ist keine `testpackage`-Stufe mehr übrig; der Fall ist der Nachweis der
-      Messmethode 3 der neuen Anforderung, auf dem Weg aus
-      `slice-lastenheft-pruefbarkeit` (`make abdeckung-check` grün).
+      Slice ist keine `testpackage`-Stufe mehr übrig; mit den Fällen der drei übrigen
+      Umstellungs-Slices ist die Gegenprobe des Lint-Gates Nachweis von Teil 3 (Lage
+      der Unit-Tests) von LH-QA-07. Deklariert wird er nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) nicht hier,
+      sondern in `slice-harness-abdeckung-gate` (`make abdeckung-check` grün, ohne neue
+      Deklaration).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des

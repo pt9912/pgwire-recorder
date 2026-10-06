@@ -16,13 +16,12 @@ nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
 Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** — (Harness-Arbeit). Das Lastenheft führt heute keine Qualitätsanforderung
-an Quellcode oder Tests; nach Entscheidung des Nutzers vom 2026-10-05 bekommt es
-eine, und `slice-lastenheft-pruefbarkeit` trägt ihre Kennung hier nach. Bindung an Entscheidungen:
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 2). Bindung an Entscheidungen:
 [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md) (Tests in der
 Stufe `test` des Multistage-`Dockerfile`, netzlos),
 [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abgrenzung:
-Abdeckung je Anforderung und Pfad). Die ADR des neuen Gates schreibt der Architect
+Abdeckung je Anforderung und Pfad), [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Teil 2 der geteilten Messung,
+Nachweisart Gate). Die ADR des neuen Gates schreibt der Architect
 im Slice, vor dem Code; ihre Nummer vergibt der ADR-Index.
 
 **Berührte Spec-Stellen:** —
@@ -46,7 +45,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 Unit-Tests (`go test -coverprofile`) und bricht ab, wenn sie unter der Schwelle
 liegt; das Gate ist damit Teil von `make gates`. Die Schwelle ist eine Zahl aus der
 Messung des heutigen Stands, gesetzt in der ADR des Gates — nicht in diesem Plan.
-Die Gegenprobe zeigt, dass das Gate rot werden kann (`AGENTS.md` §3.10). Eine
+Die Gegenprobe zeigt, dass das Gate rot werden kann (`AGENTS.md` §3.10), und trägt die
+Abdeckungs-Deklaration von Teil 2 von LH-QA-07. Eine
 spätere Senkung der Schwelle braucht eine neue ADR (`AGENTS.md` §3.6).
 
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-05: eine Coverage-Schwelle vor
@@ -61,7 +61,10 @@ keine Schwelle; es ist Kontext, kein Vorbild.
   ([ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md)): Sie sagt, welche
   Anforderung durch welchen Test belegt ist, die Anweisungs-Abdeckung, welcher Code
   unter Tests läuft. Keine der beiden ersetzt die andere; Ziel- und Dateinamen dieses
-  Slice tragen darum nicht das Wort „Abdeckung“ allein (§6 *Benennung*).
+  Slice tragen darum nicht das Wort „Abdeckung“ allein (§6 *Benennung*). Die
+  Erweiterung des Abdeckungs-Skripts um die Nachweisart Gate und die Deklaration von
+  Teil 1 und 3 liefert `slice-harness-abdeckung-gate` ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)); dieser Slice setzt
+  nur die Deklaration von Teil 2 an seiner Gegenprobe.
 - Neue Tests, um eine Zielzahl über dem gemessenen Stand zu erreichen — die Schwelle
   folgt der Messung; eine höhere Zielzahl ist eigene Arbeit mit eigenem Slice,
   aus der Messung heraus, nicht vorab.
@@ -92,10 +95,12 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       abgelehnt, einer genau an der Schwelle angenommen; dazu je entschiedener Randform
       aus §6, die eine Mutation fangen kann, ein Fall (Paket ohne Tests, ausgenommener
       Pfad, Rundung). Je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10). Die
-      Gegenprobe ist der Nachweis der Messmethode 2 der neuen Anforderung, auf dem Weg
-      aus `slice-lastenheft-pruefbarkeit`; mit ihm sind alle drei Messmethoden belegt,
-      die Anforderung zählt in den Abdeckungstabellen als vollständig, und das
-      Abnahmeszenario 17 ist nachweisbar (`make abdeckung-check` grün).
+      Gegenprobe ist der Nachweis von Teil 2 (Anweisungsabdeckung) von LH-QA-07 und
+      trägt nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) dessen Abdeckungs-Deklaration (Nachweisart Gate, Teil 2
+      von 3); mit Teil 1 und 3 aus `slice-harness-abdeckung-gate` ist LH-QA-07 in den
+      Abdeckungstabellen vollständig, `abdeckung-vollstaendig.md` und damit die RTM
+      führen sie, und das Abnahmeszenario 17 ist nachweisbar (Tabellen mit
+      `make abdeckung` neu geschrieben, `make abdeckung-check` grün).
 - [ ] Doku: `harness/README.md` §Sensors führt die Schwelle beim Vertrag von
       `make test` und die Gegenprobe mit Bindung an die ADR; die Zeile „Nicht
       behauptet“ nennt keine Testabdeckung mehr und grenzt gegen die Abdeckung je
@@ -122,7 +127,8 @@ Aussagen-Berührung steht hier gar nicht.
 | `Dockerfile` | update | Stufe `test`: Profil erzeugen und gegen die Schwelle prüfen, netzlos; die bestehenden Prüfungen der Stufe bleiben |
 | Prüfung der Schwelle (Ort nach §6 *Werkzeug*) | neu | wertet das Profil aus, nennt je Paket und gesamt den Wert und die Schwelle |
 | `harness/mk/build.mk` oder eigenes Fragment unter `harness/mk/` | update / neu | Schwelle als eine benannte Stelle (Build-Argument oder Konfiguration), Ziel der Gegenprobe an `GATE_CHECKS` |
-| `tools/harness/<gegenprobe>.sh` | neu | Mutanten in einer Kopie unter eigenem Temp-Pfad: Code ohne Test hinzugefügt (rot), Stand genau an der Schwelle (grün), je Randform ein Fall |
+| `tools/harness/<gegenprobe>.sh` | neu | Mutanten in einer Kopie unter eigenem Temp-Pfad: Code ohne Test hinzugefügt (rot), Stand genau an der Schwelle (grün), je Randform ein Fall; Name nach dem Muster `*-gegenprobe.sh`, im Kopf die Abdeckungs-Deklaration von LH-QA-07, Teil 2 von 3 |
+| `docs/user/abdeckung-*.md` | update | mit `make abdeckung` neu geschrieben: LH-QA-07 vollständig |
 | `harness/README.md` | update | §Sensors: Vertrag von `make test` um die Schwelle ergänzt, Gegenprobe als Zeile; „Nicht behauptet“ angepasst |
 
 ## 4. Trigger

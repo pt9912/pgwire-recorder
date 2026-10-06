@@ -16,7 +16,7 @@ nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
 Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** — (Harness-Arbeit; keine Produkt-Anforderung). Die neue Qualitätsanforderung an die Prüfbarkeit des Quellcodes trägt `slice-lastenheft-pruefbarkeit` hier nach, sobald sie im Lastenheft steht. Bindung: die ADR von `slice-harness-lint` (Stufung von `testpackage` mit Hochschalt-Trigger auf diesen Slice), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckungs-Deklarationen an den Tests bleiben unverändert).
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 3). Bindung: die ADR von `slice-harness-lint` (Stufung von `testpackage` mit Hochschalt-Trigger auf diesen Slice), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckungs-Deklarationen an den Tests bleiben unverändert).
 
 **Berührte Spec-Stellen:** —
 

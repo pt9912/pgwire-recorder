@@ -16,13 +16,12 @@ nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
 Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** — (Harness-Arbeit). Das Lastenheft führt heute keine Qualitätsanforderung
-an den Quellcode; nach Entscheidung des Nutzers vom 2026-10-05 bekommt es eine, und
-`slice-lastenheft-pruefbarkeit` trägt ihre Kennung hier nach.
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 1; Messmethode 3 mit den vier Umstellungs-Slices).
 Bindung an Entscheidungen: [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)
 (Gates als Stufen des Multistage-`Dockerfile`, Images per Digest gepinnt),
 [ADR-0001](../../adr/0001-hexagonale-architektur.md) (Abgrenzung zum
-Architektur-Gate). Die ADR des neuen Gates schreibt der Architect im Slice, vor dem
+Architektur-Gate), [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (die Gegenprobe ist Nachweis der Nachweisart Gate,
+deklariert wird an ihr erst in `slice-harness-abdeckung-gate`). Die ADR des neuen Gates schreibt der Architect im Slice, vor dem
 Code; ihre Nummer vergibt der ADR-Index.
 
 **Berührte Spec-Stellen:** —
@@ -76,8 +75,11 @@ werden auf Black-Box-Pakete umgestellt, in eigenen Slices.
   `slice-harness-blackbox-einstieg`, je mit dem Hochschalten von `testpackage` für
   ihre Pfade. Dieser Slice legt nur die Stufe und die Form der Export-Test-Brücke in
   der ADR fest (§6).
-- Die neue Qualitätsanforderung im Lastenheft — übernimmt
-  `slice-lastenheft-pruefbarkeit`, vor diesem Slice.
+- LH-QA-07 im Lastenheft — liefert `slice-lastenheft-pruefbarkeit`, vor diesem Slice.
+- Eine Abdeckungs-Deklaration an der Gegenprobe — übernimmt
+  `slice-harness-abdeckung-gate` nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md): Das Abdeckungs-Skript kennt die
+  Nachweisart Gate vor ihm nicht, und Teil 3 von LH-QA-07 gilt erst, wenn `testpackage`
+  überall scharf ist.
 - Bereinigung des Bestands über das hinaus, was in eine Review-Sitzung passt — ob
   der heutige Code das Profil hält, misst der Architect vor dem Code (§4, §6
   *Bestand*). Reicht die Bereinigung weiter, geht der Slice zurück zur Zerlegung
@@ -122,9 +124,11 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `gomodguard_v2`, ein Integrationstest hinter dem Build-Tag, ein White-Box-Test in
       einem Pfad außerhalb der `testpackage`-Stufe), dazu ein grüner Fall je zentraler
       Ausnahme und je Stufe; je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10).
-      Die Gegenprobe ist der Nachweis der Messmethode 1 der neuen Anforderung und
-      erscheint in den Abdeckungstabellen auf dem Weg, den `slice-lastenheft-pruefbarkeit`
-      festlegt (`make abdeckung-check` grün).
+      Die Gegenprobe liegt unter `tools/harness/lint-gegenprobe.sh` und ist der Nachweis
+      von Teil 1 (statische Analyse) von LH-QA-07, mit den Fällen der Umstellungs-Slices
+      auch von Teil 3 (Lage der Unit-Tests); nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) trägt sie in diesem Slice
+      keine Abdeckungs-Deklaration, LH-QA-07 steht bis zu `slice-harness-abdeckung-gate`
+      in keiner Abdeckungstabelle (`make abdeckung-check` grün).
 - [ ] Doku: `AGENTS.md` §3.2 nennt den Träger (kein `//nolint`, Ausnahmen zentral in
       `.golangci.yml` mit `Why:`) statt der Platzhalter; `harness/README.md` §Sensors
       führt `lint` und `lint-gegenprobe` mit Vertrag und Bindung an die ADR, die Zeile
@@ -152,7 +156,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `Dockerfile` | update | Stufe `lint` aus dem per Digest gepinnten golangci-lint-Image, Modul-Cache aus `deps`, `RUN --network=none`; Build-Tag `integration` für `test/integration` |
 | `.dockerignore` | update | `.golangci.yml` in die Allowlist des Build-Kontexts ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)); ohne sie läuft das Image mit Default-Profil |
 | `harness/mk/lint.mk` | neu | `lint` und `lint-gegenprobe`, beide an `GATE_CHECKS` |
-| `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in einer Kopie des Arbeitsbaums unter einem Temp-Pfad, je Fall `make lint` bzw. der Docker-Build dort mit erwartetem Exit; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ` |
+| `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in einer Kopie des Arbeitsbaums unter einem Temp-Pfad, je Fall `make lint` bzw. der Docker-Build dort mit erwartetem Exit; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ`; ohne Abdeckungs-Deklaration (§1) |
 | Produkt-Code unter `cmd/`, `internal/`, `test/` | refactor | nur die Bestands-Befunde, die nach der Messung (§6 *Bestand*) im Umfang dieses Slice bleiben |
 | `internal/hexagon/model/fehler.go` | update | Kommentar an `Meldungen` (Zeilen 171 bis 173) nennt die Tiefensuche der Spezifikation statt „außen nach innen und in der Reihenfolge seiner Ursachen“ (`AGENTS.md` §3.11); übernommen aus der Closure von welle-replay-semantik, Nebenbefund 2. Nur der Kommentar, kein Verhalten |
 | `AGENTS.md` | update | §3.2 mit echtem Träger, Falsch/Richtig mit diesem Repo |
