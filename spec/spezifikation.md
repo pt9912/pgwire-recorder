@@ -696,7 +696,11 @@ der Klasse (`SPEC-013` bis `SPEC-019`), bevor eine Verbindung angenommen wird.
 **Verbindungsfehler** (Upstream nicht erreichbar, Replay-Mismatch, nicht
 unterstützte Interaktion, unerwartetes Verbindungsende, bei
 `--fail-on-unconsumed` nicht verbrauchte Interaktionen, Anfrage ohne
-nicht zugeordnete Session) beenden nur die betroffene Verbindung. Dem Client wird, wo das Protokoll es erlaubt, eine
+nicht zugeordnete Session) beenden nur die betroffene Verbindung. Eine Verbindung,
+die der Listener nicht annehmen kann, ist ebenso ein Verbindungsfehler
+(`PGR-E4000`); der Prozess nimmt danach weiter an. Entstehen beim Ende einer
+Verbindung mehrere Fehler, ist jeder eine eigene Meldung, und der erste wird
+gemerkt (`SPEC-034` §Ausgabe). Dem Client wird, wo das Protokoll es erlaubt, eine
 `ErrorResponse` mit dem Meldungscode im Meldungstext zugestellt; `PGR-E5002`
 entsteht erst beim Ende der Verbindung und wird nicht zugestellt (LH-FA-03.b). Der Prozess
 läuft weiter und merkt sich die Klasse des ersten aufgetretenen
@@ -749,7 +753,10 @@ nichts anderes.
 einem Steuerzeichen steht in Anführungszeichen mit Escapes. Ein Verbindungsfehler
 trägt die Attribute `code` und `error` (Fehlertext, `SPEC-034`), eine Warnung das
 Attribut `code`. Vertrag sind die Schlüssel `level`, `code` und `error`; der Text
-von `msg`, weitere Attribute und deren Reihenfolge sind es nicht. Die Zeile beim
+von `msg`, weitere Attribute und deren Reihenfolge sind es nicht. Das Attribut
+`error` steht nur an einer Zeile der Stufe `error` und trägt immer einen Fehlertext
+mit Kopf; der Text einer Bibliothek an einer Zeile einer anderen Stufe steht unter
+dem Schlüssel `grund`. Die Zeile beim
 Prozessende ist keine Log-Zeile: Sie ist genau der Fehlertext.
 
 Passwörter aus Verbindungsdaten werden nicht absichtlich in Logs ausgegeben.
@@ -1633,10 +1640,21 @@ bleibt unverändert, kein Code ändert ihn.
 
 * *Eine Zeile.* Der Fehlertext ist eine Zeile; Kontinuationszeilen gibt es nicht.
   Ein Zeilenumbruch in der Ursache wird mit dem Leerraum danach durch ein
-  Leerzeichen ersetzt, auch in einem Text aus einer Bibliothek.
+  Leerzeichen ersetzt, auch in einem Text aus einer Bibliothek. Zeilenumbruch ist
+  LF, CR LF und ein einzelnes CR; Leerraum danach sind Leerzeichen, Tabulatoren und
+  weitere Zeilenumbrüche. VT, FF, U+0085, U+2028 und U+2029 sind keine
+  Zeilenumbrüche und bleiben stehen.
 * *Fehlerkette.* Der Kopf steht genau einmal, am Anfang. Code und Klasse sind die
   des äußersten klassifizierten Fehlers; ein innerer klassifizierter Fehler trägt
   nur seine Ursache bei, ohne eigenen Kopf.
+* *Gleichrangige Fehler.* Entstehen bei einem Ereignis mehrere Fehler
+  nebeneinander, etwa beim Ende einer Session das Verbindungsende, das Schreiben
+  des Recordings und das Schließen der Verbindung zum Upstream, ist jeder
+  klassifizierte eine eigene Meldung mit eigenem Kopf, in der Reihenfolge ihres
+  Entstehens; gemerkt wird der erste (LH-FA-13.b). Ein nicht klassifizierter Fehler
+  daneben ist keine eigene Meldung: Sein Text folgt als Ursache der ersten
+  klassifizierten. Sind alle nicht klassifiziert, ist es eine Meldung `PGR-E1000`,
+  ihre Texte durch `; ` getrennt.
 * *Fremde Fehler.* Ein Fehler aus einer Bibliothek oder dem Betriebssystem trägt
   den Code der Stelle, an der der Recorder ihn einordnet, und sein Text folgt als
   Ursache; ordnet der Recorder ihn nicht ein, ist er `PGR-E1000` mit Kopf und
@@ -1836,3 +1854,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Record: Fehlerantwort vor dem Abbruch der Upstream-Verbindung ohne `ReadyForQuery` ist nicht unterstützt (`PGR-E6001`), gleich welcher Schweregrad und welche Stelle; Diagnose mit SQLSTATE des Servers, Session nicht übernommen, Aufzeichnung ohne `ready_for_query` am Ende beschädigt (`LH-FA-02.b`, `LH-FA-11.a`) |
 | 2026-10-05 | Record: Weitergabe der Antworten einer einfachen Anfrage an den Client, auch bei einer nicht unterstützten Antwort nach Ergebnissen (`LH-FA-02.b`); Nachrichten des Upstreams zwischen Interaktionen gehören zur nächsten (`LH-FA-05.a`); Diagnosefelder mit leerem Wert oder Zahl `0` gelten als fehlend, Feldreihenfolge nicht aufgezeichnet (`LH-FA-11.a`) |
 | 2026-10-06 | Diagnose: Parameterwerte auf keinem Log-Level und in keiner `ErrorResponse`, Nummer des ersten abweichenden Parameters, bei abweichender Zahl beide Anzahlen (`LH-FA-18.a`, `SPEC-033`); Log-Level genau vier, Strenge des Werts, Inhalt der Stufen, Zeilenform, Zeile beim Prozessende auf jeder Stufe, `stdout` nur für Hilfe, `version` und `config show` (`LH-FA-14.a`); Fehlertext einzeilig, Kopf einmal mit dem Code des äußersten Fehlers, fremde Fehler, Felder der `ErrorResponse` (`SPEC-034`) |
+| 2026-10-06 | Gleichrangige Fehler als eigene Meldungen, erster gemerkt, nicht klassifizierter als Ursache; Zeilenumbruch LF, CR LF, CR; Attribut `error` nur mit Kopf, `grund` für Bibliothekstexte (`SPEC-034`, `LH-FA-14.a`); nicht annehmbare Verbindung ist Verbindungsfehler `PGR-E4000` (`LH-FA-13.b`) |

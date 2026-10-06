@@ -91,7 +91,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/services/replay_test.go`, `replay_extended_test.go` | update | DoD 3: `TestReplayMismatch` prüft, dass `Query` bei Abweichung keine Antworten liefert; Nummer und Anzahlen ohne Wert |
 | `internal/adapters/driving/cli` | update | DoD 2: `--log-level` und Umgebungsvariable bei `record` und `replay`, Hilfetext |
 | `internal/bootstrap` | update | DoD 1 und 2: Stufe des Loggers aus der Option; Zeile beim Prozessende mit Kopf auch für einen nicht eingeordneten Fehler |
-| `internal/adapters/driving/pgwire/server.go` | update | DoD 1: Annahmefehler mit Kopf `PGR-E4000`, nicht eingeordneter Fehler in `note` mit Kopf `PGR-E1000` |
+| `internal/adapters/driving/pgwire/server.go` | update | DoD 1: Annahmefehler über `note` als Verbindungsfehler `PGR-E4000` (gemerkt), nicht eingeordneter Fehler in `note` mit Kopf `PGR-E1000`; `note` zerlegt einen `errors.Join` in eigene Meldungen, merkt die erste, hängt nicht klassifizierte als Ursache an; Debug-Zeile ohne Startnachricht mit `grund` statt `error`. `record.go` (`CloseSession`) bleibt unverändert: der `errors.Join` ist die Reihenfolge des Entstehens |
 | Tests in `cli`, `bootstrap`, `pgwire` | update | DoD 1 und 2: je Klasse, je Stufe, je Randform aus §6 |
 | `test/integration/replay_e2e_test.go` | update | DoD 3, Abnahmeszenario 4: `TestE2EReplayAbweichung` prüft die Ergebnisse von `ReadAll` (keine), Deklaration `LH-FA-10/Negative` ergänzt; ein Lauf mit `--log-level debug` zeigt keinen Parameterwert |
 | `docs/user/benutzerhandbuch.md` | update | Werte von `--log-level` und ihre Strenge, Zeilenform, Nummer des abweichenden Parameters |
@@ -143,11 +143,15 @@ dasteht.
 | Fehlerkette mit mehreren Codes | ein Kopf, Code und Klasse des äußersten klassifizierten Fehlers | `SPEC-034` §Ausgabe *Fehlerkette* |
 | Parameterwerte, auch bei `debug` | nie in Log oder `ErrorResponse` (Nutzer, 2026-10-06) | `LH-FA-18.a` §Mismatch, `SPEC-033` |
 | Parameter-Index, abweichende Anzahl | Nummer des ersten abweichenden Parameters ab 1 wie `$1`; bei abweichender Zahl beide Anzahlen statt einer Nummer (Nutzer, 2026-10-06) | `LH-FA-18.a` §Mismatch |
+| Gleichrangige Fehler (`errors.Join` in `CloseSession`), Fehler ohne Klasse daneben, Annahmefehler (Rückgabe des Implementers 1) | je klassifiziertem Fehler eine Meldung mit eigenem Kopf in Reihenfolge des Entstehens, der erste gemerkt; nicht klassifizierter wird Ursache der ersten, nur nicht klassifizierte ergeben eine `PGR-E1000`; Vorrang des Schreibfehlers gilt nur beim Prozessende; nicht annehmbare Verbindung ist Verbindungsfehler `PGR-E4000` und zählt für den Exit-Code | `SPEC-034` §Ausgabe *Gleichrangige Fehler*, `LH-FA-13.b` |
+| Was ein Zeilenumbruch ist (Rückgabe 2) | LF, CR LF, einzelnes CR, mit folgenden Leerzeichen, Tabs und Umbrüchen; VT, FF, U+0085, U+2028, U+2029 nicht | `SPEC-034` §Ausgabe *Eine Zeile* |
+| Attribut `error` an einer Debug-Zeile (Rückgabe 3) | `error` nur an `error`-Zeilen und immer mit Kopf; Bibliothekstext an anderen Stufen unter `grund` | `LH-FA-14.a` §Zeilenform |
 | Abgleich Code-Tabelle mit Code und Katalog | hier ein Test auf Form und Klasse der Codes im Quelltext; das Gate gegen Katalog und `SPEC-034` ist Folge-Slice (§1) | §1, `SPEC-034` §Stabilität |
 
 **Akzeptierte Negative** (bewusst offen gelassen, mit Grund — die nächste Runde liest sie als entschieden):
 
 - Abweichung in `param_types`, `param_formats` oder `result_formats` nennt weiter nur das Feld, ohne Nummer — es sind keine Werte, und keine Anforderung verlangt die Nummer; die Diagnose bleibt eindeutig.
+- VT, FF, U+0085, U+2028 und U+2029 bleiben in der Zeile beim Prozessende roh stehen — sie brechen in üblichen Terminals und Log-Sammlern keine Zeile, und in der Log-Zeile escapt `logfmt` sie ohnehin.
 - `time` der Log-Zeile ist nicht deterministisch — Tests prüfen `level`, `code` und `error`, nicht `time`.
 - Was auf `debug` steht, ist nicht Vertrag — geprüft wird nur die Schwelle und dass kein Parameterwert erscheint.
 
