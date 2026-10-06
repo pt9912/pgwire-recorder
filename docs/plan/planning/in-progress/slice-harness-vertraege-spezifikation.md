@@ -368,8 +368,10 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   Temp-Baum) wird mit seinem Kommentar-Titel in der Gegenprobe genannt. Ausgabe- und
   Ausgang-Zeilen wandern in den Abschnitt. Die **GRENZE-Zeile** von `kopf-check.sh`
   wandert als *Grenze* in `SPEC-047` (was kein Befund ist, ist Vertrag), die
-  Sensor-Datei liest sie unter *Grenze*, und der Skriptkopf ordnet ihr die grünen
-  Fälle `neg-*` zu; eine Grenze der Prüfung selbst (etwa der übersprungene Fall
+  Sensor-Datei liest sie unter *Grenze*, und der Skriptkopf ordnet ihr die Fälle
+  `neg-*` zu — grün für Existenz, Feldwahl, außerhalb von §1/§2 und Codeblock, rot
+  `neg-bereich-*` für den Bereich über Absatzgrenzen, der nur strenger macht; eine
+  Grenze der Prüfung selbst (etwa der übersprungene Fall
   unter root) bleibt im Kopf der Gegenprobe.
 - **Schwellen künftiger Gates — Empfehlung für die Folge-Slices** (vom Nutzer am
   2026-10-06 angenommen: Schwellen künftiger Gates stehen in der Spezifikation; im

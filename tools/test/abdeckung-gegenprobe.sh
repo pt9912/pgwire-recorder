@@ -105,15 +105,16 @@ set -e
 { [ "$code" -eq 2 ] && [ -s "$arbeit/err" ]; } \
   || melde "Fall 'ohne-lastenheft' erwartet Exit 2 mit Meldung, bekam $code: $(cat "$arbeit/err")"
 
-# Grenze: Führt das Lastenheft keine Überschrift ### LH-…, endet die Prüfung mit 1.
+# Grenze: Führt das Lastenheft keine Überschrift ### LH-…, endet die Prüfung mit 1
+# ohne eine Zeile auf stderr.
 wurzel="$(baum lastenheft-ohne-anforderung internal/a_test.go 'package a')"
 printf '# Lastenheft\n' > "$wurzel/spec/lastenheft.md"
 set +e
-bash "$skript" "$wurzel" >/dev/null 2>/dev/null
+bash "$skript" "$wurzel" >/dev/null 2>"$arbeit/err"
 code=$?
 set -e
-[ "$code" -eq 1 ] \
-  || melde "Fall 'lastenheft-ohne-anforderung' erwartet Exit 1, bekam $code"
+{ [ "$code" -eq 1 ] && [ ! -s "$arbeit/err" ]; } \
+  || melde "Fall 'lastenheft-ohne-anforderung' erwartet Exit 1 ohne Zeile auf stderr, bekam $code: $(cat "$arbeit/err")"
 
 # --- Gültiger Baum: Fortsetzung, Maskierung, Rechte, --check ---------------
 gueltig="$(printf '%s\n' \

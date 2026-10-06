@@ -20,7 +20,7 @@ Stufen des Multistage-`Dockerfile`, netzlos außer der Download-Stufe). Die ADR 
 neuen Gates schreibt der Architect im Slice, vor dem Code; ihre Nummer vergibt der
 ADR-Index.
 
-**Berührte Spec-Stellen:** —
+**Berührte Spec-Stellen:** `spezifikation.md §11` (*Harness-Werkzeuge*: neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice)
 
 **Verantwortlich:** —
 

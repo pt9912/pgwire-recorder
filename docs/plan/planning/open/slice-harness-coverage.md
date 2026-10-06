@@ -24,7 +24,7 @@ Abdeckung je Anforderung und Pfad), [ADR-0033](../../adr/0033-gate-nachweise-in-
 Nachweisart Gate). Die ADR des neuen Gates schreibt der Architect
 im Slice, vor dem Code; ihre Nummer vergibt der ADR-Index.
 
-**Berührte Spec-Stellen:** —
+**Berührte Spec-Stellen:** `spezifikation.md §11` (*Harness-Werkzeuge*: neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice)
 
 **Verantwortlich:** —
 

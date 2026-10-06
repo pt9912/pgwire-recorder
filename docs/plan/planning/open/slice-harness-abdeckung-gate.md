@@ -238,6 +238,16 @@ zurück:
   eine Gegenprobe an der Gate-Kette mit anderem Namen): still überlesen oder Fehler,
   wie bei der eingerückten Deklaration an Tests.
 - **Zahlform von i und n** — führende Null, Leerraum, mehrstellige Zahlen.
+- **Fehlendes `docs/user/`** (offen aus der Verifikation von
+  `slice-harness-vertraege-spezifikation`, V-70) — fehlt das Verzeichnis, endet die
+  Prüfung heute mit Exit 1 ohne Fehlform: Beim Schreiben meldet `cp` den fehlenden
+  Pfad, beim Prüfen gilt jede Tabelle als veraltet;
+  `SPEC-048` sagt dazu nichts. Offen: Fehlform mit Meldung, Abbruch mit eigenem
+  Ausgang oder Anlegen beim Schreiben.
+- **„unter `test/integration/`“ nur an der Wurzel** (offen, V-70) — die Nachweisart
+  E2E gilt heute nur für Dateien unter `test/integration/` an der Wurzel des Repos,
+  ein gleichnamiges Verzeichnis tiefer im Baum ergibt Unit; `SPEC-048` (3) sagt das
+  nicht ausdrücklich. Offen: so in den Vertrag schreiben oder ändern.
 
 **Risiken:**
 
