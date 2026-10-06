@@ -1,0 +1,2 @@
+**Vorgang:** slice-replay-semantik-meldungscodes
+**Fund:** Die Commits des Architects ac12870 (`SPEC-033`, `SPEC-034`), f2c428a und ba2de96 (`SPEC-034`) nennen Struktur-Kennungen (Verifikation V-61); a749370 nach der Verifikation ebenso (`SPEC-034`). Der Review-Report führte die Commit-Messages ac12870 bis 1348a9a als „geprüft, ohne Befund … keine nennt `SPEC-*` oder `ARC-*`“. Laut Verifikation steht dasselbe Muster in 15 der letzten 300 Commits. Kein Sensor hält die Regel.

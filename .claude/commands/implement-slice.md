@@ -158,6 +158,11 @@ Der Slice bleibt in `in-progress/`; weiter geht es erst nach der Entscheidung.
     (`AGENTS.md` §3.10, seit welle-extended-query): je Zusage ein Test, der die Mutation
     fängt, und die Mutation fährst du selbst, bevor du übergibst — im Bericht je Zeile
     Zusage · Mutation · roter Test.
+    **Eine verneinende Zusage ist eine eigene Zeile** (seit slice-replay-semantik-meldungscodes):
+    „keine Antwort", „genau eine", „nichts danach" bekommt eine eigene Mutation — die, die das
+    Verneinte doch tut (eine Nachricht mehr, die aufgezeichnete Antwort vor dem Fehler). Der
+    Test liest dafür bis zum Ende des Stroms und zählt, statt einen Stand des Testgeschirrs zu
+    prüfen (Pufferlänge, Zähler), den eine vorgelagerte Lesestufe schon geleert haben kann.
     **Der Mutant muss im Build ankommen** (seit slice-replay-semantik-mismatch): Ein Lauf
     über den Docker-Build-Kontext (`make build`, `make test`, `make test-integration`)
     überträgt eine Datei nicht neu, deren Größe und mtime dem zuletzt übertragenen Stand
