@@ -1,4 +1,4 @@
-package services
+package services_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/services"
 )
 
 type fakeUpstream struct {
@@ -138,17 +139,17 @@ func (f *fakeRepo) last(t *testing.T) model.Recording {
 	return f.writes[len(f.writes)-1]
 }
 
-func neu(t *testing.T, up driven.Upstream) (*RecordService, *fakeRepo) {
+func neu(t *testing.T, up driven.Upstream) (*services.RecordService, *fakeRepo) {
 	t.Helper()
 	repo := &fakeRepo{}
-	s, err := NewRecordService(context.Background(), up, repo, "rec.yaml", false)
+	s, err := services.NewRecordService(context.Background(), up, repo, "rec.yaml", false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return s, repo
 }
 
-func session(t *testing.T, s *RecordService, queries ...string) model.SessionID {
+func session(t *testing.T, s *services.RecordService, queries ...string) model.SessionID {
 	t.Helper()
 	ctx := context.Background()
 	id, _, err := s.OpenSession(ctx, map[string]string{"user": "app"})

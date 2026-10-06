@@ -1,4 +1,4 @@
-package services
+package services_test
 
 import (
 	"context"
@@ -11,23 +11,34 @@ import (
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/services"
 )
 
-var (
-	cParse    = model.ClientMessage{Type: model.ClientParse, Statement: "s1", SQL: "SELECT $1"}
-	cBind     = model.ClientMessage{Type: model.ClientBind, Statement: "s1", Params: []model.Value{{Bytes: []byte("1")}}}
-	cDescribe = model.ClientMessage{Type: model.ClientDescribe, Target: model.TargetPortal}
-	cExecute  = model.ClientMessage{Type: model.ClientExecute}
-	cFlush    = model.ClientMessage{Type: model.ClientFlush}
-	cSync     = model.ClientMessage{Type: model.ClientSync}
-
-	sParse = model.Response{Type: model.ResponseParseComplete}
-	sBind  = model.Response{Type: model.ResponseBindComplete}
-	sRow   = model.Response{Type: model.ResponseDataRow, Values: []model.Value{{Bytes: []byte("1")}}}
-	sCmd   = model.Response{Type: model.ResponseCommandComplete, Tag: "SELECT 1"}
-	sRFQ   = model.Response{Type: model.ResponseReadyForQuery, TxStatus: "I"}
-	sErr   = model.Response{Type: model.ResponseErrorResponse, Fields: map[string]string{"C": "22012"}}
-)
+// Testdaten: c… sind Client-, s… Server-Nachrichten.
+func cParse() model.ClientMessage {
+	return model.ClientMessage{Type: model.ClientParse, Statement: "s1", SQL: "SELECT $1"}
+}
+func cBind() model.ClientMessage {
+	return model.ClientMessage{Type: model.ClientBind, Statement: "s1", Params: []model.Value{{Bytes: []byte("1")}}}
+}
+func cDescribe() model.ClientMessage {
+	return model.ClientMessage{Type: model.ClientDescribe, Target: model.TargetPortal}
+}
+func cExecute() model.ClientMessage { return model.ClientMessage{Type: model.ClientExecute} }
+func cFlush() model.ClientMessage   { return model.ClientMessage{Type: model.ClientFlush} }
+func cSync() model.ClientMessage    { return model.ClientMessage{Type: model.ClientSync} }
+func sParse() model.Response        { return model.Response{Type: model.ResponseParseComplete} }
+func sBind() model.Response         { return model.Response{Type: model.ResponseBindComplete} }
+func sRow() model.Response {
+	return model.Response{Type: model.ResponseDataRow, Values: []model.Value{{Bytes: []byte("1")}}}
+}
+func sCmd() model.Response {
+	return model.Response{Type: model.ResponseCommandComplete, Tag: "SELECT 1"}
+}
+func sRFQ() model.Response { return model.Response{Type: model.ResponseReadyForQuery, TxStatus: "I"} }
+func sErr() model.Response {
+	return model.Response{Type: model.ResponseErrorResponse, Fields: map[string]string{"C": "22012"}}
+}
 
 func codeOf(err error) string {
 	var me *model.Error
@@ -54,7 +65,7 @@ func warte(t *testing.T, was string, f func()) {
 }
 
 // client übergibt die Nachrichten der Reihe nach.
-func client(t *testing.T, s *RecordService, id model.SessionID, msgs ...model.ClientMessage) {
+func client(t *testing.T, s *services.RecordService, id model.SessionID, msgs ...model.ClientMessage) {
 	t.Helper()
 	for _, m := range msgs {
 		if err := s.ClientMessage(context.Background(), id, m); err != nil {
@@ -65,7 +76,7 @@ func client(t *testing.T, s *RecordService, id model.SessionID, msgs ...model.Cl
 
 // server legt die Nachrichten als eine Folge in den Upstream, holt sie mit
 // AwaitServer und meldet sie als zugestellt.
-func server(t *testing.T, s *RecordService, up *fakeUpstream, id model.SessionID, rs ...model.Response) {
+func server(t *testing.T, s *services.RecordService, up *fakeUpstream, id model.SessionID, rs ...model.Response) {
 	t.Helper()
 	up.letzte.empfang <- rs
 	var got []model.Response
@@ -77,7 +88,7 @@ func server(t *testing.T, s *RecordService, up *fakeUpstream, id model.SessionID
 	s.Delivered(context.Background(), id)
 }
 
-func schliessen(t *testing.T, s *RecordService, id model.SessionID, end model.SessionEnd) {
+func schliessen(t *testing.T, s *services.RecordService, id model.SessionID, end model.SessionEnd) {
 	t.Helper()
 	if err := s.CloseSession(context.Background(), id, end); err != nil {
 		t.Fatal(err)
@@ -93,15 +104,15 @@ func TestRecordExtendedSyncGruppe(t *testing.T) {
 	up := &fakeUpstream{}
 	s, repo := neu(t, up)
 	id := session(t, s, "SELECT 0")
-	client(t, s, id, cParse, cBind, cDescribe, cExecute)
+	client(t, s, id, cParse(), cBind(), cDescribe(), cExecute())
 	if g := up.letzte.gruppen(); len(g) != 0 {
 		t.Fatalf("vor dem Sync gesendet: %v", g)
 	}
-	client(t, s, id, cSync)
-	if g := up.letzte.gruppen(); !reflect.DeepEqual(g, [][]model.ClientMessage{{cParse, cBind, cDescribe, cExecute, cSync}}) {
+	client(t, s, id, cSync())
+	if g := up.letzte.gruppen(); !reflect.DeepEqual(g, [][]model.ClientMessage{{cParse(), cBind(), cDescribe(), cExecute(), cSync()}}) {
 		t.Fatalf("an den Upstream: %#v", g)
 	}
-	server(t, s, up, id, sParse, sBind, sRow, sCmd, sRFQ)
+	server(t, s, up, id, sParse(), sBind(), sRow(), sCmd(), sRFQ())
 	if _, err := s.Query(context.Background(), id, "SELECT 9"); err != nil {
 		t.Fatal(err)
 	}
@@ -113,8 +124,8 @@ func TestRecordExtendedSyncGruppe(t *testing.T) {
 		Sequence: 2,
 		Request:  model.Request{Type: model.RequestExtended},
 		Groups: []model.Group{{
-			Client: []model.ClientMessage{cParse, cBind, cDescribe, cExecute, cSync},
-			Server: []model.Response{sParse, sBind, sRow, sCmd, sRFQ},
+			Client: []model.ClientMessage{cParse(), cBind(), cDescribe(), cExecute(), cSync()},
+			Server: []model.Response{sParse(), sBind(), sRow(), sCmd(), sRFQ()},
 		}},
 	}
 	if len(got) != 3 || !reflect.DeepEqual(got[1], want) || got[0].Request.SQL != "SELECT 0" || got[2].Request.SQL != "SELECT 9" || got[2].Sequence != 3 {
@@ -131,25 +142,25 @@ func TestRecordExtendedFlushGruppen(t *testing.T) {
 	up := &fakeUpstream{}
 	s, repo := neu(t, up)
 	id := session(t, s)
-	client(t, s, id, cParse, cFlush)
-	server(t, s, up, id, sParse)
-	client(t, s, id, cBind)
-	server(t, s, up, id, sErr) // trifft nach der nächsten Client-Nachricht ein
-	client(t, s, id, cExecute, cFlush)
-	client(t, s, id, cSync)
-	server(t, s, up, id, sRFQ)
+	client(t, s, id, cParse(), cFlush())
+	server(t, s, up, id, sParse())
+	client(t, s, id, cBind())
+	server(t, s, up, id, sErr()) // trifft nach der nächsten Client-Nachricht ein
+	client(t, s, id, cExecute(), cFlush())
+	client(t, s, id, cSync())
+	server(t, s, up, id, sRFQ())
 	schliessen(t, s, id, model.EndClosed)
 
 	want := []model.Group{
-		{Client: []model.ClientMessage{cParse, cFlush}, Server: []model.Response{sParse}},
-		{Client: []model.ClientMessage{cBind, cExecute, cFlush}, Server: []model.Response{sErr}},
-		{Client: []model.ClientMessage{cSync}, Server: []model.Response{sRFQ}},
+		{Client: []model.ClientMessage{cParse(), cFlush()}, Server: []model.Response{sParse()}},
+		{Client: []model.ClientMessage{cBind(), cExecute(), cFlush()}, Server: []model.Response{sErr()}},
+		{Client: []model.ClientMessage{cSync()}, Server: []model.Response{sRFQ()}},
 	}
 	got := repo.last(t).Sessions[0].Interactions
 	if len(got) != 1 || !reflect.DeepEqual(got[0].Groups, want) {
 		t.Fatalf("Gruppen: %#v", got)
 	}
-	wantGesendet := [][]model.ClientMessage{{cParse, cFlush}, {cBind, cExecute, cFlush}, {cSync}}
+	wantGesendet := [][]model.ClientMessage{{cParse(), cFlush()}, {cBind(), cExecute(), cFlush()}, {cSync()}}
 	if g := up.letzte.gruppen(); !reflect.DeepEqual(g, wantGesendet) {
 		t.Fatalf("an den Upstream: %#v", g)
 	}
@@ -168,17 +179,17 @@ func TestRecordExtendedPipelining(t *testing.T) {
 	up := &fakeUpstream{}
 	s, repo := neu(t, up)
 	id := session(t, s)
-	client(t, s, id, cParse, cBind, cExecute, cSync, cSync)
-	server(t, s, up, id, sParse, sErr, sRFQ)
-	server(t, s, up, id, sRFQ)
+	client(t, s, id, cParse(), cBind(), cExecute(), cSync(), cSync())
+	server(t, s, up, id, sParse(), sErr(), sRFQ())
+	server(t, s, up, id, sRFQ())
 	schliessen(t, s, id, model.EndClosed)
 
 	got := repo.last(t).Sessions[0].Interactions
 	if len(got) != 2 || got[0].Sequence != 1 || got[1].Sequence != 2 {
 		t.Fatalf("Interaktionen: %#v", got)
 	}
-	if !reflect.DeepEqual(got[0].Groups, []model.Group{{Client: []model.ClientMessage{cParse, cBind, cExecute, cSync}, Server: []model.Response{sParse, sErr, sRFQ}}}) ||
-		!reflect.DeepEqual(got[1].Groups, []model.Group{{Client: []model.ClientMessage{cSync}, Server: []model.Response{sRFQ}}}) {
+	if !reflect.DeepEqual(got[0].Groups, []model.Group{{Client: []model.ClientMessage{cParse(), cBind(), cExecute(), cSync()}, Server: []model.Response{sParse(), sErr(), sRFQ()}}}) ||
+		!reflect.DeepEqual(got[1].Groups, []model.Group{{Client: []model.ClientMessage{cSync()}, Server: []model.Response{sRFQ()}}}) {
 		t.Fatalf("Gruppen: %#v", got)
 	}
 }
@@ -192,31 +203,31 @@ func TestRecordExtendedPipelining(t *testing.T) {
 func TestRecordExtendedEnde(t *testing.T) {
 	cases := []struct {
 		name    string
-		ablauf  func(s *RecordService, up *fakeUpstream, id model.SessionID)
+		ablauf  func(s *services.RecordService, up *fakeUpstream, id model.SessionID)
 		end     model.SessionEnd
 		wantErr string
 		wantSQL []string
 	}{
-		{"Verbindungsende in laufender Interaktion", func(s *RecordService, up *fakeUpstream, id model.SessionID) {
-			client(t, s, id, cParse, cFlush)
-			server(t, s, up, id, sParse)
+		{"Verbindungsende in laufender Interaktion", func(s *services.RecordService, up *fakeUpstream, id model.SessionID) {
+			client(t, s, id, cParse(), cFlush())
+			server(t, s, up, id, sParse())
 		}, model.EndClosed, model.CodeConnectionLost, []string{"SELECT 1"}},
-		{"Terminate in laufender Interaktion", func(s *RecordService, up *fakeUpstream, id model.SessionID) {
-			client(t, s, id, cParse)
+		{"Terminate in laufender Interaktion", func(s *services.RecordService, up *fakeUpstream, id model.SessionID) {
+			client(t, s, id, cParse())
 		}, model.EndTerminate, model.CodeConnectionLost, []string{"SELECT 1"}},
-		{"Verbindungsende danach", func(s *RecordService, up *fakeUpstream, id model.SessionID) {
-			client(t, s, id, cSync)
-			server(t, s, up, id, sRFQ)
+		{"Verbindungsende danach", func(s *services.RecordService, up *fakeUpstream, id model.SessionID) {
+			client(t, s, id, cSync())
+			server(t, s, up, id, sRFQ())
 		}, model.EndClosed, "", []string{"SELECT 1", ""}},
-		{"ReadyForQuery nicht zugestellt", func(s *RecordService, up *fakeUpstream, id model.SessionID) {
-			client(t, s, id, cSync)
-			up.letzte.empfang <- []model.Response{sRFQ}
+		{"ReadyForQuery nicht zugestellt", func(s *services.RecordService, up *fakeUpstream, id model.SessionID) {
+			client(t, s, id, cSync())
+			up.letzte.empfang <- []model.Response{sRFQ()}
 			if _, err := s.AwaitServer(context.Background(), id); err != nil {
 				t.Fatal(err)
 			}
 		}, model.EndWriteFailed, model.CodeConnectionLost, []string{"SELECT 1"}},
-		{"Herunterfahren mit offener Interaktion", func(s *RecordService, up *fakeUpstream, id model.SessionID) {
-			client(t, s, id, cParse)
+		{"Herunterfahren mit offener Interaktion", func(s *services.RecordService, up *fakeUpstream, id model.SessionID) {
+			client(t, s, id, cParse())
 		}, model.EndShutdown, "", []string{"SELECT 1"}},
 	}
 	for _, c := range cases {
@@ -248,7 +259,7 @@ func TestRecordExtendedNichtDarstellbar(t *testing.T) {
 	t.Run("Query in laufender Interaktion", func(t *testing.T) {
 		s, repo := neu(t, &fakeUpstream{})
 		id := session(t, s, "SELECT 1")
-		client(t, s, id, cParse, cFlush)
+		client(t, s, id, cParse(), cFlush())
 		out, err := s.Query(context.Background(), id, "SELECT 2")
 		if codeOf(err) != model.CodeUnsupported || out != nil {
 			t.Fatalf("Antworten %v, Fehler %v", out, err)
@@ -262,8 +273,8 @@ func TestRecordExtendedNichtDarstellbar(t *testing.T) {
 		up := &fakeUpstream{}
 		s, repo := neu(t, up)
 		id := session(t, s, "SELECT 1")
-		client(t, s, id, cParse, cFlush)
-		up.letzte.empfang <- []model.Response{sRFQ}
+		client(t, s, id, cParse(), cFlush())
+		up.letzte.empfang <- []model.Response{sRFQ()}
 		_, err := s.AwaitServer(context.Background(), id)
 		if codeOf(err) != model.CodeUnsupported || !strings.Contains(err.Error(), "sync") {
 			t.Fatalf("Fehler: %v", err)
@@ -296,7 +307,7 @@ func TestRecordExtendedFehlerantwortVorDemAbbruch(t *testing.T) {
 	s, repo := neu(t, up)
 	id := session(t, s, "SELECT 1")
 	up.letzte.receiveErr = model.Errorf(model.CodeUnsupported, nil, "Fehlerantwort 57P01 vor dem Abbruch")
-	client(t, s, id, cParse, cFlush)
+	client(t, s, id, cParse(), cFlush())
 	if _, err := s.AwaitServer(context.Background(), id); codeOf(err) != model.CodeUnsupported {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeUnsupported, err)
 	}
@@ -314,13 +325,13 @@ func TestRecordExtendedFehlerantwortVorDemAbbruch(t *testing.T) {
 // Server-Richtung, liefert ein späteres ClientMessage ErrSessionEnded.
 func TestRecordExtendedSendefehlerNachFehlerantwort(t *testing.T) {
 	e6001 := model.Errorf(model.CodeUnsupported, nil, "Fehlerantwort 57P01 vor dem Abbruch")
-	vorbereiten := func(t *testing.T) (*RecordService, *fakeRepo, *fakeUpstream, model.SessionID) {
+	vorbereiten := func(t *testing.T) (*services.RecordService, *fakeRepo, *fakeUpstream, model.SessionID) {
 		t.Helper()
 		up := &fakeUpstream{}
 		s, repo := neu(t, up)
 		id := session(t, s, "SELECT 1")
-		client(t, s, id, cParse, cFlush)
-		server(t, s, up, id, sErr)
+		client(t, s, id, cParse(), cFlush())
+		server(t, s, up, id, sErr())
 		up.letzte.mu.Lock()
 		up.letzte.sendErr = e6001
 		up.letzte.mu.Unlock()
@@ -333,7 +344,7 @@ func TestRecordExtendedSendefehlerNachFehlerantwort(t *testing.T) {
 			_, err := s.AwaitServer(context.Background(), id)
 			empfangen <- err
 		}()
-		if err := s.ClientMessage(context.Background(), id, cSync); codeOf(err) != model.CodeUnsupported {
+		if err := s.ClientMessage(context.Background(), id, cSync()); codeOf(err) != model.CodeUnsupported {
 			t.Fatalf("ClientMessage: erwartet %s, erhalten %v", model.CodeUnsupported, err)
 		}
 		if err := s.CloseSession(context.Background(), id, model.EndFailed); err != nil {
@@ -356,7 +367,7 @@ func TestRecordExtendedSendefehlerNachFehlerantwort(t *testing.T) {
 		if err := s.CloseSession(context.Background(), id, model.EndFailed); err != nil {
 			t.Fatal(err)
 		}
-		if err := s.ClientMessage(context.Background(), id, cSync); err != model.ErrSessionEnded {
+		if err := s.ClientMessage(context.Background(), id, cSync()); err != model.ErrSessionEnded {
 			t.Fatalf("ClientMessage nach CloseSession: %v", err)
 		}
 		if len(repo.writes) != 0 {
@@ -373,8 +384,8 @@ func TestRecordNachDerLetztenInteraktion(t *testing.T) {
 	up := &fakeUpstream{}
 	s, repo := neu(t, up)
 	id := session(t, s, "SELECT 1")
-	client(t, s, id, cParse, cSync)
-	server(t, s, up, id, sParse, sRFQ)
+	client(t, s, id, cParse(), cSync())
+	server(t, s, up, id, sParse(), sRFQ())
 	hinweis := model.Response{Type: model.ResponseNoticeResponse, Fields: map[string]string{"M": "danach"}}
 	up.letzte.empfang <- []model.Response{hinweis}
 	empfangen := make(chan error, 1)
@@ -392,7 +403,7 @@ func TestRecordNachDerLetztenInteraktion(t *testing.T) {
 		t.Fatalf("AwaitServer nach CloseSession: %v", err)
 	}
 	got := repo.last(t).Sessions[0].Interactions
-	if len(got) != 2 || !reflect.DeepEqual(got[1].Groups[0].Server, []model.Response{sParse, sRFQ}) {
+	if len(got) != 2 || !reflect.DeepEqual(got[1].Groups[0].Server, []model.Response{sParse(), sRFQ()}) {
 		t.Fatalf("Interaktionen: %#v", got)
 	}
 }
@@ -404,7 +415,7 @@ func TestRecordQueryWartetAufExtended(t *testing.T) {
 	up := &fakeUpstream{}
 	s, repo := neu(t, up)
 	id := session(t, s)
-	client(t, s, id, cSync)
+	client(t, s, id, cSync())
 	fertig := make(chan error, 1)
 	go func() {
 		_, err := s.Query(context.Background(), id, "SELECT 2")
@@ -416,7 +427,7 @@ func TestRecordQueryWartetAufExtended(t *testing.T) {
 		t.Fatalf("Query lief vor dem ReadyForQuery: %v", err)
 	default:
 	}
-	up.letzte.empfang <- []model.Response{sRFQ}
+	up.letzte.empfang <- []model.Response{sRFQ()}
 	if _, err := s.AwaitServer(context.Background(), id); err != nil {
 		t.Fatal(err)
 	}
@@ -469,14 +480,14 @@ func TestRecordHerunterfahren(t *testing.T) {
 	up := &fakeUpstream{}
 	s, _ := neu(t, up)
 	id := session(t, s)
-	client(t, s, id, cParse)
+	client(t, s, id, cParse())
 	if s.Shutdown(ctx, id) {
 		t.Fatal("Ende freigegeben, während eine Interaktion läuft")
 	}
-	client(t, s, id, cSync)
+	client(t, s, id, cSync())
 	// Nach dem Beginn beginnt keine neue Interaktion: weder Extended noch
 	// einfach, und nichts geht an den Upstream.
-	if err := s.ClientMessage(ctx, id, cParse); !errors.Is(err, model.ErrShutdown) {
+	if err := s.ClientMessage(ctx, id, cParse()); !errors.Is(err, model.ErrShutdown) {
 		t.Fatalf("neue Extended-Interaktion: %v", err)
 	}
 	if _, err := s.Query(ctx, id, "SELECT 2"); !errors.Is(err, model.ErrShutdown) {
@@ -485,7 +496,7 @@ func TestRecordHerunterfahren(t *testing.T) {
 	if g := up.letzte.gruppen(); len(g) != 1 {
 		t.Fatalf("an den Upstream: %#v", g)
 	}
-	up.letzte.empfang <- []model.Response{sParse, sRFQ}
+	up.letzte.empfang <- []model.Response{sParse(), sRFQ()}
 	if _, err := s.AwaitServer(ctx, id); err != nil {
 		t.Fatal(err)
 	}
@@ -536,8 +547,8 @@ func TestRecordExtendedAufruferfehler(t *testing.T) {
 	up := &fakeUpstream{}
 	s, _ := neu(t, up)
 	id := session(t, s)
-	client(t, s, id, cFlush)
-	up.letzte.empfang <- []model.Response{sParse}
+	client(t, s, id, cFlush())
+	up.letzte.empfang <- []model.Response{sParse()}
 	if _, err := s.AwaitServer(ctx, id); err != nil {
 		t.Fatal(err)
 	}
@@ -547,11 +558,11 @@ func TestRecordExtendedAufruferfehler(t *testing.T) {
 	up.letzte.mu.Lock()
 	up.letzte.sendErr = model.Errorf(model.CodeConnectionLost, nil, "weg")
 	up.letzte.mu.Unlock()
-	if err := s.ClientMessage(ctx, id, cSync); codeOf(err) != model.CodeConnectionLost {
+	if err := s.ClientMessage(ctx, id, cSync()); codeOf(err) != model.CodeConnectionLost {
 		t.Fatalf("Sendefehler: %v", err)
 	}
 	schliessen(t, s, id, model.EndFailed)
-	if err := s.ClientMessage(ctx, id, cSync); !errors.Is(err, model.ErrSessionEnded) {
+	if err := s.ClientMessage(ctx, id, cSync()); !errors.Is(err, model.ErrSessionEnded) {
 		t.Fatalf("ClientMessage nach dem Ende: %v", err)
 	}
 	if _, err := s.Query(ctx, id, "SELECT 1"); !errors.Is(err, model.ErrSessionEnded) {
@@ -601,16 +612,16 @@ func (e *engpassSession) server() {
 		var out []model.Response
 		switch m.Type {
 		case model.ClientParse:
-			out = []model.Response{sParse}
+			out = []model.Response{sParse()}
 		case model.ClientBind:
-			out = []model.Response{sBind}
+			out = []model.Response{sBind()}
 		case model.ClientExecute:
 			for i := 0; i < zeilenJeExecute; i++ {
-				out = append(out, sRow)
+				out = append(out, sRow())
 			}
-			out = append(out, sCmd)
+			out = append(out, sCmd())
 		case model.ClientSync:
-			out = []model.Response{sRFQ}
+			out = []model.Response{sRFQ()}
 		}
 		for _, r := range out {
 			select {
@@ -654,11 +665,11 @@ func (e *engpassSession) Close() error {
 // grosseGruppe ist eine Sync-Gruppe mit vielen Ausführungen, deren Ausgabe
 // die Puffer des engpassUpstream weit übersteigt.
 func grosseGruppe() []model.ClientMessage {
-	g := []model.ClientMessage{cParse}
+	g := []model.ClientMessage{cParse()}
 	for i := 0; i < 20; i++ {
-		g = append(g, cBind, cExecute)
+		g = append(g, cBind(), cExecute())
 	}
-	return append(g, cSync)
+	return append(g, cSync())
 }
 
 // Abdeckung: LH-FA-18/Happy — Record-Hälfte: eine Gruppe, deren Ausgabe die
@@ -757,7 +768,7 @@ func TestRecordCloseBeendetWartende(t *testing.T) {
 	up2 := &fakeUpstream{}
 	s2, _ := neu(t, up2)
 	id2 := session(t, s2)
-	client(t, s2, id2, cSync)
+	client(t, s2, id2, cSync())
 	await := make(chan error, 1)
 	go func() {
 		_, err := s2.AwaitServer(ctx, id2)
@@ -786,8 +797,8 @@ func TestRecordCloseBeendetWartende(t *testing.T) {
 // erfolgreich zurückkommt: Query und AwaitServer liefern dann ErrSessionEnded
 // statt Antworten, und nichts wird übernommen.
 func TestRecordEndeNachErfolgreichemUpstream(t *testing.T) {
-	ctx := context.Background()
 	t.Run("Query", func(t *testing.T) {
+		ctx := t.Context()
 		up := &fakeUpstream{}
 		s, repo := neu(t, up)
 		id := session(t, s, "SELECT 1")
@@ -811,12 +822,13 @@ func TestRecordEndeNachErfolgreichemUpstream(t *testing.T) {
 		}
 	})
 	t.Run("AwaitServer", func(t *testing.T) {
+		ctx := t.Context()
 		up := &fakeUpstream{}
 		s, _ := neu(t, up)
 		id := session(t, s)
-		client(t, s, id, cSync)
+		client(t, s, id, cSync())
 		up.letzte.receiveHalt = make(chan struct{})
-		up.letzte.empfang <- []model.Response{sRFQ}
+		up.letzte.empfang <- []model.Response{sRFQ()}
 		fertig := make(chan error, 1)
 		go func() {
 			_, err := s.AwaitServer(ctx, id)

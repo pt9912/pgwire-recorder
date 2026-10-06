@@ -1,6 +1,10 @@
-package services
+package services_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/services"
+)
 
 // Abdeckung: LH-FA-09/Negative — eine Anfrage ist eine Lebendprüfung, wenn ihr
 // Text nur aus Leerraum, Zeilenkommentaren bis Zeilen- oder Textende und
@@ -70,7 +74,7 @@ func TestLebendpruefungErkennung(t *testing.T) {
 		{"-- ping\nx", false},
 	} {
 		for _, vt := range []bool{false, true} {
-			if got := istLebendpruefung(tc.sql, vt); got != tc.want {
+			if got := services.IstLebendpruefung(tc.sql, vt); got != tc.want {
 				t.Errorf("istLebendpruefung(%q, %v) = %v, erwartet %v", tc.sql, vt, got, tc.want)
 			}
 		}
@@ -95,10 +99,10 @@ func TestLebendpruefungVertikalerTabulator(t *testing.T) {
 		{"\v;", false, false},
 		{"\v/* offen", false, false},
 	} {
-		if got := istLebendpruefung(tc.sql, false); got != tc.ohneVT {
+		if got := services.IstLebendpruefung(tc.sql, false); got != tc.ohneVT {
 			t.Errorf("istLebendpruefung(%q, false) = %v, erwartet %v", tc.sql, got, tc.ohneVT)
 		}
-		if got := istLebendpruefung(tc.sql, true); got != tc.mitVT {
+		if got := services.IstLebendpruefung(tc.sql, true); got != tc.mitVT {
 			t.Errorf("istLebendpruefung(%q, true) = %v, erwartet %v", tc.sql, got, tc.mitVT)
 		}
 	}
@@ -135,7 +139,7 @@ func TestLebendpruefungServerversion(t *testing.T) {
 		if !tc.fehlt {
 			params["server_version"] = tc.version
 		}
-		if got := vtLeerraum(params); got != tc.want {
+		if got := services.VTLeerraum(params); got != tc.want {
 			t.Errorf("vtLeerraum(server_version %q, fehlt %v) = %v, erwartet %v", tc.version, tc.fehlt, got, tc.want)
 		}
 	}

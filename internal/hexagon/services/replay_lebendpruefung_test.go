@@ -1,4 +1,4 @@
-package services
+package services_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/services"
 )
 
 // mitStatus ist eine einfache Interaktion, deren ReadyForQuery den
@@ -24,7 +25,7 @@ func lebendAntwort(tx string) []model.Response {
 
 // pruefeLebend sendet sql als Lebendprüfung und erwartet die Antwort im Status
 // tx.
-func pruefeLebend(t *testing.T, s *ReplayService, id model.SessionID, sql, tx string) {
+func pruefeLebend(t *testing.T, s *services.ReplayService, id model.SessionID, sql, tx string) {
 	t.Helper()
 	out, err := s.Query(context.Background(), id, sql)
 	if err != nil || !reflect.DeepEqual(out, lebendAntwort(tx)) {
@@ -40,7 +41,7 @@ func pruefeLebend(t *testing.T, s *ReplayService, id model.SessionID, sql, tx st
 // ordnet keine Session zu, auch nicht, wenn keine mehr frei ist.
 func TestReplayLebendpruefungAusserDerReihe(t *testing.T) {
 	ctx := context.Background()
-	s, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{
+	s, err := services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{
 		mitStatus(1, "BEGIN", "T"), mitStatus(2, "SELECT x", "E"), mitStatus(3, "ROLLBACK", "I"), mitStatus(4, "BEGIN", "T"),
 	})}, "rec.yaml")
 	if err != nil {
@@ -81,7 +82,7 @@ func TestReplayLebendpruefungAufgezeichnet(t *testing.T) {
 		[]model.Interaction{interaktion(1, "-- ping", ""), interaktion(2, "\n", "")},
 		[]model.Interaction{interaktion(1, ";", "C"), interaktion(2, "/* offen", "D")},
 	)
-	s, err := NewReplayService(ctx, ladeRepo{rec: rec}, "rec.yaml")
+	s, err := services.NewReplayService(ctx, ladeRepo{rec: rec}, "rec.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +115,7 @@ func TestReplayLebendpruefungAufgezeichnet(t *testing.T) {
 		t.Fatalf("Session nur aus Lebendprüfungen gilt als unzugeordnet: %v", w)
 	}
 
-	s, _ = NewReplayService(ctx, ladeRepo{rec: aufzeichnung(
+	s, _ = services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung(
 		[]model.Interaction{interaktion(1, "-- ping", ""), interaktion(2, "SELECT 1", "A"), interaktion(3, "-- ping", ""), interaktion(4, "SELECT 2", "B")},
 	)}, "rec.yaml")
 	c, _ := s.OpenConnection(ctx)
@@ -125,7 +126,7 @@ func TestReplayLebendpruefungAufgezeichnet(t *testing.T) {
 		t.Fatalf("Warnung zählt die Lebendprüfungen mit: %v", w)
 	}
 
-	if _, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung(
+	if _, err := services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung(
 		[]model.Interaction{interaktion(1, "-- ping", "")}, []model.Interaction{interaktion(1, "", "")},
 	)}, "rec.yaml"); code(err) != model.CodeRecordingNoSession {
 		t.Fatalf("Aufzeichnung nur aus Lebendprüfungen: erwartet %s, erhalten %v", model.CodeRecordingNoSession, err)
@@ -173,7 +174,7 @@ func TestReplayLebendpruefungNummerNachDemEnde(t *testing.T) {
 		interaktion(1, "-- ping", ""), ausfuehrung(2, "s1", "a", "A"), interaktion(3, "-- ping", ""),
 	})
 	sendeAlle(t, s, id, ausfuehrung(2, "s1", "a", "A").Groups[0].Client...)
-	_, err := s.ClientMessage(ctx, id, syncNachricht)
+	_, err := s.ClientMessage(ctx, id, syncNachricht())
 	if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), "Session 1: nach Interaktion 2 erwartet die Aufzeichnung keine weitere") {
 		t.Fatalf("Extended-Nachricht nach dem Ende: %v", err)
 	}
@@ -193,11 +194,11 @@ func sessionMit(id int, params map[string]string, ins ...model.Interaction) mode
 // ordnet dann eine Session zu und wird verglichen.
 func TestReplayLebendpruefungServerversion(t *testing.T) {
 	ctx := context.Background()
-	laden := func(sessions ...model.Session) *ReplayService {
+	laden := func(sessions ...model.Session) *services.ReplayService {
 		t.Helper()
 		rec := model.NewRecording()
 		rec.Sessions = sessions
-		s, err := NewReplayService(ctx, ladeRepo{rec: rec}, "rec.yaml")
+		s, err := services.NewReplayService(ctx, ladeRepo{rec: rec}, "rec.yaml")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -249,12 +250,11 @@ func TestReplayLebendpruefungServerversion(t *testing.T) {
 // als letzte Nummer 0; mit Interaktionen ist es die aufgezeichnete Nummer der
 // letzten.
 func TestReplayLetzteNummer(t *testing.T) {
-	leer := &cursor{session: &model.Session{ID: 1}}
-	if n := leer.letzteNummer(); n != 0 {
+	if n := services.LetzteNummer(&model.Session{ID: 1}); n != 0 {
 		t.Fatalf("ohne Interaktion: %d", n)
 	}
-	voll := &cursor{session: &model.Session{ID: 1, Interactions: []model.Interaction{interaktion(2, "A", ""), interaktion(4, "B", "")}}}
-	if n := voll.letzteNummer(); n != 4 {
+	voll := &model.Session{ID: 1, Interactions: []model.Interaction{interaktion(2, "A", ""), interaktion(4, "B", "")}}
+	if n := services.LetzteNummer(voll); n != 4 {
 		t.Fatalf("mit Interaktionen: %d", n)
 	}
 }
@@ -274,7 +274,7 @@ func TestReplayLebendpruefungOhneHinweise(t *testing.T) {
 		{Type: model.ResponseReadyForQuery, TxStatus: "I"},
 	}
 	danach := interaktion(3, "SELECT 2", "B")
-	s, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{interaktion(1, "SELECT 1", "A"), ping, danach})}, "rec.yaml")
+	s, err := services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{interaktion(1, "SELECT 1", "A"), ping, danach})}, "rec.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

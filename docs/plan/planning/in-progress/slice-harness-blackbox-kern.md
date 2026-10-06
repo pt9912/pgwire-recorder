@@ -110,8 +110,10 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/hexagon/model/extended_test.go`, `fehler_test.go` | refactor | `package model_test` |
 | `internal/hexagon/services/*_test.go` (sieben Dateien) | refactor | `package services_test`; Fakes der Ports und Testhelfer wandern mit |
-| `export_test.go` je Paket, nur wo nötig | neu | Brücke zu unexportierten Teilen nach `SPEC-049` Punkt 7 |
-| dieselben Testdateien | update | übrige Befunde aus `make lint` (`contextcheck` 5, `gochecknoglobals` 17) in den Dateien, die der Umbau ohnehin umschreibt |
+| `internal/hexagon/model/export_test.go` | neu | Brücke nach `SPEC-049` Punkt 7: `Klasse` reicht an `klassen` weiter |
+| `internal/hexagon/services/export_test.go` | neu | Brücke nach `SPEC-049` Punkt 7: `IstLebendpruefung`, `VTLeerraum`, `Abweichung`, `ParameterStelle` reichen weiter; `LetzteNummer` ruft `letzteNummer` an einem Cursor auf der übergebenen Session |
+| dieselben Testdateien | update | übrige Befunde aus `make lint` in den Dateien, die der Umbau ohnehin umschreibt: `contextcheck` 5 (je Subtest `ctx := t.Context()` in `TestRecordEndeNachErfolgreichemUpstream` statt des geteilten neuen Kontexts), `gochecknoglobals` 17 (Testdaten als Funktionen, die je Aufruf den Wert liefern) |
+| `internal/hexagon/model/fehler_test.go` | update | `model.Meldung`-Literale mit Feldnamen: `go vet` (`composites`) lehnt ungeschlüsselte Literale eines fremden Pakets ab |
 
 ## 4. Trigger
 
@@ -169,13 +171,21 @@ steht, gibt der Implementer an den Architect zurück.
 - **White-Box-Zugriffe im Bestand** — Namensabgleich per Suche am Stand `ce50a10`
   (ungemessen, kann Fehltreffer enthalten, wo ein Testhelfer gleich heißt): in `model` keine; in `services` u. a. `abweichung`, `cursor`, `istLebendpruefung`, `vtLeerraum`, `laufende`, `letzteNummer`, `mitten`.
   Je Zugriff: über die exportierte Schnittstelle prüfbar, über die Brücke, oder
-  Befund. Die Services-Tests prüfen Zwischenstände des Replays (Cursor, laufende Nummer); ob das Verhalten über `ReplayService` allein beobachtbar ist, entscheidet je Fall die Brücke.
+  Befund. Gemessen beim Umbau (Bezeichner der Testdateien gegen die Paketebene des
+  Produkt-Codes, per AST): in `model` `klassen` (Fehltreffer der Suche), in `services`
+  `istLebendpruefung`, `vtLeerraum`, `abweichung`, `parameterStelle` und `cursor` mit
+  `letzteNummer`; alle über die Brücke, keiner als Befund. `laufende` und `mitten`
+  waren Fehltreffer (Kommentartext). Die Services-Tests prüfen Zwischenstände des Replays (Cursor, laufende Nummer); ob das Verhalten über `ReplayService` allein beobachtbar ist, entscheidet je Fall die Brücke.
 - **Fakes der Ports** — die Ports sind exportiert (`internal/hexagon/ports/...`); ein
   Fake in einem `_test`-Paket implementiert sie unverändert. Ein Fake, der auf
   unexportierte Felder eines Produkt-Typs greift, fällt unter die Brücke.
 - **Mutationstests auf unexportierte Teile** — eine Mutation, die bisher ein Test auf
   eine unexportierte Funktion fing, muss auch nach dem Umbau fangen; sonst fehlt eine
   Prüfung, obwohl die Testliste gleich ist.
+- **Brücke mit Cursor** — `LetzteNummer` legt einen Cursor auf der übergebenen
+  Session an und ruft `letzteNummer`; Zustand nur an diesem Wert, nicht auf
+  Paketebene (`SPEC-049` Punkt 7). Ob das noch Weiterreichen ist, prüft das Werkzeug
+  nicht (Grenze von `SPEC-049`), das ist Urteil des Review.
 
 **Risiken:**
 
@@ -211,6 +221,28 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Beobachtungs-Register (`../observations/`):** <…>
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
+
+**Mutationen des Implementers** (`AGENTS.md` §3.10, Prüfung geht im Umbau verloren):
+je Mutant ein frischer Pfad außerhalb des Repos (`cp -r` ohne `-p`), Tests per
+Bind-Mount im Image der Stufe `deps` mit `go test -run`; ohne Mutation ist jeder
+genannte Test grün, mit ihr rot.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| jeder Fehlercode ergibt eine Klasse mit Namen (über die Brücke `Klasse`) | Klasse 6 aus `klassen` gestrichen | `TestCodeTabelle` |
+| eine Kette trägt den Code des klassifizierten Fehlers (Literale mit Feldnamen) | `Meldungen` setzt immer `CodeInternal` | `TestFehlerKette` |
+| ein nicht klassifizierter gleichrangiger Fehler folgt der ersten Meldung | an die letzte statt an die erste Meldung angehängt | `TestFehlerGleichrangig` |
+| `;` macht eine Anfrage zu keiner Lebendprüfung (über `IstLebendpruefung`) | `;` zum Leerraum | `TestLebendpruefungErkennung` |
+| `\v` ist nur mit `vt` Leerraum | Bedingung `vt` entfernt | `TestLebendpruefungVertikalerTabulator` |
+| `\v` ab Hauptversion 17 (über `VTLeerraum`) | `>=` zu `>` | `TestLebendpruefungServerversion` |
+| jedes Feld der Client-Nachricht zählt (über `Abweichung`) | Vergleich von `max_rows` entfernt | `TestReplayExtendedFelder` |
+| Parameter-Nummer ab 1 (über `ParameterStelle`) | `i+1` zu `i` | `TestReplayExtendedParameterStelle` |
+| letzte Nummer ist die aufgezeichnete (über `LetzteNummer`) | Zahl der Interaktionen statt Nummer | `TestReplayLetzteNummer` |
+| Query nach dem Ende liefert `ErrSessionEnded` (Subtest mit eigenem Kontext) | Prüfung `beendet` nach dem Upstream-Aufruf in `Query` entfernt | `TestRecordEndeNachErfolgreichemUpstream/Query` |
+| AwaitServer nach dem Ende liefert `ErrSessionEnded` (Subtest mit eigenem Kontext) | Prüfung `beendet` nach `Receive` in `AwaitServer` entfernt | `TestRecordEndeNachErfolgreichemUpstream/AwaitServer` |
+| fortlaufende Nummer der Interaktionen (Testdaten als Funktionen) | Nummer der einfachen Anfrage `+2` statt `+1` | `TestRecordExtendedSyncGruppe` |
+| abweichender Nachrichtentyp ist PGR-E5001 (Testdaten als Funktionen) | Vergleich von `type` entfernt | `TestReplayExtendedAbweichung` |
+| mit `FailOnUnconsumed` ist Unverbrauchtes ein Fehler (Optionen als Funktion) | Zweig `streng` nie genommen | `TestReplayNichtVerbrauchtMeldung` |
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

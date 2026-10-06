@@ -1,4 +1,4 @@
-package services
+package services_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/services"
 )
 
 func text(s string) model.Value { return model.Value{Bytes: []byte(s)} }
@@ -20,12 +21,11 @@ func bind(name string, werte ...model.Value) model.ClientMessage {
 	return model.ClientMessage{Type: model.ClientBind, Statement: name, ParamFormats: []int16{0}, Params: werte, ResultFormats: []int16{0}}
 }
 
-var (
-	execute        = model.ClientMessage{Type: model.ClientExecute}
-	flushNachricht = model.ClientMessage{Type: model.ClientFlush}
-	syncNachricht  = model.ClientMessage{Type: model.ClientSync}
-	rfq            = model.Response{Type: model.ResponseReadyForQuery, TxStatus: "I"}
-)
+// Testdaten.
+func execute() model.ClientMessage        { return model.ClientMessage{Type: model.ClientExecute} }
+func flushNachricht() model.ClientMessage { return model.ClientMessage{Type: model.ClientFlush} }
+func syncNachricht() model.ClientMessage  { return model.ClientMessage{Type: model.ClientSync} }
+func rfq() model.Response                 { return model.Response{Type: model.ResponseReadyForQuery, TxStatus: "I"} }
 
 func tag(t string) model.Response { return model.Response{Type: model.ResponseCommandComplete, Tag: t} }
 
@@ -33,8 +33,8 @@ func tag(t string) model.Response { return model.Response{Type: model.ResponseCo
 // Statement name mit dem Wert ausführt und mit dem Befehlsabschluss t antwortet.
 func ausfuehrung(seq int, name, wert, t string) model.Interaction {
 	return model.Interaction{Sequence: seq, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
-		Client: []model.ClientMessage{bind(name, text(wert)), execute, syncNachricht},
-		Server: []model.Response{{Type: model.ResponseBindComplete}, tag(t), rfq},
+		Client: []model.ClientMessage{bind(name, text(wert)), execute(), syncNachricht()},
+		Server: []model.Response{{Type: model.ResponseBindComplete}, tag(t), rfq()},
 	}}}
 }
 
@@ -43,20 +43,20 @@ func ausfuehrung(seq int, name, wert, t string) model.Interaction {
 func vorbereitung(seq int) model.Interaction {
 	return model.Interaction{Sequence: seq, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{
 		{
-			Client: []model.ClientMessage{parse("s1", "SELECT $1::text"), {Type: model.ClientDescribe, Target: model.TargetStatement, Name: "s1"}, flushNachricht},
+			Client: []model.ClientMessage{parse("s1", "SELECT $1::text"), {Type: model.ClientDescribe, Target: model.TargetStatement, Name: "s1"}, flushNachricht()},
 			Server: []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseParameterDescription, ParamTypes: []uint32{25}}, {Type: model.ResponseRowDescription}},
 		},
 		{
-			Client: []model.ClientMessage{bind("s1", text("a")), execute, syncNachricht},
-			Server: []model.Response{{Type: model.ResponseBindComplete}, {Type: model.ResponseDataRow, Values: []model.Value{text("a")}}, tag("SELECT 1"), rfq},
+			Client: []model.ClientMessage{bind("s1", text("a")), execute(), syncNachricht()},
+			Server: []model.Response{{Type: model.ResponseBindComplete}, {Type: model.ResponseDataRow, Values: []model.Value{text("a")}}, tag("SELECT 1"), rfq()},
 		},
 	}}
 }
 
-func replayMit(t *testing.T, sessions ...[]model.Interaction) (*ReplayService, model.SessionID) {
+func replayMit(t *testing.T, sessions ...[]model.Interaction) (*services.ReplayService, model.SessionID) {
 	t.Helper()
 	ctx := context.Background()
-	s, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung(sessions...)}, "rec.yaml")
+	s, err := services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung(sessions...)}, "rec.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func replayMit(t *testing.T, sessions ...[]model.Interaction) (*ReplayService, m
 
 // sendeAlle übergibt die Nachrichten der Reihe nach und liefert die Antworten
 // der letzten; jede frühere muss ohne Antwort bleiben.
-func sendeAlle(t *testing.T, s *ReplayService, id model.SessionID, msgs ...model.ClientMessage) []model.Response {
+func sendeAlle(t *testing.T, s *services.ReplayService, id model.SessionID, msgs ...model.ClientMessage) []model.Response {
 	t.Helper()
 	var out []model.Response
 	for i, m := range msgs {
@@ -112,7 +112,7 @@ func TestReplayExtendedWiederholung(t *testing.T) {
 	sitzung := []model.Interaction{ausfuehrung(1, "s1", "a", "A"), ausfuehrung(2, "s1", "b", "B"), ausfuehrung(3, "s1", "a", "C")}
 	s, id := replayMit(t, sitzung)
 	for i, w := range []struct{ wert, tag string }{{"a", "A"}, {"b", "B"}, {"a", "C"}} {
-		out := sendeAlle(t, s, id, bind("s1", text(w.wert)), execute, syncNachricht)
+		out := sendeAlle(t, s, id, bind("s1", text(w.wert)), execute(), syncNachricht())
 		if len(out) != 3 || out[1].Tag != w.tag {
 			t.Fatalf("Ausführung %d: %#v", i+1, out)
 		}
@@ -134,7 +134,7 @@ func TestReplayExtendedFelder(t *testing.T) {
 		ParamTypes: []uint32{25}, ParamFormats: []int16{0}, Params: []model.Value{text("x"), {Null: true}},
 		ResultFormats: []int16{1}, Target: model.TargetPortal, Name: "n", MaxRows: 5,
 	}
-	if f := abweichung(basis, basis); f != "" {
+	if f := services.Abweichung(basis, basis); f != "" {
 		t.Fatalf("gleiche Nachricht weicht in %s ab", f)
 	}
 	faelle := []struct {
@@ -159,14 +159,14 @@ func TestReplayExtendedFelder(t *testing.T) {
 	for _, f := range faelle {
 		m := basis
 		f.aendr(&m)
-		if got := abweichung(m, basis); got != f.feld {
+		if got := services.Abweichung(m, basis); got != f.feld {
 			t.Errorf("Änderung an %s: abweichend in %q", f.feld, got)
 		}
 	}
 
 	leer := model.ClientMessage{Type: model.ClientBind, ParamTypes: []uint32{}, ParamFormats: []int16{}, Params: []model.Value{{Bytes: []byte{}}}, ResultFormats: []int16{}}
 	null := model.ClientMessage{Type: model.ClientBind, Params: []model.Value{{}}}
-	if f := abweichung(leer, null); f != "" {
+	if f := services.Abweichung(leer, null); f != "" {
 		t.Fatalf("leere Listen und leerer Wert weichen von nil ab: %s", f)
 	}
 }
@@ -184,7 +184,7 @@ func TestReplayExtendedAbweichung(t *testing.T) {
 	if _, err := s.ClientMessage(ctx, id, bind("s1", text("a"))); err != nil {
 		t.Fatal(err)
 	}
-	out, err := s.ClientMessage(ctx, id, syncNachricht)
+	out, err := s.ClientMessage(ctx, id, syncNachricht())
 	if code(err) != model.CodeReplayMismatch || out != nil {
 		t.Fatalf("Sync statt Execute: %#v, %v", out, err)
 	}
@@ -193,7 +193,7 @@ func TestReplayExtendedAbweichung(t *testing.T) {
 			t.Fatalf("Diagnose ohne %q: %v", teil, err)
 		}
 	}
-	if out := sendeAlle(t, s, id, execute, syncNachricht); !reflect.DeepEqual(out, in.Groups[1].Server) {
+	if out := sendeAlle(t, s, id, execute(), syncNachricht()); !reflect.DeepEqual(out, in.Groups[1].Server) {
 		t.Fatalf("Cursor nach der Abweichung verschoben: %#v", out)
 	}
 
@@ -228,7 +228,7 @@ func TestReplayExtendedParameterStelle(t *testing.T) {
 		{[]model.Value{text("geheim-eins"), text("x"), {}, {}}, " (Anzahl erwartet 3, empfangen 4)"},
 		{nil, " (Anzahl erwartet 3, empfangen 0)"},
 	} {
-		if got := parameterStelle(f.empfangen, erwartet); got != f.want {
+		if got := services.ParameterStelle(f.empfangen, erwartet); got != f.want {
 			t.Errorf("%v: %q, erwartet %q", f.empfangen, got, f.want)
 		}
 	}
@@ -273,14 +273,14 @@ func TestReplayExtendedFalscheArt(t *testing.T) {
 	in := vorbereitung(1)
 	sendeAlle(t, s, id, in.Groups[0].Client[1:]...)
 	sendeAlle(t, s, id, in.Groups[1].Client...)
-	_, err = s.ClientMessage(ctx, id, syncNachricht)
+	_, err = s.ClientMessage(ctx, id, syncNachricht())
 	if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), `erwartet Anfrage "SELECT 7"`) {
 		t.Fatalf("Extended-Nachricht statt einfacher Anfrage: %v", err)
 	}
 	if _, err := s.Query(ctx, id, "SELECT 7"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.ClientMessage(ctx, id, syncNachricht); code(err) != model.CodeReplayMismatch {
+	if _, err := s.ClientMessage(ctx, id, syncNachricht()); code(err) != model.CodeReplayMismatch {
 		t.Fatalf("Extended-Nachricht nach dem Ende der Aufzeichnung: %v", err)
 	}
 
@@ -305,8 +305,8 @@ func TestReplayExtendedFalscheArt(t *testing.T) {
 func TestReplayExtendedFehlerantwort(t *testing.T) {
 	fehler := model.Response{Type: model.ResponseErrorResponse, Fields: map[string]string{"S": "ERROR", "C": "22012", "M": "division by zero"}}
 	in := model.Interaction{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
-		Client: []model.ClientMessage{parse("", "SELECT 1/$1::int"), bind("", text("0")), execute, parse("", "SELECT 2"), bind(""), execute, syncNachricht},
-		Server: []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}, fehler, rfq},
+		Client: []model.ClientMessage{parse("", "SELECT 1/$1::int"), bind("", text("0")), execute(), parse("", "SELECT 2"), bind(""), execute(), syncNachricht()},
+		Server: []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}, fehler, rfq()},
 	}}}
 	s, id := replayMit(t, []model.Interaction{in})
 	if out := sendeAlle(t, s, id, in.Groups[0].Client...); !reflect.DeepEqual(out, in.Groups[0].Server) {
@@ -355,9 +355,9 @@ func TestReplayStartformExtended(t *testing.T) {
 	ctx := context.Background()
 	for name, in := range map[string]model.Interaction{
 		"ohne Gruppe":           {Sequence: 1, Request: model.Request{Type: model.RequestExtended}},
-		"ohne Client-Nachricht": {Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{Server: []model.Response{rfq}}}},
+		"ohne Client-Nachricht": {Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{Server: []model.Response{rfq()}}}},
 	} {
-		if _, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{in})}, "rec.yaml"); code(err) != model.CodeRecordingBroken {
+		if _, err := services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{in})}, "rec.yaml"); code(err) != model.CodeRecordingBroken {
 			t.Errorf("%s: erwartet %s, erhalten %v", name, model.CodeRecordingBroken, err)
 		}
 	}
@@ -371,8 +371,8 @@ func TestReplayStartformExtended(t *testing.T) {
 func TestReplayExtendedDiagnoseAnweisung(t *testing.T) {
 	ctx := context.Background()
 	zwei := model.Interaction{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
-		Client: []model.ClientMessage{parse("s1", "SELECT 1"), parse("s2", "SELECT 2"), bind("s1"), {Type: model.ClientExecute, Portal: ""}, syncNachricht},
-		Server: append(bestaetigungen(parse("s1", ""), parse("s2", ""), bind("s1")), rfq),
+		Client: []model.ClientMessage{parse("s1", "SELECT 1"), parse("s2", "SELECT 2"), bind("s1"), {Type: model.ClientExecute, Portal: ""}, syncNachricht()},
+		Server: append(bestaetigungen(parse("s1", ""), parse("s2", ""), bind("s1")), rfq()),
 	}}}
 	faelle := []struct {
 		name      string
@@ -400,7 +400,7 @@ func TestReplayExtendedDiagnoseAnweisung(t *testing.T) {
 // Jedes parse, bind und close bestätigt der Server.
 func ext(seq int, tx string, msgs ...model.ClientMessage) model.Interaction {
 	return model.Interaction{Sequence: seq, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
-		Client: append(msgs, syncNachricht),
+		Client: append(msgs, syncNachricht()),
 		Server: append(bestaetigungen(msgs...), model.Response{Type: model.ResponseReadyForQuery, TxStatus: tx}),
 	}}}
 }
@@ -427,7 +427,7 @@ func bestaetigungen(msgs ...model.ClientMessage) []model.Response {
 // Transaktionsstatus danach.
 func abgelehnt(seq int, tx string, msgs ...model.ClientMessage) model.Interaction {
 	return model.Interaction{Sequence: seq, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
-		Client: append(msgs, syncNachricht),
+		Client: append(msgs, syncNachricht()),
 		Server: []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"C": "42601"}}, {Type: model.ResponseReadyForQuery, TxStatus: tx}},
 	}}}
 }
@@ -477,7 +477,7 @@ func TestReplayExtendedDiagnoseLebensdauer(t *testing.T) {
 			ext(1, "I", parse("s1", "SELECT 1")), abgelehnt(2, "I", parse("s1", "SELECT 2")), ext(3, "I", parse("s2", "SELECT 3"), bind("s2")),
 		}, 2, 0, bind("s1"), `Anweisung erwartet "SELECT 3", empfangen "SELECT 1"`},
 		{"verworfenes bind legt kein Portal an", []model.Interaction{
-			ext(1, "T", parse("s1", "SELECT 1")), abgelehnt(2, "E", parse("s9", "SELEC"), bind("s1")), ext(3, "E", bind("s1"), execute),
+			ext(1, "T", parse("s1", "SELECT 1")), abgelehnt(2, "E", parse("s9", "SELEC"), bind("s1")), ext(3, "E", bind("s1"), execute()),
 		}, 2, 0, model.ClientMessage{Type: model.ClientExecute}, `Anweisung erwartet "SELECT 1", empfangen unbekannt`},
 		{"D2 Nachricht am Cursor zählt nicht", []model.Interaction{
 			ext(1, "I", parse("s3", "SELECT 3"), bind("s3")),
@@ -572,10 +572,10 @@ func TestReplayExtendedDiagnoseArt(t *testing.T) {
 func TestReplayExtendedDiagnoseSpaeteBestaetigung(t *testing.T) {
 	ctx := context.Background()
 	in := model.Interaction{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{
-		{Client: []model.ClientMessage{parse("s1", "SELECT 2"), flushNachricht}, Server: []model.Response{}},
+		{Client: []model.ClientMessage{parse("s1", "SELECT 2"), flushNachricht()}, Server: []model.Response{}},
 		{
-			Client: []model.ClientMessage{bind("s1"), execute, syncNachricht},
-			Server: []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}, tag("SELECT 1"), rfq},
+			Client: []model.ClientMessage{bind("s1"), execute(), syncNachricht()},
+			Server: []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}, tag("SELECT 1"), rfq()},
 		},
 	}}
 	s, id := replayMit(t, []model.Interaction{in})

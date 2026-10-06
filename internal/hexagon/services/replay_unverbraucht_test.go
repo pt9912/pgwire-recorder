@@ -1,4 +1,4 @@
-package services
+package services_test
 
 import (
 	"context"
@@ -6,23 +6,25 @@ import (
 	"testing"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/services"
 )
 
 // ladenMit lädt die Sessions mit den Optionen.
-func ladenMit(t *testing.T, opts []ReplayOption, sessions ...[]model.Interaction) *ReplayService {
+func ladenMit(t *testing.T, opts []services.ReplayOption, sessions ...[]model.Interaction) *services.ReplayService {
 	t.Helper()
-	s, err := NewReplayService(context.Background(), ladeRepo{rec: aufzeichnung(sessions...)}, "rec.yaml", opts...)
+	s, err := services.NewReplayService(context.Background(), ladeRepo{rec: aufzeichnung(sessions...)}, "rec.yaml", opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return s
 }
 
-var streng = []ReplayOption{FailOnUnconsumed}
+// streng sind die Optionen mit FailOnUnconsumed.
+func streng() []services.ReplayOption { return []services.ReplayOption{services.FailOnUnconsumed} }
 
 // meldungBeimSchliessen beendet die Verbindung und liefert Code, Text und
 // Exit-Code ihrer Meldung (zerlege).
-func meldungBeimSchliessen(t *testing.T, s *ReplayService, id model.SessionID) (string, string, int) {
+func meldungBeimSchliessen(t *testing.T, s *services.ReplayService, id model.SessionID) (string, string, int) {
 	t.Helper()
 	w, err := s.CloseConnection(context.Background(), id)
 	return zerlege(t, w, err)
@@ -64,13 +66,13 @@ func TestReplayNichtVerbrauchtMeldung(t *testing.T) {
 	session := []model.Interaction{interaktion(1, "-- ping", ""), interaktion(2, "SELECT 1", "A"), interaktion(3, "SELECT 2", "B"), interaktion(4, "SELECT 3", "C")}
 	const text = "Session 1: 2 von 3 Interaktionen nicht verbraucht, die erste mit Nummer 3"
 	for _, fall := range []struct {
-		opts       []ReplayOption
+		opts       []services.ReplayOption
 		code       string
 		exit       int
 		beschreibt string
 	}{
 		{nil, model.CodeUnconsumed, 0, "ohne Option"},
-		{streng, model.CodeReplayUnconsumed, 5, "mit Option"},
+		{streng(), model.CodeReplayUnconsumed, 5, "mit Option"},
 	} {
 		s := ladenMit(t, fall.opts, session)
 		id, _ := s.OpenConnection(ctx)
@@ -93,7 +95,7 @@ func TestReplayNichtVerbrauchtMeldung(t *testing.T) {
 func TestReplayVerbraucht(t *testing.T) {
 	ctx := context.Background()
 
-	s := ladenMit(t, streng, []model.Interaction{interaktion(1, "SELECT 1", "A")})
+	s := ladenMit(t, streng(), []model.Interaction{interaktion(1, "SELECT 1", "A")})
 	id, _ := s.OpenConnection(ctx)
 	if _, err := s.Query(ctx, id, "SELECT 1"); err != nil {
 		t.Fatal(err)
@@ -102,7 +104,7 @@ func TestReplayVerbraucht(t *testing.T) {
 		t.Fatalf("Antworten nicht gesendet: %s %q", c, msg)
 	}
 
-	s = ladenMit(t, streng, []model.Interaction{interaktion(1, "SELECT 1", "A"), vorbereitung(2)})
+	s = ladenMit(t, streng(), []model.Interaction{interaktion(1, "SELECT 1", "A"), vorbereitung(2)})
 	id, _ = s.OpenConnection(ctx)
 	if _, err := s.Query(ctx, id, "SELECT 1"); err != nil {
 		t.Fatal(err)
@@ -115,7 +117,7 @@ func TestReplayVerbraucht(t *testing.T) {
 		t.Fatalf("vor dem Sync der letzten Gruppe beendet: %s %q", c, msg)
 	}
 
-	s = ladenMit(t, streng, []model.Interaction{vorbereitung(1)})
+	s = ladenMit(t, streng(), []model.Interaction{vorbereitung(1)})
 	id, _ = s.OpenConnection(ctx)
 	sendeAlle(t, s, id, in.Groups[0].Client...)
 	s.Sent(ctx, id)
@@ -124,7 +126,7 @@ func TestReplayVerbraucht(t *testing.T) {
 		t.Fatalf("Antworten der letzten Gruppe nicht gesendet: %s %q", c, msg)
 	}
 
-	s = ladenMit(t, streng, []model.Interaction{vorbereitung(1)})
+	s = ladenMit(t, streng(), []model.Interaction{vorbereitung(1)})
 	id, _ = s.OpenConnection(ctx)
 	sendeAlle(t, s, id, in.Groups[0].Client...)
 	s.Sent(ctx, id)
@@ -143,12 +145,12 @@ func TestReplayNieZugeordnetMeldung(t *testing.T) {
 	ctx := context.Background()
 	const text = "2 aufgezeichnete Session(s) nie zugeordnet, die erste mit Kennung 2"
 	for _, fall := range []struct {
-		opts []ReplayOption
+		opts []services.ReplayOption
 		code string
 		exit int
 	}{
 		{nil, model.CodeUnconsumed, 0},
-		{streng, model.CodeReplayUnconsumed, 5},
+		{streng(), model.CodeReplayUnconsumed, 5},
 	} {
 		s := ladenMit(t, fall.opts,
 			[]model.Interaction{interaktion(1, "S1", "A")},
@@ -176,7 +178,7 @@ func TestReplayNieZugeordnetMeldung(t *testing.T) {
 // ist weder nicht verbraucht noch nie zugeordnet.
 func TestReplayNichtsZuMelden(t *testing.T) {
 	ctx := context.Background()
-	s := ladenMit(t, streng,
+	s := ladenMit(t, streng(),
 		[]model.Interaction{interaktion(1, "SELECT 1", "A")},
 		nil,
 		[]model.Interaction{interaktion(1, "-- ping", ""), interaktion(2, "", "")},
@@ -209,7 +211,7 @@ func TestReplayNichtsZuMelden(t *testing.T) {
 // ersten nicht verbraucht.
 func TestReplaySentJeVerbindung(t *testing.T) {
 	ctx := context.Background()
-	s := ladenMit(t, streng,
+	s := ladenMit(t, streng(),
 		[]model.Interaction{interaktion(1, "S1", "A")},
 		[]model.Interaction{interaktion(1, "S2", "B")},
 	)

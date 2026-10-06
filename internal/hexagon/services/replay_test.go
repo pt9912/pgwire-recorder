@@ -1,4 +1,4 @@
-package services
+package services_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/services"
 )
 
 type ladeRepo struct {
@@ -34,7 +35,7 @@ func aufzeichnung(sessions ...[]model.Interaction) model.Recording {
 }
 
 // replaySchliessen beendet die Verbindung ohne Fehler und liefert die Warnung.
-func replaySchliessen(t *testing.T, s *ReplayService, id model.SessionID) *model.Warning {
+func replaySchliessen(t *testing.T, s *services.ReplayService, id model.SessionID) *model.Warning {
 	t.Helper()
 	w, err := s.CloseConnection(context.Background(), id)
 	if err != nil {
@@ -45,7 +46,7 @@ func replaySchliessen(t *testing.T, s *ReplayService, id model.SessionID) *model
 
 // gesendetSchliessen meldet die zuletzt gelieferten Antworten als gesendet, wie
 // es der Adapter nach jedem Senden tut, und beendet dann die Verbindung.
-func gesendetSchliessen(t *testing.T, s *ReplayService, id model.SessionID) *model.Warning {
+func gesendetSchliessen(t *testing.T, s *services.ReplayService, id model.SessionID) *model.Warning {
 	t.Helper()
 	s.Sent(context.Background(), id)
 	return replaySchliessen(t, s, id)
@@ -53,7 +54,7 @@ func gesendetSchliessen(t *testing.T, s *ReplayService, id model.SessionID) *mod
 
 // unassigned liefert die Warnung über nie zugeordnete Sessions; ein Fehler
 // bricht ab.
-func unassigned(t *testing.T, s *ReplayService) *model.Warning {
+func unassigned(t *testing.T, s *services.ReplayService) *model.Warning {
 	t.Helper()
 	w, err := s.Unassigned()
 	if err != nil {
@@ -75,7 +76,7 @@ func code(err error) string {
 // Anfragen werden der Reihe nach je einmal verbraucht.
 func TestReplayStrictSequential(t *testing.T) {
 	ctx := context.Background()
-	s, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{
+	s, err := services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{
 		interaktion(1, "SELECT 1", "A"), interaktion(2, "SELECT 1", "B"),
 	})}, "rec.yaml")
 	if err != nil {
@@ -102,7 +103,7 @@ func TestReplayStrictSequential(t *testing.T) {
 // die aufgezeichneten hinaus ebenso.
 func TestReplayMismatch(t *testing.T) {
 	ctx := context.Background()
-	s, _ := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{interaktion(1, "SELECT 1", "A")})}, "rec.yaml")
+	s, _ := services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{interaktion(1, "SELECT 1", "A")})}, "rec.yaml")
 	id, _ := s.OpenConnection(ctx)
 	out, err := s.Query(ctx, id, "SELECT  1")
 	if code(err) != model.CodeReplayMismatch || out != nil {
@@ -129,7 +130,7 @@ func TestReplayMismatch(t *testing.T) {
 // Interaktionen und nie zugeordnete Sessions sind die Warnung PGR-W2001.
 func TestReplaySessionZuordnung(t *testing.T) {
 	ctx := context.Background()
-	s, _ := NewReplayService(ctx, ladeRepo{rec: aufzeichnung(
+	s, _ := services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung(
 		[]model.Interaction{interaktion(1, "S1", "eins"), interaktion(2, "S1b", "eins-b")},
 		[]model.Interaction{interaktion(1, "S2", "zwei")},
 		[]model.Interaction{interaktion(1, "S3", "drei")},
@@ -166,11 +167,11 @@ func TestReplaySessionZuordnung(t *testing.T) {
 // ist PGR-E3004; ein Ladefehler geht unverändert zurück.
 func TestReplayStartfehler(t *testing.T) {
 	ctx := context.Background()
-	if _, err := NewReplayService(ctx, ladeRepo{rec: model.NewRecording()}, "rec.yaml"); code(err) != model.CodeRecordingNoSession {
+	if _, err := services.NewReplayService(ctx, ladeRepo{rec: model.NewRecording()}, "rec.yaml"); code(err) != model.CodeRecordingNoSession {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeRecordingNoSession, err)
 	}
 	ladefehler := model.Errorf(model.CodeRecordingBroken, nil, "kaputt")
-	if _, err := NewReplayService(ctx, ladeRepo{err: ladefehler}, "rec.yaml"); code(err) != model.CodeRecordingBroken {
+	if _, err := services.NewReplayService(ctx, ladeRepo{err: ladefehler}, "rec.yaml"); code(err) != model.CodeRecordingBroken {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeRecordingBroken, err)
 	}
 }
@@ -186,7 +187,7 @@ func TestReplayHandshake(t *testing.T) {
 			ServerParameters: map[string]string{"server_version": v, "a": "1", "z": "2", "m": "3", "c": "4"},
 			Interactions:     []model.Interaction{interaktion(1, "S", "x")}})
 	}
-	s, _ := NewReplayService(ctx, ladeRepo{rec: rec}, "rec.yaml")
+	s, _ := services.NewReplayService(ctx, ladeRepo{rec: rec}, "rec.yaml")
 	version := func(out []model.Response) string {
 		for _, r := range out {
 			if r.Name == "server_version" {
@@ -232,7 +233,7 @@ func TestReplayExtendedAmCursor(t *testing.T) {
 		Client: []model.ClientMessage{{Type: model.ClientSync}},
 		Server: []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}},
 	}}}
-	s, err := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{extended})}, "rec.yaml")
+	s, err := services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{extended})}, "rec.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
