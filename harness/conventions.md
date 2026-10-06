@@ -41,8 +41,8 @@ bringend für *Form*-Fragen, nicht autoritativ über Inhalt.
   Release-Asset
   https://github.com/pt9912/ai-harness-course/releases/download/v6.16.0/lab-regelwerk.zip
   nach `.harness/baseline/<tag>/{regelwerk,templates}/` entpackt (netzlos,
-  `SHA256SUMS`) — adoptierter Stand: Stand-Zeile in
-  `regelwerk/README.md` „Kurs-Welle 159 · 2026-10-06"; Wellen-Register:
+  `SHA256SUMS`) — adoptierter Stand (Stand-Zeile in
+  `regelwerk/README.md`: „Kurs-Welle 159 · 2026-10-06"; Wellen-Register:
   CHANGELOG.md im Kurs-Repo); für harte Reproduzierbarkeit das Asset eines Tags
   ziehen statt `latest`.
 - **In-Repo (verkörperte Form):** `AGENTS.md`, `harness/README.md`,
@@ -111,7 +111,8 @@ liegt — wer den Baum tauscht, prüft sie von Hand gegen das Kommando oben.
 | `grundlagen-begriffe.md` | liegt bei, nicht verdrahtet | Begriffs-Definitionen ohne eigene Mechanik — der Text ist sein eigener Träger und hängt an keinem Trigger. |
 | `grundlagen-bootstrap.md` | Träger kommt mit | `harness/conventions.md` führt den Abschnitt *Modus-Deklaration pro Sub-Area*, in dem Sub-Area, Kürzel, Modus und Graduation deklariert werden. |
 | `grundlagen-durchsetzungsschicht.md` | Träger kommt mit | `.claude/hooks/pretooluse-command-guard.sh`, `.claude/hooks/stop-require-gates.sh`, `tools/harness/record-gates.sh`, `tools/harness/working-tree-hash.sh` und der Eintrag in `.claude/settings.json`. |
-| `grundlagen-harness-dateien.md` | Träger kommt mit | `AGENTS.md`, `harness/README.md` und `harness/conventions.md` liegen als ausgefüllte Dateien, nicht als Vorlagen. Einen Teil des Gate-Index unter `harness/mk/` legt der Bootstrap nicht ab; `harness/README.md` §Sensors führt auch die Targets seiner Fragmente. |
+| `grundlagen-harness-dateien.md` ohne den Teil des Gate-Index eines Werkzeugs | Träger kommt mit | `AGENTS.md`, `harness/README.md` und `harness/conventions.md` liegen als ausgefüllte Dateien, nicht als Vorlagen. |
+| `grundlagen-harness-dateien.md` §harness/README.md als Einstiegspunkt, Teil des Gate-Index eines Werkzeugs | kommt nicht mit | Der Bootstrap legt keinen Teil des Gate-Index unter `harness/mk/` ab; `harness/README.md` §Sensors führt auch die Targets seiner Fragmente. Dauer: bis ai-harness-init den Teil schreibt; dann zieht `slice-harness-gate-index-werkzeug-teil` das Repo nach. |
 | `grundlagen-klassifikation.md` | liegt bei, nicht verdrahtet | Die Einordnung von Sensoren und der Steering Loop sind Lesestoff; kein Artefakt des Ziels hängt daran. |
 | `grundlagen-referenz-richtung.md` | Träger kommt mit | Das Doku-Gate führt die Klasse `spec-straten` mit `direction: no-downward` in `.d-check.yml`; `make docs-check` fährt sie. |
 | `grundlagen-source-precedence.md` | Träger kommt mit | `harness/README.md` §Source precedence und der Kopf von `AGENTS.md` tragen die Rangfolge. |

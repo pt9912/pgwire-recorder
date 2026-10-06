@@ -147,7 +147,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `.claude/rules/modul-01-entwicklungszyklus.md`, `.claude/rules/modul-05-planning-harness.md` | update (Symlink-Ziel) | zeigen auf `v6.13.0`; im Commit des Tauschs auf `v6.16.0` (§6 *Was am alten Pfad hängt*) |
 | `harness/conventions/done/MR-001-spezifikations-ort-werkzeugvertraege.md` | update (Form-Reparatur) | Link auf `v6.13.0` wird Code-Span mit unverändertem Pfad (§6 *Was am alten Pfad hängt*) |
 | `harness/conventions.md` | update | §Baseline (Stand `v6.16.0`, Datum der Adoption), §Adoptierte Konventions-Quellen (Asset-URL, Stand-Zeile aus `regelwerk/README.md`), Regelblock-Tabelle (Messzeile, neue/umbenannte/entfallene Blöcke), `MR-000` und Aufgelöste Adaptionen nach dem Adaptions-Durchgang |
-| `AGENTS.md` | update | §1 Asset-URL; §3.x nur, wenn der Abgleich eine verkörperte Regel als gegenstandslos oder widersprüchlich findet und die Anpassung klein ist |
+| `AGENTS.md` | update | §1 Asset-URL; §3.12 Ort einer entschiedenen Randform (Review F-434); §3.x sonst nur, wenn der Abgleich eine verkörperte Regel als gegenstandslos oder widersprüchlich findet und die Anpassung klein ist |
 | `.claude/commands/*.md`, `.claude/agents/*.md`, `.harness/skills/*.md`, `docs/plan/planning/observations/README.md` | prüfen, update falls klein | Abgleich gegen das Delta; Verweise auf den Baum nennen heute `.harness/baseline/<tag>/…` und bleiben so — ein fester Tag in einem lebenden Dokument ist ein Befund |
 | `harness/README.md`, `harness/sensors/*.md` | prüfen, update falls klein | Singleton-Abgleich gegen `README.template.md` und `sensors/gate.template.md` des neuen Stands (§6 *Sensor-Datei*) |
 | `docs/plan/planning/open/`, `next/` (Folge-Slices, falls Befunde) | neu | per `cp` aus `slice.template.md` des **neuen** Stands, je Befund, der nicht klein ist; angelegt: `slice-harness-gate-index-werkzeug-teil` (Teil des Gate-Index, der einem Werkzeug gehört) |
@@ -239,8 +239,9 @@ Randform-Rückgabe).
   vor dem Commit `diff -r` im Temp-Baum außerhalb des Repos, danach
   `git diff -M <vorher> <nachher> -- .harness/baseline/` (Rename-Erkennung zeigt das Delta
   je Datei) und `git show <vorher>:.harness/baseline/v6.13.0/…`. Keine Adaption, kein
-  Eingriff ins Skript; der Widerspruch zwischen Regelwerk-Text und emittiertem Skript geht
-  als Frage an das Kurs-Repo (§7 *Weitergereicht*). Der Tausch ist **kein**
+  Eingriff ins Skript; der Widerspruch zwischen Regelwerk-Text und emittiertem Skript wird
+  in §7 nur festgehalten, ohne Frage an das Kurs-Repo (Entscheidung des Nutzers vom
+  2026-10-06). Der Tausch ist **kein**
   `git mv` mit Inhaltsänderung im Sinn von `AGENTS.md` §3.3, sondern das Ersetzen eines
   vendored Baums: Ein reiner Move-Commit vorab hinterließe ein Verzeichnis `v6.16.0` mit
   dem Inhalt von `v6.13.0`, das `make baseline-verify` grün meldete. Ein Commit;
@@ -335,7 +336,7 @@ Randform-Rückgabe).
   Kurs-Repos, nicht ein Baseline-Stand, und das Repo folgt der Lesart, die das Kurs-Repo
   selbst als seine erklärt hat — die `MR-000`-Aussage bleibt wahr, keine neue Adaption,
   kein Register-Eintrag (`BEO-REPO/harness-lesart-ohne-entscheidungsort` bleibt
-  gestrichen). §7 *Weitergereicht* nennt dann die offene Frage, mit welchem Stand die
+  gestrichen). §7 nennt dann die offene Frage, mit welchem Stand die
   Baseline die Antwort trägt; der nächste Freshness-Audit liest die Zeile `MR-001` im
   Adaptions-Durchgang ohnehin.
 - **Sensor-Datei** — **Entscheidung: wie formuliert bestätigt.** Eine neue Pflicht-Sektion
@@ -416,8 +417,9 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
     unverändertem Pfad samt `v6.13.0` und Anker, Text unverändert. Danach 0.
   - *Abgleich v6.13.0 → v6.16.0, Befunde und Ausgänge:* Regelblöcke: keiner neu,
     umbenannt oder entfallen; die Tabelle in `harness/conventions.md` führt alle 26
-    Dateien, die Werte bleiben, die Zeile `grundlagen-harness-dateien.md` nennt den
-    fehlenden Teil des Werkzeugs. `MR-000` bleibt wahr (keine aktive Adaption; die
+    Dateien; `grundlagen-harness-dateien.md` steht in zwei Zeilen je Abschnitt, der Teil des
+    Gate-Index eines Werkzeugs mit *kommt nicht mit*, Grund und Dauer, die übrigen Werte
+    bleiben. `MR-000` bleibt wahr (keine aktive Adaption; die
     aufgelöste `MR-001` ist nach §6 *Klarstellung zum Technik-Stratum* behandelt).
     (1) Reviewer ohne Stil-Finding, HIGH und MEDIUM nur mit Failure-Szenario, LOW mit
     Konventions-Anker, `pfad` als Kurzzitat (`modul-10-review-harness.md`, Vorlagen der
@@ -426,7 +428,10 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
     Technik-Stratum (`grundlagen-referenz-richtung.md` §Spec-Straten, `modul-03-spec.md`,
     Vorlagen der Spezifikation, der ADR, des ADR-Index und der Sensor-Datei) — behoben:
     Zeile `MR-001` in §Aufgelöste Adaptionen nennt Stand und Abschnitt, der ADR-Index
-    nennt die Regel in *Konventionen*; Spezifikation §11, beide Sensor-Dateien und die
+    nennt die Regel in *Konventionen*, `AGENTS.md` §3.12 nennt die Spezifikation als Ort
+    einer entschiedenen Randform und die ADR nur mit Entscheidung, Gründen und
+    `Schärft:` (Review F-434; `.claude/agents/architect.md` und
+    `.claude/commands/implement-slice.md` zeigen auf §3.12 und wiederholen den Ort nicht); Spezifikation §11, beide Sensor-Dateien und die
     Pläne der Lint-Reihe folgen ihr schon; angenommene Gate-ADRs, deren `Schärft:` eine
     Anforderung nennt, bleiben unverändert (`AGENTS.md` §3.5). (3) Teil des Gate-Index,
     der einem Werkzeug gehört (`grundlagen-harness-dateien.md`, `modul-13-quality-gates.md`,
@@ -438,11 +443,12 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
     Befund: `harness/erfassung-feldliste.md` (werkzeug-erzeugt) sagt „leer heißt
     unbekannt“ und nennt die Quelle. Stichprobe ohne Delta: `modul-05-planning-harness.md`
     §Offene Risiken gegen §6 dieses Plans und die offenen Pläne — ohne Befund.
-- **Weitergereicht an das Kurs-Repo bzw. an ai-harness-init:** (1) Kurs-Repo:
-  `modul-02-harness-bootstrap.md` §Freshness-Audit lässt alte und neue Form nebeneinander
-  liegen („Das alte Verzeichnis fällt erst, wenn der Review durch ist“), das emittierte
-  `tools/harness/baseline-verify.sh` endet bei zwei Tag-Verzeichnissen rot (§6 *Alte
-  Baseline*). (2) Die Antwort zum Technik-Stratum trägt die Baseline seit `v6.16.0` in
+- **Festgehalten, nicht weitergereicht:** (1) `modul-02-harness-bootstrap.md`
+  §Freshness-Audit lässt alte und neue Form nebeneinander liegen („Das alte Verzeichnis
+  fällt erst, wenn der Review durch ist“), das emittierte `tools/harness/baseline-verify.sh`
+  endet bei zwei Tag-Verzeichnissen rot. Aufgelöst durch das Entfernen von `v6.13.0` im
+  Commit, der `v6.16.0` anlegt (§6 *Alte Baseline*); kein Change Request an das Kurs-Repo
+  (Entscheidung des Nutzers vom 2026-10-06). (2) Die Antwort zum Technik-Stratum trägt die Baseline seit `v6.16.0` in
   `grundlagen-referenz-richtung.md` §Spec-Straten; keine offene Frage mehr.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
