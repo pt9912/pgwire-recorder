@@ -226,7 +226,7 @@ Repos führen kein Bereichssegment. Regel: Baseline-Regelwerk
 
 | Sub-Area (Pfad / Modul) | Kürzel | Modus | Begründung | Graduation-Bedingung / Folge-Slice |
 |---|---|---|---|---|
-| `*` (Default für gesamtes Repo) | `REPO` | Greenfield | Das Repo enthält Spezifikation, Entscheidungen, Harness und ein Go-Gerüst ohne Funktion; Kennungen zählen ohne Bereichssegment | n/a (GF) |
+| `*` (Default für gesamtes Repo) | `REPO` | Greenfield | Das Repo enthält Spezifikation, Entscheidungen, Harness und den Go-Code von Record und Replay (Simple und Extended Query) mit Unit- und Integrationstests; Spezifikation und Entscheidungen gehen dem Code voraus; Kennungen zählen ohne Bereichssegment | n/a (GF) |
 
 ## Glossar (optional)
 

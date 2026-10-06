@@ -154,6 +154,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `harness/mk/lint.mk` | neu | `lint` und `lint-gegenprobe`, beide an `GATE_CHECKS` |
 | `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in einer Kopie des Arbeitsbaums unter einem Temp-Pfad, je Fall `make lint` bzw. der Docker-Build dort mit erwartetem Exit; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ` |
 | Produkt-Code unter `cmd/`, `internal/`, `test/` | refactor | nur die Bestands-Befunde, die nach der Messung (§6 *Bestand*) im Umfang dieses Slice bleiben |
+| `internal/hexagon/model/fehler.go` | update | Kommentar an `Meldungen` (Zeilen 171 bis 173) nennt die Tiefensuche der Spezifikation statt „außen nach innen und in der Reihenfolge seiner Ursachen“ (`AGENTS.md` §3.11); übernommen aus der Closure von welle-replay-semantik, Nebenbefund 2. Nur der Kommentar, kein Verhalten |
 | `AGENTS.md` | update | §3.2 mit echtem Träger, Falsch/Richtig mit diesem Repo |
 | `harness/README.md` | update | §Sensors: zwei Zeilen; „Nicht behauptet“ ohne Lint |
 

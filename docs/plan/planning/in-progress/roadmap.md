@@ -16,7 +16,6 @@ Zustand sind die flachen Welle-Dateien; woran gearbeitet wird, sagt das
 `Welle:`-Feld der Slices in `in-progress/`. Ziel, Trigger und
 Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
-- [welle-replay-semantik](../welle-replay-semantik.md)
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
@@ -78,6 +77,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 |---|---|---|
 | welle-walking-skeleton | 2026-10-04 | [welle-walking-skeleton-results](../done/welle-walking-skeleton-results.md) |
 | welle-extended-query | 2026-10-05 | [welle-extended-query-results](../done/welle-extended-query-results.md) |
+| welle-replay-semantik | 2026-10-06 | [welle-replay-semantik-results](../done/welle-replay-semantik-results.md) |
 
 ## Historische Trigger-Verschiebungen
 
@@ -100,3 +100,4 @@ Roadmap, jede Zeile voll heißt treibende.
 | 2026-10-05 | `slice-harness-lint` und `slice-harness-coverage` (wellenlos) angelegt; sie starten nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen Slice, in dieser Reihenfolge (WIP-Limit 1) | Entscheidung des Nutzers: SOLID-naher Lint und eine Schwelle für die Testabdeckung vor dem nächsten großen Slice |
 | 2026-10-06 | `slice-lastenheft-pruefbarkeit` und vier Umstellungs-Slices (`slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`, `slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`) wellenlos angelegt; Reihenfolge vor dem nächsten großen Slice: Lastenheft, `slice-harness-lint`, die vier Umstellungs-Slices, `slice-harness-coverage` | Entscheidung des Nutzers vom 2026-10-05: Tests werden auf Black-Box-Pakete umgestellt (bis dahin `testpackage` gestuft), die Profil-Schwellen des Vorbilds gelten, und das Lastenheft bekommt eine Qualitätsanforderung an die Prüfbarkeit des Quellcodes |
 | 2026-10-06 | M3 um Abnahmeszenario 17 (Prüfbarkeit des Quellcodes) erweitert; es entsteht mit `slice-lastenheft-pruefbarkeit` und wird mit `slice-harness-coverage` nachweisbar, sodass die wellenlose Reihe von Lastenheft bis Coverage vor M3 liegt | Entscheidung des Nutzers vom 2026-10-06: die neue Qualitätsanforderung hat Priorität MUSS; das Team hat ein eigenes Abnahmeszenario entschieden (alle drei Prüfungen grün, jede nachweislich rot) |
+| 2026-10-06 | `slice-harness-mutation` (wellenlos) angelegt; die wellenlose Reihe endet nach `slice-harness-coverage` mit ihm | Entscheidung des Nutzers vom 2026-10-06 bei der Closure von welle-replay-semantik: `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` und `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` sind als Prosa ausgeschöpft und bekommen ein Mutations-Gate als Sensor; M3 hängt nicht an ihm |
