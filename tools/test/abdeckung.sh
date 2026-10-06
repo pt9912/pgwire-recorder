@@ -1,28 +1,24 @@
 #!/usr/bin/env bash
-# abdeckung — bildet die Abdeckungstabellen aus den Abdeckungs-Deklarationen der
-# Tests. Eine Deklaration steht direkt über `func Test…` (ohne Leerzeile) und
-# beginnt mit
+# abdeckung — bildet die Abdeckungstabellen aus den Abdeckungs-Deklarationen der Tests.
+# Vertrag: spec/spezifikation.md SPEC-048 (Punkte 1 bis 6 und Grenze); wie ein Lauf
+# zu lesen ist: harness/sensors/abdeckung-check.md.
+# Aufruf: abdeckung.sh [--check] [<wurzel>] (ohne --check schreibt es die Tabellen,
+# mit --check prüft es nur; ohne Wurzel das aktuelle Verzeichnis)
 #
-#   // Abdeckung: <Anforderung>/<Pfad>, … — <Kurzbeschreibung>
-#
-# Folgezeilen mit `//` setzen sie fort. Pfad ist bei funktionalen Anforderungen
-# (LH-FA) eines der drei Akzeptanzkriterien Happy, Boundary oder Negative, bei
-# Qualitätsanforderungen (LH-QA) und Randbedingungen (LH-RB) die Messung. Jede
-# Anforderung muss im Lastenheft als Überschrift stehen. Die Nachweisart folgt
-# aus dem Ort: test/integration/ ist E2E, alles andere Unit. Jeder `TestE2E…`
-# trägt eine Deklaration.
-#
-# Geschrieben werden unter docs/user/:
-#   abdeckung-e2e.md          je E2E-Deklaration und Anforderung eine Zeile
-#   abdeckung-unit.md         dasselbe für Unit-Tests
-#   abdeckung-gesamt.md       je Anforderung die Pfade mit ihren Nachweisarten
-#   abdeckung-vollstaendig.md nur Anforderungen mit allen Pfaden belegt; diese
-#                             Datei liest `make doc-trace` (trace.coverage)
-#
-# Aufruf: abdeckung.sh [--check] [<wurzel>]
-#   ohne --check schreibt es die Tabellen, mit --check prüft es nur
-# Ausgang: 0 bei Erfolg; 1 bei einer fehlerhaften Deklaration oder, mit --check,
-# bei einer veralteten Tabelle.
+# GEPRÜFT DURCH tools/test/abdeckung-gegenprobe.sh:
+#   (1) Deklaration — nicht-gelesen, leerzeile, hilfsfunktion, doppelt, dateiende,
+#       eingerueckt, ohne-trenner, gueltig-maskierung
+#   (2) Anforderung und Pfad — pfad, qa-happy, fa-messung, unbekannt,
+#       ueberschrift-ebene, inhalt-gesamt
+#   (3) Nachweisart nach Ort — inhalt-e2e, inhalt-unit, ohne-deklaration,
+#       ohne-deklaration-unit, nicht-gelesen
+#   (4) Tabellen — inhalt-e2e, inhalt-unit, inhalt-gesamt, inhalt-vollstaendig,
+#       gueltig-vollstaendig, gueltig-maskierung
+#   (5) Schreiben und Prüfen — gueltig-rechte, check-aktuell, check-veraltet,
+#       check-schreibt-nicht
+#   (6) Ausgang — gueltig, jeder Fall von abgelehnt (Exit 1, Datei und Zeile auf
+#       stderr), check-veraltet
+#   Grenze — gueltig, inhalt (Tests ohne Rumpf angenommen)
 set -euo pipefail
 export LC_ALL=C
 
@@ -111,7 +107,8 @@ tabelle_art E2E "\`test/integration/\`, gegen eine reale PostgreSQL-Instanz" abd
 tabelle_art Unit "\`internal/\`" abdeckung-unit.md
 
 # 2. Gesamtsicht und vollständige Anforderungen. Vollständig ist eine LH-FA mit
-#    Happy, Boundary und Negative, eine LH-QA oder LH-RB mit Messung.
+#    Happy, Boundary und Negative, eine LH-QA oder LH-RB mit Messung. Kopplung:
+#    abdeckung-vollstaendig.md liest `make doc-trace` (trace.coverage in .d-check.yml).
 awk -F'\t' '{ print $2 "\t" $3 "\t" $1 }' "$arbeit/decl.tsv" | sort -u > "$arbeit/pfade.tsv"
 cut -f1 "$arbeit/pfade.tsv" | sort -uV > "$arbeit/ids.txt"
 
