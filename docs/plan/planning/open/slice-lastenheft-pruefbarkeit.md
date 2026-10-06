@@ -134,7 +134,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay` liegt in
 `done/` (der Wortlaut ist seit 2026-10-06 bestätigt). Erster Slice der Reihe
 (Lastenheft, Lint, die vier Umstellungs-Slices, Coverage). Vor dem Lastenheft-Commit
-entscheidet der Architect §6 *Nachweis* und *Priorität* (Form).
+entscheidet der Architect §6 *Nachweis*.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -170,9 +170,9 @@ siebte Qualitätsanforderung):
 
 > **— Prüfbarkeit des Quellcodes**
 >
-> - **Anforderung:** Der Quellcode soll so gehalten werden, dass jede Änderung
+> - **Anforderung:** Der Quellcode muss so gehalten werden, dass jede Änderung
 >   automatisch auf Verstöße gegen festgelegte Struktur- und Komplexitätsregeln und auf
->   nicht durch Tests ausgeführten Code geprüft werden kann. Tests sollen das Verhalten
+>   nicht durch Tests ausgeführten Code geprüft werden kann. Tests müssen das Verhalten
 >   einer Einheit über deren öffentliche Schnittstelle prüfen.
 > - **Messmethode:** (1) Eine statische Analyse nach einem festgelegten Regelprofil
 >   meldet für den Quellstand keinen Befund; Ausnahmen stehen zentral und begründet,
@@ -184,20 +184,19 @@ siebte Qualitätsanforderung):
 
 **Randformen** (vor dem Lastenheft-Commit entschieden; `AGENTS.md` §3.12):
 
-- **Wortlaut** — **entschieden (Nutzer, 2026-10-06):** der Vorschlag oben, unverändert.
-- **Priorität** — **entschieden (Nutzer, 2026-10-06):** MUSS. Offen ist nur die Form:
-  Die Qualitätsanforderungen in §4 tragen heute kein Feld `Priorität` (nur die
-  funktionalen in §3), und der bestätigte Wortlaut sagt „soll“. Offen: Feld
-  `**Priorität:** MUSS` über der Anforderung (neu für §4, Wortlaut bleibt) — sonst
-  widerspräche „soll“ der Priorität; eine Änderung des Wortlauts ginge an den Nutzer
-  zurück. Das Produkt ist laut Lastenheft erst fertig, wenn alle MUSS- und
+- **Wortlaut** — **entschieden (Nutzer, 2026-10-06):** der Vorschlag oben; „soll“ ist
+  dort zu „muss“ und „sollen“ zu „müssen“ geworden, sonst unverändert.
+- **Priorität** — **entschieden (Nutzer, 2026-10-06):** MUSS, getragen allein vom
+  Wortlaut („muss“, „müssen“); die Anforderung bekommt kein eigenes Feld `Priorität`,
+  wie die übrigen Qualitätsanforderungen in §4. Das Produkt ist laut Lastenheft erst fertig, wenn alle MUSS- und
   SOLL-Anforderungen umgesetzt sind; die Anforderung gehört damit zu M3.
 - **Version** — geprüft: Das Lastenheft steht auf `Draft` (Version 0.1.0); vor
   `Accepted` ist es frei änderbar, ohne Change Request und ohne Historie-Zeile. Ein
   Versionssprung ist darum nicht nötig. Nach `Accepted` wäre eine neue Anforderung ein
   Minor-Sprung (`harness/conventions.md` §Versionierung des Lastenhefts).
 - **Abnahmeszenario** — **entschieden (Team, 2026-10-06):** ein eigenes, Nummer 17 in
-  §7, Teil von M3. Vorschlag des Planners für den Text, Wortlaut beim Lastenheft-Commit
+  §7, Teil von M3. Vorschlag des Planners für den Text — er bleibt Vorschlag bis zum
+  Start dieses Slice; Wortlaut beim Lastenheft-Commit
   dem Nutzer vorzulegen: *„Abnahmeszenario 17 — Prüfbarkeit des Quellcodes. Für den
   abzunehmenden Quellstand laufen die statische Analyse, die Prüfung der
   Testabdeckung und die Prüfung der Testanordnung ohne Eingaben und ohne Befund. Für
