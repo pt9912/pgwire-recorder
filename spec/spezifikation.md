@@ -1646,7 +1646,11 @@ bleibt unverändert, kein Code ändert ihn.
   Zeilenumbrüche und bleiben stehen.
 * *Fehlerkette.* Der Kopf steht genau einmal, am Anfang. Code und Klasse sind die
   des äußersten klassifizierten Fehlers; ein innerer klassifizierter Fehler trägt
-  nur seine Ursache bei, ohne eigenen Kopf.
+  nur seine Ursache bei, ohne eigenen Kopf. Eine Kette ist auch ein Fehler mit
+  eigenem Text um mehrere Ursachen: Er bleibt eine Meldung mit seinem ganzen Text,
+  Code und Klasse sind die des ersten klassifizierten Fehlers unter ihm, in der
+  Reihenfolge seiner Ursachen und von außen nach innen, und kein innerer Fehler
+  trägt einen Kopf; ohne klassifizierten Fehler darunter ist er `PGR-E1000`.
 * *Gleichrangige Fehler.* Entstehen bei einem Ereignis mehrere Fehler
   nebeneinander, etwa beim Ende einer Session das Verbindungsende, das Schreiben
   des Recordings und das Schließen der Verbindung zum Upstream, ist jeder
@@ -1654,7 +1658,9 @@ bleibt unverändert, kein Code ändert ihn.
   Entstehens; gemerkt wird der erste (LH-FA-13.b). Ein nicht klassifizierter Fehler
   daneben ist keine eigene Meldung: Sein Text folgt als Ursache der ersten
   klassifizierten. Sind alle nicht klassifiziert, ist es eine Meldung `PGR-E1000`,
-  ihre Texte durch `; ` getrennt.
+  ihre Texte durch `; ` getrennt. Gleichrangig sind nur Fehler, die ohne eigenen
+  Text nebeneinander stehen (eine reine Zusammenfassung); eine Hülle mit eigenem
+  Text um mehrere Ursachen ist eine Kette (*Fehlerkette*).
 * *Fremde Fehler.* Ein Fehler aus einer Bibliothek oder dem Betriebssystem trägt
   den Code der Stelle, an der der Recorder ihn einordnet, und sein Text folgt als
   Ursache; ordnet der Recorder ihn nicht ein, ist er `PGR-E1000` mit Kopf und
@@ -1663,7 +1669,10 @@ bleibt unverändert, kein Code ändert ihn.
   (LH-FA-13.b) trägt den Schweregrad `FATAL`, als Meldungstext denselben
   Fehlertext wie das Attribut `error` der Log-Zeile, unabhängig vom Log-Level, und
   als SQLSTATE nach der Klasse `0A000` (nicht unterstützt), `08006` (Netzwerk),
-  sonst `XX000`; weitere Felder trägt sie nicht. Eine `ErrorResponse` des Servers,
+  sonst `XX000`; weitere Felder trägt sie nicht. Ergibt der Fehler mehrere
+  Meldungen (*Gleichrangige Fehler*), wird genau eine `ErrorResponse` zugestellt,
+  mit Text und SQLSTATE der ersten, der gemerkten; die übrigen stehen nur im Log.
+  Eine `ErrorResponse` des Servers,
   die `record` weiterleitet oder `replay` wiedergibt, ist keine Meldung des
   Recorders und trägt keinen Meldungscode (LH-FA-11.a).
 
@@ -1855,3 +1864,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Record: Weitergabe der Antworten einer einfachen Anfrage an den Client, auch bei einer nicht unterstützten Antwort nach Ergebnissen (`LH-FA-02.b`); Nachrichten des Upstreams zwischen Interaktionen gehören zur nächsten (`LH-FA-05.a`); Diagnosefelder mit leerem Wert oder Zahl `0` gelten als fehlend, Feldreihenfolge nicht aufgezeichnet (`LH-FA-11.a`) |
 | 2026-10-06 | Diagnose: Parameterwerte auf keinem Log-Level und in keiner `ErrorResponse`, Nummer des ersten abweichenden Parameters, bei abweichender Zahl beide Anzahlen (`LH-FA-18.a`, `SPEC-033`); Log-Level genau vier, Strenge des Werts, Inhalt der Stufen, Zeilenform, Zeile beim Prozessende auf jeder Stufe, `stdout` nur für Hilfe, `version` und `config show` (`LH-FA-14.a`); Fehlertext einzeilig, Kopf einmal mit dem Code des äußersten Fehlers, fremde Fehler, Felder der `ErrorResponse` (`SPEC-034`) |
 | 2026-10-06 | Gleichrangige Fehler als eigene Meldungen, erster gemerkt, nicht klassifizierter als Ursache; Zeilenumbruch LF, CR LF, CR; Attribut `error` nur mit Kopf, `grund` für Bibliothekstexte (`SPEC-034`, `LH-FA-14.a`); nicht annehmbare Verbindung ist Verbindungsfehler `PGR-E4000` (`LH-FA-13.b`) |
+| 2026-10-06 | Mehrere Meldungen: die `ErrorResponse` trägt die erste; Hülle mit eigenem Text um mehrere Ursachen ist eine Kette mit dem ersten klassifizierten Code, gleichrangig nur eine reine Zusammenfassung (`SPEC-034`) |
