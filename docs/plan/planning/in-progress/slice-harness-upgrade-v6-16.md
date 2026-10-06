@@ -150,7 +150,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `AGENTS.md` | update | §1 Asset-URL; §3.x nur, wenn der Abgleich eine verkörperte Regel als gegenstandslos oder widersprüchlich findet und die Anpassung klein ist |
 | `.claude/commands/*.md`, `.claude/agents/*.md`, `.harness/skills/*.md`, `docs/plan/planning/observations/README.md` | prüfen, update falls klein | Abgleich gegen das Delta; Verweise auf den Baum nennen heute `.harness/baseline/<tag>/…` und bleiben so — ein fester Tag in einem lebenden Dokument ist ein Befund |
 | `harness/README.md`, `harness/sensors/*.md` | prüfen, update falls klein | Singleton-Abgleich gegen `README.template.md` und `sensors/gate.template.md` des neuen Stands (§6 *Sensor-Datei*) |
-| `docs/plan/planning/open/`, `next/` (Folge-Slices, falls Befunde) | neu | per `cp` aus `slice.template.md` des **neuen** Stands, je Befund, der nicht klein ist |
+| `docs/plan/planning/open/`, `next/` (Folge-Slices, falls Befunde) | neu | per `cp` aus `slice.template.md` des **neuen** Stands, je Befund, der nicht klein ist; angelegt: `slice-harness-gate-index-werkzeug-teil` (Teil des Gate-Index, der einem Werkzeug gehört) |
+| `docs/plan/adr/README.md` | update (ein Satz) | Abschnitt *Konventionen* folgt `adr/README.template.md` des neuen Stands: die ADR eines Gates schärft dessen Spec-Stelle |
+| `docs/plan/planning/in-progress/roadmap.md` | update (Drift-Log) | eine Zeile für den angelegten Folge-Slice, wie für jeden wellenlos angelegten Slice |
 
 **Ansatz:**
 

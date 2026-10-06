@@ -48,7 +48,8 @@
   sie verbindlich macht (Baseline-Regelwerk `grundlagen-referenz-richtung.md` §Referenz-Richtung (SDP)) —
   als Kennung (`SPEC-*`, `ARC-*`, `<PREFIX>-FA-*.<Buchstabe>`), ersatzweise als
   Abschnitt, wo die Sektion keine Kennungen vergibt.
-  Prozess-ADRs ohne Spec-Stratum tragen `—`.
+  Prozess-ADRs ohne Spec-Stratum tragen `—`; die ADR eines Gates, dessen
+  Werkzeug festlegt, was es prüft, schärft dessen Spec-Stelle.
 
 ## Beziehungen zwischen ADRs
 
