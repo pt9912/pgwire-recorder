@@ -2045,8 +2045,11 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
    jede Regel als Eintrag `- ` mit sechs, alle drei Schlüssel in Blockform (nach dem
    Doppelpunkt höchstens ein Kommentar). Ein Schlüssel `exclusions` an anderer Stelle
    oder in Flussform und ein Schlüssel `rules` unter `exclusions` mit anderem Einzug
-   oder in Flussform ist ein Befund `Form nicht erkannt` mit seiner Zeile. Unter
-   `exclusions` stehen nur `warn-unused: true` und `rules`. Zulässig sind nur diese Regeln, jede dauerhaft und
+   oder in Flussform ist ein Befund `Form nicht erkannt` mit seiner Zeile. Ebenso ist
+   unter `rules` jede Zeile ein solcher Befund, die weder Kommentar noch Leerzeile ist,
+   weder ein Eintrag `- ` mit sechs Leerzeichen noch dessen Fortsetzung mit mindestens
+   acht unter einem solchen Eintrag; ein Eintrag `- ` mit anderem Einzug als sechs ist
+   es immer. Unter `exclusions` stehen nur `warn-unused: true` und `rules`. Zulässig sind nur diese Regeln, jede dauerhaft und
    mit einem Grund, der auch für neuen Code gilt: für Testdateien `cyclop`,
    `gocognit`, `gocyclo`, `nestif`, `funlen`, `noctx`, `unparam` und `revive` mit
    `unused-parameter` und `unused-receiver`; `staticcheck` mit `ST1005`, weil die
@@ -2091,7 +2094,9 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
 Werkzeug nicht. Dateien mit der Markierung für generierten Code nimmt golangci-lint nach
 seinem Default aus; das Modul hat keine. Ebenso wenig prüft es, ob eine Einstellung
 nach Punkt 5 ihren Grund als Kommentar trägt und ob unter `exclusions` nur die Schlüssel
-nach Punkt 8 stehen. Ein `nolint` nach Punkt 6 in einem String-Literal ist ebenfalls ein Befund. Testdateien im Paket `main` lässt
+nach Punkt 8 stehen. Eine Regel, die `config verify` annimmt und golangci-lint erst
+beim Laden ablehnt, macht die Stufe nach Punkt 9 rot, aber ohne `lint:`-Zeile; zu
+sehen ist dann nur die Meldung von golangci-lint. Ein `nolint` nach Punkt 6 in einem String-Literal ist ebenfalls ein Befund. Testdateien im Paket `main` lässt
 `testpackage` zu; unter `cmd/` gibt es keine.
 
 ## 12. Historie
@@ -2133,5 +2138,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Harness-Werkzeuge: Lint-Profil mit Linter, Schwellen, Einstellungen, Verbot von `//nolint`, Export-Test-Brücke, dauerhafte Ausnahmen ohne Stufen, Ausgabe und Ausgang, Werkzeug vor dem Gate (`SPEC-049`) |
 | 2026-10-06 | Lint-Profil: fehlendes Profil, Prüfung gegen das Schema, ungenutzte Regel als `lint:`-Zeile, jede Meldung ein Befund (`SPEC-049`) |
 | 2026-10-06 | Lint-Profil: feste Form des Ausnahme-Abschnitts, zweites Kommentarzeichen vor `nolint`, Zeile der ungenutzten Regel, generierter Code nach Default (`SPEC-049`) |
+| 2026-10-06 | Lint-Profil: Einzug der Regel-Einträge unter `rules`, Ablehnung beim Laden als Grenze (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |
