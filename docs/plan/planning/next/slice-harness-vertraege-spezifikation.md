@@ -19,7 +19,7 @@ Harness-Werkzeuge“ (2026-10-06): nach `slice-lastenheft-pruefbarkeit` und vor
 
 **Berührte Spec-Stellen:** `spezifikation.md` (neuer Abschnitt für Harness-Werkzeuge; Ort und Kennungen nach §6) · `spezifikation.md §11`
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-06.
 
