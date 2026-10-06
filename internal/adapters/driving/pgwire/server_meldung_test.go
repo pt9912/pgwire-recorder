@@ -199,3 +199,63 @@ func TestOhneStartnachrichtGrund(t *testing.T) {
 		t.Fatalf("gemerkt %q", s.FirstErrorCode())
 	}
 }
+
+// bisRFQ liest Server-Nachrichten bis einschließlich ReadyForQuery.
+func bisRFQ(t *testing.T, fe *pgproto3.Frontend) {
+	t.Helper()
+	for {
+		msg, err := fe.Receive()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := msg.(*pgproto3.ReadyForQuery); ok {
+			return
+		}
+	}
+}
+
+// ohneZeileUnterWarn bricht ab, wenn das Log eine Zeile der Stufe info oder
+// debug trägt.
+func ohneZeileUnterWarn(t *testing.T, modus, log string) {
+	t.Helper()
+	for _, z := range logZeilen(t, log) {
+		if z["level"] == "INFO" || z["level"] == "DEBUG" {
+			t.Fatalf("%s: Zeile der Stufe %s je Verbindung oder Anfrage:\n%s", modus, z["level"], log)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-14/Boundary — auf der Stufe info schreibt der PGWire-Adapter
+// keine Zeile je Verbindung oder Interaktion, weder in record noch in replay,
+// für einfache Anfragen und Extended-Interaktionen (LH-FA-14.a §Log-Level).
+func TestInfoOhneZeileJeVerbindung(t *testing.T) {
+	var recLog syncBuffer
+	rec := &fakeRecorder{}
+	client, _ := verbindeMitLog(t, rec, &recLog)
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	for _, sql := range []string{"SELECT 1", "SELECT 2"} {
+		fe.Send(&pgproto3.Query{String: sql})
+		_ = fe.Flush()
+		bisRFQ(t, fe)
+	}
+	fe.Send(&pgproto3.Terminate{})
+	_ = fe.Flush()
+	if end := rec.lastEnd(t); end != model.EndTerminate {
+		t.Fatalf("Session-Ende: %v", end)
+	}
+	ohneZeileUnterWarn(t, "record", recLog.String())
+
+	_, _, fe, repLog, fertig := replayVerbindung(t, &fakeReplayer{})
+	fe.Send(&pgproto3.Query{String: "SELECT 1"})
+	_ = fe.Flush()
+	bisRFQ(t, fe)
+	fe.Send(&pgproto3.Parse{Name: "s", Query: "SELECT 1"})
+	fe.Send(&pgproto3.Sync{})
+	_ = fe.Flush()
+	bisRFQ(t, fe)
+	fe.Send(&pgproto3.Terminate{})
+	_ = fe.Flush()
+	warte(t, fertig)
+	ohneZeileUnterWarn(t, "replay", repLog.String())
+}

@@ -267,8 +267,8 @@ func TestRunRecordLogLevel(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-14/Boundary — time einer Log-Zeile ist Ortszeit mit
-// Millisekunden und dem Zonenversatz der Ortszeit (LH-FA-14.a §Zeilenform).
+// time einer Log-Zeile ist Ortszeit mit Millisekunden und dem Zonenversatz der
+// Ortszeit (LH-FA-14.a §Zeilenform).
 func TestLoggerOrtszeit(t *testing.T) {
 	alt := time.Local
 	time.Local = time.FixedZone("Test", 2*60*60)
