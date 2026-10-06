@@ -36,7 +36,7 @@
 | [0030](0030-full-duplex-im-record-pfad.md) | Full-Duplex im Record-Pfad mit Zustand im Record-Service | Accepted | [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol) |
 | [0031](0031-lebendpruefungen-im-replay.md) | Lebendprüfungen im Replay außerhalb der Reihe | Accepted | [`LH-FA-09`](../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay) |
 | [0032](0032-kopf-sensor-fuer-slice-plaene.md) | Kopf-Sensor für Slice-Pläne | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
-| [0033](0033-gate-nachweise-in-der-abdeckung.md) | Gate-Nachweise und geteilte Messung in der Abdeckung | Proposed | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
+| [0033](0033-gate-nachweise-in-der-abdeckung.md) | Gate-Nachweise und geteilte Messung in der Abdeckung | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 
 ## Konventionen
 

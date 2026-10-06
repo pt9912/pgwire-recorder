@@ -1,12 +1,12 @@
 # ADR-0033: Gate-Nachweise und geteilte Messung in der Abdeckung
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-06
 
 **Autor:** pt9912
 
-**Bezug:** [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [ADR-0028](0028-abdeckung-je-anforderung-und-pfad.md); die Qualitätsanforderung an die Prüfbarkeit des Quellcodes kommt mit ihrer Kennung hinzu, sobald sie im Lastenheft steht
+**Bezug:** [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes), [ADR-0028](0028-abdeckung-je-anforderung-und-pfad.md)
 
 **Schärft:** —
 
@@ -63,3 +63,6 @@ Wenn eine Messmethode einen Nachweis braucht, der weder Test noch Gegenprobe ist
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-06 | Proposed | slice-lastenheft-pruefbarkeit |
+| 2026-10-06 | Accepted | slice-lastenheft-pruefbarkeit |
+
+Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

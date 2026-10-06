@@ -826,6 +826,20 @@ Veränderung der Aufzeichnung anhand des Vergleichs.
 - **Messmethode:** Jede erzeugte Aufzeichnung trägt die Versionsinformation;
   eine Aufzeichnung mit unbekannter Version wird als solche erkannt.
 
+### LH-QA-07 — Prüfbarkeit des Quellcodes
+
+- **Anforderung:** Der Quellcode muss so gehalten werden, dass jede Änderung
+  automatisch auf Verstöße gegen festgelegte Struktur- und Komplexitätsregeln und auf
+  nicht durch Tests ausgeführten Code geprüft werden kann. Tests müssen das Verhalten
+  einer Einheit über deren öffentliche Schnittstelle prüfen.
+- **Messmethode:** (1) Eine statische Analyse nach einem festgelegten Regelprofil
+  meldet für den Quellstand keinen Befund; Ausnahmen stehen zentral und begründet,
+  nicht im Code. (2) Die Anweisungsabdeckung der Unit-Tests liegt nicht unter einer
+  festgelegten Schwelle. (3) Jeder Unit-Test liegt außerhalb der Einheit, die er
+  prüft, und greift nur über eine ausdrücklich für Tests vorgesehene Stelle auf
+  Internes zu. (4) Alle drei Prüfungen laufen ohne Eingaben in der Prüfumgebung des
+  Projekts, und jede Prüfung wird nachweislich rot, wenn ihre Bedingung verletzt ist.
+
 ### LH-RB-01 — Umgang mit sensiblen Daten
 
 - **Art:** rechtlich
@@ -999,6 +1013,16 @@ Antwort in Struktur oder Fehler abweicht, meldet der Lauf die Abweichung und end
 mit einem Fehlerstatus, der sich von dem eines Serverfehlers ohne Vergleich
 unterscheidet. Endet die Aufzeichnung mit einem Verbindungsende, das der Server
 genauso verursacht, gilt es als erwartet und der Lauf geht weiter. Bezug: LH-FA-24.
+
+### Abnahmeszenario 17 — Prüfbarkeit des Quellcodes
+
+Für den abzunehmenden Quellstand laufen die drei Prüfungen aus LH-QA-07 — die
+statische Analyse, die Prüfung der Anweisungsabdeckung der Unit-Tests und die
+Prüfung der Lage der Unit-Tests — in der Prüfumgebung des Projekts ohne Eingaben und
+ohne Befund. Zu jeder der drei Prüfungen gehört ein automatisierter Gegenfall, der
+mit ihnen läuft: Er legt der Prüfung einen Quellstand vor, der genau ihre Bedingung
+verletzt, und die Prüfung meldet den Verstoß und endet mit einem Fehlerstatus.
+Bezug: LH-QA-07.
 
 ## 8. Historie
 
