@@ -9,15 +9,16 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein
-Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
+**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Der Slice legt
+das neue Abnahmeszenario 17 an, das zu M3 gehört; nachweisbar wird es erst mit
+`slice-harness-coverage`, dem letzten Slice der Reihe. Eingesammelt wird er von der
 nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
 Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** — (dieser Slice schreibt die Anforderung; ihre Kennung entsteht mit ihm). Entscheidung des Nutzers vom 2026-10-05.
+**Bezug:** — (dieser Slice schreibt die Anforderung; ihre Kennung entsteht mit ihm). Entscheidungen des Nutzers vom 2026-10-05 und 2026-10-06; Abnahmeszenario vom Team entschieden (Koordinator, 2026-10-06).
 
-**Berührte Spec-Stellen:** `lastenheft.md §4`
+**Berührte Spec-Stellen:** `lastenheft.md §4` · `lastenheft.md §7`
 
 **Verantwortlich:** —
 
@@ -35,13 +36,19 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** §4 des Lastenhefts führt eine neue Qualitätsanforderung an die
-Prüfbarkeit des Quellcodes, im Wortlaut, den der Nutzer bestätigt hat (Vorschlag in
-§6); die sechs Slices, die sie umsetzen, führen sie danach im Kopf unter `Bezug`.
+Prüfbarkeit des Quellcodes mit Priorität MUSS, im Wortlaut aus §6, den der Nutzer am
+2026-10-06 unverändert bestätigt hat; §7 führt dazu das Abnahmeszenario 17 (alle drei
+Prüfungen grün, jede nachweislich rot bei verletzter Bedingung — Messmethode 4), und
+M3 umfasst es. Der Weg, auf dem die Anforderung in den Abdeckungstabellen belegt
+erscheint, ist vor dem Code entschieden (§6 *Nachweis*); die sechs Slices, die sie
+umsetzen, führen sie im Kopf unter `Bezug`.
 
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-05: Das Lastenheft bekommt eine
 Anforderung zur Wartbarkeit bzw. Prüfbarkeit des Quellcodes, damit Lint, Black-Box-Tests
 und Testabdeckung einen Vertragsbezug haben. Der Planner legt einen Wortlaut vor; er
-schreibt ihn nicht ins Lastenheft.
+schreibt ihn nicht ins Lastenheft. Am 2026-10-06 hat der Nutzer den Wortlaut bestätigt
+und MUSS gewählt; das Abnahmeszenario hat das Team entschieden, ebenso, dass die
+Anforderung in den Abdeckungstabellen nicht als unbelegt erscheinen darf.
 
 **Warum ein eigener Slice und nicht der erste Schritt von `slice-harness-lint`:**
 (1) andere Schicht — der Lint-Slice ändert Harness und `Dockerfile` und grenzt
@@ -59,13 +66,19 @@ zu berühren.
   technischen Entscheidungen fest (Lastenheft §1); sie stehen in den ADRs von
   `slice-harness-lint` und `slice-harness-coverage`. Die Anforderung sagt „festgelegt“,
   nicht wo.
-- Die Gates selbst — übernehmen `slice-harness-lint`, `slice-harness-coverage` und die
-  vier Umstellungs-Slices.
+- Die Gates selbst und ihre Nachweise — übernehmen `slice-harness-lint` (Messmethode
+  1), `slice-harness-coverage` (Messmethode 2) und die vier Umstellungs-Slices
+  (Messmethode 3, vollständig mit `slice-harness-blackbox-einstieg`); jeder liefert den
+  Nachweis seiner Messmethode auf dem Weg, den dieser Slice festlegt.
+- Die Erweiterung von `make abdeckung` selbst, falls der Architect diesen Weg wählt —
+  ein anderer Vorgang am Werkzeug; dieser Slice legt den Weg und, bei einer
+  Erweiterung, die ADR fest (§4 Rückführung, §6 *Nachweis*).
 - Eine Stelle in Spezifikation oder Sicht — das Lastenheft nennt die Anforderung,
   ihre technische Schärfung tragen die ADRs; eine Spezifikationsstelle entsteht nur,
   wenn §6 *Spezifikation* das anders entscheidet.
-- Produkt-Code und Harness — Schicht-Abgrenzung: Der Slice ändert das Lastenheft und
-  die Köpfe von sechs Slice-Plänen.
+- Produkt-Code und Harness-Werkzeuge — Schicht-Abgrenzung: Der Slice ändert das
+  Lastenheft, die Roadmap und die Pläne von sechs Slices; eine ADR nur bei §6
+  *Nachweis*.
 
 ## 2. Definition of Done
 
@@ -74,13 +87,22 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] §4 des Lastenhefts führt die Anforderung im vom Nutzer bestätigten Wortlaut,
-      unter der nächsten freien Kennung der Qualitätsanforderungen, mit Anforderung und
-      Messmethode in der Form der übrigen; Version und Historie des Lastenhefts nach §6
-      *Version*.
-- [ ] Der Kopf (`Bezug`) von `slice-harness-lint`, `slice-harness-coverage` und der vier
-      Umstellungs-Slices verlinkt die Anforderung; die Platzhalter-Sätze dort sind
-      entfernt; `make kopf-check` und `make docs-check` sind grün.
+- [ ] Lastenheft: §4 führt die Anforderung im bestätigten Wortlaut aus §6 unter der
+      nächsten freien Kennung der Qualitätsanforderungen, mit Priorität MUSS (§6
+      *Priorität*); §7 führt das Abnahmeszenario 17 mit Bezug auf die Anforderung;
+      Version und Historie nach §6 *Version*.
+- [ ] Roadmap: Der Trigger von M3 nennt das Abnahmeszenario 17 (vom Planner am
+      2026-10-06 vorgezogen, mit Drift-Log-Zeile; bei Closure gegen §7 des
+      Lastenhefts geprüft). Der Kopf (`Bezug`) von `slice-harness-lint`,
+      `slice-harness-coverage` und der vier Umstellungs-Slices verlinkt die
+      Anforderung, die Platzhalter-Sätze dort sind entfernt; `make kopf-check` und
+      `make docs-check` sind grün.
+- [ ] Nachweis-Weg entschieden (Architect, vor dem Lastenheft-Commit, `AGENTS.md`
+      §3.12): wie jede der Messmethoden 1 bis 3 in den Abdeckungstabellen belegt
+      erscheint und wann die Anforderung als vollständig zählt (§6 *Nachweis*). Wählt
+      er eine Erweiterung von `make abdeckung`, liegt deren ADR vor, die
+      [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) ergänzt; die
+      Folge-Slices nennen in ihrer DoD, welchen Nachweis sie liefern.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -99,9 +121,10 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/lastenheft.md` | update | neue Anforderung in §4; gegebenenfalls §7 (§6 *Abnahmeszenario*) |
-| `docs/plan/planning/open/slice-harness-lint.md`, `slice-harness-coverage.md`, `slice-harness-blackbox-*.md` | update | Kopf `Bezug` mit Link auf die Anforderung |
-| `docs/plan/planning/in-progress/roadmap.md` | update, nur falls §6 *Abnahmeszenario* eines anlegt | Trigger von M3 nennt die Abnahmeszenarien einzeln |
+| `spec/lastenheft.md` | update | neue Anforderung in §4 mit Priorität MUSS; Abnahmeszenario 17 in §7 |
+| `docs/plan/planning/open/slice-harness-lint.md`, `slice-harness-coverage.md`, `slice-harness-blackbox-*.md` | update | Kopf `Bezug` mit Link auf die Anforderung; DoD-Zeile zum Nachweis nach dem entschiedenen Weg |
+| `docs/plan/planning/in-progress/roadmap.md` | geprüft | Trigger von M3 mit Abnahmeszenario 17 steht seit der Planung (2026-10-06); bei Closure gegen §7 abgeglichen |
+| `docs/plan/adr/<NNNN>-…md`, `docs/plan/adr/README.md` | neu / update, nur bei Werkzeug-Erweiterung | ADR, die [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) um Gate-Nachweise ergänzt (Architect) |
 
 ## 4. Trigger
 
@@ -109,17 +132,22 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay` liegt in
-`done/`, und der Nutzer hat den Wortlaut aus §6 bestätigt oder geändert. Erster Slice
-der Reihe (Lastenheft, Lint, die vier Umstellungs-Slices, Coverage).
+`done/` (der Wortlaut ist seit 2026-10-06 bestätigt). Erster Slice der Reihe
+(Lastenheft, Lint, die vier Umstellungs-Slices, Coverage). Vor dem Lastenheft-Commit
+entscheidet der Architect §6 *Nachweis* und *Priorität* (Form).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Nutzer entscheidet
-  zusätzlich ein Abnahmeszenario und eine Spezifikationsstelle; dann trägt ein eigener
-  Slice die Abnahme-Seite.
-- `in-progress` → `open` (blockiert — Carveout?): Der Wortlaut ist nicht bestätigt.
-  Verwirft der Nutzer die Vertragsbindung ganz, geht der Slice aus `open/` nach `done/`
-  mit `Gegenstand: entfallen` und Grund; die sechs Köpfe behalten `—`.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Architect wählt für den
+  Nachweis eine Erweiterung von `make abdeckung`, und sie soll vor `slice-harness-lint`
+  gebaut sein; dann trägt ein eigener Harness-Slice Erweiterung und Gegenprobe, und
+  dieser Slice liefert nur Lastenheft, Roadmap und ADR. Ebenso, wenn zusätzlich eine
+  Spezifikationsstelle entschieden wird.
+- `in-progress` → `open` (blockiert — Carveout?): Der Architect findet keinen
+  Nachweis-Weg, der ohne Änderung der Lesart von
+  [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (eine
+  Qualitätsanforderung hat genau einen Pfad *Messung*) eine Teilmessung von der
+  vollständigen unterscheidet, und eine ersetzende ADR ist nötig.
 
 ## 5. Closure-Trigger
 
@@ -154,26 +182,47 @@ siebte Qualitätsanforderung):
 >   Internes zu. (4) Alle drei Prüfungen laufen ohne Eingaben in der Prüfumgebung des
 >   Projekts, und jede Prüfung wird nachweislich rot, wenn ihre Bedingung verletzt ist.
 
-**Randformen** (vor dem Lastenheft-Commit vom Nutzer zu entscheiden):
+**Randformen** (vor dem Lastenheft-Commit entschieden; `AGENTS.md` §3.12):
 
-- **Wortlaut** — der Vorschlag oben oder eine Fassung des Nutzers; der Planner schreibt
-  ihn nicht ins Lastenheft.
-- **Verbindlichkeit** — „soll“ wie die übrigen Qualitätsanforderungen oder „muss“. Das
-  Produkt ist laut Lastenheft fertig, wenn alle MUSS- und SOLL-Anforderungen umgesetzt
-  sind; die Anforderung gehört damit in jedem Fall zum Umfang von M3.
+- **Wortlaut** — **entschieden (Nutzer, 2026-10-06):** der Vorschlag oben, unverändert.
+- **Priorität** — **entschieden (Nutzer, 2026-10-06):** MUSS. Offen ist nur die Form:
+  Die Qualitätsanforderungen in §4 tragen heute kein Feld `Priorität` (nur die
+  funktionalen in §3), und der bestätigte Wortlaut sagt „soll“. Offen: Feld
+  `**Priorität:** MUSS` über der Anforderung (neu für §4, Wortlaut bleibt) — sonst
+  widerspräche „soll“ der Priorität; eine Änderung des Wortlauts ginge an den Nutzer
+  zurück. Das Produkt ist laut Lastenheft erst fertig, wenn alle MUSS- und
+  SOLL-Anforderungen umgesetzt sind; die Anforderung gehört damit zu M3.
 - **Version** — geprüft: Das Lastenheft steht auf `Draft` (Version 0.1.0); vor
   `Accepted` ist es frei änderbar, ohne Change Request und ohne Historie-Zeile. Ein
   Versionssprung ist darum nicht nötig. Nach `Accepted` wäre eine neue Anforderung ein
   Minor-Sprung (`harness/conventions.md` §Versionierung des Lastenhefts).
-- **Abnahmeszenario** — ein eigenes Szenario in §7 (dann ändert sich der Trigger von M3
-  in der Roadmap, der die Szenarien einzeln nennt) oder keins, weil die Messmethode
-  über Gates prüfbar ist.
-- **Nachweis in der Abdeckungs-Tabelle** — `make abdeckung` kennt nur
-  Test-Deklarationen (`<Kennung>/Messung`, [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md)); ein Gate trägt keine. Ohne
-  Deklaration zeigt die Gesamtsicht die Anforderung nicht als belegt. Offen: eine
-  Deklaration an einem Test der Gegenproben (die Bash-Skripte deklarieren heute nicht),
-  eine Erweiterung des Abdeckungs-Werkzeugs (dann eine ADR) oder bewusst „belegt durch
-  Gate“ ohne Tabellenzeile.
+- **Abnahmeszenario** — **entschieden (Team, 2026-10-06):** ein eigenes, Nummer 17 in
+  §7, Teil von M3. Vorschlag des Planners für den Text, Wortlaut beim Lastenheft-Commit
+  dem Nutzer vorzulegen: *„Abnahmeszenario 17 — Prüfbarkeit des Quellcodes. Für den
+  abzunehmenden Quellstand laufen die statische Analyse, die Prüfung der
+  Testabdeckung und die Prüfung der Testanordnung ohne Eingaben und ohne Befund. Für
+  jede der drei Prüfungen wird ein Quellstand vorgelegt, der genau ihre Bedingung
+  verletzt; die Prüfung meldet den Verstoß und endet mit einem Fehlerstatus. Bezug:
+  die neue Anforderung.“* Offen: ob die Rot-Hälfte auf den Gegenproben der Gates
+  beruhen darf (dann nennt das Szenario keine eigenen Quellstände) oder bei der
+  Abnahme eigens vorgeführt wird.
+- **Nachweis in den Abdeckungstabellen** — **entschieden (Team, 2026-10-06):** Die
+  Anforderung wird belegt und erscheint dort nicht als unbelegt. **Offen, entscheidet
+  der Architect vor dem Code:** der Weg. `make abdeckung` kennt heute nur
+  Deklarationen über `func Test…` in Go-Tests
+  (`<Kennung>/Messung`, [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md));
+  die Gegenproben sind Bash-Skripte und deklarieren nicht. Kandidaten: (a) eine
+  Deklaration an einem Go-Test (welcher Test belegt eine Lint-Regel?); (b) eine
+  Erweiterung von `make abdeckung` um Gate-Nachweise, etwa eine Deklaration im Kopf
+  einer Gegenprobe mit eigener Nachweisart „Gate“ — braucht eine ADR, die
+  [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) ergänzt, und eine
+  Erweiterung von `make abdeckung-gegenprobe`; (c) ein anderer Weg. Dazu offen:
+  Teilmessung — eine Qualitätsanforderung hat nach [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) genau einen Pfad
+  *Messung*, also zählte schon der Lint-Nachweis allein als vollständig, obwohl
+  Messmethode 2 und 3 fehlen; entweder je Messmethode ein Pfad, oder die Deklaration
+  kommt erst mit dem letzten Slice. Bis zum ersten Nachweis steht die Anforderung in
+  keiner Tabelle (die Gesamtsicht führt nur deklarierte Anforderungen) und in der RTM
+  als unbelegt — ein Zwischenstand der Reihe, kein Endzustand.
 - **Spezifikation** — ob eine Spezifikationsstelle die Anforderung schärft oder die
   ADRs der Gates direkt (wie [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md) für Build und Test). Referenz-Richtung: Das
   Lastenheft nennt weder Gate noch ADR.

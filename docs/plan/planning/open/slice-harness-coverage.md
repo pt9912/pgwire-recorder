@@ -9,8 +9,9 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein
-Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
+**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Er trägt zum
+Abnahmeszenario 17 (M3) bei, das `slice-lastenheft-pruefbarkeit` anlegt und das mit
+dem letzten Slice der Reihe nachweisbar wird. Eingesammelt wird er von der
 nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
 Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
@@ -90,7 +91,11 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [ ] Gegenprobe als eigenes Ziel an `GATE_CHECKS`: ein Stand unter der Schwelle wird
       abgelehnt, einer genau an der Schwelle angenommen; dazu je entschiedener Randform
       aus §6, die eine Mutation fangen kann, ein Fall (Paket ohne Tests, ausgenommener
-      Pfad, Rundung). Je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10).
+      Pfad, Rundung). Je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10). Die
+      Gegenprobe ist der Nachweis der Messmethode 2 der neuen Anforderung, auf dem Weg
+      aus `slice-lastenheft-pruefbarkeit`; mit ihm sind alle drei Messmethoden belegt,
+      die Anforderung zählt in den Abdeckungstabellen als vollständig, und das
+      Abnahmeszenario 17 ist nachweisbar (`make abdeckung-check` grün).
 - [ ] Doku: `harness/README.md` §Sensors führt die Schwelle beim Vertrag von
       `make test` und die Gegenprobe mit Bindung an die ADR; die Zeile „Nicht
       behauptet“ nennt keine Testabdeckung mehr und grenzt gegen die Abdeckung je

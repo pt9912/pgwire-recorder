@@ -9,8 +9,9 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein
-Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
+**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Er trägt zum
+Abnahmeszenario 17 (M3) bei, das `slice-lastenheft-pruefbarkeit` anlegt und das mit
+dem letzten Slice der Reihe nachweisbar wird. Eingesammelt wird er von der
 nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
 Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
@@ -121,6 +122,9 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `gomodguard_v2`, ein Integrationstest hinter dem Build-Tag, ein White-Box-Test in
       einem Pfad außerhalb der `testpackage`-Stufe), dazu ein grüner Fall je zentraler
       Ausnahme und je Stufe; je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10).
+      Die Gegenprobe ist der Nachweis der Messmethode 1 der neuen Anforderung und
+      erscheint in den Abdeckungstabellen auf dem Weg, den `slice-lastenheft-pruefbarkeit`
+      festlegt (`make abdeckung-check` grün).
 - [ ] Doku: `AGENTS.md` §3.2 nennt den Träger (kein `//nolint`, Ausnahmen zentral in
       `.golangci.yml` mit `Why:`) statt der Platzhalter; `harness/README.md` §Sensors
       führt `lint` und `lint-gegenprobe` mit Vertrag und Bindung an die ADR, die Zeile
