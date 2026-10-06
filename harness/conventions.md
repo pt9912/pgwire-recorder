@@ -194,7 +194,7 @@ diese Datei verweisen darf; bei Abweichung gilt das Lastenheft.
 
 | MR | Titel | Geltungsbereich | Ersetzt-Baseline-Regel |
 |---|---|---|---|
-| <a id="mr-001"></a>[MR-001](conventions/MR-001-spezifikations-ort-werkzeugvertraege.md) | Spezifikations-Ort für Verträge der Harness-Werkzeuge | Harness-Werkzeuge und Gates unter `tools/`, `harness/mk/` und deren Gegenproben, nicht das Produkt | [`grundlagen-referenz-richtung.md` §Spec-Straten](../.harness/baseline/v6.13.0/regelwerk/grundlagen-referenz-richtung.md#spec-straten-mehr-als-ein-spec-dokument) |
+| — | — | — | — |
 
 ### Aufgelöste Adaptionen
 
@@ -202,7 +202,7 @@ diese Datei verweisen darf; bei Abweichung gilt das Lastenheft.
 
 | MR | aufgelöst durch |
 |---|---|
-| — | — |
+| <a id="mr-001"></a>[MR-001](conventions/done/MR-001-spezifikations-ort-werkzeugvertraege.md) | kein Nachfolger: Antwort des Kurs-Repos auf den Change Request (2026-10-06), der Ort ist die Spezifikation |
 
 ## Zusatzklassen-Deklaration für Sensors-Bindung
 
