@@ -52,8 +52,9 @@ done < <(go_dateien 'export_test.go')
 # Profil in seiner festen Form: `linters:` ohne Einzug, `exclusions:` mit 2,
 # `rules:` mit 4, jede Regel `- ` mit 6 Leerzeichen, alle drei in Blockform.
 # Ein Schlüssel `exclusions` an anderer Stelle oder in Flussform, ein `rules`
-# darunter mit anderem Einzug oder in Flussform und ein Eintrag unter `rules`
-# mit anderem Einzug ergeben `Form nicht erkannt` mit ihrer Zeile.
+# darunter mit anderem Einzug oder in Flussform und unter `rules` jede Zeile, die
+# weder Kommentar, Leerzeile, Eintrag `- ` mit 6 noch dessen Fortsetzung mit
+# mindestens 8 ist, ergeben `Form nicht erkannt` mit ihrer Zeile.
 if [ -f "$profil" ]; then
   ohne_why="$(awk -v profil="$profil" '
     function form(n) { print profil ":" n ": Form nicht erkannt" }
@@ -70,11 +71,16 @@ if [ -f "$profil" ]; then
         oben = rest; sub(/:.*/, "", oben)
         in_ex = 0; in_regeln = 0
       }
-      if (in_ex && e <= ex_e) { in_ex = 0; in_regeln = 0 }
+      if (in_ex && e <= ex_e && !(in_regeln && strich)) { in_ex = 0; in_regeln = 0 }
       if (in_regeln) {
-        if (e < 4 || (e == 4 && !strich)) in_regeln = 0
-        else if (e < 6 || (e == 6 && !strich)) form(NR)
-        else if (e == 6) {
+        # Unter `rules`: Eintrag `- ` mit 6, Fortsetzung mit mindestens 8 unter
+        # einem Eintrag; jede andere Zeile, auch ein `- ` mit anderem Einzug, ist
+        # `Form nicht erkannt`. Eine Zeile ohne `- ` mit höchstens 4 beendet `rules`.
+        if (!strich && e <= 4) in_regeln = 0
+        else if (e >= 8 && eintrag) { }
+        else if (!strich || e != 6) form(NR)
+        else {
+          eintrag = 1
           i = NR - 1
           while (i > 0 && zeile[i] ~ /^[ \t]*#/) i--
           if (i == NR - 1 || zeile[i + 1] !~ /^[ \t]*# Why:/)
@@ -86,7 +92,7 @@ if [ -f "$profil" ]; then
         if (!ex_ok) form(NR)
         in_ex = 1; ex_e = e; in_regeln = 0
       } else if (in_ex && t ~ /(^|[{,]|- ) *["\047]?rules["\047]? *:/) {
-        if (ex_ok && e == 4 && rest == "rules:") in_regeln = 1
+        if (ex_ok && e == 4 && rest == "rules:") { in_regeln = 1; eintrag = 0 }
         else form(NR)
       }
     }

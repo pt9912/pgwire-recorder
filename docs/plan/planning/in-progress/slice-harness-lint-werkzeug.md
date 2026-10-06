@@ -118,7 +118,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `.golangci.yml` | neu | Profil nach `SPEC-049` Punkt 1 bis 5 und 8 (`relative-path-mode: cfg`, Pfade mit `^`, `build-tags: integration`, ungekürzte Ausgabe, `warn-unused: true`); dauerhafte Ausnahmen nach Entscheidung 2 der [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Testdatei-Ausnahmen des Vorbilds, `ST1005`, `gochecknoglobals` für die zehn Nachschlage-Tabellen und Sentinel-Werte je Datei und Name, `forbidigo` für `cmd/` und `test/`), je mit `# Why:`; Kopfkommentar nennt die Hard Rule aus `AGENTS.md` §3.2 nur so weit, wie die eigene Prüfung sie hält (`AGENTS.md` §3.11) |
 | `Dockerfile` | update | Stufe `lint` aus `golangci/golangci-lint:v2.14.0@sha256:ad862ba6b3798cbe0fd9fd7408d498fd74fbd2623a92406b2fd3898faf0bf98f` auf `$BUILDPLATFORM`, Module aus `deps`, `RUN --network=none`, `GOTOOLCHAIN=local`, `GOFLAGS=-mod=readonly`; ruft `tools/harness/lint.sh`; Kommentar der Stufe `source` nennt die erweiterte Allowlist |
-| `tools/harness/lint.sh` | neu | die Stufe als ein Skript: die drei eigenen Prüfungen (`SPEC-049` Punkt 6 bis 8, die Why-Prüfung mit der festen Form des Profils und `Form nicht erkannt`), dann nach Punkt 9 Profil vorhanden, `golangci-lint config verify`, `golangci-lint run -c .golangci.yml ./...` und die Warnungen von `warn-unused` als `lint:`-Zeilen; Ausgang nach Punkt 9; Kopf nennt, was es nicht prüft (*Grenze* von `SPEC-049`) |
+| `tools/harness/lint.sh` | neu | die Stufe als ein Skript: die drei eigenen Prüfungen (`SPEC-049` Punkt 6 bis 8, die Why-Prüfung mit der festen Form des Profils und `Form nicht erkannt`, auch für jede Zeile unter `rules` außer Eintrag `- ` mit 6 und Fortsetzung mit mindestens 8), dann nach Punkt 9 Profil vorhanden, `golangci-lint config verify`, `golangci-lint run -c .golangci.yml ./...` und die Warnungen von `warn-unused` als `lint:`-Zeilen; Ausgang nach Punkt 9; Kopf nennt, was es nicht prüft (*Grenze* von `SPEC-049`) |
 | `.dockerignore` | update | `.golangci.yml` und `tools/harness/lint.sh` in die Allowlist ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)); ohne `.golangci.yml` im Kontext meldet die Stufe `lint: .golangci.yml: fehlt` und golangci-lint läuft nicht (`SPEC-049` Punkt 9), ohne das Skript läuft die Stufe nicht |
 | `harness/mk/lint.mk` | neu | Ziel `lint` (`docker build --target lint`), Hilfe-Text „Werkzeug, kein Gate“; kein `GATE_CHECKS +=` |
 | `harness/README.md` | update | Tabelle der Werkzeuge: Zeile `make lint`, kein Gate, Bindung an [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) |
@@ -191,7 +191,12 @@ Für das Werkzeug tragend:
   trotzdem (Punkt 9).
 - **Form des Profils** — die Why-Prüfung liest `.golangci.yml` nur in fester Form
   (`exclusions:` mit 2, `rules:` mit 4, `- ` mit 6 Leerzeichen, Blockform); jede andere
-  ist `Form nicht erkannt` mit ihrer Zeile (Punkt 8, nach dem Review entschieden).
+  ist `Form nicht erkannt` mit ihrer Zeile. Unter `rules` gilt das für jede Zeile, die
+  weder Kommentar, Leerzeile, Eintrag `- ` mit 6 noch dessen Fortsetzung mit mindestens
+  8 ist; ein `- ` mit anderem Einzug ist es immer (Punkt 8, nach Review und
+  Verifikation entschieden). Eine Regel, die `config verify` annimmt und golangci-lint
+  erst beim Laden ablehnt, ist rot ohne `lint:`-Zeile (Grenze von `SPEC-049`; Fall der
+  Gegenprobe in `slice-harness-lint`).
 - **Zweites Kommentarzeichen** — maßgeblich ist jedes `//` und `/*` der Zeile:
   `// x //nolint` ist ein Befund, `// siehe nolint` nicht (Punkt 6).
 - **Felder der ungenutzten Regel** — Reihenfolge Linter, Pfad, Pfad außer, Text,
@@ -224,7 +229,8 @@ Für das Werkzeug tragend:
     ungenutzten Regel am Logtext von golangci-lint;
   - neu nach dem ersten Lauf entschieden (`SPEC-049` Punkt 6, 8 und 9): Profil fehlt,
     Profil vom Schema abgelehnt, Zeile der ungenutzten Regel mit Feldfolge und ohne
-    erkannte Felder, feste Form des Profils (Einzug, Flussform), `// x //nolint` als
+    erkannte Felder, feste Form des Profils (Einzug, Flussform, Einträge unter `rules` mit
+    Einzug 8 und 2), Ablehnung erst beim Laden (Grenze), `// x //nolint` als
     Befund und `// siehe nolint` als keiner, Ausgang ungleich 0 bei einer `lint:`-Zeile
     allein.
   — **Ausgang:** — (bei Closure)
