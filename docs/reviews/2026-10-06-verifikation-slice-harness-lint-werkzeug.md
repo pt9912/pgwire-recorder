@@ -116,3 +116,36 @@ Jede Prüfung läuft auch bei einem Befund einer anderen: `p9a` zeigt die Zeile 
 `make gates` am Stand `8d9f0ee` im Arbeitsbaum: **grün** (Exit 0). Gelaufen sind: `abdeckung-check`, `abdeckung-gegenprobe`, `a-check` (0 Befunde), `a-check-negativ`, `baseline-verify` (v6.13.0, 54 Dateien), `build`, `test` (gofmt, vet, Unit-Tests), `docs-check` (269 Dateien, 0 Befunde), `hook-gegenprobe`, `test-integration`, `kopf-check`, `kopf-check-gegenprobe`. `make lint` am selben Stand: rot, 103 Befunde, wie es Punkt 10 für das Werkzeug vorsieht.
 
 **Urteil:** Die drei Liefer-Punkte sind erfüllt. Ausnahme ist die Lücke V-72 in Punkt 2: F-428 ist nur für den gemeldeten Fall behoben, nicht für die Klasse. Vor der Closure braucht V-72 eine Entscheidung des Architects und danach Code oder Kommentar, die ihr folgen.
+
+---
+
+## Nachtrag: V-72 und V-74 nach `42d90e8` und `17daf26`
+
+**Gegenstand:** `42d90e8` ([`SPEC-049`](../../spec/spezifikation.md#spec-049--lint-profil-lint) Punkt 8 und *Grenze*), `17daf26` (`tools/harness/lint.sh`; Plan §3 und §6 in `docs/plan/planning/in-progress/slice-harness-lint-werkzeug.md`; der Punkt zur Gegenprobe in `docs/plan/planning/next/slice-harness-lint.md`). Beim Start war HEAD `17daf26` und der Arbeitsbaum sauber.
+
+**Proben:** jede in einer frischen Kopie aus `git archive` des genannten Stands, ohne `cp -p` und ohne Bind-Mount: Die Stufe `lint` bekommt das Profil über den Build-Kontext. Jedes Mutationsskript prüft, dass seine Ersetzung gegriffen hat. In jeder Mutation ist zusätzlich das `# Why:` der zweiten Regel durch `# Grund:` ersetzt.
+
+| Probe | Stand | Lauf | Urteil |
+|---|---|---|---|
+| Grundlauf | `17daf26` | Exit 1, 103 Befunde, keine `lint:`-Zeile | unverändert |
+| `p8d`: Einträge unter `rules` auf 8 Leerzeichen, YAML gültig | `8d9f0ee` | 103 Befunde, keine `lint:`-Zeile (Abschnitt 4) | falsch grün |
+| `p8d` | `17daf26` | `Form nicht erkannt` für jede Zeile der Regeln (`.golangci.yml:159` bis `:268`), 103 Befunde | **rot aus dem richtigen Grund** |
+| `p8f`: Einträge unter `rules` auf 2 Leerzeichen, YAML ungültig | `8d9f0ee` | `lint: .golangci.yml: von golangci-lint abgelehnt`, `yaml: line 32: did not find expected key`, golangci-lint bricht beim Laden ab, Exit 1; **keine** Zeile `Form nicht erkannt` | Aussage des Implementers bestätigt |
+| `p8f` | `17daf26` | `lint: .golangci.yml:159: Form nicht erkannt`, dazu die Ablehnung wie oben, Exit 1 | rot, jetzt mit der Zeile |
+| `p8g`: Einträge auf 4 Leerzeichen (kompakte Sequenz), YAML gültig | `8d9f0ee` und `17daf26` | je `Form nicht erkannt` und 103 Befunde; vor dem Fix nur an den Eintragszeilen, danach an jeder Zeile | rot an beiden Ständen |
+| `p8b`: feste Form, `# Why:` fehlt | `17daf26` | `lint: .golangci.yml:168: Regel ohne Kommentarblock "# Why:" unmittelbar darüber` und keine andere Zeile | keine Regression |
+| `p8a`: jeder Einzug +2 (F-428) | `17daf26` | `Form nicht erkannt` an `:155` und `:157` | keine Regression |
+
+Für den Fall mit Einzug 2 stimmt die Aussage des Implementers: Ohne den Fix ist er schon rot, weil `config verify` das ungültige YAML ablehnt und golangci-lint nicht lädt. Es fehlt nur die Zeile `Form nicht erkannt`. Falsch grün war vor dem Fix nur ein Einzug ab 7 bei gültigem YAML (`p8d`). Den schließt `17daf26`. Gültiges YAML mit einer anderen Einrückung der Einträge (4, 5, 7, 8 oder mehr) trifft jetzt immer einen Zweig, der `Form nicht erkannt` meldet.
+
+**V-72: behoben.** `SPEC-049` Punkt 8 entscheidet die Klasse. Der Kommentar in `tools/harness/lint.sh:54`–`:57`, der Kopf von `.golangci.yml` und Plan §6 *Form des Profils* sagen jetzt nur zu, was `p8d`, `p8f` und `p8g` zeigen. Damit ist auch F-428 als Klasse behoben.
+
+**V-74: getragen.** Die *Grenze* von `SPEC-049` nennt den Fall: Eine Regel, die `config verify` annimmt und golangci-lint erst beim Laden ablehnt, macht die Stufe rot, aber ohne `lint:`-Zeile. Plan §6 *Form des Profils* sagt dasselbe und zeigt auf die Grenze. §6 *Eigene Prüfungen bis zum Gate ohne Gegenprobe* und der Punkt zur Gegenprobe in `docs/plan/planning/next/slice-harness-lint.md` führen ihn als Fall, ebenso die Einzüge 8 und 2. Grenze, Plan und Folge-Slice widersprechen sich nicht.
+
+| ID | Klasse | Befund | Pfad | Beleg |
+|---|---|---|---|---|
+| V-75 | Hinweis an `slice-harness-lint` | Bei ungültigem YAML ordnet die Why-Prüfung Folgezeilen falsch ein. In `p8f` am Stand `17daf26` rutschen die Listenpunkte `- cyclop` usw. auf 6 Leerzeichen und werden als `Regel ohne Kommentarblock "# Why:"` gemeldet (`:160`–`:164`). Die Zeile `path:` auf 4 beendet `rules`, und der nächste Eintrag auf 2 (`:168`) erhält keine Zeile mehr. Der Lauf ist trotzdem rot, durch die Ablehnung von `config verify` und durch golangci-lint. Das ist weder falsch grün noch ein Widerspruch zu Punkt 8: Bei ungültigem YAML gibt es keine `rules`-Struktur, an der „unter `rules`“ zu messen wäre. Die Gegenprobe sollte bei Einzug 2 nur auf `Form nicht erkannt` an der ersten Eintragszeile und auf Exit 1 prüfen, nicht auf die vollständige Liste der Zeilen | `tools/harness/lint.sh:74`–`:91` | `p8f` am Stand `17daf26` |
+
+**Gate-Ergebnis am Stand `17daf26`:** `make gates` **grün** (Exit 0, alle 12 Gates; `d-check` 271 Dateien, 0 Befunde; `a-check` 0 Befunde).
+
+**Urteil:** Die drei DoD-Liefer-Punkte sind erfüllt, die Lücke aus Punkt 2 ist geschlossen. Offen sind nur die Closure-Pflichten (Notiz, Register, Risiko-Ausgänge, Paarungen), die nicht Gegenstand der Verifikation sind. V-73 bleibt als Hinweis stehen: Die Mutationstabelle des Implementers lag nicht vor und ist durch die Läufe dieses Berichts ersetzt.
