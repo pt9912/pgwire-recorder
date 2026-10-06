@@ -2037,19 +2037,15 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
 8. **Ausnahmen.** Eine Ausnahme steht nur in `.golangci.yml`, als Einstellung nach
    Punkt 5 oder als Regel unter `linters.exclusions.rules`. Unmittelbar über jeder
    Regel steht ein Kommentarblock, dessen erste Zeile mit `# Why:` beginnt; fehlt er,
-   meldet das eine eigene Prüfung. Eine Regel ist eine von zwei Arten:
-   - **dauerhaft** — für Testdateien `cyclop`, `gocognit`, `gocyclo`, `nestif`,
-     `funlen`, `noctx`, `unparam` und `revive` mit `unused-parameter` und
-     `unused-receiver`; `staticcheck` mit `ST1005`, weil die Fehlertexte deutsch sind
-     und mit einem Substantiv beginnen dürfen; `gochecknoglobals` für eine benannte
-     Nachschlage-Tabelle oder einen benannten Sentinel-Wert, die nach der
-     Initialisierung nur gelesen werden, je Regel mit Datei und Namen; `forbidigo` für
-     `os.Stdout` und `os.Stderr` nach Punkt 5.
-   - **Stufe** — setzt einen gemessenen Befund des Bestands aus, bis der Plan, den ihr
-     `Why:` nennt, ihn bereinigt und die Regel löscht. Sie ist so eng wie der Befund:
-     Datei, Linter und, wo die Meldung ihn nennt, der Name der Funktion oder Variablen;
-     für die Testdateien einer Paketgruppe deren Pfade und die Linter, die dort einen
-     Befund haben.
+   meldet das eine eigene Prüfung. Zulässig sind nur diese Regeln, jede dauerhaft und
+   mit einem Grund, der auch für neuen Code gilt: für Testdateien `cyclop`,
+   `gocognit`, `gocyclo`, `nestif`, `funlen`, `noctx`, `unparam` und `revive` mit
+   `unused-parameter` und `unused-receiver`; `staticcheck` mit `ST1005`, weil die
+   Fehlertexte deutsch sind und mit einem Substantiv beginnen dürfen;
+   `gochecknoglobals` für eine benannte Nachschlage-Tabelle oder einen benannten
+   Sentinel-Wert, die nach der Initialisierung nur gelesen werden, je Regel mit Datei
+   und Namen; `forbidigo` für `os.Stdout` und `os.Stderr` nach Punkt 5. Eine Regel,
+   die einen Befund nur deshalb ausblendet, weil der Bestand ihn trägt, gibt es nicht.
 
    Eine Regel, die im Lauf keinen Befund ausblendet (`exclusions.warn-unused: true`), ist
    ein Befund.
@@ -2058,12 +2054,15 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
    eigenen Prüfungen schreiben je Befund eine Zeile `lint: <pfad>:<zeile>: <befund>`.
    Jede Prüfung läuft, auch wenn eine andere einen Befund hat. Die Stufe endet mit einem
    Ausgang ungleich 0 bei mindestens einem Befund, einer ungenutzten Regel oder einer
-   Konfiguration, die golangci-lint ablehnt; `make lint` hängt an der Gate-Kette von
-   `make gates`.
+   Konfiguration, die golangci-lint ablehnt.
+10. **Werkzeug, dann Gate.** Solange der Bestand außerhalb der Regeln nach Punkt 8
+    Befunde hat, ist `make lint` ein Werkzeug ohne Gate: Es meldet alle Befunde des
+    Moduls mit Pfad und endet nach Punkt 9, hängt aber nicht an der Gate-Kette von
+    `make gates`. Ohne Befund im Bestand hängt es an der Gate-Kette und endet `make
+    gates` mit Fehlerstatus, wenn es rot ist.
 
-**Grenze.** Ob ein `Why:` zutrifft, ob der Plan einer Stufe existiert und ob die Brücke
-nur weiterreicht, prüft das Werkzeug nicht; ebenso wenig, ob eine Einstellung nach
-Punkt 5 ihren Grund als Kommentar trägt. Ein `nolint` nach Punkt 6 in einem
+**Grenze.** Ob ein `Why:` zutrifft und ob die Brücke nur weiterreicht, prüft das
+Werkzeug nicht; ebenso wenig, ob eine Einstellung nach Punkt 5 ihren Grund als Kommentar trägt. Ein `nolint` nach Punkt 6 in einem
 String-Literal ist ebenfalls ein Befund. Testdateien im Paket `main` lässt
 `testpackage` zu; unter `cmd/` gibt es keine.
 
@@ -2103,6 +2102,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Diagnose: Parameterwerte auf keinem Log-Level und in keiner `ErrorResponse`, Nummer des ersten abweichenden Parameters, bei abweichender Zahl beide Anzahlen (`LH-FA-18.a`, `SPEC-033`); Log-Level genau vier, Strenge des Werts, Inhalt der Stufen, Zeilenform, Zeile beim Prozessende auf jeder Stufe, `stdout` nur für Hilfe, `version` und `config show` (`LH-FA-14.a`); Fehlertext einzeilig, Kopf einmal mit dem Code des äußersten Fehlers, fremde Fehler, Felder der `ErrorResponse` (`SPEC-034`) |
 | 2026-10-06 | Gleichrangige Fehler als eigene Meldungen, erster gemerkt, nicht klassifizierter als Ursache; Zeilenumbruch LF, CR LF, CR; Attribut `error` nur mit Kopf, `grund` für Bibliothekstexte (`SPEC-034`, `LH-FA-14.a`); nicht annehmbare Verbindung ist Verbindungsfehler `PGR-E4000` (`LH-FA-13.b`) |
 | 2026-10-06 | Mehrere Meldungen: die `ErrorResponse` trägt die erste; Hülle mit eigenem Text um mehrere Ursachen ist eine Kette mit dem ersten klassifizierten Code, gleichrangig nur eine reine Zusammenfassung (`SPEC-034`) |
-| 2026-10-06 | Harness-Werkzeuge: Lint-Profil mit Linter, Schwellen, Einstellungen, Verbot von `//nolint`, Export-Test-Brücke, Ausnahmen als dauerhaft oder Stufe, Ausgabe und Ausgang (`SPEC-049`) |
+| 2026-10-06 | Harness-Werkzeuge: Lint-Profil mit Linter, Schwellen, Einstellungen, Verbot von `//nolint`, Export-Test-Brücke, dauerhafte Ausnahmen ohne Stufen, Ausgabe und Ausgang, Werkzeug vor dem Gate (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |

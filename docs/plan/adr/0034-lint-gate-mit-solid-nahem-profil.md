@@ -1,4 +1,4 @@
-# ADR-0034: Lint-Gate mit SOLID-nahem Profil, gestuft eingeführt
+# ADR-0034: Lint-Gate mit SOLID-nahem Profil, eingeführt nach Bereinigung
 
 **Status:** Proposed
 
@@ -16,7 +16,7 @@
 
 ## Kontext
 
-`LH-QA-07` verlangt in Messmethode (1) eine statische Analyse nach festgelegtem Profil ohne Befund, mit Ausnahmen zentral und begründet, und in Messmethode (3) Unit-Tests außerhalb der geprüften Einheit, die nur über eine für Tests vorgesehene Stelle auf Internes zugreifen. Ein Lint-Gate gibt es nicht; `AGENTS.md` §3.2 ist ein Platzhalter. Vorbild ist das Profil des Schwester-Repos ai-harness-init mit golangci-lint v2. Der Nutzer hat am 2026-10-05 entschieden: die Schwellen des Vorbilds gelten unverändert, `testpackage` wird gestuft eingeführt und von vier Umstellungs-Plänen je Paketgruppe scharf geschaltet, der Vertrag des Gates steht in der Spezifikation.
+`LH-QA-07` verlangt in Messmethode (1) eine statische Analyse nach festgelegtem Profil ohne Befund, mit Ausnahmen zentral und begründet, und in Messmethode (3) Unit-Tests außerhalb der geprüften Einheit, die nur über eine für Tests vorgesehene Stelle auf Internes zugreifen. Ein Lint-Gate gibt es nicht; `AGENTS.md` §3.2 ist ein Platzhalter. Vorbild ist das Profil des Schwester-Repos ai-harness-init mit golangci-lint v2. Der Nutzer hat am 2026-10-05 entschieden: die Schwellen des Vorbilds gelten unverändert, die Tests werden in vier Umstellungs-Plänen je Paketgruppe auf Black-Box-Pakete umgestellt, der Vertrag des Gates steht in der Spezifikation; am 2026-10-06, nach der Messung: Bereinigung vor dem Gate, ohne Stufen.
 
 **Messung des Bestands** (Stand `79f40e1`, Profil des Vorbilds unverändert mit Build-Tag `integration` und ungekürzter Ausgabe, golangci-lint `v2.14.0` im Image des Vorbilds, ohne Netz). Befunde je Linter und Paket; `cmd/pgwire-recorder` hat keinen.
 
@@ -47,47 +47,37 @@ Wir führen `make lint` als Stufe `lint` des `Dockerfile` mit dem Profil des Vor
 2. **Dauerhafte Ausnahmen mit Grund, der auch für neuen Code gilt.** Die Testdatei-Ausnahmen des Vorbilds; `ST1005`, weil deutsche Fehlertexte mit einem Substantiv beginnen; `ireturn` für Ports und `pgproto3`-Nachrichten, weil ein Adapter im Hexagon seinen Port liefert ([ADR-0001](0001-hexagonale-architektur.md)) und `pgproto3` Nachrichten als Interface führt ([ADR-0010](0010-verwendung-von-pgproto3.md)); `errcheck` für `Close` an Netz-Verbindung und Listener, weil ihr Fehler nach dem Ende nichts mehr ändert; `gochecknoglobals` je Datei und Name für zehn Nachschlage-Tabellen und Sentinel-Werte, die nur gelesen werden — Go kennt keine konstante Map. `main.version` braucht keine Ausnahme; der Linter lässt den Namen `version` selbst zu.
 3. **`gomodguard_v2` als Erlaubnisliste** der direkten Module aus `go.mod` statt der Sperrliste des Vorbilds. Ein neues Modul ändert die Liste im selben Commit wie `go.mod` und wird damit sichtbar; welches Paket welche Bibliothek nutzt, hält weiter `make a-check`.
 4. **Export-Test-Brücke zulässig**, als einzige Datei `export_test.go` je Paket, nur mit Aliasen, Konstanten und weiterreichenden Funktionen, Zustand nur an übergebenen Werten. `testpackage` überspringt nur diesen Dateinamen; sein Default ließe auch `internal_test.go` als White-Box-Test durch. Rot-Fälle für die zweite Bedingung von Messmethode (3): ein Test in `internal_test.go` im Paket des Codes (an der Brücke vorbei, `testpackage`), eine Funktion `Test…` in `export_test.go` (eigene Prüfung), eine Variable in `export_test.go` (`gochecknoglobals`).
-5. **Gestufte Einführung, kein Wert an den Bestand angepasst** (Empfehlung; die Wahl trifft der Nutzer, darum `Proposed`). Das Gate ist ab dem ersten Lauf für jeden neuen Befund scharf. Die 96 verbleibenden Befunde stehen als Stufen mit Hochschalt-Trigger in `.golangci.yml`, je so eng wie der Befund ([`SPEC-049`](../../../spec/spezifikation.md#spec-049--lint-profil-lint) Punkt 8):
-
-   | Stufe | Pfade | Linter | Befunde | aufgehoben von |
-   |---|---|---|---|---|
-   | Tests Kern | Testdateien unter `internal/hexagon/model`, `internal/hexagon/services` | `testpackage`, `contextcheck`, `gochecknoglobals` | 31 | Umstellungs-Plan Kern |
-   | Tests Driven | Testdateien unter `internal/adapters/driven/postgres`, `internal/adapters/driven/recording` | `testpackage`, `errcheck`, `gochecknoglobals`, `unused` | 12 | Umstellungs-Plan Driven |
-   | Tests PGWire | Testdateien unter `internal/adapters/driving/pgwire` | `testpackage`, `gochecknoglobals`, `revive` | 6 | Umstellungs-Plan PGWire |
-   | Tests Einstieg | Testdateien unter `internal/adapters/driving/cli`, `internal/bootstrap`, `test/integration` | `testpackage`, `errcheck`, `gochecknoglobals`, `revive`, `staticcheck` | 22 | Umstellungs-Plan Einstieg |
-   | Code Kern und Driven | `Group.validate`, `cursor.objekte`, `toResponse`, `fromDTO` (Komplexität); Doc-Kommentare in `model`; ungenutzter Parameter in `postgres`; `QF1001` | `gocognit`, `gocyclo`, `revive`, `staticcheck` | 13 | Bereinigungs-Plan Kern und Driven |
-   | Code Driving | `pgwire/server.go` (`replaySitzung`, `clientRichtung`, `startup`, `toMessage`, Kontext im Struct, drei neue Kontexte, `net.Listen`, ungenutzter Receiver); `cli` ungenutzter Receiver; `bootstrap` neuer Kontext | `gocognit`, `cyclop`, `gocyclo`, `containedctx`, `contextcheck`, `noctx`, `revive` | 12 | Bereinigungs-Plan Driving |
-
-   Die Test-Stufen heben die vier Umstellungs-Pläne auf, die jede dieser Testdateien ohnehin umschreiben; ihr Umfang wächst um die Befunde außer `testpackage`. Die Code-Stufen folgen den Umstellungen, weil Komplexitäts-Umbauten an unexportierten Funktionen erst dann keine White-Box-Tests mehr brechen. Die erwartete Bereinigung der neuen Kontexte ist `context.WithoutCancel`; ändert sie die Semantik des Herunterfahrens, geht der Befund an den Architect zurück.
+5. **Einführung nach Bereinigung, ohne Stufen** (Entscheidung des Nutzers vom 2026-10-06). `make lint` hängt erst an der Gate-Kette, wenn der Bestand bis auf die dauerhaften Ausnahmen aus Entscheidung 2 keinen Befund mehr hat; `.golangci.yml` trägt nie eine Ausnahme, die nur Bestand aussetzt. Die 71 Befunde in Testdateien beheben die vier Umstellungs-Pläne in den Dateien, die sie ohnehin umschreiben, die 25 im Produkt-Code zwei Bereinigungs-Pläne (Kern und Driven mit 13, Driving mit 12), nach den Umstellungen, weil Komplexitäts-Umbauten an unexportierten Funktionen erst dann keine White-Box-Tests mehr brechen. Die erwartete Bereinigung der neuen Kontexte ist `context.WithoutCancel`; ändert sie die Semantik des Herunterfahrens, geht der Befund an den Architect zurück.
+6. **Werkzeug-Ziel vor dem Gate.** Damit jeder Bereinigungs-Plan sein Ergebnis messen kann, gibt es `make lint` mit Profil, Stufe `lint` und den eigenen Prüfungen schon vorher, als Werkzeug ohne Gate; es meldet den ganzen Bestand, und ein Plan liest die Befunde unter seinen Pfaden. Geliefert wird es vom ersten Plan der Bereinigungs-Reihe; das Gate (Gate-Kette, Gegenprobe, Doku) bleibt Gegenstand des Plans, der das Lint-Gate liefert. Ein direkter Aufruf des gepinnten Images in jedem Plan verworfen: Er dupliziert Pin, Profil und eigene Prüfungen in jedem Plan, und was gemessen wird, wiche vom späteren Gate ab.
 
 ## Verglichene Alternativen
 
 | Option | Pro | Contra |
 |---|---|---|
-| A — Bestand vor dem Gate bereinigen (Plan zurück nach `next`) | Gate startet ohne Stufe | 96 Befunde in allen Schichten; die Testbefunde kollidieren mit den Umstellungs-Plänen, die dieselben Dateien danach umschreiben; neuer Code bleibt bis dahin ungeprüft |
+| **A — Bestand vor dem Gate bereinigen, Werkzeug-Ziel ohne Gate bis dahin** | Gate startet ohne Stufe; `.golangci.yml` trägt nur begründete dauerhafte Ausnahmen; die Testbefunde behebt der Umbau, der dieselben Dateien umschreibt | neuer Code bleibt bis zum Gate ungeprüft (akzeptiert) |
 | B — alles in diesem Plan bereinigen | eine Lieferung | mehr als zwei Schichten, sieben Komplexitäts-Umbauten, nicht in einer Review-Sitzung prüfbar |
 | C — Schwellen oder Linter an den Bestand anpassen | sofort grün | Lockerung nach `AGENTS.md` §3.6; gegen die Entscheidung des Nutzers |
-| D — `testpackage` ganz aus bis zum letzten Umstellungs-Plan | eine Regel weniger | keine Zwischenstufe belegt ihr Hochschalten am Gate |
+| D — `testpackage` ganz aus bis zum letzten Umstellungs-Plan | eine Regel weniger | eine Ausnahme, die nur Bestand aussetzt |
 | E — `errcheck`-Preset `std-error-handling` | weniger Konfiguration | blendet auch `Close` von Dateien aus, deren Fehler Daten kostet |
 | F — `//nolint` mit `nolintlint` begrenzen | kein eigener Schritt | `nolintlint` verlangt Form, verbietet nicht |
-| **G — Gate jetzt, dauerhafte Ausnahmen mit Grund, Rest als enge Stufen mit Hochschalt-Trigger** | neuer Code ab sofort geprüft; jede Stufe hat Adresse; ungenutzte Regeln fallen auf | `.golangci.yml` trägt bis zur Bereinigung rund zwanzig Stufen-Regeln |
+| G — Gate jetzt, Rest als enge Stufen mit Hochschalt-Trigger (Empfehlung des Architect) | neuer Code ab sofort geprüft; jede Stufe hat Adresse | verworfen nach Entscheidung des Nutzers vom 2026-10-06: rund zwanzig Ausnahmen, die nur Bestand tragen, stünden im Profil, und Messmethode (1) gälte bis zu ihrer Aufhebung nur mit ihnen |
 
 ## Konsequenzen
 
-- Positiv: Jeder neue Befund und jedes `//nolint` macht das Gate rot; eine Stufe, deren Befund bereinigt ist, muss gelöscht werden, sonst ist das Gate rot.
-- Negativ (akzeptiert): Bis die Stufen aufgehoben sind, gilt Messmethode (1) mit Ausnahmen, die der Bestand trägt; ob ein `Why:` zutrifft und ob der Plan einer Stufe existiert, prüft Review. Testdateien im Paket `main` lässt `testpackage` zu; `cmd/` hat keine. Ein `//nolint` in einem String-Literal ist ein Befund.
-- Folgepflicht: Eine Gegenprobe hält jede Zusage aus [`SPEC-049`](../../../spec/spezifikation.md#spec-049--lint-profil-lint), die eine Mutation fangen kann, darunter die drei Rot-Fälle der Brücke und eine ungenutzte Regel. Mit Option G entstehen zwei Bereinigungs-Pläne in `open/`, bevor eine Code-Stufe sie im `Why:` nennt.
+- Positiv: Ab dem Gate macht jeder Befund und jedes `//nolint` den Lauf rot; jede Ausnahme im Profil hat einen Grund, der auch für neuen Code gilt.
+- Negativ (akzeptiert): Bis zum Gate prüft niemand neuen Code automatisch; das Werkzeug-Ziel misst nur, wer es aufruft. Ob ein `Why:` zutrifft, prüft Review. Testdateien im Paket `main` lässt `testpackage` zu; `cmd/` hat keine. Ein `//nolint` in einem String-Literal ist ein Befund.
+- Folgepflicht: Eine Gegenprobe hält jede Zusage aus [`SPEC-049`](../../../spec/spezifikation.md#spec-049--lint-profil-lint), die eine Mutation fangen kann, darunter die drei Rot-Fälle der Brücke und eine ungenutzte Regel.
 
 ## Fitness Function (falls maschinell prüfbar)
 
 | Tooling | Regel | Make-Target |
 |---|---|---|
-| golangci-lint und eigene Prüfungen | Profil nach [`SPEC-049`](../../../spec/spezifikation.md#spec-049--lint-profil-lint) ohne Befund | Gate-Ziel, genannt in `harness/README.md` §Sensors |
+| golangci-lint und eigene Prüfungen | Profil nach [`SPEC-049`](../../../spec/spezifikation.md#spec-049--lint-profil-lint) ohne Befund | `make lint`, bis zur Bereinigung Werkzeug ohne Gate, danach Gate-Ziel; genannt in `harness/README.md` |
 | Gegenprobe | je Zusage ein Mutant, der rot wird | Gegenproben-Ziel, genannt in `harness/README.md` §Sensors |
 
 ## Re-Evaluierungs-Trigger
 
-Wenn golangci-lint angehoben wird und ein Linter seine Meldung, seine Einstellungen oder seine eingebauten Ausnahmen ändert; wenn ein neues Modul in `go.mod` kommt; wenn eine Stufe drei Pläne lang nicht aufgehoben wird.
+Wenn golangci-lint angehoben wird und ein Linter seine Meldung, seine Einstellungen oder seine eingebauten Ausnahmen ändert; wenn ein neues Modul in `go.mod` kommt; wenn die Bereinigung den Bestand nicht ohne neue Ausnahme grün bekommt.
 
 ## Geschichte
 
