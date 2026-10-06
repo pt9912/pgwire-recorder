@@ -19,7 +19,7 @@ Bereinigungs-Reihe; Reihenfolge in §4 *Start*.
 
 **Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Punkte 1 bis 9 und die erste Hälfte von Punkt 10: Werkzeug ohne Gate)
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-06.
 
