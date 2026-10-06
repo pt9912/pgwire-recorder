@@ -6,19 +6,21 @@
 # mit --check prüft es nur; ohne Wurzel das aktuelle Verzeichnis)
 #
 # GEPRÜFT DURCH tools/test/abdeckung-gegenprobe.sh:
-#   (1) Deklaration — nicht-gelesen, leerzeile, hilfsfunktion, doppelt, dateiende,
-#       eingerueckt, ohne-trenner, gueltig-maskierung
+#   (1) Deklaration — nicht-gelesen, verschachtelt, leerzeile, hilfsfunktion, doppelt,
+#       dateiende, eingerueckt, ohne-trenner, gueltig-maskierung
 #   (2) Anforderung und Pfad — pfad, qa-happy, fa-messung, unbekannt,
 #       ueberschrift-ebene, inhalt-gesamt
 #   (3) Nachweisart nach Ort — inhalt-e2e, inhalt-unit, ohne-deklaration,
 #       ohne-deklaration-unit, nicht-gelesen
 #   (4) Tabellen — inhalt-e2e, inhalt-unit, inhalt-gesamt, inhalt-vollstaendig,
 #       gueltig-vollstaendig, gueltig-maskierung
-#   (5) Schreiben und Prüfen — gueltig-rechte, check-aktuell, check-veraltet,
+#   (5) Schreiben und Prüfen — schreiben-fehlend, schreiben-nur-geaendert,
+#       schreiben-rechte, schreiben-unberuehrt, gueltig-rechte, check-aktuell,
+#       check-veraltet, check-zwei-veraltet,
 #       check-schreibt-nicht
 #   (6) Ausgang — gueltig, jeder Fall von abgelehnt (Exit 1, Datei und Zeile auf
-#       stderr), check-veraltet
-#   Grenze — gueltig, inhalt (Tests ohne Rumpf angenommen)
+#       stderr), ohne-deklaration-zeile, check-veraltet, ohne-lastenheft
+#   Grenze — gueltig, inhalt (Tests ohne Rumpf angenommen), lastenheft-ohne-anforderung
 set -euo pipefail
 export LC_ALL=C
 

@@ -49,8 +49,9 @@ nach Pfad, Abschnitt und Befund (Punkt 8 des Vertrags). Ausgang der Prüfung:
 
 `make` meldet jeden Ausgang ungleich 0 als Fehler. Auseinander hält die beiden
 Ursachen die Zeile auf stderr: Befund-Zeilen nennen einen Plan und einen Abschnitt,
-der Abbruch nennt `docs/plan/planning fehlt`. Aus dem Rot führt bei einem Befund
-`<kennung> fehlt im Kopf`, die Kennung in `Bezug` oder `Berührte Spec-Stellen`
+der Abbruch nennt `docs/plan/planning fehlt`. Die Befund-Texte nennt Punkt 8 des
+Vertrags. Aus dem Rot führt bei einem Befund
+`<Kennung> fehlt im Kopf`, die Kennung in `Bezug` oder `Berührte Spec-Stellen`
 nachzutragen oder die Nennung in §1 oder §2 zu berichtigen (`AGENTS.md` §3.9).
 
 ## Sperren
@@ -62,3 +63,7 @@ nachzutragen oder die Nennung in §1 oder §2 zu berichtigen (`AGENTS.md` §3.9)
 
 [ADR-0032](../../docs/plan/adr/0032-kopf-sensor-fuer-slice-plaene.md) · Vertrag
 [`SPEC-047`](../../spec/spezifikation.md#spec-047--kopf-der-pläne-kopf-check)
+
+An der Gate-Kette von `make gates` hängt neben `make kopf-check` auch seine
+Gegenprobe `make kopf-check-gegenprobe`; sie prüft, ob das Werkzeug richtig ist,
+und ihr Vertrag steht in ihrer Zeile in [`../README.md` §Sensors](../README.md#sensors-feedback-gates).

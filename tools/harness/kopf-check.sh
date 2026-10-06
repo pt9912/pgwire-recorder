@@ -8,13 +8,14 @@
 # GEPRÜFT DURCH tools/harness/kopf-check-gegenprobe.sh:
 #   (1) Gegenstand — nr1-*
 #   (2) Kennungen — nr2-*, vollstaendig
-#   (3) Bereich — nr3-*
+#   (3) Bereich — nr3-*, neg-bereich-absatzgrenze, neg-bereich-regel-absatz
 #   (4) Gleichheit ist exakt — nr4-*
 #   (5) Kopf — nr5-*, leerer-kopf-ohne-nennung
 #   (6) §1 und §2 — nr6-*
 #   (7) Formfehler — nr7-*
 #   (8) Ausgabe und Ausgang — nr8-sortiert, nr8-unlesbar-davor, nr8-unlesbar-zuletzt,
-#       nr8-awk-scheitert, nr8-ohne-ablage, nr8-leere-ablage
+#       nr8-awk-scheitert, nr8-ohne-ablage, nr8-leere-ablage; Befund-Texte wörtlich in
+#       nr2-*, nr5-*, nr7-*
 #   (9) Start ohne Stufung — Abschnitt „Nr. 9: Start ohne Stufung“ (nr9-gate-checks,
 #       nr9-scharf)
 #   Grenze — neg-*

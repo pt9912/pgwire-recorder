@@ -5,9 +5,10 @@
 # erwartet ist Exit 0 ohne Ausgabe (grün), Exit 1 mit bestimmten Befund-Zeilen auf
 # stderr (rot) oder, ohne Ablage, Exit 2 mit der Abbruchzeile. Die Fälle sind nach den
 # Punkten des Vertrags gruppiert (Präfix nr<n>-); die Grenze des Vertrags (Existenz
-# der Kennung, Feldwahl, Kennung außerhalb von §1/§2, Zeile `## ` im Codeblock) steht
-# als grüne Fälle neg-* darunter. Für Punkt 9 kopiert sie Makefile und
-# harness/mk/kopf-check.mk aus dem Arbeitsbaum in einen Temp-Baum und ruft dort make.
+# der Kennung, Feldwahl, Kennung außerhalb von §1/§2, Zeile `## ` im Codeblock,
+# Bereich über Absatzgrenzen) steht als Fälle neg-* darunter. Für Punkt 9 kopiert
+# sie Makefile und harness/mk/kopf-check.mk aus dem Arbeitsbaum in einen Temp-Baum
+# und ruft dort make.
 #
 # GRENZE der Gegenprobe: Als root bleibt eine Datei mit Rechten 000 lesbar; dann sind
 # nr8-unlesbar-davor und nr8-unlesbar-zuletzt nicht herstellbar und werden laut
@@ -326,6 +327,12 @@ sed -i 's/^\*\*Verantwortlich:\*\* —$/**Verantwortlich:** — ARC-004/' "$w/$P
 gruen neg-ausserhalb "$w"
 # Eine Zeile „## “ im Codeblock beendet den Abschnitt.
 einzeln_gruen neg-codeblock-ueberschrift "—" "—" "$(printf '```\n## kein Abschnitt\nSPEC-004\n```')" "-"
+# In §1 und §2 reicht ein Bereich über Absatzgrenzen: über eine Leerzeile und über
+# einen ausgenommenen Absatz „Regeln dieser Sektion“ hinweg (nur strenger).
+einzeln_rot neg-bereich-absatzgrenze "$(printf '§1: SPEC-014 fehlt im Kopf\n§1: SPEC-015 fehlt im Kopf')" \
+  "—" "SPEC-013 · SPEC-016" "$(printf 'SPEC-013 bis\n\nSPEC-016')" "-"
+einzeln_rot neg-bereich-regel-absatz "$(printf '§1: SPEC-014 fehlt im Kopf\n§1: SPEC-015 fehlt im Kopf')" \
+  "—" "SPEC-013 · SPEC-016" "$(printf 'SPEC-013 bis\n\nRegeln dieser Sektion: x.\n\nSPEC-016')" "-"
 
 if [ "$fehler" -ne 0 ]; then
   exit 1

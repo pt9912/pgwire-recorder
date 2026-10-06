@@ -2,19 +2,24 @@
 # abdeckung-gegenprobe — prüft tools/test/abdeckung.sh gegen seinen Vertrag
 # (spec/spezifikation.md SPEC-048) an kleinen Bäumen in einem Temp-Verzeichnis; der
 # Arbeitsbaum bleibt unberührt. Abgelehnt werden müssen, je mit Exit 1 und einer
-# Zeile auf stderr, die die Testdatei nennt: eine Leerzeile zwischen Deklaration und
-# Test, eine Deklaration über einer Hilfsfunktion, zwei Deklarationen über einem
-# Test, eine Deklaration am Dateiende, eine eingerückte Deklaration, ein unbekannter
-# Pfad, ein Pfad der falschen Anforderungsart (LH-QA mit Happy, LH-FA mit Messung),
-# eine Anforderung, die nicht im Lastenheft steht, ein TestE2E ohne Deklaration
-# unter test/integration/ und anderswo, und eine Deklaration ohne „ — “; abgelehnt
+# Zeile auf stderr, die die Testdatei mit Zeile nennt: eine Leerzeile zwischen
+# Deklaration und Test, eine Deklaration über einer Hilfsfunktion, zwei
+# Deklarationen über einem Test, eine Deklaration am Dateiende, eine eingerückte
+# Deklaration, ein unbekannter Pfad, ein Pfad der falschen Anforderungsart (LH-QA mit
+# Happy, LH-FA mit Messung), eine Anforderung, die nicht im Lastenheft steht, ein
+# TestE2E ohne Deklaration unter test/integration/ (mit der Zeile des Tests), anderswo
+# und unter einem .harness/ tiefer im Baum, und eine Deklaration ohne „ — “; abgelehnt
 # wird auch eine Anforderung, die das Lastenheft nur als Überschrift zweiter Ebene
-# führt. Angenommen werden muss ein Baum, dessen einzige Fehlform unter .git/ und
-# .harness/ liegt, und ein gültiger Baum; dessen vollständige Anforderungen, das
-# maskierte `|`, die Fortsetzungszeile, die Dateirechte 0644 und das Verhalten von
-# --check (prüft, schreibt nicht, nennt die veraltete Tabelle, Exit 1) werden
-# geprüft. Ein zweiter gültiger Baum mit Unit- und E2E-Tests prüft die
-# Tabellenzeilen aller vier Tabellen Zeile für Zeile.
+# führt. Ohne Lastenheft Exit 2 mit Meldung, mit einem Lastenheft ohne Überschrift
+# ### LH-… Exit 1. Angenommen werden muss ein Baum, dessen einzige Fehlform unter
+# .git/ und .harness/ an der Wurzel liegt, und ein gültiger Baum; dessen
+# vollständige Anforderungen, das maskierte `|`, die Fortsetzungszeile, die
+# Dateirechte 0644 und das Verhalten von --check (prüft, schreibt nicht, nennt jede
+# veraltete Tabelle, Exit 1) werden geprüft. Ein Baum prüft das Schreiben: nur
+# abweichende oder fehlende Tabellen, je eine Zeile auf stdout, Rechte 0644 nur für
+# geschriebene. Ein Baum mit Unit- und E2E-Tests prüft die Tabellenzeilen aller vier
+# Tabellen Zeile für Zeile, mit je einer LH-FA, der Happy, Boundary bzw. Negative
+# fehlt.
 #
 # Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.
 set -euo pipefail
@@ -32,7 +37,7 @@ baum() {
   local wurzel="$arbeit/$1"
   shift
   mkdir -p "$wurzel/spec" "$wurzel/docs/user"
-  printf '### LH-FA-01 — Eins\n\n### LH-FA-02 — Zwei\n\n### LH-FA-03 — Drei\n\n### LH-QA-01 — Qualität\n\n### LH-RB-01 — Rand\n' > "$wurzel/spec/lastenheft.md"
+  printf '### LH-FA-01 — Eins\n\n### LH-FA-02 — Zwei\n\n### LH-FA-03 — Drei\n\n### LH-FA-04 — Vier\n\n### LH-FA-05 — Fünf\n\n### LH-QA-01 — Qualität\n\n### LH-RB-01 — Rand\n' > "$wurzel/spec/lastenheft.md"
   while [ "$#" -ge 2 ]; do
     mkdir -p "$wurzel/$(dirname "$1")"
     printf '%s\n' "$2" > "$wurzel/$1"
@@ -67,12 +72,17 @@ abgelehnt qa-happy internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-Q
 abgelehnt fa-messung internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Messung — x\nfunc TestA(t *testing.T) {}')"
 abgelehnt unbekannt internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-99/Happy — x\nfunc TestA(t *testing.T) {}')"
 abgelehnt ohne-deklaration test/integration/a_test.go "$(printf 'package a\n\nfunc TestE2EA(t *testing.T) {}')"
+# Bei einem TestE2E ohne Deklaration nennt die Zeile die Zeile des Tests.
+grep -qF 'abdeckung: test/integration/a_test.go:3: ' "$arbeit/err" \
+  || melde "Fall 'ohne-deklaration-zeile': stderr nennt nicht Zeile 3 des Tests: $(cat "$arbeit/err")"
 abgelehnt ohne-deklaration-unit internal/a_test.go "$(printf 'package a\n\nfunc TestE2EA(t *testing.T) {}')"
 abgelehnt ohne-trenner internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Happy x\nfunc TestA(t *testing.T) {}')"
+# Nur .git/ und .harness/ an der Wurzel sind ausgenommen; tiefer im Baum wird gelesen.
+abgelehnt verschachtelt sub/.harness/b_test.go "$(printf 'package a\n\nfunc TestE2EA(t *testing.T) {}')"
 
 # Eine Anforderung zählt nur als Überschrift dritter Ebene des Lastenhefts.
-wurzel="$(baum ueberschrift-ebene internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-04/Happy — x\nfunc TestA(t *testing.T) {}')")"
-printf '\n## LH-FA-04 — Vier\n' >> "$wurzel/spec/lastenheft.md"
+wurzel="$(baum ueberschrift-ebene internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-09/Happy — x\nfunc TestA(t *testing.T) {}')")"
+printf '\n## LH-FA-09 — Neun\n' >> "$wurzel/spec/lastenheft.md"
 if bash "$skript" "$wurzel" >/dev/null 2>&1; then
   melde "Fall 'ueberschrift-ebene': Anforderung aus einer Überschrift zweiter Ebene angenommen"
 fi
@@ -84,6 +94,26 @@ wurzel="$(baum nicht-gelesen \
   .harness/x/a_test.go "$(printf 'package a\n\nfunc TestE2EA(t *testing.T) {}')")"
 bash "$skript" "$wurzel" >/dev/null 2>"$arbeit/err" \
   || melde "Fall 'nicht-gelesen': Testdatei unter .git/ oder .harness/ gelesen: $(cat "$arbeit/err")"
+
+# Fehlt das Lastenheft: Exit 2 mit einer Meldung auf stderr.
+wurzel="$(baum ohne-lastenheft internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Happy — x\nfunc TestA(t *testing.T) {}')")"
+rm "$wurzel/spec/lastenheft.md"
+set +e
+bash "$skript" "$wurzel" >/dev/null 2>"$arbeit/err"
+code=$?
+set -e
+{ [ "$code" -eq 2 ] && [ -s "$arbeit/err" ]; } \
+  || melde "Fall 'ohne-lastenheft' erwartet Exit 2 mit Meldung, bekam $code: $(cat "$arbeit/err")"
+
+# Grenze: Führt das Lastenheft keine Überschrift ### LH-…, endet die Prüfung mit 1.
+wurzel="$(baum lastenheft-ohne-anforderung internal/a_test.go 'package a')"
+printf '# Lastenheft\n' > "$wurzel/spec/lastenheft.md"
+set +e
+bash "$skript" "$wurzel" >/dev/null 2>/dev/null
+code=$?
+set -e
+[ "$code" -eq 1 ] \
+  || melde "Fall 'lastenheft-ohne-anforderung' erwartet Exit 1, bekam $code"
 
 # --- Gültiger Baum: Fortsetzung, Maskierung, Rechte, --check ---------------
 gueltig="$(printf '%s\n' \
@@ -117,6 +147,43 @@ else
     || melde "Fall 'check-veraltet': stderr nennt die veraltete Tabelle nicht: $(cat "$arbeit/err")"
   [ "$(cat "$voll")" = veraendert ] \
     || melde "Fall 'check-schreibt-nicht': --check hat geschrieben"
+  # Je veralteter Tabelle eine Zeile: zwei veraltete Tabellen, zwei Zeilen.
+  echo veraendert > "$wurzel/docs/user/abdeckung-unit.md"
+  set +e
+  bash "$skript" --check "$wurzel" >/dev/null 2>"$arbeit/err"
+  code=$?
+  set -e
+  { [ "$code" -eq 1 ] && grep -qF 'docs/user/abdeckung-unit.md' "$arbeit/err" \
+      && grep -qF 'docs/user/abdeckung-vollstaendig.md' "$arbeit/err"; } \
+    || melde "Fall 'check-zwei-veraltet': erwartet Exit 1 und beide Tabellen auf stderr, bekam $code: $(cat "$arbeit/err")"
+fi
+
+# --- Schreiben: nur abweichende oder fehlende Tabellen ----------------------
+# Der erste Lauf schreibt alle vier und meldet je eine Zeile auf stdout. Danach
+# tragen alle vier Rechte 0600 und eine ist verändert: Der zweite Lauf schreibt nur
+# sie, setzt ihre Rechte auf 0644 und lässt die übrigen samt Rechten stehen.
+wurzel="$(baum schreiben internal/a_test.go "$gueltig")"
+U="$wurzel/docs/user"
+alle="$(printf 'abdeckung: docs/user/%s geschrieben\n' abdeckung-e2e.md abdeckung-unit.md abdeckung-gesamt.md abdeckung-vollstaendig.md)"
+if ! aus="$(bash "$skript" "$wurzel" 2>/dev/null)"; then
+  melde "Fall 'schreiben': gültiger Baum abgelehnt"
+elif [ "$aus" != "$alle" ]; then
+  melde "Fall 'schreiben-fehlend' erwartet auf stdout:"$'\n'"$alle"$'\n'"bekam:"$'\n'"$aus"
+else
+  cp "$U/abdeckung-gesamt.md" "$arbeit/gesamt.soll"
+  chmod 0600 "$U"/abdeckung-*.md
+  echo veraendert > "$U/abdeckung-gesamt.md"
+  aus="$(bash "$skript" "$wurzel" 2>/dev/null)" || true
+  [ "$aus" = "abdeckung: docs/user/abdeckung-gesamt.md geschrieben" ] \
+    || melde "Fall 'schreiben-nur-geaendert' erwartet genau die Zeile für abdeckung-gesamt.md, bekam: $aus"
+  cmp -s "$U/abdeckung-gesamt.md" "$arbeit/gesamt.soll" \
+    || melde "Fall 'schreiben-nur-geaendert': abdeckung-gesamt.md nicht neu geschrieben"
+  [ "$(stat -c %a "$U/abdeckung-gesamt.md")" = 644 ] \
+    || melde "Fall 'schreiben-rechte': geschriebene Tabelle trägt nicht 0644"
+  for t in abdeckung-e2e.md abdeckung-unit.md abdeckung-vollstaendig.md; do
+    [ "$(stat -c %a "$U/$t")" = 600 ] \
+      || melde "Fall 'schreiben-unberuehrt': aktuelle Tabelle $t in ihren Rechten geändert"
+  done
 fi
 
 # --- Inhalt der vier Tabellen ----------------------------------------------
@@ -129,7 +196,9 @@ unit="$(printf '%s\n' \
   '// Abdeckung: LH-FA-01/Happy — u1' \
   'func TestU(t *testing.T) {}' '' \
   '// Abdeckung: LH-FA-02/Boundary, LH-FA-02/Negative, LH-RB-01/Messung — u2' \
-  'func TestV(t *testing.T) {}')"
+  'func TestV(t *testing.T) {}' '' \
+  '// Abdeckung: LH-FA-04/Boundary, LH-FA-04/Negative, LH-FA-05/Happy, LH-FA-05/Boundary — u3' \
+  'func TestW(t *testing.T) {}')"
 e2e="$(printf '%s\n' \
   'package e' '' \
   '// Abdeckung: LH-FA-01/Happy, LH-QA-01/Messung — e1' \
@@ -164,12 +233,18 @@ else
     "| [\`LH-FA-01\`$L | Happy | u1 | \`TestU\` | \`internal/a_test.go\` |" \
     "| [\`LH-FA-02\`$L | Boundary | u2 | \`TestV\` | \`internal/a_test.go\` |" \
     "| [\`LH-FA-02\`$L | Negative | u2 | \`TestV\` | \`internal/a_test.go\` |" \
+    "| [\`LH-FA-04\`$L | Boundary | u3 | \`TestW\` | \`internal/a_test.go\` |" \
+    "| [\`LH-FA-04\`$L | Negative | u3 | \`TestW\` | \`internal/a_test.go\` |" \
+    "| [\`LH-FA-05\`$L | Boundary | u3 | \`TestW\` | \`internal/a_test.go\` |" \
+    "| [\`LH-FA-05\`$L | Happy | u3 | \`TestW\` | \`internal/a_test.go\` |" \
     "| [\`LH-RB-01\`$L | Messung | u2 | \`TestV\` | \`internal/a_test.go\` |"
   zeilen inhalt-gesamt abdeckung-gesamt.md \
     '| Anforderung | Happy | Boundary | Negative | Messung | Stand |' \
     '| --- | --- | --- | --- | --- | --- |' \
     "| [\`LH-FA-01\`$L | E2E, Unit | — | E2E | n/a | teilweise |" \
     "| [\`LH-FA-02\`$L | E2E | Unit | Unit | n/a | vollständig |" \
+    "| [\`LH-FA-04\`$L | — | Unit | Unit | n/a | teilweise |" \
+    "| [\`LH-FA-05\`$L | Unit | Unit | — | n/a | teilweise |" \
     "| [\`LH-QA-01\`$L | n/a | n/a | n/a | E2E | vollständig |" \
     "| [\`LH-RB-01\`$L | n/a | n/a | n/a | Unit | vollständig |"
   zeilen inhalt-vollstaendig abdeckung-vollstaendig.md \

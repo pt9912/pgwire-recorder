@@ -31,14 +31,18 @@ Der Lauf trägt keine Vollständigkeits-Zeile: Grün ist still.
 | Exit | Bedeutung |
 |---|---|
 | 0 | keine Fehlform, keine veraltete Tabelle |
-| 1 | mindestens eine Fehlform oder mindestens eine veraltete Tabelle |
+| 1 | mindestens eine Fehlform oder mindestens eine veraltete Tabelle; ohne jede Zeile auf stderr, wenn das Lastenheft keine Überschrift `### LH-…` führt (Grenze des Vertrags) |
+| 2 | das Lastenheft fehlt; eine Meldung auf stderr, nichts geprüft |
 
-`make` meldet den Ausgang 1 als Fehler. Beide Ursachen teilen den Ausgang;
-auseinander hält sie die Zeile auf stderr: Eine Fehlform nennt Testdatei und Zeile
-der Deklaration, eine veraltete Tabelle ihren Pfad unter `docs/user/` (Punkte 5
-und 6 des Vertrags). Aus dem Rot führt bei einer Fehlform, die Deklaration oder den
-Test zu berichtigen; bei einer veralteten Tabelle `make abdeckung`, das die Tabellen
-aus den Deklarationen neu schreibt, und der Commit der geschriebenen Tabellen.
+`make` meldet jeden Ausgang ungleich 0 als Fehler. Fehlform und veraltete Tabelle
+teilen den Ausgang 1; auseinander hält sie die Zeile auf stderr: Eine Fehlform nennt
+Testdatei und Zeile (bei einem `TestE2E…` ohne Deklaration die Zeile des Tests), eine
+veraltete Tabelle ihren Pfad unter `docs/user/`, je veralteter Tabelle eine Zeile
+(Punkte 5 und 6 des Vertrags). Einen Ausgang 1 ohne Zeile gibt es, wenn das Lastenheft
+keine Anforderung führt. Aus dem Rot führt bei einer Fehlform, die Deklaration oder den
+Test zu berichtigen; bei einer veralteten Tabelle `make abdeckung`, das die
+abweichenden Tabellen neu schreibt und je geschriebener eine Zeile auf stdout
+meldet, und der Commit der geschriebenen Tabellen.
 
 ## Sperren
 
