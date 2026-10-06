@@ -19,7 +19,7 @@ erschienen): nach `slice-harness-lint-werkzeug` und vor `slice-harness-blackbox-
 
 **Berührte Spec-Stellen:** — (die Werkzeugverträge im Abschnitt für Harness-Werkzeuge der Spezifikation bleiben unverändert; verlangt der Abgleich eine Änderung, zieht sie den Kopf nach, `AGENTS.md` §3.9, und ist nach §4 eine Rückführung)
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-06.
 
