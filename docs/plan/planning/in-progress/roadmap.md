@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: `slice-lastenheft-pruefbarkeit` (wellenlos).
+In Arbeit: `slice-harness-vertraege-spezifikation` (wellenlos).
 
 
 
