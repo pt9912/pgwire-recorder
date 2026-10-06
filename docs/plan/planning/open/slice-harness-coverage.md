@@ -44,7 +44,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ziel:** Die Stufe `test` des `Dockerfile` misst die Anweisungs-Abdeckung der
 Unit-Tests (`go test -coverprofile`) und bricht ab, wenn sie unter der Schwelle
 liegt; das Gate ist damit Teil von `make gates`. Die Schwelle ist eine Zahl aus der
-Messung des heutigen Stands, gesetzt in der ADR des Gates — nicht in diesem Plan.
+Messung des heutigen Stands und steht nach Entscheidung des Nutzers vom 2026-10-06 im
+Abschnitt für Harness-Werkzeuge der Spezifikation, in der Kennung des Gates, als
+Konstante mit Einheit und Begründung; die ADR des Gates hält Mechanismus, Messung mit
+Quellstand und die Regel, nach der die Zahl folgt, und setzt `Schärft:` auf die
+Kennung — nicht in diesem Plan.
 Die Gegenprobe zeigt, dass das Gate rot werden kann (`AGENTS.md` §3.10), und trägt die
 Abdeckungs-Deklaration von Teil 2 von LH-QA-07. Eine
 spätere Senkung der Schwelle braucht eine neue ADR (`AGENTS.md` §3.6).

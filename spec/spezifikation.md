@@ -1831,7 +1831,136 @@ und Tests. „Nicht zugesichert" heißt: Die Funktion fehlt; Nachrichten und
 Interaktionen daraus werden nach LH-FA-05.e abgelehnt beziehungsweise
 behandelt, nicht still ignoriert.
 
-## 11. Historie
+## 11. Harness-Werkzeuge
+
+Dieser Abschnitt legt die Werkzeuge der Prüfumgebung des Projekts fest, die
+[`LH-QA-07`](lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) in Messmethode (4)
+nennt: was ihre Prüfung zusagt, woran sie rot wird und was sie nicht prüft. Keine
+Kennung dieses Abschnitts ist eine Zusage des Produkts, und keine erweitert eine
+Anforderung des Lastenhefts. Die Schnittstelle eines Werkzeugs ist sein
+`make`-Target. Die Punkte einer Kennung sind nummeriert; die Nummer ist ihre Adresse.
+
+### SPEC-047 — Kopf der Pläne (`kopf-check`)
+
+`make kopf-check` gleicht zwei Mengen von Kennungen ab, ohne über Inhalt zu urteilen:
+Was §1 oder §2 eines lebenden Slice-Plans an Kennungen nennt, führt der Kopf des
+Plans.
+
+1. **Gegenstand.** Geprüft werden die Dateien, deren Name mit dem Präfix `slice` und
+   einem Bindestrich beginnt und auf `.md` endet, flach in
+   `docs/plan/planning/open/`, `docs/plan/planning/next/` und
+   `docs/plan/planning/in-progress/`. Nicht geprüft werden Unterverzeichnisse dieser
+   drei, `docs/plan/planning/done/` (flach und archiviert), Welle-Pläne, Roadmap,
+   Register und andere Dateien.
+2. **Kennungen.** Gezählt werden `LH-XX-NN`, `LH-XX-NN.x`, `SPEC-NNN` und `ARC-NNN`
+   (X ein Großbuchstabe, N eine Ziffer, x ein Kleinbuchstabe) in genau dieser
+   Schreibweise und als ganzes Wort; Wortzeichen sind Buchstabe, Ziffer und
+   Unterstrich. Ein Punkt beendet das Wort: Folgt einer Hauptkennung nach dem Punkt
+   keine Unterkennung (etwa `.ab`), zählt die Hauptkennung. Auszeichnung ist ohne
+   Belang: Code-Span, Linktext, Hervorhebung und Codeblock zählen gleich. Link-Anker sind
+   klein geschrieben und darum keine Nennung. Eine andere Schreibweise (klein, ohne
+   führende Null, mit zusätzlicher Ziffer, ohne Bindestrich) ist keine Kennung, weder
+   im Kopf noch in §1 oder §2.
+3. **Bereich.** `SPEC-NNN bis SPEC-MMM`, ebenso mit `ARC`, steht im Kopf wie in §1 und
+   §2 für jede Kennung von NNN bis MMM. Backticks um die beiden Enden sind erlaubt, und
+   ein Zeilenumbruch innerhalb eines Absatzes zählt als Leerraum. Für die Kennungen
+   dazwischen steht der Bereich nur, wenn beide Enden ganze Wörter derselben Klasse
+   sind und NNN kleiner als MMM ist. Andere Bereichsformen (Gedankenstrich,
+   Bindestrich) gibt es nicht.
+4. **Gleichheit ist exakt.** Eine Unterkennung im Kopf deckt ihre Hauptkennung nicht,
+   eine Hauptkennung keine Unterkennung.
+5. **Kopf.** Der Kopf sind die Absätze, die mit `**Bezug:**` und
+   `**Berührte Spec-Stellen:**` beginnen, vor der ersten Zeile `## `, je bis zur
+   nächsten Leerzeile. Eine Leerzeile ist eine Zeile, die leer ist oder nur
+   Leerzeichen und Tabs trägt. Ein Absatz beginnt nur in der ersten Zeile der Datei
+   oder nach einer Leerzeile; eine Feldmarke mitten in einer Zeile oder in einer
+   Folgezeile (direkt nach `# …`, nach `---` oder nach einem anderen Feld) ist kein
+   Feld. Geprüft wird gegen die Vereinigung beider Felder; in welchem Feld eine
+   Kennung steht, ist ohne Belang, und ein anderes Feld des Kopfs zählt nicht. `—`
+   ist die leere Menge, Mehrfachnennung ist ohne Belang, eine Kopf-Kennung ohne
+   Nennung in §1 oder §2 ist kein Befund.
+6. **§1 und §2.** Ein Abschnitt reicht von der Zeile `## 1.` bzw. `## 2.`, die
+   mitzählt, bis zur nächsten Zeile `## `; erkannt wird er an der Nummer, nicht am
+   Titel. Unterüberschriften beenden ihn nicht. Ausgenommen ist der Absatz, der mit
+   `Regeln dieser Sektion` beginnt, bis zur nächsten Leerzeile; dieselben Worte
+   mitten in einem Absatz nehmen nichts aus. Alles übrige zählt, auch Abgrenzung,
+   Herkunft und Bereits-Geliefertes; eine Markierung für eine Nennung ohne Anspruch
+   gibt es nicht.
+7. **Formfehler.** Fehlt einem geprüften Plan eines der beiden Kopf-Felder oder einer
+   der beiden Abschnitte, ist das ein Befund.
+8. **Ausgabe und Ausgang.** Je Befund eine Zeile auf stderr,
+   `kopf-check: <pfad>: <abschnitt>: <befund>`, mit dem Pfad relativ zur Wurzel des
+   Repos; der Abschnitt ist `Kopf`, `§1`, `§2` oder `Datei`. Eine Kennung erscheint
+   je Abschnitt einmal. Sortiert wird nach Pfad, Abschnitt und Befund in Bytefolge
+   (`Kopf` vor `§1` und `§2`); stdout bleibt leer. Ein Plan, der nicht lesbar ist
+   oder an dessen Auswertung die Prüfung scheitert, ist genau ein Befund
+   `<pfad>: Datei: nicht lesbar`, gleich an welcher Position; die übrigen Pläne
+   werden weiter gelesen. Die Prüfung liest alle Pläne und endet dann mit Ausgang 1
+   bei mindestens einem Befund, mit 0 ohne Befund und ohne Ausgabe, mit 2 und einer
+   Zeile, die `docs/plan/planning fehlt` nennt, wenn die Ablage
+   `docs/plan/planning/` fehlt. Ein fehlendes Lifecycle-Verzeichnis enthält keinen
+   Plan und ist kein Abbruch.
+9. **Start ohne Stufung.** Die Prüfung ist vom ersten Lauf an voll scharf:
+   `make kopf-check` und seine Gegenprobe `make kopf-check-gegenprobe` hängen an der
+   Gate-Kette von `make gates` und enden mit Fehlerstatus, wenn ihre Prüfung rot ist.
+
+**Grenze.** Ob eine Kennung existiert, in welchem Kopf-Feld sie steht und was
+außerhalb von §1 und §2 steht, prüft das Werkzeug nicht. Codeblöcke werden nicht
+gesondert verfolgt: Eine Zeile `## ` in einem Codeblock beendet den Abschnitt.
+
+### SPEC-048 — Abdeckung je Anforderung und Pfad (`abdeckung`)
+
+`make abdeckung` schreibt die Abdeckungstabellen `docs/user/abdeckung-*.md` aus den
+Abdeckungs-Deklarationen der Tests; `make abdeckung-check` prüft, dass sie dem
+erzeugten Stand entsprechen, und schreibt nichts. Beide wenden dieselben Regeln an.
+
+1. **Deklaration.** Gelesen werden die Testdateien (Name auf `_test.go`) im Repo außer
+   unter `.git/` und `.harness/`. Dort steht direkt über `func Test…`, ohne Leerzeile
+   und am Zeilenanfang:
+
+   ```text
+   // Abdeckung: <Anforderung>/<Pfad>, … — <Kurzbeschreibung>
+   ```
+
+   Folgezeilen mit `//` setzen sie fort und werden mit einem Leerzeichen angefügt.
+   Fehlformen sind: eine eingerückte Deklaration, eine Deklaration ohne „ — “ und eine
+   Deklaration, auf die nicht unmittelbar ein Test folgt (Leerzeile, andere Funktion,
+   weitere Deklaration, Dateiende).
+2. **Anforderung und Pfad.** Der Pfad ist bei funktionalen Anforderungen (`LH-FA`)
+   eines der Akzeptanzkriterien `Happy`, `Boundary` oder `Negative`, bei
+   Qualitätsanforderungen (`LH-QA`) und Randbedingungen (`LH-RB`) `Messung`; jede
+   andere Paarung ist eine Fehlform. Eine Anforderung, die das Lastenheft nicht als
+   Überschrift dritter Ebene führt (`### <Anforderung> …`), ist eine Fehlform.
+3. **Nachweisart nach Ort.** Ein Test in einer Datei unter `test/integration/` ist ein
+   E2E-Nachweis, jeder andere ein Unit-Nachweis. Jeder gelesene Test, dessen Name mit
+   `TestE2E` beginnt, trägt eine Deklaration, gleich in welchem Verzeichnis er liegt;
+   fehlt sie, ist das eine Fehlform.
+4. **Tabellen.** Unter `docs/user/` entstehen vier Tabellen:
+   - `docs/user/abdeckung-e2e.md` und `docs/user/abdeckung-unit.md`: je Deklaration
+     und Paar aus Anforderung und Pfad eine Zeile mit Anforderung (Link auf das
+     Lastenheft), Pfad, Kurzbeschreibung, Test und Datei, sortiert nach Anforderung,
+     Pfad und Test; ein `|` in der Kurzbeschreibung ist maskiert.
+   - `docs/user/abdeckung-gesamt.md`: je Anforderung mit mindestens einer
+     Deklaration eine Zeile mit den Spalten `Happy`, `Boundary`, `Negative` und
+     `Messung` — je die Nachweisarten, die den Pfad belegen, durch Komma getrennt,
+     `—` für unbelegt, `n/a` für nicht anwendbar — und dem Stand `vollständig` oder
+     `teilweise`.
+   - `docs/user/abdeckung-vollstaendig.md`: nur die vollständig belegten
+     Anforderungen, je mit den beteiligten Nachweisarten. Vollständig ist eine
+     `LH-FA` mit `Happy`, `Boundary` und `Negative`, gleich aus welcher Nachweisart,
+     eine `LH-QA` oder `LH-RB` mit `Messung`; Teilabdeckung steht hier nicht.
+5. **Schreiben und Prüfen.** `make abdeckung` schreibt die vier Tabellen mit den
+   Rechten 0644. `make abdeckung-check` vergleicht nur und meldet je veralteter
+   Tabelle eine Zeile mit ihrem Pfad auf stderr.
+6. **Ausgang.** Die Prüfung endet mit 0 ohne Fehlform und, beim Prüfen, ohne
+   veraltete Tabelle. Sie endet mit 1 bei mindestens einer Fehlform, je mit einer
+   Zeile auf stderr, die Datei und Zeile nennt, oder beim Prüfen bei mindestens
+   einer veralteten Tabelle.
+
+**Grenze.** Ob eine Deklaration ihren Pfad tatsächlich belegt, prüft das Werkzeug
+nicht: Es liest Deklarationen, es führt keine Tests aus.
+
+## 12. Historie
 
 Regeln dieser Sektion: **kein ADR- und kein Slice-Verweis.** Die Decken-Regel
 gilt für alle drei Spec-Straten, auch hier — welche ADR eine Festlegung
@@ -1868,3 +1997,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Gleichrangige Fehler als eigene Meldungen, erster gemerkt, nicht klassifizierter als Ursache; Zeilenumbruch LF, CR LF, CR; Attribut `error` nur mit Kopf, `grund` für Bibliothekstexte (`SPEC-034`, `LH-FA-14.a`); nicht annehmbare Verbindung ist Verbindungsfehler `PGR-E4000` (`LH-FA-13.b`) |
 | 2026-10-06 | Mehrere Meldungen: die `ErrorResponse` trägt die erste; Hülle mit eigenem Text um mehrere Ursachen ist eine Kette mit dem ersten klassifizierten Code, gleichrangig nur eine reine Zusammenfassung (`SPEC-034`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
+| 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |

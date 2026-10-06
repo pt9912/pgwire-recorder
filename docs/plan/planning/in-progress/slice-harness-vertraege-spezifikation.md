@@ -34,15 +34,16 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die Verträge der zwei Harness-Werkzeuge, die heute ohne Spezifikationsstelle
-leben, stehen im neuen §11 *Harness-Werkzeuge* der Spezifikation (Technik-Stratum,
+**Ziel:** Die Verträge der zwei Harness-Werkzeuge, die vor diesem Slice ohne
+Spezifikationsstelle lebten, stehen im neuen §11 *Harness-Werkzeuge* der Spezifikation (Technik-Stratum,
 fortschreibbar), eine Kennung je Werkzeug: `kopf-check` als `SPEC-047` mit den neun
 Punkten von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) und den sieben
-Lesarten, die der Architect beim Liefern bestätigt hat (heute im ZUSAGE-Kopf von
+Lesarten, die der Architect beim Liefern bestätigt hat (vor diesem Slice im ZUSAGE-Kopf von
 `tools/harness/kopf-check.sh`; Herkunft: §6 des archivierten
 `slice-harness-kopf-sensor` in `docs/plan/planning/done/welle-replay-semantik/archiv.zip`),
 und `abdeckung` als `SPEC-048` mit [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) und
-dem Kopf von `tools/test/abdeckung.sh`. Wie ein Lauf zu lesen ist (Vertrag, Grenze,
+dem damaligen Kopf von `tools/test/abdeckung.sh`; wo das Skript genauer ist, in
+dessen Fassung (§6 *Lesarten beim Übertragen*). Wie ein Lauf zu lesen ist (Vertrag, Grenze,
 Ausgabe, Ausgänge, Sperren), steht je Gate in einer Sensor-Datei
 `harness/sensors/<target>.md` nach der Baseline-Vorlage, die den Vertrag verlinkt und
 nichts neu entscheidet; `harness/README.md` §Sensors zeigt darauf. Die Skriptköpfe
@@ -147,8 +148,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `harness/sensors/kopf-check.md`, `harness/sensors/abdeckung-check.md` | neu | per `cp` aus `.harness/baseline/v6.13.0/templates/harness/sensors/gate.template.md`; Lesart eines Laufs, Vertrag als Link auf den Abschnitt |
 | `harness/README.md` | update | §Sensors: Target-Zellen von `make kopf-check` und `make abdeckung-check` verlinken die Sensor-Dateien; die Vertragszelle ist ein Satz, die von `make kopf-check` schrumpft darauf |
 | `tools/harness/kopf-check.sh`, `tools/test/abdeckung.sh` | update (nur Kommentare) | ZUSAGE- bzw. Beschreibungskopf → Verweis auf den Abschnitt plus Zuordnung Vertragspunkt → Fall der Gegenprobe |
-| `tools/harness/kopf-check-gegenprobe.sh`, `tools/test/abdeckung-gegenprobe.sh` | geprüft / update | bestehende Fälle unverändert; ein Fall kommt hinzu, wo einem Vertragspunkt keiner gilt (§6 *Vertragspunkt ohne Gegenprobe-Fall*), je gegen eine Mutation rot gesehen; ihr Kopf nennt den Vertrag, falls er heute die ADR nennt (keine neue Zusage) |
-| `docs/plan/planning/open/slice-harness-abdeckung-gate.md` | update | §6 *Ort*: schreibt den Vertrag von `abdeckung` in dessen Kennung fort und vergibt keine neue (§6 *Kennungen*; `AGENTS.md` §3.9) |
+| `tools/harness/kopf-check-gegenprobe.sh`, `tools/test/abdeckung-gegenprobe.sh` | update | bestehende Fälle behalten ihre Eingaben; ein Fall kommt hinzu, wo einem Vertragspunkt keiner gilt (§6 *Vertragspunkt ohne Gegenprobe-Fall*, Stand dort), je gegen eine Mutation rot gesehen; bei `abdeckung` ist die Erwartung abgelehnter Fälle geschärft (Exit genau 1, Datei und Zeile auf stderr) und die Prüfungen im gültigen Baum tragen Fall-Namen; ihr Kopf nennt den Vertrag statt der ADR |
+| `docs/plan/planning/open/slice-harness-abdeckung-gate.md` | update | Kopf `Berührte Spec-Stellen` und §6 *Ort*: schreibt den Vertrag von `abdeckung` in `SPEC-048` fort und vergibt keine neue Kennung (§6 *Kennungen*; `AGENTS.md` §3.9) |
+| `docs/plan/planning/open/slice-harness-coverage.md`, `docs/plan/planning/open/slice-harness-mutation.md` | update | je ein Satz mit der Entscheidung des Nutzers vom 2026-10-06 zum Ort der Schwelle (§1 bzw. §2, Liefer-Punkte unverändert; §6 *Schwellen künftiger Gates*) |
 
 ## 4. Trigger
 
@@ -293,6 +295,30 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   Ein Punkt als „Grenze“ im Abschnitt ist dafür kein Ausweg: Die Grenze sagt, was
   das Gate nicht prüft, nicht, was am Werkzeug ungeprüft ist. Ist ein Fall nicht ohne
   Eingriff ins Werkzeug herstellbar, ist das eine Randform-Rückgabe.
+  **Stand** (Implementer, 2026-10-06): ergänzt, je gegen eine Mutation in einer Kopie
+  des Skripts rot gesehen, die alte Gegenprobe bleibt gegen dieselbe Mutation grün —
+  bei `kopf-check` `nr3-bereich-zeilenumbruch-abschnitt` (Bereich über einen
+  Zeilenumbruch in §1) und die Abbruchzeile in `nr8-ohne-ablage`; bei `abdeckung`
+  `doppelt`, `dateiende`, `qa-happy`, `fa-messung`, `ueberschrift-ebene`,
+  `ohne-deklaration-unit`, `nicht-gelesen`, `inhalt-e2e`, `inhalt-unit`,
+  `inhalt-gesamt`, `inhalt-vollstaendig`, dazu Exit genau 1 mit Datei und Zeile auf
+  stderr in jedem abgelehnten Fall und in `check-veraltet`. Kein Fall brauchte einen
+  Eingriff ins Werkzeug.
+- **Lesarten beim Übertragen** (Implementer, 2026-10-06; zur Bestätigung beim
+  Architect, nicht hier entschieden) — der Abschnitt schreibt sie nach
+  *Lesart-Rangfolge* in der genaueren Fassung des Skripts, je mit Fall:
+  `TestE2E` als Name, nicht als Ort, „jeder E2E-Test“ in
+  [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) heißt also jeder
+  Test mit diesem Namen (`ohne-deklaration-unit`; `TestMain` unter
+  `test/integration/` trägt keine); gelesen werden die Testdateien außer unter `.git/`
+  und `.harness/` (`nicht-gelesen`); die Anforderung steht als Überschrift dritter
+  Ebene im Lastenheft (`ueberschrift-ebene`); die Ausgänge 0, 1 und 2 sind die der
+  Prüfung, `make` meldet jeden Ausgang ungleich 0 als Fehler (`nr9-scharf`, die
+  Sensor-Datei sagt, woran die Ursachen auseinanderzuhalten sind). Nicht übertragen
+  und weiter offen: Symlink als Plan und nicht lesbares Lifecycle-Verzeichnis
+  (`BEO-REPO/gate-uebergeht-ablage-eintrag-still`); der Abschnitt sagt „Dateien“ wie
+  [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), die Sensor-Datei nennt
+  beides als offen.
 - **Welche Targets eine Sensor-Datei bekommen** — `harness/sensors/kopf-check.md` und
   `harness/sensors/abdeckung-check.md`, je per `cp` aus der vendored Vorlage. Die
   Gegenproben bekommen keine: Was sie prüfen, ist die Frage, ob das Werkzeug richtig
@@ -315,8 +341,9 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   Sensor-Datei liest sie unter *Grenze*, und der Skriptkopf ordnet ihr die grünen
   Fälle `neg-*` zu; eine Grenze der Prüfung selbst (etwa der übersprungene Fall
   unter root) bleibt im Kopf der Gegenprobe.
-- **Schwellen künftiger Gates — Empfehlung für die Folge-Slices** (entschieden wird
-  sie in deren Architect-Schritt; Frage an den Nutzer im Bericht): Die **Zahl**
+- **Schwellen künftiger Gates — Empfehlung für die Folge-Slices** (vom Nutzer am
+  2026-10-06 angenommen: Schwellen künftiger Gates stehen in der Spezifikation; im
+  Einzelnen entschieden wird sie in deren Architect-Schritt): Die **Zahl**
   (Coverage-Schwelle, Mutations-Schwelle) steht in der Kennung des Werkzeugs in
   diesem Abschnitt, als Konstante mit Einheit und einem Satz Begründung; die **ADR**
   entscheidet Mechanismus, Messart und die Regel, nach der die Zahl aus der Messung
@@ -327,9 +354,11 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   Ersetzungs-ADR. `AGENTS.md` §3.6 bleibt unberührt: Eine **Senkung** braucht
   weiterhin eine ADR, die die Kennung schärft; eine Anhebung ist Fortschreibung. Die
   Messung ist ein Zeitdokument und gehört in die ADR, nicht in den Abschnitt.
-  Betroffen bei Annahme: §1 *Ziel* von `slice-harness-coverage` („gesetzt in der ADR
-  des Gates“) und §2 von `slice-harness-mutation`; nachgezogen in deren
-  Architect-Schritt, nicht hier.
+  Betroffen: §1 *Ziel* von `slice-harness-coverage` und §2 von
+  `slice-harness-mutation`; hier ist je ein Satz mit der Entscheidung nachgezogen, die
+  Liefer-Punkte bleiben unverändert und werden in deren Architect-Schritt
+  angeglichen (DoD von `slice-harness-coverage` nennt noch „Schwelle aus der ADR des
+  Gates“).
 
 **Risiken:**
 

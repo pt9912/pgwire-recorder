@@ -80,6 +80,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
+Die Schwelle steht nach Entscheidung des Nutzers vom 2026-10-06 im Abschnitt für
+Harness-Werkzeuge der Spezifikation, in der Kennung des Gates, als Konstante mit
+Einheit und Begründung; die ADR des Gates hält Mechanismus, Messung mit Quellstand und
+die Regel, nach der die Zahl folgt, und setzt `Schärft:` auf die Kennung.
+
 - [ ] Gate: Das Werkzeug läuft netzlos aus einem per Digest gepinnten Image oder einer
       gepinnten Stufe, als Ziel an `GATE_CHECKS`, nach den Randformen am Ort aus §6;
       es endet rot, wenn der Anteil getöteter Mutanten unter der Schwelle
