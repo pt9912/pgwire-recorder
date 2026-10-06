@@ -246,16 +246,25 @@ func TestReplayLebendpruefungServerversion(t *testing.T) {
 	}
 }
 
-// Eine Session ohne erwartete Interaktion, etwa nur aus Lebendprüfungen, hat
-// als letzte Nummer 0; mit Interaktionen ist es die aufgezeichnete Nummer der
-// letzten.
+// Nach der letzten Interaktion nennt die Abweichung deren aufgezeichnete
+// Nummer, nicht die Zahl der Interaktionen.
 func TestReplayLetzteNummer(t *testing.T) {
-	if n := services.LetzteNummer(&model.Session{ID: 1}); n != 0 {
-		t.Fatalf("ohne Interaktion: %d", n)
+	ctx := t.Context()
+	s, err := services.NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{
+		interaktion(2, "A", "A"), interaktion(4, "B", "B"),
+	})}, "rec.yaml")
+	if err != nil {
+		t.Fatal(err)
 	}
-	voll := &model.Session{ID: 1, Interactions: []model.Interaction{interaktion(2, "A", ""), interaktion(4, "B", "")}}
-	if n := services.LetzteNummer(voll); n != 4 {
-		t.Fatalf("mit Interaktionen: %d", n)
+	id, _ := s.OpenConnection(ctx)
+	for _, sql := range []string{"A", "B"} {
+		if out, err := s.Query(ctx, id, sql); err != nil || out[0].Tag != sql {
+			t.Fatalf("%s: %#v, %v", sql, out, err)
+		}
+	}
+	_, err = s.Query(ctx, id, "C")
+	if code(err) != model.CodeReplayMismatch || !strings.Contains(err.Error(), "nach Interaktion 4 erwartet die Aufzeichnung keine weitere") {
+		t.Fatalf("nach der letzten Interaktion: %v", err)
 	}
 }
 

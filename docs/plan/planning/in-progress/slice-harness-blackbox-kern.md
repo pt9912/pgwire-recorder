@@ -253,7 +253,8 @@ genannte Test grün, mit ihr rot.
 | `\v` ab Hauptversion 17 (über `VTLeerraum`) | `>=` zu `>` | `TestLebendpruefungServerversion` |
 | jedes Feld der Client-Nachricht zählt (über `Abweichung`) | Vergleich von `max_rows` entfernt | `TestReplayExtendedFelder` |
 | Parameter-Nummer ab 1 (über `ParameterStelle`) | `i+1` zu `i` | `TestReplayExtendedParameterStelle` |
-| letzte Nummer ist die aufgezeichnete (über `LetzteNummer`) | Zahl der Interaktionen statt Nummer | `TestReplayLetzteNummer` |
+| letzte Nummer ist die aufgezeichnete (über `ReplayService`) | Zahl der Interaktionen statt Nummer | `TestReplayLetzteNummer` |
+| letzte Nummer ist die der letzten Interaktion (über `ReplayService`) | erste statt letzte Interaktion | `TestReplayLetzteNummer` |
 | Query nach dem Ende liefert `ErrSessionEnded` (Subtest mit eigenem Kontext) | Prüfung `beendet` nach dem Upstream-Aufruf in `Query` entfernt | `TestRecordEndeNachErfolgreichemUpstream/Query` |
 | AwaitServer nach dem Ende liefert `ErrSessionEnded` (Subtest mit eigenem Kontext) | Prüfung `beendet` nach `Receive` in `AwaitServer` entfernt | `TestRecordEndeNachErfolgreichemUpstream/AwaitServer` |
 | fortlaufende Nummer der Interaktionen (Testdaten als Funktionen) | Nummer der einfachen Anfrage `+2` statt `+1` | `TestRecordExtendedSyncGruppe` |

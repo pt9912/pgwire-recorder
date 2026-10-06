@@ -20,8 +20,3 @@ func Abweichung(empfangen, erwartet model.ClientMessage) string {
 func ParameterStelle(empfangen, erwartet []model.Value) string {
 	return parameterStelle(empfangen, erwartet)
 }
-
-// LetzteNummer ist letzteNummer eines Cursors auf der übergebenen Session.
-func LetzteNummer(session *model.Session) int {
-	return (&cursor{session: session}).letzteNummer()
-}
