@@ -2049,12 +2049,26 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
 
    Eine Regel, die im Lauf keinen Befund ausblendet (`exclusions.warn-unused: true`), ist
    ein Befund.
-9. **Ausgabe und Ausgang.** golangci-lint gibt seine Befunde im Textformat ungekürzt
-   aus (`max-issues-per-linter: 0`, `max-same-issues: 0`, `uniq-by-line: false`); die
-   eigenen Prüfungen schreiben je Befund eine Zeile `lint: <pfad>:<zeile>: <befund>`.
-   Jede Prüfung läuft, auch wenn eine andere einen Befund hat. Die Stufe endet mit einem
-   Ausgang ungleich 0 bei mindestens einem Befund, einer ungenutzten Regel oder einer
-   Konfiguration, die golangci-lint ablehnt.
+9. **Ausgabe und Ausgang.** golangci-lint liest das Profil nur aus `.golangci.yml`
+   (`-c`), nie aus einer Default-Suche. Die Stufe prüft in dieser Reihenfolge:
+   - **Profil vorhanden.** Fehlt `.golangci.yml`, schreibt sie
+     `lint: .golangci.yml: fehlt`; Schema-Prüfung und golangci-lint laufen dann nicht,
+     die eigenen Prüfungen nach Punkt 6 und 7 schon.
+   - **Schema.** `golangci-lint config verify` prüft das Profil gegen das eingebettete
+     Schema, ohne Netz. Lehnt es das Profil ab, etwa wegen eines unbekannten Schlüssels,
+     schreibt die Stufe `lint: .golangci.yml: von golangci-lint abgelehnt` und dazu die
+     Meldung von `config verify`; golangci-lint läuft trotzdem.
+   - **Befunde.** golangci-lint gibt seine Befunde im Textformat ungekürzt aus
+     (`max-issues-per-linter: 0`, `max-same-issues: 0`, `uniq-by-line: false`). Jede
+     Meldung ist ein Befund, auch mehrere auf derselben Zeile.
+   - **Ungenutzte Regel.** Je Warnung von `warn-unused` schreibt die Stufe eine Zeile
+     `lint: .golangci.yml: Regel ohne Befund: <Linter, Pfad und Text der Regel aus der
+     Warnung>`; eine Zeilennummer trägt sie nicht.
+
+   Die eigenen Prüfungen nach Punkt 6 bis 8 schreiben je Befund eine Zeile
+   `lint: <pfad>:<zeile>: <befund>`. Jede Prüfung läuft, auch wenn eine andere einen
+   Befund hat. Die Stufe endet mit einem Ausgang ungleich 0 bei mindestens einer
+   `lint:`-Zeile oder einem Befund von golangci-lint.
 10. **Werkzeug, dann Gate.** Solange der Bestand außerhalb der Regeln nach Punkt 8
     Befunde hat, ist `make lint` ein Werkzeug ohne Gate: Es meldet alle Befunde des
     Moduls mit Pfad und endet nach Punkt 9, hängt aber nicht an der Gate-Kette von
@@ -2103,5 +2117,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Gleichrangige Fehler als eigene Meldungen, erster gemerkt, nicht klassifizierter als Ursache; Zeilenumbruch LF, CR LF, CR; Attribut `error` nur mit Kopf, `grund` für Bibliothekstexte (`SPEC-034`, `LH-FA-14.a`); nicht annehmbare Verbindung ist Verbindungsfehler `PGR-E4000` (`LH-FA-13.b`) |
 | 2026-10-06 | Mehrere Meldungen: die `ErrorResponse` trägt die erste; Hülle mit eigenem Text um mehrere Ursachen ist eine Kette mit dem ersten klassifizierten Code, gleichrangig nur eine reine Zusammenfassung (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Lint-Profil mit Linter, Schwellen, Einstellungen, Verbot von `//nolint`, Export-Test-Brücke, dauerhafte Ausnahmen ohne Stufen, Ausgabe und Ausgang, Werkzeug vor dem Gate (`SPEC-049`) |
+| 2026-10-06 | Lint-Profil: fehlendes Profil, Prüfung gegen das Schema, ungenutzte Regel als `lint:`-Zeile, jede Meldung ein Befund (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |
