@@ -282,9 +282,7 @@ dasteht.
     Nachweis-Spalte ist der Skriptpfad; eigene Tabelle der Nachweisart Gate neben E2E
     und Unit; ob die Gegenprobe an `GATE_CHECKS` hängt, prüft das Skript nicht
     (Grenze im Skriptkopf, Review).
-  - *Ort dieser Randformen* (F-406): Für Harness-Werkzeuge ist der Spezifikations-Ort
-    im Sinn von §3.12 nach [MR-001](../../../../harness/conventions.md#mr-001) der ZUSAGE-Kopf von `tools/test/abdeckung.sh` mit der
-    Vertragszeile von `make abdeckung-check` in `harness/README.md` §Sensors, nicht
+  - *Ort dieser Randformen* (F-406): Spezifikation, Abschnitt für Harness-Werkzeuge (Technik-Stratum), angelegt von einem eigenen Folge-Slice, nicht
     [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), die Entscheidung und
     Gründe trägt. Bis zum Code stehen sie hier und in §6 von
     `slice-harness-abdeckung-gate`; jede zugesagte Randform braucht dort einen Fall in
@@ -347,8 +345,7 @@ Dateien unter `evidence/`). Treffer:
   prüft, dass §1 und §2 keine Kennung nennen, die der Kopf nicht führt.
 - `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — eine Vertragsanforderung
   gibt den Harness-Gates einen Bezug, aber keinen Entscheidungsort für Lesarten. Der
-  Ort einer Randform eines Werkzeugvertrags ist nach [MR-001](../../../../harness/conventions.md#mr-001) der ZUSAGE-Kopf des
-  Skripts mit der Vertragszeile in `harness/README.md` §Sensors; die ADR trägt
+  Ort einer Randform eines Werkzeugvertrags ist die Spezifikation, Abschnitt für Harness-Werkzeuge (Technik-Stratum), angelegt von einem eigenen Folge-Slice; die ADR trägt
   Entscheidung und Gründe. Mit diesem Slice ist es das zweite Auftreten (Review F-406),
   der Beleg folgt mit der Closure.
 

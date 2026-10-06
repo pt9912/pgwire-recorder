@@ -82,10 +82,10 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Randformen aus §6, schreibt die Tabelle der Nachweisart Gate und zählt eine
       geteilte Messung erst mit allen Teilen als vollständig; die Deklarationen an Tests
       und der Pfad `Messung` bleiben gültig, die übrigen Tabellen unverändert bis auf die
-      neue Nachweisart. Die Randformen stehen im ZUSAGE-Kopf des Skripts, und
+      neue Nachweisart. Die Randformen stehen am Ort aus §6 (Spezifikation, Abschnitt für Harness-Werkzeuge (Technik-Stratum), angelegt von einem eigenen Folge-Slice), und
       `harness/README.md` §Sensors nennt beim Vertrag von `make abdeckung-check` die
-      Nachweisart Gate und die geteilte Messung, mit Bindung an [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)
-      (Ort nach [MR-001](../../../../harness/conventions.md#mr-001)); beide sagen nur zu, was die Gegenprobe prüft (`AGENTS.md` §3.11).
+      Nachweisart Gate und die geteilte Messung, mit Bindung an [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md);
+      beide sagen nur zu, was die Gegenprobe prüft (`AGENTS.md` §3.11).
 - [ ] Gegenprobe: `make abdeckung-gegenprobe` führt je Fehlform aus §6 einen Fall, der
       abgelehnt wird, und je Gutform einen, der angenommen wird; die vorhandenen Fälle
       bleiben; je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10). Ihre Zeile in
@@ -161,9 +161,7 @@ dasteht.
 **Randformen des Vertrags** (`AGENTS.md` §3.12). Vorgegeben durch
 [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) und §6 *Nachweis* von
 `slice-lastenheft-pruefbarkeit` (Architect, 2026-10-06); vor dem Code zu bestätigen.
-**Ort** (F-406): nach [MR-001](../../../../harness/conventions.md#mr-001) der ZUSAGE-Kopf von `tools/test/abdeckung.sh` zusammen mit
-der Vertragszeile von `make abdeckung-check` in `harness/README.md` §Sensors; die ADR
-trägt Entscheidung und Gründe. Jede dort zugesagte Randform bekommt einen Fall in
+**Ort** (F-406): Spezifikation, Abschnitt für Harness-Werkzeuge (Technik-Stratum), angelegt von einem eigenen Folge-Slice; die ADR trägt Entscheidung und Gründe. Jede dort zugesagte Randform bekommt einen Fall in
 `make abdeckung-gegenprobe` (`AGENTS.md` §3.10, §3.11). Bis zum Code stehen sie hier:
 
 - **Pfad-Schreibweise** — `Messung-<i>-von-<n>` mit 2 ≤ n und 1 ≤ i ≤ n.
