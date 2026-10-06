@@ -5,7 +5,10 @@
 # `exclusions.rules`, jede Regel mit einem Kommentarblock, dessen erste Zeile mit
 # `# Why:` beginnt. Eine Direktive `//nolint` im Code, eine Regel ohne `# Why:`
 # und eine Regel, die nichts ausblendet, meldet `make lint` als Befund
-# (tools/harness/lint.sh).
+# (tools/harness/lint.sh). Gelesen wird diese Datei in fester Form: `linters:`
+# ohne Einzug, `exclusions:` mit 2, `rules:` mit 4, jede Regel `- ` mit 6
+# Leerzeichen, diese drei in Blockform; eine andere Form meldet `make lint` als
+# `Form nicht erkannt`.
 
 version: "2"
 
@@ -150,7 +153,6 @@ linters:
       skip-regexp: (^|/)export_test\.go$
 
   exclusions:
-    generated: lax
     warn-unused: true
     rules:
       # Why: Tabellengetriebene Tests haben höhere Komplexität ohne Entwurfsmangel.

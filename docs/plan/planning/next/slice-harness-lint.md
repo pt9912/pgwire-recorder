@@ -129,12 +129,21 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       eine Mutation fangen kann, ein Fall, der rot wird (mindestens ein Verstoß je
       aktivierter Linter-Gruppe, ein `//nolint`, ein Modul außerhalb der Liste von
       `gomodguard_v2`, ein Integrationstest hinter dem Build-Tag, eine ungenutzte Regel,
-      eine Regel ohne `Why:`; für die erste Bedingung von Messmethode 3 je Paketgruppe
+      eine Regel ohne `Why:`; nach `SPEC-049` Punkt 6, 8 und 9 zudem ein fehlendes
+      Profil, ein vom Schema abgelehntes Profil, ein Profil außerhalb der festen Form
+      (Einzug, Flussform), die Zeile der ungenutzten Regel mit Feldfolge und ohne
+      erkannte Felder, `// x //nolint` als Befund und `// siehe nolint` als keiner, eine
+      `lint:`-Zeile allein mit Ausgang ungleich 0; für die erste Bedingung von Messmethode 3 je Paketgruppe
       der Umstellungs-Slices — Kern, Driven, PGWire, Einstieg — ein White-Box-Test, der
       rot wird; für die zweite Bedingung ein Test in `internal_test.go` im Paket des
       Codes, eine Funktion `Test…` und eine Variable in `export_test.go`), dazu ein
       grüner Fall je dauerhafter Ausnahme; je Zusage ist die Mutation gesehen
-      (`AGENTS.md` §3.10). Die Gegenprobe liegt unter `tools/harness/lint-gegenprobe.sh`
+      (`AGENTS.md` §3.10). Ausdrücklich behandelt sie die Zusagen, die der Lauf von
+      `slice-harness-lint-werkzeug` per Mutation nicht unterschied: `relative-path-mode:
+      cfg` und Pfade mit `^`, `--network=none`, `GOFLAGS=-mod=readonly`,
+      `GOTOOLCHAIN=local`, `-c` statt Default-Suche, Pin und Plattform, die untere
+      Grenze von `dupl` und die Erkennung der ungenutzten Regel am Logtext — je mit
+      einem Fall, der sie unterscheidet, oder benannt als offen im Kopf der Gegenprobe. Die Gegenprobe liegt unter `tools/harness/lint-gegenprobe.sh`
       und ist der Nachweis von Teil 1 (statische Analyse) und Teil 3 (Lage der
       Unit-Tests) von LH-QA-07; nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) trägt sie in diesem Slice keine
       Abdeckungs-Deklaration, LH-QA-07 steht bis zu `slice-harness-abdeckung-gate` in

@@ -13,7 +13,9 @@
 # ungleich 0 von golangci-lint, sonst 0.
 #
 # Grenze: Ob ein `Why:` zutrifft und ob die Brücke export_test.go nur
-# weiterreicht, prüft dieses Skript nicht.
+# weiterreicht, prüft dieses Skript nicht. Die Prüfung nach (8) liest das Profil
+# nur in der festen Form, die SPEC-049 Punkt 8 nennt; jede andere meldet sie als
+# `Form nicht erkannt`.
 set -uo pipefail
 export LC_ALL=C
 
@@ -25,7 +27,8 @@ go_dateien() {
 }
 
 # (6) Kein `//nolint`: `//` oder `/*`, danach Leerzeichen, Tabs oder `/`, dann
-# das Wort `nolint` in beliebiger Schreibweise.
+# das Wort `nolint` in beliebiger Schreibweise. Maßgeblich ist jedes `//` und
+# `/*` der Zeile: `// x //nolint` ist ein Befund, `// siehe nolint` nicht.
 tab=$'\t'
 nolint_muster="(//|/\\*)[ ${tab}/]*[Nn][Oo][Ll][Ii][Nn][Tt]([^A-Za-z0-9_]|\$)"
 while IFS= read -r datei; do
@@ -45,34 +48,46 @@ while IFS= read -r datei; do
 done < <(go_dateien 'export_test.go')
 
 # (8) Über jeder Regel unter linters.exclusions.rules steht unmittelbar ein
-# Kommentarblock, dessen erste Zeile mit `# Why:` beginnt.
+# Kommentarblock, dessen erste Zeile mit `# Why:` beginnt. Die Prüfung liest das
+# Profil in seiner festen Form: `linters:` ohne Einzug, `exclusions:` mit 2,
+# `rules:` mit 4, jede Regel `- ` mit 6 Leerzeichen, alle drei in Blockform.
+# Ein Schlüssel `exclusions` an anderer Stelle oder in Flussform, ein `rules`
+# darunter mit anderem Einzug oder in Flussform und ein Eintrag unter `rules`
+# mit anderem Einzug ergeben `Form nicht erkannt` mit ihrer Zeile.
 if [ -f "$profil" ]; then
   ohne_why="$(awk -v profil="$profil" '
-    function einzug(s) { match(s, /^ */); return RLENGTH }
+    function form(n) { print profil ":" n ": Form nicht erkannt" }
     { zeile[NR] = $0 }
     /^[ \t]*(#|$)/ { next }
     {
-      e = einzug($0)
-      strich_zeile = ($0 ~ /^ *- /)
-      if (in_regeln && strich < 0) {
-        if (strich_zeile && e >= regel_einzug) strich = e
-        else in_regeln = 0
+      t = $0
+      sub(/[ \t]+#.*$/, "", t)
+      match(t, /^ */); e = RLENGTH
+      rest = substr(t, e + 1)
+      sub(/[ \t]+$/, "", rest)
+      strich = (rest ~ /^-( |$)/)
+      if (e == 0) {
+        oben = rest; sub(/:.*/, "", oben)
+        in_ex = 0; in_regeln = 0
       }
-      if (in_regeln && (e < strich || (e == strich && !strich_zeile))) in_regeln = 0
-      if (in_regeln && e == strich) {
-        i = NR - 1
-        while (i > 0 && zeile[i] ~ /^[ \t]*#/) i--
-        if (i == NR - 1 || zeile[i + 1] !~ /^[ \t]*# Why:/)
-          print profil ":" NR ": Regel ohne Kommentarblock \"# Why:\" unmittelbar darüber"
-      }
-      # Schlüssel je Einzug: linters (0) > exclusions (2) > rules.
-      for (k in pfad) if (k + 0 >= e) delete pfad[k]
-      if (match($0, /^ *[A-Za-z0-9_-]+:/)) {
-        name = substr($0, e + 1, RLENGTH - e - 1)
-        pfad[e] = name
-        if (name == "rules" && pfad[2] == "exclusions" && pfad[0] == "linters") {
-          in_regeln = 1; strich = -1; regel_einzug = e
+      if (in_ex && e <= ex_e) { in_ex = 0; in_regeln = 0 }
+      if (in_regeln) {
+        if (e < 4 || (e == 4 && !strich)) in_regeln = 0
+        else if (e < 6 || (e == 6 && !strich)) form(NR)
+        else if (e == 6) {
+          i = NR - 1
+          while (i > 0 && zeile[i] ~ /^[ \t]*#/) i--
+          if (i == NR - 1 || zeile[i + 1] !~ /^[ \t]*# Why:/)
+            print profil ":" NR ": Regel ohne Kommentarblock \"# Why:\" unmittelbar darüber"
         }
+      }
+      if (t ~ /(^|[{,]|- ) *["\047]?exclusions["\047]? *:/) {
+        ex_ok = (e == 2 && oben == "linters" && rest == "exclusions:")
+        if (!ex_ok) form(NR)
+        in_ex = 1; ex_e = e; in_regeln = 0
+      } else if (in_ex && t ~ /(^|[{,]|- ) *["\047]?rules["\047]? *:/) {
+        if (ex_ok && e == 4 && rest == "rules:") in_regeln = 1
+        else form(NR)
       }
     }
   ' "$profil")"
@@ -102,7 +117,9 @@ else
     befund=1
   fi
   # Warnung von warn-unused, logfmt-gequotet: [Text: "…", Path: "…", Linters: "…"];
-  # die Werte sind darin noch einmal gequotet.
+  # die Werte sind darin noch einmal gequotet. Die Zeile nennt die Felder in der
+  # Reihenfolge Linter, Pfad, Pfad außer, Text, Quelle, nur die vorhandenen; ohne
+  # eines davon lautet sie `Regel ohne Befund: Felder nicht erkannt`.
   ungenutzt="$(awk -v profil="$profil" '
     function unq(t) { gsub(/\\\\/, "\001", t); gsub(/\\"/, "\"", t); gsub(/\001/, "\\", t); return t }
     /\[runner\/exclusion_rules\] Skipped 0 issues by rules: \[/ {
@@ -111,20 +128,21 @@ else
       sub(/\]"?[ \t]*$/, "", r)
       r = unq(r)
       delete wert
-      while (match(r, /[A-Za-z]+: "([^"\\]|\\.)*"/)) {
+      while (match(r, /[A-Za-z][A-Za-z ]*: "([^"\\]|\\.)*"/)) {
         feld = substr(r, RSTART, RLENGTH)
         r = substr(r, RSTART + RLENGTH)
         k = feld; sub(/:.*/, "", k)
-        v = feld; sub(/^[A-Za-z]+: "/, "", v); sub(/"$/, "", v)
+        v = feld; sub(/^[A-Za-z][A-Za-z ]*: "/, "", v); sub(/"$/, "", v)
         wert[k] = unq(v)
       }
       z = ""
       if ("Linters" in wert) z = z ", Linter: " wert["Linters"]
       if ("Path" in wert) z = z ", Pfad: " wert["Path"]
-      if ("PathExcept" in wert) z = z ", Pfad außer: " wert["PathExcept"]
+      if ("Path Except" in wert) z = z ", Pfad außer: " wert["Path Except"]
       if ("Text" in wert) z = z ", Text: " wert["Text"]
       if ("Source" in wert) z = z ", Quelle: " wert["Source"]
-      print "lint: " profil ": Regel ohne Befund: " substr(z, 3)
+      if (z == "") print "lint: " profil ": Regel ohne Befund: Felder nicht erkannt"
+      else print "lint: " profil ": Regel ohne Befund: " substr(z, 3)
     }
   ' "$fehler")"
   rm -f "$fehler"
