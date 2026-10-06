@@ -2018,6 +2018,11 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
      seine Sprache.
    - `testpackage`: Übersprungen wird nur eine Datei namens `export_test.go`
      (`skip-regexp` `(^|/)export_test\.go$`).
+   - `contextcheck`: ohne Einstellung und ohne Ausnahme, auch in Testdateien. Meldet
+     es in einem Test einen neuen Kontext, kommt der Kontext aus `t.Context()` des
+     laufenden Tests oder Subtests; in einer Funktion für `t.Cleanup`, die nach dessen
+     Abbruch läuft, aus `context.WithoutCancel(t.Context())`. `context.Background()` an
+     einer Stelle ohne Befund bleibt zulässig.
    - `gochecknoglobals`: ohne Einstellung; die Variable `version`, die Leerstelle `_`
      und Fehlerwerte mit Präfix `Err` lässt der Linter selbst zu.
 6. **Kein `//nolint`.** Eine eigene Prüfung meldet jede Zeile einer Datei `*.go` unter
@@ -2144,6 +2149,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Lint-Profil: fehlendes Profil, Prüfung gegen das Schema, ungenutzte Regel als `lint:`-Zeile, jede Meldung ein Befund (`SPEC-049`) |
 | 2026-10-06 | Lint-Profil: feste Form des Ausnahme-Abschnitts, zweites Kommentarzeichen vor `nolint`, Zeile der ungenutzten Regel, generierter Code nach Default (`SPEC-049`) |
 | 2026-10-06 | Lint-Profil: Einzug der Regel-Einträge unter `rules`, Ablehnung beim Laden als Grenze (`SPEC-049`) |
-| 2026-10-06 | Lint-Profil: Brücke und Test legen keinen Wert eines unexportierten Typs an (`SPEC-049`) |
+| 2026-10-06 | Lint-Profil: Brücke und Test legen keinen Wert eines unexportierten Typs an; Kontext im Test bei einem Befund von `contextcheck` (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |

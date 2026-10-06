@@ -18,7 +18,7 @@ Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 3; Messmethode 1 für die Testdateien dieser Pakete). Bindung: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Export-Test-Brücke, Entscheidung 4; Bereinigung vor dem Gate ohne Stufen, Entscheidung 5: die Befunde der Testdateien dieser Pakete behebt dieser Slice), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckungs-Deklarationen an den Tests bleiben unverändert).
 
-**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Punkt 7 und 8: Brücke und dauerhafte Ausnahmen, gegen die umgestellt wird; der Slice ändert die Stelle nicht)
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Punkt 7 und 8: Brücke und dauerhafte Ausnahmen, gegen die umgestellt wird. Geändert vom Architect unter der Kennung dieses Slice: Punkt 7 und *Grenze*, kein Wert eines unexportierten Typs aus Brücke oder Test, nach F-441/F-442; Punkt 5, `contextcheck` in Testdateien, nach V-83)
 
 **Verantwortlich:** pt9912
 
@@ -70,8 +70,11 @@ lieferbar und in einer Review-Sitzung prüfbar bleibt.
   dem Werkzeug `make lint`.
 - Befunde im Produkt-Code dieser Pakete — übernimmt `slice-lint-bestand-kern-driven` nach den
   Umstellungs-Slices.
-- Produkt-Verhalten, Spezifikation, Lastenheft — Schicht-Abgrenzung: Der Slice ändert
-  Testdateien; `.golangci.yml` und die Gegenprobe des Lint-Gates ändert er nicht.
+- Produkt-Verhalten, Lastenheft und die Spezifikation außer `SPEC-049` Punkt 5
+  (`contextcheck`), Punkt 7 und *Grenze* — Schicht-Abgrenzung: Der Slice ändert
+  Testdateien; die Stellen in `SPEC-049` hat der Architect nach F-441/F-442 und V-83
+  entschieden, damit die Umstellungs-Slices sie nicht je für sich auslegen.
+  `.golangci.yml` und die Gegenprobe des Lint-Gates ändert er nicht.
 
 ## 2. Definition of Done
 
@@ -169,7 +172,7 @@ steht, gibt der Implementer an den Architect zurück.
   Wert). Eine Variable oder eine Funktion `Test…` darin ist ein Befund. Einen Wert
   eines unexportierten Typs legt nur der Produkt-Code an, weder Brücke noch Test
   (entschieden vom Architect am 2026-10-06 nach F-441/F-442, `SPEC-049` Punkt 7).
-- **Übrige Befunde der Testdateien** — `contextcheck`: `t.Context()` statt eines neuen Kontexts; `gochecknoglobals`: Testdaten und Fakes in Funktionen oder als Konstanten. Kein `_ =` vor einem Fehler, den
+- **Übrige Befunde der Testdateien** — `contextcheck`: `t.Context()` statt eines neuen Kontexts (`SPEC-049` Punkt 5, entschieden vom Architect am 2026-10-06 nach V-83; die `context.WithoutCancel` aus Entscheidung 5 gilt für den Produkt-Code); `gochecknoglobals`: Testdaten und Fakes in Funktionen oder als Konstanten. Kein `_ =` vor einem Fehler, den
   `errcheck` meldet, und keine Ausnahme, die nur Bestand aussetzt (Entscheidung 5).
 - **White-Box-Zugriffe im Bestand** — Namensabgleich per Suche am Stand `ce50a10`
   (ungemessen, kann Fehltreffer enthalten, wo ein Testhelfer gleich heißt): in `model` keine; in `services` u. a. `abweichung`, `cursor`, `istLebendpruefung`, `vtLeerraum`, `laufende`, `letzteNummer`, `mitten`.

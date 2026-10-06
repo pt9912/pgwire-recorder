@@ -167,7 +167,7 @@ steht, gibt der Implementer an den Architect zurück.
   nicht lokal oder über einen Alias; was nur an ihm zu sehen ist, prüft der Test über
   die exportierte Schnittstelle (Architect 2026-10-06, F-441/F-442 in
   `slice-harness-blackbox-kern`).
-- **Übrige Befunde der Testdateien** — `errcheck` an `Close` einer Datei oder Datenbank: den Fehler prüfen (etwa in `t.Cleanup` mit `t.Error`); `gochecknoglobals`: Testdaten in Funktionen oder als Konstanten; `unused`: entfernen. Kein `_ =` vor einem Fehler, den
+- **Übrige Befunde der Testdateien** — `contextcheck`: Kontext aus `t.Context()`, in einer Funktion für `t.Cleanup` aus `context.WithoutCancel(t.Context())` (`SPEC-049` Punkt 5); `errcheck` an `Close` einer Datei oder Datenbank: den Fehler prüfen (etwa in `t.Cleanup` mit `t.Error`); `gochecknoglobals`: Testdaten in Funktionen oder als Konstanten; `unused`: entfernen. Kein `_ =` vor einem Fehler, den
   `errcheck` meldet, und keine Ausnahme, die nur Bestand aussetzt (Entscheidung 5).
 - **White-Box-Zugriffe im Bestand** — Namensabgleich per Suche am Stand `ce50a10`
   (ungemessen, kann Fehltreffer enthalten, wo ein Testhelfer gleich heißt): in `recording` keine; in `postgres` u. a. `session`, `toFrontendMessage`, `lies`.
