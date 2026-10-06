@@ -1972,6 +1972,101 @@ erzeugten Stand entsprechen, und schreibt nichts. Beide wenden dieselben Regeln 
 nicht: Es liest Deklarationen, es führt keine Tests aus. Führt das Lastenheft keine
 Überschrift `### LH-…`, endet die Prüfung mit 1 ohne eine Zeile auf stderr.
 
+### SPEC-049 — Lint-Profil (`lint`)
+
+`make lint` prüft den Go-Code des Moduls statisch nach dem Profil in `.golangci.yml`
+und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
+
+1. **Gegenstand.** Geprüft werden alle Pakete des Moduls (`./...`) mit dem Build-Tag
+   `integration`, also `cmd/`, `internal/` und `test/` einschließlich der
+   Integrationstests und aller Testdateien. Das Profil ist die Datei `.golangci.yml`
+   an der Wurzel des Repos; Pfade in ihr gelten relativ zu ihr
+   (`run.relative-path-mode: cfg`) und beginnen mit `^`.
+2. **Werkzeug und Umgebung.** golangci-lint `v2.14.0` aus dem Image
+   `golangci/golangci-lint`, per Digest gepinnt, als Stufe `lint` des `Dockerfile`; der
+   Pin steht nur dort. Die Stufe läuft auf der Plattform des Bau-Hosts, mit den Modulen
+   der Stufe `deps`, ohne Netz, mit `GOTOOLCHAIN=local` und `GOFLAGS=-mod=readonly`.
+   Trägt die Go-Version des Images die `go`-Zeile von `go.mod` nicht, scheitert die
+   Stufe.
+3. **Linter.** Aktiv sind genau diese (`linters.default: none`): `errcheck`, `govet`,
+   `ineffassign`, `staticcheck`, `unused`, `containedctx`, `contextcheck`, `cyclop`,
+   `dupl`, `fatcontext`, `forbidigo`, `funlen`, `gochecknoglobals`, `gochecknoinits`,
+   `gocognit`, `gocyclo`, `gomodguard_v2`, `iface`, `inamedparam`, `interfacebloat`,
+   `ireturn`, `maintidx`, `nestif`, `noctx`, `reassign`, `revive`, `testpackage`,
+   `unparam`.
+4. **Schwellen.** `cyclop` 15, `funlen` 100 Zeilen und 60 Anweisungen, `gocognit` 20,
+   `gocyclo` 15, `nestif` 5, `maintidx` unter 20, `dupl` 150, `interfacebloat` 10.
+5. **Einstellungen.**
+   - `errcheck`: Ein ungeprüfter Fehler ist nur bei `fmt.Fprint`, `fmt.Fprintf`,
+     `fmt.Fprintln`, `(net.Conn).Close` und `(net.Listener).Close` zulässig.
+   - `ireturn`: Eine Funktion darf ein Interface nur liefern, wenn es `error`, leer,
+     anonym, aus der Standardbibliothek oder generisch ist, unter
+     `internal/hexagon/ports/` liegt oder aus dem Paket `pgproto3` stammt.
+   - `forbidigo`: Verboten sind `fmt.Print`, `fmt.Printf`, `fmt.Println`, die
+     eingebauten `print` und `println` sowie `os.Stdout` und `os.Stderr`; die beiden
+     letzten sind unter `cmd/` und `test/` erlaubt.
+   - `gomodguard_v2`: Erlaubt sind Importe aus der Standardbibliothek, dem Modul selbst
+     und den Modulen `github.com/jackc/pgx/v5` und `go.yaml.in/yaml/v3`. Jedes andere
+     Modul ist ein Befund, auch eines, das `go.mod` als indirekt führt.
+   - `revive`: die Regeln `blank-imports`, `context-as-argument`, `context-keys-type`,
+     `dot-imports`, `empty-block`, `error-naming`, `error-return`, `error-strings`,
+     `errorf`, `exported`, `if-return`, `increment-decrement`, `indent-error-flow`,
+     `package-comments`, `range`, `receiver-naming`, `redefines-builtin-id`,
+     `superfluous-else`, `time-naming`, `unexported-return`, `unreachable-code`,
+     `unused-parameter`, `var-declaration`, `var-naming` und `unused-receiver`, auf jedem
+     Pfad, auch unter `internal/`. `exported` prüft die Form des Doc-Kommentars, nicht
+     seine Sprache.
+   - `testpackage`: Übersprungen wird nur eine Datei namens `export_test.go`
+     (`skip-regexp` `(^|/)export_test\.go$`).
+   - `gochecknoglobals`: ohne Einstellung; die Variable `version`, die Leerstelle `_`
+     und Fehlerwerte mit Präfix `Err` lässt der Linter selbst zu.
+6. **Kein `//nolint`.** Eine eigene Prüfung meldet jede Zeile einer Datei `*.go` unter
+   `cmd/`, `internal/` und `test/`, in der auf `//` oder `/*`, gefolgt von beliebig
+   vielen Leerzeichen, Tabs oder `/`, das Wort `nolint` folgt — gleich in welcher
+   Schreibweise, an welcher Stelle der Zeile und mit welchem Zusatz (`:linter`,
+   Begründung). Steht vor `nolint` im Kommentar ein anderes Wort, ist das kein Befund.
+7. **Export-Test-Brücke.** Unit-Tests liegen im Paket `<name>_test`. Auf Unexportiertes
+   greifen sie nur über die Datei `export_test.go` im Verzeichnis des Pakets zu; sie
+   gehört zum Paket `<name>` und ist dort die einzige Testdatei. Sie enthält nur
+   Typ-Aliase, Konstanten und Funktionen oder Methoden, die an Unexportiertes
+   weiterreichen. Zustand setzt sie nur an einem Wert, den sie übergeben bekommt, nie
+   auf Paketebene. Jede andere Testdatei im Paket `<name>` ist ein Befund von
+   `testpackage`; eine Variable auf Paketebene in der Brücke ist ein Befund von
+   `gochecknoglobals`; eine Funktion, deren Name mit `Test`, `Benchmark`, `Example`
+   oder `Fuzz` beginnt, meldet in der Brücke eine eigene Prüfung.
+8. **Ausnahmen.** Eine Ausnahme steht nur in `.golangci.yml`, als Einstellung nach
+   Punkt 5 oder als Regel unter `linters.exclusions.rules`. Unmittelbar über jeder
+   Regel steht ein Kommentarblock, dessen erste Zeile mit `# Why:` beginnt; fehlt er,
+   meldet das eine eigene Prüfung. Eine Regel ist eine von zwei Arten:
+   - **dauerhaft** — für Testdateien `cyclop`, `gocognit`, `gocyclo`, `nestif`,
+     `funlen`, `noctx`, `unparam` und `revive` mit `unused-parameter` und
+     `unused-receiver`; `staticcheck` mit `ST1005`, weil die Fehlertexte deutsch sind
+     und mit einem Substantiv beginnen dürfen; `gochecknoglobals` für eine benannte
+     Nachschlage-Tabelle oder einen benannten Sentinel-Wert, die nach der
+     Initialisierung nur gelesen werden, je Regel mit Datei und Namen; `forbidigo` für
+     `os.Stdout` und `os.Stderr` nach Punkt 5.
+   - **Stufe** — setzt einen gemessenen Befund des Bestands aus, bis der Plan, den ihr
+     `Why:` nennt, ihn bereinigt und die Regel löscht. Sie ist so eng wie der Befund:
+     Datei, Linter und, wo die Meldung ihn nennt, der Name der Funktion oder Variablen;
+     für die Testdateien einer Paketgruppe deren Pfade und die Linter, die dort einen
+     Befund haben.
+
+   Eine Regel, die im Lauf keinen Befund ausblendet (`exclusions.warn-unused: true`), ist
+   ein Befund.
+9. **Ausgabe und Ausgang.** golangci-lint gibt seine Befunde im Textformat ungekürzt
+   aus (`max-issues-per-linter: 0`, `max-same-issues: 0`, `uniq-by-line: false`); die
+   eigenen Prüfungen schreiben je Befund eine Zeile `lint: <pfad>:<zeile>: <befund>`.
+   Jede Prüfung läuft, auch wenn eine andere einen Befund hat. Die Stufe endet mit einem
+   Ausgang ungleich 0 bei mindestens einem Befund, einer ungenutzten Regel oder einer
+   Konfiguration, die golangci-lint ablehnt; `make lint` hängt an der Gate-Kette von
+   `make gates`.
+
+**Grenze.** Ob ein `Why:` zutrifft, ob der Plan einer Stufe existiert und ob die Brücke
+nur weiterreicht, prüft das Werkzeug nicht; ebenso wenig, ob eine Einstellung nach
+Punkt 5 ihren Grund als Kommentar trägt. Ein `nolint` nach Punkt 6 in einem
+String-Literal ist ebenfalls ein Befund. Testdateien im Paket `main` lässt
+`testpackage` zu; unter `cmd/` gibt es keine.
+
 ## 12. Historie
 
 Regeln dieser Sektion: **kein ADR- und kein Slice-Verweis.** Die Decken-Regel
@@ -2008,5 +2103,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Diagnose: Parameterwerte auf keinem Log-Level und in keiner `ErrorResponse`, Nummer des ersten abweichenden Parameters, bei abweichender Zahl beide Anzahlen (`LH-FA-18.a`, `SPEC-033`); Log-Level genau vier, Strenge des Werts, Inhalt der Stufen, Zeilenform, Zeile beim Prozessende auf jeder Stufe, `stdout` nur für Hilfe, `version` und `config show` (`LH-FA-14.a`); Fehlertext einzeilig, Kopf einmal mit dem Code des äußersten Fehlers, fremde Fehler, Felder der `ErrorResponse` (`SPEC-034`) |
 | 2026-10-06 | Gleichrangige Fehler als eigene Meldungen, erster gemerkt, nicht klassifizierter als Ursache; Zeilenumbruch LF, CR LF, CR; Attribut `error` nur mit Kopf, `grund` für Bibliothekstexte (`SPEC-034`, `LH-FA-14.a`); nicht annehmbare Verbindung ist Verbindungsfehler `PGR-E4000` (`LH-FA-13.b`) |
 | 2026-10-06 | Mehrere Meldungen: die `ErrorResponse` trägt die erste; Hülle mit eigenem Text um mehrere Ursachen ist eine Kette mit dem ersten klassifizierten Code, gleichrangig nur eine reine Zusammenfassung (`SPEC-034`) |
+| 2026-10-06 | Harness-Werkzeuge: Lint-Profil mit Linter, Schwellen, Einstellungen, Verbot von `//nolint`, Export-Test-Brücke, Ausnahmen als dauerhaft oder Stufe, Ausgabe und Ausgang (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |

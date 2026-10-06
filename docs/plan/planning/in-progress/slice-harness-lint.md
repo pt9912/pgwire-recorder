@@ -21,10 +21,12 @@ Bindung an Entscheidungen: [ADR-0026](../../adr/0026-build-und-test-im-multistag
 (Gates als Stufen des Multistage-`Dockerfile`, Images per Digest gepinnt),
 [ADR-0001](../../adr/0001-hexagonale-architektur.md) (Abgrenzung zum
 Architektur-Gate), [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (die Gegenprobe ist Nachweis der Nachweisart Gate,
-deklariert wird an ihr erst in `slice-harness-abdeckung-gate`). Die ADR des neuen Gates schreibt der Architect im Slice, vor dem
-Code; ihre Nummer vergibt der ADR-Index.
+deklariert wird an ihr erst in `slice-harness-abdeckung-gate`),
+[ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (das Gate, seine dauerhaften
+Ausnahmen, die Messung des Bestands und die Stufen; `Proposed`, bis der Nutzer die
+Einführung wählt, §6).
 
-**Berührte Spec-Stellen:** —
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (`spezifikation.md` §11, neu: Vertrag des Gates) · `spezifikation.md` §12 (*Historie*)
 
 **Verantwortlich:** pt9912
 
@@ -50,11 +52,15 @@ SOLID-nahe Profil des Schwester-Repos ai-harness-init (Default-Linter dazu
 `interfacebloat`, `revive` u. a.), an dieses Repo angepasst: `gomodguard_v2` kennt
 die Module aus `go.mod` (`github.com/jackc/pgx/v5`, darin `pgproto3`, und
 `go.yaml.in/yaml/v3`), `forbidigo` und `exclusions` folgen der CLI und der
-Testpraxis dieses Repos (§6). Die Schwellen sind die Werte des Vorbilds
-(Entscheidung des Nutzers vom 2026-10-05). `testpackage` ist **gestuft**: Die ADR
-des Gates führt es mit einem Hochschalt-Trigger je Paketgruppe auf die vier
-Umstellungs-Slices; bis dahin ist es für deren Pfade ausgesetzt, als benannte Stufe,
-nicht als stille Ausnahme. Ausnahmen stehen zentral in
+Testpraxis dieses Repos. Den Vertrag des Gates hält `SPEC-049` (Linter, Schwellen,
+Einstellungen, eigene Prüfungen für `//nolint`, `Why:` und die Export-Test-Brücke,
+Ausnahmen als dauerhaft oder Stufe, Ausgabe und Ausgang); Entscheidung, Gründe und
+die Messung des Bestands hält [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md). Die Schwellen sind die Werte des Vorbilds
+(Entscheidung des Nutzers vom 2026-10-05). Der Bestand ist **gestuft**: `testpackage`
+und die übrigen Befunde der Testdateien je Paketgruppe mit Hochschalt-Trigger auf die
+vier Umstellungs-Slices, die Befunde im Produkt-Code je Funktion mit Hochschalt-Trigger
+auf zwei Bereinigungs-Slices (ADR-Entscheidung 5, Wahl des Nutzers offen, §6); jede Stufe
+ist eine benannte Regel, keine stille Ausnahme. Ausnahmen stehen zentral in
 `.golangci.yml`, je mit einem `Why:`-Kommentar; `AGENTS.md` §3.2 bekommt damit
 seinen Träger. Die Gegenprobe `make lint-gegenprobe` zeigt, dass das Gate rot
 werden kann (`AGENTS.md` §3.10).
@@ -80,11 +86,14 @@ werden auf Black-Box-Pakete umgestellt, in eigenen Slices.
   `slice-harness-abdeckung-gate` nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md): Das Abdeckungs-Skript kennt die
   Nachweisart Gate vor ihm nicht, und Teil 3 von LH-QA-07 gilt erst, wenn `testpackage`
   überall scharf ist.
-- Bereinigung des Bestands über das hinaus, was in eine Review-Sitzung passt — ob
-  der heutige Code das Profil hält, misst der Architect vor dem Code (§4, §6
-  *Bestand*). Reicht die Bereinigung weiter, geht der Slice zurück zur Zerlegung
-  (§4), statt still zu wachsen; die Folge-Slices entstehen dann aus der Messung,
-  nicht vorab.
+- Bereinigung des Bestands — gemessen (§6 *Bestand*,
+  [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)): 96 Befunde nach den
+  dauerhaften Ausnahmen, in allen Schichten. Die Testdatei-Befunde übernehmen die vier
+  Umstellungs-Slices, die dieselben Dateien umschreiben; die 25 Befunde im Produkt-Code
+  zwei Bereinigungs-Slices, vorgeschlagen `slice-lint-bestand-kern-driven` und
+  `slice-lint-bestand-driving` (der Planner legt sie nach der Wahl des Nutzers in
+  `open/` an, bevor eine Stufe sie im `Why:` nennt). Dieser Slice ändert keinen
+  Produkt-Code außer dem Kommentar in `internal/hexagon/model/fehler.go` (§3).
 - Importrichtungen im Hexagon und Bibliotheken je Adapter — das hält
   `make a-check` ([ADR-0001](../../adr/0001-hexagonale-architektur.md)).
   `gomodguard_v2` prüft Module gegen eine Liste, keine Richtung; eine zweite Quelle
@@ -100,8 +109,8 @@ werden auf Black-Box-Pakete umgestellt, in eigenen Slices.
   Begründung); die Anhebung bleibt ein bewusster Commit wie bei jedem gepinnten Image.
 - Lastenheft und die Spezifikation außerhalb ihres Abschnitts für Harness-Werkzeuge —
   Schicht-Abgrenzung: Der Slice ändert Harness, `Dockerfile`, Lint-Konfiguration und
-  ihre Doku, in der Spezifikation nur die Randformen seines Gates in jenem Abschnitt;
-  Produkt-Code nur, soweit die Bestands-Bereinigung aus §6 im Umfang bleibt.
+  ihre Doku, in der Spezifikation nur `SPEC-049` und die Historien-Zeile; Produkt-Code
+  nur den Kommentar aus §3.
 
 ## 2. Definition of Done
 
@@ -155,13 +164,13 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/plan/adr/<NNNN>-lint-gate.md`, `docs/plan/adr/README.md` | neu / update | ADR des neuen Gates (Architect, vor dem Code): Profil mit den Schwellen des Vorbilds, Durchsetzung des `//nolint`-Verbots, Stufen mit Hochschalt-Trigger (`testpackage` je Paketgruppe auf die vier Umstellungs-Slices, dazu jede Stufe aus der Bestands-Messung), Form der Export-Test-Brücke, Randformen aus §6; Index-Zeile |
-| `.golangci.yml` | neu | Profil nach Vorbild ai-harness-init, angepasst nach §6; Stufen als benannte Ausnahmen mit `Why:` und Kennung des aufhebenden Slice; Kopfkommentar nennt die Hard Rule aus `AGENTS.md` §3.2 |
-| `Dockerfile` | update | Stufe `lint` aus dem per Digest gepinnten golangci-lint-Image, Modul-Cache aus `deps`, `RUN --network=none`; Build-Tag `integration` für `test/integration` |
-| `.dockerignore` | update | `.golangci.yml` in die Allowlist des Build-Kontexts ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)); ohne sie läuft das Image mit Default-Profil |
+| `docs/plan/adr/0034-lint-gate-mit-solid-nahem-profil.md`, `docs/plan/adr/README.md` | neu / update | geschrieben vom Architect vor dem Code (`Proposed`): Entscheidung, Gründe, Messung des Bestands, dauerhafte Ausnahmen, Stufen mit Hochschalt-Trigger; Index-Zeile. Status `Accepted` nach der Wahl des Nutzers (§6) |
+| `spec/spezifikation.md` §11, §12 | update | geschrieben vom Architect vor dem Code: `SPEC-049` mit den Randformen aus §6; Historien-Zeile |
+| `.golangci.yml` | neu | Profil nach `SPEC-049` Punkt 1 bis 5 und 8; dauerhafte Ausnahmen und Stufen nach [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) Entscheidung 2 und 5, je mit `Why:`, Stufen mit Kennung des aufhebenden Slice; Kopfkommentar nennt die Hard Rule aus `AGENTS.md` §3.2 |
+| `Dockerfile` | update | Stufe `lint` aus `golangci/golangci-lint:v2.14.0@sha256:ad862ba6b3798cbe0fd9fd7408d498fd74fbd2623a92406b2fd3898faf0bf98f` auf `$BUILDPLATFORM`, Module aus `deps`, `RUN --network=none`, `GOTOOLCHAIN=local`; darin die drei eigenen Prüfungen (`SPEC-049` Punkt 6 bis 8), golangci-lint und die Auswertung von `warn-unused`, alle laufen, Ausgang nach Punkt 9 |
+| `.dockerignore` | update | `.golangci.yml` in die Allowlist des Build-Kontexts ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)); ohne sie läuft das Image mit Default-Profil. Liegen die eigenen Prüfungen als Skript unter `tools/`, kommt es ebenso hinein |
 | `harness/mk/lint.mk` | neu | `lint` und `lint-gegenprobe`, beide an `GATE_CHECKS` |
-| `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in einer Kopie des Arbeitsbaums unter einem Temp-Pfad, je Fall `make lint` bzw. der Docker-Build dort mit erwartetem Exit; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ`; Rot-Fälle für beide Bedingungen von Messmethode 3 (White-Box-Test, Zugriff an der Brücke vorbei, Test in der Brückendatei); ohne Abdeckungs-Deklaration (§1) |
-| Produkt-Code unter `cmd/`, `internal/`, `test/` | refactor | nur die Bestands-Befunde, die nach der Messung (§6 *Bestand*) im Umfang dieses Slice bleiben |
+| `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in einer Kopie des Arbeitsbaums unter einem Temp-Pfad, je Fall `make lint` bzw. der Docker-Build dort mit erwartetem Exit; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ`. Je Zusage aus `SPEC-049` ein Mutant, der rot wird; Rot-Fälle für beide Bedingungen von Messmethode 3 in einem neuen Paket außerhalb jeder Stufe: White-Box-Test, Zugriff an der Brücke vorbei (`internal_test.go` im Paket des Codes), Test in der Brückendatei, Variable in der Brückendatei; dazu eine ungenutzte Regel und eine Regel ohne `Why:`. Den grünen Fall je Ausnahme und je Stufe trägt der Bestands-Lauf mit `warn-unused` (`SPEC-049` Punkt 8). Ohne Abdeckungs-Deklaration (§1) |
 | `internal/hexagon/model/fehler.go` | update | Kommentar an `Meldungen` (Zeilen 171 bis 173) nennt die Tiefensuche der Spezifikation statt „außen nach innen und in der Reihenfolge seiner Ursachen“ (`AGENTS.md` §3.11); übernommen aus der Closure von welle-replay-semantik, Nebenbefund 2. Nur der Kommentar, kein Verhalten |
 | `AGENTS.md` | update | §3.2 mit echtem Träger, Falsch/Richtig mit diesem Repo |
 | `harness/README.md` | update | §Sensors: zwei Zeilen; „Nicht behauptet“ ohne Lint |
@@ -225,89 +234,74 @@ und verweist mit `Schärft:` auf die Stelle. Die Entscheidungen des Nutzers vom
 2026-10-05 werden dort festgehalten. Was dort nicht steht, entscheidet der Implementer
 nicht, er gibt es zurück.
 
-- **`testpackage`** — der Bestand testet ausnahmslos White-Box: alle Unit-Tests unter
-  `internal/` liegen im Paket des Codes (`package services`, `package pgwire`, …),
-  `test/integration` ist ein reines Testpaket (`package integration`). **Entschieden
-  (Nutzer):** Umstellung auf `_test`-Pakete in vier Slices
-  (`slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`,
-  `slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`); bis dahin
-  gestuft, mit Hochschalt-Trigger auf diese Slices, in der ADR. Offen: Form der Stufe
-  (Ausnahme je Pfad in `exclusions` mit `Why:` und Slice-Kennung, damit jeder
-  Umstellungs-Slice genau seine Zeile löscht, oder Linter ganz aus bis zum letzten
-  Slice — dann belegt keine Zwischenstufe ihr Hochschalten), und ob `cmd/` wie im
-  Vorbild dauerhaft ausgenommen ist (`main` ohne Test heute).
-- **Export-Test-Brücke** (`export_test.go`) — der Bestand greift in Tests auf
-  unexportierte Teile zu (Namensabgleich per Suche am Stand `ce50a10`, ungemessen):
-  `pgwire` etwa zehn Namen (u. a. `meldeFrist`, `wecke`, `toClientMessage`),
-  `services` etwa sieben (u. a. `cursor`, `vtLeerraum`, `istLebendpruefung`),
-  `postgres` drei, `cli` und `bootstrap` je einen, `model` und `recording` keinen.
-  Darunter Mutationstests auf unexportierte Teile und Zustandseingriffe (Fristen).
-  Offen: Brücke zulässig ja/nein; Form (Datei `export_test.go` im Paket, exportierte
-  Aliase, Namensregel); ob sie nur lesen oder auch Zustand setzen darf; wie `revive`
-  und `gochecknoglobals` sie behandeln (eine Brücke aus `var X = x` ist eine globale
-  Variable in einer `_test.go`-Datei). Die Umstellungs-Slices folgen dieser
-  Entscheidung, sie treffen sie nicht.
-- **`forbidigo`** — die CLI schreibt über injizierte Writer (`bootstrap.Run` erhält
-  `os.Stdout` und `os.Stderr` aus `cmd/pgwire-recorder/main.go`); `fmt.Print*` kommt
-  im Bestand nicht vor. Offen: Muster wie im Vorbild, und ob zusätzlich `os.Stdout`
-  und `os.Stderr` außerhalb von `cmd/` verboten werden.
-- **`gochecknoglobals`** — Bestand: `main.version` (gesetzt per `-ldflags -X`,
-  Dockerfile-Stufe `build`, wie die Ausnahme im Vorbild), Nachschlage-Tabellen auf
-  Paketebene (u. a. in `model`, `services`, `cli`, `recording`, `postgres`), ein
-  `var`-Block in `bootstrap`, Sentinel-Fehler `Err…` und Zusicherungen
-  `var _ Port = …`. Offen: welche davon Ausnahme mit `Why:` sind, welche Bereinigung.
-- **`gomodguard_v2`** — Liste erlaubter Module (dann braucht jedes neue Modul eine
-  Konfig-Änderung im selben Commit wie `go.mod`) oder Liste verbotener wie im Vorbild.
-  Erlaubt nach `go.mod`: `github.com/jackc/pgx/v5` (darin `pgproto3`) und
-  `go.yaml.in/yaml/v3`; offen ist, wie indirekte Module zählen. d-migrate ist kein
-  Go-Modul, sondern das Werkzeug-Image von `make schema-validate`, und gehört nicht in
-  die Liste. Abgrenzung zur Bibliotheks-Regel je Adapter in `.a-check.yml` (§1).
-- **Durchsetzung des `//nolint`-Verbots** — golangci-lint wertet `//nolint` aus, statt
-  es zu verbieten. Offen: eigener Prüfschritt in der Stufe `lint` oder ein Linter;
-  was als Direktive zählt (Zeilenanfang, nach Code, Groß-/Kleinschreibung,
-  `//nolint:x` mit Begründung) und was nicht (das Wort in Prosa, in einem String,
-  in einer Testvorlage).
-- **Ausnahmen mit `Why:`** — Form des Kommentars (Zeile über der Regel, Pflicht je
-  Regel) und ob ein Sensor sie prüft oder Review. Übernahme der `_test.go`-Ausnahmen
-  des Vorbilds (Komplexität, `funlen`, `noctx`, `unparam`, ungenutzte Parameter und
-  Receiver) gegen die Testdateien dieses Repos prüfen.
-- **Integrationstests hinter dem Build-Tag** — `test/integration` übersetzt nur mit
-  `-tags integration`; ohne `run.build-tags` lintet golangci-lint diese Dateien nicht.
-  Offen: mitlinten (wie `go vet -tags integration` in der Stufe `test`) oder
-  ausdrücklich nicht.
-- **Schwellen des Profils** (`cyclop`, `funlen`, `gocognit`, `gocyclo`, `nestif`,
-  `maintidx`, `dupl`, `interfacebloat`) — **entschieden (Nutzer):** die Werte des
-  Vorbilds (`cyclop` 15, `funlen` 100 Zeilen / 60 Anweisungen, `gocognit` 20,
-  `gocyclo` 15, `nestif` 5, `maintidx` 20, `dupl` 150, `interfacebloat` 10). Was der
-  Bestand verletzt, wird bereinigt oder mit ADR und Hochschalt-Trigger gestuft; kein
-  Wert wird an den Bestand angepasst. Eine spätere Senkung braucht eine neue ADR
-  (`AGENTS.md` §3.6). Offen: ob die `_test.go`-Ausnahmen des Vorbilds für Komplexität
-  und `funlen` übernommen werden (Ausnahme, keine Schwelle).
-- **`revive`-Regeln `exported` und `package-comments`** — der Bestand kommentiert
-  deutsch; die Regel prüft die Form (Kommentar beginnt mit dem Namen), nicht die
-  Sprache. Offen: Regel wie im Vorbild, und ob die Doc-Comment-Pflicht auch für
-  `internal/` gilt.
-- **Image und Version** — golangci-lint v2 im Image per Digest gepinnt; die
-  Go-Version des Images muss `go 1.27` aus `go.mod` bei `GOTOOLCHAIN=local` tragen
-  (Vorbild: v2.14.0). Offen: Pin-Ort (Makefile-Variable wie im Vorbild oder nur im
-  `Dockerfile`), Plattform (`$BUILDPLATFORM` wie `deps`), Modul-Cache aus `deps` und
-  Lauf `--network=none`.
-- **Ausgabe und Exit** — Befunde im Format von golangci-lint auf der Build-Ausgabe
-  (`--progress=plain`), Exit ≠ 0 bei mindestens einem Befund, der Befund des
-  `//nolint`-Schritts nennt Datei und Zeile. Offen: ob das Gate Befunde begrenzt
-  (`max-issues-per-linter`, `max-same-issues`; Default kürzt die Ausgabe) — ein
-  gekürzter Bericht sagt nicht, wie viele Befunde es gibt.
+Entschieden am 2026-10-06 vom Architect vor dem ersten Code-Commit, festgehalten in
+`SPEC-049` (Punktnummern unten) und [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md); gemessen gegen den
+Bestand am Stand `79f40e1`.
+
+- **`testpackage`** — Stufe je Paketgruppe als eine Regel mit den Pfaden der
+  Testdateien, `Why:` mit dem Umstellungs-Slice, der genau diese Regel löscht (Punkt 8);
+  nicht ganz aus. `skip-regexp` nur `export_test.go`: Der Default ließ auch
+  `internal_test.go` White-Box durch (gemessen, Punkt 5). `cmd/` ist nicht
+  ausgenommen; `testpackage` lässt Tests im Paket `main` selbst zu, `cmd/` hat keine
+  (Grenze). Entschieden (Nutzer): Umstellung in den vier Slices.
+- **Export-Test-Brücke** — zulässig, nur als `export_test.go` im Paket des Codes, mit
+  Aliasen, Konstanten und weiterreichenden Funktionen; Zustand nur an übergebenen
+  Werten (Punkt 7). Keine Ausnahme für `gochecknoglobals` oder `revive` in der Brücke:
+  eine Variable dort ist ein Befund. Rot-Fälle nach F-407: `internal_test.go` im
+  Paket des Codes (an der Brücke vorbei, `testpackage`) und `func Test…` in
+  `export_test.go` (eigene Prüfung), dazu eine Variable in der Brücke.
+- **`forbidigo`** — `fmt.Print…`, `print`, `println`, dazu `os.Stdout` und `os.Stderr`
+  außerhalb von `cmd/` und `test/` (Punkt 5, dauerhafte Regel nach Punkt 8); Bestand
+  ohne Befund.
+- **`gochecknoglobals`** — `main.version` braucht keine Ausnahme (der Linter lässt
+  `version` zu, gemessen); `Err…` und `var _ Port = …` ebenso. Die zehn
+  Nachschlage-Tabellen und Sentinel-Werte im Produkt-Code sind dauerhafte Ausnahmen je
+  Datei und Name; die 23 Globalen in Testdateien sind Teil der Test-Stufen (Punkt 8,
+  [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) Entscheidung 2 und 5).
+- **`gomodguard_v2`** — Erlaubnisliste `github.com/jackc/pgx/v5` und
+  `go.yaml.in/yaml/v3`; ein indirektes Modul aus `go.mod` ist beim direkten Import ein
+  Befund (Mutant mit `golang.org/x/sync` rot gesehen). Ein neues Modul ändert die Liste
+  im selben Commit wie `go.mod` (Punkt 5).
+- **Durchsetzung des `//nolint`-Verbots** — eigene Prüfung in der Stufe `lint`: `//`
+  oder `/*`, dann Leerraum oder `/`, dann `nolint` in beliebiger Schreibweise, überall
+  in der Zeile, auch in Strings; Prosa mit einem Wort davor zählt nicht (Punkt 6).
+- **Ausnahmen mit `Why:`** — Kommentarblock unmittelbar über jeder Regel, erste Zeile
+  `# Why:`; eine eigene Prüfung meldet das Fehlen; `warn-unused` macht eine Regel ohne
+  Wirkung zum Befund (Punkt 8). Die `_test.go`-Ausnahmen des Vorbilds sind übernommen
+  (sie blenden 39 Befunde aus, Grund gilt für jeden Test).
+- **Integrationstests hinter dem Build-Tag** — mitgelintet (`run.build-tags:
+  integration`, Punkt 1); in der Messung 28 Befunde unter `test/integration`.
+- **Schwellen des Profils** — entschieden (Nutzer): die Werte des Vorbilds (Punkt 4);
+  die `_test.go`-Ausnahmen für Komplexität und `funlen` übernommen.
+- **`revive`-Regeln `exported` und `package-comments`** — wie im Vorbild, auch für
+  `internal/` (Punkt 5); Bestand: sieben Kommentare in `model` ohne die Form, Teil der
+  Code-Stufe Kern und Driven.
+- **Image und Version** — `golangci/golangci-lint:v2.14.0@sha256:ad862ba6…` (gebaut mit
+  go1.27.0, Image go1.27.1, analysiert `go 1.27` bei `GOTOOLCHAIN=local`, gemessen); Pin
+  nur im `Dockerfile`, `$BUILDPLATFORM`, Module aus `deps`, `--network=none` (Punkt 2).
+- **Ausgabe und Exit** — ungekürzt (`max-issues-per-linter: 0`, `max-same-issues: 0`,
+  `uniq-by-line: false`); eigene Prüfungen `lint: <pfad>:<zeile>: <befund>`; alle
+  Prüfungen laufen, Exit ≠ 0 bei Befund, ungenutzter Regel oder abgelehnter
+  Konfiguration (Punkt 9).
+- **Pfade in `.golangci.yml`** (neu, aus der Messung) — golangci-lint liest Pfade
+  relativ zur Konfiguration; eine verankerte Regel griff in der Messung nicht, bis die
+  Konfiguration an der Modulwurzel lag. Entschieden: `relative-path-mode: cfg`, Pfade
+  mit `^` (Punkt 1).
+- **Einführung des Bestands** — **offen, Wahl des Nutzers**: Empfehlung des Architect
+  ist die gestufte Einführung nach [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) Entscheidung 5 (Gate jetzt, Test-Stufen auf
+  die vier Umstellungs-Slices, deren Umfang um 47 Befunde außer `testpackage` wächst,
+  Code-Stufen auf zwei neue Bereinigungs-Slices). Alternative: Bereinigung vor dem Gate,
+  dieser Slice zurück nach `next/` (§4). Bis zur Wahl bleibt [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) `Proposed`, und
+  der Implementer schreibt keine Stufe.
 
 **Risiken:**
 
-- **Bestand** (Hauptrisiko) — unbekannt, wie viele Befunde der heutige Code gegen das
-  Profil liefert. Sichtbar ohne Messung: `testpackage` träfe jede Testdatei
-  (gestuft, siehe oben), `gochecknoglobals` mehrere Pakete, und die größten Dateien
-  (`internal/adapters/driving/pgwire/server.go`,
-  `internal/adapters/driven/recording/yaml.go`, `internal/hexagon/services/replay.go`)
-  sind Kandidaten für `funlen` und `cyclop`. Der Architect misst vor dem Code (§4);
-  zu viel für diesen Slice heißt Rückführung `in-progress` → `next`, nicht
-  Ausnahme. — **Ausgang:** — (bei Closure)
+- **Bestand** (Hauptrisiko) — gemessen ([ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)): 142 Befunde ohne `testpackage`,
+  166 mit; nach den dauerhaften Ausnahmen 96, davon 25 im Produkt-Code in allen
+  Schichten (sieben Funktionen über den Komplexitäts-Schwellen) und 71 in Testdateien.
+  Die Rückführungs-Bedingung aus §4 (Bereinigung in mehr als zwei Schichten) ist erfüllt;
+  der Ausweg ist die gestufte Einführung oder die Bereinigung vor dem Gate, Wahl des
+  Nutzers (Randform *Einführung des Bestands*). — **Ausgang:** — (bei Closure)
 - **Stufe wird zum Dauerzustand** — eine `testpackage`-Stufe, deren Umstellungs-Slice
   nie startet, ist eine stille Ausnahme mit Aufschrift. Jede Stufe nennt in ihrem
   `Why:` die Kennung des Slice, der sie aufhebt; die Kennung liegt als Datei in
