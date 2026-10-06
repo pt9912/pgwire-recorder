@@ -46,6 +46,10 @@ Tabellen verlinkt ihn und trägt, was das Repo über dessen Targets entscheidet,
 `harness/mk/` stammen teils von ai-harness-init, teils vom Repo, und
 `harness/README.md` §Sensors führt heute die Targets beider. Solange das Werkzeug
 keinen Teil schreibt, ist das die eine Datei, die die Regel für diesen Fall zulässt.
+Entscheidung des Nutzers vom 2026-10-06: Der Befund bleibt ein Slice und wird kein
+Eintrag im Beobachtungs-Register, auch nach Review F-438 (die Lesart trägt der
+Baseline-Text nicht ausdrücklich, und der Start hängt an einem externen Lauf ohne
+Datum); bis zum Start ruht die `MR-000`-Aussage auf dieser Lesart.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 

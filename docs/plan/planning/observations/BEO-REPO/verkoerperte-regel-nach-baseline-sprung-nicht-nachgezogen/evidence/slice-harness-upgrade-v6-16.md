@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-upgrade-v6-16
+**Fund:** Der Abgleich v6.13.0 → v6.16.0 führte Befund (2), Werkzeug-Festlegungen im Technik-Stratum, als behoben, ohne `AGENTS.md` §3.12 zu nennen, das als Ort einer entschiedenen Randform weiter „oder einer ADR“ zuließ (Review F-434, MEDIUM, Finding-Klasse „Verkörperte Regel nach Baseline-Sprung nicht nachgezogen“). Behoben in `481ef52`; `.claude/agents/architect.md` und `.claude/commands/implement-slice.md` zeigen seither nur auf §3.12.

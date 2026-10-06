@@ -88,7 +88,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **d-check `v0.82.0`:** `DCHECK_IMAGE` und `DCHECK_DIGEST` in `d-check.mk` nennen
+- [x] **d-check `v0.82.0`:** `DCHECK_IMAGE` und `DCHECK_DIGEST` in `d-check.mk` nennen
       Tag `v0.82.0` und den Digest, den `docker pull` für diesen Tag meldet (Herkunft des
       Digest im Bericht: Kommando und Ausgabe); die Adaption des Fragments (Target
       `docs-check`, gepinnter Digest, Kopfkommentar) bleibt erhalten, die übrigen Targets
@@ -96,7 +96,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       grün; jeder neue Befund der strengeren Version ist im Bericht gezählt und hat
       einen Ausgang — behoben in diesem Slice oder Folge-Slice mit Kennung (§6
       *Befunde in eingefrorenen Dokumenten*).
-- [ ] **Baseline `v6.16.0` vendored:** `.harness/baseline/v6.16.0/{regelwerk,templates}/`
+- [x] **Baseline `v6.16.0` vendored:** `.harness/baseline/v6.16.0/{regelwerk,templates}/`
       mit `SHA256SUMS` aus dem Release-Asset `lab-regelwerk.zip` des Tags, dessen sha256
       vor dem Entpacken geprüft ist (Wert und Quelle im Bericht); `make baseline-verify`
       grün und nennt `v6.16.0`. `harness/conventions.md` §Baseline (Stand, Datum) und
@@ -108,7 +108,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `.harness/baseline/v6.13.0/` (Pläne dürfen den alten Stand als Wort nennen, dieser
       eingeschlossen); `find . -path ./.git -prune -o -xtype l -print` ist leer. Was mit
       dem alten Baum geschieht, nach §6 *Alte Baseline* und *Was am alten Pfad hängt*.
-- [ ] **Abgleich v6.13.0 → v6.16.0:** Jeder Regelblock des neuen Baums steht in der
+- [x] **Abgleich v6.13.0 → v6.16.0:** Jeder Regelblock des neuen Baums steht in der
       Tabelle *Welche Regelblöcke des Baums hier einen Träger haben* in
       `harness/conventions.md` mit genau einem Wert; neue, umbenannte und entfallene
       Blöcke sind im Bericht einzeln genannt. Das Delta der Regelwerk-Dateien und der
@@ -121,14 +121,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       die `MR-000`-Aussage (§6 *Klarstellung zum Technik-Stratum*, *Sensor-Datei*). Jeder
       Befund hat genau einen Ausgang: behoben (klein), Folge-Slice mit Kennung in
       `open/` oder Eintrag im Beobachtungs-Register.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -349,20 +349,37 @@ Randform-Rückgabe).
 
 - **Strengere d-check-Version färbt viele Dateien rot** — `v0.82.0` kann neue Module oder
   strengere Regeln mitbringen; bei 240 und mehr gescannten Dateien kann die Zahl der
-  Befunde den Slice sprengen. — **Ausgang:** — (bei Closure)
+  Befunde den Slice sprengen. — **Ausgang:** entfallen: `v0.82.0` meldet am Stand vor
+  dem Tausch 0 Befunde (Probe `m9` der Verifikation), nach dem Tausch genau den einen
+  aus §6 *Was am alten Pfad hängt*, behoben nach (a); der Bump ist vollzogen, für ihn
+  kann das Risiko nicht mehr eintreten.
 - **Konfigurations-Drift in `.d-check.yml`** — eine neue Version liest einen Schlüssel
   anders oder ignoriert ihn still; ein grünes `docs-check` behauptete dann eine Prüfung,
   die nicht läuft (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`). Gegenmittel:
   je aktives Modul ein Probe-Befund in einem Temp-Baum, rot gesehen, vor und nach dem
-  Bump. — **Ausgang:** — (bei Closure)
+  Bump. — **Ausgang:** entfallen: `.d-check.yml` ist unverändert (`git diff 53ea519
+  481ef52 -- .d-check.yml` leer), und die Probe je aktives Modul (`links`, `anchors`,
+  `ids`, `matrix`, `spans`) war unter `v0.79.0` und `v0.82.0` je einmal rot (§7
+  *Belege*; `links`, `anchors`, `ids` von der Verifikation unabhängig rot gesehen,
+  Mutation `m7`). Für eine spätere Version zählt
+  `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` weiter.
 - **Verkörperte Regel und neue Baseline widersprechen sich** — eine Regel aus
   `AGENTS.md` §3.9 bis §3.12, aus den Commands oder dem Register-README regelt der neue
   Stand anders; die `MR-000`-Aussage „keine inhaltlichen Adaptionen“ wäre dann falsch.
-  — **Ausgang:** — (bei Closure)
+  — **Ausgang:** eingetreten, an den Folge-Slice `slice-harness-gate-index-werkzeug-teil`:
+  `harness/README.md` §Sensors führt die Targets der Werkzeug-Fragmente, die `v6.16.0`
+  einem Teil des Werkzeugs zuweist; die `MR-000`-Aussage ruht bis zu dessen Start auf
+  der Lesart, die dort unter *Herkunft* steht (Entscheidung des Nutzers vom
+  2026-10-06). Der zweite Widerspruch, `AGENTS.md` §3.12 mit der ADR als Ort einer
+  Randform (Review F-434), ist in `481ef52` behoben und braucht keinen Ausgang mehr.
 - **Lebender Verweis auf den alten Baum bleibt stehen** — ein Pfad unter
   `.harness/baseline/v6.13.0/` in einem lebenden Dokument bricht mit dem Entfernen
   (`anchor-missing` bzw. Link-Befund) oder bleibt in Code-Spans unentdeckt, die kein Gate
-  liest. Gegenmittel: `grep` aus dem zweiten Liefer-Punkt. — **Ausgang:** — (bei Closure)
+  liest. Gegenmittel: `grep` aus dem zweiten Liefer-Punkt. — **Ausgang:** entfallen:
+  Der `grep` aus dem zweiten Liefer-Punkt ist leer, `find … -xtype l` ebenso, beide
+  Symlinks unter `.claude/rules/` lösen auf `v6.16.0` auf, `MR-001` trägt den alten
+  Pfad als Code-Span (Verifikation, Punkt 2 und Mutation `m5`); die Nennungen im
+  eigenen Plan sind Wort, kein Verweis (V-78).
 
 ## 7. Closure-Notiz
 
@@ -378,13 +395,106 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
-- **Drei Paarungen:** <…>
+- **Bericht des Implementers:** Diese Sektion ist der Bericht des Implementers, den die
+  DoD in Punkt 1 bis 3 nennt (Digest-Herkunft, Asset-sha256, Liste der Blöcke); einen
+  eigenen Bericht außerhalb des Plans gab es nicht. Die Verifikation hat jede Aussage
+  unter *Belege* selbst nachgefahren (V-79).
+- **Was hat funktioniert:** Die Randformen standen vor dem ersten Commit an Pin, Baum oder
+  Konventionen fest (`53ea519` vor `01f9933`), und die Commit-Folge (1) bis (4) aus §3
+  *Ansatz* hielt: An keinem Stand lagen zwei Tag-Verzeichnisse (Verifikation, Punkt 2),
+  `git show -M` erkannte den Tausch als Rename (Review F-437). Die Probe in einer
+  HEAD-Kopie vor dem Tausch sagte den einzigen d-check-Befund voraus (`MR-001`,
+  `target-missing`), und er kam genau so (Mutation `m8`). Keine Rückführung aus §4: kein
+  Werkzeugvertrag, keine ADR, keine neue Adaption, kein Skript unter `tools/` im Diff.
+- **Was ging anders als geplant:** Der Abgleich hielt das Delta von
+  `grundlagen-referenz-richtung.md` §Spec-Straten gegen Spezifikation, Sensor-Dateien und
+  Pläne, aber nicht gegen `AGENTS.md` §3.12, das die ADR weiter als Ort einer Randform
+  zuließ; das Review fand es (F-434, MEDIUM), `481ef52` zog §3.12 nach, ebenso F-435,
+  F-436 und F-439. Die Verifikation fand §7 an zwei Stellen unvollständig: eine falsche
+  Begründung und ein Teilbefund ohne Ausgang bei Befund (2) (V-76), zwei Entscheidungen
+  des Nutzers nicht festgehalten (V-77). Beides ist mit dieser Closure nachgezogen.
+  V-78 (Urteil zu F-440): kein Befund, erledigt — die Nennungen von
+  `.harness/baseline/v6.13.0/` im eigenen Plan sind Wort, kein Verweis. Entscheidungen
+  des Nutzers vom 2026-10-06, hier festgehalten:
+  - (a) `slice-harness-gate-index-werkzeug-teil` bleibt ein Slice und wird kein
+    Register-Eintrag, auch nach F-438; eingetragen in dessen §1 *Herkunft* (V-77).
+  - (b) Kein Change Request an das Kurs-Repo, weder zu `baseline-verify` und zwei
+    Tag-Verzeichnissen noch zur Lesart unter `MR-000` (F-438).
+  - (c) Die angenommenen Gate-ADRs bleiben unverändert (`AGENTS.md` §3.5); Begründung
+    unter *Belege*, Befund (2).
+  - (d) Die älteren Werkzeuge (Commit-Hook, `baseline-verify`, `a-check-negativ`,
+    `hook-gegenprobe`) bekommen ihre Festlegungen in Spezifikation §11 erst, wenn für
+    eines von ihnen eine Randform zu entscheiden ist.
+  - **Summary-Zeilen:** Review `docs/reviews/2026-10-06-review-slice-harness-upgrade-v6-16.md`:
+    „HIGH 0, MEDIUM 1, LOW 2, INFO 4. Finding-Klassen dieses Laufs: Verkörperte Regel nach
+    Baseline-Sprung nicht nachgezogen · Regelblock-Zelle trägt zwei Werte · Teilersetzung
+    lässt Satzrest stehen.“ Verifikation
+    `docs/reviews/2026-10-06-verifikation-slice-harness-upgrade-v6-16.md`, Urteil: Liefer-Punkt
+    1 und 2 erfüllt, Punkt 3 erfüllt bis auf V-76 und V-77 (mit dieser Closure
+    nachgezogen); V-78 kein Befund, V-79 Hinweis; `make gates` grün am Stand `481ef52`.
+- **Steering-Loop-Eintrag:** Benannte Spec-Lücke: Spezifikation §11 *Harness-Werkzeuge*
+  führt Festlegungen nur für `kopf-check`, `abdeckung` und `lint` (`SPEC-047` bis
+  `SPEC-049`). Für den Commit-Hook ([ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md),
+  [ADR-0029](../../adr/0029-benannte-welle-kennungen-im-commit-hook.md)), `baseline-verify`,
+  `a-check-negativ` und `hook-gegenprobe` stehen die Regeln in ADR, Skriptkopf oder
+  `harness/README.md` — an Orten, die `v6.16.0` für Festlegungen eines Werkzeugs
+  ausschließt. Die Lücke schließt sich je Werkzeug mit seiner ersten zu entscheidenden
+  Randform (Entscheidung (d)); bis dahin zählt sie im Register unter
+  `BEO-REPO/werkzeug-festlegung-ausserhalb-technik-stratum`. Kein `liegt in`: Mit diesem
+  Eintrag ist nichts verkörpert. Retirement-Check von `AGENTS.md` §3.9 bis §3.12: keine
+  Regel gelockert oder entfernt; §3.12 ist enger geworden (F-434).
+- **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `2fc5f77`.
+  - `BEO-REPO/verkoerperte-regel-nach-baseline-sprung-nicht-nachgezogen/` — **neu**,
+    Beleg (F-434, Finding-Klasse des Reviews), **1×**. Erster Baseline-Sprung des Repos;
+    kein älterer Eintrag trägt die Klasse.
+  - `BEO-REPO/werkzeug-festlegung-ausserhalb-technik-stratum/` — **neu**, Beleg (V-76,
+    Teilbefund von Befund (2)), **1×**. Nicht `harness-lesart-ohne-entscheidungsort`
+    (gestrichen, bleibt 2×): Dessen Ursache, der fehlende Ort, ist weiterhin weg; hier
+    liegt Bestand aus der Zeit davor am alten Ort, und eine neue Randform ginge nach
+    §3.12 in die Spezifikation.
+  - `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht/` — Beleg (V-79), **2×**. Die
+    DoD verlangte Belege „im Bericht“; der Verifikation lag keiner vor, sie hat §7
+    *Belege* selbst nachgefahren. Erreicht die Schwelle nicht; der nächste Beleg macht
+    ihn zur Lücke, die einen Folge-Slice braucht.
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/` (verkörpert in `AGENTS.md` §3.11
+    seit welle-extended-query) — Beleg (Kopf von `d-check.mk` sagte „verbatim“ über ein
+    angepasstes `doc-help`, vom Architect in §6 gefunden, behoben in `01f9933`, Mutation
+    `m6`), **15×**.
+  - Ohne Beleg: `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (bleibt 2×; die
+    Probe je Modul war rot, `.d-check.yml` unverändert),
+    `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (bleibt 1×; keine Gate-Regel geändert),
+    `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (bleibt 1×; §4 nannte den
+    Architect, er entschied in `53ea519` vor dem ersten Commit),
+    `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (bleibt 2×; keine
+    Rückgabe), `BEO-REPO/plan-folgt-korrektur-nicht` (bleibt 13×; `481ef52` zog die
+    Zeile `AGENTS.md` in §3 nach; V-76 und V-77 sind eine falsche Begründung und eine
+    fehlende Entscheidung in §7, kein Plan auf altem Stand),
+    `BEO-REPO/werkzeug-commit-ohne-zugelassene-kennung` (bleibt 2×; der Präfix-Fehler
+    von `make slice-mv` ist nach §6 nicht eingetragen).
+
+  Einmalig und nicht eingetragen: F-435 (Regelblock-Zelle trägt zwei Werte) und F-436
+  (Teilersetzung lässt Satzrest stehen), beide in `481ef52` behoben; F-437 und F-438
+  (Hinweise an den Architect, F-438 durch Entscheidung (a) erledigt), F-439 (behoben),
+  F-440 (V-78). Kein Eintrag erreicht mit diesem Slice die Schwelle 3× neu; über ihr
+  stehen nur verkörperte Einträge, ihnen gibt diese Closure keinen Ausgang, den
+  Lese-Schritt führt die nächste Welle-Closure.
+- **Folge-Slices:** `slice-harness-gate-index-werkzeug-teil` (`open/`, Befund (3) und das
+  Risiko *Verkörperte Regel und neue Baseline widersprechen sich*); als nächster in der
+  wellenlosen Reihe `slice-harness-blackbox-kern`.
+- **Risiken aus §6:** vier. *Verkörperte Regel und neue Baseline widersprechen sich*:
+  **eingetreten**, an `slice-harness-gate-index-werkzeug-teil`. *Strengere
+  d-check-Version färbt viele Dateien rot*, *Konfigurations-Drift in `.d-check.yml`* und
+  *Lebender Verweis auf den alten Baum bleibt stehen*: **entfallen**, mit Begründung. Die
+  Randformen in §6 sind Entscheidungen, keine Risiken.
+- **Drei Paarungen:** Anker — kein `liegt in`, der Lerneintrag ist eine benannte
+  Spec-Lücke, nichts ist verkörpert;
+  `grep -rn "seit slice-harness-upgrade-v6-16"` über `AGENTS.md`, `.claude/` und
+  `harness/` ist leer, wie es sein soll. Folge-Slice — `slice-harness-gate-index-werkzeug-teil`
+  liegt in `open/`, ist nicht geschlossen, nennt in §1 *Herkunft* diesen Slice und
+  Entscheidung (a) und schließt den Teil des Gate-Index nicht aus. Register — die vier
+  Kennungen mit Beleg und die sechs ohne bestehen als Verzeichnis, jedes mit nicht leerem
+  `evidence/`, der Beleg dieses Slice heißt `evidence/slice-harness-upgrade-v6-16.md`. Die
+  nächste Welle-Closure prüft erneut.
 - **Belege:**
   - *Asset:* `lab-regelwerk.zip` des Tags `v6.16.0`, sha256
     `feb4d7444c92ec4d11fcf88035ce2eaef48da64ae990eb8bbcf44550a5e87063`, geprüft gegen
@@ -432,8 +542,24 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
     einer entschiedenen Randform und die ADR nur mit Entscheidung, Gründen und
     `Schärft:` (Review F-434; `.claude/agents/architect.md` und
     `.claude/commands/implement-slice.md` zeigen auf §3.12 und wiederholen den Ort nicht); Spezifikation §11, beide Sensor-Dateien und die
-    Pläne der Lint-Reihe folgen ihr schon; angenommene Gate-ADRs, deren `Schärft:` eine
-    Anforderung nennt, bleiben unverändert (`AGENTS.md` §3.5). (3) Teil des Gate-Index,
+    Pläne der Lint-Reihe folgen ihr schon. Die angenommenen Gate-ADRs bleiben unverändert,
+    weil der Nutzer es am 2026-10-06 entschieden hat (Entscheidung (c)) und eine
+    angenommene ADR nicht überschrieben wird (`AGENTS.md` §3.5). Ihr Kopf sieht so aus:
+    [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md),
+    [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md),
+    [ADR-0029](../../adr/0029-benannte-welle-kennungen-im-commit-hook.md) und
+    [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) tragen `Schärft: —`,
+    [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) steht in
+    ihrem `Bezug:`; für die zweite und die vierte gäbe es mit `SPEC-048` und `SPEC-047` eine
+    Spec-Stelle, die sie nach der Regel im ADR-Index schärfen würden.
+    [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) trägt `Schärft:
+    SPEC-049` und folgt der Regel. Teilbefund: Für Commit-Hook, `baseline-verify`,
+    `a-check-negativ` und `hook-gegenprobe` hat Spezifikation §11 keine Festlegung, ihre
+    Regeln stehen in ADR, Skriptkopf oder `harness/README.md` — Ausgang: Eintrag im
+    Beobachtungs-Register, `BEO-REPO/werkzeug-festlegung-ausserhalb-technik-stratum`;
+    Grund: Die Festlegungen kommen nach §11, wenn für das Werkzeug eine Randform zu
+    entscheiden ist (Entscheidung (d)), und kein Slice dafür ist geplant. Derselbe
+    Eintrag trägt das fehlende `Schärft:` dieser beiden (V-76). (3) Teil des Gate-Index,
     der einem Werkzeug gehört (`grundlagen-harness-dateien.md`, `modul-13-quality-gates.md`,
     Vorlagen von `AGENTS.md`, `harness/README.md`, `Makefile`, `.d-check.yml`) —
     Folge-Slice `slice-harness-gate-index-werkzeug-teil` in `open/`. (4) Form der
@@ -448,7 +574,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   fällt erst, wenn der Review durch ist“), das emittierte `tools/harness/baseline-verify.sh`
   endet bei zwei Tag-Verzeichnissen rot. Aufgelöst durch das Entfernen von `v6.13.0` im
   Commit, der `v6.16.0` anlegt (§6 *Alte Baseline*); kein Change Request an das Kurs-Repo
-  (Entscheidung des Nutzers vom 2026-10-06). (2) Die Antwort zum Technik-Stratum trägt die Baseline seit `v6.16.0` in
+  (Entscheidung (b) des Nutzers vom 2026-10-06). (2) Die Antwort zum Technik-Stratum trägt die Baseline seit `v6.16.0` in
   `grundlagen-referenz-richtung.md` §Spec-Straten; keine offene Frage mehr.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
