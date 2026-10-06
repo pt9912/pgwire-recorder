@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: nichts (kein Slice in `in-progress/`); als nächster folgt `slice-harness-upgrade-v6-16` (wellenlos).
+In Arbeit: [`slice-harness-upgrade-v6-16`](slice-harness-upgrade-v6-16.md) (wellenlos); danach folgt `slice-harness-blackbox-kern`.
 
 
 
