@@ -25,8 +25,6 @@ var (
 // `record` und `replay` laufen, bis ctx endet; danach endet jede Verbindung nach
 // ihrer laufenden Interaktion. Die Signalbehandlung liegt beim Aufrufer.
 func Run(ctx context.Context, args []string, version string, stdout, stderr io.Writer) int {
-	log := slog.New(slog.NewTextHandler(stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
-
 	cmd, err := cli.Parse(args, stdout)
 	if errors.Is(err, cli.ErrHelp) {
 		return 0
@@ -40,9 +38,9 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 		fmt.Fprintln(stdout, "pgwire-recorder", version)
 		return 0
 	case "record":
-		return record(ctx, cmd.Record, log, stderr)
+		return record(ctx, cmd.Record, logger(stderr, cmd.Record.LogLevel), stderr)
 	case "replay":
-		return replay(ctx, cmd.Replay, log, stderr)
+		return replay(ctx, cmd.Replay, logger(stderr, cmd.Replay.LogLevel), stderr)
 	default:
 		return fail(stderr, model.Errorf(model.CodeUsage, nil, "unbekanntes Kommando %q", cmd.Name))
 	}
@@ -110,15 +108,30 @@ func replay(ctx context.Context, o cli.ReplayOptions, log *slog.Logger, stderr i
 	if w != nil {
 		log.Warn(w.Msg, "code", w.Code)
 	}
-	var me *model.Error
-	if errors.As(err, &me) {
-		log.Error("Fehler", "code", me.Code, "error", me.Error())
+	for _, m := range model.Meldungen(err) {
+		log.Error("Fehler", "code", m.Code, "error", m.Text)
 		if code == "" {
-			code = me.Code
+			code = m.Code
 		}
 	}
 	log.Info("replay beendet")
 	return exitCode(code)
+}
+
+// stufen bildet die Werte von --log-level auf die Stufen des Loggers ab
+// (LH-FA-14.a).
+var stufen = map[string]slog.Level{
+	cli.LogError: slog.LevelError,
+	cli.LogWarn:  slog.LevelWarn,
+	cli.LogInfo:  slog.LevelInfo,
+	cli.LogDebug: slog.LevelDebug,
+}
+
+// logger schreibt Log-Zeilen im Format logfmt nach stderr: time (RFC 3339 mit
+// Millisekunden und Zonenversatz, Ortszeit), level, msg, dann die Attribute;
+// er zeigt die Zeilen der Stufe und der strengeren (LH-FA-14.a).
+func logger(stderr io.Writer, stufe string) *slog.Logger {
+	return slog.New(slog.NewTextHandler(stderr, &slog.HandlerOptions{Level: stufen[stufe]}))
 }
 
 // exitCode ist 0 ohne Verbindungsfehler, sonst der Exit-Code der Klasse des
@@ -130,11 +143,13 @@ func exitCode(code string) int {
 	return (&model.Error{Code: code}).ExitCode()
 }
 
+// fail schreibt je Meldung des Fehlers ihren Fehlertext als Zeile beim
+// Prozessende nach stderr, unabhängig vom Log-Level, und liefert den Exit-Code
+// der ersten (SPEC-034 §Ausgabe, LH-FA-14.a).
 func fail(stderr io.Writer, err error) int {
-	fmt.Fprintln(stderr, err.Error())
-	var me *model.Error
-	if errors.As(err, &me) {
-		return me.ExitCode()
+	ms := model.Meldungen(err)
+	for _, m := range ms {
+		fmt.Fprintln(stderr, m.Text)
 	}
-	return 1
+	return ms[0].ExitCode()
 }

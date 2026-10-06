@@ -2,7 +2,7 @@
 
 Version: 0.1  
 Software-Version: noch nicht veröffentlicht  
-Stand: 05.10.2026  
+Stand: 06.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für `pgwire-recorder` ab der ersten veröffentlichten Version
 
@@ -448,6 +448,11 @@ Antworten.
   die Formate und das Zeilenlimit mit der Aufzeichnung übereinstimmen. Erzeugt
   ein Treiber bei jedem Lauf andere Namen, meldet das Werkzeug eine Abweichung
   (`PGR-E5001`).
+* Weicht ein Parameterwert ab, nennt die Meldung die Nummer des ersten
+  abweichenden Parameters, gezählt ab 1 wie `$1`, etwa `abweichend in params
+  (Parameter $2)`; weicht die Zahl der Parameter ab, nennt sie beide Anzahlen.
+  Die Werte selbst erscheinen nie, weder im Log noch in der Fehlermeldung an die
+  Anwendung, auch nicht mit `--log-level debug`.
 * Sendet ein Treiber nach einer Anforderung `Flush` weitere Nachrichten, ohne auf
   die Antwort zu warten, kann sich die Aufzeichnung zwischen zwei Läufen
   unterscheiden; die Wiedergabe einer vorhandenen Aufzeichnung bleibt davon
@@ -580,8 +585,45 @@ das Passwort, gilt `PGWIRE_RECORDER_PASSWORD`. Ein Klartext-Passwort in der Date
 lehnt das Werkzeug ab (`PGR-E2006`), ebenso eine nicht gesetzte Variable
 (`PGR-E2005`) und eine ungültige Datei (`PGR-E2004`).
 
-Wahrheitswerte lauten `true` oder `false`. Mögliche Log-Level sind `error`,
-`warn`, `info` und `debug`. Meldungen gehen nach `stderr`.
+Wahrheitswerte lauten `true` oder `false`.
+
+### Log-Ausgaben
+
+Log-Zeilen und Fehlermeldungen gehen nach `stderr`; auf `stdout` stehen nur die
+Hilfe, die Ausgabe von `version` und die von `config show`.
+
+`--log-level` (Umgebungsvariable `PGWIRE_RECORDER_LOG_LEVEL`) legt fest, wie viel
+das Werkzeug schreibt. Es gibt genau vier Stufen; jede zeigt ihre Zeilen und die
+der strengeren:
+
+| Stufe | zeigt |
+|---|---|
+| `error` | Fehler, die eine Verbindung beenden |
+| `warn` | zusätzlich Warnungen, jede mit ihrem Code |
+| `info` (Standard) | zusätzlich Start und Ende von `record` und `replay` |
+| `debug` | zusätzlich Ereignisse je Verbindung; welche, kann sich ändern |
+
+Der Wert wird genau so geschrieben, in Kleinbuchstaben. Jeder andere Wert ist ein
+ungültiger Aufruf (`PGR-E2001`), auch ein leerer (`--log-level=`), ein
+großgeschriebener (`INFO`) und ein anderer Name (`warning`, `trace`, `off`). Eine
+leere Umgebungsvariable gilt als nicht gesetzt; eine mit ungültigem Wert ist
+`PGR-E2001`, auch wenn Sie die Option zugleich angeben. Die Option steht nach dem
+Kommando; nennen Sie sie mehrfach, gilt die letzte.
+
+Eine Log-Zeile hat das Format `logfmt`: zuerst `time` (Ortszeit nach RFC 3339
+mit Millisekunden und Zonenversatz), `level` (`DEBUG`, `INFO`, `WARN`, `ERROR`)
+und `msg`, danach weitere Angaben. Ein Fehler trägt `code` und `error` (den
+Fehlertext), eine Warnung `code`. Verlassen können Sie sich auf `level`, `code`
+und `error`; der Text von `msg` und die übrigen Angaben können sich ändern.
+
+```text
+time=2026-10-06T14:03:12.481+02:00 level=WARN msg="…" code=PGR-W2001
+time=2026-10-06T14:03:12.482+02:00 level=ERROR msg=Fehler code=PGR-E5001 error="Replay [PGR-E5001]: …"
+```
+
+Scheitert der Start, schreibt das Werkzeug auf jeder Stufe genau den Fehlertext
+als letzte Zeile, ohne `time` und `level`, und vorher nichts anderes; das gilt
+auch, wenn der Wert von `--log-level` selbst ungültig ist.
 
 Mit `--help` oder `-h` (ebenso `--h` und `-help`, auch mit `=` und einem Wert)
 zeigt das Werkzeug die Hilfe an und endet mit Exit-Code 0, mit
@@ -629,8 +671,18 @@ lauschen, die Sie mit `--listen` angegeben haben.
 ## 7. Fehlerbehebung
 
 Jede Meldung des Werkzeugs trägt einen Code der Form `PGR-E…` (Fehler) oder
-`PGR-W…` (Warnung). Der Text beginnt mit der Fehlerklasse und dem Code, zum
-Beispiel `Replay [PGR-E5001]: …`.
+`PGR-W…` (Warnung). Der Text eines Fehlers ist eine Zeile und beginnt mit der
+Fehlerklasse und dem Code, zum Beispiel `Replay [PGR-E5001]: …`; die Klassen
+heißen `sonstiger Fehler`, `Konfiguration`, `Recording`, `Netzwerk`, `Replay` und
+`nicht unterstützt`. Zeilenumbrüche im Text, auch aus Meldungen des
+Betriebssystems, ersetzt das Werkzeug durch ein Leerzeichen. Derselbe Text steht
+im Log unter `error` und in der Fehlermeldung, die Ihre Anwendung erhält
+(Schweregrad `FATAL`, SQLSTATE `0A000` bei nicht unterstützten Funktionen,
+`08006` bei Netzwerkfehlern, sonst `XX000`). Verlassen können Sie sich auf Klasse
+und Code; der Text danach kann sich ändern. Entstehen beim Ende einer Verbindung
+mehrere Fehler zugleich, etwa der Abbruch der Verbindung und ein Fehler beim
+Schreiben der Aufzeichnung, steht jeder in einer eigenen Zeile; der erste zählt
+für den Exit-Code.
 
 ### Fehlercodes
 
@@ -648,7 +700,8 @@ Beispiel `Replay [PGR-E5001]: …`.
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Zeichnen Sie erneut auf. |
 | `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
-| `PGR-E4000`, `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
+| `PGR-E4000` | Verbindung nicht anzunehmen | Das Werkzeug konnte eine eingehende Verbindung nicht annehmen, zum Beispiel weil zu viele Dateien offen sind. Es nimmt danach weiter Verbindungen an. Prüfen Sie die Grenzen des Systems. |
+| `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
 | `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler (ohne `--compare-responses`) | Die Meldung nennt die Anfrage und die Antwort der Datenbank. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |

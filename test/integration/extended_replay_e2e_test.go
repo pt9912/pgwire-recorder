@@ -300,11 +300,13 @@ func TestE2EReplayExtendedSigtermMittenInFolge(t *testing.T) {
 // Abdeckung: LH-FA-18/Negative, LH-FA-10/Happy — führt pgx im Replay dasselbe
 // Prepared Statement mit einem anderen Parameterwert aus als aufgezeichnet,
 // erhält es einen eindeutigen Fehler mit PGR-E5001 und keine Zeile; die
-// Diagnose nennt den Wert nicht, und der Lauf endet mit Exit-Code 5.
+// Diagnose nennt die Nummer des Parameters ($1), aber nicht den Wert, weder in
+// der ErrorResponse noch im Log, auch mit --log-level debug, und der Lauf endet
+// mit Exit-Code 5.
 func TestE2EReplayExtendedAbweichung(t *testing.T) {
 	input := filepath.Join(t.TempDir(), "rec.yaml")
 	aufnehmenExtended(t, input)
-	rep := startProzess(t, "replay", "--input", input)
+	rep := startProzess(t, "replay", "--input", input, "--log-level", "debug")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -320,8 +322,8 @@ func TestE2EReplayExtendedAbweichung(t *testing.T) {
 	_ = conn.Close(ctx)
 	rep.stop(t, 5)
 	for _, quelle := range []string{err.Error(), rep.stderr.String()} {
-		if strings.Contains(quelle, "anderer-wert") {
-			t.Fatalf("Diagnose nennt den Parameterwert:\n%s", quelle)
+		if strings.Contains(quelle, "anderer-wert") || !strings.Contains(quelle, "abweichend in params (Parameter $1)") {
+			t.Fatalf("Diagnose nennt den Parameterwert oder nicht die Nummer:\n%s", quelle)
 		}
 	}
 }

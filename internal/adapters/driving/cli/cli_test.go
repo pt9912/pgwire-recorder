@@ -14,7 +14,7 @@ func TestParseRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := RecordOptions{Listen: ":15432", Upstream: "pg:5432", Output: "r.yaml", Force: true}
+	want := RecordOptions{Listen: ":15432", Upstream: "pg:5432", Output: "r.yaml", Force: true, LogLevel: LogInfo}
 	if cmd.Name != "record" || cmd.Record != want {
 		t.Fatalf("erhalten %#v", cmd)
 	}
@@ -26,7 +26,7 @@ func TestParseReplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cmd.Name != "replay" || cmd.Replay != (ReplayOptions{Listen: ":15432", Input: "r.yaml"}) {
+	if cmd.Name != "replay" || cmd.Replay != (ReplayOptions{Listen: ":15432", Input: "r.yaml", LogLevel: LogInfo}) {
 		t.Fatalf("erhalten %#v", cmd)
 	}
 	if _, err := Parse([]string{"replay", "--listen", ":1"}, &bytes.Buffer{}); err == nil {
@@ -297,6 +297,126 @@ func TestParseVersion(t *testing.T) {
 	for _, args := range [][]string{{"--version"}, {"version", "--version"}} {
 		if _, err := keineHilfe(t, args...); !istUsage(err) {
 			t.Errorf("%q: erwartet %s, erhalten %v", args, model.CodeUsage, err)
+		}
+	}
+}
+
+// stufeVon liest kommando mit seinen Pflichtoptionen und den Zusatzargumenten
+// und liefert den Wert von --log-level oder den Fehler.
+func stufeVon(kommando string, args ...string) (string, error) {
+	basis := map[string][]string{
+		"record": {"record", "--listen", ":1", "--upstream", "pg:5432", "--output", "r.yaml"},
+		"replay": {"replay", "--listen", ":1", "--input", "r.yaml"},
+	}[kommando]
+	cmd, err := Parse(append(append([]string{}, basis...), args...), &bytes.Buffer{})
+	if kommando == "record" {
+		return cmd.Record.LogLevel, err
+	}
+	return cmd.Replay.LogLevel, err
+}
+
+// Abdeckung: LH-FA-14/Boundary — record und replay nehmen --log-level mit
+// genau error, warn, info oder debug, ohne Option ist es info; nennt die
+// Kommandozeile die Option mehrfach, gilt die letzte Angabe (LH-FA-14.a).
+func TestParseLogLevel(t *testing.T) {
+	t.Setenv(envLogLevel, "")
+	t.Setenv(envFailOnUnconsumed, "")
+	for _, kommando := range []string{"record", "replay"} {
+		for _, f := range []struct {
+			args []string
+			want string
+		}{
+			{nil, LogInfo},
+			{[]string{"--log-level=error"}, LogError},
+			{[]string{"--log-level", "warn"}, LogWarn},
+			{[]string{"--log-level=info"}, LogInfo},
+			{[]string{"--log-level=debug"}, LogDebug},
+			{[]string{"--log-level=debug", "--log-level=error"}, LogError},
+		} {
+			got, err := stufeVon(kommando, f.args...)
+			if err != nil || got != f.want {
+				t.Errorf("%s %v: %q, %v, erwartet %q", kommando, f.args, got, err, f.want)
+			}
+		}
+	}
+}
+
+// Abdeckung: LH-FA-14/Negative, LH-FA-17/Negative — jeder andere Wert von
+// --log-level, auch der leere, ein großgeschriebener und ein anderer Name, ist
+// PGR-E2001, ebenso die Option vor dem Kommando (LH-FA-14.a).
+func TestParseLogLevelWerte(t *testing.T) {
+	t.Setenv(envLogLevel, "")
+	t.Setenv(envFailOnUnconsumed, "")
+	for _, kommando := range []string{"record", "replay"} {
+		for _, wert := range []string{"", "INFO", "Info", "warning", "trace", "off", " info", "fatal"} {
+			if _, err := stufeVon(kommando, "--log-level="+wert); !istUsage(err) {
+				t.Errorf("%s --log-level=%q: erwartet %s, erhalten %v", kommando, wert, model.CodeUsage, err)
+			}
+		}
+	}
+	if _, err := keineHilfe(t, "--log-level=info", "replay", "--listen", ":1", "--input", "r.yaml"); !istUsage(err) {
+		t.Fatalf("--log-level vor dem Kommando: %v", err)
+	}
+}
+
+// Abdeckung: LH-FA-17/Boundary — PGWIRE_RECORDER_LOG_LEVEL setzt die Stufe,
+// leer gilt sie als nicht gesetzt, die Option der Kommandozeile geht ihr vor
+// (LH-FA-17.a).
+func TestParseLogLevelUmgebung(t *testing.T) {
+	t.Setenv(envFailOnUnconsumed, "")
+	for _, kommando := range []string{"record", "replay"} {
+		for _, f := range []struct {
+			env  string
+			args []string
+			want string
+		}{
+			{"debug", nil, LogDebug},
+			{"error", nil, LogError},
+			{"", nil, LogInfo},
+			{"", []string{"--log-level=warn"}, LogWarn},
+			{"debug", []string{"--log-level=error"}, LogError},
+		} {
+			t.Setenv(envLogLevel, f.env)
+			got, err := stufeVon(kommando, f.args...)
+			if err != nil || got != f.want {
+				t.Errorf("%s, Umgebung %q, %v: %q, %v, erwartet %q", kommando, f.env, f.args, got, err, f.want)
+			}
+		}
+	}
+}
+
+// Abdeckung: LH-FA-17/Negative — eine gesetzte PGWIRE_RECORDER_LOG_LEVEL mit
+// ungültigem Wert ist PGR-E2001, auch wenn die Kommandozeile eine gültige
+// Stufe setzt (LH-FA-17.a).
+func TestParseLogLevelUmgebungUngueltig(t *testing.T) {
+	t.Setenv(envFailOnUnconsumed, "")
+	for _, kommando := range []string{"record", "replay"} {
+		for _, wert := range []string{"INFO", "warning", "off", " debug"} {
+			t.Setenv(envLogLevel, wert)
+			for _, args := range [][]string{nil, {"--log-level=info"}} {
+				if _, err := stufeVon(kommando, args...); !istUsage(err) {
+					t.Errorf("%s, Umgebung %q, %v: erwartet %s, erhalten %v", kommando, wert, args, model.CodeUsage, err)
+				}
+			}
+		}
+	}
+}
+
+// Eine Hilfe-Angabe geht auch --log-level und seiner Umgebungsvariable vor:
+// mit ungültiger Umgebungsvariable, mit ungültigem Wert und an der Stelle des
+// Werts gibt Parse die Hilfe aus; die Hilfe von record und replay nennt
+// --log-level (LH-FA-01.a).
+func TestParseLogLevelHilfe(t *testing.T) {
+	t.Setenv(envLogLevel, "INFO")
+	for _, kommando := range []string{"record", "replay"} {
+		for _, args := range [][]string{
+			{kommando, "--help"},
+			{kommando, "--log-level", "-h"},
+			{kommando, "--log-level=trace", "--help"},
+		} {
+			if text := hilfe(t, args...); !strings.Contains(text, "--log-level error|warn|info|debug") || !strings.Contains(text, envLogLevel) {
+				t.Errorf("%v: Hilfe ohne --log-level: %q", args, text)
+			}
 		}
 	}
 }

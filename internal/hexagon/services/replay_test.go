@@ -97,15 +97,16 @@ func TestReplayStrictSequential(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-09/Negative, LH-FA-10/Boundary, LH-FA-10/Negative — eine abweichende Anfrage,
-// auch nur im Whitespace, ist PGR-E5001 und verbraucht die Interaktion nicht; eine
-// Anfrage über die aufgezeichneten hinaus ebenso.
+// auch nur im Whitespace, ist PGR-E5001, erhält keine Antworten, auch nicht die der
+// aufgezeichneten Anfrage, und verbraucht die Interaktion nicht; eine Anfrage über
+// die aufgezeichneten hinaus ebenso.
 func TestReplayMismatch(t *testing.T) {
 	ctx := context.Background()
 	s, _ := NewReplayService(ctx, ladeRepo{rec: aufzeichnung([]model.Interaction{interaktion(1, "SELECT 1", "A")})}, "rec.yaml")
 	id, _ := s.OpenConnection(ctx)
-	_, err := s.Query(ctx, id, "SELECT  1")
-	if code(err) != model.CodeReplayMismatch {
-		t.Fatalf("erwartet %s, erhalten %v", model.CodeReplayMismatch, err)
+	out, err := s.Query(ctx, id, "SELECT  1")
+	if code(err) != model.CodeReplayMismatch || out != nil {
+		t.Fatalf("erwartet %s ohne Antworten, erhalten %#v, %v", model.CodeReplayMismatch, out, err)
 	}
 	// Diagnose nach LH-FA-10.a: Session, erwartete Nummer, erwartete und
 	// empfangene Anfrage.
@@ -117,8 +118,8 @@ func TestReplayMismatch(t *testing.T) {
 	if out, err := s.Query(ctx, id, "SELECT 1"); err != nil || out[0].Tag != "A" {
 		t.Fatalf("Cursor nach Mismatch verschoben: %#v, %v", out, err)
 	}
-	if _, err := s.Query(ctx, id, "SELECT 1"); code(err) != model.CodeReplayMismatch {
-		t.Fatalf("Anfrage über die Aufzeichnung hinaus: %v", err)
+	if out, err := s.Query(ctx, id, "SELECT 1"); code(err) != model.CodeReplayMismatch || out != nil {
+		t.Fatalf("Anfrage über die Aufzeichnung hinaus: %#v, %v", out, err)
 	}
 }
 

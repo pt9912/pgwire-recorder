@@ -85,7 +85,9 @@ func (s *Server) Serve(ctx context.Context, l net.Listener) {
 				s.wg.Wait()
 				return
 			}
-			s.log.Error("Verbindung nicht anzunehmen", "code", model.CodeNetwork, "error", err.Error())
+			// Eine nicht annehmbare Verbindung ist ein Verbindungsfehler; der
+			// Prozess nimmt danach weiter an (LH-FA-13.b).
+			s.note(model.Errorf(model.CodeNetwork, err, "Verbindung nicht anzunehmen"))
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
@@ -569,7 +571,7 @@ func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) 
 		kopf, err := br.Peek(8)
 		if err != nil {
 			// Eine Verbindung ohne Startnachricht, zum Beispiel eine TCP-Probe.
-			s.log.Debug("Verbindung ohne Startnachricht beendet", "error", err.Error())
+			s.log.Debug("Verbindung ohne Startnachricht beendet", "grund", err.Error())
 			return nil, false
 		}
 		laenge := binary.BigEndian.Uint32(kopf[0:4])
@@ -683,29 +685,30 @@ func (s *Server) closeRecord(ctx context.Context, id model.SessionID, end model.
 	}
 }
 
-// fail merkt sich den Fehler und stellt ihn dem Client als FATAL-ErrorResponse
-// mit dem Meldungscode im Text zu (LH-FA-13.b).
+// fail merkt sich den Fehler und stellt dem Client die erste seiner Meldungen
+// als ErrorResponse zu: FATAL, SQLSTATE nach der Klasse, als Meldungstext
+// derselbe Fehlertext wie das Attribut error der Log-Zeile, keine weiteren
+// Felder (SPEC-034 §Ausgabe, LH-FA-13.b).
 func (s *Server) fail(be *pgproto3.Backend, err error) {
-	code := s.note(err)
-	be.Send(&pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: sqlstate(code), Message: err.Error()})
+	m := s.note(err)
+	be.Send(&pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: sqlstate(m.Code), Message: m.Text})
 	_ = be.Flush()
 }
 
-// note protokolliert einen Verbindungsfehler, merkt sich den ersten und
-// liefert seinen Meldungscode.
-func (s *Server) note(err error) string {
-	code := model.CodeInternal
-	var me *model.Error
-	if errors.As(err, &me) {
-		code = me.Code
-	}
+// note protokolliert einen Verbindungsfehler als je eine Log-Zeile der Stufe
+// error je Meldung (model.Meldungen), merkt sich den Code der ersten, wenn der
+// Lauf noch keinen hat, und liefert die erste Meldung.
+func (s *Server) note(err error) model.Meldung {
+	ms := model.Meldungen(err)
 	s.mu.Lock()
 	if s.firstCode == "" {
-		s.firstCode = code
+		s.firstCode = ms[0].Code
 	}
 	s.mu.Unlock()
-	s.log.Error("Fehler", "code", code, "error", err.Error())
-	return code
+	for _, m := range ms {
+		s.log.Error("Fehler", "code", m.Code, "error", m.Text)
+	}
+	return ms[0]
 }
 
 // sqlstate wählt den SQLSTATE der Fehlerantwort nach der Klasse des

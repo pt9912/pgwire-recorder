@@ -221,6 +221,9 @@ func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m m
 	case "sql":
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: %s weicht in sql ab, erwartet %q, empfangen %q",
 			c.stelle(), e.Type, e.SQL, m.SQL)
+	case "params":
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: erwartet %s, empfangen %s, abweichend in params%s%s",
+			c.stelle(), e.Type, m.Type, parameterStelle(m.Params, e.Params), c.anweisungen(e, m))
 	default:
 		return nil, model.Errorf(model.CodeReplayMismatch, nil, "%s: erwartet %s, empfangen %s, abweichend in %s%s",
 			c.stelle(), e.Type, m.Type, feld, c.anweisungen(e, m))

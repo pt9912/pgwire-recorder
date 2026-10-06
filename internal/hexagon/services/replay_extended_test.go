@@ -206,8 +206,51 @@ func TestReplayExtendedAbweichung(t *testing.T) {
 	_, err = s.ClientMessage(ctx, id, bind("s1", text("geheim-wert")))
 	var me *model.Error
 	if !errors.As(err, &me) || me.Code != model.CodeReplayMismatch ||
-		me.Msg != `Session 1, Interaktion 1, Gruppe 2, Nachricht 1: erwartet bind, empfangen bind, abweichend in params, Anweisung erwartet "SELECT $1::text", empfangen "SELECT $1::text"` || me.Err != nil {
-		t.Fatalf("abweichender Parameterwert: die Diagnose nennt mehr als Stelle, Typen und Feld: %v", err)
+		me.Msg != `Session 1, Interaktion 1, Gruppe 2, Nachricht 1: erwartet bind, empfangen bind, abweichend in params (Parameter $1), Anweisung erwartet "SELECT $1::text", empfangen "SELECT $1::text"` || me.Err != nil {
+		t.Fatalf("abweichender Parameterwert: die Diagnose nennt mehr als Stelle, Typen, Feld und Nummer: %v", err)
+	}
+}
+
+// Abdeckung: LH-FA-18/Negative — die Diagnose einer Abweichung in params nennt
+// die Nummer des ersten abweichenden Parameters ab 1, bei abweichender Zahl
+// beide Anzahlen statt einer Nummer, und nie einen Parameterwert
+// (LH-FA-18.a §Mismatch, SPEC-033).
+func TestReplayExtendedParameterStelle(t *testing.T) {
+	erwartet := []model.Value{text("erwartet-eins"), text("erwartet-zwei"), {Null: true}}
+	for _, f := range []struct {
+		empfangen []model.Value
+		want      string
+	}{
+		{[]model.Value{text("geheim-eins"), text("erwartet-zwei"), {Null: true}}, " (Parameter $1)"},
+		{[]model.Value{text("erwartet-eins"), text("geheim-zwei"), text("geheim-drei")}, " (Parameter $2)"},
+		{[]model.Value{text("erwartet-eins"), text("erwartet-zwei"), {}}, " (Parameter $3)"},
+		{[]model.Value{text("geheim-eins")}, " (Anzahl erwartet 3, empfangen 1)"},
+		{[]model.Value{text("geheim-eins"), text("x"), {}, {}}, " (Anzahl erwartet 3, empfangen 4)"},
+		{nil, " (Anzahl erwartet 3, empfangen 0)"},
+	} {
+		if got := parameterStelle(f.empfangen, erwartet); got != f.want {
+			t.Errorf("%v: %q, erwartet %q", f.empfangen, got, f.want)
+		}
+	}
+
+	ctx := context.Background()
+	in := vorbereitung(1)
+	for _, f := range []struct {
+		params []model.Value
+		want   string
+	}{
+		{[]model.Value{text("geheim-wert")}, "abweichend in params (Parameter $1)"},
+		{[]model.Value{text("a"), text("geheim-wert")}, "abweichend in params (Anzahl erwartet 1, empfangen 2)"},
+	} {
+		s, id := replayMit(t, []model.Interaction{vorbereitung(1)})
+		sendeAlle(t, s, id, in.Groups[0].Client...)
+		out, err := s.ClientMessage(ctx, id, bind("s1", f.params...))
+		if code(err) != model.CodeReplayMismatch || out != nil || !strings.Contains(err.Error(), f.want) {
+			t.Fatalf("%v: %#v, %v", f.params, out, err)
+		}
+		if strings.Contains(err.Error(), "geheim") {
+			t.Fatalf("Diagnose nennt einen Parameterwert: %v", err)
+		}
 	}
 }
 

@@ -44,6 +44,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Fehlertext einzeilig, Kopf genau einmal mit dem Code des äußersten Fehlers (heute trägt eine Kette zwei Köpfe, etwa `PGR-E3003` um `PGR-E3003` beim Lesen eines Werts), fremde Fehler mit Kopf (heute ohne: der Annahmefehler im PGWire-Adapter und jeder nicht eingeordnete Fehler in `note` und `fail`), Klassenname nach `SPEC-034` (`SPEC-034` §Ausgabe).
 - `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` bei `record` und `replay` mit den vier Stufen, der Strenge des Werts und dem Inhalt der Stufen; heute ist die Stufe fest `info` (`LH-FA-14.a`).
 - Test je Fehlerklasse (Exit 1 bis 6) für Kopf, Klassenname und Exit-Code, dazu ein Test, dass jeder Code der Tabelle im Quelltext die Form aus `SPEC-034` hat und seine Klasse ergibt.
+- Gleichrangige Fehler (`errors.Join`, etwa aus `CloseSession`) als je eine Meldung mit eigenem Kopf, die erste gemerkt, nicht klassifizierte als Ursache der ersten (`SPEC-034` §Ausgabe *Gleichrangige Fehler*); die Zeile beim Prozessende folgt derselben Regel. Eine nicht annehmbare Verbindung ist der gemerkte Verbindungsfehler `PGR-E4000` (`LH-FA-13.b`); die Debug-Zeile einer Verbindung ohne Startnachricht nennt den Bibliothekstext unter `grund` (`LH-FA-14.a` §Zeilenform).
 
 **Übernommen aus `slice-extended-query-replay`** (Review F-328, Validierung `docs/reviews/2026-10-05-validierung-slice-extended-query-replay.md`, Befund 3): Die Regel zu Parameterwerten stand in `LH-FA-18.a` §Mismatch mit der Bedingung „wenn der Log-Level nicht `debug` ist“, in `SPEC-033` ohne Bedingung; die Diagnose nannte den Index des abweichenden Parameters nicht. **Vom Nutzer entschieden am 2026-10-06** und in die Spezifikation geschrieben: Parameterwerte erscheinen nie in der Diagnose, weder im Log noch in der `ErrorResponse`, auf keinem Log-Level (`LH-FA-18.a` §Mismatch an `SPEC-033` angeglichen); die Diagnose nennt die Nummer des ersten abweichenden Parameters ohne Wert, bei abweichender Zahl beide Anzahlen (`LH-FA-18.a` §Mismatch). Die Umsetzung liefert DoD-Punkt 3.
 
@@ -85,15 +86,16 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/model/fehler.go` | update | Code-Tabelle bleibt hier (kein eigenes Paket); `Error()` einzeilig, ein Kopf je Kette (`SPEC-034` §Ausgabe) |
-| `internal/hexagon/model/fehler_test.go` | neu | DoD 1: Kopf, Klassenname und Exit-Code je Klasse, Kette, Zeilenumbruch, Form jedes Codes der Tabelle |
+| `internal/hexagon/model/fehler.go` | update | Code-Tabelle bleibt hier (kein eigenes Paket); `Error()` einzeilig, ein Kopf je Kette; `Meldungen` zerlegt gleichrangige Fehler und ordnet fremde als `PGR-E1000` ein (`SPEC-034` §Ausgabe) |
+| `internal/hexagon/model/fehler_test.go` | neu | DoD 1: Kopf, Klassenname und Exit-Code je Klasse, Kette, fremde Fehler, Zeilenumbruch, gleichrangige Fehler, Form jedes Codes der Tabelle (aus dem Quelltext gelesen) |
 | `internal/hexagon/services/replay.go`, `matcher.go` | update | DoD 3: Nummer des ersten abweichenden Parameters, beide Anzahlen |
 | `internal/hexagon/services/replay_test.go`, `replay_extended_test.go` | update | DoD 3: `TestReplayMismatch` prüft, dass `Query` bei Abweichung keine Antworten liefert; Nummer und Anzahlen ohne Wert |
 | `internal/adapters/driving/cli` | update | DoD 2: `--log-level` und Umgebungsvariable bei `record` und `replay`, Hilfetext |
 | `internal/bootstrap` | update | DoD 1 und 2: Stufe des Loggers aus der Option; Zeile beim Prozessende mit Kopf auch für einen nicht eingeordneten Fehler |
 | `internal/adapters/driving/pgwire/server.go` | update | DoD 1: Annahmefehler über `note` als Verbindungsfehler `PGR-E4000` (gemerkt), nicht eingeordneter Fehler in `note` mit Kopf `PGR-E1000`; `note` zerlegt einen `errors.Join` in eigene Meldungen, merkt die erste, hängt nicht klassifizierte als Ursache an; Debug-Zeile ohne Startnachricht mit `grund` statt `error`. `record.go` (`CloseSession`) bleibt unverändert: der `errors.Join` ist die Reihenfolge des Entstehens |
-| Tests in `cli`, `bootstrap`, `pgwire` | update | DoD 1 und 2: je Klasse, je Stufe, je Randform aus §6 |
-| `test/integration/replay_e2e_test.go` | update | DoD 3, Abnahmeszenario 4: `TestE2EReplayAbweichung` prüft die Ergebnisse von `ReadAll` (keine), Deklaration `LH-FA-10/Negative` ergänzt; ein Lauf mit `--log-level debug` zeigt keinen Parameterwert |
+| Tests in `cli`, `bootstrap`, `pgwire` (dort neu `server_meldung_test.go`) | update | DoD 1 und 2: je Klasse (`ErrorResponse`, Zeile beim Prozessende), gleichrangige Fehler, Annahmefehler, `grund`, je Stufe bei `record` und `replay`, Zeilenform, Startfehler je Stufe, Werte und Umgebungsvariable, Hilfe |
+| `test/integration/replay_e2e_test.go` | update | DoD 3, Abnahmeszenario 4: `TestE2EReplayAbweichung` prüft die Ergebnisse von `ReadAll` (keine), Deklaration `LH-FA-10/Negative` ergänzt |
+| `test/integration/extended_replay_e2e_test.go` | update | DoD 3: `TestE2EReplayExtendedAbweichung` läuft mit `--log-level debug`; `ErrorResponse` und Log nennen `(Parameter $1)`, keinen Parameterwert |
 | `docs/user/benutzerhandbuch.md` | update | Werte von `--log-level` und ihre Strenge, Zeilenform, Nummer des abweichenden Parameters |
 | `docs/user/abdeckung-*.md` | update | von `make abdeckung` aus den geänderten Deklarationen geschrieben |
 

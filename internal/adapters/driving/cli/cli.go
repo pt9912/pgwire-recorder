@@ -18,6 +18,7 @@ type RecordOptions struct {
 	Upstream string
 	Output   string
 	Force    bool
+	LogLevel string
 }
 
 // ReplayOptions sind die Optionen von `replay` (LH-FA-03.a), soweit dieser Stand
@@ -26,11 +27,23 @@ type ReplayOptions struct {
 	Listen           string
 	Input            string
 	FailOnUnconsumed bool
+	LogLevel         string
 }
 
 // envFailOnUnconsumed ist die Umgebungsvariable von --fail-on-unconsumed
 // (LH-FA-17.a).
 const envFailOnUnconsumed = "PGWIRE_RECORDER_FAIL_ON_UNCONSUMED"
+
+// envLogLevel ist die Umgebungsvariable von --log-level (LH-FA-14.a).
+const envLogLevel = "PGWIRE_RECORDER_LOG_LEVEL"
+
+// Stufen von --log-level (LH-FA-14.a); Standard ist LogInfo (SPEC-005).
+const (
+	LogError = "error"
+	LogWarn  = "warn"
+	LogInfo  = "info"
+	LogDebug = "debug"
+)
 
 // Command ist das gewählte Kommando mit seinen Optionen.
 type Command struct {
@@ -44,7 +57,7 @@ const optionenRecord = `Optionen von record:
   --upstream  Adresse des PostgreSQL-Servers, host:port (Pflicht)
   --output    Zieldatei der Aufzeichnung (Pflicht)
   --force     vorhandene Zieldatei ersetzen
-`
+` + optionLogLevel
 
 const optionenReplay = `Optionen von replay:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
@@ -53,6 +66,11 @@ const optionenReplay = `Optionen von replay:
               nicht verbrauchte Interaktionen und nie zugeordnete Sessions
               sind ein Fehler (PGR-E5002, Exit-Code 5) statt einer Warnung;
               Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
+` + optionLogLevel
+
+const optionLogLevel = `  --log-level error|warn|info|debug
+              Stufe der Log-Zeilen auf stderr, Standard info; eine Stufe zeigt
+              auch die strengeren; Umgebungsvariable PGWIRE_RECORDER_LOG_LEVEL
 `
 
 // usage ist die globale Hilfe.
@@ -122,6 +140,10 @@ func parseRecord(args []string) (Command, error) {
 	fs.StringVar(&o.Upstream, "upstream", "", "")
 	fs.StringVar(&o.Output, "output", "", "")
 	fs.BoolVar(&o.Force, "force", false, "")
+	level, err := logLevelOption(fs)
+	if err != nil {
+		return Command{}, err
+	}
 	optionen, rest := endeDerOptionen(args)
 	if err := fs.Parse(optionen); err != nil {
 		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von record")
@@ -134,6 +156,7 @@ func parseRecord(args []string) (Command, error) {
 			return Command{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption %s fehlt", p.name)
 		}
 	}
+	o.LogLevel = *level.wert
 	return Command{Name: "record", Record: o}, nil
 }
 
@@ -153,6 +176,10 @@ func parseReplay(args []string) (Command, error) {
 		}
 	}
 	fs.Var(fail, "fail-on-unconsumed", "")
+	level, err := logLevelOption(fs)
+	if err != nil {
+		return Command{}, err
+	}
 	optionen, rest := endeDerOptionen(args)
 	if err := fs.Parse(optionen); err != nil {
 		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von replay")
@@ -165,7 +192,45 @@ func parseReplay(args []string) (Command, error) {
 			return Command{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption %s fehlt", p.name)
 		}
 	}
+	o.LogLevel = *level.wert
 	return Command{Name: "replay", Replay: o}, nil
+}
+
+// logLevelOption meldet --log-level an fs an: Standard info, davor die
+// Umgebungsvariable, wenn sie nicht leer ist, danach die Kommandozeile, deren
+// letzte Angabe gilt. Eine Umgebungsvariable mit ungültigem Wert ist
+// PGR-E2001, auch wenn die Kommandozeile die Option setzt (LH-FA-17.a).
+func logLevelOption(fs *flag.FlagSet) (stufe, error) {
+	l := stufe{new(string)}
+	*l.wert = LogInfo
+	if v := os.Getenv(envLogLevel); v != "" {
+		if err := l.Set(v); err != nil {
+			return stufe{}, model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envLogLevel)
+		}
+	}
+	fs.Var(l, "log-level", "")
+	return l, nil
+}
+
+// stufe ist der Wert von --log-level: genau error, warn, info oder debug in
+// Kleinbuchstaben; jeder andere Wert, auch der leere, ist ein Fehler
+// (LH-FA-14.a).
+type stufe struct{ wert *string }
+
+func (l stufe) String() string {
+	if l.wert == nil {
+		return ""
+	}
+	return *l.wert
+}
+
+func (l stufe) Set(v string) error {
+	switch v {
+	case LogError, LogWarn, LogInfo, LogDebug:
+		*l.wert = v
+		return nil
+	}
+	return errors.New("erlaubt sind error, warn, info und debug")
 }
 
 // wahrheitswert ist der Wert einer booleschen Option nach LH-FA-17.a: ohne

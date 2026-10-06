@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
@@ -62,4 +63,20 @@ func gleicheWerte(a, b []model.Value) bool {
 		}
 	}
 	return true
+}
+
+// parameterStelle nennt für die Diagnose einer Abweichung in params die Nummer
+// des ersten abweichenden Parameters, gezählt ab 1 wie $1, bei abweichender
+// Zahl stattdessen beide Anzahlen; einen Parameterwert nennt sie nie
+// (LH-FA-18.a §Mismatch, SPEC-033). Bei gleichen Werten liefert sie "".
+func parameterStelle(empfangen, erwartet []model.Value) string {
+	if len(empfangen) != len(erwartet) {
+		return fmt.Sprintf(" (Anzahl erwartet %d, empfangen %d)", len(erwartet), len(empfangen))
+	}
+	for i := range erwartet {
+		if !gleicheWerte(empfangen[i:i+1], erwartet[i:i+1]) {
+			return fmt.Sprintf(" (Parameter $%d)", i+1)
+		}
+	}
+	return ""
 }

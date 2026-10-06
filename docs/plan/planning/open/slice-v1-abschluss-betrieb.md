@@ -78,7 +78,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driving/cli` | update | Optionstabelle, Priorität, Signale; allgemeiner Leser für Umgebungsvariablen, der jeden gesetzten Wert prüft; strenge boolesche Werte auch für `--force`; Hilfe vor jeder Prüfung; Schlüssel `fail_on_unconsumed` (übernommen aus `slice-replay-semantik-mismatch`) |
+| `internal/adapters/driving/cli` | update | Optionstabelle, Priorität, Signale; allgemeiner Leser für Umgebungsvariablen, der jeden gesetzten Wert prüft und die zwei Einzel-Leser von `--fail-on-unconsumed` und `--log-level` ersetzt; strenge boolesche Werte auch für `--force`; Hilfe vor jeder Prüfung; Schlüssel `fail_on_unconsumed` (übernommen aus `slice-replay-semantik-mismatch`) |
 | `internal/adapters/driving/pgwire`, `internal/bootstrap` | update | Frist in `recordSitzung` und `replaySitzung`; `replay` schließt bei Ablauf die Client-Verbindung und merkt `PGR-E4006` |
 | `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben |
 | `test/integration` | update | Happy/Boundary/Negative |

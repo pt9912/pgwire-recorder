@@ -96,9 +96,10 @@ func TestE2EVorbereitungOhnePostgres(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-10/Happy, LH-FA-13/Negative — eine Anfrage, die nicht zur
-// Aufzeichnung passt, erhält einen eindeutigen Fehler mit PGR-E5001 und keine
-// Antwort; der Lauf endet mit Exit-Code 5.
+// Abdeckung: LH-FA-10/Happy, LH-FA-10/Negative, LH-FA-13/Negative — eine
+// Anfrage, die nicht zur Aufzeichnung passt, erhält einen eindeutigen Fehler mit
+// PGR-E5001 und kein Ergebnis, auch nicht das der aufgezeichneten Anfrage; der
+// Lauf endet mit Exit-Code 5.
 func TestE2EReplayAbweichung(t *testing.T) {
 	input, _ := aufnehmen(t, "SELECT 1;")
 	rep := startProzess(t, "replay", "--input", input)
@@ -109,9 +110,9 @@ func TestE2EReplayAbweichung(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = conn.Exec(ctx, "SELECT 2;").ReadAll()
-	if err == nil || !strings.Contains(err.Error(), "PGR-E5001") {
-		t.Fatalf("erwartet PGR-E5001, erhalten %v", err)
+	ergebnisse, err := conn.Exec(ctx, "SELECT 2;").ReadAll()
+	if err == nil || !strings.Contains(err.Error(), "PGR-E5001") || len(ergebnisse) != 0 {
+		t.Fatalf("erwartet PGR-E5001 ohne Ergebnis, erhalten %d Ergebnisse, %v", len(ergebnisse), err)
 	}
 	_ = conn.Close(ctx)
 	rep.stop(t, 5)
