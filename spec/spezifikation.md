@@ -2024,7 +2024,10 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
    `cmd/`, `internal/` und `test/`, in der auf `//` oder `/*`, gefolgt von beliebig
    vielen Leerzeichen, Tabs oder `/`, das Wort `nolint` folgt — gleich in welcher
    Schreibweise, an welcher Stelle der Zeile und mit welchem Zusatz (`:linter`,
-   Begründung). Steht vor `nolint` im Kommentar ein anderes Wort, ist das kein Befund.
+   Begründung). Maßgeblich ist jedes `//` und jedes `/*` der Zeile, nicht nur das, mit
+   dem der Kommentar beginnt: `// x //nolint` ist ein Befund. Folgt `nolint` erst nach
+   einem anderen Wort auf das letzte Kommentarzeichen davor (`// siehe nolint`), ist
+   das kein Befund.
 7. **Export-Test-Brücke.** Unit-Tests liegen im Paket `<name>_test`. Auf Unexportiertes
    greifen sie nur über die Datei `export_test.go` im Verzeichnis des Pakets zu; sie
    gehört zum Paket `<name>` und ist dort die einzige Testdatei. Sie enthält nur
@@ -2037,7 +2040,13 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
 8. **Ausnahmen.** Eine Ausnahme steht nur in `.golangci.yml`, als Einstellung nach
    Punkt 5 oder als Regel unter `linters.exclusions.rules`. Unmittelbar über jeder
    Regel steht ein Kommentarblock, dessen erste Zeile mit `# Why:` beginnt; fehlt er,
-   meldet das eine eigene Prüfung. Zulässig sind nur diese Regeln, jede dauerhaft und
+   meldet das eine eigene Prüfung. Das Profil hat dafür eine feste Form: `linters:`
+   ohne Einzug, darunter `exclusions:` mit zwei Leerzeichen, darunter `rules:` mit vier,
+   jede Regel als Eintrag `- ` mit sechs, alle drei Schlüssel in Blockform (nach dem
+   Doppelpunkt höchstens ein Kommentar). Ein Schlüssel `exclusions` an anderer Stelle
+   oder in Flussform und ein Schlüssel `rules` unter `exclusions` mit anderem Einzug
+   oder in Flussform ist ein Befund `Form nicht erkannt` mit seiner Zeile. Unter
+   `exclusions` stehen nur `warn-unused: true` und `rules`. Zulässig sind nur diese Regeln, jede dauerhaft und
    mit einem Grund, der auch für neuen Code gilt: für Testdateien `cyclop`,
    `gocognit`, `gocyclo`, `nestif`, `funlen`, `noctx`, `unparam` und `revive` mit
    `unused-parameter` und `unused-receiver`; `staticcheck` mit `ST1005`, weil die
@@ -2062,8 +2071,11 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
      (`max-issues-per-linter: 0`, `max-same-issues: 0`, `uniq-by-line: false`). Jede
      Meldung ist ein Befund, auch mehrere auf derselben Zeile.
    - **Ungenutzte Regel.** Je Warnung von `warn-unused` schreibt die Stufe eine Zeile
-     `lint: .golangci.yml: Regel ohne Befund: <Linter, Pfad und Text der Regel aus der
-     Warnung>`; eine Zeilennummer trägt sie nicht.
+     `lint: .golangci.yml: Regel ohne Befund: <feld>: <wert>, …` ohne Zeilennummer. Die
+     Felder stehen in dieser Reihenfolge und nur, wenn die Warnung sie nennt: `Linter`,
+     `Pfad`, `Pfad außer`, `Text`, `Quelle`, je mit dem Wert aus der Warnung. Nennt sie
+     keines davon, lautet die Zeile `lint: .golangci.yml: Regel ohne Befund: Felder
+     nicht erkannt`; die Warnung selbst steht daneben auf der Ausgabe.
 
    Die eigenen Prüfungen nach Punkt 6 bis 8 schreiben je Befund eine Zeile
    `lint: <pfad>:<zeile>: <befund>`. Jede Prüfung läuft, auch wenn eine andere einen
@@ -2076,8 +2088,10 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
     gates` mit Fehlerstatus, wenn es rot ist.
 
 **Grenze.** Ob ein `Why:` zutrifft und ob die Brücke nur weiterreicht, prüft das
-Werkzeug nicht; ebenso wenig, ob eine Einstellung nach Punkt 5 ihren Grund als Kommentar trägt. Ein `nolint` nach Punkt 6 in einem
-String-Literal ist ebenfalls ein Befund. Testdateien im Paket `main` lässt
+Werkzeug nicht. Dateien mit der Markierung für generierten Code nimmt golangci-lint nach
+seinem Default aus; das Modul hat keine. Ebenso wenig prüft es, ob eine Einstellung
+nach Punkt 5 ihren Grund als Kommentar trägt und ob unter `exclusions` nur die Schlüssel
+nach Punkt 8 stehen. Ein `nolint` nach Punkt 6 in einem String-Literal ist ebenfalls ein Befund. Testdateien im Paket `main` lässt
 `testpackage` zu; unter `cmd/` gibt es keine.
 
 ## 12. Historie
@@ -2118,5 +2132,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Mehrere Meldungen: die `ErrorResponse` trägt die erste; Hülle mit eigenem Text um mehrere Ursachen ist eine Kette mit dem ersten klassifizierten Code, gleichrangig nur eine reine Zusammenfassung (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Lint-Profil mit Linter, Schwellen, Einstellungen, Verbot von `//nolint`, Export-Test-Brücke, dauerhafte Ausnahmen ohne Stufen, Ausgabe und Ausgang, Werkzeug vor dem Gate (`SPEC-049`) |
 | 2026-10-06 | Lint-Profil: fehlendes Profil, Prüfung gegen das Schema, ungenutzte Regel als `lint:`-Zeile, jede Meldung ein Befund (`SPEC-049`) |
+| 2026-10-06 | Lint-Profil: feste Form des Ausnahme-Abschnitts, zweites Kommentarzeichen vor `nolint`, Zeile der ungenutzten Regel, generierter Code nach Default (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |
