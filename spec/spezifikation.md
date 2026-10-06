@@ -1648,8 +1648,10 @@ bleibt unverändert, kein Code ändert ihn.
   des äußersten klassifizierten Fehlers; ein innerer klassifizierter Fehler trägt
   nur seine Ursache bei, ohne eigenen Kopf. Eine Kette ist auch ein Fehler mit
   eigenem Text um mehrere Ursachen: Er bleibt eine Meldung mit seinem ganzen Text,
-  Code und Klasse sind die des ersten klassifizierten Fehlers unter ihm, in der
-  Reihenfolge seiner Ursachen und von außen nach innen, und kein innerer Fehler
+  Code und Klasse sind die des ersten klassifizierten Fehlers unter ihm in
+  Tiefensuche: jede Ursache wird ganz durchsucht, bis in ihre innersten Fehler,
+  bevor die nächste Ursache an die Reihe kommt; ein klassifizierter Fehler tief in
+  der ersten Ursache geht einem flachen in der zweiten vor. Kein innerer Fehler
   trägt einen Kopf; ohne klassifizierten Fehler darunter ist er `PGR-E1000`.
 * *Gleichrangige Fehler.* Entstehen bei einem Ereignis mehrere Fehler
   nebeneinander, etwa beim Ende einer Session das Verbindungsende, das Schreiben
@@ -1865,3 +1867,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Diagnose: Parameterwerte auf keinem Log-Level und in keiner `ErrorResponse`, Nummer des ersten abweichenden Parameters, bei abweichender Zahl beide Anzahlen (`LH-FA-18.a`, `SPEC-033`); Log-Level genau vier, Strenge des Werts, Inhalt der Stufen, Zeilenform, Zeile beim Prozessende auf jeder Stufe, `stdout` nur für Hilfe, `version` und `config show` (`LH-FA-14.a`); Fehlertext einzeilig, Kopf einmal mit dem Code des äußersten Fehlers, fremde Fehler, Felder der `ErrorResponse` (`SPEC-034`) |
 | 2026-10-06 | Gleichrangige Fehler als eigene Meldungen, erster gemerkt, nicht klassifizierter als Ursache; Zeilenumbruch LF, CR LF, CR; Attribut `error` nur mit Kopf, `grund` für Bibliothekstexte (`SPEC-034`, `LH-FA-14.a`); nicht annehmbare Verbindung ist Verbindungsfehler `PGR-E4000` (`LH-FA-13.b`) |
 | 2026-10-06 | Mehrere Meldungen: die `ErrorResponse` trägt die erste; Hülle mit eigenem Text um mehrere Ursachen ist eine Kette mit dem ersten klassifizierten Code, gleichrangig nur eine reine Zusammenfassung (`SPEC-034`) |
+| 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
