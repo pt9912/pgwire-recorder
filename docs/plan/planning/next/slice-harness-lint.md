@@ -26,7 +26,7 @@ Code; ihre Nummer vergibt der ADR-Index.
 
 **Berührte Spec-Stellen:** —
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-05.
 
