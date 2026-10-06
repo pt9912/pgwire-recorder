@@ -163,6 +163,10 @@ Der Slice bleibt in `in-progress/`; weiter geht es erst nach der Entscheidung.
     Verneinte doch tut (eine Nachricht mehr, die aufgezeichnete Antwort vor dem Fehler). Der
     Test liest dafür bis zum Ende des Stroms und zählt, statt einen Stand des Testgeschirrs zu
     prüfen (Pufferlänge, Zähler), den eine vorgelagerte Lesestufe schon geleert haben kann.
+    **Jede Bedingung einer mehrteiligen Zusage ist eine eigene Zeile**
+    (seit slice-harness-vertraege-spezifikation): „mit A, B und C“, „je …“, „mit 1 ohne
+    Zeile“ — je Bedingung eine Mutation, die nur sie bricht, und ein Fall, dem nur sie
+    fehlt; rot unter einer Bedingung belegt die anderen nicht.
     **Der Mutant muss im Build ankommen** (seit slice-replay-semantik-mismatch): Ein Lauf
     über den Docker-Build-Kontext (`make build`, `make test`, `make test-integration`)
     überträgt eine Datei nicht neu, deren Größe und mtime dem zuletzt übertragenen Stand

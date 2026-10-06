@@ -248,6 +248,14 @@ zurück:
   E2E gilt heute nur für Dateien unter `test/integration/` an der Wurzel des Repos,
   ein gleichnamiges Verzeichnis tiefer im Baum ergibt Unit; `SPEC-048` (3) sagt das
   nicht ausdrücklich. Offen: so in den Vertrag schreiben oder ändern.
+- **Lastenheft ohne Anforderung** (offen aus der Closure von
+  `slice-harness-vertraege-spezifikation`) — führt das Lastenheft keine Überschrift
+  `### LH-…`, endet die Prüfung heute mit Exit 1 ohne eine Zeile auf stderr; `SPEC-048`
+  nennt das als *Grenze*, `lastenheft-ohne-anforderung` hält es. Der Ausgang ist von
+  einer Fehlform nur am leeren stderr zu unterscheiden. Offen: so lassen, Fehlform mit
+  Meldung oder eigener Ausgang — gemeinsam mit *Fehlendes `docs/user/`* zu entscheiden,
+  beide sind Exit 1 ohne Fehlform; ändert sich das Verhalten, folgen *Grenze*, Fall und
+  `harness/sensors/abdeckung-check.md`.
 
 **Risiken:**
 

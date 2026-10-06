@@ -104,7 +104,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Spezifikation: Der Abschnitt für Harness-Werkzeuge liegt als §11 nach *Nicht
+- [x] Spezifikation: Der Abschnitt für Harness-Werkzeuge liegt als §11 nach *Nicht
       zugesichert in v1* und führt `SPEC-047` für `kopf-check` mit den neun Punkten von
       [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) und den Lesarten
       (1) bis (5), (a) und (b), `SPEC-048` für `abdeckung` mit dem Vertrag aus
@@ -113,27 +113,42 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `--check`, Ausgänge). Jede Zusage des Abschnitts ist eine Zusage, die das Skript
       heute einhält: Zu jeder nennt der Skriptkopf den Fall der Gegenprobe
       (`AGENTS.md` §3.11); fehlt der Fall, ergänzt ihn die Gegenprobe (§6). §12
-      *Historie* trägt eine Zeile.
-- [ ] Sensor-Dateien `harness/sensors/kopf-check.md` und
+      *Historie* trägt eine Zeile — bestätigt an `c667677` (Verifikation, Punkt 1) mit
+      der Lücke V-67 (*Grenze* „ohne eine Zeile auf stderr“ ohne roten Fall); behoben in
+      `fc9fcb0`, `lastenheft-ohne-anforderung` verlangt ein leeres stderr. Die Mutation
+      „Exit 1 mit Zeile `abdeckung: keine Anforderung im Lastenheft`“ ist mit der
+      Closure an `fc9fcb0` nachgefahren: rot in genau diesem Fall, die Gegenprobe von
+      `f06db66` gegen denselben Mutanten grün.
+- [x] Sensor-Dateien `harness/sensors/kopf-check.md` und
       `harness/sensors/abdeckung-check.md` per `cp` aus
       der vendored Vorlage, je mit Vertrag (Link auf den Abschnitt), Grenze, Ausgabe
       und Ausgängen, Sperren und Bindung; sie entscheiden nichts, was der Abschnitt
-      nicht sagt. Die Target-Zellen in `harness/README.md` §Sensors verlinken sie.
-- [ ] Skriptköpfe von `tools/harness/kopf-check.sh` und `tools/test/abdeckung.sh`
+      nicht sagt. Die Target-Zellen in `harness/README.md` §Sensors verlinken sie —
+      bestätigt an `c667677` (Verifikation, Punkt 2; F-422 und F-423 vorher behoben).
+- [x] Skriptköpfe von `tools/harness/kopf-check.sh` und `tools/test/abdeckung.sh`
       tragen statt der Vertragspunkte den Verweis auf den Abschnitt und je Punkt nur
       noch, womit das Werkzeug geprüft ist (Fall der Gegenprobe); kein Vertragspunkt
       geht dabei verloren (Abgleich Punkt für Punkt im Bericht). Ausführbarer Code
       unverändert: `git diff` der beiden Skripte berührt nur Kommentarzeilen,
       `make kopf-check-gegenprobe` und `make abdeckung-gegenprobe` grün; jeder
-      ergänzte Fall ist gegen eine Mutation des Skripts rot gesehen (`AGENTS.md` §3.10).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      ergänzte Fall ist gegen eine Mutation des Skripts rot gesehen (`AGENTS.md` §3.10) —
+      bestätigt an `c667677` (Verifikation, Punkt 3 und Abschnitt 3: 24 Mutationen an
+      `kopf-check`, 36 an `abdeckung`, eine grün, V-67, behoben wie in Punkt 1).
+- [x] `make gates` grün — an `c667677` (Verifikation, Abschnitt 5) und an `fc9fcb0`
+      (vor der Closure); die Closure ändert Planungsdokumente (dazu §6 *Offen* von
+      `slice-harness-abdeckung-gate`), Register und einen Satz in
+      `.claude/commands/implement-slice.md` Schritt 19 (`make docs-check`,
+      `make kopf-check` grün).
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
-      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8) — Review bis
+      `f0c87b6` (F-417 bis F-427); die Nacharbeit `0c45064`, `2ba6b31`, `c667677` hat die
+      Verifikation geprüft (V-67 bis V-71), der Nachzug `fc9fcb0` hat kein eigenes
+      Review, siehe §7.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -395,20 +410,39 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
 - **Übertragung verliert oder verschiebt eine Zusage** — der Vertrag steht heute an
   drei Stellen (ADR, archivierter §6, Skriptkopf), die nicht wortgleich sind; beim
   Zusammenführen kann eine Lesart wegfallen oder schärfer werden. Gegenmittel: Abgleich
-  Punkt für Punkt in der DoD, Abweichung als Randform an den Architect. — **Ausgang:** —
-  (bei Closure)
+  Punkt für Punkt in der DoD, Abweichung als Randform an den Architect. — **Ausgang:**
+  entfallen: Die Übertragung ist abgeschlossen und Punkt für Punkt gegen ADR, Archiv und
+  alten Skriptkopf abgeglichen, kein Vertragspunkt ging verloren (Verifikation, Punkt 1
+  und 3). Verschoben hatte sie im ersten Stand vier Stellen — Rechte für alle Tabellen
+  (F-419), `.git/` und `.harness/` an jeder Tiefe (F-420), Bereich über Absatzgrenzen
+  (F-421), Gegenprobe in `SPEC-047` (9) (F-424) —, berichtigt in `0c45064`, `2ba6b31`
+  und `c667677`. Was danach offen ist (V-70), war in keiner der drei Quellen eine Zusage;
+  es steht als offene Randform in §6 von `slice-harness-abdeckung-gate`, das `SPEC-048`
+  fortschreibt.
 - **Folge-Slices planen gegen einen Abschnitt, den es noch nicht gibt** —
   `slice-harness-lint`, `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
   `slice-harness-mutation` und die vier Umstellungs-Slices nennen den Abschnitt als
   Ort ihrer Randformen; verschiebt dieser Slice Ort oder Form, sind ihre §6 nachzuziehen
-  (`AGENTS.md` §3.9). — **Ausgang:** — (bei Closure)
+  (`AGENTS.md` §3.9). — **Ausgang:** entfallen: Der Abschnitt liegt als §11 in der
+  Spezifikation, Ort und Form sind die geplanten; was die Folge-Slices noch nach der
+  verworfenen Lesart sagten, ist nachgezogen — §6 *Kennungen* von Lint, Coverage und
+  Mutation, Ort der Schwelle in Coverage und Mutation (F-425, `0c45064`), deren Kopf
+  (V-68, `fc9fcb0`). `grep` nach „Kennungen vergibt“ in `open/` ist leer.
 - **Schärft-Bezug bleibt Prosa** — wählt der Architect (a), führt keine ADR einen
   maschinenlesbaren Bezug auf den Abschnitt; die Verbindung hängt an der Sensor-Datei.
-  Gewählt ist (a); akzeptiertes Negativ mit Grund in §6 *Schärft-Bezug*. — **Ausgang:** — (bei Closure)
+  Gewählt ist (a); akzeptiertes Negativ mit Grund in §6 *Schärft-Bezug*. — **Ausgang:**
+  entfallen: Mit der Wahl von (a) ist das Risiko eine Entscheidung mit benanntem
+  Negativ, kein offener Ausgang mehr. Die Verbindung steht dort, wo sie überdauert: in der
+  *Bindung* von `harness/sensors/kopf-check.md` und `harness/sensors/abdeckung-check.md`
+  (je ADR und Link auf die Kennung) und in der Zeile von `harness/README.md` §Sensors;
+  neue Gate-ADRs setzen `Schärft:` von Anfang an (§6 der Folge-Slices).
 - **Nummernverschiebung** — ein neuer nummerierter Abschnitt vor *Historie* verschiebt
   §-Verweise in Plänen und Archiv; eingefrorene Zeitdokumente werden nicht
   nachgezogen. Gewählt ist §11 nach *Nicht zugesichert*; es verschiebt sich nur die
-  Historie (§6 *Ort*). — **Ausgang:** — (bei Closure)
+  Historie (§6 *Ort*). — **Ausgang:** entfallen: Verschoben hat sich nur die Historie
+  (§11 → §12); kein lebendes Dokument verweist auf ihre Nummer (`grep` mit der Closure
+  über `open/`, Roadmap, `AGENTS.md`, `harness/`; Negativbefund im Review). Die Köpfe von
+  Coverage und Mutation nennen `spezifikation.md §11` für den neuen Abschnitt.
 
 ## 7. Closure-Notiz
 
@@ -424,13 +458,25 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
-- **Drei Paarungen:** <…>
+- **Was hat funktioniert:** Die Randformen standen vor dem ersten Commit an Spezifikation und Skript (`afed2f0` vor `be1401c`), die vier Lesarten beim Übertragen gingen vor der Lieferung zum Architect zurück und wurden bestätigt (`d0eed74`); keine Rückführung aus §4 war nötig, Skript und ADR liegen nirgends im Widerspruch. Der ausführbare Code beider Werkzeuge ist unverändert (Verifikation, Punkt 3). Die Referenz-Richtung hielt: Sieben Proben D1 bis D7 gegen §11 und die Historie wurden rot (Verifikation, Abschnitt 3). Die Pflicht aus §6 *Vertragspunkt ohne Gegenprobe-Fall* trug: Das Übertragen Punkt für Punkt brachte bei `abdeckung` 19 neue Fälle, bei `kopf-check` drei und eine geschärfte Abbruchzeile, je gegen eine Mutation rot und gegen die alte Gegenprobe grün — ein Vertrag im Skriptkopf war zu einem guten Teil ungeprüft. Den Ort hat die Antwort des Kurs-Repos vom 2026-10-06 gesetzt (Technik-Stratum, Lesart eines Laufs in der Sensor-Datei); er trug ohne Änderung an `.d-check.yml` oder einer angenommenen ADR.
+- **Was ging anders als geplant:** Eine Prüfrunde mit drei Nacharbeits-Commits (`0c45064`, `2ba6b31`, `c667677`, dazu der Architect zu Lesart (2)) und dem Nachzug `fc9fcb0`; die Nacharbeit hat kein eigenes Review, die Verifikation hat jedes Finding nachgeprüft (Abschnitt 2), den Nachzug `fc9fcb0` hat die Closure an V-67 nachgefahren (DoD, Punkt 1). Das Review fand zwei MEDIUM, beide derselben Klasse: mehrteilige Zusagen, rot nur in einer Bedingung (F-417, F-418); die Verifikation fand dieselbe Klasse ein drittes Mal in der Nacharbeit (V-67). Der Vertragstext sagte an zwei Stellen mehr zu als das Werkzeug (F-419, F-420), eine Randform des Bestands kam nicht als Rückgabe, sondern im Review (F-421), Sensor-Dateien und Ausgangs-Tabelle sagten mehr oder weniger als der Vertrag (F-422, F-423), Plan und Abschnitt waren uneins über die genannten Targets (F-424), die Folge-Slices folgten der Entscheidung zu Kennung und Schwelle nur halb (F-425, V-68), §6 dieses Plans folgte den neuen Fällen nicht (V-69). Alles berichtigt.
+  - **Bestandsmangel, Ausgang:** `abdeckung` endet mit Exit 1 ohne eine Zeile, wenn das Lastenheft keine Überschrift `### LH-…` führt; der Slice hat ihn nicht geändert (Verhaltensänderung ausgeschlossen, §1), sondern als *Grenze* in `SPEC-048` und als Fall `lastenheft-ohne-anforderung` festgehalten. Ausgang: **an den Folge-Slice** `slice-harness-abdeckung-gate`, §6 *Offen* (*Lastenheft ohne Anforderung*, mit dieser Closure eingetragen). Gewählt statt „weiter offen“ im Register, weil es eine Adresse gibt, die die Sendung annimmt: Jener Slice ändert `abdeckung.sh` und schreibt `SPEC-048` fort, und die Schwester-Randform aus V-70 (fehlendes `docs/user/`, ebenfalls Exit 1 ohne Fehlform) liegt schon dort — beide sind gemeinsam zu entscheiden. Das Register zählt wiederkehrende Fehlerklassen des Vorgehens; ein einzelner Mangel eines Werkzeugs mit Adresse würde dort nur liegen. Zu `BEO-REPO/gate-uebergeht-ablage-eintrag-still` gehört er nicht: Dort sieht ein Gate einen vorhandenen Eintrag nicht und endet grün; hier ist nichts zu sehen, und das Gate endet rot.
+  - **V-70** steht in §6 *Offen* von `slice-harness-abdeckung-gate` (*Fehlendes `docs/user/`*, *„unter `test/integration/`“ nur an der Wurzel*, `fc9fcb0`) — geprüft.
+  - **V-71** (Skriptpfad als Text im Abschnitt hält kein Sensor), **F-427** (Bezug auf [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (4) knapp) und **F-426** (Abgleich, behoben) — vermerkt: V-71 ist Urteil im Review der Folge-Slices, der Bestand ist sauber; F-427 liegt bei Architect und Validator.
+- **Steering-Loop-Eintrag:** Geschärfte Regel: Jede Bedingung einer mehrteiligen Zusage („mit A, B und C“, „je …“, „mit 1 ohne Zeile“) bekommt eine eigene Mutation, die nur sie bricht, und einen Fall, dem nur sie fehlt — liegt in `.claude/commands/implement-slice.md Schritt 19`.
+  Auslöser: F-417, F-418, V-67 (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`, mit diesem Slice 12×). Herkunfts-Anker `seit slice-harness-vertraege-spezifikation` im Satz, der neben dem zur verneinenden Zusage steht (seit slice-replay-semantik-meldungscodes). **Warum dieser Eintrag:** Der andere Kandidat — wer einen Vertrag überträgt, prüft jeden Punkt gegen einen roten Fall — ist schon Regel: `AGENTS.md` §3.10 und §3.11 verlangen ihn, die DoD dieses Slice und §6 *Vertragspunkt ohne Gegenprobe-Fall* haben ihn ausgeschrieben, und er hat getragen (22 neue Fälle). Was trotz ihm durchging, ist allein die Klasse der mehrteiligen Zusage, dreimal in einem Slice und über zwei Prüfrunden hinweg: Ein Fall wurde gegen *eine* Mutation rot gesehen und galt damit als Beleg für den ganzen Punkt. Die Regel zur verneinenden Zusage deckt V-67 dem Wortlaut nach („ohne Zeile“ ist verneinend), F-417 und F-418 nicht („und“, „je“); der neue Satz nennt das Merkmal, an dem der Implementer die Zerlegung erkennt. Ein Satz, kein neuer Abschnitt; der Mutations-Sensor bleibt geplant (`slice-harness-mutation`). Retirement-Check von §3.10 und §3.11: wieder aufgetreten, beide bleiben.
+- **Beobachtungs-Register (`../observations/`):**
+  - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/` (verkörpert in `AGENTS.md` §3.10 seit welle-extended-query) — Beleg `evidence/slice-harness-vertraege-spezifikation.md` (F-417, F-418, V-67; Klasse der Findings und Verifikations-Summary: Mutation grün), **12×**.
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/` (verkörpert in `AGENTS.md` §3.11 seit welle-extended-query) — Beleg `evidence/slice-harness-vertraege-spezifikation.md` (F-419, F-420, F-422, F-423), **13×**. Retirement-Check von §3.11: wieder aufgetreten.
+  - `BEO-REPO/spec-randform-erst-im-review-entschieden/` (verkörpert in `AGENTS.md` §3.12 seit slice-harness-randformen-vor-code) — Beleg `evidence/slice-harness-vertraege-spezifikation.md` (F-421, V-70), **10×**. Nicht `randform-im-code-entschieden-dann-zurueckgegeben` (bleibt 2×): Der Code blieb unverändert, entschieden wurde nichts im Code; offen war der Wortlaut des Vertrags gegenüber dem Leser, und das fand erst das Review. Retirement-Check von §3.12: wieder aufgetreten.
+  - `BEO-REPO/plan-folgt-korrektur-nicht/` (verkörpert in `AGENTS.md` §3.9 seit welle-walking-skeleton, Sensor `make kopf-check` seit slice-harness-kopf-sensor) — Beleg `evidence/slice-harness-vertraege-spezifikation.md` (F-424, F-425, V-68, V-69), **12×**. Retirement-Check von §3.9: wieder aufgetreten; `make kopf-check` war jedes Mal grün, V-68 lag in §3, das er nicht liest.
+  - `BEO-REPO/gate-uebergeht-ablage-eintrag-still/` — kein Beleg, bleibt 1× (Begründung beim Bestandsmangel oben); die zwei offenen Randformen sind in `SPEC-047` und der Sensor-Datei als offen benannt, nicht entschieden.
+
+  Einmalig und nicht eingetragen: F-426 (Abgleich, behoben), F-427 (Hinweis), V-71 (Hinweis ohne Fund im Bestand). Über der Schwelle stehen nur verkörperte Einträge (`negativtests-fehlen-bei-neuem-vertrag` 12×, `zusage-im-kommentar-weiter-als-pruefung` 13×, `spec-randform-erst-im-review-entschieden` 10×, `plan-folgt-korrektur-nicht` 12×); ihnen gibt diese Closure keinen Ausgang, den Lese-Schritt führt die nächste Welle-Closure.
+- **Folge-Slices:** `slice-harness-abdeckung-gate` (Nachweisart Gate und geteilte Messung in `SPEC-048`; dazu die offenen Randformen aus V-70 und *Lastenheft ohne Anforderung*), `slice-harness-lint`, `slice-harness-coverage` und `slice-harness-mutation` (je eine neue Kennung im Abschnitt, Schwelle als Konstante dort), die vier Umstellungs-Slices (folgen `slice-harness-lint`). `slice-harness-mutation` trägt den geplanten Sensor der Einträge `negativtests-fehlen-bei-neuem-vertrag` und `zusage-im-kommentar-weiter-als-pruefung`.
+- **Risiken aus §6:** vier, alle **entfallen** mit Begründung (Übertragung abgeschlossen und abgeglichen; Folge-Slices nachgezogen; Schärft-Bezug als Entscheidung (a) mit benanntem Negativ, getragen von den Sensor-Dateien; nur die Historie verschoben, kein lebender Verweis). Der Bestandsmangel *Exit 1 ohne Zeile* ist kein Risiko aus §6; sein Ausgang steht oben (an `slice-harness-abdeckung-gate`).
+- **Drei Paarungen:** Anker — `liegt in` nennt `.claude/commands/implement-slice.md Schritt 19`; `grep -n "seit slice-harness-vertraege-spezifikation" .claude/commands/implement-slice.md` findet ihn in Schritt 19. Folge-Slice — `slice-harness-abdeckung-gate`, `slice-harness-lint`, `slice-harness-coverage`, `slice-harness-mutation` und die vier Umstellungs-Slices liegen als Datei in `open/`; `slice-harness-abdeckung-gate` nennt die übergebenen Randformen in §6 *Offen*. Register — die vier genannten Kennungen mit Beleg und `gate-uebergeht-ablage-eintrag-still` bestehen als Verzeichnis, jedes mit nicht leerem `evidence/`; die vier tragen eine Datei `slice-harness-vertraege-spezifikation.md`. Die nächste Welle-Closure prüft erneut.
+- **Belege:** Review `docs/reviews/2026-10-06-review-slice-harness-vertraege-spezifikation.md` (bis `f0c87b6`; F-417 bis F-427), Verifikation `docs/reviews/2026-10-06-verifikation-slice-harness-vertraege-spezifikation.md` (bis `c667677`; V-67 bis V-71; DoD 1 bis 3 bestätigt, 60 Mutationen, eine grün — V-67, behoben in `fc9fcb0` und mit der Closure nachgefahren; `make gates` grün an `c667677` und an `fc9fcb0`), Entscheidungen [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) unverändert, Antwort des Kurs-Repos ai-harness-course vom 2026-10-06 (Ort: Technik-Stratum). Validierung: n/a, der Slice ändert Spezifikation der Prüfumgebung und Planung, kein End-Nutzer-Verhalten; F-427 liegt beim Validator.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
