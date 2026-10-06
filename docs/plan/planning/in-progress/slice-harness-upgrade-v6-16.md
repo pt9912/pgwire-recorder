@@ -67,8 +67,8 @@ keinen stillen Auto-Bump — dieser Slice ist der Review.
 - Ein erneuter Bootstrap mit ai-harness-init (Neuschreiben der tool-eigenen Fragmente
   und Skripte wie `tools/harness/slice-mv.sh`, `tools/harness/baseline-verify.sh`,
   `harness/mk/*.mk`) — ein anderer Vorgang: Das Release-Asset `lab-regelwerk.zip` trägt
-  nur Regelwerk und Vorlagen; was ein neuer Bootstrap-Stand am Werkzeug ändert, prüft
-  dieser Slice nur (§6 *Präfix-Fehler von `make slice-mv`*) und gibt es als Befund weiter.
+  nur Regelwerk und Vorlagen; den Präfix-Fehler von `make slice-mv` behebt
+  ai-harness-init, dieser Slice prüft ihn nicht (§6 *Präfix-Fehler von `make slice-mv`*).
 - Die Werkzeugverträge von `kopf-check`, `abdeckung` und `lint` im Abschnitt für
   Harness-Werkzeuge der Spezifikation und ihre Sensor-Dateien — Bestand bleibt bewusst
   stehen, solange der Abgleich keine Änderung verlangt; der Slice legt keinen neuen
@@ -106,7 +106,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `.harness/skills/`, `tools/`, `Makefile`, `*.mk` und `spec/` ist leer, und kein
       Plan in `open/`, `next/` oder `in-progress/` verweist auf einen Pfad unter
       `.harness/baseline/v6.13.0/` (Pläne dürfen den alten Stand als Wort nennen, dieser
-      eingeschlossen). Was mit dem alten Baum geschieht, nach §6 *Alte Baseline*.
+      eingeschlossen); `find . -path ./.git -prune -o -xtype l -print` ist leer. Was mit
+      dem alten Baum geschieht, nach §6 *Alte Baseline* und *Was am alten Pfad hängt*.
 - [ ] **Abgleich v6.13.0 → v6.16.0:** Jeder Regelblock des neuen Baums steht in der
       Tabelle *Welche Regelblöcke des Baums hier einen Träger haben* in
       `harness/conventions.md` mit genau einem Wert; neue, umbenannte und entfallene
@@ -142,7 +143,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `.d-check.yml` | update (nur falls nötig) | nur, wenn `v0.82.0` die Konfiguration anders liest oder ein Modul umbenennt; jede Änderung, die einen Befund wegnimmt statt ihn zu beheben, ist eine Lockerung (`AGENTS.md` §3.6) und braucht eine ADR — dann Folge-Slice |
 | Doku mit neuen Befunden von `v0.82.0` | update | kleine Befunde in lebenden Dokumenten beheben; eingefrorene nach §6 *Befunde in eingefrorenen Dokumenten* |
 | `.harness/baseline/v6.16.0/{regelwerk,templates}/`, `SHA256SUMS` | neu | aus `lab-regelwerk.zip` des Tags `v6.16.0`, sha256 vor dem Entpacken geprüft; Netz nach §6 *Netzzugriff* |
-| `.harness/baseline/v6.13.0/` | entfernt oder bleibt (§6 *Alte Baseline*, Empfehlung: entfernt) | `tools/harness/baseline-verify.sh` duldet ein Tag-Verzeichnis zur Zeit |
+| `.harness/baseline/v6.13.0/` | entfernt (§6 *Alte Baseline*) | `tools/harness/baseline-verify.sh` duldet ein Tag-Verzeichnis zur Zeit |
+| `.claude/rules/modul-01-entwicklungszyklus.md`, `.claude/rules/modul-05-planning-harness.md` | update (Symlink-Ziel) | zeigen auf `v6.13.0`; im Commit des Tauschs auf `v6.16.0` (§6 *Was am alten Pfad hängt*) |
+| `harness/conventions/done/MR-001-spezifikations-ort-werkzeugvertraege.md` | update (Form-Reparatur) | Link auf `v6.13.0` wird Code-Span mit unverändertem Pfad (§6 *Was am alten Pfad hängt*) |
 | `harness/conventions.md` | update | §Baseline (Stand `v6.16.0`, Datum der Adoption), §Adoptierte Konventions-Quellen (Asset-URL, Stand-Zeile aus `regelwerk/README.md`), Regelblock-Tabelle (Messzeile, neue/umbenannte/entfallene Blöcke), `MR-000` und Aufgelöste Adaptionen nach dem Adaptions-Durchgang |
 | `AGENTS.md` | update | §1 Asset-URL; §3.x nur, wenn der Abgleich eine verkörperte Regel als gegenstandslos oder widersprüchlich findet und die Anpassung klein ist |
 | `.claude/commands/*.md`, `.claude/agents/*.md`, `.harness/skills/*.md`, `docs/plan/planning/observations/README.md` | prüfen, update falls klein | Abgleich gegen das Delta; Verweise auf den Baum nennen heute `.harness/baseline/<tag>/…` und bleiben so — ein fester Tag in einem lebenden Dokument ist ein Befund |
@@ -213,98 +216,131 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen** (`AGENTS.md` §3.12) — **offen, zu entscheiden vom Architect** nach dem
-Start und vor dem ersten Commit. Der Slice legt keinen neuen Vertrag an; die
-Randformen betreffen die Grundlage der Gates `make docs-check` und
-`make baseline-verify`. Die Empfehlung des Planners steht je Punkt dabei; was hier nicht
-steht, entscheidet der Implementer nicht, er gibt es zurück
-(`.claude/commands/implement-slice.md`, Randform-Rückgabe).
+**Randformen** (`AGENTS.md` §3.12) — **entschieden vom Architect am 2026-10-06**, nach
+dem Start und vor dem ersten Commit. **Ort ist dieser Abschnitt**, nicht die
+Spezifikation und keine ADR: Der Slice legt keinen Werkzeugvertrag an und ändert keinen —
+kein neues `make`-Ziel, kein Skript unter `tools/`, die Rezepte von `d-check.mk` und die
+Prüfung von `make baseline-verify` bleiben gleich (Abschnitt für Harness-Werkzeuge der
+Spezifikation unberührt, Kopf bleibt `—`). Was hier entschieden ist, ist ein einmaliger
+Wartungsschritt nach Baseline-Regelwerk `modul-02-harness-bootstrap.md` §Freshness-Audit
+(„Wartung, kein Feedback-Gate“); den adoptierten Stand trägt `MR-000` in
+`harness/conventions.md`, die Belege trägt §7. Verlangt die Umsetzung doch eine Änderung
+an einem Werkzeugvertrag, gilt §4 *Rückführungen*. Was hier nicht steht, entscheidet der
+Implementer nicht, er gibt es zurück (`.claude/commands/implement-slice.md`,
+Randform-Rückgabe).
 
-- **Alte Baseline** — entfernen oder behalten. `tools/harness/baseline-verify.sh` lässt
-  genau ein Tag-Verzeichnis zu („ein Tag zur Zeit, Historie liegt in git“) und endet
-  mit zwei Verzeichnissen rot; Baseline-Regelwerk `modul-02-harness-bootstrap.md`
-  §Freshness-Audit sagt dagegen, alte und neue Form lägen zum Vergleich nebeneinander,
-  das alte Verzeichnis falle erst nach dem Review. Varianten: (a) entfernen im selben
-  Commit, der den neuen Baum anlegt; verglichen wird vorher im Temp-Baum, danach über
-  `git` (`git show <commit-vorher>:.harness/baseline/v6.13.0/…`); (b) beide behalten,
-  bis der Abgleich durch ist — dann ist `make baseline-verify` und damit `make gates`
-  an den Zwischen-Commits rot, und der Stop-Hook verlangt einen grünen Gate-Lauf;
-  (c) das Skript duldet mehrere Tags — Eingriff in ein tool-eigenes Skript und
-  Lockerung eines Gates (§1, `AGENTS.md` §3.6). **Empfehlung: (a).** Die Setzung des
-  Skripts steht, der Vergleich braucht kein zweites Verzeichnis im Repo.
-- **`make baseline-verify` und der Tag im Verzeichnisnamen** — das Skript entdeckt den
-  Tag aus dem Verzeichnisnamen und prüft nur Integrität und Vollständigkeit gegen
-  `SHA256SUMS`, nicht die Herkunft. Offen: (1) Ob `SHA256SUMS` aus dem Asset übernommen
-  oder nach dem Entpacken neu erzeugt wird — das Skript lehnt GNU-escapte Pfade ab, und
-  eine Datei, die im Asset fehlt, aber in `SHA256SUMS` steht, macht es rot; (2) ob der
-  Verzeichnisname exakt der Tag `v6.16.0` ist (Empfehlung: ja, die Stand-Zeile in
-  `conventions.md` und die Ausgabe des Gates nennen ihn dann gleich); (3) wo der sha256
-  des Assets festgehalten wird, gegen den vor dem Entpacken geprüft wurde —
-  Empfehlung: im Bericht und in der Closure-Notiz, nicht in einem lebenden Dokument,
-  weil kein Lauf ihn liest. Eine `sources`-Prüfung von d-check (`source-pin`) wäre ein
-  neuer Sensor und gehört nicht in diesen Slice.
-- **Neu erzeugen oder nur umpinnen** — `d-check.mk` ist aus `d-check --print-mk`
-  adaptiert (Target `docs-check`, gepinnter Digest, Kopfkommentar). Baseline-Regelwerk
-  `modul-02-harness-bootstrap.md` §Gate-Fragment sagt: bei jedem Bump neu erzeugen.
-  Varianten: (a) mit `v0.82.0` neu erzeugen und die Adaption erneut anwenden, Diff zur
-  alten Fassung im Bericht; (b) nur die zwei Pin-Zeilen ändern. **Empfehlung: (a)**,
-  weil die advisory-Targets sonst der alten Version folgen; `harness/mk/doc-gate.mk`
-  prüft, dass `doc-immutable` und `doc-commits` als Ziele mit Rezept im Fragment stehen
-  — verschwindet eines mit `v0.82.0`, endet der Aufruf mit Exit 2, und das ist ein
-  Befund für den Architect, kein stilles Weglassen.
-- **Befunde in eingefrorenen Dokumenten** — findet `v0.82.0` Befunde in archivierten
-  Stubs, Plänen in `done/`, Welle-Results oder Reports unter `docs/reviews/` (alle im
-  Scan, nur `.harness/**` und Vorlagen sind ausgenommen). Varianten: (a) reine
-  Form-Reparatur am eingefrorenen Dokument (Link-Ziel, Anker), wenn der Text sonst
-  unverändert bleibt, mit einer Zeile in §7 je Datei; (b) Ausnahme in `scan.ignore` oder
-  ein Marker — beides nimmt einen Befund weg, ist nach `AGENTS.md` §3.2 und §3.6 eine
-  Lockerung und braucht eine ADR; (c) Folge-Slice, d-check bis dahin auf `v0.79.0`.
-  **Empfehlung: (a)** für Form-Befunde, die das Dokument nicht umdeuten — ein toter
-  Anker ist ein Formfehler (Baseline-Regelwerk `modul-02-harness-bootstrap.md`
-  §Freshness-Audit); (c) für alles, was den Inhalt eines eingefrorenen Dokuments
-  ändern würde. `docs/reviews/` fasst dieser Slice nur nach (a) an und nur, wenn dort
-  kein anderer Lauf arbeitet.
-- **Netzzugriff** — Host darf nur `bash`, `git` und `docker` voraussetzen
-  (`AGENTS.md` §3.1, `harness/conventions.md` §Der mitgelieferte Baum altert still).
-  Der Image-Digest kommt aus `docker pull ghcr.io/pt9912/d-check:v0.82.0` und
-  `docker inspect` (`RepoDigests`). Das Asset wird in einem Container mit gepinntem
-  Image geladen, geprüft und entpackt (Download, `sha256sum`, `unzip`), Ziel ein
-  Temp-Verzeichnis; kein `curl` oder `unzip` auf dem Host. Offen: welches Image (eines,
-  das das Repo schon pinnt, z. B. die Download-Stufe des `Dockerfile`, oder ein neues mit
-  Digest) und woher der erwartete sha256 des Assets kommt (Release-Seite bzw. API des
-  Kurs-Repos). Empfehlung: ein einmaliger Wartungsschritt mit den Kommandos im Bericht,
-  **kein** neues `make`-Ziel — ein Fetch-Ziel wäre ein neuer Werkzeugvertrag mit eigener
-  Kennung und gehört, wenn gewünscht, in einen Folge-Slice. Kein Gate bekommt Netz.
-- **Präfix-Fehler von `make slice-mv`** — `make slice-mv` findet `slice-harness-lint`
-  als Präfix von `slice-harness-lint-werkzeug` mehrdeutig; die Rückführung von
-  `slice-harness-lint` lief darum von Hand (`bf00052`). Das Werkzeug ist tool-eigen,
-  emittiert von ai-harness-init, und das Release-Asset `lab-regelwerk.zip` bringt es
-  nicht mit. Zu prüfen: ob der Bootstrap-Stand, der zu `v6.16.0` gehört, den Fix
-  enthält (Release-Notizen von ai-harness-init bzw. CHANGELOG des Kurs-Repos). Ausgang
-  nach Befund: enthält er ihn, Folge-Slice für die Übernahme von
-  `tools/harness/slice-mv.sh` (ein erneuter Bootstrap ist nach §1 ein anderer Vorgang);
-  enthält er ihn nicht, Eintrag im Beobachtungs-Register und Meldung an das Kurs-Repo.
-  Bis dahin bleibt der Handweg für Slices, deren Kennung Präfix einer anderen ist; dieser
-  Slice ist es nicht.
-- **Klarstellung zum Technik-Stratum** — die Antwort des Kurs-Repos vom 2026-10-06 auf
-  den Change Request (Verträge der Harness-Werkzeuge gehören ins Technik-Stratum, die
-  Lesart eines Laufs in die Sensor-Datei) hat `MR-001` aufgelöst, ohne Nachfolger und
-  ohne Baseline-Stand, der sie trägt. Zu prüfen: ob `v6.16.0` die Klarstellung in
-  `grundlagen-referenz-richtung.md` §Spec-Straten oder `modul-03-spec.md` bringt. Bringt
-  sie es, nennt die Zeile der Aufgelösten Adaptionen den Stand, seit dem die Baseline
-  das selbst regelt (Baseline-Regelwerk `modul-02-harness-bootstrap.md`
-  §Freshness-Audit: *Rückbau ist ein neuer Eintrag*; ob dafür ein Nachfolge-Eintrag
-  nötig ist, entscheidet der Architect). Bringt sie es nicht, steht der Abschnitt für
-  Harness-Werkzeuge der Spezifikation auf einer Antwort, die keine Baseline trägt —
-  Befund für die `MR-000`-Aussage und ein Register-Eintrag oder eine neue Adaption.
-- **Sensor-Datei** — zu prüfen: ob `v6.16.0` die Vorlage `harness/sensors/gate.template.md`
-  oder ihre Regel in `grundlagen-harness-dateien.md` §Einstiegspunkt ändert. Sensor-Dateien
-  sind nach Baseline-Regelwerk `modul-02-harness-bootstrap.md` §Freshness-Audit nicht
-  append-only: Ihr Vertrag wird fortgeschrieben. Eine neue Pflicht-Sektion zieht darum
-  `harness/sensors/kopf-check.md`, `harness/sensors/abdeckung-check.md` und jede andere
-  Sensor-Datei nach (klein) oder geht an einen Folge-Slice; ändert sich die Regel, *welche*
-  Gates eine Sensor-Datei brauchen, ist das ein Befund für die Lint-Reihe
-  (`slice-harness-lint` legt eine an) und geht als Nachzug an deren Pläne.
+- **Alte Baseline** — `tools/harness/baseline-verify.sh` lässt genau ein Tag-Verzeichnis
+  zu und endet mit zwei rot; `modul-02-harness-bootstrap.md` §Freshness-Audit lässt alte
+  und neue Form zum Vergleich nebeneinander liegen. **Entscheidung: (a)** — `v6.13.0`
+  fällt im selben Commit, der `v6.16.0` anlegt. Die Wirkung der Regel (die alte Form liegt
+  während des Reviews als Vergleichsgrundlage vor) bleibt erhalten, nur der Ort wechselt:
+  vor dem Commit `diff -r` im Temp-Baum außerhalb des Repos, danach
+  `git diff -M <vorher> <nachher> -- .harness/baseline/` (Rename-Erkennung zeigt das Delta
+  je Datei) und `git show <vorher>:.harness/baseline/v6.13.0/…`. Keine Adaption, kein
+  Eingriff ins Skript; der Widerspruch zwischen Regelwerk-Text und emittiertem Skript geht
+  als Frage an das Kurs-Repo (§7 *Weitergereicht*). Der Tausch ist **kein**
+  `git mv` mit Inhaltsänderung im Sinn von `AGENTS.md` §3.3, sondern das Ersetzen eines
+  vendored Baums: Ein reiner Move-Commit vorab hinterließe ein Verzeichnis `v6.16.0` mit
+  dem Inhalt von `v6.13.0`, das `make baseline-verify` grün meldete. Ein Commit;
+  `git log --follow` über den Baum ist ein akzeptiertes Negativ, weil kein Lauf die
+  Historie einer vendored Datei verfolgt und `git diff -M` das Delta zeigt.
+- **Was am alten Pfad hängt** (vom Architect ergänzt; Probe am 2026-10-06: HEAD-Kopie
+  ohne `.harness/baseline/v6.13.0/`, d-check `v0.79.0`). Zwei Stellen brechen mit dem
+  Entfernen, beide im Commit des Tauschs nachgezogen:
+  (1) `.claude/rules/modul-01-entwicklungszyklus.md` und
+  `.claude/rules/modul-05-planning-harness.md` sind Symlinks auf
+  `../../.harness/baseline/v6.13.0/regelwerk/…`; sie zeigen danach auf dieselbe Datei
+  unter `v6.16.0` (ist eine umbenannt oder entfallen: Rückgabe an den Architect). Kein
+  Gate sieht einen hängenden Symlink, und `grep -r` folgt ihm nicht; Prüfung im
+  zweiten Liefer-Punkt zusätzlich: `find . -path ./.git -prune -o -xtype l -print` ist
+  leer. Dass ein Symlink den Tag fest nennt, ist ein akzeptiertes Negativ — ein Symlink
+  kann kein `<tag>` tragen, und die Prüfung fängt ihn beim nächsten Tausch.
+  (2) `harness/conventions/done/MR-001-spezifikations-ort-werkzeugvertraege.md` Zeile 21
+  verlinkt `…/v6.13.0/regelwerk/grundlagen-referenz-richtung.md#spec-straten-…` — der
+  einzige d-check-Befund der Probe (`target-missing`). Ausgang nach *Befunde in
+  eingefrorenen Dokumenten* (a): Der Link wird zum Code-Span mit **unverändertem** Pfad
+  samt `v6.13.0` und Anker, der Text bleibt; **nicht** auf `v6.16.0` umbiegen, das
+  verwiese die damalige Aussage auf einen anderen Text. Eine Zeile in §7. Code-Spans mit
+  dem alten Pfad in `done/`-Plänen und `docs/reviews/` meldet d-check nicht (Probe) und
+  bleiben stehen.
+- **`make baseline-verify` und der Tag im Verzeichnisnamen** — **Entscheidung:**
+  (1) `SHA256SUMS` wird nach dem Entpacken **neu erzeugt**, im selben Container, in der
+  Form, die das Skript liest und die `v6.13.0` hat: `<sha256>  <pfad>` relativ zum
+  Tag-Verzeichnis, über jeden Nicht-Verzeichnis-Eintrag unter `regelwerk/` und
+  `templates/`, nach `LC_ALL=C sort` geordnet. Vendored werden nur `regelwerk/` und
+  `templates/`; andere Einträge auf oberster Ebene des Assets nennt der Bericht. Bringt
+  das Asset selbst eine Prüfsummenliste mit, wird der entpackte Inhalt zusätzlich gegen
+  sie geprüft (Ergebnis im Bericht); vendored wird sie nur, wenn sie unter `regelwerk/`
+  oder `templates/` liegt und damit ohnehin gelistet ist. Vor dem Entpacken listet
+  `unzip -l` die Einträge; ein absoluter Pfad, ein `..` oder ein Symlink im Asset ist
+  Halt und Rückgabe. `SHA256SUMS` belegt danach nur, dass der Baum sich seit dem
+  Vendoring nicht bewegt hat — die Herkunft hängt am sha256 des Assets (unten).
+  (2) Verzeichnisname exakt `v6.16.0`. (3) Der sha256 des Assets steht im Bericht und in
+  §7 *Belege*, in keinem lebenden Dokument. Eine `sources`-Prüfung von d-check bleibt
+  außerhalb (neuer Sensor).
+- **Neu erzeugen oder nur umpinnen** — **Entscheidung: (a)**, mit festgestelltem
+  Ergebnis: `d-check --print-mk` von `v0.82.0` (lokal vorhanden, `--network none`) führt
+  dieselben dreizehn Ziele wie das Fragment heute, `doc-immutable` und `doc-commits` mit
+  Rezept, Rezepte unverändert. Neu erzeugt unterscheidet sich die Datei vom heutigen
+  `d-check.mk` nur im Kopf und in den Pin-Zeilen; wieder angewendet werden genau die vier
+  Adaptionen: Kopfkommentar von ai-harness-init, `doc-check` → `docs-check`, Muster von
+  `doc-help` `^docs?-` statt `^doc-`, `DCHECK_DIGEST` gepinnt. Der Kopfkommentar nennt
+  die `doc-help`-Adaption mit, er sagt heute „advisory doc-*-Targets verbatim“ und
+  verschweigt sie (`AGENTS.md` §3.11). Digest: `docker image inspect
+  ghcr.io/pt9912/d-check:v0.82.0 --format '{{json .RepoDigests}}'` nach `docker pull`
+  meldet am 2026-10-06 `sha256:d28e9437888554a262ad9a2e8a63fdb1717e5b5860824fdef263a877d532e0c8`;
+  der Implementer hält ihn gegen den Digest der Release-Notes von d-check `v0.82.0`
+  (der erzeugte Kopf verweist dorthin). Weichen beide ab: Halt und Rückgabe. Nennen die
+  Notes keinen, gilt der `RepoDigests`-Wert, und §7 sagt das.
+- **Befunde in eingefrorenen Dokumenten** — **Entscheidung: wie empfohlen.** (a) für
+  Form-Befunde, die das Dokument nicht umdeuten (Link-Ziel, Anker, Link → Code-Span mit
+  gleichem Text), je Datei eine Zeile in §7; (c) für alles, was Inhalt ändern würde —
+  dann bleibt d-check auf `v0.79.0`, Folge-Slice für den Bump. (b) ist ausgeschlossen:
+  kein `scan.ignore`, kein Marker. Festgestellt: `v0.82.0` meldet am HEAD-Stand
+  0 Befunde bei 279 Dateien (Probe in einer HEAD-Kopie); der Bump allein (Commit 1) ist
+  grün, und der einzige erwartete Befund kommt aus dem Tausch (oben, MR-001).
+- **Netzzugriff** — **Entscheidung:** Einmaliger Wartungsschritt, kein `make`-Ziel, kein
+  Gate mit Netz. Image: `golang:1.27-alpine@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414`,
+  der Pin der Stufe `deps` im `Dockerfile` — kein neuer Pin; es führt `wget` mit
+  `ssl_client` und CA-Bündel, `sha256sum`, `unzip`, `find`, `sort` (geprüft mit
+  `--network none`). Lauf mit `--user "$(id -u):$(id -g)"`, Mount nur eines
+  Temp-Verzeichnisses außerhalb des Repos; ins Repo kopiert wird danach mit `cp` auf dem
+  Host. **Soll-Wert des sha256, in dieser Rangfolge:** (1) eine Prüfsumme, die das
+  Kurs-Repo selbst zum Release veröffentlicht (eigenes Asset oder Release-Text);
+  (2) sonst das Feld `digest` des Assets in
+  `https://api.github.com/repos/pt9912/ai-harness-course/releases/tags/v6.16.0` — von
+  GitHub beim Hochladen berechnet, über einen anderen Abruf als der Download; (3) gibt es
+  keines von beiden, gibt es keinen Soll-Wert. Was das heißt, ehrlich: Bei (2) belegt die
+  Prüfung, dass die geladenen Bytes die hochgeladenen sind (Transport, CDN), nicht, wer
+  sie hochgeladen hat; bei (3) ist es Trust-on-first-use — der Wert wird nur
+  festgehalten, damit ein späteres Abweichen sichtbar wird, und §7 sagt „kein Soll-Wert“
+  statt „geprüft“. Beides ist ein akzeptiertes Negativ für diesen Slice: Der Baum ist
+  Text, der nicht ausgeführt wird, und dieser Slice liest sein Delta vollständig gegen
+  den Bestand. Weicht bei (1) oder (2) der Wert ab: Halt, nichts entpacken, Rückgabe.
+- **Präfix-Fehler von `make slice-mv`** — **Entscheidung: nicht in diesem Slice**, auch
+  keine Prüfung des Bootstrap-Stands. Grund: Entscheidung des Nutzers vom 2026-10-06, der
+  Fix kommt in ai-harness-init; die Übernahme eines neuen Werkzeug-Stands ist nach §1 ein
+  anderer Vorgang. Kein Folge-Slice, kein Register-Eintrag — akzeptiertes Negativ, weil
+  der Fehler laut scheitert, nicht still: Wer `slice-harness-lint` bewegt, bekommt die
+  Mehrdeutigkeit gemeldet und nimmt den Handweg wie in `bf00052`.
+- **Klarstellung zum Technik-Stratum** — **Entscheidung:** Kein Nachfolge-Eintrag
+  `MR-<NNN>` in beiden Fällen, denn `MR-001` ist schon aufgelöst; ein Rückbau-Eintrag
+  hätte nichts zurückzubauen. Bringt `v6.16.0` die Klarstellung, ergänzt die Zelle
+  *aufgelöst durch* der Zeile `MR-001` in `harness/conventions.md` §Aufgelöste Adaptionen
+  den Stand und den Abschnitt, der es trägt; die Datei unter
+  `harness/conventions/done/` bleibt bis auf die Form-Reparatur oben unberührt. Bringt
+  sie es nicht, bleibt alles stehen: Der Grund der Auflösung ist die Antwort des
+  Kurs-Repos, nicht ein Baseline-Stand, und das Repo folgt der Lesart, die das Kurs-Repo
+  selbst als seine erklärt hat — die `MR-000`-Aussage bleibt wahr, keine neue Adaption,
+  kein Register-Eintrag (`BEO-REPO/harness-lesart-ohne-entscheidungsort` bleibt
+  gestrichen). §7 *Weitergereicht* nennt dann die offene Frage, mit welchem Stand die
+  Baseline die Antwort trägt; der nächste Freshness-Audit liest die Zeile `MR-001` im
+  Adaptions-Durchgang ohnehin.
+- **Sensor-Datei** — **Entscheidung: wie formuliert bestätigt.** Eine neue Pflicht-Sektion
+  in `harness/sensors/gate.template.md` oder in `grundlagen-harness-dateien.md`
+  §Einstiegspunkt zieht die Sensor-Dateien nach, wenn es je Datei beim Maß aus §4 bleibt,
+  sonst Folge-Slice; eine geänderte Regel, *welche* Gates eine Sensor-Datei brauchen,
+  geht als Nachzug an die Pläne der Lint-Reihe (`AGENTS.md` §3.9).
 
 **Risiken:**
 
@@ -347,7 +383,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Risiken aus §6:** <…>
 - **Drei Paarungen:** <…>
 - **Belege:** <sha256 des Assets und Herkunft, Image-Digest mit Kommando, `diff -r` der Bäume, Zahl der neuen d-check-Befunde je Ausgang>
-- **Weitergereicht an das Kurs-Repo bzw. an ai-harness-init:** <Antwort von ai-harness-init zum Präfix-Fehler von `make slice-mv`; offene Fragen an die Baseline>
+- **Weitergereicht an das Kurs-Repo bzw. an ai-harness-init:** <Widerspruch Regelwerk-Text und `baseline-verify.sh` zur alten Baseline (§6); ggf. Stand für die Antwort zum Technik-Stratum; weitere offene Fragen an die Baseline>
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
