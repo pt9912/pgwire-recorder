@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 Abnahmeszenario 17 (M3) bei: Mit ihm steht die Anforderung in den Abdeckungstabellen
 *teilweise*, nachweisbar wird das Szenario mit `slice-harness-coverage`. Eingesammelt
 wird er von der nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
-2026-10-06: nach `slice-harness-blackbox-einstieg` und vor `slice-harness-coverage`
+2026-10-06: nach `slice-harness-lint` und vor `slice-harness-coverage`
 (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Nachweis der Messmethoden 1 und 3). Bindung an Entscheidungen: [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Nachweisart Gate, geteilte Messung; Folgepflicht dieser ADR), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Deklaration je Anforderung und Pfad; ihre Darstellung in der RTM ergänzt bzw. ersetzt teilweise eine neue ADR, die der Architect in diesem Slice vor dem Code schreibt, Entscheidung des Nutzers vom 2026-10-06; sonst gilt sie unverändert).
@@ -67,8 +67,8 @@ Slice mit seinem Platz in der Reihe entschieden.
 - Teil 2 (Anweisungsabdeckung) von LH-QA-07 — die Deklaration gehört an die Gegenprobe
   des Coverage-Gates, die es erst mit `slice-harness-coverage` gibt; der deklariert ihn
   dort, und erst dann ist die Anforderung vollständig.
-- Die Gegenprobe des Lint-Gates und ihre Fälle — liefern `slice-harness-lint` und die
-  vier Umstellungs-Slices (der Fall eines White-Box-Tests je Paketgruppe). Dieser Slice
+- Die Gegenprobe des Lint-Gates und ihre Fälle — liefert `slice-harness-lint`, auch den
+  Fall eines White-Box-Tests je Paketgruppe der vier Umstellungs-Slices. Dieser Slice
   ergänzt an ihr nur die Deklaration, keinen Fall; deckt ein Fall die deklarierte
   Messmethode nicht, ist das die Rückführung aus §4.
 - Prüfung, ob eine Gegenprobe an `GATE_CHECKS` hängt — Grenze nach
@@ -144,11 +144,14 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-blackbox-einstieg` liegt in `done/`
-(WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-06:
-`slice-harness-lint`, die vier Umstellungs-Slices, dieser Slice,
-`slice-harness-coverage`, `slice-harness-mutation`. Grund: Teil 3 gilt erst, wenn
-`testpackage` überall scharf ist, und das ist es mit `slice-harness-blackbox-einstieg`.
+**Start** (`next` → `in-progress`): `slice-harness-lint` liegt in `done/` (WIP-Limit 1).
+Reihenfolge nach Entscheidung des Nutzers vom 2026-10-06:
+`slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
+`slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
+dieser Slice, `slice-harness-coverage`, `slice-harness-mutation`. Grund: Teil 1 und
+Teil 3 gelten erst, wenn das Lint-Gate steht und `testpackage` überall scharf ist, und
+das ist es mit `slice-harness-lint`; dessen Gegenprobe trägt dann alle Fälle, die die
+Deklaration deckt.
 Vor dem ersten Code-Commit bestätigt der Architect die Randformen aus §6 und
 entscheidet die offenen (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
