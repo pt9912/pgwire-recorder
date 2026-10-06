@@ -15,9 +15,9 @@ ai-harness-course auf den Change Request „Spezifikations-Ort für Verträge de
 Harness-Werkzeuge“ (2026-10-06): nach `slice-lastenheft-pruefbarkeit` und vor
 `slice-harness-lint` (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) (die Gates laufen ohne Eingaben), [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Nachweis in den Abdeckungstabellen). Bindung an Entscheidungen: [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) (Kopf-Sensor), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckung je Anforderung und Pfad), [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Gate-Nachweise und geteilte Messung).
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode (4): die Prüfumgebung des Projekts, deren Werkzeuge der Abschnitt festlegt; §6 *Bezug nach oben*). Bindung an Entscheidungen: [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) (Kopf-Sensor), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckung je Anforderung und Pfad), [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Gate-Nachweise und geteilte Messung).
 
-**Berührte Spec-Stellen:** `spezifikation.md` (neuer Abschnitt für Harness-Werkzeuge; Ort und Kennungen nach §6) · `spezifikation.md §11`
+**Berührte Spec-Stellen:** `spezifikation.md §11` (neu: *Harness-Werkzeuge*, `SPEC-047` für `kopf-check`, `SPEC-048` für `abdeckung`) · `spezifikation.md §12` (*Historie*, bisher §11)
 
 **Verantwortlich:** pt9912
 
@@ -35,18 +35,19 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Die Verträge der zwei Harness-Werkzeuge, die heute ohne Spezifikationsstelle
-leben, stehen in einem Abschnitt der Spezifikation für Harness-Werkzeuge
-(Technik-Stratum, fortschreibbar) mit eigenen Kennungen: `kopf-check` mit den neun
+leben, stehen im neuen §11 *Harness-Werkzeuge* der Spezifikation (Technik-Stratum,
+fortschreibbar), eine Kennung je Werkzeug: `kopf-check` als `SPEC-047` mit den neun
 Punkten von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) und den sieben
 Lesarten, die der Architect beim Liefern bestätigt hat (heute im ZUSAGE-Kopf von
 `tools/harness/kopf-check.sh`; Herkunft: §6 des archivierten
 `slice-harness-kopf-sensor` in `docs/plan/planning/done/welle-replay-semantik/archiv.zip`),
-und `abdeckung` mit [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) und
+und `abdeckung` als `SPEC-048` mit [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) und
 dem Kopf von `tools/test/abdeckung.sh`. Wie ein Lauf zu lesen ist (Vertrag, Grenze,
 Ausgabe, Ausgänge, Sperren), steht je Gate in einer Sensor-Datei
 `harness/sensors/<target>.md` nach der Baseline-Vorlage, die den Vertrag verlinkt und
 nichts neu entscheidet; `harness/README.md` §Sensors zeigt darauf. Die Skriptköpfe
-behalten nur, womit das Werkzeug selbst geprüft ist. Danach entscheiden die
+behalten nur, womit das Werkzeug selbst geprüft ist; fehlt einem Vertragspunkt der
+Fall, ergänzt ihn die Gegenprobe (§6). Danach entscheiden die
 Folge-Slices ihre Randformen in diesem Abschnitt.
 
 **Herkunft:** `BEO-REPO/harness-lesart-ohne-entscheidungsort` (Review F-380 und
@@ -72,8 +73,8 @@ Skriptkopf legte, ist damit aufgelöst.
 - Die Erweiterung des Abdeckungs-Vertrags nach
   [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Nachweisart Gate,
   geteilte Messung) — ein Folge-Slice übernimmt sie: `slice-harness-abdeckung-gate`
-  baut sie und schreibt ihre Randformen in diesen Abschnitt (Empfehlung des Planners;
-  entschieden wird es mit §6 *Umfang des Abdeckungs-Vertrags*).
+  baut sie und schreibt ihre Randformen in `SPEC-048` fort, ohne neue Kennung
+  (entschieden in §6 *Umfang des Abdeckungs-Vertrags* und *Kennungen*).
 - Die Verträge der neuen Gates (Lint, Coverage, Mutation, Black-Box-Stufen) — ein
   Folge-Slice übernimmt sie: `slice-harness-lint`, `slice-harness-coverage`,
   `slice-harness-mutation`; die vier Umstellungs-Slices folgen den Entscheidungen von
@@ -86,12 +87,14 @@ Skriptkopf legte, ist damit aufgelöst.
   Symlink als Plan) entscheidet dieser Slice nicht.
 - Lastenheft, Sicht und Produkt-Code — Schicht-Abgrenzung: Der Slice ändert die
   Spezifikation (neuer Abschnitt, Historie), `harness/` (Sensor-Dateien, §Sensors) und
-  die Kommentarköpfe zweier Skripte unter `tools/`; kein ausführbarer Code.
+  die Kommentarköpfe zweier Skripte unter `tools/` und, wo einem Vertragspunkt der
+  Fall fehlt, deren Gegenproben (§6 *Vertragspunkt ohne Gegenprobe-Fall*); kein
+  ausführbarer Code der Werkzeuge selbst.
 - Die angenommenen ADRs — [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md),
   [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) und
   [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) bleiben unverändert
-  (`AGENTS.md` §3.5); wie ihr `Schärft: —` zum neuen Abschnitt steht, ist §6
-  *Schärft-Bezug*.
+  (`AGENTS.md` §3.5); ihr `Schärft: —` bleibt stehen, die Verbindung zum Abschnitt
+  trägt die Sensor-Datei (§6 *Schärft-Bezug*, Variante (a)).
 
 ## 2. Definition of Done
 
@@ -100,18 +103,18 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Spezifikation: Der Abschnitt für Harness-Werkzeuge liegt am Ort aus §6 und
-      führt je Werkzeug eine Kennung nach §6; `kopf-check` mit den neun Punkten von
+- [ ] Spezifikation: Der Abschnitt für Harness-Werkzeuge liegt als §11 nach *Nicht
+      zugesichert in v1* und führt `SPEC-047` für `kopf-check` mit den neun Punkten von
       [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) und den Lesarten
-      (1) bis (5), (a) und (b), `abdeckung` mit dem Vertrag aus
+      (1) bis (5), (a) und (b), `SPEC-048` für `abdeckung` mit dem Vertrag aus
       [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) und dem heutigen
       Skriptkopf (Deklarationsform, Pfade, Nachweisart nach Ort, erzeugte Tabellen,
       `--check`, Ausgänge). Jede Zusage des Abschnitts ist eine Zusage, die das Skript
       heute einhält: Zu jeder nennt der Skriptkopf den Fall der Gegenprobe
-      (`AGENTS.md` §3.11), eine Zusage ohne Fall steht als Grenze im Abschnitt oder
-      geht als Randform an den Architect. §11 trägt eine Historie-Zeile.
+      (`AGENTS.md` §3.11); fehlt der Fall, ergänzt ihn die Gegenprobe (§6). §12
+      *Historie* trägt eine Zeile.
 - [ ] Sensor-Dateien `harness/sensors/kopf-check.md` und
-      `harness/sensors/abdeckung-check.md` (Satz nach §6 *Welche Targets*) per `cp` aus
+      `harness/sensors/abdeckung-check.md` per `cp` aus
       der vendored Vorlage, je mit Vertrag (Link auf den Abschnitt), Grenze, Ausgabe
       und Ausgängen, Sperren und Bindung; sie entscheiden nichts, was der Abschnitt
       nicht sagt. Die Target-Zellen in `harness/README.md` §Sensors verlinken sie.
@@ -120,7 +123,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       noch, womit das Werkzeug geprüft ist (Fall der Gegenprobe); kein Vertragspunkt
       geht dabei verloren (Abgleich Punkt für Punkt im Bericht). Ausführbarer Code
       unverändert: `git diff` der beiden Skripte berührt nur Kommentarzeilen,
-      `make kopf-check-gegenprobe` und `make abdeckung-gegenprobe` grün.
+      `make kopf-check-gegenprobe` und `make abdeckung-gegenprobe` grün; jeder
+      ergänzte Fall ist gegen eine Mutation des Skripts rot gesehen (`AGENTS.md` §3.10).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -139,11 +143,12 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` | update | Abschnitt für Harness-Werkzeuge (Ort, Kennungen und Bezug nach §6) mit den Verträgen von `kopf-check` und `abdeckung`; Historie-Zeile in §11 |
+| `spec/spezifikation.md` | update | neuer §11 *Harness-Werkzeuge* mit `SPEC-047` (`kopf-check`) und `SPEC-048` (`abdeckung`), Bezug und Form nach §6; *Historie* wird §12 und bekommt eine Zeile |
 | `harness/sensors/kopf-check.md`, `harness/sensors/abdeckung-check.md` | neu | per `cp` aus `.harness/baseline/v6.13.0/templates/harness/sensors/gate.template.md`; Lesart eines Laufs, Vertrag als Link auf den Abschnitt |
-| `harness/README.md` | update | §Sensors: Target-Zellen von `make kopf-check` und `make abdeckung-check` verlinken die Sensor-Dateien; die Vertragszeile bleibt ein Satz |
+| `harness/README.md` | update | §Sensors: Target-Zellen von `make kopf-check` und `make abdeckung-check` verlinken die Sensor-Dateien; die Vertragszelle ist ein Satz, die von `make kopf-check` schrumpft darauf |
 | `tools/harness/kopf-check.sh`, `tools/test/abdeckung.sh` | update (nur Kommentare) | ZUSAGE- bzw. Beschreibungskopf → Verweis auf den Abschnitt plus Zuordnung Vertragspunkt → Fall der Gegenprobe |
-| `tools/harness/kopf-check-gegenprobe.sh`, `tools/test/abdeckung-gegenprobe.sh` | geprüft | Fälle unverändert; ihr Kopf nennt den Vertrag, falls er heute die ADR nennt (Entscheidung beim Implementer, keine neue Zusage) |
+| `tools/harness/kopf-check-gegenprobe.sh`, `tools/test/abdeckung-gegenprobe.sh` | geprüft / update | bestehende Fälle unverändert; ein Fall kommt hinzu, wo einem Vertragspunkt keiner gilt (§6 *Vertragspunkt ohne Gegenprobe-Fall*), je gegen eine Mutation rot gesehen; ihr Kopf nennt den Vertrag, falls er heute die ADR nennt (keine neue Zusage) |
+| `docs/plan/planning/open/slice-harness-abdeckung-gate.md` | update | §6 *Ort*: schreibt den Vertrag von `abdeckung` in dessen Kennung fort und vergibt keine neue (§6 *Kennungen*; `AGENTS.md` §3.9) |
 
 ## 4. Trigger
 
@@ -179,8 +184,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
 Lerneintrag; ohne ihn ist der Slice nur abgelegt.
 
-DoD vollständig, `make gates` grün, Closure-Notiz mit Lerneintrag; dazu der Ausgang von
-`BEO-REPO/harness-lesart-ohne-entscheidungsort` im Register.
+DoD vollständig, `make gates` grün, Closure-Notiz mit Lerneintrag. Der Register-Ausgang
+von `BEO-REPO/harness-lesart-ohne-entscheidungsort` steht schon (`gestrichen` mit der
+Closure von `slice-lastenheft-pruefbarkeit`); dieser Slice schuldet für ihn keinen.
 
 ## 6. Risiken und offene Punkte
 
@@ -189,81 +195,141 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **offen**, soweit nicht als
-entschieden markiert. Entschieden werden sie nach dem Start, vor dem ersten Commit an
-Spezifikation oder Skript, vom Architect; eine Entscheidung des Nutzers wird
-festgehalten. Wo eine Entscheidung steht, sagt die Randform selbst: Die zum Abschnitt
-gehören dorthin, die zum Vorgehen dieses Slice hierher. Was hier nicht steht,
-entscheidet der Implementer nicht, er gibt es zurück.
+**Randformen des Vertrags** (`AGENTS.md` §3.12) — **entschieden vom Architect am
+2026-10-06**, nach dem Start und vor dem ersten Commit an Spezifikation, Skript oder
+Gegenprobe. Die Entscheidungen zum Inhalt des Abschnitts überträgt der Implementer in
+die Spezifikation, dort gelten sie (Rang über ADR und Plan); die zum Vorgehen dieses
+Slice gelten hier. Was hier nicht steht, entscheidet der Implementer nicht, er gibt es
+zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
 
-- **Ort: Abschnitt oder eigene Datei** — Kurs-Antwort: ein eigener Abschnitt in
-  `spec/spezifikation.md` oder eine ihr zugeordnete Datei. Für den Abschnitt spricht:
-  Die Klasse `spec-straten` in `.d-check.yml` nennt genau drei Dateien; eine eigene
-  Datei fiele in die Klasse `aussen`, und `spec/spezifikation.md` dürfte sie nicht
-  verlinken, bis `.d-check.yml` und die Source Precedence in `harness/README.md`
-  nachgezogen sind. Offen: welcher Abschnitt — ein neuer zwischen §9
-  *Testanforderungen* und §10, ein neuer vor §11 *Historie*, oder ein Unterabschnitt
-  von §9 neben `SPEC-038` (die Prüfungen des Quellstands sind Testanforderungen im
-  weiteren Sinn); bei einem neuen Abschnitt mit Nummer verschiebt sich die Nummer der
-  folgenden, und Verweise auf `spezifikation.md §10`/`§11` sind nachzuziehen
-  (Empfehlung des Planners: neuer §10 *Harness-Werkzeuge* vor *Nicht zugesichert in
-  v1*, Verweise per `grep` nachziehen).
-- **Kennungen** — Kurs-Antwort: eigene `SPEC`-Kennungen. Offen: fortlaufend im
-  Zählraum der Datei (die höchste vergebene ist heute `SPEC-046`), eine Kennung je
-  Werkzeug oder je Vertragsteil (etwa Gegenstand, Kennungen, Kopf, Ausgabe bei
-  `kopf-check`). Bei eigener Datei: eigener Zählraum oder fortlaufend über beide
-  (Baseline-Regelwerk `grundlagen-source-precedence.md` §Vergabe, „fortlaufend je
-  Datei“; zwei `SPEC-001` wären mehrdeutig). Die Kennungen vergibt dieser Slice;
-  Folge-Slices nennen sie erst, wenn sie stehen (`make kopf-check`).
-- **Bezug nach oben** — „präzisieren ja, erweitern nie“ (Kopf der Spezifikation): Der
-  Abschnitt braucht eine Lastenheft-Anforderung, die er präzisiert. Kandidaten:
-  `LH-QA-04` (Automatisierbarkeit; Bezug von [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) und [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md)) für beide,
-  `LH-QA-07` für die Abdeckung und die Gates der Prüfbarkeit. Offen, ob jede Kennung
-  ihren Bezug nennt oder der Abschnitt einmal.
-- **Schärft-Bezug der angenommenen ADRs** — [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md), [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) und [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) tragen
-  `Schärft: —` und sind `Accepted`; der Schärft-Eintrag ist Inhalt (`AGENTS.md` §3.5).
-  Kandidaten: (a) die ADRs bleiben unverändert, die Verbindung trägt die Sensor-Datei
-  (Bindung: ADR, Vertrag: Link auf den Abschnitt) und der Kopf dieses Slice; die
-  Spezifikation nennt keine ADR (Klasse `spec-straten`, Regel gegen `adr`). (b) Je ADR
-  eine ersetzende ADR mit `Supersedes` und gesetztem `Schärft:` — drei ADRs nur für ein
-  Feld, die Entscheidung selbst bliebe gleich. (c) Eine Rückrichtung über die
-  Spezifikation, die die Verbindung ohne ADR-Änderung trägt (Vorschlag aus der
-  Auftragslage; Form offen, sie darf die Regel `spec-straten → adr` nicht verletzen).
-  Neue Gate-ADRs (Lint, Coverage, Mutation) setzen `Schärft:` von Anfang an.
-- **Lesart-Rangfolge bei Doppelung** — [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) führt die neun Punkte als Regeldetail
-  (vor der Kurs-Antwort so entschieden), der Abschnitt führt sie künftig ebenfalls. Die
-  Spezifikation steht im Rang über der ADR (`harness/README.md` §Source precedence):
-  Weicht der Abschnitt ab, gilt er. Offen: ob der Abschnitt den Wortlaut der ADR
-  übernimmt oder in eigener Fassung schreibt; eine eigene Fassung darf inhaltlich
-  nichts ändern (§1, *Verhaltensänderung*). Dieselbe Doppelung trägt
-  [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Accepted, bleibt
-  unverändert): Ihr Satz „Form der Deklaration, Pfad-Schreibweise und Fehlformen stehen
-  im Kopf des Abdeckungs-Skripts“ nennt einen Ort, den die Kurs-Antwort ersetzt. Der
-  Abschnitt übersteuert ihn: Form, Pfad-Schreibweise und Fehlformen stehen dort, weil
-  die Spezifikation im Rang über der ADR steht, und der Skriptkopf trägt nur, womit das
-  Werkzeug geprüft ist (Verifikation V-65 von `slice-lastenheft-pruefbarkeit`).
-- **Was der Abschnitt nennen darf** — `spec-straten → aussen` ist verboten: Der
-  Abschnitt verlinkt weder Skript noch Sensor-Datei noch Makefile. Offen: ob er
-  Werkzeug und Pfade als Text nennt (etwa `make kopf-check`,
-  `docs/plan/planning/open/`) — der geprüfte Gegenstand von `kopf-check` sind
-  Repo-Pfade, ohne sie ist der Vertrag nicht sagbar.
-- **Umfang des Abdeckungs-Vertrags** — der Vertrag, den `tools/test/abdeckung.sh`
-  heute einhält ([ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md)),
-  oder schon die Zusagen aus
-  [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), die
-  `slice-harness-abdeckung-gate` erst baut. Empfehlung des Planners: nur der heutige
-  Vertrag; die Erweiterung schreibt `slice-harness-abdeckung-gate` mit ihren Randformen
-  in den Abschnitt, denn eine Zusage ohne Gegenprobe-Fall verletzte `AGENTS.md` §3.11.
-- **Welche Targets eine Sensor-Datei bekommen** — nach der Vorlage nur, wo ein Satz
-  nicht reicht. Kandidaten: `make kopf-check` (Befund-Zeile, Exit 0/1/2, Grenze) und
-  `make abdeckung-check` (`--check`, Exit 0/1). Offen: ob die Gegenproben
-  (`make kopf-check-gegenprobe`, `make abdeckung-gegenprobe`) und das Werkzeug
-  `make abdeckung` (schreibt, prüft nicht) eine eigene Datei bekommen, in der Datei des
-  Gates mitstehen oder bei ihrer Zeile bleiben.
-- **Was im Skriptkopf bleibt** — Kurs-Antwort: womit das Werkzeug geprüft ist. Offen:
-  Form der Zuordnung (je Vertragspunkt der Name des Gegenprobe-Falls, wie heute
-  `nr2-punkt-endet-wort`), und ob die GRENZE-Zeile von `kopf-check.sh` als Grenze des
-  Vertrags in den Abschnitt wandert oder als Grenze der Prüfung im Kopf bleibt.
+- **Ort** — neuer Abschnitt `## 11. Harness-Werkzeuge` in `spec/spezifikation.md`,
+  **nach** §10 *Nicht zugesichert in v1*; *Historie* wird §12. Keine zugeordnete
+  Datei: Die Klasse `spec-straten` in `.d-check.yml` nennt genau drei Dateien, eine
+  vierte fiele in `aussen` und verlangte eine Änderung an `.d-check.yml` (Pfade und
+  `order`) und an der Source Precedence in `harness/README.md`; der Abschnitt
+  braucht keine von beiden. Abweichung von der Empfehlung des Planners (neuer §10):
+  Hinter §10 verschiebt sich nur die Nummer der Historie, `SPEC-039` behält §10, und
+  der Produkt-Teil endet mit seiner Abgrenzung, bevor die Werkzeuge der
+  Prüfumgebung kommen. Kein lebendes Dokument verweist heute auf `spezifikation.md`
+  §11 oder den Anker der Historie (geprüft per `grep`); die Folge-Slices nennen den
+  Abschnitt beim Namen *Abschnitt für Harness-Werkzeuge*, der Titel hält ihn.
+- **Kennungen** — fortlaufend im Zählraum der Datei, **eine Kennung je Werkzeug**:
+  `SPEC-047` für `kopf-check`, `SPEC-048` für `abdeckung`. Innerhalb einer Kennung
+  sind die Vertragspunkte nummeriert, `(1)`, `(2)`, …; die Nummer ist die Adresse,
+  auf die der Skriptkopf zeigt. Für `SPEC-047` sind es die Nummern 1 bis 9 von
+  [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), damit die Fall-Präfixe
+  `nr<n>-` der Gegenprobe gültig bleiben; die sieben bestätigten Lesarten werden in
+  den Punkt eingearbeitet, den sie präzisieren, und bekommen keine eigene Nummer.
+  Kennung je Vertragsteil ist verworfen: Sie bläht jeden Kopf eines Folge-Slice, der
+  eine Randform eines Werkzeugs fortschreibt, und adressiert nichts, was die
+  Punkt-Nummer nicht schon adressiert. Eine Randform eines bestehenden Werkzeugs
+  schreibt der Folge-Slice in dessen Kennung fort (`slice-harness-abdeckung-gate` in
+  `SPEC-048`, ohne neue Kennung); ein neues Werkzeug bekommt die nächste freie
+  Kennung, vergeben vom Slice, der es liefert.
+- **Bezug nach oben** — einmal, im Einleitungsabsatz des Abschnitts, nicht je
+  Kennung: Der Abschnitt legt die Werkzeuge der *Prüfumgebung des Projekts* fest,
+  die [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes)
+  Messmethode (4) nennt, und sagt dazu ausdrücklich: Keine Kennung des Abschnitts ist
+  eine Zusage des Produkts, und keine erweitert eine Anforderung des Lastenhefts.
+  `LH-QA-04` ist **nicht** der Bezug: Es verlangt, dass Start, Betrieb und Beendigung
+  *des Produkts* skriptgesteuert gehen; die Bezüge von [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) und [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) darauf
+  bleiben als eingefrorene Lesart stehen, die Spezifikation übernimmt sie nicht. Ein
+  Bezug je Kennung ist verworfen: `kopf-check` präzisiert keine Anforderung einzeln,
+  der Bezug wäre erfunden. Akzeptiertes Negativ: Die Präzisierung ist eng — sie trägt
+  nur, weil das Lastenheft die Prüfumgebung nennt, nicht ihre Werkzeuge.
+- **Schärft-Bezug der angenommenen ADRs** — **(a)**: [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md), [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) und [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)
+  bleiben unverändert, `Schärft: —` bleibt stehen (`AGENTS.md` §3.5). Die Verbindung
+  ADR ↔ Vertrag trägt die Sensor-Datei (Vertrag: Link auf die Kennung, Bindung: die
+  ADR) und die Index-Zeile in `harness/README.md` §Sensors. Gegen (b): drei
+  ersetzende ADRs für ein Feld bei gleicher Entscheidung; dazu setzte jede Ablösung
+  `superseded`, und `status: forbidden` in `.d-check.yml` färbte jedes lebende
+  Dokument rot, das die alte ADR verlinkt (`AGENTS.md` §3.9, `harness/README.md`
+  §Sensors, offene Slices) — Aufwand ohne neue Entscheidung. Gegen (c): Eine
+  Rückrichtung aus der Spezifikation auf eine ADR hat keine zulässige Form — die
+  Regel `{from: spec-straten, to: adr, allow: false}` gilt auch in der Historie, und
+  das Baseline-Regelwerk (`grundlagen-referenz-richtung.md` §Spec-Straten) kennt
+  Spec → ADR auch nicht als Quellen-Spalte; die einzige Rückrichtung ohne
+  Regelverstoß liegt außerhalb der Straten, und das ist (a). Akzeptiertes Negativ:
+  Für diese drei ADRs fehlt die maschinenlesbare Änderungskopplung ADR → Spec; wer
+  eine von ihnen ablöst, setzt in der Nachfolgerin `Schärft:` auf die Kennung. Neue
+  Gate-ADRs (Lint, Coverage, Mutation, Gate-Nachweise) setzen `Schärft:` von Anfang
+  an.
+- **Lesart-Rangfolge bei Doppelung** — Der Abschnitt schreibt in **eigener Fassung**,
+  nicht im Wortlaut der ADR, und sagt nur, was das Skript heute tut; wo das Skript
+  genauer ist als [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md) (Feldmarke nur am Absatzanfang, Leerzeile mit Leerzeichen
+  und Tabs, nicht lesbarer Plan als ein Befund), steht die genauere Fassung — das
+  präzisiert die ADR, es ändert sie nicht. Ein echter Widerspruch zwischen ADR und
+  Skript ist eine Randform-Rückgabe, kein Text-Entscheid. Bei Doppelung gilt der
+  Abschnitt (Rang über der ADR). Der Satz in [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), Form der Deklaration,
+  Pfad-Schreibweise und Fehlformen stünden im Kopf des Abdeckungs-Skripts, ist
+  **übersteuert**, nicht abgelöst: Er nennt einen Ort, ein Regeldetail im Sinn von
+  `AGENTS.md` §3.8, keine Entscheidung; die Entscheidung der ADR (Nachweisart Gate,
+  geteilte Messung) bleibt unberührt, also braucht es keine Folge-ADR. Wer der ADR
+  zum Skriptkopf folgt, findet dort als erste Zeile den Zeiger auf `SPEC-048`; das
+  trägt den Übergang. Dasselbe gilt für den Satz im Kontext von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), den
+  Vertrag nenne `harness/README.md` §Sensors.
+- **Was der Abschnitt nennen darf** — Targets (`make kopf-check`,
+  `make abdeckung-check`, `make abdeckung`) und geprüfte Repo-Pfade
+  (`docs/plan/planning/open/`, `docs/user/abdeckung-*.md`, `test/integration/`) als
+  Text in Code-Spans, **ohne Link**; keinen Skriptpfad, keine Sensor-Datei, kein
+  Makefile, auch nicht als Text — die Schnittstelle ist das Target. Verboten bleiben
+  Links nach `aussen` und jedes Token, das die Matrix fängt: die Zeichenfolge aus
+  `slice` und Bindestrich in Kleinschrift (den Gegenstand von `kopf-check` schreibt
+  der Abschnitt wie [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md): *Dateiname mit Präfix `slice` und Bindestrich*), die aus
+  `welle` und Bindestrich, eine `MR`-Kennung und eine ADR-Kennung, auch in der
+  Historie-Zeile. Links auf das Lastenheft sind erlaubt (aufwärts).
+- **Umfang des Abdeckungs-Vertrags** — nur der heutige Vertrag: Deklarationsform,
+  Pfade, Nachweisart nach Ort, die vier Tabellen, `--check`, Ausgänge, dazu was die
+  Gegenprobe heute schon prüft (Maskierung von `|`, Dateirechte 0644). Die
+  Erweiterung nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) schreibt `slice-harness-abdeckung-gate` mit ihren
+  Randformen in `SPEC-048` fort; eine Zusage ohne Fall verletzte `AGENTS.md` §3.11.
+- **Vertragspunkt ohne Gegenprobe-Fall** — Ergibt der Abgleich, dass ein Punkt, den
+  das Skript heute einhält, keinen Fall hat (bei `abdeckung` absehbar: Nachweisart
+  E2E nach Ort, Inhalt von `abdeckung-e2e.md` und `abdeckung-gesamt.md`, eine
+  Anforderung mit fehlendem Pfad fehlt in `abdeckung-vollstaendig.md`, `LH-QA`/`LH-RB`
+  nur mit `Messung`, Exit genau 1), **ergänzt der Implementer den Fall in der
+  Gegenprobe** und sieht ihn gegen eine Mutation des Skripts rot (`AGENTS.md` §3.10);
+  der ausführbare Code von `kopf-check.sh` und `abdeckung.sh` bleibt unverändert.
+  Ein Punkt als „Grenze“ im Abschnitt ist dafür kein Ausweg: Die Grenze sagt, was
+  das Gate nicht prüft, nicht, was am Werkzeug ungeprüft ist. Ist ein Fall nicht ohne
+  Eingriff ins Werkzeug herstellbar, ist das eine Randform-Rückgabe.
+- **Welche Targets eine Sensor-Datei bekommen** — `harness/sensors/kopf-check.md` und
+  `harness/sensors/abdeckung-check.md`, je per `cp` aus der vendored Vorlage. Die
+  Gegenproben bekommen keine: Was sie prüfen, ist die Frage, ob das Werkzeug richtig
+  ist, und lebt beim Werkzeug; ihr Vertrag bleibt ein Satz in ihrer Zeile. `make
+  abdeckung` bekommt keine: Es ist ein Werkzeug, seine Wirkung ist Teil von
+  `SPEC-048`, und `abdeckung-check.md` nennt es als Weg aus dem Rot (*Ausgabe und
+  Ausgänge*). Die Index-Zelle von `make kopf-check` schrumpft auf einen Satz, die
+  Einzelheiten stehen in Abschnitt und Sensor-Datei. Eine *Sperre* nennt die Datei
+  nur, wo das Skript eine benannte Abbruch-Meldung hat und ein Fall sie hält
+  (`kopf-check`: fehlende Ablage, Exit 2); `abdeckung` hat keine und sagt das.
+- **Was im Skriptkopf bleibt** — der Zweck in einem Satz, der Zeiger
+  `Vertrag: spec/spezifikation.md SPEC-047` (bzw. `SPEC-048`) samt Sensor-Datei als
+  Text, die Aufruf-Zeile, und die Zuordnung `GEPRÜFT DURCH <Gegenprobe>:` mit einer
+  Zeile je Vertragspunkt, `(<n>) <Stichwort> — <Fall-Namen>`. Fall-Namen wie in der
+  Gegenprobe; `nr<n>-*` steht für alle Fälle mit diesem Präfix und nur dort, wo sie
+  alle zu Punkt `n` gehören; ein Fall ohne Namen (etwa Nr. 9, der `make`-Lauf im
+  Temp-Baum) wird mit seinem Kommentar-Titel in der Gegenprobe genannt. Ausgabe- und
+  Ausgang-Zeilen wandern in den Abschnitt. Die **GRENZE-Zeile** von `kopf-check.sh`
+  wandert als *Grenze* in `SPEC-047` (was kein Befund ist, ist Vertrag), die
+  Sensor-Datei liest sie unter *Grenze*, und der Skriptkopf ordnet ihr die grünen
+  Fälle `neg-*` zu; eine Grenze der Prüfung selbst (etwa der übersprungene Fall
+  unter root) bleibt im Kopf der Gegenprobe.
+- **Schwellen künftiger Gates — Empfehlung für die Folge-Slices** (entschieden wird
+  sie in deren Architect-Schritt; Frage an den Nutzer im Bericht): Die **Zahl**
+  (Coverage-Schwelle, Mutations-Schwelle) steht in der Kennung des Werkzeugs in
+  diesem Abschnitt, als Konstante mit Einheit und einem Satz Begründung; die **ADR**
+  entscheidet Mechanismus, Messart und die Regel, nach der die Zahl aus der Messung
+  folgt, hält die **Messung** mit Quellstand im Kontext fest und setzt `Schärft:` auf
+  die Kennung. Gründe: LH-QA-07 (2) verlangt eine *festgelegte* Schwelle, und das
+  Festlegen ist Präzisieren, also Technik-Stratum; eine Zahl in der Accepted-ADR ist
+  Regeldetail (`AGENTS.md` §3.8) und zwänge bei jeder Anhebung zu einer
+  Ersetzungs-ADR. `AGENTS.md` §3.6 bleibt unberührt: Eine **Senkung** braucht
+  weiterhin eine ADR, die die Kennung schärft; eine Anhebung ist Fortschreibung. Die
+  Messung ist ein Zeitdokument und gehört in die ADR, nicht in den Abschnitt.
+  Betroffen bei Annahme: §1 *Ziel* von `slice-harness-coverage` („gesetzt in der ADR
+  des Gates“) und §2 von `slice-harness-mutation`; nachgezogen in deren
+  Architect-Schritt, nicht hier.
 
 **Risiken:**
 
@@ -279,10 +345,11 @@ entscheidet der Implementer nicht, er gibt es zurück.
   (`AGENTS.md` §3.9). — **Ausgang:** — (bei Closure)
 - **Schärft-Bezug bleibt Prosa** — wählt der Architect (a), führt keine ADR einen
   maschinenlesbaren Bezug auf den Abschnitt; die Verbindung hängt an der Sensor-Datei.
-  — **Ausgang:** — (bei Closure)
+  Gewählt ist (a); akzeptiertes Negativ mit Grund in §6 *Schärft-Bezug*. — **Ausgang:** — (bei Closure)
 - **Nummernverschiebung** — ein neuer nummerierter Abschnitt vor *Historie* verschiebt
   §-Verweise in Plänen und Archiv; eingefrorene Zeitdokumente werden nicht
-  nachgezogen. — **Ausgang:** — (bei Closure)
+  nachgezogen. Gewählt ist §11 nach *Nicht zugesichert*; es verschiebt sich nur die
+  Historie (§6 *Ort*). — **Ausgang:** — (bei Closure)
 
 ## 7. Closure-Notiz
 
@@ -327,9 +394,12 @@ Hälften.
 `docs/plan/planning/observations/BEO-REPO/` am Stand `3dfef35` gesichtet (Zähler =
 Dateien unter `evidence/`). Treffer:
 
-- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×; das zweite Auftreten, Review
-  F-406, belegt die Closure von `slice-lastenheft-pruefbarkeit`) — dieser Slice ist die
-  Antwort: Er legt den Ort an. Sein Ausgang im Register kommt mit der Closure.
+- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (2×, `gestrichen` mit der Closure
+  von `slice-lastenheft-pruefbarkeit`, nachgesehen am Stand `e491e0c`: die Ursache ist
+  mit der Antwort des Kurs-Repos weggefallen) — dieser Slice legt den Ort an, der die
+  Streichung trägt; ein Ausgang steht nicht mehr aus. Eine Randform, die trotzdem in
+  Skriptkopf oder Plan entschieden wird, zählt bei den beiden Randform-Einträgen
+  unten.
 - `BEO-REPO/gate-uebergeht-ablage-eintrag-still` (1×; V-40, V-43 aus
   `slice-harness-kopf-sensor`) — trifft den Vertrag von `kopf-check`; die zwei offenen
   Randformen werden übertragen, nicht entschieden (§1).

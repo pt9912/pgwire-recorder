@@ -163,7 +163,7 @@ dasteht.
 **Randformen des Vertrags** (`AGENTS.md` §3.12). Vorgegeben durch
 [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) und §6 *Nachweis* von
 `slice-lastenheft-pruefbarkeit` (Architect, 2026-10-06); vor dem Code zu bestätigen.
-**Ort** (F-406): der Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum), angelegt von `slice-harness-vertraege-spezifikation`; dort steht der Vertrag von `abdeckung`, den dieser Slice erweitert, und die Kennungen der neuen Randformen vergibt dieser Slice. Die ADR trägt Entscheidung und Gründe. Jede dort zugesagte Randform bekommt einen Fall in
+**Ort** (F-406): der Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum), angelegt von `slice-harness-vertraege-spezifikation`; dort steht der Vertrag von `abdeckung` unter einer Kennung, die dieser Slice mit den neuen Randformen fortschreibt; eine neue Kennung vergibt er nicht (eine Kennung je Werkzeug, Architect in §6 *Kennungen* von `slice-harness-vertraege-spezifikation`). Die ADR trägt Entscheidung und Gründe. Jede dort zugesagte Randform bekommt einen Fall in
 `make abdeckung-gegenprobe` (`AGENTS.md` §3.10, §3.11). Bis zum Code stehen sie hier:
 
 - **Pfad-Schreibweise** — `Messung-<i>-von-<n>` mit 2 ≤ n und 1 ≤ i ≤ n.
