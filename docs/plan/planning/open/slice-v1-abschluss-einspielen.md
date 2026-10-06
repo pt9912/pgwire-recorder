@@ -33,6 +33,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-replay-semantik-mismatch`:** `play` kennt die Option `--fail-on-unconsumed` nicht (`PGR-E2001`, Exit-Code 2) und lässt ihre Umgebungsvariable `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` unbeachtet, auch mit ungültigem Wert (`LH-FA-03.b` §Andere Kommandos, `LH-FA-17.a`); der Test dafür gehört zu den Optionen von `play`.
 
+**Übernommen aus `slice-replay-semantik-meldungscodes`:** `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` bei `play`, mit derselben Wertemenge und Strenge wie bei `record` und `replay` (Optionstabelle, `LH-FA-17.a`).
+
 **Bereinigung aus `slice-replay-semantik-fehlerreplay`:** Die Teile von `LH-FA-20.a` Schritt 3, die aufgezeichnete Interaktionen ohne `ReadyForQuery` behandeln, sind seit der Entscheidung in `LH-FA-02.b` §Fehlerantwort vor dem Abbruch nicht mehr erreichbar: Der Recorder schreibt keine solche Interaktion, und der Leser lehnt sie als beschädigt ab (`PGR-E3003`). Dieser Slice bereinigt sie in der Spezifikation; seine DoD sagt für sie nichts zu.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:

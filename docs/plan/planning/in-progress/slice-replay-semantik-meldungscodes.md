@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-replay-semantik.
 
-**Bezug:** [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md)
+**Bezug:** [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md)
 
-**Berührte Spec-Stellen:** `SPEC-034` · `SPEC-005` · `SPEC-006` · `SPEC-013` bis `SPEC-028` · `LH-FA-18.a` · `SPEC-033`
+**Berührte Spec-Stellen:** `LH-FA-14.a` · `SPEC-034` · `SPEC-005` · `SPEC-006` · `SPEC-013` bis `SPEC-028` · `LH-FA-13.b` · `LH-FA-17.a` · `LH-FA-01.a` · `LH-FA-10.a` · `LH-FA-18.a` · `SPEC-033` · `LH-FA-11.a`
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -29,17 +29,34 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Jeder Fehler und jede Warnung trägt einen `PGR-…`-Meldungscode; der Fehlertext beginnt mit `<klasse> [<code>]: `, Logs gehen nach `stderr` mit einstellbarem Level.
+**Ziel:** Jeder Fehler und jede Warnung trägt einen `PGR-…`-Meldungscode; der Fehlertext beginnt mit `<klasse> [<code>]: `, Logs gehen nach `stderr` mit einstellbarem Level (`--log-level`). Die Randformen dieser Verträge sind vor dem Code entschieden (§6, Architect 2026-10-06) und stehen in `LH-FA-14.a` und `SPEC-034` §Ausgabe.
 
-**Übernommen aus `slice-extended-query-replay`** (Review F-328, Validierung `docs/reviews/2026-10-05-validierung-slice-extended-query-replay.md`, Befund 3): Mit `--log-level` wird die Regel zu Parameterwerten in der Diagnose wirksam, und die Spezifikation fasst sie zweimal verschieden — `LH-FA-18.a` §Mismatch verbietet Klartext-Werte nur, „wenn der Log-Level nicht `debug` ist“, `SPEC-033` verbirgt sie ohne Bedingung. Die Diagnose geht zudem als `ErrorResponse` an den Client, ein Log-Level wirkte also auch dort. Dazu nennt die Diagnose einer Parameter-Abweichung den Index des abweichenden Parameters nicht, obwohl er keinen Wert verrät. Beides entscheidet der Nutzer als Änderung von `LH-FA-18.a` §Mismatch und `SPEC-033`, bevor dieser Slice beginnt (§4); die Umsetzung liefert DoD-Punkt 3.
+**Schon geliefert, mit Test** (Bestand der Wellen davor; dieser Slice baut darauf, statt ihn neu zu liefern):
+
+- Code-Tabelle im Quelltext (`internal/hexagon/model/fehler.go`, nur die Codes, die der Code erzeugt), Kopf `<klasse> [<code>]: ` in `model.Error` und Exit-Code aus der ersten Ziffer des Codes — geprüft für `PGR-E2001` mit Exit-Code 2 (`cli_test.go`), `PGR-E2001`/`PGR-E3001` als Startfehler auf `stderr` (`bootstrap_test.go`), `PGR-E3003` mit Exit-Code 3 und `PGR-E5001` mit Exit-Code 5 (`replay_e2e_test.go`), den Kopf `Replay [PGR-E5002]: ` (`replay_unverbraucht_test.go`).
+- `ErrorResponse` mit `FATAL`, dem Code im Meldungstext und SQLSTATE `0A000` beziehungsweise `08006` (`server_test.go`, `server_extended_test.go`).
+- Warnungen `PGR-W2001`, `PGR-W3001`, `PGR-W3003` mit Attribut `code` (`server_test.go`, `record_e2e_test.go`, `unverbraucht_e2e_test.go`).
+- Hilfe und `version` auf `stdout`, nichts auf `stderr` (`bootstrap_test.go`).
+- Parameterwerte erscheinen nicht in der Diagnose einer Extended-Abweichung; sie nennt nur das Feld `params` (`replay_extended_test.go`).
+
+**Neu in diesem Slice:**
+
+- Fehlertext einzeilig, Kopf genau einmal mit dem Code des äußersten Fehlers (heute trägt eine Kette zwei Köpfe, etwa `PGR-E3003` um `PGR-E3003` beim Lesen eines Werts), fremde Fehler mit Kopf (heute ohne: der Annahmefehler im PGWire-Adapter und jeder nicht eingeordnete Fehler in `note` und `fail`), Klassenname nach `SPEC-034` (`SPEC-034` §Ausgabe).
+- `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` bei `record` und `replay` mit den vier Stufen, der Strenge des Werts und dem Inhalt der Stufen; heute ist die Stufe fest `info` (`LH-FA-14.a`).
+- Test je Fehlerklasse (Exit 1 bis 6) für Kopf, Klassenname und Exit-Code, dazu ein Test, dass jeder Code der Tabelle im Quelltext die Form aus `SPEC-034` hat und seine Klasse ergibt.
+
+**Übernommen aus `slice-extended-query-replay`** (Review F-328, Validierung `docs/reviews/2026-10-05-validierung-slice-extended-query-replay.md`, Befund 3): Die Regel zu Parameterwerten stand in `LH-FA-18.a` §Mismatch mit der Bedingung „wenn der Log-Level nicht `debug` ist“, in `SPEC-033` ohne Bedingung; die Diagnose nannte den Index des abweichenden Parameters nicht. **Vom Nutzer entschieden am 2026-10-06** und in die Spezifikation geschrieben: Parameterwerte erscheinen nie in der Diagnose, weder im Log noch in der `ErrorResponse`, auf keinem Log-Level (`LH-FA-18.a` §Mismatch an `SPEC-033` angeglichen); die Diagnose nennt die Nummer des ersten abweichenden Parameters ohne Wert, bei abweichender Zahl beide Anzahlen (`LH-FA-18.a` §Mismatch). Die Umsetzung liefert DoD-Punkt 3.
 
 **Übernommen aus `slice-replay-semantik-fehlerreplay`** (Verifikation `docs/reviews/2026-10-06-verifikation-slice-replay-semantik-fehlerreplay.md`, V-52): Abnahmeszenario 4 ist für Simple Query nur zur Hälfte nachgewiesen. `TestE2EReplayAbweichung` prüft `PGR-E5001` und Exit-Code 5, deklariert auch „keine Antwort“, verwirft aber die Ergebnisse von `ReadAll`; `TestReplayMismatch` deklariert `LH-FA-10/Negative` und prüft nur Code und Cursor. Die Mutation „bei abweichender Anfrage liefert das Replay die Antworten der aufgezeichneten Anfrage, der Driving-Adapter sendet sie vor `PGR-E5001`“ bleibt grün (VF24). Der Code ist richtig, es fehlt nur der Nachweis für `LH-FA-10` Negative („statt eine unpassende aufgezeichnete Antwort zu verwenden“). Ohne ihn schließt welle-replay-semantik nicht (Closure-Trigger, Abnahmeszenario 4). Der Nachweis gehört in DoD-Punkt 3, weil er dieselbe Anforderung und dieselbe Diagnose einer Abweichung betrifft; er braucht keinen Produktionscode.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Gate, das Code-Tabelle und Katalog abgleicht — Folge-Slice, sobald der Katalog in der Betriebsdokumentation (welle-v1-abschluss) steht.
-- Warnungen für nicht verbrauchte Interaktionen und `CancelRequest` — welle-v1-abschluss.
-
+- Gate, das die Code-Tabelle im Quelltext mit dem Katalog des Handbuchs und mit `SPEC-034` abgleicht — Folge-Slice der welle-v1-abschluss (dort unter *Ausdrücklich nicht* geführt), nach dem Katalog in der Betriebsdokumentation (`slice-v1-abschluss-container`); hier prüft ein Test nur Form und Klasse der Codes im Quelltext.
+- Codes, die erst ein späterer Auslöser erzeugt (`PGR-E2003` bis `PGR-E2007`, `PGR-E4004` bis `PGR-E4006`, `PGR-E5004`, `PGR-E6003`, `PGR-W3002`), und deren Warnungen — kommen mit dem Slice, der den Auslöser liefert, in die Tabelle; sie folgen `SPEC-034`.
+- Schlüssel `log_level` der Konfigurationsdatei — `slice-v1-abschluss-betrieb` (Konfigurationsdatei für alle Optionen); hier nur Option und Umgebungsvariable.
+- `--log-level` bei `play` — `slice-v1-abschluss-einspielen` (Optionen von `play`); `play` gibt es noch nicht.
+- Info-Zeile beim Beginn des Herunterfahrens und Exit-Code nach dem Herunterfahren je Klasse — `slice-v1-abschluss-betrieb`.
+- Allgemeiner Leser für Umgebungsvariablen — `slice-v1-abschluss-betrieb`; `--log-level` liest seine Variable wie `--fail-on-unconsumed` (Risiko in §6).
 
 ## 2. Definition of Done
 
@@ -48,9 +65,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben): Fehlerklassen aus `SPEC-020` bis `SPEC-028` liefern ihren Code im Kopf des Fehlertexts und als Log-Attribut (Test je Klasse).
-- [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Die Klasse eines Fehlers entspricht `SPEC-013` bis `SPEC-019` (Test je Klasse, deren Auslöser in dieser Welle existiert; die Abbildung auf den Exit-Code beim Herunterfahren und die übrigen Klassen prüft `slice-v1-abschluss-betrieb`).
-- [ ] [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage): Die Diagnose einer Parameter-Abweichung nennt den Index des abweichenden Parameters ohne seinen Wert, und Parameterwerte erscheinen in Diagnose und `ErrorResponse` so, wie die vor Beginn bestätigte Fassung von `LH-FA-18.a` §Mismatch und `SPEC-033` es sagt, auf jedem Log-Level (Test). Bei einer abweichenden einfachen Anfrage erhält der Client keine aufgezeichnete Antwort, nur `PGR-E5001` (Abnahmeszenario 4, `LH-FA-10` Negative, übernommen aus `slice-replay-semantik-fehlerreplay`): `TestE2EReplayAbweichung` verlangt, dass `ReadAll` kein Ergebnis liefert, `TestReplayMismatch`, dass `Query` bei Abweichung keine Antworten liefert; beide werden rot, wenn das Replay die Antworten der aufgezeichneten Anfrage vor `PGR-E5001` liefert (E2E und Unit, Abdeckung `LH-FA-10/Negative`).
+- [ ] [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Je Fehlerklasse (`SPEC-013` bis `SPEC-019`, Exit 1 bis 6) beginnt der Fehlertext mit dem Kopf aus `SPEC-034` §Ausgabe (Klassenname, Code), als Zeile beim Prozessende, als Attribut `error` und als Meldungstext der `ErrorResponse` mit SQLSTATE nach Klasse, und der Exit-Code ist der der Klasse; der Fehlertext ist eine Zeile, eine Fehlerkette trägt einen Kopf mit dem Code des äußersten Fehlers, ein nicht eingeordneter Fehler ist `PGR-E1000` mit Kopf; jeder Code der Tabelle im Quelltext hat die Form aus `SPEC-034` und ergibt seine Klasse (Test je Klasse und je Regel; die Abbildung beim Herunterfahren prüft `slice-v1-abschluss-betrieb`).
+- [ ] [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` wirken bei `record` und `replay` wie `LH-FA-14.a` sagt: vier Stufen, jede zeigt nur ihre und die strengeren Zeilen, Standard `info`; jeder andere Wert, auch leer und großgeschrieben, ist `PGR-E2001`, eine ungültige Umgebungsvariable auch neben einer gültigen Option; eine Log-Zeile trägt `level`, Fehler `code` und `error`, Warnungen `code`; ein Startfehler erscheint auf jeder Stufe als Fehlertext (Test je Stufe und je Randform aus §6).
+- [ ] [`LH-FA-10`](../../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): Die Diagnose einer Parameter-Abweichung nennt die Nummer des ersten abweichenden Parameters (ab 1), bei abweichender Zahl beide Anzahlen, ohne einen Wert; kein Parameterwert erscheint in Log oder `ErrorResponse`, auch bei `--log-level debug` (`LH-FA-18.a` §Mismatch, `SPEC-033`; Test). Bei einer abweichenden einfachen Anfrage erhält der Client keine aufgezeichnete Antwort, nur `PGR-E5001` (Abnahmeszenario 4, `LH-FA-10` Negative, übernommen aus `slice-replay-semantik-fehlerreplay`): `TestE2EReplayAbweichung` verlangt, dass `ReadAll` kein Ergebnis liefert, `TestReplayMismatch`, dass `Query` bei Abweichung keine Antworten liefert; beide werden rot, wenn das Replay die Antworten der aufgezeichneten Anfrage vor `PGR-E5001` liefert (E2E und Unit, Abdeckung `LH-FA-10/Negative`).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -68,25 +85,31 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Code-Tabelle (Paket im Core) | neu | Quelle der Wahrheit der Codes |
-| `internal/adapters/driving/cli` | update | Kopf, Exit-Code-Abbildung, `--log-level` |
-| Tests je Fehlerklasse | neu | Happy/Negative nach `SPEC-034` |
-| `test/integration/replay_e2e_test.go` | update | DoD 3, Abnahmeszenario 4: `TestE2EReplayAbweichung` prüft die Ergebnisse von `ReadAll` (keine), Deklaration `LH-FA-10/Negative` ergänzt |
-| `internal/hexagon/services/replay_test.go` | update | DoD 3: `TestReplayMismatch` prüft, dass `Query` bei Abweichung keine Antworten liefert |
+| `internal/hexagon/model/fehler.go` | update | Code-Tabelle bleibt hier (kein eigenes Paket); `Error()` einzeilig, ein Kopf je Kette (`SPEC-034` §Ausgabe) |
+| `internal/hexagon/model/fehler_test.go` | neu | DoD 1: Kopf, Klassenname und Exit-Code je Klasse, Kette, Zeilenumbruch, Form jedes Codes der Tabelle |
+| `internal/hexagon/services/replay.go`, `matcher.go` | update | DoD 3: Nummer des ersten abweichenden Parameters, beide Anzahlen |
+| `internal/hexagon/services/replay_test.go`, `replay_extended_test.go` | update | DoD 3: `TestReplayMismatch` prüft, dass `Query` bei Abweichung keine Antworten liefert; Nummer und Anzahlen ohne Wert |
+| `internal/adapters/driving/cli` | update | DoD 2: `--log-level` und Umgebungsvariable bei `record` und `replay`, Hilfetext |
+| `internal/bootstrap` | update | DoD 1 und 2: Stufe des Loggers aus der Option; Zeile beim Prozessende mit Kopf auch für einen nicht eingeordneten Fehler |
+| `internal/adapters/driving/pgwire/server.go` | update | DoD 1: Annahmefehler mit Kopf `PGR-E4000`, nicht eingeordneter Fehler in `note` mit Kopf `PGR-E1000` |
+| Tests in `cli`, `bootstrap`, `pgwire` | update | DoD 1 und 2: je Klasse, je Stufe, je Randform aus §6 |
+| `test/integration/replay_e2e_test.go` | update | DoD 3, Abnahmeszenario 4: `TestE2EReplayAbweichung` prüft die Ergebnisse von `ReadAll` (keine), Deklaration `LH-FA-10/Negative` ergänzt; ein Lauf mit `--log-level debug` zeigt keinen Parameterwert |
+| `docs/user/benutzerhandbuch.md` | update | Werte von `--log-level` und ihre Strenge, Zeilenform, Nummer des abweichenden Parameters |
 | `docs/user/abdeckung-*.md` | update | von `make abdeckung` aus den geänderten Deklarationen geschrieben |
+
+Berührte Schichten: Core (`model`, `services`) und Driving-Adapter (`cli`, `pgwire`, mit `bootstrap` als Verdrahtung) — zwei.
 
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-replay-semantik-mismatch` ist `done`, und die Fassung von `LH-FA-18.a` §Mismatch und `SPEC-033` zu Parameterwerten und Parameter-Index ist vom Nutzer bestätigt (§1).
+**Start** (`next` → `in-progress`): `slice-replay-semantik-mismatch` ist `done`, und die Fassung von `LH-FA-18.a` §Mismatch und `SPEC-033` zu Parameterwerten und Parameter-Index ist vom Nutzer bestätigt (§1, 2026-10-06); die Randformen aus §6 sind vor dem ersten Code-Commit entschieden.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: der Katalog verlangt eigene Doku-Arbeit — zurück zur Zerlegung.
+- `in-progress` → `next`: Der Diff passt nicht in eine Review-Sitzung, oder `--log-level` verlangt den allgemeinen Optionsleser aus `slice-v1-abschluss-betrieb` — zurück zur Zerlegung; DoD 2 geht dann als eigener Slice der Welle ab (Vorschlag: `slice-replay-semantik-log-level`).
 - `in-progress` → `open`: Eine Klasse lässt sich nicht eindeutig zuordnen — Carveout.
-
 
 ## 5. Closure-Trigger
 
@@ -103,9 +126,36 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Vorrangfolge bei Fehlerketten mit mehreren Codes ist nicht festgelegt — **Ausgang:** offen bis Closure.
+**Randformen der neuen Verträge** (`AGENTS.md` §3.12), je mit dem Ort ihrer Entscheidung; geprüft und entschieden vom Architect am 2026-10-06, die Nutzerentscheidungen vom selben Tag eingeschlossen:
 
-- Parameterwerte bei `debug` (aus `slice-extended-query-replay`, Review F-328): Liest man `LH-FA-18.a` §Mismatch als Erlaubnis für `debug`, verletzt das `SPEC-033`, und die Werte gingen auch an den Client — **Ausgang:** offen bis Closure.
+| Randform | Entscheidung | Ort |
+|---|---|---|
+| Mehrzeilige Ursache, Kontinuationszeilen | Fehlertext ist eine Zeile; ein Zeilenumbruch wird mit dem Leerraum danach durch ein Leerzeichen ersetzt, auch im Text einer Bibliothek; keine Kontinuationszeilen | `SPEC-034` §Ausgabe *Eine Zeile* |
+| Fehler vor dem Lesen von `--log-level`, ungültiger Wert von `--log-level` | Startfehler erscheint auf jeder Stufe als Zeile beim Prozessende; vorher schreibt der Prozess nichts anderes | `LH-FA-14.a` §Log-Level |
+| Werte von `--log-level`, Strenge | genau `error`, `warn`, `info`, `debug`; kleingeschrieben; leer, großgeschrieben, anderer Name (`warning`, `trace`, `off`) sind `PGR-E2001`; Umgebungsvariable: leer gilt als nicht gesetzt, ungültig ist `PGR-E2001` auch neben gültiger Option; Mehrfachangabe: letzte gilt; nur nach dem Kommando | `LH-FA-14.a` §Log-Level, `LH-FA-17.a` |
+| Stufen und ihr Inhalt | `error` Verbindungsfehler, `warn` Warnungen (jede mit Code), `info` Start, Ende und Beginn des Herunterfahrens, keine Zeile je Verbindung, `debug` je Verbindung, nicht Vertrag; Schwelle zeigt die strengeren Stufen mit | `LH-FA-14.a` §Log-Level |
+| Code für Warnungen | jede Zeile der Stufe `warn` trägt `PGR-W…` als Attribut `code`; ein Hinweis ohne Maßnahme geht nach `info` oder `debug` | `LH-FA-14.a`, `SPEC-034` §Ausgabe |
+| `stdout` gegen `stderr`, auch bei Hilfe und `version` | Logs und Fehlertext auf `stderr`; auf `stdout` nur Hilfe, `version`, `config show`, die nichts auf `stderr` schreiben; `--log-level` wirkt auf keines davon | `LH-FA-14.a`, `LH-FA-01.a` |
+| Zeitstempel und Zeilenform | `logfmt`: `time` (RFC 3339, Millisekunden, Zonenversatz), `level` (`DEBUG` bis `ERROR`), `msg`, dann Attribute; Vertrag nur `level`, `code`, `error`; Zeile beim Prozessende ist genau der Fehlertext | `LH-FA-14.a` §Zeilenform |
+| `ErrorResponse` gegen Log | derselbe Fehlertext wie `error`, unabhängig vom Log-Level; `FATAL`; SQLSTATE `0A000`, `08006`, sonst `XX000`; keine weiteren Felder | `SPEC-034` §Ausgabe *Zustellung an den Client* |
+| Interne Fehler ohne Code | `PGR-E1000` mit Kopf, Exit-Code 1; ein Fehlertext ohne Kopf kommt nicht vor | `SPEC-034` §Fehler und §Ausgabe *Fremde Fehler* |
+| Fehler aus Bibliotheken | Code der Stelle, die ihn einordnet, Bibliothekstext als Ursache (nicht Vertrag); eine weitergeleitete oder wiedergegebene `ErrorResponse` des Servers trägt keinen Code | `SPEC-034` §Ausgabe *Fremde Fehler*, `LH-FA-11.a` |
+| Fehlerkette mit mehreren Codes | ein Kopf, Code und Klasse des äußersten klassifizierten Fehlers | `SPEC-034` §Ausgabe *Fehlerkette* |
+| Parameterwerte, auch bei `debug` | nie in Log oder `ErrorResponse` (Nutzer, 2026-10-06) | `LH-FA-18.a` §Mismatch, `SPEC-033` |
+| Parameter-Index, abweichende Anzahl | Nummer des ersten abweichenden Parameters ab 1 wie `$1`; bei abweichender Zahl beide Anzahlen statt einer Nummer (Nutzer, 2026-10-06) | `LH-FA-18.a` §Mismatch |
+| Abgleich Code-Tabelle mit Code und Katalog | hier ein Test auf Form und Klasse der Codes im Quelltext; das Gate gegen Katalog und `SPEC-034` ist Folge-Slice (§1) | §1, `SPEC-034` §Stabilität |
+
+**Akzeptierte Negative** (bewusst offen gelassen, mit Grund — die nächste Runde liest sie als entschieden):
+
+- Abweichung in `param_types`, `param_formats` oder `result_formats` nennt weiter nur das Feld, ohne Nummer — es sind keine Werte, und keine Anforderung verlangt die Nummer; die Diagnose bleibt eindeutig.
+- `time` der Log-Zeile ist nicht deterministisch — Tests prüfen `level`, `code` und `error`, nicht `time`.
+- Was auf `debug` steht, ist nicht Vertrag — geprüft wird nur die Schwelle und dass kein Parameterwert erscheint.
+
+**Risiken:**
+
+- Vorrangfolge bei Fehlerketten mit mehreren Codes — entschieden in `SPEC-034` §Ausgabe *Fehlerkette*; der Re-Evaluierungs-Trigger von [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) ist geprüft: die Entscheidung bleibt, die Rangregel ist Spezifikationsdetail (`AGENTS.md` §3.8), keine Folge-ADR — **Ausgang:** offen bis Closure (entfällt, wenn der Kettentest aus DoD 1 grün ist).
+- Parameterwerte bei `debug` (aus `slice-extended-query-replay`, Review F-328) — vom Nutzer am 2026-10-06 entschieden, `LH-FA-18.a` §Mismatch an `SPEC-033` angeglichen — **Ausgang:** offen bis Closure (entfällt mit dem Test aus DoD 3).
+- `--log-level` liest seine Umgebungsvariable mit einem zweiten Einzel-Leser neben dem von `--fail-on-unconsumed`; der allgemeine Leser kommt mit `slice-v1-abschluss-betrieb` — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
@@ -134,6 +184,12 @@ nicht mehr.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
+**Vorgelagert — offene Beobachtungen sichten:** Register `observations/BEO-REPO/` am 2026-10-06 durchgegangen (17 Einträge, gemergter Stand). Treffer für diesen Slice:
 
-**Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
+- `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` — 2× (`slice-harness-kopf-sensor`, `slice-replay-semantik-mismatch`), offen. Ein dritter Beleg wäre die Schwelle; deshalb stehen die Randformen in §6 vor dem Code entschieden, und eine weitere hält der Implementer an, statt sie im Code zu setzen.
+- `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` — 1×, offen, Regel in `.claude/commands/implement-slice.md` Schritt 19; betrifft die Mutationen nach `AGENTS.md` §3.10 dieses Slice.
+- `BEO-REPO/abnahme-ohne-postgres-nicht-einzeln-brechbar` — 1×, offen; betrifft die E2E-Mutation aus DoD 3, deshalb trägt `TestReplayMismatch` den Nachweis zusätzlich als Unit-Test.
+- Verkörpert und mit diesem Slice als Retirement-Check berührt: `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (§3.10), `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (§3.11), `BEO-REPO/plan-folgt-korrektur-nicht` (§3.9), `BEO-REPO/spec-randform-erst-im-review-entschieden` (§3.12).
+- Keine Treffer in den übrigen Einträgen; `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` trifft nicht zu, der Slice läuft in einer Welle und war vor dem Code beim Architect.
+
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Sub-Area `*` ist Greenfield, `harness/conventions.md`: Spezifikation führt, Code folgt).

@@ -716,12 +716,44 @@ fehl, ist er `3` und hat Vorrang vor der gemerkten Klasse. Beendet der Prozess n
 ### LH-FA-14.a — Logging und Diagnose
 
 Logs werden nach `stderr` geschrieben (`SPEC-006`); Nutzdaten beziehungsweise
-maschinenlesbare Ausgaben auf `stdout` werden dadurch nicht verunreinigt.
-Unterstützte Log-Level sind mindestens `error`, `warn`, `info`, `debug`;
-Standard ist `info` (`SPEC-005`). Die Detailstufe wird über `--log-level`
-(Umgebungsvariable `PGWIRE_RECORDER_LOG_LEVEL`) gesetzt.
+maschinenlesbare Ausgaben auf `stdout` werden dadurch nicht verunreinigt. Auf
+`stdout` stehen nur die Hilfe (LH-FA-01.a), die Ausgabe von `version` und die von
+`config show` (LH-FA-17.a); sie schreiben nichts auf `stderr`.
+
+**Log-Level.** Es gibt genau die Stufen `error`, `warn`, `info` und `debug`;
+Standard ist `info` (`SPEC-005`). Eine Stufe zeigt ihre Zeilen und die aller
+strengeren Stufen. Die Detailstufe wird über `--log-level` (Umgebungsvariable
+`PGWIRE_RECORDER_LOG_LEVEL`) gesetzt, bei `record`, `replay` und `play` und wie
+jede Option nach dem Kommando. Der Wert ist eine Aufzählung nach LH-FA-17.a: genau
+einer der vier Namen in Kleinbuchstaben; jeder andere Wert, auch der leere
+(`--log-level=`), ein großgeschriebener (`INFO`) und ein anderer Name (`warning`,
+`trace`, `off`), ist `PGR-E2001`; eine leere Umgebungsvariable gilt als nicht
+gesetzt. In die Stufen gehen:
+
+* `error`: jeder Verbindungsfehler (LH-FA-13.b) als Log-Zeile,
+* `warn`: jede Warnung; jede Zeile dieser Stufe trägt einen Meldungscode
+  (`PGR-W…`), ein Hinweis ohne Maßnahme für den Anwender steht unter `info`
+  oder `debug`,
+* `info`: Start und Ende von `record` und `replay` und der Beginn des
+  Herunterfahrens (LH-FA-13.a), keine Zeile je Verbindung oder Interaktion,
+* `debug`: Ereignisse je Verbindung; welche, ist nicht Vertrag.
+
+Ein Startfehler (LH-FA-13.b) und ein Fehler beim Schreiben des Recordings am Ende
+erscheinen als Zeile beim Prozessende auf jeder Stufe, auch wenn er vor dem Lesen
+von `--log-level` entsteht oder dessen Wert betrifft; vorher schreibt der Prozess
+nichts anderes.
+
+**Zeilenform.** Eine Log-Zeile ist eine Zeile im Format `logfmt`: zuerst `time`
+(RFC 3339 mit Millisekunden und Zonenversatz), `level` (`DEBUG`, `INFO`, `WARN`,
+`ERROR`) und `msg`, danach die Attribute; ein Wert mit Leerraum, `=`, `"` oder
+einem Steuerzeichen steht in Anführungszeichen mit Escapes. Ein Verbindungsfehler
+trägt die Attribute `code` und `error` (Fehlertext, `SPEC-034`), eine Warnung das
+Attribut `code`. Vertrag sind die Schlüssel `level`, `code` und `error`; der Text
+von `msg`, weitere Attribute und deren Reihenfolge sind es nicht. Die Zeile beim
+Prozessende ist keine Log-Zeile: Sie ist genau der Fehlertext.
 
 Passwörter aus Verbindungsdaten werden nicht absichtlich in Logs ausgegeben.
+Parameterwerte erscheinen auf keiner Stufe (`SPEC-033`).
 
 Fehler und Warnungen tragen einen Meldungscode und erzeugen einen für Entwickler verständlichen Text (`SPEC-034`).
 
@@ -991,10 +1023,13 @@ nächsten `Sync`. Die Aufzeichnung enthält die empfangenen Client-Nachrichten
 und die Server-Nachrichten der Gruppe; Replay reproduziert sie, ohne eigene
 Fehlerlogik.
 
-**Mismatch.** Die Diagnose nach LH-FA-10.a nennt zusätzlich den Index des
-Gruppe und Nachricht in der Interaktion sowie erwarteten und empfangenen Nachrichtentyp;
-Parameterwerte erscheinen nicht im Klartext der Diagnose, wenn der Log-Level
-nicht `debug` ist (`SPEC-033`).
+**Mismatch.** Die Diagnose nach LH-FA-10.a nennt zusätzlich den Index der
+Gruppe und Nachricht in der Interaktion sowie erwarteten und empfangenen Nachrichtentyp.
+Weichen Parameterwerte ab, nennt sie die Nummer des ersten abweichenden Parameters,
+gezählt ab 1 wie `$1`; weicht die Zahl der Parameter ab, nennt sie stattdessen beide
+Anzahlen, die erwartete und die empfangene. Parameterwerte erscheinen nie in der
+Diagnose, weder im Log noch in der `ErrorResponse` an den Client, auf keinem
+Log-Level, auch nicht bei `debug` (`SPEC-033`).
 
 ---
 
@@ -1590,9 +1625,29 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 
 **Ausgabe.** Der Fehlertext (Fehlerwert, Zeile beim Prozessende, Attribut
 `error` einer Log-Zeile) beginnt mit dem Kopf `<klasse> [<code>]: <Ursache>`
-auf `stderr`. Eine Warnung steht als eigenes Log-Attribut `code`; der
-Meldungstext trägt keinen Code. Der Prozessausgang bleibt unverändert, kein Code
-ändert ihn.
+auf `stderr`. `<klasse>` ist der Name der Klasse aus der Spalte *Klasse /
+Bereich* ohne den Exit Code: `sonstiger Fehler`, `Konfiguration`, `Recording`,
+`Netzwerk`, `Replay`, `nicht unterstützt`. Eine Warnung steht als eigenes
+Log-Attribut `code`; der Meldungstext trägt keinen Code. Der Prozessausgang
+bleibt unverändert, kein Code ändert ihn.
+
+* *Eine Zeile.* Der Fehlertext ist eine Zeile; Kontinuationszeilen gibt es nicht.
+  Ein Zeilenumbruch in der Ursache wird mit dem Leerraum danach durch ein
+  Leerzeichen ersetzt, auch in einem Text aus einer Bibliothek.
+* *Fehlerkette.* Der Kopf steht genau einmal, am Anfang. Code und Klasse sind die
+  des äußersten klassifizierten Fehlers; ein innerer klassifizierter Fehler trägt
+  nur seine Ursache bei, ohne eigenen Kopf.
+* *Fremde Fehler.* Ein Fehler aus einer Bibliothek oder dem Betriebssystem trägt
+  den Code der Stelle, an der der Recorder ihn einordnet, und sein Text folgt als
+  Ursache; ordnet der Recorder ihn nicht ein, ist er `PGR-E1000` mit Kopf und
+  Exit Code 1. Ein Fehlertext ohne Kopf kommt nicht vor.
+* *Zustellung an den Client.* Die `ErrorResponse` eines Verbindungsfehlers
+  (LH-FA-13.b) trägt den Schweregrad `FATAL`, als Meldungstext denselben
+  Fehlertext wie das Attribut `error` der Log-Zeile, unabhängig vom Log-Level, und
+  als SQLSTATE nach der Klasse `0A000` (nicht unterstützt), `08006` (Netzwerk),
+  sonst `XX000`; weitere Felder trägt sie nicht. Eine `ErrorResponse` des Servers,
+  die `record` weiterleitet oder `replay` wiedergibt, ist keine Meldung des
+  Recorders und trägt keinen Meldungscode (LH-FA-11.a).
 
 **Stabilität.** Ein Code wird nie neu belegt; ein entfallener Code wird
 zurückgezogen und bleibt vergeben; die Klasse eines Codes ändert sich nie.
@@ -1646,7 +1701,9 @@ Für v1 werden keine harten Latenz- oder Durchsatz-SLAs zugesichert.
   in Fehlertexten; `config show` nennt nur den Pfad. Die Dateirechte des Schlüssels
   liegen in der Verantwortung des Anwenders.
 - Diagnosen nennen SQL-Text im Klartext, auch mit Literalen darin; verborgen
-  werden nur die Parameterwerte der Extended-Interaktion (LH-FA-18.a).
+  werden nur die Parameterwerte der Extended-Interaktion, und zwar immer: Sie
+  erscheinen auf keinem Log-Level, auch nicht bei `debug`, und in keiner
+  `ErrorResponse` an den Client (LH-FA-18.a, LH-FA-14.a).
 
 ### SPEC-035 — Zielplattformen
 
@@ -1778,3 +1835,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-05 | Diagnosefelder: leerer Wert gilt nur bei den von der Bibliothek benannten Feldcodes als fehlend, ein anderer Code wird auch leer aufgezeichnet (`LH-FA-11.a`); Fehlerantwort vor dem Abbruch zählt nur gelesen, Sendefehler der Anfrage bleibt `PGR-E4003` (`LH-FA-02.b`) |
 | 2026-10-05 | Record: Fehlerantwort vor dem Abbruch der Upstream-Verbindung ohne `ReadyForQuery` ist nicht unterstützt (`PGR-E6001`), gleich welcher Schweregrad und welche Stelle; Diagnose mit SQLSTATE des Servers, Session nicht übernommen, Aufzeichnung ohne `ready_for_query` am Ende beschädigt (`LH-FA-02.b`, `LH-FA-11.a`) |
 | 2026-10-05 | Record: Weitergabe der Antworten einer einfachen Anfrage an den Client, auch bei einer nicht unterstützten Antwort nach Ergebnissen (`LH-FA-02.b`); Nachrichten des Upstreams zwischen Interaktionen gehören zur nächsten (`LH-FA-05.a`); Diagnosefelder mit leerem Wert oder Zahl `0` gelten als fehlend, Feldreihenfolge nicht aufgezeichnet (`LH-FA-11.a`) |
+| 2026-10-06 | Diagnose: Parameterwerte auf keinem Log-Level und in keiner `ErrorResponse`, Nummer des ersten abweichenden Parameters, bei abweichender Zahl beide Anzahlen (`LH-FA-18.a`, `SPEC-033`); Log-Level genau vier, Strenge des Werts, Inhalt der Stufen, Zeilenform, Zeile beim Prozessende auf jeder Stufe, `stdout` nur für Hilfe, `version` und `config show` (`LH-FA-14.a`); Fehlertext einzeilig, Kopf einmal mit dem Code des äußersten Fehlers, fremde Fehler, Felder der `ErrorResponse` (`SPEC-034`) |

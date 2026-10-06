@@ -43,6 +43,8 @@ Die Ergänzung von [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozess
 
 **Übernommen aus `slice-replay-semantik-mismatch`:** der Schlüssel `fail_on_unconsumed` im Abschnitt `replay:` (mit der Konfigurationsdatei für alle Optionen); die Werte boolescher Optionen nach `LH-FA-17.a` auch für `--force` (heute nimmt es `1` und `t` an); die Prüfung jeder gesetzten Umgebungsvariable einer Option des Kommandos, auch wenn die Kommandozeile vorgeht (`PGR-E2001`, `LH-FA-17.a`), im allgemeinen Leser für alle Optionen; die Hilfe vor jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei (`LH-FA-01.a`), auch für `config show` und `--config`, samt `--` als Ende der Optionen; und der Test, dass eine durch die Frist zwangsweise beendete Replay-Session mit `--fail-on-unconsumed` `PGR-E4006` vor `PGR-E5002` merkt und mit Exit-Code `4` endet (`LH-FA-03.b`).
 
+**Übernommen aus `slice-replay-semantik-meldungscodes`:** der Schlüssel `log_level` auf der obersten Ebene der Konfigurationsdatei (`LH-FA-17.a`), mit derselben Wertemenge wie `--log-level`; ein ungültiger Wert ist `PGR-E2004`.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Container-Image — `slice-v1-abschluss-container`.
