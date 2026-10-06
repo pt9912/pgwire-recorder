@@ -13,11 +13,11 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
 nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
-Slice (WIP-Limit 1).
+Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** — (Harness-Arbeit; keine Produkt-Anforderung). Geprüft: Das Lastenheft
-führt keine Qualitätsanforderung an den Quellcode; seine Wartbarkeits-Anforderung
-gilt dem Recording-Format, seine Automatisierbarkeit dem Betrieb des Produkts.
+**Bezug:** — (Harness-Arbeit). Das Lastenheft führt heute keine Qualitätsanforderung
+an den Quellcode; nach Entscheidung des Nutzers vom 2026-10-05 bekommt es eine, und
+`slice-lastenheft-pruefbarkeit` trägt ihre Kennung hier nach.
 Bindung an Entscheidungen: [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)
 (Gates als Stufen des Multistage-`Dockerfile`, Images per Digest gepinnt),
 [ADR-0001](../../adr/0001-hexagonale-architektur.md) (Abgrenzung zum
@@ -49,8 +49,12 @@ SOLID-nahe Profil des Schwester-Repos ai-harness-init (Default-Linter dazu
 `cyclop`, `funlen`, `gocognit`, `gochecknoglobals`, `gomodguard_v2`, `ireturn`,
 `interfacebloat`, `revive` u. a.), an dieses Repo angepasst: `gomodguard_v2` kennt
 die Module aus `go.mod` (`github.com/jackc/pgx/v5`, darin `pgproto3`, und
-`go.yaml.in/yaml/v3`), `testpackage`, `forbidigo` und `exclusions` folgen der
-Testpraxis und der CLI dieses Repos (§6). Ausnahmen stehen zentral in
+`go.yaml.in/yaml/v3`), `forbidigo` und `exclusions` folgen der CLI und der
+Testpraxis dieses Repos (§6). Die Schwellen sind die Werte des Vorbilds
+(Entscheidung des Nutzers vom 2026-10-05). `testpackage` ist **gestuft**: Die ADR
+des Gates führt es mit einem Hochschalt-Trigger je Paketgruppe auf die vier
+Umstellungs-Slices; bis dahin ist es für deren Pfade ausgesetzt, als benannte Stufe,
+nicht als stille Ausnahme. Ausnahmen stehen zentral in
 `.golangci.yml`, je mit einem `Why:`-Kommentar; `AGENTS.md` §3.2 bekommt damit
 seinen Träger. Die Gegenprobe `make lint-gegenprobe` zeigt, dass das Gate rot
 werden kann (`AGENTS.md` §3.10).
@@ -58,12 +62,21 @@ werden kann (`AGENTS.md` §3.10).
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-05: ein SOLID-naher Lint vor dem
 nächsten großen Slice. `harness/README.md` §Sensors führt Lint heute unter
 „Nicht behauptet“, und `AGENTS.md` §3.2 ist ein Platzhalter mit einem Gate, das es
-nicht gibt.
+nicht gibt. Zum `testpackage` hat der Nutzer am selben Tag entschieden: Die Tests
+werden auf Black-Box-Pakete umgestellt, in eigenen Slices.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Eine Schwelle für Testabdeckung — ein anderer Gegenstand mit eigener ADR und
   eigener Messung; ihn übernimmt `slice-harness-coverage`.
+- Die Umstellung der Tests auf Black-Box-Pakete — sie berührt alle Schichten und
+  sprengte die Größenregel; sie übernehmen `slice-harness-blackbox-kern`,
+  `slice-harness-blackbox-driven`, `slice-harness-blackbox-pgwire` und
+  `slice-harness-blackbox-einstieg`, je mit dem Hochschalten von `testpackage` für
+  ihre Pfade. Dieser Slice legt nur die Stufe und die Form der Export-Test-Brücke in
+  der ADR fest (§6).
+- Die neue Qualitätsanforderung im Lastenheft — übernimmt
+  `slice-lastenheft-pruefbarkeit`, vor diesem Slice.
 - Bereinigung des Bestands über das hinaus, was in eine Review-Sitzung passt — ob
   der heutige Code das Profil hält, misst der Architect vor dem Code (§4, §6
   *Bestand*). Reicht die Bereinigung weiter, geht der Slice zurück zur Zerlegung
@@ -97,12 +110,17 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Digest gepinnt, netzlos wie die übrigen Stufen nach `deps`), `.golangci.yml`
       nach den Randformen aus §6 und der ADR des Gates, Fragment unter `harness/mk/`
       an `GATE_CHECKS`; der Bestand ist grün, ohne `//nolint` und ohne Ausnahme
-      ohne `Why:`.
+      ohne `Why:`. Die Schwellen sind die des Vorbilds; was der Bestand davon und von
+      den übrigen Linter verletzt, ist bereinigt oder steht als Stufe mit
+      Hochschalt-Trigger in der ADR. `testpackage` ist gestuft: ausgesetzt je Pfad
+      einer Umstellungs-Paketgruppe, jede Stufe nennt in ihrem `Why:` den Slice, der
+      sie aufhebt.
 - [ ] Gegenprobe `make lint-gegenprobe` an `GATE_CHECKS`: je Zusage des Profils, die
       eine Mutation fangen kann, ein Fall, der rot wird (mindestens ein Verstoß je
       aktivierter Linter-Gruppe, ein `//nolint`, ein Modul außerhalb der Liste von
-      `gomodguard_v2`, ein Integrationstest hinter dem Build-Tag), dazu ein grüner Fall
-      je zentraler Ausnahme; je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10).
+      `gomodguard_v2`, ein Integrationstest hinter dem Build-Tag, ein White-Box-Test in
+      einem Pfad außerhalb der `testpackage`-Stufe), dazu ein grüner Fall je zentraler
+      Ausnahme und je Stufe; je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10).
 - [ ] Doku: `AGENTS.md` §3.2 nennt den Träger (kein `//nolint`, Ausnahmen zentral in
       `.golangci.yml` mit `Why:`) statt der Platzhalter; `harness/README.md` §Sensors
       führt `lint` und `lint-gegenprobe` mit Vertrag und Bindung an die ADR, die Zeile
@@ -125,8 +143,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/plan/adr/<NNNN>-lint-gate.md`, `docs/plan/adr/README.md` | neu / update | ADR des neuen Gates (Architect, vor dem Code): Profil, Durchsetzung des `//nolint`-Verbots, Umgang mit dem Bestand, Randformen aus §6; Index-Zeile |
-| `.golangci.yml` | neu | Profil nach Vorbild ai-harness-init, angepasst nach §6; Kopfkommentar nennt die Hard Rule aus `AGENTS.md` §3.2 |
+| `docs/plan/adr/<NNNN>-lint-gate.md`, `docs/plan/adr/README.md` | neu / update | ADR des neuen Gates (Architect, vor dem Code): Profil mit den Schwellen des Vorbilds, Durchsetzung des `//nolint`-Verbots, Stufen mit Hochschalt-Trigger (`testpackage` je Paketgruppe auf die vier Umstellungs-Slices, dazu jede Stufe aus der Bestands-Messung), Form der Export-Test-Brücke, Randformen aus §6; Index-Zeile |
+| `.golangci.yml` | neu | Profil nach Vorbild ai-harness-init, angepasst nach §6; Stufen als benannte Ausnahmen mit `Why:` und Kennung des aufhebenden Slice; Kopfkommentar nennt die Hard Rule aus `AGENTS.md` §3.2 |
 | `Dockerfile` | update | Stufe `lint` aus dem per Digest gepinnten golangci-lint-Image, Modul-Cache aus `deps`, `RUN --network=none`; Build-Tag `integration` für `test/integration` |
 | `.dockerignore` | update | `.golangci.yml` in die Allowlist des Build-Kontexts ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)); ohne sie läuft das Image mit Default-Profil |
 | `harness/mk/lint.mk` | neu | `lint` und `lint-gegenprobe`, beide an `GATE_CHECKS` |
@@ -140,8 +158,13 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay` liegt in
-`done/` (WIP-Limit 1, Entscheidung des Nutzers vom 2026-10-05). Erster Schritt nach
+**Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay` und
+`slice-lastenheft-pruefbarkeit` liegen in `done/` (WIP-Limit 1). Reihenfolge nach
+Entscheidung des Nutzers vom 2026-10-05: `slice-lastenheft-pruefbarkeit`, dieser
+Slice, `slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`,
+`slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`,
+`slice-harness-coverage`. Die Umstellungs-Slices folgen dem Lint-Gate, damit jede
+Umstellung ihr Hochschalten sofort am Gate belegt. Erster Schritt nach
 dem Start, vor jedem Code-Commit: Der Architect misst den Bestand gegen das
 Kandidaten-Profil (Befunde je Linter und je Paket), entscheidet die Randformen aus
 §6 und schreibt die ADR. Wellenlos heißt hier nicht ohne Architect
@@ -152,10 +175,11 @@ Kandidaten-Profil (Befunde je Linter und je Paket), entscheidet die Randformen a
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Messung des Bestands
   ergibt Befunde, deren Bereinigung Produkt-Code in mehr als zwei Schichten berührt
   (Domain Model, Services, Adapter, Bootstrap/`cmd`) oder nicht in einer
-  Review-Sitzung prüfbar ist. Dann wählt der Architect mit dem Nutzer einen von zwei
-  Wegen: Bestand in eigenen Slices bereinigen (je einzeln lieferbar, dieser Slice
-  danach), oder gestufte Einführung — ein Teil des Profils sofort, der Rest mit
-  Hochschalt-Trigger, beides in der ADR (Baseline-Regelwerk
+  Review-Sitzung prüfbar ist. `testpackage` zählt dafür nicht mit, es ist schon
+  gestuft. Nach Entscheidung des Nutzers gibt es zwei Wege, die der Architect je
+  Linter wählt: Bestand in eigenen Slices bereinigen (je einzeln lieferbar, dieser
+  Slice danach), oder gestufte Einführung — ein Teil des Profils sofort, der Rest mit
+  Hochschalt-Trigger auf eine Slice-Kennung, beides in der ADR (Baseline-Regelwerk
   `modul-13-quality-gates.md`, bootstrap-aware Gate). Eine Ausnahme in
   `exclusions`, die nur Bestand verschluckt, ist kein dritter Weg, sondern eine
   stille Lockerung (`AGENTS.md` §3.6).
@@ -180,16 +204,34 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **offen**. Entschieden werden
-sie vor dem ersten Code-Commit in der ADR des Gates (Architect; eine Entscheidung des
-Nutzers wird dort festgehalten). Was dort nicht steht, entscheidet der Implementer
-nicht, er gibt es zurück.
+**Randformen des Vertrags** (`AGENTS.md` §3.12) — offen, soweit nicht als
+Entscheidung des Nutzers markiert. Entschieden werden sie vor dem ersten Code-Commit in
+der ADR des Gates (Architect; die Entscheidungen des Nutzers vom 2026-10-05 werden
+dort festgehalten). Was dort nicht steht, entscheidet der Implementer nicht, er gibt
+es zurück.
 
 - **`testpackage`** — der Bestand testet ausnahmslos White-Box: alle Unit-Tests unter
   `internal/` liegen im Paket des Codes (`package services`, `package pgwire`, …),
-  `test/integration` ist ein reines Testpaket. Offen: Linter weglassen, zentrale
-  Ausnahme für `_test.go` mit `Why:`, oder Umstellung auf `_test`-Pakete (dann
-  Bestands-Bereinigung über alle Schichten, §4). Das Vorbild nimmt nur `cmd/` aus.
+  `test/integration` ist ein reines Testpaket (`package integration`). **Entschieden
+  (Nutzer):** Umstellung auf `_test`-Pakete in vier Slices
+  (`slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`,
+  `slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`); bis dahin
+  gestuft, mit Hochschalt-Trigger auf diese Slices, in der ADR. Offen: Form der Stufe
+  (Ausnahme je Pfad in `exclusions` mit `Why:` und Slice-Kennung, damit jeder
+  Umstellungs-Slice genau seine Zeile löscht, oder Linter ganz aus bis zum letzten
+  Slice — dann belegt keine Zwischenstufe ihr Hochschalten), und ob `cmd/` wie im
+  Vorbild dauerhaft ausgenommen ist (`main` ohne Test heute).
+- **Export-Test-Brücke** (`export_test.go`) — der Bestand greift in Tests auf
+  unexportierte Teile zu (Namensabgleich per Suche am Stand `ce50a10`, ungemessen):
+  `pgwire` etwa zehn Namen (u. a. `meldeFrist`, `wecke`, `toClientMessage`),
+  `services` etwa sieben (u. a. `cursor`, `vtLeerraum`, `istLebendpruefung`),
+  `postgres` drei, `cli` und `bootstrap` je einen, `model` und `recording` keinen.
+  Darunter Mutationstests auf unexportierte Teile und Zustandseingriffe (Fristen).
+  Offen: Brücke zulässig ja/nein; Form (Datei `export_test.go` im Paket, exportierte
+  Aliase, Namensregel); ob sie nur lesen oder auch Zustand setzen darf; wie `revive`
+  und `gochecknoglobals` sie behandeln (eine Brücke aus `var X = x` ist eine globale
+  Variable in einer `_test.go`-Datei). Die Umstellungs-Slices folgen dieser
+  Entscheidung, sie treffen sie nicht.
 - **`forbidigo`** — die CLI schreibt über injizierte Writer (`bootstrap.Run` erhält
   `os.Stdout` und `os.Stderr` aus `cmd/pgwire-recorder/main.go`); `fmt.Print*` kommt
   im Bestand nicht vor. Offen: Muster wie im Vorbild, und ob zusätzlich `os.Stdout`
@@ -219,9 +261,13 @@ nicht, er gibt es zurück.
   Offen: mitlinten (wie `go vet -tags integration` in der Stufe `test`) oder
   ausdrücklich nicht.
 - **Schwellen des Profils** (`cyclop`, `funlen`, `gocognit`, `gocyclo`, `nestif`,
-  `maintidx`, `dupl`, `interfacebloat`) — die Erstsetzung ist keine Senkung, gehört
-  aber in die ADR mit einer Begründung aus dem Entwurf, nicht aus dem Bestand; eine
-  spätere Senkung braucht eine neue ADR (`AGENTS.md` §3.6).
+  `maintidx`, `dupl`, `interfacebloat`) — **entschieden (Nutzer):** die Werte des
+  Vorbilds (`cyclop` 15, `funlen` 100 Zeilen / 60 Anweisungen, `gocognit` 20,
+  `gocyclo` 15, `nestif` 5, `maintidx` 20, `dupl` 150, `interfacebloat` 10). Was der
+  Bestand verletzt, wird bereinigt oder mit ADR und Hochschalt-Trigger gestuft; kein
+  Wert wird an den Bestand angepasst. Eine spätere Senkung braucht eine neue ADR
+  (`AGENTS.md` §3.6). Offen: ob die `_test.go`-Ausnahmen des Vorbilds für Komplexität
+  und `funlen` übernommen werden (Ausnahme, keine Schwelle).
 - **`revive`-Regeln `exported` und `package-comments`** — der Bestand kommentiert
   deutsch; die Regel prüft die Form (Kommentar beginnt mit dem Namen), nicht die
   Sprache. Offen: Regel wie im Vorbild, und ob die Doc-Comment-Pflicht auch für
@@ -240,13 +286,17 @@ nicht, er gibt es zurück.
 **Risiken:**
 
 - **Bestand** (Hauptrisiko) — unbekannt, wie viele Befunde der heutige Code gegen das
-  Profil liefert. Sichtbar ohne Messung: `testpackage` träfe jede Testdatei,
-  `gochecknoglobals` mehrere Pakete, und die größten Dateien
+  Profil liefert. Sichtbar ohne Messung: `testpackage` träfe jede Testdatei
+  (gestuft, siehe oben), `gochecknoglobals` mehrere Pakete, und die größten Dateien
   (`internal/adapters/driving/pgwire/server.go`,
   `internal/adapters/driven/recording/yaml.go`, `internal/hexagon/services/replay.go`)
   sind Kandidaten für `funlen` und `cyclop`. Der Architect misst vor dem Code (§4);
   zu viel für diesen Slice heißt Rückführung `in-progress` → `next`, nicht
   Ausnahme. — **Ausgang:** — (bei Closure)
+- **Stufe wird zum Dauerzustand** — eine `testpackage`-Stufe, deren Umstellungs-Slice
+  nie startet, ist eine stille Ausnahme mit Aufschrift. Jede Stufe nennt in ihrem
+  `Why:` die Kennung des Slice, der sie aufhebt; die Kennung liegt als Datei in
+  `open/`. — **Ausgang:** — (bei Closure)
 - **Gegenprobe sieht den Mutanten nicht** — BuildKit überträgt eine Datei gleicher
   Größe und mtime nicht neu (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`, 1×;
   `.claude/commands/implement-slice.md` Schritt 19). Die Gegenprobe baut aus einer

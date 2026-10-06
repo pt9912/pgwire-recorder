@@ -13,12 +13,11 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
 nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
 2026-10-05: nach `slice-replay-semantik-fehlerreplay` und vor dem nächsten großen
-Slice (WIP-Limit 1).
+Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** — (Harness-Arbeit; keine Produkt-Anforderung). Geprüft: Das Lastenheft
-führt keine Qualitätsanforderung an den Quellcode oder seine Tests; seine
-Wartbarkeits-Anforderung gilt dem Recording-Format, seine Automatisierbarkeit dem
-Betrieb des Produkts. Bindung an Entscheidungen:
+**Bezug:** — (Harness-Arbeit). Das Lastenheft führt heute keine Qualitätsanforderung
+an Quellcode oder Tests; nach Entscheidung des Nutzers vom 2026-10-05 bekommt es
+eine, und `slice-lastenheft-pruefbarkeit` trägt ihre Kennung hier nach. Bindung an Entscheidungen:
 [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md) (Tests in der
 Stufe `test` des Multistage-`Dockerfile`, netzlos),
 [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abgrenzung:
@@ -65,7 +64,8 @@ keine Schwelle; es ist Kontext, kein Vorbild.
 - Neue Tests, um eine Zielzahl über dem gemessenen Stand zu erreichen — die Schwelle
   folgt der Messung; eine höhere Zielzahl ist eigene Arbeit mit eigenem Slice,
   aus der Messung heraus, nicht vorab.
-- Ein Lint-Gate — übernimmt `slice-harness-lint`.
+- Ein Lint-Gate — übernimmt `slice-harness-lint`; die Umstellung der Tests auf
+  Black-Box-Pakete übernehmen die vier Umstellungs-Slices aus §4.
 - Eine Schwelle, die sich selbst anhebt (Ratsche) — ein anderer Vertrag mit
   Schreibzugriff auf die Konfiguration im Gate-Lauf; die Stufe `test` schreibt nichts
   in den Arbeitsbaum ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)).
@@ -125,11 +125,14 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay` liegt in
-`done/`, und `slice-harness-lint` liegt in `done/` oder ist ausdrücklich
-zurückgestellt (WIP-Limit 1). Grund der Reihenfolge, keine technische Abhängigkeit:
-Bereinigt der Lint-Slice Bestand, ändert er den Code, an dem die Schwelle gemessen
-wird; eine Messung davor wäre veraltet, bevor das Gate greift. Erster Schritt nach
+**Start** (`next` → `in-progress`): `slice-harness-lint` und die vier
+Umstellungs-Slices (`slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`,
+`slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`) liegen in `done/`
+oder sind ausdrücklich zurückgestellt (WIP-Limit 1). Dieser Slice ist der letzte der
+Reihe nach Entscheidung des Nutzers vom 2026-10-05 (Lastenheft, Lint, Umstellung,
+Coverage). Grund der Reihenfolge, keine technische Abhängigkeit: Lint-Bereinigung und
+Black-Box-Umstellung ändern Code und Tests, an denen die Schwelle gemessen wird; eine
+Messung davor wäre veraltet, bevor das Gate greift. Erster Schritt nach
 dem Start, vor jedem Code-Commit: Der Architect misst den Stand (gesamt und je Paket,
 mit Quellstand), entscheidet die Randformen aus §6 und schreibt die ADR mit der
 Schwelle (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
@@ -216,8 +219,9 @@ nicht, er gibt es zurück.
 **Risiken:**
 
 - **Die Schwelle misst den falschen Stand** — gemessen vor einer Bestands-Bereinigung
-  aus `slice-harness-lint`, wäre die Zahl beim Einschalten schon überholt; darum die
-  Reihenfolge in §4. — **Ausgang:** — (bei Closure)
+  aus `slice-harness-lint` oder vor der Black-Box-Umstellung (Black-Box-Tests
+  erreichen unexportierte Pfade seltener), wäre die Zahl beim Einschalten schon
+  überholt; darum die Reihenfolge in §4. — **Ausgang:** — (bei Closure)
 - **Die Zahl wird zum Ziel** — Tests, die Zeilen ausführen, ohne etwas zu prüfen,
   heben die Zahl, nicht die Prüfung. Die Schwelle ersetzt nicht §3.10 (je Zusage eine
   Mutation); Review bleibt Urteil darüber. — **Ausgang:** — (bei Closure)
