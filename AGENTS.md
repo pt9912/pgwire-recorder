@@ -234,8 +234,8 @@ Ein Slice, der einen neuen Vertrag liefert (§3.10), nennt in §6 des Slice-Plan
 Randformen, etwa fehlender, leerer oder unbekannter Wert, Alias, Abbruch und
 Herunterfahren, was ein Diagnose-Feld je Nachrichtenart heißt, Verhalten je
 Serverversion, und je Randform, wo sie entschieden ist. Entschieden ist jede vor dem
-ersten Code-Commit, in der Spezifikation oder einer ADR (für Harness-Werkzeuge nennt
-[MR-001](harness/conventions.md#mr-001) den Ort); auch eine Entscheidung des
+ersten Code-Commit, in der Spezifikation (Technik-Stratum), auch für
+Harness-Werkzeuge, oder einer ADR; auch eine Entscheidung des
 Nutzers wird dort festgehalten. Der Architect prüft die Liste vor dem Code. Eine nicht
 genannte oder offene Randform entscheidet der Implementer nicht, er hält an und gibt
 sie dem Architect zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
