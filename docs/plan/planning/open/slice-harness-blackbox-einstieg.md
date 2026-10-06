@@ -115,8 +115,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-harness-blackbox-pgwire` liegt in `done/` (WIP-Limit 1,
-Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05: Lastenheft, Lint, die vier
-Umstellungs-Slices, Coverage). Vor dem ersten Code-Commit prüft der Architect §6 gegen
+Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05 und 2026-10-06: Lastenheft, Lint,
+die vier Umstellungs-Slices, `slice-harness-abdeckung-gate`, Coverage). Vor dem ersten Code-Commit prüft der Architect §6 gegen
 die ADR des Lint-Gates (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**

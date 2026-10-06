@@ -128,7 +128,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-harness-coverage` liegt in `done/` oder ist
 ausdrücklich zurückgestellt (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers
-vom 2026-10-06: nach der Reihe Lastenheft, Lint, Black-Box-Umstellung, Coverage.
+vom 2026-10-06: nach der Reihe Lastenheft, Lint, Black-Box-Umstellung,
+`slice-harness-abdeckung-gate`, Coverage.
 Grund der Reihenfolge, keine technische Abhängigkeit: Lint-Bereinigung und
 Black-Box-Umstellung ändern die Tests, gegen die Mutanten laufen; eine Messung davor
 wäre veraltet, bevor das Gate greift. Erster Schritt nach dem Start, vor jedem

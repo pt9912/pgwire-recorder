@@ -165,10 +165,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-replay-semantik-fehlerreplay` und
 `slice-lastenheft-pruefbarkeit` liegen in `done/` (WIP-Limit 1). Reihenfolge nach
-Entscheidung des Nutzers vom 2026-10-05: `slice-lastenheft-pruefbarkeit`, dieser
-Slice, `slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`,
+Entscheidung des Nutzers vom 2026-10-05 und 2026-10-06: `slice-lastenheft-pruefbarkeit`,
+dieser Slice, `slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`,
 `slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`,
-`slice-harness-coverage`. Die Umstellungs-Slices folgen dem Lint-Gate, damit jede
+`slice-harness-abdeckung-gate`, `slice-harness-coverage`. Die Umstellungs-Slices folgen dem Lint-Gate, damit jede
 Umstellung ihr Hochschalten sofort am Gate belegt. Erster Schritt nach
 dem Start, vor jedem Code-Commit: Der Architect misst den Bestand gegen das
 Kandidaten-Profil (Befunde je Linter und je Paket), entscheidet die Randformen aus
