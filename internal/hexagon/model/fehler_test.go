@@ -81,6 +81,9 @@ func TestFehlerKette(t *testing.T) {
 		{"S1 ohne Klasse", fmt.Errorf("K %w / %w", x, errors.New("y")), Meldung{CodeInternal, "sonstiger Fehler [PGR-E1000]: K x / y"}},
 		{"S2", Errorf(CodeUpstream, fmt.Errorf("K %w / %w", a, x), "aussen"), Meldung{CodeUpstream, "Netzwerk [PGR-E4002]: aussen: K a / x"}},
 		{"S3", fmt.Errorf("Kontext: %w", errors.Join(b, a)), Meldung{CodeRecordingIO, "Recording [PGR-E3001]: Kontext: b; a"}},
+		// V-57: Tiefensuche wie errors.As, ein tiefer klassifizierter Fehler in
+		// der ersten Ursache geht einem flachen in der zweiten vor.
+		{"Tiefensuche", fmt.Errorf("K %w / %w", fmt.Errorf("x: %w", b), Errorf(CodeUpstream, nil, "u")), Meldung{CodeRecordingIO, "Recording [PGR-E3001]: K x: b / u"}},
 		{"Hülle innen", fmt.Errorf("K %w / %w", fmt.Errorf("i %w", x), Errorf(CodeUsage, a, "u")), Meldung{CodeUsage, "Konfiguration [PGR-E2001]: K i x / u: a"}},
 	} {
 		if got := Meldungen(f.err); !reflect.DeepEqual(got, []Meldung{f.want}) {

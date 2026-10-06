@@ -178,3 +178,28 @@ func TestE2EOhnePostgresReplay(t *testing.T) {
 		t.Fatalf("Warnung PGR-W2001 fehlt:\n%s", rep.stderr.String())
 	}
 }
+
+// Abdeckung: LH-FA-10/Negative — eine Anfrage nach dem Ende der Aufzeichnung
+// ist eine Abweichung: Der Client erhält PGR-E5001 und kein Ergebnis, auch
+// nicht das der letzten aufgezeichneten Anfrage; der Lauf endet mit Exit-Code 5
+// (LH-FA-10.a).
+func TestE2EReplayNachDemEnde(t *testing.T) {
+	input, _ := aufnehmen(t, "SELECT 1;")
+	rep := startProzess(t, "replay", "--input", input)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, err := pgconn.Connect(ctx, dsn(rep.listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(ctx, "SELECT 1;").ReadAll(); err != nil {
+		t.Fatalf("aufgezeichnete Anfrage: %v", err)
+	}
+	ergebnisse, err := conn.Exec(ctx, "SELECT 1;").ReadAll()
+	if err == nil || !strings.Contains(err.Error(), "PGR-E5001") || len(ergebnisse) != 0 {
+		t.Fatalf("erwartet PGR-E5001 ohne Ergebnis, erhalten %d Ergebnisse, %v", len(ergebnisse), err)
+	}
+	_ = conn.Close(ctx)
+	rep.stop(t, 5)
+}

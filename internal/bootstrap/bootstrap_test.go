@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"net"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -277,5 +280,107 @@ func TestLoggerOrtszeit(t *testing.T) {
 	logger(&b, cli.LogInfo).Info("x")
 	if !regexp.MustCompile(`^time=\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}\+02:00 level=INFO msg=x\n$`).MatchString(b.String()) {
 		t.Fatalf("Zeile %q", b.String())
+	}
+}
+
+// Abdeckung: LH-FA-14/Negative, LH-FA-13/Negative — bei record erscheint ein
+// Startfehler (vorhandenes --output ohne --force, PGR-E2002) auf jeder Stufe als
+// einzige Zeile, genau der Fehlertext, mit dem Exit-Code der Klasse
+// (LH-FA-14.a).
+func TestRunRecordStartfehlerJeStufe(t *testing.T) {
+	t.Setenv("PGWIRE_RECORDER_LOG_LEVEL", "")
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	if err := os.WriteFile(output, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, stufe := range []string{"error", "warn", "info", "debug"} {
+		var stdout, stderr bytes.Buffer
+		exit := Run(context.Background(), []string{"record", "--listen", "127.0.0.1:0", "--upstream", "127.0.0.1:1", "--output", output, "--log-level=" + stufe}, "dev", &stdout, &stderr)
+		zeilen := strings.Split(strings.TrimSuffix(stderr.String(), "\n"), "\n")
+		if exit != 2 || len(zeilen) != 1 || !strings.HasPrefix(zeilen[0], "Konfiguration [PGR-E2002]: ") || stdout.Len() > 0 {
+			t.Errorf("%s: Exit-Code %d, stderr %q", stufe, exit, stderr.String())
+		}
+	}
+}
+
+// freieAdresse liefert eine Adresse auf 127.0.0.1, die gerade frei ist.
+func freieAdresse(t *testing.T) string {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	return l.Addr().String()
+}
+
+// Abdeckung: LH-FA-14/Negative, LH-FA-13/Negative — scheitert bei record das
+// Schreiben der Aufzeichnung am Ende, erscheint der Fehler auf jeder Stufe als
+// letzte Zeile, genau der Fehlertext und keine Log-Zeile; auf error und warn ist
+// sie die einzige; der Exit-Code ist 3 (LH-FA-14.a, LH-FA-13.b).
+func TestRunRecordSchreibfehlerJeStufe(t *testing.T) {
+	t.Setenv("PGWIRE_RECORDER_LOG_LEVEL", "")
+	for _, stufe := range []string{"error", "warn", "info", "debug"} {
+		dir := filepath.Join(t.TempDir(), "ziel")
+		if err := os.Mkdir(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		listen := freieAdresse(t)
+		ctx, cancel := context.WithCancel(context.Background())
+		var stdout, stderr syncPuffer
+		ende := make(chan int, 1)
+		go func() {
+			ende <- Run(ctx, []string{"record", "--listen", listen, "--upstream", "127.0.0.1:1", "--output", filepath.Join(dir, "rec.yaml"), "--log-level=" + stufe}, "dev", &stdout, &stderr)
+		}()
+		for deadline := time.Now().Add(5 * time.Second); ; {
+			c, err := net.Dial("tcp", listen)
+			if err == nil {
+				c.Close()
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("%s: record lauscht nicht", stufe)
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		if err := os.RemoveAll(dir); err != nil {
+			t.Fatal(err)
+		}
+		cancel()
+		exit := <-ende
+		zeilen := strings.Split(strings.TrimSuffix(stderr.String(), "\n"), "\n")
+		letzte := zeilen[len(zeilen)-1]
+		einzig := stufe == "error" || stufe == "warn"
+		if exit != 3 || !strings.HasPrefix(letzte, "Recording [PGR-E3001]: ") || (einzig && len(zeilen) != 1) || stdout.String() != "" {
+			t.Errorf("%s: Exit-Code %d, stderr %q", stufe, exit, stderr.String())
+		}
+	}
+}
+
+// syncPuffer ist ein bytes.Buffer, den mehrere Goroutinen beschreiben dürfen.
+type syncPuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (p *syncPuffer) Write(b []byte) (int, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.b.Write(b)
+}
+
+func (p *syncPuffer) String() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.b.String()
+}
+
+// version liest PGWIRE_RECORDER_LOG_LEVEL nicht: mit ungültigem Wert gibt es die
+// Version aus, mit Exit-Code 0 und nichts auf stderr (LH-FA-01.a, LH-FA-14.a).
+func TestRunVersionLogLevel(t *testing.T) {
+	t.Setenv("PGWIRE_RECORDER_LOG_LEVEL", "INFO")
+	var stdout, stderr bytes.Buffer
+	if code := Run(context.Background(), []string{"version"}, "1.2.3", &stdout, &stderr); code != 0 || stdout.String() != "pgwire-recorder 1.2.3\n" || stderr.Len() > 0 {
+		t.Fatalf("Exit-Code %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 	}
 }

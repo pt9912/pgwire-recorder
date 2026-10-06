@@ -271,17 +271,28 @@ func TestFailGleichrangig(t *testing.T) {
 		model.Errorf(model.CodeUnsupported, nil, "nicht unterstützt"),
 		model.Errorf(model.CodeConnectionLost, nil, "weg"),
 	))
+	// Das Frontend liest den Puffer in einem Zug; deshalb liest der Test alle
+	// Nachrichten bis zum Ende des Puffers.
 	fe := pgproto3.NewFrontend(&netz, io.Discard)
-	msg, err := fe.Receive()
-	if err != nil {
-		t.Fatal(err)
+	var nachrichten []pgproto3.BackendMessage
+	for {
+		msg, err := fe.Receive()
+		if err != nil {
+			break
+		}
+		if e, ok := msg.(*pgproto3.ErrorResponse); ok {
+			kopie := *e
+			nachrichten = append(nachrichten, &kopie)
+			continue
+		}
+		nachrichten = append(nachrichten, msg)
 	}
 	want := pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "0A000", Message: "nicht unterstützt [PGR-E6001]: nicht unterstützt"}
-	if e, ok := msg.(*pgproto3.ErrorResponse); !ok || !reflect.DeepEqual(*e, want) {
-		t.Fatalf("ErrorResponse %#v, erwartet %+v", msg, want)
+	if len(nachrichten) != 1 {
+		t.Fatalf("%d Nachrichten statt genau einer ErrorResponse: %#v", len(nachrichten), nachrichten)
 	}
-	if netz.Len() > 0 {
-		t.Fatalf("nach der ersten ErrorResponse noch %d Bytes", netz.Len())
+	if e, ok := nachrichten[0].(*pgproto3.ErrorResponse); !ok || !reflect.DeepEqual(*e, want) {
+		t.Fatalf("ErrorResponse %#v, erwartet %+v", nachrichten[0], want)
 	}
 	zeilen := logZeilen(t, log.String())
 	if len(zeilen) != 2 || zeilen[0]["level"] != "ERROR" || zeilen[0]["code"] != model.CodeUnsupported ||
