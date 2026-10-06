@@ -152,7 +152,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/lastenheft.md` | update | neue Anforderung in §4 mit Priorität MUSS; Abnahmeszenario 17 in §7 |
-| `docs/plan/planning/open/slice-harness-lint.md`, `slice-harness-coverage.md`, `slice-harness-blackbox-*.md` | update | Kopf `Bezug` mit Link auf die Anforderung; DoD-Zeile zum Nachweis nach dem entschiedenen Weg (lint, blackbox-einstieg, coverage); Reihenfolge in §4 *Start* mit `slice-harness-abdeckung-gate` |
+| `docs/plan/planning/next/slice-harness-lint.md`, `slice-harness-coverage.md`, `slice-harness-blackbox-*.md` | update | Kopf `Bezug` mit Link auf die Anforderung; DoD-Zeile zum Nachweis nach dem entschiedenen Weg (lint, blackbox-einstieg, coverage); Reihenfolge in §4 *Start* mit `slice-harness-abdeckung-gate` |
 | `docs/plan/planning/open/slice-harness-abdeckung-gate.md` | neu | aus der vendored Vorlage kopiert: Erweiterung von `make abdeckung` nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), erste Gate-Deklarationen, Randformen in §6 |
 | `docs/plan/planning/open/slice-harness-mutation.md` | update | Reihenfolge in §4 *Start* mit `slice-harness-abdeckung-gate` |
 | `docs/plan/planning/in-progress/roadmap.md` | geprüft / update | Trigger von M3 mit Abnahmeszenario 17 steht seit der Planung (2026-10-06); bei Closure gegen §7 abgeglichen. Drift-Log-Zeile 2026-10-06 zur Reihenfolge mit `slice-harness-abdeckung-gate` |
