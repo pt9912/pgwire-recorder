@@ -319,7 +319,7 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) heißt also jeder
   Test mit diesem Namen (`ohne-deklaration-unit`; `TestMain` unter
   `test/integration/` trägt keine); gelesen werden die Testdateien außer unter `.git/`
-  und `.harness/` (`nicht-gelesen`); die Anforderung steht als Überschrift dritter
+  und `.harness/` an der Wurzel (`nicht-gelesen`, `verschachtelt`); die Anforderung steht als Überschrift dritter
   Ebene im Lastenheft (`ueberschrift-ebene`); die Ausgänge 0, 1 und 2 sind die der
   Prüfung, `make` meldet jeden Ausgang ungleich 0 als Fehler (`nr9-scharf`, die
   Sensor-Datei sagt, woran die Ursachen auseinanderzuhalten sind). Nicht übertragen
@@ -338,8 +338,12 @@ zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
   Akzeptiertes Negativ: Ein Test unter `test/integration/`, dessen Name nicht mit
   `TestE2E` beginnt, braucht keine Deklaration; heute gibt es außer `TestMain` keinen
   (geprüft per `grep`), eine Pflicht nach Ort wäre eine Verhaltensänderung und gehört
-  nicht in diesen Slice. (2) Ausgenommen sind die Testdateien *unter* `.git/` und
-  `.harness/` — fremder Baum und Kurs-Inhalt, keine Tests dieses Repos. (3) Das
+  nicht in diesen Slice. (2) Ausgenommen sind nur die Verzeichnisse `.git/` und
+  `.harness/` an der Wurzel des Repos — fremder Baum und Kurs-Inhalt, keine Tests
+  dieses Repos; ein gleichnamiges Verzeichnis tiefer im Baum wird gelesen
+  (`nicht-gelesen`, `verschachtelt`). Als Bestand gewollt: Nur an der Wurzel liegen
+  diese beiden Bäume, ein tieferes gleichnamiges Verzeichnis gehört dem Repo, und
+  seine Tests wären sonst still ohne Deklarationspflicht. (3) Das
   Lastenheft führt jede Anforderung als Überschrift dritter Ebene; die Ebene ist die
   Form, an der die Kennung als Anforderung erkennbar ist, nicht als bloße Nennung.
   (4) Die Ausgänge sind die der Prüfung; dass `make` jeden Ausgang ungleich 0 als
