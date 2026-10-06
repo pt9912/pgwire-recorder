@@ -1,0 +1,261 @@
+# Slice slice-harness-lint-werkzeug: Werkzeug-Ziel `make lint` vor dem Gate
+
+**Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
+Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
+wechselt nur durch `git mv`, siehe
+Baseline-Regelwerk `modul-05-planning-harness.md` §Lifecycle als State Machine.
+Übernimmt ein anderer Slice den Gegenstand oder entfällt er, geht diese Datei
+aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
+Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
+(§Ein Slice, dessen Gegenstand ein anderer übernimmt).
+
+**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Er trägt zum
+Abnahmeszenario 17 (M3) bei, das mit dem letzten Slice der Reihe nachweisbar wird.
+Eingesammelt wird er von der nächsten Welle-Closure. Angelegt nach Entscheidung des
+Nutzers vom 2026-10-06 (Bereinigung vor dem Gate, ohne Stufen) als erster Slice der
+Bereinigungs-Reihe; Reihenfolge in §4 *Start*.
+
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 1; das Werkzeug misst, das Gate liefert `slice-harness-lint`). Bindung an Entscheidungen: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Profil, dauerhafte Ausnahmen, Entscheidung 6: Werkzeug-Ziel vor dem Gate), [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md) (Stufe des Multistage-`Dockerfile`, Image per Digest gepinnt, Build-Kontext als Allowlist).
+
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Punkte 1 bis 9 und die erste Hälfte von Punkt 10: Werkzeug ohne Gate)
+
+**Verantwortlich:** —
+
+**Autor:** pt9912. **Datum:** 2026-10-06.
+
+---
+
+## 1. Ziel und Abgrenzung
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Slice — Schnitt nach Lieferwert, nicht nach Schichten; jeder Slice
+ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung** (Out-of-Scope-Disziplin
+des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
+Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
+zusammen mit der Begründungs-Pflicht je Punkt.
+
+**Ziel:** `make lint` gibt es als Werkzeug ohne Gate (`SPEC-049` Punkt 10, erste
+Hälfte): Es prüft den Go-Code des Moduls mit golangci-lint `v2.14.0` als Stufe `lint`
+des `Dockerfile` nach dem Profil `.golangci.yml` (`SPEC-049` Punkt 1 bis 5 und 8, mit
+den dauerhaften Ausnahmen aus Entscheidung 2 in
+[ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md), je mit `# Why:`) und
+mit den drei eigenen Prüfungen (`//nolint`, Test in der Brücke, Regel ohne `Why:`,
+Punkt 6 bis 8), meldet den ganzen Bestand ungekürzt mit Pfad und endet nach Punkt 9.
+Es hängt nicht an `GATE_CHECKS`. Jeder folgende Slice der Reihe misst damit sein
+Ergebnis unter seinen Pfaden, mit demselben Ziel, das `slice-harness-lint` später an
+die Gate-Kette hängt (Entscheidung 6).
+
+**Herkunft:** Entscheidung des Nutzers vom 2026-10-06 nach der Messung des Bestands:
+Bereinigung vor dem Gate, ohne Stufen. Den Vorschlag des Architect, das Werkzeug mit
+`slice-harness-blackbox-kern` zu liefern, hat der Planner geprüft und verworfen (§8,
+*Schnitt*): Mit dem Werkzeug hätte jener Slice drei Liefer-Punkte in drei Schichten
+(Harness und `Dockerfile`, Tests des Domain Model, Tests der Services) und zwei
+Vorgänge, Arbeit am Werkzeug und Arbeit am Gegenstand, in einem Review.
+
+**Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
+
+- Der Anschluss an `GATE_CHECKS`, die Gegenprobe `make lint-gegenprobe` und die Doku
+  in `AGENTS.md` §3.2 und `harness/README.md` §Sensors — übernimmt `slice-harness-lint`,
+  wenn der Bestand grün ist; vorher machte das Ziel `make gates` rot (96 Befunde).
+- Die Bereinigung eines Befunds — Bestand bleibt bewusst stehen: Die Testdateien
+  bereinigen die vier Umstellungs-Slices, den Produkt-Code `slice-lint-bestand-kern-driven`
+  und `slice-lint-bestand-driving`. Dieser Slice ändert keine Datei `*.go`.
+- Eine Ausnahme, die nur Bestand aussetzt, oder eine Stufe — gibt es nicht
+  (Entscheidung 5); was der Lauf meldet, bleibt als Befund stehen.
+- Eine Änderung an `SPEC-049` oder an der ADR — Schicht-Abgrenzung: Der Vertrag ist
+  vor dem Code geschrieben; weicht das Werkzeug davon ab, geht der Befund an den
+  Architect (§4).
+
+## 2. Definition of Done
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
+gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
+Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
+
+- [ ] Profil und Stufe: `.golangci.yml` nach `SPEC-049` Punkt 1 bis 5 und 8, mit genau
+      den dauerhaften Ausnahmen aus Entscheidung 2 der ADR, je mit einem Kommentarblock
+      `# Why:` unmittelbar darüber; Stufe `lint` im `Dockerfile` nach Punkt 2
+      (`golangci/golangci-lint:v2.14.0` per Digest, `$BUILDPLATFORM`, Module aus `deps`,
+      `--network=none`, `GOTOOLCHAIN=local`, `GOFLAGS=-mod=readonly`); `.dockerignore`
+      lässt `.golangci.yml` und, falls die eigenen Prüfungen als Skript liegen, dieses
+      in den Build-Kontext. Die Stufen `test`, `build` und `integration` bleiben
+      unverändert.
+- [ ] Eigene Prüfungen, Ausgabe und Ausgang: die Prüfungen nach `SPEC-049` Punkt 6
+      (`//nolint`), 7 (Funktion `Test…`, `Benchmark…`, `Example…`, `Fuzz…` in
+      `export_test.go`) und 8 (Regel ohne `# Why:`, ungenutzte Regel über
+      `warn-unused`) laufen in der Stufe, jede auch bei einem Befund einer anderen, mit
+      Zeilen `lint: <pfad>:<zeile>: <befund>` und dem Ausgang nach Punkt 9. Je Zusage ist
+      die Mutation einmal von Hand rot gesehen und im Bericht als Zusage · Mutation ·
+      roter Lauf genannt (`AGENTS.md` §3.10); die bleibende Gegenprobe liefert
+      `slice-harness-lint`.
+- [ ] Ziel und Messung: `harness/mk/lint.mk` führt `make lint` ohne Eintrag in
+      `GATE_CHECKS`; `harness/README.md` nennt es in der Tabelle der Werkzeuge mit
+      „kein Gate“ und Bindung an die ADR. Ein Lauf am Stand des Slice reproduziert die
+      Messung der ADR: 96 Befunde nach den dauerhaften Ausnahmen, je Linter und Paket
+      wie die Messtabelle abzüglich der Ausnahmen, keine ungenutzte Regel; eine
+      Abweichung ist im Bericht erklärt oder geht an den Architect (§4).
+- [ ] `make gates` grün.
+- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
+- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+
+## 3. Plan (vor Code)
+
+Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
+§Was ist eine Sub-Area? — diese Liste liefert die **Pfad-Kandidaten** für §8,
+nicht die Antwort: Pfad-Berührung ist nicht hinreichend, und eine
+Aussagen-Berührung steht hier gar nicht.
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `.golangci.yml` | neu | Profil nach `SPEC-049` Punkt 1 bis 5 und 8 (`relative-path-mode: cfg`, Pfade mit `^`, `build-tags: integration`, ungekürzte Ausgabe, `warn-unused: true`); dauerhafte Ausnahmen nach Entscheidung 2 der [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Testdatei-Ausnahmen des Vorbilds, `ST1005`, `gochecknoglobals` für die zehn Nachschlage-Tabellen und Sentinel-Werte je Datei und Name, `forbidigo` für `cmd/` und `test/`), je mit `# Why:`; Kopfkommentar nennt die Hard Rule aus `AGENTS.md` §3.2 nur so weit, wie die eigene Prüfung sie hält (`AGENTS.md` §3.11) |
+| `Dockerfile` | update | Stufe `lint` aus `golangci/golangci-lint:v2.14.0@sha256:ad862ba6b3798cbe0fd9fd7408d498fd74fbd2623a92406b2fd3898faf0bf98f` auf `$BUILDPLATFORM`, Module aus `deps`, `RUN --network=none`, `GOTOOLCHAIN=local`, `GOFLAGS=-mod=readonly`; darin die drei eigenen Prüfungen, golangci-lint und die Auswertung von `warn-unused`, alle laufen, Ausgang nach Punkt 9 |
+| `tools/harness/lint-eigene-pruefungen.sh` (Name vorläufig) | neu, nur falls die Prüfungen nicht als `RUN` in der Stufe stehen | die drei eigenen Prüfungen als ein Skript für die Stufe; Kopf nennt `SPEC-049` Punkt 6 bis 8 und, was es nicht prüft (*Grenze* von `SPEC-049`) |
+| `.dockerignore` | update | `.golangci.yml` und gegebenenfalls das Skript in die Allowlist ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)); ohne sie läuft das Image mit Default-Profil |
+| `harness/mk/lint.mk` | neu | Ziel `lint` (`docker build --target lint`), Hilfe-Text „Werkzeug, kein Gate“; kein `GATE_CHECKS +=` |
+| `harness/README.md` | update | Tabelle der Werkzeuge: Zeile `make lint`, kein Gate, mit Verweis auf `SPEC-049` Punkt 10 |
+
+## 4. Trigger
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Trigger je Lifecycle-Übergang und WIP-Limit.
+
+**Start** (`next` → `in-progress`): `slice-harness-lint` liegt nicht mehr in
+`in-progress/` (zurück in `next/`, WIP-Limit 1), und
+[ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) ist `Accepted`. Reihenfolge
+nach Entscheidung des Nutzers vom 2026-10-06: dieser Slice, `slice-harness-blackbox-kern`,
+`slice-harness-blackbox-driven`, `slice-harness-blackbox-pgwire`,
+`slice-harness-blackbox-einstieg`, `slice-lint-bestand-kern-driven`,
+`slice-lint-bestand-driving`, `slice-harness-lint`, `slice-harness-abdeckung-gate`,
+`slice-harness-coverage`, `slice-harness-mutation`. Vor dem ersten Code-Commit prüft
+der Architect §6 gegen `SPEC-049`
+(`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
+
+**Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
+
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die eigenen Prüfungen sind
+  mit Profil und Stufe nicht in einer Review-Sitzung prüfbar; dann trägt dieser Slice
+  Profil, Stufe und Ziel, ein eigener Slice davor oder direkt danach die drei eigenen
+  Prüfungen.
+- `in-progress` → `open` (blockiert — Carveout?): Das gepinnte Image analysiert
+  `go 1.27` bei `GOTOOLCHAIN=local` nicht mehr, ein Linter des Profils fehlt in
+  `v2.14.0`, oder der Lauf weicht von der Messung der ADR ab, ohne dass die Abweichung
+  sich am Profil erklären lässt; dann zuerst eine Entscheidung des Architect.
+
+## 5. Closure-Trigger
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
+Lerneintrag; ohne ihn ist der Slice nur abgelegt.
+
+DoD vollständig, `make gates` grün ohne `lint` in der Gate-Kette, `make lint` meldet
+die 96 Befunde der Messung, Closure-Notiz mit Lerneintrag.
+
+## 6. Risiken und offene Punkte
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Offene Risiken werden bei Closure aufgelöst — **jedes** Risiko bekommt genau
+**einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
+dasteht.
+
+**Randformen** (`AGENTS.md` §3.12) — entschieden vom Architect am 2026-10-06 in
+`SPEC-049` und [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md), gemessen am Stand `79f40e1`; dieser Slice
+entscheidet keine. Was dort nicht steht, gibt der Implementer an den Architect zurück.
+Für das Werkzeug tragend:
+
+- **Werkzeug, dann Gate** — `make lint` endet bei Befund mit Ausgang ungleich 0, auch
+  als Werkzeug (Punkt 9 und 10); dass es `make gates` nicht rot macht, liegt allein
+  daran, dass es nicht an `GATE_CHECKS` hängt.
+- **Ort der eigenen Prüfungen** — in der Stufe `lint`, nicht auf dem Host (Punkt 2, 6
+  bis 8); ob als `RUN`-Zeilen oder als Skript, ist eine Form, kein Vertrag.
+- **Ungenutzte Regel** — `warn-unused` ist ein Befund (Punkt 8); jede dauerhafte
+  Ausnahme muss im Bestand etwas ausblenden, sonst ist sie falsch geschrieben.
+
+**Risiken:**
+
+- **Konfiguration wirkt anders, als sie gelesen wird** — ein Pfad-Regex in
+  `exclusions`, ein Modulname in `gomodguard_v2` oder ein fehlendes `build-tags`
+  liest sich als Zusage und greift nicht
+  (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`, 1×). Der Abgleich mit der
+  Messtabelle der ADR (DoD, Punkt 3) und `warn-unused` fangen es für diesen Stand.
+  — **Ausgang:** — (bei Closure)
+- **Eigene Prüfungen bis zum Gate ohne Gegenprobe** — die Mutationen sieht der
+  Implementer einmal von Hand; die bleibende Gegenprobe kommt erst mit
+  `slice-harness-lint`. Bricht eine Prüfung dazwischen still, misst jeder
+  Bereinigungs-Slice mit einem stumpfen Werkzeug. Die Gegenprobe von
+  `slice-harness-lint` fährt jede Zusage, bevor das Gate scharf wird.
+  — **Ausgang:** — (bei Closure)
+- **Mutant kommt im Build-Kontext nicht an** — BuildKit überträgt eine Datei gleicher
+  Größe und mtime nicht neu (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`, 1×);
+  die Mutationen von Hand laufen in einer Kopie unter eigenem Temp-Pfad.
+  — **Ausgang:** — (bei Closure)
+- **Bestehende Prüfung fällt weg** — `gofmt` und `go vet` in der Stufe `test` bleiben;
+  die Stufe `lint` tritt daneben, nicht an ihre Stelle
+  (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`, 1×). — **Ausgang:** — (bei Closure)
+
+## 7. Closure-Notiz
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
+§Das Beobachtungs-Register (vorhandene `BEO-<NNN>` **zitieren** statt neu
+formulieren — sonst zählt das Register zwei Namen getrennt) ·
+`grundlagen-traceability.md` §Herkunfts-Anker für Steering-Loop-Regeln (das
+Feld `liegt in` steht **nur**, wenn mit diesem Slice wirklich etwas verkörpert
+wurde; Feld und Zielort auf **einer** Zeile, Sektionsangabe innerhalb der
+Backticks). Ging der Gegenstand an einen anderen Slice oder entfiel er, trägt
+diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
+aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
+(`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
+übernimmt).
+
+- **Was hat funktioniert:** <…>
+- **Was ging anders als geplant:** <…>
+- **Steering-Loop-Eintrag:** <…>
+- **Beobachtungs-Register (`../observations/`):** <…>
+- **Folge-Slices:** <…>
+- **Risiken aus §6:** <…>
+
+## 8. Sub-Area-Prüfungen und Modus-Begründung
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Sub-Area-Modus-Begründung — dort die **zwei vorgelagerten
+Schritte** (sie stehen in jedem Slice-Plan, unabhängig von Modus und
+Slice-Typ) und die **vier Pflichtkriterien** (Konventionen-Dichte ·
+Phase-Reife · Evidenz-/Diskrepanz-Risiko · Reconciliation-Aufwand), vier und
+nicht mehr.
+
+**Schnitt** (Größenregel, geprüft vom Planner am 2026-10-06): Der Architect schlug vor,
+das Werkzeug mit `slice-harness-blackbox-kern` zu liefern. Jener Slice hätte damit drei
+Liefer-Punkte (Umbau der Tests, keine Befunde unter seinen Pfaden, Werkzeug) — an der
+Grenze —, aber drei Schichten (Harness mit `Dockerfile`, Tests des Domain Model, Tests
+der Services) und ein Review, das Profil, Stufe, drei eigene Prüfungen und acht
+umgeschriebene Testdateien mit 31 Befunden zugleich prüft; dazu mischte er Arbeit am
+Werkzeug mit Arbeit am Gegenstand. Eigener Slice: drei Liefer-Punkte in einer Schicht
+(Harness), einzeln lieferbar, ohne Datei `*.go`.
+
+**Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area, `*`
+(Kürzel `REPO`, Greenfield); dieser Slice berührt nur sie.
+
+**Vorgelagert — offene Beobachtungen sichten:** Register
+`docs/plan/planning/observations/BEO-REPO/` am Stand `7ea7a30` gesichtet (Zähler =
+Dateien unter `evidence/`). Treffer:
+
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (12×, verkörpert in `AGENTS.md`
+  §3.10) — je Zusage der eigenen Prüfungen eine Mutation, von Hand (DoD, Punkt 2).
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (13×, verkörpert in §3.11) — der
+  Kopfkommentar von `.golangci.yml` und die Werkzeug-Zeile sagen nur zu, was der Lauf
+  zeigt (§3).
+- `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (1×),
+  `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (1×) und
+  `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (1×) — je ein Risiko in §6.
+- `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (1×) — wellenlos; §4 nennt den
+  Architect vor dem Code.
+
+Keiner der Einträge erreicht mit diesem Slice allein die Schwelle 3×; keine neue
+Lücke vor dem Code.
+
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF.
