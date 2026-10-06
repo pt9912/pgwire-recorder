@@ -118,9 +118,10 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-lint-werkzeug` liegt in `done/` (WIP-Limit 1,
+**Start** (`next` → `in-progress`): `slice-harness-lint-werkzeug` und
+`slice-harness-upgrade-v6-16` liegen in `done/` (WIP-Limit 1,
 Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05 und 2026-10-06:
-`slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
+`slice-harness-lint-werkzeug`, `slice-harness-upgrade-v6-16`, die vier Umstellungs-Slices,
 `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
 `slice-harness-abdeckung-gate`, Coverage, Mutation). Gemessen wird mit dem Werkzeug
 `make lint` aus `slice-harness-lint-werkzeug`. Vor dem ersten Code-Commit prüft der
