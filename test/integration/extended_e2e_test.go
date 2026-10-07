@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package integration_test
 
 import (
 	"context"
@@ -364,7 +364,11 @@ func TestE2ERecordExtendedSigtermBeimPipelining(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pc.Close(context.Background())
+	defer func() {
+		if err := pc.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	}()
 	p := pc.StartPipeline(ctx)
 	senden := func() error {
 		p.SendQueryParams("SELECT pg_sleep(0.05)", nil, nil, nil, nil)
@@ -373,7 +377,10 @@ func TestE2ERecordExtendedSigtermBeimPipelining(t *testing.T) {
 	}
 	var fertig atomic.Int64
 	go func() {
-		if senden() != nil || senden() != nil {
+		if senden() != nil {
+			return
+		}
+		if senden() != nil {
 			return
 		}
 		for {

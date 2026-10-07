@@ -1,13 +1,13 @@
 //go:build integration
 
-// Package integration prüft das gebaute Binary Ende-zu-Ende gegen eine reale
+// Package integration_test prüft das gebaute Binary Ende-zu-Ende gegen eine reale
 // PostgreSQL-Instanz. Den Lauf startet `make test-integration`
 // (tools/test/run-integration-tests.sh); er setzt PGR_BINARY und PGR_UPSTREAM.
 //
 // Jeder Test TestE2E* trägt direkt darüber eine Abdeckungs-Deklaration
 // `// Abdeckung: <Anforderung>/<Pfad>, … — <Kurzbeschreibung>`; `make abdeckung`
 // bildet daraus docs/user/abdeckung-e2e.md.
-package integration
+package integration_test
 
 import (
 	"context"
@@ -230,7 +230,11 @@ func TestE2ERecordBeendenMitOffenerVerbindung(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Error(err)
+		}
+	}()
 	if _, err := conn.Exec(ctx, "SELECT 1;").ReadAll(); err != nil {
 		t.Fatal(err)
 	}

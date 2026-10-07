@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package integration_test
 
 import (
 	"context"
@@ -62,7 +62,11 @@ func sqlAblauf(t *testing.T, listen string, pause time.Duration) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 	db.SetMaxOpenConns(1)
 	var b strings.Builder
 	for i := 1; i <= 3; i++ {
@@ -142,17 +146,21 @@ func TestE2EReplayLebendpruefungDatabaseSQL(t *testing.T) {
 	lebendLagen(t, sqlAblauf)
 }
 
-// lebendTexte sind Lebendprüfungen nach LH-FA-09.a gegen jede Serverversion:
-// Leerraum ohne \v, Zeilenkommentare bis Zeilen- oder Textende, auch mit \v
-// darin, verschachtelte Blockkommentare.
-var lebendTexte = []string{
-	"", " ", "\t\n\r\f", "-- ping", "--", "-- a\r-- b\n", "-- a\fb", "-- a\vb", "-- a /* b",
-	"/**/", "/* a /* b */ c */", "/* -- */", "/* a */ -- b\n",
+// lebendTexte liefert die Lebendprüfungen nach LH-FA-09.a gegen jede
+// Serverversion: Leerraum ohne \v, Zeilenkommentare bis Zeilen- oder Textende,
+// auch mit \v darin, verschachtelte Blockkommentare.
+func lebendTexte() []string {
+	return []string{
+		"", " ", "\t\n\r\f", "-- ping", "--", "-- a\r-- b\n", "-- a\fb", "-- a\vb", "-- a /* b",
+		"/**/", "/* a /* b */ c */", "/* -- */", "/* a */ -- b\n",
+	}
 }
 
-// vtTexte sind Lebendprüfungen nach LH-FA-09.a nur, wenn \v nach der
+// vtTexte liefert die Lebendprüfungen nach LH-FA-09.a nur, wenn \v nach der
 // Serverversion Leerraum ist.
-var vtTexte = []string{"\v", "\t\n\r\f\v", "\v-- ping\v", "/* a */ -- b\n\v"}
+func vtTexte() []string {
+	return []string{"\v", "\t\n\r\f\v", "\v-- ping\v", "/* a */ -- b\n\v"}
+}
 
 // vtAbVersion ist die Hauptversion, ab der \v nach LH-FA-09.a Leerraum ist.
 const vtAbVersion = 17
@@ -205,7 +213,11 @@ func lebendAblauf(t *testing.T, listen string, mitPruefungen, vt bool) string {
 	if err != nil {
 		t.Fatalf("Verbindung über %s: %v", listen, err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Error(err)
+		}
+	}()
 	var b strings.Builder
 	pruefen := func(texte []string) {
 		for _, text := range texte {
@@ -214,11 +226,11 @@ func lebendAblauf(t *testing.T, listen string, mitPruefungen, vt bool) string {
 			}
 		}
 	}
-	nachZuordnung := lebendTexte
+	nachZuordnung := lebendTexte()
 	if vt {
-		nachZuordnung = append(append([]string{}, lebendTexte...), vtTexte...)
+		nachZuordnung = append(lebendTexte(), vtTexte()...)
 	}
-	pruefen(lebendTexte)
+	pruefen(lebendTexte())
 	for _, anweisung := range []string{"BEGIN", "SELECT 1/0", "ROLLBACK"} {
 		fmt.Fprintf(&b, "%s: %s\n", anweisung, antwortArt(t, conn, anweisung))
 		pruefen(nachZuordnung)
@@ -246,13 +258,13 @@ func TestE2EReplayLebendpruefungWiePostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	leer := antwortArt(t, pg, "")
-	for _, text := range lebendTexte {
+	for _, text := range lebendTexte() {
 		if got := antwortArt(t, pg, text); got != leer {
 			t.Errorf("PostgreSQL beantwortet die Lebendprüfung %q mit %s, die leere Anfrage mit %s", text, got, leer)
 		}
 	}
 	vt := hauptversion(t, pg) >= vtAbVersion
-	for _, text := range vtTexte {
+	for _, text := range vtTexte() {
 		if got := antwortArt(t, pg, text); (got == leer) != vt {
 			t.Errorf("PostgreSQL %s beantwortet %q mit %s, die leere Anfrage mit %s; \\v Leerraum laut LH-FA-09.a: %v",
 				pg.ParameterStatus("server_version"), text, got, leer, vt)

@@ -120,7 +120,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `test/integration/*_test.go` | refactor | Paketname `integration` ohne `_test`-Suffix in einem Verzeichnis nur aus Testdateien (§6) |
 | `export_test.go` je Paket, nur wo nötig | neu | Brücke zu unexportierten Teilen nach `SPEC-049` Punkt 7 |
 | dieselben Testdateien | update | übrige Befunde aus `make lint` (dazu `errcheck`, `gochecknoglobals`, `revive` und `staticcheck`, zusammen 13) in den Dateien, die der Umbau ohnehin umschreibt |
-| `Dockerfile` | update, nur falls nötig | Stufe `integration` baut das Testbinary weiter, wenn sich der Paketname ändert |
+| `Dockerfile` | unverändert | Stufe `integration` baut das Testbinary mit `package integration_test` unverändert (`go test -c -tags integration ./test/integration`, §7) |
 
 ## 4. Trigger
 
@@ -178,10 +178,15 @@ steht, gibt der Implementer an den Architect zurück.
   `slice-harness-blackbox-kern`).
 - **Übrige Befunde der Testdateien** — `contextcheck`: Kontext aus `t.Context()`, in einer Funktion für `t.Cleanup` aus `context.WithoutCancel(t.Context())` (`SPEC-049` Punkt 5); `errcheck` an `Close` einer Datei oder Datenbank: den Fehler prüfen (etwa in `t.Cleanup` mit `t.Error`); `gochecknoglobals`: Testdaten in Funktionen oder als Konstanten; `revive`, `staticcheck`: nach der Meldung. Kein `_ =` vor einem Fehler, den
   `errcheck` meldet, und keine Ausnahme, die nur Bestand aussetzt (Entscheidung 5).
-- **White-Box-Zugriffe im Bestand** — Namensabgleich per Suche am Stand `ce50a10`
-  (ungemessen, kann Fehltreffer enthalten, wo ein Testhelfer gleich heißt): in `cli` `envFailOnUnconsumed`, in `bootstrap` `replay`, in `test/integration` keine (es prüft das Binary als Prozess).
-  Je Zugriff: über die exportierte Schnittstelle prüfbar, über die Brücke, oder
-  Befund. `test/integration` hat keinen Produkt-Code; `testpackage` meldet dort je Testdatei (7 in der Messung), und ob `package integration_test` mit `go test -c -tags integration ./test/integration` (Dockerfile, Stufe `integration`) weiter baut, ist zu prüfen.
+- **White-Box-Zugriffe im Bestand** — per AST gemessen am Stand `f28a2df` (§7): in `cli`
+  die Konstanten `envFailOnUnconsumed` und `envLogLevel`, in `bootstrap` die Funktionen
+  `logger` und `fail`, in `test/integration` keine (es prüft das Binary als Prozess); kein
+  Wert eines unexportierten Typs. Alle vier gehen über die Brücke (Konstanten und
+  Funktionen, die weiterreichen); keiner ist Befund. Der Namensabgleich per Suche am Stand
+  `ce50a10` nannte `replay` in `bootstrap`, ein Fehltreffer. `test/integration` hat keinen
+  Produkt-Code; `testpackage` meldet dort je Testdatei (7 in der Messung), und
+  `package integration_test` baut mit `go test -c -tags integration ./test/integration`
+  (Dockerfile, Stufe `integration`) unverändert (§7).
 - **Fakes der Ports** — die Ports sind exportiert (`internal/hexagon/ports/...`); ein
   Fake in einem `_test`-Paket implementiert sie unverändert. Ein Fake, der auf
   unexportierte Felder eines Produkt-Typs greift, fällt unter die Brücke.
@@ -228,6 +233,152 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Beobachtungs-Register (`../observations/`):** <…>
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
+
+**Belege des Implementers** (Arbeitsbaum auf `f28a2df` mit dem Diff des Commits, der
+diesen Abschnitt anlegt):
+
+*White-Box-Zugriffe, per AST gemessen* (go/types im Image der Stufe `deps`, ohne Netz;
+gezählt sind Bezeichner in Testdateien der Pakete `cli`, `bootstrap` und `integration`,
+die auf ein unexportiertes Objekt einer Produkt-Datei desselben Pakets zeigen, dazu
+Literale, `var`, `new` und `:=` unexportierter Typen in Testdateien). Vorher
+(`f28a2df`), je Zugriff mit Zuordnung:
+
+| Paket | Zugriff | Stellen | Zuordnung |
+|---|---|---|---|
+| `cli` | Konstante `envFailOnUnconsumed` | 15 | Brücke, Konstante `EnvFailOnUnconsumed` |
+| `cli` | Konstante `envLogLevel` | 6 | Brücke, Konstante `EnvLogLevel` |
+| `bootstrap` | Funktion `logger` | 2 | Brücke `Logger` (reicht an `logger` weiter; Writer und Stufe stellt der Test, Ergebnis ist `*slog.Logger`) |
+| `bootstrap` | Funktion `fail` | 1 | Brücke `Fail` (reicht an `fail` weiter; Writer und Fehler stellt der Test, Ergebnis ist `int`) |
+| `integration` | — | 0 | kein Produkt-Code im Verzeichnis |
+
+Werte unexportierter Typen in Testdateien vorher und nachher 0. Nachher stehen die vier
+Objekte je einmal in `export_test.go` ihres Pakets und sonst in keiner Testdatei; kein
+Zugriff blieb Befund, keiner wurde gegen die Schnittstelle umgeschrieben. Fehltreffer der
+Suche in §6: `replay` in `bootstrap` (kein Test greift darauf zu).
+
+Die Brücken: `internal/adapters/driving/cli/export_test.go` mit zwei Konstanten,
+`internal/bootstrap/export_test.go` mit zwei Funktionen, die nur weiterreichen; keine
+Variable, kein Zustand, kein Typ-Alias. Kein Produkt-Code geändert; `Dockerfile`
+unverändert, die Stufe `integration` baut `package integration_test` mit
+`go test -c -tags integration` (Lauf unten).
+
+*Testliste* (`go test -list .` je Paket im Image der Stufe `deps`, für
+`./test/integration` mit `-tags integration` und `PGR_OHNE_POSTGRES=1`, damit `TestMain`
+ohne Upstream listet): vorher und nachher `cli` 19, `bootstrap` 12, `integration` 39
+Tests, `diff` leer. Die Abdeckungs-Deklarationen stehen unverändert: Der Diff ändert
+genau drei Kommentare, die Doc-Kommentare von `lebendTexte` und `vtTexte` und den
+Paket-Kommentar (`Package integration_test`), keiner davon eine Deklaration
+`Abdeckung:` oder ihre Fortsetzung; `make abdeckung-check` grün.
+
+*`make lint`.* Vorher (`f28a2df`, Exit 2): golangci-lint `54 issues:` im Modul, davon 22
+in Testdateien, alle unter den Pfaden dieses Slice; je Paket `cli` 2 (1 in Testdateien),
+`bootstrap` 2 (1), `test/integration` 20 (20):
+
+```text
+test/integration/extended_e2e_test.go:367:16: Error return value of `pc.Close` is not checked (errcheck)
+test/integration/extended_replay_e2e_test.go:35:18: Error return value of `conn.Close` is not checked (errcheck)
+test/integration/extended_replay_e2e_test.go:135:18: Error return value of `conn.Close` is not checked (errcheck)
+test/integration/extended_replay_e2e_test.go:245:18: Error return value of `conn.Close` is not checked (errcheck)
+test/integration/lebendpruefung_e2e_test.go:65:16: Error return value of `db.Close` is not checked (errcheck)
+test/integration/lebendpruefung_e2e_test.go:208:18: Error return value of `conn.Close` is not checked (errcheck)
+test/integration/record_e2e_test.go:233:18: Error return value of `conn.Close` is not checked (errcheck)
+test/integration/replay_e2e_test.go:41:18: Error return value of `conn.Close` is not checked (errcheck)
+test/integration/unverbraucht_e2e_test.go:219:18: Error return value of `conn.Close` is not checked (errcheck)
+test/integration/lebendpruefung_e2e_test.go:148:5: lebendTexte is a global variable (gochecknoglobals)
+test/integration/lebendpruefung_e2e_test.go:155:5: vtTexte is a global variable (gochecknoglobals)
+test/integration/replay_e2e_test.go:134:6: var-naming: don't use underscores in Go names; func exec_ should be exec (revive)
+test/integration/extended_e2e_test.go:376:6: SA4000: identical expressions on the left and right side of the '||' operator (staticcheck)
+internal/adapters/driving/cli/cli_test.go:1:9: package should be `cli_test` instead of `cli` (testpackage)
+internal/bootstrap/bootstrap_test.go:1:9: package should be `bootstrap_test` instead of `bootstrap` (testpackage)
+test/integration/einfach_e2e_test.go:3:9: package should be `integration_test` instead of `integration` (testpackage)
+test/integration/extended_e2e_test.go:3:9: package should be `integration_test` instead of `integration` (testpackage)
+test/integration/extended_replay_e2e_test.go:3:9: package should be `integration_test` instead of `integration` (testpackage)
+test/integration/lebendpruefung_e2e_test.go:3:9: package should be `integration_test` instead of `integration` (testpackage)
+test/integration/record_e2e_test.go:10:9: package should be `integration_test` instead of `integration` (testpackage)
+test/integration/replay_e2e_test.go:3:9: package should be `integration_test` instead of `integration` (testpackage)
+test/integration/unverbraucht_e2e_test.go:3:9: package should be `integration_test` instead of `integration` (testpackage)
+```
+
+Nachher (Arbeitsbaum, Exit 2): `32 issues:` im Modul, 22 weniger, keiner neu (`diff` der
+sortierten Befundzeilen: 22 entfallen, 0 hinzu); **in keiner Testdatei des Moduls ein
+Befund** und keine `lint:`-Zeile der eigenen Prüfungen (auch nicht an den beiden
+`export_test.go`). Unter den Pfaden dieses Slice bleiben 2, beide im Produkt-Code und
+dieselben Zeilen wie vorher, für `slice-lint-bestand-driving`:
+
+```text
+internal/bootstrap/bootstrap.go:71:26: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+internal/adapters/driving/cli/cli.go:243:7: unused-receiver: method receiver 'w' is not referenced in method's body, consider removing or renaming it as _ (revive)
+```
+
+Behoben ohne `//nolint`, ohne neues `_ =` und ohne Änderung an `.golangci.yml`:
+`testpackage` durch `package cli_test`, `package bootstrap_test` und
+`package integration_test`; `errcheck` an `Close` (neun Stellen, `pgconn`, `pgx` und
+`database/sql`) durch ein `defer func()`, das den Fehler mit `t.Error` meldet. Das `defer`
+bleibt, statt nach `t.Cleanup` zu wandern: Die Verbindung schließt weiter am Ende des
+Helfers, vor dem `cancel` des Kontexts, und die Tests, die danach auf das Ende der Session
+warten, sehen denselben Ablauf. `gochecknoglobals` durch die Funktionen `lebendTexte()`
+und `vtTexte()`, die je Aufruf eine neue Liste liefern; `revive` `var-naming` durch den
+Namen `fuehreAus` statt `exec_`; `staticcheck` SA4000 durch zwei Anweisungen
+`if senden() != nil { return }`, dieselben zwei Aufrufe in derselben Reihenfolge.
+
+*Umgeschrieben:* keiner der 70 Tests gegen die Schnittstelle. Umgestellt sind alle
+(Paketname, Brücke, Präfix `cli.` und `bootstrap.`); geändert über die Umstellung hinaus
+sind nur die Stellen der Befunde oben, in den Tests der Tabelle unten.
+
+*Mutationen* (`AGENTS.md` §3.10, Risiko *Prüfung geht im Umbau verloren*): je Mutant ein
+frischer Pfad außerhalb des Repos (`cp -r` ohne `-p` von `go.mod`, `go.sum`, `cmd/`,
+`internal/`, `test/` aus dem Arbeitsbaum), Tests per Bind-Mount im Image der Stufe `deps`;
+Unit-Tests mit `go test -count=1 -run`, Integrationstests mit `-tags integration` gegen
+eine eigene PostgreSQL-17-Instanz (dasselbe gepinnte Image wie `make test-integration`)
+in einem eigenen internen Docker-Netz, das danach entfernt wurde. Ohne Mutation ist jeder
+genannte Test grün (`U0`, `E0`), mit ihr rot.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| eine Stufe zeigt ihre und die strengeren Zeilen (über `Logger`) | `Level: slog.LevelInfo` statt `stufen[stufe]` | `TestLoggerSchwelle` |
+| `time` ist Ortszeit (über `Logger`) | `ReplaceAttr` setzt die Zeit auf UTC | `TestLoggerOrtszeit` |
+| je Meldung eine Zeile beim Prozessende (über `Fail`) | `fail` schreibt nur die erste Meldung | `TestFailJeKlasse` |
+| Exit-Code der ersten Meldung (über `Fail`) | `fail` liefert den Exit-Code der letzten | `TestFailJeKlasse` |
+| der Name `PGWIRE_RECORDER_LOG_LEVEL` (Konstante über die Brücke) | `envLogLevel = "PGWIRE_RECORDER_LOGLEVEL"` | `TestRunStartfehlerJeStufe` (`bootstrap`, Literal), `TestParseLogLevelHilfe` (`cli`) |
+| der Name `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` (Konstante über die Brücke) | `envFailOnUnconsumed = "PGWIRE_RECORDER_FAILONUNCONSUMED"` | `TestE2EReplayNichtVerbraucht` (Literal); in `cli` grün, unten eingeordnet |
+| `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` wird gelesen | `Parse` liest die Variable nicht | `TestParseFailOnUnconsumedUmgebung`, `TestParseFailOnUnconsumedUmgebungNebenOption` |
+| `PGWIRE_RECORDER_LOG_LEVEL` wird gelesen | `Parse` liest die Variable nicht | `TestParseLogLevelUmgebung` |
+| nach SIGTERM beginnt keine neue Interaktion, auch beim Pipelinen (SA4000 umgeschrieben, `Close` geprüft) | `ClientMessage` ohne die Sperre `herunterfahren` | `TestE2ERecordExtendedSigtermBeimPipelining` (endet nicht binnen 5 s) |
+| verschachtelte Blockkommentare sind Lebendprüfungen (`lebendTexte()`) | `/*` öffnet nur auf Tiefe 0 eine Ebene | `TestE2EReplayLebendpruefungWiePostgres` (PGR-E5001 an `"/* a /* b */ c */"`) |
+| ein Zeilenkommentar reicht bis zum Textende (`lebendTexte()`, `sqlAblauf` und Pool mit geprüftem `Close`) | `--` ohne Zeilenende ist keine Lebendprüfung | `TestE2EReplayLebendpruefungPgxpool`, `…DatabaseSQL`, `…WiePostgres` |
+| `\v` ist ab Version 17 Leerraum (`vtTexte()`) | `vtAbVersion = 18` | `TestE2EReplayLebendpruefungWiePostgres` (PGR-E5001 an `"\v"`) |
+| eine beschädigte Aufzeichnung ist PGR-E3003 (über `fuehreAus`) | „Liste der Sessions fehlt“ als PGR-E3001 | `TestE2EReplayBeschaedigt` |
+| ein Startfehler ist PGR-E4001 (über `fuehreAus`) | `Listen` meldet PGR-E4000 | `TestE2EReplayNichtVerbrauchtStartfehler` |
+| die Interaktion einer offenen Verbindung bleibt beim Beenden (`Close` geprüft) | `CloseSession` verwirft Sessions mit `EndShutdown` | `TestE2ERecordBeendenMitOffenerVerbindung` |
+| eine beim Herunterfahren nicht verbrauchte Session ist PGR-E5002 (`Close` geprüft) | `CloseConnection` meldet nur ohne verbrauchte Interaktion | `TestE2EReplayNichtVerbrauchtHerunterfahren` |
+| Replay liefert die Zeilen einer Extended-Interaktion (`extendedAblauf`, `pipelineAblauf`, Sigterm-Test, je `Close` geprüft) | `ClientMessage` lässt `DataRow` weg | `TestE2EReplayExtendedPgx`, `TestE2EReplayExtendedPipeline`, `TestE2EReplayExtendedSigtermMittenInFolge` |
+| Replay liefert die Zeilen einer einfachen Anfrage (`beobachten`, `Close` geprüft) | `Query` lässt `DataRow` weg | `TestE2EReplaySelect1` |
+
+*Ohne roten Test*, eingeordnet nach `.claude/commands/implement-slice.md` Schritt 19:
+
+- `envFailOnUnconsumed = "PGWIRE_RECORDER_FAILONUNCONSUMED"` bleibt in allen Tests von
+  `cli` grün, vorher (`git archive` von `f28a2df` in einem frischen Pfad) wie nachher:
+  Die Tests nennen dieselbe Konstante, vorher direkt, nachher über die Brücke. Der Mutant
+  ändert das Verhalten und ist über die Schnittstelle gefangen, in einem anderen Paket:
+  `TestE2EReplayNichtVerbraucht` setzt die Variable als Literal auf `true` und wird rot.
+  Kein Verlust durch den Umbau.
+- Der erste Platz derselben Mutation von PGR-E3003 nach PGR-E3001 (`formVorpruefung`)
+  blieb in `TestE2EReplayBeschaedigt` grün: Die Eingabe dieses Tests erreicht die Stelle
+  nicht, sie scheitert in `fromDTO` (Zeile oben, rot). Äquivalent für diesen Test; die
+  Stelle selbst fangen `TestUnmarshalExtendedFehler` und `TestVorpruefungNenntOrt` im
+  Paket `recording`, mit derselben Mutation rot.
+- Für die Prüfung des `Close`-Fehlers selbst ist kein Mutant gefahren: `Close` schließt
+  die Verbindung des Tests, nicht eine des Produkts, und lieferte in allen Läufen nil,
+  auch in den Tests, in denen das Produkt die Verbindung vorher beendet. Einen Mutanten
+  im Produkt, der hier einen Fehler erzeugt, kenne ich nicht; die Prüfung ist ein Zusatz
+  am Testgeschirr, keine Zusage über das Produkt. Grenze: Ob sie bei einem Fehler meldet,
+  prüft kein Test.
+
+*Läufe:* `gofmt -l` (leer), `go vet -tags integration` der drei Pakete, `go test` von
+`cli` und `bootstrap` und `go test -c -tags integration ./test/integration` im Image der
+Stufe `deps`; `make test-integration` grün (37 Tests bestanden und 2 übersprungen in der ersten Phase, dazu 2 bestanden in der zweiten Phase ohne PostgreSQL); `make lint` vorher
+und nachher wie oben; `make abdeckung-check` grün; `make gates` grün am Stand dieses
+Commits.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

@@ -1,4 +1,4 @@
-package bootstrap
+package bootstrap_test
 
 import (
 	"bytes"
@@ -15,6 +15,7 @@ import (
 
 	"github.com/pt9912/pgwire-recorder/internal/adapters/driven/recording"
 	"github.com/pt9912/pgwire-recorder/internal/adapters/driving/cli"
+	"github.com/pt9912/pgwire-recorder/internal/bootstrap"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
 
@@ -24,7 +25,7 @@ import (
 func TestRunHilfe(t *testing.T) {
 	t.Setenv("PGWIRE_RECORDER_FAIL_ON_UNCONSUMED", "1")
 	var stdout, stderr bytes.Buffer
-	if code := Run(context.Background(), []string{"replay", "--help"}, "dev", &stdout, &stderr); code != 0 {
+	if code := bootstrap.Run(context.Background(), []string{"replay", "--help"}, "dev", &stdout, &stderr); code != 0 {
 		t.Fatalf("Exit-Code %d, stderr %q", code, stderr.String())
 	}
 	if !strings.Contains(stdout.String(), "Optionen von replay") || stderr.Len() > 0 {
@@ -38,7 +39,7 @@ func TestRunHilfe(t *testing.T) {
 func TestRunVersion(t *testing.T) {
 	t.Setenv("PGWIRE_RECORDER_FAIL_ON_UNCONSUMED", "1")
 	var stdout, stderr bytes.Buffer
-	if code := Run(context.Background(), []string{"version"}, "1.2.3", &stdout, &stderr); code != 0 || stdout.String() != "pgwire-recorder 1.2.3\n" || stderr.Len() > 0 {
+	if code := bootstrap.Run(context.Background(), []string{"version"}, "1.2.3", &stdout, &stderr); code != 0 || stdout.String() != "pgwire-recorder 1.2.3\n" || stderr.Len() > 0 {
 		t.Fatalf("Exit-Code %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 	}
 }
@@ -51,12 +52,12 @@ func TestRunEndeDerOptionen(t *testing.T) {
 	t.Setenv("PGWIRE_RECORDER_FAIL_ON_UNCONSUMED", "")
 	t.Chdir(t.TempDir())
 	var stdout, stderr bytes.Buffer
-	code := Run(context.Background(), []string{"replay", "--listen", "127.0.0.1:0", "--input", "--"}, "dev", &stdout, &stderr)
+	code := bootstrap.Run(context.Background(), []string{"replay", "--listen", "127.0.0.1:0", "--input", "--"}, "dev", &stdout, &stderr)
 	if code != 2 || !strings.Contains(stderr.String(), "PGR-E2001") || strings.Contains(stderr.String(), "PGR-E3") {
 		t.Fatalf("--input --: Exit-Code %d, stderr %q", code, stderr.String())
 	}
 	stderr.Reset()
-	code = Run(context.Background(), []string{"replay", "--listen", "127.0.0.1:0", "--input=--"}, "dev", &stdout, &stderr)
+	code = bootstrap.Run(context.Background(), []string{"replay", "--listen", "127.0.0.1:0", "--input=--"}, "dev", &stdout, &stderr)
 	if code != 3 || !strings.Contains(stderr.String(), "PGR-E3001") {
 		t.Fatalf("--input=--: Exit-Code %d, stderr %q", code, stderr.String())
 	}
@@ -90,7 +91,7 @@ func replayBeendet(t *testing.T, args ...string) (int, string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	var stdout, stderr bytes.Buffer
-	code := Run(ctx, append([]string{"replay", "--listen", "127.0.0.1:0", "--input", aufzeichnung(t)}, args...), "dev", &stdout, &stderr)
+	code := bootstrap.Run(ctx, append([]string{"replay", "--listen", "127.0.0.1:0", "--input", aufzeichnung(t)}, args...), "dev", &stdout, &stderr)
 	if stdout.Len() > 0 {
 		t.Fatalf("stdout %q", stdout.String())
 	}
@@ -173,7 +174,7 @@ func TestLoggerSchwelle(t *testing.T) {
 		cli.LogDebug: "DEBUG,INFO,WARN,ERROR",
 	} {
 		var b bytes.Buffer
-		log := logger(&b, stufe)
+		log := bootstrap.Logger(&b, stufe)
 		log.Debug("d")
 		log.Info("i")
 		log.Warn("w", "code", model.CodeUnconsumed)
@@ -212,7 +213,7 @@ func TestRunStartfehlerJeStufe(t *testing.T) {
 	} {
 		t.Setenv("PGWIRE_RECORDER_LOG_LEVEL", f.env)
 		var stdout, stderr bytes.Buffer
-		exit := Run(context.Background(), append([]string{"replay", "--listen", "127.0.0.1:0"}, f.args...), "dev", &stdout, &stderr)
+		exit := bootstrap.Run(context.Background(), append([]string{"replay", "--listen", "127.0.0.1:0"}, f.args...), "dev", &stdout, &stderr)
 		zeilen := strings.Split(strings.TrimSuffix(stderr.String(), "\n"), "\n")
 		if exit != f.exit || len(zeilen) != 1 || !strings.Contains(zeilen[0], "["+f.code+"]: ") || strings.HasPrefix(zeilen[0], "time=") || stdout.Len() > 0 {
 			t.Errorf("Umgebung %q, %v: Exit-Code %d, stderr %q", f.env, f.args, exit, stderr.String())
@@ -240,7 +241,7 @@ func TestFailJeKlasse(t *testing.T) {
 		{errors.Join(model.Errorf(model.CodeRecordingIO, nil, "a"), model.Errorf(model.CodeNetwork, nil, "b")), "Recording [PGR-E3001]: a\nNetzwerk [PGR-E4000]: b\n", 3},
 	} {
 		var stderr bytes.Buffer
-		if exit := fail(&stderr, f.err); exit != f.exit || stderr.String() != f.want {
+		if exit := bootstrap.Fail(&stderr, f.err); exit != f.exit || stderr.String() != f.want {
 			t.Errorf("Exit-Code %d, stderr %q, erwartet %d, %q", exit, stderr.String(), f.exit, f.want)
 		}
 	}
@@ -263,7 +264,7 @@ func TestRunRecordLogLevel(t *testing.T) {
 			aufruf = append(aufruf, args)
 		}
 		var stdout, stderr bytes.Buffer
-		code := Run(ctx, aufruf, "dev", &stdout, &stderr)
+		code := bootstrap.Run(ctx, aufruf, "dev", &stdout, &stderr)
 		if got := strings.Join(stufenImLog(t, stderr.String()), ","); code != 0 || got != want || stdout.Len() > 0 {
 			t.Errorf("%q: Exit-Code %d, Zeilen %q, erwartet %q\n%s", args, code, got, want, stderr.String())
 		}
@@ -277,7 +278,7 @@ func TestLoggerOrtszeit(t *testing.T) {
 	time.Local = time.FixedZone("Test", 2*60*60)
 	defer func() { time.Local = alt }()
 	var b bytes.Buffer
-	logger(&b, cli.LogInfo).Info("x")
+	bootstrap.Logger(&b, cli.LogInfo).Info("x")
 	if !regexp.MustCompile(`^time=\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}\+02:00 level=INFO msg=x\n$`).MatchString(b.String()) {
 		t.Fatalf("Zeile %q", b.String())
 	}
@@ -295,7 +296,7 @@ func TestRunRecordStartfehlerJeStufe(t *testing.T) {
 	}
 	for _, stufe := range []string{"error", "warn", "info", "debug"} {
 		var stdout, stderr bytes.Buffer
-		exit := Run(context.Background(), []string{"record", "--listen", "127.0.0.1:0", "--upstream", "127.0.0.1:1", "--output", output, "--log-level=" + stufe}, "dev", &stdout, &stderr)
+		exit := bootstrap.Run(context.Background(), []string{"record", "--listen", "127.0.0.1:0", "--upstream", "127.0.0.1:1", "--output", output, "--log-level=" + stufe}, "dev", &stdout, &stderr)
 		zeilen := strings.Split(strings.TrimSuffix(stderr.String(), "\n"), "\n")
 		if exit != 2 || len(zeilen) != 1 || !strings.HasPrefix(zeilen[0], "Konfiguration [PGR-E2002]: ") || stdout.Len() > 0 {
 			t.Errorf("%s: Exit-Code %d, stderr %q", stufe, exit, stderr.String())
@@ -330,7 +331,7 @@ func TestRunRecordSchreibfehlerJeStufe(t *testing.T) {
 		var stdout, stderr syncPuffer
 		ende := make(chan int, 1)
 		go func() {
-			ende <- Run(ctx, []string{"record", "--listen", listen, "--upstream", "127.0.0.1:1", "--output", filepath.Join(dir, "rec.yaml"), "--log-level=" + stufe}, "dev", &stdout, &stderr)
+			ende <- bootstrap.Run(ctx, []string{"record", "--listen", listen, "--upstream", "127.0.0.1:1", "--output", filepath.Join(dir, "rec.yaml"), "--log-level=" + stufe}, "dev", &stdout, &stderr)
 		}()
 		for deadline := time.Now().Add(5 * time.Second); ; {
 			c, err := net.Dial("tcp", listen)
@@ -380,7 +381,7 @@ func (p *syncPuffer) String() string {
 func TestRunVersionLogLevel(t *testing.T) {
 	t.Setenv("PGWIRE_RECORDER_LOG_LEVEL", "INFO")
 	var stdout, stderr bytes.Buffer
-	if code := Run(context.Background(), []string{"version"}, "1.2.3", &stdout, &stderr); code != 0 || stdout.String() != "pgwire-recorder 1.2.3\n" || stderr.Len() > 0 {
+	if code := bootstrap.Run(context.Background(), []string{"version"}, "1.2.3", &stdout, &stderr); code != 0 || stdout.String() != "pgwire-recorder 1.2.3\n" || stderr.Len() > 0 {
 		t.Fatalf("Exit-Code %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 	}
 }

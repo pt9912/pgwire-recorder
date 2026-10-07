@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package integration_test
 
 import (
 	"context"
@@ -32,7 +32,11 @@ func extendedAblauf(t *testing.T, listen string) string {
 	if err != nil {
 		t.Fatalf("Verbindung über %s: %v", listen, err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Error(err)
+		}
+	}()
 	var b strings.Builder
 	for _, wert := range []string{"eins", "zwei", "eins"} {
 		var got string
@@ -132,7 +136,11 @@ func pipelineAblauf(t *testing.T, listen string) string {
 	if err != nil {
 		t.Fatalf("Verbindung über %s: %v", listen, err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Error(err)
+		}
+	}()
 	var b strings.Builder
 	p := conn.StartPipeline(ctx)
 	p.SendPrepare("s1", "SELECT $1::text AS t", nil)
@@ -242,7 +250,11 @@ func TestE2EReplayExtendedSigtermMittenInFolge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Error(err)
+		}
+	}()
 	p := conn.StartPipeline(ctx)
 	p.SendPrepare("s1", "SELECT $1::text AS t", nil)
 	p.SendFlushRequest()

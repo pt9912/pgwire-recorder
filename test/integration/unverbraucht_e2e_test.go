@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package integration_test
 
 import (
 	"bufio"
@@ -192,7 +192,7 @@ func TestE2EReplayNichtVerbrauchtStartfehler(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer belegt.Close()
-	out, err := exec_(t, "replay", "--listen", belegt.Addr().String(), "--input", input, "--fail-on-unconsumed")
+	out, err := fuehreAus(t, "replay", "--listen", belegt.Addr().String(), "--input", input, "--fail-on-unconsumed")
 	if code := exitCodeOf(err); code != 4 || !strings.Contains(out, "PGR-E4001") {
 		t.Fatalf("Exit-Code %d, Ausgabe:\n%s", code, out)
 	}
@@ -216,7 +216,11 @@ func TestE2EReplayNichtVerbrauchtHerunterfahren(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Error(err)
+		}
+	}()
 	if _, err := conn.Exec(ctx, "SELECT 1;").ReadAll(); err != nil {
 		t.Fatal(err)
 	}

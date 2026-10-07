@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package integration_test
 
 import (
 	"context"
@@ -38,7 +38,11 @@ func beobachten(t *testing.T, listen string, queries ...string) string {
 	if err != nil {
 		t.Fatalf("Verbindung zum Replay: %v", err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Error(err)
+		}
+	}()
 	var b strings.Builder
 	for _, q := range queries {
 		results, err := conn.Exec(ctx, q).ReadAll()
@@ -125,13 +129,13 @@ func TestE2EReplayBeschaedigt(t *testing.T) {
 	if err := os.WriteFile(input, []byte("format: pgwire-recorder\nversion: 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	out, err := exec_(t, "replay", "--listen", freieAdresse(t), "--input", input)
+	out, err := fuehreAus(t, "replay", "--listen", freieAdresse(t), "--input", input)
 	if code := exitCodeOf(err); code != 3 || !strings.Contains(out, "PGR-E3003") {
 		t.Fatalf("Exit-Code %d, Ausgabe:\n%s", code, out)
 	}
 }
 
-func exec_(t *testing.T, args ...string) (string, error) {
+func fuehreAus(t *testing.T, args ...string) (string, error) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
