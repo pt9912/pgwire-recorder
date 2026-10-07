@@ -2110,7 +2110,9 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
 eines unexportierten Typs nur aus dem Produkt-Code stammt, prüft das Werkzeug nicht. Dateien mit der Markierung für generierten Code nimmt golangci-lint nach
 seinem Default aus; das Modul hat keine. Ebenso wenig prüft es, ob eine Einstellung
 nach Punkt 5 ihren Grund als Kommentar trägt und ob unter `exclusions` nur die Schlüssel
-nach Punkt 8 stehen. Eine Regel, die `config verify` annimmt und golangci-lint erst
+nach Punkt 8 stehen. Ob eine Regel unter `rules` zu den zulässigen nach Punkt 8 gehört
+und ob sie mehr als Bestand ausblendet, prüft es ebenfalls nicht: Eine neue Regel mit
+`# Why:`, die einen Befund ausblendet, lässt die Stufe grün; das ist Urteil des Review. Eine Regel, die `config verify` annimmt und golangci-lint erst
 beim Laden ablehnt, macht die Stufe nach Punkt 9 rot, aber ohne `lint:`-Zeile; zu
 sehen ist dann nur die Meldung von golangci-lint. Ein `nolint` nach Punkt 6 in einem String-Literal ist ebenfalls ein Befund. Testdateien im Paket `main` lässt
 `testpackage` zu; unter `cmd/` gibt es keine.
@@ -2167,5 +2169,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-07 | Lint-Profil: die Funktion, an die die Brücke zum Erzeugen weiterreicht, ruft auch der Produkt-Code; Eingaben exportierter Typen stellt der Test (`SPEC-049`) |
 | 2026-10-07 | Lint-Profil: ungültiges YAML im Ausnahme-Abschnitt und Ergebnis aus dem Cache des Builds als Grenze (`SPEC-049`) |
 | 2026-10-07 | Lint-Profil: Leerraum nach `exclusions:` und `rules:` ist Blockform, ein `-` allein ist ein Eintrag (`SPEC-049`) |
+| 2026-10-08 | Lint-Profil: ob eine Regel zu den zulässigen gehört, als Grenze (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |

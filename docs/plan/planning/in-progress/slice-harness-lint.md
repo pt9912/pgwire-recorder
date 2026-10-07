@@ -26,7 +26,7 @@ deklariert wird an ihr erst in `slice-harness-abdeckung-gate`),
 Ausnahmen, die Messung des Bestands, Einführung nach Bereinigung ohne Stufen und das
 Werkzeug-Ziel davor, Entscheidung 5 und 6).
 
-**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (`spezifikation.md` §11: Vertrag des Gates, vom Architect vor dem Code geschrieben, die Grenze am 2026-10-07 vor dem Code um ungültiges YAML und den Cache des Builds fortgeschrieben, Punkt 8 am 2026-10-07 nach dem ersten Code-Commit um Leerraum nach dem Doppelpunkt und den Eintrag `-` allein (Rückgaben aus `221845d`, §6); dieser Slice liefert die zweite Hälfte von Punkt 10, den Anschluss an die Gate-Kette) · `spezifikation.md` §12 (*Historie*)
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (`spezifikation.md` §11: Vertrag des Gates, vom Architect vor dem Code geschrieben, die Grenze am 2026-10-07 vor dem Code um ungültiges YAML und den Cache des Builds fortgeschrieben, Punkt 8 am 2026-10-07 nach dem ersten Code-Commit um Leerraum nach dem Doppelpunkt und den Eintrag `-` allein (Rückgaben aus `221845d`, §6), die Grenze am 2026-10-08 um die zulässigen Regeln (V-100, §6); dieser Slice liefert die zweite Hälfte von Punkt 10, den Anschluss an die Gate-Kette) · `spezifikation.md` §12 (*Historie*)
 
 **Verantwortlich:** pt9912
 
@@ -111,7 +111,8 @@ Stufen; dieser Slice ging dafür nach `next/` zurück (§4).
   Begründung); die Anhebung bleibt ein bewusster Commit wie bei jedem gepinnten Image.
 - Lastenheft und Spezifikation — Schicht-Abgrenzung: `SPEC-049` und die
   Historien-Zeilen schreibt nur der Architect: vor dem Code den Vertrag und die Grenze,
-  nach dem ersten Code-Commit Punkt 8 auf die Rückgaben aus `221845d` (§6); dieser Slice ändert das
+  nach dem ersten Code-Commit Punkt 8 auf die Rückgaben aus `221845d` und die Grenze auf
+  V-100 der Verifikation (§6); dieser Slice ändert das
   Gate-Fragment, die Gegenprobe, die Doku und die Kommentare aus §3, Produkt-Code nur
   den Kommentar an `Meldungen`.
   Braucht das Gate eine Änderung am Profil oder an der Stufe, geht sie an den
@@ -146,8 +147,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       die vollständige Liste der Zeilen, weil die Grenze von `SPEC-049` für ungültiges
       YAML nur diese Zeile zusagt), eine Regel, die
       `config verify` annimmt und golangci-lint erst beim Laden ablehnt (rot ohne
-      `lint:`-Zeile), die Zeile der ungenutzten Regel mit Feldfolge und ohne
-      erkannte Felder, `// x //nolint` als Befund und `// siehe nolint` als keiner, eine
+      `lint:`-Zeile), die Zeile der ungenutzten Regel mit Feldfolge (ohne erkannte
+      Felder offen im Kopf der Gegenprobe, §6 *Randform-Rückgaben aus `221845d`*), `// x //nolint` als Befund und `// siehe nolint` als keiner, eine
       `lint:`-Zeile allein mit Ausgang ungleich 0; für die erste Bedingung von Messmethode 3 je Paketgruppe
       der Umstellungs-Slices — Kern, Driven, PGWire, Einstieg — ein White-Box-Test, der
       rot wird; für die zweite Bedingung ein Test in `internal_test.go` im Paket des
@@ -195,7 +196,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `docs/plan/adr/0034-lint-gate-mit-solid-nahem-profil.md`, `docs/plan/adr/README.md` | neu / update | geschrieben vom Architect vor dem Code: Entscheidung, Gründe, Messung des Bestands, dauerhafte Ausnahmen, Einführung nach Bereinigung, Werkzeug-Ziel davor; Index-Zeile. Den Status `Accepted` nach der Wahl des Nutzers vom 2026-10-06 setzt der Architect vor dem Start von `slice-harness-lint-werkzeug` |
-| `spec/spezifikation.md` §11, §12 | update | geschrieben vom Architect vor dem Code: `SPEC-049` mit den Randformen aus §6; Historien-Zeile. Am 2026-10-07 vor dem Code die Grenze um ungültiges YAML und den Cache des Builds fortgeschrieben (§6, *Prüfung vor dem Code*); am 2026-10-07 nach dem ersten Code-Commit Punkt 8 um Leerraum nach `exclusions:` und `rules:` und den Eintrag `-` allein (`7a32d57`, §6, *Randform-Rückgaben aus `221845d`*), je mit Historien-Zeile |
+| `spec/spezifikation.md` §11, §12 | update | geschrieben vom Architect vor dem Code: `SPEC-049` mit den Randformen aus §6; Historien-Zeile. Am 2026-10-07 vor dem Code die Grenze um ungültiges YAML und den Cache des Builds fortgeschrieben (§6, *Prüfung vor dem Code*); am 2026-10-07 nach dem ersten Code-Commit Punkt 8 um Leerraum nach `exclusions:` und `rules:` und den Eintrag `-` allein (`7a32d57`, §6, *Randform-Rückgaben aus `221845d`*); am 2026-10-08 die Grenze um die zulässigen Regeln (§6, *V-100*), je mit Historien-Zeile |
 | `harness/mk/lint.mk` | update | aus `slice-harness-lint-werkzeug`: `lint` an `GATE_CHECKS`, dazu das Ziel `lint-gegenprobe`, ebenfalls an `GATE_CHECKS`; Kopfkommentar und Hilfetext nennen das Gate statt des Werkzeugs |
 | `Dockerfile`, `tools/harness/lint.sh` | update | nur Kommentare: Die Stufe `lint` ist Teil der Gate-Kette; der Kopf von `lint.sh` zeigt auf die Sensor-Datei und führt `GEPRÜFT DURCH tools/harness/lint-gegenprobe.sh:` mit einer Zeile je Punkt von `SPEC-049`, Muster `tools/harness/kopf-check.sh`. Kein Verhalten, kein Profil |
 | `harness/sensors/lint.md` | neu | per `cp` aus `.harness/baseline/v6.16.0/templates/harness/sensors/gate.template.md`: Vertrag als Link auf `SPEC-049`, Grenze aus ihr, Ausgabe und Ausgänge, keine Sperre (die Stufe hat keine benannte Abbruch-Meldung), Bindung [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md); entscheidet nichts neu |
@@ -454,6 +455,21 @@ Gate-Ziel*). Vorgabe an den Implementer:
 - **Ort der Zusage.** Kopf von `tools/harness/lint-gegenprobe.sh`. `harness/README.md`
   und der Hilfetext nennen die Einstellung nicht, sie ist ein Hilfsmittel des Laufs und
   kein Teil des Gates.
+
+**Randform aus der Verifikation, V-100** (Architect, 2026-10-08): Ob eine Regel unter
+`rules` zu den zulässigen nach `SPEC-049` Punkt 8 gehört, prüft das Werkzeug nicht.
+Entschieden als **Grenze**, festgehalten in der Grenze von `SPEC-049`; **keine
+Werkzeugänderung, kein Fall.** Eine Prüfung bräuchte eine zweite Liste der zulässigen
+Regeln neben Punkt 8 und urteilte doch nicht über den Grund. Das Profil enthält heute
+nur zulässige Regeln (Verifikation, 16 Regeln gelesen). Eine neue Ausnahme ist eine
+Lockerung und braucht nach `AGENTS.md` §3.6 eine ADR; das Review findet sie am Diff von
+`.golangci.yml`. `warn-unused` und die Why-Prüfung bleiben, was das Werkzeug dazu
+beiträgt. Vorgabe an den Implementer: (a) im Kopf von `tools/harness/lint-gegenprobe.sh`
+unter OFFEN die Zeile „Punkt 8, zulässige Regeln: ob eine Regel zu den zulässigen gehört
+und mehr als Bestand ausblendet, prüft das Werkzeug nicht (Grenze von `SPEC-049`); kein
+Fall“; (b) unter *Grenze* in `harness/sensors/lint.md` derselbe Satz wie in der
+Spezifikation, weil die Sensor-Datei deren Grenze wiedergibt. Keine Änderung an
+`lint.sh`, Profil oder Stufe.
 
 **Risiken:**
 
