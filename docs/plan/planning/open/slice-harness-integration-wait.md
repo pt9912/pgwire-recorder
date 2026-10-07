@@ -143,7 +143,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 2026-10-07: `slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
 `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
 `slice-harness-commit-struktur-id`, dieser Slice, `slice-harness-abdeckung-gate`,
-`slice-harness-coverage`, `slice-harness-mutation`. Technisch hängt dieser Slice nur an
+`slice-harness-coverage`, `slice-tests-ueberlebende-mutanten`, `slice-harness-mutation`. Technisch hängt dieser Slice nur an
 `slice-harness-lint`: Ab ihm ist `make lint` Gate auch für `test/integration`. Er steht
 vor `slice-v1-abschluss-betrieb`, der die Tests mit Signal und Frist über dieselben
 Helfer schreibt.

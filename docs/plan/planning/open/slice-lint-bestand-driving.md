@@ -211,8 +211,14 @@ Architect zu bestätigen:
   Closure)
 - **Verhalten von `replaySitzung` ändert sich unbemerkt** — ein Zweig ist von keinem
   Test erreicht. Je umgebaute Funktion eine Mutation in einem ihrer Zweige, die ein
-  bestehender Test vor und nach dem Umbau fängt; fängt keiner, ist das ein Befund für
-  `slice-harness-coverage`, kein neuer Test hier. — **Ausgang:** — (bei Closure)
+  bestehender Test vor und nach dem Umbau fängt; fängt keiner, ist das kein neuer Test
+  hier. Ändert der Mutant das Verhalten und ist er über die Schnittstelle fangbar,
+  nennt §7 ihn mit Test-Idee und Grenze, und die Adresse ist
+  `slice-tests-ueberlebende-mutanten` (Entscheidung des Nutzers vom 2026-10-07, dort §1
+  *Sammelregel*). `slice-harness-coverage` nimmt ihn nicht an: Sein §1 schließt Tests
+  über dem gemessenen Stand aus, und einen Mutanten auf einer abgedeckten Zeile zeigt
+  seine Messung nicht (Review F-459 zu `slice-lint-bestand-kern-driven`). — **Ausgang:**
+  — (bei Closure)
 - **Aufzählung weicht vom Lauf ab** — die Liste in §1 stammt aus der Messung am Stand
   `79f40e1`. Maßgeblich ist der Lauf beim Start (§1). — **Ausgang:** — (bei Closure)
 

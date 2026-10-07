@@ -199,7 +199,7 @@ liegen in `done/`, und `make lint` meldet am Stand des Starts keinen Befund (WIP
 2026-10-07: `slice-harness-lint-werkzeug`, die vier Umstellungs-Slices, die beiden
 Bereinigungs-Slices, dieser Slice, `slice-harness-commit-struktur-id`,
 `slice-harness-integration-wait`, `slice-harness-abdeckung-gate`,
-`slice-harness-coverage`, `slice-harness-mutation`. Vor dem ersten Code-Commit prüft
+`slice-harness-coverage`, `slice-tests-ueberlebende-mutanten`, `slice-harness-mutation`. Vor dem ersten Code-Commit prüft
 der Architect, ob die Randformen aus §6 noch dem Werkzeug entsprechen
 (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 

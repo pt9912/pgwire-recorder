@@ -141,7 +141,7 @@ Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05, 2026-10-06 und 2026-10
 `slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
 `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
 dieser Slice, `slice-harness-integration-wait`, `slice-harness-abdeckung-gate`,
-`slice-harness-coverage`, `slice-harness-mutation`. Zwischen diesem Slice und
+`slice-harness-coverage`, `slice-tests-ueberlebende-mutanten`, `slice-harness-mutation`. Zwischen diesem Slice und
 `slice-harness-integration-wait` besteht keine technische Abhängigkeit; dieser steht
 vorn, weil jeder weitere Commit das Muster wiederholen kann. Vor dem ersten
 Code-Commit entscheidet der Architect die Randformen aus §6 in §11 und ob eine

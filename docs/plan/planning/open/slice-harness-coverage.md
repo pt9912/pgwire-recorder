@@ -152,7 +152,9 @@ Bereinigungs-Slices (`slice-lint-bestand-kern-driven`, `slice-lint-bestand-drivi
 (WIP-Limit 1). Dieser Slice ist der letzte der Reihe vor M3 nach Entscheidung
 des Nutzers vom 2026-10-05, 2026-10-06 und 2026-10-07 (Lastenheft, Lint-Werkzeug,
 Umstellung, Bereinigung, Lint-Gate, `slice-harness-commit-struktur-id`,
-`slice-harness-integration-wait`, `slice-harness-abdeckung-gate`, Coverage). Vom Abdeckungs-Gate hängt dieser Slice
+`slice-harness-integration-wait`, `slice-harness-abdeckung-gate`, Coverage). Nach ihm
+folgen `slice-tests-ueberlebende-mutanten` und `slice-harness-mutation`; keiner der
+beiden trägt zu M3 bei, und keiner ist Vorbedingung dieses Slice. Vom Abdeckungs-Gate hängt dieser Slice
 technisch ab: Ohne es kennt `tools/test/abdeckung.sh` die Deklaration von Teil 2
 nicht. Grund der übrigen Reihenfolge, keine technische Abhängigkeit: Lint-Bereinigung und
 Black-Box-Umstellung ändern Code und Tests, an denen die Schwelle gemessen wird; eine

@@ -53,9 +53,11 @@ selbst fährt; die Funde lagen in Mutationen, die er nicht gewählt hatte
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Neue Tests für Mutanten, die heute überleben — die Schwelle folgt der Messung; das
-  Schließen der Lücken ist eigene Arbeit mit eigenem Slice, aus der Liste der
-  Überlebenden heraus, nicht vorab.
+- Neue Tests für Mutanten, die heute überleben — die bekannten, die das Verhalten
+  ändern, schließt `slice-tests-ueberlebende-mutanten` vor diesem Slice (Entscheidung
+  des Nutzers vom 2026-10-07); dessen §1 führt sie. Was erst die Messung dieses Gates
+  findet, ist eigene Arbeit mit eigenem Slice aus der Liste der Überlebenden heraus,
+  nicht vorab; die Schwelle folgt der Messung.
 - Die Anweisungs-Abdeckung als Gate — übernimmt `slice-harness-coverage`; sie sagt,
   welcher Code unter Tests läuft, dieses Gate, ob die Tests ihn prüfen. Keine der
   beiden ersetzt die andere.
@@ -134,14 +136,16 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-coverage` liegt in `done/` oder ist
-ausdrücklich zurückgestellt (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers
-vom 2026-10-06 und 2026-10-07: nach der Reihe Lastenheft, Lint-Werkzeug,
-Black-Box-Umstellung, Bereinigung, Lint-Gate, `slice-harness-commit-struktur-id`,
-`slice-harness-integration-wait`, `slice-harness-abdeckung-gate`, Coverage.
+**Start** (`next` → `in-progress`): `slice-tests-ueberlebende-mutanten` liegt in
+`done/` oder ist ausdrücklich zurückgestellt (WIP-Limit 1). Reihenfolge nach
+Entscheidung des Nutzers vom 2026-10-06 und 2026-10-07: nach der Reihe Lastenheft,
+Lint-Werkzeug, Black-Box-Umstellung, Bereinigung, Lint-Gate,
+`slice-harness-commit-struktur-id`, `slice-harness-integration-wait`,
+`slice-harness-abdeckung-gate`, Coverage, `slice-tests-ueberlebende-mutanten`.
 Grund der Reihenfolge, keine technische Abhängigkeit: Lint-Bereinigung und
 Black-Box-Umstellung ändern die Tests, gegen die Mutanten laufen; eine Messung davor
-wäre veraltet, bevor das Gate greift. Erster Schritt nach dem Start, vor jedem
+wäre veraltet, bevor das Gate greift. Nach `slice-tests-ueberlebende-mutanten`, damit
+die Messung nicht mit Lücken startet, die schon bekannt sind. Erster Schritt nach dem Start, vor jedem
 Code-Commit: Der Architect wählt das Werkzeug, misst den Bestand (Mutanten gesamt,
 getötet, überlebt, Laufzeit, je Paket, mit Quellstand), entscheidet die Randformen
 aus §6 und schreibt die ADR (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
