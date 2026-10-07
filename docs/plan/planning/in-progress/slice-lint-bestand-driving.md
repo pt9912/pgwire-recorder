@@ -44,20 +44,34 @@ Messung in [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Stand
 `uniq-by-line: true`; `make lint` zählt nach `SPEC-049` Punkt 9 jede Meldung, auch
 mehrere auf derselben Zeile:
 
-- **Komplexität (8) in vier Funktionen** in `internal/adapters/driving/pgwire/server.go`
-  — `gocognit`, `gocyclo` bzw. `cyclop` über der Schwelle aus Punkt 4:
-  `(*Server).replaySitzung` (alle drei, `gocognit` 37, Schwelle 20),
-  `(*richtungen).clientRichtung` (`gocognit`, `cyclop`), `(*Server).startup`
-  (`cyclop`), `toMessage` (`gocyclo`, `cyclop`).
-- **Kontexte (6)** — `containedctx` für den Kontext im Struct `richtungen`;
-  `contextcheck` an drei Stellen in `pgwire` und an einer in `internal/bootstrap`
-  (neuer Kontext statt des übergebenen, etwa `service.Finish(context.Background())`);
-  `noctx` für `net.Listen` in `pgwire.Listen`.
-- **`revive` (2)** — `unused-receiver` je einmal in `pgwire` und in `cli`.
+**Befundliste**, gemessen mit `make lint` am Stand `a453969` (Architect, 2026-10-07): 16
+Befunde, dieselben wie in der Messung der ADR; 14 in `pgwire`, je einer in `cli` und
+`internal/bootstrap`, `cmd/` ohne Befund. Pfade relativ zu `internal/`.
 
-Maßgeblich ist die Liste, die `make lint` beim Start unter diesen Pfaden ausgibt; weicht
-sie von der Aufzählung ab, gilt der Lauf, und der Plan folgt ihm (`AGENTS.md` §3.9).
-`cmd/` hat in der Messung keinen Befund.
+| # | Ort | Linter | Wert bzw. Gegenstand |
+|---|---|---|---|
+| 1 | `adapters/driving/pgwire/server.go:182` `(*Server).replaySitzung` | `gocognit` | 37, Schwelle 20 |
+| 2 | ebenda | `gocyclo` | 20, Schwelle 15 |
+| 3 | ebenda | `cyclop` | 21, Schwelle 15 |
+| 4 | `adapters/driving/pgwire/server.go:435` `(*richtungen).clientRichtung` | `gocognit` | 22, Schwelle 20 |
+| 5 | ebenda | `cyclop` | 17, Schwelle 15 |
+| 6 | `adapters/driving/pgwire/server.go:569` `(*Server).startup` | `cyclop` | 17, Schwelle 15 |
+| 7 | `adapters/driving/pgwire/server.go:739` `toMessage` | `gocyclo` | 19, Schwelle 15 |
+| 8 | ebenda | `cyclop` | 20, Schwelle 15 |
+| 9 | `adapters/driving/pgwire/server.go:302` | `containedctx` | Feld `ctx` im Struct `richtungen` |
+| 10 | `adapters/driving/pgwire/server.go:440` | `contextcheck` | `r.s.recorder.Shutdown(r.ctx, …)` in `clientRichtung` |
+| 11 | `adapters/driving/pgwire/server.go:462` | `contextcheck` | `r.s.recorder.Query(r.ctx, …)` in `clientRichtung` |
+| 12 | `adapters/driving/pgwire/server.go:474` | `contextcheck` | `r.s.recorder.ClientMessage(r.ctx, …)` in `clientRichtung` |
+| 13 | `bootstrap/bootstrap.go:71` | `contextcheck` | `service.Finish(context.Background())` in `record` |
+| 14 | `adapters/driving/pgwire/server.go:62` | `noctx` | `net.Listen` in `pgwire.Listen` |
+| 15 | `adapters/driving/pgwire/server.go:728` | `revive` | `unused-receiver`: `s` in `(*Server).send` |
+| 16 | `adapters/driving/cli/cli.go:243` | `revive` | `unused-receiver`: `w` in `wahrheitswert.IsBoolFlag` |
+
+Die drei `contextcheck`-Befunde in `pgwire` (10 bis 12) stehen an den Stellen, die den
+Kontext aus dem Struct nehmen, während die Methode einen eigenen Parameter `ctx` hat; die
+vier Stellen mit `context.WithoutCancel(ctx)` (`handle`, `recordSitzung`, `closeReplay`,
+`closeRecord`) meldet der Lauf nicht. Maßgeblich bleibt der Lauf beim ersten
+Code-Commit; weicht er von der Tabelle ab, folgt der Plan ihm (`AGENTS.md` §3.9).
 
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-06: Der Bestand wird vor dem Gate
 bereinigt, ohne Stufen; die 32 Befunde im Produkt-Code (`SPEC-049` Punkt 9) tragen zwei Bereinigungs-Slices,
@@ -76,7 +90,16 @@ Er berührt zwei Schichten, den Driving Adapter (`pgwire`, `cli`) und das Bootst
   nicht ohne sie beheben, geht er an den Architect (§4).
 - Verhaltensänderung, insbesondere am Herunterfahren und an der Signalbehandlung, neue
   Fälle oder geänderte Erwartungen in Tests — ein anderer Vorgang; die Bereinigung ist
-  ein Umbau, gemessen an denselben Tests (§6).
+  ein Umbau, gemessen an denselben Tests (§6). Die Ausnahme für Charakterisierungstests
+  aus `slice-lint-bestand-kern-driven` gilt hier **nicht** (Architect, 2026-10-07, vor
+  dem ersten Code-Commit): Ihre Grenze ist die Reihenfolge zweier gleichzeitiger Fehler
+  in einer umgebauten Funktion, die kein Test festhält. Hier hat nur `startup` eine
+  solche Reihenfolge (Länge vor Startcode), und `TestFremdeErsteNachricht` hält sie
+  fest: Eine HTTP-Zeile hat eine zu große Länge und einen unbekannten Startcode, der
+  Test verlangt die Warnung ohne Antwort. `toMessage` liefert je Antworttyp höchstens
+  einen Fehler; `replaySitzung` und `clientRichtung` ordnen Ereignisse der
+  Nebenläufigkeit, keine zwei Fehler einer Eingabe. Findet der Implementer dennoch eine
+  ungeprüfte Reihenfolge, legt er keinen Test an, sondern gibt sie dem Architect zurück.
 - Ports und Services — Schicht-Abgrenzung: Eine Änderung an `internal/hexagon/` ist
   nicht Teil des Umbaus. Eine exportierte Signatur innerhalb dieser Pakete darf sich
   ändern, wenn alle Aufrufer in diesen Pfaden liegen (etwa `pgwire.Listen` mit
@@ -123,11 +146,19 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driving/pgwire/server.go` | refactor | `replaySitzung`, `clientRichtung`, `startup` und `toMessage` unter die Schwellen, durch Herauslösen von Schritten in unexportierte Funktionen; Kontext nicht mehr im Struct `richtungen`, sondern als Parameter; die drei neuen Kontexte nach §6; ungenutzter Receiver entfernt |
-| `internal/adapters/driving/pgwire/server.go` (`Listen`) | update | `net.ListenConfig.Listen` mit Kontext statt `net.Listen`; die Signatur von `pgwire.Listen` bekommt den Kontext, der Meldungscode bleibt `PGR-E4001` |
-| `internal/bootstrap/bootstrap.go` | update | Aufrufer von `pgwire.Listen` reichen ihren Kontext; der neue Kontext an `service.Finish` nach §6 |
-| `internal/adapters/driving/cli/*.go` | update | ungenutzter Receiver |
-| Testdateien dieser Pakete und `test/integration` | unverändert | Beleg des unveränderten Verhaltens; ein Test, der wegen des Umbaus geändert werden müsste, ist ein Befund (§4). Ausgenommen sind Aufrufe von `pgwire.Listen` (neuer Parameter) und `export_test.go`, falls eine dort weitergereichte unexportierte Funktion umbenannt wird; dann nur der Aufruf bzw. Verweis |
+| `internal/adapters/driving/pgwire/server.go` | refactor | Befunde 1 bis 8: `replaySitzung`, `clientRichtung`, `startup` und `toMessage` unter die Schwellen, durch Herauslösen von Schritten in unexportierte Funktionen (§6 *Komplexitäts-Bereinigung*) |
+| `internal/adapters/driving/pgwire/server.go` (`richtungen`) | refactor | Befunde 9 bis 12: Das Feld `ctx` entfällt; die Methoden, die den Kontext für den Use Case brauchen, bekommen ihn als Parameter, und `clientRichtung` reicht dem Use Case `context.WithoutCancel(ctx)` (§6 *Kontexte*); Befund 15: `send` mit unbenanntem Receiver `func (*Server) send` |
+| `internal/adapters/driving/pgwire/server.go` (`Listen`) | update | Befund 14: `pgwire.Listen(ctx, address)` öffnet mit `(&net.ListenConfig{}).Listen(context.WithoutCancel(ctx), "tcp", address)`; der Meldungscode bleibt `PGR-E4001` (§6 *Listen*) |
+| `internal/bootstrap/bootstrap.go` | update | `record` und `replay` reichen ihren `ctx` an `pgwire.Listen`; Befund 13: `service.Finish(context.WithoutCancel(ctx))` |
+| `internal/adapters/driving/cli/cli.go` | update | Befund 16: `func (wahrheitswert) IsBoolFlag() bool` mit unbenanntem Receiver |
+| Testdateien dieser Pakete und `test/integration` | unverändert | Beleg des unveränderten Verhaltens; ein Test, der wegen des Umbaus geändert werden müsste, ist ein Befund (§4). Keine Testdatei ruft `pgwire.Listen` (gemessen am Stand `a453969`). Ausgenommen ist `export_test.go`, falls eine dort weitergereichte unexportierte Funktion umbenannt wird; dann nur der Verweis |
+
+**Größe** (Architect, 2026-10-07): ein Schnitt, kein zweiter Slice. Die 14 Befunde in
+`server.go` sind vier Funktionen und ein Struct; die DoD hat drei Liefer-Punkte, der Slice
+berührt den Driving Adapter und das Bootstrap. In einer Review-Sitzung prüfbar wird er
+durch die Reihenfolge der Commits: zuerst die Kontexte und die beiden `revive`-Befunde
+(9 bis 16), dann die Komplexität (1 bis 8), jeder mit `make test` grün. Die Rückführung
+in §4 bleibt die Bedingung, falls der Umbau von `replaySitzung` allein den Rahmen sprengt.
 
 ## 4. Trigger
 
@@ -141,6 +172,7 @@ Reihenfolge nach Entscheidung des Nutzers vom 2026-10-06:
 `slice-lint-bestand-kern-driven`, dieser Slice, `slice-harness-lint`. Vor dem ersten
 Code-Commit prüft der Architect §6, insbesondere ob `contextcheck` die Form
 `context.WithoutCancel` annimmt (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
+Geprüft am Stand `a453969` (Architect, 2026-10-07); die Entscheidungen stehen in §6.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -179,35 +211,79 @@ Architect zu bestätigen:
   Behandlung von Verbindungsende, Abweichung und Abbruch. Die Nebenläufigkeit von
   Client- und Server-Richtung bleibt, wie sie ist. Ändert ein Umbau eines davon, geht
   er an den Architect, nicht in den Diff.
-- **Kontexte** — die erwartete Bereinigung eines neuen Kontexts ist
-  `context.WithoutCancel(ctx)` auf dem übergebenen Kontext
-  ([ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) Entscheidung 5): Er
-  behält die Werte des Aufrufers und überlebt dessen Abbruch, wie ein neuer
-  Hintergrund-Kontext heute. Ändert die Bereinigung die Semantik des Herunterfahrens
-  (Signalbehandlung nach [`LH-FA-13.a`](../../../../spec/spezifikation.md#lh-fa-13a--signalbehandlung), Frist `--shutdown-timeout`), geht der Befund an den
-  Architect zurück. Der Kontext im Struct `richtungen` wird Parameter der Methoden, die
-  ihn brauchen; `pgwire.Listen` bekommt einen Kontext für `net.ListenConfig`.
-- **Rückgabewert von `weiterlesen`** (aus `slice-harness-blackbox-pgwire`, V-86) — den
-  Wert verwirft `clientRichtung` heute, über die Schnittstelle prüft ihn kein Test; die
-  Mutanten an ihm sind äquivalent. Wer `clientRichtung` zerlegt und den Rückgabewert von
-  `weiterlesen` künftig liest, braucht einen Test über die Schnittstelle, der ihn fängt
-  (Mutationen: nach dem Wecken `return true` → `return false`, ohne Signal
-  `return false` → `return true`).
+- **Kontexte** — **entschieden** (Architect, 2026-10-07, vor dem ersten Code-Commit):
+  Die Bereinigung ist `context.WithoutCancel(ctx)` auf dem übergebenen Kontext
+  ([ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) Entscheidung 5); keine
+  Folge-Entscheidung, keine Ausnahme. Je Befund:
+  - *`richtungen` (9 bis 12).* Das Feld `ctx` entfällt. `recordSitzung` reicht
+    `context.WithoutCancel(ctx)` als ersten Parameter an `serverRichtung`, und
+    `beende`, `schreibe`, `fehler` und `wartenAufEnde` bekommen ihn ebenso.
+    `clientRichtung(ctx)` behält den übergebenen Kontext allein für die Abfrage
+    `ctx.Err()` und reicht an `Shutdown`, `Query`, `ClientMessage` und an die
+    Methoden darunter `context.WithoutCancel(ctx)`. Das ist derselbe Kontext wie heute
+    `r.ctx`: derselbe Elternkontext, dieselben Werte, kein Abbruch, keine Frist. Das
+    Herunterfahren (`LH-FA-13.a`) hängt weiter allein an `ctx.Err()` in
+    `clientRichtung` und am Wächter in `recordSitzung`; beide bleiben unverändert.
+  - *`bootstrap.go:71` (13).* `service.Finish(context.WithoutCancel(ctx))`. An dieser
+    Stelle ist `ctx` beendet; der gelöste Kontext hat wie `context.Background()` weder
+    Abbruch noch Frist und trägt zusätzlich die Werte des Aufrufers, die kein Adapter
+    liest.
+  - *Gleich im Verhalten, belegt am Code:* Hinter den Ports liest auf diesem Weg kein
+    Adapter den Kontext. `RecordService.Shutdown` und `Delivered` nehmen ihn als `_`,
+    `Query`, `ClientMessage` und `AwaitServer` reichen ihn an `session.Query`, `Send`
+    und `Receive` in `postgres/upstream.go`, die ihn nicht lesen, und `YAML.Write`
+    nimmt ihn als `_`. Die Mutation „`WithoutCancel` entfernt“ an 10 bis 13 ist darum
+    **äquivalent** und kein Befund (**akzeptiertes Negativ**): Kein Test kann sie
+    fangen, solange kein Adapter den Kontext liest; liest ihn später einer, ist das
+    eine Änderung dieses Adapters, die ihren eigenen Test bringt. An ihre Stelle tritt
+    die Mutation, die das Herunterfahren trägt (Risiko *Herunterfahren ändert sich
+    unbemerkt*).
+- **`pgwire.Listen` mit Kontext (14)** — **entschieden** (Architect, 2026-10-07):
+  `Listen(ctx, address)` öffnet mit
+  `(&net.ListenConfig{}).Listen(context.WithoutCancel(ctx), "tcp", address)`. `net.Listen`
+  tut heute dasselbe mit `context.Background()`; ein vor dem Öffnen beendeter `ctx`
+  bricht das Öffnen also weiter nicht ab, und der Lauf endet wie bisher über `Serve`.
+  Den Kontext ungelöst weiterzureichen wäre eine Verhaltensänderung: Bei einem Namen als
+  Adresse (etwa `localhost:0`) bräche die Namensauflösung nach einem frühen Signal mit
+  `PGR-E4001` ab statt mit dem regulären Ende. Der Doc-Kommentar von `Listen` sagt dazu
+  nichts zu (`AGENTS.md` §3.11), denn kein Test prüft es. Mit einer IP-Adresse, wie sie
+  alle Tests nutzen, liest `net` den Kontext nicht; die Mutation „`WithoutCancel`
+  entfernt“ bleibt dann grün, ist aber über `bootstrap.Run` fangbar (Risiko *Verhalten
+  ändert sich unbemerkt*).
+- **Ungenutzte Receiver (15, 16)** — **entschieden** (Architect, 2026-10-07): unbenannter
+  Receiver, `func (*Server) send` und `func (wahrheitswert) IsBoolFlag`. Die
+  Methodenmengen bleiben gleich; `wahrheitswert` erfüllt weiter die Schnittstelle, an
+  der `flag` eine Option ohne Wert erkennt. Keine Randform.
+- **Rückgabewert von `weiterlesen`** (aus `slice-harness-blackbox-pgwire`, V-86) —
+  **entschieden** (Architect, 2026-10-07): Der Umbau berührt ihn nicht. Der Lesefehler
+  mit abgelaufener Frist ruft nach dem Umbau weiter `weiterlesen()`, verwirft den Wert
+  und liest erneut; die Zerlegung von `clientRichtung` liest ihn nicht und entfernt ihn
+  nicht. Der Testbedarf aus V-86 entsteht damit nicht, die Mutanten an ihm bleiben
+  äquivalent (`slice-tests-ueberlebende-mutanten` §1 schließt sie aus, F-449). Liest ein
+  Umbau den Wert doch, ist das eine Verhaltensänderung und geht an den Architect, nicht
+  in den Diff.
+- **Reihenfolge zweier gleichzeitiger Fehler** — keine offene Randform: §1 *Ausdrücklich
+  NICHT*, Absatz Verhaltensänderung.
 
 **Risiken:**
 
 - **`contextcheck` nimmt `context.WithoutCancel` nicht an** — der Code nutzt die Form
   schon an vier Stellen (`handle`, `recordSitzung`, `closeReplay`, `closeRecord` in
-  `server.go`), und die Messung meldet trotzdem drei Befunde in `pgwire`; ob die
-  Befunde an genau diesen Stellen stehen, zeigt erst der Lauf. Dann trägt die erwartete
-  Bereinigung nicht, und der Weg ist eine Entscheidung des Architect (§4, `→ open`).
+  `server.go`), und die Messung meldet trotzdem drei Befunde in `pgwire`. Der Lauf am
+  Stand `a453969` zeigt: Die drei stehen an den Zugriffen auf `r.ctx` (§1, 10 bis 12),
+  keine an den vier Stellen mit `WithoutCancel`. Meldet der Lauf nach der Bereinigung
+  dennoch einen, trägt die erwartete Bereinigung nicht, und der Weg ist eine
+  Entscheidung des Architect (§4, `→ open`).
   — **Ausgang:** — (bei Closure)
 - **Herunterfahren ändert sich unbemerkt** — ein Kontext, der bisher den Abbruch des
   Aufrufers überlebte, bricht nach der Bereinigung mit ihm ab (oder umgekehrt); das
   Recording wird dann beim Signal nicht mehr oder anders geschrieben. Die
-  Integrationstests zum Abbruchsignal laufen vor und nach dem Umbau; dazu je
-  bereinigter Stelle eine Mutation (`WithoutCancel` entfernt), die ein bestehender Test
-  fängt. Fängt keiner, ist das ein Befund für den Architect. — **Ausgang:** — (bei
+  Integrationstests zum Abbruchsignal laufen vor und nach dem Umbau. Die Mutation
+  „`WithoutCancel` entfernt“ ist an 10 bis 13 äquivalent (§6 *Kontexte*) und wird nicht
+  gefahren. Gefahren wird nach dem Umbau die Mutation, die das Herunterfahren trägt:
+  `clientRichtung` fragt `Err()` auf dem gelösten statt auf dem übergebenen Kontext; ein
+  bestehender Test zum Herunterfahren einer Record-Session muss rot werden. Bleibt er
+  grün, ist das ein Befund für den Architect. — **Ausgang:** — (bei
   Closure)
 - **Verhalten von `replaySitzung` ändert sich unbemerkt** — ein Zweig ist von keinem
   Test erreicht. Je umgebaute Funktion eine Mutation in einem ihrer Zweige, die ein
@@ -217,10 +293,19 @@ Architect zu bestätigen:
   `slice-tests-ueberlebende-mutanten` (Entscheidung des Nutzers vom 2026-10-07, dort §1
   *Sammelregel*). `slice-harness-coverage` nimmt ihn nicht an: Sein §1 schließt Tests
   über dem gemessenen Stand aus, und einen Mutanten auf einer abgedeckten Zeile zeigt
-  seine Messung nicht (Review F-459 zu `slice-lint-bestand-kern-driven`). — **Ausgang:**
+  seine Messung nicht (Review F-459 zu `slice-lint-bestand-kern-driven`). Ein Fund im
+  PGWire-Adapter oder im Bootstrap ist für den Nehmer eine dritte Schicht, die sein §1
+  ausschließt; nach seiner *Sammelregel* schneidet dann der Planner vor dessen Start
+  einen zweiten Slice ab, dieser Slice nennt den Fund nur in §7. Erwartet ist ein Fund:
+  die Mutation „`WithoutCancel` entfernt“ in `pgwire.Listen` (§6 *Listen*). Test-Idee:
+  `bootstrap.Run` mit schon beendetem Kontext und `--listen localhost:0` endet mit
+  Exit-Code 0 statt mit `PGR-E4001`. Grenze: nur mit einem Namen als Adresse sichtbar,
+  und nur, weil die Namensauflösung von `net` den Kontext liest. Der Implementer fährt
+  sie und trägt das Ergebnis in §7 ein. — **Ausgang:**
   — (bei Closure)
 - **Aufzählung weicht vom Lauf ab** — die Liste in §1 stammt aus der Messung am Stand
-  `79f40e1`. Maßgeblich ist der Lauf beim Start (§1). — **Ausgang:** — (bei Closure)
+  `79f40e1`. Maßgeblich ist der Lauf beim Start (§1); am Stand `a453969` ergab er
+  dieselben 16 Befunde, jetzt mit Datei und Zeile in §1. — **Ausgang:** — (bei Closure)
 
 ## 7. Closure-Notiz
 
