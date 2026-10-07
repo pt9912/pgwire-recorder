@@ -570,16 +570,33 @@ mit der Mutation, jeder grün):
 | `Dockerfile`: `RUN` ohne `--network=none` | äquivalent: Keine Prüfung lädt etwas, die Module kommen aus `deps`; offen im Kopf. |
 | `.golangci.yml`: `relative-path-mode: wd` | äquivalent: Profil, Modulwurzel und Arbeitsverzeichnis sind in der Stufe `/src`; offen im Kopf. |
 | `lint.sh`: `golangci-lint run` ohne `-c` | äquivalent: Der Build-Kontext führt nur `.golangci.yml`, die Default-Suche findet dieselbe Datei; offen im Kopf. |
-| `lint.sh`: Leerraum am Ende von `exclusions:`/`rules:` nicht abgeschnitten | ändert das Verhalten bei `rules:` mit Leerzeichen danach; ob das Blockform ist, entscheidet `SPEC-049` Punkt 8 nicht. Kein Fall, an den Architect zurückgegeben (Randform-Rückgabe im Bericht). |
-| `lint.sh`: ein `-` allein ist kein Eintrag (`/^- /` statt `/^-( \|$)/`) | ändert das Verhalten bei einem Eintrag `-` ohne Inhalt auf der Zeile; ob das ein Eintrag `- ` nach Punkt 8 ist, entscheidet die Spezifikation nicht. Kein Fall, an den Architect zurückgegeben. |
+| `lint.sh`: Leerraum am Ende von `exclusions:`/`rules:` nicht abgeschnitten | an `221845d` grün und zurückgegeben; seit `7a32d57` entschieden (Blockform) und mit `p8-leerraum` gefangen, siehe *Nachtrag zu den Rückgaben*. |
+| `lint.sh`: ein `-` allein ist kein Eintrag (`/^- /` statt `/^-( \|$)/`) | an `221845d` grün und zurückgegeben; seit `7a32d57` entschieden (ein Eintrag) und mit `p8-strich-allein` und `p8-strich-allein-ohne-why` gefangen, siehe *Nachtrag zu den Rückgaben*. |
 
-Nicht als Mutation gefahren und offen im Kopf: Pin und Plattform des Images (ein
-anderes Image ließe sich nur mit Netz ziehen; ein Fall, der die Version liest, bräuchte
-eine Änderung an der Stufe, die §1 an den Architect gibt) und die Zeile `Regel ohne
-Befund: Felder nicht erkannt` (die gepinnte Version nennt in jeder Warnung mindestens
-zwei Felder). Der Kommentar an `Meldungen` in `internal/hexagon/model/fehler.go` sagt die
+Nicht als Mutation gefahren und offen im Kopf, nach der Entscheidung in §6
+(*Randform-Rückgaben aus `221845d`*) mit Grund und ohne Fall: Pin und Plattform des
+Images und die Zeile `Regel ohne Befund: Felder nicht erkannt`. Der Kommentar an `Meldungen` in `internal/hexagon/model/fehler.go` sagt die
 Tiefensuche zu, die der Fall `Tiefensuche` in `fehler_test.go` prüft (§3.11); er ändert
 kein Verhalten.
+
+*Nachtrag zu den Rückgaben* (Stand: `7a32d57` mit den Änderungen des Commits, der
+diesen Absatz schreibt). Das Werkzeug entsprach beiden Entscheidungen schon:
+`tools/harness/lint.sh` ist unverändert. Neue Fälle, je in einer eigenen Kopie:
+`p8-leerraum` (Leerzeichen und Tab nach `exclusions:`, Tab und Leerzeichen nach
+`rules:`; Ausgang 0, keine `lint:`-Zeile), `p8-strich-allein` (die erste Regel als `-`
+allein, `# Why:`-Block darüber, Inhalt mit acht Leerzeichen; Ausgang 0, keine
+`lint:`-Zeile), `p8-strich-allein-ohne-why` (dieselbe Regel ohne Kommentarblock;
+Ausgang 1, genau die Zeile `lint: .golangci.yml:158: Regel ohne Kommentarblock "# Why:"
+unmittelbar darüber`, kein `Form nicht erkannt`), `p8-form-strich-allein-8` (`-`
+allein mit Einzug 8 direkt unter `rules:`; Ausgang 1, `Form nicht erkannt` an seiner
+Zeile). Punkt 8 hat damit 47 Fälle, zusammen 248; die Gegenprobe fährt 26 Läufe der
+Stufe. Kopf der Gegenprobe: Pin und Plattform sowie `Felder nicht erkannt` offen mit
+dem Grund aus §6.
+
+| Zusage | Mutation (je in einer frischen Kopie des Repos) | roter Fall |
+|---|---|---|
+| Punkt 8: Leerraum nach dem Doppelpunkt ist Blockform | `lint.sh`: `sub(/[ \t]+$/, "", rest)` entfernt | `p8-leerraum` |
+| Punkt 8: `-` allein ist ein Eintrag | `lint.sh`: `/^-( \|$)/` → `/^- /` | `p8-strich-allein`, `p8-strich-allein-ohne-why` |
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

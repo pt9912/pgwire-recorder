@@ -59,9 +59,13 @@
 #       p8-form-fluss-rules, p8-form-fluss-anderswo, p8-form-listenpunkt,
 #       p8-form-quote-exclusions, p8-form-quote-rules, p8-form-ohne-strich,
 #       p8-form-fortsetzung-7, p8-form-eintrag-8 (die vollständige Liste der Zeilen),
-#       p8-form-eintrag-2 (nur die erste Eintragszeile und Ausgang 1); feste Form,
-#       kein Befund: p8-kommentar-nach-exclusions, p8-kommentar-nach-rules,
-#       p8-schluessel-nach-rules, p8-reihenfolge (`exclusions` vor `settings`)
+#       p8-form-eintrag-2 (nur die erste Eintragszeile und Ausgang 1),
+#       p8-form-strich-allein-8 (`-` allein mit Einzug 8); feste Form, kein Befund:
+#       p8-kommentar-nach-exclusions, p8-kommentar-nach-rules,
+#       p8-schluessel-nach-rules, p8-reihenfolge (`exclusions` vor `settings`),
+#       p8-leerraum (Leerzeichen und Tab nach `exclusions:` und `rules:`),
+#       p8-strich-allein (`-` allein mit `# Why:` darüber); `-` allein ohne
+#       Kommentarblock: p8-strich-allein-ohne-why (Why-Zeile, kein `Form nicht erkannt`)
 #   (9) Ausgabe und Ausgang — p9-profil-fehlt-*, p9-schema, p9-schema-meldung,
 #       p9-max-same-issues-*, p9-max-issues-per-linter-*, p9-uniq-by-line-*,
 #       p9-laden (rot ohne `lint:`-Zeile); Ausgang 1 je Art einer Zeile allein:
@@ -78,8 +82,12 @@
 #   - `relative-path-mode: cfg` (Punkt 1): Profil, Modulwurzel und
 #     Arbeitsverzeichnis sind in der Stufe dasselbe /src. Den Anker `^` der Pfade
 #     unterscheiden p1-pfad-anker-*.
-#   - `--network=none`, Pin und Plattform des Images (Punkt 2): keine Prüfung braucht
-#     Netz, und ein anderes Image ließe sich nur mit Netz ziehen.
+#   - `--network=none` (Punkt 2): keine Prüfung braucht Netz.
+#   - Pin und Plattform des Images (Punkt 2): Ein anderes Image ließe sich nur mit
+#     Netz ziehen. Eine Ausgabe der Version in der Stufe diente nur der Gegenprobe,
+#     ein Textvergleich mit der `FROM`-Zeile wäre eine zweite Quelle für den Pin, den
+#     Punkt 2 nur im Dockerfile führt. Eine Anhebung ist ein Commit an dieser Zeile;
+#     sie fängt der Re-Evaluierungs-Trigger von ADR-0034 und das Review.
 #   - `GOFLAGS=-mod=readonly` (Punkt 2): ohne vendor/ wählt go denselben Modus.
 #   - `GOTOOLCHAIN=local` und die Go-Version gegen die `go`-Zeile (Punkt 2): eine
 #     höhere `go`-Zeile lässt schon die Stufe deps scheitern, bevor `lint` läuft.
@@ -87,7 +95,8 @@
 #     die Default-Suche fände dieselbe Datei.
 #   - die Zeile `Regel ohne Befund: Felder nicht erkannt` (Punkt 9): Die gepinnte
 #     Version von golangci-lint nennt in jeder Warnung mindestens zwei der Felder;
-#     ein anderer Logtext käme nur mit einer anderen Version.
+#     ein anderer Logtext käme nur mit einer anderen Version, also mit einem Commit am
+#     Pin (wie oben).
 #   - nichts in den Arbeitsbaum (Kopf von SPEC-049): die Stufe läuft im Build ohne
 #     Bind-Mount.
 #   Ob ein `Why:` zutrifft, ob die Brücke nur weiterreicht, ob ein Wert eines
@@ -763,6 +772,28 @@ else
 fi
 starte form-reihenfolge
 
+# Grün: Leerzeichen und Tab nach `exclusions:` und `rules:` sind Blockform.
+kopie form-leerraum
+aendere "$P" "${exkl}s/\$/ \t/;${regeln}s/\$/\t /"
+starte form-leerraum
+
+# `-` allein auf der Zeile ist ein Eintrag, sein Inhalt steht auf Fortsetzungszeilen:
+# grün mit dem `# Why:`-Block darüber, rot ohne ihn.
+kopie form-strich-allein
+aendere "$P" "${erste}s/^      - /      -\n        /"
+starte form-strich-allein
+
+kopie form-strich-ohne-why
+why_anfang="$(awk -v z="$erste" 'NR < z && /^[ \t]*#/ { if (!a) a = NR; next } NR < z { a = 0 } END { print a }' "$wurzel/$P")"
+aendere "$P" "${erste}s/^      - /      -\n        /;${why_anfang},$((erste - 1))d"
+strich_zeile="$why_anfang"
+starte form-strich-ohne-why
+
+# Rot: `-` allein mit Einzug 8 bleibt `Form nicht erkannt`.
+kopie form-strich-allein-8
+aendere "$P" "${regeln}a\\        -\n          linters:\n            - revive"
+starte form-strich-allein-8
+
 # --- allein: je Art einer `lint:`-Zeile ohne andere Zeile (Punkt 9) ----------
 kopie fehlt-allein
 rm "$k/$P"
@@ -1004,6 +1035,16 @@ rot p8-form-listenpunkt form-listenpunkt
 form p8-form-listenpunkt form-listenpunkt "$(wc -l < "$arbeit/form-listenpunkt/$P")"
 [ "$(cat "$arbeit/form-reihenfolge.exit")" -eq 0 ] || melde "Fall 'p8-reihenfolge': erwartet Ausgang 0"
 keine_lint_zeile p8-reihenfolge form-reihenfolge
+for c in leerraum strich-allein; do
+  [ "$(cat "$arbeit/form-$c.exit")" -eq 0 ] || melde "Fall 'p8-$c': erwartet Ausgang 0"
+  keine_lint_zeile "p8-$c" "form-$c"
+done
+ist="$(grep '^lint: ' "$(n form-strich-ohne-why)" || true)"
+[ "$ist" = "lint: $P:$strich_zeile: $warum" ] \
+  || melde "Fall 'p8-strich-allein-ohne-why': erwartet genau die Why-Zeile an $strich_zeile, bekam: $ist"
+rot p8-strich-allein-ohne-why form-strich-ohne-why
+rot p8-form-strich-allein-8 form-strich-allein-8
+form p8-form-strich-allein-8 form-strich-allein-8 "$((regeln + 1))"
 # (9) Ausgabe und Ausgang.
 # allein <fall> <kopie> <zeile> — genau diese `lint:`-Zeile, golangci-lint ohne
 # Befund, die Stufe mit Ausgang 1.
