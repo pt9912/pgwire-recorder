@@ -541,32 +541,54 @@ func fromDTO(d recordingDTO) (model.Recording, error) {
 		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Liste der Sessions fehlt")
 	}
 	for si, sd := range *d.Sessions {
-		if sd.ID != si+1 {
-			return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d trägt die Kennung %d", si+1, sd.ID)
-		}
-		if len(sd.Interactions) == 0 && !d.EmptySessions {
-			return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d ohne Interaktion", sd.ID)
-		}
-		s := model.Session{ID: sd.ID, Startup: sd.Startup, ServerParameters: sd.ServerParameters}
-		for ii, id := range sd.Interactions {
-			if id.Sequence != ii+1 {
-				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d: Interaktion %d trägt die Nummer %d", sd.ID, ii+1, id.Sequence)
-			}
-			if id.OffsetMS != nil && *id.OffsetMS < 0 {
-				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d: offset_ms negativ", sd.ID, id.Sequence)
-			}
-			i, err := interactionFromDTO(id)
-			if err == nil {
-				err = i.Validate()
-			}
-			if err != nil {
-				return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Session %d, Interaktion %d", sd.ID, id.Sequence)
-			}
-			s.Interactions = append(s.Interactions, i)
+		s, err := sessionFromDTO(si, sd, d.EmptySessions)
+		if err != nil {
+			return model.Recording{}, err
 		}
 		rec.Sessions = append(rec.Sessions, s)
 	}
 	return rec, nil
+}
+
+// sessionFromDTO prüft die Session an der Stelle si der Liste in dieser
+// Reihenfolge: ihre Kennung, ob sie Interaktionen trägt (ohne nur mit
+// emptySessions), dann ihre Interaktionen der Reihe nach.
+func sessionFromDTO(si int, sd sessionDTO, emptySessions bool) (model.Session, error) {
+	if sd.ID != si+1 {
+		return model.Session{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d trägt die Kennung %d", si+1, sd.ID)
+	}
+	if len(sd.Interactions) == 0 && !emptySessions {
+		return model.Session{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d ohne Interaktion", sd.ID)
+	}
+	s := model.Session{ID: sd.ID, Startup: sd.Startup, ServerParameters: sd.ServerParameters}
+	for ii, id := range sd.Interactions {
+		i, err := geprueftFromDTO(sd.ID, ii, id)
+		if err != nil {
+			return model.Session{}, err
+		}
+		s.Interactions = append(s.Interactions, i)
+	}
+	return s, nil
+}
+
+// geprueftFromDTO prüft die Interaktion an der Stelle ii der Session in dieser
+// Reihenfolge: ihre Nummer, offset_ms, dann ihre Form (interactionFromDTO und
+// model.Interaction.Validate).
+func geprueftFromDTO(sessionID, ii int, id interactionDTO) (model.Interaction, error) {
+	if id.Sequence != ii+1 {
+		return model.Interaction{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d: Interaktion %d trägt die Nummer %d", sessionID, ii+1, id.Sequence)
+	}
+	if id.OffsetMS != nil && *id.OffsetMS < 0 {
+		return model.Interaction{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d: offset_ms negativ", sessionID, id.Sequence)
+	}
+	i, err := interactionFromDTO(id)
+	if err == nil {
+		err = i.Validate()
+	}
+	if err != nil {
+		return model.Interaction{}, model.Errorf(model.CodeRecordingBroken, err, "Session %d, Interaktion %d", sessionID, id.Sequence)
+	}
+	return i, nil
 }
 
 // interactionFromDTO liest die Art aus type. Fehlt type, ist es eine einfache

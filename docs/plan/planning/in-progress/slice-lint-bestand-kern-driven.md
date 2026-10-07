@@ -140,13 +140,13 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/model/extended.go` | refactor | `Group.validate` unter die Schwelle, etwa durch Herauslösen der Prüfung je Nachrichtenart in unexportierte Funktionen |
+| `internal/hexagon/model/extended.go` | refactor | `Group.validate` unter die Schwelle: die Prüfung der Client-Nachrichten in `validateClient`, die der Server-Nachrichten in `validateServer` herausgelöst; `validate` ruft sie in der bisherigen Reihenfolge der Prüfungen |
 | `internal/hexagon/model/extended.go`, `recording.go` (Doc-Kommentare) | update | ein Kommentar am Block `TargetStatement`/`TargetPortal`, sechs Kommentare `EndClosed` bis `EndFailed` in der Form „`<Name> …`“ (`exported`); nur Kommentare, Inhalt gleich |
-| `internal/hexagon/services/replay.go` | refactor | `(*cursor).objekte` unter die Schwelle |
+| `internal/hexagon/services/replay.go` | refactor | `(*cursor).objekte` unter die Schwelle: das Nachspielen einer Extended-Interaktion bis zum Cursor in `(objekte).extendedNachspielen` herausgelöst, die Haltebedingung am Cursor unverändert als Funktion übergeben |
 | `internal/hexagon/services/replay.go` | update | `(*cursor).letzteNummer`: nur der Kommentar — Satz „ohne erwartete Interaktion 0“ ersetzt durch die Invariante mit Grund, Zweig unverändert (V-81, §6) |
-| `internal/adapters/driven/postgres/upstream.go` | refactor | `toResponse` unter die Schwellen (`gocyclo`, `cyclop`), etwa als Tabelle oder Aufteilung je Nachrichtenart; `ctx` in `(*session).Query` als `_` benannt — die Signatur verlangt `driven.UpstreamSession` (§6) |
-| `internal/adapters/driven/recording/yaml.go` | refactor | `fromDTO` unter die Schwelle |
-| `internal/hexagon/model/extended.go:149` (`QF1001`) | update | `!(letzte && si == len(g.Server)-1)` nach De Morgan umgeschrieben, gleichwertig; fällt mit dem Umbau von `Group.validate` zusammen |
+| `internal/adapters/driven/postgres/upstream.go` | refactor | `toResponse` unter die Schwellen (`gocyclo`, `cyclop`): die Antworten ohne Felder in `ohneFelder`, die Spalten einer RowDescription in `spalten`, die Werte einer DataRow in `werte` herausgelöst; `ctx` in `(*session).Query` als `_` benannt — die Signatur verlangt `driven.UpstreamSession` (§6) |
+| `internal/adapters/driven/recording/yaml.go` | refactor | `fromDTO` unter die Schwelle: die Prüfung je Session in `sessionFromDTO`, die je Interaktion in `geprueftFromDTO` herausgelöst, in der bisherigen Reihenfolge |
+| `internal/hexagon/model/extended.go:149` (`QF1001`) | update | `!(letzte && si == len(g.Server)-1)` nach De Morgan zu `!letzte \|\| si != len(g.Server)-1` umgeschrieben, gleichwertig; steht nach dem Umbau in `validateServer` |
 | Testdateien dieser Pakete | unverändert | Beleg des unveränderten Verhaltens; ein Test, der wegen des Umbaus geändert werden müsste, ist ein Befund (§4). Ausgenommen ist `export_test.go`, falls eine dort weitergereichte unexportierte Funktion umbenannt wird; dann nur der Verweis |
 | `internal/hexagon/model/extended_test.go`, `internal/adapters/driven/recording/yaml_test.go` | add | Charakterisierungstests vor dem Umbau (§1): `TestValidateFehlerReihenfolge` hält fest, welchen von zwei Fehlern `Group.validate` meldet, `TestUnmarshalFehlerReihenfolge` dasselbe für `fromDTO`; im eigenen Commit vor dem Umbau, gegen den alten Code grün. Die Testliste „vor dem Umbau“ der DoD ist die mit ihnen; ohne Abdeckungs-Deklaration, die Abdeckungstabellen bleiben gleich. `toResponse` hat einen Fehlerpfad, `(*cursor).objekte` keinen; dort gibt es keine Reihenfolge zweier Fehler |
 

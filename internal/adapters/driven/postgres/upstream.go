@@ -97,7 +97,7 @@ func newSession(conn net.Conn) *session {
 // terminateFrist begrenzt das Senden von Terminate in Close.
 const terminateFrist = 100 * time.Millisecond
 
-func (s *session) Query(ctx context.Context, sql string) ([]model.Response, error) {
+func (s *session) Query(_ context.Context, sql string) ([]model.Response, error) {
 	s.schreiben.Lock()
 	s.fe.Send(&pgproto3.Query{String: sql})
 	err := s.fe.Flush()
@@ -223,36 +223,16 @@ func (s *session) Close() error {
 	return s.conn.Close()
 }
 
+// toResponse bildet eine Serverantwort auf das Modell ab; jede andere als die
+// hier genannten ist ein Fehler mit CodeUnsupported.
 func toResponse(msg pgproto3.BackendMessage) (model.Response, error) {
 	switch m := msg.(type) {
 	case *pgproto3.RowDescription:
-		cols := make([]model.Column, len(m.Fields))
-		for i, f := range m.Fields {
-			cols[i] = model.Column{
-				Name:         string(f.Name),
-				TableOID:     f.TableOID,
-				ColumnNumber: f.TableAttributeNumber,
-				TypeOID:      f.DataTypeOID,
-				TypeSize:     f.DataTypeSize,
-				TypeModifier: f.TypeModifier,
-				Format:       f.Format,
-			}
-		}
-		return model.Response{Type: model.ResponseRowDescription, Columns: cols}, nil
+		return model.Response{Type: model.ResponseRowDescription, Columns: spalten(m.Fields)}, nil
 	case *pgproto3.DataRow:
-		vals := make([]model.Value, len(m.Values))
-		for i, v := range m.Values {
-			if v == nil {
-				vals[i] = model.Value{Null: true}
-			} else {
-				vals[i] = model.Value{Bytes: append([]byte(nil), v...)}
-			}
-		}
-		return model.Response{Type: model.ResponseDataRow, Values: vals}, nil
+		return model.Response{Type: model.ResponseDataRow, Values: werte(m.Values)}, nil
 	case *pgproto3.CommandComplete:
 		return model.Response{Type: model.ResponseCommandComplete, Tag: string(m.CommandTag)}, nil
-	case *pgproto3.EmptyQueryResponse:
-		return model.Response{Type: model.ResponseEmptyQueryResponse}, nil
 	case *pgproto3.ErrorResponse:
 		return model.Response{Type: model.ResponseErrorResponse, Fields: noticeFields(m)}, nil
 	case *pgproto3.NoticeResponse:
@@ -261,21 +241,64 @@ func toResponse(msg pgproto3.BackendMessage) (model.Response, error) {
 		return model.Response{Type: model.ResponseParameterStatus, Name: m.Name, Value: m.Value}, nil
 	case *pgproto3.ReadyForQuery:
 		return model.Response{Type: model.ResponseReadyForQuery, TxStatus: string(m.TxStatus)}, nil
-	case *pgproto3.ParseComplete:
-		return model.Response{Type: model.ResponseParseComplete}, nil
-	case *pgproto3.BindComplete:
-		return model.Response{Type: model.ResponseBindComplete}, nil
-	case *pgproto3.CloseComplete:
-		return model.Response{Type: model.ResponseCloseComplete}, nil
 	case *pgproto3.ParameterDescription:
 		return model.Response{Type: model.ResponseParameterDescription, ParamTypes: kopieOderNil(m.ParameterOIDs)}, nil
-	case *pgproto3.NoData:
-		return model.Response{Type: model.ResponseNoData}, nil
-	case *pgproto3.PortalSuspended:
-		return model.Response{Type: model.ResponsePortalSuspended}, nil
-	default:
-		return model.Response{}, model.Errorf(model.CodeUnsupported, nil, "Serverantwort %T wird nicht unterstützt", m)
 	}
+	if typ, ok := ohneFelder(msg); ok {
+		return model.Response{Type: typ}, nil
+	}
+	return model.Response{}, model.Errorf(model.CodeUnsupported, nil, "Serverantwort %T wird nicht unterstützt", msg)
+}
+
+// ohneFelder liefert den Typ einer Serverantwort, die außer ihrem Typ nichts
+// trägt; ok ist falsch für jede andere.
+func ohneFelder(msg pgproto3.BackendMessage) (typ model.ResponseType, ok bool) {
+	switch msg.(type) {
+	case *pgproto3.EmptyQueryResponse:
+		return model.ResponseEmptyQueryResponse, true
+	case *pgproto3.ParseComplete:
+		return model.ResponseParseComplete, true
+	case *pgproto3.BindComplete:
+		return model.ResponseBindComplete, true
+	case *pgproto3.CloseComplete:
+		return model.ResponseCloseComplete, true
+	case *pgproto3.NoData:
+		return model.ResponseNoData, true
+	case *pgproto3.PortalSuspended:
+		return model.ResponsePortalSuspended, true
+	}
+	return "", false
+}
+
+// spalten bildet die Felder einer RowDescription auf Spalten ab.
+func spalten(fields []pgproto3.FieldDescription) []model.Column {
+	cols := make([]model.Column, len(fields))
+	for i, f := range fields {
+		cols[i] = model.Column{
+			Name:         string(f.Name),
+			TableOID:     f.TableOID,
+			ColumnNumber: f.TableAttributeNumber,
+			TypeOID:      f.DataTypeOID,
+			TypeSize:     f.DataTypeSize,
+			TypeModifier: f.TypeModifier,
+			Format:       f.Format,
+		}
+	}
+	return cols
+}
+
+// werte bildet die Werte einer DataRow ab: nil wird zu NULL, jeder andere Wert
+// zu einer Kopie seiner Bytes.
+func werte(values [][]byte) []model.Value {
+	vals := make([]model.Value, len(values))
+	for i, v := range values {
+		if v == nil {
+			vals[i] = model.Value{Null: true}
+		} else {
+			vals[i] = model.Value{Bytes: append([]byte(nil), v...)}
+		}
+	}
+	return vals
 }
 
 // toFrontendMessage bildet eine Client-Nachricht einer Extended-Interaktion

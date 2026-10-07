@@ -28,6 +28,7 @@ var clientMessages = map[ClientMessageType]bool{
 // Target ist die Zielart von describe und close.
 type Target string
 
+// Die Zielarten von describe und close.
 const (
 	TargetStatement Target = "statement"
 	TargetPortal    Target = "portal"
@@ -122,7 +123,29 @@ func (i Interaction) validateExtended() error {
 }
 
 // validate prüft eine Gruppe; letzte sagt, ob sie die Interaktion abschließt.
+// Die Prüfungen laufen in dieser Reihenfolge, und die erste verletzte meldet
+// ihren Fehler: die Client-Nachrichten, sync oder flush am Ende der Gruppe, die
+// Server-Nachrichten, ready_for_query am Ende der letzten Gruppe.
 func (g Group) validate(letzte bool) error {
+	if err := g.validateClient(); err != nil {
+		return err
+	}
+	endetMitSync := g.Client[len(g.Client)-1].Type == ClientSync
+	if endetMitSync != letzte {
+		return errors.New("sync steht genau am Ende der letzten Gruppe, flush am Ende jeder anderen")
+	}
+	if err := g.validateServer(letzte); err != nil {
+		return err
+	}
+	if letzte && (len(g.Server) == 0 || g.Server[len(g.Server)-1].Type != ResponseReadyForQuery) {
+		return errors.New("letzte Gruppe endet nicht mit ready_for_query")
+	}
+	return nil
+}
+
+// validateClient prüft die Client-Nachrichten der Reihe nach, je Nachricht den
+// Typ, die Stellung von flush und sync und die Zielart von describe und close.
+func (g Group) validateClient() error {
 	if len(g.Client) == 0 {
 		return errors.New("ohne Client-Nachricht")
 	}
@@ -138,20 +161,20 @@ func (g Group) validate(letzte bool) error {
 			return fmt.Errorf("Client-Nachricht %d: Zielart %q statt statement oder portal", ci+1, m.Target)
 		}
 	}
-	endetMitSync := g.Client[len(g.Client)-1].Type == ClientSync
-	if endetMitSync != letzte {
-		return errors.New("sync steht genau am Ende der letzten Gruppe, flush am Ende jeder anderen")
-	}
+	return nil
+}
+
+// validateServer prüft die Server-Nachrichten der Reihe nach, je Nachricht den
+// Typ und die Stellung von ready_for_query; letzte sagt, ob die Gruppe die
+// Interaktion abschließt.
+func (g Group) validateServer(letzte bool) error {
 	for si, r := range g.Server {
 		if !extendedResponses[r.Type] {
 			return fmt.Errorf("Server-Nachricht %q unbekannt in einer Extended-Interaktion", r.Type)
 		}
-		if r.Type == ResponseReadyForQuery && !(letzte && si == len(g.Server)-1) {
+		if r.Type == ResponseReadyForQuery && (!letzte || si != len(g.Server)-1) {
 			return fmt.Errorf("Server-Nachricht %d: ready_for_query nur als letzte Nachricht der letzten Gruppe", si+1)
 		}
-	}
-	if letzte && (len(g.Server) == 0 || g.Server[len(g.Server)-1].Type != ResponseReadyForQuery) {
-		return errors.New("letzte Gruppe endet nicht mit ready_for_query")
 	}
 	return nil
 }

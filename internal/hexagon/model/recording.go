@@ -77,19 +77,19 @@ type SessionID int64
 type SessionEnd int
 
 const (
-	// EndClosed: Die Client-Verbindung endete ohne Terminate.
+	// EndClosed heißt: Die Client-Verbindung endete ohne Terminate.
 	EndClosed SessionEnd = iota
-	// EndTerminate: Der Client sandte Terminate.
+	// EndTerminate heißt: Der Client sandte Terminate.
 	EndTerminate
-	// EndWriteFailed: Eine Antwort ließ sich nicht an den Client schreiben.
+	// EndWriteFailed heißt: Eine Antwort ließ sich nicht an den Client schreiben.
 	EndWriteFailed
-	// EndShutdown: Der Lauf endet, und der Use Case hat das Ende der Session
+	// EndShutdown heißt: Der Lauf endet, und der Use Case hat das Ende der Session
 	// freigegeben.
 	EndShutdown
-	// EndUnsupported: Der Client sandte eine nicht unterstützte oder nicht
+	// EndUnsupported heißt: Der Client sandte eine nicht unterstützte oder nicht
 	// lesbare Nachricht, oder eine Antwort ließ sich nicht auf eine
 	// PGWire-Nachricht abbilden.
 	EndUnsupported
-	// EndFailed: Ein Aufruf des Use Case endete mit einem Fehler.
+	// EndFailed heißt: Ein Aufruf des Use Case endete mit einem Fehler.
 	EndFailed
 )

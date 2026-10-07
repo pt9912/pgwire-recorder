@@ -183,8 +183,10 @@ func (c *cursor) merke(rs []model.Response) {
 }
 
 // letzteNummer ist die aufgezeichnete Nummer der letzten erwarteten
-// Interaktion der Session, aufgezeichnete Lebendprüfungen nicht gezählt; ohne
-// erwartete Interaktion 0.
+// Interaktion der Session, aufgezeichnete Lebendprüfungen nicht gezählt. Die
+// Session eines Cursors hat mindestens eine erwartete Interaktion: zuordnen
+// vergibt nur Sessions aus frei, und NewReplayService nimmt dort nur solche auf.
+// Die Prüfung auf die leere Liste schützt allein den Index.
 func (c *cursor) letzteNummer() int {
 	if len(c.session.Interactions) == 0 {
 		return 0
@@ -329,31 +331,46 @@ func (c *cursor) objekte() objekte {
 			o.transaktionsende(in.Responses)
 			continue
 		}
-		// Der Server bestätigt jedes angenommene parse, bind und close; nach
-		// einer Ablehnung verwirft er bis zum Sync. Die ersten n Nachrichten
-		// einer Art mit n Bestätigungen in der Interaktion gelten als
-		// angenommen; gezählt wird je Interaktion, weil eine späte Bestätigung
-		// in der folgenden Gruppe steht (LH-FA-18.a).
-		bestaetigt := map[model.ClientMessageType]int{}
-		for _, g := range in.Groups {
-			for _, r := range g.Server {
-				bestaetigt[bestaetigung[r.Type]]++
-			}
+		halt := func(gi, ni int) bool {
+			return pi == c.pos && (gi > c.gruppe || gi == c.gruppe && ni >= c.nachricht)
 		}
-		for gi, g := range in.Groups {
-			for ni, m := range g.Client {
-				if pi == c.pos && (gi > c.gruppe || gi == c.gruppe && ni >= c.nachricht) {
-					return o
-				}
-				if bestaetigt[m.Type] > 0 {
-					bestaetigt[m.Type]--
-					o.nachspielen(m)
-				}
-			}
+		if !o.extendedNachspielen(in, halt) {
+			return o
 		}
 		o.transaktionsende(in.Groups[len(in.Groups)-1].Server)
 	}
 	return o
+}
+
+// extendedNachspielen spielt die angenommenen Client-Nachrichten einer
+// Extended-Interaktion in Sendereihenfolge nach, bis halt für die Nachricht ni
+// der Gruppe gi wahr ist; diese und alle späteren bleiben aus. Das Ergebnis ist
+// wahr, wenn halt für keine Nachricht wahr war.
+//
+// Der Server bestätigt jedes angenommene parse, bind und close; nach einer
+// Ablehnung verwirft er bis zum Sync. Die ersten n Nachrichten einer Art mit n
+// Bestätigungen in der Interaktion gelten als angenommen; gezählt wird je
+// Interaktion, weil eine späte Bestätigung in der folgenden Gruppe steht
+// (LH-FA-18.a).
+func (o objekte) extendedNachspielen(in model.Interaction, halt func(gi, ni int) bool) bool {
+	bestaetigt := map[model.ClientMessageType]int{}
+	for _, g := range in.Groups {
+		for _, r := range g.Server {
+			bestaetigt[bestaetigung[r.Type]]++
+		}
+	}
+	for gi, g := range in.Groups {
+		for ni, m := range g.Client {
+			if halt(gi, ni) {
+				return false
+			}
+			if bestaetigt[m.Type] > 0 {
+				bestaetigt[m.Type]--
+				o.nachspielen(m)
+			}
+		}
+	}
+	return true
 }
 
 // bestaetigung ordnet jeder Bestätigung des Servers die Client-Nachricht zu,
