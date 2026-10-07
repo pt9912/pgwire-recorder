@@ -51,7 +51,7 @@ func record(ctx context.Context, o cli.RecordOptions, log *slog.Logger, stderr i
 	if err != nil {
 		return fail(stderr, err)
 	}
-	l, err := pgwire.Listen(o.Listen)
+	l, err := pgwire.Listen(ctx, o.Listen)
 	if err != nil {
 		return fail(stderr, err)
 	}
@@ -68,7 +68,7 @@ func record(ctx context.Context, o cli.RecordOptions, log *slog.Logger, stderr i
 	l.Close()
 	<-done
 
-	if err := service.Finish(context.Background()); err != nil {
+	if err := service.Finish(context.WithoutCancel(ctx)); err != nil {
 		return fail(stderr, err)
 	}
 	log.Info("record beendet", "output", o.Output)
@@ -84,7 +84,7 @@ func replay(ctx context.Context, o cli.ReplayOptions, log *slog.Logger, stderr i
 	if err != nil {
 		return fail(stderr, err)
 	}
-	l, err := pgwire.Listen(o.Listen)
+	l, err := pgwire.Listen(ctx, o.Listen)
 	if err != nil {
 		return fail(stderr, err)
 	}

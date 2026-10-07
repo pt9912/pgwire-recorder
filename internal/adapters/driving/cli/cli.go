@@ -240,7 +240,7 @@ func (l stufe) Set(v string) error {
 type wahrheitswert struct{ wert *bool }
 
 // IsBoolFlag lässt die Option ohne Wert zu; flag setzt dann "true".
-func (w wahrheitswert) IsBoolFlag() bool { return true }
+func (wahrheitswert) IsBoolFlag() bool { return true }
 
 func (w wahrheitswert) String() string {
 	if w.wert == nil {

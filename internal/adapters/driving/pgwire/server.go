@@ -58,8 +58,8 @@ func NewReplayServer(r driving.Replayer, log *slog.Logger) *Server {
 }
 
 // Listen öffnet den TCP-Endpunkt; ein nicht zu öffnender Port ist PGR-E4001.
-func Listen(address string) (net.Listener, error) {
-	l, err := net.Listen("tcp", address)
+func Listen(ctx context.Context, address string) (net.Listener, error) {
+	l, err := (&net.ListenConfig{}).Listen(context.WithoutCancel(ctx), "tcp", address)
 	if err != nil {
 		return nil, model.Errorf(model.CodeListen, err, "Adresse %s nicht nutzbar", address)
 	}
@@ -272,7 +272,7 @@ func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 // Herunterfahren selbst, bevor sie die nächste Nachricht liest. Eine schon
 // gelesene Nachricht verarbeitet sie also vorher (LH-FA-13.a).
 func (s *Server) recordSitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID) {
-	r := &richtungen{s: s, conn: conn, be: be, id: id, ctx: context.WithoutCancel(ctx),
+	r := &richtungen{s: s, conn: conn, be: be, id: id,
 		weck: make(chan struct{}, 1), ende: make(chan struct{})}
 
 	var wg sync.WaitGroup
@@ -287,7 +287,7 @@ func (s *Server) recordSitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 	}()
 	go func() {
 		defer wg.Done()
-		r.serverRichtung()
+		r.serverRichtung(context.WithoutCancel(ctx))
 	}()
 	r.clientRichtung(ctx)
 	wg.Wait()
@@ -299,7 +299,6 @@ type richtungen struct {
 	conn net.Conn
 	be   *pgproto3.Backend
 	id   model.SessionID
-	ctx  context.Context
 
 	schreiben sync.Mutex
 	beendet   atomic.Bool
@@ -348,7 +347,7 @@ func (r *richtungen) weiterlesen() (geweckt bool) {
 // Client vorher eine Fehlerantwort zu und merkt sie (LH-FA-13.b); das Schreiben
 // dauert höchstens meldeFrist, auch wenn der Client nicht liest. Danach schließt
 // es die Client-Verbindung.
-func (r *richtungen) beende(end model.SessionEnd, meldung error) {
+func (r *richtungen) beende(ctx context.Context, end model.SessionEnd, meldung error) {
 	r.einmal.Do(func() {
 		r.beendet.Store(true)
 		if meldung != nil {
@@ -357,7 +356,7 @@ func (r *richtungen) beende(end model.SessionEnd, meldung error) {
 			r.s.fail(r.be, meldung)
 			r.schreiben.Unlock()
 		}
-		r.s.closeRecord(r.ctx, r.id, end)
+		r.s.closeRecord(ctx, r.id, end)
 		_ = r.conn.Close()
 		close(r.ende)
 	})
@@ -366,15 +365,15 @@ func (r *richtungen) beende(end model.SessionEnd, meldung error) {
 // schreibe schreibt Antworten an den Client und meldet sie danach als
 // zugestellt; gibt der Use Case damit das Ende frei, weckt es die
 // Client-Richtung. Scheitert das Schreiben, beendet es die Session.
-func (r *richtungen) schreibe(rs []model.Response) bool {
+func (r *richtungen) schreibe(ctx context.Context, rs []model.Response) bool {
 	r.schreiben.Lock()
 	err := r.s.send(r.be, rs)
 	r.schreiben.Unlock()
 	if err != nil {
-		r.beende(endBeiSchreibfehler(r.s, err), nil)
+		r.beende(ctx, endBeiSchreibfehler(r.s, err), nil)
 		return false
 	}
-	if r.s.recorder.Delivered(r.ctx, r.id) {
+	if r.s.recorder.Delivered(ctx, r.id) {
 		r.wecke()
 	}
 	return true
@@ -383,26 +382,26 @@ func (r *richtungen) schreibe(rs []model.Response) bool {
 // fehler beendet die Session nach einem Fehler des Use Case. Nach dem Ende der
 // Session ist nichts mehr zu tun; beim Herunterfahren wartet die
 // Client-Richtung auf das Ende (wartenAufEnde).
-func (r *richtungen) fehler(err error) {
+func (r *richtungen) fehler(ctx context.Context, err error) {
 	if errors.Is(err, model.ErrSessionEnded) {
 		return
 	}
 	if errors.Is(err, model.ErrShutdown) {
-		r.wartenAufEnde()
+		r.wartenAufEnde(ctx)
 		return
 	}
-	r.beende(model.EndFailed, err)
+	r.beende(ctx, model.EndFailed, err)
 }
 
 // wartenAufEnde liest nicht weiter und beendet die Session mit EndShutdown,
 // sobald der Use Case das Ende freigibt; es fragt nach jedem Wecken erneut.
-func (r *richtungen) wartenAufEnde() {
+func (r *richtungen) wartenAufEnde(ctx context.Context) {
 	for {
 		if r.beendet.Load() {
 			return
 		}
-		if r.s.recorder.Shutdown(r.ctx, r.id) {
-			r.beende(model.EndShutdown, nil)
+		if r.s.recorder.Shutdown(ctx, r.id) {
+			r.beende(ctx, model.EndShutdown, nil)
 			return
 		}
 		select {
@@ -413,16 +412,16 @@ func (r *richtungen) wartenAufEnde() {
 	}
 }
 
-func (r *richtungen) serverRichtung() {
+func (r *richtungen) serverRichtung(ctx context.Context) {
 	for {
-		rs, err := r.s.recorder.AwaitServer(r.ctx, r.id)
+		rs, err := r.s.recorder.AwaitServer(ctx, r.id)
 		if err != nil {
 			if !errors.Is(err, model.ErrSessionEnded) {
-				r.beende(model.EndFailed, err)
+				r.beende(ctx, model.EndFailed, err)
 			}
 			return
 		}
-		if !r.schreibe(rs) {
+		if !r.schreibe(ctx, rs) {
 			return
 		}
 	}
@@ -433,12 +432,13 @@ func (r *richtungen) serverRichtung() {
 // das Ende frei, endet die Session mit EndShutdown. Eine Lesefrist aus dem
 // Wecken setzt sie über weiterlesen zurück und fragt erneut.
 func (r *richtungen) clientRichtung(ctx context.Context) {
+	uc := context.WithoutCancel(ctx)
 	for {
 		if r.beendet.Load() {
 			return
 		}
-		if ctx.Err() != nil && r.s.recorder.Shutdown(r.ctx, r.id) {
-			r.beende(model.EndShutdown, nil)
+		if ctx.Err() != nil && r.s.recorder.Shutdown(uc, r.id) {
+			r.beende(uc, model.EndShutdown, nil)
 			return
 		}
 		msg, err := r.be.Receive()
@@ -450,33 +450,33 @@ func (r *richtungen) clientRichtung(ctx context.Context) {
 				r.weiterlesen()
 				continue
 			case verbindungsende(err):
-				r.beende(model.EndClosed, nil)
+				r.beende(uc, model.EndClosed, nil)
 			default:
-				r.beende(model.EndUnsupported, model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
+				r.beende(uc, model.EndUnsupported, model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
 			}
 			return
 		}
 		e := lese(msg)
 		switch {
 		case e.query != nil:
-			out, err := r.s.recorder.Query(r.ctx, r.id, *e.query)
+			out, err := r.s.recorder.Query(uc, r.id, *e.query)
 			if err != nil {
-				r.fehler(err)
+				r.fehler(uc, err)
 				return
 			}
-			if !r.schreibe(out) {
+			if !r.schreibe(uc, out) {
 				return
 			}
 		case e.terminate:
-			r.beende(model.EndTerminate, nil)
+			r.beende(uc, model.EndTerminate, nil)
 			return
 		case e.extended != nil:
-			if err := r.s.recorder.ClientMessage(r.ctx, r.id, *e.extended); err != nil {
-				r.fehler(err)
+			if err := r.s.recorder.ClientMessage(uc, r.id, *e.extended); err != nil {
+				r.fehler(uc, err)
 				return
 			}
 		default:
-			r.beende(model.EndUnsupported, e.fremd)
+			r.beende(uc, model.EndUnsupported, e.fremd)
 			return
 		}
 	}
@@ -725,7 +725,7 @@ func sqlstate(code string) string {
 	}
 }
 
-func (s *Server) send(be *pgproto3.Backend, responses []model.Response) error {
+func (*Server) send(be *pgproto3.Backend, responses []model.Response) error {
 	for _, r := range responses {
 		msg, err := toMessage(r)
 		if err != nil {
