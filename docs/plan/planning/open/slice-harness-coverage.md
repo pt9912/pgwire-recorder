@@ -151,11 +151,11 @@ Umstellungs-Slices (`slice-harness-blackbox-kern`, `slice-harness-blackbox-drive
 `slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`), die beiden
 Bereinigungs-Slices (`slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`),
 `slice-harness-lint`, `slice-harness-commit-struktur-id`,
-`slice-harness-integration-wait` und `slice-harness-abdeckung-gate` liegen in `done/`
+`slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate` und `slice-harness-abdeckung-gate` liegen in `done/`
 (WIP-Limit 1). Dieser Slice ist der letzte der Reihe vor M3 nach Entscheidung
 des Nutzers vom 2026-10-05, 2026-10-06 und 2026-10-07 (Lastenheft, Lint-Werkzeug,
 Umstellung, Bereinigung, Lint-Gate, `slice-harness-commit-struktur-id`,
-`slice-harness-integration-wait`, `slice-harness-abdeckung-gate`, Coverage). Nach ihm
+`slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate`, `slice-harness-abdeckung-gate`, Coverage). Nach ihm
 folgen `slice-tests-ueberlebende-mutanten` und `slice-harness-mutation`; keiner der
 beiden trägt zu M3 bei, und keiner ist Vorbedingung dieses Slice. Vom Abdeckungs-Gate hängt dieser Slice
 technisch ab: Ohne es kennt `tools/test/abdeckung.sh` die Deklaration von Teil 2

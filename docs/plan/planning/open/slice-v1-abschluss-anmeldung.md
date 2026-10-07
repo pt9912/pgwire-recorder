@@ -38,6 +38,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Anmeldung beim Einspielen (`play`) — `slice-v1-abschluss-einspielen`.
 - Client-Zertifikate und GSSAPI/SSPI — außerhalb des Funktionsumfangs von v1 (`LH-FA-05.b`).
+- Anmeldung gegen jede unterstützte PostgreSQL-Version — `slice-v1-abschluss-postgres-versionen` (dort §1 *Anmeldung je Version* und DoD-Punkt 2; Entscheidung des Nutzers vom 2026-10-07): Dessen Matrix fährt den Fall SCRAM-SHA-256 des Anmeldetests aus diesem Slice gegen jede Version außer 17 und startet erst, wenn dieser Slice in `done/` liegt; hier läuft der Anmeldetest gegen die Referenzversion 17. Der Test muss deshalb als Fall SCRAM-SHA-256 einzeln wählbar sein.
 
 ## 2. Definition of Done
 

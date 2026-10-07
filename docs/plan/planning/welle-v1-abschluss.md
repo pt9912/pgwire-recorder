@@ -71,7 +71,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - Blockiert: Welle [welle-erster-release](welle-erster-release.md).
 - Wird blockiert von: Welle [welle-replay-semantik](done/welle-replay-semantik/welle-replay-semantik.md).
-- Innerhalb der Welle: `slice-v1-abschluss-einspielen` setzt `slice-v1-abschluss-betrieb` voraus (Signalbehandlung, Konfigurationsdatei); `slice-v1-abschluss-zeitangaben` setzt `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-sqlite-format` voraus; `slice-v1-abschluss-antwortvergleich` setzt `slice-v1-abschluss-einspielen` voraus; `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` voraus; `slice-v1-abschluss-postgres-versionen` setzt `slice-extended-query-lebendpruefung` aus welle-extended-query voraus (Erkennung der Lebendprüfung); `slice-v1-abschluss-tls-client` setzt `slice-v1-abschluss-sessions` voraus (mehrere Verbindungen); `slice-v1-abschluss-container` setzt die übrigen Slices außer `slice-v1-abschluss-homebrew` voraus (Image und Doku bilden den Endstand ab); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` voraus (Release-Artefakte).
+- Innerhalb der Welle: `slice-v1-abschluss-einspielen` setzt `slice-v1-abschluss-betrieb` voraus (Signalbehandlung, Konfigurationsdatei); `slice-v1-abschluss-zeitangaben` setzt `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-sqlite-format` voraus; `slice-v1-abschluss-antwortvergleich` setzt `slice-v1-abschluss-einspielen` voraus; `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` voraus; `slice-v1-abschluss-postgres-versionen` setzt `slice-extended-query-lebendpruefung` aus welle-extended-query voraus (Erkennung der Lebendprüfung) und `slice-v1-abschluss-anmeldung` (die Matrix fährt dessen Fall SCRAM-SHA-256 gegen jede Version); `slice-v1-abschluss-tls-client` setzt `slice-v1-abschluss-sessions` voraus (mehrere Verbindungen); `slice-v1-abschluss-container` setzt die übrigen Slices außer `slice-v1-abschluss-homebrew` voraus (Image und Doku bilden den Endstand ab); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` voraus (Release-Artefakte).
 
 ## 6. Out-of-Scope für diese Welle
 
@@ -81,7 +81,7 @@ Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
 der Closure-Trigger unerreichbar wird.
 
 - TLS zum Upstream im Record-Modus, Prüfung von Client-Zertifikaten, `COPY`, Replikationsprotokoll — nicht Teil des Produkts in dieser Welle.
-- Gate für Code-Tabelle und Katalog — Folge-Slice nach `slice-replay-semantik-meldungscodes`.
+- Gate für Code-Tabelle und Katalog — `slice-harness-meldungskatalog-gate` (wellenlos, Entscheidung des Nutzers vom 2026-10-07); er liegt in der wellenlosen Reihe vor den Slices dieser Welle, die neue Codes einführen.
 
 ## 7. Closure-Notiz
 

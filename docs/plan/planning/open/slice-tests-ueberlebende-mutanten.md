@@ -230,7 +230,7 @@ ausdrücklich zurückgestellt (WIP-Limit 1). Reihenfolge nach Entscheidung des N
 vom 2026-10-05, 2026-10-06 und 2026-10-07: `slice-harness-lint-werkzeug`, die vier
 Umstellungs-Slices, `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`,
 `slice-harness-lint`, `slice-harness-commit-struktur-id`,
-`slice-harness-integration-wait`, `slice-harness-abdeckung-gate`,
+`slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate`, `slice-harness-abdeckung-gate`,
 `slice-harness-coverage`, dieser Slice, `slice-harness-mutation`.
 
 *Warum nach Coverage und nicht davor.* Technisch hängt der Slice an keinem der beiden;

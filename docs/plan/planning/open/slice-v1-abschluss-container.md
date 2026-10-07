@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Veröffentlichungs-Mechanismus der Registries (`ghcr.io`, `docker.io`) — Gegenstand des Release-Verfahrens in `docs/maintainer/releasing.md`; dieser Slice liefert das Image.
-- Gate für Code-Tabelle und Katalog — Folge-Slice.
+- Gate für Code-Tabelle und Katalog — liefert `slice-harness-meldungskatalog-gate` (wellenlos, Entscheidung des Nutzers vom 2026-10-07) vor diesem Slice; dieser Slice hält das Gate grün, wenn er den Meldungskatalog der Betriebsdokumentation fortschreibt, und ob das Gate diesen Katalog mitprüft, entscheidet jener Slice (dort §6, Punkt 8).
 
 
 ## 2. Definition of Done
