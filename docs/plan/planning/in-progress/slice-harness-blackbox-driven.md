@@ -85,24 +85,39 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Die Testdateien unter `internal/adapters/driven/postgres` und `internal/adapters/driven/recording` gehören zu `_test`-Paketen; die Liste der Tests
+- [x] Die Testdateien unter `internal/adapters/driven/postgres` und `internal/adapters/driven/recording` gehören zu `_test`-Paketen; die Liste der Tests
       (`go test -list .` je Paket, im gepinnten Go-Image) ist vor und nach dem Umbau gleich, keine Prüfung ist
       entfallen, die Abdeckungs-Deklarationen nach [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) stehen unverändert und
       `make abdeckung-check` ist grün. Unexportierte Teile erreicht ein Test nur über
-      die Brücke nach `SPEC-049` Punkt 7.
-- [ ] `make lint` meldet in den Testdateien unter `internal/adapters/driven/postgres` und `internal/adapters/driven/recording` keinen Befund: Die
+      die Brücke nach `SPEC-049` Punkt 7. — Verifikation, Abschnitt 1 Punkt 1 und
+      Abschnitt 3: `package postgres_test` und `package recording_test`, im Paket des
+      Codes nur `postgres/export_test.go`; `go test -list .` an `aff75ee` und `874b29d`
+      gleich (`postgres` 14, `recording` 13), 108 Zeilen `--- PASS` an beiden Ständen,
+      11 Deklarationen gleich und gleich zugeordnet, `make abdeckung-check` Exit 0; die
+      Brücke reicht nur weiter und legt keinen Wert an (`SPEC-049` Punkt 7 in der
+      Fassung `f0ea7be`).
+- [x] `make lint` meldet in den Testdateien unter `internal/adapters/driven/postgres` und `internal/adapters/driven/recording` keinen Befund: Die
       12 Befunde der Messung sind behoben, ohne `//nolint` und ohne Änderung an
       `.golangci.yml`; die dauerhaften Ausnahmen nach `SPEC-049` Punkt 8 blendet das
       Profil aus. Die Zeilen der Ausgabe unter diesen Pfaden vor und nach dem Umbau
       stehen im Bericht; Befunde im Produkt-Code bleiben für `slice-lint-bestand-kern-driven`.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      — Verifikation, Abschnitt 1 Punkt 2: die Zeilen vorher und nachher in §7
+      *Belege des Implementers*, Wort für Wort bestätigt; 12 → 0 in `*_test.go`, 4 im
+      Produkt-Code; modulweit 72 → 60 ohne neuen Befund (`comm -13` leer); kein
+      `//nolint`, `.golangci.yml` unverändert, kein neues `_ =`.
+- [x] `make gates` grün. — an `f0ea7be` (Go-Code gleich `874b29d`; Verifikation,
+      Abschnitt 1 Punkt 3 und Abschnitt 7); `76bfe09` und diese Closure ändern nur
+      Berichte, Pläne und das Register, `make docs-check` und `make kopf-check` grün am
+      Stand dieser Closure.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      — `docs/reviews/2026-10-07-review-slice-harness-blackbox-driven.md` (bis
+      `1c30e43`; F-444 bis F-447, alle INFO).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -213,14 +228,33 @@ steht, gibt der Implementer an den Architect zurück.
 - **Prüfung geht im Umbau verloren** — ein Test bleibt in der Liste, prüft aber
   weniger, weil ein unexportierter Vergleich wegfiel
   (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`, 1×). Je umgeschriebener (nicht nur
-  umgestellter) Test eine Mutation, die er weiter fängt. — **Ausgang:** — (bei Closure)
+  umgestellter) Test eine Mutation, die er weiter fängt. — **Ausgang:** entfallen: Die
+  Testliste ist gleich (`postgres` 14, `recording` 13, 108 Zeilen `--- PASS` an beiden
+  Ständen), die 11 Deklarationen sind gleich zugeordnet; die acht Mutationen in §7 sind
+  in der Verifikation rot aus dem richtigen Grund (Abschnitt 4), ebenso R2 bis R6 des
+  Reviews (F-447). Der grüne Mutant R1 (`Open` gibt eine neue Session aus
+  `newSession(conn)` zurück) war schon an `aff75ee` ungeprüft, weil das Literal
+  `&session{conn: conn, fe: fe}` kein Test hielt (Verifikation, Abschnitt 2); er ist
+  keine im Umbau verlorene Prüfung und geht als
+  `BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft` ins Register (§7).
 - **Abdeckung sinkt** — Black-Box-Tests erreichen unexportierte Pfade seltener; die
   Zahl misst erst `slice-harness-coverage` nach allen vier Umstellungs-Slices.
-  — **Ausgang:** — (bei Closure)
+  — **Ausgang:** entfallen: Der Umbau gibt keinen Pfad ab. Jeder frühere Zugriff auf
+  Unexportiertes geht über die Brücke an dieselbe Funktion oder dasselbe Feld
+  (`toFrontendMessage`, `conn` über `Verbindung`), die Session aus dem früheren Literal
+  legt jetzt `newSession` mit denselben zwei Feldern an (AST-Messung in §7;
+  Verifikation, Abschnitt 1 *Produkt-Code* und Abschnitt 3), und `recording` hatte
+  keinen White-Box-Zugriff. Die Zahl für alle vier Umstellungs-Slices misst
+  `slice-harness-coverage` nach seinem eigenen §1, nicht als Ausgang dieses Risikos.
 - **Befund verdeckt statt behoben** — `_ =` vor einem ungeprüften Fehler, eine Globale
   als Funktion mit demselben geteilten Zustand: `make lint` ist grün, der Test nicht
   besser. Review prüft die Form, das Werkzeug nur die Zahl (Grenze von `SPEC-049`).
-  — **Ausgang:** — (bei Closure)
+  — **Ausgang:** entfallen: Kein neues `_ =` (94 Blank-Zuweisungen vorher, 93 nachher,
+  weggefallen ist `_ = ss.conn.SetReadDeadline(…)`, jetzt mit `t.Fatal` geprüft), kein
+  `//nolint` (Verifikation, Abschnitt 1 Punkt 2). `schliesse` prüft den Fehler von
+  `Close` (V5, R3), die Testdaten-Funktionen `bereit`, `beendet` und `ergebnis` liefern
+  je Aufruf frische Werte (V6, V8). Die drei `_ = s.Close()` in `upstream_test.go` sind
+  Bestand und waren nie ein Befund von `errcheck` (F-446, keine Aktion).
 
 ## 7. Closure-Notiz
 
@@ -236,12 +270,104 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
+- **Was hat funktioniert:** Der Schnitt hielt: drei Liefer-Punkte, drei Testdateien, eine
+  Brücke in `postgres` und eine Stelle Produkt-Code, keine Rückführung aus §4. Die beiden
+  Regeln aus `de770f7` (seit slice-harness-blackbox-kern) haben gewirkt. Halt vor dem
+  Code: Der Implementer gab die Randform „Session ohne Literal, über TCP nicht
+  deterministisch“ vor dem ersten Code-Commit zurück, der Architect entschied sie in
+  `58e863c` (`newSession`, `SPEC-049` Punkt 7), und `1c30e43` ändert im Plan nur §7; das
+  Review meldet zu `AGENTS.md` §3.12 keinen Befund, die Verifikation keine Randform
+  außerhalb von §6. Belege in §7: AST-Messung, Testliste, Lint-Zeilen vorher und nachher
+  und die Mutationstabelle standen unter *Belege des Implementers*; Review (F-447) und
+  Verifikation (Abschnitt 1 und 4) prüften gegen sie und fuhren alle acht Mutationen
+  nach, alle rot. Auch der grüne Mutant stand dort („Ohne roten Test“), und von dort
+  fanden Review (R1) und Verifikation (Sonde) die Lücke.
+- **Was ging anders als geplant:** Zwei Punkte, keine Nacharbeit am Code. Die
+  Gesamtzahlen von `make lint` in §7 waren falsch (V-84): 79 → 67 statt gemessen
+  72 → 60; die Zeilen unter beiden Pfaden und die Differenz 12 stimmten. Berichtigt mit
+  dieser Closure in §7 und in Liefer-Punkt 2 der DoD; kein Folge-Slice übernahm die
+  falsche Zahl. Und §6 band die Grenze „Urteil des Review“ an die Kopplung von `Open`
+  an `newSession`; darunter fiel im Bericht auch R1, ein Mutant, der das Verhalten
+  ändert und über die Schnittstelle fangbar ist (F-444, V-85). Für die Kopplung selbst
+  (V9, äquivalent) trägt die Grenze. Den Wortlaut von `SPEC-049` Punkt 7 hat der
+  Architect nach F-445 in `f0ea7be` eindeutig gemacht.
+  - **Summary-Zeilen:** Review
+    `docs/reviews/2026-10-07-review-slice-harness-blackbox-driven.md`: „0 HIGH · 0 MEDIUM
+    · 0 LOW · 4 INFO (F-444 `Open` ruft `newSession` für die zurückgegebene Session,
+    Verhalten unverändert, Rückgabe weiter ungeprüft wie vorher; F-445 Bezug in
+    `SPEC-049` Punkt 7 nach dem Einschub mehrdeutig; F-446 `_ = s.Close()` im Bestand
+    neben `schliesse`; F-447 Mutationen reichen). Wiederkehrende Klasse: keine.“
+    Verifikation `docs/reviews/2026-10-07-verifikation-slice-harness-blackbox-driven.md`,
+    Urteil: drei Liefer-Punkte erfüllt und selbst belegt, Brücke hält Punkt 7 in der
+    Fassung `f0ea7be`, acht Mutationen aus §7 rot aus dem richtigen Grund; vor der
+    Closure V-84 berichtigen (Beleg mit falscher Zahl), V-85 ein Vorschlag für Register
+    und Lerneintrag (Grenze trägt, Lücke adressieren). `make gates` grün an `f0ea7be`.
+- **Steering-Loop-Eintrag:** Geschärfte Regel: Ein grüner Mutant wird in §7 eingeordnet
+  — lässt er das Verhalten gleich, trägt ihn die Grenze in §6; ändert er es, bekommt er
+  einen Test oder, wo §1 neue Fälle ausschließt, eine Test-Idee mit Grenze, der die
+  Closure eine Adresse gibt; eine Grenze „nur Urteil“ deckt nur den äquivalenten Mutanten
+  — liegt in `.claude/commands/implement-slice.md Schritt 19`.
+  Auslöser: F-444 und V-85 (R1 gegen V9). Retirement-Check von `AGENTS.md` §3.12 und der
+  Randform-Rückgabe sowie von *Belege in §7* (beide seit slice-harness-blackbox-kern):
+  nicht wieder aufgetreten, beide bleiben. §3.9 und §3.11 ohne Befund (Review,
+  Negativbefunde), §3.10 ohne neuen Vertrag.
+- **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `76bfe09`.
+  - `BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft/` — **neu**, 1× (F-444,
+    V-85). `state.md`: `offen`, mit der Adresse `slice-v1-abschluss-anmeldung` §6. Der
+    Ausgang `geplant` ist nach der Form des Registers eine Antwort auf die Schwelle 3×;
+    darunter ist `offen` der Stand, die Adresse steht daneben. `slice-v1-abschluss-anmeldung`
+    nimmt an: Er liegt in `open/`, baut die Aufbau-Schleife in `Open` für den
+    Anmeldeaustausch um (§3: `internal/adapters/driven/postgres`, Weiterleitung der
+    Anmeldenachrichten), sein §1 schließt Tests an `Open` nicht aus, und sein §6 trägt
+    mit dieser Closure Test-Idee und Grenze als Punkt mit eigenem Ausgang.
+  - Ohne Beleg: `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (bleibt 3×,
+    verkörpert; Halt vor dem Code hat gewirkt), `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht`
+    (bleibt 3×, verkörpert; die Belege erreichten beide Prüfer),
+    `BEO-REPO/plan-folgt-korrektur-nicht` (bleibt 14×; Review Hard Rule 3.9 ohne Befund,
+    der Kopf deckt auch `f0ea7be`), `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`
+    (bleibt 16×; Review Hard Rule 3.11 ohne Befund),
+    `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (bleibt 13×; kein neuer Vertrag),
+    `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (bleibt 1×; Risiko *Prüfung geht im
+    Umbau verloren* entfallen), `BEO-REPO/randform-wellenlos-ohne-architect-vor-code`
+    (bleibt 1×; §4 nannte den Architect, er entschied vor `1c30e43`),
+    `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (bleibt 1×; jede Mutation lief in
+    einem frischen Pfad per Bind-Mount).
+
+  Einmalig und nicht eingetragen: V-84 (Gesamtzahl im Beleg falsch, Zeilen richtig). Sie
+  passt zu keinem Eintrag: Die Belege erreichten die Prüfer
+  (`implementer-bericht-erreicht-pruefer-nicht` nicht wieder aufgetreten), und die Zahl
+  war keine Zusage über eine Prüfung hinaus (`zusage-im-kommentar-weiter-als-pruefung`),
+  sondern eine falsch übertragene Messung. F-445 (mit `f0ea7be` erledigt), F-446
+  (Bestand, keine Aktion), F-447 (Mutationen reichen). Mit diesem Slice erreicht
+  **kein** Eintrag die Schwelle 3× neu; über der Schwelle stehen nur verkörperte
+  Einträge (`implementer-bericht-erreicht-pruefer-nicht` 3×,
+  `randform-im-code-entschieden-dann-zurueckgegeben` 3×,
+  `spec-randform-erst-im-review-entschieden` 11×,
+  `negativtests-fehlen-bei-neuem-vertrag` 13×, `plan-folgt-korrektur-nicht` 14×,
+  `zusage-im-kommentar-weiter-als-pruefung` 16×).
+- **Folge-Slices:** `slice-v1-abschluss-anmeldung` (Test-Idee zu R1, §6),
+  `slice-lint-bestand-kern-driven` (die vier Befunde im Produkt-Code dieser Pakete,
+  Zeilen in §7 *Nachher*), als nächster in der Reihe
+  `slice-harness-blackbox-pgwire`, dann `slice-harness-blackbox-einstieg`,
+  `slice-harness-coverage` und `slice-harness-lint`.
+- **Risiken aus §6:** drei, alle **entfallen**, mit Begründung: *Prüfung geht im Umbau
+  verloren* (R1 war vorher ungeprüft, ins Register), *Abdeckung sinkt* (kein Pfad
+  abgegeben), *Befund verdeckt statt behoben* (kein neues `_ =`, kein `//nolint`). Die
+  Randformen in §6 sind Entscheidungen, keine Risiken.
+- **Drei Paarungen:** Anker — `liegt in` nennt
+  `.claude/commands/implement-slice.md Schritt 19`; `grep -n "seit slice-harness-blackbox-driven" .claude/commands/implement-slice.md`
+  findet ihn in Schritt 19. Folge-Slice — `slice-v1-abschluss-anmeldung`,
+  `slice-lint-bestand-kern-driven`, `slice-harness-blackbox-pgwire`,
+  `slice-harness-blackbox-einstieg` und `slice-harness-coverage` liegen in `open/`,
+  `slice-harness-lint` in `next/`; `slice-v1-abschluss-anmeldung` nennt den Punkt in §6.
+  Register — die neue Kennung und die acht ohne Beleg bestehen als Verzeichnis, jedes mit
+  nicht leerem `evidence/`. Die nächste Welle-Closure prüft erneut.
+- **Belege:** Review `docs/reviews/2026-10-07-review-slice-harness-blackbox-driven.md`
+  (bis `1c30e43`; F-444 bis F-447), Verifikation
+  `docs/reviews/2026-10-07-verifikation-slice-harness-blackbox-driven.md` (bis
+  `874b29d`, `make gates` an `f0ea7be`; V-84, V-85), Architect `58e863c` und `f0ea7be`,
+  Entscheidung [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) unverändert.
+  Validierung: n/a, der Slice ändert Tests, kein End-Nutzer-Verhalten.
 
 **Belege des Implementers** (Arbeitsbaum auf `58e863c` mit dem Diff des Commits, der
 diesen Abschnitt anlegt):
@@ -265,7 +391,9 @@ Session. `recording` braucht keine Brücke.
 gleich, `postgres` 14 Tests, `recording` 13; `diff` leer. Die Abdeckungs-Deklarationen
 stehen unverändert (der Diff der Testdateien berührt keine Kommentarzeile `Abdeckung:`).
 
-*`make lint`, Zeilen unter beiden Pfaden.* Vorher (`aff75ee`, Exit 2, 79 Befunde im Repo):
+*`make lint`, Zeilen unter beiden Pfaden.* Vorher (`aff75ee`, Exit 2, 72 Befunde im Repo;
+die Gesamtzahl vorher und nachher nach der Verifikation, V-84: golangci-lint `72 issues:`
+an `aff75ee`, `60 issues:` an `874b29d` und im Arbeitsbaum):
 
 ```text
 internal/adapters/driven/postgres/upstream_extended_test.go:1:9: package should be `postgres_test` instead of `postgres` (testpackage)
@@ -286,7 +414,7 @@ internal/adapters/driven/postgres/upstream.go:220:1: cyclomatic complexity 18 of
 internal/adapters/driven/recording/yaml.go:538:1: cognitive complexity 22 of func `fromDTO` is high (> 20) (gocognit)
 ```
 
-Nachher (Exit 2, 67 Befunde im Repo, 12 weniger; in Testdateien unter beiden Pfaden
+Nachher (Exit 2, 60 Befunde im Repo, 12 weniger; in Testdateien unter beiden Pfaden
 keiner, auch keiner der eigenen Prüfungen an `export_test.go`; die vier im Produkt-Code
 bleiben für `slice-lint-bestand-kern-driven`, in `upstream.go` um sechs Zeilen
 verschoben durch `newSession`):

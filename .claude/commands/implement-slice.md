@@ -182,6 +182,11 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     Wächter scheiterte (ein Einzug, eine Schreibweise, eine Stelle), und fährt neben der
     gemeldeten Mutation je weitere Ausprägung dieses Merkmals eine; rot an der gemeldeten
     Ausprägung belegt die übrigen nicht.
+    **Ein grüner Mutant wird in §7 eingeordnet** (seit slice-harness-blackbox-driven): Lässt
+    er das Verhalten gleich (äquivalent), fängt ihn kein Test, und die Grenze in §6 trägt
+    ihn. Ändert er das Verhalten, ist er über die Schnittstelle fangbar: ein Test, oder,
+    wo §1 neue Fälle ausschließt, eine Test-Idee mit ihrer Grenze in §7, der die Closure
+    eine Adresse gibt. Eine Grenze „nur Urteil“ in §6 deckt nur den äquivalenten Mutanten.
     **Der Mutant muss im Build ankommen** (seit slice-replay-semantik-mismatch): Ein Lauf
     über den Docker-Build-Kontext (`make build`, `make test`, `make test-integration`)
     überträgt eine Datei nicht neu, deren Größe und mtime dem zuletzt übertragenen Stand

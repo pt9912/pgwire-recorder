@@ -97,6 +97,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Die Vermittlung muss die Anmeldenachrichten aus der Aufzeichnung heraushalten, sonst stehen Passwort-Hashes darin (LH-RB-01) — **Ausgang:** offen bis Closure.
+- Dass die Session aus `Open` den Lesepuffer des Aufbaus trägt, prüft kein Test (`BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft`, seit slice-harness-blackbox-driven); der Umbau der Aufbau-Schleife berührt genau diese Stelle. Test-Idee: Der Server schickt AuthenticationOk, ReadyForQuery und eine NoticeResponse in einem Flush, der Test ruft nach `Open` einmal `Receive` und erwartet die Notice; rot, wenn `Open` eine Session mit neuem Frontend zurückgibt. Grenze: Dass beide Nachrichten in einem Lesevorgang ankommen, ist über TCP-Loopback stabil, aber nicht zugesagt; `net.Pipe` erreicht `Open` nicht, weil `Upstream.Dialer` ein `net.Dialer` ist — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
