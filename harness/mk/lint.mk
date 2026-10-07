@@ -11,7 +11,7 @@
 # p10-gegenprobe-scharf.
 .PHONY: lint lint-gegenprobe
 
-lint: ## Go-Code nach .golangci.yml und eigenen Pruefungen pruefen (Gate; netzlos ausser deps)
+lint: ## Go-Code nach .golangci.yml und eigenen Pruefungen pruefen (Gate; Stufe lint des Dockerfile)
 	$(DOCKER_BUILD) --target lint .
 
 lint-gegenprobe: ## Gegenprobe des Lint-Gates: Mutanten je Punkt von SPEC-049 in Kopien des Arbeitsbaums

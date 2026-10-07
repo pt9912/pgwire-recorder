@@ -13,7 +13,8 @@
 #   (2) Werkzeug und Umgebung — kein eigener Fall; offen im Kopf der Gegenprobe
 #   (3) Linter — p3-*, p4-*-rot, p5-revive-*, p5-contextcheck-test, p7-whitebox-*
 #   (4) Schwellen — p4-*
-#   (5) Einstellungen — p5-*, p1-cmd
+#   (5) Einstellungen — p5-*, p1-cmd; testpackage: p7-internal-test,
+#       p7-endet-auf-export-test, p7-bruecke-kein-testpackage
 #   (6) Kein `//nolint` — p6-* (auch in einer Testdatei), p9-profil-fehlt-nolint
 #   (7) Export-Test-Brücke — p7-*, p9-profil-fehlt-bruecke
 #   (8) Ausnahmen — p8-*, p0-grundlauf (keine ungenutzte Regel im Bestand)

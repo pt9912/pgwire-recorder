@@ -22,7 +22,10 @@ permanent, solange sie gilt.
 
 1. **Inhalt der Ausnahmen** — ob ein `Why:` zutrifft, ob eine Einstellung nach Punkt 5
    ihren Grund als Kommentar trägt und ob unter `exclusions` nur `warn-unused` und
-   `rules` stehen, prüft der Lauf nicht; das bleibt Urteil des Reviews.
+   `rules` stehen, prüft der Lauf nicht; das bleibt Urteil des Reviews. Ob eine
+   Regel unter `rules` zu den zulässigen nach Punkt 8 gehört und ob sie mehr als
+   Bestand ausblendet, prüft es ebenfalls nicht: Eine neue Regel mit `# Why:`, die
+   einen Befund ausblendet, lässt die Stufe grün; das ist Urteil des Review.
 2. **Inhalt der Brücke** — ob `export_test.go` nur weiterreicht und ob ein Wert eines
    unexportierten Typs nur aus dem Produkt-Code stammt, prüft der Lauf nicht.
 3. **Ausgenommener Code** — Dateien mit der Markierung für generierten Code nimmt

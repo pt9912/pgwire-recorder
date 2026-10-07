@@ -690,6 +690,32 @@ Zählung: Punkt 6 hat 13 Fälle, Punkt 7 hat 14, dazu kommen 5 Fälle zu
 | Kopf: ungültiger Wert bricht ab | Prüfung `^[1-9][0-9]*$` durch `true` ersetzt | `einstellung-*` (alle fünf) |
 | Kopf: leer ist nicht ungesetzt | `${…+gesetzt}` → `${…:+gesetzt}` | `einstellung-` |
 
+*Nachtrag zur Verifikation* (`docs/reviews/2026-10-08-verifikation-slice-harness-lint.md`,
+V-96, V-98, V-99, V-100 nach §6; Stand: `d3473b9` mit den Änderungen des Commits, der
+diesen Absatz schreibt):
+
+- V-96: zwei neue rote Fälle in `sammel`. `p6-leerzeichen-dann-strich` legt `// /nolint`
+  in `internal/gegenprobe/nolint/fall.go` (Punkt 6: nach `//` beliebig viele
+  Leerzeichen, Tabs oder `/`). `p8-why-ohne-doppelpunkt` ist eine Regel, deren
+  Kommentarblock mit `# Why kein Doppelpunkt.` beginnt; erwartet ist die Zeile `Regel
+  ohne Kommentarblock "# Why:" unmittelbar darüber` an ihrem Eintrag.
+- V-98: Der Kopf der Gegenprobe führt `p6-testdatei` unter (6),
+  `p7-endet-auf-export-test` unter (5) und (7) und die neuen Fälle unter (6) und (8).
+  `lint.sh` (5) nennt die Fälle zu `testpackage`.
+- V-99: Der Hilfetext von `make lint` sagt „Stufe lint des Dockerfile“ statt
+  „netzlos ausser deps“. Die Zelle in `harness/README.md` sagt, dass die Gegenprobe
+  den Lauf ohne Netz nicht prüft.
+- V-100: Im Kopf der Gegenprobe steht unter OFFEN die Zeile zu den zulässigen Regeln
+  nach §6. Unter *Grenze* in `harness/sensors/lint.md`, Punkt 1, steht der Satz aus der
+  Grenze von `SPEC-049`. `lint.sh`, Profil und Stufe sind unverändert.
+
+Punkt 6 hat damit 14 Fälle, Punkt 8 hat 48; zusammen 257.
+
+| Zusage | Mutation (je in einer frischen Kopie des Repos) | roter Fall |
+|---|---|---|
+| Punkt 6: `/` zwischen Kommentarzeichen und `nolint` | `lint.sh`: `[ ${tab}/]*` → `[ ${tab}]*` (V7) | `p6-leerzeichen-dann-strich` |
+| Punkt 8: erste Zeile beginnt mit `# Why:` | `lint.sh`: `/^[ \t]*# Why:/` → `/^[ \t]*# Why/` (V11) | `p8-why-ohne-doppelpunkt` |
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

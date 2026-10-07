@@ -43,21 +43,24 @@
 #       p5-ireturn-frei-*, p5-forbidigo-* und p1-cmd, p5-gomodguard-frei-*,
 #       p5-revive-genau-diese, p5-revive-<regel> je Regel, p5-revive-exported-form
 #       und p9-lint-zeile-allein (ein deutscher Doc-Kommentar der richtigen Form ohne
-#       Befund), für testpackage p7-internal-test und p7-bruecke-kein-testpackage,
+#       Befund), für testpackage p7-internal-test, p7-endet-auf-export-test und
+#       p7-bruecke-kein-testpackage,
 #       p5-contextcheck-test, p5-gochecknoglobals-frei-*
 #   (6) Kein `//nolint` — p6-doppelstrich, p6-leerzeichen-zusatz, p6-block,
-#       p6-schreibweise, p6-drei-striche, p6-tab, p6-zweites-zeichen, p6-string,
-#       p6-cmd, p6-test; kein Befund: p6-siehe-nolint, p6-wortgrenze
+#       p6-schreibweise, p6-drei-striche, p6-leerzeichen-dann-strich, p6-tab,
+#       p6-zweites-zeichen, p6-string, p6-cmd, p6-test, p6-testdatei; kein Befund:
+#       p6-siehe-nolint, p6-wortgrenze
 #   (7) Export-Test-Brücke — erste Bedingung von Messmethode 3 je Paketgruppe:
 #       p7-whitebox-kern, p7-whitebox-driven, p7-whitebox-pgwire,
 #       p7-whitebox-einstieg; zweite Bedingung: p7-internal-test,
+#       p7-endet-auf-export-test,
 #       p7-test-in-bruecke-<art> (Test, Benchmark, Example, Fuzz, tab),
 #       p7-variable-in-bruecke; kein Befund: p7-bruecke-kein-testpackage,
 #       p7-bruecke-weiterreichen
 #   (8) Ausnahmen — Regeln: p8-ausnahme-name-<name> je benannter Globale (gilt
 #       nur für den Namen), p8-ausnahme-test-<linter> (gilt für jede Testdatei, auch
 #       unter test/), p8-ausnahme-st1005; Why: p8-ohne-why, p8-why-nicht-erste,
-#       p8-why-leerzeile, p8-why-vorhanden; ungenutzt: p8-ungenutzt-feldfolge (mit
+#       p8-why-leerzeile, p8-why-ohne-doppelpunkt, p8-why-vorhanden; ungenutzt: p8-ungenutzt-feldfolge (mit
 #       `\` und `"` im Wert), p8-ungenutzt-pfad-ausser; feste Form, rot:
 #       p8-form-einzug, p8-form-andere-stelle, p8-form-fluss-exclusions,
 #       p8-form-fluss-rules, p8-form-fluss-anderswo, p8-form-listenpunkt,
@@ -106,6 +109,8 @@
 #     durch diese Gegenprobe: kein Fall vergleicht den Arbeitsbaum vor und nach
 #     einem Lauf. Ebenso, dass die Gegenprobe ihre Kopien löscht und bei einem
 #     Abbruch über `set -e` laufende Builds beendet und eine Zeile `ROT` schreibt.
+#   - Punkt 8, zulässige Regeln: ob eine Regel zu den zulässigen gehört und mehr als
+#     Bestand ausblendet, prüft das Werkzeug nicht (Grenze von SPEC-049); kein Fall.
 #   Ob ein `Why:` zutrifft, ob die Brücke nur weiterreicht, ob ein Wert eines
 #   unexportierten Typs nur aus dem Produkt-Code stammt, ob eine Einstellung ihren
 #   Grund trägt und welche Schlüssel unter `exclusions` stehen, prüft das Werkzeug
@@ -614,6 +619,7 @@ func wert() int {
 	a++    // x //nolint
 	a++    // siehe nolint
 	a++    //nolintx
+	a++    // /nolint
 	_ = "//nolint"
 	return a
 }
@@ -717,6 +723,11 @@ cat >> "$k/$P" <<'EOF'
         path-except: ^internal/gegenprobe/
         linters:
           - revive
+
+      # Why kein Doppelpunkt.
+      - linters:
+          - gochecknoinits
+        path: ^internal/gegenprobe/nirgends-d/
 
     paths: []
 gegenprobe-unbekannt: true
@@ -1033,6 +1044,7 @@ nolint_rot p6-leerzeichen-zusatz "$NF" '// nolint:errcheck'
 nolint_rot p6-block "$NF" '/* nolint */'
 nolint_rot p6-schreibweise "$NF" '//NoLint'
 nolint_rot p6-drei-striche "$NF" '///nolint'
+nolint_rot p6-leerzeichen-dann-strich "$NF" '// /nolint'
 nolint_rot p6-tab "$NF" $'//\tnolint'
 nolint_rot p6-zweites-zeichen "$NF" '// x //nolint'
 nolint_rot p6-string "$NF" '_ = "//nolint"'
@@ -1061,6 +1073,7 @@ warum="Regel ohne Kommentarblock \"# Why:\" unmittelbar darüber"
 lint_zeile p8-ohne-why "$S" "lint: $P:$((n0 + 2)): $warum"
 lint_zeile p8-why-nicht-erste "$S" "lint: $P:$((n0 + 8)): $warum"
 lint_zeile p8-why-leerzeile "$S" "lint: $P:$((n0 + 14)): $warum"
+lint_zeile p8-why-ohne-doppelpunkt "$S" "lint: $P:$(($(grep -n '^      # Why kein Doppelpunkt\.$' "$arbeit/$S/$P" | cut -d: -f1) + 1)): $warum"
 keine_lint_zeile p8-why-vorhanden "$S" "lint: $P:$((n0 + 19)): $warum"
 lint_zeile p8-ungenutzt-feldfolge "$S" 'lint: .golangci.yml: Regel ohne Befund: Linter: revive, Pfad: ^internal/gegenprobe/nirgends/, Text: ^gegenprobe\.text"$, Quelle: ^gegenprobe-quelle$'
 lint_zeile p8-ungenutzt-pfad-ausser "$S" 'lint: .golangci.yml: Regel ohne Befund: Linter: revive, Pfad außer: ^internal/gegenprobe/, Text: ^gegenprobe-ausser$'
