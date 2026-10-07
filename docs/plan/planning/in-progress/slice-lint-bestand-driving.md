@@ -328,6 +328,159 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 
+**Belege des Implementers** (Stand: Code in `78f28a1` (Kontexte und Receiver, Befunde 9
+bis 16) und `e76b25f` (Komplexität, Befunde 1 bis 8), beide auf `b7d4555`; jede Zeile
+nennt den Stand, an dem sie gemessen ist):
+
+*`make lint`, Zeilen unter `internal/adapters/driving/pgwire`,
+`internal/adapters/driving/cli` und `internal/bootstrap`.* Vorher (`b7d4555`, Exit 2,
+`16 issues:` modulweit, alle unter diesen Pfaden, dieselben 16 wie in §1):
+
+```text
+internal/adapters/driving/pgwire/server.go:302:2: found a struct that contains a context.Context field (containedctx)
+internal/adapters/driving/pgwire/server.go:440:47: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+internal/adapters/driving/pgwire/server.go:462:34: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+internal/adapters/driving/pgwire/server.go:474:40: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+internal/bootstrap/bootstrap.go:71:26: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+internal/adapters/driving/pgwire/server.go:182:1: calculated cyclomatic complexity for function replaySitzung is 21, max is 15 (cyclop)
+internal/adapters/driving/pgwire/server.go:435:1: calculated cyclomatic complexity for function clientRichtung is 17, max is 15 (cyclop)
+internal/adapters/driving/pgwire/server.go:569:1: calculated cyclomatic complexity for function startup is 17, max is 15 (cyclop)
+internal/adapters/driving/pgwire/server.go:739:1: calculated cyclomatic complexity for function toMessage is 20, max is 15 (cyclop)
+internal/adapters/driving/pgwire/server.go:182:1: cognitive complexity 37 of func `(*Server).replaySitzung` is high (> 20) (gocognit)
+internal/adapters/driving/pgwire/server.go:435:1: cognitive complexity 22 of func `(*richtungen).clientRichtung` is high (> 20) (gocognit)
+internal/adapters/driving/pgwire/server.go:182:1: cyclomatic complexity 20 of func `(*Server).replaySitzung` is high (> 15) (gocyclo)
+internal/adapters/driving/pgwire/server.go:739:1: cyclomatic complexity 19 of func `toMessage` is high (> 15) (gocyclo)
+internal/adapters/driving/pgwire/server.go:62:22: net.Listen must not be called. use (*net.ListenConfig).Listen (noctx)
+internal/adapters/driving/cli/cli.go:243:7: unused-receiver: method receiver 'w' is not referenced in method's body, consider removing or renaming it as _ (revive)
+internal/adapters/driving/pgwire/server.go:728:7: unused-receiver: method receiver 's' is not referenced in method's body, consider removing or renaming it as _ (revive)
+```
+
+Nach `78f28a1` (Exit 2, `8 issues:`): die acht Komplexitäts-Befunde 1 bis 8, keine
+Zeile von `containedctx`, `contextcheck`, `noctx` oder `revive`; `contextcheck` nimmt
+`context.WithoutCancel(ctx)` an (Risiko *`contextcheck` nimmt `context.WithoutCancel`
+nicht an*: nicht eingetreten). Nachher (`e76b25f`, Exit 0, `0 issues.`, keine
+`lint:`-Zeile): **modulweit kein Befund**. Kein `//nolint` im Bestand (`grep` unter
+`cmd`, `internal`, `test`: 0 Treffer), `.golangci.yml` unverändert (`git diff b7d4555
+e76b25f -- .golangci.yml` leer).
+
+*Komplexität nachher* (golangci-lint v2.14.0 im gepinnten Image, in einer Kopie von
+`e76b25f` außerhalb des Repos mit Schwelle 1 je Linter; Schwellen nach `SPEC-049`
+Punkt 4: `gocognit` > 20, `gocyclo` > 15, `cyclop` > 15; ein Strich heißt, der Linter
+meldet die Funktion auch bei Schwelle 1 nicht):
+
+| Funktion | `gocognit` | `gocyclo` | `cyclop` |
+|---|---|---|---|
+| `(*Server).replaySitzung` | 17 | 10 | 10 |
+| `replayWaechter` | 2 | 3 | 3 |
+| `(*Server).replayLesefehler` | — | 2 | 2 |
+| `(*Server).replayAntwort` | 7 | 7 | 8 |
+| `(*Server).replayZustellen` | — | 2 | 2 |
+| `(*richtungen).clientRichtung` | 13 | 10 | 11 |
+| `(*richtungen).nachricht` | 5 | 6 | 7 |
+| `(*Server).startup` | 12 | 9 | 10 |
+| `(*Server).startkopf` | 3 | 8 | 9 |
+| `toMessage` | 3 | 10 | 11 |
+| `toExtendedMessage` | — | 7 | 8 |
+| `rowDescription` | — | 2 | 2 |
+| `dataRow` | 3 | 3 | 3 |
+
+Am nächsten an einer Schwelle liegt `replaySitzung` mit `gocognit` 17 (Schwelle 20).
+
+*Testliste* (`go test -list .` je Paket, für `test/integration` mit Build-Tag
+`integration`, im Image der Stufe `source` ohne Netz): an `b7d4555`, `78f28a1` und
+`e76b25f` je Paket gleich, `postgres` 14, `recording` 14, `cli` 19, `pgwire` 40,
+`bootstrap` 12, `model` 10, `services` 53, `test/integration` 39; die sortierten
+Namenslisten sind an allen drei Ständen byte-gleich (SHA-256 `40f57928…` über die
+Unit-Tests, `6b829c2d…` über die Integrationstests). Keine Testdatei und keine
+Abdeckungs-Deklaration geändert (`git diff b7d4555 e76b25f --stat -- '*_test.go' test/
+docs/user` leer; `export_test.go` unberührt).
+
+*Läufe:* `make test` grün an `78f28a1` und an `e76b25f` (je vor dem Commit). `make gates`
+grün an `e76b25f` (Exit 0, darin `make test`, `make test-integration` mit
+`run-integration-tests: gruen`, `make abdeckung-check`, `make kopf-check`, `make a-check`
+und `make docs-check`); ein weiterer Lauf an dem Commit, der diese Belege schreibt.
+
+*Mutationstabelle* (§3.10 von `AGENTS.md`, Schritt 19). Weg: je Mutant ein frischer Pfad
+außerhalb des Repos (Kopie per `git archive` des genannten Stands, Ersetzung genau einer
+Textstelle mit Treffer-Prüfung, danach `touch` auf die Datei), Lauf über
+`docker build --target test` mit eigenem Tag; Integrationsläufe mit eigenem Image, eigenem
+internen Netz, eigenem PostgreSQL-Container und eigenem Volume, beide Phasen wie
+`make test-integration`. Image, Netz, Container, Volume und Kopie danach entfernt. „vor“
+ist für die Kontexte `b7d4555`, für die Komplexität `78f28a1`; „nach“ ist `e76b25f`.
+
+| # | Zusage (bewahrt) | Mutation | vor | nach | roter Test |
+|---|---|---|---|---|---|
+| K1 | Das Herunterfahren einer Record-Session hängt an `ctx.Err()` in `clientRichtung` (Pflichtmutation, §6 Risiko *Herunterfahren ändert sich unbemerkt*) | `Err()` auf dem gelösten Kontext (`uc.Err()`, vor: `r.ctx.Err()`) | rot | rot | `TestExtendedHerunterfahren` (4 Untertests), `TestHerunterfahrenWeckenNichtVerloren` |
+| K2 | `record` schreibt die Aufzeichnung am Ende über `Finish` | Aufruf `service.Finish(…)` durch `error(nil)` ersetzt | rot | rot | `TestRunRecordSchreibfehlerJeStufe` |
+| K3 | Eine nicht nutzbare Adresse ist `PGR-E4001` (`Listen`) | Code `CodeListen` → `CodeNetwork` | Unit grün, Integration rot | Unit grün, Integration rot | `TestE2EReplayNichtVerbrauchtStartfehler` |
+| K4 | Ein beendeter `ctx` bricht das Öffnen in `Listen` nicht ab | `context.WithoutCancel` entfernt | — | **grün** (Unit und Integration) | keiner, eingeordnet unten (G1) |
+| K5 | `wahrheitswert` bleibt eine Option ohne Wert (`IsBoolFlag`) | `return false` | rot | rot | `TestParseFailOnUnconsumed`, `TestParseFailOnUnconsumedUmgebung`, `TestParseFailOnUnconsumedUmgebungNebenOption`, `TestRunLogLevel` |
+| K6 | `send` bleibt Methode von `*Server` | Methode umbenannt | — | rot (Build) | `go vet`: `s.send undefined` |
+| R1 | Eine Extended-Nachricht ohne Antwort beendet die Replay-Sitzung nicht | `continue` (nach: `return true`) → Ende | rot | rot | `TestReplayExtended`, `TestReplaySent`, `TestReplayHerunterfahren` (2), `TestReplayHerunterfahrenSpaeteFrist`, `TestInfoOhneZeileJeVerbindung` |
+| W | Der Wächter der Replay-Sitzung weckt das Lesen bei Ende von `ctx` | `SetReadDeadline(time.Now())` entfernt | rot | rot | `TestReplayHerunterfahrenSpaeteFrist` (Zeitüberschreitung des Pakets nach 10 min, der Lauf nennt diesen Test) |
+| R2 | Ein Verbindungsende im Replay ist regulär, ohne Fehlerantwort | Bedingung `verbindungsende(err) && false` | **grün** | **grün** (Unit und Integration) | keiner, eingeordnet unten (G2) |
+| R3 | Eine unlesbare Nachricht im Replay ist `PGR-E6001` an den Client | `s.fail(…)` entfernt | **grün** | **grün** (Unit und Integration) | keiner, eingeordnet unten (G3) |
+| R4 | Nach einem Lesefehler endet die Replay-Sitzung | `return` → `continue` | **grün** | **grün** (Unit und Integration) | keiner, eingeordnet unten (G2) |
+| C1 | Terminate beendet die Record-Session mit `EndTerminate` | `EndTerminate` → `EndClosed` | rot | rot | `TestQueryUndTerminate`, `TestEndeSchliesstVerbindung`, `TestExtendedEreignisse/Terminate`, `TestExtendedSyncGruppe`, `TestInfoOhneZeileJeVerbindung` |
+| C2 | Nach einer zugestellten Antwort liest die Client-Richtung weiter | Ende nach `schreibe` | rot | rot | `TestQueryUndTerminate`, `TestExtendedHerunterfahren/gelesene_Anfrage`, `TestInfoOhneZeileJeVerbindung` |
+| S1 | `startup` prüft die Länge vor dem Startcode | Länge nur bei bekanntem Startcode geprüft | rot | rot | `TestFremdeErsteNachricht` |
+| T1 | `NoData` wird `NoData` | → `PortalSuspended` | rot | rot | `TestToMessageExtended`, `TestExtendedFlush` |
+| T2 | Ein Wert NULL bleibt in der DataRow `nil` | Bedingung `true` | rot | rot | `TestQueryUndTerminate` |
+| T4 | Die Spaltenbeschreibung trägt den Namen | `Name` → `nil` | rot | rot | `TestQueryUndTerminate` |
+| T6 | … den Typ-OID | `DataTypeOID` → 0 | Unit grün, Integration rot | Unit grün, Integration rot | `TestE2EReplaySelect1`, `TestE2EErgebnisartenEinfach`, `TestE2EFehlerreplayEinfach` |
+| T7 | … die Typgröße | `DataTypeSize` → 0 | Unit grün, Integration rot | Unit grün, Integration rot | `TestE2EErgebnisartenEinfach`, `TestE2EFehlerreplayEinfach` |
+| T8 | … den Typmodifikator | `TypeModifier` → 0 | Unit grün, Integration rot | Unit grün, Integration rot | `TestE2EErgebnisartenEinfach`, `TestE2EFehlerreplayEinfach` |
+| T9 | … das Format | `Format` → 0 | Unit grün, Integration rot | Unit grün, Integration rot | `TestE2EErgebnisartenEinfach` |
+| T3 | … die Tabellen-OID | `TableOID` → 0 | **grün** | **grün** (Unit und Integration) | keiner, eingeordnet unten (G4) |
+| T5 | … die Spaltennummer | `TableAttributeNumber` → 0 | **grün** | **grün** (Unit und Integration) | keiner, eingeordnet unten (G4) |
+
+Je Umbau ist mindestens eine Mutation rot, vor und nach dem Umbau aus demselben Test:
+`replaySitzung` (R1, W), `clientRichtung` (C1, C2, K1), `startup` (S1), `toMessage`
+(T1, T2, T4, T6 bis T9), die Kontexte (K1, K2, K3), die Receiver (K5, K6). Eine
+Mutation an `bootstrap.go:71` und an `contextcheck` 10 bis 12 („`WithoutCancel`
+entfernt“) ist nicht gefahren: äquivalent nach §6 *Kontexte*. Der Rückgabewert von
+`weiterlesen` bleibt verworfen; an ihm ist nichts gefahren (§6, entschieden).
+
+*Grüne Mutanten, eingeordnet* (Schritt 19). Keiner ist äquivalent; jeder ändert das
+Verhalten und ist über die Schnittstelle fangbar. §1 schließt neue Tests aus, darum je
+Mutant eine Test-Idee mit Grenze. Alle außer G1 sind schon am Stand vor dem Umbau grün,
+sind also Lücken des Bestands, nicht des Umbaus. **Nehmer: offen**; die Funde liegen im
+PGWire-Adapter und im Bootstrap, den Nehmer trägt der Planner nach (§6 Risiko *Verhalten
+von `replaySitzung` ändert sich unbemerkt*). Dieser Slice nennt keine Adresse.
+
+- **G1 — `Listen` ohne `WithoutCancel` (K4)**, der in §6 erwartete Fund. Test-Idee nach
+  §6: `bootstrap.Run` mit schon beendetem Kontext und `record --listen localhost:0` endet
+  mit Exit-Code 0 statt mit `PGR-E4001`. Gefahren in einer Kopie von `e76b25f` als
+  temporärer Test (nicht im Repo), 50 Läufe je Stand: ohne Mutant 50 grün, mit Mutant 50
+  rot mit Exit-Code 4 und `Netzwerk [PGR-E4001]: Adresse localhost:0 nicht nutzbar:
+  listen tcp: lookup localhost: operation was canceled`. Grenze: nur mit einem Namen als
+  Adresse sichtbar, weil allein die Namensauflösung von `net` den Kontext liest; mit
+  einer IP-Adresse, wie sie alle bestehenden Tests nutzen, bleibt der Mutant grün.
+- **G2 — Ende der Replay-Sitzung nach Verbindungsende (R2, R4).** Nach dem Code schreibt R2 beim
+  Verbindungsende eine Fehlerantwort und merkt `PGR-E6001` als ersten Verbindungsfehler
+  (Exit-Code ungleich 0); R4 liest nach dem Verbindungsende weiter, die Sitzung endet
+  nicht, `closeReplay` läuft nicht. Test-Idee: Replay-Verbindung über
+  `pgwire.Handle` mit Replay-Fake, nach dem Startup schließt der Client ohne Terminate;
+  `Handle` kehrt binnen einer Frist zurück (fängt R4), `CloseConnection` ist einmal
+  gerufen und `FirstErrorCode()` bleibt leer (fängt R2). Grenze: Die Fehlerantwort an den
+  geschlossenen Client ist nicht lesbar, beobachtbar ist nur der gemerkte Code; das Ende
+  der Sitzung nur über eine Frist.
+- **G3 — unlesbare Nachricht im Replay (R3).** Der Mutant beendet die Sitzung ohne
+  Fehlerantwort und ohne gemerkten Code. Test-Idee: Replay-Verbindung, nach dem Startup
+  ein Nachrichtenkopf mit einem Typ, den `pgproto3` nicht kennt; der Client erhält eine
+  ErrorResponse mit SQLSTATE `0A000` und `PGR-E6001`, `FirstErrorCode()` ist `PGR-E6001`.
+  Grenze: Welcher Lesefehler eine unlesbare Nachricht ist, legt `pgproto3` fest; der Test
+  hält nur die Art fest, die er sendet.
+- **G4 — Tabellen-OID und Spaltennummer der Spaltenbeschreibung (T3, T5).** Kein
+  Unit- und kein Integrationstest fängt die beiden Felder. Test-Idee: `pgwire.ToMessage` mit einer RowDescription, deren
+  Spalte in jedem Feld einen Wert ungleich 0 trägt, vergleicht jedes Feld der
+  `FieldDescription`. Grenze: Die Felder sind ein Durchreichen ohne Logik; der Test
+  fängt das Vertauschen oder Weglassen eines Feldes, nicht dessen Bedeutung.
+
+*Randformen:* Keine neue gefunden. Keine ungeprüfte Reihenfolge zweier Fehler: Die einzige
+Reihenfolge, Länge vor Startcode in `startup`, hält `TestFremdeErsteNachricht` (S1 rot).
+Kein Umbau ändert ein Verhalten; §6 ist in keinem Code-Commit geändert.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
