@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: kein Slice in `in-progress/`; als nächster folgt [`slice-harness-lint`](../next/slice-harness-lint.md) (wellenlos, liegt in `next/`).
+In Arbeit: [`slice-harness-lint`](slice-harness-lint.md) (wellenlos).
 
 
 
