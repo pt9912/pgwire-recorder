@@ -180,19 +180,8 @@ type eingang struct {
 // Verbindungsende, und die Session endet regulär: Wer die Frist so durchsetzt,
 // merkt PGR-E4006 für eine unvollständige Interaktion selbst.
 func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID) {
-	fertig := make(chan struct{})
+	fertig, geweckt := replayWaechter(ctx, conn)
 	defer close(fertig)
-	// geweckt ist geschlossen, sobald der Wächter die Lesefrist gesetzt hat;
-	// erst danach setzt die Sitzung sie zurück.
-	geweckt := make(chan struct{})
-	go func() {
-		select {
-		case <-ctx.Done():
-			_ = conn.SetReadDeadline(time.Now())
-			close(geweckt)
-		case <-fertig:
-		}
-	}()
 	defer s.closeReplay(ctx, id)
 
 	herunterfahren := false
@@ -213,49 +202,82 @@ func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 				// Geweckt durch den Wächter: oben entscheidet der Use Case.
 				continue
 			}
-			if verbindungsende(err) {
-				// Ein Ende der Client-Verbindung ist im Replay regulär, auch
-				// mitten in einer Extended-Interaktion; was unverbraucht
-				// bleibt, meldet closeReplay (LH-FA-03.b).
-				return
-			}
-			s.fail(be, model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
+			s.replayLesefehler(be, err)
 			return
 		}
-		e := lese(msg)
-		switch {
-		case e.query != nil:
-			out, err := s.replayer.Query(ctx, id, *e.query)
-			if err != nil {
-				s.fail(be, err)
-				return
-			}
-			if err := s.send(be, out); err != nil {
-				s.sendFailed(err)
-				return
-			}
-			s.replayer.Sent(ctx, id)
-		case e.terminate:
+		if !s.replayAntwort(ctx, be, id, lese(msg)) {
 			return
-		case e.fremd != nil:
-			s.fail(be, e.fremd)
-			return
-		default:
-			out, err := s.replayer.ClientMessage(ctx, id, *e.extended)
-			if err != nil {
-				s.fail(be, err)
-				return
-			}
-			if len(out) == 0 {
-				continue
-			}
-			if err := s.send(be, out); err != nil {
-				s.sendFailed(err)
-				return
-			}
-			s.replayer.Sent(ctx, id)
 		}
 	}
+}
+
+// replayWaechter startet den Wächter einer Replay-Sitzung: Endet ctx, setzt er
+// die Lesefrist von conn auf jetzt und schließt danach geweckt; erst danach
+// setzt die Sitzung die Frist zurück. Ein Schließen von fertig beendet ihn.
+func replayWaechter(ctx context.Context, conn net.Conn) (fertig, geweckt chan struct{}) {
+	fertig = make(chan struct{})
+	geweckt = make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.SetReadDeadline(time.Now())
+			close(geweckt)
+		case <-fertig:
+		}
+	}()
+	return fertig, geweckt
+}
+
+// replayLesefehler behandelt einen Lesefehler der Replay-Sitzung, nach dem
+// sie endet. Ein Ende der Client-Verbindung ist im Replay regulär, auch mitten
+// in einer Extended-Interaktion; was unverbraucht bleibt, meldet closeReplay
+// (LH-FA-03.b). Jeder andere Lesefehler geht als PGR-E6001 an den Client.
+func (s *Server) replayLesefehler(be *pgproto3.Backend, err error) {
+	if verbindungsende(err) {
+		return
+	}
+	s.fail(be, model.Errorf(model.CodeUnsupported, err, "Client-Nachricht nicht lesbar"))
+}
+
+// replayAntwort beantwortet eine gelesene Client-Nachricht der Replay-Sitzung
+// und meldet, ob die Sitzung weiterliest.
+func (s *Server) replayAntwort(ctx context.Context, be *pgproto3.Backend, id model.SessionID, e eingang) bool {
+	switch {
+	case e.query != nil:
+		out, err := s.replayer.Query(ctx, id, *e.query)
+		if err != nil {
+			s.fail(be, err)
+			return false
+		}
+		return s.replayZustellen(ctx, be, id, out)
+	case e.terminate:
+		return false
+	case e.fremd != nil:
+		s.fail(be, e.fremd)
+		return false
+	default:
+		out, err := s.replayer.ClientMessage(ctx, id, *e.extended)
+		if err != nil {
+			s.fail(be, err)
+			return false
+		}
+		if len(out) == 0 {
+			return true
+		}
+		return s.replayZustellen(ctx, be, id, out)
+	}
+}
+
+// replayZustellen schreibt Antworten an den Client und meldet sie dem Use Case
+// danach als gesendet; scheitert das Schreiben, merkt es den Fehler und meldet,
+// dass die Sitzung endet.
+func (s *Server) replayZustellen(ctx context.Context, be *pgproto3.Backend, id model.SessionID, out []model.Response) bool {
+	if err := s.send(be, out); err != nil {
+		s.sendFailed(err)
+		return false
+	}
+	s.replayer.Sent(ctx, id)
+	return true
 }
 
 // recordSitzung vermittelt eine Record-Session in zwei Richtungen, die
@@ -456,29 +478,38 @@ func (r *richtungen) clientRichtung(ctx context.Context) {
 			}
 			return
 		}
-		e := lese(msg)
-		switch {
-		case e.query != nil:
-			out, err := r.s.recorder.Query(uc, r.id, *e.query)
-			if err != nil {
-				r.fehler(uc, err)
-				return
-			}
-			if !r.schreibe(uc, out) {
-				return
-			}
-		case e.terminate:
-			r.beende(uc, model.EndTerminate, nil)
-			return
-		case e.extended != nil:
-			if err := r.s.recorder.ClientMessage(uc, r.id, *e.extended); err != nil {
-				r.fehler(uc, err)
-				return
-			}
-		default:
-			r.beende(uc, model.EndUnsupported, e.fremd)
+		if !r.nachricht(uc, lese(msg)) {
 			return
 		}
+	}
+}
+
+// nachricht übergibt eine gelesene Client-Nachricht dem Record-Use-Case und
+// meldet, ob die Client-Richtung weiterliest: Eine Anfrage geht über Query, ihre
+// Antworten über schreibe an den Client, eine Extended-Nachricht über
+// ClientMessage; Terminate beendet die Session mit EndTerminate, eine nicht
+// unterstützte Nachricht mit EndUnsupported.
+func (r *richtungen) nachricht(ctx context.Context, e eingang) bool {
+	switch {
+	case e.query != nil:
+		out, err := r.s.recorder.Query(ctx, r.id, *e.query)
+		if err != nil {
+			r.fehler(ctx, err)
+			return false
+		}
+		return r.schreibe(ctx, out)
+	case e.terminate:
+		r.beende(ctx, model.EndTerminate, nil)
+		return false
+	case e.extended != nil:
+		if err := r.s.recorder.ClientMessage(ctx, r.id, *e.extended); err != nil {
+			r.fehler(ctx, err)
+			return false
+		}
+		return true
+	default:
+		r.beende(ctx, model.EndUnsupported, e.fremd)
+		return false
 	}
 }
 
@@ -574,18 +605,7 @@ func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) 
 			s.log.Debug("Verbindung ohne Startnachricht beendet", "grund", err.Error())
 			return nil, false
 		}
-		laenge := binary.BigEndian.Uint32(kopf[0:4])
-		code := binary.BigEndian.Uint32(kopf[4:8])
-		switch {
-		case laenge < 8 || laenge > maxStartLaenge:
-			s.log.Warn("erste Nachricht ist keine PGWire-Startnachricht", "code", model.CodeForeignProtocol, "remote", conn.RemoteAddr().String())
-			return nil, false
-		case code == codeSSLRequest || code == codeGSSEncRequest || code == codeCancelRequest || code == codeProtocol30:
-		case code>>16 == majorSpezial:
-			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "unbekannte Sonderanfrage (Code %d)", code))
-			return nil, false
-		default:
-			s.fail(be, model.Errorf(model.CodeProtocolVersion, nil, "Protokollversion %d.%d wird nicht unterstützt", code>>16, code&0xffff))
+		if !s.startkopf(conn, be, binary.BigEndian.Uint32(kopf[0:4]), binary.BigEndian.Uint32(kopf[4:8])) {
 			return nil, false
 		}
 
@@ -608,6 +628,27 @@ func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) 
 			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "Startnachricht %T wird nicht unterstützt", m))
 			return nil, false
 		}
+	}
+}
+
+// startkopf prüft Länge und Startcode der ersten Client-Nachricht, in dieser
+// Reihenfolge, und meldet, ob pgproto3 sie lesen soll. Eine Länge außerhalb
+// einer Startnachricht schließt die Verbindung ohne Antwort mit der Warnung
+// PGR-W3003, eine unbekannte Sonderanfrage ist PGR-E6001, jede andere
+// Protokollversion als 3.0 PGR-E6002.
+func (s *Server) startkopf(conn net.Conn, be *pgproto3.Backend, laenge, code uint32) bool {
+	switch {
+	case laenge < 8 || laenge > maxStartLaenge:
+		s.log.Warn("erste Nachricht ist keine PGWire-Startnachricht", "code", model.CodeForeignProtocol, "remote", conn.RemoteAddr().String())
+		return false
+	case code == codeSSLRequest || code == codeGSSEncRequest || code == codeCancelRequest || code == codeProtocol30:
+		return true
+	case code>>16 == majorSpezial:
+		s.fail(be, model.Errorf(model.CodeUnsupported, nil, "unbekannte Sonderanfrage (Code %d)", code))
+		return false
+	default:
+		s.fail(be, model.Errorf(model.CodeProtocolVersion, nil, "Protokollversion %d.%d wird nicht unterstützt", code>>16, code&0xffff))
+		return false
 	}
 }
 
@@ -739,27 +780,9 @@ func (*Server) send(be *pgproto3.Backend, responses []model.Response) error {
 func toMessage(r model.Response) (pgproto3.BackendMessage, error) {
 	switch r.Type {
 	case model.ResponseRowDescription:
-		fields := make([]pgproto3.FieldDescription, len(r.Columns))
-		for i, c := range r.Columns {
-			fields[i] = pgproto3.FieldDescription{
-				Name:                 []byte(c.Name),
-				TableOID:             c.TableOID,
-				TableAttributeNumber: c.ColumnNumber,
-				DataTypeOID:          c.TypeOID,
-				DataTypeSize:         c.TypeSize,
-				TypeModifier:         c.TypeModifier,
-				Format:               c.Format,
-			}
-		}
-		return &pgproto3.RowDescription{Fields: fields}, nil
+		return rowDescription(r.Columns), nil
 	case model.ResponseDataRow:
-		vals := make([][]byte, len(r.Values))
-		for i, v := range r.Values {
-			if !v.Null {
-				vals[i] = append([]byte{}, v.Bytes...)
-			}
-		}
-		return &pgproto3.DataRow{Values: vals}, nil
+		return dataRow(r.Values), nil
 	case model.ResponseCommandComplete:
 		return &pgproto3.CommandComplete{CommandTag: []byte(r.Tag)}, nil
 	case model.ResponseEmptyQueryResponse:
@@ -772,6 +795,20 @@ func toMessage(r model.Response) (pgproto3.BackendMessage, error) {
 		return &e, nil
 	case model.ResponseParameterStatus:
 		return &pgproto3.ParameterStatus{Name: r.Name, Value: r.Value}, nil
+	case model.ResponseReadyForQuery:
+		if len(r.TxStatus) != 1 {
+			return nil, model.Errorf(model.CodeInternal, nil, "ReadyForQuery ohne Transaktionsstatus")
+		}
+		return &pgproto3.ReadyForQuery{TxStatus: r.TxStatus[0]}, nil
+	default:
+		return toExtendedMessage(r)
+	}
+}
+
+// toExtendedMessage bildet die Antworttypen ab, die toMessage nicht selbst
+// abbildet; ein Typ ohne Abbildung ist ein Fehler.
+func toExtendedMessage(r model.Response) (pgproto3.BackendMessage, error) {
+	switch r.Type {
 	case model.ResponseParseComplete:
 		return &pgproto3.ParseComplete{}, nil
 	case model.ResponseBindComplete:
@@ -784,12 +821,35 @@ func toMessage(r model.Response) (pgproto3.BackendMessage, error) {
 		return &pgproto3.NoData{}, nil
 	case model.ResponsePortalSuspended:
 		return &pgproto3.PortalSuspended{}, nil
-	case model.ResponseReadyForQuery:
-		if len(r.TxStatus) != 1 {
-			return nil, model.Errorf(model.CodeInternal, nil, "ReadyForQuery ohne Transaktionsstatus")
-		}
-		return &pgproto3.ReadyForQuery{TxStatus: r.TxStatus[0]}, nil
 	default:
 		return nil, model.Errorf(model.CodeInternal, nil, "Antworttyp %q ohne Abbildung", r.Type)
 	}
+}
+
+// rowDescription bildet die Spalten einer RowDescription ab.
+func rowDescription(cols []model.Column) *pgproto3.RowDescription {
+	fields := make([]pgproto3.FieldDescription, len(cols))
+	for i, c := range cols {
+		fields[i] = pgproto3.FieldDescription{
+			Name:                 []byte(c.Name),
+			TableOID:             c.TableOID,
+			TableAttributeNumber: c.ColumnNumber,
+			DataTypeOID:          c.TypeOID,
+			DataTypeSize:         c.TypeSize,
+			TypeModifier:         c.TypeModifier,
+			Format:               c.Format,
+		}
+	}
+	return &pgproto3.RowDescription{Fields: fields}
+}
+
+// dataRow kopiert die Werte einer DataRow; ein Wert NULL bleibt nil.
+func dataRow(values []model.Value) *pgproto3.DataRow {
+	vals := make([][]byte, len(values))
+	for i, v := range values {
+		if !v.Null {
+			vals[i] = append([]byte{}, v.Bytes...)
+		}
+	}
+	return &pgproto3.DataRow{Values: vals}
 }
