@@ -45,26 +45,30 @@ Aufteilung je Paketgruppe in der Fassung `92d1b86` der ADR) zählt 13 mit
 mehrere auf derselben Zeile:
 
 - **Komplexität (7) in vier Funktionen** — `gocognit`, `gocyclo` bzw. `cyclop` über
-  der Schwelle aus Punkt 4: `Group.validate` (`internal/hexagon/model/extended.go`,
-  alle drei), `(*cursor).objekte`
-  (`internal/hexagon/services/replay.go`), `toResponse`
-  (`internal/adapters/driven/postgres/upstream.go`, `gocyclo` und `cyclop`), `fromDTO`
-  (`internal/adapters/driven/recording/yaml.go`).
-- **`revive` (8)** — sieben Doc-Kommentare in `internal/hexagon/model` ohne die Form
-  von `exported` bzw. `package-comments`, ein ungenutzter Parameter in
-  `internal/adapters/driven/postgres`.
-- **`staticcheck` (1)** — `QF1001` an einer Stelle dieser Pakete.
+  der Schwelle aus Punkt 4: `Group.validate` (`internal/hexagon/model/extended.go:125`,
+  alle drei: 22, 19, 19), `(*cursor).objekte`
+  (`internal/hexagon/services/replay.go:320`, `gocognit` 28), `toResponse`
+  (`internal/adapters/driven/postgres/upstream.go:226`, `gocyclo` 18 und `cyclop` 19),
+  `fromDTO` (`internal/adapters/driven/recording/yaml.go:538`, `gocognit` 22).
+- **`revive` (8)** — sieben Doc-Kommentare zu Konstanten in `internal/hexagon/model`,
+  alle Regel `exported`: `TargetStatement` ohne Kommentar am Block
+  (`extended.go:32`), sechs Kommentare zu `EndClosed` bis `EndFailed` nicht in der Form
+  „`<Name> …`“ (`recording.go:80` bis `:93`); dazu `unused-parameter` für `ctx` in
+  `(*session).Query` (`internal/adapters/driven/postgres/upstream.go:100`).
+- **`staticcheck` (1)** — `QF1001` (De Morgan) in `Group.validate`
+  (`internal/hexagon/model/extended.go:149`).
 
-Maßgeblich ist die Liste, die `make lint` beim Start unter diesen Pfaden ausgibt; weicht
-sie von der Aufzählung ab, gilt der Lauf, und der Plan folgt ihm (`AGENTS.md` §3.9).
+Gemessen mit `make lint` am Stand `c42afbe`, vor dem ersten Code-Commit: 32 Zeilen im
+Produkt-Code, davon genau diese 16 unter den vier Pfaden, keine in Testdateien. Weicht
+ein späterer Lauf ab, gilt der Lauf, und der Plan folgt ihm (`AGENTS.md` §3.9).
 
 Dazu übernimmt der Slice aus `slice-harness-blackbox-kern` (Verifikation V-81) eine
 Zusage ohne Prüfung im Produkt-Code dieser Pakete: Der Kommentar über
 `(*cursor).letzteNummer` (`internal/hexagon/services/replay.go`) sagt „ohne erwartete
 Interaktion 0“ zu. Kein Test prüft das, und über `ReplayService` ist der Zweig nicht
 erreichbar, weil `NewReplayService` keine Session ohne erwartete Interaktion aufnimmt
-(`AGENTS.md` §3.11). Der Slice streicht Zweig und Satz oder benennt den Fall als
-Invariante; welches von beiden, steht vor dem Code in §6.
+(`AGENTS.md` §3.11). Der Slice benennt den Fall im Kommentar als Invariante mit ihrem
+Grund und lässt den Zweig stehen; entschieden vor dem Code in §6.
 
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-06: Der Bestand wird vor dem Gate
 bereinigt, ohne Stufen; die 32 Befunde im Produkt-Code (`SPEC-049` Punkt 9) tragen zwei Bereinigungs-Slices,
@@ -108,11 +112,12 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Befund, ohne neue Ausnahme in `.golangci.yml` und ohne `//nolint`; die Zeilen der
       Ausgabe unter diesen Pfaden vor und nach dem Slice stehen im Bericht.
 - [ ] `(*cursor).letzteNummer` sagt nichts zu, was kein Test prüft (V-81 aus
-      `slice-harness-blackbox-kern`): Zweig `len(c.session.Interactions) == 0` und der
-      Satz „ohne erwartete Interaktion 0“ sind gestrichen, oder der Kommentar nennt den
-      Fall als Invariante mit ihrem Grund (`NewReplayService` nimmt keine Session ohne
-      erwartete Interaktion auf) statt als Zusage — nach der Entscheidung in §6; die
-      Liste der Tests bleibt gleich.
+      `slice-harness-blackbox-kern`): Der Satz „ohne erwartete Interaktion 0“ ist
+      gestrichen; der Kommentar nennt stattdessen die Invariante mit ihrem Grund
+      (`zuordnen` vergibt nur Sessions aus `frei`, `NewReplayService` nimmt dort nur
+      Sessions mit erwarteter Interaktion auf) und sagt für den Zweig
+      `len(c.session.Interactions) == 0` keinen Wert zu; der Zweig bleibt im Code
+      (Entscheidung in §6), die Liste der Tests bleibt gleich.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -132,12 +137,12 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/model/extended.go` | refactor | `Group.validate` unter die Schwelle, etwa durch Herauslösen der Prüfung je Nachrichtenart in unexportierte Funktionen |
-| `internal/hexagon/model/*.go` (Doc-Kommentare) | update | sieben Kommentare in der Form von `exported` bzw. `package-comments`; nur Kommentare |
+| `internal/hexagon/model/extended.go`, `recording.go` (Doc-Kommentare) | update | ein Kommentar am Block `TargetStatement`/`TargetPortal`, sechs Kommentare `EndClosed` bis `EndFailed` in der Form „`<Name> …`“ (`exported`); nur Kommentare, Inhalt gleich |
 | `internal/hexagon/services/replay.go` | refactor | `(*cursor).objekte` unter die Schwelle |
-| `internal/hexagon/services/replay.go` | update | `(*cursor).letzteNummer`: Zweig und Satz „ohne erwartete Interaktion 0“ gestrichen oder als Invariante benannt (V-81, §6) |
-| `internal/adapters/driven/postgres/upstream.go` | refactor | `toResponse` unter die Schwelle (`gocyclo`), etwa als Tabelle oder Aufteilung je Nachrichtenart; ungenutzter Parameter entfernt oder als `_` benannt, wo eine Signatur ihn verlangt |
+| `internal/hexagon/services/replay.go` | update | `(*cursor).letzteNummer`: nur der Kommentar — Satz „ohne erwartete Interaktion 0“ ersetzt durch die Invariante mit Grund, Zweig unverändert (V-81, §6) |
+| `internal/adapters/driven/postgres/upstream.go` | refactor | `toResponse` unter die Schwellen (`gocyclo`, `cyclop`), etwa als Tabelle oder Aufteilung je Nachrichtenart; `ctx` in `(*session).Query` als `_` benannt — die Signatur verlangt `driven.UpstreamSession` (§6) |
 | `internal/adapters/driven/recording/yaml.go` | refactor | `fromDTO` unter die Schwelle |
-| Stelle des `QF1001` | update | Vereinfachung nach dem Vorschlag von `staticcheck`, ohne andere Wirkung |
+| `internal/hexagon/model/extended.go:149` (`QF1001`) | update | `!(letzte && si == len(g.Server)-1)` nach De Morgan umgeschrieben, gleichwertig; fällt mit dem Umbau von `Group.validate` zusammen |
 | Testdateien dieser Pakete | unverändert | Beleg des unveränderten Verhaltens; ein Test, der wegen des Umbaus geändert werden müsste, ist ein Befund (§4). Ausgenommen ist `export_test.go`, falls eine dort weitergereichte unexportierte Funktion umbenannt wird; dann nur der Verweis |
 
 ## 4. Trigger
@@ -189,14 +194,37 @@ Schwellen und Ausnahmen stehen in `SPEC-049`. Für den Umbau gilt:
   (etwa welcher von zwei Fehlern zuerst gemeldet wird). Ändert ein Umbau eines davon,
   geht er an den Architect, nicht in den Diff.
 - **Zusage ohne Prüfung in `letzteNummer`** (V-81 aus `slice-harness-blackbox-kern`) —
-  offen; der Architect entscheidet vor dem ersten Code-Commit (§4) zwischen zwei Wegen:
-  Zweig und Satz streichen (ein Cursor ohne erwartete Interaktion entsteht im Produkt
-  nicht, Verifikation von `slice-harness-blackbox-kern`, Abschnitt 3; der Zugriff auf
-  das letzte Element setzt dann die Invariante voraus) oder den Fall im Kommentar als
-  Invariante mit Grund benennen und den Zweig stehen lassen. Einen Test bekommt keiner
-  der beiden Wege: Über die Schnittstelle ist der Fall nicht herzustellen, und eine
-  Brücke oder ein Test legt keinen `cursor` an (`SPEC-049` Punkt 7). Kein
-  beobachtbares Verhalten ändert sich; die Testliste bleibt gleich.
+  **entschieden** (Architect, 2026-10-07, vor dem ersten Code-Commit): Der Kommentar
+  benennt den Fall als Invariante mit Grund, der Zweig bleibt stehen. Der Satz „ohne
+  erwartete Interaktion 0“ entfällt; an seiner Stelle steht sinngemäß: *Die Session
+  eines Cursors hat mindestens eine erwartete Interaktion — `zuordnen` vergibt nur
+  Sessions aus `frei`, und `NewReplayService` nimmt dort nur solche auf; die Prüfung auf
+  die leere Liste schützt allein den Index.* Kein Wert für den leeren Fall wird
+  zugesagt (`AGENTS.md` §3.11). Grund der Wahl: Streichen (a) machte aus einer
+  verletzten Invariante einen Indexfehler mitten in der Diagnose einer Abweichung;
+  ein Panic kommt im Produkt-Code nirgends vor, und ein interner Fehler
+  (`CodeInternal`, wie in `zuordnen`) verlangte eine geänderte Signatur von
+  `letzteNummer` an zwei Aufrufstellen samt einem weiteren unerreichbaren Zweig — mehr
+  Umbau für denselben Schutz. Ort der Entscheidung ist dieser Abschnitt, keine Stelle
+  der Spezifikation: Der Fall ist an keiner Schnittstelle beobachtbar, und die
+  beobachtbare Seite — Sessions ohne Interaktion werden übersprungen, eine Aufzeichnung
+  ohne Session mit Interaktion ist `PGR-E3004` — steht schon in der Spezifikation und
+  ist getestet (`replay_test.go`, `replay_unverbraucht_test.go`,
+  `replay_lebendpruefung_test.go`). **Akzeptiertes Negativ:** Den Zweig hält kein Test,
+  und eine Mutation darin bleibt grün; über die Schnittstelle ist der Fall nicht
+  herzustellen, und eine Brücke oder ein Test legt keinen `cursor` an (`SPEC-049`
+  Punkt 7). Kein Befund für `slice-harness-coverage`. Kein beobachtbares Verhalten
+  ändert sich; die Testliste bleibt gleich.
+- **Ungenutzter Parameter `ctx` in `(*session).Query`** — **entschieden** (Architect,
+  2026-10-07): Er heißt `_`. Entfernen ginge nicht ohne geänderte Signatur, die
+  `driven.UpstreamSession` vorgibt (§1, Schicht-Abgrenzung); der Port sagt für `Query`
+  keine Beachtung des Kontexts zu, `_` beschreibt also den Bestand. Den Kontext zu
+  beachten wäre eine Verhaltensänderung und gehört nicht in diesen Slice. Das ist kein
+  Fall von *Befund verschoben* (Risiko unten): Der Parameter ist nicht überflüssig,
+  die Schnittstelle verlangt ihn.
+- **`QF1001` und Doc-Kommentare** — keine Randform: De Morgan ist gleichwertig, die
+  Kommentare ändern nur ihre Form; eine Ausnahme in `.golangci.yml` braucht keiner der
+  16 Befunde.
 - **Kontexte** — betreffen diesen Slice nicht; die Befunde von `contextcheck`,
   `containedctx` und `noctx` im Produkt-Code liegen in `slice-lint-bestand-driving`.
 
@@ -213,7 +241,8 @@ Schwellen und Ausnahmen stehen in `SPEC-049`. Für den Umbau gilt:
   nur die Zahl (Grenze von `SPEC-049`). — **Ausgang:** — (bei Closure)
 - **Aufzählung weicht vom Lauf ab** — die Liste in §1 stammt aus der Messung am Stand
   `79f40e1`; Code seitdem kann Befunde verschoben haben. Maßgeblich ist der Lauf beim
-  Start (§1). — **Ausgang:** — (bei Closure)
+  Start (§1). — **Ausgang:** entfallen — der Lauf am Start (`c42afbe`) deckt sich mit
+  der Aufzählung: 16 Befunde unter den vier Pfaden, keiner in Testdateien (§1).
 
 ## 7. Closure-Notiz
 
