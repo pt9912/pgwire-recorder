@@ -151,7 +151,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 2026-10-07: `slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
 `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
 `slice-harness-commit-struktur-id`, `slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate`, dieser Slice,
-`slice-harness-coverage`, `slice-tests-ueberlebende-mutanten`, `slice-harness-mutation`. Die drei Slices zwischen
+`slice-harness-coverage`, `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`. Die drei Slices zwischen
 `slice-harness-lint` und diesem sind keine technische Abhängigkeit, sondern die
 Reihenfolge des Nutzers. Grund für den Platz nach `slice-harness-lint`: Teil 1 und
 Teil 3 gelten erst, wenn das Lint-Gate steht und `testpackage` überall scharf ist, und

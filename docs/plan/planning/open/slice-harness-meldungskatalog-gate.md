@@ -142,7 +142,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
 `slice-harness-commit-struktur-id`, `slice-harness-integration-wait`, dieser Slice,
 `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
-`slice-tests-ueberlebende-mutanten`, `slice-harness-mutation`. Technisch hängt dieser
+`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`. Technisch hängt dieser
 Slice an keinem davon; die Code-Tabelle und der Katalog liegen seit
 welle-replay-semantik vor. Er steht vor den Slices von welle-v1-abschluss, die neue
 Codes einführen, damit jeder von ihnen unter dem Gate liefert. Vor dem ersten

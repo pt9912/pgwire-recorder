@@ -92,8 +92,10 @@ Stand `a8b341e` und am Code vor dem Umbau grün.
    `ColumnNumber:` entfernt; je für sich.
    *Grenze:* Geprüft wird die Übersetzung im Upstream-Adapter. Den Rückweg im
    PGWire-Adapter zum Client und die Aufzeichnung prüft der Test nicht, und die
-   Integrationstests vergleichen die beiden Felder nicht (P2 dort grün). Ob dort ein
-   gleicher Mutant überlebt, ist nicht gemessen (§6).
+   Integrationstests vergleichen die beiden Felder nicht (P2 dort grün). Den Rückweg
+   im PGWire-Adapter hat `slice-lint-bestand-driving` gemessen: Der gleiche Mutant
+   überlebt dort (T3, T5, Review F-469). Ihn übernimmt
+   `slice-tests-ueberlebende-mutanten-driving` als G4 (§1 dort).
 4. **Y2 — `geprueftFromDTO` mit Session-Nummer 1 statt der echten**
    (`internal/adapters/driven/recording/yaml.go`; Review Y2, Y2alt, Y2alt2, F-461).
    *Verhalten:* Die Meldung eines beschädigten Recordings (`PGR-E3003`) nennt bei
@@ -122,7 +124,9 @@ dem Start einen zweiten Slice ab (§4). Ab `in-progress/` nimmt dieser Slice nic
 an, denn das wäre eine Planänderung während der Arbeit; dann legt der Planner einen
 neuen Slice an.
 Als Adresse nennt diesen Slice `slice-lint-bestand-driving` (§6, Risiko *Verhalten von
-`replaySitzung` ändert sich unbemerkt*); seine Funde nimmt dieser Slice nach dieser Regel an.
+`replaySitzung` ändert sich unbemerkt*). Seine Funde liegen im PGWire-Adapter und im
+Bootstrap, für diesen Slice eine dritte Schicht; nach dieser Regel nimmt sie der
+abgeschnittene `slice-tests-ueberlebende-mutanten-driving` an (Review F-469).
 
 **Sichtung früherer Funde** (am Stand `8d765ba`): Unter `docs/reviews/`, in den Plänen
 unter `done/` samt den drei Welle-Archiven und in den offenen Plänen steht kein
@@ -158,7 +162,8 @@ V-67), in einem anderen Paket gefangen (`envFailOnUnconsumed`, F-456; PGR-E3003 
 - Der PGWire-Adapter (`internal/adapters/driving/pgwire`) und `test/integration` —
   Schicht-Abgrenzung: Die vier Mutanten liegen im Kern (`services`) und in den
   Driven-Adaptern (`postgres`, `recording`). Mehr als diese zwei Schichten wären ein
-  Schnitt (§4).
+  Schnitt (§4); die Funde im PGWire-Adapter und im Bootstrap übernimmt
+  `slice-tests-ueberlebende-mutanten-driving`.
 - Die Spezifikation — anderer Vorgang: Die fehlenden Zusagen (§6) schreibt der
   Architect vor dem ersten Code-Commit; der Implementer schreibt keine.
 - Der Plan von `slice-lint-bestand-kern-driven` — Bestand bleibt: Er zeigt seit
@@ -231,7 +236,8 @@ vom 2026-10-05, 2026-10-06 und 2026-10-07: `slice-harness-lint-werkzeug`, die vi
 Umstellungs-Slices, `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`,
 `slice-harness-lint`, `slice-harness-commit-struktur-id`,
 `slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate`, `slice-harness-abdeckung-gate`,
-`slice-harness-coverage`, dieser Slice, `slice-harness-mutation`.
+`slice-harness-coverage`, dieser Slice, `slice-tests-ueberlebende-mutanten-driving`,
+`slice-harness-mutation`.
 
 *Warum nach Coverage und nicht davor.* Technisch hängt der Slice an keinem der beiden;
 der Platz folgt aus drei Gründen.
@@ -248,7 +254,10 @@ der Platz folgt aus drei Gründen.
    vor der Messung des Mutations-Gates mit.
 
 Vor `slice-harness-mutation` steht er, damit dessen Messung nicht mit Lücken startet,
-die schon bekannt sind (Entscheidung des Nutzers vom 2026-10-07).
+die schon bekannt sind (Entscheidung des Nutzers vom 2026-10-07). Direkt nach ihm folgt
+`slice-tests-ueberlebende-mutanten-driving` mit den Funden im PGWire-Adapter und im
+Bootstrap; der Architect entscheidet die Randformen *Spalten-Metadaten* und *Was ein
+Test festhält* hier für beide.
 
 Erster Schritt nach dem Start, vor jedem Code-Commit: Der Architect entscheidet die
 Randformen aus §6 und hält sie in der Spezifikation fest
@@ -340,11 +349,11 @@ nicht steht, entscheidet der Implementer nicht; er gibt es zurück.
   die Zahl der Liefer-Punkte über drei oder ziehen eine dritte Schicht hinein. Der
   Planner schneidet vor `open` → `next` (§4). — **Ausgang:** — (bei Closure)
 - **Der Rückweg im PGWire-Adapter ist ungemessen** — ob ein Mutant, der `TableOID`
-  oder `ColumnNumber` auf dem Weg zum Client fallen lässt, dort überlebt, hat niemand
-  gefahren. Der Test aus Liefer-Punkt 2 fängt ihn nicht. Der Implementer fährt die
-  Mutation am Rückweg einmal und trägt das Ergebnis in §7 ein. Ist sie grün, ist das
-  ein Fund nach der Sammelregel in einer dritten Schicht, also ein eigener Slice. —
-  **Ausgang:** — (bei Closure)
+  oder `ColumnNumber` auf dem Weg zum Client fallen lässt, dort überlebt. Der Test aus
+  Liefer-Punkt 2 fängt ihn nicht. Gemessen hat ihn `slice-lint-bestand-driving` (T3, T5
+  grün, §7 dort G4); er ist ein Fund nach der Sammelregel in einer dritten Schicht und
+  liegt bei `slice-tests-ueberlebende-mutanten-driving`. Der Implementer fährt die
+  Mutation hier nicht mehr. — **Ausgang:** — (bei Closure)
 - **Der Test hält den Bestand statt der Zusage fest** — ein Vergleich des ganzen
   Meldungstextes machte jede Umformulierung rot, ohne dass eine Zusage bricht
   (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, in Gegenrichtung). Je Test nur

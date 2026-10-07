@@ -51,11 +51,16 @@ traten in jedem Slice der Welle wieder auf, obwohl der Implementer die Mutatione
 selbst fährt; die Funde lagen in Mutationen, die er nicht gewählt hatte
 (V-52, V-56, V-60). Der Nutzer hat am 2026-10-06 einen Sensor entschieden.
 
+**Übernommen aus `slice-lint-bestand-driving`** (Review F-468, Verifikation V10): wie das
+Gate einen Mutanten zählt, der nur über die Zeitüberschreitung des Pakets rot wird; als
+Fall der Randform *Laufzeit* in §6.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Neue Tests für Mutanten, die heute überleben — die bekannten, die das Verhalten
-  ändern, schließt `slice-tests-ueberlebende-mutanten` vor diesem Slice (Entscheidung
-  des Nutzers vom 2026-10-07); dessen §1 führt sie. Was erst die Messung dieses Gates
+  ändern, schließen `slice-tests-ueberlebende-mutanten` und
+  `slice-tests-ueberlebende-mutanten-driving` vor diesem Slice (Entscheidung des Nutzers
+  vom 2026-10-07); deren §1 führt sie. Was erst die Messung dieses Gates
   findet, ist eigene Arbeit mit eigenem Slice aus der Liste der Überlebenden heraus,
   nicht vorab; die Schwelle folgt der Messung.
 - Die Anweisungs-Abdeckung als Gate — übernimmt `slice-harness-coverage`; sie sagt,
@@ -136,15 +141,17 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-tests-ueberlebende-mutanten` liegt in
-`done/` oder ist ausdrücklich zurückgestellt (WIP-Limit 1). Reihenfolge nach
+**Start** (`next` → `in-progress`): `slice-tests-ueberlebende-mutanten` und
+`slice-tests-ueberlebende-mutanten-driving` liegen in `done/` oder sind ausdrücklich
+zurückgestellt (WIP-Limit 1). Reihenfolge nach
 Entscheidung des Nutzers vom 2026-10-06 und 2026-10-07: nach der Reihe Lastenheft,
 Lint-Werkzeug, Black-Box-Umstellung, Bereinigung, Lint-Gate,
 `slice-harness-commit-struktur-id`, `slice-harness-integration-wait`,
-`slice-harness-meldungskatalog-gate`, `slice-harness-abdeckung-gate`, Coverage, `slice-tests-ueberlebende-mutanten`.
+`slice-harness-meldungskatalog-gate`, `slice-harness-abdeckung-gate`, Coverage, `slice-tests-ueberlebende-mutanten`,
+`slice-tests-ueberlebende-mutanten-driving`.
 Grund der Reihenfolge, keine technische Abhängigkeit: Lint-Bereinigung und
 Black-Box-Umstellung ändern die Tests, gegen die Mutanten laufen; eine Messung davor
-wäre veraltet, bevor das Gate greift. Nach `slice-tests-ueberlebende-mutanten`, damit
+wäre veraltet, bevor das Gate greift. Nach den beiden Sammel-Slices, damit
 die Messung nicht mit Lücken startet, die schon bekannt sind. Erster Schritt nach dem Start, vor jedem
 Code-Commit: Der Architect wählt das Werkzeug, misst den Bestand (Mutanten gesamt,
 getötet, überlebt, Laufzeit, je Paket, mit Quellstand), entscheidet die Randformen
@@ -202,7 +209,15 @@ Implementer nicht, er gibt es zurück.
 - **Laufzeit** — Zeitgrenze je Mutant (ein Mutant, der eine Schleife endlos macht),
   Parallelität, Gesamtdauer in `make gates`. Offen: läuft das Gate in jedem
   `make gates` oder als eigenes Ziel mit eigenem Trigger, und was das für den
-  Gate-Nachweis heißt.
+  Gate-Nachweis heißt. Offen außerdem, wie das Gate einen Mutanten zählt, der nur über
+  die Zeitüberschreitung rot wird (aus `slice-lint-bestand-driving`, Review F-468): Der
+  Mutant W dort (`SetReadDeadline(time.Now())` in `replayWaechter` entfernt) lässt
+  `TestReplayHerunterfahrenSpaeteFrist` an einem Kanal ohne Frist hängen, bis das Paket
+  die Zeit überschreitet; das Rot ist deterministisch, kostet aber die ganze
+  Zeitgrenze. Ob Tests selbst eine Frist tragen, entscheidet der Architect in
+  `slice-tests-ueberlebende-mutanten-driving` (§6 *Warten auf einen Kanal*); hier steht,
+  ob ein solcher Mutant als getötet zählt und ob die Zeitgrenze je Mutant oder je Test
+  gilt.
 - **Äquivalente Mutanten** — ein Mutant, den kein Test töten kann, weil er das
   Verhalten nicht ändert (in der Verifikation von `slice-replay-semantik-meldungscodes`
   etwa VE2). Offen: Ausnahmeliste mit Begründung je Eintrag (Ort, Form, Prüfung, dass
