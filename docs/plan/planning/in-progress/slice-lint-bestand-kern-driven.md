@@ -92,7 +92,15 @@ und Driven.
   sind Charakterisierungstests: Hält kein Test fest, welchen von zwei gleichzeitigen
   Fehlern eine umgebaute Funktion meldet, legt der Slice vor dem Umbau einen Test an,
   der den Bestand am alten Code festhält (gegen ihn grün); er sagt nichts Neues zu
-  und steht in §7.
+  und steht in §7. **Bestätigt** (Architect, 2026-10-07, nach Review F-462; die
+  Ausnahme schrieb der Implementer in `cedd891`): Ohne einen solchen Test wäre die
+  Randform *gleiche Reihenfolge der Prüfungen* in §6 nicht prüfbar, und der Umbau
+  ließe sich nur gegen Tests messen, die je Fall eine Regel verletzen. Grenze: nur
+  die Reihenfolge zweier gleichzeitiger Fehler in einer umgebauten Funktion; im
+  eigenen Commit vor dem Umbau, am alten Code grün; ohne Abdeckungs-Deklaration;
+  der Kopfkommentar sagt, dass er den Bestand festhält und nichts zusagt (§6).
+  Tests für überlebende Mutanten fallen nicht darunter, sie haben eine eigene Adresse
+  (§6, Risiko *Verhalten ändert sich unbemerkt*).
 - Schnittstellen der Ports und exportierte Signaturen — Schicht-Abgrenzung: Der Slice
   ändert unexportierte Funktionen und Kommentare; eine exportierte Signatur, die sich
   ändern müsste, ist ein Befund für den Architect.
@@ -198,6 +206,32 @@ Schwellen und Ausnahmen stehen in `SPEC-049`. Für den Umbau gilt:
   Fehler und Fehlertexte, gleiche Reihenfolge der Prüfungen, wo sie beobachtbar ist
   (etwa welcher von zwei Fehlern zuerst gemeldet wird). Ändert ein Umbau eines davon,
   geht er an den Architect, nicht in den Diff.
+- **Reihenfolge zweier gleichzeitiger Fehler in `Group.validate` und `fromDTO`** —
+  **entschieden** (Architect, 2026-10-07, nach Review F-463): kein Vertrag; die
+  Charakterisierungstests halten den Bestand fest, sie sagen nichts zu. Nach außen
+  geht nur der Text: Jeder Fall endet mit `PGR-E3003` und Exit-Code 3, der Text nennt
+  die gemeldete Verletzung. Welche von zwei Verletzungen er nennt, entscheidet weder
+  die Spezifikation noch eine ADR, und kein Nutzer braucht eine bestimmte; sie zum
+  Vertrag zu machen, legte jede künftige Änderung der Prüfungen auf diese Reihenfolge
+  fest, ohne Bedarf. Deshalb keine Stelle der Spezifikation. Die Kopfkommentare von
+  `TestValidateFehlerReihenfolge` und `TestUnmarshalFehlerReihenfolge` sagen statt
+  „und welche, steht fest“ ausdrücklich, dass sie den Bestand festhalten und keine
+  Zusage sind; wer die Reihenfolge bewusst ändert, passt den Test an. Die
+  Doc-Kommentare von `Group.validate`, `sessionFromDTO` und `geprueftFromDTO`
+  beschreiben die Reihenfolge des Codes und bleiben (`AGENTS.md` §3.7); die
+  Charakterisierungstests prüfen sie (§3.11). Nur Kommentare ändern sich, keine
+  Erwartung.
+- **Kommentar über die Bestätigungen in `extendedNachspielen`** — **entschieden**
+  (Architect, 2026-10-07, nach Review F-460): enger fassen, kein Test hier. Der Satz
+  „Die ersten n Nachrichten einer Art mit n Bestätigungen in der Interaktion gelten
+  als angenommen“ entfällt, denn ohne `bestaetigt[m.Type]--` bleibt jeder Test grün.
+  An seiner Stelle steht nur, was ein Test fängt: dass die Bestätigungen einer Art in
+  der ganzen Interaktion gezählt werden, mit dem Grund (späte Bestätigung in der
+  folgenden Gruppe, `LH-FA-18.a`); gefangen von der Mutation *nur die erste Gruppe
+  gezählt* (§7). Ein weiterer Satz, etwa dass eine Art ohne Bestätigung nicht
+  nachgespielt wird, bleibt nur, wenn eine Mutation an der Bedingung
+  `bestaetigt[m.Type] > 0` einen Test rot macht. Die Zusage über die ersten n kommt
+  mit dem Test aus `slice-tests-ueberlebende-mutanten` zurück.
 - **Zusage ohne Prüfung in `letzteNummer`** (V-81 aus `slice-harness-blackbox-kern`) —
   **entschieden** (Architect, 2026-10-07, vor dem ersten Code-Commit): Der Kommentar
   benennt den Fall als Invariante mit Grund, der Zweig bleibt stehen. Der Satz „ohne
@@ -238,7 +272,17 @@ Schwellen und Ausnahmen stehen in `SPEC-049`. Für den Umbau gilt:
 - **Verhalten ändert sich unbemerkt** — ein Pfad der umgebauten Funktion ist von keinem
   Test erreicht, die Testliste bleibt gleich und grün. Je umgebaute Funktion eine
   Mutation in einem ihrer Zweige, die ein bestehender Test vor und nach dem Umbau fängt;
-  fängt keiner, ist das ein Befund für `slice-harness-coverage`, kein neuer Test hier.
+  fängt keiner, ist das kein neuer Test hier: Adresse `slice-tests-ueberlebende-mutanten`
+  (Entscheidung des Nutzers vom 2026-10-07; Architect nach Review F-459 und F-461).
+  `slice-harness-coverage` nimmt nicht an, sein §1 schließt Tests über dem gemessenen
+  Stand aus, und seine Messung zeigt einen Mutanten auf einer abgedeckten Zeile nicht;
+  `slice-harness-mutation` schließt Tests für heute überlebende Mutanten aus. Die
+  Adresse trägt vier verhaltensändernde grüne Mutanten, alle schon am Code vor dem
+  Umbau grün: `extendedNachspielen` ohne `bestaetigt[m.Type]--`, `spalten` ohne
+  `TableOID`, `spalten` ohne `ColumnNumber`, die Session-Nummer in den Fehlern einer
+  Interaktion ab Session 2 (`geprueftFromDTO`). Sie trägt, wenn der Slice bei der
+  Closure dieses Slice angelegt und nicht geschlossen ist und die vier nicht
+  ausschließt.
   — **Ausgang:** — (bei Closure)
 - **Befund verschoben statt behoben** — eine Funktion fällt unter die Schwelle, weil
   ihre Logik in eine Hilfsfunktion wandert, die selbst knapp darunter liegt, oder ein
