@@ -13,8 +13,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 Abnahmeszenario 17 (M3) bei: Mit ihm steht die Anforderung in den Abdeckungstabellen
 *teilweise*, nachweisbar wird das Szenario mit `slice-harness-coverage`. Eingesammelt
 wird er von der nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutzers vom
-2026-10-06: nach `slice-harness-lint` und vor `slice-harness-coverage`
-(WIP-Limit 1); Reihenfolge in §4 *Start*.
+2026-10-06: nach `slice-harness-lint` und vor `slice-harness-coverage`; seit der
+Entscheidung vom 2026-10-07 stehen `slice-harness-commit-struktur-id` und
+`slice-harness-integration-wait` davor (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Nachweis der Messmethoden 1 und 3). Bindung an Entscheidungen: [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Nachweisart Gate, geteilte Messung; Folgepflicht dieser ADR), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Deklaration je Anforderung und Pfad; ihre Darstellung in der RTM ergänzt bzw. ersetzt teilweise eine neue ADR, die der Architect in diesem Slice vor dem Code schreibt, Entscheidung des Nutzers vom 2026-10-06; sonst gilt sie unverändert).
 
@@ -144,11 +145,15 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-lint` liegt in `done/` (WIP-Limit 1).
-Reihenfolge nach Entscheidung des Nutzers vom 2026-10-06:
-`slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
+**Start** (`next` → `in-progress`): `slice-harness-lint`,
+`slice-harness-commit-struktur-id` und `slice-harness-integration-wait` liegen in
+`done/` (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-06 und
+2026-10-07: `slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
 `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
-dieser Slice, `slice-harness-coverage`, `slice-harness-mutation`. Grund: Teil 1 und
+`slice-harness-commit-struktur-id`, `slice-harness-integration-wait`, dieser Slice,
+`slice-harness-coverage`, `slice-harness-mutation`. Die beiden Slices zwischen
+`slice-harness-lint` und diesem sind keine technische Abhängigkeit, sondern die
+Reihenfolge des Nutzers. Grund für den Platz nach `slice-harness-lint`: Teil 1 und
 Teil 3 gelten erst, wenn das Lint-Gate steht und `testpackage` überall scharf ist, und
 das ist es mit `slice-harness-lint`; dessen Gegenprobe trägt dann alle Fälle, die die
 Deklaration deckt.

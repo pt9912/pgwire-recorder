@@ -195,9 +195,10 @@ Umstellungs-Slices (`slice-harness-blackbox-kern`, `slice-harness-blackbox-drive
 `slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`) und beide
 Bereinigungs-Slices (`slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`)
 liegen in `done/`, und `make lint` meldet am Stand des Starts keinen Befund (WIP-Limit
-1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05 und 2026-10-06:
-`slice-harness-lint-werkzeug`, die vier Umstellungs-Slices, die beiden
-Bereinigungs-Slices, dieser Slice, `slice-harness-abdeckung-gate`,
+1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05, 2026-10-06 und
+2026-10-07: `slice-harness-lint-werkzeug`, die vier Umstellungs-Slices, die beiden
+Bereinigungs-Slices, dieser Slice, `slice-harness-commit-struktur-id`,
+`slice-harness-integration-wait`, `slice-harness-abdeckung-gate`,
 `slice-harness-coverage`, `slice-harness-mutation`. Vor dem ersten Code-Commit prüft
 der Architect, ob die Randformen aus §6 noch dem Werkzeug entsprechen
 (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
