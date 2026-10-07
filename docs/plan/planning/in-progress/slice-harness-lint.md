@@ -26,7 +26,7 @@ deklariert wird an ihr erst in `slice-harness-abdeckung-gate`),
 Ausnahmen, die Messung des Bestands, Einführung nach Bereinigung ohne Stufen und das
 Werkzeug-Ziel davor, Entscheidung 5 und 6).
 
-**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (`spezifikation.md` §11: Vertrag des Gates, vom Architect vor dem Code geschrieben; dieser Slice liefert die zweite Hälfte von Punkt 10, den Anschluss an die Gate-Kette) · `spezifikation.md` §12 (*Historie*)
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (`spezifikation.md` §11: Vertrag des Gates, vom Architect vor dem Code geschrieben, die Grenze am 2026-10-07 um ungültiges YAML und den Cache des Builds fortgeschrieben; dieser Slice liefert die zweite Hälfte von Punkt 10, den Anschluss an die Gate-Kette) · `spezifikation.md` §12 (*Historie*)
 
 **Verantwortlich:** pt9912
 
@@ -57,7 +57,9 @@ Start dieses Slice **bereinigt, ohne Stufen** (Entscheidung des Nutzers vom
 je mit `Why:`, und `testpackage` ist vom ersten Gate-Lauf an für jeden Pfad scharf.
 Die Gegenprobe `make lint-gegenprobe` zeigt, dass das Gate rot werden kann
 (`AGENTS.md` §3.10), einschließlich der White-Box-Fälle je Paketgruppe, die bisher die
-vier Umstellungs-Slices tragen sollten. `AGENTS.md` §3.2 bekommt seinen Träger.
+vier Umstellungs-Slices tragen sollten. `AGENTS.md` §3.2 bekommt seinen Träger, und die
+Sensor-Datei `harness/sensors/lint.md` sagt, wie ein Lauf zu lesen ist, nach dem Muster
+von `kopf-check`.
 
 **Herkunft:** Entscheidung des Nutzers vom 2026-10-05: ein SOLID-naher Lint vor dem
 nächsten großen Slice. `harness/README.md` §Sensors führt Lint heute unter
@@ -72,27 +74,28 @@ Stufen; dieser Slice ging dafür nach `next/` zurück (§4).
 - Eine Schwelle für Testabdeckung — ein anderer Gegenstand mit eigener ADR und
   eigener Messung; ihn übernimmt `slice-harness-coverage`.
 - Das Werkzeug-Ziel `make lint` (Profil `.golangci.yml`, Stufe `lint` im
-  `Dockerfile`, die drei eigenen Prüfungen, `.dockerignore`) — übernimmt
-  `slice-harness-lint-werkzeug`, als erster der Reihe, damit jeder Bereinigungs-Slice
-  sein Ergebnis mit demselben Ziel misst, das hier Gate wird (Entscheidung 6 in
-  [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)).
+  `Dockerfile`, die drei eigenen Prüfungen, `.dockerignore`) — Bestand bleibt bewusst
+  stehen: geliefert von `slice-harness-lint-werkzeug` (in `done/`), damit jeder
+  Bereinigungs-Slice sein Ergebnis mit demselben Ziel maß, das hier Gate wird
+  (Entscheidung 6 in [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)).
+  Dieser Slice ändert daran nur Kommentare, die das Werkzeug als Nicht-Gate beschreiben
+  (§3), kein Verhalten.
 - Die Umstellung der Tests auf Black-Box-Pakete samt den übrigen 47 Befunden in
-  Testdateien — sie berührt alle Schichten und sprengte die Größenregel; sie
-  übernehmen `slice-harness-blackbox-kern`, `slice-harness-blackbox-driven`,
-  `slice-harness-blackbox-pgwire` und `slice-harness-blackbox-einstieg`, je in den
-  Testdateien, die sie umschreiben. Die Form der Export-Test-Brücke steht in
-  `SPEC-049` Punkt 7.
-- LH-QA-07 im Lastenheft — liefert `slice-lastenheft-pruefbarkeit`, vor diesem Slice.
+  Testdateien — Bestand: geliefert von `slice-harness-blackbox-kern`,
+  `slice-harness-blackbox-driven`, `slice-harness-blackbox-pgwire` und
+  `slice-harness-blackbox-einstieg` (alle in `done/`). Die Form der Export-Test-Brücke
+  steht in `SPEC-049` Punkt 7.
+- LH-QA-07 im Lastenheft — Bestand: geliefert von `slice-lastenheft-pruefbarkeit` (in
+  `done/`).
 - Eine Abdeckungs-Deklaration an der Gegenprobe — übernimmt
   `slice-harness-abdeckung-gate` nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md): Das Abdeckungs-Skript kennt die
   Nachweisart Gate vor ihm nicht. Teil 3 von LH-QA-07 gilt ab diesem Slice, weil
   `testpackage` erst mit dem Gate für alle Pfade scharf ist.
-- Bereinigung des Produkt-Codes — gemessen (§6 *Bestand*,
-  [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)): nach den dauerhaften
-  Ausnahmen und `SPEC-049` Punkt 9 (`uniq-by-line: false`) 32 Befunde, in Kern, Driven und
-  Driving. Sie übernehmen `slice-lint-bestand-kern-driven` (16) und
-  `slice-lint-bestand-driving` (16), nach den Umstellungs-Slices. Dieser Slice ändert keinen Produkt-Code außer dem Kommentar in
-  `internal/hexagon/model/fehler.go` (§3).
+- Bereinigung des Produkt-Codes — Bestand: Die 32 Befunde nach `SPEC-049` Punkt 9
+  (§6 *Bestand*) haben `slice-lint-bestand-kern-driven` (16) und
+  `slice-lint-bestand-driving` (16) behoben (beide in `done/`); `make lint` meldet am
+  Start keinen Befund (§4). Dieser Slice ändert keinen Produkt-Code außer dem Kommentar
+  in `internal/hexagon/model/fehler.go` (§3).
 - Importrichtungen im Hexagon und Bibliotheken je Adapter — das hält
   `make a-check` ([ADR-0001](../../adr/0001-hexagonale-architektur.md)).
   `gomodguard_v2` prüft Module gegen eine Liste, keine Richtung; eine zweite Quelle
@@ -107,8 +110,9 @@ Stufen; dieser Slice ging dafür nach `next/` zurück (§4).
   `bash`, `git` und `docker` hinaus (`harness/conventions.md` §Baseline, dieselbe
   Begründung); die Anhebung bleibt ein bewusster Commit wie bei jedem gepinnten Image.
 - Lastenheft und Spezifikation — Schicht-Abgrenzung: `SPEC-049` und die
-  Historien-Zeile hat der Architect vor dem Code geschrieben; dieser Slice ändert das
-  Gate-Fragment, die Gegenprobe und die Doku, Produkt-Code nur den Kommentar aus §3.
+  Historien-Zeilen hat der Architect vor dem Code geschrieben; dieser Slice ändert das
+  Gate-Fragment, die Gegenprobe, die Doku und die Kommentare aus §3, Produkt-Code nur
+  den Kommentar an `Meldungen`.
   Braucht das Gate eine Änderung am Profil oder an der Stufe, geht sie an den
   Architect zurück, weil `slice-harness-lint-werkzeug` sie geliefert hat.
 
@@ -126,16 +130,20 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       nur Bestand aussetzt, und keine ungenutzte Regel; `testpackage` ist für jeden Pfad
       scharf.
 - [ ] Gegenprobe `make lint-gegenprobe` an `GATE_CHECKS`: je Zusage aus `SPEC-049`, die
-      eine Mutation fangen kann, ein Fall, der rot wird (mindestens ein Verstoß je
+      eine Mutation fangen kann, ein Fall, der rot wird, und zwar aus seinem Grund: Jeder
+      rote Fall prüft neben dem Ausgang die Zeile, die er auslösen soll (Pfad und Linter
+      bzw. Text der `lint:`-Zeile); vorweg ein Grundlauf der unveränderten Kopie mit
+      Ausgang 0 und ohne `lint:`-Zeile; dazu ein Fall, dass `lint` und `lint-gegenprobe`
+      an `GATE_CHECKS` hängen und `make gates` bei rotem `make lint` mit Fehlerstatus endet
+      (`SPEC-049` Punkt 10). Die Fälle sind (mindestens ein Verstoß je
       aktivierter Linter-Gruppe, ein `//nolint`, ein Modul außerhalb der Liste von
       `gomodguard_v2`, ein Integrationstest hinter dem Build-Tag, eine ungenutzte Regel,
       eine Regel ohne `Why:`; nach `SPEC-049` Punkt 6, 8 und 9 zudem ein fehlendes
       Profil, ein vom Schema abgelehntes Profil, ein Profil außerhalb der festen Form
       (Einzug, Flussform, Einträge unter `rules` mit Einzug 8 und 2; bei Einzug 2 prüft
       der Fall nur `Form nicht erkannt` an der ersten Eintragszeile und Ausgang 1, nicht
-      die vollständige Liste der Zeilen, weil die Why-Prüfung bei ungültigem YAML
-      Folgezeilen falsch einordnet, V-75 der Verifikation von
-      `slice-harness-lint-werkzeug`), eine Regel, die
+      die vollständige Liste der Zeilen, weil die Grenze von `SPEC-049` für ungültiges
+      YAML nur diese Zeile zusagt), eine Regel, die
       `config verify` annimmt und golangci-lint erst beim Laden ablehnt (rot ohne
       `lint:`-Zeile), die Zeile der ungenutzten Regel mit Feldfolge und ohne
       erkannte Felder, `// x //nolint` als Befund und `// siehe nolint` als keiner, eine
@@ -157,8 +165,16 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [ ] Doku: `AGENTS.md` §3.2 nennt den Träger (kein `//nolint`, Ausnahmen zentral in
       `.golangci.yml` mit `Why:`) statt der Platzhalter; `harness/README.md` führt
       `lint` nicht mehr unter den Werkzeugen, sondern unter §Sensors, dazu
-      `lint-gegenprobe`, je mit Vertrag und Bindung an die ADR; die Zeile
-      „Nicht behauptet“ nennt Lint nicht mehr.
+      `lint-gegenprobe`, je mit Vertrag und Bindung an die ADR, die Zelle von `make lint`
+      verlinkt die Sensor-Datei `harness/sensors/lint.md` (Vertrag `SPEC-049`, Grenze,
+      Ausgabe und Ausgänge; per `cp` aus der Vorlage
+      `.harness/baseline/v6.16.0/templates/harness/sensors/gate.template.md`); die Zeile
+      „Nicht behauptet“ nennt Lint nicht mehr. Kein Kommentar nennt `make lint` noch ein
+      Werkzeug ohne Gate (`harness/mk/lint.mk` mit Hilfetext, Kommentar der Stufe `lint` im
+      `Dockerfile`), der Kopf von `tools/harness/lint.sh` zeigt auf die Sensor-Datei und
+      ordnet unter `GEPRÜFT DURCH tools/harness/lint-gegenprobe.sh:` jedem Punkt von
+      `SPEC-049` seine Fälle zu, und der Kommentar an `Meldungen` in
+      `internal/hexagon/model/fehler.go` nennt die Tiefensuche (§3).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -178,12 +194,14 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `docs/plan/adr/0034-lint-gate-mit-solid-nahem-profil.md`, `docs/plan/adr/README.md` | neu / update | geschrieben vom Architect vor dem Code: Entscheidung, Gründe, Messung des Bestands, dauerhafte Ausnahmen, Einführung nach Bereinigung, Werkzeug-Ziel davor; Index-Zeile. Den Status `Accepted` nach der Wahl des Nutzers vom 2026-10-06 setzt der Architect vor dem Start von `slice-harness-lint-werkzeug` |
-| `spec/spezifikation.md` §11, §12 | update | geschrieben vom Architect vor dem Code: `SPEC-049` mit den Randformen aus §6; Historien-Zeile |
-| `harness/mk/lint.mk` | update | aus `slice-harness-lint-werkzeug`: `lint` an `GATE_CHECKS`, dazu das Ziel `lint-gegenprobe`, ebenfalls an `GATE_CHECKS` |
-| `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in einer Kopie des Arbeitsbaums unter einem Temp-Pfad, je Fall `make lint` bzw. der Docker-Build dort mit erwartetem Exit; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ`. Je Zusage aus `SPEC-049` ein Mutant, der rot wird; Rot-Fälle für die erste Bedingung von Messmethode 3 je Paketgruppe (ein White-Box-Test unter `internal/hexagon/`, `internal/adapters/driven/`, `internal/adapters/driving/pgwire` und unter `internal/adapters/driving/cli`, `internal/bootstrap` oder `test/integration`), für die zweite Bedingung Zugriff an der Brücke vorbei (`internal_test.go` im Paket des Codes), Test in der Brückendatei, Variable in der Brückendatei; dazu eine ungenutzte Regel und eine Regel ohne `Why:`. Den grünen Fall je Ausnahme trägt der Bestands-Lauf mit `warn-unused` (`SPEC-049` Punkt 8). Ohne Abdeckungs-Deklaration (§1) |
+| `spec/spezifikation.md` §11, §12 | update | geschrieben vom Architect vor dem Code: `SPEC-049` mit den Randformen aus §6; Historien-Zeile. Am 2026-10-07 die Grenze um ungültiges YAML und den Cache des Builds fortgeschrieben (§6, *Prüfung vor dem Code*) |
+| `harness/mk/lint.mk` | update | aus `slice-harness-lint-werkzeug`: `lint` an `GATE_CHECKS`, dazu das Ziel `lint-gegenprobe`, ebenfalls an `GATE_CHECKS`; Kopfkommentar und Hilfetext nennen das Gate statt des Werkzeugs |
+| `Dockerfile`, `tools/harness/lint.sh` | update | nur Kommentare: Die Stufe `lint` ist Teil der Gate-Kette; der Kopf von `lint.sh` zeigt auf die Sensor-Datei und führt `GEPRÜFT DURCH tools/harness/lint-gegenprobe.sh:` mit einer Zeile je Punkt von `SPEC-049`, Muster `tools/harness/kopf-check.sh`. Kein Verhalten, kein Profil |
+| `harness/sensors/lint.md` | neu | per `cp` aus `.harness/baseline/v6.16.0/templates/harness/sensors/gate.template.md`: Vertrag als Link auf `SPEC-049`, Grenze aus ihr, Ausgabe und Ausgänge, keine Sperre (die Stufe hat keine benannte Abbruch-Meldung), Bindung [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md); entscheidet nichts neu |
+| `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in einer Kopie des Arbeitsbaums unter einem Temp-Pfad, je Fall `make lint` bzw. der Docker-Build dort mit erwartetem Exit und erwarteter Zeile; Grundlauf zuerst; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ`. Je Zusage aus `SPEC-049` ein Mutant, der rot wird; Rot-Fälle für die erste Bedingung von Messmethode 3 je Paketgruppe (ein White-Box-Test unter `internal/hexagon/`, `internal/adapters/driven/`, `internal/adapters/driving/pgwire` und unter `internal/adapters/driving/cli`, `internal/bootstrap` oder `test/integration`), für die zweite Bedingung Zugriff an der Brücke vorbei (`internal_test.go` im Paket des Codes), Test in der Brückendatei, Variable in der Brückendatei; dazu eine ungenutzte Regel und eine Regel ohne `Why:`. Den grünen Fall je Ausnahme trägt der Bestands-Lauf mit `warn-unused` (`SPEC-049` Punkt 8). Ohne Abdeckungs-Deklaration (§1) |
 | `internal/hexagon/model/fehler.go` | update | Kommentar an `Meldungen` (Zeilen 171 bis 173) nennt die Tiefensuche der Spezifikation statt „außen nach innen und in der Reihenfolge seiner Ursachen“ (`AGENTS.md` §3.11); übernommen aus der Closure von welle-replay-semantik, Nebenbefund 2. Nur der Kommentar, kein Verhalten |
 | `AGENTS.md` | update | §3.2 mit echtem Träger, Falsch/Richtig mit diesem Repo |
-| `harness/README.md` | update | Zeile `make lint` aus den Werkzeugen nach §Sensors, dazu `make lint-gegenprobe`; „Nicht behauptet“ ohne Lint |
+| `harness/README.md` | update | Zeile `make lint` aus den Werkzeugen nach §Sensors, Target-Zelle verlinkt `sensors/lint.md`, Vertrag ein Satz mit `SPEC-049`; dazu `make lint-gegenprobe` mit seinem Vertrag in einem Satz (keine Sensor-Datei, wie bei den übrigen Gegenproben); „Nicht behauptet“ ohne Lint |
 
 ## 4. Trigger
 
@@ -202,6 +220,12 @@ Bereinigungs-Slices, dieser Slice, `slice-harness-commit-struktur-id`,
 `slice-harness-coverage`, `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`. Vor dem ersten Code-Commit prüft
 der Architect, ob die Randformen aus §6 noch dem Werkzeug entsprechen
 (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
+
+**Start-Bedingungen erfüllt** (Architect, 2026-10-07, Stand `9fe02ca`): Die sieben
+Slices liegen in `done/`. `make lint` endet mit Ausgang 0, die Stufe meldet `0 issues.`
+und keine `lint:`-Zeile; `.golangci.yml` ist seit `8d9f0ee` unverändert, die Bereinigung
+hat also keine Ausnahme ergänzt. Die Randformen sind gegen das Werkzeug geprüft (§6,
+*Prüfung vor dem Code*).
 
 **Rückführung `in-progress` → `next` am 2026-10-06 (eingetreten).** Vorab benannt war:
 Die Messung des Bestands ergibt Befunde, deren Bereinigung Produkt-Code in mehr als
@@ -313,6 +337,68 @@ Bestand am Stand `79f40e1`.
   zum Gate ist `make lint` ein Werkzeug ohne Gate (Entscheidung 6), geliefert von
   `slice-harness-lint-werkzeug`; dieser Slice ging nach `next/` zurück (§4).
 
+**Prüfung vor dem Code** (Architect, 2026-10-07, Stand `9fe02ca`): Die Randformen oben
+entsprechen dem Werkzeug. Für das Gate und seine Gegenprobe gilt:
+
+- **Gate bei rotem Lint** — entschieden in `SPEC-049` Punkt 9 und 10: Die Stufe endet
+  mit Ausgang ungleich 0, `docker build` und damit `make lint` ebenso, `make gates` endet
+  mit Fehlerstatus, und `record-gates` läuft nicht. Die Meldung ist die Ausgabe der Stufe
+  im Build-Log (`--progress=plain`): die `lint:`-Zeilen und die Befunde von
+  golangci-lint. Dass `make -j` ohne `-k` nach dem ersten roten Ziel keine weiteren
+  startet, ist Verhalten von `make` und gilt für jedes Gate (Grenze).
+- **Ort in der Gate-Kette und Laufzeit** — `GATE_CHECKS += lint lint-gegenprobe` in
+  `harness/mk/lint.mk`, ohne Ordnungskante zu anderen Zielen; der Nachweis läuft wie
+  immer zuletzt. Gemessen an `9fe02ca`: der Schritt der Stufe 8,4 s bei warmem Cache der
+  Stufe `deps`. Die Gegenprobe darf Fälle in einer Kopie zusammenfassen, wenn jeder Fall
+  an seiner eigenen Zeile erkannt wird; allein läuft ein Fall, dessen Zusage der Ausgang
+  selbst ist (eine `lint:`-Zeile allein, Ablehnung erst beim Laden) oder der andere
+  ausschließt (Profil fehlt, Form des Profils). Laufzeit bleibt Beobachtung, keine
+  Schwelle (Risiko unten).
+- **Cache der Docker-Stufe** — entschieden in der Grenze von `SPEC-049` (2026-10-07): Mit
+  gleichem Image, gleichen Modulen und gleichem Inhalt des Build-Kontexts nimmt der Build
+  das Ergebnis aus dem Cache (an `9fe02ca` gesehen: zweiter Lauf `CACHED`). Das ist das
+  Ergebnis derselben Eingaben, denn ein roter Lauf liegt nie im Cache, und Image, Netz
+  und Toolchain sind fest. Kein `--no-cache`: Es baute auch `deps` neu und bräuchte Netz.
+  Akzeptiertes Negativ: Eine Datei mit gleicher Größe und Änderungszeit überträgt der
+  Build nicht neu (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`); im Arbeitsbaum
+  ändert ein Editor die Änderungszeit, nur `cp -p` oder `touch -r` halten sie.
+- **Gegenprobe als eigenes Gate-Ziel** — Muster `kopf-check-gegenprobe` und
+  `a-check-negativ`: `lint-gegenprobe` an `GATE_CHECKS`, Skript
+  `tools/harness/lint-gegenprobe.sh`, auf dem Host mit `bash` und `docker`. Sie kopiert
+  den Arbeitsbaum, nicht `HEAD`, denn `make gates` steht für den Arbeitsbaum. Die Kopie
+  liegt unter `mktemp -d`, ohne `cp -p`, mit eigenem Pfad je Lauf; die Gegenprobe
+  schreibt nichts in den Arbeitsbaum und räumt ihre Temp-Pfade ab. Netz braucht wie bei
+  `make lint` nur `deps` bei leerem Cache. Keine Sensor-Datei, und keine Kennung in der
+  Spezifikation: Die Gegenprobe prüft, ob das Werkzeug richtig ist, und ihr Vertrag ist
+  ein Satz in ihrer Zeile in `harness/README.md` (Entscheidung von
+  `slice-harness-vertraege-spezifikation`, §6 *Welche Targets eine Sensor-Datei
+  bekommen*). Akzeptiertes Negativ: Jeder Lauf, auch jeder Lauf von `make lint`, lässt
+  ungetaggte Images im Docker-Cache liegen; Aufräumen ist Sache des Hosts.
+- **Übernommene Fälle aus `slice-harness-lint-werkzeug`** — alle entschieden: Einzug 8
+  ist ein Eintrag mit anderem Einzug (Punkt 8). Bei Einzug 2 und ungültigem YAML sagt
+  die Grenze von `SPEC-049` seit 2026-10-07 nur die erste Eintragszeile zu (vorher stand
+  das nur in V-75 der Verifikation). V-74 ist die Ablehnung erst beim Laden (Grenze). Die
+  Punkte 6, 8 und 9 haben ihre Fälle in der DoD. Für die Zusagen ohne unterscheidende
+  Mutation gilt die DoD: Fall oder benannt als offen im Kopf der Gegenprobe.
+- **`contextcheck` in Testdateien** (Hinweis aus `slice-harness-blackbox-kern`) —
+  entschieden in Punkt 5: ohne Ausnahme, Kontext aus `t.Context()` bzw.
+  `context.WithoutCancel(t.Context())`; der Fall der Linter-Gruppe deckt ihn.
+- **Wert eines unexportierten Typs** (Punkt 7) — Grenze von `SPEC-049`, wie oben unter
+  *Export-Test-Brücke*: kein Rot-Fall, Urteil des Review.
+- **Sensor-Datei und `harness/README.md`** — `harness/sensors/lint.md` nach der Vorlage,
+  wie `kopf-check.md`; die Zeile `make lint` wandert aus den Werkzeugen nach §Sensors,
+  `make lint-gegenprobe` kommt dazu, „Nicht behauptet“ nennt nur noch Testabdeckung
+  (DoD, §3).
+- **Kommentare des Werkzeugs** — Die Kommentare in `harness/mk/lint.mk`, im `Dockerfile`
+  (Stufe `lint`: „Kein Teil der Gate-Kette“) und im Kopf von `tools/harness/lint.sh`
+  ändert dieser Slice, weil sie mit dem Gate falsch würden (`AGENTS.md` §3.11). Das ist
+  keine Änderung an Profil oder Stufe im Sinn von §1.
+- **[ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md): keine Folge-ADR** —
+  Gate nach Bereinigung (Entscheidung 5), Gegenprobe (Folgepflicht) und beide Ziele in
+  `harness/README.md` (Fitness Function) stehen dort. Die Bereinigung kam ohne neue
+  Ausnahme aus, also ist kein Re-Evaluierungs-Trigger eingetreten. Die beiden neuen
+  Sätze der Grenze sind Randformen in der Spezifikation und ändern die Entscheidung nicht.
+
 **Risiken:**
 
 - **Bestand** (Hauptrisiko) — gemessen ([ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)): 142 Befunde ohne `testpackage`,
@@ -336,13 +422,15 @@ Bestand am Stand `79f40e1`.
 - **Konfiguration wirkt anders, als sie gelesen wird** — ein Pfad-Regex in
   `exclusions`, ein Modulname in `gomodguard_v2` oder ein fehlendes `build-tags`
   liest sich als Zusage und greift nicht
-  (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`, 1×). Je Ausnahme und je
-  Liste ein Fall der Gegenprobe. — **Ausgang:** — (bei Closure)
+  (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`, 2×; ein weiterer Beleg aus
+  diesem Slice erreicht die Schwelle 3× und braucht einen Folge-Slice). Je Ausnahme und
+  je Liste ein Fall der Gegenprobe. — **Ausgang:** — (bei Closure)
 - **Bestehende Prüfung fällt weg** — `gofmt` und `go vet` in der Stufe `test` bleiben;
   die Stufe `lint` tritt daneben, nicht an ihre Stelle
   (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`, 1×). — **Ausgang:** — (bei Closure)
-- **Laufzeit von `make gates`** — eine weitere Docker-Stufe mit eigener Analyse;
-  `make -j` fährt sie parallel. Wird sie zum Engpass, ist das eine Beobachtung, kein
+- **Laufzeit von `make gates`** — eine weitere Docker-Stufe mit eigener Analyse (8,4 s
+  an `9fe02ca`) und die Gegenprobe mit einem Lauf der Stufe je Kopie; `make -j` fährt sie
+  parallel. Wird sie zum Engpass, ist das eine Beobachtung, kein
   Grund für eine Lockerung. — **Ausgang:** — (bei Closure)
 
 ## 7. Closure-Notiz
@@ -379,31 +467,33 @@ nicht mehr.
 (Kürzel `REPO`, Greenfield); dieser Slice berührt nur sie.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register
-`docs/plan/planning/observations/BEO-REPO/` am Stand `8b399ba` gesichtet (Zähler =
-Dateien unter `evidence/`). Treffer:
+`docs/plan/planning/observations/BEO-REPO/` am Stand `9fe02ca` gesichtet (Architect,
+2026-10-07; Zähler = Dateien unter `evidence/`). Treffer:
 
-- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (8×, verkörpert in `AGENTS.md`
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (13×, verkörpert in `AGENTS.md`
   §3.10) — trifft das Gate unmittelbar: Ein Lint-Gate, das nur grün gesehen wurde,
   belegt keine Zusage; daher der zweite Liefer-Punkt, je Zusage eine Mutation.
-- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (9×, verkörpert in §3.11) — der
-  Kopfkommentar von `.golangci.yml`, die Sensors-Zeile und §3.2 sagen nur zu, was die
-  Gegenprobe prüft.
-- `BEO-REPO/spec-randform-erst-im-review-entschieden` (6×, verkörpert in §3.12) und
-  `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (2×) — darum stehen die
-  Randformen in §6 offen und werden vor dem Code entschieden. Mit einem dritten
-  Auftreten in diesem Slice erreichte der zweite Eintrag die Schwelle.
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (18×, verkörpert in §3.11) — der
+  Kopf von `lint.sh`, die Sensor-Datei, die Sensors-Zeilen und §3.2 sagen nur zu, was
+  die Gegenprobe prüft.
+- `BEO-REPO/spec-randform-erst-im-review-entschieden` (11×, verkörpert in §3.12) und
+  `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (3×, verkörpert) — darum
+  die Prüfung vor dem Code in §6.
 - `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (1×) — dieser Slice ist
-  wellenlos; §4 *Start* nennt den Architect-Schritt vor dem Code ausdrücklich.
-- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — Entscheidungsort der
-  Randformen ist der Abschnitt für Harness-Werkzeuge der Spezifikation, angelegt von
-  `slice-harness-vertraege-spezifikation`; die ADR trägt Entscheidung und Gründe.
-- `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (1×),
-  `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (1×) und
+  wellenlos; §4 *Start* nennt den Architect-Schritt vor dem Code, er ist erfolgt.
+- `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (2×) — Risiko in §6; ein
+  dritter Beleg aus diesem Slice ist eine Lücke.
+- `BEO-REPO/liste-gruener-mutanten-unvollstaendig` (2×) — verwandt: Die Liste der
+  Zusagen ohne unterscheidende Mutation im Kopf der Gegenprobe muss vollständig sein;
+  findet das Review eine fehlende, ist es dieselbe Klasse.
+- `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (1×) und
   `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (1×) — je ein Risiko in §6.
 - `BEO-REPO/kern-fremdimporte-nur-ueber-tech-liste` (1×) — berührt, nicht
   aufgenommen (§1).
+- `BEO-REPO/harness-lesart-ohne-entscheidungsort` — gestrichen; der Ort ist die
+  Spezifikation, die Lesart die Sensor-Datei, wie hier geplant.
 
-Keiner der Einträge erreicht mit diesem Slice allein die Schwelle 3×; keine neue
-Lücke vor dem Code.
+Keiner der Einträge erreicht vor dem Code die Schwelle 3× neu; keine neue Lücke vor dem
+Code.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

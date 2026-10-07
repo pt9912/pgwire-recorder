@@ -2112,6 +2112,14 @@ nach Punkt 8 stehen. Eine Regel, die `config verify` annimmt und golangci-lint e
 beim Laden ablehnt, macht die Stufe nach Punkt 9 rot, aber ohne `lint:`-Zeile; zu
 sehen ist dann nur die Meldung von golangci-lint. Ein `nolint` nach Punkt 6 in einem String-Literal ist ebenfalls ein Befund. Testdateien im Paket `main` lässt
 `testpackage` zu; unter `cmd/` gibt es keine.
+Ist das Profil durch einen Eintrag unter `rules` mit falschem Einzug kein gültiges YAML
+mehr, sagt Punkt 8 nur den Befund `Form nicht erkannt` an der ersten solchen
+Eintragszeile zu; wie die Prüfung die Zeilen danach einordnet, ist nicht zugesagt. Rot
+ist die Stufe durch diesen Befund nach Punkt 9. Sind Image, Module und Inhalt des
+Build-Kontexts dieselben wie bei einem früheren Lauf mit Ausgang 0, nimmt der Build das
+Ergebnis der Stufe aus dem Cache, ohne neu zu prüfen; ein Lauf mit Ausgang ungleich 0
+liegt nie im Cache. Eine Datei, deren Größe und Änderungszeit seit dem letzten Lauf
+gleich blieben, überträgt der Build nicht neu; ihre Änderung sieht der Lauf dann nicht.
 
 ## 12. Historie
 
@@ -2155,5 +2163,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Lint-Profil: Einzug der Regel-Einträge unter `rules`, Ablehnung beim Laden als Grenze (`SPEC-049`) |
 | 2026-10-06 | Lint-Profil: Brücke und Test legen keinen Wert eines unexportierten Typs an; Kontext im Test bei einem Befund von `contextcheck` (`SPEC-049`) |
 | 2026-10-07 | Lint-Profil: die Funktion, an die die Brücke zum Erzeugen weiterreicht, ruft auch der Produkt-Code; Eingaben exportierter Typen stellt der Test (`SPEC-049`) |
+| 2026-10-07 | Lint-Profil: ungültiges YAML im Ausnahme-Abschnitt und Ergebnis aus dem Cache des Builds als Grenze (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |
