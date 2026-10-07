@@ -88,7 +88,11 @@ und Driven.
   `//nolint` — gibt es nicht (Entscheidung 5, `AGENTS.md` §3.6); lässt sich ein Befund
   nicht ohne sie beheben, geht er an den Architect (§4).
 - Verhaltensänderung, neue Fälle, geänderte Erwartungen in Tests — ein anderer
-  Vorgang; die Bereinigung ist ein Umbau, gemessen an denselben Tests.
+  Vorgang; die Bereinigung ist ein Umbau, gemessen an denselben Tests. Ausgenommen
+  sind Charakterisierungstests: Hält kein Test fest, welchen von zwei gleichzeitigen
+  Fehlern eine umgebaute Funktion meldet, legt der Slice vor dem Umbau einen Test an,
+  der den Bestand am alten Code festhält (gegen ihn grün); er sagt nichts Neues zu
+  und steht in §7.
 - Schnittstellen der Ports und exportierte Signaturen — Schicht-Abgrenzung: Der Slice
   ändert unexportierte Funktionen und Kommentare; eine exportierte Signatur, die sich
   ändern müsste, ist ein Befund für den Architect.
@@ -144,6 +148,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driven/recording/yaml.go` | refactor | `fromDTO` unter die Schwelle |
 | `internal/hexagon/model/extended.go:149` (`QF1001`) | update | `!(letzte && si == len(g.Server)-1)` nach De Morgan umgeschrieben, gleichwertig; fällt mit dem Umbau von `Group.validate` zusammen |
 | Testdateien dieser Pakete | unverändert | Beleg des unveränderten Verhaltens; ein Test, der wegen des Umbaus geändert werden müsste, ist ein Befund (§4). Ausgenommen ist `export_test.go`, falls eine dort weitergereichte unexportierte Funktion umbenannt wird; dann nur der Verweis |
+| `internal/hexagon/model/extended_test.go`, `internal/adapters/driven/recording/yaml_test.go` | add | Charakterisierungstests vor dem Umbau (§1): `TestValidateFehlerReihenfolge` hält fest, welchen von zwei Fehlern `Group.validate` meldet, `TestUnmarshalFehlerReihenfolge` dasselbe für `fromDTO`; im eigenen Commit vor dem Umbau, gegen den alten Code grün. Die Testliste „vor dem Umbau“ der DoD ist die mit ihnen; ohne Abdeckungs-Deklaration, die Abdeckungstabellen bleiben gleich. `toResponse` hat einen Fehlerpfad, `(*cursor).objekte` keinen; dort gibt es keine Reihenfolge zweier Fehler |
 
 ## 4. Trigger
 

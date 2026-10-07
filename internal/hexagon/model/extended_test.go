@@ -174,3 +174,77 @@ func TestValidateQueryFehler(t *testing.T) {
 		})
 	}
 }
+
+// Verletzt eine Gruppe zwei Formregeln zugleich, meldet Validate genau eine, und
+// welche, steht fest: Die Client-Nachrichten gehen der Reihe nach vor, je Nachricht
+// erst der Typ, dann die Stellung von flush und sync, dann die Zielart; danach
+// sync oder flush am Ende der Gruppe; danach die Server-Nachrichten der Reihe
+// nach, je Nachricht erst der Typ, dann die Stellung von ready_for_query; zuletzt
+// ready_for_query am Ende der letzten Gruppe. Erwartet ist der ganze Fehlertext.
+func TestValidateFehlerReihenfolge(t *testing.T) {
+	cases := []struct {
+		name   string
+		mutate func(*model.Interaction)
+		want   string
+	}{
+		{"ohne Client-Nachricht vor einer unbekannten Server-Nachricht", func(i *model.Interaction) {
+			i.Groups[0].Client = nil
+			i.Groups[0].Server[0].Type = "copy_out_response"
+		}, "Gruppe 1: ohne Client-Nachricht"},
+		{"Typ vor Stellung in derselben Nachricht", func(i *model.Interaction) {
+			i.Groups[0].Client[2].Type = "copy_data"
+		}, "Gruppe 1: Client-Nachricht \"copy_data\" unbekannt"},
+		{"Stellung vor Zielart in derselben Nachricht", func(i *model.Interaction) {
+			i.Groups[0].Client = []model.ClientMessage{{Type: model.ClientParse}, {Type: model.ClientDescribe}}
+		}, "Gruppe 1: Client-Nachricht 2: flush oder sync nur als letzte Nachricht der Gruppe"},
+		{"Zielart einer früheren vor Typ einer späteren Nachricht", func(i *model.Interaction) {
+			i.Groups[0].Client[1].Target = ""
+			i.Groups[0].Client[2].Type = "copy_data"
+		}, "Gruppe 1: Client-Nachricht 2: Zielart \"\" statt statement oder portal"},
+		{"Stellung einer früheren vor Typ einer späteren Nachricht", func(i *model.Interaction) {
+			i.Groups[0].Client[0] = model.ClientMessage{Type: model.ClientFlush}
+			i.Groups[0].Client[1].Type = "copy_data"
+		}, "Gruppe 1: Client-Nachricht 1: flush oder sync nur als letzte Nachricht der Gruppe"},
+		{"Zielart vor sync am Ende einer vorderen Gruppe", func(i *model.Interaction) {
+			i.Groups[0].Client[1].Target = ""
+			i.Groups[0].Client[2].Type = model.ClientSync
+		}, "Gruppe 1: Client-Nachricht 2: Zielart \"\" statt statement oder portal"},
+		{"sync am Ende einer vorderen Gruppe vor einer unbekannten Server-Nachricht", func(i *model.Interaction) {
+			i.Groups[0].Client[2].Type = model.ClientSync
+			i.Groups[0].Server[0].Type = "copy_out_response"
+		}, "Gruppe 1: sync steht genau am Ende der letzten Gruppe, flush am Ende jeder anderen"},
+		{"flush am Ende der letzten Gruppe vor fehlendem ready_for_query", func(i *model.Interaction) {
+			i.Groups[1].Client[2].Type = model.ClientFlush
+			i.Groups[1].Server = i.Groups[1].Server[:3]
+		}, "Gruppe 2: sync steht genau am Ende der letzten Gruppe, flush am Ende jeder anderen"},
+		{"Client-Nachricht vor Server-Nachricht", func(i *model.Interaction) {
+			i.Groups[1].Client[0].Type = "copy_data"
+			i.Groups[1].Server[1].Type = "copy_out_response"
+		}, "Gruppe 2: Client-Nachricht \"copy_data\" unbekannt"},
+		{"Stellung einer früheren vor Typ einer späteren Server-Nachricht", func(i *model.Interaction) {
+			i.Groups[1].Server[0].Type = model.ResponseReadyForQuery
+			i.Groups[1].Server[1].Type = "copy_out_response"
+		}, "Gruppe 2: Server-Nachricht 1: ready_for_query nur als letzte Nachricht der letzten Gruppe"},
+		{"Typ einer früheren vor Stellung einer späteren Server-Nachricht", func(i *model.Interaction) {
+			i.Groups[0].Server[0].Type = "copy_out_response"
+			i.Groups[0].Server[1].Type = model.ResponseReadyForQuery
+		}, "Gruppe 1: Server-Nachricht \"copy_out_response\" unbekannt in einer Extended-Interaktion"},
+		{"unbekannte Server-Nachricht vor fehlendem ready_for_query", func(i *model.Interaction) {
+			i.Groups[1].Server = i.Groups[1].Server[:3]
+			i.Groups[1].Server[1].Type = "copy_out_response"
+		}, "Gruppe 2: Server-Nachricht \"copy_out_response\" unbekannt in einer Extended-Interaktion"},
+		{"Stellung von ready_for_query vor fehlendem ready_for_query am Ende", func(i *model.Interaction) {
+			i.Groups[1].Server = []model.Response{{Type: model.ResponseReadyForQuery}, {Type: model.ResponseCommandComplete}}
+		}, "Gruppe 2: Server-Nachricht 1: ready_for_query nur als letzte Nachricht der letzten Gruppe"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			i := extendedBeispiel()
+			c.mutate(&i)
+			err := i.Validate()
+			if err == nil || err.Error() != c.want {
+				t.Fatalf("erwartet Fehler %q, erhalten %v", c.want, err)
+			}
+		})
+	}
+}

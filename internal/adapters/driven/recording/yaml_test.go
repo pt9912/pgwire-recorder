@@ -573,3 +573,33 @@ func TestVorpruefungNenntOrt(t *testing.T) {
 		t.Fatalf("erwartet %s mit Ort, erhalten %v", model.CodeRecordingBroken, err)
 	}
 }
+
+// Verletzt eine Aufzeichnung zwei Regeln der Struktur zugleich, meldet Unmarshal
+// genau eine, und welche, steht fest: Die Sessions gehen der Reihe nach vor, je
+// Session erst ihre Kennung, dann ob sie Interaktionen trägt, dann ihre
+// Interaktionen der Reihe nach; je Interaktion erst die Nummer, dann offset_ms,
+// dann ihre Form.
+func TestUnmarshalFehlerReihenfolge(t *testing.T) {
+	kopf := "format: pgwire-recorder\nversion: 1\nsessions:\n"
+	anfrage := func(nummer, zusatz string) string {
+		return "      - sequence: " + nummer + "\n" + zusatz + "        request: {type: query, sql: x}\n        responses:\n          - " + rfqNachricht + "\n"
+	}
+	abgeschnitten := func(nummer, zusatz string) string {
+		return "      - sequence: " + nummer + "\n" + zusatz + "        request: {type: query, sql: x}\n        responses:\n          - {type: command_complete, tag: x}\n"
+	}
+	cases := []struct{ name, data, want string }{
+		{"Kennung vor Session ohne Interaktion", kopf + "  - id: 2\n    interactions: []\n", "Session 1 trägt die Kennung 2"},
+		{"Nummer vor offset_ms", kopf + "  - id: 1\n    interactions:\n" + anfrage("2", "        offset_ms: -1\n"), "Session 1: Interaktion 1 trägt die Nummer 2"},
+		{"offset_ms vor der Form", kopf + "  - id: 1\n    interactions:\n" + abgeschnitten("1", "        offset_ms: -1\n"), "Session 1, Interaktion 1: offset_ms negativ"},
+		{"frühere Interaktion vor späterer Nummer", kopf + "  - id: 1\n    interactions:\n" + abgeschnitten("1", "") + anfrage("3", ""), "Session 1, Interaktion 1: endet nicht mit ready_for_query"},
+		{"frühere Session vor späterer Kennung", kopf + "  - id: 1\n    interactions:\n" + abgeschnitten("1", "") + "  - id: 3\n    interactions:\n" + anfrage("1", ""), "Session 1, Interaktion 1: endet nicht mit ready_for_query"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := recording.Unmarshal([]byte(c.data))
+			if code(err) != model.CodeRecordingBroken || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("erwartet %s mit %q, erhalten %v", model.CodeRecordingBroken, c.want, err)
+			}
+		})
+	}
+}
