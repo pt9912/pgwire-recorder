@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: kein Slice in `in-progress/`; als nächster folgt [`slice-harness-commit-struktur-id`](../next/slice-harness-commit-struktur-id.md) (wellenlos, liegt in `open/`).
+In Arbeit: kein Slice in `in-progress/`; als nächster folgt [`slice-harness-commit-struktur-id`](../in-progress/slice-harness-commit-struktur-id.md) (wellenlos, liegt in `open/`).
 
 
 
