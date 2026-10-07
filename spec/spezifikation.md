@@ -2057,7 +2057,9 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
    meldet das eine eigene Prüfung. Das Profil hat dafür eine feste Form: `linters:`
    ohne Einzug, darunter `exclusions:` mit zwei Leerzeichen, darunter `rules:` mit vier,
    jede Regel als Eintrag `- ` mit sechs, alle drei Schlüssel in Blockform (nach dem
-   Doppelpunkt höchstens ein Kommentar). Ein Schlüssel `exclusions` an anderer Stelle
+   Doppelpunkt höchstens Leerraum und ein Kommentar). Ein Eintrag ist auch ein `-` allein
+   auf der Zeile, dessen Inhalt auf den Fortsetzungszeilen steht; über ihm steht der
+   Kommentarblock wie über jedem Eintrag. Ein Schlüssel `exclusions` an anderer Stelle
    oder in Flussform und ein Schlüssel `rules` unter `exclusions` mit anderem Einzug
    oder in Flussform ist ein Befund `Form nicht erkannt` mit seiner Zeile. Ebenso ist
    unter `rules` jede Zeile ein solcher Befund, die weder Kommentar noch Leerzeile ist,
@@ -2164,5 +2166,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Lint-Profil: Brücke und Test legen keinen Wert eines unexportierten Typs an; Kontext im Test bei einem Befund von `contextcheck` (`SPEC-049`) |
 | 2026-10-07 | Lint-Profil: die Funktion, an die die Brücke zum Erzeugen weiterreicht, ruft auch der Produkt-Code; Eingaben exportierter Typen stellt der Test (`SPEC-049`) |
 | 2026-10-07 | Lint-Profil: ungültiges YAML im Ausnahme-Abschnitt und Ergebnis aus dem Cache des Builds als Grenze (`SPEC-049`) |
+| 2026-10-07 | Lint-Profil: Leerraum nach `exclusions:` und `rules:` ist Blockform, ein `-` allein ist ein Eintrag (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |

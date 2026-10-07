@@ -399,6 +399,35 @@ entsprechen dem Werkzeug. Für das Gate und seine Gegenprobe gilt:
   Ausnahme aus, also ist kein Re-Evaluierungs-Trigger eingetreten. Die beiden neuen
   Sätze der Grenze sind Randformen in der Spezifikation und ändern die Entscheidung nicht.
 
+**Randform-Rückgaben aus `221845d`** (Architect, 2026-10-07; Belege in §7, *Grüne
+Mutanten*). Vorgabe an den Implementer je Rückgabe:
+
+- **Leerraum nach `exclusions:` bzw. `rules:` ohne Kommentar** — ist Blockform;
+  entschieden in `SPEC-049` Punkt 8 („nach dem Doppelpunkt höchstens Leerraum und ein
+  Kommentar“). YAML liest beide Formen gleich; ein Befund dort wäre eine Form, die
+  golangci-lint annimmt und die Prüfung ablehnt. **Fall: ja**, grün: `exclusions:` und
+  `rules:` je mit Leerzeichen und Tab am Zeilenende, sonst Bestand; Erwartung Ausgang 0,
+  keine `lint:`-Zeile. Der Mutant ohne Abschneiden des Leerraums wird damit rot.
+- **Ein `-` allein auf der Zeile unter `rules`** — ist ein Eintrag; entschieden in
+  `SPEC-049` Punkt 8 (mit sechs Leerzeichen, Inhalt auf den Fortsetzungszeilen mit
+  mindestens acht, Kommentarblock darüber wie bei jedem Eintrag). Das ist gültiges YAML,
+  und golangci-lint wendet die Regel an; ein `Form nicht erkannt` meldete eine Regel, die
+  wirkt. **Fälle: ja**, zwei: (a) grün: eine Regel des Bestands als `-` allein, darüber
+  ihr `# Why:`-Block, Inhalt mit acht Leerzeichen darunter; Erwartung Ausgang 0, keine
+  `lint:`-Zeile. (b) rot: dieselbe Regel ohne Kommentarblock; Erwartung Ausgang 1 und die
+  Zeile `lint: .golangci.yml:<zeile des ->: Regel ohne Kommentarblock "# Why:"
+  unmittelbar darüber`, keine Zeile `Form nicht erkannt`. Der Mutant `/^- /` wird an
+  beiden rot. Ein `-` allein mit anderem Einzug als sechs bleibt `Form nicht erkannt`.
+- **Pin und Plattform des Images** — **kein Fall, die Stufe bleibt unverändert**; offen
+  im Kopf der Gegenprobe, mit Grund. Eine Ausgabe der Version in der Stufe wäre Verhalten,
+  das nur der Gegenprobe dient, und ein Textvergleich mit der `FROM`-Zeile wäre eine
+  zweite Quelle für den Pin, den `SPEC-049` Punkt 2 nur im `Dockerfile` führt. Der Pin
+  ändert sich nur durch einen Commit an dieser Zeile, und den fängt der
+  Re-Evaluierungs-Trigger von [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)
+  (Anhebung von golangci-lint) und das Review. Akzeptiertes Negativ, keine Folgepflicht.
+  Dasselbe gilt für die Zeile `Felder nicht erkannt`, die die gepinnte Version nicht
+  auslöst (§7): offen im Kopf, kein Fall.
+
 **Risiken:**
 
 - **Bestand** (Hauptrisiko) — gemessen ([ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md)): 142 Befunde ohne `testpackage`,
