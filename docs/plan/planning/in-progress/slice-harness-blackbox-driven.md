@@ -18,7 +18,7 @@ Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 3; Messmethode 1 für die Testdateien dieser Pakete). Bindung: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Export-Test-Brücke, Entscheidung 4; Bereinigung vor dem Gate ohne Stufen, Entscheidung 5: die Befunde der Testdateien dieser Pakete behebt dieser Slice), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckungs-Deklarationen an den Tests bleiben unverändert).
 
-**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Punkt 7 und 8: Brücke und dauerhafte Ausnahmen, gegen die umgestellt wird; der Slice ändert die Stelle nicht)
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Punkt 7 und 8: Brücke und dauerhafte Ausnahmen, gegen die umgestellt wird. Geändert vom Architect unter der Kennung dieses Slice: Punkt 7, die Funktion, an die die Brücke zum Erzeugen weiterreicht, ruft auch der Produkt-Code)
 
 **Verantwortlich:** pt9912
 
@@ -70,8 +70,13 @@ lieferbar und in einer Review-Sitzung prüfbar bleibt.
   dem Werkzeug `make lint`.
 - Befunde im Produkt-Code dieser Pakete — übernimmt `slice-lint-bestand-kern-driven` nach den
   Umstellungs-Slices.
-- Produkt-Verhalten, Spezifikation, Lastenheft — Schicht-Abgrenzung: Der Slice ändert
-  Testdateien; `.golangci.yml` und die Gegenprobe des Lint-Gates ändert er nicht.
+- Produkt-Verhalten, Lastenheft und die Spezifikation außer `SPEC-049` Punkt 7 —
+  Schicht-Abgrenzung: Der Slice ändert Testdateien und im Produkt-Code nur eine
+  Stelle: `Open` in `upstream.go` legt seine Session über den unexportierten
+  Konstruktor `newSession(conn)` an (§6 *Session über `net.Pipe`*, Entscheidung des
+  Architect nach §4). Das ist kein Export und keine Verhaltensänderung, sondern
+  der Weg, auf dem `TestCloseMitSchreibfrist` eine vom Produkt erzeugte Session
+  bekommt. `.golangci.yml` und die Gegenprobe des Lint-Gates ändert er nicht.
 
 ## 2. Definition of Done
 
@@ -110,7 +115,8 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/adapters/driven/postgres/upstream_test.go`, `upstream_extended_test.go` | refactor | `package postgres_test` |
 | `internal/adapters/driven/recording/yaml_test.go` | refactor | `package recording_test` |
-| `export_test.go` je Paket, nur wo nötig | neu | Brücke zu unexportierten Teilen nach `SPEC-049` Punkt 7 |
+| `export_test.go` je Paket, nur wo nötig | neu | Brücke zu unexportierten Teilen nach `SPEC-049` Punkt 7; in `postgres`: an `toFrontendMessage`, an `conn` einer übergebenen Session, an `newSession` |
+| `internal/adapters/driven/postgres/upstream.go` | refactor | `newSession(conn net.Conn) *session` legt `conn` und `fe` an, `Open` ruft ihn statt des Literals; ohne Verhaltensänderung (§6 *Session über `net.Pipe`*) |
 | dieselben Testdateien | update | übrige Befunde aus `make lint` (dazu `errcheck`, `gochecknoglobals` und `unused`, zusammen 9) in den Dateien, die der Umbau ohnehin umschreibt |
 
 ## 4. Trigger
@@ -173,6 +179,28 @@ steht, gibt der Implementer an den Architect zurück.
   (ungemessen, kann Fehltreffer enthalten, wo ein Testhelfer gleich heißt): in `recording` keine; in `postgres` u. a. `session`, `toFrontendMessage`, `lies`.
   Je Zugriff: über die exportierte Schnittstelle prüfbar, über die Brücke, oder
   Befund. `toFrontendMessage` ist eine Übersetzung in `pgproto3`-Nachrichten; ob ein Test sie direkt oder über `Upstream` prüft, entscheidet die Brücke.
+- **White-Box-Zugriffe, gemessen** (Implementer per AST vor dem Code, bestätigt vom
+  Architect am 2026-10-07): in `recording` keine. In `postgres`: `session` als Typ in
+  Testhelfern wird `driven.UpstreamSession`; `conn` einer übergebenen, von `Open`
+  erzeugten Session für `SetReadDeadline` und `CloseWrite` über die Brücke (sie
+  reicht nur an das Feld eines übergebenen Werts weiter); `toFrontendMessage` über
+  eine Brücke, die nur weiterreicht; `lies` war ein Fehltreffer.
+- **Session über `net.Pipe`** — entschieden vom Architect am 2026-10-07 (`SPEC-049`
+  Punkt 7): `TestCloseMitSchreibfrist` legt kein `session`-Literal mehr an. Über TCP
+  ist der Zustand „Schreibsperre frei, Terminate blockiert“ nicht deterministisch
+  herzustellen, weil die Puffer des Kernels das Terminate aufnehmen; `net.Pipe` hat
+  keinen Puffer. Weg: `upstream.go` bekommt den unexportierten Konstruktor
+  `newSession(conn net.Conn) *session`, den `Open` für seine Session ruft; die Brücke
+  reicht mit einer exportierten Funktion, die `driven.UpstreamSession` liefert, an
+  ihn weiter; der Test stellt die Verbindung (`net.Pipe`) und ruft `Close` über die
+  Schnittstelle. Damit erzeugt der Produkt-Code den Wert, und ein Feld, das
+  `newSession` später setzt, hat auch der Test. Verworfen: TCP mit kleinen Puffern
+  (nicht deterministisch), eine exportierte Dial-Option (neuer Export, §1), die
+  Prüfung streichen (sie fängt als einzige das Entfernen von `SetWriteDeadline`).
+  Rot sein muss danach: `SetWriteDeadline` in `Close` entfernt →
+  `TestCloseMitSchreibfrist`. Dass `Open` die Session über `newSession` anlegt, prüft
+  weder ein Test noch `unused` (die Brücke hält `newSession` in Gebrauch); das ist
+  Urteil des Review (Grenze von `SPEC-049`).
 - **Fakes der Ports** — die Ports sind exportiert (`internal/hexagon/ports/...`); ein
   Fake in einem `_test`-Paket implementiert sie unverändert. Ein Fake, der auf
   unexportierte Felder eines Produkt-Typs greift, fällt unter die Brücke.

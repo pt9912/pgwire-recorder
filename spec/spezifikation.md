@@ -2042,7 +2042,9 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
    Weder die Brücke noch ein Test erzeugt ihn selbst, auch nicht als lokalen Wert, als
    Literal oder über einen Typ-Alias. Die Brücke bekommt ihn übergeben oder reicht an
    eine Funktion des Pakets weiter, die ihn erzeugt; so prüft ein Test nur Zustände,
-   die das Produkt erzeugt. Was nur an einem solchen Wert zu sehen ist, prüft der Test
+   die das Produkt erzeugt. Diese Funktion ruft auch der Produkt-Code, um denselben
+   Wert zu erzeugen; eine Funktion, die nur die Brücke ruft, gibt es nicht. Werte
+   exportierter Typen, die sie annimmt, etwa eine Verbindung, stellt der Test. Was nur an einem solchen Wert zu sehen ist, prüft der Test
    über die exportierte Schnittstelle. Jede andere Testdatei im Paket `<name>` ist ein Befund von
    `testpackage`; eine Variable auf Paketebene in der Brücke ist ein Befund von
    `gochecknoglobals`; eine Funktion, deren Name mit `Test`, `Benchmark`, `Example`
@@ -2150,5 +2152,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Lint-Profil: feste Form des Ausnahme-Abschnitts, zweites Kommentarzeichen vor `nolint`, Zeile der ungenutzten Regel, generierter Code nach Default (`SPEC-049`) |
 | 2026-10-06 | Lint-Profil: Einzug der Regel-Einträge unter `rules`, Ablehnung beim Laden als Grenze (`SPEC-049`) |
 | 2026-10-06 | Lint-Profil: Brücke und Test legen keinen Wert eines unexportierten Typs an; Kontext im Test bei einem Befund von `contextcheck` (`SPEC-049`) |
+| 2026-10-07 | Lint-Profil: die Funktion, an die die Brücke zum Erzeugen weiterreicht, ruft auch der Produkt-Code; Eingaben exportierter Typen stellt der Test (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |
