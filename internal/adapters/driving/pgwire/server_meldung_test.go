@@ -1,4 +1,4 @@
-package pgwire
+package pgwire_test
 
 import (
 	"bytes"
@@ -16,6 +16,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
+	"github.com/pt9912/pgwire-recorder/internal/adapters/driving/pgwire"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
 
@@ -80,8 +81,8 @@ func TestFehlerantwortJeKlasse(t *testing.T) {
 		{model.Errorf(model.CodeUnsupported, nil, "x"), model.CodeUnsupported, "0A000"},
 	} {
 		var log, netz bytes.Buffer
-		s := &Server{log: slog.New(slog.NewTextHandler(&log, nil))}
-		s.fail(pgproto3.NewBackend(&bytes.Buffer{}, &netz), f.err)
+		s := pgwire.NewRecordServer(nil, slog.New(slog.NewTextHandler(&log, nil)))
+		pgwire.Fail(s, pgproto3.NewBackend(&bytes.Buffer{}, &netz), f.err)
 		msg, err := pgproto3.NewFrontend(&netz, io.Discard).Receive()
 		if err != nil {
 			t.Fatal(err)
@@ -115,8 +116,8 @@ func TestFehlerantwortJeKlasse(t *testing.T) {
 // (SPEC-034 §Ausgabe *Gleichrangige Fehler*, LH-FA-13.b).
 func TestNoteGleichrangig(t *testing.T) {
 	var log bytes.Buffer
-	s := &Server{log: slog.New(slog.NewTextHandler(&log, nil))}
-	s.note(errors.Join(
+	s := pgwire.NewRecordServer(nil, slog.New(slog.NewTextHandler(&log, nil)))
+	pgwire.Note(s, errors.Join(
 		model.Errorf(model.CodeConnectionLost, nil, "Client weg"),
 		model.Errorf(model.CodeRecordingIO, nil, "r.yaml nicht zu schreiben"),
 		errors.New("upstream close"),
@@ -154,7 +155,7 @@ func (a *annahmeFehler) Accept() (net.Conn, error) {
 // und Serve nimmt danach weiter an (LH-FA-13.b).
 func TestAnnahmefehler(t *testing.T) {
 	var log syncBuffer
-	s := NewReplayServer(&fakeReplayer{}, slog.New(slog.NewTextHandler(&log, nil)))
+	s := pgwire.NewReplayServer(&fakeReplayer{}, slog.New(slog.NewTextHandler(&log, nil)))
 	l := &annahmeFehler{}
 	s.Serve(context.Background(), l)
 	if l.runde != 2 {
@@ -175,12 +176,12 @@ func TestAnnahmefehler(t *testing.T) {
 // §Zeilenform).
 func TestOhneStartnachrichtGrund(t *testing.T) {
 	var log syncBuffer
-	s := NewReplayServer(&fakeReplayer{}, slog.New(slog.NewTextHandler(&log, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	s := pgwire.NewReplayServer(&fakeReplayer{}, slog.New(slog.NewTextHandler(&log, &slog.HandlerOptions{Level: slog.LevelDebug})))
 	client, serverSeite := net.Pipe()
 	_ = client.Close()
 	fertig := make(chan struct{})
 	go func() {
-		s.handle(context.Background(), serverSeite)
+		pgwire.Handle(context.Background(), s, serverSeite)
 		close(fertig)
 	}()
 	select {
@@ -266,8 +267,8 @@ func TestInfoOhneZeileJeVerbindung(t *testing.T) {
 // error im Log (SPEC-034 §Ausgabe *Zustellung an den Client*).
 func TestFailGleichrangig(t *testing.T) {
 	var log, netz bytes.Buffer
-	s := &Server{log: slog.New(slog.NewTextHandler(&log, nil))}
-	s.fail(pgproto3.NewBackend(&bytes.Buffer{}, &netz), errors.Join(
+	s := pgwire.NewRecordServer(nil, slog.New(slog.NewTextHandler(&log, nil)))
+	pgwire.Fail(s, pgproto3.NewBackend(&bytes.Buffer{}, &netz), errors.Join(
 		model.Errorf(model.CodeUnsupported, nil, "nicht unterstützt"),
 		model.Errorf(model.CodeConnectionLost, nil, "weg"),
 	))

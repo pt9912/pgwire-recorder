@@ -1,4 +1,4 @@
-package pgwire
+package pgwire_test
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
+	"github.com/pt9912/pgwire-recorder/internal/adapters/driving/pgwire"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
 
@@ -189,16 +190,16 @@ func (f *fakeRecorder) lastEnd(t *testing.T) model.SessionEnd {
 }
 
 // verbinde startet den Server-Handler auf einer Seite eines net.Pipe.
-func verbinde(t *testing.T, rec *fakeRecorder) (net.Conn, *Server) {
+func verbinde(t *testing.T, rec *fakeRecorder) (net.Conn, *pgwire.Server) {
 	t.Helper()
 	return verbindeMitLog(t, rec, io.Discard)
 }
 
-func verbindeMitLog(t *testing.T, rec *fakeRecorder, log io.Writer) (net.Conn, *Server) {
+func verbindeMitLog(t *testing.T, rec *fakeRecorder, log io.Writer) (net.Conn, *pgwire.Server) {
 	t.Helper()
 	client, serverSeite := net.Pipe()
-	s := NewRecordServer(rec, slog.New(slog.NewTextHandler(log, nil)))
-	go s.handle(context.Background(), serverSeite)
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(log, nil)))
+	go pgwire.Handle(context.Background(), s, serverSeite)
 	t.Cleanup(func() { client.Close() })
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 	return client, s
@@ -238,7 +239,7 @@ func fehlerantwort(t *testing.T, fe *pgproto3.Frontend) *pgproto3.ErrorResponse 
 // Recorder mit „N“ und erwartet danach einen unverschlüsselten Aufbau
 // (LH-FA-05.c).
 func TestSSLUndGSSMitN(t *testing.T) {
-	for _, code := range []uint32{codeSSLRequest, codeGSSEncRequest} {
+	for _, code := range []uint32{pgwire.CodeSSLRequest, pgwire.CodeGSSEncRequest} {
 		rec := &fakeRecorder{}
 		client, _ := verbinde(t, rec)
 		anfrage := make([]byte, 8)
@@ -356,7 +357,7 @@ func TestCancelRequest(t *testing.T) {
 	client, _ := verbindeMitLog(t, rec, &log)
 	msg := make([]byte, 16)
 	binary.BigEndian.PutUint32(msg[0:4], 16)
-	binary.BigEndian.PutUint32(msg[4:8], codeCancelRequest)
+	binary.BigEndian.PutUint32(msg[4:8], pgwire.CodeCancelRequest)
 	if _, err := client.Write(msg); err != nil {
 		t.Fatal(err)
 	}
@@ -393,7 +394,7 @@ func (s *syncBuffer) String() string {
 func TestUnbekannteSonderanfrage(t *testing.T) {
 	sonder := make([]byte, 8)
 	binary.BigEndian.PutUint32(sonder[0:4], 8)
-	binary.BigEndian.PutUint32(sonder[4:8], majorSpezial<<16|9999)
+	binary.BigEndian.PutUint32(sonder[4:8], pgwire.MajorSpezial<<16|9999)
 	rec := &fakeRecorder{}
 	client, _ := verbinde(t, rec)
 	if _, err := client.Write(sonder); err != nil {
@@ -508,9 +509,9 @@ func TestUnlesbareNachricht(t *testing.T) {
 
 // Der Lauf merkt sich den ersten Verbindungsfehler, nicht den letzten.
 func TestErsterFehlerZaehlt(t *testing.T) {
-	s := &Server{log: slog.New(slog.NewTextHandler(io.Discard, nil))}
-	s.note(model.Errorf(model.CodeUpstream, nil, "erster"))
-	s.note(model.Errorf(model.CodeUnsupported, nil, "zweiter"))
+	s := pgwire.NewRecordServer(nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	pgwire.Note(s, model.Errorf(model.CodeUpstream, nil, "erster"))
+	pgwire.Note(s, model.Errorf(model.CodeUnsupported, nil, "zweiter"))
 	if s.FirstErrorCode() != model.CodeUpstream {
 		t.Fatalf("erster Fehler: %q", s.FirstErrorCode())
 	}
@@ -537,10 +538,10 @@ func TestUpstreamNichtErreichbar(t *testing.T) {
 // Eine Antwort ohne Transaktionsstatus oder mit unbekanntem Typ wird nicht
 // erfunden, sondern ist ein Fehler.
 func TestToMessageErfindetNichts(t *testing.T) {
-	if _, err := toMessage(model.Response{Type: model.ResponseReadyForQuery}); err == nil {
+	if _, err := pgwire.ToMessage(model.Response{Type: model.ResponseReadyForQuery}); err == nil {
 		t.Fatal("ReadyForQuery ohne Status angenommen")
 	}
-	if _, err := toMessage(model.Response{Type: "bogus"}); err == nil {
+	if _, err := pgwire.ToMessage(model.Response{Type: "bogus"}); err == nil {
 		t.Fatal("unbekannter Typ angenommen")
 	}
 }
@@ -628,14 +629,14 @@ func (f *fakeReplayer) CloseConnection(context.Context, model.SessionID) (*model
 // replayVerbindung startet eine Replay-Verbindung über net.Pipe, liest den
 // Verbindungsaufbau und liefert Server, Client-Seite und Log; fertig ist
 // geschlossen, wenn die Verbindung beendet ist.
-func replayVerbindung(t *testing.T, rep *fakeReplayer) (*Server, net.Conn, *pgproto3.Frontend, *syncBuffer, chan struct{}) {
+func replayVerbindung(t *testing.T, rep *fakeReplayer) (*pgwire.Server, net.Conn, *pgproto3.Frontend, *syncBuffer, chan struct{}) {
 	t.Helper()
 	client, serverSeite := net.Pipe()
 	log := &syncBuffer{}
-	s := NewReplayServer(rep, slog.New(slog.NewTextHandler(log, nil)))
+	s := pgwire.NewReplayServer(rep, slog.New(slog.NewTextHandler(log, nil)))
 	fertig := make(chan struct{})
 	go func() {
-		s.handle(context.Background(), serverSeite)
+		pgwire.Handle(context.Background(), s, serverSeite)
 		close(fertig)
 	}()
 	t.Cleanup(func() { client.Close() })
@@ -751,8 +752,8 @@ func TestReplayModus(t *testing.T) {
 	rep := &fakeReplayer{warnung: model.Warnf(model.CodeUnconsumed, "nicht verbraucht")}
 	client, serverSeite := net.Pipe()
 	var log syncBuffer
-	s := NewReplayServer(rep, slog.New(slog.NewTextHandler(&log, nil)))
-	go s.handle(context.Background(), serverSeite)
+	s := pgwire.NewReplayServer(rep, slog.New(slog.NewTextHandler(&log, nil)))
+	go pgwire.Handle(context.Background(), s, serverSeite)
 	defer client.Close()
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 

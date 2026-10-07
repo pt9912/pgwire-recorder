@@ -217,6 +217,135 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 
+**Belege des Implementers** (Arbeitsbaum auf `6ff1b3b` mit dem Diff des Commits, der
+diesen Abschnitt anlegt):
+
+*White-Box-Zugriffe, per AST gemessen* (go/types im Image der Stufe `deps`, ohne Netz;
+gezählt sind Bezeichner in Testdateien des Pakets `pgwire`, die auf ein unexportiertes
+Objekt einer Produkt-Datei desselben Pakets zeigen, dazu Literale, `var`, `new` und
+`:=` unexportierter Typen in Testdateien). Vorher (`6ff1b3b`), je Zugriff mit Zuordnung:
+
+| Zugriff | Stellen | Zuordnung |
+|---|---|---|
+| `(*Server).handle` | 10 | Brücke `Handle` (reicht an `handle` des übergebenen, von `NewRecordServer` oder `NewReplayServer` erzeugten `Server` weiter; die Verbindung stellt der Test) |
+| `(*Server).fail`, `(*Server).note` | 2, 3 | Brücke `Fail`, `Note` (an einem übergebenen `Server`) |
+| Feld `log` in `&Server{log: …}` | 4 | exportierte Schnittstelle: `NewRecordServer(nil, …)`, derselbe Zustand ohne Use Case |
+| `toClientMessage`, `toMessage` | 4, 4 | Brücke `ToClientMessage`, `ToMessage` |
+| `codeSSLRequest`, `codeGSSEncRequest`, `codeCancelRequest`, `majorSpezial` | je 1 | Brücke, Konstanten |
+| `meldeFrist` | 2 | Brücke, Konstante `MeldeFrist`; gelesen, nicht gesetzt |
+| Typ `richtungen`, Felder `conn` und `weck`, Methoden `wecke` und `weiterlesen` | 1, 1, 1, 1, 2 | exportierte Schnittstelle (`SPEC-049` Punkt 7, letzter Fall): Den Wert legte `TestWeiterlesenNachWecken` als Literal an; das Produkt erzeugt ihn nur in `recordSitzung`, die Brücke bekommt ihn weder übergeben noch lässt sie ihn erzeugen. Der Test ist umgeschrieben (unten) |
+
+Werte unexportierter Typen in Testdateien vorher 2 (`richtungen`-Literal und die
+Variable `r`, beide in `TestWeiterlesenNachWecken`). Nachher: die zehn Objekte aus den
+Zeilen der Brücke stehen je einmal in `export_test.go` und sonst nirgends; 0 Werte
+unexportierter Typen. Kein Zugriff blieb Befund; kein Test setzt eine Frist oder weckt an
+einem Wert, den er selbst angelegt hat: `TestWeiterlesenNachWecken` weckt über das Ende
+von `ctx` an der Session, die `Handle` aus einer vom Test gestellten Verbindung
+(`fristSpion`, ein `net.Conn`) erzeugt. Fehltreffer der Suche in §6: `fehler` (lokale
+Variable), `startup` (Testhelfer).
+
+Die Brücke `internal/adapters/driving/pgwire/export_test.go` hat fünf Konstanten
+(`CodeCancelRequest`, `CodeSSLRequest`, `CodeGSSEncRequest`, `MajorSpezial`,
+`MeldeFrist`) und fünf Funktionen (`Handle`, `Fail`, `Note`, `ToClientMessage`,
+`ToMessage`), die nur weiterreichen. Kein Produkt-Code geändert.
+
+*Testliste* (`go test -list .`, Image der Stufe `deps`): vorher und nachher 40 Tests,
+`diff` leer. Die Abdeckungs-Deklarationen stehen unverändert (der Diff berührt keine
+Kommentarzeile `Abdeckung:` und keinen Kommentar darunter); `make abdeckung-check` grün.
+
+*`make lint`.* Vorher (`6ff1b3b`, Exit 2): golangci-lint `60 issues:` im Modul, davon
+20 unter `internal/adapters/driving/pgwire`, 6 in dessen Testdateien:
+
+```text
+internal/adapters/driving/pgwire/server_extended_test.go:42:5: sendeMu is a global variable (gochecknoglobals)
+internal/adapters/driving/pgwire/server_extended_test.go:25:37: context-as-argument: context.Context should be the first parameter of a function (revive)
+internal/adapters/driving/pgwire/server_extended_test.go:313:35: context-as-argument: context.Context should be the first parameter of a function (revive)
+internal/adapters/driving/pgwire/server_extended_test.go:1:9: package should be `pgwire_test` instead of `pgwire` (testpackage)
+internal/adapters/driving/pgwire/server_meldung_test.go:1:9: package should be `pgwire_test` instead of `pgwire` (testpackage)
+internal/adapters/driving/pgwire/server_test.go:1:9: package should be `pgwire_test` instead of `pgwire` (testpackage)
+```
+
+Nachher (Arbeitsbaum, Exit 2): `54 issues:` im Modul, 6 weniger; unter
+`internal/adapters/driving/pgwire` 14, alle im Produkt-Code und dieselben Zeilen wie
+vorher (`diff` der übrigen Befunde leer), keiner in einer Testdatei und keine
+`lint:`-Zeile der eigenen Prüfungen (auch nicht an `export_test.go`). Die 14 bleiben für
+`slice-lint-bestand-driving`:
+
+```text
+internal/adapters/driving/pgwire/server.go:302:2: found a struct that contains a context.Context field (containedctx)
+internal/adapters/driving/pgwire/server.go:440:47: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+internal/adapters/driving/pgwire/server.go:462:34: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+internal/adapters/driving/pgwire/server.go:474:40: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+internal/adapters/driving/pgwire/server.go:182:1: calculated cyclomatic complexity for function replaySitzung is 21, max is 15 (cyclop)
+internal/adapters/driving/pgwire/server.go:435:1: calculated cyclomatic complexity for function clientRichtung is 17, max is 15 (cyclop)
+internal/adapters/driving/pgwire/server.go:569:1: calculated cyclomatic complexity for function startup is 17, max is 15 (cyclop)
+internal/adapters/driving/pgwire/server.go:739:1: calculated cyclomatic complexity for function toMessage is 20, max is 15 (cyclop)
+internal/adapters/driving/pgwire/server.go:182:1: cognitive complexity 37 of func `(*Server).replaySitzung` is high (> 20) (gocognit)
+internal/adapters/driving/pgwire/server.go:435:1: cognitive complexity 22 of func `(*richtungen).clientRichtung` is high (> 20) (gocognit)
+internal/adapters/driving/pgwire/server.go:182:1: cyclomatic complexity 20 of func `(*Server).replaySitzung` is high (> 15) (gocyclo)
+internal/adapters/driving/pgwire/server.go:739:1: cyclomatic complexity 19 of func `toMessage` is high (> 15) (gocyclo)
+internal/adapters/driving/pgwire/server.go:62:22: net.Listen must not be called. use (*net.ListenConfig).Listen (noctx)
+internal/adapters/driving/pgwire/server.go:728:7: unused-receiver: method receiver 's' is not referenced in method's body, consider removing or renaming it as _ (revive)
+```
+
+Behoben ohne `//nolint`, ohne neues `_ =` und ohne Änderung an `.golangci.yml`:
+`testpackage` durch `package pgwire_test`; `gochecknoglobals` (`sendeMu`) durch die
+Funktion `nebenher(fe)`, die je Aufruf eine eigene Sperre anlegt und eine Funktion
+`sende` für diese eine Verbindung liefert, statt einer Sperre für alle Verbindungen des
+Pakets; `revive` `context-as-argument` durch `ctx` als ersten Parameter von
+`verbindeExtended` und `verbindeReplay`. Das `_ = fe.Flush()` in `nebenher` ist die Zeile
+aus `sende`, unverändert übernommen; im neuen Test ist der Fehler von `SetDeadline`
+geprüft.
+
+*Umgeschrieben:* nur `TestWeiterlesenNachWecken`. Er startet eine Record-Session über
+`Handle` auf `fristSpion`, der jedes Setzen der Lesefrist (`frist`, `zurück`) und jedes an
+ihr gescheiterte Lesen (`abgelaufen`) protokolliert, beendet `ctx` bei `Shutdown` ohne
+Freigabe und erwartet genau `frist abgelaufen abgelaufen zurück`, danach das Lesen der
+nächsten Nachricht (`c:parse`); 20 Läufe mit `-count=20` grün. Alle übrigen Tests sind umgestellt (Paketname,
+Brücke, Präfix `pgwire.`), ihre Prüfungen unverändert.
+
+*Mutationen* (`AGENTS.md` §3.10, Risiko *Prüfung geht im Umbau verloren*): je Mutant ein
+frischer Pfad außerhalb des Repos (`cp -r` ohne `-p` aus dem Arbeitsbaum), Tests per
+Bind-Mount im Image der Stufe `deps` mit `go test -count=1 -run`; ohne Mutation ist jeder
+genannte Test grün, mit ihr rot.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| nach dem Wecken lässt `weiterlesen` die Lesefrist stehen (umgeschrieben) | `weiterlesen` setzt die Frist auch nach dem Wecken zurück | `TestWeiterlesenNachWecken` (`frist abgelaufen zurück`) |
+| dasselbe, das Signal wird nicht verbraucht | `weiterlesen` ohne `select`, setzt immer zurück | `TestWeiterlesenNachWecken` |
+| das Wecken hinterlegt ein Signal | `wecke` ohne Senden in `weck` | `TestWeiterlesenNachWecken` |
+| ohne Wecken setzt `weiterlesen` die Frist zurück und die Richtung liest weiter | `weiterlesen` setzt ohne Signal nicht zurück | `TestWeiterlesenNachWecken` (kein `zurück` binnen 2 s) |
+| Parameterwerte werden kopiert (über `ToClientMessage`) | `Bind` übernimmt den Puffer der Bibliothek | `TestToClientMessage` |
+| eine fremde Zielart ist ein Fehler (über `ToClientMessage` und `Handle`) | `zielart` liefert im `default` `TargetStatement` | `TestToClientMessage`, `TestExtendedNichtUnterstuetzt` |
+| ein unbekannter Antworttyp wird nicht erfunden (über `ToMessage`) | `default` liefert `NoData` | `TestToMessageErfindetNichts` |
+| ParameterDescription trägt die Typen (über `ToMessage`) | `ParameterOIDs: nil` | `TestToMessageExtended` |
+| SQLSTATE nach Klasse (über `Fail`) | Klasse 6 liefert `XX000` | `TestFehlerantwortJeKlasse`, `TestFailGleichrangig` |
+| genau eine ErrorResponse (über `Fail`) | `fail` sendet sie zweimal | `TestFailGleichrangig` |
+| der erste Fehler zählt (über `Note`) | `note` überschreibt `firstCode` immer | `TestErsterFehlerZaehlt` |
+| je Meldung eine Log-Zeile (über `Note`) | `note` loggt nur die erste | `TestNoteGleichrangig` |
+| die Fehlerantwort beim Ende schreibt höchstens `MeldeFrist` lang | `SetWriteDeadline` in `beende` entfernt | `TestFehlerantwortMitFrist` |
+| SSLRequest wird erkannt (Konstante über die Brücke) | `codeSSLRequest = 80877199` | `TestSSLUndGSSMitN` (die Bibliothek dekodiert den echten Code) |
+| Client-Nachrichten gehen mit ihren Feldern an den Use Case (über `Handle` und `nebenher`) | `Parse` trägt als `Statement` die Anfrage | `TestExtendedSyncGruppe` |
+
+*Ohne roten Test*, eingeordnet nach `.claude/commands/implement-slice.md` Schritt 19:
+
+- `meldeFrist = 3 * time.Second` bleibt grün: `TestFehlerantwortMitFrist` wartet
+  `MeldeFrist` plus eine Sekunde, vorher wie nachher über dieselbe Konstante. Der Mutant
+  ändert das Verhalten (die Dauer), über die Schnittstelle fangbar nur gegen einen festen
+  Wert; weder Spezifikation noch Lastenheft nennen ihn. Test-Idee: die Schranke als
+  Literal. Grenze: Der Wert ist nicht spezifiziert, §1 schließt geänderte Erwartungen
+  aus; die Closure gibt der Idee eine Adresse.
+- `nebenher` ohne Sperre (Lock und Unlock entfernt) bleibt grün, 10 Läufe: Ohne Sperre
+  schreibt ein zweiter Aufruf in den Puffer von `fe`, während der vorige Flush läuft. Das
+  ändert das Verhalten des Testhelfers nur bei gleichzeitigem Zugriff; die Tests warten
+  zwischen zwei Aufrufen auf den Use Case. Test-Idee: `go test -race`. Grenze: Das Image
+  baut mit `CGO_ENABLED=0` und hat keinen C-Compiler, der Race-Detektor läuft dort
+  nicht; die Sperre stand vorher ebenso ungeprüft in `sendeMu`.
+
+*Läufe:* `gofmt -l` (leer), `go vet` und `go test` des Pakets im Image der Stufe `deps`;
+`make lint` vorher und nachher wie oben; `make abdeckung-check` grün; `make gates` grün am
+Stand dieses Commits.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

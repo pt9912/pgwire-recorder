@@ -1,4 +1,4 @@
-package pgwire
+package pgwire_test
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -17,19 +18,20 @@ import (
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
+	"github.com/pt9912/pgwire-recorder/internal/adapters/driving/pgwire"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
 
 // verbindeExtended startet den Handler im Record-Modus mit einem Recorder, der
 // Server-Nachrichten aus seinem Kanal liefert.
-func verbindeExtended(t *testing.T, ctx context.Context, rec *fakeRecorder) (net.Conn, *pgproto3.Frontend, *Server) {
+func verbindeExtended(ctx context.Context, t *testing.T, rec *fakeRecorder) (net.Conn, *pgproto3.Frontend, *pgwire.Server) {
 	t.Helper()
 	if rec.server == nil {
 		rec.server = make(chan []model.Response, 4)
 	}
 	client, serverSeite := net.Pipe()
-	s := NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	go s.handle(ctx, serverSeite)
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	go pgwire.Handle(ctx, s, serverSeite)
 	t.Cleanup(func() { client.Close() })
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 	fe := pgproto3.NewFrontend(client, client)
@@ -37,21 +39,22 @@ func verbindeExtended(t *testing.T, ctx context.Context, rec *fakeRecorder) (net
 	return client, fe, s
 }
 
-// sendeMu hält den Schreibpuffer des Frontends von Send bis zum Ende des
-// nebenher laufenden Flush.
-var sendeMu sync.Mutex
-
-// sende schreibt die Nachrichten nebenher; net.Pipe blockiert, bis der Server
-// liest. Ein weiterer Aufruf wartet, bis der Server die vorigen gelesen hat.
-func sende(fe *pgproto3.Frontend, msgs ...pgproto3.FrontendMessage) {
-	sendeMu.Lock()
-	for _, m := range msgs {
-		fe.Send(m)
+// nebenher liefert eine Funktion, die Nachrichten an fe nebenher schreibt;
+// net.Pipe blockiert, bis der Server liest. Ihre Sperre hält den Schreibpuffer
+// von fe von Send bis zum Ende des nebenher laufenden Flush: Ein weiterer Aufruf
+// derselben Funktion wartet, bis der Server die vorigen gelesen hat.
+func nebenher(fe *pgproto3.Frontend) func(msgs ...pgproto3.FrontendMessage) {
+	var mu sync.Mutex
+	return func(msgs ...pgproto3.FrontendMessage) {
+		mu.Lock()
+		for _, m := range msgs {
+			fe.Send(m)
+		}
+		go func() {
+			defer mu.Unlock()
+			_ = fe.Flush()
+		}()
 	}
-	go func() {
-		defer sendeMu.Unlock()
-		_ = fe.Flush()
-	}()
 }
 
 // warteAuf wartet, bis das Protokoll des Recorders want enthält.
@@ -88,8 +91,9 @@ func endeName(e model.SessionEnd) string { return fmt.Sprintf("ende:%d", e) }
 // in Reihenfolge an den Client und werden danach als zugestellt gemeldet.
 func TestExtendedSyncGruppe(t *testing.T) {
 	rec := &fakeRecorder{}
-	_, fe, s := verbindeExtended(t, context.Background(), rec)
-	sende(fe,
+	_, fe, s := verbindeExtended(context.Background(), t, rec)
+	sende := nebenher(fe)
+	sende(
 		&pgproto3.Parse{Name: "s1", Query: "SELECT $1, $2, $3", ParameterOIDs: []uint32{23, 25, 25}},
 		&pgproto3.Bind{DestinationPortal: "p", PreparedStatement: "s1", ParameterFormatCodes: []int16{0}, Parameters: [][]byte{[]byte("1"), nil, {}}, ResultFormatCodes: []int16{1}},
 		&pgproto3.Describe{ObjectType: 'P', Name: "p"},
@@ -130,7 +134,7 @@ func TestExtendedSyncGruppe(t *testing.T) {
 		t.Fatalf("an den Client: %s", got)
 	}
 	warteAuf(t, rec, "zugestellt zugestellt zugestellt")
-	sende(fe, &pgproto3.Terminate{})
+	sende(&pgproto3.Terminate{})
 	if end := rec.lastEnd(t); end != model.EndTerminate || s.FirstErrorCode() != "" {
 		t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
 	}
@@ -143,8 +147,9 @@ func TestExtendedSyncGruppe(t *testing.T) {
 func TestExtendedZweiRichtungen(t *testing.T) {
 	halt := make(chan struct{})
 	rec := &fakeRecorder{halt: map[model.ClientMessageType]chan struct{}{model.ClientSync: halt}}
-	_, fe, _ := verbindeExtended(t, context.Background(), rec)
-	sende(fe, &pgproto3.Parse{Query: "SELECT 1"}, &pgproto3.Bind{}, &pgproto3.Execute{}, &pgproto3.Sync{})
+	_, fe, _ := verbindeExtended(context.Background(), t, rec)
+	sende := nebenher(fe)
+	sende(&pgproto3.Parse{Query: "SELECT 1"}, &pgproto3.Bind{}, &pgproto3.Execute{}, &pgproto3.Sync{})
 	warteAuf(t, rec, "c:sync")
 	rec.server <- []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}}
 	if got := strings.Join(empfange(t, fe, 2), " "); got != "ParseComplete BindComplete" {
@@ -160,8 +165,9 @@ func TestExtendedZweiRichtungen(t *testing.T) {
 // Server-Nachrichten an den Client, ohne dass ein Sync folgt.
 func TestExtendedFlush(t *testing.T) {
 	rec := &fakeRecorder{}
-	_, fe, _ := verbindeExtended(t, context.Background(), rec)
-	sende(fe, &pgproto3.Parse{Name: "s1", Query: "SELECT $1"}, &pgproto3.Describe{ObjectType: 'S', Name: "s1"}, &pgproto3.Flush{})
+	_, fe, _ := verbindeExtended(context.Background(), t, rec)
+	sende := nebenher(fe)
+	sende(&pgproto3.Parse{Name: "s1", Query: "SELECT $1"}, &pgproto3.Describe{ObjectType: 'S', Name: "s1"}, &pgproto3.Flush{})
 	warteAuf(t, rec, "c:flush")
 	rec.server <- []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseParameterDescription, ParamTypes: []uint32{23}}, {Type: model.ResponseNoData}}
 	var oids []uint32
@@ -199,26 +205,30 @@ func TestExtendedEreignisse(t *testing.T) {
 		wantCode string
 	}{
 		{"Verbindungsende", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
-			sende(fe, &pgproto3.Parse{Query: "SELECT 1"})
+			sende := nebenher(fe)
+			sende(&pgproto3.Parse{Query: "SELECT 1"})
 			warteAuf(t, rec, "c:parse")
 			client.Close()
 		}, model.EndClosed, model.CodeConnectionLost},
 		{"Terminate", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
-			sende(fe, &pgproto3.Parse{Query: "SELECT 1"}, &pgproto3.Flush{})
+			sende := nebenher(fe)
+			sende(&pgproto3.Parse{Query: "SELECT 1"}, &pgproto3.Flush{})
 			warteAuf(t, rec, "c:flush")
-			sende(fe, &pgproto3.Terminate{})
+			sende(&pgproto3.Terminate{})
 		}, model.EndTerminate, model.CodeConnectionLost},
 		{"Schreibfehler, während ClientMessage wartet", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
+			sende := nebenher(fe)
 			rec.mu.Lock()
 			rec.halt = map[model.ClientMessageType]chan struct{}{model.ClientSync: make(chan struct{})}
 			rec.mu.Unlock()
-			sende(fe, &pgproto3.Sync{})
+			sende(&pgproto3.Sync{})
 			warteAuf(t, rec, "c:sync")
 			client.Close()
 			rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
 		}, model.EndWriteFailed, model.CodeConnectionLost},
 		{"Fehler aus AwaitServer", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
-			sende(fe, &pgproto3.Sync{})
+			sende := nebenher(fe)
+			sende(&pgproto3.Sync{})
 			warteAuf(t, rec, "c:sync")
 			close(rec.server)
 			e := fehlerantwort(t, fe)
@@ -237,7 +247,7 @@ func TestExtendedEreignisse(t *testing.T) {
 			if c.wantEnd != model.EndFailed {
 				rec.closeErr = verloren
 			}
-			client, fe, s := verbindeExtended(t, context.Background(), rec)
+			client, fe, s := verbindeExtended(context.Background(), t, rec)
 			c.ablauf(t, client, fe, rec)
 			if end := rec.lastEnd(t); end != c.wantEnd {
 				t.Fatalf("Session-Ende %v, erwartet %v", end, c.wantEnd)
@@ -264,7 +274,7 @@ func TestExtendedEreignisse(t *testing.T) {
 func TestExtendedNichtUnterstuetzt(t *testing.T) {
 	t.Run("Zielart", func(t *testing.T) {
 		rec := &fakeRecorder{}
-		client, fe, s := verbindeExtended(t, context.Background(), rec)
+		client, fe, s := verbindeExtended(context.Background(), t, rec)
 		go func() { _, _ = client.Write([]byte{'D', 0, 0, 0, 6, 'X', 0}) }()
 		e := fehlerantwort(t, fe)
 		if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) {
@@ -279,8 +289,9 @@ func TestExtendedNichtUnterstuetzt(t *testing.T) {
 	})
 	t.Run("Fehler des Use Case", func(t *testing.T) {
 		rec := &fakeRecorder{clientErr: model.Errorf(model.CodeUnsupported, nil, "Form")}
-		_, fe, s := verbindeExtended(t, context.Background(), rec)
-		sende(fe, &pgproto3.Sync{})
+		_, fe, s := verbindeExtended(context.Background(), t, rec)
+		sende := nebenher(fe)
+		sende(&pgproto3.Sync{})
 		e := fehlerantwort(t, fe)
 		if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) {
 			t.Fatalf("ErrorResponse: %+v", e)
@@ -292,8 +303,8 @@ func TestExtendedNichtUnterstuetzt(t *testing.T) {
 	t.Run("Replay", func(t *testing.T) {
 		rep := &fakeReplayer{}
 		client, serverSeite := net.Pipe()
-		s := NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
-		go s.handle(context.Background(), serverSeite)
+		s := pgwire.NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		go pgwire.Handle(context.Background(), s, serverSeite)
 		defer client.Close()
 		_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 		fe := pgproto3.NewFrontend(client, client)
@@ -310,11 +321,11 @@ func TestExtendedNichtUnterstuetzt(t *testing.T) {
 }
 
 // verbindeReplay startet den Handler im Replay-Modus.
-func verbindeReplay(t *testing.T, ctx context.Context, rep *fakeReplayer) (*pgproto3.Frontend, *Server) {
+func verbindeReplay(ctx context.Context, t *testing.T, rep *fakeReplayer) (*pgproto3.Frontend, *pgwire.Server) {
 	t.Helper()
 	client, serverSeite := net.Pipe()
-	s := NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	go s.handle(ctx, serverSeite)
+	s := pgwire.NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	go pgwire.Handle(ctx, s, serverSeite)
 	t.Cleanup(func() { client.Close() })
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 	fe := pgproto3.NewFrontend(client, client)
@@ -327,20 +338,21 @@ func verbindeReplay(t *testing.T, ctx context.Context, rep *fakeReplayer) (*pgpr
 // Replay-Use-Case, und was er zurückgibt, geht in Reihenfolge an den Client.
 func TestReplayExtended(t *testing.T) {
 	rep := &fakeReplayer{}
-	fe, s := verbindeReplay(t, context.Background(), rep)
+	fe, s := verbindeReplay(context.Background(), t, rep)
+	sende := nebenher(fe)
 	msgs := []pgproto3.FrontendMessage{
 		&pgproto3.Parse{Name: "s1", Query: "SELECT $1::text", ParameterOIDs: []uint32{25}},
 		&pgproto3.Bind{PreparedStatement: "s1", ParameterFormatCodes: []int16{0}, Parameters: [][]byte{[]byte("a")}},
 		&pgproto3.Execute{MaxRows: 3},
 		&pgproto3.Sync{},
 	}
-	sende(fe, msgs...)
+	sende(msgs...)
 	if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
 		t.Fatalf("an den Client: %s", got)
 	}
 	var want []model.ClientMessage
 	for _, m := range msgs {
-		cm, err := toClientMessage(m)
+		cm, err := pgwire.ToClientMessage(m)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -360,8 +372,9 @@ func TestReplayExtended(t *testing.T) {
 // Verbindung, ohne eine weitere Nachricht des Clients zu lesen.
 func TestReplayExtendedAbweichungImAdapter(t *testing.T) {
 	rep := &fakeReplayer{}
-	fe, s := verbindeReplay(t, context.Background(), rep)
-	sende(fe, &pgproto3.Execute{Portal: "abweichend"})
+	fe, s := verbindeReplay(context.Background(), t, rep)
+	sende := nebenher(fe)
+	sende(&pgproto3.Execute{Portal: "abweichend"})
 	e := fehlerantwort(t, fe)
 	if !strings.Contains(e.Message, model.CodeReplayMismatch) {
 		t.Fatalf("ErrorResponse: %+v", e)
@@ -386,13 +399,14 @@ func TestExtendedHerunterfahren(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		rec := &fakeRecorder{}
-		_, fe, s := verbindeExtended(t, ctx, rec)
-		sende(fe, &pgproto3.Parse{Query: "SELECT 1"})
+		_, fe, s := verbindeExtended(ctx, t, rec)
+		sende := nebenher(fe)
+		sende(&pgproto3.Parse{Query: "SELECT 1"})
 		warteAuf(t, rec, "c:parse")
 		cancel()
 		warteAuf(t, rec, "shutdown")
 		time.Sleep(50 * time.Millisecond)
-		sende(fe, &pgproto3.Bind{}, &pgproto3.Execute{}, &pgproto3.Sync{})
+		sende(&pgproto3.Bind{}, &pgproto3.Execute{}, &pgproto3.Sync{})
 		warteAuf(t, rec, "c:sync")
 		if strings.Contains(rec.protokoll(), "ende") {
 			t.Fatalf("Session vor dem ReadyForQuery beendet: %s", rec.protokoll())
@@ -413,7 +427,7 @@ func TestExtendedHerunterfahren(t *testing.T) {
 	t.Run("ruhend", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		rec := &fakeRecorder{shutdownEndet: true}
-		_, _, s := verbindeExtended(t, ctx, rec)
+		_, _, s := verbindeExtended(ctx, t, rec)
 		cancel()
 		if end := rec.lastEnd(t); end != model.EndShutdown || s.FirstErrorCode() != "" {
 			t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
@@ -424,8 +438,9 @@ func TestExtendedHerunterfahren(t *testing.T) {
 		defer cancel()
 		halt := make(chan struct{})
 		rec := &fakeRecorder{queryHalt: halt, shutdownEndet: true, zugestelltEndet: true}
-		_, fe, _ := verbindeExtended(t, ctx, rec)
-		sende(fe, &pgproto3.Query{String: "SELECT 1"})
+		_, fe, _ := verbindeExtended(ctx, t, rec)
+		sende := nebenher(fe)
+		sende(&pgproto3.Query{String: "SELECT 1"})
 		warteAuf(t, rec, "q:SELECT 1")
 		cancel()
 		time.Sleep(50 * time.Millisecond)
@@ -444,12 +459,13 @@ func TestExtendedHerunterfahren(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		rec := &fakeRecorder{neueNachShutdown: true}
-		_, fe, s := verbindeExtended(t, ctx, rec)
-		sende(fe, &pgproto3.Sync{})
+		_, fe, s := verbindeExtended(ctx, t, rec)
+		sende := nebenher(fe)
+		sende(&pgproto3.Sync{})
 		warteAuf(t, rec, "c:sync")
 		cancel()
 		warteAuf(t, rec, "shutdown")
-		sende(fe, &pgproto3.Parse{Query: "SELECT 2"}, &pgproto3.Bind{}, &pgproto3.Sync{})
+		sende(&pgproto3.Parse{Query: "SELECT 2"}, &pgproto3.Bind{}, &pgproto3.Sync{})
 		warteAuf(t, rec, "c:parse")
 		rec.mu.Lock()
 		rec.shutdownEndet = true
@@ -474,8 +490,9 @@ func TestHerunterfahrenWeckenNichtVerloren(t *testing.T) {
 	defer cancel()
 	halt := make(chan struct{})
 	rec := &fakeRecorder{shutdownAntworten: []bool{false, false}, shutdownHalt: map[int]chan struct{}{2: halt}}
-	_, fe, s := verbindeExtended(t, ctx, rec)
-	sende(fe, &pgproto3.Sync{})
+	_, fe, s := verbindeExtended(ctx, t, rec)
+	sende := nebenher(fe)
+	sende(&pgproto3.Sync{})
 	warteAuf(t, rec, "c:sync")
 	cancel()
 	warteAuf(t, rec, "shutdown shutdown")
@@ -492,42 +509,90 @@ func TestHerunterfahrenWeckenNichtVerloren(t *testing.T) {
 	}
 }
 
-// weiterlesen setzt die Lesefrist nicht zurück, wenn vorher geweckt wurde;
-// ohne Wecken setzt es sie zurück.
+// Nach dem Wecken setzt die Client-Richtung die Lesefrist nicht zurück: Das
+// nächste Lesen scheitert noch an ihr. Ohne weiteres Wecken setzt sie sie danach
+// zurück und liest die nächste Nachricht.
 func TestWeiterlesenNachWecken(t *testing.T) {
-	a, b := net.Pipe()
-	defer a.Close()
-	defer b.Close()
-	r := &richtungen{conn: a, weck: make(chan struct{}, 1)}
-	r.wecke()
-	if !r.weiterlesen() {
-		t.Fatal("Wecken nicht gemeldet")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rec := &fakeRecorder{}
+	client, serverSeite := net.Pipe()
+	spion := &fristSpion{Conn: serverSeite}
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	go pgwire.Handle(ctx, s, spion)
+	t.Cleanup(func() { client.Close() })
+	if err := client.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatal(err)
 	}
-	fehler := make(chan error, 1)
-	go func() {
-		_, err := a.Read(make([]byte, 1))
-		fehler <- err
-	}()
-	select {
-	case err := <-fehler:
-		if !errors.Is(err, os.ErrDeadlineExceeded) {
-			t.Fatalf("Lesen: %v", err)
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	sende := nebenher(fe)
+	sende(&pgproto3.Sync{})
+	warteAuf(t, rec, "c:sync")
+	cancel()
+	deadline := time.Now().Add(2 * time.Second)
+	for !spion.enthaelt("zurück") {
+		if time.Now().After(deadline) {
+			t.Fatalf("Lesefrist nicht zurückgesetzt, %d Ereignisse an der Verbindung", spion.anzahl())
 		}
-	case <-time.After(time.Second):
-		t.Fatal("Lesefrist nach dem Wecken zurückgesetzt")
+		time.Sleep(time.Millisecond)
 	}
-	if r.weiterlesen() {
-		t.Fatal("Wecken ohne Signal gemeldet")
+	time.Sleep(50 * time.Millisecond)
+	if got := spion.protokoll(); got != "frist abgelaufen abgelaufen zurück" {
+		t.Fatalf("Lesefrist und Lesen an der Verbindung: %q", got)
 	}
-	go func() {
-		_, err := a.Read(make([]byte, 1))
-		fehler <- err
-	}()
-	select {
-	case err := <-fehler:
-		t.Fatalf("Lesefrist nicht zurückgesetzt: %v", err)
-	case <-time.After(50 * time.Millisecond):
+	sende(&pgproto3.Parse{Query: "SELECT 1"})
+	warteAuf(t, rec, "c:parse")
+}
+
+// fristSpion protokolliert an einer Verbindung jedes Setzen der Lesefrist,
+// „frist“ oder für die Nullzeit „zurück“, bevor es sie setzt, und jedes Lesen,
+// das an ihr scheitert, als „abgelaufen“.
+type fristSpion struct {
+	net.Conn
+	mu         sync.Mutex
+	ereignisse []string
+}
+
+func (c *fristSpion) merke(e string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.ereignisse = append(c.ereignisse, e)
+}
+
+func (c *fristSpion) protokoll() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return strings.Join(c.ereignisse, " ")
+}
+
+func (c *fristSpion) enthaelt(e string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return slices.Contains(c.ereignisse, e)
+}
+
+func (c *fristSpion) anzahl() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.ereignisse)
+}
+
+func (c *fristSpion) SetReadDeadline(t time.Time) error {
+	if t.IsZero() {
+		c.merke("zurück")
+	} else {
+		c.merke("frist")
 	}
+	return c.Conn.SetReadDeadline(t)
+}
+
+func (c *fristSpion) Read(p []byte) (int, error) {
+	n, err := c.Conn.Read(p)
+	if errors.Is(err, os.ErrDeadlineExceeded) {
+		c.merke("abgelaufen")
+	}
+	return n, err
 }
 
 // Abdeckung: LH-FA-13/Boundary — endet eine Session, schließt der Adapter die
@@ -537,21 +602,22 @@ func TestEndeSchliesstVerbindung(t *testing.T) {
 	rec := &fakeRecorder{server: make(chan []model.Response, 1)}
 	client, serverSeite := net.Pipe()
 	defer client.Close()
-	s := NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	zurueck := make(chan struct{})
 	go func() {
-		s.handle(context.Background(), serverSeite)
+		pgwire.Handle(context.Background(), s, serverSeite)
 		close(zurueck)
 	}()
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 	fe := pgproto3.NewFrontend(client, client)
 	startup(t, fe)
-	sende(fe, &pgproto3.Sync{})
+	sende := nebenher(fe)
+	sende(&pgproto3.Sync{})
 	warteAuf(t, rec, "c:sync")
 	// Der Client liest nicht: das Schreiben der Server-Richtung blockiert.
 	rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
 	time.Sleep(50 * time.Millisecond)
-	sende(fe, &pgproto3.Terminate{})
+	sende(&pgproto3.Terminate{})
 	select {
 	case <-zurueck:
 	case <-time.After(2 * time.Second):
@@ -581,17 +647,17 @@ func TestToClientMessage(t *testing.T) {
 		{&pgproto3.Sync{}, model.ClientMessage{Type: model.ClientSync}},
 	}
 	for _, c := range cases {
-		got, err := toClientMessage(c.in)
+		got, err := pgwire.ToClientMessage(c.in)
 		if err != nil || !reflect.DeepEqual(got, c.want) {
 			t.Fatalf("%T: %#v, %v; erwartet %#v", c.in, got, err, c.want)
 		}
 	}
-	got, _ := toClientMessage(&pgproto3.Bind{Parameters: [][]byte{param}})
+	got, _ := pgwire.ToClientMessage(&pgproto3.Bind{Parameters: [][]byte{param}})
 	param[0] = 'y'
 	if string(got.Params[0].Bytes) != "x" {
 		t.Fatal("Parameterwert nicht kopiert")
 	}
-	if _, err := toClientMessage(&pgproto3.Close{ObjectType: 'X'}); err == nil {
+	if _, err := pgwire.ToClientMessage(&pgproto3.Close{ObjectType: 'X'}); err == nil {
 		t.Fatal("Close mit Zielart X angenommen")
 	}
 }
@@ -608,9 +674,9 @@ func TestToMessageExtended(t *testing.T) {
 		model.ResponsePortalSuspended:      &pgproto3.PortalSuspended{},
 	}
 	for typ, want := range cases {
-		got, err := toMessage(model.Response{Type: typ, ParamTypes: []uint32{23, 25}})
+		got, err := pgwire.ToMessage(model.Response{Type: typ, ParamTypes: []uint32{23, 25}})
 		if typ != model.ResponseParameterDescription {
-			got, err = toMessage(model.Response{Type: typ})
+			got, err = pgwire.ToMessage(model.Response{Type: typ})
 		}
 		if err != nil || !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s: %#v, %v", typ, got, err)
@@ -626,25 +692,26 @@ func TestFehlerantwortMitFrist(t *testing.T) {
 	rec := &fakeRecorder{server: make(chan []model.Response, 1)}
 	client, serverSeite := net.Pipe()
 	defer client.Close()
-	s := NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	zurueck := make(chan struct{})
 	go func() {
-		s.handle(context.Background(), serverSeite)
+		pgwire.Handle(context.Background(), s, serverSeite)
 		close(zurueck)
 	}()
 	_ = client.SetDeadline(time.Now().Add(10 * time.Second))
 	fe := pgproto3.NewFrontend(client, client)
 	startup(t, fe)
-	sende(fe, &pgproto3.Sync{})
+	sende := nebenher(fe)
+	sende(&pgproto3.Sync{})
 	warteAuf(t, rec, "c:sync")
 	// Der Client liest nicht: das Schreiben der Server-Richtung blockiert.
 	rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
 	time.Sleep(50 * time.Millisecond)
-	sende(fe, &pgproto3.FunctionCall{Function: 1})
+	sende(&pgproto3.FunctionCall{Function: 1})
 	select {
 	case <-zurueck:
-	case <-time.After(meldeFrist + time.Second):
-		t.Fatalf("Sitzung kehrt nicht binnen %v zurück, solange der Client nicht liest", meldeFrist+time.Second)
+	case <-time.After(pgwire.MeldeFrist + time.Second):
+		t.Fatalf("Sitzung kehrt nicht binnen %v zurück, solange der Client nicht liest", pgwire.MeldeFrist+time.Second)
 	}
 	if end := rec.lastEnd(t); end != model.EndUnsupported || s.FirstErrorCode() != model.CodeUnsupported {
 		t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
@@ -660,8 +727,9 @@ func TestReplayHerunterfahren(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		rep := &fakeReplayer{}
-		fe, s := verbindeReplay(t, ctx, rep)
-		sende(fe, &pgproto3.Parse{Name: "s1", Query: "SELECT 1"})
+		fe, s := verbindeReplay(ctx, t, rep)
+		sende := nebenher(fe)
+		sende(&pgproto3.Parse{Name: "s1", Query: "SELECT 1"})
 		deadline := time.Now().Add(2 * time.Second)
 		for len(rep.nachrichten()) < 1 {
 			if time.Now().After(deadline) {
@@ -671,7 +739,7 @@ func TestReplayHerunterfahren(t *testing.T) {
 		}
 		cancel()
 		time.Sleep(100 * time.Millisecond)
-		sende(fe, &pgproto3.Bind{PreparedStatement: "s1"}, &pgproto3.Execute{}, &pgproto3.Sync{})
+		sende(&pgproto3.Bind{PreparedStatement: "s1"}, &pgproto3.Execute{}, &pgproto3.Sync{})
 		if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
 			t.Fatalf("an den Client: %s", got)
 		}
@@ -686,8 +754,9 @@ func TestReplayHerunterfahren(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		rep := &fakeReplayer{}
-		fe, _ := verbindeReplay(t, ctx, rep)
-		sende(fe, &pgproto3.Parse{Name: "s1", Query: "SELECT 1"}, &pgproto3.Sync{})
+		fe, _ := verbindeReplay(ctx, t, rep)
+		sende := nebenher(fe)
+		sende(&pgproto3.Parse{Name: "s1", Query: "SELECT 1"}, &pgproto3.Sync{})
 		empfange(t, fe, 5)
 		cancel()
 		if _, err := fe.Receive(); !geschlossen(err) {
@@ -738,12 +807,13 @@ func TestReplayHerunterfahrenSpaeteFrist(t *testing.T) {
 	rep := &fakeReplayer{}
 	client, serverSeite := net.Pipe()
 	conn := spaeteFrist{Conn: serverSeite, freigabe: make(chan struct{}), gesetzt: make(chan struct{}), liest: &atomic.Bool{}}
-	s := NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	go s.handle(ctx, conn)
+	s := pgwire.NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	go pgwire.Handle(ctx, s, conn)
 	t.Cleanup(func() { client.Close() })
 	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
 	fe := pgproto3.NewFrontend(client, client)
 	startup(t, fe)
+	sende := nebenher(fe)
 
 	// bis wartet, bis bedingung gilt, höchstens frist lang, und meldet, ob sie
 	// galt.
@@ -757,14 +827,14 @@ func TestReplayHerunterfahrenSpaeteFrist(t *testing.T) {
 		}
 		return true
 	}
-	sende(fe, &pgproto3.Parse{Name: "s1", Query: "SELECT 1"})
+	sende(&pgproto3.Parse{Name: "s1", Query: "SELECT 1"})
 	// Die Sitzung hat das Parse verarbeitet und wartet im nächsten Read; erst
 	// dann endet ctx, und der Wächter hängt bis zur Freigabe.
 	if !bis(2*time.Second, func() bool { return len(rep.nachrichten()) == 1 && conn.liest.Load() }) {
 		t.Fatal("Sitzung liest nach dem Parse nicht weiter")
 	}
 	cancel()
-	sende(fe, &pgproto3.Bind{PreparedStatement: "s1"})
+	sende(&pgproto3.Bind{PreparedStatement: "s1"})
 	if !bis(2*time.Second, func() bool { return len(rep.nachrichten()) == 2 }) {
 		t.Fatal("Bind erreicht den Use Case nicht")
 	}
@@ -774,7 +844,7 @@ func TestReplayHerunterfahrenSpaeteFrist(t *testing.T) {
 	bis(200*time.Millisecond, conn.liest.Load)
 	close(conn.freigabe)
 	<-conn.gesetzt
-	sende(fe, &pgproto3.Execute{}, &pgproto3.Sync{})
+	sende(&pgproto3.Execute{}, &pgproto3.Sync{})
 	if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
 		t.Fatalf("an den Client: %s", got)
 	}
