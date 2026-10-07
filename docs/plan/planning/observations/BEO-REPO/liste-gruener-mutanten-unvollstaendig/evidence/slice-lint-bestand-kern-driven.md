@@ -1,0 +1,2 @@
+**Vorgang:** slice-lint-bestand-kern-driven
+**Fund:** §7 führte zwei grüne Mutanten; das Review fand zwei weitere an denselben Funktionen, `ColumnNumber` in `spalten` (P2) und die Session-Nummer ab Session 2 in `geprueftFromDTO` (Y2), beide schon vor dem Umbau grün (Review F-461, LOW); nachgetragen in `b215e70`. Bei der Closure als einmalig nicht eingetragen; nachgetragen bei der Closure von `slice-lint-bestand-driving`, wo die Klasse wiederkehrt.

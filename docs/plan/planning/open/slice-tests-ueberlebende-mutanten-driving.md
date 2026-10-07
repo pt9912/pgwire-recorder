@@ -372,8 +372,8 @@ nicht; er gibt es zurück.
   `open` → `next` (§4). — **Ausgang:** — (bei Closure)
 - **Ein Test hängt am Zeitverhalten** — G2, G7 und die Frist aus F-468 beobachten über
   eine Frist; zu knapp gesetzt macht sie den Test flatterhaft, zu weit lässt sie einen
-  roten Lauf lange hängen (`BEO-REPO/replay-haengt-am-zeitverhalten-des-clients`, 1×,
-  verwandt). Je Test mindestens 50 Läufe ohne Mutant grün, in §7. — **Ausgang:** — (bei
+  roten Lauf lange hängen (`BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`, 2×;
+  `BEO-REPO/replay-haengt-am-zeitverhalten-des-clients`, 1×, verwandt). Je Test mindestens 50 Läufe ohne Mutant grün, in §7. — **Ausgang:** — (bei
   Closure)
 - **Der Test hält den Bestand statt der Zusage fest** — ein Vergleich des ganzen
   Meldungstextes machte jede Umformulierung rot, ohne dass eine Zusage bricht. Je Test
@@ -438,6 +438,15 @@ Dateien unter `evidence/`). Treffer:
 - `BEO-REPO/replay-haengt-am-zeitverhalten-des-clients` (1×) — G2, G7 und die Frist aus
   F-468 beobachten über eine Frist; Risiko in §6.
 - `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (1×) — ein Risiko in §6.
+
+Nachtrag bei der Closure von `slice-lint-bestand-driving` (Stand `7cb298c`), zwei neue
+Einträge mit je zwei Belegen, beide aus dem Geber:
+
+- `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit` (2×) — die Randform *Warten auf einen
+  Kanal* in §6 ist seine Adresse; berührt dieser Slice ihn noch einmal, etwa weil ein
+  neuer Test ohne Frist wartet, erreicht er 3×.
+- `BEO-REPO/liste-gruener-mutanten-unvollstaendig` (2×) — trifft diesen Slice nur, wenn
+  Review oder Verifikation hier einen grünen Mutanten finden, den §7 nicht führt.
 
 Keiner der Einträge unter der Schwelle erreicht mit diesem Slice allein 3×; vor dem Code
 entsteht keine neue Lücke.

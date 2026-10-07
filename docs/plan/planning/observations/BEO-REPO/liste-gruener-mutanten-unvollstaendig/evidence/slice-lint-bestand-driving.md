@@ -1,0 +1,2 @@
+**Vorgang:** slice-lint-bestand-driving
+**Fund:** §7 führte G1 bis G4; das Review fand `s.sendFailed(err)` in `replayZustellen` (X4) grün, schon vor dem Umbau an beiden Stellen in `replaySitzung` (Review F-466, LOW, „wie F-461“), nachgetragen als G5 und G6 in `dd5d13d`; die Verifikation fand `case <-fertig:` in `replayWaechter` (V13) grün (V-93), nachgetragen als G7 in `893b54e`. Alle sieben übernimmt `slice-tests-ueberlebende-mutanten-driving`.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-lint-bestand-driving
+**Fund:** Der Mutant W (`SetReadDeadline(time.Now())` in `replayWaechter` entfernt) wird nur über die Zeitüberschreitung des Pakets rot: `TestReplayHerunterfahrenSpaeteFrist` wartet in `server_extended_test.go:846` ohne Frist auf `<-conn.gesetzt` (Review F-468, INFO; Verifikation V10 mit `-timeout 60s`). Adressen: die Frist im Test als Randform *Warten auf einen Kanal* in `slice-tests-ueberlebende-mutanten-driving`, die Zählung durch ein Gate als Randform *Laufzeit* in `slice-harness-mutation`.

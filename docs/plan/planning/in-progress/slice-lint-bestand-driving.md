@@ -114,28 +114,48 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Komplexität: Die vier Funktionen aus §1 liegen unter den Schwellen aus
+- [x] Komplexität: Die vier Funktionen aus §1 liegen unter den Schwellen aus
       `SPEC-049` Punkt 4, ohne Änderung des Verhaltens: Die Liste der Tests
       (`go test -list .` je Paket, im gepinnten Go-Image) ist vor und nach dem Umbau
       gleich, keine Erwartung ist geändert, `make test` und `make test-integration` sind
-      grün.
-- [ ] Kontexte: Die sechs Befunde von `containedctx`, `contextcheck` und `noctx` sind
+      grün. — Verifikation, Abschnitt 1 Punkt 1: die vier Funktionen und ihre neun
+      Hilfsfunktionen höchstens bei 17 von 20 (`gocognit`, `replaySitzung`) bzw. 10 von 15
+      (`gocyclo`) und 11 von 15 (`cyclop`), Werte gleich der Tabelle in §7; Testliste an
+      `b7d4555` und `dd5d13d` byte-gleich (162 Unit-Tests, 39 Integrationstests); `git diff
+      b7d4555 dd5d13d` ohne Testdatei, `docs/user/`, `.golangci.yml`, `Dockerfile`;
+      Stichproben V7 bis V9 rot (Abschnitt 2).
+- [x] Kontexte: Die sechs Befunde von `containedctx`, `contextcheck` und `noctx` sind
       behoben, ohne die Semantik des Herunterfahrens zu ändern (§6); die Tests und
       Integrationstests zum Abbruchsignal und zur Frist des Herunterfahrens laufen
-      unverändert grün.
-- [ ] `make lint` meldet unter `internal/adapters/driving/pgwire`,
+      unverändert grün. — Verifikation, Abschnitt 1 Punkt 2: Form nach §6 *Kontexte*
+      gelesen (F-470 bestätigt); V1 (`ctx.Err()` → `uc.Err()`) rot; die Äquivalenz von
+      „`WithoutCancel` entfernt“ mit V5 (`Finish`, Unit und beide Integrationsphasen,
+      darunter die Signaltests) und V6 bestätigt.
+- [x] `make lint` meldet unter `internal/adapters/driving/pgwire`,
       `internal/adapters/driving/cli` und `internal/bootstrap` keinen Befund, ohne neue
       Ausnahme in `.golangci.yml` und ohne `//nolint`; über das ganze Modul meldet es
       keinen Befund mehr. Die Zeilen der Ausgabe unter diesen Pfaden vor und nach dem
-      Slice stehen im Bericht.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      Slice stehen im Bericht. — Verifikation, Abschnitt 1 Punkt 3: an `b7d4555` 16
+      Befunde, sortiert byte-gleich mit §7 *Vorher*; an `dd5d13d` Exit 0, `0 issues.`,
+      keine `lint:`-Zeile; kein `//nolint`, `.golangci.yml`, `tools/harness/lint.sh` und
+      `Dockerfile` unverändert. Die Zeilen stehen in §7 statt im Bericht.
+- [x] `make gates` grün. — an `dd5d13d` (Verifikation, Abschnitt 5) und an `7cb298c`
+      (Planner, vor dieser Closure; Go-Code gleich `893b54e`, das gegenüber `dd5d13d` nur
+      den Doc-Kommentar von `replayWaechter` ändert). Diese Closure ändert nur Pläne,
+      Roadmap und Register; `make docs-check` und `make kopf-check` grün am Stand dieser
+      Closure.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      — `docs/reviews/2026-10-07-review-slice-lint-bestand-driving.md` (`934add1`; F-465
+      MEDIUM, F-466 und F-467 LOW, F-468 bis F-470 INFO), Nacharbeit in `dd5d13d`;
+      Verifikation `docs/reviews/2026-10-07-verifikation-slice-lint-bestand-driving.md`
+      (`89fba63`; V-93 LOW, V-94 und V-95 Hinweise), V-93 umgesetzt in `893b54e`, V-94 und
+      V-95 im Nehmer.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -274,7 +294,9 @@ Architect zu bestätigen:
   keine an den vier Stellen mit `WithoutCancel`. Meldet der Lauf nach der Bereinigung
   dennoch einen, trägt die erwartete Bereinigung nicht, und der Weg ist eine
   Entscheidung des Architect (§4, `→ open`).
-  — **Ausgang:** — (bei Closure)
+  — **Ausgang:** entfallen: Nach `78f28a1` meldet `make lint` keinen `contextcheck` mehr,
+  an `dd5d13d` modulweit `0 issues.` (§7, Verifikation Abschnitt 1 Punkt 3);
+  `contextcheck` nimmt die Form an.
 - **Herunterfahren ändert sich unbemerkt** — ein Kontext, der bisher den Abbruch des
   Aufrufers überlebte, bricht nach der Bereinigung mit ihm ab (oder umgekehrt); das
   Recording wird dann beim Signal nicht mehr oder anders geschrieben. Die
@@ -283,8 +305,10 @@ Architect zu bestätigen:
   gefahren. Gefahren wird nach dem Umbau die Mutation, die das Herunterfahren trägt:
   `clientRichtung` fragt `Err()` auf dem gelösten statt auf dem übergebenen Kontext; ein
   bestehender Test zum Herunterfahren einer Record-Session muss rot werden. Bleibt er
-  grün, ist das ein Befund für den Architect. — **Ausgang:** — (bei
-  Closure)
+  grün, ist das ein Befund für den Architect. — **Ausgang:** entfallen: K1 ist vor und
+  nach dem Umbau rot (§7), in der Verifikation als V1 nachgefahren; die Signaltests der
+  Integration sind grün und unverändert, und „`WithoutCancel` entfernt“ ist an 10 bis 13
+  äquivalent (V5 einschließlich beider Integrationsphasen, V6).
 - **Verhalten von `replaySitzung` ändert sich unbemerkt** — ein Zweig ist von keinem
   Test erreicht. Je umgebaute Funktion eine Mutation in einem ihrer Zweige, die ein
   bestehender Test vor und nach dem Umbau fängt; fängt keiner, ist das kein neuer Test
@@ -301,11 +325,15 @@ Architect zu bestätigen:
   `bootstrap.Run` mit schon beendetem Kontext und `--listen localhost:0` endet mit
   Exit-Code 0 statt mit `PGR-E4001`. Grenze: nur mit einem Namen als Adresse sichtbar,
   und nur, weil die Namensauflösung von `net` den Kontext liest. Der Implementer fährt
-  sie und trägt das Ergebnis in §7 ein. — **Ausgang:**
-  — (bei Closure)
+  sie und trägt das Ergebnis in §7 ein. — **Ausgang:** eingetreten:
+  `slice-tests-ueberlebende-mutanten-driving` — sieben grüne, verhaltensändernde Mutanten
+  (G1 bis G7, §7), alle außer G1 schon vor dem Umbau grün; der Nehmer führt sie in §1
+  *Gegenstand* und in drei DoD-Liefer-Punkten.
 - **Aufzählung weicht vom Lauf ab** — die Liste in §1 stammt aus der Messung am Stand
   `79f40e1`. Maßgeblich ist der Lauf beim Start (§1); am Stand `a453969` ergab er
-  dieselben 16 Befunde, jetzt mit Datei und Zeile in §1. — **Ausgang:** — (bei Closure)
+  dieselben 16 Befunde, jetzt mit Datei und Zeile in §1. — **Ausgang:** entfallen: Der
+  Lauf an `b7d4555` ist sortiert byte-gleich mit §1 und §7 *Vorher* (Verifikation,
+  Abschnitt 1 Punkt 3).
 
 ## 7. Closure-Notiz
 
@@ -321,12 +349,141 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
+- **Was hat funktioniert:** Der Schnitt hielt: drei Liefer-Punkte, zwei Schichten
+  (Driving-Adapter und Bootstrap), keine Rückführung aus §4, keine Ausnahme in
+  `.golangci.yml`, kein `//nolint`, keine geänderte Testdatei. `make lint` sinkt modulweit
+  von 16 auf **0** Befunde; damit ist die Vorbedingung von `slice-harness-lint` erfüllt.
+  Die Randformen in §6 standen vor dem Code entschieden (`b7d4555`), der Code entschied
+  keine weitere (Review, Negativbefund zu Hard Rule 3.12), und beide
+  Äquivalenz-Behauptungen hielten der Probe stand (V5 auch in der Integration, V6). Die
+  Reihenfolge der Commits aus §3 *Größe* (erst Kontexte und Receiver, dann Komplexität)
+  machte den Umbau in einer Review-Sitzung prüfbar. Die Belege in §7 erreichten Review und
+  Verifikation; jede nachgemessene Zahl stimmte.
+- **Was ging anders als geplant:** Drei Punkte, keiner verlangt Nacharbeit am Verhalten.
+  1. Die herausgelösten Funktionen bekamen Doc-Kommentare, die mehr zusagten, als ein
+     Test hält: `replayLesefehler` und `replayZustellen` (F-465, MEDIUM), enger gefasst in
+     `dd5d13d`; danach `replayWaechter` (V-93), gestrichen in `893b54e`. Dritte
+     Wiederholung im Review nach F-401 und F-460.
+  2. Die Liste der grünen Mutanten war unvollständig: X4 und Z3 fand das Review (F-466),
+     V13 die Verifikation (V-93); nachgetragen als G5 bis G7. Wie in
+     `slice-lint-bestand-kern-driven` (F-461) waren alle schon vor dem Umbau grün.
+  3. Die erwartete Adresse der grünen Mutanten, `slice-tests-ueberlebende-mutanten`, nahm
+     sie nicht an, weil ihr §1 den PGWire-Adapter ausschließt und G1 im Bootstrap liegt
+     (F-469); §6 hatte das als Schnitt nach der *Sammelregel* vorgesehen. Der Planner hat
+     `slice-tests-ueberlebende-mutanten-driving` in `7cb298c` angelegt. Dazu F-467 (Grenze
+     von G2 weiter als der Code, berichtigt in `dd5d13d`) und F-468 (Mutant W nur über die
+     Zeitüberschreitung des Pakets rot; an den Nehmer und an `slice-harness-mutation`).
+  - **Summary-Zeilen:** Review
+    `docs/reviews/2026-10-07-review-slice-lint-bestand-driving.md`: „0 HIGH · 1 MEDIUM · 2
+    LOW · 3 INFO (F-465 neue Doc-Kommentare von `replayLesefehler` und `replayZustellen`
+    sagen ungeprüft zu; F-466 grüner Mutant `sendFailed` in `replayZustellen` fehlt in der
+    Liste; F-467 Grenze von G2/R4 weiter als der Code; F-468 Mutant W nur über
+    Paket-Zeitüberschreitung rot; F-469 Übergabe der grünen Mutanten an den Planner nur in
+    §7 getragen, nach §3.13 korrekt; F-470 Umbau und Kontexte gleichwertig).
+    Wiederkehrende Klassen: `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (F-465,
+    drittes Mal nach F-401 und F-460); Liste grüner Mutanten unvollständig (F-466, wie
+    F-461).“ Verifikation
+    `docs/reviews/2026-10-07-verifikation-slice-lint-bestand-driving.md`, Urteil: Die drei
+    Liefer-Punkte sind erfüllt und selbst gemessen; Lint modulweit 16 → 0, ohne
+    `//nolint` und ohne neue Ausnahme, Vorbedingung für `slice-harness-lint` erfüllt;
+    Komplexität unter den Schwellen, Werte gleich §7; Kontexte in der Form aus §6, das
+    Herunterfahren hängt weiter an `ctx.Err()` (V1 rot), die äquivalenten Mutationen sind
+    äquivalent; Testliste gleich (162 und 39), `make gates` grün an `dd5d13d`; F-465
+    umgesetzt, Rest V-93; G1 bis G6 richtig eingeordnet, ein zweiter Sammel-Slice ist der
+    richtige Weg; F-468 an *Laufzeit* von `slice-harness-mutation` und an den neuen
+    Sammel-Slice. Kein Befund blockiert die DoD; V-93 LOW (umgesetzt in `893b54e`), V-94
+    und V-95 Hinweise an den Planner (im Nehmer eingetragen).
+- **Steering-Loop-Eintrag:** Benannte Spec-Lücke, drei Stellen, alle mit Adresse in §6
+  von `slice-tests-ueberlebende-mutanten-driving`, der Architect entscheidet sie vor dessen
+  Code:
+  1. *Lese- und Versandfehler an der Client-Verbindung im Replay.* `LH-FA-02.b` regelt
+     Verbindungsende, nicht lesbare Nachricht und Sendefehler nur für `record`. Für
+     `replay` sagt keine Stelle, dass ein Verbindungsende des Clients regulär ist, dass
+     eine unlesbare Nachricht `PGR-E6001` an den Client ist und dass ein gescheiterter
+     Versand `PGR-E4003` ist und die Sitzung beendet; das tun nur Code und Kommentar, und
+     die Kommentare mussten darum enger werden (F-465). Sichtbar an R2, R3, R4, X4 und Z3.
+     Adresse: Randformen *Verbindungsende im Replay*, *Unlesbare Nachricht im Replay*,
+     *Versand im Replay*.
+  2. *Signal vor dem Öffnen des Listeners.* Keine Stelle sagt, ob ein Lauf, dessen
+     Kontext vor dem Öffnen schon beendet ist, regulär endet oder als Startfehler; sichtbar
+     an G1. Adresse: Randform *Signal vor dem Öffnen*.
+  3. *Frist eines Tests, der auf einen Kanal wartet.* Keine Stelle in Spezifikation oder
+     ADR sagt, ob ein Test eine eigene Frist trägt; ohne sie wird ein roter Lauf erst an
+     der Zeitgrenze des Pakets rot (F-468). Adresse: Randform *Warten auf einen Kanal*;
+     die Zählung durch ein Gate ist die Randform *Laufzeit* von `slice-harness-mutation`.
+
+  Retirement-Checks: `AGENTS.md` §3.9 (seit welle-walking-skeleton) ist für §1, §3 und §6
+  nicht wieder aufgetreten (Review, Negativbefund); die Regel bleibt. §3.10 entfällt, kein
+  neuer Vertrag; die Mutationen sind trotzdem je Umbau gefahren. §3.11 (seit
+  welle-extended-query) ist wieder aufgetreten (F-465, V-93, F-467); die Regel bleibt, ihr
+  geplanter Sensor `slice-harness-mutation` trägt weiter. §3.12 und die
+  Randform-Rückgabe ohne Befund im Code-Commit, sie bleiben. §3.13 (seit
+  slice-lint-bestand-kern-driven) hat getragen: Der Slice nannte keine Adresse, die nicht
+  annimmt, und gab den Punkt an den Planner (F-469, kein MEDIUM); die Regel bleibt.
+- **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `7cb298c` (Zähler =
+  Dateien unter `evidence/`).
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: **Beleg**, 17× → 18× (F-465,
+    V-93, F-467), Stand verkörpert, bleibt; Sensor geplant mit `slice-harness-mutation`.
+  - `BEO-REPO/liste-gruener-mutanten-unvollstaendig`: **neu, mit zwei Belegen**,
+    `slice-lint-bestand-kern-driven` (F-461, bei dessen Closure als einmalig nicht
+    eingetragen) und dieser Slice (F-466, V-93). 2×, Stand offen. Eigener Eintrag statt
+    Beleg unter `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`: Beide Slices liefern
+    keinen Vertrag, die Lücke liegt im Bestand, und was fehlt, ist ihre vollständige
+    Übergabe an den Planner.
+  - `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`: **neu, mit zwei Belegen**,
+    `slice-harness-blackbox-einstieg` (V-88, bei dessen Closure nicht eingetragen, Adresse
+    `slice-harness-integration-wait`) und dieser Slice (F-468). 2×, Stand offen.
+  - Ohne Beleg: `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (bleibt 3×, verkörpert;
+    F-469 ist nach §3.13 korrekt, keine Adresse ohne Annahme),
+    `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (bleibt 3×, verkörpert;
+    keine Randform im Code entschieden), `BEO-REPO/randform-wellenlos-ohne-architect-vor-code`
+    (bleibt 1×, der Architect entschied §6 vor dem Code in `b7d4555`),
+    `BEO-REPO/replay-haengt-am-zeitverhalten-des-clients` (bleibt 1×, der Umbau verschob
+    Lesen und Antworten nicht), `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (bleibt 1×,
+    keine Gate-Regel geändert), `BEO-REPO/plan-folgt-korrektur-nicht` (bleibt 16×,
+    verkörpert; kein Befund zu §1, §3 oder §6), `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`
+    (bleibt 1×, jede Mutation lief in einer frischen Kopie),
+    `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (bleibt 13×, kein neuer Vertrag).
+
+  Einmalig und nicht eingetragen: F-469 (Übergabe nur in §7 getragen, nach §3.13
+  korrekt), F-470 (keine Aktion), V-94 (Test-Idee unnötig schwer, im Nehmer), V-95
+  (Kopplung an `slice-v1-abschluss-betrieb`, im Nehmer). **Kein Eintrag erreicht mit
+  diesem Slice neu 3×.** Über der Schwelle stehen nur Einträge mit Ausgang
+  (`commit-nennt-struktur-kennung` 3× geplant; `folge-slice-adresse-nimmt-nicht-an` 3×,
+  `implementer-bericht-erreicht-pruefer-nicht` 3×,
+  `randform-im-code-entschieden-dann-zurueckgegeben` 3×,
+  `spec-randform-erst-im-review-entschieden` 11×, `negativtests-fehlen-bei-neuem-vertrag`
+  13×, `plan-folgt-korrektur-nicht` 16×, `zusage-im-kommentar-weiter-als-pruefung` 18×,
+  verkörpert; `white-box-liste-vor-code-nur-namenssuche` 3× gestrichen).
+- **Folge-Slices:** `slice-tests-ueberlebende-mutanten-driving` (G1 bis G7, Risiko
+  *Verhalten von `replaySitzung` ändert sich unbemerkt*, dazu die Frist aus F-468 als
+  Randform). Er nimmt an: Er liegt in `open/`, §1 *Herkunft* nennt diesen Slice als Geber,
+  §1 *Gegenstand* führt alle sieben mit Test-Idee, Mutation und Grenze (V-94 in G5, V-95
+  in G2), drei DoD-Liefer-Punkte verlangen die roten Mutationen, und kein Punkt unter
+  *Ausdrücklich NICHT* trifft einen der sieben. `slice-harness-mutation` (F-468: Zählung
+  eines Mutanten, der nur über die Zeitüberschreitung rot wird); er nimmt an: §1 nennt die
+  Sendung mit dieser Kennung, §6 *Laufzeit* führt den Fall, und sein Ausschluss neuer
+  Tests trifft die Zählung nicht. `slice-harness-lint` (Anschluss an die Gate-Kette, §1
+  hier *Ausdrücklich NICHT*); er nimmt an: Sein §1 nennt diesen Slice, sein §4 *Start*
+  verlangt ihn in `done/` und `make lint` ohne Befund, beides erfüllt. Als nächster in der
+  Reihe folgt `slice-harness-lint`.
+- **Risiken aus §6:** vier, je mit Ausgang: *`contextcheck` nimmt `context.WithoutCancel`
+  nicht an* **entfallen**, *Herunterfahren ändert sich unbemerkt* **entfallen**,
+  *Verhalten von `replaySitzung` ändert sich unbemerkt* **eingetreten** →
+  `slice-tests-ueberlebende-mutanten-driving`, *Aufzählung weicht vom Lauf ab*
+  **entfallen**; die Gründe stehen in §6. Die Randformen in §6 sind Entscheidungen, keine
+  Risiken.
+- **Drei Paarungen:** Anker: Kein Eintrag trägt ein `liegt in`; die Spec-Lücke ist
+  benannt, nicht verkörpert. Folge-Slice: `slice-tests-ueberlebende-mutanten-driving` und
+  `slice-harness-mutation` liegen in `open/`, `slice-harness-lint` in `next/`; `grep -n
+  "slice-lint-bestand-driving"` findet die Kennung in §1 und §2 (DoD) des ersten, in §1
+  (*Übernommen aus*) und §6 des zweiten und in §1 und §4 des dritten; ob sie die Sendung
+  inhaltlich führen, ist oben beurteilt. Register:
+  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` trägt
+  `evidence/slice-lint-bestand-driving.md`; `BEO-REPO/liste-gruener-mutanten-unvollstaendig`
+  und `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit` tragen `observation.md`, `state.md`
+  und je zwei Dateien in `evidence/`. Die übrigen genannten Einträge bestehen als
+  Verzeichnis, jedes mit nicht leerem `evidence/`. Die nächste Welle-Closure prüft erneut.
 
 **Belege des Implementers** (Stand: Code in `78f28a1` (Kontexte und Receiver, Befunde 9
 bis 16) und `e76b25f` (Komplexität, Befunde 1 bis 8), beide auf `b7d4555`; Kommentare
@@ -466,9 +623,11 @@ entfernt“) ist nicht gefahren: äquivalent nach §6 *Kontexte*. Der Rückgabew
 Verhalten und ist über die Schnittstelle fangbar. §1 schließt neue Tests aus, darum je
 Mutant eine Test-Idee mit Grenze. Alle außer G1 sind schon am Stand vor dem Umbau grün
 (`78f28a1`; X4 und Z3 dort an beiden Stellen in `replaySitzung`),
-sind also Lücken des Bestands, nicht des Umbaus. **Nehmer: offen**; die Funde liegen im
-PGWire-Adapter und im Bootstrap, den Nehmer trägt der Planner nach (§6 Risiko *Verhalten
-von `replaySitzung` ändert sich unbemerkt*). Dieser Slice nennt keine Adresse.
+sind also Lücken des Bestands, nicht des Umbaus. **Nehmer:**
+`slice-tests-ueberlebende-mutanten-driving` (angelegt vom Planner in `7cb298c` nach der
+*Sammelregel* von `slice-tests-ueberlebende-mutanten`, Entscheidung des Nutzers vom
+2026-10-07); er führt G1 bis G7 in §1 *Gegenstand* mit dieser Kennung als Geber, G5 mit
+der Test-Idee aus V-94, G2 mit der Grenze aus V-95.
 
 - **G1 — `Listen` ohne `WithoutCancel` (K4)**, der in §6 erwartete Fund. Test-Idee nach
   §6: `bootstrap.Run` mit schon beendetem Kontext und `record --listen localhost:0` endet

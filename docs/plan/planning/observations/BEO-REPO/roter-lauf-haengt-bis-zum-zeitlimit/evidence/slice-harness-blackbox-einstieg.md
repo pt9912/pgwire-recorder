@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-blackbox-einstieg
+**Fund (Bestand):** Unter einem roten Lauf kann `TestE2ERecordExtendedSigtermBeimPipelining` bis zum Zeitlimit hängen, weil im Integrations-Testgeschirr zweimal `Wait` auf demselben `exec.Cmd` läuft (Verifikation V-88). Adresse `slice-harness-integration-wait`. Bei der Closure nicht eingetragen; nachgetragen bei der Closure von `slice-lint-bestand-driving`, wo die Klasse wiederkehrt.
