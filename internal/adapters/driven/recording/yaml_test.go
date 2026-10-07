@@ -1,4 +1,4 @@
-package recording
+package recording_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/pt9912/pgwire-recorder/internal/adapters/driven/recording"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
 
@@ -40,7 +41,7 @@ func beispiel() model.Recording {
 func TestRoundtrip(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "rec.yaml")
-	repo := YAML{}
+	repo := recording.YAML{}
 	want := beispiel()
 
 	if err := repo.Prepare(ctx, path, false); err != nil {
@@ -74,12 +75,12 @@ func TestRoundtrip(t *testing.T) {
 // Gleiche Aufzeichnungen ergeben gleiche Bytes
 // (SPEC-004).
 func TestMarshalDeterministisch(t *testing.T) {
-	a, err := Marshal(beispiel())
+	a, err := recording.Marshal(beispiel())
 	if err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 20; i++ {
-		b, err := Marshal(beispiel())
+		b, err := recording.Marshal(beispiel())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -97,15 +98,15 @@ func TestPrepareVorhandeneDatei(t *testing.T) {
 	if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	err := YAML{}.Prepare(ctx, path, false)
+	err := recording.YAML{}.Prepare(ctx, path, false)
 	if code(err) != model.CodeOutputExists {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeOutputExists, err)
 	}
-	if err := (YAML{}).Prepare(ctx, path, true); err != nil {
+	if err := (recording.YAML{}).Prepare(ctx, path, true); err != nil {
 		t.Fatalf("mit --force: %v", err)
 	}
 	fehlt := filepath.Join(t.TempDir(), "gibt-es-nicht", "rec.yaml")
-	if err := (YAML{}).Prepare(ctx, fehlt, false); code(err) != model.CodeRecordingIO {
+	if err := (recording.YAML{}).Prepare(ctx, fehlt, false); code(err) != model.CodeRecordingIO {
 		t.Fatalf("fehlendes Verzeichnis: erwartet %s, erhalten %v", model.CodeRecordingIO, err)
 	}
 }
@@ -119,7 +120,7 @@ func TestWriteRechteUndAtomar(t *testing.T) {
 	defer syscall.Umask(alt)
 
 	neuPfad := filepath.Join(t.TempDir(), "neu.yaml")
-	if err := (YAML{}).Write(ctx, neuPfad, beispiel()); err != nil {
+	if err := (recording.YAML{}).Write(ctx, neuPfad, beispiel()); err != nil {
 		t.Fatal(err)
 	}
 	if info, _ := os.Stat(neuPfad); info.Mode().Perm() != 0o600 {
@@ -133,13 +134,13 @@ func TestWriteRechteUndAtomar(t *testing.T) {
 	if err := os.Chmod(vorhanden, 0o440); err != nil {
 		t.Fatal(err)
 	}
-	if err := (YAML{}).Write(ctx, vorhanden, beispiel()); err != nil {
+	if err := (recording.YAML{}).Write(ctx, vorhanden, beispiel()); err != nil {
 		t.Fatalf("schreibgeschützte Datei nicht ersetzt: %v", err)
 	}
 	if info, _ := os.Stat(vorhanden); info.Mode().Perm() != 0o440 {
 		t.Fatalf("Rechte der ersetzten Datei: %v", info.Mode().Perm())
 	}
-	if got, err := (YAML{}).Load(ctx, vorhanden); err != nil || len(got.Sessions) != 1 {
+	if got, err := (recording.YAML{}).Load(ctx, vorhanden); err != nil || len(got.Sessions) != 1 {
 		t.Fatalf("ersetzte Datei: %v %v", got, err)
 	}
 }
@@ -161,7 +162,7 @@ sessions:
           - type: ready_for_query
             tx_status: I
 `
-	rec, err := Unmarshal([]byte(data))
+	rec, err := recording.Unmarshal([]byte(data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +195,7 @@ func TestUnmarshalFehler(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := Unmarshal([]byte(c.data))
+			_, err := recording.Unmarshal([]byte(c.data))
 			if code(err) != c.want {
 				t.Fatalf("erwartet %s, erhalten %v", c.want, err)
 			}
@@ -221,10 +222,10 @@ func TestFelderDerVersion1(t *testing.T) {
 	rec.Sessions[0].Interactions[0].OffsetMS = &off
 	rec.Sessions = append(rec.Sessions, model.Session{ID: 2})
 	path := filepath.Join(t.TempDir(), "rec.yaml")
-	if err := (YAML{}).Write(ctx, path, rec); err != nil {
+	if err := (recording.YAML{}).Write(ctx, path, rec); err != nil {
 		t.Fatal(err)
 	}
-	got, err := YAML{}.Load(ctx, path)
+	got, err := recording.YAML{}.Load(ctx, path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,11 +242,11 @@ func TestFelderDerVersion1(t *testing.T) {
 		"negativer offset_ms":              "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        offset_ms: -1\n        request: {type: query, sql: x}\n        responses:\n          - type: ready_for_query\n            tx_status: I\n",
 		"leere Session ohne Kennzeichnung": "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions: []\n",
 	} {
-		if _, err := Unmarshal([]byte(text)); code(err) != model.CodeRecordingBroken {
+		if _, err := recording.Unmarshal([]byte(text)); code(err) != model.CodeRecordingBroken {
 			t.Fatalf("%s: erwartet %s, erhalten %v", name, model.CodeRecordingBroken, err)
 		}
 	}
-	if _, err := Unmarshal([]byte("format: pgwire-recorder\nversion: 1\nempty_sessions: true\nsessions:\n  - id: 1\n    interactions: []\n")); err != nil {
+	if _, err := recording.Unmarshal([]byte("format: pgwire-recorder\nversion: 1\nempty_sessions: true\nsessions:\n  - id: 1\n    interactions: []\n")); err != nil {
 		t.Fatalf("leere Session mit Kennzeichnung: %v", err)
 	}
 }
@@ -302,10 +303,10 @@ func TestExtendedRoundtrip(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "rec.yaml")
 	want := extendedBeispiel()
-	if err := (YAML{}).Write(ctx, path, want); err != nil {
+	if err := (recording.YAML{}).Write(ctx, path, want); err != nil {
 		t.Fatalf("Write: %v", err)
 	}
-	got, err := YAML{}.Load(ctx, path)
+	got, err := recording.YAML{}.Load(ctx, path)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
@@ -326,7 +327,7 @@ func TestExtendedRoundtrip(t *testing.T) {
 			t.Errorf("Aufzeichnung enthält nicht:\n%s\n---\n%s", s, text)
 		}
 	}
-	nochmal, err := Marshal(got)
+	nochmal, err := recording.Marshal(got)
 	if err != nil || string(nochmal) != text {
 		t.Fatalf("zweites Schreiben weicht ab (%v):\n%s\n---\n%s", err, nochmal, text)
 	}
@@ -342,7 +343,7 @@ func TestExtendedLeereFelder(t *testing.T) {
 		Client: []model.ClientMessage{{Type: model.ClientParse}, {Type: model.ClientBind}, {Type: model.ClientExecute}, {Type: model.ClientSync}},
 		Server: []model.Response{{Type: model.ResponseParameterDescription}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}},
 	}}}}}}
-	leer, err := Marshal(want)
+	leer, err := recording.Marshal(want)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +352,7 @@ func TestExtendedLeereFelder(t *testing.T) {
 			t.Errorf("leere Felder: %q fehlt:\n%s", s, leer)
 		}
 	}
-	got, err := Unmarshal(leer)
+	got, err := recording.Unmarshal(leer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -407,7 +408,7 @@ sessions:
               - type: ready_for_query
                 tx_status: "I"
 `
-	rec, err := Unmarshal([]byte(data))
+	rec, err := recording.Unmarshal([]byte(data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -430,8 +431,6 @@ sessions:
 func extendedText(gruppen string) string {
 	return "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        type: extended\n        groups:\n" + gruppen
 }
-
-const syncGruppe = "          - client:\n              - type: sync\n            server:\n              - type: ready_for_query\n                tx_status: I\n"
 
 // gruppe ist eine Gruppe in der Einrückung von extendedText; client und server
 // sind die Einträge der beiden Listen. Ohne server fehlt der Schlüssel, mit einer
@@ -520,7 +519,7 @@ func TestUnmarshalExtendedFehler(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := Unmarshal([]byte(c.data))
+			_, err := recording.Unmarshal([]byte(c.data))
 			if code(err) != model.CodeRecordingBroken || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("erwartet %s mit %q, erhalten %v", model.CodeRecordingBroken, c.want, err)
 			}
@@ -532,7 +531,7 @@ func TestUnmarshalExtendedFehler(t *testing.T) {
 		"parameter_description mit Typen":      extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parameter_description, param_types: [23]}", rfqNachricht)),
 		"parameter_description ohne Parameter": extendedText(gruppe([]string{parseNachricht, syncNachricht}, "{type: parameter_description, param_types: []}", rfqNachricht)),
 	} {
-		if _, err := Unmarshal([]byte(text)); err != nil {
+		if _, err := recording.Unmarshal([]byte(text)); err != nil {
 			t.Fatalf("Gegenstück %s ohne Fehler erwartet: %v", name, err)
 		}
 	}
@@ -554,7 +553,7 @@ func TestUnmarshalVerweise(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := Unmarshal([]byte(c.data))
+			_, err := recording.Unmarshal([]byte(c.data))
 			if code(err) != model.CodeRecordingBroken || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("erwartet %s mit %q, erhalten %v", model.CodeRecordingBroken, c.want, err)
 			}
@@ -569,7 +568,7 @@ func TestVorpruefungNenntOrt(t *testing.T) {
 		"  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - " + rfqNachricht + "\n" +
 		"  - id: 2\n    interactions:\n      - sequence: 1\n        request: {type: query, sql: x}\n        responses:\n          - " + rfqNachricht + "\n" +
 		"      - sequence: 2\n        type: extended\n        groups:\n" + gruppe([]string{syncNachricht})
-	_, err := Unmarshal([]byte(data))
+	_, err := recording.Unmarshal([]byte(data))
 	if code(err) != model.CodeRecordingBroken || !strings.Contains(err.Error(), "Session 2, Interaktion 2: Gruppe 1 ohne server") {
 		t.Fatalf("erwartet %s mit Ort, erhalten %v", model.CodeRecordingBroken, err)
 	}

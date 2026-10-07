@@ -32,7 +32,8 @@ func (u *Upstream) Open(ctx context.Context, startup map[string]string) (driven.
 	if err != nil {
 		return nil, nil, model.Errorf(model.CodeUpstream, err, "Upstream %s nicht erreichbar", u.Address)
 	}
-	fe := pgproto3.NewFrontend(conn, conn)
+	s := newSession(conn)
+	fe := s.fe
 	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: startup})
 	if err := fe.Flush(); err != nil {
 		conn.Close()
@@ -64,7 +65,7 @@ func (u *Upstream) Open(ctx context.Context, startup map[string]string) (driven.
 			return nil, append(responses, model.Response{Type: model.ResponseErrorResponse, Fields: noticeFields(m)}), nil
 		case *pgproto3.ReadyForQuery:
 			responses = append(responses, model.Response{Type: model.ResponseReadyForQuery, TxStatus: string(m.TxStatus)})
-			return &session{conn: conn, fe: fe}, responses, nil
+			return s, responses, nil
 		default:
 			conn.Close()
 			return nil, responses, model.Errorf(model.CodeUnsupported, nil, "Nachricht %T im Verbindungsaufbau wird nicht unterstützt", m)
@@ -86,6 +87,11 @@ type session struct {
 	// fehler sind die Felder der letzten ErrorResponse seit dem letzten
 	// ReadyForQuery, sonst nil.
 	fehler map[string]string
+}
+
+// newSession legt die Session zu conn mit ihrem Frontend an.
+func newSession(conn net.Conn) *session {
+	return &session{conn: conn, fe: pgproto3.NewFrontend(conn, conn)}
 }
 
 // terminateFrist begrenzt das Senden von Terminate in Close.

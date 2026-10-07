@@ -243,6 +243,94 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 
+**Belege des Implementers** (Arbeitsbaum auf `58e863c` mit dem Diff des Commits, der
+diesen Abschnitt anlegt):
+
+*White-Box-Zugriffe, per AST gemessen* (go/types im Image der Stufe `deps`, ohne Netz;
+gezählt sind Bezeichner in Testdateien, die auf ein unexportiertes Objekt einer
+Produkt-Datei desselben Pakets zeigen, dazu Literale, `var` und `new` unexportierter
+Typen in Testdateien):
+
+| Paket | vorher (`aff75ee`) | nachher |
+|---|---|---|
+| `recording` | 0 Zugriffe, 0 angelegte Werte | 0, 0 |
+| `postgres` | `session` (Typ) 5, `conn` 3, `fe` 1, `toFrontendMessage` 2; ein `session`-Literal (`TestCloseMitSchreibfrist`); `lies` ein Fehltreffer der Suche (lokaler Helfer) | nur in `export_test.go`: `toFrontendMessage`, `newSession`, `session` und `conn` in `Verbindung`; 0 angelegte Werte |
+
+Die Brücke `internal/adapters/driven/postgres/export_test.go` hat drei Funktionen:
+`ToFrontendMessage` reicht an `toFrontendMessage` weiter, `NeueSession` an `newSession`
+(liefert `driven.UpstreamSession`), `Verbindung` liefert `conn` einer übergebenen
+Session. `recording` braucht keine Brücke.
+
+*Testliste* (`go test -list .` je Paket, Image der Stufe `deps`): vorher und nachher
+gleich, `postgres` 14 Tests, `recording` 13; `diff` leer. Die Abdeckungs-Deklarationen
+stehen unverändert (der Diff der Testdateien berührt keine Kommentarzeile `Abdeckung:`).
+
+*`make lint`, Zeilen unter beiden Pfaden.* Vorher (`aff75ee`, Exit 2, 79 Befunde im Repo):
+
+```text
+internal/adapters/driven/postgres/upstream_extended_test.go:1:9: package should be `postgres_test` instead of `postgres` (testpackage)
+internal/adapters/driven/postgres/upstream_extended_test.go:98:15: Error return value of `s.Close` is not checked (errcheck)
+internal/adapters/driven/postgres/upstream_extended_test.go:178:15: Error return value of `s.Close` is not checked (errcheck)
+internal/adapters/driven/postgres/upstream_extended_test.go:206:16: Error return value of `s.Close` is not checked (errcheck)
+internal/adapters/driven/postgres/upstream_extended_test.go:220:16: Error return value of `s.Close` is not checked (errcheck)
+internal/adapters/driven/postgres/upstream_extended_test.go:314:15: Error return value of `s.Close` is not checked (errcheck)
+internal/adapters/driven/postgres/upstream_test.go:1:9: package should be `postgres_test` instead of `postgres` (testpackage)
+internal/adapters/driven/postgres/upstream_test.go:65:5: bereit is a global variable (gochecknoglobals)
+internal/adapters/driven/postgres/upstream_test.go:184:5: beendet is a global variable (gochecknoglobals)
+internal/adapters/driven/postgres/upstream_test.go:186:5: ergebnis is a global variable (gochecknoglobals)
+internal/adapters/driven/recording/yaml_test.go:1:9: package should be `recording_test` instead of `recording` (testpackage)
+internal/adapters/driven/recording/yaml_test.go:434:7: const syncGruppe is unused (unused)
+internal/adapters/driven/postgres/upstream.go:94:25: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+internal/adapters/driven/postgres/upstream.go:220:1: calculated cyclomatic complexity for function toResponse is 19, max is 15 (cyclop)
+internal/adapters/driven/postgres/upstream.go:220:1: cyclomatic complexity 18 of func `toResponse` is high (> 15) (gocyclo)
+internal/adapters/driven/recording/yaml.go:538:1: cognitive complexity 22 of func `fromDTO` is high (> 20) (gocognit)
+```
+
+Nachher (Exit 2, 67 Befunde im Repo, 12 weniger; in Testdateien unter beiden Pfaden
+keiner, auch keiner der eigenen Prüfungen an `export_test.go`; die vier im Produkt-Code
+bleiben für `slice-lint-bestand-kern-driven`, in `upstream.go` um sechs Zeilen
+verschoben durch `newSession`):
+
+```text
+internal/adapters/driven/postgres/upstream.go:100:25: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+internal/adapters/driven/postgres/upstream.go:226:1: calculated cyclomatic complexity for function toResponse is 19, max is 15 (cyclop)
+internal/adapters/driven/postgres/upstream.go:226:1: cyclomatic complexity 18 of func `toResponse` is high (> 15) (gocyclo)
+internal/adapters/driven/recording/yaml.go:538:1: cognitive complexity 22 of func `fromDTO` is high (> 20) (gocognit)
+```
+
+Behoben ohne `//nolint`, ohne `_ =` vor einem gemeldeten Fehler und ohne Änderung an
+`.golangci.yml`: `errcheck` mit dem Helfer `schliesse` (prüft den Fehler von `Close` mit
+`t.Error`), `gochecknoglobals` mit den Funktionen `bereit`, `beendet` und `ergebnis`, die
+je Aufruf neue Werte liefern, `unused` durch Entfernen von `syncGruppe` (jede Verwendung
+war eine lokale Variable gleichen Namens), `testpackage` durch die `_test`-Pakete.
+
+*Mutationen* (`AGENTS.md` §3.10, Risiko *Prüfung geht im Umbau verloren*): je Mutant ein
+frischer Pfad außerhalb des Repos (`cp -r` ohne `-p`), Tests per Bind-Mount im Image der
+Stufe `deps` mit `go test -count=1 -run`; ohne Mutation ist jeder genannte Test grün, mit
+ihr rot.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `Close` sendet Terminate mit Schreibfrist (Session über `NeueSession` auf `net.Pipe`) | `SetWriteDeadline` in `Close` entfernt | `TestCloseMitSchreibfrist` |
+| scheitert Send nach gelesener ErrorResponse, ist es PGR-E6001 (Schreibhälfte über `Verbindung` geschlossen) | `Send` liefert beim Flush-Fehler PGR-E4003 statt `verbindungsende` | `TestSendNachFehlerantwort/ErrorResponse_gelesen` |
+| Describe ohne gültige Zielart ist PGR-E1000 (über `ToFrontendMessage`) | Prüfung `!ok` der Zielart nie wahr | `TestReceiveFehler/Zielart` |
+| ein unbekannter Nachrichtentyp ist PGR-E1000 (über `ToFrontendMessage`) | Zweig `default` liefert `Sync` ohne Fehler | `TestReceiveFehler/Zielart` |
+| ein Fehler von `Close` ist ein Testfehler (Helfer `schliesse`) | `Close` liefert `net.ErrClosed` | `TestSendUndReceive`, `TestReceiveEndetMitReadyForQuery`, `TestReceiveFehler/COPY`, `TestReceiveFehler/Verbindungsende`, `TestSendUndReceiveGleichzeitig` |
+| die letzte ErrorResponse zählt (Testdaten `beendet()` und `ergebnis()` als Funktionen) | `merke` behält die erste ErrorResponse | `TestFehlerantwortVorDemAbbruch/zwei_Fehlerantworten,_die_letzte_zählt` |
+| der Aufbau liefert nur ParameterStatus und ReadyForQuery (Testdaten `bereit()` als Funktion) | `BackendKeyData` als Antwort im Aufbau | `TestOpenUndQuery` |
+| eine fremde Formatkennung ist PGR-E3003 (`recording_test`) | Prüfung der Formatkennung in `Unmarshal` nie wahr | `TestUnmarshalFehler/fremdes_Format` |
+
+Ohne roten Test, wie §6 sagt: `Open` gibt am ReadyForQuery eine neue Session aus
+`newSession(conn)` zurück statt der, über deren Frontend es den Aufbau las; alle Tests
+von `postgres` bleiben grün. Ob `Open` die Session über `newSession` anlegt, bleibt
+Urteil des Review. Die Lesefrist, die `oeffne` über `Verbindung` setzt, verhindert nur
+ein Hängen und hat keine eigene Mutation; dass `Verbindung` die Verbindung der Session
+liefert, zeigt die zweite Zeile (das `CloseWrite` daran lässt `Send` scheitern).
+
+*Läufe:* `go vet` und `go test` beider Pakete und `gofmt -l` (leer) im Image der Stufe
+`deps`; `make lint` vorher und nachher wie oben; `make gates` grün am Stand dieses
+Commits.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

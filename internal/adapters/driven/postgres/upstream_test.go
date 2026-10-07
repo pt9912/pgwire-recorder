@@ -1,4 +1,4 @@
-package postgres
+package postgres_test
 
 import (
 	"context"
@@ -12,7 +12,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
+	"github.com/pt9912/pgwire-recorder/internal/adapters/driven/postgres"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
 )
 
 // fakeServer nimmt eine Verbindung an, liest die StartupMessage und schickt die
@@ -62,11 +64,15 @@ func code(err error) string {
 	return ""
 }
 
-var bereit = []pgproto3.BackendMessage{
-	&pgproto3.AuthenticationOk{},
-	&pgproto3.ParameterStatus{Name: "server_version", Value: "17.0"},
-	&pgproto3.BackendKeyData{ProcessID: 42, SecretKey: []byte{1, 2, 3, 4}},
-	&pgproto3.ReadyForQuery{TxStatus: 'I'},
+// bereit ist ein Verbindungsaufbau ohne Anmeldeverfahren bis zum ersten
+// ReadyForQuery.
+func bereit() []pgproto3.BackendMessage {
+	return []pgproto3.BackendMessage{
+		&pgproto3.AuthenticationOk{},
+		&pgproto3.ParameterStatus{Name: "server_version", Value: "17.0"},
+		&pgproto3.BackendKeyData{ProcessID: 42, SecretKey: []byte{1, 2, 3, 4}},
+		&pgproto3.ReadyForQuery{TxStatus: 'I'},
+	}
 }
 
 func ctx(t *testing.T) context.Context {
@@ -80,14 +86,14 @@ func ctx(t *testing.T) context.Context {
 // liefern die Serverantworten in Reihenfolge; die Abbruchkennung des Servers
 // (BackendKeyData) ist nicht darunter (SPEC-004).
 func TestOpenUndQuery(t *testing.T) {
-	addr := fakeServer(t, bereit, []pgproto3.BackendMessage{
+	addr := fakeServer(t, bereit(), []pgproto3.BackendMessage{
 		&pgproto3.RowDescription{Fields: []pgproto3.FieldDescription{{Name: []byte("a"), DataTypeOID: 23, DataTypeSize: 4, TypeModifier: -1}}},
 		&pgproto3.DataRow{Values: [][]byte{[]byte("1")}},
 		&pgproto3.DataRow{Values: [][]byte{nil}},
 		&pgproto3.CommandComplete{CommandTag: []byte("SELECT 2")},
 		&pgproto3.ReadyForQuery{TxStatus: 'I'},
 	})
-	up := &Upstream{Address: addr}
+	up := &postgres.Upstream{Address: addr}
 	s, aufbau, err := up.Open(ctx(t), map[string]string{"user": "app"})
 	if err != nil || s == nil {
 		t.Fatalf("Open: %v", err)
@@ -113,21 +119,21 @@ func TestOpenUndQuery(t *testing.T) {
 func TestNichtVermittelbar(t *testing.T) {
 	t.Run("Anmeldeverfahren", func(t *testing.T) {
 		addr := fakeServer(t, []pgproto3.BackendMessage{&pgproto3.AuthenticationCleartextPassword{}}, nil)
-		s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
 		if s != nil || code(err) != model.CodeUnsupported {
 			t.Fatalf("erwartet %s, erhalten %v", model.CodeUnsupported, err)
 		}
 	})
 	t.Run("Fehlerantwort im Aufbau", func(t *testing.T) {
 		addr := fakeServer(t, []pgproto3.BackendMessage{&pgproto3.AuthenticationOk{}, &pgproto3.ErrorResponse{Severity: "FATAL", Code: "3D000", Message: "database does not exist"}}, nil)
-		s, out, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+		s, out, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
 		if s != nil || err != nil || len(out) != 1 || out[0].Fields["C"] != "3D000" {
 			t.Fatalf("Session %v, Antworten %#v, Fehler %v", s, out, err)
 		}
 	})
 	t.Run("COPY", func(t *testing.T) {
-		addr := fakeServer(t, bereit, []pgproto3.BackendMessage{&pgproto3.CopyOutResponse{}})
-		s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+		addr := fakeServer(t, bereit(), []pgproto3.BackendMessage{&pgproto3.CopyOutResponse{}})
+		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -146,7 +152,7 @@ func TestUpstreamNichtErreichbar(t *testing.T) {
 	}
 	addr := l.Addr().String()
 	l.Close()
-	if _, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}); code(err) != model.CodeUpstream {
+	if _, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}); code(err) != model.CodeUpstream {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeUpstream, err)
 	}
 }
@@ -181,12 +187,17 @@ func abbruchServer(t *testing.T, zwischen []pgproto3.BackendMessage, antworten .
 
 // beendet ist die Fehlerantwort, mit der PostgreSQL eine Verbindung auf
 // Anweisung des Administrators beendet.
-var beendet = &pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "57P01", Message: "terminating connection due to administrator command"}
+func beendet() *pgproto3.ErrorResponse {
+	return &pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "57P01", Message: "terminating connection due to administrator command"}
+}
 
-var ergebnis = []pgproto3.BackendMessage{
-	&pgproto3.RowDescription{Fields: []pgproto3.FieldDescription{{Name: []byte("a"), DataTypeOID: 23, DataTypeSize: 4, TypeModifier: -1}}},
-	&pgproto3.DataRow{Values: [][]byte{[]byte("1")}},
-	&pgproto3.CommandComplete{CommandTag: []byte("SELECT 1")},
+// ergebnis sind die Antworten auf SELECT 1 ohne ReadyForQuery.
+func ergebnis() []pgproto3.BackendMessage {
+	return []pgproto3.BackendMessage{
+		&pgproto3.RowDescription{Fields: []pgproto3.FieldDescription{{Name: []byte("a"), DataTypeOID: 23, DataTypeSize: 4, TypeModifier: -1}}},
+		&pgproto3.DataRow{Values: [][]byte{[]byte("1")}},
+		&pgproto3.CommandComplete{CommandTag: []byte("SELECT 1")},
+	}
 }
 
 func mit(folge []pgproto3.BackendMessage, weitere ...pgproto3.BackendMessage) []pgproto3.BackendMessage {
@@ -208,16 +219,17 @@ func pruefeAbbruch(t *testing.T, err error, want string, fehler *pgproto3.ErrorR
 // oeffne baut die Session zu addr auf und begrenzt ihr Lesen auf fünf
 // Sekunden: Ein Lesen über das Ende der Antworten hinaus endet so mit einem
 // Fehler, statt auf den Server zu warten.
-func oeffne(t *testing.T, addr string) *session {
+func oeffne(t *testing.T, addr string) driven.UpstreamSession {
 	t.Helper()
-	s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = s.Close() })
-	ss := s.(*session)
-	_ = ss.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	return ss
+	if err := postgres.Verbindung(s).SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	return s
 }
 
 // Abdeckung: LH-FA-11/Negative — endet die Verbindung zum Upstream nach einer
@@ -232,12 +244,12 @@ func TestFehlerantwortVorDemAbbruch(t *testing.T) {
 		name   string
 		fehler *pgproto3.ErrorResponse
 	}{
-		{"nach Ergebnissen, FATAL", beendet},
+		{"nach Ergebnissen, FATAL", beendet()},
 		{"Schweregrad ERROR", &pgproto3.ErrorResponse{Severity: "ERROR", SeverityUnlocalized: "ERROR", Code: "XX000", Message: "interner Fehler"}},
 		{"Schweregrad PANIC", &pgproto3.ErrorResponse{Severity: "PANIC", SeverityUnlocalized: "PANIC", Code: "XX000", Message: "Panik"}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			s := oeffne(t, abbruchServer(t, nil, mit(ergebnis, c.fehler)))
+			s := oeffne(t, abbruchServer(t, nil, mit(ergebnis(), c.fehler)))
 			out, err := s.Query(ctx(t), "SELECT 1; SELECT pg_terminate_backend(pg_backend_pid())")
 			pruefeAbbruch(t, err, model.CodeUnsupported, c.fehler)
 			if len(out) != 4 || out[3].Type != model.ResponseErrorResponse {
@@ -247,20 +259,20 @@ func TestFehlerantwortVorDemAbbruch(t *testing.T) {
 	}
 	t.Run("zwei Fehlerantworten, die letzte zählt", func(t *testing.T) {
 		erste := &pgproto3.ErrorResponse{Severity: "ERROR", Code: "XX001", Message: "erste"}
-		s := oeffne(t, abbruchServer(t, nil, mit(ergebnis, erste, beendet)))
+		s := oeffne(t, abbruchServer(t, nil, mit(ergebnis(), erste, beendet())))
 		_, err := s.Query(ctx(t), "SELECT 1")
-		pruefeAbbruch(t, err, model.CodeUnsupported, beendet)
+		pruefeAbbruch(t, err, model.CodeUnsupported, beendet())
 		if strings.Contains(err.Error(), "XX001") {
 			t.Fatalf("Text nennt die erste Fehlerantwort: %v", err)
 		}
 	})
 	t.Run("ohne Fehlerantwort", func(t *testing.T) {
-		s := oeffne(t, abbruchServer(t, nil, ergebnis))
+		s := oeffne(t, abbruchServer(t, nil, ergebnis()))
 		_, err := s.Query(ctx(t), "SELECT 1")
 		pruefeAbbruch(t, err, model.CodeConnectionLost, nil)
 	})
 	t.Run("ReadyForQuery nach der Fehlerantwort", func(t *testing.T) {
-		s := oeffne(t, abbruchServer(t, nil, []pgproto3.BackendMessage{beendet, &pgproto3.ReadyForQuery{TxStatus: 'I'}}, nil))
+		s := oeffne(t, abbruchServer(t, nil, []pgproto3.BackendMessage{beendet(), &pgproto3.ReadyForQuery{TxStatus: 'I'}}, nil))
 		if _, err := s.Query(ctx(t), "SELECT 1/0"); err != nil {
 			t.Fatal(err)
 		}
@@ -268,15 +280,15 @@ func TestFehlerantwortVorDemAbbruch(t *testing.T) {
 		pruefeAbbruch(t, err, model.CodeConnectionLost, nil)
 	})
 	t.Run("zwischen zwei Interaktionen", func(t *testing.T) {
-		s := oeffne(t, abbruchServer(t, []pgproto3.BackendMessage{beendet}, nil))
+		s := oeffne(t, abbruchServer(t, []pgproto3.BackendMessage{beendet()}, nil))
 		out, err := s.Query(ctx(t), "SELECT 1")
-		pruefeAbbruch(t, err, model.CodeUnsupported, beendet)
+		pruefeAbbruch(t, err, model.CodeUnsupported, beendet())
 		if len(out) != 1 || out[0].Fields["C"] != "57P01" {
 			t.Fatalf("Antworten vor dem Abbruch: %#v", out)
 		}
 	})
 	t.Run("Extended", func(t *testing.T) {
-		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet}, nil})
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet()}, nil})
 		s := oeffne(t, addr)
 		if err := s.Send(ctx(t), []model.ClientMessage{{Type: model.ClientParse, SQL: "SELECT 1"}, {Type: model.ClientFlush}}); err != nil {
 			t.Fatal(err)
@@ -289,7 +301,7 @@ func TestFehlerantwortVorDemAbbruch(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, err = s.Receive(ctx(t))
-		pruefeAbbruch(t, err, model.CodeUnsupported, beendet)
+		pruefeAbbruch(t, err, model.CodeUnsupported, beendet())
 	})
 }
 
@@ -401,9 +413,9 @@ func TestDiagnosefelder(t *testing.T) {
 
 // schreibhaelfteZu schließt die Schreibhälfte der Upstream-Verbindung, sodass
 // das nächste Senden sicher scheitert.
-func schreibhaelfteZu(t *testing.T, s *session) {
+func schreibhaelfteZu(t *testing.T, s driven.UpstreamSession) {
 	t.Helper()
-	if err := s.conn.(*net.TCPConn).CloseWrite(); err != nil {
+	if err := postgres.Verbindung(s).(*net.TCPConn).CloseWrite(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -415,7 +427,7 @@ func schreibhaelfteZu(t *testing.T, s *session) {
 func TestSendNachFehlerantwort(t *testing.T) {
 	parse := []model.ClientMessage{{Type: model.ClientParse, SQL: "SELECT 1"}, {Type: model.ClientFlush}}
 	sync := []model.ClientMessage{{Type: model.ClientSync}}
-	lies := func(t *testing.T, s *session, bis model.ResponseType) {
+	lies := func(t *testing.T, s driven.UpstreamSession, bis model.ResponseType) {
 		t.Helper()
 		for {
 			rs, err := s.Receive(ctx(t))
@@ -428,14 +440,14 @@ func TestSendNachFehlerantwort(t *testing.T) {
 		}
 	}
 	t.Run("ErrorResponse gelesen", func(t *testing.T) {
-		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet}})
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet()}})
 		s := oeffne(t, addr)
 		if err := s.Send(ctx(t), parse); err != nil {
 			t.Fatal(err)
 		}
 		lies(t, s, model.ResponseErrorResponse)
 		schreibhaelfteZu(t, s)
-		pruefeAbbruch(t, s.Send(ctx(t), sync), model.CodeUnsupported, beendet)
+		pruefeAbbruch(t, s.Send(ctx(t), sync), model.CodeUnsupported, beendet())
 	})
 	t.Run("ohne ErrorResponse", func(t *testing.T) {
 		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{&pgproto3.ParseComplete{}}})
@@ -448,7 +460,7 @@ func TestSendNachFehlerantwort(t *testing.T) {
 		pruefeAbbruch(t, s.Send(ctx(t), sync), model.CodeConnectionLost, nil)
 	})
 	t.Run("ErrorResponse und ReadyForQuery gelesen", func(t *testing.T) {
-		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet, &pgproto3.ReadyForQuery{TxStatus: 'I'}}})
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet(), &pgproto3.ReadyForQuery{TxStatus: 'I'}}})
 		s := oeffne(t, addr)
 		if err := s.Send(ctx(t), append(parse[:1:1], sync...)); err != nil {
 			t.Fatal(err)
@@ -471,7 +483,7 @@ func TestNichtLesbareServerantwort(t *testing.T) {
 		roh    []byte
 	}{
 		{"unbekannter Typ", nil, rohNachricht('Y', "")},
-		{"unbekannter Typ nach ErrorResponse", []pgproto3.BackendMessage{beendet}, rohNachricht('Y', "")},
+		{"unbekannter Typ nach ErrorResponse", []pgproto3.BackendMessage{beendet()}, rohNachricht('Y', "")},
 		{"ReadyForQuery ohne Status", nil, rohNachricht('Z', "")},
 	} {
 		t.Run(c.name, func(t *testing.T) {

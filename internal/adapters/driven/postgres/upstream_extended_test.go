@@ -1,4 +1,4 @@
-package postgres
+package postgres_test
 
 import (
 	"net"
@@ -8,7 +8,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
+	"github.com/pt9912/pgwire-recorder/internal/adapters/driven/postgres"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
 )
 
 // extendedServer nimmt eine Verbindung an, schickt den Aufbau und liest
@@ -34,7 +36,7 @@ func extendedServer(t *testing.T, antworten [][]pgproto3.BackendMessage) (string
 		if _, err := be.ReceiveStartupMessage(); err != nil {
 			return
 		}
-		for _, m := range bereit {
+		for _, m := range bereit() {
 			be.Send(m)
 		}
 		_ = be.Flush()
@@ -67,6 +69,14 @@ func extendedServer(t *testing.T, antworten [][]pgproto3.BackendMessage) (string
 	return l.Addr().String(), empfangen
 }
 
+// schliesse schließt s und meldet einen Fehler von Close als Testfehler.
+func schliesse(t *testing.T, s driven.UpstreamSession) {
+	t.Helper()
+	if err := s.Close(); err != nil {
+		t.Error(err)
+	}
+}
+
 func kopieFrontend(t *testing.T, msg pgproto3.FrontendMessage) pgproto3.FrontendMessage {
 	t.Helper()
 	b, err := msg.Encode(nil)
@@ -91,11 +101,11 @@ func TestSendUndReceive(t *testing.T) {
 		{&pgproto3.BindComplete{}, &pgproto3.DataRow{Values: [][]byte{[]byte("1")}}, &pgproto3.PortalSuspended{}, &pgproto3.CloseComplete{},
 			&pgproto3.ParameterDescription{}, &pgproto3.ReadyForQuery{TxStatus: 'T'}},
 	})
-	s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
+	defer schliesse(t, s)
 
 	gruppe1 := []model.ClientMessage{
 		{Type: model.ClientParse, Statement: "s1", SQL: "SELECT $1, $2", ParamTypes: []uint32{23, 25}},
@@ -171,11 +181,11 @@ func TestReceiveEndetMitReadyForQuery(t *testing.T) {
 	addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{
 		{&pgproto3.ParseComplete{}, &pgproto3.ReadyForQuery{TxStatus: 'I'}, &pgproto3.ParseComplete{}},
 	})
-	s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
+	defer schliesse(t, s)
 	if err := s.Send(ctx(t), []model.ClientMessage{{Type: model.ClientSync}}); err != nil {
 		t.Fatal(err)
 	}
@@ -199,11 +209,11 @@ func TestReceiveEndetMitReadyForQuery(t *testing.T) {
 func TestReceiveFehler(t *testing.T) {
 	t.Run("COPY", func(t *testing.T) {
 		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{&pgproto3.CopyInResponse{}}})
-		s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer s.Close()
+		defer schliesse(t, s)
 		if err := s.Send(ctx(t), []model.ClientMessage{{Type: model.ClientExecute}, {Type: model.ClientSync}}); err != nil {
 			t.Fatal(err)
 		}
@@ -213,11 +223,11 @@ func TestReceiveFehler(t *testing.T) {
 	})
 	t.Run("Verbindungsende", func(t *testing.T) {
 		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{nil})
-		s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer s.Close()
+		defer schliesse(t, s)
 		if err := s.Send(ctx(t), []model.ClientMessage{{Type: model.ClientSync}}); err != nil {
 			t.Fatal(err)
 		}
@@ -226,10 +236,10 @@ func TestReceiveFehler(t *testing.T) {
 		}
 	})
 	t.Run("Zielart", func(t *testing.T) {
-		if _, err := toFrontendMessage(model.ClientMessage{Type: model.ClientDescribe}); code(err) != model.CodeInternal {
+		if _, err := postgres.ToFrontendMessage(model.ClientMessage{Type: model.ClientDescribe}); code(err) != model.CodeInternal {
 			t.Fatalf("erwartet %s, erhalten %v", model.CodeInternal, err)
 		}
-		if _, err := toFrontendMessage(model.ClientMessage{Type: "bogus"}); code(err) != model.CodeInternal {
+		if _, err := postgres.ToFrontendMessage(model.ClientMessage{Type: "bogus"}); code(err) != model.CodeInternal {
 			t.Fatalf("erwartet %s, erhalten %v", model.CodeInternal, err)
 		}
 	})
@@ -254,7 +264,7 @@ func rohServer(t *testing.T, weiter func(be *pgproto3.Backend, conn net.Conn)) s
 		if _, err := be.ReceiveStartupMessage(); err != nil {
 			return
 		}
-		for _, m := range bereit {
+		for _, m := range bereit() {
 			be.Send(m)
 		}
 		_ = be.Flush()
@@ -307,11 +317,11 @@ func TestSendUndReceiveGleichzeitig(t *testing.T) {
 			}
 		}
 	})
-	s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
+	defer schliesse(t, s)
 	sendeFehler := make(chan error, 1)
 	go func() { sendeFehler <- s.Send(ctx(t), grosserBind()) }()
 	fertigBinnen(t, 10*time.Second, "Receive bis ReadyForQuery", func() {
@@ -340,7 +350,7 @@ func TestCloseBeendetWartende(t *testing.T) {
 	stumm := make(chan struct{})
 	t.Cleanup(func() { close(stumm) })
 	addr := rohServer(t, func(*pgproto3.Backend, net.Conn) { <-stumm })
-	s, _, err := (&Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -375,6 +385,6 @@ func TestCloseBeendetWartende(t *testing.T) {
 func TestCloseMitSchreibfrist(t *testing.T) {
 	a, b := net.Pipe()
 	defer b.Close()
-	s := &session{conn: a, fe: pgproto3.NewFrontend(a, a)}
+	s := postgres.NeueSession(a)
 	fertigBinnen(t, 2*time.Second, "Close", func() { _ = s.Close() })
 }
