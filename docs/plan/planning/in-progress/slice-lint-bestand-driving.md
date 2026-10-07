@@ -330,8 +330,8 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 **Belege des Implementers** (Stand: Code in `78f28a1` (Kontexte und Receiver, Befunde 9
 bis 16) und `e76b25f` (Komplexität, Befunde 1 bis 8), beide auf `b7d4555`; Kommentare
-nach F-465 und die Einordnung nach F-466 und F-467 in dem Commit, der diesen Kopf
-schreibt; jede Zeile nennt den Stand, an dem sie gemessen ist):
+nach F-465 und die Einordnung nach F-466 und F-467 in `dd5d13d`, Kommentar von
+`replayWaechter` und G7 nach V-93 in dem Commit, der diesen Kopf schreibt; jede Zeile nennt den Stand, an dem sie gemessen ist):
 
 *`make lint`, Zeilen unter `internal/adapters/driving/pgwire`,
 `internal/adapters/driving/cli` und `internal/bootstrap`.* Vorher (`b7d4555`, Exit 2,
@@ -436,6 +436,7 @@ ist für die Kontexte `b7d4555`, für die Komplexität `78f28a1`; „nach“ ist
 | T5 | … die Spaltennummer | `TableAttributeNumber` → 0 | **grün** | **grün** (Unit und Integration) | keiner, eingeordnet unten (G4) |
 | X4 | Ein gescheiterter Versand im Replay wird gemerkt (Review F-466) | `s.sendFailed(err)` entfernt (vor: an beiden Stellen) | **grün** (Unit) | **grün** (Unit und Integration) | keiner, eingeordnet unten (G5) |
 | Z3 | Nach einem gescheiterten Versand endet die Replay-Sitzung | `return false` → `return true` (vor: `return` → `continue`, beide Stellen) | **grün** (Unit) | **grün** (Unit und Integration) | keiner, eingeordnet unten (G6) |
+| V13 | Ein Schließen von `fertig` beendet den Wächter der Replay-Sitzung (Verifikation V-93) | `case <-fertig:` entfernt | **grün** (Unit) | **grün** (Unit) | keiner, eingeordnet unten (G7) |
 
 *Kommentare nach F-465* (Satz für Satz von einer roten Mutation gedeckt; gefahren an
 der Fassung dieses Commits, als `git stash create` vor dem Commit, je Mutant ein
@@ -515,6 +516,17 @@ von `replaySitzung` ändert sich unbemerkt*). Dieser Slice nennt keine Adresse.
   liefert auf die erste Anfrage einen Antworttyp ohne Abbildung; `Handle` kehrt zurück,
   ohne eine zweite Anfrage zu lesen, und `Query` ist einmal gerufen. Grenze: nur über
   den Pfad der nicht abbildbaren Antwort fangbar.
+- **G7 — Ende des Wächters der Replay-Sitzung (V13, Verifikation V-93).** Ohne
+  `case <-fertig:` läuft der Wächter nach dem Ende der Sitzung weiter, bis `ctx` endet,
+  je Replay-Verbindung eine Goroutine; danach setzt er die Lesefrist einer geschlossenen
+  Verbindung. Gefahren an der Fassung dieses Commits (`git stash create`) und an
+  `78f28a1`, je ein frischer Pfad: Stufe `test` grün. Der Satz „Ein Schließen von fertig
+  beendet ihn.“ ist darum aus dem Kommentar von `replayWaechter` gestrichen; die übrigen
+  Sätze deckt W. Test-Idee: Replay-Verbindung über `pgwire.Handle`, Client endet mit
+  Terminate, `ctx` läuft weiter; nach der Rückkehr von `Handle` kehrt die Zahl der
+  Goroutinen (`runtime.NumGoroutine`) binnen einer Frist auf den Stand vor der Verbindung
+  zurück. Grenze: über das Protokoll nicht beobachtbar, nur über die Zahl der Goroutinen
+  des Prozesses; der Test darf nicht parallel zu anderen laufen und braucht eine Frist.
 
 *Randformen:* Keine neue gefunden. Keine ungeprüfte Reihenfolge zweier Fehler: Die einzige
 Reihenfolge, Länge vor Startcode in `startup`, hält `TestFremdeErsteNachricht` (S1 rot).

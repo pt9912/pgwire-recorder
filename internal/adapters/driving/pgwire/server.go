@@ -213,7 +213,7 @@ func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 
 // replayWaechter startet den Wächter einer Replay-Sitzung: Endet ctx, setzt er
 // die Lesefrist von conn auf jetzt und schließt danach geweckt; erst danach
-// setzt die Sitzung die Frist zurück. Ein Schließen von fertig beendet ihn.
+// setzt die Sitzung die Frist zurück.
 func replayWaechter(ctx context.Context, conn net.Conn) (fertig, geweckt chan struct{}) {
 	fertig = make(chan struct{})
 	geweckt = make(chan struct{})
