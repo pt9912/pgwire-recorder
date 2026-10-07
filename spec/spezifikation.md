@@ -2044,9 +2044,11 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
    eine Funktion des Pakets weiter, die ihn erzeugt; so prüft ein Test nur Zustände,
    die das Produkt erzeugt. Diese Funktion ruft auch der Produkt-Code, um denselben
    Wert zu erzeugen; eine Funktion, die nur die Brücke ruft, gibt es nicht. Werte
-   exportierter Typen, die sie annimmt, etwa eine Verbindung, stellt der Test. Was nur an einem solchen Wert zu sehen ist, prüft der Test
-   über die exportierte Schnittstelle. Jede andere Testdatei im Paket `<name>` ist ein Befund von
-   `testpackage`; eine Variable auf Paketebene in der Brücke ist ein Befund von
+   exportierter Typen, die sie annimmt, etwa eine Verbindung, stellt der Test. Was nur
+   an einem Wert eines unexportierten Typs zu sehen ist, den die Brücke weder
+   übergeben bekommt noch über eine solche Funktion erzeugen lässt, prüft der Test
+   über die exportierte Schnittstelle. Jede andere Testdatei im Paket `<name>` ist ein
+   Befund von `testpackage`; eine Variable auf Paketebene in der Brücke ist ein Befund von
    `gochecknoglobals`; eine Funktion, deren Name mit `Test`, `Benchmark`, `Example`
    oder `Fuzz` beginnt, meldet in der Brücke eine eigene Prüfung.
 8. **Ausnahmen.** Eine Ausnahme steht nur in `.golangci.yml`, als Einstellung nach
