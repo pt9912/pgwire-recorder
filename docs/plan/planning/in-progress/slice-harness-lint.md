@@ -26,7 +26,7 @@ deklariert wird an ihr erst in `slice-harness-abdeckung-gate`),
 Ausnahmen, die Messung des Bestands, Einführung nach Bereinigung ohne Stufen und das
 Werkzeug-Ziel davor, Entscheidung 5 und 6).
 
-**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (`spezifikation.md` §11: Vertrag des Gates, vom Architect vor dem Code geschrieben, die Grenze am 2026-10-07 um ungültiges YAML und den Cache des Builds fortgeschrieben; dieser Slice liefert die zweite Hälfte von Punkt 10, den Anschluss an die Gate-Kette) · `spezifikation.md` §12 (*Historie*)
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (`spezifikation.md` §11: Vertrag des Gates, vom Architect vor dem Code geschrieben, die Grenze am 2026-10-07 vor dem Code um ungültiges YAML und den Cache des Builds fortgeschrieben, Punkt 8 am 2026-10-07 nach dem ersten Code-Commit um Leerraum nach dem Doppelpunkt und den Eintrag `-` allein (Rückgaben aus `221845d`, §6); dieser Slice liefert die zweite Hälfte von Punkt 10, den Anschluss an die Gate-Kette) · `spezifikation.md` §12 (*Historie*)
 
 **Verantwortlich:** pt9912
 
@@ -110,7 +110,8 @@ Stufen; dieser Slice ging dafür nach `next/` zurück (§4).
   `bash`, `git` und `docker` hinaus (`harness/conventions.md` §Baseline, dieselbe
   Begründung); die Anhebung bleibt ein bewusster Commit wie bei jedem gepinnten Image.
 - Lastenheft und Spezifikation — Schicht-Abgrenzung: `SPEC-049` und die
-  Historien-Zeilen hat der Architect vor dem Code geschrieben; dieser Slice ändert das
+  Historien-Zeilen schreibt nur der Architect: vor dem Code den Vertrag und die Grenze,
+  nach dem ersten Code-Commit Punkt 8 auf die Rückgaben aus `221845d` (§6); dieser Slice ändert das
   Gate-Fragment, die Gegenprobe, die Doku und die Kommentare aus §3, Produkt-Code nur
   den Kommentar an `Meldungen`.
   Braucht das Gate eine Änderung am Profil oder an der Stufe, geht sie an den
@@ -194,7 +195,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `docs/plan/adr/0034-lint-gate-mit-solid-nahem-profil.md`, `docs/plan/adr/README.md` | neu / update | geschrieben vom Architect vor dem Code: Entscheidung, Gründe, Messung des Bestands, dauerhafte Ausnahmen, Einführung nach Bereinigung, Werkzeug-Ziel davor; Index-Zeile. Den Status `Accepted` nach der Wahl des Nutzers vom 2026-10-06 setzt der Architect vor dem Start von `slice-harness-lint-werkzeug` |
-| `spec/spezifikation.md` §11, §12 | update | geschrieben vom Architect vor dem Code: `SPEC-049` mit den Randformen aus §6; Historien-Zeile. Am 2026-10-07 die Grenze um ungültiges YAML und den Cache des Builds fortgeschrieben (§6, *Prüfung vor dem Code*) |
+| `spec/spezifikation.md` §11, §12 | update | geschrieben vom Architect vor dem Code: `SPEC-049` mit den Randformen aus §6; Historien-Zeile. Am 2026-10-07 vor dem Code die Grenze um ungültiges YAML und den Cache des Builds fortgeschrieben (§6, *Prüfung vor dem Code*); am 2026-10-07 nach dem ersten Code-Commit Punkt 8 um Leerraum nach `exclusions:` und `rules:` und den Eintrag `-` allein (`7a32d57`, §6, *Randform-Rückgaben aus `221845d`*), je mit Historien-Zeile |
 | `harness/mk/lint.mk` | update | aus `slice-harness-lint-werkzeug`: `lint` an `GATE_CHECKS`, dazu das Ziel `lint-gegenprobe`, ebenfalls an `GATE_CHECKS`; Kopfkommentar und Hilfetext nennen das Gate statt des Werkzeugs |
 | `Dockerfile`, `tools/harness/lint.sh` | update | nur Kommentare: Die Stufe `lint` ist Teil der Gate-Kette; der Kopf von `lint.sh` zeigt auf die Sensor-Datei und führt `GEPRÜFT DURCH tools/harness/lint-gegenprobe.sh:` mit einer Zeile je Punkt von `SPEC-049`, Muster `tools/harness/kopf-check.sh`. Kein Verhalten, kein Profil |
 | `harness/sensors/lint.md` | neu | per `cp` aus `.harness/baseline/v6.16.0/templates/harness/sensors/gate.template.md`: Vertrag als Link auf `SPEC-049`, Grenze aus ihr, Ausgabe und Ausgänge, keine Sperre (die Stufe hat keine benannte Abbruch-Meldung), Bindung [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md); entscheidet nichts neu |
@@ -427,6 +428,32 @@ Mutanten*). Vorgabe an den Implementer je Rückgabe:
   (Anhebung von golangci-lint) und das Review. Akzeptiertes Negativ, keine Folgepflicht.
   Dasselbe gilt für die Zeile `Felder nicht erkannt`, die die gepinnte Version nicht
   auslöst (§7): offen im Kopf, kein Fall.
+
+**Randform aus dem Review, F-475** (Architect, 2026-10-08): `LINT_GEGENPROBE_PARALLEL`.
+Entschieden hier und nicht in `SPEC-049`: Die Einstellung gehört zur Gegenprobe, und die
+Gegenprobe hat keinen Vertrag in der Spezifikation (§6 oben, *Gegenprobe als eigenes
+Gate-Ziel*). Vorgabe an den Implementer:
+
+- **Werte.** Nicht gesetzt: 6. Gesetzt: eine positive ganze Zahl in Dezimalform ohne
+  Vorzeichen, Leerraum und führende Null (`^[1-9][0-9]*$`); sie ist die Höchstzahl
+  gleichzeitiger Läufe der Stufe. Keine Obergrenze.
+- **Jeder andere Wert**, auch der leere, `0`, eine negative Zahl, ein Wert mit Leerraum
+  oder einer, der keine Zahl ist: Abbruch vor der ersten Kopie und dem ersten Lauf, mit
+  der Zeile `lint-gegenprobe: LINT_GEGENPROBE_PARALLEL ist keine positive ganze Zahl:
+  '<wert>'` auf stderr und Ausgang 2. Leer zählt nicht als nicht gesetzt: Wer die
+  Variable setzt, meint einen Wert, und `make … LINT_GEGENPROBE_PARALLEL=` ist ein
+  Schreibfehler, keine Bitte um den Default.
+- **Fälle: ja**, je ein Aufruf des Skripts mit `0`, leer, `-1`, `abc` und ` 3`, jeder
+  unter `timeout` (wenige Sekunden). Erwartung je Fall: Ausgang 2 (nicht 124), die Zeile
+  oben mit dem Wert, und kein Lauf der Stufe hat begonnen (keine Zeile eines Falls und kein
+  `docker build` in der Ausgabe). Ohne die Prüfung hängt `0` bis zum `timeout` und wird
+  rot; dasselbe gilt für die übrigen Werte.
+- **Kein Fall** für einen gültigen Wert außer dem Default: Er führe die ganze Gegenprobe
+  ein zweites Mal. Den Default fährt jeder Lauf von `make gates`. Akzeptiertes Negativ:
+  Ein Muster, das einzelne gültige Zahlen ablehnt, fände erst ein Aufruf mit diesem Wert.
+- **Ort der Zusage.** Kopf von `tools/harness/lint-gegenprobe.sh`. `harness/README.md`
+  und der Hilfetext nennen die Einstellung nicht, sie ist ein Hilfsmittel des Laufs und
+  kein Teil des Gates.
 
 **Risiken:**
 
