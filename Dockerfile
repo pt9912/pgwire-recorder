@@ -45,7 +45,8 @@ ENTRYPOINT ["/out/integration.test", "-test.v", "-test.count=1"]
 
 # --- lint: golangci-lint nach dem Profil .golangci.yml und die eigenen
 # Prüfungen aus tools/harness/lint.sh, auf der Plattform des Bau-Hosts, mit den
-# Modulen aus deps, ohne Netz. Kein Teil der Gate-Kette (`make lint`).
+# Modulen aus deps, ohne Netz. Teil der Gate-Kette über `make lint`; welche
+# Zusagen tools/harness/lint-gegenprobe.sh prüft und welche offen sind, nennt ihr Kopf.
 FROM --platform=$BUILDPLATFORM golangci/golangci-lint:v2.14.0@sha256:ad862ba6b3798cbe0fd9fd7408d498fd74fbd2623a92406b2fd3898faf0bf98f AS lint
 WORKDIR /src
 ENV CGO_ENABLED=0 GOTOOLCHAIN=local GOFLAGS=-mod=readonly

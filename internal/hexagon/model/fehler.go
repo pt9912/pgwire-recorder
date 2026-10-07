@@ -169,8 +169,9 @@ func (m Meldung) ExitCode() int { return exitCode(m.Code) }
 // daneben folgt als Ursache der ersten klassifizierten; sind alle nicht
 // klassifiziert, ist es eine Meldung PGR-E1000, die Texte durch "; " getrennt.
 // Jeder andere Fehler ist eine Kette: eine Meldung mit seinem ganzen Text und
-// dem Code des ersten klassifizierten Fehlers unter ihm, außen nach innen und
-// in der Reihenfolge seiner Ursachen, sonst PGR-E1000. Für nil liefert sie nil.
+// dem Code des ersten klassifizierten Fehlers unter ihm in Tiefensuche (jede
+// Ursache ganz, bis in ihre innersten Fehler, bevor die nächste an die Reihe
+// kommt), sonst PGR-E1000. Für nil liefert sie nil.
 func Meldungen(err error) []Meldung {
 	if err == nil {
 		return nil

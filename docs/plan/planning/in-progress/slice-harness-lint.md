@@ -198,7 +198,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `harness/mk/lint.mk` | update | aus `slice-harness-lint-werkzeug`: `lint` an `GATE_CHECKS`, dazu das Ziel `lint-gegenprobe`, ebenfalls an `GATE_CHECKS`; Kopfkommentar und Hilfetext nennen das Gate statt des Werkzeugs |
 | `Dockerfile`, `tools/harness/lint.sh` | update | nur Kommentare: Die Stufe `lint` ist Teil der Gate-Kette; der Kopf von `lint.sh` zeigt auf die Sensor-Datei und führt `GEPRÜFT DURCH tools/harness/lint-gegenprobe.sh:` mit einer Zeile je Punkt von `SPEC-049`, Muster `tools/harness/kopf-check.sh`. Kein Verhalten, kein Profil |
 | `harness/sensors/lint.md` | neu | per `cp` aus `.harness/baseline/v6.16.0/templates/harness/sensors/gate.template.md`: Vertrag als Link auf `SPEC-049`, Grenze aus ihr, Ausgabe und Ausgänge, keine Sperre (die Stufe hat keine benannte Abbruch-Meldung), Bindung [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md); entscheidet nichts neu |
-| `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in einer Kopie des Arbeitsbaums unter einem Temp-Pfad, je Fall `make lint` bzw. der Docker-Build dort mit erwartetem Exit und erwarteter Zeile; Grundlauf zuerst; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ`. Je Zusage aus `SPEC-049` ein Mutant, der rot wird; Rot-Fälle für die erste Bedingung von Messmethode 3 je Paketgruppe (ein White-Box-Test unter `internal/hexagon/`, `internal/adapters/driven/`, `internal/adapters/driving/pgwire` und unter `internal/adapters/driving/cli`, `internal/bootstrap` oder `test/integration`), für die zweite Bedingung Zugriff an der Brücke vorbei (`internal_test.go` im Paket des Codes), Test in der Brückendatei, Variable in der Brückendatei; dazu eine ungenutzte Regel und eine Regel ohne `Why:`. Den grünen Fall je Ausnahme trägt der Bestands-Lauf mit `warn-unused` (`SPEC-049` Punkt 8). Ohne Abdeckungs-Deklaration (§1) |
+| `tools/harness/lint-gegenprobe.sh` | neu | Mutanten in Kopien des Arbeitsbaums unter `mktemp -d` (`cp -R` ohne `-p`, `touch` je mutierter Datei), je Kopie der Docker-Build der Stufe `lint` mit erwartetem Exit und erwarteter Zeile, bis zu sechs gleichzeitig; Grundlauf zuerst; Vorbild `make kopf-check-gegenprobe` und `make a-check-negativ`. Die Fälle mit eigener Zeile teilen sich eine Kopie, allein läuft ein Fall, dessen Zusage der Ausgang ist oder der andere ausschließt (§6 *Ort in der Gate-Kette*); den Fall nach Punkt 10 fährt `make gates` in einer Kopie mit nur dem Fragment `lint.mk`. Je Zusage aus `SPEC-049` ein Mutant, der rot wird: je aktivem Linter einer (statt je Gruppe), je Schwelle ein grüner und ein roter an der Grenze, je Einstellung und je Regel von `revive`, je Schreibweise von `nolint`, je Form des Profils, je Regel einer benannten Globale, je Art einer `lint:`-Zeile allein mit Ausgang 1; Rot-Fälle für die erste Bedingung von Messmethode 3 je Paketgruppe (ein White-Box-Test unter `internal/hexagon/model`, `internal/adapters/driven/recording`, `internal/adapters/driving/pgwire` und `internal/adapters/driving/cli`), für die zweite Bedingung Zugriff an der Brücke vorbei (`internal_test.go` im Paket des Codes), Test in der Brückendatei, Variable in der Brückendatei; dazu ungenutzte Regeln und Regeln ohne `Why:`. Den grünen Fall je Ausnahme trägt der Bestands-Lauf mit `warn-unused` (`SPEC-049` Punkt 8). Was sich nicht unterscheiden lässt, steht als offen im Kopf. Ohne Abdeckungs-Deklaration (§1) |
 | `internal/hexagon/model/fehler.go` | update | Kommentar an `Meldungen` (Zeilen 171 bis 173) nennt die Tiefensuche der Spezifikation statt „außen nach innen und in der Reihenfolge seiner Ursachen“ (`AGENTS.md` §3.11); übernommen aus der Closure von welle-replay-semantik, Nebenbefund 2. Nur der Kommentar, kein Verhalten |
 | `AGENTS.md` | update | §3.2 mit echtem Träger, Falsch/Richtig mit diesem Repo |
 | `harness/README.md` | update | Zeile `make lint` aus den Werkzeugen nach §Sensors, Target-Zelle verlinkt `sensors/lint.md`, Vertrag ein Satz mit `SPEC-049`; dazu `make lint-gegenprobe` mit seinem Vertrag in einem Satz (keine Sensor-Datei, wie bei den übrigen Gegenproben); „Nicht behauptet“ ohne Lint |
@@ -453,6 +453,104 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Beobachtungs-Register (`../observations/`):** <…>
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
+
+**Belege des Implementers** (Stand: Arbeitsbaum auf `fdbcfaf` mit den Änderungen des
+Commits, der diesen Abschnitt schreibt; jede Zeile nennt, woran sie gemessen ist).
+
+*Läufe.* `make lint` an diesem Stand in einer frischen Kopie (`cp -R`, dazu eine Datei
+`internal/frisch.txt`, damit der Build nicht aus dem Cache nimmt): Ausgang 0, keine
+`lint:`-Zeile, `0 issues.`, Schritt der Stufe 8,6 s. `make lint-gegenprobe` allein:
+grün, 1 min 37 s (22 Läufe der Stufe, sechs gleichzeitig, auf 20 Kernen). `make gates`
+(ohne `-j`) mit `lint` und `lint-gegenprobe`: grün, 2 min 49 s; `lint` kam dort aus dem
+Cache des Grundlaufs der Gegenprobe (Grenze von `SPEC-049`: ein grüner Lauf derselben
+Eingaben). `git status --porcelain` vor und nach `make lint-gegenprobe` gleich: Die
+Gegenprobe schreibt nichts in den Arbeitsbaum.
+
+*Fälle je Punkt von `SPEC-049`* (Namen im Kopf von `tools/harness/lint-gegenprobe.sh`;
+ein Fall, der eine Schleife fährt, zählt je Durchlauf): Grundlauf 2 · Punkt 1: 5 ·
+Punkt 3: 19 (17 Linter ohne Schwelle, die Liste, `default: none`; die übrigen elf über
+4, 5 und 7) · Punkt 4: 18 (neun Schwellen, je grün an und rot über der Grenze) · Punkt
+5: 55 · Punkt 6: 12 · Punkt 7: 13 · Punkt 8: 43 · Punkt 9: 72 (davon 51 für
+`max-issues-per-linter`) · Punkt 10: 3 · Grenze: 2. Die Fälle aus der DoD stehen darin:
+Einzug 8 als vollständige Liste (`p8-form-eintrag-8`), Einzug 2 nur mit der ersten
+Eintragszeile und Ausgang 1 (`p8-form-eintrag-2`, V-75), V-74 als `p9-laden`, Punkt 10
+als `p10-*`, die White-Box-Fälle der vier Umstellungs-Slices als `p7-whitebox-kern`,
+`-driven`, `-pgwire`, `-einstieg`. Je Linter statt je Gruppe, weil die DoD keine
+Gruppen nennt und ein Fall je Linter jede Gruppe deckt.
+
+*Umfang und Rückführung aus §4.* Das Skript hat 1074 Zeilen, davon rund 150 Zeilen
+Hilfsfunktionen; der Rest sind Go- und YAML-Schnipsel der Fälle und je Fall eine Zeile
+Erwartung. Die Fälle zu Messmethode 3 (`p7-*`) sind 13 Erwartungen in rund 60 Zeilen.
+Die Rückführung `in-progress → next` ist nicht gezogen: Sie nähme den kleinsten Teil
+heraus, und der Rest bleibt eine Tabelle aus Fall und Erwartung. Ob das in eine
+Review-Sitzung passt, entscheidet das Review; trägt es nicht, ist der Schnitt nach
+Punkten von `SPEC-049` naheliegender als nach Messmethode.
+
+*Weg der Mutanten in den Build* (`implement-slice` Schritt 19): Die Gegenprobe kopiert
+den Arbeitsbaum je Fall mit `cp -R` ohne `-p` in ein eigenes Verzeichnis unter
+`mktemp -d` und ruft nach jeder Änderung `touch` auf die Datei. Die Mutationen am
+Werkzeug unten liefen je in einer eigenen Kopie des Repos (`cp -R`, Ersetzung mit
+genau einem Treffer, dann `touch`), in der `make lint-gegenprobe` erneut kopiert.
+
+*Mutationen am Werkzeug: ohne die Prüfung wird der Fall rot* (§3.10; 33 Mutationen,
+jede rot gesehen; Spalte 3 nennt die roten Fälle des Laufs):
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| Punkt 7: keine Testfunktion in der Brücke | `lint.sh`: `(Test\|Benchmark\|Example\|Fuzz)` → `(KeinTest)` | `p7-test-in-bruecke-*` (4), `p9-profil-fehlt-bruecke` |
+| Punkt 7: auch mit Tab nach `func` | `lint.sh`: `^func[ ${tab}]+` → `^func[ ]+` | `p7-test-in-bruecke-tab` |
+| Punkt 1: Pfade mit `^` | `.golangci.yml`: `path: ^(cmd\|test)/` → `(cmd\|test)/` | `p1-pfad-anker-forbidigo` |
+| Punkt 1: Pfade mit `^` | `.golangci.yml`: `text: ^zielart is …` → `text: zielart is …` | `p8-ausnahme-name-zielart` |
+| Punkt 1: Build-Tag `integration` | `.golangci.yml`: `build-tags` entfernt | `p1-integration-build-tag` |
+| Punkt 3: genau diese Linter | `.golangci.yml`: `- godot` ergänzt | `p3-genau-diese` |
+| Punkt 3: `gochecknoinits` aktiv | `.golangci.yml`: `- gochecknoinits` entfernt | `p3-gochecknoinits`, `p9-golangci-allein` |
+| Punkt 4: `dupl` 150 | `threshold: 155` | `p4-dupl-rot` |
+| Punkt 4: `cyclop` 15 | `max-complexity: 16` | `p4-cyclop-rot` |
+| Punkt 5: Regeln von `revive` | `- name: time-naming` entfernt | `p5-revive-genau-diese`, `p5-revive-time-naming` |
+| Punkt 5: `testpackage` überspringt nur `export_test.go` | `skip-regexp: (^\|/)(export\|internal)_test\.go$` | `p7-internal-test` |
+| Punkt 6: `/*` vor `nolint` | `nolint_muster="(//)…"` | `p6-block` |
+| Punkt 8: feste Form, Einzug 6 | `else if (!strich \|\| e != 6)` → `else if (!strich)` | `p8-form-eintrag-8`, `p8-form-eintrag-2` |
+| Punkt 8: Fortsetzung mit mindestens 8 | `e >= 8` → `e >= 7` | `p8-form-fortsetzung-7` |
+| Punkt 8: jede andere Zeile unter `rules` | `(!strich \|\| e != 6)` → `(e != 6)` | `p8-form-ohne-strich` |
+| Punkt 8: höchstens ein Kommentar nach dem Doppelpunkt | `sub(/[ \t]+#.*$/, "", t)` → `t = t` | `p8-kommentar-nach-exclusions`, `-rules`, `p8-ohne-why`, `p8-why-*` |
+| Punkt 8: `rules` endet bei Einzug höchstens 4 | `if (!strich && e <= 4)` → `if (0)` | `p8-schluessel-nach-rules` |
+| Punkt 8: `exclusions` endet bei Einzug höchstens 2 | `if (in_ex && e <= ex_e …` → `if (0 && …` | `p8-reihenfolge` |
+| Punkt 8: Schlüssel `exclusions` in Anführungszeichen | `["\047]?exclusions["\047]?` → `exclusions` | `p8-form-quote-exclusions` |
+| Punkt 8: Schlüssel `rules` in Anführungszeichen | `["\047]?rules["\047]?` → `rules` | `p8-form-quote-rules` |
+| Punkt 8: `exclusions` in Flussform an anderer Stelle | `(^\|[{,]\|- )` → `(^\|- )` | `p8-form-fluss-anderswo` |
+| Punkt 8: `exclusions` als Listenpunkt | `(^\|[{,]\|- )` → `(^\|[{,])` | `p8-form-listenpunkt` |
+| Punkt 8: Ausnahmen der Testdateien für jede Testdatei | `path: ^.+_test\.go$` → `^internal/.+_test\.go$` (Komplexität) | `p0-grundlauf`, `p8-ausnahme-test-*` (6) und sechs Fälle, deren Kopie die Testdateien des Bestands trägt |
+| Punkt 9: ungekürzt je Text | `max-same-issues: 3` | `p9-max-same-issues-4` |
+| Punkt 9: ungekürzt je Linter | `max-issues-per-linter: 50` | `p9-max-issues-per-linter-48` bis `-51` und 15 weitere |
+| Punkt 9: Ausgang 1 bei `lint: … fehlt` allein | `befund=1` nach `fehlt` entfernt | `p9-fehlt-allein` |
+| Punkt 9: Ausgang 1 bei `von golangci-lint abgelehnt` allein | `befund=1` dort entfernt | `p9-schema-allein` |
+| Punkt 9: Ausgang 1 bei `Regel ohne Befund` allein | `befund=1` dort entfernt | `p9-ungenutzt-allein` |
+| Punkt 9: Ausgang 1 bei einer Testfunktion in der Brücke allein | `befund=1` dort entfernt | `p9-bruecke-allein` |
+| Punkt 9: Ausgang 1 bei `Form nicht erkannt` oder fehlendem `Why:` allein | `befund=1` dort entfernt | `p9-form-allein` und fünf `p8-form-*` |
+| Punkt 9: Ausgang 1 bei einem Befund von golangci-lint allein | `if [ "$status" -ne 0 ]` → `if false` | `p9-golangci-allein`, `p9-laden` |
+| Punkt 9: Werte der ungenutzten Regel ohne Quoting | `gsub(/\\\\/, "\001", t);` entfernt | `p8-ungenutzt-feldfolge` |
+| Punkt 10: `lint` an `GATE_CHECKS` | `lint.mk`: `GATE_CHECKS += lint-gegenprobe` | `p10-gate-checks`, `p10-gates-rot`, `p9-lint-zeile-allein` |
+
+*Grüne Mutanten, eingeordnet* (je ein Lauf von `make lint-gegenprobe` in einer Kopie
+mit der Mutation, jeder grün):
+
+| Mutation | Einordnung |
+|---|---|
+| `Dockerfile`, Stufe `lint`: ohne `GOFLAGS=-mod=readonly` | äquivalent: Ohne `vendor/` (der Build-Kontext lässt es nicht zu) wählt go denselben Modus. Offen im Kopf der Gegenprobe. |
+| `Dockerfile`, Stufe `lint`: ohne `GOTOOLCHAIN=local` | äquivalent für den Ausgang: Eine `go`-Zeile über der Version des Images lässt schon `deps` scheitern; offen im Kopf. |
+| `Dockerfile`: `RUN` ohne `--network=none` | äquivalent: Keine Prüfung lädt etwas, die Module kommen aus `deps`; offen im Kopf. |
+| `.golangci.yml`: `relative-path-mode: wd` | äquivalent: Profil, Modulwurzel und Arbeitsverzeichnis sind in der Stufe `/src`; offen im Kopf. |
+| `lint.sh`: `golangci-lint run` ohne `-c` | äquivalent: Der Build-Kontext führt nur `.golangci.yml`, die Default-Suche findet dieselbe Datei; offen im Kopf. |
+| `lint.sh`: Leerraum am Ende von `exclusions:`/`rules:` nicht abgeschnitten | ändert das Verhalten bei `rules:` mit Leerzeichen danach; ob das Blockform ist, entscheidet `SPEC-049` Punkt 8 nicht. Kein Fall, an den Architect zurückgegeben (Randform-Rückgabe im Bericht). |
+| `lint.sh`: ein `-` allein ist kein Eintrag (`/^- /` statt `/^-( \|$)/`) | ändert das Verhalten bei einem Eintrag `-` ohne Inhalt auf der Zeile; ob das ein Eintrag `- ` nach Punkt 8 ist, entscheidet die Spezifikation nicht. Kein Fall, an den Architect zurückgegeben. |
+
+Nicht als Mutation gefahren und offen im Kopf: Pin und Plattform des Images (ein
+anderes Image ließe sich nur mit Netz ziehen; ein Fall, der die Version liest, bräuchte
+eine Änderung an der Stufe, die §1 an den Architect gibt) und die Zeile `Regel ohne
+Befund: Felder nicht erkannt` (die gepinnte Version nennt in jeder Warnung mindestens
+zwei Felder). Der Kommentar an `Meldungen` in `internal/hexagon/model/fehler.go` sagt die
+Tiefensuche zu, die der Fall `Tiefensuche` in `fehler_test.go` prüft (§3.11); er ändert
+kein Verhalten.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

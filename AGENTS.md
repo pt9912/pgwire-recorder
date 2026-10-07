@@ -86,10 +86,18 @@ Kein lokales <venv/SDK/Toolchain-Install>. Alles läuft über `make`
 
 ### 3.2 Suppression-Verbot
 
+Eine Direktive `nolint` im Go-Code bricht das Gate `make lint`. Ausnahmen leben nur
+in `.golangci.yml`, jede Regel unter `exclusions.rules` mit einem Kommentarblock
+`# Why:` unmittelbar darüber; eine Regel, die nichts ausblendet, bricht das Gate
+ebenso. Vertrag und Lesart: [`harness/sensors/lint.md`](harness/sensors/lint.md).
 
+**Falsch:** `os.Remove(pfad) //nolint:errcheck` im Code.
+**Richtig:** den Befund beheben; ist eine Ausnahme dauerhaft richtig, eine Regel in
+`.golangci.yml` mit `# Why:` und einem Grund, der auch für neuen Code gilt.
 
-Inline-Suppression bricht das `<suppression>-gate`. Ausnahmen leben in
-<zentraler Konfigurations-Datei> mit Begründung.
+**Begründung:** Eine Ausnahme im Code sieht nur, wer die Zeile liest; im Profil
+steht sie an einer Stelle mit ihrem Grund, und die Gegenprobe des Gates prüft sie
+([ADR-0034](docs/plan/adr/0034-lint-gate-mit-solid-nahem-profil.md)).
 
 ### 3.3 git mv + Inhaltsänderung = zwei Commits
 

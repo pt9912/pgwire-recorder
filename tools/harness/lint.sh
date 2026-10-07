@@ -1,9 +1,26 @@
 #!/usr/bin/env bash
 # lint — die Stufe `lint` des Dockerfile: drei eigene Prüfungen, Schema-Prüfung
-# des Profils und golangci-lint nach dem Profil .golangci.yml.
-# Vertrag: spec/spezifikation.md SPEC-049 (Punkte 6 bis 9).
+# des Profils und golangci-lint nach dem Profil .golangci.yml. Als Gate läuft sie
+# über `make lint` an der Gate-Kette von `make gates`.
+# Vertrag: spec/spezifikation.md SPEC-049 (Punkte 6 bis 9 für dieses Skript); wie
+# ein Lauf zu lesen ist: harness/sensors/lint.md.
 # Aufruf: in der Wurzel des Moduls, im Image von golangci-lint (bash, find, grep,
 # awk, sort, mktemp); schreibt nichts in den Arbeitsbaum.
+#
+# GEPRÜFT DURCH tools/harness/lint-gegenprobe.sh (Fälle je Punkt von SPEC-049; was
+# offen ist, nennt ihr Kopf):
+#   (1) Gegenstand — p1-*
+#   (2) Werkzeug und Umgebung — p0-grundlauf (Module aus deps ohne Netz); der Rest
+#       offen
+#   (3) Linter — p3-*, p4-*-rot, p5-revive-*, p5-contextcheck-test, p7-whitebox-*
+#   (4) Schwellen — p4-*
+#   (5) Einstellungen — p5-*, p1-cmd
+#   (6) Kein `//nolint` — p6-*, p9-profil-fehlt-nolint
+#   (7) Export-Test-Brücke — p7-*, p9-profil-fehlt-bruecke
+#   (8) Ausnahmen — p8-*, p0-grundlauf (keine ungenutzte Regel im Bestand)
+#   (9) Ausgabe und Ausgang — p9-*, p8-form-* (Ausgang 1), p0-grundlauf (Ausgang 0)
+#   (10) Werkzeug, dann Gate — p10-*
+#   Grenze — neg-main-test, neg-generiert, p9-laden, p8-form-eintrag-2
 #
 # Jede Prüfung läuft, auch wenn eine andere einen Befund hat. Die Stufe schreibt
 # je Befund einer eigenen Prüfung eine Zeile `lint: <pfad>:<zeile>: <befund>`,
