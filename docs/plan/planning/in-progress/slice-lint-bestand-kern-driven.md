@@ -314,8 +314,10 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 
-**Belege des Implementers** (Stand `d840888`; Charakterisierungstests in `cedd891`, Umbau in
-`d840888`):
+**Belege des Implementers** (Stand: der Commit, der diesen Kopf schreibt, nach der
+Verifikation V-89 bis V-92; Charakterisierungstests in `cedd891`, Umbau in `d840888`,
+Kommentare nach F-460 und F-463 in `b215e70`, Kommentar nach V-89 in diesem Commit; wo
+eine Zeile an einem früheren Stand gemessen ist, nennt sie ihn):
 
 *`make lint`, Zeilen unter den vier Pfaden.* Vorher (`7ac016b`, Exit 2, `32 issues:`
 modulweit):
@@ -425,6 +427,8 @@ ist jeder genannte Test grün, mit ihr rot.
 | `(*cursor).objekte` | nach dem Halt kein Transaktionsende der laufenden Interaktion | Ergebnis von `extendedNachspielen` ignoriert | `TestReplayExtendedAbweichung`, `TestReplayExtendedDiagnoseAnweisung`, `TestReplayExtendedDiagnoseLebensdauer` |
 | `(*cursor).objekte` | Bestätigungen je Interaktion gezählt | nur die erste Gruppe gezählt | `TestReplayExtendedAbweichung`, `TestReplayExtendedDiagnoseSpaeteBestaetigung` |
 | `(*cursor).objekte` | eine Art ohne Bestätigung wird nicht nachgespielt (Doc-Kommentar `extendedNachspielen`) | `bestaetigt[m.Type] > 0` zu `>= 0` (frische Kopie aus `git archive 8d765ba`, Code gleich `d840888`) | `TestReplayExtendedDiagnoseLebensdauer` |
+| `(*cursor).objekte` | nachgespielt werden nur Nachrichten, „deren Art in der Interaktion bestätigt ist“ (Doc-Kommentar `extendedNachspielen` nach V-89), Bedingung *bestätigt* | `bestaetigt[m.Type] > 0` zu `>= 0` (W1; frische Kopie des Arbeitsbaums mit der Fassung nach V-89) | `TestReplayExtendedDiagnoseLebensdauer` |
+| `(*cursor).objekte` | dieselbe Zusage, Bedingung *in der Interaktion* | Zählschleife nur über `in.Groups[:1]` (W2; ebenso) | `TestReplayExtendedAbweichung`, `TestReplayExtendedDiagnoseSpaeteBestaetigung` |
 | `toResponse` | NULL bleibt NULL (`werte`) | NULL als leere Bytes | `TestOpenUndQuery` |
 | `toResponse` | Werte sind Kopien (`werte`) | ohne Kopie | Integration: `TestE2EErgebnisartenEinfach`, `TestE2ERecordExtendedPgx` u. a. |
 | `toResponse` | Format der Spalte (`spalten`) | `Format` nicht übernommen | Integration: `TestE2EErgebnisartenEinfach` |
@@ -472,8 +476,13 @@ ist jeder genannte Test grün, mit ihr rot.
     die ersten n Nachrichten entfällt; es bleiben die Zählung über die ganze Interaktion
     mit Grund (gefangen von *nur die erste Gruppe gezählt*) und „eine Art ohne
     Bestätigung in der Interaktion wird nicht nachgespielt“ (gefangen von
-    `bestaetigt[m.Type] >= 0`, Mutationstabelle). Die Zusage über die ersten n kommt mit
-    dem Test aus `slice-tests-ueberlebende-mutanten` zurück.
+    `bestaetigt[m.Type] >= 0`, Mutationstabelle). Nach V-89 sagt auch der erste Absatz
+    nicht mehr „die angenommenen Client-Nachrichten“, sondern „deren Art in der
+    Interaktion bestätigt ist“; das fangen W1 und W2 (Mutationstabelle), und ohne
+    `bestaetigt[m.Type]--` (W3, in derselben frischen Kopie wieder grün) stimmt die
+    Fassung weiter, denn auch dann spielt die Funktion nur Arten mit Bestätigung nach.
+    Die Zusage über die ersten n kommt mit dem Test aus
+    `slice-tests-ueberlebende-mutanten` zurück.
   - `spalten` ohne `TableOID`: Die Tabellen-OID einer Spalte ginge verloren. Test-Idee:
     Unit-Test in `postgres_test` mit einer RowDescription mit `TableOID` ungleich 0 über
     `Query`, Vergleich der Spalte; Grenze: Die Integrationstests vergleichen die

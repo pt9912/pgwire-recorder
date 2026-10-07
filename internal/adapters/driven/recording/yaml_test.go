@@ -577,9 +577,9 @@ func TestVorpruefungNenntOrt(t *testing.T) {
 // Verletzt eine Aufzeichnung zwei Regeln der Struktur zugleich, meldet Unmarshal
 // genau eine. Der Test hält fest, welche der Bestand meldet; eine Zusage ist das
 // nicht, und wer die Reihenfolge bewusst ändert, passt ihn an. Im Bestand gehen
-// die Sessions der Reihe nach vor, je Session erst ihre Kennung, dann ob sie Interaktionen trägt, dann ihre
-// Interaktionen der Reihe nach; je Interaktion erst die Nummer, dann offset_ms,
-// dann ihre Form.
+// die Sessions der Reihe nach vor, je Session erst ihre Kennung, dann ob sie
+// Interaktionen trägt, dann ihre Interaktionen der Reihe nach; je Interaktion
+// erst die Nummer, dann offset_ms, dann ihre Form.
 func TestUnmarshalFehlerReihenfolge(t *testing.T) {
 	kopf := "format: pgwire-recorder\nversion: 1\nsessions:\n"
 	anfrage := func(nummer, zusatz string) string {

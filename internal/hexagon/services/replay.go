@@ -342,10 +342,10 @@ func (c *cursor) objekte() objekte {
 	return o
 }
 
-// extendedNachspielen spielt die angenommenen Client-Nachrichten einer
-// Extended-Interaktion in Sendereihenfolge nach, bis halt für die Nachricht ni
-// der Gruppe gi wahr ist; diese und alle späteren bleiben aus. Das Ergebnis ist
-// wahr, wenn halt für keine Nachricht wahr war.
+// extendedNachspielen spielt die Client-Nachrichten einer Extended-Interaktion,
+// deren Art in der Interaktion bestätigt ist, in Sendereihenfolge nach, bis halt
+// für die Nachricht ni der Gruppe gi wahr ist; diese und alle späteren bleiben
+// aus. Das Ergebnis ist wahr, wenn halt für keine Nachricht wahr war.
 //
 // Die Bestätigungen einer Art zählt es über die ganze Interaktion, weil eine
 // späte Bestätigung in der folgenden Gruppe steht (LH-FA-18.a); eine Art ohne
