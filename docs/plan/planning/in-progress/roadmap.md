@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: [`slice-harness-blackbox-pgwire`](slice-harness-blackbox-pgwire.md) (wellenlos).
+In Arbeit: nichts (kein Slice in `in-progress/`); als nächster folgt `slice-harness-blackbox-einstieg` (wellenlos).
 
 
 

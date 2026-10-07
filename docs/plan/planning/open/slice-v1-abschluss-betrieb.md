@@ -113,6 +113,22 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
+**Randformen** (`AGENTS.md` §3.12):
+
+- **Wert der Schreibfrist der Fehlerantwort beim Session-Ende** (seit slice-harness-blackbox-pgwire,
+  Review F-451, Verifikation V-87) — der Recorder schreibt die Fehlerantwort beim Ende
+  einer Session höchstens `meldeFrist` lang an einen nicht lesenden Client
+  (`internal/adapters/driving/pgwire/server.go`, im Code eine Sekunde); den Wert nennen
+  weder Spezifikation noch Lastenheft, der Absatz *Abbruch* im Record-Teil sagt nur, dass
+  das Schließen der Client-Verbindung ein blockiertes Schreiben beendet. Die Frist
+  verbraucht einen Teil des Budgets von `--shutdown-timeout`. Offen: Der Architect
+  entscheidet den Wert vor dem Code in der Spezifikation; danach folgt ein Test mit der
+  Schranke als Literal, rot bei `meldeFrist = 3 * time.Second`. Heute liest
+  `TestFehlerantwortMitFrist` die Konstante über die Brücke und fängt nur das Entfernen
+  der Frist.
+
+**Risiken:**
+
 - Atomarität des Verschiebens ist plattformabhängig ("bestmöglich atomar") — **Ausgang:** offen bis Closure.
 
 - Herunterfahren ohne Obergrenze (aus `slice-extended-query-record`, Review F-309, Folge-Review F-317, Validierung Frage 1): Eine Session mit laufender Interaktion — einfache Anfrage oder Extended-Interaktion ohne `Sync` — hält das Herunterfahren beliebig lange; der Container-Stopp verliert dann ihre Aufzeichnung ganz, ohne Log-Zeile und mit Exit-Code `137`. Gegenstand siehe §1; Lastenheft und Spezifikation sind ergänzt — **Ausgang:** offen bis Closure.

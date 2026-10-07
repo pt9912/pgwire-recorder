@@ -80,24 +80,42 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Die Testdateien unter `internal/adapters/driving/pgwire` gehören zu `_test`-Paketen; die Liste der Tests
+- [x] Die Testdateien unter `internal/adapters/driving/pgwire` gehören zu `_test`-Paketen; die Liste der Tests
       (`go test -list .` je Paket, im gepinnten Go-Image) ist vor und nach dem Umbau gleich, keine Prüfung ist
       entfallen, die Abdeckungs-Deklarationen nach [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) stehen unverändert und
       `make abdeckung-check` ist grün. Unexportierte Teile erreicht ein Test nur über
-      die Brücke nach `SPEC-049` Punkt 7.
-- [ ] `make lint` meldet in den Testdateien unter `internal/adapters/driving/pgwire` keinen Befund: Die
+      die Brücke nach `SPEC-049` Punkt 7. — Verifikation, Abschnitt 1 Punkt 1 und
+      Abschnitt 2: die drei Testdateien sind `package pgwire_test`, im Paket des Codes
+      liegt nur `export_test.go`; `go test -list .` an `6ff1b3b` und `1b6fa29` je 40
+      Tests, `diff` leer, 53 Zeilen `--- PASS` an beiden Ständen; 25 Deklarationen Wort
+      für Wort und in der Zuordnung gleich, `make abdeckung-check` Exit 0. Keine
+      Prüfung entfallen bis auf den Rückgabewert von `weiterlesen`, den das Produkt nicht
+      liest (G1, G2 äquivalent; zulässig nach `SPEC-049` Punkt 7, letzter Fall; §6
+      Risiko *Prüfung geht im Umbau verloren*). Die Brücke reicht nur weiter; die
+      White-Box-Zugriffe aus §7 sind auf anderem Weg nachgemessen.
+- [x] `make lint` meldet in den Testdateien unter `internal/adapters/driving/pgwire` keinen Befund: Die
       6 Befunde der Messung sind behoben, ohne `//nolint` und ohne Änderung an
       `.golangci.yml`; die dauerhaften Ausnahmen nach `SPEC-049` Punkt 8 blendet das
       Profil aus. Die Zeilen der Ausgabe unter diesen Pfaden vor und nach dem Umbau
       stehen im Bericht; Befunde im Produkt-Code bleiben für `slice-lint-bestand-driving`.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      — Verifikation, Abschnitt 1 Punkt 2: die Zeilen vorher und nachher in §7
+      *Belege des Implementers*, Wort für Wort bestätigt; 6 → 0 in `*_test.go`, 14 im
+      Produkt-Code an beiden Ständen gleich; modulweit 60 → 54 ohne neuen Befund
+      (`comm -13` leer); kein `//nolint`, `.golangci.yml` unverändert, kein neues `_ =`
+      (je 44 Blank-Zuweisungen).
+- [x] `make gates` grün. — an `1b6fa29` (Go-Code gleich `b37d6e7`; Verifikation,
+      Abschnitt 1 Punkt 3 und Abschnitt 6); `edcb4a1` und diese Closure ändern nur
+      Berichte, Pläne, Roadmap und das Register, `make docs-check` und `make kopf-check`
+      grün am Stand dieser Closure.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+      — `docs/reviews/2026-10-07-review-slice-harness-blackbox-pgwire.md` (bis
+      `b37d6e7`; F-448 MEDIUM, F-449 LOW, F-450 bis F-453 INFO), Nacharbeit `1b6fa29`.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -191,14 +209,37 @@ steht, gibt der Implementer an den Architect zurück.
 - **Prüfung geht im Umbau verloren** — ein Test bleibt in der Liste, prüft aber
   weniger, weil ein unexportierter Vergleich wegfiel
   (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`, 1×). Je umgeschriebener (nicht nur
-  umgestellter) Test eine Mutation, die er weiter fängt. — **Ausgang:** — (bei Closure)
+  umgestellter) Test eine Mutation, die er weiter fängt. — **Ausgang:** entfallen: Die
+  Testliste ist gleich (40 Tests, 53 Zeilen `--- PASS` an beiden Ständen), die 25
+  Deklarationen sind gleich zugeordnet, die 15 Mutationen der Tabelle in §7 sind in der
+  Verifikation rot aus dem genannten Grund (Abschnitt 4), ebenso R2 bis R4 des Reviews.
+  Weggefallen ist genau eine Prüfung: der **Rückgabewert von `weiterlesen`**, den der
+  alte `TestWeiterlesenNachWecken` am selbst angelegten `richtungen`-Wert las. Das
+  Produkt liest ihn nicht (`clientRichtung` ruft `weiterlesen` als Anweisung), die
+  Mutanten G1 und G2 der Verifikation (Review R1) sind über die Schnittstelle
+  äquivalent, und nach `SPEC-049` Punkt 7, letzter Fall, ist die Prüfung damit
+  zulässig weggefallen (Verifikation, Abschnitt 3; F-449, V-86). Kein Verlust einer
+  Prüfung, die Verhalten fängt; die Grenze steht in §6 *White-Box-Zugriffe im Bestand*,
+  und ihr Auslöser ist an `slice-lint-bestand-driving` §6 gegeben (§7, *Folge-Slices*).
 - **Abdeckung sinkt** — Black-Box-Tests erreichen unexportierte Pfade seltener; die
   Zahl misst erst `slice-harness-coverage` nach allen vier Umstellungs-Slices.
-  — **Ausgang:** — (bei Closure)
+  — **Ausgang:** entfallen: Der Umbau gibt keinen Pfad des Produkts ab. Jeder frühere
+  Zugriff auf Unexportiertes geht über die Brücke an dieselbe Funktion oder Konstante
+  (Verifikation, Abschnitt 2), die vier `&Server{log: …}` werden `NewRecordServer(nil,
+  …)` mit demselben Zustand, und den einzigen umgeschriebenen Test fährt jetzt das
+  Produkt über `Handle` durch `recordSitzung`, `wecke` und `weiterlesen`. Nicht mehr
+  erreicht ist nur die Rückgabe von `weiterlesen`, die kein Produkt-Pfad liest. Die
+  Zahl für alle vier Umstellungs-Slices misst `slice-harness-coverage` nach seinem
+  eigenen §1, nicht als Ausgang dieses Risikos.
 - **Befund verdeckt statt behoben** — `_ =` vor einem ungeprüften Fehler, eine Globale
   als Funktion mit demselben geteilten Zustand: `make lint` ist grün, der Test nicht
   besser. Review prüft die Form, das Werkzeug nur die Zahl (Grenze von `SPEC-049`).
-  — **Ausgang:** — (bei Closure)
+  — **Ausgang:** entfallen: Kein neues `_ =` (je 44 Blank-Zuweisungen an beiden Ständen;
+  `_ = fe.Flush()` ist aus `sende` übernommen), kein `//nolint`, `.golangci.yml`
+  unverändert (Verifikation, Abschnitt 1 Punkt 2). `nebenher(fe)` legt je Aufruf eine
+  eigene Sperre an, kein geteilter Zustand über Verbindungen oder Tests (F-452;
+  Verifikation, Abschnitt 7: 21 Aufrufe, kein `t.Parallel`); die Sperre war vorher
+  ebenso ungeprüft (§7, *Ohne roten Test*).
 
 ## 7. Closure-Notiz
 
@@ -214,12 +255,129 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
+- **Was hat funktioniert:** Der Schnitt hielt: drei Liefer-Punkte, drei Testdateien, eine
+  Brücke, kein Produkt-Code, ein umgeschriebener Test, keine Rückführung aus §4 und keine
+  Entscheidung des Architect während der Arbeit. Die Brücken-Regel aus `SPEC-049` Punkt 7
+  in der Fassung `f0ea7be` trug ohne Nachfrage: Der einzige Wert eines unexportierten Typs
+  (`richtungen`) ging an die Schnittstelle, `TestWeiterlesenNachWecken` fährt die
+  Weckmechanik jetzt über `Handle` an einer vom Test gestellten Verbindung. Belege in §7:
+  AST-Messung, Testliste, Lint-Zeilen vorher und nachher, 15 Mutationen und die grünen
+  Mutanten unter *Ohne roten Test* standen dort; Review und Verifikation prüften gegen sie,
+  die Verifikation maß die White-Box-Zugriffe auf anderem Weg nach (Compiler-Fehler unter
+  Punkt-Import) und fand dieselben Zahlen. Die Einordnung grüner Mutanten nach
+  `.claude/commands/implement-slice.md` Schritt 19 (seit slice-harness-blackbox-driven) hat
+  für zwei von drei gewirkt: `meldeFrist = 3 * time.Second` und `nebenher` ohne Sperre
+  standen mit Test-Idee und Grenze in §7, beide hat das Review bestätigt (F-451, F-452).
+- **Was ging anders als geplant:** Zwei Punkte, keine Nacharbeit am Code. §6 nannte die
+  Frage, ob die Brücke eine Frist schreiben darf, weiter offen, obwohl der Punkt
+  *Export-Test-Brücke* (seit `26c13aa`) und der Code sie beantworteten; `b37d6e7` zog im
+  Plan nur §7 nach (F-448 MEDIUM, drittes Auftreten der Klasse in Reviews). Und ein dritter
+  grüner Mutant, der Rückgabewert von `weiterlesen`, war in §7 nicht eingeordnet, weil der
+  Implementer ihn nicht mutiert hatte; das Review fand ihn (F-449, R1). Beides behob
+  `1b6fa29` nur im Plan; die Verifikation bestätigt §6 widerspruchsfrei und die Einordnung
+  als äquivalent (Abschnitt 3).
+  - **Summary-Zeilen:** Review
+    `docs/reviews/2026-10-07-review-slice-harness-blackbox-pgwire.md`: „0 HIGH · 1 MEDIUM
+    (F-448: §6 nennt die Frage, ob die Brücke schreiben darf, weiter offen, obwohl Punkt
+    *Export-Test-Brücke* und Diff sie beantworten) · 1 LOW (F-449: Rückgabewert von
+    `weiterlesen` im Umbau ungeprüft, grüner Mutant nicht in §7 eingeordnet) · 4 INFO
+    (F-450 Folge in `TestWeiterlesenNachWecken` praktisch deterministisch, eine verdeckte
+    Abhängigkeit vom Startphasen-Wächter; F-451 Wert von `meldeFrist` ist eine Spec-Lücke
+    aus dem Bestand; F-452 `nebenher` gleichwertig; F-453 Mutationen reichen bis auf
+    F-449). Wiederkehrende Klasse: „Plan folgt Korrektur nicht“
+    (`BEO-REPO/plan-folgt-korrektur-nicht`, drittes Auftreten in Reviews).“
+    Verifikation `docs/reviews/2026-10-07-verifikation-slice-harness-blackbox-pgwire.md`,
+    Urteil: drei Liefer-Punkte erfüllt und selbst belegt, Brücke hält Punkt 7, die 15
+    Mutationen aus §7 rot aus dem genannten Grund, die grünen Mutanten tragfähig
+    eingeordnet, F-448 behoben, F-449 trägt, F-450 ohne Befund (2000 grüne Läufe unter
+    Drossel), F-451 bestätigt als Lücke aus dem Bestand; kein Befund blockiert die Closure,
+    V-86 und V-87 sind Vorschläge für Risiko-Ausgang, Folge-Slices und Lerneintrag.
+    `make gates` grün an `1b6fa29`.
+- **Steering-Loop-Eintrag:** Benannte Spec-Lücke: Die Spezifikation nennt keinen Wert für
+  die Frist, mit der der Recorder beim Ende einer Session die Fehlerantwort an einen nicht
+  lesenden Client schreibt (`meldeFrist` in `internal/adapters/driving/pgwire/server.go`,
+  im Code eine Sekunde). Der Absatz *Abbruch* im Record-Teil sagt nur, dass das Schließen
+  der Client-Verbindung ein blockiertes Schreiben beendet; das Lastenheft nennt die Frist
+  ebenfalls nicht. Den Wert entscheidet bisher allein der Code, seit
+  `slice-extended-query-record` (`09cc0e9`, dort Verifikation V-22); der Mutant
+  `meldeFrist = 3 * time.Second` ist an `6ff1b3b` und an `1b6fa29` grün (Verifikation G3).
+  Ein Test mit der Schranke als Literal schriebe einen nicht spezifizierten Wert fest; er
+  braucht zuerst die Stelle in der Spezifikation (F-451, V-87). Adresse:
+  `slice-v1-abschluss-betrieb` §6, als Randform mit Herkunfts-Anker
+  `seit slice-harness-blackbox-pgwire`: Der Architect entscheidet den Wert vor dem Code in
+  der Spezifikation, danach folgt der Test mit der Schranke als Literal. Kein neuer Beleg
+  im Register: Der Fund steht als V-22 schon in
+  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` und
+  `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` und zählte sonst doppelt.
+  Retirement-Checks: `AGENTS.md` §3.9 (seit welle-walking-skeleton) — wieder aufgetreten
+  (F-448), die Regel bleibt; `make kopf-check` liest nur den Kopf gegen §1 und §2, einen
+  Widerspruch innerhalb von §6 fängt er nicht und soll er nach seinem Vertrag nicht.
+  `.claude/commands/implement-slice.md` Schritt 19 (seit slice-harness-blackbox-driven) —
+  die Einordnung trug für die gefundenen grünen Mutanten; F-449 ist ein Mutant, den der
+  Implementer nicht gefahren hat, kein falsch eingeordneter; die Regel bleibt. §3.12 und
+  die Randform-Rückgabe: ohne Befund im Code-Commit (Review, Negativbefund), bleiben.
+  §3.10 ohne neuen Vertrag, §3.11 ohne Befund.
+- **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `edcb4a1` (Zähler =
+  Dateien unter `evidence/`).
+  - `BEO-REPO/plan-folgt-korrektur-nicht` — **Beleg**, 14× → 15× (F-448), verkörpert in
+    `AGENTS.md` §3.9 und `make kopf-check`; die Schwelle lag schon vorher darüber.
+  - Ohne Beleg: `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (bleibt 1×; die
+    weggefallene Prüfung ist ein Test-Vergleich ohne Produkt-Leser und zulässig nach
+    `SPEC-049` Punkt 7, keine Gate-Regel), `BEO-REPO/randform-wellenlos-ohne-architect-vor-code`
+    (bleibt 1×; die Randformen standen vor dem Code entschieden in §6, Review Hard Rule
+    3.12 ohne Befund im Code-Commit), `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`
+    (bleibt 3×, verkörpert; keine Randform im Code entschieden),
+    `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht` (bleibt 3×, verkörpert; die
+    Belege in §7 erreichten beide Prüfer), `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`
+    (bleibt 1×; jede Mutation lief in einem frischen Pfad per Bind-Mount),
+    `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (bleibt 16×; Review Hard Rule 3.11
+    ohne Befund; V-22 dort ist der Fund zur Frist, kein neuer Beleg),
+    `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (bleibt 13×; kein neuer Vertrag),
+    `BEO-REPO/spec-randform-erst-im-review-entschieden` (bleibt 11×; F-451 entscheidet
+    keine Randform, sondern benennt eine aus dem Bestand).
+
+  Einmalig und nicht eingetragen: F-449 als Klasse (ein grüner Mutant, den der Implementer
+  nicht gefahren hat; Schritt 19 verlangt die Einordnung gefundener Mutanten, nicht eine
+  vollständige Suche), F-450 (verdeckte Abhängigkeit vom Startphasen-Wächter, 2000 grüne
+  Läufe), F-452 (keine Aktion), F-453 (Mutationen reichen). Mit diesem Slice erreicht
+  **kein** Eintrag die Schwelle 3× neu; über der Schwelle stehen nur verkörperte Einträge
+  (`implementer-bericht-erreicht-pruefer-nicht` 3×,
+  `randform-im-code-entschieden-dann-zurueckgegeben` 3×,
+  `spec-randform-erst-im-review-entschieden` 11×,
+  `negativtests-fehlen-bei-neuem-vertrag` 13×, `plan-folgt-korrektur-nicht` 15×,
+  `zusage-im-kommentar-weiter-als-pruefung` 16×).
+- **Folge-Slices:** `slice-v1-abschluss-betrieb` (Wert von `meldeFrist`, Randform in §6:
+  Architect entscheidet den Wert in der Spezifikation, dann Test mit der Schranke als
+  Literal; nimmt an: liegt in `open/`, setzt die Frist in `recordSitzung` und das Ende
+  von Sessions unter `--shutdown-timeout` um, §1 schließt weder Spezifikation noch Tests
+  an `pgwire` aus), `slice-lint-bestand-driving` (die 14 Befunde im Produkt-Code dieses
+  Pakets, Zeilen in §7 *Nachher*; dazu in §6 die Grenze zum Rückgabewert von
+  `weiterlesen` beim Zerlegen von `clientRichtung`, V-86), als nächster in der Reihe
+  `slice-harness-blackbox-einstieg`, dann `slice-harness-coverage` und
+  `slice-harness-lint`.
+- **Risiken aus §6:** drei, alle **entfallen**, mit Begründung: *Prüfung geht im Umbau
+  verloren* (einzige weggefallene Prüfung ist der Rückgabewert von `weiterlesen`, G1/G2
+  äquivalent, zulässig nach `SPEC-049` Punkt 7, letzter Fall), *Abdeckung sinkt* (kein
+  Produkt-Pfad abgegeben), *Befund verdeckt statt behoben* (kein neues `_ =`, kein
+  `//nolint`, Sperre je Verbindung). Die Randformen in §6 sind Entscheidungen, keine
+  Risiken.
+- **Drei Paarungen:** Anker — der Lerneintrag ist eine benannte Spec-Lücke, keine
+  verkörperte Regel, daher kein `liegt in`; der Herkunfts-Anker
+  `seit slice-harness-blackbox-pgwire` steht an der Adresse,
+  `grep -n "seit slice-harness-blackbox-pgwire" docs/plan/planning/open/slice-v1-abschluss-betrieb.md`
+  findet ihn in §6. Folge-Slice — `slice-v1-abschluss-betrieb`,
+  `slice-lint-bestand-driving`, `slice-harness-blackbox-einstieg` und
+  `slice-harness-coverage` liegen in `open/`, `slice-harness-lint` in `next/`;
+  `slice-v1-abschluss-betrieb` und `slice-lint-bestand-driving` nennen ihren Punkt in §6.
+  Register — `BEO-REPO/plan-folgt-korrektur-nicht` trägt
+  `evidence/slice-harness-blackbox-pgwire.md`; die acht ohne Beleg bestehen als
+  Verzeichnis, jedes mit nicht leerem `evidence/`. Die nächste Welle-Closure prüft erneut.
+- **Belege:** Review `docs/reviews/2026-10-07-review-slice-harness-blackbox-pgwire.md`
+  (bis `b37d6e7`; F-448 bis F-453), Nacharbeit `1b6fa29`, Verifikation
+  `docs/reviews/2026-10-07-verifikation-slice-harness-blackbox-pgwire.md` (bis `1b6fa29`,
+  `make gates` an `1b6fa29`; V-86, V-87), Entscheidung
+  [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) unverändert.
+  Validierung: n/a, der Slice ändert Tests, kein End-Nutzer-Verhalten.
 
 **Belege des Implementers** (Arbeitsbaum auf `6ff1b3b` mit dem Diff des Commits, der
 diesen Abschnitt anlegt):

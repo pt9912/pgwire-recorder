@@ -187,6 +187,12 @@ Architect zu bestätigen:
   (Signalbehandlung nach [`LH-FA-13.a`](../../../../spec/spezifikation.md#lh-fa-13a--signalbehandlung), Frist `--shutdown-timeout`), geht der Befund an den
   Architect zurück. Der Kontext im Struct `richtungen` wird Parameter der Methoden, die
   ihn brauchen; `pgwire.Listen` bekommt einen Kontext für `net.ListenConfig`.
+- **Rückgabewert von `weiterlesen`** (aus `slice-harness-blackbox-pgwire`, V-86) — den
+  Wert verwirft `clientRichtung` heute, über die Schnittstelle prüft ihn kein Test; die
+  Mutanten an ihm sind äquivalent. Wer `clientRichtung` zerlegt und den Rückgabewert von
+  `weiterlesen` künftig liest, braucht einen Test über die Schnittstelle, der ihn fängt
+  (Mutationen: nach dem Wecken `return true` → `return false`, ohne Signal
+  `return false` → `return true`).
 
 **Risiken:**
 

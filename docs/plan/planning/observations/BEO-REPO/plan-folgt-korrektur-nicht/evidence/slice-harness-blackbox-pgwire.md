@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-blackbox-pgwire
+**Fund:** §6 nannte im Punkt *White-Box-Zugriffe im Bestand* die Frage, ob die Brücke eine Frist schreiben darf, weiter offen, obwohl der Punkt *Export-Test-Brücke* sie seit `26c13aa` beantwortete und der Code-Commit `b37d6e7` sie umsetzte (`MeldeFrist` als Konstante, gelesen, nicht gesetzt); `b37d6e7` zog im Plan nur §7 nach (Review F-448, MEDIUM, drittes Auftreten der Klasse in Reviews). Nachgezogen in `1b6fa29`. `make kopf-check` war grün; einen Widerspruch innerhalb von §6 liest er nicht.
