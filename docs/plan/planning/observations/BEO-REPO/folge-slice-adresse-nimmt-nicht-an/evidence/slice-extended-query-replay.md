@@ -1,0 +1,2 @@
+**Vorgang:** slice-extended-query-replay
+**Fund:** Plan §1 wies „Frist `--shutdown-timeout` und `PGR-E4006` im Replay“ an `slice-v1-abschluss-betrieb`; dessen §1, §3, §6 und DoD sprachen nur vom Record (Folge-Review F-330, MEDIUM, Klasse „Folge-Slice nimmt die zugewiesene Sendung nicht an“). Behoben in `b697462`, der Nehmer führt die Frist seitdem je Modus (Folge-Review 2). Bei der Closure unter `BEO-REPO/plan-folgt-korrektur-nicht` gezählt; hier nachgetragen bei der Closure von `slice-lint-bestand-kern-driven`.

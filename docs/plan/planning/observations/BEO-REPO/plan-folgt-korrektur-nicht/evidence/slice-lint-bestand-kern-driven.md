@@ -1,0 +1,2 @@
+**Vorgang:** slice-lint-bestand-kern-driven
+**Fund:** Der Kopf der *Belege des Implementers* in §7 nannte nach den Kommentar-Korrekturen in `b215e70` weiter den Stand `d840888`, obwohl die Belege Ergebnisse späterer Stände enthielten (Mutation aus `git archive 8d765ba`, Gate-Lauf am Stand von `b215e70`, neue Adresse; Verifikation V-91, Hinweis). Nachgezogen in `9b9404b`. `AGENTS.md` §3.9 nennt §7 nicht; §1, §3 und §6 folgten dem Diff (Review, Negativbefund zu Hard Rule 3.9). `make kopf-check` liest §7 nicht.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-lint-werkzeug
+**Fund:** Die nicht mutierbaren und die neu entschiedenen Zusagen sollten „als offen für `slice-harness-lint` benannt“ sein, standen aber nur im Bericht des Implementers; die DoD von `slice-harness-lint` nannte keinen der Punkte (Review F-431, LOW, Klasse „Übergabe an Folge-Slice ohne Artefakt“, Präzedenz in F-459 genannt). Behoben in `8d9f0ee`, die DoD des Nehmers übernimmt sie (Verifikation). Bei der Closure unter `BEO-REPO/plan-folgt-korrektur-nicht` gezählt; hier nachgetragen bei der Closure von `slice-lint-bestand-kern-driven`.

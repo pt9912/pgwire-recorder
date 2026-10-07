@@ -207,7 +207,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` | update (Architect, vor dem Code) | Die Randformen *Abgelehntes parse* und *Ort in der Meldung* aus §6, an der Stelle, die der Architect wählt; die Lesart *Spalten-Metadaten* nur, wenn er sie nicht als entschieden bestätigt |
+| `spec/spezifikation.md` | update (Architect, vor dem Code) | Die Randformen *Abgelehntes parse*, *Ort in der Meldung* und *Was ein Test festhält* aus §6, an der Stelle, die der Architect wählt; die Lesart *Spalten-Metadaten* nur, wenn er sie nicht als entschieden bestätigt |
 | `internal/hexagon/services/replay_extended_test.go` | update | M3: Diagnose nach bestätigtem und danach abgelehntem `parse` desselben benannten Statements (Negative, LH-FA-10) |
 | `internal/hexagon/services/replay.go` | update (nur Kommentar) | Doc-Kommentar von `extendedNachspielen`: die Zusage über die ersten n Nachrichten, so weit der Test sie prüft (F-460) |
 | `internal/adapters/driven/postgres/upstream_test.go`, `upstream_extended_test.go` | update | P8, P2: `RowDescription` mit `TableOID` und `TableAttributeNumber` ungleich 0, Spalte in allen Feldern verglichen, Simple- und Extended-Weg (Happy, LH-FA-02 und LH-FA-18) |
@@ -319,10 +319,18 @@ nicht steht, entscheidet der Implementer nicht; er gibt es zurück.
   Paketen `<name>_test` und gehen über die exportierte Schnittstelle. Ein
   `RecordingRepository` und einen Server über TCP-Loopback stellt der Test, die Brücke
   wächst nicht.
-- **Was ein Test festhält** — **entschieden** für den Bestand an Meldungen (Architect
-  zu F-463 in `slice-lint-bestand-kern-driven`): Nach außen gelten Code, Exit-Code und
-  die zugesagten Bestandteile des Textes. Ein Test vergleicht nur diese, nicht den
-  ganzen Text.
+- **Was ein Test festhält** — **offen**. Ob ein Test dieses Slice von einer Meldung
+  nur Code, Exit-Code und die zugesagten Bestandteile des Textes vergleicht oder den
+  ganzen Text, entscheidet keine Stelle der Spezifikation und keine ADR. Die
+  Entscheidung des Architect zu F-463 in `slice-lint-bestand-kern-driven` (§6 dort)
+  entscheidet es auch nicht: Sie sagt, dass die Reihenfolge zweier gleichzeitiger
+  Fehler kein Vertrag ist, dass nach außen nur der Text geht (`PGR-E3003`, Exit-Code
+  3) und dass die Charakterisierungstests dort den Bestand festhalten, ohne etwas
+  zuzusagen; diese vergleichen bewusst den ganzen Text. Wie ein Test vergleicht, der
+  eine Zusage prüft, sagt sie nicht (Verifikation V-90 zu jenem Slice). Der Architect
+  entscheidet das vor dem ersten Code-Commit für die Tests aus Liefer-Punkt 1 und 3
+  und hält es fest; bis dahin entscheidet der Implementer es nicht (`AGENTS.md`
+  §3.12).
 
 **Risiken:**
 
@@ -338,7 +346,8 @@ nicht steht, entscheidet der Implementer nicht; er gibt es zurück.
 - **Der Test hält den Bestand statt der Zusage fest** — ein Vergleich des ganzen
   Meldungstextes machte jede Umformulierung rot, ohne dass eine Zusage bricht
   (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, in Gegenrichtung). Je Test nur
-  die Bestandteile aus §6. — **Ausgang:** — (bei Closure)
+  das, was der Architect nach §6 *Was ein Test festhält* entscheidet. — **Ausgang:**
+  — (bei Closure)
 - **Mutant kommt im Build-Kontext nicht an** — eine Mutation mit unveränderter Größe
   und mtime überträgt BuildKit nicht (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`,
   1×). Die Mutationen laufen in einer frischen Kopie unter eigenem Pfad oder mit
@@ -435,11 +444,12 @@ Dateien unter `evidence/`). Treffer:
 - `BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft` (1×) — bleibt bei
   `slice-v1-abschluss-anmeldung` (§1, Abgrenzung).
 
-Keine Klasse für „Folge-Slice-Adresse nimmt die Sendung nicht an“ (F-459): Die
-früheren Fälle F-330 und F-431 zählt das Register unter
-`BEO-REPO/plan-folgt-korrektur-nicht` (15×, verkörpert in `AGENTS.md` §3.9). Wohin
-F-459 gehört, entscheidet die Closure von `slice-lint-bestand-kern-driven`, nicht
-dieser Plan. Keiner der Einträge unter der Schwelle erreicht mit diesem Slice allein
+Für „Folge-Slice-Adresse nimmt die Sendung nicht an“ (F-459) führt das Register seit
+der Closure von `slice-lint-bestand-kern-driven` den Eintrag
+`BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (3×: F-330, F-431, F-459; offen, der
+Ausgang liegt beim Nutzer). Dieser Slice ist selbst eine Adresse: Nach der
+*Sammelregel* in §1 trägt der Planner jeden neuen Fund hier unter *Gegenstand* nach,
+die Annahme steht damit im Nehmer. Keiner der Einträge unter der Schwelle erreicht mit diesem Slice allein
 3×; vor dem Code entsteht keine neue Lücke.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
