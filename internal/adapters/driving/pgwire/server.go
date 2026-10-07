@@ -228,10 +228,7 @@ func replayWaechter(ctx context.Context, conn net.Conn) (fertig, geweckt chan st
 	return fertig, geweckt
 }
 
-// replayLesefehler behandelt einen Lesefehler der Replay-Sitzung, nach dem
-// sie endet. Ein Ende der Client-Verbindung ist im Replay regulär, auch mitten
-// in einer Extended-Interaktion; was unverbraucht bleibt, meldet closeReplay
-// (LH-FA-03.b). Jeder andere Lesefehler geht als PGR-E6001 an den Client.
+// replayLesefehler behandelt einen Lesefehler der Replay-Sitzung.
 func (s *Server) replayLesefehler(be *pgproto3.Backend, err error) {
 	if verbindungsende(err) {
 		return
@@ -269,8 +266,7 @@ func (s *Server) replayAntwort(ctx context.Context, be *pgproto3.Backend, id mod
 }
 
 // replayZustellen schreibt Antworten an den Client und meldet sie dem Use Case
-// danach als gesendet; scheitert das Schreiben, merkt es den Fehler und meldet,
-// dass die Sitzung endet.
+// danach als gesendet, nicht, wenn das Schreiben scheitert.
 func (s *Server) replayZustellen(ctx context.Context, be *pgproto3.Backend, id model.SessionID, out []model.Response) bool {
 	if err := s.send(be, out); err != nil {
 		s.sendFailed(err)

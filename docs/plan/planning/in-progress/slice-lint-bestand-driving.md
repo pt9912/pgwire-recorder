@@ -329,8 +329,9 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Risiken aus §6:** <…>
 
 **Belege des Implementers** (Stand: Code in `78f28a1` (Kontexte und Receiver, Befunde 9
-bis 16) und `e76b25f` (Komplexität, Befunde 1 bis 8), beide auf `b7d4555`; jede Zeile
-nennt den Stand, an dem sie gemessen ist):
+bis 16) und `e76b25f` (Komplexität, Befunde 1 bis 8), beide auf `b7d4555`; Kommentare
+nach F-465 und die Einordnung nach F-466 und F-467 in dem Commit, der diesen Kopf
+schreibt; jede Zeile nennt den Stand, an dem sie gemessen ist):
 
 *`make lint`, Zeilen unter `internal/adapters/driving/pgwire`,
 `internal/adapters/driving/cli` und `internal/bootstrap`.* Vorher (`b7d4555`, Exit 2,
@@ -433,6 +434,25 @@ ist für die Kontexte `b7d4555`, für die Komplexität `78f28a1`; „nach“ ist
 | T9 | … das Format | `Format` → 0 | Unit grün, Integration rot | Unit grün, Integration rot | `TestE2EErgebnisartenEinfach` |
 | T3 | … die Tabellen-OID | `TableOID` → 0 | **grün** | **grün** (Unit und Integration) | keiner, eingeordnet unten (G4) |
 | T5 | … die Spaltennummer | `TableAttributeNumber` → 0 | **grün** | **grün** (Unit und Integration) | keiner, eingeordnet unten (G4) |
+| X4 | Ein gescheiterter Versand im Replay wird gemerkt (Review F-466) | `s.sendFailed(err)` entfernt (vor: an beiden Stellen) | **grün** (Unit) | **grün** (Unit und Integration) | keiner, eingeordnet unten (G5) |
+| Z3 | Nach einem gescheiterten Versand endet die Replay-Sitzung | `return false` → `return true` (vor: `return` → `continue`, beide Stellen) | **grün** (Unit) | **grün** (Unit und Integration) | keiner, eingeordnet unten (G6) |
+
+*Kommentare nach F-465* (Satz für Satz von einer roten Mutation gedeckt; gefahren an
+der Fassung dieses Commits, als `git stash create` vor dem Commit, je Mutant ein
+frischer Pfad wie oben; ohne Mutant `make`-Stufe `test` grün):
+
+| Kommentar | Satz | Mutation | roter Test |
+|---|---|---|---|
+| `replayZustellen` | „schreibt Antworten an den Client“ | `s.send(…)` durch `error(nil)` ersetzt (Z1) | `TestReplaySent`, `TestReplayExtended`, `TestReplayHerunterfahren` (2), `TestReplayHerunterfahrenSpaeteFrist`, `TestInfoOhneZeileJeVerbindung` |
+| `replayZustellen` | „meldet sie dem Use Case … als gesendet“ | `s.replayer.Sent(…)` entfernt (X8) | `TestReplaySent` |
+| `replayZustellen` | „danach …, nicht, wenn das Schreiben scheitert“ | `Sent` vor `send` (Z2) | `TestReplaySent` |
+| `replayLesefehler` | „behandelt einen Lesefehler der Replay-Sitzung“ | — | nennt nur den Gegenstand, sagt kein Verhalten zu |
+
+Entfallen sind „Ein Ende der Client-Verbindung ist im Replay regulär …; was unverbraucht
+bleibt, meldet closeReplay“ und „Jeder andere Lesefehler geht als PGR-E6001 an den
+Client“ (`replayLesefehler`, R2, R3, R4 grün) sowie „scheitert das Schreiben, merkt es den
+Fehler und meldet, dass die Sitzung endet“ (`replayZustellen`, X4, Z3 grün). Sie stehen
+als Test-Ideen in G2, G3, G5 und G6.
 
 Je Umbau ist mindestens eine Mutation rot, vor und nach dem Umbau aus demselben Test:
 `replaySitzung` (R1, W), `clientRichtung` (C1, C2, K1), `startup` (S1), `toMessage`
@@ -443,7 +463,8 @@ entfernt“) ist nicht gefahren: äquivalent nach §6 *Kontexte*. Der Rückgabew
 
 *Grüne Mutanten, eingeordnet* (Schritt 19). Keiner ist äquivalent; jeder ändert das
 Verhalten und ist über die Schnittstelle fangbar. §1 schließt neue Tests aus, darum je
-Mutant eine Test-Idee mit Grenze. Alle außer G1 sind schon am Stand vor dem Umbau grün,
+Mutant eine Test-Idee mit Grenze. Alle außer G1 sind schon am Stand vor dem Umbau grün
+(`78f28a1`; X4 und Z3 dort an beiden Stellen in `replaySitzung`),
 sind also Lücken des Bestands, nicht des Umbaus. **Nehmer: offen**; die Funde liegen im
 PGWire-Adapter und im Bootstrap, den Nehmer trägt der Planner nach (§6 Risiko *Verhalten
 von `replaySitzung` ändert sich unbemerkt*). Dieser Slice nennt keine Adresse.
@@ -458,13 +479,15 @@ von `replaySitzung` ändert sich unbemerkt*). Dieser Slice nennt keine Adresse.
   einer IP-Adresse, wie sie alle bestehenden Tests nutzen, bleibt der Mutant grün.
 - **G2 — Ende der Replay-Sitzung nach Verbindungsende (R2, R4).** Nach dem Code schreibt R2 beim
   Verbindungsende eine Fehlerantwort und merkt `PGR-E6001` als ersten Verbindungsfehler
-  (Exit-Code ungleich 0); R4 liest nach dem Verbindungsende weiter, die Sitzung endet
-  nicht, `closeReplay` läuft nicht. Test-Idee: Replay-Verbindung über
+  (Exit-Code ungleich 0); R4 liest nach dem Verbindungsende erneut, und solange `ctx`
+  läuft, endet die Sitzung nicht und `closeReplay` läuft nicht. Endet `ctx` und gibt
+  `Shutdown` das Ende frei, kehrt `replaySitzung` auch unter R4 zurück, und das per
+  `defer` registrierte `closeReplay` läuft (Review F-467). Test-Idee: Replay-Verbindung über
   `pgwire.Handle` mit Replay-Fake, nach dem Startup schließt der Client ohne Terminate;
   `Handle` kehrt binnen einer Frist zurück (fängt R4), `CloseConnection` ist einmal
   gerufen und `FirstErrorCode()` bleibt leer (fängt R2). Grenze: Die Fehlerantwort an den
   geschlossenen Client ist nicht lesbar, beobachtbar ist nur der gemerkte Code; das Ende
-  der Sitzung nur über eine Frist.
+  der Sitzung nur über eine Frist, und nur, solange `ctx` nicht endet.
 - **G3 — unlesbare Nachricht im Replay (R3).** Der Mutant beendet die Sitzung ohne
   Fehlerantwort und ohne gemerkten Code. Test-Idee: Replay-Verbindung, nach dem Startup
   ein Nachrichtenkopf mit einem Typ, den `pgproto3` nicht kennt; der Client erhält eine
@@ -476,6 +499,22 @@ von `replaySitzung` ändert sich unbemerkt*). Dieser Slice nennt keine Adresse.
   Spalte in jedem Feld einen Wert ungleich 0 trägt, vergleicht jedes Feld der
   `FieldDescription`. Grenze: Die Felder sind ein Durchreichen ohne Logik; der Test
   fängt das Vertauschen oder Weglassen eines Feldes, nicht dessen Bedeutung.
+- **G5 — Merken eines gescheiterten Versands im Replay (X4, Review F-466).** Ohne
+  `sendFailed` wird ein Schreibfehler an den Client nicht als `PGR-E4003` gemerkt, und
+  der Lauf endet mit Exit-Code 0. Test-Idee: Replay über `pgwire.Handle` mit einer
+  Verbindung, deren Schreiben nach dem Startup scheitert (Wrapper um `net.Conn`), dann
+  eine Anfrage; `FirstErrorCode()` ist `PGR-E4003`. Für eine nicht abbildbare Antwort
+  des Replay-Fakes ist `FirstErrorCode()` der Code des internen Fehlers. Grenze: Den
+  Schreibfehler muss der Test erzwingen; ein geschlossener TCP-Peer lässt den ersten
+  Schreibvorgang oft gelingen.
+- **G6 — Ende der Replay-Sitzung nach gescheitertem Versand (Z3).** Nach einem
+  Schreibfehler scheitert in der Regel auch das nächste Lesen an derselben Verbindung,
+  und die Sitzung endet über den Lesefehler; dort ist Z3 nicht beobachtbar. Sichtbar ist
+  er bei einer nicht abbildbaren Antwort: `send` scheitert, bevor es schreibt, und unter
+  Z3 liest die Sitzung weiter und beantwortet die nächste Anfrage. Test-Idee: Replay-Fake
+  liefert auf die erste Anfrage einen Antworttyp ohne Abbildung; `Handle` kehrt zurück,
+  ohne eine zweite Anfrage zu lesen, und `Query` ist einmal gerufen. Grenze: nur über
+  den Pfad der nicht abbildbaren Antwort fangbar.
 
 *Randformen:* Keine neue gefunden. Keine ungeprüfte Reihenfolge zweier Fehler: Die einzige
 Reihenfolge, Länge vor Startcode in `startup`, hält `TestFremdeErsteNachricht` (S1 rot).
