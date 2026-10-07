@@ -625,6 +625,55 @@ dem Grund aus §6.
 | Punkt 8: Leerraum nach dem Doppelpunkt ist Blockform | `lint.sh`: `sub(/[ \t]+$/, "", rest)` entfernt | `p8-leerraum` |
 | Punkt 8: `-` allein ist ein Eintrag | `lint.sh`: `/^-( \|$)/` → `/^- /` | `p8-strich-allein`, `p8-strich-allein-ohne-why` |
 
+*Nachtrag zum Review* (`docs/reviews/2026-10-08-review-slice-harness-lint.md`, F-471
+bis F-475 und F-478; F-475 nach §6 *Randform aus dem Review*; Stand: `53c70fc` mit den
+Änderungen des Commits, der diesen Absatz schreibt). Neue Fälle:
+
+- F-471: `p6-testdatei`, ein `//nolint` in `internal/gegenprobe/nolint/fall_test.go`.
+- F-472: `p7-endet-auf-export-test`, eine Datei `fooexport_test.go` im Paket des Codes
+  ist ein Befund von `testpackage`.
+- F-473: `dupl` an der Grenze. Gemessen mit vier Schwellen (148, 149, 150, 151) an
+  Paaren aus 45 Anweisungen und einem Schluss: mit `{}` ist ein Paar 149 groß, mit
+  `a++` 150, ohne Schluss 148. `p4-dupl-gruen` ist jetzt das Paar mit 149 (kein Befund
+  bei 150), `p4-dupl-rot` das Paar mit 150. Die alten Paare (45 und 46 Anweisungen)
+  lagen bei 148 und darüber, daher blieb M3 des Review grün.
+- F-475: `einstellung-0`, `einstellung-` (leer), `einstellung--1`, `einstellung-abc`,
+  `einstellung- 3`. Je ein Aufruf einer Kopie des Skripts in einem Baum ohne Profil,
+  unter `timeout 20`; erwartet Ausgang 2 und als einzige Ausgabe die Zeile
+  `lint-gegenprobe: LINT_GEGENPROBE_PARALLEL ist keine positive ganze Zahl: '<wert>'`.
+  Der Baum ohne Profil hält einen Lauf ohne die Prüfung davon ab, etwas zu bauen: Er
+  endet dann an der Profilprüfung mit Ausgang 1 statt zu hängen. Damit ist die Zeile
+  ohne Lauf der Stufe gezeigt, `124` kommt in keinem der Mutanten vor. Die Zusage steht
+  nur im Kopf des Skripts.
+
+F-474: Der Kopf von `tools/harness/lint.sh` ordnet Punkt 2 keinen Fall mehr zu und sagt
+nicht mehr „schreibt nichts in den Arbeitsbaum“. Der Kopf der Gegenprobe sagt weder
+„ohne Netz“ noch „Der Arbeitsbaum bleibt unberührt“. Unter OFFEN stehen jetzt
+`--network=none` mit den Modulen aus `deps` sowie „nichts in den Arbeitsbaum“ für
+`make lint` und für die Gegenprobe; dazu, dass sie ihre Kopien löscht und bei einem
+Abbruch Builds beendet. `harness/mk/lint.mk` verweist für das Ungeprüfte auf OFFEN.
+
+F-478: In `harness/sensors/lint.md` steht, dass ein roter Bestand auch die Gegenprobe
+rot macht und `p0-grundlauf` die Ursache nennt. Die Gegenprobe beendet bei einem
+Abbruch über `set -e` ihre Hintergrund-Läufe: Jeder Lauf wartet auf seinen Build und
+beendet ihn bei `TERM`. Sie schreibt dann `lint-gegenprobe: ROT — Abbruch mit Ausgang
+<n>`. Das ist einmal von Hand gesehen: eine Kopie des Skripts mit `false` nach `starte
+sammel` endete mit dieser Zeile und Ausgang 1, danach lief kein `docker build` mehr. Es
+gibt dafür keinen Fall, OFFEN im Kopf.
+
+Zählung: Punkt 6 hat 13 Fälle, Punkt 7 hat 14, dazu kommen 5 Fälle zu
+`LINT_GEGENPROBE_PARALLEL`; zusammen 255. `make lint-gegenprobe` allein braucht 1 min
+44 s.
+
+| Zusage | Mutation (je in einer frischen Kopie des Repos) | roter Fall |
+|---|---|---|
+| Punkt 6: auch Testdateien | `lint.sh`: `go_dateien '*.go' \| grep -v '_test\.go$'` | `p6-testdatei` |
+| Punkt 5: nur eine Datei namens `export_test.go` | `.golangci.yml`: `skip-regexp: export_test\.go$` | `p7-endet-auf-export-test` |
+| Punkt 4: `dupl` nicht unter 150 | `threshold: 149` | `p4-dupl-gruen` |
+| Punkt 4: `dupl` nicht über 150 | `threshold: 151` | `p4-dupl-rot` |
+| Kopf: ungültiger Wert bricht ab | Prüfung `^[1-9][0-9]*$` durch `true` ersetzt | `einstellung-*` (alle fünf) |
+| Kopf: leer ist nicht ungesetzt | `${…+gesetzt}` → `${…:+gesetzt}` | `einstellung-` |
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

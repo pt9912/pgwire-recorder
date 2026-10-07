@@ -8,23 +8,27 @@
 # Je Kopie ein Verzeichnis unter `mktemp -d`, kopiert mit `cp -R` ohne `-p` aus dem
 # Arbeitsbaum ohne .git; jede mutierte Datei bekommt danach ein `touch`, damit der
 # Build-Kontext sie neu überträgt (Grenze von SPEC-049). Je Kopie ein Lauf von
-# `docker build --target lint`, bis zu LINT_GEGENPROBE_PARALLEL gleichzeitig
-# (Default 6). Der Arbeitsbaum bleibt unberührt, die Kopien werden am Ende
-# gelöscht; ungetaggte Images bleiben im Docker-Cache.
+# `docker build --target lint`.
+#
+# LINT_GEGENPROBE_PARALLEL — Höchstzahl gleichzeitiger Läufe der Stufe. Nicht
+# gesetzt: 6. Gesetzt: eine positive ganze Zahl ohne Vorzeichen, Leerraum und
+# führende Null (`^[1-9][0-9]*$`). Jeder andere Wert, auch der leere, bricht vor der
+# ersten Kopie ab: Ausgang 2 und auf stderr
+# `lint-gegenprobe: LINT_GEGENPROBE_PARALLEL ist keine positive ganze Zahl: '<wert>'`.
+# GEPRÜFT DURCH einstellung-<wert> (0, leer, -1, abc, ` 3`); den Default fährt jeder
+# Lauf von `make gates`.
 #
 # Ein roter Fall prüft neben dem Ausgang seine eigene Zeile: einen Befund von
 # golangci-lint an Pfad und Zeile mit dem Namen des Linters oder eine `lint:`-Zeile
 # im Wortlaut. Die Zeile eines Befunds findet die Gegenprobe über einen Anker im
 # Quelltext des Falls. Die Fälle der Kopie `sammel` teilen sich einen Lauf, jeder an
 # seiner eigenen Zeile erkannt; allein läuft ein Fall, dessen Zusage der Ausgang
-# ist oder der andere ausschließt. Ein Fehler beim Übersetzen in `sammel` lässt
-# golangci-lint ohne Befunde enden; dann sind die Fälle dort rot.
+# ist oder der andere ausschließt.
 #
 # GEPRÜFT WIRD — Fälle je Punkt von SPEC-049:
 #   Grundlauf — p0-grundlauf: die unveränderte Kopie endet mit Ausgang 0 ohne
 #       `lint:`-Zeile, also auch ohne ungenutzte Regel; das ist der grüne Fall je
-#       dauerhafter Ausnahme (Punkt 8) und zeigt die Module aus deps ohne Netz
-#       (Punkt 2).
+#       dauerhafter Ausnahme (Punkt 8). Punkt 2 hat keinen eigenen Fall (OFFEN).
 #   (1) Gegenstand — p1-integration-build-tag, p1-cmd, p1-test,
 #       p1-pfad-anker-global, p1-pfad-anker-forbidigo
 #   (3) Linter — p3-genau-diese und p3-default-none (die Liste im Profil); je
@@ -82,7 +86,8 @@
 #   - `relative-path-mode: cfg` (Punkt 1): Profil, Modulwurzel und
 #     Arbeitsverzeichnis sind in der Stufe dasselbe /src. Den Anker `^` der Pfade
 #     unterscheiden p1-pfad-anker-*.
-#   - `--network=none` (Punkt 2): keine Prüfung braucht Netz.
+#   - `--network=none` und die Module aus deps (Punkt 2): keine Prüfung braucht
+#     Netz; ob die Module aus deps kommen, sähe nur ein Lauf mit Netz und ohne sie.
 #   - Pin und Plattform des Images (Punkt 2): Ein anderes Image ließe sich nur mit
 #     Netz ziehen. Eine Ausgabe der Version in der Stufe diente nur der Gegenprobe,
 #     ein Textvergleich mit der `FROM`-Zeile wäre eine zweite Quelle für den Pin, den
@@ -97,8 +102,10 @@
 #     Version von golangci-lint nennt in jeder Warnung mindestens zwei der Felder;
 #     ein anderer Logtext käme nur mit einer anderen Version, also mit einem Commit am
 #     Pin (wie oben).
-#   - nichts in den Arbeitsbaum (Kopf von SPEC-049): die Stufe läuft im Build ohne
-#     Bind-Mount.
+#   - nichts in den Arbeitsbaum (Kopf von SPEC-049), weder durch `make lint` noch
+#     durch diese Gegenprobe: kein Fall vergleicht den Arbeitsbaum vor und nach
+#     einem Lauf. Ebenso, dass die Gegenprobe ihre Kopien löscht und bei einem
+#     Abbruch über `set -e` laufende Builds beendet und eine Zeile `ROT` schreibt.
 #   Ob ein `Why:` zutrifft, ob die Brücke nur weiterreicht, ob ein Wert eines
 #   unexportierten Typs nur aus dem Produkt-Code stammt, ob eine Einstellung ihren
 #   Grund trägt und welche Schlüssel unter `exclusions` stehen, prüft das Werkzeug
@@ -110,10 +117,27 @@ export LC_ALL=C
 
 wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 docker_build="${DOCKER_BUILD:-docker build}"
-parallel="${LINT_GEGENPROBE_PARALLEL:-6}"
+if [ -z "${LINT_GEGENPROBE_PARALLEL+gesetzt}" ]; then
+  parallel=6
+elif [[ "$LINT_GEGENPROBE_PARALLEL" =~ ^[1-9][0-9]*$ ]]; then
+  parallel="$LINT_GEGENPROBE_PARALLEL"
+else
+  echo "lint-gegenprobe: LINT_GEGENPROBE_PARALLEL ist keine positive ganze Zahl: '$LINT_GEGENPROBE_PARALLEL'" >&2
+  exit 2
+fi
 arbeit="$(mktemp -d)"
-trap 'rm -rf "$arbeit"' EXIT
 fehler=0
+aufraeumen() {
+  local status=$?
+  local j
+  j="$(jobs -p)"
+  if [ -n "$j" ]; then kill $j 2>/dev/null || true; wait 2>/dev/null || true; fi
+  rm -rf "$arbeit"
+  if [ "$status" -ne 0 ] && [ "$fehler" -eq 0 ]; then
+    echo "lint-gegenprobe: ROT — Abbruch mit Ausgang $status" >&2
+  fi
+}
+trap aufraeumen EXIT
 G=internal/gegenprobe
 P=.golangci.yml
 
@@ -155,11 +179,14 @@ starte() {
     cd "$arbeit/$name"
     set +e
     if [ "$#" -eq 0 ]; then
-      $docker_build --progress=plain --target lint . >"$arbeit/$name.log" 2>&1
+      $docker_build --progress=plain --target lint . >"$arbeit/$name.log" 2>&1 &
     else
-      "$@" >"$arbeit/$name.log" 2>&1
+      "$@" >"$arbeit/$name.log" 2>&1 &
     fi
-    echo $? >"$arbeit/$name.exit"
+    kind=$!
+    trap 'kill "$kind" 2>/dev/null' TERM
+    wait "$kind"
+    { echo $? >"$arbeit/$name.exit"; } 2>/dev/null
   ) &
 }
 
@@ -249,12 +276,14 @@ zeilen() {
   for i in $(seq 1 "$2"); do printf '\t\t%d,\n' "$i"; done
   printf '\t}\n}\n'
 }
-# doppelt — n Anweisungen einer Form, die sonst kein Fall nutzt (für dupl).
+# doppelt <name> <schluss> — 45 Anweisungen einer Form, die sonst kein Fall nutzt,
+# dann <schluss> (für dupl). Gemessen mit golangci-lint v2.14.0: mit `{}` ist ein
+# Paar 149 groß, mit `a++` 150.
 doppelt() {
   printf 'func %s(a int) int {\n' "$1"
   local i
-  for i in $(seq 1 "$2"); do printf '\ta -= %d\n' "$i"; done
-  printf '\treturn a\n}\n'
+  for i in $(seq 1 45); do printf '\ta -= %d\n' "$i"; done
+  printf '\t%s\n\treturn a\n}\n' "$2"
 }
 # schnittstelle — eine Schnittstelle mit n Methoden.
 schnittstelle() {
@@ -296,6 +325,23 @@ var-declaration var-naming unused-receiver"
 revive_ist="$(awk '/^    revive:$/ { r = 1; next } r && /^      rules:$/ { f = 1; next } f && /^        / { print; next } f { exit }' "$wurzel/$P" | sort | tr '\n' '|')"
 [ "$revive_ist" = "$(printf '        - name: %s\n' $revive_soll | sort | tr '\n' '|')" ] \
   || melde "Fall 'p5-revive-genau-diese': die Regeln von revive sind $revive_ist"
+
+# --- LINT_GEGENPROBE_PARALLEL: ungültige Werte -------------------------------
+# Das Skript läuft als Kopie in einem Baum ohne Profil, damit es nach der Prüfung
+# der Einstellung nichts baut; ohne die Prüfung endet es dort mit Ausgang 1.
+mkdir -p "$arbeit/einstellung/tools/harness"
+cp "${BASH_SOURCE[0]}" "$arbeit/einstellung/tools/harness/lint-gegenprobe.sh"
+for wert in 0 '' -1 abc ' 3'; do
+  set +e
+  aus="$(LINT_GEGENPROBE_PARALLEL="$wert" DOCKER_BUILD=false timeout 20 \
+    bash "$arbeit/einstellung/tools/harness/lint-gegenprobe.sh" 2>&1)"
+  code=$?
+  set -e
+  soll="lint-gegenprobe: LINT_GEGENPROBE_PARALLEL ist keine positive ganze Zahl: '$wert'"
+  if [ "$code" -ne 2 ] || [ "$aus" != "$soll" ]; then
+    melde "Fall 'einstellung-$wert': erwartet Ausgang 2 und nur die Zeile '$soll', bekam $code: $aus"
+  fi
+done
 
 # --- Grundlauf ---------------------------------------------------------------
 kopie grundlauf
@@ -395,13 +441,13 @@ EOF
   anweisungen anweisungen61 60
   zeilen zeilen100 98
   zeilen zeilen101 99
-  doppelt doppeltKurzA 45
-  doppelt doppeltKurzB 45
+  doppelt doppeltKurzA '{}'
+  doppelt doppeltKurzB '{}'
   schnittstelle breit10 10
   schnittstelle breit11 11
   for i in $(seq 1 51); do echo "var viele$i = $i"; done
 } | datei "$G/linter/schwellen.go"
-{ echo "package doppelt"; doppelt langA 46; doppelt langB 46; } | datei "$G/doppelt/fall.go"
+{ echo "package doppelt"; doppelt langA 'a++'; doppelt langB 'a++'; } | datei "$G/doppelt/fall.go"
 # Die Ausnahmen für Testdateien gelten für jede Testdatei, auch unter test/.
 {
   printf 'package gegenprobe_test\n\nimport "net/http"\n\n'
@@ -572,6 +618,13 @@ func wert() int {
 	return a
 }
 EOF
+datei "$G/nolint/fall_test.go" <<'EOF'
+package nolint_test
+
+import "testing"
+
+func TestDirektive(t *testing.T) { _ = t } //nolint
+EOF
 for p in internal/hexagon/model internal/adapters/driven/recording \
   internal/adapters/driving/pgwire internal/adapters/driving/cli; do
   printf 'package %s\n\nimport "testing"\n\nfunc TestWeiss(t *testing.T) { _ = t }\n' "${p##*/}" \
@@ -597,6 +650,13 @@ func ExampleIntern()                {}
 func FuzzBruecke(f *testing.F)      { _ = f }
 func	TestTab(t *testing.T)         { _ = t }
 func Intern() int                   { return intern() + Zustand }
+EOF
+datei "$B/fooexport_test.go" <<'EOF'
+package bruecke
+
+import "testing"
+
+func TestFooExport(t *testing.T) { _ = intern() }
 EOF
 datei "$B/internal_test.go" <<'EOF'
 package bruecke
@@ -978,6 +1038,7 @@ nolint_rot p6-zweites-zeichen "$NF" '// x //nolint'
 nolint_rot p6-string "$NF" '_ = "//nolint"'
 nolint_rot p6-cmd cmd/gegenprobe/main.go 'nolint-zeile'
 nolint_rot p6-test test/gegenprobe/fall.go 'nolint-zeile'
+nolint_rot p6-testdatei "$G/nolint/fall_test.go" 'func TestDirektive'
 for a in 'siehe-nolint:// siehe nolint' 'wortgrenze://nolintx'; do
   keine_lint_zeile "p6-${a%%:*}" "$S" "lint: $NF:$(zeile_von "$S" "$NF" "${a#*:}"): Direktive nolint"
 done
@@ -987,6 +1048,7 @@ befund p7-whitebox-driven "$S" internal/adapters/driven/recording/weiss_test.go 
 befund p7-whitebox-pgwire "$S" internal/adapters/driving/pgwire/weiss_test.go 'package pgwire' testpackage
 befund p7-whitebox-einstieg "$S" internal/adapters/driving/cli/weiss_test.go 'package cli' testpackage
 befund p7-internal-test "$S" "$B/internal_test.go" 'package bruecke' testpackage
+befund p7-endet-auf-export-test "$S" "$B/fooexport_test.go" 'package bruecke' testpackage
 kein_befund p7-bruecke-kein-testpackage "$S" "$B/export_test.go" 'package bruecke' testpackage
 for a in TestBruecke BenchmarkBruecke ExampleIntern FuzzBruecke; do
   lint_zeile "p7-test-in-bruecke-$a" "$S" "lint: $B/export_test.go:$(zeile_von "$S" "$B/export_test.go" "func $a"): Testfunktion in der Brücke export_test.go"

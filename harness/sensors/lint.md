@@ -66,6 +66,10 @@ Schritt, an dem er scheiterte. Lehnt golangci-lint eine Regel erst beim Laden ab
 Meldung von golangci-lint. Ist das Profil durch einen Eintrag mit falschem Einzug kein
 gültiges YAML mehr, ist nur die erste Zeile `Form nicht erkannt` zugesagt.
 
+Ist `make lint` am Bestand rot, wird auch `make lint-gegenprobe` rot: Ihr erster Fall
+`p0-grundlauf` nennt die Zeile des Bestands, die übrigen roten Fälle sind Folgen
+davon. Gelesen wird deshalb zuerst `make lint`.
+
 Aus dem Rot führt, den Befund zu beheben; eine Ausnahme ist eine Regel in
 `.golangci.yml` mit `# Why:` und einem Grund, der auch für neuen Code gilt (Punkt 8),
 nie eine Direktive im Code (`AGENTS.md` §3.2).

@@ -5,17 +5,16 @@
 # Vertrag: spec/spezifikation.md SPEC-049 (Punkte 6 bis 9 für dieses Skript); wie
 # ein Lauf zu lesen ist: harness/sensors/lint.md.
 # Aufruf: in der Wurzel des Moduls, im Image von golangci-lint (bash, find, grep,
-# awk, sort, mktemp); schreibt nichts in den Arbeitsbaum.
+# awk, sort, mktemp).
 #
 # GEPRÜFT DURCH tools/harness/lint-gegenprobe.sh (Fälle je Punkt von SPEC-049; was
 # offen ist, nennt ihr Kopf):
 #   (1) Gegenstand — p1-*
-#   (2) Werkzeug und Umgebung — p0-grundlauf (Module aus deps ohne Netz); der Rest
-#       offen
+#   (2) Werkzeug und Umgebung — kein eigener Fall; offen im Kopf der Gegenprobe
 #   (3) Linter — p3-*, p4-*-rot, p5-revive-*, p5-contextcheck-test, p7-whitebox-*
 #   (4) Schwellen — p4-*
 #   (5) Einstellungen — p5-*, p1-cmd
-#   (6) Kein `//nolint` — p6-*, p9-profil-fehlt-nolint
+#   (6) Kein `//nolint` — p6-* (auch in einer Testdatei), p9-profil-fehlt-nolint
 #   (7) Export-Test-Brücke — p7-*, p9-profil-fehlt-bruecke
 #   (8) Ausnahmen — p8-*, p0-grundlauf (keine ungenutzte Regel im Bestand)
 #   (9) Ausgabe und Ausgang — p9-*, p8-form-* (Ausgang 1), p0-grundlauf (Ausgang 0)

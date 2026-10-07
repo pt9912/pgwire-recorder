@@ -5,8 +5,8 @@
 # bei einem Befund mit Fehlerstatus (Vertrag SPEC-049, Lesart
 # harness/sensors/lint.md). Die Gegenprobe faehrt Mutanten in Kopien des
 # Arbeitsbaums und prueft je Fall Ausgang und Zeile; sie laeuft auf dem Host mit
-# bash, make, docker, grep, sed, awk und coreutils. Beide schreiben nichts in den
-# Arbeitsbaum; Netz braucht nur die Stufe deps.
+# bash, make, docker, grep, sed, awk und coreutils. Was sie nicht prueft, nennt ihr
+# Kopf unter OFFEN.
 # GEPRUEFT DURCH tools/harness/lint-gegenprobe.sh: p10-gate-checks, p10-gates-rot,
 # p10-gegenprobe-scharf.
 .PHONY: lint lint-gegenprobe
