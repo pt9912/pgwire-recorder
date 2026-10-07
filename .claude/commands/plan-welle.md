@@ -68,7 +68,9 @@ die Antwort und wird notiert.
    Modus-Begründung*) — und ist damit für alles **unter** 3× der einzige Leser; keine Treffer sind
    dort ebenfalls eine Antwort und werden notiert. **Liefert der Slice einen neuen Vertrag, nennt
    §6 dessen Randformen** (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code);
-   entschieden werden sie vor dem Code, mit dem Architect.
+   entschieden werden sie vor dem Code, mit dem Architect. **Verlangt ein DoD-Punkt einen Beleg
+   des Implementers** (Mutationstabelle, Befundzeilen vorher und nachher, Läufe), nennt er als
+   Ort §7 des Slice-Plans, nicht „im Bericht“ (seit slice-harness-blackbox-kern).
 
 ## Welle-Plan per cp anlegen und füllen (der Kern-Schritt)
 

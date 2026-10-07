@@ -239,7 +239,9 @@ Harness-Werkzeuge (seit slice-lastenheft-pruefbarkeit); auch eine Entscheidung d
 Nutzers wird dort festgehalten. Eine ADR trägt nur Entscheidung und Gründe und zeigt mit
 `Schärft:` auf diese Stelle (§3.8). Der Architect prüft die Liste vor dem Code. Eine nicht
 genannte oder offene Randform entscheidet der Implementer nicht, er hält an und gibt
-sie dem Architect zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
+sie dem Architect zurück (`.claude/commands/implement-slice.md`, Randform-Rückgabe). Eine
+Randform, die erst ein Commit mit Code, Tests oder Gates in §6 einträgt, ist nicht genannt
+(seit slice-harness-blackbox-kern).
 
 **Falsch:** Der Leser behandelt `null` wie einen fehlenden Schlüssel, die
 Spezifikation sagt nichts dazu, und das Review findet es.

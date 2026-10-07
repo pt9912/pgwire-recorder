@@ -13,6 +13,9 @@ Was der Reviewer *immer* mitbringt, bevor er den Diff liest:
 - ADRs, deren ID im PR oder in der Commit-Message vorkommt
 - `AGENTS.md` §"Hard Rules"
 - vorherige Findings am gleichen Modul (letzte ~5 PRs)
+- §7 des Slice-Plans, *Belege des Implementers* (Mutationstabelle, Befundzeilen,
+  Läufe); der Bericht des Implementers liegt dem Review nicht vor
+  (seit slice-harness-blackbox-kern)
 
 Ohne diesen Block sieht der Reviewer den Code, aber nicht *die Verträge, gegen
 die er prüft*.
@@ -58,6 +61,10 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
 - unklare Fehlerbehandlung am Rand des Spec-Bereichs
 - fehlende Negativtests bei neuem öffentlichem Vertrag
 - Wiederholung eines Musters, das schon zweimal LOW war
+- **Randform im Code-Commit** — eine Randform erscheint im selben Commit wie eine
+  Änderung an Code, Tests oder Gates neu in §6 des Slice-Plans, oder §6 weist sie dem
+  Review statt dem Architect zu; mindestens MEDIUM, gegen `AGENTS.md` §3.12
+  (seit slice-harness-blackbox-kern)
 
 **LOW** — *mit Konventions-Anker* (ADR, Hard Rule, Linter-Regel, Eintrag im
 Reviewer-Skill): stilistisch unschön ohne semantische Auswirkung, einmalige

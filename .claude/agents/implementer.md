@@ -27,6 +27,11 @@ Entscheidung stillschweigend zu widersprechen. Das wäre Drift, kein pragmatisch
 *bricht* — nicht, dass ein Wächter greift. Pro Zusage also: welche Änderung am geprüften Code
 müsste diesen Test rot machen, und wurde sie einmal gesehen? Keine Antwort ist ein Befund.
 
+**Die Belege stehen in §7, der Bericht verweist dorthin** (seit slice-harness-blackbox-kern).
+Was die DoD „im Bericht“ verlangt — Mutationstabelle, Befundzeilen vorher und nachher, Läufe —,
+schreibst du in §7 des Slice-Plans unter *Belege des Implementers*. Der Bericht ist Lauf-Beleg
+und erreicht Review und Verifikation nicht.
+
 **Rücksprungkanten sind Disziplin, kein Scheitern** (Modul 5/9): ein roter Sensor führt zurück zum
 **Plan**, nicht zu neuem Kontext; ein zu großer Slice zurück zur Zerlegung; ein blockierter in
 einen Carveout.

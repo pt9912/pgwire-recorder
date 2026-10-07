@@ -131,6 +131,11 @@ ist eine Lifecycle-Rücksprungkante (11).
 entscheidest du weder im Code noch in der Spezifikation noch in §6. Du hältst an und gibst sie im Bericht als Liste
 *Randform · Frage* an den **Architect** zurück; er entscheidet sie oder legt sie dem Nutzer vor.
 Der Slice bleibt in `in-progress/`; weiter geht es erst nach der Entscheidung.
+**Kein Code-Commit trägt eine neue Randform in §6** (seit slice-harness-blackbox-kern): Ein
+Commit, der Code, Tests oder Gates ändert, fügt §6 des Slice-Plans keine Randform hinzu. Stößt
+du beim Umsetzen auf eine Randform, die §6 nicht entscheidet, committest du keinen Code dazu,
+hältst an und gibst sie dem Architect zurück. Das gilt auch, wenn der Punkt nur Urteil des
+Review zu sein scheint: Dem Review weist du keine Randform zu.
 
 ## Pre-completion-Checkliste (Modul 9, Schritt 8 — letzte Handlung der Implementer-Rolle)
 
@@ -147,16 +152,21 @@ Der Slice bleibt in `in-progress/`; weiter geht es erst nach der Entscheidung.
     *Eingabe* des Verifiers — **nicht** das finale DoD-Urteil (Modul 11: „Behauptung ohne
     Bestätigung ist die häufigste Verifier-Lücke"; eine DoD-Verletzung ist eine Verifier-only-Klasse,
     unsichtbar für Review und Tests). Ausgeführte Sensors + Restrisiken berichten.
+    **Die Belege stehen in §7 des Slice-Plans, der Bericht verweist dorthin**
+    (seit slice-harness-blackbox-kern): Was die DoD „im Bericht“ verlangt — die
+    Mutationstabelle (Schritt 19), Befundzeilen vorher und nachher, Läufe mit Stand und
+    Ergebnis —, schreibst du in §7 unter *Belege des Implementers* und committest es vor der
+    Übergabe. Der Bericht ist Lauf-Beleg und erreicht Review und Verifikation nicht.
 19. **Zu jedem neuen oder geänderten Wächter die rot färbende Mutation benennen**
     (`AGENTS.md` §3.6). Ein grüner Gate-Lauf belegt nur, dass nichts *bricht* — nicht, dass
     der Wächter greift. Pro Zusage also: *welche Änderung am geprüften Code müsste diesen
     Test rot machen, und wurde sie einmal gesehen?* Wo die Antwort dauerhaft interessant
     ist, gehört sie in den Mutations-Sensor deines Repos (falls vorhanden); wo sie einmalig ist, in
-    den Bericht. **Keine Antwort ist ein Befund**, kein Formfehler — die Klasse „Zusage greift
+    §7 des Slice-Plans (Schritt 18). **Keine Antwort ist ein Befund**, kein Formfehler — die Klasse „Zusage greift
     weiter als Abdeckung" ist in der Praxis teuer erkauft.
     **Für einen neuen Vertrag gilt das für jede Zusage, nicht nur für Wächter**
     (`AGENTS.md` §3.10, seit welle-extended-query): je Zusage ein Test, der die Mutation
-    fängt, und die Mutation fährst du selbst, bevor du übergibst — im Bericht je Zeile
+    fängt, und die Mutation fährst du selbst, bevor du übergibst — in §7 je Zeile
     Zusage · Mutation · roter Test.
     **Eine verneinende Zusage ist eine eigene Zeile** (seit slice-replay-semantik-meldungscodes):
     „keine Antwort", „genau eine", „nichts danach" bekommt eine eigene Mutation — die, die das
@@ -179,7 +189,7 @@ Der Slice bleibt in `in-progress/`; weiter geht es erst nach der Entscheidung.
     also nie mit einem Werkzeug, das die mtime erhält (`cp -p`, `rsync -a`, `touch -r`,
     Entpacken aus `tar` oder `git archive` in denselben Pfad); nach jeder Änderung `touch`
     auf die Datei, oder je Mutant ein frischer Pfad, oder die Tests per Bind-Mount statt
-    Build-Kontext. Der Bericht nennt den Weg.
+    Build-Kontext. §7 nennt den Weg.
 20. **Jeden in diesem Lauf neu geschriebenen oder geänderten Kommentar gegen `AGENTS.md` §3.7
     prüfen** (Code, Konfiguration, Skripte). Die Probe: beschreibt der Satz den **Ist-Zustand**
     (indikativ, auflösbar), oder trägt er eine Slice-Nummer als Begründung, ein „(… , entschieden)"

@@ -312,19 +312,29 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   keine Herkunfts-Anker, und eine Regel des Harness ist mit diesem Eintrag nicht
   verkörpert. Retirement-Check von `AGENTS.md` §3.9 (V-80), §3.11 (V-81) und §3.12
   (F-441): wieder aufgetreten, alle bleiben; §3.10 ohne Befund.
+- **Steering-Loop-Eintrag:** Guide geschärft: Ein Commit, der Code, Tests oder Gates ändert,
+  fügt §6 keine Randform hinzu; eine Randform, die §6 nicht entscheidet, gibt der
+  Implementer ohne Code-Commit an den Architect zurück, auch wenn sie nur Urteil des Review
+  zu sein scheint, und das Review meldet eine solche Randform mindestens als MEDIUM
+  — liegt in `.claude/commands/implement-slice.md`.
+  Auslöser: `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (slice-replay-semantik-mismatch, slice-harness-kopf-sensor, slice-harness-blackbox-kern — 3×). Weitere Zielorte: `.harness/skills/reviewer.md` (MEDIUM) und `AGENTS.md` §3.12 (ein Satz). Entscheidung des Nutzers vom 2026-10-07.
+- **Steering-Loop-Eintrag:** Guide geschärft: Was eine DoD „im Bericht“ verlangt
+  (Mutationstabelle, Befundzeilen vorher und nachher, Läufe), schreibt der Implementer in
+  §7 des Slice-Plans unter *Belege des Implementers*, der Bericht verweist dorthin; Review
+  und Verifikation suchen die Belege dort, und neue DoD nennen §7 als Ort
+  — liegt in `.claude/agents/implementer.md`.
+  Auslöser: `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht` (slice-harness-lint-werkzeug, slice-harness-upgrade-v6-16, slice-harness-blackbox-kern — 3×). Weitere Zielorte: `.claude/commands/implement-slice.md` Schritte 18 und 19, `.harness/skills/reviewer.md` (Kontext-Eingang), `.claude/agents/verifier.md` (Eingang), `.claude/commands/plan-welle.md` Schritt 6. Entscheidung des Nutzers vom 2026-10-07.
 - **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `3f948ed`.
   - `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben/` — Beleg (F-441),
     **3×, Schwelle erreicht**. Das Review zählt „viertes Auftreten“ nach Finding-Klasse;
     das Register führt F-429 aus `slice-harness-lint-werkzeug` unter
     `spec-randform-erst-im-review-entschieden`. Damit ist der Eintrag keine Notiz mehr,
-    sondern eine Lücke: Er braucht einen Steering-Loop-Eintrag (verkörperte Regel) oder
-    einen Folge-Slice, und `state.md` einen Ausgang. Diese Closure vergibt ihn nicht;
-    die Entscheidung liegt beim Nutzer, spätestens beim Lese-Schritt der nächsten
-    Welle-Closure. `state.md` bleibt bis dahin `offen`.
+    sondern eine Lücke: `state.md` trägt den Ausgang `verkörpert` (Steering-Loop-Eintrag
+    oben, Entscheidung des Nutzers vom 2026-10-07).
   - `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht/` — Beleg (V-82), **3×,
     Schwelle erreicht**. Die Mutationstabelle in §7 erreichte beide Prüfer, die
-    Lint-Zeilen, die die DoD „im Bericht“ verlangte, nicht. Lücke wie oben: Ausgang
-    offen, Entscheidung beim Nutzer, `state.md` bleibt `offen`.
+    Lint-Zeilen, die die DoD „im Bericht“ verlangte, nicht. Lücke wie oben: `state.md`
+    trägt den Ausgang `verkörpert` (Steering-Loop-Eintrag oben).
   - `BEO-REPO/plan-folgt-korrektur-nicht/` (verkörpert in `AGENTS.md` §3.9 seit
     welle-walking-skeleton, Sensor `make kopf-check` seit slice-harness-kopf-sensor) —
     Beleg (V-80), **14×**; `make kopf-check` war grün, den Zusatz im Kopf und die
@@ -344,8 +354,8 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   (Hinweis, Mutationen reichen), V-83 (Ort einer Entscheidung ungenau, in `3f948ed`
   behoben). Mit diesem Slice erreichen **zwei** Einträge die Schwelle 3× neu:
   `randform-im-code-entschieden-dann-zurueckgegeben` und
-  `implementer-bericht-erreicht-pruefer-nicht`. Über ihr stehen sonst nur verkörperte
-  Einträge; ihnen gibt diese Closure keinen Ausgang.
+  `implementer-bericht-erreicht-pruefer-nicht`. Beide sind verkörpert; über der Schwelle
+  stehen damit nur verkörperte Einträge.
 - **Folge-Slices:** `slice-lint-bestand-kern-driven` (V-81: Zweig und Kommentar in
   `(*cursor).letzteNummer`, aufgenommen in §1, DoD und §6 mit dieser Closure), als
   nächster in der Reihe `slice-harness-blackbox-driven`, dann
@@ -356,8 +366,11 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   `slice-lint-bestand-kern-driven`. *Prüfung geht im Umbau verloren* und *Befund verdeckt
   statt behoben*: **entfallen**, mit Begründung. Die Randformen in §6 sind
   Entscheidungen, keine Risiken.
-- **Drei Paarungen:** Anker — kein `liegt in` in diesem Eintrag, also kein Zielort zu
-  prüfen. Folge-Slice — `slice-lint-bestand-kern-driven` liegt in `open/` und führt
+- **Drei Paarungen:** Anker — zwei `liegt in`: `.claude/commands/implement-slice.md` und
+  `.claude/agents/implementer.md` bestehen ab Repo-Wurzel und tragen
+  `seit slice-harness-blackbox-kern`, ebenso jeder weitere Zielort (`.harness/skills/reviewer.md`
+  zweimal, `.claude/agents/verifier.md`, `.claude/commands/plan-welle.md`, `AGENTS.md` §3.12).
+  Der Eintrag zur Spec-Lücke trägt kein `liegt in`. Folge-Slice — `slice-lint-bestand-kern-driven` liegt in `open/` und führt
   V-81 in §1, DoD und §6; `slice-harness-blackbox-driven`, `-pgwire`, `-einstieg` und
   `slice-harness-coverage` liegen in `open/`, `slice-harness-lint` in `next/`. Register —
   die vier Kennungen mit Beleg und die vier ohne bestehen als Verzeichnis, jedes mit
