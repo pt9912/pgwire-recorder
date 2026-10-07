@@ -270,6 +270,174 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 
+**Belege des Implementers** (Stand `d840888`; Charakterisierungstests in `cedd891`, Umbau in
+`d840888`):
+
+*`make lint`, Zeilen unter den vier Pfaden.* Vorher (`7ac016b`, Exit 2, `32 issues:`
+modulweit):
+
+```text
+internal/adapters/driven/postgres/upstream.go:226:1: calculated cyclomatic complexity for function toResponse is 19, max is 15 (cyclop)
+internal/hexagon/model/extended.go:125:1: calculated cyclomatic complexity for function validate is 19, max is 15 (cyclop)
+internal/adapters/driven/recording/yaml.go:538:1: cognitive complexity 22 of func `fromDTO` is high (> 20) (gocognit)
+internal/hexagon/model/extended.go:125:1: cognitive complexity 22 of func `(Group).validate` is high (> 20) (gocognit)
+internal/hexagon/services/replay.go:320:1: cognitive complexity 28 of func `(*cursor).objekte` is high (> 20) (gocognit)
+internal/adapters/driven/postgres/upstream.go:226:1: cyclomatic complexity 18 of func `toResponse` is high (> 15) (gocyclo)
+internal/hexagon/model/extended.go:125:1: cyclomatic complexity 19 of func `(Group).validate` is high (> 15) (gocyclo)
+internal/adapters/driven/postgres/upstream.go:100:25: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+internal/hexagon/model/extended.go:32:2: exported: exported const TargetStatement should have comment (or a comment on this block) or be unexported (revive)
+internal/hexagon/model/recording.go:80:2: exported: comment on exported const EndClosed should be of the form "EndClosed ..." (revive)
+internal/hexagon/model/recording.go:82:2: exported: comment on exported const EndTerminate should be of the form "EndTerminate ..." (revive)
+internal/hexagon/model/recording.go:84:2: exported: comment on exported const EndWriteFailed should be of the form "EndWriteFailed ..." (revive)
+internal/hexagon/model/recording.go:86:2: exported: comment on exported const EndShutdown should be of the form "EndShutdown ..." (revive)
+internal/hexagon/model/recording.go:89:2: exported: comment on exported const EndUnsupported should be of the form "EndUnsupported ..." (revive)
+internal/hexagon/model/recording.go:93:2: exported: comment on exported const EndFailed should be of the form "EndFailed ..." (revive)
+internal/hexagon/model/extended.go:149:41: QF1001: could apply De Morgan's law (staticcheck)
+```
+
+Nachher (`d840888`, Exit 2, `16 issues:` modulweit): unter den vier Pfaden keine Zeile.
+Die 16 übrigen Zeilen sind dieselben wie vorher, Zeile für Zeile gleich (Vergleich der
+sortierten Befundzeilen: keine neue), alle unter `internal/adapters/driving/`,
+`internal/bootstrap` und `cmd/` (`slice-lint-bestand-driving`). Kein `//nolint`, keine
+Änderung an `.golangci.yml` (der Diff berührt die Datei nicht).
+
+*Komplexität nachher* (golangci-lint v2.14.0 im gepinnten Image, in einer Kopie außerhalb
+des Repos mit Schwelle 1 je Linter, damit jede Funktion ihren Wert nennt; Schwellen nach
+`SPEC-049` Punkt 4: `gocognit` > 20, `gocyclo` > 15, `cyclop` > 15):
+
+| Funktion | `gocognit` | `gocyclo` | `cyclop` |
+|---|---|---|---|
+| `(Group).validate` | 6 | 7 | 7 |
+| `(Group).validateClient` | 11 | 10 | 10 |
+| `(Group).validateServer` | 7 | 6 | 6 |
+| `(*cursor).objekte` | 12 | 10 | 10 |
+| `(objekte).extendedNachspielen` | 12 | 7 | 7 |
+| `toResponse` | 2 | 10 | 10 |
+| `ohneFelder` | — | 7 | 7 |
+| `spalten` | — | 2 | 2 |
+| `werte` | 4 | 3 | 3 |
+| `fromDTO` | 4 | 4 | 4 |
+| `sessionFromDTO` | 6 | 6 | 6 |
+| `geprueftFromDTO` | 5 | 6 | 6 |
+
+Keine der herausgelösten Funktionen liegt knapp unter einer Schwelle (Risiko *Befund
+verschoben*); ein Strich heißt, der Linter meldet für die Funktion auch bei Schwelle 1
+nichts.
+
+*Reihenfolge der Fehler vor dem Umbau geprüft.* `Group.validate` und `fromDTO` melden bei
+zwei gleichzeitigen Verletzungen genau einen Fehler; kein Test hielt fest, welchen
+(`TestValidateFehler` und `TestUnmarshalFehler` verletzen je Fall eine Regel). Dafür vor
+dem Umbau, in `cedd891`, zwei **Charakterisierungstests** am alten Code, gegen ihn grün:
+
+- `TestValidateFehlerReihenfolge` (`internal/hexagon/model/extended_test.go`), 13 Fälle,
+  vergleicht den ganzen Fehlertext: Typ vor Stellung vor Zielart in derselben
+  Client-Nachricht, eine frühere Client-Nachricht vor einer späteren, Client-Nachrichten
+  vor sync/flush am Ende, sync/flush am Ende vor den Server-Nachrichten, Typ vor Stellung
+  von ready_for_query über die Server-Nachrichten hinweg, Server-Nachrichten vor
+  ready_for_query am Ende der letzten Gruppe.
+- `TestUnmarshalFehlerReihenfolge` (`internal/adapters/driven/recording/yaml_test.go`),
+  5 Fälle: Kennung vor Session ohne Interaktion, Nummer vor `offset_ms`, `offset_ms` vor
+  der Form, eine frühere Interaktion vor einer späteren Nummer, eine frühere Session vor
+  einer späteren Kennung.
+
+`toResponse` hat einen Fehlerpfad (die nicht unterstützte Antwort), `(*cursor).objekte`
+keinen; dort gibt es keine Reihenfolge zweier Fehler und keinen Charakterisierungstest.
+Beide Tests tragen keine Abdeckungs-Deklaration; die Abdeckungstabellen bleiben gleich
+(`make abdeckung-check` im Gate-Lauf grün).
+
+*Testliste* (`go test -list .` je Paket im Image der Stufe `deps`, ohne Netz):
+
+| Paket | `7ac016b` | `cedd891` (vor dem Umbau) | `d840888` (nach dem Umbau) |
+|---|---|---|---|
+| `internal/hexagon/model` | 9 | 10 (+ `TestValidateFehlerReihenfolge`) | 10 |
+| `internal/hexagon/services` | 53 | 53 | 53 |
+| `internal/adapters/driven/postgres` | 14 | 14 | 14 |
+| `internal/adapters/driven/recording` | 13 | 14 (+ `TestUnmarshalFehlerReihenfolge`) | 14 |
+
+`diff` der Listen `cedd891` gegen `d840888` leer; gegen `7ac016b` nur die beiden
+Charakterisierungstests. Keine bestehende Erwartung ist geändert: Der Umbau-Commit
+`d840888` berührt keine Testdatei.
+
+*Mutationen* (`AGENTS.md` §3.10, Risiko *Verhalten ändert sich unbemerkt*): je Mutant ein
+frischer Pfad außerhalb des Repos (Arbeitsbaum bzw. `git archive` per `tar -x --touch`,
+kein `cp -p`), Ersetzung per Text, mtime der mutierten Datei neu gesetzt; Unit-Tests per
+Bind-Mount im Image der Stufe `deps` (`go test -count=1 -v .` im Paket), Integrationstests
+per `make test-integration` in der frischen Kopie (eigener Build-Kontext). Ohne Mutation
+ist jeder genannte Test grün, mit ihr rot.
+
+| Umbau | Zusage | Mutation | roter Test |
+|---|---|---|---|
+| `Group.validate` | sync/flush am Ende vor den Server-Nachrichten | Prüfung sync/flush nach `validateServer` | `TestValidateFehlerReihenfolge/sync_am_Ende_einer_vorderen_Gruppe_vor_einer_unbekannten_Server-Nachricht` |
+| `Group.validate` | Server-Nachrichten vor ready_for_query am Ende | Prüfung am Ende vor `validateServer` | `TestValidateFehlerReihenfolge/unbekannte_Server-Nachricht_vor_fehlendem_ready_for_query`, `…/Stellung_von_ready_for_query_vor_fehlendem_ready_for_query_am_Ende` |
+| `Group.validate` | Client- vor Server-Nachrichten | `validateServer` vor `validateClient` | `TestValidateFehlerReihenfolge/Client-Nachricht_vor_Server-Nachricht`, `…/ohne_Client-Nachricht_vor_einer_unbekannten_Server-Nachricht` |
+| `validateClient` | Stellung vor Zielart in derselben Nachricht | Zielart-Prüfung vor Stellungs-Prüfung | `TestValidateFehlerReihenfolge/Stellung_vor_Zielart_in_derselben_Nachricht` |
+| `validateClient` | Nachricht für Nachricht, nicht Regel für Regel | Typen aller Client-Nachrichten in einer eigenen Schleife zuerst | `TestValidateFehlerReihenfolge/Stellung_einer_früheren_vor_Typ_einer_späteren_Nachricht`, `…/Zielart_einer_früheren_vor_Typ_einer_späteren_Nachricht` |
+| `validateServer` | Nachricht für Nachricht, nicht Regel für Regel | Typen aller Server-Nachrichten in einer eigenen Schleife zuerst | `TestValidateFehlerReihenfolge/Stellung_einer_früheren_vor_Typ_einer_späteren_Server-Nachricht` |
+| `QF1001`, Bedingung *letzte Gruppe* | ready_for_query nur in der letzten Gruppe | `!letzte \|\|` gestrichen | `TestValidateFehler/ready_for_query_in_der_Flush-Gruppe` |
+| `QF1001`, Bedingung *letzte Stelle* | ready_for_query nur an letzter Stelle | `\|\| si != len(g.Server)-1` gestrichen | `TestValidateFehler/ready_for_query_vor_dem_Ende_der_letzten_Gruppe` |
+| `Group.validate` | sync genau am Ende der letzten Gruppe | `!=` zu `==` | `TestValidateFehler/letzte_Gruppe_endet_mit_flush_(abgeschnitten)` u. a. |
+| `(*cursor).objekte` | die Nachricht am Cursor wird nicht nachgespielt | Halt erst bei `ni > c.nachricht` | `TestReplayExtendedDiagnoseLebensdauer` |
+| `(*cursor).objekte` | Halt vor dem Nachspielen | Nachspielen vor der Halt-Prüfung | `TestReplayExtendedDiagnoseLebensdauer` |
+| `(*cursor).objekte` | nach dem Halt kein Transaktionsende der laufenden Interaktion | Ergebnis von `extendedNachspielen` ignoriert | `TestReplayExtendedAbweichung`, `TestReplayExtendedDiagnoseAnweisung`, `TestReplayExtendedDiagnoseLebensdauer` |
+| `(*cursor).objekte` | Bestätigungen je Interaktion gezählt | nur die erste Gruppe gezählt | `TestReplayExtendedAbweichung`, `TestReplayExtendedDiagnoseSpaeteBestaetigung` |
+| `toResponse` | NULL bleibt NULL (`werte`) | NULL als leere Bytes | `TestOpenUndQuery` |
+| `toResponse` | Werte sind Kopien (`werte`) | ohne Kopie | Integration: `TestE2EErgebnisartenEinfach`, `TestE2ERecordExtendedPgx` u. a. |
+| `toResponse` | Format der Spalte (`spalten`) | `Format` nicht übernommen | Integration: `TestE2EErgebnisartenEinfach` |
+| `toResponse` | Spalten der RowDescription | `Columns: nil` | Integration: `TestE2EReplaySelect1` u. a. |
+| `ohneFelder` | empty_query_response | als no_data | Integration: `TestE2EReplayLebendpruefungDatabaseSQL`, `…Pgxpool`, `…WiePostgres` |
+| `ohneFelder` | parse_complete | als bind_complete | `TestSendUndReceive`, `TestNachrichtenZwischenInteraktionen/Extended`, `TestSendNachFehlerantwort/ohne_ErrorResponse` |
+| `ohneFelder` | bind_complete | als parse_complete | `TestSendUndReceive` |
+| `ohneFelder` | close_complete | als parse_complete | `TestSendUndReceive` |
+| `ohneFelder` | no_data | als empty_query_response | `TestSendUndReceive` |
+| `ohneFelder` | portal_suspended | als command_complete | `TestSendUndReceive` |
+| `toResponse` | eine andere Antwort ist nicht unterstützt | `ohneFelder` nimmt jede an | `TestReceiveFehler/COPY` |
+| `toResponse` | Code der nicht unterstützten Antwort | `CodeInternal` statt `CodeUnsupported` | `TestNichtVermittelbar/COPY`, `TestReceiveFehler/COPY` |
+| `fromDTO` | Kennung vor Session ohne Interaktion | Prüfungen getauscht | `TestUnmarshalFehlerReihenfolge/Kennung_vor_Session_ohne_Interaktion` |
+| `fromDTO` | Nummer vor `offset_ms` | Prüfungen getauscht | `TestUnmarshalFehlerReihenfolge/Nummer_vor_offset_ms` |
+| `fromDTO` | `offset_ms` vor der Form | Form zuerst | `TestUnmarshalFehlerReihenfolge/offset_ms_vor_der_Form` |
+| `fromDTO` | Session für Session | alle Kennungen in einer eigenen Schleife zuerst | `TestUnmarshalFehlerReihenfolge/frühere_Session_vor_späterer_Kennung` |
+| `fromDTO` | Interaktion für Interaktion | alle Nummern in einer eigenen Schleife zuerst | `TestUnmarshalFehlerReihenfolge/frühere_Interaktion_vor_späterer_Nummer` |
+| `fromDTO` | Session ohne Interaktion nur mit `empty_sessions` | `emptySessions` immer falsch | `TestFelderDerVersion1` |
+| `fromDTO` | die Form prüft `Validate` | `Validate` nicht gerufen | `TestUnmarshalExtendedFehler` (sechs Fälle, etwa `…/Zielart_leer`), `TestUnmarshalFehler` (drei Fälle, etwa `…/abgeschnitten_nach_request`) |
+| `fromDTO` | die Interaktionen gehen in die Session | Interaktion nicht angehängt | `TestRoundtrip`, `TestUnmarshalNullUngequotet` |
+
+*Grüne Mutanten, eingeordnet* (Schritt 19):
+
+- **äquivalent** — Halt in `objekte` ohne `gi > c.gruppe` (nur `gi == c.gruppe && ni >=
+  c.nachricht`): Am Cursor gilt `c.nachricht < len(Groups[c.gruppe].Client)`, weil
+  `ClientMessage` die Nachricht nach dem letzten Client-Eintrag einer Gruppe auf 0 setzt
+  und `Validate` jeder Gruppe eine Client-Nachricht verlangt; die Bedingung `gi ==
+  c.gruppe && ni == c.nachricht` greift daher vor jeder späteren Gruppe. Kein Test kann
+  ihn fangen. Die Grenze trägt die Randform *Komplexitäts-Bereinigung ohne
+  Verhaltensänderung* in §6: Die Bedingung steht unverändert im Umbau. Am Code vor dem
+  Umbau (`cedd891`) ebenso grün.
+- **verhaltensändernd, über die Schnittstelle fangbar, ohne Test** — beide am Code vor
+  dem Umbau (`cedd891`) in Unit- und Integrationstests ebenso grün, also keine Lücke des
+  Umbaus, sondern des Bestands; §1 schließt neue Fälle aus, darum je eine Test-Idee mit
+  Grenze, Adresse `slice-harness-coverage` (Risiko *Verhalten ändert sich unbemerkt*,
+  §6):
+  - `extendedNachspielen` ohne `bestaetigt[m.Type]--`: Hat eine Interaktion ein
+    bestätigtes und danach ein abgelehntes parse, gilt auch das abgelehnte als angenommen.
+    Test-Idee: Replay einer Aufzeichnung mit zwei parse desselben Statement-Namens, das
+    zweite mit ErrorResponse statt parse_complete, danach eine Abweichung an einem bind
+    auf dieses Statement; die Diagnose nennt das SQL des ersten parse, nicht das des
+    zweiten. Grenze: Der Kommentar über `extendedNachspielen` („Die ersten n Nachrichten
+    einer Art mit n Bestätigungen … gelten als angenommen“) ist aus `objekte`
+    unverändert verschoben und sagt damit etwas zu, das kein Test prüft
+    (`AGENTS.md` §3.11); der Slice fasst ihn nicht enger, weil er den Bestand beschreibt.
+  - `spalten` ohne `TableOID`: Die Tabellen-OID einer Spalte ginge verloren. Test-Idee:
+    Unit-Test in `postgres_test` mit einer RowDescription mit `TableOID` ungleich 0 über
+    `Query`, Vergleich der Spalte; Grenze: Die Integrationstests vergleichen die
+    Tabellen-OID nicht.
+- `ctx` heißt `_`, die Doc-Kommentare und der Kommentar über `letzteNummer`: keine
+  Verhaltensänderung, keine Mutation; für den Zweig in `letzteNummer` gilt das
+  akzeptierte Negativ aus §6.
+
+*Läufe:* `gofmt -l internal` (leer), `go vet ./internal/...` und `go test -count=1
+./internal/...` im Image der Stufe `deps` nach dem Umbau grün; `make lint` an `7ac016b`
+(32), `cedd891` (32, Zeilen gleich) und `d840888` (16); `make gates` grün an `d840888` und
+am Stand dieses Commits.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
