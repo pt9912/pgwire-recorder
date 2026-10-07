@@ -347,11 +347,9 @@ func (c *cursor) objekte() objekte {
 // der Gruppe gi wahr ist; diese und alle späteren bleiben aus. Das Ergebnis ist
 // wahr, wenn halt für keine Nachricht wahr war.
 //
-// Der Server bestätigt jedes angenommene parse, bind und close; nach einer
-// Ablehnung verwirft er bis zum Sync. Die ersten n Nachrichten einer Art mit n
-// Bestätigungen in der Interaktion gelten als angenommen; gezählt wird je
-// Interaktion, weil eine späte Bestätigung in der folgenden Gruppe steht
-// (LH-FA-18.a).
+// Die Bestätigungen einer Art zählt es über die ganze Interaktion, weil eine
+// späte Bestätigung in der folgenden Gruppe steht (LH-FA-18.a); eine Art ohne
+// Bestätigung in der Interaktion wird nicht nachgespielt.
 func (o objekte) extendedNachspielen(in model.Interaction, halt func(gi, ni int) bool) bool {
 	bestaetigt := map[model.ClientMessageType]int{}
 	for _, g := range in.Groups {

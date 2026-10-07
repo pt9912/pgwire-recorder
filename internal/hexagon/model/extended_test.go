@@ -175,9 +175,10 @@ func TestValidateQueryFehler(t *testing.T) {
 	}
 }
 
-// Verletzt eine Gruppe zwei Formregeln zugleich, meldet Validate genau eine, und
-// welche, steht fest: Die Client-Nachrichten gehen der Reihe nach vor, je Nachricht
-// erst der Typ, dann die Stellung von flush und sync, dann die Zielart; danach
+// Verletzt eine Gruppe zwei Formregeln zugleich, meldet Validate genau eine. Der
+// Test hält fest, welche der Bestand meldet; eine Zusage ist das nicht, und wer die
+// Reihenfolge bewusst ändert, passt ihn an. Im Bestand gehen die
+// Client-Nachrichten der Reihe nach vor, je Nachricht erst der Typ, dann die Stellung von flush und sync, dann die Zielart; danach
 // sync oder flush am Ende der Gruppe; danach die Server-Nachrichten der Reihe
 // nach, je Nachricht erst der Typ, dann die Stellung von ready_for_query; zuletzt
 // ready_for_query am Ende der letzten Gruppe. Erwartet ist der ganze Fehlertext.

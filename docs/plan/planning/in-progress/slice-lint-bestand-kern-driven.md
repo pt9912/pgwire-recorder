@@ -424,6 +424,7 @@ ist jeder genannte Test grün, mit ihr rot.
 | `(*cursor).objekte` | Halt vor dem Nachspielen | Nachspielen vor der Halt-Prüfung | `TestReplayExtendedDiagnoseLebensdauer` |
 | `(*cursor).objekte` | nach dem Halt kein Transaktionsende der laufenden Interaktion | Ergebnis von `extendedNachspielen` ignoriert | `TestReplayExtendedAbweichung`, `TestReplayExtendedDiagnoseAnweisung`, `TestReplayExtendedDiagnoseLebensdauer` |
 | `(*cursor).objekte` | Bestätigungen je Interaktion gezählt | nur die erste Gruppe gezählt | `TestReplayExtendedAbweichung`, `TestReplayExtendedDiagnoseSpaeteBestaetigung` |
+| `(*cursor).objekte` | eine Art ohne Bestätigung wird nicht nachgespielt (Doc-Kommentar `extendedNachspielen`) | `bestaetigt[m.Type] > 0` zu `>= 0` (frische Kopie aus `git archive 8d765ba`, Code gleich `d840888`) | `TestReplayExtendedDiagnoseLebensdauer` |
 | `toResponse` | NULL bleibt NULL (`werte`) | NULL als leere Bytes | `TestOpenUndQuery` |
 | `toResponse` | Werte sind Kopien (`werte`) | ohne Kopie | Integration: `TestE2EErgebnisartenEinfach`, `TestE2ERecordExtendedPgx` u. a. |
 | `toResponse` | Format der Spalte (`spalten`) | `Format` nicht übernommen | Integration: `TestE2EErgebnisartenEinfach` |
@@ -455,32 +456,51 @@ ist jeder genannte Test grün, mit ihr rot.
   ihn fangen. Die Grenze trägt die Randform *Komplexitäts-Bereinigung ohne
   Verhaltensänderung* in §6: Die Bedingung steht unverändert im Umbau. Am Code vor dem
   Umbau (`cedd891`) ebenso grün.
-- **verhaltensändernd, über die Schnittstelle fangbar, ohne Test** — beide am Code vor
-  dem Umbau (`cedd891`) in Unit- und Integrationstests ebenso grün, also keine Lücke des
-  Umbaus, sondern des Bestands; §1 schließt neue Fälle aus, darum je eine Test-Idee mit
-  Grenze, Adresse `slice-harness-coverage` (Risiko *Verhalten ändert sich unbemerkt*,
-  §6):
+- **verhaltensändernd, über die Schnittstelle fangbar, ohne Test** — alle vier am Code
+  vor dem Umbau (`7ac016b` bzw. `cedd891`) ebenso grün, also keine Lücke des Umbaus,
+  sondern des Bestands; §1 schließt neue Fälle aus, darum je eine Test-Idee mit Grenze,
+  Adresse `slice-tests-ueberlebende-mutanten` (Risiko *Verhalten ändert sich
+  unbemerkt*, §6):
   - `extendedNachspielen` ohne `bestaetigt[m.Type]--`: Hat eine Interaktion ein
     bestätigtes und danach ein abgelehntes parse, gilt auch das abgelehnte als angenommen.
     Test-Idee: Replay einer Aufzeichnung mit zwei parse desselben Statement-Namens, das
     zweite mit ErrorResponse statt parse_complete, danach eine Abweichung an einem bind
     auf dieses Statement; die Diagnose nennt das SQL des ersten parse, nicht das des
-    zweiten. Grenze: Der Kommentar über `extendedNachspielen` („Die ersten n Nachrichten
-    einer Art mit n Bestätigungen … gelten als angenommen“) ist aus `objekte`
-    unverändert verschoben und sagt damit etwas zu, das kein Test prüft
-    (`AGENTS.md` §3.11); der Slice fasst ihn nicht enger, weil er den Bestand beschreibt.
+    zweiten. Grenze: Kein Test erzeugt ein abgelehntes parse, bind oder close nach einem
+    angenommenen derselben Art in einer Interaktion. Der Doc-Kommentar von
+    `extendedNachspielen` ist dafür enger gefasst (§6, nach Review F-460): Der Satz über
+    die ersten n Nachrichten entfällt; es bleiben die Zählung über die ganze Interaktion
+    mit Grund (gefangen von *nur die erste Gruppe gezählt*) und „eine Art ohne
+    Bestätigung in der Interaktion wird nicht nachgespielt“ (gefangen von
+    `bestaetigt[m.Type] >= 0`, Mutationstabelle). Die Zusage über die ersten n kommt mit
+    dem Test aus `slice-tests-ueberlebende-mutanten` zurück.
   - `spalten` ohne `TableOID`: Die Tabellen-OID einer Spalte ginge verloren. Test-Idee:
     Unit-Test in `postgres_test` mit einer RowDescription mit `TableOID` ungleich 0 über
     `Query`, Vergleich der Spalte; Grenze: Die Integrationstests vergleichen die
     Tabellen-OID nicht.
+  - `spalten` ohne `ColumnNumber` (Review-Belege P2 an `ac2e662`, P2alt an `7ac016b`,
+    je Unit-Tests von `postgres` und `make test-integration` grün): Die Spaltennummer
+    in der Tabelle ginge verloren. Test-Idee: derselbe Unit-Test wie bei `TableOID`, mit
+    `TableAttributeNumber` ungleich 0; Grenze: Kein Test vergleicht die Spaltennummer,
+    die Integrationstests nicht und die Unit-Tests nicht.
+  - Die Session-Nummer in den Fehlern einer Interaktion (Review-Belege Y2:
+    `geprueftFromDTO(1, ii, id)` an `ac2e662`; Y2alt: `1` statt `sd.ID` in der
+    Formmeldung an `cedd891`; je Unit-Tests von `recording` grün): Eine Meldung zu einer
+    Interaktion in Session 2 oder später nennte Session 1. Test-Idee: `Unmarshal` einer
+    Aufzeichnung mit zwei Sessions, deren zweite eine abgeschnittene Interaktion trägt,
+    erwartet `PGR-E3003` mit „Session 2, Interaktion 1“; ebenso mit negativem `offset_ms`
+    und falscher Nummer. Grenze: Kein Test erzeugt einen Interaktionsfehler aus
+    `fromDTO` in einer Session ab 2; `TestVorpruefungNenntOrt` nennt Session 2, aber die
+    Meldung stammt aus der Vorprüfung, nicht aus `fromDTO`.
 - `ctx` heißt `_`, die Doc-Kommentare und der Kommentar über `letzteNummer`: keine
   Verhaltensänderung, keine Mutation; für den Zweig in `letzteNummer` gilt das
   akzeptierte Negativ aus §6.
 
 *Läufe:* `gofmt -l internal` (leer), `go vet ./internal/...` und `go test -count=1
 ./internal/...` im Image der Stufe `deps` nach dem Umbau grün; `make lint` an `7ac016b`
-(32), `cedd891` (32, Zeilen gleich) und `d840888` (16); `make gates` grün an `d840888` und
-am Stand dieses Commits.
+(32), `cedd891` (32, Zeilen gleich) und `d840888` (16); `make gates` grün an `d840888`, an
+`ac2e662` und am Stand des Commits, der die Kommentare nach den Entscheidungen zu F-460
+und F-463 fasst (nur Kommentare, keine Erwartung und kein Testfall geändert).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
