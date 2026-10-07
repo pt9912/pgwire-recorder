@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-lint
+**Fund:** `7a32d57` änderte `SPEC-049` Punkt 8 nach dem ersten Code-Commit; Kopf (*Berührte Spec-Stellen*), §1 und §3 nannten weiter nur die Fortschreibung der Grenze vor dem Code (Review F-476; nachgezogen in `53c70fc`). Die DoD verlangte weiter einen Fall für die Zeile der ungenutzten Regel „ohne erkannte Felder“, den §6 in `7a32d57` als offen ohne Fall entschieden hatte (Verifikation V-97; nachgezogen in `d3473b9`).
