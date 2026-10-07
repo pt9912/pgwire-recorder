@@ -168,10 +168,14 @@ steht, gibt der Implementer an den Architect zurück.
   `slice-harness-blackbox-kern`).
 - **Übrige Befunde der Testdateien** — `contextcheck`: Kontext aus `t.Context()`, in einer Funktion für `t.Cleanup` aus `context.WithoutCancel(t.Context())` (`SPEC-049` Punkt 5); `gochecknoglobals`: Testdaten in Funktionen oder als Konstanten; `revive`: nach der Meldung. Kein `_ =` vor einem Fehler, den
   `errcheck` meldet, und keine Ausnahme, die nur Bestand aussetzt (Entscheidung 5).
-- **White-Box-Zugriffe im Bestand** — Namensabgleich per Suche am Stand `ce50a10`
-  (ungemessen, kann Fehltreffer enthalten, wo ein Testhelfer gleich heißt): u. a. `meldeFrist`, `richtungen`, `toClientMessage`, `toMessage`, `fehler`, `handle`, `note`, `startup`, `wecke`, `weiterlesen` — die meisten White-Box-Zugriffe aller Pakete.
-  Je Zugriff: über die exportierte Schnittstelle prüfbar, über die Brücke, oder
-  Befund. Darunter Fristen und Weckmechanik (`meldeFrist`, `wecke`); ein Test, der eine Frist verkürzt, setzt Zustand, und das ist die offene Frage, ob die Brücke schreiben darf.
+- **White-Box-Zugriffe im Bestand** — per AST gemessen am Stand `6ff1b3b`, Zuordnung je
+  Zugriff in §7 (*Belege des Implementers*): über die Brücke oder über die exportierte
+  Schnittstelle, kein Befund. Fristen und Weckmechanik folgen dem Punkt
+  *Export-Test-Brücke*: `meldeFrist` reicht die Brücke als Konstante weiter, gelesen,
+  nicht gesetzt; `richtungen` legt nur das Produkt an, `wecke` und `weiterlesen` prüft der
+  Test über `Handle` an einer Verbindung, die er stellt. Grenze: Den Rückgabewert von
+  `weiterlesen` verwirft `clientRichtung`; über die exportierte Schnittstelle ist er nicht
+  zu sehen, ein Mutant nur an ihm ist dort äquivalent (§7, *Ohne roten Test*).
 - **Fakes der Ports** — die Ports sind exportiert (`internal/hexagon/ports/...`); ein
   Fake in einem `_test`-Paket implementiert sie unverändert. Ein Fake, der auf
   unexportierte Felder eines Produkt-Typs greift, fällt unter die Brücke.
@@ -329,6 +333,16 @@ genannte Test grün, mit ihr rot.
 
 *Ohne roten Test*, eingeordnet nach `.claude/commands/implement-slice.md` Schritt 19:
 
+- Der Rückgabewert von `weiterlesen`, beide Richtungen: `return true` → `return false`
+  nach dem Wecken und `return false` → `return true` ohne Signal. Beide sind an
+  `b37d6e7^` rot (`TestWeiterlesenNachWecken`, „Wecken nicht gemeldet“ und „Wecken ohne
+  Signal gemeldet“) und an `b37d6e7` in allen Tests des Pakets grün (Review F-449, R1;
+  hier nachgefahren, am Altstand aus `git archive` in einem frischen Pfad). Äquivalent
+  über die Schnittstelle: `clientRichtung` ruft `weiterlesen` als Anweisung und verwirft
+  den Wert, Lesefrist und Lesen bleiben gleich. Nach `SPEC-049` Punkt 7, letzter Fall,
+  ist die Prüfung damit zulässig weggefallen. Grenze in §6 (*White-Box-Zugriffe im
+  Bestand*): Liest das Produkt den Wert künftig, braucht er einen Test über die
+  Schnittstelle.
 - `meldeFrist = 3 * time.Second` bleibt grün: `TestFehlerantwortMitFrist` wartet
   `MeldeFrist` plus eine Sekunde, vorher wie nachher über dieselbe Konstante. Der Mutant
   ändert das Verhalten (die Dauer), über die Schnittstelle fangbar nur gegen einen festen
