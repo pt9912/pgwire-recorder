@@ -31,6 +31,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Ein Docker/OCI-Image (`linux/amd64`, `linux/arm64`) und ein reproduzierbarer Binary-Build existieren, und die Betriebsdokumentation nennt Optionen, Exit-Codes, Meldungskatalog und verwendete Umgebungen.
 
+**Übernommen aus `slice-v1-abschluss-betrieb` und `slice-v1-abschluss-homebrew`** (dort je §1, Abgrenzung): das Container-Image (Docker/OCI); das ist das Ziel oben.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Veröffentlichungs-Mechanismus der Registries (`ghcr.io`, `docker.io`) — Gegenstand des Release-Verfahrens in `docs/maintainer/releasing.md`; dieser Slice liefert das Image.

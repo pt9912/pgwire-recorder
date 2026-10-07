@@ -32,6 +32,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** `record` vermittelt die Anmeldung des Clients beim Upstream transparent (Klartext-Passwort, MD5, SCRAM-SHA-256), sodass Anwendungen gegen Server mit Passwort-Anmeldung aufgezeichnet werden können.
 
+**Übernommen aus `slice-harness-blackbox-driven`** (Review F-444, Verifikation V-85; Abgrenzung in `slice-tests-ueberlebende-mutanten`): ein Test, dass die Session aus `Open` den Lesepuffer des Aufbaus trägt, mit Test-Idee und Grenze in §6; er gehört zu DoD-Punkt 1, weil der Umbau der Aufbau-Schleife in `Open` genau diese Stelle berührt.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Anmeldung beim Einspielen (`play`) — `slice-v1-abschluss-einspielen`.

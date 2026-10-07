@@ -31,6 +31,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** `--record-timing` schreibt `offset_ms` je Interaktion, und `play --keep-timing` stellt den Abstand wahlweise relativ oder absolut (Bezugspunkt Verbindungsaufbau oder erste Anfrage) her.
 
+**Übernommen aus `slice-v1-abschluss-einspielen`** (dort §1, Abgrenzung): Zeitangaben und zeitgetreues Einspielen; das ist das Ziel oben.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Zeitgetreue Antworten im Replay-Modus — Out-of-Scope von LH-FA-21.

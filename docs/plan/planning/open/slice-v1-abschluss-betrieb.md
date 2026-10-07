@@ -45,6 +45,12 @@ Die Ergänzung von [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozess
 
 **Übernommen aus `slice-replay-semantik-meldungscodes`:** der Schlüssel `log_level` auf der obersten Ebene der Konfigurationsdatei (`LH-FA-17.a`), mit derselben Wertemenge wie `--log-level`; ein ungültiger Wert ist `PGR-E2004`.
 
+**Übernommen aus `slice-v1-abschluss-sessions`** (dort §1, Abgrenzung): die Signalbehandlung; sie gehört zum Ziel oben.
+
+**Übernommen aus `slice-harness-integration-wait`** (dort §1, Abgrenzung): die Tests mit Signal und Frist je Modus (`--shutdown-timeout`), geschrieben über die Helfer, die jener umbaut; sie sind der Test in DoD-Punkt 1.
+
+**Übernommen aus `slice-harness-blackbox-pgwire`** (Review F-451, Verifikation V-87; Abgrenzung in `slice-tests-ueberlebende-mutanten`): der Wert der Schreibfrist der Fehlerantwort beim Session-Ende (`meldeFrist`) und ein Test mit der Schranke als Literal; der Wert wird nach §6 *Randformen* vor dem Code entschieden, der Test gehört zu DoD-Punkt 1, weil die Frist einen Teil des Budgets von `--shutdown-timeout` verbraucht.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Container-Image — `slice-v1-abschluss-container`.

@@ -58,6 +58,9 @@ dem nächsten großen Slice. `harness/README.md` §Sensors führt Testabdeckung 
 unter „Nicht behauptet … (keine Schwelle)“. Das Schwester-Repo ai-harness-init hat
 keine Schwelle; es ist Kontext, kein Vorbild.
 
+**Übernommen aus `slice-harness-mutation`** (dort §1, Abgrenzung): die Anweisungs-Abdeckung
+als Gate; das ist das Ziel oben.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Abdeckung je Anforderung und Pfad (`make abdeckung-check`, Tabellen unter

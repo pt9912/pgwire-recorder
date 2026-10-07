@@ -31,6 +31,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Bei jedem stabilen Release entsteht die Formel im Tap `pt9912/homebrew-pgwire-recorder`, und die dokumentierten Installationsbefehle liefern auf macOS und Linux das Binary der Version.
 
+**Übernommen aus `slice-erster-release-homebrew-nachweis`** (dort §1, Abgrenzung): das Erzeugen der Formel; das ist DoD-Punkt 1, jener Slice wendet das Verfahren mit dem echten Release an.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Aufnahme in das Standard-Repository von Homebrew — Out-of-Scope von LH-FA-19.

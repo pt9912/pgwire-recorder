@@ -121,6 +121,8 @@ Ergäbe das einen vierten Liefer-Punkt oder eine dritte Schicht, schneidet der P
 dem Start einen zweiten Slice ab (§4). Ab `in-progress/` nimmt dieser Slice nichts mehr
 an, denn das wäre eine Planänderung während der Arbeit; dann legt der Planner einen
 neuen Slice an.
+Als Adresse nennt diesen Slice `slice-lint-bestand-driving` (§6, Risiko *Verhalten von
+`replaySitzung` ändert sich unbemerkt*); seine Funde nimmt dieser Slice nach dieser Regel an.
 
 **Sichtung früherer Funde** (am Stand `8d765ba`): Unter `docs/reviews/`, in den Plänen
 unter `done/` samt den drei Welle-Archiven und in den offenen Plänen steht kein
