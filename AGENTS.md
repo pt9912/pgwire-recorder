@@ -254,6 +254,25 @@ der eine Randform entscheidet, die §6 nicht nennt, ist ein Review-Befund gegen 
 Regel. Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung
 seit slice-harness-randformen-vor-code wieder aufgetreten?
 
+### 3.13 Eine Adresse nimmt an, bevor sie genannt wird (seit slice-lint-bestand-kern-driven)
+
+Wer einem anderen Slice etwas zuweist (Folge-Slice, Risiko-Ausgang *eingetreten*,
+Register-Ausgang *geplant*, Abgrenzung der Klasse 1), liest vorher dessen §1
+*Ausdrücklich NICHT* und dessen DoD. Im selben Commit trägt er die Sendung in §1 oder
+die DoD des Nehmers ein, mit der Kennung des Gebers. Trifft ein Ausschluss des Nehmers
+die Sendung oder liegt der Nehmer in `done/`, ist er keine Adresse; der Punkt geht an
+den Planner.
+
+**Falsch:** §6 weist grüne Mutanten `slice-harness-coverage` zu, dessen §1 neue Tests
+über dem gemessenen Stand ausschließt.
+**Richtig:** Der Nehmer nennt die Mutanten in §1 und DoD mit der Kennung des Gebers;
+`grep` nach ihr findet sie im Nehmer.
+
+**Begründung:** Beim Zuweisen geprüft war nur, dass es den Nehmer gibt; dass er
+annimmt, fand erst das Review (`BEO-REPO/folge-slice-adresse-nimmt-nicht-an`). Entfernen
+oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
+slice-lint-bestand-kern-driven wieder aufgetreten?
+
 ## 4. Quality Gates
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-harness-dateien.md`

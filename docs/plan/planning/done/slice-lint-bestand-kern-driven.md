@@ -439,12 +439,20 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   und die Randform-Rückgabe ohne Befund im Code-Commit, sie bleiben. Schritt 19 von
   `.claude/commands/implement-slice.md` trug für die Einordnung der grünen Mutanten; ihre
   Liste war unvollständig (F-461), die Einordnung der genannten richtig.
+- **Steering-Loop-Eintrag:** Regel geschärft: Wer einem anderen Slice etwas zuweist
+  (Folge-Slice, Risiko-Ausgang *eingetreten*, Register *geplant*, Abgrenzung der Klasse 1),
+  liest vorher dessen §1 *Ausdrücklich NICHT* und DoD und trägt die Sendung im selben Commit
+  dort ein, mit der Kennung des Gebers; trifft ein Ausschluss sie, geht der Punkt an den
+  Planner. Das Review meldet eine Adresse ohne Annahme mindestens als MEDIUM, und die
+  Folge-Slice-Paarung der Closure prüft Existenz und Annahme per `grep`
+  — liegt in `AGENTS.md §3.13`.
+  Auslöser: `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (slice-extended-query-replay, slice-harness-lint-werkzeug, slice-lint-bestand-kern-driven — 3×). Weitere Zielorte: `.claude/commands/plan-welle.md` Schritt 6, `.claude/commands/implement-slice.md` Schritte 19 und 24, `.harness/skills/reviewer.md` (MEDIUM), `.claude/commands/close-welle.md` Schritt 3 Paarung (b), `.claude/agents/planner.md`. Kein Sensor: Ob der Nehmer die Sendung inhaltlich führt, bleibt Urteil. Entscheidung des Nutzers vom 2026-10-07; die vendored Slice-Vorlage bleibt unverändert.
 - **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `9b9404b` (Zähler =
   Dateien unter `evidence/`).
   - `BEO-REPO/folge-slice-adresse-nimmt-nicht-an`: **neu, mit drei Belegen**,
     `slice-extended-query-replay` (F-330), `slice-harness-lint-werkzeug` (F-431) und dieser
-    Slice (F-459). **Der Eintrag erreicht die Schwelle 3×.** Stand **offen**, der Ausgang
-    wartet auf die Entscheidung des Nutzers (Vorschlag oben). Eigener Eintrag statt Beleg
+    Slice (F-459). **Der Eintrag erreicht die Schwelle 3×.** Stand **verkörpert**
+    (Steering-Loop-Eintrag oben). Eigener Eintrag statt Beleg
     unter `BEO-REPO/plan-folgt-korrektur-nicht`, aus drei Gründen: Erstens folgt F-459 keiner
     Korrektur, die Route stand seit der Anlage in `175fd2d` vor dem Code im Plan; die
     Beschreibung jenes Eintrags („nach einer Korrektur bleibt eine Zeile auf dem alten
@@ -477,8 +485,9 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   3×, `randform-im-code-entschieden-dann-zurueckgegeben` 3×,
   `spec-randform-erst-im-review-entschieden` 11×, `negativtests-fehlen-bei-neuem-vertrag`
   13×, `plan-folgt-korrektur-nicht` 16×, `zusage-im-kommentar-weiter-als-pruefung` 17×,
-  verkörpert; `white-box-liste-vor-code-nur-namenssuche` 3× gestrichen). **Neu über der
-  Schwelle ohne Ausgang: `folge-slice-adresse-nimmt-nicht-an`.**
+  verkörpert; `white-box-liste-vor-code-nur-namenssuche` 3× gestrichen).
+  `folge-slice-adresse-nimmt-nicht-an` 3× ist verkörpert (Steering-Loop-Eintrag oben); kein
+  Eintrag steht über der Schwelle ohne Ausgang.
 - **Folge-Slices:** `slice-tests-ueberlebende-mutanten` (die vier grünen Mutanten M3, P8,
   P2 und Y2; Risiko *Verhalten ändert sich unbemerkt*). Er nimmt an: Er liegt in `open/`,
   §1 *Gegenstand* nennt alle vier mit Quelle in diesem Slice, je ein DoD-Liefer-Punkt
@@ -495,8 +504,9 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   *Befund verschoben statt behoben* **entfallen** (höchste Komplexität 12 von 20 bzw. 10 von
   15, `ctx` vom Port verlangt); *Aufzählung weicht vom Lauf ab* **entfallen** (Lauf am
   Start deckt sich, nachgemessen). Die Randformen in §6 sind Entscheidungen, keine Risiken.
-- **Drei Paarungen:** Anker: Der Lerneintrag ist eine benannte Spec-Lücke, keine verkörperte
-  Regel, deshalb steht kein `liegt in`; der Vorschlag zur Verkörperung ist nicht umgesetzt.
+- **Drei Paarungen:** Anker: ein `liegt in`, `AGENTS.md §3.13`; die Sektion besteht und trägt
+  `seit slice-lint-bestand-kern-driven`, ebenso jeder weitere Zielort. Der Eintrag zur
+  Spec-Lücke trägt kein `liegt in`.
   Folge-Slice: `slice-tests-ueberlebende-mutanten` und `slice-lint-bestand-driving` liegen in
   `open/`, und beide nehmen an: `grep -n "slice-lint-bestand-kern-driven"` findet die
   Kennung in §1 (*Herkunft*) und §4 von `slice-tests-ueberlebende-mutanten`

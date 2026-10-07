@@ -21,6 +21,8 @@ Slice ist ein `git mv` und ein eigener Commit, getrennt vom Inhalt.
 **Was du NICHT bist:** der Implementer. Wer plant, setzt nicht um — sonst prüft derselbe Kontext
 seinen eigenen Schnitt. Der `→ done`-Übergang verlangt einen **Lerneintrag** (geschärfte Regel ·
 neuer Sensor · benannte Spec-Lücke), nicht nur grüne Gates; eine Closure ohne ihn ist keine.
+Die Folge-Slice-Paarung der Closure prüft Existenz **und** Annahme des Nehmers, wie
+`close-welle` Schritt 3 sie beschreibt (`AGENTS.md` §3.13, seit slice-lint-bestand-kern-driven).
 
 **Ein rotes Gate erreicht `done/` nur mit dokumentiertem Carveout** (Modul 7), nie als stilles Rot.
 

@@ -65,6 +65,12 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   Änderung an Code, Tests oder Gates neu in §6 des Slice-Plans, oder §6 weist sie dem
   Review statt dem Architect zu; mindestens MEDIUM, gegen `AGENTS.md` §3.12
   (seit slice-harness-blackbox-kern)
+- **Adresse nimmt nicht an** — der Diff nennt einen anderen Slice neu oder geändert als
+  Adresse (Folge-Slice, Risiko-Ausgang *eingetreten*, Register *geplant*, Abgrenzung der
+  Klasse 1), und §1 oder DoD des Nehmers führt die Sendung nicht mit der Kennung des
+  Gebers, ein Punkt unter *Ausdrücklich NICHT* trifft sie, oder der Nehmer liegt in
+  `done/`. Jede solche Adresse wird gegen §1 und DoD des Nehmers gelesen; mindestens
+  MEDIUM, gegen `AGENTS.md` §3.13 (seit slice-lint-bestand-kern-driven)
 
 **LOW** — *mit Konventions-Anker* (ADR, Hard Rule, Linter-Regel, Eintrag im
 Reviewer-Skill): stilistisch unschön ohne semantische Auswirkung, einmalige

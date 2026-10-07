@@ -1,5 +1,3 @@
-**Stand:** offen
+**Stand:** verkörpert
 
-Schwelle 3× erreicht mit `slice-lint-bestand-kern-driven`; der Ausgang (verkörpert, geplant
-oder gestrichen) wartet auf die Entscheidung des Nutzers. Vorschlag zur Verkörperung in §7
-von `slice-lint-bestand-kern-driven` (*Steering-Loop-Eintrag*).
+Zielort: `AGENTS.md §3.13`, `.claude/commands/plan-welle.md` Schritt 6, `.claude/commands/implement-slice.md` Schritte 19 und 24, `.harness/skills/reviewer.md` §Klassifikation (MEDIUM), `.claude/commands/close-welle.md` Schritt 3 Paarung (b) und `.claude/agents/planner.md` — Herkunfts-Anker `seit slice-lint-bestand-kern-driven`.

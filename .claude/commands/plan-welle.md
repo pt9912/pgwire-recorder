@@ -70,7 +70,11 @@ die Antwort und wird notiert.
    §6 dessen Randformen** (`AGENTS.md` §3.12, seit slice-harness-randformen-vor-code);
    entschieden werden sie vor dem Code, mit dem Architect. **Verlangt ein DoD-Punkt einen Beleg
    des Implementers** (Mutationstabelle, Befundzeilen vorher und nachher, Läufe), nennt er als
-   Ort §7 des Slice-Plans, nicht „im Bericht“ (seit slice-harness-blackbox-kern).
+   Ort §7 des Slice-Plans, nicht „im Bericht“ (seit slice-harness-blackbox-kern). **Nennt der
+   Plan einen anderen Slice als Adresse** (Folge-Slice, Risiko-Ausgang, Abgrenzung der Klasse 1),
+   liest du vorher dessen §1 *Ausdrücklich NICHT* und DoD und trägst die Sendung im selben Commit
+   dort ein, mit der Kennung des Gebers; trifft ein Ausschluss sie, ist er keine Adresse
+   (`AGENTS.md` §3.13, seit slice-lint-bestand-kern-driven).
 
 ## Welle-Plan per cp anlegen und füllen (der Kern-Schritt)
 

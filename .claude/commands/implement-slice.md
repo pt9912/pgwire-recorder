@@ -187,6 +187,10 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     ihn. Ändert er das Verhalten, ist er über die Schnittstelle fangbar: ein Test, oder,
     wo §1 neue Fälle ausschließt, eine Test-Idee mit ihrer Grenze in §7, der die Closure
     eine Adresse gibt. Eine Grenze „nur Urteil“ in §6 deckt nur den äquivalenten Mutanten.
+    **Nennst du einen anderen Slice als Adresse** (§6, §7; `AGENTS.md` §3.13,
+    seit slice-lint-bestand-kern-driven), liest du vorher dessen §1 *Ausdrücklich NICHT* und DoD
+    und trägst die Sendung im selben Commit dort ein, mit der Kennung des Gebers. Trifft ein
+    Ausschluss sie, nennst du ihn nicht und gibst den Punkt im Bericht an den Planner.
     **Der Mutant muss im Build ankommen** (seit slice-replay-semantik-mismatch): Ein Lauf
     über den Docker-Build-Kontext (`make build`, `make test`, `make test-integration`)
     überträgt eine Datei nicht neu, deren Größe und mtime dem zuletzt übertragenen Stand
@@ -237,7 +241,10 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
     bekommt dabei genau einen von drei Ausgängen** (Modul 5): *eingetreten* → Carveout oder
     Folge-Slice mit ID · *entfallen* → gestrichen **mit Begründung** · *weiter offen* → wandert ins
     Beobachtungs-Register (Schritt 25). Ein Slice geht nicht nach `done/`, während ein Risiko ohne
-    Ausgang dasteht.
+    Ausgang dasteht. Prüft die Slice-Closure die drei Paarungen, gilt für die Folge-Slice-Paarung
+    dasselbe wie in `/close-welle` Schritt 3: Der Nehmer existiert **und** nimmt an, `grep` findet
+    die Kennung des Gebers in seinem §1 oder seiner DoD (`AGENTS.md` §3.13,
+    seit slice-lint-bestand-kern-driven).
 25. **Das Beobachtungs-Register fortschreiben** (`docs/plan/planning/observations/`, Modul 6) —
     der **Schreib**-Schritt, und er hängt an der Closure, nicht an der Implementation. Für jede
     Beobachtung aus der Closure-Notiz: führt das Register die Klasse schon, dann die vorhandene
