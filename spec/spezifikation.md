@@ -670,8 +670,9 @@ Windows entspricht der Konsolenabbruch (`Strg+C`, `Strg+Break`) einem `SIGINT`:
 - das Recording schreiben (LH-FA-07.a); schlägt das Schreiben fehl, bleibt die
   Zieldatei der letzte vollständig geschriebene Stand.
 
-Beim Beginn des Herunterfahrens schreibt der Prozess eine Zeile der Stufe `info`.
-Die Frist `--shutdown-timeout` (`SPEC-046`) zählt ab dem ersten Signal. Ist bei
+Beim Beginn des Herunterfahrens schreibt der Prozess eine Zeile der Stufe `info`
+mit dem Attribut `sessions`: der Zahl der angenommenen Verbindungen, die zu diesem
+Zeitpunkt noch nicht beendet sind, auch `0`. Die Frist `--shutdown-timeout` (`SPEC-046`) zählt ab dem ersten Signal. Ist bei
 ihrem Ablauf eine Session nicht beendet, endet sie zwangsweise wie bei einem
 Abbruch (LH-FA-02.b): ihre laufende Interaktion wird nicht übernommen, die
 abgeschlossenen bleiben, und die Verbindungen zu Client und Server werden
@@ -679,6 +680,44 @@ geschlossen. Endet dabei eine Interaktion unvollständig, ist das `PGR-E4006`
 (Verbindungsfehler der Klasse 4, LH-FA-13.b); danach wird das Recording
 geschrieben. Der Wert `0` schaltet die Frist ab. Ein weiteres Signal lässt die
 Frist sofort ablaufen.
+
+**Randfälle des Herunterfahrens.**
+
+* *Ohne offene Verbindung.* Ist beim Signal keine Verbindung offen, endet der
+  Prozess ohne zu warten; `record` schreibt das Recording, auch eines ohne
+  Sessions (LH-FA-07.a).
+* *Startphase.* Ein Signal, bevor der Prozess lauscht, bricht den Start nicht ab:
+  Die Startprüfungen laufen zu Ende, und ein Startfehler beendet den Prozess mit
+  dem Exit-Code seiner Klasse (LH-FA-13.b). Sonst nimmt der Prozess keine
+  Verbindung an und endet wie ohne offene Verbindung.
+* *Was die Frist begrenzt.* Die Frist begrenzt das Warten auf die Verbindungen.
+  Das Zwangsende und das Schreiben des Recordings danach zählen nicht zu ihr. Ein
+  Schreiben des Recordings, das bei ihrem Ablauf läuft, wird nicht abgebrochen;
+  eine Verbindung, deren Ende der Prozess vor dem Ablauf bemerkt hat, endet nicht
+  zwangsweise.
+* *Zwangsende.* Es trifft jede angenommene Verbindung, die bei Ablauf nicht
+  beendet ist, auch eine im Aufbau (Startnachricht, Verbindungsaufbau zum
+  Upstream). `PGR-E4006` entsteht genau für eine Verbindung mit einer begonnenen,
+  nicht abgeschlossenen Interaktion: im Record vor deren `ReadyForQuery`, im
+  Replay einer begonnenen, nicht verbrauchten (LH-FA-03.b *Verbraucht*). Eine
+  Verbindung ohne eine solche Interaktion, auch eine im Aufbau, endet ohne
+  Meldung. Bemerkt der Prozess das Schließen durch das Zwangsende beim Lesen oder
+  Schreiben, ist das kein weiteres Verbindungsende (kein `PGR-E4003`).
+* *Meldung.* Je Verbindung mit unvollständiger Interaktion eine Meldung
+  `PGR-E4006` als Log-Zeile der Stufe `error`. Dem Client wird sie nach LH-FA-13.b
+  zugestellt; das Schreiben dauert höchstens `SPEC-051`, auch an einen Client, der
+  nicht liest. Sie nennt im Record die `id`, unter der die Session geschrieben
+  wird, oder dass sie ohne abgeschlossene Interaktion nicht geschrieben wird, und
+  die Nummer (`sequence`), die die verworfene Interaktion getragen hätte; im Replay
+  die `id` der zugeordneten Session und die `sequence` der unvollständigen
+  Interaktion. Bei mehreren Meldungen wird die erste gemerkt (LH-FA-13.b).
+* *Zweites Signal.* Es lässt die Frist sofort ablaufen, auch beim Wert `0`.
+  Spätestens wenn der Prozess keine Verbindung mehr annimmt, hat er das erste
+  Signal behandelt; zwei Signale, die davor eintreffen, darf das Betriebssystem
+  zu einem zusammenfassen.
+* *Grenze.* Ein Signal, bevor der Prozess Signale behandelt, beendet ihn nach der
+  Voreinstellung des Betriebssystems; dann gilt kein Exit-Code der Spezifikation
+  (LH-FA-13.b).
 
 Der Exit-Code nach einem kontrollierten Herunterfahren folgt LH-FA-13.b.
 
@@ -752,7 +791,8 @@ nichts anderes.
 `ERROR`) und `msg`, danach die Attribute; ein Wert mit Leerraum, `=`, `"` oder
 einem Steuerzeichen steht in Anführungszeichen mit Escapes. Ein Verbindungsfehler
 trägt die Attribute `code` und `error` (Fehlertext, `SPEC-034`), eine Warnung das
-Attribut `code`. Vertrag sind die Schlüssel `level`, `code` und `error`; der Text
+Attribut `code`. Vertrag sind die Schlüssel `level`, `code` und `error`, an der
+Zeile beim Beginn des Herunterfahrens auch `sessions` (LH-FA-13.a); der Text
 von `msg`, weitere Attribute und deren Reihenfolge sind es nicht. Das Attribut
 `error` steht nur an einer Zeile der Stufe `error` und trägt immer einen Fehlertext
 mit Kopf; der Text einer Bibliothek an einer Zeile einer anderen Stufe steht unter
@@ -889,6 +929,14 @@ Stelle (Schlüssel oder Verbindungsname), nie einen Wert:
 Alle drei sind Startfehler mit Exit-Code `2`. Ein ungültiger Wert einer Option oder
 Umgebungsvariable (auch ein Wert außerhalb einer Aufzählung) ist `PGR-E2001`.
 
+**Dauer.** Der Wert von `--shutdown-timeout` ist `0` oder eine ganze Zahl ohne
+Vorzeichen mit genau einer Einheit `ms`, `s` oder `m` in Kleinbuchstaben; `0` mit
+Einheit ist ebenfalls `0`. Jeder andere Wert ist ungültig, auch der leere, ein
+negativer, einer ohne Einheit außer `0`, einer mit Nachkommastellen, Leerraum,
+großgeschriebener oder zusammengesetzter Einheit (`1m30s`) und einer, der länger
+ist als die längste Dauer, die die Implementierung darstellt: als Option oder
+Umgebungsvariable `PGR-E2001`, als Schlüssel der Konfigurationsdatei `PGR-E2004`.
+
 **Anzeige.** `pgwire-recorder config show` gibt den Inhalt der gewählten Datei als
 eingerückten Baum auf `stdout` aus und nennt die Datei; Exit-Code `0`. Findet sich
 keine Datei, meldet der Befehl das und endet mit Exit-Code `0`. Ist die Datei
@@ -957,7 +1005,8 @@ während der Recorder an den Server sendet oder auf ihn wartet, endet die Sessio
 ohne weiteres Warten, sobald der Recorder das Ende beim Lesen vom oder Schreiben
 zum Client bemerkt, auch beim Herunterfahren. Endet eine Session, schließt der
 Recorder die Client-Verbindung; ein blockiertes Schreiben an den Client endet
-damit.
+damit. Eine Fehlerantwort an den Client schreibt er davor höchstens `SPEC-051` lang,
+auch an einen Client, der nicht liest.
 
 **Record.** Der Recorder leitet alle Nachrichten unverändert und in
 Ankunftsreihenfolge weiter, auch wenn der Client mehrere Nachrichten sendet,
@@ -1536,6 +1585,7 @@ Sensor bemerkt, wenn eine umbenannt wird.
 | `SPEC-012` | `--fail-on-unconsumed` | `false` | nicht verbrauchte Interaktionen sind standardmäßig eine Warnung; Query-Mismatches bleiben immer Fehler (LH-FA-10) |
 | `SPEC-045` | Höchstlänge der ersten Client-Nachricht | 10000 Bytes | eine längere erste Nachricht ist keine PGWire-Startnachricht (LH-FA-05.e) |
 | `SPEC-046` | `--shutdown-timeout` | `5s` | liegt unter der üblichen Stopp-Frist von Containern (10 s vor `SIGKILL`), sodass das Recording geschrieben wird (LH-FA-13) |
+| `SPEC-051` | Schreibfrist der Fehlerantwort beim Ende einer Session | `1s`, nicht einstellbar | reicht für eine kurze Nachricht an einen lesenden Client; greift nur bei vollem Puffer zum Client, wo auch eine längere nicht hilft; Sessions enden parallel, die Frist addiert sich nicht und bleibt im Abstand zwischen `SPEC-046` und der Stopp-Frist von Containern (LH-FA-13) |
 
 ## 4. Fehler-Codes und Logging-Felder
 
@@ -2234,3 +2284,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |
 | 2026-10-08 | Harness-Werkzeuge: Commit-Träger lehnt Struktur-Kennungen in der Commit-Message ab; Lesebereich, Schreibweise und Wortgrenze, Merge und Revert, Vorrang vor der Annahme, Ausgabe und Ausgang (`SPEC-050`) |
+| 2026-10-08 | Herunterfahren: Attribut `sessions` der Zeile beim Beginn, ohne offene Verbindung, Startphase, was die Frist begrenzt, Zwangsende auch im Aufbau, `PGR-E4006` nur bei unvollständiger Interaktion und ohne `PGR-E4003`, Inhalt der Meldung, zweites Signal auch bei `0` (`LH-FA-13.a`, `LH-FA-14.a`); Form der Dauer von `--shutdown-timeout` (`LH-FA-17.a`); Schreibfrist der Fehlerantwort beim Ende einer Session (`SPEC-051`, `LH-FA-18.a`) |
