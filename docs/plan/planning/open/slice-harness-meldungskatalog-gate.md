@@ -19,7 +19,7 @@ in der wellenlosen Reihe nach `slice-harness-integration-wait` und vor
 
 **Berührte Spec-Stellen:** `SPEC-034` (gelesen, Tabelle der Codes; geändert nur, wenn der Architect einen Bestands-Befund dort berichtigt) · `spezifikation.md §11` (neue Kennung für den Vertrag des Gates, vergeben vom Architect vor dem Code)
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-07.
 
