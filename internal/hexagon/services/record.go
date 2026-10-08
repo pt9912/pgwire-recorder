@@ -425,12 +425,15 @@ func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, en
 }
 
 // nichtGeschrieben nennt, warum eine Session mit n abgeschlossenen
-// Interaktionen nicht geschrieben wird.
+// Interaktionen nicht geschrieben wird (LH-FA-13.a *Meldung*): ohne
+// abgeschlossene Interaktion, sonst wegen einer nicht unterstützten
+// Interaktion; nur sie macht eine Session mit abgeschlossenen Interaktionen
+// beim Zwangsende nicht übernehmbar.
 func nichtGeschrieben(n int) string {
 	if n == 0 {
 		return "ohne abgeschlossene Interaktion nicht geschrieben"
 	}
-	return "nicht geschrieben"
+	return "wegen einer nicht unterstützten Interaktion (PGR-E6001) nicht geschrieben"
 }
 
 // Finish schreibt die Aufzeichnung beim Ende des Laufs; ein Lauf ohne Session

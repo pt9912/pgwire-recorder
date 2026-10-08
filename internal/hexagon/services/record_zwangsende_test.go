@@ -102,7 +102,11 @@ func TestRecordZwangsendeEinfacheAnfrage(t *testing.T) {
 		_, err := s.Query(context.Background(), id, "SELECT pg_sleep(60)")
 		ergebnis <- err
 	}()
-	<-up.letzte.queryLaeuft
+	select {
+	case <-up.letzte.queryLaeuft:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Query erreicht den Upstream nicht binnen 2 s")
+	}
 	var err error
 	warte(t, "CloseSession", func() { err = s.CloseSession(context.Background(), id, model.EndForced) })
 	if codeOf(err) != model.CodeShutdownTimeout || !strings.Contains(err.Error(), "Interaktion 2 nicht abgeschlossen und verworfen; die Session wird als Session 2 geschrieben") {
@@ -120,5 +124,31 @@ func TestRecordZwangsendeEinfacheAnfrage(t *testing.T) {
 	rec := repo.last(t)
 	if len(rec.Sessions) != 2 || len(rec.Sessions[1].Interactions) != 1 || rec.Sessions[1].Interactions[0].Request.SQL != "SELECT 1" {
 		t.Fatalf("Aufzeichnung %#v", rec.Sessions)
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Record im Kern: ist eine Session mit
+// abgeschlossenen Interaktionen als nicht unterstützt markiert (eine einfache
+// Anfrage während einer Extended-Interaktion vor deren Sync, PGR-E6001) und
+// läuft beim Zwangsende noch eine Interaktion, liefert CloseSession mit
+// EndForced PGR-E4006 mit dem Grund, dass die Session wegen einer nicht
+// unterstützten Interaktion nicht geschrieben wird; sie wird nicht geschrieben
+// (LH-FA-13.a *Meldung*).
+func TestRecordZwangsendeNichtUnterstuetzt(t *testing.T) {
+	up := &fakeUpstream{}
+	s, repo := neu(t, up)
+	id := session(t, s, "SELECT 1")
+	client(t, s, id, cParse())
+	if _, err := s.Query(context.Background(), id, "SELECT 2"); codeOf(err) != model.CodeUnsupported {
+		t.Fatalf("Query in laufender Interaktion: %v", err)
+	}
+	err := s.CloseSession(context.Background(), id, model.EndForced)
+	if codeOf(err) != model.CodeShutdownTimeout || !strings.Contains(err.Error(), "Interaktion 2 nicht abgeschlossen und verworfen; die Session wird wegen einer nicht unterstützten Interaktion (PGR-E6001) nicht geschrieben") {
+		t.Fatalf("Fehler %v", err)
+	}
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+	if len(repo.writes) != 0 {
+		t.Fatalf("nicht übernehmbare Session geschrieben: %#v", repo.writes)
 	}
 }

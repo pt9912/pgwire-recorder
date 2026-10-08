@@ -274,7 +274,7 @@ func einheit(name string) time.Duration {
 
 // dauer ist der Wert von --shutdown-timeout nach LH-FA-17.a *Dauer*: 0 oder
 // eine ganze Zahl ohne Vorzeichen mit genau einer Einheit ms, s oder m in
-// Kleinbuchstaben, 0 mit Einheit ist 0. Jeder andere Wert ist ein Fehler, auch
+// Kleinbuchstaben, auch mit führenden Nullen; 0 mit Einheit ist 0. Jeder andere Wert ist ein Fehler, auch
 // der leere und einer, der länger ist als die längste Dauer, die time.Duration
 // darstellt.
 type dauer struct{ wert *time.Duration }

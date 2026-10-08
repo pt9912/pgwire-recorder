@@ -59,9 +59,11 @@ func TestParseShutdownTimeout(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-17/Negative — jeder andere Wert von --shutdown-timeout ist
-// PGR-E2001: leer, negativ, ohne Einheit außer 0, mit Nachkommastellen, mit
-// Leerraum, großgeschriebener, unbekannter oder zusammengesetzter Einheit und
-// länger als die längste darstellbare Dauer (LH-FA-17.a *Dauer*).
+// PGR-E2001: leer, negativ, ohne Einheit außer genau 0 (auch `00`), mit
+// Nachkommastellen, mit Leerraum, großgeschriebener, unbekannter oder
+// zusammengesetzter Einheit und länger als die längste darstellbare Dauer;
+// führende Nullen vor einer Einheit sind erlaubt (`05s` ist 5 s, `00s` ist 0)
+// (LH-FA-17.a *Dauer*).
 func TestParseShutdownTimeoutWerte(t *testing.T) {
 	t.Setenv(cli.EnvShutdownTimeout, "")
 	t.Setenv(cli.EnvLogLevel, "")
@@ -72,6 +74,13 @@ func TestParseShutdownTimeoutWerte(t *testing.T) {
 		} {
 			if _, err := fristVon(kommando, "--shutdown-timeout="+wert); !istUsage(err) {
 				t.Errorf("%s --shutdown-timeout=%q: erwartet %s, erhalten %v", kommando, wert, model.CodeUsage, err)
+			}
+		}
+		// Führende Nullen vor einer Einheit sind erlaubt, ohne Einheit gilt nur
+		// genau 0 (`00` steht oben unter den ungültigen).
+		for wert, want := range map[string]time.Duration{"05s": 5 * time.Second, "00s": 0} {
+			if got, err := fristVon(kommando, "--shutdown-timeout="+wert); err != nil || got != want {
+				t.Errorf("%s --shutdown-timeout=%q: %v, %v, erwartet %v", kommando, wert, got, err, want)
 			}
 		}
 	}

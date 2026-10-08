@@ -42,6 +42,18 @@ func recordMitZwang(ctx context.Context, t *testing.T, rec *fakeRecorder, log io
 	return client, fe, s, fertig
 }
 
+// ereignisBinnen wartet höchstens frist, bis der Prüfling ch schließt; sonst
+// wird der Test rot und nennt das ausgebliebene Ereignis (SPEC-038 *Warten in
+// Tests*).
+func ereignisBinnen(t *testing.T, ch chan struct{}, frist time.Duration, ereignis string) {
+	t.Helper()
+	select {
+	case <-ch:
+	case <-time.After(frist):
+		t.Fatalf("%s bleibt binnen %v aus", ereignis, frist)
+	}
+}
+
 // zurueckBinnen wartet höchstens frist, bis fertig geschlossen ist.
 func zurueckBinnen(t *testing.T, fertig chan struct{}, frist time.Duration, was string) {
 	t.Helper()
@@ -143,7 +155,7 @@ func TestRecordZwangsendeNachBemerktemEnde(t *testing.T) {
 	_, fe, s, fertig := recordMitZwang(context.Background(), t, rec, io.Discard, true)
 	sende := nebenher(fe)
 	sende(&pgproto3.Terminate{})
-	<-rec.closeLaeuft
+	ereignisBinnen(t, rec.closeLaeuft, 2*time.Second, "CloseSession nach Terminate")
 
 	s.Zwangsende()
 	time.Sleep(100 * time.Millisecond)
@@ -226,7 +238,7 @@ func TestRecordZwangsendeImAufbau(t *testing.T) {
 	client, fe, s, fertig := recordMitZwang(context.Background(), t, rec, io.Discard, false)
 	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "app"}})
 	go func() { _ = fe.Flush() }()
-	<-rec.openLaeuft
+	ereignisBinnen(t, rec.openLaeuft, 2*time.Second, "OpenSession nach der Startnachricht")
 
 	s.Zwangsende()
 	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende im Aufbau")
@@ -362,7 +374,7 @@ func TestRecordZwangsendeBrichtAufbauAb(t *testing.T) {
 	_, fe, s, fertig := recordMitZwang(context.Background(), t, rec, io.Discard, false)
 	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "app"}})
 	go func() { _ = fe.Flush() }()
-	<-rec.openLaeuft
+	ereignisBinnen(t, rec.openLaeuft, 2*time.Second, "OpenSession nach der Startnachricht")
 
 	s.Zwangsende()
 	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende im Aufbau")
@@ -502,8 +514,13 @@ func TestReplayZwangsendeVorNichtVerbraucht(t *testing.T) {
 
 	s.Zwangsende()
 	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende im Replay")
-	if msg := <-antwort; !strings.Contains(msg.(*pgproto3.ErrorResponse).Message, model.CodeShutdownTimeout) {
-		t.Fatalf("Client erhält %#v", msg)
+	select {
+	case msg := <-antwort:
+		if e, ok := msg.(*pgproto3.ErrorResponse); !ok || !strings.Contains(e.Message, model.CodeShutdownTimeout) {
+			t.Fatalf("Client erhält %#v", msg)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Client erhält binnen 2 s keine Nachricht")
 	}
 	if msg, err := fe.Receive(); err == nil {
 		t.Fatalf("zweite Nachricht an den Client: %#v", msg)
@@ -576,7 +593,7 @@ func TestReplayZwangsendeWaehrendShutdown(t *testing.T) {
 	fe, s, _, fertig := replayMitZwang(ctx, t, rep, true)
 	replayLaufend(t, rep, fe)
 	cancel()
-	<-rep.shutdownLaeuft
+	ereignisBinnen(t, rep.shutdownLaeuft, 2*time.Second, "Shutdown nach dem Ende von ctx")
 
 	s.Zwangsende()
 	time.Sleep(100 * time.Millisecond)
@@ -606,5 +623,28 @@ func TestReplayZwangsendeBeimSendenDesAufbaus(t *testing.T) {
 	}
 	if s.FirstErrorCode() != "" {
 		t.Fatalf("Fehler gemerkt: %q", s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-13/Negative — Record im Adapter: liefert der Use Case beim
+// Zwangsende einen anderen Fehler als PGR-E4006 (hier das Schreiben der
+// Aufzeichnung, PGR-E3001), merkt die Sitzung ihn und schreibt ihn als
+// Log-Zeile der Stufe error, stellt ihn dem Client aber nicht zu.
+func TestRecordZwangsendeAndererFehler(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	schreibfehler := model.Errorf(model.CodeRecordingIO, nil, "rec.yaml nicht schreibbar")
+	rec := &fakeRecorder{zwangErr: schreibfehler}
+	log := &syncBuffer{}
+	_, fe, s, fertig := recordMitZwang(ctx, t, rec, log, true)
+	laufendeInteraktion(t, rec, fe, cancel)
+
+	s.Zwangsende()
+	if msg, err := fe.Receive(); err == nil {
+		t.Fatalf("Fehler dem Client zugestellt: %#v", msg)
+	}
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende")
+	if s.FirstErrorCode() != model.CodeRecordingIO || !strings.Contains(log.String(), "level=ERROR") || !strings.Contains(log.String(), "code=PGR-E3001") {
+		t.Fatalf("erster Fehler %q, Log %s", s.FirstErrorCode(), log.String())
 	}
 }
