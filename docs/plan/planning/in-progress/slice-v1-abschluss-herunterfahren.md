@@ -109,7 +109,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../../spec/lastenheft.md#lh-fa-15--ci-eignung): Nach `SIGINT` oder `SIGTERM` wartet `record`
+- [x] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../../spec/lastenheft.md#lh-fa-15--ci-eignung): Nach `SIGINT` oder `SIGTERM` wartet `record`
       höchstens `--shutdown-timeout` (ab dem ersten Signal, `0` ohne Frist) auf laufende
       Sessions; danach endet jede noch laufende Session wie bei einem Abbruch nach
       `LH-FA-02.b`, die Aufzeichnung wird geschrieben, das Log nennt je Session die
@@ -120,12 +120,12 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Signal über die Helfer aus `slice-harness-integration-wait`; Unit-Test im Kern für die
       Einstufung; Test mit der Schranke als Literal); ein drittes Signal bleibt ohne
       Wirkung (Test mit drei Signalen).
-- [ ] [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Die Frist begrenzt das Warten in `replay`; bei Ablauf
+- [x] [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Die Frist begrenzt das Warten in `replay`; bei Ablauf
       schließt `replay` die Client-Verbindung, eine unvollständige Interaktion ist
       `PGR-E4006`, Exit-Code 4; mit `--fail-on-unconsumed` merkt die Session `PGR-E4006`
       vor `PGR-E5002` und der Prozess endet mit Exit-Code 4 (Test mit Signal; Test über
       `pgwire.Handle` mit Replay-Fake, V-95; Unit-Test im Kern für die Einstufung).
-- [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Das kontrollierte Herunterfahren liefert den Exit-Code nach `LH-FA-13.b`:
+- [x] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Das kontrollierte Herunterfahren liefert den Exit-Code nach `LH-FA-13.b`:
       `0` ohne zuvor aufgetretenen Verbindungsfehler, sonst die Klasse des ersten gemerkten
       (4, 5, 6, auch 1 für `PGR-E1000`), `3` bei einem Schreibfehler am Ende mit Vorrang;
       eine Klasse 2 entsteht nur als Startfehler und gehört nicht hierher. Beleg: die
@@ -135,14 +135,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       beschreibt das Herunterfahren mit Frist in `record` und `replay`, auch `replay` im
       Container. Beleg in §7 für alle drei Punkte: je Zusage Zusage · Mutation · roter Test
       (`AGENTS.md` §3.10).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -305,17 +305,32 @@ die Liste am 2026-10-08 vor dem Code geprüft; keine ist offen.
   Folge-Review F-317, Validierung Frage 1; übernommen aus `slice-v1-abschluss-betrieb`):
   Eine Session mit laufender Interaktion — einfache Anfrage oder Extended-Interaktion ohne
   `Sync` — hält das Herunterfahren beliebig lange; der Container-Stopp verliert dann ihre
-  Aufzeichnung ganz, ohne Log-Zeile und mit Exit-Code `137` — **Ausgang:** offen bis
-  Closure.
+  Aufzeichnung ganz, ohne Log-Zeile und mit Exit-Code `137` — **Ausgang:** entfallen:
+  Die Frist begrenzt das Warten in `betreiben`; Beginn ab dem ersten Signal und Länge hält
+  `TestRunRecordFristAbDemErstenSignal` (V-106, Mutanten V1, V2, V4 rot), das Ende mit
+  Exit-Code 4 und Aufzeichnung `TestE2ERecordFristLaeuftAb` (R37, R39 rot). Im Betriebslauf
+  der Verifikation endet `record` unter `docker stop` mit dem Standardwert nach 5,32 s mit
+  Exit-Code 4, nicht 137, und die abgeschlossene Anfrage steht in der Aufzeichnung.
 - Herunterfahren ohne Obergrenze im Replay (aus `slice-extended-query-replay`, Folge-Review
   F-330; übernommen aus `slice-v1-abschluss-betrieb`): Ein Client, der mitten in einer
   Extended-Interaktion pausiert, hält `replay` nach `SIGTERM` beliebig lange; endet die
   Session durch Schließen der Verbindung, behandelt `replaySitzung` das heute als
-  reguläres Ende (Exit-Code 0 statt 4) — **Ausgang:** offen bis Closure.
+  reguläres Ende (Exit-Code 0 statt 4) — **Ausgang:** entfallen: `replay` wartet über
+  dasselbe `betreiben` mit Frist (V-106 gilt gleich); bei Ablauf schließt es die Verbindung,
+  der Adapter meldet `Forced`, der Use Case stuft `PGR-E4006` ein, Exit-Code 4
+  (`TestE2EReplayFristLaeuftAb`, P18 und P19 rot; `TestE2EReplayFristVorNichtVerbraucht`).
+  Das Verhalten im Container belegt erst das Image aus `slice-v1-abschluss-container`; das
+  Handbuch nennt es nur als Hinweis (F-488).
 - Ein Test mit Signal, dessen Prozess unter einer Mutation nicht endet, hängt bis zum
   Zeitlimit von `go test` (`BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`, 2×); jeder
   neue Test wartet darum über die Helfer aus `slice-harness-integration-wait` mit eigener
-  Frist — **Ausgang:** offen bis Closure.
+  Frist — **Ausgang:** eingetreten: `slice-harness-lint-warten-ohne-frist`. Fünf neue
+  Unit-Tests warteten ohne eigene Frist auf einen Kanal; unter dem Review-Mutanten M-hang
+  hing `TestRecordZwangsendeImAufbau` bis `panic: test timed out after 20s` (F-485), und
+  der erste Anlauf zu H4 hing in der Hilfsfunktion `session`. Die fünf Stellen tragen seit
+  `77e203c` eine Frist (H1 bis H4 rot nach 2 s); die Klasse erreicht mit diesem Slice 3× in
+  `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`, und nach Entscheidung des Nutzers vom
+  2026-10-08 bekommt sie eine Prüfung in `make lint`.
 
 ## 7. Closure-Notiz
 
@@ -331,14 +346,159 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten.
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
-- **Drei Paarungen:** <…>
+- **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten. Die Nacharbeit
+  zur Verifikation ist am Diff geprüft: V-106 `TestRunRecordFristAbDemErstenSignal` in
+  `16e660e` (Frist 500 ms; läuft 700 ms vor dem Signal, danach 300 ms weiter, endet binnen
+  weiterer 700 ms; rot unter V1, V2 und V4 nach der Tabelle unten), V-108 erstes Signal in
+  `TestE2ERecordZweitesSignal` als `SIGINT` in `16e660e` (V5 rot), V-109 Block nach §7
+  verschoben in `75e7c2f`, V-111 Bedingung „wenn vorher kein anderer Fehler gemerkt wurde“
+  an allen vier Stellen des Handbuchs in `1c5c8b9`.
+- **Was hat funktioniert:** Das Verhalten stimmt und ist im Betrieb gesehen. Im
+  Betriebslauf der Verifikation gegen PostgreSQL (Produkt-Image der Stufe `runtime`,
+  `psql` mit `SELECT 1` und `SELECT pg_sleep(30)`, Signal nach 2 s) endet `record` mit
+  `--shutdown-timeout 3s` nach 3,37 s, unter `docker stop` mit dem Standardwert nach 5,32 s,
+  je mit Exit-Code 4 statt 137, Info-Zeile `sessions=1`, `ERROR code=PGR-E4006 …
+  Interaktion 2 …` im Log, `FATAL: Netzwerk [PGR-E4006]` beim Client und `SELECT 1` als
+  einzige Interaktion der Aufzeichnung; ohne Verbindung mit Frist `60s` nach 0,22 s mit
+  Exit-Code 0 und `sessions: []`; mit Frist `0` und zwei `SIGTERM` im Abstand von 2 s nach
+  2,33 s mit Exit-Code 4. Nachgefahren hat die Verifikation R34 (3 von 3 Läufen rot), M11,
+  H1 (rot nach 2,00 s statt Hänger), M2, P19 und X05, alle rot; `make gates` grün am Stand
+  `1b6e77c`, `make lint` Exit 0. Die Prüfung von §6 vor dem Code (`7437aec`, `d1bb8e4`)
+  trug für die Randformen, die sie nannte: Keine davon entschied der Code anders. Die
+  Einstufung von `PGR-E4006` liegt im Use Case, der Adapter meldet nur das Ereignis (F-493,
+  `make a-check` 0 Befunde). Der Schnitt hielt: drei Liefer-Punkte, zwei Schichten, eine
+  Review-Sitzung (F-495, an der Grenze).
+- **Was ging anders als geplant:**
+  1. §6 sagte für das Risiko *Test mit Signal hängt* eine eigene Frist je neuem Test zu;
+     fünf neue Unit-Tests warteten trotzdem ohne Frist auf einen Kanal, das Review fand es
+     mit einem Mutanten, der bis zur Zeitgrenze hing (F-485). Die Regel `SPEC-038` *Warten
+     in Tests* stand seit `slice-harness-integration-wait`; F-485 ist ihr erster Bruch
+     danach, gefunden vom Review, nicht von einem Sensor. Der erste Anlauf zu H4 hing
+     zusätzlich in `session`, einem synchronen Aufruf des Prüflings ohne Frist, den
+     `SPEC-038` nicht regelte (V-110).
+  2. Zusagen ohne Test: Beginn und Länge der Frist (V-106, V1, V2, V4 grün) und `SIGINT`
+     (V-108) hielt bis zur Verifikation kein Test; der Zweig „anderen Fehler nur merken“
+     (F-486) und das Handbuch (F-488, Rest V-111) sagten mehr zu, als geprüft war. Die
+     Einordnung von G01 als „nicht erreichbar“ war stärker als belegt (F-489).
+  3. Randformen, die §6 nicht nannte, entschied der Code: die dritte Meldungsform „nicht
+     geschrieben“ still, erst das Review fand sie (F-487, Architect `9a5a87e`); die Lesart
+     führender Nullen und das Zwangsende im Aufbau zum Upstream setzte der Implementer im
+     Code um und gab sie danach zur Bestätigung zurück (Code `17e4925`, die Dauer auch in
+     §7 von `c644fc3`; Architect `de79b71`); für die Dauer hielt bis `77e203c` kein Test die Lesart (F-490, M11 grün).
+  4. Die Belege der Nacharbeit zum Review standen zuerst in §8 statt in §7 (V-109).
+  5. Grenze von R34 (V-112): `TestE2ERecordDrittesSignal` stellt den Stau zum Client über
+     `time.Sleep(2 * time.Second)` her und sendet das dritte Signal 300 ms nach dem zweiten.
+     Staut sich die Ausgabe nicht, endet der Prozess vor dem dritten Signal; der Test wird
+     dann über `signal` rot („Prozess endete vor dem Signal“), er hängt nicht. Neben der
+     Grenze in §6 *Signale nach dem zweiten*.
+  - **Summary-Zeilen:** Review
+    `docs/reviews/2026-10-08-review-slice-v1-abschluss-herunterfahren.md`: „0 HIGH · 2
+    MEDIUM · 2 LOW · 7 INFO (F-485 fünf neue Tests warten ohne eigene Frist auf den
+    Prüfling, Hänger bis zur Zeitgrenze nachgewiesen; F-486 Zweig „anderen Fehler nur
+    merken“ beim Zwangsende ohne Mutation, Mutant grün; F-487 dritte Meldungsform „nicht
+    geschrieben“ nicht in §6, ungeprüft; F-488 Handbuch sagt Zustellung und Exit-Code 4
+    ohne Bedingung und den Container-Exit-Code ohne Test zu; F-489 bis F-495
+    Startphasen-Fenster, drei Rückgaben an den Architect, Hexagon, Nebenläufigkeit,
+    Größe). Wiederkehrende Klassen: `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`
+    (F-485), `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (F-486, F-488),
+    `BEO-REPO/spec-randform-erst-im-review-entschieden` (F-487).“ Verifikation
+    `docs/reviews/2026-10-08-verifikation-slice-v1-abschluss-herunterfahren.md`, Urteil:
+    „Fertig für die Closure, sobald V-106 einen Test hat; V-107 braucht bei der Closure
+    einen Ausgang.“ DoD-Punkte 1 bis 4 bestätigt bis auf V-106 und V-108; Befunde V-106
+    (MEDIUM, Beginn und Länge der Frist ohne Test), V-107 (MEDIUM, Register), V-108 (LOW,
+    `SIGINT` ohne Test), V-109 (LOW, Belege in §8), V-110 bis V-112 (Hinweise). Umgesetzt:
+    V-106 und V-108 in `16e660e`, V-109 in `75e7c2f`, V-111 in `1c5c8b9`; V-107 und V-110
+    unter *Beobachtungs-Register* und *Steering-Loop-Eintrag*, V-112 oben unter 5.
+- **Steering-Loop-Eintrag:** Neuer Sensor, geplant: Ob ein Test ohne Frist auf den
+  Prüfling wartet, findet heute nur das Review oder ein Mutant, der hängt. Nach
+  Entscheidung des Nutzers vom 2026-10-08 bekommt `tools/harness/lint.sh` eine eigene
+  Prüfung als neuen Punkt in `SPEC-049`: In `_test.go` ist ein Empfang aus einem Kanal oder
+  ein Warten auf ein Prozessende ohne Frist ein Befund, ein `select` mit Zeitgeber oder
+  `time.After`-Fall gilt als Frist; dazu Gegenprobe-Fälle, Sensor-Datei und Bereinigung des
+  Bestands, in `slice-harness-lint-warten-ohne-frist`. Auslöser:
+  `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit` (slice-harness-blackbox-einstieg,
+  slice-lint-bestand-driving, slice-v1-abschluss-herunterfahren — 3×).
+  Benannte Spec-Lücke (V-110): `SPEC-038` *Warten in Tests* sagt nicht, ob ein synchroner
+  Aufruf des Prüflings ohne Frist darunter fällt. Entscheidung des Nutzers vom 2026-10-08:
+  nein — die Regel gilt nur für Kanäle und Prozessenden; gemeint sind etwa die Aufrufe in
+  der Hilfsfunktion `session` in `internal/hexagon/services/record_test.go`. Der Architect
+  trägt das in `SPEC-038` ein; der Hänger im ersten Anlauf zu H4 bleibt damit außerhalb der
+  Prüfung. Kein Feld `liegt in`: Mit diesem Slice ist nichts verkörpert; der Sensor ist
+  geplant, und die Spec-Stelle trägt keinen Herkunfts-Anker.
+
+  Retirement-Checks: `AGENTS.md` §3.9 (seit welle-walking-skeleton) ist nicht wieder
+  aufgetreten: §1, §3 und §6 folgten jeder Korrektur (`d1bb8e4`, `de79b71`, `9a5a87e`;
+  Verifikation Abschnitt 5 ohne Befund gegen §1 und §3); die Regel bleibt. §3.10 (seit
+  welle-extended-query) ist wieder aufgetreten (V-106, V-108; F-486); die Regel bleibt, der
+  Sensor ist mit `slice-harness-mutation` geplant. §3.11 (seit welle-extended-query) ist
+  wieder aufgetreten (F-486, F-488, F-489, V-111); die Regel bleibt. §3.12 (seit
+  slice-harness-randformen-vor-code) ist wieder aufgetreten (F-487 still im Code; führende
+  Nullen und Upstream im Aufbau im Code und danach zurückgegeben; V-110 eine Randform der
+  Spezifikation selbst); die Regel bleibt, §6 war vor dem Code geprüft. §3.13
+  (seit slice-lint-bestand-kern-driven) ist nicht wieder aufgetreten: Jede Übernahme in §1
+  nennt ihren Geber, und die Nehmer der Abgrenzungen nennen diesen Slice (Paarungen unten).
+- **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `bb36f2d` (Zähler =
+  Dateien unter `evidence/`).
+  - `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`: **Beleg**, 2× → **3×** (F-485, erster
+    Anlauf zu H4; V-107). Neu über der Schwelle. Ausgang nach Entscheidung des Nutzers vom
+    2026-10-08: **geplant** — Kennung `slice-harness-lint-warten-ohne-frist` (`state.md`).
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: **Beleg**, 20× → 21× (F-486,
+    F-488; dazu F-489 und V-111), Stand verkörpert, bleibt.
+  - `BEO-REPO/spec-randform-erst-im-review-entschieden`: **Beleg**, 13× → 14× (F-487; dazu
+    V-110), Stand verkörpert, bleibt.
+  - `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`: **Beleg**, 3× → 4×
+    (führende Nullen und Upstream im Aufbau: im Code umgesetzt in `17e4925`, danach zur
+    Bestätigung zurückgegeben, bestätigt in `de79b71`; F-490, F-491), Stand verkörpert,
+    bleibt.
+  - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`: **Beleg**, 14× → 15× (V-106, V-108:
+    Zusagen des neuen Vertrags „ab dem ersten Signal“, Länge der Frist und `SIGINT` ohne
+    fangenden Test, gefunden von der Verifikation), Stand verkörpert, bleibt.
+  - Ohne Beleg: `BEO-REPO/replay-haengt-am-zeitverhalten-des-clients` (bleibt 1×; der
+    pausierende Client war vor dem Code in §6 entschieden, kein Review-Fund),
+    `BEO-REPO/slice-waechst-durch-uebernahmen` (bleibt 1×; sieben Übernahmen, F-495 an der
+    Grenze, nicht darüber), `BEO-REPO/plan-folgt-korrektur-nicht` (bleibt 17×),
+    `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (bleibt 3×, verkörpert),
+    `BEO-REPO/liste-gruener-mutanten-unvollstaendig` (bleibt 2×; neuer Vertrag, kein
+    Umbau, M2 zählt unter `negativtests-…` und `zusage-…`),
+    `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (bleibt 1×; jede Probe in einer
+    frischen Kopie), `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht` (bleibt 3×,
+    verkörpert; die Belege in §7 erreichten beide Prüfer).
+
+  Einmalig und nicht eingetragen: V-109 (Ort eines Belegblocks), V-112 (Grenze eines
+  Tests), F-492 (X03 äquivalent, akzeptiertes Negativ), F-493 bis F-495 (Negativbefunde). Mit
+  diesem Slice erreicht genau ein Eintrag die Schwelle 3× neu:
+  `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`.
+- **Folge-Slices:** `slice-harness-lint-warten-ohne-frist` (Prüfung auf Warten ohne Frist
+  in `make lint`, Risiko *Test mit Signal hängt* und Register-Ausgang *geplant*); er liegt
+  in `open/`, sein §1 nennt diesen Slice als Herkunft (F-485, erster Anlauf zu H4).
+  Aus §1 *Ausdrücklich NICHT*: `slice-v1-abschluss-konfiguration` (Schlüssel der Frist in
+  der Datei, allgemeiner Leser von `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT`; als nächster in der
+  Reihe), `slice-v1-abschluss-schreiben` (atomares Schreiben, `--output`, `--force`),
+  `slice-v1-abschluss-container` (Container-Image, Exit-Code von `replay` unter
+  `docker stop`), `slice-tests-ueberlebende-mutanten-driving` (G2, ein Ende, das der Client
+  auslöst). Alle vier liegen in `next/` bzw. `open/` und nennen diesen Slice in §1.
+- **Risiken aus §6:** drei. *Herunterfahren ohne Obergrenze* (Record) und (Replay):
+  **entfallen**, je mit Begründung in §6. *Test mit Signal hängt bis zum Zeitlimit*:
+  **eingetreten**, Folge-Slice `slice-harness-lint-warten-ohne-frist`. Die Randformen in §6
+  sind Entscheidungen, keine Risiken.
+- **Drei Paarungen:** Anker: Der Steering-Loop-Eintrag trägt kein Feld `liegt in`; nichts
+  zu prüfen. Folge-Slice: `grep -n "slice-v1-abschluss-herunterfahren"` findet die Kennung
+  in §1 jedes Nehmers — `slice-harness-lint-warten-ohne-frist` (`open/`, §1 *Herkunft*),
+  `slice-v1-abschluss-konfiguration` (`next/`, §1 *Aus `slice-v1-abschluss-herunterfahren`*:
+  Schlüssel der Frist und Leser der Umgebungsvariable), `slice-v1-abschluss-schreiben`
+  (`next/`, §1 *Aus `slice-v1-abschluss-herunterfahren`*: atomares Schreiben),
+  `slice-v1-abschluss-container` (`next/`, §1 *Übernommen aus
+  `slice-v1-abschluss-herunterfahren`*), `slice-tests-ueberlebende-mutanten-driving`
+  (`open/`, §1 Gegenstand G2 und *Ausdrücklich NICHT*: das Ende durch die Frist liegt hier,
+  G2 dort); keiner schließt die Sendung in seinem §1 *Ausdrücklich NICHT* aus, keiner liegt
+  in `done/`. Register: `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`,
+  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`,
+  `BEO-REPO/spec-randform-erst-im-review-entschieden`,
+  `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` und
+  `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` tragen
+  `evidence/slice-v1-abschluss-herunterfahren.md`; die übrigen genannten Einträge bestehen
+  als Verzeichnis, jedes mit nicht leerem `evidence/`. Die nächste Welle-Closure prüft
+  erneut.
 
 **Belege des Implementers** (Commits `17e4925` DoD 1, `64f48b3` DoD 2, `61ad648` DoD 3,
 `5e20a87` Integrationstest ohne `pgproto3` nach dem Befund von `make a-check`):
