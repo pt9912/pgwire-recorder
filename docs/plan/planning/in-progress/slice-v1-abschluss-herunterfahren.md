@@ -118,7 +118,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       der Zahl der Sessions (`sessions`); die Randfälle aus `LH-FA-13.a` und die Form der
       Dauer aus `LH-FA-17.a` gelten; `meldeFrist` hat den Wert von `SPEC-051` (Test mit
       Signal über die Helfer aus `slice-harness-integration-wait`; Unit-Test im Kern für die
-      Einstufung; Test mit der Schranke als Literal).
+      Einstufung; Test mit der Schranke als Literal); ein drittes Signal bleibt ohne
+      Wirkung (Test mit drei Signalen).
 - [ ] [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Die Frist begrenzt das Warten in `replay`; bei Ablauf
       schließt `replay` die Client-Verbindung, eine unvollständige Interaktion ist
       `PGR-E4006`, Exit-Code 4; mit `--fail-on-unconsumed` merkt die Session `PGR-E4006`
@@ -201,8 +202,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen** (`AGENTS.md` §3.12) — je Randform, wo sie entschieden ist. Der Architect hat
-die Liste am 2026-10-08 vor dem Code geprüft; offen ist nur die letzte, sie liegt beim
-Nutzer.
+die Liste am 2026-10-08 vor dem Code geprüft; keine ist offen.
 
 - **Frist `0`** — ohne Frist; entschieden in `LH-FA-13.a` und der Optionstabelle (`SPEC-046`).
 - **Form des Werts** (Einheit, ohne Einheit, negativ, leer, Nachkommastellen, zusammengesetzt,
@@ -258,11 +258,15 @@ Nutzer.
 - **Windows-Konsolenabbruch** (`Strg+C`, `Strg+Break`) — `LH-FA-13.a`; akzeptiertes
   Negativ: Die Tests laufen unter Linux im Container, Go liefert beide Ereignisse als
   `os.Interrupt` an dieselbe Behandlung; ein eigener Test entfällt.
-- **Signale nach dem zweiten** — **offen, Entscheidung des Nutzers** (nicht im
-  Lastenheft): Empfehlung *ohne Wirkung*, der Prozess beendet das Zwangsende und schreibt
-  das Recording; ein drittes Signal, das hart beendet, verlöre genau das, wofür das zweite
-  das Zwangsende statt des harten Endes bekam. Bis zur Entscheidung, in der Spezifikation
-  festgehalten, entscheidet der Implementer diesen Zweig nicht.
+- **Signale nach dem zweiten** — ohne Wirkung: Der Prozess führt das Zwangsende zu Ende,
+  schreibt das Recording und endet mit dem Exit-Code nach `LH-FA-13.b`. Entscheidung des
+  Nutzers vom 2026-10-08, festgehalten in `LH-FA-13.a` *Weitere Signale*. Mutation, die rot
+  werden muss: Ein drittes Signal beendet den Prozess hart; der Test (Record mit laufender
+  Interaktion, drei Signale, das dritte nach dem zweiten) erwartet danach die geschriebene
+  Aufzeichnung mit den abgeschlossenen Interaktionen und den Exit-Code `4`.
+  Grenze: Zwischen zweitem und drittem Signal zeigt der Prozess kein Ereignis; fasst das
+  Betriebssystem beide zusammen, sieht der Test die Mutation in diesem Lauf nicht. Der
+  Beleg in §7 nennt darum, in wie vielen Läufen die Mutation rot war.
 
 **Risiken:**
 
