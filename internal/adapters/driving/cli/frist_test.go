@@ -11,7 +11,7 @@ import (
 )
 
 // fristKommandos liefert die Kommandos mit --shutdown-timeout.
-func fristKommandos() []string { return []string{"record"} }
+func fristKommandos() []string { return []string{"record", "replay"} }
 
 // fristVon liest kommando mit seinen Pflichtoptionen und den Zusatzargumenten
 // und liefert den Wert von --shutdown-timeout oder den Fehler.
@@ -24,7 +24,7 @@ func fristVon(kommando string, args ...string) (time.Duration, error) {
 	if kommando == "record" {
 		return cmd.Record.ShutdownTimeout, err
 	}
-	return 0, err
+	return cmd.Replay.ShutdownTimeout, err
 }
 
 // Abdeckung: LH-FA-17/Boundary, LH-FA-13/Boundary — --shutdown-timeout nimmt 0
@@ -120,7 +120,7 @@ func TestParseShutdownTimeoutUmgebungUngueltig(t *testing.T) {
 	}
 }
 
-// Die Hilfe von record nennt --shutdown-timeout und seine Umgebungsvariable,
+// Die Hilfe von record und replay nennt --shutdown-timeout und seine Umgebungsvariable,
 // auch wenn diese ungültig ist (LH-FA-01.a).
 func TestParseShutdownTimeoutHilfe(t *testing.T) {
 	t.Setenv(cli.EnvShutdownTimeout, "ungültig")

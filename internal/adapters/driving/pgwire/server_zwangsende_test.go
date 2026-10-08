@@ -376,3 +376,235 @@ func TestRecordZwangsendeBrichtAufbauAb(t *testing.T) {
 		t.Fatalf("Fehler gemerkt: %q", s.FirstErrorCode())
 	}
 }
+
+// e4006Replay liefert den Fehler, den der Replay-Use-Case beim Zwangsende einer
+// begonnenen, nicht verbrauchten Interaktion liefert.
+func e4006Replay() *model.Error {
+	return model.Errorf(model.CodeShutdownTimeout, nil, "Frist beim Herunterfahren abgelaufen: Session 1, Interaktion 2 nicht verbraucht")
+}
+
+// replayMitZwang startet eine Replay-Verbindung über net.Pipe mit ctx und liest
+// den Verbindungsaufbau, wenn aufbau gesetzt ist; fertig ist geschlossen, wenn
+// Handle zurückkehrt.
+func replayMitZwang(ctx context.Context, t *testing.T, rep *fakeReplayer, aufbau bool) (*pgproto3.Frontend, *pgwire.Server, *syncBuffer, chan struct{}) {
+	t.Helper()
+	client, serverSeite := net.Pipe()
+	log := &syncBuffer{}
+	s := pgwire.NewReplayServer(rep, slog.New(slog.NewTextHandler(log, nil)))
+	fertig := make(chan struct{})
+	go func() {
+		pgwire.Handle(ctx, s, serverSeite)
+		close(fertig)
+	}()
+	t.Cleanup(func() { client.Close() })
+	_ = client.SetDeadline(time.Now().Add(10 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	if aufbau {
+		startup(t, fe)
+	}
+	return fe, s, log, fertig
+}
+
+// replayLaufend sendet ein Parse ohne Sync und wartet, bis der Use Case es hat:
+// Danach läuft eine Extended-Interaktion.
+func replayLaufend(t *testing.T, rep *fakeReplayer, fe *pgproto3.Frontend) {
+	t.Helper()
+	sende := nebenher(fe)
+	sende(&pgproto3.Parse{Query: "SELECT 2"})
+	deadline := time.Now().Add(2 * time.Second)
+	for len(rep.nachrichten()) == 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("Parse erreicht den Use Case nicht")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// liestWieder wartet, bis die Sitzung beim Herunterfahren den Use Case gefragt
+// hat, und gibt ihr Zeit, wieder im Lesen zu blockieren: Danach beendet nur
+// noch die Lesefrist des Zwangsendes das Lesen.
+func liestWieder(t *testing.T, rep *fakeReplayer) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		rep.mu.Lock()
+		n := rep.shutdowns
+		rep.mu.Unlock()
+		if n > 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("Sitzung fragt den Use Case beim Herunterfahren nicht")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	time.Sleep(100 * time.Millisecond)
+}
+
+// lieseNebenher liest die nächste Nachricht des Clients nebenher.
+func lieseNebenher(fe *pgproto3.Frontend) chan pgproto3.BackendMessage {
+	antwort := make(chan pgproto3.BackendMessage, 1)
+	go func() {
+		msg, _ := fe.Receive()
+		antwort <- msg
+	}()
+	return antwort
+}
+
+// Abdeckung: LH-FA-13/Boundary — Replay im Adapter (V-95):
+// läuft beim Zwangsende eine Extended-Interaktion, beendet die Frist die
+// Replay-Sitzung, und die Sitzung meldet dem Use Case das Zwangsende (Forced);
+// den Fehler PGR-E4006, den er liefert, stellt sie dem Client zu (FATAL,
+// SQLSTATE 08006), merkt ihn als ersten Fehler und schreibt ihn als Log-Zeile
+// der Stufe error, danach beendet sie die Verbindung (CloseConnection).
+func TestReplayZwangsende(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rep := &fakeReplayer{zwangFehler: e4006Replay()}
+	fe, s, log, fertig := replayMitZwang(ctx, t, rep, true)
+	replayLaufend(t, rep, fe)
+	cancel()
+	liestWieder(t, rep)
+	antwort := lieseNebenher(fe)
+
+	s.Zwangsende()
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende im Replay")
+	select {
+	case msg := <-antwort:
+		if e, ok := msg.(*pgproto3.ErrorResponse); !ok || e.Severity != "FATAL" || e.Code != "08006" || e.Message != e4006Replay().Error() {
+			t.Fatalf("Client erhält %#v statt PGR-E4006", msg)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Client erhält binnen 2 s keine Nachricht")
+	}
+	if got := rep.protokoll(); got != "forced close" {
+		t.Fatalf("Protokoll %q, erwartet „forced close“", got)
+	}
+	if s.FirstErrorCode() != model.CodeShutdownTimeout || !strings.Contains(log.String(), "level=ERROR") || !strings.Contains(log.String(), "code=PGR-E4006") {
+		t.Fatalf("erster Fehler %q, Log %s", s.FirstErrorCode(), log.String())
+	}
+}
+
+// Abdeckung: LH-FA-13/Negative — Replay im Adapter: mit --fail-on-unconsumed
+// merkt die Sitzung beim Zwangsende PGR-E4006 vor PGR-E5002; beide stehen in
+// dieser Reihenfolge im Log, und der Client erhält nur PGR-E4006 (LH-FA-03.b
+// *Fehlerebene*).
+func TestReplayZwangsendeVorNichtVerbraucht(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	unverbraucht := model.Errorf(model.CodeReplayUnconsumed, nil, "Session 1: 1 von 2 Interaktionen nicht verbraucht, die erste mit Nummer 2")
+	rep := &fakeReplayer{zwangFehler: e4006Replay(), fehler: unverbraucht}
+	fe, s, log, fertig := replayMitZwang(ctx, t, rep, true)
+	replayLaufend(t, rep, fe)
+	cancel()
+	liestWieder(t, rep)
+	antwort := lieseNebenher(fe)
+
+	s.Zwangsende()
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende im Replay")
+	if msg := <-antwort; !strings.Contains(msg.(*pgproto3.ErrorResponse).Message, model.CodeShutdownTimeout) {
+		t.Fatalf("Client erhält %#v", msg)
+	}
+	if msg, err := fe.Receive(); err == nil {
+		t.Fatalf("zweite Nachricht an den Client: %#v", msg)
+	}
+	text := log.String()
+	if s.FirstErrorCode() != model.CodeShutdownTimeout || strings.Index(text, "PGR-E4006") > strings.Index(text, "PGR-E5002") || !strings.Contains(text, "PGR-E5002") {
+		t.Fatalf("erster Fehler %q, Log %s", s.FirstErrorCode(), text)
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Replay im Adapter: ohne begonnene Interaktion
+// liefert der Use Case beim Zwangsende nichts; die Sitzung endet ohne
+// Fehlerantwort, und das Schließen durch das Zwangsende ist kein weiteres
+// Verbindungsende (kein PGR-E4003).
+func TestReplayZwangsendeOhneMeldung(t *testing.T) {
+	rep := &fakeReplayer{}
+	fe, s, _, fertig := replayMitZwang(context.Background(), t, rep, true)
+
+	s.Zwangsende()
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende im Replay")
+	if msg, err := fe.Receive(); err == nil {
+		t.Fatalf("Nachricht beim Zwangsende ohne Meldung: %#v", msg)
+	}
+	if got := rep.protokoll(); got != "forced close" {
+		t.Fatalf("Protokoll %q, erwartet „forced close“", got)
+	}
+	if s.FirstErrorCode() != "" {
+		t.Fatalf("Fehler gemerkt: %q", s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-13/Negative — Replay im Adapter: liest der Client beim
+// Zwangsende die Antworten nicht, bricht die Schreibfrist von 1 s (SPEC-051)
+// das Senden ab; die Interaktion ist dann nicht verbraucht, die Sitzung meldet
+// das Zwangsende, merkt PGR-E4006 statt PGR-E4003 und kehrt binnen 2 s zurück.
+func TestReplayZwangsendeClientLiestNicht(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rep := &fakeReplayer{zwangFehler: e4006Replay()}
+	fe, s, log, fertig := replayMitZwang(ctx, t, rep, true)
+	sende := nebenher(fe)
+	sende(&pgproto3.Sync{})
+	deadline := time.Now().Add(2 * time.Second)
+	for len(rep.nachrichten()) == 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("Sync erreicht den Use Case nicht")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	cancel()
+
+	s.Zwangsende()
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende ohne lesenden Client")
+	if got := rep.protokoll(); got != "forced close" || rep.sentAufrufe() != 0 {
+		t.Fatalf("Protokoll %q, Sent %d", got, rep.sentAufrufe())
+	}
+	if s.FirstErrorCode() != model.CodeShutdownTimeout || strings.Contains(log.String(), "PGR-E4003") {
+		t.Fatalf("erster Fehler %q, Log %s", s.FirstErrorCode(), log.String())
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Replay im Adapter: trifft das Zwangsende die
+// Sitzung, während sie beim Herunterfahren den Use Case fragt, hebt das
+// Zurücksetzen der Lesefrist danach das Zwangsende nicht auf; die Sitzung
+// endet binnen 2 s mit Forced.
+func TestReplayZwangsendeWaehrendShutdown(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rep := &fakeReplayer{shutdownHalt: make(chan struct{}), shutdownLaeuft: make(chan struct{})}
+	fe, s, _, fertig := replayMitZwang(ctx, t, rep, true)
+	replayLaufend(t, rep, fe)
+	cancel()
+	<-rep.shutdownLaeuft
+
+	s.Zwangsende()
+	time.Sleep(100 * time.Millisecond)
+	close(rep.shutdownHalt)
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende während Shutdown")
+	if got := rep.protokoll(); got != "forced close" {
+		t.Fatalf("Protokoll %q, erwartet „forced close“", got)
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Replay im Adapter: scheitert das Senden des
+// Verbindungsaufbaus, weil das Zwangsende die Verbindung geschlossen hat, merkt
+// die Sitzung kein PGR-E4003 und beendet die Verbindung (LH-FA-13.a
+// *Zwangsende*).
+func TestReplayZwangsendeBeimSendenDesAufbaus(t *testing.T) {
+	rep := &fakeReplayer{}
+	fe, s, _, fertig := replayMitZwang(context.Background(), t, rep, false)
+	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "app"}})
+	go func() { _ = fe.Flush() }()
+	// Der Client liest den Aufbau nicht: das Senden blockiert.
+	time.Sleep(100 * time.Millisecond)
+
+	s.Zwangsende()
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende beim Senden des Aufbaus")
+	if got := rep.protokoll(); got != "close" {
+		t.Fatalf("Protokoll %q, erwartet „close“", got)
+	}
+	if s.FirstErrorCode() != "" {
+		t.Fatalf("Fehler gemerkt: %q", s.FirstErrorCode())
+	}
+}

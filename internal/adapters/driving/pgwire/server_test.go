@@ -602,6 +602,18 @@ type fakeReplayer struct {
 	extended []model.ClientMessage
 	// laufend ist wahr nach einer Extended-Nachricht außer Sync.
 	laufend bool
+	// zwangFehler liefert Forced; forced zählt dessen Aufrufe, und ereignisse
+	// protokolliert „forced“ und „close“ in Reihenfolge.
+	zwangFehler error
+	forced      int
+	ereignisse  []string
+	// shutdownHalt lässt den ersten Shutdown-Aufruf warten, bis der Kanal
+	// geschlossen ist; vorher schließt er shutdownLaeuft.
+	shutdownHalt   chan struct{}
+	shutdownLaeuft chan struct{}
+	shutdownEin    sync.Once
+	// shutdowns zählt die Shutdown-Aufrufe.
+	shutdowns int
 }
 
 func (f *fakeReplayer) OpenConnection(context.Context) (model.SessionID, []model.Response) {
@@ -641,7 +653,14 @@ func (f *fakeReplayer) ClientMessage(_ context.Context, _ model.SessionID, m mod
 
 // Shutdown gibt das Ende frei, solange keine Extended-Interaktion läuft.
 func (f *fakeReplayer) Shutdown(context.Context, model.SessionID) bool {
+	if f.shutdownHalt != nil {
+		f.shutdownEin.Do(func() {
+			close(f.shutdownLaeuft)
+			<-f.shutdownHalt
+		})
+	}
 	f.mu.Lock()
+	f.shutdowns++
 	defer f.mu.Unlock()
 	return !f.laufend
 }
@@ -665,11 +684,27 @@ func (f *fakeReplayer) sentAufrufe() int {
 	return f.gesendet
 }
 
+// Forced liefert zwangFehler.
+func (f *fakeReplayer) Forced(context.Context, model.SessionID) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.forced++
+	f.ereignisse = append(f.ereignisse, "forced")
+	return f.zwangFehler
+}
+
+func (f *fakeReplayer) protokoll() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return strings.Join(f.ereignisse, " ")
+}
+
 // CloseConnection liefert warnung und fehler, wie sie gesetzt sind.
 func (f *fakeReplayer) CloseConnection(context.Context, model.SessionID) (*model.Warning, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.closed++
+	f.ereignisse = append(f.ereignisse, "close")
 	return f.warnung, f.fehler
 }
 

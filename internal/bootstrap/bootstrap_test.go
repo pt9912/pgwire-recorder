@@ -127,7 +127,8 @@ var (
 )
 
 // Abdeckung: LH-FA-14/Boundary — --log-level und PGWIRE_RECORDER_LOG_LEVEL
-// wirken bei replay: info zeigt Start, Warnung und Ende, warn nur die Warnung
+// wirken bei replay: info zeigt Start, Beginn des Herunterfahrens, Warnung und
+// Ende, warn nur die Warnung
 // mit Code, error nur Fehler; jede Zeile hat die Zeilenform logfmt mit time,
 // level und msg (LH-FA-14.a).
 func TestRunLogLevel(t *testing.T) {
@@ -138,9 +139,9 @@ func TestRunLogLevel(t *testing.T) {
 		args []string
 		want []string
 	}{
-		{"", nil, []string{"INFO", "WARN PGR-W2001", "INFO"}},
-		{"", []string{"--log-level=info"}, []string{"INFO", "WARN PGR-W2001", "INFO"}},
-		{"", []string{"--log-level=debug"}, []string{"INFO", "WARN PGR-W2001", "INFO"}},
+		{"", nil, []string{"INFO", "INFO", "WARN PGR-W2001", "INFO"}},
+		{"", []string{"--log-level=info"}, []string{"INFO", "INFO", "WARN PGR-W2001", "INFO"}},
+		{"", []string{"--log-level=debug"}, []string{"INFO", "INFO", "WARN PGR-W2001", "INFO"}},
 		{"", []string{"--log-level=warn"}, []string{"WARN PGR-W2001"}},
 		{"warn", nil, []string{"WARN PGR-W2001"}},
 		{"debug", []string{"--log-level=warn"}, []string{"WARN PGR-W2001"}},

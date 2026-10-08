@@ -27,7 +27,7 @@ func TestParseReplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cmd.Name != "replay" || cmd.Replay != (cli.ReplayOptions{Listen: ":15432", Input: "r.yaml", LogLevel: cli.LogInfo}) {
+	if cmd.Name != "replay" || cmd.Replay != (cli.ReplayOptions{Listen: ":15432", Input: "r.yaml", LogLevel: cli.LogInfo, ShutdownTimeout: cli.StandardFrist}) {
 		t.Fatalf("erhalten %#v", cmd)
 	}
 	if _, err := cli.Parse([]string{"replay", "--listen", ":1"}, &bytes.Buffer{}); err == nil {

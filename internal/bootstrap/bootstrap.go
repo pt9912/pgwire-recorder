@@ -45,16 +45,14 @@ func Run(ctx context.Context, ablauf <-chan struct{}, args []string, version str
 	case "record":
 		return record(ctx, ablauf, cmd.Record, logger(stderr, cmd.Record.LogLevel), stderr)
 	case "replay":
-		return replay(ctx, cmd.Replay, logger(stderr, cmd.Replay.LogLevel), stderr)
+		return replay(ctx, ablauf, cmd.Replay, logger(stderr, cmd.Replay.LogLevel), stderr)
 	default:
 		return fail(stderr, model.Errorf(model.CodeUsage, nil, "unbekanntes Kommando %q", cmd.Name))
 	}
 }
 
 func record(ctx context.Context, ablauf <-chan struct{}, o cli.RecordOptions, log *slog.Logger, stderr io.Writer) int {
-	// Ein Signal in der Startphase bricht die Startprüfungen nicht ab
-	// (LH-FA-13.a *Startphase*).
-	service, err := services.NewRecordService(context.WithoutCancel(ctx), &postgres.Upstream{Address: o.Upstream}, recording.YAML{}, o.Output, o.Force)
+	service, err := services.NewRecordService(ctx, &postgres.Upstream{Address: o.Upstream}, recording.YAML{}, o.Output, o.Force)
 	if err != nil {
 		return fail(stderr, err)
 	}
@@ -74,7 +72,7 @@ func record(ctx context.Context, ablauf <-chan struct{}, o cli.RecordOptions, lo
 	return exitCode(server.FirstErrorCode())
 }
 
-func replay(ctx context.Context, o cli.ReplayOptions, log *slog.Logger, stderr io.Writer) int {
+func replay(ctx context.Context, ablauf <-chan struct{}, o cli.ReplayOptions, log *slog.Logger, stderr io.Writer) int {
 	var opts []services.ReplayOption
 	if o.FailOnUnconsumed {
 		opts = append(opts, services.FailOnUnconsumed)
@@ -90,15 +88,7 @@ func replay(ctx context.Context, o cli.ReplayOptions, log *slog.Logger, stderr i
 	log.Info("replay gestartet", "listen", l.Addr().String(), "input", o.Input)
 
 	server := pgwire.NewReplayServer(service, log)
-	done := make(chan struct{})
-	go func() {
-		server.Serve(ctx, l)
-		close(done)
-	}()
-
-	<-ctx.Done()
-	l.Close()
-	<-done
+	betreiben(ctx, ablauf, l, server, o.ShutdownTimeout, log)
 
 	// Nie zugeordnete Sessions werden nach allen Verbindungsfehlern gemerkt und
 	// bestimmen den Exit-Code nur ohne einen solchen (LH-FA-03.b, LH-FA-13.b).

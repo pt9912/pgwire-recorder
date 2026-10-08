@@ -83,9 +83,9 @@ func (s *Server) Offen() int {
 
 // Zwangsende beendet jede angenommene Verbindung, deren Behandlung noch läuft,
 // zwangsweise (LH-FA-13.a): im Verbindungsaufbau ohne Meldung, sonst meldet
-// die Sitzung dem Use Case das Ereignis model.EndForced und stellt den
-// Fehler, den er daraus ableitet (PGR-E4006), dem Client höchstens meldeFrist
-// lang zu. Die Verbindungen enden nebeneinander; Serve kehrt zurück, wenn alle
+// die Sitzung dem Use Case das Zwangsende (Record: CloseSession mit
+// model.EndForced, Replay: Forced) und stellt den Fehler, den er daraus
+// ableitet (PGR-E4006), dem Client höchstens meldeFrist lang zu. Die Verbindungen enden nebeneinander; Serve kehrt zurück, wenn alle
 // beendet sind. Ein weiterer Aufruf tut nichts.
 func (s *Server) Zwangsende() {
 	s.zmu.Lock()
@@ -245,7 +245,7 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 			s.closeReplay(ctx, id)
 			return
 		}
-		s.replaySitzung(ctx, conn, be, id)
+		s.replaySitzung(ctx, conn, be, id, z)
 		return
 	}
 	if sendErr != nil {
@@ -313,38 +313,68 @@ type eingang struct {
 // Session, ohne die nächste Nachricht zu lesen; läuft eine Extended-Interaktion,
 // liest die Sitzung weiter und beantwortet ihre Nachrichten bis zu ihrem Sync
 // (LH-FA-13.a). Eine schon gelesene Nachricht wird vorher noch beantwortet.
-// Das Warten ist nicht begrenzt; die Frist --shutdown-timeout (LH-FA-13.a) ist
-// hier nicht verdrahtet. Ein Schließen von conn beendet das Lesen wie jedes
-// Verbindungsende, und die Session endet regulär: Wer die Frist so durchsetzt,
-// merkt PGR-E4006 für eine unvollständige Interaktion selbst.
-func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID) {
+//
+// Das Zwangsende beim Ablauf der Frist (LH-FA-13.a) setzt die Lesefrist auf
+// jetzt und die Schreibfrist auf meldeFrist; ein Lese- oder Schreibfehler danach
+// ist kein Verbindungsende (kein PGR-E4003). Die Sitzung meldet es dem Use Case
+// (Forced), stellt einen Fehler daraus (PGR-E4006) dem Client in der
+// verbleibenden Schreibfrist zu und merkt ihn, bevor sie die Verbindung beendet.
+func (s *Server) replaySitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID, z *zwangsziel) {
 	fertig, geweckt := replayWaechter(ctx, conn)
 	defer close(fertig)
-	defer s.closeReplay(ctx, id)
+	s.umstellen(z, func() {
+		_ = conn.SetWriteDeadline(time.Now().Add(meldeFrist))
+		_ = conn.SetReadDeadline(time.Now())
+	})
+	if s.replayLauf(ctx, conn, be, id, geweckt) {
+		if err := s.replayer.Forced(context.WithoutCancel(ctx), id); err != nil {
+			s.fail(be, err)
+		}
+	}
+	s.closeReplay(ctx, id)
+}
 
+// folge sagt, wie es nach einer beantworteten Client-Nachricht der
+// Replay-Sitzung weitergeht.
+type folge int
+
+const (
+	// folgeWeiter: die Sitzung liest die nächste Nachricht.
+	folgeWeiter folge = iota
+	// folgeEnde: die Sitzung endet.
+	folgeEnde
+	// folgeErzwungen: das Zwangsende hat das Senden abgebrochen.
+	folgeErzwungen
+)
+
+// replayLauf liest und beantwortet die Client-Nachrichten einer Replay-Sitzung,
+// bis sie endet, und meldet, ob das Zwangsende sie beendet hat.
+func (s *Server) replayLauf(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID, geweckt chan struct{}) bool {
 	herunterfahren := false
 	for {
 		if ctx.Err() != nil {
-			if s.replayer.Shutdown(ctx, id) {
-				return
-			}
-			if !herunterfahren {
-				herunterfahren = true
-				<-geweckt
-				_ = conn.SetReadDeadline(time.Time{})
+			if endet, erzwungen := s.replayHerunterfahren(ctx, conn, id, geweckt, &herunterfahren); endet {
+				return erzwungen
 			}
 		}
 		msg, err := be.Receive()
 		if err != nil {
+			if s.zwang.Load() {
+				return true
+			}
 			if errors.Is(err, os.ErrDeadlineExceeded) && ctx.Err() != nil && !herunterfahren {
 				// Geweckt durch den Wächter: oben entscheidet der Use Case.
 				continue
 			}
 			s.replayLesefehler(be, err)
-			return
+			return false
 		}
-		if !s.replayAntwort(ctx, be, id, lese(msg)) {
-			return
+		switch s.replayAntwort(ctx, be, id, lese(msg)) {
+		case folgeWeiter:
+		case folgeErzwungen:
+			return true
+		default:
+			return false
 		}
 	}
 }
@@ -366,6 +396,25 @@ func replayWaechter(ctx context.Context, conn net.Conn) (fertig, geweckt chan st
 	return fertig, geweckt
 }
 
+// replayHerunterfahren fragt beim Herunterfahren den Use Case, ob die Sitzung
+// enden darf (Shutdown), und setzt beim ersten Mal, nachdem der Wächter
+// geweckt hat, die Lesefrist zurück. endet sagt, dass die Sitzung endet,
+// erzwungen, dass das Zwangsende sie beendet: Das Zurücksetzen kann die
+// Lesefrist des Zwangsendes aufheben, und Zwangsende setzt zwang vor der Frist.
+func (s *Server) replayHerunterfahren(ctx context.Context, conn net.Conn, id model.SessionID, geweckt chan struct{}, herunterfahren *bool) (endet, erzwungen bool) {
+	if s.replayer.Shutdown(ctx, id) {
+		return true, false
+	}
+	if *herunterfahren {
+		return false, false
+	}
+	*herunterfahren = true
+	<-geweckt
+	_ = conn.SetReadDeadline(time.Time{})
+	zwang := s.zwang.Load()
+	return zwang, zwang
+}
+
 // replayLesefehler behandelt einen Lesefehler der Replay-Sitzung.
 func (s *Server) replayLesefehler(be *pgproto3.Backend, err error) {
 	if verbindungsende(err) {
@@ -375,43 +424,47 @@ func (s *Server) replayLesefehler(be *pgproto3.Backend, err error) {
 }
 
 // replayAntwort beantwortet eine gelesene Client-Nachricht der Replay-Sitzung
-// und meldet, ob die Sitzung weiterliest.
-func (s *Server) replayAntwort(ctx context.Context, be *pgproto3.Backend, id model.SessionID, e eingang) bool {
+// und meldet, wie es weitergeht.
+func (s *Server) replayAntwort(ctx context.Context, be *pgproto3.Backend, id model.SessionID, e eingang) folge {
 	switch {
 	case e.query != nil:
 		out, err := s.replayer.Query(ctx, id, *e.query)
 		if err != nil {
 			s.fail(be, err)
-			return false
+			return folgeEnde
 		}
 		return s.replayZustellen(ctx, be, id, out)
 	case e.terminate:
-		return false
+		return folgeEnde
 	case e.fremd != nil:
 		s.fail(be, e.fremd)
-		return false
+		return folgeEnde
 	default:
 		out, err := s.replayer.ClientMessage(ctx, id, *e.extended)
 		if err != nil {
 			s.fail(be, err)
-			return false
+			return folgeEnde
 		}
 		if len(out) == 0 {
-			return true
+			return folgeWeiter
 		}
 		return s.replayZustellen(ctx, be, id, out)
 	}
 }
 
 // replayZustellen schreibt Antworten an den Client und meldet sie dem Use Case
-// danach als gesendet, nicht, wenn das Schreiben scheitert.
-func (s *Server) replayZustellen(ctx context.Context, be *pgproto3.Backend, id model.SessionID, out []model.Response) bool {
+// danach als gesendet, nicht, wenn das Schreiben scheitert. Ein Schreibfehler
+// nach dem Zwangsende ist erzwungen und wird nicht gemerkt.
+func (s *Server) replayZustellen(ctx context.Context, be *pgproto3.Backend, id model.SessionID, out []model.Response) folge {
 	if err := s.send(be, out); err != nil {
+		if s.zwang.Load() {
+			return folgeErzwungen
+		}
 		s.sendFailed(err)
-		return false
+		return folgeEnde
 	}
 	s.replayer.Sent(ctx, id)
-	return true
+	return folgeWeiter
 }
 
 // recordSitzung vermittelt eine Record-Session in zwei Richtungen, die

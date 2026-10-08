@@ -33,6 +33,7 @@ type ReplayOptions struct {
 	Input            string
 	FailOnUnconsumed bool
 	LogLevel         string
+	ShutdownTimeout  time.Duration
 }
 
 // envFailOnUnconsumed ist die Umgebungsvariable von --fail-on-unconsumed
@@ -78,7 +79,7 @@ const optionenReplay = `Optionen von replay:
               nicht verbrauchte Interaktionen und nie zugeordnete Sessions
               sind ein Fehler (PGR-E5002, Exit-Code 5) statt einer Warnung;
               Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
-` + optionLogLevel
+` + optionShutdownTimeout + optionLogLevel
 
 const optionShutdownTimeout = `  --shutdown-timeout 0|<zahl>ms|<zahl>s|<zahl>m
               Frist ab dem ersten SIGINT oder SIGTERM, Standard 5s; danach
@@ -199,6 +200,9 @@ func parseReplay(args []string) (Command, error) {
 		}
 	}
 	fs.Var(fail, "fail-on-unconsumed", "")
+	if err := fristOption(fs, &o.ShutdownTimeout); err != nil {
+		return Command{}, err
+	}
 	level, err := logLevelOption(fs)
 	if err != nil {
 		return Command{}, err

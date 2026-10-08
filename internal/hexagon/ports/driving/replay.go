@@ -36,6 +36,13 @@ type Replayer interface {
 	// geliefert hat, an den Client gesendet sind; eine Interaktion ist erst
 	// danach verbraucht (LH-FA-03.b).
 	Sent(ctx context.Context, id model.SessionID)
+	// Forced meldet, dass das Zwangsende beim Herunterfahren die Verbindung
+	// beendet (LH-FA-13.a). Ist eine Interaktion der zugeordneten Session
+	// begonnen und nicht verbraucht (LH-FA-03.b *Verbraucht*), liefert es
+	// PGR-E4006 mit der Kennung der Session und der Nummer der Interaktion,
+	// sonst nil. Es ändert keinen Zustand; danach beendet CloseConnection die
+	// Verbindung.
+	Forced(ctx context.Context, id model.SessionID) error
 	// CloseConnection beendet die Verbindung. Bleiben Interaktionen der
 	// zugeordneten Session unverbraucht, liefert sie eine Meldung: die Warnung
 	// PGR-W2001 oder, bei --fail-on-unconsumed, den Fehler PGR-E5002; nie

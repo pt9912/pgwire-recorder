@@ -41,8 +41,9 @@ func (r *recorder) warteAbgelehnt(t *testing.T, frist time.Duration) {
 
 // laufendeInteraktion verbindet sich über den Recorder, schließt `SELECT 1;`
 // ab und beginnt eine Extended-Interaktion ohne Sync: Prepare mit Flush, deren
-// ParseComplete sie liest. Die Interaktion läuft danach im Recorder.
-func laufendeInteraktion(ctx context.Context, t *testing.T, listen string) *pgconn.PgConn {
+// Ergebnis sie liest. Die Interaktion läuft danach im Recorder; die Pipeline
+// bleibt offen.
+func laufendeInteraktion(ctx context.Context, t *testing.T, listen string) (*pgconn.PgConn, *pgconn.Pipeline) {
 	t.Helper()
 	conn, err := pgconn.Connect(ctx, dsn(listen))
 	if err != nil {
@@ -60,7 +61,7 @@ func laufendeInteraktion(ctx context.Context, t *testing.T, listen string) *pgco
 	if _, err := p.GetResults(); err != nil {
 		t.Fatal(err)
 	}
-	return conn
+	return conn, p
 }
 
 // nurErsteInteraktion prüft, dass die Aufzeichnung `SELECT 1;` trägt und keine
@@ -85,7 +86,7 @@ func TestE2ERecordFristLaeuftAb(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	conn := laufendeInteraktion(ctx, t, rec.listen)
+	conn, _ := laufendeInteraktion(ctx, t, rec.listen)
 	defer conn.Conn().Close()
 
 	rec.signal(t, syscall.SIGTERM)
@@ -116,7 +117,7 @@ func TestE2ERecordZweitesSignal(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	conn := laufendeInteraktion(ctx, t, rec.listen)
+	conn, _ := laufendeInteraktion(ctx, t, rec.listen)
 	defer conn.Conn().Close()
 
 	rec.signal(t, syscall.SIGTERM)
@@ -176,4 +177,82 @@ func TestE2ERecordDrittesSignal(t *testing.T) {
 	if !strings.Contains(rec.stderr.String(), codeFrist) {
 		t.Fatalf("%s fehlt im Log:\n%s", codeFrist, rec.stderr.String())
 	}
+}
+
+// aufnehmenMitFlush zeichnet eine Session auf: `SELECT 1;` und eine
+// Extended-Interaktion aus einer Flush-Gruppe (Parse und Describe von s1) und
+// einer Sync-Gruppe; es liefert den Pfad der Aufzeichnung.
+func aufnehmenMitFlush(t *testing.T) string {
+	t.Helper()
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, p := laufendeInteraktion(ctx, t, rec.listen)
+	p.SendPipelineSync()
+	if err := p.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.GetResults(); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	rec.stop(t, 0)
+	return output
+}
+
+// Abdeckung: LH-FA-13/Boundary — pausiert ein Client im Replay nach der ersten
+// Gruppe einer Extended-Interaktion, wartet replay nach SIGTERM höchstens
+// --shutdown-timeout (1s); danach schließt es die Verbindung, der Client erhält
+// die Fehlerantwort PGR-E4006, das Log nennt beim Beginn sessions=1, danach
+// PGR-E4006 mit Session und Interaktion vor der Warnung PGR-W2001, und der Lauf
+// endet mit Exit-Code 4.
+func TestE2EReplayFristLaeuftAb(t *testing.T) {
+	t.Setenv("PGWIRE_RECORDER_FAIL_ON_UNCONSUMED", "")
+	input := aufnehmenMitFlush(t)
+	rep := startProzess(t, "replay", "--input", input, "--shutdown-timeout", "1s")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, _ := laufendeInteraktion(ctx, t, rep.listen)
+	defer conn.Conn().Close()
+
+	rep.signal(t, syscall.SIGTERM)
+	rep.warteEnde(t, 15*time.Second, "Replay endet nicht nach Ablauf der Frist von 1s")
+	rep.pruefeExit(t, 4)
+
+	enthaeltInReihe(t, rep.stderr.String(),
+		"sessions=1",
+		"code="+codeFrist, "Session 1, Interaktion 2 nicht verbraucht",
+		"Session 1: 1 von 2 Interaktionen nicht verbraucht, die erste mit Nummer 2", "code=PGR-W2001",
+	)
+	_ = conn.Conn().SetReadDeadline(time.Now().Add(5 * time.Second))
+	msg, err := pgproto3.NewFrontend(conn.Conn(), conn.Conn()).Receive()
+	if e, ok := msg.(*pgproto3.ErrorResponse); err != nil || !ok || e.Severity != "FATAL" || !strings.Contains(e.Message, codeFrist) {
+		t.Fatalf("Client erhält %#v, %v statt der Fehlerantwort %s", msg, err, codeFrist)
+	}
+}
+
+// Abdeckung: LH-FA-13/Negative — mit --fail-on-unconsumed merkt replay beim
+// Zwangsende PGR-E4006 vor PGR-E5002 derselben Session; beide stehen in dieser
+// Reihenfolge im Log, und der Lauf endet mit Exit-Code 4 (LH-FA-03.b).
+func TestE2EReplayFristVorNichtVerbraucht(t *testing.T) {
+	t.Setenv("PGWIRE_RECORDER_FAIL_ON_UNCONSUMED", "")
+	input := aufnehmenMitFlush(t)
+	rep := startProzess(t, "replay", "--input", input, "--shutdown-timeout", "1s", "--fail-on-unconsumed")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, _ := laufendeInteraktion(ctx, t, rep.listen)
+	defer conn.Conn().Close()
+
+	rep.signal(t, syscall.SIGTERM)
+	rep.warteEnde(t, 15*time.Second, "Replay endet nicht nach Ablauf der Frist von 1s")
+	rep.pruefeExit(t, 4)
+	enthaeltInReihe(t, rep.stderr.String(), "code="+codeFrist, "code=PGR-E5002")
 }

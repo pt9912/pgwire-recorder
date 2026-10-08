@@ -464,6 +464,33 @@ func (s *ReplayService) Sent(_ context.Context, id model.SessionID) {
 	}
 }
 
+// Forced stuft das Zwangsende einer Verbindung ein (LH-FA-13.a *Zwangsende*):
+// Ist eine Interaktion der zugeordneten Session begonnen und nicht verbraucht,
+// ist das PGR-E4006 mit der Kennung der Session und der aufgezeichneten Nummer
+// der Interaktion. Begonnen und nicht verbraucht ist die Interaktion vor dem
+// Cursor, solange ihre Antworten nicht als gesendet gemeldet sind, sonst die am
+// Cursor, wenn der Cursor innerhalb einer Extended-Interaktion steht
+// (LH-FA-03.b *Verbraucht*). Eine Verbindung ohne Session liefert nil.
+func (s *ReplayService) Forced(_ context.Context, id model.SessionID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c := s.verbindung[id]
+	if c == nil || c.session == nil {
+		return nil
+	}
+	var in model.Interaction
+	switch {
+	case c.ungesendet:
+		in = c.session.Interactions[c.pos-1]
+	case c.mitten():
+		in = c.session.Interactions[c.pos]
+	default:
+		return nil
+	}
+	return model.Errorf(model.CodeShutdownTimeout, nil, "Frist beim Herunterfahren abgelaufen: Session %d, Interaktion %d nicht verbraucht",
+		c.session.ID, in.Sequence)
+}
+
 // CloseConnection beendet die Verbindung. Hat sie eine Session mit nicht
 // verbrauchten Interaktionen, liefert sie eine Meldung, die die Session, die
 // Zahl der nicht verbrauchten und aller Interaktionen und die aufgezeichnete
