@@ -171,20 +171,22 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
   Sitzung aufgezeichnet. Verbindungen ohne Anfrage, zum Beispiel
   Probe-Verbindungen eines Connection-Pools, werden nur mit
   `--record-empty-sessions` aufgezeichnet.
-* Beim Beenden wartet das Werkzeug ohne Frist, bis jede Verbindung ihre laufende
-  Anfrage oder Folge abgeschlossen hat; erst dann schreibt es die Aufzeichnung
-  und endet. Läuft eine lange Anfrage, antwortet die Datenbank nicht, oder wartet
-  eine Folge des erweiterten Protokolls nach `Flush` auf ihr `Sync`, kann das
-  beliebig lange dauern. Das Werkzeug gibt dabei keine Meldung aus.
-* Ein zweites `Strg+C` oder `SIGTERM` beendet das Werkzeug sofort. Die
-  Aufzeichnung jeder Verbindung, die dann noch nicht beendet war, fehlt ganz,
-  auch mit ihren schon abgeschlossenen Anfragen; bereits beendete Verbindungen
-  bleiben erhalten.
-* Im Container gilt dasselbe für die Stopp-Frist des Laufzeitsystems: Nach ihr
-  (bei Docker 10 Sekunden) beendet es das Werkzeug hart (`SIGKILL`, Exit-Code
-  137), und jede noch wartende Verbindung fehlt in der Aufzeichnung. Wählen Sie
-  die Stopp-Frist länger als die längste Anfrage, die beim Beenden noch laufen
-  kann, in Docker Compose zum Beispiel mit `stop_grace_period`:
+* Beim Beenden nimmt das Werkzeug keine neuen Verbindungen an, schreibt eine
+  Log-Zeile mit `sessions`, der Zahl der noch offenen Verbindungen, und wartet,
+  bis jede Verbindung ihre laufende Anfrage oder Folge abgeschlossen hat. Es
+  wartet höchstens so lange, wie `--shutdown-timeout` angibt (siehe
+  [Herunterfahren mit Frist](#herunterfahren-mit-frist)); danach beendet es jede
+  noch laufende Verbindung zwangsweise. Die abgeschlossenen Anfragen einer
+  solchen Verbindung bleiben in der Aufzeichnung, die laufende fehlt; Ihre
+  Anwendung erhält die Fehlermeldung `PGR-E4006`, das Log nennt die Sitzung und
+  die verworfene Anfrage, und das Werkzeug endet mit Exit-Code 4. Danach schreibt
+  es die Aufzeichnung.
+* Im Container beendet das Laufzeitsystem das Werkzeug nach seiner Stopp-Frist
+  hart (bei Docker 10 Sekunden; `SIGKILL`, Exit-Code 137), dann fehlt die
+  Aufzeichnung jeder noch wartenden Verbindung. Der Standardwert von
+  `--shutdown-timeout` (5 Sekunden) liegt darunter, damit die Aufzeichnung
+  geschrieben wird. Wählen Sie eine längere Frist nur mit längerer Stopp-Frist,
+  in Docker Compose zum Beispiel mit `stop_grace_period`:
 
   ```yaml
   services:
@@ -195,6 +197,7 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
         - --listen=0.0.0.0:5432
         - --upstream=postgres:5432
         - --output=/recordings/test.yaml
+        - --shutdown-timeout=30s
       volumes:
         - ./recordings:/recordings
       stop_grace_period: 60s
@@ -246,6 +249,19 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   Zahl und der Kennung der ersten. Mit `--fail-on-unconsumed` ist beides ein
   Fehler (`PGR-E5002`, Exit-Code 5) mit demselben Text; die Anwendung erhält
   ihn nicht, weil die Verbindung dann schon endet.
+* Beim Beenden beantwortet das Werkzeug eine begonnene Folge des erweiterten
+  Protokolls noch bis zu ihrem `Sync` und wartet dabei höchstens so lange, wie
+  `--shutdown-timeout` angibt (siehe
+  [Herunterfahren mit Frist](#herunterfahren-mit-frist)). Pausiert Ihre
+  Anwendung länger, schließt es die Verbindung. War eine Anfrage begonnen und
+  nicht vollständig beantwortet, erhält die Anwendung die Fehlermeldung
+  `PGR-E4006`, das Log nennt Sitzung und Anfrage, und das Werkzeug endet mit
+  Exit-Code 4; mit `--fail-on-unconsumed` zählt `PGR-E4006` vor `PGR-E5002`.
+* Im Container gilt die Stopp-Frist des Laufzeitsystems wie beim Aufzeichnen:
+  Der Standardwert von `--shutdown-timeout` (5 Sekunden) liegt unter der
+  Stopp-Frist von Docker (10 Sekunden), sodass das Werkzeug nach `docker stop`
+  selbst endet, seine Meldungen schreibt und einen Exit-Code der Tabelle in
+  [Exit-Codes](#exit-codes) liefert statt 137.
 
 ### Verschlüsselte Verbindungen annehmen
 
@@ -496,9 +512,34 @@ Umgebungsvariablen vollständig steuern (siehe [Einstellungen](#5-einstellungen)
 4. Werten Sie den Exit-Code aus (siehe [Exit-Codes](#exit-codes)).
 
 Zeichnen Sie in der Testautomatisierung auf, lassen Sie die Tests vor dem
-`SIGTERM` zur Ruhe kommen: Beim Beenden wartet `record` ohne Frist auf laufende
-Anfragen (siehe [Eine Anwendung aufzeichnen](#eine-anwendung-aufzeichnen),
-Hinweise).
+`SIGTERM` zur Ruhe kommen: Eine Anfrage, die nach Ablauf von
+`--shutdown-timeout` noch läuft, fehlt in der Aufzeichnung, und das Werkzeug
+endet mit Exit-Code 4 (siehe [Herunterfahren mit Frist](#herunterfahren-mit-frist)).
+
+### Herunterfahren mit Frist
+
+Auf `Strg+C` oder `SIGTERM` fährt das Werkzeug kontrolliert herunter, beim
+Aufzeichnen wie beim Wiedergeben. `--shutdown-timeout` (Umgebungsvariable
+`PGWIRE_RECORDER_SHUTDOWN_TIMEOUT`) begrenzt, wie lange es dabei auf laufende
+Anfragen wartet; die Frist zählt ab dem ersten Signal.
+
+* Der Wert ist `0` oder eine ganze Zahl mit genau einer Einheit `ms`, `s` oder
+  `m` in Kleinbuchstaben, etwa `500ms`, `5s` oder `2m`; Standard ist `5s`. `0`
+  schaltet die Frist ab, dann wartet das Werkzeug ohne Grenze. Jeder andere Wert
+  ist ein ungültiger Aufruf (`PGR-E2001`), auch `5` ohne Einheit, `1.5s`, `5S`
+  und `1m30s`. Eine leere Umgebungsvariable gilt als nicht gesetzt; die Option
+  geht ihr vor.
+* Ist beim Signal keine Verbindung offen, endet das Werkzeug sofort; `record`
+  schreibt die Aufzeichnung auch ohne Sitzungen.
+* Ein zweites `Strg+C` oder `SIGTERM` lässt die Frist sofort ablaufen, auch beim
+  Wert `0`. Jedes weitere Signal bleibt ohne Wirkung: Das Werkzeug beendet die
+  Verbindungen, schreibt die Aufzeichnung und endet mit seinem Exit-Code.
+* Beim Ablauf beendet das Werkzeug jede noch laufende Verbindung. Eine
+  Verbindung ohne begonnene Anfrage endet ohne Meldung; eine mit begonnener,
+  nicht abgeschlossener Anfrage erhält die Fehlermeldung `PGR-E4006`, wenn sie
+  sie binnen einer Sekunde annimmt, und der Exit-Code ist 4.
+* Die Frist begrenzt nur das Warten auf die Verbindungen. Das Schreiben der
+  Aufzeichnung danach bricht sie nicht ab.
 
 Mit `--fail-on-unconsumed` wertet das Werkzeug es als Fehler (`PGR-E5002`,
 Exit-Code 5), wenn ein Test nicht alle aufgezeichneten Anfragen ausführt oder
@@ -529,6 +570,7 @@ Umgebungsvariablen vor der Konfigurationsdatei vor dem Standardwert durch.
 | `--record-empty-sessions` | `record` | `PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS` | `false` |
 | `--input` | `replay`, `play` | `PGWIRE_RECORDER_INPUT` | Pflicht |
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` |
+| `--shutdown-timeout` | `record`, `replay` | `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT` | `5s` (`0` ohne Frist; Einheit `ms`, `s` oder `m`) |
 | `--session-assignment` | `replay` | `PGWIRE_RECORDER_SESSION_ASSIGNMENT` | `first-request` (oder `connection`) |
 | `--user` | `play` | `PGWIRE_RECORDER_USER` | Daten aus der Aufzeichnung |
 | `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Daten aus der Aufzeichnung |
@@ -600,7 +642,7 @@ der strengeren:
 |---|---|
 | `error` | Fehler, die eine Verbindung beenden |
 | `warn` | zusätzlich Warnungen, jede mit ihrem Code |
-| `info` (Standard) | zusätzlich Start und Ende von `record` und `replay` |
+| `info` (Standard) | zusätzlich Start und Ende von `record` und `replay` und den Beginn des Herunterfahrens |
 | `debug` | zusätzlich Ereignisse je Verbindung; welche, kann sich ändern |
 
 Der Wert wird genau so geschrieben, in Kleinbuchstaben. Jeder andere Wert ist ein
@@ -613,8 +655,10 @@ Kommando; nennen Sie sie mehrfach, gilt die letzte.
 Eine Log-Zeile hat das Format `logfmt`: zuerst `time` (Ortszeit nach RFC 3339
 mit Millisekunden und Zonenversatz), `level` (`DEBUG`, `INFO`, `WARN`, `ERROR`)
 und `msg`, danach weitere Angaben. Ein Fehler trägt `code` und `error` (den
-Fehlertext), eine Warnung `code`. Verlassen können Sie sich auf `level`, `code`
-und `error`; der Text von `msg` und die übrigen Angaben können sich ändern.
+Fehlertext), eine Warnung `code`. Die Zeile beim Beginn des Herunterfahrens
+trägt `sessions`, die Zahl der noch offenen Verbindungen, auch `0`. Verlassen
+können Sie sich auf `level`, `code`, `error` und `sessions`; der Text von `msg`
+und die übrigen Angaben können sich ändern.
 
 ```text
 time=2026-10-06T14:03:12.481+02:00 level=WARN msg="…" code=PGR-W2001
@@ -647,13 +691,15 @@ mit `--input=--` an. `record` und `replay` nehmen nach `--` kein Argument an
 | 1 | sonstiger Fehler |
 | 2 | ungültiger Aufruf oder ungültige Konfiguration |
 | 3 | Aufzeichnung ungültig oder nicht zugreifbar |
-| 4 | Netzwerk- oder Datenbankfehler |
+| 4 | Netzwerk- oder Datenbankfehler, auch eine Anfrage, die beim Beenden die Frist `--shutdown-timeout` unvollständig beendet hat (`PGR-E4006`) |
 | 5 | Abweichung bei der Wiedergabe, mit `--fail-on-unconsumed` auch nicht gestellte Anfragen oder nie verwendete Sitzungen, oder beim Einspielen mit `--compare-responses` eine abweichende Antwort |
 | 6 | nicht unterstützte Funktion des Protokolls |
 
 Ein Fehler, der nur eine Verbindung betrifft, beendet diese Verbindung. Das
 Werkzeug läuft weiter und liefert den Exit-Code des ersten aufgetretenen Fehlers
-erst, wenn Sie es beenden. Endet eine Verbindung durch einen Fehler und bleiben
+erst, wenn Sie es beenden. Scheitert beim Beenden das Schreiben der
+Aufzeichnung, ist der Exit-Code 3, auch wenn vorher ein anderer Fehler auftrat.
+Endet eine Verbindung durch einen Fehler und bleiben
 dabei Anfragen ihrer Sitzung offen, zählt der Fehler, der sie beendet hat, vor
 `PGR-E5002`; beide stehen im Log. Nie verwendete Sitzungen zählen zuletzt und
 bestimmen den Exit-Code nur, wenn vorher kein Fehler auftrat. Scheitert schon
@@ -706,6 +752,7 @@ für den Exit-Code.
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
 | `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler (ohne `--compare-responses`) | Die Meldung nennt die Anfrage und die Antwort der Datenbank. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
 | `PGR-E4005` | Anmeldung an der Datenbank fehlgeschlagen oder nicht unterstützt, Zertifikat der Datenbank oder der Zertifizierungsstelle ungültig oder abgelaufen, oder die Datenbank verlangt Verschlüsselung | Prüfen Sie Benutzer und Passwort (`PGWIRE_RECORDER_PASSWORD`). Unterstützt sind Klartext-Passwort, MD5 und SCRAM-SHA-256. Setzen Sie `--upstream-tls`, wenn die Datenbank Verschlüsselung verlangt. |
+| `PGR-E4006` | Anfrage beim Beenden unvollständig | Die Frist `--shutdown-timeout` ist abgelaufen, oder ein zweites Signal hat sie ablaufen lassen, während eine Anfrage lief. Die Meldung nennt die Sitzung und die Anfrage; beim Aufzeichnen fehlt diese Anfrage in der Aufzeichnung. Lassen Sie die Anwendung vor dem Beenden zur Ruhe kommen, oder wählen Sie eine längere Frist (siehe [Herunterfahren mit Frist](#herunterfahren-mit-frist)). |
 | `PGR-E5000`, `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen aufgezeichnet sind. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |

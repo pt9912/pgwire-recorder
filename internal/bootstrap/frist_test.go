@@ -3,7 +3,6 @@ package bootstrap_test
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"net"
 	"os"
 	"path/filepath"
@@ -94,10 +93,7 @@ func starteRecord(t *testing.T, verbinden bool, args ...string) *recordLauf {
 		client.Close()
 		return r
 	}
-	// Startnachricht der Protokollversion 3.0 mit user=app, von Hand kodiert:
-	// Länge, Version, Parameter, abschließendes Nullbyte.
-	rumpf := append(binary.BigEndian.AppendUint32(nil, 196608), "user\x00app\x00\x00"...)
-	if _, err := client.Write(append(binary.BigEndian.AppendUint32(nil, uint32(4+len(rumpf))), rumpf...)); err != nil {
+	if _, err := client.Write(startnachricht()); err != nil {
 		t.Fatal(err)
 	}
 	select {

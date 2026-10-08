@@ -14,3 +14,8 @@ func Logger(stderr io.Writer, stufe string) *slog.Logger {
 func Fail(stderr io.Writer, err error) int {
 	return fail(stderr, err)
 }
+
+// ExitCode reicht an exitCode weiter.
+func ExitCode(code string) int {
+	return exitCode(code)
+}
