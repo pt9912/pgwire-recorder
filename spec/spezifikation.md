@@ -868,7 +868,8 @@ Werte lauten `true` oder `false`. Eine boolesche Option ohne Wert ist `true`; mi
 `PGR-E2001`. Für die Umgebungsvariable gilt dieselbe Wertemenge; eine leere
 Umgebungsvariable gilt als nicht gesetzt. Nennt die Kommandozeile eine Option
 mehrfach, gilt die letzte Angabe. Die Umgebungsvariable einer Option, die das
-Kommando nicht kennt, bleibt unbeachtet. Geprüft wird jeder gesetzte Wert einer
+Kommando nicht kennt, bleibt unbeachtet, ebenso eine mit dem Präfix, deren Name
+keiner Option entspricht. Geprüft wird jeder gesetzte Wert einer
 Option des Kommandos, unabhängig von der Priorität: Eine gesetzte
 Umgebungsvariable mit ungültigem Wert ist `PGR-E2001`, auch wenn die Kommandozeile
 dieselbe Option setzt und damit vorgeht. Fordert der Aufruf die Hilfe an, wird
@@ -885,7 +886,8 @@ sonst aus `PGWIRE_RECORDER_PASSWORD`; eine Option dafür gibt es nicht.
 Findet sich keine Datei, wird keine gelesen. Eine mit `--config` oder
 `PGWIRE_RECORDER_CONFIG` genannte Datei, die fehlt, ist ein Konfigurationsfehler. Die
 Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne die führenden `--`
-(`keep_timing` für `--keep-timing`). `log_level` und die benannten Verbindungen stehen
+(`keep_timing` für `--keep-timing`). Steht ein Schlüssel in derselben Abbildung
+zweimal, ist das ungültiges YAML. `log_level` und die benannten Verbindungen stehen
 auf der obersten Ebene, die übrigen Schlüssel in einem Abschnitt je Kommando
 (`record:`, `replay:`, `play:`):
 
@@ -908,7 +910,9 @@ einzige Parameter ist `sslmode` mit den Werten `disable` (Default) und `require`
 Zertifikatsspeicher des Systems (strenger als bei libpq); jeder andere Parameter
 oder Wert ist ein Konfigurationsfehler. `--upstream` und der Schlüssel `upstream`
 nehmen den Namen einer Verbindung oder `host:port`; ein Name hat Vorrang vor
-`host:port`. Die Wirkung einer URL:
+`host:port` und gilt nur bei genauer Übereinstimmung, auch in Groß- und
+Kleinschreibung. Ein Wert, der weder ein Name ist noch die Form `host:port` mit
+Port hat, ist ein ungültiger Wert. Die Wirkung einer URL:
 
 * `play`: Host und Port, Benutzer und Datenbank. Benutzer und Datenbank aus
   `--user` und `--database` gehen vor denen der URL, diese vor den Startup-Daten der
@@ -917,15 +921,15 @@ nehmen den Namen einer Verbindung oder `host:port`; ein Name hat Vorrang vor
   ausdrücklich gesetztes `--upstream-tls` geht dem `sslmode` vor.
 * `record`: nur Host und Port. Benutzer, Passwort und Datenbank der URL werden
   ignoriert, weil `record` die Anmeldung des Clients vermittelt; `sslmode=require`
-  ist ein Konfigurationsfehler, weil `record` kein TLS zum Upstream kennt
-  (`LH-FA-05.c`).
+  ist ein Konfigurationsfehler (`PGR-E2004`, ungültiger `sslmode` der benutzten
+  Verbindung), weil `record` kein TLS zum Upstream kennt (`LH-FA-05.c`).
 
 **Geheimnisse.** Der Platzhalter `${VAR}` ist nur in der URL einer benannten
 Verbindung erlaubt und wird für die benutzte Verbindung aus der gleichnamigen
 Umgebungsvariable ersetzt (`$${VAR}` bleibt wörtlich); die Variablen nicht benutzter
 Verbindungen bleiben unbeachtet. Ein **Klartext-Passwort** ist ein Passwortteil
 hinter dem `:` im Benutzerteil einer URL, der nicht genau ein `${VAR}` ist, oder ein
-Parameter `password`.
+Parameter `password`, in jeder Verbindung der Datei, auch einer nicht benutzten.
 
 **Fehler.** Jede Ursache trägt einen eigenen Code und nennt in der Meldung die
 Stelle (Schlüssel oder Verbindungsname), nie einen Wert:
@@ -951,11 +955,12 @@ Umgebungsvariable `PGR-E2001`, als Schlüssel der Konfigurationsdatei `PGR-E2004
 **Anzeige.** `pgwire-recorder config show` gibt den Inhalt der gewählten Datei als
 eingerückten Baum auf `stdout` aus und nennt die Datei; Exit-Code `0`. Findet sich
 keine Datei, meldet der Befehl das und endet mit Exit-Code `0`. Ist die Datei
-ungültig, endet er mit dem Fehlercode des Ladens (`PGR-E2004` bis `PGR-E2006`) und
-zeigt nichts. Platzhalter erscheinen unaufgelöst; die Ausgabe enthält nie einen
+ungültig, endet er mit dem Fehlercode des Ladens (`PGR-E2004` oder `PGR-E2006`) und
+zeigt nichts; `PGR-E2005` kommt nicht vor, weil der Befehl keine Verbindung benutzt. Platzhalter erscheinen unaufgelöst; die Ausgabe enthält nie einen
 aufgelösten Wert, aber Hosts, Benutzer und Pfade der Datei. Aktive
-`PGWIRE_RECORDER_*`-Umgebungsvariablen listet der Befehl am Ende mit Namen und ohne
-Werte. Er verbindet sich nicht und liest keine Aufzeichnung.
+`PGWIRE_RECORDER_*`-Umgebungsvariablen, also gesetzte und nicht leere, auch solche
+ohne passende Option, listet der Befehl am Ende mit Namen und ohne Werte; geprüft
+wird von ihnen nur `PGWIRE_RECORDER_CONFIG`. Er verbindet sich nicht und liest keine Aufzeichnung.
 
 | Option | Kommando | Umgebungsvariable | Default |
 |---|---|---|---|
@@ -2300,3 +2305,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-08 | Harness-Werkzeuge: Commit-Träger lehnt Struktur-Kennungen in der Commit-Message ab; Lesebereich, Schreibweise und Wortgrenze, Merge und Revert, Vorrang vor der Annahme, Ausgabe und Ausgang (`SPEC-050`) |
 | 2026-10-08 | Herunterfahren: Attribut `sessions` der Zeile beim Beginn, ohne offene Verbindung, Startphase, was die Frist begrenzt, Zwangsende auch im Aufbau, `PGR-E4006` nur bei unvollständiger Interaktion und ohne `PGR-E4003`, Inhalt der Meldung, zweites Signal auch bei `0`, weitere Signale ohne Wirkung, Upstream-Verbindung im Aufbau und Verbindung aus dem Rückstau in der Startphase als Grenze, Grund einer nicht geschriebenen Session (`LH-FA-13.a`, `LH-FA-14.a`); Form der Dauer von `--shutdown-timeout` mit führenden Nullen vor einer Einheit (`LH-FA-17.a`); Schreibfrist der Fehlerantwort beim Ende einer Session (`SPEC-051`, `LH-FA-18.a`) |
 | 2026-10-08 | Warten in Tests: ein synchroner Aufruf des Prüflings ohne Frist fällt nicht unter die Regel, sie gilt nur für Kanäle und das Ende eines gestarteten Prozesses; Entscheidung des Nutzers (`SPEC-038`) |
+| 2026-10-08 | Konfiguration: Umgebungsvariable mit Präfix ohne passende Option unbeachtet, doppelter Schlüssel ist ungültiges YAML, Name einer Verbindung nur bei genauer Übereinstimmung, Wert weder Name noch `host:port` ungültig, `sslmode=require` bei `record` ist `PGR-E2004`, Klartext-Passwort in jeder Verbindung, `config show` ohne `PGR-E2005`, aktive Umgebungsvariablen (`LH-FA-17.a`) |

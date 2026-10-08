@@ -39,6 +39,7 @@
 | [0033](0033-gate-nachweise-in-der-abdeckung.md) | Gate-Nachweise und geteilte Messung in der Abdeckung | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0034](0034-lint-gate-mit-solid-nahem-profil.md) | Lint-Gate mit SOLID-nahem Profil, eingeführt nach Bereinigung | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0035](0035-struktur-kennungen-im-commit-hook-abgelehnt.md) | Struktur-Kennungen im Commit-Hook abgelehnt | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
+| [0036](0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) | YAML-Bibliothek auch für die Konfigurationsdatei im CLI-Adapter | Proposed | [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
 
 ## Konventionen
 
@@ -68,3 +69,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0031](0031-lebendpruefungen-im-replay.md) | ergänzt [0007](0007-strict-replay.md) um eine Ausnahme für Lebendprüfungen (einfache Anfragen nur aus Leerraum und Kommentaren) zwischen zwei Interaktionen; für jede andere Anfrage gilt [0007](0007-strict-replay.md) unverändert |
 | [0033](0033-gate-nachweise-in-der-abdeckung.md) | ergänzt [0028](0028-abdeckung-je-anforderung-und-pfad.md) um die Nachweisart Gate (Deklaration im Kopf einer Gegenprobe) und um die geteilte Messung einer Qualitätsanforderung; Deklarationen an Tests und der ungeteilte Pfad *Messung* gelten nach [0028](0028-abdeckung-je-anforderung-und-pfad.md) unverändert |
 | [0035](0035-struktur-kennungen-im-commit-hook-abgelehnt.md) | ergänzt [0025](0025-benannte-slice-kennungen-im-commit-hook.md) und [0029](0029-benannte-welle-kennungen-im-commit-hook.md): Eine Message mit Struktur-Kennung lässt der Träger nicht durch und reicht sie nicht weiter, auch wenn sie eine benannte Slice- oder Welle-Kennung trägt; Merge- und Revert-Messages und Messages ohne Struktur-Kennung behandelt er nach [0025](0025-benannte-slice-kennungen-im-commit-hook.md) und [0029](0029-benannte-welle-kennungen-im-commit-hook.md) unverändert |
+| [0036](0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) | ergänzt [0027](0027-yaml-bibliothek.md) um den CLI-Adapter als zweiten Ort der Bibliothek, nur zum Lesen der Konfigurationsdatei; die Wahl der Bibliothek gilt nach [0027](0027-yaml-bibliothek.md) unverändert (gilt ab `Accepted`) |
