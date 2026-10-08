@@ -122,7 +122,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/architecture.md`, `spec/spezifikation.md`, `.a-check.yml` | erledigt (Architect, vor dem Code, 2026-10-08) | Sicht (`ARC-013`, §2, §6) und `tech`-Regel: YAML-Bibliothek auch im CLI-Adapter ([ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)); `LH-FA-17.a` mit den Entscheidungen des Nutzers aus §6 |
-| `tools/arch/a-check-negativ.sh` | update (erster Commit des Implementers) | zwei Fälle: CLI-Adapter importiert `go.yaml.in/yaml/v3` und `gopkg.in/yaml.v3` → a-check meldet nichts; PGWire-Adapter (`internal/adapters/driving/pgwire`) importiert `go.yaml.in/yaml/v3` → `tech-leak`. Der zweite hält die Erlaubnis auf den CLI-Adapter statt auf alle Driving-Adapter. Kopfkommentar (Zahl der Fälle, *YAML nur im Recording-Adapter*) und Schlusszeile auf *Recording- und CLI-Adapter*; Beschreibung von `a-check-negativ` in `harness/mk/arch-negativ.mk` und Zeile in `harness/README.md` §Sensors nachziehen (`AGENTS.md` §3.11). Mutation: Regel auf `internal/adapters/driving` weiten → zweiter Fall rot; CLI-Adapter aus der Regel nehmen → erster Fall rot |
+| `tools/arch/a-check-negativ.sh` | update (erster Commit des Implementers) | drei Fälle: CLI-Adapter importiert `go.yaml.in/yaml/v3` und `gopkg.in/yaml.v3` → a-check meldet nichts; PGWire-Adapter (`internal/adapters/driving/pgwire`) importiert `go.yaml.in/yaml/v3` → `tech-leak`, und ebenso `gopkg.in/yaml.v3` (je Modulpfad eine Regel, je Regel ein Fall). Die beiden letzten halten die Erlaubnis auf den CLI-Adapter statt auf alle Driving-Adapter. Kopfkommentar (Zahl der Fälle, *YAML nur im Recording-Adapter*) und Schlusszeile auf *Recording- und CLI-Adapter*; Beschreibung von `a-check-negativ` in `harness/mk/arch-negativ.mk` und Zeile in `harness/README.md` §Sensors nachziehen (`AGENTS.md` §3.11). Mutation: eine Regel auf `internal/adapters/driving` weiten → Fall ihres Modulpfads im PGWire-Adapter rot; CLI-Adapter aus einer Regel nehmen → Fall des CLI-Adapters rot |
 | `internal/adapters/driving/cli` | update | allgemeiner Leser, an dem jede Option einmal angemeldet wird, für Kommandozeile, Umgebungsvariable und Schlüssel der Datei; er prüft jeden gesetzten Wert und ersetzt die Einzel-Leser von `--fail-on-unconsumed`, `--log-level` und `--shutdown-timeout`; Priorität; Hilfe vor jeder Prüfung; Kommando `config show`; Wahl und Laden der Datei mit `connections`, `fail_on_unconsumed`, `log_level`, `${VAR}` und `$${VAR}`; Auflösen des Namens bei `--upstream` zu `host:port` |
 | `internal/bootstrap` | update | `config show` ausführen (Ausgabe auf `stdout`); die zusammengeführten Optionen an die Use Cases geben |
 | `internal/adapters/driving/cli` (Unit-Tests), `internal/bootstrap` (Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a` und `LH-FA-01.a`; ein Test über alle angemeldeten Optionen; die vorhandenen Tests der drei Einzel-Leser bleiben unverändert und grün (Risiko in §6) |
@@ -275,7 +275,26 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Belege zur DoD (Implementer):** <je Zusage: Zusage · Mutation · roter Test (`AGENTS.md` §3.10)>
+- **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten.
+
+### Belege des Implementers
+
+Weg der Mutanten: Gegenprobe des Architektur-Gates je Mutant in einer frischen Kopie des
+Arbeitsbaums (`mktemp -d`, `tar` ohne `.git`), dort `.a-check.yml` mit `sed` geändert und
+`tools/arch/a-check-negativ.sh` aus der Kopie gefahren; der Arbeitsbaum blieb unberührt.
+
+**Gegenprobe des Architektur-Gates** (`make a-check-negativ`, zehn Fälle):
+
+| Zusage | Mutation an `.a-check.yml` | roter Fall |
+|---|---|---|
+| `go.yaml.in/yaml` im CLI-Adapter zugelassen | CLI-Adapter aus der Regel `go.yaml.in/yaml` genommen | `cli-yaml` (a-check: `tech-leak`) |
+| `gopkg.in/yaml` im CLI-Adapter zugelassen | CLI-Adapter aus der Regel `gopkg.in/yaml` genommen | `cli-yaml` |
+| beide zugleich | CLI-Adapter aus beiden Regeln genommen | `cli-yaml` |
+| `go.yaml.in/yaml` im PGWire-Adapter abgelehnt | Regel `go.yaml.in/yaml` auf `internal/adapters/driving` geweitet | `pgwire-yaml` |
+| `gopkg.in/yaml` im PGWire-Adapter abgelehnt | Regel `gopkg.in/yaml` auf `internal/adapters/driving` geweitet | `pgwire-gopkg-yaml` |
+| beide zugleich | beide Regeln geweitet | `pgwire-yaml`, `pgwire-gopkg-yaml` |
+
+Ungeändert: alle zehn Fälle grün, Exit 0.
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
 - **Steering-Loop-Eintrag:** <…>
