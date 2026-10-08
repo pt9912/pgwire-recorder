@@ -207,3 +207,19 @@ func TestRunRecordSignalInDerStartphase(t *testing.T) {
 		t.Fatalf("Aufzeichnung nicht geschrieben: %v", err)
 	}
 }
+
+// Abdeckung: LH-FA-13/Boundary — die Frist zählt ab dem ersten Signal und
+// begrenzt das Warten auf ihre Länge: Mit --shutdown-timeout=500ms läuft
+// record, nachdem es 700 ms vor dem Signal schon lief, nach dem Signal noch
+// 300 ms weiter und endet danach binnen weiterer 700 ms (LH-FA-13.a).
+func TestRunRecordFristAbDemErstenSignal(t *testing.T) {
+	r := starteRecord(t, true, "--shutdown-timeout=500ms")
+	// Vor dem Signal länger als die Frist: Ein Zeitgeber, der schon vor dem
+	// Signal liefe, wäre danach abgelaufen.
+	r.laeuftNoch(t, 700*time.Millisecond, "vor dem Signal")
+	r.cancel()
+	r.laeuftNoch(t, 300*time.Millisecond, "vor Ablauf der Frist von 500 ms")
+	if code := r.endetBinnen(t, 700*time.Millisecond, "Frist 500ms"); code != 0 {
+		t.Fatalf("Exit-Code %d\n%s", code, r.stderr.String())
+	}
+}

@@ -117,8 +117,8 @@ func TestE2ERecordFristLaeuftAb(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-13/Boundary — mit --shutdown-timeout 0 wartet record nach
-// dem ersten SIGTERM ohne Frist auf die laufende Interaktion; das zweite SIGTERM
-// lässt die Frist sofort ablaufen, die Session endet zwangsweise, und der Lauf
+// dem ersten Signal (SIGINT) ohne Frist auf die laufende Interaktion; das
+// zweite (SIGTERM) lässt die Frist sofort ablaufen, die Session endet zwangsweise, und der Lauf
 // endet mit Exit-Code 4 und der Aufzeichnung der abgeschlossenen Interaktion.
 func TestE2ERecordZweitesSignal(t *testing.T) {
 	output := filepath.Join(t.TempDir(), "rec.yaml")
@@ -129,7 +129,7 @@ func TestE2ERecordZweitesSignal(t *testing.T) {
 	conn, _ := laufendeInteraktion(ctx, t, rec.listen)
 	defer conn.Conn().Close()
 
-	rec.signal(t, syscall.SIGTERM)
+	rec.signal(t, syscall.SIGINT)
 	rec.warteAbgelehnt(t, 10*time.Second)
 	// Ohne Frist endet der Prozess nicht von selbst; endete er doch, meldet
 	// signal das Ende vor dem zweiten Signal.
