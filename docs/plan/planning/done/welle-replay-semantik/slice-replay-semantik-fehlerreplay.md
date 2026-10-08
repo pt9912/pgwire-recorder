@@ -5,4 +5,4 @@
 
 **Welle:** [welle-replay-semantik](welle-replay-semantik.md)
 **Archiviert mit:** welle-replay-semantik · **Geschlossen:** 2026-10-06
-**Hervorgegangen:** [slice-replay-semantik-meldungscodes](slice-replay-semantik-meldungscodes.md) · [slice-v1-abschluss-antwortvergleich](../../open/slice-v1-abschluss-antwortvergleich.md) · [slice-v1-abschluss-einspielen](../../open/slice-v1-abschluss-einspielen.md)
+**Hervorgegangen:** [slice-replay-semantik-meldungscodes](slice-replay-semantik-meldungscodes.md) · [slice-v1-abschluss-antwortvergleich](../../open/slice-v1-abschluss-antwortvergleich.md) · [slice-v1-abschluss-einspielen](../../next/slice-v1-abschluss-einspielen.md)

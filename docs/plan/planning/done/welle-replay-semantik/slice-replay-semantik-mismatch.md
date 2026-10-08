@@ -5,4 +5,4 @@
 
 **Welle:** [welle-replay-semantik](welle-replay-semantik.md)
 **Archiviert mit:** welle-replay-semantik · **Geschlossen:** 2026-10-06
-**Hervorgegangen:** [slice-v1-abschluss-betrieb](../../next/slice-v1-abschluss-betrieb.md) · [slice-v1-abschluss-einspielen](../../open/slice-v1-abschluss-einspielen.md) · [slice-v1-abschluss-sessions](../../open/slice-v1-abschluss-sessions.md)
+**Hervorgegangen:** [slice-v1-abschluss-betrieb](../../next/slice-v1-abschluss-betrieb.md) · [slice-v1-abschluss-einspielen](../../next/slice-v1-abschluss-einspielen.md) · [slice-v1-abschluss-sessions](../../open/slice-v1-abschluss-sessions.md)
