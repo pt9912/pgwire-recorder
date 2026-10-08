@@ -95,7 +95,9 @@ Muster steht in `stop` (`record_e2e_test.go`, `done <- r.cmd.Wait()`) und in
 - Neue Tests, geänderte Erwartungen, die Fristen der drei Tests (15 s, 5 s, 10 s) oder
   Abdeckungs-Deklarationen — Bestand bleibt bewusst stehen: Testliste und Deklarationen
   sind die Messlatte, an der sich zeigt, dass nur das Warten umgebaut ist. Neu sind nur
-  die Frist im `t.Cleanup` und die Nachfrist nach `Kill` (§6), die `SPEC-038` verlangt.
+  die Frist im `t.Cleanup`, die Nachfrist nach `Kill` (auch beim Ablauf der Lausch-Frist,
+  Review F-482) und der Helfer `signal` mit seiner Meldung für einen schon beendeten
+  Prozess (Review F-480), alles nach §6 und `SPEC-038`.
 - `defer pc.Close(context.Background())` in `TestE2ERecordExtendedSigtermBeimPipelining`
   (F-458) — Bestand bleibt bewusst stehen: `Close` wartet nicht auf ein Ereignis des
   Prüflings und fällt nicht unter `SPEC-038`; ob es unter I2 hängt, zeigt die Messung
@@ -132,8 +134,9 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       endet weit vor einem Zeitlimit von `go test`, das ein Hängen sichtbar macht; am
       Stand vor dem Umbau zeigt dieselbe Messung mindestens einen hängenden Lauf. Beleg
       in §7: je Stand Quellstand, Zahl der Läufe, rote und hängende Läufe, Dauer je Lauf,
-      gesetztes Zeitlimit. Dazu die Mutation des Cleanups aus §6 *Mutationen*: ein Lauf,
-      rot mit der Meldung des Cleanups nach etwa 5 s; Beleg in §7 mit Dauer und Meldung.
+      gesetztes Zeitlimit. Dazu die Mutationen aus §6 *Mutationen* (Cleanup, Signal an
+      einen beendeten Prozess, Lausch-Frist), je ein Lauf; Beleg in §7 mit Dauer, Status und
+      Meldung.
 - [ ] Testliste und Deklarationen unverändert: Die Liste der Tests unter
       `test/integration` (Namen, Zahl) ist vor und nach dem Umbau gleich, keine Zeile
       `Abdeckung:` ist geändert, und `make abdeckung-check` ist grün ohne neu
@@ -157,9 +160,9 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `test/integration/record_e2e_test.go` | refactor | `startProzess` startet nach `Start` genau eine Goroutine mit `Wait`, die das Ergebnis ablegt und danach einen Kanal schließt; `recorder` trägt Kanal und Ergebnis. Der Helfer `warteEnde` wartet mit Frist auf das Ende (§6 *Frist und Ablauf*), `pruefeExit` vergleicht danach den Exit-Code und nennt bei Abweichung `ProcessState.String()` und den Fehler von `Wait` (§6 *Ergebnis nach dem Ende*). `stop` geht über beide; der `t.Cleanup` ruft bei offenem Kanal `Kill` und wartet mit Frist auf den Kanal, statt `Wait` aufzurufen |
-| `test/integration/extended_e2e_test.go` | refactor | `TestE2ERecordExtendedSigtermBeimPipelining` wartet über `warteEnde` und `pruefeExit` statt `beendet <- rec.cmd.Wait()`; Erwartungen und Fristen gleich |
-| `test/integration/extended_replay_e2e_test.go` | refactor | `TestE2EReplayExtendedSigtermMittenInFolge` ebenso statt `done <- rep.cmd.Wait()` |
+| `test/integration/record_e2e_test.go` | refactor | `startProzess` startet nach `Start` genau eine Goroutine mit `Wait`, die das Ergebnis ablegt und danach einen Kanal schließt; `recorder` trägt Kanal und Ergebnis. Der Helfer `warteEnde` wartet mit Frist auf das Ende (§6 *Frist und Ablauf*), `pruefeExit` vergleicht danach den Exit-Code und nennt bei Abweichung `ProcessState.String()` und den Fehler von `Wait` (§6 *Ergebnis nach dem Ende*). `stop` geht über beide; der `t.Cleanup` ruft bei offenem Kanal `Kill` und wartet mit Frist auf den Kanal, statt `Wait` aufzurufen; `signal` sendet ein Signal und meldet einen schon beendeten Prozess, beim Ablauf der Lausch-Frist liest `startProzess` `stderr` erst nach `Kill` und Ende (§6, Review F-480, F-482) |
+| `test/integration/extended_e2e_test.go` | refactor | `TestE2ERecordExtendedSigtermBeimPipelining` wartet über `warteEnde` und `pruefeExit` statt `beendet <- rec.cmd.Wait()`; Erwartungen und Fristen gleich; das Signal über `signal` |
+| `test/integration/extended_replay_e2e_test.go` | refactor | `TestE2EReplayExtendedSigtermMittenInFolge` ebenso statt `done <- rep.cmd.Wait()`; das Signal über `signal` |
 
 - Wer den Exit-Code liest (`stop`, die beiden Tests), liest `ProcessState` erst nach dem
   Ende, das der Kanal meldet; danach schreibt niemand mehr daran.
@@ -253,6 +256,37 @@ Architect zurück.
   der Cleanup nichts. `Kill` auf einen schon beendeten Prozess ist harmlos, sein Fehler
   wird verworfen. Der Cleanup läuft nach den `defer` des Tests und vor dem Entfernen von
   `t.TempDir` (in `startProzess` später registriert).
+- **Prozess ist beim Signal schon beendet** (Review F-480) — **entschieden:** Ein Helfer
+  `signal(t, sig)` am `recorder` sendet das Signal; `stop` und die beiden SIGTERM-Tests
+  rufen ihn statt `Process.Signal`, und `slice-v1-abschluss-herunterfahren` sendet erstes
+  und zweites Signal über ihn. Liefert `Signal` einen Fehler, wartet der Helfer höchstens
+  5 s auf das Schließen von `beendet`. Schließt er, endet der Test mit `t.Fatalf`
+  „Prozess endete vor dem Signal“, dazu `ProcessState.String()`, der Fehler von `Wait` und
+  `stderr`; sonst mit `t.Fatalf` und dem Fehler von `Signal`. Ein Prozess, der vor dem
+  Signal von selbst endet, ist damit rot mit Befund, nie grün und nie nur
+  `os: process already finished`. Eine Vorab-Abfrage von `beendet` vor dem Signal
+  entfällt: Sie schlösse das Zeitfenster nicht (zwischen Abfrage und Signal kann der
+  Prozess enden), und den Fall nach dem Ernten meldet `Signal` ohnehin als Fehler.
+  **Grenze, akzeptiertes Negativ:** Endet der Prozess von selbst und ist er beim Signal
+  noch nicht geerntet, geht das Signal an den Zombie, `Signal` liefert `nil`, und
+  `pruefeExit` vergleicht den Exit-Code wie am Stand vor dem Umbau. Das Fenster ist die
+  Zeit zwischen Exit und Rückkehr des schon wartenden `Wait`; schließen könnte es nur ein
+  Zustand des Prüflings („bereit für das Signal“), den das Produkt nicht zusagt.
+  Für `slice-v1-abschluss-herunterfahren` heißt das: Ein Test, dessen zweites Signal einen
+  laufenden Prozess braucht, hält ihn über eine offene Session am Leben; ein Test, der ein
+  Ende vor dem Signal **erwartet**, ruft nicht `signal`, sondern liest `beendet` in einem
+  `select` mit eigener Frist (*Mehrere Leser*).
+- **`stderr` erst nach dem Ende lesen** (Review F-482, Bestand im selben Helfer) —
+  **entschieden, dieser Slice behebt es mit:** Läuft in `startProzess` die Frist zum
+  Lauschen (10 s) ab, ruft der Helfer `Kill`, wartet höchstens 5 s auf `beendet` und endet
+  dann mit `t.Fatalf` mit Meldung und `stderr`; schließt `beendet` nicht, nennt die Meldung
+  das statt `stderr`. Das ist dieselbe Nachfrist wie in *Frist und Ablauf*; der Implementer
+  darf beide über eine gemeinsame Funktion führen. Danach liest im Geschirr niemand
+  `stderr`, bevor `beendet` geschlossen ist, außer Tests, die es nach `stop` lesen. Die
+  übrigen Leser in den Tests lesen es während der Prozess läuft (etwa
+  `einfach_e2e_test.go:185`); sie bleiben Bestand, weil sie nur in Meldungen stehen und
+  §1 geänderte Tests ausschließt — akzeptiertes Negativ, ohne `-race` in der Stufe
+  `integration` fällt kein Wettlauf auf, und ein Folge-Slice dafür lohnt nicht.
 - **Mutationen** (`AGENTS.md` §3.10, sinngemäß für das Geschirr) — **entschieden:**
   Zusage *rot statt hängend* · Mutation I2 der Verifikation · rot wird
   `TestE2ERecordExtendedSigtermBeimPipelining` nach höchstens 5 s plus Nachfrist (DoD
@@ -263,6 +297,34 @@ Architect zurück.
   deterministisch). Im grünen Lauf endet der Prozess fast immer über `stop` (48 Aufrufstellen
   bei 50 Startstellen am Stand `86db551`), den Kill-Pfad des Cleanups trägt also erst diese
   Mutation.
+
+  **Vorgabe nach dem Review (F-481), ersetzt für den Cleanup die Mutation oben:** Die
+  Provokation ist `if true { return }` direkt nach `startRecorder` statt `t.Fatal`, damit
+  der Test nur über den Cleanup rot werden kann; der Prozess läuft dann bis zum Cleanup.
+  Drei Läufe in Kopien des Arbeitsbaums, jeder mit Status und Dauer in §7:
+  (1) `Kill` im Cleanup entfernt → `FAIL` nach etwa 5 s mit der Meldung des Cleanups;
+  (2) zusätzlich `t.Errorf` → `t.Logf` im Cleanup → `PASS`, also unterscheidet Lauf 1 den
+  Mutanten *Errorf → Logf*, der damit gefangen ist; (3) statt (2) zusätzlich die Frist im
+  Cleanup entfernt (Warten nur auf `beendet`) → Abbruch an der gesetzten Zeitgrenze von
+  `go test`. Lauf 3 zeigt, dass die Frist trägt; *Cleanup wartet ohne Frist* steht in §7
+  darum nicht unter *äquivalent*, sondern als **grün im Gate, gefangen nur zusammen mit
+  `Kill` entfernt** — mit Paar (1)/(3) als Beleg und der Grenze, dass ein Prozess, der nach
+  `Kill` nicht endet, im Geschirr ohne zweite Mutation nicht herstellbar ist. Der Mutant
+  *Abfrage des geschlossenen Kanals entfällt* bleibt äquivalent wie in §7 begründet. Die
+  Zeilen aus `t.Fatal` in §7 bleiben als Lauf stehen, belegen aber nur den Gegenlauf.
+
+  Zusage *Signal an einen beendeten Prozess meldet den Befund* (F-480) · Provokation in
+  einer Kopie: vor `rec.stop(t, 0)` eines Tests `_ = rec.cmd.Process.Kill()` und
+  `time.Sleep(time.Second)` · erwartet `FAIL` mit „Prozess endete vor dem Signal“,
+  `signal: killed` und `stderr`. Mutant: das Warten auf `beendet` nach dem Fehler von
+  `Signal` entfernt → `FAIL` nur mit dem Fehler von `Signal`, ohne Zustand und `stderr`;
+  gefangen über die Meldung (§7 zitiert beide).
+
+  Zusage *Lausch-Frist liest `stderr` erst nach dem Ende* (F-482) · Provokation in einer
+  Kopie: `startProzess` wählt zum Prüfen eine zweite freie Adresse statt `listen` · erwartet
+  `FAIL` nach etwa 10 s mit „lauscht nicht“ und `stderr`, der Prozess ist danach beendet.
+  Dass `stderr` nicht **vor** dem Ende gelesen wird, fängt ohne `-race` kein Lauf;
+  akzeptiertes Negativ, die Reihenfolge prüft das Review am Code.
 
 **Risiken:**
 
