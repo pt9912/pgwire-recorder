@@ -689,7 +689,10 @@ Frist sofort ablaufen.
 * *Startphase.* Ein Signal, bevor der Prozess lauscht, bricht den Start nicht ab:
   Die Startprüfungen laufen zu Ende, und ein Startfehler beendet den Prozess mit
   dem Exit-Code seiner Klasse (LH-FA-13.b). Sonst nimmt der Prozess keine
-  Verbindung an und endet wie ohne offene Verbindung.
+  Verbindung an und endet wie ohne offene Verbindung. *Grenze:* Eine Verbindung,
+  die das Betriebssystem zwischen dem Öffnen des Ports und dessen Schließen schon
+  angenommen hat, kann der Prozess noch annehmen; sie zählt in `sessions` und
+  endet, ohne eine Interaktion zu beginnen.
 * *Was die Frist begrenzt.* Die Frist begrenzt das Warten auf die Verbindungen.
   Das Zwangsende und das Schreiben des Recordings danach zählen nicht zu ihr. Ein
   Schreiben des Recordings, das bei ihrem Ablauf läuft, wird nicht abgebrochen;
@@ -709,7 +712,9 @@ Frist sofort ablaufen.
   `PGR-E4006` als Log-Zeile der Stufe `error`. Dem Client wird sie nach LH-FA-13.b
   zugestellt; das Schreiben dauert höchstens `SPEC-051`, auch an einen Client, der
   nicht liest. Sie nennt im Record die `id`, unter der die Session geschrieben
-  wird, oder dass sie ohne abgeschlossene Interaktion nicht geschrieben wird, und
+  wird, oder warum sie nicht geschrieben wird: ohne abgeschlossene Interaktion,
+  oder wegen einer nicht unterstützten Interaktion (`PGR-E6001`, LH-FA-02.b), auch
+  wenn sie abgeschlossene trägt; und
   die Nummer (`sequence`), die die verworfene Interaktion getragen hätte; im Replay
   die `id` der zugeordneten Session und die `sequence` der unvollständigen
   Interaktion. Bei mehreren Meldungen wird die erste gemerkt (LH-FA-13.b).
@@ -2290,4 +2295,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |
 | 2026-10-08 | Harness-Werkzeuge: Commit-Träger lehnt Struktur-Kennungen in der Commit-Message ab; Lesebereich, Schreibweise und Wortgrenze, Merge und Revert, Vorrang vor der Annahme, Ausgabe und Ausgang (`SPEC-050`) |
-| 2026-10-08 | Herunterfahren: Attribut `sessions` der Zeile beim Beginn, ohne offene Verbindung, Startphase, was die Frist begrenzt, Zwangsende auch im Aufbau, `PGR-E4006` nur bei unvollständiger Interaktion und ohne `PGR-E4003`, Inhalt der Meldung, zweites Signal auch bei `0`, weitere Signale ohne Wirkung, Upstream-Verbindung im Aufbau als Grenze (`LH-FA-13.a`, `LH-FA-14.a`); Form der Dauer von `--shutdown-timeout` mit führenden Nullen vor einer Einheit (`LH-FA-17.a`); Schreibfrist der Fehlerantwort beim Ende einer Session (`SPEC-051`, `LH-FA-18.a`) |
+| 2026-10-08 | Herunterfahren: Attribut `sessions` der Zeile beim Beginn, ohne offene Verbindung, Startphase, was die Frist begrenzt, Zwangsende auch im Aufbau, `PGR-E4006` nur bei unvollständiger Interaktion und ohne `PGR-E4003`, Inhalt der Meldung, zweites Signal auch bei `0`, weitere Signale ohne Wirkung, Upstream-Verbindung im Aufbau und Verbindung aus dem Rückstau in der Startphase als Grenze, Grund einer nicht geschriebenen Session (`LH-FA-13.a`, `LH-FA-14.a`); Form der Dauer von `--shutdown-timeout` mit führenden Nullen vor einer Einheit (`LH-FA-17.a`); Schreibfrist der Fehlerantwort beim Ende einer Session (`SPEC-051`, `LH-FA-18.a`) |

@@ -223,6 +223,13 @@ die Liste am 2026-10-08 vor dem Code geprüft; keine ist offen.
 - **Signal in der Startphase vor dem Lauschen** — Startprüfungen laufen zu Ende, ein
   Startfehler geht vor, sonst wie ohne offene Verbindung; `LH-FA-13.a` *Startphase*. Ein
   Signal, bevor der Prozess Signale behandelt, ist eine Grenze (`LH-FA-13.a` *Grenze*).
+  Eine Verbindung, die das Betriebssystem zwischen `Listen` und dem Schließen des Ports
+  schon angenommen hat, kann `Accept` noch liefern (Review F-489): Grenze, entschieden vom
+  Architect am 2026-10-08 in `LH-FA-13.a` *Startphase*. Die Verbindung zählt in `sessions`
+  und endet ohne Interaktion. Eine Prüfung von `ctx` vor `Serve` verkleinerte das Fenster
+  nur, schlösse es nicht (Signal zwischen Prüfung und `Accept`), und kein Test fängt sie
+  wettlauffrei (Mutant G01, Probe 0 von 400); kein Code dafür. G01 in §7 ist damit als
+  *Fenster offen, als Grenze entschieden* zu lesen, nicht als *nicht erreichbar*.
 - **Ablauf der Frist während des Schreibens der Aufzeichnung** — die Frist begrenzt nur das
   Warten auf die Verbindungen; ein laufendes Schreiben wird nicht abgebrochen, eine schon
   beendete Session endet nicht zwangsweise; `LH-FA-13.a` *Was die Frist begrenzt*.
@@ -244,7 +251,14 @@ die Liste am 2026-10-08 vor dem Code geprüft; keine ist offen.
   `--fail-on-unconsumed` `PGR-E4006` vor `PGR-E5002`, entschieden in `LH-FA-03.b`.
 - **Inhalt und Zustellung der Meldung `PGR-E4006`** — Log-Zeile `error` je Verbindung,
   Zustellung an den Client nach `LH-FA-13.b` höchstens `SPEC-051` lang, Session und
-  Interaktion je Modus; `LH-FA-13.a` *Meldung*. Der Text nach dem Kopf ist nicht Vertrag
+  Interaktion je Modus; `LH-FA-13.a` *Meldung*. Grund einer nicht geschriebenen Session im
+  Record (Review F-487, entschieden vom Architect am 2026-10-08): ohne abgeschlossene
+  Interaktion, oder wegen einer nicht unterstützten Interaktion (`PGR-E6001`), auch mit
+  abgeschlossenen; eine dritte Form gibt es nicht. Vorgabe: Unit-Test in
+  `internal/hexagon/services` ohne Wettlauf — die Session hat abgeschlossene Interaktionen,
+  ist als nicht unterstützt markiert und hat eine laufende Interaktion; `CloseSession` mit
+  `EndForced` liefert `PGR-E4006` mit dem Grund *nicht unterstützte Interaktion*. Mutant M1
+  (Text des Falls ohne abgeschlossene Interaktion) muss rot werden. Der Text nach dem Kopf ist nicht Vertrag
   (`SPEC-034` *Stabilität*), sein Inhalt ist zugesagt und wird geprüft (`AGENTS.md` §3.11).
 - **Info-Zeile: Text und Ort** — Stufe `info` auf `stderr` (`LH-FA-14.a`), Attribut
   `sessions` = angenommene, noch nicht beendete Verbindungen, auch `0`; Schlüssel und Wert
