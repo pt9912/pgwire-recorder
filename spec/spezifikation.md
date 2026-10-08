@@ -911,12 +911,30 @@ Stelle eines Werts sowie Anker, Aliase und Merge-Schlüssel sind ungültig. Ein
 relativer Pfad in der Datei gilt relativ zum aktuellen Verzeichnis wie auf der
 Kommandozeile, nicht zum Verzeichnis der Datei.
 
+Die Datei enthält höchstens ein YAML-Dokument; ein zweites ist ungültiges YAML. Ist
+sie leer oder enthält sie nur Kommentare, setzt sie nichts. Sonst sind die oberste
+Ebene, jeder Abschnitt und `connections:` je eine Abbildung, jede andere Form ist
+ungültig; eine leere Abbildung (`{}`) setzt nichts, ein Abschnitt oder
+`connections:` ohne Inhalt oder mit `null` ist ungültig wie ein leerer Wert. Ein
+ausdrücklich geschriebener Tag (`!!str`, `!!int`, `!x`) ist ungültig wie ein Anker.
+Geprüft wird beim Laden die ganze Datei, unabhängig vom Kommando: auch der Abschnitt
+eines anderen Kommandos und jede Verbindung, auch eine nicht benutzte. Vom Kommando
+hängen nur `sslmode=require` bei `record` und die Variablen der Platzhalter der
+benutzten Verbindung ab.
+
 **Benannte Verbindungen.** Der Wert unter `connections:` ist eine URL der Form
 `postgresql://[benutzer[:passwort]@]host[:port]/datenbank[?parameter]`. Der
 einzige Parameter ist `sslmode` mit den Werten `disable` (Default) und `require`;
 `require` verbindet mit TLS und prüft das Serverzertifikat gegen den
 Zertifikatsspeicher des Systems (strenger als bei libpq); jeder andere Parameter
-oder Wert ist ein Konfigurationsfehler. `--upstream` und der Schlüssel `upstream`
+oder Wert ist ein Konfigurationsfehler. Was diese Form nicht zulässt, ist ein
+ungültiger Wert, auch ein anderes Schema (`postgres://`), ein leerer Host, eine
+fehlende oder leere Datenbank, ein Fragment, ein Parameter ohne `=` und ein
+Parameter, der zweimal steht. Fehlt der Port, gilt `5432`; ein Port sind Ziffern
+mit einem Wert von 1 bis 65535. Ein Teil, den die URL wörtlich schreibt, wird
+prozent-dekodiert; ein ungültiges Escape ist ein ungültiger Wert. Für den Namen
+einer Verbindung gilt die Form eines Werts (Text des Skalars; leer, `null` und Tag
+ungültig), und er enthält kein Steuerzeichen. `--upstream` und der Schlüssel `upstream`
 nehmen den Namen einer Verbindung oder `host:port`; ein Name hat Vorrang vor
 `host:port` und gilt nur bei genauer Übereinstimmung, auch in Groß- und
 Kleinschreibung. Ein Wert, der weder ein Name ist noch die Form `host:port` mit
@@ -942,18 +960,25 @@ schließendes `}` oder mit anderem Namen ist ein ungültiger Wert. In jedem Wert
 Datei steht `$$` für ein `$`, sodass `$${VAR}` den Text `${VAR}` ergibt; ein `$` vor
 einem anderen Zeichen bleibt stehen. Eingesetzt wird einmal: Ein eingesetzter Wert
 wird nicht erneut ausgewertet. Die URL wird vor dem Einsetzen in ihre Teile zerlegt,
-und der Wert steht unverändert in seinem Teil, auch mit `@`, `:`, `/` oder `%`. Ein **Klartext-Passwort** ist ein Passwortteil
+und der Wert steht unverändert in seinem Teil, auch mit `@`, `:`, `/` oder `%`. Die Form der Platzhalter prüft das Laden in jedem
+Teil jeder Verbindung; unbeachtet bleibt bei einer nicht benutzten Verbindung und
+bei `record` in Benutzer, Passwort und Datenbank nur ihre Variable. Platzhalter und
+`$$` gelten im geschriebenen Text, vor der Prozent-Dekodierung. Ein eingesetzter
+Wert wird weder dekodiert noch geprüft, außer im Port: Hat der Port nach dem
+Einsetzen nicht die Form eines Ports, ist das ein ungültiger Wert (`PGR-E2004`).
+Den Host prüft der Start nicht. Ein **Klartext-Passwort** ist ein Passwortteil
 hinter dem `:` im Benutzerteil einer URL, der nicht genau ein `${VAR}` ist, oder ein
-Parameter `password`, in jeder Verbindung der Datei, auch einer nicht benutzten.
+Parameter `password`, in jeder Verbindung der Datei, auch einer nicht benutzten;
+auch ein fehlerhafter Platzhalter im Passwortteil ist ein Klartext-Passwort.
 
 **Fehler.** Jede Ursache trägt einen eigenen Code und nennt in der Meldung die
 Stelle (Schlüssel oder Verbindungsname), nie einen Wert. Der Start endet beim ersten
 Fehler mit einer Meldung; geprüft wird in dieser Reihenfolge: die Kommandozeile; die
 Umgebungsvariablen der Optionen des Kommandos in der Reihenfolge der Tabelle unten;
 die Datei (Wahl, Lesen, YAML, dann Schlüssel, Werte und Klartext-Passwörter in der
-Reihenfolge der Datei); zuletzt, nach der Zusammenführung, Pflichtoptionen,
-Kombinationen, `--upstream` und die Variablen der Platzhalter der benutzten
-Verbindung:
+Reihenfolge der Datei, innerhalb einer URL in der Reihenfolge ihrer Teile); zuletzt,
+nach der Zusammenführung, Pflichtoptionen, Kombinationen, `--upstream`, die Variablen
+der Platzhalter der benutzten Verbindung und danach ihr Port nach dem Einsetzen:
 
 | Ursache | Code |
 |---|---|
@@ -2330,3 +2355,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-08 | Warten in Tests: ein synchroner Aufruf des Prüflings ohne Frist fällt nicht unter die Regel, sie gilt nur für Kanäle und das Ende eines gestarteten Prozesses; Entscheidung des Nutzers (`SPEC-038`) |
 | 2026-10-08 | Konfiguration: Umgebungsvariable mit Präfix ohne passende Option unbeachtet, doppelter Schlüssel ist ungültiges YAML, Name einer Verbindung nur bei genauer Übereinstimmung, Wert weder Name noch `host:port` ungültig, `sslmode=require` bei `record` ist `PGR-E2004`, Klartext-Passwort in jeder Verbindung, `config show` ohne `PGR-E2005`, aktive Umgebungsvariablen (`LH-FA-17.a`) |
 | 2026-10-08 | Konfiguration, Entscheidung des Nutzers: Wert der Datei als Text des Skalars mit der Wertemenge der Option, leerer Wert, `null`, Liste, Abbildung, Anker und Aliase ungültig; kein Schlüssel `config`; relative Pfade zum aktuellen Verzeichnis; leere Variable eines Platzhalters nicht gesetzt, Platzhalter in den von `record` ignorierten Teilen unbeachtet; `$$`, Name und einmaliges Einsetzen in die zerlegte URL; Abbruch beim ersten Fehler und Reihenfolge der Prüfung; Form der Ausgabe von `config show` (`LH-FA-17.a`) |
+| 2026-10-08 | Konfigurationsdatei: höchstens ein YAML-Dokument, leere Datei setzt nichts, oberste Ebene, Abschnitte und `connections:` als Abbildung, leere Abbildung gültig, Abschnitt ohne Inhalt oder mit `null` ungültig, Tags ungültig, Laden prüft die ganze Datei unabhängig vom Kommando; URL: Form außerhalb der Grammatik ungültig, Port-Default `5432` und Form des Ports, Prozent-Dekodierung wörtlicher Teile, Name einer Verbindung; Form der Platzhalter in jedem Teil geprüft, fehlerhafter Platzhalter im Passwort ist Klartext, eingesetzter Port geprüft, Host nicht; Reihenfolge innerhalb einer URL (`LH-FA-17.a`) |

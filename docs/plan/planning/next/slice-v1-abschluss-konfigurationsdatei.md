@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [ADR-0014](../../adr/0014-konfigurationsdatei.md), [ADR-0027](../../adr/0027-yaml-bibliothek.md), [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)
+**Bezug:** [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md), [ADR-0014](../../adr/0014-konfigurationsdatei.md), [ADR-0027](../../adr/0027-yaml-bibliothek.md), [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)
 
 **Berührte Spec-Stellen:** `LH-FA-01.a` · `LH-FA-17.a` · `LH-FA-03.b` · `LH-FA-14.a` · `SPEC-007` · `SPEC-008` · `SPEC-012` · `SPEC-014` · `SPEC-020` · `SPEC-033` · `SPEC-034` · `SPEC-046` · `ARC-005` · `ARC-013`
 
@@ -52,7 +52,8 @@ Geber, über `slice-v1-abschluss-konfiguration` und davor `slice-v1-abschluss-be
 allgemeinen Leser von `slice-v1-abschluss-konfiguration`; keine Option wird ein zweites Mal
 angemeldet. Ein Schlüssel einer Option aus der Tabelle in `LH-FA-17.a`, die der Stand noch
 nicht kennt (etwa `format`, `tls_cert` oder der Abschnitt `play:`), ist bis zu ihrem Slice ein
-unbekannter Schlüssel (`PGR-E2004`); für `output` und `force` ist das Rückgabe 12 in §6. Der
+unbekannter Schlüssel (`PGR-E2004`), auch `output` und `force` bis
+`slice-v1-abschluss-schreiben` (Rückgabe 12 in §6, bestätigt). Der
 Test über alle angemeldeten Optionen läuft dann über drei Quellen.
 
 **Ort des Lesens.** Die Datei liest der CLI-Adapter (`ARC-005`). Die YAML-Bibliothek ist dort
@@ -77,9 +78,12 @@ kein Gate, das bleibt Review.
   mit TLS zum Server. Hier wird `sslmode` geprüft, und `sslmode=require` ist bei `record`
   `PGR-E2004` (`LH-FA-17.a`).
 - Code im Kern, im PGWire-Adapter und in den Driven-Adaptern — Schicht-Abgrenzung: Der
-  Slice ändert den CLI-Adapter und den Bootstrap. Ob `PGR-E2004` bis `PGR-E2006` als
-  Konstanten im Model stehen dürfen, ist offen (§6); bis zur Entscheidung gilt dieser
-  Ausschluss auch für sie.
+  Slice ändert den CLI-Adapter und den Bootstrap. **Einzige Ausnahme:** drei Konstanten
+  `PGR-E2004` bis `PGR-E2006` in der Code-Tabelle `internal/hexagon/model/fehler.go`, ohne
+  Logik — die Tabelle ist die eine Code-Tabelle im Quelltext
+  ([ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md), Konsequenzen), und dort steht
+  schon `PGR-E2001`, das nur der CLI-Adapter und der Bootstrap erzeugen (Entscheidung des
+  Architect vom 2026-10-08, §6).
 
 ## 2. Definition of Done
 
@@ -120,9 +124,9 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/lastenheft.md` (`LH-FA-17.a`), gegebenenfalls eine ADR | update (Architect, vor dem Code) | Entscheidung der zwölf Rückgaben und des Orts der Konstanten aus §6 (`AGENTS.md` §3.12) |
+| `spec/spezifikation.md` (`LH-FA-17.a`) | update (Architect, vor dem Code, erledigt am 2026-10-08) | Entscheidung der zwölf Rückgaben aus §6 (`AGENTS.md` §3.12) |
 | `internal/adapters/driving/cli` | update | Wahl und Laden der Datei (`--config`, `PGWIRE_RECORDER_CONFIG`, Standarddatei); Schlüssel aus der Anmeldung am allgemeinen Leser als dritte Quelle der Priorität; `fail_on_unconsumed`, `log_level`, Frist; `connections`, `${VAR}`, `$${VAR}`, `sslmode`; Auflösen des Namens bei `--upstream` zu `host:port`; Kommando `config show` und seine Hilfe |
-| `internal/hexagon/model/fehler.go` oder `internal/adapters/driving/cli` | offen (§6) | Konstanten `PGR-E2004` bis `PGR-E2006`; der Ort ist eine Frage an den Architect |
+| `internal/hexagon/model/fehler.go` | update | nur die drei Konstanten `PGR-E2004` bis `PGR-E2006` in der Code-Tabelle (§1, Ausnahme; §6) |
 | `internal/bootstrap` | update | `config show` ausführen (Ausgabe auf `stdout`); die zusammengeführten Optionen an die Use Cases geben |
 | `internal/adapters/driving/cli` (Unit-Tests), `internal/bootstrap` (Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a` und `LH-FA-01.a`; der Test über alle angemeldeten Optionen läuft über drei Quellen |
 | `docs/user/benutzerhandbuch.md` | update, falls abweichend | §4 *Die gewählte Konfigurationsdatei anzeigen* und §5 *Konfigurationsdatei* beschreiben den Zielstand; nachgezogen wird, was die Entscheidungen aus §6 ändern |
@@ -135,8 +139,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-konfiguration` liegt in `done/` (der
 allgemeine Leser, aus dessen Anmeldung die Schlüssel folgen). Schritt 4 der Reihenfolge in §5
 von [welle-v1-abschluss](../welle-v1-abschluss.md) (Entscheidung des Nutzers vom 2026-10-08).
-Vor dem ersten Code-Commit entscheidet der Architect die zwölf offenen Randformen und den Ort
-der Konstanten aus §6 (`AGENTS.md` §3.12); bis dahin beginnt kein Code.
+Die zwölf Randformen und den Ort der Konstanten aus §6 entschied der Architect am 2026-10-08
+vor dem Code (`AGENTS.md` §3.12).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -165,8 +169,8 @@ dasteht.
 
 **Randformen** (`AGENTS.md` §3.12) — je Randform, wo sie entschieden ist. Die entschiedenen
 zogen mit dem Schnitt aus §6 von `slice-v1-abschluss-konfiguration` hierher; der Architect
-prüfte sie dort am 2026-10-08 vor dem Code. **Zwölf sind offen**, dazu der Ort der Konstanten
-(unten).
+prüfte sie dort am 2026-10-08 vor dem Code. Die zwölf Rückgaben des Implementers und den Ort
+der Konstanten entschied er am 2026-10-08 hier, vor dem Code (unten); offen ist keine.
 
 *Umgebung, soweit sie die Datei betrifft*
 
@@ -243,32 +247,57 @@ prüfte sie dort am 2026-10-08 vor dem Code. **Zwölf sind offen**, dazu der Ort
   2026-10-08, `LH-FA-17.a`.
 
 
-*Offen — Rückgaben des Implementers vom 2026-10-08 an den Architect* (wörtlich; aus dem
-abgebrochenen Lauf an `slice-v1-abschluss-konfiguration`). Offen: Der Architect entscheidet
-jede vor dem Code in `LH-FA-17.a` oder einer ADR.
+*Rückgaben des Implementers vom 2026-10-08* (aus dem abgebrochenen Lauf an
+`slice-v1-abschluss-konfiguration`), entschieden vom Architect am 2026-10-08 vor dem Code,
+alle in `LH-FA-17.a`, abgeleitet aus den Grundsätzen dort: Text des Skalars zählt, Laden ohne
+Kommando (`config show` prüft die Datei ohne Kommando, also prüft jedes Kommando sie ganz),
+geschlossene Fehlertabelle, URL vor dem Einsetzen zerlegt, Abbruch beim ersten Fehler.
 
-1. Leere Datei oder nur Kommentare: keine Einstellung oder PGR-E2004?
-2. Mehrere YAML-Dokumente (`---`): PGR-E2004, oder gilt nur das erste?
-3. Oberste Ebene keine Abbildung: bestätigen, PGR-E2004?
-4. Leerer Abschnitt (`record:` ohne Inhalt, `null`, `{}`) und leeres `connections:`: gültig oder PGR-E2004?
-5. Abschnitt eines anderen Kommandos (`replay:` bei `record`): mitprüfen?
-6. URL ohne Port bei `record`: Port 5432 oder ungültig?
-7. Platzhalter-Syntax in ignorierten Teilen (`${A` ohne `}`): unbeachtet oder ungültig?
-8. Eingesetzter Wert macht seinen Teil ungültig (Port nicht numerisch, Host mit `/`): welcher Code, und wann geprüft?
-9. YAML-Tags (`!!str`, `!!int 5`, `!x`): Text des Skalars oder ungültig?
-10. URL-Sonderformen (doppelter `sslmode`, Parameter ohne Wert, Fragment, Schema `postgres://`): ungültig?
-11. Name einer Verbindung (leer, mit Leerraum): eine Form oder jeder Name zulässig?
-12. Schlüssel `output` und `force` in der Datei, bis `slice-v1-abschluss-schreiben` sie anmeldet: unbekannt (PGR-E2004) oder schon angenommen?
+1. **Leere Datei oder nur Kommentare** — setzt nichts, kein Fehler; keine Ursache der
+   Fehlertabelle trifft zu.
+2. **Mehrere YAML-Dokumente** — ein zweites Dokument ist ungültiges YAML (`PGR-E2004`); es
+   still zu übergehen, ließe Eingabe unbeachtet ([ADR-0014](../../adr/0014-konfigurationsdatei.md): jede unbekannte Eingabe ist ein
+   Startfehler). Ein einzelnes `---` vor dem einen Dokument ist zulässig.
+3. **Oberste Ebene keine Abbildung** — `PGR-E2004`.
+4. **Leerer Abschnitt, leeres `connections:`** — `{}` setzt nichts; ohne Inhalt oder `null`
+   ist `PGR-E2004` wie ein leerer Wert. Akzeptiertes Negativ: Ein Abschnitt, dessen Inhalt
+   ganz auskommentiert ist, wird damit ungültig; das folgt der Strenge bei `null`
+   (Entscheidung des Nutzers), und die Meldung nennt den Abschnitt.
+5. **Abschnitt eines anderen Kommandos** — mitgeprüft, ebenso jede nicht benutzte Verbindung;
+   vom Kommando hängen nur `sslmode=require` bei `record` und die Variablen der Platzhalter
+   ab.
+6. **URL ohne Port** — Port `5432`; die Grammatik lässt den Port weg. Ein Port sind Ziffern
+   mit Wert 1 bis 65535, sonst `PGR-E2004`.
+7. **Platzhalter-Syntax in ignorierten Teilen** — geprüft beim Laden, `PGR-E2004`;
+   unbeachtet ist dort nur die Variable. Im Passwortteil ist ein fehlerhafter Platzhalter
+   ein Klartext-Passwort (`PGR-E2006`).
+8. **Eingesetzter Wert macht seinen Teil ungültig** — nur der Port wird nach dem Einsetzen
+   geprüft: `PGR-E2004`, im letzten Schritt direkt nach den Variablen der benutzten
+   Verbindung (`PGR-E2005`). Den Host prüft der Start nicht; ein Host mit `/` scheitert beim
+   Verbindungsaufbau.
+9. **YAML-Tags** — jeder ausdrücklich geschriebene Tag ist `PGR-E2004`, wie Anker und Aliase;
+   ein Tag behauptet eine Bedeutung jenseits des Texts.
+10. **URL-Sonderformen** — was die Grammatik nicht zulässt, ist `PGR-E2004`: Schema
+    `postgres://`, leerer Host, fehlende oder leere Datenbank, Fragment, Parameter ohne `=`,
+    ein Parameter zweimal (auch `sslmode`). Wörtliche Teile werden prozent-dekodiert, ein
+    ungültiges Escape ist `PGR-E2004`; Platzhalter und `$$` gelten vor der Dekodierung, ein
+    eingesetzter Wert wird nicht dekodiert. Prozent-Dekodierung fehlte in der Liste; sie
+    folgt aus „Wert unverändert, auch mit `%`“ und ist mit entschieden. Innerhalb einer URL
+    gilt die Reihenfolge ihrer Teile.
+11. **Name einer Verbindung** — Form eines Werts (Text des Skalars; leer, `null`, Tag
+    ungültig), dazu kein Steuerzeichen, weil die Meldung den Namen in einer Zeile nennt
+    (`SPEC-034`); sonst jeder Name, auch mit Leerraum.
+12. **`output` und `force` in der Datei** — bis `slice-v1-abschluss-schreiben` unbekannte
+    Schlüssel (`PGR-E2004`); bestätigt den Stand aus §1 dieses Slice und von
+    `slice-v1-abschluss-schreiben` (dort §1), keiner der beiden ändert sich. Steht nicht in
+    der Spezifikation, weil sie den Zielstand beschreibt.
 
-Stand des Plans zu 12: §1 von `slice-v1-abschluss-konfiguration` nannte einen Schlüssel einer
-Option, die der Stand nicht kennt, bis zu ihrem Slice unbekannt; danach sind `output` und
-`force` hier `PGR-E2004`, und `slice-v1-abschluss-schreiben` nimmt sie mit der Anmeldung an
-(dort §1). Entscheidet der Architect anders, zieht er §1 beider Slices im selben Commit nach.
-
-*Offen — Ort der Konstanten:* Gehören PGR-E2004, PGR-E2005 und PGR-E2006 als Konstanten in den
-CLI-Adapter, mit engerem Model-Kommentar, oder ist eine Ausnahme für drei Konstanten im Model
-zulässig? §1 schließt den Kern aus. Offen: Der Architect entscheidet vor dem Code; bei
-*Model* trägt §1 die Ausnahme mit Begründung nach.
+*Ort der Konstanten* — im Model, `internal/hexagon/model/fehler.go`, als drei Konstanten ohne
+Logik (§1, Ausnahme). Grund: [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) führt eine Code-Tabelle im Quelltext, die mit dem
+Katalog gleich bleibt, und der Bestand legt dort schon Codes ab, die nur ein Adapter erzeugt
+(`PGR-E2001` im CLI-Adapter, `PGR-E4001` im PGWire-Adapter, `PGR-E3001` im Recording-Adapter); eine zweite Tabelle im
+CLI-Adapter wäre eine zweite Quelle. Keine ADR nötig: Die Entscheidung folgt aus
+[ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) und dem Bestand.
 
 Aus `slice-v1-abschluss-konfiguration` zieht kein Risiko mit: Dessen Risiko der Einzel-Leser
 bleibt dort, das zu [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) ist entfallen (die ADR ist `Accepted`).
@@ -327,7 +356,7 @@ unter `evidence/`). Treffer:
 - `BEO-REPO/spec-randform-erst-im-review-entschieden` (14×, verkörpert in `AGENTS.md` §3.12)
   und `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (4×, verkörpert) — der
   Implementer hielt an und gab zwölf Randformen zurück, statt sie im Code zu entscheiden;
-  darum stehen sie in §6 offen, und der Start in §4 verlangt ihre Entscheidung vor dem Code.
+  der Architect entschied sie vor dem Code (§6).
 - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (15×, `AGENTS.md` §3.10) und
   `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (21×, §3.11) — je Zusage eine
   Mutation, Beleg in §7.
