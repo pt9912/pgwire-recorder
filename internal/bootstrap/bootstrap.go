@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
+	"time"
 
 	"github.com/pt9912/pgwire-recorder/internal/adapters/driven/postgres"
 	"github.com/pt9912/pgwire-recorder/internal/adapters/driven/recording"
@@ -22,9 +24,12 @@ var (
 )
 
 // Run führt einen Aufruf aus und liefert den Exit-Code (SPEC-013 bis SPEC-019).
-// `record` und `replay` laufen, bis ctx endet; danach endet jede Verbindung nach
-// ihrer laufenden Interaktion. Die Signalbehandlung liegt beim Aufrufer.
-func Run(ctx context.Context, args []string, version string, stdout, stderr io.Writer) int {
+// `record` und `replay` laufen, bis ctx endet (erstes Signal); danach endet
+// jede Verbindung nach ihrer laufenden Interaktion, höchstens bis zum Ablauf
+// der Frist --shutdown-timeout oder bis ablauf geschlossen wird (zweites
+// Signal), dann zwangsweise (LH-FA-13.a). Die Signalbehandlung liegt beim
+// Aufrufer; ein nil-Kanal ablauf wird nie geschlossen.
+func Run(ctx context.Context, ablauf <-chan struct{}, args []string, version string, stdout, stderr io.Writer) int {
 	cmd, err := cli.Parse(args, stdout)
 	if errors.Is(err, cli.ErrHelp) {
 		return 0
@@ -38,7 +43,7 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 		fmt.Fprintln(stdout, "pgwire-recorder", version)
 		return 0
 	case "record":
-		return record(ctx, cmd.Record, logger(stderr, cmd.Record.LogLevel), stderr)
+		return record(ctx, ablauf, cmd.Record, logger(stderr, cmd.Record.LogLevel), stderr)
 	case "replay":
 		return replay(ctx, cmd.Replay, logger(stderr, cmd.Replay.LogLevel), stderr)
 	default:
@@ -46,8 +51,10 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 	}
 }
 
-func record(ctx context.Context, o cli.RecordOptions, log *slog.Logger, stderr io.Writer) int {
-	service, err := services.NewRecordService(ctx, &postgres.Upstream{Address: o.Upstream}, recording.YAML{}, o.Output, o.Force)
+func record(ctx context.Context, ablauf <-chan struct{}, o cli.RecordOptions, log *slog.Logger, stderr io.Writer) int {
+	// Ein Signal in der Startphase bricht die Startprüfungen nicht ab
+	// (LH-FA-13.a *Startphase*).
+	service, err := services.NewRecordService(context.WithoutCancel(ctx), &postgres.Upstream{Address: o.Upstream}, recording.YAML{}, o.Output, o.Force)
 	if err != nil {
 		return fail(stderr, err)
 	}
@@ -58,15 +65,7 @@ func record(ctx context.Context, o cli.RecordOptions, log *slog.Logger, stderr i
 	log.Info("record gestartet", "listen", l.Addr().String(), "upstream", o.Upstream)
 
 	server := pgwire.NewRecordServer(service, log)
-	done := make(chan struct{})
-	go func() {
-		server.Serve(ctx, l)
-		close(done)
-	}()
-
-	<-ctx.Done()
-	l.Close()
-	<-done
+	betreiben(ctx, ablauf, l, server, o.ShutdownTimeout, log)
 
 	if err := service.Finish(context.WithoutCancel(ctx)); err != nil {
 		return fail(stderr, err)
@@ -116,6 +115,38 @@ func replay(ctx context.Context, o cli.ReplayOptions, log *slog.Logger, stderr i
 	}
 	log.Info("replay beendet")
 	return exitCode(code)
+}
+
+// betreiben nimmt auf l Verbindungen an, bis ctx endet, und fährt dann
+// herunter (LH-FA-13.a): Es nimmt keine Verbindung mehr an, schreibt die Zeile
+// der Stufe info mit dem Attribut sessions und wartet auf die Verbindungen,
+// höchstens frist lang (0 ohne Frist) und nicht länger, als ablauf offen ist;
+// danach beendet es die übrigen zwangsweise und wartet auf ihr Ende.
+func betreiben(ctx context.Context, ablauf <-chan struct{}, l net.Listener, server *pgwire.Server, frist time.Duration, log *slog.Logger) {
+	done := make(chan struct{})
+	go func() {
+		server.Serve(ctx, l)
+		close(done)
+	}()
+
+	<-ctx.Done()
+	l.Close()
+	log.Info("Herunterfahren begonnen", "sessions", server.Offen())
+
+	var fristAbgelaufen <-chan time.Time
+	if frist > 0 {
+		t := time.NewTimer(frist)
+		defer t.Stop()
+		fristAbgelaufen = t.C
+	}
+	select {
+	case <-done:
+		return
+	case <-fristAbgelaufen:
+	case <-ablauf:
+	}
+	server.Zwangsende()
+	<-done
 }
 
 // stufen bildet die Werte von --log-level auf die Stufen des Loggers ab

@@ -92,4 +92,7 @@ const (
 	EndUnsupported
 	// EndFailed heißt: Ein Aufruf des Use Case endete mit einem Fehler.
 	EndFailed
+	// EndForced heißt: Die Frist beim Herunterfahren ist abgelaufen, und der
+	// Adapter hat die Verbindung zwangsweise beendet (LH-FA-13.a).
+	EndForced
 )

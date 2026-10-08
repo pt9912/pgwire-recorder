@@ -1,0 +1,378 @@
+package pgwire_test
+
+import (
+	"context"
+	"io"
+	"log/slog"
+	"net"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgproto3"
+
+	"github.com/pt9912/pgwire-recorder/internal/adapters/driving/pgwire"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+)
+
+// e4006 liefert den Fehler, den der Use Case beim Zwangsende einer laufenden
+// Interaktion liefert.
+func e4006() *model.Error {
+	return model.Errorf(model.CodeShutdownTimeout, nil, "Frist beim Herunterfahren abgelaufen: Interaktion 2 nicht abgeschlossen und verworfen; die Session wird als Session 1 geschrieben")
+}
+
+// recordMitZwang startet eine Record-Verbindung über net.Pipe mit ctx und liest
+// den Verbindungsaufbau, wenn aufbau gesetzt ist; fertig ist geschlossen, wenn
+// Handle zurückkehrt.
+func recordMitZwang(ctx context.Context, t *testing.T, rec *fakeRecorder, log io.Writer, aufbau bool) (net.Conn, *pgproto3.Frontend, *pgwire.Server, chan struct{}) {
+	t.Helper()
+	client, serverSeite := net.Pipe()
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(log, nil)))
+	fertig := make(chan struct{})
+	go func() {
+		pgwire.Handle(ctx, s, serverSeite)
+		close(fertig)
+	}()
+	t.Cleanup(func() { client.Close() })
+	_ = client.SetDeadline(time.Now().Add(10 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	if aufbau {
+		startup(t, fe)
+	}
+	return client, fe, s, fertig
+}
+
+// zurueckBinnen wartet höchstens frist, bis fertig geschlossen ist.
+func zurueckBinnen(t *testing.T, fertig chan struct{}, frist time.Duration, was string) {
+	t.Helper()
+	select {
+	case <-fertig:
+	case <-time.After(frist):
+		t.Fatalf("%s: Verbindung endet nicht binnen %v", was, frist)
+	}
+}
+
+// laufendeInteraktion beginnt eine Extended-Interaktion ohne Sync und fährt
+// herunter: Der Use Case gibt das Ende nicht frei, die Sitzung wartet.
+func laufendeInteraktion(t *testing.T, rec *fakeRecorder, fe *pgproto3.Frontend, cancel context.CancelFunc) {
+	t.Helper()
+	sende := nebenher(fe)
+	sende(&pgproto3.Parse{Query: "SELECT 2"})
+	warteAuf(t, rec, "c:parse")
+	cancel()
+	warteAuf(t, rec, "shutdown")
+}
+
+// Abdeckung: LH-FA-13/Boundary — Record im Adapter: läuft beim Zwangsende eine
+// Interaktion, meldet die Sitzung dem Use Case EndForced, stellt dem Client
+// den Fehler PGR-E4006 zu (FATAL, SQLSTATE 08006), merkt ihn als ersten Fehler
+// und schreibt ihn als Log-Zeile der Stufe error (LH-FA-13.a *Meldung*).
+func TestRecordZwangsendeZustellung(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rec := &fakeRecorder{zwangErr: e4006()}
+	log := &syncBuffer{}
+	_, fe, s, fertig := recordMitZwang(ctx, t, rec, log, true)
+	laufendeInteraktion(t, rec, fe, cancel)
+
+	s.Zwangsende()
+	e := fehlerantwort(t, fe)
+	if e.Severity != "FATAL" || e.Code != "08006" || e.Message != e4006().Error() {
+		t.Fatalf("ErrorResponse %+v", e)
+	}
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende")
+	if got := rec.protokoll(); !strings.HasSuffix(got, "ende:6") || strings.Count(got, "ende:") != 1 {
+		t.Fatalf("Protokoll %q, erwartet genau ein Ende EndForced (6)", got)
+	}
+	if s.FirstErrorCode() != model.CodeShutdownTimeout {
+		t.Fatalf("erster Fehler %q", s.FirstErrorCode())
+	}
+	if !strings.Contains(log.String(), "level=ERROR") || !strings.Contains(log.String(), "code=PGR-E4006") {
+		t.Fatalf("Log %s", log.String())
+	}
+}
+
+// Abdeckung: LH-FA-13/Negative — Record im Adapter: liest der Client beim
+// Zwangsende nicht, dauert das Schreiben der Fehlerantwort höchstens 1 s
+// (SPEC-051); die Sitzung kehrt binnen 2 s zurück und merkt PGR-E4006.
+func TestRecordZwangsendeClientLiestNicht(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rec := &fakeRecorder{zwangErr: e4006()}
+	_, fe, s, fertig := recordMitZwang(ctx, t, rec, io.Discard, true)
+	laufendeInteraktion(t, rec, fe, cancel)
+
+	s.Zwangsende()
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende ohne lesenden Client")
+	if s.FirstErrorCode() != model.CodeShutdownTimeout {
+		t.Fatalf("erster Fehler %q", s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Record im Adapter: ohne laufende Interaktion
+// meldet die Sitzung beim Zwangsende nur EndForced; das Schließen der
+// Verbindung durch das Zwangsende ist kein weiteres Verbindungsende, der Client
+// erhält keine Fehlerantwort, und kein Fehler wird gemerkt (LH-FA-13.a
+// *Zwangsende*).
+func TestRecordZwangsendeOhneMeldung(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rec := &fakeRecorder{}
+	_, fe, s, fertig := recordMitZwang(ctx, t, rec, io.Discard, true)
+	laufendeInteraktion(t, rec, fe, cancel)
+
+	s.Zwangsende()
+	if msg, err := fe.Receive(); err == nil {
+		t.Fatalf("Nachricht beim Zwangsende ohne Meldung: %#v", msg)
+	}
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende")
+	if got := rec.protokoll(); !strings.HasSuffix(got, "ende:6") || strings.Count(got, "ende:") != 1 {
+		t.Fatalf("Protokoll %q, erwartet genau ein Ende EndForced (6)", got)
+	}
+	if s.FirstErrorCode() != "" {
+		t.Fatalf("Fehler gemerkt: %q", s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Record im Adapter: hat die Sitzung das Ende
+// der Verbindung vor dem Ablauf bemerkt (hier Terminate), endet sie nicht
+// zwangsweise, auch wenn ihr Ende beim Zwangsende noch läuft: Der Use Case
+// erhält genau ein Ende, EndTerminate (LH-FA-13.a *Was die Frist begrenzt*).
+func TestRecordZwangsendeNachBemerktemEnde(t *testing.T) {
+	rec := &fakeRecorder{closeHalt: make(chan struct{}), closeLaeuft: make(chan struct{}), zwangErr: e4006()}
+	_, fe, s, fertig := recordMitZwang(context.Background(), t, rec, io.Discard, true)
+	sende := nebenher(fe)
+	sende(&pgproto3.Terminate{})
+	<-rec.closeLaeuft
+
+	s.Zwangsende()
+	time.Sleep(100 * time.Millisecond)
+	close(rec.closeHalt)
+	zurueckBinnen(t, fertig, 2*time.Second, "Ende nach Terminate")
+	time.Sleep(100 * time.Millisecond)
+	if got := rec.protokoll(); got != "ende:1" {
+		t.Fatalf("Protokoll %q, erwartet genau ein Ende EndTerminate (1)", got)
+	}
+	if s.FirstErrorCode() != "" {
+		t.Fatalf("Fehler gemerkt: %q", s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Record im Adapter: ein zweiter Aufruf von
+// Zwangsende ändert nichts. Ohne laufende Interaktion meldet die Sitzung
+// beim Zwangsende nur EndForced; das Schließen der Verbindung durch das
+// Zwangsende ist kein weiteres Verbindungsende.
+func TestZwangsendeZweimal(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rec := &fakeRecorder{}
+	_, fe, s, fertig := recordMitZwang(ctx, t, rec, io.Discard, true)
+	laufendeInteraktion(t, rec, fe, cancel)
+	s.Zwangsende()
+	s.Zwangsende()
+	zurueckBinnen(t, fertig, 2*time.Second, "zweimal Zwangsende")
+	if got := rec.protokoll(); strings.Count(got, "ende:") != 1 {
+		t.Fatalf("Protokoll %q", got)
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Record im Adapter: die Verbindungen enden
+// beim Zwangsende nebeneinander. Drei Sessions, deren Clients nicht lesen,
+// brauchen je bis zu 1 s für die Fehlerantwort (SPEC-051); zusammen enden sie
+// binnen 2 s (SPEC-051, Begründung: die Frist addiert sich nicht).
+func TestZwangsendeNebeneinander(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rec := &fakeRecorder{zwangErr: e4006()}
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	var alle []chan struct{}
+	for i := 0; i < 3; i++ {
+		client, serverSeite := net.Pipe()
+		t.Cleanup(func() { client.Close() })
+		fertig := make(chan struct{})
+		go func() {
+			pgwire.Handle(ctx, s, serverSeite)
+			close(fertig)
+		}()
+		_ = client.SetDeadline(time.Now().Add(10 * time.Second))
+		fe := pgproto3.NewFrontend(client, client)
+		startup(t, fe)
+		sende := nebenher(fe)
+		sende(&pgproto3.Parse{Query: "SELECT 2"})
+		alle = append(alle, fertig)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for strings.Count(rec.protokoll(), "c:parse") < 3 {
+		if time.Now().After(deadline) {
+			t.Fatalf("Protokoll %q", rec.protokoll())
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	cancel()
+	start := time.Now()
+	s.Zwangsende()
+	for _, fertig := range alle {
+		zurueckBinnen(t, fertig, 2*time.Second-time.Since(start), "drei Sessions ohne lesenden Client")
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Record im Adapter: im Verbindungsaufbau zum
+// Upstream wartet das Zwangsende nicht auf den Aufbau; die Verbindung endet
+// ohne Fehlerantwort und ohne gemerkten Fehler. Eine Session, die der Aufbau
+// danach noch liefert, beendet der Adapter mit EndForced (LH-FA-13.a
+// *Zwangsende*).
+func TestRecordZwangsendeImAufbau(t *testing.T) {
+	rec := &fakeRecorder{openHalt: make(chan struct{}), openLaeuft: make(chan struct{})}
+	client, fe, s, fertig := recordMitZwang(context.Background(), t, rec, io.Discard, false)
+	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "app"}})
+	go func() { _ = fe.Flush() }()
+	<-rec.openLaeuft
+
+	s.Zwangsende()
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende im Aufbau")
+	if n, err := client.Read(make([]byte, 1)); err == nil {
+		t.Fatalf("Antwort erhalten (%d Bytes) statt geschlossener Verbindung", n)
+	}
+	if s.FirstErrorCode() != "" {
+		t.Fatalf("Fehler gemerkt: %q", s.FirstErrorCode())
+	}
+	close(rec.openHalt)
+	if end := rec.lastEnd(t); end != model.EndForced {
+		t.Fatalf("späte Session endet mit %v, erwartet EndForced", end)
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Offen zählt die angenommenen Verbindungen,
+// deren Behandlung nicht beendet ist (Attribut sessions, LH-FA-13.a): zwei
+// offene Verbindungen sind 2, nach dem Ende der einen 1, nach dem der anderen 0.
+func TestOffeneVerbindungen(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := pgwire.NewRecordServer(&fakeRecorder{}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	served := make(chan struct{})
+	go func() {
+		s.Serve(context.Background(), l)
+		close(served)
+	}()
+	defer func() {
+		l.Close()
+		zurueckBinnen(t, served, 5*time.Second, "Serve")
+	}()
+	warteOffen := func(want int) {
+		t.Helper()
+		deadline := time.Now().Add(2 * time.Second)
+		for s.Offen() != want {
+			if time.Now().After(deadline) {
+				t.Fatalf("Offen %d, erwartet %d", s.Offen(), want)
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+	}
+	warteOffen(0)
+	a, err := net.Dial("tcp", l.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := net.Dial("tcp", l.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	warteOffen(2)
+	a.Close()
+	warteOffen(1)
+	b.Close()
+	warteOffen(0)
+}
+
+// Abdeckung: LH-FA-13/Boundary — Record im Adapter: wartet die Client-Richtung
+// beim Zwangsende in einer Anfrage auf den Use Case, endet sie mit dessen Ende;
+// die Sitzung kehrt erst zurück, wenn der Fehler PGR-E4006 gemerkt und
+// zugestellt ist, auch wenn der Use Case ihn erst danach liefert.
+func TestRecordZwangsendeWaehrendAnfrage(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rec := &fakeRecorder{queryHalt: make(chan struct{}), zwangErr: e4006(), zwangVerzoegerung: 200 * time.Millisecond}
+	_, fe, s, fertig := recordMitZwang(ctx, t, rec, io.Discard, true)
+	sende := nebenher(fe)
+	sende(&pgproto3.Query{String: "SELECT pg_sleep(60)"})
+	warteAuf(t, rec, "q:SELECT pg_sleep(60)")
+	cancel()
+	antwort := make(chan pgproto3.BackendMessage, 1)
+	go func() {
+		msg, _ := fe.Receive()
+		antwort <- msg
+	}()
+
+	s.Zwangsende()
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende während einer Anfrage")
+	if s.FirstErrorCode() != model.CodeShutdownTimeout {
+		t.Fatalf("Sitzung kehrt zurück, bevor PGR-E4006 gemerkt ist: %q", s.FirstErrorCode())
+	}
+	select {
+	case msg := <-antwort:
+		if e, ok := msg.(*pgproto3.ErrorResponse); !ok || !strings.Contains(e.Message, model.CodeShutdownTimeout) {
+			t.Fatalf("Client erhält %#v statt PGR-E4006", msg)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Client erhält binnen 2 s keine Nachricht")
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Record im Adapter: scheitert das Senden des
+// Verbindungsaufbaus an den Client, weil das Zwangsende die Verbindung
+// geschlossen hat, ist das kein weiteres Verbindungsende: Mit Session meldet die
+// Sitzung EndForced statt EndWriteFailed, ohne Session (Fehlerantwort des
+// Servers im Aufbau) merkt sie kein PGR-E4003 (LH-FA-13.a *Zwangsende*).
+func TestRecordZwangsendeBeimSendenDesAufbaus(t *testing.T) {
+	for _, f := range []struct {
+		name         string
+		aufbauFehler bool
+		wantEnde     string
+	}{
+		{"mit Session", false, "ende:6"},
+		{"Fehlerantwort des Servers", true, ""},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			rec := &fakeRecorder{aufbauFehler: f.aufbauFehler}
+			_, fe, s, fertig := recordMitZwang(context.Background(), t, rec, io.Discard, false)
+			fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "app"}})
+			go func() { _ = fe.Flush() }()
+			// Der Client liest den Aufbau nicht: das Senden blockiert.
+			time.Sleep(100 * time.Millisecond)
+
+			s.Zwangsende()
+			zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende beim Senden des Aufbaus")
+			if got := rec.protokoll(); got != f.wantEnde {
+				t.Fatalf("Protokoll %q, erwartet %q", got, f.wantEnde)
+			}
+			if s.FirstErrorCode() != "" {
+				t.Fatalf("Fehler gemerkt: %q", s.FirstErrorCode())
+			}
+		})
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Record im Adapter: das Zwangsende bricht den
+// Kontext des Verbindungsaufbaus beim Use Case ab, und dessen Fehler wird nicht
+// gemerkt (LH-FA-13.a *Zwangsende*).
+func TestRecordZwangsendeBrichtAufbauAb(t *testing.T) {
+	rec := &fakeRecorder{openMitKontext: true, openLaeuft: make(chan struct{}), openAbgebrochen: make(chan struct{})}
+	_, fe, s, fertig := recordMitZwang(context.Background(), t, rec, io.Discard, false)
+	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "app"}})
+	go func() { _ = fe.Flush() }()
+	<-rec.openLaeuft
+
+	s.Zwangsende()
+	zurueckBinnen(t, fertig, 2*time.Second, "Zwangsende im Aufbau")
+	select {
+	case <-rec.openAbgebrochen:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Kontext des Aufbaus nicht abgebrochen")
+	}
+	time.Sleep(50 * time.Millisecond)
+	if s.FirstErrorCode() != "" {
+		t.Fatalf("Fehler gemerkt: %q", s.FirstErrorCode())
+	}
+}

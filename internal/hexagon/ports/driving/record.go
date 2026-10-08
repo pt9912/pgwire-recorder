@@ -58,6 +58,7 @@ type Recorder interface {
 	// CloseSession beendet die Session mit dem gemeldeten Ereignis
 	// (model.SessionEnd) und schließt den Upstream. Der Fehler nennt einen
 	// Verbindungsfehler, den der Use Case aus dem Ereignis ableitet (etwa
-	// PGR-E4003), und einen Fehler beim Schreiben der Aufzeichnung.
+	// PGR-E4003, beim Zwangsende model.EndForced PGR-E4006), und einen Fehler
+	// beim Schreiben der Aufzeichnung.
 	CloseSession(ctx context.Context, id model.SessionID, end model.SessionEnd) error
 }

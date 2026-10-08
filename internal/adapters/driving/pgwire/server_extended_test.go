@@ -686,8 +686,8 @@ func TestToMessageExtended(t *testing.T) {
 
 // Abdeckung: LH-FA-13/Negative — endet eine Session mit einer Fehlerantwort,
 // während die Server-Richtung an einem Client schreibt, der nicht liest,
-// schreibt der Adapter höchstens meldeFrist lang, meldet PGR-E6001 und kehrt
-// danach zurück.
+// schreibt der Adapter höchstens 1 s lang (SPEC-051), meldet PGR-E6001 und
+// kehrt binnen 2 s zurück.
 func TestFehlerantwortMitFrist(t *testing.T) {
 	rec := &fakeRecorder{server: make(chan []model.Response, 1)}
 	client, serverSeite := net.Pipe()
@@ -708,10 +708,12 @@ func TestFehlerantwortMitFrist(t *testing.T) {
 	rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
 	time.Sleep(50 * time.Millisecond)
 	sende(&pgproto3.FunctionCall{Function: 1})
+	// Die Schranke steht als Literal: meldeFrist ist 1 s (SPEC-051), dazu 1 s
+	// für den Lauf.
 	select {
 	case <-zurueck:
-	case <-time.After(pgwire.MeldeFrist + time.Second):
-		t.Fatalf("Sitzung kehrt nicht binnen %v zurück, solange der Client nicht liest", pgwire.MeldeFrist+time.Second)
+	case <-time.After(2 * time.Second):
+		t.Fatal("Sitzung kehrt nicht binnen 2 s zurück, solange der Client nicht liest")
 	}
 	if end := rec.lastEnd(t); end != model.EndUnsupported || s.FirstErrorCode() != model.CodeUnsupported {
 		t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())

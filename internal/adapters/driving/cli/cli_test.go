@@ -15,7 +15,7 @@ func TestParseRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := cli.RecordOptions{Listen: ":15432", Upstream: "pg:5432", Output: "r.yaml", Force: true, LogLevel: cli.LogInfo}
+	want := cli.RecordOptions{Listen: ":15432", Upstream: "pg:5432", Output: "r.yaml", Force: true, LogLevel: cli.LogInfo, ShutdownTimeout: cli.StandardFrist}
 	if cmd.Name != "record" || cmd.Record != want {
 		t.Fatalf("erhalten %#v", cmd)
 	}

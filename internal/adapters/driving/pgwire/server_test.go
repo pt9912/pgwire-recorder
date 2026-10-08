@@ -49,6 +49,23 @@ type fakeRecorder struct {
 	// neueNachShutdown: nach dem ersten Shutdown liefert ClientMessage für
 	// parse ErrShutdown, wie der Use Case für eine neue Interaktion.
 	neueNachShutdown bool
+	// zwangErr liefert CloseSession für EndForced statt closeErr, nach
+	// zwangVerzoegerung und nachdem es wartende Aufrufe beendet hat.
+	zwangErr          error
+	zwangVerzoegerung time.Duration
+	// openHalt lässt OpenSession warten, bis der Kanal geschlossen ist; vorher
+	// schließt OpenSession openLaeuft, wenn er gesetzt ist.
+	openHalt   chan struct{}
+	openLaeuft chan struct{}
+	// openMitKontext lässt OpenSession warten, bis sein Kontext endet, und
+	// schließt dann openAbgebrochen; vorher schließt es openLaeuft.
+	openMitKontext  bool
+	openAbgebrochen chan struct{}
+	// closeHalt lässt den ersten CloseSession-Aufruf warten, bis der Kanal
+	// geschlossen ist; vorher schließt er closeLaeuft, wenn er gesetzt ist.
+	closeHalt   chan struct{}
+	closeLaeuft chan struct{}
+	closeEin    sync.Once
 
 	zuEin sync.Once
 	zuCh  chan struct{}
@@ -71,7 +88,19 @@ func (f *fakeRecorder) protokoll() string {
 	return strings.Join(f.ereignisse, " ")
 }
 
-func (f *fakeRecorder) OpenSession(context.Context, map[string]string) (model.SessionID, []model.Response, error) {
+func (f *fakeRecorder) OpenSession(ctx context.Context, _ map[string]string) (model.SessionID, []model.Response, error) {
+	if f.openMitKontext {
+		close(f.openLaeuft)
+		<-ctx.Done()
+		close(f.openAbgebrochen)
+		return 0, nil, model.Errorf(model.CodeUpstream, ctx.Err(), "Aufbau abgebrochen")
+	}
+	if f.openHalt != nil {
+		if f.openLaeuft != nil {
+			close(f.openLaeuft)
+		}
+		<-f.openHalt
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.err != nil {
@@ -90,7 +119,11 @@ func (f *fakeRecorder) OpenSession(context.Context, map[string]string) (model.Se
 func (f *fakeRecorder) Query(_ context.Context, _ model.SessionID, sql string) ([]model.Response, error) {
 	f.protokolliere("q:" + sql)
 	if f.queryHalt != nil {
-		<-f.queryHalt
+		select {
+		case <-f.queryHalt:
+		case <-f.zu():
+			return nil, model.ErrSessionEnded
+		}
 	}
 	return []model.Response{
 		{Type: model.ResponseRowDescription, Columns: []model.Column{{Name: "a", TypeOID: 25, TypeSize: -1, TypeModifier: -1}, {Name: "b", TypeOID: 25, TypeSize: -1, TypeModifier: -1}}},
@@ -158,16 +191,30 @@ func (f *fakeRecorder) Shutdown(context.Context, model.SessionID) bool {
 }
 
 func (f *fakeRecorder) CloseSession(_ context.Context, _ model.SessionID, end model.SessionEnd) error {
+	if f.closeHalt != nil {
+		f.closeEin.Do(func() {
+			if f.closeLaeuft != nil {
+				close(f.closeLaeuft)
+			}
+			<-f.closeHalt
+		})
+	}
 	f.mu.Lock()
 	f.ends = append(f.ends, end)
 	f.ereignisse = append(f.ereignisse, fmt.Sprintf("ende:%d", end))
 	err := f.closeErr
+	if end == model.EndForced && f.zwangErr != nil {
+		err = f.zwangErr
+	}
 	f.mu.Unlock()
 	f.zuEin.Do(func() { f.zuCh = make(chan struct{}) })
 	select {
 	case <-f.zuCh:
 	default:
 		close(f.zuCh)
+	}
+	if end == model.EndForced {
+		time.Sleep(f.zwangVerzoegerung)
 	}
 	return err
 }

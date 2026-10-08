@@ -9,14 +9,13 @@ import (
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
 
-// Codes der Sonderanfragen beim Verbindungsaufbau, die Hauptnummer, aus der sie
-// gebildet sind, und die Frist für die Fehlerantwort beim Ende einer Session.
+// Codes der Sonderanfragen beim Verbindungsaufbau und die Hauptnummer, aus der
+// sie gebildet sind.
 const (
 	CodeCancelRequest = codeCancelRequest
 	CodeSSLRequest    = codeSSLRequest
 	CodeGSSEncRequest = codeGSSEncRequest
 	MajorSpezial      = majorSpezial
-	MeldeFrist        = meldeFrist
 )
 
 // Handle bedient conn mit s, wie Serve eine angenommene Verbindung bedient.

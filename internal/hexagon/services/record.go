@@ -361,6 +361,10 @@ func (l *laufend) uebernehmen(in model.Interaction) error {
 //   - EndWriteFailed: PGR-E4003; die Interaktionen, deren Antworten nicht als
 //     zugestellt gemeldet sind, entfallen.
 //   - EndUnsupported: die Session wird nicht übernommen.
+//   - EndForced: läuft eine Interaktion, ist das PGR-E4006; die Meldung nennt
+//     die Kennung, unter der die Session geschrieben wird, oder dass sie nicht
+//     geschrieben wird, und die Nummer, die die verworfene Interaktion getragen
+//     hätte (LH-FA-13.a).
 //   - EndShutdown, EndFailed: kein weiterer Fehler.
 //
 // Eine laufende Interaktion steht nie in der Session. Übernommen wird die
@@ -390,6 +394,11 @@ func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, en
 		verbindung = model.Errorf(model.CodeConnectionLost, nil, "Antwort nicht an den Client zu senden")
 	}
 	verwerfen := end == model.EndUnsupported || l.unsupported || len(interactions) == 0
+	// verworfen ist die Nummer der laufenden Interaktion beim Zwangsende, sonst 0.
+	verworfen := 0
+	if end == model.EndForced && l.laeuft() {
+		verworfen = len(interactions) + 1
+	}
 	session := l.session
 	session.Interactions = interactions
 	l.mu.Unlock()
@@ -400,11 +409,28 @@ func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, en
 	defer s.mu.Unlock()
 	delete(s.sessions, id)
 	if verwerfen {
+		if verworfen > 0 {
+			verbindung = model.Errorf(model.CodeShutdownTimeout, nil, "Frist beim Herunterfahren abgelaufen: Interaktion %d nicht abgeschlossen und verworfen; die Session wird %s",
+				verworfen, nichtGeschrieben(len(interactions)))
+		}
 		return errors.Join(verbindung, upErr)
 	}
 	session.ID = len(s.rec.Sessions) + 1
+	if verworfen > 0 {
+		verbindung = model.Errorf(model.CodeShutdownTimeout, nil, "Frist beim Herunterfahren abgelaufen: Interaktion %d nicht abgeschlossen und verworfen; die Session wird als Session %d geschrieben",
+			verworfen, session.ID)
+	}
 	s.rec.Sessions = append(s.rec.Sessions, session)
 	return errors.Join(verbindung, s.repo.Write(ctx, s.path, s.rec), upErr)
+}
+
+// nichtGeschrieben nennt, warum eine Session mit n abgeschlossenen
+// Interaktionen nicht geschrieben wird.
+func nichtGeschrieben(n int) string {
+	if n == 0 {
+		return "ohne abgeschlossene Interaktion nicht geschrieben"
+	}
+	return "nicht geschrieben"
 }
 
 // Finish schreibt die Aufzeichnung beim Ende des Laufs; ein Lauf ohne Session

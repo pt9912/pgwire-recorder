@@ -45,16 +45,105 @@ type Server struct {
 
 	mu        sync.Mutex
 	firstCode string
+
+	// offen zählt die angenommenen Verbindungen, deren Behandlung nicht
+	// beendet ist.
+	offen atomic.Int64
+
+	// zwang ist wahr, sobald Zwangsende lief; zwangCh ist dann geschlossen.
+	// zmu ordnet das Setzen von zwang gegen das Anmelden und Umstellen eines
+	// Ziels und schützt ziele und deren Wirkung.
+	zwang   atomic.Bool
+	zwangCh chan struct{}
+	zmu     sync.Mutex
+	ziele   map[*zwangsziel]struct{}
+}
+
+// zwangsziel ist eine angenommene Verbindung mit der Wirkung, die Zwangsende
+// an ihr ausführt.
+type zwangsziel struct {
+	ende func()
 }
 
 // NewRecordServer liefert einen Server für den Record-Modus.
 func NewRecordServer(r driving.Recorder, log *slog.Logger) *Server {
-	return &Server{recorder: r, log: log}
+	return &Server{recorder: r, log: log, zwangCh: make(chan struct{}), ziele: map[*zwangsziel]struct{}{}}
 }
 
 // NewReplayServer liefert einen Server für den Replay-Modus.
 func NewReplayServer(r driving.Replayer, log *slog.Logger) *Server {
-	return &Server{replayer: r, log: log}
+	return &Server{replayer: r, log: log, zwangCh: make(chan struct{}), ziele: map[*zwangsziel]struct{}{}}
+}
+
+// Offen liefert die Zahl der angenommenen Verbindungen, deren Behandlung noch
+// nicht beendet ist (LH-FA-13.a, Attribut sessions).
+func (s *Server) Offen() int {
+	return int(s.offen.Load())
+}
+
+// Zwangsende beendet jede angenommene Verbindung, deren Behandlung noch läuft,
+// zwangsweise (LH-FA-13.a): im Verbindungsaufbau ohne Meldung, sonst meldet
+// die Sitzung dem Use Case das Ereignis model.EndForced und stellt den
+// Fehler, den er daraus ableitet (PGR-E4006), dem Client höchstens meldeFrist
+// lang zu. Die Verbindungen enden nebeneinander; Serve kehrt zurück, wenn alle
+// beendet sind. Ein weiterer Aufruf tut nichts.
+func (s *Server) Zwangsende() {
+	s.zmu.Lock()
+	if s.zwang.Load() {
+		s.zmu.Unlock()
+		return
+	}
+	s.zwang.Store(true)
+	close(s.zwangCh)
+	ziele := make([]*zwangsziel, 0, len(s.ziele))
+	for z := range s.ziele {
+		ziele = append(ziele, z)
+	}
+	s.zmu.Unlock()
+	for _, z := range ziele {
+		go s.ausloesen(z)
+	}
+}
+
+// ausloesen führt die aktuelle Wirkung eines Ziels aus.
+func (s *Server) ausloesen(z *zwangsziel) {
+	s.zmu.Lock()
+	ende := z.ende
+	s.zmu.Unlock()
+	ende()
+}
+
+// anmelden meldet eine Verbindung mit ihrer Wirkung beim Zwangsende an; lief
+// Zwangsende schon, führt es die Wirkung sofort aus.
+func (s *Server) anmelden(ende func()) *zwangsziel {
+	z := &zwangsziel{ende: ende}
+	s.zmu.Lock()
+	s.ziele[z] = struct{}{}
+	zwang := s.zwang.Load()
+	s.zmu.Unlock()
+	if zwang {
+		ende()
+	}
+	return z
+}
+
+// umstellen ersetzt die Wirkung eines Ziels; lief Zwangsende schon, führt es
+// die neue Wirkung sofort aus.
+func (s *Server) umstellen(z *zwangsziel, ende func()) {
+	s.zmu.Lock()
+	z.ende = ende
+	zwang := s.zwang.Load()
+	s.zmu.Unlock()
+	if zwang {
+		ende()
+	}
+}
+
+// abmelden entfernt ein Ziel; Zwangsende trifft es danach nicht mehr.
+func (s *Server) abmelden(z *zwangsziel) {
+	s.zmu.Lock()
+	delete(s.ziele, z)
+	s.zmu.Unlock()
 }
 
 // Listen öffnet den TCP-Endpunkt; ein nicht zu öffnender Port ist PGR-E4001.
@@ -92,8 +181,10 @@ func (s *Server) Serve(ctx context.Context, l net.Listener) {
 			continue
 		}
 		s.wg.Add(1)
+		s.offen.Add(1)
 		go func() {
 			defer s.wg.Done()
+			defer s.offen.Add(-1)
 			s.handle(ctx, conn)
 		}()
 	}
@@ -101,6 +192,10 @@ func (s *Server) Serve(ctx context.Context, l net.Listener) {
 
 func (s *Server) handle(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
+	// Im Verbindungsaufbau beendet das Zwangsende die Verbindung ohne Meldung
+	// (LH-FA-13.a *Zwangsende*); die Sitzungen stellen die Wirkung um.
+	z := s.anmelden(func() { _ = conn.Close() })
+	defer s.abmelden(z)
 
 	// Endet ctx im Verbindungsaufbau, bricht das Lesen der Startnachricht ab.
 	// Danach wachen recordSitzung und replaySitzung selbst über ctx.
@@ -122,18 +217,20 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 		return
 	}
 
-	// Der Verbindungsaufbau zum Upstream läuft auch bei endendem ctx zu Ende;
-	// er ist Teil der laufenden Interaktion.
-	id, responses, err := s.open(context.WithoutCancel(ctx), startup.Parameters)
+	a, ok := s.oeffne(ctx, startup.Parameters)
 	close(fertig)
-	if err != nil {
-		s.fail(be, err)
+	if !ok {
+		return
+	}
+	id, responses := a.id, a.responses
+	if a.err != nil {
+		s.fail(be, a.err)
 		return
 	}
 	if id == 0 {
 		// Der Server hat den Aufbau mit einer Fehlerantwort beendet; sie geht
 		// ohne AuthenticationOk an den Client.
-		if err := s.send(be, responses); err != nil {
+		if err := s.send(be, responses); err != nil && !s.zwang.Load() {
 			s.sendFailed(err)
 		}
 		return
@@ -142,7 +239,9 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 	sendErr := s.send(be, responses)
 	if s.replayer != nil {
 		if sendErr != nil {
-			s.sendFailed(sendErr)
+			if !s.zwang.Load() {
+				s.sendFailed(sendErr)
+			}
 			s.closeReplay(ctx, id)
 			return
 		}
@@ -150,10 +249,49 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 		return
 	}
 	if sendErr != nil {
-		s.closeRecord(ctx, id, endBeiSchreibfehler(s, sendErr))
+		end := model.EndForced
+		if !s.zwang.Load() {
+			end = endBeiSchreibfehler(s, sendErr)
+		}
+		s.closeRecord(ctx, id, end)
 		return
 	}
-	s.recordSitzung(ctx, conn, be, id)
+	s.recordSitzung(ctx, conn, be, id, z)
+}
+
+// aufbau ist das Ergebnis des Verbindungsaufbaus beim Use Case.
+type aufbau struct {
+	id        model.SessionID
+	responses []model.Response
+	err       error
+}
+
+// oeffne baut die Session beim Use Case auf. Der Aufbau läuft auch bei
+// endendem ctx zu Ende; er ist Teil der laufenden Interaktion. Beim
+// Zwangsende wartet oeffne nicht auf ihn und meldet ok falsch: Es bricht den
+// Kontext des Aufbaus ab, und eine Record-Session, die danach noch entsteht,
+// beendet es mit model.EndForced (LH-FA-13.a *Zwangsende*).
+func (s *Server) oeffne(ctx context.Context, startup map[string]string) (aufbau, bool) {
+	octx, abbrechen := context.WithCancel(context.WithoutCancel(ctx))
+	ergebnis := make(chan aufbau, 1)
+	go func() {
+		var a aufbau
+		a.id, a.responses, a.err = s.open(octx, startup)
+		ergebnis <- a
+	}()
+	select {
+	case a := <-ergebnis:
+		abbrechen()
+		return a, true
+	case <-s.zwangCh:
+		abbrechen()
+		go func() {
+			if a := <-ergebnis; a.id != 0 && s.recorder != nil {
+				_ = s.recorder.CloseSession(context.WithoutCancel(ctx), a.id, model.EndForced)
+			}
+		}()
+		return aufbau{}, false
+	}
 }
 
 // eingang ist eine gelesene Client-Nachricht, abgebildet, bevor der Leser die
@@ -289,9 +427,10 @@ func (s *Server) replayZustellen(ctx context.Context, be *pgproto3.Backend, id m
 // Endet ctx, weckt ein Wächter die Client-Richtung; sie meldet das
 // Herunterfahren selbst, bevor sie die nächste Nachricht liest. Eine schon
 // gelesene Nachricht verarbeitet sie also vorher (LH-FA-13.a).
-func (s *Server) recordSitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID) {
+func (s *Server) recordSitzung(ctx context.Context, conn net.Conn, be *pgproto3.Backend, id model.SessionID, z *zwangsziel) {
 	r := &richtungen{s: s, conn: conn, be: be, id: id,
 		weck: make(chan struct{}, 1), ende: make(chan struct{})}
+	s.umstellen(z, func() { r.zwangsende(context.WithoutCancel(ctx)) })
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -309,6 +448,8 @@ func (s *Server) recordSitzung(ctx context.Context, conn net.Conn, be *pgproto3.
 	}()
 	r.clientRichtung(ctx)
 	wg.Wait()
+	// Ein Zwangsende kann noch zustellen, nachdem beide Richtungen endeten.
+	<-r.ende
 }
 
 // richtungen hält, was beide Richtungen einer Record-Session teilen.
@@ -375,6 +516,30 @@ func (r *richtungen) beende(ctx context.Context, end model.SessionEnd, meldung e
 			r.schreiben.Unlock()
 		}
 		r.s.closeRecord(ctx, r.id, end)
+		_ = r.conn.Close()
+		close(r.ende)
+	})
+}
+
+// zwangsende beendet die Session beim Ablauf der Frist mit model.EndForced
+// (LH-FA-13.a). Liefert der Use Case daraus PGR-E4006, stellt es den Fehler dem
+// Client höchstens meldeFrist lang zu und merkt ihn; einen anderen Fehler merkt
+// es nur. Danach schließt es die Client-Verbindung. Ist die Session schon
+// beendet oder endet sie gerade, tut es nichts: Ihr Ende hat der Adapter vor
+// dem Ablauf bemerkt.
+func (r *richtungen) zwangsende(ctx context.Context) {
+	r.einmal.Do(func() {
+		r.beendet.Store(true)
+		if err := r.s.recorder.CloseSession(ctx, r.id, model.EndForced); err != nil {
+			if model.Meldungen(err)[0].Code == model.CodeShutdownTimeout {
+				_ = r.conn.SetWriteDeadline(time.Now().Add(meldeFrist))
+				r.schreiben.Lock()
+				r.s.fail(r.be, err)
+				r.schreiben.Unlock()
+			} else {
+				r.s.note(err)
+			}
+		}
 		_ = r.conn.Close()
 		close(r.ende)
 	})

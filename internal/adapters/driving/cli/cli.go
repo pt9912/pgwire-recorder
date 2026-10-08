@@ -5,8 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
@@ -14,11 +18,12 @@ import (
 // RecordOptions sind die Optionen von `record` (LH-FA-02.a), soweit dieser Stand
 // sie kennt.
 type RecordOptions struct {
-	Listen   string
-	Upstream string
-	Output   string
-	Force    bool
-	LogLevel string
+	Listen          string
+	Upstream        string
+	Output          string
+	Force           bool
+	LogLevel        string
+	ShutdownTimeout time.Duration
 }
 
 // ReplayOptions sind die Optionen von `replay` (LH-FA-03.a), soweit dieser Stand
@@ -36,6 +41,13 @@ const envFailOnUnconsumed = "PGWIRE_RECORDER_FAIL_ON_UNCONSUMED"
 
 // envLogLevel ist die Umgebungsvariable von --log-level (LH-FA-14.a).
 const envLogLevel = "PGWIRE_RECORDER_LOG_LEVEL"
+
+// envShutdownTimeout ist die Umgebungsvariable von --shutdown-timeout
+// (LH-FA-17.a).
+const envShutdownTimeout = "PGWIRE_RECORDER_SHUTDOWN_TIMEOUT"
+
+// StandardFrist ist der Standardwert von --shutdown-timeout (SPEC-046).
+const StandardFrist = 5 * time.Second
 
 // Stufen von --log-level (LH-FA-14.a); Standard ist LogInfo (SPEC-005).
 const (
@@ -57,7 +69,7 @@ const optionenRecord = `Optionen von record:
   --upstream  Adresse des PostgreSQL-Servers, host:port (Pflicht)
   --output    Zieldatei der Aufzeichnung (Pflicht)
   --force     vorhandene Zieldatei ersetzen
-` + optionLogLevel
+` + optionShutdownTimeout + optionLogLevel
 
 const optionenReplay = `Optionen von replay:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
@@ -67,6 +79,14 @@ const optionenReplay = `Optionen von replay:
               sind ein Fehler (PGR-E5002, Exit-Code 5) statt einer Warnung;
               Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
 ` + optionLogLevel
+
+const optionShutdownTimeout = `  --shutdown-timeout 0|<zahl>ms|<zahl>s|<zahl>m
+              Frist ab dem ersten SIGINT oder SIGTERM, Standard 5s; danach
+              endet jede noch laufende Verbindung zwangsweise, und eine
+              unvollständige Interaktion ist PGR-E4006 (Exit-Code 4); 0 ohne
+              Frist; ein zweites Signal lässt die Frist sofort ablaufen;
+              Umgebungsvariable PGWIRE_RECORDER_SHUTDOWN_TIMEOUT
+`
 
 const optionLogLevel = `  --log-level error|warn|info|debug
               Stufe der Log-Zeilen auf stderr, Standard info; eine Stufe zeigt
@@ -140,6 +160,9 @@ func parseRecord(args []string) (Command, error) {
 	fs.StringVar(&o.Upstream, "upstream", "", "")
 	fs.StringVar(&o.Output, "output", "", "")
 	fs.BoolVar(&o.Force, "force", false, "")
+	if err := fristOption(fs, &o.ShutdownTimeout); err != nil {
+		return Command{}, err
+	}
 	level, err := logLevelOption(fs)
 	if err != nil {
 		return Command{}, err
@@ -210,6 +233,71 @@ func logLevelOption(fs *flag.FlagSet) (stufe, error) {
 	}
 	fs.Var(l, "log-level", "")
 	return l, nil
+}
+
+// fristOption meldet --shutdown-timeout an fs an: Standard StandardFrist,
+// davor die Umgebungsvariable, wenn sie nicht leer ist, danach die
+// Kommandozeile, deren letzte Angabe gilt. Eine Umgebungsvariable mit
+// ungültigem Wert ist PGR-E2001, auch wenn die Kommandozeile die Option setzt
+// (LH-FA-17.a).
+func fristOption(fs *flag.FlagSet, ziel *time.Duration) error {
+	*ziel = StandardFrist
+	d := dauer{ziel}
+	if v := os.Getenv(envShutdownTimeout); v != "" {
+		if err := d.Set(v); err != nil {
+			return model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envShutdownTimeout)
+		}
+	}
+	fs.Var(d, "shutdown-timeout", "")
+	return nil
+}
+
+// dauerForm ist eine ganze Zahl ohne Vorzeichen mit genau einer Einheit.
+var dauerForm = regexp.MustCompile(`^([0-9]+)(ms|s|m)$`)
+
+// einheit ist die Dauer einer Einheit ms, s oder m (LH-FA-17.a *Dauer*);
+// dauerForm lässt keine andere zu.
+func einheit(name string) time.Duration {
+	switch name {
+	case "ms":
+		return time.Millisecond
+	case "s":
+		return time.Second
+	default:
+		return time.Minute
+	}
+}
+
+// dauer ist der Wert von --shutdown-timeout nach LH-FA-17.a *Dauer*: 0 oder
+// eine ganze Zahl ohne Vorzeichen mit genau einer Einheit ms, s oder m in
+// Kleinbuchstaben, 0 mit Einheit ist 0. Jeder andere Wert ist ein Fehler, auch
+// der leere und einer, der länger ist als die längste Dauer, die time.Duration
+// darstellt.
+type dauer struct{ wert *time.Duration }
+
+func (d dauer) String() string {
+	if d.wert == nil {
+		return ""
+	}
+	return d.wert.String()
+}
+
+func (d dauer) Set(v string) error {
+	if v == "0" {
+		*d.wert = 0
+		return nil
+	}
+	m := dauerForm.FindStringSubmatch(v)
+	if m == nil {
+		return errors.New("erlaubt sind 0 und eine ganze Zahl mit genau einer Einheit ms, s oder m, etwa 5s")
+	}
+	n, err := strconv.ParseInt(m[1], 10, 64)
+	e := einheit(m[2])
+	if err != nil || n > math.MaxInt64/int64(e) {
+		return errors.New("länger als die längste darstellbare Dauer")
+	}
+	*d.wert = time.Duration(n) * e
+	return nil
 }
 
 // stufe ist der Wert von --log-level: genau error, warn, info oder debug in

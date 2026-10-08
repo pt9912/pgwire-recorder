@@ -21,6 +21,7 @@ const (
 	CodeListen             = "PGR-E4001"
 	CodeUpstream           = "PGR-E4002"
 	CodeConnectionLost     = "PGR-E4003"
+	CodeShutdownTimeout    = "PGR-E4006"
 	CodeReplayMismatch     = "PGR-E5001"
 	CodeReplayUnconsumed   = "PGR-E5002"
 	CodeReplaySession      = "PGR-E5003"

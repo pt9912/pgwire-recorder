@@ -15,15 +15,24 @@ import (
 // `version` gibt sie aus.
 var version = "dev"
 
+// main behandelt SIGINT und SIGTERM, unter Windows auch den Konsolenabbruch
+// (os.Interrupt), für die ganze Laufzeit (LH-FA-13.a): Das erste Signal beendet
+// ctx und beginnt das Herunterfahren, das zweite schließt ablauf und lässt die
+// Frist sofort ablaufen, jedes weitere bleibt ohne Wirkung. Das erste Signal ist
+// aus dem Kanal gelesen, bevor ctx endet; ein zweites, das danach eintrifft,
+// wartet darum im Kanal.
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	// Nach dem ersten Signal gilt wieder das Standardverhalten: ein zweites
-	// beendet den Prozess sofort.
+	signale := make(chan os.Signal, 1)
+	signal.Notify(signale, os.Interrupt, syscall.SIGTERM)
+	ctx, herunterfahren := context.WithCancel(context.Background())
+	ablauf := make(chan struct{})
 	go func() {
-		<-ctx.Done()
-		stop()
+		<-signale
+		herunterfahren()
+		<-signale
+		close(ablauf)
 	}()
-	code := bootstrap.Run(ctx, os.Args[1:], version, os.Stdout, os.Stderr)
-	stop()
+	code := bootstrap.Run(ctx, ablauf, os.Args[1:], version, os.Stdout, os.Stderr)
+	herunterfahren()
 	os.Exit(code)
 }
