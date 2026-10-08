@@ -702,7 +702,9 @@ Frist sofort ablaufen.
   Replay einer begonnenen, nicht verbrauchten (LH-FA-03.b *Verbraucht*). Eine
   Verbindung ohne eine solche Interaktion, auch eine im Aufbau, endet ohne
   Meldung. Bemerkt der Prozess das Schließen durch das Zwangsende beim Lesen oder
-  Schreiben, ist das kein weiteres Verbindungsende (kein `PGR-E4003`).
+  Schreiben, ist das kein weiteres Verbindungsende (kein `PGR-E4003`). *Grenze:* Wartet
+  der Verbindungsaufbau beim Zwangsende noch auf die Antwort des Upstreams, schließt der
+  Prozess die Client-Verbindung sofort, die Verbindung zum Upstream erst sein Ende.
 * *Meldung.* Je Verbindung mit unvollständiger Interaktion eine Meldung
   `PGR-E4006` als Log-Zeile der Stufe `error`. Dem Client wird sie nach LH-FA-13.b
   zugestellt; das Schreiben dauert höchstens `SPEC-051`, auch an einen Client, der
@@ -934,7 +936,8 @@ Umgebungsvariable (auch ein Wert außerhalb einer Aufzählung) ist `PGR-E2001`.
 
 **Dauer.** Der Wert von `--shutdown-timeout` ist `0` oder eine ganze Zahl ohne
 Vorzeichen mit genau einer Einheit `ms`, `s` oder `m` in Kleinbuchstaben; `0` mit
-Einheit ist ebenfalls `0`. Jeder andere Wert ist ungültig, auch der leere, ein
+Einheit ist ebenfalls `0`. Vor einer Einheit sind führende Nullen erlaubt (`05s` ist
+5 s, `00s` ist `0`); ohne Einheit ist nur genau `0` gültig, `00` nicht. Jeder andere Wert ist ungültig, auch der leere, ein
 negativer, einer ohne Einheit außer `0`, einer mit Nachkommastellen, Leerraum,
 großgeschriebener oder zusammengesetzter Einheit (`1m30s`) und einer, der länger
 ist als die längste Dauer, die die Implementierung darstellt: als Option oder
@@ -2287,4 +2290,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
 | 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |
 | 2026-10-08 | Harness-Werkzeuge: Commit-Träger lehnt Struktur-Kennungen in der Commit-Message ab; Lesebereich, Schreibweise und Wortgrenze, Merge und Revert, Vorrang vor der Annahme, Ausgabe und Ausgang (`SPEC-050`) |
-| 2026-10-08 | Herunterfahren: Attribut `sessions` der Zeile beim Beginn, ohne offene Verbindung, Startphase, was die Frist begrenzt, Zwangsende auch im Aufbau, `PGR-E4006` nur bei unvollständiger Interaktion und ohne `PGR-E4003`, Inhalt der Meldung, zweites Signal auch bei `0`, weitere Signale ohne Wirkung (`LH-FA-13.a`, `LH-FA-14.a`); Form der Dauer von `--shutdown-timeout` (`LH-FA-17.a`); Schreibfrist der Fehlerantwort beim Ende einer Session (`SPEC-051`, `LH-FA-18.a`) |
+| 2026-10-08 | Herunterfahren: Attribut `sessions` der Zeile beim Beginn, ohne offene Verbindung, Startphase, was die Frist begrenzt, Zwangsende auch im Aufbau, `PGR-E4006` nur bei unvollständiger Interaktion und ohne `PGR-E4003`, Inhalt der Meldung, zweites Signal auch bei `0`, weitere Signale ohne Wirkung, Upstream-Verbindung im Aufbau als Grenze (`LH-FA-13.a`, `LH-FA-14.a`); Form der Dauer von `--shutdown-timeout` mit führenden Nullen vor einer Einheit (`LH-FA-17.a`); Schreibfrist der Fehlerantwort beim Ende einer Session (`SPEC-051`, `LH-FA-18.a`) |

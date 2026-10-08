@@ -209,7 +209,11 @@ die Liste am 2026-10-08 vor dem Code geprüft; keine ist offen.
   Überlauf) — `LH-FA-17.a` *Dauer*: `0` oder ganze Zahl mit genau einer Einheit `ms`, `s`,
   `m`; sonst `PGR-E2001` (Option, Umgebungsvariable), `PGR-E2004` (Schlüssel der Datei, erst
   mit `slice-v1-abschluss-konfiguration`). Leere Umgebungsvariable gilt als nicht gesetzt,
-  mehrfache Option: die letzte (`LH-FA-17.a`, allgemein).
+  mehrfache Option: die letzte (`LH-FA-17.a`, allgemein). Führende Nullen (Rückgabe des
+  Implementers, bestätigt vom Architect am 2026-10-08, `LH-FA-17.a` *Dauer*): vor einer
+  Einheit erlaubt, ohne Einheit nur genau `0`. Fälle für `TestParseShutdownTimeoutWerte`:
+  `05s` → 5 s, `00s` → `0`, `00` → `PGR-E2001`; Mutation, die rot werden muss: führende
+  Nullen vor einer Einheit abgelehnt.
 - **Zweites Signal** — die Frist läuft sofort ab, auch beim Wert `0`; entschieden in
   `LH-FA-13.a` *Zweites Signal*. Vor dem ersten Signal gibt es kein zweites: Die Frist
   beginnt mit dem ersten.
@@ -223,7 +227,15 @@ die Liste am 2026-10-08 vor dem Code geprüft; keine ist offen.
   Warten auf die Verbindungen; ein laufendes Schreiben wird nicht abgebrochen, eine schon
   beendete Session endet nicht zwangsweise; `LH-FA-13.a` *Was die Frist begrenzt*.
 - **Zwangsende im Verbindungsaufbau** (Startnachricht, Verbindungsaufbau zum Upstream) —
-  die Verbindung endet ohne Meldung; `LH-FA-13.a` *Zwangsende*.
+  die Verbindung endet ohne Meldung; `LH-FA-13.a` *Zwangsende*. Wartet der Aufbau noch auf
+  die Antwort des Upstreams, schließt der Adapter die Client-Verbindung und bricht den
+  Kontext ab; der Postgres-Adapter liest ohne Kontext weiter, und die Upstream-Verbindung
+  schließt erst das Prozessende. Rückgabe des Implementers, entschieden vom Architect am
+  2026-10-08 als Grenze in `LH-FA-13.a` *Zwangsende*: Das Prozessende folgt dem Zwangsende
+  unmittelbar nach dem Schreiben, die Verbindung trägt keine Interaktion, und der Upstream
+  sieht dasselbe Verbindungsende wie bei einem Schließen. Ein Schließen im Driven-Adapter
+  wäre eine dritte Schicht (§1, §4) ohne Unterschied, den ein Client oder die Aufzeichnung
+  sieht; kein Folge-Slice.
 - **Lese- oder Schreibfehler, der das Schließen durch das Zwangsende bemerkt** — kein
   `PGR-E4003`; `LH-FA-13.a` *Zwangsende*.
 - **Ende durch die Frist mitten in einer Interaktion** — im Record vor dem `ReadyForQuery`,
@@ -255,6 +267,11 @@ die Liste am 2026-10-08 vor dem Code geprüft; keine ist offen.
   Signal behandelt (`LH-FA-13.a` *Zweites Signal*). Info-Zeile und Meldungen prüft er nach
   dem Ende, wenn `Wait` die Ausgabe abgeschlossen hat. Ein synchronisierter Puffer im
   Geschirr wäre ein zweiter Lesepfad für ein Ereignis, das der Port schon zeigt.
+- **Mutant X03** (Ziffer 1 aus dem Bereich in `model.exitCode` genommen; Rückgabe des
+  Implementers) — äquivalent, akzeptiertes Negativ, entschieden vom Architect am
+  2026-10-08: Ein Code der Klasse 1 (`PGR-E1xxx`) und ein Code ohne Klasse fallen nach
+  `SPEC-034` *Fehler* beide auf Exit-Code 1, Ziffer und Rückfall liefern dasselbe. Der Code
+  bleibt so; ein Test kann den Mutanten nicht unterscheiden.
 - **Windows-Konsolenabbruch** (`Strg+C`, `Strg+Break`) — `LH-FA-13.a`; akzeptiertes
   Negativ: Die Tests laufen unter Linux im Container, Go liefert beide Ereignisse als
   `os.Interrupt` an dieselbe Behandlung; ein eigener Test entfällt.
