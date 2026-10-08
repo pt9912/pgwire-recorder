@@ -867,7 +867,11 @@ Werte lauten `true` oder `false`. Eine boolesche Option ohne Wert ist `true`; mi
 `=` nimmt sie `true` oder `false`, jeder andere Wert, auch der leere und `1`, ist
 `PGR-E2001`. Für die Umgebungsvariable gilt dieselbe Wertemenge; eine leere
 Umgebungsvariable gilt als nicht gesetzt. Nennt die Kommandozeile eine Option
-mehrfach, gilt die letzte Angabe. Die Umgebungsvariable einer Option, die das
+mehrfach, gilt die letzte Angabe. Eine Option auf der Kommandozeile ist
+gesetzt, auch mit leerem Wert (`--listen=`), und ein leerer Wert ist für keine
+Option gültig (`PGR-E2001`, geprüft mit der Kommandozeile), auch wenn die
+Umgebungsvariable derselben Option gesetzt ist; nur eine leere Umgebungsvariable
+gilt als nicht gesetzt. Die Umgebungsvariable einer Option, die das
 Kommando nicht kennt, bleibt unbeachtet, ebenso eine mit dem Präfix, deren Name
 keiner Option entspricht. Geprüft wird jeder gesetzte Wert einer
 Option des Kommandos, unabhängig von der Priorität: Eine gesetzte
@@ -2355,4 +2359,5 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-08 | Warten in Tests: ein synchroner Aufruf des Prüflings ohne Frist fällt nicht unter die Regel, sie gilt nur für Kanäle und das Ende eines gestarteten Prozesses; Entscheidung des Nutzers (`SPEC-038`) |
 | 2026-10-08 | Konfiguration: Umgebungsvariable mit Präfix ohne passende Option unbeachtet, doppelter Schlüssel ist ungültiges YAML, Name einer Verbindung nur bei genauer Übereinstimmung, Wert weder Name noch `host:port` ungültig, `sslmode=require` bei `record` ist `PGR-E2004`, Klartext-Passwort in jeder Verbindung, `config show` ohne `PGR-E2005`, aktive Umgebungsvariablen (`LH-FA-17.a`) |
 | 2026-10-08 | Konfiguration, Entscheidung des Nutzers: Wert der Datei als Text des Skalars mit der Wertemenge der Option, leerer Wert, `null`, Liste, Abbildung, Anker und Aliase ungültig; kein Schlüssel `config`; relative Pfade zum aktuellen Verzeichnis; leere Variable eines Platzhalters nicht gesetzt, Platzhalter in den von `record` ignorierten Teilen unbeachtet; `$$`, Name und einmaliges Einsetzen in die zerlegte URL; Abbruch beim ersten Fehler und Reihenfolge der Prüfung; Form der Ausgabe von `config show` (`LH-FA-17.a`) |
+| 2026-10-08 | Konfiguration: leerer Wert auf der Kommandozeile ist gesetzt und für keine Option gültig, auch neben gesetzter Umgebungsvariable (`LH-FA-17.a`) |
 | 2026-10-08 | Konfigurationsdatei: höchstens ein YAML-Dokument, leere Datei setzt nichts, oberste Ebene, Abschnitte und `connections:` als Abbildung, leere Abbildung gültig, Abschnitt ohne Inhalt oder mit `null` ungültig, Tags ungültig, Laden prüft die ganze Datei unabhängig vom Kommando; URL: Form außerhalb der Grammatik ungültig, Port-Default `5432` und Form des Ports, Prozent-Dekodierung wörtlicher Teile, Name einer Verbindung; Form der Platzhalter in jedem Teil geprüft, fehlerhafter Platzhalter im Passwort ist Klartext, eingesetzter Port geprüft, Host nicht; Reihenfolge innerhalb einer URL (`LH-FA-17.a`) |

@@ -52,8 +52,8 @@ Geber, über `slice-v1-abschluss-konfiguration` und davor `slice-v1-abschluss-be
 allgemeinen Leser von `slice-v1-abschluss-konfiguration`; keine Option wird ein zweites Mal
 angemeldet. Ein Schlüssel einer Option aus der Tabelle in `LH-FA-17.a`, die der Stand noch
 nicht kennt (etwa `format`, `tls_cert` oder der Abschnitt `play:`), ist bis zu ihrem Slice ein
-unbekannter Schlüssel (`PGR-E2004`), auch `output` und `force` bis
-`slice-v1-abschluss-schreiben` (Rückgabe 12 in §6, bestätigt). Der
+unbekannter Schlüssel (`PGR-E2004`). `output` und `force` sind am Leser angemeldet und damit
+hier Schlüssel des Abschnitts `record:` (Rückgabe 12 in §6). Der
 Test über alle angemeldeten Optionen läuft dann über drei Quellen.
 
 **Ort des Lesens.** Die Datei liest der CLI-Adapter (`ARC-005`). Die YAML-Bibliothek ist dort
@@ -69,9 +69,9 @@ kein Gate, das bleibt Review.
 - Der allgemeine Leser für Kommandozeile und Umgebungsvariable, die Hilfe von `record` und
   `replay` und die Gegenprobe des Architektur-Gates — `slice-v1-abschluss-konfiguration`;
   er liegt vor diesem Slice, und dieser setzt auf ihm auf.
-- `--output`, `--force` und die strengen Werte für `--force` — `slice-v1-abschluss-schreiben`;
-  er folgt diesem Slice und meldet beide am allgemeinen Leser an, ihre Schlüssel in der Datei
-  eingeschlossen (dort §1, *Übernimmt*, mit der Kennung dieses Slice).
+- Das atomare Schreiben und das Verhalten bei vorhandenem `--output` —
+  `slice-v1-abschluss-schreiben`; er folgt diesem Slice. `--output` und `--force` selbst
+  meldet `slice-v1-abschluss-konfiguration` am Leser an (Entscheidung zu F-496).
 - Die Optionen von `play` und der Abschnitt `play:` — `slice-v1-abschluss-einspielen` (dort
   §1); er liest sie über den allgemeinen Leser und die Datei dieses Slice.
 - TLS zum Upstream nach `sslmode` — `slice-v1-abschluss-einspielen`; nur `play` verbindet
@@ -287,10 +287,11 @@ geschlossene Fehlertabelle, URL vor dem Einsetzen zerlegt, Abbruch beim ersten F
 11. **Name einer Verbindung** — Form eines Werts (Text des Skalars; leer, `null`, Tag
     ungültig), dazu kein Steuerzeichen, weil die Meldung den Namen in einer Zeile nennt
     (`SPEC-034`); sonst jeder Name, auch mit Leerraum.
-12. **`output` und `force` in der Datei** — bis `slice-v1-abschluss-schreiben` unbekannte
-    Schlüssel (`PGR-E2004`); bestätigt den Stand aus §1 dieses Slice und von
-    `slice-v1-abschluss-schreiben` (dort §1), keiner der beiden ändert sich. Steht nicht in
-    der Spezifikation, weil sie den Zielstand beschreibt.
+12. **`output` und `force` in der Datei** — Schlüssel des Abschnitts `record:` mit diesem
+    Slice, weil `slice-v1-abschluss-konfiguration` beide am Leser anmeldet (Entscheidung des
+    Architect vom 2026-10-08 zu F-496; sie ersetzt die frühere Antwort *unbekannt bis
+    `slice-v1-abschluss-schreiben`*). `LH-FA-17.a` führt beide in der Tabelle, kein
+    Sonderfall.
 
 *Ort der Konstanten* — im Model, `internal/hexagon/model/fehler.go`, als drei Konstanten ohne
 Logik (§1, Ausnahme). Grund: [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) führt eine Code-Tabelle im Quelltext, die mit dem

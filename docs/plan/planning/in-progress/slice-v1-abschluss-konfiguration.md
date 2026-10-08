@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Jede Option von `record` und `replay` außer `--output` und `--force` ist per Kommandozeile und Umgebungsvariable setzbar, über einen allgemeinen Leser in der Priorität Kommandozeile vor Umgebungsvariable vor Default, der jede gesetzte Umgebungsvariable prüft; die Hilfe geht jeder dieser Prüfungen vor, und das Architektur-Gate lässt die YAML-Bibliothek im CLI-Adapter zu und hält sie aus dem PGWire-Adapter.
+**Ziel:** Jede Option von `record` und `replay` ist per Kommandozeile und Umgebungsvariable setzbar, über einen allgemeinen Leser in der Priorität Kommandozeile vor Umgebungsvariable vor Default, der jede gesetzte Umgebungsvariable prüft; die Hilfe geht jeder dieser Prüfungen vor, und das Architektur-Gate lässt die YAML-Bibliothek im CLI-Adapter zu und hält sie aus dem PGWire-Adapter.
 
 **Übernimmt:** `slice-v1-abschluss-betrieb` — dessen Teil *Konfiguration* (DoD-Punkt 2 ohne
 `--output` und `--force`, DoD-Punkt 3; Entscheidung des Nutzers vom 2026-10-08, Schnitt nach
@@ -50,16 +50,20 @@ Einzelnen, je mit dem ursprünglichen Geber:
 - **Aus `slice-v1-abschluss-herunterfahren`** (dort §1, Abgrenzung): dass der allgemeine Leser
   auch `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT` liest. Abgegeben: der Schlüssel der Frist in der
   Konfigurationsdatei.
+- **Aus `slice-v1-abschluss-schreiben`** (dort §1, *Abgegeben*; Entscheidung des Architect vom
+  2026-10-08 zu F-496): `--output` und `--force` am allgemeinen Leser, damit
+  `PGWIRE_RECORDER_OUTPUT` und `PGWIRE_RECORDER_FORCE` gelesen und geprüft werden
+  (`LH-FA-17.a`), und die strengen Werte für `--force` (`true`, `false`), die
+  `slice-v1-abschluss-schreiben` aus `slice-replay-semantik-mismatch` übernommen hatte.
 
 **Optionen, die der Stand kennt.** Der allgemeine Leser ist die einzige Stelle, an der eine
 Option von `record` und `replay` angemeldet wird; Kommandozeile und Umgebungsvariable folgen
 aus dieser einen Anmeldung, und `slice-v1-abschluss-konfigurationsdatei` leitet die Schlüssel
 der Datei aus ihr ab. Ein Test läuft über alle angemeldeten Optionen (zwei Quellen,
 Priorität), sodass eine später angemeldete Option ihn ohne eigenen Plan-Punkt mitnimmt.
-`--output` und `--force` meldet dieser Slice nicht am Leser an: Sie liest bis
-`slice-v1-abschluss-schreiben` nur die Kommandozeile, wie bisher; der Nehmer meldet sie an
-(dort §1, *Übernimmt*, mit der Kennung dieses Slice). Die Hilfe von `record` nennt die
-Ausnahme.
+Auch `--output` (Pflicht) und `--force` (Wahrheitswert, Default `false`) sind dort
+angemeldet, in der Reihenfolge der Tabelle in `LH-FA-17.a` nach `--upstream`; `parseRecord`
+meldet keine Option mehr am FlagSet an.
 
 **Ort des Lesens.** Die Datei liest der CLI-Adapter (`ARC-005`) in
 `slice-v1-abschluss-konfigurationsdatei`. Dieser Slice liefert dafür nur die Gegenprobe des
@@ -76,10 +80,11 @@ dient, prüft kein Gate, das bleibt Review.
   (`connections`, `--upstream <Name>`, `sslmode`), `${VAR}` und `$${VAR}`, `config show`, die
   Hilfe für `config show` und `--config`, `PGR-E2004` bis `PGR-E2006` —
   `slice-v1-abschluss-konfigurationsdatei` (dort §1, *Übernimmt*). Grund: Schnitt nach §4,
-  die Datei-Hälfte ist auf 900 bis 1300 Zeilen geschätzt und hat zwölf offene Randformen
-  (dort §6).
-- `--output`, `--force` und die strengen Werte für `--force` — `slice-v1-abschluss-schreiben`;
-  er folgt der Konfigurationsdatei und liest `--force` über den allgemeinen Leser von hier.
+  die Datei-Hälfte ist auf 900 bis 1300 Zeilen geschätzt und hatte zwölf offene Randformen
+  (dort §6, vor dem Code entschieden).
+- Das atomare Schreiben und das Verhalten bei vorhandenem `--output` —
+  `slice-v1-abschluss-schreiben`; er folgt der Konfigurationsdatei und nutzt `--output` und
+  `--force`, wie der allgemeine Leser von hier sie liefert.
 - Die Optionen von `play` — `slice-v1-abschluss-einspielen` (dort §1: `--fail-on-unconsumed`
   und `--log-level` bei `play`); er setzt auf dem allgemeinen Leser dieses Slice auf.
 - Signale und die Frist selbst — `slice-v1-abschluss-herunterfahren`; hier nur ihre
@@ -99,16 +104,15 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       YAML-Modulpfade im CLI-Adapter an und lehnt jeden im PGWire-Adapter ab (`ARC-013`);
       Kopfkommentar, Fragment und Zeile in `harness/README.md` §Sensors sagen nicht mehr zu,
       als die Fälle prüfen (Gegenprobe).
-- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Für jede Option von `record` und `replay` außer `--output` und
-      `--force`, auch `--shutdown-timeout`, gilt die Priorität Kommandozeile vor
+- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Für jede Option von `record` und `replay`, auch `--output`,
+      `--force` und `--shutdown-timeout`, gilt die Priorität Kommandozeile vor
       Umgebungsvariable vor Default (`SPEC-007`, `SPEC-008`); ein allgemeiner Leser prüft
       jede gesetzte Umgebungsvariable einer Option des Kommandos, auch wenn die Kommandozeile
       vorgeht (`PGR-E2001`), und ersetzt die Einzel-Leser von `--fail-on-unconsumed`,
       `--log-level` und `--shutdown-timeout`, deren Tests unverändert grün bleiben (Test).
 - [ ] [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung): Die Hilfe von `record` und `replay` geht jeder Prüfung von Optionen
       und Umgebungsvariablen am allgemeinen Leser vor, auch einer ungültigen
-      Umgebungsvariable, und nennt die Umgebungsvariablen und ihre Priorität, bei `record`
-      mit der Ausnahme `--output` und `--force`; `--` beendet die Optionen (Test). Beleg in §7
+      Umgebungsvariable, und nennt die Umgebungsvariablen und ihre Priorität; `--` beendet die Optionen (Test). Beleg in §7
       für alle drei Punkte: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -130,7 +134,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `spec/architecture.md`, `spec/spezifikation.md`, `.a-check.yml` | erledigt (Architect, vor dem Code, 2026-10-08) | Sicht (`ARC-013`, §2, §6) und `tech`-Regel: YAML-Bibliothek auch im CLI-Adapter ([ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)); `LH-FA-17.a` mit den Entscheidungen des Nutzers aus §6 |
 | `tools/arch/a-check-negativ.sh` | update (geliefert, 8fad493) | drei Fälle: CLI-Adapter importiert `go.yaml.in/yaml/v3` und `gopkg.in/yaml.v3` → a-check meldet nichts; PGWire-Adapter (`internal/adapters/driving/pgwire`) importiert `go.yaml.in/yaml/v3` → `tech-leak`, und ebenso `gopkg.in/yaml.v3` (je Modulpfad eine Regel, je Regel ein Fall). Die beiden letzten halten die Erlaubnis auf den CLI-Adapter statt auf alle Driving-Adapter. Kopfkommentar (Zahl der Fälle, *YAML nur im Recording-Adapter*) und Schlusszeile auf *Recording- und CLI-Adapter*; Beschreibung von `a-check-negativ` in `harness/mk/arch-negativ.mk` und Zeile in `harness/README.md` §Sensors nachziehen (`AGENTS.md` §3.11). Mutation: eine Regel auf `internal/adapters/driving` weiten → Fall ihres Modulpfads im PGWire-Adapter rot; CLI-Adapter aus einer Regel nehmen → Fall des CLI-Adapters rot |
-| `internal/adapters/driving/cli` | update (geliefert, a968790) | allgemeiner Leser, an dem jede Option außer `--output` und `--force` einmal angemeldet wird, für Kommandozeile und Umgebungsvariable; er prüft jeden gesetzten Wert und ersetzt die Einzel-Leser von `--fail-on-unconsumed`, `--log-level` und `--shutdown-timeout`; Priorität; Hilfe von `record` und `replay` nennt die Umgebungsvariablen. Die Hilfe vor jeder Prüfung trägt `Parse` seit `slice-replay-semantik-mismatch`: Es prüft die Hilfe-Angabe vor jedem Kommando, also auch vor dem allgemeinen Leser |
+| `internal/adapters/driving/cli` | update (geliefert, a968790) | allgemeiner Leser, an dem jede Option einmal angemeldet wird (`--output` und `--force` offen, Entscheidung zu F-496), für Kommandozeile und Umgebungsvariable; er prüft jeden gesetzten Wert und ersetzt die Einzel-Leser von `--fail-on-unconsumed`, `--log-level` und `--shutdown-timeout`; Priorität; Hilfe von `record` und `replay` nennt die Umgebungsvariablen. Die Hilfe vor jeder Prüfung trägt `Parse` seit `slice-replay-semantik-mismatch`: Es prüft die Hilfe-Angabe vor jedem Kommando, also auch vor dem allgemeinen Leser |
 | `internal/adapters/driving/cli` (Unit-Tests) | update (geliefert, a968790) | `leser_test.go` über alle angemeldeten Optionen, Reihenfolge, fremde Umgebung, Hilfe nach `LH-FA-17.a` und `LH-FA-01.a`; die vorhandenen Tests der drei Einzel-Leser in `cli_test.go`, `frist_test.go` und `internal/bootstrap` bleiben unverändert und grün (Risiko in §6) |
 | `docs/user/benutzerhandbuch.md` | kein update | §5 *Einstellungen* beschreibt Optionen, Umgebungsvariablen und Priorität schon im Zielstand; die Datei beschreibt `slice-v1-abschluss-konfigurationsdatei` |
 
@@ -160,7 +164,12 @@ Gegenprobe des Architektur-Gates (§3).
   in einer Review-Sitzung prüfbar, und gab zwölf Randformen der Datei und die Frage nach dem
   Ort von `PGR-E2004` bis `PGR-E2006` an den Architect zurück. Der Schnitt wurde ohne
   `git mv` umgesetzt: Dieser Slice bleibt in `in-progress/` als *Leser* mit dem Gelieferten,
-  die *Datei* ist `slice-v1-abschluss-konfigurationsdatei` in `next/`. Die Hilfe aus
+  die *Datei* ist `slice-v1-abschluss-konfigurationsdatei` in `next/`. Der Architect bestätigt
+  am 2026-10-08 (F-503), dass das trägt: Die Pflichten der Rückführung (Bedingung vorab, Grund
+  nachgetragen) stehen hier, der Schnitt geschah im selben Zug, und der Zustand stimmt für das,
+  was die Datei jetzt beschreibt. Der Weg über `next/` und zurück ergäbe zwei reine
+  `git mv` mit demselben Endstand. Akzeptiertes Negativ: Den Schnitt zeigt nicht die
+  Verzeichnis-Historie, sondern dieser Absatz und `fa4a5f1`. Die Hilfe aus
   DoD-Punkt 2 blieb, soweit sie `record` und `replay` betrifft; die für `config show` und
   `--config` ging mit der Datei, weil es beide ohne Datei nicht gibt.
 - `in-progress` → `open` (blockiert — Carveout?): keine Bedingung mehr. Die bisherige — die
@@ -197,9 +206,23 @@ Verbindungen und Platzhalter, `config show`) gingen mit dem Schnitt (§4) an
 - **Groß- und Kleinschreibung im Namen einer Umgebungsvariable** — folgt dem Betriebssystem;
   unter Windows unterscheidet es nicht. Akzeptiertes Negativ: keine Regel, kein Test, weil
   das Produkt die Umgebung nicht selbst liest, sondern über das Betriebssystem.
-- **`PGWIRE_RECORDER_OUTPUT` und `PGWIRE_RECORDER_FORCE`** — bis
-  `slice-v1-abschluss-schreiben` nicht gelesen, auch mit ungültigem Wert (§1); die Hilfe von
-  `record` nennt die Ausnahme.
+- **`PGWIRE_RECORDER_OUTPUT` und `PGWIRE_RECORDER_FORCE`** — gelesen und geprüft wie jede
+  Umgebungsvariable einer Option (`LH-FA-17.a`, Optionstabelle); `PGWIRE_RECORDER_FORCE=ja`
+  ist `PGR-E2001`. Entscheidung des Architect vom 2026-10-08 zu F-496: Die Spezifikation galt,
+  der Plan hatte eine Ausnahme behauptet, die sie nicht trägt; beide Optionen kommen an den
+  Leser (§1).
+
+*Kommandozeile*
+
+- **Leerer Wert auf der Kommandozeile** (`--listen=`), auch neben gesetzter Umgebungsvariable
+  derselben Option — gesetzt und ungültig, `PGR-E2001`, geprüft mit der Kommandozeile, also
+  vor den Umgebungsvariablen; nur die leere Umgebungsvariable gilt als nicht gesetzt.
+  `LH-FA-17.a`, Entscheidung des Architect vom 2026-10-08 zu F-497 (dieselbe Strenge wie
+  beim leeren Wert boolescher Optionen und der Dauer). Testfall: `record --listen=
+  --upstream h:1 --output r.yaml` mit `PGWIRE_RECORDER_LISTEN=127.0.0.1:1` und
+  `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT=x` endet mit `PGR-E2001`, die Meldung nennt `listen`,
+  weder `Pflichtoption` noch die Variable; dazu je Option der leere Wert im Test über alle
+  angemeldeten Optionen. Mutant L6 (leerer Wert gilt als nicht gesetzt) wird damit rot.
 
 *Hilfe und Fehler*
 

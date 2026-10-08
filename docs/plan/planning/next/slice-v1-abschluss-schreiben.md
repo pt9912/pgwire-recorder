@@ -30,34 +30,33 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** `record` schreibt die Aufzeichnung atomar (temporäre Datei, dann Verschieben), lehnt ein vorhandenes `--output` ohne `--force` ab, und `--force` nimmt nur `true` oder `false`.
+**Ziel:** `record` schreibt die Aufzeichnung atomar (temporäre Datei, dann Verschieben), und lehnt ein vorhandenes `--output` ohne `--force` ab.
 
 **Übernimmt:** `slice-v1-abschluss-betrieb` — dessen Teil *Schreiben* (atomares Schreiben aus
 DoD-Punkt 1, `--output` und `--force` aus DoD-Punkt 2; Entscheidung des Nutzers vom
 2026-10-08, Schnitt nach F-345; dort §7 `Gegenstand:`). Im Einzelnen, je mit dem
 ursprünglichen Geber:
 
-- **Aus `slice-replay-semantik-mismatch`:** die Werte boolescher Optionen nach
-  `LH-FA-17.a` auch für `--force` (heute nimmt es `1` und `t` an).
 - **Aus `slice-v1-abschluss-herunterfahren`** (dort §1, Abgrenzung): atomares Schreiben,
   `--output` und `--force`; das atomare Schreiben gilt auch für die Aufzeichnung nach
   dessen Zwangsende (DoD-Punkt 1).
-- **Aus `slice-v1-abschluss-konfiguration`** (dort §1, Abgrenzung): `--output`, `--force`
-  und die strengen Werte für `--force`, gelesen über dessen allgemeinen Leser.
-- **Aus `slice-v1-abschluss-konfigurationsdatei`** (dort §1, Abgrenzung): die Schlüssel
-  `output` und `force` der Konfigurationsdatei; sie folgen aus der Anmeldung von `--output`
-  und `--force` am allgemeinen Leser und sind bis dahin unbekannt (`PGR-E2004`). Das ist der
-  Stand des Plans zu Rückgabe 12 in §6 jenes Slice; entscheidet der Architect anders, zieht er
-  diese Zeile im selben Commit nach.
+
+**Abgegeben** an `slice-v1-abschluss-konfiguration` (dort §1, *Übernimmt*, mit der Kennung
+dieses Slice; Entscheidung des Architect vom 2026-10-08 zu F-496): die Anmeldung von
+`--output` und `--force` am allgemeinen Leser, damit ihre Umgebungsvariablen gelesen und
+geprüft werden, und die strengen Werte für `--force` (aus `slice-replay-semantik-mismatch`).
+Die Schlüssel `output` und `force` der Konfigurationsdatei folgen aus dieser Anmeldung und
+kommen mit `slice-v1-abschluss-konfigurationsdatei` (dort §6, Rückgabe 12). Hier bleiben das
+atomare Schreiben und das Verhalten bei vorhandenem `--output`.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Das Herunterfahren und die Frist — `slice-v1-abschluss-herunterfahren`; er liegt vor diesem
   Slice, und das atomare Schreiben gilt auch für die Aufzeichnung nach seinem Zwangsende.
-- Der allgemeine Leser — `slice-v1-abschluss-konfiguration`; dieser Slice meldet `--output`
-  und `--force` an dessen Leser an.
-- Die Konfigurationsdatei — `slice-v1-abschluss-konfigurationsdatei`; dieser Slice liest die
-  Schlüssel `output` und `force` über deren Laden, ohne eigenen Code für die Datei.
+- Der allgemeine Leser, die Anmeldung von `--output` und `--force` und ihre Werte —
+  `slice-v1-abschluss-konfiguration` (oben, *Abgegeben*).
+- Die Konfigurationsdatei und ihre Schlüssel `output` und `force` —
+  `slice-v1-abschluss-konfigurationsdatei`; dieser Slice hat keinen Code für die Datei.
 - Das Schreiben im SQLite-Format — anderer Vorgang: `slice-v1-abschluss-sqlite-format`
   schreibt seine Datei je Session in einer Transaktion; dieser Slice schreibt die Datei
   des Standardformats YAML.
@@ -76,8 +75,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Zwangsende des Herunterfahrens, lässt unter `--output` keine teilweise Datei zurück
       (Test).
 - [ ] [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Ein vorhandenes `--output` wird ohne `--force` abgelehnt
-      (Exit-Code 2, `SPEC-014`); `--force` nimmt wie jede boolesche Option nur `true` oder
-      `false`, über Kommandozeile, Umgebungsvariable und Konfigurationsdatei (Test). Beleg
+      (Exit-Code 2, `SPEC-014`), gleich aus welcher Quelle `--force` kommt (Test). Beleg
       in §7 für beide Punkte: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -98,7 +96,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben |
-| `internal/adapters/driving/cli` | update | `--output` ohne `--force` abgelehnt; strenge Werte für `--force` über den allgemeinen Leser |
+| `internal/adapters/driving/cli` | update, falls nötig | `--output` ohne `--force` abgelehnt; `--output` und `--force` liefert der allgemeine Leser (§1) |
 | `internal/adapters/driven/recording` (Unit-Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-07.a` und `LH-FA-17.a` |
 | `docs/user/benutzerhandbuch.md` | update | atomares Schreiben, `--output` und `--force` |
 
@@ -147,7 +145,8 @@ dasteht.
   Architect bestätigt vor dem Code den Code (`PGR-E3…` nach `SPEC-016` oder `PGR-E2…` nach
   `SPEC-014`).
 - **Vorhandenes `--output` ohne `--force`** — Exit-Code 2; entschieden in `SPEC-014`.
-- **Werte von `--force`** — nur `true` oder `false`; entschieden in `LH-FA-17.a`.
+- **Werte von `--force`** — nur `true` oder `false`; entschieden in `LH-FA-17.a`, geliefert von
+  `slice-v1-abschluss-konfiguration` (§1, *Abgegeben*).
 - **Fehlschlag des Verschiebens** — offen: Der Architect entscheidet vor dem Code Code und
   Verbleib der temporären Datei.
 
