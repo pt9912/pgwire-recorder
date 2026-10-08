@@ -70,7 +70,11 @@ const optionenRecord = `Optionen von record:
   --upstream  Adresse des PostgreSQL-Servers, host:port (Pflicht)
   --output    Zieldatei der Aufzeichnung (Pflicht)
   --force     vorhandene Zieldatei ersetzen
-` + optionShutdownTimeout + optionLogLevel
+` + optionShutdownTimeout + optionLogLevel + `
+Jede Option außer --output und --force ist auch über ihre Umgebungsvariable
+setzbar: PGWIRE_RECORDER_ und der Name in Großbuchstaben mit _ statt -, etwa
+PGWIRE_RECORDER_LISTEN; die Kommandozeile geht ihr vor.
+`
 
 const optionenReplay = `Optionen von replay:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
@@ -79,7 +83,11 @@ const optionenReplay = `Optionen von replay:
               nicht verbrauchte Interaktionen und nie zugeordnete Sessions
               sind ein Fehler (PGR-E5002, Exit-Code 5) statt einer Warnung;
               Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
-` + optionShutdownTimeout + optionLogLevel
+` + optionShutdownTimeout + optionLogLevel + `
+Jede Option ist auch über ihre Umgebungsvariable setzbar: PGWIRE_RECORDER_ und
+der Name in Großbuchstaben mit _ statt -, etwa PGWIRE_RECORDER_LISTEN; die
+Kommandozeile geht ihr vor.
+`
 
 const optionShutdownTimeout = `  --shutdown-timeout 0|<zahl>ms|<zahl>s|<zahl>m
               Frist ab dem ersten SIGINT oder SIGTERM, Standard 5s; danach
@@ -153,107 +161,180 @@ func Parse(args []string, out io.Writer) (Command, error) {
 	}
 }
 
-func parseRecord(args []string) (Command, error) {
-	fs := flag.NewFlagSet("record", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-	var o RecordOptions
-	fs.StringVar(&o.Listen, "listen", "", "")
-	fs.StringVar(&o.Upstream, "upstream", "", "")
-	fs.StringVar(&o.Output, "output", "", "")
-	fs.BoolVar(&o.Force, "force", false, "")
-	if err := fristOption(fs, &o.ShutdownTimeout); err != nil {
-		return Command{}, err
+// option ist eine Option von record oder replay am allgemeinen Leser: Er liest
+// sie von der Kommandozeile und aus ihrer Umgebungsvariable (envName), prüft
+// jeden gesetzten Wert mit art und übernimmt den Wert nach der Priorität
+// Kommandozeile vor Umgebungsvariable vor Standardwert (LH-FA-17.a, SPEC-007).
+type option struct {
+	name     string
+	art      art
+	pflicht  bool
+	standard string
+	setze    func(*Command, string)
+}
+
+// art ist die Wertemenge einer Option: pruefe lehnt jeden Wert außerhalb ab;
+// schalter lässt die Option auf der Kommandozeile ohne Wert zu, dann gilt
+// "true".
+type art struct {
+	name     string
+	pruefe   func(string) error
+	schalter bool
+}
+
+func artText() art { return art{name: "text", pruefe: func(string) error { return nil }} }
+
+func artWahrheitswert() art {
+	return art{name: "wahrheitswert", pruefe: func(v string) error { return wahrheitswert{new(bool)}.Set(v) }, schalter: true}
+}
+
+func artDauer() art {
+	return art{name: "dauer", pruefe: func(v string) error { return dauer{new(time.Duration)}.Set(v) }}
+}
+
+func artStufe() art {
+	return art{name: "stufe", pruefe: func(v string) error { return stufe{new(string)}.Set(v) }}
+}
+
+// envName ist der Name der Umgebungsvariable einer Option: das Präfix
+// PGWIRE_RECORDER_ (SPEC-008), dann der Name in Großbuchstaben mit _ statt -
+// (LH-FA-17.a).
+func envName(name string) string {
+	return "PGWIRE_RECORDER_" + strings.ToUpper(strings.ReplaceAll(name, "-", "_"))
+}
+
+// optionen liefert die Optionen eines Kommandos am allgemeinen Leser in der
+// Reihenfolge der Tabelle in LH-FA-17.a; in dieser Reihenfolge prüft der
+// Leser die Umgebungsvariablen. --output und --force von record stehen nicht
+// darunter, sie liest nur die Kommandozeile (parseRecord).
+func optionen(kommando string) []option {
+	switch kommando {
+	case "record":
+		return []option{
+			{name: "listen", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Listen = v }},
+			{name: "upstream", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Upstream = v }},
+			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Record.ShutdownTimeout, v) }},
+			{name: "log-level", art: artStufe(), standard: LogInfo, setze: func(c *Command, v string) { c.Record.LogLevel = v }},
+		}
+	case "replay":
+		return []option{
+			{name: "listen", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Replay.Listen = v }},
+			{name: "input", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Replay.Input = v }},
+			{name: "fail-on-unconsumed", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Replay.FailOnUnconsumed = v == "true" }},
+			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Replay.ShutdownTimeout, v) }},
+			{name: "log-level", art: artStufe(), standard: LogInfo, setze: func(c *Command, v string) { c.Replay.LogLevel = v }},
+		}
 	}
-	level, err := logLevelOption(fs)
-	if err != nil {
-		return Command{}, err
+	return nil
+}
+
+// setzeDauer setzt einen Wert von --shutdown-timeout, den artDauer geprüft hat;
+// Set scheitert an ihm nicht.
+func setzeDauer(ziel *time.Duration, v string) {
+	_ = dauer{ziel}.Set(v)
+}
+
+// kommandozeile ist der Wert einer Option auf der Kommandozeile: Set prüft ihn
+// mit der Wertemenge und merkt die letzte Angabe.
+type kommandozeile struct {
+	art     art
+	wert    *string
+	gesetzt *bool
+}
+
+func (k kommandozeile) String() string {
+	if k.wert == nil {
+		return ""
 	}
-	optionen, rest := endeDerOptionen(args)
-	if err := fs.Parse(optionen); err != nil {
-		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von record")
+	return *k.wert
+}
+
+func (k kommandozeile) Set(v string) error {
+	if err := k.art.pruefe(v); err != nil {
+		return err
+	}
+	*k.wert, *k.gesetzt = v, true
+	return nil
+}
+
+// IsBoolFlag lässt eine Option der Art schalter ohne Wert zu; flag setzt dann
+// "true".
+func (k kommandozeile) IsBoolFlag() bool { return k.art.schalter }
+
+// gelesen ist der Stand einer Option nach dem Lesen der Quellen.
+type gelesen struct {
+	cli, env     string
+	cliOk, envOk bool
+}
+
+// lies liest kommando nach LH-FA-17.a: zuerst die Kommandozeile mit fs, an dem
+// der Aufrufer weitere Optionen angemeldet haben kann, dann die
+// Umgebungsvariablen der Optionen in ihrer Reihenfolge; jeder gesetzte Wert
+// wird geprüft, ein ungültiger ist PGR-E2001, auch wenn die Kommandozeile
+// dieselbe Option setzt. Danach übernimmt es je Option den Wert nach der
+// Priorität; eine Pflichtoption ohne Wert oder mit leerem Wert ist PGR-E2001.
+func lies(kommando string, fs *flag.FlagSet, args []string) (Command, error) {
+	opts := optionen(kommando)
+	stand := make([]gelesen, len(opts))
+	for i, o := range opts {
+		fs.Var(kommandozeile{o.art, &stand[i].cli, &stand[i].cliOk}, o.name, "")
+	}
+	vorne, rest := endeDerOptionen(args)
+	if err := fs.Parse(vorne); err != nil {
+		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von %s", kommando)
 	}
 	if rest = append(fs.Args(), rest...); len(rest) > 0 {
 		return Command{}, model.Errorf(model.CodeUsage, nil, "unerwartetes Argument %q", rest[0])
 	}
-	for _, p := range []struct{ name, value string }{{"--listen", o.Listen}, {"--upstream", o.Upstream}, {"--output", o.Output}} {
-		if p.value == "" {
-			return Command{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption %s fehlt", p.name)
+	for i, o := range opts {
+		v := os.Getenv(envName(o.name))
+		if v == "" {
+			continue
 		}
+		if err := o.art.pruefe(v); err != nil {
+			return Command{}, model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envName(o.name))
+		}
+		stand[i].env, stand[i].envOk = v, true
 	}
-	o.LogLevel = *level.wert
-	return Command{Name: "record", Record: o}, nil
+	cmd := Command{Name: kommando}
+	for i, o := range opts {
+		v := o.standard
+		switch {
+		case stand[i].cliOk:
+			v = stand[i].cli
+		case stand[i].envOk:
+			v = stand[i].env
+		}
+		if o.pflicht && v == "" {
+			return Command{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption --%s fehlt", o.name)
+		}
+		o.setze(&cmd, v)
+	}
+	return cmd, nil
+}
+
+func parseRecord(args []string) (Command, error) {
+	fs := flag.NewFlagSet("record", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var output string
+	var force bool
+	fs.StringVar(&output, "output", "", "")
+	fs.BoolVar(&force, "force", false, "")
+	cmd, err := lies("record", fs, args)
+	if err != nil {
+		return Command{}, err
+	}
+	if output == "" {
+		return Command{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption --output fehlt")
+	}
+	cmd.Record.Output, cmd.Record.Force = output, force
+	return cmd, nil
 }
 
 func parseReplay(args []string) (Command, error) {
 	fs := flag.NewFlagSet("replay", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	var o ReplayOptions
-	fs.StringVar(&o.Listen, "listen", "", "")
-	fs.StringVar(&o.Input, "input", "", "")
-	fail := wahrheitswert{&o.FailOnUnconsumed}
-	// Die Umgebungsvariable setzt den Wert vor der Kommandozeile, die ihn
-	// danach überschreibt (CLI vor Umgebungsvariable); leer gilt sie als nicht
-	// gesetzt (LH-FA-17.a).
-	if v := os.Getenv(envFailOnUnconsumed); v != "" {
-		if err := fail.Set(v); err != nil {
-			return Command{}, model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envFailOnUnconsumed)
-		}
-	}
-	fs.Var(fail, "fail-on-unconsumed", "")
-	if err := fristOption(fs, &o.ShutdownTimeout); err != nil {
-		return Command{}, err
-	}
-	level, err := logLevelOption(fs)
-	if err != nil {
-		return Command{}, err
-	}
-	optionen, rest := endeDerOptionen(args)
-	if err := fs.Parse(optionen); err != nil {
-		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von replay")
-	}
-	if rest = append(fs.Args(), rest...); len(rest) > 0 {
-		return Command{}, model.Errorf(model.CodeUsage, nil, "unerwartetes Argument %q", rest[0])
-	}
-	for _, p := range []struct{ name, value string }{{"--listen", o.Listen}, {"--input", o.Input}} {
-		if p.value == "" {
-			return Command{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption %s fehlt", p.name)
-		}
-	}
-	o.LogLevel = *level.wert
-	return Command{Name: "replay", Replay: o}, nil
-}
-
-// logLevelOption meldet --log-level an fs an: Standard info, davor die
-// Umgebungsvariable, wenn sie nicht leer ist, danach die Kommandozeile, deren
-// letzte Angabe gilt. Eine Umgebungsvariable mit ungültigem Wert ist
-// PGR-E2001, auch wenn die Kommandozeile die Option setzt (LH-FA-17.a).
-func logLevelOption(fs *flag.FlagSet) (stufe, error) {
-	l := stufe{new(string)}
-	*l.wert = LogInfo
-	if v := os.Getenv(envLogLevel); v != "" {
-		if err := l.Set(v); err != nil {
-			return stufe{}, model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envLogLevel)
-		}
-	}
-	fs.Var(l, "log-level", "")
-	return l, nil
-}
-
-// fristOption meldet --shutdown-timeout an fs an: Standard StandardFrist,
-// davor die Umgebungsvariable, wenn sie nicht leer ist, danach die
-// Kommandozeile, deren letzte Angabe gilt. Eine Umgebungsvariable mit
-// ungültigem Wert ist PGR-E2001, auch wenn die Kommandozeile die Option setzt
-// (LH-FA-17.a).
-func fristOption(fs *flag.FlagSet, ziel *time.Duration) error {
-	*ziel = StandardFrist
-	d := dauer{ziel}
-	if v := os.Getenv(envShutdownTimeout); v != "" {
-		if err := d.Set(v); err != nil {
-			return model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envShutdownTimeout)
-		}
-	}
-	fs.Var(d, "shutdown-timeout", "")
-	return nil
+	return lies("replay", fs, args)
 }
 
 // dauerForm ist eine ganze Zahl ohne Vorzeichen mit genau einer Einheit.

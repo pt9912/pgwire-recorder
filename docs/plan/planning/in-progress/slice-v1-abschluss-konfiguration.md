@@ -56,7 +56,10 @@ sind die der Optionen, die der Stand kennt; ein Schlüssel einer Option aus der 
 `LH-FA-17.a`, die der Stand noch nicht kennt (etwa `format`, `tls_cert` oder der Abschnitt
 `play:`), ist bis zu ihrem Slice ein unbekannter Schlüssel (`PGR-E2004`). Ein Test läuft über
 alle angemeldeten Optionen (drei Quellen, Priorität), sodass eine später angemeldete Option
-ihn ohne eigenen Plan-Punkt mitnimmt.
+ihn ohne eigenen Plan-Punkt mitnimmt. `--output` und `--force` meldet dieser Slice nicht am
+Leser an: Sie liest bis `slice-v1-abschluss-schreiben` nur die Kommandozeile, wie bisher; der
+Nehmer meldet sie an (dort §1, *Übernimmt*,
+mit der Kennung dieses Slice). Die Hilfe von `record` nennt die Ausnahme.
 
 **Ort des Lesens.** Die Datei liest der CLI-Adapter (`ARC-005`). Die YAML-Bibliothek ist dort
 nur zum Lesen der Konfigurationsdatei zulässig (`ARC-013`,
@@ -295,6 +298,32 @@ Arbeitsbaums (`mktemp -d`, `tar` ohne `.git`), dort `.a-check.yml` mit `sed` ge�
 | beide zugleich | beide Regeln geweitet | `pgwire-yaml`, `pgwire-gopkg-yaml` |
 
 Ungeändert: alle zehn Fälle grün, Exit 0.
+
+**Allgemeiner Leser: Kommandozeile, Umgebung, Priorität** (DoD-Punkt 1, ohne Datei). Weg der
+Mutanten: je Mutant eine frische Kopie des Arbeitsbaums (`mktemp -d`, `tar` ohne `.git`), die
+Änderung an `internal/adapters/driving/cli/cli.go` mit einem Skript, dann `make test` in der
+Kopie; ein neuer Pfad je Mutant, darum keine gleiche mtime am selben Pfad. Die vorhandenen
+Tests der drei Einzel-Leser (`cli_test.go`, `frist_test.go`, die Tests in
+`internal/bootstrap`) sind unverändert und grün; `export_test.go` ist nur ergänzt.
+
+| Zusage | Mutation in `lies` / `optionen` | rote Tests |
+|---|---|---|
+| Kommandozeile vor Umgebungsvariable | Umgebung vor Kommandozeile übernommen | `TestLeserAlleOptionen`, `TestParseFailOnUnconsumedUmgebung`, `TestParseLogLevelUmgebung`, `TestParseShutdownTimeoutUmgebung`, `TestRunLogLevel` |
+| Umgebungsvariable setzt jede Option | Umgebung nicht gelesen | `TestLeserAlleOptionen`, `TestLeserReihenfolge`, die sechs `…Umgebung…`-Tests der Einzel-Leser, `TestRunLogLevel`, `TestRunStartfehlerJeStufe` |
+| gesetzte Umgebungsvariable geprüft, auch wenn die Kommandozeile vorgeht | Prüfung nur ohne Kommandozeile | `TestLeserAlleOptionen`, `TestParseFailOnUnconsumedUmgebungNebenOption`, `TestParseLogLevelUmgebungUngueltig`, `TestParseShutdownTimeoutUmgebungUngueltig`, `TestRunStartfehlerJeStufe` |
+| leere Umgebungsvariable gilt als nicht gesetzt | leere Variable geprüft und übernommen | 30 Tests, darunter `TestLeserAlleOptionen`, `TestLeserFremdeUmgebung`, `TestParseRecord` |
+| Umgebungsvariablen in der Reihenfolge der Tabelle geprüft | Schleife rückwärts | `TestLeserReihenfolge` |
+| Kommandozeile vor den Umgebungsvariablen geprüft | Umgebung vor `fs.Parse` geprüft | `TestLeserReihenfolge` |
+| Pflichtoption ohne Wert ist `PGR-E2001` | Pflicht-Prüfung entfernt | `TestLeserAlleOptionen`, `TestLeserReihenfolge`, `TestParseReplay` |
+| ohne Quelle gilt der Standardwert | Standardwert leer | `TestLeserAlleOptionen`, `TestParseLogLevel`, `TestParseRecord`, `TestParseReplay`, `TestParseShutdownTimeout`, `TestParseLogLevelUmgebung`, `TestParseShutdownTimeoutUmgebung` |
+| Name der Umgebungsvariable mit `_` statt `-` | `-` bleibt stehen | `TestLeserOptionen`, `TestLeserReihenfolge`, die sechs `…Umgebung…`-Tests, `TestRunLogLevel`, `TestRunStartfehlerJeStufe` |
+| boolesche Option ohne Wert ist `true` | `schalter` aus | `TestParseFailOnUnconsumed`, `TestParseFailOnUnconsumedUmgebung`, `TestParseFailOnUnconsumedUmgebungNebenOption`, `TestRunLogLevel` |
+| Hilfe von `replay` nennt die Umgebungsvariablen | Satz geändert | `TestLeserHilfe` |
+| `--output` liest nur die Kommandozeile (Hilfe von `record`) | `--output` aus `PGWIRE_RECORDER_OUTPUT` | `TestLeserHilfe` |
+
+Eine Umgebungsvariable mit Präfix ohne passende Option bleibt unbeachtet: Der Leser fragt nur
+die Namen seiner Optionen ab; `TestLeserFremdeUmgebung` belegt es für fünf Namen. Ein Mutant,
+der sie liest, müsste eine neue Abfrage einführen; keiner gefahren.
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
 - **Steering-Loop-Eintrag:** <…>
