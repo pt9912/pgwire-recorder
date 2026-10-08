@@ -151,11 +151,17 @@ Umstellungs-Slices (`slice-harness-blackbox-kern`, `slice-harness-blackbox-drive
 `slice-harness-blackbox-pgwire`, `slice-harness-blackbox-einstieg`), die beiden
 Bereinigungs-Slices (`slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`),
 `slice-harness-lint`, `slice-harness-commit-struktur-id`,
-`slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate` und `slice-harness-abdeckung-gate` liegen in `done/`
-(WIP-Limit 1). Dieser Slice ist der letzte der Reihe vor M3 nach Entscheidung
-des Nutzers vom 2026-10-05, 2026-10-06 und 2026-10-07 (Lastenheft, Lint-Werkzeug,
-Umstellung, Bereinigung, Lint-Gate, `slice-harness-commit-struktur-id`,
-`slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate`, `slice-harness-abdeckung-gate`, Coverage). Nach ihm
+`slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate` und `slice-harness-abdeckung-gate` liegen in `done/`,
+und welle-erster-release ist `done` (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): die Slices
+von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
+`slice-v1-abschluss-betrieb` und `slice-harness-meldungskatalog-gate` direkt vor
+`slice-v1-abschluss-container`, dann die Slices von welle-erster-release, danach
+`slice-harness-commit-struktur-id`, `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
+`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
+`slice-harness-mutation`; die Reihenfolge der Wellen-Slices steht in §5 von
+[welle-v1-abschluss](../welle-v1-abschluss.md). Dieser Slice ist der letzte
+vor M3: Mit ihm wird Abnahmeszenario 17 nachweisbar, nach der Entscheidung vom
+2026-10-08 also erst nach welle-erster-release. Nach ihm
 folgen `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`
 und `slice-harness-mutation`; keiner der drei trägt zu M3 bei, und keiner ist
 Vorbedingung dieses Slice. Vom Abdeckungs-Gate hängt dieser Slice

@@ -138,15 +138,19 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-commit-struktur-id` liegt in `done/`
-(WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05, 2026-10-06 und
-2026-10-07: `slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
-`slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
-`slice-harness-commit-struktur-id`, dieser Slice, `slice-harness-meldungskatalog-gate`, `slice-harness-abdeckung-gate`,
-`slice-harness-coverage`, `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`. Technisch hängt dieser Slice nur an
+**Start** (`next` → `in-progress`): `slice-harness-lint` liegt in `done/` (WIP-Limit 1);
+dieser Slice ist Schritt 1 der Reihenfolge. Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): die Slices
+von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
+`slice-v1-abschluss-betrieb` und `slice-harness-meldungskatalog-gate` direkt vor
+`slice-v1-abschluss-container`, dann die Slices von welle-erster-release, danach
+`slice-harness-commit-struktur-id`, `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
+`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
+`slice-harness-mutation`; die Reihenfolge der Wellen-Slices steht in §5 von
+[welle-v1-abschluss](../welle-v1-abschluss.md). Technisch hängt dieser Slice nur an
 `slice-harness-lint`: Ab ihm ist `make lint` Gate auch für `test/integration`. Er steht
-vor `slice-v1-abschluss-betrieb`, der die Tests mit Signal und Frist über dieselben
-Helfer schreibt.
+direkt vor `slice-v1-abschluss-betrieb`, der die Tests mit Signal und Frist über dieselben
+Helfer schreibt; deren Mutationen (Prozess endet nach dem Signal nicht) sind genau der
+Fall, der heute bis zum Zeitlimit hängt.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

@@ -61,6 +61,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 - Wird blockiert von: Welle [welle-v1-abschluss](welle-v1-abschluss.md).
 - Innerhalb der Welle: `slice-erster-release-homebrew-nachweis` setzt `slice-erster-release-veroeffentlichung` voraus.
 
+**Reihenfolge** (Entscheidung des Nutzers vom 2026-10-08: Wellen vor Harness; WIP-Limit 1):
+
+1. `slice-erster-release-veroeffentlichung` — Binaries und Image in den Registries.
+2. `slice-erster-release-homebrew-nachweis` — Abnahmeszenario 11 (setzt 1 voraus).
+
+Danach folgen die wellenlosen Harness-Slices, beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4. Abnahmeszenario 17 und damit M3 werden erst mit `slice-harness-coverage` nachweisbar, also nach dieser Welle.
+
 ## 6. Out-of-Scope für diese Welle
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`

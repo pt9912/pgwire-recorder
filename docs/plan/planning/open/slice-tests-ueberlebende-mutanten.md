@@ -231,13 +231,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-harness-coverage` liegt in `done/` oder ist
-ausdrücklich zurückgestellt (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers
-vom 2026-10-05, 2026-10-06 und 2026-10-07: `slice-harness-lint-werkzeug`, die vier
-Umstellungs-Slices, `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`,
-`slice-harness-lint`, `slice-harness-commit-struktur-id`,
-`slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate`, `slice-harness-abdeckung-gate`,
-`slice-harness-coverage`, dieser Slice, `slice-tests-ueberlebende-mutanten-driving`,
-`slice-harness-mutation`.
+ausdrücklich zurückgestellt (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): die Slices
+von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
+`slice-v1-abschluss-betrieb` und `slice-harness-meldungskatalog-gate` direkt vor
+`slice-v1-abschluss-container`, dann die Slices von welle-erster-release, danach
+`slice-harness-commit-struktur-id`, `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
+`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
+`slice-harness-mutation`; die Reihenfolge der Wellen-Slices steht in §5 von
+[welle-v1-abschluss](../welle-v1-abschluss.md). Die Slices beider Wellen ändern
+den Code, auf dem die gesammelten Mutanten liegen; vor dem Start prüft der Architect
+jeden gegen den Code nach den Wellen, ob er noch besteht und noch überlebt.
 
 *Warum nach Coverage und nicht davor.* Technisch hängt der Slice an keinem der beiden;
 der Platz folgt aus drei Gründen.

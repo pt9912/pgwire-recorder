@@ -102,7 +102,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): Ein Lauf von ai-harness-init hat einen Teil des
-Gate-Index unter `harness/mk/` geschrieben, und sein Diff liegt zum Commit vor.
+Gate-Index unter `harness/mk/` geschrieben, und sein Diff liegt zum Commit vor; und
+welle-erster-release ist `done` (Entscheidung des Nutzers vom 2026-10-08, Wellen vor
+Harness). Tritt der Lauf früher ein, wartet der Slice bis nach den Wellen; bis dahin
+führt `harness/README.md` §Sensors die Targets weiter. Gegenüber der Reihe der übrigen
+Harness-Slices (§4 von `slice-harness-commit-struktur-id`) steht er außerhalb.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

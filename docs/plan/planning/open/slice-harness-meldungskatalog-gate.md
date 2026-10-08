@@ -136,16 +136,23 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-integration-wait` liegt in `done/`
-(WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05, 2026-10-06 und
-2026-10-07: `slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
-`slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
-`slice-harness-commit-struktur-id`, `slice-harness-integration-wait`, dieser Slice,
-`slice-harness-abdeckung-gate`, `slice-harness-coverage`,
-`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`. Technisch hängt dieser
-Slice an keinem davon; die Code-Tabelle und der Katalog liegen seit
-welle-replay-semantik vor. Er steht vor den Slices von welle-v1-abschluss, die neue
-Codes einführen, damit jeder von ihnen unter dem Gate liefert. Vor dem ersten
+**Start** (`next` → `in-progress`): Die Slices von welle-v1-abschluss außer
+`slice-v1-abschluss-container` und `slice-v1-abschluss-homebrew` liegen in `done/`
+(WIP-Limit 1); dieser Slice ist Schritt 13 der Reihenfolge. Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): die Slices
+von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
+`slice-v1-abschluss-betrieb` und `slice-harness-meldungskatalog-gate` direkt vor
+`slice-v1-abschluss-container`, dann die Slices von welle-erster-release, danach
+`slice-harness-commit-struktur-id`, `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
+`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
+`slice-harness-mutation`; die Reihenfolge der Wellen-Slices steht in §5 von
+[welle-v1-abschluss](../welle-v1-abschluss.md). Technisch hängt
+dieser Slice an keinem davon; die Code-Tabelle und der Katalog liegen seit
+welle-replay-semantik vor. Er steht direkt vor `slice-v1-abschluss-container`, dessen §1
+das Gate als vorher geliefert nennt: Es misst die Codes, die die Slices der Welle
+eingeführt haben, bevor die Betriebsdokumentation den Katalog schreibt, und die Frage, ob
+es diesen Katalog mitprüft (§6, Punkt 8), ist vor dessen Entstehen entschieden. Dass die
+Slices der Welle ihre Codes nicht unter dem Gate liefern, ist die Folge der Reihenfolge;
+was sie am Katalog vorbei eingeführt haben, berichtigt dieser Slice nach §6 *Bestand*. Vor dem ersten
 Code-Commit entscheidet der Architect die Randformen aus §6 im Vertrag und ob eine
 ADR nötig ist (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 

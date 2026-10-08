@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Ein zweites Signal lässt die Frist sofort ablaufen, statt den Prozess hart zu beenden.
 - Beim Beginn des Herunterfahrens eine Info-Zeile mit der Zahl der Sessions, auf die gewartet wird.
 
-Die Ergänzung von [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) Boundary ist bestätigt und steht im Lastenheft; `LH-FA-13.a` (Frist, Zwangsende, `PGR-E4006`, weiteres Signal, Info-Zeile), die Optionstabelle (`--shutdown-timeout`) und `SPEC-046` sind spezifiziert. Ob der Gegenstand in DoD-Punkt 1 passt oder einen eigenen Slice der `welle-v1-abschluss` braucht, entscheidet der Planner beim `open` → `next` dieses Slice (zweites Folge-Review zu `slice-extended-query-replay`, F-345: DoD-Punkt 1 bündelt atomares Schreiben, Exit-Code aller Klassen und die Frist in zwei Modi; §3 führt vier Komponenten). Zeigt sich erst in der Arbeit, dass DoD-Punkt 1 nicht in eine Review-Sitzung passt, gilt die Rückführung in §4.
+Die Ergänzung von [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) Boundary ist bestätigt und steht im Lastenheft; `LH-FA-13.a` (Frist, Zwangsende, `PGR-E4006`, weiteres Signal, Info-Zeile), die Optionstabelle (`--shutdown-timeout`) und `SPEC-046` sind spezifiziert. Ob der Gegenstand in DoD-Punkt 1 passt oder einen eigenen Slice der `welle-v1-abschluss` braucht, entscheidet der Planner vor dem Start (`next` → `in-progress`) dieses Slice; beim `open` → `next` am 2026-10-08 ist der Schnitt offen geblieben (zweites Folge-Review zu `slice-extended-query-replay`, F-345: DoD-Punkt 1 bündelt atomares Schreiben, Exit-Code aller Klassen und die Frist in zwei Modi; §3 führt vier Komponenten). Zeigt sich erst in der Arbeit, dass DoD-Punkt 1 nicht in eine Review-Sitzung passt, gilt die Rückführung in §4.
 
 **Übernommen aus `slice-replay-semantik-mismatch`:** der Schlüssel `fail_on_unconsumed` im Abschnitt `replay:` (mit der Konfigurationsdatei für alle Optionen); die Werte boolescher Optionen nach `LH-FA-17.a` auch für `--force` (heute nimmt es `1` und `t` an); die Prüfung jeder gesetzten Umgebungsvariable einer Option des Kommandos, auch wenn die Kommandozeile vorgeht (`PGR-E2001`, `LH-FA-17.a`), im allgemeinen Leser für alle Optionen; die Hilfe vor jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei (`LH-FA-01.a`), auch für `config show` und `--config`, samt `--` als Ende der Optionen; und der Test, dass eine durch die Frist zwangsweise beendete Replay-Session mit `--fail-on-unconsumed` `PGR-E4006` vor `PGR-E5002` merkt und mit Exit-Code `4` endet (`LH-FA-03.b`).
 
@@ -95,7 +95,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`.
+**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, `slice-harness-integration-wait` liegt in `done/` (§1: die Tests mit Signal und Frist entstehen über dessen Helfer; Entscheidung des Nutzers vom 2026-10-08, Wellen vor Harness, Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)), und der Schnitt nach F-345 ist entschieden (§1).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
