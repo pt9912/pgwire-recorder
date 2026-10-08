@@ -139,14 +139,18 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-lint` liegt in `done/` (WIP-Limit 1).
-Reihenfolge nach Entscheidung des Nutzers vom 2026-10-05, 2026-10-06 und 2026-10-07:
-`slice-harness-lint-werkzeug`, die vier Umstellungs-Slices,
-`slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`, `slice-harness-lint`,
-dieser Slice, `slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate`, `slice-harness-abdeckung-gate`,
-`slice-harness-coverage`, `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`. Zwischen diesem Slice und
-`slice-harness-integration-wait` besteht keine technische Abhängigkeit; dieser steht
-vorn, weil jeder weitere Commit das Muster wiederholen kann. Vor dem ersten
+**Start** (`next` → `in-progress`): `slice-harness-lint` liegt in `done/`, und
+welle-erster-release ist `done` (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers
+vom 2026-10-08 (Wellen vor Harness): die Slices von welle-v1-abschluss, darin
+`slice-harness-integration-wait` direkt vor `slice-v1-abschluss-betrieb` und
+`slice-harness-meldungskatalog-gate` direkt vor `slice-v1-abschluss-container`, dann die
+Slices von welle-erster-release, danach dieser Slice als erster Harness-Slice,
+`slice-harness-abdeckung-gate`, `slice-harness-coverage`, `slice-tests-ueberlebende-mutanten`,
+`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`. Die Reihenfolge der
+Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) und
+[welle-erster-release](../welle-erster-release.md). Zwischen diesem Slice und
+den übrigen Harness-Slices besteht keine technische Abhängigkeit; dieser steht unter
+ihnen vorn, weil jeder weitere Commit das Muster wiederholen kann. Vor dem ersten
 Code-Commit entscheidet der Architect die Randformen aus §6 in §11 und ob eine
 Folge-ADR nötig ist (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
@@ -160,6 +164,12 @@ Folge-ADR nötig ist (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 - `in-progress` → `open` (blockiert — Carveout?): keine Bedingung mehr. Die Prüfung in
   der mitgelieferten Datei ist mit `SPEC-050` Punkt 1 entfallen, die Annahme von
   [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) hat der Nutzer am 2026-10-08 entschieden.
+
+**Rückführung eingetreten** (2026-10-08): `in-progress` → `open`. Grund: Priorität:
+Nutzer-Entscheidung 2026-10-08, Wellen vor Harness („zuerst die produktiven Wellen und
+Slices“). Kein Blocker und kein Carveout: Ein Code-Commit existiert nicht; Plan,
+`SPEC-050` und [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md)
+bleiben stehen, ebenso die Randform-Entscheidungen in §6.
 
 ## 5. Closure-Trigger
 
