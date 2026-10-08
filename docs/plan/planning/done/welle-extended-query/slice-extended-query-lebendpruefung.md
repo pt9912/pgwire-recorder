@@ -5,4 +5,4 @@
 
 **Welle:** [welle-extended-query](welle-extended-query.md)
 **Archiviert mit:** welle-extended-query · **Geschlossen:** 2026-10-05
-**Hervorgegangen:** [slice-v1-abschluss-postgres-versionen](../../open/slice-v1-abschluss-postgres-versionen.md) · [slice-v1-abschluss-sessions](../../next/slice-v1-abschluss-sessions.md)
+**Hervorgegangen:** [slice-v1-abschluss-postgres-versionen](../../next/slice-v1-abschluss-postgres-versionen.md) · [slice-v1-abschluss-sessions](../../next/slice-v1-abschluss-sessions.md)
