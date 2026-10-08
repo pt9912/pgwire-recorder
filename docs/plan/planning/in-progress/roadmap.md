@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: nichts in `in-progress/`. Als nächster folgt [`slice-v1-abschluss-herunterfahren`](../next/slice-v1-abschluss-herunterfahren.md), Schritt 2 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md).
+In Arbeit: nichts in `in-progress/`. Als nächster folgt [`slice-v1-abschluss-herunterfahren`](../in-progress/slice-v1-abschluss-herunterfahren.md), Schritt 2 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md).
 
 
 
