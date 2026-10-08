@@ -177,10 +177,12 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
   wartet höchstens so lange, wie `--shutdown-timeout` angibt (siehe
   [Herunterfahren mit Frist](#herunterfahren-mit-frist)); danach beendet es jede
   noch laufende Verbindung zwangsweise. Die abgeschlossenen Anfragen einer
-  solchen Verbindung bleiben in der Aufzeichnung, die laufende fehlt; Ihre
-  Anwendung erhält die Fehlermeldung `PGR-E4006`, das Log nennt die Sitzung und
-  die verworfene Anfrage, und das Werkzeug endet mit Exit-Code 4. Danach schreibt
-  es die Aufzeichnung.
+  solchen Verbindung bleiben in der Aufzeichnung. War auf ihr eine Anfrage
+  begonnen und nicht abgeschlossen, fehlt diese; Ihre Anwendung erhält die
+  Fehlermeldung `PGR-E4006`, das Log nennt die Sitzung und die verworfene
+  Anfrage, und das Werkzeug endet mit Exit-Code 4. Eine Verbindung ohne
+  begonnene Anfrage, auch eine noch im Aufbau, endet ohne Meldung. Danach
+  schreibt das Werkzeug die Aufzeichnung.
 * Im Container beendet das Laufzeitsystem das Werkzeug nach seiner Stopp-Frist
   hart (bei Docker 10 Sekunden; `SIGKILL`, Exit-Code 137), dann fehlt die
   Aufzeichnung jeder noch wartenden Verbindung. Der Standardwert von
@@ -257,11 +259,10 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   nicht vollständig beantwortet, erhält die Anwendung die Fehlermeldung
   `PGR-E4006`, das Log nennt Sitzung und Anfrage, und das Werkzeug endet mit
   Exit-Code 4; mit `--fail-on-unconsumed` zählt `PGR-E4006` vor `PGR-E5002`.
-* Im Container gilt die Stopp-Frist des Laufzeitsystems wie beim Aufzeichnen:
-  Der Standardwert von `--shutdown-timeout` (5 Sekunden) liegt unter der
-  Stopp-Frist von Docker (10 Sekunden), sodass das Werkzeug nach `docker stop`
-  selbst endet, seine Meldungen schreibt und einen Exit-Code der Tabelle in
-  [Exit-Codes](#exit-codes) liefert statt 137.
+* Im Container gilt die Stopp-Frist des Laufzeitsystems wie beim Aufzeichnen.
+  Hinweis: Der Standardwert von `--shutdown-timeout` (5 Sekunden) ist so
+  gewählt, dass er unter der Stopp-Frist von Docker (10 Sekunden) liegt; wählen
+  Sie eine längere Frist nur mit längerer Stopp-Frist.
 
 ### Verschlüsselte Verbindungen annehmen
 
