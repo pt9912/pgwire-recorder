@@ -157,8 +157,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `test/integration/record_e2e_test.go` | refactor | `startProzess` startet nach `Start` genau eine Goroutine mit `Wait`, die das Ergebnis ablegt und danach einen Kanal schließt; `recorder` trägt Kanal und Ergebnis. Ein Helfer wartet mit Frist auf das Ende (§6). `stop` und der `t.Cleanup` (`Kill`, dann Warten mit Frist) gehen über ihn, statt `Wait` aufzurufen |
-| `test/integration/extended_e2e_test.go` | refactor | `TestE2ERecordExtendedSigtermBeimPipelining` liest das Ende über den Kanal statt `beendet <- rec.cmd.Wait()`; Erwartungen und Fristen gleich |
+| `test/integration/record_e2e_test.go` | refactor | `startProzess` startet nach `Start` genau eine Goroutine mit `Wait`, die das Ergebnis ablegt und danach einen Kanal schließt; `recorder` trägt Kanal und Ergebnis. Der Helfer `warteEnde` wartet mit Frist auf das Ende (§6 *Frist und Ablauf*), `pruefeExit` vergleicht danach den Exit-Code und nennt bei Abweichung `ProcessState.String()` und den Fehler von `Wait` (§6 *Ergebnis nach dem Ende*). `stop` geht über beide; der `t.Cleanup` ruft bei offenem Kanal `Kill` und wartet mit Frist auf den Kanal, statt `Wait` aufzurufen |
+| `test/integration/extended_e2e_test.go` | refactor | `TestE2ERecordExtendedSigtermBeimPipelining` wartet über `warteEnde` und `pruefeExit` statt `beendet <- rec.cmd.Wait()`; Erwartungen und Fristen gleich |
 | `test/integration/extended_replay_e2e_test.go` | refactor | `TestE2EReplayExtendedSigtermMittenInFolge` ebenso statt `done <- rep.cmd.Wait()` |
 
 - Wer den Exit-Code liest (`stop`, die beiden Tests), liest `ProcessState` erst nach dem
@@ -302,9 +302,66 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Belege zur DoD (Implementer):** <Fundstellen von `.Wait()` vor und nach dem Umbau;
-  Messung unter I2 je Stand (Quellstand, Läufe, rot, hängend, Dauer, Zeitlimit);
-  Testliste vor und nach dem Umbau und der Diff ohne Deklarationszeile>
+**Belege des Implementers** (Stand vor dem Umbau `2ebe058`; Umbau im Commit dieses Abschnitts):
+
+- **Weg der Läufe:** je Lauf eine frische Kopie unter eigenem Pfad außerhalb des Repos
+  (`git archive 2ebe058 | tar -x -m` bzw. die Dateien des Arbeitsbaums über `git ls-files`
+  und `tar -x -m`, also mtime beim Entpacken neu, kein `cp -p`), die Mutation per Skript
+  in der Kopie, danach `touch` auf die geänderte Datei; je Lauf ein eigenes Image-Tag der
+  Stufe `integration`, ein eigenes `--internal`-Netz, ein eigener PostgreSQL-Container
+  (Image wie `make test-integration`) und ein eigenes Volume, nach dem Lauf alle vier und
+  die Kopie entfernt. Gestartet wird gezielt
+  `-test.run '^TestE2ERecordExtendedSigtermBeimPipelining$' -test.timeout 60s`
+  (Risiko *Erste Phase verdeckt die zweite*); ein Hängen erscheint als
+  `panic: test timed out after 1m0s`. Die Läufe nach dem Umbau liefen am Arbeitsbaum vor
+  dem letzten Kommentar-Schliff am Typ `recorder` (nur Kommentarzeilen, Verhalten gleich).
+- **DoD 1, Fundstellen von `.Wait()`** (`grep -rn "\.Wait()" test/integration`):
+  vorher vier — `record_e2e_test.go:373` (`_ = cmd.Wait()` im `t.Cleanup`),
+  `record_e2e_test.go:396` (`stop`), `extended_e2e_test.go:410`,
+  `extended_replay_e2e_test.go:297`; nachher eine — `record_e2e_test.go:379`
+  (`r.waitErr = cmd.Wait()` in der Goroutine aus `startProzess`). `stop`, die beiden Tests
+  und der `t.Cleanup` lesen den Kanal `beendet` (`warteEnde`, `pruefeExit`, Cleanup).
+- **DoD 2, Messung unter I2** (Mutation: in `ClientMessage`,
+  `internal/hexagon/services/record.go`, der Block `if l.herunterfahren { … return
+  model.ErrShutdown }` entfernt; nur in den Kopien):
+
+  | Stand | Läufe | rot | hängend | Testdauer je roter Lauf | Lauf gesamt (mit Containerstart) | Zeitlimit |
+  |---|---|---|---|---|---|---|
+  | vorher `2ebe058` | 10 | 9 | 1 (Lauf 8) | 6,11–6,12 s | 7–8 s; Lauf 8: 61 s | 60 s |
+  | nachher (Umbau) | 10 | 10 | 0 | 6,11–6,15 s | 7,7–9,3 s | 60 s |
+
+  Vorher meldet jeder rote Lauf „Recorder endet nicht binnen 5 s nach SIGTERM, obwohl der
+  Client weiter pipelinet“; Lauf 8 meldet dasselbe und hängt danach bis zum Zeitlimit, der
+  Stack steht in `os/exec.(*Cmd).awaitGoroutines` unter `Wait` aus `record_e2e_test.go:373`
+  (Cleanup) — der Befund V-88. Nachher meldet jeder Lauf dieselbe Meldung mit `stderr`
+  des Recorders darunter und endet nach 6,1 s (1 s Pipelinen vor dem Signal, 5 s Frist;
+  `Kill` beendet den Prozess sofort, die Nachfrist läuft nicht aus). Der `defer pc.Close`
+  hängt in keinem der zehn Läufe (Risiko *Neuer Fund*).
+- **Mutationen am Geschirr** (§6 *Mutationen*, je ein Lauf, Weg wie oben):
+
+  | Zusage | Mutation | Ergebnis |
+  |---|---|---|
+  | rot statt hängend | I2 (oben) | rot, 10 von 10, 6,11–6,15 s, Meldung des Tests |
+  | Cleanup beendet und wartet mit Frist | `_ = cmd.Process.Kill()` im Cleanup entfernt, `t.Fatal` direkt nach `startRecorder` in `TestE2ERecordExtendedSigtermBeimPipelining` | rot nach 5,11 s: „record_e2e_test.go:391: Prozess record endet im Cleanup auch nach Kill nicht binnen 5 s“, kein Hängen |
+  | Gegenlauf zur Zeile davor: Cleanup mit `Kill` | nur das `t.Fatal` nach `startRecorder` | rot nach 0,10 s mit der Meldung des `t.Fatal`, keine Meldung des Cleanups — der Kill-Pfad beendet den Prozess |
+  | Nachfrist nach `Kill` (§6 *Frist und Ablauf*) | I2 und `_ = r.cmd.Process.Kill()` in `warteEnde` entfernt | rot nach 11,11 s: „Recorder endet nicht binnen 5 s nach SIGTERM, obwohl der Client weiter pipelinet; endet auch nach Kill nicht binnen 5 s“; danach beendet der Cleanup den Prozess, kein Hängen |
+  | Abweichender Exit-Code nennt `ProcessState.String()` und den Fehler von `Wait` (§6 *Ergebnis nach dem Ende*) | `rec.pruefeExit(t, 0)` → `rec.pruefeExit(t, 1)` | rot nach 1,20 s: „Exit-Code 0, erwartet 1 (exit status 0, Wait: <nil>)“ |
+  | Grundlauf | keine | grün, 1,19 s |
+
+  **Grüne Mutanten, eingeordnet** (nicht gefahren, äquivalent nach §6): Entfällt im
+  Cleanup die Abfrage des geschlossenen Kanals, ruft er `Kill` auf einen beendeten
+  Prozess, dessen Fehler verworfen wird (§6 *Test scheitert vorher*), und der Kanal ist
+  geschlossen — gleiches Verhalten, kein Test fängt ihn. Wartet der Cleanup ohne Frist,
+  ändert das nur den Fall, dass der Prozess nach `Kill` nicht endet; diesen Fall erzeugt
+  nur die Mutation *Cleanup* oben, die die Frist rot zeigt. Weitere grüne Mutanten fielen
+  nicht an.
+- **DoD 3, Testliste und Deklarationen:** `grep -hn "^func Test" test/integration/*.go`
+  ergibt vorher und nachher dieselben 40 Namen (`diff` leer); `git diff -U0
+  test/integration | grep -c Abdeckung` ergibt 0, keine Deklarationszeile geändert.
+  `make abdeckung-check` läuft in `make gates` (unten), ohne neu geschriebene Tabellen.
+- **Gates:** `make test` und `make lint` (0 issues) am Umbau grün; `make gates` grün am
+  Commit dieses Abschnitts (Lauf vor der Übergabe).
+
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
 - **Steering-Loop-Eintrag:** <…>

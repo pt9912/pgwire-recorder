@@ -293,17 +293,8 @@ func TestE2EReplayExtendedSigtermMittenInFolge(t *testing.T) {
 		t.Fatalf("Sicht nach SIGTERM:\n%s\n--- aufgezeichnet:\n%s", b.String(), aufgezeichnet)
 	}
 
-	done := make(chan error, 1)
-	go func() { done <- rep.cmd.Wait() }()
-	select {
-	case <-done:
-	case <-time.After(10 * time.Second):
-		_ = rep.cmd.Process.Kill()
-		t.Fatalf("replay endet nach dem Sync nicht von selbst\n%s", rep.stderr.String())
-	}
-	if code := rep.cmd.ProcessState.ExitCode(); code != 0 {
-		t.Fatalf("Exit-Code %d\n%s", code, rep.stderr.String())
-	}
+	rep.warteEnde(t, 10*time.Second, "replay endet nach dem Sync nicht von selbst")
+	rep.pruefeExit(t, 0)
 	if strings.Contains(rep.stderr.String(), "PGR-W2001") {
 		t.Fatalf("Interaktion nicht verbraucht:\n%s", rep.stderr.String())
 	}

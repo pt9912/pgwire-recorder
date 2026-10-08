@@ -344,10 +344,16 @@ func lies(t *testing.T, path string) string {
 	return string(data)
 }
 
+// recorder ist ein gestarteter Prozess des Binaries. Wait ruft nur die
+// Goroutine aus startProzess: Sie legt den Fehler von Wait in waitErr ab und
+// schließt danach beendet. warteEnde und der Cleanup aus startProzess warten
+// auf beendet; pruefeExit liest cmd.ProcessState und waitErr nach warteEnde.
 type recorder struct {
-	cmd    *exec.Cmd
-	listen string
-	stderr *strings.Builder
+	cmd     *exec.Cmd
+	listen  string
+	stderr  *strings.Builder
+	beendet chan struct{}
+	waitErr error
 }
 
 func startRecorder(t *testing.T, upstream, output string) *recorder {
@@ -356,7 +362,9 @@ func startRecorder(t *testing.T, upstream, output string) *recorder {
 }
 
 // startProzess startet das Binary mit einem Kommando, einer freien
-// --listen-Adresse und den übrigen Argumenten und wartet, bis es lauscht.
+// --listen-Adresse und den übrigen Argumenten und wartet, bis es lauscht. Ist
+// der Prozess beim Cleanup des Tests nicht beendet, ruft der Cleanup Kill und
+// wartet höchstens 5 s auf das Ende; danach t.Errorf.
 func startProzess(t *testing.T, kommando string, args ...string) *recorder {
 	t.Helper()
 	listen := freieAdresse(t)
@@ -366,11 +374,22 @@ func startProzess(t *testing.T, kommando string, args ...string) *recorder {
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("Recorder starten: %v", err)
 	}
-	r := &recorder{cmd: cmd, listen: listen, stderr: &stderr}
+	r := &recorder{cmd: cmd, listen: listen, stderr: &stderr, beendet: make(chan struct{})}
+	go func() {
+		r.waitErr = cmd.Wait()
+		close(r.beendet)
+	}()
 	t.Cleanup(func() {
-		if cmd.ProcessState == nil {
-			_ = cmd.Process.Kill()
-			_ = cmd.Wait()
+		select {
+		case <-r.beendet:
+			return
+		default:
+		}
+		_ = cmd.Process.Kill()
+		select {
+		case <-r.beendet:
+		case <-time.After(5 * time.Second):
+			t.Errorf("Prozess %s endet im Cleanup auch nach Kill nicht binnen 5 s", kommando)
 		}
 	})
 	deadline := time.Now().Add(10 * time.Second)
@@ -392,16 +411,36 @@ func (r *recorder) stop(t *testing.T, wantExit int) {
 	if err := r.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		t.Fatalf("SIGTERM: %v", err)
 	}
-	done := make(chan error, 1)
-	go func() { done <- r.cmd.Wait() }()
+	r.warteEnde(t, 15*time.Second, "Recorder endet nicht nach SIGTERM")
+	r.pruefeExit(t, wantExit)
+}
+
+// warteEnde wartet höchstens frist auf das Ende des Prozesses. Läuft die Frist
+// ab, ruft es Kill, wartet höchstens 5 s auf das Ende und endet mit t.Fatalf:
+// meldung und stderr, oder meldung und den Hinweis, dass der Prozess auch nach
+// Kill nicht endet.
+func (r *recorder) warteEnde(t *testing.T, frist time.Duration, meldung string) {
+	t.Helper()
 	select {
-	case <-done:
-	case <-time.After(15 * time.Second):
-		_ = r.cmd.Process.Kill()
-		t.Fatalf("Recorder endet nicht nach SIGTERM\n%s", r.stderr.String())
+	case <-r.beendet:
+		return
+	case <-time.After(frist):
 	}
+	_ = r.cmd.Process.Kill()
+	select {
+	case <-r.beendet:
+		t.Fatalf("%s\n%s", meldung, r.stderr.String())
+	case <-time.After(5 * time.Second):
+		t.Fatalf("%s; endet auch nach Kill nicht binnen 5 s", meldung)
+	}
+}
+
+// pruefeExit vergleicht nach warteEnde den Exit-Code mit wantExit und nennt bei
+// Abweichung ProcessState.String() und den Fehler von Wait.
+func (r *recorder) pruefeExit(t *testing.T, wantExit int) {
+	t.Helper()
 	if code := r.cmd.ProcessState.ExitCode(); code != wantExit {
-		t.Fatalf("Exit-Code %d, erwartet %d\n%s", code, wantExit, r.stderr.String())
+		t.Fatalf("Exit-Code %d, erwartet %d (%s, Wait: %v)\n%s", code, wantExit, r.cmd.ProcessState.String(), r.waitErr, r.stderr.String())
 	}
 }
 

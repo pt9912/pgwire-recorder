@@ -406,16 +406,8 @@ func TestE2ERecordExtendedSigtermBeimPipelining(t *testing.T) {
 		t.Fatal(err)
 	}
 	vorSignal := fertig.Load()
-	beendet := make(chan error, 1)
-	go func() { beendet <- rec.cmd.Wait() }()
-	select {
-	case <-beendet:
-	case <-time.After(5 * time.Second):
-		t.Fatalf("Recorder endet nicht binnen 5 s nach SIGTERM, obwohl der Client weiter pipelinet\n%s", rec.stderr.String())
-	}
-	if code := rec.cmd.ProcessState.ExitCode(); code != 0 {
-		t.Fatalf("Exit-Code %d\n%s", code, rec.stderr.String())
-	}
+	rec.warteEnde(t, 5*time.Second, "Recorder endet nicht binnen 5 s nach SIGTERM, obwohl der Client weiter pipelinet")
+	rec.pruefeExit(t, 0)
 	if vorSignal < 3 {
 		t.Fatalf("vor dem Signal nur %d Interaktionen abgeschlossen", vorSignal)
 	}
