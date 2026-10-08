@@ -158,7 +158,8 @@ die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt
 `slice-v1-abschluss-container`, dann `slice-harness-abdeckung-gate` und
 `slice-harness-coverage`, dann die Slices von welle-erster-release, danach
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
-`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`; die Reihenfolge
+`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
+`slice-harness-mutation`; die Reihenfolge
 der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Dieser Slice ist der letzte
 vor M3: Mit ihm wird Abnahmeszenario 17 nachweisbar, nach der Entscheidung vom
 2026-10-08 vor welle-erster-release, damit M3 vor M4 erreicht ist. Nach ihm folgen

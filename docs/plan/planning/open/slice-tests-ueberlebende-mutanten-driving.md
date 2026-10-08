@@ -158,6 +158,9 @@ Goroutinen-Dump statt einer Zusicherung). Die Frist gehört als Randform zu dies
 Frist auf einen Kanal warten, nicht nur für diesen; dieser Slice setzt sie in seinen
 beiden Schichten um. Wie ein Gate einen Mutanten zählt, der nur über die
 Zeitüberschreitung rot wird, ist die Randform *Laufzeit* von `slice-harness-mutation`.
+Die Prüfung auf Warten ohne Frist in `make lint` kommt nach diesem Slice mit
+`slice-harness-lint-warten-ohne-frist` (Abgrenzung dort, §1): Sie setzt an Zeile 846 und in
+den beiden Schichten dieses Slice keine zweite Frist, sie findet, was hier übrig bleibt.
 
 **Sammelregel für weitere Funde.** Wie in §1 von `slice-tests-ueberlebende-mutanten`,
 für Funde im PGWire-Adapter, im CLI-Adapter und im Bootstrap: Findet ein Review oder eine
@@ -269,7 +272,8 @@ die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt
 `slice-v1-abschluss-container`, dann `slice-harness-abdeckung-gate` und
 `slice-harness-coverage`, dann die Slices von welle-erster-release, danach
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
-`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`; die Reihenfolge
+`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
+`slice-harness-mutation`; die Reihenfolge
 der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md).
 
 *Warum hier.* Technisch hängt der Slice an keinem der beiden Nachbarn. Direkt nach
@@ -360,11 +364,11 @@ nicht; er gibt es zurück.
   darunter. Dieser Slice setzt die Regel im PGWire-Adapter und im Bootstrap um,
   `slice-harness-integration-wait` in `test/integration`. Im Kern warten
   `internal/hexagon/services/record_extended_test.go:529` und `:812` ohne Frist auf
-  `queryLaeuft` (Stand `86db551`); sie bleiben ohne eigene Adresse stehen, bis ein Slice
-  sie ändert, der dann die Frist setzt — akzeptiertes Negativ: Im grünen Lauf schließen
-  die Kanäle, und die Frist braucht dort erst ein Mutant, der über sie hängt; tritt einer
-  auf, zählt ihn
-  `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`. Die Zählung eines Mutanten, der nur über
+  `queryLaeuft` (Stand `86db551`); dieser Slice setzt dort keine Frist. Ihre Adresse ist
+  `slice-harness-lint-warten-ohne-frist` (seit der Closure von
+  `slice-v1-abschluss-herunterfahren`, `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit` 3×):
+  Er bringt nach diesem Slice die Prüfung in `make lint` und bereinigt den übrigen
+  Bestand. Die Zählung eines Mutanten, der nur über
   die Zeitüberschreitung rot wird, bleibt die Randform *Laufzeit* von
   `slice-harness-mutation`.
 - **Zugang der Tests** — **entschieden** in `SPEC-049` Punkt 7: Die Tests liegen in

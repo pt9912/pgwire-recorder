@@ -144,7 +144,8 @@ die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt
 `slice-v1-abschluss-container`, dann `slice-harness-abdeckung-gate` und
 `slice-harness-coverage`, dann die Slices von welle-erster-release, danach
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
-`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`; die Reihenfolge
+`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
+`slice-harness-mutation`; die Reihenfolge
 der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Technisch hängt
 dieser Slice an keinem davon; die Code-Tabelle und der Katalog liegen seit
 welle-replay-semantik vor. Er steht direkt vor `slice-v1-abschluss-container`, dessen §1
