@@ -233,6 +233,12 @@ Verbindungen und Platzhalter, `config show`) gingen mit dem Schnitt (§4) an
 
 - **Hilfe nach einer ungültigen Option oder neben einer ungültigen Umgebungsvariable** — die
   Hilfe geht vor; `LH-FA-01.a`.
+- **Wert in der Meldung** — eine Meldung zu einer Umgebungsvariable nennt ihren Namen, nie
+  ihren Wert; eine Meldung zur Kommandozeile darf den Wert nennen
+  (`invalid value "trace" for flag -log-level`), weil der Aufruf ihn selbst enthält und die
+  Kommandozeile kein Passwort trägt. `LH-FA-17.a` *Fehler*, Entscheidung des Architect vom
+  2026-10-08 zu V-116; das Lastenheft (`LH-FA-17`) verlangt nur, dass die Anzeige der
+  Konfiguration keine Geheimnisse zeigt. Kein Code-Nachtrag.
 - **Reihenfolge bei mehreren Fehlern** — Abbruch beim ersten Fehler; Reihenfolge
   Kommandozeile, Umgebungsvariablen nach der Tabelle, zuletzt Pflichtoptionen; Entscheidung
   des Nutzers vom 2026-10-08, `LH-FA-17.a`. Die Stellen der Datei, der Kombinationen, von
