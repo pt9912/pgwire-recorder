@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: nichts in `in-progress/`. Als nächster folgt [`slice-harness-integration-wait`](../next/slice-harness-integration-wait.md) (wellenlos), Schritt 1 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md).
+In Arbeit: nichts in `in-progress/`. Als nächster folgt [`slice-harness-integration-wait`](../in-progress/slice-harness-integration-wait.md) (wellenlos), Schritt 1 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md).
 
 
 
