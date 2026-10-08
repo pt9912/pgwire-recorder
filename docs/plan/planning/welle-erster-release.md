@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- Welle [welle-v1-abschluss](welle-v1-abschluss.md) done.
+- Welle [welle-v1-abschluss](welle-v1-abschluss.md) done, und `slice-harness-coverage` liegt in `done/` (Abnahmeszenario 17, M3 vor M4; Entscheidung des Nutzers vom 2026-10-08).
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -58,15 +58,15 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: —
-- Wird blockiert von: Welle [welle-v1-abschluss](welle-v1-abschluss.md).
+- Wird blockiert von: Welle [welle-v1-abschluss](welle-v1-abschluss.md) und den wellenlosen Slices `slice-harness-abdeckung-gate` und `slice-harness-coverage`.
 - Innerhalb der Welle: `slice-erster-release-homebrew-nachweis` setzt `slice-erster-release-veroeffentlichung` voraus.
 
-**Reihenfolge** (Entscheidung des Nutzers vom 2026-10-08: Wellen vor Harness; WIP-Limit 1):
+**Reihenfolge** (Entscheidungen des Nutzers vom 2026-10-08: Wellen vor Harness, M3 vor M4; WIP-Limit 1):
 
 1. `slice-erster-release-veroeffentlichung` — Binaries und Image in den Registries.
 2. `slice-erster-release-homebrew-nachweis` — Abnahmeszenario 11 (setzt 1 voraus).
 
-Danach folgen die wellenlosen Harness-Slices, beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4. Abnahmeszenario 17 und damit M3 werden erst mit `slice-harness-coverage` nachweisbar, also nach dieser Welle.
+Vor dieser Welle liegen `slice-harness-abdeckung-gate` und `slice-harness-coverage`: Mit Coverage wird Abnahmeszenario 17 nachweisbar, M3 ist damit vor M4 erreicht. Danach folgen die übrigen Harness-Slices, beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
 
 ## 6. Out-of-Scope für diese Welle
 

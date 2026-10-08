@@ -67,14 +67,15 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [ ] [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): Herunterfahren schreibt das Recording atomar und liefert den Exit-Code der gemerkten Klasse, für alle Klassen aus `SPEC-013` bis `SPEC-019`; die Frist `--shutdown-timeout` begrenzt das Warten in `record` und `replay`, und eine dabei unvollständige Interaktion ist `PGR-E4006`; eine so beendete Replay-Session mit `--fail-on-unconsumed` merkt `PGR-E4006` vor `PGR-E5002` und endet mit Exit-Code 4 (Test mit Signal, je Modus).
 - [ ] [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Vorhandenes `--output` wird ohne `--force` abgelehnt; `--force` und jede boolesche Option nehmen nur `true` oder `false`; Priorität CLI vor Umgebungsvariable vor Konfigurationsdatei vor Default, und jede gesetzte Umgebungsvariable einer Option des Kommandos wird geprüft, auch wenn die Kommandozeile vorgeht (`PGR-E2001`); die Hilfe geht jeder Prüfung von Optionen, Umgebungsvariablen und Konfigurationsdatei vor, auch für `config show` und `--config`; `config show` zeigt die gewählte Datei, ohne einen aufgelösten Wert (Test).
 - [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Benannte Verbindungen (`connections`, `--upstream <Name>`, `sslmode`), `--config`, `PGWIRE_RECORDER_CONFIG`, die Standarddatei, der Schlüssel `fail_on_unconsumed` im Abschnitt `replay:`, der Schlüssel `log_level` auf der obersten Ebene (Wertemenge und Strenge von `--log-level`, ungültig `PGR-E2004`) und `$${VAR}` verhalten sich wie spezifiziert; eine ungültige Datei, eine nicht gesetzte Variable und ein Klartext-Passwort sind `PGR-E2004` bis `PGR-E2006` (Test).
-- [ ] `make gates` grün.
+- [ ] `make gates` grün. *(entfällt: kein Diff, nichts geliefert)*
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+      *(entfällt: kein Diff, nichts geliefert)*
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -131,17 +132,17 @@ dasteht.
   entscheidet den Wert vor dem Code in der Spezifikation; danach folgt ein Test mit der
   Schranke als Literal, rot bei `meldeFrist = 3 * time.Second`. Heute liest
   `TestFehlerantwortMitFrist` die Konstante über die Brücke und fängt nur das Entfernen
-  der Frist.
+  der Frist. — **Übernommen von** `slice-v1-abschluss-herunterfahren` (dort §6, Randformen).
 
 **Risiken:**
 
-- Atomarität des Verschiebens ist plattformabhängig ("bestmöglich atomar") — **Ausgang:** offen bis Closure.
+- Atomarität des Verschiebens ist plattformabhängig ("bestmöglich atomar") — **Ausgang:** eingetreten: `slice-v1-abschluss-schreiben` (übernommen, dort §6).
 
-- Herunterfahren ohne Obergrenze (aus `slice-extended-query-record`, Review F-309, Folge-Review F-317, Validierung Frage 1): Eine Session mit laufender Interaktion — einfache Anfrage oder Extended-Interaktion ohne `Sync` — hält das Herunterfahren beliebig lange; der Container-Stopp verliert dann ihre Aufzeichnung ganz, ohne Log-Zeile und mit Exit-Code `137`. Gegenstand siehe §1; Lastenheft und Spezifikation sind ergänzt — **Ausgang:** offen bis Closure.
+- Herunterfahren ohne Obergrenze (aus `slice-extended-query-record`, Review F-309, Folge-Review F-317, Validierung Frage 1): Eine Session mit laufender Interaktion — einfache Anfrage oder Extended-Interaktion ohne `Sync` — hält das Herunterfahren beliebig lange; der Container-Stopp verliert dann ihre Aufzeichnung ganz, ohne Log-Zeile und mit Exit-Code `137`. Gegenstand siehe §1; Lastenheft und Spezifikation sind ergänzt — **Ausgang:** eingetreten: `slice-v1-abschluss-herunterfahren` (übernommen, dort §6).
 
-- Herunterfahren ohne Obergrenze im Replay (aus `slice-extended-query-replay`, Folge-Review F-330): Ein Client, der mitten in einer Extended-Interaktion pausiert, hält `replay` nach `SIGTERM` beliebig lange; endet die Session durch Schließen der Verbindung, behandelt `replaySitzung` das heute als reguläres Ende (Exit-Code 0 statt 4). Im Container endet ein solches Warten nach der Stopp-Frist mit `SIGKILL`, Exit-Code `137` und ohne Log-Zeile nach dem Start; verloren geht nichts, weil `replay` nichts schreibt (Validierung zu `slice-extended-query-replay`, Frage 5, Sonde S10) — **Ausgang:** offen bis Closure.
+- Herunterfahren ohne Obergrenze im Replay (aus `slice-extended-query-replay`, Folge-Review F-330): Ein Client, der mitten in einer Extended-Interaktion pausiert, hält `replay` nach `SIGTERM` beliebig lange; endet die Session durch Schließen der Verbindung, behandelt `replaySitzung` das heute als reguläres Ende (Exit-Code 0 statt 4). Im Container endet ein solches Warten nach der Stopp-Frist mit `SIGKILL`, Exit-Code `137` und ohne Log-Zeile nach dem Start; verloren geht nichts, weil `replay` nichts schreibt (Validierung zu `slice-extended-query-replay`, Frage 5, Sonde S10) — **Ausgang:** eingetreten: `slice-v1-abschluss-herunterfahren` (übernommen, dort §6).
 
-- Testgeschirr wartet zweimal auf denselben Prozess (seit slice-harness-blackbox-einstieg, Verifikation V-88) — **Ausgang:** übernommen von `slice-harness-integration-wait` (Entscheidung des Nutzers vom 2026-10-07); dieser Slice schreibt seine Tests mit Signal und Frist über die Helfer, die jener umbaut.
+- Testgeschirr wartet zweimal auf denselben Prozess (seit slice-harness-blackbox-einstieg, Verifikation V-88) — **Ausgang:** eingetreten: `slice-harness-integration-wait` (übernommen, Entscheidung des Nutzers vom 2026-10-07); die Tests mit Signal und Frist über dessen Helfer schreibt jetzt `slice-v1-abschluss-herunterfahren`.
 
 ## 7. Closure-Notiz
 
@@ -157,7 +158,41 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+- **Gegenstand:** übernommen von `slice-v1-abschluss-herunterfahren` (Signale, Frist
+  `--shutdown-timeout` in `record` und `replay`, `PGR-E4006`, `meldeFrist`, Exit-Code der
+  gemerkten Klasse), `slice-v1-abschluss-schreiben` (atomares Schreiben, `--output`,
+  `--force`) und `slice-v1-abschluss-konfiguration` (Priorität, allgemeiner Leser, Hilfe vor
+  jeder Prüfung, `config show`, Konfigurationsdatei). Entscheidung des Nutzers vom
+  2026-10-08 nach dem Schnitt-Vorschlag des Planners zu F-345. Jede Übernahme aus §1 hat
+  genau einen Nehmer: `slice-extended-query-record`, `slice-extended-query-replay`,
+  `slice-v1-abschluss-sessions`, `slice-harness-integration-wait`,
+  `slice-harness-blackbox-pgwire` und der Test zu `PGR-E4006` vor `PGR-E5002` aus
+  `slice-replay-semantik-mismatch` an `slice-v1-abschluss-herunterfahren`; die strengen
+  Werte für `--force` aus `slice-replay-semantik-mismatch` an
+  `slice-v1-abschluss-schreiben`; `fail_on_unconsumed`, der allgemeine Leser und die Hilfe
+  vor Prüfung aus `slice-replay-semantik-mismatch` sowie `log_level` aus
+  `slice-replay-semantik-meldungscodes` an `slice-v1-abschluss-konfiguration`. Die Liefer-Punkte
+  der DoD bleiben leer; die Container-Abgrenzung trägt `slice-v1-abschluss-herunterfahren`
+  weiter, und `slice-v1-abschluss-container` nennt ihn als Geber.
+- **Was hat funktioniert:** Die Übernahmen standen je mit ihrem Geber in §1; der Schnitt
+  konnte jede einzeln einem Nehmer zuweisen, ohne eine nachzuschlagen.
+- **Was ging anders als geplant:** Der Slice wuchs seit seiner Anlage am 2026-10-03 durch
+  sieben Übernahmen anderer Slices, bis DoD-Punkt 1 nicht mehr in eine Review-Sitzung passte
+  und §3 vier Schichten berührte (F-345). Die Zahl der Liefer-Punkte blieb dabei drei; das
+  Wachstum lag in den Punkten, nicht in ihrer Zahl.
+- **Steering-Loop-Eintrag:** benannte Beobachtung, gezählt, nicht verkörpert: Ein Slice,
+  der als Adresse für Übernahmen dient, wächst in seinen Liefer-Punkten, ohne dass ihre Zahl
+  steigt; die Größenregel zählt Punkte und sieht das nicht. Auslöser:
+  `BEO-REPO/slice-waechst-durch-uebernahmen` (`slice-v1-abschluss-betrieb` — 1×).
+- **Beobachtungs-Register (`../observations/`):** `BEO-REPO/slice-waechst-durch-uebernahmen/`
+  neu angelegt, Beleg `evidence/slice-v1-abschluss-betrieb.md`.
+- **Folge-Slices:** `slice-v1-abschluss-herunterfahren`, `slice-v1-abschluss-konfiguration`,
+  `slice-v1-abschluss-schreiben` — Dateien in `next/`, Welle welle-v1-abschluss.
+- **Risiken aus §6:** alle vier mit Ausgang *eingetreten* und der Kennung des Nehmers (siehe
+  §6); die Randform `meldeFrist` übernimmt `slice-v1-abschluss-herunterfahren`.
+- **Drei Paarungen:** Anker — keiner, nichts verkörpert; Folge-Slice — die drei Nehmer
+  liegen in `next/` und nennen diesen Slice unter `Übernimmt:`; Register — der Beleg oben
+  liegt.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -170,6 +205,6 @@ nicht mehr.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
+**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer. *(Stand der Anlage; die Sichtung für den Gegenstand tragen die drei Nehmer in ihrem §8.)*
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

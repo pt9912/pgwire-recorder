@@ -72,9 +72,9 @@ G1 entstand mit `pgwire.Listen(ctx, …)` in `78f28a1`.
    ist nur der gemerkte Code; das Ende der Sitzung nur über eine Frist und nur, solange
    `ctx` nicht endet. Gemeint ist ein Ende, das der Client auslöst. Ein Ende durch die
    Frist des Herunterfahrens (`--shutdown-timeout`) ist nicht gemeint: Dort merkt die
-   Sitzung nach `slice-v1-abschluss-betrieb` für eine unvollständige Interaktion
-   `PGR-E4006`, und jener Slice ergänzt den Test, statt ihn zu ändern (Verifikation
-   V-95).
+   Sitzung nach `slice-v1-abschluss-herunterfahren` für eine unvollständige Interaktion
+   `PGR-E4006`; dessen Test liegt vor diesem, und der Test aus G2 ergänzt ihn, statt ihn
+   zu ändern (Verifikation V-95).
 2. **G3 — unlesbare Nachricht im Replay** (R3; `replayLesefehler`).
    *Verhalten:* Der Mutant beendet die Sitzung ohne Fehlerantwort und ohne gemerkten
    Code.
@@ -171,7 +171,7 @@ Ergäbe das einen vierten Liefer-Punkt, schneidet er vor dem Start einen weitere
 - Mutanten im Kern (`internal/hexagon/`) und in den Driven-Adaptern — übernimmt
   `slice-tests-ueberlebende-mutanten` (M3, P8, P2, Y2); er liegt vor diesem Slice.
 - Das Ende einer Replay-Sitzung durch die Frist des Herunterfahrens und `PGR-E4006` —
-  übernimmt `slice-v1-abschluss-betrieb` (§1 dort); G2 meint nur ein Ende, das der
+  übernimmt `slice-v1-abschluss-herunterfahren` (§1 dort); G2 meint nur ein Ende, das der
   Client auslöst.
 - Fristen in `test/integration` — übernimmt `slice-harness-integration-wait` für das
   Warten im Integrations-Testgeschirr; Fristen in Tests anderer Schichten setzt dieser
@@ -263,21 +263,21 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-tests-ueberlebende-mutanten` liegt in
-`done/` oder ist ausdrücklich zurückgestellt (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): die Slices
-von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
-`slice-v1-abschluss-betrieb` und `slice-harness-meldungskatalog-gate` direkt vor
-`slice-v1-abschluss-container`, dann die Slices von welle-erster-release, danach
-`slice-harness-commit-struktur-id`, `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
-`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
-`slice-harness-mutation`; die Reihenfolge der Wellen-Slices steht in §5 von
-[welle-v1-abschluss](../welle-v1-abschluss.md).
+`done/` oder ist ausdrücklich zurückgestellt (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness, M3 vor M4):
+die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
+`slice-v1-abschluss-herunterfahren` und `slice-harness-meldungskatalog-gate` direkt vor
+`slice-v1-abschluss-container`, dann `slice-harness-abdeckung-gate` und
+`slice-harness-coverage`, dann die Slices von welle-erster-release, danach
+`slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
+`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`; die Reihenfolge
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md).
 
 *Warum hier.* Technisch hängt der Slice an keinem der beiden Nachbarn. Direkt nach
 `slice-tests-ueberlebende-mutanten`, weil beide nach derselben Regel sammeln und der
 Architect die Randform *Spalten-Metadaten* dort für den Rückweg mitentscheidet. Vor
 `slice-harness-mutation`, damit dessen Messung nicht mit Lücken startet, die schon
 bekannt sind, und damit die Randform *Laufzeit* dort die Entscheidung *Warten auf einen
-Kanal* von hier vorfindet. Vor `slice-v1-abschluss-betrieb` ist er nicht gebunden; nach der
+Kanal* von hier vorfindet. Vor `slice-v1-abschluss-herunterfahren` ist er nicht gebunden; nach der
 Reihenfolge vom 2026-10-08 liegt jener früher in `done/`, und der Architect prüft G2 gegen
 dessen Ende durch die Frist und jeden gesammelten Mutanten gegen den Code nach den Wellen.
 
@@ -331,7 +331,7 @@ nicht; er gibt es zurück.
   *Zeitpunkte* („der Client schließt sie“ als ein Ende der Verbindung). Offen ist, ob
   das auch mitten in einer Interaktion gilt oder dort `PGR-E4003` ist; der Test aus G2
   schließt nach dem Startup, vor jeder Anfrage. Abzugrenzen vom Ende durch die Frist
-  (`slice-v1-abschluss-betrieb`, Verifikation V-95).
+  (`slice-v1-abschluss-herunterfahren`, Verifikation V-95).
 - **Unlesbare Nachricht im Replay** (G3) — **offen**. Kandidaten: `LH-FA-05.a` *Nicht
   unterstützte Protokollnachrichten*, `SPEC-034` *Zustellung an den Client* (SQLSTATE
   `0A000`), `LH-FA-13.b`. Offen ist, ob eine Nachricht, deren Typ die Bibliothek nicht

@@ -72,7 +72,8 @@ Muster steht in `stop` (`record_e2e_test.go`, `done <- r.cmd.Wait()`) und in
   bleibt bewusst stehen: Testliste und Deklarationen sind die Messlatte, an der sich
   zeigt, dass nur das Warten umgebaut ist.
 - Die Tests mit Signal und Frist je Modus (`--shutdown-timeout`) — übernimmt
-  `slice-v1-abschluss-betrieb`; er schreibt sie über die Helfer, die dieser Slice
+  `slice-v1-abschluss-herunterfahren` (aus `slice-v1-abschluss-betrieb` hervorgegangen); er
+  schreibt sie über die Helfer, die dieser Slice
   umbaut.
 - Mutationen in den Integrationstests als Gate — anderer Vorgang; `slice-harness-mutation`
   schließt sie in seinem §1 aus.
@@ -139,16 +140,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-harness-lint` liegt in `done/` (WIP-Limit 1);
-dieser Slice ist Schritt 1 der Reihenfolge. Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): die Slices
-von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
-`slice-v1-abschluss-betrieb` und `slice-harness-meldungskatalog-gate` direkt vor
-`slice-v1-abschluss-container`, dann die Slices von welle-erster-release, danach
-`slice-harness-commit-struktur-id`, `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
-`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
-`slice-harness-mutation`; die Reihenfolge der Wellen-Slices steht in §5 von
-[welle-v1-abschluss](../welle-v1-abschluss.md). Technisch hängt dieser Slice nur an
+dieser Slice ist Schritt 1 der Reihenfolge. Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness, M3 vor M4):
+die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
+`slice-v1-abschluss-herunterfahren` und `slice-harness-meldungskatalog-gate` direkt vor
+`slice-v1-abschluss-container`, dann `slice-harness-abdeckung-gate` und
+`slice-harness-coverage`, dann die Slices von welle-erster-release, danach
+`slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
+`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`; die Reihenfolge
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Technisch hängt dieser Slice nur an
 `slice-harness-lint`: Ab ihm ist `make lint` Gate auch für `test/integration`. Er steht
-direkt vor `slice-v1-abschluss-betrieb`, der die Tests mit Signal und Frist über dieselben
+direkt vor `slice-v1-abschluss-herunterfahren`, der die Tests mit Signal und Frist über dieselben
 Helfer schreibt; deren Mutationen (Prozess endet nach dem Signal nicht) sind genau der
 Fall, der heute bis zum Zeitlimit hängt.
 
@@ -157,7 +158,7 @@ Fall, der heute bis zum Zeitlimit hängt.
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Suche aus §3 findet das
   Muster in so vielen weiteren Tests, dass der Umbau nicht in einer Review-Sitzung
   prüfbar ist; dann trägt dieser Slice den Helfer und die drei genannten Stellen, die
-  übrigen ein eigener Slice vor `slice-v1-abschluss-betrieb`.
+  übrigen ein eigener Slice vor `slice-v1-abschluss-herunterfahren`.
 - `in-progress` → `open` (blockiert — Carveout?): Am Stand vor dem Umbau zeigt die
   Messung aus DoD-Punkt 2 in keinem Lauf ein Hängen, und auch mehr Läufe oder eine
   andere Mutation, unter der der Prozess nach dem Signal nicht endet, führen nicht dazu;

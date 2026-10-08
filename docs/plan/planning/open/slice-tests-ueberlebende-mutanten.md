@@ -145,7 +145,8 @@ V-67), in einem anderen Paket gefangen (`envFailOnUnconsumed`, F-456; PGR-E3003 
   Aufbau-Schleife in `Open` umbaut, genau an dieser Stelle. Ein Test hier liefe gegen
   Code, den jener Slice ersetzt.
 - Der Wert von `meldeFrist` (F-451, V-87) — ein Folge-Slice hat ihn schon:
-  `slice-v1-abschluss-betrieb` führt ihn als Randform in §6. Einen Wert nennt keine
+  `slice-v1-abschluss-herunterfahren` führt ihn als Randform in §6 (übernommen aus
+  `slice-v1-abschluss-betrieb`). Einen Wert nennt keine
   Stelle der Spezifikation, und ein Test mit der Schranke als Literal folgt erst der
   Entscheidung des Architect dort.
 - Äquivalente Mutanten (aus `slice-lint-bestand-kern-driven` M5, M6, Y1, Y5 und V1;
@@ -230,15 +231,16 @@ denselben Commit.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-coverage` liegt in `done/` oder ist
-ausdrücklich zurückgestellt (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): die Slices
-von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
-`slice-v1-abschluss-betrieb` und `slice-harness-meldungskatalog-gate` direkt vor
-`slice-v1-abschluss-container`, dann die Slices von welle-erster-release, danach
-`slice-harness-commit-struktur-id`, `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
-`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
-`slice-harness-mutation`; die Reihenfolge der Wellen-Slices steht in §5 von
-[welle-v1-abschluss](../welle-v1-abschluss.md). Die Slices beider Wellen ändern
+**Start** (`next` → `in-progress`): `slice-harness-coverage` und
+`slice-harness-commit-struktur-id` liegen in `done/` oder sind ausdrücklich zurückgestellt
+(WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness, M3 vor M4):
+die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
+`slice-v1-abschluss-herunterfahren` und `slice-harness-meldungskatalog-gate` direkt vor
+`slice-v1-abschluss-container`, dann `slice-harness-abdeckung-gate` und
+`slice-harness-coverage`, dann die Slices von welle-erster-release, danach
+`slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
+`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`; die Reihenfolge
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Die Slices beider Wellen ändern
 den Code, auf dem die gesammelten Mutanten liegen; vor dem Start prüft der Architect
 jeden gegen den Code nach den Wellen, ob er noch besteht und noch überlebt.
 
@@ -416,7 +418,7 @@ das Verhalten ändert, sein Verbleib:
 | VF24 (V-52) | Verifikation `slice-replay-semantik-fehlerreplay` | geschlossen in `slice-replay-semantik-meldungscodes` |
 | `envFailOnUnconsumed` (F-456), PGR-E3003 nach `formVorpruefung` (F-457) | Review `slice-harness-blackbox-einstieg` | in einem anderen Paket rot (`TestE2EReplayNichtVerbraucht`; `TestUnmarshalExtendedFehler`, `TestVorpruefungNenntOrt`) |
 | R1 an `Open` (F-444, V-85) | Review `slice-harness-blackbox-driven` | Adresse `slice-v1-abschluss-anmeldung` §6 |
-| `meldeFrist` (F-451, V-87) | Review `slice-harness-blackbox-pgwire` | Adresse `slice-v1-abschluss-betrieb` §6 |
+| `meldeFrist` (F-451, V-87) | Review `slice-harness-blackbox-pgwire` | Adresse `slice-v1-abschluss-herunterfahren` §6 (übernommen aus `slice-v1-abschluss-betrieb`) |
 | R1 an `weiterlesen` (F-449), V9, VE2, M14 | Reviews und Verifikationen | äquivalent |
 
 Grüne Mutanten an Harness-Skripten (etwa V-67 an `abdeckung`, V-72 an der

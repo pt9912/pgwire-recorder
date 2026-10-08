@@ -141,12 +141,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-harness-lint` liegt in `done/`, und
 welle-erster-release ist `done` (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers
-vom 2026-10-08 (Wellen vor Harness): die Slices von welle-v1-abschluss, darin
-`slice-harness-integration-wait` direkt vor `slice-v1-abschluss-betrieb` und
-`slice-harness-meldungskatalog-gate` direkt vor `slice-v1-abschluss-container`, dann die
-Slices von welle-erster-release, danach dieser Slice als erster Harness-Slice,
-`slice-harness-abdeckung-gate`, `slice-harness-coverage`, `slice-tests-ueberlebende-mutanten`,
-`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`. Die Reihenfolge der
+vom 2026-10-08 (Wellen vor Harness, M3 vor M4): die Slices von welle-v1-abschluss, darin
+`slice-harness-integration-wait` direkt vor `slice-v1-abschluss-herunterfahren` und
+`slice-harness-meldungskatalog-gate` direkt vor `slice-v1-abschluss-container`, dann
+`slice-harness-abdeckung-gate` und `slice-harness-coverage`, dann die Slices von
+welle-erster-release, danach dieser Slice als erster der übrigen Harness-Slices,
+`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
+`slice-harness-mutation`. Die Reihenfolge der
 Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) und
 [welle-erster-release](../welle-erster-release.md). Zwischen diesem Slice und
 den übrigen Harness-Slices besteht keine technische Abhängigkeit; dieser steht unter
@@ -160,7 +161,7 @@ Folge-ADR nötig ist (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
   verlangen ein Lesen der Message über einen Zeilen-Ausdruck hinaus (etwa Backticks
   über Zeilengrenzen oder Code-Blöcke), und Träger, Gegenprobe und Doku sind nicht in
   einer Review-Sitzung prüfbar; dann trägt dieser Slice die Ablehnung im Fließtext,
-  die Sonderformen gehen in einen eigenen Slice vor `slice-harness-abdeckung-gate`.
+  die Sonderformen gehen in einen eigenen Slice vor `slice-tests-ueberlebende-mutanten`.
 - `in-progress` → `open` (blockiert — Carveout?): keine Bedingung mehr. Die Prüfung in
   der mitgelieferten Datei ist mit `SPEC-050` Punkt 1 entfallen, die Annahme von
   [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) hat der Nutzer am 2026-10-08 entschieden.

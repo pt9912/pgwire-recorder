@@ -55,7 +55,9 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | slice-v1-abschluss-postgres-versionen | Unterstützte PostgreSQL-Versionen | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-09`](../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay) |
 | slice-v1-abschluss-cancel-ohne-schluessel | CancelRequest ohne Schlüssel | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus) |
 | slice-v1-abschluss-anmeldung | Anmeldung des Clients im Record-Modus vermitteln | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
-| slice-v1-abschluss-betrieb | Signale, Schreiben und Konfiguration | [`LH-FA-07`](../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-08`](../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../spec/lastenheft.md#lh-fa-15--ci-eignung), [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
+| slice-v1-abschluss-herunterfahren | Herunterfahren mit Frist in record und replay | [`LH-FA-03`](../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-15`](../../../spec/lastenheft.md#lh-fa-15--ci-eignung) |
+| slice-v1-abschluss-konfiguration | Konfiguration über Kommandozeile, Umgebung und Datei | [`LH-FA-01`](../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
+| slice-v1-abschluss-schreiben | Atomares Schreiben, --output und --force | [`LH-FA-07`](../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-08`](../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings) |
 | slice-v1-abschluss-homebrew | Homebrew-Bereitstellung | [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew) |
 | slice-v1-abschluss-einspielen | Einspielen einer Aufzeichnung | [`LH-FA-20`](../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) |
 | slice-v1-abschluss-tls-client | TLS zum Client bei record und replay | [`LH-FA-23`](../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client) |
@@ -71,28 +73,30 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - Blockiert: Welle [welle-erster-release](welle-erster-release.md).
 - Wird blockiert von: Welle [welle-replay-semantik](done/welle-replay-semantik/welle-replay-semantik.md).
-- Innerhalb der Welle: `slice-v1-abschluss-einspielen` setzt `slice-v1-abschluss-betrieb` voraus (Signalbehandlung, Konfigurationsdatei); `slice-v1-abschluss-zeitangaben` setzt `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-sqlite-format` voraus; `slice-v1-abschluss-antwortvergleich` setzt `slice-v1-abschluss-einspielen` voraus; `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` voraus; `slice-v1-abschluss-postgres-versionen` setzt `slice-extended-query-lebendpruefung` aus welle-extended-query voraus (Erkennung der Lebendprüfung) und `slice-v1-abschluss-anmeldung` (die Matrix fährt dessen Fall SCRAM-SHA-256 gegen jede Version); `slice-v1-abschluss-tls-client` setzt `slice-v1-abschluss-sessions` voraus (mehrere Verbindungen); `slice-v1-abschluss-container` setzt die übrigen Slices außer `slice-v1-abschluss-homebrew` voraus (Image und Doku bilden den Endstand ab); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` voraus (Release-Artefakte).
-- Außerhalb der Welle, nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): `slice-v1-abschluss-betrieb` setzt `slice-harness-integration-wait` voraus (dessen §1 gibt die Tests mit Signal und Frist an diesen Slice, geschrieben über die Helfer, die jener umbaut); `slice-v1-abschluss-container` setzt `slice-harness-meldungskatalog-gate` voraus (dessen §1 nennt das Gate als vorher geliefert). Beide bleiben wellenlos; sie sind die einzigen Harness-Slices in der Reihe unten.
+- Innerhalb der Welle: `slice-v1-abschluss-konfiguration` setzt `slice-v1-abschluss-herunterfahren` voraus (der allgemeine Leser übernimmt dessen Umgebungsvariable); `slice-v1-abschluss-schreiben` setzt `slice-v1-abschluss-konfiguration` voraus (`--force` über den allgemeinen Leser); `slice-v1-abschluss-einspielen` setzt `slice-v1-abschluss-herunterfahren` und `slice-v1-abschluss-konfiguration` voraus (Signalbehandlung, Konfigurationsdatei); `slice-v1-abschluss-zeitangaben` setzt `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-sqlite-format` voraus; `slice-v1-abschluss-antwortvergleich` setzt `slice-v1-abschluss-einspielen` voraus; `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` voraus; `slice-v1-abschluss-postgres-versionen` setzt `slice-extended-query-lebendpruefung` aus welle-extended-query voraus (Erkennung der Lebendprüfung) und `slice-v1-abschluss-anmeldung` (die Matrix fährt dessen Fall SCRAM-SHA-256 gegen jede Version); `slice-v1-abschluss-tls-client` setzt `slice-v1-abschluss-sessions` voraus (mehrere Verbindungen); `slice-v1-abschluss-container` setzt die übrigen Slices außer `slice-v1-abschluss-homebrew` voraus (Image und Doku bilden den Endstand ab); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` voraus (Release-Artefakte).
+- Außerhalb der Welle, nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): `slice-v1-abschluss-herunterfahren` setzt `slice-harness-integration-wait` voraus (dessen §1 gibt die Tests mit Signal und Frist an diesen Slice, geschrieben über die Helfer, die jener umbaut); `slice-v1-abschluss-container` setzt `slice-harness-meldungskatalog-gate` voraus (dessen §1 nennt das Gate als vorher geliefert). Beide bleiben wellenlos; sie sind die einzigen Harness-Slices in der Reihe unten.
 
-**Reihenfolge** (Entscheidung des Nutzers vom 2026-10-08: Wellen vor Harness; WIP-Limit 1; innerhalb der Abhängigkeiten nach Lieferwert für die Abnahmeszenarien und M3):
+**Reihenfolge** (Entscheidungen des Nutzers vom 2026-10-08: Wellen vor Harness, die beiden Harness-Vorläufer, der Schnitt von `slice-v1-abschluss-betrieb`; WIP-Limit 1; innerhalb der Abhängigkeiten nach Lieferwert für die Abnahmeszenarien und M3):
 
 1. `slice-harness-integration-wait` — wellenlos, Voraussetzung von Schritt 2.
-2. `slice-v1-abschluss-betrieb` — Abnahmeszenarien 5 und 10 (Record, Replay); Voraussetzung des Einspielens. Vor dem Start ist der Schnitt nach F-345 zu entscheiden (§1 des Slice).
-3. `slice-v1-abschluss-einspielen` — Abnahmeszenario 12, schließt Szenario 10 (Einspiel-Lauf).
-4. `slice-v1-abschluss-sqlite-format` — Abnahmeszenario 14; nach Schritt 3 ist auch dessen zweiter Satz (Einspielen der Datenbankdatei) prüfbar.
-5. `slice-v1-abschluss-zeitangaben` — Abnahmeszenario 13 (setzt 3 und 4 voraus).
-6. `slice-v1-abschluss-antwortvergleich` — Abnahmeszenario 16 (setzt 3 voraus).
-7. `slice-v1-abschluss-sessions` — Anforderung parallele Sessions; Voraussetzung von Schritt 8.
-8. `slice-v1-abschluss-tls-client` — Abnahmeszenario 15.
-9. `slice-v1-abschluss-anmeldung` — Passwort-Anmeldung im Record; Voraussetzung von Schritt 10.
-10. `slice-v1-abschluss-postgres-versionen` — Versionsmatrix der Szenarien 1, 2 und 7.
-11. `slice-v1-abschluss-protokollrand` — Protokollrand; Voraussetzung von Schritt 12.
-12. `slice-v1-abschluss-cancel-ohne-schluessel`.
-13. `slice-harness-meldungskatalog-gate` — wellenlos, Voraussetzung von Schritt 14; misst die Codes aller vorigen Schritte, bevor die Betriebsdokumentation den Katalog schreibt.
-14. `slice-v1-abschluss-container` — Abnahmeszenario 9 (setzt 1 bis 13 voraus).
-15. `slice-v1-abschluss-homebrew` — Verfahren für Abnahmeszenario 11, Nachweis in welle-erster-release (setzt 14 voraus).
+2. `slice-v1-abschluss-herunterfahren` — Abnahmeszenario 5 (Herunterfahren im automatisierten Lauf); Voraussetzung des Einspielens.
+3. `slice-v1-abschluss-konfiguration` — Abnahmeszenario 10 für Record und Replay; Voraussetzung des Einspielens.
+4. `slice-v1-abschluss-schreiben` — atomares Schreiben, `--output` und `--force`.
+5. `slice-v1-abschluss-einspielen` — Abnahmeszenario 12, schließt Szenario 10 (Einspiel-Lauf).
+6. `slice-v1-abschluss-sqlite-format` — Abnahmeszenario 14; nach Schritt 5 ist auch dessen zweiter Satz (Einspielen der Datenbankdatei) prüfbar.
+7. `slice-v1-abschluss-zeitangaben` — Abnahmeszenario 13 (setzt 5 und 6 voraus).
+8. `slice-v1-abschluss-antwortvergleich` — Abnahmeszenario 16 (setzt 5 voraus).
+9. `slice-v1-abschluss-sessions` — Anforderung parallele Sessions; Voraussetzung von Schritt 10.
+10. `slice-v1-abschluss-tls-client` — Abnahmeszenario 15.
+11. `slice-v1-abschluss-anmeldung` — Passwort-Anmeldung im Record; Voraussetzung von Schritt 12.
+12. `slice-v1-abschluss-postgres-versionen` — Versionsmatrix der Szenarien 1, 2 und 7.
+13. `slice-v1-abschluss-protokollrand` — Protokollrand; Voraussetzung von Schritt 14.
+14. `slice-v1-abschluss-cancel-ohne-schluessel`.
+15. `slice-harness-meldungskatalog-gate` — wellenlos, Voraussetzung von Schritt 16; misst die Codes aller vorigen Schritte, bevor die Betriebsdokumentation den Katalog schreibt.
+16. `slice-v1-abschluss-container` — Abnahmeszenario 9 (setzt 1 bis 15 voraus).
+17. `slice-v1-abschluss-homebrew` — Verfahren für Abnahmeszenario 11, Nachweis in welle-erster-release (setzt 16 voraus).
 
-Die Reihenfolge der übrigen Harness-Slices steht in deren §4; sie folgen nach [welle-erster-release](welle-erster-release.md).
+Nach dieser Welle folgen wellenlos `slice-harness-abdeckung-gate` und `slice-harness-coverage` (Abnahmeszenario 17, damit M3), dann [welle-erster-release](welle-erster-release.md), dann die übrigen Harness-Slices; deren Reihenfolge steht in ihrem §4.
 
 ## 6. Out-of-Scope für diese Welle
 

@@ -143,14 +143,14 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-tests-ueberlebende-mutanten` und
 `slice-tests-ueberlebende-mutanten-driving` liegen in `done/` oder sind ausdrücklich
-zurückgestellt (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): die Slices
-von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
-`slice-v1-abschluss-betrieb` und `slice-harness-meldungskatalog-gate` direkt vor
-`slice-v1-abschluss-container`, dann die Slices von welle-erster-release, danach
-`slice-harness-commit-struktur-id`, `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
-`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
-`slice-harness-mutation`; die Reihenfolge der Wellen-Slices steht in §5 von
-[welle-v1-abschluss](../welle-v1-abschluss.md). Dieser Slice ist der letzte der Reihe.
+zurückgestellt (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness, M3 vor M4):
+die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
+`slice-v1-abschluss-herunterfahren` und `slice-harness-meldungskatalog-gate` direkt vor
+`slice-v1-abschluss-container`, dann `slice-harness-abdeckung-gate` und
+`slice-harness-coverage`, dann die Slices von welle-erster-release, danach
+`slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
+`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`; die Reihenfolge
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Dieser Slice ist der letzte der Reihe.
 Grund der Reihenfolge, keine technische Abhängigkeit: Lint-Bereinigung und
 Black-Box-Umstellung ändern die Tests, gegen die Mutanten laufen; eine Messung davor
 wäre veraltet, bevor das Gate greift. Nach den beiden Sammel-Slices, damit

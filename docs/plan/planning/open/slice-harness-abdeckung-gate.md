@@ -146,16 +146,15 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-harness-lint`,
-`slice-harness-commit-struktur-id`, `slice-harness-integration-wait` und
-`slice-harness-meldungskatalog-gate` liegen in `done/`, und welle-erster-release ist
-`done` (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness): die Slices
-von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
-`slice-v1-abschluss-betrieb` und `slice-harness-meldungskatalog-gate` direkt vor
-`slice-v1-abschluss-container`, dann die Slices von welle-erster-release, danach
-`slice-harness-commit-struktur-id`, `slice-harness-abdeckung-gate`, `slice-harness-coverage`,
-`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
-`slice-harness-mutation`; die Reihenfolge der Wellen-Slices steht in §5 von
-[welle-v1-abschluss](../welle-v1-abschluss.md). Die Slices zwischen `slice-harness-lint` und diesem sind
+`slice-harness-integration-wait`, `slice-harness-meldungskatalog-gate` und die Slices von
+welle-v1-abschluss liegen in `done/` (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness, M3 vor M4):
+die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
+`slice-v1-abschluss-herunterfahren` und `slice-harness-meldungskatalog-gate` direkt vor
+`slice-v1-abschluss-container`, dann `slice-harness-abdeckung-gate` und
+`slice-harness-coverage`, dann die Slices von welle-erster-release, danach
+`slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
+`slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`; die Reihenfolge
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Die Slices zwischen `slice-harness-lint` und diesem sind
 keine technische Abhängigkeit, sondern die Reihenfolge des Nutzers. Grund für den Platz nach `slice-harness-lint`: Teil 1 und
 Teil 3 gelten erst, wenn das Lint-Gate steht und `testpackage` überall scharf ist, und
 das ist es mit `slice-harness-lint`; dessen Gegenprobe trägt dann alle Fälle, die die
