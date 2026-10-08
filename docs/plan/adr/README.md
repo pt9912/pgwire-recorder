@@ -38,7 +38,7 @@
 | [0032](0032-kopf-sensor-fuer-slice-plaene.md) | Kopf-Sensor für Slice-Pläne | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
 | [0033](0033-gate-nachweise-in-der-abdeckung.md) | Gate-Nachweise und geteilte Messung in der Abdeckung | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0034](0034-lint-gate-mit-solid-nahem-profil.md) | Lint-Gate mit SOLID-nahem Profil, eingeführt nach Bereinigung | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
-| [0035](0035-struktur-kennungen-im-commit-hook-abgelehnt.md) | Struktur-Kennungen im Commit-Hook abgelehnt | Proposed | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
+| [0035](0035-struktur-kennungen-im-commit-hook-abgelehnt.md) | Struktur-Kennungen im Commit-Hook abgelehnt | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
 
 ## Konventionen
 

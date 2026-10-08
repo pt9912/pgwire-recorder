@@ -19,8 +19,8 @@ Prüfumgebung, keine Zusage des Produkts. Bindung an Entscheidungen:
 [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md) (benannte
 Slice-Kennungen im Träger, Lesebereich bis zur Scissors-Zeile, ohne Kommentarzeilen),
 [ADR-0029](../../adr/0029-benannte-welle-kennungen-im-commit-hook.md) (benannte
-Welle-Kennungen), [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) (Proposed, Architect vor dem Code:
-Ablehnung von Struktur-Kennungen, ergänzt beide; Annahme durch den Nutzer offen).
+Welle-Kennungen), [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) (Accepted am 2026-10-08 nach Entscheidung des
+Nutzers: Ablehnung von Struktur-Kennungen, ergänzt beide).
 
 **Berührte Spec-Stellen:** [`SPEC-050`](../../../../spec/spezifikation.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg) (Commit-Träger, vom Architect vor dem Code
 geschrieben) · `spezifikation.md` §12 (*Historie*)
@@ -128,7 +128,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` §11, §12 | update (Architect, vor dem Code, geliefert) | `SPEC-050` mit der Ablehnung, den Entscheidungen zu den Randformen aus §6 und den Grenzen; Historien-Zeile |
-| `docs/plan/adr/0035-…` und ADR-Index | neu (Architect, vor dem Code, geliefert) | [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) ergänzt [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md) und [ADR-0029](../../adr/0029-benannte-welle-kennungen-im-commit-hook.md) um die Ablehnung; Entscheidung und Gründe, `Schärft:` `SPEC-050` (`AGENTS.md` §3.8); Status Proposed bis zur Annahme durch den Nutzer |
+| `docs/plan/adr/0035-…` und ADR-Index | neu (Architect, vor dem Code, geliefert) | [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) ergänzt [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md) und [ADR-0029](../../adr/0029-benannte-welle-kennungen-im-commit-hook.md) um die Ablehnung; Entscheidung und Gründe, `Schärft:` `SPEC-050` (`AGENTS.md` §3.8); Accepted am 2026-10-08 nach Entscheidung des Nutzers |
 | `.githooks/commit-msg` | update | Ablehnung nach `SPEC-050` **vor** dem frühen Exit 0 für benannte Slices und Wellen; Kopfkommentar |
 | `tools/hook/commit-msg-gegenprobe.sh` | update | je Randform aus §6 ein Fall mit der Erwartung aus §11; die Tabelle im Kopf folgt; die 15 vorhandenen Fälle bleiben |
 | `harness/mk/hook-gegenprobe.mk` | update | Hilfetext des Ziels nennt die Ablehnung |
@@ -157,9 +157,9 @@ Folge-ADR nötig ist (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
   über Zeilengrenzen oder Code-Blöcke), und Träger, Gegenprobe und Doku sind nicht in
   einer Review-Sitzung prüfbar; dann trägt dieser Slice die Ablehnung im Fließtext,
   die Sonderformen gehen in einen eigenen Slice vor `slice-harness-abdeckung-gate`.
-- `in-progress` → `open` (blockiert — Carveout?): Der Nutzer nimmt [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) nicht
-  an; dann zuerst diese Entscheidung. Die frühere Bedingung (Prüfung in der
-  mitgelieferten Datei) ist mit `SPEC-050` Punkt 1 entfallen.
+- `in-progress` → `open` (blockiert — Carveout?): keine Bedingung mehr. Die Prüfung in
+  der mitgelieferten Datei ist mit `SPEC-050` Punkt 1 entfallen, die Annahme von
+  [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) hat der Nutzer am 2026-10-08 entschieden.
 
 ## 5. Closure-Trigger
 
@@ -198,6 +198,8 @@ zurück.
   beginnt mit `Merge ` oder `Revert ` (Punkt 4). Eine selbst geschriebene Message dieser
   Form bleibt ungeprüft (Grenze, akzeptiertes Negativ: im Bestand keine Merge- oder
   Revert-Message, fünf Betreffs mit Struktur-Kennung, deren Revert sonst scheiterte).
+  Entscheidung des Nutzers vom 2026-10-08: Die Ausnahme bleibt so, einschließlich
+  dieses Negativs.
 - **Groß- und Kleinschreibung, Ziffernzahl, Platzhalter** — nur `SPEC-NNN`/`ARC-NNN` in
   Großschreibung mit genau drei Ziffern; `spec-049`, `Spec-049`, `SPEC-49`,
   `SPEC-0491`, `SPEC-<NNN>`, `ARC-*` sind keine (Punkt 3). Ob sie existiert, ist ohne
@@ -225,7 +227,7 @@ Bestands; die Commits bleiben, wie sie sind (§1).
   die Annahme bleibt in [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md), [ADR-0029](../../adr/0029-benannte-welle-kennungen-im-commit-hook.md) und im Kopf des Trägers (§1,
   Bestand bleibt stehen). `BEO-REPO/werkzeug-festlegung-ausserhalb-technik-stratum`
   trifft diesen Slice nicht erneut: Seine neue Festlegung steht im Technik-Stratum.
-- **Folge-ADR** — ja, [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md): Die Ablehnung ändert für Messages mit
+- **Folge-ADR** — ja, [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) (Accepted am 2026-10-08, Entscheidung des Nutzers): Die Ablehnung ändert für Messages mit
   Struktur-Kennung, was die beiden Accepted ADRs zusagen (durchlassen, unverändert
   weiterreichen). Sie ergänzt beide und ersetzt keine; beide bleiben unverändert
   (ADR-Index §Beziehungen).

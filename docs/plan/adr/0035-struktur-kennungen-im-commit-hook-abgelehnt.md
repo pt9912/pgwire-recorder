@@ -1,6 +1,6 @@
 # ADR-0035: Struktur-Kennungen im Commit-Hook abgelehnt
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-08
 
@@ -56,5 +56,6 @@ Wenn `AGENTS.md` §5 Regel 1 Struktur-Kennungen zulässt, wenn die Spezifikation
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-08 | Proposed | — |
+| 2026-10-08 | Accepted (Entscheidung des Nutzers) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
