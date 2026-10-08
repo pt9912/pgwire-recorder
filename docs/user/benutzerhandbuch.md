@@ -180,7 +180,8 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
   solchen Verbindung bleiben in der Aufzeichnung. War auf ihr eine Anfrage
   begonnen und nicht abgeschlossen, fehlt diese; Ihre Anwendung erhält die
   Fehlermeldung `PGR-E4006`, das Log nennt die Sitzung und die verworfene
-  Anfrage, und das Werkzeug endet mit Exit-Code 4. Eine Verbindung ohne
+  Anfrage, und das Werkzeug endet mit Exit-Code 4, wenn vorher kein anderer
+  Fehler gemerkt wurde (siehe [Exit-Codes](#exit-codes)). Eine Verbindung ohne
   begonnene Anfrage, auch eine noch im Aufbau, endet ohne Meldung. Danach
   schreibt das Werkzeug die Aufzeichnung.
 * Im Container beendet das Laufzeitsystem das Werkzeug nach seiner Stopp-Frist
@@ -258,7 +259,8 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   Anwendung länger, schließt es die Verbindung. War eine Anfrage begonnen und
   nicht vollständig beantwortet, erhält die Anwendung die Fehlermeldung
   `PGR-E4006`, das Log nennt Sitzung und Anfrage, und das Werkzeug endet mit
-  Exit-Code 4; mit `--fail-on-unconsumed` zählt `PGR-E4006` vor `PGR-E5002`.
+  Exit-Code 4, wenn vorher kein anderer Fehler gemerkt wurde; mit
+  `--fail-on-unconsumed` zählt `PGR-E4006` vor `PGR-E5002`.
 * Im Container gilt die Stopp-Frist des Laufzeitsystems wie beim Aufzeichnen.
   Hinweis: Der Standardwert von `--shutdown-timeout` (5 Sekunden) ist so
   gewählt, dass er unter der Stopp-Frist von Docker (10 Sekunden) liegt; wählen
@@ -515,7 +517,8 @@ Umgebungsvariablen vollständig steuern (siehe [Einstellungen](#5-einstellungen)
 Zeichnen Sie in der Testautomatisierung auf, lassen Sie die Tests vor dem
 `SIGTERM` zur Ruhe kommen: Eine Anfrage, die nach Ablauf von
 `--shutdown-timeout` noch läuft, fehlt in der Aufzeichnung, und das Werkzeug
-endet mit Exit-Code 4 (siehe [Herunterfahren mit Frist](#herunterfahren-mit-frist)).
+endet mit Exit-Code 4, wenn vorher kein anderer Fehler gemerkt wurde (siehe
+[Herunterfahren mit Frist](#herunterfahren-mit-frist)).
 
 ### Herunterfahren mit Frist
 
@@ -538,7 +541,10 @@ Anfragen wartet; die Frist zählt ab dem ersten Signal.
 * Beim Ablauf beendet das Werkzeug jede noch laufende Verbindung. Eine
   Verbindung ohne begonnene Anfrage endet ohne Meldung; eine mit begonnener,
   nicht abgeschlossener Anfrage erhält die Fehlermeldung `PGR-E4006`, wenn sie
-  sie binnen einer Sekunde annimmt, und der Exit-Code ist 4.
+  sie binnen einer Sekunde annimmt, und der Exit-Code ist 4, wenn vorher kein
+  anderer Fehler gemerkt wurde; sonst gilt der Exit-Code des ersten gemerkten
+  Fehlers, und ein Fehler beim Schreiben der Aufzeichnung ergibt 3 (siehe
+  [Exit-Codes](#exit-codes)).
 * Die Frist begrenzt nur das Warten auf die Verbindungen. Das Schreiben der
   Aufzeichnung danach bricht sie nicht ab.
 
