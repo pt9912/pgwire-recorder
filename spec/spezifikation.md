@@ -886,10 +886,10 @@ sonst aus `PGWIRE_RECORDER_PASSWORD`; eine Option dafür gibt es nicht.
 Findet sich keine Datei, wird keine gelesen. Eine mit `--config` oder
 `PGWIRE_RECORDER_CONFIG` genannte Datei, die fehlt, ist ein Konfigurationsfehler. Die
 Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne die führenden `--`
-(`keep_timing` für `--keep-timing`). Steht ein Schlüssel in derselben Abbildung
-zweimal, ist das ungültiges YAML. `log_level` und die benannten Verbindungen stehen
-auf der obersten Ebene, die übrigen Schlüssel in einem Abschnitt je Kommando
-(`record:`, `replay:`, `play:`):
+(`keep_timing` für `--keep-timing`); einen Schlüssel `config` gibt es nicht. Steht
+ein Schlüssel in derselben Abbildung zweimal, ist das ungültiges YAML. `log_level`
+und die benannten Verbindungen stehen auf der obersten Ebene, die übrigen Schlüssel
+in einem Abschnitt je Kommando (`record:`, `replay:`, `play:`):
 
 ```yaml
 log_level: info
@@ -902,6 +902,14 @@ play:
   keep_timing: true
   timing_mode: relative
 ```
+
+Der Wert eines Schlüssels ist ein Skalar. Maßgeblich ist sein Text, gleich ob mit
+oder ohne Anführungszeichen geschrieben, und für ihn gilt dieselbe Wertemenge wie für
+die Option: `true` und `"true"` sind gültig, `True`, `yes` und `1` nicht; `0` und
+`"5s"` sind gültige Dauern. Ein leerer Wert, `null`, eine Liste oder Abbildung an der
+Stelle eines Werts sowie Anker, Aliase und Merge-Schlüssel sind ungültig. Ein
+relativer Pfad in der Datei gilt relativ zum aktuellen Verzeichnis wie auf der
+Kommandozeile, nicht zum Verzeichnis der Datei.
 
 **Benannte Verbindungen.** Der Wert unter `connections:` ist eine URL der Form
 `postgresql://[benutzer[:passwort]@]host[:port]/datenbank[?parameter]`. Der
@@ -926,13 +934,26 @@ Port hat, ist ein ungültiger Wert. Die Wirkung einer URL:
 
 **Geheimnisse.** Der Platzhalter `${VAR}` ist nur in der URL einer benannten
 Verbindung erlaubt und wird für die benutzte Verbindung aus der gleichnamigen
-Umgebungsvariable ersetzt (`$${VAR}` bleibt wörtlich); die Variablen nicht benutzter
-Verbindungen bleiben unbeachtet. Ein **Klartext-Passwort** ist ein Passwortteil
+Umgebungsvariable ersetzt; die Variablen nicht benutzter Verbindungen bleiben
+unbeachtet, ebenso bei `record` die Platzhalter in Benutzer, Passwort und Datenbank,
+den Teilen, die `record` ignoriert. Eine gesetzte, aber leere Variable gilt als nicht
+gesetzt. Der Name `VAR` hat die Form `[A-Za-z_][A-Za-z0-9_]*`; ein `${` ohne
+schließendes `}` oder mit anderem Namen ist ein ungültiger Wert. In jedem Wert der
+Datei steht `$$` für ein `$`, sodass `$${VAR}` den Text `${VAR}` ergibt; ein `$` vor
+einem anderen Zeichen bleibt stehen. Eingesetzt wird einmal: Ein eingesetzter Wert
+wird nicht erneut ausgewertet. Die URL wird vor dem Einsetzen in ihre Teile zerlegt,
+und der Wert steht unverändert in seinem Teil, auch mit `@`, `:`, `/` oder `%`. Ein **Klartext-Passwort** ist ein Passwortteil
 hinter dem `:` im Benutzerteil einer URL, der nicht genau ein `${VAR}` ist, oder ein
 Parameter `password`, in jeder Verbindung der Datei, auch einer nicht benutzten.
 
 **Fehler.** Jede Ursache trägt einen eigenen Code und nennt in der Meldung die
-Stelle (Schlüssel oder Verbindungsname), nie einen Wert:
+Stelle (Schlüssel oder Verbindungsname), nie einen Wert. Der Start endet beim ersten
+Fehler mit einer Meldung; geprüft wird in dieser Reihenfolge: die Kommandozeile; die
+Umgebungsvariablen der Optionen des Kommandos in der Reihenfolge der Tabelle unten;
+die Datei (Wahl, Lesen, YAML, dann Schlüssel, Werte und Klartext-Passwörter in der
+Reihenfolge der Datei); zuletzt, nach der Zusammenführung, Pflichtoptionen,
+Kombinationen, `--upstream` und die Variablen der Platzhalter der benutzten
+Verbindung:
 
 | Ursache | Code |
 |---|---|
@@ -952,15 +973,17 @@ großgeschriebener oder zusammengesetzter Einheit (`1m30s`) und einer, der läng
 ist als die längste Dauer, die die Implementierung darstellt: als Option oder
 Umgebungsvariable `PGR-E2001`, als Schlüssel der Konfigurationsdatei `PGR-E2004`.
 
-**Anzeige.** `pgwire-recorder config show` gibt den Inhalt der gewählten Datei als
-eingerückten Baum auf `stdout` aus und nennt die Datei; Exit-Code `0`. Findet sich
-keine Datei, meldet der Befehl das und endet mit Exit-Code `0`. Ist die Datei
+**Anzeige.** `pgwire-recorder config show` gibt auf `stdout` in der ersten Zeile den
+Pfad der gewählten Datei aus, danach ihren Inhalt als YAML mit zwei Leerzeichen
+Einzug in der Reihenfolge der Datei, ohne Kommentare; Exit-Code `0`. Findet sich
+keine Datei, sagt das die erste Zeile, und der Befehl endet mit Exit-Code `0`. Ist die Datei
 ungültig, endet er mit dem Fehlercode des Ladens (`PGR-E2004` oder `PGR-E2006`) und
 zeigt nichts; `PGR-E2005` kommt nicht vor, weil der Befehl keine Verbindung benutzt. Platzhalter erscheinen unaufgelöst; die Ausgabe enthält nie einen
 aufgelösten Wert, aber Hosts, Benutzer und Pfade der Datei. Aktive
 `PGWIRE_RECORDER_*`-Umgebungsvariablen, also gesetzte und nicht leere, auch solche
-ohne passende Option, listet der Befehl am Ende mit Namen und ohne Werte; geprüft
-wird von ihnen nur `PGWIRE_RECORDER_CONFIG`. Er verbindet sich nicht und liest keine Aufzeichnung.
+ohne passende Option, listet der Befehl am Ende mit Namen und ohne Werte, je einen pro
+Zeile und nach Namen sortiert, auch ohne Datei; geprüft wird von ihnen nur
+`PGWIRE_RECORDER_CONFIG`. Er verbindet sich nicht und liest keine Aufzeichnung.
 
 | Option | Kommando | Umgebungsvariable | Default |
 |---|---|---|---|
@@ -2306,3 +2329,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-08 | Herunterfahren: Attribut `sessions` der Zeile beim Beginn, ohne offene Verbindung, Startphase, was die Frist begrenzt, Zwangsende auch im Aufbau, `PGR-E4006` nur bei unvollständiger Interaktion und ohne `PGR-E4003`, Inhalt der Meldung, zweites Signal auch bei `0`, weitere Signale ohne Wirkung, Upstream-Verbindung im Aufbau und Verbindung aus dem Rückstau in der Startphase als Grenze, Grund einer nicht geschriebenen Session (`LH-FA-13.a`, `LH-FA-14.a`); Form der Dauer von `--shutdown-timeout` mit führenden Nullen vor einer Einheit (`LH-FA-17.a`); Schreibfrist der Fehlerantwort beim Ende einer Session (`SPEC-051`, `LH-FA-18.a`) |
 | 2026-10-08 | Warten in Tests: ein synchroner Aufruf des Prüflings ohne Frist fällt nicht unter die Regel, sie gilt nur für Kanäle und das Ende eines gestarteten Prozesses; Entscheidung des Nutzers (`SPEC-038`) |
 | 2026-10-08 | Konfiguration: Umgebungsvariable mit Präfix ohne passende Option unbeachtet, doppelter Schlüssel ist ungültiges YAML, Name einer Verbindung nur bei genauer Übereinstimmung, Wert weder Name noch `host:port` ungültig, `sslmode=require` bei `record` ist `PGR-E2004`, Klartext-Passwort in jeder Verbindung, `config show` ohne `PGR-E2005`, aktive Umgebungsvariablen (`LH-FA-17.a`) |
+| 2026-10-08 | Konfiguration, Entscheidung des Nutzers: Wert der Datei als Text des Skalars mit der Wertemenge der Option, leerer Wert, `null`, Liste, Abbildung, Anker und Aliase ungültig; kein Schlüssel `config`; relative Pfade zum aktuellen Verzeichnis; leere Variable eines Platzhalters nicht gesetzt, Platzhalter in den von `record` ignorierten Teilen unbeachtet; `$$`, Name und einmaliges Einsetzen in die zerlegte URL; Abbruch beim ersten Fehler und Reihenfolge der Prüfung; Form der Ausgabe von `config show` (`LH-FA-17.a`) |

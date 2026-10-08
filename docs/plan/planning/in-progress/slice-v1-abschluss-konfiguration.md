@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [ADR-0014](../../adr/0014-konfigurationsdatei.md), [ADR-0027](../../adr/0027-yaml-bibliothek.md), [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) (Proposed)
+**Bezug:** [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [ADR-0014](../../adr/0014-konfigurationsdatei.md), [ADR-0027](../../adr/0027-yaml-bibliothek.md), [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)
 
 **Berührte Spec-Stellen:** `LH-FA-01.a` · `LH-FA-17.a` · `LH-FA-03.b` · `LH-FA-14.a` · `SPEC-007` · `SPEC-008` · `SPEC-012` · `SPEC-014` · `SPEC-020` · `SPEC-033` · `SPEC-034` · `SPEC-046` · `ARC-005` · `ARC-013`
 
@@ -59,10 +59,11 @@ alle angemeldeten Optionen (drei Quellen, Priorität), sodass eine später angem
 ihn ohne eigenen Plan-Punkt mitnimmt.
 
 **Ort des Lesens.** Die Datei liest der CLI-Adapter (`ARC-005`). Die YAML-Bibliothek ist dort
-heute nicht zulässig (`ARC-013`, [ADR-0027](../../adr/0027-yaml-bibliothek.md), `tech`-Regel in
-`.a-check.yml`); [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)
-schlägt vor, sie dort zuzulassen. Bis sie `Accepted` ist und die Sicht nachgezogen ist, gibt
-es keinen Code-Commit (§4).
+nur zum Lesen der Konfigurationsdatei zulässig (`ARC-013`,
+[ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md), ergänzt
+[ADR-0027](../../adr/0027-yaml-bibliothek.md)); kein Typ der Bibliothek verlässt den
+CLI-Adapter. Sicht und `tech`-Regel in `.a-check.yml` sind nachgezogen; dass ein Import im
+CLI-Adapter nur der Datei dient, prüft kein Gate, das bleibt Review.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -120,9 +121,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/architecture.md` | update (Architect, vor dem Code) | `ARC-013`, §2 *Zusätzliche Einschränkungen* und §6: YAML-Bibliothek auch in `ARC-005`, nach `Accepted` von [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) |
-| `spec/spezifikation.md` | update (Architect, vor dem Code) | `LH-FA-17.a`: die Antworten des Nutzers auf die offenen Randformen in §6 |
-| `.a-check.yml` | update | `tech`-Regel für `go.yaml.in/yaml` und `gopkg.in/yaml`: Recording-Adapter und CLI-Adapter ([ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)) |
+| `spec/architecture.md`, `spec/spezifikation.md`, `.a-check.yml` | erledigt (Architect, vor dem Code, 2026-10-08) | Sicht (`ARC-013`, §2, §6) und `tech`-Regel: YAML-Bibliothek auch im CLI-Adapter ([ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)); `LH-FA-17.a` mit den Entscheidungen des Nutzers aus §6 |
+| `tools/arch/a-check-negativ.sh` | update (erster Commit des Implementers) | zwei Fälle: CLI-Adapter importiert `go.yaml.in/yaml/v3` und `gopkg.in/yaml.v3` → a-check meldet nichts; PGWire-Adapter (`internal/adapters/driving/pgwire`) importiert `go.yaml.in/yaml/v3` → `tech-leak`. Der zweite hält die Erlaubnis auf den CLI-Adapter statt auf alle Driving-Adapter. Kopfkommentar (Zahl der Fälle, *YAML nur im Recording-Adapter*) und Schlusszeile auf *Recording- und CLI-Adapter*; Beschreibung von `a-check-negativ` in `harness/mk/arch-negativ.mk` und Zeile in `harness/README.md` §Sensors nachziehen (`AGENTS.md` §3.11). Mutation: Regel auf `internal/adapters/driving` weiten → zweiter Fall rot; CLI-Adapter aus der Regel nehmen → erster Fall rot |
 | `internal/adapters/driving/cli` | update | allgemeiner Leser, an dem jede Option einmal angemeldet wird, für Kommandozeile, Umgebungsvariable und Schlüssel der Datei; er prüft jeden gesetzten Wert und ersetzt die Einzel-Leser von `--fail-on-unconsumed`, `--log-level` und `--shutdown-timeout`; Priorität; Hilfe vor jeder Prüfung; Kommando `config show`; Wahl und Laden der Datei mit `connections`, `fail_on_unconsumed`, `log_level`, `${VAR}` und `$${VAR}`; Auflösen des Namens bei `--upstream` zu `host:port` |
 | `internal/bootstrap` | update | `config show` ausführen (Ausgabe auf `stdout`); die zusammengeführten Optionen an die Use Cases geben |
 | `internal/adapters/driving/cli` (Unit-Tests), `internal/bootstrap` (Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a` und `LH-FA-01.a`; ein Test über alle angemeldeten Optionen; die vorhandenen Tests der drei Einzel-Leser bleiben unverändert und grün (Risiko in §6) |
@@ -138,9 +138,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 (Entscheidung des Nutzers vom 2026-10-08). Vor dem ersten Code-Commit prüft der Architect
 die Randformen aus §6 und entscheidet die offenen (`AGENTS.md` §3.12).
 
-**Erster Code-Commit** erst, wenn alle drei gelten: [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) ist `Accepted`, die Sicht
-ist nachgezogen (§3), und jede Randform in §6, die dort *offen* steht, ist in `LH-FA-17.a`
-entschieden.
+**Erster Code-Commit:** Die Bedingungen sind seit 2026-10-08 erfüllt —
+[ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) ist `Accepted`, Sicht und `tech`-Regel sind nachgezogen, und jede
+Randform in §6 ist in `LH-FA-17.a` entschieden. Der erste Commit des Implementers ist die
+Gegenprobe des Architektur-Gates (§3).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -168,9 +169,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen** (`AGENTS.md` §3.12) — je Randform, wo sie entschieden ist; vom Architect am
-2026-10-08 vor dem Code geprüft. *Offen* heißt: Frage an den Nutzer, Empfehlung des Architects
-dahinter; der Implementer beginnt den betroffenen Teil erst, wenn die Antwort in `LH-FA-17.a`
-steht (§4).
+2026-10-08 vor dem Code geprüft. Keine ist offen.
 
 *Umgebung*
 
@@ -199,22 +198,18 @@ steht (§4).
 - **Doppelter Schlüssel** — ungültiges YAML, `PGR-E2004`; `LH-FA-17.a`. Hinweis an den
   Implementer: Das Lesen über die Node-Schnittstelle der Bibliothek lehnt Doppelte nicht
   selbst ab.
-- **Schlüssel `config` in einem Abschnitt** — *offen.* Empfehlung: unbekannter Schlüssel
-  (`PGR-E2004`); eine Datei nennt keine Datei.
+- **Schlüssel `config` in einem Abschnitt** — gibt es nicht, unbekannter Schlüssel
+  (`PGR-E2004`); Entscheidung des Nutzers vom 2026-10-08, `LH-FA-17.a`.
 - **Wertform in der Datei** (YAML `true` gegen `"true"`, `True`, `yes`, `1`; `shutdown_timeout: 0`
-  als Zahl; leerer Wert, `null`, Liste oder Abbildung als Wert; Anker und Aliase) — *offen.*
-  Empfehlung: Maßgeblich ist der Text des Skalars, geprüft mit derselben Wertemenge wie
-  Option und Umgebungsvariable (`true` und `"true"` gültig, `True`, `yes` und `1` nicht;
-  `0` und `"5s"` gültig); ein leerer Wert, `null`, eine Liste oder Abbildung an Stelle eines
-  Werts und Anker, Aliase und Merge-Schlüssel sind `PGR-E2004`, wie bei der Aufzeichnung
-  (`SPEC-001`).
+  als Zahl; leerer Wert, `null`, Liste oder Abbildung als Wert; Anker und Aliase) — Text des
+  Skalars mit der Wertemenge der Option; leerer Wert, `null`, Liste, Abbildung, Anker, Aliase
+  und Merge-Schlüssel `PGR-E2004`; Entscheidung des Nutzers vom 2026-10-08, `LH-FA-17.a`.
 - **Form der Dauer** — dieselbe in Option, Umgebungsvariable und Datei; ungültig `PGR-E2001`
-  bzw. `PGR-E2004`; `LH-FA-17.a` (*Dauer*). Ob `0` als YAML-Zahl gilt, hängt an der Wertform
-  oben.
+  bzw. `PGR-E2004`; `LH-FA-17.a` (*Dauer*). `0` ohne Anführungszeichen ist gültig (Wertform
+  oben).
 - **`log_level` ungültig** — `PGR-E2004`; `LH-FA-17.a`.
-- **Relative Pfade in der Datei** (`input`, `output`, später Zertifikate) — *offen.*
-  Empfehlung: relativ zum aktuellen Verzeichnis wie auf der Kommandozeile, nicht zum
-  Verzeichnis der Datei.
+- **Relative Pfade in der Datei** (`input`, `output`, später Zertifikate) — relativ zum
+  aktuellen Verzeichnis; Entscheidung des Nutzers vom 2026-10-08, `LH-FA-17.a`.
 
 *Verbindungen und Platzhalter*
 
@@ -224,18 +219,16 @@ steht (§4).
 - **Klartext-Passwort** — `PGR-E2006`, in jeder Verbindung der Datei; `LH-FA-17.a`.
 - **Variable eines Platzhalters der benutzten Verbindung nicht gesetzt** — `PGR-E2005`;
   `LH-FA-17.a`.
-- **Variable eines Platzhalters gesetzt, aber leer** — *offen.* Empfehlung: wie bei Optionen
-  nicht gesetzt, also `PGR-E2005`.
+- **Variable eines Platzhalters gesetzt, aber leer** — nicht gesetzt, `PGR-E2005`;
+  Entscheidung des Nutzers vom 2026-10-08, `LH-FA-17.a`.
 - **Platzhalter in Teilen der URL, die `record` ignoriert** (Benutzer, Passwort, Datenbank) —
-  *offen.* Empfehlung: unbeachtet wie die Teile selbst; `record` löst nur Platzhalter in
-  Host und Port auf und meldet nur für sie `PGR-E2005`.
-- **`$${VAR}`, Rekursion, Form des Namens, Einsetzen in die URL** — *offen*; `LH-FA-17.a`
-  sagt nur, dass `$${VAR}` wörtlich bleibt. Empfehlung: `$$` steht für ein `$`, also ergibt
-  `$${VAR}` den Text `${VAR}`; ein `$` vor anderem Zeichen bleibt stehen; dieselbe Lesart in
-  jedem Wert der Datei. Der Name ist `[A-Za-z_][A-Za-z0-9_]*`; `${` ohne `}` oder mit anderem
-  Namen ist `PGR-E2004`. Eingesetzt wird einmal, ein eingesetzter Wert wird nicht erneut
-  ausgewertet. Die URL wird vor dem Einsetzen zerlegt, der Wert steht unverändert in seinem
-  Teil, sodass ein Passwort mit `@`, `:`, `/` oder `%` trägt.
+  unbeachtet; `record` löst nur Platzhalter in Host und Port auf; Entscheidung des Nutzers
+  vom 2026-10-08, `LH-FA-17.a`.
+- **`$${VAR}`, Rekursion, Form des Namens, Einsetzen in die URL** — `$$` steht für `$` in
+  jedem Wert der Datei; Name `[A-Za-z_][A-Za-z0-9_]*`, sonst `PGR-E2004`; einmal eingesetzt;
+  URL vor dem Einsetzen zerlegt, Wert unverändert in seinem Teil; Entscheidung des Nutzers
+  vom 2026-10-08, `LH-FA-17.a`. Hinweis an den Implementer: Die Zerlegung der
+  Standardbibliothek lehnt einen Port `${PORT}` ab; zerlegt wird mit Platzhaltern.
 
 *Anzeige und Fehler*
 
@@ -246,19 +239,16 @@ steht (§4).
   deren Inhalt, `SPEC-033`), nicht der Anzeige der Konfiguration; kein Widerspruch.
 - **`config show`: `PGR-E2005`, aktive Umgebungsvariablen** — kommt nicht vor; gesetzt und
   nicht leer, auch ohne passende Option, geprüft nur `PGWIRE_RECORDER_CONFIG`; `LH-FA-17.a`.
-- **Form der Ausgabe von `config show`** — *offen*; `LH-FA-17.a` sagt *eingerückter Baum* und
-  *nennt die Datei*. Empfehlung: erste Zeile nennt den Pfad der gewählten Datei, danach ihr
-  Inhalt als YAML mit zwei Leerzeichen Einzug in der Reihenfolge der Datei, ohne Kommentare,
-  danach die Namen der aktiven Umgebungsvariablen, je einer pro Zeile, nach Namen sortiert;
-  ohne Datei eine Zeile, dass keine gefunden wurde, und die Namen. Alles auf `stdout`.
+- **Form der Ausgabe von `config show`** — erste Zeile Pfad der Datei oder dass keine
+  gefunden wurde, danach der Inhalt als YAML (zwei Leerzeichen, Reihenfolge der Datei, ohne
+  Kommentare), danach die Namen der aktiven Umgebungsvariablen sortiert, alles auf `stdout`;
+  Entscheidung des Nutzers vom 2026-10-08, `LH-FA-17.a`.
 - **Hilfe nach einer ungültigen Option, auch bei `config show` und `--config`** — die Hilfe
   geht vor; `LH-FA-01.a`.
-- **Reihenfolge bei mehreren Fehlern** — *offen.* Empfehlung: Der Start bricht beim ersten
-  Fehler ab, mit einer Meldung. Geprüft wird in dieser Reihenfolge: Kommandozeile;
-  Umgebungsvariablen der Optionen des Kommandos in der Reihenfolge der Tabelle in
-  `LH-FA-17.a`; Datei (Wahl, Lesen, YAML, dann Schlüssel, Werte und Klartext-Passwörter in
-  der Reihenfolge der Datei); zuletzt nach der Zusammenführung Pflichtoptionen, Kombinationen,
-  `--upstream` und `PGR-E2005` der benutzten Verbindung.
+- **Reihenfolge bei mehreren Fehlern** — Abbruch beim ersten Fehler; Reihenfolge
+  Kommandozeile, Umgebungsvariablen nach der Tabelle, Datei in ihrer Reihenfolge, zuletzt
+  Pflichtoptionen, Kombinationen, `--upstream` und `PGR-E2005`; Entscheidung des Nutzers vom
+  2026-10-08, `LH-FA-17.a`.
 
 **Risiken:**
 
@@ -268,7 +258,8 @@ steht (§4).
   drei Einzel-Leser bleiben unverändert und grün (§3) — **Ausgang:** offen bis Closure.
 - [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) wird nicht angenommen; dann liest der CLI-Adapter keine
   YAML-Datei, und der Slice geht nach `open` zurück (§4, blockiert), bis eine andere
-  Entscheidung den Ort des Lesens trägt — **Ausgang:** offen bis Closure.
+  Entscheidung den Ort des Lesens trägt — **Ausgang:** entfallen, die ADR ist seit
+  2026-10-08 `Accepted`.
 
 ## 7. Closure-Notiz
 

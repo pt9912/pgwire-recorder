@@ -1,6 +1,6 @@
 # ADR-0036: YAML-Bibliothek auch für die Konfigurationsdatei im CLI-Adapter
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-08
 
@@ -52,5 +52,6 @@ Wenn ein dritter Adapter YAML lesen muss oder der CLI-Adapter die Bibliothek fü
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-08 | Proposed | — |
+| 2026-10-08 | Accepted | Entscheidung des Nutzers |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

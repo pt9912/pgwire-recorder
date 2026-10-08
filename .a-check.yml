@@ -47,8 +47,8 @@ edges:
 
 tech:
   - {pattern: "github.com/jackc/pgx/v5/pgproto3", adapter: ["internal/adapters/driving/pgwire", "internal/adapters/driven/postgres"]}
-  - {pattern: "go.yaml.in/yaml", adapter: "internal/adapters/driven/recording"}
-  - {pattern: "gopkg.in/yaml", adapter: "internal/adapters/driven/recording"}
+  - {pattern: "go.yaml.in/yaml", adapter: ["internal/adapters/driven/recording", "internal/adapters/driving/cli"]}
+  - {pattern: "gopkg.in/yaml", adapter: ["internal/adapters/driven/recording", "internal/adapters/driving/cli"]}
   - {pattern: "modernc.org/sqlite", adapter: "internal/adapters/driven/recording"}
   - {pattern: "crypto/tls", adapter: ["internal/adapters/driving/pgwire", "internal/adapters/driven/postgres"]}
 
