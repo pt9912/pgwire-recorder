@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-konfiguration
+**Fund:** Zwei Zusagen des allgemeinen Lesers hielt bis zum Review kein Test: dass ein unerwartetes Argument als Fehler der Kommandozeile vor den Umgebungsvariablen gemeldet wird (Review F-500, LOW, Mutant L8 grün) und dass ohne Quelle der Default der Optionstabelle gilt, nicht der der eigenen Anmeldung (F-505, INFO, Mutant L9 in `TestLeserAlleOptionen` grün). Behoben in `960f239` (`TestLeserReihenfolge` mit zwei Fällen, `tabelle()` im Test); L9 von der Verifikation rot nachgefahren.

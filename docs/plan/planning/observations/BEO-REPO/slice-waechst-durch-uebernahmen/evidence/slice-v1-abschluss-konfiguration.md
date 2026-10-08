@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-konfiguration
+**Fund:** Der Slice nahm den Teil *Konfiguration* von `slice-v1-abschluss-betrieb` auf und darin Übernahmen aus `slice-replay-semantik-mismatch`, `slice-replay-semantik-meldungscodes` und `slice-v1-abschluss-herunterfahren`, bei drei Liefer-Punkten. Nach zwei Liefer-Commits schätzte der Implementer die Datei-Hälfte auf 900 bis 1300 Zeilen, nicht in einer Review-Sitzung prüfbar; die in §4 vorab benannte Rückführung *zu groß* trat ein, Schnitt in `fa4a5f1`, die Datei ging an `slice-v1-abschluss-konfigurationsdatei`.
