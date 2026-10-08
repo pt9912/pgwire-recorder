@@ -566,8 +566,8 @@ der Stand dabei, V-104):
   aufgetreten: §1, §3 und §6 folgten jeder Korrektur (`2a6cd91`, `9fec9e6`, `b103bca`;
   Verifikation Abschnitt 5 konform); die Regel bleibt. §3.10 (seit welle-extended-query):
   kein neuer Vertrag, die Mutationen in §7 sind trotzdem je Zusage gefahren; die
-  unvollständige Liste grüner Mutanten zählt unter
-  `BEO-REPO/liste-gruener-mutanten-unvollstaendig`. §3.11 (seit welle-extended-query) ist
+  unvollständige Liste grüner Mutanten (F-481) zählt nach Entscheidung des Nutzers vom
+  2026-10-08 nicht als Klasse. §3.11 (seit welle-extended-query) ist
   wieder aufgetreten (V-103: der Kommentar an `signal` sagt einen Zweig zu, den kein Lauf
   zeigt; nach `b103bca` steht er weiter so da, §7 führt den Zweig als akzeptiertes
   Negativ); die Regel bleibt. §3.12 (seit slice-harness-randformen-vor-code) ist wieder
@@ -582,16 +582,10 @@ der Stand dabei, V-104):
   - `BEO-REPO/spec-randform-erst-im-review-entschieden`: **Beleg**, 12× → 13× (F-480),
     Stand verkörpert, bleibt. Keine Rückgabe an den Architect, darum kein Beleg für
     `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`.
-  - `BEO-REPO/liste-gruener-mutanten-unvollstaendig`: **Beleg**, 2× → **3×** (F-481,
-    V-102), Stand offen. **Der Eintrag erreicht mit diesem Slice die Schwelle 3×; der
-    Ausgang ist nicht gesetzt, er steht zur Entscheidung des Nutzers.** Der Fund trifft den
-    Kern des Eintrags (§7 ordnete die grünen Mutanten ein, das Review fand am selben Helfer
-    einen weiteren und eine falsche Einordnung; gefahren war eine rote Mutation je Zusage,
-    gesucht wurden die grünen nicht). Er weicht in zwei Punkten von der Beschreibung ab, die
-    der Beleg nennt: Der Cleanup mit `t.Errorf` ist in diesem Slice neu, nicht Bestand, und
-    die grünen Mutanten gehen an keinen Folge-Slice. Unter
-    `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` zählt er nicht, weil §6 keinen Vertrag
-    nach §3.10 erklärt.
+  - `BEO-REPO/liste-gruener-mutanten-unvollstaendig`: **kein Beleg**, bleibt 2× (offen).
+    F-481 und V-102 zählen nach Entscheidung des Nutzers vom 2026-10-08 nicht als Klasse:
+    Der Cleanup mit `t.Errorf` ist in diesem Slice neu, nicht Bestand, und die grünen
+    Mutanten gehen an keinen Folge-Slice.
   - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: **Beleg**, 19× → 20× (V-103,
     Kommentar an `signal`), Stand verkörpert, bleibt.
   - `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`: **ohne Beleg**, bleibt 2×, **ohne
@@ -618,8 +612,7 @@ der Stand dabei, V-104):
   über `nachKill`), F-483 und F-484 (Negativbefunde), V-103 in seiner ersten Hälfte (eine
   Entscheidung in §6, die `SPEC-038` widersprach; umgesetzt in `b103bca`), V-104 (Stand je
   Messung, umgesetzt), V-105 (Hinweis an den Folge-Slice). Mit diesem Slice erreicht
-  **ein** Eintrag die Schwelle 3× neu, `liste-gruener-mutanten-unvollstaendig`, **ohne
-  Ausgang**. Über der Schwelle stehen sonst nur Einträge mit Ausgang
+  kein Eintrag die Schwelle 3× neu. Über der Schwelle stehen nur Einträge mit Ausgang
   (`commit-nennt-struktur-kennung` 3× geplant; `folge-slice-adresse-nimmt-nicht-an` 3×,
   `implementer-bericht-erreicht-pruefer-nicht` 3×,
   `randform-im-code-entschieden-dann-zurueckgegeben` 3×,
@@ -654,8 +647,7 @@ der Stand dabei, V-104):
   die Kennung in §1 (*Ausdrücklich NICHT*: Fristen in `test/integration`) und in §6
   (*Warten auf einen Kanal*); die Annahme der Sendung steht in seinem §1 *Frist im Test* und
   der DoD ohne die Kennung, beurteilt oben. Register:
-  `BEO-REPO/spec-randform-erst-im-review-entschieden`,
-  `BEO-REPO/liste-gruener-mutanten-unvollstaendig` und
+  `BEO-REPO/spec-randform-erst-im-review-entschieden` und
   `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` tragen
   `evidence/slice-harness-integration-wait.md`; die übrigen genannten Einträge bestehen als
   Verzeichnis, jedes mit nicht leerem `evidence/`. Die nächste Welle-Closure prüft erneut.
