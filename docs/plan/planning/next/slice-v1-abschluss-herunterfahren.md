@@ -60,7 +60,8 @@ Einzelnen, je mit dem ursprünglichen Geber:
 - **Aus `slice-v1-abschluss-sessions`** (dort §1, Abgrenzung): die Signalbehandlung.
 - **Aus `slice-harness-integration-wait`** (dort §1, Abgrenzung): die Tests mit Signal und
   Frist je Modus, geschrieben über die Helfer, die jener umbaut; sie sind die Tests in
-  DoD-Punkt 1 und 2.
+  DoD-Punkt 1 und 2. Dazu aus dessen Verifikation (V-105) die Randform *`stderr` zur
+  Laufzeit lesen* in §6.
 - **Aus `slice-harness-blackbox-pgwire`** (Review F-451, Verifikation V-87; Abgrenzung in
   `slice-tests-ueberlebende-mutanten`): der Wert der Schreibfrist der Fehlerantwort beim
   Session-Ende (`meldeFrist`) und ein Test mit der Schranke als Literal; Randform in §6.
@@ -196,6 +197,13 @@ dasteht.
   mit der Schranke als Literal, rot bei `meldeFrist = 3 * time.Second`. Heute liest
   `TestFehlerantwortMitFrist` die Konstante über die Brücke und fängt nur das Entfernen der
   Frist.
+- **`stderr` zur Laufzeit lesen** (seit slice-harness-integration-wait, Verifikation V-105)
+  — offen: Der Helfer aus `slice-harness-integration-wait` liest `stderr` ohne Wettlauf erst
+  nach dem Ende des Prozesses (dort §6 *`stderr` erst nach dem Ende lesen*), nicht solange
+  der Prozess läuft. Wartet ein Test vor dem zweiten Signal auf die Info-Zeile mit der Zahl
+  der Sessions oder auf die Log-Zeile einer abgebrochenen Session, entscheidet der Architect
+  vor dem Code, wie: die Log-Zeilen erst nach dem Ende prüfen, oder ein synchronisierter
+  Puffer im Geschirr.
 
 **Risiken:**
 

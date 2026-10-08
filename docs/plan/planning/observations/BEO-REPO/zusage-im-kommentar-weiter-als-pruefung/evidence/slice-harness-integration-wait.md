@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-integration-wait
+**Fund:** Der Kommentar an `signal` (`test/integration/record_e2e_test.go`) sagt den Ablauf-Zweig zu (`Signal` liefert einen Fehler, der Prozess endet nicht binnen 5 s), den kein Lauf zeigt; im Geschirr liefert `Signal` an einen lebenden Prozess keinen Fehler (Verifikation V-103, LOW, zusammen mit der Meldung des Zweigs nach `SPEC-038`). In `b103bca` ist die Meldung ergänzt und der Kommentar ihr nachgezogen, nicht enger gefasst; §7 führt den Zweig als akzeptiertes Negativ ohne Lauf.

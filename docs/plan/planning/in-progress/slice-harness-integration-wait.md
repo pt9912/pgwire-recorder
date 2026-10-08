@@ -121,13 +121,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Ein `Wait` je Prozess: Unter `test/integration` ruft für jeden gestarteten
+- [x] Ein `Wait` je Prozess: Unter `test/integration` ruft für jeden gestarteten
       Prozess genau eine Stelle `Wait` auf; `stop`, die Goroutinen in
       `TestE2ERecordExtendedSigtermBeimPipelining` und
       `TestE2EReplayExtendedSigtermMittenInFolge` und der `t.Cleanup` aus
       `startProzess` lesen ihr Ergebnis. Beleg in §7: die Fundstellen von `.Wait()`
       unter `test/integration` vor und nach dem Umbau (Suche mit Pfad und Zeile).
-- [ ] Rot statt hängend: Unter der Mutation I2 der Verifikation (`ClientMessage` ohne
+- [x] Rot statt hängend: Unter der Mutation I2 der Verifikation (`ClientMessage` ohne
       die Sperre `herunterfahren`, nur in einer Kopie des Arbeitsbaums) wird
       `TestE2ERecordExtendedSigtermBeimPipelining` in jedem von mindestens zehn Läufen
       rot mit der Meldung des Tests („Recorder endet nicht binnen 5 s nach SIGTERM“) und
@@ -137,19 +137,19 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       gesetztes Zeitlimit. Dazu die Mutationen aus §6 *Mutationen* (Cleanup, Signal an
       einen beendeten Prozess, Lausch-Frist), je ein Lauf; Beleg in §7 mit Dauer, Status und
       Meldung.
-- [ ] Testliste und Deklarationen unverändert: Die Liste der Tests unter
+- [x] Testliste und Deklarationen unverändert: Die Liste der Tests unter
       `test/integration` (Namen, Zahl) ist vor und nach dem Umbau gleich, keine Zeile
       `Abdeckung:` ist geändert, und `make abdeckung-check` ist grün ohne neu
       geschriebene Tabellen. Beleg in §7: beide Listen oder ihr Vergleich und der Diff
       ohne Deklarationszeile.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -334,23 +334,37 @@ Architect zurück.
   bei wenigen Läufen kann der Stand vor dem Umbau zufällig nicht hängen, und dann
   belegt der Stand nach dem Umbau nichts. Mindestens zehn Läufe je Stand, das
   Zeitlimit so gesetzt, dass ein Hängen als Abbruch erscheint (Rückführung in §4). —
-  **Ausgang:** — (bei Closure)
+  **Ausgang:** **entfallen.** Begründung: Vorher hingen zusammen 5 von 40 Läufen (§7 1 von
+  10, Review 2 von 20, Verifikation 2 von 10), nachher 0 von 50 (Implementer 10, Review 30,
+  Verifikation 10 am Endstand); tragend ist dazu der strukturelle Beleg, dass es nur noch ein
+  `Wait` je Prozess gibt (Review F-483, F-484). Die Rückführung aus §4 trat nicht ein.
 - **Mutant kommt im Build-Kontext nicht an** — die Mutation I2 liegt im Produkt-Code
   und läuft über die Stufe `integration` des `Dockerfile`; BuildKit überträgt eine Datei
   gleicher Größe und mtime nicht neu (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`,
   1×). Je Lauf eine frische Kopie unter eigenem Pfad, wie in der Verifikation. —
-  **Ausgang:** — (bei Closure)
+  **Ausgang:** **entfallen.** Begründung: Implementer, Review und Verifikation bauten je
+  Probe eine frische Kopie mit `tar -x -m` und `touch` auf die geänderte Datei; jede
+  I2-Probe zeigte den Mutanten (rot bzw. hängend am Stand vorher). Der Eintrag bleibt 1×.
 - **Erste Phase verdeckt die zweite** — der Integrations-Runner endet nach einer roten
   ersten Phase (`BEO-REPO/abnahme-ohne-postgres-nicht-einzeln-brechbar`, 1×); die
   Messung läuft darum gezielt für den einen Test (`-run`), nicht über
-  `make test-integration`. — **Ausgang:** — (bei Closure)
+  `make test-integration`. — **Ausgang:** **entfallen.** Begründung: Jede Messung lief
+  gezielt mit `-test.run '^<Test>$'` (§7, Review, Verifikation); keine erste Phase konnte die
+  zweite verdecken. Der Eintrag bleibt 1×.
 - **`t.Cleanup` nach fehlgeschlagenem Start oder nach `Fatalf`** — der Cleanup läuft
   auch, wenn `stop` den Prozess schon getötet hat oder der Test vor dem Lauschen
   abbricht; er darf dann weder ein zweites Mal warten noch auf einen Kanal warten, der
-  nie geschlossen wird. — **Ausgang:** — (bei Closure)
+  nie geschlossen wird. — **Ausgang:** **entfallen.** Begründung: §6 *Test scheitert
+  vorher* hat die Reihenfolge entschieden (Cleanup nach `Start` und Goroutine, bei
+  geschlossenem Kanal nichts, sonst `Kill` und 5 s Frist); die drei Cleanup-Läufe nach F-481
+  und der Gegenlauf der Verifikation (PASS nach 0,10 s) zeigen beide Zweige ohne Hängen.
 - **Neuer Fund am Testgeschirr** — F-458 nennt aus dem Bestand die Goroutine in
   `TestE2ERecordExtendedSigtermBeimPipelining`, die `pc` beim `Close` noch benutzt; der
-  Umbau ändert daran nichts und darf es nicht verdecken. — **Ausgang:** — (bei Closure)
+  Umbau ändert daran nichts und darf es nicht verdecken. — **Ausgang:** **entfallen.**
+  Begründung: Der `defer pc.Close` hing in keinem I2-Lauf (Implementer 10 nach dem Umbau,
+  Review 50 und Verifikation 20 vor und nach dem Umbau); die Hänger vorher standen laut Stack im
+  Cleanup unter `awaitGoroutines`, nicht in `Close`. Neue Funde am Geschirr fielen an
+  (F-480, F-482, V-103, V-105); sie sind in diesem Slice entschieden oder in §7 adressiert.
 
 ## 7. Closure-Notiz
 
@@ -489,13 +503,162 @@ der Stand dabei, V-104):
   Testliste nach der Nacharbeit: dieselben 40 Namen (`diff` gegen die Liste an `2ebe058`
   leer), `git diff 2ebe058 -U0 -- test/integration | grep -c Abdeckung` ergibt 0.
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
-- **Drei Paarungen:** <…>
+- **Was hat funktioniert:** Der Fix wirkt strukturell und gemessen: Unter
+  `test/integration` gibt es ein `Wait` je Prozess (vorher vier Stellen, nachher
+  `record_e2e_test.go:381`), alle anderen Stellen lesen den geschlossenen Kanal `beendet`;
+  unter I2 hingen vorher 5 von 40 Läufen, nachher 0 von 50, jeder rot nach 6,1 s mit der
+  Meldung des Tests und `stderr` (§7, Review, Verifikation). Die Prüfung vor dem Code
+  (`2ebe058`) trug: Der Architect maß den Bestand selbst, setzte die Regel für alle Tests ins
+  Technik-Stratum statt in den Plan und entschied Ergebnis, Frist, Leser, Cleanup und
+  Mutationen in §6; Fristen, Meldungen, Testliste und Deklarationen blieben gleich (DoD 3,
+  Review F-483). Die Belege in §7 erreichten Review und Verifikation, und deren Nachmessung
+  bestätigte die Zahlen. Der Schnitt hielt: drei Testdateien, eine Review-Sitzung, kein
+  Produkt-Code.
+- **Was ging anders als geplant:**
+  1. Der Umbau öffnete eine Randform, die §6 nicht nannte: Mit `Wait` direkt nach `Start`
+     ist ein Prozess, der vor dem Signal von selbst endet, schon geerntet, und das Signal
+     scheitert mit `os: process already finished` (F-480). Der Code entschied sie still;
+     erst das Review fand sie, der Architect entschied sie in `2a6cd91` (Helfer `signal`).
+  2. Die Mutanten des Geschirrs waren je Zusage rot gefahren, aber die grünen nicht gesucht:
+     *Cleanup wartet ohne Frist* stand als äquivalent, `t.Errorf` → `t.Logf` fehlte (F-481),
+     und nach der Nacharbeit maß die Einordnung mit zwei Maßen (V-102).
+  3. Die Entscheidung des Architect zu F-480 legte für den Ablauf-Zweig von `signal` eine
+     Meldung fest, die das ausgebliebene Ende nicht nannte, entgegen `SPEC-038`; die
+     Verifikation fand es (V-103), `b103bca` ergänzte die Meldung. Der Zweig ist im Geschirr
+     nicht herstellbar, sein Kommentar sagt ihn ohne Lauf zu.
+  4. Der Umbau zog einen Wettlauf aus dem Bestand mit: `startProzess` las `stderr` bei
+     Ablauf der Lausch-Frist, während der Prozess lief (F-482); behoben über `nachKill`.
+     Die übrigen Leser in den Tests bleiben akzeptiertes Negativ (§6), und das Lesen von
+     Log-Zeilen zur Laufzeit trägt der Helfer nicht (V-105, an den Folge-Slice).
+  - **Summary-Zeilen:** Review
+    `docs/reviews/2026-10-08-review-slice-harness-integration-wait.md`: „0 HIGH · 1 MEDIUM
+    · 1 LOW · 3 INFO (F-480 frühes `Wait` macht das Signal an einen schon beendeten Prozess
+    zum Fehler, Randform nicht in §6; F-481 Cleanup ohne Frist als äquivalent eingeordnet,
+    `t.Errorf` → `t.Logf` nicht unterschieden; F-482 `stderr` beim Lausch-Timeout vor
+    `Wait` gelesen, außerhalb des Diffs; F-483 happens-before, ein `Wait`, gleiche Fristen
+    und Meldungen, `SPEC-038` bestätigt; F-484 I2 nachgemessen, vorher 2 von 20 hängend,
+    nachher 0 von 30). Wiederkehrende Klassen:
+    `BEO-REPO/spec-randform-erst-im-review-entschieden` (F-480),
+    `BEO-REPO/liste-gruener-mutanten-unvollstaendig` (F-481).“ Verifikation
+    `docs/reviews/2026-10-08-verifikation-slice-harness-integration-wait.md`, Urteil:
+    „Fertig für die Closure; kein Befund blockiert.“ DoD-Punkte 1 bis 4 bestätigt, I2 am
+    Endstand `9fec9e6` selbst gemessen (10 von 10 rot, 0 hängend), F-480-Provokation und
+    -Mutant nachgefahren, Gegenlauf zur F-481-Provokation ergänzt; `make gates` und
+    `make lint` grün. Befunde V-102 (LOW, Einordnung der grünen Mutanten), V-103 (LOW,
+    Meldung im Ablauf-Zweig von `signal`), V-104 (Hinweis, Stand je Messung), V-105
+    (Hinweis an den Folge-Slice). Umgesetzt: V-102, V-103 und V-104 in `b103bca`; V-105
+    unter *Folge-Slices*.
+- **Steering-Loop-Eintrag:** Benannte Spec-Lücke, geschlossen: Wie ein Test auf ein
+  Ereignis des Prüflings wartet, hatte keine Entscheidungsstelle. Daraus kamen der Hänger
+  im Integrations-Testgeschirr (V-88: zwei `Wait` auf demselben `exec.Cmd`) und das Warten
+  ohne Frist auf einen Kanal im PGWire-Adapter (F-468), beide rot erst an der Zeitgrenze von
+  `go test`. Der Architect schloss die Lücke vor dem Code in `SPEC-038` Absatz *Warten in
+  Tests* (`2ebe058`): eigene Frist als Literal, höchstens 60 s, rot mit einer Meldung, die
+  das ausgebliebene Ereignis nennt, ein `Wait` je Prozess. Die Regel gilt für alle Tests;
+  dieser Slice wendet sie in `test/integration` an, `slice-tests-ueberlebende-mutanten-driving`
+  im PGWire-Adapter und im Bootstrap, der Kern bleibt nach dessen §6 akzeptiertes Negativ.
+  Kein Feld `liegt in`: Die Regel steht im Technik-Stratum, und eine Spec-Stelle trägt
+  keinen Herkunfts-Anker auf einen Slice. Einen Sensor hat die Regel nicht; ob ein Test ohne
+  Frist wartet, findet weiter das Review oder ein Mutant, der hängt
+  (`BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`, 2×).
+
+  Retirement-Checks: `AGENTS.md` §3.9 (seit welle-walking-skeleton) ist nicht wieder
+  aufgetreten: §1, §3 und §6 folgten jeder Korrektur (`2a6cd91`, `9fec9e6`, `b103bca`;
+  Verifikation Abschnitt 5 konform); die Regel bleibt. §3.10 (seit welle-extended-query):
+  kein neuer Vertrag, die Mutationen in §7 sind trotzdem je Zusage gefahren; die
+  unvollständige Liste grüner Mutanten zählt unter
+  `BEO-REPO/liste-gruener-mutanten-unvollstaendig`. §3.11 (seit welle-extended-query) ist
+  wieder aufgetreten (V-103: der Kommentar an `signal` sagt einen Zweig zu, den kein Lauf
+  zeigt; nach `b103bca` steht er weiter so da, §7 führt den Zweig als akzeptiertes
+  Negativ); die Regel bleibt. §3.12 (seit slice-harness-randformen-vor-code) ist wieder
+  aufgetreten (F-480: eine Randform, die erst die Wahl des Implementers erzeugte, vom Code
+  entschieden ohne Rückgabe); die Regel bleibt, §6 war vor dem Code geprüft. §3.13 (seit
+  slice-lint-bestand-kern-driven) ist nicht wieder aufgetreten: Die Annahmen in §1 standen
+  vor dem Code (`2ebe058`), V-105 ist mit Geber-Kennung beim Nehmer eingetragen.
+  `implement-slice` Schritt 19 (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`): nicht
+  wieder aufgetreten, jede Probe in einer frischen Kopie mit `touch`.
+- **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `b103bca` (Zähler =
+  Dateien unter `evidence/`).
+  - `BEO-REPO/spec-randform-erst-im-review-entschieden`: **Beleg**, 12× → 13× (F-480),
+    Stand verkörpert, bleibt. Keine Rückgabe an den Architect, darum kein Beleg für
+    `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`.
+  - `BEO-REPO/liste-gruener-mutanten-unvollstaendig`: **Beleg**, 2× → **3×** (F-481,
+    V-102), Stand offen. **Der Eintrag erreicht mit diesem Slice die Schwelle 3×; der
+    Ausgang ist nicht gesetzt, er steht zur Entscheidung des Nutzers.** Der Fund trifft den
+    Kern des Eintrags (§7 ordnete die grünen Mutanten ein, das Review fand am selben Helfer
+    einen weiteren und eine falsche Einordnung; gefahren war eine rote Mutation je Zusage,
+    gesucht wurden die grünen nicht). Er weicht in zwei Punkten von der Beschreibung ab, die
+    der Beleg nennt: Der Cleanup mit `t.Errorf` ist in diesem Slice neu, nicht Bestand, und
+    die grünen Mutanten gehen an keinen Folge-Slice. Unter
+    `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` zählt er nicht, weil §6 keinen Vertrag
+    nach §3.10 erklärt.
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: **Beleg**, 19× → 20× (V-103,
+    Kommentar an `signal`), Stand verkörpert, bleibt.
+  - `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`: **ohne Beleg**, bleibt 2×, **ohne
+    Ausgang**. Dieser Slice behebt den Fund V-88, der schon als
+    `evidence/slice-harness-blackbox-einstieg.md` zählt; der Hänger am Stand vorher ist
+    derselbe Fund, kein neues Auftreten. *Verkörpert* und *geplant* werden erst ab 3×
+    zugewiesen. *Gestrichen* trägt nicht: Die Ursache ist nicht weggefallen, nur eine
+    Stelle. `server_extended_test.go:846` wartet noch ohne Frist (Adresse
+    `slice-tests-ueberlebende-mutanten-driving`), die Kern-Tests bleiben akzeptiertes
+    Negativ, und kein Sensor prüft `SPEC-038` *Warten in Tests*. Die Regel liegt jetzt in
+    der Spezifikation; tritt der Eintrag ein drittes Mal auf, ist sie der Zielort.
+  - Ohne Beleg: `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (bleibt 1×, Risiko
+    entfallen), `BEO-REPO/abnahme-ohne-postgres-nicht-einzeln-brechbar` (bleibt 1×, gezielt
+    mit `-test.run`), `BEO-REPO/plan-folgt-korrektur-nicht` (bleibt 17×, der Plan folgte
+    jeder Korrektur), `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (bleibt 14×, kein
+    neuer Vertrag), `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (bleibt 3×,
+    verkörpert; keine Rückgabe), `BEO-REPO/randform-wellenlos-ohne-architect-vor-code`
+    (bleibt 1×, der Architect prüfte §6 vor dem Code), `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht`
+    (bleibt 3×, verkörpert; die Belege in §7 erreichten beide Prüfer),
+    `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (bleibt 3×, verkörpert; beide Nehmer
+    nehmen an).
+
+  Einmalig und nicht eingetragen: F-482 (Leser von `stderr` vor dem Ende, Bestand, behoben
+  über `nachKill`), F-483 und F-484 (Negativbefunde), V-103 in seiner ersten Hälfte (eine
+  Entscheidung in §6, die `SPEC-038` widersprach; umgesetzt in `b103bca`), V-104 (Stand je
+  Messung, umgesetzt), V-105 (Hinweis an den Folge-Slice). Mit diesem Slice erreicht
+  **ein** Eintrag die Schwelle 3× neu, `liste-gruener-mutanten-unvollstaendig`, **ohne
+  Ausgang**. Über der Schwelle stehen sonst nur Einträge mit Ausgang
+  (`commit-nennt-struktur-kennung` 3× geplant; `folge-slice-adresse-nimmt-nicht-an` 3×,
+  `implementer-bericht-erreicht-pruefer-nicht` 3×,
+  `randform-im-code-entschieden-dann-zurueckgegeben` 3×,
+  `spec-randform-erst-im-review-entschieden` 13×, `negativtests-fehlen-bei-neuem-vertrag`
+  14×, `plan-folgt-korrektur-nicht` 17×, `zusage-im-kommentar-weiter-als-pruefung` 20×,
+  verkörpert; `white-box-liste-vor-code-nur-namenssuche` 3× gestrichen).
+- **Folge-Slices:** `slice-v1-abschluss-herunterfahren` (die Tests mit Signal und Frist je
+  Modus, §1 hier *Ausdrücklich NICHT*; dazu V-105 als Randform *`stderr` zur Laufzeit
+  lesen*). Er nimmt an: Er liegt in `next/`, sein §1 *Aus `slice-harness-integration-wait`*
+  nennt die Tests und die Randform, DoD-Punkt 1 verlangt den Test mit Signal über die Helfer,
+  §6 führt die Randform offen für den Architect vor dem Code; sein §1 *Ausdrücklich NICHT*
+  schließt Kern und Driven-Adapter aus, nicht `test/integration`. Der Helfer trägt nach der
+  Verifikation (Abschnitt 6) Signal, zweites Signal, Frist, Exit-Code und „endet noch
+  nicht“, das Lesen von Log-Zeilen zur Laufzeit nicht. Er ist der nächste in der Reihe aus
+  §4 (Schritt 2 in §5 von welle-v1-abschluss).
+  `slice-tests-ueberlebende-mutanten-driving` (`SPEC-038` *Warten in Tests* im PGWire-Adapter
+  und im Bootstrap, §1 hier *anderer Vorgang*). Er nimmt an: Er liegt in `open/`, sein §1
+  *Frist im Test* setzt die Regel in seinen beiden Schichten um, seine DoD verlangt die
+  Frist in `TestReplayHerunterfahrenSpaeteFrist`, sein §6 *Warten auf einen Kanal* nennt die
+  Aufteilung mit diesem Slice. `slice-harness-mutation` ist keine Adresse, §1 hier nennt
+  nur seinen Ausschluss.
+- **Risiken aus §6:** fünf, alle **entfallen**, je mit Begründung in §6: *Messung
+  unterscheidet nicht*, *Mutant kommt im Build-Kontext nicht an*, *Erste Phase verdeckt die
+  zweite*, *`t.Cleanup` nach fehlgeschlagenem Start oder nach `Fatalf`*, *Neuer Fund am
+  Testgeschirr*. Die Randformen in §6 sind Entscheidungen, keine Risiken.
+- **Drei Paarungen:** Anker: Der Steering-Loop-Eintrag trägt kein Feld `liegt in` (die Regel
+  steht im Technik-Stratum, das keinen Slice-Anker trägt); nichts zu prüfen. Folge-Slice:
+  `slice-v1-abschluss-herunterfahren` liegt in `next/`, `grep -n
+  "slice-harness-integration-wait"` findet die Kennung in §1 (*Aus
+  `slice-harness-integration-wait`*, mit V-105) und in DoD-Punkt 1, dazu in §6 (Randform
+  V-105); `slice-tests-ueberlebende-mutanten-driving` liegt in `open/`, der `grep` findet
+  die Kennung in §1 (*Ausdrücklich NICHT*: Fristen in `test/integration`) und in §6
+  (*Warten auf einen Kanal*); die Annahme der Sendung steht in seinem §1 *Frist im Test* und
+  der DoD ohne die Kennung, beurteilt oben. Register:
+  `BEO-REPO/spec-randform-erst-im-review-entschieden`,
+  `BEO-REPO/liste-gruener-mutanten-unvollstaendig` und
+  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` tragen
+  `evidence/slice-harness-integration-wait.md`; die übrigen genannten Einträge bestehen als
+  Verzeichnis, jedes mit nicht leerem `evidence/`. Die nächste Welle-Closure prüft erneut.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
