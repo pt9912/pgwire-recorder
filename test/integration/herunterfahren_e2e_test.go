@@ -3,7 +3,9 @@
 package integration_test
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -13,7 +15,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgproto3"
 )
 
 // codeFrist ist der Meldungscode einer Interaktion, die die Frist beim
@@ -64,6 +65,18 @@ func laufendeInteraktion(ctx context.Context, t *testing.T, listen string) (*pgc
 	return conn, p
 }
 
+// fehlerantwortErhalten liest, was der Client nach dem Ende des Prozesses noch
+// empfängt, und prüft, dass es eine ErrorResponse (Typ 'E') mit Schweregrad
+// FATAL und dem Meldungscode code ist.
+func fehlerantwortErhalten(t *testing.T, conn *pgconn.PgConn, code string) {
+	t.Helper()
+	_ = conn.Conn().SetReadDeadline(time.Now().Add(5 * time.Second))
+	rest, err := io.ReadAll(conn.Conn())
+	if len(rest) == 0 || rest[0] != 'E' || !bytes.Contains(rest, []byte("SFATAL\x00")) || !bytes.Contains(rest, []byte(code)) {
+		t.Fatalf("Client erhält %q (%v) statt der Fehlerantwort %s", rest, err, code)
+	}
+}
+
 // nurErsteInteraktion prüft, dass die Aufzeichnung `SELECT 1;` trägt und keine
 // Extended-Interaktion.
 func nurErsteInteraktion(t *testing.T, output string) {
@@ -100,11 +113,7 @@ func TestE2ERecordFristLaeuftAb(t *testing.T) {
 			t.Fatalf("%q fehlt im Log:\n%s", want, text)
 		}
 	}
-	_ = conn.Conn().SetReadDeadline(time.Now().Add(5 * time.Second))
-	msg, err := pgproto3.NewFrontend(conn.Conn(), conn.Conn()).Receive()
-	if e, ok := msg.(*pgproto3.ErrorResponse); err != nil || !ok || e.Severity != "FATAL" || !strings.Contains(e.Message, codeFrist) {
-		t.Fatalf("Client erhält %#v, %v statt der Fehlerantwort %s", msg, err, codeFrist)
-	}
+	fehlerantwortErhalten(t, conn, codeFrist)
 }
 
 // Abdeckung: LH-FA-13/Boundary — mit --shutdown-timeout 0 wartet record nach
@@ -231,11 +240,7 @@ func TestE2EReplayFristLaeuftAb(t *testing.T) {
 		"code="+codeFrist, "Session 1, Interaktion 2 nicht verbraucht",
 		"Session 1: 1 von 2 Interaktionen nicht verbraucht, die erste mit Nummer 2", "code=PGR-W2001",
 	)
-	_ = conn.Conn().SetReadDeadline(time.Now().Add(5 * time.Second))
-	msg, err := pgproto3.NewFrontend(conn.Conn(), conn.Conn()).Receive()
-	if e, ok := msg.(*pgproto3.ErrorResponse); err != nil || !ok || e.Severity != "FATAL" || !strings.Contains(e.Message, codeFrist) {
-		t.Fatalf("Client erhält %#v, %v statt der Fehlerantwort %s", msg, err, codeFrist)
-	}
+	fehlerantwortErhalten(t, conn, codeFrist)
 }
 
 // Abdeckung: LH-FA-13/Negative — mit --fail-on-unconsumed merkt replay beim
