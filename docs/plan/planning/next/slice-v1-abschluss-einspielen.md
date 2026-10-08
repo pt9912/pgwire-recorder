@@ -37,7 +37,9 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Bereinigung aus `slice-replay-semantik-fehlerreplay`:** Die Teile von `LH-FA-20.a` Schritt 3, die aufgezeichnete Interaktionen ohne `ReadyForQuery` behandeln, sind seit der Entscheidung in `LH-FA-02.b` §Fehlerantwort vor dem Abbruch nicht mehr erreichbar: Der Recorder schreibt keine solche Interaktion, und der Leser lehnt sie als beschädigt ab (`PGR-E3003`). Dieser Slice bereinigt sie in der Spezifikation; seine DoD sagt für sie nichts zu.
 
-**Übernommen aus `slice-v1-abschluss-konfiguration`** (dort §1, Abgrenzung): Die Optionen von `play` werden über den allgemeinen Leser und die Konfigurationsdatei jenes Slice gelesen, in derselben Priorität wie bei `record` und `replay`; das gehört zu den Optionen von `play` oben.
+**Übernommen aus `slice-v1-abschluss-konfiguration`** (dort §1, Abgrenzung): Die Optionen von `play` werden über den allgemeinen Leser jenes Slice gelesen, in derselben Priorität wie bei `record` und `replay`; das gehört zu den Optionen von `play` oben.
+
+**Übernommen aus `slice-v1-abschluss-konfigurationsdatei`** (dort §1, Abgrenzung): der Abschnitt `play:` der Konfigurationsdatei, gelesen über das Laden jenes Slice; und TLS zum Upstream nach `sslmode` einer benannten Verbindung, das jener Slice nur prüft; beides gehört zu den Optionen von `play` und zum Ziel oben (*verbindet sich auf Wunsch mit TLS*).
 
 **Übernommen aus `slice-v1-abschluss-anmeldung`** (dort §1, Abgrenzung): die Anmeldung beim Einspielen (`play`); sie gehört zum Ziel oben (*authentifiziert sich als Client*).
 
@@ -85,7 +87,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, und `slice-v1-abschluss-herunterfahren` und `slice-v1-abschluss-konfiguration` sind `done` (Signalbehandlung und Konfigurationsdatei; beide aus `slice-v1-abschluss-betrieb` hervorgegangen), dazu nach der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) `slice-v1-abschluss-schreiben`, und [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md) ist `Accepted`.
+**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, und `slice-v1-abschluss-herunterfahren`, `slice-v1-abschluss-konfiguration` und `slice-v1-abschluss-konfigurationsdatei` sind `done` (Signalbehandlung, allgemeiner Leser und Konfigurationsdatei; alle aus `slice-v1-abschluss-betrieb` hervorgegangen), dazu nach der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) `slice-v1-abschluss-schreiben`, und [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md) ist `Accepted`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

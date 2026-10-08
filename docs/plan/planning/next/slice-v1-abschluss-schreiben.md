@@ -44,13 +44,20 @@ ursprünglichen Geber:
   dessen Zwangsende (DoD-Punkt 1).
 - **Aus `slice-v1-abschluss-konfiguration`** (dort §1, Abgrenzung): `--output`, `--force`
   und die strengen Werte für `--force`, gelesen über dessen allgemeinen Leser.
+- **Aus `slice-v1-abschluss-konfigurationsdatei`** (dort §1, Abgrenzung): die Schlüssel
+  `output` und `force` der Konfigurationsdatei; sie folgen aus der Anmeldung von `--output`
+  und `--force` am allgemeinen Leser und sind bis dahin unbekannt (`PGR-E2004`). Das ist der
+  Stand des Plans zu Rückgabe 12 in §6 jenes Slice; entscheidet der Architect anders, zieht er
+  diese Zeile im selben Commit nach.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Das Herunterfahren und die Frist — `slice-v1-abschluss-herunterfahren`; er liegt vor diesem
   Slice, und das atomare Schreiben gilt auch für die Aufzeichnung nach seinem Zwangsende.
-- Der allgemeine Leser und die Konfigurationsdatei — `slice-v1-abschluss-konfiguration`;
-  dieser Slice liest `--force` über dessen Leser.
+- Der allgemeine Leser — `slice-v1-abschluss-konfiguration`; dieser Slice meldet `--output`
+  und `--force` an dessen Leser an.
+- Die Konfigurationsdatei — `slice-v1-abschluss-konfigurationsdatei`; dieser Slice liest die
+  Schlüssel `output` und `force` über deren Laden, ohne eigenen Code für die Datei.
 - Das Schreiben im SQLite-Format — anderer Vorgang: `slice-v1-abschluss-sqlite-format`
   schreibt seine Datei je Session in einer Transaktion; dieser Slice schreibt die Datei
   des Standardformats YAML.
@@ -100,8 +107,9 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-konfiguration` liegt in `done/` (`--force` wird über
-dessen allgemeinen Leser gelesen). Schritt 4 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-konfiguration` und
+`slice-v1-abschluss-konfigurationsdatei` liegen in `done/` (`--force` wird über den allgemeinen
+Leser gelesen, auch aus der Datei). Schritt 5 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)
 (Entscheidung des Nutzers vom 2026-10-08). Vor dem ersten Code-Commit prüft der Architect
 die Randformen aus §6 und entscheidet die offenen (`AGENTS.md` §3.12).
 
