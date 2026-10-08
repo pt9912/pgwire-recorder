@@ -418,7 +418,8 @@ func (r *recorder) stop(t *testing.T, wantExit int) {
 // signal sendet sig an den Prozess. Liefert Signal einen Fehler, wartet es
 // höchstens 5 s auf das Ende: Endet der Prozess, meldet t.Fatalf „Prozess
 // endete vor dem Signal“ mit ProcessState.String(), dem Fehler von Wait und
-// stderr, sonst den Fehler von Signal.
+// stderr, sonst den Fehler von Signal und dass der Prozess binnen 5 s nicht
+// endete.
 func (r *recorder) signal(t *testing.T, sig os.Signal) {
 	t.Helper()
 	err := r.cmd.Process.Signal(sig)
@@ -429,7 +430,7 @@ func (r *recorder) signal(t *testing.T, sig os.Signal) {
 	case <-r.beendet:
 		t.Fatalf("Prozess endete vor dem Signal %v (%s, Wait: %v)\n%s", sig, r.cmd.ProcessState.String(), r.waitErr, r.stderr.String())
 	case <-time.After(5 * time.Second):
-		t.Fatalf("Signal %v: %v", sig, err)
+		t.Fatalf("Signal %v: %v; Prozess endete auch binnen 5 s nicht", sig, err)
 	}
 }
 
