@@ -237,6 +237,13 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 - **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten.
+- **Was hat funktioniert:** <…>
+- **Was ging anders als geplant:** <…>
+- **Steering-Loop-Eintrag:** <…>
+- **Beobachtungs-Register (`../observations/`):** <…>
+- **Folge-Slices:** <…>
+- **Risiken aus §6:** <…>
+- **Drei Paarungen:** <…>
 
 ### Belege des Implementers
 
@@ -244,7 +251,7 @@ Weg der Mutanten: Gegenprobe des Architektur-Gates je Mutant in einer frischen K
 Arbeitsbaums (`mktemp -d`, `tar` ohne `.git`), dort `.a-check.yml` mit `sed` geändert und
 `tools/arch/a-check-negativ.sh` aus der Kopie gefahren; der Arbeitsbaum blieb unberührt.
 
-**Gegenprobe des Architektur-Gates** (`make a-check-negativ`, zehn Fälle):
+**Gegenprobe des Architektur-Gates** (DoD-Punkt 1; `make a-check-negativ`, zehn Fälle):
 
 | Zusage | Mutation an `.a-check.yml` | roter Fall |
 |---|---|---|
@@ -257,7 +264,7 @@ Arbeitsbaums (`mktemp -d`, `tar` ohne `.git`), dort `.a-check.yml` mit `sed` ge�
 
 Ungeändert: alle zehn Fälle grün, Exit 0.
 
-**Allgemeiner Leser: Kommandozeile, Umgebung, Priorität** (DoD-Punkt 1, ohne Datei). Weg der
+**Allgemeiner Leser: Kommandozeile, Umgebung, Priorität** (DoD-Punkt 2). Weg der
 Mutanten: je Mutant eine frische Kopie des Arbeitsbaums (`mktemp -d`, `tar` ohne `.git`), die
 Änderung an `internal/adapters/driving/cli/cli.go` mit einem Skript, dann `make test` in der
 Kopie; ein neuer Pfad je Mutant, darum keine gleiche mtime am selben Pfad. Die vorhandenen
@@ -276,19 +283,25 @@ Tests der drei Einzel-Leser (`cli_test.go`, `frist_test.go`, die Tests in
 | ohne Quelle gilt der Standardwert | Standardwert leer | `TestLeserAlleOptionen`, `TestParseLogLevel`, `TestParseRecord`, `TestParseReplay`, `TestParseShutdownTimeout`, `TestParseLogLevelUmgebung`, `TestParseShutdownTimeoutUmgebung` |
 | Name der Umgebungsvariable mit `_` statt `-` | `-` bleibt stehen | `TestLeserOptionen`, `TestLeserReihenfolge`, die sechs `…Umgebung…`-Tests, `TestRunLogLevel`, `TestRunStartfehlerJeStufe` |
 | boolesche Option ohne Wert ist `true` | `schalter` aus | `TestParseFailOnUnconsumed`, `TestParseFailOnUnconsumedUmgebung`, `TestParseFailOnUnconsumedUmgebungNebenOption`, `TestRunLogLevel` |
-| Hilfe von `replay` nennt die Umgebungsvariablen | Satz geändert | `TestLeserHilfe` |
-| `--output` liest nur die Kommandozeile (Hilfe von `record`) | `--output` aus `PGWIRE_RECORDER_OUTPUT` | `TestLeserHilfe` |
 
 Eine Umgebungsvariable mit Präfix ohne passende Option bleibt unbeachtet: Der Leser fragt nur
 die Namen seiner Optionen ab; `TestLeserFremdeUmgebung` belegt es für fünf Namen. Ein Mutant,
 der sie liest, müsste eine neue Abfrage einführen; keiner gefahren.
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
-- **Drei Paarungen:** <…>
+
+**Hilfe vor den Prüfungen am Leser** (DoD-Punkt 3). Weg der Mutanten wie beim Leser: frische
+Kopie je Mutant, Änderung an `cli.go` mit einem Skript, `make test` in der Kopie. Jede
+Bedingung der Zusage hat eine eigene Zeile; keine Mutation blieb grün, keine Lücke im Code.
+
+| Zusage | Mutation in `Parse` / `hilfeVerlangt` / `lies` / Hilfetext | rote Tests |
+|---|---|---|
+| Hilfe vor der Prüfung der Umgebungsvariablen am Leser | gesetzte Umgebungsvariablen der Optionen vor der Hilfe geprüft | `TestParseHilfeVorPruefung`, `TestParseLogLevelHilfe`, `TestParseShutdownTimeoutHilfe`, `TestRunHilfe`, `TestLeserReihenfolge` |
+| Hilfe vor der Prüfung der Werte auf der Kommandozeile am Leser | `--<option>=<wert>` vor der Hilfe geprüft | `TestParseHilfeVorPruefung`, `TestParseLogLevelHilfe` |
+| Hilfe auch vor `--force` außerhalb des Lesers | `--force=<wert>` vor der Hilfe geprüft | `TestParseHilfeVorPruefung` |
+| nach `--` ist eine Hilfe-Angabe ein gewöhnliches Argument | `hilfeVerlangt` ohne Halt an `--` | `TestParseKeineHilfe`, `TestParseEndeDerOptionen` |
+| `--` beendet die Optionen am Leser | `lies` ohne `endeDerOptionen` | `TestParseEndeDerOptionen`, `TestRunEndeDerOptionen` |
+| Hilfe von `replay` nennt die Umgebungsvariablen und ihre Priorität | Satz geändert | `TestLeserHilfe` |
+| Hilfe von `record` nennt die Ausnahme `--output` und `--force` | Ausnahme aus dem Satz genommen | `TestLeserHilfe` |
+| `--output` liest nur die Kommandozeile (Ausnahme der Hilfe) | `--output` aus `PGWIRE_RECORDER_OUTPUT` | `TestLeserHilfe` |
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
