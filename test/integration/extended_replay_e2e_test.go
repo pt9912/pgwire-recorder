@@ -268,9 +268,7 @@ func TestE2EReplayExtendedSigtermMittenInFolge(t *testing.T) {
 	} else {
 		t.Fatalf("Prepare: %#v, %v", r, err)
 	}
-	if err := rep.cmd.Process.Signal(syscall.SIGTERM); err != nil {
-		t.Fatal(err)
-	}
+	rep.signal(t, syscall.SIGTERM)
 	time.Sleep(300 * time.Millisecond)
 	p.SendQueryPrepared("s1", [][]byte{[]byte("a")}, nil, nil)
 	p.SendQueryPrepared("s1", [][]byte{nil}, nil, nil)

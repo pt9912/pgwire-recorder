@@ -346,8 +346,9 @@ func lies(t *testing.T, path string) string {
 
 // recorder ist ein gestarteter Prozess des Binaries. Wait ruft nur die
 // Goroutine aus startProzess: Sie legt den Fehler von Wait in waitErr ab und
-// schließt danach beendet. warteEnde und der Cleanup aus startProzess warten
-// auf beendet; pruefeExit liest cmd.ProcessState und waitErr nach warteEnde.
+// schließt danach beendet. warteEnde, signal, nachKill und der Cleanup aus
+// startProzess warten auf beendet; pruefeExit liest cmd.ProcessState und
+// waitErr nach warteEnde.
 type recorder struct {
 	cmd     *exec.Cmd
 	listen  string
@@ -362,9 +363,10 @@ func startRecorder(t *testing.T, upstream, output string) *recorder {
 }
 
 // startProzess startet das Binary mit einem Kommando, einer freien
-// --listen-Adresse und den übrigen Argumenten und wartet, bis es lauscht. Ist
-// der Prozess beim Cleanup des Tests nicht beendet, ruft der Cleanup Kill und
-// wartet höchstens 5 s auf das Ende; danach t.Errorf.
+// --listen-Adresse und den übrigen Argumenten und wartet höchstens 10 s, bis es
+// lauscht; sonst endet es über nachKill mit t.Fatalf. Ist der Prozess beim
+// Cleanup des Tests nicht beendet, ruft der Cleanup Kill und wartet höchstens
+// 5 s auf das Ende; danach t.Errorf.
 func startProzess(t *testing.T, kommando string, args ...string) *recorder {
 	t.Helper()
 	listen := freieAdresse(t)
@@ -400,7 +402,7 @@ func startProzess(t *testing.T, kommando string, args ...string) *recorder {
 			return r
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("Recorder lauscht nicht auf %s: %v\n%s", listen, err, stderr.String())
+			t.Fatal(r.nachKill(fmt.Sprintf("Recorder lauscht nicht auf %s: %v", listen, err)))
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -408,17 +410,31 @@ func startProzess(t *testing.T, kommando string, args ...string) *recorder {
 
 func (r *recorder) stop(t *testing.T, wantExit int) {
 	t.Helper()
-	if err := r.cmd.Process.Signal(syscall.SIGTERM); err != nil {
-		t.Fatalf("SIGTERM: %v", err)
-	}
+	r.signal(t, syscall.SIGTERM)
 	r.warteEnde(t, 15*time.Second, "Recorder endet nicht nach SIGTERM")
 	r.pruefeExit(t, wantExit)
 }
 
+// signal sendet sig an den Prozess. Liefert Signal einen Fehler, wartet es
+// höchstens 5 s auf das Ende: Endet der Prozess, meldet t.Fatalf „Prozess
+// endete vor dem Signal“ mit ProcessState.String(), dem Fehler von Wait und
+// stderr, sonst den Fehler von Signal.
+func (r *recorder) signal(t *testing.T, sig os.Signal) {
+	t.Helper()
+	err := r.cmd.Process.Signal(sig)
+	if err == nil {
+		return
+	}
+	select {
+	case <-r.beendet:
+		t.Fatalf("Prozess endete vor dem Signal %v (%s, Wait: %v)\n%s", sig, r.cmd.ProcessState.String(), r.waitErr, r.stderr.String())
+	case <-time.After(5 * time.Second):
+		t.Fatalf("Signal %v: %v", sig, err)
+	}
+}
+
 // warteEnde wartet höchstens frist auf das Ende des Prozesses. Läuft die Frist
-// ab, ruft es Kill, wartet höchstens 5 s auf das Ende und endet mit t.Fatalf:
-// meldung und stderr, oder meldung und den Hinweis, dass der Prozess auch nach
-// Kill nicht endet.
+// ab, endet es über nachKill mit t.Fatalf.
 func (r *recorder) warteEnde(t *testing.T, frist time.Duration, meldung string) {
 	t.Helper()
 	select {
@@ -426,12 +442,19 @@ func (r *recorder) warteEnde(t *testing.T, frist time.Duration, meldung string) 
 		return
 	case <-time.After(frist):
 	}
+	t.Fatal(r.nachKill(meldung))
+}
+
+// nachKill ruft Kill und wartet höchstens 5 s auf das Ende. Es liefert meldung
+// und stderr, oder meldung und den Hinweis, dass der Prozess auch nach Kill
+// nicht endet.
+func (r *recorder) nachKill(meldung string) string {
 	_ = r.cmd.Process.Kill()
 	select {
 	case <-r.beendet:
-		t.Fatalf("%s\n%s", meldung, r.stderr.String())
+		return meldung + "\n" + r.stderr.String()
 	case <-time.After(5 * time.Second):
-		t.Fatalf("%s; endet auch nach Kill nicht binnen 5 s", meldung)
+		return meldung + "; endet auch nach Kill nicht binnen 5 s"
 	}
 }
 

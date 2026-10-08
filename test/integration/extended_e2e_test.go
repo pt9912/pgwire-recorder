@@ -402,9 +402,7 @@ func TestE2ERecordExtendedSigtermBeimPipelining(t *testing.T) {
 		}
 	}()
 	time.Sleep(time.Second)
-	if err := rec.cmd.Process.Signal(syscall.SIGTERM); err != nil {
-		t.Fatal(err)
-	}
+	rec.signal(t, syscall.SIGTERM)
 	vorSignal := fertig.Load()
 	rec.warteEnde(t, 5*time.Second, "Recorder endet nicht binnen 5 s nach SIGTERM, obwohl der Client weiter pipelinet")
 	rec.pruefeExit(t, 0)

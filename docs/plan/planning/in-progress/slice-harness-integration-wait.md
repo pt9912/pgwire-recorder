@@ -364,7 +364,9 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-**Belege des Implementers** (Stand vor dem Umbau `2ebe058`; Umbau im Commit dieses Abschnitts):
+**Belege des Implementers** (Stand vor dem Umbau `2ebe058`; Umbau in `6deea56`, Nacharbeit
+nach dem Review zu F-480, F-481 und F-482 im Commit, der den Abschnitt *Nacharbeit* unten
+einträgt):
 
 - **Weg der Läufe:** je Lauf eine frische Kopie unter eigenem Pfad außerhalb des Repos
   (`git archive 2ebe058 | tar -x -m` bzw. die Dateien des Arbeitsbaums über `git ls-files`
@@ -380,9 +382,10 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **DoD 1, Fundstellen von `.Wait()`** (`grep -rn "\.Wait()" test/integration`):
   vorher vier — `record_e2e_test.go:373` (`_ = cmd.Wait()` im `t.Cleanup`),
   `record_e2e_test.go:396` (`stop`), `extended_e2e_test.go:410`,
-  `extended_replay_e2e_test.go:297`; nachher eine — `record_e2e_test.go:379`
-  (`r.waitErr = cmd.Wait()` in der Goroutine aus `startProzess`). `stop`, die beiden Tests
-  und der `t.Cleanup` lesen den Kanal `beendet` (`warteEnde`, `pruefeExit`, Cleanup).
+  `extended_replay_e2e_test.go:297`; nachher eine — an `6deea56` `record_e2e_test.go:379`,
+  nach der Nacharbeit `record_e2e_test.go:381` (`r.waitErr = cmd.Wait()` in der Goroutine
+  aus `startProzess`). `stop`, die beiden Tests und der `t.Cleanup` lesen den Kanal
+  `beendet` (`warteEnde`, `signal`, `nachKill`, `pruefeExit`, Cleanup).
 - **DoD 2, Messung unter I2** (Mutation: in `ClientMessage`,
   `internal/hexagon/services/record.go`, der Block `if l.herunterfahren { … return
   model.ErrShutdown }` entfernt; nur in den Kopien):
@@ -399,7 +402,9 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   des Recorders darunter und endet nach 6,1 s (1 s Pipelinen vor dem Signal, 5 s Frist;
   `Kill` beendet den Prozess sofort, die Nachfrist läuft nicht aus). Der `defer pc.Close`
   hängt in keinem der zehn Läufe (Risiko *Neuer Fund*).
-- **Mutationen am Geschirr** (§6 *Mutationen*, je ein Lauf, Weg wie oben):
+- **Mutationen am Geschirr, Stand `6deea56`** (§6 *Mutationen*, je ein Lauf, Weg wie
+  oben; die Zeile *Cleanup* ersetzt nach F-481 die Vorgabe in §6 durch die drei Läufe unter
+  *Nacharbeit*, sie bleibt als Lauf stehen und belegt nur den Gegenlauf):
 
   | Zusage | Mutation | Ergebnis |
   |---|---|---|
@@ -410,19 +415,58 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   | Abweichender Exit-Code nennt `ProcessState.String()` und den Fehler von `Wait` (§6 *Ergebnis nach dem Ende*) | `rec.pruefeExit(t, 0)` → `rec.pruefeExit(t, 1)` | rot nach 1,20 s: „Exit-Code 0, erwartet 1 (exit status 0, Wait: <nil>)“ |
   | Grundlauf | keine | grün, 1,19 s |
 
-  **Grüne Mutanten, eingeordnet** (nicht gefahren, äquivalent nach §6): Entfällt im
-  Cleanup die Abfrage des geschlossenen Kanals, ruft er `Kill` auf einen beendeten
-  Prozess, dessen Fehler verworfen wird (§6 *Test scheitert vorher*), und der Kanal ist
-  geschlossen — gleiches Verhalten, kein Test fängt ihn. Wartet der Cleanup ohne Frist,
-  ändert das nur den Fall, dass der Prozess nach `Kill` nicht endet; diesen Fall erzeugt
-  nur die Mutation *Cleanup* oben, die die Frist rot zeigt. Weitere grüne Mutanten fielen
-  nicht an.
+- **Nacharbeit nach dem Review** (F-480, F-481, F-482; §6 *Prozess ist beim Signal schon
+  beendet*, *`stderr` erst nach dem Ende lesen*, *Mutationen* Vorgabe nach F-481). Neu am
+  `recorder`: `signal` (sendet; liefert `Signal` einen Fehler, höchstens 5 s Warten auf
+  `beendet`, dann „Prozess endete vor dem Signal“ mit Zustand, Fehler von `Wait` und
+  `stderr`, sonst der Fehler von `Signal`; keine Vorab-Abfrage) und `nachKill` (`Kill`,
+  höchstens 5 s Warten auf `beendet`, Meldung mit `stderr` oder mit dem Hinweis „endet auch
+  nach Kill nicht binnen 5 s“), die gemeinsame Nachfrist von `warteEnde` und der
+  Lausch-Frist in `startProzess`. `stop` und die beiden SIGTERM-Tests senden nur über
+  `signal`; `Process.Signal` steht unter `test/integration` nur noch in `signal`
+  (`record_e2e_test.go:424`). Läufe in je einer frischen Kopie des Arbeitsbaums
+  (`git ls-files`, `tar -x -m`, danach `touch` auf die Testdateien und die geänderte
+  Produktdatei), eigenes Image-Tag, Netz, PostgreSQL-Container und Volume, danach entfernt;
+  `-test.timeout 60s`:
+
+  | Zusage | Mutation bzw. Provokation | Test | Status | Dauer Test (Lauf gesamt) | Meldung |
+  |---|---|---|---|---|---|
+  | F-480: Signal an einen beendeten Prozess meldet den Befund | Provokation: vor dem ersten `rec.stop(t, 0)` `_ = rec.cmd.Process.Kill()` und `time.Sleep(time.Second)` | `TestE2ERecordSelect1` | FAIL | 1,11 s (3,2 s) | „Prozess endete vor dem Signal terminated (signal: killed, Wait: signal: killed)“, darunter `stderr` des Recorders |
+  | F-480, Mutant | dazu in `signal` das Warten auf `beendet` entfernt (nur `t.Fatalf` mit dem Fehler von `Signal`) | `TestE2ERecordSelect1` | FAIL | 1,11 s (2,6 s) | „Signal terminated: os: process already finished“ — ohne Zustand und `stderr`; über die Meldung gefangen |
+  | F-482: Lausch-Frist, `stderr` nach `Kill` und Ende | Provokation: in `startProzess` prüft `net.DialTimeout` eine zweite freie Adresse (`freieAdresse(t)`) statt `listen` | `TestE2ERecordExtendedSigtermBeimPipelining` | FAIL | 10,05 s (11,6 s) | „Recorder lauscht nicht auf 127.0.0.1:…: dial tcp …: connect: connection refused“, darunter `stderr` („record gestartet“) — der Zweig nach dem Ende, der Prozess ist beendet |
+  | F-481 Lauf 1: Cleanup beendet und meldet mit Frist | `if true { return }` direkt nach `startRecorder`, `_ = cmd.Process.Kill()` im Cleanup entfernt | `TestE2ERecordExtendedSigtermBeimPipelining` | FAIL | 5,11 s (7,7 s) | „record_e2e_test.go:393: Prozess record endet im Cleanup auch nach Kill nicht binnen 5 s“ |
+  | F-481 Lauf 2: Mutant `t.Errorf` → `t.Logf` | wie Lauf 1, dazu `t.Errorf` → `t.Logf` im Cleanup | dito | PASS | 5,11 s (6,6 s) | dieselbe Zeile als Log — Lauf 1 (FAIL) und Lauf 2 (PASS) unterscheiden den Mutanten, er ist gefangen |
+  | F-481 Lauf 3: Frist im Cleanup | wie Lauf 1, dazu die Frist im Cleanup entfernt (nur `<-r.beendet`) | dito | Abbruch an der Zeitgrenze | 60 s (61,6 s) | `panic: test timed out after 1m0s` — die Frist trägt |
+  | rot statt hängend, Gegenlauf nach der Nacharbeit | I2 | dito | FAIL | 6,11 s (7,6 s) | „Recorder endet nicht binnen 5 s nach SIGTERM, obwohl der Client weiter pipelinet“, darunter `stderr` |
+  | Nachfrist über `nachKill` | I2 und `_ = r.cmd.Process.Kill()` in `nachKill` entfernt | dito | FAIL | 11,13 s (12,7 s) | „…obwohl der Client weiter pipelinet; endet auch nach Kill nicht binnen 5 s“ |
+
+  Dass `stderr` bei der Lausch-Frist nicht **vor** dem Ende gelesen wird, fängt ohne
+  `-race` kein Lauf (§6, akzeptiertes Negativ). Das Zombie-Fenster aus §6 (Signal an einen
+  beendeten, noch nicht geernteten Prozess, `Signal` liefert `nil`) ist nicht provoziert;
+  §6 führt es als akzeptiertes Negativ.
+
+  **Grüne Mutanten, eingeordnet** (Liste nach F-481 richtiggestellt):
+  - *Cleanup ohne Abfrage des geschlossenen Kanals* — nicht gefahren, **äquivalent**: Der
+    Cleanup ruft dann `Kill` auf einen beendeten Prozess, dessen Fehler verworfen wird (§6
+    *Test scheitert vorher*), und der Kanal ist geschlossen; gleiches Verhalten, die Grenze
+    in §6 trägt ihn.
+  - *Cleanup wartet ohne Frist* — **nicht äquivalent; grün im Gate, gefangen nur zusammen
+    mit `Kill` entfernt**: F-481 Lauf 1 (FAIL nach 5,11 s) gegen Lauf 3 (Abbruch an der
+    Zeitgrenze, 60 s). Grenze: Ein Prozess, der nach `Kill` nicht endet, ist im Geschirr
+    ohne zweite Mutation nicht herstellbar.
+  - *`t.Errorf` → `t.Logf` im Cleanup* — gefangen (F-481 Lauf 1 FAIL gegen Lauf 2 PASS),
+    kein grüner Mutant mehr.
+  - *Kein Warten auf `beendet` in `signal`* — gefangen über die Meldung (Zeile F-480,
+    Mutant).
+  - Weitere grüne Mutanten fielen nicht an.
 - **DoD 3, Testliste und Deklarationen:** `grep -hn "^func Test" test/integration/*.go`
   ergibt vorher und nachher dieselben 40 Namen (`diff` leer); `git diff -U0
   test/integration | grep -c Abdeckung` ergibt 0, keine Deklarationszeile geändert.
   `make abdeckung-check` läuft in `make gates` (unten), ohne neu geschriebene Tabellen.
-- **Gates:** `make test` und `make lint` (0 issues) am Umbau grün; `make gates` grün am
-  Commit dieses Abschnitts (Lauf vor der Übergabe).
+- **Gates:** `make test` und `make lint` (0 issues) am Umbau und an der Nacharbeit grün;
+  `make gates` grün an `6deea56` und am Commit der Nacharbeit (Lauf vor der Übergabe).
+  Testliste nach der Nacharbeit: dieselben 40 Namen (`diff` gegen die Liste an `2ebe058`
+  leer), `git diff 2ebe058 -U0 -- test/integration | grep -c Abdeckung` ergibt 0.
 
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
