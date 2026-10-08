@@ -300,7 +300,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Belege zur DoD (Implementer):** <je Zusage: Zusage · Mutation · roter Test (`AGENTS.md` §3.10)>
+- **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten.
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
 - **Steering-Loop-Eintrag:** <…>
@@ -308,6 +308,142 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 - **Drei Paarungen:** <…>
+
+**Belege des Implementers** (Commits `17e4925` DoD 1, `64f48b3` DoD 2, `61ad648` DoD 3,
+`5e20a87` Integrationstest ohne `pgproto3` nach dem Befund von `make a-check`):
+
+- **Läufe am Stand `5e20a87`:** `make gates` grün (Exit 0; darin `make test-integration`
+  grün, `make a-check` 0 Befunde, `make docs-check` 0 Befunde, `make abdeckung-check`
+  grün); `make lint` 0 Befunde; `make test` grün. Am Stand `61ad648` war `make a-check`
+  rot (`tech-leak`: `pgproto3` in `test/integration/herunterfahren_e2e_test.go`), behoben
+  in `5e20a87`; R38 dort erneut rot gesehen.
+- **Wiederholungen:** die neuen Unit-Tests (`-run 'Zwang|Frist|Offen|Startphase|ZweitesSignal|OhneOffene|Herunterfahren|LogLevel'`
+  in `pgwire`, `bootstrap`, `services`) 20 Läufe in einem Wegwerf-Container ohne Netz,
+  alle grün; `TestE2ERecordFristLaeuftAb`, `TestE2ERecordZweitesSignal`,
+  `TestE2ERecordDrittesSignal` je 5 Läufe, `TestE2EReplayFristLaeuftAb`,
+  `TestE2EReplayFristVorNichtVerbraucht` je 3 Läufe, alle grün.
+- **Weg der Mutanten:** je Mutant eine frische Kopie des Arbeitsbaums unter eigenem Pfad
+  außerhalb des Repos (`cp -r` ohne `-p`, also neue mtime, neuer Pfad je Mutant), genau eine
+  Ersetzung per Skript, die vorher genau einmal gefunden sein muss; Unit-Mutanten über die
+  Stufe `source` der Kopie und `go test -run` in einem Container mit `--network none`,
+  Integrations-Mutanten über die Stufe `integration` der Kopie mit eigenem Image-Tag,
+  eigenem `--internal`-Netz, eigenem PostgreSQL-Container (Image wie
+  `make test-integration`) und eigenem Volume; danach Container, Netz, Volume, Image und
+  Kopie entfernt. Kein Mutant im Repo. Stand der Mutanten: Kopien des Arbeitsbaums vor dem
+  jeweiligen Commit (R01 bis R42 vor `17e4925`, P01 bis P19 vor `64f48b3`, X01 bis X05 vor
+  `61ad648`); was sich danach bis zum Commit änderte (Entfernen der Prüfung aus G01, Kommentar
+  am Port, `liestWieder` im Test zu P10), berührt die Zeilen der übrigen Mutanten nicht; P07,
+  P08 und P10 liefen nach `liestWieder` erneut rot.
+- **Zusage · Mutation · roter Test**, DoD 1 (`record`):
+
+  | ID | Zusage | Mutation | roter Test |
+  |---|---|---|---|
+  | R01 | `PGR-E4006` nur bei laufender Interaktion | Bedingung `l.laeuft()` entfernt | `TestRecordZwangsende` (ohne laufende Interaktion) |
+  | R02 | Meldung nennt die Nummer der verworfenen Interaktion | Nummer `+2` statt `+1` | `TestRecordZwangsende`, `TestRecordZwangsendeEinfacheAnfrage` |
+  | R03 | Meldung nennt die `id`, unter der die Session geschrieben wird | `session.ID+1` | `TestRecordZwangsende`, `TestRecordZwangsendeEinfacheAnfrage` |
+  | R04 | Klasse 4 (`PGR-E4006`) | `CodeConnectionLost` | `TestRecordZwangsende`, `TestRecordZwangsendeEinfacheAnfrage` |
+  | R05 | Meldung: ohne abgeschlossene Interaktion nicht geschrieben | Fall `n == 0` nie | `TestRecordZwangsende` (ohne abgeschlossene Interaktion) |
+  | R06 | Code `PGR-E4006` (`SPEC-034`) | Konstante `PGR-E4007` | `TestRecordZwangsende` |
+  | R07 | `PGR-E4006` wird dem Client zugestellt | Zustellung abgeschaltet | `TestRecordZwangsendeZustellung` |
+  | R08 | Zustellung höchstens `meldeFrist`, auch an einen Client, der nicht liest | Schreibfrist entfernt | `TestRecordZwangsendeClientLiestNicht` |
+  | R09 | eine Verbindung, deren Ende schon bemerkt ist, endet nicht zwangsweise | `CloseSession(EndForced)` vor dem `Once` | `TestRecordZwangsendeNachBemerktemEnde` |
+  | R10 | Schließen durch das Zwangsende ist kein weiteres Verbindungsende | Verbindung vor dem `Once` geschlossen | `TestRecordZwangsendeOhneMeldung` |
+  | R11 | Zwangsende wartet nicht auf den Aufbau zum Upstream | Zweig `zwangCh` in `oeffne` nie | `TestRecordZwangsendeImAufbau` |
+  | R12 | eine nach dem Zwangsende entstandene Session endet mit `EndForced` | Nachzug nie | `TestRecordZwangsendeImAufbau` |
+  | R13 | Schreibfehler des Aufbaus nach dem Zwangsende ist `EndForced`, nicht `EndWriteFailed` | Prüfung von `zwang` umgangen | `TestRecordZwangsendeBeimSendenDesAufbaus` |
+  | R14 | Fehlerantwort des Servers im Aufbau nach dem Zwangsende: kein `PGR-E4003` | Prüfung von `zwang` entfernt | `TestRecordZwangsendeBeimSendenDesAufbaus` |
+  | R15 | Sitzung kehrt erst zurück, wenn `PGR-E4006` gemerkt ist | `<-r.ende` entfernt | `TestRecordZwangsendeWaehrendAnfrage` |
+  | R16 | `sessions` zählt nur nicht beendete Verbindungen | kein Abzug am Ende | `TestOffeneVerbindungen` |
+  | R17 | `meldeFrist` = 1 s (`SPEC-051`), Schranke als Literal | `3 * time.Second` | `TestFehlerantwortMitFrist` |
+  | R18 | Frist begrenzt das Warten | Zeitgeber nie gesetzt | `TestRunRecordFristLaeuftAb` |
+  | R19 | `0` heißt ohne Frist | Zeitgeber auch bei `0` | `TestRunRecordZweitesSignalOhneFrist` |
+  | R20 | zweites Signal lässt die Frist sofort ablaufen | `ablauf` nie gelesen | `TestRunRecordZweitesSignalOhneFrist`, `TestRunRecordZweitesSignalLangeFrist` |
+  | R21 | ohne offene Verbindung endet der Lauf ohne zu warten | nach `done` auf die Frist gewartet | `TestRunRecordOhneOffeneVerbindung` |
+  | R22 | Info-Zeile nennt `sessions` = offene Verbindungen | `sessions` fest `0` | `TestRunRecordFristLaeuftAb` |
+  | R23 | Info-Zeile auf Stufe `info` | als `debug` | `TestRunRecordLogLevel` |
+  | R24 | Info-Zeile nicht unter `warn` | als `warn` | `TestRunRecordLogLevel` |
+  | R25 | Startphase: Startprüfungen laufen zu Ende, Startfehler geht vor | bei beendetem ctx sofort 0 | `TestRunRecordSignalInDerStartphase` |
+  | R26 | `--shutdown-timeout` wirkt bei `record` | Frist `0` statt der Option | `TestRunRecordFristLaeuftAb` |
+  | R27 | nur Einheiten `ms`, `s`, `m` | `h` zugelassen | `TestParseShutdownTimeoutWerte` |
+  | R28 | Überlauf ist `PGR-E2001` | Grenze ohne Einheit | `TestParseShutdownTimeoutWerte` |
+  | R29 | `0` ohne Einheit ist `0` | nur `00` | `TestParseShutdownTimeout`, `…Werte`, `…Umgebung` |
+  | R30 | Standard `5s` (`SPEC-046`) | `4s` | `TestParseShutdownTimeout`, `…Umgebung` |
+  | R31 | Umgebungsvariable gilt, ungültig ist `PGR-E2001` auch neben der Option | Umgebung nie gelesen | `TestParseShutdownTimeoutUmgebung`, `…UmgebungUngueltig` |
+  | R32 | Kommandozeile setzt den Wert, die letzte Angabe gilt | Option schreibt ins Leere | `TestParseShutdownTimeout`, `…Umgebung` |
+  | R33 | Einheit `m` ist Minute | `m` als Sekunde | `TestParseShutdownTimeout`, `…Umgebung` |
+  | R34 | drittes Signal ohne Wirkung | `signal.Stop` nach dem zweiten | `TestE2ERecordDrittesSignal` — 3 von 3 Läufen rot (Exit-Code −1, `signal: terminated`) |
+  | R35 | zweites Signal beendet den Prozess nicht hart | `signal.Stop` nach dem ersten | `TestE2ERecordZweitesSignal` (Exit-Code −1) |
+  | R36 | zweites Signal lässt die Frist ablaufen (Binary) | `ablauf` nie geschlossen | `TestE2ERecordZweitesSignal` (endet nicht binnen 15 s) |
+  | R37 | Frist begrenzt das Warten (Binary) | Frist `0` statt der Option | `TestE2ERecordFristLaeuftAb` (endet nicht binnen 15 s) |
+  | R38 | Client erhält `PGR-E4006` (Binary) | Zustellung abgeschaltet | `TestE2ERecordFristLaeuftAb` |
+  | R39 | laufende Interaktion fehlt, Exit-Code 4 (Binary) | Bedingung umgekehrt | `TestE2ERecordFristLaeuftAb` (Exit-Code 0) |
+  | R40 | Verbindungen enden beim Zwangsende nebeneinander | `ausloesen` nacheinander | `TestZwangsendeNebeneinander` (3,01 s) |
+  | R41 | ein weiterer Aufruf von `Zwangsende` tut nichts | Rücksprung entfernt | `TestZwangsendeZweimal` |
+  | R42 | Zwangsende bricht den Kontext des Aufbaus ab | `abbrechen()` im Zweig `zwangCh` entfernt | `TestRecordZwangsendeBrichtAufbauAb` |
+
+- **DoD 2 (`replay`):**
+
+  | ID | Zusage | Mutation | roter Test |
+  |---|---|---|---|
+  | P01 | `sequence` der nicht gesendeten Interaktion | anderer Index | `TestReplayZwangsende` (Kern) |
+  | P02 | Extended vor dem letzten `Sync` ist `PGR-E4006` | Fall `mitten` nie | `TestReplayZwangsende`, `TestReplayZwangsendeNichtVerbraucht` |
+  | P03 | nicht gesendete Antworten sind `PGR-E4006` | Fall `ungesendet` nie | `TestReplayZwangsende` |
+  | P04 | Klasse 4 | `CodeConnectionLost` | `TestReplayZwangsende`, `TestReplayZwangsendeNichtVerbraucht` |
+  | P05 | Meldung nennt die `id` der Session | `ID+1` | `TestReplayZwangsende` |
+  | P06 | ohne begonnene Interaktion kein Fehler | immer Fehler | `TestReplayZwangsende` |
+  | P07 | Adapter meldet das Zwangsende dem Use Case (V-95) | `Forced` nicht gerufen | `TestReplayZwangsende` (Adapter) |
+  | P08 | Adapter stellt `PGR-E4006` zu | nur gemerkt | `TestReplayZwangsende` (Adapter) |
+  | P09 | Schreibfrist beim Zwangsende | entfernt | `TestReplayZwangsendeClientLiestNicht` |
+  | P10 | Lesefrist beim Zwangsende | entfernt | `TestReplayZwangsende`, `…VorNichtVerbraucht` (zuerst grün, siehe unten) |
+  | P11 | Schreibfehler nach dem Zwangsende ist kein `PGR-E4003` | Prüfung entfernt | `TestReplayZwangsendeClientLiestNicht` |
+  | P12 | Lesefehler nach dem Zwangsende führt zu `Forced` | Prüfung entfernt | `TestReplayZwangsendeOhneMeldung` |
+  | P13 | Zurücksetzen der Lesefrist hebt das Zwangsende nicht auf | Nachprüfung entfernt | `TestReplayZwangsendeWaehrendShutdown` |
+  | P14 | Schreibfehler des Aufbaus nach dem Zwangsende: kein `PGR-E4003` | Prüfung entfernt | `TestReplayZwangsendeBeimSendenDesAufbaus` |
+  | P15 | abgebrochenes Senden führt zu `Forced` | als reguläres Ende | `TestReplayZwangsendeClientLiestNicht` |
+  | P16 | `replay` nimmt `--shutdown-timeout` und die Umgebungsvariable | Option nicht angemeldet | `TestParseShutdownTimeout`, `…Umgebung`, `…UmgebungUngueltig` |
+  | P17 | Info-Zeile auch bei `replay` | Logger verworfen | `TestRunLogLevel` |
+  | P18 | Frist begrenzt das Warten (Binary) | Frist `0` | `TestE2EReplayFristLaeuftAb` (endet nicht binnen 15 s) |
+  | P19 | `PGR-E4006` vor `PGR-E5002`, Exit-Code 4 (Binary) | `Forced` nach `CloseConnection` | `TestE2EReplayFristLaeuftAb` (Exit-Code 0), `TestE2EReplayFristVorNichtVerbraucht` (Exit-Code 5) |
+
+- **DoD 3 (Exit-Code):**
+
+  | ID | Zusage | Mutation | roter Test |
+  |---|---|---|---|
+  | X01 | ohne gemerkten Fehler Exit-Code 0 (`SPEC-013`) | `1` | `TestExitCodeJeKlasse` |
+  | X02 | Klasse 6 (`SPEC-019`) | Ziffer 6 außerhalb | `TestExitCodeJeKlasse` |
+  | X04 | Schreibfehler am Ende: 3 mit Vorrang | Vorrang nur ohne gemerkten Fehler | `TestRunRecordSchreibfehlerVorGemerkterKlasse` (Exit-Code 4) |
+  | X05 | nach dem Signal Exit-Code der gemerkten Klasse | gemerkter Code verworfen | `TestRunRecordSchreibfehlerVorGemerkterKlasse` (Exit-Code 0) |
+
+  Nach Signal je Exit-Code ein Integrationstest, vorhanden: 0 `TestE2ERecordEndeOhneTerminate`,
+  3 `TestE2ERecordSchreibfehlerAmEnde`, 4 `TestE2ERecordUpstreamNichtErreichbar`
+  (`PGR-E4002`) und `TestE2ERecordExtendedAbbruch` (`PGR-E4003`), 5
+  `TestE2EReplayAbweichung` (`PGR-E5001`) und `TestE2EReplayNichtVerbraucht`
+  (`PGR-E5002`), 6 `TestE2ERecordNichtUnterstuetzt`; neu mit `PGR-E4006`:
+  `TestE2ERecordFristLaeuftAb`, `TestE2EReplayFristLaeuftAb`. 1 (`PGR-E1000`) entsteht
+  über das Binary nicht steuerbar und ist nur im Unit-Test belegt; 2 entsteht nur als
+  Startfehler.
+- **Grüne Mutanten und ihre Einordnung:**
+  - G01 (die Prüfung `ctx.Err()` vor `Serve` in `betreiben` umgangen): grün. Sie änderte das
+    Verhalten nur zwischen `Listen` und dem sofortigen `Close`, über die Schnittstelle nicht
+    erreichbar; die Prüfung ist vor `17e4925` entfernt, `Serve` läuft ab dem Lauschen, und
+    der Listener schließt mit dem ersten Signal (`TestRunRecordSignalInDerStartphase`).
+  - `context.WithoutCancel` beim Anlegen von Record- und Replay-Service und eine Prüfung von
+    `zwang` am Anfang von `replayLauf`: äquivalent (`Prepare` und `Load` beachten den
+    Kontext nicht; den Fall am Schleifenanfang decken der Lesepfad und die Nachprüfung nach
+    dem Zurücksetzen); beide vor `64f48b3` entfernt, kein Code ohne Test.
+  - P10 war zuerst grün: `TestReplayZwangsende` rief `Zwangsende`, bevor die Sitzung wieder
+    las. Der Test wartet seit `64f48b3` (`liestWieder`), bis die Sitzung den Use Case gefragt
+    hat; danach rot.
+  - X03 (Ziffer 1 aus dem Bereich genommen, `model.exitCode`): grün und äquivalent, der
+    Rückfall liefert für die Ziffer 1 ebenfalls 1. Bestand, in diesem Slice unverändert.
+- **Lesart der Dauer:** die Werte in `TestParseShutdownTimeout` und
+  `TestParseShutdownTimeoutWerte` folgen dem Wortlaut von `LH-FA-17.a` *Dauer*; `00` ohne
+  Einheit ist nicht `0` und abgelehnt, führende Nullen mit Einheit (`05s`) nimmt der Code an,
+  ohne dass ein Test es festhält (im Bericht an den Architect zur Bestätigung).
+- **`stderr` zur Laufzeit:** kein neuer Test liest `stderr`, solange der Prozess läuft; die
+  Log-Zeilen prüfen die Integrationstests nach `warteEnde`, die Bootstrap-Tests nach dem Ende
+  von `Run`; vor dem zweiten Signal wartet `TestE2ERecordZweitesSignal` und
+  `TestE2ERecordDrittesSignal` mit Frist, bis der Port ablehnt (`warteAbgelehnt`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
