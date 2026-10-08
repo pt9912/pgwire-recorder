@@ -454,10 +454,12 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   über das Binary nicht steuerbar und ist nur im Unit-Test belegt; 2 entsteht nur als
   Startfehler.
 - **Grüne Mutanten und ihre Einordnung:**
-  - G01 (die Prüfung `ctx.Err()` vor `Serve` in `betreiben` umgangen): grün. Sie änderte das
-    Verhalten nur zwischen `Listen` und dem sofortigen `Close`, über die Schnittstelle nicht
-    erreichbar; die Prüfung ist vor `17e4925` entfernt, `Serve` läuft ab dem Lauschen, und
-    der Listener schließt mit dem ersten Signal (`TestRunRecordSignalInDerStartphase`).
+  - G01 (die Prüfung `ctx.Err()` vor `Serve` in `betreiben` umgangen): grün. *Fenster offen,
+    als Grenze entschieden* (`LH-FA-13.a` *Startphase*, Review F-489, Architect `9a5a87e`):
+    Eine Verbindung, die das Betriebssystem zwischen `Listen` und dem Schließen des Ports
+    angenommen hat, kann `Accept` noch liefern; sie zählt in `sessions` und endet ohne
+    Interaktion. Die Prüfung verkleinerte das Fenster nur und ist vor `17e4925` entfernt;
+    `TestRunRecordSignalInDerStartphase` hält Startfehler und Ende ohne Warten.
   - `context.WithoutCancel` beim Anlegen von Record- und Replay-Service und eine Prüfung von
     `zwang` am Anfang von `replayLauf`: äquivalent (`Prepare` und `Load` beachten den
     Kontext nicht; den Fall am Schleifenanfang decken der Lesepfad und die Nachprüfung nach
@@ -466,11 +468,11 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
     las. Der Test wartet seit `64f48b3` (`liestWieder`), bis die Sitzung den Use Case gefragt
     hat; danach rot.
   - X03 (Ziffer 1 aus dem Bereich genommen, `model.exitCode`): grün und äquivalent, der
-    Rückfall liefert für die Ziffer 1 ebenfalls 1. Bestand, in diesem Slice unverändert.
-- **Lesart der Dauer:** die Werte in `TestParseShutdownTimeout` und
-  `TestParseShutdownTimeoutWerte` folgen dem Wortlaut von `LH-FA-17.a` *Dauer*; `00` ohne
-  Einheit ist nicht `0` und abgelehnt, führende Nullen mit Einheit (`05s`) nimmt der Code an,
-  ohne dass ein Test es festhält (im Bericht an den Architect zur Bestätigung).
+    Rückfall liefert für die Ziffer 1 ebenfalls 1; akzeptiertes Negativ in §6 (Architect
+    `de79b71`). Bestand, in diesem Slice unverändert.
+- **Dauer mit führenden Nullen** (Architect `de79b71`, `LH-FA-17.a` *Dauer*): seit `77e203c`
+  hält `TestParseShutdownTimeoutWerte` `05s` → 5 s, `00s` → 0 und `00` → `PGR-E2001`; M11
+  (führende Nullen vor einer Einheit abgelehnt) rot, siehe Nacharbeit.
 - **`stderr` zur Laufzeit:** kein neuer Test liest `stderr`, solange der Prozess läuft; die
   Log-Zeilen prüfen die Integrationstests nach `warteEnde`, die Bootstrap-Tests nach dem Ende
   von `Run`; vor dem zweiten Signal wartet `TestE2ERecordZweitesSignal` und
@@ -510,3 +512,26 @@ Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu; keine neue L
 dem Code.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+- **Nacharbeit zum Review** (`docs/reviews/2026-10-08-review-slice-v1-abschluss-herunterfahren.md`;
+  Code `77e203c`, Handbuch `38c4a9c`; Mutanten an Kopien des Arbeitsbaums vor `77e203c`,
+  Weg wie oben):
+
+  | ID | Befund | Zusage | Mutation | roter Test |
+  |---|---|---|---|---|
+  | H1 | F-485 (Review-Mutant M-hang) | Test wartet mit Frist auf `OpenSession` | `handle` kehrt nach der Startnachricht zurück | `TestRecordZwangsendeImAufbau`, `TestRecordZwangsendeBrichtAufbauAb`: „OpenSession nach der Startnachricht bleibt binnen 2s aus“ (2,00 s statt Hänger) |
+  | H2 | F-485 | Test wartet mit Frist auf `CloseSession` | `Terminate` beendet die Session nicht | `TestRecordZwangsendeNachBemerktemEnde`: „CloseSession nach Terminate bleibt binnen 2s aus“ |
+  | H3 | F-485 | Test wartet mit Frist auf `Shutdown` | Replay fragt `Shutdown` nicht | `TestReplayZwangsendeWaehrendShutdown`: „Shutdown nach dem Ende von ctx bleibt binnen 2s aus“ |
+  | H4 | F-485 | Test wartet mit Frist, bis die Anfrage den Upstream erreicht | die wartende Anfrage hält vor dem Upstream an | `TestRecordZwangsendeEinfacheAnfrage`: „Query erreicht den Upstream nicht binnen 2 s“ |
+  | M1 | F-487 | Grund „nicht unterstützte Interaktion“ bei abgeschlossenen Interaktionen | Text des Falls ohne abgeschlossene Interaktion | `TestRecordZwangsendeNichtUnterstuetzt` |
+  | M2 | F-486 | ein anderer Fehler als `PGR-E4006` beim Zwangsende wird gemerkt und geloggt | Zweig `r.s.note(err)` entfernt | `TestRecordZwangsendeAndererFehler` (erster Fehler leer) |
+  | M3 | F-486 | ein anderer Fehler wird dem Client nicht zugestellt | jeder Fehler zugestellt | `TestRecordZwangsendeAndererFehler` (ErrorResponse mit `PGR-E3001`) |
+  | M11 | F-490, `de79b71` | führende Nullen vor einer Einheit erlaubt | `dauerForm` ohne führende Nullen | `TestParseShutdownTimeoutWerte` (`05s`, `00s` abgelehnt) |
+
+  Ein erster Anlauf zu H4 (Bedingung auf die Session-Kennung) traf schon die vorbereitende
+  Anfrage in der Hilfsfunktion `session` und hing dort; Lauf abgebrochen, Container und Kopie
+  entfernt, der Mutant danach auf das SQL der wartenden Anfrage gesetzt. F-488: Handbuch in
+  `38c4a9c` enger gefasst (Bedingung für `PGR-E4006` und Exit-Code 4; Container im Replay nur
+  als Hinweis zur Wahl der Frist). Läufe am Stand `38c4a9c`: `make test` grün, `make lint`
+  0 Befunde, `make abdeckung-check` grün, `make docs-check` 0 Befunde; `make gates` grün
+  (Exit 0, darin `make test-integration` grün und `make a-check` 0 Befunde) am Code von
+  `38c4a9c`.
