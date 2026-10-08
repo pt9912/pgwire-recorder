@@ -500,6 +500,23 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   0 Befunde, `make abdeckung-check` grün, `make docs-check` 0 Befunde; `make gates` grün
   (Exit 0, darin `make test-integration` grün und `make a-check` 0 Befunde) am Code von
   `38c4a9c`.
+- **Nacharbeit zur Verifikation** (`docs/reviews/2026-10-08-verifikation-slice-v1-abschluss-herunterfahren.md`;
+  Block *Nacharbeit zum Review* nach §7 verschoben in `75e7c2f` (V-109), Tests in `16e660e`,
+  Handbuch in `1c5c8b9`; Mutanten an Kopien des Arbeitsbaums vor `16e660e`, Weg wie oben):
+
+  | ID | Befund | Zusage | Mutation | roter Test |
+  |---|---|---|---|---|
+  | V1 | V-106 | Frist zählt ab dem ersten Signal | Zeitgeber vor dem Warten auf das Signal | `TestRunRecordFristAbDemErstenSignal`: „vor Ablauf der Frist von 500 ms: Run endete mit Exit-Code 0“ |
+  | V2 | V-106 | spätestens nach der Frist | zehnfache Frist | `TestRunRecordFristAbDemErstenSignal`: „Frist 500ms: Run endet nicht binnen 700ms“ |
+  | V4 | V-106 | nicht vor Ablauf der Frist | ein Zehntel der Frist | `TestRunRecordFristAbDemErstenSignal`: „vor Ablauf der Frist von 500 ms: Run endete mit Exit-Code 0“ |
+  | V5 | V-108 | `SIGINT` beginnt das Herunterfahren | `os.Interrupt` aus `signal.Notify` gestrichen | `TestE2ERecordZweitesSignal` (erstes Signal jetzt `SIGINT`): „Prozess endete vor dem Signal terminated (signal: interrupt)“ |
+
+  `TestRunRecordFristAbDemErstenSignal` lief 20-mal grün, `TestE2ERecordZweitesSignal` mit
+  `SIGINT` 3-mal grün. V-111: Handbuch in `1c5c8b9` an allen vier Stellen, die beim
+  Zwangsende Exit-Code 4 zusagen, mit der Bedingung „wenn vorher kein anderer Fehler gemerkt
+  wurde“. Läufe am Code von `1c5c8b9`: `make lint` 0 Befunde, `make test` grün,
+  `make abdeckung-check` grün, `make gates` grün (Exit 0, darin `make test-integration` grün,
+  `make a-check` 0 Befunde, `make docs-check` 0 Befunde).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
