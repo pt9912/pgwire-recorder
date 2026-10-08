@@ -1806,6 +1806,16 @@ in seinem Standardmodus (Extended Query) und im Simple-Query-Modus für
 End-to-End-Tests verwendet. Zusätzliche Clients anderer Sprachen sind
 erwünscht, aber kein v1-Muss.
 
+**Warten in Tests.** Ein Test, der auf ein Ereignis wartet, das der Prüfling
+herbeiführt (ein Wert auf einem Kanal oder dessen Schließen, das Ende eines
+gestarteten Prozesses), wartet mit eigener Frist. Die Frist steht als Literal im
+Test und ist höchstens 60 s lang. Läuft sie ab, wird der Test rot, und die Meldung
+nennt das ausgebliebene Ereignis; die Zeitgrenze von `go test` ist keine Frist.
+Auf das Ende eines gestarteten Prozesses wartet je Prozess genau eine Stelle, jeder
+weitere Leser liest ihr Ergebnis. Ein Test-Double, das auf eine Freigabe durch den
+Test wartet, fällt nicht unter diese Regel; der Test, der danach auf den Prüfling
+wartet, schon.
+
 ## 10. Nicht zugesichert in v1
 
 ### SPEC-039 — Abgrenzung

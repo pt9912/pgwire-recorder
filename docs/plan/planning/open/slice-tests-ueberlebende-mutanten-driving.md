@@ -353,13 +353,20 @@ nicht; er gibt es zurück.
   (heute) oder als Startfehler `PGR-E4001` (`LH-FA-13.b` *Startfehler*,
   `LH-FA-13.a`). Ohne Zusage gibt es keinen Test, und G1 bleibt mit Grenze als
   äquivalent geführt; der Doc-Kommentar von `Listen` sagt dazu weiter nichts zu.
-- **Warten auf einen Kanal** (Review F-468) — **offen**. Ob ein Test, der auf einen
-  Kanal wartet, eine eigene Frist trägt, wie lang sie ist und wo die Regel steht (etwa
-  `SPEC-038`). Der Architect entscheidet für alle Tests, die ohne Frist auf einen Kanal
-  warten, nicht nur für `server_extended_test.go:846`; dieser Slice setzt die Regel im
-  PGWire-Adapter und im Bootstrap um, für andere Schichten nennt die Entscheidung eine
-  Adresse. Die Zählung eines Mutanten, der nur über die Zeitüberschreitung rot wird,
-  bleibt die Randform *Laufzeit* von `slice-harness-mutation`.
+- **Warten auf einen Kanal** (Review F-468) — **entschieden** in `SPEC-038` *Warten in
+  Tests* (vom Architect bei der Prüfung von `slice-harness-integration-wait`): eigene
+  Frist als Literal, höchstens 60 s, rot mit einer Meldung, die das ausgebliebene
+  Ereignis nennt; ein Test-Double, das auf eine Freigabe des Tests wartet, fällt nicht
+  darunter. Dieser Slice setzt die Regel im PGWire-Adapter und im Bootstrap um,
+  `slice-harness-integration-wait` in `test/integration`. Im Kern warten
+  `internal/hexagon/services/record_extended_test.go:529` und `:812` ohne Frist auf
+  `queryLaeuft` (Stand `86db551`); sie bleiben ohne eigene Adresse stehen, bis ein Slice
+  sie ändert, der dann die Frist setzt — akzeptiertes Negativ: Im grünen Lauf schließen
+  die Kanäle, und die Frist braucht dort erst ein Mutant, der über sie hängt; tritt einer
+  auf, zählt ihn
+  `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit`. Die Zählung eines Mutanten, der nur über
+  die Zeitüberschreitung rot wird, bleibt die Randform *Laufzeit* von
+  `slice-harness-mutation`.
 - **Zugang der Tests** — **entschieden** in `SPEC-049` Punkt 7: Die Tests liegen in
   `pgwire_test` und `bootstrap_test` und gehen über die exportierte Schnittstelle; die
   Brücke wächst nicht.

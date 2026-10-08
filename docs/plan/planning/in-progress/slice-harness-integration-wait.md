@@ -22,7 +22,8 @@ unverändert. Bindung an Entscheidungen:
 [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckungs-Deklaration
 je Test, hier nur unverändert gehalten).
 
-**Berührte Spec-Stellen:** —
+**Berührte Spec-Stellen:** `SPEC-038` (Absatz *Warten in Tests*, angewandt; vom Architect vor
+dem Code eingetragen)
 
 **Verantwortlich:** pt9912
 
@@ -45,10 +46,33 @@ Goroutinen der Tests und der `t.Cleanup` aus `startProzess` lesen ihr Ergebnis, 
 selbst zu warten. Ein Test, dessen Prozess nach dem Signal nicht endet, wird damit
 nach seiner eigenen Frist rot, statt bis zum Zeitlimit von `go test` zu hängen.
 
+Die Regel, nach der das Testgeschirr wartet, steht in `SPEC-038` *Warten in Tests*:
+eigene Frist als Literal, höchstens 60 s, rot mit Klartext statt Hängen, ein `Wait` je
+Prozess. Der Slice wendet sie in `test/integration` an; die Einzelheiten der Helfer
+stehen in §6 *Randformen*.
+
 **Übernimmt:** aus `slice-v1-abschluss-betrieb` das Risiko *Testgeschirr wartet zweimal
 auf denselben Prozess* (Verifikation V-88 zu `slice-harness-blackbox-einstieg`), nicht
 dessen Gegenstand; dort steht der Ausgang *übernommen von*
 `slice-harness-integration-wait`.
+
+**Aus `slice-tests-ueberlebende-mutanten-driving`** (dort §1, Abgrenzung; Review F-468):
+die Fristen in `test/integration`, soweit sie das Warten im Integrations-Testgeschirr
+betreffen. Nach `SPEC-038` *Warten in Tests* bekommt dieser Slice dafür die Frist im
+`t.Cleanup` und die Nachfrist nach `Kill` (§6); die Fristen der drei Tests bleiben.
+
+**Bestand** (gemessen vom Architect am Stand `86db551`, `grep -n "Wait()"` und
+`grep -n "startProzess("` unter `test/integration`): `Wait` steht an vier Stellen —
+`record_e2e_test.go:373` (`t.Cleanup` in `startProzess`, nach `Kill`, ohne Frist),
+`record_e2e_test.go:396` (`stop`, Goroutine, Frist 15 s, danach `Kill` und `Fatalf`),
+`extended_e2e_test.go:410` (`TestE2ERecordExtendedSigtermBeimPipelining`, Goroutine,
+Frist 5 s, ohne `Kill`) und `extended_replay_e2e_test.go:297`
+(`TestE2EReplayExtendedSigtermMittenInFolge`, Goroutine, Frist 10 s, danach `Kill`).
+Jeder Prozess entsteht über `startProzess` (`record_e2e_test.go:360`), direkt oder über
+`startRecorder` (`:353`); `stop` (`:390`) ist der einzige weitere Helfer, der wartet.
+`exec.Command` steht sonst nur in `replay_e2e_test.go:142` (`CombinedOutput` mit
+Kontext-Frist 15 s, ein eigenes `Wait` ohne zweiten Leser) und bleibt. Weitere Stellen
+mit dem Muster gibt es nicht; die Rückführung *zu groß* aus §4 tritt nicht ein.
 
 **Befund** (`docs/reviews/2026-10-07-verifikation-slice-harness-blackbox-einstieg.md`,
 V-88; Review-Report `docs/reviews/2026-10-07-review-slice-harness-blackbox-einstieg.md`,
@@ -68,9 +92,17 @@ Muster steht in `stop` (`record_e2e_test.go`, `done <- r.cmd.Wait()`) und in
 - Produkt-Code — Schicht-Abgrenzung: Der Slice ändert nur Testcode unter
   `test/integration`. Die Mutation I2 wird nur in einer Kopie des Arbeitsbaums gefahren
   und nie committet.
-- Neue Tests, geänderte Erwartungen, Fristen oder Abdeckungs-Deklarationen — Bestand
-  bleibt bewusst stehen: Testliste und Deklarationen sind die Messlatte, an der sich
-  zeigt, dass nur das Warten umgebaut ist.
+- Neue Tests, geänderte Erwartungen, die Fristen der drei Tests (15 s, 5 s, 10 s) oder
+  Abdeckungs-Deklarationen — Bestand bleibt bewusst stehen: Testliste und Deklarationen
+  sind die Messlatte, an der sich zeigt, dass nur das Warten umgebaut ist. Neu sind nur
+  die Frist im `t.Cleanup` und die Nachfrist nach `Kill` (§6), die `SPEC-038` verlangt.
+- `defer pc.Close(context.Background())` in `TestE2ERecordExtendedSigtermBeimPipelining`
+  (F-458) — Bestand bleibt bewusst stehen: `Close` wartet nicht auf ein Ereignis des
+  Prüflings und fällt nicht unter `SPEC-038`; ob es unter I2 hängt, zeigt die Messung
+  (Risiko *Neuer Fund* in §6).
+- Warten ohne Frist in Tests anderer Schichten — anderer Vorgang:
+  `slice-tests-ueberlebende-mutanten-driving` setzt `SPEC-038` im PGWire-Adapter und im
+  Bootstrap um; für den Kern siehe dort §6 *Warten auf einen Kanal*.
 - Die Tests mit Signal und Frist je Modus (`--shutdown-timeout`) — übernimmt
   `slice-v1-abschluss-herunterfahren` (aus `slice-v1-abschluss-betrieb` hervorgegangen); er
   schreibt sie über die Helfer, die dieser Slice
@@ -100,7 +132,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       endet weit vor einem Zeitlimit von `go test`, das ein Hängen sichtbar macht; am
       Stand vor dem Umbau zeigt dieselbe Messung mindestens einen hängenden Lauf. Beleg
       in §7: je Stand Quellstand, Zahl der Läufe, rote und hängende Läufe, Dauer je Lauf,
-      gesetztes Zeitlimit.
+      gesetztes Zeitlimit. Dazu die Mutation des Cleanups aus §6 *Mutationen*: ein Lauf,
+      rot mit der Meldung des Cleanups nach etwa 5 s; Beleg in §7 mit Dauer und Meldung.
 - [ ] Testliste und Deklarationen unverändert: Die Liste der Tests unter
       `test/integration` (Namen, Zahl) ist vor und nach dem Umbau gleich, keine Zeile
       `Abdeckung:` ist geändert, und `make abdeckung-check` ist grün ohne neu
@@ -124,15 +157,15 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `test/integration/record_e2e_test.go` | refactor | `startProzess` startet nach `Start` genau eine Goroutine mit `Wait` und legt ihr Ergebnis in einen Kanal, der nach dem Ende geschlossen wird; `recorder` trägt ihn. `stop` und der `t.Cleanup` (`Kill`, dann Lesen) lesen ihn, statt `Wait` aufzurufen |
+| `test/integration/record_e2e_test.go` | refactor | `startProzess` startet nach `Start` genau eine Goroutine mit `Wait`, die das Ergebnis ablegt und danach einen Kanal schließt; `recorder` trägt Kanal und Ergebnis. Ein Helfer wartet mit Frist auf das Ende (§6). `stop` und der `t.Cleanup` (`Kill`, dann Warten mit Frist) gehen über ihn, statt `Wait` aufzurufen |
 | `test/integration/extended_e2e_test.go` | refactor | `TestE2ERecordExtendedSigtermBeimPipelining` liest das Ende über den Kanal statt `beendet <- rec.cmd.Wait()`; Erwartungen und Fristen gleich |
 | `test/integration/extended_replay_e2e_test.go` | refactor | `TestE2EReplayExtendedSigtermMittenInFolge` ebenso statt `done <- rep.cmd.Wait()` |
 
 - Wer den Exit-Code liest (`stop`, die beiden Tests), liest `ProcessState` erst nach dem
   Ende, das der Kanal meldet; danach schreibt niemand mehr daran.
-- Der Implementer prüft vor dem Code mit einer Suche nach `.Wait()` und `cmd.Wait`
-  unter `test/integration`, ob weitere Stellen dasselbe Muster tragen, und nennt sie
-  hier.
+- Die Suche nach `Wait()` unter `test/integration` hat der Architect vor dem Code
+  gefahren; die vier Fundstellen stehen in §1 *Bestand*, weitere gibt es nicht. Der
+  Implementer wiederholt sie für den Beleg in §7.
 
 ## 4. Trigger
 
@@ -182,10 +215,54 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen:** Der Slice liefert keinen neuen Vertrag (`AGENTS.md` §3.10, §3.12): Er
-ändert keine Zusage des Produkts und keines Gates, nur das Warten im Testgeschirr. Die
-Fälle, die der Umbau tragen muss, stehen darum als Risiken unten; entscheidet der Umbau
-etwas, das hier nicht steht, gibt der Implementer es dem Architect zurück.
+**Randformen** — vom Architect vor dem Code entschieden. Der Slice liefert keinen
+Vertrag nach `AGENTS.md` §3.10 (keine Zusage des Produkts oder eines Gates); die Helfer
+sind Testgeschirr, das `slice-v1-abschluss-herunterfahren` weiter nutzt. Die Regel, die
+für alle Tests gilt, steht darum im Technik-Stratum (`SPEC-038` *Warten in Tests*); die
+Einzelheiten der Helfer sind Plan-Entscheidungen hier, weil sie nur dieses Geschirr
+betreffen. Entscheidet der Umbau etwas, das hier nicht steht, gibt der Implementer es dem
+Architect zurück.
+
+- **Ergebnis nach dem Ende** — **entschieden:** Die eine Goroutine aus `startProzess`
+  legt den Fehler von `Wait` im `recorder` ab und schließt danach den Kanal; der Zustand
+  ist `cmd.ProcessState`. Leser lesen beides erst nach dem Schließen. Der Exit-Code ist
+  `ProcessState.ExitCode()`; ein Ende durch Signal ergibt dort `-1`, das Signal steht in
+  `ProcessState.String()` (etwa `signal: killed`). Der Helfer deutet nichts: Wer einen
+  Exit-Code erwartet, vergleicht ihn und nennt bei Abweichung `ProcessState.String()`.
+  Der Fehler von `Wait` ist bei einem Exit-Code ungleich 0 ein `*exec.ExitError` und
+  keine eigene Zusicherung (Erwartungen unverändert, §1); er steht nur in der Meldung.
+- **Frist und Ablauf** — **entschieden:** Der Helfer zum Warten nimmt die Frist und den
+  Text der Meldung vom Aufrufer; die drei Tests und `stop` behalten ihre Fristen und
+  Meldungen (15 s, 5 s, 10 s). Läuft die Frist ab, ruft der Helfer `Kill`, wartet eine
+  Nachfrist von 5 s auf das Schließen des Kanals und endet mit `t.Fatalf`: der Text des
+  Aufrufers, dazu `stderr`, das erst nach dem Ende gelesen wird. Schließt der Kanal auch in
+  der Nachfrist nicht, nennt die Meldung das statt `stderr` („endet auch nach Kill nicht
+  binnen 5 s“). Rot also spätestens nach Frist plus 5 s, nie an der Zeitgrenze von
+  `go test`.
+- **Mehrere Leser** — **entschieden:** Der geschlossene Kanal ist das Signal für jeden
+  Leser, beliebig oft; Ergebnis und `ProcessState` sind vor dem Schließen geschrieben und
+  danach unverändert. Kein `sync.Once`, kein zweites `Wait`, kein Wert, den nur ein Leser
+  bekommt. Ein Test, der prüfen will, dass der Prozess **noch nicht** endet (etwa
+  `slice-v1-abschluss-herunterfahren` mit `--shutdown-timeout 0`), liest denselben Kanal
+  in einem `select` mit eigener Frist.
+- **Test scheitert vorher** — **entschieden:** Der `t.Cleanup` wird nach `Start` und nach
+  dem Start der Goroutine registriert; scheitert `Start`, gibt es weder Prozess noch
+  Goroutine noch Cleanup. Ist der Kanal beim Cleanup offen (Test endete vor `stop`,
+  `Fatalf` beim Lauschen, Ablauf im Test), ruft er `Kill` und wartet mit 5 s Frist auf
+  das Schließen; bei Ablauf `t.Errorf` mit Klartext, kein Hängen. Ist er geschlossen, tut
+  der Cleanup nichts. `Kill` auf einen schon beendeten Prozess ist harmlos, sein Fehler
+  wird verworfen. Der Cleanup läuft nach den `defer` des Tests und vor dem Entfernen von
+  `t.TempDir` (in `startProzess` später registriert).
+- **Mutationen** (`AGENTS.md` §3.10, sinngemäß für das Geschirr) — **entschieden:**
+  Zusage *rot statt hängend* · Mutation I2 der Verifikation · rot wird
+  `TestE2ERecordExtendedSigtermBeimPipelining` nach höchstens 5 s plus Nachfrist (DoD
+  Punkt 2). Zusage *Cleanup beendet und wartet mit Frist* · in einer Kopie des
+  Arbeitsbaums `Kill` im Cleanup entfernt und in einem Test direkt nach `startRecorder`
+  ein `t.Fatal` eingefügt · derselbe Test endet rot mit der Meldung des Cleanups nach
+  etwa 5 s, nicht an der Zeitgrenze (DoD Punkt 2, ein Lauf genügt, die Mutation ist
+  deterministisch). Im grünen Lauf endet der Prozess fast immer über `stop` (48 Aufrufstellen
+  bei 50 Startstellen am Stand `86db551`), den Kill-Pfad des Cleanups trägt also erst diese
+  Mutation.
 
 **Risiken:**
 
