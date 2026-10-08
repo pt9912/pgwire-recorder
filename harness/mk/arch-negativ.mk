@@ -3,9 +3,9 @@
 # · seit slice-walking-skeleton-build-gates.
 # Sie haengt an GATE_CHECKS. Sie belegt fuer pgproto3 und crypto/tls, dass a-check
 # einen Import im Domain Model und im Recording-Adapter ablehnt und in beiden
-# PGWire-Adaptern zulaesst, und fuer die YAML-Modulpfade, dass a-check sie im
-# Domain Model, im Postgres-Adapter und je Modulpfad im PGWire-Adapter ablehnt
-# und beide im CLI-Adapter zulaesst; andere Regeln prueft sie nicht.
+# PGWire-Adaptern zulaesst, und fuer jeden der beiden YAML-Modulpfade, dass
+# a-check ihn im Domain Model, im Postgres-Adapter und im PGWire-Adapter ablehnt
+# und im CLI-Adapter zulaesst; andere Regeln prueft sie nicht.
 # Image und Runtime stammen aus a-check.mk.
 .PHONY: a-check-negativ
 

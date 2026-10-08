@@ -70,11 +70,7 @@ const optionenRecord = `Optionen von record:
   --upstream  Adresse des PostgreSQL-Servers, host:port (Pflicht)
   --output    Zieldatei der Aufzeichnung (Pflicht)
   --force     vorhandene Zieldatei ersetzen
-` + optionShutdownTimeout + optionLogLevel + `
-Jede Option außer --output und --force ist auch über ihre Umgebungsvariable
-setzbar: PGWIRE_RECORDER_ und der Name in Großbuchstaben mit _ statt -, etwa
-PGWIRE_RECORDER_LISTEN; die Kommandozeile geht ihr vor.
-`
+` + optionShutdownTimeout + optionLogLevel + optionUmgebung
 
 const optionenReplay = `Optionen von replay:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
@@ -83,10 +79,12 @@ const optionenReplay = `Optionen von replay:
               nicht verbrauchte Interaktionen und nie zugeordnete Sessions
               sind ein Fehler (PGR-E5002, Exit-Code 5) statt einer Warnung;
               Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
-` + optionShutdownTimeout + optionLogLevel + `
+` + optionShutdownTimeout + optionLogLevel + optionUmgebung
+
+const optionUmgebung = `
 Jede Option ist auch über ihre Umgebungsvariable setzbar: PGWIRE_RECORDER_ und
 der Name in Großbuchstaben mit _ statt -, etwa PGWIRE_RECORDER_LISTEN; die
-Kommandozeile geht ihr vor.
+Kommandozeile geht ihr vor. Ein leerer Wert auf der Kommandozeile ist ungültig.
 `
 
 const optionShutdownTimeout = `  --shutdown-timeout 0|<zahl>ms|<zahl>s|<zahl>m
@@ -173,7 +171,8 @@ type option struct {
 	setze    func(*Command, string)
 }
 
-// art ist die Wertemenge einer Option: pruefe lehnt jeden Wert außerhalb ab;
+// art ist die Wertemenge einer Option: pruefe lehnt jeden Wert außerhalb ab,
+// in jeder Wertemenge auch den leeren (LH-FA-17.a);
 // schalter lässt die Option auf der Kommandozeile ohne Wert zu, dann gilt
 // "true".
 type art struct {
@@ -182,7 +181,14 @@ type art struct {
 	schalter bool
 }
 
-func artText() art { return art{name: "text", pruefe: func(string) error { return nil }} }
+func artText() art {
+	return art{name: "text", pruefe: func(v string) error {
+		if v == "" {
+			return errors.New("ein leerer Wert ist ungültig")
+		}
+		return nil
+	}}
+}
 
 func artWahrheitswert() art {
 	return art{name: "wahrheitswert", pruefe: func(v string) error { return wahrheitswert{new(bool)}.Set(v) }, schalter: true}
@@ -205,14 +211,15 @@ func envName(name string) string {
 
 // optionen liefert die Optionen eines Kommandos am allgemeinen Leser in der
 // Reihenfolge der Tabelle in LH-FA-17.a; in dieser Reihenfolge prüft der
-// Leser die Umgebungsvariablen. --output und --force von record stehen nicht
-// darunter, sie liest nur die Kommandozeile (parseRecord).
+// Leser die Umgebungsvariablen.
 func optionen(kommando string) []option {
 	switch kommando {
 	case "record":
 		return []option{
 			{name: "listen", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Listen = v }},
 			{name: "upstream", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Upstream = v }},
+			{name: "output", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Output = v }},
+			{name: "force", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.Force = v == "true" }},
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Record.ShutdownTimeout, v) }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, setze: func(c *Command, v string) { c.Record.LogLevel = v }},
 		}
@@ -267,13 +274,15 @@ type gelesen struct {
 	cliOk, envOk bool
 }
 
-// lies liest kommando nach LH-FA-17.a: zuerst die Kommandozeile mit fs, an dem
-// der Aufrufer weitere Optionen angemeldet haben kann, dann die
+// lies liest kommando nach LH-FA-17.a: zuerst die Kommandozeile, an deren
+// FlagSet genau die Optionen aus optionen angemeldet sind, dann die
 // Umgebungsvariablen der Optionen in ihrer Reihenfolge; jeder gesetzte Wert
 // wird geprüft, ein ungültiger ist PGR-E2001, auch wenn die Kommandozeile
 // dieselbe Option setzt. Danach übernimmt es je Option den Wert nach der
-// Priorität; eine Pflichtoption ohne Wert oder mit leerem Wert ist PGR-E2001.
-func lies(kommando string, fs *flag.FlagSet, args []string) (Command, error) {
+// Priorität; eine Pflichtoption, die keine Quelle setzt, ist PGR-E2001.
+func lies(kommando string, args []string) (Command, error) {
+	fs := flag.NewFlagSet(kommando, flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
 	opts := optionen(kommando)
 	stand := make([]gelesen, len(opts))
 	for i, o := range opts {
@@ -314,27 +323,11 @@ func lies(kommando string, fs *flag.FlagSet, args []string) (Command, error) {
 }
 
 func parseRecord(args []string) (Command, error) {
-	fs := flag.NewFlagSet("record", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-	var output string
-	var force bool
-	fs.StringVar(&output, "output", "", "")
-	fs.BoolVar(&force, "force", false, "")
-	cmd, err := lies("record", fs, args)
-	if err != nil {
-		return Command{}, err
-	}
-	if output == "" {
-		return Command{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption --output fehlt")
-	}
-	cmd.Record.Output, cmd.Record.Force = output, force
-	return cmd, nil
+	return lies("record", args)
 }
 
 func parseReplay(args []string) (Command, error) {
-	fs := flag.NewFlagSet("replay", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-	return lies("replay", fs, args)
+	return lies("replay", args)
 }
 
 // dauerForm ist eine ganze Zahl ohne Vorzeichen mit genau einer Einheit.
@@ -360,13 +353,6 @@ func einheit(name string) time.Duration {
 // darstellt.
 type dauer struct{ wert *time.Duration }
 
-func (d dauer) String() string {
-	if d.wert == nil {
-		return ""
-	}
-	return d.wert.String()
-}
-
 func (d dauer) Set(v string) error {
 	if v == "0" {
 		*d.wert = 0
@@ -390,13 +376,6 @@ func (d dauer) Set(v string) error {
 // (LH-FA-14.a).
 type stufe struct{ wert *string }
 
-func (l stufe) String() string {
-	if l.wert == nil {
-		return ""
-	}
-	return *l.wert
-}
-
 func (l stufe) Set(v string) error {
 	switch v {
 	case LogError, LogWarn, LogInfo, LogDebug:
@@ -406,21 +385,11 @@ func (l stufe) Set(v string) error {
 	return errors.New("erlaubt sind error, warn, info und debug")
 }
 
-// wahrheitswert ist der Wert einer booleschen Option nach LH-FA-17.a: ohne
-// Wert true, mit Wert genau "true" oder "false"; jeder andere Wert, auch der
-// leere und "1", ist ein Fehler. Nennt die Kommandozeile die Option mehrfach,
-// gilt die letzte Angabe.
+// wahrheitswert ist der Wert einer booleschen Option nach LH-FA-17.a: genau
+// "true" oder "false"; jeder andere Wert, auch der leere und "1", ist ein
+// Fehler. Dass die Option auf der Kommandozeile ohne Wert "true" ist, trägt
+// art.schalter.
 type wahrheitswert struct{ wert *bool }
-
-// IsBoolFlag lässt die Option ohne Wert zu; flag setzt dann "true".
-func (wahrheitswert) IsBoolFlag() bool { return true }
-
-func (w wahrheitswert) String() string {
-	if w.wert == nil {
-		return "false"
-	}
-	return fmt.Sprint(*w.wert)
-}
 
 func (w wahrheitswert) Set(v string) error {
 	switch v {

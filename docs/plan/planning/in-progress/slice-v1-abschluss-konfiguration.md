@@ -60,7 +60,10 @@ Einzelnen, je mit dem ursprünglichen Geber:
 Option von `record` und `replay` angemeldet wird; Kommandozeile und Umgebungsvariable folgen
 aus dieser einen Anmeldung, und `slice-v1-abschluss-konfigurationsdatei` leitet die Schlüssel
 der Datei aus ihr ab. Ein Test läuft über alle angemeldeten Optionen (zwei Quellen,
-Priorität), sodass eine später angemeldete Option ihn ohne eigenen Plan-Punkt mitnimmt.
+Priorität, leerer Wert, Default gegen die Optionstabelle), sodass eine später angemeldete
+Option ihn mitnimmt; er bricht ab, bis ihr Default aus der Tabelle im Test steht. Ein
+zweiter Test hält die *einzige Stelle*: Jede Option der Tabelle, die nicht am Leser
+angemeldet ist, ist auf der Kommandozeile unbekannt.
 Auch `--output` (Pflicht) und `--force` (Wahrheitswert, Default `false`) sind dort
 angemeldet, in der Reihenfolge der Tabelle in `LH-FA-17.a` nach `--upstream`; `parseRecord`
 meldet keine Option mehr am FlagSet an.
@@ -133,7 +136,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/architecture.md`, `spec/spezifikation.md`, `.a-check.yml` | erledigt (Architect, vor dem Code, 2026-10-08) | Sicht (`ARC-013`, §2, §6) und `tech`-Regel: YAML-Bibliothek auch im CLI-Adapter ([ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)); `LH-FA-17.a` mit den Entscheidungen des Nutzers aus §6 |
-| `tools/arch/a-check-negativ.sh` | update (geliefert, 8fad493) | drei Fälle: CLI-Adapter importiert `go.yaml.in/yaml/v3` und `gopkg.in/yaml.v3` → a-check meldet nichts; PGWire-Adapter (`internal/adapters/driving/pgwire`) importiert `go.yaml.in/yaml/v3` → `tech-leak`, und ebenso `gopkg.in/yaml.v3` (je Modulpfad eine Regel, je Regel ein Fall). Die beiden letzten halten die Erlaubnis auf den CLI-Adapter statt auf alle Driving-Adapter. Kopfkommentar (Zahl der Fälle, *YAML nur im Recording-Adapter*) und Schlusszeile auf *Recording- und CLI-Adapter*; Beschreibung von `a-check-negativ` in `harness/mk/arch-negativ.mk` und Zeile in `harness/README.md` §Sensors nachziehen (`AGENTS.md` §3.11). Mutation: eine Regel auf `internal/adapters/driving` weiten → Fall ihres Modulpfads im PGWire-Adapter rot; CLI-Adapter aus einer Regel nehmen → Fall des CLI-Adapters rot |
+| `tools/arch/a-check-negativ.sh` | update (geliefert, 8fad493) | drei Fälle: CLI-Adapter importiert `go.yaml.in/yaml/v3` und `gopkg.in/yaml.v3` → a-check meldet nichts; PGWire-Adapter (`internal/adapters/driving/pgwire`) importiert `go.yaml.in/yaml/v3` → `tech-leak`, und ebenso `gopkg.in/yaml.v3` (je Modulpfad eine Regel, je Regel ein Fall). Die beiden letzten halten die Erlaubnis auf den CLI-Adapter statt auf alle Driving-Adapter. Nach dem Review (F-499) zwei weitere: Domain Model importiert `gopkg.in/yaml.v3`, Postgres-Adapter importiert `go.yaml.in/yaml/v3`, sodass jeder Modulpfad an jedem der drei genannten Orte abgelehnt wird. Kopfkommentar (Zahl der Fälle, *YAML nur im Recording-Adapter*) und Schlusszeile auf *Recording- und CLI-Adapter*; Beschreibung von `a-check-negativ` in `harness/mk/arch-negativ.mk` und Zeile in `harness/README.md` §Sensors nachziehen (`AGENTS.md` §3.11). Mutation: eine Regel auf `internal/adapters/driving` weiten → Fall ihres Modulpfads im PGWire-Adapter rot; CLI-Adapter aus einer Regel nehmen → Fall des CLI-Adapters rot |
 | `internal/adapters/driving/cli` | update (geliefert, a968790) | allgemeiner Leser, an dem jede Option einmal angemeldet wird (`--output` und `--force` offen, Entscheidung zu F-496), für Kommandozeile und Umgebungsvariable; er prüft jeden gesetzten Wert und ersetzt die Einzel-Leser von `--fail-on-unconsumed`, `--log-level` und `--shutdown-timeout`; Priorität; Hilfe von `record` und `replay` nennt die Umgebungsvariablen. Die Hilfe vor jeder Prüfung trägt `Parse` seit `slice-replay-semantik-mismatch`: Es prüft die Hilfe-Angabe vor jedem Kommando, also auch vor dem allgemeinen Leser |
 | `internal/adapters/driving/cli` (Unit-Tests) | update (geliefert, a968790) | `leser_test.go` über alle angemeldeten Optionen, Reihenfolge, fremde Umgebung, Hilfe nach `LH-FA-17.a` und `LH-FA-01.a`; die vorhandenen Tests der drei Einzel-Leser in `cli_test.go`, `frist_test.go` und `internal/bootstrap` bleiben unverändert und grün (Risiko in §6) |
 | `docs/user/benutzerhandbuch.md` | kein update | §5 *Einstellungen* beschreibt Optionen, Umgebungsvariablen und Priorität schon im Zielstand; die Datei beschreibt `slice-v1-abschluss-konfigurationsdatei` |
@@ -169,9 +172,11 @@ Gegenprobe des Architektur-Gates (§3).
   nachgetragen) stehen hier, der Schnitt geschah im selben Zug, und der Zustand stimmt für das,
   was die Datei jetzt beschreibt. Der Weg über `next/` und zurück ergäbe zwei reine
   `git mv` mit demselben Endstand. Akzeptiertes Negativ: Den Schnitt zeigt nicht die
-  Verzeichnis-Historie, sondern dieser Absatz und `fa4a5f1`. Die Hilfe aus
-  DoD-Punkt 2 blieb, soweit sie `record` und `replay` betrifft; die für `config show` und
-  `--config` ging mit der Datei, weil es beide ohne Datei nicht gibt.
+  Verzeichnis-Historie, sondern dieser Absatz und `fa4a5f1`. Die Nummern in der Bedingung
+  oben zählen die DoD vor dem Schnitt. Nach dem Schnitt ist DoD-Punkt 1 die Gegenprobe des
+  Architektur-Gates, Punkt 2 der allgemeine Leser (der frühere Punkt 1 ohne Datei) und
+  Punkt 3 die Hilfe von `record` und `replay` (aus dem früheren Punkt 2); die Hilfe für
+  `config show` und `--config` ging mit der Datei, weil es beide ohne Datei nicht gibt.
 - `in-progress` → `open` (blockiert — Carveout?): keine Bedingung mehr. Die bisherige — die
   Form der Datei nach [ADR-0014](../../adr/0014-konfigurationsdatei.md) trägt einen Schlüssel nicht, den eine Option braucht — betrifft
   nur die Datei und steht in §4 von `slice-v1-abschluss-konfigurationsdatei`.
@@ -270,61 +275,79 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 ### Belege des Implementers
 
-Weg der Mutanten: Gegenprobe des Architektur-Gates je Mutant in einer frischen Kopie des
-Arbeitsbaums (`mktemp -d`, `tar` ohne `.git`), dort `.a-check.yml` mit `sed` geändert und
-`tools/arch/a-check-negativ.sh` aus der Kopie gefahren; der Arbeitsbaum blieb unberührt.
+Stand nach der Nacharbeit zum Review (F-496 bis F-502, F-505). Weg der Mutanten: je Mutant
+eine frische Kopie des Arbeitsbaums (`mktemp -d`, `tar` ohne `.git`, ein neuer Pfad je
+Mutant, darum keine gleiche mtime am selben Pfad), die Änderung mit einem Skript, das die
+Trefferzahl 1 prüft; dann `make test` bzw. `tools/arch/a-check-negativ.sh` in der Kopie. Der
+Arbeitsbaum blieb unberührt. Jede Zeile ist am Stand der Nacharbeit gefahren.
 
-**Gegenprobe des Architektur-Gates** (DoD-Punkt 1; `make a-check-negativ`, zehn Fälle):
+**Gegenprobe des Architektur-Gates** (DoD-Punkt 1; `make a-check-negativ`, zwölf Fälle).
+Mutationen an `.a-check.yml`; ungeändert sind alle zwölf Fälle grün, Exit 0. Die Fälle 11
+(`gopkg.in/yaml.v3` im Domain Model) und 12 (`go.yaml.in/yaml/v3` im Postgres-Adapter) sind
+für F-499 neu; damit gilt die Ablehnung je Modulpfad an allen drei Orten, die README,
+Fragment und Kopf nennen.
 
-| Zusage | Mutation an `.a-check.yml` | roter Fall |
+| Zusage | Mutation | roter Fall |
 |---|---|---|
-| `go.yaml.in/yaml` im CLI-Adapter zugelassen | CLI-Adapter aus der Regel `go.yaml.in/yaml` genommen | `cli-yaml` (a-check: `tech-leak`) |
-| `gopkg.in/yaml` im CLI-Adapter zugelassen | CLI-Adapter aus der Regel `gopkg.in/yaml` genommen | `cli-yaml` |
-| beide zugleich | CLI-Adapter aus beiden Regeln genommen | `cli-yaml` |
-| `go.yaml.in/yaml` im PGWire-Adapter abgelehnt | Regel `go.yaml.in/yaml` auf `internal/adapters/driving` geweitet | `pgwire-yaml` |
-| `gopkg.in/yaml` im PGWire-Adapter abgelehnt | Regel `gopkg.in/yaml` auf `internal/adapters/driving` geweitet | `pgwire-gopkg-yaml` |
-| beide zugleich | beide Regeln geweitet | `pgwire-yaml`, `pgwire-gopkg-yaml` |
+| `go.yaml.in/yaml` im CLI-Adapter zugelassen | CLI-Adapter aus dieser Regel genommen | `cli-yaml` (a-check: `tech-leak`) |
+| `gopkg.in/yaml` im CLI-Adapter zugelassen | CLI-Adapter aus dieser Regel genommen | `cli-yaml` |
+| `go.yaml.in/yaml` im PGWire-Adapter abgelehnt | Regel auf `internal/adapters/driving` geweitet | `pgwire-yaml` |
+| `gopkg.in/yaml` im PGWire-Adapter abgelehnt | Regel auf `internal/adapters/driving` geweitet | `pgwire-gopkg-yaml` |
+| `go.yaml.in/yaml` im Postgres-Adapter abgelehnt (A1 aus dem Review) | Regel von `driven/recording` auf `internal/adapters/driven` geweitet | `postgres-yamlin` |
+| `gopkg.in/yaml` im Postgres-Adapter abgelehnt | Regel von `driven/recording` auf `internal/adapters/driven` geweitet | `postgres-yaml` |
 
-Ungeändert: alle zehn Fälle grün, Exit 0.
+Grün, eingeordnet: Das Domain Model in die `adapter`-Liste einer der beiden Regeln
+aufgenommen (je Modulpfad ein Mutant) — **äquivalent**: a-check lehnt den Import im Domain
+Model über dessen Rolle `domain` ab, nicht über die `tech`-Regel; die Fälle 6 und 11 bleiben
+rot wie erwartet, das Verhalten ist gleich.
 
-**Allgemeiner Leser: Kommandozeile, Umgebung, Priorität** (DoD-Punkt 2). Weg der
-Mutanten: je Mutant eine frische Kopie des Arbeitsbaums (`mktemp -d`, `tar` ohne `.git`), die
-Änderung an `internal/adapters/driving/cli/cli.go` mit einem Skript, dann `make test` in der
-Kopie; ein neuer Pfad je Mutant, darum keine gleiche mtime am selben Pfad. Die vorhandenen
-Tests der drei Einzel-Leser (`cli_test.go`, `frist_test.go`, die Tests in
-`internal/bootstrap`) sind unverändert und grün; `export_test.go` ist nur ergänzt.
+**Allgemeiner Leser: Kommandozeile, Umgebung, Priorität** (DoD-Punkt 2). Die Tests der drei
+Einzel-Leser (`cli_test.go`, `frist_test.go`, `internal/bootstrap`) sind unverändert und grün;
+`export_test.go` ist nur ergänzt.
 
-| Zusage | Mutation in `lies` / `optionen` | rote Tests |
+| Zusage | Mutation in `cli.go` | rote Tests |
 |---|---|---|
 | Kommandozeile vor Umgebungsvariable | Umgebung vor Kommandozeile übernommen | `TestLeserAlleOptionen`, `TestParseFailOnUnconsumedUmgebung`, `TestParseLogLevelUmgebung`, `TestParseShutdownTimeoutUmgebung`, `TestRunLogLevel` |
-| Umgebungsvariable setzt jede Option | Umgebung nicht gelesen | `TestLeserAlleOptionen`, `TestLeserReihenfolge`, die sechs `…Umgebung…`-Tests der Einzel-Leser, `TestRunLogLevel`, `TestRunStartfehlerJeStufe` |
-| gesetzte Umgebungsvariable geprüft, auch wenn die Kommandozeile vorgeht | Prüfung nur ohne Kommandozeile | `TestLeserAlleOptionen`, `TestParseFailOnUnconsumedUmgebungNebenOption`, `TestParseLogLevelUmgebungUngueltig`, `TestParseShutdownTimeoutUmgebungUngueltig`, `TestRunStartfehlerJeStufe` |
+| Umgebungsvariable setzt jede Option | Umgebung nicht gelesen | `TestLeserAlleOptionen`, `TestLeserHilfe`, `TestLeserReihenfolge`, die sechs `…Umgebung…`-Tests der Einzel-Leser, `TestRunLogLevel`, `TestRunStartfehlerJeStufe` |
+| gesetzte Umgebungsvariable geprüft, auch wenn die Kommandozeile vorgeht | Prüfung nur ohne Kommandozeile | `TestLeserAlleOptionen`, `TestLeserHilfe`, `TestParseFailOnUnconsumedUmgebungNebenOption`, `TestParseLogLevelUmgebungUngueltig`, `TestParseShutdownTimeoutUmgebungUngueltig`, `TestRunStartfehlerJeStufe` |
 | leere Umgebungsvariable gilt als nicht gesetzt | leere Variable geprüft und übernommen | 30 Tests, darunter `TestLeserAlleOptionen`, `TestLeserFremdeUmgebung`, `TestParseRecord` |
+| leerer Wert auf der Kommandozeile ist gesetzt und `PGR-E2001` (F-497, L6) | leerer Wert in `kommandozeile.Set` als nicht gesetzt übergangen | `TestLeserAlleOptionen`, `TestLeserLeererWert`, `TestParseFailOnUnconsumedWerte`, `TestParseLogLevelWerte`, `TestParseShutdownTimeoutWerte`, `TestRunStartfehlerJeStufe` |
+| leerer Wert auch bei einer Option der Art `text` ungültig | Prüfung des leeren Werts in `artText` entfernt | `TestLeserAlleOptionen`, `TestLeserLeererWert` |
 | Umgebungsvariablen in der Reihenfolge der Tabelle geprüft | Schleife rückwärts | `TestLeserReihenfolge` |
-| Kommandozeile vor den Umgebungsvariablen geprüft | Umgebung vor `fs.Parse` geprüft | `TestLeserReihenfolge` |
-| Pflichtoption ohne Wert ist `PGR-E2001` | Pflicht-Prüfung entfernt | `TestLeserAlleOptionen`, `TestLeserReihenfolge`, `TestParseReplay` |
+| Kommandozeile vor den Umgebungsvariablen geprüft | Umgebung vor `fs.Parse` geprüft | `TestLeserReihenfolge`, `TestLeserLeererWert` |
+| unerwartetes Argument vor den Umgebungsvariablen (F-500, L8) | Prüfung *unerwartetes Argument* hinter die Umgebung | `TestLeserReihenfolge` |
+| einzige Stelle der Anmeldung (F-498, L3) | `parseReplay` meldet `--session-assignment` am FlagSet vorbei an | `TestLeserNurAngemeldete` |
+| Pflichtoption ohne Quelle ist `PGR-E2001` | Pflicht-Prüfung entfernt | `TestLeserAlleOptionen`, `TestLeserReihenfolge`, `TestParseFehler`, `TestParseReplay` |
+| ohne Quelle gilt der Default der Optionstabelle (F-505, L9) | Standard von `--log-level` bei `record` `warn` | `TestLeserAlleOptionen` und acht Einzeltests, darunter `TestParseLogLevel`, `TestRunRecordLogLevel` |
 | ohne Quelle gilt der Standardwert | Standardwert leer | `TestLeserAlleOptionen`, `TestParseLogLevel`, `TestParseRecord`, `TestParseReplay`, `TestParseShutdownTimeout`, `TestParseLogLevelUmgebung`, `TestParseShutdownTimeoutUmgebung` |
 | Name der Umgebungsvariable mit `_` statt `-` | `-` bleibt stehen | `TestLeserOptionen`, `TestLeserReihenfolge`, die sechs `…Umgebung…`-Tests, `TestRunLogLevel`, `TestRunStartfehlerJeStufe` |
-| boolesche Option ohne Wert ist `true` | `schalter` aus | `TestParseFailOnUnconsumed`, `TestParseFailOnUnconsumedUmgebung`, `TestParseFailOnUnconsumedUmgebungNebenOption`, `TestRunLogLevel` |
+| boolesche Option ohne Wert ist `true` | `schalter` aus | `TestLeserHilfe`, `TestParseFailOnUnconsumed`, `TestParseFailOnUnconsumedUmgebung`, `TestParseFailOnUnconsumedUmgebungNebenOption`, `TestParseRecord`, `TestRunLogLevel` |
+| `--output` am Leser: Umgebungsvariable allein genügt (F-496) | `output` aus `optionen("record")` genommen | `TestLeserHilfe`, `TestLeserOptionen` und 19 Einzeltests |
+| `--force` am Leser (F-496) | `force` aus `optionen("record")` genommen | `TestLeserHilfe`, `TestLeserOptionen`, `TestParseRecord` |
+| `--force` nur `true` oder `false`, `PGWIRE_RECORDER_FORCE=ja` und `--force=1` sind `PGR-E2001` (F-496) | Wertemenge von `--force` nach `strconv.ParseBool` | `TestLeserAlleOptionen`, `TestLeserHilfe` |
 
 Eine Umgebungsvariable mit Präfix ohne passende Option bleibt unbeachtet: Der Leser fragt nur
 die Namen seiner Optionen ab; `TestLeserFremdeUmgebung` belegt es für fünf Namen. Ein Mutant,
 der sie liest, müsste eine neue Abfrage einführen; keiner gefahren.
 
-**Hilfe vor den Prüfungen am Leser** (DoD-Punkt 3). Weg der Mutanten wie beim Leser: frische
-Kopie je Mutant, Änderung an `cli.go` mit einem Skript, `make test` in der Kopie. Jede
-Bedingung der Zusage hat eine eigene Zeile; keine Mutation blieb grün, keine Lücke im Code.
+F-501: `wahrheitswert`, `dauer` und `stufe` sind an keinem FlagSet mehr angemeldet, sie
+prüfen nur noch (`art`) und setzen (`setzeDauer`); `IsBoolFlag` und die drei `String`-Methoden
+sind entfernt, der Kommentar an `wahrheitswert` nennt die Rolle als Prüfer, und den Schalter
+ohne Wert trägt `art.schalter` (Zeile *boolesche Option ohne Wert* oben). Mutant L2 aus dem
+Review gibt es damit nicht mehr.
+
+**Hilfe vor den Prüfungen am Leser** (DoD-Punkt 3). Jede Bedingung der Zusage hat eine
+eigene Zeile; keine Mutation blieb grün, keine Lücke im Code.
 
 | Zusage | Mutation in `Parse` / `hilfeVerlangt` / `lies` / Hilfetext | rote Tests |
 |---|---|---|
-| Hilfe vor der Prüfung der Umgebungsvariablen am Leser | gesetzte Umgebungsvariablen der Optionen vor der Hilfe geprüft | `TestParseHilfeVorPruefung`, `TestParseLogLevelHilfe`, `TestParseShutdownTimeoutHilfe`, `TestRunHilfe`, `TestLeserReihenfolge` |
-| Hilfe vor der Prüfung der Werte auf der Kommandozeile am Leser | `--<option>=<wert>` vor der Hilfe geprüft | `TestParseHilfeVorPruefung`, `TestParseLogLevelHilfe` |
-| Hilfe auch vor `--force` außerhalb des Lesers | `--force=<wert>` vor der Hilfe geprüft | `TestParseHilfeVorPruefung` |
+| Hilfe vor der Prüfung der Umgebungsvariablen am Leser | gesetzte Umgebungsvariablen der Optionen vor der Hilfe geprüft | `TestParseHilfeVorPruefung`, `TestParseLogLevelHilfe`, `TestParseShutdownTimeoutHilfe`, `TestRunHilfe`, `TestLeserReihenfolge`, `TestLeserLeererWert` |
+| Hilfe vor der Prüfung der Werte auf der Kommandozeile am Leser | `--<option>=<wert>` vor der Hilfe geprüft | `TestParseHilfeVorPruefung`, `TestParseLogLevelHilfe`, `TestLeserAlleOptionen`, `TestLeserLeererWert` |
+| Hilfe auch vor `--force` | `--force=<wert>` vor der Hilfe geprüft | `TestParseHilfeVorPruefung`, `TestLeserAlleOptionen`, `TestLeserNurAngemeldete` |
 | nach `--` ist eine Hilfe-Angabe ein gewöhnliches Argument | `hilfeVerlangt` ohne Halt an `--` | `TestParseKeineHilfe`, `TestParseEndeDerOptionen` |
 | `--` beendet die Optionen am Leser | `lies` ohne `endeDerOptionen` | `TestParseEndeDerOptionen`, `TestRunEndeDerOptionen` |
-| Hilfe von `replay` nennt die Umgebungsvariablen und ihre Priorität | Satz geändert | `TestLeserHilfe` |
-| Hilfe von `record` nennt die Ausnahme `--output` und `--force` | Ausnahme aus dem Satz genommen | `TestLeserHilfe` |
-| `--output` liest nur die Kommandozeile (Ausnahme der Hilfe) | `--output` aus `PGWIRE_RECORDER_OUTPUT` | `TestLeserHilfe` |
+| Hilfe nennt die Umgebungsvariablen, ohne Ausnahme (F-496) | Ausnahme `außer --output` in den Satz gesetzt | `TestLeserHilfe` |
+| Hilfe nennt, dass ein leerer Wert auf der Kommandozeile ungültig ist (F-497) | Satz entfernt | `TestLeserHilfe` |
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

@@ -10,14 +10,42 @@ import (
 )
 
 // werteJeArt liefert zwei verschiedene gültige Werte je Wertemenge des
-// allgemeinen Lesers und einen ungültigen ("" für eine Wertemenge ohne
-// ungültigen Wert).
+// allgemeinen Lesers und einen ungültigen nicht leeren ("" für eine
+// Wertemenge, die jeden nicht leeren Wert annimmt). Der leere Wert ist in
+// jeder Wertemenge ungültig (LH-FA-17.a).
 func werteJeArt() map[string][3]string {
 	return map[string][3]string{
 		"text":          {"wert-a", "wert-b", ""},
 		"wahrheitswert": {"true", "false", "1"},
 		"dauer":         {"1s", "2m", "5"},
 		"stufe":         {"warn", "debug", "INFO"},
+	}
+}
+
+// tabelle ist je Option von record und replay der Default aus der
+// Optionstabelle in LH-FA-17.a; "" heißt Pflicht.
+func tabelle() map[string]string {
+	return map[string]string{
+		"listen":             "",
+		"upstream":           "",
+		"output":             "",
+		"force":              "false",
+		"input":              "",
+		"fail-on-unconsumed": "false",
+		"shutdown-timeout":   "5s",
+		"log-level":          "info",
+	}
+}
+
+// alleOptionen sind die Namen aller Optionen der Optionstabelle in
+// LH-FA-17.a, gleich welchen Kommandos.
+func alleOptionen() []string {
+	return []string{
+		"listen", "upstream", "output", "force", "format", "record-timing", "record-empty-sessions",
+		"input", "fail-on-unconsumed", "shutdown-timeout", "session-assignment", "user", "database",
+		"continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt",
+		"keep-timing", "timing-mode", "timing-reference", "tls-cert", "tls-key", "allow-plaintext",
+		"upstream-ca", "compare-responses", "config", "log-level",
 	}
 }
 
@@ -41,9 +69,6 @@ func basis(kommando, ohne string) []string {
 			args = append(args, "--"+o.Name+"=pflicht")
 		}
 	}
-	if kommando == "record" {
-		args = append(args, "--output=r.yaml")
-	}
 	return args
 }
 
@@ -51,18 +76,28 @@ func lese(args ...string) (cli.Command, error) {
 	return cli.Parse(args, &bytes.Buffer{})
 }
 
-// Abdeckung: LH-FA-17/Boundary — für jede Option am allgemeinen Leser von
-// record und replay gilt Kommandozeile vor Umgebungsvariable vor Standardwert:
-// Die Umgebungsvariable setzt den Wert wie die Option, die Option geht ihr
-// vor, ohne beide gilt der Standardwert, und eine Pflichtoption ohne beide ist
-// PGR-E2001; eine gesetzte Umgebungsvariable mit ungültigem Wert ist PGR-E2001,
-// auch wenn die Kommandozeile die Option setzt (LH-FA-17.a, SPEC-007).
+// Abdeckung: LH-FA-17/Boundary, LH-FA-17/Negative — für jede Option am
+// allgemeinen Leser von record und replay gilt Kommandozeile vor
+// Umgebungsvariable vor Standardwert: Die Umgebungsvariable setzt den Wert wie
+// die Option, die Option geht ihr vor, ohne beide gilt der Default der
+// Optionstabelle, und eine Pflichtoption ohne beide ist PGR-E2001; eine
+// gesetzte Umgebungsvariable mit ungültigem Wert ist PGR-E2001, auch wenn die
+// Kommandozeile die Option setzt; ein leerer Wert auf der Kommandozeile ist
+// PGR-E2001 und nennt die Option, auch neben gesetzter Umgebungsvariable
+// (LH-FA-17.a, SPEC-007).
 func TestLeserAlleOptionen(t *testing.T) {
 	for _, kommando := range leserKommandos() {
 		for _, o := range cli.Optionen(kommando) {
 			werte, ok := werteJeArt()[o.Art]
 			if !ok {
 				t.Fatalf("%s --%s: Wertemenge %q ohne Testwerte", kommando, o.Name, o.Art)
+			}
+			standard, ok := tabelle()[o.Name]
+			if !ok {
+				t.Fatalf("%s --%s: kein Default aus der Optionstabelle im Test", kommando, o.Name)
+			}
+			if o.Pflicht != (standard == "") {
+				t.Errorf("%s --%s: Pflicht %v gegen die Optionstabelle", kommando, o.Name, o.Pflicht)
 			}
 			a, b, ungueltig := werte[0], werte[1], werte[2]
 			args := basis(kommando, o.Name)
@@ -82,8 +117,8 @@ func TestLeserAlleOptionen(t *testing.T) {
 				if !istUsage(err) || !strings.Contains(err.Error(), "--"+o.Name) {
 					t.Errorf("%s ohne Pflichtoption --%s: %#v, %v", kommando, o.Name, ohne, err)
 				}
-			} else if standard, err2 := lese(append(args, "--"+o.Name+"="+o.Standard)...); err != nil || err2 != nil || ohne != standard {
-				t.Errorf("%s ohne --%s: %#v, %v, erwartet Standard %q: %#v, %v", kommando, o.Name, ohne, err, o.Standard, standard, err2)
+			} else if mitStandard, err2 := lese(append(args, "--"+o.Name+"="+standard)...); err != nil || err2 != nil || ohne != mitStandard {
+				t.Errorf("%s ohne --%s: %#v, %v, erwartet Default %q der Tabelle: %#v, %v", kommando, o.Name, ohne, err, standard, mitStandard, err2)
 			}
 
 			t.Setenv(o.Env, a)
@@ -92,6 +127,10 @@ func TestLeserAlleOptionen(t *testing.T) {
 			}
 			if got, err := lese(append(args, "--"+o.Name+"="+b)...); err != nil || got != mitB {
 				t.Errorf("%s, %s=%s, --%s=%s: %#v, %v, erwartet die Kommandozeile %#v", kommando, o.Env, a, o.Name, b, got, err, mitB)
+			}
+			_, err = lese(append(args, "--"+o.Name+"=")...)
+			if !istUsage(err) || !strings.Contains(err.Error(), o.Name) || strings.Contains(err.Error(), o.Env) || strings.Contains(err.Error(), "Pflichtoption") {
+				t.Errorf("%s, %s=%s, --%s=: erwartet %s mit der Option, erhalten %v", kommando, o.Env, a, o.Name, model.CodeUsage, err)
 			}
 
 			if ungueltig != "" {
@@ -105,12 +144,26 @@ func TestLeserAlleOptionen(t *testing.T) {
 	}
 }
 
+// Abdeckung: LH-FA-17/Negative — ein leerer Wert auf der Kommandozeile ist
+// gesetzt und ungültig, geprüft mit der Kommandozeile vor den
+// Umgebungsvariablen: Die Meldung nennt die Option, weder eine fehlende
+// Pflichtoption noch eine Umgebungsvariable (LH-FA-17.a).
+func TestLeserLeererWert(t *testing.T) {
+	leere(t, "record")
+	t.Setenv("PGWIRE_RECORDER_LISTEN", "127.0.0.1:1")
+	t.Setenv(cli.EnvShutdownTimeout, "x")
+	_, err := lese("record", "--listen=", "--upstream", "h:1", "--output", "r.yaml")
+	if !istUsage(err) || !strings.Contains(err.Error(), "listen") || strings.Contains(err.Error(), "Pflichtoption") || strings.Contains(err.Error(), "PGWIRE_RECORDER_") {
+		t.Fatalf("--listen= neben PGWIRE_RECORDER_LISTEN: erwartet %s mit listen, erhalten %v", model.CodeUsage, err)
+	}
+}
+
 // Abdeckung: LH-FA-17/Boundary — der Name der Umgebungsvariable einer Option ist
 // PGWIRE_RECORDER_ und der Optionsname in Großbuchstaben mit _ statt -; die
 // Optionen stehen in der Reihenfolge der Tabelle in LH-FA-17.a.
 func TestLeserOptionen(t *testing.T) {
 	for kommando, want := range map[string][]string{
-		"record": {"listen", "upstream", "shutdown-timeout", "log-level"},
+		"record": {"listen", "upstream", "output", "force", "shutdown-timeout", "log-level"},
 		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "log-level"},
 	} {
 		var got []string
@@ -131,15 +184,49 @@ func TestLeserOptionen(t *testing.T) {
 	}
 }
 
+// Abdeckung: LH-FA-17/Negative — die Kommandozeile kennt genau die Optionen am
+// allgemeinen Leser: Jede andere Option der Optionstabelle ist bei record und
+// replay eine unbekannte Option (PGR-E2001), mit und ohne Wert, sodass keine
+// Option am Leser vorbei angemeldet ist.
+func TestLeserNurAngemeldete(t *testing.T) {
+	for _, kommando := range leserKommandos() {
+		leere(t, kommando)
+		angemeldet := map[string]bool{}
+		for _, o := range cli.Optionen(kommando) {
+			angemeldet[o.Name] = true
+		}
+		for _, name := range alleOptionen() {
+			if angemeldet[name] {
+				continue
+			}
+			for _, arg := range []string{"--" + name, "--" + name + "=wert"} {
+				_, err := lese(append(basis(kommando, ""), arg)...)
+				if !istUsage(err) || !strings.Contains(err.Error(), "flag provided but not defined") {
+					t.Errorf("%s %s: erwartet unbekannte Option, erhalten %v", kommando, arg, err)
+				}
+			}
+		}
+	}
+}
+
 // Abdeckung: LH-FA-17/Negative — der Leser bricht beim ersten Fehler ab und
-// prüft zuerst die Kommandozeile, dann die Umgebungsvariablen in der
-// Reihenfolge der Tabelle, zuletzt die Pflichtoptionen (LH-FA-17.a *Fehler*).
+// prüft zuerst die Kommandozeile, auch ein unerwartetes Argument, dann die
+// Umgebungsvariablen in der Reihenfolge der Tabelle, zuletzt die
+// Pflichtoptionen (LH-FA-17.a *Fehler*).
 func TestLeserReihenfolge(t *testing.T) {
 	leere(t, "replay")
 	t.Setenv(cli.EnvShutdownTimeout, "5")
 	t.Setenv(cli.EnvLogLevel, "INFO")
 	if _, err := lese("replay", "--listen=x", "--input=r.yaml", "--log-level=trace"); !istUsage(err) || strings.Contains(err.Error(), "Umgebungsvariable") {
 		t.Errorf("Kommandozeile vor Umgebung: %v", err)
+	}
+	for _, args := range [][]string{
+		{"replay", "--listen=x", "--input=r.yaml", "zusatz"},
+		{"replay", "--listen=x", "--input=r.yaml", "--", "zusatz"},
+	} {
+		if _, err := lese(args...); !istUsage(err) || !strings.Contains(err.Error(), `unerwartetes Argument "zusatz"`) {
+			t.Errorf("%q: unerwartetes Argument vor Umgebung: %v", args, err)
+		}
 	}
 	_, err := lese("replay", "--listen=x", "--input=r.yaml")
 	if !istUsage(err) || !strings.Contains(err.Error(), cli.EnvShutdownTimeout) || strings.Contains(err.Error(), cli.EnvLogLevel) {
@@ -172,26 +259,39 @@ func TestLeserFremdeUmgebung(t *testing.T) {
 	}
 }
 
-// Die Hilfe von record und replay nennt die Umgebungsvariablen der Optionen und
-// ihre Priorität; bei record nimmt sie --output und --force aus, die nur die
-// Kommandozeile liest (LH-FA-01.a).
+// Die Hilfe von record und replay nennt die Umgebungsvariablen der Optionen, ihre
+// Priorität und dass ein leerer Wert auf der Kommandozeile ungültig ist, ohne
+// Ausnahme (LH-FA-01.a). Bei record gilt das auch für --output und --force:
+// PGWIRE_RECORDER_OUTPUT allein setzt --output, PGWIRE_RECORDER_FORCE=ja und
+// --force=1 sind PGR-E2001 (LH-FA-17.a).
 func TestLeserHilfe(t *testing.T) {
-	for kommando, ausnahme := range map[string]bool{"record": true, "replay": false} {
+	for _, kommando := range leserKommandos() {
 		text := strings.Join(strings.Fields(hilfe(t, kommando, "--help")), " ")
-		if !strings.Contains(text, "über ihre Umgebungsvariable setzbar: PGWIRE_RECORDER_ und der Name in Großbuchstaben mit _ statt -") || !strings.Contains(text, "die Kommandozeile geht ihr vor") {
-			t.Errorf("%s: Hilfe ohne Umgebungsvariablen:\n%s", kommando, text)
+		for _, satz := range []string{
+			"Jede Option ist auch über ihre Umgebungsvariable setzbar: PGWIRE_RECORDER_ und der Name in Großbuchstaben mit _ statt -",
+			"die Kommandozeile geht ihr vor",
+			"Ein leerer Wert auf der Kommandozeile ist ungültig",
+		} {
+			if !strings.Contains(text, satz) {
+				t.Errorf("%s: Hilfe ohne %q:\n%s", kommando, satz, text)
+			}
 		}
-		if strings.Contains(text, "außer --output und --force") != ausnahme {
-			t.Errorf("%s: Ausnahme --output und --force: %v erwartet:\n%s", kommando, ausnahme, text)
+		if strings.Contains(text, "außer") {
+			t.Errorf("%s: Hilfe nennt eine Ausnahme:\n%s", kommando, text)
 		}
 	}
 	leere(t, "record")
-	t.Setenv("PGWIRE_RECORDER_OUTPUT", "r.yaml")
-	t.Setenv("PGWIRE_RECORDER_FORCE", "ungültig")
-	if _, err := lese("record", "--listen=x", "--upstream=pg:5432"); !istUsage(err) || !strings.Contains(err.Error(), "--output") {
-		t.Errorf("record liest --output aus der Umgebung: %v", err)
+	t.Setenv("PGWIRE_RECORDER_OUTPUT", "aus-der-umgebung.yaml")
+	cmd, err := lese("record", "--listen=x", "--upstream=pg:5432")
+	if err != nil || cmd.Record.Output != "aus-der-umgebung.yaml" {
+		t.Errorf("PGWIRE_RECORDER_OUTPUT allein: %#v, %v", cmd, err)
 	}
-	if _, err := lese("record", "--listen=x", "--upstream=pg:5432", "--output=r.yaml"); err != nil {
-		t.Errorf("record liest --force aus der Umgebung: %v", err)
+	t.Setenv("PGWIRE_RECORDER_FORCE", "ja")
+	if _, err := lese("record", "--listen=x", "--upstream=pg:5432", "--output=r.yaml", "--force"); !istUsage(err) || !strings.Contains(err.Error(), "PGWIRE_RECORDER_FORCE") {
+		t.Errorf("PGWIRE_RECORDER_FORCE=ja: %v", err)
+	}
+	t.Setenv("PGWIRE_RECORDER_FORCE", "")
+	if _, err := lese("record", "--listen=x", "--upstream=pg:5432", "--output=r.yaml", "--force=1"); !istUsage(err) {
+		t.Errorf("--force=1: %v", err)
 	}
 }

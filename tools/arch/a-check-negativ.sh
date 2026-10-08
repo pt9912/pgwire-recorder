@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # a-check-negativ — Gegenprobe des Architektur-Gates in Kopien des Arbeitsbaums.
-# Der Arbeitsbaum selbst bleibt unberuehrt. Zehn Faelle:
+# Der Arbeitsbaum selbst bleibt unberuehrt. Zwoelf Faelle:
 #
 #   1. internal/hexagon/model importiert pgproto3      → a-check meldet die Datei
 #   2. internal/adapters/driven/recording importiert
@@ -20,12 +20,15 @@
 #      go.yaml.in/yaml/v3                               → a-check meldet tech-leak
 #  10. internal/adapters/driving/pgwire importiert
 #      gopkg.in/yaml.v3                                 → a-check meldet tech-leak
+#  11. internal/hexagon/model importiert gopkg.in/yaml.v3 → a-check meldet die Datei
+#  12. internal/adapters/driven/postgres importiert
+#      go.yaml.in/yaml/v3                               → a-check meldet tech-leak
 #
 # Die Faelle 4 und 5 halten fest, dass beide PGWire-Adapter beide Bibliotheken
 # nutzen duerfen (ADR-0010); die Faelle 1 bis 3, dass ein anderer Ort abgelehnt
-# wird. Die Faelle 6 bis 10 gelten den beiden YAML-Modulpfaden (ADR-0027,
-# ADR-0036): Fall 8 laesst sie im CLI-Adapter zu, die Faelle 6, 7, 9 und 10
-# lehnen sie im Domain Model, im Postgres-Adapter und je Modulpfad im
+# wird. Die Faelle 6 bis 12 gelten den beiden YAML-Modulpfaden (ADR-0027,
+# ADR-0036): Fall 8 laesst sie im CLI-Adapter zu, die Faelle 6, 7 und 9 bis 12
+# lehnen jeden Modulpfad im Domain Model, im Postgres-Adapter und im
 # PGWire-Adapter ab. Andere Regeln von .a-check.yml prueft die Gegenprobe nicht.
 #
 # Ausgang: 0, wenn alle Faelle das erwartete Ergebnis liefern, sonst 1.
@@ -88,6 +91,10 @@ fall pgwire-yaml internal/adapters/driving/pgwire/negativprobe.go pgwire \
   "go.yaml.in/yaml/v3" rot "tech-leak"
 fall pgwire-gopkg-yaml internal/adapters/driving/pgwire/negativprobe.go pgwire \
   "gopkg.in/yaml.v3" rot "tech-leak"
+fall model-gopkg-yaml internal/hexagon/model/negativprobe.go model \
+  "gopkg.in/yaml.v3" rot "internal/hexagon/model/negativprobe.go"
+fall postgres-yamlin internal/adapters/driven/postgres/negativprobe.go postgres \
+  "go.yaml.in/yaml/v3" rot "tech-leak"
 
 if [ "$fehler" -ne 0 ]; then
   exit 1

@@ -564,7 +564,10 @@ Die Einstellungen lassen sich über Optionen, über Umgebungsvariablen und über
 Konfigurationsdatei festlegen. Ausnahmen sind das Passwort (nur über die Umgebung
 oder einen Platzhalter in der Datei) und die benannten Verbindungen (nur in der
 Datei). Gilt dieselbe Einstellung mehrfach, setzt sich das Argument vor der
-Umgebungsvariablen vor der Konfigurationsdatei vor dem Standardwert durch.
+Umgebungsvariablen vor der Konfigurationsdatei vor dem Standardwert durch. Ein leerer
+Wert auf der Kommandozeile (`--listen=`) ist ein ungültiger Aufruf (`PGR-E2001`),
+auch wenn die Umgebungsvariable gesetzt ist; nur eine leere Umgebungsvariable gilt als
+nicht gesetzt.
 
 | Option | Betriebsart | Umgebungsvariable | Standard |
 |---|---|---|---|
