@@ -477,6 +477,29 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   Log-Zeilen prüfen die Integrationstests nach `warteEnde`, die Bootstrap-Tests nach dem Ende
   von `Run`; vor dem zweiten Signal wartet `TestE2ERecordZweitesSignal` und
   `TestE2ERecordDrittesSignal` mit Frist, bis der Port ablehnt (`warteAbgelehnt`).
+- **Nacharbeit zum Review** (`docs/reviews/2026-10-08-review-slice-v1-abschluss-herunterfahren.md`;
+  Code `77e203c`, Handbuch `38c4a9c`; Mutanten an Kopien des Arbeitsbaums vor `77e203c`,
+  Weg wie oben):
+
+  | ID | Befund | Zusage | Mutation | roter Test |
+  |---|---|---|---|---|
+  | H1 | F-485 (Review-Mutant M-hang) | Test wartet mit Frist auf `OpenSession` | `handle` kehrt nach der Startnachricht zurück | `TestRecordZwangsendeImAufbau`, `TestRecordZwangsendeBrichtAufbauAb`: „OpenSession nach der Startnachricht bleibt binnen 2s aus“ (2,00 s statt Hänger) |
+  | H2 | F-485 | Test wartet mit Frist auf `CloseSession` | `Terminate` beendet die Session nicht | `TestRecordZwangsendeNachBemerktemEnde`: „CloseSession nach Terminate bleibt binnen 2s aus“ |
+  | H3 | F-485 | Test wartet mit Frist auf `Shutdown` | Replay fragt `Shutdown` nicht | `TestReplayZwangsendeWaehrendShutdown`: „Shutdown nach dem Ende von ctx bleibt binnen 2s aus“ |
+  | H4 | F-485 | Test wartet mit Frist, bis die Anfrage den Upstream erreicht | die wartende Anfrage hält vor dem Upstream an | `TestRecordZwangsendeEinfacheAnfrage`: „Query erreicht den Upstream nicht binnen 2 s“ |
+  | M1 | F-487 | Grund „nicht unterstützte Interaktion“ bei abgeschlossenen Interaktionen | Text des Falls ohne abgeschlossene Interaktion | `TestRecordZwangsendeNichtUnterstuetzt` |
+  | M2 | F-486 | ein anderer Fehler als `PGR-E4006` beim Zwangsende wird gemerkt und geloggt | Zweig `r.s.note(err)` entfernt | `TestRecordZwangsendeAndererFehler` (erster Fehler leer) |
+  | M3 | F-486 | ein anderer Fehler wird dem Client nicht zugestellt | jeder Fehler zugestellt | `TestRecordZwangsendeAndererFehler` (ErrorResponse mit `PGR-E3001`) |
+  | M11 | F-490, `de79b71` | führende Nullen vor einer Einheit erlaubt | `dauerForm` ohne führende Nullen | `TestParseShutdownTimeoutWerte` (`05s`, `00s` abgelehnt) |
+
+  Ein erster Anlauf zu H4 (Bedingung auf die Session-Kennung) traf schon die vorbereitende
+  Anfrage in der Hilfsfunktion `session` und hing dort; Lauf abgebrochen, Container und Kopie
+  entfernt, der Mutant danach auf das SQL der wartenden Anfrage gesetzt. F-488: Handbuch in
+  `38c4a9c` enger gefasst (Bedingung für `PGR-E4006` und Exit-Code 4; Container im Replay nur
+  als Hinweis zur Wahl der Frist). Läufe am Stand `38c4a9c`: `make test` grün, `make lint`
+  0 Befunde, `make abdeckung-check` grün, `make docs-check` 0 Befunde; `make gates` grün
+  (Exit 0, darin `make test-integration` grün und `make a-check` 0 Befunde) am Code von
+  `38c4a9c`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -512,26 +535,3 @@ Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu; keine neue L
 dem Code.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
-- **Nacharbeit zum Review** (`docs/reviews/2026-10-08-review-slice-v1-abschluss-herunterfahren.md`;
-  Code `77e203c`, Handbuch `38c4a9c`; Mutanten an Kopien des Arbeitsbaums vor `77e203c`,
-  Weg wie oben):
-
-  | ID | Befund | Zusage | Mutation | roter Test |
-  |---|---|---|---|---|
-  | H1 | F-485 (Review-Mutant M-hang) | Test wartet mit Frist auf `OpenSession` | `handle` kehrt nach der Startnachricht zurück | `TestRecordZwangsendeImAufbau`, `TestRecordZwangsendeBrichtAufbauAb`: „OpenSession nach der Startnachricht bleibt binnen 2s aus“ (2,00 s statt Hänger) |
-  | H2 | F-485 | Test wartet mit Frist auf `CloseSession` | `Terminate` beendet die Session nicht | `TestRecordZwangsendeNachBemerktemEnde`: „CloseSession nach Terminate bleibt binnen 2s aus“ |
-  | H3 | F-485 | Test wartet mit Frist auf `Shutdown` | Replay fragt `Shutdown` nicht | `TestReplayZwangsendeWaehrendShutdown`: „Shutdown nach dem Ende von ctx bleibt binnen 2s aus“ |
-  | H4 | F-485 | Test wartet mit Frist, bis die Anfrage den Upstream erreicht | die wartende Anfrage hält vor dem Upstream an | `TestRecordZwangsendeEinfacheAnfrage`: „Query erreicht den Upstream nicht binnen 2 s“ |
-  | M1 | F-487 | Grund „nicht unterstützte Interaktion“ bei abgeschlossenen Interaktionen | Text des Falls ohne abgeschlossene Interaktion | `TestRecordZwangsendeNichtUnterstuetzt` |
-  | M2 | F-486 | ein anderer Fehler als `PGR-E4006` beim Zwangsende wird gemerkt und geloggt | Zweig `r.s.note(err)` entfernt | `TestRecordZwangsendeAndererFehler` (erster Fehler leer) |
-  | M3 | F-486 | ein anderer Fehler wird dem Client nicht zugestellt | jeder Fehler zugestellt | `TestRecordZwangsendeAndererFehler` (ErrorResponse mit `PGR-E3001`) |
-  | M11 | F-490, `de79b71` | führende Nullen vor einer Einheit erlaubt | `dauerForm` ohne führende Nullen | `TestParseShutdownTimeoutWerte` (`05s`, `00s` abgelehnt) |
-
-  Ein erster Anlauf zu H4 (Bedingung auf die Session-Kennung) traf schon die vorbereitende
-  Anfrage in der Hilfsfunktion `session` und hing dort; Lauf abgebrochen, Container und Kopie
-  entfernt, der Mutant danach auf das SQL der wartenden Anfrage gesetzt. F-488: Handbuch in
-  `38c4a9c` enger gefasst (Bedingung für `PGR-E4006` und Exit-Code 4; Container im Replay nur
-  als Hinweis zur Wahl der Frist). Läufe am Stand `38c4a9c`: `make test` grün, `make lint`
-  0 Befunde, `make abdeckung-check` grün, `make docs-check` 0 Befunde; `make gates` grün
-  (Exit 0, darin `make test-integration` grün und `make a-check` 0 Befunde) am Code von
-  `38c4a9c`.
