@@ -397,7 +397,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Drei Paarungen:** Anker: Der Lerneintrag ist eine benannte Spec-Lücke, keine
   verkörperte Regel, deshalb steht kein `liegt in`. Der Herkunfts-Anker
   `seit slice-harness-blackbox-einstieg` steht an der Adresse von V-88,
-  `grep -n "seit slice-harness-blackbox-einstieg" docs/plan/planning/next/slice-v1-abschluss-betrieb.md`
+  `grep -n "seit slice-harness-blackbox-einstieg" docs/plan/planning/done/slice-v1-abschluss-betrieb.md`
   findet ihn in §6. Folge-Slice: `slice-v1-abschluss-betrieb`,
   `slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`,
   `slice-harness-abdeckung-gate` und `slice-harness-coverage` liegen in `open/`,
