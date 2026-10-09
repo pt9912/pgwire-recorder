@@ -35,7 +35,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** `make docs-check` meldet eine Lastenheft-Kennung (Präfix `LH-` mit Klasse und
 Nummer) und eine Kennung des Adaptions-Blocks (Präfix `MR-` mit drei Ziffern) ohne Link als
-Befund (`id-unlinked`), der lebende Bestand trägt beide als Links, und der Block *Strenges
+Befund (`id-unlinked`), der lebende Bestand trägt beide als Links (ADRs und Nutzer- und
+Wartungs-Doku vorab durch `slice-harness-lh-links-bestand`), und der Block *Strenges
 Doc-Gate* der Workflow-Commands sagt genau dieses Verhalten zu.
 
 **Sendung aus `slice-harness-d-check-v0-85`** (`AGENTS.md` §3.13; Entscheidung des Nutzers
@@ -58,6 +59,12 @@ vom 2026-10-09 *DoD berichtigen + eigener Slice*):
   `.claude/commands/close-welle.md` sagte Link-Pflicht für `LH-`, `ADR-` und `MR-` zu.
   Der Geber fasst ihn auf das heute aktive Verhalten (sein DoD-Punkt 1, `AGENTS.md` §3.11);
   dieser Slice zieht ihn auf das Verhalten nach, das er liefert.
+
+**Geschnitten am 2026-10-09** (Planner, Review F-556 zu `slice-harness-d-check-v0-85`): Mit
+der Schichtteilung in §8 berührte der Bestand in ADRs und in Nutzer- und Wartungs-Doku eine
+dritte und vierte Schicht neben Spezifikation und Harness. Ihn verlinkt vorab
+`slice-harness-lh-links-bestand` (Sendung dort in §1 und DoD mit dieser Kennung); dieser
+Slice startet erst, wenn jener in `done/` liegt (§4).
 
 **Messung des Planners** (2026-10-09, Stand `825b71e`, Kopie ohne `.git` im Scratchpad,
 d-check `v0.85.0` mit dem Digest aus `d-check.mk`; ein zweites `ids`-Muster vor dem für `ADR-`,
@@ -96,8 +103,12 @@ welle-v1-abschluss, die dann in `done/` liegen. Gemessen wird beim Start neu (§
   `[links, anchors, ids, matrix, spans]`.
 - Ein eigenes Gegenproben-Ziel für das Doku-Gate in `harness/mk/` — ein anderer Vorgang
   (neues Gate-Werkzeug); die Gegenprobe dieses Slice ist ein Beleg in §7 wie beim Geber.
+- Lastenheft- und MR-Kennungen in den ADRs und in der Nutzer- und Wartungs-Doku
+  (`docs/user/` außer den Abdeckungstabellen, `docs/maintainer/`) als Links schreiben —
+  Schicht-Abgrenzung: Entscheidungen und Nutzer- und Wartungs-Doku sind eigene Schichten
+  (§8); sie verlinkt vorab `slice-harness-lh-links-bestand`.
 - Produkt-Code und Tests unter `internal/` und `test/` — Schicht-Abgrenzung: Der Slice ändert
-  Gate-Konfiguration und Dokumentation.
+  Spezifikation und Harness (§8); Pläne und Roadmap trägt er als Planung mit.
 
 ## 2. Definition of Done
 
@@ -116,8 +127,10 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       nicht ausgenommenen Datei sind je rot (`id-unlinked`), dieselben als Link und in einer
       ausgenommenen Datei grün, und je entschiedene Randform aus §6 ein Fall.
 - [ ] **Bestand verlinkt:** Jede blanke Lastenheft- und MR-Kennung in den gescannten, nicht
-      ausgenommenen Dateien ist ein Link auf ihre Definition; `make docs-check` meldet 0
-      Befunde mit den Mustern aus Punkt 1.
+      ausgenommenen Dateien unter `spec/`, `harness/`, in lebenden Plänen und in der Roadmap
+      ist ein Link auf ihre Definition; ADRs und Nutzer- und Wartungs-Doku verlinkt
+      `slice-harness-lh-links-bestand` vorab. `make docs-check` meldet 0 Befunde mit den
+      Mustern aus Punkt 1.
 - [ ] **Aussage über das Gate** (Nebenbefund aus `slice-harness-d-check-v0-85`): Der Block
       *Strenges Doc-Gate* in `.claude/commands/implement-slice.md`,
       `.claude/commands/plan-welle.md` und `.claude/commands/close-welle.md` sagt die
@@ -144,22 +157,24 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `spec/spezifikation.md` §11 | update | neue Stelle: Linkpflicht der Kennungen im Doku-Gate mit den Randformen aus §6 (Architect, vor dem Code) |
 | `.d-check.yml` | update | `ids`-Muster für Lastenheft- und MR-Kennungen nach der Spezifikation; Kommentare über `ids` und die Klasse `adaptionsblock` auf den gemessenen Stand |
-| gescannte, nicht ausgenommene `.md` (Spezifikation, lebende Pläne, Roadmap, ADRs, `docs/maintainer/`, `harness/`) | update | blanke Kennungen als Links; mechanisch, keine Aussage ändert sich |
+| gescannte, nicht ausgenommene `.md` unter `spec/`, `harness/`, lebende Pläne, Roadmap | update | blanke Kennungen als Links; mechanisch, keine Aussage ändert sich. ADRs und Nutzer- und Wartungs-Doku: `slice-harness-lh-links-bestand` |
 | `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* auf das gelieferte Verhalten |
 | dieser Plan, §7 | update | Messung beim Start, Gegenprobe, Läufe |
 
-- Eine angenommene ADR wird nicht inhaltlich überschrieben (`AGENTS.md` §3.5); ein Link um
-  eine schon genannte Kennung ändert keine Aussage. Ob das für ADRs mit Status `Accepted`
-  trägt oder sie auszunehmen sind, ist Randform (§6).
+- Eine angenommene ADR wird nicht inhaltlich überschrieben (`AGENTS.md` §3.5). Ob ein Link
+  um eine schon genannte Kennung dort zulässig ist, entscheidet der Nutzer vor
+  `slice-harness-lh-links-bestand`; lautet die Antwort nein, ist das Ausnehmen der ADRs
+  Randform dieses Slice (§6).
 
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): welle-v1-abschluss liegt in `done/`, und
+**Start** (`next` → `in-progress`): welle-v1-abschluss liegt in `done/`,
 `slice-harness-d-check-v0-85` liegt in `done/` (er liefert den Pin und die enge Fassung des
-Blocks *Strenges Doc-Gate*, die dieser Slice erweitert); WIP-Limit 1. Platz in der
+Blocks *Strenges Doc-Gate*, die dieser Slice erweitert), und `slice-harness-lh-links-bestand`
+liegt in `done/` (ADRs und Nutzer- und Wartungs-Doku verlinkt); WIP-Limit 1. Platz in der
 Harness-Reihe nach den Wellen (Drift-Log der Roadmap vom 2026-10-08): an ihrem Ende, nach
 `slice-harness-mutation`; ein Vorziehen entscheidet der Nutzer beim Übergang `open` → `next`.
 Beim Start misst der Implementer die Tabelle aus §1 neu und trägt sie in §7 ein.
@@ -171,7 +186,9 @@ Beim Start misst der Implementer die Tabelle aus §1 neu und trägt sie in §7 e
   (Richtwert 400), oder der Architect entscheidet, dass die Abdeckungstabellen Links tragen
   müssen (dritte Schicht: Generator und Test-Deklarationen). Schnitt dann: Muster und
   Gegenprobe mit den Ausnahmen bleiben hier, der Bestand außerhalb der Spezifikation oder
-  der Generator wird ein eigener Slice.
+  der Generator wird ein eigener Slice. Ebenso, wenn die Messung beim Start Treffer in ADRs
+  oder in Nutzer- und Wartungs-Doku findet, die seit `slice-harness-lh-links-bestand` neu
+  entstanden sind: Sie gehen an den Planner, nicht in diesen Slice (dritte Schicht).
 - `in-progress` → `open` (blockiert — Carveout?): d-check kann eine entschiedene Randform
   nicht ausdrücken (etwa Ausnahmen je Muster oder die Unterpunkt-Form der
   Lastenheft-Kennung); dann zuerst die Klärung mit dem Nutzer — Change Request an d-check
@@ -202,7 +219,8 @@ Spezifikation §11, vom Architect; offen sind heute alle:
 - **Ausnahmen:** welche Pfade (`exempt-paths` je Muster, nur bei `always` dokumentiert —
   die Messung in §1 nahm sie auch bei `prose` an; zu belegen): Zeitdokumente
   (`docs/reviews/**`, `done/**`, `observations/**`), die erzeugten Abdeckungstabellen
-  `docs/user/abdeckung-*.md`, angenommene ADRs.
+  `docs/user/abdeckung-*.md`, angenommene ADRs (nur, wenn der Nutzer vor
+  `slice-harness-lh-links-bestand` Links dort ablehnt).
 - **Unterpunkt-Form:** eine Lastenheft-Kennung mit Unterpunkt (Form `.a`) — fängt das Muster
   nur den Stamm, und worauf zeigt der Link (Datei oder Anker der Anforderung)?
 - **Datei der Definition:** `spec/lastenheft.md` und `harness/conventions.md` nennen ihre
@@ -278,11 +296,31 @@ unter `evidence/`). Treffer:
   Commands; daher die Spec-Zeile in §3.
 - `BEO-REPO/slice-waechst-durch-uebernahmen` (3×, verkörpert) und
   `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (5×, verkörpert) — dieser Slice ist Nehmer
-  einer Sendung (§1). **Nachgezählt mit der Sendung** (`AGENTS.md` §3.13): drei
-  Liefer-Punkte (Muster mit Gegenprobe, Bestand, Aussage über das Gate), zwei Schichten
-  (Gate-Konfiguration `.d-check.yml`; Dokumentation: Spezifikation, Pläne, Commands); die
-  Abdeckungstabellen samt Generator bleiben draußen (§1), sonst wäre es eine dritte Schicht.
+  einer Sendung (§1). **Nachgezählt mit der Sendung** (`AGENTS.md` §3.13), nach der
+  Schichtteilung unten neu am 2026-10-09 (Review F-556): Die Zählung beim Anlegen
+  (`dfb7e88`) fasste Spezifikation, Pläne und Commands zu „Dokumentation“ zusammen und kam
+  auf zwei Schichten; nach der Teilung, die auch `slice-harness-d-check-v0-85` zählt, waren
+  es vier (Spezifikation; Harness: `.d-check.yml` und Commands; Entscheidungen; Nutzer- und
+  Wartungs-Doku). Deshalb geschnitten (§1): Nach dem Schnitt drei Liefer-Punkte (Muster mit
+  Gegenprobe, Bestand, Aussage über das Gate) und zwei Schichten (Spezifikation: neue Stelle
+  in §11 und Links; Harness: `.d-check.yml`, Commands, Links in `harness/`); Pläne und
+  Roadmap sind Planung. Die Abdeckungstabellen samt Generator bleiben draußen (§1), sonst
+  kämen die Abdeckungs-Deklarationen der Tests unter `internal/` als weitere Schicht hinzu. Der abgeschnittene Teil,
+  `slice-harness-lh-links-bestand`, ist dort nachgezählt (§8).
 
 Keiner der Einträge erreicht mit diesem Plan neu die Schwelle 3×.
+
+**Schichtteilung** (gleich in `slice-harness-d-check-v0-85`, `slice-harness-lh-links-bestand`
+und diesem Slice; festgelegt am 2026-10-09 nach Review F-556): Eine Schicht im Sinn von
+Baseline-Regelwerk `modul-05-planning-harness.md` §Ziel-Form: Slice ist ein Bereich mit
+eigenem Maßstab im Review — die Spezifikation (`spec/`) · die Entscheidungen
+(`docs/plan/adr/`) · der Harness (Gate-Konfiguration und Gate-Werkzeuge, `Dockerfile`,
+Agenten-Anweisungen: `AGENTS.md`, Skills, Commands, `harness/`) · die Nutzer- und
+Wartungs-Doku (`docs/user/`, `docs/maintainer/`) · im Produkt-Code je Schicht des Hexagons,
+ebenso deren Tests. So zählten `slice-lastenheft-pruefbarkeit` (Harness und Lastenheft mit
+Spezifikation als verschiedene Schichten) und `slice-harness-lint-werkzeug` (Harness mit
+`Dockerfile` als eine Schicht, Tests je Schicht des Hexagons). Keine Schicht ist die
+Planung (Pläne, Roadmap, Register): In ihr schreibt jeder Slice (eigener Plan, Sendungen,
+Drift-Log); was sie an Umfang trägt, misst das dritte Kriterium, eine Review-Sitzung.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

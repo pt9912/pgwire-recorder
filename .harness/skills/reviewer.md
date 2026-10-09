@@ -73,7 +73,7 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   MEDIUM, gegen `AGENTS.md` §3.13 (seit slice-lint-bestand-kern-driven)
 - **Nehmer nicht nachgezählt** — der Diff trägt eine Sendung in einen Nehmer ein (§1 oder
   DoD des Nehmers), und §8 des Nehmers nennt die Zählung seiner Liefer-Punkte und
-  Schichten mit der Sendung nicht, oder der Nehmer liegt mit ihr über drei Liefer-Punkten
+  Schichten mit der Sendung nicht im selben Commit, oder der Nehmer liegt mit ihr über drei Liefer-Punkten
   oder zwei Schichten. Gezählt wird nach Baseline-Regelwerk `modul-05-planning-harness.md`
   §Ziel-Form: Slice; mindestens MEDIUM, gegen `AGENTS.md` §3.13 *Nachzählen beim
   Eintragen* (seit slice-v1-abschluss-einspielen)
