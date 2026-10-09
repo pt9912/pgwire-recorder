@@ -53,7 +53,11 @@ dessen §6) nach dem zweiten Schnitt vom 2026-10-09 (Option O3 des Architect, do
   Exit-Code 4; `--allow-recorded-errors` lässt aufgezeichnete Fehler zu“ (Punkt 2) und „mit
   `--finish-session-on-interrupt` nach der laufenden Session; der Exit-Code ist 0 ohne
   vorherigen Fehler, sonst 4“ (Punkt 3);
-- die Randformen [L] aus §6 jenes Slice (§6 unten).
+- die Randformen [L] aus §6 jenes Slice (§6 unten);
+- aus §7 jenes Slice (*Beobachtungen für Review und Closure*, Befund V-129 aus dessen
+  Verifikation) die Frage, wie der Exit-Code des abbrechenden Fehlers nach einem früheren
+  `PGR-E4004` entsteht, wenn der Bootstrap den Exit-Code aus der ersten Meldung bildet (§4
+  *Start*, §6 *Reihenfolge der Zeilen `error`* und Risiken unten).
 
 Dieser Slice ist auch die Adresse der Abgrenzung *Einspielen selbst und Fehlersemantik der
 Serverfehler* von `slice-v1-abschluss-antwortvergleich` (dort §1), soweit sie die drei
@@ -143,7 +147,14 @@ Abbruchsignal). Schritt 9 der Reihenfolge in §5 von
 [welle-v1-abschluss](../welle-v1-abschluss.md) (zweiter Schnitt vom 2026-10-09). Die
 Randformen aus §6 entschied der Architect am 2026-10-09 vor dem Code in `LH-FA-20.a`; vor dem
 ersten Code-Commit prüft er die Liste gegen den gelieferten Kern, besonders gegen die Form,
-in der der Kern Optionen und Signale an den Play-Service reicht (`AGENTS.md` §3.12).
+in der der Kern Optionen und Signale an den Play-Service reicht (`AGENTS.md` §3.12). Dazu prüft er
+vor dem Code die Randform *Reihenfolge der Zeilen `error`* (§6), übergeben von
+`slice-v1-abschluss-einspielen` (dort §7, *Beobachtungen für Review und Closure*; V-129 aus
+dessen Verifikation): Der gelieferte Bootstrap bildet den Exit-Code aus der **ersten** Meldung
+des Fehlers, den der Play-Service liefert, und schreibt die Zeilen `error` erst nach dem
+Einspielen, in dieser Reihenfolge. `LH-FA-20.a` *Exit-Code* verlangt nach einem früheren
+`PGR-E4004` den Code des **abbrechenden** Fehlers (4 oder 6); Reihenfolge und Zeitpunkt der
+Zeilen `error` legen weder `LH-FA-20.a` *Meldungen* noch `LH-FA-14.a` fest.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -154,6 +165,12 @@ in der der Kern Optionen und Signale an den Play-Service reicht (`AGENTS.md` §3
 - `in-progress` → `open` (blockiert — Carveout?): Der gelieferte Kern entscheidet das Ende
   nach einem Signal außerhalb des Play-Service, sodass das Session-Ende dort nicht
   entschieden werden kann; dann zuerst die Entscheidung des Architect, wo es liegt.
+- `in-progress` → `next` (dritte Schicht, Bedingung oben): Die Entscheidung zur Randform
+  *Reihenfolge der Zeilen `error`* (§6) lässt sich nur mit Code im Bootstrap umsetzen, etwa
+  weil die Zeilen in zeitlicher Reihenfolge stehen müssen und der Exit-Code dann nicht mehr
+  aus der ersten Meldung folgt. Schnitt dann: `--continue-on-error` mit dem Exit-Code nach
+  einem früheren `PGR-E4004` als eigener Slice mit Bootstrap und Play-Service;
+  `--allow-recorded-errors` und `--finish-session-on-interrupt` sind ohne ihn lieferbar.
 
 ## 5. Closure-Trigger
 
@@ -174,7 +191,8 @@ dasteht.
 `slice-v1-abschluss-einspielen`, geprüft vom Architect am 2026-10-09 vor dem ersten
 Code-Commit jenes Slice und für den zweiten Schnitt markiert. Neu entschieden heißt: im Commit
 jener Prüfung in `LH-FA-20.a`, sonst an der genannten Stelle. Die Teile mit [L·E] liefert
-`slice-v1-abschluss-einspielen-extended` (§1). Offen ist keine.
+`slice-v1-abschluss-einspielen-extended` (§1). Offen ist eine: *Reihenfolge der Zeilen
+`error`*, übergeben bei der Closure von `slice-v1-abschluss-einspielen`.
 
 - **Optionen der Laufsteuerung** [L] — am allgemeinen Leser, Abschnitt `play:`; bestätigt,
   `LH-FA-17.a` und `LH-FA-20.a` (Optionstabelle).
@@ -195,6 +213,12 @@ jener Prüfung in `LH-FA-20.a`, sonst an der genannten Stelle. Die Teile mit [L�
   Tabellenzeile *Abbruchsignal*.
 - **Exit-Code beim Abbruch nach einem früheren `PGR-E4004`** [L] — der des abbrechenden
   Fehlers (4 oder 6); neu entschieden in `LH-FA-20.a` *Exit-Code*.
+- **Reihenfolge der Zeilen `error`** [L] — übergeben von `slice-v1-abschluss-einspielen`
+  (dort §7, V-129 aus dessen Verifikation), **offen**: In welcher Reihenfolge und zu welchem
+  Zeitpunkt `play` die Zeilen `error` schreibt, wenn nach einem oder mehreren `PGR-E4004` ein
+  Fehler abbricht, und wie der Bootstrap dann den Exit-Code des abbrechenden Fehlers bildet
+  (`LH-FA-20.a` *Exit-Code* gegen *Meldungen* und `LH-FA-14.a`). Der Architect entscheidet sie
+  vor dem ersten Code-Commit in `LH-FA-20.a` (§4 *Start*); bis dahin beginnt kein Code.
 - **Ablösung des Stands *unbekannt*** — bis zu diesem Slice sind die drei Optionen bei `play`
   unbekannt, ohne eigene Regel (§6 von `slice-v1-abschluss-einspielen`, *Optionen der
   Laufsteuerung*); dieser Slice ändert die Tests des Kerns dazu, die Spezifikation nicht.
@@ -203,6 +227,11 @@ jener Prüfung in `LH-FA-20.a`, sonst an der genannten Stelle. Die Teile mit [L�
 
 - Der gelieferte Kern reicht Optionen oder Signale nicht so an den Play-Service, dass dieser
   Slice ohne Änderung im Bootstrap auskommt; dann berührt er drei Schichten (§1, §4) —
+  **Ausgang:** offen bis Closure.
+- Die Entscheidung zur Randform *Reihenfolge der Zeilen `error`* verlangt Code im Bootstrap
+  (übergeben von `slice-v1-abschluss-einspielen`, V-129): Ohne ihn endet `--continue-on-error`
+  nach `PGR-E4004` und einem abbrechenden `PGR-E6001` mit Exit-Code 4 statt 6, oder der
+  Slice trifft seinen Ausschluss *Code im Bootstrap* und die Rückführung in §4 —
   **Ausgang:** offen bis Closure.
 - Ein Signal zwischen einer Fehlerantwort und der Fortsetzung: Der Exit-Code 4 folgt aus der
   Tabellenzeile *Abbruchsignal*, belegt ist er erst mit einem Test, der das Signal genau dort
@@ -254,6 +283,12 @@ unter `evidence/`). Treffer:
   `slice-v1-abschluss-einspielen` zeigt im selben Commit hierher, und
   `slice-v1-abschluss-einspielen-extended` nennt die Teile [L·E] mit der Kennung dieses
   Slice.
+
+Nachgezählt beim Eintragen der Frage aus V-129 (Closure von `slice-v1-abschluss-einspielen`,
+`AGENTS.md` §3.13): Sie ist eine Randform und ein Risiko, kein Liefer-Punkt; DoD-Punkt 1 sagt
+den Exit-Code des abbrechenden Fehlers schon zu. Drei Liefer-Punkte, zwei Schichten
+(CLI-Adapter, Play-Service), solange die Entscheidung ohne Code im Bootstrap auskommt; sonst
+die Rückführung *dritte Schicht* in §4.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
