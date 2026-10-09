@@ -441,6 +441,12 @@ Urteilsgrundlage des Review, kein Sensor prüft ihn; belegbar ist nur der Text
 `baseline-verify: v6.16.0 OK — 54 Dateien`, `d-check: 435 Datei(en) geprüft, 0 Befund(e)`
 mit Digest `c07f1fe6…`, Integrationstests, alle Gegenproben grün.
 
+Letzter Lauf (Verifikation V-136): `make gates` am Stand `6565310` (Nacharbeit nach V-134 bis
+V-137 committet), Arbeitsbaum sauber: Exit 0; darin `baseline-verify: v6.16.0 OK — 54 Dateien`,
+`d-check: 439 Datei(en) geprüft, 0 Befund(e)`, `run-integration-tests: gruen`, je `gruen`
+`a-check-negativ`, `commit-msg-gegenprobe`, `abdeckung-gegenprobe`, `kopf-check-gegenprobe`,
+`lint-gegenprobe`. Der Commit danach trägt nur diesen Absatz.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
