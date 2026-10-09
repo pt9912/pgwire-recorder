@@ -31,8 +31,10 @@ var _ driven.RecordingRepository = YAML{}
 // PGR-E2002; ein Pfad, dessen Zustand sich nicht feststellen lässt, PGR-E3001.
 // Danach legt Prepare im Verzeichnis eine Probedatei an, auch für eine
 // vorhandene Datei mit replace, und schließt und entfernt sie sofort; scheitert
-// einer der drei Schritte, ist das PGR-E3001 mit dem Fehler als Ursache. Ein
-// Verzeichnis legt Prepare nicht an.
+// einer der drei Schritte, ist das PGR-E3001 mit dem Fehler als Ursache.
+// Scheitert das Schließen, entfernt Prepare die Probedatei dennoch; scheitert
+// auch das Entfernen, bleibt sie liegen, und der Fehler des Entfernens folgt
+// als Ursache derselben Meldung. Ein Verzeichnis legt Prepare nicht an.
 func (YAML) Prepare(_ context.Context, path string, replace bool) error {
 	return pruefe(path, replace, betriebssystem())
 }
@@ -54,18 +56,10 @@ func pruefe(path string, replace bool, ops dateiOps) error {
 		return model.Errorf(model.CodeRecordingIO, err, "Verzeichnis von %s nicht beschreibbar", path)
 	}
 	name := probe.Name()
-	return errors.Join(closeErr(ops.schliessen(probe)), removeErr(ops.entfernen(name)))
-}
-
-func closeErr(err error) error {
-	if err != nil {
-		return model.Errorf(model.CodeRecordingIO, err, "Probedatei nicht zu schließen")
+	if err := ops.schliessen(probe); err != nil {
+		return model.Errorf(model.CodeRecordingIO, errors.Join(err, ops.entfernen(name)), "Probedatei nicht zu schließen")
 	}
-	return nil
-}
-
-func removeErr(err error) error {
-	if err != nil {
+	if err := ops.entfernen(name); err != nil {
 		return model.Errorf(model.CodeRecordingIO, err, "Probedatei nicht zu entfernen")
 	}
 	return nil

@@ -156,9 +156,9 @@ dasteht.
   scheitert auch das Entfernen, bleibt sie liegen, und der Fehler des Entfernens folgt als
   Ursache **derselben** Meldung `PGR-E3001` (wie bei der temporären Datei, *Fehlschlag*);
   entschieden in `LH-FA-07.a` *Zielpfad beim Start*, *Verzeichnis* (Architect, 2026-10-09,
-  Randform-Rückgabe des Implementers, §7 Grenze 6). Der Code entfernt schon, meldet beide
-  Fehler aber als zwei gleichrangige Meldungen (`errors.Join` zweier klassifizierter
-  Fehler, `SPEC-034` *Gleichrangige Fehler*) und weicht darin ab; Auftrag in §3.
+  Randform-Rückgabe des Implementers, §7 Grenze 6). Der Code folgt (`pruefe`: der Fehler
+  des Entfernens als Ursache der Meldung des Schließens), der Test ist
+  `TestPrepareProbedateiScheitert` (Fälle `Schliessen`, `Schliessen und Entfernen`; §3).
 - **Weitere Randformen der Probedatei** — akzeptierte Negative, keine eigene Zusage
   (Architect, 2026-10-09): *Belegter Name* — eine Probedatei überschreibt nichts
   (*Übrig gebliebene Datei*); wie oft ein neuer Zufallsteil gezogen wird, sagt
@@ -265,12 +265,21 @@ um eine vorhandene Datei und eine Verknüpfung auf sie mit `--force` und um die 
 (F-537), fügt `TestPrepareProbedateiScheitert` (F-543) und
 `TestWriteAndererFehlerBeimAnlegen` (F-544) hinzu, setzt im Kommentar an `Write` den Verweis
 für die Rechte auf `LH-FA-07.a` *Rechte* (F-542), zieht §1 (Schicht-Abgrenzung: CLI-Adapter
-unverändert, F-540), §3, §6, Handbuch und Abdeckung nach.
+unverändert, F-540), §3, §6, Handbuch und Abdeckung nach. Nach der Entscheidung des
+Architect zur Randform-Rückgabe (`9996a8c`) meldet `pruefe` ein gescheitertes Schließen der
+Probedatei als eine Meldung `PGR-E3001`, an die der Fehler des Entfernens als Ursache
+hängt (vorher zwei gleichrangige Meldungen über `errors.Join`; `closeErr` und `removeErr`
+entfallen); `TestPrepareProbedateiScheitert` prüft je Fall genau eine Meldung, die
+Ursachen und die Zahl der liegenden Probedateien und erhält den Fall
+`Schliessen und Entfernen`. Kommentar an `Prepare` und Abdeckung nachgezogen; das Handbuch
+nennt die Probedatei nicht und bleibt.
 
 **Randformen.** Kein Code-Commit fügt §6 eine Randform hinzu. Zwei Code-Commits ändern in §6
 nur den Verweis auf den Test einer schon entschiedenen Randform: `24fc87c` (Rechte bei
 ersetzter Verknüpfung → `TestWriteRechteVerknuepfung`) und `ca5124f` (die zwei Randformen aus
-`278d929` → `TestWriteAndererFehlerBeimAnlegen`, `TestPrepareProbedateiScheitert`).
+`278d929` → `TestWriteAndererFehlerBeimAnlegen`, `TestPrepareProbedateiScheitert`). Der
+Code-Commit zur Randform-Rückgabe ändert in §6 nur den Stand der schon entschiedenen
+Randform *Schließen der Probedatei scheitert, Entfernen danach* (`9996a8c`) auf ihren Test.
 Entschieden ist nur, was §6 nennt. Zwei Punkte
 gingen als Frage an den Architect zurück; beide sind entschieden (`b74e16e`, `LH-FA-07.a`),
 das Verhalten des Codes blieb, und je ein Test sagt sie zu (DoD-Punkt 1 unten):
@@ -292,7 +301,9 @@ Sendung steht dort in §1 unter *Übernommen von `slice-v1-abschluss-schreiben`*
 Nacharbeit `24fc87c` fügt Code 15 (`yaml.go`), Unit-Tests 46 (`schreiben_test.go`,
 `export_test.go`), Handbuch 4 und Abdeckung 3 Zeilen (geändert und hinzugefügt) hinzu. Die
 Nacharbeit `ca5124f` umfasst Code 8/7 (`yaml.go`, hinzugefügt/entfernt), Unit-Tests 107/7,
-Handbuch 2/2, Abdeckung 3/1 und Plan 9/6. Ob er
+Handbuch 2/2, Abdeckung 3/1 und Plan 9/6. Die Nacharbeit zur Randform-Rückgabe ändert Code
+(`yaml.go`, 7 hinzugefügt, 13 entfernt), Unit-Tests (`schreiben_test.go`, 26/16) und eine
+Zeile der Abdeckung. Ob er
 in eine Review-Sitzung passt, urteilt das Review.
 
 **Läufe.**
@@ -311,6 +322,8 @@ in eine Review-Sitzung passt, urteilt das Review.
 | `make test`, `make lint`, `make docs-check`, `make kopf-check`, `make abdeckung-check` | vor `ca5124f` | Exit 0, 0 Befunde |
 | `make abdeckung` | vor `ca5124f` | `abdeckung-unit.md` nachgezogen |
 | `make gates` | Commit dieser Belege zu `ca5124f` | Exit 0, vor der Übergabe |
+| `make abdeckung` | vor dem Commit zur Randform-Rückgabe | `abdeckung-unit.md` nachgezogen |
+| `make gates` | Commit zur Randform-Rückgabe | Exit 0, vor der Übergabe |
 
 **Weg der Mutanten.** Je Mutant eine frische Kopie des Arbeitsbaums unter dem Scratch-Pfad der
 Sitzung (`cp -r` ohne `-p`, neue mtime); ein Skript ersetzt genau ein Vorkommen (oder das
@@ -338,6 +351,12 @@ Probedatei bleibt* (zweites `os.Remove` nach jedem Entfernen) war in acht Tests 
 falschen Grund (das zweite Entfernen scheitert immer); ersetzt durch Mutant *Entfernen nach
 gescheitertem Entfernen nachgeholt*, rot nur im genannten Fall.
 
+Zur Nacharbeit nach der Randform-Rückgabe (`9996a8c`): derselbe Weg (frische Kopie je Mutant,
+Bind-Mount, Stufe `deps`, `--network=none`, `gofmt -l ./internal` zuerst). Gefahren: eine
+unveränderte Kopie (grün) und fünf Mutanten an `pruefe` (Tabelle unten, Zeilen mit
+*Randform-Rückgabe*), alle formatgerecht und rot in `TestPrepareProbedateiScheitert`, je
+nur in den genannten Fällen.
+
 **DoD-Punkt 1 — atomares Schreiben, Zielpfad beim Start (`LH-FA-07.a`).**
 
 | Zusage | Mutation | rote Tests |
@@ -358,6 +377,11 @@ gescheitertem Entfernen nachgeholt*, rot nur im genannten Fall.
 | Entfernen der Probedatei gescheitert: `PGR-E3001` (F-543) | Fehler von `entfernen` verworfen (Mutant P des Reviews) | `TestPrepareProbedateiScheitert` (`Entfernen`, beide Fälle) |
 | Entfernen der Probedatei gescheitert: Fehler als Ursache | Ursache `nil` in `removeErr` | `TestPrepareProbedateiScheitert` (`Entfernen`) |
 | nicht entfernte Probedatei bleibt liegen | nach gescheitertem Entfernen `os.Remove` nachgeholt | `TestPrepareProbedateiScheitert` (`Entfernen`: keine `.probe` im Verzeichnis) |
+| Schließen gescheitert: Probedatei dennoch entfernt (Randform-Rückgabe) | nach gescheitertem Schließen nicht entfernt | `TestPrepareProbedateiScheitert` (`Schliessen`: `.probe` liegt; `Schliessen und Entfernen`: Ursache des Entfernens fehlt) |
+| Schließen und Entfernen gescheitert: genau eine Meldung (Randform-Rückgabe) | zwei gleichrangige Meldungen (`errors.Join` aus `closeErr` und `removeErr`, Code vor der Nacharbeit) | `TestPrepareProbedateiScheitert` (nur `Schliessen und Entfernen`: zwei Meldungen) |
+| … sie trägt den Fehler des Entfernens als Ursache | Fehler des Entfernens verworfen (`_ = ops.entfernen(name)`) | `TestPrepareProbedateiScheitert` (nur `Schliessen und Entfernen`) |
+| … und den Fehler des Schließens als Ursache | Fehler des Schließens verworfen (`errors.Join(ops.entfernen(name))`) | `TestPrepareProbedateiScheitert` (`Schliessen`, `Schliessen und Entfernen`) |
+| … und die Probedatei bleibt liegen | nach gescheitertem Entfernen `os.Remove` nachgeholt, im Zweig des Schließens | `TestPrepareProbedateiScheitert` (nur `Schliessen und Entfernen`: keine `.probe`) |
 | Probedatei sofort entfernt | Entfernen weggelassen | `TestPrepareProbedatei`, `TestPrepareVerzeichnis`, `TestRoundtrip`, `TestUebrigGebliebeneDateien` |
 | Probedatei `.<Name>.<Zufallsteil>.probe` | Name ohne Punkt, Endung `.pruef` | `TestPrepareProbedatei` |
 | Probedatei im Verzeichnis der Zieldatei | Probedatei in `os.TempDir()` | `TestPrepareProbedatei`, `TestPrepareVerzeichnis`, `TestPrepareVorhandeneDatei` |
@@ -428,9 +452,12 @@ die Zeile mit Verknüpfung `TestPrepareVerknuepfung` (oben, `os.Lstat`).
    `fs.ErrPermission`) gefahren, nicht über die Rechte eines echten Verzeichnisses; die
    Tests laufen im Container als `root`, dem `0555` das Anlegen nicht verwehrt. Am Binary
    hat das Review es mit `--user 65534` gezeigt (Sonde zu F-537); ein E2E-Test dazu fehlt.
-6. *Schließen der Probedatei gescheitert:* Ob `record` die Probedatei danach noch entfernt,
-   nennt `LH-FA-07.a` nicht; der Code versucht es (wie vor dem Slice), der Test prüft es
-   nicht, und §7 sagt es nicht zu. Als Frage an den Architect zurückgegeben (Bericht).
+6. *Schließen der Probedatei gescheitert* — keine Grenze mehr: Der Architect hat die Frage
+   entschieden (`9996a8c`, `LH-FA-07.a` *Verzeichnis*); `record` entfernt die Probedatei
+   dennoch, ein Fehler des Entfernens folgt als Ursache derselben Meldung. Beleg sind die
+   fünf Zeilen *Randform-Rückgabe* in der Tabelle zu DoD-Punkt 1. Die drei akzeptierten
+   Negative der Probedatei in §6 (*Belegter Name*, *Rechte der Probedatei*, *Abbruch
+   zwischen Anlegen und Entfernen*) haben keine Zusage und keinen Test.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

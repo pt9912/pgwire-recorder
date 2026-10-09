@@ -180,22 +180,29 @@ func TestPrepareVerzeichnisNichtBeschreibbar(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-07/Negative — scheitert das Schließen oder das Entfernen der
-// Probedatei, ist das beim Start PGR-E3001 mit dem Fehler als Ursache, für einen
-// fehlenden Pfad und mit --force für eine vorhandene Datei; eine Probedatei, die
-// sich nicht entfernen lässt, bleibt liegen.
+// Probedatei, ist das beim Start genau eine Meldung PGR-E3001 mit dem Fehler als
+// Ursache, für einen fehlenden Pfad und mit --force für eine vorhandene Datei;
+// nach gescheitertem Schließen wird sie dennoch entfernt, und scheitert auch das
+// Entfernen, trägt dieselbe Meldung beide Fehler; eine Probedatei, die sich nicht
+// entfernen lässt, bleibt liegen.
 func TestPrepareProbedateiScheitert(t *testing.T) {
+	schliessen := func(f *os.File) error {
+		_ = f.Close()
+		return errors.New("Schließen eingespielt gescheitert")
+	}
+	entfernen := func(string) error { return errors.New("Entfernen eingespielt gescheitert") }
 	for _, tc := range []struct {
 		name      string
 		eingriffe recording.Eingriffe
+		texte     []string
 		bleibt    bool
 	}{
-		{"Schliessen", recording.Eingriffe{Schliessen: func(f *os.File) error {
-			_ = f.Close()
-			return errors.New("Schließen eingespielt gescheitert")
-		}}, false},
-		{"Entfernen", recording.Eingriffe{Entfernen: func(string) error {
-			return errors.New("Entfernen eingespielt gescheitert")
-		}}, true},
+		{"Schliessen", recording.Eingriffe{Schliessen: schliessen},
+			[]string{"Schließen eingespielt gescheitert"}, false},
+		{"Entfernen", recording.Eingriffe{Entfernen: entfernen},
+			[]string{"Entfernen eingespielt gescheitert"}, true},
+		{"Schliessen und Entfernen", recording.Eingriffe{Schliessen: schliessen, Entfernen: entfernen},
+			[]string{"Schließen eingespielt gescheitert", "Entfernen eingespielt gescheitert"}, true},
 	} {
 		for _, vorhanden := range []bool{false, true} {
 			dir := t.TempDir()
@@ -207,11 +214,14 @@ func TestPrepareProbedateiScheitert(t *testing.T) {
 			}
 			err := recording.PruefeMit(path, vorhanden, tc.eingriffe)
 			ms := model.Meldungen(err)
-			if len(ms) != 1 || ms[0].Code != model.CodeRecordingIO || !strings.Contains(ms[0].Text, "eingespielt gescheitert") {
-				t.Errorf("%s, vorhanden=%v: erwartet eine Meldung %s mit Ursache, erhalten %+v", tc.name, vorhanden, model.CodeRecordingIO, ms)
-			}
-			if !tc.bleibt {
+			if len(ms) != 1 || ms[0].Code != model.CodeRecordingIO {
+				t.Errorf("%s, vorhanden=%v: erwartet eine Meldung %s, erhalten %+v", tc.name, vorhanden, model.CodeRecordingIO, ms)
 				continue
+			}
+			for _, text := range tc.texte {
+				if !strings.Contains(ms[0].Text, text) {
+					t.Errorf("%s, vorhanden=%v: Ursache %q fehlt in %q", tc.name, vorhanden, text, ms[0].Text)
+				}
 			}
 			var probe []string
 			for _, e := range eintraege(t, dir) {
@@ -219,8 +229,8 @@ func TestPrepareProbedateiScheitert(t *testing.T) {
 					probe = append(probe, e)
 				}
 			}
-			if len(probe) != 1 {
-				t.Errorf("%s, vorhanden=%v: Probedateien im Verzeichnis %v, erwartet eine", tc.name, vorhanden, probe)
+			if want := map[bool]int{false: 0, true: 1}[tc.bleibt]; len(probe) != want {
+				t.Errorf("%s, vorhanden=%v: Probedateien im Verzeichnis %v, erwartet %d", tc.name, vorhanden, probe, want)
 			}
 		}
 	}
