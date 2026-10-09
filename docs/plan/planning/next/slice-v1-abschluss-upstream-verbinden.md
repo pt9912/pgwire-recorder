@@ -226,7 +226,9 @@ keine.
   *Mutation:* Klammern nie gesetzt, rot über `[::1]`; immer gesetzt, rot über `h`.
 - **F-521, Host bei Option und Umgebung** — dieselbe Regel wie beim Schlüssel `upstream`
   (wie geschrieben, IPv6 in Klammern mit Zone hinter `%`, sonst kein Steuerzeichen, kein
-  Leerraum, keines von `@`, `:`, `/`, `?`, `#`, `[`, `]`, `%`; `LH-FA-17.a`), über dieselbe
+  Leerraum, keines von `@`, `:`, `/`, `?`, `#`, `[`, `]`, `%`; die Zone mit denselben
+  Zeichen, nicht leer, V-122 aus der Verifikation von
+  `slice-v1-abschluss-verbindungen-platzhalter`; `LH-FA-17.a`), über dieselbe
   Prüfung, die `slice-v1-abschluss-verbindungen-platzhalter` liefert. *Test:*
   `--upstream 'GEHEIM@h:5'` ist `PGR-E2001`, `PGWIRE_RECORDER_UPSTREAM='GEHEIM h:5'`
   `PGR-E2001` ohne den Wert. *Mutation:* Prüfung nur am Schlüssel, rot über beide.

@@ -53,7 +53,7 @@ und davor aus `slice-v1-abschluss-betrieb`. Nach dem Schnitt dieses Slice vom 20
   2026-10-09 vor dem Code, soweit sie das Laden betreffen (A1 bis A6, A7 und A8 für den
   Schlüssel, A10, A11; §6 unten), dazu die Rückgaben L1 bis L6 des Implementers vom
   2026-10-09 und das Gegenlesen dazu, die Entscheidungen zu F-520, F-521, F-522 und F-528
-  aus dem Review (§6 unten).
+  aus dem Review und zu V-122 aus der Verifikation (§6 unten).
 
 **Abgegeben** an `slice-v1-abschluss-upstream-verbinden` (dort §1, *Übernimmt*, mit der
 Kennung dieses Slice), nach dem vorab benannten Schnitt aus §4 (*zu groß*, eingetreten am
@@ -446,6 +446,27 @@ ohne den Wert.
   Host mit `:` stand also in Klammern oder kommt aus einer Variable. Das Zusammensetzen
   klammert jeden Host mit `:` und ist damit ohne Merkmal eindeutig. Als Randform eingetragen
   in §6 von `slice-v1-abschluss-upstream-verbinden`.
+
+*Befund der Verifikation vom 2026-10-09 an den Architect*
+(`docs/reviews/2026-10-09-verifikation-slice-v1-abschluss-verbindungen-platzhalter.md`),
+entschieden vom Architect am 2026-10-09 in `LH-FA-17.a` (*Benannte Verbindungen*):
+
+- **V-122 Inhalt einer Zone** — eine Zone ist nicht leer und enthält nach der Dekodierung
+  dieselben Zeichen wie ein Host ohne Klammern (F-521): kein Steuerzeichen, kein Leerraum
+  (Unicode `White_Space`), keines von `@`, `:`, `/`, `?`, `#`, `[`, `]`, `%`. Das gilt in der
+  URL (Zone hinter `%25`, danach dekodiert) und in `host:port` (Zone hinter `%`, wie
+  geschrieben). Das erste `%` trennt die Zone ab; jedes weitere ist ein ungültiger Wert. Grund:
+  eine Regel für beide Formen des Hosts, `eth0` bleibt gültig, und kein Text, der die Grenze
+  eines Teils trägt, gelangt über die Zone in die Adresse.
+  *Test:* URL `[fe80::1%25eth0]` gültig; `[fe80::1%25]`, `[fe80::1%25a%20b]`,
+  `[fe80::1%25a%2Fb]`, `[fe80::1%25a%25b]`, `[fe80::1%25GEHEIM%40h]` je `PGR-E2004` an
+  `connections.<Name>`; `upstream` `"[fe80::1%eth0]:5"` gültig; `"[fe80::1%]:5"`,
+  `"[fe80::1%G\x01]:5"`, `"[fe80::1%GEHEIM h]:5"`, `"[fe80::1%a/b]:5"`, `"[fe80::1%a%b]:5"`
+  je `PGR-E2004` an `record.upstream`; keine Meldung enthält `GEHEIM`.
+  *Mutation:* Prüfung der Zone entfernt (nur die Adresse geprüft), rot über `%25a%20b` und
+  `"[fe80::1%GEHEIM h]:5"`; Zone vor statt nach der Dekodierung geprüft, rot über `%25a%2Fb`;
+  Steuerzeichen in der Zone zugelassen, rot über `"[fe80::1%G\x01]:5"`; leere Zone
+  zugelassen, rot über `"[fe80::1%]:5"`.
 
 *Akzeptiertes Negativ der Prüfung* (keine Folgepflicht, einmalig und harmlos):
 

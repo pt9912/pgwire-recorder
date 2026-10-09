@@ -968,7 +968,10 @@ IPv6-Adresse in Textform (RFC 4291), auch mit einer Zone hinter `%25` (RFC 6874)
 IPv4-Adresse, ein Name oder ein Platzhalter in Klammern ist ein ungültiger Wert. Ohne Klammern
 enthält der Host nach der Dekodierung keinen Leerraum (Unicode `White_Space`) und keines der
 Zeichen `@`, `:`, `/`, `?`, `#`, `[`, `]` und `%`, sonst ist er ein ungültiger Wert; ein Host
-mit `:` ist damit immer eine IPv6-Adresse aus Klammern. Steht im Host ein Platzhalter, prüft
+mit `:` ist damit immer eine IPv6-Adresse aus Klammern. Eine Zone ist nicht leer und
+enthält nach der Dekodierung dieselben Zeichen wie ein Host ohne Klammern, also kein
+Steuerzeichen, keinen Leerraum und keines von `@`, `:`, `/`, `?`, `#`, `[`, `]` und `%`
+(`eth0` ist gültig). Steht im Host ein Platzhalter, prüft
 das Laden seine wörtlichen Zeichen, den eingesetzten Wert nicht. Ob ein Name auflöst, prüft
 der Start nicht. Die Datenbank ist der Text hinter dem `/` bis zum `?`, auch mit weiterem `/`; die
 Parameter trennt `&`, und ein `?` ohne Parameter oder ein leerer Parameter ist ein Parameter
@@ -997,7 +1000,8 @@ nehmen den Namen einer Verbindung oder `host:port`; ein Name hat Vorrang vor
 Kleinschreibung. Ein Wert, der weder ein Name ist noch die Form `host:port` mit
 Port hat, ist ein ungültiger Wert. In `host:port` gilt der Wert wie geschrieben, ohne
 Dekodierung; der Host ist nicht leer und folgt den Regeln des wörtlichen Hosts der URL: in
-eckigen Klammern eine IPv6-Adresse, auch mit einer Zone hinter `%`, sonst kein Steuerzeichen,
+eckigen Klammern eine IPv6-Adresse, auch mit einer Zone hinter `%` nach der Regel der Zone
+in der URL, sonst kein Steuerzeichen,
 kein Leerraum und keines der Zeichen `@`, `:`, `/`, `?`, `#`, `[`, `]` und `%`. Der Port hat
 die Form eines Ports der URL. Geprüft wird jeder gesetzte Wert, unabhängig von der
 Priorität: der Schlüssel `upstream` beim Laden an seiner Stelle in der Datei, gegen die Namen
@@ -2461,3 +2465,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Benannte Verbindungen: Zerlegung der URL (Benutzerteil am letzten `@`, leerer Benutzer, leeres Passwort als Klartext, IPv6-Host in eckigen Klammern, Datenbank mit `/`, Parameter mit `&`), Port ohne Dekodierung und mit führenden Nullen, Escape zu einem Steuerzeichen ungültig, Parameter dekodiert; Form `host:port` von `--upstream`, Prüfung jedes gesetzten Werts, Schlüssel `upstream` gegen alle Namen der Datei, benutzte Verbindung; `$$` von links, `${` außerhalb einer URL, Kommandozeile und Umgebung ohne Platzhalter, Präfix `PGWIRE_RECORDER_` als `VAR` zulässig, Platzhalter in `sslmode`, Meldung zu `PGR-E2005`; `sslmode=require` bei `record` in der Reihenfolge nach `--upstream` (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen: Steuerzeichen im Text der URL auch als Tabulator ungültig; `[` ohne `]`; wörtliche Zeichen eines Ports mit Platzhalter sind Ziffern; Parameternamen genau in der Schreibweise; Passwort nicht dekodiert, ungültiges Escape dort ist Klartext; dekodierter Teil gültiges UTF-8 ohne Steuerzeichen; Reihenfolge innerhalb einer URL; Name einer Verbindung ohne `$` und wörtlich; Schlüssel `upstream` nach `$$` gegen die gültigen Namen (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen: Inhalt des Hosts in der URL und in `host:port` (IPv6-Adresse in Klammern ohne Platzhalter, sonst ohne Leerraum und ohne `@`, `:`, `/`, `?`, `#`, `[`, `]`, `%`), eingesetzter Host ungeprüft und beim Zusammensetzen mit `:` geklammert; Platzhalter an jeder Stelle von `sslmode` und im Namen eines Parameters ungültig; Reihenfolge je Parameter, `password` auch ohne `=` als Klartext (`LH-FA-17.a`) |
+| 2026-10-09 | Benannte Verbindungen: Zone einer IPv6-Adresse nicht leer, nach der Dekodierung mit denselben Zeichen wie ein Host ohne Klammern, in der URL und in `host:port` (`LH-FA-17.a`) |
