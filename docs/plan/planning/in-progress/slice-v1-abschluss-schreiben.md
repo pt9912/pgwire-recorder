@@ -96,11 +96,9 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` (`LH-FA-07.a`) | keine Änderung durch den Implementer | Die Randformen in §6 sind entschieden (Architect, 2026-10-09, vor dem Code); eine Randform, die §6 nicht nennt, geht an den Architect zurück (`AGENTS.md` §3.12) |
-| `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben (vorhanden); neu nach §6: ein vorhandener Pfad, der keine reguläre Datei ist, beim Start `PGR-E3001`, ohne und mit `--force` (vorher `PGR-E2002` ohne, ein Fehler erst beim ersten Schreiben mit `--force`); temporäre Datei nach einem Fehlschlag entfernt, ein Fehler beim Entfernen als Ursache derselben Meldung (vorher blieb sie liegen). Die Dateioperationen von `Prepare` (Probedatei anlegen und entfernen) und `Write` (Zufall, Schreiben, Synchronisieren, Verschieben, Entfernen) stehen in einer Tabelle von Funktionen, die die Unit-Tests über `export_test.go` ersetzen. Nach den zwei Rückgaben aus §7 (Architect,
-2026-10-09) ändert sich das Verhalten nicht; die Tabelle nimmt das Setzen der Rechte und das
-Schließen auf, damit ein Test sie scheitern lassen kann |
+| `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben (vorhanden); neu nach §6: ein vorhandener Pfad, der keine reguläre Datei ist, beim Start `PGR-E3001`, ohne und mit `--force` (vorher `PGR-E2002` ohne, ein Fehler erst beim ersten Schreiben mit `--force`); temporäre Datei nach einem Fehlschlag entfernt, ein Fehler beim Entfernen als Ursache derselben Meldung (vorher blieb sie liegen). Die Dateioperationen von `Prepare` (Probedatei anlegen und entfernen) und `Write` (Zufall, Schreiben, Synchronisieren, Verschieben, Entfernen) stehen in einer Tabelle von Funktionen, die die Unit-Tests über `export_test.go` ersetzen. Nach den zwei Rückgaben aus §7 (Architect, 2026-10-09) ändert sich das Verhalten nicht; die Tabelle nimmt das Setzen der Rechte und das Schließen auf, damit ein Test sie scheitern lassen kann. Nach den Übergaben des Reviews an den Architect (F-543, F-544; Architect, 2026-10-09): Das Schließen der Probedatei läuft über die Tabelle (`schliessen`), damit ein Test es scheitern lassen kann; sonst ändert sich das Verhalten nicht, der Code folgt beiden Randformen schon |
 | `internal/adapters/driving/cli` | keine Änderung | `--output` und `--force` liefert der allgemeine Leser (§1); abgelehnt wird im Recording-Adapter |
-| `internal/adapters/driven/recording` (Unit-Tests `schreiben_test.go`), `test/integration` (`schreiben_e2e_test.go`, Helfer `startProzessIn` in `record_e2e_test.go`) | update | Boundary/Negative nach `LH-FA-07.a`; `--force` aus Kommandozeile, Umgebung und Datei nach `LH-FA-17.a`. Neu nach den zwei Rückgaben aus §7: Fehlschlag beim Setzen der Rechte und beim Schließen (`PGR-E3001`, Zieldatei unverändert, temporäre Datei entfernt) und Rechte des Ziels bei ersetzter Verknüpfung, je mit Mutation (`AGENTS.md` §3.10) |
+| `internal/adapters/driven/recording` (Unit-Tests `schreiben_test.go`), `test/integration` (`schreiben_e2e_test.go`, Helfer `startProzessIn` in `record_e2e_test.go`) | update | Boundary/Negative nach `LH-FA-07.a`; `--force` aus Kommandozeile, Umgebung und Datei nach `LH-FA-17.a`. Neu nach den zwei Rückgaben aus §7: Fehlschlag beim Setzen der Rechte und beim Schließen (`PGR-E3001`, Zieldatei unverändert, temporäre Datei entfernt) und Rechte des Ziels bei ersetzter Verknüpfung, je mit Mutation (`AGENTS.md` §3.10). Neu nach den Übergaben des Reviews an den Architect: (a) Schließen und Entfernen der Probedatei scheitern je für sich → `PGR-E3001` beim Start, mit dem Text des Fehlers als Ursache; Mutation: den Fehler verwerfen (Mutant P des Reviews), muss rot werden. (b) Ein anderer Fehler als ein belegter Name beim Anlegen der temporären Datei (etwa ein zu langer Name) → sofort `PGR-E3001` mit der Ursache des Betriebssystems, nicht *kein freier Name*; Mutation: jeder Fehler führt zu einem neuen Versuch (Mutant C des Reviews), muss rot werden |
 | `docs/user/benutzerhandbuch.md` | update | atomares Schreiben, `--output` und `--force`, übrig gebliebene temporäre Dateien entfernt der Anwender |
 | `docs/user/abdeckung-*.md` | update | über `make abdeckung` aus den Deklarationen der neuen Tests |
 
@@ -143,6 +141,14 @@ dasteht.
 - **Ort und Name der temporären Datei** — im Verzeichnis der Zieldatei,
   `.<Name der Zieldatei>.<16 Hexziffern>.tmp`, exklusiv angelegt, nach zehn belegten Namen
   `PGR-E3001`; entschieden in `LH-FA-07.a` *Temporäre Datei* (Architect, 2026-10-09).
+- **Anderer Fehler als ein belegter Name beim Anlegen der temporären Datei** — kein neuer
+  Versuch, sofort `PGR-E3001` mit dem Text des Fehlers als Ursache; entschieden in
+  `LH-FA-07.a` *Temporäre Datei*, *Name* (Architect, 2026-10-09, Übergabe F-544 des
+  Reviews). Der Code folgt schon (`fs.ErrExist`); es fehlt der Test (§3).
+- **Schließen oder Entfernen der Probedatei scheitert** — `PGR-E3001` beim Start, der Text
+  des Fehlers als Ursache, eine nicht entfernte Probedatei bleibt liegen; entschieden in
+  `LH-FA-07.a` *Zielpfad beim Start*, *Verzeichnis* (Architect, 2026-10-09, Übergabe F-543
+  des Reviews). Der Code folgt schon (`closeErr`, `removeErr`); es fehlen die Tests (§3).
 - **Übrig gebliebene temporäre Datei oder Probedatei eines früheren oder gleichzeitigen
   Laufs** — weder gelesen noch überschrieben, entfernt oder gemeldet; entschieden in
   `LH-FA-07.a` *Temporäre Datei* (Architect, 2026-10-09).
@@ -185,7 +191,9 @@ dasteht.
 - **Abgrenzung zu `sqlite`** — *Zielpfad beim Start* gilt über `LH-FA-22.a` auch für
   `sqlite`; *Temporäre Datei* beschreibt `yaml`. Was davon für `sqlite` gilt, entscheidet
   `slice-v1-abschluss-sqlite-format` vor seinem Code (akzeptiertes Negativ hier: Der Adapter
-  für `sqlite` existiert noch nicht, eine Entscheidung ohne seinen Plan wäre geraten).
+  für `sqlite` existiert noch nicht, eine Entscheidung ohne seinen Plan wäre geraten). Der
+  Nehmer führt die Sendung in seinem §1 mit dieser Kennung (`AGENTS.md` §3.13; Architect,
+  2026-10-09, Übergabe F-538 des Reviews).
 
 **Risiken:**
 

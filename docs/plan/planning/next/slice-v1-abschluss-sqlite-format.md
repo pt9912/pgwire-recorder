@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-22`](../../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat), [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats), [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [ADR-0005](../../adr/0005-recording-store-ist-driven-adapter.md), [ADR-0013](../../adr/0013-sqlite-recording-backend.md)
 
-**Berührte Spec-Stellen:** `LH-FA-22.a` · `SPEC-001` · `SPEC-043` · `SPEC-044` · `ARC-008` · `ARC-014`
+**Berührte Spec-Stellen:** `LH-FA-22.a` · `LH-FA-07.a` · `SPEC-001` · `SPEC-043` · `SPEC-044` · `ARC-008` · `ARC-014`
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -35,6 +35,13 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - Umwandlung zwischen den Formaten und weitere Formate — Out-of-Scope von LH-FA-22.
 - Das Standardformat YAML — bleibt unverändert aus `slice-walking-skeleton-record`.
+
+**Übernommen von `slice-v1-abschluss-schreiben`:** Was von `LH-FA-07.a` *Temporäre Datei*
+(Name, Rechte, Fehlschlag, übrig gebliebene Datei) und von der Probedatei aus *Zielpfad beim
+Start* für `sqlite` gilt, nennt §6 dieses Slice als Randformen und entscheidet der Architect
+in `LH-FA-22.a` *Schreiben von `sqlite`*, vor dem ersten Code-Commit (`AGENTS.md` §3.12).
+Dort gilt heute nur: Zielpfad wie in `LH-FA-07.a`, temporäre Datei im Verzeichnis der
+Zieldatei, atomar verschoben.
 
 
 ## 2. Definition of Done

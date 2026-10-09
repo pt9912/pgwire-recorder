@@ -462,7 +462,9 @@ Schreibvorgang die vorhandene Datei.
 * *Verzeichnis.* Fehlt das Verzeichnis der Zieldatei oder lässt sich darin keine Datei
   anlegen, ist das `PGR-E3001`; `record` legt kein Verzeichnis an. Geprüft wird mit
   einer Probedatei `.<Name der Zieldatei>.<Zufallsteil>.probe`, die sofort wieder
-  entfernt wird.
+  geschlossen und entfernt wird. Scheitert das Anlegen, das Schließen oder das Entfernen
+  der Probedatei, ist das `PGR-E3001`, und der Text des Fehlers folgt als Ursache der
+  Meldung (`SPEC-034`); eine Probedatei, die sich nicht entfernen lässt, bleibt liegen.
 * Alle diese Prüfungen laufen beim Start, bevor eine Verbindung angenommen wird.
   *Grenze:* Ein Pfad, der erst nach dem Start entsteht, ersetzt der nächste
   Schreibvorgang ohne Prüfung.
@@ -491,7 +493,9 @@ gültiges Recording behandelt.
 * *Name.* `.<Name der Zieldatei>.<16 Hexziffern>.tmp` im Verzeichnis der Zieldatei,
   der Hexteil zufällig. Sie wird exklusiv neu angelegt; ein vorhandener Name wird nie
   überschrieben, sondern ein neuer gezogen. Findet sich nach zehn Versuchen kein freier
-  Name, ist das `PGR-E3001`.
+  Name, ist das `PGR-E3001`. Nur ein vorhandener Name führt zu einem neuen Versuch; jeder
+  andere Fehler beim Anlegen ist sofort ein *Fehlschlag* (unten), und sein Text folgt als
+  Ursache der Meldung (`SPEC-034`).
 * *Rechte.* Eine neu angelegte Zieldatei erhält die Rechte `0666` nach der umask des
   Prozesses; eine ersetzte behält ihre Zugriffsrechte. Ersetzt das Verschieben eine
   symbolische Verknüpfung auf eine Datei, erhält die Zieldatei die Zugriffsrechte des
@@ -508,7 +512,9 @@ gültiges Recording behandelt.
 
 **Fehlermodi:** vorhandenes `--output` ohne `--force` → Exit-Code `2`
 (`PGR-E2002`); `--output` keine reguläre Datei, nicht prüfbar, Verzeichnis fehlt oder
-nicht beschreibbar, Schreiben oder Verschieben gescheitert → Exit-Code `3`
+nicht beschreibbar, Probedatei nicht anzulegen, zu schließen oder zu entfernen, kein freier
+Name für die temporäre Datei nach zehn Versuchen, Anlegen, Setzen der Rechte, Schreiben,
+Synchronisieren, Schließen der temporären Datei oder Verschieben gescheitert → Exit-Code `3`
 (`PGR-E3001`); Recording nicht lesbar/schreibbar, unbekannte Version oder
 beschädigt → Exit-Code `3` (`SPEC-016`).
 
@@ -2515,3 +2521,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Benannte Verbindungen: Namen für `--upstream` nur aus der gewählten Datei; Variablen einmal nach der Zusammenführung gelesen; Stelle der Meldungen nach dem Einsetzen; Zusammensetzen zu `host:port` mit Port wie geschrieben oder eingesetzt und Klammern bei `:`; Host und Port kein Geheimnis, Zeile beim Start und Meldungen zum Upstream nennen die Adresse (`LH-FA-17.a`) |
 | 2026-10-09 | Sicheres Schreiben: vorhandener Pfad nach dem Ziel einer Verknüpfung, Verknüpfung ins Leere nicht vorhanden; keine reguläre Datei, nicht prüfbarer Pfad, fehlendes oder nicht beschreibbares Verzeichnis `PGR-E3001` beim Start, kein Anlegen von Verzeichnissen; Name, Rechte, Fehlschlag und übrig gebliebene temporäre Datei; Pfad, der nach dem Start entsteht (`LH-FA-07.a`) |
 | 2026-10-09 | Sicheres Schreiben: Setzen der Rechte und Schließen der temporären Datei gehören zum Fehlschlag; ersetzte Verknüpfung auf eine Datei gibt die Zugriffsrechte ihres Ziels weiter (`LH-FA-07.a`) |
+| 2026-10-09 | Sicheres Schreiben: Schließen und Entfernen der Probedatei, gescheitert `PGR-E3001` mit Ursache; nur ein vorhandener Name der temporären Datei führt zu einem neuen Versuch; Fehlermodi nennen jeden Fehlschlag (`LH-FA-07.a`) |
