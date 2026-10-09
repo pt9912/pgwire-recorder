@@ -195,6 +195,13 @@ an der genannten Stelle. Offen ist keine.
   IP-Adressen; neu entschieden in `LH-FA-20.a` *TLS*.
 - **Zertifikatsspeicher des Systems nicht ladbar** [T] — gilt als leer (Grenze); neu
   entschieden in `LH-FA-20.a` *TLS*.
+- **Abbruch im Aufbau mit TLS** [T] (aus `slice-v1-abschluss-einspielen`, §6,
+  Randform-Rückgabe R3, entschieden vom Architect am 2026-10-09 vor dem ersten Code-Commit
+  jenes Slice) — nach einem Fehler im Aufbau keine weitere Nachricht, kein `Terminate`; ein
+  Alarm der TLS-Schicht (auch `close_notify` oder ein Alarm der gescheiterten Aushandlung)
+  ist keine Nachricht; neu entschieden in `LH-FA-20.a` *Abbruch im Aufbau*. Nachgezählt beim
+  Eintragen (`AGENTS.md` §3.13): drei Liefer-Punkte, zwei Schichten (CLI-Adapter,
+  Upstream-Adapter); der Punkt liegt im Upstream-Adapter, ohne eigene Zusage in der DoD.
 - **Server lehnt unverschlüsselte Verbindung ab** — `PGR-E4005`; bestätigt, Tabelle
   *Fehlerregeln beim Einspielen* in `LH-FA-20.a`; hier geprüft, weil der Fall einen Server mit
   TLS-Pflicht braucht.

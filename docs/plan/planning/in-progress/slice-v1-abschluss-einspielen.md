@@ -94,7 +94,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen als einfache Anfragen wird gegen eine leere Instanz, die weder Passwort noch TLS verlangt, eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); mehrere Sessions laufen über eigene Verbindungen nacheinander; die Optionen von `play` wirken aus Kommandozeile, Umgebung und dem Abschnitt `play:`, `--user` und `--database` gehen Benutzer und Datenbank der benutzten Verbindung und der Aufzeichnung vor, eine nicht gesetzte oder leere Variable in Benutzer, Passwort oder Datenbank der benutzten Verbindung ist `PGR-E2005` (U8), ein gewöhnliches Argument `PGR-E2001`; `--fail-on-unconsumed` ist bei `play` unbekannt (`PGR-E2001`) und ihre Umgebungsvariable bleibt dort unbeachtet, auch mit ungültigem Wert; `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` wirken bei `play` mit derselben Wertemenge, Strenge und Schwelle wie bei `record` und `replay`, ein ungültiger Wert ist `PGR-E2001`, auch in der Umgebungsvariable neben gültiger Option; bis zu den Folge-Slices gilt der Zwischenstand aus §6 (Integrationstest). Das Benutzerhandbuch zeigt in Beispiel und Abschnittsliste von §5 *Konfigurationsdatei* den Abschnitt `play:` (mit `upstream` und `input`), und das Beispiel als Datei startet mit `config show` ohne Meldung (V-125).
-- [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4, keine weitere Nachricht, `Terminate`); ein Verbindungsfehler bricht ab; im Aufbau sind ein nicht erreichbarer Server und eine Fehlerantwort außerhalb der SQLSTATE-Klasse 28 (etwa eine fehlende Datenbank) `PGR-E4002`, eine der Klasse 28 (etwa ein unbekannter Benutzer) `PGR-E4005` (Test). Beleg in §7 für Punkt 1 bis 3: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
+- [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4, keine weitere Nachricht, `Terminate`); ein Verbindungsfehler bricht ab; im Aufbau sind ein nicht erreichbarer Server und eine Fehlerantwort außerhalb der SQLSTATE-Klasse 28 (etwa eine fehlende Datenbank) `PGR-E4002`, eine der Klasse 28 (etwa ein unbekannter Benutzer) `PGR-E4005`; die Nachrichten und Anmelde-Codes im Aufbau, ein gescheitertes Senden des Startup und der Abbruch im Aufbau ohne `Terminate` folgen §6 (Test). Beleg in §7 für Punkt 1 bis 3: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
 - [ ] `SIGINT` und `SIGTERM` beenden nach der laufenden Interaktion, ein erstes Signal im Aufbau nach dem Aufbau, ohne Interaktion; ein zweites Signal beendet sofort; der Exit-Code ist 0, weil ohne die Optionen der Laufsteuerung jeder Fehler vorher abbricht; ohne Vergleich ist jedes Verbindungsende nach dem ersten `ReadyForQuery` `PGR-E4003`; die Rangfolge mit Vergleich (Exit-Code 5) prüft `slice-v1-abschluss-antwortvergleich` (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -179,6 +179,12 @@ Extended. Die Randformen [L] stehen seit dem Schnitt in §6 der Laufsteuerung, d
 [L·E] in §6 des Slice für Extended; hier bleiben die mit [K], und wo eine von ihnen einen
 Teil [L] oder [E] hat, nennt sie ihn mit dem Nehmer.
 
+Randform-Rückgabe des Implementers vor dem ersten Code-Commit (R1 Nachrichten im Aufbau, R2
+Anmelde-Nachrichten, R3 Abbruch und zweites Signal im Aufbau), entschieden vom Architect am
+2026-10-09 in `LH-FA-20.a` *Aufbau*, *Anmelde-Nachrichten*, *Abbruch im Aufbau* und
+*Abbruchsignal*; die Punkte stehen unten unter *Verbindungsaufbau je Session* und *Ende einer
+Session, Signal, Exit-Code*. Teile [A] und [T] stehen seit diesem Commit in §6 der Nehmer.
+
 *Lesen der Optionen (CLI-Adapter)*
 
 - **Optionen von `play`** [K] — `--upstream`, `--input`, `--user`, `--database`,
@@ -241,6 +247,42 @@ Teil [L] oder [E] hat, nennt sie ihn mit dem Nehmer.
   Schweregrad; neu entschieden in `LH-FA-20.a` *Aufbau* (die Tabelle nannte `FATAL`).
 - **`BackendKeyData`, `CancelRequest`** [K] — verworfen, nie gesendet; neu entschieden in
   `LH-FA-20.a` *Aufbau*.
+- **Nachrichten im Aufbau** (Rückgabe R1) [K] — abschließende Liste: `R`, Fehlerantwort,
+  `ReadyForQuery` nach `AuthenticationOk`; `BackendKeyData`, `ParameterStatus`,
+  `NoticeResponse` (etwa aus einem Login-Event-Trigger ab PostgreSQL 17) und
+  `NotificationResponse` an jeder Stelle des Aufbaus gelesen und verworfen, ohne Log-Zeile;
+  jede andere Nachricht, `ReadyForQuery` vor `AuthenticationOk` und eine nicht lesbare
+  Nachricht `PGR-E4002`; neu entschieden in `LH-FA-20.a` *Aufbau*. Abweichend vom Vorschlag
+  des Implementers ist `NotificationResponse` kein `PGR-E4002`: Das Protokoll führt die drei
+  als asynchrone Nachrichten, und *Interaktion* verwirft sie ebenso; eine Regel statt zwei.
+  *Akzeptiertes Negativ:* Ein `ParameterStatus` oder `BackendKeyData` vor `AuthenticationOk`
+  sendet kein Server; ihn als Fehler zu fassen, kostete Fälle ohne Wert, die Reihenfolge
+  prüft `play` nur für `R` und `ReadyForQuery`.
+- **Anmelde-Nachrichten `R`** (Rückgabe R2) [K], Teil [A] an
+  `slice-v1-abschluss-einspielen-anmeldung` — die Art nach dem Code, den der Adapter selbst
+  liest, weil `pgproto3` die Codes 6 (SCM) und 9 (SSPI) nicht dekodiert (im Rahmen von
+  [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md), „soweit eine gepflegte Bibliothek
+  sie abdeckt“); `R` ohne vollständigen Code `PGR-E4002`. Hier: jede Anforderung bis
+  `AuthenticationOk` (2, 3, 5, 6, 7, 9, 10, unbekannt, etwa 4 und 99) `PGR-E4005` ohne
+  Senden, für 3, 5 und 10 nach dem *Zwischenstand* unten; jede Fortsetzung (8, 11, 12)
+  `PGR-E4002`, weil hier kein Austausch läuft; jedes `R` nach `AuthenticationOk`, auch nach
+  dem ersten `ParameterStatus` und ein zweites `AuthenticationOk`, `PGR-E4002`; neu
+  entschieden in `LH-FA-20.a` *Anmelde-Nachrichten*. [A]: eine Fortsetzung im laufenden
+  SCRAM-Austausch und der nicht lesbare Rest einer Anforderung eines unterstützten
+  Verfahrens (`PGR-E4005`).
+- **Senden im Aufbau scheitert** [K], Teil [A] an `slice-v1-abschluss-einspielen-anmeldung`
+  — `PGR-E4002` wie ein Verbindungsende vor dem ersten `ReadyForQuery`; die Lesart des
+  Implementers trägt (Tabelle: `PGR-E4003` erst nach dem ersten `ReadyForQuery`;
+  [ADR-0016](../../adr/0016-einspielen-anmeldung-und-tls.md): alle übrigen Fehler beim
+  Aufbau `PGR-E4002`) und steht jetzt ausdrücklich in `LH-FA-20.a` *Aufbau*. Hier das
+  Senden des Startup; [A]: Senden und Verbindungsende während der Anmeldung, ebenfalls
+  `PGR-E4002`, nur in der TLS-Aushandlung `PGR-E4005` (bestätigt, *TLS*).
+- **Abbruch im Aufbau** (Rückgabe R3) [K], Teil [T] an `slice-v1-abschluss-einspielen-tls`
+  — bei jedem Fehler im Aufbau keine weitere Nachricht, kein `Terminate`, Verbindung
+  geschlossen; prüfbar als: nach dem Startup bis zum Verbindungsende keine Bytes vom Client;
+  neu entschieden in `LH-FA-20.a` *Abbruch im Aufbau* („soweit möglich“ aus Schritt 6: vor
+  dem ersten `ReadyForQuery` nimmt der Server `Terminate` nicht als Ende an, er erwartet
+  eine Anmelde-Antwort). [T]: ein Alarm der TLS-Schicht ist keine Nachricht.
 *Zwischenstand bis zu den Folge-Slices* — kein Stand des Produkts, den die Spezifikation
 beschreibt, sondern der Stand dieses Slice, bis `slice-v1-abschluss-einspielen-anmeldung`,
 `slice-v1-abschluss-einspielen-tls` und `slice-v1-abschluss-einspielen-extended` geliefert sind; vom Planner am 2026-10-09 nach dem Vorbild
@@ -344,6 +386,11 @@ nicht.
   unterbrochene Interaktion ist kein Fehler, Exit-Code nach der Zeile *Abbruchsignal* (0 ohne
   vorherigen Fehler); weitere Signale ohne Wirkung; neu entschieden in `LH-FA-20.a`
   *Abbruchsignal* (die Tabelle deckte das zweite Signal schon, der Satz macht es ausdrücklich).
+- **Zweites Signal im Aufbau** (Rückgabe R3) [K] — vor dem Startup, während der Anmeldung
+  oder während des Verbindungsversuchs: kein `Terminate`, Verbindung geschlossen
+  beziehungsweise Versuch abgebrochen, Prozess endet; der unterbrochene Aufbau ist kein
+  Fehler und keine Log-Zeile `error`, Exit-Code nach der Zeile *Abbruchsignal* (hier 0); neu
+  entschieden in `LH-FA-20.a` *Abbruchsignal* und *Abbruch im Aufbau*.
 
 *Akzeptierte Negative der Prüfung vom 2026-10-09* (keine Folgepflicht, einmalig und harmlos):
 

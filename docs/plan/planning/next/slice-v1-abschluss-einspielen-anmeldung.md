@@ -98,7 +98,10 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `SCRAM-SHA-256`) und jeder Fehler im SCRAM-Austausch (eine Nachricht des Servers, die
       nicht passt oder sich nicht lesen lässt, eine falsche Serversignatur) sind
       `PGR-E4005` mit Exit-Code 4 und brechen sofort ab; bei fehlendem Passwort und nicht
-      unterstütztem Verfahren sendet `play` nichts; das Passwort steht in keiner Meldung und
+      unterstütztem Verfahren sendet `play` nichts; eine Fortsetzung im SCRAM-Austausch, die
+      nicht passt, und eine nicht lesbare Anforderung eines unterstützten Verfahrens sind
+      `PGR-E4005`, ein Verbindungsende während der Anmeldung `PGR-E4002`, nach dem Fehler
+      ohne `Terminate` (aus `slice-v1-abschluss-einspielen`, §6); das Passwort steht in keiner Meldung und
       keiner Log-Zeile ([`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten)) (Test). Beleg in §7 für Punkt 1 und 2: je Zusage
       Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
 - [ ] Das Benutzerhandbuch beschreibt in §5 *Konfigurationsdatei* das Passwort einer
@@ -188,6 +191,24 @@ an der genannten Stelle. Offen ist keine.
   Serversignatur) [A] — `PGR-E4005`; neu entschieden in `LH-FA-20.a` *Anmeldung*.
 - **SASLprep** [A] — nicht angewandt (Grenze); **Klartext ohne TLS** — gesendet, wenn
   verlangt (Grenze); neu entschieden in `LH-FA-20.a` *Anmeldung*; das Handbuch nennt beide.
+- **Anmelde-Nachrichten im Austausch** [A] (aus `slice-v1-abschluss-einspielen`, §6,
+  Randform-Rückgabe R2, entschieden vom Architect am 2026-10-09 vor dem ersten Code-Commit
+  jenes Slice) — die Art einer Nachricht `R` nach ihrem Code, den der Adapter selbst liest;
+  eine Fortsetzung (11, 12) im laufenden SCRAM-Austausch, die nicht passt, ist ein Fehler im
+  Austausch (`PGR-E4005`), außerhalb eines Austauschs `PGR-E4002`; lässt sich der Rest der
+  Anforderung eines unterstützten Verfahrens nicht lesen (etwa MD5 ohne vollständiges Salz,
+  SASL mit nicht lesbarer Liste der Verfahren), ist das `PGR-E4005`; neu entschieden in
+  `LH-FA-20.a` *Anmelde-Nachrichten*. Die Einstufung der Codes ohne Austausch (nicht
+  unterstützte Anforderungen, Fortsetzung ohne Austausch, `R` nach `AuthenticationOk`)
+  liefert und prüft der Kern [K].
+- **Verbindungsende und Senden während der Anmeldung** [A] (aus
+  `slice-v1-abschluss-einspielen`, §6, Lesart des Implementers bestätigt) — `PGR-E4002`, nicht
+  `PGR-E4005`, auch im SCRAM-Austausch und nach dem Senden eines Passworts; nach einem Fehler
+  keine weitere Nachricht, kein `Terminate`; neu entschieden in `LH-FA-20.a` *Aufbau* und
+  *Abbruch im Aufbau* (die Regel liefert der Kern, hier geprüft mit einem Passwort).
+  Nachgezählt beim Eintragen beider Punkte (`AGENTS.md` §3.13): drei Liefer-Punkte, zwei
+  Schichten (CLI-Adapter, Upstream-Adapter); beide liegen im Upstream-Adapter und in
+  DoD-Punkt 2.
 - **Falsches Passwort** — der Server antwortet im Aufbau mit SQLSTATE-Klasse 28, das ist
   `PGR-E4005` nach der Regel *Aufbau* des Kerns (`LH-FA-20.a` *Aufbau*, Marke [K]); hier
   geprüft mit einer Anmeldung, dort mit einem unbekannten Benutzer.
