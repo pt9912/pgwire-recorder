@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings), [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [ADR-0005](../../adr/0005-recording-store-ist-driven-adapter.md)
 
-**Berührte Spec-Stellen:** `LH-FA-07.a` · `LH-FA-17.a` · `SPEC-014` · `SPEC-016` · `SPEC-034`
+**Berührte Spec-Stellen:** `LH-FA-07.a` · `LH-FA-13.a` · `LH-FA-17.a` · `SPEC-014` · `SPEC-016` · `SPEC-023` · `SPEC-034`
 
 **Verantwortlich:** pt9912
 
@@ -95,10 +95,12 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben |
+| `spec/spezifikation.md` (`LH-FA-07.a`) | keine Änderung durch den Implementer | Die Randformen in §6 sind entschieden (Architect, 2026-10-09, vor dem Code); eine Randform, die §6 nicht nennt, geht an den Architect zurück (`AGENTS.md` §3.12) |
+| `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben (vorhanden); neu nach §6: ein vorhandener Pfad, der keine reguläre Datei ist, beim Start `PGR-E3001` auch ohne `--force` (heute `PGR-E2002` ohne, ein Fehler erst beim ersten Schreiben mit `--force`); temporäre Datei nach einem Fehlschlag entfernt (heute bleibt sie liegen) |
 | `internal/adapters/driving/cli` | update, falls nötig | `--output` ohne `--force` abgelehnt; `--output` und `--force` liefert der allgemeine Leser (§1) |
 | `internal/adapters/driven/recording` (Unit-Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-07.a` und `LH-FA-17.a` |
-| `docs/user/benutzerhandbuch.md` | update | atomares Schreiben, `--output` und `--force` |
+| `docs/user/benutzerhandbuch.md` | update | atomares Schreiben, `--output` und `--force`, übrig gebliebene temporäre Dateien entfernt der Anwender |
+| `docs/user/abdeckung-*.md` | update | über `make abdeckung` aus den Deklarationen der neuen Tests |
 
 ## 4. Trigger
 
@@ -136,19 +138,41 @@ dasteht.
 
 **Randformen** (`AGENTS.md` §3.12) — je Randform, wo sie entschieden ist:
 
-- **Ort und Name der temporären Datei** (im Zielverzeichnis, damit das Verschieben auf
-  demselben Dateisystem bleibt) — offen: Der Architect entscheidet vor dem Code in der
-  Spezifikation.
-- **Übrig gebliebene temporäre Datei eines früheren Laufs** — offen: Der Architect
-  entscheidet vor dem Code, ob sie überschrieben oder gemeldet wird.
-- **`--output` ist ein Verzeichnis oder liegt in einem fehlenden Verzeichnis** — offen: Der
-  Architect bestätigt vor dem Code den Code (`PGR-E3…` nach `SPEC-016` oder `PGR-E2…` nach
-  `SPEC-014`).
-- **Vorhandenes `--output` ohne `--force`** — Exit-Code 2; entschieden in `SPEC-014`.
+- **Ort und Name der temporären Datei** — im Verzeichnis der Zieldatei,
+  `.<Name der Zieldatei>.<16 Hexziffern>.tmp`, exklusiv angelegt, nach zehn belegten Namen
+  `PGR-E3001`; entschieden in `LH-FA-07.a` *Temporäre Datei* (Architect, 2026-10-09).
+- **Übrig gebliebene temporäre Datei oder Probedatei eines früheren oder gleichzeitigen
+  Laufs** — weder gelesen noch überschrieben, entfernt oder gemeldet; entschieden in
+  `LH-FA-07.a` *Temporäre Datei* (Architect, 2026-10-09).
+- **`--output` ist ein Verzeichnis oder sonst keine reguläre Datei** — `PGR-E3001` beim
+  Start, auch mit `--force`; entschieden in `LH-FA-07.a` *Zielpfad beim Start* (Architect,
+  2026-10-09).
+- **`--output` liegt in einem fehlenden oder nicht beschreibbaren Verzeichnis** — `PGR-E3001`
+  beim Start, kein Verzeichnis wird angelegt (bestätigt: `PGR-E3…` nach `SPEC-016`, nicht
+  `PGR-E2…`); entschieden in `LH-FA-07.a` *Zielpfad beim Start* (Architect, 2026-10-09).
+- **Nicht prüfbarer Pfad** (der Zustand lässt sich nicht feststellen) — `PGR-E3001`;
+  entschieden in `LH-FA-07.a` *Zielpfad beim Start* (Architect, 2026-10-09).
+- **Symbolische Verknüpfung als `--output`** — vorhanden nach ihrem Ziel, ins Leere nicht
+  vorhanden; das Verschieben ersetzt die Verknüpfung, nicht ihr Ziel; entschieden in
+  `LH-FA-07.a` *Zielpfad beim Start* (Architect, 2026-10-09).
+- **Pfad, der erst nach dem Start entsteht** — vom nächsten Schreibvorgang ohne Prüfung
+  ersetzt (Grenze, `LH-FA-08` prüft beim Start); entschieden in `LH-FA-07.a` *Zielpfad beim
+  Start* (Architect, 2026-10-09).
+- **Rechte der Zieldatei** — neu `0666` nach der umask, ersetzt mit ihren Zugriffsrechten;
+  Eigentümer, Gruppe und weitere Attribute nicht erhalten (Grenze); entschieden in
+  `LH-FA-07.a` *Temporäre Datei* (Architect, 2026-10-09).
+- **Vorhandenes `--output` ohne `--force`** — Exit-Code 2 (`PGR-E2002`); entschieden in
+  `SPEC-014` und `LH-FA-07.a`.
 - **Werte von `--force`** — nur `true` oder `false`; entschieden in `LH-FA-17.a`, geliefert von
   `slice-v1-abschluss-konfiguration` (§1, *Abgegeben*).
-- **Fehlschlag des Verschiebens** — offen: Der Architect entscheidet vor dem Code Code und
-  Verbleib der temporären Datei.
+- **Fehlschlag von Anlegen, Schreiben, Synchronisieren oder Verschieben** — `PGR-E3001`,
+  Zieldatei unverändert, temporäre Datei entfernt; misslingt das Entfernen, bleibt sie, und
+  der Fehler folgt als Ursache derselben Meldung; entschieden in `LH-FA-07.a` *Temporäre
+  Datei* (Architect, 2026-10-09). Exit-Code und Fortgang danach: `LH-FA-13.b` (bestehend).
+- **Abgrenzung zu `sqlite`** — *Zielpfad beim Start* gilt über `LH-FA-22.a` auch für
+  `sqlite`; *Temporäre Datei* beschreibt `yaml`. Was davon für `sqlite` gilt, entscheidet
+  `slice-v1-abschluss-sqlite-format` vor seinem Code (akzeptiertes Negativ hier: Der Adapter
+  für `sqlite` existiert noch nicht, eine Entscheidung ohne seinen Plan wäre geraten).
 
 **Risiken:**
 

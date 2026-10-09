@@ -453,6 +453,20 @@ nicht gesetzt, endet `record` als Startfehler mit Exit-Code `2` (`PGR-E2002`),
 bevor eine Verbindung angenommen wird. Mit `--force` ersetzt bei `yaml` der erste
 Schreibvorgang die vorhandene Datei.
 
+* *Vorhanden.* Ein Pfad ist vorhanden, wenn er besteht; eine symbolische Verknüpfung
+  zählt nach ihrem Ziel, eine Verknüpfung ins Leere ist nicht vorhanden. Mit `--force`
+  oder ins Leere ersetzt das Verschieben die Verknüpfung selbst, nicht ihr Ziel.
+* *Keine reguläre Datei.* Ist der vorhandene Pfad keine reguläre Datei (etwa ein
+  Verzeichnis), ist das `PGR-E3001`, auch mit `--force`.
+* *Nicht prüfbar.* Lässt sich nicht feststellen, ob der Pfad besteht, ist das `PGR-E3001`.
+* *Verzeichnis.* Fehlt das Verzeichnis der Zieldatei oder lässt sich darin keine Datei
+  anlegen, ist das `PGR-E3001`; `record` legt kein Verzeichnis an. Geprüft wird mit
+  einer Probedatei `.<Name der Zieldatei>.<Zufallsteil>.probe`, die sofort wieder
+  entfernt wird.
+* Alle diese Prüfungen laufen beim Start, bevor eine Verbindung angenommen wird.
+  *Grenze:* Ein Pfad, der erst nach dem Start entsteht, ersetzt der nächste
+  Schreibvorgang ohne Prüfung.
+
 **Schreibzeitpunkt.** Das Recording wird nach dem Ende jeder Session und beim
 kontrollierten Beenden (LH-FA-13.a) als Ganzes neu geschrieben; es enthält alle
 bis dahin beendeten Sessions. Eine Verbindung ohne Anfrage (zum Beispiel eine
@@ -472,8 +486,27 @@ vollständiges Recording; sie ist nie syntaktisch unvollständig. Bei einem
 Abbruch darf eine temporäre Datei verbleiben; sie wird nicht stillschweigend als
 gültiges Recording behandelt.
 
+**Temporäre Datei.**
+
+* *Name.* `.<Name der Zieldatei>.<16 Hexziffern>.tmp` im Verzeichnis der Zieldatei,
+  der Hexteil zufällig. Sie wird exklusiv neu angelegt; ein vorhandener Name wird nie
+  überschrieben, sondern ein neuer gezogen. Findet sich nach zehn Versuchen kein freier
+  Name, ist das `PGR-E3001`.
+* *Rechte.* Eine neu angelegte Zieldatei erhält die Rechte `0666` nach der umask des
+  Prozesses; eine ersetzte behält ihre Zugriffsrechte. *Grenze:* Eigentümer, Gruppe und
+  weitere Attribute einer ersetzten Datei bleiben nicht erhalten.
+* *Fehlschlag.* Schlägt das Anlegen, Schreiben, Synchronisieren oder Verschieben fehl,
+  ist das `PGR-E3001`, und die Zieldatei bleibt unverändert. Eine angelegte temporäre
+  Datei entfernt `record` dann; gelingt das nicht, bleibt sie liegen, und der Text des
+  Fehlers beim Entfernen folgt als Ursache derselben Meldung (`SPEC-034`).
+* *Übrig gebliebene Datei.* Eine temporäre Datei oder Probedatei eines früheren oder
+  gleichzeitigen Laufs liest, überschreibt, entfernt und meldet `record` nicht; sie
+  trägt einen anderen Zufallsteil. Sie zu entfernen, liegt beim Anwender.
+
 **Fehlermodi:** vorhandenes `--output` ohne `--force` → Exit-Code `2`
-(`PGR-E2002`); Recording nicht lesbar/schreibbar, unbekannte Version oder
+(`PGR-E2002`); `--output` keine reguläre Datei, nicht prüfbar, Verzeichnis fehlt oder
+nicht beschreibbar, Schreiben oder Verschieben gescheitert → Exit-Code `3`
+(`PGR-E3001`); Recording nicht lesbar/schreibbar, unbekannte Version oder
 beschädigt → Exit-Code `3` (`SPEC-016`).
 
 ---
@@ -2477,3 +2510,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Benannte Verbindungen: Inhalt des Hosts in der URL und in `host:port` (IPv6-Adresse in Klammern ohne Platzhalter, sonst ohne Leerraum und ohne `@`, `:`, `/`, `?`, `#`, `[`, `]`, `%`), eingesetzter Host ungeprüft und beim Zusammensetzen mit `:` geklammert; Platzhalter an jeder Stelle von `sslmode` und im Namen eines Parameters ungültig; Reihenfolge je Parameter, `password` auch ohne `=` als Klartext (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen: Zone einer IPv6-Adresse nicht leer, nach der Dekodierung mit denselben Zeichen wie ein Host ohne Klammern, in der URL und in `host:port` (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen: Namen für `--upstream` nur aus der gewählten Datei; Variablen einmal nach der Zusammenführung gelesen; Stelle der Meldungen nach dem Einsetzen; Zusammensetzen zu `host:port` mit Port wie geschrieben oder eingesetzt und Klammern bei `:`; Host und Port kein Geheimnis, Zeile beim Start und Meldungen zum Upstream nennen die Adresse (`LH-FA-17.a`) |
+| 2026-10-09 | Sicheres Schreiben: vorhandener Pfad nach dem Ziel einer Verknüpfung, Verknüpfung ins Leere nicht vorhanden; keine reguläre Datei, nicht prüfbarer Pfad, fehlendes oder nicht beschreibbares Verzeichnis `PGR-E3001` beim Start, kein Anlegen von Verzeichnissen; Name, Rechte, Fehlschlag und übrig gebliebene temporäre Datei; Pfad, der nach dem Start entsteht (`LH-FA-07.a`) |
