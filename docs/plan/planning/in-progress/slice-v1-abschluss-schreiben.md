@@ -71,21 +71,21 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings): `record` schreibt die Aufzeichnung in eine temporäre Datei und verschiebt
+- [x] [`LH-FA-07`](../../../../spec/lastenheft.md#lh-fa-07--persistente-recordings): `record` schreibt die Aufzeichnung in eine temporäre Datei und verschiebt
       sie danach an `--output`; ein Abbruch während des Schreibens, auch nach dem
       Zwangsende des Herunterfahrens, lässt unter `--output` keine teilweise Datei zurück
       (Test).
-- [ ] [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Ein vorhandenes `--output` wird ohne `--force` abgelehnt
+- [x] [`LH-FA-08`](../../../../spec/lastenheft.md#lh-fa-08--auswahl-eines-recordings), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Ein vorhandenes `--output` wird ohne `--force` abgelehnt
       (Exit-Code 2, `SPEC-014`), gleich aus welcher Quelle `--force` kommt (Test). Beleg
       in §7 für beide Punkte: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -216,7 +216,12 @@ dasteht.
 **Risiken:**
 
 - Atomarität des Verschiebens ist plattformabhängig („bestmöglich atomar“; übernommen aus
-  `slice-v1-abschluss-betrieb`) — **Ausgang:** offen bis Closure.
+  `slice-v1-abschluss-betrieb`) — **Ausgang:** weiter offen, ins Beobachtungs-Register als
+  `BEO-REPO/verhalten-nur-unter-linux-geprueft` (1×). Nicht eingetreten: Unter Linux im selben
+  Dateisystem ersetzt das Verschieben in einem Schritt (§7 *Grenzen* 2, Verifikation zu
+  Punkt 1), die Rückführungen aus §4 traten nicht ein. Nicht entfallen: Geprüft ist keine
+  andere Plattform, und was *bestmöglich* unter macOS und Windows heißt, sagt `LH-FA-07.a`
+  nicht (§7, Steering-Loop-Eintrag).
 
 ## 7. Closure-Notiz
 
@@ -233,13 +238,128 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 - **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten.
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
-- **Drei Paarungen:** <…>
+- **Was hat funktioniert:** Die Prüfung des Architect vor dem Code (`ad1b7ba`) entschied die
+  Randformen aus §6 in `LH-FA-07.a`, bevor der Code entstand; Review und Verifikation fanden
+  am Binary keine Abweichung von ihnen. Die Belege in §7 stehen je Zusage als Zusage ·
+  Mutation · roter Test: Der Implementer fuhr 31 und 11 Mutanten vor der ersten Übergabe,
+  danach 5, 14 und 5, alle formatgerecht rot; drei, die im ersten Lauf nur an `gofmt` rot
+  waren, erkannte er selbst als aus dem falschen Grund rot und wiederholte sie. Die
+  Verifikation fuhr 11 Unit- und 4 E2E-Mutanten nach, alle aus dem genannten Grund rot. Die
+  dritte Randform-Rückgabe (`9086fd7`) kam ohne neuen Code: Der Implementer hielt an, sagte
+  nichts zu und testete nichts, bis der Architect entschied (`9996a8c`). Der Diff passte in
+  eine Review-Sitzung (F-546).
+- **Was ging anders als geplant:**
+  1. Drei Runden Randform-Rückgabe statt keiner: Setzen der Rechte und Schließen der
+     temporären Datei, im Code entschieden und danach zurückgegeben (`0311f72` → `b74e16e`,
+     F-539); Schließen und Entfernen der Probedatei und ein anderer Fehler als ein belegter
+     Name, erst im Review gefunden (F-543, F-544 → `278d929`); die Kombination *Schließen
+     scheitert, dann Entfernen*, von der zweiten Entscheidung offen gelassen (`9086fd7` →
+     `9996a8c`). Gemeinsam ist den drei Runden, dass §6 die Fehlschläge nach dem Wortlaut von
+     `LH-FA-07.a` aufzählte, nicht nach den Dateioperationen des Codes.
+  2. Drei grüne Mutanten fand erst das Review (D, C, P zu F-537, F-544, F-543), trotz 47
+     Mutanten des Implementers vor dem Review; jede Zusage hielt nur für einen Teil ihrer Fälle oder stand
+     nur im Kommentar.
+  3. Der Plan folgte dem Code zweimal nicht (F-540, V-127), und die Abgrenzung zu `sqlite`
+     nannte einen Nehmer, der die Sendung nicht führte (F-538) — das erste Auftreten nach der
+     Verkörperung in `AGENTS.md` §3.13.
+  - **Summary-Zeilen:** Review
+    `docs/reviews/2026-10-09-review-slice-v1-abschluss-schreiben.md`: „0 HIGH · 4 MEDIUM · 3
+    LOW · 3 INFO. F-537: Ein nicht beschreibbares Verzeichnis bei vorhandener Datei mit
+    `--force` hält keine Mutation (Mutant D grün, Sonde am Binary). F-538: §6 weist die
+    Entscheidung für `sqlite` einem Slice zu, der sie nicht führt; §7 sagt das Gegenteil.
+    F-539: Entfernen nach Fehlschlag von Setzen der Rechte und Schließen ist im Code
+    entschieden und erst danach zurückgegeben. F-540: §1 nennt den CLI-Adapter als geändert,
+    §3 und der Diff nicht. F-541: §7 *„Kein Code-Commit ändert §6“* trifft für `24fc87c` nicht
+    zu. F-542: Rang-Zeiger `SPEC-033` an der Rechte-Regel. F-543: Der Kommentar an `Prepare`
+    sagt `PGR-E3001` für das Entfernen der Probedatei zu; das steht weder in der Spezifikation
+    noch in einem Test. F-544: Nur ein belegter Name führt zu einem neuen Zug; das hält keine
+    Mutation, und keine Zusage verlangt es. F-545: Die Zusammenfassung *Fehlermodi* ist enger
+    als *Fehlschlag*. F-546: Der Diff war in einer Sitzung prüfbar. Wiederkehrende Klassen:
+    `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (F-537),
+    `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (F-538),
+    `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (F-539),
+    `BEO-REPO/plan-folgt-korrektur-nicht` (F-540),
+    `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (F-541, F-543).“ Verifikation
+    `docs/reviews/2026-10-09-verifikation-slice-v1-abschluss-schreiben.md`: „0 HIGH · 0
+    MEDIUM · 1 LOW · 1 INFO (V-127: §6 und §7 nennen `closeErr` und `removeErr`, die `3a7018b`
+    entfernt hat; V-128: das nicht beschreibbare Verzeichnis ist am Binary bestätigt, ein
+    E2E-Test fehlt weiter als benannte Grenze).“ Ausgänge: F-537, F-542, F-543 und F-544 in
+    `ca5124f` (F-543 und F-544 nach `278d929`), F-540 in `ca5124f`, F-538 in `278d929`, F-541
+    in `9086fd7`, F-545 in `278d929`; F-539 ins Register; F-546 von der Verifikation
+    eingeordnet (Risiko unten); V-127 in `b15815f`; V-128 bleibt Grenze 5, kein Auftrag.
+- **Steering-Loop-Eintrag:** Benannte Spec-Lücke: `LH-FA-07.a` *Schritte je Schreibvorgang*
+  sagt „atomar beziehungsweise bestmöglich atomar“ zu, bestimmt aber nicht, was *bestmöglich*
+  auf einer Plattform heißt, die das Ersetzen einer Datei nicht atomar bietet, und wie es
+  geprüft wird. [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität) sieht
+  ausführbare Dateien auch für macOS und Windows vor; Tests, Gate und Verifikation laufen nur
+  unter Linux in einem Dateisystem (§7 *Grenzen* 2). Die Rückführung `in-progress` → `open`
+  aus §4 nannte genau diese Lücke als Bedingung; sie trat nicht ein, weil keine andere
+  Plattform gefahren wurde, nicht weil die Lücke geschlossen ist. Ob die Spezifikation die
+  Zusage je Plattform schärft oder als Grenze nennt, entscheidet der Architect mit dem
+  Nutzer; gezählt ist sie unter `BEO-REPO/verhalten-nur-unter-linux-geprueft`. Kein Feld
+  `liegt in`: Mit diesem Slice ist nichts verkörpert.
+
+  Retirement-Checks: `AGENTS.md` §3.9 (seit welle-walking-skeleton) ist wieder aufgetreten
+  (F-540, V-127); die Regel bleibt. §3.10 (seit welle-extended-query) ist wieder aufgetreten
+  (F-537, F-544); die Regel bleibt, der Sensor ist mit `slice-harness-mutation` geplant. §3.11
+  (seit welle-extended-query) ist wieder aufgetreten (F-541, F-543); die Regel bleibt. §3.12
+  (seit slice-harness-randformen-vor-code) ist in beiden Hälften wieder aufgetreten: ein
+  Code-Commit entschied, was danach zurückging (F-539), und das Review fand Randformen
+  außerhalb von §6 (F-543, F-544); die Regel bleibt. §3.13 (seit
+  slice-lint-bestand-kern-driven) ist zum ersten Mal wieder aufgetreten (F-538, gesetzt vom
+  Architect in `ad1b7ba`); die Regel bleibt. Die Regel *Beleg im Plan, nicht im Bericht*
+  (`.claude/agents/implementer.md`, seit slice-harness-blackbox-kern) ist nicht wieder
+  aufgetreten: §7 trägt jeden Gate-Lauf und jede Mutanten-Reihe. `implement-slice` Schritt 19
+  (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`): nicht wieder aufgetreten, jeder Mutant
+  in einer frischen Kopie.
+- **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `b15815f` (Zähler =
+  Dateien unter `evidence/`).
+  - `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`: **Beleg**, 5× → 6× (F-539),
+    Stand verkörpert, bleibt.
+  - `BEO-REPO/spec-randform-erst-im-review-entschieden`: **Beleg**, 17× → 18× (F-543, F-544;
+    die drei Runden der Rückgabe stehen im Beleg), Stand verkörpert, bleibt.
+  - `BEO-REPO/plan-folgt-korrektur-nicht`: **Beleg**, 20× → 21× (F-540, V-127), Stand
+    verkörpert, bleibt.
+  - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`: **Beleg**, 19× → 20× (F-537, F-544),
+    Stand verkörpert, bleibt.
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: **Beleg**, 25× → 26× (F-541, F-543),
+    Stand verkörpert, bleibt.
+  - `BEO-REPO/folge-slice-adresse-nimmt-nicht-an`: **Beleg**, 3× → 4× (F-538), Stand
+    verkörpert, bleibt.
+  - `BEO-REPO/verhalten-nur-unter-linux-geprueft`: **neu**, 1× (Risiko aus §6, Ausgang
+    *weiter offen*), Stand offen.
+  - Ohne Beleg: `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (bleibt 1×, offen;
+    anderer Gegenstand: Serverversion, nicht Plattform),
+    `BEO-REPO/slice-waechst-durch-uebernahmen` (bleibt 2×, offen; der Slice nahm nach der
+    Anlage nichts auf), `BEO-REPO/gruener-mutant-faelschlich-aequivalent` (bleibt 1×, offen;
+    die grünen Mutanten D, C und P waren nicht als äquivalent eingestuft, sondern nicht
+    gefahren), `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (bleibt 1×, offen),
+    `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht` (bleibt 4×, verkörpert).
+  - Einmalig und nicht eingetragen: F-542 (Rang-Zeiger), F-545 (Zusammenfassung enger als die
+    Regel), F-546 und V-128 (Hinweise). Mit diesem Slice erreicht kein Eintrag die Schwelle 3×
+    neu; über der Schwelle stehen nur Einträge mit Ausgang (`commit-nennt-struktur-kennung`
+    3× und `roter-lauf-haengt-bis-zum-zeitlimit` 3× geplant;
+    `folge-slice-adresse-nimmt-nicht-an` 4×, `implementer-bericht-erreicht-pruefer-nicht` 4×,
+    `randform-im-code-entschieden-dann-zurueckgegeben` 6×,
+    `spec-randform-erst-im-review-entschieden` 18×, `negativtests-fehlen-bei-neuem-vertrag`
+    20×, `plan-folgt-korrektur-nicht` 21×, `zusage-im-kommentar-weiter-als-pruefung` 26×
+    verkörpert; `white-box-liste-vor-code-nur-namenssuche` 3× gestrichen).
+- **Folge-Slices:** keiner neu. `slice-v1-abschluss-sqlite-format` (`next/`) ist Adresse für die
+  *Abgrenzung zu `sqlite`* aus §6 und führt sie seit `278d929` in §1 unter *Übernommen von
+  `slice-v1-abschluss-schreiben`*. Der nächste Schritt nach §5 von
+  [welle-v1-abschluss](../welle-v1-abschluss.md) ist `slice-v1-abschluss-einspielen`.
+- **Risiken aus §6:** eines. *Atomarität plattformabhängig*: **weiter offen**, ins Register
+  als `BEO-REPO/verhalten-nur-unter-linux-geprueft`; Begründung in §6. Die Randformen in §6
+  sind Entscheidungen, keine Risiken.
+- **Drei Paarungen:** Anker: Der Steering-Loop-Eintrag trägt kein Feld `liegt in`; nichts zu
+  prüfen. Folge-Slice: `slice-v1-abschluss-sqlite-format` liegt in `next/`; `grep -n
+  "slice-v1-abschluss-schreiben"` findet die Kennung in seinem §1 unter *Übernommen von*
+  (Temporäre Datei und Probedatei für `sqlite`, Entscheidung in `LH-FA-22.a` vor seinem Code);
+  sein §1 *Ausdrücklich NICHT* schließt nur Formatumwandlung, weitere Formate und das
+  Standardformat YAML aus. Register: die sechs Einträge mit Beleg und der neue tragen
+  `evidence/slice-v1-abschluss-schreiben.md`; die übrigen genannten Einträge bestehen als
+  Verzeichnis, jedes mit nicht leerem `evidence/`. Die nächste Welle-Closure prüft die
+  Paarungen erneut.
 
 ### Belege des Implementers
 

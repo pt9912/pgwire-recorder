@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-schreiben
+**Fund:** Die Zusage *nicht beschreibbares Verzeichnis ist beim Start `PGR-E3001`* hielt eine Mutation nur für einen fehlenden Pfad; Mutant D (Probedatei für einen vorhandenen Pfad ausgelassen) blieb grün, am Binary startete er mit `--force` und scheiterte erst beim Schreiben (Review F-537, MEDIUM). Mutant C (jeder Fehler beim Anlegen der temporären Datei führt zu einem neuen Versuch) blieb grün (F-544, INFO; Zusage danach in `278d929`). Beide in `ca5124f` mit Tests, Mutanten rot.

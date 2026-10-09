@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-schreiben
+**Fund:** §1, Schicht-Abgrenzung, nannte den CLI-Adapter als geändert, nachdem `aad7085` §3 auf „keine Änderung“ gezogen hatte (Review F-540, MEDIUM, drittes Auftreten der Klasse in welle-v1-abschluss nach F-514 und F-526); nachgezogen in `ca5124f`. Nach `3a7018b`, der `closeErr` und `removeErr` entfernte, nannten §6 und zwei Zeilen der Mutanten-Tabelle in §7 sie weiter (Verifikation V-127, LOW); nachgezogen in `b15815f`.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-schreiben
+**Fund:** `LH-FA-07.a` sagt „atomar beziehungsweise bestmöglich atomar“ zu; die Tests und die Proben der Verifikation liefen nur unter Linux im selben Dateisystem (§7 *Grenzen* 2, Verifikation zu Punkt 1, Review F-546). Was *bestmöglich* unter macOS und Windows heißt, für die [`LH-QA-03`](../../../../../../../spec/lastenheft.md#lh-qa-03--portabilität) ausführbare Dateien vorsieht, sagt die Spezifikation nicht, und kein Gate prüft es. Risiko aus §6 des Slice, Ausgang *weiter offen*.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-schreiben
+**Fund:** §6 *Abgrenzung zu `sqlite`* wies die Entscheidung, was von *Temporäre Datei* für `sqlite` gilt, `slice-v1-abschluss-sqlite-format` zu (`ad1b7ba`), ohne dass §1 oder DoD des Nehmers die Sendung führten (`grep` 0 Treffer); §7 sagte, kein anderer Slice sei als Adresse genannt (Review F-538, MEDIUM). Erstes Auftreten nach der Verkörperung in `AGENTS.md` §3.13. Der Nehmer trägt die Sendung seit `278d929` in §1 unter *Übernommen von `slice-v1-abschluss-schreiben`*.
