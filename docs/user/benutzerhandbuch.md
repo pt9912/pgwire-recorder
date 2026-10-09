@@ -166,7 +166,28 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
   fest. Zwei Aufzeichnungen derselben Anwendung unterscheiden sich dann in diesen
   Angaben.
 * Existiert die Zieldatei bereits, bricht das Werkzeug ab (`PGR-E2002`). Wollen
-  Sie sie ersetzen, ergänzen Sie `--force`.
+  Sie sie ersetzen, ergänzen Sie `--force`; dasselbe gilt für
+  `PGWIRE_RECORDER_FORCE=true` und für `force: true` im Abschnitt `record` der
+  Konfigurationsdatei.
+* Ist `--output` ein Verzeichnis oder sonst keine reguläre Datei, bricht das
+  Werkzeug beim Start ab (`PGR-E3001`), auch mit `--force`. Das Verzeichnis der
+  Zieldatei muss bestehen; das Werkzeug legt es nicht an und bricht sonst beim
+  Start ab (`PGR-E3001`).
+* Ist `--output` eine symbolische Verknüpfung, zählt ihr Ziel: Zeigt sie auf eine
+  vorhandene Datei, gilt die Zieldatei als vorhanden. Mit `--force` ersetzt das
+  Werkzeug die Verknüpfung durch die Aufzeichnung; ihr Ziel bleibt unverändert.
+* Im Standardformat (Textdatei) schreibt das Werkzeug die Aufzeichnung zuerst in
+  eine temporäre Datei `.<Name der Zieldatei>.<16 Hexziffern>.tmp` im Verzeichnis
+  der Zieldatei und ersetzt die Zieldatei danach in einem Schritt. Die Zieldatei
+  ist damit vollständig oder unverändert, auch nach dem zwangsweisen Beenden von
+  Verbindungen beim Herunterfahren. Schlägt das Schreiben fehl, meldet das
+  Werkzeug `PGR-E3001` und entfernt die temporäre Datei; gelingt das Entfernen
+  nicht, nennt dieselbe Meldung auch diesen Fehler. Endet der Prozess hart
+  (zum Beispiel mit `SIGKILL`), kann sie liegen bleiben; das Werkzeug entfernt
+  eine solche Datei eines früheren Laufs nicht und meldet sie nicht, entfernen
+  Sie sie selbst.
+* Eine neue Zieldatei erhält die Rechte `0666` nach der umask des Prozesses (bei
+  der umask `022` also `0644`); eine ersetzte behält ihre Zugriffsrechte.
 * Jede Verbindung Ihrer Anwendung mit mindestens einer Anfrage wird als eigene
   Sitzung aufgezeichnet. Verbindungen ohne Anfrage, zum Beispiel
   Probe-Verbindungen eines Connection-Pools, werden nur mit
@@ -793,7 +814,7 @@ für den Exit-Code.
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
 | `PGR-E2007` | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht verwendbar | Die Datei fehlt, ist nicht lesbar oder kein gültiges PEM, oder Zertifikat und Schlüssel gehören nicht zusammen. Prüfen Sie `--tls-cert`, `--tls-key` und `--upstream-ca`; ein abgelaufenes eigenes Zertifikat und ein Schlüssel mit Passwort sind nicht zulässig. Läuft ein Zertifikat der Datenbank oder der Zertifizierungsstelle ab, meldet das Werkzeug beim Verbinden `PGR-E4005`. |
-| `PGR-E3000`, `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, oder Sie haben keine Rechte. Prüfen Sie Pfad und Dateirechte. |
+| `PGR-E3000`, `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Prüfen Sie Pfad und Dateirechte. |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Zeichnen Sie erneut auf. |
 | `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
