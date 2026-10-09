@@ -353,7 +353,8 @@ Verzeichnis (`tar` ohne `.git`, kein `cp -p`), die Änderung mit einem Skript, d
 Trefferzahl 1 prüft, dann `go test -count=1` für `internal/adapters/driving/cli` und
 `internal/bootstrap` im Image der Stufe `test`, die Kopie per Bind-Mount statt
 Build-Kontext; danach wird nur das Verzeichnis des Mutanten gelöscht. Der Arbeitsbaum
-blieb unberührt. Gefahren am Stand des Liefer-Commits.
+blieb unberührt. Gefahren am Stand `7a80393`: 66 Mutanten, 65 rot, einer grün (unten
+eingeordnet).
 
 **DoD-Punkt 1 — Hilfe vor jeder Prüfung, `config show`.**
 
@@ -451,10 +452,31 @@ blieb unberührt. Gefahren am Stand des Liefer-Commits.
   Anführungszeichen als Text. Rückgabe an den Architect (Bericht, *Randform · Frage*),
   ohne Test und ohne Eintrag in §6; die Closure braucht dafür eine Entscheidung.
 
-**Läufe am Stand vor dem Liefer-Commit:** `make test` grün, `make lint` 0 Befunde (Exit 0),
-`make test-integration` grün (darin `TestE2EConfigShow`,
-`TestE2EReplayKonfigurationsdateiUngueltig`), `make abdeckung` geschrieben,
-`make abdeckung-check` grün.
+**Rückgaben und Lesarten** (an den Architect, ohne Eintrag in §6):
+
+- *R1 — Wert `"null"` oder `"~"` in Anführungszeichen:* Text des Skalars (gültig, wo die
+  Wertemenge ihn annimmt) oder `null` (`PGR-E2004`)? Der Code nimmt ihn als Text; kein
+  Test legt das fest (grüner Mutant oben).
+- *R2 — Standarddatei als symbolischer Link ins Leere:* Der Code folgt `os.Stat`: Ein
+  Link ins Leere ist *keine Datei*, eine Schleife *vorhanden, aber nicht lesbar*
+  (`PGR-E2004`, `TestDateiNichtLesbar`). Ob ein Link ins Leere als vorhanden gilt, sagt
+  `LH-FA-17.a` nicht.
+- *Lesarten aus `LH-FA-01.a` und `LH-FA-17.a`*, im Code so umgesetzt und getestet:
+  `config` ist das bekannte Kommando der Hilfe, `config --help` gibt die Hilfe von
+  `config show`; `config` ohne `show`, ein anderes Unterkommando und ein Argument nach
+  `config show` sind `PGR-E2001` (`TestConfigShowFehler`); die erste Zeile von
+  `config show` ist der Pfad, wie er gewählt wurde (relativ bleibt relativ); eine Datei
+  nur mit `---` ist weder leer noch nur Kommentar, ihre oberste Ebene ist keine
+  Abbildung (`PGR-E2004`); doppelte Schlüssel werden nach ihrem Text verglichen (`1` und
+  `"1"` sind derselbe Schlüssel).
+
+**Läufe:** `make gates` am Inhalt von `7a80393` (Lauf unmittelbar vor dem Commit, Baum
+gleich), Exit 0, darin `d-check: 379 Datei(en) geprüft, 0 Befund(e)`,
+`baseline-verify: v6.16.0 OK`, `a-check-negativ: gruen`, `run-integration-tests: gruen`
+(darin `TestE2EConfigShow`, `TestE2EReplayKonfigurationsdateiUngueltig`),
+`abdeckung-gegenprobe: gruen`, `kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`.
+Dazu `make lint` Exit 0 (`0 issues.`), `make abdeckung` geschrieben,
+`make abdeckung-check` grün im Gate-Lauf.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
