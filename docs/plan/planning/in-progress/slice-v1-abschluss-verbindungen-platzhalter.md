@@ -334,8 +334,8 @@ Neu entschieden, soweit das Laden sie trägt:
 *Rückgaben des Implementers vom 2026-10-09 (Laden)*, vor dem Code, entschieden vom Architect am
 2026-10-09 in `LH-FA-17.a` (*Benannte Verbindungen*); Grundsätze: Grammatik geschlossen, Laden
 prüft jede Verbindung, nie ein Wert in der Meldung, Steuerzeichen wie beim Namen. Tests in
-`datei_test.go` (Test der Verbindungen bzw. `TestDateiUngueltig`), je Fall Code und Stelle
-genau, die Meldung ohne den Wert.
+`verbindung_test.go` (`TestVerbindungUngueltig`, `TestVerbindungName`, `TestVerbindungKlartext`,
+`TestDateiUpstreamUngueltig`), je Fall Code und Stelle genau, die Meldung ohne den Wert.
 
 - **L1 `$` im Namen einer Verbindung** — der Name ist kein Wert: Er gilt wörtlich, `$$` und
   Platzhalter gelten für ihn nicht, und er enthält kein `$` (`PGR-E2004`, Stelle nur
@@ -661,19 +661,80 @@ unten). Ein Mutant, der nicht übersetzte, ist neu formuliert und dann rot geseh
 
 **Grüne Mutanten, eingeordnet.**
 
-- *Wertemenge prüft den Text vor `$$`* — äquivalent: Keine Wertemenge nimmt ein `$` an, und
-  `$$` ergibt nie einen leeren Text; die Grenze steht in §6 (*Grenze der Tests*).
+- *Wertemenge prüft den Text vor `$$`* — äquivalent: `text` nimmt jeden nicht leeren Wert an,
+  auch mit `$`, und `$$` ergibt nie einen leeren Text, also nimmt `text` beide Formen an;
+  `wahrheitswert`, `dauer` und `stufe` lehnen jedes `$` in beiden Formen ab, und ihre
+  Fehlertexte nennen keinen Wert, unterscheiden die Formen also auch in der Meldung nicht;
+  die Grenze steht in §6 (*Grenze der Tests*).
 - *`$$` auf den Namen einer Verbindung angewandt* (Mutation aus L1) — äquivalent: Das
   Ergebnis enthält wieder ein `$` und wird abgelehnt; die Grenze steht in §6. Der verwandte
   Mutant beim Sammeln der Namen für `upstream` ändert das Verhalten und war zuerst grün;
   `a3bcad0` fügt den Fall hinzu, der ihn rot färbt (Tabelle DoD-Punkt 2).
 - Eine Längenprüfung vor `strconv.Atoi` im Port war grün, weil `Atoi` eine zu große Zahl
-  ohnehin als Grenze von `int` liefert; sie ist vor `f0180b6` entfernt, und der Mutant an
-  ihrer Stelle (Ziffernprüfung entfernt) ist rot (Fall `h:+5`).
+  ohnehin als Grenze von `int` liefert und damit außerhalb von 1 bis 65535; sie ist vor
+  `f0180b6` entfernt, und der Mutant an ihrer Stelle (Ziffernprüfung entfernt) ist rot (Fall
+  `h:+5`). Ein Port mit vielen führenden Nullen bleibt damit gültig, wie A4 es verlangt.
 
 **Kommentare** (`AGENTS.md` §3.7, §3.11). Die neuen Kommentare beschreiben den Ist-Zustand; jede
 Zusage darin hat eine Zeile oben. Abdeckungs-Deklarationen nennen nur Fälle, die der Test
 enthält.
+
+**Nacharbeit zum Review** (`docs/reviews/2026-10-09-review-slice-v1-abschluss-verbindungen-platzhalter.md`,
+Entscheidungen des Architect in `c4e7063`), Commit `0c26212`; der Plan-Teil (F-526, F-527)
+im Commit dieses Abschnitts.
+
+- *Code:* F-521 (`hostInhalt`, `ipv6` über `net/netip`, `unzulaessigImHost`, `hostPortForm`),
+  F-522 und der Rest von F-520 (`parameter`: Name zuerst, Platzhalter im Namen ungültig,
+  `password` vor dem `=`), F-525 (Kommentar an `zerlegung`). `trenneHost` liefert den Host
+  auch ohne `]`, damit die Form seiner Platzhalter vor dem Fehler `[ ohne ]` geprüft wird
+  (F-523, `[${1}`).
+- *Tests:* F-519, F-520, F-521, F-522, F-523, F-524 je mit den Fällen aus §6 und dem Review in
+  `TestVerbindungUngueltig`, `TestVerbindungZerlegung`, `TestDateiUpstream`,
+  `TestDateiUpstreamUngueltig` und `TestVerbindungKlartext`. Geändert sind die erwarteten
+  Gründe zu `a]b`, `a[b` und `[a[b]` (jetzt Zeichen im Host bzw. keine IPv6-Adresse) und zu
+  `?${N}=disable` (Platzhalter im Namen); `upstream: "h%41:1"` ist jetzt ungültig (F-521).
+  Die Abdeckungs-Deklaration von `TestVerbindungUngueltig` nennt die Reihenfolge als die
+  Paare, die ein Fall prüft (F-523).
+- *Läufe:* `make test` vor `0c26212` Exit 0; `make lint` am Stand `0c26212` Exit 0, kein Befund;
+  `make gates` nach dem Commit dieses Abschnitts (Bericht des Implementers).
+- *Mutanten* auf demselben Weg wie oben, am Stand `0c26212`: 30, alle rot; einer übersetzte
+  zuerst nicht und ist neu formuliert rot gesehen.
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| Teil mit Benutzer, Host und Port endet an `#` (F-519, M10a) | endet nicht an `#` | `TestVerbindungUngueltig` (`h#x/db`) |
+| endet an `?` (F-519, M10b) | endet nicht an `?` | `TestVerbindungUngueltig` (`h?x/db`, `u:p?w@h/db`) |
+| endet an `?` und `#` (F-519, M10c) | endet nur an `/` | `TestVerbindungUngueltig` |
+| Platzhalter an jeder Stelle von `sslmode` ungültig (F-520, M5) | nur reiner Platzhalter abgelehnt | `TestVerbindungUngueltig` (`re${X}quire`) |
+| Platzhalter im Namen eines Parameters ungültig (F-520, M6) | Prüfung entfernt | `TestVerbindungUngueltig` (`ssl${X}mode`, `pass${X}word`) |
+| … mit eigenem Grund (F-522) | als unbekannter Parameter gemeldet | `TestVerbindungUngueltig` |
+| Form der Platzhalter vom Anfang an (F-520, M43) | Anker `^` entfernt | `TestVerbindungUngueltig` (`${1}${A}`) |
+| `password` vor dem `=` (F-522) | `=` vor dem Namen geprüft | `TestVerbindungKlartext` (`?password`) |
+| `[` in `host:port` ungültig (F-524, M46) | `[` zugelassen | `TestDateiUpstreamUngueltig` (`a[b:1`), `TestVerbindungUngueltig` |
+| Escape mit Kleinbuchstaben (F-524, M32) | nur Großbuchstaben | `TestVerbindungZerlegung` (`%c3%a4`) |
+| dekodiertes U+007F ungültig (F-524, M48) | U+007F zugelassen | `TestVerbindungUngueltig` (`%7F`) |
+| leere Datenbank vor den Parametern (F-523, O1) | nach den Parametern | `TestVerbindungUngueltig` (`h/?foo=1`) |
+| Steuerzeichen vor dem Schema (F-523, O3) | Schema zuerst | `TestVerbindungUngueltig` (`postgres://h\x01/db`) |
+| im Host die Form der Platzhalter vor `[ ohne ]` (F-523) | Klammer zuerst | `TestVerbindungUngueltig` (`[${1}/db`) |
+| in Klammern eine IPv6-Adresse (F-521) | Prüfung entfernt | `TestVerbindungUngueltig` (`[abc]`) |
+| … keine IPv4-Adresse (F-521) | IPv4 zugelassen | `TestVerbindungUngueltig`, `TestDateiUpstreamUngueltig` (`[1.2.3.4]`) |
+| kein Platzhalter in Klammern (F-521) | zugelassen | `TestVerbindungUngueltig` (`[${H}]`) |
+| Zeichen ohne Klammern geprüft (F-521) | Prüfung entfernt | `TestVerbindungUngueltig` |
+| … nach der Dekodierung (F-521) | vor der Dekodierung | `TestVerbindungUngueltig` (`a%3Ab`), `TestVerbindungZerlegung` |
+| kein Leerraum (F-521) | Leerraum zugelassen | `TestVerbindungUngueltig` (`a%20b`), `TestDateiUpstreamUngueltig` (`GEHEIM h:5`) |
+| kein Steuerzeichen in `host:port` (F-521) | zugelassen | `TestDateiUpstreamUngueltig` (`h\x01…:5`) |
+| kein `@` (F-521) | zugelassen | `TestDateiUpstreamUngueltig` (`GEHEIM@h:5`), `TestVerbindungUngueltig` |
+| kein `/` (F-521) | zugelassen | `TestDateiUpstreamUngueltig`, `TestVerbindungUngueltig` |
+| kein `%` (F-521) | zugelassen | `TestDateiUpstreamUngueltig` (`h%41:1`), `TestVerbindungUngueltig` |
+| kein `:` nach der Dekodierung (F-521) | zugelassen | `TestVerbindungUngueltig` (`a%3Ab`) |
+| kein `?` (F-521) | zugelassen | `TestVerbindungUngueltig` (`a%3Fb`) |
+| kein `#` (F-521) | zugelassen | `TestVerbindungUngueltig` (`a%23b`) |
+| kein `]` (F-521) | zugelassen | `TestVerbindungUngueltig`, `TestDateiUpstreamUngueltig` |
+| `host:port` in Klammern eine IPv6-Adresse (F-521) | nur nicht leer | `TestDateiUpstreamUngueltig` (`[GEHEIM]:5`) |
+| `host:port` ohne Klammern: Zeichen geprüft (F-521) | Prüfung entfernt | `TestDateiUpstreamUngueltig` |
+
+Nicht berührt: F-528 (Ablage, Hinweis an `slice-v1-abschluss-upstream-verbinden`, dort vom
+Architect eingetragen), F-529 (an den Verifier).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
