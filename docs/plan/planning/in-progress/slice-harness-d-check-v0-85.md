@@ -500,6 +500,12 @@ V-137 committet), Arbeitsbaum sauber: Exit 0; darin `baseline-verify: v6.16.0 OK
 `a-check-negativ`, `commit-msg-gegenprobe`, `abdeckung-gegenprobe`, `kopf-check-gegenprobe`,
 `lint-gegenprobe`. Der Commit danach trägt nur diesen Absatz.
 
+Letzter Lauf (Nacharbeit nach V-138 und V-139): `make gates` am Stand `b5e4437`, Arbeitsbaum
+sauber: Exit 0; darin `baseline-verify: v6.16.0 OK — 54 Dateien`, `d-check: 439 Datei(en)
+geprüft, 0 Befund(e)`, `run-integration-tests: gruen`, je `gruen` `a-check-negativ`,
+`commit-msg-gegenprobe`, `abdeckung-gegenprobe`, `kopf-check-gegenprobe`, `lint-gegenprobe`.
+Der Commit danach trägt nur diesen Absatz.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
