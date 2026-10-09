@@ -510,18 +510,59 @@ func (v verbindung) einsetzen(wert func(string) string, teile ...teil) ([]string
 // der Port danach nicht die Form eines Ports, ist das PGR-E2004. Jede Meldung
 // nennt connections.<Name> und keinen Wert. wert liefert die Variablen.
 func (v verbindung) adresseRecord(wert func(string) string) (string, error) {
-	stelle := unter("connections", v.name)
-	if v.sslmode == "require" {
-		return "", fehlerDatei(stelle, "sslmode=require ist bei record ungültig, record verbindet ohne TLS zum Upstream")
+	if err := v.ohneTLS("record"); err != nil {
+		return "", err
 	}
 	hp, err := v.einsetzen(wert, v.host, v.port)
 	if err != nil {
 		return "", err
 	}
-	if !portForm(hp[1]) {
-		return "", fehlerDatei(stelle, "Port nach dem Einsetzen ist keine Zahl von 1 bis 65535")
+	return v.adresse(hp[0], hp[1])
+}
+
+// ziel ist, was play aus einer Verbindung nimmt: die Adresse host:port und
+// Benutzer und Datenbank nach dem Einsetzen; ein Benutzer, den die URL nicht
+// schreibt, ist "".
+type ziel struct {
+	adresse, benutzer, datenbank string
+}
+
+// zielPlay ist das Ziel von play (LH-FA-17.a *Wirkung einer URL*), in dieser
+// Reihenfolge: sslmode=require ist PGR-E2004, weil dieser Stand von play ohne
+// TLS verbindet; dann werden alle Teile eingesetzt, in der Reihenfolge der URL
+// Benutzer, Passwort, Host, Port, Datenbank, die erste nicht gesetzte
+// Variable ist PGR-E2005; zuletzt der Port wie bei adresseRecord.
+func (v verbindung) zielPlay(wert func(string) string) (ziel, error) {
+	if err := v.ohneTLS("play"); err != nil {
+		return ziel{}, err
 	}
-	return zusammensetzen(hp[0], hp[1]), nil
+	t, err := v.einsetzen(wert, v.benutzer, v.passwort, v.host, v.port, v.datenbank)
+	if err != nil {
+		return ziel{}, err
+	}
+	adresse, err := v.adresse(t[2], t[3])
+	if err != nil {
+		return ziel{}, err
+	}
+	return ziel{adresse: adresse, benutzer: t[0], datenbank: t[4]}, nil
+}
+
+// ohneTLS ist PGR-E2004 an connections.<Name>, wenn die Verbindung
+// sslmode=require verlangt und kommando ohne TLS zum Upstream verbindet.
+func (v verbindung) ohneTLS(kommando string) error {
+	if v.sslmode == "require" {
+		return fehlerDatei(unter("connections", v.name), "sslmode=require ist bei "+kommando+" ungültig, "+kommando+" verbindet ohne TLS zum Upstream")
+	}
+	return nil
+}
+
+// adresse setzt eingesetzten Host und Port zusammen; hat der Port nicht die
+// Form eines Ports, ist das PGR-E2004 an connections.<Name>.
+func (v verbindung) adresse(host, port string) (string, error) {
+	if !portForm(port) {
+		return "", fehlerDatei(unter("connections", v.name), "Port nach dem Einsetzen ist keine Zahl von 1 bis 65535")
+	}
+	return zusammensetzen(host, port), nil
 }
 
 // zusammensetzen ist host:port mit dem Port wie gegeben; ein Host mit : steht

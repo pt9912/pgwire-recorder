@@ -199,8 +199,12 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 		{"Groß- und Kleinschreibung", "Log_Level: info\n", "Log_Level"},
 		{"Schlüssel config oben", "config: x.yaml\n", "config"},
 		{"Schlüssel config im Abschnitt", "replay:\n  config: x.yaml\n", "replay.config"},
-		{"Abschnitt play", "play:\n  input: x\n", "play"},
-		{"leerer Abschnitt play", "play: {}\n", "play"},
+		{"Option eines anderen Kommandos in play", "play:\n  output: GEHEIM\n", "play.output"},
+		{"Option der Laufsteuerung in play", "play:\n  continue_on_error: true\n", "play.continue_on_error"},
+		{"Option von TLS in play", "play:\n  upstream_tls: true\n", "play.upstream_tls"},
+		{"Option eines Folge-Slice in play", "play:\n  keep_timing: true\n", "play.keep_timing"},
+		{"fail_on_unconsumed in play", "play:\n  fail_on_unconsumed: true\n", "play.fail_on_unconsumed"},
+		{"Abschnitt play ohne Inhalt", "play:\n", "play"},
 		{"Alias ohne Anker", "replay:\n  listen: *GEHEIM\n", "Konfigurationsdatei: ungültiges YAML, Alias ohne Anker"},
 		{"Option des anderen Kommandos", "record:\n  input: GEHEIM\n", "record.input"},
 		{"Option des anderen Kommandos replay", "replay:\n  output: GEHEIM\n", "replay.output"},
@@ -249,8 +253,8 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 // ein Dokument, ungültiges YAML, ein Schlüssel zweimal in derselben Abbildung,
 // oberste Ebene, Abschnitt oder connections: keine Abbildung oder ohne Inhalt,
 // ein unbekannter Schlüssel (auch config, ein anders geschriebener, einer im
-// falschen Abschnitt, einer des Abschnitts play: und einer, den der Stand noch
-// nicht kennt), ein Merge-Schlüssel, ein leerer Wert, null, Liste oder
+// falschen Abschnitt, einer im Abschnitt play:, den play in diesem Stand nicht
+// kennt, und einer, den der Stand noch nicht kennt), ein Merge-Schlüssel, ein leerer Wert, null, Liste oder
 // Abbildung als Wert, Anker, Alias und jeder ausdrücklich geschriebene Tag, ein
 // Wert außerhalb der Wertemenge, ein ungültiger Name einer Verbindung; geprüft
 // wird auch der Abschnitt des anderen Kommandos; die Meldung nennt die Stelle

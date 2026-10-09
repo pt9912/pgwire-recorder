@@ -26,8 +26,9 @@ func werteJeArt() map[string][3]string {
 	}
 }
 
-// tabelle ist je Option von record und replay der Default aus der
-// Optionstabelle in LH-FA-17.a; "" heißt Pflicht.
+// tabelle ist je Option von record, replay und play der Default aus der
+// Optionstabelle in LH-FA-17.a; "" heißt Pflicht, ohneStandard ein Default aus
+// den Startup-Daten der Session, den die Option leer lässt.
 func tabelle() map[string]string {
 	return map[string]string{
 		"listen":             "",
@@ -38,8 +39,14 @@ func tabelle() map[string]string {
 		"fail-on-unconsumed": "false",
 		"shutdown-timeout":   "5s",
 		"log-level":          "info",
+		"user":               ohneStandard,
+		"database":           ohneStandard,
 	}
 }
+
+// ohneStandard steht in tabelle für eine Option ohne eigenen Standardwert: Sie
+// bleibt ohne Quelle leer.
+const ohneStandard = "(Startup-Daten)"
 
 // alleOptionen sind die Namen aller Optionen der Optionstabelle in
 // LH-FA-17.a, gleich welchen Kommandos.
@@ -54,7 +61,7 @@ func alleOptionen() []string {
 }
 
 // leserKommandos sind die Kommandos am allgemeinen Leser.
-func leserKommandos() []string { return []string{"record", "replay"} }
+func leserKommandos() []string { return []string{"record", "replay", "play"} }
 
 // leere setzt die Umgebungsvariablen aller Optionen von kommando und
 // PGWIRE_RECORDER_CONFIG leer, also nicht gesetzt (LH-FA-17.a).
@@ -166,6 +173,10 @@ func TestLeserAlleOptionen(t *testing.T) {
 				if !istUsage(err) || !strings.Contains(err.Error(), "--"+o.Name) {
 					t.Errorf("%s ohne Pflichtoption --%s: %#v, %v", kommando, o.Name, ohne, err)
 				}
+			} else if standard == ohneStandard {
+				if err != nil || ohne == mitA || ohne == mitB {
+					t.Errorf("%s ohne --%s: %#v, %v, erwartet ohne Wert", kommando, o.Name, ohne, err)
+				}
 			} else if mitStandard, err2 := lese(append(args, "--"+o.Name+"="+standard)...); err != nil || err2 != nil || ohne != mitStandard {
 				t.Errorf("%s ohne --%s: %#v, %v, erwartet Default %q der Tabelle: %#v, %v", kommando, o.Name, ohne, err, standard, mitStandard, err2)
 			}
@@ -261,6 +272,7 @@ func TestLeserOptionen(t *testing.T) {
 	for kommando, want := range map[string][]string{
 		"record": {"listen", "upstream", "output", "force", "shutdown-timeout", "log-level"},
 		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "log-level"},
+		"play":   {"upstream", "input", "user", "database", "log-level"},
 	} {
 		var got []string
 		for _, o := range cli.Optionen(kommando) {
@@ -282,7 +294,7 @@ func TestLeserOptionen(t *testing.T) {
 
 // Abdeckung: LH-FA-17/Negative — die Kommandozeile kennt genau die Optionen am
 // allgemeinen Leser und --config: Jede andere Option der Optionstabelle ist bei
-// record und replay eine unbekannte Option (PGR-E2001), mit und ohne Wert,
+// record, replay und play eine unbekannte Option (PGR-E2001), mit und ohne Wert,
 // sodass keine Option am Leser vorbei angemeldet ist.
 func TestLeserNurAngemeldete(t *testing.T) {
 	for _, kommando := range leserKommandos() {
@@ -355,7 +367,7 @@ func TestLeserFremdeUmgebung(t *testing.T) {
 	}
 }
 
-// Die Hilfe von record und replay nennt die Umgebungsvariablen der Optionen, ihre
+// Die Hilfe von record, replay und play nennt die Umgebungsvariablen der Optionen, ihre
 // Priorität und dass ein leerer Wert auf der Kommandozeile ungültig ist, ohne
 // Ausnahme (LH-FA-01.a). Bei record gilt das auch für --output und --force:
 // PGWIRE_RECORDER_OUTPUT allein setzt --output, PGWIRE_RECORDER_FORCE=ja und

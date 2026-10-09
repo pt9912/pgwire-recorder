@@ -314,21 +314,25 @@ func stufeVon(kommando string, args ...string) (string, error) {
 	basis := map[string][]string{
 		"record": {"record", "--listen", ":1", "--upstream", "pg:5432", "--output", "r.yaml"},
 		"replay": {"replay", "--listen", ":1", "--input", "r.yaml"},
+		"play":   {"play", "--upstream", "pg:5432", "--input", "r.yaml"},
 	}[kommando]
 	cmd, err := cli.Parse(append(append([]string{}, basis...), args...), &bytes.Buffer{})
-	if kommando == "record" {
+	switch kommando {
+	case "record":
 		return cmd.Record.LogLevel, err
+	case "play":
+		return cmd.Play.LogLevel, err
 	}
 	return cmd.Replay.LogLevel, err
 }
 
-// Abdeckung: LH-FA-14/Boundary — record und replay nehmen --log-level mit
+// Abdeckung: LH-FA-14/Boundary — record, replay und play nehmen --log-level mit
 // genau error, warn, info oder debug, ohne Option ist es info; nennt die
 // Kommandozeile die Option mehrfach, gilt die letzte Angabe (LH-FA-14.a).
 func TestParseLogLevel(t *testing.T) {
 	t.Setenv(cli.EnvLogLevel, "")
 	t.Setenv(cli.EnvFailOnUnconsumed, "")
-	for _, kommando := range []string{"record", "replay"} {
+	for _, kommando := range []string{"record", "replay", "play"} {
 		for _, f := range []struct {
 			args []string
 			want string
@@ -354,7 +358,7 @@ func TestParseLogLevel(t *testing.T) {
 func TestParseLogLevelWerte(t *testing.T) {
 	t.Setenv(cli.EnvLogLevel, "")
 	t.Setenv(cli.EnvFailOnUnconsumed, "")
-	for _, kommando := range []string{"record", "replay"} {
+	for _, kommando := range []string{"record", "replay", "play"} {
 		for _, wert := range []string{"", "INFO", "Info", "warning", "trace", "off", " info", "fatal"} {
 			if _, err := stufeVon(kommando, "--log-level="+wert); !istUsage(err) {
 				t.Errorf("%s --log-level=%q: erwartet %s, erhalten %v", kommando, wert, model.CodeUsage, err)
@@ -371,7 +375,7 @@ func TestParseLogLevelWerte(t *testing.T) {
 // (LH-FA-17.a).
 func TestParseLogLevelUmgebung(t *testing.T) {
 	t.Setenv(cli.EnvFailOnUnconsumed, "")
-	for _, kommando := range []string{"record", "replay"} {
+	for _, kommando := range []string{"record", "replay", "play"} {
 		for _, f := range []struct {
 			env  string
 			args []string
@@ -397,7 +401,7 @@ func TestParseLogLevelUmgebung(t *testing.T) {
 // Stufe setzt (LH-FA-17.a).
 func TestParseLogLevelUmgebungUngueltig(t *testing.T) {
 	t.Setenv(cli.EnvFailOnUnconsumed, "")
-	for _, kommando := range []string{"record", "replay"} {
+	for _, kommando := range []string{"record", "replay", "play"} {
 		for _, wert := range []string{"INFO", "warning", "off", " debug"} {
 			t.Setenv(cli.EnvLogLevel, wert)
 			for _, args := range [][]string{nil, {"--log-level=info"}} {
@@ -411,11 +415,11 @@ func TestParseLogLevelUmgebungUngueltig(t *testing.T) {
 
 // Eine Hilfe-Angabe geht auch --log-level und seiner Umgebungsvariable vor:
 // mit ungültiger Umgebungsvariable, mit ungültigem Wert und an der Stelle des
-// Werts gibt Parse die Hilfe aus; die Hilfe von record und replay nennt
+// Werts gibt Parse die Hilfe aus; die Hilfe von record, replay und play nennt
 // --log-level (LH-FA-01.a).
 func TestParseLogLevelHilfe(t *testing.T) {
 	t.Setenv(cli.EnvLogLevel, "INFO")
-	for _, kommando := range []string{"record", "replay"} {
+	for _, kommando := range []string{"record", "replay", "play"} {
 		for _, args := range [][]string{
 			{kommando, "--help"},
 			{kommando, "--log-level", "-h"},

@@ -27,3 +27,9 @@ func NeueSession(conn net.Conn) driven.UpstreamSession {
 func Verbindung(s driven.UpstreamSession) net.Conn {
 	return s.(*session).conn
 }
+
+// Aufbau reicht an aufbau weiter; conn stellt der Test.
+func Aufbau(conn net.Conn, startup map[string]string) error {
+	_, err := aufbau(conn, startup)
+	return err
+}

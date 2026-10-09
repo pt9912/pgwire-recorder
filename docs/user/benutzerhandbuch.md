@@ -639,7 +639,7 @@ Werkzeug nicht (`PGR-E2004`); fehlt `.pgwire-recorder.yaml`, liest es keine Date
 Die Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne `--`; einen
 Schlüssel `config` gibt es nicht, und Groß- und Kleinschreibung zählt. Einstellungen
 für alle Betriebsarten (`log_level`) und benannte Verbindungen stehen oben, die
-übrigen in einem Abschnitt je Betriebsart (`record:`, `replay:`):
+übrigen in einem Abschnitt je Betriebsart (`record:`, `replay:`, `play:`):
 
 ```yaml
 log_level: info
@@ -650,6 +650,9 @@ record:
   upstream: lokal
   listen: 127.0.0.1:15432
   output: ./recordings/users.yaml
+play:
+  upstream: lokal
+  input: ./recordings/users.yaml
 ```
 
 Eine Verbindung ist eine URL der Form
@@ -714,9 +717,9 @@ der strengeren:
 
 | Stufe | zeigt |
 |---|---|
-| `error` | Fehler, die eine Verbindung beenden |
+| `error` | Fehler, die eine Verbindung beenden, bei `play` jeder Fehler nach dem Start |
 | `warn` | zusätzlich Warnungen, jede mit ihrem Code |
-| `info` (Standard) | zusätzlich Start und Ende von `record` und `replay` und den Beginn des Herunterfahrens |
+| `info` (Standard) | zusätzlich Start und Ende von `record`, `replay` und `play`, bei `play` das erste Abbruchsignal, und den Beginn des Herunterfahrens |
 | `debug` | zusätzlich Ereignisse je Verbindung; welche, kann sich ändern |
 
 Der Wert wird genau so geschrieben, in Kleinbuchstaben. Jeder andere Wert ist ein
@@ -753,7 +756,7 @@ Optionswerts ist `--help` die Hilfe; als Wert geht es nur mit `=`
 (`--input=--help`), und nach `--` ist es ein gewöhnliches Argument. Das erste
 `--` beendet die Optionen an jeder Stelle, auch dort, wo ein Optionswert stünde:
 `--input --` ist eine Option ohne Wert (`PGR-E2001`), den Wert `--` geben Sie
-mit `--input=--` an. `record` und `replay` nehmen nach `--` kein Argument an
+mit `--input=--` an. `record`, `replay` und `play` nehmen nach `--` kein Argument an
 (`PGR-E2001`). Eine Option `--version` gibt es nicht; die Version zeigt
 `pgwire-recorder version`.
 

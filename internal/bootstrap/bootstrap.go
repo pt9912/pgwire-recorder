@@ -21,6 +21,7 @@ import (
 var (
 	_ driving.Recorder = (*services.RecordService)(nil)
 	_ driving.Replayer = (*services.ReplayService)(nil)
+	_ driving.Player   = (*services.PlayService)(nil)
 )
 
 // Run führt einen Aufruf aus und liefert den Exit-Code (SPEC-013 bis SPEC-019).
@@ -28,7 +29,8 @@ var (
 // jede Verbindung nach ihrer laufenden Interaktion, höchstens bis zum Ablauf
 // der Frist --shutdown-timeout oder bis ablauf geschlossen wird (zweites
 // Signal), dann zwangsweise (LH-FA-13.a). Die Signalbehandlung liegt beim
-// Aufrufer; ein nil-Kanal ablauf wird nie geschlossen.
+// Aufrufer; ein nil-Kanal ablauf wird nie geschlossen. `play` endet nach dem
+// Einspielen; ctx und ablauf beenden es nach LH-FA-20.a *Abbruchsignal*.
 func Run(ctx context.Context, ablauf <-chan struct{}, args []string, version string, stdout, stderr io.Writer) int {
 	cmd, err := cli.Parse(args, stdout)
 	if errors.Is(err, cli.ErrHelp) {
@@ -49,6 +51,8 @@ func Run(ctx context.Context, ablauf <-chan struct{}, args []string, version str
 		return record(ctx, ablauf, cmd.Record, logger(stderr, cmd.Record.LogLevel), stderr)
 	case "replay":
 		return replay(ctx, ablauf, cmd.Replay, logger(stderr, cmd.Replay.LogLevel), stderr)
+	case "play":
+		return play(ctx, ablauf, cmd.Play, logger(stderr, cmd.Play.LogLevel), stderr)
 	default:
 		return fail(stderr, model.Errorf(model.CodeUsage, nil, "unbekanntes Kommando %q", cmd.Name))
 	}
@@ -107,6 +111,46 @@ func replay(ctx context.Context, ablauf <-chan struct{}, o cli.ReplayOptions, lo
 		}
 	}
 	log.Info("replay beendet")
+	return exitCode(code)
+}
+
+// play führt den Start aus; ein Fehler darin ist die Zeile beim Prozessende,
+// und vorher schreibt play nichts. Danach schreibt es die Zeile der Stufe info
+// zum Start mit der Adresse und der Aufzeichnung, beim ersten Abbruchsignal
+// bis zum Ende des Einspielens genau eine Zeile der Stufe info, nach dem
+// Einspielen je Meldung des Fehlers eine
+// Zeile der Stufe error und die Zeile zum Ende (LH-FA-20.a *Meldungen*,
+// LH-FA-14.a). Der Exit-Code ist der des Fehlers, ohne Fehler 0.
+func play(ctx context.Context, ablauf <-chan struct{}, o cli.PlayOptions, log *slog.Logger, stderr io.Writer) int {
+	ziel := &postgres.Einspielziel{Address: o.Upstream}
+	service, err := services.NewPlayService(ctx, recording.YAML{}, o.Input, ziel, o.User, o.Database)
+	if err != nil {
+		return fail(stderr, err)
+	}
+	log.Info("play gestartet", "upstream", o.Upstream, "input", o.Input)
+	ende, gemeldet := make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(gemeldet)
+		select {
+		case <-ctx.Done():
+		case <-ende:
+			if ctx.Err() == nil {
+				return
+			}
+		}
+		log.Info("Abbruchsignal, play endet nach der laufenden Interaktion")
+	}()
+	err = service.Play(ctx, ablauf)
+	close(ende)
+	<-gemeldet
+	code := ""
+	for _, m := range model.Meldungen(err) {
+		log.Error("Fehler", "code", m.Code, "error", m.Text)
+		if code == "" {
+			code = m.Code
+		}
+	}
+	log.Info("play beendet")
 	return exitCode(code)
 }
 

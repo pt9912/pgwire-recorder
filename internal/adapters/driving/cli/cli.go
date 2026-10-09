@@ -36,6 +36,19 @@ type ReplayOptions struct {
 	ShutdownTimeout  time.Duration
 }
 
+// PlayOptions sind die Optionen von `play` (LH-FA-20.a), soweit dieser Stand
+// sie kennt. Nennt --upstream eine benannte Verbindung, ist Upstream deren
+// Adresse host:port, und User und Database tragen ohne --user beziehungsweise
+// --database Benutzer und Datenbank der Verbindung (LH-FA-17.a *Wirkung einer
+// URL*); "" heißt, die Startup-Daten der Session gelten.
+type PlayOptions struct {
+	Upstream string
+	Input    string
+	User     string
+	Database string
+	LogLevel string
+}
+
 // envFailOnUnconsumed ist die Umgebungsvariable von --fail-on-unconsumed
 // (LH-FA-17.a).
 const envFailOnUnconsumed = "PGWIRE_RECORDER_FAIL_ON_UNCONSUMED"
@@ -64,6 +77,7 @@ type Command struct {
 	Name    string
 	Record  RecordOptions
 	Replay  ReplayOptions
+	Play    PlayOptions
 	Anzeige string
 }
 
@@ -84,13 +98,24 @@ const optionenReplay = `Optionen von replay:
               Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
 ` + optionShutdownTimeout + optionLogLevel + optionConfig + optionUmgebung
 
+const optionenPlay = `Optionen von play:
+  --upstream  PostgreSQL-Server als host:port oder Name einer Verbindung der
+              Konfigurationsdatei (Pflicht); verlangt der Server ein
+              Passwort, endet play mit PGR-E4005
+  --input     Aufzeichnung (Pflicht)
+  --user      Benutzer für jede Session, statt dem der Verbindung und der
+              Aufzeichnung
+  --database  Datenbank für jede Session, statt der der Verbindung und der
+              Aufzeichnung
+` + optionLogLevel + optionConfig + optionUmgebung
+
 const optionUmgebung = `
 Jede Option ist auch über ihre Umgebungsvariable setzbar: PGWIRE_RECORDER_ und
 der Name in Großbuchstaben mit _ statt -, etwa PGWIRE_RECORDER_LISTEN; die
 Kommandozeile geht ihr vor. Ein leerer Wert auf der Kommandozeile ist ungültig.
 In der Konfigurationsdatei sind alle Optionen ohne --config setzbar: Schlüssel
 wie die Option mit _ statt -, log_level auf der obersten Ebene, jeder andere im
-Abschnitt des Kommandos (record:, replay:); die Umgebungsvariable geht der
+Abschnitt des Kommandos (record:, replay:, play:); die Umgebungsvariable geht der
 Datei vor, die Datei dem Standardwert.
 `
 
@@ -119,12 +144,14 @@ const usage = `Aufruf: pgwire-recorder <kommando> [optionen]
 Kommandos:
   record   vermittelt Clients zu PostgreSQL und zeichnet die Kommunikation auf
   replay   beantwortet Anfragen aus einer Aufzeichnung, ohne PostgreSQL
+  play     spielt die Anfragen einer Aufzeichnung in PostgreSQL ein
   config show
            zeigt die gewählte Konfigurationsdatei
   version  gibt die Programmversion aus
 
 ` + optionenRecord + `
 ` + optionenReplay + `
+` + optionenPlay + `
 ` + optionenConfigShow
 
 const optionenConfigShow = `Optionen von config show:
@@ -139,6 +166,7 @@ der Befehl nichts.
 var hilfen = map[string]string{
 	"record":  "Aufruf: pgwire-recorder record [optionen]\n\n" + optionenRecord,
 	"replay":  "Aufruf: pgwire-recorder replay [optionen]\n\n" + optionenReplay,
+	"play":    "Aufruf: pgwire-recorder play [optionen]\n\n" + optionenPlay,
 	"config":  "Aufruf: pgwire-recorder config show [optionen]\n\n" + optionenConfigShow,
 	"version": "Aufruf: pgwire-recorder version\n\nGibt die Programmversion aus.\n",
 }
@@ -174,6 +202,8 @@ func Parse(args []string, out io.Writer) (Command, error) {
 		return parseRecord(args[1:])
 	case "replay":
 		return parseReplay(args[1:])
+	case "play":
+		return lies("play", args[1:])
 	case "config":
 		return parseConfig(args[1:])
 	case "version":
@@ -267,13 +297,21 @@ func optionen(kommando string) []option {
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Replay.ShutdownTimeout, v) }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Replay.LogLevel = v }},
 		}
+	case "play":
+		return []option{
+			{name: "upstream", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Play.Upstream = v }, zuletzt: upstreamPlay},
+			{name: "input", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Play.Input = v }},
+			{name: "user", art: artText(), setze: func(c *Command, v string) { c.Play.User = v }},
+			{name: "database", art: artText(), setze: func(c *Command, v string) { c.Play.Database = v }},
+			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Play.LogLevel = v }},
+		}
 	}
 	return nil
 }
 
 // leserKommandos sind die Kommandos am allgemeinen Leser; je eines hat einen
 // Abschnitt in der Konfigurationsdatei.
-func leserKommandos() []string { return []string{"record", "replay"} }
+func leserKommandos() []string { return []string{"record", "replay", "play"} }
 
 func istLeserKommando(name string) bool {
 	for _, k := range leserKommandos() {

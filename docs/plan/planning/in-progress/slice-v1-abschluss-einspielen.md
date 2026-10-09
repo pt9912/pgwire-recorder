@@ -113,12 +113,15 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driving` | neu | Einspiel-Use-Case für einfache Anfragen mit Abbruch bei jedem Fehler, Abbruchsignal und dem Startfehler für eine Extended-Interaktion (§6, *Zwischenstand*); nutzt nur Driven Ports |
+| `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driving` | neu | Einspiel-Use-Case für einfache Anfragen mit Abbruch bei jedem Fehler, Abbruchsignal und dem Startfehler für eine Extended-Interaktion (§6, *Zwischenstand*); nutzt nur Driven Ports; wertet die Fehlerantwort aus (`FATAL`/`PANIC` aus `V`, sonst `S`) |
+| `internal/hexagon/ports/driven` | neu | eigener Port `Einspielziel` (Verbinden je Session, Anfrage senden, *eine* Nachricht lesen, Schließen), getrennt vom Port, den `record` nutzt; `Receive` liest gepufferte Nachrichten weiter und hielte „keine weitere Antwort“ nicht |
+| `internal/hexagon/model` | update | Codes `PGR-E4004` und `PGR-E4005` |
 | `internal/adapters/driving/cli` | update | Kommando `play`, Optionen, Abschnitt `play:` der Konfigurationsdatei, Einsetzen aller Teile der benutzten Verbindung (U8); `--fail-on-unconsumed` bei `play` unbekannt, ihre Umgebungsvariable unbeachtet (Test, `LH-FA-03.b`); `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` bei `play` wie bei `record` und `replay` (übernommen aus `slice-replay-semantik-meldungscodes`, Test) |
-| `internal/adapters/driven/postgres` | update | Verbindungsaufbau als Client ohne Passwort und ohne TLS mit der Einstufung nach `LH-FA-20.a` *Aufbau*, die `Query` einer einfachen Anfrage senden und die Antworten bis `ReadyForQuery` lesen |
+| `internal/adapters/driven/postgres` | update | eigene Datei `einspielen.go`: Verbindungsaufbau als Client ohne Passwort und ohne TLS mit der Einstufung nach `LH-FA-20.a` *Aufbau*, *Anmelde-Nachrichten* und *Abbruch im Aufbau* (Nachrichten des Aufbaus selbst gelesen, damit der Code einer Nachricht `R` auch für SCM und SSPI gilt), die `Query` einer einfachen Anfrage senden und die Antworten einzeln lesen; `Upstream.Open` für `record` bleibt unverändert |
 | `internal/bootstrap` | update | `play` verdrahten: Upstream-Adapter mit Adresse, Benutzer und Datenbank, Play-Service, Signale (erstes, zweites), Exit-Code; die Optionen von `play` und die Signale gehen an den Play-Service, der über Fortsetzung und Session-Ende entscheidet (`slice-v1-abschluss-einspielen-laufsteuerung` §1, Schicht-Abgrenzung) |
-| `test/integration` | update | Happy/Boundary/Negative nach LH-FA-20, gegen einen Server ohne Passwort und ohne TLS |
-| `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: der Abschnitt `play:` in Beispiel und Abschnittsliste (V-125), übernommen aus `slice-v1-abschluss-upstream-verbinden`; Passwort und `sslmode` bei `play` (F-533) beschreiben die Folge-Slices |
+| `test/integration` | update | Happy/Boundary/Negative nach LH-FA-20, gegen einen Server ohne Passwort und ohne TLS; die Signale prüfen die Tests des Bootstrap gegen einen Fake-Server, weil ein Signal mitten in einer Interaktion gegen die reale Instanz nicht ohne Wartezeit zu treffen ist |
+| `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: der Abschnitt `play:` in Beispiel und Abschnittsliste (V-125), übernommen aus `slice-v1-abschluss-upstream-verbinden`; *Log-Ausgaben*: `play` in den Stufen `error` und `info` und nach `--`; Passwort und `sslmode` bei `play` (F-533) beschreiben die Folge-Slices |
+| `docs/user/abdeckung-*.md` | update | erzeugt mit `make abdeckung` |
 
 ## 4. Trigger
 
@@ -462,6 +465,133 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+**Belege des Implementers** (Arbeitsbaum auf `e4963ee` mit dem Diff des Commits, der
+diesen Abschnitt anlegt; Kern [K] nach der Randform-Rückgabe R1 bis R3):
+
+*Größe.* `git diff --numstat` gegen `e4963ee` ohne diesen Plan: +2239 −45 Zeilen, davon
+erzeugt (`make abdeckung`) 48 und Handbuch 11; Produkt-Code rund 630 Zeilen
+(`einspielen.go` 228, `services/play.go` 170, CLI 134, Bootstrap 45, Ports 54, Codes 2),
+Tests rund 1560. Damit liegt der Kern bei rund 2190 Zeilen mit Tests, knapp über der
+Schätzung von 1600 bis 2000 aus dem Auftrag; vier Schichten wie in §6 (*Größe des Kerns*).
+
+*Weg der Mutanten.* Je Mutant eine frische Kopie von `go.mod`, `go.sum`, `cmd/`,
+`internal/` und `test/` (`cp -r` ohne `-p`) unter dem Scratch-Verzeichnis, genau eine
+Ersetzung, `gofmt -l` auf der Datei leer, dann `go test -count=1 -run <Test> ./<Paket>/`
+im Image der Stufe `deps` per Bind-Mount (nicht über den Build-Kontext, damit die
+mtime-Falle nicht greift), ohne Netz; die Kopie danach gelöscht. Der E2E-Mutant lief in
+einer frischen Kopie aller Dateien des Index mit `tools/test/run-integration-tests.sh`.
+Rot heißt: der genannte Test schlug mit der genannten Meldung fehl, nicht der Build.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Abschnitt `play:` gelesen und bei jedem Kommando geprüft | `play` aus `leserKommandos` | `TestLeserAlleOptionen` („play: unbekannter Schlüssel“), `TestDateiUngueltig` |
+| Benutzer der URL gilt ohne `--user` | Zuweisung aus der URL entfernt | `TestPlayVerbindung` |
+| `--user` geht der URL vor | URL überschreibt immer | `TestPlayVerbindung` |
+| `--database` geht der URL vor | URL überschreibt immer | `TestPlayVerbindung` |
+| U8: Variable im Passwort Pflicht | Passwort nicht eingesetzt | `TestPlayVariablen` (erste fehlende `PGR_T_PW`) |
+| `sslmode=require` `PGR-E2004` vor den Variablen | Prüfung nach dem Einsetzen | `TestPlayVariablen` |
+| `sslmode=require` bei `play` `PGR-E2004` | Prüfung entfernt | `TestPlayVariablen` |
+| Port nach dem Einsetzen geprüft, nach den Variablen | `upstreamRecord` statt `upstreamPlay` | `TestPlayVariablen` (drei Zeilen) |
+| ohne `--user` bleibt `User` leer | Standard `x` | `TestParsePlay`, `TestParsePlayFremdeUmgebung` |
+| `--fail-on-unconsumed` bei `play` unbekannt, Variable unbeachtet | Option bei `play` angemeldet | `TestParsePlayFailOnUnconsumed` |
+| `log_level` bei `play` auf der obersten Ebene | `oben` entfernt | `TestLeserAlleOptionen` („falsche Ebene“) |
+| `--log-level` mit Wertemenge der Stufen, auch in der Umgebung | Art Text statt Stufe | `TestParseLogLevelWerte`, `TestParseLogLevelUmgebungUngueltig` |
+| Standard `info` | Standard `warn` | `TestParseLogLevelUmgebung` |
+| gewöhnliches Argument `PGR-E2001` | Rest bei `play` übergangen | `TestParsePlayArgument` |
+| Kommando `play` bekannt | Fall in `Parse` entfernt | `TestParsePlay` |
+| Klasse 28 im Aufbau `PGR-E4005` | Vergleich auf `XX28` | `TestEinspielAufbauFehler` |
+| … gleich welcher Schweregrad | nur mit `FATAL` | `TestEinspielAufbauFehler/Klasse_28_ERROR` |
+| … nur Klasse 28, nicht `2*` | Präfix `2` | `TestEinspielAufbauFehler/Klasse_2_ähnlich` |
+| unbekannter Code ist Anforderung (`PGR-E4005`) | Code > 10 `PGR-E4002` | `TestEinspielAufbauFehler/unbekannt_99` |
+| SCM und SSPI `PGR-E4005` (Code selbst gelesen) | 6 und 9 `PGR-E4002` | `TestEinspielAufbauFehler/SCM`, `/SSPI` |
+| Fortsetzung 12 `PGR-E4002` | 12 nicht als Fortsetzung | `…/SASLFinal` |
+| Fortsetzung 8 `PGR-E4002` | 8 nicht als Fortsetzung | `…/GSSContinue` |
+| jedes `R` nach `AuthenticationOk` `PGR-E4002` | Zweig entfernt | `…/zweites_AuthenticationOk`, `…/R_nach_ParameterStatus` |
+| `R` ohne vollständigen Code `PGR-E4002` | `PGR-E4005` | `…/R_ohne_vollständigen_Code` |
+| `ReadyForQuery` vor `AuthenticationOk` `PGR-E4002` | Prüfung entfernt | `…/ReadyForQuery_vor_AuthenticationOk` |
+| `NoticeResponse` im Aufbau verworfen | `N` nicht in der Liste | `TestEinspielAufbauVerworfen` |
+| `NotificationResponse` im Aufbau verworfen | `A` nicht in der Liste | `TestEinspielAufbauVerworfen` |
+| `BackendKeyData` verworfen | `K` nicht in der Liste | `TestEinspielAufbauVerworfen` |
+| verworfene Nachricht, die sich nicht lesen lässt, `PGR-E4002` | Dekodierfehler übergangen | `…/ParameterStatus_nicht_lesbar` u. a. |
+| jede andere Nachricht `PGR-E4002` | `default` übergeht | `…/DataRow`, `…/NegotiateProtocolVersion` |
+| Abbruch im Aufbau ohne `Terminate` | `X` vor dem Schließen gesendet | `TestEinspielAufbauFehler` („nach dem Startup gesendet“) |
+| Startup-Parameter unverändert | nur `user` gesendet | `TestEinspielAufbauVerworfen` |
+| zweites Signal im Aufbau: Abbruch | `AfterFunc` an `Background` | `TestEinspielAufbauAbgebrochen` („binnen 5 s“) |
+| … ohne `Terminate` | `X` beim Abbruch | `TestEinspielAufbauAbgebrochen` |
+| Senden des Startup scheitert: `PGR-E4002` | `PGR-E4003` | `TestEinspielStartupNichtGesendet` |
+| nach dem Aufbau unbekannte Nachrichten verworfen, auch `NotificationResponse` | `toResponse` liefert Fehler durch | `TestEinspielNaechste` |
+| `CopyInResponse`, `CopyOutResponse`, `CopyBothResponse` `PGR-E6001` | je eine aus dem Fall entfernt | `TestEinspielNaechsteFehler/CopyInResponse`, `/CopyOutResponse`, `/CopyBothResponse` |
+| keine Antwort über die Fehlerantwort hinaus gelesen | nach Fehlerantwort weitergelesen | `TestEinspielNaechste` („invalid message length“) |
+| `Terminate` beim Schließen der Session | `Terminate` entfernt | `TestEinspielAufbauVerworfen` |
+| Senden scheitert `PGR-E4003` | `PGR-E4002` | `TestEinspielNaechsteFehler/Senden_scheitert` |
+| Verbindungsende `PGR-E4003` | `PGR-E6001` | `…/Verbindungsende` |
+| nicht lesbar `PGR-E6001` | `PGR-E4003` | `…/unbekannter_Typ`, `…/nicht_lesbar` |
+| nicht erreichbar `PGR-E4002` | `PGR-E4003` | `TestEinspielNichtErreichbar` |
+| Lesepuffer des Aufbaus geht mit der Session weiter | neues Frontend auf `conn` | `TestEinspielAufbauVerworfen` („Nachricht hinter dem ReadyForQuery“) |
+| Schweregrad aus `V`, ohne es `S` | `S` vor `V` | `TestPlayFehlerantwort/V_ERROR_vor_S_FATAL` |
+| … ohne `V` aus `S` | nur `V` | `TestPlayFehlerantwort/S_FATAL_ohne_V` |
+| `PANIC` `PGR-E4003` | nur `FATAL` | `…/V_PANIC`, `…/S_PANIC_ohne_V` |
+| `FATAL` `PGR-E4003` | nur `PANIC` | `…/V_FATAL` |
+| nach `PGR-E4004` keine weitere Antwort | bis `ReadyForQuery` weitergelesen | `TestPlayFehlerantwort` (Ablauf) |
+| Meldung nennt `M` | `M` entfernt | `TestPlayFehlerantwort` |
+| Abbruch: keine weitere Interaktion | Fehler verworfen | `TestPlayFehlerantwort` |
+| `Schliesse` am Ende der Session, auch nach Fehler | `Schliesse` entfernt | `TestPlayFehlerantwort`, `TestPlayReihenfolge` |
+| Session ohne Interaktion ohne Verbindung | alle Sessions verbunden | `TestPlayReihenfolge`, `TestPlayOhneInteraktion` |
+| `--user` ersetzt `user` | Ersetzung entfernt | `TestPlayStartup` |
+| leeres `--database` lässt `database` | immer ersetzt | `TestPlayStartup` |
+| Aufzeichnung unverändert | Map der Session beschrieben | `TestPlayStartup` („Aufzeichnung verändert“) |
+| Extended-Interaktion beim Start `PGR-E6001` | Prüfung wirkungslos | `TestPlayStart` |
+| beschädigte Interaktion geht vor | `Validate` übersprungen | `TestPlayStart` |
+| erstes Signal: keine weitere Interaktion | Prüfung je Interaktion entfernt | `TestPlayErstesSignal` |
+| erstes Signal: keine weitere Session | Prüfung je Session entfernt | `TestPlayErstesSignal` |
+| erstes Signal im Aufbau: Aufbau läuft zu Ende | Aufbau mit `ctx` | `TestPlayErstesSignalImAufbau` |
+| zweites Signal schließt die laufende Session | `AfterFunc` an `Background` | `TestPlayZweitesSignal` („binnen 30 s“) |
+| unterbrochene Interaktion kein Fehler | Prüfung auf `abbruch` entfernt | `TestPlayZweitesSignal` |
+| `ablauf` löst den Abbruch aus | `abbrechen` entfernt | `TestPlayZweitesSignal` |
+| Fehler nach dem ersten Signal zählt | nach Signal `nil` | `TestPlayErstesSignal` |
+| Meldung nennt die Session im Aufbau | ohne Ort | `TestPlayFehler` |
+| Code des Fehlers bleibt | Code `PGR-E4002` | `TestPlayFehler` |
+| Zeile `info` zum ersten Signal | Zeile entfernt | `TestRunPlaySignalImStart` |
+| … auch, wenn das Signal vor dem Ende ankam | `return` ohne Blick auf `ctx` | `TestRunPlaySignalImStart` |
+| Zeile beim Start ohne Benutzer | `user` angehängt | `TestRunPlay` |
+| … ohne Datenbank | `db` angehängt | `TestRunPlay` |
+| … mit Aufzeichnung | `input` entfernt | `TestRunPlay` |
+| Startfehler ohne Log-Zeile davor | Zeile vor dem Start | `TestRunPlayStartfehler` |
+| Exit-Code des Fehlers | Exit-Code 0 | `TestRunPlayFehlerantwort` |
+| Zeile `error` je Meldung | Zeile entfernt | `TestRunPlayFehlerantwort` |
+| zweites Signal wirkt über `Run` | `ablauf` nicht weitergereicht | `TestRunPlayZweitesSignal` („binnen 30 s“) |
+| `--database` wirkt gegen die reale Instanz (E2E) | Ersetzung von `database` entfernt | `TestE2EPlayDDLDML`, `TestE2EPlayFehlerantwort`, `TestE2EPlayAufbau/fehlende Datenbank`, `TestE2EPlayKonfiguration` |
+
+*Grüne Mutanten.* Einer, äquivalent: Senden des Startup ohne Fehlerprüfung — das Lesen
+danach scheitert auf derselben geschlossenen Verbindung und ist ebenfalls `PGR-E4002`;
+das Verhalten ist gleich, die Grenze trägt `LH-FA-20.a` *Aufbau* (beide Wege `PGR-E4002`).
+
+*Grenze ohne Test.* `Schliesse` sendet `Terminate` nur, wenn gerade keine Anfrage
+sendet, und höchstens 100 ms lang (wie `Close` des Ports für `record`); dass ein zweites
+Signal während eines blockierten Sendens ohne `Terminate` schließt, prüft kein Test,
+geprüft ist nur das Schließen während des Wartens auf eine Antwort
+(`TestPlayZweitesSignal`, `TestRunPlayZweitesSignal`).
+
+*Handbuch V-125.* Das Beispiel aus §5 *Konfigurationsdatei* aus dem Handbuch dieses
+Commits als `.pgwire-recorder.yaml` geschrieben und `config show` im Produkt-Image
+(`make build`, `pgwire-recorder:dev`) ohne Netz ausgeführt: Exit-Code 0, Datei auf
+`stdout`, `stderr` leer. Rot gesehen über Mutant „`play` aus `leserKommandos`“ (oben):
+dort lehnt das Laden `play:` als unbekannten Schlüssel ab (`PGR-E2004`).
+
+*Läufe.* `make test`, `make lint` (0 issues), `make test-integration` (vier
+`TestE2EPlay*` grün) und `make abdeckung` auf diesem Stand; `make gates` vor der Übergabe
+(Ergebnis im Bericht).
+
+*Beobachtungen für Review und Closure* (keine Randform, nichts entschieden):
+
+- `BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft` — für `play` hat der Puffer jetzt
+  einen Test (`TestEinspielAufbauVerworfen`, Mutant oben); für `record` bleibt die Adresse
+  `slice-v1-abschluss-anmeldung`.
+- Das Handbuch beschreibt in §4 *Eine Aufzeichnung in eine Datenbank einspielen* den
+  Zielstand mit Passwort, TLS, Laufsteuerung, Zeitangaben und Vergleich; in diesem Stand
+  sind diese Optionen bei `play` unbekannt. Die DoD verlangt nur §5; die Folge-Slices
+  liefern die Optionen. Ob der Abschnitt bis dahin einen Hinweis braucht, ist Urteil.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
