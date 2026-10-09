@@ -323,3 +323,78 @@ func TestDateiUpstreamUngueltig(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-17/Negative — ein Klartext-Passwort ist PGR-E2006 an
+// connections.<Name> ohne den Wert, in jeder Verbindung der Datei, auch bei
+// config show, das dann nichts zeigt: ein Passwortteil, dessen geschriebener
+// Text nicht genau ein ${VAR} ist (leer, wörtlich, $${VAR}, ein fehlerhafter
+// Platzhalter, ein Platzhalter mit Text, zwei Platzhalter, ein ungültiges
+// Escape), getrennt am ersten :; ein Parameter password, auch dekodiert
+// geschrieben, mit Platzhalter, leerem oder ungültig kodiertem Wert. Geprüft
+// in der Reihenfolge der URL: nach Benutzer, vor Host, Port, Datenbank, den
+// späteren Parametern und dem Fragment; ein Parameter davor geht vor
+// (LH-FA-17.a *Geheimnisse*).
+func TestVerbindungKlartext(t *testing.T) {
+	leere(t, "replay")
+	passwort := "Konfiguration [PGR-E2006]: Konfigurationsdatei: connections.v: Klartext-Passwort, erlaubt ist im Passwort nur genau ein Platzhalter ${VAR}"
+	parameter := "Konfiguration [PGR-E2006]: Konfigurationsdatei: connections.v: Parameter password ist ein Klartext-Passwort"
+	for url, genau := range map[string]string{
+		"postgresql://u:GEHEIM@h/db":                              passwort,
+		"postgresql://u:@h/db":                                    passwort,
+		"postgresql://u:$${GEHEIM}@h/db":                          passwort,
+		"postgresql://u:${1GEHEIM}@h/db":                          passwort,
+		"postgresql://u:${GEHEIM@h/db":                            passwort,
+		"postgresql://u:x${GEHEIM}@h/db":                          passwort,
+		"postgresql://u:${P}${GEHEIM}@h/db":                       passwort,
+		"postgresql://u:%ZZGEHEIM@h/db":                           passwort,
+		"postgresql://u:%47EHEIM@h/db":                            passwort,
+		"postgresql://${U}:${P}:${GEHEIM}@h/db":                   passwort,
+		"postgresql://u:GEHEIM@[x/db?a=b":                         passwort,
+		"postgresql://u:GEHEIM@h:0/db":                            passwort,
+		"postgresql://u:GEHEIM@h/db?foo=1#x":                      passwort,
+		"postgresql://h/db?password=GEHEIM":                       parameter,
+		"postgresql://h/db?pass%77ord=GEHEIM":                     parameter,
+		"postgresql://h/db?password=${GEHEIM}":                    parameter,
+		"postgresql://h/db?password=":                             parameter,
+		"postgresql://h/db?password=%ZZGEHEIM":                    parameter,
+		"postgresql://h/db?sslmode=disable&password=GEHEIM&foo=1": parameter,
+		"postgresql://h/db?password=GEHEIM#x":                     parameter,
+	} {
+		pfad := schreibe(t, mitVerbindung(url))
+		_, err := replayMit("--config=" + pfad)
+		if err == nil || err.Error() != genau || !hatCode(err, model.CodeConfigPassword) {
+			t.Errorf("%s: %v, erwartet %q", url, err, genau)
+		}
+		if got, err := konfigurationZeigen(t, "--config", pfad); !hatCode(err, model.CodeConfigPassword) || got != "" {
+			t.Errorf("config show %s: %q, %v", url, got, err)
+		}
+	}
+	for url, grund := range map[string]string{
+		"postgresql://:GEHEIM@h/db":               "connections.v: Benutzer ist leer",
+		"postgresql://u:GEHEIM\\x01@h/db":         "connections.v: Steuerzeichen in der URL",
+		"postgres://u:GEHEIM@h/db":                "connections.v: Schema",
+		"postgresql://h/db?foo=1&password=GEHEIM": "connections.v: unbekannter Parameter",
+		"postgresql://h/db?PASSWORD=GEHEIM":       "connections.v: unbekannter Parameter",
+		"postgresql://h/db?pass%ZZword=GEHEIM":    "connections.v: Name eines Parameters: ungültiges Escape",
+		"postgresql://u:GEHEIM/db@h/db":           "connections.v: Port ist keine Zahl",
+	} {
+		_, err := replayMit("--config=" + schreibe(t, mitVerbindung(url)))
+		if !istDatei(err) || !strings.Contains(err.Error(), grund) || strings.Contains(err.Error(), "GEHEIM") {
+			t.Errorf("%s: %v, erwartet %s mit %q", url, err, model.CodeConfigFile, grund)
+		}
+	}
+	for inhalt, code := range map[string]string{
+		"connections:\n  a: postgresql://h/db\n  v: postgresql://u:GEHEIM@h/db\nbogus: 1\n": model.CodeConfigPassword,
+		"bogus: 1\nconnections:\n  v: postgresql://u:GEHEIM@h/db\n":                         model.CodeConfigFile,
+		"connections:\n  v: postgresql://u:GEHEIM@h/db\n  w: postgres://h/db\n":             model.CodeConfigPassword,
+	} {
+		if _, err := replayMit("--config=" + schreibe(t, inhalt)); !hatCode(err, code) || strings.Contains(err.Error(), "GEHEIM") {
+			t.Errorf("%q: %v, erwartet %s", inhalt, err, code)
+		}
+	}
+	for _, url := range []string{"postgresql://u:${PGWIRE_RECORDER_PASSWORD}@h/db", "postgresql://u@h/db", "postgresql://h/db?sslmode=require"} {
+		if _, err := replayMit("--config=" + schreibe(t, mitVerbindung(url))); err != nil {
+			t.Errorf("%s: %v", url, err)
+		}
+	}
+}

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
 
 // schema ist der Anfang jeder URL einer Verbindung (LH-FA-17.a *Benannte
@@ -59,7 +61,7 @@ func (z *zerlegung) fehler(grund string) error {
 // Verbindung nach LH-FA-17.a in dieser Reihenfolge: Steuerzeichen, Schema,
 // Benutzer, Passwort, Host, Port, Datenbank, Parameter, Fragment; je Teil die
 // Form seiner Platzhalter vor dem Rest. Ein Fehler ist PGR-E2004 an
-// connections.<name> und nennt keinen Wert.
+// connections.<name>, ein Klartext-Passwort PGR-E2006; keiner nennt einen Wert.
 func zerlegeURL(name, text string) (verbindung, error) {
 	z := &zerlegung{stelle: unter("connections", name), v: verbindung{name: name, sslmode: "disable"}}
 	if strings.IndexFunc(text, unicode.IsControl) >= 0 {
@@ -109,6 +111,9 @@ func (z *zerlegung) anmeldung(text string) error {
 }
 
 // benutzerteil liest Benutzer und Passwort; ein leerer Benutzer ist ungültig.
+// Ein Passwort, dessen geschriebener Text nicht genau ein ${VAR} ist, ist ein
+// Klartext-Passwort (PGR-E2006), auch leer, mit fehlerhaftem Platzhalter oder
+// ungültigem Escape; es wird nicht dekodiert.
 func (z *zerlegung) benutzerteil(text string) error {
 	benutzer, passwort, mitPasswort := strings.Cut(text, ":")
 	b, err := liesTeil(benutzer, true)
@@ -120,10 +125,11 @@ func (z *zerlegung) benutzerteil(text string) error {
 	}
 	z.v.mitBenutzer, z.v.benutzer = true, b
 	if mitPasswort {
-		z.v.mitPasswort, z.v.passwort = true, teil{{text: passwort}}
-		if m := genauEinPlatzhalter.FindStringSubmatch(passwort); m != nil {
-			z.v.passwort = teil{{variable: m[1]}}
+		m := genauEinPlatzhalter.FindStringSubmatch(passwort)
+		if m == nil {
+			return klartext(z.stelle, "Klartext-Passwort, erlaubt ist im Passwort nur genau ein Platzhalter ${VAR}")
 		}
+		z.v.mitPasswort, z.v.passwort = true, teil{{variable: m[1]}}
 	}
 	return nil
 }
@@ -223,8 +229,10 @@ func (z *zerlegung) pfad(text string) error {
 }
 
 // parameter liest die Parameter, getrennt durch &, in ihrer Reihenfolge:
-// jeder mit =, der Name dekodiert und genau in der Schreibweise verglichen; der
-// einzige ist sslmode mit disable oder require, höchstens einmal.
+// jeder mit =, der Name dekodiert und genau in der Schreibweise verglichen; ein
+// Parameter password ist ein Klartext-Passwort (PGR-E2006), sein Wert wird
+// weder dekodiert noch geprüft; der einzige gültige ist sslmode mit disable
+// oder require, höchstens einmal.
 func (z *zerlegung) parameter(text string) error {
 	gesehen := false
 	for _, p := range strings.Split(text, "&") {
@@ -235,6 +243,9 @@ func (z *zerlegung) parameter(text string) error {
 		n, err := liesTeil(name, true)
 		if err != nil {
 			return z.fehler("Name eines Parameters: " + err.Error())
+		}
+		if !n.platzhalter() && n.woertlich() == "password" {
+			return klartext(z.stelle, "Parameter password ist ein Klartext-Passwort")
 		}
 		if n.platzhalter() || n.woertlich() != "sslmode" {
 			return z.fehler("unbekannter Parameter")
@@ -421,4 +432,9 @@ func nameFehler(name string) string {
 		return "Name einer Verbindung mit :, @ oder $"
 	}
 	return ""
+}
+
+// klartext ist PGR-E2006 an einer Verbindung; der Grund nennt keinen Wert.
+func klartext(stelle, grund string) error {
+	return model.Errorf(model.CodeConfigPassword, nil, "Konfigurationsdatei: %s: %s", stelle, grund)
 }

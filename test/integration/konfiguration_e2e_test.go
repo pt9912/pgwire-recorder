@@ -110,3 +110,25 @@ func TestE2EConfigShowStdin(t *testing.T) {
 		t.Fatalf("reguläre Datei: Exit-Code %d, stdout %q, stderr %q", code, stdout, stderr)
 	}
 }
+
+// Abdeckung: LH-FA-17/Negative — config show mit einem Klartext-Passwort in
+// einer Verbindung endet mit PGR-E2006, mit einer ungültigen URL und mit einem
+// Schlüssel upstream, der weder Name einer Verbindung noch host:port ist, mit
+// PGR-E2004, je mit Exit-Code 2, ohne etwas auf stdout und ohne den Wert auf
+// stderr.
+func TestE2EConfigShowVerbindungUngueltig(t *testing.T) {
+	for inhalt, code := range map[string]string{
+		"connections:\n  v: \"postgresql://u:GEHEIM@h/db\"\n":                     "PGR-E2006",
+		"connections:\n  v: \"postgresql://u@h:GEHEIM/db\"\n":                     "PGR-E2004",
+		"connections:\n  v: \"postgresql://h/db\"\nrecord:\n  upstream: GEHEIM\n": "PGR-E2004",
+	} {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, ".pgwire-recorder.yaml"), []byte(inhalt), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		stdout, stderr, exit := starteBis(t, dir, "config", "show")
+		if exit != 2 || stdout != "" || !strings.Contains(stderr, code) || strings.Contains(stderr, "GEHEIM") {
+			t.Errorf("%q: Exit-Code %d, stdout %q, stderr %q, erwartet %s", inhalt, exit, stdout, stderr, code)
+		}
+	}
+}
