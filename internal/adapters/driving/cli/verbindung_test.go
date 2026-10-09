@@ -313,12 +313,13 @@ func TestDateiPlatzhalterAusserhalb(t *testing.T) {
 // Abdeckung: LH-FA-17/Happy, LH-FA-17/Boundary — der Schlüssel upstream ist
 // der Name einer gültigen Verbindung der Datei, auch einer, die nach ihm steht,
 // oder hat die Form host:port: Host nicht leer, IPv6 in eckigen Klammern, auch
-// mit Zone hinter %, Port wie geschrieben mit führenden Nullen (LH-FA-17.a).
+// mit Zone hinter %, Port wie geschrieben mit führenden Nullen; record verbindet
+// zu Host und Port der genannten Verbindung (LH-FA-17.a).
 func TestDateiUpstream(t *testing.T) {
 	leere(t, "record")
 	for inhalt, want := range map[string]string{
-		"record:\n  upstream: staging\nconnections:\n  staging: postgresql://h/db\n": "staging",
-		"connections:\n  staging: postgresql://h/db\nrecord:\n  upstream: staging\n": "staging",
+		"record:\n  upstream: staging\nconnections:\n  staging: postgresql://h/db\n": "h:5432",
+		"connections:\n  staging: postgresql://h/db\nrecord:\n  upstream: staging\n": "h:5432",
 		"record:\n  upstream: h:5432\n":                                              "h:5432",
 		"record:\n  upstream: \"[::1]:5432\"\n":                                      "[::1]:5432",
 		"record:\n  upstream: h:05432\n":                                             "h:05432",

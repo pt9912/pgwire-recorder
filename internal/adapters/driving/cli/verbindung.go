@@ -476,3 +476,59 @@ func nameFehler(name string) string {
 func klartext(stelle, grund string) error {
 	return model.Errorf(model.CodeConfigPassword, nil, "Konfigurationsdatei: %s: %s", stelle, grund)
 }
+
+// einsetzen setzt die Variablen der Platzhalter in teile ein, die Teile in der
+// gegebenen Reihenfolge, je Teil seine Stücke in der Reihenfolge der URL, und
+// liefert je Teil seinen Text (LH-FA-17.a *Geheimnisse*): Ein Platzhalter wird
+// einmal durch den Wert aus wert ersetzt, der unverändert, weder dekodiert noch
+// erneut ausgewertet, in seinem Teil steht. Ein leerer Wert gilt als nicht
+// gesetzt; die erste nicht gesetzte Variable ist PGR-E2005 an
+// connections.<Name> mit ihrem Namen, ohne einen Wert.
+func (v verbindung) einsetzen(wert func(string) string, teile ...teil) ([]string, error) {
+	out := make([]string, len(teile))
+	for i, t := range teile {
+		var b strings.Builder
+		for _, s := range t {
+			if s.variable == "" {
+				b.WriteString(s.text)
+				continue
+			}
+			w := wert(s.variable)
+			if w == "" {
+				return nil, model.Errorf(model.CodeConfigVariable, nil, "Konfigurationsdatei: %s: Umgebungsvariable %s eines Platzhalters nicht gesetzt", unter("connections", v.name), s.variable)
+			}
+			b.WriteString(w)
+		}
+		out[i] = b.String()
+	}
+	return out, nil
+}
+
+// adresseRecord ist die Adresse host:port, zu der record verbindet
+// (LH-FA-17.a), in dieser Reihenfolge: sslmode=require ist PGR-E2004; dann
+// werden Host und Port eingesetzt, Benutzer, Passwort und Datenbank nicht; hat
+// der Port danach nicht die Form eines Ports, ist das PGR-E2004. Jede Meldung
+// nennt connections.<Name> und keinen Wert. wert liefert die Variablen.
+func (v verbindung) adresseRecord(wert func(string) string) (string, error) {
+	stelle := unter("connections", v.name)
+	if v.sslmode == "require" {
+		return "", fehlerDatei(stelle, "sslmode=require ist bei record ungültig, record verbindet ohne TLS zum Upstream")
+	}
+	hp, err := v.einsetzen(wert, v.host, v.port)
+	if err != nil {
+		return "", err
+	}
+	if !portForm(hp[1]) {
+		return "", fehlerDatei(stelle, "Port nach dem Einsetzen ist keine Zahl von 1 bis 65535")
+	}
+	return zusammensetzen(hp[0], hp[1]), nil
+}
+
+// zusammensetzen ist host:port mit dem Port wie gegeben; ein Host mit : steht
+// in eckigen Klammern, auch einer, der keine IPv6-Adresse ist (LH-FA-17.a).
+func zusammensetzen(host, port string) string {
+	if strings.Contains(host, ":") {
+		return "[" + host + "]:" + port
+	}
+	return host + ":" + port
+}

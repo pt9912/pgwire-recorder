@@ -78,3 +78,15 @@ func Zerlege(pfad string) (Zerlegt, error) {
 	}
 	return z, nil
 }
+
+// SetzeEin lädt die Datei pfad und setzt in alle Teile ihrer ersten Verbindung
+// in der Reihenfolge der URL (Benutzer, Passwort, Host, Port, Datenbank) die
+// Variablen aus wert ein; ein Teil, den die URL nicht schreibt, ist "".
+func SetzeEin(pfad string, wert func(string) string) ([]string, error) {
+	d, err := ladeDatei(pfad, "--config")
+	if err != nil {
+		return nil, err
+	}
+	v := d.verbindungen[0]
+	return v.einsetzen(wert, v.benutzer, v.passwort, v.host, v.port, v.datenbank)
+}

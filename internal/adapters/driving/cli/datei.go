@@ -61,6 +61,20 @@ func (d *datei) hatName(name string) bool {
 	return d != nil && d.namen[name]
 }
 
+// verbindung liefert die Verbindung der Datei mit dem Namen name; eine
+// nil-Datei hat keine.
+func (d *datei) verbindung(name string) (verbindung, bool) {
+	if !d.hatName(name) {
+		return verbindung{}, false
+	}
+	for _, v := range d.verbindungen {
+		if v.name == name {
+			return v, true
+		}
+	}
+	return verbindung{}, false
+}
+
 // schluesselName ist der Schlüssel einer Option in der Datei: ihr Name mit _
 // statt - (LH-FA-17.a).
 func schluesselName(name string) string {
