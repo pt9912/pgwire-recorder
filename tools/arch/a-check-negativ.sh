@@ -99,4 +99,4 @@ fall postgres-yamlin internal/adapters/driven/postgres/negativprobe.go postgres 
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "a-check-negativ: gruen — PGWire- und TLS-Bibliothek nur in den PGWire-Adaptern, YAML nur im Recording- und CLI-Adapter"
+echo "a-check-negativ: gruen — alle zwoelf Faelle wie erwartet (PGWire, TLS und YAML an den geprueften Orten)"
