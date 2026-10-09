@@ -116,7 +116,7 @@ umfasst sie mehrere, bleibt die Spalte leer und die Constraint gilt für alle.
 Zusätzliche Einschränkungen:
 
 - die PGWire-Bibliothek ist ausschließlich in `ARC-006` und `ARC-007` zulässig; die
-  YAML-Serialisierungsbibliothek ausschließlich in `ARC-008` und, nur zum Lesen der
+  YAML-Serialisierungsbibliothek ausschließlich in `ARC-008` und, nur zum Lesen und Anzeigen der
   Konfigurationsdatei, in `ARC-005`; kein Typ der Bibliothek verlässt ihn. YAML-spezifische Annotationen oder
   Bibliothekstypen gelangen nicht in das Domain Model.
 - Mapping-Funktionen zwischen Bibliothekstypen und Domain-Typen liegen in dem
@@ -267,7 +267,7 @@ System (Baseline-Regelwerk `grundlagen-source-precedence.md` §ID-Schema als Kla
 | `ARC-010` | PostgreSQL | Driven Actor im Record-Modus, angebunden über `ARC-007`; im Replay-Modus nicht vorhanden | Über `ARC-004` austauschbar; Tests verwenden einen Fake |
 | `ARC-011` | Dateisystem | Driven Actor für Recordings, angebunden über `ARC-008` | Über `RecordingRepository` austauschbar; Tests verwenden einen Fake |
 | `ARC-012` | PGWire-Bibliothek | PGWire-Nachrichtenkodierung, nur in `ARC-006` und `ARC-007` | Auf die beiden PGWire-Adapter begrenzt |
-| `ARC-013` | YAML-Serialisierungsbibliothek | Serialisierung der Aufzeichnung in `ARC-008`; Lesen der Konfigurationsdatei in `ARC-005` | Auf den Recording Adapter und den CLI Adapter begrenzt; ein anderes Recording-Backend implementiert denselben Port |
+| `ARC-013` | YAML-Serialisierungsbibliothek | Serialisierung der Aufzeichnung in `ARC-008`; Lesen und Anzeigen der Konfigurationsdatei in `ARC-005` | Auf den Recording Adapter und den CLI Adapter begrenzt; ein anderes Recording-Backend implementiert denselben Port |
 | `ARC-014` | SQLite-Bibliothek | Speicherung im SQLite-Format, nur in `ARC-008` | Auf den Recording Adapter begrenzt; der Port `RecordingRepository` bleibt für beide Formate gleich |
 | `ARC-015` | Systemuhr | Zeit lesen und warten (Zeitangaben, zeitgetreues Einspielen); der Composition Root stellt sie über den Uhr-Port bereit | Fake-Uhr in Tests |
 

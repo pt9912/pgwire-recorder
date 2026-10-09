@@ -73,7 +73,7 @@ nur zum Lesen der Konfigurationsdatei zulässig (`ARC-013`,
 [ADR-0027](../../adr/0027-yaml-bibliothek.md)); kein Typ der Bibliothek verlässt den
 CLI-Adapter. Die Ausgabe derselben Datei in `config show` mit dem Kodierer der Bibliothek
 trägt [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md)
-(Proposed, Annahme durch den Nutzer offen). Die Gegenprobe des Architektur-Gates dafür liefert
+(Accepted, Entscheidung des Nutzers vom 2026-10-09). Die Gegenprobe des Architektur-Gates dafür liefert
 `slice-v1-abschluss-konfiguration`; dass ein Import im CLI-Adapter nur der Datei dient, prüft
 kein Gate, das bleibt Review.
 
@@ -214,8 +214,8 @@ prüfte sie dort am 2026-10-08 vor dem Code. Die zwölf Rückgaben des Implement
 der Konstanten entschied er am 2026-10-08 hier, vor dem Code (unten). Zwei Rückgaben und fünf
 Lesarten aus dem Lauf an DoD-Punkt 1 und 2 entschied er am 2026-10-09 (unten, *Rückgaben vom
 2026-10-09*). Drei Befunde des Reviews vom 2026-10-09 (F-506, F-507, F-517) entschied er am
-selben Tag (unten, *Befunde des Reviews vom 2026-10-09*); offen ist keine Randform, offen ist
-nur die Annahme von [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md). Die Randformen zu Verbindungen und Platzhaltern und die
+selben Tag (unten, *Befunde des Reviews vom 2026-10-09*); offen ist keine. [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md) ist
+angenommen (Entscheidung des Nutzers vom 2026-10-09). Die Randformen zu Verbindungen und Platzhaltern und die
 Rückgaben 6, 7, 8 und 10 sowie der Teil der Verbindungen aus Rückgabe 5 zogen mit dem Schnitt
 vom 2026-10-09 nach §6 von `slice-v1-abschluss-verbindungen-platzhalter`; hier steht je eine
 Zeile mit dem Ort.
@@ -388,7 +388,8 @@ bzw. `TestDateiNichtLesbar`, wo nichts anderes steht.
   entfernt bzw. nur nach `\n` gezählt, rot über den Fall `!` allein. (3) Gültig bleibt
   `record:\r  force: true\nlog_level: info\n#          !\n` (das `!` steht in der Spalte, die eine Zählung
   nur nach `\n` dem Wert von `log_level` zuordnete); *Mutation:* nur nach `\n` gezählt, rot.
-- **F-507 (a) — Kodierung** — nur UTF-8; ein BOM als erstes Zeichen wird **hingenommen** und
+- **F-507 (a) — Kodierung** — nur UTF-8; ein BOM als erstes Zeichen wird **hingenommen** (Entscheidung des Nutzers vom
+  2026-10-09) und
   übergangen (YAML 1.2 erlaubt ihn am Anfang des Streams, Werkzeuge unter Windows schreiben
   ihn); ein BOM an anderer Stelle, eine ungültige UTF-8-Folge und UTF-16 oder UTF-32, auch mit
   BOM, sind ungültiges YAML, `PGR-E2004` mit der Zeile (`LH-FA-17.a`). Die Bibliothek nimmt
@@ -414,7 +415,7 @@ bzw. `TestDateiNichtLesbar`, wo nichts anderes steht.
   (`PGR-E2004`, „nicht lesbar“ mit Quelle, ohne Pfad), geprüft vor dem Öffnen, weil schon
   das Öffnen einer FIFO blockiert. Das gilt für alle drei Quellen, die Standarddatei
   eingeschlossen. `--config /dev/stdin` liest eine umgeleitete reguläre Datei und lehnt Pipe
-  und Terminal ab; Lesen von `stdin` gibt es nicht, eine Datei lässt sich direkt nennen.
+  und Terminal ab (Entscheidung des Nutzers vom 2026-10-09); Lesen von `stdin` gibt es nicht, eine Datei lässt sich direkt nennen.
   Akzeptiertes Negativ: Wird der Pfad zwischen Prüfung und Öffnen durch eine FIFO ersetzt,
   blockiert der Start; das verlangt, dass jemand die Datei während des Starts austauscht, und
   hat keine andere Wirkung als ein hängender Start.
@@ -446,10 +447,12 @@ bzw. `TestDateiNichtLesbar`, wo nichts anderes steht.
   [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md); die Nutzung ist
   legitim, aber nicht dokumentiert. Verdikt: nachziehen durch die ergänzende
   [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md)
-  (Proposed), keine Supersession, weil [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)
-  sonst unverändert gilt. Der Code bleibt. Mit `Accepted` zieht der Implementer die Sicht nach
-  (`ARC-013` und §2 *Zusätzliche Einschränkungen*: Lesen und Anzeigen der Konfigurationsdatei).
-  Wird die ADR abgelehnt, geht der Punkt zurück an den Architect, nicht in den Code.
+  (Accepted, Entscheidung des Nutzers vom 2026-10-09), keine Supersession, weil
+  [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) sonst unverändert
+  gilt. Der Code bleibt; keine Vorgabe an den Implementer. Die Sicht nennt in `ARC-013` und §2
+  *Zusätzliche Einschränkungen* Lesen und Anzeigen der Konfigurationsdatei (Architect,
+  2026-10-09). `.a-check.yml` bleibt unberührt: Die `tech`-Regel erlaubt den Import im
+  CLI-Adapter, nicht einen Zweck, und der Import ist derselbe.
 
 *Ort der Konstanten* — im Model, `internal/hexagon/model/fehler.go`, als drei Konstanten ohne
 Logik (§1, Ausnahme). Grund: [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) führt eine Code-Tabelle im Quelltext, die mit dem

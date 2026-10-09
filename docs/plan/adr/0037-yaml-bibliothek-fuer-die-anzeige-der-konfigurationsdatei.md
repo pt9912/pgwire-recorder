@@ -1,6 +1,6 @@
 # ADR-0037: YAML-Bibliothek im CLI-Adapter auch für die Anzeige der Konfigurationsdatei
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-09
 
@@ -51,5 +51,6 @@ Wenn der CLI-Adapter YAML für etwas anderes als Lesen und Anzeigen der Konfigur
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-09 | Proposed | slice-v1-abschluss-konfigurationsdatei |
+| 2026-10-09 | Accepted | Entscheidung des Nutzers |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
