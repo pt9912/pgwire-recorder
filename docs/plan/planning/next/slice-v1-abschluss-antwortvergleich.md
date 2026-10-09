@@ -35,7 +35,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Vergleich von Zeilenwerten und Toleranzregeln für Felder — Out-of-Scope von LH-FA-24.
-- Einspielen selbst, Anmeldung und Fehlersemantik der Serverfehler — `slice-v1-abschluss-einspielen`; dieser Slice setzt es voraus.
+- Einspielen selbst und Fehlersemantik der Serverfehler — `slice-v1-abschluss-einspielen`; dieser Slice setzt es voraus.
+- Anmeldung und TLS beim Einspielen — `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` (je §1, *Übernimmt*; seit dem Schnitt von `slice-v1-abschluss-einspielen` vom 2026-10-09); der Vergleich hängt an keinem der beiden.
 
 ## 2. Definition of Done
 

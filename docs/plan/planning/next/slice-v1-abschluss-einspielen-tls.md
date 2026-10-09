@@ -1,0 +1,273 @@
+# Slice slice-v1-abschluss-einspielen-tls: TLS zum Server beim Einspielen
+
+**Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
+Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
+wechselt nur durch `git mv`, siehe
+Baseline-Regelwerk `modul-05-planning-harness.md` §Lifecycle als State Machine.
+Übernimmt ein anderer Slice den Gegenstand oder entfällt er, geht diese Datei
+aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
+Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
+(§Ein Slice, dessen Gegenstand ein anderer übernimmt).
+
+**Welle:** welle-v1-abschluss.
+
+**Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md), [ADR-0014](../../adr/0014-konfigurationsdatei.md), [ADR-0016](../../adr/0016-einspielen-anmeldung-und-tls.md), [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md)
+
+**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-17.a` · `SPEC-017` · `SPEC-022` · `SPEC-033` · `SPEC-034` · `ARC-005` · `ARC-007` · `ARC-009`
+
+**Verantwortlich:** pt9912
+
+**Autor:** pt9912. **Datum:** 2026-10-09.
+
+---
+
+## 1. Ziel und Abgrenzung
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Slice — Schnitt nach Lieferwert, nicht nach Schichten; jeder Slice
+ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung** (Out-of-Scope-Disziplin
+des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
+Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
+zusammen mit der Begründungs-Pflicht je Punkt.
+
+**Ziel:** `pgwire-recorder play` verbindet sich auf Wunsch (`--upstream-tls`, `sslmode=require` der benutzten Verbindung) mit TLS zum Server, prüft dessen Zertifikat, auch gegen eine eigene Zertifizierungsstelle (`--upstream-ca`), und meldet jeden Fehlschlag von TLS und Zertifikat als `PGR-E4005`, eine nicht lesbare CA-Datei beim Start als `PGR-E2007`.
+
+**Übernimmt:** `slice-v1-abschluss-einspielen` — dessen Teil *TLS* (Marke [T] in dessen §6)
+nach dem Schnitt vom 2026-10-09 (Prüfung des Architect, dort §6 Risiko *Größe*; Entscheidung
+des Nutzers; dort §1, *Abgegeben*). Im Einzelnen:
+
+- die Optionen `--upstream-tls` und `--upstream-ca` am allgemeinen Leser, in der Reihenfolge
+  der Optionstabelle, mit ihren Umgebungsvariablen und Schlüsseln im Abschnitt `play:`
+  (`LH-FA-17.a`);
+- TLS zum Server nach `sslmode` der benutzten Verbindung, wenn `--upstream-tls` nicht gesetzt
+  ist (`LH-FA-17.a` *Wirkung einer URL*); der Punkt kam nach `slice-v1-abschluss-einspielen`
+  aus `slice-v1-abschluss-upstream-verbinden` (dort §1, Abgrenzung);
+- das Lesen der Datei aus `--upstream-ca` beim Start (`PGR-E2007`) und `PGR-E4005` von TLS
+  und Zertifikat (`LH-FA-20.a` *Start*, *TLS*; [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md));
+- im Benutzerhandbuch §5 *Konfigurationsdatei* der TLS-Teil der Wirkung einer Verbindung bei
+  `play` aus Befund F-533 (Review von `slice-v1-abschluss-upstream-verbinden`, über
+  `slice-v1-abschluss-einspielen`): `sslmode=require` mit TLS und Prüfung des Zertifikats, ein
+  gesetztes `--upstream-tls` vor `sslmode`;
+- die Randformen [T] aus §6 jenes Slice (§6 unten). Dieser Slice ist auch die Adresse der
+  Abgrenzung *TLS* von `slice-v1-abschluss-antwortvergleich` (dort §1).
+
+**Aufsetzen.** Der Slice setzt auf dem Kern `slice-v1-abschluss-einspielen` auf: Dort sind
+das Kommando `play`, die übrigen Optionen, der Verbindungsaufbau ohne TLS und die Einstufung
+einer Fehlerantwort im Aufbau geliefert. Bis zu diesem Slice sind `--upstream-tls` und
+`--upstream-ca` bei `play` unbekannt (`PGR-E2001`), ihre Schlüssel im Abschnitt `play:`
+unbekannt (`PGR-E2004`), ihre Umgebungsvariablen unbeachtet, und `sslmode=require` der
+benutzten Verbindung ist bei `play` wie bei `record` `PGR-E2004` (Zwischenstand in §6 jenes
+Slice); diesen Zwischenstand ersetzt dieser Slice.
+
+**Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
+
+- Die Anmeldung mit Passwort — `slice-v1-abschluss-einspielen-anmeldung` (dort §1,
+  *Übernimmt*); beide hängen nur am Kern, nicht aneinander. Getestet wird hier gegen einen
+  Server ohne Passwort-Anmeldung.
+- TLS zum Upstream bei `record` — nicht Teil des Produkts in dieser Welle
+  ([welle-v1-abschluss](../welle-v1-abschluss.md) §6); `sslmode=require` bleibt bei `record`
+  `PGR-E2004`.
+- TLS zum Client bei `record` und `replay` — `slice-v1-abschluss-tls-client`; das ist die
+  andere Seite der Verbindung und ein anderer Vorgang.
+- Client-Zertifikate, weitere Werte von `sslmode` und ein Überspringen der Prüfung —
+  außerhalb des Funktionsumfangs: `LH-FA-20` schließt das Überspringen aus, `LH-FA-17.a`
+  kennt nur `disable` und `require`.
+- Code im Kern (Play-Service, Ports) und im PGWire-Adapter — Schicht-Abgrenzung: TLS liegt im
+  Upstream-Adapter, Optionen und CA-Datei liest der CLI-Adapter, der Bootstrap reicht sie
+  weiter.
+
+## 2. Definition of Done
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
+gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
+Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
+
+- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Mit `--upstream-tls` oder mit `sslmode=require` der benutzten Verbindung
+      baut `play` die Verbindung mit TLS auf und prüft das Serverzertifikat gegen den
+      Zertifikatsspeicher des Systems, ergänzt um die Zertifikate aus `--upstream-ca`, und
+      den Namen gegen den eingesetzten Host, eine IPv6-Adresse ohne ihre Zone gegen die
+      IP-Adressen des Zertifikats; ein gesetztes `--upstream-tls`, auch ausdrücklich
+      `false`, geht `sslmode=require` vor, aus jeder Quelle; ohne beides baut `play` keine
+      TLS-Verbindung auf (Integrationstest gegen einen Server mit dem Zertifikat einer
+      eigenen Zertifizierungsstelle).
+- [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): `N` auf das `SSLRequest`, ein Fehler der Aushandlung, ein abgelaufenes,
+      ungültiges oder auf einen anderen Namen ausgestelltes Zertifikat und ein Server, der
+      eine unverschlüsselte Verbindung ablehnt, sind `PGR-E4005`; ein anderes Byte, ein
+      Verbindungsende vor der Antwort und Bytes nach `S` vor der Aushandlung sind
+      `PGR-E4002`; `--upstream-ca` ohne TLS ist `PGR-E2001`, nach `--upstream` und vor den
+      Variablen der Platzhalter; eine CA-Datei, die keine reguläre Datei ist (FIFO und
+      Verzeichnis ohne Warten), keinen PEM-Block, einen Block eines anderen Typs oder kein
+      lesbares X.509-Zertifikat enthält, ist beim Start vor dem Laden der Aufzeichnung
+      `PGR-E2007`, die Meldung nennt weder Pfad noch Inhalt ([`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten)) (Test). Beleg in
+      §7 für Punkt 1 und 2: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
+- [ ] Das Benutzerhandbuch beschreibt in §5 *Konfigurationsdatei* TLS einer Verbindung bei
+      `play` wie geliefert (`sslmode=require` mit TLS und Prüfung des Zertifikats, ein
+      gesetztes `--upstream-tls` vor `sslmode`; Befund F-533), dazu `--upstream-ca` und die
+      Grenze *Zertifikatsspeicher nicht ladbar*; die Abdeckungstabellen sind über
+      `make abdeckung` nachgezogen.
+- [ ] `make gates` grün.
+- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
+- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+
+## 3. Plan (vor Code)
+
+Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
+§Was ist eine Sub-Area? — diese Liste liefert die **Pfad-Kandidaten** für §8,
+nicht die Antwort: Pfad-Berührung ist nicht hinreichend, und eine
+Aussagen-Berührung steht hier gar nicht.
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `internal/adapters/driven/postgres` | update | `SSLRequest`, Aushandlung und Prüfung des Zertifikats im Aufbau von `play`; Einstufung `PGR-E4005` und `PGR-E4002` |
+| `internal/adapters/driving/cli` | update | Optionen `--upstream-tls` und `--upstream-ca` mit Umgebung und Schlüsseln im Abschnitt `play:`; „gesetzt“ vom Standardwert unterschieden; TLS nach `sslmode`; `--upstream-ca` ohne TLS `PGR-E2001` |
+| `internal/bootstrap` | update | die Datei aus `--upstream-ca` beim Start lesen (`PGR-E2007`) und die Zertifikate an den Upstream-Adapter reichen |
+| `test/integration` | update | Server mit TLS und dem Zertifikat einer eigenen Zertifizierungsstelle, abgelaufenes Zertifikat, falscher Name, Server, der unverschlüsselte Verbindungen ablehnt; Happy/Negative nach LH-FA-20 |
+| `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: TLS einer Verbindung bei `play` (F-533), `--upstream-ca`, Grenze |
+
+## 4. Trigger
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Trigger je Lifecycle-Übergang und WIP-Limit.
+
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` liegt in `done/`
+(Kommando `play`, Verbindungsaufbau ohne TLS, Einstufung der Fehler im Aufbau). Schritt 10
+der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md), direkt nach
+`slice-v1-abschluss-einspielen-anmeldung`, ohne von ihm abzuhängen (Schnitt vom 2026-10-09).
+Die Randformen aus §6 entschied der Architect am 2026-10-09 vor dem Code in `LH-FA-20.a`
+und `LH-FA-17.a`; vor dem ersten Code-Commit prüft er die Liste gegen den gelieferten Kern und
+legt fest, in welchem Paket die CA-Datei gelesen und geprüft wird, gegen die Regeln von
+`make a-check` (`AGENTS.md` §3.12).
+
+**Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
+
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer
+  Review-Sitzung prüfbar. Schnitt dann: TLS mit dem Zertifikatsspeicher des Systems hier,
+  `--upstream-ca` mit `PGR-E2007` als eigener Slice; der erste ist allein lieferbar, weil
+  `--upstream-ca` nur ergänzt.
+- `in-progress` → `open` (blockiert — Carveout?): Die Zertifikate der Tests lassen sich im
+  Testgeschirr nicht ohne Netz erzeugen oder nicht mit einem gepinnten Werkzeug; dann zuerst
+  die Entscheidung über ihre Herkunft.
+
+## 5. Closure-Trigger
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
+Lerneintrag; ohne ihn ist der Slice nur abgelegt.
+
+DoD vollständig, Review-Report liegt vor, Closure-Notiz mit Lerneintrag geschrieben.
+
+## 6. Risiken und offene Punkte
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Offene Risiken werden bei Closure aufgelöst — **jedes** Risiko bekommt genau
+**einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
+dasteht.
+
+**Randformen** (`AGENTS.md` §3.12) — die mit Marke [T] aus §6 von
+`slice-v1-abschluss-einspielen`, geprüft vom Architect am 2026-10-09 vor dem ersten
+Code-Commit jenes Slice. Neu entschieden heißt: im Commit jener Prüfung in `LH-FA-20.a`, sonst
+an der genannten Stelle. Offen ist keine.
+
+- **Optionen** [T] — `--upstream-tls` und `--upstream-ca` am allgemeinen Leser, in der
+  Reihenfolge der Optionstabelle, Abschnitt `play:`; bestätigt, `LH-FA-17.a`.
+- **`--upstream-tls` ausdrücklich `false`** [T] — geht `sslmode=require` vor, aus jeder Quelle
+  (Option, Umgebungsvariable, Schlüssel); neu entschieden in `LH-FA-17.a` *Wirkung einer URL*.
+  *Hinweis an den Implementer:* Der Leser muss „gesetzt“ vom Standardwert unterscheiden
+  (`gelesen.cliOk`, `envOk`, `datei.wert`).
+- **`--upstream-ca` ohne TLS** [T] — `PGR-E2001`, in der Reihenfolge nach `--upstream` und vor
+  den Variablen der Platzhalter, weil TLS vom `sslmode` der benutzten Verbindung abhängt; neu
+  entschieden in `LH-FA-17.a` *Fehler*. Die Meldung nennt die Option, nicht den Pfad.
+- **Datei aus `--upstream-ca`** [T] — gelesen nach den Prüfungen von `LH-FA-17.a`, vor der
+  Aufzeichnung; nur eine reguläre Datei (Links gefolgt), FIFO, Verzeichnis, Gerät, Socket nicht
+  lesbar, ohne Warten; mindestens ein PEM-Block, jeder `CERTIFICATE` mit lesbarem X.509, Text
+  außerhalb unbeachtet; sonst `PGR-E2007`, Meldung ohne Pfad und Inhalt; neu entschieden in
+  `LH-FA-20.a` *Start*. Ablauf eines Zertifikats erst beim Aufbau (`PGR-E4005`), bestätigt.
+- **Antwort auf `SSLRequest`** [T] — `S` Aushandlung, `N` `PGR-E4005`, anderes Byte oder Ende
+  davor `PGR-E4002`, Bytes nach `S` vor der Aushandlung `PGR-E4002`; jeder Fehler der
+  Aushandlung `PGR-E4005`; neu entschieden in `LH-FA-20.a` *TLS*.
+- **Name im Zertifikat** [T] — gegen den eingesetzten Host, IPv6 ohne Zone gegen die
+  IP-Adressen; neu entschieden in `LH-FA-20.a` *TLS*.
+- **Zertifikatsspeicher des Systems nicht ladbar** [T] — gilt als leer (Grenze); neu
+  entschieden in `LH-FA-20.a` *TLS*.
+- **Server lehnt unverschlüsselte Verbindung ab** — `PGR-E4005`; bestätigt, Tabelle
+  *Fehlerregeln beim Einspielen* in `LH-FA-20.a`; hier geprüft, weil der Fall einen Server mit
+  TLS-Pflicht braucht.
+- **Ablösung des Zwischenstands** — bis zu diesem Slice sind `--upstream-tls` und
+  `--upstream-ca` bei `play` unbekannt, und `sslmode=require` ist `PGR-E2004` (§6 von
+  `slice-v1-abschluss-einspielen`, *Zwischenstand*). Die Tests des Kerns, die das prüfen,
+  ändert dieser Slice.
+
+*Akzeptiertes Negativ der Prüfung vom 2026-10-09* (aus §6 von `slice-v1-abschluss-einspielen`):
+
+- **TLS-Version und Verfahren** — die Voreinstellung der Standardbibliothek, keine Zusage.
+
+**Risiken:**
+
+- Das Testgeschirr braucht Zertifikate einer eigenen Zertifizierungsstelle, ein abgelaufenes
+  und eines auf einen anderen Namen; zur Testzeit erzeugt, wächst das Geschirr, eingecheckt,
+  laufen sie ab — **Ausgang:** offen bis Closure.
+- Im Produkt-Image kann der Zertifikatsspeicher des Systems leer sein; dann prüft `play` nur
+  gegen `--upstream-ca` (Grenze in `LH-FA-20.a` *TLS*) — **Ausgang:** offen bis Closure.
+
+## 7. Closure-Notiz
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
+§Das Beobachtungs-Register (vorhandene `BEO-<KUERZEL>/<slug>` **zitieren** statt neu
+formulieren — sonst zählt das Register zwei Namen getrennt) ·
+`grundlagen-traceability.md` §Herkunfts-Anker für Steering-Loop-Regeln (das
+Feld `liegt in` steht **nur**, wenn mit diesem Slice wirklich etwas verkörpert
+wurde; Feld und Zielort auf **einer** Zeile, Sektionsangabe innerhalb der
+Backticks). Ging der Gegenstand an einen anderen Slice oder entfiel er, trägt
+diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
+aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
+(`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
+übernimmt).
+
+Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+## 8. Sub-Area-Prüfungen und Modus-Begründung
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Sub-Area-Modus-Begründung — dort die **zwei vorgelagerten
+Schritte** (sie stehen in jedem Slice-Plan, unabhängig von Modus und
+Slice-Typ) und die **vier Pflichtkriterien** (Konventionen-Dichte ·
+Phase-Reife · Evidenz-/Diskrepanz-Risiko · Reconciliation-Aufwand), vier und
+nicht mehr.
+
+**Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area, `*`
+(Kürzel `REPO`, Greenfield, `harness/conventions.md`); dieser Slice berührt nur sie.
+
+**Vorgelagert — offene Beobachtungen sichten:** Register
+`docs/plan/planning/observations/BEO-REPO/` am Stand `f7c9c79` gesichtet (Zähler = Dateien
+unter `evidence/`). Treffer:
+
+- `BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft` (1×) — die TLS-Aushandlung steht
+  vor dem Aufbau in `Open`; nach `S` liest der Adapter über eine neue Schicht, und Bytes vor
+  der Aushandlung sind `PGR-E4002` (§6). Die Adresse für den Test des Lesepuffers bleibt
+  `slice-v1-abschluss-anmeldung`; hier keine Zusage.
+- `BEO-REPO/verhalten-nur-unter-linux-geprueft` (1×) — der Zertifikatsspeicher des Systems
+  hängt an der Plattform; geprüft wird nur unter Linux im Container. Er betrifft Dateisystem
+  und Plattform, nicht dieselbe Eigenschaft; kein Beleg vor dem Code.
+- `BEO-REPO/slice-waechst-durch-uebernahmen` (2×), `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel`
+  (1×) und `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (1×) — betreffen den Schnitt des
+  Gebers und werden dort gezählt (§8 von `slice-v1-abschluss-einspielen`); dieser Slice
+  übernimmt nur TLS mit drei Liefer-Punkten.
+- `BEO-REPO/spec-randform-erst-im-review-entschieden` (18×, `AGENTS.md` §3.12),
+  `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (6×),
+  `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (20×, §3.10),
+  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (26×, §3.11),
+  `BEO-REPO/plan-folgt-korrektur-nicht` (21×, §3.9) und
+  `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (4×, §3.13) — verkörpert; die Randformen in §6
+  sind vor dem Code entschieden, je Zusage eine Mutation mit Beleg in §7, die Geber
+  `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-antwortvergleich` zeigen im selben
+  Commit hierher.
+
+Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
+
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF.

@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten), [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md), [ADR-0014](../../adr/0014-konfigurationsdatei.md), [ADR-0016](../../adr/0016-einspielen-anmeldung-und-tls.md), [ADR-0017](../../adr/0017-einspielen-sequenziell-und-fehlersemantik.md), [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md), [ADR-0023](../../adr/0023-antwortvergleich-entscheidung.md)
+**Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten), [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md), [ADR-0014](../../adr/0014-konfigurationsdatei.md), [ADR-0016](../../adr/0016-einspielen-anmeldung-und-tls.md), [ADR-0017](../../adr/0017-einspielen-sequenziell-und-fehlersemantik.md), [ADR-0023](../../adr/0023-antwortvergleich-entscheidung.md)
 
 **Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-17.a` · `LH-FA-03.b` · `LH-FA-02.b` · `LH-FA-01.a` · `LH-FA-12.a` · `LH-FA-14.a` · `LH-FA-18.a` · `SPEC-017` · `SPEC-022` · `SPEC-026` · `SPEC-028` · `SPEC-033` · `SPEC-034` · `SPEC-041` · `ARC-002` · `ARC-003` · `ARC-005` · `ARC-007` · `ARC-009`
 
@@ -29,7 +29,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** `pgwire-recorder play` führt die Client-Anfragen einer Aufzeichnung (einfach und Extended) gegen einen PostgreSQL-Server aus, authentifiziert sich als Client, verbindet sich auf Wunsch mit TLS und verhält sich bei Serverfehlern und Abbruchsignalen wie spezifiziert.
+**Ziel:** `pgwire-recorder play` führt die Client-Anfragen einer Aufzeichnung (einfach und Extended) gegen einen PostgreSQL-Server aus, der weder Passwort noch TLS verlangt, liest seine Optionen aus Kommandozeile, Umgebung und dem Abschnitt `play:` und verhält sich bei Serverfehlern und Abbruchsignalen wie spezifiziert.
 
 **Übernommen aus `slice-replay-semantik-mismatch`:** `play` kennt die Option `--fail-on-unconsumed` nicht (`PGR-E2001`, Exit-Code 2) und lässt ihre Umgebungsvariable `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` unbeachtet, auch mit ungültigem Wert (`LH-FA-03.b` §Andere Kommandos, `LH-FA-17.a`); der Test dafür gehört zu den Optionen von `play`.
 
@@ -41,15 +41,23 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-konfigurationsdatei`** (dort §1, Abgrenzung): der Abschnitt `play:` der Konfigurationsdatei, gelesen über das Laden jenes Slice; er gehört zu den Optionen von `play`.
 
-**Übernommen aus `slice-v1-abschluss-upstream-verbinden`** (dort §1, Abgrenzung; hervorgegangen aus den Schnitten von `slice-v1-abschluss-konfigurationsdatei` und `slice-v1-abschluss-verbindungen-platzhalter` vom 2026-10-09; bis zum zweiten Schnitt gab `slice-v1-abschluss-verbindungen-platzhalter` den Punkt): die Wirkung einer benannten Verbindung bei `play`, die `slice-v1-abschluss-verbindungen-platzhalter` beim Laden prüft und jener Slice auflöst und einsetzt — Host und Port, Benutzer und Datenbank der URL mit dem Vorrang von `--user` und `--database`, das Passwort aus dem eingesetzten Platzhalter und TLS zum Upstream nach `sslmode`, wenn `--upstream-tls` nicht gesetzt ist (`LH-FA-17.a`, *Wirkung einer URL*); das gehört zum Ziel oben (*authentifiziert sich als Client, verbindet sich auf Wunsch mit TLS*). Dazu, mit der Kennung `slice-v1-abschluss-upstream-verbinden` (dort §6, U8): Bei `play` werden die Platzhalter aller Teile der benutzten Verbindung eingesetzt, auch in Benutzer, Passwort und Datenbank, über das Einsetzen jenes Slice; eine nicht gesetzte oder leere Variable dort ist `PGR-E2005` mit der Verbindung und dem Namen der ersten Variable in der Reihenfolge der URL (Test bei den Optionen von `play`). Dazu, mit der Kennung `slice-v1-abschluss-upstream-verbinden` (dort §1, Abgrenzung; Befund F-533 aus dessen Review): im Benutzerhandbuch §5 *Konfigurationsdatei* die Wirkung einer Verbindung bei `play`, wie geliefert — das Passwort aus dem Platzhalter, `PGWIRE_RECORDER_PASSWORD`, wenn die Verbindung kein Passwort schreibt, und `sslmode=require` mit TLS und Prüfung des Zertifikats, ein gesetztes `--upstream-tls` vor `sslmode`; jener Slice beschreibt dort nur `record`. Dazu, mit der Kennung `slice-v1-abschluss-upstream-verbinden` (Befund V-125 aus dessen Verifikation): in Beispiel und Abschnittsliste von §5 *Konfigurationsdatei* wieder der Abschnitt `play:` (mit `upstream` und `input`), den jener Slice durch `record:` ersetzt hat, weil das Laden `play:` vor diesem Slice als unbekannten Schlüssel ablehnt; das Beispiel als Datei startet mit `config show` ohne Meldung.
+**Übernommen aus `slice-v1-abschluss-upstream-verbinden`** (dort §1, Abgrenzung; hervorgegangen aus den Schnitten von `slice-v1-abschluss-konfigurationsdatei` und `slice-v1-abschluss-verbindungen-platzhalter` vom 2026-10-09; bis zum zweiten Schnitt gab `slice-v1-abschluss-verbindungen-platzhalter` den Punkt): die Wirkung einer benannten Verbindung bei `play`, die `slice-v1-abschluss-verbindungen-platzhalter` beim Laden prüft und jener Slice auflöst und einsetzt — Host und Port, Benutzer und Datenbank der URL mit dem Vorrang von `--user` und `--database` (`LH-FA-17.a`, *Wirkung einer URL*); das gehört zum Ziel oben. Das Passwort aus dem eingesetzten Platzhalter und TLS zum Upstream nach `sslmode` sind seit dem Schnitt vom 2026-10-09 abgegeben (unten, *Abgegeben*). Dazu, mit der Kennung `slice-v1-abschluss-upstream-verbinden` (dort §6, U8): Bei `play` werden die Platzhalter aller Teile der benutzten Verbindung eingesetzt, auch in Benutzer, Passwort und Datenbank, über das Einsetzen jenes Slice; eine nicht gesetzte oder leere Variable dort ist `PGR-E2005` mit der Verbindung und dem Namen der ersten Variable in der Reihenfolge der URL (Test bei den Optionen von `play`). Befund F-533 aus dessen Review (im Benutzerhandbuch §5 *Konfigurationsdatei* die Wirkung einer Verbindung bei `play` wie geliefert, das Passwort und `sslmode=require`; jener Slice beschreibt dort nur `record`) ist seit dem Schnitt vom 2026-10-09 ganz abgegeben, geteilt nach diesen beiden Teilen (unten, *Abgegeben*). Dazu, mit der Kennung `slice-v1-abschluss-upstream-verbinden` (Befund V-125 aus dessen Verifikation): in Beispiel und Abschnittsliste von §5 *Konfigurationsdatei* wieder der Abschnitt `play:` (mit `upstream` und `input`), den jener Slice durch `record:` ersetzt hat, weil das Laden `play:` vor diesem Slice als unbekannten Schlüssel ablehnt; das Beispiel als Datei startet mit `config show` ohne Meldung.
 
-**Übernommen aus `slice-v1-abschluss-anmeldung`** (dort §1, Abgrenzung): die Anmeldung beim Einspielen (`play`); sie gehört zum Ziel oben (*authentifiziert sich als Client*).
+**Abgegeben** beim Schnitt vom 2026-10-09 (Prüfung des Architect in §6, Risiko *Größe*; Entscheidung des Nutzers), je Teil mit seinen Randformen aus der Prüfung des Architect (Marken [A] und [T]), die seit dem Schnitt in §6 des Nehmers stehen:
+
+- an `slice-v1-abschluss-einspielen-anmeldung` (dort §1, *Übernimmt*): die Passwortquellen (Passwort aus dem eingesetzten Platzhalter, sonst `PGWIRE_RECORDER_PASSWORD`), Klartext, MD5 und SCRAM-SHA-256, `PGR-E4005` der Anmeldung, im Handbuch der Passwort-Teil aus F-533; dazu die Anmeldung beim Einspielen, die `slice-v1-abschluss-anmeldung` (dort §1, Abgrenzung) hierher gegeben hatte;
+- an `slice-v1-abschluss-einspielen-tls` (dort §1, *Übernimmt*): `--upstream-tls`, `sslmode=require` der benutzten Verbindung, `--upstream-ca` mit `PGR-E2007`, `PGR-E4005` von TLS und Zertifikat, im Handbuch der `sslmode`-Teil aus F-533.
+
+Beide hängen nur an diesem Slice, nicht aneinander. Bis zu ihnen gilt bei `play` der Zwischenstand in §6 (*Zwischenstand*).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Zeitangaben und zeitgetreues Einspielen — `slice-v1-abschluss-zeitangaben`.
-- Vergleich der Serverantworten mit der Aufzeichnung — `slice-v1-abschluss-antwortvergleich`.
-- Paralleles Einspielen — Out-of-Scope von LH-FA-20.
+- Die Anmeldung mit Passwort — `slice-v1-abschluss-einspielen-anmeldung` (oben, *Abgegeben*); sie setzt den Verbindungsaufbau dieses Slice voraus und ist für sich lieferbar. Hier läuft jeder Test gegen einen Server, der kein Passwort verlangt.
+- TLS zum Server und die eigene Zertifizierungsstelle — `slice-v1-abschluss-einspielen-tls` (oben, *Abgegeben*); ebenso. Hier baut `play` keine TLS-Verbindung auf.
+- Zeitangaben und zeitgetreues Einspielen — `slice-v1-abschluss-zeitangaben` (dort §1, *Übernommen aus* diesem Slice); es setzt das Einspielen voraus.
+- Vergleich der Serverantworten mit der Aufzeichnung — `slice-v1-abschluss-antwortvergleich` (dort §1 und §6); er setzt das Einspielen voraus.
+- Paralleles Einspielen — Out-of-Scope von [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung).
+
 
 
 ## 2. Definition of Done
@@ -59,8 +67,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen, einfach und Extended, wird gegen eine leere Instanz eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); mehrere Sessions laufen über eigene Verbindungen nacheinander; Authentifizierung mit Klartext, MD5 und SCRAM-SHA-256 sowie `--upstream-tls` (auch mit `--upstream-ca` für eine eigene Zertifizierungsstelle) funktionieren, eine fehlgeschlagene Anmeldung oder TLS-Pflicht ohne Option meldet `PGR-E4005` (auch bei abgelaufenem oder ungültigem Serverzertifikat), eine unlesbare CA-Datei beim Start `PGR-E2007`, `--upstream-ca` ohne TLS `PGR-E2001`, `--fail-on-unconsumed` ist bei `play` unbekannt (`PGR-E2001`) und ihre Umgebungsvariable bleibt dort unbeachtet, auch mit ungültigem Wert; `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` wirken bei `play` mit derselben Wertemenge, Strenge und Schwelle wie bei `record` und `replay`, ein ungültiger Wert ist `PGR-E2001`, auch in der Umgebungsvariable neben gültiger Option (Integrationstest).
-- [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4); `--continue-on-error` läuft weiter und endet mit Exit-Code 4; `--allow-recorded-errors` lässt aufgezeichnete Fehler zu; ein Verbindungsfehler bricht immer ab (Test).
+- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen, einfach und Extended, wird gegen eine leere Instanz, die weder Passwort noch TLS verlangt, eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); mehrere Sessions laufen über eigene Verbindungen nacheinander; die Optionen von `play` wirken aus Kommandozeile, Umgebung und dem Abschnitt `play:`, `--user` und `--database` gehen Benutzer und Datenbank der benutzten Verbindung und der Aufzeichnung vor, eine nicht gesetzte oder leere Variable in Benutzer, Passwort oder Datenbank der benutzten Verbindung ist `PGR-E2005` (U8), ein gewöhnliches Argument `PGR-E2001`; `--fail-on-unconsumed` ist bei `play` unbekannt (`PGR-E2001`) und ihre Umgebungsvariable bleibt dort unbeachtet, auch mit ungültigem Wert; `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` wirken bei `play` mit derselben Wertemenge, Strenge und Schwelle wie bei `record` und `replay`, ein ungültiger Wert ist `PGR-E2001`, auch in der Umgebungsvariable neben gültiger Option; bis zu den Folge-Slices gilt der Zwischenstand aus §6 (Integrationstest). Das Benutzerhandbuch zeigt in Beispiel und Abschnittsliste von §5 *Konfigurationsdatei* den Abschnitt `play:` (mit `upstream` und `input`), und das Beispiel als Datei startet mit `config show` ohne Meldung (V-125).
+- [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4); `--continue-on-error` läuft weiter und endet mit Exit-Code 4; `--allow-recorded-errors` lässt aufgezeichnete Fehler zu; ein Verbindungsfehler bricht immer ab; im Aufbau sind ein nicht erreichbarer Server und eine Fehlerantwort außerhalb der SQLSTATE-Klasse 28 (etwa eine fehlende Datenbank) `PGR-E4002`, eine der Klasse 28 (etwa ein unbekannter Benutzer) `PGR-E4005` (Test). Beleg in §7 für Punkt 1 bis 3: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
 - [ ] `SIGINT` und `SIGTERM` beenden nach der laufenden Interaktion, mit `--finish-session-on-interrupt` nach der laufenden Session; der Exit-Code ist 0 ohne vorherigen Fehler, sonst 4; ohne Vergleich ist jedes Verbindungsende nach dem ersten `ReadyForQuery` `PGR-E4003`; die Rangfolge mit Vergleich (Exit-Code 5) prüft `slice-v1-abschluss-antwortvergleich` (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -80,11 +88,11 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driving` | neu | Einspiel-Use-Case; nutzt nur Driven Ports |
-| `internal/adapters/driving/cli` | update | Kommando `play`, Optionen, Passwort aus der Umgebung, Konfigurationsdatei; `--fail-on-unconsumed` bei `play` unbekannt, ihre Umgebungsvariable unbeachtet (Test, `LH-FA-03.b`); `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` bei `play` wie bei `record` und `replay` (übernommen aus `slice-replay-semantik-meldungscodes`, Test) |
-| `internal/adapters/driven/postgres` | update | Authentifizierung und TLS als Client, Nachrichten der Gruppen senden |
-| `internal/bootstrap` | update | `play` verdrahten: Upstream-Adapter mit Adresse, Passwort und Zertifikaten, Play-Service, Signale (erstes, zweites), Exit-Code |
-| `test/integration` | update | Happy/Boundary/Negative nach LH-FA-20 |
-| `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: Wirkung einer Verbindung bei `play` (Passwort aus dem Platzhalter, `PGWIRE_RECORDER_PASSWORD`, `sslmode=require`) und der Abschnitt `play:` in Beispiel und Abschnittsliste (V-125), übernommen aus `slice-v1-abschluss-upstream-verbinden` |
+| `internal/adapters/driving/cli` | update | Kommando `play`, Optionen, Abschnitt `play:` der Konfigurationsdatei, Einsetzen aller Teile der benutzten Verbindung (U8); `--fail-on-unconsumed` bei `play` unbekannt, ihre Umgebungsvariable unbeachtet (Test, `LH-FA-03.b`); `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` bei `play` wie bei `record` und `replay` (übernommen aus `slice-replay-semantik-meldungscodes`, Test) |
+| `internal/adapters/driven/postgres` | update | Verbindungsaufbau als Client ohne Passwort und ohne TLS mit der Einstufung nach `LH-FA-20.a` *Aufbau*, Nachrichten der Gruppen senden |
+| `internal/bootstrap` | update | `play` verdrahten: Upstream-Adapter mit Adresse, Benutzer und Datenbank, Play-Service, Signale (erstes, zweites), Exit-Code |
+| `test/integration` | update | Happy/Boundary/Negative nach LH-FA-20, gegen einen Server ohne Passwort und ohne TLS |
+| `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: der Abschnitt `play:` in Beispiel und Abschnittsliste (V-125), übernommen aus `slice-v1-abschluss-upstream-verbinden`; Passwort und `sslmode` bei `play` (F-533) beschreiben die Folge-Slices |
 
 ## 4. Trigger
 
@@ -95,7 +103,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: die Authentifizierungsverfahren des Servers sprengen den Slice — zurück zur Zerlegung.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff von DoD-Punkt 1 und 2 ist allein nicht in einer Review-Sitzung prüfbar. Schnitt dann: DoD-Punkt 3 (Abbruchsignal, `--finish-session-on-interrupt`, zweites Signal) als eigener Slice; das Einspielen ohne die Zusagen zum Abbruchsignal ist für sich lieferbar. Die vorab benannte Bedingung des ersten Plans (*die Authentifizierungsverfahren des Servers sprengen den Slice*) ist mit dem Schnitt vom 2026-10-09 eingetreten, bevor Code entstand; der Slice blieb nach Entscheidung des Nutzers in `in-progress/`, Anmeldung und TLS gingen an `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` (§1, *Abgegeben*).
+
 - `in-progress` → `open`: Das Recording enthält Interaktionen, die sich nicht einspielen lassen — Carveout.
 
 
@@ -122,17 +131,20 @@ vom Architect am 2026-10-09 vor dem ersten Code-Commit, gegen `LH-FA-20.a`, `LH-
 (`cli.go`: `optionen`, `leserKommandos`, `lies`; `verbindung.go`: `einsetzen`, `adresseRecord`;
 `postgres/upstream.go`: `Open`, `lies`, `verbindungsende`; `bootstrap.go`: `Run`, `fail`). Neu
 entschieden heißt: im Commit dieser Prüfung in `LH-FA-20.a` *Randformen je Schritt*, sonst an
-der genannten Stelle. Die Marke in eckigen Klammern sagt, zu welchem Teil des vorgeschlagenen
-Schnitts (Risiken unten) die Randform gehört: **[K]** Kern, **[A]** Anmeldung, **[T]** TLS.
-Offen ist keine.
+der genannten Stelle. Die Marke in eckigen Klammern sagt, zu welchem Teil des Schnitts vom
+2026-10-09 (Risiko *Größe* unten) die Randform gehört: **[K]** Kern, also dieser Slice; die
+Randformen **[A]** (Anmeldung) und **[T]** (TLS) stehen seit dem Schnitt in §6 von
+`slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls`. Offen ist
+keine.
 
 *Lesen der Optionen (CLI-Adapter)*
 
 - **Optionen von `play`** [K] — `--upstream`, `--input`, `--user`, `--database`,
   `--continue-on-error`, `--allow-recorded-errors`, `--finish-session-on-interrupt`,
   `--log-level`, `--config` am allgemeinen Leser, in der Reihenfolge der Optionstabelle,
-  Abschnitt `play:`; [A] ohne eigene Option, [T] `--upstream-tls`, `--upstream-ca`; bestätigt,
-  `LH-FA-17.a`. Werte von `--user` und `--database`: jeder nicht leere Text (`artText`).
+  Abschnitt `play:`; bestätigt, `LH-FA-17.a`. Werte von `--user` und `--database`: jeder nicht
+  leere Text (`artText`). `--upstream-tls` und `--upstream-ca` liefert
+  `slice-v1-abschluss-einspielen-tls` (*Zwischenstand* unten).
 - **Optionen der Folge-Slices** (`--keep-timing`, `--timing-mode`, `--timing-reference`,
   `--compare-responses`) — bis zu `slice-v1-abschluss-zeitangaben` und
   `slice-v1-abschluss-antwortvergleich` unbekannt (`PGR-E2001`), ihre Schlüssel im Abschnitt
@@ -146,28 +158,14 @@ Offen ist keine.
 - **Abschnitt `play:` bei anderen Kommandos** [K] — mit `play` am allgemeinen Leser prüft das
   Laden ihn auch bei `record` und `replay`; bestätigt, `LH-FA-17.a` („unabhängig vom
   Kommando“).
-- **`--upstream-tls` ausdrücklich `false`** [T] — geht `sslmode=require` vor, aus jeder Quelle
-  (Option, Umgebungsvariable, Schlüssel); neu entschieden in `LH-FA-17.a` *Wirkung einer URL*.
-  *Hinweis an den Implementer:* Der Leser muss „gesetzt“ vom Standardwert unterscheiden
-  (`gelesen.cliOk`, `envOk`, `datei.wert`).
-- **`--upstream-ca` ohne TLS** [T] — `PGR-E2001`, in der Reihenfolge nach `--upstream` und vor
-  den Variablen der Platzhalter, weil TLS vom `sslmode` der benutzten Verbindung abhängt; neu
-  entschieden in `LH-FA-17.a` *Fehler*. Die Meldung nennt die Option, nicht den Pfad.
 - **Variablen aller Teile** (U8 aus `slice-v1-abschluss-upstream-verbinden`) [K] —
   `PGR-E2005` mit Verbindung und erster Variable in der Reihenfolge der URL, auch in einem
   Teil, den `--user` oder `--database` überschreibt, und im Passwort auch, wenn der Server
   keines verlangt; neu entschieden (Überschreiben) in `LH-FA-17.a` *Wirkung einer URL*, der
   Rest bestätigt (`einsetzen` über alle Teile).
-- **Leere `PGWIRE_RECORDER_PASSWORD`** [A] — nicht gesetzt; neu entschieden in `LH-FA-20.a`
-  *Anmeldung*.
 
 *Start (nach den Optionen)*
 
-- **Datei aus `--upstream-ca`** [T] — gelesen nach den Prüfungen von `LH-FA-17.a`, vor der
-  Aufzeichnung; nur eine reguläre Datei (Links gefolgt), FIFO, Verzeichnis, Gerät, Socket nicht
-  lesbar, ohne Warten; mindestens ein PEM-Block, jeder `CERTIFICATE` mit lesbarem X.509, Text
-  außerhalb unbeachtet; sonst `PGR-E2007`, Meldung ohne Pfad und Inhalt; neu entschieden in
-  `LH-FA-20.a` *Start*. Ablauf eines Zertifikats erst beim Aufbau (`PGR-E4005`), bestätigt.
 - **Aufzeichnung nicht ladbar** [K] — wie bei `replay`, Exit-Code 3; bestätigt, Schritt 1.
 - **Aufzeichnung ohne Session mit Interaktion** [K] — keine Verbindung, Exit-Code 0; neu
   entschieden in `LH-FA-20.a` *Start*. Eine Session nur aus Lebendprüfungen wird eingespielt
@@ -191,22 +189,24 @@ Offen ist keine.
   Schweregrad; neu entschieden in `LH-FA-20.a` *Aufbau* (die Tabelle nannte `FATAL`).
 - **`BackendKeyData`, `CancelRequest`** [K] — verworfen, nie gesendet; neu entschieden in
   `LH-FA-20.a` *Aufbau*.
-- **Antwort auf `SSLRequest`** [T] — `S` Aushandlung, `N` `PGR-E4005`, anderes Byte oder Ende
-  davor `PGR-E4002`, Bytes nach `S` vor der Aushandlung `PGR-E4002`; jeder Fehler der
-  Aushandlung `PGR-E4005`; neu entschieden in `LH-FA-20.a` *TLS*.
-- **Name im Zertifikat** [T] — gegen den eingesetzten Host, IPv6 ohne Zone gegen die
-  IP-Adressen; neu entschieden in `LH-FA-20.a` *TLS*.
-- **Zertifikatsspeicher des Systems nicht ladbar** [T] — gilt als leer (Grenze); neu
-  entschieden in `LH-FA-20.a` *TLS*.
-- **Passwort fehlt, Server verlangt eines** [A] — `PGR-E4005`, nichts gesendet; **Server
-  verlangt keines** — keines gesendet; neu entschieden in `LH-FA-20.a` *Anmeldung*.
-- **Nicht unterstütztes Verfahren** (Kerberos, GSSAPI, SSPI, SASL ohne `SCRAM-SHA-256`) [A] —
-  `PGR-E4005`, nichts gesendet; SCRAM ohne Channel Binding; neu entschieden in `LH-FA-20.a`
-  *Anmeldung*.
-- **Fehler im SCRAM-Austausch** (unpassende oder nicht lesbare Nachricht, falsche
-  Serversignatur) [A] — `PGR-E4005`; neu entschieden in `LH-FA-20.a` *Anmeldung*.
-- **SASLprep** [A] — nicht angewandt (Grenze); **Klartext ohne TLS** — gesendet, wenn
-  verlangt (Grenze); neu entschieden in `LH-FA-20.a` *Anmeldung*; das Handbuch nennt beide.
+*Zwischenstand bis zu den Folge-Slices* — kein Stand des Produkts, den die Spezifikation
+beschreibt, sondern der Stand dieses Slice, bis `slice-v1-abschluss-einspielen-anmeldung` und
+`slice-v1-abschluss-einspielen-tls` geliefert sind; vom Planner am 2026-10-09 nach dem Vorbild
+der *Optionen der Folge-Slices* oben gesetzt (derselbe Stand wie bei `record`, kein stilles
+Herabstufen auf eine Verbindung ohne Passwort oder ohne TLS). Der Architect bestätigt die vier
+Punkte vor dem ersten Code-Commit (`AGENTS.md` §3.12); die Folge-Slices ersetzen sie und ändern
+die Tests dazu (dort §6, *Ablösung des Zwischenstands*).
+
+- **`--upstream-tls`, `--upstream-ca`** [K] — bei `play` unbekannt (`PGR-E2001`), ihre
+  Schlüssel im Abschnitt `play:` unbekannt (`PGR-E2004`), ihre Umgebungsvariablen unbeachtet.
+- **`sslmode=require` der benutzten Verbindung** [K] — bei `play` `PGR-E2004` wie bei `record`
+  (Bestand aus `slice-v1-abschluss-upstream-verbinden`); `play` baut keine Verbindung ohne TLS
+  auf, die TLS verlangt.
+- **Passwort-Anforderung des Servers** (Klartext, MD5, SASL) [K] — wie ein nicht unterstütztes
+  Verfahren: `PGR-E4005`, nichts gesendet (die Regel aus `LH-FA-20.a` *Anmeldung* für
+  Kerberos, GSSAPI, SSPI, angewandt auf jedes Verfahren).
+- **`PGWIRE_RECORDER_PASSWORD`** [K] — unbeachtet; eine Variable im Passwortteil der benutzten
+  Verbindung wird dennoch eingesetzt und ist, wenn sie fehlt, `PGR-E2005` (U8 oben).
 
 *Interaktion (Play-Service und Upstream-Adapter)*
 
@@ -275,7 +275,7 @@ Offen ist keine.
 - **Kein Abbruch der Anfrage beim zweiten Signal** — `play` sendet kein `CancelRequest`, der
   Server führt die Anfrage zu Ende, bis er das Verbindungsende bemerkt; kein Fehler des
   Einspielens.
-- **TLS-Version und Verfahren** — die Voreinstellung der Standardbibliothek, keine Zusage.
+- **TLS-Version und Verfahren** — ging mit TLS an `slice-v1-abschluss-einspielen-tls` (dort §6).
 - **Weitere aufgezeichnete Startup-Parameter** (etwa `replication`) — unverändert gesendet,
   wie aufgezeichnet; was der Server daraus macht, ist seine Antwort.
 
@@ -283,19 +283,22 @@ Offen ist keine.
 
 - Das Einspielen verändert eine Datenbank; ein Fehlgebrauch gegen eine falsche Instanz ist durch das Handbuch nur gewarnt — **Ausgang:** offen bis Closure.
 - Eine Serverantwort mit `FATAL` beendet die Verbindung; die Behandlung gemäß Spezifikation ist erst im Test belegbar — **Ausgang:** offen bis Closure.
-- **Größe** (Prüfung des Architect vom 2026-10-09): Der Slice berührt CLI-Adapter, Play-Service
-  mit Port, Upstream-Adapter und Bootstrap — mehr als zwei Schichten — und trägt mit Anmeldung
+- **Größe** (Prüfung des Architect vom 2026-10-09): Der Slice berührte CLI-Adapter, Play-Service
+  mit Port, Upstream-Adapter und Bootstrap — mehr als zwei Schichten — und trug mit Anmeldung
   (drei Verfahren, SCRAM selbst), TLS mit eigener Zertifizierungsstelle, Fehlerregeln,
   Signalen, Konfiguration und Handbuch rund 80 Zusagen; geschätzt **2500 bis 3500 Zeilen**.
   `slice-v1-abschluss-upstream-verbinden` lag mit rund 30 Zusagen bei 712 Zeilen,
   `slice-v1-abschluss-konfigurationsdatei` mit rund 70 bei 1066 und war die Grenze einer
-  Review-Sitzung. Vorschlag (Entscheidung des Nutzers, Schnitt durch den Planner): drei
-  Slices nach den Marken oben — **Kern** (dieser Slice: Kommando, Optionen, Abschnitt `play:`,
-  Verbindung ohne Passwort und ohne TLS, Fehlerregeln, Signale, Abnahmeszenario 12, Handbuch
-  V-125), **Anmeldung** (Passwortquellen, Klartext, MD5, SCRAM-SHA-256, `PGR-E4005` der
-  Anmeldung, Handbuch zum Passwort aus F-533) und **TLS** (`--upstream-tls`, `sslmode=require`,
-  `--upstream-ca`, `PGR-E2007`, `PGR-E4005` von TLS und Zertifikat, Handbuch zu `sslmode` aus
-  F-533) — **Ausgang:** offen bis zur Entscheidung des Nutzers vor dem Code.
+  Review-Sitzung. Geschnitten nach Entscheidung des Nutzers vom 2026-10-09 in drei Slices nach
+  den Marken oben (§1, *Abgegeben*) — **Ausgang:** eingetreten:
+  `slice-v1-abschluss-einspielen-anmeldung`, `slice-v1-abschluss-einspielen-tls`.
+- **Größe des Kerns** (Planner, 2026-10-09): Auch nach dem Schnitt berührt der Slice vier
+  Schichten (CLI-Adapter, Play-Service mit Port, Upstream-Adapter, Bootstrap) und trägt 29 der
+  44 markierten Randformen. Nach diesem Anteil, grob und nicht gemessen, liegt die Schätzung
+  des Architect für den Kern bei 1700 bis 2300 Zeilen und damit über der Grenze von
+  `slice-v1-abschluss-konfigurationsdatei`; der Schnitt nach DoD-Punkten steht in §4 als
+  vorab benannte Rückführung — **Ausgang:** offen bis Closure.
+
 
 ## 7. Closure-Notiz
 
@@ -322,8 +325,46 @@ Slice-Typ) und die **vier Pflichtkriterien** (Konventionen-Dichte ·
 Phase-Reife · Evidenz-/Diskrepanz-Risiko · Reconciliation-Aufwand), vier und
 nicht mehr.
 
-**Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
+**Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area, `*` (Kürzel
+`REPO`, Greenfield, `harness/conventions.md`); dieser Slice berührt nur sie.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
+**Vorgelagert — offene Beobachtungen sichten:** Register
+`docs/plan/planning/observations/BEO-REPO/` am Stand `f7c9c79` beim Schnitt vom 2026-10-09
+gesichtet (Zähler = Dateien unter `evidence/`; ein Beleg entsteht bei der Closure dieses
+Slice, nicht vorher). Treffer:
 
-**Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
+- `BEO-REPO/slice-waechst-durch-uebernahmen` (2×: `slice-v1-abschluss-betrieb`,
+  `slice-v1-abschluss-konfiguration`; Stand offen) — passt auf diesen Slice: Er war die
+  Adresse von sechs Abgrenzungen (§1, *Übernommen aus*), DoD-Punkt 1 bündelte zuletzt
+  Abnahmeszenario 12, drei Anmeldeverfahren, TLS mit eigener Zertifizierungsstelle und die
+  Optionen, bei drei Liefer-Punkten und vier Schichten; die Größe fand erst die Prüfung des
+  Architect. Mit dem Beleg dieses Slice stünde der Eintrag bei **3×** und wäre eine Lücke, die
+  einen eigenen Folge-Slice braucht. Dem Nutzer am 2026-10-09 vorgelegt; Ausgang offen bis zu
+  seiner Entscheidung.
+- `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel` (1×: `slice-v1-abschluss-konfiguration`)
+  — passt: Der Schnitt geschah im selben Zug, der Slice bleibt in `in-progress/`, der Rest ging
+  an zwei neue Slices in `next/` (§4). Mit dem Beleg dieses Slice stünde er bei 2×.
+- `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (1×) — kann passen: Der Kern liegt nach der
+  groben Schätzung in §6 (*Größe des Kerns*) über der Grenze einer Review-Sitzung, §4 nennt
+  den zweiten Schnitt vorab. Beleg erst, wenn diese Rückführung eintritt.
+- `BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft` (1×) — der Kern baut die
+  Aufbau-Schleife in `Open` für die Einstufung nach `LH-FA-20.a` *Aufbau* um; die Adresse für
+  den Test bleibt `slice-v1-abschluss-anmeldung`, hier keine Zusage.
+- `BEO-REPO/record-fehlerantwort-im-aufbau-ungeregelt` (1×) — betrifft `record`; für `play`
+  regelt `LH-FA-20.a` *Aufbau* den Fall (§6), kein Beleg.
+- `BEO-REPO/spec-randform-erst-im-review-entschieden` (18×, `AGENTS.md` §3.12),
+  `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (6×),
+  `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (20×, §3.10),
+  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (26×, §3.11),
+  `BEO-REPO/plan-folgt-korrektur-nicht` (21×, §3.9) und
+  `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (4×, §3.13) — verkörpert; die Randformen in §6
+  sind vor dem Code entschieden (der *Zwischenstand* bestätigt der Architect vor dem ersten
+  Code-Commit), je Zusage eine Mutation mit Beleg in §7, und die Nehmer
+  `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` nennen
+  diesen Slice unter *Übernimmt*, im selben Commit wie §1 hier.
+
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF. Produktionscode für `record` und
+`replay` liegt vor, `play` entsteht mit diesem Slice; Spezifikation und Entscheidungen gehen
+ihm voraus (`LH-FA-20.a`, [ADR-0016](../../adr/0016-einspielen-anmeldung-und-tls.md),
+[ADR-0017](../../adr/0017-einspielen-sequenziell-und-fehlersemantik.md)).
+
