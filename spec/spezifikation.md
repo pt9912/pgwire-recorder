@@ -887,11 +887,15 @@ sonst aus `PGWIRE_RECORDER_PASSWORD`; eine Option dafür gibt es nicht.
 2. der Pfad aus der Umgebungsvariable `PGWIRE_RECORDER_CONFIG`,
 3. die Datei `.pgwire-recorder.yaml` im aktuellen Verzeichnis, sofern sie existiert.
 
-Findet sich keine Datei, wird keine gelesen. Eine mit `--config` oder
+Die Standarddatei existiert, wenn ihr Pfad auflöst, symbolischen Links gefolgt; ein
+Link ins Leere ist keine Datei. Lässt sich nicht feststellen, ob sie existiert (etwa
+bei einer Schleife von Links), ist sie vorhanden, aber nicht lesbar. Findet sich
+keine Datei, wird keine gelesen. Eine mit `--config` oder
 `PGWIRE_RECORDER_CONFIG` genannte Datei, die fehlt, ist ein Konfigurationsfehler. Die
 Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne die führenden `--`
 (`keep_timing` für `--keep-timing`); einen Schlüssel `config` gibt es nicht. Steht
-ein Schlüssel in derselben Abbildung zweimal, ist das ungültiges YAML. `log_level`
+ein Schlüssel in derselben Abbildung zweimal, ist das ungültiges YAML; verglichen wird
+der Text des Schlüssels (`1` und `"1"` sind derselbe). `log_level`
 und die benannten Verbindungen stehen auf der obersten Ebene, die übrigen Schlüssel
 in einem Abschnitt je Kommando (`record:`, `replay:`, `play:`):
 
@@ -911,12 +915,16 @@ Der Wert eines Schlüssels ist ein Skalar. Maßgeblich ist sein Text, gleich ob 
 oder ohne Anführungszeichen geschrieben, und für ihn gilt dieselbe Wertemenge wie für
 die Option: `true` und `"true"` sind gültig, `True`, `yes` und `1` nicht; `0` und
 `"5s"` sind gültige Dauern. Ein leerer Wert, `null`, eine Liste oder Abbildung an der
-Stelle eines Werts sowie Anker, Aliase und Merge-Schlüssel sind ungültig. Ein
+Stelle eines Werts sowie Anker, Aliase und Merge-Schlüssel sind ungültig. `null` ist dabei die
+YAML-Null: ohne Anführungszeichen `~`, `null`, `Null` oder `NULL`. In Anführungszeichen
+ist derselbe Text ein gewöhnlicher Text, gültig, wo die Wertemenge der Option ihn
+annimmt (`output: "null"` ist der Pfad `null`). Ein
 relativer Pfad in der Datei gilt relativ zum aktuellen Verzeichnis wie auf der
 Kommandozeile, nicht zum Verzeichnis der Datei.
 
 Die Datei enthält höchstens ein YAML-Dokument; ein zweites ist ungültiges YAML. Ist
-sie leer oder enthält sie nur Kommentare, setzt sie nichts. Sonst sind die oberste
+sie leer oder enthält sie nur Kommentare, setzt sie nichts; eine Datei mit `---` ohne
+Inhalt enthält ein Dokument, dessen oberste Ebene keine Abbildung ist. Sonst sind die oberste
 Ebene, jeder Abschnitt und `connections:` je eine Abbildung, jede andere Form ist
 ungültig; eine leere Abbildung (`{}`) setzt nichts, ein Abschnitt oder
 `connections:` ohne Inhalt oder mit `null` ist ungültig wie ein leerer Wert. Ein
@@ -1005,7 +1013,8 @@ ist als die längste Dauer, die die Implementierung darstellt: als Option oder
 Umgebungsvariable `PGR-E2001`, als Schlüssel der Konfigurationsdatei `PGR-E2004`.
 
 **Anzeige.** `pgwire-recorder config show` gibt auf `stdout` in der ersten Zeile den
-Pfad der gewählten Datei aus, danach ihren Inhalt als YAML mit zwei Leerzeichen
+Pfad der gewählten Datei so aus, wie er gewählt wurde (ein relativer Pfad bleibt
+relativ, die Standarddatei heißt `.pgwire-recorder.yaml`), danach ihren Inhalt als YAML mit zwei Leerzeichen
 Einzug in der Reihenfolge der Datei, ohne Kommentare; Exit-Code `0`. Findet sich
 keine Datei, sagt das die erste Zeile, und der Befehl endet mit Exit-Code `0`. Ist die Datei
 ungültig, endet er mit dem Fehlercode des Ladens (`PGR-E2004` oder `PGR-E2006`) und
@@ -1014,7 +1023,10 @@ aufgelösten Wert, aber Hosts, Benutzer und Pfade der Datei. Aktive
 `PGWIRE_RECORDER_*`-Umgebungsvariablen, also gesetzte und nicht leere, auch solche
 ohne passende Option, listet der Befehl am Ende mit Namen und ohne Werte, je einen pro
 Zeile und nach Namen sortiert, auch ohne Datei; geprüft wird von ihnen nur
-`PGWIRE_RECORDER_CONFIG`. Er verbindet sich nicht und liest keine Aufzeichnung.
+`PGWIRE_RECORDER_CONFIG`. Er verbindet sich nicht und liest keine Aufzeichnung. Für die Hilfe ist `config` das
+bekannte Kommando, seine Hilfe die von `config show` (LH-FA-01.a). `config` ohne
+`show`, ein anderes Unterkommando und ein Argument nach `config show` sind
+`PGR-E2001`.
 
 | Option | Kommando | Umgebungsvariable | Default |
 |---|---|---|---|
@@ -2364,3 +2376,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-08 | Konfiguration: „nie einen Wert“ gilt für Datei und Umgebungsvariablen, eine Meldung zur Kommandozeile darf deren Wert nennen (`LH-FA-17.a`) |
 | 2026-10-08 | Konfiguration: leerer Wert auf der Kommandozeile ist gesetzt und für keine Option gültig, auch neben gesetzter Umgebungsvariable (`LH-FA-17.a`) |
 | 2026-10-08 | Konfigurationsdatei: höchstens ein YAML-Dokument, leere Datei setzt nichts, oberste Ebene, Abschnitte und `connections:` als Abbildung, leere Abbildung gültig, Abschnitt ohne Inhalt oder mit `null` ungültig, Tags ungültig, Laden prüft die ganze Datei unabhängig vom Kommando; URL: Form außerhalb der Grammatik ungültig, Port-Default `5432` und Form des Ports, Prozent-Dekodierung wörtlicher Teile, Name einer Verbindung; Form der Platzhalter in jedem Teil geprüft, fehlerhafter Platzhalter im Passwort ist Klartext, eingesetzter Port geprüft, Host nicht; Reihenfolge innerhalb einer URL (`LH-FA-17.a`) |
+| 2026-10-09 | Konfigurationsdatei: `null` ist die YAML-Null ohne Anführungszeichen, in Anführungszeichen Text; Standarddatei existiert nach Auflösung der Links, ein Link ins Leere ist keine Datei, unbestimmbares Vorhandensein ist nicht lesbar; doppelte Schlüssel nach ihrem Text verglichen; `---` ohne Inhalt ungültig; erste Zeile von `config show` ist der Pfad wie gewählt; `config` in der Hilfe und als Kommando ohne `show` (`LH-FA-17.a`) |

@@ -170,7 +170,9 @@ dasteht.
 **Randformen** (`AGENTS.md` §3.12) — je Randform, wo sie entschieden ist. Die entschiedenen
 zogen mit dem Schnitt aus §6 von `slice-v1-abschluss-konfiguration` hierher; der Architect
 prüfte sie dort am 2026-10-08 vor dem Code. Die zwölf Rückgaben des Implementers und den Ort
-der Konstanten entschied er am 2026-10-08 hier, vor dem Code (unten); offen ist keine.
+der Konstanten entschied er am 2026-10-08 hier, vor dem Code (unten). Zwei Rückgaben und fünf
+Lesarten aus dem Lauf an DoD-Punkt 1 und 2 entschied er am 2026-10-09 (unten, *Rückgaben vom
+2026-10-09*); offen ist keine.
 
 *Umgebung, soweit sie die Datei betrifft*
 
@@ -292,6 +294,48 @@ geschlossene Fehlertabelle, URL vor dem Einsetzen zerlegt, Abbruch beim ersten F
     Architect vom 2026-10-08 zu F-496; sie ersetzt die frühere Antwort *unbekannt bis
     `slice-v1-abschluss-schreiben`*). `LH-FA-17.a` führt beide in der Tabelle, kein
     Sonderfall.
+
+*Rückgaben und Lesarten des Implementers vom 2026-10-09* (aus §7, *Belege des Implementers*),
+entschieden vom Architect am 2026-10-09 in `LH-FA-17.a`, nach dem Code von DoD-Punkt 1 und 2
+(`7a80393`). In keinem Fall ändert sich der Code; je Fall eine Vorgabe für Test und Mutation,
+die vor der Übergabe ans Review rot gesehen wird (`AGENTS.md` §3.10).
+
+- **R1 — `"null"` oder `"~"` in Anführungszeichen** — Text des Skalars, gültig, wo die
+  Wertemenge der Option ihn annimmt; `null` meint die YAML-Null, ohne Anführungszeichen `~`,
+  `null`, `Null`, `NULL`. Grund: Dieselbe Wertemenge in allen drei Quellen trägt, und
+  `--output=null` ist auf der Kommandozeile ein Pfad; Anführungszeichen sind in YAML der Weg,
+  diesen Text zu schreiben. Code bleibt. *Test:* `record:` mit `output: "null"` und mit
+  `output: '~'` setzt den Pfad `null` bzw. `~` (`TestDateiGueltig`); `Null` und `NULL` ohne
+  Anführungszeichen sind `PGR-E2004` (`TestDateiUngueltig`). *Mutation:* der grüne Mutant aus
+  §7 (Text in Anführungszeichen als `null`) wird rot; dazu die Prüfung auf `!!null` durch einen
+  Textvergleich mit `null` und `~` ersetzt, rot über `Null`/`NULL`.
+- **R2 — Standarddatei als Link ins Leere** — keine Datei; die Standarddatei existiert, wenn
+  ihr Pfad nach Auflösung der Links auflöst; lässt sich das nicht feststellen (Schleife), ist
+  sie vorhanden, aber nicht lesbar (`PGR-E2004`). Grund: „sofern sie existiert“ ist die
+  Antwort des Betriebssystems auf den Pfad, wie bei `test -e`, und `config show` zeigt in der
+  ersten Zeile, dass keine Datei gilt; die Abweichung wird damit nicht still. Akzeptiertes
+  Negativ: Wer die Standarddatei als Link auf eine gelöschte Datei hält, startet ohne Datei;
+  `--config` und `PGWIRE_RECORDER_CONFIG` melden denselben Fall als fehlende Datei
+  (`PGR-E2004`). Code bleibt (`os.Stat`). *Test:* Standarddatei als Link auf ein fehlendes
+  Ziel wählt keine Datei, `config show` sagt das in der ersten Zeile (`TestDateiWahl` oder
+  `TestConfigShowOhneDatei`). *Mutation:* `os.Lstat` statt `os.Stat`, rot über diesen Test;
+  die Schleife hält `TestDateiNichtLesbar` schon.
+- **Lesart 1 — `config --help`** — bestätigt: Hilfe von `config show` (`LH-FA-01.a`: das erste
+  Argument ist ein bekanntes Kommando). Getestet (`TestDateiHilfeVorPruefung`), keine Vorgabe.
+- **Lesart 2 — `config` allein, anderes Unterkommando, Argument nach `config show`** —
+  bestätigt: `PGR-E2001`, wie das unerwartete Argument bei `record` und `replay`. Getestet
+  (`TestConfigShowFehler`, alle drei Fälle). *Mutation*, falls nicht gefahren: ein
+  unbekanntes Unterkommando als `show` behandelt, rot über `{"config", "zeige"}`.
+- **Lesart 3 — erste Zeile von `config show`** — bestätigt: der Pfad, wie er gewählt wurde,
+  ein relativer bleibt relativ, die Standarddatei heißt `.pgwire-recorder.yaml`. *Test:*
+  `--config` mit relativem Pfad, erste Zeile genau dieser Pfad. *Mutation:* `filepath.Abs`
+  auf den Pfad, rot über diesen Test.
+- **Lesart 4 — Datei nur mit `---`** — bestätigt: ein Dokument ohne Inhalt, oberste Ebene keine
+  Abbildung, `PGR-E2004`; das folgt der Strenge bei `null` (Rückgabe 4 oben). Getestet
+  (`TestDateiUngueltig`, *nur ---*), keine Vorgabe.
+- **Lesart 5 — doppelte Schlüssel** — bestätigt: nach ihrem Text verglichen, `1` und `"1"`
+  sind derselbe Schlüssel; das folgt „Text des Skalars zählt“. Getestet
+  (`TestDateiUngueltig`, *doppelt in Anführungszeichen*), keine Vorgabe.
 
 *Ort der Konstanten* — im Model, `internal/hexagon/model/fehler.go`, als drei Konstanten ohne
 Logik (§1, Ausnahme). Grund: [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) führt eine Code-Tabelle im Quelltext, die mit dem
