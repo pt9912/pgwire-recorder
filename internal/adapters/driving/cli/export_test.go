@@ -81,7 +81,9 @@ func Zerlege(pfad string) (Zerlegt, error) {
 
 // SetzeEin lädt die Datei pfad und setzt in alle Teile ihrer ersten Verbindung
 // in der Reihenfolge der URL (Benutzer, Passwort, Host, Port, Datenbank) die
-// Variablen aus wert ein; ein Teil, den die URL nicht schreibt, ist "".
+// Variablen aus wert ein; Benutzer, Passwort und Datenbank, die die URL nicht
+// schreibt, sind "", ein nicht geschriebener Port ist 5432 (das Laden legt ihn
+// so ab).
 func SetzeEin(pfad string, wert func(string) string) ([]string, error) {
 	d, err := ladeDatei(pfad, "--config")
 	if err != nil {

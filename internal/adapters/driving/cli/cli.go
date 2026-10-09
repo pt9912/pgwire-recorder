@@ -193,7 +193,10 @@ func Parse(args []string, out io.Writer) (Command, error) {
 // Der Schlüssel der Option in der Konfigurationsdatei steht im Abschnitt des
 // Kommandos, mit oben auf der obersten Ebene (datei.wert). zuletzt prüft die
 // Option nach der Zusammenführung aller Optionen, mit dem Stand ihrer Quellen
-// und der gewählten Datei (LH-FA-17.a *Fehler*); nil prüft nichts.
+// und der gewählten Datei (LH-FA-17.a *Fehler*), und darf ihren Wert im
+// Command ersetzen: upstreamRecord setzt c.Record.Upstream auf die Adresse der
+// benutzten Verbindung. Ein späterer zuletzt-Aufruf sieht den ersetzten Wert;
+// nil prüft nichts.
 type option struct {
 	name     string
 	art      art
@@ -327,9 +330,9 @@ type gelesen struct {
 // Kommandozeile oder einer Umgebungsvariable ist PGR-E2001, einer der Datei
 // PGR-E2004, auch wenn eine Quelle davor dieselbe Option setzt. Danach
 // übernimmt es je Option den Wert nach der Priorität (SPEC-007); eine
-// Pflichtoption, die keine Quelle setzt, ist PGR-E2001. Zuletzt prüft es je
-// Option in ihrer Reihenfolge, was option.zuletzt nach der Zusammenführung
-// prüft.
+// Pflichtoption, die keine Quelle setzt, ist PGR-E2001. Zuletzt ruft es je
+// Option in ihrer Reihenfolge option.zuletzt, das prüft und den Wert ersetzen
+// kann (upstreamRecord setzt c.Record.Upstream auf die Adresse).
 func lies(kommando string, args []string) (Command, error) {
 	opts := optionen(kommando)
 	stand := make([]gelesen, len(opts))

@@ -82,6 +82,10 @@ Verbindung und der Schlüssel `upstream` sind geprüft, und ein Klartext-Passwor
 - TLS zum Upstream bei `record` — nicht Teil des Produkts in dieser Welle
   ([welle-v1-abschluss](../welle-v1-abschluss.md) §6); `sslmode=require` ist bei `record` ein
   Fehler.
+- Im Benutzerhandbuch die Wirkung einer Verbindung bei `play` (Passwort aus dem Platzhalter,
+  `PGWIRE_RECORDER_PASSWORD`, `sslmode=require` mit TLS) — `slice-v1-abschluss-einspielen`
+  (dort §1, *Übernommen aus* diesem Slice, und §3); DoD-Punkt 3 beschreibt, was geliefert ist,
+  und `play` gibt es erst mit jenem Slice (Review F-533).
 - Code im Kern, im PGWire-Adapter und in den Driven-Adaptern — Schicht-Abgrenzung: Der Slice
   ändert den CLI-Adapter und, falls die aufgelöste Adresse es verlangt, den Bootstrap; die
   Code-Tabelle im Model bleibt unberührt.
@@ -136,7 +140,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driving/cli` | update | Hilfe von `--upstream` nennt `host:port` oder den Namen einer Verbindung (Optionstabelle `LH-FA-17.a`); Form `host:port` und Auflösen des Namens bei `--upstream` und `PGWIRE_RECORDER_UPSTREAM`, jeder gesetzte Wert geprüft (die Art `text` von `--upstream` in `cli.go` prüft heute nur den leeren Wert); benutzte Verbindung; `sslmode=require` bei `record`; Einsetzen der Variablen in die zerlegte URL des Ladens, `PGR-E2005`, Prüfung des Ports danach; Zusammensetzen von `host:port` mit geklammertem IPv6-Host |
 | `internal/bootstrap` | keine Änderung erwartet | `RecordOptions.Upstream` trägt nach dem Auflösen die zusammengesetzte Adresse `host:port`; die Zeile beim Start und `postgres.Upstream` nennen sie wie heute (U6) |
 | `internal/adapters/driving/cli` (Unit-Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a`, je Randform aus §6 ein Fall; `record` mit Verbindungsname gegen PostgreSQL |
-| `docs/user/benutzerhandbuch.md` | update, falls abweichend | §5 *Konfigurationsdatei* (Verbindungen, `sslmode`, Platzhalter) und §7 *Fehlercodes* (`PGR-E2005`, `PGR-E2006`) beschreiben den Zielstand; nachgezogen wird, was der gelieferte Stand beider Slices anders sagt |
+| `docs/user/benutzerhandbuch.md` | update, falls abweichend | §5 *Konfigurationsdatei* (Verbindungen, `sslmode`, Platzhalter) und §7 *Fehlercodes* (`PGR-E2005`, `PGR-E2006`) beschreiben den gelieferten Stand beider Slices; die Wirkung bei `play` (Passwort aus dem Platzhalter, `PGWIRE_RECORDER_PASSWORD`, `sslmode=require`) steht dort nicht, sie geht an `slice-v1-abschluss-einspielen` (§1) |
 | `docs/user/abdeckung-*.md` | update | über `make abdeckung` aus den Deklarationen der neuen Tests |
 
 ## 4. Trigger
@@ -495,6 +499,48 @@ rot.
   Lade-Slice am Schlüssel `upstream`; hier belegt die Mutation *Prüfung nur am Schlüssel* (die
   zwei Prüfungen von Option und Umgebung entfernt), dass Option und Umgebung dieselbe Prüfung
   durchlaufen, mit einem Fall je Zeichenklasse in `upstreamUngueltig`.
+
+**Nacharbeit zum Review** (`docs/reviews/2026-10-09-review-slice-v1-abschluss-upstream-verbinden.md`,
+Stand `a482303`).
+
+- *F-534, Auswahl der Verbindung nach dem genauen Namen.* Merkmal: Die Suche in
+  `datei.verbindung` vergleicht den Namen; `hatName` davor hält die Auswahl nicht.
+  `TestUpstreamVerbindung` führt jetzt eine Datei mit `Staging`, `stag`, `staging2` und
+  `staging` in dieser Reihenfolge und erwartet je Name genau die eigene Adresse, über
+  `--upstream`, `PGWIRE_RECORDER_UPSTREAM` und den Schlüssel `upstream` (die Sonde aus dem
+  Review: `--upstream=staging` ergibt `klein:5432`). Neben dem gemeldeten Mutanten je weitere
+  Ausprägung des Merkmals eine Mutation:
+
+  | Zusage | Mutation | rote Tests |
+  |---|---|---|
+  | Auswahl genau in Groß- und Kleinschreibung | Mutant S, `strings.EqualFold(v.name, name)` | `TestUpstreamVerbindung` |
+  | ebenso | beide Namen kleingeschrieben verglichen | `TestUpstreamVerbindung` |
+  | kein Präfix des Werts trifft | `strings.HasPrefix(name, v.name)` | `TestUpstreamVerbindung` (`stag` vor `staging`) |
+  | kein Name, der mit dem Wert beginnt, trifft | `strings.HasPrefix(v.name, name)` | `TestUpstreamVerbindung` (`staging2` vor `staging`) |
+
+  Zuerst blieb der dritte Mutant grün, weil `stag` hinter `staging` stand; mit der Reihenfolge
+  oben rot. Weg wie oben (frische Kopie mit `cp -r` ohne `-p`, `docker build --target test`).
+- *F-530.* Der Kommentar an `SetzeEin` nennt jetzt `""` für Benutzer, Passwort und Datenbank,
+  die die URL nicht schreibt, und `5432` für einen nicht geschriebenen Port; so prüft es
+  `TestEinsetzenAlleTeile` (Fall *ohne Benutzer*).
+- *F-531.* Die Kommentare an `option.zuletzt` und `lies` nennen, dass `zuletzt` den Wert ersetzen
+  darf, dass `upstreamRecord` `c.Record.Upstream` auf die Adresse setzt und dass ein späterer
+  Aufruf den ersetzten Wert sieht.
+- *F-533.* Aus dem Handbuch §5 *Konfigurationsdatei* sind die Sätze zu `play` heraus: das
+  Passwort aus dem Platzhalter (der Absatz beginnt jetzt mit dem Einsetzen des Platzhalters),
+  *„Beim Einspielen verbindet `require` …“* mit `--upstream-tls` und *„gilt
+  `PGWIRE_RECORDER_PASSWORD`“*. `slice-v1-abschluss-einspielen` nahm sie nicht an (§1 und DoD
+  ohne Handbuch, kein Ausschluss); dort steht die Sendung jetzt in §1 unter *Übernommen aus*
+  diesem Slice und in §3, mit der Kennung dieses Slice; hier in §1 *Ausdrücklich NICHT* und §3.
+  Stehen geblieben sind Stellen außerhalb der Absätze aus DoD-Punkt 3, die `play` schon
+  vorher nannten (Einleitung von §5, Beispiel mit `play:`, Zeile `PGR-E4005` in §7).
+- *F-532, F-535* sind Hinweise an Architect und Verifier; kein Code.
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `make test`, `make lint` | Nacharbeit, vor dem Commit | Exit 0, `0 issues.` |
+| `make docs-check`, `make kopf-check` | Nacharbeit, vor dem Commit | 0 Befunde, Exit 0 |
+| `make gates` | Commit der Nacharbeit | Exit 0, vor der Übergabe |
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

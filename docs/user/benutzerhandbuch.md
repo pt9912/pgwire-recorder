@@ -647,23 +647,20 @@ so, wie er geschrieben ist, und einem Host mit `:` in eckigen Klammern; die Log-
 beim Start nennt diese Adresse, nie Benutzer, Passwort oder Datenbank. Der Parameter
 `sslmode` kennt `disable` (Standard) und `require`. Bei `record` ist `require`
 ungültig (`PGR-E2004`), weil das Werkzeug beim Aufzeichnen unverschlüsselt zur
-Datenbank verbindet. Beim Einspielen verbindet `require` verschlüsselt und prüft das
-Zertifikat der Datenbank; ein ausdrücklich gesetztes `--upstream-tls` geht dem
-`sslmode` vor.
+Datenbank verbindet.
 
-Passwörter geben Sie als Platzhalter `${VAR}` in der URL einer Verbindung an; das
-Werkzeug ersetzt ihn beim Start aus der gleichnamigen Umgebungsvariable, einmal und nur
-für die Verbindung, die Sie benutzen, bei `record` nur in Host und Port. Der Wert steht
-unverändert an seiner Stelle, auch mit `@`, `:` oder `/`; eine leere Variable gilt als
-nicht gesetzt. Ein Platzhalter darf in jedem Teil der URL stehen außer zwischen eckigen
-Klammern, im Namen eines Parameters und in `sslmode`, im Port nur neben Ziffern;
-außerhalb einer URL ist er ungültig (`PGR-E2004`). In jedem
-Wert der Datei steht `$$` für ein `$`, sodass `$${VAR}` wörtlich `${VAR}` ergibt. Fehlt
-in einer Verbindung das Passwort, gilt `PGWIRE_RECORDER_PASSWORD`. Ein Passwort, das
-nicht genau ein Platzhalter ist, und ein Parameter `password` sind ein Klartext-Passwort
-(`PGR-E2006`), in jeder Verbindung der Datei, auch einer, die Sie nicht benutzen. Eine
-nicht gesetzte Variable der benutzten Verbindung ist `PGR-E2005`, ein Port, der nach
-dem Einsetzen keine Zahl von 1 bis 65535 ist, `PGR-E2004`.
+Einen Platzhalter `${VAR}` in der URL einer Verbindung ersetzt das Werkzeug beim Start
+aus der gleichnamigen Umgebungsvariable, einmal und nur für die Verbindung, die Sie
+benutzen, bei `record` nur in Host und Port. Der Wert steht unverändert an seiner
+Stelle, auch mit `@`, `:` oder `/`; eine leere Variable gilt als nicht gesetzt. Ein
+Platzhalter darf in jedem Teil der URL stehen außer zwischen eckigen Klammern, im Namen
+eines Parameters und in `sslmode`, im Port nur neben Ziffern; außerhalb einer URL ist er
+ungültig (`PGR-E2004`). In jedem Wert der Datei steht `$$` für ein `$`, sodass `$${VAR}`
+wörtlich `${VAR}` ergibt. Ein Passwort, das nicht genau ein Platzhalter ist, und ein
+Parameter `password` sind ein Klartext-Passwort (`PGR-E2006`), in jeder Verbindung der
+Datei, auch einer, die Sie nicht benutzen. Eine nicht gesetzte Variable der benutzten
+Verbindung ist `PGR-E2005`, ein Port, der nach dem Einsetzen keine Zahl von 1 bis 65535
+ist, `PGR-E2004`.
 
 Wahrheitswerte lauten `true` oder `false`, mit oder ohne Anführungszeichen; `True`,
 `yes` und `1` sind ungültig. Für jeden Wert gilt dieselbe Form wie für die Option,

@@ -38,8 +38,9 @@ func mitUpstream(t *testing.T, url string) (string, error) {
 
 // Abdeckung: LH-FA-17/Happy — nennt der zusammengeführte Wert von --upstream,
 // PGWIRE_RECORDER_UPSTREAM oder des Schlüssels upstream eine Verbindung, ist
-// die Adresse von record Host und Port dieser Verbindung: der Host dekodiert,
-// IPv6 wieder in eckigen Klammern, auch mit Zone, ohne Port 5432, der Port wie
+// die Adresse von record Host und Port der Verbindung mit genau diesem Namen,
+// auch neben Namen in anderer Schreibweise, mit ihm als Präfix oder als seinem
+// Präfix: der Host dekodiert, IPv6 wieder in eckigen Klammern, auch mit Zone, ohne Port 5432, der Port wie
 // geschrieben; Benutzer, Passwort und Datenbank und ihre Variablen bleiben
 // unbeachtet (LH-FA-17.a *Benannte Verbindungen*).
 func TestUpstreamVerbindung(t *testing.T) {
@@ -84,6 +85,30 @@ func TestUpstreamVerbindung(t *testing.T) {
 	t.Setenv(envUpstream, "")
 	if got, err := recordUpstream("--config=" + schreibe(t, datei+"record:\n  upstream: b\n")); err != nil || got != "b.example:2" {
 		t.Errorf("Schlüssel upstream: b: %q, %v", got, err)
+	}
+	aehnlich := "connections:\n  Staging: postgresql://gross/db\n  stag: postgresql://kurz/db\n  staging2: postgresql://lang/db\n  staging: postgresql://klein/db\n"
+	for _, fall := range []struct{ name, quelle, want string }{
+		{"staging", "--upstream", "klein:5432"},
+		{"Staging", "--upstream", "gross:5432"},
+		{"stag", "--upstream", "kurz:5432"},
+		{"staging2", "--upstream", "lang:5432"},
+		{"staging", "env", "klein:5432"},
+		{"staging", "upstream", "klein:5432"},
+	} {
+		inhalt, args := aehnlich, []string{}
+		switch fall.quelle {
+		case "--upstream":
+			args = append(args, "--upstream="+fall.name)
+		case "env":
+			t.Setenv(envUpstream, fall.name)
+		default:
+			inhalt += "record:\n  upstream: " + fall.name + "\n"
+		}
+		got, err := recordUpstream(append(args, "--config="+schreibe(t, inhalt))...)
+		t.Setenv(envUpstream, "")
+		if err != nil || got != fall.want {
+			t.Errorf("%s %s zwischen ähnlichen Namen: %q, %v, erwartet %q", fall.quelle, fall.name, got, err, fall.want)
+		}
 	}
 }
 
