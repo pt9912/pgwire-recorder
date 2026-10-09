@@ -164,3 +164,85 @@ Zuordnung für die Closure: V-134 ist eine Ausprägung von `BEO-REPO/zusage-im-k
 - F-562 und die Zuordnung oben an die Closure.
 
 Dieser Bericht ersetzt kein Review und keine Validierung.
+
+---
+
+## Nachprüfung — 2026-10-09
+
+**Gegenstand:** die Nacharbeit `24df901` (V-134, V-135), `6565310` (V-137) und `23a5314` (V-136) am Stand `23a5314`; Diff `9293191..23a5314` berührt nur die drei Commands, den Plan dieses Slice und `slice-harness-lh-links-pflicht`. Pin, Skill und Audit sind nicht im Diff, ihr Urteil von oben bleibt. Beim Start war der Arbeitsbaum sauber, HEAD `23a5314`.
+
+**Proben wie oben**, Präfix `ver2-dcheck-`: je Mutation eine frische Kopie (jeder Eintrag der obersten Ebene außer `.git` mit `cp -r` ohne `-p`), Mutation per `printf` angehängt bzw. als neue Datei, Lauf `docker run --rm --network none` mit dem Digest aus `d-check.mk` (`c07f1fe6…`), danach nur diese Kopie gelöscht. Unveränderte Kopie: `439 Datei(en) geprüft, 0 Befund(e)`, Exit 0. Rot heißt unten mindestens 1 Befund, Exit 1; grün 0 Befunde, Exit 0. Die Kennung `ADR-` ist die mit vier Ziffern 0001, die Slice-Kennung die dieses Slice.
+
+### Stichprobe der Gegenprobe in §7 (Nacharbeit nach V-134)
+
+Acht Zeilen nachgefahren, jedes Ergebnis wie in §7: Absatz rot (`id-unlinked`); `## Probe` mit der Kennung grün; Kennung als Link-Text grün; Kennung blank in ADR 0002 grün; `## Geschichte` mit Slice-Kennung in `spec/architecture.md` grün; `## Geschichte` mit Link auf ADR 0021 in `harness/README.md` grün; Link auf ADR 0021 aus ADR 0010 grün; `## 9. Geschichte` rot (`matrix-forbidden`). Die fünf Formen von V-134 nennen Block und DoD-Punkt 1 jetzt unter *nicht*, je mit grüner Zeile in §7. **V-134 ist erledigt.**
+
+### Weitere Formen, aktiv gesucht
+
+| Form | Mutation | Ergebnis | Block sagt |
+|---|---|---|---|
+| verschachtelte Liste, nummerierte Liste, Liste im Zitat, Zitat im Zitat | Kennung blank darin | je rot | rot (Listenpunkt, Zitat) — trägt |
+| Fett, kursiv, durchgestrichen, Folgezeile eines Absatzes, Tabelle ohne Rand-Pipe, CRLF | Kennung blank darin | je rot | rot — trägt |
+| Kennung neben einem Link, neben einem Link auf eine andere ADR, nach früherem Link auf dieselbe ADR | im selben Absatz bzw. später | je rot | rot — trägt (jedes Vorkommen zählt) |
+| Text eines Referenz-Links `[…][r]`, Kurzform `[…]` mit Definition, Fußnote, mehrzeiliger HTML-Kommentar, `<details>`, `<span>`, Doppel-Backtick-Inline-Code, Front-Matter `---` und `+++` | Kennung blank darin | je rot | Referenz-Link-Text: *nicht* (V-140); übrige ungenannt oder rot — trägt |
+| Überschrift in einem Listenpunkt (`- ## …`) und in einem Zitat (`> ## …`) | Kennung darin | je rot | *nicht* (`#`-Überschrift) — Ausnahme weiter als das Gate (V-140) |
+| Abschnitt `Geschichte` als Setext-Überschrift; `### Geschichte`; `# Geschichte` mit Unterabschnitt | Slice-Kennung in `spec/architecture.md` | rot; grün; grün (auch im Unterabschnitt) | Setext: *nicht* — weiter als das Gate (V-140); Ebenen: trägt |
+| Zaun mit vier Tilden, Zaun im Zitat, Zaun im Listenpunkt | Kennung darin | je grün | *nicht* (Zaun) — trägt |
+| offener Zaun ohne Ende | Kennung darin | rot, `fence-unclosed` | ungenannt — der Block sagt weniger zu, trägt |
+| Titel eines Links `[x](conventions.md "…")` | Kennung im Titel, `harness/README.md` | **grün** | rot (Absatz) — V-138 |
+| Slice-Kennung als Link-Text, als Bild-Text, im Titel eines Links, `MR-001` als Link-Text, je in `spec/` mit Ziel in `spec/` | angehängt an `spec/architecture.md` bzw. `spec/spezifikation.md` | je **grün** | rot (`matrix-forbidden`) — V-138 |
+| `<a href>` aus `spec/` auf ADR 0001; externe URL auf ADR 0001 | an `spec/architecture.md` | je **grün** | rot (Link aus `spec/` auf eine ADR) — V-138 |
+| `<a href>` auf ADR 0021; externe URL auf ADR 0021 | an `harness/README.md` | je **grün** | rot (`matrix-inactive`) — V-138 |
+| Anker in ein Ziel, das keine `.md` ist (`../Makefile#nope`, `../go.mod#L1`, `a.txt#nope`) | an `harness/README.md` | je **grün** | rot (toter Anker), alle drei Commands — V-138 |
+| Link-Referenz, Ziel in spitzen Klammern, mit Titel, mit Query, absoluter Pfad, Verzeichnis, Anker in derselben Datei, Anker in Großschreibung | totes Ziel bzw. toter Anker | je rot | rot — trägt |
+| Referenz-Link, Bild, Überschrift, Anker aus `spec/` auf ADR 0001 bzw. auf ADR 0021 | Link | je rot | rot — trägt |
+| Text eines HTML-Links `<a href="conventions.md">…</a>` | `ADR-`-Kennung als Text | rot | ungenannt (*HTML-Links* meint das Ziel) — trägt |
+| `docs/vendor/`, `docs/node_modules/`, `build/`, `docs/dist/`, `docs/target/`, `docs/.venv/`, `docs/__pycache__/`, `vendor/`, `node_modules/` | neue `.md` mit der Kennung blank | je **grün**, 439 Dateien (nicht gezählt) | gescannt, rot — V-139 |
+| `third_party/`, `.foo/`, `.githooks/`, `test/testdata/`, `docs/out/`, `bin/`, `tmp/`, `venv/`, `.cache/`, `coverage/` | dasselbe | je rot, 440 Dateien | gescannt — trägt |
+| `harness/probe.MD`, `harness/probe.markdown` | dasselbe | je grün, 439 Dateien | „jede `.md`“ — trägt wörtlich |
+| `ADR\-0001`, `slice\-harness` (maskierter Bindestrich) | im Absatz bzw. in `spec/` | je grün | — (das Token steht nicht im Quelltext; nur notiert, V-140) |
+| URL eines Links, `file:///…`, `mailto:` | Kennung in der URL bzw. totes Ziel | je grün | *nicht* (externe URL) — trägt |
+| `../../../etc/passwd` als Ziel | Link | rot, `repo-escape` | ungenannt — trägt |
+| Zeilen-Marker `<!-- d-check:ignore … -->` in der Zeile davor bzw. danach | Kennung blank | je rot | nur „in einer Zeile mit“ — trägt |
+
+**Zur Richtung:** Der Block erklärt alles nicht als rot Genannte für ungeprüft. Eine Ausnahme, die das Gate in einer Form doch rot zeigt (V-140), bricht daher keine Zusage; eine Form, die der Block rot nennt und die grün bleibt (V-138, V-139), bricht DoD-Punkt 1. Die Lücken in V-138 liegen fast alle in `implement-slice.md`: Dort stehen *externe URLs, HTML-Links* nur beim Spiegelstrich der Linkziele und *Text eines Links oder Bildes* nur beim Spiegelstrich der `ADR-`-Kennung; die Spiegelstriche zu `matrix-forbidden` und `matrix-inactive` erben sie nicht, und *Für alle vier* nennt nur Zäune. In `plan-welle.md` und `close-welle.md` stehen die Ausnahmen ungebunden; dort trägt V-138 nur der Link-Titel und der Anker in ein Ziel ohne `.md`.
+
+### V-135 bis V-137
+
+| Befund | Stand an `23a5314` |
+|---|---|
+| V-135 | erledigt: §1 *Schicht-Abgrenzung* nennt die beiden Nehmer-Pläne und die zwei Drift-Log-Zeilen, §3 führt beide als Zeilen (Planung) |
+| V-136 | erledigt: §7 *Läufe* nennt `make gates` am Stand `6565310`, Exit 0, mit den Zeilen der Teil-Gates; `23a5314` fügt nur diesen Absatz an (6 Zeilen, nur der Plan). Mein eigener Lauf an `23a5314` steht unten |
+| V-137 | erledigt: `slice-harness-lh-links-pflicht` §6 nennt die Ausnahmen des `ids`-Moduls mit der Kennung des Gebers und die Datei der Definition samt Unterordnern; §8 begründet, warum die Zählung bleibt (eine Frage an den Architect, kein Liefer-Punkt) — nachvollzogen. Die Liste der nicht gescannten Pfade dort ist unvollständig wie im Block (V-139) |
+
+### Urteil je DoD-Liefer-Punkt (aktualisiert)
+
+- **Punkt 1** — Pin, Digest, 0 Befunde, Gegenprobe der vier Klassen: bestätigt (unverändert). Block und DoD-Wortlaut: V-134 erledigt; die Teil-Zusage „sagt nur zu, was … rot zeigt“ ist **weiter abgelehnt**, enger als zuvor (V-138, V-139).
+- **Punkt 2** — bestätigt (nicht im Diff der Nacharbeit).
+- **Punkt 3** — bestätigt (nicht im Diff der Nacharbeit).
+- **Punkt 4** — eigener Lauf `make gates` an `23a5314`, Arbeitsbaum sauber: Exit 0; darin `baseline-verify: v6.16.0 OK — 54 Dateien`, `d-check: 439 Datei(en) geprüft, 0 Befund(e)`, `run-integration-tests: gruen`, je `gruen` `a-check-negativ`, `commit-msg-gegenprobe`, `abdeckung-gegenprobe`, `kopf-check-gegenprobe`, `lint-gegenprobe` — bestätigt. Der Beleg in §7 (Stand `6565310`) ist für den Code-Stand gültig: Danach änderte nur `23a5314` einen Absatz des Plans.
+
+## Findings der Nachprüfung
+
+| ID | Kategorie | Befund | Quelle | Pfad | Verifizierbar | Klasse |
+|---|---|---|---|---|---|---|
+| V-138 | MEDIUM | Der Block sagt rot zu für Formen, die grün bleiben: (a) in `implement-slice.md` beim Spiegelstrich `matrix-forbidden` eine Slice- oder `MR-`-Kennung in `spec/` als Text oder Titel eines Links oder als Text eines Bildes (Ziel in `spec/`), und einen Link aus `spec/` auf eine ADR als `<a href>` oder als externe URL; beim Spiegelstrich `matrix-inactive` den Link auf eine superseded ADR als `<a href>` oder externe URL. Die Ausnahmen *HTML-Links, externe URLs* und *Text eines Links oder Bildes* stehen nur bei den Spiegelstrichen der Linkziele bzw. der `ADR-`-Kennung, *Für alle vier* nennt nur Zäune. (b) In allen drei Commands den Titel eines Links (`[x](ziel "…")`) mit einer `ADR-`-Kennung — Fließtext im Absatz, *nicht* nennt nur den Text — und einen toten Anker in ein Ziel, das keine `.md` ist (`../go.mod#L1`). *Failure-Szenario:* Ein Implementer verlinkt aus `spec/` per `<a href>` auf eine ADR oder setzt eine Slice-Kennung als Link-Text in die Spezifikation, liest den Spiegelstrich als Zusage und das Gate bleibt grün — dieselbe Klasse wie V-134, nach dessen Nacharbeit. Weg, der die Klasse schließt statt der Form: die Ausnahmen nach Art des Befunds bündeln statt je Spiegelstrich — *externe URLs und HTML-Links als Ziel* für jeden Link-Befund (`target-missing`, `anchor-missing`, Link aus `spec/`, `matrix-inactive`; je grün gemessen), *Text und Titel eines Inline-Links oder Bildes* für jeden Kennungs-Befund (`id-unlinked`, Slice- und `MR-`-Kennung in `spec/`; je grün gemessen), dazu „Anker nur in `.md`-Zielen“; je eine grüne Zeile in §7. Nicht ausgenommen ist der Text eines HTML-Links: `<a href="…">` mit der `ADR-`-Kennung als Text ist rot. | `AGENTS.md` §3.11; Plan §2 DoD-Punkt 1 („sagt … nur zu, was … eine Zeile der Gegenprobe in §7 rot zeigt“); `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` | `.claude/commands/implement-slice.md` · „bei einem Link aus `spec/` auf eine ADR und einer Slice- oder `MR-`-Kennung in `spec/`, auch in“; · „bei einem Link auf eine superseded ADR (`matrix-inactive`“; · „Für alle vier nicht geprüft: umzäunte Code-Blöcke“; `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` · „als Text eines Links oder Bildes“ und „toten relativen Linkziel oder Anker“ | ja (zwölf Kopien, Tabelle oben, je 0 Befunde, Exit 0) | Kommentar-Zusage weiter als die Prüfung |
+| V-139 | LOW | „Gescannt wird jede `.md` außer `.harness/**` …, `.tmp/**` und `**/*.template.md`“ (alle drei Commands) und DoD-Punkt 1 „nicht gescannte Pfade (`scan.ignore`)“: d-check lässt zusätzlich, ohne Eintrag in `scan.ignore`, Verzeichnisse namens `vendor`, `node_modules`, `build`, `dist`, `target`, `.venv` und `__pycache__` in jeder Tiefe aus; eine `.md` darin wird nicht gezählt. Heute liegt keines im Repo (`find`), ein `vendor/` kann aber `go mod vendor` anlegen. Dieselbe unvollständige Liste trägt `slice-harness-lh-links-pflicht` §6 *Ausnahmen des `ids`-Moduls* (an den Planner). | `AGENTS.md` §3.11; Plan §2 DoD-Punkt 1 | `.claude/commands/implement-slice.md` · „Gescannt wird jede `.md` außer“; `plan-welle.md`, `close-welle.md` · „(jede außer `.harness/**`,“; Plan §2 · „nicht gescannte Pfade (`scan.ignore`)“ | ja (neun Kopien, je 439 Dateien, 0 Befunde) | Kommentar-Zusage weiter als die Prüfung |
+| V-140 | INFO | Drei genannte Ausnahmen sind weiter als das Gate (Richtung harmlos, der Block sagt weniger zu): eine `#`-Überschrift in einem Listenpunkt oder Zitat ist rot; der Text eines Referenz-Links `[…][r]` ist rot; eine Setext-Überschrift `Geschichte` nimmt nichts aus. Dazu grün, aber nicht zu fassen: ein maskierter Bindestrich (`ADR\-0001`) — das Token steht nicht im Quelltext. Kein Handlungsbedarf für die Closure; bei einer Neufassung genügt „`#`-Überschrift am Zeilenanfang“, „Text eines Inline-Links“. | Plan §2 DoD-Punkt 1 („nennt … die Ausnahmen klassenweise“) | `.claude/commands/implement-slice.md` · „Nicht geprüft: in einer `#`-Überschrift, als Text eines Links oder Bildes“; · „dessen Überschrift genau `Geschichte` lautet“ | ja (Tabelle oben) | — |
+
+## Summary der Nachprüfung
+
+| Kategorie | Anzahl |
+|---|---|
+| HIGH | 0 |
+| MEDIUM | 1 |
+| LOW | 1 |
+| INFO | 1 |
+
+**Finding-Klassen:** Kommentar-Zusage weiter als die Prüfung (V-138, V-139; zweiter Lauf in Folge, Zuordnung zu `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` wie V-134).
+
+## Verdikt der Nachprüfung
+
+V-134 bis V-137 erledigt. **DoD-Punkt 1 bleibt in der Teil-Zusage über den Block abgelehnt** (V-138), Punkte 2 bis 4 bestätigt. **Closure-blockierend:** V-138 ja, bis die Ausnahmen nach Art des Befunds für alle Spiegelstriche gelten, Link-Titel und Anker in Nicht-`.md`-Ziele genannt sind und §7 je eine grüne Zeile führt; V-139 nein, aber vor der Closure in Block, DoD-Wortlaut und Nehmer-§6 nachzuziehen; V-140 nein.
+
+**Übergabe:** V-138 und V-139 (Block) an den Implementer, DoD-Wortlaut über den Planner; V-139 (Nehmer `slice-harness-lh-links-pflicht` §6) an den Planner; V-140 zur Kenntnis. Da die Form-Suche zweimal neue Lücken fand, empfehle ich die Ausnahmen je Art des Befunds (Link oder Kennung) statt je Spiegelstrich — sie schließt die Klasse, nicht die nächste Form.
