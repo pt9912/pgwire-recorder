@@ -136,7 +136,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `d-check.mk` | update | `DCHECK_IMAGE` auf `v0.85.0`, `DCHECK_DIGEST` auf den Digest des Tags; sonst unverändert (§1) |
 | `.harness/skills/reviewer.md` | update | MEDIUM *Adresse nimmt nicht an* um das Nachzählen nach `AGENTS.md` §3.13 ergänzt |
-| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* auf das gegenprobierte Verhalten gefasst (DoD-Punkt 1, §1 *Berichtigung*) |
+| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* auf das gegenprobierte Verhalten gefasst (DoD-Punkt 1, §1 *Berichtigung*): rot sind `ADR-` ohne Link (auch in Inline-Code), totes Linkziel, toter Anker, in `implement-slice.md` dazu der Verweis aus `spec/` auf ADR, Slice und `MR-`; nicht geprüft `LH-` ohne Link, `MR-` außerhalb von `spec/`, Pfade in Inline-Code. Unter `.claude/agents/` und `.harness/skills/` steht kein gleichlautender Block (§7) |
 | dieser Plan, §7 | update | Belege des Pins (Digest, Gegenprobe) und Befund des Freshness-Audits |
 
 ## 4. Trigger
@@ -251,10 +251,35 @@ Muster für `ADR-`. Dasselbe hält schon `done/slice-lastenheft-pruefbarkeit.md`
 Regression von `v0.85.0`; die Teil-Zusage „bares `LH-`-Token rot“ in DoD-Punkt 1 ist mit
 `.d-check.yml` unverändert (§1) nicht erfüllbar. Der Implementer hakt DoD-Punkt 1 deshalb
 nicht ab und gibt den Punkt an den Planner (DoD berichtigen, oder ein eigener Slice
-aktiviert das Muster als Entscheidung über das Gate). Ebenso zu weit greift der Satz
-„Jede `LH-`/`ADR-`/`MR-`-Kennung … muss ein klickbarer Anker-Link sein“ in
-`.claude/commands/implement-slice.md` (Repo-lokale Adaptionen, *Strenges Doc-Gate*) —
-`AGENTS.md` §3.11; nicht Gegenstand dieses Slice.
+aktiviert das Muster als Entscheidung über das Gate). Ebenso zu weit griff der Block
+*Strenges Doc-Gate* in drei Commands (`AGENTS.md` §3.11); der Planner hat DoD-Punkt 1
+berichtigt (Commit `dfb7e88`), der Block ist enger gefasst (Gegenprobe unten).
+
+**Gegenprobe zum Block *Strenges Doc-Gate*** (Berichtigung von DoD-Punkt 1), nur gegen
+`v0.85.0` (`c07f1fe6…`), am Stand `dfb7e88` mit den geänderten Commands im Arbeitsbaum. Je
+Mutation eine frische Kopie im Scratchpad: jeder Eintrag der obersten Ebene außer `.git` mit
+`cp -r` (Symlinks unter `.claude/rules/` bleiben Symlinks, ohne `-p`), danach gelöscht.
+Unveränderte Kopie: `436 Datei(en) geprüft, 0 Befund(e)`, Exit 0.
+
+| Zusage im Block | Mutation | Befundzeile |
+|---|---|---|
+| `ADR-` ohne Link ist rot, auch in Inline-Code | `ADR-` mit vier Ziffern (0001) in Backticks, angehängt an `harness/README.md` | `harness/README.md:141` · die Kennung · `id-unlinked`, 1 Befund, Exit 1 |
+| `MR-` in `spec/` ist rot, blank | `MR-001` im Fließtext, angehängt an `spec/spezifikation.md` | `spec/spezifikation.md:2668 MR-001 matrix-forbidden … spec-straten → adaptionsblock`, 1 Befund, Exit 1 |
+| `MR-` in `spec/` ist rot, in Inline-Code | `` `MR-001` `` in Backticks, angehängt an `spec/spezifikation.md` | dieselbe Zeile, 1 Befund, Exit 1 |
+| Slice aus `spec/` ist rot | `slice-harness-d-check-v0-85` blank, angehängt an `spec/architecture.md` | `spec/architecture.md:645 slice- matrix-forbidden … spec-straten → slice`, 1 Befund, Exit 1 |
+| nicht zugesagt: `MR-` außerhalb von `spec/` | `MR-001` im Fließtext, angehängt an `harness/README.md` | **kein Befund**, 0 Befunde, Exit 0 |
+| nicht zugesagt: Pfade in Inline-Code | `` `tools/gibt-es-nicht.sh` ``, angehängt an `harness/README.md` | **kein Befund**, 0 Befunde, Exit 0 (`codepaths` nicht in `modules:`) |
+
+Toter Anker, totes Linkziel und ADR aus `spec/` stehen in der Tabelle davor; `LH-` ohne Link
+ebenda (kein Befund). Ein Verweis aus `spec/` auf eine Welle und auf eine superseded ADR ist
+nicht mutiert — der Block sagt beides nicht mehr zu, ebenso nicht die Ausnahme von
+`docs/reviews/**` (`.d-check.yml` nimmt den Pfad nur aus der Status-Prüfung der Matrix aus).
+
+*Fundstellen:* `grep -rn -i "Strenges Doc-Gate\|klickbare\|Anker-Link\|codepaths"` über
+`.claude/`, `.harness/skills/` und `AGENTS.md` findet den Block nur in den drei Commands; dazu
+in `.claude/commands/plan-welle.md` Schritt 8 „Kennungen als Anker-Links“ — eine Regel an den
+Planner, keine Zusage über das Gate, bleibt. `.claude/agents/*.md` und die Skills führen
+keine gleichlautende Stelle.
 
 **Freshness-Audit (DoD-Punkt 2).** `gh release list -R pt9912/ai-harness-course` am
 2026-10-09: neuester Tag `v6.17.0` (Latest, 2026-10-07), davor `v6.16.0` (2026-10-06, der

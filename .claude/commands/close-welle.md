@@ -23,8 +23,10 @@ Wellen-Closure), Modul 7 (Carveouts), Modul 5 (Lifecycle). Bei Konflikt gilt der
 - **Docker-only + Gate-Nachweis/Stop-Hook.** Nur `make`-Targets; `make gates` endet mit
   `record-gates`. Jede Inhaltsänderung nach einem Gate-Lauf (inkl. Commit) macht den Stempel ungültig →
   nach dem Wave-Self-Close-Commit `make gates` grün bestätigen.
-- **Strenges Doc-Gate.** `LH-`/`ADR-`/`MR-`-Kennungen in gescannten `.md` als klickbare Anker-Links —
-  die Results-Notiz und die Roadmap werden gescannt.
+- **Strenges Doc-Gate.** `docs-check` ist rot bei einer `ADR-`-Kennung ohne Link in einer gescannten
+  `.md`, auch in Inline-Code, und bei einem toten Linkziel oder Anker; `LH-`-Kennungen ohne Link prüft
+  es noch nicht. Als Regel, nicht als Befund des Gates: Kennungen als Anker-Links schreiben. Die
+  Results-Notiz und die Roadmap werden gescannt.
 - **Neue Artefakte per `cp` aus den vendored Templates** — die Results-Notiz entsteht per `cp` aus
   `.harness/baseline/<tag>/templates/docs/plan/planning/welle-results.template.md` und wird danach
   ausgefüllt; die Welle-Datei bleibt Quelle der Plan-Struktur für alles, was das Template offenlässt.

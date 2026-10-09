@@ -35,12 +35,12 @@ emittierten Durchsetzungsschicht):
   passt. **Jede Inhaltsänderung nach einem Gate-Lauf — inklusive jedes Commits und jedes `git mv`
   — macht den Stempel ungültig: `make gates` erneut laufen.** Ein Commit/Move ohne frischen
   Gate-Lauf lässt den Stop-Hook rot.
-- **Strenges Doc-Gate (d-check).** Jede `LH-`/`ADR-`/`MR-`-Kennung in einer gescannten `.md` muss
-  ein klickbarer Anker-Link sein (link-policy: always) — ein bares Kennungs-Token bricht
-  `docs-check` (`id-unlinked`). `codepaths` verlangt, dass Pfade in Inline-Code existieren: eine
-  *geplante* Datei braucht einen Inline-`d-check:ignore`-Marker, eine *bewusst entfernte* gehört in
-  `ignore-refs`. Spec verweist nie abwärts auf ADR/Slice; ein Verweis auf eine superseded ADR nur
-  via Inline-Code + `d-check:ignore`. `docs/reviews/**` ist ausgenommen (Zeitdokumente).
+- **Strenges Doc-Gate (d-check).** `docs-check` ist rot bei einer `ADR-`-Kennung ohne Link in einer
+  gescannten `.md`, auch in Inline-Code (`id-unlinked`), bei einem toten Linkziel (`target-missing`)
+  oder Anker (`anchor-missing`) und bei einem Verweis aus `spec/` auf eine ADR, einen Slice oder eine
+  `MR-`-Kennung, auch blank oder in Inline-Code (`matrix-forbidden`). Nicht geprüft: `LH-`-Kennungen
+  ohne Link (noch nicht erzwungen), `MR-` außerhalb von `spec/`, Pfade in Inline-Code. Als Regel,
+  nicht als Befund des Gates: Kennungen als Anker-Links schreiben.
 - **Neue Artefakte per `cp` aus den vendored Templates** (`.harness/baseline/<tag>/templates/…`),
   dann ausfüllen — keine handgeschriebenen oder repo-gepflegten Template-Kopien.
 - **Commit via Message-Datei** (`git commit -F <datei>`): der Guard scannt den Command-String,
