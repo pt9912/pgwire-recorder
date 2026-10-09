@@ -243,9 +243,20 @@ PGWire-Adapter und Bootstrap sind unverändert (§1). Nach den zwei Entscheidung
 Architect (`b74e16e`) nimmt `24fc87c` das Setzen der Rechte und das Schließen in `dateiOps`
 und `Eingriffe` auf (`Rechte`, `Schliessen`), ergänzt `TestWriteFehlschlag` um beide Fälle,
 fügt `TestWriteRechteVerknuepfung` hinzu und zieht Handbuch und Abdeckung nach; das
-Verhalten des Codes ist unverändert.
+Verhalten des Codes ist unverändert. Nach dem Review (`5bff9bd`) und der Entscheidung des
+Architect zu seinen Übergaben (`278d929`) schließt `ca5124f` die Probedatei über `schliessen`
+aus `dateiOps` (sonst gleiches Verhalten), erweitert `TestPrepareVerzeichnisNichtBeschreibbar`
+um eine vorhandene Datei und eine Verknüpfung auf sie mit `--force` und um die Ursache
+(F-537), fügt `TestPrepareProbedateiScheitert` (F-543) und
+`TestWriteAndererFehlerBeimAnlegen` (F-544) hinzu, setzt im Kommentar an `Write` den Verweis
+für die Rechte auf `LH-FA-07.a` *Rechte* (F-542), zieht §1 (Schicht-Abgrenzung: CLI-Adapter
+unverändert, F-540), §3, §6, Handbuch und Abdeckung nach.
 
-**Randformen.** Kein Code-Commit ändert §6. Entschieden ist nur, was §6 nennt. Zwei Punkte
+**Randformen.** Kein Code-Commit fügt §6 eine Randform hinzu. Zwei Code-Commits ändern in §6
+nur den Verweis auf den Test einer schon entschiedenen Randform: `24fc87c` (Rechte bei
+ersetzter Verknüpfung → `TestWriteRechteVerknuepfung`) und `ca5124f` (die zwei Randformen aus
+`278d929` → `TestWriteAndererFehlerBeimAnlegen`, `TestPrepareProbedateiScheitert`).
+Entschieden ist nur, was §6 nennt. Zwei Punkte
 gingen als Frage an den Architect zurück; beide sind entschieden (`b74e16e`, `LH-FA-07.a`),
 das Verhalten des Codes blieb, und je ein Test sagt sie zu (DoD-Punkt 1 unten):
 
@@ -257,12 +268,16 @@ das Verhalten des Codes blieb, und je ein Test sagt sie zu (DoD-Punkt 1 unten):
 Ein Fehler von `os.Stat` beim Schreiben ist ein akzeptiertes Negativ (§6); dazu keine Zusage
 und kein Test.
 
-Kein anderer Slice ist als neue Adresse genannt (§3.13).
+`slice-v1-abschluss-sqlite-format` ist Adresse für die *Abgrenzung zu `sqlite`* in §6; die
+Sendung steht dort in §1 unter *Übernommen von `slice-v1-abschluss-schreiben`* (Architect,
+`278d929`; §3.13). Die Nacharbeit `ca5124f` nennt keine weitere Adresse.
 
 **Größe.** Der Diff `ad1b7ba..65968e6` umfasst 753 hinzugefügte und 29 entfernte Zeilen: Code
 71 (`yaml.go`), Unit-Tests 465, Integration 167, Handbuch 23, Abdeckung 24, Plan 3. Die
 Nacharbeit `24fc87c` fügt Code 15 (`yaml.go`), Unit-Tests 46 (`schreiben_test.go`,
-`export_test.go`), Handbuch 4 und Abdeckung 3 Zeilen (geändert und hinzugefügt) hinzu. Ob er
+`export_test.go`), Handbuch 4 und Abdeckung 3 Zeilen (geändert und hinzugefügt) hinzu. Die
+Nacharbeit `ca5124f` umfasst Code 8/7 (`yaml.go`, hinzugefügt/entfernt), Unit-Tests 107/7,
+Handbuch 2/2, Abdeckung 3/1 und Plan 9/6. Ob er
 in eine Review-Sitzung passt, urteilt das Review.
 
 **Läufe.**
@@ -277,7 +292,10 @@ in eine Review-Sitzung passt, urteilt das Review.
 | `make abdeckung` | vor `aad7085`, vor `65968e6` | Tabellen nachgezogen |
 | `make test`, `make lint`, `make docs-check`, `make kopf-check`, `make abdeckung-check` | vor `24fc87c` | Exit 0, 0 Befunde |
 | `make abdeckung` | vor `24fc87c` | `abdeckung-unit.md` nachgezogen |
-| `make gates` | Commit dieser Belege | Exit 0, vor der Übergabe |
+| `make gates` | Commit dieser Belege (`9bd65c5`) | Exit 0, vor der Übergabe |
+| `make test`, `make lint`, `make docs-check`, `make kopf-check`, `make abdeckung-check` | vor `ca5124f` | Exit 0, 0 Befunde |
+| `make abdeckung` | vor `ca5124f` | `abdeckung-unit.md` nachgezogen |
+| `make gates` | Commit dieser Belege zu `ca5124f` | Exit 0, vor der Übergabe |
 
 **Weg der Mutanten.** Je Mutant eine frische Kopie des Arbeitsbaums unter dem Scratch-Pfad der
 Sitzung (`cp -r` ohne `-p`, neue mtime); ein Skript ersetzt genau ein Vorkommen (oder das
@@ -294,6 +312,17 @@ war; mit `TestPrepareProbedatei` ist er rot. Nach `24fc87c` gefahren: eine unver
 Rechte und Schließen ohne Entfernen) waren im ersten Lauf nur an `gofmt` rot, also aus dem
 falschen Grund; formatgerecht wiederholt, sind sie im Test rot.
 
+Zur Nacharbeit `ca5124f` (Übergaben des Reviews): je Mutant eine frische Kopie von `go.mod`,
+`go.sum`, `cmd`, `internal` und `test` (`cp -r` ohne `-p`), per Bind-Mount in einem Container
+der Stufe `deps` mit `--network=none`; zuerst `gofmt -l ./internal` (leer, sonst Abbruch),
+dann `go vet` und `go test -count=1` des Pakets `internal/adapters/driven/recording`. Das
+Skript ersetzt genau ein Vorkommen und bricht bei einer anderen Trefferzahl ab. Gefahren:
+eine unveränderte Kopie (grün) und 14 Mutanten (Tabelle unten, Zeilen mit F-537, F-543,
+F-544), alle formatgerecht und rot im genannten Test. Ein erster Ansatz für *nicht entfernte
+Probedatei bleibt* (zweites `os.Remove` nach jedem Entfernen) war in acht Tests rot, aus dem
+falschen Grund (das zweite Entfernen scheitert immer); ersetzt durch Mutant *Entfernen nach
+gescheitertem Entfernen nachgeholt*, rot nur im genannten Fall.
+
 **DoD-Punkt 1 — atomares Schreiben, Zielpfad beim Start (`LH-FA-07.a`).**
 
 | Zusage | Mutation | rote Tests |
@@ -305,6 +334,15 @@ falschen Grund; formatgerecht wiederholt, sind sie im Test rot.
 | nicht prüfbar ist `PGR-E3001` | jeder Fehler von `Stat` als „nicht vorhanden“ | `TestPrepareNichtPruefbar` (Verknüpfungsschleife: kein Fehler; Pfad unter einer Datei: andere Meldung) |
 | fehlendes Verzeichnis `PGR-E3001`, kein Verzeichnis angelegt | `os.MkdirAll` vor der Probedatei | `TestPrepareVerzeichnis`, `TestPrepareVorhandeneDatei` |
 | nicht beschreibbares Verzeichnis `PGR-E3001` | Fehler mit `fs.ErrPermission` beim Anlegen der Probedatei übergangen | `TestPrepareVerzeichnisNichtBeschreibbar` |
+| nicht beschreibbares Verzeichnis `PGR-E3001` auch für eine vorhandene Datei mit `--force` (F-537) | Probedatei für einen vorhandenen Pfad ausgelassen (`case err == nil: return nil`, Mutant D des Reviews) | `TestPrepareVerzeichnisNichtBeschreibbar` (`vorhanden mit --force`, `Verknüpfung mit --force`), `TestPrepareProbedateiScheitert` (`vorhanden=true`) |
+| … auch für eine Verknüpfung auf eine vorhandene Datei mit `--force` (F-537, weitere Ausprägung von *vorhanden*) | Probedatei ausgelassen, wenn `os.Lstat` eine Verknüpfung zeigt | `TestPrepareVerzeichnisNichtBeschreibbar` (nur `Verknüpfung mit --force`) |
+| Anlegen der Probedatei gescheitert: Fehler als Ursache | Ursache `nil` statt des Fehlers | `TestPrepareVerzeichnisNichtBeschreibbar` (alle drei Fälle) |
+| Schließen der Probedatei gescheitert: `PGR-E3001` (F-543) | Fehler von `schliessen` verworfen | `TestPrepareProbedateiScheitert` (`Schliessen`, beide Fälle) |
+| … das Schließen läuft über die Tabelle | `probe.Close()` statt `ops.schliessen(probe)` | `TestPrepareProbedateiScheitert` (`Schliessen`, beide Fälle) |
+| Schließen der Probedatei gescheitert: Fehler als Ursache | Ursache `nil` in `closeErr` | `TestPrepareProbedateiScheitert` (`Schliessen`) |
+| Entfernen der Probedatei gescheitert: `PGR-E3001` (F-543) | Fehler von `entfernen` verworfen (Mutant P des Reviews) | `TestPrepareProbedateiScheitert` (`Entfernen`, beide Fälle) |
+| Entfernen der Probedatei gescheitert: Fehler als Ursache | Ursache `nil` in `removeErr` | `TestPrepareProbedateiScheitert` (`Entfernen`) |
+| nicht entfernte Probedatei bleibt liegen | nach gescheitertem Entfernen `os.Remove` nachgeholt | `TestPrepareProbedateiScheitert` (`Entfernen`: keine `.probe` im Verzeichnis) |
 | Probedatei sofort entfernt | Entfernen weggelassen | `TestPrepareProbedatei`, `TestPrepareVerzeichnis`, `TestRoundtrip`, `TestUebrigGebliebeneDateien` |
 | Probedatei `.<Name>.<Zufallsteil>.probe` | Name ohne Punkt, Endung `.pruef` | `TestPrepareProbedatei` |
 | Probedatei im Verzeichnis der Zieldatei | Probedatei in `os.TempDir()` | `TestPrepareProbedatei`, `TestPrepareVerzeichnis`, `TestPrepareVorhandeneDatei` |
@@ -313,6 +351,10 @@ falschen Grund; formatgerecht wiederholt, sind sie im Test rot.
 | Name mit 16 Hexziffern | 7 statt 8 Zufallsbytes | `TestWriteNameDerTempDatei`, `TestWriteBelegterName`, `TestWriteZehnBelegteNamen` |
 | exklusiv angelegt, belegter Name nicht überschrieben | `O_TRUNC` statt `O_EXCL` | `TestWriteBelegterName`, `TestWriteZehnBelegteNamen` |
 | nach zehn belegten Namen `PGR-E3001` | elf Versuche | `TestWriteZehnBelegteNamen` |
+| nur ein belegter Name führt zu einem neuen Versuch, ein anderer Fehler beim Anlegen sofort (F-544) | jeder Fehler führt zu einem neuen Versuch (`err != nil` statt `fs.ErrExist`, Mutant C des Reviews) | `TestWriteAndererFehlerBeimAnlegen` (`Name zu lang`, `Verzeichnis fehlt`: zehn Züge, „kein freier Name“) |
+| … auch ein fehlendes Verzeichnis (weitere Ausprägung) | neuer Versuch auch bei `fs.ErrNotExist` | `TestWriteAndererFehlerBeimAnlegen` (nur `Verzeichnis fehlt`) |
+| … auch ein zu langer Name (weitere Ausprägung) | neuer Versuch bei jedem Fehler außer `fs.ErrNotExist` | `TestWriteAndererFehlerBeimAnlegen` (nur `Name zu lang`) |
+| anderer Fehler beim Anlegen: Fehler des Betriebssystems als Ursache | Ursache `nil` an „nicht anzulegen“ | `TestWriteAndererFehlerBeimAnlegen` (beide Fälle) |
 | nicht vor dem zehnten Versuch aufgegeben | neun Versuche | `TestWriteZehnBelegteNamen` |
 | Fehlschlag Anlegen `PGR-E3001` | Code `PGR-E1000` am Anlegen | `TestWriteFehlschlag` (Anlegen), `TestWriteZehnBelegteNamen`, dazu `TestRunRecordSchreibfehlerJeStufe` und `TestRunRecordSchreibfehlerVorGemerkterKlasse` |
 | Fehlschlag Schreiben (nach einem Teil der Daten): `PGR-E3001`, Zieldatei unverändert | Fehler des Schreibens übergangen | `TestWriteFehlschlag` (Schreiben: kein Fehler, Zieldatei mit halber Aufzeichnung), `TestWriteEntfernenScheitert` |
@@ -367,6 +409,13 @@ die Zeile mit Verknüpfung `TestPrepareVerknuepfung` (oben, `os.Lstat`).
    `--output` (Verschieben); ein Fehlschlag von Anlegen, Schreiben oder Synchronisieren im
    gebauten Binary ist ohne Eingriff nicht herzustellen und nur in den Unit-Tests über
    `Eingriffe` gefahren.
+5. *Nicht beschreibbares Verzeichnis* ist in den Unit-Tests über `Eingriffe` (`Probe` mit
+   `fs.ErrPermission`) gefahren, nicht über die Rechte eines echten Verzeichnisses; die
+   Tests laufen im Container als `root`, dem `0555` das Anlegen nicht verwehrt. Am Binary
+   hat das Review es mit `--user 65534` gezeigt (Sonde zu F-537); ein E2E-Test dazu fehlt.
+6. *Schließen der Probedatei gescheitert:* Ob `record` die Probedatei danach noch entfernt,
+   nennt `LH-FA-07.a` nicht; der Code versucht es (wie vor dem Slice), der Test prüft es
+   nicht, und §7 sagt es nicht zu. Als Frage an den Architect zurückgegeben (Bericht).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
