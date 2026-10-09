@@ -11,8 +11,10 @@ import (
 type Eingriffe struct {
 	Probe           func(dir, muster string) (*os.File, error)
 	Zufall          func([]byte) (int, error)
+	Rechte          func(*os.File, os.FileMode) error
 	Schreiben       func(*os.File, []byte) (int, error)
 	Synchronisieren func(*os.File) error
+	Schliessen      func(*os.File) error
 	Verschieben     func(alt, neu string) error
 	Entfernen       func(name string) error
 }
@@ -37,11 +39,17 @@ func (e Eingriffe) ops() dateiOps {
 	if e.Zufall != nil {
 		ops.zufall = e.Zufall
 	}
+	if e.Rechte != nil {
+		ops.rechte = e.Rechte
+	}
 	if e.Schreiben != nil {
 		ops.schreiben = e.Schreiben
 	}
 	if e.Synchronisieren != nil {
 		ops.synchronisieren = e.Synchronisieren
+	}
+	if e.Schliessen != nil {
+		ops.schliessen = e.Schliessen
 	}
 	if e.Verschieben != nil {
 		ops.verschieben = e.Verschieben

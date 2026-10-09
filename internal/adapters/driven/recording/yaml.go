@@ -75,19 +75,22 @@ func removeErr(err error) error {
 // Zieldatei ist damit vollständig oder unverändert. Eine neue Datei erhält die
 // Rechte 0666 nach der umask des Prozesses, eine ersetzte behält ihre
 // Zugriffsrechte (SPEC-033). Das Verschieben ersetzt eine symbolische
-// Verknüpfung unter path, nicht ihr Ziel.
+// Verknüpfung unter path, nicht ihr Ziel; die Zieldatei erhält dann die
+// Zugriffsrechte des Ziels der Verknüpfung.
 func (YAML) Write(_ context.Context, path string, rec model.Recording) error {
 	return schreibe(path, rec, betriebssystem())
 }
 
 // dateiOps sind die Operationen, über die pruefe die Probedatei anlegt und
-// entfernt und schreibe die temporäre Datei benennt, füllt, verschiebt und
-// entfernt.
+// entfernt und schreibe die temporäre Datei benennt, mit Rechten versieht,
+// füllt, synchronisiert, schließt, verschiebt und entfernt.
 type dateiOps struct {
 	probe           func(dir, muster string) (*os.File, error)
 	zufall          func([]byte) (int, error)
+	rechte          func(*os.File, fs.FileMode) error
 	schreiben       func(*os.File, []byte) (int, error)
 	synchronisieren func(*os.File) error
+	schliessen      func(*os.File) error
 	verschieben     func(alt, neu string) error
 	entfernen       func(name string) error
 }
@@ -97,8 +100,10 @@ func betriebssystem() dateiOps {
 	return dateiOps{
 		probe:           os.CreateTemp,
 		zufall:          rand.Read,
+		rechte:          (*os.File).Chmod,
 		schreiben:       (*os.File).Write,
 		synchronisieren: (*os.File).Sync,
+		schliessen:      (*os.File).Close,
 		verschieben:     os.Rename,
 		entfernen:       os.Remove,
 	}
@@ -119,11 +124,11 @@ func schreibe(path string, rec model.Recording, ops dateiOps) error {
 	}
 	var merr error
 	if info, err := os.Stat(path); err == nil {
-		merr = tmp.Chmod(info.Mode().Perm())
+		merr = ops.rechte(tmp, info.Mode().Perm())
 	}
 	_, werr := ops.schreiben(tmp, data)
 	serr := ops.synchronisieren(tmp)
-	cerr := tmp.Close()
+	cerr := ops.schliessen(tmp)
 	if err := errors.Join(werr, merr, serr, cerr); err != nil {
 		return model.Errorf(model.CodeRecordingIO, errors.Join(err, ops.entfernen(tmp.Name())), "temporäre Datei für %s nicht zu schreiben", path)
 	}

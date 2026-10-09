@@ -166,8 +166,8 @@ dasteht.
 - **Rechte, wenn `--force` eine symbolische Verknüpfung auf eine Datei ersetzt** — die
   Zieldatei erhält die Zugriffsrechte des Ziels der Verknüpfung (wie *Vorhanden* nach dem
   Ziel zählt); entschieden in `LH-FA-07.a` *Temporäre Datei*, *Rechte* (Architect,
-  2026-10-09, Rückgabe des Implementers aus §7). Der Code folgt schon (`os.Stat`); es fehlt
-  der Test (§3).
+  2026-10-09, Rückgabe des Implementers aus §7). Der Code folgt (`os.Stat`), der Test ist
+  `TestWriteRechteVerknuepfung` (§3).
 - **Zieldatei beim Schreiben nicht prüfbar** (`os.Stat` vor dem Setzen der Rechte scheitert
   anders als mit „nicht vorhanden“) — akzeptiertes Negativ, keine Zusage: Der Pfad ist beim
   Start geprüft (*Zielpfad beim Start*), und ein Pfad, der sich danach ändert, liegt in der
@@ -231,13 +231,16 @@ und `test/integration/schreiben_e2e_test.go`; geändert `yaml.go` (`pruefe`, `sc
 PGWire-Adapter und Bootstrap sind unverändert (§1).
 
 **Randformen.** Kein Code-Commit ändert §6. Entschieden ist nur, was §6 nennt. Zwei Punkte
-gehen als Frage an den Architect zurück; der Code ändert an ihnen nichts gegenüber dem
-Stand vor dem Slice außer dem Entfernen der temporären Datei, und kein Test sagt sie zu:
+gingen als Frage an den Architect zurück; beide sind entschieden (`b74e16e`, `LH-FA-07.a`),
+das Verhalten des Codes blieb, und je ein Test sagt sie zu (DoD-Punkt 1 unten):
 
-| Randform | Frage |
-|---|---|
-| Fehlschlag beim Setzen der Rechte (`Chmod`) oder beim Schließen der temporären Datei | `LH-FA-07.a` *Fehlschlag* nennt Anlegen, Schreiben, Synchronisieren und Verschieben. Der Code behandelt beide wie einen Fehlschlag des Schreibens (`PGR-E3001`, Zieldatei unverändert, temporäre Datei entfernt). Gehören sie zum Schreiben? |
-| Rechte, wenn `--force` eine symbolische Verknüpfung auf eine Datei ersetzt | Der Code übernimmt die Zugriffsrechte des Ziels (`os.Stat` folgt der Verknüpfung), wie vor dem Slice. *Rechte* sagt „eine ersetzte behält ihre Zugriffsrechte“, *Vorhanden* zählt nach dem Ziel; ist das Ziel gemeint? |
+| Randform | Frage | Entschieden |
+|---|---|---|
+| Fehlschlag beim Setzen der Rechte (`Chmod`) oder beim Schließen der temporären Datei | `LH-FA-07.a` *Fehlschlag* nennt Anlegen, Schreiben, Synchronisieren und Verschieben. Der Code behandelt beide wie einen Fehlschlag des Schreibens (`PGR-E3001`, Zieldatei unverändert, temporäre Datei entfernt). Gehören sie zum Schreiben? | ja, beide gehören zum *Fehlschlag*; Test `TestWriteFehlschlag` (Fälle `Rechte`, `Schliessen`) |
+| Rechte, wenn `--force` eine symbolische Verknüpfung auf eine Datei ersetzt | Der Code übernimmt die Zugriffsrechte des Ziels (`os.Stat` folgt der Verknüpfung), wie vor dem Slice. *Rechte* sagt „eine ersetzte behält ihre Zugriffsrechte“, *Vorhanden* zählt nach dem Ziel; ist das Ziel gemeint? | ja, die Zieldatei erhält die Zugriffsrechte des Ziels; Test `TestWriteRechteVerknuepfung` |
+
+Ein Fehler von `os.Stat` beim Schreiben ist ein akzeptiertes Negativ (§6); dazu keine Zusage
+und kein Test.
 
 Kein anderer Slice ist als neue Adresse genannt (§3.13).
 

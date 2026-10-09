@@ -187,7 +187,9 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
   eine solche Datei eines früheren Laufs nicht und meldet sie nicht, entfernen
   Sie sie selbst.
 * Eine neue Zieldatei erhält die Rechte `0666` nach der umask des Prozesses (bei
-  der umask `022` also `0644`); eine ersetzte behält ihre Zugriffsrechte.
+  der umask `022` also `0644`); eine ersetzte behält ihre Zugriffsrechte. Ersetzt
+  das Werkzeug eine Verknüpfung auf eine Datei, erhält die Zieldatei die
+  Zugriffsrechte dieser Datei.
 * Jede Verbindung Ihrer Anwendung mit mindestens einer Anfrage wird als eigene
   Sitzung aufgezeichnet. Verbindungen ohne Anfrage, zum Beispiel
   Probe-Verbindungen eines Connection-Pools, werden nur mit

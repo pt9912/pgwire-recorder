@@ -284,8 +284,9 @@ func TestWriteZehnBelegteNamen(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-07/Negative — schlägt das Anlegen, Schreiben (auch nach einem
-// Teil der Daten), Synchronisieren oder Verschieben fehl, ist das PGR-E3001; die
+// Abdeckung: LH-FA-07/Negative — schlägt das Anlegen, das Setzen der Rechte, das
+// Schreiben (auch nach einem Teil der Daten), das Synchronisieren, das Schließen
+// der temporären Datei oder das Verschieben fehl, ist das PGR-E3001; die
 // Zieldatei bleibt unverändert, und die temporäre Datei ist entfernt.
 func TestWriteFehlschlag(t *testing.T) {
 	fehler := errors.New("eingespielter Fehler")
@@ -301,7 +302,13 @@ func TestWriteFehlschlag(t *testing.T) {
 			n, _ := f.Write(b[:len(b)/2])
 			return n, fehler
 		}}},
+		// Die Zieldatei ist vorhanden; nur dann setzt Write die Rechte.
+		{"Rechte", "rec.yaml", recording.Eingriffe{Rechte: func(*os.File, os.FileMode) error { return fehler }}},
 		{"Synchronisieren", "rec.yaml", recording.Eingriffe{Synchronisieren: func(*os.File) error { return fehler }}},
+		{"Schliessen", "rec.yaml", recording.Eingriffe{Schliessen: func(f *os.File) error {
+			_ = f.Close()
+			return fehler
+		}}},
 		{"Verschieben", "rec.yaml", recording.Eingriffe{Verschieben: func(string, string) error { return fehler }}},
 	} {
 		dir := t.TempDir()
@@ -408,5 +415,32 @@ func TestWriteRechteUnterUmask022(t *testing.T) {
 	}
 	if info, _ := os.Stat(path); info.Mode().Perm() != 0o644 {
 		t.Fatalf("neue Datei unter umask 022: %v", info.Mode().Perm())
+	}
+}
+
+// Abdeckung: LH-FA-07/Boundary — ersetzt das Schreiben eine symbolische
+// Verknüpfung auf eine Datei, erhält die Zieldatei die Zugriffsrechte des Ziels
+// der Verknüpfung.
+func TestWriteRechteVerknuepfung(t *testing.T) {
+	alt := syscall.Umask(0o077)
+	defer syscall.Umask(alt)
+	dir := t.TempDir()
+	ziel := filepath.Join(dir, "ziel.yaml")
+	if err := os.WriteFile(ziel, []byte("alt"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(ziel, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "verknuepfung.yaml")
+	if err := os.Symlink(ziel, path); err != nil {
+		t.Fatal(err)
+	}
+	if err := (recording.YAML{}).Write(context.Background(), path, beispiel()); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm() != 0o640 {
+		t.Fatalf("Zieldatei nach dem Ersetzen der Verknüpfung: %v %v", info, err)
 	}
 }
