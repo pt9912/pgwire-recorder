@@ -52,7 +52,8 @@ und davor aus `slice-v1-abschluss-betrieb`. Nach dem Schnitt dieses Slice vom 20
   (Rückgaben 5, 6, 7 und 10, §6 unten) und die aus seiner Prüfung dieses Plans vom
   2026-10-09 vor dem Code, soweit sie das Laden betreffen (A1 bis A6, A7 und A8 für den
   Schlüssel, A10, A11; §6 unten), dazu die Rückgaben L1 bis L6 des Implementers vom
-  2026-10-09 und das Gegenlesen dazu (§6 unten).
+  2026-10-09 und das Gegenlesen dazu, die Entscheidungen zu F-520, F-521, F-522 und F-528
+  aus dem Review (§6 unten).
 
 **Abgegeben** an `slice-v1-abschluss-upstream-verbinden` (dort §1, *Übernimmt*, mit der
 Kennung dieses Slice), nach dem vorab benannten Schnitt aus §4 (*zu groß*, eingetreten am
@@ -395,6 +396,56 @@ genau, die Meldung ohne den Wert.
   Form seiner Platzhalter vor dem Rest. *Test:* `postgres://:p@/` ist das Schema;
   `postgresql://u:p@[x/db?a=b` ist das Passwort (`PGR-E2006`) vor dem Host.
   *Mutation:* Host vor dem Passwort geprüft, rot über den zweiten Fall.
+
+*Befunde des Reviews vom 2026-10-09 an den Architect* (`docs/reviews/2026-10-09-review-slice-v1-abschluss-verbindungen-platzhalter.md`),
+entschieden vom Architect am 2026-10-09 in `LH-FA-17.a` (*Benannte Verbindungen*,
+*Geheimnisse*); Grundsätze: Grammatik geschlossen, Laden prüft, was ohne Einsetzen prüfbar
+ist, ein eingesetzter Wert bleibt ungeprüft. Je Fall Code, Stelle und Grund genau, die Meldung
+ohne den Wert.
+
+- **F-521 Inhalt des Hosts.**
+  - *URL, in Klammern:* wörtlich, ohne Platzhalter, eine IPv6-Adresse in Textform (RFC 4291),
+    auch mit Zone hinter `%25` (RFC 6874); IPv4-Adresse, Name oder Platzhalter in Klammern
+    sind `PGR-E2004`. Grund: `[${H}]` ist vor dem Einsetzen nicht prüfbar, ein IPv6-Host aus
+    einer Variable steht ohne Klammern (`${H}`) und wird beim Zusammensetzen geklammert.
+  - *URL, ohne Klammern:* nach der Dekodierung kein Leerraum (Unicode `White_Space`) und keines
+    von `@`, `:`, `/`, `?`, `#`, `[`, `]`, `%`; Steuerzeichen schon nach L2 und L3. Mit
+    Platzhalter prüft das Laden die wörtlichen Zeichen, den eingesetzten Wert nicht. Ob ein
+    Name auflöst oder ein gültiger DNS-Name ist, prüft der Start nicht (akzeptiertes Negativ:
+    `a..b` lädt und scheitert beim Verbinden, `PGR-E4002`; eine DNS-Grammatik wäre eine zweite,
+    strengere Regel als die des Resolvers).
+  - *`host:port` (Schlüssel `upstream`, im Folge-Slice auch Option und Umgebung):* wie
+    geschrieben, ohne Dekodierung; dieselben Regeln, Zone hinter `%`; dazu kein Steuerzeichen.
+  - *Beim Laden geprüft:* alles oben. *Erst nach dem Einsetzen, im Folge-Slice:* nichts am
+    Host, nur das Zusammensetzen (F-528).
+  - *Test:* URL `[::1]`, `[fe80::1%25eth0]`, `[::ffff:1.2.3.4]` gültig; `[abc]`, `[a b]`,
+    `[GEHEIM]:5`, `[1.2.3.4]`, `[${H}]`, `a%3Ab`, `h%2Fx`, `a%20b`, `a%25b` je `PGR-E2004`
+    ohne `GEHEIM`; `db-${N}.example` gültig, `a b${N}` ungültig. `upstream` `"[::1]:5"`,
+    `"h:5"` gültig; `"GEHEIM@h:5"`, `"GEHEIM h:5"`, `"h\x01:5"`, `"[GEHEIM]:5"`, `"a/b:5"`
+    je `PGR-E2004` an `record.upstream` ohne `GEHEIM`.
+  - *Mutation:* IPv6-Prüfung in Klammern entfernt, rot über `[abc]`; Platzhalter in Klammern
+    zugelassen, rot über `[${H}]`; Prüfung der Zeichen ohne Klammern nach der Dekodierung
+    statt davor, rot über `a%3Ab`; Leerraum zugelassen, rot über `a%20b` und `"GEHEIM h:5"`;
+    `@` in `host:port` zugelassen, rot über `"GEHEIM@h:5"`; Steuerzeichen in `host:port`
+    zugelassen, rot über `"h\x01:5"`.
+- **F-522 Zwei Fälle von `password`.** Je Parameter zuerst der Name (Platzhalter, Escape),
+  dann ist `password` ein Klartext-Passwort, auch ohne `=` und mit leerem Wert; danach `=`,
+  bekannt, doppelt, Wert. `?password` ist damit `PGR-E2006`. `?pass${X}word=x` ist
+  `PGR-E2004` (Platzhalter im Namen, F-520), kein Klartext: Der Name ist nicht `password`.
+  *Test:* `?password`, `?password=` je `PGR-E2006`; `?pass${X}word=x` `PGR-E2004`.
+  *Mutation:* `=` vor dem Namen geprüft, rot über `?password`; Platzhalter im Namen wie Text
+  behandelt, rot über `?pass${X}word=x` (dann unbekannt mit anderem Grund).
+- **F-520 Platzhalter neben wörtlichem Text in Parametern.** Ein Platzhalter an irgendeiner
+  Stelle des Werts von `sslmode`, auch neben Text, ist ein ungültiger `sslmode`
+  (`?sslmode=re${X}quire` ist `PGR-E2004`); ein Platzhalter an irgendeiner Stelle im Namen
+  eines Parameters ist ein ungültiger Wert (`?ssl${X}mode=disable`, `?pass${X}word=x`). Den
+  Rest von F-520 (Anker in `platzhalterName`) setzt der Implementer um. *Test:* die drei
+  Fälle, je Grund genau. *Mutation:* M5 und M6 aus dem Review, beide rot.
+- **F-528 Klammer in der Ablage** — braucht das Laden nicht: Nach F-521 enthält ein Host ohne
+  Klammern kein `:`, auch nicht nach der Dekodierung (`a%3Ab` ist ungültig); ein abgelegter
+  Host mit `:` stand also in Klammern oder kommt aus einer Variable. Das Zusammensetzen
+  klammert jeden Host mit `:` und ist damit ohne Merkmal eindeutig. Als Randform eingetragen
+  in §6 von `slice-v1-abschluss-upstream-verbinden`.
 
 *Akzeptiertes Negativ der Prüfung* (keine Folgepflicht, einmalig und harmlos):
 

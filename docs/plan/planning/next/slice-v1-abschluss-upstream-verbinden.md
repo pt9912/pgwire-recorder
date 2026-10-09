@@ -48,7 +48,8 @@ dorthin aus `slice-v1-abschluss-konfigurationsdatei`, `slice-v1-abschluss-konfig
   die Konstante `PGR-E2005` liegt seit `slice-v1-abschluss-konfigurationsdatei` ohne
   Erzeuger in der Code-Tabelle, dieser Slice erzeugt sie;
 - `record` verbindet zu Host und Port der benutzten Verbindung, ein IPv6-Host wieder in
-  eckigen Klammern;
+  eckigen Klammern (F-528 aus dem Review von `slice-v1-abschluss-verbindungen-platzhalter`,
+  §6 unten), und der Host von Option und Umgebung folgt F-521;
 - der Teil des Benutzerhandbuchs dazu: in §5 *Konfigurationsdatei* die Absätze zu
   Verbindungen, `sslmode` und Platzhaltern, in §7 *Fehlercodes* die Zeilen `PGR-E2005` und
   `PGR-E2006`, für beide Slices;
@@ -212,6 +213,23 @@ keine.
   Verbindungsaufbau.
 - **A3, Zusammensetzen** — `record` braucht die Adresse als `host:port`; ein Host mit `:`
   (auch ein eingesetzter) wird beim Zusammensetzen wieder geklammert.
+- **F-528 Klammer in der Ablage** (aus dem Review von
+  `slice-v1-abschluss-verbindungen-platzhalter`, entschieden vom Architect am 2026-10-09,
+  `LH-FA-17.a` *Benannte Verbindungen* und *Geheimnisse*) — die Ablage trägt nicht, ob der
+  Host in Klammern stand, und braucht es nicht: Ein Host ohne Klammern enthält nach F-521
+  kein `:`, auch nicht dekodiert, ein abgelegter Host mit `:` stand also in Klammern oder kommt
+  aus einer Variable. *Empfehlung an den Implementer:* zusammensetzen mit Klammern genau dann,
+  wenn der Host nach dem Einsetzen ein `:` enthält (dieselbe Regel wie die Standardbibliothek
+  beim Zusammensetzen von Host und Port), sonst ohne. Einen eingesetzten Host prüft der Start
+  nicht: `${H}` mit `a:b` ergibt `[a:b]:5432` und scheitert beim Verbinden.
+  *Test:* `[::1]` und `${H}` mit `::1` ergeben `[::1]:5432`; `h` ergibt `h:5432`.
+  *Mutation:* Klammern nie gesetzt, rot über `[::1]`; immer gesetzt, rot über `h`.
+- **F-521, Host bei Option und Umgebung** — dieselbe Regel wie beim Schlüssel `upstream`
+  (wie geschrieben, IPv6 in Klammern mit Zone hinter `%`, sonst kein Steuerzeichen, kein
+  Leerraum, keines von `@`, `:`, `/`, `?`, `#`, `[`, `]`, `%`; `LH-FA-17.a`), über dieselbe
+  Prüfung, die `slice-v1-abschluss-verbindungen-platzhalter` liefert. *Test:*
+  `--upstream 'GEHEIM@h:5'` ist `PGR-E2001`, `PGWIRE_RECORDER_UPSTREAM='GEHEIM h:5'`
+  `PGR-E2001` ohne den Wert. *Mutation:* Prüfung nur am Schlüssel, rot über beide.
 - **A7 Form `host:port`** bei `--upstream` und `PGWIRE_RECORDER_UPSTREAM` — Host nicht leer
   (`:5432` ungültig), IPv6 in eckigen Klammern, Port in der Form aus A4; wie geschrieben, ohne
   Dekodierung. Ein Wert ohne `:` ist ab V-121 nur noch ein Name oder ungültig; der Vorrang des

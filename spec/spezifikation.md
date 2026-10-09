@@ -963,7 +963,14 @@ Ein leerer Benutzer ist ein ungültiger Wert, ein leeres Passwort hinter dem `:`
 Klartext-Passwort. Ein Host in eckigen Klammern ist eine IPv6-Adresse ohne die Klammern,
 hinter `]` folgt nur `:` mit Port oder das Ende des Teils; sonst endet der Host am ersten
 `:`. Ein `[` ohne `]`, leere Klammern und ein `[` oder `]` an anderer Stelle des Hosts sind
-ein ungültiger Wert. Die Datenbank ist der Text hinter dem `/` bis zum `?`, auch mit weiterem `/`; die
+ein ungültiger Wert. Zwischen den Klammern steht wörtlich, ohne Platzhalter, eine
+IPv6-Adresse in Textform (RFC 4291), auch mit einer Zone hinter `%25` (RFC 6874); eine
+IPv4-Adresse, ein Name oder ein Platzhalter in Klammern ist ein ungültiger Wert. Ohne Klammern
+enthält der Host nach der Dekodierung keinen Leerraum (Unicode `White_Space`) und keines der
+Zeichen `@`, `:`, `/`, `?`, `#`, `[`, `]` und `%`, sonst ist er ein ungültiger Wert; ein Host
+mit `:` ist damit immer eine IPv6-Adresse aus Klammern. Steht im Host ein Platzhalter, prüft
+das Laden seine wörtlichen Zeichen, den eingesetzten Wert nicht. Ob ein Name auflöst, prüft
+der Start nicht. Die Datenbank ist der Text hinter dem `/` bis zum `?`, auch mit weiterem `/`; die
 Parameter trennt `&`, und ein `?` ohne Parameter oder ein leerer Parameter ist ein Parameter
 ohne `=`. Fehlt der Port, gilt `5432`; ein Port sind Ziffern mit einem Wert von 1 bis 65535,
 führende Nullen erlaubt, und ein `:` ohne Port ist ein ungültiger Wert. Steht im Port ein
@@ -977,7 +984,9 @@ dort. Ein ungültiges Escape ist ein ungültiger Wert, ebenso ein dekodierter Te
 gültiges UTF-8 ist oder ein Steuerzeichen enthält (dieselbe Menge wie oben). Geprüft wird
 innerhalb einer URL in dieser Reihenfolge: Steuerzeichen, Schema, Benutzer, Passwort, Host,
 Port, Datenbank, die Parameter in ihrer Reihenfolge, Fragment; je Teil die Form seiner
-Platzhalter vor dem Rest. Für den Namen
+Platzhalter vor dem Rest. Je Parameter gilt: zuerst sein Name (Platzhalter, Escape); ein Name
+`password` ist dann ein Klartext-Passwort, auch ohne `=` und mit leerem Wert; danach das `=`,
+ob der Name bekannt ist und ob er zweimal steht, zuletzt der Wert. Für den Namen
 einer Verbindung gilt die Form eines Werts (Text des Skalars; leer, `null` und Tag
 ungültig), und er enthält kein Steuerzeichen und weder `:` noch `@` noch `$`; sonst ist er
 ein ungültiger Wert, dessen Meldung als Stelle nur `connections` nennt, nicht den Namen, weil
@@ -986,9 +995,11 @@ ein solcher Name die Form eines Benutzerteils mit Passwort haben kann. Der Name 
 nehmen den Namen einer Verbindung oder `host:port`; ein Name hat Vorrang vor
 `host:port` und gilt nur bei genauer Übereinstimmung, auch in Groß- und
 Kleinschreibung. Ein Wert, der weder ein Name ist noch die Form `host:port` mit
-Port hat, ist ein ungültiger Wert. In `host:port` ist der Host nicht leer, eine IPv6-Adresse
-steht in eckigen Klammern, und der Port hat die Form eines Ports der URL; der Wert gilt wie
-geschrieben, ohne Dekodierung. Geprüft wird jeder gesetzte Wert, unabhängig von der
+Port hat, ist ein ungültiger Wert. In `host:port` gilt der Wert wie geschrieben, ohne
+Dekodierung; der Host ist nicht leer und folgt den Regeln des wörtlichen Hosts der URL: in
+eckigen Klammern eine IPv6-Adresse, auch mit einer Zone hinter `%`, sonst kein Steuerzeichen,
+kein Leerraum und keines der Zeichen `@`, `:`, `/`, `?`, `#`, `[`, `]` und `%`. Der Port hat
+die Form eines Ports der URL. Geprüft wird jeder gesetzte Wert, unabhängig von der
 Priorität: der Schlüssel `upstream` beim Laden an seiner Stelle in der Datei, gegen die Namen
 aller gültigen Verbindungen der Datei, auch einer, die nach ihm steht, nach `$$`; ein Name,
 der selbst ungültig ist, zählt dabei nicht, und der erste Fehler ist der, der in der Datei
@@ -1027,8 +1038,10 @@ bei `record` in Benutzer, Passwort und Datenbank nur ihre Variable. Platzhalter 
 `$$` gelten im geschriebenen Text, vor der Prozent-Dekodierung. Ein eingesetzter
 Wert wird weder dekodiert noch geprüft, außer im Port: Hat der Port nach dem
 Einsetzen nicht die Form eines Ports, ist das ein ungültiger Wert (`PGR-E2004`).
-Den Host prüft der Start nicht. Die Parameter prüft das Laden vor dem Einsetzen; ein
-Platzhalter in `sslmode` ist ein ungültiger `sslmode`. Die Meldung zu `PGR-E2005` nennt die
+Einen eingesetzten Host prüft der Start nicht; zu `host:port` zusammengesetzt, steht ein
+Host mit `:` in eckigen Klammern. Die Parameter prüft das Laden vor dem Einsetzen; ein
+Platzhalter an irgendeiner Stelle des Werts von `sslmode`, auch neben wörtlichem Text, ist ein
+ungültiger `sslmode`, ein Platzhalter im Namen eines Parameters ein ungültiger Wert. Die Meldung zu `PGR-E2005` nennt die
 Verbindung und den Namen der ersten nicht gesetzten Variable in der Reihenfolge der URL. Ein **Klartext-Passwort** ist ein Passwortteil
 hinter dem `:` im Benutzerteil einer URL, der nicht genau ein `${VAR}` ist, oder ein
 Parameter `password`, in jeder Verbindung der Datei, auch einer nicht benutzten;
@@ -2447,3 +2460,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Konfigurationsdatei, Entscheidung des Nutzers: ohne Zeile nur der Alias ohne Anker; ein Anker, der sich selbst enthält, wird als Anker mit der Stelle abgelehnt (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen: Zerlegung der URL (Benutzerteil am letzten `@`, leerer Benutzer, leeres Passwort als Klartext, IPv6-Host in eckigen Klammern, Datenbank mit `/`, Parameter mit `&`), Port ohne Dekodierung und mit führenden Nullen, Escape zu einem Steuerzeichen ungültig, Parameter dekodiert; Form `host:port` von `--upstream`, Prüfung jedes gesetzten Werts, Schlüssel `upstream` gegen alle Namen der Datei, benutzte Verbindung; `$$` von links, `${` außerhalb einer URL, Kommandozeile und Umgebung ohne Platzhalter, Präfix `PGWIRE_RECORDER_` als `VAR` zulässig, Platzhalter in `sslmode`, Meldung zu `PGR-E2005`; `sslmode=require` bei `record` in der Reihenfolge nach `--upstream` (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen: Steuerzeichen im Text der URL auch als Tabulator ungültig; `[` ohne `]`; wörtliche Zeichen eines Ports mit Platzhalter sind Ziffern; Parameternamen genau in der Schreibweise; Passwort nicht dekodiert, ungültiges Escape dort ist Klartext; dekodierter Teil gültiges UTF-8 ohne Steuerzeichen; Reihenfolge innerhalb einer URL; Name einer Verbindung ohne `$` und wörtlich; Schlüssel `upstream` nach `$$` gegen die gültigen Namen (`LH-FA-17.a`) |
+| 2026-10-09 | Benannte Verbindungen: Inhalt des Hosts in der URL und in `host:port` (IPv6-Adresse in Klammern ohne Platzhalter, sonst ohne Leerraum und ohne `@`, `:`, `/`, `?`, `#`, `[`, `]`, `%`), eingesetzter Host ungeprüft und beim Zusammensetzen mit `:` geklammert; Platzhalter an jeder Stelle von `sslmode` und im Namen eines Parameters ungültig; Reihenfolge je Parameter, `password` auch ohne `=` als Klartext (`LH-FA-17.a`) |
