@@ -757,6 +757,39 @@ im Commit dieses Abschnitts.
 Nicht berührt: F-528 (Ablage, Hinweis an `slice-v1-abschluss-upstream-verbinden`, dort vom
 Architect eingetragen), F-529 (an den Verifier).
 
+**Nacharbeit zur Verifikation** (`docs/reviews/2026-10-09-verifikation-slice-v1-abschluss-verbindungen-platzhalter.md`,
+Entscheidung des Architect zu V-122 in `b519cbc`), Code im Commit `1d023e0`, dieser Abschnitt
+im Commit danach.
+
+- *V-122, Code:* `ipv6` trennt am ersten `%` die Zone ab; sie ist nicht leer und besteht
+  `unzulaessigImHost`, in der URL nach der Dekodierung, in `host:port` wie geschrieben.
+  *Tests:* die Fälle aus §6 (*Befund der Verifikation*) in `TestVerbindungUngueltig`,
+  `TestDateiUpstreamUngueltig` und `TestDateiUpstream`; dazu in `TestVerbindungZerlegung`
+  der gültige Fall `[fe80::1%25eth%30]` (Zone `eth0` nach der Dekodierung). Er fängt die
+  Mutation *Zone vor der Dekodierung geprüft*, die über `%25a%2Fb` allein grün bliebe, weil
+  das `%` des Escapes die Zone schon vor der Dekodierung ungültig macht.
+- *V-123, Läufe nach der Nacharbeit:*
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `make gates` | `eaf8164` (nach der Nacharbeit zum Review) | Exit 0, mit `test-integration` (`run-integration-tests: gruen`) |
+| `make gates` | `1d023e0` (nach V-122) | Exit 0, mit `test-integration`, `TestE2EConfigShowVerbindungUngueltig` PASS |
+| `make test-integration` | `1d023e0` | Exit 0, 56 Tests PASS, kein FAIL |
+| `make test` | `1d023e0` vor dem Commit | Exit 0 |
+| `make lint` | `1d023e0` vor dem Commit | Exit 0, kein Befund |
+
+- *Mutanten* auf demselben Weg wie oben, am Stand `1d023e0`: 6, alle rot; zwei übersetzten
+  zuerst nicht und sind neu formuliert rot gesehen.
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| Zone geprüft (V-122) | nur die Adresse geprüft | `TestVerbindungUngueltig` (`%25a%20b`), `TestDateiUpstreamUngueltig` (`[fe80::1%GEHEIM h]:5`) |
+| Zone nach der Dekodierung (V-122) | Zone am geschriebenen Text geprüft | `TestVerbindungZerlegung` (`%25eth%30`), `TestVerbindungUngueltig` |
+| kein Steuerzeichen in der Zone (V-122) | Steuerzeichen zugelassen | `TestDateiUpstreamUngueltig` (`[fe80::1%G\x01…]:5`) |
+| Zone nicht leer (V-122) | leere Zone zugelassen | `TestDateiUpstreamUngueltig` (`[fe80::1%]:5`), `TestVerbindungUngueltig` (`%25]`) |
+| das erste `%` trennt die Zone ab, ein weiteres ist ungültig (V-122) | am letzten `%` getrennt | `TestDateiUpstreamUngueltig` (`%a%…`), `TestVerbindungUngueltig` (`%25a%25b`) |
+| `config show` zeigt `$$` wie geschrieben (V-124) | Knoten der Anzeige auf den Text nach `$$` gesetzt | `TestDateiDollar` |
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
