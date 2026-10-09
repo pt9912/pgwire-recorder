@@ -182,6 +182,91 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Pin (DoD-Punkt 1).** Am 2026-10-09:
+
+- *Digest gehört zum Tag:* `docker buildx imagetools inspect ghcr.io/pt9912/d-check:v0.85.0`
+  meldet einen OCI-Index mit `Digest: sha256:c07f1fe6053b1f790c4a1e01a76bcf4d3a8ff85e6eb609fe1aaaaf6ab6f09abe`
+  (Manifeste `linux/amd64` `sha256:eb73e50a…`, `linux/arm64` `sha256:69493255…`);
+  `docker pull` desselben Tags meldet denselben Digest, `docker image inspect --format
+  '{{json .RepoDigests}}'` ebenso. Gleich dem Digest der Release-Notiz.
+- *Ziele und Aufruf unverändert:* `--print-mk` von `v0.82.0` (alter Digest) und `v0.85.0`
+  unterscheiden sich nur in der Zeile `DCHECK_IMAGE`; die Rückführung nach §4 (`d-check.mk`
+  neu erzeugen) tritt nicht ein. Geändert sind in `d-check.mk` nur `DCHECK_IMAGE` und
+  `DCHECK_DIGEST`; der Kopfkommentar („auf den erzeugenden Image-Digest gepinnt“) bleibt wahr.
+- *Weitere Nennungen des alten Pins:* `grep` nach `v0.82.0` und dem alten Digest über
+  `*.md`, `*.mk`, `*.yml`, `*.sh` außerhalb von `.harness/baseline/` findet ihn nur in
+  `d-check.mk` (umgepinnt), im Drift-Log der Roadmap (Zeile vom 2026-10-06) und in
+  `done/slice-harness-upgrade-v6-16.md` — beides Zeitdokumente, bleiben stehen.
+  `harness/README.md` und `harness/conventions.md` nennen keine Version, nur „Tag und Digest
+  stehen in `d-check.mk`“.
+- *`make docs-check` am Arbeitsbaum:* `d-check: 435 Datei(en) geprüft, 0 Befund(e)`.
+
+**Gegenprobe** in Kopien des Arbeitsbaums (je Mutation eine frische Kopie ohne `.git` im
+Scratchpad, angehängt an `harness/README.md`, sofern nicht anders genannt), je Kopie gegen
+`v0.85.0` (`c07f1fe6…`) und zum Vergleich gegen `v0.82.0` (`d28e9437…`); unveränderte Kopie
+unter beiden 0 Befunde, Exit 0.
+
+| Zusage | Mutation | Befundzeile (`v0.85.0`; `v0.82.0` identisch) |
+|---|---|---|
+| toter Anker ist rot (`anchors`) | Link auf `conventions.md#gibt-es-nicht` | `harness/README.md:141 conventions.md#gibt-es-nicht anchor-missing`, Exit 1 |
+| Kennung `ADR-` ohne Link ist rot (`ids`) | `ADR-` mit vier Ziffern (0001) blank im Fließtext | `harness/README.md:141` · die Kennung · `id-unlinked`, Exit 1 |
+| totes Linkziel ist rot (`links`, Kontrolle) | Link auf `gibt-es-nicht.md` | `harness/README.md:141 gibt-es-nicht.md target-missing`, Exit 1 |
+| Spec-Stratum nennt keine ADR (`matrix`, Kontrolle) | Link aus `spec/architecture.md` auf eine ADR | `spec/architecture.md:645 … matrix-forbidden Referenz spec-straten → adr`, Exit 1 |
+| bares `LH-`-Token ist rot | `LH-FA-01` blank in `harness/README.md`, in `spec/spezifikation.md` und in diesem Plan (drei Kopien) | **kein Befund**, 0 Befunde, Exit 0 — unter `v0.85.0` **und** `v0.82.0` |
+
+Das Modul `spans` ist nicht mutiert. **Befund zur DoD:** Ein bares `LH-`-Token ist unter
+der Konfiguration dieses Repos kein Befund, unabhängig von der Version: Das `ids`-Muster
+für die Lastenheft-Kennungen steht in `.d-check.yml` nur als Kommentar, aktiv ist allein das
+Muster für `ADR-`. Dasselbe hält schon `done/slice-lastenheft-pruefbarkeit.md` §1 fest
+(„einen Link verlangt es nur für ADR-Kennungen, nicht für Lastenheft-Kennungen“). Keine
+Regression von `v0.85.0`; die Teil-Zusage „bares `LH-`-Token rot“ in DoD-Punkt 1 ist mit
+`.d-check.yml` unverändert (§1) nicht erfüllbar. Der Implementer hakt DoD-Punkt 1 deshalb
+nicht ab und gibt den Punkt an den Planner (DoD berichtigen, oder ein eigener Slice
+aktiviert das Muster als Entscheidung über das Gate). Ebenso zu weit greift der Satz
+„Jede `LH-`/`ADR-`/`MR-`-Kennung … muss ein klickbarer Anker-Link sein“ in
+`.claude/commands/implement-slice.md` (Repo-lokale Adaptionen, *Strenges Doc-Gate*) —
+`AGENTS.md` §3.11; nicht Gegenstand dieses Slice.
+
+**Freshness-Audit (DoD-Punkt 2).** `gh release list -R pt9912/ai-harness-course` am
+2026-10-09: neuester Tag `v6.17.0` (Latest, 2026-10-07), davor `v6.16.0` (2026-10-06, der
+Pin). Delta: genau ein Release. Das Asset `lab-regelwerk.zip` von `v6.17.0` nur in den
+Scratchpad geladen (`sha256 afe50df8…`, gleich dem `SHA256SUMS` des Releases) und mit
+`diff -r` gegen `.harness/baseline/v6.16.0/` gehalten; am vendored Baum nichts geändert.
+
+- *Dateien:* dieselben, keine neu, umbenannt oder entfallen; keine Überschrift in einer
+  `.md` geändert.
+- *Inhalt über Quell-Zeile und Tag hinaus:* `grundlagen-harness-dateien.md` und
+  `modul-13-quality-gates.md` — die Disjunktheit der Teile eines Gate-Index (kein Target in
+  zwei Teilen) prüft d-check nur mit eigenem Schalter (ab `v0.83.0`), sonst steht die Regel
+  nur im Briefing; `templates/.d-check.yml` führt dazu auskommentiert
+  `authority-disjoint: true`; `regelwerk/README.md` Stand-Zeile „Kurs-Welle 160 ·
+  2026-10-07“; `templates/AGENTS.template.md` und `templates/harness/conventions.template.md`
+  nur die Asset-URL mit dem Tag.
+- *Regelblock-Tabelle in `harness/conventions.md`:* kein Regelblock umbenannt, hinzugefügt
+  oder weggenommen. Inhaltlich berührt sind die Zeilen `grundlagen-harness-dateien.md`
+  (Teil des Gate-Index eines Werkzeugs, *kommt nicht mit*) und `modul-13-quality-gates.md`
+  (*Träger kommt mit*); beide Werte bleiben, denn dieses Repo führt keinen Gate-Index in
+  Teilen über das Modul `targets` (`.d-check.yml` nennt weder `targets` noch `authority`).
+- *Adaptions-Block, je Eintrag der Ausgang:* `MR-000` **bleibt gültig** — das Delta ändert
+  weder Verzeichniskonvention, Lifecycle, Carveout-Disziplin noch ID-Schema. `MR-001`
+  (aufgelöst) **bleibt gültig** als aufgelöster Eintrag — das Delta berührt
+  `grundlagen-referenz-richtung.md` nur in der Quell-Zeile; kein Nachfolge-Eintrag. Aktive
+  Adaptionen: keine.
+- *Nicht gelaufen:* die Stichprobe gegen den Bestand (Modul 2, siebte Eigenschaft) — die DoD
+  verlangt sie nicht; sie gehört zum Upgrade-Slice, den der Planner anlegt.
+
+**Reviewer-Skill (DoD-Punkt 3).** `.harness/skills/reviewer.md` §Klassifikation, MEDIUM
+*Nehmer nicht nachgezählt*. Ein Wächter mit Mutation ist das nicht: Der Skill ist
+Urteilsgrundlage des Review, kein Sensor prüft ihn; belegbar ist nur der Text
+(`grep -n "Nehmer nicht nachgezählt" .harness/skills/reviewer.md`).
+
+**Läufe.** `make gates` am Stand `79d7bb8` (Pin und Skill committet): Exit 0; darin
+`baseline-verify: v6.16.0 OK — 54 Dateien`, `d-check: 435 Datei(en) geprüft, 0 Befund(e)`
+mit Digest `c07f1fe6…`, Integrationstests, alle Gegenproben grün. Der letzte Lauf nach
+dem Commit dieser Belege steht im Bericht.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
