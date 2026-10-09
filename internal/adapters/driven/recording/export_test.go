@@ -6,9 +6,10 @@ import (
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
 
-// Eingriffe ersetzt für SchreibeMit einzelne Operationen von Write; ein Feld mit
-// nil ist die Operation des Betriebssystems.
+// Eingriffe ersetzt für PruefeMit und SchreibeMit einzelne Operationen von
+// Prepare und Write; ein Feld mit nil ist die Operation des Betriebssystems.
 type Eingriffe struct {
+	Probe           func(dir, muster string) (*os.File, error)
 	Zufall          func([]byte) (int, error)
 	Schreiben       func(*os.File, []byte) (int, error)
 	Synchronisieren func(*os.File) error
@@ -16,9 +17,23 @@ type Eingriffe struct {
 	Entfernen       func(name string) error
 }
 
+// PruefeMit prüft path wie Prepare, mit den Operationen aus e.
+func PruefeMit(path string, replace bool, e Eingriffe) error {
+	return pruefe(path, replace, e.ops())
+}
+
 // SchreibeMit schreibt rec wie Write, mit den Operationen aus e.
 func SchreibeMit(path string, rec model.Recording, e Eingriffe) error {
+	return schreibe(path, rec, e.ops())
+}
+
+// ops liefert die Operationen des Betriebssystems, ersetzt durch die Felder von
+// e, die nicht nil sind.
+func (e Eingriffe) ops() dateiOps {
 	ops := betriebssystem()
+	if e.Probe != nil {
+		ops.probe = e.Probe
+	}
 	if e.Zufall != nil {
 		ops.zufall = e.Zufall
 	}
@@ -34,5 +49,5 @@ func SchreibeMit(path string, rec model.Recording, e Eingriffe) error {
 	if e.Entfernen != nil {
 		ops.entfernen = e.Entfernen
 	}
-	return schreibe(path, rec, ops)
+	return ops
 }

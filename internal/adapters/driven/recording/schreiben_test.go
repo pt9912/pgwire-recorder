@@ -3,6 +3,7 @@ package recording_test
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -136,6 +137,38 @@ func TestPrepareVerzeichnis(t *testing.T) {
 	}
 	if es := eintraege(t, dir); len(es) != 0 {
 		t.Fatalf("nach Prepare liegt %v im Verzeichnis", es)
+	}
+}
+
+// Abdeckung: LH-FA-07/Negative — lässt sich im Verzeichnis von --output keine
+// Datei anlegen, ist das beim Start PGR-E3001.
+func TestPrepareVerzeichnisNichtBeschreibbar(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "rec.yaml")
+	err := recording.PruefeMit(path, false, recording.Eingriffe{Probe: func(dir, _ string) (*os.File, error) {
+		return nil, &fs.PathError{Op: "open", Path: dir, Err: fs.ErrPermission}
+	}})
+	if code(err) != model.CodeRecordingIO {
+		t.Fatalf("erwartet %s, erhalten %v", model.CodeRecordingIO, err)
+	}
+}
+
+// Abdeckung: LH-FA-07/Boundary — die Probedatei liegt im Verzeichnis der
+// Zieldatei und heißt .<Name der Zieldatei>.<Zufallsteil>.probe; Prepare
+// entfernt sie nach dem Anlegen.
+func TestPrepareProbedatei(t *testing.T) {
+	dir := t.TempDir()
+	var entfernt []string
+	err := recording.PruefeMit(filepath.Join(dir, "rec.yaml"), false, recording.Eingriffe{Entfernen: func(name string) error {
+		entfernt = append(entfernt, name)
+		return nil
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	es := eintraege(t, dir)
+	if len(entfernt) != 1 || len(es) != 1 || entfernt[0] != filepath.Join(dir, es[0]) ||
+		!regexp.MustCompile(`^\.rec\.yaml\.[^.]+\.probe$`).MatchString(es[0]) {
+		t.Fatalf("entfernt %v, im Verzeichnis %v", entfernt, es)
 	}
 }
 

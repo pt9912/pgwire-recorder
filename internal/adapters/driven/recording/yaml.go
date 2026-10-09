@@ -33,6 +33,11 @@ var _ driven.RecordingRepository = YAML{}
 // sofort; gelingt das nicht, ist das PGR-E3001. Ein Verzeichnis legt Prepare
 // nicht an.
 func (YAML) Prepare(_ context.Context, path string, replace bool) error {
+	return pruefe(path, replace, betriebssystem())
+}
+
+// pruefe ist Prepare mit den Operationen ops.
+func pruefe(path string, replace bool, ops dateiOps) error {
 	info, err := os.Stat(path)
 	switch {
 	case err == nil && !info.Mode().IsRegular():
@@ -43,12 +48,12 @@ func (YAML) Prepare(_ context.Context, path string, replace bool) error {
 	default:
 		return model.Errorf(model.CodeRecordingIO, err, "%s nicht prüfbar", path)
 	}
-	probe, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*.probe")
+	probe, err := ops.probe(filepath.Dir(path), "."+filepath.Base(path)+".*.probe")
 	if err != nil {
 		return model.Errorf(model.CodeRecordingIO, err, "Verzeichnis von %s nicht beschreibbar", path)
 	}
 	name := probe.Name()
-	return errors.Join(closeErr(probe.Close()), removeErr(os.Remove(name)))
+	return errors.Join(closeErr(probe.Close()), removeErr(ops.entfernen(name)))
 }
 
 func closeErr(err error) error {
@@ -75,9 +80,11 @@ func (YAML) Write(_ context.Context, path string, rec model.Recording) error {
 	return schreibe(path, rec, betriebssystem())
 }
 
-// dateiOps sind die Operationen, über die schreibe die temporäre Datei benennt,
-// füllt, verschiebt und entfernt.
+// dateiOps sind die Operationen, über die pruefe die Probedatei anlegt und
+// entfernt und schreibe die temporäre Datei benennt, füllt, verschiebt und
+// entfernt.
 type dateiOps struct {
+	probe           func(dir, muster string) (*os.File, error)
 	zufall          func([]byte) (int, error)
 	schreiben       func(*os.File, []byte) (int, error)
 	synchronisieren func(*os.File) error
@@ -88,6 +95,7 @@ type dateiOps struct {
 // betriebssystem liefert die Operationen des Betriebssystems.
 func betriebssystem() dateiOps {
 	return dateiOps{
+		probe:           os.CreateTemp,
 		zufall:          rand.Read,
 		schreiben:       (*os.File).Write,
 		synchronisieren: (*os.File).Sync,
