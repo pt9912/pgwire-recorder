@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-konfigurationsdatei
+**Fund:** Der Code-Commit `7a80393` entschied R1 (Text `"null"` in Anführungszeichen ist kein `null`), R2 (`os.Stat`, die Standarddatei als Link ins Leere ist keine Datei) und fünf Lesarten zu `config show` im Code, bevor §6 oder `LH-FA-17.a` sie nannten; zurückgegeben wurden sie danach in §7 „ohne Eintrag in §6“ (`a063f2f`). Der Architect bestätigte sie in `cfc4d6b` mit „Code bleibt“ (Review F-509, MEDIUM). Die zwölf Rückgaben vom 2026-10-08 desselben Gegenstands gab der Implementer dagegen vor dem Code zurück.

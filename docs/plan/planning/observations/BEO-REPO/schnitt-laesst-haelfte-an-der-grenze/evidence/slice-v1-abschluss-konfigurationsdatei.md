@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-konfigurationsdatei
+**Fund:** Der Schnitt von `slice-v1-abschluss-konfiguration` (`fa4a5f1`, 2026-10-08) gab die Datei-Hälfte, auf 900 bis 1300 Zeilen geschätzt, ungeteilt an diesen Slice; §6 nannte das „an der Grenze einer Review-Sitzung“, §4 den zweiten Schnitt *Datei* gegen *Verbindungen und Platzhalter* vorab. Nach DoD-Punkt 1 und 2 (rund 1250 Zeilen, `7a80393`) trat er ein (`fdf1cd8`, 2026-10-09), der Rest ging an `slice-v1-abschluss-verbindungen-platzhalter`, und der Slice lief über `next/` zurück.

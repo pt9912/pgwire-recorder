@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-konfigurationsdatei
+**Fund:** Die Zusage „nennt nie einen Wert“ aus `LH-FA-17.a` *Fehler* brach die Meldung zu einem doppelten Schlüssel an einer Wertstelle: Sie nannte `connections.a.postgresql://u:GEHEIM@h/db`; alle Tests mit `GEHEIM` deckten nur Doppelte, deren Schlüssel selbst die Stelle ist (Review F-508, MEDIUM). Dazu blieben M3 (Steuerzeichen im Namen einer Verbindung nur unter `0x20`, F-512) und M4 (`Contains` statt `HasPrefix` in `config show`, F-513) grün. Umgesetzt in `c5b7d96`, alle drei von der Verifikation rot nachgefahren.
