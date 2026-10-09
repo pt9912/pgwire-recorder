@@ -713,6 +713,28 @@ Läufe zur Nacharbeit, am Baum des Liefer-Commits vor dem Commit: `make test` gr
 `TestE2EConfigShowStdin`, `a-check-negativ: gruen`, `abdeckung-gegenprobe: gruen`,
 `kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`, `baseline-verify: v6.16.0 OK`).
 
+**Befunde der Verifikation vom 2026-10-09** (§6, V-118, V-119; V-120 Handbuch §4). Gleicher
+Weg der Mutanten, gefahren am Stand des Commits, der die Nacharbeit liefert: sechs Mutanten,
+alle rot; die 14 Mutanten der Nacharbeit zum Review dort erneut gefahren, alle rot.
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| V-118: Fehler des Parsers (elf Texte aus `parserc.go`) nennen ihre Zahl plus 1 | plus 1 entfernt | `TestDateiUngueltig` (Fälle `d: [x` → „Zeile 4“, `]` in Zeile 3) |
+| V-118: Fehler des Scanners nennen ihre Zahl | plus 1 auch beim Scanner | `TestDateiUngueltig` (Fall `b: c: d` → „Zeile 2“) |
+| V-118: ein Fehler ohne Zahl liegt in Zeile 1 | ohne Zahl keine Zeile | `TestDateiUngueltig` (Fall `]` → „Zeile 1“) |
+| V-119: nicht druckbare Zeichen (NUL, `U+0001`, `U+007F`, `U+0080`, `U+FFFE`, `U+FFFF`) mit Zeile, auch UTF-16LE ohne BOM in Zeile 1 | Prüfung entfernt | `TestDateiKodierung` |
+| V-119: ein Tabulator bleibt gültig | Tabulator mit abgelehnt | `TestDateiKodierung` |
+| V-119: Alias ohne Anker nennt die Ursache ohne Zeile und ohne Namen | Name in die Meldung | `TestDateiKodierung`, `TestDateiUngueltig` |
+
+Die Fälle zu ungültigem YAML in `TestDateiUngueltig` prüfen die Meldung genau. Der Kommentar
+an `parserFehler` ist eine Kopplung an die Version v3.0.5 der Bibliothek, der Kopfkommentar
+von `ladeDatei` nennt die Grenze (Alias ohne Anker, Anker, der sich selbst enthält). Handbuch
+§4 (V-120): `config show` meldet `PGR-E2004` oder `PGR-E2006`, nie `PGR-E2005`. Läufe am Baum
+des Liefer-Commits vor dem Commit: `make test` grün, `make lint` Exit 0, `make abdeckung`
+geschrieben, `make gates` Exit 0 (darin `d-check: 383 Datei(en) geprüft, 0 Befund(e)`,
+`run-integration-tests: gruen`, `a-check-negativ: gruen`, `abdeckung-gegenprobe: gruen`,
+`kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`, `baseline-verify: v6.16.0 OK`).
+
 **Rückgaben und Lesarten** (an den Architect, ohne Eintrag in §6; entschieden in
 `cfc4d6b`, §6 *Rückgaben vom 2026-10-09*, belegt unter DoD-Punkt 3 oben):
 

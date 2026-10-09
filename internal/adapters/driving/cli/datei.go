@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -96,7 +97,9 @@ func ladeGewaehlte(cli string) (string, *datei, error) {
 // (LH-FA-17.a): zuerst, ob sie, Links gefolgt, eine reguläre Datei ist, vor
 // dem Öffnen; dann Lesen, Kodierung und YAML, dann Schlüssel und Werte in der
 // Reihenfolge der Datei. Jeder Fehler ist PGR-E2004 und nennt die Stelle, nie
-// einen Wert und nicht den Pfad.
+// einen Wert und nicht den Pfad; eine Meldung zu ungültigem YAML nennt die
+// Zeile, außer zu einem Alias ohne Anker und einem Anker, der sich selbst
+// enthält (Grenze: die Bibliothek nennt dafür keine Stelle).
 func ladeDatei(pfad, quelle string) (*datei, error) {
 	info, err := os.Stat(pfad)
 	if err != nil {
@@ -152,7 +155,8 @@ func fehlerZeile(zeile int) error {
 }
 
 // kodierung prüft den Text der Datei vor dem YAML (LH-FA-17.a): UTF-8, ein BOM
-// nur als erstes Zeichen, kein U+0085, U+2028 oder U+2029. Es liefert den Text
+// nur als erstes Zeichen, kein U+0085, U+2028 oder U+2029 und nur Zeichen, die
+// YAML 1.2 als druckbar zulässt (nichtDruckbar). Es liefert den Text
 // ohne das führende BOM; ein Fehler nennt die Zeile, gezählt nach den
 // Zeilenenden \n, \r\n und \r, und kein Zeichen der Datei.
 func kodierung(roh []byte) ([]byte, error) {
@@ -161,7 +165,7 @@ func kodierung(roh []byte) ([]byte, error) {
 	for i := 0; i < len(data); {
 		r, n := utf8.DecodeRune(data[i:])
 		switch {
-		case r == utf8.RuneError && n == 1, r == '\uFEFF', r == '\u0085', r == '\u2028', r == '\u2029':
+		case r == utf8.RuneError && n == 1, r == '\uFEFF', r == '\u0085', r == '\u2028', r == '\u2029', nichtDruckbar(r):
 			return nil, fehlerZeile(zeile)
 		case r == '\r' && i+1 < len(data) && data[i+1] == '\n':
 			n = 2
@@ -174,17 +178,71 @@ func kodierung(roh []byte) ([]byte, error) {
 	return data, nil
 }
 
-// yamlZeile findet die Zeilennummer im Text eines Fehlers der YAML-Bibliothek.
-var yamlZeile = regexp.MustCompile(`line ([0-9]+)`)
+// nichtDruckbar meldet die Zeichen, die YAML 1.2 nicht als druckbar zulässt:
+// C0 außer Tabulator, \n und \r (auch NUL), U+007F, C1, U+FFFE und U+FFFF.
+func nichtDruckbar(r rune) bool {
+	switch {
+	case r == '\t', r == '\n', r == '\r':
+		return false
+	case r < 0x20, r >= 0x7F && r <= 0x9F, r == 0xFFFE, r == 0xFFFF:
+		return true
+	}
+	return false
+}
 
-// ungueltigesYAML ist PGR-E2004 für ungültiges YAML; aus dem Fehler der
-// Bibliothek übernimmt es nur die Zeilennummer, ihr Text kann Inhalt der Datei
+// yamlFehler zerlegt den Text eines Fehlers der YAML-Bibliothek in die
+// genannte Zeile (leer, wenn er keine nennt) und die Ursache.
+var yamlFehler = regexp.MustCompile(`(?s)^yaml: (?:line ([0-9]+): )?(.*)$`)
+
+// Fehler aus dem Bezug zwischen Knoten: Sie nennen keine Stelle in der Datei.
+var (
+	aliasOhneAnker    = regexp.MustCompile(`(?s)^unknown anchor '.*' referenced$`)
+	ankerEnthaeltSich = regexp.MustCompile(`(?s)^anchor '.*' value contains itself$`)
+)
+
+// parserFehler meldet, ob ursache ein Fehler des Parsers der Bibliothek ist:
+// einer der elf Texte aus parserc.go, im genauen Vergleich, weil Texte des
+// Scanners ebenso beginnen. Kopplung an go.yaml.in/yaml/v3 v3.0.5: Der Parser
+// nennt die Zeile ab 0, der Scanner ab 1 (TestDateiUngueltig hält beides).
+func parserFehler(ursache string) bool {
+	switch ursache {
+	case "did not find expected <stream-start>", "did not find expected <document start>",
+		"did not find expected node content", "did not find expected '-' indicator",
+		"did not find expected key", "did not find expected ',' or ']'",
+		"did not find expected ',' or '}'", "found undefined tag handle",
+		"found duplicate %YAML directive", "found incompatible YAML document",
+		"found duplicate %TAG directive":
+		return true
+	}
+	return false
+}
+
+// ungueltigesYAML ist PGR-E2004 für ungültiges YAML mit der Zeile ab 1
+// (LH-FA-17.a *Fehler*): die Zahl im Text der Bibliothek, bei einem Fehler des
+// Parsers plus 1; ohne Zahl Zeile 1. Ein Alias ohne Anker und ein Anker, der
+// sich selbst enthält, nennen die Ursache ohne Zeile und ohne den Namen. Vom
+// Text der Bibliothek übernimmt es sonst nichts, er kann Inhalt der Datei
 // tragen.
 func ungueltigesYAML(err error) error {
-	if m := yamlZeile.FindStringSubmatch(err.Error()); m != nil {
-		return model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei: ungültiges YAML in Zeile %s", m[1])
+	m := yamlFehler.FindStringSubmatch(err.Error())
+	if m == nil {
+		return fehlerZeile(1)
 	}
-	return model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei: ungültiges YAML")
+	ursache := m[2]
+	if m[1] == "" {
+		switch {
+		case aliasOhneAnker.MatchString(ursache):
+			return model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei: ungültiges YAML, Alias ohne Anker")
+		case ankerEnthaeltSich.MatchString(ursache):
+			return model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei: ungültiges YAML, Anker enthält sich selbst")
+		}
+		return fehlerZeile(1)
+	}
+	zeile, _ := strconv.Atoi(m[1])
+	if parserFehler(ursache) {
+		zeile++
+	}
+	return fehlerZeile(zeile)
 }
 
 // leseYAML liest höchstens ein YAML-Dokument; ein zweites ist ungültiges YAML,

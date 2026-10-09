@@ -430,8 +430,8 @@ Exit-Code 0.
 
 * Die Ausgabe enthält nie einen aufgelösten Wert, aber Hosts, Benutzer und Pfade der
   Datei. Prüfen Sie sie, bevor Sie sie weitergeben.
-* Ist die Datei ungültig, zeigt das Werkzeug nichts und meldet `PGR-E2004` bis
-  `PGR-E2006`.
+* Ist die Datei ungültig, zeigt das Werkzeug nichts und meldet `PGR-E2004` oder
+  `PGR-E2006`. `PGR-E2005` meldet `config show` nie, weil es keine Verbindung benutzt.
 
 ### Mit einem Datenbanktreiber arbeiten
 

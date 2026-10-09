@@ -167,7 +167,12 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 	return []struct{ name, inhalt, stelle string }{
 		{"zwei Dokumente", "log_level: info\n---\nlog_level: warn\n", "mehr als ein Dokument"},
 		{"zweites leeres Dokument", "log_level: info\n---\n", "mehr als ein Dokument"},
-		{"Syntax", "replay:\n  listen: \"GEHEIM\n", "ungültiges YAML in Zeile"},
+		{"Syntax", "replay:\n  listen: \"GEHEIM\n", "Konfigurationsdatei: ungültiges YAML in Zeile 2"},
+		{"Parser, Folge", "log_level: info\nrecord:\n  force: true\nd: [x\n", "Konfigurationsdatei: ungültiges YAML in Zeile 4"},
+		{"Parser, Abbildung unter record", "log_level: info\nrecord:\n  force: true\n  output: x\n  - y\n", "Konfigurationsdatei: ungültiges YAML in Zeile 3"},
+		{"Parser, Grenze", "a: 1\nb: 2\n]\n", "Konfigurationsdatei: ungültiges YAML in Zeile 3"},
+		{"Scanner", "a: 1\nb: c: d\n", "Konfigurationsdatei: ungültiges YAML in Zeile 2"},
+		{"ohne Zahl", "]\n", "Konfigurationsdatei: ungültiges YAML in Zeile 1"},
 		{"doppelt oben", "log_level: info\nlog_level: warn\n", "ungültiges YAML in Zeile 2, Schlüssel doppelt"},
 		{"doppelt im Abschnitt", "replay:\n  listen: GEHEIM\n  listen: b\n", "ungültiges YAML in Zeile 3, Schlüssel doppelt"},
 		{"doppelt in Anführungszeichen", "replay:\n  listen: a\n  \"listen\": b\n", "ungültiges YAML in Zeile 3, Schlüssel doppelt"},
@@ -196,7 +201,7 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 		{"Schlüssel config im Abschnitt", "replay:\n  config: x.yaml\n", "replay.config"},
 		{"Abschnitt play", "play:\n  input: x\n", "play"},
 		{"leerer Abschnitt play", "play: {}\n", "play"},
-		{"Alias ohne Anker", "replay:\n  listen: *GEHEIM\n", "ungültiges YAML"},
+		{"Alias ohne Anker", "replay:\n  listen: *GEHEIM\n", "Konfigurationsdatei: ungültiges YAML, Alias ohne Anker"},
 		{"Option des anderen Kommandos", "record:\n  input: GEHEIM\n", "record.input"},
 		{"Option des anderen Kommandos replay", "replay:\n  output: GEHEIM\n", "replay.output"},
 		{"Option, die der Stand nicht kennt", "record:\n  format: yaml\n", "record.format"},
@@ -238,7 +243,9 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 	}
 }
 
-// Abdeckung: LH-FA-17/Negative — eine ungültige Datei ist PGR-E2004: mehr als
+// Abdeckung: LH-FA-17/Negative — eine ungültige Datei ist PGR-E2004 (zu
+// ungültigem YAML mit genauer Meldung und Zeile ab 1, bei einem Fehler des
+// Parsers dessen Zahl plus 1, ohne Zahl Zeile 1): mehr als
 // ein Dokument, ungültiges YAML, ein Schlüssel zweimal in derselben Abbildung,
 // oberste Ebene, Abschnitt oder connections: keine Abbildung oder ohne Inhalt,
 // ein unbekannter Schlüssel (auch config, ein anders geschriebener, einer im
@@ -254,6 +261,9 @@ func TestDateiUngueltig(t *testing.T) {
 		_, err := replayMit("--config=" + schreibe(t, f.inhalt))
 		if !istDatei(err) || !strings.Contains(err.Error(), f.stelle) || strings.Contains(err.Error(), "GEHEIM") {
 			t.Errorf("%s (%q): erwartet %s mit %q ohne Wert, erhalten %v", f.name, f.inhalt, model.CodeConfigFile, f.stelle, err)
+		}
+		if genau := "Konfiguration [PGR-E2004]: " + f.stelle; strings.HasPrefix(f.stelle, "Konfigurationsdatei: ungültiges YAML") && err != nil && err.Error() != genau {
+			t.Errorf("%s: Meldung %q, erwartet genau %q", f.name, err.Error(), genau)
 		}
 	}
 }
@@ -497,7 +507,10 @@ func utf16(text string, little, mitBOM bool) []byte {
 // Wert in Anführungszeichen) ist es PGR-E2004 mit der Zeile; UTF-16 mit und ohne
 // BOM und eine ungültige UTF-8-Folge sind PGR-E2004, die Meldung nennt kein Byte
 // der Datei. Zeilenenden sind \n, \r\n und \r; U+0085, U+2028 und U+2029 sind
-// PGR-E2004 mit der Zeile, auch in einem Kommentar (LH-FA-17.a).
+// PGR-E2004 mit der Zeile, auch in einem Kommentar; ebenso jedes Zeichen, das
+// YAML 1.2 nicht als druckbar zulässt (NUL, U+0001, U+007F, U+0080, U+FFFE,
+// U+FFFF), auch UTF-16LE ohne BOM in Zeile 1; ein Tabulator bleibt gültig; ein
+// Alias ohne Anker nennt die Ursache ohne Zeile und Namen (LH-FA-17.a).
 func TestDateiKodierung(t *testing.T) {
 	leere(t, "replay")
 	for _, inhalt := range []string{
@@ -517,6 +530,12 @@ func TestDateiKodierung(t *testing.T) {
 		{"log_level: info\rrecord: {output: \"a\u2029b\"}\n", "Zeile 2"},
 		{"log_level: info\n# a\u2028b\n", "Zeile 2"},
 		{"log_level: info\n# \xff\n", "Zeile 2"},
+		{"log_level: info\nrecord: {output: a\x00b}\n", "Zeile 2"},
+		{"log_level: info\nrecord: {}\nreplay: {listen: \"a\x01b\"}\n", "Zeile 3"},
+		{"log_level: info\nrecord: {output: \"a\x7fb\"}\n", "Zeile 2"},
+		{"log_level: info\nrecord: {output: \"a\u0080b\"}\n", "Zeile 2"},
+		{"log_level: info\nrecord: {output: \"a\uFFFEb\"}\n", "Zeile 2"},
+		{"log_level: info\nrecord: {output: \"a\uFFFFb\"}\n", "Zeile 2"},
 	} {
 		_, err := replayMit("--config=" + schreibe(t, f.inhalt))
 		if !istDatei(err) || !strings.Contains(err.Error(), "ungültiges YAML in "+f.zeile) || strings.ContainsAny(err.Error(), "\uFEFF\u0085\u2028\u2029\uFFFDÿ") || strings.Contains(err.Error(), string([]byte{0xff})) {
@@ -533,9 +552,16 @@ func TestDateiKodierung(t *testing.T) {
 		if err := os.WriteFile(pfad, roh, 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := replayMit("--config=" + pfad); !istDatei(err) || !strings.Contains(err.Error(), "ungültiges YAML") {
+		if _, err := replayMit("--config=" + pfad); !istDatei(err) || !strings.Contains(err.Error(), "ungültiges YAML in Zeile 1") {
 			t.Errorf("%s: %v", name, err)
 		}
+	}
+	if cmd, err := replayMit("--config=" + schreibe(t, "record:\n  output: \"a\tb\"\n")); err != nil || cmd.Name != "replay" {
+		t.Errorf("Tabulator in Anführungszeichen: %v", err)
+	}
+	_, err := replayMit("--config=" + schreibe(t, "a: *x\n"))
+	if !istDatei(err) || err.Error() != "Konfiguration [PGR-E2004]: Konfigurationsdatei: ungültiges YAML, Alias ohne Anker" {
+		t.Errorf("Alias ohne Anker: %v", err)
 	}
 }
 
