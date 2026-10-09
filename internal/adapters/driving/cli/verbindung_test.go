@@ -185,3 +185,141 @@ func TestVerbindungName(t *testing.T) {
 		}
 	}
 }
+
+// recordMit liest record mit --listen und --output aus der Datei inhalt, ohne
+// --upstream auf der Kommandozeile.
+func recordMit(t *testing.T, inhalt string, args ...string) (cli.Command, error) {
+	t.Helper()
+	return lese(append([]string{"record", "--listen=x", "--output=r.yaml", "--config=" + schreibe(t, inhalt)}, args...)...)
+}
+
+// Abdeckung: LH-FA-17/Happy, LH-FA-17/Boundary — in jedem Wert der Datei
+// außerhalb einer URL ist $$ ein $, von links gelesen, ein $ vor einem anderen
+// Zeichen bleibt stehen, und die Wertemenge prüft den Text nach $$; config show
+// zeigt $$ wie geschrieben; Kommandozeile und Umgebung kennen weder $$ noch
+// Platzhalter (LH-FA-17.a *Geheimnisse*).
+func TestDateiDollar(t *testing.T) {
+	leere(t, "record")
+	leere(t, "replay")
+	for geschrieben, pfad := range map[string]string{
+		`"a$$b"`:   "a$b",
+		`"$${X}"`:  "${X}",
+		`"a$b"`:    "a$b",
+		`"$$$"`:    "$$",
+		`"$$$$"`:   "$$",
+		`'x$$$$y'`: "x$$y",
+	} {
+		cmd, err := lese("record", "--listen=x", "--upstream=h:1", "--config="+schreibe(t, "record:\n  output: "+geschrieben+"\n"))
+		if err != nil || cmd.Record.Output != pfad {
+			t.Errorf("output: %s: %q, %v, erwartet %q", geschrieben, cmd.Record.Output, err, pfad)
+		}
+	}
+	zeigen := schreibe(t, "record:\n  output: \"a$$b\"\n  upstream: \"h$$:1\"\n")
+	if got, err := konfigurationZeigen(t, "--config", zeigen); err != nil || got != zeigen+"\nrecord:\n  output: \"a$$b\"\n  upstream: \"h$$:1\"\n" {
+		t.Errorf("config show zeigt $$ wie geschrieben: %q, %v", got, err)
+	}
+	cmd, err := lese("record", "--listen=x", "--upstream=h:1", "--output=a$${X}")
+	if err != nil || cmd.Record.Output != "a$${X}" {
+		t.Errorf("--output=a$${X}: %q, %v", cmd.Record.Output, err)
+	}
+	t.Setenv("PGWIRE_RECORDER_OUTPUT", "${X}$$")
+	cmd, err = lese("record", "--listen=x", "--upstream=h:1")
+	if err != nil || cmd.Record.Output != "${X}$$" {
+		t.Errorf("PGWIRE_RECORDER_OUTPUT=${X}$$: %q, %v", cmd.Record.Output, err)
+	}
+}
+
+// Abdeckung: LH-FA-17/Negative — außerhalb einer URL ist jedes ${, das nicht
+// aus $$ hervorgeht, PGR-E2004 an seinem Schlüssel, gleich ob seine Form gültig
+// ist, auch in einem Abschnitt eines anderen Kommandos und bei config show; die
+// Meldung nennt den Wert nicht (LH-FA-17.a *Geheimnisse*).
+func TestDateiPlatzhalterAusserhalb(t *testing.T) {
+	leere(t, "replay")
+	for _, inhalt := range []string{
+		"record:\n  output: \"${GEHEIM}\"\n",
+		"record:\n  output: \"a$$${GEHEIM}\"\n",
+		"record:\n  output: \"x${1GEHEIM\"\n",
+		"record:\n  upstream: \"${GEHEIM}\"\n",
+		"replay:\n  listen: \"${GEHEIM}:1\"\n",
+		"log_level: \"${GEHEIM}\"\n",
+	} {
+		pfad := schreibe(t, inhalt)
+		_, err := replayMit("--config=" + pfad)
+		if !istDatei(err) || !strings.Contains(err.Error(), ": Platzhalter außerhalb einer URL") || strings.Contains(err.Error(), "GEHEIM") {
+			t.Errorf("%q: %v", inhalt, err)
+		}
+		if got, err := konfigurationZeigen(t, "--config", pfad); !istDatei(err) || got != "" {
+			t.Errorf("config show %q: %q, %v", inhalt, got, err)
+		}
+	}
+	if _, err := replayMit("--config=" + schreibe(t, "log_level: \"in$$fo\"\n")); !istDatei(err) || !strings.Contains(err.Error(), "log_level") {
+		t.Errorf("Wertemenge nach $$: %v", err)
+	}
+}
+
+// Abdeckung: LH-FA-17/Happy, LH-FA-17/Boundary — der Schlüssel upstream ist
+// der Name einer gültigen Verbindung der Datei, auch einer, die nach ihm steht,
+// oder hat die Form host:port: Host nicht leer, IPv6 in eckigen Klammern, Port
+// wie geschrieben mit führenden Nullen (LH-FA-17.a).
+func TestDateiUpstream(t *testing.T) {
+	leere(t, "record")
+	for inhalt, want := range map[string]string{
+		"record:\n  upstream: staging\nconnections:\n  staging: postgresql://h/db\n": "staging",
+		"connections:\n  staging: postgresql://h/db\nrecord:\n  upstream: staging\n": "staging",
+		"record:\n  upstream: h:5432\n":                                              "h:5432",
+		"record:\n  upstream: \"[::1]:5432\"\n":                                      "[::1]:5432",
+		"record:\n  upstream: h:05432\n":                                             "h:05432",
+		"record:\n  upstream: \"h%41:1\"\n":                                          "h%41:1",
+		"record:\n  upstream: \"h$$:1\"\n":                                           "h$:1",
+	} {
+		cmd, err := recordMit(t, inhalt)
+		if err != nil || cmd.Record.Upstream != want {
+			t.Errorf("%q: %q, %v, erwartet %q", inhalt, cmd.Record.Upstream, err, want)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-17/Negative — ein Schlüssel upstream, der weder eine gültige
+// Verbindung der Datei nennt noch die Form host:port hat, ist PGR-E2004 an
+// record.upstream ohne den Wert, auch bei replay und config show: ein
+// unbekannter Name, einer in anderer Schreibweise, einer mit $$, der nach $$
+// keinen Namen trifft, leerer Host, kein Port, ein Port außerhalb 1 bis 65535
+// oder dekodiert geschrieben, IPv6 ohne oder mit offener Klammer; ein
+// ungültiger Name zählt nicht als Name, der erste Fehler ist der, der in der
+// Datei zuerst steht (LH-FA-17.a, L4).
+func TestDateiUpstreamUngueltig(t *testing.T) {
+	leere(t, "record")
+	leere(t, "replay")
+	verbindungen := "connections:\n  staging: postgresql://h/db\n  ab: postgresql://h/db\n"
+	for _, wert := range []string{
+		"GEHEIM", "Staging", "\"a$$b\"", "\":5432\"", "\"GEHEIM:\"", "GEHEIM.example", "GEHEIM:0", "GEHEIM:65536",
+		"GEHEIM:%35", "\"::1:5432\"", "\"[::1]\"", "\"[::1:5432\"", "\"[::1]x:1\"", "\"[]:1\"", "\"a]b:1\"", "GEHEIM:1:2",
+	} {
+		inhalt := verbindungen + "record:\n  upstream: " + wert + "\n"
+		genau := "Konfiguration [PGR-E2004]: Konfigurationsdatei: record.upstream: weder Name einer Verbindung der Datei noch host:port"
+		for name, lauf := range map[string]func() error{
+			"record": func() error { _, err := recordMit(t, inhalt); return err },
+			"replay": func() error { _, err := replayMit("--config=" + schreibe(t, inhalt)); return err },
+			"config show": func() error {
+				got, err := konfigurationZeigen(t, "--config", schreibe(t, inhalt))
+				if got != "" {
+					t.Errorf("config show zeigt %q", got)
+				}
+				return err
+			},
+		} {
+			if err := lauf(); err == nil || err.Error() != genau || !istDatei(err) {
+				t.Errorf("%s, upstream: %s: %v, erwartet %q", name, wert, err, genau)
+			}
+		}
+	}
+	for inhalt, stelle := range map[string]string{
+		"record:\n  upstream: a@b\nconnections:\n  a@b: postgresql://h/db\n": "Konfigurationsdatei: record.upstream: weder Name",
+		"connections:\n  a@b: postgresql://h/db\nrecord:\n  upstream: a@b\n": "Konfigurationsdatei: connections: Name einer Verbindung",
+		"record:\n  upstream: v\nconnections:\n  v: postgres://h/db\n":       "Konfigurationsdatei: connections.v: Schema",
+	} {
+		if _, err := recordMit(t, inhalt); !istDatei(err) || !strings.Contains(err.Error(), stelle) {
+			t.Errorf("%q: %v, erwartet %q", inhalt, err, stelle)
+		}
+	}
+}

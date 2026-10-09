@@ -14,10 +14,12 @@ import (
 // werteJeArt liefert zwei verschiedene gültige Werte je Wertemenge des
 // allgemeinen Lesers und einen ungültigen nicht leeren ("" für eine
 // Wertemenge, die jeden nicht leeren Wert annimmt). Der leere Wert ist in
-// jeder Wertemenge ungültig (LH-FA-17.a).
+// jeder Wertemenge ungültig (LH-FA-17.a). Die Werte für text haben die Form
+// host:port, die der Schlüssel upstream in der Datei ohne Verbindungen
+// verlangt.
 func werteJeArt() map[string][3]string {
 	return map[string][3]string{
-		"text":          {"wert-a", "wert-b", ""},
+		"text":          {"h-a:1", "h-b:2", ""},
 		"wahrheitswert": {"true", "false", "1"},
 		"dauer":         {"1s", "2m", "5"},
 		"stufe":         {"warn", "debug", "INFO"},

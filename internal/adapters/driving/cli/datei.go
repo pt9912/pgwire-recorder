@@ -30,11 +30,13 @@ const praefix = "PGWIRE_RECORDER_"
 
 // datei ist eine geladene und geprüfte Konfigurationsdatei: werte trägt den
 // Text jedes Werts je Abschnitt ("" ist die oberste Ebene) und Schlüssel,
-// verbindungen die zerlegten Verbindungen in der Reihenfolge der Datei, inhalt
-// das Dokument für config show (nil bei einer leeren Datei).
+// verbindungen die zerlegten Verbindungen in der Reihenfolge der Datei, namen
+// die gültigen Namen der Verbindungen, inhalt das Dokument für config show
+// (nil bei einer leeren Datei).
 type datei struct {
 	werte        map[string]map[string]string
 	verbindungen []verbindung
+	namen        map[string]bool
 	inhalt       *yaml.Node
 }
 
@@ -393,6 +395,7 @@ func (d *datei) pruefe(top *yaml.Node, z [][]rune) error {
 	if err := abbildung(top, "oberste Ebene", z); err != nil {
 		return err
 	}
+	d.namen = gueltigeNamen(top, z)
 	oben := obenOptionen()
 	for i := 0; i+1 < len(top.Content); i += 2 {
 		name, err := schluessel(top.Content[i], "oberste Ebene", z)
@@ -446,19 +449,67 @@ func (d *datei) abschnitt(kommando string, n *yaml.Node, z [][]rune) error {
 	return nil
 }
 
-// setze prüft den Wert eines Schlüssels mit der Wertemenge seiner Option und
-// merkt ihn.
+// setze prüft den Wert eines Schlüssels und merkt ihn: zuerst $$ und ${
+// (ohneDollar), dann der Text nach $$ mit der Wertemenge seiner Option; der
+// Schlüssel upstream nennt danach eine Verbindung aus namen oder hat die Form
+// host:port (LH-FA-17.a).
 func (d *datei) setze(abschnitt, name string, o option, n *yaml.Node, z [][]rune) error {
 	stelle := unter(abschnitt, name)
 	text, err := skalar(n, stelle, z)
 	if err != nil {
 		return err
 	}
-	if err := o.art.pruefe(text); err != nil {
+	wert, ok := ohneDollar(text)
+	if !ok {
+		return fehlerDatei(stelle, "Platzhalter außerhalb einer URL")
+	}
+	if err := o.art.pruefe(wert); err != nil {
 		return model.Errorf(model.CodeConfigFile, err, "Konfigurationsdatei: %s", stelle)
 	}
-	d.werte[abschnitt][name] = text
+	if o.name == "upstream" && !d.namen[wert] && !hostPortForm(wert) {
+		return fehlerDatei(stelle, "weder Name einer Verbindung der Datei noch host:port")
+	}
+	d.werte[abschnitt][name] = wert
 	return nil
+}
+
+// ohneDollar liest einen Wert außerhalb einer URL von links: $$ ist ein $,
+// jedes andere ${ ist ein Platzhalter außerhalb einer URL, dann ist ok false;
+// ein $ vor einem anderen Zeichen bleibt stehen (LH-FA-17.a *Geheimnisse*).
+func ohneDollar(text string) (string, bool) {
+	var b strings.Builder
+	for i := 0; i < len(text); i++ {
+		switch {
+		case strings.HasPrefix(text[i:], "$$"):
+			b.WriteByte('$')
+			i++
+		case strings.HasPrefix(text[i:], "${"):
+			return "", false
+		default:
+			b.WriteByte(text[i])
+		}
+	}
+	return b.String(), true
+}
+
+// gueltigeNamen sind die Namen der Verbindungen unter connections: auf der
+// obersten Ebene top, die die Form eines Werts haben und nameFehler bestehen,
+// auch die nach einem Schlüssel upstream; ein ungültiger Name zählt nicht
+// (LH-FA-17.a).
+func gueltigeNamen(top *yaml.Node, z [][]rune) map[string]bool {
+	namen := map[string]bool{}
+	for i := 0; i+1 < len(top.Content); i += 2 {
+		if top.Content[i].Value != "connections" || top.Content[i+1].Kind != yaml.MappingNode {
+			continue
+		}
+		c := top.Content[i+1]
+		for j := 0; j+1 < len(c.Content); j += 2 {
+			if name, err := skalar(c.Content[j], "connections", z); err == nil && nameFehler(name) == "" {
+				namen[name] = true
+			}
+		}
+	}
+	return namen
 }
 
 // pruefeVerbindungen prüft connections: eine Abbildung von Namen auf Werte; ein

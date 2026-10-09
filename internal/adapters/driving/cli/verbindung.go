@@ -391,6 +391,23 @@ func portForm(text string) bool {
 	return n >= 1 && n <= 65535
 }
 
+// hostPortForm meldet, ob v die Form host:port hat (LH-FA-17.a): ein Host in
+// eckigen Klammern oder einer ohne :, [ und ], nicht leer, dahinter : und ein
+// Port der Form portForm; wie geschrieben, ohne Dekodierung.
+func hostPortForm(v string) bool {
+	var host, port string
+	if innen, ok := strings.CutPrefix(v, "["); ok {
+		var hinten string
+		host, hinten, _ = strings.Cut(innen, "]")
+		if port, ok = strings.CutPrefix(hinten, ":"); !ok {
+			return false
+		}
+	} else {
+		host, port, _ = strings.Cut(v, ":")
+	}
+	return host != "" && !strings.ContainsAny(host, "[]") && portForm(port)
+}
+
 // nameFehler ist der Grund, aus dem name kein Name einer Verbindung ist, oder
 // "": nicht leer, ohne Steuerzeichen und weder :, @ noch $ (LH-FA-17.a). Der
 // Grund nennt den Namen nicht.
