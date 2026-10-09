@@ -465,6 +465,9 @@ Schreibvorgang die vorhandene Datei.
   geschlossen und entfernt wird. Scheitert das Anlegen, das Schließen oder das Entfernen
   der Probedatei, ist das `PGR-E3001`, und der Text des Fehlers folgt als Ursache der
   Meldung (`SPEC-034`); eine Probedatei, die sich nicht entfernen lässt, bleibt liegen.
+  Scheitert das Schließen, entfernt `record` die Probedatei dennoch; scheitert auch das
+  Entfernen, bleibt sie liegen, und der Text des Fehlers beim Entfernen folgt als Ursache
+  derselben Meldung.
 * Alle diese Prüfungen laufen beim Start, bevor eine Verbindung angenommen wird.
   *Grenze:* Ein Pfad, der erst nach dem Start entsteht, ersetzt der nächste
   Schreibvorgang ohne Prüfung.
@@ -2522,3 +2525,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Sicheres Schreiben: vorhandener Pfad nach dem Ziel einer Verknüpfung, Verknüpfung ins Leere nicht vorhanden; keine reguläre Datei, nicht prüfbarer Pfad, fehlendes oder nicht beschreibbares Verzeichnis `PGR-E3001` beim Start, kein Anlegen von Verzeichnissen; Name, Rechte, Fehlschlag und übrig gebliebene temporäre Datei; Pfad, der nach dem Start entsteht (`LH-FA-07.a`) |
 | 2026-10-09 | Sicheres Schreiben: Setzen der Rechte und Schließen der temporären Datei gehören zum Fehlschlag; ersetzte Verknüpfung auf eine Datei gibt die Zugriffsrechte ihres Ziels weiter (`LH-FA-07.a`) |
 | 2026-10-09 | Sicheres Schreiben: Schließen und Entfernen der Probedatei, gescheitert `PGR-E3001` mit Ursache; nur ein vorhandener Name der temporären Datei führt zu einem neuen Versuch; Fehlermodi nennen jeden Fehlschlag (`LH-FA-07.a`) |
+| 2026-10-09 | Sicheres Schreiben: Probedatei auch nach gescheitertem Schließen entfernt; scheitern beide, eine Meldung mit dem Fehler des Entfernens als Ursache (`LH-FA-07.a`) |
