@@ -170,8 +170,8 @@ dasteht.
 Schnitt vom 2026-10-09 aus §6 von `slice-v1-abschluss-konfigurationsdatei` hierher; dorthin
 kamen die ersten aus §6 von `slice-v1-abschluss-konfiguration`, geprüft vom Architect am
 2026-10-08 vor dem Code. Die Rückgaben unten entschied er am 2026-10-08 vor dem Code, die
-Nummern sind die aus jenem Plan. Offen ist eine: *Name einer Verbindung in der Form einer URL
-mit Passwort* (unten), zu entscheiden vor dem Code.
+Nummern sind die aus jenem Plan. Offen ist keine; *Name einer Verbindung in der Form einer URL
+mit Passwort* (unten) entschied der Nutzer am 2026-10-09 vor dem Code.
 
 *Verbindungen und Platzhalter*
 
@@ -193,17 +193,23 @@ mit Passwort* (unten), zu entscheiden vor dem Code.
   Standardbibliothek lehnt einen Port `${PORT}` ab; zerlegt wird mit Platzhaltern.
 - **Platzhalter außerhalb einer URL** — `PGR-E2004` (Tabelle *Fehler*); `LH-FA-17.a`.
 - **Name einer Verbindung in der Form einer URL mit Passwort** (V-121 der Verifikation von
-  `slice-v1-abschluss-konfigurationsdatei`) — **offen, vor dem Code zu entscheiden.** Heute
-  ist ein Name jeder Text ohne Steuerzeichen (`LH-FA-17.a`); `postgresql://u:GEHEIM@h/db` als
-  Name erscheint in der Meldung zu seinem Wert (`connections.<Name>`) und in `config show`,
-  und das Klartext-Passwort (`PGR-E2006`) gilt nur dem Wert. Der Grund von „nie einen Wert“
-  trifft hier zu. *Empfehlung des Architect:* Ein Name enthält weder `:` noch `@`; sonst
-  `PGR-E2004`, und die Meldung nennt als Stelle nur `connections`, nicht den Namen. Grund:
-  Ohne `@` trägt ein Name keinen Benutzerteil und damit kein Passwort, ohne `:` ist er nie mit
-  `host:port` bei `--upstream` verwechselbar (heute entscheidet der Vorrang des Namens). Die
-  Einschränkung ändert die Entscheidung zu Rückgabe 11 („sonst jeder Name, auch mit Leerraum“)
-  und braucht deshalb die Entscheidung des Nutzers. Alternative ohne Einschränkung: ein Name
-  mit `@` gilt als Klartext-Passwort (`PGR-E2006`), dann bleibt `:` frei.
+  `slice-v1-abschluss-konfigurationsdatei`) — ein Name enthält weder `:` noch `@`; sonst
+  `PGR-E2004`, und die Meldung nennt als Stelle nur `connections`, nicht den Namen;
+  Entscheidung des Nutzers vom 2026-10-09 nach Empfehlung des Architect, `LH-FA-17.a`
+  (*Benannte Verbindungen*). Sie engt die Entscheidung zu Rückgabe 11 ein („sonst jeder Name,
+  auch mit Leerraum“). Grund: Ohne `@` trägt ein Name keinen Benutzerteil und damit kein
+  Passwort, ohne `:` ist er nie mit `host:port` bei `--upstream` verwechselbar.
+  *Ort im Code:* dieser Slice, an der Prüfung des Namens neben der auf Steuerzeichen, die
+  `slice-v1-abschluss-konfigurationsdatei` geliefert hat. Grund: Jener Slice ist geschlossen,
+  und die Regel gehört zu den Verbindungen; bis zur Closure dieses Slice nimmt der Stand
+  einen solchen Namen an (Risiko unten).
+  *Tests* (`TestDateiUngueltig` bzw. der Test der Verbindungen): `connections:` mit den Namen
+  `postgresql://u:GEHEIM@h/db`, `a:b` und `a@b`, je mit gültigem Wert, sind `PGR-E2004`, die
+  Meldung beginnt mit `Konfigurationsdatei: connections:` und enthält weder den Namen noch
+  `GEHEIM`; `config show` mit dieser Datei endet mit Exit `2` und zeigt nichts; die Namen
+  `staging`, `a.b-c` und `mit Leerraum` bleiben gültig. *Mutation:* Prüfung auf `@` entfernt,
+  rot über `a@b`; Prüfung auf `:` entfernt, rot über `a:b`; Stelle mit dem Namen, rot über
+  `GEHEIM`.
 
 *Anzeige und Fehler, soweit sie Verbindungen betreffen*
 
@@ -253,8 +259,9 @@ beim ersten Fehler. Die Rückgaben 1 bis 4, 9, 11 und 12 liefert
 - Das Benutzerhandbuch beschreibt Verbindungen und Platzhalter schon im Zielstand und kann vom
   gelieferten Stand abweichen (§3) — **Ausgang:** offen bis Closure.
 - Bis zur Closure dieses Slice lehnt der gelieferte Stand ein Klartext-Passwort in der Datei
-  nicht ab, und `config show` zeigt es (Risiko in §6 von
-  `slice-v1-abschluss-konfigurationsdatei`); DoD-Punkt 3 schließt die Lücke —
+  und einen Namen einer Verbindung mit `:` oder `@` nicht ab, und `config show` zeigt beide (Risiko in §6 von
+  `slice-v1-abschluss-konfigurationsdatei`); DoD-Punkt 3 schließt die Lücke beim Passwort, die
+  Vorgabe zum Namen in §6 die beim Namen —
   **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz

@@ -959,7 +959,9 @@ Parameter, der zweimal steht. Fehlt der Port, gilt `5432`; ein Port sind Ziffern
 mit einem Wert von 1 bis 65535. Ein Teil, den die URL wörtlich schreibt, wird
 prozent-dekodiert; ein ungültiges Escape ist ein ungültiger Wert. Für den Namen
 einer Verbindung gilt die Form eines Werts (Text des Skalars; leer, `null` und Tag
-ungültig), und er enthält kein Steuerzeichen. `--upstream` und der Schlüssel `upstream`
+ungültig), und er enthält kein Steuerzeichen und weder `:` noch `@`; sonst ist er ein
+ungültiger Wert, dessen Meldung als Stelle nur `connections` nennt, nicht den Namen, weil
+ein solcher Name die Form eines Benutzerteils mit Passwort haben kann. `--upstream` und der Schlüssel `upstream`
 nehmen den Namen einer Verbindung oder `host:port`; ein Name hat Vorrang vor
 `host:port` und gilt nur bei genauer Übereinstimmung, auch in Groß- und
 Kleinschreibung. Ein Wert, der weder ein Name ist noch die Form `host:port` mit
@@ -2403,3 +2405,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Konfigurationsdatei: `null` ist die YAML-Null ohne Anführungszeichen, in Anführungszeichen Text; Standarddatei existiert nach Auflösung der Links, ein Link ins Leere ist keine Datei, unbestimmbares Vorhandensein ist nicht lesbar; doppelte Schlüssel nach ihrem Text verglichen; `---` ohne Inhalt ungültig; erste Zeile von `config show` ist der Pfad wie gewählt; `config` in der Hilfe und als Kommando ohne `show` (`LH-FA-17.a`) |
 | 2026-10-09 | Konfigurationsdatei: nur eine reguläre Datei, geprüft vor dem Lesen; Kodierung UTF-8, BOM nur als erstes Zeichen übergangen; Zeilenenden nach YAML 1.2, `U+0085`, `U+2028` und `U+2029` ungültig; der nicht spezifische Tag `!`; doppelter Schlüssel in jeder Tiefe, Meldung zu ungültigem YAML mit der Zeile; leerer und nicht skalarer Schlüssel unbekannt mit der Abbildung als Stelle; `config show` ohne BOM und mit `\n` (`LH-FA-17.a`) |
 | 2026-10-09 | Konfigurationsdatei: Zeile zu ungültigem YAML bei einem Konstrukt über mehrere Zeilen, Grenze bei Beginn in Zeile 1, Meldung ohne Zeile nur für Alias ohne Anker und Anker, der sich selbst enthält; nicht druckbare Zeichen nach YAML 1.2 ungültig (`LH-FA-17.a`) |
+| 2026-10-09 | Benannte Verbindungen, Entscheidung des Nutzers: Name ohne `:` und `@`, sonst ungültiger Wert mit der Stelle `connections` ohne den Namen (`LH-FA-17.a`) |
