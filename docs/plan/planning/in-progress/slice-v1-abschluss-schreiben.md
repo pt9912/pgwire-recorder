@@ -193,7 +193,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Belege zur DoD (Implementer):** <je Zusage: Zusage · Mutation · roter Test (`AGENTS.md` §3.10)>
+- **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten.
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
 - **Steering-Loop-Eintrag:** <…>
@@ -201,6 +201,129 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 - **Drei Paarungen:** <…>
+
+### Belege des Implementers
+
+**Stand.** Geliefert sind DoD-Punkt 1 und 2 in drei Commits: `aad7085` (Recording-Adapter:
+keine reguläre Datei `PGR-E3001` beim Start, ohne und mit `--force`; temporäre Datei nach
+einem Fehlschlag entfernt, Fehler beim Entfernen als Ursache derselben Meldung; Unit- und
+Integrationstests; Abdeckung), `df4f591` (Handbuch, keine Beispiele geändert), `65968e6`
+(Probedatei über dieselbe Tabelle der Dateioperationen; Tests zu ihrem Namen und zu einem
+nicht beschreibbaren Verzeichnis). Neu sind
+`internal/adapters/driven/recording/schreiben_test.go`,
+`internal/adapters/driven/recording/export_test.go` (`PruefeMit`, `SchreibeMit`, `Eingriffe`)
+und `test/integration/schreiben_e2e_test.go`; geändert `yaml.go` (`pruefe`, `schreibe`,
+`dateiOps`, `betriebssystem`, `neueTempDatei` mit Zufall als Parameter) und
+`record_e2e_test.go` (Helfer `startProzessIn` mit Arbeitsverzeichnis). CLI-Adapter, Kern,
+PGWire-Adapter und Bootstrap sind unverändert (§1).
+
+**Randformen.** Kein Code-Commit ändert §6. Entschieden ist nur, was §6 nennt. Zwei Punkte
+gehen als Frage an den Architect zurück; der Code ändert an ihnen nichts gegenüber dem
+Stand vor dem Slice außer dem Entfernen der temporären Datei, und kein Test sagt sie zu:
+
+| Randform | Frage |
+|---|---|
+| Fehlschlag beim Setzen der Rechte (`Chmod`) oder beim Schließen der temporären Datei | `LH-FA-07.a` *Fehlschlag* nennt Anlegen, Schreiben, Synchronisieren und Verschieben. Der Code behandelt beide wie einen Fehlschlag des Schreibens (`PGR-E3001`, Zieldatei unverändert, temporäre Datei entfernt). Gehören sie zum Schreiben? |
+| Rechte, wenn `--force` eine symbolische Verknüpfung auf eine Datei ersetzt | Der Code übernimmt die Zugriffsrechte des Ziels (`os.Stat` folgt der Verknüpfung), wie vor dem Slice. *Rechte* sagt „eine ersetzte behält ihre Zugriffsrechte“, *Vorhanden* zählt nach dem Ziel; ist das Ziel gemeint? |
+
+Kein anderer Slice ist als neue Adresse genannt (§3.13).
+
+**Größe.** Der Diff `ad1b7ba..65968e6` umfasst 753 hinzugefügte und 29 entfernte Zeilen: Code
+71 (`yaml.go`), Unit-Tests 465, Integration 167, Handbuch 23, Abdeckung 24, Plan 3. Ob er in
+eine Review-Sitzung passt, urteilt das Review.
+
+**Läufe.**
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `make test` | vor `aad7085`, vor `65968e6` | Exit 0 |
+| `make lint` | vor `aad7085`, vor `65968e6` | Exit 0, `0 issues.` |
+| `make test-integration` | vor `aad7085` | Exit 0, `run-integration-tests: gruen`, die vier neuen `TestE2ERecord…` PASS |
+| `make docs-check` | vor `aad7085`, vor `65968e6` | 0 Befunde |
+| `make kopf-check`, `make abdeckung-check` | vor `aad7085` | Exit 0 |
+| `make abdeckung` | vor `aad7085`, vor `65968e6` | Tabellen nachgezogen |
+| `make gates` | Commit dieser Belege | Exit 0, vor der Übergabe |
+
+**Weg der Mutanten.** Je Mutant eine frische Kopie des Arbeitsbaums unter dem Scratch-Pfad der
+Sitzung (`cp -r` ohne `-p`, neue mtime); ein Skript ersetzt genau ein Vorkommen (oder das
+genannte n-te) und bricht bei einer anderen Trefferzahl ab. Unit-Mutanten: `docker build
+--target test` in der Kopie (gofmt, vet, `go test ./...`). Integrations-Mutanten: Stufe
+`integration` der Kopie mit eigenem Tag, eigenem internem Netz und eigenem
+PostgreSQL-Container, gefahren nur der genannte Test (`-test.run '^Name$'`); Container, Netz
+und Image entfernt danach ein `trap`. Die Kopie wird danach gelöscht; der Arbeitsbaum blieb
+unberührt. Gefahren: 31 Unit-Mutanten (die Mutanten an `Prepare` nach `65968e6` neu) und 11
+Integrations-Mutanten, alle rot. Ein Mutant (Form des Namens der Probedatei) war vor
+`65968e6` grün, weil die Probedatei sofort entfernt ist und ihr Name von außen nicht zu sehen
+war; mit `TestPrepareProbedatei` ist er rot.
+
+**DoD-Punkt 1 — atomares Schreiben, Zielpfad beim Start (`LH-FA-07.a`).**
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| keine reguläre Datei ist `PGR-E3001` | Prüfung `IsRegular` entfernt | `TestPrepareKeineRegulaereDatei` (alle sechs Fälle); E2E: `TestE2ERecordZielIstVerzeichnis` (Exit 2 statt 3) |
+| auch mit `--force` | Prüfung nur ohne `replace` | `TestPrepareKeineRegulaereDatei` (drei Fälle mit `replace`) |
+| auch eine andere Art als ein Verzeichnis | `IsDir` statt `IsRegular` | `TestPrepareKeineRegulaereDatei` (benannte Pipe) |
+| vorhanden nach dem Ziel einer Verknüpfung, ins Leere nicht vorhanden | `os.Lstat` statt `os.Stat` | `TestPrepareVerknuepfung` (beide Fälle), `TestPrepareNichtPruefbar` |
+| nicht prüfbar ist `PGR-E3001` | jeder Fehler von `Stat` als „nicht vorhanden“ | `TestPrepareNichtPruefbar` (Verknüpfungsschleife: kein Fehler; Pfad unter einer Datei: andere Meldung) |
+| fehlendes Verzeichnis `PGR-E3001`, kein Verzeichnis angelegt | `os.MkdirAll` vor der Probedatei | `TestPrepareVerzeichnis`, `TestPrepareVorhandeneDatei` |
+| nicht beschreibbares Verzeichnis `PGR-E3001` | Fehler mit `fs.ErrPermission` beim Anlegen der Probedatei übergangen | `TestPrepareVerzeichnisNichtBeschreibbar` |
+| Probedatei sofort entfernt | Entfernen weggelassen | `TestPrepareProbedatei`, `TestPrepareVerzeichnis`, `TestRoundtrip`, `TestUebrigGebliebeneDateien` |
+| Probedatei `.<Name>.<Zufallsteil>.probe` | Name ohne Punkt, Endung `.pruef` | `TestPrepareProbedatei` |
+| Probedatei im Verzeichnis der Zieldatei | Probedatei in `os.TempDir()` | `TestPrepareProbedatei`, `TestPrepareVerzeichnis`, `TestPrepareVorhandeneDatei` |
+| Verschieben ersetzt die Verknüpfung, nicht ihr Ziel | Pfad vor dem Schreiben über `filepath.EvalSymlinks` aufgelöst | `TestWriteVerknuepfungErsetzt` |
+| temporäre Datei im Verzeichnis der Zieldatei | temporäre Datei in `os.TempDir()` | `TestWriteNameDerTempDatei`, `TestWriteBelegterName`, `TestWriteZehnBelegteNamen`, `TestWriteEntfernenScheitert` |
+| Name mit 16 Hexziffern | 7 statt 8 Zufallsbytes | `TestWriteNameDerTempDatei`, `TestWriteBelegterName`, `TestWriteZehnBelegteNamen` |
+| exklusiv angelegt, belegter Name nicht überschrieben | `O_TRUNC` statt `O_EXCL` | `TestWriteBelegterName`, `TestWriteZehnBelegteNamen` |
+| nach zehn belegten Namen `PGR-E3001` | elf Versuche | `TestWriteZehnBelegteNamen` |
+| nicht vor dem zehnten Versuch aufgegeben | neun Versuche | `TestWriteZehnBelegteNamen` |
+| Fehlschlag Anlegen `PGR-E3001` | Code `PGR-E1000` am Anlegen | `TestWriteFehlschlag` (Anlegen), `TestWriteZehnBelegteNamen`, dazu `TestRunRecordSchreibfehlerJeStufe` und `TestRunRecordSchreibfehlerVorGemerkterKlasse` |
+| Fehlschlag Schreiben (nach einem Teil der Daten): `PGR-E3001`, Zieldatei unverändert | Fehler des Schreibens übergangen | `TestWriteFehlschlag` (Schreiben: kein Fehler, Zieldatei mit halber Aufzeichnung), `TestWriteEntfernenScheitert` |
+| Fehlschlag Synchronisieren: `PGR-E3001`, Zieldatei unverändert | Fehler des Synchronisierens übergangen | `TestWriteFehlschlag` (Synchronisieren) |
+| Fehlschlag Verschieben: `PGR-E3001` | Fehler des Verschiebens übergangen | `TestWriteFehlschlag` (Verschieben), `TestWriteEntfernenScheitert` |
+| temporäre Datei nach Fehlschlag des Schreibens oder Synchronisierens entfernt | Entfernen im ersten Zweig weggelassen | `TestWriteFehlschlag` (Schreiben, Synchronisieren), `TestWriteEntfernenScheitert` |
+| temporäre Datei nach Fehlschlag des Verschiebens entfernt | Entfernen im zweiten Zweig weggelassen | `TestWriteFehlschlag` (Verschieben), `TestWriteEntfernenScheitert`; E2E: `TestE2ERecordSchreibfehlerNachZwangsende` (zwei `.tmp` im Verzeichnis) |
+| Fehler beim Entfernen folgt als Ursache (Schreiben) | Fehler des Entfernens verworfen, erster Zweig | `TestWriteEntfernenScheitert` (Schreiben) |
+| Fehler beim Entfernen folgt als Ursache (Verschieben) | Fehler des Entfernens verworfen, zweiter Zweig | `TestWriteEntfernenScheitert` (Verschieben) |
+| in derselben Meldung | Fehler des Entfernens als eigene Meldung `PGR-E3001` | `TestWriteEntfernenScheitert` (zwei Meldungen) |
+| übrig gebliebene Probedatei nicht entfernt | `Prepare` entfernt `.<Name>.*.probe` | `TestUebrigGebliebeneDateien` |
+| übrig gebliebene temporäre Datei nicht entfernt | `Write` entfernt `.<Name>.*.tmp` | `TestUebrigGebliebeneDateien`, `TestWriteBelegterName`, `TestWriteZehnBelegteNamen` |
+| übrig gebliebene Dateien nicht gemeldet | `Prepare` meldet `PGR-E3001`, wenn `.<Name>.*` liegt | `TestUebrigGebliebeneDateien` |
+| Pfad, der erst nach dem Start entsteht, ohne Prüfung ersetzt | `Write` lehnt einen vorhandenen Pfad ab | `TestWritePfadNachDemStart` und 4 weitere Unit-Tests |
+| neue Datei `0666` nach der umask | `0600` statt `0666` | `TestWriteRechteUnterUmask022` |
+| ersetzte Datei behält ihre Zugriffsrechte | `Chmod` weggelassen | `TestWriteRechteUndAtomar` |
+| nach dem Zwangsende vollständig ersetzt, keine temporäre Datei | Verschieben weggelassen | E2E: `TestE2ERecordZwangsendeSchreibtVollstaendig` |
+
+**DoD-Punkt 2 — vorhandenes `--output` und `--force` aus jeder Quelle (`LH-FA-08`,
+`LH-FA-17`).** Je Quelle und Wert ein eigener Fall in `TestE2ERecordVorhandeneZieldatei`; je
+Mutant ist nur der genannte Fall rot.
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| vorhandene Datei ohne `--force` `PGR-E2002`, mit `--force` ersetzt | `Prepare` lehnt jede vorhandene reguläre Datei ab | `Kommandozeile/true`, `Umgebung/true`, `Datei/true` |
+| `true` aus der Kommandozeile ersetzt | Kommandozeile für `force` übergangen | `Kommandozeile/true` |
+| `true` aus der Umgebung ersetzt | Umgebung für `force` übergangen | `Umgebung/true` |
+| `true` aus der Datei ersetzt | Datei für `force` übergangen | `Datei/true` |
+| `false` aus der Kommandozeile lehnt ab | Wert der Kommandozeile für `force` als `true` | `Kommandozeile/false` |
+| `false` aus der Umgebung lehnt ab | Wert der Umgebung für `force` als `true` | `Umgebung/false` |
+| `false` aus der Datei lehnt ab | Wert der Datei für `force` als `true` | `Datei/false` |
+| ohne Quelle lehnt ab | Standardwert `true` | `keine/false` |
+
+Die Unit-Zeile `PGR-E2002` ohne `--force` hält `TestPrepareVorhandeneDatei` (vor dem Slice),
+die Zeile mit Verknüpfung `TestPrepareVerknuepfung` (oben, `os.Lstat`).
+
+**Grenzen.**
+
+1. *Liest nicht* (übrig gebliebene Datei): Dass `record` eine übrig gebliebene Datei nicht
+   liest, ist über die Schnittstelle nicht zu sehen; kein Mutant.
+2. *Bestmöglich atomar*: Die Tests laufen nur unter Linux im selben Dateisystem; ob das
+   Verschieben auf einer anderen Plattform atomar ist, prüft kein Test (Risiko in §6).
+3. *Harter Abbruch* (`SIGKILL`) während des Schreibens ist nicht gefahren; die
+   Spezifikation erlaubt dann eine liegen gebliebene temporäre Datei, die Zieldatei hält das
+   Verschieben in einem Schritt (`TestWriteFehlschlag`, Schreiben nach einem Teil der Daten).
+4. Im Integrationstest scheitert das Schreiben nach dem Zwangsende nur über ein Verzeichnis an
+   `--output` (Verschieben); ein Fehlschlag von Anlegen, Schreiben oder Synchronisieren im
+   gebauten Binary ist ohne Eingriff nicht herzustellen und nur in den Unit-Tests über
+   `Eingriffe` gefahren.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
