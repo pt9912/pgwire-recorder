@@ -137,14 +137,34 @@ Randformen **[A]** (Anmeldung) und **[T]** (TLS) stehen seit dem Schnitt in §6 
 `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls`. Offen ist
 keine.
 
+Für den zweiten Schnitt (Entscheidung des Nutzers vom 2026-10-09, Option O3 des Architect,
+Risiko *Größe des Kerns* unten) markiert der Architect am 2026-10-09 zusätzlich: **[L]**
+Laufsteuerung, das sind `--continue-on-error`, `--allow-recorded-errors` und
+`--finish-session-on-interrupt` mit allem, was erst durch sie erreichbar ist (Fortsetzung nach
+einem Fehler, erwarteter Fehler, Exit-Code nach einem früheren Fehler, Session zu Ende nach dem
+Signal); **[E]** Extended, das Einspielen einer Extended-Interaktion (Gruppen, Warten, Signal
+und Abbruch innerhalb ihrer). Eine Randform mit **[L·E]** betrifft beide; sie liefert und
+testet der zweite der beiden Slices in der Reihenfolge, die der Planner setzt. Beim Kern bleiben
+das Abbruchsignal ohne Option und das Einspielen einfacher Anfragen. Die Stelle je Randform
+ändert der Schnitt nicht; den Schnitt selbst (Kennungen, §1, DoD, Abgabe) macht der Planner.
+
 *Lesen der Optionen (CLI-Adapter)*
 
 - **Optionen von `play`** [K] — `--upstream`, `--input`, `--user`, `--database`,
-  `--continue-on-error`, `--allow-recorded-errors`, `--finish-session-on-interrupt`,
   `--log-level`, `--config` am allgemeinen Leser, in der Reihenfolge der Optionstabelle,
   Abschnitt `play:`; bestätigt, `LH-FA-17.a`. Werte von `--user` und `--database`: jeder nicht
   leere Text (`artText`). `--upstream-tls` und `--upstream-ca` liefert
   `slice-v1-abschluss-einspielen-tls` (*Zwischenstand* unten).
+- **Optionen der Laufsteuerung** [L] — `--continue-on-error`, `--allow-recorded-errors`,
+  `--finish-session-on-interrupt` am allgemeinen Leser, Abschnitt `play:`; bestätigt,
+  `LH-FA-17.a` und `LH-FA-20.a` (Optionstabelle). Bis zum Slice der Laufsteuerung gilt für sie
+  dasselbe wie für die *Optionen der Folge-Slices* darunter: unbekannt (`PGR-E2001`,
+  unbekannte Option, `SPEC-034`), ihre Schlüssel in `play:` unbekannt (`PGR-E2004`,
+  `LH-FA-17.a` Fehlertabelle), ihre Umgebungsvariablen unbeachtet (`LH-FA-17.a`, „Die
+  Umgebungsvariable einer Option, die das Kommando nicht kennt, bleibt unbeachtet“). Ein
+  Zwischenstand mit eigener Regel ist dafür nicht nötig: Ohne die drei Optionen bricht jeder
+  Fehler ab (Tabelle der Fehlerregeln, Spalte *Abbruch*), und das Signal endet nach der
+  laufenden Interaktion (Schritt 7); beides ist Zielverhalten ohne Option.
 - **Optionen der Folge-Slices** (`--keep-timing`, `--timing-mode`, `--timing-reference`,
   `--compare-responses`) — bis zu `slice-v1-abschluss-zeitangaben` und
   `slice-v1-abschluss-antwortvergleich` unbekannt (`PGR-E2001`), ihre Schlüssel im Abschnitt
@@ -164,7 +184,7 @@ keine.
   keines verlangt; neu entschieden (Überschreiben) in `LH-FA-17.a` *Wirkung einer URL*, der
   Rest bestätigt (`einsetzen` über alle Teile).
 
-*Start (nach den Optionen)*
+*Start (nach den Optionen)* — alle [K]
 
 - **Aufzeichnung nicht ladbar** [K] — wie bei `replay`, Exit-Code 3; bestätigt, Schritt 1.
 - **Aufzeichnung ohne Session mit Interaktion** [K] — keine Verbindung, Exit-Code 0; neu
@@ -174,6 +194,8 @@ keine.
   entschieden in `LH-FA-20.a` *Start*.
 - **Signal während des Starts** [K] — bricht ihn nicht ab, danach keine Session; neu
   entschieden in `LH-FA-20.a` *Start*.
+- **Interaktion einer Art, die `play` nicht einspielt** [K] — Startfehler `PGR-E6001`,
+  Exit-Code 6, keine Verbindung; Einzelheiten im *Zwischenstand* unten (Extended).
 
 *Verbindungsaufbau je Session (Upstream-Adapter)*
 
@@ -190,8 +212,8 @@ keine.
 - **`BackendKeyData`, `CancelRequest`** [K] — verworfen, nie gesendet; neu entschieden in
   `LH-FA-20.a` *Aufbau*.
 *Zwischenstand bis zu den Folge-Slices* — kein Stand des Produkts, den die Spezifikation
-beschreibt, sondern der Stand dieses Slice, bis `slice-v1-abschluss-einspielen-anmeldung` und
-`slice-v1-abschluss-einspielen-tls` geliefert sind; vom Planner am 2026-10-09 nach dem Vorbild
+beschreibt, sondern der Stand dieses Slice, bis `slice-v1-abschluss-einspielen-anmeldung`,
+`slice-v1-abschluss-einspielen-tls` und der Slice für Extended [E] geliefert sind; vom Planner am 2026-10-09 nach dem Vorbild
 der *Optionen der Folge-Slices* oben gesetzt (derselbe Stand wie bei `record`, kein stilles
 Herabstufen auf eine Verbindung ohne Passwort oder ohne TLS). Vom Architect am 2026-10-09 vor
 dem ersten Code-Commit geprüft (`AGENTS.md` §3.12): Jeder Punkt folgt aus einer allgemeinen
@@ -220,10 +242,35 @@ nicht.
   unterstütztes Verfahren geht keines; die Variable hat damit keine beobachtbare Wirkung, eine
   Prüfung ihres Werts kennt `LH-FA-17.a` nicht. `config show` listet sie wie jede aktive
   Variable (`LH-FA-17.a` *Anzeige*).
+- **Aufzeichnung mit Extended-Interaktion** [K], abgelöst von [E] — `play` spielt bis zum
+  Slice für Extended nur einfache Anfragen ein; eine Extended-Interaktion ist damit eine
+  *Interaktion einer Art, die `play` nicht einspielt*. Vom Architect am 2026-10-09 vor dem
+  ersten Code-Commit neu entschieden, allgemein gefasst in `LH-FA-20.a` *Art der Interaktion*
+  und `SPEC-034` (`PGR-E6001`), je Operation:
+  - *Erkennen beim Laden*: nach dem Laden (Schritt 1), vor der ersten Verbindung, über alle
+    Sessions; ein Ladefehler (Exit-Code 3) geht vor; nicht erst beim Senden.
+  - *Gemischte Sessions*: Eine Extended-Interaktion irgendwo, auch in einer späteren Session
+    oder nach einfachen Anfragen derselben Session, verhindert jede Verbindung; kein
+    Teil-Einspielen, weil `play` eine Datenbank verändert und ein halber Lauf nicht
+    wiederholbar ist.
+  - *Meldungstext*: `PGR-E6001` mit `id` der Session, `sequence` und Art der ersten solchen
+    Interaktion (Reihenfolge der Sessions, dann der Interaktionen); keine Anfrage, keine
+    Parameterwerte (`SPEC-033`).
+  - *Exit-Code*: 6 (Klasse des Codes, `SPEC-034`), Startfehler, auch nach einem Signal
+    während des Starts.
+  - *Log*: Zeile beim Prozessende (`LH-FA-14.a` Startfehler), keine Log-Zeile `error` und
+    keine Zeile `info` zum Start.
+  - *Aufzeichnung ohne Session mit Interaktion*: unverändert Exit-Code 0, sie enthält keine.
+  Der Slice für Extended ersetzt den Punkt durch das Zielverhalten (Schritt 3 für
+  Extended-Interaktionen) und ändert die Tests dazu; die Spezifikation ändert er dafür nicht.
+  *Akzeptiertes Negativ:* Im Zielstand hat die Regel *Art der Interaktion* keinen Fall, weil
+  `play` jede Art des Formats einspielt; sie bleibt als allgemeine Regel stehen, damit der
+  Folge-Slice nur das Zielverhalten liefert (Entscheidung des Nutzers), und gilt für eine
+  künftige Art des Formats, die `play` noch nicht einspielt.
 
 *Interaktion (Play-Service und Upstream-Adapter)*
 
-- **Warten innerhalb einer Extended-Interaktion** [K] — nach `Sync` auf `ReadyForQuery`, nach
+- **Warten innerhalb einer Extended-Interaktion** [E] — nach `Sync` auf `ReadyForQuery`, nach
   `Flush` auf die Antwort jeder Client-Nachricht der Gruppe (Tabelle der Antworten), nicht
   nach den aufgezeichneten Server-Nachrichten; nach einer `ErrorResponse` nur noch auf das
   `ReadyForQuery`, übrige Gruppen ohne Warten; neu entschieden in `LH-FA-20.a` *Gruppen*.
@@ -236,24 +283,26 @@ nicht.
 - **Fehlerantwort `FATAL` oder `PANIC`** [K] — sofort `PGR-E4003`, kein `PGR-E4004`, kein
   Warten auf das Ende; Schweregrad aus `V`, ohne es `S`; neu entschieden in `LH-FA-20.a`
   *Interaktion*. Damit hat das zweite Risiko unten seinen Ort.
-- **Erwarteter Fehler bei `--allow-recorded-errors`** [K] — entscheidet allein, ob die
-  aufgezeichnete Interaktion irgendwo eine `error_response` trägt, in jeder Gruppe; keine
-  Meldung; neu entschieden in `LH-FA-20.a` *Interaktion*.
+- **Erwarteter Fehler bei `--allow-recorded-errors`** [L], „in jeder Gruppe“ [L·E] —
+  entscheidet allein, ob die aufgezeichnete Interaktion irgendwo eine `error_response` trägt,
+  in jeder Gruppe; keine Meldung; neu entschieden in `LH-FA-20.a` *Interaktion*.
 - **Senden scheitert** [K] — `PGR-E4003`, kein Weiterlesen; **Lesen endet** nach dem ersten
   `ReadyForQuery` — `PGR-E4003`; neu entschieden beziehungsweise bestätigt (Tabelle) in
   `LH-FA-20.a`.
-- **Abbruch nach `PGR-E4004`** [K] — keine weitere Antwort gelesen, keine weitere Nachricht oder
-  Gruppe, `Terminate`; neu entschieden (Lesen) in `LH-FA-20.a` *Interaktion*, sonst bestätigt,
+- **Abbruch nach `PGR-E4004`** [K], „keine weitere Gruppe“ [E] — keine weitere Antwort
+  gelesen, keine weitere Nachricht oder Gruppe, `Terminate`; neu entschieden (Lesen) in `LH-FA-20.a` *Interaktion*, sonst bestätigt,
   Schritt 6.
-- **Fortsetzung** (`--continue-on-error`, erwarteter Fehler) [K] — Rest der Interaktion wie
-  aufgezeichnet, Exit-Code 4 am Ende nach einem `PGR-E4004`; bestätigt, Schritt 6 und Tabelle.
+- **Fortsetzung** (`--continue-on-error`, erwarteter Fehler) [L], bei einer
+  Extended-Interaktion (Server verwirft bis `Sync`, übrige Gruppen ohne Warten, `LH-FA-20.a`
+  Schritt 6 und *Gruppen*) [L·E] — Rest der Interaktion wie aufgezeichnet, Exit-Code 4 am Ende
+  nach einem `PGR-E4004`; bestätigt, Schritt 6 und Tabelle.
 - **Frist** [K] — keine eigene, auf Antworten wie auf den Aufbau; neu entschieden in
   `LH-FA-20.a` *Interaktion*.
 
 *Meldungen und Log (Bootstrap und Play-Service)*
 
-- **Fehler nach dem Start** [K] — je Fehler, auch je `PGR-E4004` bei `--continue-on-error`,
-  eine Log-Zeile `error` mit `code` und `error`; nennt `id`, `sequence`, SQLSTATE und `M` der
+- **Fehler nach dem Start** [K], „je `PGR-E4004` bei `--continue-on-error`“ [L] — je Fehler,
+  auch je `PGR-E4004` bei `--continue-on-error`, eine Log-Zeile `error` mit `code` und `error`; nennt `id`, `sequence`, SQLSTATE und `M` der
   Fehlerantwort, keine weiteren Felder, nie Passwort oder Parameterwerte; neu entschieden in
   `LH-FA-20.a` *Meldungen* und `LH-FA-14.a`.
 - **Zeilen der Stufe `info`** [K] — Start (`upstream=host:port`, Aufzeichnung; nie Benutzer,
@@ -264,15 +313,20 @@ nicht.
 
 - **`Terminate` und Schließen scheitern** [K] — keine Meldung, Exit-Code unverändert; offene
   Transaktion setzt der Server zurück; neu entschieden in `LH-FA-20.a` *Ende einer Session*.
-- **Erstes Signal im Aufbau** [K] — der Aufbau läuft zu Ende, ein Fehler darin zählt; danach
-  ohne `--finish-session-on-interrupt` keine Interaktion, mit ihr die ganze Session; neu
-  entschieden in `LH-FA-20.a` *Abbruchsignal*. **Zwischen Sessions** — keine neue (Session
-  läuft ab ihrem Aufbau). **In einer Extended-Interaktion** — bis zu ihrem `ReadyForQuery`.
+- **Erstes Signal im Aufbau** [K], „mit `--finish-session-on-interrupt` die ganze Session“
+  [L] — der Aufbau läuft zu Ende, ein Fehler darin zählt; danach ohne
+  `--finish-session-on-interrupt` keine Interaktion, mit ihr die ganze Session; neu
+  entschieden in `LH-FA-20.a` *Abbruchsignal*. **Zwischen Sessions** [K] — keine neue (Session
+  läuft ab ihrem Aufbau). **In einer Extended-Interaktion** [E] — bis zu ihrem `ReadyForQuery`.
+- **Exit-Code beim Abbruchsignal** [K] 0 ohne vorherigen Fehler; „4 nach einem früheren
+  Fehler“ [L] — ohne die Optionen der Laufsteuerung bricht jeder Fehler vorher ab; bestätigt,
+  Tabellenzeile *Abbruchsignal*.
 - **Zweites Signal** [K] — `Terminate`, soweit sofort möglich, Schließen, Ende; die
   unterbrochene Interaktion ist kein Fehler, Exit-Code nach der Zeile *Abbruchsignal* (0 ohne
   vorherigen Fehler); weitere Signale ohne Wirkung; neu entschieden in `LH-FA-20.a`
   *Abbruchsignal* (die Tabelle deckte das zweite Signal schon, der Satz macht es ausdrücklich).
-- **Exit-Code beim Abbruch nach einem früheren `PGR-E4004`** [K] — der des abbrechenden Fehlers
+- **Exit-Code beim Abbruch nach einem früheren `PGR-E4004`** [L] (ein früherer `PGR-E4004`
+  ohne Abbruch setzt `--continue-on-error` voraus) — der des abbrechenden Fehlers
   (4 oder 6); neu entschieden in `LH-FA-20.a` *Exit-Code*.
 
 *Akzeptierte Negative der Prüfung vom 2026-10-09* (keine Folgepflicht, einmalig und harmlos):
@@ -315,8 +369,12 @@ nicht.
   Signale in `main`; neu sind Play-Service, Port, die Einstufung des Aufbaus für `play`, das
   Warten je Gruppe, Fehler- und Signalsteuerung, Bootstrap und Tests, geschätzt 2200 bis 2800
   Zeilen mit Tests. Der Schnitt aus §4 (DoD-Punkt 3) allein reicht nicht und verlangte eine
-  Regel für das Signal bis zum Folge-Slice; Optionen und Empfehlung liegen dem Nutzer vor —
-  **Ausgang:** offen bis Closure.
+  Regel für das Signal bis zum Folge-Slice; Optionen und Empfehlung lagen dem Nutzer vor.
+  Entscheidung des Nutzers vom 2026-10-09: Option O3, Laufsteuerung [L] und Extended [E] als
+  eigene Slices, das Abbruchsignal ohne Option bleibt im Kern; die Marken stehen oben, der
+  Zwischenstand für Extended ist vor dem Code entschieden (*Zwischenstand*), für die
+  Laufsteuerung ist keiner nötig (*Optionen der Laufsteuerung*). Den Schnitt macht der Planner —
+  **Ausgang:** offen bis zum Schnitt des Planners.
 
 
 ## 7. Closure-Notiz

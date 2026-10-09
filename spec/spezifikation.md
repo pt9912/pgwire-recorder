@@ -1448,6 +1448,17 @@ offenlässt.
   die Aufzeichnung keine Session mit Interaktion, verbindet sich `play` nicht und
   endet mit Exit-Code `0`. Ein Abbruchsignal während des Starts bricht ihn nicht ab;
   danach beginnt keine Session.
+* *Art der Interaktion.* Nach dem Laden prüft der Start jede Interaktion jeder
+  Session. Enthält die Aufzeichnung eine Interaktion einer Art, die `play` nicht
+  einspielt, ist das ein Startfehler `PGR-E6001` mit Exit-Code `6`: Es entsteht keine
+  Verbindung, auch nicht für Sessions vor ihr oder Sessions, die nur einspielbare
+  Interaktionen enthalten. Die Meldung nennt von der ersten solchen Interaktion in der
+  Reihenfolge der Sessions und ihrer Interaktionen die `id` der Session, die `sequence`
+  und die Art, wie das Format sie nennt, keine Anfrage und keine Parameterwerte
+  (`SPEC-033`). Ein Fehler
+  beim Laden (Exit-Code `3`) geht vor; eine Aufzeichnung ohne Session mit Interaktion
+  enthält keine solche Interaktion. Wie jeder Startfehler ist er die Zeile beim
+  Prozessende, keine Log-Zeile, auch nach einem Abbruchsignal während des Starts.
 * *Startup-Daten.* `play` sendet die aufgezeichneten Startup-Parameter der Session
   unverändert, `user` und `database` nach dem Vorrang aus `LH-FA-17.a` (Option, URL,
   Aufzeichnung); fehlt ein Wert in allen dreien, fehlt der Parameter, und der Server
@@ -1992,7 +2003,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E5003` | Replay (Exit 5) | Anfrage einer Verbindung, zu der keine nicht zugeordnete Session mehr existiert (LH-FA-12.a, `SPEC-027`) |
 | `PGR-E5004` | Replay (Exit 5) | Serverantwort beim Einspielen weicht von der Aufzeichnung ab, auch ein Serverfehler ohne Vorbild in der Aufzeichnung, ebenso nach deren Ende (`SPEC-027`, LH-FA-24.a) |
 | `PGR-E6000` | nicht unterstützt (Exit 6) | Rückfall |
-| `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`), beim Einspielen eine Serverantwort, die `play` nicht lesen oder nicht bedienen kann (LH-FA-20.a) |
+| `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`), beim Einspielen eine Serverantwort, die `play` nicht lesen oder nicht bedienen kann, oder eine Interaktion einer Art, die `play` nicht einspielt (LH-FA-20.a) |
 | `PGR-E6002` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Protokollversion (LH-FA-05.e) |
 | `PGR-E6003` | nicht unterstützt (Exit 6) | unverschlüsselte Verbindung, obwohl TLS konfiguriert und `--allow-plaintext` nicht gesetzt ist (LH-FA-23.a) |
 | `PGR-W2001` | Replay | Sitzung endet vor Verbrauch aller Interaktionen, oder Sessions nie zugeordnet (LH-FA-03.b) |
@@ -2630,3 +2641,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Sicheres Schreiben: Probedatei auch nach gescheitertem Schließen entfernt; scheitern beide, eine Meldung mit dem Fehler des Entfernens als Ursache (`LH-FA-07.a`) |
 | 2026-10-09 | Einspielen: Randformen je Schritt vor dem Code (Datei aus `--upstream-ca`, Aufzeichnung ohne Session mit Interaktion, Startup-Daten, TLS-Antwort und Aushandlung, Passwortquelle und Verfahren ohne SASLprep und Channel Binding, Fehler im Aufbau, Warten nach einer `Flush`-Gruppe, nicht bedienbare Serverantwort `PGR-E6001`, `FATAL` als `PGR-E4003`, erwarteter Fehler je Interaktion, Meldungen, Ende einer Session, Signal im Aufbau und zweites Signal, Exit-Code beim Abbruch); Warten auf ein aufgezeichnetes Verbindungsende in Schritt 3 gestrichen, nicht erreichbar seit `LH-FA-02.b` (`LH-FA-20.a`); `play` ohne gewöhnliches Argument (`LH-FA-01.a`); Log-Zeilen von `play` (`LH-FA-14.a`); Variablen aller Teile bei `play`, ausdrücklich gesetztes `--upstream-tls=false`, Stelle von `--upstream-ca` ohne TLS in der Reihenfolge (`LH-FA-17.a`); `PGR-E6001` beim Einspielen (`SPEC-034`) |
 | 2026-10-09 | Einspielen: ein Verfahren, das `play` nicht unterstützt, ist `PGR-E4005` ohne Senden, auch wenn es ein Passwort gibt (`LH-FA-20.a`); `sslmode=require` bei jedem Kommando ohne TLS zum Upstream `PGR-E2004` wie bei `record` (`LH-FA-17.a`); Sicheres Schreiben: atomares Verschieben nur unter Linux im selben Dateisystem geprüft, macOS und Windows nicht (Grenze, `LH-FA-07.a`) |
+| 2026-10-09 | Einspielen: eine Interaktion einer Art, die `play` nicht einspielt, ist beim Start `PGR-E6001` mit Exit-Code `6`, ohne Verbindung für irgendeine Session; Meldung mit `id`, `sequence` und Art der ersten, nach einem Ladefehler (`LH-FA-20.a`, `SPEC-034`) |

@@ -42,6 +42,12 @@ Start* für `sqlite` gilt, nennt §6 dieses Slice als Randformen und entscheidet
 in `LH-FA-22.a` *Schreiben von `sqlite`*, vor dem ersten Code-Commit (`AGENTS.md` §3.12).
 Dort gilt heute nur: Zielpfad wie in `LH-FA-07.a`, temporäre Datei im Verzeichnis der
 Zieldatei, atomar verschoben.
+Dazu, mit der Kennung `slice-v1-abschluss-schreiben` (Entscheidung des Nutzers vom
+2026-10-09): die Grenze der Prüfung für `sqlite` — ob für das atomare Verschieben in
+`LH-FA-22.a` *Schreiben von `sqlite`* dieselbe Grenze gilt wie in `LH-FA-07.a` Schritt 2 (geprüft
+nur unter Linux im selben Dateisystem, macOS und Windows nicht) und ob sie für das Ergänzen
+einer Session in einer Transaktion eine eigene braucht. §6 nennt sie als Randform, der Architect
+dieses Slice entscheidet sie in `LH-FA-22.a`, vor dem ersten Code-Commit (`AGENTS.md` §3.12).
 
 
 ## 2. Definition of Done
@@ -105,6 +111,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
+- **Randform** (aus `slice-v1-abschluss-schreiben`, §1 *Übernommen*): Grenze der Prüfung des
+  atomaren Verschiebens und der Transaktion je Session unter Linux, macOS und Windows — offen,
+  entscheidet der Architect dieses Slice in `LH-FA-22.a` vor dem ersten Code-Commit —
+  **Ausgang:** offen bis zu seiner Prüfung.
 - Die gewählte Bibliothek (reines Go, siehe [ADR-0024](../../adr/0024-sqlite-bibliothek.md)) ist für die sechs Zielplattformen erst durch den Build im Slice belegt — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
