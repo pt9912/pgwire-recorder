@@ -150,8 +150,8 @@ dasteht.
 - **Schließen oder Entfernen der Probedatei scheitert** — `PGR-E3001` beim Start, der Text
   des Fehlers als Ursache, eine nicht entfernte Probedatei bleibt liegen; entschieden in
   `LH-FA-07.a` *Zielpfad beim Start*, *Verzeichnis* (Architect, 2026-10-09, Übergabe F-543
-  des Reviews). Der Code folgt (`schliessen` aus der Tabelle, `closeErr`, `removeErr`), der
-  Test ist `TestPrepareProbedateiScheitert` (§3).
+  des Reviews). Der Code folgt (`pruefe`: `schliessen` und `entfernen` aus der Tabelle, der
+  Fehler als Ursache der Meldung), der Test ist `TestPrepareProbedateiScheitert` (§3).
 - **Schließen der Probedatei scheitert, Entfernen danach** — `record` entfernt sie dennoch;
   scheitert auch das Entfernen, bleibt sie liegen, und der Fehler des Entfernens folgt als
   Ursache **derselben** Meldung `PGR-E3001` (wie bei der temporären Datei, *Fehlschlag*);
@@ -373,12 +373,12 @@ nur in den genannten Fällen.
 | Anlegen der Probedatei gescheitert: Fehler als Ursache | Ursache `nil` statt des Fehlers | `TestPrepareVerzeichnisNichtBeschreibbar` (alle drei Fälle) |
 | Schließen der Probedatei gescheitert: `PGR-E3001` (F-543) | Fehler von `schliessen` verworfen | `TestPrepareProbedateiScheitert` (`Schliessen`, beide Fälle) |
 | … das Schließen läuft über die Tabelle | `probe.Close()` statt `ops.schliessen(probe)` | `TestPrepareProbedateiScheitert` (`Schliessen`, beide Fälle) |
-| Schließen der Probedatei gescheitert: Fehler als Ursache | Ursache `nil` in `closeErr` | `TestPrepareProbedateiScheitert` (`Schliessen`) |
+| Schließen der Probedatei gescheitert: Fehler als Ursache | Fehler des Schließens verworfen (`errors.Join(ops.entfernen(name))` als Ursache) | `TestPrepareProbedateiScheitert` (`Schliessen`, `Schliessen und Entfernen`) |
 | Entfernen der Probedatei gescheitert: `PGR-E3001` (F-543) | Fehler von `entfernen` verworfen (Mutant P des Reviews) | `TestPrepareProbedateiScheitert` (`Entfernen`, beide Fälle) |
-| Entfernen der Probedatei gescheitert: Fehler als Ursache | Ursache `nil` in `removeErr` | `TestPrepareProbedateiScheitert` (`Entfernen`) |
+| Entfernen der Probedatei gescheitert: Fehler als Ursache | Ursache `nil` an „Probedatei nicht zu entfernen“ | `TestPrepareProbedateiScheitert` (`Entfernen`) |
 | nicht entfernte Probedatei bleibt liegen | nach gescheitertem Entfernen `os.Remove` nachgeholt | `TestPrepareProbedateiScheitert` (`Entfernen`: keine `.probe` im Verzeichnis) |
 | Schließen gescheitert: Probedatei dennoch entfernt (Randform-Rückgabe) | nach gescheitertem Schließen nicht entfernt | `TestPrepareProbedateiScheitert` (`Schliessen`: `.probe` liegt; `Schliessen und Entfernen`: Ursache des Entfernens fehlt) |
-| Schließen und Entfernen gescheitert: genau eine Meldung (Randform-Rückgabe) | zwei gleichrangige Meldungen (`errors.Join` aus `closeErr` und `removeErr`, Code vor der Nacharbeit) | `TestPrepareProbedateiScheitert` (nur `Schliessen und Entfernen`: zwei Meldungen) |
+| Schließen und Entfernen gescheitert: genau eine Meldung (Randform-Rückgabe) | zwei gleichrangige Meldungen über `errors.Join` (Code vor `3a7018b`) | `TestPrepareProbedateiScheitert` (nur `Schliessen und Entfernen`: zwei Meldungen) |
 | … sie trägt den Fehler des Entfernens als Ursache | Fehler des Entfernens verworfen (`_ = ops.entfernen(name)`) | `TestPrepareProbedateiScheitert` (nur `Schliessen und Entfernen`) |
 | … und den Fehler des Schließens als Ursache | Fehler des Schließens verworfen (`errors.Join(ops.entfernen(name))`) | `TestPrepareProbedateiScheitert` (`Schliessen`, `Schliessen und Entfernen`) |
 | … und die Probedatei bleibt liegen | nach gescheitertem Entfernen `os.Remove` nachgeholt, im Zweig des Schließens | `TestPrepareProbedateiScheitert` (nur `Schliessen und Entfernen`: keine `.probe`) |
