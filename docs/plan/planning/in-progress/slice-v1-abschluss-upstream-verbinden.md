@@ -362,7 +362,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
-- **Belege zur DoD (Implementer):** <…>
+- **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten.
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
 - **Steering-Loop-Eintrag:** <…>
@@ -370,6 +370,131 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 - **Drei Paarungen:** <…>
+
+### Belege des Implementers
+
+**Stand.** Geliefert sind DoD-Punkt 1 bis 3 in fünf Commits, jeder mit `make test` grün:
+`fe849ac` (DoD-Punkt 1: Prüfung von `--upstream` und `PGWIRE_RECORDER_UPSTREAM` nach der
+Zusammenführung, Namen nur aus der gewählten Datei, Hilfe), `694eb99` (DoD-Punkt 1 und 2:
+benutzte Verbindung, `sslmode=require` bei `record`, Einsetzen, `PGR-E2005`, Port nach dem
+Einsetzen, Zusammensetzen), `e35fb56` (DoD-Punkt 1: Integrationstests), `8ba8caa`
+(DoD-Punkt 3: Handbuch), `80cb896` (Testfall zu einem grünen Mutanten, unten). Neu sind
+`internal/adapters/driving/cli/upstream.go`, `internal/adapters/driving/cli/upstream_test.go`,
+`internal/adapters/driving/cli/einsetzen_test.go` und
+`test/integration/verbindung_e2e_test.go`; geändert `cli.go` (Feld `zuletzt` am Leser, Hilfe),
+`datei.go` (`hatName`, `verbindung`; der Schlüssel `upstream` prüft über dieselbe Regel
+`upstreamGueltig`), `verbindung.go` (`einsetzen`, `adresseRecord`, `zusammensetzen`),
+`export_test.go` (`SetzeEin`), `leser_test.go` (`basis` gibt `--upstream` die Form
+`host:port`), `verbindung_test.go` (`TestDateiUpstream` erwartet für den Namen die Adresse).
+`internal/bootstrap` und `postgres.Upstream` sind unverändert; `RecordOptions.Upstream` trägt
+die zusammengesetzte Adresse. Die Abdeckungstabellen sind in jedem Commit mit neuen
+Deklarationen über `make abdeckung` nachgezogen.
+
+**Randformen.** Keine Randform außerhalb von §6 entschieden, keine Rückgabe an den Architect;
+kein Code-Commit ändert §6. Die Meldungstexte (`--upstream: weder Name einer Verbindung der
+Konfigurationsdatei noch host:port`, `Umgebungsvariable PGWIRE_RECORDER_UPSTREAM: …`,
+`connections.<Name>: sslmode=require ist bei record ungültig, …`, `connections.<Name>:
+Umgebungsvariable <VAR> eines Platzhalters nicht gesetzt`, `connections.<Name>: Port nach dem
+Einsetzen ist keine Zahl von 1 bis 65535`) nennen die Stelle nach U3 und keinen Wert, auch
+die zur Kommandozeile nicht. Kein anderer Slice ist als neue Adresse genannt (§3.13).
+
+**Größe.** Der Diff `9a04b12..80cb896` umfasst 712 hinzugefügte und 24 entfernte Zeilen: Code
+141, Unit-Tests 424, Integration 94, Handbuch 34, Abdeckung 19; innerhalb der Schätzung von
+660 bis 870 Zeilen (§6 *Risiken*, erster Punkt). Ob er in eine Review-Sitzung passt, urteilt
+das Review.
+
+**Läufe.**
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `make test` | vor `fe849ac`, `694eb99`, `e35fb56`, `80cb896` | Exit 0 |
+| `make lint` | vor `fe849ac`, `694eb99`, `e35fb56`, `80cb896` | Exit 0, `0 issues.` |
+| `make test-integration` | vor `e35fb56` | Exit 0, `TestE2ERecordVerbindungAusDatei` und `TestE2ERecordVerbindungIPv6` PASS |
+| `make docs-check` | vor `8ba8caa` | 0 Befunde |
+| `make abdeckung` | je Commit mit Deklarationen | Tabellen nachgezogen; `make abdeckung-check` vor `8ba8caa` Exit 0 |
+| `make gates` | `80cb896` | Exit 0 (darin `run-integration-tests: gruen`, `d-check: … 0 Befund(e)`, `lint-gegenprobe: gruen`) |
+| `make gates` | Commit dieser Belege | Exit 0, vor der Übergabe |
+
+**Weg der Mutanten.** Je Mutant ein frisches Verzeichnis unter dem Scratch-Pfad der Sitzung,
+in das `go.mod`, `go.sum`, `cmd/`, `internal/`, `test/`, `.golangci.yml`, `Dockerfile` und
+`.dockerignore` mit `cp -r` ohne `-p` kopiert werden (neue mtime); ein Skript ersetzt genau
+ein Vorkommen und bricht bei einer anderen Trefferzahl ab. Unit-Mutanten: `docker build
+--target test` in der Kopie (gofmt, vet, `go test ./...`), Integrations-Mutanten:
+`tools/test/run-integration-tests.sh` in der Kopie, mit eigenem Netz, Container und Volume,
+die das Skript danach entfernt. Danach werden das Verzeichnis und das Image des Mutanten
+gelöscht; der Arbeitsbaum blieb unberührt. Gefahren: 34 Unit-Mutanten und 4
+Integrations-Mutanten; 37 rot, einer zuerst grün (unten), mit dem Test aus `80cb896` rot. Ein
+Mutant (*config show setzt ein*) endete zuerst mit einer Nil-Dereferenz in einem fremden
+Test, ist mit Prüfung auf eine fehlende Datei neu gefahren und dann aus dem richtigen Grund
+rot.
+
+**DoD-Punkt 1 — Wert von `--upstream`, benutzte Verbindung, Adresse.**
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| Wert der Kommandozeile geprüft (A7, A8) | Prüfung der Kommandozeile entfernt | `TestUpstreamUngueltig`, `TestUpstreamNameNurAusDatei` |
+| Wert der Umgebungsvariable geprüft (A7, A8) | Prüfung der Umgebung entfernt | `TestUpstreamUngueltig`, `TestUpstreamNameNurAusDatei` |
+| auch der Wert, der nicht gilt (A8) | Umgebung nur ohne Kommandozeile geprüft | `TestUpstreamUngueltig` |
+| Kommandozeile vor Umgebungsvariable (*Fehler*) | Reihenfolge getauscht | `TestUpstreamUngueltig` |
+| Meldung zur Umgebung ohne Wert | Wert in die Meldung | `TestUpstreamUngueltig` |
+| Host nach F-521 bei Option und Umgebung | Prüfung nur am Schlüssel (beide Prüfungen oben entfernt) | `TestUpstreamUngueltig` (`GEHEIM@h:5`, `GEHEIM h:5`, `a/GEHEIM:5`, `h%41GEHEIM:1`, `a[GEHEIM:1`, Steuerzeichen) |
+| Namen nur aus der gewählten Datei (U1) | Namen gegen eine leere Menge | `TestUpstreamNameNurAusDatei`, `TestDateiUpstream`, `TestDateiUpstreamUngueltig` |
+| Name nur bei genauer Übereinstimmung | auch in Kleinbuchstaben angenommen | `TestUpstreamNameNurAusDatei`, `TestDateiUpstreamUngueltig` |
+| Prüfung nach Pflichtoptionen (*Fehler*) | Prüfung in der Schleife der Zusammenführung | `TestUpstreamReihenfolge` |
+| Hilfe nennt host:port oder Namen (U7) | alter Text | `TestUpstreamHilfe` |
+| benutzt ist die Verbindung, die der Wert nennt | erste Verbindung der Datei | `TestUpstreamVerbindung`, `TestUpstreamVariableFehlt`, `TestUpstreamReihenfolgeAmEnde` |
+| der zusammengeführte Wert, nicht die Umgebung | Name aus der Umgebung, wenn gesetzt | `TestUpstreamVerbindung` |
+| auch aus dem Schlüssel `upstream` | nur aufgelöst, wenn Option oder Umgebung gesetzt | `TestUpstreamVerbindung`, `TestDateiUpstream` |
+| `record` verbindet zu Host und Port der Verbindung | Adresse nicht übernommen | `TestUpstreamVerbindung` und weitere 5 Unit-Tests; E2E: `TestE2ERecordVerbindungAusDatei`, `TestE2ERecordVerbindungIPv6` |
+| Host mit `:` in eckigen Klammern (U5, F-528) | nie geklammert | `TestUpstreamVerbindung`, `TestUpstreamEinsetzen`; E2E: `TestE2ERecordVerbindungIPv6` |
+| Host ohne `:` ohne Klammern (U5) | immer geklammert | `TestUpstreamVerbindung`, `TestUpstreamEinsetzen` und 4 weitere |
+| Port wie eingesetzt (U4) | Port aus dem Teil vor dem Einsetzen | `TestUpstreamEinsetzen`; E2E: `TestE2ERecordVerbindungAusDatei` |
+| Zeile beim Start nennt die Adresse, nicht den Namen (U6) | Adresse nicht übernommen (die Zeile nennt den geschriebenen Wert) | E2E: `TestE2ERecordVerbindungAusDatei` (`upstream=` mit Host und Port, ohne `staging`) |
+| bei `record` bleiben Benutzer, Passwort, Datenbank unbeachtet | Einsetzen auch in diese Teile | `TestUpstreamVerbindung`; E2E: `TestE2ERecordVerbindungAusDatei` |
+
+**DoD-Punkt 2 — Einsetzen, `PGR-E2005`, Port, `sslmode`, Reihenfolge.**
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| nicht gesetzte Variable ist `PGR-E2005` | Code `PGR-E2004` statt `PGR-E2005` | `TestUpstreamVariableFehlt`, `TestEinsetzenAlleTeile`, `TestUpstreamReihenfolgeAmEnde` |
+| leere Variable gilt als nicht gesetzt | leerer Wert eingesetzt | `TestUpstreamVariableFehlt`, `TestEinsetzenAlleTeile`, `TestUpstreamReihenfolgeAmEnde` |
+| Meldung nennt die erste Variable in der Reihenfolge der URL (A12) | Host und Port vertauscht eingesetzt | `TestUpstreamVariableFehlt` |
+| innerhalb eines Teils die erste (A12) | Name der letzten Variable des Teils | `TestUpstreamVariableFehlt`, `TestEinsetzenAlleTeile` |
+| Meldung nennt `connections.<Name>` (U3) | Stelle `connections` ohne Name | `TestUpstreamPortNachEinsetzen`, `TestUpstreamReihenfolgeAmEnde` |
+| Variablen nicht benutzter Verbindungen unbeachtet | jede Verbindung eingesetzt | `TestUpstreamVariableFehlt`, `TestUpstreamReihenfolgeAmEnde` |
+| `config show` meldet kein `PGR-E2005` | `config show` setzt die Verbindung des Schlüssels `upstream` ein | `TestUpstreamVariableFehlt` |
+| einmal eingesetzt, keine erneute Auswertung | eingesetzter Wert erneut ersetzt | `TestUpstreamEinsetzen` |
+| Wert unverändert, nicht dekodiert | eingesetzter Wert dekodiert | `TestUpstreamEinsetzen`, `TestEinsetzenAlleTeile` |
+| Wert unverändert, nicht gekürzt | Leerraum am Rand entfernt | `TestUpstreamEinsetzen`, `TestUpstreamPortNachEinsetzen` (seit `80cb896`, unten) |
+| Port nach dem Einsetzen geprüft, `PGR-E2004` (Rückgabe 8) | Prüfung entfernt | `TestUpstreamPortNachEinsetzen` |
+| Meldung zum Port ohne Wert (U3) | Wert in die Meldung | `TestUpstreamPortNachEinsetzen` (`GEHEIM`) |
+| den Host prüft der Start nicht (Rückgabe 8) | eingesetzter Host wie ein wörtlicher geprüft | `TestUpstreamEinsetzen` (`a:b`, `a@b/%41`) |
+| `sslmode=require` bei `record` `PGR-E2004` | Prüfung entfernt | `TestUpstreamReihenfolgeAmEnde` |
+| `sslmode=require` vor den Variablen (A9) | nach dem Einsetzen geprüft | `TestUpstreamReihenfolgeAmEnde` |
+| `--upstream` vor `sslmode=require` | `sslmode=require` vor der Prüfung des Werts | `TestUpstreamReihenfolgeAmEnde` |
+| Variablen vor dem Port | Form des Ports vor dem Einsetzen der Variablen geprüft | `TestUpstreamVariableFehlt` (leere Variable im Port ist `PGR-E2005`), `TestUpstreamReihenfolgeAmEnde`, `TestUpstreamEinsetzen` |
+| Einsetzen gilt für jeden Teil, erste fehlende in der Reihenfolge der URL (U8) | Name der letzten Variable des Teils; leerer Wert eingesetzt; Wert dekodiert (Zeilen oben) | `TestEinsetzenAlleTeile` über `SetzeEin`, je Teil Benutzer, Passwort, Host, Port, Datenbank |
+| Variablen einmal gelesen (U2) | Grenze, unten | `TestUpstreamEinmalGelesen` |
+
+**Grüne Mutanten, eingeordnet.**
+
+- *Eingesetzter Wert am Rand gekürzt* (`strings.TrimSpace`) blieb grün: Er ändert das
+  Verhalten (Host mit Leerraum, Port `" 5"`), ist über die Schnittstelle fangbar, und kein
+  Fall hatte Leerraum am Rand. `80cb896` ergänzt in `TestUpstreamEinsetzen` den Host `" h\t"`
+  und in `TestUpstreamPortNachEinsetzen` die Ports `" 5"` und `"5\n"`; danach rot in beiden.
+- Sonst kein grüner Mutant.
+
+**Grenzen.**
+
+- *U2, Einsetzen beim Verbinden statt beim Lesen* ist im Zuschnitt nicht baubar, ohne
+  `postgres.Upstream` zu ändern (§1, Schicht-Abgrenzung; §6 U2). `TestUpstreamEinmalGelesen`
+  sichert die Form der Übergabe: `RecordOptions.Upstream` ist ein fester Text.
+- *Vorrang des Namens vor `host:port`* (A7) hat keinen Fall: Ein Name enthält kein `:`,
+  `host:port` immer eines (akzeptiertes Negativ in §6, A7).
+- Die einzelnen Zeichen der Regel F-521 prüft `hostPortForm`, mit Mutanten je Zeichen belegt im
+  Lade-Slice am Schlüssel `upstream`; hier belegt die Mutation *Prüfung nur am Schlüssel* (die
+  zwei Prüfungen von Option und Umgebung entfernt), dass Option und Umgebung dieselbe Prüfung
+  durchlaufen, mit einem Fall je Zeichenklasse in `upstreamUngueltig`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
