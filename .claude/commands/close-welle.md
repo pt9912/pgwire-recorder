@@ -23,11 +23,16 @@ Wellen-Closure), Modul 7 (Carveouts), Modul 5 (Lifecycle). Bei Konflikt gilt der
 - **Docker-only + Gate-Nachweis/Stop-Hook.** Nur `make`-Targets; `make gates` endet mit
   `record-gates`. Jede Inhaltsänderung nach einem Gate-Lauf (inkl. Commit) macht den Stempel ungültig →
   nach dem Wave-Self-Close-Commit `make gates` grün bestätigen.
-- **Strenges Doc-Gate.** `docs-check` ist rot bei einer `ADR-`-Kennung ohne Link in einer gescannten
-  `.md`, im Fließtext und in Inline-Code, und bei einem toten Linkziel oder Anker; Kennungen in
-  umzäunten Code-Blöcken (```` ``` ```` oder `~~~`) und `LH-`-Kennungen ohne Link prüft es nicht.
-  Als Regel, nicht als Befund des Gates: Kennungen als Anker-Links schreiben. Die Results-Notiz
-  und die Roadmap werden gescannt.
+- **Strenges Doc-Gate.** `docs-check` ist rot bei einer `ADR-`-Kennung ohne Link im
+  Fließtext (Absatz, Listenpunkt, Tabellenzelle, Zitat), auch in Inline-Code darin, und bei einem
+  toten relativen Linkziel oder Anker, je in einer gescannten `.md` (jede außer `.harness/**`,
+  `.tmp/**` und `**/*.template.md`). Nicht geprüft: eine `ADR-`-Kennung in einer `#`-Überschrift,
+  als Text eines Links oder Bildes (ob der Link auf die ADR zeigt, prüft es nicht), in einer Zeile
+  mit `<!-- d-check:ignore … -->` und in jeder Datei unter `docs/plan/adr/`; Kennungen und Links in
+  umzäunten Code-Blöcken (```` ``` ```` oder `~~~`); externe URLs, HTML-Links und Links in
+  Inline-Code; `LH-`-Kennungen ohne Link. Maßgeblich ist `.d-check.yml`; die ganze Liste samt
+  Matrix steht in `.claude/commands/implement-slice.md`. Als Regel, nicht als Befund des Gates:
+  Kennungen als Anker-Links schreiben. Die Results-Notiz und die Roadmap werden gescannt.
 - **Neue Artefakte per `cp` aus den vendored Templates** — die Results-Notiz entsteht per `cp` aus
   `.harness/baseline/<tag>/templates/docs/plan/planning/welle-results.template.md` und wird danach
   ausgefüllt; die Welle-Datei bleibt Quelle der Plan-Struktur für alles, was das Template offenlässt.

@@ -25,11 +25,16 @@ Lies den Adaptions-Block („MR-Block") in `harness/conventions.md`; die planung
   bestehendes Artefakt.** Ein `cp` gefolgt von vollem Überschreiben (`Write`) ist derselbe Verstoß,
   weil der `cp` verworfen wird. Das gilt für den Welle-Plan (`welle.template.md`) **und** jeden neuen
   Slice (`slice.template.md`).
-- **Strenges Doc-Gate (d-check).** `docs-check` ist rot bei einer `ADR-`-Kennung ohne Link in einer
-  gescannten `.md`, im Fließtext und in Inline-Code, und bei einem toten Linkziel oder Anker;
-  Kennungen in umzäunten Code-Blöcken (```` ``` ```` oder `~~~`) und `LH-`-Kennungen ohne Link prüft
-  es nicht. Als Regel, nicht als Befund des Gates: Kennungen als Anker-Links schreiben. Der
-  Welle-Plan wird gescannt.
+- **Strenges Doc-Gate (d-check).** `docs-check` ist rot bei einer `ADR-`-Kennung ohne Link im
+  Fließtext (Absatz, Listenpunkt, Tabellenzelle, Zitat), auch in Inline-Code darin, und bei einem
+  toten relativen Linkziel oder Anker, je in einer gescannten `.md` (jede außer `.harness/**`,
+  `.tmp/**` und `**/*.template.md`). Nicht geprüft: eine `ADR-`-Kennung in einer `#`-Überschrift,
+  als Text eines Links oder Bildes (ob der Link auf die ADR zeigt, prüft es nicht), in einer Zeile
+  mit `<!-- d-check:ignore … -->` und in jeder Datei unter `docs/plan/adr/`; Kennungen und Links in
+  umzäunten Code-Blöcken (```` ``` ```` oder `~~~`); externe URLs, HTML-Links und Links in
+  Inline-Code; `LH-`-Kennungen ohne Link. Maßgeblich ist `.d-check.yml`; die ganze Liste samt
+  Matrix steht in `.claude/commands/implement-slice.md`. Als Regel, nicht als Befund des Gates:
+  Kennungen als Anker-Links schreiben. Der Welle-Plan wird gescannt.
 - **Docker-only + Gate-Nachweis/Stop-Hook.** Nur `make`-Targets, nie Host-Toolchain. `make gates`
   endet mit `record-gates`; jede Inhaltsänderung nach einem Gate-Lauf (inkl. Commit) macht den Stempel
   ungültig → `make gates` erneut laufen.
