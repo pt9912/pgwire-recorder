@@ -29,7 +29,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Ein Tag `v<SemVer>` baut die Binaries für die Zielplattformen reproduzierbar und das Docker/OCI-Image und veröffentlicht das Image in `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder`.
+**Ziel:** Ein Tag `v<SemVer>` wird gegen die Versionsdatei geprüft, baut die Binaries für die Zielplattformen reproduzierbar mit `SHA256SUMS` und das Docker/OCI-Image, veröffentlicht das Image mit gleichem Index-Digest in `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder` und lässt sich nach einem Fehler wieder anstoßen; belegt mit einem Probe-Tag.
 
 **Übernommen aus `welle-erster-release`** (Entscheidungen des Nutzers vom 2026-10-09 nach dem
 Vergleich von `docs/maintainer/releasing.md` mit den Release-Dokumenten von a-check, d-check,
@@ -40,21 +40,26 @@ liefert):
    `:latest` nicht.
 2. Der Spiegel auf Docker Hub ist fail-closed: Beide Registries tragen denselben Index-Digest
    der Manifestliste, sonst ist der Release rot.
-3. Eine Freigabe-Checkliste in `docs/maintainer/releasing.md` mit einem Beleg je Punkt,
-   Anti-Punkten (was ein Release nicht tun darf) und einer Incident-Klausel; der ausgefüllte
-   Eintrag des ersten Releases steht in der Closure von welle-erster-release.
-4. Vor dem Tag ein Freshness-Audit der vendored Baseline und des gepinnten d-check.
-5. Ein Scan des Images vor dem Push in eine Registry.
 6. Zusätzlich zum Tag eine Versionsdatei (etwa `docs/user/version.md`), die die Pipeline gegen
    den Tag prüft.
 7. Die Prüfung des Tags auf die Form `v<SemVer>` vor jedem Push.
+8. Wiederanlauf und Fehlertabelle: `docs/maintainer/releasing.md` §11 nennt je Schritt der
+   Pipeline, was ein Fehler dort hinterlässt und wie der Lauf wieder angestoßen wird
+   (Entscheidung des Nutzers vom 2026-10-09 beim Schnitt unten).
 
-Die Randformen dieser Punkte sind offen und gehen vor dem Code an den Architect (§6). Mit
-ihnen ist der Slice zu groß (§2, §4); der Schnitt ist vorgeschlagen und nicht entschieden (§6).
+Die Randformen dieser Punkte sind offen und gehen vor dem Code an den Architect (§6).
+
+**Abgegeben** an `slice-erster-release-freigabe` (dort §1, *Übernimmt*, mit der Kennung dieses
+Slice), nach dem Schnitt vom 2026-10-09 vor dem Start (Entscheidung des Nutzers, §4): die
+Entscheidungen 3 (Freigabe-Checkliste), 4 (Freshness-Audit) und 5 (Image-Scan vor dem Push)
+und der erste echte Tag. Dieser Slice belegt die Pipeline mit einem Probe-Tag.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Homebrew-Formel und ihr Nachweis — `slice-erster-release-homebrew-nachweis`.
+- Image-Scan, Freshness-Audit, Freigabe-Checkliste und der erste echte Tag —
+  `slice-erster-release-freigabe` (oben, *Abgegeben*); er setzt diese Pipeline voraus, weil der
+  Scan in ihr vor dem Push läuft.
 - Die Wahl der ersten Versionsnummer — wird beim Release festgelegt; die Versionsdatei
   (Punkt 6) trägt sie, wählt sie aber nicht.
 - Reproduzierbarkeit des Images — `LH-QA-01` verlangt sie nur für das Binary; das Image wird
@@ -68,12 +73,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Der erste echte Tag veröffentlicht das Image mit `linux/amd64` und `linux/arm64` als eine Manifestliste in beiden Registries, und es besteht den Smoke aus Abnahmeszenario 9. Beide Registries tragen denselben Index-Digest, sonst endet der Lauf rot (Punkt 2); `:latest` wird nur bei einem stabilen Tag gesetzt, ein Probe-Tag lässt es unverändert (Punkt 1, Test mit Probe-Tag).
-- [ ] Die Release-Notes des GitHub-Releases entstehen aus der neuen Zeile der Änderungshistorie des Handbuchs; ein `CHANGELOG.md` wird nicht geführt.
-- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Die Binaries für Linux, macOS und Windows (`amd64`, `arm64`) hängen mit einer Datei `SHA256SUMS` am Release (`LH-FA-19.a`); zwei Builds desselben Tags liefern dieselben Summen.
-- [ ] Vor jedem Push prüft die Pipeline, dass der Tag die Form `v<SemVer>` hat und der Version in der Versionsdatei entspricht; sonst endet sie, bevor etwas gebaut oder veröffentlicht wird (Punkte 6 und 7, Test mit falschem Tag und abweichender Datei).
-- [ ] Das Image wird vor dem Push gescannt; ein Befund über der Schwelle beendet den Lauf, bevor eine Registry etwas erhält (Punkt 5, Test mit einem Image über der Schwelle).
-- [ ] `docs/maintainer/releasing.md` §10 trägt die Freigabe-Checkliste mit Beleg je Punkt, Anti-Punkten und Incident-Klausel; einer ihrer Punkte ist das Freshness-Audit der Baseline und von d-check vor dem Tag (Punkte 3 und 4). Der ausgefüllte Eintrag des ersten Releases steht in der Closure von welle-erster-release.
+- [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Ein Probe-Tag veröffentlicht das Image mit `linux/amd64` und `linux/arm64` als eine Manifestliste in beiden Registries, und es besteht den Smoke aus Abnahmeszenario 9. Beide Registries tragen denselben Index-Digest, sonst endet der Lauf rot (Punkt 2); `:latest` wird nur bei einem stabilen Tag gesetzt, der Probe-Tag lässt es unverändert (Punkt 1). Beleg in §7: Lauf-Kennung und Digest des Probe-Tags (Test).
+- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Die Binaries für Linux, macOS und Windows (`amd64`, `arm64`) hängen mit einer Datei `SHA256SUMS` am GitHub-Release des Probe-Tags (`LH-FA-19.a`); zwei Builds desselben Tags liefern dieselben Summen. Die Release-Notes entstehen aus der neuen Zeile der Änderungshistorie des Handbuchs; ein `CHANGELOG.md` wird nicht geführt.
+- [ ] Vor jedem Push prüft die Pipeline, dass der Tag die Form `v<SemVer>` hat und der Version in der Versionsdatei entspricht; sonst endet sie, bevor etwas gebaut oder veröffentlicht wird (Punkte 6 und 7, Test mit falschem Tag und abweichender Datei). `docs/maintainer/releasing.md` §11 trägt die Fehlertabelle je Schritt der Pipeline und den Wiederanlauf; ein roter Probe-Lauf ist nach ihr wieder angestoßen (Punkt 8, Beleg in §7).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -92,20 +94,30 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | Release-Verfahren (`docs/maintainer/releasing.md`) | update | vom beschriebenen auf das ausgeführte Verfahren bringen |
-| Release-Automatisierung | neu | Prüfung von Tag und Versionsdatei, Build, Scan, Veröffentlichung mit Vergleich der Index-Digests, `:latest` nur bei stabilem Tag, Prüfsummen |
+| Release-Automatisierung | neu | Prüfung von Tag und Versionsdatei, Build, Veröffentlichung mit Vergleich der Index-Digests, `:latest` nur bei stabilem Tag, Prüfsummen; der Scan vor dem Push kommt mit `slice-erster-release-freigabe` dazu |
 | Versionsdatei (Ort offen, §6) | neu | Version der Software, gegen den Tag geprüft |
-| `docs/maintainer/releasing.md` §5, §6, §8, §10, §11 | update | Prüfungen vor dem Tag, Freigabe-Checkliste, Kontrollen nach dem Push, Wiederanlauf |
+| `docs/maintainer/releasing.md` §3, §6, §8, §9, §11 | update | Versionsquelle, was der Tag auslöst, Kontrollen nach dem Push, Release-Notes, Fehlertabelle und Wiederanlauf |
 
 ## 4. Trigger
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `welle-v1-abschluss` ist `done`.
+**Start** (`next` → `in-progress`): `welle-v1-abschluss` ist `done`, und
+`slice-harness-abdeckung-gate` und `slice-harness-coverage` liegen in `done/` (Start-Trigger von
+welle-erster-release). Schritt 1 der Reihenfolge in §5 von
+[welle-erster-release](../welle-erster-release.md). Vor dem ersten Code-Commit entscheidet der
+Architect die Randformen aus §6 (`AGENTS.md` §3.12).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: die Release-Automatisierung verlangt mehr als zwei Liefer-Punkte — zurück zur Zerlegung. Mit den Entscheidungen vom 2026-10-09 trägt §2 sechs Liefer-Punkte; der Slice ist schon vor dem Start zu groß und wird vor `next` → `in-progress` geschnitten (Vorschlag in §6, Entscheidung des Nutzers offen).
+- `in-progress` → `next`: die Release-Automatisierung verlangt mehr als drei Liefer-Punkte, oder der Diff ist nicht in einer Review-Sitzung prüfbar — zurück zur Zerlegung. Schnitt dann: *Tag und Binaries* (DoD-Punkte 2 und 3) und *Image* (DoD-Punkt 1).
+
+**Schnitt vor dem Start, 2026-10-09:** Mit den sieben Entscheidungen vom 2026-10-09 trug §2 sechs
+Liefer-Punkte. Der Nutzer entschied am 2026-10-09 den Schnitt nach dem Vorschlag in §6: Die
+Pipeline bleibt hier, dazu Wiederanlauf und Fehlertabelle; Scan, Audit, Checkliste und der erste
+echte Tag gehen an `slice-erster-release-freigabe`. Der Slice lag in `next/` und hat nicht
+begonnen; ein Übergang fällt nicht an.
 - `in-progress` → `open`: Zugangsdaten für die Registries fehlen — extern klären.
 
 
@@ -125,16 +137,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Die Zugangsdaten für `ghcr.io` und `docker.io` sind externe Betreiber-Handlungen — **Ausgang:** offen bis Closure.
-- **Größe.** Mit den sieben Entscheidungen vom 2026-10-09 trägt §2 sechs Liefer-Punkte, die
-  Grenze ist drei. *Vorschlag des Planner vom 2026-10-09*, nicht angelegt: Dieser Slice behält
-  die Pipeline — Tag und Versionsdatei (Punkte 6, 7), Binaries mit `SHA256SUMS` samt
-  GitHub-Release mit Release-Notes, Image in beiden Registries mit gleichem Index-Digest und
-  `:latest` nur bei stabilem Tag (Punkte 1, 2) —, nachgewiesen mit einem Probe-Tag statt dem
-  ersten echten Tag. Ein neuer Slice (etwa `slice-erster-release-freigabe`) nimmt Scan (5),
-  Freshness-Audit (4) und Freigabe-Checkliste (3) und setzt mit ihr den ersten echten Tag; er
-  setzt diesen voraus, weil der Scan in dessen Pipeline läuft, und
-  `slice-erster-release-homebrew-nachweis` setzt ihn voraus. **Entscheidung des Nutzers
-  offen** — **Ausgang:** offen bis Closure.
+- **Größe.** Mit den sieben Entscheidungen vom 2026-10-09 trug §2 sechs Liefer-Punkte, die
+  Grenze ist drei. Entscheidung des Nutzers vom 2026-10-09: geschnitten nach dem Vorschlag des
+  Planner (§4) — **Ausgang:** eingetreten, Folge-Slice `slice-erster-release-freigabe`.
+- **Probe-Tag in öffentlichen Registries.** Der Beleg mit einem Probe-Tag legt ein Image einer
+  Vorabversion in `ghcr.io` und `docker.io` ab, das kein Release ist; ob und wie es dort bleibt,
+  ist eine Randform (unten) — **Ausgang:** offen bis Closure.
 - **`:latest` im Beispiel der Spezifikation.** Das Beispiel in `LH-FA-16.a` (Spezifikation,
   Technik-Stratum) nennt `pgwire-recorder:latest`, ohne Registry. Mit Punkt 1 gibt es
   `:latest` erst nach dem ersten stabilen Tag, und ohne Registry zieht das Beispiel kein
@@ -155,15 +163,6 @@ ersten Code-Commit in der Spezifikation oder einer ADR:
   Manifestliste kopiert oder neu baut; was mit dem Versions-Tag geschieht, der in einer
   Registry schon liegt, wenn der Vergleich rot ist (Rollback-Regel: Tags werden nicht
   verändert); Wiederanlauf eines roten Laufs.
-- *Freigabe-Checkliste (Punkt 3)* — Form des Belegs je Punkt (Lauf-Kennung, Digest, Link);
-  welche Anti-Punkte; Inhalt der Incident-Klausel (Auslöser, wer, wo festgehalten); wo der
-  ausgefüllte Eintrag eines späteren Releases ohne Welle steht.
-- *Freshness-Audit (Punkt 4)* — was als frisch gilt; ob ein neuerer Stand der Baseline oder
-  von d-check den Tag sperrt oder nur dokumentiert wird; Beleg des Audits. Der Audit braucht
-  Netz; `harness/conventions.md` führt ihn als Handlung, nicht als Sensor.
-- *Image-Scan (Punkt 5)* — Scanner und sein Pin; Schwelle (Schweregrad, nur behebbare
-  Befunde?); Ausnahmen und ihr Ort (`AGENTS.md` §3.2, Suppression-Verbot); Scan je Plattform
-  der Manifestliste; Netz für die Schwachstellen-Datenbank.
 - *Versionsdatei (Punkt 6)* — Ort (`docs/user/version.md` oder anders) und Form (eine Zeile,
   SemVer ohne `v`?); ob das Binary die Version trägt und `pgwire-recorder version` sie aus der
   Datei oder dem Tag nimmt; Vorabversion in der Datei; Wirkung auf die Reproduzierbarkeit des
@@ -171,6 +170,14 @@ ersten Code-Commit in der Spezifikation oder einer ADR:
 - *SemVer-Prüfung (Punkt 7)* — „vor jedem Push“: vor dem Push eines Images in der Pipeline
   oder auch vor `git push` des Tags; Build-Metadaten (`+…`); führende Nullen; Form des
   Probe-Tags (`-probe.<N>`) als Vorabversion.
+- *Wiederanlauf und Fehlertabelle (Punkt 8)* — die Schritte der Pipeline, in denen ein Fehler
+  etwas hinterlässt (GitHub-Release angelegt, eine Registry beschrieben, die andere nicht);
+  ob ein Wiederanlauf denselben Tag neu fährt oder einen höheren verlangt (Rollback-Regel:
+  Tags werden nicht verändert); wer ihn anstößt; was mit einem halb veröffentlichten
+  Probe-Tag geschieht.
+- *Probe-Tag in den Registries* — ob das Image eines Probe-Tags in `ghcr.io` und `docker.io`
+  bleibt, gelöscht wird oder nur in einen eigenen Namensraum geht; ob der GitHub-Release des
+  Probe-Tags als Vorabversion stehen bleibt.
 
 ## 7. Closure-Notiz
 
@@ -203,13 +210,14 @@ nicht mehr.
 `docs/plan/planning/observations/BEO-REPO/` am Stand `0676302` nachgesichtet, mit der Übernahme
 der Entscheidungen vom 2026-10-09. Treffer:
 
-- `BEO-REPO/slice-waechst-durch-uebernahmen` (2×) — der Slice nimmt sieben Entscheidungen auf.
-  Kein Beleg: Die Übernahmen stehen als eigene Liefer-Punkte in §2, die Zählung zeigt die
-  Größe (sechs), und §6 schlägt den Schnitt vor; das Muster ist das Wachsen *ohne* mehr Punkte.
+- `BEO-REPO/slice-waechst-durch-uebernahmen` (2×) — der Slice nahm sieben Entscheidungen auf.
+  Kein Beleg: Die Übernahmen standen als eigene Liefer-Punkte in §2, die Zählung zeigte die
+  Größe (sechs), und der Schnitt vom 2026-10-09 lief vor dem Start; das Muster ist das Wachsen
+  *ohne* mehr Punkte.
 - `BEO-REPO/spec-randform-erst-im-review-entschieden` (16×, verkörpert in `AGENTS.md` §3.12) —
   die Randformen der neuen Punkte stehen offen in §6 und gehen vor dem Code an den Architect.
 - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (17×, `AGENTS.md` §3.10) — die
-  Prüfungen der Pipeline (Tag, Versionsdatei, Scan, Digest-Vergleich) sind neue Verträge; je
+  Prüfungen der Pipeline (Tag, Versionsdatei, Digest-Vergleich) sind neue Verträge; je
   Zusage eine Mutation.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.

@@ -39,7 +39,7 @@ einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 - Alle Slices der Welle liegen in `done/`.
 - Abnahmeszenario 11 (Homebrew) ist auf macOS und Linux mit dem echten Tap nachgewiesen — das *Mehr* gegenüber den Slice-DoDs.
 - `make gates` grün.
-- Closure-Notiz in `welle-erster-release-results.md`; sie trägt den ausgefüllten Eintrag der Freigabe-Checkliste des ersten Releases (Entscheidung des Nutzers vom 2026-10-09, geliefert von `slice-erster-release-veroeffentlichung`).
+- Closure-Notiz in `welle-erster-release-results.md`; sie trägt den ausgefüllten Eintrag der Freigabe-Checkliste des ersten Releases (Entscheidung des Nutzers vom 2026-10-09, geliefert von `slice-erster-release-freigabe`).
 
 ## 4. Slices in dieser Welle
 
@@ -50,6 +50,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | Slice | Titel | Bezug |
 |---|---|---|
 | slice-erster-release-veroeffentlichung | Veröffentlichung von Binaries und Images | [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
+| slice-erster-release-freigabe | Freigabe und erster echter Tag | [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew) |
 | slice-erster-release-homebrew-nachweis | Homebrew-Nachweis (Abnahmeszenario 11) | [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew) |
 
 ## 5. Abhängigkeiten
@@ -59,12 +60,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - Blockiert: —
 - Wird blockiert von: Welle [welle-v1-abschluss](welle-v1-abschluss.md) und den wellenlosen Slices `slice-harness-abdeckung-gate` und `slice-harness-coverage`.
-- Innerhalb der Welle: `slice-erster-release-homebrew-nachweis` setzt `slice-erster-release-veroeffentlichung` voraus.
+- Innerhalb der Welle: `slice-erster-release-freigabe` setzt `slice-erster-release-veroeffentlichung` voraus (der Scan läuft in dessen Pipeline vor dem Push); `slice-erster-release-homebrew-nachweis` setzt `slice-erster-release-freigabe` voraus (erster stabiler Tag).
 
-**Reihenfolge** (Entscheidungen des Nutzers vom 2026-10-08: Wellen vor Harness, M3 vor M4; WIP-Limit 1):
+**Reihenfolge** (Entscheidungen des Nutzers vom 2026-10-08: Wellen vor Harness, M3 vor M4; Schnitt von `slice-erster-release-veroeffentlichung` vom 2026-10-09; WIP-Limit 1):
 
-1. `slice-erster-release-veroeffentlichung` — Binaries und Image in den Registries.
-2. `slice-erster-release-homebrew-nachweis` — Abnahmeszenario 11 (setzt 1 voraus).
+1. `slice-erster-release-veroeffentlichung` — Pipeline für Binaries und Image, belegt mit einem Probe-Tag.
+2. `slice-erster-release-freigabe` — Scan, Freshness-Audit, Freigabe-Checkliste und der erste echte Tag (setzt 1 voraus).
+3. `slice-erster-release-homebrew-nachweis` — Abnahmeszenario 11 (setzt 2 voraus).
 
 Vor dieser Welle liegen `slice-harness-abdeckung-gate` und `slice-harness-coverage`: Mit Coverage wird Abnahmeszenario 17 nachweisbar, M3 ist damit vor M4 erreicht. Danach folgen die übrigen Harness-Slices, beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
 

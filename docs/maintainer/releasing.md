@@ -1,6 +1,6 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.4
+Version: 0.5
 Stand: 2026-10-09
 
 ## 1. Zweck und Zielgruppe
@@ -46,7 +46,8 @@ dieselbe Plattform liefern dieselbe Prüfsumme (`LH-QA-01`). Für das Image gilt
 nicht; es wird über seinen Digest identifiziert.
 
 Den Build für alle Zielplattformen, die Prüfsummen und die Veröffentlichung in beiden
-Registries liefert `slice-erster-release-veroeffentlichung`; das Image selbst
+Registries liefert `slice-erster-release-veroeffentlichung`, den Scan des Images vor dem Push
+und den ersten echten Tag `slice-erster-release-freigabe`; das Image selbst
 `slice-v1-abschluss-container`; das Verfahren der Formel `slice-v1-abschluss-homebrew`.
 
 ## 3. Versionierung, Probe-Tag, Probe-Tap
@@ -93,7 +94,9 @@ Dokument.
    (§9).
 3. Die Versionsquelle (§3) trägt die neue Version und ist committet.
 
-Weitere Prüfungen vor dem Tag liefert `slice-erster-release-veroeffentlichung`.
+Das Freshness-Audit der Baseline und von d-check vor dem Tag liefert
+`slice-erster-release-freigabe`; die Prüfung des Tags gegen die Versionsdatei läuft in der
+Pipeline (§6).
 
 ## 6. Was der Tag auslöst
 
@@ -106,7 +109,9 @@ git push origin v<SemVer>
 
 Was der Push eines Tags auslöst — Build der Binaries für alle Zielplattformen mit
 `SHA256SUMS`, Build und Veröffentlichung des Images als Manifestliste in beiden
-Registries, GitHub-Release —, liefert `slice-erster-release-veroeffentlichung`.
+Registries, GitHub-Release, Prüfung von Tag und Versionsdatei vor jedem Push —, liefert
+`slice-erster-release-veroeffentlichung`; den Scan des Images vor dem Push
+`slice-erster-release-freigabe`.
 Heute löst ein Tag nichts aus.
 
 ## 7. Homebrew
@@ -141,7 +146,7 @@ dieser Zeile. Das Übernehmen in den GitHub-Release liefert
 ## 10. Freigabe-Checkliste
 
 Die Checkliste, mit der ein Release freigegeben wird, liefert
-`slice-erster-release-veroeffentlichung`.
+`slice-erster-release-freigabe`.
 
 ## 11. Fehler, Wiederanlauf, Rollback
 
@@ -149,8 +154,8 @@ Es gibt keinen automatisierten Rollback. Ein fehlerhafter Release wird durch
 einen neuen, höheren Tag mit einer korrigierten Version ersetzt; bereits
 gesetzte Tags werden nicht verändert oder gelöscht.
 
-Wie ein abgebrochener Lauf wieder angestoßen wird, beschreibt dieses Dokument, sobald
-der Mechanismus existiert (§1); heute gibt es keinen Lauf.
+Die Fehlertabelle je Schritt der Pipeline und den Wiederanlauf eines abgebrochenen Laufs
+liefert `slice-erster-release-veroeffentlichung`; heute gibt es keinen Lauf.
 
 ### Änderungshistorie
 
@@ -160,3 +165,4 @@ der Mechanismus existiert (§1); heute gibt es keinen Lauf.
 | 0.2 | 2026-10-03 | Abschnitt Release-Notes: Quelle ist die Änderungshistorie des Handbuchs, kein `CHANGELOG.md` |
 | 0.3 | 2026-10-04 | Reproduzierbarkeit nur für das Binary; Plattformen und Registries aus dem Lastenheft |
 | 0.4 | 2026-10-09 | Stand auf Code, `Dockerfile` und `make build` gezogen; neue Gliederung; `SHA256SUMS` und Formel nur bei stabilen Tags; Vorbedingungen um die Start-Bedingung von `welle-erster-release` ergänzt; was erst ein Slice liefert, mit Kennung |
+| 0.5 | 2026-10-09 | Nach dem Schnitt des Release-Slice: Scan, Freshness-Audit, Checkliste und erster echter Tag bei `slice-erster-release-freigabe`; Fehlertabelle und Wiederanlauf bei `slice-erster-release-veroeffentlichung` |

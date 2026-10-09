@@ -71,7 +71,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-erster-release-veroeffentlichung` ist `done`.
+**Start** (`next` → `in-progress`): `slice-erster-release-freigabe` ist `done` (der erste stabile Tag ist veröffentlicht; nach dem Schnitt vom 2026-10-09 belegt `slice-erster-release-veroeffentlichung` die Pipeline nur mit einem Probe-Tag).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
