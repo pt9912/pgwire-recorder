@@ -34,7 +34,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Das Doku-Gate läuft auf d-check `v0.85.0` (Tag und Digest gepinnt, ohne die zwei HIGH-CVEs des Images `v0.82.0`), §7 hält das Ergebnis des Freshness-Audits der vendored Baseline gegen die Release-Liste des Kurs-Repos fest, und der Reviewer-Skill prüft das Nachzählen beim Eintragen einer Sendung nach `AGENTS.md` §3.13.
+**Ziel:** Das Doku-Gate läuft auf d-check `v0.85.0` (Tag und Digest gepinnt, ohne die zwei HIGH-CVEs des Images `v0.82.0`), die Workflow-Commands sagen über das Doku-Gate nur zu, was die Gegenprobe zeigt, §7 hält das Ergebnis des Freshness-Audits der vendored Baseline gegen die Release-Liste des Kurs-Repos fest, und der Reviewer-Skill prüft das Nachzählen beim Eintragen einer Sendung nach `AGENTS.md` §3.13.
 
 **Herkunft der drei Teile** (Entscheidungen des Nutzers vom 2026-10-09):
 
@@ -48,6 +48,16 @@ zusammen mit der Begründungs-Pflicht je Punkt.
   slice-lint-bestand-kern-driven), nicht das Nachzählen von Liefer-Punkten und Schichten
   des Nehmers mit der Sendung (§3.13 *Nachzählen beim Eintragen*, seit
   slice-v1-abschluss-einspielen; `BEO-REPO/slice-waechst-durch-uebernahmen`, verkörpert).
+- **Berichtigung von DoD-Punkt 1** (Entscheidung des Nutzers vom 2026-10-09 nach den Belegen
+  in §7): Die Teil-Zusage „bares `LH-`-Token ist rot“ war vor dem Code nicht erfüllbar, weil
+  die erste Abgrenzung unten `.d-check.yml` unverändert lässt und das `ids`-Muster für
+  Lastenheft-Kennungen dort nur als Kommentar steht. DoD-Punkt 1 nennt jetzt das aktive,
+  gegenprobierte Verhalten; die Teil-Zusage geht an `slice-harness-lh-links-pflicht`. Der
+  Block *Strenges Doc-Gate* in drei Workflow-Commands sagt dieselbe Link-Pflicht für `LH-`,
+  `ADR-` und `MR-` zu (Nebenbefund des Implementers) und wird hier enger gefasst, nicht erst
+  im Nehmer: Dieser startet nach welle-v1-abschluss, und bis dahin läse jeder Lauf von
+  Planner, Implementer und Welle-Closure eine Prüfung, die es nicht gibt (`AGENTS.md`
+  §3.11); die Korrektur ist Text in der Schicht, die dieser Slice ohnehin berührt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -55,6 +65,12 @@ zusammen mit der Begründungs-Pflicht je Punkt.
   anderer Vorgang: Ihre Aktivierung ist eine eigene Entscheidung (`harness/conventions.md`,
   Regelblock `modul-15-observability.md` §Doku-Konsistenz-Drift), und der Nutzer hat sie
   für diesen Slice ausgeschlossen. Die Zeile bleibt `[links, anchors, ids, matrix, spans]`.
+- Ein bares `LH-`-Token rot machen (das `ids`-Muster für Lastenheft-Kennungen in
+  `.d-check.yml` aktivieren, den Bestand verlinken, `MR-` gleich behandeln, den Block
+  *Strenges Doc-Gate* auf das neue Verhalten erweitern) — ein Folge-Slice übernimmt es:
+  `slice-harness-lh-links-pflicht` (`open/`, nimmt die Sendung in §1 und DoD mit dieser
+  Kennung an). Es verschärft das Gate um gemessen 357 Befunde im lebenden Bestand und ist
+  eine eigene Entscheidung; `.d-check.yml` bleibt hier unverändert.
 - Das Upgrade der Baseline auf `v6.17.0` (vendored Baum, `SHA256SUMS`, Abgleich der
   verkörperten Regeln) — ein anderer Vorgang, eigener Slice nach Entscheidung des Nutzers;
   dieser Slice liefert nur den Befund des Audits in §7, den der Planner danach zuschneidet.
@@ -66,7 +82,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Weitere Änderungen an `.harness/skills/reviewer.md` oder an `AGENTS.md` §3.13 — die Regel
   selbst ist verkörpert; dieser Slice trägt sie nur in die Klassifikation des Reviews.
 - Produkt-Code, Tests unter `test/` und die Spezifikation — Schicht-Abgrenzung: Der Slice
-  ändert einen Pin, einen Skill und diesen Plan.
+  ändert einen Pin, einen Skill, einen Block in drei Workflow-Commands und diesen Plan.
 
 ## 2. Definition of Done
 
@@ -80,8 +96,15 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `sha256:c07f1fe6053b1f790c4a1e01a76bcf4d3a8ff85e6eb609fe1aaaaf6ab6f09abe`; der Digest
       gehört zum Tag (Beleg in §7: Abruf des Tags, Digest der Ausgabe); `make docs-check`
       meldet 0 Befunde. Gegenprobe in einer Kopie des Arbeitsbaums mit dem neuen Image: ein
-      bares `LH-`-Token, ein toter Anker und eine Kennung `ADR-` ohne Link sind je rot
-      (Beleg in §7: Mutation · Befundzeile).
+      toter Anker, eine Kennung `ADR-` ohne Link, ein totes Linkziel und ein Link aus einem
+      Spec-Stratum auf eine ADR (Matrix) sind je rot (Beleg in §7: Mutation · Befundzeile).
+      Der Block *Strenges Doc-Gate* in `.claude/commands/implement-slice.md`,
+      `.claude/commands/plan-welle.md` und `.claude/commands/close-welle.md` sagt über das
+      Doku-Gate nur zu, was `.d-check.yml` aktiv prüft und eine Zeile der Gegenprobe in §7
+      rot zeigt (heute: `ADR-` ohne Link überall, auch in Inline-Code; nicht: `LH-` ohne
+      Link, `MR-` außerhalb der Spec-Dateien, Pfade in Inline-Code — das Modul `codepaths`
+      ist nicht aktiv); was er Agenten weiter abverlangt (Kennungen als Links schreiben),
+      steht als Regel, nicht als Befund des Gates (`AGENTS.md` §3.11).
 - [ ] **Freshness-Audit:** §7 nennt die Release-Liste des Kurs-Repos (neuester Tag gegen den
       gepinnten `v6.16.0`) und für das Delta bis zum neuesten Tag je Eintrag des
       Adaptions-Blocks (`MR-000`, aktive und aufgelöste) den Ausgang nach
@@ -113,6 +136,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `d-check.mk` | update | `DCHECK_IMAGE` auf `v0.85.0`, `DCHECK_DIGEST` auf den Digest des Tags; sonst unverändert (§1) |
 | `.harness/skills/reviewer.md` | update | MEDIUM *Adresse nimmt nicht an* um das Nachzählen nach `AGENTS.md` §3.13 ergänzt |
+| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* auf das gegenprobierte Verhalten gefasst (DoD-Punkt 1, §1 *Berichtigung*) |
 | dieser Plan, §7 | update | Belege des Pins (Digest, Gegenprobe) und Befund des Freshness-Audits |
 
 ## 4. Trigger
@@ -159,7 +183,10 @@ Reviewer-Skill trägt eine verkörperte Regel in die Klassifikation.
 - `v0.85.0` wertet die aktiven Module anders aus als `v0.82.0`, und der Probelauf mit 0
   Befunden verdeckt eine Prüfung, die still schwächer geworden ist
   (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`, 2×); die Gegenprobe in DoD-Punkt
-  1 deckt drei Klassen, nicht alle — **Ausgang:** offen bis Closure.
+  1 deckt vier Klassen, nicht alle (`spans` nicht) — **Ausgang:** offen bis Closure. Die
+  Gegenprobe zeigte, dass schon der Plan das Gate weiter las, als es wirkt (bares
+  `LH-`-Token, §7); ob das ein Beleg zu diesem Eintrag ist, entscheidet die Closure, die
+  Teil-Zusage selbst ging an `slice-harness-lh-links-pflicht` (§1).
 - Das Delta bis `v6.17.0` berührt eine verkörperte Regel dieses Repos, ohne dass der Audit es
   sieht, weil er nur Adaptions-Block und Regelblock-Tabelle durchgeht
   (`BEO-REPO/verkoerperte-regel-nach-baseline-sprung-nicht-nachgezogen`, 1×) — **Ausgang:**
@@ -300,6 +327,10 @@ unter `evidence/`). Treffer:
   `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (5×, verkörpert) — Gegenstand von DoD-Punkt
   3. Nachgezählt beim Anlegen: drei Liefer-Punkte, zwei Schichten (Gate-Konfiguration
   `d-check.mk`, Skill `.harness/skills/reviewer.md`); der Plan selbst zählt nicht.
+  Nachgezählt bei der Berichtigung vom 2026-10-09: weiter drei Liefer-Punkte (die Fassung
+  der Commands gehört zu DoD-Punkt 1, sie sagt das gegenprobierte Verhalten desselben Gates
+  aus) und zwei Schichten (Gate-Konfiguration; Agenten-Anweisungen: Skill und Commands).
+  Der Nehmer der Teil-Zusage, `slice-harness-lh-links-pflicht`, ist dort nachgezählt (§8).
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
