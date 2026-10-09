@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"go.yaml.in/yaml/v3"
@@ -31,10 +30,12 @@ const praefix = "PGWIRE_RECORDER_"
 
 // datei ist eine geladene und geprüfte Konfigurationsdatei: werte trägt den
 // Text jedes Werts je Abschnitt ("" ist die oberste Ebene) und Schlüssel,
-// inhalt das Dokument für config show (nil bei einer leeren Datei).
+// verbindungen die zerlegten Verbindungen in der Reihenfolge der Datei, inhalt
+// das Dokument für config show (nil bei einer leeren Datei).
 type datei struct {
-	werte  map[string]map[string]string
-	inhalt *yaml.Node
+	werte        map[string]map[string]string
+	verbindungen []verbindung
+	inhalt       *yaml.Node
 }
 
 // wert liefert den Text des Schlüssels einer Option von kommando, wenn die
@@ -403,7 +404,7 @@ func (d *datei) pruefe(top *yaml.Node, z [][]rune) error {
 		case ist:
 			err = d.setze("", name, o, v, z)
 		case name == "connections":
-			err = verbindungen(v, z)
+			err = d.pruefeVerbindungen(v, z)
 		case istLeserKommando(name):
 			err = d.abschnitt(name, v, z)
 		default:
@@ -460,9 +461,11 @@ func (d *datei) setze(abschnitt, name string, o option, n *yaml.Node, z [][]rune
 	return nil
 }
 
-// verbindungen prüft connections: eine Abbildung von Namen auf Werte; ein
-// Name hat die Form eines Werts und enthält kein Steuerzeichen (LH-FA-17.a).
-func verbindungen(n *yaml.Node, z [][]rune) error {
+// pruefeVerbindungen prüft connections: eine Abbildung von Namen auf Werte; ein
+// Name hat die Form eines Werts und besteht nameFehler, die Meldung nennt als
+// Stelle nur connections; der Wert ist eine URL, die zerlegeURL zerlegt
+// (LH-FA-17.a *Benannte Verbindungen*).
+func (d *datei) pruefeVerbindungen(n *yaml.Node, z [][]rune) error {
 	if err := abbildung(n, "connections", z); err != nil {
 		return err
 	}
@@ -471,15 +474,19 @@ func verbindungen(n *yaml.Node, z [][]rune) error {
 		if err != nil {
 			return err
 		}
-		if name == "" {
-			return fehlerDatei("connections", "Name einer Verbindung ist leer")
+		if grund := nameFehler(name); grund != "" {
+			return fehlerDatei("connections", grund)
 		}
-		if strings.IndexFunc(name, unicode.IsControl) >= 0 {
-			return fehlerDatei("connections", "Name einer Verbindung mit Steuerzeichen")
-		}
-		if _, err := skalar(n.Content[i+1], unter("connections", name), z); err != nil {
+		stelle := unter("connections", name)
+		text, err := skalar(n.Content[i+1], stelle, z)
+		if err != nil {
 			return err
 		}
+		v, err := zerlegeURL(name, text)
+		if err != nil {
+			return err
+		}
+		d.verbindungen = append(d.verbindungen, v)
 	}
 	return nil
 }

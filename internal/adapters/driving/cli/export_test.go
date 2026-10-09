@@ -40,3 +40,41 @@ const (
 func FormMitTaggedStyle() error {
 	return form(&yaml.Node{Kind: yaml.ScalarNode, Style: yaml.TaggedStyle, Line: 5, Column: 1}, "x", nil)
 }
+
+// Zerlegt ist eine zerlegte URL für Tests: je Teil die Stücke in der
+// Reihenfolge der URL, ein Platzhalter als <VAR>; ein Teil, den die URL nicht
+// schreibt, ist nil.
+type Zerlegt struct {
+	Benutzer, Passwort, Host, Port, Datenbank []string
+	SSLMode                                   string
+}
+
+// stuecke ist ein Teil als Stücke für Zerlegt.
+func stuecke(t teil) []string {
+	out := []string{}
+	for _, s := range t {
+		if s.variable != "" {
+			out = append(out, "<"+s.variable+">")
+		} else {
+			out = append(out, s.text)
+		}
+	}
+	return out
+}
+
+// Zerlege lädt die Datei pfad und liefert ihre erste Verbindung zerlegt.
+func Zerlege(pfad string) (Zerlegt, error) {
+	d, err := ladeDatei(pfad, "--config")
+	if err != nil {
+		return Zerlegt{}, err
+	}
+	v := d.verbindungen[0]
+	z := Zerlegt{Host: stuecke(v.host), Port: stuecke(v.port), Datenbank: stuecke(v.datenbank), SSLMode: v.sslmode}
+	if v.mitBenutzer {
+		z.Benutzer = stuecke(v.benutzer)
+	}
+	if v.mitPasswort {
+		z.Passwort = stuecke(v.passwort)
+	}
+	return z, nil
+}
