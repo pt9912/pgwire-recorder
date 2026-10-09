@@ -93,17 +93,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen als einfache Anfragen wird gegen eine leere Instanz, die weder Passwort noch TLS verlangt, eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); mehrere Sessions laufen über eigene Verbindungen nacheinander; die Optionen von `play` wirken aus Kommandozeile, Umgebung und dem Abschnitt `play:`, `--user` und `--database` gehen Benutzer und Datenbank der benutzten Verbindung und der Aufzeichnung vor, eine nicht gesetzte oder leere Variable in Benutzer, Passwort oder Datenbank der benutzten Verbindung ist `PGR-E2005` (U8), ein gewöhnliches Argument `PGR-E2001`; `--fail-on-unconsumed` ist bei `play` unbekannt (`PGR-E2001`) und ihre Umgebungsvariable bleibt dort unbeachtet, auch mit ungültigem Wert; `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` wirken bei `play` mit derselben Wertemenge, Strenge und Schwelle wie bei `record` und `replay`, ein ungültiger Wert ist `PGR-E2001`, auch in der Umgebungsvariable neben gültiger Option; bis zu den Folge-Slices gilt der Zwischenstand aus §6. Integrationstest gegen die reale Instanz für Abnahmeszenario 12, die Sessions, die Optionen aus Kommandozeile, Umgebung und `play:`, den Vorrang von `--user` und `--database`, `--fail-on-unconsumed` als Option und den Zwischenstand bei Extended-Interaktion, `sslmode=require` und `--upstream-tls`; Unit-Test des CLI-Adapters für U8, das gewöhnliche Argument, die Umgebungsvariable von `--fail-on-unconsumed`, `--log-level` und die übrigen Optionen des Zwischenstands, weil der CLI-Adapter sie vor jeder Verbindung entscheidet. Das Benutzerhandbuch zeigt in Beispiel und Abschnittsliste von §5 *Konfigurationsdatei* den Abschnitt `play:` (mit `upstream` und `input`), und das Beispiel als Datei startet mit `config show` ohne Meldung (V-125).
-- [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4, keine weitere Nachricht, `Terminate`); ein Verbindungsfehler bricht ab; im Aufbau sind ein nicht erreichbarer Server und eine Fehlerantwort außerhalb der SQLSTATE-Klasse 28 (etwa eine fehlende Datenbank) `PGR-E4002`, eine der Klasse 28 (etwa ein unbekannter Benutzer) `PGR-E4005`; die Nachrichten und Anmelde-Codes im Aufbau, ein gescheitertes Senden des Startup und der Abbruch im Aufbau ohne `Terminate` folgen §6 (Test). Beleg in §7 für Punkt 1 bis 3: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
-- [ ] `SIGINT` und `SIGTERM` beenden nach der laufenden Interaktion, ein erstes Signal im Aufbau nach dem Aufbau, ohne Interaktion; ein zweites Signal beendet sofort; der Exit-Code ist 0, weil ohne die Optionen der Laufsteuerung jeder Fehler vorher abbricht; ohne Vergleich ist jedes Verbindungsende nach dem ersten `ReadyForQuery` `PGR-E4003`; die Rangfolge mit Vergleich (Exit-Code 5) prüft `slice-v1-abschluss-antwortvergleich` (Test).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen als einfache Anfragen wird gegen eine leere Instanz, die weder Passwort noch TLS verlangt, eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); mehrere Sessions laufen über eigene Verbindungen nacheinander; die Optionen von `play` wirken aus Kommandozeile, Umgebung und dem Abschnitt `play:`, `--user` und `--database` gehen Benutzer und Datenbank der benutzten Verbindung und der Aufzeichnung vor, eine nicht gesetzte oder leere Variable in Benutzer, Passwort oder Datenbank der benutzten Verbindung ist `PGR-E2005` (U8), ein gewöhnliches Argument `PGR-E2001`; `--fail-on-unconsumed` ist bei `play` unbekannt (`PGR-E2001`) und ihre Umgebungsvariable bleibt dort unbeachtet, auch mit ungültigem Wert; `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` wirken bei `play` mit derselben Wertemenge, Strenge und Schwelle wie bei `record` und `replay`, ein ungültiger Wert ist `PGR-E2001`, auch in der Umgebungsvariable neben gültiger Option; bis zu den Folge-Slices gilt der Zwischenstand aus §6. Integrationstest gegen die reale Instanz für Abnahmeszenario 12, die Sessions, die Optionen aus Kommandozeile, Umgebung und `play:`, den Vorrang von `--user` und `--database`, `--fail-on-unconsumed` als Option und den Zwischenstand bei Extended-Interaktion, `sslmode=require` und `--upstream-tls`; Unit-Test des CLI-Adapters für U8, das gewöhnliche Argument, die Umgebungsvariable von `--fail-on-unconsumed`, `--log-level` und die übrigen Optionen des Zwischenstands, weil der CLI-Adapter sie vor jeder Verbindung entscheidet. Das Benutzerhandbuch zeigt in Beispiel und Abschnittsliste von §5 *Konfigurationsdatei* den Abschnitt `play:` (mit `upstream` und `input`), und das Beispiel als Datei startet mit `config show` ohne Meldung (V-125).
+- [x] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4, keine weitere Nachricht, `Terminate`); ein Verbindungsfehler bricht ab; im Aufbau sind ein nicht erreichbarer Server und eine Fehlerantwort außerhalb der SQLSTATE-Klasse 28 (etwa eine fehlende Datenbank) `PGR-E4002`, eine der Klasse 28 (etwa ein unbekannter Benutzer) `PGR-E4005`; die Nachrichten und Anmelde-Codes im Aufbau, ein gescheitertes Senden des Startup und der Abbruch im Aufbau ohne `Terminate` folgen §6 (Test). Beleg in §7 für Punkt 1 bis 3: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
+- [x] `SIGINT` und `SIGTERM` beenden nach der laufenden Interaktion, ein erstes Signal im Aufbau nach dem Aufbau, ohne Interaktion; ein zweites Signal beendet sofort; der Exit-Code ist 0, weil ohne die Optionen der Laufsteuerung jeder Fehler vorher abbricht; ohne Vergleich ist jedes Verbindungsende nach dem ersten `ReadyForQuery` `PGR-E4003`; die Rangfolge mit Vergleich (Exit-Code 5) prüft `slice-v1-abschluss-antwortvergleich` (Test).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -414,8 +414,8 @@ nicht.
 
 **Risiken:**
 
-- Das Einspielen verändert eine Datenbank; ein Fehlgebrauch gegen eine falsche Instanz ist durch das Handbuch nur gewarnt — **Ausgang:** offen bis Closure.
-- Eine Serverantwort mit `FATAL` beendet die Verbindung; die Behandlung gemäß Spezifikation ist erst im Test belegbar — **Ausgang:** offen bis Closure.
+- Das Einspielen verändert eine Datenbank; ein Fehlgebrauch gegen eine falsche Instanz ist durch das Handbuch nur gewarnt — **Ausgang:** weiter offen, ins Register als `BEO-REPO/einspielen-gegen-falsche-instanz-nur-gewarnt`: Geliefert ist `play` ohne Prüfung der Zielinstanz, das Handbuch warnt in §4 *Eine Aufzeichnung in eine Datenbank einspielen*, und [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) verlangt keinen Schutz; das Risiko kann weiter eintreten.
+- Eine Serverantwort mit `FATAL` beendet die Verbindung; die Behandlung gemäß Spezifikation ist erst im Test belegbar — **Ausgang:** entfallen: belegt im Test (`TestPlayFehlerantwort` mit `V_FATAL`, `V_PANIC`, `S_PANIC_ohne_V`; Mutanten M04, M05, M20 rot, §7) und am Binary gegen PostgreSQL (57P01 `FATAL` → `PGR-E4003`, Verifikation `2026-10-09-verifikation-slice-v1-abschluss-einspielen`, Punkt 2).
 - **Größe** (Prüfung des Architect vom 2026-10-09): Der Slice berührte CLI-Adapter, Play-Service
   mit Port, Upstream-Adapter und Bootstrap — mehr als zwei Schichten — und trug mit Anmeldung
   (drei Verfahren, SCRAM selbst), TLS mit eigener Zertifizierungsstelle, Fehlerregeln,
@@ -465,6 +465,141 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+- **Belege zur DoD (Implementer):** siehe *Belege des Implementers*, *Belege der Nacharbeit
+  zum Review* und *Belege der Nacharbeit zur Verifikation* unten. DoD-Punkt 1 bis 3 bestätigt
+  die Verifikation (`2026-10-09-verifikation-slice-v1-abschluss-einspielen`, Verdikt: Punkt 1
+  mit Beleg-Form V-133, Punkt 2 mit V-130, Punkt 3 mit V-131), je Zusage Zusage · Mutation ·
+  roter Test in §7, nachgefahren mit 21 Stichproben und 9 eigenen Mutanten; DoD-Punkt 1 trennt
+  seit `c940cdf` Integrationstest und Unit-Test (V-133). `make gates` grün am Stand `c940cdf`
+  (*Läufe der Nacharbeit zur Verifikation*, `4bd4070`) und erneut nach dem Commit dieser
+  Notiz (Bericht des Planners; der Lauf nach dem `git mv` gehört zum Hauptzweig, nicht in
+  diese Notiz).
+- **Was hat funktioniert:** Die Randform-Rückgabe R1 bis R3 kam vor dem ersten Code-Commit:
+  Der Implementer hielt an, der Architect entschied in `e4963ee`, erst dann folgte der Code
+  (`8025485`); keine Randform außerhalb von §6 ist im Code entschieden (Verifikation §4). Die
+  beiden Schnitte trafen vor dem Code ein, beide Male als Entscheidung des Nutzers mit
+  Optionen des Architect; der verbleibende Kern (rund 630 Produktzeilen, 2190 mit Tests) war
+  in einer Review-Sitzung prüfbar (F-554). Das Verhalten hielt am Binary gegen PostgreSQL in
+  jedem gefahrenen Fall; die Sonden des Reviews zeigten, dass der Code auch dort richtig war,
+  wo die Tests fehlten (F-547, F-548).
+- **Was ging anders als geplant:**
+  1. Zusagen ohne fangende Mutation trotz der Mutanten-Reihe des Implementers: zweites Signal
+     beim blockierten Senden, Abbruch des Verbindungsversuchs, SQLSTATE und `M` im Aufbau
+     (F-547 bis F-549), die Meldung mit Schweregrad (F-552), das Schließen nach einem Fehler
+     im Aufbau, das eine Frist im Fake-Server grün machte (V-130), und die Sperre in `Anfrage`
+     (V-131). Gemeinsam ist ihnen, dass die Zusage nur für einen Teil ihrer Fälle gehalten war.
+  2. Drei Sendungen an Nehmer, die sie nicht führten: die Form der Übergabe an den
+     Play-Service, auf die der Ausschluss der Laufsteuerung baut (F-550), der erste Teil von
+     F-533 im Handbuch ohne Nehmer (F-551), und die Frage zum Exit-Code nach einem früheren
+     `PGR-E4004`, die nur in §7 dieses Slice stand (V-129, eingetragen in `75a58de`).
+  3. Das Handbuch beschrieb den Standard von `--user` und `--database` nicht wie geliefert
+     (F-551), und DoD-Punkt 1 sagte „Integrationstest“ für Teile zu, die nur Unit-Tests
+     prüften (V-133); der Beleg für `make gates` stand im Bericht, nicht in §7 (V-132).
+  - **Summary-Zeilen:** Review `docs/reviews/2026-10-09-review-slice-v1-abschluss-einspielen.md`:
+    „0 HIGH · 5 MEDIUM · 1 LOW · 2 INFO. F-547 bis F-549: zweites Signal beim blockierten
+    Senden, Abbruch des Verbindungsversuchs, SQLSTATE und Meldung im Aufbau halten keine
+    Mutation. F-550: Der Bootstrap reicht die Optionen nicht so weiter, wie die Laufsteuerung
+    es für ihren Ausschluss voraussetzt. F-551: Das Handbuch nennt für `--user` und
+    `--database` die Aufzeichnung als Standard; der erste Teil von F-533 hat keinen Nehmer.
+    F-552: Die Meldung bei `FATAL`/`PANIC` nennt den Schweregrad. F-553: Handbuch §4 ist bis
+    zum Ende der Welle Zielstand. F-554: Der Diff war in einer Sitzung prüfbar.“ Verifikation
+    `docs/reviews/2026-10-09-verifikation-slice-v1-abschluss-einspielen.md`: „0 HIGH · 1
+    MEDIUM · 4 LOW · 0 INFO. V-129: Die Frage zum Exit-Code steht nur beim Geber. V-130: Das
+    Schließen nach einem Fehler im Aufbau hält keine Zusicherung. V-131: Die Sperre in
+    `Anfrage` hält kein Test. V-132: §7 belegt `make gates` nicht. V-133: DoD-Punkt 1 sagt
+    Integrationstest, mehrere Teile sind nur in Unit-Tests geprüft.“ Ausgänge: F-547 bis
+    F-552 und F-554 in `cfcdcb5`, ebenso die Zeile `PGR-E4004` aus F-553; §4 des Handbuchs
+    aus F-553 eingeordnet (Urteil unten); V-129 in `75a58de`;
+    V-130 bis V-133 in `c940cdf` und `4bd4070`.
+  - **Urteil zu F-553** (Handbuch §4 im Zielstand, vom Implementer und Verifier an den Planner
+    gegeben): kein Hinweis bis zum Ende der Welle. Jede Option, die §4 beschreibt und `play`
+    heute ablehnt, hat einen Nehmer in welle-v1-abschluss, und
+    `slice-erster-release-veroeffentlichung` startet erst, wenn die Welle in `done/` liegt;
+    ein Nutzer sieht den Zwischenstand nur auf dem Hauptzweig, und die Hilfe von `play` sagt
+    nur zu, was gilt.
+- **Steering-Loop-Eintrag:** Benannte Spec-Lücke: `LH-FA-20.a` *Exit-Code* verlangt nach einem
+  früheren `PGR-E4004` den Code des abbrechenden Fehlers (4 oder 6), aber weder `LH-FA-20.a`
+  *Meldungen* noch `LH-FA-14.a` legen Reihenfolge und Zeitpunkt der Zeilen `error` fest. Der
+  gelieferte Bootstrap bildet den Exit-Code aus der ersten Meldung und schreibt die Zeilen
+  nach dem Einspielen; mit `--continue-on-error` liefe das nach `PGR-E4004` und einem
+  abbrechenden `PGR-E6001` auf Exit-Code 4 statt 6 hinaus. Die Lücke steht seit `75a58de`
+  als offene Randform *Reihenfolge der Zeilen `error`* in §6 von
+  `slice-v1-abschluss-einspielen-laufsteuerung`; der Architect entscheidet sie dort vor dem
+  ersten Code-Commit (dessen §4 *Start*), und verlangt die Entscheidung Code im Bootstrap,
+  gilt dessen vorab benannte Rückführung *dritte Schicht*. Kein Feld `liegt in`: Mit diesem
+  Slice ist nichts verkörpert.
+
+  Retirement-Checks: `AGENTS.md` §3.10 (seit welle-extended-query) ist wieder aufgetreten
+  (F-547 bis F-549, F-552, V-130, V-131); die Regel bleibt, der Sensor ist mit
+  `slice-harness-mutation` geplant. §3.11 (seit welle-extended-query) ist wieder aufgetreten
+  (F-547, F-548, F-551, V-130, V-131, V-133); die Regel bleibt. §3.13 (seit
+  slice-lint-bestand-kern-driven) ist zum zweiten Mal wieder aufgetreten (F-550, F-551,
+  V-129); die Regel bleibt. V-129 hat eine Form, die §3.13 nicht aufzählt — einen Hinweis in
+  §7 an die Prüfung vor dem Code eines anderen Slice —; ob die Regel sie ausdrücklich nennt,
+  ist Urteil des Nutzers, der Beleg im Register nennt die Form. §3.12 (seit
+  slice-harness-randformen-vor-code) ist nicht wieder aufgetreten: R1 bis R3 gingen vor dem
+  Code zurück, und kein Befund nennt eine Randform außerhalb von §6. §3.9 (seit
+  welle-walking-skeleton) ist nicht wieder aufgetreten: §3 folgt dem Code (Verifikation §4).
+  Die Regel *Beleg im Plan, nicht im Bericht* (`.claude/agents/implementer.md`, seit
+  slice-harness-blackbox-kern) ist wieder aufgetreten (V-132); die Regel bleibt. §3.13
+  *Nachzählen beim Eintragen* (seit slice-v1-abschluss-einspielen) ist erst nach dem zweiten
+  Schnitt verkörpert; die Sendung aus V-129 ist mit Zählung im Nehmer eingetragen
+  (`75a58de`, dort §8).
+- **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `4bd4070` (Zähler =
+  Dateien unter `evidence/`). Die Belege für `BEO-REPO/slice-waechst-durch-uebernahmen` (3×,
+  verkörpert) und `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel` (2×, offen) trägt
+  `43343e0`; sie zählen hier nicht noch einmal.
+  - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`: **Beleg**, 20× → 21× (F-547, F-548,
+    F-549, F-552, V-130, V-131), Stand verkörpert, bleibt.
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: **Beleg**, 26× → 27× (F-547, F-548,
+    F-551, V-130, V-131, V-133), Stand verkörpert, bleibt.
+  - `BEO-REPO/folge-slice-adresse-nimmt-nicht-an`: **Beleg**, 4× → 5× (F-550, F-551, V-129),
+    Stand verkörpert, bleibt.
+  - `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht`: **Beleg**, 4× → 5× (V-132), Stand
+    verkörpert, bleibt.
+  - `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`: **Beleg**, 1× → 2× (der zweite Schnitt
+    `e0b193d` trat ein, wie §8 es als Bedingung nannte; vor statt nach den ersten
+    Liefer-Commits, der Beleg nennt die Abweichung), Stand offen.
+  - `BEO-REPO/einspielen-gegen-falsche-instanz-nur-gewarnt`: **neu**, 1× (Risiko aus §6,
+    Ausgang *weiter offen*), Stand offen.
+  - Ohne Beleg: `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (bleibt 6×,
+    verkörpert) und `BEO-REPO/spec-randform-erst-im-review-entschieden` (bleibt 18×,
+    verkörpert) — die Rückgabe R1 bis R3 kam vor dem Code und nicht aus dem Review, kein
+    Slug passt; `BEO-REPO/plan-folgt-korrektur-nicht` (bleibt 21×, verkörpert);
+    `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit` (bleibt 3×, geplant) — bei V-130 wartete
+    der Test nicht ohne Frist, die Frist des Fake-Servers machte das Ausbleiben grün;
+    `BEO-REPO/gruener-mutant-faelschlich-aequivalent` (bleibt 1×, offen) — die äquivalenten
+    Mutanten X02b und X07 hat niemand widerlegt;
+    `BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft` (bleibt 1×, offen) — für `play`
+    hält `TestEinspielAufbauVerworfen` den Puffer, für `record` bleibt die Adresse
+    `slice-v1-abschluss-anmeldung`; `BEO-REPO/record-fehlerantwort-im-aufbau-ungeregelt`
+    (bleibt 1×, offen; betrifft `record`).
+  - Einmalig und nicht eingetragen: F-553 und F-554 (Hinweise, eingeordnet oben). Mit diesem
+    Slice erreicht kein Eintrag ohne Ausgang die Schwelle 3× neu.
+- **Folge-Slices:** keiner neu. Die Nehmer aus §1 (*Abgegeben*, *Ausdrücklich NICHT*) liegen
+  in `next/`; nächster Schritt nach §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) ist
+  `slice-v1-abschluss-einspielen-laufsteuerung`, davor zieht die Roadmap den wellenlosen
+  `slice-harness-d-check-v0-85` vor (Entscheidung des Nutzers).
+- **Risiken aus §6:** vier. *Fehlgebrauch gegen eine falsche Instanz*: **weiter offen**, ins
+  Register als `BEO-REPO/einspielen-gegen-falsche-instanz-nur-gewarnt`. *`FATAL` erst im Test
+  belegbar*: **entfallen**, belegt in Test und am Binary (Begründung in §6). *Größe*:
+  **eingetreten**, `slice-v1-abschluss-einspielen-anmeldung`, `slice-v1-abschluss-einspielen-tls`.
+  *Größe des Kerns*: **eingetreten**, `slice-v1-abschluss-einspielen-laufsteuerung`,
+  `slice-v1-abschluss-einspielen-extended`; die Rückführung aus §4 trat danach nicht mehr ein
+  (F-554). Die Randformen in §6 sind Entscheidungen, keine Risiken.
+- **Drei Paarungen:** Anker: Der Steering-Loop-Eintrag trägt kein Feld `liegt in`; nichts zu
+  prüfen. Folge-Slice: `grep -n "slice-v1-abschluss-einspielen"` findet die Kennung in §1 jedes
+  Nehmers in `next/`: `slice-v1-abschluss-einspielen-anmeldung`,
+  `slice-v1-abschluss-einspielen-tls`, `slice-v1-abschluss-einspielen-laufsteuerung` und
+  `slice-v1-abschluss-einspielen-extended` unter *Übernimmt*, die Laufsteuerung seit
+  `75a58de` auch mit der Frage aus V-129 (§1, §4, §6, §8); `slice-v1-abschluss-zeitangaben`
+  unter *Übernommen aus*; `slice-v1-abschluss-antwortvergleich` führt den Vergleich als
+  eigenes Ziel und nennt diesen Slice in §1 als Voraussetzung. Keiner schließt die Sendung in
+  *Ausdrücklich NICHT* aus. Register: die fünf Einträge mit Beleg und der neue tragen
+  `evidence/slice-v1-abschluss-einspielen.md`; die übrigen genannten bestehen als
+  Verzeichnis, jedes mit nicht leerem `evidence/`. Die nächste Welle-Closure prüft die
+  Paarungen erneut.
 
 **Belege des Implementers** (Arbeitsbaum auf `e4963ee` mit dem Diff des Commits, der
 diesen Abschnitt anlegt; Kern [K] nach der Randform-Rückgabe R1 bis R3):

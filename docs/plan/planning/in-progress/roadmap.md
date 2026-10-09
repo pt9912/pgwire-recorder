@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: [`slice-v1-abschluss-einspielen`](../in-progress/slice-v1-abschluss-einspielen.md) (welle-v1-abschluss). Danach folgen [`slice-v1-abschluss-einspielen-laufsteuerung`](../next/slice-v1-abschluss-einspielen-laufsteuerung.md), [`slice-v1-abschluss-einspielen-extended`](../next/slice-v1-abschluss-einspielen-extended.md), [`slice-v1-abschluss-einspielen-anmeldung`](../next/slice-v1-abschluss-einspielen-anmeldung.md) und [`slice-v1-abschluss-einspielen-tls`](../next/slice-v1-abschluss-einspielen-tls.md).
+In Arbeit: nichts (kein Slice in `in-progress/`). Als nächster folgt [`slice-v1-abschluss-einspielen-laufsteuerung`](../next/slice-v1-abschluss-einspielen-laufsteuerung.md) (welle-v1-abschluss), danach [`slice-v1-abschluss-einspielen-extended`](../next/slice-v1-abschluss-einspielen-extended.md), [`slice-v1-abschluss-einspielen-anmeldung`](../next/slice-v1-abschluss-einspielen-anmeldung.md) und [`slice-v1-abschluss-einspielen-tls`](../next/slice-v1-abschluss-einspielen-tls.md).
 
 
 

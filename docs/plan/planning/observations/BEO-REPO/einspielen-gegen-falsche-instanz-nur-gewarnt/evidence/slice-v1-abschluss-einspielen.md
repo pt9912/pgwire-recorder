@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen
+**Fund:** Risiko aus §6 des Slice: „Das Einspielen verändert eine Datenbank; ein Fehlgebrauch gegen eine falsche Instanz ist durch das Handbuch nur gewarnt.“ Geliefert ist `play` ohne Rückfrage und ohne Prüfung der Zielinstanz, das Handbuch warnt in §4; [`LH-FA-20`](../../../../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung) verlangt keinen Schutz. Ausgang *weiter offen*.
