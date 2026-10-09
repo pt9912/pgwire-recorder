@@ -1,4 +1,4 @@
-# Slice slice-v1-abschluss-konfigurationsdatei: Konfigurationsdatei, benannte Verbindungen und config show
+# Slice slice-v1-abschluss-konfigurationsdatei: Konfigurationsdatei und config show
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Jede Option von `record` und `replay`, die am allgemeinen Leser angemeldet ist, ist auch über die Konfigurationsdatei setzbar, in der Priorität Kommandozeile vor Umgebungsvariable vor Datei vor Default, samt benannten Verbindungen und Platzhaltern; `config show` zeigt die gewählte Datei, die Hilfe geht jeder Prüfung vor, und ein Fehler der Datei ist `PGR-E2004` bis `PGR-E2006`.
+**Ziel:** Jede Option von `record` und `replay`, die am allgemeinen Leser angemeldet ist, ist auch über die Konfigurationsdatei setzbar, in der Priorität Kommandozeile vor Umgebungsvariable vor Datei vor Default; `--config`, `PGWIRE_RECORDER_CONFIG` und die Standarddatei wählen genau eine Datei, `config show` zeigt sie, die Hilfe geht jeder Prüfung vor, eine ungültige Datei ist `PGR-E2004`, und die Code-Tabelle führt `PGR-E2004` bis `PGR-E2006`.
 
 **Übernimmt:** `slice-v1-abschluss-konfiguration` — dessen Datei-Hälfte nach dem Schnitt aus
 seinem §4 (*zu groß*, eingetreten am 2026-10-08): DoD-Punkt 2 für `config show` und `--config`
@@ -47,6 +47,17 @@ Geber, über `slice-v1-abschluss-konfiguration` und davor `slice-v1-abschluss-be
   ein ungültiger Wert ist `PGR-E2004`.
 - **Aus `slice-v1-abschluss-herunterfahren`** (dort §1, Abgrenzung): der Schlüssel der Frist
   `--shutdown-timeout` in der Konfigurationsdatei.
+
+**Abgegeben** an `slice-v1-abschluss-verbindungen-platzhalter` (dort §1, *Übernimmt*, mit der
+Kennung dieses Slice), nach dem vorab benannten Schnitt aus §4 (*zu groß*, eingetreten am
+2026-10-09): der frühere DoD-Punkt 3 — Grammatik der URL und `sslmode`, `${VAR}` und `$$`,
+`PGR-E2005` und `PGR-E2006` als Fehler, das Auflösen eines Verbindungsnamens in `--upstream`
+und der Teil des Benutzerhandbuchs dazu —, samt den Randformen dazu aus §6 (Rückgaben 5 zum
+Teil, 6, 7, 8 und 10). Hier bleiben die Wahl und das Laden der Datei, die Priorität über drei
+Quellen, `config show` mit der Hilfe, die Konstanten und von `connections:` die Form, die
+DoD-Punkt 2 prüft: eine Abbildung, ein Name in der Form eines Werts ohne Steuerzeichen, ein
+Wert als Skalar (Rückgaben 4 und 11). Bis zum Nehmer gilt ein Wert mit `$` wörtlich, und eine
+URL wird nicht zerlegt.
 
 **Schlüssel der Datei.** Die Schlüssel, die die Datei annimmt, folgen aus der Anmeldung am
 allgemeinen Leser von `slice-v1-abschluss-konfiguration`; keine Option wird ein zweites Mal
@@ -74,9 +85,11 @@ kein Gate, das bleibt Review.
   meldet `slice-v1-abschluss-konfiguration` am Leser an (Entscheidung zu F-496).
 - Die Optionen von `play` und der Abschnitt `play:` — `slice-v1-abschluss-einspielen` (dort
   §1); er liest sie über den allgemeinen Leser und die Datei dieses Slice.
+- Grammatik der URL, `sslmode`, Platzhalter, `PGR-E2005`, `PGR-E2006` und das Auflösen eines
+  Verbindungsnamens — `slice-v1-abschluss-verbindungen-platzhalter` (oben, *Abgegeben*); er
+  folgt diesem Slice.
 - TLS zum Upstream nach `sslmode` — `slice-v1-abschluss-einspielen`; nur `play` verbindet
-  mit TLS zum Server. Hier wird `sslmode` geprüft, und `sslmode=require` ist bei `record`
-  `PGR-E2004` (`LH-FA-17.a`).
+  mit TLS zum Server. `sslmode` prüft `slice-v1-abschluss-verbindungen-platzhalter`.
 - Code im Kern, im PGWire-Adapter und in den Driven-Adaptern — Schicht-Abgrenzung: Der
   Slice ändert den CLI-Adapter und den Bootstrap. **Einzige Ausnahme:** drei Konstanten
   `PGR-E2004` bis `PGR-E2006` in der Code-Tabelle `internal/hexagon/model/fehler.go`, ohne
@@ -101,11 +114,20 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Kommandozeile vor Umgebungsvariable vor Konfigurationsdatei vor Default (`SPEC-007`),
       auch für den Schlüssel `fail_on_unconsumed` im Abschnitt `replay:`, den Schlüssel der
       Frist und den Schlüssel `log_level` auf der obersten Ebene (Wertemenge und Strenge von
-      `--log-level`); eine ungültige Datei ist `PGR-E2004` (Test).
-- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Benannte Verbindungen (`connections`, `--upstream <Name>`, `sslmode`),
-      `${VAR}` und `$${VAR}` verhalten sich wie spezifiziert; eine nicht gesetzte Variable ist
-      `PGR-E2005`, ein Klartext-Passwort `PGR-E2006` (Test). Beleg in §7 für alle drei Punkte:
-      je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
+      `--log-level`); eine ungültige Datei ist `PGR-E2004` (Test). Die Code-Tabelle führt
+      dazu die Konstanten `PGR-E2005` und `PGR-E2006` ohne Erzeuger; ihre Tests liefert
+      `slice-v1-abschluss-verbindungen-platzhalter`.
+- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Die Vorgaben des Architect vom 2026-10-09 (§6, *Rückgaben vom
+      2026-10-09*) sind als Test belegt, je mit ihrer Mutation rot gesehen: R1 —
+      `output: "null"` und `output: '~'` setzen den Pfad `null` bzw. `~`, `Null` und `NULL`
+      ohne Anführungszeichen sind `PGR-E2004`, rot über den grünen Mutanten aus §7 und über
+      die Prüfung auf `!!null` als Textvergleich; R2 — die Standarddatei als Link auf ein
+      fehlendes Ziel wählt keine Datei, und `config show` sagt das in der ersten Zeile, rot
+      über `os.Lstat` statt `os.Stat`; Lesart 3 — `--config` mit relativem Pfad, die erste
+      Zeile von `config show` ist genau dieser Pfad, rot über `filepath.Abs`; Lesart 2 — ein
+      unbekanntes Unterkommando als `show` behandelt, rot über `{"config", "zeige"}` (Test).
+      Beleg in §7 für alle drei Punkte: je Zusage Zusage · Mutation · roter Test
+      (`AGENTS.md` §3.10).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -124,12 +146,12 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` (`LH-FA-17.a`) | update (Architect, vor dem Code, erledigt am 2026-10-08) | Entscheidung der zwölf Rückgaben aus §6 (`AGENTS.md` §3.12) |
-| `internal/adapters/driving/cli` | update | Wahl und Laden der Datei (`--config`, `PGWIRE_RECORDER_CONFIG`, Standarddatei); Schlüssel aus der Anmeldung am allgemeinen Leser als dritte Quelle der Priorität; `fail_on_unconsumed`, `log_level`, Frist; `connections`, `${VAR}`, `$${VAR}`, `sslmode`; Auflösen des Namens bei `--upstream` zu `host:port`; Kommando `config show` und seine Hilfe |
+| `spec/spezifikation.md` (`LH-FA-17.a`) | update (Architect, vor dem Code, erledigt am 2026-10-08 und am 2026-10-09) | Entscheidung der zwölf Rückgaben aus §6 (`AGENTS.md` §3.12); R1, R2 und fünf Lesarten nach dem Code von DoD-Punkt 1 und 2 (`cfc4d6b`) |
+| `internal/adapters/driving/cli` | update | Wahl und Laden der Datei (`--config`, `PGWIRE_RECORDER_CONFIG`, Standarddatei); Schlüssel aus der Anmeldung am allgemeinen Leser als dritte Quelle der Priorität; `fail_on_unconsumed`, `log_level`, Frist; Form von `connections:` (Abbildung, Name, Skalar); Kommando `config show` und seine Hilfe — geliefert in `7a80393` |
 | `internal/hexagon/model/fehler.go` | update | nur die drei Konstanten `PGR-E2004` bis `PGR-E2006` in der Code-Tabelle (§1, Ausnahme; §6) |
 | `internal/bootstrap` | update | `config show` ausführen (Ausgabe auf `stdout`); die zusammengeführten Optionen an die Use Cases geben |
-| `internal/adapters/driving/cli` (Unit-Tests), `internal/bootstrap` (Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a` und `LH-FA-01.a`; der Test über alle angemeldeten Optionen läuft über drei Quellen |
-| `docs/user/benutzerhandbuch.md` | update, falls abweichend | §4 *Die gewählte Konfigurationsdatei anzeigen* und §5 *Konfigurationsdatei* beschreiben den Zielstand; nachgezogen wird, was die Entscheidungen aus §6 ändern |
+| `internal/adapters/driving/cli` (Unit-Tests), `internal/bootstrap` (Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a` und `LH-FA-01.a`; der Test über alle angemeldeten Optionen läuft über drei Quellen. Offen: die Tests der Vorgaben vom 2026-10-09 (DoD-Punkt 3) — R1 in `TestDateiGueltig` und `TestDateiUngueltig`, R2 in `TestDateiWahl` oder `TestConfigShowOhneDatei`, Lesart 3 an `config show` mit relativem `--config`, die Mutation zu Lesart 2 über `TestConfigShowFehler` |
+| `docs/user/benutzerhandbuch.md` | update, falls abweichend | §4 *Die gewählte Konfigurationsdatei anzeigen* und §5 *Konfigurationsdatei* ohne die Absätze zu Verbindungen und Platzhaltern (die zieht `slice-v1-abschluss-verbindungen-platzhalter` nach) beschreiben den Zielstand; nachgezogen wird, was die Entscheidungen aus §6 ändern |
 
 ## 4. Trigger
 
@@ -142,15 +164,32 @@ von [welle-v1-abschluss](../welle-v1-abschluss.md) (Entscheidung des Nutzers vom
 Die zwölf Randformen und den Ort der Konstanten aus §6 entschied der Architect am 2026-10-08
 vor dem Code (`AGENTS.md` §3.12).
 
+**Erneuter Start** (`next` → `in-progress`) nach der Rückführung unten: dieser Plan im
+geschnittenen Zuschnitt liegt auf dem Hauptzweig. Die Arbeit ist DoD-Punkt 3 (die Tests der
+Vorgaben vom 2026-10-09); DoD-Punkt 1 und 2 sind geliefert (`7a80393`).
+
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer
   Review-Sitzung prüfbar, oder eine Änderung im Kern über die Konstanten hinaus wird nötig.
   Schnitt dann: *Datei* (DoD-Punkt 1 und 2) und *Verbindungen und Platzhalter* (DoD-Punkt 3);
-  der zweite setzt den ersten voraus.
+  der zweite setzt den ersten voraus. **Eingetreten am 2026-10-09** (Grund unten). Für den
+  geschnittenen Zuschnitt: Ein Test einer Vorgabe vom 2026-10-09 verlangt eine Änderung am
+  Code, die den Diff über eine Review-Sitzung hebt; dann zurück an den Architect, weil er dort
+  *Code bleibt* entschied.
 - `in-progress` → `open` (blockiert — Carveout?): Die Form der Datei nach [ADR-0014](../../adr/0014-konfigurationsdatei.md) trägt
   einen Schlüssel nicht, den eine Option braucht, ohne eine neue Entscheidung; dann zuerst
   die Entscheidung.
+
+**Grund der Rückführung `in-progress` → `next`, eingetreten am 2026-10-09:** Der Implementer
+hielt nach DoD-Punkt 1 und 2 an; deren Diff allein umfasst rund 1250 Zeilen, davon rund 600
+Tests (`7a80393`, Beleg `a063f2f` in §7), mit dem damaligen DoD-Punkt 3 läge er über einer
+Review-Sitzung. Das ist die erste Bedingung oben. Geschnitten wird nach dem vorab benannten
+Schnitt: *Datei* bleibt hier, *Verbindungen und Platzhalter* geht an
+`slice-v1-abschluss-verbindungen-platzhalter` (§1, *Abgegeben*). Der Architect entschied
+vorher R1, R2 und fünf Lesarten zu DoD-Punkt 1 und 2 (`cfc4d6b`); deren Tests fehlen und sind
+jetzt DoD-Punkt 3. Der Übergang läuft formal über `next/` (Entscheidung des Nutzers vom
+2026-10-09 zu V-117), als reiner `git mv` nach diesem Commit, dann `next` → `in-progress`.
 
 ## 5. Closure-Trigger
 
@@ -172,7 +211,10 @@ zogen mit dem Schnitt aus §6 von `slice-v1-abschluss-konfiguration` hierher; de
 prüfte sie dort am 2026-10-08 vor dem Code. Die zwölf Rückgaben des Implementers und den Ort
 der Konstanten entschied er am 2026-10-08 hier, vor dem Code (unten). Zwei Rückgaben und fünf
 Lesarten aus dem Lauf an DoD-Punkt 1 und 2 entschied er am 2026-10-09 (unten, *Rückgaben vom
-2026-10-09*); offen ist keine.
+2026-10-09*); offen ist keine. Die Randformen zu Verbindungen und Platzhaltern und die
+Rückgaben 6, 7, 8 und 10 sowie der Teil der Verbindungen aus Rückgabe 5 zogen mit dem Schnitt
+vom 2026-10-09 nach §6 von `slice-v1-abschluss-verbindungen-platzhalter`; hier steht je eine
+Zeile mit dem Ort.
 
 *Umgebung, soweit sie die Datei betrifft*
 
@@ -209,34 +251,23 @@ Lesarten aus dem Lauf an DoD-Punkt 1 und 2 entschied er am 2026-10-09 (unten, *R
 - **Relative Pfade in der Datei** (`input`, `output`, später Zertifikate) — relativ zum
   aktuellen Verzeichnis; Entscheidung des Nutzers vom 2026-10-08, `LH-FA-17.a`.
 
-*Verbindungen und Platzhalter*
-
-- **Name bei `--upstream`** — nur bei genauer Übereinstimmung; ein Wert, der weder Name noch
-  `host:port` ist, ist ungültig (`PGR-E2001`, aus der Datei `PGR-E2004`); `LH-FA-17.a`.
-- **`sslmode=require` bei `record`** — `PGR-E2004` der benutzten Verbindung; `LH-FA-17.a`.
-- **Klartext-Passwort** — `PGR-E2006`, in jeder Verbindung der Datei; `LH-FA-17.a`.
-- **Variable eines Platzhalters der benutzten Verbindung nicht gesetzt** — `PGR-E2005`;
-  `LH-FA-17.a`.
-- **Variable eines Platzhalters gesetzt, aber leer** — nicht gesetzt, `PGR-E2005`;
-  Entscheidung des Nutzers vom 2026-10-08, `LH-FA-17.a`.
-- **Platzhalter in Teilen der URL, die `record` ignoriert** (Benutzer, Passwort, Datenbank) —
-  unbeachtet; `record` löst nur Platzhalter in Host und Port auf; Entscheidung des Nutzers
-  vom 2026-10-08, `LH-FA-17.a`.
-- **`$${VAR}`, Rekursion, Form des Namens, Einsetzen in die URL** — `$$` steht für `$` in
-  jedem Wert der Datei; Name `[A-Za-z_][A-Za-z0-9_]*`, sonst `PGR-E2004`; einmal eingesetzt;
-  URL vor dem Einsetzen zerlegt, Wert unverändert in seinem Teil; Entscheidung des Nutzers
-  vom 2026-10-08, `LH-FA-17.a`. Hinweis an den Implementer: Die Zerlegung der
-  Standardbibliothek lehnt einen Port `${PORT}` ab; zerlegt wird mit Platzhaltern.
+*Verbindungen und Platzhalter* — Name bei `--upstream`, `sslmode=require` bei `record`,
+Klartext-Passwort, nicht gesetzte oder leere Variable, Platzhalter in den von `record`
+ignorierten Teilen, `$${VAR}`, Rekursion, Form des Namens und Einsetzen in die URL: gezogen
+nach `slice-v1-abschluss-verbindungen-platzhalter` (dort §6), unverändert entschieden in
+`LH-FA-17.a`.
 
 *Anzeige und Fehler*
 
 - **`config show` und Geheimnisse** — keine Maskierung, und keine nötig: Ein Passwort steht
-  in keiner gültigen Datei (`PGR-E2006`), Platzhalter erscheinen unaufgelöst, Umgebungs-
-  variablen nur mit Namen; `LH-FA-17` (Lastenheft: *die Anzeige zeigt sie nicht*) und
+  in keiner gültigen Datei (`PGR-E2006`, erzeugt erst von
+  `slice-v1-abschluss-verbindungen-platzhalter`; Risiko unten), Platzhalter erscheinen
+  unaufgelöst, Umgebungsvariablen nur mit Namen; `LH-FA-17` (Lastenheft: *die Anzeige zeigt sie nicht*) und
   `LH-FA-17.a` (*Anzeige*). `LH-RB-01` gilt der Aufzeichnung (keine Maskierungsfunktion für
   deren Inhalt, `SPEC-033`), nicht der Anzeige der Konfiguration; kein Widerspruch.
-- **`config show`: `PGR-E2005`, aktive Umgebungsvariablen** — kommt nicht vor; gesetzt und
-  nicht leer, auch ohne passende Option, geprüft nur `PGWIRE_RECORDER_CONFIG`; `LH-FA-17.a`.
+- **`config show`: aktive Umgebungsvariablen** — gesetzt und nicht leer, auch ohne passende
+  Option, geprüft nur `PGWIRE_RECORDER_CONFIG`; `LH-FA-17.a`. Dass `config show` kein
+  `PGR-E2005` meldet, zog nach `slice-v1-abschluss-verbindungen-platzhalter` (dort §6).
 - **Form der Ausgabe von `config show`** — erste Zeile Pfad der Datei oder dass keine
   gefunden wurde, danach der Inhalt als YAML (zwei Leerzeichen, Reihenfolge der Datei, ohne
   Kommentare), danach die Namen der aktiven Umgebungsvariablen sortiert, alles auf `stdout`;
@@ -246,7 +277,9 @@ Lesarten aus dem Lauf an DoD-Punkt 1 und 2 entschied er am 2026-10-09 (unten, *R
 - **Reihenfolge bei mehreren Fehlern** — Abbruch beim ersten Fehler; Reihenfolge
   Kommandozeile, Umgebungsvariablen nach der Tabelle, Datei in ihrer Reihenfolge, zuletzt
   Pflichtoptionen, Kombinationen, `--upstream` und `PGR-E2005`; Entscheidung des Nutzers vom
-  2026-10-08, `LH-FA-17.a`.
+  2026-10-08, `LH-FA-17.a`. Den Teil der Verbindungen (innerhalb einer URL, `--upstream`,
+  `PGR-E2005`, Port nach dem Einsetzen) liefert `slice-v1-abschluss-verbindungen-platzhalter`
+  (dort §6).
 
 
 *Rückgaben des Implementers vom 2026-10-08* (aus dem abgebrochenen Lauf an
@@ -265,27 +298,20 @@ geschlossene Fehlertabelle, URL vor dem Einsetzen zerlegt, Abbruch beim ersten F
    ist `PGR-E2004` wie ein leerer Wert. Akzeptiertes Negativ: Ein Abschnitt, dessen Inhalt
    ganz auskommentiert ist, wird damit ungültig; das folgt der Strenge bei `null`
    (Entscheidung des Nutzers), und die Meldung nennt den Abschnitt.
-5. **Abschnitt eines anderen Kommandos** — mitgeprüft, ebenso jede nicht benutzte Verbindung;
-   vom Kommando hängen nur `sslmode=require` bei `record` und die Variablen der Platzhalter
-   ab.
-6. **URL ohne Port** — Port `5432`; die Grammatik lässt den Port weg. Ein Port sind Ziffern
-   mit Wert 1 bis 65535, sonst `PGR-E2004`.
-7. **Platzhalter-Syntax in ignorierten Teilen** — geprüft beim Laden, `PGR-E2004`;
-   unbeachtet ist dort nur die Variable. Im Passwortteil ist ein fehlerhafter Platzhalter
-   ein Klartext-Passwort (`PGR-E2006`).
-8. **Eingesetzter Wert macht seinen Teil ungültig** — nur der Port wird nach dem Einsetzen
-   geprüft: `PGR-E2004`, im letzten Schritt direkt nach den Variablen der benutzten
-   Verbindung (`PGR-E2005`). Den Host prüft der Start nicht; ein Host mit `/` scheitert beim
-   Verbindungsaufbau.
+5. **Abschnitt eines anderen Kommandos** — mitgeprüft. Der Teil der Verbindungen (jede nicht
+   benutzte Verbindung mitgeprüft; vom Kommando hängen nur `sslmode=require` bei `record` und
+   die Variablen der Platzhalter ab) zog nach `slice-v1-abschluss-verbindungen-platzhalter`
+   (dort §6, Rückgabe 5).
+6. **URL ohne Port** — gezogen nach `slice-v1-abschluss-verbindungen-platzhalter` (dort §6,
+   Rückgabe 6).
+7. **Platzhalter-Syntax in ignorierten Teilen** — gezogen nach
+   `slice-v1-abschluss-verbindungen-platzhalter` (dort §6, Rückgabe 7).
+8. **Eingesetzter Wert macht seinen Teil ungültig** — gezogen nach
+   `slice-v1-abschluss-verbindungen-platzhalter` (dort §6, Rückgabe 8).
 9. **YAML-Tags** — jeder ausdrücklich geschriebene Tag ist `PGR-E2004`, wie Anker und Aliase;
    ein Tag behauptet eine Bedeutung jenseits des Texts.
-10. **URL-Sonderformen** — was die Grammatik nicht zulässt, ist `PGR-E2004`: Schema
-    `postgres://`, leerer Host, fehlende oder leere Datenbank, Fragment, Parameter ohne `=`,
-    ein Parameter zweimal (auch `sslmode`). Wörtliche Teile werden prozent-dekodiert, ein
-    ungültiges Escape ist `PGR-E2004`; Platzhalter und `$$` gelten vor der Dekodierung, ein
-    eingesetzter Wert wird nicht dekodiert. Prozent-Dekodierung fehlte in der Liste; sie
-    folgt aus „Wert unverändert, auch mit `%`“ und ist mit entschieden. Innerhalb einer URL
-    gilt die Reihenfolge ihrer Teile.
+10. **URL-Sonderformen** — gezogen nach `slice-v1-abschluss-verbindungen-platzhalter` (dort
+    §6, Rückgabe 10).
 11. **Name einer Verbindung** — Form eines Werts (Text des Skalars; leer, `null`, Tag
     ungültig), dazu kein Steuerzeichen, weil die Meldung den Namen in einer Zeile nennt
     (`SPEC-034`); sonst jeder Name, auch mit Leerraum.
@@ -351,9 +377,17 @@ bleibt dort, das zu [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigura
 
 - Die Datei-Hälfte ist auf 900 bis 1300 Zeilen geschätzt (Bericht des Implementers vom
   2026-10-08); das liegt an der Grenze einer Review-Sitzung. Gegenmittel: der vorab benannte
-  Schnitt in §4 — **Ausgang:** offen bis Closure.
+  Schnitt in §4, ausgeführt am 2026-10-09 (Rest an
+  `slice-v1-abschluss-verbindungen-platzhalter`) — **Ausgang:** offen bis Closure.
 - Die Entscheidungen der zwölf Rückgaben ändern `LH-FA-17.a`; das Benutzerhandbuch beschreibt
-  die Datei schon im Zielstand und kann abweichen (§3) — **Ausgang:** offen bis Closure.
+  die Datei schon im Zielstand und kann abweichen (§3); den Teil zu Verbindungen und
+  Platzhaltern trägt `slice-v1-abschluss-verbindungen-platzhalter` — **Ausgang:** offen bis
+  Closure.
+- Zwischen der Closure dieses Slice und der von `slice-v1-abschluss-verbindungen-platzhalter`
+  nimmt der Stand eine Datei mit Klartext-Passwort an, und `config show` zeigt es; das
+  verletzt die Zusage aus `LH-FA-17` (*die Anzeige zeigt sie nicht*). Gegenmittel: der Nehmer
+  ist der nächste Schritt der Reihenfolge, kein Release liegt dazwischen — **Ausgang:** offen
+  bis Closure.
 
 ## 7. Closure-Notiz
 
@@ -391,6 +425,11 @@ der URL, `sslmode`, `${VAR}` und `$$` (in jedem Wert der Datei), das Klartext-Pa
 (`PGR-E2006`), `PGR-E2005` und der Name bei `--upstream` sind nicht umgesetzt, ein Wert
 mit `$` gilt wörtlich. Die Konstanten `PGR-E2005` und `PGR-E2006` stehen schon in
 `internal/hexagon/model/fehler.go`, ohne Erzeuger.
+
+*Nachtrag des Planners vom 2026-10-09:* Mit dem Schnitt nach §4 heißt DoD-Punkt 3 dieses Plans
+die Tests der Vorgaben vom 2026-10-09; der frühere DoD-Punkt 3, von dem dieser Absatz spricht,
+ging an `slice-v1-abschluss-verbindungen-platzhalter` (§1, *Abgegeben*). Die Belege unten
+gelten DoD-Punkt 1 und 2.
 
 **Weg der Mutanten.** Je Mutant eine frische Kopie des Arbeitsbaums in einem neuen
 Verzeichnis (`tar` ohne `.git`, kein `cp -p`), die Änderung mit einem Skript, das die
@@ -553,7 +592,18 @@ unter `evidence/`). Treffer:
   Schnitt; jede Korrektur zieht §1, §3 und §6 im selben Commit nach.
 - `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (3×, §3.13) — die Übernahme oben steht mit
   der Kennung des Gebers; Geber und die Nehmer `slice-v1-abschluss-schreiben` und
-  `slice-v1-abschluss-einspielen` zeigen im selben Commit hierher.
+  `slice-v1-abschluss-einspielen` zeigen im selben Commit hierher. Beim Schnitt vom 2026-10-09
+  nennt der Nehmer `slice-v1-abschluss-verbindungen-platzhalter` diesen Slice unter
+  *Übernimmt*, und `slice-v1-abschluss-einspielen` nennt beide unter *Übernommen aus*.
+
+*Nachsichtung beim Schnitt vom 2026-10-09* (Stand `cfc4d6b`):
+
+- `BEO-REPO/slice-waechst-durch-uebernahmen` (2×) — dieser Slice wuchs durch die Übernahmen
+  oben über eine Review-Sitzung, bei drei Liefer-Punkten; das ist das Muster des Eintrags.
+  Trägt seine Closure den Beleg ein, steht der Eintrag bei 3× und braucht einen eigenen
+  Folge-Slice; die Entscheidung gehört in die Closure.
+- `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel` (1×) — diesmal läuft die Rückführung über
+  `next/` (Entscheidung des Nutzers vom 2026-10-09 zu V-117); kein weiterer Beleg.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu; keine neue Lücke vor
 dem Code.

@@ -107,8 +107,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-konfiguration` und
 `slice-v1-abschluss-konfigurationsdatei` liegen in `done/` (`--force` wird über den allgemeinen
-Leser gelesen, auch aus der Datei). Schritt 5 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)
-(Entscheidung des Nutzers vom 2026-10-08). Vor dem ersten Code-Commit prüft der Architect
+Leser gelesen, auch aus der Datei). Schritt 6 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)
+(Entscheidung des Nutzers vom 2026-10-08, nach dem Schnitt vom 2026-10-09 ein Schritt später). Vor dem ersten Code-Commit prüft der Architect
 die Randformen aus §6 und entscheidet die offenen (`AGENTS.md` §3.12).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
