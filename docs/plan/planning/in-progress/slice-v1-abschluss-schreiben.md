@@ -228,7 +228,11 @@ nicht beschreibbaren Verzeichnis). Neu sind
 und `test/integration/schreiben_e2e_test.go`; geändert `yaml.go` (`pruefe`, `schreibe`,
 `dateiOps`, `betriebssystem`, `neueTempDatei` mit Zufall als Parameter) und
 `record_e2e_test.go` (Helfer `startProzessIn` mit Arbeitsverzeichnis). CLI-Adapter, Kern,
-PGWire-Adapter und Bootstrap sind unverändert (§1).
+PGWire-Adapter und Bootstrap sind unverändert (§1). Nach den zwei Entscheidungen des
+Architect (`b74e16e`) nimmt `24fc87c` das Setzen der Rechte und das Schließen in `dateiOps`
+und `Eingriffe` auf (`Rechte`, `Schliessen`), ergänzt `TestWriteFehlschlag` um beide Fälle,
+fügt `TestWriteRechteVerknuepfung` hinzu und zieht Handbuch und Abdeckung nach; das
+Verhalten des Codes ist unverändert.
 
 **Randformen.** Kein Code-Commit ändert §6. Entschieden ist nur, was §6 nennt. Zwei Punkte
 gingen als Frage an den Architect zurück; beide sind entschieden (`b74e16e`, `LH-FA-07.a`),
@@ -245,8 +249,10 @@ und kein Test.
 Kein anderer Slice ist als neue Adresse genannt (§3.13).
 
 **Größe.** Der Diff `ad1b7ba..65968e6` umfasst 753 hinzugefügte und 29 entfernte Zeilen: Code
-71 (`yaml.go`), Unit-Tests 465, Integration 167, Handbuch 23, Abdeckung 24, Plan 3. Ob er in
-eine Review-Sitzung passt, urteilt das Review.
+71 (`yaml.go`), Unit-Tests 465, Integration 167, Handbuch 23, Abdeckung 24, Plan 3. Die
+Nacharbeit `24fc87c` fügt Code 15 (`yaml.go`), Unit-Tests 46 (`schreiben_test.go`,
+`export_test.go`), Handbuch 4 und Abdeckung 3 Zeilen (geändert und hinzugefügt) hinzu. Ob er
+in eine Review-Sitzung passt, urteilt das Review.
 
 **Läufe.**
 
@@ -258,6 +264,8 @@ eine Review-Sitzung passt, urteilt das Review.
 | `make docs-check` | vor `aad7085`, vor `65968e6` | 0 Befunde |
 | `make kopf-check`, `make abdeckung-check` | vor `aad7085` | Exit 0 |
 | `make abdeckung` | vor `aad7085`, vor `65968e6` | Tabellen nachgezogen |
+| `make test`, `make lint`, `make docs-check`, `make kopf-check`, `make abdeckung-check` | vor `24fc87c` | Exit 0, 0 Befunde |
+| `make abdeckung` | vor `24fc87c` | `abdeckung-unit.md` nachgezogen |
 | `make gates` | Commit dieser Belege | Exit 0, vor der Übergabe |
 
 **Weg der Mutanten.** Je Mutant eine frische Kopie des Arbeitsbaums unter dem Scratch-Pfad der
@@ -270,7 +278,10 @@ und Image entfernt danach ein `trap`. Die Kopie wird danach gelöscht; der Arbei
 unberührt. Gefahren: 31 Unit-Mutanten (die Mutanten an `Prepare` nach `65968e6` neu) und 11
 Integrations-Mutanten, alle rot. Ein Mutant (Form des Namens der Probedatei) war vor
 `65968e6` grün, weil die Probedatei sofort entfernt ist und ihr Name von außen nicht zu sehen
-war; mit `TestPrepareProbedatei` ist er rot.
+war; mit `TestPrepareProbedatei` ist er rot. Nach `24fc87c` gefahren: eine unveränderte Kopie
+(grün) und fünf Unit-Mutanten, alle rot im genannten Test. Drei davon (Schließen übergangen,
+Rechte und Schließen ohne Entfernen) waren im ersten Lauf nur an `gofmt` rot, also aus dem
+falschen Grund; formatgerecht wiederholt, sind sie im Test rot.
 
 **DoD-Punkt 1 — atomares Schreiben, Zielpfad beim Start (`LH-FA-07.a`).**
 
@@ -295,6 +306,10 @@ war; mit `TestPrepareProbedatei` ist er rot.
 | Fehlschlag Anlegen `PGR-E3001` | Code `PGR-E1000` am Anlegen | `TestWriteFehlschlag` (Anlegen), `TestWriteZehnBelegteNamen`, dazu `TestRunRecordSchreibfehlerJeStufe` und `TestRunRecordSchreibfehlerVorGemerkterKlasse` |
 | Fehlschlag Schreiben (nach einem Teil der Daten): `PGR-E3001`, Zieldatei unverändert | Fehler des Schreibens übergangen | `TestWriteFehlschlag` (Schreiben: kein Fehler, Zieldatei mit halber Aufzeichnung), `TestWriteEntfernenScheitert` |
 | Fehlschlag Synchronisieren: `PGR-E3001`, Zieldatei unverändert | Fehler des Synchronisierens übergangen | `TestWriteFehlschlag` (Synchronisieren) |
+| Fehlschlag Setzen der Rechte: `PGR-E3001`, Zieldatei unverändert | Fehler von `rechte` verworfen (`_ =` statt `merr =`) | `TestWriteFehlschlag` (Rechte: kein Fehler, Zieldatei ersetzt) |
+| Fehlschlag Schließen: `PGR-E3001`, Zieldatei unverändert | Fehler von `schliessen` verworfen | `TestWriteFehlschlag` (Schliessen: kein Fehler, Zieldatei ersetzt) |
+| temporäre Datei nach Fehlschlag des Setzens der Rechte entfernt | nach dem Fehler von `rechte` sofort `PGR-E3001` ohne Entfernen | `TestWriteFehlschlag` (Rechte: `.tmp` liegt im Verzeichnis) |
+| temporäre Datei nach Fehlschlag des Schließens entfernt | nach dem Fehler von `schliessen` sofort `PGR-E3001` ohne Entfernen | `TestWriteFehlschlag` (Schliessen: `.tmp` liegt im Verzeichnis) |
 | Fehlschlag Verschieben: `PGR-E3001` | Fehler des Verschiebens übergangen | `TestWriteFehlschlag` (Verschieben), `TestWriteEntfernenScheitert` |
 | temporäre Datei nach Fehlschlag des Schreibens oder Synchronisierens entfernt | Entfernen im ersten Zweig weggelassen | `TestWriteFehlschlag` (Schreiben, Synchronisieren), `TestWriteEntfernenScheitert` |
 | temporäre Datei nach Fehlschlag des Verschiebens entfernt | Entfernen im zweiten Zweig weggelassen | `TestWriteFehlschlag` (Verschieben), `TestWriteEntfernenScheitert`; E2E: `TestE2ERecordSchreibfehlerNachZwangsende` (zwei `.tmp` im Verzeichnis) |
@@ -307,6 +322,7 @@ war; mit `TestPrepareProbedatei` ist er rot.
 | Pfad, der erst nach dem Start entsteht, ohne Prüfung ersetzt | `Write` lehnt einen vorhandenen Pfad ab | `TestWritePfadNachDemStart` und 4 weitere Unit-Tests |
 | neue Datei `0666` nach der umask | `0600` statt `0666` | `TestWriteRechteUnterUmask022` |
 | ersetzte Datei behält ihre Zugriffsrechte | `Chmod` weggelassen | `TestWriteRechteUndAtomar` |
+| ersetzte Verknüpfung auf eine Datei: Zieldatei mit den Zugriffsrechten des Ziels | `os.Lstat` statt `os.Stat` beim Schreiben | `TestWriteRechteVerknuepfung` (`0777` statt `0640`) |
 | nach dem Zwangsende vollständig ersetzt, keine temporäre Datei | Verschieben weggelassen | E2E: `TestE2ERecordZwangsendeSchreibtVollstaendig` |
 
 **DoD-Punkt 2 — vorhandenes `--output` und `--force` aus jeder Quelle (`LH-FA-08`,
