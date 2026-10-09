@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md), [ADR-0014](../../adr/0014-konfigurationsdatei.md), [ADR-0027](../../adr/0027-yaml-bibliothek.md), [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)
+**Bezug:** [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md), [ADR-0014](../../adr/0014-konfigurationsdatei.md), [ADR-0027](../../adr/0027-yaml-bibliothek.md), [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md), [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md)
 
 **Berührte Spec-Stellen:** `LH-FA-01.a` · `LH-FA-17.a` · `LH-FA-03.b` · `LH-FA-14.a` · `SPEC-007` · `SPEC-008` · `SPEC-012` · `SPEC-014` · `SPEC-020` · `SPEC-033` · `SPEC-034` · `SPEC-046` · `ARC-005` · `ARC-013`
 
@@ -71,7 +71,9 @@ Test über alle angemeldeten Optionen läuft dann über drei Quellen.
 nur zum Lesen der Konfigurationsdatei zulässig (`ARC-013`,
 [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md), ergänzt
 [ADR-0027](../../adr/0027-yaml-bibliothek.md)); kein Typ der Bibliothek verlässt den
-CLI-Adapter. Die Gegenprobe des Architektur-Gates dafür liefert
+CLI-Adapter. Die Ausgabe derselben Datei in `config show` mit dem Kodierer der Bibliothek
+trägt [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md)
+(Proposed, Annahme durch den Nutzer offen). Die Gegenprobe des Architektur-Gates dafür liefert
 `slice-v1-abschluss-konfiguration`; dass ein Import im CLI-Adapter nur der Datei dient, prüft
 kein Gate, das bleibt Review.
 
@@ -211,7 +213,9 @@ zogen mit dem Schnitt aus §6 von `slice-v1-abschluss-konfiguration` hierher; de
 prüfte sie dort am 2026-10-08 vor dem Code. Die zwölf Rückgaben des Implementers und den Ort
 der Konstanten entschied er am 2026-10-08 hier, vor dem Code (unten). Zwei Rückgaben und fünf
 Lesarten aus dem Lauf an DoD-Punkt 1 und 2 entschied er am 2026-10-09 (unten, *Rückgaben vom
-2026-10-09*); offen ist keine. Die Randformen zu Verbindungen und Platzhaltern und die
+2026-10-09*). Drei Befunde des Reviews vom 2026-10-09 (F-506, F-507, F-517) entschied er am
+selben Tag (unten, *Befunde des Reviews vom 2026-10-09*); offen ist keine Randform, offen ist
+nur die Annahme von [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md). Die Randformen zu Verbindungen und Platzhaltern und die
 Rückgaben 6, 7, 8 und 10 sowie der Teil der Verbindungen aus Rückgabe 5 zogen mit dem Schnitt
 vom 2026-10-09 nach §6 von `slice-v1-abschluss-verbindungen-platzhalter`; hier steht je eine
 Zeile mit dem Ort.
@@ -362,6 +366,90 @@ die vor der Übergabe ans Review rot gesehen wird (`AGENTS.md` §3.10).
 - **Lesart 5 — doppelte Schlüssel** — bestätigt: nach ihrem Text verglichen, `1` und `"1"`
   sind derselbe Schlüssel; das folgt „Text des Skalars zählt“. Getestet
   (`TestDateiUngueltig`, *doppelt in Anführungszeichen*), keine Vorgabe.
+
+*Befunde des Reviews vom 2026-10-09*, entschieden vom Architect am 2026-10-09 in
+`LH-FA-17.a` bzw. in [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md).
+Der Code folgt nach dieser Entscheidung; je Fall Test und Mutation, vor der Übergabe ans Review
+rot gesehen (`AGENTS.md` §3.10). Die Fälle stehen in `TestDateiGueltig`, `TestDateiUngueltig`
+bzw. `TestDateiNichtLesbar`, wo nichts anderes steht.
+
+- **F-506 — Tag** — der nicht spezifische Tag `!` ist ein Tag (`LH-FA-17.a`). Die Prüfung über
+  `TaggedStyle` kommt zurück und **ergänzt** die Prüfung am Text: `TaggedStyle` fängt jeden Tag
+  mit Namen unabhängig von Zeile und Spalte; nur `!` allein setzt die Bibliothek nicht als
+  `TaggedStyle` (Sonde des Architect: `log_level: ! info` ergibt `!!str`, ohne `TaggedStyle`),
+  ihn fängt allein die Prüfung am Text. Diese ist verlässlich, weil die Zählung von Zeile und
+  Spalte der Bibliothek folgt: führendes BOM vor dem Zählen entfernt, Zeilenenden `\n`, `\r\n`
+  und `\r`, und was die Bibliothek anders zählt, ist vorher abgelehnt (F-507). Die Kommentare an
+  `form` und `zeilen` sagen genau das zu und nicht mehr (§3.11).
+  *Tests:* (1) `form` direkt mit einem Knoten `Style: TaggedStyle` und Zeile außerhalb des Texts
+  (`z` leer) meldet „Tag ist ungültig“; *Mutation:* Prüfung über `TaggedStyle` entfernt, rot.
+  (2) `log_level: ! info` und `log_level: !!str info` je mit führendem BOM, mit Zeilenende nur
+  `\r` (Tag in Zeile 2) und mit `\r\n` sind `PGR-E2004`; *Mutation:* BOM vor dem Zählen nicht
+  entfernt bzw. nur nach `\n` gezählt, rot über den Fall `!` allein. (3) Gültig bleibt
+  `record:\r  force: true\nlog_level: info\n#          !\n` (das `!` steht in der Spalte, die eine Zählung
+  nur nach `\n` dem Wert von `log_level` zuordnete); *Mutation:* nur nach `\n` gezählt, rot.
+- **F-507 (a) — Kodierung** — nur UTF-8; ein BOM als erstes Zeichen wird **hingenommen** und
+  übergangen (YAML 1.2 erlaubt ihn am Anfang des Streams, Werkzeuge unter Windows schreiben
+  ihn); ein BOM an anderer Stelle, eine ungültige UTF-8-Folge und UTF-16 oder UTF-32, auch mit
+  BOM, sind ungültiges YAML, `PGR-E2004` mit der Zeile (`LH-FA-17.a`). Die Bibliothek nimmt
+  UTF-16 mit BOM und ein BOM in einem Wert in Anführungszeichen an (Sonde des Architect); die
+  Prüfung liegt deshalb vor dem YAML.
+  *Tests:* gültige Datei mit führendem BOM setzt dieselben Werte wie ohne; BOM am Anfang von
+  Zeile 2 und BOM in einem Wert in Anführungszeichen sind `PGR-E2004` mit „Zeile 2“; dieselbe
+  Datei als UTF-16LE und als UTF-16BE mit BOM und als UTF-16LE ohne BOM ist `PGR-E2004`; ein
+  Byte `0xFF` in einem Kommentar ist `PGR-E2004`, die Meldung nennt kein Byte der Datei.
+  *Mutation:* Prüfung auf BOM nach dem ersten Zeichen entfernt, rot über den Wert in
+  Anführungszeichen; Prüfung auf UTF-8 entfernt, rot über UTF-16 mit BOM.
+- **F-507 (b) — Zeilenende** — `\n`, `\r\n` und `\r` allein nach YAML 1.2; `U+0085`, `U+2028`
+  und `U+2029` sind an jeder Stelle ungültiges YAML, `PGR-E2004` mit der Zeile, auch in
+  Anführungszeichen und in einem Kommentar (`LH-FA-17.a`). Grund: Die Bibliothek liest sie
+  nach YAML 1.1 als Zeilenende, YAML 1.2 nicht; jede andere Lesart widerspräche entweder YAML 1.2
+  oder dem Wert, den die Bibliothek liefert.
+  *Tests:* Datei nur mit `\r` und Datei mit `\r\n` setzen dieselben Werte wie mit `\n`; je eines
+  der drei Zeichen in einem Wert in Anführungszeichen und `U+2028` in einem Kommentar sind
+  `PGR-E2004` mit der Zeile, in der das Zeichen steht. *Mutation:* Prüfung der drei Zeichen
+  entfernt, rot über den Wert in Anführungszeichen.
+- **F-507 (c) — keine reguläre Datei** — die gewählte Datei muss, Links gefolgt, eine reguläre
+  Datei sein; Verzeichnis, FIFO, Gerät und Socket sind vorhanden, aber nicht lesbar
+  (`PGR-E2004`, „nicht lesbar“ mit Quelle, ohne Pfad), geprüft vor dem Öffnen, weil schon
+  das Öffnen einer FIFO blockiert. Das gilt für alle drei Quellen, die Standarddatei
+  eingeschlossen. `--config /dev/stdin` liest eine umgeleitete reguläre Datei und lehnt Pipe
+  und Terminal ab; Lesen von `stdin` gibt es nicht, eine Datei lässt sich direkt nennen.
+  Akzeptiertes Negativ: Wird der Pfad zwischen Prüfung und Öffnen durch eine FIFO ersetzt,
+  blockiert der Start; das verlangt, dass jemand die Datei während des Starts austauscht, und
+  hat keine andere Wirkung als ein hängender Start.
+  *Tests:* `--config` auf ein Verzeichnis (Bestand) und auf `/dev/null` ist `PGR-E2004`
+  „nicht lesbar“; eine FIFO (`syscall.Mkfifo`, Datei mit `//go:build unix`) ist `PGR-E2004`,
+  `ladeDatei` läuft dabei in einer Goroutine, und der Test wartet auf ihr Ergebnis mit einer
+  Frist als Literal (`SPEC-038`); die Standarddatei als Verzeichnis ist `PGR-E2004`; `--config`
+  als Link auf eine reguläre Datei wird gelesen. E2E in `konfiguration_e2e_test.go`: das Binary
+  mit `config show --config /dev/stdin` und `stdin` aus einer Pipe endet mit Exit `2` und
+  `PGR-E2004` innerhalb der Frist; mit `stdin` aus einer regulären Datei zeigt es deren Inhalt.
+  *Mutation:* Prüfung entfernt, rot über `/dev/null` (leere Datei angenommen) und über die
+  Frist bei FIFO und Pipe; `os.Lstat` statt `os.Stat`, rot über den Link.
+- **F-507 (d) — leerer Schlüssel, Schlüssel kein Skalar** (F-511) — unbekannt, die Meldung
+  nennt als Stelle die Abbildung, in der er steht (`oberste Ebene`, Abschnitt); `LH-FA-17.a`.
+  *Test:* `"": 1` und `? [a]` auf der obersten Ebene und in `record:` nennen `oberste Ebene`
+  bzw. `record`. *Mutation:* Stelle wieder aus dem Text des Schlüssels, rot.
+- **F-508 — Meldung zu einem doppelten Schlüssel** — wie jede Meldung zu ungültigem YAML die
+  Zeile, nicht der Text des Schlüssels; die Phase *YAML* weiß noch nicht, ob er an der Stelle
+  eines Werts steht (`LH-FA-17.a` *Fehler*). Doppelte in jeder Tiefe, auch in einer Liste,
+  sind ungültiges YAML (F-510). *Tests:* der Fall der Sonde unter `connections.a` nennt die
+  Zeile und weder `GEHEIM` noch den Schlüssel; Doppelte in dritter Ebene und in einer Liste an
+  einer Wertstelle sind „ungültiges YAML“, nicht „erwartet ein Skalar“. *Mutation:* Text des
+  Schlüssels in der Meldung, rot; M1 und M2 aus dem Review, rot.
+- **Ausgabe von `config show`** — ohne BOM und mit `\n` als Zeilenende, gleich wie die Datei
+  geschrieben ist (`LH-FA-17.a` *Anzeige*). *Test:* Datei mit BOM und `\r` zeigt kein `\r` und
+  kein BOM. Keine Mutation: Die Zusage hält der Kodierer; der Test hält sie gegen eine Ausgabe
+  des Texts der Datei.
+- **F-517 — Kodierer in `config show`** — Wiederausgabe ist kein Lesen im Sinn von
+  [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md); die Nutzung ist
+  legitim, aber nicht dokumentiert. Verdikt: nachziehen durch die ergänzende
+  [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md)
+  (Proposed), keine Supersession, weil [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md)
+  sonst unverändert gilt. Der Code bleibt. Mit `Accepted` zieht der Implementer die Sicht nach
+  (`ARC-013` und §2 *Zusätzliche Einschränkungen*: Lesen und Anzeigen der Konfigurationsdatei).
+  Wird die ADR abgelehnt, geht der Punkt zurück an den Architect, nicht in den Code.
 
 *Ort der Konstanten* — im Model, `internal/hexagon/model/fehler.go`, als drei Konstanten ohne
 Logik (§1, Ausnahme). Grund: [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) führt eine Code-Tabelle im Quelltext, die mit dem

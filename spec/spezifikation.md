@@ -892,10 +892,15 @@ Link ins Leere ist keine Datei. Lässt sich nicht feststellen, ob sie existiert 
 bei einer Schleife von Links), ist sie vorhanden, aber nicht lesbar. Findet sich
 keine Datei, wird keine gelesen. Eine mit `--config` oder
 `PGWIRE_RECORDER_CONFIG` genannte Datei, die fehlt, ist ein Konfigurationsfehler. Die
+gewählte Datei ist, symbolischen Links gefolgt, eine reguläre Datei; ein Verzeichnis,
+eine FIFO, ein Gerät oder ein Socket ist vorhanden, aber nicht lesbar. Das prüft der
+Start vor dem Lesen und wartet deshalb nie auf Eingabe: `--config /dev/stdin` liest eine
+umgeleitete reguläre Datei und lehnt eine Pipe oder ein Terminal ab. Die
 Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne die führenden `--`
 (`keep_timing` für `--keep-timing`); einen Schlüssel `config` gibt es nicht. Steht
-ein Schlüssel in derselben Abbildung zweimal, ist das ungültiges YAML; verglichen wird
-der Text des Schlüssels (`1` und `"1"` sind derselbe). `log_level`
+ein Schlüssel in derselben Abbildung zweimal, in jeder Tiefe, auch in einer Liste, ist
+das ungültiges YAML; verglichen wird der Text des Schlüssels (`1` und `"1"` sind
+derselbe). Ein leerer Schlüssel und einer, der kein Skalar ist, sind unbekannt. `log_level`
 und die benannten Verbindungen stehen auf der obersten Ebene, die übrigen Schlüssel
 in einem Abschnitt je Kommando (`record:`, `replay:`, `play:`):
 
@@ -922,13 +927,19 @@ annimmt (`output: "null"` ist der Pfad `null`). Ein
 relativer Pfad in der Datei gilt relativ zum aktuellen Verzeichnis wie auf der
 Kommandozeile, nicht zum Verzeichnis der Datei.
 
-Die Datei enthält höchstens ein YAML-Dokument; ein zweites ist ungültiges YAML. Ist
+Die Datei ist in UTF-8 kodiert. Ein BOM (`U+FEFF`) als erstes Zeichen wird übergangen;
+ein BOM an jeder anderen Stelle, eine ungültige UTF-8-Folge und jede andere Kodierung
+(UTF-16, UTF-32, auch mit BOM) sind ungültiges YAML. Ein Zeilenende ist `\n`, `\r\n` oder
+`\r` allein, wie in YAML 1.2. `U+0085`, `U+2028` und `U+2029` sind an jeder Stelle
+ungültiges YAML, auch in Anführungszeichen und in einem Kommentar: YAML 1.1 liest sie als
+Zeilenende, YAML 1.2 nicht. Die Datei enthält höchstens ein YAML-Dokument; ein zweites ist ungültiges YAML. Ist
 sie leer oder enthält sie nur Kommentare, setzt sie nichts; eine Datei mit `---` ohne
 Inhalt enthält ein Dokument, dessen oberste Ebene keine Abbildung ist. Sonst sind die oberste
 Ebene, jeder Abschnitt und `connections:` je eine Abbildung, jede andere Form ist
 ungültig; eine leere Abbildung (`{}`) setzt nichts, ein Abschnitt oder
 `connections:` ohne Inhalt oder mit `null` ist ungültig wie ein leerer Wert. Ein
-ausdrücklich geschriebener Tag (`!!str`, `!!int`, `!x`) ist ungültig wie ein Anker.
+ausdrücklich geschriebener Tag (`!!str`, `!!int`, `!x`, auch der nicht spezifische `!`) ist
+ungültig wie ein Anker.
 Geprüft wird beim Laden die ganze Datei, unabhängig vom Kommando: auch der Abschnitt
 eines anderen Kommandos und jede Verbindung, auch eine nicht benutzte. Vom Kommando
 hängen nur `sslmode=require` bei `record` und die Variablen der Platzhalter der
@@ -986,7 +997,12 @@ auch ein fehlerhafter Platzhalter im Passwortteil ist ein Klartext-Passwort.
 **Fehler.** Jede Ursache trägt einen eigenen Code und nennt in der Meldung die
 Stelle (Schlüssel oder Verbindungsname), nie einen Wert. Das gilt für die Datei und die
 Umgebungsvariablen, die Geheimnisse tragen können; eine Meldung zur Kommandozeile darf den
-Wert nennen, den der Aufruf selbst enthält, denn die Kommandozeile trägt kein Passwort. Der Start endet beim ersten
+Wert nennen, den der Aufruf selbst enthält, denn die Kommandozeile trägt kein Passwort. Zu
+ungültigem YAML nennt die Meldung die Zeile, gezählt ab 1 nach den Zeilenenden oben, und
+kein Zeichen der Datei; das gilt auch für einen doppelten Schlüssel, dessen Text sie nicht
+nennt, weil er an der Stelle eines Werts stehen kann. Zu einem leeren Schlüssel und einem,
+der kein Skalar ist, nennt sie als Stelle die Abbildung, in der er steht (oberste Ebene,
+Abschnitt). Der Start endet beim ersten
 Fehler mit einer Meldung; geprüft wird in dieser Reihenfolge: die Kommandozeile; die
 Umgebungsvariablen der Optionen des Kommandos in der Reihenfolge der Tabelle unten;
 die Datei (Wahl, Lesen, YAML, dann Schlüssel, Werte und Klartext-Passwörter in der
@@ -1015,7 +1031,8 @@ Umgebungsvariable `PGR-E2001`, als Schlüssel der Konfigurationsdatei `PGR-E2004
 **Anzeige.** `pgwire-recorder config show` gibt auf `stdout` in der ersten Zeile den
 Pfad der gewählten Datei so aus, wie er gewählt wurde (ein relativer Pfad bleibt
 relativ, die Standarddatei heißt `.pgwire-recorder.yaml`), danach ihren Inhalt als YAML mit zwei Leerzeichen
-Einzug in der Reihenfolge der Datei, ohne Kommentare; Exit-Code `0`. Findet sich
+Einzug in der Reihenfolge der Datei, ohne Kommentare, ohne BOM und mit `\n` als
+Zeilenende, gleich wie die Datei geschrieben ist; Exit-Code `0`. Findet sich
 keine Datei, sagt das die erste Zeile, und der Befehl endet mit Exit-Code `0`. Ist die Datei
 ungültig, endet er mit dem Fehlercode des Ladens (`PGR-E2004` oder `PGR-E2006`) und
 zeigt nichts; `PGR-E2005` kommt nicht vor, weil der Befehl keine Verbindung benutzt. Platzhalter erscheinen unaufgelöst; die Ausgabe enthält nie einen
@@ -2377,3 +2394,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-08 | Konfiguration: leerer Wert auf der Kommandozeile ist gesetzt und für keine Option gültig, auch neben gesetzter Umgebungsvariable (`LH-FA-17.a`) |
 | 2026-10-08 | Konfigurationsdatei: höchstens ein YAML-Dokument, leere Datei setzt nichts, oberste Ebene, Abschnitte und `connections:` als Abbildung, leere Abbildung gültig, Abschnitt ohne Inhalt oder mit `null` ungültig, Tags ungültig, Laden prüft die ganze Datei unabhängig vom Kommando; URL: Form außerhalb der Grammatik ungültig, Port-Default `5432` und Form des Ports, Prozent-Dekodierung wörtlicher Teile, Name einer Verbindung; Form der Platzhalter in jedem Teil geprüft, fehlerhafter Platzhalter im Passwort ist Klartext, eingesetzter Port geprüft, Host nicht; Reihenfolge innerhalb einer URL (`LH-FA-17.a`) |
 | 2026-10-09 | Konfigurationsdatei: `null` ist die YAML-Null ohne Anführungszeichen, in Anführungszeichen Text; Standarddatei existiert nach Auflösung der Links, ein Link ins Leere ist keine Datei, unbestimmbares Vorhandensein ist nicht lesbar; doppelte Schlüssel nach ihrem Text verglichen; `---` ohne Inhalt ungültig; erste Zeile von `config show` ist der Pfad wie gewählt; `config` in der Hilfe und als Kommando ohne `show` (`LH-FA-17.a`) |
+| 2026-10-09 | Konfigurationsdatei: nur eine reguläre Datei, geprüft vor dem Lesen; Kodierung UTF-8, BOM nur als erstes Zeichen übergangen; Zeilenenden nach YAML 1.2, `U+0085`, `U+2028` und `U+2029` ungültig; der nicht spezifische Tag `!`; doppelter Schlüssel in jeder Tiefe, Meldung zu ungültigem YAML mit der Zeile; leerer und nicht skalarer Schlüssel unbekannt mit der Abbildung als Stelle; `config show` ohne BOM und mit `\n` (`LH-FA-17.a`) |
