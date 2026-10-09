@@ -630,18 +630,40 @@ play:
   timing_mode: relative
 ```
 
-Danach genügt `--upstream staging`; ein Name hat Vorrang vor `host:port`. Der
-Parameter `sslmode` kennt `disable` (Standard) und `require`. `require` verbindet
-verschlüsselt und prüft das Zertifikat der Datenbank; ein ausdrücklich gesetztes
-`--upstream-tls` geht dem `sslmode` vor. Bei `record` zählen nur Host und Port der
-URL; Benutzer, Passwort und Datenbank vermittelt die Anwendung selbst.
+Eine Verbindung ist eine URL der Form
+`postgresql://[benutzer[:passwort]@]host[:port]/datenbank[?sslmode=…]`; die Datenbank
+ist Pflicht, ohne Port gilt `5432`, und eine IPv6-Adresse steht in eckigen Klammern
+(`postgresql://[::1]:5432/db`). Der Name einer Verbindung enthält weder `:` noch `@`
+noch `$`. Danach genügt `--upstream staging`, ebenso `PGWIRE_RECORDER_UPSTREAM=staging`
+oder der Schlüssel `upstream`. Ein Name gilt nur in genau dieser Schreibweise und nur
+aus der gewählten Datei; ohne Datei ist ein Wert ohne `:` ungültig. Jeder Wert von
+`--upstream` und `PGWIRE_RECORDER_UPSTREAM` ist der Name einer Verbindung oder hat die
+Form `host:port`, auch einer, der wegen der Priorität nicht gilt; sonst startet das
+Werkzeug nicht (`PGR-E2001`, im Schlüssel `upstream` `PGR-E2004`).
+
+Bei `record` zählen nur Host und Port der URL; Benutzer, Passwort und Datenbank
+vermittelt die Anwendung selbst. Das Werkzeug verbindet zu `host:port`, mit dem Port
+so, wie er geschrieben ist, und einem Host mit `:` in eckigen Klammern; die Log-Zeile
+beim Start nennt diese Adresse, nie Benutzer, Passwort oder Datenbank. Der Parameter
+`sslmode` kennt `disable` (Standard) und `require`. Bei `record` ist `require`
+ungültig (`PGR-E2004`), weil das Werkzeug beim Aufzeichnen unverschlüsselt zur
+Datenbank verbindet. Beim Einspielen verbindet `require` verschlüsselt und prüft das
+Zertifikat der Datenbank; ein ausdrücklich gesetztes `--upstream-tls` geht dem
+`sslmode` vor.
 
 Passwörter geben Sie als Platzhalter `${VAR}` in der URL einer Verbindung an; das
-Werkzeug ersetzt ihn aus der gleichnamigen Umgebungsvariable (`$${VAR}` bleibt
-wörtlich) und nur für die Verbindung, die Sie benutzen. Fehlt in einer Verbindung
-das Passwort, gilt `PGWIRE_RECORDER_PASSWORD`. Ein Klartext-Passwort in der Datei
-lehnt das Werkzeug ab (`PGR-E2006`), ebenso eine nicht gesetzte Variable
-(`PGR-E2005`) und eine ungültige Datei (`PGR-E2004`).
+Werkzeug ersetzt ihn beim Start aus der gleichnamigen Umgebungsvariable, einmal und nur
+für die Verbindung, die Sie benutzen, bei `record` nur in Host und Port. Der Wert steht
+unverändert an seiner Stelle, auch mit `@`, `:` oder `/`; eine leere Variable gilt als
+nicht gesetzt. Ein Platzhalter darf in jedem Teil der URL stehen außer zwischen eckigen
+Klammern, im Namen eines Parameters und in `sslmode`, im Port nur neben Ziffern;
+außerhalb einer URL ist er ungültig (`PGR-E2004`). In jedem
+Wert der Datei steht `$$` für ein `$`, sodass `$${VAR}` wörtlich `${VAR}` ergibt. Fehlt
+in einer Verbindung das Passwort, gilt `PGWIRE_RECORDER_PASSWORD`. Ein Passwort, das
+nicht genau ein Platzhalter ist, und ein Parameter `password` sind ein Klartext-Passwort
+(`PGR-E2006`), in jeder Verbindung der Datei, auch einer, die Sie nicht benutzen. Eine
+nicht gesetzte Variable der benutzten Verbindung ist `PGR-E2005`, ein Port, der nach
+dem Einsetzen keine Zahl von 1 bis 65535 ist, `PGR-E2004`.
 
 Wahrheitswerte lauten `true` oder `false`, mit oder ohne Anführungszeichen; `True`,
 `yes` und `1` sind ungültig. Für jeden Wert gilt dieselbe Form wie für die Option,
@@ -772,8 +794,8 @@ für den Exit-Code.
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
 | `PGR-E2003` | zeitgetreues Einspielen ohne Zeitangaben | Mindestens einer Anfrage der Aufzeichnung fehlt die Zeitangabe. Zeichnen Sie mit `--record-timing` erneut auf, oder starten Sie ohne `--keep-timing`. |
 | `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte und `sslmode` (erlaubt sind `disable` und `require`). |
-| `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Setzen Sie die Variable, die als `${VAR}` in der benutzten Verbindung steht. |
-| `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Ersetzen Sie das Passwort in der URL durch einen Platzhalter `${VAR}`. |
+| `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
+| `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
 | `PGR-E2007` | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht verwendbar | Die Datei fehlt, ist nicht lesbar oder kein gültiges PEM, oder Zertifikat und Schlüssel gehören nicht zusammen. Prüfen Sie `--tls-cert`, `--tls-key` und `--upstream-ca`; ein abgelaufenes eigenes Zertifikat und ein Schlüssel mit Passwort sind nicht zulässig. Läuft ein Zertifikat der Datenbank oder der Zertifizierungsstelle ab, meldet das Werkzeug beim Verbinden `PGR-E4005`. |
 | `PGR-E3000`, `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, oder Sie haben keine Rechte. Prüfen Sie Pfad und Dateirechte. |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
