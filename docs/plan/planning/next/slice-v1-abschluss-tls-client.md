@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-23`](../../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client), [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0018](../../adr/0018-tls-zum-client.md)
 
-**Berührte Spec-Stellen:** `LH-FA-23.a` · `LH-FA-05.c` · `LH-FA-05.e` · `SPEC-018` · `SPEC-019` · `SPEC-020` · `SPEC-034` · `SPEC-033` · `ARC-006` · `ARC-005`
+**Berührte Spec-Stellen:** `LH-FA-23.a` · `LH-FA-17.a` · `LH-FA-05.c` · `LH-FA-05.e` · `SPEC-018` · `SPEC-019` · `SPEC-020` · `SPEC-034` · `SPEC-033` · `ARC-006` · `ARC-005`
 
 **Verantwortlich:** pt9912
 
@@ -31,6 +31,8 @@ Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** `record` und `replay` nehmen auf Wunsch TLS von Clients an (`--tls-cert`, `--tls-key`), weisen unverschlüsselte Clients dann ab, sofern sie nicht zugelassen sind (`--allow-plaintext`), und verhalten sich ohne Konfiguration wie bisher.
+
+**Übernommen aus `slice-v1-abschluss-upstream-verbinden`** (Hinweis F-532 aus dessen Review, zugewiesen bei dessen Closure): Die Prüfungen nach der Zusammenführung laufen im CLI-Adapter je Option in der Reihenfolge der Optionstabelle (`zuletzt`); `LH-FA-17.a` *Fehler* verlangt am Ende Pflichtoptionen, Kombinationen, `--upstream`. Die Kombinationen dieses Slice (`--tls-key` allein, `--allow-plaintext` ohne `--tls-cert`, `PGR-E2001`) kommen bei `record` vor jedem Fehler von `--upstream`, gleich, wo ihre Optionen in der Tabelle stehen (Test: ungültige Kombination neben ungültigem `--upstream` meldet die Kombination; gehört zu DoD-Punkt 2).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 

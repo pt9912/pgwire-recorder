@@ -99,14 +99,14 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): `--upstream` und `PGWIRE_RECORDER_UPSTREAM` lösen einen Namen nur bei
+- [x] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): `--upstream` und `PGWIRE_RECORDER_UPSTREAM` lösen einen Namen nur bei
       genauer Übereinstimmung auf, mit Vorrang vor `host:port`; die Form `host:port` folgt
       A7; jeder gesetzte Wert wird nach der Zusammenführung geprüft, die Option vor der
       Umgebungsvariable, auch wenn er nicht gilt, und ein Wert, der weder Name noch
       `host:port` ist, ist `PGR-E2001`. Benutzt ist die Verbindung, deren Namen der
       zusammengeführte Wert nennt, auch aus dem Schlüssel `upstream`; `record` verbindet zu
       ihrem Host und Port, ein IPv6-Host wieder in eckigen Klammern (Integrationstest).
-- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): `${VAR}` wird für die benutzte Verbindung einmal in die zerlegte URL
+- [x] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): `${VAR}` wird für die benutzte Verbindung einmal in die zerlegte URL
       eingesetzt, der Wert steht unverändert in seinem Teil, nur der Port wird danach
       geprüft (`PGR-E2004`). Eine nicht gesetzte oder leere Variable der benutzten Verbindung
       ist `PGR-E2005`, die Meldung nennt die Verbindung und den Namen der ersten in der
@@ -116,18 +116,18 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `PGR-E2004`. Am Ende gilt die Reihenfolge `--upstream`, `sslmode=require`, Variablen,
       Port (Test). Beleg in §7 für Punkt 1 und 2: je Zusage Zusage · Mutation · roter Test
       (`AGENTS.md` §3.10).
-- [ ] Das Benutzerhandbuch beschreibt in §5 *Konfigurationsdatei* Verbindungen, `sslmode`
+- [x] Das Benutzerhandbuch beschreibt in §5 *Konfigurationsdatei* Verbindungen, `sslmode`
       und Platzhalter und in §7 *Fehlercodes* `PGR-E2005` und `PGR-E2006` wie geliefert, den
       Stand von `slice-v1-abschluss-verbindungen-platzhalter` eingeschlossen; die
       Abdeckungstabellen sind über `make abdeckung` nachgezogen.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -338,8 +338,9 @@ Neu entschieden:
   120, Handbuch 60 bis 80, Abdeckung 20 — **660 bis 870 Zeilen**. Der Geber lag mit 1066
   Zeilen um die Hälfte über seiner Schätzung; mit demselben Faktor rund 1000 bis 1300. Er war
   mit rund 70 Zusagen in einer Sitzung prüfbar; dieser trägt rund 30. Kein Schnitt vor dem
-  Code; der Schnitt in §4 (Handbuch abtrennen) bleibt die Rückführung — **Ausgang:** offen
-  bis Closure.
+  Code; der Schnitt in §4 (Handbuch abtrennen) bleibt die Rückführung — **Ausgang:**
+  entfallen: Der Diff `9a04b12..80cb896` hat 712 hinzugefügte Zeilen, innerhalb der Schätzung,
+  und war in einer Review-Sitzung prüfbar (Review F-536); keine Rückführung trat ein.
 - Das Einsetzen hängt an der Form, in der `slice-v1-abschluss-verbindungen-platzhalter` die
   zerlegte URL ablegt; trägt sie die Platzhalter nicht je Teil und in der Reihenfolge der URL
   (A12), muss dieser Slice den Zerleger ändern (Rückführung in §4) — **Ausgang:** entfallen:
@@ -357,7 +358,9 @@ Neu entschieden:
 - Zwischen der Closure von `slice-v1-abschluss-verbindungen-platzhalter` und der dieses Slice
   nimmt `--upstream` einen Verbindungsnamen an, ohne ihn aufzulösen: `record` nimmt den Namen
   dann als Adresse und scheitert spätestens beim Verbindungsaufbau; DoD-Punkt 1 schließt die
-  Lücke — **Ausgang:** offen bis Closure.
+  Lücke — **Ausgang:** entfallen: DoD-Punkt 1 ist geliefert, `--upstream staging`,
+  `PGWIRE_RECORDER_UPSTREAM` und der Schlüssel `upstream` lösen am Binary auf (Verifikation,
+  Abschnitt 1, Punkt 1).
 
 ## 7. Closure-Notiz
 
@@ -375,14 +378,144 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
-- **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten.
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
-- **Drei Paarungen:** <…>
+- **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten. DoD-Punkt 1, 2 und
+  `make gates` bestätigt die Verifikation am Stand `b353056`
+  (`docs/reviews/2026-10-09-verifikation-slice-v1-abschluss-upstream-verbinden.md`,
+  Abschnitt 1; Binary gegen PostgreSQL, 19 eigene Unit-Mutanten und ein Integrations-Mutant,
+  alle rot), Punkt 3 mit der Einschränkung V-125. Die Nacharbeit zur Verifikation `d64f8e9`
+  ist am Diff geprüft: Beispiel und Abschnittsliste in §5 *Konfigurationsdatei* zeigen
+  `record:` statt `play:`, der Satz danach nennt `lokal`; §6 und §7 ziehen nach, die Sendung
+  steht in `slice-v1-abschluss-einspielen` §1 und §3. Der Planner hat das Beispiel am Stand
+  `d64f8e9` nachgefahren (`make build`, Beispiel per `awk` wörtlich als Datei, `docker run
+  --network none`): `config show --config` Exit 0; `record --config` mit beschreibbarem
+  `./recordings/` startet (`record gestartet listen=127.0.0.1:15432 upstream=localhost:5432`)
+  und endet nach `docker stop` mit Exit 0; mit `--upstream staging` `PGR-E2004` wegen
+  `sslmode=require`, wie der Absatz zu `record` sagt. Ohne das Verzeichnis `./recordings/`
+  endet `record` mit `PGR-E3001`; das ist die Zusage zu `--output`, nicht zum Beispiel. Damit
+  ist DoD-Punkt 3 ohne Einschränkung erfüllt. V-126 ist in §7 eingetragen (U2 in zwei Zeilen,
+  erste Hälfte mit Mutant A1).
+- **Was hat funktioniert:** Die Prüfung des Architect vor dem Code gegen die Ablage des Gebers
+  (`c297f9b`) trug: Das Einsetzen war ein Durchlauf über die Stücke, kein Umbau des Zerlegers,
+  keine Randform ging zurück, und weder Review noch Verifikation fanden eine Randform außerhalb
+  von §6. Die Schätzung vor dem Code (660 bis 870 Zeilen) traf den Diff (712); der Slice blieb
+  in einer Review-Sitzung prüfbar (F-536). Der Implementer belegte 38 Mutanten, 37 rot, den
+  grünen fing ein eigener Testfall (`80cb896`); die Verifikation fuhr 20 eigene nach, alle rot.
+  Die Sendungen an `slice-v1-abschluss-einspielen` (F-533, V-125) standen im selben Commit im
+  Nehmer (§3.13).
+- **Was ging anders als geplant:**
+  1. Eine Zusage hielt nur für einen Teil ihrer Fälle: Die Auswahl der Verbindung nach dem
+     genauen Namen hatte keinen roten Mutanten (F-534, S grün); §7 belegte die Zeile mit der
+     Prüfung über `hatName`, die die Auswahl nicht hält. Behoben in `b353056`.
+  2. Das Handbuch stand im Zielstand und wich vom gelieferten Stand ab, wie das dritte Risiko
+     in §6 erwartete; gefunden hat es nicht das Lesen (Implementer, Review: „Die Zusagen zu
+     `record` stimmen mit dem Code überein“), sondern der Lauf des Beispiels als Datei in der
+     Verifikation (V-125). §3 sagte „nachgezogen wird, was der gelieferte Stand anders sagt“,
+     nannte aber keinen Weg, die Abweichung zu finden.
+  3. Zwei Kommentare sagten mehr oder weniger, als der Code tut (F-530, F-531), und §7
+     notierte U2 schwächer, als der Beleg ist (V-126).
+  - **Summary-Zeilen:** Review
+    `docs/reviews/2026-10-09-review-slice-v1-abschluss-upstream-verbinden.md`: „0 HIGH · 1
+    MEDIUM · 2 LOW · 4 INFO. F-530: Der Kommentar an `SetzeEin` sagt `""` für einen nicht
+    geschriebenen Port; es ist `5432`. F-531: Die Kommentare an `zuletzt` nennen eine Prüfung
+    und verschweigen, dass `zuletzt` die Adresse schreibt. F-532: Die Reihenfolge
+    Pflichtoptionen, Kombinationen, `--upstream` ist erfüllt, weil `record` keine Kombination
+    prüft. F-533: Das Handbuch nennt `play` im Zielstand; ob das zu DoD-Punkt 3 passt,
+    entscheidet der Verifier. F-534: Die Auswahl der Verbindung nach dem genauen Namen hält
+    keine Mutation (Mutant S grün, Sonde unterscheidet). F-535: `TestUpstreamEinmalGelesen`
+    trägt nur in seiner ersten Hälfte. F-536: Der Diff war in einer Sitzung prüfbar.
+    Wiederkehrende Klassen: `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (F-534),
+    `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (F-530).“ Verifikation
+    `docs/reviews/2026-10-09-verifikation-slice-v1-abschluss-upstream-verbinden.md`: „0 HIGH ·
+    0 MEDIUM · 1 LOW · 1 INFO. V-125: Das Beispiel in §5 *Konfigurationsdatei* wird vom
+    gelieferten Binary mit `PGR-E2004` (`play: unbekannter Schlüssel`) abgelehnt; DoD-Punkt 3
+    hält nur mit dieser Einschränkung. V-126: §7 notiert für U2 keine Mutation, obwohl A1 die
+    erste Hälfte des Tests hält.“ Ausgänge: F-530, F-531, F-533 und F-534 in `b353056`;
+    F-532 an `slice-v1-abschluss-tls-client` (Folge-Slices unten); F-535 und F-536 von der
+    Verifikation eingeordnet (Grenze in §7, erstes Risiko); V-125 und V-126 in `d64f8e9`, die
+    Rückkehr von `play:` an `slice-v1-abschluss-einspielen`.
+- **Steering-Loop-Eintrag:** Geschärfte Regel, im Plan des Nehmers angewandt: Ein DoD-Punkt
+  „Handbuch wie geliefert“ über einen Abschnitt mit Beispiel ist erst belegt, wenn das Beispiel
+  wörtlich als Datei gegen das gebaute Binary läuft; Lesen gegen den Code fand die Abweichung
+  nicht, der Lauf fand sie sofort (V-125). `slice-v1-abschluss-einspielen` trägt das als
+  Kriterium seiner Sendung in §1 („das Beispiel als Datei startet mit `config show` ohne
+  Meldung“, seit `d64f8e9`). Kein Feld `liegt in`: Repo-weit ist mit diesem Slice nichts
+  verkörpert; gezählt ist der Fund unter `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`
+  (verkörpert in `AGENTS.md` §3.11, dessen Liste Kommentar, Hilfetext,
+  Abdeckungs-Deklaration und Plan-Zeile nennt, das Handbuch nicht). Ob §3.11 oder
+  `implement-slice` das Handbuch ausdrücklich aufnimmt, entscheidet der Nutzer.
+
+  Retirement-Checks: `AGENTS.md` §3.9 (seit welle-walking-skeleton) ist nicht wieder
+  aufgetreten: Kein Code-Commit änderte den Plan, und jede Nacharbeit zog den Plan im selben
+  Commit nach (`b353056` §1, §3 und §7; `d64f8e9` dazu §6); die Regel bleibt. §3.10 (seit
+  welle-extended-query) ist wieder aufgetreten (F-534); die Regel bleibt, der Sensor ist mit
+  `slice-harness-mutation` geplant. §3.11 (seit welle-extended-query) ist wieder aufgetreten
+  (F-530, F-531, V-125); die Regel bleibt. §3.12 (seit slice-harness-randformen-vor-code) ist
+  in beiden Hälften nicht wieder aufgetreten: keine Rückgabe, kein Code-Commit trägt eine
+  Randform in §6 ein, und Review und Verifikation fanden keine Randform außerhalb von §6. §3.13
+  (seit slice-lint-bestand-kern-driven) ist nicht wieder aufgetreten: Der Nehmer trug F-533 und
+  V-125 im selben Commit, die Verifikation prüfte die Annahme. Die Regel *Beleg im Plan, nicht
+  im Bericht* (`.claude/agents/implementer.md`, seit slice-harness-blackbox-kern) ist nicht
+  wieder aufgetreten: §7 trägt jeden Gate-Lauf, auch nach beiden Nacharbeiten.
+  `implement-slice` Schritt 19 (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`): nicht
+  wieder aufgetreten, jeder Mutant in einer frischen Kopie.
+- **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `d64f8e9` (Zähler =
+  Dateien unter `evidence/`).
+  - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`: **Beleg**, 18× → 19× (F-534), Stand
+    verkörpert, bleibt.
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: **Beleg**, 24× → 25× (F-530, F-531,
+    V-125 mit F-533), Stand verkörpert, bleibt.
+  - `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`: **kein Beleg**, bleibt 1× (offen). Dieser
+    Slice ist die abgegebene Hälfte des Schnitts; seine Schätzung lag unter der Grenze, und die
+    vorab benannte Rückführung trat nicht ein.
+  - `BEO-REPO/slice-waechst-durch-uebernahmen`: **kein Beleg**, bleibt 2× (offen). Nach der
+    Anlage nahm der Slice nichts auf; er gab das Handbuch zu `play` an den Nehmer ab.
+  - `BEO-REPO/gruener-mutant-faelschlich-aequivalent`: **kein Beleg**, bleibt 1× (offen). Der
+    grüne Mutant des Implementers war nicht als äquivalent eingestuft, sondern bekam einen Test
+    (`80cb896`); S war nicht eingeordnet, sondern nicht gefahren, das zählt unter
+    `negativtests-fehlen-bei-neuem-vertrag`.
+  - Ohne Beleg, verkörpert: `BEO-REPO/plan-folgt-korrektur-nicht` (bleibt 20×),
+    `BEO-REPO/spec-randform-erst-im-review-entschieden` (bleibt 17×),
+    `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (bleibt 5×),
+    `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (bleibt 3×),
+    `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht` (bleibt 4×); ohne Beleg, offen:
+    `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (bleibt 1×).
+  - Einmalig und nicht eingetragen: F-532 (latente Reihenfolge, an den Folge-Slice), F-535
+    und F-536 (Hinweise), V-126 (Beleg schwächer notiert, als er ist). Mit diesem Slice
+    erreicht kein Eintrag die Schwelle 3× neu; über der Schwelle stehen nur Einträge mit
+    Ausgang (`commit-nennt-struktur-kennung` 3× und `roter-lauf-haengt-bis-zum-zeitlimit` 3×
+    geplant; `folge-slice-adresse-nimmt-nicht-an` 3×,
+    `implementer-bericht-erreicht-pruefer-nicht` 4×,
+    `randform-im-code-entschieden-dann-zurueckgegeben` 5×,
+    `spec-randform-erst-im-review-entschieden` 17×, `negativtests-fehlen-bei-neuem-vertrag`
+    19×, `plan-folgt-korrektur-nicht` 20×, `zusage-im-kommentar-weiter-als-pruefung` 25×
+    verkörpert; `white-box-liste-vor-code-nur-namenssuche` 3× gestrichen).
+- **Folge-Slices:** `slice-v1-abschluss-einspielen` (`next/`; aus §1 *Ausdrücklich NICHT*: die
+  Wirkung einer Verbindung bei `play`, `PGR-E2005` in Benutzer, Passwort und Datenbank nach
+  U8, im Handbuch die Wirkung bei `play` nach F-533 und der Abschnitt `play:` in Beispiel und
+  Liste nach V-125; dazu das dritte Risiko aus §6). `slice-v1-abschluss-tls-client` (`next/`;
+  F-532: die Kombinationen von `record` vor jedem Fehler von `--upstream`, mit Test, zu seinem
+  DoD-Punkt 2; mit dieser Closure in seinem §1 eingetragen). Der nächste Schritt nach §5 von
+  [welle-v1-abschluss](../welle-v1-abschluss.md) ist `slice-v1-abschluss-schreiben`.
+- **Risiken aus §6:** vier. *Größe*: **entfallen**, 712 Zeilen in der Schätzung, eine
+  Review-Sitzung (F-536). *Form der Ablage*: **entfallen** vor dem Code (Prüfung des
+  Architect). *Handbuch im Zielstand*: **eingetreten** (V-125), in diesem Slice für `record`
+  behoben, die Rückkehr von `play:` trägt Folge-Slice `slice-v1-abschluss-einspielen`.
+  *Name ohne Auflösen zwischen den Closures*: **entfallen**, DoD-Punkt 1 ist geliefert und am
+  Binary bestätigt. Begründungen in §6. Die Randformen in §6 sind Entscheidungen, keine
+  Risiken.
+- **Drei Paarungen:** Anker: Der Steering-Loop-Eintrag trägt kein Feld `liegt in`; nichts zu
+  prüfen. Folge-Slice: `slice-v1-abschluss-einspielen` liegt in `next/`; `grep -n
+  "slice-v1-abschluss-upstream-verbinden"` findet die Kennung in seinem §1 unter *Übernommen
+  aus* (Wirkung bei `play`, U8, F-533, V-125) und in §3 (Zeile
+  `docs/user/benutzerhandbuch.md`); sein §1 *Ausdrücklich NICHT* schließt weder `play` noch
+  das Handbuch aus. `slice-v1-abschluss-tls-client` liegt in `next/`; die Kennung steht in
+  seinem §1 unter *Übernommen aus*, mit `LH-FA-17.a` im Kopf; sein §1 *Ausdrücklich NICHT*
+  schließt nur TLS zum Upstream und Client-Zertifikate aus, seine DoD führt die Kombinationen.
+  Keiner liegt in `done/`. Register: `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` und
+  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` tragen
+  `evidence/slice-v1-abschluss-upstream-verbinden.md`; die übrigen genannten Einträge bestehen
+  als Verzeichnis, jedes mit nicht leerem `evidence/`. Die nächste Welle-Closure prüft die
+  Paarungen erneut.
 
 ### Belege des Implementers
 
