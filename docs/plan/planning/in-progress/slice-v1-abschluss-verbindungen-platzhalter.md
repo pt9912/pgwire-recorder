@@ -1,4 +1,4 @@
-# Slice slice-v1-abschluss-verbindungen-platzhalter: Benannte Verbindungen und Platzhalter in der Konfigurationsdatei
+# Slice slice-v1-abschluss-verbindungen-platzhalter: Benannte Verbindungen und Platzhalter laden
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -30,30 +30,37 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Die benannten Verbindungen der Konfigurationsdatei (`connections`) werden nach der Grammatik der URL samt `sslmode` geprüft, `--upstream` und der Schlüssel `upstream` lösen den Namen einer Verbindung auf, `${VAR}` wird aus der Umgebung eingesetzt und `$$` steht für `$`; eine nicht gesetzte Variable der benutzten Verbindung ist `PGR-E2005`, ein Klartext-Passwort `PGR-E2006`.
+**Ziel:** Das Laden der Konfigurationsdatei prüft die benannten Verbindungen (`connections`) unabhängig vom Kommando: jede URL nach ihrer Grammatik samt Platzhaltern und `sslmode`, den Namen jeder Verbindung, `$$` und `${` in jedem Wert der Datei, den Schlüssel `upstream` gegen die Namen der Verbindungen und jedes Klartext-Passwort (`PGR-E2006`), auch bei `config show`.
 
 **Übernimmt:** `slice-v1-abschluss-konfigurationsdatei` — dessen DoD-Punkt 3 (*Verbindungen
 und Platzhalter*) nach dem vorab benannten Schnitt aus seinem §4 (*zu groß*, eingetreten am
 2026-10-09; dort §1, *Abgegeben*). Dorthin kam der Punkt aus `slice-v1-abschluss-konfiguration`
-und davor aus `slice-v1-abschluss-betrieb`. Im Einzelnen:
+und davor aus `slice-v1-abschluss-betrieb`. Nach dem Schnitt dieses Slice vom 2026-10-09
+(§4, Entscheidung des Nutzers) bleibt davon hier das *Laden der Verbindungen*:
 
-- die Grammatik der URL einer Verbindung und `sslmode`, auch `sslmode=require` bei `record`
-  (`PGR-E2004`), in jeder Verbindung der Datei, auch einer nicht benutzten;
-- `${VAR}` und `$$` in jedem Wert der Datei, ein Platzhalter außerhalb einer URL
-  (`PGR-E2004`) und der Port nach dem Einsetzen;
-- `PGR-E2005` und `PGR-E2006` — die Konstanten liegen seit jenem Slice ohne Erzeuger in
-  der Code-Tabelle, dieser Slice erzeugt sie;
-- das Auflösen eines Verbindungsnamens in `--upstream` und im Schlüssel `upstream`; bei
-  `record` gelten Host und Port;
-- der Teil des Benutzerhandbuchs dazu: in §5 *Konfigurationsdatei* die Absätze zu
-  Verbindungen, `sslmode` und Platzhaltern, in §7 *Fehlercodes* die Zeilen `PGR-E2005` und
-  `PGR-E2006`;
-- die Randformen zu Verbindungen und Platzhaltern aus §6 jenes Slice, dazu die
-  Entscheidungen des Architect vom 2026-10-08 dazu (Rückgaben 5, 6, 7, 8 und 10, §6 unten)
-  und die aus seiner Prüfung dieses Plans vom 2026-10-09 vor dem Code (A1 bis A12, §6
-  unten): Zerlegung der URL, IPv6-Host, Form `host:port`, Prüfung jedes gesetzten Werts von
-  `--upstream`, `$$` und `${` außerhalb einer URL, Meldung zu `PGR-E2005`, `sslmode=require`
-  in der Reihenfolge.
+- die Zerlegung und die Grammatik der URL einer Verbindung samt der Form der Platzhalter in
+  jedem Teil und `sslmode` (`disable`, `require`), in jeder Verbindung der Datei, auch einer
+  nicht benutzten (`PGR-E2004`);
+- der Name einer Verbindung ohne `:` und `@` (V-121, §6);
+- `$$` in jedem Wert der Datei und ein `${` außerhalb einer URL (`PGR-E2004`);
+- der Schlüssel `upstream` beim Laden gegen die Namen aller Verbindungen der Datei, sonst in
+  der Form `host:port` (`PGR-E2004`), auch bei `config show`;
+- `PGR-E2006` — ein Klartext-Passwort in jeder Verbindung, auch bei `config show`; die
+  Konstante liegt seit jenem Slice ohne Erzeuger in der Code-Tabelle, dieser Slice erzeugt
+  sie;
+- die Randformen dazu aus §6 jenes Slice, die Entscheidungen des Architect vom 2026-10-08
+  (Rückgaben 5, 6, 7 und 10, §6 unten) und die aus seiner Prüfung dieses Plans vom
+  2026-10-09 vor dem Code, soweit sie das Laden betreffen (A1 bis A6, A7 und A8 für den
+  Schlüssel, A10, A11; §6 unten).
+
+**Abgegeben** an `slice-v1-abschluss-upstream-verbinden` (dort §1, *Übernimmt*, mit der
+Kennung dieses Slice), nach dem vorab benannten Schnitt aus §4 (*zu groß*, eingetreten am
+2026-10-09 vor dem Code): das *Benutzen der Verbindung* nach der Zusammenführung — Name und
+Form `host:port` bei `--upstream` und `PGWIRE_RECORDER_UPSTREAM`, `sslmode=require` bei
+`record`, das Einsetzen der Variablen, `PGR-E2005`, der Port nach dem Einsetzen, `record`
+verbindet zu Host und Port der Verbindung, und der Teil des Benutzerhandbuchs zu
+Verbindungen, `sslmode`, Platzhaltern, `PGR-E2005` und `PGR-E2006`; dazu die Randformen
+Rückgabe 8, A7 und A8 für Option und Umgebung, A9 und A12.
 
 **Aufsetzen.** Der Slice setzt auf dem Laden von `slice-v1-abschluss-konfigurationsdatei` auf:
 Dort ist `connections:` eine Abbildung, ein Name einer Verbindung hat die Form eines Werts
@@ -65,17 +72,25 @@ Slice gilt ein Wert mit `$` wörtlich, und eine URL wird nicht zerlegt.
 - Wahl, Laden und Form der Datei, die Priorität über drei Quellen, `config show`, die Hilfe
   und die Konstanten `PGR-E2004` bis `PGR-E2006` — `slice-v1-abschluss-konfigurationsdatei`;
   er liegt vor diesem Slice, und dieser setzt auf ihm auf.
+- Das Benutzen der Verbindung nach der Zusammenführung (oben, *Abgegeben*) —
+  `slice-v1-abschluss-upstream-verbinden`; er setzt die Zerlegung voraus, die dieser Slice
+  liefert, weil eingesetzt wird, was das Laden zerlegt hat. Bis zu dessen Closure verbindet
+  `record` mit einem Verbindungsnamen in `--upstream` nicht zu dessen Host und Port
+  (Risiko in §6).
+- Das Benutzerhandbuch zu Verbindungen und Platzhaltern —
+  `slice-v1-abschluss-upstream-verbinden` (oben, *Abgegeben*); es beschreibt den Zielstand
+  beider Slices und wird einmal nachgezogen, wenn er geliefert ist.
 - Die Wirkung einer Verbindung bei `play` (Benutzer und Datenbank der URL mit dem Vorrang von
   `--user` und `--database`, das Passwort aus dem eingesetzten Platzhalter, TLS nach
-  `sslmode`) — `slice-v1-abschluss-einspielen` (dort §1, *Übernommen aus* diesem Slice);
-  `play` gibt es erst mit ihm. Hier wird `sslmode` geprüft, und das Auflösen des Namens ist
-  an `record` getestet.
+  `sslmode`) — `slice-v1-abschluss-einspielen` (dort §1, *Übernommen aus*
+  `slice-v1-abschluss-upstream-verbinden`); `play` gibt es erst mit ihm. Hier wird `sslmode`
+  geprüft.
 - TLS zum Upstream bei `record` — nicht Teil des Produkts in dieser Welle
-  ([welle-v1-abschluss](../welle-v1-abschluss.md) §6); `sslmode=require` ist bei `record` ein
-  Fehler.
-- Code im Kern, im PGWire-Adapter und in den Driven-Adaptern — Schicht-Abgrenzung: Der Slice
-  ändert den CLI-Adapter und, falls die aufgelöste Adresse es verlangt, den Bootstrap; die
-  Code-Tabelle im Model bleibt unberührt.
+  ([welle-v1-abschluss](../welle-v1-abschluss.md) §6); `sslmode=require` bei `record` prüft
+  `slice-v1-abschluss-upstream-verbinden`.
+- Code im Kern, im PGWire-Adapter, in den Driven-Adaptern und im Bootstrap —
+  Schicht-Abgrenzung: Der Slice ändert nur das Laden im CLI-Adapter; die Code-Tabelle im
+  Model bleibt unberührt.
 
 ## 2. Definition of Done
 
@@ -85,29 +100,24 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Jede Verbindung der Datei, auch eine nicht benutzte, hat die Form der
-      URL aus `LH-FA-17.a` (Schema, Host, Port mit Default `5432` und Wert 1 bis 65535,
-      Datenbank, Parameter, Prozent-Dekodierung wörtlicher Teile), der einzige Parameter
-      `sslmode` nimmt `disable` und `require`, jede andere Form ist `PGR-E2004` mit dem
-      Namen der Verbindung; `sslmode=require` der benutzten Verbindung ist bei `record`
-      `PGR-E2004`. `--upstream` und der Schlüssel `upstream` lösen einen Namen nur bei
-      genauer Übereinstimmung auf, mit Vorrang vor `host:port`; ein Wert, der weder Name
-      noch `host:port` ist, ist `PGR-E2001`, aus der Datei `PGR-E2004`; `record` verbindet
-      zu Host und Port der Verbindung (Test).
-- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): `${VAR}` wird für die benutzte Verbindung einmal in die zerlegte URL
-      eingesetzt, der Wert steht unverändert in seinem Teil, nur der Port wird danach
-      geprüft (`PGR-E2004`); die Form des Platzhalters prüft das Laden in jedem Teil jeder
-      Verbindung, ein Platzhalter außerhalb einer URL ist `PGR-E2004`, und `$$` steht in jedem
-      Wert der Datei für `$`. Eine nicht gesetzte oder leere Variable der benutzten Verbindung
-      ist `PGR-E2005`; die Variablen nicht benutzter Verbindungen und bei `record` die in
-      Benutzer, Passwort und Datenbank bleiben unbeachtet; `config show` meldet kein
-      `PGR-E2005` und zeigt Platzhalter unaufgelöst (Test).
+      URL aus `LH-FA-17.a`, zerlegt mit Platzhaltern nach A1 (Schema, Benutzerteil, Host
+      auch als IPv6 in eckigen Klammern, Port mit Default `5432` und Wert 1 bis 65535 wie
+      geschrieben, Datenbank, Parameter, Prozent-Dekodierung wörtlicher Teile und der
+      Parameter), der einzige Parameter `sslmode` nimmt `disable` und `require`, jede andere
+      Form ist `PGR-E2004` mit dem Namen der Verbindung; die Form der Platzhalter prüft das
+      Laden in jedem Teil. Ein Name einer Verbindung mit `:` oder `@` ist `PGR-E2004`, die
+      Meldung nennt als Stelle nur `connections` (Test).
+- [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): `$$` steht in jedem Wert der Datei für `$`, von links gelesen; ein `${`
+      außerhalb einer URL, das nicht aus `$$` hervorgeht, ist `PGR-E2004`; Kommandozeile und
+      Umgebung kennen weder Platzhalter noch `$$`. Der Schlüssel `upstream` ist beim Laden an
+      seiner Stelle der Name einer Verbindung der Datei, auch einer, die nach ihm steht, oder
+      hat die Form `host:port`, sonst `PGR-E2004`, auch bei `config show` und einem anderen
+      Kommando. `config show` zeigt Platzhalter unaufgelöst und `$$` wie geschrieben (Test).
 - [ ] [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration): Ein Klartext-Passwort ist `PGR-E2006` in jeder Verbindung der Datei, auch
-      bei `config show` — ein Passwortteil, der nicht genau ein `${VAR}` ist, auch ein
-      fehlerhafter Platzhalter dort, und ein Parameter `password`; die Prüfung folgt der
-      Reihenfolge aus `LH-FA-17.a` innerhalb einer URL und am Ende (`--upstream`, `PGR-E2005`,
-      Port nach dem Einsetzen) (Test). Das Benutzerhandbuch beschreibt Verbindungen,
-      `sslmode`, Platzhalter, `PGR-E2005` und `PGR-E2006` wie geliefert. Beleg in §7 für
-      alle drei Punkte: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
+      bei `config show` — ein Passwortteil, der nicht genau ein `${VAR}` ist, auch ein leerer
+      und ein fehlerhafter Platzhalter dort, und ein Parameter `password`, auch dekodiert;
+      die Prüfung folgt der Reihenfolge aus `LH-FA-17.a` innerhalb einer URL (Test). Beleg in
+      §7 für alle drei Punkte: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -127,10 +137,9 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` (`LH-FA-17.a`) | keine Änderung durch den Implementer | Die Randformen in §6 sind entschieden (Architect, 2026-10-08 und 2026-10-09, vor dem Code; die vom 2026-10-09 stehen seit dem Commit dieser Prüfung in `LH-FA-17.a`); eine Randform, die §6 nicht nennt, geht an den Architect zurück (`AGENTS.md` §3.12) |
-| `internal/adapters/driving/cli` | update | Zerlegen der URL mit Platzhaltern, Grammatik, Prozent-Dekodierung, `sslmode`; `$$` in jedem Wert der Datei, Platzhalter außerhalb einer URL; Klartext-Passwort; Form `host:port` und Auflösen des Namens bei `--upstream` und `upstream`, jeder gesetzte Wert geprüft (die Art `text` von `--upstream` in `cli.go` prüft heute nur den leeren Wert); Einsetzen der Variablen der benutzten Verbindung und Prüfung des Ports danach; `PGR-E2005` und `PGR-E2006` |
-| `internal/bootstrap` | update, falls nötig | nur, wenn die aufgelöste Adresse anders als heute an `record` übergeben werden muss |
-| `internal/adapters/driving/cli` (Unit-Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a`, je Randform aus §6 ein Fall |
-| `docs/user/benutzerhandbuch.md` | update, falls abweichend | §5 *Konfigurationsdatei* (Verbindungen, `sslmode`, Platzhalter) und §7 *Fehlercodes* (`PGR-E2005`, `PGR-E2006`) beschreiben den Zielstand; nachgezogen wird, was der gelieferte Stand anders sagt |
+| `internal/adapters/driving/cli` (Laden der Datei) | update | Zerleger der URL mit Platzhaltern (die Zerlegung der Standardbibliothek lehnt `${PORT}` ab), Grammatik, Prozent-Dekodierung, `sslmode`; Name einer Verbindung ohne `:` und `@`; `$$` in jedem Wert der Datei, `${` außerhalb einer URL; Schlüssel `upstream` gegen die Namen oder in der Form `host:port`; Klartext-Passwort `PGR-E2006`. Das Ergebnis der Zerlegung trägt, was `slice-v1-abschluss-upstream-verbinden` einsetzt (Teile, Platzhalter in der Reihenfolge der URL) |
+| `internal/adapters/driving/cli` (Unit-Tests) | update | Happy/Boundary/Negative nach `LH-FA-17.a`, je Randform aus §6, die dieser Slice trägt, ein Fall |
+| `test/integration` | update | `config show` mit Klartext-Passwort, ungültiger URL und ungültigem Schlüssel `upstream` endet mit Exit `2` und zeigt nichts |
 | `docs/user/abdeckung-*.md` | update | über `make abdeckung` aus den Deklarationen der neuen Tests |
 
 ## 4. Trigger
@@ -142,27 +151,35 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 (Laden der Datei, Form von `connections:`, Konstanten `PGR-E2005` und `PGR-E2006`). Schritt 5
 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) (Schnitt vom
 2026-10-09). Die Randformen aus §6 entschied der Architect am 2026-10-08 vor dem Code; vor
-dem ersten Code-Commit prüft er die Liste noch einmal gegen diesen Zuschnitt
+dem ersten Code-Commit prüfte er die Liste am 2026-10-09 noch einmal gegen den Zuschnitt
 (`AGENTS.md` §3.12).
+
+**Erneuter Start** (`next` → `in-progress`) nach der Rückführung unten: dieser Plan im
+geschnittenen Zuschnitt liegt auf dem Hauptzweig. Code gibt es noch keinen; die Arbeit ist
+DoD-Punkt 1 bis 3.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer
   Review-Sitzung prüfbar, oder eine Änderung im Kern wird nötig. Schnitt dann nach der Phase,
   nicht nach dem DoD-Punkt (Vorschlag des Architect vom 2026-10-09, §6 *Risiken*): *Laden der
-  Verbindungen* (alles, was das Laden prüft, unabhängig vom Kommando: Zerlegung und Form der
-  URL mit der Form der Platzhalter, `sslmode`, Klartext-Passwort `PGR-E2006` auch bei
-  `config show`, `$$` und `${` außerhalb einer URL, der Schlüssel `upstream` gegen die Namen)
-  und *Benutzen der Verbindung* (nach der Zusammenführung: Form `host:port` und Name bei
-  Option und Umgebungsvariable, `sslmode=require` bei `record`, Einsetzen, `PGR-E2005`, Port
-  nach dem Einsetzen, `record` verbindet zu Host und Port, Handbuch). Der zweite setzt den
-  ersten voraus, weil eingesetzt wird, was das Laden zerlegt hat; der erste ist allein
-  lieferbar und schließt die Lücke beim Klartext-Passwort (Risiko unten). Der bisher
-  genannte Schnitt nach DoD-Punkten trennt die Form der Platzhalter (DoD-Punkt 2) von der
-  Zerlegung (DoD-Punkt 1), obwohl beide derselbe Zerleger sind.
+  Verbindungen* und *Benutzen der Verbindung*. **Eingetreten am 2026-10-09** (Grund unten).
+  Für den geschnittenen Zuschnitt: Der Zerleger allein hebt den Diff über eine
+  Review-Sitzung; dann zurück an den Planner, geschnitten wird dann nicht weiter nach Phase,
+  weil Zerlegung, Form der Platzhalter und Klartext-Passwort derselbe Zerleger sind.
 - `in-progress` → `open` (blockiert — Carveout?): Eine Zusage aus `LH-FA-17.a` zu Verbindungen
   oder Platzhaltern widerspricht dem Laden von `slice-v1-abschluss-konfigurationsdatei` (etwa
   der Form eines Werts) und verlangt eine neue Entscheidung; dann zuerst die Entscheidung.
+
+**Grund der Rückführung `in-progress` → `next`, eingetreten am 2026-10-09:** Der Architect
+schätzte den Diff vor dem ersten Code-Commit auf 1050 bis 1300 Zeilen (§6 *Risiken*), so groß
+wie `slice-v1-abschluss-konfigurationsdatei`, als er zur Zerlegung zurückging; das ist die
+erste Bedingung oben, gemessen an der Schätzung statt am Diff. Der Nutzer entschied am
+2026-10-09 den vorab benannten Schnitt nach der Phase: *Laden der Verbindungen* bleibt hier
+(rund 650 bis 750 Zeilen), *Benutzen der Verbindung* geht an
+`slice-v1-abschluss-upstream-verbinden` (§1, *Abgegeben*). Der Übergang läuft formal über
+`next/` wie beim Geber (Entscheidung des Nutzers vom 2026-10-09 zu V-117), als reiner
+`git mv` nach diesem Commit, dann `next` → `in-progress`.
 
 ## 5. Closure-Trigger
 
@@ -185,27 +202,22 @@ kamen die ersten aus §6 von `slice-v1-abschluss-konfiguration`, geprüft vom Ar
 2026-10-08 vor dem Code. Die Rückgaben unten entschied er am 2026-10-08 vor dem Code, die
 Nummern sind die aus jenem Plan. Offen ist keine; *Name einer Verbindung in der Form einer URL
 mit Passwort* (unten) entschied der Nutzer am 2026-10-09 vor dem Code. Am 2026-10-09 prüfte der
-Architect die Liste gegen diesen Zuschnitt und den Stand von `datei.go` und `cli.go` vor dem
-ersten Code-Commit und entschied die fehlenden Randformen A1 bis A12 (unten) in `LH-FA-17.a`.
+Architect die Liste gegen den damaligen Zuschnitt und den Stand von `datei.go` und `cli.go` vor
+dem ersten Code-Commit und entschied die fehlenden Randformen A1 bis A12 in `LH-FA-17.a`. Mit
+dem Schnitt dieses Slice vom 2026-10-09 (§4) zogen die Randformen des Benutzens nach §6 von
+`slice-v1-abschluss-upstream-verbinden`: Name bei `--upstream`, `sslmode=require` bei `record`,
+die Variablen der benutzten Verbindung (nicht gesetzt, leer, in Teilen, die `record`
+ignoriert), Einsetzen und Rekursion, `config show` ohne `PGR-E2005`, die Reihenfolge am Ende,
+Rückgabe 8, A7 und A8 für Option und Umgebung, A9, A12 und das zweite akzeptierte Negativ.
+Hier stehen die des Ladens.
 
-*Verbindungen und Platzhalter*
+*Verbindungen und Platzhalter beim Laden*
 
-- **Name bei `--upstream`** — nur bei genauer Übereinstimmung; ein Wert, der weder Name noch
-  `host:port` ist, ist ungültig (`PGR-E2001`, aus der Datei `PGR-E2004`); `LH-FA-17.a`.
-- **`sslmode=require` bei `record`** — `PGR-E2004` der benutzten Verbindung; `LH-FA-17.a`.
 - **Klartext-Passwort** — `PGR-E2006`, in jeder Verbindung der Datei; `LH-FA-17.a`.
-- **Variable eines Platzhalters der benutzten Verbindung nicht gesetzt** — `PGR-E2005`;
-  `LH-FA-17.a`.
-- **Variable eines Platzhalters gesetzt, aber leer** — nicht gesetzt, `PGR-E2005`;
-  Entscheidung des Nutzers vom 2026-10-08, `LH-FA-17.a`.
-- **Platzhalter in Teilen der URL, die `record` ignoriert** (Benutzer, Passwort, Datenbank) —
-  unbeachtet; `record` löst nur Platzhalter in Host und Port auf; Entscheidung des Nutzers
-  vom 2026-10-08, `LH-FA-17.a`.
-- **`$${VAR}`, Rekursion, Form des Namens, Einsetzen in die URL** — `$$` steht für `$` in
-  jedem Wert der Datei; Name `[A-Za-z_][A-Za-z0-9_]*`, sonst `PGR-E2004`; einmal eingesetzt;
-  URL vor dem Einsetzen zerlegt, Wert unverändert in seinem Teil; Entscheidung des Nutzers
-  vom 2026-10-08, `LH-FA-17.a`. Hinweis an den Implementer: Die Zerlegung der
-  Standardbibliothek lehnt einen Port `${PORT}` ab; zerlegt wird mit Platzhaltern.
+- **`$${VAR}`, Form des Namens** — `$$` steht für `$` in jedem Wert der Datei; Name
+  `[A-Za-z_][A-Za-z0-9_]*`, sonst `PGR-E2004`; Entscheidung des Nutzers vom 2026-10-08,
+  `LH-FA-17.a`. Hinweis an den Implementer: Die Zerlegung der Standardbibliothek lehnt einen
+  Port `${PORT}` ab; zerlegt wird mit Platzhaltern.
 - **Platzhalter außerhalb einer URL** — `PGR-E2004` (Tabelle *Fehler*); `LH-FA-17.a`.
 - **Name einer Verbindung in der Form einer URL mit Passwort** (V-121 der Verifikation von
   `slice-v1-abschluss-konfigurationsdatei`) — ein Name enthält weder `:` noch `@`; sonst
@@ -226,38 +238,36 @@ ersten Code-Commit und entschied die fehlenden Randformen A1 bis A12 (unten) in 
   rot über `a@b`; Prüfung auf `:` entfernt, rot über `a:b`; Stelle mit dem Namen, rot über
   `GEHEIM`.
 
-*Anzeige und Fehler, soweit sie Verbindungen betreffen*
+*Anzeige und Fehler, soweit sie das Laden der Verbindungen betreffen*
 
-- **`config show` und `PGR-E2005`** — kommt nicht vor; `config show` setzt keine Variable ein
-  und zeigt Platzhalter unaufgelöst; `LH-FA-17.a`.
+- **`config show` und Platzhalter** — `config show` setzt keine Variable ein und zeigt
+  Platzhalter unaufgelöst; `LH-FA-17.a`. Dass `config show` kein `PGR-E2005` meldet, sagt
+  `slice-v1-abschluss-upstream-verbinden` zu, der das Einsetzen liefert.
 - **`config show` und Geheimnisse** — keine Maskierung, und keine nötig: Ein Passwort steht in
   keiner gültigen Datei (`PGR-E2006`, mit diesem Slice), Platzhalter erscheinen unaufgelöst;
   `LH-FA-17` und `LH-FA-17.a` (*Anzeige*). Die Randform selbst bleibt in
   `slice-v1-abschluss-konfigurationsdatei`; hier kommt ihre Voraussetzung.
-- **Reihenfolge, Teil der Verbindungen** — innerhalb einer URL in der Reihenfolge ihrer Teile;
-  am Ende nach der Zusammenführung `--upstream`, die Variablen der Platzhalter der benutzten
-  Verbindung (`PGR-E2005`) und danach ihr Port nach dem Einsetzen; `LH-FA-17.a`. Den übrigen
-  Teil der Reihenfolge liefert `slice-v1-abschluss-konfigurationsdatei`.
+- **Reihenfolge, Teil des Ladens** — innerhalb einer URL in der Reihenfolge ihrer Teile, in
+  der Reihenfolge der Datei; `LH-FA-17.a`. Den Teil am Ende nach der Zusammenführung liefert
+  `slice-v1-abschluss-upstream-verbinden`, den übrigen Teil
+  `slice-v1-abschluss-konfigurationsdatei`.
 
 *Rückgaben des Implementers vom 2026-10-08*, entschieden vom Architect am 2026-10-08 vor dem
 Code (`f19b440`), alle in `LH-FA-17.a`, abgeleitet aus den Grundsätzen dort: Text des Skalars
 zählt, Laden ohne Kommando, geschlossene Fehlertabelle, URL vor dem Einsetzen zerlegt, Abbruch
 beim ersten Fehler. Die Rückgaben 1 bis 4, 9, 11 und 12 liefert
-`slice-v1-abschluss-konfigurationsdatei`.
+`slice-v1-abschluss-konfigurationsdatei`, Rückgabe 8 `slice-v1-abschluss-upstream-verbinden`.
 
 5. **Nicht benutzte Verbindung** (Teil der Verbindungen aus Rückgabe 5) — mitgeprüft, auch
    Grammatik, `sslmode` und Klartext-Passwort; vom Kommando hängen nur `sslmode=require` bei
-   `record` und die Variablen der Platzhalter ab. Dass der Abschnitt eines anderen Kommandos
+   `record` und die Variablen der Platzhalter ab, beide bei
+   `slice-v1-abschluss-upstream-verbinden`. Dass der Abschnitt eines anderen Kommandos
    mitgeprüft wird, liefert `slice-v1-abschluss-konfigurationsdatei`.
 6. **URL ohne Port** — Port `5432`; die Grammatik lässt den Port weg. Ein Port sind Ziffern
    mit Wert 1 bis 65535, sonst `PGR-E2004`.
 7. **Platzhalter-Syntax in ignorierten Teilen** — geprüft beim Laden, `PGR-E2004`;
    unbeachtet ist dort nur die Variable. Im Passwortteil ist ein fehlerhafter Platzhalter
    ein Klartext-Passwort (`PGR-E2006`).
-8. **Eingesetzter Wert macht seinen Teil ungültig** — nur der Port wird nach dem Einsetzen
-   geprüft: `PGR-E2004`, im letzten Schritt direkt nach den Variablen der benutzten
-   Verbindung (`PGR-E2005`). Den Host prüft der Start nicht; ein Host mit `/` scheitert beim
-   Verbindungsaufbau.
 10. **URL-Sonderformen** — was die Grammatik nicht zulässt, ist `PGR-E2004`: Schema
     `postgres://`, leerer Host, fehlende oder leere Datenbank, Fragment, Parameter ohne `=`,
     ein Parameter zweimal (auch `sslmode`). Wörtliche Teile werden prozent-dekodiert, ein
@@ -270,19 +280,16 @@ entschieden heißt: seit dem Commit dieser Prüfung in `LH-FA-17.a`, abgeleitet 
 Grundsätzen dort (Grammatik geschlossen, URL vor dem Einsetzen zerlegt, jeder gesetzte Wert
 geprüft, Laden ohne Kommando, nie ein Wert in der Meldung).
 
-Bestätigt, schon vorher entschieden: URL-Grammatik (*Benannte Verbindungen*), Port-Default
-`5432` (Rückgabe 6), Prozent-Dekodierung wörtlicher Teile (Rückgabe 10), `sslmode` mit
-`disable` und `require`, `sslmode=require` bei `record` (`PGR-E2004`), Auflösen eines
-Namens in `--upstream` nur bei genauer Übereinstimmung, `${VAR}` und `$$`, `PGR-E2005` mit
-leerer Variable als nicht gesetzt, Port nach dem Einsetzen, `PGR-E2006` auch bei
-`config show` (*Anzeige*), Name ohne `:` und `@` (V-121). Ein Passwort aus `${VAR}` mit `@`
-oder `:` steht unverändert in seinem Teil (*Geheimnisse*, „auch mit `@`, `:`, `/` oder
-`%`“); eine leere Variable im Port ist `PGR-E2005`, nicht ein ungültiger Port, weil die
-Variablen vor dem Port geprüft werden. Ein Benutzer ohne Passwort ist gültig; woher `play`
-dann das Passwort nimmt, entscheidet `LH-FA-17.a` (`PGWIRE_RECORDER_PASSWORD`) und liefert
-`slice-v1-abschluss-einspielen` (dort §1, *Übernommen aus* diesem Slice).
+Bestätigt, schon vorher entschieden, soweit das Laden sie trägt: URL-Grammatik (*Benannte
+Verbindungen*), Port-Default `5432` (Rückgabe 6), Prozent-Dekodierung wörtlicher Teile
+(Rückgabe 10), `sslmode` mit `disable` und `require`, `${VAR}` und `$$`, `PGR-E2006` auch bei
+`config show` (*Anzeige*), Name ohne `:` und `@` (V-121). Die übrigen Bestätigungen
+(`sslmode=require` bei `record`, Auflösen des Namens, `PGR-E2005`, Port nach dem Einsetzen,
+Passwort aus `${VAR}` mit `@` oder `:`) stehen bei `slice-v1-abschluss-upstream-verbinden`.
+Ein Benutzer ohne Passwort ist gültig; woher `play` dann das Passwort nimmt, entscheidet
+`LH-FA-17.a` (`PGWIRE_RECORDER_PASSWORD`) und liefert `slice-v1-abschluss-einspielen`.
 
-Neu entschieden:
+Neu entschieden, soweit das Laden sie trägt:
 
 - **A1 Zerlegung der URL** — von links; der Teil mit Benutzer, Host und Port reicht bis zum
   ersten `/`, `?` oder `#`; das letzte `@` darin trennt den Benutzerteil ab, das erste `:`
@@ -292,12 +299,11 @@ Neu entschieden:
 - **A2 Leerer Benutzer, leeres Passwort** — leerer Benutzer (`postgresql://@h/db`,
   `postgresql://:${PW}@h/db`) ist `PGR-E2004`; ein leeres Passwort hinter `:`
   (`postgresql://u:@h/db`) ist ein Klartext-Passwort (`PGR-E2006`), weil es nicht genau ein
-  `${VAR}` ist.
+  `${VAR}` ist. Bestätigt durch den Nutzer am 2026-10-09 nach Empfehlung des Architect.
 - **A3 IPv6-Host** — in eckigen Klammern, die Klammern gehören nicht zum Host; hinter `]`
   nur `:` mit Port oder das Ende; ohne Klammern endet der Host am ersten `:` (`::1` ohne
-  Klammern ist damit ein ungültiger Wert, mehrere Hosts mit `,` ebenso über den Port).
-  Hinweis an den Implementer: `record` braucht die Adresse als `host:port`; ein Host mit
-  `:` (auch ein eingesetzter) wird beim Zusammensetzen wieder geklammert.
+  Klammern ist damit ein ungültiger Wert, mehrere Hosts mit `,` ebenso über den Port). Das
+  Zusammensetzen zu `host:port` für `record` liefert `slice-v1-abschluss-upstream-verbinden`.
 - **A4 Port** — wie geschrieben, nicht dekodiert, führende Nullen erlaubt (`05432` ist
   5432), ein `:` ohne Port ist `PGR-E2004`.
 - **A5 Dekodierung** — auch Name und Wert eines Parameters vor dem Vergleich
@@ -306,20 +312,14 @@ Neu entschieden:
 - **A6 Platzhalter in den Parametern** — die Parameter prüft das Laden vor dem Einsetzen;
   `sslmode=${M}` ist ein ungültiger `sslmode` (`PGR-E2004`), `password=${PW}` ein
   Klartext-Passwort.
-- **A7 Form `host:port`** bei `--upstream`, `PGWIRE_RECORDER_UPSTREAM` und dem Schlüssel
-  `upstream` — Host nicht leer (`:5432` ungültig), IPv6 in eckigen Klammern, Port in der
-  Form aus A4; wie geschrieben, ohne Dekodierung. Ein Wert ohne `:` ist ab V-121 nur noch ein
-  Name oder ungültig; der Vorrang des Namens vor `host:port` bleibt im Text stehen und ist
-  ohne Fall (akzeptiertes Negativ: keine Regel zu streichen, kein Test möglich).
-- **A8 Jeder gesetzte Wert von `--upstream`** — geprüft unabhängig von der Priorität, nach
-  dem Grundsatz in `LH-FA-17.a`: der Schlüssel `upstream` beim Laden an seiner Stelle in der
-  Datei gegen die Namen aller Verbindungen der Datei, auch einer, die nach ihm steht
-  (`PGR-E2004`, auch bei `config show` und einem anderen Kommando); Option, dann
-  Umgebungsvariable nach der Zusammenführung (`PGR-E2001`), auch wenn sie nicht gilt.
-  Benutzt ist die Verbindung, deren Namen der zusammengeführte Wert nennt.
-- **A9 `sslmode=require` bei `record` in der Reihenfolge** — direkt nach `--upstream`, vor
-  den Variablen der Platzhalter (*Fehler*); die Liste der Reihenfolge nannte die Stelle
-  nicht.
+- **A7 Form `host:port`**, Teil des Schlüssels `upstream` — Host nicht leer (`:5432`
+  ungültig), IPv6 in eckigen Klammern, Port in der Form aus A4; wie geschrieben, ohne
+  Dekodierung. Dieselbe Form bei `--upstream` und `PGWIRE_RECORDER_UPSTREAM` prüft
+  `slice-v1-abschluss-upstream-verbinden`; die Prüfung ist eine, beide benutzen sie.
+- **A8 Schlüssel `upstream`** — geprüft beim Laden an seiner Stelle in der Datei gegen die
+  Namen aller Verbindungen der Datei, auch einer, die nach ihm steht (`PGR-E2004`, auch bei
+  `config show` und einem anderen Kommando). Option und Umgebungsvariable nach der
+  Zusammenführung und die benutzte Verbindung trägt `slice-v1-abschluss-upstream-verbinden`.
 - **A10 `$$` und `${` außerhalb einer URL** — von links gelesen (`$$${VAR}` ist `$` und ein
   Platzhalter); außerhalb einer URL ist jedes `${`, das nicht aus `$$` hervorgeht,
   `PGR-E2004` *Platzhalter außerhalb einer URL*, gleich ob seine Form gültig ist; die
@@ -327,42 +327,39 @@ Neu entschieden:
 - **A11 Kommandozeile und Umgebung** — kennen weder Platzhalter noch `$$`
   (`--output='a$${X}'` ist der Pfad wie geschrieben). Als `VAR` gilt jeder Name der Form,
   auch `${PGWIRE_RECORDER_PASSWORD}`; ohne Ausnahme, weil die Variable nur gelesen wird.
-- **A12 Meldung zu `PGR-E2005`** — nennt die Verbindung und den Namen der ersten nicht
-  gesetzten Variable in der Reihenfolge der URL, nie einen Wert.
 
-*Akzeptierte Negative der Prüfung* (keine Folgepflicht, einmalig und harmlos):
+*Akzeptiertes Negativ der Prüfung* (keine Folgepflicht, einmalig und harmlos):
 
 - Ein `/`, `?` oder `#` wörtlich im Passwort beendet den Teil mit Benutzer, Host und Port;
   die URL ist dann `PGR-E2004` statt `PGR-E2006`. Beide beenden den Start, keine Meldung
   nennt den Wert, `config show` zeigt nichts.
-- Ein eingesetzter Wert mit Steuerzeichen bleibt ungeprüft (*Geheimnisse*: weder dekodiert
-  noch geprüft); eine Umgebungsvariable trägt kein NUL, und Benutzer und Datenbank benutzt
-  erst `play`.
 
 **Risiken:**
 
 - Die Zerlegung der URL mit Platzhaltern braucht einen eigenen Zerleger, weil die
   Standardbibliothek `${PORT}` als Port ablehnt (Hinweis oben); Grammatik, Dekodierung und
-  Einsetzen in einem Zerleger können den Diff über eine Review-Sitzung heben. *Schätzung des
+  Einsetzen in einem Zerleger hoben den Diff über eine Review-Sitzung. *Schätzung des
   Architect vom 2026-10-09* gegen den Stand von `datei.go` (551 Zeilen) und `cli.go` und den
   Liefer-Commit des Gebers (`7a80393`, 1392 Zeilen, davon rund 590 Code und 665 Tests): Code rund
   350 bis 450 Zeilen (Zerleger mit Platzhaltern 200, `$$` und `${` in jedem Wert 40,
   Klartext 30, `host:port` und Auflösen 60, Einsetzen und Prüfungen am Ende 60), Unit-Tests
   550 bis 700 (je Randform aus §6 ein Fall, zwölf neue), Integration 80, Handbuch und
   Abdeckung 70 — zusammen **1050 bis 1300 Zeilen**, so groß wie der Geber, als er zur
-  Zerlegung zurückging. Das ist der Fall von `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`
-  (1×): Ein zweiter Schnitt als vorab benannte Rückführung trat dort nach den ersten
-  Liefer-Commits ein. *Vorschlag:* jetzt, vor dem Code, nach §4 schneiden — *Laden der
-  Verbindungen* bleibt hier (rund 650 bis 750 Zeilen), *Benutzen der Verbindung* wird ein
-  eigener Slice (rund 550 bis 650 Zeilen); beide im CLI-Adapter, der zweite dazu höchstens im
-  Bootstrap. **Entscheidung des Nutzers offen**; bis dahin beginnt der Implementer mit dem
-  Laden, das in beiden Fällen zuerst kommt — **Ausgang:** offen bis Closure.
-- Das Benutzerhandbuch beschreibt Verbindungen und Platzhalter schon im Zielstand und kann vom
-  gelieferten Stand abweichen (§3) — **Ausgang:** offen bis Closure.
+  Zerlegung zurückging; der Fall von `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`.
+  Entscheidung des Nutzers vom 2026-10-09: vor dem Code nach §4 geschnitten —
+  **Ausgang:** eingetreten, Folge-Slice `slice-v1-abschluss-upstream-verbinden`.
+- Auch der geschnittene Zuschnitt (*Laden*, nach der Schätzung rund 650 bis 750 Zeilen,
+  davon der Zerleger mit Platzhaltern rund 200 Zeilen Code) kann über einer Review-Sitzung
+  liegen, weil die Randformen des Ladens die meisten Testfälle tragen (A1 bis A6, A10,
+  Rückgaben 6, 7 und 10) — **Ausgang:** offen bis Closure.
+- Die Form, in der das Laden die zerlegte URL ablegt, ist die Schnittstelle zu
+  `slice-v1-abschluss-upstream-verbinden`: Trägt sie die Platzhalter je Teil und in der
+  Reihenfolge der URL nicht (A12 dort), muss der Folge-Slice den Zerleger ändern —
+  **Ausgang:** offen bis Closure.
 - Bis zur Closure dieses Slice lehnt der gelieferte Stand ein Klartext-Passwort in der Datei
   und einen Namen einer Verbindung mit `:` oder `@` nicht ab, und `config show` zeigt beide (Risiko in §6 von
-  `slice-v1-abschluss-konfigurationsdatei`); DoD-Punkt 3 schließt die Lücke beim Passwort, die
-  Vorgabe zum Namen in §6 die beim Namen —
+  `slice-v1-abschluss-konfigurationsdatei`); DoD-Punkt 3 schließt die Lücke beim Passwort,
+  DoD-Punkt 1 die beim Namen —
   **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
@@ -403,7 +400,8 @@ nicht mehr.
 (Kürzel `REPO`, Greenfield); dieser Slice berührt nur sie.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register
-`docs/plan/planning/observations/BEO-REPO/` am Stand `cfc4d6b` gesichtet (Zähler = Dateien
+`docs/plan/planning/observations/BEO-REPO/` am Stand `cfc4d6b` gesichtet, beim Schnitt vom
+2026-10-09 am Stand `c297f9b` nachgesichtet (Zähler = Dateien
 unter `evidence/`). Treffer:
 
 - `BEO-REPO/slice-waechst-durch-uebernahmen` (2×) — dieser Slice entsteht aus dem Schnitt von
@@ -411,19 +409,28 @@ unter `evidence/`). Treffer:
   wuchs. Er selbst übernimmt nur dessen DoD-Punkt 3 und bekommt drei Liefer-Punkte daraus; er
   ist kein weiterer Beleg. Ob der Geber bei seiner Closure der dritte ist, entscheidet dessen
   Closure.
-- `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel` (1×) — der Schnitt läuft diesmal formal über
-  `next/` (Entscheidung des Nutzers vom 2026-10-09 zu V-117); kein weiterer Beleg.
-- `BEO-REPO/spec-randform-erst-im-review-entschieden` (15×, verkörpert in `AGENTS.md` §3.12)
-  und `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (4×, verkörpert) — alle
+- `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel` (1×) — der Schnitt des Gebers und der
+  Schnitt dieses Slice vom 2026-10-09 (§4) laufen formal über `next/` (Entscheidung des
+  Nutzers vom 2026-10-09 zu V-117); kein weiterer Beleg, solange der `git mv` dieses Slice
+  nach `next/` und zurück in der Historie steht.
+- `BEO-REPO/spec-randform-erst-im-review-entschieden` (16×, verkörpert in `AGENTS.md` §3.12)
+  und `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (5×, verkörpert) — alle
   Randformen in §6 sind vor dem Code entschieden; eine weitere geht an den Architect zurück.
-- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (16×, `AGENTS.md` §3.10) und
-  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (22×, §3.11) — je Zusage eine Mutation,
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (17×, `AGENTS.md` §3.10) und
+  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (23×, §3.11) — je Zusage eine Mutation,
   Beleg in §7.
-- `BEO-REPO/plan-folgt-korrektur-nicht` (18×, §3.9) — jede Korrektur zieht §1, §3 und §6 im
+- `BEO-REPO/plan-folgt-korrektur-nicht` (19×, §3.9) — jede Korrektur zieht §1, §3 und §6 im
   selben Commit nach.
 - `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (3×, §3.13) — der Geber nennt diesen Slice in
-  §1 unter *Abgegeben*, der Nehmer `slice-v1-abschluss-einspielen` nennt ihn in §1 unter
-  *Übernommen aus*, beides im selben Commit.
+  §1 unter *Abgegeben*; mit dem Schnitt vom 2026-10-09 nennt dieser Slice
+  `slice-v1-abschluss-upstream-verbinden` in §1 unter *Abgegeben*, der ihn in §1 unter
+  *Übernimmt* führt, und `slice-v1-abschluss-einspielen` führt die Wirkung bei `play` unter
+  *Übernommen aus* `slice-v1-abschluss-upstream-verbinden`, alles im selben Commit.
+- `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (1×) — der Schnitt des Gebers gab diesem
+  Slice eine Hälfte an der Grenze einer Review-Sitzung (§6 *Risiken*, 1050 bis 1300 Zeilen),
+  und dieser Plan nannte den zweiten Schnitt als vorab benannte Rückführung. Anders als im
+  Beleg trat sie vor dem ersten Code-Commit ein, nicht nach Liefer-Commits; ob das ein
+  weiterer Beleg ist, entscheidet die Closure dieses Slice.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu; keine neue Lücke vor dem
 Code.
