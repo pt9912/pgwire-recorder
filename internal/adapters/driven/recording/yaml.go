@@ -24,18 +24,25 @@ type YAML struct{}
 
 var _ driven.RecordingRepository = YAML{}
 
-// Prepare prüft den Zielpfad (LH-FA-07.a).
+// Prepare prüft den Zielpfad beim Start (LH-FA-07.a *Zielpfad beim Start*). Ein
+// Pfad zählt nach dem Ziel einer symbolischen Verknüpfung; eine Verknüpfung ins
+// Leere ist nicht vorhanden. Ein vorhandener Pfad, der keine reguläre Datei ist,
+// ist PGR-E3001, auch mit replace; eine vorhandene reguläre Datei ohne replace
+// PGR-E2002; ein Pfad, dessen Zustand sich nicht feststellen lässt, PGR-E3001.
+// Danach legt Prepare im Verzeichnis eine Probedatei an und entfernt sie
+// sofort; gelingt das nicht, ist das PGR-E3001. Ein Verzeichnis legt Prepare
+// nicht an.
 func (YAML) Prepare(_ context.Context, path string, replace bool) error {
-	_, err := os.Stat(path)
+	info, err := os.Stat(path)
 	switch {
+	case err == nil && !info.Mode().IsRegular():
+		return model.Errorf(model.CodeRecordingIO, nil, "%s ist keine reguläre Datei", path)
 	case err == nil && !replace:
 		return model.Errorf(model.CodeOutputExists, nil, "%s existiert bereits; --force ersetzt die Datei", path)
 	case err == nil, errors.Is(err, fs.ErrNotExist):
 	default:
 		return model.Errorf(model.CodeRecordingIO, err, "%s nicht prüfbar", path)
 	}
-	// Das Zielverzeichnis muss beim Start beschreibbar sein, nicht erst nach der
-	// ersten Session.
 	probe, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*.probe")
 	if err != nil {
 		return model.Errorf(model.CodeRecordingIO, err, "Verzeichnis von %s nicht beschreibbar", path)
@@ -58,16 +65,47 @@ func removeErr(err error) error {
 	return nil
 }
 
-// Write schreibt in eine temporäre Datei im Zielverzeichnis und benennt sie
-// danach um; die Zieldatei ist damit vollständig oder unverändert. Eine neue
-// Datei erhält die Rechte nach der umask des Prozesses (0666 vor der umask),
-// eine ersetzte behält ihre bisherigen (SPEC-033).
+// Write schreibt die Aufzeichnung über eine temporäre Datei im Zielverzeichnis,
+// die es danach auf path verschiebt (LH-FA-07.a *Temporäre Datei*); die
+// Zieldatei ist damit vollständig oder unverändert. Eine neue Datei erhält die
+// Rechte 0666 nach der umask des Prozesses, eine ersetzte behält ihre
+// Zugriffsrechte (SPEC-033). Das Verschieben ersetzt eine symbolische
+// Verknüpfung unter path, nicht ihr Ziel.
 func (YAML) Write(_ context.Context, path string, rec model.Recording) error {
+	return schreibe(path, rec, betriebssystem())
+}
+
+// dateiOps sind die Operationen, über die schreibe die temporäre Datei benennt,
+// füllt, verschiebt und entfernt.
+type dateiOps struct {
+	zufall          func([]byte) (int, error)
+	schreiben       func(*os.File, []byte) (int, error)
+	synchronisieren func(*os.File) error
+	verschieben     func(alt, neu string) error
+	entfernen       func(name string) error
+}
+
+// betriebssystem liefert die Operationen des Betriebssystems.
+func betriebssystem() dateiOps {
+	return dateiOps{
+		zufall:          rand.Read,
+		schreiben:       (*os.File).Write,
+		synchronisieren: (*os.File).Sync,
+		verschieben:     os.Rename,
+		entfernen:       os.Remove,
+	}
+}
+
+// schreibe ist Write mit den Operationen ops. Scheitert ein Schritt nach dem
+// Anlegen der temporären Datei, entfernt es sie; scheitert auch das Entfernen,
+// bleibt sie liegen, und der Fehler des Entfernens folgt als Ursache derselben
+// Meldung PGR-E3001 (LH-FA-07.a *Fehlschlag*).
+func schreibe(path string, rec model.Recording, ops dateiOps) error {
 	data, err := Marshal(rec)
 	if err != nil {
 		return err
 	}
-	tmp, err := neueTempDatei(path)
+	tmp, err := neueTempDatei(path, ops.zufall)
 	if err != nil {
 		return model.Errorf(model.CodeRecordingIO, err, "temporäre Datei für %s nicht anzulegen", path)
 	}
@@ -75,34 +113,36 @@ func (YAML) Write(_ context.Context, path string, rec model.Recording) error {
 	if info, err := os.Stat(path); err == nil {
 		merr = tmp.Chmod(info.Mode().Perm())
 	}
-	_, werr := tmp.Write(data)
-	serr := tmp.Sync()
+	_, werr := ops.schreiben(tmp, data)
+	serr := ops.synchronisieren(tmp)
 	cerr := tmp.Close()
 	if err := errors.Join(werr, merr, serr, cerr); err != nil {
-		return model.Errorf(model.CodeRecordingIO, err, "temporäre Datei für %s nicht zu schreiben", path)
+		return model.Errorf(model.CodeRecordingIO, errors.Join(err, ops.entfernen(tmp.Name())), "temporäre Datei für %s nicht zu schreiben", path)
 	}
-	if err := os.Rename(tmp.Name(), path); err != nil {
-		return model.Errorf(model.CodeRecordingIO, err, "%s nicht zu schreiben", path)
+	if err := ops.verschieben(tmp.Name(), path); err != nil {
+		return model.Errorf(model.CodeRecordingIO, errors.Join(err, ops.entfernen(tmp.Name())), "%s nicht zu schreiben", path)
 	}
 	return nil
 }
 
-// neueTempDatei legt im Verzeichnis von path eine neue Datei an; die Rechte
-// 0666 schränkt die umask ein (anders als os.CreateTemp mit fest 0600).
-func neueTempDatei(path string) (*os.File, error) {
-	var zufall [8]byte
+// neueTempDatei legt im Verzeichnis von path die Datei
+// .<Name von path>.<16 Hexziffern aus zufall>.tmp exklusiv an; ist der Name
+// belegt, zieht es einen neuen, höchstens zehn. Die Rechte 0666 schränkt die
+// umask ein (anders als os.CreateTemp mit fest 0600).
+func neueTempDatei(path string, zufall func([]byte) (int, error)) (*os.File, error) {
+	var teil [8]byte
 	for i := 0; i < 10; i++ {
-		if _, err := rand.Read(zufall[:]); err != nil {
+		if _, err := zufall(teil[:]); err != nil {
 			return nil, err
 		}
-		name := filepath.Join(filepath.Dir(path), "."+filepath.Base(path)+"."+hex.EncodeToString(zufall[:])+".tmp")
+		name := filepath.Join(filepath.Dir(path), "."+filepath.Base(path)+"."+hex.EncodeToString(teil[:])+".tmp")
 		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o666)
 		if errors.Is(err, fs.ErrExist) {
 			continue
 		}
 		return f, err
 	}
-	return nil, errors.New("kein freier Name für die temporäre Datei")
+	return nil, errors.New("kein freier Name für die temporäre Datei nach zehn Versuchen")
 }
 
 // Load liest eine Aufzeichnung.

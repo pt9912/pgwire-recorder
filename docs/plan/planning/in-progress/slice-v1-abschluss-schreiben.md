@@ -96,9 +96,9 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` (`LH-FA-07.a`) | keine Änderung durch den Implementer | Die Randformen in §6 sind entschieden (Architect, 2026-10-09, vor dem Code); eine Randform, die §6 nicht nennt, geht an den Architect zurück (`AGENTS.md` §3.12) |
-| `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben (vorhanden); neu nach §6: ein vorhandener Pfad, der keine reguläre Datei ist, beim Start `PGR-E3001` auch ohne `--force` (heute `PGR-E2002` ohne, ein Fehler erst beim ersten Schreiben mit `--force`); temporäre Datei nach einem Fehlschlag entfernt (heute bleibt sie liegen) |
-| `internal/adapters/driving/cli` | update, falls nötig | `--output` ohne `--force` abgelehnt; `--output` und `--force` liefert der allgemeine Leser (§1) |
-| `internal/adapters/driven/recording` (Unit-Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-07.a` und `LH-FA-17.a` |
+| `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben (vorhanden); neu nach §6: ein vorhandener Pfad, der keine reguläre Datei ist, beim Start `PGR-E3001`, ohne und mit `--force` (vorher `PGR-E2002` ohne, ein Fehler erst beim ersten Schreiben mit `--force`); temporäre Datei nach einem Fehlschlag entfernt, ein Fehler beim Entfernen als Ursache derselben Meldung (vorher blieb sie liegen). Die Dateioperationen von `Write` (Zufall, Schreiben, Synchronisieren, Verschieben, Entfernen) stehen in einer Tabelle von Funktionen, die die Unit-Tests über `export_test.go` ersetzen |
+| `internal/adapters/driving/cli` | keine Änderung | `--output` und `--force` liefert der allgemeine Leser (§1); abgelehnt wird im Recording-Adapter |
+| `internal/adapters/driven/recording` (Unit-Tests `schreiben_test.go`), `test/integration` (`schreiben_e2e_test.go`, Helfer `startProzessIn` in `record_e2e_test.go`) | update | Boundary/Negative nach `LH-FA-07.a`; `--force` aus Kommandozeile, Umgebung und Datei nach `LH-FA-17.a` |
 | `docs/user/benutzerhandbuch.md` | update | atomares Schreiben, `--output` und `--force`, übrig gebliebene temporäre Dateien entfernt der Anwender |
 | `docs/user/abdeckung-*.md` | update | über `make abdeckung` aus den Deklarationen der neuen Tests |
 

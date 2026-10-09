@@ -369,9 +369,17 @@ func startRecorder(t *testing.T, upstream, output string) *recorder {
 // 5 s auf das Ende; danach t.Errorf.
 func startProzess(t *testing.T, kommando string, args ...string) *recorder {
 	t.Helper()
+	return startProzessIn(t, "", kommando, args...)
+}
+
+// startProzessIn ist startProzess im Verzeichnis dir; "" ist das Verzeichnis
+// des Tests.
+func startProzessIn(t *testing.T, dir, kommando string, args ...string) *recorder {
+	t.Helper()
 	listen := freieAdresse(t)
 	var stderr strings.Builder
 	cmd := exec.Command(os.Getenv("PGR_BINARY"), append([]string{kommando, "--listen", listen}, args...)...)
+	cmd.Dir = dir
 	cmd.Stderr = &stderr
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("Recorder starten: %v", err)
