@@ -23,6 +23,9 @@ seinen eigenen Schnitt. Der `→ done`-Übergang verlangt einen **Lerneintrag** 
 neuer Sensor · benannte Spec-Lücke), nicht nur grüne Gates; eine Closure ohne ihn ist keine.
 Die Folge-Slice-Paarung der Closure prüft Existenz **und** Annahme des Nehmers, wie
 `close-welle` Schritt 3 sie beschreibt (`AGENTS.md` §3.13, seit slice-lint-bestand-kern-driven).
+Trägst du eine Sendung in einen Nehmer ein, zählst du im selben Commit dessen Liefer-Punkte und
+Schichten mit ihr nach; läge er darüber, schneidest du oder suchst einen anderen Nehmer, statt
+einzutragen (`AGENTS.md` §3.13, seit slice-v1-abschluss-einspielen).
 
 **Ein rotes Gate erreicht `done/` nur mit dokumentiertem Carveout** (Modul 7), nie als stilles Rot.
 

@@ -190,7 +190,10 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     **Nennst du einen anderen Slice als Adresse** (§6, §7; `AGENTS.md` §3.13,
     seit slice-lint-bestand-kern-driven), liest du vorher dessen §1 *Ausdrücklich NICHT* und DoD
     und trägst die Sendung im selben Commit dort ein, mit der Kennung des Gebers. Trifft ein
-    Ausschluss sie, nennst du ihn nicht und gibst den Punkt im Bericht an den Planner.
+    Ausschluss sie, nennst du ihn nicht und gibst den Punkt im Bericht an den Planner. Im
+    selben Commit zählst du Liefer-Punkte und Schichten des Nehmers mit der Sendung nach
+    (höchstens drei, höchstens zwei); läge er darüber, trägst du nicht ein und gibst den
+    Punkt an den Planner (`AGENTS.md` §3.13, seit slice-v1-abschluss-einspielen).
     **Der Mutant muss im Build ankommen** (seit slice-replay-semantik-mismatch): Ein Lauf
     über den Docker-Build-Kontext (`make build`, `make test`, `make test-integration`)
     überträgt eine Datei nicht neu, deren Größe und mtime dem zuletzt übertragenen Stand

@@ -438,12 +438,14 @@ Slice, nicht vorher). Treffer:
   Adresse von sechs Abgrenzungen (§1, *Übernommen aus*), DoD-Punkt 1 bündelte zuletzt
   Abnahmeszenario 12, drei Anmeldeverfahren, TLS mit eigener Zertifizierungsstelle und die
   Optionen, bei drei Liefer-Punkten und vier Schichten; die Größe fand erst die Prüfung des
-  Architect. Mit dem Beleg dieses Slice stünde der Eintrag bei **3×** und wäre eine Lücke, die
-  einen eigenen Folge-Slice braucht. Dem Nutzer am 2026-10-09 vorgelegt; Ausgang offen bis zu
-  seiner Entscheidung.
+  Architect. Mit dem Beleg dieses Slice steht der Eintrag bei **3×** (Beleg vorgezogen auf
+  den zweiten Schnitt, Entscheidung des Nutzers vom 2026-10-09); Ausgang *verkörpert* statt
+  eines Folge-Slice: `AGENTS.md` §3.13 *Nachzählen beim Eintragen*, seit
+  slice-v1-abschluss-einspielen. Die neuen Nehmer nennen die Zählung in ihrem §8.
 - `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel` (1×: `slice-v1-abschluss-konfiguration`)
   — passt: Der Schnitt geschah im selben Zug, der Slice bleibt in `in-progress/`, der Rest ging
-  an zwei neue Slices in `next/` (§4). Mit dem Beleg dieses Slice stünde er bei 2×.
+  an zwei neue Slices in `next/` (§4), beim zweiten Schnitt ebenso. Beleg eingetragen mit dem
+  zweiten Schnitt (ein Vorgang, eine Datei): **2×**, unter der Schwelle.
 - `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (1×) — kann passen: Der Kern liegt nach der
   groben Schätzung in §6 (*Größe des Kerns*) über der Grenze einer Review-Sitzung, §4 nennt
   den zweiten Schnitt vorab. Beleg erst, wenn diese Rückführung eintritt.

@@ -74,7 +74,11 @@ die Antwort und wird notiert.
    Plan einen anderen Slice als Adresse** (Folge-Slice, Risiko-Ausgang, Abgrenzung der Klasse 1),
    liest du vorher dessen §1 *Ausdrücklich NICHT* und DoD und trägst die Sendung im selben Commit
    dort ein, mit der Kennung des Gebers; trifft ein Ausschluss sie, ist er keine Adresse
-   (`AGENTS.md` §3.13, seit slice-lint-bestand-kern-driven).
+   (`AGENTS.md` §3.13, seit slice-lint-bestand-kern-driven). **Im selben Commit zählst du
+   Liefer-Punkte und Schichten des Nehmers mit der Sendung nach** und nennst die Zählung in
+   seinem §8; läge er über drei Punkten oder zwei Schichten, trägst du nicht ein, sondern
+   schneidest oder suchst einen anderen Nehmer (`AGENTS.md` §3.13, seit
+   slice-v1-abschluss-einspielen).
 
 ## Welle-Plan per cp anlegen und füllen (der Kern-Schritt)
 

@@ -224,17 +224,25 @@ welle-extended-query wieder aufgetreten?
 
 ### 3.11 Ein Kommentar sagt nur zu, was ein Test prüft (seit welle-extended-query)
 
-Kommentar, Hilfetext, Abdeckungs-Deklaration und Plan-Zeile sagen nur zu, was ein
-Test oder Gate prüft. Reicht der Satz weiter, wird er enger gefasst oder bekommt
-seinen Test (§3.10).
+Kommentar, Hilfetext, Abdeckungs-Deklaration, Plan-Zeile und Benutzerhandbuch sagen
+nur zu, was ein Test oder Gate prüft. Reicht der Satz weiter, wird er enger gefasst oder
+bekommt seinen Test (§3.10). Ein Beispiel im Benutzerhandbuch gilt erst als belegt, wenn
+es als Datei gegen das gebaute Binary läuft; gelesen gegen den Code ist es nicht geprüft
+(seit slice-v1-abschluss-upstream-verbinden).
 
 **Falsch:** „prüft beide Adapter“ über einer Gegenprobe, die einen prüft.
 **Richtig:** „prüft den Recording-Adapter“, oder die Gegenprobe prüft beide.
 
+**Falsch:** Das Handbuch zeigt eine Konfigurationsdatei mit einem Abschnitt, den das
+gebaute Binary mit `PGR-E2004` ablehnt; Implementer und Review hielten ihn gegen den Code
+gelesen für richtig.
+**Richtig:** Das Beispiel liegt als Datei vor und läuft gegen das gebaute Binary, etwa mit
+`config show`, ohne Meldung.
+
 **Begründung:** Eine Zusage ohne Prüfung liest jeder Lauf als geprüft
 (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`). Entfernen oder Lockern setzt
 den Retirement-Check voraus: Ist die Beobachtung seit welle-extended-query wieder
-aufgetreten?
+aufgetreten, für das Handbuch seit slice-v1-abschluss-upstream-verbinden?
 
 ### 3.12 Randformen eines neuen Vertrags sind vor dem Code entschieden (seit slice-harness-randformen-vor-code)
 
@@ -280,6 +288,24 @@ den Planner.
 annimmt, fand erst das Review (`BEO-REPO/folge-slice-adresse-nimmt-nicht-an`). Entfernen
 oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
 slice-lint-bestand-kern-driven wieder aufgetreten?
+
+**Nachzählen beim Eintragen** (seit slice-v1-abschluss-einspielen): Wer eine Sendung in
+einen Nehmer einträgt, zählt im selben Commit dessen Liefer-Punkte und Schichten nach,
+mit der Sendung (Baseline-Regelwerk `modul-05-planning-harness.md` §Ziel-Form: Slice:
+höchstens drei Liefer-Punkte, höchstens zwei Schichten). Läge der Nehmer darüber, geht der
+Punkt an den Planner statt in den Nehmer.
+
+**Falsch:** Die siebte Übernahme wandert in einen vorhandenen Liefer-Punkt; der Nehmer
+bleibt bei drei Punkten und berührt vier Schichten, die Größe findet erst die Prüfung des
+Architect vor dem Code.
+**Richtig:** Der Commit, der die Sendung einträgt, zählt den Nehmer mit ihr nach und nennt
+die Zählung in dessen §8; läge er darüber, entscheidet der Planner, ob geschnitten wird oder
+ein anderer Slice annimmt.
+
+**Begründung:** Die Größenregel zählt Punkte, und ein Punkt nimmt Übernahme um Übernahme
+auf, ohne dass die Zahl steigt (`BEO-REPO/slice-waechst-durch-uebernahmen`). Entfernen
+oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
+slice-v1-abschluss-einspielen wieder aufgetreten?
 
 ## 4. Quality Gates
 

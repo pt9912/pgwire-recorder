@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen
+**Fund:** Zwei in §4 vorab benannte Rückführungen *zu groß* traten vor dem ersten Code-Commit ein, die zweite nach der Prüfung des Architect am Code; der Slice blieb beide Male nach Entscheidung des Nutzers in `in-progress/`, die Teile gingen an vier neue Slices in `next/` (Anmeldung und TLS in `cee5fc1`, Laufsteuerung und Extended in `e0b193d`). Die Verzeichnis-Historie zeigt keinen Übergang `in_progress → next`; Bedingungen und Gründe stehen in §4 und im Drift-Log der Roadmap.
