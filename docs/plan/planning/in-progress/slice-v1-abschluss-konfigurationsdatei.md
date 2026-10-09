@@ -215,7 +215,9 @@ prüfte sie dort am 2026-10-08 vor dem Code. Die zwölf Rückgaben des Implement
 der Konstanten entschied er am 2026-10-08 hier, vor dem Code (unten). Zwei Rückgaben und fünf
 Lesarten aus dem Lauf an DoD-Punkt 1 und 2 entschied er am 2026-10-09 (unten, *Rückgaben vom
 2026-10-09*). Drei Befunde des Reviews vom 2026-10-09 (F-506, F-507, F-517) entschied er am
-selben Tag (unten, *Befunde des Reviews vom 2026-10-09*); offen ist keine. [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md) ist
+selben Tag (unten, *Befunde des Reviews vom 2026-10-09*), zwei Befunde der Verifikation
+vom 2026-10-09 (V-118, V-119) ebenso (unten, *Befunde der Verifikation vom 2026-10-09*); offen
+ist keine. [ADR-0037](../../adr/0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md) ist
 angenommen (Entscheidung des Nutzers vom 2026-10-09). Die Randformen zu Verbindungen und Platzhaltern und die
 Rückgaben 6, 7, 8 und 10 sowie der Teil der Verbindungen aus Rückgabe 5 zogen mit dem Schnitt
 vom 2026-10-09 nach §6 von `slice-v1-abschluss-verbindungen-platzhalter`; hier steht je eine
@@ -454,6 +456,48 @@ bzw. `TestDateiNichtLesbar`, wo nichts anderes steht.
   *Zusätzliche Einschränkungen* Lesen und Anzeigen der Konfigurationsdatei (Architect,
   2026-10-09). `.a-check.yml` bleibt unberührt: Die `tech`-Regel erlaubt den Import im
   CLI-Adapter, nicht einen Zweck, und der Import ist derselbe.
+
+*Befunde der Verifikation vom 2026-10-09*, entschieden vom Architect am 2026-10-09 in
+`LH-FA-17.a`. Der Code folgt nach dieser Entscheidung; je Fall Test mit genauer Zahl und
+Mutation, vor der Übergabe rot gesehen (`AGENTS.md` §3.10). V-121 betrifft den Nehmer und steht
+als offene Randform in §6 von `slice-v1-abschluss-verbindungen-platzhalter`.
+
+- **V-118 — Zeile bei einem Konstrukt über mehrere Zeilen** — die Zeile, in der das Konstrukt
+  (Folge, Abbildung, Text in Anführungszeichen) beginnt, sonst die Zeile, in der der Fehler
+  erkannt wird, gezählt ab 1. Grenze: Beginnt das Konstrukt in Zeile 1, ist es die Zeile der
+  Erkennung. Grund: Die Bibliothek gibt die Zeile der Erkennung nur ohne umgebendes Konstrukt
+  heraus, sonst dessen Anfang; mehr lässt sich ohne eigenen Parser nicht bestimmen, und der
+  Anfang des Konstrukts führt zu der Stelle, an der zu suchen ist. Sonde des Architect
+  (Bibliothek v3.0.5): Fehler des Parsers nennen die Zeile ab 0, Fehler des Scanners ab 1;
+  liegen beide Marken in der ersten Zeile, nennt der Text keine. *Hinweis an den
+  Implementer:* Fehler des Parsers sind an ihren elf Texten in `parserc.go` erkennbar, im
+  genauen Vergleich, nicht am Anfang, weil Texte des Scanners ebenso mit `did not find
+  expected` beginnen: `did not find expected` gefolgt von `<stream-start>`,
+  `<document start>`, `node content`, `'-' indicator`, `key`, `',' or ']'` und `',' or '}'`,
+  dazu `found undefined tag handle`, `found duplicate %YAML directive`,
+  `found incompatible YAML document` und `found duplicate %TAG directive`; ihre Zahl plus 1. Ein
+  Fehler ohne Zahl, der kein Fehler aus dem Bezug zwischen Knoten ist, liegt in Zeile 1. Der
+  Kommentar daran ist eine Kopplung an die Version der Bibliothek; die Tests unten halten sie.
+  *Tests* (`TestDateiUngueltig`, genaue Meldung):
+  `log_level: info\nrecord:\n  force: true\nd: [x\n` nennt „Zeile 4“;
+  `log_level: info\nrecord:\n  force: true\n  output: x\n  - y\n` nennt „Zeile 3“ (Abbildung
+  unter `record:`); `a: 1\nb: 2\n]\n` nennt „Zeile 3“ (Grenze); `a: 1\nb: c: d\n` nennt
+  „Zeile 2“ (Scanner); der Fall *Syntax* `replay:\n  listen: "GEHEIM\n` nennt „Zeile 2“;
+  `]\n` nennt „Zeile 1“. *Mutation:* plus 1 entfernt, rot über `d: [x` und `]` in Zeile 3;
+  plus 1 auch für den Scanner, rot über `b: c: d`; fehlende Zahl nicht als Zeile 1, rot über
+  `]\n`.
+- **V-119 — Meldung ohne Zeile** — jede Meldung zu ungültigem YAML nennt eine Zeile, außer
+  einem Fehler aus dem Bezug zwischen Knoten: Alias ohne Anker und Anker, der sich selbst
+  enthält (Grenze, die Bibliothek nennt keine Stelle; die Meldung nennt die Ursache ohne den
+  Namen des Ankers). Zeichen, die YAML 1.2 nicht als druckbar zulässt (C0 außer Tabulator und
+  Zeilenende, auch NUL, `U+007F`, C1, `U+FFFE`, `U+FFFF`), lehnt `kodierung` vor dem YAML mit
+  der Zeile ab; damit trägt auch UTF-16LE ohne BOM eine Zeile. *Tests* (`TestDateiKodierung`):
+  NUL in einem Wert in Zeile 2 nennt „Zeile 2“; `\x01` in einem Wert in Anführungszeichen in
+  Zeile 3 nennt „Zeile 3“; `U+007F` und `U+0080` je mit Zeile; ein Tabulator in einem Wert in
+  Anführungszeichen bleibt gültig; UTF-16LE ohne BOM nennt „Zeile 1“; `a: *x\n` nennt
+  „ungültiges YAML“ mit der Ursache, ohne Zeile und ohne `x`. *Mutation:* Prüfung der nicht
+  druckbaren Zeichen entfernt, rot über NUL und UTF-16LE ohne BOM (Meldung ohne Zeile); der
+  Tabulator mit abgelehnt, rot. Der Kopfkommentar von `ladeDatei` sagt die Grenze zu (§3.11).
 
 *Ort der Konstanten* — im Model, `internal/hexagon/model/fehler.go`, als drei Konstanten ohne
 Logik (§1, Ausnahme). Grund: [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) führt eine Code-Tabelle im Quelltext, die mit dem

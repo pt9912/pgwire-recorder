@@ -932,7 +932,9 @@ ein BOM an jeder anderen Stelle, eine ungültige UTF-8-Folge und jede andere Kod
 (UTF-16, UTF-32, auch mit BOM) sind ungültiges YAML. Ein Zeilenende ist `\n`, `\r\n` oder
 `\r` allein, wie in YAML 1.2. `U+0085`, `U+2028` und `U+2029` sind an jeder Stelle
 ungültiges YAML, auch in Anführungszeichen und in einem Kommentar: YAML 1.1 liest sie als
-Zeilenende, YAML 1.2 nicht. Die Datei enthält höchstens ein YAML-Dokument; ein zweites ist ungültiges YAML. Ist
+Zeilenende, YAML 1.2 nicht. Ebenso ist jedes Zeichen ungültiges YAML, das YAML 1.2 nicht als
+druckbar zulässt, an jeder Stelle: ein Steuerzeichen aus C0 außer Tabulator und Zeilenende,
+auch NUL, dazu `U+007F`, die Zeichen aus C1, `U+FFFE` und `U+FFFF`. Die Datei enthält höchstens ein YAML-Dokument; ein zweites ist ungültiges YAML. Ist
 sie leer oder enthält sie nur Kommentare, setzt sie nichts; eine Datei mit `---` ohne
 Inhalt enthält ein Dokument, dessen oberste Ebene keine Abbildung ist. Sonst sind die oberste
 Ebene, jeder Abschnitt und `connections:` je eine Abbildung, jede andere Form ist
@@ -999,7 +1001,12 @@ Stelle (Schlüssel oder Verbindungsname), nie einen Wert. Das gilt für die Date
 Umgebungsvariablen, die Geheimnisse tragen können; eine Meldung zur Kommandozeile darf den
 Wert nennen, den der Aufruf selbst enthält, denn die Kommandozeile trägt kein Passwort. Zu
 ungültigem YAML nennt die Meldung die Zeile, gezählt ab 1 nach den Zeilenenden oben, und
-kein Zeichen der Datei; das gilt auch für einen doppelten Schlüssel, dessen Text sie nicht
+kein Zeichen der Datei. Liegt der Fehler in einem Konstrukt über mehrere Zeilen (Folge,
+Abbildung, Text in Anführungszeichen), ist das die Zeile, in der das Konstrukt beginnt, sonst
+die Zeile, in der der Fehler erkannt wird; beginnt das Konstrukt in Zeile 1, ist es die Zeile,
+in der der Fehler erkannt wird (Grenze). Ohne Zeile bleibt nur ein Fehler aus dem Bezug
+zwischen Knoten, ein Alias ohne Anker und ein Anker, der sich selbst enthält; die Meldung
+nennt dann die Ursache ohne den Namen des Ankers. Das gilt auch für einen doppelten Schlüssel, dessen Text sie nicht
 nennt, weil er an der Stelle eines Werts stehen kann. Zu einem leeren Schlüssel und einem,
 der kein Skalar ist, nennt sie als Stelle die Abbildung, in der er steht (oberste Ebene,
 Abschnitt). Der Start endet beim ersten
@@ -2395,3 +2402,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-08 | Konfigurationsdatei: höchstens ein YAML-Dokument, leere Datei setzt nichts, oberste Ebene, Abschnitte und `connections:` als Abbildung, leere Abbildung gültig, Abschnitt ohne Inhalt oder mit `null` ungültig, Tags ungültig, Laden prüft die ganze Datei unabhängig vom Kommando; URL: Form außerhalb der Grammatik ungültig, Port-Default `5432` und Form des Ports, Prozent-Dekodierung wörtlicher Teile, Name einer Verbindung; Form der Platzhalter in jedem Teil geprüft, fehlerhafter Platzhalter im Passwort ist Klartext, eingesetzter Port geprüft, Host nicht; Reihenfolge innerhalb einer URL (`LH-FA-17.a`) |
 | 2026-10-09 | Konfigurationsdatei: `null` ist die YAML-Null ohne Anführungszeichen, in Anführungszeichen Text; Standarddatei existiert nach Auflösung der Links, ein Link ins Leere ist keine Datei, unbestimmbares Vorhandensein ist nicht lesbar; doppelte Schlüssel nach ihrem Text verglichen; `---` ohne Inhalt ungültig; erste Zeile von `config show` ist der Pfad wie gewählt; `config` in der Hilfe und als Kommando ohne `show` (`LH-FA-17.a`) |
 | 2026-10-09 | Konfigurationsdatei: nur eine reguläre Datei, geprüft vor dem Lesen; Kodierung UTF-8, BOM nur als erstes Zeichen übergangen; Zeilenenden nach YAML 1.2, `U+0085`, `U+2028` und `U+2029` ungültig; der nicht spezifische Tag `!`; doppelter Schlüssel in jeder Tiefe, Meldung zu ungültigem YAML mit der Zeile; leerer und nicht skalarer Schlüssel unbekannt mit der Abbildung als Stelle; `config show` ohne BOM und mit `\n` (`LH-FA-17.a`) |
+| 2026-10-09 | Konfigurationsdatei: Zeile zu ungültigem YAML bei einem Konstrukt über mehrere Zeilen, Grenze bei Beginn in Zeile 1, Meldung ohne Zeile nur für Alias ohne Anker und Anker, der sich selbst enthält; nicht druckbare Zeichen nach YAML 1.2 ungültig (`LH-FA-17.a`) |

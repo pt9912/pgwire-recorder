@@ -170,7 +170,8 @@ dasteht.
 Schnitt vom 2026-10-09 aus §6 von `slice-v1-abschluss-konfigurationsdatei` hierher; dorthin
 kamen die ersten aus §6 von `slice-v1-abschluss-konfiguration`, geprüft vom Architect am
 2026-10-08 vor dem Code. Die Rückgaben unten entschied er am 2026-10-08 vor dem Code, die
-Nummern sind die aus jenem Plan. Offen ist keine.
+Nummern sind die aus jenem Plan. Offen ist eine: *Name einer Verbindung in der Form einer URL
+mit Passwort* (unten), zu entscheiden vor dem Code.
 
 *Verbindungen und Platzhalter*
 
@@ -191,6 +192,18 @@ Nummern sind die aus jenem Plan. Offen ist keine.
   vom 2026-10-08, `LH-FA-17.a`. Hinweis an den Implementer: Die Zerlegung der
   Standardbibliothek lehnt einen Port `${PORT}` ab; zerlegt wird mit Platzhaltern.
 - **Platzhalter außerhalb einer URL** — `PGR-E2004` (Tabelle *Fehler*); `LH-FA-17.a`.
+- **Name einer Verbindung in der Form einer URL mit Passwort** (V-121 der Verifikation von
+  `slice-v1-abschluss-konfigurationsdatei`) — **offen, vor dem Code zu entscheiden.** Heute
+  ist ein Name jeder Text ohne Steuerzeichen (`LH-FA-17.a`); `postgresql://u:GEHEIM@h/db` als
+  Name erscheint in der Meldung zu seinem Wert (`connections.<Name>`) und in `config show`,
+  und das Klartext-Passwort (`PGR-E2006`) gilt nur dem Wert. Der Grund von „nie einen Wert“
+  trifft hier zu. *Empfehlung des Architect:* Ein Name enthält weder `:` noch `@`; sonst
+  `PGR-E2004`, und die Meldung nennt als Stelle nur `connections`, nicht den Namen. Grund:
+  Ohne `@` trägt ein Name keinen Benutzerteil und damit kein Passwort, ohne `:` ist er nie mit
+  `host:port` bei `--upstream` verwechselbar (heute entscheidet der Vorrang des Namens). Die
+  Einschränkung ändert die Entscheidung zu Rückgabe 11 („sonst jeder Name, auch mit Leerraum“)
+  und braucht deshalb die Entscheidung des Nutzers. Alternative ohne Einschränkung: ein Name
+  mit `@` gilt als Klartext-Passwort (`PGR-E2006`), dann bleibt `:` frei.
 
 *Anzeige und Fehler, soweit sie Verbindungen betreffen*
 
