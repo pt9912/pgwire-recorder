@@ -402,6 +402,15 @@ genau, die Meldung ohne den Wert.
   die URL ist dann `PGR-E2004` statt `PGR-E2006`. Beide beenden den Start, keine Meldung
   nennt den Wert, `config show` zeigt nichts.
 
+*Grenze der Tests* (Implementer, 2026-10-09; zwei äquivalente Mutanten, §7):
+
+- Ob die Wertemenge einer Option den Text vor oder nach `$$` prüft, ist über die
+  Schnittstelle nicht unterscheidbar, solange keine Wertemenge ein `$` annimmt (`text` nimmt
+  jeden nicht leeren Wert, `$$` ergibt nie einen leeren); gesichert ist, dass die Option den
+  Text nach `$$` erhält.
+- `$$` auf einen Namen einer Verbindung angewandt ändert nichts, solange ein Name kein `$`
+  enthält (L1): Das Ergebnis enthält wieder ein `$` und wird abgelehnt.
+
 **Risiken:**
 
 - Die Zerlegung der URL mit Platzhaltern braucht einen eigenen Zerleger, weil die
@@ -446,7 +455,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
-- **Belege zur DoD (Implementer):** <…>
+- **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten.
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
 - **Steering-Loop-Eintrag:** <…>
@@ -454,6 +463,166 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 - **Drei Paarungen:** <…>
+
+### Belege des Implementers
+
+**Stand.** Geliefert sind DoD-Punkt 1 bis 3 in vier Commits: `f0180b6` (DoD-Punkt 1),
+`d7e1833` (DoD-Punkt 2), `f9b9584` (DoD-Punkt 3 mit dem Integrationstest), `a3bcad0` (ein
+Testfall zu L1 und L4, der einen Mutanten fängt). Neu ist
+`internal/adapters/driving/cli/verbindung.go` (Zerleger, `host:port`, Klartext), geändert
+`datei.go` (Verbindungen, `$$` und `${`, Schlüssel `upstream`), Tests in
+`verbindung_test.go`, `leser_test.go` (Werte der Wertemenge `text` in der Form `host:port`,
+weil `record.upstream` in der Datei sie verlangt), `export_test.go` und
+`test/integration/konfiguration_e2e_test.go`. Keine Randform außerhalb von §6 entschieden;
+die sechs Rückgaben dieses Laufs (L1 bis L6) entschied der Architect vor dem ersten
+Code-Commit (`7a4dc1c`). Das Handbuch ist nicht berührt (§1, *Abgegeben*).
+
+**Größe.** Der Diff `539ebee..a3bcad0` ohne Plan umfasst 991 hinzugefügte und 19 entfernte
+Zeilen: rund 530 Code (davon `verbindung.go` 440 mit Kommentaren), rund 460 Tests, 12 Zeilen
+Abdeckung. Das liegt über der Schätzung von 650 bis 750 Zeilen (§6 *Risiken*, zweiter
+Punkt); ob es in eine Review-Sitzung passt, urteilt das Review.
+
+**Schnittstelle zum Folge-Slice** (§6 *Risiken*, dritter Punkt). `datei.verbindungen` trägt je
+Verbindung in der Reihenfolge der Datei den Namen und je Teil (Benutzer, Passwort, Host, Port,
+Datenbank) eine Folge von Stücken in der Reihenfolge der URL: wörtlicher Text nach `$$` und,
+außer im Port, dekodiert, oder ein Platzhalter mit dem Namen seiner Variable; dazu `sslmode`,
+ohne Port das Stück `5432`. `TestVerbindungZerlegung` prüft diese Form über `Zerlege` in
+`export_test.go`.
+
+**Läufe.**
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `make test` | `f0180b6`, `d7e1833`, `f9b9584`, `a3bcad0` je vor dem Commit | Exit 0 |
+| `make lint` | `f9b9584`, `a3bcad0` | Exit 0, kein Befund |
+| `make test-integration` | `f9b9584` | Exit 0, `TestE2EConfigShowVerbindungUngueltig` PASS |
+| `make abdeckung` | je Commit | Tabellen nachgezogen, `make abdeckung-check` im Gate-Lauf grün |
+| `make gates` | `a3bcad0` (Code-Stand) | Exit 0 |
+
+**Weg der Mutanten.** Je Mutant ein neues Verzeichnis unter dem Scratch-Pfad der Sitzung, in
+das `go.mod`, `go.sum`, `cmd/` und `internal/` mit `shutil.copyfile` kopiert werden (keine
+mtime übernommen, kein `cp -p`); die Änderung setzt ein Skript, das die Trefferzahl 1 prüft;
+dann `go test -count=1 ./internal/adapters/driving/cli/` im Image der Stufe `deps` des
+`Dockerfile`, die Kopie per Bind-Mount statt Build-Kontext, ohne Netz; danach wird genau
+dieses Verzeichnis gelöscht. Die drei Mutanten des Integrationstests liefen in je einer Kopie
+des Repos (`cp -r`, ohne `-p`) mit `make test-integration`, danach diese drei Verzeichnisse
+gelöscht. Der Arbeitsbaum blieb unberührt. Gefahren: 85 Mutanten, 83 rot, 2 grün (äquivalent,
+unten). Ein Mutant, der nicht übersetzte, ist neu formuliert und dann rot gesehen.
+
+**DoD-Punkt 1 — Zerlegung und Grammatik der URL, Name einer Verbindung.**
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| Steuerzeichen im geschriebenen Text ungültig (L2) | Prüfung entfernt | `TestVerbindungUngueltig` |
+| auch der Tabulator (L2) | Tabulator ausgenommen | `TestVerbindungUngueltig` |
+| auch DEL und C1 (L2) | nur C0 geprüft | `TestVerbindungUngueltig` |
+| Schema genau `postgresql://` | Prüfung entfernt | `TestVerbindungUngueltig`, `TestVerbindungName` |
+| Benutzerteil am letzten `@` (A1) | erstes `@` | `TestVerbindungZerlegung` |
+| leerer Benutzer ungültig (A2) | Prüfung entfernt | `TestVerbindungUngueltig` |
+| IPv6 in eckigen Klammern ohne die Klammern (A3) | Klammern nicht erkannt | `TestVerbindungUngueltig`, `TestVerbindungZerlegung` |
+| `[` ohne `]` ungültig | offene Klammer als Host angenommen | `TestVerbindungUngueltig` |
+| `[` oder `]` an anderer Stelle des Hosts ungültig | Prüfung entfernt | `TestVerbindungUngueltig` |
+| hinter `]` nur `:` mit Port oder das Ende (A3) | Prüfung entfernt | `TestVerbindungUngueltig` |
+| leerer Host ungültig, auch `[]` | Prüfung entfernt | `TestVerbindungUngueltig` |
+| ohne Port `5432` (Rückgabe 6) | Default `5433` | `TestVerbindungZerlegung` |
+| `:` ohne Port ungültig (A4) | Prüfung entfernt (dann anderer Grund) | `TestVerbindungUngueltig` |
+| Port höchstens 65535 | Grenze 65536 | `TestVerbindungUngueltig` |
+| Port mindestens 1 | Grenze 0 | `TestVerbindungUngueltig` |
+| führende Nullen erlaubt (A4) | führende Null abgelehnt | `TestVerbindungZerlegung` |
+| Port nur Ziffern | Ziffernprüfung entfernt | `TestVerbindungUngueltig` (Fall `h:+5`) |
+| Port nicht dekodiert (A4) | Port dekodiert | `TestVerbindungUngueltig` (Fall `h:%35`) |
+| Port mit Platzhalter: wörtliche Zeichen Ziffern (L5) | Prüfung entfernt | `TestVerbindungUngueltig` (Fälle `h:x${P}`, `h:$$${P}`) |
+| Datenbank fehlt: ungültig | Prüfung entfernt | `TestVerbindungUngueltig`, `TestVerbindungName` |
+| Datenbank leer: ungültig | Prüfung entfernt | `TestVerbindungUngueltig` |
+| Datenbank bis `?`, auch mit `/` (A1) | Datenbank endet am `/` | `TestVerbindungZerlegung` |
+| wörtliche Teile prozent-dekodiert (Rückgabe 10) | keine Dekodierung | `TestVerbindungUngueltig`, `TestVerbindungZerlegung` |
+| ungültiges Escape ungültig | Hex-Prüfung entfernt | `TestVerbindungUngueltig` |
+| dekodiert gültiges UTF-8 (L3) | Prüfung entfernt | `TestVerbindungUngueltig` (Fall `%FF`) |
+| dekodiert ohne C0, DEL, C1 (L3, A5) | nur C0 geprüft | `TestVerbindungUngueltig` (Fall `%C2%80`) |
+| Parameter ohne `=` ungültig, auch `?` und leerer | Prüfung entfernt | `TestVerbindungUngueltig` |
+| unbekannter Parameter ungültig | übergangen | `TestVerbindungUngueltig` |
+| Parametername genau in der Schreibweise | ohne Groß- und Kleinschreibung | `TestVerbindungUngueltig` (Fall `SSLMODE`) |
+| `sslmode` höchstens einmal | Prüfung entfernt | `TestVerbindungUngueltig` |
+| Parametername dekodiert (A5) | Name nicht dekodiert | `TestVerbindungUngueltig`, `TestVerbindungZerlegung` |
+| Platzhalter oder leerer Wert bei `sslmode` ungültig (A6) | beide angenommen | `TestVerbindungUngueltig` |
+| `sslmode` nur `disable` und `require` | `prefer` angenommen | `TestVerbindungUngueltig` |
+| Wert genau in der Schreibweise | `Require` angenommen | `TestVerbindungUngueltig` |
+| `sslmode` übernommen | Wert nicht gemerkt | `TestVerbindungZerlegung` |
+| Fragment ungültig | Prüfung entfernt | `TestVerbindungUngueltig` |
+| Form der Platzhalter in jedem Teil (Rückgabe 7) | ungültiges `${` als Text | `TestVerbindungUngueltig` |
+| `$$` ist `$` in der URL | `$$` bleibt `$$` | `TestVerbindungZerlegung` |
+| `$$` von links | `$$` nicht ausgewertet | `TestVerbindungZerlegung` |
+| Platzhalter je Teil in der Reihenfolge der URL (Schnittstelle) | Text vor einem Platzhalter verloren | `TestVerbindungZerlegung` |
+| Passwort als Platzhalter abgelegt | Passwort als Text | `TestVerbindungZerlegung` |
+| jede Verbindung geprüft, auch eine nicht benutzte | Ergebnis von `zerlegeURL` übergangen | `TestVerbindungUngueltig`, `TestVerbindungName` |
+| Name ohne `@` (V-121) | `@` erlaubt | `TestVerbindungName` |
+| Name ohne `:` (V-121) | `:` erlaubt | `TestVerbindungName` |
+| Name ohne `$` (L1) | `$` erlaubt | `TestVerbindungName` |
+| Meldung nennt nur `connections`, nicht den Namen | Name in der Stelle | `TestVerbindungName` |
+
+**DoD-Punkt 2 — `$$` und `${` in jedem Wert, Schlüssel `upstream`.**
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| `$$` ist `$` in jedem Wert | `$$` bleibt `$$` | `TestDateiDollar`, `TestDateiUpstream` |
+| `${` außerhalb einer URL ungültig, gleich ob gültig geformt (A10) | angenommen | `TestDateiPlatzhalterAusserhalb` |
+| von links gelesen: `$$${X}` ist `$` und ein Platzhalter (A10) | `${` nach `$` übergangen | `TestDateiPlatzhalterAusserhalb` |
+| die Option erhält den Text nach `$$` | Text wie geschrieben gemerkt | `TestDateiDollar`, `TestDateiUpstream` |
+| Kommandozeile ohne `$$` (A11) | `$$` auf die Kommandozeile angewandt | `TestDateiDollar` |
+| Umgebung ohne `$$` (A11) | `$$` auf die Umgebung angewandt | `TestDateiDollar` |
+| Schlüssel `upstream` geprüft (A8) | Prüfung entfernt | `TestDateiUpstreamUngueltig` |
+| `upstream` darf eine Verbindung nennen | nur `host:port` | `TestDateiUpstream`, `TestDateiUpstreamUngueltig` |
+| `upstream` darf `host:port` sein | nur Namen | `TestDateiUpstream`, `TestDateiDollar`, `TestLeserAlleOptionen` |
+| nur gültige Namen zählen (L4) | jeder Schlüssel unter `connections` zählt | `TestDateiUpstreamUngueltig` |
+| auch eine Verbindung nach dem Schlüssel (A8) | keine Namen gesammelt | `TestDateiUpstream`, `TestDateiUpstreamUngueltig` |
+| Name genau in der Schreibweise | Name auch groß geschrieben | `TestDateiUpstreamUngueltig` |
+| ein Name mit `$` zählt nicht, auch nach `$$` (L1, L4) | `$$` beim Sammeln entfernt | `TestDateiUpstreamUngueltig` |
+| `host:port`: Host nicht leer (A7) | leerer Host angenommen | `TestDateiUpstreamUngueltig` |
+| `host:port`: `[` und `]` nur als Klammern | Prüfung entfernt | `TestDateiUpstreamUngueltig` |
+| `host:port`: Port der Form aus A4 | jeder nicht leere Port | `TestDateiUpstreamUngueltig` |
+| `host:port`: IPv6 in eckigen Klammern | Klammern nicht erkannt | `TestDateiUpstream` |
+| `host:port`: Host endet am ersten `:` | am letzten `:` | `TestDateiUpstreamUngueltig` |
+| `host:port`: wie geschrieben, ohne Dekodierung | Port dekodiert | `TestDateiUpstreamUngueltig` |
+| auch bei `config show` und `replay` | durch die Prüfung oben mitgedeckt: dieselben Mutanten färben die Fälle `config show` und `replay` in `TestDateiUpstreamUngueltig` | `TestDateiUpstreamUngueltig` |
+
+**DoD-Punkt 3 — Klartext-Passwort.**
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| Passwort nicht genau `${VAR}` ist Klartext | Prüfung entfernt | `TestVerbindungKlartext` |
+| Code `PGR-E2006` | Code `PGR-E2004` | `TestVerbindungKlartext` |
+| auch leeres Passwort (A2) | leeres angenommen | `TestVerbindungKlartext` |
+| genau ein `${VAR}`, nicht nur enthalten | Muster nicht verankert | `TestVerbindungKlartext` |
+| `$${VAR}` ist Klartext | `$$` vor der Prüfung ausgewertet | `TestVerbindungKlartext` |
+| Passwort nicht dekodiert, ungültiges Escape ist Klartext (L6) | Passwort vor der Prüfung dekodiert | `TestVerbindungKlartext` |
+| Passwort am ersten `:` (A1) | am letzten `:` | `TestVerbindungKlartext` |
+| Parameter `password` ist Klartext | Prüfung entfernt | `TestVerbindungKlartext` |
+| auch dekodiert geschrieben (A5) | Name wie geschrieben verglichen | `TestVerbindungKlartext` |
+| nur genau `password` (Gegenlesen) | ohne Groß- und Kleinschreibung | `TestVerbindungKlartext`, `TestVerbindungUngueltig` |
+| Wert von `password` nicht dekodiert (L6) | Wert dekodiert, Escape-Fehler als `PGR-E2004` | `TestVerbindungKlartext` |
+| Passwort vor dem Host (Reihenfolge) | Host vor dem Passwort | `TestVerbindungKlartext` |
+| Passwort vor Datenbank, Parametern und Fragment | Pfad vor dem Benutzerteil | `TestVerbindungKlartext` |
+| Benutzer vor dem Passwort | Klartext vor dem Benutzer | `TestVerbindungKlartext` |
+| Steuerzeichen vor dem Klartext (L2) | Klartext vor den Steuerzeichen | `TestVerbindungKlartext` |
+| `config show` endet mit `PGR-E2006`, Exit 2, ohne Ausgabe (Integration) | Code `PGR-E2004` | `TestE2EConfigShowVerbindungUngueltig` |
+| `config show` mit ungültiger URL endet mit Exit 2 (Integration) | Ergebnis von `zerlegeURL` übergangen | `TestE2EConfigShowVerbindungUngueltig` |
+| `config show` mit ungültigem `upstream` endet mit Exit 2 (Integration) | Prüfung von `upstream` entfernt | `TestE2EConfigShowVerbindungUngueltig` |
+
+**Grüne Mutanten, eingeordnet.**
+
+- *Wertemenge prüft den Text vor `$$`* — äquivalent: Keine Wertemenge nimmt ein `$` an, und
+  `$$` ergibt nie einen leeren Text; die Grenze steht in §6 (*Grenze der Tests*).
+- *`$$` auf den Namen einer Verbindung angewandt* (Mutation aus L1) — äquivalent: Das
+  Ergebnis enthält wieder ein `$` und wird abgelehnt; die Grenze steht in §6. Der verwandte
+  Mutant beim Sammeln der Namen für `upstream` ändert das Verhalten und war zuerst grün;
+  `a3bcad0` fügt den Fall hinzu, der ihn rot färbt (Tabelle DoD-Punkt 2).
+- Eine Längenprüfung vor `strconv.Atoi` im Port war grün, weil `Atoi` eine zu große Zahl
+  ohnehin als Grenze von `int` liefert; sie ist vor `f0180b6` entfernt, und der Mutant an
+  ihrer Stelle (Ziffernprüfung entfernt) ist rot (Fall `h:+5`).
+
+**Kommentare** (`AGENTS.md` §3.7, §3.11). Die neuen Kommentare beschreiben den Ist-Zustand; jede
+Zusage darin hat eine Zeile oben. Abdeckungs-Deklarationen nennen nur Fälle, die der Test
+enthält.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
