@@ -133,10 +133,16 @@ func hostInhalt(h teil, klammern bool) error {
 	return nil
 }
 
-// ipv6 meldet, ob text eine IPv6-Adresse in Textform ist, auch mit Zone hinter
-// % und als IPv4-Adresse in IPv6-Form; eine IPv4-Adresse ist keine.
+// ipv6 meldet, ob text eine IPv6-Adresse in Textform ist, auch als IPv4-Adresse
+// in IPv6-Form und mit Zone hinter dem ersten %; eine IPv4-Adresse ist keine.
+// Eine Zone ist nicht leer und besteht unzulaessigImHost, ein weiteres % ist
+// damit ungültig (LH-FA-17.a, V-122).
 func ipv6(text string) bool {
-	a, err := netip.ParseAddr(text)
+	adresse, zone, mitZone := strings.Cut(text, "%")
+	if mitZone && (zone == "" || unzulaessigImHost(zone)) {
+		return false
+	}
+	a, err := netip.ParseAddr(adresse)
 	return err == nil && a.Is6()
 }
 

@@ -18,7 +18,7 @@ func mitVerbindung(url string) string {
 // Abdeckung: LH-FA-17/Happy, LH-FA-17/Boundary — eine URL wird von links
 // zerlegt: das letzte @ trennt den Benutzerteil ab, darin das erste : das
 // Passwort; ein Host in eckigen Klammern ist IPv6 ohne die Klammern, auch mit
-// Zone hinter %25 und in IPv4-Form; ohne Port
+// Zone hinter %25, auch mit Escape in der Zone, und in IPv4-Form; ohne Port
 // gilt 5432, ein Port gilt wie geschrieben mit führenden Nullen, 1 und 65535
 // sind gültig; die Datenbank reicht bis zum ?, auch mit /; wörtliche Teile und
 // Name und Wert eines Parameters werden prozent-dekodiert, ein Escape auch mit
@@ -48,6 +48,7 @@ func TestVerbindungZerlegung(t *testing.T) {
 		{"postgresql://a$$$${X}@h/$x", cli.Zerlegt{Benutzer: []string{"a$${X}"}, Host: []string{"h"}, Port: []string{"5432"}, Datenbank: []string{"$x"}, SSLMode: "disable"}},
 		{"postgresql://$$${U}@h/db", cli.Zerlegt{Benutzer: []string{"$", "<U>"}, Host: []string{"h"}, Port: []string{"5432"}, Datenbank: []string{"db"}, SSLMode: "disable"}},
 		{"postgresql://[::ffff:1.2.3.4]/%c3%a4", cli.Zerlegt{Host: []string{"::ffff:1.2.3.4"}, Port: []string{"5432"}, Datenbank: []string{"ä"}, SSLMode: "disable"}},
+		{"postgresql://[fe80::1%25eth%30]/db", cli.Zerlegt{Host: []string{"fe80::1%eth0"}, Port: []string{"5432"}, Datenbank: []string{"db"}, SSLMode: "disable"}},
 		{"postgresql://[::1]/db", cli.Zerlegt{Host: []string{"::1"}, Port: []string{"5432"}, Datenbank: []string{"db"}, SSLMode: "disable"}},
 	} {
 		got, err := cli.Zerlege(schreibe(t, mitVerbindung(f.url)))
@@ -98,6 +99,10 @@ func ungueltigeURLs() []struct{ url, grund string } {
 		{"postgresql://[GEHEIM]:5/db", "Host in Klammern ist keine IPv6-Adresse"},
 		{"postgresql://[1.2.3.4]/db", "Host in Klammern ist keine IPv6-Adresse"},
 		{"postgresql://[fe80::1%25]/db", "Host in Klammern ist keine IPv6-Adresse"},
+		{"postgresql://[fe80::1%25a%20b]/db", "Host in Klammern ist keine IPv6-Adresse"},
+		{"postgresql://[fe80::1%25a%2Fb]/db", "Host in Klammern ist keine IPv6-Adresse"},
+		{"postgresql://[fe80::1%25a%25b]/db", "Host in Klammern ist keine IPv6-Adresse"},
+		{"postgresql://[fe80::1%25GEHEIM%40h]/db", "Host in Klammern ist keine IPv6-Adresse"},
 		{"postgresql://[${H}]/db", "Host in Klammern mit Platzhalter"},
 		{"postgresql://[::${H}]/db", "Host in Klammern mit Platzhalter"},
 		{"postgresql://[${H}/db", "Host mit [ ohne ]"},
@@ -175,7 +180,8 @@ func ungueltigeURLs() []struct{ url, grund string } {
 // Steuerzeichen im geschriebenen Text (auch Tabulator, DEL und C1), ein
 // anderes Schema, ein leerer Benutzer, ein leerer Host, [ ohne ], in Klammern
 // etwas anderes als eine wörtliche IPv6-Adresse (Name, IPv4-Adresse,
-// Platzhalter, leere Zone), ohne Klammern nach der Dekodierung Leerraum oder
+// Platzhalter, eine Zone leer oder mit Leerraum, /, % oder @ nach der
+// Dekodierung), ohne Klammern nach der Dekodierung Leerraum oder
 // eines von @ : / ? # [ ] %, auch neben einem Platzhalter, Text hinter ], ein :
 // ohne Port, ein Port außerhalb 1 bis 65535 oder nicht aus Ziffern (auch
 // dekodiert geschrieben), ein Port mit Platzhalter und wörtlichem Zeichen außer
@@ -333,7 +339,8 @@ func TestDateiUpstream(t *testing.T) {
 // record.upstream ohne den Wert, auch bei replay und config show: ein
 // unbekannter Name, einer in anderer Schreibweise, einer mit $$, der nach $$
 // keinen Namen trifft, leerer Host, ein Host mit %, @, Leerraum, Steuerzeichen,
-// / oder [, in Klammern keine IPv6-Adresse, kein Port, ein Port außerhalb 1 bis
+// / oder [, in Klammern keine IPv6-Adresse (auch eine Zone leer, mit
+// Steuerzeichen, Leerraum, / oder einem zweiten %), kein Port, ein Port außerhalb 1 bis
 // 65535 oder dekodiert geschrieben, IPv6 ohne oder mit offener Klammer; ein
 // ungültiger Name zählt nicht als Name, auch einer mit $, den ein Wert nach $$
 // wörtlich trifft; der erste Fehler ist der, der in der Datei zuerst steht
@@ -344,7 +351,7 @@ func TestDateiUpstreamUngueltig(t *testing.T) {
 	verbindungen := "connections:\n  staging: postgresql://h/db\n  ab: postgresql://h/db\n"
 	for _, wert := range []string{
 		"GEHEIM", "Staging", "\"a$$b\"", "\":5432\"", "\"GEHEIM:\"", "GEHEIM.example", "GEHEIM:0", "GEHEIM:65536",
-		"GEHEIM:%35", "\"h%41:1\"", "\"GEHEIM@h:5\"", "\"GEHEIM h:5\"", "\"h\\x01GEHEIM:5\"", "\"[GEHEIM]:5\"", "\"a/GEHEIM:5\"", "\"a[b:1\"", "\"[1.2.3.4]:5\"", "\"::1:5432\"", "\"[::1]\"", "\"[::1:5432\"", "\"[::1]x:1\"", "\"[]:1\"", "\"a]b:1\"", "GEHEIM:1:2",
+		"GEHEIM:%35", "\"h%41:1\"", "\"GEHEIM@h:5\"", "\"GEHEIM h:5\"", "\"h\\x01GEHEIM:5\"", "\"[GEHEIM]:5\"", "\"a/GEHEIM:5\"", "\"a[b:1\"", "\"[1.2.3.4]:5\"", "\"[fe80::1%]:5\"", "\"[fe80::1%G\\x01EHEIM]:5\"", "\"[fe80::1%GEHEIM h]:5\"", "\"[fe80::1%a/GEHEIM]:5\"", "\"[fe80::1%a%GEHEIM]:5\"", "\"::1:5432\"", "\"[::1]\"", "\"[::1:5432\"", "\"[::1]x:1\"", "\"[]:1\"", "\"a]b:1\"", "GEHEIM:1:2",
 	} {
 		inhalt := verbindungen + "record:\n  upstream: " + wert + "\n"
 		genau := "Konfiguration [PGR-E2004]: Konfigurationsdatei: record.upstream: weder Name einer Verbindung der Datei noch host:port"
