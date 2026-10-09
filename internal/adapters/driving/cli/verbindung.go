@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"net/netip"
 	"regexp"
 	"strconv"
 	"strings"
@@ -46,7 +47,7 @@ type verbindung struct {
 }
 
 // zerlegung ist der Stand des Zerlegers einer URL: die Stelle für die Meldung
-// und der noch nicht gelesene Text.
+// und die Verbindung, soweit sie gelesen ist.
 type zerlegung struct {
 	stelle string
 	v      verbindung
@@ -94,20 +95,57 @@ func (z *zerlegung) anmeldung(text string) error {
 		}
 		hostPort = text[at+1:]
 	}
-	host, port, mitPort, err := trenneHost(hostPort)
+	host, hinten, klammern, zu := trenneHost(hostPort)
+	h, err := liesTeil(host, true)
 	if err != nil {
-		return z.fehler(err.Error())
-	}
-	if z.v.host, err = liesTeil(host, true); err != nil {
 		return z.fehler("Host: " + err.Error())
+	}
+	if klammern && !zu {
+		return z.fehler("Host mit [ ohne ]")
 	}
 	if host == "" {
 		return z.fehler("Host ist leer")
 	}
-	if strings.ContainsAny(host, "[]") {
-		return z.fehler("Host mit [ oder ] an falscher Stelle")
+	if err := hostInhalt(h, klammern); err != nil {
+		return z.fehler(err.Error())
+	}
+	z.v.host = h
+	port, mitPort := strings.CutPrefix(hinten, ":")
+	if klammern && hinten != "" && !mitPort {
+		return z.fehler("hinter ] steht nicht : mit Port")
 	}
 	return z.port(port, mitPort)
+}
+
+// hostInhalt prüft den gelesenen Host (LH-FA-17.a *Benannte Verbindungen*): in
+// eckigen Klammern wörtlich eine IPv6-Adresse, auch mit Zone; ohne Klammern in
+// den wörtlichen Stücken, nach der Dekodierung, kein Leerraum und keines von
+// @ : / ? # [ ] %. Den eingesetzten Wert eines Platzhalters prüft es nicht.
+func hostInhalt(h teil, klammern bool) error {
+	switch {
+	case klammern && h.platzhalter():
+		return fehlerText("Host in Klammern mit Platzhalter")
+	case klammern && !ipv6(h.woertlich()):
+		return fehlerText("Host in Klammern ist keine IPv6-Adresse")
+	case !klammern && unzulaessigImHost(h.woertlich()):
+		return fehlerText("Host mit Leerraum oder einem der Zeichen @ : / ? # [ ] %")
+	}
+	return nil
+}
+
+// ipv6 meldet, ob text eine IPv6-Adresse in Textform ist, auch mit Zone hinter
+// % und als IPv4-Adresse in IPv6-Form; eine IPv4-Adresse ist keine.
+func ipv6(text string) bool {
+	a, err := netip.ParseAddr(text)
+	return err == nil && a.Is6()
+}
+
+// unzulaessigImHost meldet, ob text ein Zeichen enthält, das ein Host ohne
+// Klammern nicht enthält: Leerraum (Unicode White_Space), ein Steuerzeichen
+// oder eines von @ : / ? # [ ] %.
+func unzulaessigImHost(text string) bool {
+	return strings.IndexFunc(text, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) >= 0 ||
+		strings.ContainsAny(text, "@:/?#[]%")
 }
 
 // benutzerteil liest Benutzer und Passwort; ein leerer Benutzer ist ungültig.
@@ -143,26 +181,19 @@ type fehlerText string
 
 func (f fehlerText) Error() string { return string(f) }
 
-// trenneHost trennt Host und Port: Ein Host in eckigen Klammern endet an ],
-// dahinter folgt nur : mit Port oder das Ende; sonst endet der Host am ersten
-// :. Ein [ ohne ] ist ungültig.
-func trenneHost(text string) (host, port string, mitPort bool, err error) {
+// trenneHost trennt den Host vom Rest: Ein Host in eckigen Klammern (klammern)
+// endet an ], hinten ist der Text danach; fehlt ], ist zu false und host der
+// ganze Text hinter [. Sonst endet der Host am ersten :, hinten beginnt mit
+// ihm.
+func trenneHost(text string) (host, hinten string, klammern, zu bool) {
 	if innen, ok := strings.CutPrefix(text, "["); ok {
-		host, hinten, zu := strings.Cut(innen, "]")
-		if !zu {
-			return "", "", false, fehlerText("Host mit [ ohne ]")
-		}
-		if hinten == "" {
-			return host, "", false, nil
-		}
-		port, ok := strings.CutPrefix(hinten, ":")
-		if !ok {
-			return "", "", false, fehlerText("hinter ] steht nicht : mit Port")
-		}
-		return host, port, true, nil
+		host, hinten, zu = strings.Cut(innen, "]")
+		return host, hinten, true, zu
 	}
-	host, port, mitPort = strings.Cut(text, ":")
-	return host, port, mitPort, nil
+	if i := strings.IndexByte(text, ':'); i >= 0 {
+		return text[:i], text[i:], false, false
+	}
+	return text, "", false, false
 }
 
 // port prüft den Port, wie geschrieben und nicht dekodiert: ohne Angabe 5432;
@@ -228,26 +259,30 @@ func (z *zerlegung) pfad(text string) error {
 	return nil
 }
 
-// parameter liest die Parameter, getrennt durch &, in ihrer Reihenfolge:
-// jeder mit =, der Name dekodiert und genau in der Schreibweise verglichen; ein
-// Parameter password ist ein Klartext-Passwort (PGR-E2006), sein Wert wird
-// weder dekodiert noch geprüft; der einzige gültige ist sslmode mit disable
-// oder require, höchstens einmal.
+// parameter liest die Parameter, getrennt durch &, in ihrer Reihenfolge; je
+// Parameter zuerst der Name, dekodiert und genau in der Schreibweise
+// verglichen, ohne Platzhalter; ein Parameter password ist ein
+// Klartext-Passwort (PGR-E2006), auch ohne = und mit leerem Wert, sein Wert
+// wird weder dekodiert noch geprüft; danach das =, ob der Name bekannt ist (nur
+// sslmode), ob er zweimal steht, zuletzt der Wert.
 func (z *zerlegung) parameter(text string) error {
 	gesehen := false
 	for _, p := range strings.Split(text, "&") {
 		name, wert, mitWert := strings.Cut(p, "=")
-		if !mitWert {
-			return z.fehler("Parameter ohne =")
-		}
 		n, err := liesTeil(name, true)
 		if err != nil {
 			return z.fehler("Name eines Parameters: " + err.Error())
 		}
-		if !n.platzhalter() && n.woertlich() == "password" {
+		if n.platzhalter() {
+			return z.fehler("Platzhalter im Namen eines Parameters")
+		}
+		if n.woertlich() == "password" {
 			return klartext(z.stelle, "Parameter password ist ein Klartext-Passwort")
 		}
-		if n.platzhalter() || n.woertlich() != "sslmode" {
+		if !mitWert {
+			return z.fehler("Parameter ohne =")
+		}
+		if n.woertlich() != "sslmode" {
 			return z.fehler("unbekannter Parameter")
 		}
 		if gesehen {
@@ -262,7 +297,7 @@ func (z *zerlegung) parameter(text string) error {
 }
 
 // sslmode prüft den Wert von sslmode vor dem Einsetzen: dekodiert disable oder
-// require; ein Platzhalter ist ein ungültiger sslmode.
+// require; ein Platzhalter an irgendeiner Stelle ist ein ungültiger sslmode.
 func (z *zerlegung) sslmode(text string) error {
 	w, err := liesTeil(text, true)
 	if err != nil {
@@ -402,21 +437,18 @@ func portForm(text string) bool {
 	return n >= 1 && n <= 65535
 }
 
-// hostPortForm meldet, ob v die Form host:port hat (LH-FA-17.a): ein Host in
-// eckigen Klammern oder einer ohne :, [ und ], nicht leer, dahinter : und ein
-// Port der Form portForm; wie geschrieben, ohne Dekodierung.
+// hostPortForm meldet, ob v die Form host:port hat (LH-FA-17.a), wie
+// geschrieben, ohne Dekodierung: ein Host in eckigen Klammern ist eine
+// IPv6-Adresse, auch mit Zone hinter %; einer ohne Klammern ist nicht leer und
+// besteht unzulaessigImHost; dahinter : und ein Port der Form portForm.
 func hostPortForm(v string) bool {
-	var host, port string
 	if innen, ok := strings.CutPrefix(v, "["); ok {
-		var hinten string
-		host, hinten, _ = strings.Cut(innen, "]")
-		if port, ok = strings.CutPrefix(hinten, ":"); !ok {
-			return false
-		}
-	} else {
-		host, port, _ = strings.Cut(v, ":")
+		host, hinten, _ := strings.Cut(innen, "]")
+		port, ok := strings.CutPrefix(hinten, ":")
+		return ok && ipv6(host) && portForm(port)
 	}
-	return host != "" && !strings.ContainsAny(host, "[]") && portForm(port)
+	host, port, _ := strings.Cut(v, ":")
+	return host != "" && !unzulaessigImHost(host) && portForm(port)
 }
 
 // nameFehler ist der Grund, aus dem name kein Name einer Verbindung ist, oder

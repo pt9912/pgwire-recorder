@@ -17,10 +17,12 @@ func mitVerbindung(url string) string {
 
 // Abdeckung: LH-FA-17/Happy, LH-FA-17/Boundary — eine URL wird von links
 // zerlegt: das letzte @ trennt den Benutzerteil ab, darin das erste : das
-// Passwort; ein Host in eckigen Klammern ist IPv6 ohne die Klammern; ohne Port
+// Passwort; ein Host in eckigen Klammern ist IPv6 ohne die Klammern, auch mit
+// Zone hinter %25 und in IPv4-Form; ohne Port
 // gilt 5432, ein Port gilt wie geschrieben mit führenden Nullen, 1 und 65535
 // sind gültig; die Datenbank reicht bis zum ?, auch mit /; wörtliche Teile und
-// Name und Wert eines Parameters werden prozent-dekodiert; $$ ist ein $;
+// Name und Wert eines Parameters werden prozent-dekodiert, ein Escape auch mit
+// Kleinbuchstaben; $$ ist ein $;
 // Platzhalter stehen je Teil in der Reihenfolge der URL, im Port mit
 // wörtlichen Ziffern; sslmode ist disable ohne Parameter, sonst disable oder
 // require (LH-FA-17.a *Benannte Verbindungen*).
@@ -45,6 +47,8 @@ func TestVerbindungZerlegung(t *testing.T) {
 		{"postgresql://a$$b@h/d$${X}", cli.Zerlegt{Benutzer: []string{"a$b"}, Host: []string{"h"}, Port: []string{"5432"}, Datenbank: []string{"d${X}"}, SSLMode: "disable"}},
 		{"postgresql://a$$$${X}@h/$x", cli.Zerlegt{Benutzer: []string{"a$${X}"}, Host: []string{"h"}, Port: []string{"5432"}, Datenbank: []string{"$x"}, SSLMode: "disable"}},
 		{"postgresql://$$${U}@h/db", cli.Zerlegt{Benutzer: []string{"$", "<U>"}, Host: []string{"h"}, Port: []string{"5432"}, Datenbank: []string{"db"}, SSLMode: "disable"}},
+		{"postgresql://[::ffff:1.2.3.4]/%c3%a4", cli.Zerlegt{Host: []string{"::ffff:1.2.3.4"}, Port: []string{"5432"}, Datenbank: []string{"ä"}, SSLMode: "disable"}},
+		{"postgresql://[::1]/db", cli.Zerlegt{Host: []string{"::1"}, Port: []string{"5432"}, Datenbank: []string{"db"}, SSLMode: "disable"}},
 	} {
 		got, err := cli.Zerlege(schreibe(t, mitVerbindung(f.url)))
 		if err != nil || !reflect.DeepEqual(got, f.want) {
@@ -57,6 +61,10 @@ func TestVerbindungZerlegung(t *testing.T) {
 		}
 	}
 }
+
+// hostZeichen ist der Grund zu einem Host ohne Klammern mit einem Zeichen, das
+// er nicht enthält.
+const hostZeichen = "Host mit Leerraum oder einem der Zeichen @ : / ? # [ ] %"
 
 // ungueltigeURLs sind URLs, die PGR-E2004 an connections.v sind, mit dem Grund,
 // den die Meldung nennt; GEHEIM steht für einen Wert, den keine Meldung nennt.
@@ -82,9 +90,42 @@ func ungueltigeURLs() []struct{ url, grund string } {
 		{"postgresql://[]:5432/db", "Host ist leer"},
 		{"postgresql://[abc/db", "Host mit [ ohne ]"},
 		{"postgresql://[::1/db", "Host mit [ ohne ]"},
-		{"postgresql://a]b/db", "Host mit [ oder ] an falscher Stelle"},
-		{"postgresql://a[b/db", "Host mit [ oder ] an falscher Stelle"},
-		{"postgresql://[a[b]/db", "Host mit [ oder ] an falscher Stelle"},
+		{"postgresql://a]b/db", hostZeichen},
+		{"postgresql://a[b/db", hostZeichen},
+		{"postgresql://[a[b]/db", "Host in Klammern ist keine IPv6-Adresse"},
+		{"postgresql://[abc]/db", "Host in Klammern ist keine IPv6-Adresse"},
+		{"postgresql://[a b]/db", "Host in Klammern ist keine IPv6-Adresse"},
+		{"postgresql://[GEHEIM]:5/db", "Host in Klammern ist keine IPv6-Adresse"},
+		{"postgresql://[1.2.3.4]/db", "Host in Klammern ist keine IPv6-Adresse"},
+		{"postgresql://[fe80::1%25]/db", "Host in Klammern ist keine IPv6-Adresse"},
+		{"postgresql://[${H}]/db", "Host in Klammern mit Platzhalter"},
+		{"postgresql://[::${H}]/db", "Host in Klammern mit Platzhalter"},
+		{"postgresql://[${H}/db", "Host mit [ ohne ]"},
+		{"postgresql://[${1}/db", "Host: ungültiger Platzhalter"},
+		{"postgresql://a%3Ab/db", hostZeichen},
+		{"postgresql://h%2Fx/db", hostZeichen},
+		{"postgresql://a%20b/db", hostZeichen},
+		{"postgresql://a%25b/db", hostZeichen},
+		{"postgresql://a%40b/db", hostZeichen},
+		{"postgresql://a%3Fb/db", hostZeichen},
+		{"postgresql://a%23b/db", hostZeichen},
+		{"postgresql://a%5Bb/db", hostZeichen},
+		{"postgresql://a%C2%A0b/db", hostZeichen},
+		{"postgresql://a b${N}/db", hostZeichen},
+		{"postgresql://${N}a%2Fb/db", hostZeichen},
+		{"postgresql://h?x/db", "Datenbank fehlt"},
+		{"postgresql://h#x/db", "Datenbank fehlt"},
+		{"postgresql://u:p?w@h/db", "Port ist keine Zahl von 1 bis 65535"},
+		{`postgres://h\x01/db`, "Steuerzeichen in der URL"},
+		{"postgresql://[]:0/db", "Host ist leer"},
+		{"postgresql://h:0", "Port ist keine Zahl von 1 bis 65535"},
+		{"postgresql://h/?foo=1", "Datenbank ist leer"},
+		{"postgresql://h/db?foo=1#x", "unbekannter Parameter"},
+		{"postgresql://h/${1}${A}", "Datenbank: ungültiger Platzhalter"},
+		{"postgresql://h/%7F", "Datenbank: Escape ergibt ein Steuerzeichen"},
+		{"postgresql://h/db?sslmode=re${X}quire", "ungültiger sslmode, erlaubt sind disable und require"},
+		{"postgresql://h/db?ssl${X}mode=disable", "Platzhalter im Namen eines Parameters"},
+		{"postgresql://h/db?pass${X}word=GEHEIM", "Platzhalter im Namen eines Parameters"},
 		{"postgresql://[::1]x/db", "hinter ] steht nicht : mit Port"},
 		{"postgresql://%09/db", "Host: Escape ergibt ein Steuerzeichen"},
 		{"postgresql://h${/db", "Host: ungültiger Platzhalter"},
@@ -116,7 +157,7 @@ func ungueltigeURLs() []struct{ url, grund string } {
 		{"postgresql://h/db?foo=GEHEIM", "unbekannter Parameter"},
 		{"postgresql://h/db?SSLMODE=disable", "unbekannter Parameter"},
 		{"postgresql://h/db?PASSWORD=GEHEIM", "unbekannter Parameter"},
-		{"postgresql://h/db?${N}=disable", "unbekannter Parameter"},
+		{"postgresql://h/db?${N}=disable", "Platzhalter im Namen eines Parameters"},
 		{"postgresql://h/db?pass%ZZ=GEHEIM", "Name eines Parameters: ungültiges Escape"},
 		{"postgresql://h/db?sslmode=prefer", "ungültiger sslmode, erlaubt sind disable und require"},
 		{"postgresql://h/db?sslmode=", "ungültiger sslmode, erlaubt sind disable und require"},
@@ -132,17 +173,23 @@ func ungueltigeURLs() []struct{ url, grund string } {
 // Abdeckung: LH-FA-17/Negative — was die Grammatik der URL nicht zulässt, ist
 // PGR-E2004 an connections.<Name> mit genauem Grund und ohne den Wert: ein
 // Steuerzeichen im geschriebenen Text (auch Tabulator, DEL und C1), ein
-// anderes Schema, ein leerer Benutzer, ein leerer Host, [ ohne ], [ oder ] an
-// anderer Stelle des Hosts, Text hinter ], ein : ohne Port, ein Port außerhalb
-// 1 bis 65535 oder nicht aus Ziffern (auch dekodiert geschrieben), ein Port mit
-// Platzhalter und wörtlichem Zeichen außer Ziffern, eine fehlende oder leere
-// Datenbank, ein Parameter ohne =, ein unbekannter (auch in anderer
-// Schreibweise), ein ungültiger sslmode (auch als Platzhalter), sslmode
-// zweimal, ein Fragment, ein ungültiges Escape, eines, das ein Steuerzeichen
-// oder kein gültiges UTF-8 ergibt, und ein ungültiger Platzhalter in jedem Teil;
-// geprüft in der Reihenfolge Steuerzeichen, Schema, Benutzer, Host, Port,
-// Datenbank, Parameter, Fragment; auch bei config show, das dann nichts zeigt
-// (LH-FA-17.a *Benannte Verbindungen*).
+// anderes Schema, ein leerer Benutzer, ein leerer Host, [ ohne ], in Klammern
+// etwas anderes als eine wörtliche IPv6-Adresse (Name, IPv4-Adresse,
+// Platzhalter, leere Zone), ohne Klammern nach der Dekodierung Leerraum oder
+// eines von @ : / ? # [ ] %, auch neben einem Platzhalter, Text hinter ], ein :
+// ohne Port, ein Port außerhalb 1 bis 65535 oder nicht aus Ziffern (auch
+// dekodiert geschrieben), ein Port mit Platzhalter und wörtlichem Zeichen außer
+// Ziffern, eine fehlende oder leere Datenbank, ein Parameter ohne =, ein
+// unbekannter (auch in anderer Schreibweise), ein Platzhalter im Namen eines
+// Parameters, ein ungültiger sslmode (auch mit einem Platzhalter an jeder
+// Stelle), sslmode zweimal, ein Fragment, ein ungültiges Escape, eines, das ein
+// Steuerzeichen (auch U+007F) oder kein gültiges UTF-8 ergibt, und ein
+// ungültiger Platzhalter in jedem Teil, auch vor einem gültigen; der Teil mit
+// Benutzer, Host und Port endet am ersten /, ? oder #; Steuerzeichen gehen dem
+// Schema vor, das Schema dem Benutzer, der Benutzer dem Host, der Host dem
+// Port, der Port der Datenbank, die Datenbank den Parametern, die Parameter dem
+// Fragment, im Host die Form der Platzhalter dem Rest; auch bei config show,
+// das dann nichts zeigt (LH-FA-17.a *Benannte Verbindungen*).
 func TestVerbindungUngueltig(t *testing.T) {
 	leere(t, "replay")
 	for _, f := range ungueltigeURLs() {
@@ -259,8 +306,8 @@ func TestDateiPlatzhalterAusserhalb(t *testing.T) {
 
 // Abdeckung: LH-FA-17/Happy, LH-FA-17/Boundary — der Schlüssel upstream ist
 // der Name einer gültigen Verbindung der Datei, auch einer, die nach ihm steht,
-// oder hat die Form host:port: Host nicht leer, IPv6 in eckigen Klammern, Port
-// wie geschrieben mit führenden Nullen (LH-FA-17.a).
+// oder hat die Form host:port: Host nicht leer, IPv6 in eckigen Klammern, auch
+// mit Zone hinter %, Port wie geschrieben mit führenden Nullen (LH-FA-17.a).
 func TestDateiUpstream(t *testing.T) {
 	leere(t, "record")
 	for inhalt, want := range map[string]string{
@@ -269,7 +316,9 @@ func TestDateiUpstream(t *testing.T) {
 		"record:\n  upstream: h:5432\n":                                              "h:5432",
 		"record:\n  upstream: \"[::1]:5432\"\n":                                      "[::1]:5432",
 		"record:\n  upstream: h:05432\n":                                             "h:05432",
-		"record:\n  upstream: \"h%41:1\"\n":                                          "h%41:1",
+		"record:\n  upstream: \"[::1]:5\"\n":                                         "[::1]:5",
+		"record:\n  upstream: \"[fe80::1%eth0]:5\"\n":                                "[fe80::1%eth0]:5",
+		"record:\n  upstream: h:5\n":                                                 "h:5",
 		"record:\n  upstream: \"h$$:1\"\n":                                           "h$:1",
 	} {
 		cmd, err := recordMit(t, inhalt)
@@ -283,8 +332,9 @@ func TestDateiUpstream(t *testing.T) {
 // Verbindung der Datei nennt noch die Form host:port hat, ist PGR-E2004 an
 // record.upstream ohne den Wert, auch bei replay und config show: ein
 // unbekannter Name, einer in anderer Schreibweise, einer mit $$, der nach $$
-// keinen Namen trifft, leerer Host, kein Port, ein Port außerhalb 1 bis 65535
-// oder dekodiert geschrieben, IPv6 ohne oder mit offener Klammer; ein
+// keinen Namen trifft, leerer Host, ein Host mit %, @, Leerraum, Steuerzeichen,
+// / oder [, in Klammern keine IPv6-Adresse, kein Port, ein Port außerhalb 1 bis
+// 65535 oder dekodiert geschrieben, IPv6 ohne oder mit offener Klammer; ein
 // ungültiger Name zählt nicht als Name, auch einer mit $, den ein Wert nach $$
 // wörtlich trifft; der erste Fehler ist der, der in der Datei zuerst steht
 // (LH-FA-17.a, L1, L4).
@@ -294,7 +344,7 @@ func TestDateiUpstreamUngueltig(t *testing.T) {
 	verbindungen := "connections:\n  staging: postgresql://h/db\n  ab: postgresql://h/db\n"
 	for _, wert := range []string{
 		"GEHEIM", "Staging", "\"a$$b\"", "\":5432\"", "\"GEHEIM:\"", "GEHEIM.example", "GEHEIM:0", "GEHEIM:65536",
-		"GEHEIM:%35", "\"::1:5432\"", "\"[::1]\"", "\"[::1:5432\"", "\"[::1]x:1\"", "\"[]:1\"", "\"a]b:1\"", "GEHEIM:1:2",
+		"GEHEIM:%35", "\"h%41:1\"", "\"GEHEIM@h:5\"", "\"GEHEIM h:5\"", "\"h\\x01GEHEIM:5\"", "\"[GEHEIM]:5\"", "\"a/GEHEIM:5\"", "\"a[b:1\"", "\"[1.2.3.4]:5\"", "\"::1:5432\"", "\"[::1]\"", "\"[::1:5432\"", "\"[::1]x:1\"", "\"[]:1\"", "\"a]b:1\"", "GEHEIM:1:2",
 	} {
 		inhalt := verbindungen + "record:\n  upstream: " + wert + "\n"
 		genau := "Konfiguration [PGR-E2004]: Konfigurationsdatei: record.upstream: weder Name einer Verbindung der Datei noch host:port"
@@ -332,7 +382,8 @@ func TestDateiUpstreamUngueltig(t *testing.T) {
 // Text nicht genau ein ${VAR} ist (leer, wörtlich, $${VAR}, ein fehlerhafter
 // Platzhalter, ein Platzhalter mit Text, zwei Platzhalter, ein ungültiges
 // Escape), getrennt am ersten :; ein Parameter password, auch dekodiert
-// geschrieben, mit Platzhalter, leerem oder ungültig kodiertem Wert. Geprüft
+// geschrieben, ohne =, mit Platzhalter, leerem oder ungültig kodiertem Wert.
+// Geprüft
 // in der Reihenfolge der URL: nach Benutzer, vor Host, Port, Datenbank, den
 // späteren Parametern und dem Fragment; ein Parameter davor geht vor
 // (LH-FA-17.a *Geheimnisse*).
@@ -358,6 +409,8 @@ func TestVerbindungKlartext(t *testing.T) {
 		"postgresql://h/db?pass%77ord=GEHEIM":                     parameter,
 		"postgresql://h/db?password=${GEHEIM}":                    parameter,
 		"postgresql://h/db?password=":                             parameter,
+		"postgresql://h/db?password":                              parameter,
+		"postgresql://h/db?password&sslmode":                      parameter,
 		"postgresql://h/db?password=%ZZGEHEIM":                    parameter,
 		"postgresql://h/db?sslmode=disable&password=GEHEIM&foo=1": parameter,
 		"postgresql://h/db?password=GEHEIM#x":                     parameter,
