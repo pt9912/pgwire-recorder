@@ -69,7 +69,8 @@ type Command struct {
 
 const optionenRecord = `Optionen von record:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
-  --upstream  Adresse des PostgreSQL-Servers, host:port (Pflicht)
+  --upstream  PostgreSQL-Server als host:port oder Name einer Verbindung der
+              Konfigurationsdatei (Pflicht)
   --output    Zieldatei der Aufzeichnung (Pflicht)
   --force     vorhandene Zieldatei ersetzen
 ` + optionShutdownTimeout + optionLogLevel + optionConfig + optionUmgebung
@@ -190,7 +191,9 @@ func Parse(args []string, out io.Writer) (Command, error) {
 // jeden gesetzten Wert mit art und übernimmt den Wert nach der Priorität
 // Kommandozeile vor Umgebungsvariable vor Standardwert (LH-FA-17.a, SPEC-007).
 // Der Schlüssel der Option in der Konfigurationsdatei steht im Abschnitt des
-// Kommandos, mit oben auf der obersten Ebene (datei.wert).
+// Kommandos, mit oben auf der obersten Ebene (datei.wert). zuletzt prüft die
+// Option nach der Zusammenführung aller Optionen, mit dem Stand ihrer Quellen
+// und der gewählten Datei (LH-FA-17.a *Fehler*); nil prüft nichts.
 type option struct {
 	name     string
 	art      art
@@ -198,6 +201,7 @@ type option struct {
 	standard string
 	oben     bool
 	setze    func(*Command, string)
+	zuletzt  func(*Command, gelesen, *datei) error
 }
 
 // art ist die Wertemenge einer Option: pruefe lehnt jeden Wert außerhalb ab,
@@ -246,7 +250,7 @@ func optionen(kommando string) []option {
 	case "record":
 		return []option{
 			{name: "listen", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Listen = v }},
-			{name: "upstream", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Upstream = v }},
+			{name: "upstream", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Upstream = v }, zuletzt: upstreamRecord},
 			{name: "output", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Output = v }},
 			{name: "force", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.Force = v == "true" }},
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Record.ShutdownTimeout, v) }},
@@ -323,7 +327,9 @@ type gelesen struct {
 // Kommandozeile oder einer Umgebungsvariable ist PGR-E2001, einer der Datei
 // PGR-E2004, auch wenn eine Quelle davor dieselbe Option setzt. Danach
 // übernimmt es je Option den Wert nach der Priorität (SPEC-007); eine
-// Pflichtoption, die keine Quelle setzt, ist PGR-E2001.
+// Pflichtoption, die keine Quelle setzt, ist PGR-E2001. Zuletzt prüft es je
+// Option in ihrer Reihenfolge, was option.zuletzt nach der Zusammenführung
+// prüft.
 func lies(kommando string, args []string) (Command, error) {
 	opts := optionen(kommando)
 	stand := make([]gelesen, len(opts))
@@ -361,6 +367,14 @@ func lies(kommando string, args []string) (Command, error) {
 			return Command{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption --%s fehlt", o.name)
 		}
 		o.setze(&cmd, v)
+	}
+	for i, o := range opts {
+		if o.zuletzt == nil {
+			continue
+		}
+		if err := o.zuletzt(&cmd, stand[i], d); err != nil {
+			return Command{}, err
+		}
 	}
 	return cmd, nil
 }

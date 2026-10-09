@@ -102,12 +102,17 @@ func istDatei(err error) bool {
 	return hatCode(err, model.CodeConfigFile)
 }
 
-// basis sind kommando und seine Pflichtoptionen außer ohne.
+// basis sind kommando und seine Pflichtoptionen außer ohne; --upstream mit
+// einem Wert der Form host:port (LH-FA-17.a).
 func basis(kommando, ohne string) []string {
 	args := []string{kommando}
 	for _, o := range cli.Optionen(kommando) {
 		if o.Pflicht && o.Name != ohne {
-			args = append(args, "--"+o.Name+"=pflicht")
+			wert := "pflicht"
+			if o.Name == "upstream" {
+				wert = "pflicht:1"
+			}
+			args = append(args, "--"+o.Name+"="+wert)
 		}
 	}
 	return args

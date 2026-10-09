@@ -55,6 +55,12 @@ func (d *datei) wert(kommando string, o option) (string, bool) {
 	return v, ok
 }
 
+// hatName meldet, ob name der Name einer gültigen Verbindung der Datei ist;
+// eine nil-Datei hat keine Namen.
+func (d *datei) hatName(name string) bool {
+	return d != nil && d.namen[name]
+}
+
 // schluesselName ist der Schlüssel einer Option in der Datei: ihr Name mit _
 // statt - (LH-FA-17.a).
 func schluesselName(name string) string {
@@ -466,7 +472,7 @@ func (d *datei) setze(abschnitt, name string, o option, n *yaml.Node, z [][]rune
 	if err := o.art.pruefe(wert); err != nil {
 		return model.Errorf(model.CodeConfigFile, err, "Konfigurationsdatei: %s", stelle)
 	}
-	if o.name == "upstream" && !d.namen[wert] && !hostPortForm(wert) {
+	if o.name == "upstream" && !upstreamGueltig(wert, d) {
 		return fehlerDatei(stelle, "weder Name einer Verbindung der Datei noch host:port")
 	}
 	d.werte[abschnitt][name] = wert
