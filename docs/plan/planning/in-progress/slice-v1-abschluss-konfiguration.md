@@ -315,7 +315,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
      *unerwartetes Argument* vor der Umgebung (F-500, L8 grün), der Default gegen die
      eigene Anmeldung statt gegen die Tabelle (F-505, L9 im Allgemein-Test grün). Der
      Sensor-Text der Gegenprobe sagte mehr zu als die Fälle (F-499, A1 grün); die
-     Schlusszeile von `tools/arch/a-check-negativ.sh` tut es weiter (V-115, siehe
+     Schlusszeile von `tools/arch/a-check-negativ.sh` tat es weiter (V-115, siehe
      *Folge-Slices*).
   4. Der Plan folgte der Nacharbeit nicht ganz: §4 zählte die DoD vor dem Schnitt (F-502),
      §3 nannte `--output` und `--force` nach `960f239` noch „offen“ (V-114), §7 trug keinen
@@ -398,8 +398,10 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   Recording-Adapter“); kein offener Harness-Slice nimmt die Gegenprobe des
   Architektur-Gates an, ohne seinen Schnitt zu verlassen (`slice-harness-meldungskatalog-gate`,
   `slice-harness-gate-index-werkzeug-teil`, `slice-harness-mutation` haben je einen anderen
-  Gegenstand). Ausgang: Beleg in `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`; die
-  Zeile bleibt als Bestand stehen, bis der Nutzer eine Adresse entscheidet.
+  Gegenstand). Ausgang: Beleg in `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`; nach
+  Entscheidung des Nutzers vom 2026-10-09 in diesem Slice behoben (Schlusszeile nennt nur
+  noch „alle zwölf Fälle wie erwartet“), ohne Folge-Slice. V-117 bleibt nach Entscheidung
+  des Nutzers vom selben Tag eine Beobachtung, kein `MR`.
   Aus §1 *Ausdrücklich NICHT*: `slice-v1-abschluss-konfigurationsdatei` (Datei, `config
   show`, `PGR-E2004` bis `PGR-E2006`; als nächster in der Reihe),
   `slice-v1-abschluss-schreiben` (atomares Schreiben, vorhandenes `--output`),
