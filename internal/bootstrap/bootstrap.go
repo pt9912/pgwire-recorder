@@ -123,7 +123,7 @@ func replay(ctx context.Context, ablauf <-chan struct{}, o cli.ReplayOptions, lo
 // LH-FA-14.a). Der Exit-Code ist der des Fehlers, ohne Fehler 0.
 func play(ctx context.Context, ablauf <-chan struct{}, o cli.PlayOptions, log *slog.Logger, stderr io.Writer) int {
 	ziel := &postgres.Einspielziel{Address: o.Upstream}
-	service, err := services.NewPlayService(ctx, recording.YAML{}, o.Input, ziel, o.User, o.Database)
+	service, err := services.NewPlayService(ctx, recording.YAML{}, o.Input, ziel, services.PlayOptions(o.Einspielen))
 	if err != nil {
 		return fail(stderr, err)
 	}
@@ -138,7 +138,7 @@ func play(ctx context.Context, ablauf <-chan struct{}, o cli.PlayOptions, log *s
 				return
 			}
 		}
-		log.Info("Abbruchsignal, play endet nach der laufenden Interaktion")
+		log.Info("Abbruchsignal, play endet vorzeitig")
 	}()
 	err = service.Play(ctx, ablauf)
 	close(ende)

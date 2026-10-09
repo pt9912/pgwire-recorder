@@ -24,7 +24,7 @@ func TestParsePlay(t *testing.T) {
 		t.Fatalf("play ohne --user und --database: %#v, %v", cmd, err)
 	}
 	cmd, err = lese("play", "--upstream=pg:5432", "--input=r.yaml", "--user=u", "--database=d", "--log-level=debug")
-	if err != nil || cmd.Play != (cli.PlayOptions{Upstream: "pg:5432", Input: "r.yaml", User: "u", Database: "d", LogLevel: cli.LogDebug}) {
+	if err != nil || cmd.Play != (cli.PlayOptions{Upstream: "pg:5432", Input: "r.yaml", Einspielen: cli.Einspielvorgaben{User: "u", Database: "d"}, LogLevel: cli.LogDebug}) {
 		t.Fatalf("play mit allen Optionen: %#v, %v", cmd, err)
 	}
 }
@@ -82,23 +82,23 @@ func TestPlayVerbindung(t *testing.T) {
 	variablen(t, map[string]*string{"PGR_T_U": w("app"), "PGR_T_PW": w("GEHEIM"), "PGR_T_H": w("db.example"), "PGR_T_P": w("6543"), "PGR_T_DB": w("shop")})
 	url := "postgresql://${PGR_T_U}:${PGR_T_PW}@${PGR_T_H}:${PGR_T_P}/${PGR_T_DB}"
 	config := "--config=" + schreibe(t, mitVerbindung(url))
-	if got, err := playMit("--upstream=v", config); err != nil || got != (cli.PlayOptions{Upstream: "db.example:6543", Input: "r.yaml", User: "app", Database: "shop", LogLevel: cli.LogInfo}) {
+	if got, err := playMit("--upstream=v", config); err != nil || got != (cli.PlayOptions{Upstream: "db.example:6543", Input: "r.yaml", Einspielen: cli.Einspielvorgaben{User: "app", Database: "shop"}, LogLevel: cli.LogInfo}) {
 		t.Errorf("Verbindung: %#v, %v", got, err)
 	}
-	if got, err := playMit("--upstream=v", config, "--user=ich", "--database=meine"); err != nil || got.User != "ich" || got.Database != "meine" || got.Upstream != "db.example:6543" {
+	if got, err := playMit("--upstream=v", config, "--user=ich", "--database=meine"); err != nil || got.Einspielen.User != "ich" || got.Einspielen.Database != "meine" || got.Upstream != "db.example:6543" {
 		t.Errorf("--user und --database vor der URL: %#v, %v", got, err)
 	}
 	t.Setenv("PGWIRE_RECORDER_USER", "env-u")
 	t.Setenv("PGWIRE_RECORDER_DATABASE", "env-d")
-	if got, err := playMit("--upstream=v", config); err != nil || got.User != "env-u" || got.Database != "env-d" {
+	if got, err := playMit("--upstream=v", config); err != nil || got.Einspielen.User != "env-u" || got.Einspielen.Database != "env-d" {
 		t.Errorf("Umgebung vor der URL: %#v, %v", got, err)
 	}
 	t.Setenv("PGWIRE_RECORDER_USER", "")
 	t.Setenv("PGWIRE_RECORDER_DATABASE", "")
-	if got, err := playMit("--upstream=v", "--config="+schreibe(t, mitVerbindung("postgresql://[::1]/db"))); err != nil || got.User != "" || got.Database != "db" || got.Upstream != "[::1]:5432" {
+	if got, err := playMit("--upstream=v", "--config="+schreibe(t, mitVerbindung("postgresql://[::1]/db"))); err != nil || got.Einspielen.User != "" || got.Einspielen.Database != "db" || got.Upstream != "[::1]:5432" {
 		t.Errorf("URL ohne Benutzer: %#v, %v", got, err)
 	}
-	if got, err := playMit("--upstream=h:7", "--user=u"); err != nil || got.Upstream != "h:7" || got.User != "u" || got.Database != "" {
+	if got, err := playMit("--upstream=h:7", "--user=u"); err != nil || got.Upstream != "h:7" || got.Einspielen.User != "u" || got.Einspielen.Database != "" {
 		t.Errorf("host:port: %#v, %v", got, err)
 	}
 }

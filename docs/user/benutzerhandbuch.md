@@ -607,8 +607,8 @@ nicht gesetzt.
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` |
 | `--shutdown-timeout` | `record`, `replay` | `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT` | `5s` (`0` ohne Frist; Einheit `ms`, `s` oder `m`) |
 | `--session-assignment` | `replay` | `PGWIRE_RECORDER_SESSION_ASSIGNMENT` | `first-request` (oder `connection`) |
-| `--user` | `play` | `PGWIRE_RECORDER_USER` | Daten aus der Aufzeichnung |
-| `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Daten aus der Aufzeichnung |
+| `--user` | `play` | `PGWIRE_RECORDER_USER` | Benutzer der benutzten Verbindung, ohne ihn der der Aufzeichnung |
+| `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Datenbank der benutzten Verbindung, ohne sie die der Aufzeichnung |
 | `--continue-on-error` | `play` | `PGWIRE_RECORDER_CONTINUE_ON_ERROR` | `false` |
 | `--allow-recorded-errors` | `play` | `PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS` | `false` |
 | `--upstream-tls` | `play` | `PGWIRE_RECORDER_UPSTREAM_TLS` | `false` |
@@ -665,6 +665,13 @@ aus der gewählten Datei; ohne Datei ist ein Wert ohne `:` ungültig. Jeder Wert
 `--upstream` und `PGWIRE_RECORDER_UPSTREAM` ist der Name einer Verbindung oder hat die
 Form `host:port`, auch einer, der wegen der Priorität nicht gilt; sonst startet das
 Werkzeug nicht (`PGR-E2001`, im Schlüssel `upstream` `PGR-E2004`).
+
+Bei `play` verbindet das Werkzeug zu Host und Port der URL und meldet jede Sitzung
+mit Benutzer und Datenbank der URL an; `--user` und `--database` gehen ihnen vor, und
+erst ohne beides gelten Benutzer und Datenbank der Aufzeichnung. Mit dem Beispiel
+oben spielt `play` also als `dev` in die Datenbank `myapp` ein, gleich, welche
+Datenbank die Aufzeichnung nennt. Die Log-Zeile beim Start nennt auch hier nur
+`host:port`.
 
 Bei `record` zählen nur Host und Port der URL; Benutzer, Passwort und Datenbank
 vermittelt die Anwendung selbst. Das Werkzeug verbindet zu `host:port`, mit dem Port
@@ -827,7 +834,7 @@ für den Exit-Code.
 | `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
-| `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler (ohne `--compare-responses`) | Die Meldung nennt die Anfrage und die Antwort der Datenbank. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
+| `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler (ohne `--compare-responses`) | Die Meldung nennt die Sitzung und die Nummer der Anfrage in der Aufzeichnung, dazu SQLSTATE und Meldung der Datenbank, nicht den Text der Anfrage. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
 | `PGR-E4005` | Anmeldung an der Datenbank fehlgeschlagen oder nicht unterstützt, Zertifikat der Datenbank oder der Zertifizierungsstelle ungültig oder abgelaufen, oder die Datenbank verlangt Verschlüsselung | Prüfen Sie Benutzer und Passwort (`PGWIRE_RECORDER_PASSWORD`). Unterstützt sind Klartext-Passwort, MD5 und SCRAM-SHA-256. Setzen Sie `--upstream-tls`, wenn die Datenbank Verschlüsselung verlangt. |
 | `PGR-E4006` | Anfrage beim Beenden unvollständig | Die Frist `--shutdown-timeout` ist abgelaufen, oder ein zweites Signal hat sie ablaufen lassen, während eine Anfrage lief. Die Meldung nennt die Sitzung und die Anfrage; beim Aufzeichnen fehlt diese Anfrage in der Aufzeichnung. Lassen Sie die Anwendung vor dem Beenden zur Ruhe kommen, oder wählen Sie eine längere Frist (siehe [Herunterfahren mit Frist](#herunterfahren-mit-frist)). |
 | `PGR-E5000`, `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |

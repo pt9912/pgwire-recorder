@@ -93,7 +93,7 @@ func aufbau(conn net.Conn, startup map[string]string) (*einspielSession, error) 
 			if err := (&pgproto3.ReadyForQuery{}).Decode(rumpf); err != nil {
 				return nil, model.Errorf(model.CodeUpstream, err, "ReadyForQuery im Aufbau nicht lesbar")
 			}
-			return &einspielSession{conn: conn, fe: pgproto3.NewFrontend(r, conn)}, nil
+			return neueEinspielSession(conn, r), nil
 		case 'K', 'S', 'N', 'A':
 			if err := verworfen(typ).Decode(rumpf); err != nil {
 				return nil, model.Errorf(model.CodeUpstream, err, "Nachricht %q im Aufbau nicht lesbar", typ)
@@ -184,6 +184,12 @@ type einspielSession struct {
 	conn      net.Conn
 	fe        *pgproto3.Frontend
 	schreiben sync.Mutex
+}
+
+// neueEinspielSession ist die Session auf conn; sie liest aus r, das die
+// Bytes hinter dem Aufbau noch trägt, und schreibt auf conn.
+func neueEinspielSession(conn net.Conn, r io.Reader) *einspielSession {
+	return &einspielSession{conn: conn, fe: pgproto3.NewFrontend(r, conn)}
 }
 
 func (s *einspielSession) Anfrage(sql string) error {

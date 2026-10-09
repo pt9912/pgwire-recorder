@@ -127,8 +127,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driving/cli` | update | Optionen `--continue-on-error`, `--allow-recorded-errors` und `--finish-session-on-interrupt` am allgemeinen Leser mit Umgebung und Schlüsseln im Abschnitt `play:`; ersetzt den Stand *unbekannt* des Kerns |
-| `internal/hexagon/services` (Play-Service) | update | Fortsetzung nach `PGR-E4004`, erwarteter Fehler, Session-Ende nach dem Signal, Ergebnis des Laufs nach einem früheren Fehler |
+| `internal/adapters/driving/cli` | update | Optionen `--continue-on-error`, `--allow-recorded-errors` und `--finish-session-on-interrupt` am allgemeinen Leser mit Umgebung und Schlüsseln im Abschnitt `play:`, je ein Feld in `Einspielvorgaben`; ersetzt den Stand *unbekannt* des Kerns |
+| `internal/hexagon/services` (Play-Service) | update | dieselben Felder in derselben Reihenfolge in `PlayOptions` (der Bootstrap des Kerns konvertiert den Wert, ohne ein Feld zu nennen); Fortsetzung nach `PGR-E4004`, erwarteter Fehler, Session-Ende nach dem Signal, Ergebnis des Laufs nach einem früheren Fehler |
 | `internal/hexagon/services` (Tests) | update | Signal im Aufbau und zwischen Interaktionen mit `--finish-session-on-interrupt`, Exit-Code nach einem früheren Fehler, je Zusage eine Mutation |
 | `test/integration` | update | Happy/Boundary/Negative nach LH-FA-20 für die drei Optionen, gegen einen Server ohne Passwort und ohne TLS |
 

@@ -38,15 +38,26 @@ type ReplayOptions struct {
 
 // PlayOptions sind die Optionen von `play` (LH-FA-20.a), soweit dieser Stand
 // sie kennt. Nennt --upstream eine benannte Verbindung, ist Upstream deren
-// Adresse host:port, und User und Database tragen ohne --user beziehungsweise
-// --database Benutzer und Datenbank der Verbindung (LH-FA-17.a *Wirkung einer
-// URL*); "" heißt, die Startup-Daten der Session gelten.
+// Adresse host:port. Einspielen trägt die Optionen, die der Play-Service
+// auswertet.
 type PlayOptions struct {
-	Upstream string
-	Input    string
+	Upstream   string
+	Input      string
+	Einspielen Einspielvorgaben
+	LogLevel   string
+}
+
+// Einspielvorgaben sind die Optionen von `play`, die der Play-Service
+// auswertet. User und Database tragen ohne --user beziehungsweise --database
+// Benutzer und Datenbank der benutzten Verbindung (LH-FA-17.a *Wirkung einer
+// URL*); "" heißt, die Startup-Daten der Session gelten.
+//
+// Kopplung: Der Play-Service führt einen Typ mit denselben Feldern in
+// derselben Reihenfolge, und der Bootstrap konvertiert diesen in jenen; eine
+// Option kommt in beiden Typen hinzu, sonst baut der Bootstrap nicht.
+type Einspielvorgaben struct {
 	User     string
 	Database string
-	LogLevel string
 }
 
 // envFailOnUnconsumed ist die Umgebungsvariable von --fail-on-unconsumed
@@ -301,8 +312,8 @@ func optionen(kommando string) []option {
 		return []option{
 			{name: "upstream", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Play.Upstream = v }, zuletzt: upstreamPlay},
 			{name: "input", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Play.Input = v }},
-			{name: "user", art: artText(), setze: func(c *Command, v string) { c.Play.User = v }},
-			{name: "database", art: artText(), setze: func(c *Command, v string) { c.Play.Database = v }},
+			{name: "user", art: artText(), setze: func(c *Command, v string) { c.Play.Einspielen.User = v }},
+			{name: "database", art: artText(), setze: func(c *Command, v string) { c.Play.Einspielen.Database = v }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Play.LogLevel = v }},
 		}
 	}

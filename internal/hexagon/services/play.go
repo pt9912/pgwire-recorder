@@ -13,12 +13,24 @@ import (
 // einfachen Anfragen einer Aufzeichnung Session für Session über eigene
 // Verbindungen gegen einen Server ein und bricht beim ersten Fehler ab.
 type PlayService struct {
-	ziel      driven.Einspielziel
-	benutzer  string
-	datenbank string
+	ziel     driven.Einspielziel
+	optionen PlayOptions
 	// sessions sind die Sessions mit Interaktionen in der Reihenfolge der
 	// Aufzeichnung.
 	sessions []model.Session
+}
+
+// PlayOptions sind die Optionen von play, die der Play-Service auswertet
+// (LH-FA-20.a): User und Database ersetzen, wenn nicht leer, die
+// Startup-Parameter user und database jeder Session (*Startup-Daten*).
+//
+// Kopplung: Der CLI-Adapter liest die Optionen in einen Typ mit denselben
+// Feldern in derselben Reihenfolge, und der Bootstrap konvertiert ihn in
+// diesen; eine Option kommt in beiden Typen hinzu, sonst baut der Bootstrap
+// nicht.
+type PlayOptions struct {
+	User     string
+	Database string
 }
 
 // NewPlayService ist der Start des Einspielens (LH-FA-20.a *Start*): Es lädt
@@ -26,9 +38,8 @@ type PlayService struct {
 // besteht (PGR-E3003), gehen vor. Danach ist die erste Interaktion, die keine
 // einfache Anfrage ist, in der Reihenfolge der Sessions und ihrer
 // Interaktionen, PGR-E6001 mit Session, Nummer und Art (*Art der
-// Interaktion*). benutzer und datenbank ersetzen, wenn nicht leer, die
-// Startup-Parameter user und database jeder Session.
-func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path string, ziel driven.Einspielziel, benutzer, datenbank string) (*PlayService, error) {
+// Interaktion*). o sind die Optionen des Einspielens.
+func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path string, ziel driven.Einspielziel, o PlayOptions) (*PlayService, error) {
 	rec, err := repo.Load(ctx, path)
 	if err != nil {
 		return nil, err
@@ -40,7 +51,7 @@ func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path s
 			}
 		}
 	}
-	s := &PlayService{ziel: ziel, benutzer: benutzer, datenbank: datenbank}
+	s := &PlayService{ziel: ziel, optionen: o}
 	for _, sess := range rec.Sessions {
 		for _, in := range sess.Interactions {
 			if in.Request.Type != model.RequestQuery {
@@ -113,27 +124,27 @@ func (s *PlayService) session(ctx, abbruch context.Context, sess model.Session) 
 }
 
 // startup sind die aufgezeichneten Startup-Parameter der Session, user und
-// database ersetzt durch benutzer und datenbank, wenn diese nicht leer sind
-// (LH-FA-20.a *Startup-Daten*).
+// database ersetzt durch User und Database der Optionen, wenn diese nicht
+// leer sind (LH-FA-20.a *Startup-Daten*).
 func (s *PlayService) startup(sess model.Session) map[string]string {
 	out := make(map[string]string, len(sess.Startup)+2)
 	for k, v := range sess.Startup {
 		out[k] = v
 	}
-	if s.benutzer != "" {
-		out["user"] = s.benutzer
+	if s.optionen.User != "" {
+		out["user"] = s.optionen.User
 	}
-	if s.datenbank != "" {
-		out["database"] = s.datenbank
+	if s.optionen.Database != "" {
+		out["database"] = s.optionen.Database
 	}
 	return out
 }
 
 // interaktion sendet die Anfrage und liest bis zum ReadyForQuery. Eine
 // Fehlerantwort beendet das Lesen: mit dem Schweregrad FATAL oder PANIC
-// (Feld V, ohne es S) PGR-E4003, sonst PGR-E4004; die Meldung nennt SQLSTATE
-// und Meldung (LH-FA-20.a *Interaktion*, *Meldungen*). Jede andere Antwort
-// verwirft sie.
+// (Feld V, ohne es S) PGR-E4003, sonst PGR-E4004; die Meldung nennt von der
+// Fehlerantwort SQLSTATE und Meldung, keine weiteren Felder (LH-FA-20.a
+// *Interaktion*, *Meldungen*). Jede andere Antwort verwirft sie.
 func interaktion(us driven.EinspielSession, in model.Interaction) error {
 	if err := us.Anfrage(in.Request.SQL); err != nil {
 		return err
@@ -152,7 +163,7 @@ func interaktion(us driven.EinspielSession, in model.Interaction) error {
 				schwere = r.Fields["S"]
 			}
 			if schwere == "FATAL" || schwere == "PANIC" {
-				return model.Errorf(model.CodeConnectionLost, nil, "Fehlerantwort %s des Servers %s „%s“, die Verbindung endet", schwere, r.Fields["C"], r.Fields["M"])
+				return model.Errorf(model.CodeConnectionLost, nil, "Fehlerantwort des Servers %s „%s“, die Verbindung endet", r.Fields["C"], r.Fields["M"])
 			}
 			return model.Errorf(model.CodeServerError, nil, "Fehlerantwort des Servers %s „%s“", r.Fields["C"], r.Fields["M"])
 		}

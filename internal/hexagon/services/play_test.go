@@ -146,7 +146,7 @@ func anfragen(id int, startup map[string]string, sqls ...string) model.Session {
 // spiele startet den PlayService mit rec und ziel und spielt ein.
 func spiele(ctx context.Context, t *testing.T, ablauf <-chan struct{}, rec model.Recording, ziel *fakeZiel, benutzer, datenbank string) error {
 	t.Helper()
-	s, err := services.NewPlayService(context.WithoutCancel(ctx), ladeRepo{rec: rec}, "r.yaml", ziel, benutzer, datenbank)
+	s, err := services.NewPlayService(context.WithoutCancel(ctx), ladeRepo{rec: rec}, "r.yaml", ziel, services.PlayOptions{User: benutzer, Database: datenbank})
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -226,7 +226,9 @@ func TestPlayStartup(t *testing.T) {
 // ab: PGR-E4004 mit Session, Interaktion, SQLSTATE und Meldung, keine weitere
 // Antwort gelesen, keine weitere Anfrage und keine weitere Session, die
 // Verbindung mit Schliesse beendet; mit dem Schweregrad FATAL oder PANIC aus
-// V, ohne V aus S, ist sie PGR-E4003 (LH-FA-20.a *Interaktion*, *Meldungen*).
+// V, ohne V aus S, ist sie PGR-E4003; die Meldung nennt von der Fehlerantwort
+// SQLSTATE und Meldung, keine weiteren Felder, auch nicht den Schweregrad
+// (LH-FA-20.a *Interaktion*, *Meldungen*).
 func TestPlayFehlerantwort(t *testing.T) {
 	for _, f := range []struct {
 		name   string
@@ -246,8 +248,12 @@ func TestPlayFehlerantwort(t *testing.T) {
 			rec.Sessions = []model.Session{anfragen(1, nil, "A", "B"), anfragen(2, nil, "C")}
 			ziel := &fakeZiel{sessions: []*fakeEinspiel{{antworten: [][]schritt{{{r: model.Response{Type: model.ResponseDataRow}}, fehlerantwort(f.felder), bereitZuEnde()}}}}}
 			err := spiele(context.Background(), t, nil, rec, ziel, "", "")
-			if codeVon(err) != f.code || !strings.Contains(err.Error(), "Session 1, Interaktion 1") || !strings.Contains(err.Error(), f.felder["C"]) || !strings.Contains(err.Error(), "fehlt") {
-				t.Fatalf("%v, erwartet %s mit Ort, SQLSTATE und Meldung", err, f.code)
+			text := "[" + f.code + "]: Session 1, Interaktion 1: Fehlerantwort des Servers " + f.felder["C"] + " „fehlt“"
+			if f.code == model.CodeConnectionLost {
+				text += ", die Verbindung endet"
+			}
+			if codeVon(err) != f.code || !strings.HasSuffix(err.Error(), text) {
+				t.Fatalf("%v, erwartet %s mit Ort, SQLSTATE und Meldung: %q", err, f.code, text)
 			}
 			want := []string{"verbinde", "anfrage A", "naechste", "naechste", "schliesse"}
 			if got := ziel.liste(); !reflect.DeepEqual(got, want) {
@@ -313,17 +319,17 @@ func TestPlayStart(t *testing.T) {
 	s3 := model.Session{ID: 3, Interactions: []model.Interaction{spaeter}}
 	rec.Sessions = []model.Session{anfragen(1, nil, "X"), s2, s3}
 	ziel := &fakeZiel{}
-	_, err := services.NewPlayService(context.Background(), ladeRepo{rec: rec}, "r.yaml", ziel, "", "")
+	_, err := services.NewPlayService(context.Background(), ladeRepo{rec: rec}, "r.yaml", ziel, services.PlayOptions{})
 	if codeVon(err) != model.CodeUnsupported || err.Error() != "nicht unterstützt [PGR-E6001]: Session 2, Interaktion 3: eine Interaktion der Art extended spielt play nicht ein" {
 		t.Errorf("Extended: %v", err)
 	}
 	kaputt := rec
 	kaputt.Sessions = append([]model.Session{}, rec.Sessions...)
 	kaputt.Sessions[2] = model.Session{ID: 3, Interactions: []model.Interaction{{Sequence: 1, Request: model.Request{Type: model.RequestQuery, SQL: "A"}}}}
-	if _, err := services.NewPlayService(context.Background(), ladeRepo{rec: kaputt}, "r.yaml", ziel, "", ""); codeVon(err) != model.CodeRecordingBroken {
+	if _, err := services.NewPlayService(context.Background(), ladeRepo{rec: kaputt}, "r.yaml", ziel, services.PlayOptions{}); codeVon(err) != model.CodeRecordingBroken {
 		t.Errorf("beschädigt vor Extended: %v", err)
 	}
-	if _, err := services.NewPlayService(context.Background(), ladeRepo{err: model.Errorf(model.CodeRecordingIO, nil, "weg")}, "r.yaml", ziel, "", ""); codeVon(err) != model.CodeRecordingIO {
+	if _, err := services.NewPlayService(context.Background(), ladeRepo{err: model.Errorf(model.CodeRecordingIO, nil, "weg")}, "r.yaml", ziel, services.PlayOptions{}); codeVon(err) != model.CodeRecordingIO {
 		t.Errorf("Ladefehler: %v", err)
 	}
 	if got := ziel.liste(); len(got) != 0 {
@@ -442,7 +448,7 @@ func warteAufPlay(ctx context.Context, t *testing.T, s *services.PlayService, ab
 // keine weitere Session beginnt (LH-FA-20.a *Abbruchsignal*).
 func TestPlayZweitesSignal(t *testing.T) {
 	ziel := &fakeZiel{sessions: []*fakeEinspiel{{antworten: [][]schritt{{{blockiert: true}}}}}}
-	s, err := services.NewPlayService(context.Background(), ladeRepo{rec: zwei()}, "r.yaml", ziel, "", "")
+	s, err := services.NewPlayService(context.Background(), ladeRepo{rec: zwei()}, "r.yaml", ziel, services.PlayOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -459,7 +465,7 @@ func TestPlayZweitesSignal(t *testing.T) {
 	}
 
 	ziel = &fakeZiel{verbindeBlockiert: true}
-	s, err = services.NewPlayService(context.Background(), ladeRepo{rec: zwei()}, "r.yaml", ziel, "", "")
+	s, err = services.NewPlayService(context.Background(), ladeRepo{rec: zwei()}, "r.yaml", ziel, services.PlayOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

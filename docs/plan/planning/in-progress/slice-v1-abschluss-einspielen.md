@@ -41,7 +41,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-konfigurationsdatei`** (dort §1, Abgrenzung): der Abschnitt `play:` der Konfigurationsdatei, gelesen über das Laden jenes Slice; er gehört zu den Optionen von `play`.
 
-**Übernommen aus `slice-v1-abschluss-upstream-verbinden`** (dort §1, Abgrenzung; hervorgegangen aus den Schnitten von `slice-v1-abschluss-konfigurationsdatei` und `slice-v1-abschluss-verbindungen-platzhalter` vom 2026-10-09; bis zum zweiten Schnitt gab `slice-v1-abschluss-verbindungen-platzhalter` den Punkt): die Wirkung einer benannten Verbindung bei `play`, die `slice-v1-abschluss-verbindungen-platzhalter` beim Laden prüft und jener Slice auflöst und einsetzt — Host und Port, Benutzer und Datenbank der URL mit dem Vorrang von `--user` und `--database` (`LH-FA-17.a`, *Wirkung einer URL*); das gehört zum Ziel oben. Das Passwort aus dem eingesetzten Platzhalter und TLS zum Upstream nach `sslmode` sind seit dem Schnitt vom 2026-10-09 abgegeben (unten, *Abgegeben*). Dazu, mit der Kennung `slice-v1-abschluss-upstream-verbinden` (dort §6, U8): Bei `play` werden die Platzhalter aller Teile der benutzten Verbindung eingesetzt, auch in Benutzer, Passwort und Datenbank, über das Einsetzen jenes Slice; eine nicht gesetzte oder leere Variable dort ist `PGR-E2005` mit der Verbindung und dem Namen der ersten Variable in der Reihenfolge der URL (Test bei den Optionen von `play`). Befund F-533 aus dessen Review (im Benutzerhandbuch §5 *Konfigurationsdatei* die Wirkung einer Verbindung bei `play` wie geliefert, das Passwort und `sslmode=require`; jener Slice beschreibt dort nur `record`) ist seit dem Schnitt vom 2026-10-09 ganz abgegeben, geteilt nach diesen beiden Teilen (unten, *Abgegeben*). Dazu, mit der Kennung `slice-v1-abschluss-upstream-verbinden` (Befund V-125 aus dessen Verifikation): in Beispiel und Abschnittsliste von §5 *Konfigurationsdatei* wieder der Abschnitt `play:` (mit `upstream` und `input`), den jener Slice durch `record:` ersetzt hat, weil das Laden `play:` vor diesem Slice als unbekannten Schlüssel ablehnt; das Beispiel als Datei startet mit `config show` ohne Meldung.
+**Übernommen aus `slice-v1-abschluss-upstream-verbinden`** (dort §1, Abgrenzung; hervorgegangen aus den Schnitten von `slice-v1-abschluss-konfigurationsdatei` und `slice-v1-abschluss-verbindungen-platzhalter` vom 2026-10-09; bis zum zweiten Schnitt gab `slice-v1-abschluss-verbindungen-platzhalter` den Punkt): die Wirkung einer benannten Verbindung bei `play`, die `slice-v1-abschluss-verbindungen-platzhalter` beim Laden prüft und jener Slice auflöst und einsetzt — Host und Port, Benutzer und Datenbank der URL mit dem Vorrang von `--user` und `--database` (`LH-FA-17.a`, *Wirkung einer URL*); das gehört zum Ziel oben. Das Passwort aus dem eingesetzten Platzhalter und TLS zum Upstream nach `sslmode` sind seit dem Schnitt vom 2026-10-09 abgegeben (unten, *Abgegeben*). Dazu, mit der Kennung `slice-v1-abschluss-upstream-verbinden` (dort §6, U8): Bei `play` werden die Platzhalter aller Teile der benutzten Verbindung eingesetzt, auch in Benutzer, Passwort und Datenbank, über das Einsetzen jenes Slice; eine nicht gesetzte oder leere Variable dort ist `PGR-E2005` mit der Verbindung und dem Namen der ersten Variable in der Reihenfolge der URL (Test bei den Optionen von `play`). Befund F-533 aus dessen Review (im Benutzerhandbuch §5 *Konfigurationsdatei* die Wirkung einer Verbindung bei `play` wie geliefert, das Passwort und `sslmode=require`; jener Slice beschreibt dort nur `record`): Den ersten Teil, die Wirkung wie geliefert (Host und Port, Benutzer und Datenbank der URL mit dem Vorrang von `--user` und `--database`, in §5 *Einstellungen* und *Konfigurationsdatei*), liefert dieser Slice (Nacharbeit zu F-551 aus seinem Review); Passwort und `sslmode=require` sind seit dem Schnitt vom 2026-10-09 abgegeben (unten, *Abgegeben*). Dazu, mit der Kennung `slice-v1-abschluss-upstream-verbinden` (Befund V-125 aus dessen Verifikation): in Beispiel und Abschnittsliste von §5 *Konfigurationsdatei* wieder der Abschnitt `play:` (mit `upstream` und `input`), den jener Slice durch `record:` ersetzt hat, weil das Laden `play:` vor diesem Slice als unbekannten Schlüssel ablehnt; das Beispiel als Datei startet mit `config show` ohne Meldung.
 
 **Abgegeben** beim Schnitt vom 2026-10-09 (Prüfung des Architect in §6, Risiko *Größe*; Entscheidung des Nutzers), je Teil mit seinen Randformen aus der Prüfung des Architect (Marken [A] und [T]), die seit dem Schnitt in §6 des Nehmers stehen:
 
@@ -113,14 +113,14 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driving` | neu | Einspiel-Use-Case für einfache Anfragen mit Abbruch bei jedem Fehler, Abbruchsignal und dem Startfehler für eine Extended-Interaktion (§6, *Zwischenstand*); nutzt nur Driven Ports; wertet die Fehlerantwort aus (`FATAL`/`PANIC` aus `V`, sonst `S`) |
+| `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driving` | neu | Einspiel-Use-Case für einfache Anfragen mit Abbruch bei jedem Fehler, Abbruchsignal und dem Startfehler für eine Extended-Interaktion (§6, *Zwischenstand*); nutzt nur Driven Ports; wertet die Fehlerantwort aus (`FATAL`/`PANIC` aus `V`, sonst `S`); nimmt die Optionen als einen Wert `PlayOptions` |
 | `internal/hexagon/ports/driven` | neu | eigener Port `Einspielziel` (Verbinden je Session, Anfrage senden, *eine* Nachricht lesen, Schließen), getrennt vom Port, den `record` nutzt; `Receive` liest gepufferte Nachrichten weiter und hielte „keine weitere Antwort“ nicht |
 | `internal/hexagon/model` | update | Codes `PGR-E4004` und `PGR-E4005` |
-| `internal/adapters/driving/cli` | update | Kommando `play`, Optionen, Abschnitt `play:` der Konfigurationsdatei, Einsetzen aller Teile der benutzten Verbindung (U8); `--fail-on-unconsumed` bei `play` unbekannt, ihre Umgebungsvariable unbeachtet (Test, `LH-FA-03.b`); `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` bei `play` wie bei `record` und `replay` (übernommen aus `slice-replay-semantik-meldungscodes`, Test) |
+| `internal/adapters/driving/cli` | update | Kommando `play`, Optionen (die der Play-Service auswertet, in `Einspielvorgaben` mit denselben Feldern wie `PlayOptions`), Abschnitt `play:` der Konfigurationsdatei, Einsetzen aller Teile der benutzten Verbindung (U8); `--fail-on-unconsumed` bei `play` unbekannt, ihre Umgebungsvariable unbeachtet (Test, `LH-FA-03.b`); `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` bei `play` wie bei `record` und `replay` (übernommen aus `slice-replay-semantik-meldungscodes`, Test) |
 | `internal/adapters/driven/postgres` | update | eigene Datei `einspielen.go`: Verbindungsaufbau als Client ohne Passwort und ohne TLS mit der Einstufung nach `LH-FA-20.a` *Aufbau*, *Anmelde-Nachrichten* und *Abbruch im Aufbau* (Nachrichten des Aufbaus selbst gelesen, damit der Code einer Nachricht `R` auch für SCM und SSPI gilt), die `Query` einer einfachen Anfrage senden und die Antworten einzeln lesen; `Upstream.Open` für `record` bleibt unverändert |
-| `internal/bootstrap` | update | `play` verdrahten: Upstream-Adapter mit Adresse, Benutzer und Datenbank, Play-Service, Signale (erstes, zweites), Exit-Code; die Optionen von `play` und die Signale gehen an den Play-Service, der über Fortsetzung und Session-Ende entscheidet (`slice-v1-abschluss-einspielen-laufsteuerung` §1, Schicht-Abgrenzung) |
+| `internal/bootstrap` | update | `play` verdrahten: Upstream-Adapter mit der Adresse, Play-Service, Signale (erstes, zweites), Exit-Code; die Optionen von `play` gehen als ein Wert an den Play-Service (Konvertierung `Einspielvorgaben` in `PlayOptions`, ohne Feld zu nennen), die Signale als `ctx` und `ablauf`, und die Zeile `info` zum ersten Signal sagt nicht, wann `play` endet; so entscheidet der Play-Service über Fortsetzung und Session-Ende, und eine weitere Option ändert den Bootstrap nicht (`slice-v1-abschluss-einspielen-laufsteuerung` §1, Schicht-Abgrenzung) |
 | `test/integration` | update | Happy/Boundary/Negative nach LH-FA-20, gegen einen Server ohne Passwort und ohne TLS; die Signale prüfen die Tests des Bootstrap gegen einen Fake-Server, weil ein Signal mitten in einer Interaktion gegen die reale Instanz nicht ohne Wartezeit zu treffen ist |
-| `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: der Abschnitt `play:` in Beispiel und Abschnittsliste (V-125), übernommen aus `slice-v1-abschluss-upstream-verbinden`; *Log-Ausgaben*: `play` in den Stufen `error` und `info` und nach `--`; Passwort und `sslmode` bei `play` (F-533) beschreiben die Folge-Slices |
+| `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: der Abschnitt `play:` in Beispiel und Abschnittsliste (V-125), übernommen aus `slice-v1-abschluss-upstream-verbinden`, und die Wirkung einer Verbindung bei `play` wie geliefert (erster Teil von F-533), mit den Standards von `--user` und `--database` in §5 *Einstellungen*; *Log-Ausgaben*: `play` in den Stufen `error` und `info` und nach `--`; §7 die Zeile `PGR-E4004` nach `LH-FA-20.a` *Meldungen*; Passwort und `sslmode` bei `play` (F-533) beschreiben die Folge-Slices |
 | `docs/user/abdeckung-*.md` | update | erzeugt mit `make abdeckung` |
 
 ## 4. Trigger
@@ -472,8 +472,13 @@ diesen Abschnitt anlegt; Kern [K] nach der Randform-Rückgabe R1 bis R3):
 *Größe.* `git diff --numstat` gegen `e4963ee` ohne diesen Plan: +2239 −45 Zeilen, davon
 erzeugt (`make abdeckung`) 48 und Handbuch 11; Produkt-Code rund 630 Zeilen
 (`einspielen.go` 228, `services/play.go` 170, CLI 134, Bootstrap 45, Ports 54, Codes 2),
-Tests rund 1560. Damit liegt der Kern bei rund 2190 Zeilen mit Tests, knapp über der
-Schätzung von 1600 bis 2000 aus dem Auftrag; vier Schichten wie in §6 (*Größe des Kerns*).
+Tests rund 1560; zusammen rund 2190 Zeilen mit Tests, vier Schichten wie in §6 (*Größe des
+Kerns*). Gehalten gegen §4: Die Rückführung `in-progress` → `next` hängt an der Prüfbarkeit
+in einer Review-Sitzung, nicht an einer Zeilenzahl, und das Review des Kerns fand den Diff in
+einer Sitzung prüfbar (F-554); sie ist nicht eingetreten. Eine Schätzung für den Kern nach dem
+zweiten Schnitt nennt §6 nicht (*Größe des Kerns*: nach dem Schnitt nicht neu geschätzt), und
+gegen eine andere Zahl misst diese Zeile nicht. Die Nacharbeit zum Review (unten) kommt mit
++320 −58 Zeilen ohne diesen Plan dazu, davon Tests +232.
 
 *Weg der Mutanten.* Je Mutant eine frische Kopie von `go.mod`, `go.sum`, `cmd/`,
 `internal/` und `test/` (`cp -r` ohne `-p`) unter dem Scratch-Verzeichnis, genau eine
@@ -567,11 +572,9 @@ Rot heißt: der genannte Test schlug mit der genannten Meldung fehl, nicht der B
 danach scheitert auf derselben geschlossenen Verbindung und ist ebenfalls `PGR-E4002`;
 das Verhalten ist gleich, die Grenze trägt `LH-FA-20.a` *Aufbau* (beide Wege `PGR-E4002`).
 
-*Grenze ohne Test.* `Schliesse` sendet `Terminate` nur, wenn gerade keine Anfrage
-sendet, und höchstens 100 ms lang (wie `Close` des Ports für `record`); dass ein zweites
-Signal während eines blockierten Sendens ohne `Terminate` schließt, prüft kein Test,
-geprüft ist nur das Schließen während des Wartens auf eine Antwort
-(`TestPlayZweitesSignal`, `TestRunPlayZweitesSignal`).
+*Zweites Signal beim blockierten Senden.* `Schliesse` sendet `Terminate` nur, wenn gerade
+keine Anfrage sendet, und höchstens 100 ms lang (wie `Close` des Ports für `record`); beides
+prüfen seit der Nacharbeit eigene Tests (unten, F-547).
 
 *Handbuch V-125.* Das Beispiel aus §5 *Konfigurationsdatei* aus dem Handbuch dieses
 Commits als `.pgwire-recorder.yaml` geschrieben und `config show` im Produkt-Image
@@ -583,11 +586,79 @@ dort lehnt das Laden `play:` als unbekannten Schlüssel ab (`PGR-E2004`).
 `TestE2EPlay*` grün) und `make abdeckung` auf diesem Stand; `make gates` vor der Übergabe
 (Ergebnis im Bericht).
 
+**Belege der Nacharbeit zum Review** (Report `2026-10-09-review-slice-v1-abschluss-einspielen`,
+F-547 bis F-554; Arbeitsbaum auf `a980d4a` mit dem Diff des Commits, der diesen Abschnitt
+anlegt). Weg der Mutanten wie oben: je Mutant eine frische Kopie (`cp -r` ohne `-p`), genau
+eine Ersetzung, `gofmt -l` leer, `go test -count=1 -run <Test>` im Image der Stufe `deps` per
+Bind-Mount ohne Netz; der E2E-Mutant in einer frischen Kopie aller Dateien des Index mit
+`tools/test/run-integration-tests.sh`. Rot heißt: der genannte Test schlug mit der genannten
+Meldung fehl, nicht der Build; die eine Ausnahme sagt die Zeile selbst.
+
+| Befund | Zusage | Mutation | roter Test |
+|---|---|---|---|
+| F-547 | zweites Signal während Anfrage an einen Server sendet, der nicht liest (64 MiB): `Schliesse` wartet nicht auf das Senden | A: `Lock` statt `TryLock` | `TestEinspielSchliesseBeimSenden` („Schliesse endet binnen 5 s nicht, während Anfrage sendet“) |
+| F-547 | … und schließt die Verbindung, sodass das Senden scheitert (`PGR-E4003`) | A2: `Close` nur, wenn `TryLock` gelingt | `TestEinspielSchliesseBeimSenden` („Anfrage endet binnen 5 s nach Schliesse nicht“) |
+| F-547 | `Terminate` nur, soweit die Verbindung es sofort annimmt (Schreibfrist) | D: ohne `SetWriteDeadline` | `TestEinspielSchliesseOhneAnnahme` („Schliesse endet binnen 5 s nicht, wenn die Verbindung nichts annimmt“) |
+| F-548 | zweites Signal bricht den Verbindungsversuch ab | B: Wählen mit `context.Background()` | `TestEinspielVersuchAbgebrochen` („Verbinde endet binnen 5 s nach dem Abbruch des Verbindungsversuchs nicht“) |
+| F-549 | Meldung im Aufbau nennt SQLSTATE und `M` | C: beides entfernt | `TestEinspielAufbauFehlerMeldung` (alle drei Fälle); E2E: `TestE2EPlayAufbau` („fehlende Datenbank“, „unbekannter Benutzer“) |
+| F-549 | … nennt SQLSTATE | C1: ohne SQLSTATE | `TestEinspielAufbauFehlerMeldung` |
+| F-549 | … nennt `M` | C2: ohne `M` | `TestEinspielAufbauFehlerMeldung` |
+| F-549, F-552 | … keine weiteren Felder: Schweregrad | C3: Schweregrad vor SQLSTATE | `TestEinspielAufbauFehlerMeldung` |
+| F-549, F-552 | … keine weiteren Felder: `D` | C4: `Detail` angehängt | `TestEinspielAufbauFehlerMeldung` |
+| F-552 | Meldung bei `FATAL`/`PANIC` ohne Schweregrad | S1: Schweregrad zurück | `TestPlayFehlerantwort/V_FATAL`, `/S_FATAL_ohne_V`, `/V_PANIC`, `/S_PANIC_ohne_V` |
+| F-552 | Meldung bei `PGR-E4004` ohne Schweregrad | S3: Schweregrad eingefügt | `TestPlayFehlerantwort/ERROR`, `/ohne_Schweregrad`, `/V_ERROR_vor_S_FATAL` |
+| F-552 | … ohne weiteres Feld `D` | S4: `D` angehängt | `TestPlayFehlerantwort/ERROR` u. a. |
+| F-550 | `--user` und `--database` erreichen über den Bootstrap den Play-Service | O1: `services.PlayOptions{}` | `TestRunPlayOptionen` („Startup map[user:u]“) |
+| F-550 | … `--database` | O2: nur `User` übergeben | `TestRunPlayOptionen` |
+| F-550 | … `--user` | O3: nur `Database` übergeben | `TestRunPlayOptionen` |
+| F-550 | eine Option kommt in beiden Typen hinzu, sonst baut der Bootstrap nicht | O4: Feld nur in `PlayOptions` | Build von `internal/bootstrap` („cannot convert o.Einspielen … to type services.PlayOptions“); Gegenprobe: dasselbe Feld in beiden Typen, Bootstrap unverändert, `go build ./...` und die Tests von Bootstrap und CLI grün |
+
+Die Klasse hinter F-547 bis F-549 ist *eine Zusage, die nur für einen Teil ihrer Fälle eine
+Mutation hält*; die Ausprägungen oben sind je Merkmal eine: Schließen bei hängendem Senden
+(A, A2) und bei hängendem `Terminate` (D); Abbruch im Verbindungsversuch (B; nach dem Wählen
+hält ihn `TestEinspielAufbauAbgebrochen`); jedes Feld der Meldung im Aufbau einzeln (C1, C2)
+und jedes zusätzliche (C3, C4), dasselbe in der Interaktion (S1, S3, S4).
+
+*F-550, Form der Übergabe.* Der CLI-Adapter liest die Optionen, die der Play-Service
+auswertet, in `cli.Einspielvorgaben`; der Play-Service nimmt `services.PlayOptions` mit
+denselben Feldern in derselben Reihenfolge, und der Bootstrap konvertiert den einen in den
+anderen, ohne ein Feld zu nennen. Ein gemeinsamer Typ wäre nur im Domain Model möglich, weil
+die Application keine Driving Ports importiert (`ARC-002`), und das Domain Model führt keine
+Optionen (`ARC-001`). Die Zeile `info` zum ersten Signal sagt nicht mehr, wann `play` endet
+(„Abbruchsignal, play endet vorzeitig“; der Text von `msg` ist nach dem Handbuch nicht
+zugesagt). Damit braucht `slice-v1-abschluss-einspielen-laufsteuerung` für die drei Optionen
+keinen Code im Bootstrap (dort §1, Schicht-Abgrenzung; Gegenprobe O4 oben).
+
+*Handbuch, F-551 und erster Teil von F-533.* §5 *Einstellungen* nennt als Standard von
+`--user` und `--database` den Wert der benutzten Verbindung, ohne ihn den der Aufzeichnung;
+§5 *Konfigurationsdatei* beschreibt die Wirkung einer Verbindung bei `play` wie geliefert.
+Gegen das Binary geprüft: Beispiel aus §5 als `.pgwire-recorder.yaml`, eine Aufzeichnung mit
+`user: aufgez`, `database: aufgezdb` (Rolle und Datenbank existieren), `play` ohne Optionen
+im Produkt-Image (`make build`, `pgwire-recorder:dev`) im Netz-Namensraum einer
+PostgreSQL-Instanz (gepinntes Image von `make test-integration`, `log_connections=on`, ohne
+Netz nach außen). Ohne Rolle `dev`: `PGR-E4005` mit `28000 „role "dev" does not exist“`;
+mit Rolle, ohne `myapp`: `PGR-E4002` mit `3D000 „database "myapp" does not exist“`; mit
+beiden Exit-Code 0, und der Server protokolliert `connection authorized: user=dev
+database=myapp`. Damit ist der erste Teil von F-533 (Wirkung wie geliefert) für den Kern
+geliefert; Passwort und `sslmode=require` bleiben bei den Nehmern aus §1, *Abgegeben*.
+§7 des Handbuchs nennt bei `PGR-E4004` Sitzung, Nummer, SQLSTATE und Meldung, nicht die
+Anfrage (F-553).
+
+*Läufe der Nacharbeit.* `make test`, `make test-integration` (alle `TestE2EPlay*` grün),
+`make build`, `make abdeckung` auf diesem Stand; `make gates` vor der Übergabe (Ergebnis im
+Bericht).
+
 *Beobachtungen für Review und Closure* (keine Randform, nichts entschieden):
 
 - `BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft` — für `play` hat der Puffer jetzt
   einen Test (`TestEinspielAufbauVerworfen`, Mutant oben); für `record` bleibt die Adresse
   `slice-v1-abschluss-anmeldung`.
+- Für `slice-v1-abschluss-einspielen-laufsteuerung` (Hinweis zur Prüfung des Architect vor
+  dessen Code, dort §4): Der Bootstrap bildet den Exit-Code aus der ersten Meldung des
+  Fehlers, den der Play-Service liefert, und schreibt die Zeilen `error` nach dem Einspielen
+  in dieser Reihenfolge. Ob der Exit-Code des abbrechenden Fehlers nach einem früheren
+  `PGR-E4004` (dort §6) damit ohne Code im Bootstrap auskommt, hängt an Reihenfolge und
+  Zeitpunkt der Zeilen `error`, die `LH-FA-20.a` *Meldungen* nicht festlegt.
 - Das Handbuch beschreibt in §4 *Eine Aufzeichnung in eine Datenbank einspielen* den
   Zielstand mit Passwort, TLS, Laufsteuerung, Zeitangaben und Vergleich; in diesem Stand
   sind diese Optionen bei `play` unbekannt. Die DoD verlangt nur §5; die Folge-Slices

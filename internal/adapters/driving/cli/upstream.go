@@ -49,11 +49,11 @@ func upstreamPlay(c *Command, g gelesen, d *datei) error {
 		return err
 	}
 	c.Play.Upstream = z.adresse
-	if c.Play.User == "" {
-		c.Play.User = z.benutzer
+	if c.Play.Einspielen.User == "" {
+		c.Play.Einspielen.User = z.benutzer
 	}
-	if c.Play.Database == "" {
-		c.Play.Database = z.datenbank
+	if c.Play.Einspielen.Database == "" {
+		c.Play.Einspielen.Database = z.datenbank
 	}
 	return nil
 }

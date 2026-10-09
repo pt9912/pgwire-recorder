@@ -7,6 +7,8 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -409,4 +411,149 @@ func TestEinspielNaechsteFehler(t *testing.T) {
 		}
 		empfangen(t, ergebnis)
 	})
+}
+
+// Abdeckung: LH-FA-20/Negative — die Meldung einer Fehlerantwort im Aufbau
+// nennt deren SQLSTATE und Meldung (M), keine weiteren Felder, gleich welche
+// Klasse und welcher Schweregrad (LH-FA-20.a *Aufbau*, *Meldungen*).
+func TestEinspielAufbauFehlerMeldung(t *testing.T) {
+	for _, f := range []struct {
+		schwere, code, meldung string
+	}{
+		{"FATAL", "28P01", "Passwort falsch"},
+		{"ERROR", "28000", "Rolle fehlt"},
+		{"FATAL", "3D000", "Datenbank fehlt"},
+	} {
+		t.Run(f.code, func(t *testing.T) {
+			aufbau := kodiert(t, &pgproto3.ErrorResponse{Severity: f.schwere, SeverityUnlocalized: f.schwere, Code: f.code, Message: f.meldung, Detail: "DETAIL", Hint: "HINT"})
+			addr, ergebnis := einspielServer(t, aufbau)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			_, err := (&postgres.Einspielziel{Address: addr}).Verbinde(ctx, map[string]string{"user": "u"})
+			want := ": Fehlerantwort im Aufbau " + f.code + " „" + f.meldung + "“"
+			if err == nil || !strings.HasSuffix(err.Error(), want) {
+				t.Fatalf("Meldung %v, erwartet mit Ende %q", err, want)
+			}
+			empfangen(t, ergebnis)
+		})
+	}
+}
+
+// Abdeckung: LH-FA-20/Boundary — Schliesse (zweites Signal) endet, während
+// Anfrage an einen Server sendet, der nicht liest, ohne auf das Senden zu
+// warten, und das Senden scheitert danach (LH-FA-20.a *Abbruchsignal*).
+func TestEinspielSchliesseBeimSenden(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { l.Close() })
+	angefangen, stop := make(chan struct{}), make(chan struct{})
+	t.Cleanup(func() { close(stop) })
+	aufbau := verbunden(t)
+	go func() {
+		conn, err := l.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		var laenge [4]byte
+		if _, err := io.ReadFull(conn, laenge[:]); err != nil {
+			return
+		}
+		if _, err := io.ReadFull(conn, make([]byte, binary.BigEndian.Uint32(laenge[:])-4)); err != nil {
+			return
+		}
+		_, _ = conn.Write(aufbau)
+		// Ein Byte der Anfrage zeigt, dass Anfrage sendet; danach liest der
+		// Server nichts mehr, bis der Test endet.
+		if _, err := io.ReadFull(conn, make([]byte, 1)); err != nil {
+			return
+		}
+		close(angefangen)
+		<-stop
+	}()
+	s := verbinde(t, l.Addr().String())
+	gesendet := make(chan error, 1)
+	go func() { gesendet <- s.Anfrage(strings.Repeat("x", 64<<20)) }()
+	select {
+	case <-angefangen:
+	case <-time.After(5 * time.Second):
+		t.Fatal("der Fake-Server empfängt binnen 5 s kein Byte der Anfrage")
+	}
+	geschlossen := make(chan struct{})
+	go func() {
+		s.Schliesse()
+		close(geschlossen)
+	}()
+	select {
+	case <-geschlossen:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Schliesse endet binnen 5 s nicht, während Anfrage sendet")
+	}
+	select {
+	case err := <-gesendet:
+		if code(err) != model.CodeConnectionLost {
+			t.Fatalf("Anfrage nach Schliesse: %v, erwartet %s", err, model.CodeConnectionLost)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Anfrage endet binnen 5 s nach Schliesse nicht")
+	}
+}
+
+// Abdeckung: LH-FA-20/Boundary — nimmt die Verbindung kein Terminate an,
+// endet Schliesse dennoch und schließt sie (LH-FA-20.a *Abbruchsignal*: soweit
+// die Verbindung es sofort annimmt).
+func TestEinspielSchliesseOhneAnnahme(t *testing.T) {
+	client, server := net.Pipe()
+	t.Cleanup(func() { server.Close() })
+	s := postgres.NeueEinspielSession(client)
+	geschlossen := make(chan struct{})
+	go func() {
+		s.Schliesse()
+		close(geschlossen)
+	}()
+	select {
+	case <-geschlossen:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Schliesse endet binnen 5 s nicht, wenn die Verbindung nichts annimmt")
+	}
+	_ = server.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if n, err := server.Read(make([]byte, 1)); n != 0 || err != io.EOF {
+		t.Fatalf("nach Schliesse %d Byte, %v, erwartet das Verbindungsende", n, err)
+	}
+}
+
+// Abdeckung: LH-FA-20/Boundary — endet ctx während des Verbindungsversuchs
+// (zweites Signal), bricht Verbinde ihn ab und liefert einen Fehler
+// (LH-FA-20.a *Abbruchsignal*: auch während des Verbindungsversuchs).
+func TestEinspielVersuchAbgebrochen(t *testing.T) {
+	imVersuch := make(chan struct{})
+	ziel := &postgres.Einspielziel{Address: "127.0.0.1:9", Dialer: net.Dialer{
+		ControlContext: func(ctx context.Context, _, _ string, _ syscall.RawConn) error {
+			close(imVersuch)
+			<-ctx.Done()
+			return ctx.Err()
+		},
+	}}
+	ctx, cancel := context.WithCancel(context.Background())
+	fertig := make(chan error, 1)
+	go func() {
+		_, err := ziel.Verbinde(ctx, map[string]string{"user": "u"})
+		fertig <- err
+	}()
+	select {
+	case <-imVersuch:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Verbinde beginnt binnen 5 s keinen Verbindungsversuch")
+	}
+	cancel()
+	select {
+	case err := <-fertig:
+		if err == nil {
+			t.Fatal("Verbinde nach dem Abbruch des Versuchs ohne Fehler")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Verbinde endet binnen 5 s nach dem Abbruch des Verbindungsversuchs nicht")
+	}
 }

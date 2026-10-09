@@ -28,6 +28,12 @@ func Verbindung(s driven.UpstreamSession) net.Conn {
 	return s.(*session).conn
 }
 
+// NeueEinspielSession reicht an neueEinspielSession weiter, lesend und
+// schreibend auf conn; conn stellt der Test.
+func NeueEinspielSession(conn net.Conn) driven.EinspielSession {
+	return neueEinspielSession(conn, conn)
+}
+
 // Aufbau reicht an aufbau weiter; conn stellt der Test.
 func Aufbau(conn net.Conn, startup map[string]string) error {
 	_, err := aufbau(conn, startup)

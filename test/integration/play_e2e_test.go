@@ -116,21 +116,24 @@ func TestE2EPlayFehlerantwort(t *testing.T) {
 
 // Abdeckung: LH-FA-20/Negative — im Aufbau sind ein nicht erreichbarer Server
 // und eine fehlende Datenbank PGR-E4002, ein unbekannter Benutzer PGR-E4005,
-// jeweils Exit-Code 4 (LH-FA-20.a *Aufbau*).
+// jeweils Exit-Code 4; bei einer Fehlerantwort nennt der Fehlertext deren
+// SQLSTATE und Meldung (LH-FA-20.a *Aufbau*, *Meldungen*).
 func TestE2EPlayAufbau(t *testing.T) {
 	input := einspielAufzeichnung(t, []string{"SELECT 1"})
 	for _, f := range []struct {
 		name string
 		args []string
 		code string
+		// meldung steht im Fehlertext: SQLSTATE und Meldung der Fehlerantwort.
+		meldung string
 	}{
-		{"nicht erreichbar", []string{"--upstream", freieAdresse(t)}, "PGR-E4002"},
-		{"fehlende Datenbank", []string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--database", "gibt_es_nicht"}, "PGR-E4002"},
-		{"unbekannter Benutzer", []string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--user", "gibt_es_nicht"}, "PGR-E4005"},
+		{"nicht erreichbar", []string{"--upstream", freieAdresse(t)}, "PGR-E4002", "nicht erreichbar"},
+		{"fehlende Datenbank", []string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--database", "gibt_es_nicht"}, "PGR-E4002", `3D000 „database \"gibt_es_nicht\" does not exist“`},
+		{"unbekannter Benutzer", []string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--user", "gibt_es_nicht"}, "PGR-E4005", `28000 „role \"gibt_es_nicht\" does not exist“`},
 	} {
 		_, stderr, code := starteBis(t, "", append([]string{"play", "--input", input}, f.args...)...)
-		if code != 4 || !strings.Contains(stderr, "code="+f.code) {
-			t.Errorf("%s: Exit-Code %d, stderr:\n%s", f.name, code, stderr)
+		if code != 4 || !strings.Contains(stderr, "code="+f.code) || !strings.Contains(stderr, f.meldung) {
+			t.Errorf("%s: Exit-Code %d, erwartet %s mit %s, stderr:\n%s", f.name, code, f.code, f.meldung, stderr)
 		}
 	}
 }

@@ -289,3 +289,63 @@ func TestRunPlayZweitesSignal(t *testing.T) {
 		t.Fatalf("Fehler nach dem zweiten Signal: %q", stderr.String())
 	}
 }
+
+// startupServer nimmt eine Verbindung an, liefert ihre Startup-Parameter auf
+// dem Kanal und lehnt den Aufbau mit einer Fehlerantwort ab.
+func startupServer(t *testing.T) (string, <-chan map[string]string) {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { l.Close() })
+	parameter := make(chan map[string]string, 1)
+	go func() {
+		conn, err := l.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		_ = conn.SetDeadline(time.Now().Add(30 * time.Second))
+		var laenge [4]byte
+		if _, err := io.ReadFull(conn, laenge[:]); err != nil {
+			return
+		}
+		rumpf := make([]byte, binary.BigEndian.Uint32(laenge[:])-4)
+		if _, err := io.ReadFull(conn, rumpf); err != nil {
+			return
+		}
+		// Nach der Protokollversion folgen Name und Wert, je mit NUL beendet,
+		// und ein abschließendes NUL.
+		teile := strings.Split(string(rumpf[4:]), "\x00")
+		p := map[string]string{}
+		for i := 0; i+1 < len(teile) && teile[i] != ""; i += 2 {
+			p[teile[i]] = teile[i+1]
+		}
+		parameter <- p
+		_, _ = conn.Write(fehlerantwortRoh("FATAL", "3D000", "nein"))
+	}()
+	return l.Addr().String(), parameter
+}
+
+// Abdeckung: LH-FA-20/Boundary — --user und --database erreichen den
+// Play-Service und gehen als user und database im Startup an den Server,
+// --user statt des Benutzers der Aufzeichnung (LH-FA-20.a *Startup-Daten*).
+func TestRunPlayOptionen(t *testing.T) {
+	leerePlay(t)
+	addr, parameter := startupServer(t)
+	input := einfacheAufzeichnung(t, []model.Interaction{anfrage(1, "A")})
+	var stdout, stderr bytes.Buffer
+	code := bootstrap.Run(context.Background(), nil, []string{"play", "--upstream", addr, "--input", input, "--user", "optu", "--database", "optd"}, "dev", &stdout, &stderr)
+	if code != 4 {
+		t.Fatalf("Exit-Code %d, stderr %q", code, stderr.String())
+	}
+	select {
+	case p := <-parameter:
+		if p["user"] != "optu" || p["database"] != "optd" {
+			t.Fatalf("Startup %v, erwartet user optu und database optd", p)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("der Fake-Server empfängt binnen 30 s kein Startup")
+	}
+}
