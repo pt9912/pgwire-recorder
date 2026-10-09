@@ -39,7 +39,7 @@ einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 - Alle Slices der Welle liegen in `done/`.
 - Abnahmeszenario 11 (Homebrew) ist auf macOS und Linux mit dem echten Tap nachgewiesen — das *Mehr* gegenüber den Slice-DoDs.
 - `make gates` grün.
-- Closure-Notiz in `welle-erster-release-results.md`.
+- Closure-Notiz in `welle-erster-release-results.md`; sie trägt den ausgefüllten Eintrag der Freigabe-Checkliste des ersten Releases (Entscheidung des Nutzers vom 2026-10-09, geliefert von `slice-erster-release-veroeffentlichung`).
 
 ## 4. Slices in dieser Welle
 
