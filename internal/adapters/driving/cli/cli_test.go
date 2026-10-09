@@ -67,8 +67,14 @@ func replayFail(args ...string) (bool, error) {
 }
 
 func istUsage(err error) bool {
+	return hatCode(err, model.CodeUsage)
+}
+
+// hatCode meldet, ob err ein klassifizierter Fehler mit code und Exit-Code 2
+// ist.
+func hatCode(err error, code string) bool {
 	var me *model.Error
-	return errors.As(err, &me) && me.Code == model.CodeUsage && me.ExitCode() == 2
+	return errors.As(err, &me) && me.Code == code && me.ExitCode() == 2
 }
 
 // --fail-on-unconsumed ist ohne Wert true und nimmt mit = genau true oder

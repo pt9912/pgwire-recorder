@@ -418,11 +418,13 @@ Verzeichnis.
 
 #### Ergebnis
 
-Das Werkzeug nennt die gewählte Datei und gibt ihren Inhalt als eingerückten Baum
-aus; Platzhalter `${VAR}` erscheinen unaufgelöst, und aktive
-`PGWIRE_RECORDER_*`-Umgebungsvariablen stehen am Ende mit ihrem Namen, ohne Wert.
-Der Befehl endet mit Exit-Code 0. Findet er keine Datei, sagt er das und endet
-ebenfalls mit Exit-Code 0.
+Das Werkzeug nennt in der ersten Zeile die gewählte Datei und gibt danach ihren
+Inhalt aus, mit zwei Leerzeichen Einzug, in der Reihenfolge der Datei und ohne
+Kommentare; Platzhalter `${VAR}` erscheinen unaufgelöst. Am Ende stehen die Namen
+der gesetzten `PGWIRE_RECORDER_*`-Umgebungsvariablen, nach Namen sortiert und ohne
+Wert, auch solche, zu denen es keine Option gibt. Der Befehl endet mit Exit-Code 0.
+Findet er keine Datei, sagt er das in der ersten Zeile und endet ebenfalls mit
+Exit-Code 0.
 
 #### Hinweise
 
@@ -608,7 +610,11 @@ Das Werkzeug verwendet genau **eine** Konfigurationsdatei, in dieser Reihenfolge
 2. der Pfad aus der Umgebungsvariable `PGWIRE_RECORDER_CONFIG`,
 3. die Datei `.pgwire-recorder.yaml` im aktuellen Verzeichnis, falls es sie gibt.
 
-Die Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne `--`. Einstellungen
+Fehlt eine mit `--config` oder `PGWIRE_RECORDER_CONFIG` genannte Datei, startet das
+Werkzeug nicht (`PGR-E2004`); fehlt `.pgwire-recorder.yaml`, liest es keine Datei.
+
+Die Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne `--`; einen
+Schlüssel `config` gibt es nicht, und Groß- und Kleinschreibung zählt. Einstellungen
 für alle Betriebsarten (`log_level`) und benannte Verbindungen stehen oben, die
 übrigen in einem Abschnitt je Betriebsart (`record:`, `replay:`, `play:`):
 
@@ -637,7 +643,19 @@ das Passwort, gilt `PGWIRE_RECORDER_PASSWORD`. Ein Klartext-Passwort in der Date
 lehnt das Werkzeug ab (`PGR-E2006`), ebenso eine nicht gesetzte Variable
 (`PGR-E2005`) und eine ungültige Datei (`PGR-E2004`).
 
-Wahrheitswerte lauten `true` oder `false`.
+Wahrheitswerte lauten `true` oder `false`, mit oder ohne Anführungszeichen; `True`,
+`yes` und `1` sind ungültig. Für jeden Wert gilt dieselbe Form wie für die Option,
+eine Dauer also etwa `0` oder `5s`. Ein leerer Wert, `null`, eine Liste oder
+Abbildung an der Stelle eines Werts sowie Anker, Aliase, Merge-Schlüssel und
+ausdrücklich geschriebene Tags (`!!str`) sind ungültig, ebenso ein Schlüssel, der
+in derselben Abbildung zweimal steht, und ein zweites YAML-Dokument in der Datei.
+Ein Abschnitt ohne Inhalt ist ungültig, `{}` setzt nichts; eine leere Datei oder
+eine nur mit Kommentaren ebenfalls nicht. Ein relativer Pfad gilt relativ zum
+aktuellen Verzeichnis, nicht zum Verzeichnis der Datei.
+
+Das Werkzeug prüft beim Start die ganze Datei, auch den Abschnitt einer anderen
+Betriebsart, und endet beim ersten Fehler. Die Meldung nennt die Stelle (Schlüssel
+oder Verbindung), nie den Wert.
 
 ### Log-Ausgaben
 

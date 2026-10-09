@@ -42,6 +42,9 @@ func Run(ctx context.Context, ablauf <-chan struct{}, args []string, version str
 	case "version":
 		fmt.Fprintln(stdout, "pgwire-recorder", version)
 		return 0
+	case "config show":
+		fmt.Fprint(stdout, cmd.Anzeige)
+		return 0
 	case "record":
 		return record(ctx, ablauf, cmd.Record, logger(stderr, cmd.Record.LogLevel), stderr)
 	case "replay":

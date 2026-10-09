@@ -25,3 +25,10 @@ func Optionen(kommando string) []Option {
 	}
 	return out
 }
+
+// EnvConfig ist die Umgebungsvariable von --config, StandardDatei die Datei im
+// aktuellen Verzeichnis, die ohne --config und PGWIRE_RECORDER_CONFIG gilt.
+const (
+	EnvConfig     = envConfig
+	StandardDatei = standardDatei
+)

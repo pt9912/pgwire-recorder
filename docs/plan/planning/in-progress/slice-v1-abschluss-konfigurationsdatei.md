@@ -325,7 +325,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Belege zur DoD (Implementer):** <je Zusage: Zusage · Mutation · roter Test (`AGENTS.md` §3.10)>
+- **Belege zur DoD (Implementer):** siehe *Belege des Implementers* unten.
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
 - **Steering-Loop-Eintrag:** <…>
@@ -333,6 +333,128 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
 - **Drei Paarungen:** <…>
+
+### Belege des Implementers
+
+**Stand.** Geliefert sind DoD-Punkt 1 und 2 (*Datei*). DoD-Punkt 3 (*Verbindungen und
+Platzhalter*) ist nicht begonnen: Der Diff der beiden ersten Punkte umfasst rund 1250
+Zeilen (davon rund 600 Tests), mit DoD-Punkt 3 läge er über einer Review-Sitzung. Damit
+ist die Bedingung der Rückführung *zu groß* aus §4 eingetreten, mit dem dort vorab
+benannten Schnitt; der Implementer hält nach DoD-Punkt 2 an, den Übergang entscheidet der
+Planner. Bis DoD-Punkt 3 gilt im gelieferten Stand: `connections:` ist eine Abbildung, ein
+Name hat die Form eines Werts ohne Steuerzeichen, ein Wert ist ein Skalar; die Grammatik
+der URL, `sslmode`, `${VAR}` und `$$` (in jedem Wert der Datei), das Klartext-Passwort
+(`PGR-E2006`), `PGR-E2005` und der Name bei `--upstream` sind nicht umgesetzt, ein Wert
+mit `$` gilt wörtlich. Die Konstanten `PGR-E2005` und `PGR-E2006` stehen schon in
+`internal/hexagon/model/fehler.go`, ohne Erzeuger.
+
+**Weg der Mutanten.** Je Mutant eine frische Kopie des Arbeitsbaums in einem neuen
+Verzeichnis (`tar` ohne `.git`, kein `cp -p`), die Änderung mit einem Skript, das die
+Trefferzahl 1 prüft, dann `go test -count=1` für `internal/adapters/driving/cli` und
+`internal/bootstrap` im Image der Stufe `test`, die Kopie per Bind-Mount statt
+Build-Kontext; danach wird nur das Verzeichnis des Mutanten gelöscht. Der Arbeitsbaum
+blieb unberührt. Gefahren am Stand des Liefer-Commits.
+
+**DoD-Punkt 1 — Hilfe vor jeder Prüfung, `config show`.**
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| Hilfe vor der Datei, auch bei `--config` und `config show` | `Parse` lädt die gewählte Datei vor der Hilfe-Suche | `TestDateiHilfeVorPruefung`, `TestDateiNichtLesbar`, `TestDateiWahl` |
+| `config --help` ist die Hilfe von `config show` | Hilfe von `config` entfernt (globale Hilfe) | `TestDateiHilfeVorPruefung` |
+| globale Hilfe nennt `config show` | Zeile und Abschnitt entfernt | `TestDateiHilfeVorPruefung` |
+| Hilfe von `record` und `replay` nennt `--config` und die Datei | `optionConfig` aus der Hilfe von `record` genommen | `TestDateiHilfeVorPruefung` |
+| `--` beendet die Optionen auch bei `config show` | `config show -- x` überspringt `--` | `TestDateiHilfeVorPruefung` |
+| erste Zeile: Pfad der gewählten Datei | feste Zeile statt Pfad | `TestConfigShow`, `TestConfigShowOhneDatei`, `TestRunConfigShow` |
+| ohne Datei sagt es die erste Zeile | Zeile weggelassen | `TestConfigShowOhneDatei` |
+| Inhalt ohne Kommentare | Kommentare nicht entfernt | `TestConfigShow`, `TestRunConfigShow` |
+| zwei Leerzeichen Einzug | Einzug 4 | `TestConfigShow` |
+| Umgebungsvariablen nach Namen sortiert | ohne Sortierung | `TestConfigShow` |
+| Umgebungsvariablen ohne Wert | `NAME=wert` ausgegeben | `TestConfigShow`, `TestConfigShowOhneDatei` |
+| nur gesetzte und nicht leere | leere mitgezählt | `TestConfigShow`, `TestConfigShowOhneDatei`, `TestRunConfigShow` |
+| auch ohne passende Option | nur Variablen mit Option | `TestConfigShow` |
+| ungültige Datei: Fehlercode des Ladens, keine Anzeige | Ladefehler übergangen, Anzeige ohne Datei | `TestConfigShowFehler`, `TestRunConfigShow` |
+| von den Umgebungsvariablen prüft `config show` nur `PGWIRE_RECORDER_CONFIG` | Umgebungsvariablen von `replay` mitgeprüft | `TestConfigShowOhneDatei` |
+| `config show` kennt nur `--config` | Optionen von `replay` angemeldet | `TestConfigShowFehler` |
+| `config` ohne `show` ist `PGR-E2001` | `config` allein als `config show` | `TestConfigShowFehler` |
+| Ausgabe auf `stdout`, nichts auf `stderr` | Anzeige auf `stderr` | `TestRunConfigShow` |
+
+**DoD-Punkt 2 — Wahl der Datei, Priorität, Schlüssel, ungültige Datei.**
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| `--config` vor `PGWIRE_RECORDER_CONFIG` | Reihenfolge getauscht | `TestDateiWahl` |
+| `PGWIRE_RECORDER_CONFIG` wählt die Datei | Variable nie gelesen | `TestConfigShowFehler`, `TestConfigShowOhneDatei`, `TestDateiNichtLesbar`, `TestDateiWahl` |
+| Standarddatei nur, wenn sie existiert | fehlende Standarddatei gewählt | `TestDateiWahl`, `TestConfigShowOhneDatei`, `TestLeserAlleOptionen` und weitere Tests des Lesers |
+| leere `PGWIRE_RECORDER_CONFIG` gilt als nicht gesetzt | `LookupEnv` statt nicht leer | `TestDateiWahl`, `TestDateiNichtLesbar`, `TestConfigShowOhneDatei`, `TestRunConfigShow`, `TestRunReplayAusDatei` |
+| genannte Datei fehlt: `PGR-E2004` | fehlende Datei setzt nichts | `TestDateiNichtLesbar`, `TestConfigShowFehler` |
+| Standarddatei vorhanden, nicht lesbar: `PGR-E2004` | Fehler von `Stat` als *keine Datei* | `TestDateiNichtLesbar` |
+| genau eine Datei: neben `--config` wird die aus der Umgebung nicht gelesen | fehlende Datei aus der Umgebung neben `--config` gemeldet | `TestDateiWahl` |
+| Meldung nennt die Quelle, nicht den Pfad | Grund mit Pfad des Betriebssystems | `TestDateiNichtLesbar` |
+| Umgebungsvariable vor Datei | Datei überschreibt die Umgebung | `TestLeserAlleOptionen` |
+| Kommandozeile vor Datei | Datei überschreibt die Kommandozeile | `TestLeserAlleOptionen` |
+| Datei vor Standardwert | Wert der Datei nie übernommen | `TestLeserAlleOptionen`, `TestDateiGueltig`, `TestDateiWahl`, `TestRunReplayAusDatei` |
+| Pflichtoption auch aus der Datei | Pflicht nur aus Kommandozeile oder Umgebung | `TestLeserAlleOptionen`, `TestDateiGueltig`, `TestRunReplayAusDatei` |
+| Wert der Datei mit der Wertemenge der Option geprüft | Prüfung entfernt | `TestLeserAlleOptionen`, `TestDateiUngueltig`, `TestDateiReihenfolge`, `TestConfigShowFehler`, `TestRunConfigShow` |
+| ungültiger Wert der Datei ist `PGR-E2004`, nicht `PGR-E2001` | Code `PGR-E2001` | dieselben fünf |
+| geprüft, auch wenn die Kommandozeile die Option setzt | Ladefehler übergangen, wenn die Kommandozeile setzt | `TestLeserAlleOptionen`, `TestDateiUngueltig`, `TestDateiNichtLesbar` |
+| Meldung nennt den Schlüssel, nie den Wert | Wert in die Meldung | `TestLeserAlleOptionen`, `TestDateiUngueltig` |
+| ungültiges YAML ohne Text der Bibliothek | Fehler der Bibliothek angehängt | `TestDateiUngueltig` (Fall *Alias ohne Anker*) |
+| Code ist `PGR-E2004` | Konstante `PGR-E2003` | `TestRunConfigShow`, `TestRunReplayAusDatei` |
+| `log_level` auf der obersten Ebene, auch bei `record` | `oben` an `log-level` von `record` entfernt | `TestLeserAlleOptionen` |
+| `log_level` in einem Abschnitt ungültig | `log_level` im Abschnitt angenommen | `TestLeserAlleOptionen`, `TestDateiUngueltig`, `TestConfigShowFehler` |
+| Schlüssel mit `_` statt `-` | Name unverändert | 7 Tests, darunter `TestLeserAlleOptionen`, `TestConfigShow` |
+| unbekannter Schlüssel oben | angenommen | `TestLeserAlleOptionen`, `TestDateiUngueltig`, `TestConfigShowFehler` |
+| unbekannter Schlüssel im Abschnitt | übergangen | `TestLeserAlleOptionen`, `TestDateiUngueltig`, `TestConfigShowFehler`, `TestRunReplayAusDatei` |
+| Abschnitt nur mit Optionen seines Kommandos | Optionen beider Kommandos | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| kein Schlüssel `config` | `config` im Abschnitt angenommen | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| Abschnitt `play:` unbekannt (§1) | `play` als Abschnitt angenommen | `TestDateiUngueltig` (Fall `play: {}`), `TestConfigShowFehler` |
+| Groß- und Kleinschreibung zählt | Schlüssel klein verglichen | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| doppelter Schlüssel ist ungültiges YAML | nicht erkannt | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| doppelter Schlüssel vor den Schlüsseln geprüft (Phase *YAML*) | Prüfung nach den Schlüsseln | `TestDateiUngueltig` (Fall *doppelt vor unbekanntem Schlüssel*) |
+| doppelter Schlüssel in jeder Tiefe | nur oberste Ebene | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| höchstens ein Dokument | zweites übergangen | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| oberste Ebene ist eine Abbildung | jede Form angenommen | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| Abschnitt ohne Inhalt oder `null` ungültig | `null` als Abschnitt angenommen | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| `connections:` ist eine Abbildung | jede Form angenommen | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| leere Abbildung `{}` gültig | leere Abbildung abgelehnt | `TestDateiGueltig` |
+| leere Datei und nur Kommentare setzen nichts | leere Datei als Fehler | `TestDateiGueltig`, `TestConfigShowOhneDatei` |
+| jeder Tag ungültig, auch `!` | nur Tags der Bibliothek (`TaggedStyle`) | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| Tag ungültig | Prüfung des Tags entfernt | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| Anker ungültig | Prüfung entfernt | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| `null`, `~` und leerer Wert ungültig | nur leerer Wert | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| Liste oder Abbildung als Wert ungültig | Prüfung entfernt | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| Name einer Verbindung nicht leer | Prüfung entfernt | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| Name einer Verbindung ohne Steuerzeichen | Prüfung entfernt | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| Wert einer Verbindung ist ein Skalar | nur Anker und Tag geprüft | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| Kommandozeile vor Datei geprüft | Ladefehler vor dem Fehler der Kommandozeile | `TestDateiReihenfolge`, `TestDateiNichtLesbar` |
+| Umgebungsvariablen vor Datei geprüft | Datei vor den Umgebungsvariablen geladen | `TestDateiReihenfolge` |
+| Datei in ihrer Reihenfolge, oberste Ebene | rückwärts | `TestDateiReihenfolge` |
+| Datei in ihrer Reihenfolge, im Abschnitt | rückwärts | `TestDateiReihenfolge`, `TestDateiUngueltig` |
+| relativer Pfad relativ zum aktuellen Verzeichnis | Pfad umgeschrieben | `TestDateiGueltig` |
+
+**Grüne Mutanten, eingeordnet.**
+
+- *Schlüssel ist kein Skalar* (eine eigene Meldung für einen Schlüssel, der Liste oder
+  Abbildung ist): **äquivalent** — ein solcher Schlüssel hat den leeren Text, keine Option
+  und kein Abschnitt heißt so, er ist unbekannt (`PGR-E2004` mit der Stelle). Die Prüfung
+  ist entfernt, der Kommentar an `schluessel` nennt den Grund.
+- *Alias ungültig* (eigene Prüfung): **äquivalent** — ein Alias verweist auf einen Anker
+  davor in der Datei, und den lehnt die Prüfung in der Reihenfolge der Datei zuerst ab;
+  ein Alias ohne Anker ist ungültiges YAML. Die Prüfung ist entfernt, der Fall *Alias* in
+  `TestDateiUngueltig` bleibt.
+- *Tag über `TaggedStyle`* neben dem ersten Zeichen `!`: **äquivalent** — jeder Tag, den
+  die Bibliothek so markiert, beginnt mit `!`. Die Prüfung über `TaggedStyle` ist
+  entfernt; die über das erste Zeichen fängt auch `!` allein.
+- *`"null"` oder `"~"` in Anführungszeichen als `null`*: **ändert das Verhalten**, kein
+  Test fängt ihn. Die Spezifikation entscheidet nicht, ob `null` hier die YAML-Null meint
+  (nur ohne Anführungszeichen) oder den Text `null`; der Code nimmt den Text in
+  Anführungszeichen als Text. Rückgabe an den Architect (Bericht, *Randform · Frage*),
+  ohne Test und ohne Eintrag in §6; die Closure braucht dafür eine Entscheidung.
+
+**Läufe am Stand vor dem Liefer-Commit:** `make test` grün, `make lint` 0 Befunde (Exit 0),
+`make test-integration` grün (darin `TestE2EConfigShow`,
+`TestE2EReplayKonfigurationsdateiUngueltig`), `make abdeckung` geschrieben,
+`make abdeckung-check` grün.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

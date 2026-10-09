@@ -2,6 +2,8 @@ package cli_test
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -52,13 +54,50 @@ func alleOptionen() []string {
 // leserKommandos sind die Kommandos am allgemeinen Leser.
 func leserKommandos() []string { return []string{"record", "replay"} }
 
-// leere setzt die Umgebungsvariablen aller Optionen von kommando leer, also
-// nicht gesetzt (LH-FA-17.a).
+// leere setzt die Umgebungsvariablen aller Optionen von kommando und
+// PGWIRE_RECORDER_CONFIG leer, also nicht gesetzt (LH-FA-17.a).
 func leere(t *testing.T, kommando string) {
 	t.Helper()
 	for _, o := range cli.Optionen(kommando) {
 		t.Setenv(o.Env, "")
 	}
+	t.Setenv(cli.EnvConfig, "")
+}
+
+// schreibe legt eine Datei mit inhalt in einem eigenen Verzeichnis des Tests
+// an und liefert ihren Pfad.
+func schreibe(t *testing.T, inhalt string) string {
+	t.Helper()
+	pfad := filepath.Join(t.TempDir(), "konfiguration.yaml")
+	if err := os.WriteFile(pfad, []byte(inhalt), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return pfad
+}
+
+// schluesselIn ist der Text einer Datei, die name auf wert setzt: auf der
+// obersten Ebene, wenn abschnitt leer ist, sonst im Abschnitt.
+func schluesselIn(abschnitt, name, wert string) string {
+	if abschnitt == "" {
+		return name + ": " + wert + "\n"
+	}
+	return abschnitt + ":\n  " + name + ": " + wert + "\n"
+}
+
+// ortDerDatei ist nach LH-FA-17.a der Abschnitt und der Schlüssel einer Option
+// in der Datei: log_level auf der obersten Ebene, jede andere im Abschnitt des
+// Kommandos; der Schlüssel ist der Name mit _ statt -.
+func ortDerDatei(kommando, name string) (string, string) {
+	schluessel := strings.ReplaceAll(name, "-", "_")
+	if name == "log-level" {
+		return "", schluessel
+	}
+	return kommando, schluessel
+}
+
+// istDatei meldet, ob err PGR-E2004 mit Exit-Code 2 ist.
+func istDatei(err error) bool {
+	return hatCode(err, model.CodeConfigFile)
 }
 
 // basis sind kommando und seine Pflichtoptionen außer ohne.
@@ -78,11 +117,14 @@ func lese(args ...string) (cli.Command, error) {
 
 // Abdeckung: LH-FA-17/Boundary, LH-FA-17/Negative — für jede Option am
 // allgemeinen Leser von record und replay gilt Kommandozeile vor
-// Umgebungsvariable vor Standardwert: Die Umgebungsvariable setzt den Wert wie
-// die Option, die Option geht ihr vor, ohne beide gilt der Default der
-// Optionstabelle, und eine Pflichtoption ohne beide ist PGR-E2001; eine
-// gesetzte Umgebungsvariable mit ungültigem Wert ist PGR-E2001, auch wenn die
-// Kommandozeile die Option setzt; ein leerer Wert auf der Kommandozeile ist
+// Umgebungsvariable vor Konfigurationsdatei vor Standardwert: Umgebungsvariable
+// und Datei setzen den Wert wie die Option, die Option geht beiden vor, die
+// Umgebungsvariable der Datei, ohne alle drei gilt der Default der
+// Optionstabelle, und eine Pflichtoption ohne alle drei ist PGR-E2001; eine
+// gesetzte Umgebungsvariable mit ungültigem Wert ist PGR-E2001, ein ungültiger
+// oder leerer Wert in der Datei PGR-E2004, der den Schlüssel nennt und nicht den
+// Wert, beide auch, wenn die Kommandozeile die Option setzt; der Schlüssel an
+// der anderen Ebene ist PGR-E2004; ein leerer Wert auf der Kommandozeile ist
 // PGR-E2001 und nennt die Option, auch neben gesetzter Umgebungsvariable
 // (LH-FA-17.a, SPEC-007).
 func TestLeserAlleOptionen(t *testing.T) {
@@ -140,7 +182,54 @@ func TestLeserAlleOptionen(t *testing.T) {
 				}
 			}
 			t.Setenv(o.Env, "")
+			dreiQuellen(t, kommando, o, args, mitA, mitB, b, ungueltig)
 		}
+	}
+}
+
+// dreiQuellen prüft die Datei als dritte Quelle für Option o: Die Datei mit
+// dem ersten gültigen Wert ergibt mitA, mit Umgebungsvariable oder
+// Kommandozeile auf dem zweiten mitB; ein ungültiger oder leerer Wert der
+// Datei ist PGR-E2004 mit dem Schlüssel und ohne den Wert, auch neben der
+// Kommandozeile; derselbe Schlüssel an der anderen Ebene ist PGR-E2004.
+func dreiQuellen(t *testing.T, kommando string, o cli.Option, args []string, mitA, mitB cli.Command, b, ungueltig string) {
+	t.Helper()
+	abschnitt, schluessel := ortDerDatei(kommando, o.Name)
+	stelle := schluessel
+	if abschnitt != "" {
+		stelle = abschnitt + "." + schluessel
+	}
+	a := werteJeArt()[o.Art][0]
+	mitDatei := func(inhalt string, extra ...string) (cli.Command, error) {
+		return lese(append(append(append([]string{}, args...), "--config="+schreibe(t, inhalt)), extra...)...)
+	}
+	if got, err := mitDatei(schluesselIn(abschnitt, schluessel, a)); err != nil || got != mitA {
+		t.Errorf("%s, Datei %s: %s: %#v, %v, erwartet %#v", kommando, stelle, a, got, err, mitA)
+	}
+	t.Setenv(o.Env, b)
+	if got, err := mitDatei(schluesselIn(abschnitt, schluessel, a)); err != nil || got != mitB {
+		t.Errorf("%s, %s=%s, Datei %s: %s: %#v, %v, erwartet die Umgebungsvariable %#v", kommando, o.Env, b, stelle, a, got, err, mitB)
+	}
+	t.Setenv(o.Env, "")
+	if got, err := mitDatei(schluesselIn(abschnitt, schluessel, a), "--"+o.Name+"="+b); err != nil || got != mitB {
+		t.Errorf("%s, --%s=%s, Datei %s: %s: %#v, %v, erwartet die Kommandozeile %#v", kommando, o.Name, b, stelle, a, got, err, mitB)
+	}
+	schlecht := []string{`""`}
+	if ungueltig != "" {
+		schlecht = append(schlecht, ungueltig+"GEHEIM")
+	}
+	for _, w := range schlecht {
+		_, err := mitDatei(schluesselIn(abschnitt, schluessel, w), "--"+o.Name+"="+b)
+		if !istDatei(err) || !strings.Contains(err.Error(), stelle) || strings.Contains(err.Error(), "GEHEIM") {
+			t.Errorf("%s, Datei %s: %s neben --%s=%s: erwartet %s mit %s ohne den Wert, erhalten %v", kommando, stelle, w, o.Name, b, model.CodeConfigFile, stelle, err)
+		}
+	}
+	anderer := kommando
+	if abschnitt != "" {
+		anderer = ""
+	}
+	if _, err := mitDatei(schluesselIn(anderer, schluessel, a)); !istDatei(err) || !strings.Contains(err.Error(), schluessel) {
+		t.Errorf("%s, Schlüssel %s auf der falschen Ebene: erwartet %s, erhalten %v", kommando, schluessel, model.CodeConfigFile, err)
 	}
 }
 
@@ -185,13 +274,13 @@ func TestLeserOptionen(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-17/Negative — die Kommandozeile kennt genau die Optionen am
-// allgemeinen Leser: Jede andere Option der Optionstabelle ist bei record und
-// replay eine unbekannte Option (PGR-E2001), mit und ohne Wert, sodass keine
-// Option am Leser vorbei angemeldet ist.
+// allgemeinen Leser und --config: Jede andere Option der Optionstabelle ist bei
+// record und replay eine unbekannte Option (PGR-E2001), mit und ohne Wert,
+// sodass keine Option am Leser vorbei angemeldet ist.
 func TestLeserNurAngemeldete(t *testing.T) {
 	for _, kommando := range leserKommandos() {
 		leere(t, kommando)
-		angemeldet := map[string]bool{}
+		angemeldet := map[string]bool{"config": true}
 		for _, o := range cli.Optionen(kommando) {
 			angemeldet[o.Name] = true
 		}

@@ -58,11 +58,13 @@ const (
 	LogDebug = "debug"
 )
 
-// Command ist das gewählte Kommando mit seinen Optionen.
+// Command ist das gewählte Kommando mit seinen Optionen; bei config show
+// trägt Anzeige die Ausgabe für stdout (LH-FA-17.a *Anzeige*).
 type Command struct {
-	Name   string
-	Record RecordOptions
-	Replay ReplayOptions
+	Name    string
+	Record  RecordOptions
+	Replay  ReplayOptions
+	Anzeige string
 }
 
 const optionenRecord = `Optionen von record:
@@ -70,7 +72,7 @@ const optionenRecord = `Optionen von record:
   --upstream  Adresse des PostgreSQL-Servers, host:port (Pflicht)
   --output    Zieldatei der Aufzeichnung (Pflicht)
   --force     vorhandene Zieldatei ersetzen
-` + optionShutdownTimeout + optionLogLevel + optionUmgebung
+` + optionShutdownTimeout + optionLogLevel + optionConfig + optionUmgebung
 
 const optionenReplay = `Optionen von replay:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
@@ -79,12 +81,22 @@ const optionenReplay = `Optionen von replay:
               nicht verbrauchte Interaktionen und nie zugeordnete Sessions
               sind ein Fehler (PGR-E5002, Exit-Code 5) statt einer Warnung;
               Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
-` + optionShutdownTimeout + optionLogLevel + optionUmgebung
+` + optionShutdownTimeout + optionLogLevel + optionConfig + optionUmgebung
 
 const optionUmgebung = `
 Jede Option ist auch über ihre Umgebungsvariable setzbar: PGWIRE_RECORDER_ und
 der Name in Großbuchstaben mit _ statt -, etwa PGWIRE_RECORDER_LISTEN; die
 Kommandozeile geht ihr vor. Ein leerer Wert auf der Kommandozeile ist ungültig.
+In der Konfigurationsdatei sind alle Optionen ohne --config setzbar: Schlüssel
+wie die Option mit _ statt -, log_level auf der obersten Ebene, jeder andere im
+Abschnitt des Kommandos (record:, replay:); die Umgebungsvariable geht der
+Datei vor, die Datei dem Standardwert.
+`
+
+const optionConfig = `  --config <datei>
+              Konfigurationsdatei, Standard .pgwire-recorder.yaml im aktuellen
+              Verzeichnis, sofern vorhanden; Umgebungsvariable
+              PGWIRE_RECORDER_CONFIG
 `
 
 const optionShutdownTimeout = `  --shutdown-timeout 0|<zahl>ms|<zahl>s|<zahl>m
@@ -106,15 +118,27 @@ const usage = `Aufruf: pgwire-recorder <kommando> [optionen]
 Kommandos:
   record   vermittelt Clients zu PostgreSQL und zeichnet die Kommunikation auf
   replay   beantwortet Anfragen aus einer Aufzeichnung, ohne PostgreSQL
+  config show
+           zeigt die gewählte Konfigurationsdatei
   version  gibt die Programmversion aus
 
 ` + optionenRecord + `
-` + optionenReplay
+` + optionenReplay + `
+` + optionenConfigShow
+
+const optionenConfigShow = `Optionen von config show:
+` + optionConfig + `
+Gibt auf stdout den Pfad der gewählten Konfigurationsdatei aus, danach ihren
+Inhalt ohne Kommentare, Platzhalter unaufgelöst, danach die Namen der gesetzten
+Umgebungsvariablen PGWIRE_RECORDER_*, ohne Werte. Ist die Datei ungültig, zeigt
+der Befehl nichts.
+`
 
 // hilfen ist die Hilfe je bekanntem Kommando (LH-FA-01.a).
 var hilfen = map[string]string{
 	"record":  "Aufruf: pgwire-recorder record [optionen]\n\n" + optionenRecord,
 	"replay":  "Aufruf: pgwire-recorder replay [optionen]\n\n" + optionenReplay,
+	"config":  "Aufruf: pgwire-recorder config show [optionen]\n\n" + optionenConfigShow,
 	"version": "Aufruf: pgwire-recorder version\n\nGibt die Programmversion aus.\n",
 }
 
@@ -149,6 +173,8 @@ func Parse(args []string, out io.Writer) (Command, error) {
 		return parseRecord(args[1:])
 	case "replay":
 		return parseReplay(args[1:])
+	case "config":
+		return parseConfig(args[1:])
 	case "version":
 		if len(args) > 1 {
 			return Command{}, model.Errorf(model.CodeUsage, nil, "version nimmt keine Argumente")
@@ -163,11 +189,14 @@ func Parse(args []string, out io.Writer) (Command, error) {
 // sie von der Kommandozeile und aus ihrer Umgebungsvariable (envName), prüft
 // jeden gesetzten Wert mit art und übernimmt den Wert nach der Priorität
 // Kommandozeile vor Umgebungsvariable vor Standardwert (LH-FA-17.a, SPEC-007).
+// Der Schlüssel der Option in der Konfigurationsdatei steht im Abschnitt des
+// Kommandos, mit oben auf der obersten Ebene (datei.wert).
 type option struct {
 	name     string
 	art      art
 	pflicht  bool
 	standard string
+	oben     bool
 	setze    func(*Command, string)
 }
 
@@ -221,7 +250,7 @@ func optionen(kommando string) []option {
 			{name: "output", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Output = v }},
 			{name: "force", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.Force = v == "true" }},
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Record.ShutdownTimeout, v) }},
-			{name: "log-level", art: artStufe(), standard: LogInfo, setze: func(c *Command, v string) { c.Record.LogLevel = v }},
+			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Record.LogLevel = v }},
 		}
 	case "replay":
 		return []option{
@@ -229,10 +258,23 @@ func optionen(kommando string) []option {
 			{name: "input", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Replay.Input = v }},
 			{name: "fail-on-unconsumed", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Replay.FailOnUnconsumed = v == "true" }},
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Replay.ShutdownTimeout, v) }},
-			{name: "log-level", art: artStufe(), standard: LogInfo, setze: func(c *Command, v string) { c.Replay.LogLevel = v }},
+			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Replay.LogLevel = v }},
 		}
 	}
 	return nil
+}
+
+// leserKommandos sind die Kommandos am allgemeinen Leser; je eines hat einen
+// Abschnitt in der Konfigurationsdatei.
+func leserKommandos() []string { return []string{"record", "replay"} }
+
+func istLeserKommando(name string) bool {
+	for _, k := range leserKommandos() {
+		if k == name {
+			return true
+		}
+	}
+	return false
 }
 
 // setzeDauer setzt einen Wert von --shutdown-timeout, den artDauer geprüft hat;
@@ -275,25 +317,19 @@ type gelesen struct {
 }
 
 // lies liest kommando nach LH-FA-17.a: zuerst die Kommandozeile, an deren
-// FlagSet genau die Optionen aus optionen angemeldet sind, dann die
-// Umgebungsvariablen der Optionen in ihrer Reihenfolge; jeder gesetzte Wert
-// wird geprüft, ein ungültiger ist PGR-E2001, auch wenn die Kommandozeile
-// dieselbe Option setzt. Danach übernimmt es je Option den Wert nach der
-// Priorität; eine Pflichtoption, die keine Quelle setzt, ist PGR-E2001.
+// FlagSet genau die Optionen aus optionen und --config angemeldet sind, dann
+// die Umgebungsvariablen der Optionen in ihrer Reihenfolge, dann die gewählte
+// Konfigurationsdatei; jeder gesetzte Wert wird geprüft, ein ungültiger der
+// Kommandozeile oder einer Umgebungsvariable ist PGR-E2001, einer der Datei
+// PGR-E2004, auch wenn eine Quelle davor dieselbe Option setzt. Danach
+// übernimmt es je Option den Wert nach der Priorität (SPEC-007); eine
+// Pflichtoption, die keine Quelle setzt, ist PGR-E2001.
 func lies(kommando string, args []string) (Command, error) {
-	fs := flag.NewFlagSet(kommando, flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
 	opts := optionen(kommando)
 	stand := make([]gelesen, len(opts))
-	for i, o := range opts {
-		fs.Var(kommandozeile{o.art, &stand[i].cli, &stand[i].cliOk}, o.name, "")
-	}
-	vorne, rest := endeDerOptionen(args)
-	if err := fs.Parse(vorne); err != nil {
-		return Command{}, model.Errorf(model.CodeUsage, err, "ungültige Verwendung von %s", kommando)
-	}
-	if rest = append(fs.Args(), rest...); len(rest) > 0 {
-		return Command{}, model.Errorf(model.CodeUsage, nil, "unerwartetes Argument %q", rest[0])
+	var config gelesen
+	if err := liesKommandozeile(kommando, opts, stand, &config, args); err != nil {
+		return Command{}, err
 	}
 	for i, o := range opts {
 		v := os.Getenv(envName(o.name))
@@ -305,9 +341,16 @@ func lies(kommando string, args []string) (Command, error) {
 		}
 		stand[i].env, stand[i].envOk = v, true
 	}
+	_, d, err := ladeGewaehlte(config.cli)
+	if err != nil {
+		return Command{}, err
+	}
 	cmd := Command{Name: kommando}
 	for i, o := range opts {
 		v := o.standard
+		if w, ok := d.wert(kommando, o); ok {
+			v = w
+		}
 		switch {
 		case stand[i].cliOk:
 			v = stand[i].cli
@@ -322,12 +365,54 @@ func lies(kommando string, args []string) (Command, error) {
 	return cmd, nil
 }
 
+// liesKommandozeile liest die Argumente bis zum ersten "--" mit einem FlagSet,
+// an dem die Optionen aus opts und --config angemeldet sind; jedes Argument
+// danach oder ohne Option ist unerwartet (LH-FA-01.a).
+func liesKommandozeile(kommando string, opts []option, stand []gelesen, config *gelesen, args []string) error {
+	fs := flag.NewFlagSet(kommando, flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	for i, o := range opts {
+		fs.Var(kommandozeile{o.art, &stand[i].cli, &stand[i].cliOk}, o.name, "")
+	}
+	fs.Var(kommandozeile{artText(), &config.cli, &config.cliOk}, "config", "")
+	vorne, rest := endeDerOptionen(args)
+	if err := fs.Parse(vorne); err != nil {
+		return model.Errorf(model.CodeUsage, err, "ungültige Verwendung von %s", kommando)
+	}
+	if rest = append(fs.Args(), rest...); len(rest) > 0 {
+		return model.Errorf(model.CodeUsage, nil, "unerwartetes Argument %q", rest[0])
+	}
+	return nil
+}
+
 func parseRecord(args []string) (Command, error) {
 	return lies("record", args)
 }
 
 func parseReplay(args []string) (Command, error) {
 	return lies("replay", args)
+}
+
+// parseConfig liest config show: auf der Kommandozeile nur --config, von den
+// Umgebungsvariablen nur PGWIRE_RECORDER_CONFIG; es lädt und prüft die
+// gewählte Datei wie jedes Kommando und liefert die Anzeige (LH-FA-17.a).
+func parseConfig(args []string) (Command, error) {
+	if len(args) == 0 || args[0] != "show" {
+		return Command{}, model.Errorf(model.CodeUsage, nil, "config kennt nur das Kommando config show; --help zeigt die Kommandos")
+	}
+	var config gelesen
+	if err := liesKommandozeile("config show", nil, nil, &config, args[1:]); err != nil {
+		return Command{}, err
+	}
+	pfad, d, err := ladeGewaehlte(config.cli)
+	if err != nil {
+		return Command{}, err
+	}
+	text, err := anzeige(pfad, d)
+	if err != nil {
+		return Command{}, err
+	}
+	return Command{Name: "config show", Anzeige: text}, nil
 }
 
 // dauerForm ist eine ganze Zahl ohne Vorzeichen mit genau einer Einheit.

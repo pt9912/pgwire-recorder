@@ -387,3 +387,61 @@ func TestRunVersionLogLevel(t *testing.T) {
 		t.Fatalf("Exit-Code %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 	}
 }
+
+// Abdeckung: LH-FA-17/Happy, LH-FA-14/Boundary — config show schreibt die
+// Anzeige auf stdout, nichts auf stderr, und endet mit Exit-Code 0; ist die
+// Datei ungültig, steht auf stdout nichts, auf stderr genau die Zeile beim
+// Prozessende mit PGR-E2004, und der Exit-Code ist 2 (LH-FA-17.a *Anzeige*).
+func TestRunConfigShow(t *testing.T) {
+	t.Setenv("PGWIRE_RECORDER_CONFIG", "")
+	t.Setenv("PGWIRE_RECORDER_LOG_LEVEL", "")
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile(standardDatei, []byte("log_level: warn # Kommentar\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	if code := bootstrap.Run(context.Background(), nil, []string{"config", "show"}, "dev", &stdout, &stderr); code != 0 || stdout.String() != standardDatei+"\nlog_level: warn\n" || stderr.Len() > 0 {
+		t.Fatalf("Exit-Code %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
+	}
+	if err := os.WriteFile(standardDatei, []byte("log_level: WARN\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	stdout.Reset()
+	code := bootstrap.Run(context.Background(), nil, []string{"config", "show"}, "dev", &stdout, &stderr)
+	zeilen := strings.Split(strings.TrimSuffix(stderr.String(), "\n"), "\n")
+	if code != 2 || stdout.Len() > 0 || len(zeilen) != 1 || !strings.HasPrefix(zeilen[0], "Konfiguration [PGR-E2004]: ") {
+		t.Fatalf("ungültige Datei: Exit-Code %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
+	}
+}
+
+// Abdeckung: LH-FA-17/Happy — replay startet mit Optionen allein aus der
+// Konfigurationsdatei im aktuellen Verzeichnis (LH-FA-17.a); eine ungültige
+// Datei beendet den Start mit PGR-E2004 und Exit-Code 2, bevor die Aufzeichnung
+// gelesen wird.
+func TestRunReplayAusDatei(t *testing.T) {
+	t.Setenv("PGWIRE_RECORDER_FAIL_ON_UNCONSUMED", "")
+	t.Setenv("PGWIRE_RECORDER_CONFIG", "")
+	input := aufzeichnung(t)
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile(standardDatei, []byte("log_level: warn\nreplay:\n  listen: 127.0.0.1:0\n  input: "+input+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	var out, log bytes.Buffer
+	code := bootstrap.Run(ctx, nil, []string{"replay"}, "dev", &out, &log)
+	if got := stufenImLog(t, log.String()); code != 0 || strings.Join(got, ",") != "WARN "+model.CodeUnconsumed {
+		t.Fatalf("Exit-Code %d, Stufen %v, stderr %q", code, got, log.String())
+	}
+	if err := os.WriteFile(standardDatei, []byte("replay:\n  listen: 127.0.0.1:0\n  input: fehlt.yaml\n  bogus: 1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	if code := bootstrap.Run(context.Background(), nil, []string{"replay"}, "dev", &stdout, &stderr); code != 2 || !strings.Contains(stderr.String(), "PGR-E2004") || strings.Contains(stderr.String(), "PGR-E3") {
+		t.Fatalf("ungültige Datei: Exit-Code %d, stderr %q", code, stderr.String())
+	}
+}
+
+// standardDatei ist die Konfigurationsdatei im aktuellen Verzeichnis
+// (LH-FA-17.a).
+const standardDatei = ".pgwire-recorder.yaml"
