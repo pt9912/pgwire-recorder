@@ -1021,6 +1021,16 @@ zusammengeführte Wert nennt. Die Wirkung einer URL:
   ist ein Konfigurationsfehler (`PGR-E2004`, ungültiger `sslmode` der benutzten
   Verbindung), weil `record` kein TLS zum Upstream kennt (`LH-FA-05.c`).
 
+Namen für `--upstream` kommen nur aus der gewählten Datei; ohne Datei ist ein Wert ohne `:`
+ungültig. Die Variablen der benutzten Verbindung liest der Start einmal, nach der
+Zusammenführung; eine spätere Änderung wirkt nicht. Ihre Meldungen nach dem Einsetzen
+(`sslmode=require` bei `record`, `PGR-E2005`, Port) nennen als Stelle die Verbindung. Host und
+Port gehen zusammengesetzt als `host:port` an den Upstream: der Port so, wie er geschrieben
+oder eingesetzt ist, auch mit führenden Nullen, ein Host mit `:` in eckigen Klammern, auch ein
+eingesetzter, der keine IPv6-Adresse ist; er scheitert dann beim Verbinden (`PGR-E4002`).
+Host und Port sind kein Geheimnis: Die Zeile beim Start und eine Meldung zum Upstream nennen
+diese Adresse, nie Benutzer, Passwort oder Datenbank der URL.
+
 **Geheimnisse.** Der Platzhalter `${VAR}` ist nur in der URL einer benannten
 Verbindung erlaubt und wird für die benutzte Verbindung aus der gleichnamigen
 Umgebungsvariable ersetzt; die Variablen nicht benutzter Verbindungen bleiben
@@ -2466,3 +2476,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Benannte Verbindungen: Steuerzeichen im Text der URL auch als Tabulator ungültig; `[` ohne `]`; wörtliche Zeichen eines Ports mit Platzhalter sind Ziffern; Parameternamen genau in der Schreibweise; Passwort nicht dekodiert, ungültiges Escape dort ist Klartext; dekodierter Teil gültiges UTF-8 ohne Steuerzeichen; Reihenfolge innerhalb einer URL; Name einer Verbindung ohne `$` und wörtlich; Schlüssel `upstream` nach `$$` gegen die gültigen Namen (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen: Inhalt des Hosts in der URL und in `host:port` (IPv6-Adresse in Klammern ohne Platzhalter, sonst ohne Leerraum und ohne `@`, `:`, `/`, `?`, `#`, `[`, `]`, `%`), eingesetzter Host ungeprüft und beim Zusammensetzen mit `:` geklammert; Platzhalter an jeder Stelle von `sslmode` und im Namen eines Parameters ungültig; Reihenfolge je Parameter, `password` auch ohne `=` als Klartext (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen: Zone einer IPv6-Adresse nicht leer, nach der Dekodierung mit denselben Zeichen wie ein Host ohne Klammern, in der URL und in `host:port` (`LH-FA-17.a`) |
+| 2026-10-09 | Benannte Verbindungen: Namen für `--upstream` nur aus der gewählten Datei; Variablen einmal nach der Zusammenführung gelesen; Stelle der Meldungen nach dem Einsetzen; Zusammensetzen zu `host:port` mit Port wie geschrieben oder eingesetzt und Klammern bei `:`; Host und Port kein Geheimnis, Zeile beim Start und Meldungen zum Upstream nennen die Adresse (`LH-FA-17.a`) |

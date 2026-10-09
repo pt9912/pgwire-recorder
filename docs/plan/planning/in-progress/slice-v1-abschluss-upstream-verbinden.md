@@ -55,7 +55,9 @@ dorthin aus `slice-v1-abschluss-konfigurationsdatei`, `slice-v1-abschluss-konfig
   `PGR-E2006`, für beide Slices;
 - die Randformen dazu aus §6 jenes Slice (Name bei `--upstream`, `sslmode=require` bei
   `record`, Variablen der benutzten Verbindung, Einsetzen, `config show` ohne `PGR-E2005`,
-  Reihenfolge am Ende, Rückgabe 8, A7 und A8 für Option und Umgebung, A9, A12; §6 unten).
+  Reihenfolge am Ende, Rückgabe 8, A7 und A8 für Option und Umgebung, A9, A12; §6 unten),
+  dazu die Entscheidungen aus der Prüfung des Architect vom 2026-10-09 vor dem Code (U1 bis
+  U8, §6 unten).
 
 **Aufsetzen.** Der Slice setzt auf dem Laden von `slice-v1-abschluss-verbindungen-platzhalter`
 auf: Dort ist jede URL zerlegt, die Form der Platzhalter, `sslmode`, der Name jeder
@@ -73,6 +75,10 @@ Verbindung und der Schlüssel `upstream` sind geprüft, und ein Klartext-Passwor
   `--user` und `--database`, das Passwort aus dem eingesetzten Platzhalter, TLS nach
   `sslmode`) — `slice-v1-abschluss-einspielen` (dort §1, *Übernommen aus* diesem Slice);
   `play` gibt es erst mit ihm. Hier wird das Auflösen und Einsetzen an `record` getestet.
+  Das Einsetzen dieses Slice gilt für jeden Teil; `record` ruft es nur für Host und Port.
+  `PGR-E2005` für eine Variable in Benutzer, Passwort oder Datenbank tritt erst bei `play` ein
+  und wird dort getestet (`slice-v1-abschluss-einspielen`, dort §1, *Übernommen aus* diesem
+  Slice).
 - TLS zum Upstream bei `record` — nicht Teil des Produkts in dieser Welle
   ([welle-v1-abschluss](../welle-v1-abschluss.md) §6); `sslmode=require` ist bei `record` ein
   Fehler.
@@ -127,8 +133,8 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` (`LH-FA-17.a`) | keine Änderung durch den Implementer | Die Randformen in §6 sind entschieden (Architect, 2026-10-08 und 2026-10-09, vor dem Code); eine Randform, die §6 nicht nennt, geht an den Architect zurück (`AGENTS.md` §3.12) |
-| `internal/adapters/driving/cli` | update | Form `host:port` und Auflösen des Namens bei `--upstream` und `PGWIRE_RECORDER_UPSTREAM`, jeder gesetzte Wert geprüft (die Art `text` von `--upstream` in `cli.go` prüft heute nur den leeren Wert); benutzte Verbindung; `sslmode=require` bei `record`; Einsetzen der Variablen in die zerlegte URL des Ladens, `PGR-E2005`, Prüfung des Ports danach; Zusammensetzen von `host:port` mit geklammertem IPv6-Host |
-| `internal/bootstrap` | update, falls nötig | nur, wenn die aufgelöste Adresse anders als heute an `record` übergeben werden muss |
+| `internal/adapters/driving/cli` | update | Hilfe von `--upstream` nennt `host:port` oder den Namen einer Verbindung (Optionstabelle `LH-FA-17.a`); Form `host:port` und Auflösen des Namens bei `--upstream` und `PGWIRE_RECORDER_UPSTREAM`, jeder gesetzte Wert geprüft (die Art `text` von `--upstream` in `cli.go` prüft heute nur den leeren Wert); benutzte Verbindung; `sslmode=require` bei `record`; Einsetzen der Variablen in die zerlegte URL des Ladens, `PGR-E2005`, Prüfung des Ports danach; Zusammensetzen von `host:port` mit geklammertem IPv6-Host |
+| `internal/bootstrap` | keine Änderung erwartet | `RecordOptions.Upstream` trägt nach dem Auflösen die zusammengesetzte Adresse `host:port`; die Zeile beim Start und `postgres.Upstream` nennen sie wie heute (U6) |
 | `internal/adapters/driving/cli` (Unit-Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a`, je Randform aus §6 ein Fall; `record` mit Verbindungsname gegen PostgreSQL |
 | `docs/user/benutzerhandbuch.md` | update, falls abweichend | §5 *Konfigurationsdatei* (Verbindungen, `sslmode`, Platzhalter) und §7 *Fehlercodes* (`PGR-E2005`, `PGR-E2006`) beschreiben den Zielstand; nachgezogen wird, was der gelieferte Stand beider Slices anders sagt |
 | `docs/user/abdeckung-*.md` | update | über `make abdeckung` aus den Deklarationen der neuen Tests |
@@ -149,8 +155,11 @@ das Laden die zerlegte URL ablegt (`AGENTS.md` §3.12).
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer
   Review-Sitzung prüfbar, oder das Einsetzen verlangt einen Umbau des Zerlegers aus
-  `slice-v1-abschluss-verbindungen-platzhalter`. Schnitt dann: *Auflösen und Verbinden*
-  (DoD-Punkt 1) und *Einsetzen* (DoD-Punkt 2), das Handbuch beim zweiten.
+  `slice-v1-abschluss-verbindungen-platzhalter`. Schnitt dann: DoD-Punkt 1 und 2 (Code) hier,
+  DoD-Punkt 3 (Handbuch und Abdeckung) als eigener Slice; der ist allein lieferbar, weil er
+  geliefertes Verhalten beschreibt. Ein Schnitt zwischen DoD-Punkt 1 und 2 trägt nicht: Ohne
+  das Einsetzen hätte eine benutzte Verbindung mit Platzhalter in Host oder Port bei `record`
+  ein Verhalten, das `LH-FA-17.a` nicht kennt (Prüfung des Architect vom 2026-10-09).
 - `in-progress` → `open` (blockiert — Carveout?): `record` braucht die aufgelöste Adresse in
   einer Form, die der Bootstrap ohne Änderung im Kern nicht übergeben kann; dann zuerst die
   Entscheidung.
@@ -248,6 +257,66 @@ keine.
 - **A12 Meldung zu `PGR-E2005`** — nennt die Verbindung und den Namen der ersten nicht
   gesetzten Variable in der Reihenfolge der URL, nie einen Wert.
 
+*Prüfung des Architect vom 2026-10-09 vor dem Code* — gegen `LH-FA-17.a` und die Ablage in
+`internal/adapters/driving/cli/verbindung.go` (`verbindung` mit `host` und `port` als `teil`,
+Stücke in der Reihenfolge der URL, Platzhalter als `stueck.variable`, Port ohne Angabe
+`5432`, Port mit Platzhalter beim Laden auf Ziffern geprüft; `datei.namen` die gültigen Namen;
+`hostPortForm` für den Schlüssel). Die Ablage trägt alles, was dieser Slice braucht: Das
+Einsetzen ist ein Durchlauf über die Stücke, A12 folgt aus ihrer Reihenfolge; das zweite
+Risiko unten ist damit vor dem Code entfallen. Neu entschieden heißt: seit dem Commit dieser
+Prüfung in `LH-FA-17.a` (*Benannte Verbindungen*, Absatz nach *Die Wirkung einer URL*).
+
+Bestätigt, schon entschieden:
+
+- **Variable mit Steuerzeichen** — bleibt ungeprüft (akzeptiertes Negativ oben); in Host oder
+  Port: ein Port mit Steuerzeichen hat nicht die Form eines Ports (`PGR-E2004`, Rückgabe 8),
+  ein Host scheitert beim Verbinden (`PGR-E4002`).
+- **Eingesetzter Host mit `:` ohne IPv6-Form** — geklammert, scheitert beim Verbinden (F-528).
+- **Eingesetzter Port mit Überlauf** — nicht die Form eines Ports, `PGR-E2004` (Rückgabe 8);
+  `5${P}` mit `P=5432` ergibt `55432`, gültig.
+- **Mehrere fehlende Variablen** — der Start endet beim ersten Fehler; `PGR-E2005` nennt die
+  erste in der Reihenfolge der URL (A12), bei `record` nur unter Host und Port.
+- **Benutzer, Datenbank und Passwort bei `record`** — ignoriert, auch ihre Variablen
+  (*Wirkung einer URL*, Entscheidung des Nutzers vom 2026-10-08).
+
+Neu entschieden:
+
+- **U1 Namen nur aus der gewählten Datei** — ohne Datei ist `--upstream staging` weder Name
+  noch `host:port`, `PGR-E2001`. *Test:* ohne Datei `--upstream staging` `PGR-E2001`; mit
+  Datei, die `staging` führt, gültig. *Mutation:* Name gegen eine leere Menge statt gegen
+  `datei.namen` geprüft, rot über den zweiten Fall.
+- **U2 Variablen einmal gelesen** — nach der Zusammenführung, eine spätere Änderung wirkt
+  nicht; `record` verbindet jede Session zu derselben Adresse. *Test:* Unit, die Adresse in
+  `RecordOptions.Upstream` ist nach dem Lesen fest (`os.Setenv` danach ändert sie nicht).
+  *Mutation:* Einsetzen beim Verbinden statt beim Lesen — im Zuschnitt nicht baubar, ohne
+  `postgres.Upstream` zu ändern (§1, Schicht-Abgrenzung); der Test sichert die Form der
+  Übergabe.
+- **U3 Stelle der Meldungen nach dem Einsetzen** — `sslmode=require` bei `record`,
+  `PGR-E2005` und der Port nach dem Einsetzen nennen `connections.<Name>`, nie einen Wert;
+  `PGR-E2005` dazu den Namen der Variable (A12). *Test:* je Fall die Meldung genau, mit
+  `GEHEIM` als Wert einer Variable im Port (`PGR-E2004` ohne `GEHEIM`). *Mutation:* Wert in
+  die Meldung zum Port, rot über `GEHEIM`.
+- **U4 Port beim Zusammensetzen** — so, wie er geschrieben oder eingesetzt ist, auch
+  `05432`; die Wählfunktion der Standardbibliothek liest führende Nullen. *Test:* `h:05432`
+  ergibt die Adresse `h:05432`; Integration: `record` mit einer Verbindung, deren Port aus
+  einer Variable kommt, zeichnet auf. *Mutation:* Port aus dem Teil vor dem Einsetzen
+  genommen, rot über die Variable.
+- **U5 Klammern** — ein Host mit `:` steht in eckigen Klammern, auch ein eingesetzter, der
+  keine IPv6-Adresse ist (F-528). Test und Mutation wie bei F-528 oben; dazu `${H}` mit `a:b`
+  ergibt `[a:b]:5432`.
+- **U6 Adresse in Log und Meldung** — Host und Port sind kein Geheimnis: Die Zeile beim Start
+  (`upstream=`) und die Meldungen zum Upstream (`PGR-E4002`) nennen die zusammengesetzte
+  Adresse, nicht den Namen; nie Benutzer, Passwort oder Datenbank. *Test:* Integration,
+  `record` mit `--upstream staging` (URL mit `u:${PW}@`) schreibt `upstream=<host:port>` in
+  die Zeile beim Start, ohne den Wert von `PW` und ohne `u`. *Mutation:* `upstream=` mit dem
+  geschriebenen Wert der Option, rot (`staging` statt der Adresse).
+- **U7 Hilfe von `--upstream`** — nennt `host:port` oder den Namen einer Verbindung, wie die
+  Optionstabelle. *Test:* `TestHilfe…` prüft den Text. *Mutation:* alter Text, rot.
+- **U8 Einsetzen bei `play`** — das Einsetzen gilt für jeden Teil; `PGR-E2005` für eine
+  Variable in Benutzer, Passwort oder Datenbank tritt erst bei `play` ein und wird in
+  `slice-v1-abschluss-einspielen` getestet (dort §1 eingetragen, §3.13). Hier: Unit-Test des
+  Einsetzens über alle Teile (Reihenfolge der URL, erste fehlende Variable).
+
 *Akzeptiertes Negativ der Prüfung vom 2026-10-09* (keine Folgepflicht, einmalig und harmlos):
 
 - Ein eingesetzter Wert mit Steuerzeichen bleibt ungeprüft (*Geheimnisse*: weder dekodiert
@@ -257,14 +326,19 @@ keine.
 **Risiken:**
 
 - Die Größe: *Schätzung des Architect vom 2026-10-09* für das *Benutzen* rund 550 bis 650
-  Zeilen (Code für `host:port`, Auflösen, Einsetzen und Prüfungen am Ende rund 120, Tests mit
-  den Randformen oben, Integration, Handbuch und Abdeckung); das Handbuch beschreibt dabei
-  auch den Stand von `slice-v1-abschluss-verbindungen-platzhalter` — **Ausgang:** offen bis
-  Closure.
+  Zeilen; *neu geschätzt vor dem Code am 2026-10-09* gegen die Ablage: Code 150 bis 200
+  (Prüfung von Option und Umgebung nach der Zusammenführung 40, Auflösen und Prüfungen am Ende
+  60, Einsetzen 40, Zusammensetzen 15, Hilfe), Unit-Tests 350 bis 450, Integration 80 bis
+  120, Handbuch 60 bis 80, Abdeckung 20 — **660 bis 870 Zeilen**. Der Geber lag mit 1066
+  Zeilen um die Hälfte über seiner Schätzung; mit demselben Faktor rund 1000 bis 1300. Er war
+  mit rund 70 Zusagen in einer Sitzung prüfbar; dieser trägt rund 30. Kein Schnitt vor dem
+  Code; der Schnitt in §4 (Handbuch abtrennen) bleibt die Rückführung — **Ausgang:** offen
+  bis Closure.
 - Das Einsetzen hängt an der Form, in der `slice-v1-abschluss-verbindungen-platzhalter` die
   zerlegte URL ablegt; trägt sie die Platzhalter nicht je Teil und in der Reihenfolge der URL
-  (A12), muss dieser Slice den Zerleger ändern (Rückführung in §4) — **Ausgang:** offen bis
-  Closure.
+  (A12), muss dieser Slice den Zerleger ändern (Rückführung in §4) — **Ausgang:** entfallen:
+  Die Ablage trägt je Teil die Stücke in der Reihenfolge der URL (Prüfung des Architect vom
+  2026-10-09 vor dem Code, oben).
 - Das Benutzerhandbuch beschreibt Verbindungen und Platzhalter schon im Zielstand und kann vom
   gelieferten Stand abweichen (§3) — **Ausgang:** offen bis Closure.
 - Zwischen der Closure von `slice-v1-abschluss-verbindungen-platzhalter` und der dieses Slice
