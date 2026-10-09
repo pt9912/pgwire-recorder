@@ -955,9 +955,19 @@ Zertifikatsspeicher des Systems (strenger als bei libpq); jeder andere Parameter
 oder Wert ist ein Konfigurationsfehler. Was diese Form nicht zulässt, ist ein
 ungültiger Wert, auch ein anderes Schema (`postgres://`), ein leerer Host, eine
 fehlende oder leere Datenbank, ein Fragment, ein Parameter ohne `=` und ein
-Parameter, der zweimal steht. Fehlt der Port, gilt `5432`; ein Port sind Ziffern
-mit einem Wert von 1 bis 65535. Ein Teil, den die URL wörtlich schreibt, wird
-prozent-dekodiert; ein ungültiges Escape ist ein ungültiger Wert. Für den Namen
+Parameter, der zweimal steht. Zerlegt wird von links: Hinter `postgresql://` reicht der
+Teil mit Benutzer, Host und Port bis zum ersten `/`, `?` oder `#`; das letzte `@` darin
+trennt den Benutzerteil ab, und im Benutzerteil trennt das erste `:` Benutzer und Passwort.
+Ein leerer Benutzer ist ein ungültiger Wert, ein leeres Passwort hinter dem `:` ein
+Klartext-Passwort. Ein Host in eckigen Klammern ist eine IPv6-Adresse ohne die Klammern,
+hinter `]` folgt nur `:` mit Port oder das Ende des Teils; sonst endet der Host am ersten
+`:`. Die Datenbank ist der Text hinter dem `/` bis zum `?`, auch mit weiterem `/`; die
+Parameter trennt `&`, und ein `?` ohne Parameter oder ein leerer Parameter ist ein Parameter
+ohne `=`. Fehlt der Port, gilt `5432`; ein Port sind Ziffern mit einem Wert von 1 bis 65535,
+führende Nullen erlaubt, und ein `:` ohne Port ist ein ungültiger Wert. Ein Teil, den die URL
+wörtlich schreibt, wird prozent-dekodiert, auch Name und Wert eines Parameters vor dem
+Vergleich; der Port nicht, er gilt wie geschrieben. Ein ungültiges Escape und ein Escape,
+das ein Steuerzeichen ergibt, sind ein ungültiger Wert. Für den Namen
 einer Verbindung gilt die Form eines Werts (Text des Skalars; leer, `null` und Tag
 ungültig), und er enthält kein Steuerzeichen und weder `:` noch `@`; sonst ist er ein
 ungültiger Wert, dessen Meldung als Stelle nur `connections` nennt, nicht den Namen, weil
@@ -965,7 +975,13 @@ ein solcher Name die Form eines Benutzerteils mit Passwort haben kann. `--upstre
 nehmen den Namen einer Verbindung oder `host:port`; ein Name hat Vorrang vor
 `host:port` und gilt nur bei genauer Übereinstimmung, auch in Groß- und
 Kleinschreibung. Ein Wert, der weder ein Name ist noch die Form `host:port` mit
-Port hat, ist ein ungültiger Wert. Die Wirkung einer URL:
+Port hat, ist ein ungültiger Wert. In `host:port` ist der Host nicht leer, eine IPv6-Adresse
+steht in eckigen Klammern, und der Port hat die Form eines Ports der URL; der Wert gilt wie
+geschrieben, ohne Dekodierung. Geprüft wird jeder gesetzte Wert, unabhängig von der
+Priorität: der Schlüssel `upstream` beim Laden an seiner Stelle in der Datei, gegen die Namen
+aller Verbindungen der Datei, auch einer, die nach ihm steht; Option und Umgebungsvariable
+nach der Zusammenführung (*Fehler*). Benutzt ist die Verbindung, deren Namen der
+zusammengeführte Wert nennt. Die Wirkung einer URL:
 
 * `play`: Host und Port, Benutzer und Datenbank. Benutzer und Datenbank aus
   `--user` und `--database` gehen vor denen der URL, diese vor den Startup-Daten der
@@ -985,7 +1001,12 @@ den Teilen, die `record` ignoriert. Eine gesetzte, aber leere Variable gilt als 
 gesetzt. Der Name `VAR` hat die Form `[A-Za-z_][A-Za-z0-9_]*`; ein `${` ohne
 schließendes `}` oder mit anderem Namen ist ein ungültiger Wert. In jedem Wert der
 Datei steht `$$` für ein `$`, sodass `$${VAR}` den Text `${VAR}` ergibt; ein `$` vor
-einem anderen Zeichen bleibt stehen. Eingesetzt wird einmal: Ein eingesetzter Wert
+einem anderen Zeichen bleibt stehen; gelesen wird von links, `$$${VAR}` ist ein `$` und
+ein Platzhalter. Außerhalb einer URL ist jedes `${`, das nicht aus einem `$$` hervorgeht,
+ein Platzhalter außerhalb einer URL, gleich ob seine Form gültig ist. Die Wertemenge einer
+Option prüft den Text nach `$$`; `config show` zeigt `$$` wie geschrieben. Kommandozeile und
+Umgebungsvariablen kennen weder Platzhalter noch `$$`. Als `VAR` gilt jeder Name dieser Form,
+auch einer mit dem Präfix `PGWIRE_RECORDER_`. Eingesetzt wird einmal: Ein eingesetzter Wert
 wird nicht erneut ausgewertet. Die URL wird vor dem Einsetzen in ihre Teile zerlegt,
 und der Wert steht unverändert in seinem Teil, auch mit `@`, `:`, `/` oder `%`. Die Form der Platzhalter prüft das Laden in jedem
 Teil jeder Verbindung; unbeachtet bleibt bei einer nicht benutzten Verbindung und
@@ -993,7 +1014,9 @@ bei `record` in Benutzer, Passwort und Datenbank nur ihre Variable. Platzhalter 
 `$$` gelten im geschriebenen Text, vor der Prozent-Dekodierung. Ein eingesetzter
 Wert wird weder dekodiert noch geprüft, außer im Port: Hat der Port nach dem
 Einsetzen nicht die Form eines Ports, ist das ein ungültiger Wert (`PGR-E2004`).
-Den Host prüft der Start nicht. Ein **Klartext-Passwort** ist ein Passwortteil
+Den Host prüft der Start nicht. Die Parameter prüft das Laden vor dem Einsetzen; ein
+Platzhalter in `sslmode` ist ein ungültiger `sslmode`. Die Meldung zu `PGR-E2005` nennt die
+Verbindung und den Namen der ersten nicht gesetzten Variable in der Reihenfolge der URL. Ein **Klartext-Passwort** ist ein Passwortteil
 hinter dem `:` im Benutzerteil einer URL, der nicht genau ein `${VAR}` ist, oder ein
 Parameter `password`, in jeder Verbindung der Datei, auch einer nicht benutzten;
 auch ein fehlerhafter Platzhalter im Passwortteil ist ein Klartext-Passwort.
@@ -1016,8 +1039,10 @@ Fehler mit einer Meldung; geprüft wird in dieser Reihenfolge: die Kommandozeile
 Umgebungsvariablen der Optionen des Kommandos in der Reihenfolge der Tabelle unten;
 die Datei (Wahl, Lesen, YAML, dann Schlüssel, Werte und Klartext-Passwörter in der
 Reihenfolge der Datei, innerhalb einer URL in der Reihenfolge ihrer Teile); zuletzt,
-nach der Zusammenführung, Pflichtoptionen, Kombinationen, `--upstream`, die Variablen
-der Platzhalter der benutzten Verbindung und danach ihr Port nach dem Einsetzen:
+nach der Zusammenführung, Pflichtoptionen, Kombinationen, `--upstream` (der Wert der
+Kommandozeile, dann der der Umgebungsvariable), `sslmode=require` der benutzten Verbindung
+bei `record`, die Variablen der Platzhalter der benutzten Verbindung und danach ihr Port
+nach dem Einsetzen:
 
 | Ursache | Code |
 |---|---|
@@ -2407,3 +2432,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Konfigurationsdatei: Zeile zu ungültigem YAML bei einem Konstrukt über mehrere Zeilen, Grenze bei Beginn in Zeile 1, Meldung ohne Zeile nur für Alias ohne Anker und Anker, der sich selbst enthält; nicht druckbare Zeichen nach YAML 1.2 ungültig (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen, Entscheidung des Nutzers: Name ohne `:` und `@`, sonst ungültiger Wert mit der Stelle `connections` ohne den Namen (`LH-FA-17.a`) |
 | 2026-10-09 | Konfigurationsdatei, Entscheidung des Nutzers: ohne Zeile nur der Alias ohne Anker; ein Anker, der sich selbst enthält, wird als Anker mit der Stelle abgelehnt (`LH-FA-17.a`) |
+| 2026-10-09 | Benannte Verbindungen: Zerlegung der URL (Benutzerteil am letzten `@`, leerer Benutzer, leeres Passwort als Klartext, IPv6-Host in eckigen Klammern, Datenbank mit `/`, Parameter mit `&`), Port ohne Dekodierung und mit führenden Nullen, Escape zu einem Steuerzeichen ungültig, Parameter dekodiert; Form `host:port` von `--upstream`, Prüfung jedes gesetzten Werts, Schlüssel `upstream` gegen alle Namen der Datei, benutzte Verbindung; `$$` von links, `${` außerhalb einer URL, Kommandozeile und Umgebung ohne Platzhalter, Präfix `PGWIRE_RECORDER_` als `VAR` zulässig, Platzhalter in `sslmode`, Meldung zu `PGR-E2005`; `sslmode=require` bei `record` in der Reihenfolge nach `--upstream` (`LH-FA-17.a`) |

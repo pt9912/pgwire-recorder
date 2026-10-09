@@ -49,7 +49,11 @@ und davor aus `slice-v1-abschluss-betrieb`. Im Einzelnen:
   Verbindungen, `sslmode` und Platzhaltern, in §7 *Fehlercodes* die Zeilen `PGR-E2005` und
   `PGR-E2006`;
 - die Randformen zu Verbindungen und Platzhaltern aus §6 jenes Slice, dazu die
-  Entscheidungen des Architect vom 2026-10-08 dazu (Rückgaben 5, 6, 7, 8 und 10, §6 unten).
+  Entscheidungen des Architect vom 2026-10-08 dazu (Rückgaben 5, 6, 7, 8 und 10, §6 unten)
+  und die aus seiner Prüfung dieses Plans vom 2026-10-09 vor dem Code (A1 bis A12, §6
+  unten): Zerlegung der URL, IPv6-Host, Form `host:port`, Prüfung jedes gesetzten Werts von
+  `--upstream`, `$$` und `${` außerhalb einer URL, Meldung zu `PGR-E2005`, `sslmode=require`
+  in der Reihenfolge.
 
 **Aufsetzen.** Der Slice setzt auf dem Laden von `slice-v1-abschluss-konfigurationsdatei` auf:
 Dort ist `connections:` eine Abbildung, ein Name einer Verbindung hat die Form eines Werts
@@ -122,8 +126,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` (`LH-FA-17.a`) | keine Änderung geplant | Die Randformen in §6 sind entschieden (Architect, 2026-10-08, vor dem Code); eine Randform, die §6 nicht nennt, geht an den Architect zurück (`AGENTS.md` §3.12) |
-| `internal/adapters/driving/cli` | update | Zerlegen der URL mit Platzhaltern, Grammatik, Prozent-Dekodierung, `sslmode`; `$$` in jedem Wert der Datei, Platzhalter außerhalb einer URL; Klartext-Passwort; Auflösen des Namens bei `--upstream` und `upstream`; Einsetzen der Variablen der benutzten Verbindung und Prüfung des Ports danach; `PGR-E2005` und `PGR-E2006` |
+| `spec/spezifikation.md` (`LH-FA-17.a`) | keine Änderung durch den Implementer | Die Randformen in §6 sind entschieden (Architect, 2026-10-08 und 2026-10-09, vor dem Code; die vom 2026-10-09 stehen seit dem Commit dieser Prüfung in `LH-FA-17.a`); eine Randform, die §6 nicht nennt, geht an den Architect zurück (`AGENTS.md` §3.12) |
+| `internal/adapters/driving/cli` | update | Zerlegen der URL mit Platzhaltern, Grammatik, Prozent-Dekodierung, `sslmode`; `$$` in jedem Wert der Datei, Platzhalter außerhalb einer URL; Klartext-Passwort; Form `host:port` und Auflösen des Namens bei `--upstream` und `upstream`, jeder gesetzte Wert geprüft (die Art `text` von `--upstream` in `cli.go` prüft heute nur den leeren Wert); Einsetzen der Variablen der benutzten Verbindung und Prüfung des Ports danach; `PGR-E2005` und `PGR-E2006` |
 | `internal/bootstrap` | update, falls nötig | nur, wenn die aufgelöste Adresse anders als heute an `record` übergeben werden muss |
 | `internal/adapters/driving/cli` (Unit-Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a`, je Randform aus §6 ein Fall |
 | `docs/user/benutzerhandbuch.md` | update, falls abweichend | §5 *Konfigurationsdatei* (Verbindungen, `sslmode`, Platzhalter) und §7 *Fehlercodes* (`PGR-E2005`, `PGR-E2006`) beschreiben den Zielstand; nachgezogen wird, was der gelieferte Stand anders sagt |
@@ -144,9 +148,18 @@ dem ersten Code-Commit prüft er die Liste noch einmal gegen diesen Zuschnitt
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer
-  Review-Sitzung prüfbar, oder eine Änderung im Kern wird nötig. Schnitt dann: *URL und
-  Auflösen* (DoD-Punkt 1) und *Platzhalter und Passwort* (DoD-Punkt 2 und 3); der zweite
-  setzt den ersten voraus, weil Platzhalter in der zerlegten URL eingesetzt werden.
+  Review-Sitzung prüfbar, oder eine Änderung im Kern wird nötig. Schnitt dann nach der Phase,
+  nicht nach dem DoD-Punkt (Vorschlag des Architect vom 2026-10-09, §6 *Risiken*): *Laden der
+  Verbindungen* (alles, was das Laden prüft, unabhängig vom Kommando: Zerlegung und Form der
+  URL mit der Form der Platzhalter, `sslmode`, Klartext-Passwort `PGR-E2006` auch bei
+  `config show`, `$$` und `${` außerhalb einer URL, der Schlüssel `upstream` gegen die Namen)
+  und *Benutzen der Verbindung* (nach der Zusammenführung: Form `host:port` und Name bei
+  Option und Umgebungsvariable, `sslmode=require` bei `record`, Einsetzen, `PGR-E2005`, Port
+  nach dem Einsetzen, `record` verbindet zu Host und Port, Handbuch). Der zweite setzt den
+  ersten voraus, weil eingesetzt wird, was das Laden zerlegt hat; der erste ist allein
+  lieferbar und schließt die Lücke beim Klartext-Passwort (Risiko unten). Der bisher
+  genannte Schnitt nach DoD-Punkten trennt die Form der Platzhalter (DoD-Punkt 2) von der
+  Zerlegung (DoD-Punkt 1), obwohl beide derselbe Zerleger sind.
 - `in-progress` → `open` (blockiert — Carveout?): Eine Zusage aus `LH-FA-17.a` zu Verbindungen
   oder Platzhaltern widerspricht dem Laden von `slice-v1-abschluss-konfigurationsdatei` (etwa
   der Form eines Werts) und verlangt eine neue Entscheidung; dann zuerst die Entscheidung.
@@ -171,7 +184,9 @@ Schnitt vom 2026-10-09 aus §6 von `slice-v1-abschluss-konfigurationsdatei` hier
 kamen die ersten aus §6 von `slice-v1-abschluss-konfiguration`, geprüft vom Architect am
 2026-10-08 vor dem Code. Die Rückgaben unten entschied er am 2026-10-08 vor dem Code, die
 Nummern sind die aus jenem Plan. Offen ist keine; *Name einer Verbindung in der Form einer URL
-mit Passwort* (unten) entschied der Nutzer am 2026-10-09 vor dem Code.
+mit Passwort* (unten) entschied der Nutzer am 2026-10-09 vor dem Code. Am 2026-10-09 prüfte der
+Architect die Liste gegen diesen Zuschnitt und den Stand von `datei.go` und `cli.go` vor dem
+ersten Code-Commit und entschied die fehlenden Randformen A1 bis A12 (unten) in `LH-FA-17.a`.
 
 *Verbindungen und Platzhalter*
 
@@ -250,12 +265,98 @@ beim ersten Fehler. Die Rückgaben 1 bis 4, 9, 11 und 12 liefert
     eingesetzter Wert wird nicht dekodiert. Innerhalb einer URL gilt die Reihenfolge ihrer
     Teile.
 
+*Prüfung des Architect vom 2026-10-09 vor dem Code* — je Randform, wo sie entschieden ist; neu
+entschieden heißt: seit dem Commit dieser Prüfung in `LH-FA-17.a`, abgeleitet aus den
+Grundsätzen dort (Grammatik geschlossen, URL vor dem Einsetzen zerlegt, jeder gesetzte Wert
+geprüft, Laden ohne Kommando, nie ein Wert in der Meldung).
+
+Bestätigt, schon vorher entschieden: URL-Grammatik (*Benannte Verbindungen*), Port-Default
+`5432` (Rückgabe 6), Prozent-Dekodierung wörtlicher Teile (Rückgabe 10), `sslmode` mit
+`disable` und `require`, `sslmode=require` bei `record` (`PGR-E2004`), Auflösen eines
+Namens in `--upstream` nur bei genauer Übereinstimmung, `${VAR}` und `$$`, `PGR-E2005` mit
+leerer Variable als nicht gesetzt, Port nach dem Einsetzen, `PGR-E2006` auch bei
+`config show` (*Anzeige*), Name ohne `:` und `@` (V-121). Ein Passwort aus `${VAR}` mit `@`
+oder `:` steht unverändert in seinem Teil (*Geheimnisse*, „auch mit `@`, `:`, `/` oder
+`%`“); eine leere Variable im Port ist `PGR-E2005`, nicht ein ungültiger Port, weil die
+Variablen vor dem Port geprüft werden. Ein Benutzer ohne Passwort ist gültig; woher `play`
+dann das Passwort nimmt, entscheidet `LH-FA-17.a` (`PGWIRE_RECORDER_PASSWORD`) und liefert
+`slice-v1-abschluss-einspielen` (dort §1, *Übernommen aus* diesem Slice).
+
+Neu entschieden:
+
+- **A1 Zerlegung der URL** — von links; der Teil mit Benutzer, Host und Port reicht bis zum
+  ersten `/`, `?` oder `#`; das letzte `@` darin trennt den Benutzerteil ab, das erste `:`
+  im Benutzerteil das Passwort; die Datenbank reicht bis zum `?`, auch mit weiterem `/`;
+  Parameter trennt `&`, ein `?` ohne Parameter und ein leerer Parameter sind Parameter ohne
+  `=` (`PGR-E2004`).
+- **A2 Leerer Benutzer, leeres Passwort** — leerer Benutzer (`postgresql://@h/db`,
+  `postgresql://:${PW}@h/db`) ist `PGR-E2004`; ein leeres Passwort hinter `:`
+  (`postgresql://u:@h/db`) ist ein Klartext-Passwort (`PGR-E2006`), weil es nicht genau ein
+  `${VAR}` ist.
+- **A3 IPv6-Host** — in eckigen Klammern, die Klammern gehören nicht zum Host; hinter `]`
+  nur `:` mit Port oder das Ende; ohne Klammern endet der Host am ersten `:` (`::1` ohne
+  Klammern ist damit ein ungültiger Wert, mehrere Hosts mit `,` ebenso über den Port).
+  Hinweis an den Implementer: `record` braucht die Adresse als `host:port`; ein Host mit
+  `:` (auch ein eingesetzter) wird beim Zusammensetzen wieder geklammert.
+- **A4 Port** — wie geschrieben, nicht dekodiert, führende Nullen erlaubt (`05432` ist
+  5432), ein `:` ohne Port ist `PGR-E2004`.
+- **A5 Dekodierung** — auch Name und Wert eines Parameters vor dem Vergleich
+  (`sslmode=%72equire` ist `require`, `pass%77ord` ein Parameter `password`); ein Escape, das
+  ein Steuerzeichen ergibt (`%00`), ist `PGR-E2004`.
+- **A6 Platzhalter in den Parametern** — die Parameter prüft das Laden vor dem Einsetzen;
+  `sslmode=${M}` ist ein ungültiger `sslmode` (`PGR-E2004`), `password=${PW}` ein
+  Klartext-Passwort.
+- **A7 Form `host:port`** bei `--upstream`, `PGWIRE_RECORDER_UPSTREAM` und dem Schlüssel
+  `upstream` — Host nicht leer (`:5432` ungültig), IPv6 in eckigen Klammern, Port in der
+  Form aus A4; wie geschrieben, ohne Dekodierung. Ein Wert ohne `:` ist ab V-121 nur noch ein
+  Name oder ungültig; der Vorrang des Namens vor `host:port` bleibt im Text stehen und ist
+  ohne Fall (akzeptiertes Negativ: keine Regel zu streichen, kein Test möglich).
+- **A8 Jeder gesetzte Wert von `--upstream`** — geprüft unabhängig von der Priorität, nach
+  dem Grundsatz in `LH-FA-17.a`: der Schlüssel `upstream` beim Laden an seiner Stelle in der
+  Datei gegen die Namen aller Verbindungen der Datei, auch einer, die nach ihm steht
+  (`PGR-E2004`, auch bei `config show` und einem anderen Kommando); Option, dann
+  Umgebungsvariable nach der Zusammenführung (`PGR-E2001`), auch wenn sie nicht gilt.
+  Benutzt ist die Verbindung, deren Namen der zusammengeführte Wert nennt.
+- **A9 `sslmode=require` bei `record` in der Reihenfolge** — direkt nach `--upstream`, vor
+  den Variablen der Platzhalter (*Fehler*); die Liste der Reihenfolge nannte die Stelle
+  nicht.
+- **A10 `$$` und `${` außerhalb einer URL** — von links gelesen (`$$${VAR}` ist `$` und ein
+  Platzhalter); außerhalb einer URL ist jedes `${`, das nicht aus `$$` hervorgeht,
+  `PGR-E2004` *Platzhalter außerhalb einer URL*, gleich ob seine Form gültig ist; die
+  Wertemenge prüft den Text nach `$$`; `config show` zeigt `$$` wie geschrieben.
+- **A11 Kommandozeile und Umgebung** — kennen weder Platzhalter noch `$$`
+  (`--output='a$${X}'` ist der Pfad wie geschrieben). Als `VAR` gilt jeder Name der Form,
+  auch `${PGWIRE_RECORDER_PASSWORD}`; ohne Ausnahme, weil die Variable nur gelesen wird.
+- **A12 Meldung zu `PGR-E2005`** — nennt die Verbindung und den Namen der ersten nicht
+  gesetzten Variable in der Reihenfolge der URL, nie einen Wert.
+
+*Akzeptierte Negative der Prüfung* (keine Folgepflicht, einmalig und harmlos):
+
+- Ein `/`, `?` oder `#` wörtlich im Passwort beendet den Teil mit Benutzer, Host und Port;
+  die URL ist dann `PGR-E2004` statt `PGR-E2006`. Beide beenden den Start, keine Meldung
+  nennt den Wert, `config show` zeigt nichts.
+- Ein eingesetzter Wert mit Steuerzeichen bleibt ungeprüft (*Geheimnisse*: weder dekodiert
+  noch geprüft); eine Umgebungsvariable trägt kein NUL, und Benutzer und Datenbank benutzt
+  erst `play`.
+
 **Risiken:**
 
 - Die Zerlegung der URL mit Platzhaltern braucht einen eigenen Zerleger, weil die
   Standardbibliothek `${PORT}` als Port ablehnt (Hinweis oben); Grammatik, Dekodierung und
-  Einsetzen in einem Zerleger können den Diff über eine Review-Sitzung heben. Gegenmittel:
-  der vorab benannte Schnitt in §4 — **Ausgang:** offen bis Closure.
+  Einsetzen in einem Zerleger können den Diff über eine Review-Sitzung heben. *Schätzung des
+  Architect vom 2026-10-09* gegen den Stand von `datei.go` (551 Zeilen) und `cli.go` und den
+  Liefer-Commit des Gebers (`7a80393`, 1392 Zeilen, davon rund 590 Code und 665 Tests): Code rund
+  350 bis 450 Zeilen (Zerleger mit Platzhaltern 200, `$$` und `${` in jedem Wert 40,
+  Klartext 30, `host:port` und Auflösen 60, Einsetzen und Prüfungen am Ende 60), Unit-Tests
+  550 bis 700 (je Randform aus §6 ein Fall, zwölf neue), Integration 80, Handbuch und
+  Abdeckung 70 — zusammen **1050 bis 1300 Zeilen**, so groß wie der Geber, als er zur
+  Zerlegung zurückging. Das ist der Fall von `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`
+  (1×): Ein zweiter Schnitt als vorab benannte Rückführung trat dort nach den ersten
+  Liefer-Commits ein. *Vorschlag:* jetzt, vor dem Code, nach §4 schneiden — *Laden der
+  Verbindungen* bleibt hier (rund 650 bis 750 Zeilen), *Benutzen der Verbindung* wird ein
+  eigener Slice (rund 550 bis 650 Zeilen); beide im CLI-Adapter, der zweite dazu höchstens im
+  Bootstrap. **Entscheidung des Nutzers offen**; bis dahin beginnt der Implementer mit dem
+  Laden, das in beiden Fällen zuerst kommt — **Ausgang:** offen bis Closure.
 - Das Benutzerhandbuch beschreibt Verbindungen und Platzhalter schon im Zielstand und kann vom
   gelieferten Stand abweichen (§3) — **Ausgang:** offen bis Closure.
 - Bis zur Closure dieses Slice lehnt der gelieferte Stand ein Klartext-Passwort in der Datei
