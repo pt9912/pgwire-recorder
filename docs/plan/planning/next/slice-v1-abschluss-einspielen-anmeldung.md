@@ -137,7 +137,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` liegt in `done/`
-(Kommando `play`, Verbindungsaufbau ohne Passwort, Einstufung der Fehler im Aufbau). Schritt 9
+(Kommando `play`, Verbindungsaufbau ohne Passwort, Einstufung der Fehler im Aufbau). Schritt 11
 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) (Schnitt vom
 2026-10-09). Die Randformen aus §6 entschied der Architect am 2026-10-09 vor dem Code in
 `LH-FA-20.a` *Anmeldung*; vor dem ersten Code-Commit prüft er die Liste gegen den gelieferten

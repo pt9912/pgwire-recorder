@@ -35,7 +35,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Vergleich von Zeilenwerten und Toleranzregeln für Felder — Out-of-Scope von LH-FA-24.
-- Einspielen selbst und Fehlersemantik der Serverfehler — `slice-v1-abschluss-einspielen`; dieser Slice setzt es voraus.
+- Einspielen selbst und Fehlersemantik der Serverfehler — `slice-v1-abschluss-einspielen`; seit dessen zweitem Schnitt vom 2026-10-09 die drei Optionen der Laufsteuerung ohne Vergleich `slice-v1-abschluss-einspielen-laufsteuerung` und das Einspielen von Extended-Interaktionen `slice-v1-abschluss-einspielen-extended` (je §1, *Übernimmt*). Dieser Slice setzt alle drei voraus: DoD-Punkt 3 baut auf den Optionen auf, DoD-Punkt 1 und 2 vergleichen auch Extended-Interaktionen.
 - Anmeldung und TLS beim Einspielen — `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` (je §1, *Übernimmt*; seit dem Schnitt von `slice-v1-abschluss-einspielen` vom 2026-10-09); der Vergleich hängt an keinem der beiden.
 
 ## 2. Definition of Done
@@ -75,7 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` ist `done`, und [ADR-0020](../../adr/0020-antwortvergleich-beim-einspielen.md) ist `Accepted`.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen`, `slice-v1-abschluss-einspielen-laufsteuerung` und `slice-v1-abschluss-einspielen-extended` sind `done`, und [ADR-0020](../../adr/0020-antwortvergleich-beim-einspielen.md) ist `Accepted`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
