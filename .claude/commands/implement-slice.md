@@ -35,29 +35,23 @@ emittierten Durchsetzungsschicht):
   passt. **Jede Inhaltsänderung nach einem Gate-Lauf — inklusive jedes Commits und jedes `git mv`
   — macht den Stempel ungültig: `make gates` erneut laufen.** Ein Commit/Move ohne frischen
   Gate-Lauf lässt den Stop-Hook rot.
-- **Strenges Doc-Gate (d-check).** Maßgeblich ist `.d-check.yml` (`scan.ignore`, `ids`, `matrix`
-  mit `exempt-paths` und `exclude-sections`); dieser Absatz nennt nur, was die Gegenprobe zeigt.
-  Gescannt wird jede `.md` außer `.harness/**` (auch die Skills), `.tmp/**` und
-  `**/*.template.md`. Darin ist `docs-check` rot:
-  - bei einer `ADR-`-Kennung ohne Link im Fließtext (Absatz, Listenpunkt, Tabellenzelle, Zitat),
-    auch in Inline-Code darin (`id-unlinked`, in `spec/` ebenso). Nicht geprüft: in einer
-    `#`-Überschrift, als Text eines Links oder Bildes (ob der Link auf die ADR zeigt, prüft es
-    nicht), in einer Zeile mit `<!-- d-check:ignore … -->` und in jeder Datei unter
-    `docs/plan/adr/` (ADRs, Index);
-  - bei einem toten relativen Linkziel (`target-missing`) oder Anker (`anchor-missing`). Nicht
-    geprüft: externe URLs, HTML-Links (`<a href>`) und Links in Inline-Code;
-  - bei einem Link aus `spec/` auf eine ADR und einer Slice- oder `MR-`-Kennung in `spec/`, auch in
-    Inline-Code (`matrix-forbidden`). Nicht geprüft: in einem Abschnitt, dessen Überschrift genau
-    `Geschichte` lautet (`exclude-sections`; mit Nummer davor zählt er nicht), und eine Slice- oder
-    `MR-`-Kennung in einer Zeile mit `<!-- d-check:status-provenance -->`;
-  - bei einem Link auf eine superseded ADR (`matrix-inactive`; Ausweg: auf die ersetzende ADR
-    verlinken). Nicht geprüft: im ADR-Index, in `docs/reviews/` (`exempt-paths`), aus einer ADR
-    und in einem Abschnitt `Geschichte`.
+- **Strenges Doc-Gate (d-check).** Zugesagt ist nur: `make docs-check` ist rot, wenn in einem
+  Absatz oder Listenpunkt, in einer Zeile ohne HTML-Kommentar, in `AGENTS.md` oder in einer `.md`
+  direkt unter `spec/`, `harness/`, `docs/plan/planning/` oder dessen `open/`, `next/`,
+  `in-progress/`, `done/` (die *genannten Orte*)
+  - die Zeichenfolge `ADR-` mit vier Ziffern als Wort im Text steht, blank oder in Inline-Code,
+    nicht in einem Link oder Bild;
+  - ein Markdown-Link der Form `[Text](Pfad)`, nicht in Inline-Code, mit relativem Pfad auf eine
+    `.md`-Datei zeigt, die es nicht gibt, oder auf einen Anker, den es in einer `.md` der
+    genannten Orte nicht gibt;
+  - in einer der drei Dateien unter `spec/`, außerhalb eines Abschnitts mit der Überschrift
+    `Geschichte`, eine Slice-Kennung (`slice-…`) oder `MR-` mit drei Ziffern als Wort im Text
+    steht, blank oder in Inline-Code, nicht in einem Link oder Bild, oder ein Markdown-Link wie
+    oben auf eine ADR-Datei unter `docs/plan/adr/` zeigt.
 
-  Für alle vier nicht geprüft: umzäunte Code-Blöcke (```` ``` ```` oder `~~~`). Gar nicht geprüft:
-  `LH-`-Kennungen ohne Link (noch nicht erzwungen), `MR-` außerhalb von `spec/`, Pfade in
-  Inline-Code. Was hier nicht als rot steht, gilt als ungeprüft. Als Regel, nicht als Befund des
-  Gates: Kennungen als Anker-Links auf ihre Definition schreiben, auch wo das Gate schweigt.
+  Andere Formen sagt dieser Block nicht zu; was das Gate genau prüft, legt `.d-check.yml` fest.
+  `LH-`-Kennungen ohne Link erzwingt das Gate noch nicht (`slice-harness-lh-links-pflicht`). Als
+  Regel, nicht als Befund des Gates: Kennungen immer als Links auf ihre Definition schreiben.
 - **Neue Artefakte per `cp` aus den vendored Templates** (`.harness/baseline/<tag>/templates/…`),
   dann ausfüllen — keine handgeschriebenen oder repo-gepflegten Template-Kopien.
 - **Commit via Message-Datei** (`git commit -F <datei>`): der Guard scannt den Command-String,

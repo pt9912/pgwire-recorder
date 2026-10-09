@@ -62,11 +62,13 @@ zusammen mit der Begründungs-Pflicht je Punkt.
   F-555, F-557 und F-561 nimmt der Block umzäunte Code-Blöcke ausdrücklich aus, nennt für
   eine ADR-Kennung ohne Link in `spec/` den gemeldeten Code `id-unlinked` und sagt in
   `implement-slice.md` den Link auf eine superseded ADR samt Ausweg zu; je Zusage eine Zeile
-  der Gegenprobe in §7. Nach Verifikation V-134 fasst er die Zusage auf den Fließtext (Absatz,
-  Listenpunkt, Tabellenzelle, Zitat) und nennt die Ausnahmen klassenweise, abgeleitet aus
-  `.d-check.yml` (`scan.ignore`, `ids`, `exempt-paths`, `exclude-sections`) und dem
-  gegenprobierten Verhalten von d-check; maßgeblich bleibt `.d-check.yml`, je Zusage und je
-  Ausnahme eine Zeile der Gegenprobe in §7.
+  der Gegenprobe in §7. Nach Verifikation V-134 und V-138 (Entscheidung des Koordinators vom
+  2026-10-09): Das Aufzählen der Ausnahmen konvergiert nicht — jede Runde fand eine weitere
+  Form. Der Block sagt deshalb eine kleine, geschlossene Menge zu und zählt keine Ausnahme mehr
+  auf: rot sind die Kernfälle, die die Gegenprobe zeigt, eingegrenzt nach Ort und Form; alles
+  andere sagt er nicht zu und verweist auf `.d-check.yml`. Die gemessenen Ausnahmen bleiben in
+  §7 als Messbefund, nicht als Zusage; ebenso der Link auf eine superseded ADR (F-561), den der
+  Block nicht mehr zusagt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -112,17 +114,20 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       toter Anker, eine Kennung `ADR-` ohne Link, ein totes Linkziel und ein Link aus einem
       Spec-Stratum auf eine ADR (Matrix) sind je rot (Beleg in §7: Mutation · Befundzeile).
       Der Block *Strenges Doc-Gate* in `.claude/commands/implement-slice.md`,
-      `.claude/commands/plan-welle.md` und `.claude/commands/close-welle.md` sagt über das
-      Doku-Gate nur zu, was `.d-check.yml` aktiv prüft und eine Zeile der Gegenprobe in §7
-      rot zeigt, nennt `.d-check.yml` als maßgebliche Quelle und die Ausnahmen klassenweise,
-      je mit einer grünen Zeile der Gegenprobe (Verifikation V-134). Heute rot: `ADR-` ohne
-      Link im Fließtext (Absatz, Listenpunkt, Tabellenzelle, Zitat) und in Inline-Code darin.
-      Nicht: `#`-Überschriften, umzäunte Code-Blöcke (Review F-555), Link- und Bildtext,
-      Zeilen-Marker, Dateien unter `docs/plan/adr/`, nicht gescannte Pfade (`scan.ignore`),
-      Abschnitte `Geschichte` (`exclude-sections`), externe und HTML-Links, `LH-` ohne Link,
-      `MR-` außerhalb der Spec-Dateien, Pfade in Inline-Code — das Modul `codepaths` ist
-      nicht aktiv. Was er Agenten weiter abverlangt (Kennungen als Links schreiben), steht
-      als Regel, nicht als Befund des Gates (`AGENTS.md` §3.11).
+      `.claude/commands/plan-welle.md` und `.claude/commands/close-welle.md` sagt eine
+      geschlossene Menge zu (Verifikation V-134, V-138): rot, in einem Absatz oder
+      Listenpunkt, in einer Zeile ohne HTML-Kommentar, in `AGENTS.md` oder einer `.md` direkt
+      unter `spec/`, `harness/`, `docs/plan/planning/` oder dessen vier Lifecycle-Verzeichnissen,
+      eine Kennung `ADR-` mit vier Ziffern als Wort im Text (blank oder in Inline-Code, nicht in
+      einem Link oder Bild) und ein Markdown-Link `[Text](Pfad)` mit relativem Pfad auf eine
+      `.md`, die es nicht gibt, oder auf einen Anker, den es in einer `.md` dieser Orte nicht
+      gibt; in `implement-slice.md` dazu in den drei Dateien unter `spec/`, außerhalb eines
+      Abschnitts `Geschichte`, eine Slice- oder `MR-`-Kennung in derselben Form und ein solcher
+      Link auf eine ADR. Jede dieser Zusagen zeigt eine Zeile der Gegenprobe in §7 rot. Der
+      Block zählt keine Ausnahme auf; er sagt, dass er andere Formen nicht zusagt und
+      `.d-check.yml` festlegt, was das Gate genau prüft, dass `LH-` ohne Link noch nicht
+      erzwungen ist (`slice-harness-lh-links-pflicht`) und, als Regel, nicht als Befund des
+      Gates, dass Kennungen als Links geschrieben werden (`AGENTS.md` §3.11).
 - [ ] **Freshness-Audit:** §7 nennt die Release-Liste des Kurs-Repos (neuester Tag gegen den
       gepinnten `v6.16.0`) und für das Delta bis zum neuesten Tag je Eintrag des
       Adaptions-Blocks (`MR-000`, aktive und aufgelöste) den Ausgang nach
@@ -154,9 +159,9 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `d-check.mk` | update | `DCHECK_IMAGE` auf `v0.85.0`, `DCHECK_DIGEST` auf den Digest des Tags; sonst unverändert (§1) |
 | `.harness/skills/reviewer.md` | update | neue MEDIUM-Klasse *Nehmer nicht nachgezählt* nach `AGENTS.md` §3.13 *Nachzählen beim Eintragen*, mit der Bedingung „im selben Commit“ (Review F-560); die Klasse *Adresse nimmt nicht an* bleibt unverändert |
-| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* auf das gegenprobierte Verhalten gefasst (DoD-Punkt 1, §1 *Berichtigung*): `.d-check.yml` als maßgebliche Quelle; rot sind `ADR-` ohne Link im Fließtext (Absatz, Listenpunkt, Tabellenzelle, Zitat) und in Inline-Code darin, totes relatives Linkziel, toter Anker, in `implement-slice.md` dazu der Verweis aus `spec/` auf ADR, Slice und `MR-` mit dem jeweils gemeldeten Code (Review F-557) und der Link auf eine superseded ADR samt Ausweg (Review F-561); die Ausnahmen klassenweise (Verifikation V-134): nicht gescannte Pfade, `#`-Überschriften, umzäunte Code-Blöcke (Review F-555), Link- und Bildtext, Zeilen-Marker, Dateien unter `docs/plan/adr/`, Abschnitte `Geschichte`, externe und HTML-Links, `LH-` ohne Link, `MR-` außerhalb von `spec/`, Pfade in Inline-Code. Unter `.claude/agents/` und `.harness/skills/` steht kein gleichlautender Block (§7) |
+| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* auf eine geschlossene Zusage gefasst (DoD-Punkt 1, §1 *Berichtigung*, Verifikation V-134 und V-138): rot nur `ADR-` ohne Link und toter relativer `.md`-Link oder Anker, je in Absatz oder Listenpunkt an den genannten Orten, in `implement-slice.md` dazu Slice- und `MR-`-Kennung und Link auf eine ADR aus `spec/`; keine Ausnahmeliste, sondern der Satz, dass andere Formen nicht zugesagt sind und `.d-check.yml` maßgeblich ist; `LH-` noch nicht erzwungen. Unter `.claude/agents/` und `.harness/skills/` steht kein gleichlautender Block (§7) |
 | dieser Plan, §7 | update | Belege des Pins (Digest, Gegenprobe) und Befund des Freshness-Audits |
-| `docs/plan/planning/open/slice-harness-lh-links-pflicht.md`, `docs/plan/planning/open/slice-harness-lh-links-bestand.md` | neu (Planung) | Nehmer der Teil-Zusage „bares `LH-`-Token ist rot“ und dessen abgeschnittener Bestand (§1, §3.13 mit Nachzählen in §8 dort); in `slice-harness-lh-links-pflicht` §6 dazu die Ausnahmen des `ids`-Moduls aus der Gegenprobe (Verifikation V-137) |
+| `docs/plan/planning/open/slice-harness-lh-links-pflicht.md`, `docs/plan/planning/open/slice-harness-lh-links-bestand.md` | neu (Planung) | Nehmer der Teil-Zusage „bares `LH-`-Token ist rot“ und dessen abgeschnittener Bestand (§1, §3.13 mit Nachzählen in §8 dort); in `slice-harness-lh-links-pflicht` §6 dazu die Ausnahmen des `ids`-Moduls aus der Gegenprobe (Verifikation V-137) und die von d-check ausgelassenen Verzeichnisse (Verifikation V-139) |
 | `docs/plan/planning/in-progress/roadmap.md` | update (Planung) | zwei Zeilen im Drift-Log vom 2026-10-09: Anlage und Schnitt von `slice-harness-lh-links-pflicht` |
 
 ## 4. Trigger
@@ -403,6 +408,54 @@ er ausnimmt. Eine Datei, die nicht auf `.md` endet, zählt d-check nicht (`harne
 in `.claude/commands/plan-welle.md` Schritt 8 „Kennungen als Anker-Links“ — eine Regel an den
 Planner, keine Zusage über das Gate, bleibt. `.claude/agents/*.md` und die Skills führen
 keine gleichlautende Stelle.
+
+**Nacharbeit nach Verifikation V-138 und V-139** (Block in den drei Commands auf eine
+geschlossene Zusage gefasst, DoD-Punkt 1 und §1 *Berichtigung*), am Stand `a08d0b9` mit den
+geänderten Commands und diesem Plan im Arbeitsbaum, nur gegen `v0.85.0` (`c07f1fe6…`). Die
+Tabellen davor messen frühere Fassungen des Blocks; ihre Ausnahmen gelten seither als
+Messbefund, nicht als Zusage. Kopien wie oben: je Mutation frisch im Scratchpad, jeder Eintrag
+der obersten Ebene außer `.git` mit `cp -r` ohne `-p`, Mutation per `printf` angehängt bzw. als
+neue Datei, Lauf `docker run --rm --network none` mit dem Digest aus `d-check.mk`, danach nur
+diese Kopie gelöscht; 96 Kopien, je sechs parallel. Unveränderte Kopie: `439 Datei(en)
+geprüft, 0 Befund(e)`, Exit 0. Rot heißt mindestens 1 Befund, Exit 1; grün 0 Befunde, Exit 0.
+*Die Kennung* ist `ADR-` mit vier Ziffern (0001), *die Slice-Kennung* die dieses Slice, *ein
+toter Link* ein Inline-Link mit Text `x`; *Absatz* heißt angehängt als eigener Absatz.
+
+| Zusage im Block | Mutation | Ergebnis |
+|---|---|---|
+| rot: die Kennung als Wort im Absatz, je Ort | angehängt an `AGENTS.md`, `spec/lastenheft.md`, `spec/spezifikation.md`, `spec/architecture.md`, `harness/README.md`, `harness/conventions.md`, `docs/plan/planning/README.md`, `welle-v1-abschluss.md`, je einen Plan in `open/`, `next/`, `in-progress/` (dieser), `in-progress/roadmap.md`, je einen Slice und eine Results-Notiz in `done/` (14 Kopien) | je `id-unlinked` an der angehängten Zeile, rot |
+| dasselbe in einer neuen Datei | `harness/probe.md` und `open/slice-probe.md` neu (2 Kopien) | je `id-unlinked`, 440 Dateien, rot |
+| rot: im Listenpunkt | `- `, `1. `, verschachtelt unter `- `, in `harness/README.md`; `- ` in einem Slice in `done/` (4 Kopien) | je `id-unlinked`, rot |
+| rot: in Inline-Code | im Absatz und im Listenpunkt von `harness/README.md`, im Absatz von `spec/architecture.md` (3 Kopien) | je `id-unlinked`, rot |
+| rot: als Wort, mit Satzzeichen und Auszeichnung | in Klammern mit Komma, fett, auf der Folgezeile eines Absatzes, nach einem Link mit derselben Kennung als Text, in einer Zeile mit `<br>`, als Pfadteil einer nackten URL, eine superseded ADR (0021) blank (7 Kopien) | je `id-unlinked`, rot |
+| rot: toter Link auf eine `.md` | aus `harness/README.md`: `gibt-es-nicht.md` im Absatz und im Listenpunkt, mit Titel, `./…`, `../…`, `sensors/…`, `Conventions.md` (Groß-/Kleinschreibung), Leerzeichen als `%20`, Ziel in `vendor/`, `docs/vendor/`, `.harness/`, `.tmp/`, `*.template.md`; aus `AGENTS.md`, einem Slice in `done/`, `spec/architecture.md` (auch unter `## Geschichte`) (17 Kopien) | je `target-missing`, aus `spec/` dazu `matrix-forbidden … → aussen`, rot |
+| rot: dasselbe außerhalb des Repos | `../../../gibt-es-nicht.md` | `repo-escape`, rot |
+| rot: toter Anker in einer `.md` der genannten Orte | aus `harness/README.md` auf `conventions.md`, `AGENTS.md`, `spec/lastenheft.md`, `planning/README.md`, `in-progress/roadmap.md`, einen Slice in `done/`, dazu ein Anker in Großschreibung eines vorhandenen Slugs; aus einem Plan in `open/` auf diesen Plan; aus `spec/spezifikation.md` auf `lastenheft.md` (9 Kopien) | je `anchor-missing`, rot |
+| rot (`implement-slice.md`): Slice-Kennung in `spec/` | blank im Absatz je Datei unter `spec/`, in Inline-Code, im Listenpunkt; nach einem beendeten Abschnitt `Geschichte` (`## Danach`); unter `## 9. Geschichte` (7 Kopien) | je `matrix-forbidden … → slice`, rot |
+| rot (`implement-slice.md`): `MR-` mit drei Ziffern in `spec/` | `MR-001` blank je Datei unter `spec/`, in Inline-Code im Listenpunkt, fett (5 Kopien) | je `matrix-forbidden … → adaptionsblock`, rot |
+| rot (`implement-slice.md`): Link aus `spec/` auf eine ADR | Link auf ADR 0001 je Datei unter `spec/`, mit vorhandenem Anker, Link auf ADR 0021 im Listenpunkt (5 Kopien) | je `matrix-forbidden … → adr`, rot |
+
+**Abgleich mit den Formen aus V-134 und V-138** — keine fällt unter die Zusage; je eine Kopie,
+gemessen zur Kontrolle:
+
+| Form | Ergebnis | Was der Wortlaut ausnimmt |
+|---|---|---|
+| die Kennung im Titel eines Links | grün | „nicht in einem Link oder Bild“ |
+| die Kennung als Text eines Bildes; die Slice-Kennung als Link-Text und im Link-Titel in `spec/`; `MR-001` als Link-Text in `spec/` | je grün | dasselbe |
+| `<a href>` auf `gibt-es-nicht.md`; `<a href>` aus `spec/` auf ADR 0001 | je grün | „Markdown-Link der Form `[Text](Pfad)`“ |
+| externe URL auf ein totes Ziel; externe URL aus `spec/` auf eine ADR | je grün | „mit relativem Pfad“ |
+| Anker in ein Ziel ohne `.md` (`../go.mod#L1`) | grün | „auf eine `.md`-Datei“ |
+| toter Anker in `a.txt`; Anker in einen Slice unter `done/<welle>/` | je rot | nicht zugesagt (Ziel ohne `.md`, kein genannter Ort) — das Gate prüft mehr |
+| `#`-Überschrift mit der Kennung | grün | „in einem Absatz oder Listenpunkt“ |
+| die Kennung im umzäunten Code-Block | grün | dasselbe |
+| toter Link in Inline-Code | grün | „nicht in Inline-Code“ |
+| Zeile mit `<!-- d-check:ignore … -->`; Slice-Kennung in `spec/` mit `<!-- d-check:status-provenance -->` | je grün | „in einer Zeile ohne HTML-Kommentar“ |
+| `## Geschichte` in `spec/architecture.md` mit der Slice-Kennung | grün | „außerhalb eines Abschnitts mit der Überschrift `Geschichte`“ |
+| die Kennung in ADR 0002, in `.harness/skills/reviewer.md`, in `harness/vendor/probe.md`, `docs/vendor/probe.md` (V-139) | je grün, 439 Dateien | Orte: `AGENTS.md` und `.md` **direkt** unter den genannten Verzeichnissen |
+| Link auf eine superseded ADR außerhalb von `spec/` (`matrix-inactive`) | rot (Tabelle zur Nacharbeit nach Review F-561) | nicht mehr zugesagt |
+
+*Fundstellen:* `grep -rn "Strenges Doc-Gate"` über `.claude/`, `.harness/skills/` und
+`AGENTS.md` findet den Block nur in den drei Commands.
 
 **Freshness-Audit (DoD-Punkt 2).** `gh release list -R pt9912/ai-harness-course` am
 2026-10-09: neuester Tag `v6.17.0` (Latest, 2026-10-07), davor `v6.16.0` (2026-10-06, der

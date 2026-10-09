@@ -235,6 +235,13 @@ Spezifikation §11, vom Architect; offen sind heute alle:
   einer Datei unter `.harness/**`, `.tmp/**` oder mit Endung `.template.md`. Ob die
   Linkpflicht das hinnimmt: Das Lastenheft und die Spezifikation führen Kennungen in
   Überschriften, und ein Link auf ein fremdes Ziel erfüllt das Gate.
+- **Von d-check ausgelassene Verzeichnisse** (Sendung aus `slice-harness-d-check-v0-85`,
+  Verifikation V-139; gemessen am Muster für `ADR-` unter `v0.85.0`, Verifikationsbericht dort
+  und §7 dort): Ohne Eintrag in `scan.ignore` liest d-check keine `.md` in einem Verzeichnis
+  namens `vendor`, `node_modules`, `build`, `dist`, `target`, `.venv` oder `__pycache__`, in
+  jeder Tiefe; die Datei wird nicht gezählt. Heute liegt keines im Repo, ein `vendor/` kann
+  `go mod vendor` anlegen. Ob die Linkpflicht das hinnimmt oder die Spezifikation die Liste als
+  Grenze des Gates nennt.
 - **Kennung in Code-Blöcken und Commit-Beispielen** (etwa `AGENTS.md` §5, Hilfetexte der
   Commands): Link-Pflicht oder Ausnahme.
 - **Muster-Grenzen:** Klassen `FA`, `QA`, `RB` und zweistellige Nummer — eine Kennung
@@ -318,7 +325,10 @@ unter `evidence/`). Treffer:
   `slice-harness-lh-links-bestand`, ist dort nachgezählt (§8). Die Randform *Ausnahmen des
   `ids`-Moduls* in §6 (Verifikation V-137 zu `slice-harness-d-check-v0-85`) ändert die
   Zählung nicht: Sie ist eine Frage an den Architect, kein Liefer-Punkt, und berührt nur die
-  Spezifikation und `.d-check.yml`; weiter drei Liefer-Punkte und zwei Schichten.
+  Spezifikation und `.d-check.yml`; weiter drei Liefer-Punkte und zwei Schichten. Nachgezählt
+  mit der Randform *Von d-check ausgelassene Verzeichnisse* (Verifikation V-139 zu
+  `slice-harness-d-check-v0-85`): ebenso eine Frage an den Architect, entschieden in der
+  Spezifikation; weiter drei Liefer-Punkte und zwei Schichten.
 
 Keiner der Einträge erreicht mit diesem Plan neu die Schwelle 3×.
 
