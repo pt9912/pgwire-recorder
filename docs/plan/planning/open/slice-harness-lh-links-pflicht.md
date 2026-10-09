@@ -225,7 +225,16 @@ Spezifikation §11, vom Architect; offen sind heute alle:
   nur den Stamm, und worauf zeigt der Link (Datei oder Anker der Anforderung)?
 - **Datei der Definition:** `spec/lastenheft.md` und `harness/conventions.md` nennen ihre
   Kennungen blank (Überschriften, Tabellen); die Messung zeigt dort keine Befunde — ob das
-  eine Zusage von d-check ist, auf die sich das Gate stützen darf.
+  eine Zusage von d-check ist, auf die sich das Gate stützen darf. Gemessen am Muster für
+  `ADR-` unter `v0.85.0` (§7 von `slice-harness-d-check-v0-85`, Verifikation V-137): Das
+  `ids`-Modul prüft keine Datei unter dem Ziel des Musters, auch nicht in Unterordnern.
+- **Ausnahmen des `ids`-Moduls** (Sendung aus `slice-harness-d-check-v0-85`, Verifikation
+  V-137; gemessen am Muster für `ADR-` unter `v0.85.0`, §7 dort): Grün bleibt eine Kennung in
+  einer `#`-Überschrift (eine Setext-Überschrift ist rot), als Text eines Links auf ein
+  beliebiges Ziel oder eines Bildes, in einer Zeile mit `<!-- d-check:ignore … -->` und in
+  einer Datei unter `.harness/**`, `.tmp/**` oder mit Endung `.template.md`. Ob die
+  Linkpflicht das hinnimmt: Das Lastenheft und die Spezifikation führen Kennungen in
+  Überschriften, und ein Link auf ein fremdes Ziel erfüllt das Gate.
 - **Kennung in Code-Blöcken und Commit-Beispielen** (etwa `AGENTS.md` §5, Hilfetexte der
   Commands): Link-Pflicht oder Ausnahme.
 - **Muster-Grenzen:** Klassen `FA`, `QA`, `RB` und zweistellige Nummer — eine Kennung
@@ -306,7 +315,10 @@ unter `evidence/`). Treffer:
   in §11 und Links; Harness: `.d-check.yml`, Commands, Links in `harness/`); Pläne und
   Roadmap sind Planung. Die Abdeckungstabellen samt Generator bleiben draußen (§1), sonst
   kämen die Abdeckungs-Deklarationen der Tests unter `internal/` als weitere Schicht hinzu. Der abgeschnittene Teil,
-  `slice-harness-lh-links-bestand`, ist dort nachgezählt (§8).
+  `slice-harness-lh-links-bestand`, ist dort nachgezählt (§8). Die Randform *Ausnahmen des
+  `ids`-Moduls* in §6 (Verifikation V-137 zu `slice-harness-d-check-v0-85`) ändert die
+  Zählung nicht: Sie ist eine Frage an den Architect, kein Liefer-Punkt, und berührt nur die
+  Spezifikation und `.d-check.yml`; weiter drei Liefer-Punkte und zwei Schichten.
 
 Keiner der Einträge erreicht mit diesem Plan neu die Schwelle 3×.
 
