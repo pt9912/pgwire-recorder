@@ -36,11 +36,15 @@ emittierten Durchsetzungsschicht):
   — macht den Stempel ungültig: `make gates` erneut laufen.** Ein Commit/Move ohne frischen
   Gate-Lauf lässt den Stop-Hook rot.
 - **Strenges Doc-Gate (d-check).** `docs-check` ist rot bei einer `ADR-`-Kennung ohne Link in einer
-  gescannten `.md`, auch in Inline-Code (`id-unlinked`), bei einem toten Linkziel (`target-missing`)
-  oder Anker (`anchor-missing`) und bei einem Verweis aus `spec/` auf eine ADR, einen Slice oder eine
-  `MR-`-Kennung, auch blank oder in Inline-Code (`matrix-forbidden`). Nicht geprüft: `LH-`-Kennungen
-  ohne Link (noch nicht erzwungen), `MR-` außerhalb von `spec/`, Pfade in Inline-Code. Als Regel,
-  nicht als Befund des Gates: Kennungen als Anker-Links schreiben.
+  gescannten `.md`, im Fließtext und in Inline-Code (`id-unlinked`), bei einem toten Linkziel
+  (`target-missing`) oder Anker (`anchor-missing`), bei einem Link aus `spec/` auf eine ADR und
+  einer Slice- oder `MR-`-Kennung in `spec/`, auch blank oder in Inline-Code (`matrix-forbidden`;
+  eine ADR-Kennung ohne Link in `spec/` meldet es als `id-unlinked`), und bei einem Link auf eine
+  superseded ADR außerhalb des ADR-Index und `docs/reviews/` (`matrix-inactive`; Ausweg: auf die
+  ersetzende ADR verlinken). Nicht geprüft: Kennungen in umzäunten Code-Blöcken (```` ``` ```` oder
+  `~~~`), auch in `spec/`; `LH-`-Kennungen ohne Link (noch nicht erzwungen), `MR-` außerhalb von
+  `spec/`, Pfade in Inline-Code. Als Regel, nicht als Befund des Gates: Kennungen als Anker-Links
+  schreiben.
 - **Neue Artefakte per `cp` aus den vendored Templates** (`.harness/baseline/<tag>/templates/…`),
   dann ausfüllen — keine handgeschriebenen oder repo-gepflegten Template-Kopien.
 - **Commit via Message-Datei** (`git commit -F <datei>`): der Guard scannt den Command-String,

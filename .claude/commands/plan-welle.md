@@ -26,9 +26,10 @@ Lies den Adaptions-Block („MR-Block") in `harness/conventions.md`; die planung
   weil der `cp` verworfen wird. Das gilt für den Welle-Plan (`welle.template.md`) **und** jeden neuen
   Slice (`slice.template.md`).
 - **Strenges Doc-Gate (d-check).** `docs-check` ist rot bei einer `ADR-`-Kennung ohne Link in einer
-  gescannten `.md`, auch in Inline-Code, und bei einem toten Linkziel oder Anker; `LH-`-Kennungen ohne
-  Link prüft es noch nicht. Als Regel, nicht als Befund des Gates: Kennungen als Anker-Links
-  schreiben. Der Welle-Plan wird gescannt.
+  gescannten `.md`, im Fließtext und in Inline-Code, und bei einem toten Linkziel oder Anker;
+  Kennungen in umzäunten Code-Blöcken (```` ``` ```` oder `~~~`) und `LH-`-Kennungen ohne Link prüft
+  es nicht. Als Regel, nicht als Befund des Gates: Kennungen als Anker-Links schreiben. Der
+  Welle-Plan wird gescannt.
 - **Docker-only + Gate-Nachweis/Stop-Hook.** Nur `make`-Targets, nie Host-Toolchain. `make gates`
   endet mit `record-gates`; jede Inhaltsänderung nach einem Gate-Lauf (inkl. Commit) macht den Stempel
   ungültig → `make gates` erneut laufen.

@@ -58,7 +58,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
   `ADR-` und `MR-` zu (Nebenbefund des Implementers) und wird hier enger gefasst, nicht erst
   im Nehmer: Dieser startet nach welle-v1-abschluss, und bis dahin läse jeder Lauf von
   Planner, Implementer und Welle-Closure eine Prüfung, die es nicht gibt (`AGENTS.md`
-  §3.11); die Korrektur ist Text in der Schicht, die dieser Slice ohnehin berührt.
+  §3.11); die Korrektur ist Text in der Schicht, die dieser Slice ohnehin berührt. Nach Review
+  F-555, F-557 und F-561 nimmt der Block umzäunte Code-Blöcke ausdrücklich aus, nennt für
+  eine ADR-Kennung ohne Link in `spec/` den gemeldeten Code `id-unlinked` und sagt in
+  `implement-slice.md` den Link auf eine superseded ADR samt Ausweg zu; je Zusage eine Zeile
+  der Gegenprobe in §7.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -103,9 +107,10 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Der Block *Strenges Doc-Gate* in `.claude/commands/implement-slice.md`,
       `.claude/commands/plan-welle.md` und `.claude/commands/close-welle.md` sagt über das
       Doku-Gate nur zu, was `.d-check.yml` aktiv prüft und eine Zeile der Gegenprobe in §7
-      rot zeigt (heute: `ADR-` ohne Link überall, auch in Inline-Code; nicht: `LH-` ohne
-      Link, `MR-` außerhalb der Spec-Dateien, Pfade in Inline-Code — das Modul `codepaths`
-      ist nicht aktiv); was er Agenten weiter abverlangt (Kennungen als Links schreiben),
+      rot zeigt (heute: `ADR-` ohne Link im Fließtext und in Inline-Code jeder gescannten
+      `.md`; nicht: Kennungen in umzäunten Code-Blöcken (Review F-555), `LH-` ohne Link,
+      `MR-` außerhalb der Spec-Dateien, Pfade in Inline-Code — das Modul `codepaths` ist
+      nicht aktiv); was er Agenten weiter abverlangt (Kennungen als Links schreiben),
       steht als Regel, nicht als Befund des Gates (`AGENTS.md` §3.11).
 - [ ] **Freshness-Audit:** §7 nennt die Release-Liste des Kurs-Repos (neuester Tag gegen den
       gepinnten `v6.16.0`) und für das Delta bis zum neuesten Tag je Eintrag des
@@ -138,7 +143,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `d-check.mk` | update | `DCHECK_IMAGE` auf `v0.85.0`, `DCHECK_DIGEST` auf den Digest des Tags; sonst unverändert (§1) |
 | `.harness/skills/reviewer.md` | update | neue MEDIUM-Klasse *Nehmer nicht nachgezählt* nach `AGENTS.md` §3.13 *Nachzählen beim Eintragen*, mit der Bedingung „im selben Commit“ (Review F-560); die Klasse *Adresse nimmt nicht an* bleibt unverändert |
-| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* auf das gegenprobierte Verhalten gefasst (DoD-Punkt 1, §1 *Berichtigung*): rot sind `ADR-` ohne Link (auch in Inline-Code), totes Linkziel, toter Anker, in `implement-slice.md` dazu der Verweis aus `spec/` auf ADR, Slice und `MR-`; nicht geprüft `LH-` ohne Link, `MR-` außerhalb von `spec/`, Pfade in Inline-Code. Unter `.claude/agents/` und `.harness/skills/` steht kein gleichlautender Block (§7) |
+| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* auf das gegenprobierte Verhalten gefasst (DoD-Punkt 1, §1 *Berichtigung*): rot sind `ADR-` ohne Link (im Fließtext und in Inline-Code), totes Linkziel, toter Anker, in `implement-slice.md` dazu der Verweis aus `spec/` auf ADR, Slice und `MR-` mit dem jeweils gemeldeten Code (Review F-557) und der Link auf eine superseded ADR samt Ausweg (Review F-561); nicht geprüft Kennungen in umzäunten Code-Blöcken (Review F-555), `LH-` ohne Link, `MR-` außerhalb von `spec/`, Pfade in Inline-Code. Unter `.claude/agents/` und `.harness/skills/` steht kein gleichlautender Block (§7) |
 | dieser Plan, §7 | update | Belege des Pins (Digest, Gegenprobe) und Befund des Freshness-Audits |
 
 ## 4. Trigger
@@ -273,9 +278,34 @@ Unveränderte Kopie: `436 Datei(en) geprüft, 0 Befund(e)`, Exit 0.
 | nicht zugesagt: Pfade in Inline-Code | `` `tools/gibt-es-nicht.sh` ``, angehängt an `harness/README.md` | **kein Befund**, 0 Befunde, Exit 0 (`codepaths` nicht in `modules:`) |
 
 Toter Anker, totes Linkziel und ADR aus `spec/` stehen in der Tabelle davor; `LH-` ohne Link
-ebenda (kein Befund). Ein Verweis aus `spec/` auf eine Welle und auf eine superseded ADR ist
-nicht mutiert — der Block sagt beides nicht mehr zu, ebenso nicht die Ausnahme von
-`docs/reviews/**` (`.d-check.yml` nimmt den Pfad nur aus der Status-Prüfung der Matrix aus).
+ebenda (kein Befund). Ein Verweis aus `spec/` auf eine Welle ist nicht mutiert — der Block
+sagt ihn nicht zu. Den Link auf eine superseded ADR sagt der Block seit der Nacharbeit
+unten wieder zu.
+
+**Nacharbeit nach Review F-555, F-557 und F-561** (Block in den drei Commands und DoD-Punkt
+1), am Stand `6db272b` mit den geänderten Commands im Arbeitsbaum, nur gegen `v0.85.0`
+(`c07f1fe6…`). Kopien wie oben (je Mutation frisch, `cp -r` ohne `-p`, ohne `.git`, danach
+gelöscht); unveränderte Kopie: `438 Datei(en) geprüft, 0 Befund(e)`, Exit 0.
+
+| Zusage im Block | Mutation | Befundzeile |
+|---|---|---|
+| nicht zugesagt: Kennung in umzäuntem Code-Block (F-555) | `ADR-` mit vier Ziffern (0001) in einem Block mit drei Backticks, angehängt an `harness/README.md` | **kein Befund**, 0 Befunde, Exit 0 |
+| dasselbe, Zaun `~~~` | wie davor, Zaun mit drei Tilden | **kein Befund**, 0 Befunde, Exit 0 |
+| dasselbe, auch in `spec/` | im Block mit drei Backticks je eine Kopie: `ADR-` (0001) in `spec/architecture.md`, `MR-001` in `spec/spezifikation.md`, `slice-harness-d-check-v0-85` in `spec/architecture.md` | je **kein Befund**, 0 Befunde, Exit 0 |
+| `ADR-` ohne Link ist rot in Inline-Code (Gegenstück) | `ADR-` (0001) in Backticks, angehängt an `harness/README.md` | `harness/README.md:141` · die Kennung · `id-unlinked`, 1 Befund, Exit 1 |
+| ADR-Kennung ohne Link in `spec/` meldet `id-unlinked` (F-557) | `ADR-` (0001) in Backticks, angehängt an `spec/architecture.md` | `spec/architecture.md:645` · die Kennung · `id-unlinked`, 1 Befund, Exit 1 — kein `matrix-forbidden` |
+| Slice-Kennung in `spec/` ist rot, in Inline-Code | `slice-harness-d-check-v0-85` in Backticks, angehängt an `spec/architecture.md` | `spec/architecture.md:645 slice- matrix-forbidden … spec-straten → slice`, 1 Befund, Exit 1 |
+| Link auf eine superseded ADR ist rot (F-561) | Link auf die ADR 0021, angehängt an `harness/README.md` | `harness/README.md:141 ../docs/plan/adr/0021-vergleichsregeln-beim-einspielen.md matrix-inactive … Superseded by` (Link auf 0023), 1 Befund, Exit 1 |
+| Ausweg: auf die ersetzende ADR verlinken | Link auf die ADR 0023, angehängt an `harness/README.md` | **kein Befund**, 0 Befunde, Exit 0 |
+| Ausnahme `docs/reviews/` | Link auf die ADR 0021, angehängt an den Review-Report dieses Slice | **kein Befund**, 0 Befunde, Exit 0 |
+
+Zur Ausweg-Zeile: Die ADR 0022 ist selbst superseded (ein Link auf sie meldet ebenfalls
+`matrix-inactive` mit Verweis auf 0023); der Block sagt deshalb „die ersetzende ADR“, nicht
+„die nächste“. Die Ausnahme des ADR-Index ist nicht mutiert, belegt ist sie am Bestand:
+`docs/plan/adr/README.md` verlinkt die ADR 0021 (Zeile 27), und die unveränderte Kopie meldet
+0 Befunde. Nicht zugesagt: eine ADR mit Status `deprecated` (das Repo führt keine);
+ein blanker Verweis auf eine superseded ADR meldet `id-unlinked`, nicht `matrix-inactive`
+(eigene Kopie, 1 Befund, Exit 1), das ist die Zeile `ADR-` ohne Link.
 
 *Fundstellen:* `grep -rn -i "Strenges Doc-Gate\|klickbare\|Anker-Link\|codepaths"` über
 `.claude/`, `.harness/skills/` und `AGENTS.md` findet den Block nur in den drei Commands; dazu
