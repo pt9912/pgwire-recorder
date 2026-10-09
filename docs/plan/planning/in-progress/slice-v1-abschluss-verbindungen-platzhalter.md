@@ -51,7 +51,8 @@ und davor aus `slice-v1-abschluss-betrieb`. Nach dem Schnitt dieses Slice vom 20
 - die Randformen dazu aus §6 jenes Slice, die Entscheidungen des Architect vom 2026-10-08
   (Rückgaben 5, 6, 7 und 10, §6 unten) und die aus seiner Prüfung dieses Plans vom
   2026-10-09 vor dem Code, soweit sie das Laden betreffen (A1 bis A6, A7 und A8 für den
-  Schlüssel, A10, A11; §6 unten).
+  Schlüssel, A10, A11; §6 unten), dazu die Rückgaben L1 bis L6 des Implementers vom
+  2026-10-09 und das Gegenlesen dazu (§6 unten).
 
 **Abgegeben** an `slice-v1-abschluss-upstream-verbinden` (dort §1, *Übernimmt*, mit der
 Kennung dieses Slice), nach dem vorab benannten Schnitt aus §4 (*zu groß*, eingetreten am
@@ -209,7 +210,8 @@ dem Schnitt dieses Slice vom 2026-10-09 (§4) zogen die Randformen des Benutzens
 die Variablen der benutzten Verbindung (nicht gesetzt, leer, in Teilen, die `record`
 ignoriert), Einsetzen und Rekursion, `config show` ohne `PGR-E2005`, die Reihenfolge am Ende,
 Rückgabe 8, A7 und A8 für Option und Umgebung, A9, A12 und das zweite akzeptierte Negativ.
-Hier stehen die des Ladens.
+Hier stehen die des Ladens. Die Rückgaben L1 bis L6 des Implementers vom 2026-10-09 und das
+Gegenlesen entschied der Architect am selben Tag vor dem Code (unten).
 
 *Verbindungen und Platzhalter beim Laden*
 
@@ -327,6 +329,72 @@ Neu entschieden, soweit das Laden sie trägt:
 - **A11 Kommandozeile und Umgebung** — kennen weder Platzhalter noch `$$`
   (`--output='a$${X}'` ist der Pfad wie geschrieben). Als `VAR` gilt jeder Name der Form,
   auch `${PGWIRE_RECORDER_PASSWORD}`; ohne Ausnahme, weil die Variable nur gelesen wird.
+
+*Rückgaben des Implementers vom 2026-10-09 (Laden)*, vor dem Code, entschieden vom Architect am
+2026-10-09 in `LH-FA-17.a` (*Benannte Verbindungen*); Grundsätze: Grammatik geschlossen, Laden
+prüft jede Verbindung, nie ein Wert in der Meldung, Steuerzeichen wie beim Namen. Tests in
+`datei_test.go` (Test der Verbindungen bzw. `TestDateiUngueltig`), je Fall Code und Stelle
+genau, die Meldung ohne den Wert.
+
+- **L1 `$` im Namen einer Verbindung** — der Name ist kein Wert: Er gilt wörtlich, `$$` und
+  Platzhalter gelten für ihn nicht, und er enthält kein `$` (`PGR-E2004`, Stelle nur
+  `connections`, wie V-121). Der Schlüssel `upstream` ist ein Wert: `$$` gilt, dann der
+  Vergleich; weil kein Name ein `$` trägt, trifft ein Wert mit `$` nie einen Namen, und
+  `upstream: ${X}` ist ein Platzhalter außerhalb einer URL (A10). Grund: dieselbe Linie wie
+  `:` und `@` (V-121), ohne sie hätte ein Name zwei Schreibweisen. Engt Rückgabe 11 weiter
+  ein; Entscheidung des Architect, der Nutzer kann sie zurücknehmen (Bericht).
+  *Test:* Namen `a$b`, `a$$b` und `${X}` je `PGR-E2004` mit Stelle `connections`, ohne den
+  Namen; `upstream: a$$b` mit einer Verbindung `ab` ist `PGR-E2004` an `record.upstream`.
+  *Mutation:* Prüfung auf `$` entfernt, rot über `a$b`; `$$` auf den Namen angewandt, rot
+  über `a$$b`.
+- **L2 Steuerzeichen im geschriebenen Text einer URL** — ungültiger Wert (`PGR-E2004`), auch
+  der Tabulator, dieselbe Menge wie beim Namen (C0, `U+007F`, C1), geprüft vor der Zerlegung,
+  also auch im Passwortteil `PGR-E2004` (wie das akzeptierte Negativ unten).
+  *Test:* `"postgresql://h\x01/db"`, `"postgresql://h/d\tb"`, `"postgresql://u:p\x9fw@h/db"`
+  je `PGR-E2004` an `connections.<Name>`. *Mutation:* Prüfung entfernt, rot über alle drei;
+  Tabulator ausgenommen, rot über den zweiten.
+- **L3 Prozent-Dekodierung** — (a) ein dekodierter Teil, der kein gültiges UTF-8 ist
+  (`%FF`), ist ungültig; (b) `%C2%80` ergibt U+0080 aus C1 und ist ungültig; (c) dieselbe
+  Menge wie beim Namen, auch `%09`. *Test:* Datenbank `%FF`, Benutzer `%C2%80`, Host `%09`
+  je `PGR-E2004`; Datenbank `%C3%A4` (`ä`) gültig. *Mutation:* UTF-8-Prüfung entfernt, rot
+  über `%FF`; nur C0 geprüft, rot über `%C2%80`.
+- **L4 `upstream: a@b` vor `connections:` mit einer Verbindung `a@b`** — ein ungültiger Name
+  zählt nicht als Name; der erste Fehler ist der, der in der Datei zuerst steht: hier
+  `record.upstream` (weder Name noch `host:port`). Steht `connections:` zuerst, ist es
+  `connections`. *Test:* beide Reihenfolgen, je Code und Stelle genau. *Mutation:* gegen
+  alle Schlüssel statt gegen die gültigen Namen verglichen, rot über die erste Reihenfolge.
+- **L5 Port mit Platzhalter und wörtlichem Text** — die Lesart des Implementers trägt nur
+  halb: Beim Laden sind die wörtlichen Zeichen eines Ports mit Platzhalter Ziffern
+  (`h:5${P}` gültig, `h:x${P}` und `h:$$${P}` `PGR-E2004`); Form und Wert als Ganzes prüft
+  der Start nach dem Einsetzen (`slice-v1-abschluss-upstream-verbinden`). Grund: Das Laden
+  prüft jede Verbindung, auch eine nicht benutzte, und `x${P}` wird nie ein Port.
+  *Test:* die drei Fälle. *Mutation:* Ziffernprüfung bei Platzhalter entfernt, rot über
+  `h:x${P}`.
+- **L6 Passwort mit ungültigem Escape** — bestätigt: Der Passwortteil und der Wert des
+  Parameters `password` werden nicht dekodiert, ob sie Klartext sind, entscheidet der
+  geschriebene Text; `u:%ZZ@h` und `?password=%ZZ` sind `PGR-E2006`. Ein ungültiges Escape im
+  Namen eines Parameters (`?pass%ZZ=x`) bleibt `PGR-E2004`. *Test:* die drei Fälle.
+  *Mutation:* Passwort vor der Klartext-Prüfung dekodiert, rot über `u:%ZZ@h` (dann
+  `PGR-E2004`).
+
+*Gegengelesen, was der Implementer als entschieden las:*
+
+- **`[abc` ohne `]`** — trug nicht; jetzt ausdrücklich: `[` ohne `]`, `[]` und `[` oder `]` an
+  anderer Stelle des Hosts sind `PGR-E2004`. *Test:* `[abc`, `[]`, `a]b`. *Mutation:*
+  Klammerprüfung entfernt, rot über `[abc`.
+- **`SSLMODE` und `PASSWORD`** — bestätigt, jetzt ausdrücklich: Parameternamen gelten genau
+  in der Schreibweise, beide sind unbekannte Parameter (`PGR-E2004`), `PASSWORD=x` also nicht
+  `PGR-E2006`; beide beenden den Start ohne den Wert. *Test:* `?SSLMODE=disable`,
+  `?PASSWORD=x` je `PGR-E2004`. *Mutation:* Vergleich ohne Groß- und Kleinschreibung, rot über
+  beide.
+- **`$${VAR}` im Passwort** — bestätigt: Der geschriebene Text ist nicht genau ein `${VAR}`,
+  also Klartext (`PGR-E2006`). *Test:* `u:$${PW}@h`. *Mutation:* `$$` vor der Klartext-Prüfung
+  ausgewertet, rot.
+- **Prüfreihenfolge in der URL** — jetzt ausdrücklich: Steuerzeichen, Schema, Benutzer,
+  Passwort, Host, Port, Datenbank, die Parameter in ihrer Reihenfolge, Fragment; je Teil die
+  Form seiner Platzhalter vor dem Rest. *Test:* `postgres://:p@/` ist das Schema;
+  `postgresql://u:p@[x/db?a=b` ist das Passwort (`PGR-E2006`) vor dem Host.
+  *Mutation:* Host vor dem Passwort geprüft, rot über den zweiten Fall.
 
 *Akzeptiertes Negativ der Prüfung* (keine Folgepflicht, einmalig und harmlos):
 

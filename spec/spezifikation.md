@@ -955,23 +955,34 @@ Zertifikatsspeicher des Systems (strenger als bei libpq); jeder andere Parameter
 oder Wert ist ein Konfigurationsfehler. Was diese Form nicht zulässt, ist ein
 ungültiger Wert, auch ein anderes Schema (`postgres://`), ein leerer Host, eine
 fehlende oder leere Datenbank, ein Fragment, ein Parameter ohne `=` und ein
-Parameter, der zweimal steht. Zerlegt wird von links: Hinter `postgresql://` reicht der
+Parameter, der zweimal steht. Ein Steuerzeichen im geschriebenen Text der URL (C0 mit dem
+Tabulator, `U+007F`, C1) ist ein ungültiger Wert. Zerlegt wird von links: Hinter `postgresql://` reicht der
 Teil mit Benutzer, Host und Port bis zum ersten `/`, `?` oder `#`; das letzte `@` darin
 trennt den Benutzerteil ab, und im Benutzerteil trennt das erste `:` Benutzer und Passwort.
 Ein leerer Benutzer ist ein ungültiger Wert, ein leeres Passwort hinter dem `:` ein
 Klartext-Passwort. Ein Host in eckigen Klammern ist eine IPv6-Adresse ohne die Klammern,
 hinter `]` folgt nur `:` mit Port oder das Ende des Teils; sonst endet der Host am ersten
-`:`. Die Datenbank ist der Text hinter dem `/` bis zum `?`, auch mit weiterem `/`; die
+`:`. Ein `[` ohne `]`, leere Klammern und ein `[` oder `]` an anderer Stelle des Hosts sind
+ein ungültiger Wert. Die Datenbank ist der Text hinter dem `/` bis zum `?`, auch mit weiterem `/`; die
 Parameter trennt `&`, und ein `?` ohne Parameter oder ein leerer Parameter ist ein Parameter
 ohne `=`. Fehlt der Port, gilt `5432`; ein Port sind Ziffern mit einem Wert von 1 bis 65535,
-führende Nullen erlaubt, und ein `:` ohne Port ist ein ungültiger Wert. Ein Teil, den die URL
-wörtlich schreibt, wird prozent-dekodiert, auch Name und Wert eines Parameters vor dem
-Vergleich; der Port nicht, er gilt wie geschrieben. Ein ungültiges Escape und ein Escape,
-das ein Steuerzeichen ergibt, sind ein ungültiger Wert. Für den Namen
+führende Nullen erlaubt, und ein `:` ohne Port ist ein ungültiger Wert. Steht im Port ein
+Platzhalter, sind seine wörtlichen Zeichen beim Laden Ziffern; Form und Wert prüft der Start
+nach dem Einsetzen. Ein Teil, den die URL wörtlich schreibt, wird prozent-dekodiert, auch Name
+und Wert eines Parameters vor dem Vergleich, der Name in Groß- und Kleinschreibung genau
+(`SSLMODE` und `PASSWORD` sind unbekannte Parameter); der Port nicht, er gilt wie geschrieben,
+und das Passwort nicht: Ob der Passwortteil und der Wert des Parameters `password` ein
+Klartext-Passwort sind, entscheidet der geschriebene Text, auch bei einem ungültigen Escape
+dort. Ein ungültiges Escape ist ein ungültiger Wert, ebenso ein dekodierter Teil, der kein
+gültiges UTF-8 ist oder ein Steuerzeichen enthält (dieselbe Menge wie oben). Geprüft wird
+innerhalb einer URL in dieser Reihenfolge: Steuerzeichen, Schema, Benutzer, Passwort, Host,
+Port, Datenbank, die Parameter in ihrer Reihenfolge, Fragment; je Teil die Form seiner
+Platzhalter vor dem Rest. Für den Namen
 einer Verbindung gilt die Form eines Werts (Text des Skalars; leer, `null` und Tag
-ungültig), und er enthält kein Steuerzeichen und weder `:` noch `@`; sonst ist er ein
-ungültiger Wert, dessen Meldung als Stelle nur `connections` nennt, nicht den Namen, weil
-ein solcher Name die Form eines Benutzerteils mit Passwort haben kann. `--upstream` und der Schlüssel `upstream`
+ungültig), und er enthält kein Steuerzeichen und weder `:` noch `@` noch `$`; sonst ist er
+ein ungültiger Wert, dessen Meldung als Stelle nur `connections` nennt, nicht den Namen, weil
+ein solcher Name die Form eines Benutzerteils mit Passwort haben kann. Der Name gilt wörtlich,
+`$$` und Platzhalter gelten für ihn nicht. `--upstream` und der Schlüssel `upstream`
 nehmen den Namen einer Verbindung oder `host:port`; ein Name hat Vorrang vor
 `host:port` und gilt nur bei genauer Übereinstimmung, auch in Groß- und
 Kleinschreibung. Ein Wert, der weder ein Name ist noch die Form `host:port` mit
@@ -979,7 +990,9 @@ Port hat, ist ein ungültiger Wert. In `host:port` ist der Host nicht leer, eine
 steht in eckigen Klammern, und der Port hat die Form eines Ports der URL; der Wert gilt wie
 geschrieben, ohne Dekodierung. Geprüft wird jeder gesetzte Wert, unabhängig von der
 Priorität: der Schlüssel `upstream` beim Laden an seiner Stelle in der Datei, gegen die Namen
-aller Verbindungen der Datei, auch einer, die nach ihm steht; Option und Umgebungsvariable
+aller gültigen Verbindungen der Datei, auch einer, die nach ihm steht, nach `$$`; ein Name,
+der selbst ungültig ist, zählt dabei nicht, und der erste Fehler ist der, der in der Datei
+zuerst steht; Option und Umgebungsvariable
 nach der Zusammenführung (*Fehler*). Benutzt ist die Verbindung, deren Namen der
 zusammengeführte Wert nennt. Die Wirkung einer URL:
 
@@ -2433,3 +2446,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Benannte Verbindungen, Entscheidung des Nutzers: Name ohne `:` und `@`, sonst ungültiger Wert mit der Stelle `connections` ohne den Namen (`LH-FA-17.a`) |
 | 2026-10-09 | Konfigurationsdatei, Entscheidung des Nutzers: ohne Zeile nur der Alias ohne Anker; ein Anker, der sich selbst enthält, wird als Anker mit der Stelle abgelehnt (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen: Zerlegung der URL (Benutzerteil am letzten `@`, leerer Benutzer, leeres Passwort als Klartext, IPv6-Host in eckigen Klammern, Datenbank mit `/`, Parameter mit `&`), Port ohne Dekodierung und mit führenden Nullen, Escape zu einem Steuerzeichen ungültig, Parameter dekodiert; Form `host:port` von `--upstream`, Prüfung jedes gesetzten Werts, Schlüssel `upstream` gegen alle Namen der Datei, benutzte Verbindung; `$$` von links, `${` außerhalb einer URL, Kommandozeile und Umgebung ohne Platzhalter, Präfix `PGWIRE_RECORDER_` als `VAR` zulässig, Platzhalter in `sslmode`, Meldung zu `PGR-E2005`; `sslmode=require` bei `record` in der Reihenfolge nach `--upstream` (`LH-FA-17.a`) |
+| 2026-10-09 | Benannte Verbindungen: Steuerzeichen im Text der URL auch als Tabulator ungültig; `[` ohne `]`; wörtliche Zeichen eines Ports mit Platzhalter sind Ziffern; Parameternamen genau in der Schreibweise; Passwort nicht dekodiert, ungültiges Escape dort ist Klartext; dekodierter Teil gültiges UTF-8 ohne Steuerzeichen; Reihenfolge innerhalb einer URL; Name einer Verbindung ohne `$` und wörtlich; Schlüssel `upstream` nach `$$` gegen die gültigen Namen (`LH-FA-17.a`) |
