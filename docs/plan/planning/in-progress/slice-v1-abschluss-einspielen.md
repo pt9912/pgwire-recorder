@@ -734,7 +734,11 @@ der Fall `Aufzeichnung` mit `host:port`.
 *Läufe der Nacharbeit zur Verifikation.* Unit-Tests aller Pakete ohne Cache im Image der
 Stufe `deps` grün, `go vet -tags integration ./...` ohne Befund, die sechs `TestE2EPlay*` in
 einer frischen Kopie gegen das gepinnte PostgreSQL-Image grün, `make abdeckung` auf diesem
-Stand. `make gates`: Ergebnis im Commit danach, mit Stand.
+Stand. `make gates` am Stand `c940cdf` (sauberer Baum): Exit-Code 0; darin
+`baseline-verify: v6.16.0 OK`, `d-check: 426 Datei(en) geprüft, 0 Befund(e)`, a-check
+`gesamt: 0 Befund(e)`, `a-check-negativ: gruen`, `run-integration-tests: gruen` mit
+`TestE2EPlayVorrang` und `TestE2EPlayZwischenstand` je `PASS`, `abdeckung-gegenprobe`,
+`commit-msg-gegenprobe`, `kopf-check-gegenprobe` und `lint-gegenprobe` je `gruen`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
