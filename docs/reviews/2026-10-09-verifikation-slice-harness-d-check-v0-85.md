@@ -246,3 +246,78 @@ Acht Zeilen nachgefahren, jedes Ergebnis wie in §7: Absatz rot (`id-unlinked`);
 V-134 bis V-137 erledigt. **DoD-Punkt 1 bleibt in der Teil-Zusage über den Block abgelehnt** (V-138), Punkte 2 bis 4 bestätigt. **Closure-blockierend:** V-138 ja, bis die Ausnahmen nach Art des Befunds für alle Spiegelstriche gelten, Link-Titel und Anker in Nicht-`.md`-Ziele genannt sind und §7 je eine grüne Zeile führt; V-139 nein, aber vor der Closure in Block, DoD-Wortlaut und Nehmer-§6 nachzuziehen; V-140 nein.
 
 **Übergabe:** V-138 und V-139 (Block) an den Implementer, DoD-Wortlaut über den Planner; V-139 (Nehmer `slice-harness-lh-links-pflicht` §6) an den Planner; V-140 zur Kenntnis. Da die Form-Suche zweimal neue Lücken fand, empfehle ich die Ausnahmen je Art des Befunds (Link oder Kennung) statt je Spiegelstrich — sie schließt die Klasse, nicht die nächste Form.
+
+---
+
+## Schlussprüfung — 2026-10-09
+
+**Gegenstand:** die Nacharbeit `b5e4437` (V-138, V-139) und `689deb7` (Beleg des Gate-Laufs) am Stand `689deb7`; Diff `a08d0b9..689deb7` berührt die drei Commands, den Plan dieses Slice und `slice-harness-lh-links-pflicht`. Der Block *Strenges Doc-Gate* ist jetzt eine geschlossene Zusage: rot ist, in einem Absatz oder Listenpunkt, in einer Zeile ohne HTML-Kommentar, an den *genannten Orten* (`AGENTS.md`, `.md` direkt unter `spec/`, `harness/`, `docs/plan/planning/` und dessen vier Lifecycle-Verzeichnissen), (1) `ADR-` mit vier Ziffern als Wort im Text, blank oder in Inline-Code, nicht in einem Link oder Bild; (2) ein Markdown-Link `[Text](Pfad)`, nicht in Inline-Code, mit relativem Pfad auf eine fehlende `.md` oder auf einen Anker, den es in einer `.md` der genannten Orte nicht gibt; (3) nur `implement-slice.md`: in `spec/`, außerhalb eines Abschnitts `Geschichte`, Slice- oder `MR-`-Kennung in derselben Form oder ein solcher Link auf eine ADR-Datei. DoD-Punkt 1 trägt denselben Wortlaut. Gemessen wird nur, was unter diesen Wortlaut fällt; was außerhalb liegt, ist kein Befund. Beim Start war der Arbeitsbaum sauber, HEAD `689deb7`.
+
+**Proben wie oben**, Präfix `ver3-dcheck-`: je Mutation eine frische Kopie (jeder Eintrag der obersten Ebene außer `.git` mit `cp -r` ohne `-p`), Mutation per `printf` angehängt bzw. als neue Datei, Lauf `docker run --rm --network none` mit dem Digest aus `d-check.mk` (`c07f1fe6…`), danach nur diese Kopie gelöscht; je sechs parallel. Unveränderte Kopie: `439 Datei(en) geprüft, 0 Befund(e)`, Exit 0. Rot heißt mindestens 1 Befund, Exit 1; grün 0 Befunde, Exit 0. *Die Kennung* ist `ADR-` mit der Nummer 0001, *die Slice-Kennung* die dieses Slice; *Zeilenumbruch* heißt ein `\n` mitten in der Form, sonst stehen Text und Form auf einer Zeile.
+
+### Stichprobe der Gegenprobe in §7 (Nacharbeit nach V-138 und V-139)
+
+Fünfzehn Zeilen nachgefahren, jedes Ergebnis wie in §7: die Kennung im Absatz von `AGENTS.md`, `welle-v1-abschluss.md`, einem Plan in `open/` und in neuer Datei `harness/probe.md` (440 Dateien) je rot (`id-unlinked`); verschachtelter Listenpunkt rot; Inline-Code in `spec/architecture.md` rot (`id-unlinked`); ADR 0021 blank rot; Link auf `Conventions.md` rot (`target-missing`); `../../../gibt-es-nicht.md` rot (`repo-escape`); toter Anker in einem Slice in `done/` rot (`anchor-missing`); `MR-001` fett in `spec/spezifikation.md` rot (`matrix-forbidden`); Link aus `spec/lastenheft.md` auf ADR 0001 rot (`matrix-forbidden … → adr`); Slice-Kennung unter `## 9. Geschichte` rot; dazu die Kontrollen Kennung im Link-Titel und `harness/vendor/probe.md` je grün (439 Dateien). **Die Gegenprobe in §7 trägt.**
+
+### Formen unter dem Wortlaut, gezielt gesucht
+
+64 Kopien. Was rot blieb, trägt die Zusage; die grünen Zeilen sind Befunde.
+
+| Form (je unter dem Wortlaut) | Ergebnis |
+|---|---|
+| Kennung in eckigen Klammern ohne Linkziel, mit Leerzeichen vor `(…)`, mit maskierten Klammern; nach einer Zeile, die wie ein Zaun mit Backtick im Info-String aussieht; neben Inline-Code mit `<!-- -->` bzw. `<!-- d-check:ignore … -->` darin; in der Zeile nach einem einzeiligen HTML-Kommentar; als faule Fortsetzung eines Listenpunkts; mit `|` ohne Tabellen-Trennzeile; nach 70 000 Zeichen in derselben Zeile; mit BOM am Dateianfang; in `harness/.probe.md` und `harness/probe datei.md`; ADR 9999 (nicht vorhanden); mit `/` danach; mit drei Leerzeichen Einzug; im Absatz innerhalb `<details>`; nach einem Zaun mit längerem Ende; nach einem Zaun in einem Listenpunkt; nach Inline-Code, der über einen Zeilenumbruch reicht und vor der Kennung endet | je rot (`id-unlinked`) — trägt |
+| toter Link mit leerem Text, geschachtelten Klammern oder Inline-Code im Text, kursiv, als zweiter Link der Zeile, mit `%C3%A4`, mit leerem Anker `#`, mit `./sub/../`, mit Ziel auf der Folgezeile | je rot (`target-missing`) — trägt |
+| Anker `#purpose-1` (Dublettenzähler ohne Dublette, auch wenn eine zweite `## Purpose` nur in einem Zaun steht); Anker, den es nur als Überschrift oder `<a id>` in einem Zaun, als `<a id>` in Inline-Code oder als Überschrift in einem HTML-Kommentar gibt | je rot (`anchor-missing`) — trägt |
+| Slice-Kennung in `spec/` nach `## Geschichte` in einem Zaun, in einem HTML-Kommentar oder in einem Zitat; `slice-gibt-es-nicht`; `MR-999`; Slice- bzw. `MR-`-Kennung in Inline-Code über einen Zeilenumbruch; Link auf ADR 0001 über `./../docs/plan/../plan/adr/…`, mit Anker, mit Titel auf der Folgezeile | je rot (`matrix-forbidden`, beim Anker dazu `anchor-missing`) — trägt |
+| **die Kennung in Inline-Code über einen Zeilenumbruch**, im Absatz von `harness/README.md` (Kennung vorn und hinten), im Listenpunkt, in `AGENTS.md` | je **grün** — V-142 |
+| **Link `[Text](Pfad)` mit Zeilenumbruch im Text**: totes Ziel im Absatz von `harness/README.md`, im Listenpunkt, in `AGENTS.md`; toter Anker in `conventions.md`; aus `spec/architecture.md` auf ADR 0001 | je **grün** — V-141 |
+| **`    ## Geschichte` als eingerückter Code-Block** (nach Tabelle und Leerzeile) in `spec/`, danach im Absatz die Slice-Kennung, `MR-001`, ein Link auf ADR 0001 | je **grün** — V-143; Kontrolle: nach einem echten `## Danach` wieder rot |
+| Anker, den es nur als `    ## Eingerueckt` in einem eingerückten Code-Block von `conventions.md` gibt | **grün** — V-143 |
+| Anker, den es nur als `<a id>` in einem HTML-Kommentar von `conventions.md` gibt | **grün** — V-144 |
+
+**Zur Lesart:** Inline-Code über einen Zeilenumbruch ist nach CommonMark Inline-Code (der Umbruch wird zum Leerzeichen), ein Link-Text mit Zeilenumbruch ist ein Link `[Text](Pfad)`; beide stehen im Absatz in Zeilen ohne HTML-Kommentar. Der Block sagt dafür rot zu. Im Matrix-Teil fängt d-check die Slice- und `MR-`-Kennung in umbrochenem Inline-Code, im `ids`-Teil die `ADR-`-Kennung nicht; Links fängt keines der Module, sobald der Text umbricht. Im lebenden Bestand der genannten Orte steht heute kein Link mit umbrochenem Text (`perl` über die Dateien, 0 Treffer) — die Form ist bei Zeilen um 100 Zeichen aber die übliche Folge eines Umbruchs. Eine Zeile mit vier Leerzeichen Einzug nach Leerzeile ist keine Überschrift; d-check zählt sie als Überschrift für Abschnitte und Anker. Ob ein `<a id>` in einem HTML-Kommentar „einen Anker gibt“, ist Lesart: Gerendert existiert er nicht; d-check meldet „keinem HTML-Anker der Zieldatei“ und zählt ihn.
+
+### V-139 im Nehmer
+
+Erledigt: `slice-harness-lh-links-pflicht` §6 nennt *Von d-check ausgelassene Verzeichnisse* (die sieben Namen, jede Tiefe, nicht gezählt) mit der Kennung des Gebers, §8 zählt nach (weiter drei Liefer-Punkte, zwei Schichten; eine Frage an den Architect) — nachvollzogen. Im Block selbst ist die Frage durch „direkt unter“ entfallen: Keiner der sieben Namen ist ein genannter Ort (Kontrolle `harness/vendor/probe.md` oben).
+
+### Urteil je DoD-Punkt (abschließend)
+
+- **Punkt 1** — Pin, Digest, 0 Befunde, Gegenprobe der vier Klassen: **bestätigt**. Block und DoD-Wortlaut: V-134, V-138 und V-139 erledigt, die Stichprobe der Gegenprobe trägt; die Teil-Zusage „geschlossene Menge, jede Zusage rot“ ist **abgelehnt** — zwei gewöhnliche Formen unter dem Wortlaut bleiben grün (V-141, V-142).
+- **Punkt 2** — Freshness-Audit: **bestätigt** (nicht im Diff seit der ersten Prüfung).
+- **Punkt 3** — Reviewer-Skill: **bestätigt** (nicht im Diff).
+- **Punkt 4** — `make gates`: Beleg in §7 an `b5e4437`, durch eigenen Lauf an `689deb7` **bestätigt** (*Lauf* unten).
+- **Review** — Report liegt vor (`docs/reviews/2026-10-09-review-slice-harness-d-check-v0-85.md`): bestätigt.
+- **Closure-Notiz, Register, Risiko-Ausgänge, Paarungen** — noch nicht fällig (Slice in `in-progress/`); nicht geprüft.
+
+### Lauf
+
+`make gates` an `689deb7`, gestartet bei sauberem Arbeitsbaum: Exit 0; darin `baseline-verify: v6.16.0 OK — 54 Dateien`, `d-check: 439 Datei(en) geprüft, 0 Befund(e)`, `run-integration-tests: gruen`, je `gruen` `a-check-negativ`, `commit-msg-gegenprobe`, `abdeckung-gegenprobe`, `kopf-check-gegenprobe`, `lint-gegenprobe`. Während des Laufs entstand dieser Abschnitt; `make docs-check` danach mit ihm: `439 Datei(en) geprüft, 0 Befund(e)`.
+
+## Findings der Schlussprüfung
+
+| ID | Kategorie | Befund | Quelle | Pfad | Verifizierbar | Klasse |
+|---|---|---|---|---|---|---|
+| V-141 | MEDIUM | Ein Markdown-Link `[Text](Pfad)`, dessen Text über einen Zeilenumbruch reicht, ist grün: totes Ziel (Absatz, Listenpunkt, `AGENTS.md`), toter Anker und — `implement-slice.md` — Link aus `spec/` auf eine ADR. Der Block sagt alle drei rot zu. *Failure-Szenario:* Ein Umbruch bei 100 Zeichen fällt in einen Link-Text, das Ziel ist vertippt, und das Gate bleibt grün, während der Block den Link als geprüft ausweist. | `AGENTS.md` §3.11; Plan §2 DoD-Punkt 1 („Jede dieser Zusagen zeigt eine Zeile der Gegenprobe in §7 rot“) | `.claude/commands/implement-slice.md` · „ein Markdown-Link der Form `[Text](Pfad)`, nicht in Inline-Code“; `plan-welle.md`, `close-welle.md` · „Markdown-Link der Form `[Text](Pfad)`“ | ja (fünf Kopien, je 0 Befunde, Exit 0) | Kommentar-Zusage weiter als die Prüfung |
+| V-142 | MEDIUM | Die Kennung `ADR-` mit vier Ziffern in Inline-Code, der über einen Zeilenumbruch reicht, ist grün (Absatz, Listenpunkt, `AGENTS.md`; Kennung vor oder nach dem Umbruch). Der Block sagt „blank oder in Inline-Code“ rot zu. In `spec/` fängt `matrix` Slice- und `MR`-Kennung in derselben Form (rot), das `ids`-Modul die `ADR-`-Kennung nicht. | wie V-141 | alle drei Commands · „blank oder in Inline-Code, nicht in einem Link oder Bild“ | ja (vier Kopien) | Kommentar-Zusage weiter als die Prüfung |
+| V-143 | LOW | Eine Zeile `    ## …` im eingerückten Code-Block zählt d-check als Überschrift: nach `    ## Geschichte` in `spec/` sind Slice-Kennung, `MR-001` und Link auf eine ADR grün (`implement-slice.md` sagt sie rot zu, die Zeile ist keine Überschrift), und ein Anker, den es nur so gibt, ist grün. Selten, aber unter dem Wortlaut. | wie V-141 | `.claude/commands/implement-slice.md` · „außerhalb eines Abschnitts mit der Überschrift `Geschichte`“; alle drei · „auf einen Anker, den es in einer `.md` der genannten Orte nicht gibt“ | ja (vier Kopien) | Kommentar-Zusage weiter als die Prüfung |
+| V-144 | INFO | Ein Anker, den es nur als `<a id>` in einem HTML-Kommentar gibt, ist grün. Ob ein auskommentierter Anker „existiert“, ist Lesart (gerendert nicht); d-check zählt ihn. Kein Handlungsbedarf, sofern der Block „Anker“ nicht gerendert meint. | Plan §2 DoD-Punkt 1 | alle drei Commands · „auf einen Anker, den es … nicht gibt“ | ja (eine Kopie) | — |
+
+## Summary der Schlussprüfung
+
+| Kategorie | Anzahl |
+|---|---|
+| HIGH | 0 |
+| MEDIUM | 2 |
+| LOW | 1 |
+| INFO | 1 |
+
+**Finding-Klassen:** Kommentar-Zusage weiter als die Prüfung (V-141 bis V-143; dritter Lauf in Folge, Zuordnung zu `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` wie V-134 und V-138).
+
+## Verdikt der Schlussprüfung
+
+V-138 und V-139 erledigt; die geschlossene Form konvergiert: Von 64 gezielten Formen fallen zwei gewöhnliche Klassen durch, beide an derselben Achse (eine Form über einen Zeilenumbruch), dazu zwei seltene (V-143, V-144). **DoD-Punkt 1 bleibt in der Teil-Zusage über den Block abgelehnt** (V-141, V-142), Punkte 2 bis 4 bestätigt.
+
+**Closure-blockierend:** V-141 und V-142 ja — der Weg ist eine Eingrenzung, keine Ausnahmeliste: in Block und DoD-Wortlaut „Inline-Code und Link je innerhalb einer Zeile“ (oder gleichwertig) und je eine grüne Kontrollzeile in §7. V-143 nein; vor der Closure entweder im Block eingrenzen (Abschnitt und Anker zählen auch nach einer eingerückten `##`-Zeile, das ist die Grenze des Gates) oder vom Architect als Lesart hinnehmen lassen und in §7 als Messbefund nennen. V-144 nein.
+
+**Übergabe:** V-141, V-142 an den Implementer (Block), DoD-Wortlaut über den Planner; V-143 an den Implementer oder Architect zur Lesart; V-144 zur Kenntnis.
