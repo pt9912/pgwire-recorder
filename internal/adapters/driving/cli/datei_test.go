@@ -113,7 +113,8 @@ func TestDateiNichtLesbar(t *testing.T) {
 // Kommentaren, ein einzelnes --- vor dem Dokument, leere Abbildungen {} auf
 // jeder Ebene und Werte, deren Text in der Wertemenge liegt, gleich ob mit
 // oder ohne Anführungszeichen geschrieben: true und "true", 0 und "5s"; ein
-// Schlüssel in Anführungszeichen zählt mit seinem Text (LH-FA-17.a).
+// Schlüssel in Anführungszeichen zählt mit seinem Text; "null" und '~' in
+// Anführungszeichen sind Text, bei output also ein Pfad (LH-FA-17.a).
 func TestDateiGueltig(t *testing.T) {
 	leere(t, "replay")
 	standard := cli.ReplayOptions{Listen: "x", Input: "r.yaml", LogLevel: cli.LogInfo, ShutdownTimeout: cli.StandardFrist}
@@ -145,6 +146,16 @@ func TestDateiGueltig(t *testing.T) {
 		cmd, err := lese(args...)
 		if err != nil || cmd.Replay != f.want {
 			t.Errorf("%q: %#v, %v, erwartet %#v", f.inhalt, cmd.Replay, err, f.want)
+		}
+	}
+	leere(t, "record")
+	for inhalt, pfad := range map[string]string{
+		"record:\n  output: \"null\"\n": "null",
+		"record:\n  output: '~'\n":      "~",
+	} {
+		cmd, err := lese("record", "--listen=x", "--upstream=h:1", "--config="+schreibe(t, inhalt))
+		if err != nil || cmd.Record.Output != pfad {
+			t.Errorf("%q: %#v, %v, erwartet den Pfad %q", inhalt, cmd.Record, err, pfad)
 		}
 	}
 }
@@ -186,6 +197,8 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 		{"leerer Wert", "replay:\n  listen:\n", "replay.listen"},
 		{"null", "replay:\n  listen: null\n", "replay.listen"},
 		{"Tilde", "replay:\n  listen: ~\n", "replay.listen"},
+		{"Null", "record:\n  output: Null\n", "record.output"},
+		{"NULL", "record:\n  output: NULL\n", "record.output"},
 		{"leer in Anführungszeichen", "replay:\n  listen: \"\"\n", "replay.listen"},
 		{"Liste als Wert", "replay:\n  listen: [GEHEIM]\n", "replay.listen"},
 		{"Abbildung als Wert", "replay:\n  listen: {a: GEHEIM}\n", "replay.listen"},
@@ -306,7 +319,9 @@ func TestConfigShow(t *testing.T) {
 // Zeile und listet die aktiven Umgebungsvariablen; eine leere Datei zeigt nur
 // den Pfad; PGWIRE_RECORDER_CONFIG wählt die Datei, und von den
 // Umgebungsvariablen prüft config show nur sie: eine ungültige
-// PGWIRE_RECORDER_LOG_LEVEL bleibt ungeprüft (LH-FA-17.a).
+// PGWIRE_RECORDER_LOG_LEVEL bleibt ungeprüft; die erste Zeile ist der Pfad, wie
+// --config ihn nennt, auch relativ; eine Standarddatei, die ein Link auf ein
+// fehlendes Ziel ist, wählt keine Datei (LH-FA-17.a).
 func TestConfigShowOhneDatei(t *testing.T) {
 	leere(t, "replay")
 	t.Chdir(t.TempDir())
@@ -326,6 +341,21 @@ func TestConfigShowOhneDatei(t *testing.T) {
 	}
 	if got, err := konfigurationZeigen(t); err != nil || got != cli.StandardDatei+"\nlog_level: info\n" {
 		t.Errorf("Standarddatei: %q, %v", got, err)
+	}
+	if err := os.WriteFile("relativ.yaml", []byte("log_level: warn\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := konfigurationZeigen(t, "--config", "relativ.yaml"); err != nil || got != "relativ.yaml\nlog_level: warn\n" {
+		t.Errorf("--config mit relativem Pfad: %q, %v", got, err)
+	}
+	if err := os.Remove(cli.StandardDatei); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("fehlt.yaml", cli.StandardDatei); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := konfigurationZeigen(t); err != nil || got != "keine Konfigurationsdatei gefunden\n" {
+		t.Errorf("Standarddatei als Link auf ein fehlendes Ziel: %q, %v", got, err)
 	}
 }
 

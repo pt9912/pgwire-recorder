@@ -436,8 +436,8 @@ Verzeichnis (`tar` ohne `.git`, kein `cp -p`), die Änderung mit einem Skript, d
 Trefferzahl 1 prüft, dann `go test -count=1` für `internal/adapters/driving/cli` und
 `internal/bootstrap` im Image der Stufe `test`, die Kopie per Bind-Mount statt
 Build-Kontext; danach wird nur das Verzeichnis des Mutanten gelöscht. Der Arbeitsbaum
-blieb unberührt. Gefahren am Stand `7a80393`: 66 Mutanten, 65 rot, einer grün (unten
-eingeordnet).
+blieb unberührt. Gefahren am Stand `7a80393`: 66 Mutanten, 65 rot, einer grün; dieser ist unter
+DoD-Punkt 3 rot gesehen.
 
 **DoD-Punkt 1 — Hilfe vor jeder Prüfung, `config show`.**
 
@@ -516,6 +516,18 @@ eingeordnet).
 | Datei in ihrer Reihenfolge, im Abschnitt | rückwärts | `TestDateiReihenfolge`, `TestDateiUngueltig` |
 | relativer Pfad relativ zum aktuellen Verzeichnis | Pfad umgeschrieben | `TestDateiGueltig` |
 
+**DoD-Punkt 3 — Vorgaben des Architect vom 2026-10-09** (§6, `cfc4d6b`). Gleicher Weg
+der Mutanten, gefahren am Stand des Commits, der diese Tests liefert: fünf Mutanten,
+alle rot.
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| R1: `"null"` und `'~'` in Anführungszeichen sind Text, `output` setzt den Pfad `null` bzw. `~` | Text `null` oder `~` auch in Anführungszeichen als `null` (der zuvor grüne Mutant) | `TestDateiGueltig` |
+| R1: `null` ist die YAML-Null ohne Anführungszeichen, auch `Null` und `NULL` | Prüfung auf `!!null` durch Textvergleich mit leer, `null` und `~` ersetzt | `TestDateiUngueltig`, `TestConfigShowFehler` (Fälle `Null`, `NULL`) |
+| R2: Standarddatei als Link auf ein fehlendes Ziel wählt keine Datei, `config show` sagt das in der ersten Zeile | `os.Lstat` statt `os.Stat` | `TestConfigShowOhneDatei` |
+| Lesart 3: erste Zeile von `config show` ist der Pfad aus `--config`, auch relativ | Pfad mit `filepath.Abs` | `TestConfigShowOhneDatei` |
+| Lesart 2: ein unbekanntes Unterkommando von `config` ist `PGR-E2001` | jedes Unterkommando als `show` | `TestConfigShowFehler` (Fall `{"config", "zeige"}`) |
+
 **Grüne Mutanten, eingeordnet.**
 
 - *Schlüssel ist kein Skalar* (eine eigene Meldung für einen Schlüssel, der Liste oder
@@ -529,21 +541,15 @@ eingeordnet).
 - *Tag über `TaggedStyle`* neben dem ersten Zeichen `!`: **äquivalent** — jeder Tag, den
   die Bibliothek so markiert, beginnt mit `!`. Die Prüfung über `TaggedStyle` ist
   entfernt; die über das erste Zeichen fängt auch `!` allein.
-- *`"null"` oder `"~"` in Anführungszeichen als `null`*: **ändert das Verhalten**, kein
-  Test fängt ihn. Die Spezifikation entscheidet nicht, ob `null` hier die YAML-Null meint
-  (nur ohne Anführungszeichen) oder den Text `null`; der Code nimmt den Text in
-  Anführungszeichen als Text. Rückgabe an den Architect (Bericht, *Randform · Frage*),
-  ohne Test und ohne Eintrag in §6; die Closure braucht dafür eine Entscheidung.
 
-**Rückgaben und Lesarten** (an den Architect, ohne Eintrag in §6):
+**Rückgaben und Lesarten** (an den Architect, ohne Eintrag in §6; entschieden in
+`cfc4d6b`, §6 *Rückgaben vom 2026-10-09*, belegt unter DoD-Punkt 3 oben):
 
 - *R1 — Wert `"null"` oder `"~"` in Anführungszeichen:* Text des Skalars (gültig, wo die
-  Wertemenge ihn annimmt) oder `null` (`PGR-E2004`)? Der Code nimmt ihn als Text; kein
-  Test legt das fest (grüner Mutant oben).
+  Wertemenge ihn annimmt) oder `null` (`PGR-E2004`)? Entschieden: Text.
 - *R2 — Standarddatei als symbolischer Link ins Leere:* Der Code folgt `os.Stat`: Ein
   Link ins Leere ist *keine Datei*, eine Schleife *vorhanden, aber nicht lesbar*
-  (`PGR-E2004`, `TestDateiNichtLesbar`). Ob ein Link ins Leere als vorhanden gilt, sagt
-  `LH-FA-17.a` nicht.
+  (`PGR-E2004`, `TestDateiNichtLesbar`). Entschieden: ein Link ins Leere ist keine Datei.
 - *Lesarten aus `LH-FA-01.a` und `LH-FA-17.a`*, im Code so umgesetzt und getestet:
   `config` ist das bekannte Kommando der Hilfe, `config --help` gibt die Hilfe von
   `config show`; `config` ohne `show`, ein anderes Unterkommando und ein Argument nach
@@ -560,6 +566,12 @@ gleich), Exit 0, darin `d-check: 379 Datei(en) geprüft, 0 Befund(e)`,
 `abdeckung-gegenprobe: gruen`, `kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`.
 Dazu `make lint` Exit 0 (`0 issues.`), `make abdeckung` geschrieben,
 `make abdeckung-check` grün im Gate-Lauf.
+
+Für DoD-Punkt 3: `make test` grün, `make lint` Exit 0, `make abdeckung` geschrieben und
+`make gates` Exit 0 am Baum des Commits, der die Tests liefert, vor dieser Zeile (darin
+`d-check: 380 Datei(en) geprüft, 0 Befund(e)`, `run-integration-tests: gruen`,
+`a-check-negativ: gruen`, `abdeckung-gegenprobe: gruen`, `kopf-check-gegenprobe: gruen`,
+`lint-gegenprobe: gruen`, `baseline-verify: v6.16.0 OK`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
