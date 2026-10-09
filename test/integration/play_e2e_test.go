@@ -165,3 +165,168 @@ func TestE2EPlayKonfiguration(t *testing.T) {
 		t.Fatalf("--fail-on-unconsumed: Exit-Code %d, stderr %q", code, stderr)
 	}
 }
+
+// aufzeichnungMit schreibt eine Aufzeichnung mit einer Session aus einer
+// einfachen Anfrage sql und dem Startup user und database und liefert ihren
+// Pfad.
+func aufzeichnungMit(t *testing.T, user, database, sql string) string {
+	t.Helper()
+	inhalt := fmt.Sprintf("format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    startup:\n      user: %s\n      database: %s\n    interactions:\n      - sequence: 1\n        request:\n          type: query\n          sql: %s\n        responses:\n          - type: command_complete\n            tag: \"OK\"\n          - type: ready_for_query\n            tx_status: \"I\"\n", user, database, strconv.Quote(sql))
+	pfad := filepath.Join(t.TempDir(), "rec.yaml")
+	if err := os.WriteFile(pfad, []byte(inhalt), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return pfad
+}
+
+// ausfuehren führt sql auf conn aus.
+func ausfuehren(t *testing.T, conn *pgconn.PgConn, sql string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if _, err := conn.Exec(ctx, sql).ReadAll(); err != nil {
+		t.Fatalf("%s: %v", sql, err)
+	}
+}
+
+// spurVon liefert je Zeile des Falls fall in den Tabellen spur der
+// Datenbanken von spur Benutzer und Datenbank als "wer/datenbank".
+func spurVon(t *testing.T, spur map[string]*pgconn.PgConn, fall string) []string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	var gefunden []string
+	for db, conn := range spur {
+		res, err := conn.Exec(ctx, "SELECT wer FROM spur WHERE fall = '"+fall+"'").ReadAll()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, z := range res[0].Rows {
+			gefunden = append(gefunden, string(z[0])+"/"+db)
+		}
+	}
+	return gefunden
+}
+
+// Abdeckung: LH-FA-20/Boundary, LH-FA-17/Boundary — gegen die reale Instanz
+// gehen --user und --database, aus Kommandozeile oder Umgebung, Benutzer und
+// Datenbank der benutzten Verbindung vor, und diese der Aufzeichnung; einen
+// Benutzer, den die URL nicht schreibt, nimmt play aus der Aufzeichnung
+// (LH-FA-17.a *Wirkung einer URL*, LH-FA-20.a *Startup-Daten*).
+func TestE2EPlayVorrang(t *testing.T) {
+	const (
+		aufgez, url, opt       = "play_vr_aufgez", "play_vr_url", "play_vr_opt"
+		aufgezdb, urldb, optdb = "play_vr_aufgezdb", "play_vr_urldb", "play_vr_optdb"
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	admin, err := pgconn.Connect(ctx, dsn(os.Getenv("PGR_UPSTREAM")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = admin.Close(ctx) }()
+	for _, rolle := range []string{aufgez, url, opt} {
+		if _, err := admin.Exec(ctx, "DROP ROLE IF EXISTS "+rolle+"; CREATE ROLE "+rolle+" LOGIN").ReadAll(); err != nil {
+			t.Fatalf("Rolle %s: %v", rolle, err)
+		}
+	}
+	// spur hält je Datenbank, unter welchem Benutzer welcher Fall einspielte.
+	spur := map[string]*pgconn.PgConn{}
+	for _, db := range []string{aufgezdb, urldb, optdb} {
+		conn := leereDatenbank(t, db)
+		if _, err := conn.Exec(ctx, "CREATE TABLE spur (wer text, fall text); GRANT INSERT ON spur TO PUBLIC").ReadAll(); err != nil {
+			t.Fatalf("spur in %s: %v", db, err)
+		}
+		spur[db] = conn
+	}
+	dir := t.TempDir()
+	host, port, _ := strings.Cut(os.Getenv("PGR_UPSTREAM"), ":")
+	inhalt := fmt.Sprintf("connections:\n  url: \"postgresql://%[3]s@%[1]s:%[2]s/%[4]s\"\n  ohneuser: \"postgresql://%[1]s:%[2]s/%[4]s\"\n", host, port, url, urldb)
+	if err := os.WriteFile(filepath.Join(dir, ".pgwire-recorder.yaml"), []byte(inhalt), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []struct {
+		name    string
+		args    []string
+		env     map[string]string
+		wer, wo string
+	}{
+		{"URL", []string{"--upstream", "url"}, nil, url, urldb},
+		{"--user vor URL", []string{"--upstream", "url", "--user", opt}, nil, opt, urldb},
+		{"--database vor URL", []string{"--upstream", "url", "--database", optdb}, nil, url, optdb},
+		{"Umgebung vor URL", []string{"--upstream", "url"}, map[string]string{"PGWIRE_RECORDER_USER": opt, "PGWIRE_RECORDER_DATABASE": optdb}, opt, optdb},
+		{"Aufzeichnung", []string{"--upstream", os.Getenv("PGR_UPSTREAM")}, nil, aufgez, aufgezdb},
+		{"Optionen vor Aufzeichnung", []string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--user", opt, "--database", optdb}, nil, opt, optdb},
+		{"URL ohne Benutzer", []string{"--upstream", "ohneuser"}, nil, aufgez, urldb},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			for k, v := range f.env {
+				t.Setenv(k, v)
+			}
+			input := aufzeichnungMit(t, aufgez, aufgezdb, "INSERT INTO spur VALUES (current_user, '"+f.name+"')")
+			_, stderr, code := starteBis(t, dir, append([]string{"play", "--input", input}, f.args...)...)
+			if code != 0 {
+				t.Fatalf("Exit-Code %d, stderr:\n%s", code, stderr)
+			}
+			gefunden := spurVon(t, spur, f.name)
+			if want := f.wer + "/" + f.wo; len(gefunden) != 1 || gefunden[0] != want {
+				t.Fatalf("eingespielt als %v, erwartet %s", gefunden, want)
+			}
+		})
+	}
+}
+
+// Abdeckung: LH-FA-20/Negative — bis zu den Folge-Slices spielt play gegen die
+// reale Instanz nichts ein, wenn die Aufzeichnung eine Extended-Interaktion
+// enthält, auch in einer späteren Session (PGR-E6001 mit Session und Nummer,
+// Exit-Code 6), wenn die benutzte Verbindung sslmode=require verlangt
+// (PGR-E2004, Exit-Code 2) und mit --upstream-tls (PGR-E2001, Exit-Code 2);
+// keiner der Fälle schreibt eine Log-Zeile (LH-FA-20.a *Art der Interaktion*,
+// LH-FA-17.a *Wirkung einer URL*).
+func TestE2EPlayZwischenstand(t *testing.T) {
+	conn := leereDatenbank(t, "play_zwischenstand")
+	einfach := einspielAufzeichnung(t, []string{"CREATE TABLE vorher (n int)"})
+	inhalt, err := os.ReadFile(einfach)
+	if err != nil {
+		t.Fatal(err)
+	}
+	extended := filepath.Join(t.TempDir(), "extended.yaml")
+	session2 := "  - id: 2\n    startup:\n      user: postgres\n      database: postgres\n    interactions:\n      - sequence: 1\n        type: extended\n        groups:\n          - client:\n              - type: parse\n                statement: \"\"\n                sql: \"SELECT $1::int\"\n                param_types: []\n              - type: sync\n            server:\n              - type: parse_complete\n              - type: ready_for_query\n                tx_status: \"I\"\n"
+	if err := os.WriteFile(extended, append(inhalt, session2...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	host, port, _ := strings.Cut(os.Getenv("PGR_UPSTREAM"), ":")
+	datei := fmt.Sprintf("connections:\n  tls: \"postgresql://postgres@%s:%s/play_zwischenstand?sslmode=require\"\n", host, port)
+	if err := os.WriteFile(filepath.Join(dir, ".pgwire-recorder.yaml"), []byte(datei), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []struct {
+		name    string
+		args    []string
+		exit    int
+		meldung []string
+	}{
+		{"Extended in Session 2", []string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--input", extended, "--database", "play_zwischenstand"}, 6, []string{"PGR-E6001", "Session 2, Interaktion 1"}},
+		{"sslmode=require", []string{"--upstream", "tls", "--input", einfach}, 2, []string{"PGR-E2004", "connections.tls", "sslmode=require"}},
+		{"--upstream-tls", []string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--input", einfach, "--database", "play_zwischenstand", "--upstream-tls=require"}, 2, []string{"PGR-E2001", "upstream-tls"}},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			// Ein Fall beginnt ohne die Tabelle, die ein Fall davor eingespielt
+			// haben kann.
+			ausfuehren(t, conn, "DROP TABLE IF EXISTS vorher")
+			_, stderr, code := starteBis(t, dir, append([]string{"play"}, f.args...)...)
+			if code != f.exit || strings.Contains(stderr, "level=") {
+				t.Fatalf("Exit-Code %d, erwartet %d ohne Log-Zeile, stderr:\n%s", code, f.exit, stderr)
+			}
+			for _, m := range f.meldung {
+				if !strings.Contains(stderr, m) {
+					t.Fatalf("stderr ohne %q:\n%s", m, stderr)
+				}
+			}
+			if got := wert(t, conn, "SELECT count(*) FROM pg_tables WHERE tablename = 'vorher'"); got != "0" {
+				t.Fatalf("eingespielt: Tabelle vorher %s-mal", got)
+			}
+		})
+	}
+}

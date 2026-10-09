@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net"
 	"reflect"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -51,17 +53,20 @@ func verbunden(t *testing.T) []byte {
 }
 
 // lauf ist, was der Fake-Server vom Client empfing: die Startup-Parameter und
-// alle Bytes danach bis zum Verbindungsende.
+// alle Bytes danach bis zum Verbindungsende. ende ist nil, wenn der Client die
+// Verbindung geschlossen hat, sonst der Grund, aus dem das Lesen endete, etwa
+// die Frist des Fake-Servers.
 type lauf struct {
 	startup map[string]string
 	danach  []byte
+	ende    error
 }
 
 // einspielServer nimmt eine Verbindung an, liest das Startup, sendet aufbau,
 // liest dann je Eintrag von jeAnfrage eine Client-Nachricht und sendet den
-// Eintrag; danach liest er bis zum Verbindungsende und liefert den lauf. Die
-// Bytes der gelesenen Client-Nachrichten stehen nicht in lauf.danach. Ein
-// Eintrag nil schließt die Verbindung, ohne zu lesen.
+// Eintrag; danach liest er bis zum Verbindungsende oder seiner Frist von 20 s
+// und liefert den lauf. Die Bytes der gelesenen Client-Nachrichten stehen nicht
+// in lauf.danach. Ein Eintrag nil schließt die Verbindung, ohne zu lesen.
 func einspielServer(t *testing.T, aufbau []byte, jeAnfrage ...[]byte) (string, <-chan lauf) {
 	t.Helper()
 	l, err := net.Listen("tcp", "127.0.0.1:0")
@@ -104,20 +109,43 @@ func einspielServer(t *testing.T, aufbau []byte, jeAnfrage ...[]byte) (string, <
 			}
 			_, _ = conn.Write(antwort)
 		}
-		rest, _ := io.ReadAll(conn)
-		ergebnis <- lauf{startup: sm.Parameters, danach: rest}
+		rest, err := io.ReadAll(conn)
+		ergebnis <- lauf{startup: sm.Parameters, danach: rest, ende: err}
 	}()
 	return l.Addr().String(), ergebnis
 }
 
-// empfangen wartet höchstens 30 s auf den lauf des Fake-Servers.
+// empfangen wartet höchstens 30 s auf den lauf des Fake-Servers und verlangt,
+// dass der Client die Verbindung geschlossen hat, nicht die Frist des
+// Fake-Servers das Lesen beendete.
 func empfangen(t *testing.T, ergebnis <-chan lauf) lauf {
 	t.Helper()
 	select {
 	case l := <-ergebnis:
+		if l.ende != nil {
+			t.Fatalf("der Client schließt die Verbindung nicht, das Lesen des Fake-Servers endet mit %v", l.ende)
+		}
 		return l
 	case <-time.After(30 * time.Second):
 		t.Fatal("der Fake-Server meldet binnen 30 s kein Verbindungsende")
+		return lauf{}
+	}
+}
+
+// geschlossen wartet nach einem Fehler von Verbinde höchstens 5 s darauf, dass
+// der Fake-Server das Schließen durch den Client sieht: Verbinde schließt die
+// Verbindung, bevor es zurückkehrt (Abbruch im Aufbau), und die Frist des
+// Fake-Servers von 20 s liegt dahinter.
+func geschlossen(t *testing.T, ergebnis <-chan lauf) lauf {
+	t.Helper()
+	select {
+	case l := <-ergebnis:
+		if l.ende != nil {
+			t.Fatalf("der Client schließt die Verbindung nach dem Fehler im Aufbau nicht, das Lesen des Fake-Servers endet mit %v", l.ende)
+		}
+		return l
+	case <-time.After(5 * time.Second):
+		t.Fatal("der Fake-Server sieht binnen 5 s nach dem Fehler im Aufbau kein Schließen der Verbindung")
 		return lauf{}
 	}
 }
@@ -201,7 +229,7 @@ func TestEinspielAufbauFehler(t *testing.T) {
 			if s != nil || code(err) != f.code {
 				t.Fatalf("Session %v, Fehler %v, erwartet %s", s, err, f.code)
 			}
-			if l := empfangen(t, ergebnis); len(l.danach) != 0 {
+			if l := geschlossen(t, ergebnis); len(l.danach) != 0 {
 				t.Fatalf("nach dem Startup gesendet: %q", l.danach)
 			}
 		})
@@ -302,7 +330,7 @@ func TestEinspielAufbauAbgebrochen(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("Verbinde endet binnen 5 s nach dem Abbruch nicht")
 	}
-	if l := empfangen(t, ergebnis); len(l.danach) != 0 {
+	if l := geschlossen(t, ergebnis); len(l.danach) != 0 {
 		t.Fatalf("nach dem Startup gesendet: %q", l.danach)
 	}
 }
@@ -327,7 +355,8 @@ func verbinde(t *testing.T, addr string) interface {
 // die nächste Nachricht, die das Modell kennt, und verwirft
 // NotificationResponse und andere ohne Abbildung; nach einer Fehlerantwort
 // liest sie nicht weiter, auch wenn dahinter Bytes stehen, die sich nicht
-// lesen lassen (LH-FA-20.a *Interaktion*).
+// lesen lassen; Schliesse sendet nach der Anfrage Terminate (LH-FA-20.a
+// *Interaktion*, *Ende einer Session*).
 func TestEinspielNaechste(t *testing.T) {
 	antwort := kodiert(t,
 		&pgproto3.NotificationResponse{PID: 1, Channel: "k", Payload: "p"},
@@ -358,7 +387,9 @@ func TestEinspielNaechste(t *testing.T) {
 		t.Fatalf("Antworten %v, erwartet %v", typen, want)
 	}
 	s.Schliesse()
-	empfangen(t, ergebnis)
+	if l := empfangen(t, ergebnis); !bytes.Equal(l.danach, kodiertFrontend(t, &pgproto3.Terminate{})) {
+		t.Fatalf("nach der Anfrage beim Schließen gesendet %q, erwartet nur Terminate", l.danach)
+	}
 }
 
 // Abdeckung: LH-FA-20/Negative — nach dem Aufbau sind CopyInResponse,
@@ -406,8 +437,15 @@ func TestEinspielNaechsteFehler(t *testing.T) {
 		addr, ergebnis := einspielServer(t, verbunden(t))
 		s := verbinde(t, addr)
 		s.Schliesse()
-		if err := s.Anfrage("SELECT 1"); code(err) != model.CodeConnectionLost {
-			t.Fatalf("Senden auf geschlossener Verbindung: %v, erwartet %s", err, model.CodeConnectionLost)
+		gesendet := make(chan error, 1)
+		go func() { gesendet <- s.Anfrage("SELECT 1") }()
+		select {
+		case err := <-gesendet:
+			if code(err) != model.CodeConnectionLost {
+				t.Fatalf("Senden auf geschlossener Verbindung: %v, erwartet %s", err, model.CodeConnectionLost)
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatal("Anfrage nach Schliesse endet binnen 5 s nicht")
 		}
 		empfangen(t, ergebnis)
 	})
@@ -434,7 +472,7 @@ func TestEinspielAufbauFehlerMeldung(t *testing.T) {
 			if err == nil || !strings.HasSuffix(err.Error(), want) {
 				t.Fatalf("Meldung %v, erwartet mit Ende %q", err, want)
 			}
-			empfangen(t, ergebnis)
+			geschlossen(t, ergebnis)
 		})
 	}
 }
@@ -555,5 +593,85 @@ func TestEinspielVersuchAbgebrochen(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("Verbinde endet binnen 5 s nach dem Abbruch des Verbindungsversuchs nicht")
+	}
+}
+
+// sendeSperre ist eine Verbindung, deren erstes Write blockiert, bis Close
+// sie schließt; ein Write, das beginnt, während ein anderes läuft, zählt sie in
+// gleichzeitig und endet sofort mit einem Fehler.
+type sendeSperre struct {
+	net.Conn
+	mu           sync.Mutex
+	laufend      int
+	gleichzeitig int
+	schreibt     chan struct{}
+	zu           chan struct{}
+	zuEinmal     sync.Once
+}
+
+func (c *sendeSperre) Write(b []byte) (int, error) {
+	c.mu.Lock()
+	c.laufend++
+	erstes := c.laufend == 1
+	if !erstes {
+		c.gleichzeitig++
+	}
+	c.mu.Unlock()
+	defer func() {
+		c.mu.Lock()
+		c.laufend--
+		c.mu.Unlock()
+	}()
+	if !erstes {
+		return 0, errors.New("gleichzeitiges Write")
+	}
+	close(c.schreibt)
+	<-c.zu
+	return 0, net.ErrClosed
+}
+
+func (c *sendeSperre) Close() error {
+	c.zuEinmal.Do(func() { close(c.zu) })
+	return nil
+}
+
+func (c *sendeSperre) SetWriteDeadline(time.Time) error { return nil }
+
+// Abdeckung: LH-FA-20/Boundary — Schliesse (zweites Signal) schreibt nichts,
+// während Anfrage sendet: kein Terminate zwischen die Bytes der Anfrage; es
+// schließt die Verbindung, und das Senden scheitert (LH-FA-20.a
+// *Abbruchsignal*).
+func TestEinspielSchliesseSchreibtNichtBeimSenden(t *testing.T) {
+	conn := &sendeSperre{schreibt: make(chan struct{}), zu: make(chan struct{})}
+	s := postgres.NeueEinspielSession(conn)
+	gesendet := make(chan error, 1)
+	go func() { gesendet <- s.Anfrage("SELECT 1") }()
+	select {
+	case <-conn.schreibt:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Anfrage beginnt binnen 5 s nicht zu senden")
+	}
+	geschlossen := make(chan struct{})
+	go func() {
+		s.Schliesse()
+		close(geschlossen)
+	}()
+	select {
+	case <-geschlossen:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Schliesse endet binnen 5 s nicht, während Anfrage sendet")
+	}
+	select {
+	case err := <-gesendet:
+		if code(err) != model.CodeConnectionLost {
+			t.Fatalf("Anfrage nach Schliesse: %v, erwartet %s", err, model.CodeConnectionLost)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Anfrage endet binnen 5 s nach Schliesse nicht")
+	}
+	conn.mu.Lock()
+	defer conn.mu.Unlock()
+	if conn.gleichzeitig != 0 {
+		t.Fatalf("Schliesse schreibt %d-mal, während Anfrage sendet", conn.gleichzeitig)
 	}
 }

@@ -93,7 +93,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen als einfache Anfragen wird gegen eine leere Instanz, die weder Passwort noch TLS verlangt, eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); mehrere Sessions laufen über eigene Verbindungen nacheinander; die Optionen von `play` wirken aus Kommandozeile, Umgebung und dem Abschnitt `play:`, `--user` und `--database` gehen Benutzer und Datenbank der benutzten Verbindung und der Aufzeichnung vor, eine nicht gesetzte oder leere Variable in Benutzer, Passwort oder Datenbank der benutzten Verbindung ist `PGR-E2005` (U8), ein gewöhnliches Argument `PGR-E2001`; `--fail-on-unconsumed` ist bei `play` unbekannt (`PGR-E2001`) und ihre Umgebungsvariable bleibt dort unbeachtet, auch mit ungültigem Wert; `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` wirken bei `play` mit derselben Wertemenge, Strenge und Schwelle wie bei `record` und `replay`, ein ungültiger Wert ist `PGR-E2001`, auch in der Umgebungsvariable neben gültiger Option; bis zu den Folge-Slices gilt der Zwischenstand aus §6 (Integrationstest). Das Benutzerhandbuch zeigt in Beispiel und Abschnittsliste von §5 *Konfigurationsdatei* den Abschnitt `play:` (mit `upstream` und `input`), und das Beispiel als Datei startet mit `config show` ohne Meldung (V-125).
+- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Eine Aufzeichnung mit DDL- und DML-Anweisungen als einfache Anfragen wird gegen eine leere Instanz, die weder Passwort noch TLS verlangt, eingespielt, und die Datenbank enthält danach deren Wirkung (Abnahmeszenario 12); mehrere Sessions laufen über eigene Verbindungen nacheinander; die Optionen von `play` wirken aus Kommandozeile, Umgebung und dem Abschnitt `play:`, `--user` und `--database` gehen Benutzer und Datenbank der benutzten Verbindung und der Aufzeichnung vor, eine nicht gesetzte oder leere Variable in Benutzer, Passwort oder Datenbank der benutzten Verbindung ist `PGR-E2005` (U8), ein gewöhnliches Argument `PGR-E2001`; `--fail-on-unconsumed` ist bei `play` unbekannt (`PGR-E2001`) und ihre Umgebungsvariable bleibt dort unbeachtet, auch mit ungültigem Wert; `--log-level` und `PGWIRE_RECORDER_LOG_LEVEL` wirken bei `play` mit derselben Wertemenge, Strenge und Schwelle wie bei `record` und `replay`, ein ungültiger Wert ist `PGR-E2001`, auch in der Umgebungsvariable neben gültiger Option; bis zu den Folge-Slices gilt der Zwischenstand aus §6. Integrationstest gegen die reale Instanz für Abnahmeszenario 12, die Sessions, die Optionen aus Kommandozeile, Umgebung und `play:`, den Vorrang von `--user` und `--database`, `--fail-on-unconsumed` als Option und den Zwischenstand bei Extended-Interaktion, `sslmode=require` und `--upstream-tls`; Unit-Test des CLI-Adapters für U8, das gewöhnliche Argument, die Umgebungsvariable von `--fail-on-unconsumed`, `--log-level` und die übrigen Optionen des Zwischenstands, weil der CLI-Adapter sie vor jeder Verbindung entscheidet. Das Benutzerhandbuch zeigt in Beispiel und Abschnittsliste von §5 *Konfigurationsdatei* den Abschnitt `play:` (mit `upstream` und `input`), und das Beispiel als Datei startet mit `config show` ohne Meldung (V-125).
 - [ ] Eine Fehlerantwort des Servers bricht ab (`PGR-E4004`, Exit-Code 4, keine weitere Nachricht, `Terminate`); ein Verbindungsfehler bricht ab; im Aufbau sind ein nicht erreichbarer Server und eine Fehlerantwort außerhalb der SQLSTATE-Klasse 28 (etwa eine fehlende Datenbank) `PGR-E4002`, eine der Klasse 28 (etwa ein unbekannter Benutzer) `PGR-E4005`; die Nachrichten und Anmelde-Codes im Aufbau, ein gescheitertes Senden des Startup und der Abbruch im Aufbau ohne `Terminate` folgen §6 (Test). Beleg in §7 für Punkt 1 bis 3: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
 - [ ] `SIGINT` und `SIGTERM` beenden nach der laufenden Interaktion, ein erstes Signal im Aufbau nach dem Aufbau, ohne Interaktion; ein zweites Signal beendet sofort; der Exit-Code ist 0, weil ohne die Optionen der Laufsteuerung jeder Fehler vorher abbricht; ohne Vergleich ist jedes Verbindungsende nach dem ersten `ReadyForQuery` `PGR-E4003`; die Rangfolge mit Vergleich (Exit-Code 5) prüft `slice-v1-abschluss-antwortvergleich` (Test).
 - [ ] `make gates` grün.
@@ -583,8 +583,9 @@ Commits als `.pgwire-recorder.yaml` geschrieben und `config show` im Produkt-Ima
 dort lehnt das Laden `play:` als unbekannten Schlüssel ab (`PGR-E2004`).
 
 *Läufe.* `make test`, `make lint` (0 issues), `make test-integration` (vier
-`TestE2EPlay*` grün) und `make abdeckung` auf diesem Stand; `make gates` vor der Übergabe
-(Ergebnis im Bericht).
+`TestE2EPlay*` grün) und `make abdeckung` auf diesem Stand; ein Ergebnis von `make gates`
+für diesen Stand steht nicht in §7 (V-132), der Beleg steht unten, *Läufe der Nacharbeit zur
+Verifikation*.
 
 **Belege der Nacharbeit zum Review** (Report `2026-10-09-review-slice-v1-abschluss-einspielen`,
 F-547 bis F-554; Arbeitsbaum auf `a980d4a` mit dem Diff des Commits, der diesen Abschnitt
@@ -645,8 +646,9 @@ geliefert; Passwort und `sslmode=require` bleiben bei den Nehmern aus §1, *Abge
 Anfrage (F-553).
 
 *Läufe der Nacharbeit.* `make test`, `make test-integration` (alle `TestE2EPlay*` grün),
-`make build`, `make abdeckung` auf diesem Stand; `make gates` vor der Übergabe (Ergebnis im
-Bericht).
+`make build`, `make abdeckung` auf diesem Stand; `make gates` am Stand `cfcdcb5` grün nach
+dem Lauf der Verifikation (Report `2026-10-09-verifikation-slice-v1-abschluss-einspielen`,
+Punkt 4), nicht vom Implementer belegt (V-132).
 
 *Beobachtungen für Review und Closure* (keine Randform, nichts entschieden):
 
@@ -663,6 +665,76 @@ Bericht).
   Zielstand mit Passwort, TLS, Laufsteuerung, Zeitangaben und Vergleich; in diesem Stand
   sind diese Optionen bei `play` unbekannt. Die DoD verlangt nur §5; die Folge-Slices
   liefern die Optionen. Ob der Abschnitt bis dahin einen Hinweis braucht, ist Urteil.
+
+**Belege der Nacharbeit zur Verifikation** (Report
+`2026-10-09-verifikation-slice-v1-abschluss-einspielen`, V-130 bis V-133; V-129 liegt beim
+Planner; Arbeitsbaum auf `83e8d08` mit dem Diff des Commits, der diesen Abschnitt anlegt). Weg
+der Unit-Mutanten wie oben (frische Kopie mit `cp -r` ohne `-p`, genau eine Ersetzung,
+`gofmt -l` leer, `go test -count=1 -run <Test>` im Image der Stufe `deps` per Bind-Mount ohne
+Netz). Die E2E-Mutanten je in einer frischen Kopie von `Dockerfile`, `.dockerignore`,
+`go.mod`, `go.sum`, `cmd/`, `internal/`, `test/`, `.golangci.yml` und
+`tools/harness/lint.sh`, gebaut als Stufe `integration` in einem eigenen Image, gegen das
+gepinnte PostgreSQL-Image von `make test-integration` in einem eigenen internen Docker-Netz,
+`-test.run 'TestE2EPlay(Vorrang|Zwischenstand)'`; Container, Netz, Image und Kopie danach
+entfernt. Rot heißt: der genannte Test schlug mit der genannten Meldung fehl, nicht der Build
+und nicht die Zeitgrenze von `go test`.
+
+| Befund | Zusage | Mutation | roter Test |
+|---|---|---|---|
+| V-130 | ein Fehler im Aufbau schließt die Verbindung, bevor `Verbinde` zurückkehrt | X02: kein `Close` im Fehlerzweig von `Verbinde` | `TestEinspielAufbauFehler` (jeder Teilfall, in dem der Fake-Server die Verbindung offen hält), `TestEinspielAufbauFehlerMeldung` („der Fake-Server sieht binnen 5 s nach dem Fehler im Aufbau kein Schließen der Verbindung“, je Teilfall nach 5 s) |
+| V-130 | `Schliesse` schließt die Verbindung | X12: ohne `Close` in `Schliesse` | `TestEinspielSchliesseOhneAnnahme` („erwartet das Verbindungsende“); `TestEinspielAufbauVerworfen`, `TestEinspielNaechste`, `TestEinspielNaechsteFehler` („der Client schließt die Verbindung nicht, das Lesen des Fake-Servers endet mit … i/o timeout“, nach der Frist des Fake-Servers von 20 s, innerhalb der Frist von 30 s des Tests) |
+| V-131 | `Schliesse` schreibt nichts, während `Anfrage` sendet | X04: `Anfrage` ohne die Sperre `schreiben` | `TestEinspielSchliesseSchreibtNichtBeimSenden` („Schliesse schreibt 1-mal, während Anfrage sendet“) |
+| V-131 | … und wartet nicht auf das Senden | M07: `Lock` statt `TryLock` in `Schliesse` | `TestEinspielSchliesseSchreibtNichtBeimSenden`, `TestEinspielSchliesseBeimSenden` („Schliesse endet binnen 5 s nicht, während Anfrage sendet“) |
+| V-131 | `Anfrage` gibt die Sperre frei, sodass `Schliesse` danach `Terminate` sendet | X11: ohne `defer` `Unlock` in `Anfrage` | `TestEinspielNaechste` („nach der Anfrage beim Schließen gesendet "", erwartet nur Terminate“) |
+| V-131 | `Schliesse` gibt die Sperre frei, ein `Anfrage` danach scheitert statt zu warten | X10: ohne `Unlock` in `Schliesse` | `TestEinspielNaechsteFehler/Senden_scheitert` („Anfrage nach Schliesse endet binnen 5 s nicht“) |
+| V-133 | Benutzer der URL vor der Aufzeichnung (E2E) | E5: Benutzer der Verbindung nicht übernommen | `TestE2EPlayVorrang/URL` („eingespielt als [play_vr_aufgez/play_vr_urldb], erwartet play_vr_url/play_vr_urldb“), `/--database_vor_URL` |
+| V-133 | Datenbank der URL vor der Aufzeichnung (E2E) | E6: Datenbank der Verbindung nicht übernommen | `TestE2EPlayVorrang/URL`, `/--user_vor_URL`, `/URL_ohne_Benutzer` |
+| V-133 | `--user` vor der URL, auch aus der Umgebung (E2E) | E3: Benutzer der URL überschreibt immer | `TestE2EPlayVorrang/--user_vor_URL`, `/Umgebung_vor_URL` |
+| V-133 | `--database` vor der URL, auch aus der Umgebung (E2E) | E4: Datenbank der URL überschreibt immer | `TestE2EPlayVorrang/--database_vor_URL`, `/Umgebung_vor_URL` |
+| V-133 | `--user` ersetzt `user` der Aufzeichnung (E2E) | E1: Ersetzung von `user` im Play-Service entfernt | `TestE2EPlayVorrang/URL`, `/--user_vor_URL`, `/Umgebung_vor_URL`, `/Optionen_vor_Aufzeichnung` u. a. |
+| V-133 | `--database` ersetzt `database` der Aufzeichnung (E2E) | E2: Ersetzung von `database` entfernt | `TestE2EPlayVorrang/URL`, `/Optionen_vor_Aufzeichnung`, `/URL_ohne_Benutzer` u. a. |
+| V-133 | ohne Benutzer aus Option und URL der der Aufzeichnung (E2E) | E7: leerer Benutzer ersetzt `user` | `TestE2EPlayVorrang/Aufzeichnung`, `/URL_ohne_Benutzer` (Exit-Code 4 statt 0) |
+| V-133 | Extended-Interaktion `PGR-E6001`, nichts eingespielt (E2E) | E8: Prüfung der Art wirkungslos | `TestE2EPlayZwischenstand/Extended_in_Session_2` („Exit-Code 0, erwartet 6“) |
+| V-133 | … auch in einer späteren Session (E2E) | E9: Prüfung nur über die erste Session | `TestE2EPlayZwischenstand/Extended_in_Session_2` |
+| V-133 | … ohne Log-Zeile (E2E) | E12: Zeile `info` vor dem Start | `TestE2EPlayZwischenstand/Extended_in_Session_2` („Exit-Code 6, erwartet 6 ohne Log-Zeile“) |
+| V-133 | `sslmode=require` `PGR-E2004`, nichts eingespielt (E2E) | E10: Prüfung `ohneTLS` bei `play` wirkungslos | `TestE2EPlayZwischenstand/sslmode=require` („Exit-Code 0, erwartet 2“) |
+| V-133 | `--upstream-tls` unbekannt (E2E) | E11: Option bei `play` angemeldet | `TestE2EPlayZwischenstand/--upstream-tls` („Exit-Code 0, erwartet 2“) |
+
+*Grüne Mutanten.* X02b, ohne `Close` im Zweig `!stop()` von `Verbinde`: äquivalent, weil
+`stop()` dort nur falsch ist, wenn die `AfterFunc` lief, und sie die Verbindung schon schließt.
+Die Zeile „keine Log-Zeile“ hält E12 nur für den Fall Extended; bei `sslmode=require` und
+`--upstream-tls` endet `play` im CLI-Adapter vor dem Logger, eine Mutation, die dort eine Zeile
+schreibt, ist nicht gefahren.
+
+*V-130, Merkmal.* Eine Frist im Test-Double ließ ein ausbleibendes Schließen grün. Der
+Fake-Server meldet jetzt, ob das Lesen am Verbindungsende oder an seiner Frist endete
+(`lauf.ende`), und jeder Test, der auf ihn wartet, verlangt das Verbindungsende; nach einem
+Fehler im Aufbau wartet er nur 5 s (`geschlossen`), weil `Verbinde` vor der Rückkehr
+schließt. Ausprägungen: Fehlerzweig von `Verbinde` (X02), Abbruchzweig (X02b, äquivalent),
+`Schliesse` (X12). `SPEC-038`: jede Frist ein Literal von höchstens 60 s, die Meldung nennt
+das ausgebliebene Ereignis.
+
+*V-131, Merkmal.* Die Sperre `schreiben` hat vier Stellen, je eine Mutation oben (X04, M07,
+X10, X11). `-race` ist nicht nachgezogen: Die Stufe `deps` baut mit `CGO_ENABLED=0`, und
+`-race` in `make test` wäre eine Änderung des Gates. Der Test mit der Verbindung
+`sendeSperre` zählt stattdessen ein Write, das beginnt, während ein anderes läuft.
+
+*V-133, Beleg-Form.* DoD-Punkt 1 trennt jetzt Integrationstest und Unit-Test: Neu gegen die
+reale Instanz sind `TestE2EPlayVorrang` (sieben Fälle über drei Rollen und drei Datenbanken; je Fall
+schreibt die eingespielte Anfrage `current_user` und den Namen des Falls in die Tabelle der
+Datenbank, in der sie lief) und
+`TestE2EPlayZwischenstand` (Extended in Session 2 nach einer einfachen Session,
+`sslmode=require`, `--upstream-tls`; je Fall ohne die Tabelle eines Falls davor). U8, das
+gewöhnliche Argument, die Umgebungsvariable von `--fail-on-unconsumed`, `--log-level` und die
+übrigen Optionen des Zwischenstands entscheidet der CLI-Adapter vor jeder Verbindung; die
+DoD nennt für sie den Unit-Test (Zeilen der ersten Tabelle oben). Eine URL ohne Datenbank
+lehnt schon das Laden ab (`PGR-E2004`, Bestand), die Datenbank der Aufzeichnung prüft darum
+der Fall `Aufzeichnung` mit `host:port`.
+
+*Läufe der Nacharbeit zur Verifikation.* Unit-Tests aller Pakete ohne Cache im Image der
+Stufe `deps` grün, `go vet -tags integration ./...` ohne Befund, die sechs `TestE2EPlay*` in
+einer frischen Kopie gegen das gepinnte PostgreSQL-Image grün, `make abdeckung` auf diesem
+Stand. `make gates`: Ergebnis im Commit danach, mit Stand.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
