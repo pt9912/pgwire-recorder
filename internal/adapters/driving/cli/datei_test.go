@@ -168,11 +168,19 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 		{"zwei Dokumente", "log_level: info\n---\nlog_level: warn\n", "mehr als ein Dokument"},
 		{"zweites leeres Dokument", "log_level: info\n---\n", "mehr als ein Dokument"},
 		{"Syntax", "replay:\n  listen: \"GEHEIM\n", "ungültiges YAML in Zeile"},
-		{"doppelt oben", "log_level: info\nlog_level: warn\n", `"log_level" doppelt`},
-		{"doppelt im Abschnitt", "replay:\n  listen: GEHEIM\n  listen: b\n", `"replay.listen" doppelt`},
-		{"doppelt in Anführungszeichen", "replay:\n  listen: a\n  \"listen\": b\n", `"replay.listen" doppelt`},
-		{"doppelte Verbindung", "connections:\n  a: x\n  a: y\n", `"connections.a" doppelt`},
-		{"doppelt vor unbekanntem Schlüssel", "bogus: 1\nreplay:\n  listen: a\n  listen: b\n", "doppelt"},
+		{"doppelt oben", "log_level: info\nlog_level: warn\n", "ungültiges YAML in Zeile 2, Schlüssel doppelt"},
+		{"doppelt im Abschnitt", "replay:\n  listen: GEHEIM\n  listen: b\n", "ungültiges YAML in Zeile 3, Schlüssel doppelt"},
+		{"doppelt in Anführungszeichen", "replay:\n  listen: a\n  \"listen\": b\n", "ungültiges YAML in Zeile 3, Schlüssel doppelt"},
+		{"doppelte Verbindung", "connections:\n  a: x\n  a: y\n", "ungültiges YAML in Zeile 3, Schlüssel doppelt"},
+		{"doppelt vor unbekanntem Schlüssel", "bogus: 1\nreplay:\n  listen: a\n  listen: b\n", "ungültiges YAML in Zeile 4, Schlüssel doppelt"},
+		{"doppelt an Wertstelle mit Wert", "connections:\n  a: {postgresql://u:GEHEIM@h/db: 1, postgresql://u:GEHEIM@h/db: 2}\n", "ungültiges YAML in Zeile 2, Schlüssel doppelt"},
+		{"doppelt in dritter Ebene", "replay:\n  listen:\n    a: 1\n    a: 2\n", "ungültiges YAML in Zeile 4, Schlüssel doppelt"},
+		{"doppelt in vierter Ebene", "replay:\n  listen:\n    a:\n      b: 1\n      b: 2\n", "ungültiges YAML in Zeile 5, Schlüssel doppelt"},
+		{"doppelt in einer Liste", "replay:\n  listen:\n    - a: 1\n      a: 2\n", "ungültiges YAML in Zeile 4, Schlüssel doppelt"},
+		{"leerer Schlüssel oben", "\"\": 1\n", "Konfigurationsdatei: oberste Ebene: unbekannter Schlüssel"},
+		{"Schlüssel kein Skalar oben", "? [a]\n: 1\n", "Konfigurationsdatei: oberste Ebene: unbekannter Schlüssel"},
+		{"leerer Schlüssel im Abschnitt", "record:\n  \"\": 1\n", "Konfigurationsdatei: record: unbekannter Schlüssel"},
+		{"Schlüssel kein Skalar im Abschnitt", "record:\n  ? [a]\n  : 1\n", "Konfigurationsdatei: record: unbekannter Schlüssel"},
 		{"oberste Ebene Liste", "- log_level\n", "oberste Ebene"},
 		{"oberste Ebene Skalar", "GEHEIM\n", "oberste Ebene"},
 		{"nur ---", "---\n", "oberste Ebene"},
@@ -223,6 +231,8 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 		{"Name einer Verbindung null", "connections:\n  ~: x\n", "connections"},
 		{"Name einer Verbindung mit Tag", "connections:\n  !!str a: x\n", "connections"},
 		{"Name einer Verbindung mit Steuerzeichen", "connections:\n  \"a\\tb\": x\n", "connections"},
+		{"Name einer Verbindung mit DEL", "connections:\n  \"a\\x7fb\": x\n", "Name einer Verbindung mit Steuerzeichen"},
+		{"Name einer Verbindung mit C1", "connections:\n  \"a\\x9fb\": x\n", "Name einer Verbindung mit Steuerzeichen"},
 		{"Wert einer Verbindung leer", "connections:\n  a:\n", "connections.a"},
 		{"Wert einer Verbindung Liste", "connections:\n  a: [GEHEIM]\n", "connections.a"},
 	}
@@ -304,6 +314,7 @@ func TestConfigShow(t *testing.T) {
 	t.Setenv("PGWIRE_RECORDER_ZZZ", "wert-z")
 	t.Setenv("PGWIRE_RECORDER_BOGUS", "wert-bogus")
 	t.Setenv("PGWIRE_RECORDER_LEER", "")
+	t.Setenv("X_PGWIRE_RECORDER_MITTE", "wert-mitte")
 	pfad := schreibe(t, "# Kopf\nreplay:    # Abschnitt\n    listen: \":5432\"\n    input:   ./r.yaml\nlog_level: warn\nconnections:\n    lokal: \"postgresql://${BENUTZER}@h/db\"\n# Ende\n")
 	got, err := konfigurationZeigen(t, "--config", pfad)
 	want := pfad + "\nreplay:\n  listen: \":5432\"\n  input: ./r.yaml\nlog_level: warn\nconnections:\n  lokal: \"postgresql://${BENUTZER}@h/db\"\nPGWIRE_RECORDER_BOGUS\nPGWIRE_RECORDER_ZZZ\n"
@@ -435,5 +446,108 @@ func TestDateiHilfeVorPruefung(t *testing.T) {
 				t.Errorf("%s: Hilfe ohne %q:\n%s", kommando, satz, text)
 			}
 		}
+	}
+}
+
+// Abdeckung: LH-FA-17/Negative — jeder ausdrücklich geschriebene Tag ist
+// PGR-E2004, auch der nicht spezifische Tag ! allein, mit führendem BOM, mit
+// dem Zeilenende \r allein und mit \r\n; einen Tag, den die Bibliothek als
+// TaggedStyle markiert, lehnt form auch ohne Text der Datei ab; ein ! in einem
+// Kommentar macht eine gültige Datei mit \r nicht ungültig (LH-FA-17.a).
+func TestDateiTag(t *testing.T) {
+	leere(t, "replay")
+	if err := cli.FormMitTaggedStyle(); err == nil || !strings.Contains(err.Error(), "Tag ist ungültig") {
+		t.Errorf("TaggedStyle ohne Text: %v", err)
+	}
+	for _, tag := range []string{"!", "!!str"} {
+		for name, inhalt := range map[string]string{
+			"BOM":    "\uFEFFlog_level: " + tag + " info\n",
+			"\\r":    "record: {}\rlog_level: " + tag + " info\r",
+			"\\r\\n": "record: {}\r\nlog_level: " + tag + " info\r\n",
+		} {
+			if _, err := replayMit("--config=" + schreibe(t, inhalt)); !istDatei(err) || !strings.Contains(err.Error(), "log_level: Tag ist ungültig") {
+				t.Errorf("Tag %s mit %s: %v", tag, name, err)
+			}
+		}
+	}
+	cmd, err := replayMit("--config=" + schreibe(t, "record:\r  force: true\nlog_level: debug\n#          !\n"))
+	if err != nil || cmd.Replay.LogLevel != cli.LogDebug {
+		t.Errorf("! im Kommentar nach \\r: %#v, %v", cmd.Replay, err)
+	}
+}
+
+// utf16 kodiert text als UTF-16, little oder big endian, mit oder ohne BOM.
+func utf16(text string, little, mitBOM bool) []byte {
+	var out []byte
+	if mitBOM {
+		text = "\uFEFF" + text
+	}
+	for _, r := range text {
+		if little {
+			out = append(out, byte(r), byte(r>>8))
+		} else {
+			out = append(out, byte(r>>8), byte(r))
+		}
+	}
+	return out
+}
+
+// Abdeckung: LH-FA-17/Boundary, LH-FA-17/Negative — die Datei ist UTF-8: ein
+// BOM als erstes Zeichen wird übergangen, an anderer Stelle (Anfang von Zeile 2,
+// Wert in Anführungszeichen) ist es PGR-E2004 mit der Zeile; UTF-16 mit und ohne
+// BOM und eine ungültige UTF-8-Folge sind PGR-E2004, die Meldung nennt kein Byte
+// der Datei. Zeilenenden sind \n, \r\n und \r; U+0085, U+2028 und U+2029 sind
+// PGR-E2004 mit der Zeile, auch in einem Kommentar (LH-FA-17.a).
+func TestDateiKodierung(t *testing.T) {
+	leere(t, "replay")
+	for _, inhalt := range []string{
+		"\uFEFFreplay:\n  fail_on_unconsumed: true\n",
+		"replay:\r  fail_on_unconsumed: true\r",
+		"replay:\r\n  fail_on_unconsumed: true\r\n",
+	} {
+		if cmd, err := replayMit("--config=" + schreibe(t, inhalt)); err != nil || !cmd.Replay.FailOnUnconsumed {
+			t.Errorf("%q: %#v, %v", inhalt, cmd.Replay, err)
+		}
+	}
+	for _, f := range []struct{ inhalt, zeile string }{
+		{"log_level: info\n\uFEFFreplay: {}\n", "Zeile 2"},
+		{"log_level: info\nrecord: {output: \"a\uFEFFb\"}\n", "Zeile 2"},
+		{"log_level: info\nrecord: {output: \"a\u0085b\"}\n", "Zeile 2"},
+		{"log_level: info\r\nrecord: {output: \"a\u2028b\"}\n", "Zeile 2"},
+		{"log_level: info\rrecord: {output: \"a\u2029b\"}\n", "Zeile 2"},
+		{"log_level: info\n# a\u2028b\n", "Zeile 2"},
+		{"log_level: info\n# \xff\n", "Zeile 2"},
+	} {
+		_, err := replayMit("--config=" + schreibe(t, f.inhalt))
+		if !istDatei(err) || !strings.Contains(err.Error(), "ungültiges YAML in "+f.zeile) || strings.ContainsAny(err.Error(), "\uFEFF\u0085\u2028\u2029\uFFFDÿ") || strings.Contains(err.Error(), string([]byte{0xff})) {
+			t.Errorf("%q: erwartet %s mit %s ohne Byte der Datei, erhalten %v", f.inhalt, model.CodeConfigFile, f.zeile, err)
+		}
+	}
+	text := "log_level: info\n"
+	for name, roh := range map[string][]byte{
+		"UTF-16LE mit BOM":  utf16(text, true, true),
+		"UTF-16BE mit BOM":  utf16(text, false, true),
+		"UTF-16LE ohne BOM": utf16(text, true, false),
+	} {
+		pfad := filepath.Join(t.TempDir(), "k.yaml")
+		if err := os.WriteFile(pfad, roh, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := replayMit("--config=" + pfad); !istDatei(err) || !strings.Contains(err.Error(), "ungültiges YAML") {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-17/Boundary — config show gibt die Datei ohne BOM und mit
+// \n als Zeilenende aus, auch wenn sie mit BOM und \r geschrieben ist
+// (LH-FA-17.a *Anzeige*).
+func TestConfigShowOhneBOM(t *testing.T) {
+	leere(t, "replay")
+	leere(t, "record")
+	pfad := schreibe(t, "\uFEFFlog_level: warn\r# Kommentar\rreplay:\r  listen: x\r")
+	got, err := konfigurationZeigen(t, "--config", pfad)
+	if err != nil || got != pfad+"\nlog_level: warn\nreplay:\n  listen: x\n" {
+		t.Errorf("Anzeige %q, %v", got, err)
 	}
 }

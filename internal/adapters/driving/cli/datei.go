@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"go.yaml.in/yaml/v3"
 
@@ -92,13 +93,25 @@ func ladeGewaehlte(cli string) (string, *datei, error) {
 }
 
 // ladeDatei liest und prüft die Datei pfad ganz, unabhängig vom Kommando
-// (LH-FA-17.a): zuerst Lesen und YAML, dann Schlüssel und Werte in der
+// (LH-FA-17.a): zuerst, ob sie, Links gefolgt, eine reguläre Datei ist, vor
+// dem Öffnen; dann Lesen, Kodierung und YAML, dann Schlüssel und Werte in der
 // Reihenfolge der Datei. Jeder Fehler ist PGR-E2004 und nennt die Stelle, nie
 // einen Wert und nicht den Pfad.
 func ladeDatei(pfad, quelle string) (*datei, error) {
-	data, err := os.ReadFile(pfad)
+	info, err := os.Stat(pfad)
 	if err != nil {
 		return nil, nichtLesbar(quelle, err)
+	}
+	if !info.Mode().IsRegular() {
+		return nil, model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei (%s) nicht lesbar: keine reguläre Datei", quelle)
+	}
+	roh, err := os.ReadFile(pfad)
+	if err != nil {
+		return nil, nichtLesbar(quelle, err)
+	}
+	data, err := kodierung(roh)
+	if err != nil {
+		return nil, err
 	}
 	doc, err := leseYAML(data)
 	if err != nil {
@@ -131,6 +144,34 @@ func nichtLesbar(quelle string, err error) error {
 // fehlerDatei ist PGR-E2004 an einer Stelle der Datei.
 func fehlerDatei(stelle, grund string) error {
 	return model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei: %s: %s", stelle, grund)
+}
+
+// fehlerZeile ist PGR-E2004 für ungültiges YAML in einer Zeile der Datei.
+func fehlerZeile(zeile int) error {
+	return model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei: ungültiges YAML in Zeile %d", zeile)
+}
+
+// kodierung prüft den Text der Datei vor dem YAML (LH-FA-17.a): UTF-8, ein BOM
+// nur als erstes Zeichen, kein U+0085, U+2028 oder U+2029. Es liefert den Text
+// ohne das führende BOM; ein Fehler nennt die Zeile, gezählt nach den
+// Zeilenenden \n, \r\n und \r, und kein Zeichen der Datei.
+func kodierung(roh []byte) ([]byte, error) {
+	data := bytes.TrimPrefix(roh, []byte("\uFEFF"))
+	zeile := 1
+	for i := 0; i < len(data); {
+		r, n := utf8.DecodeRune(data[i:])
+		switch {
+		case r == utf8.RuneError && n == 1, r == '\uFEFF', r == '\u0085', r == '\u2028', r == '\u2029':
+			return nil, fehlerZeile(zeile)
+		case r == '\r' && i+1 < len(data) && data[i+1] == '\n':
+			n = 2
+			zeile++
+		case r == '\n', r == '\r':
+			zeile++
+		}
+		i += n
+	}
+	return data, nil
 }
 
 // yamlZeile findet die Zeilennummer im Text eines Fehlers der YAML-Bibliothek.
@@ -169,40 +210,42 @@ func leseYAML(data []byte) (*yaml.Node, error) {
 	if len(doc.Content) == 0 {
 		return nil, nil
 	}
-	if err := doppelte(doc.Content[0], ""); err != nil {
+	if err := doppelte(doc.Content[0]); err != nil {
 		return nil, err
 	}
 	return &doc, nil
 }
 
-// doppelte meldet den ersten Schlüssel, der in einer Abbildung zweimal steht,
-// gleich in welcher Tiefe; verglichen wird der Text des Schlüssels.
-func doppelte(n *yaml.Node, stelle string) error {
-	if n.Kind == yaml.SequenceNode {
-		for _, c := range n.Content {
-			if err := doppelte(c, stelle); err != nil {
-				return err
-			}
-		}
-	}
-	if n.Kind != yaml.MappingNode {
-		return nil
-	}
+// doppelte meldet mit seiner Zeile den ersten Schlüssel, der in einer
+// Abbildung zweimal steht, in Abbildungen und Listen jeder Tiefe; verglichen
+// wird der Text des Schlüssels. Die Meldung nennt den Schlüssel nicht, er kann
+// an der Stelle eines Werts stehen (LH-FA-17.a *Fehler*).
+func doppelte(n *yaml.Node) error {
 	gesehen := map[string]bool{}
-	for i := 0; i+1 < len(n.Content); i += 2 {
-		k := n.Content[i]
-		s := unter(stelle, k.Value)
-		if k.Kind == yaml.ScalarNode {
-			if gesehen[k.Value] {
-				return model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei: ungültiges YAML, Schlüssel %q doppelt", s)
+	for i, c := range n.Content {
+		istSchluessel := n.Kind == yaml.MappingNode && i%2 == 0
+		if istSchluessel && c.Kind == yaml.ScalarNode {
+			if gesehen[c.Value] {
+				return model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei: ungültiges YAML in Zeile %d, Schlüssel doppelt", c.Line)
 			}
-			gesehen[k.Value] = true
+			gesehen[c.Value] = true
 		}
-		if err := doppelte(n.Content[i+1], s); err != nil {
+		if err := doppelte(c); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// stelleVon ist die Stelle eines unbekannten Schlüssels name in der
+// Abbildung abschnitt: der Schlüssel unter abschnitt, bei leerem Text (ein
+// leerer Schlüssel oder einer, der kein Skalar ist) die Abbildung selbst,
+// abbildung (LH-FA-17.a *Fehler*).
+func stelleVon(abbildung, abschnitt, name string) string {
+	if name == "" {
+		return abbildung
+	}
+	return unter(abschnitt, name)
 }
 
 // unter ist die Stelle eines Schlüssels unter stelle, durch einen Punkt
@@ -214,26 +257,28 @@ func unter(stelle, schluessel string) string {
 	return stelle + "." + schluessel
 }
 
-// zeilen ist der Text der Datei je Zeile in Zeichen; Zeile und Spalte eines
-// Knotens der Bibliothek zählen ab 1 in Zeichen.
+// zeilen ist der Text der Datei ohne führendes BOM (kodierung) je Zeile in
+// Zeichen, getrennt nach \n, \r\n und \r.
 func zeilen(data []byte) [][]rune {
+	text := strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(string(data))
 	var out [][]rune
-	for _, z := range strings.Split(string(data), "\n") {
+	for _, z := range strings.Split(text, "\n") {
 		out = append(out, []rune(z))
 	}
 	return out
 }
 
 // form prüft, was an keinem Knoten der Datei stehen darf: Anker und ein
-// ausdrücklich geschriebener Tag (LH-FA-17.a). Ein Tag steht am Anfang des
-// Knotens, als erstes Zeichen "!"; kein anderer Knoten beginnt so. Ein Alias
-// verweist auf einen Anker davor in der Datei, und form lehnt diesen zuerst
-// ab.
+// ausdrücklich geschriebener Tag (LH-FA-17.a). Einen Tag mit Namen markiert die
+// Bibliothek als TaggedStyle; den nicht spezifischen Tag "!" allein markiert
+// sie nicht, ihn erkennt form am ersten Zeichen des Knotens in zeilen, an
+// Zeile und Spalte der Bibliothek. Ein Alias verweist auf einen Anker davor in
+// der Datei, und form lehnt diesen zuerst ab.
 func form(n *yaml.Node, stelle string, z [][]rune) error {
 	switch {
 	case n.Anchor != "":
 		return fehlerDatei(stelle, "Anker ist ungültig")
-	case beginntMit(n, z, '!'):
+	case n.Style&yaml.TaggedStyle != 0 || beginntMit(n, z, '!'):
 		return fehlerDatei(stelle, "Tag ist ungültig")
 	}
 	return nil
@@ -310,7 +355,7 @@ func (d *datei) pruefe(top *yaml.Node, z [][]rune) error {
 		case istLeserKommando(name):
 			err = d.abschnitt(name, v, z)
 		default:
-			err = fehlerDatei(unter("", name), "unbekannter Schlüssel")
+			err = fehlerDatei(stelleVon("oberste Ebene", "", name), "unbekannter Schlüssel")
 		}
 		if err != nil {
 			return err
@@ -339,7 +384,7 @@ func (d *datei) abschnitt(kommando string, n *yaml.Node, z [][]rune) error {
 		}
 		o, ok := opts[name]
 		if !ok {
-			return fehlerDatei(unter(kommando, name), "unbekannter Schlüssel")
+			return fehlerDatei(stelleVon(kommando, kommando, name), "unbekannter Schlüssel")
 		}
 		if err := d.setze(kommando, name, o, n.Content[i+1], z); err != nil {
 			return err

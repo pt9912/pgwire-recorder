@@ -90,8 +90,9 @@ kein Gate, das bleibt Review.
 - Grammatik der URL, `sslmode`, Platzhalter, `PGR-E2005`, `PGR-E2006` und das Auflösen eines
   Verbindungsnamens — `slice-v1-abschluss-verbindungen-platzhalter` (oben, *Abgegeben*); er
   folgt diesem Slice.
-- TLS zum Upstream nach `sslmode` — `slice-v1-abschluss-einspielen`; nur `play` verbindet
-  mit TLS zum Server. `sslmode` prüft `slice-v1-abschluss-verbindungen-platzhalter`.
+- TLS zum Upstream nach `sslmode` — `slice-v1-abschluss-verbindungen-platzhalter` (oben,
+  *Abgegeben*); er gibt die Wirkung bei `play` an `slice-v1-abschluss-einspielen` weiter
+  (dort §1, *Übernommen aus* jenem Slice). Nur `play` verbindet mit TLS zum Server.
 - Code im Kern, im PGWire-Adapter und in den Driven-Adaptern — Schicht-Abgrenzung: Der
   Slice ändert den CLI-Adapter und den Bootstrap. **Einzige Ausnahme:** drei Konstanten
   `PGR-E2004` bis `PGR-E2006` in der Code-Tabelle `internal/hexagon/model/fehler.go`, ohne
@@ -149,10 +150,10 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` (`LH-FA-17.a`) | update (Architect, vor dem Code, erledigt am 2026-10-08 und am 2026-10-09) | Entscheidung der zwölf Rückgaben aus §6 (`AGENTS.md` §3.12); R1, R2 und fünf Lesarten nach dem Code von DoD-Punkt 1 und 2 (`cfc4d6b`) |
-| `internal/adapters/driving/cli` | update | Wahl und Laden der Datei (`--config`, `PGWIRE_RECORDER_CONFIG`, Standarddatei); Schlüssel aus der Anmeldung am allgemeinen Leser als dritte Quelle der Priorität; `fail_on_unconsumed`, `log_level`, Frist; Form von `connections:` (Abbildung, Name, Skalar); Kommando `config show` und seine Hilfe — geliefert in `7a80393` |
+| `internal/adapters/driving/cli` | update | Wahl und Laden der Datei (`--config`, `PGWIRE_RECORDER_CONFIG`, Standarddatei; nur eine reguläre Datei, Kodierung und Zeilenenden nach den Befunden des Reviews, §6); Schlüssel aus der Anmeldung am allgemeinen Leser als dritte Quelle der Priorität; `fail_on_unconsumed`, `log_level`, Frist; Form von `connections:` (Abbildung, Name, Skalar); Kommando `config show` und seine Hilfe — geliefert in `7a80393` |
 | `internal/hexagon/model/fehler.go` | update | nur die drei Konstanten `PGR-E2004` bis `PGR-E2006` in der Code-Tabelle (§1, Ausnahme; §6) |
 | `internal/bootstrap` | update | `config show` ausführen (Ausgabe auf `stdout`); die zusammengeführten Optionen an die Use Cases geben |
-| `internal/adapters/driving/cli` (Unit-Tests), `internal/bootstrap` (Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a` und `LH-FA-01.a`; der Test über alle angemeldeten Optionen läuft über drei Quellen. Offen: die Tests der Vorgaben vom 2026-10-09 (DoD-Punkt 3) — R1 in `TestDateiGueltig` und `TestDateiUngueltig`, R2 in `TestDateiWahl` oder `TestConfigShowOhneDatei`, Lesart 3 an `config show` mit relativem `--config`, die Mutation zu Lesart 2 über `TestConfigShowFehler` |
+| `internal/adapters/driving/cli` (Unit-Tests), `internal/bootstrap` (Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a` und `LH-FA-01.a`; der Test über alle angemeldeten Optionen läuft über drei Quellen. Die Tests der Vorgaben vom 2026-10-09 (DoD-Punkt 3) — R1 in `TestDateiGueltig` und `TestDateiUngueltig`, R2 und Lesart 3 in `TestConfigShowOhneDatei`, die Mutation zu Lesart 2 über `TestConfigShowFehler` — geliefert in `9332356`; die Tests zu den Befunden des Reviews vom 2026-10-09 (§6) in `TestDateiTag`, `TestDateiKodierung`, `TestDateiKeineRegulaere`, `TestConfigShowOhneBOM`, `TestDateiUngueltig`, `TestConfigShow` und `TestE2EConfigShowStdin` |
 | `docs/user/benutzerhandbuch.md` | update, falls abweichend | §4 *Die gewählte Konfigurationsdatei anzeigen* und §5 *Konfigurationsdatei* ohne die Absätze zu Verbindungen und Platzhaltern (die zieht `slice-v1-abschluss-verbindungen-platzhalter` nach) beschreiben den Zielstand; nachgezogen wird, was die Entscheidungen aus §6 ändern |
 
 ## 4. Trigger
@@ -622,16 +623,51 @@ alle rot.
 **Grüne Mutanten, eingeordnet.**
 
 - *Schlüssel ist kein Skalar* (eine eigene Meldung für einen Schlüssel, der Liste oder
-  Abbildung ist): **äquivalent** — ein solcher Schlüssel hat den leeren Text, keine Option
-  und kein Abschnitt heißt so, er ist unbekannt (`PGR-E2004` mit der Stelle). Die Prüfung
-  ist entfernt, der Kommentar an `schluessel` nennt den Grund.
+  Abbildung ist): **äquivalent im Code** — ein solcher Schlüssel hat den leeren Text, keine
+  Option und kein Abschnitt heißt so, er ist unbekannt (`PGR-E2004`). Die Meldung nannte
+  dabei keine Stelle (F-511); seit der Nacharbeit nennt sie die Abbildung (`stelleVon`,
+  Zeile *F-511* unten).
 - *Alias ungültig* (eigene Prüfung): **äquivalent** — ein Alias verweist auf einen Anker
   davor in der Datei, und den lehnt die Prüfung in der Reihenfolge der Datei zuerst ab;
   ein Alias ohne Anker ist ungültiges YAML. Die Prüfung ist entfernt, der Fall *Alias* in
   `TestDateiUngueltig` bleibt.
-- *Tag über `TaggedStyle`* neben dem ersten Zeichen `!`: **äquivalent** — jeder Tag, den
-  die Bibliothek so markiert, beginnt mit `!`. Die Prüfung über `TaggedStyle` ist
-  entfernt; die über das erste Zeichen fängt auch `!` allein.
+- *Tag über `TaggedStyle`* neben dem ersten Zeichen `!`: **nicht äquivalent**, die
+  Einstufung als äquivalent war falsch (F-506). Die Prüfung am Text hängt an Zeile und
+  Spalte der Bibliothek, und die zählte bei BOM, `\r`, `U+2028`, `U+0085` und UTF-16 anders
+  als `zeilen`. Die Prüfung über `TaggedStyle` ist zurück und ergänzt die am Text; der
+  Mutant ist rot (Zeile *F-506* unten).
+
+**Befunde des Reviews vom 2026-10-09** (§6, Vorgaben 1 bis 8, und F-512, F-513). Gleicher Weg
+der Mutanten, gefahren am Stand des Commits, der die Nacharbeit liefert: 14 Mutanten, alle
+rot; der E2E-Mutant (Prüfung der regulären Datei entfernt) per `make test-integration` in
+einer frischen Kopie.
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| F-506: ein Tag, den die Bibliothek als `TaggedStyle` markiert, ist ungültig, auch ohne Text an Zeile und Spalte | Prüfung über `TaggedStyle` entfernt | `TestDateiTag` (`form` direkt) |
+| F-506: `!` allein mit führendem BOM ist ungültig | BOM vor dem Zählen nicht entfernt | `TestDateiTag` |
+| F-506: Zeilenende `\r` allein zählt; `!` in einem Kommentar macht die Datei nicht ungültig | nur nach `\n` gezählt | `TestDateiTag` |
+| F-507 (a): BOM nach dem ersten Zeichen ist `PGR-E2004` mit der Zeile | Prüfung entfernt | `TestDateiKodierung` |
+| F-507 (a): nur UTF-8, UTF-16 mit BOM ist `PGR-E2004` | Prüfung auf UTF-8 entfernt | `TestDateiKodierung` |
+| F-507 (b): `U+0085`, `U+2028`, `U+2029` sind `PGR-E2004` mit der Zeile | Prüfung der drei Zeichen entfernt | `TestDateiKodierung` |
+| F-507 (c): nur eine reguläre Datei, geprüft vor dem Öffnen | Prüfung nur auf Verzeichnis | `TestDateiKeineRegulaere` (`/dev/null`, FIFO über die Frist), `TestE2EConfigShowStdin` (Pipe über die Frist von 15 s) |
+| F-507 (c): Links gefolgt | `os.Lstat` statt `os.Stat` | `TestDateiKeineRegulaere` (Link auf eine reguläre Datei) |
+| F-508: Meldung zu einem doppelten Schlüssel nennt die Zeile, nie den Schlüssel | Text des Schlüssels in der Meldung | `TestDateiUngueltig` (Wertstelle mit `GEHEIM`) |
+| F-510: Doppelte auch in einer Liste (M1) | kein Abstieg in Listen | `TestDateiUngueltig` |
+| F-510: Doppelte in jeder Tiefe (M2) | nur bis zur zweiten Ebene | `TestDateiUngueltig` |
+| F-511: leerer oder nicht skalarer Schlüssel nennt die Abbildung als Stelle | Stelle aus dem Text des Schlüssels | `TestDateiUngueltig` |
+| F-512: Name einer Verbindung ohne DEL und C1 (M3) | nur Steuerzeichen unter `0x20` | `TestDateiUngueltig`, `TestConfigShowFehler` |
+| F-513: `config show` listet nur Variablen mit dem Präfix am Anfang (M4) | `strings.Contains` statt `strings.HasPrefix` | `TestConfigShow` |
+
+Ohne Mutation, wie §6 sagt: die Ausgabe von `config show` ohne BOM und mit `\n`
+(`TestConfigShowOhneBOM`); die Zusage hält der Kodierer. Die Kommentare an `form`,
+`zeilen`, `kodierung` und `doppelte` sagen nur zu, was diese Tests prüfen (Vorgabe 8).
+
+Läufe zur Nacharbeit, am Baum des Liefer-Commits vor dem Commit: `make test` grün,
+`make lint` Exit 0, `make abdeckung` geschrieben, `make gates` Exit 0 (darin
+`d-check: 382 Datei(en) geprüft, 0 Befund(e)`, `run-integration-tests: gruen` mit
+`TestE2EConfigShowStdin`, `a-check-negativ: gruen`, `abdeckung-gegenprobe: gruen`,
+`kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`, `baseline-verify: v6.16.0 OK`).
 
 **Rückgaben und Lesarten** (an den Architect, ohne Eintrag in §6; entschieden in
 `cfc4d6b`, §6 *Rückgaben vom 2026-10-09*, belegt unter DoD-Punkt 3 oben):

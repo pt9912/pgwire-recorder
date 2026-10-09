@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,10 +20,17 @@ import (
 // Ende. Es liefert stdout, stderr und den Exit-Code.
 func starteBis(t *testing.T, dir string, args ...string) (string, string, int) {
 	t.Helper()
+	return starteMitEingabe(t, dir, nil, args...)
+}
+
+// starteMitEingabe ist starteBis mit stdin aus eingabe; nil ist kein stdin.
+func starteMitEingabe(t *testing.T, dir string, eingabe io.Reader, args ...string) (string, string, int) {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, os.Getenv("PGR_BINARY"), args...)
 	cmd.Dir = dir
+	cmd.Stdin = eingabe
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	err := cmd.Run()
@@ -68,5 +76,37 @@ func TestE2EReplayKonfigurationsdateiUngueltig(t *testing.T) {
 	stdout, stderr, code := starteBis(t, dir, "replay", "--listen", "127.0.0.1:0", "--input", "fehlt.yaml")
 	if code != 2 || stdout != "" || !strings.Contains(stderr, "PGR-E2004") || !strings.Contains(stderr, "replay.shutdown_timeout") || strings.Contains(stderr, "GEHEIM") || strings.Contains(stderr, "PGR-E3") {
 		t.Fatalf("Exit-Code %d, stdout %q, stderr %q", code, stdout, stderr)
+	}
+}
+
+// Abdeckung: LH-FA-17/Negative, LH-FA-17/Boundary — config show --config
+// /dev/stdin mit stdin aus einer offenen Pipe ohne Eingabe endet binnen der
+// Frist mit PGR-E2004 und Exit-Code 2, statt auf Eingabe zu warten; mit stdin
+// aus einer regulären Datei
+// zeigt es deren Inhalt.
+func TestE2EConfigShowStdin(t *testing.T) {
+	dir := t.TempDir()
+	lesen, schreiben, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = lesen.Close() }()
+	defer func() { _ = schreiben.Close() }()
+	stdout, stderr, code := starteMitEingabe(t, dir, lesen, "config", "show", "--config", "/dev/stdin")
+	if code != 2 || stdout != "" || !strings.Contains(stderr, "PGR-E2004") || !strings.Contains(stderr, "nicht lesbar") {
+		t.Fatalf("Pipe: Exit-Code %d, stdout %q, stderr %q", code, stdout, stderr)
+	}
+	pfad := filepath.Join(dir, "eingabe.yaml")
+	if err := os.WriteFile(pfad, []byte("log_level: warn\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	datei, err := os.Open(pfad)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = datei.Close() }()
+	stdout, stderr, code = starteMitEingabe(t, dir, datei, "config", "show", "--config", "/dev/stdin")
+	if code != 0 || stdout != "/dev/stdin\nlog_level: warn\n" || stderr != "" {
+		t.Fatalf("reguläre Datei: Exit-Code %d, stdout %q, stderr %q", code, stdout, stderr)
 	}
 }

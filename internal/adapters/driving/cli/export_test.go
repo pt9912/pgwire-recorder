@@ -1,5 +1,7 @@
 package cli
 
+import "go.yaml.in/yaml/v3"
+
 // Die Umgebungsvariablen von --fail-on-unconsumed, --log-level und
 // --shutdown-timeout.
 const (
@@ -32,3 +34,9 @@ const (
 	EnvConfig     = envConfig
 	StandardDatei = standardDatei
 )
+
+// FormMitTaggedStyle ruft form mit einem Knoten, den die Bibliothek als
+// TaggedStyle markiert, an einer Zeile außerhalb des Texts der Datei.
+func FormMitTaggedStyle() error {
+	return form(&yaml.Node{Kind: yaml.ScalarNode, Style: yaml.TaggedStyle, Line: 5, Column: 1}, "x", nil)
+}

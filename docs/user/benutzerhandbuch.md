@@ -653,6 +653,11 @@ Ein Abschnitt ohne Inhalt ist ungültig, `{}` setzt nichts; eine leere Datei ode
 eine nur mit Kommentaren ebenfalls nicht. Ein relativer Pfad gilt relativ zum
 aktuellen Verzeichnis, nicht zum Verzeichnis der Datei.
 
+Die Datei ist eine reguläre Datei in UTF-8; ein BOM am Anfang ist erlaubt, andere
+Kodierungen wie UTF-16 sind ungültig. Zeilenenden sind `\n`, `\r\n` oder `\r`. Ein
+Verzeichnis, eine Pipe oder ein Gerät als Datei lehnt das Werkzeug ab (`PGR-E2004`),
+auch `--config /dev/stdin` mit einer Pipe; eine umgeleitete Datei liest es.
+
 Das Werkzeug prüft beim Start die ganze Datei, auch den Abschnitt einer anderen
 Betriebsart, und endet beim ersten Fehler. Die Meldung nennt die Stelle (Schlüssel
 oder Verbindung), nie den Wert.
