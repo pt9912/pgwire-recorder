@@ -84,8 +84,10 @@ Verbindung und der Schlüssel `upstream` sind geprüft, und ein Klartext-Passwor
   Fehler.
 - Im Benutzerhandbuch die Wirkung einer Verbindung bei `play` (Passwort aus dem Platzhalter,
   `PGWIRE_RECORDER_PASSWORD`, `sslmode=require` mit TLS) — `slice-v1-abschluss-einspielen`
-  (dort §1, *Übernommen aus* diesem Slice, und §3); DoD-Punkt 3 beschreibt, was geliefert ist,
-  und `play` gibt es erst mit jenem Slice (Review F-533).
+  (dort §1, *Übernommen aus* diesem Slice, und §3); ebenso der Abschnitt `play:` in Beispiel
+  und Abschnittsliste von §5 *Konfigurationsdatei*, die hier `record:` zeigen (Verifikation
+  V-125); DoD-Punkt 3 beschreibt, was geliefert ist, und `play` gibt es erst mit jenem Slice
+  (Review F-533).
 - Code im Kern, im PGWire-Adapter und in den Driven-Adaptern — Schicht-Abgrenzung: Der Slice
   ändert den CLI-Adapter und, falls die aufgelöste Adresse es verlangt, den Bootstrap; die
   Code-Tabelle im Model bleibt unberührt.
@@ -140,7 +142,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driving/cli` | update | Hilfe von `--upstream` nennt `host:port` oder den Namen einer Verbindung (Optionstabelle `LH-FA-17.a`); Form `host:port` und Auflösen des Namens bei `--upstream` und `PGWIRE_RECORDER_UPSTREAM`, jeder gesetzte Wert geprüft (die Art `text` von `--upstream` in `cli.go` prüft heute nur den leeren Wert); benutzte Verbindung; `sslmode=require` bei `record`; Einsetzen der Variablen in die zerlegte URL des Ladens, `PGR-E2005`, Prüfung des Ports danach; Zusammensetzen von `host:port` mit geklammertem IPv6-Host |
 | `internal/bootstrap` | keine Änderung erwartet | `RecordOptions.Upstream` trägt nach dem Auflösen die zusammengesetzte Adresse `host:port`; die Zeile beim Start und `postgres.Upstream` nennen sie wie heute (U6) |
 | `internal/adapters/driving/cli` (Unit-Tests), `test/integration` | update | Happy/Boundary/Negative nach `LH-FA-17.a`, je Randform aus §6 ein Fall; `record` mit Verbindungsname gegen PostgreSQL |
-| `docs/user/benutzerhandbuch.md` | update, falls abweichend | §5 *Konfigurationsdatei* (Verbindungen, `sslmode`, Platzhalter) und §7 *Fehlercodes* (`PGR-E2005`, `PGR-E2006`) beschreiben den gelieferten Stand beider Slices; die Wirkung bei `play` (Passwort aus dem Platzhalter, `PGWIRE_RECORDER_PASSWORD`, `sslmode=require`) steht dort nicht, sie geht an `slice-v1-abschluss-einspielen` (§1) |
+| `docs/user/benutzerhandbuch.md` | update, falls abweichend | §5 *Konfigurationsdatei* (Verbindungen, `sslmode`, Platzhalter) und §7 *Fehlercodes* (`PGR-E2005`, `PGR-E2006`) beschreiben den gelieferten Stand beider Slices; die Wirkung bei `play` (Passwort aus dem Platzhalter, `PGWIRE_RECORDER_PASSWORD`, `sslmode=require`) steht dort nicht, sie geht an `slice-v1-abschluss-einspielen` (§1); das Beispiel zeigt einen Abschnitt `record:` mit der Verbindung `lokal`, die Abschnittsliste nennt `record:` und `replay:` (V-125) |
 | `docs/user/abdeckung-*.md` | update | über `make abdeckung` aus den Deklarationen der neuen Tests |
 
 ## 4. Trigger
@@ -344,7 +346,14 @@ Neu entschieden:
   Die Ablage trägt je Teil die Stücke in der Reihenfolge der URL (Prüfung des Architect vom
   2026-10-09 vor dem Code, oben).
 - Das Benutzerhandbuch beschreibt Verbindungen und Platzhalter schon im Zielstand und kann vom
-  gelieferten Stand abweichen (§3) — **Ausgang:** offen bis Closure.
+  gelieferten Stand abweichen (§3) — **Ausgang:** eingetreten für §5 *Konfigurationsdatei*
+  (Verifikation V-125): Das Beispiel mit dem Abschnitt `play:` und die Liste
+  „(`record:`, `replay:`, `play:`)“ lehnte das gelieferte Binary mit `PGR-E2004` ab, und
+  `--upstream staging` aus dem Satz danach ist bei `record` wegen `sslmode=require`
+  ebenfalls `PGR-E2004`. Behoben in diesem Slice (Nacharbeit zur Verifikation, §7):
+  Beispiel mit `record:` und `upstream: lokal`, Liste ohne `play:`, der Satz nennt `lokal`.
+  Die Rückkehr von `play:` in Beispiel und Liste übernimmt `slice-v1-abschluss-einspielen`
+  (dort §1 und §3, mit der Kennung dieses Slice).
 - Zwischen der Closure von `slice-v1-abschluss-verbindungen-platzhalter` und der dieses Slice
   nimmt `--upstream` einen Verbindungsnamen an, ohne ihn aufzulösen: `record` nimmt den Namen
   dann als Adresse und scheitert spätestens beim Verbindungsaufbau; DoD-Punkt 1 schließt die
@@ -478,7 +487,8 @@ rot.
 | `--upstream` vor `sslmode=require` | `sslmode=require` vor der Prüfung des Werts | `TestUpstreamReihenfolgeAmEnde` |
 | Variablen vor dem Port | Form des Ports vor dem Einsetzen der Variablen geprüft | `TestUpstreamVariableFehlt` (leere Variable im Port ist `PGR-E2005`), `TestUpstreamReihenfolgeAmEnde`, `TestUpstreamEinsetzen` |
 | Einsetzen gilt für jeden Teil, erste fehlende in der Reihenfolge der URL (U8) | Name der letzten Variable des Teils; leerer Wert eingesetzt; Wert dekodiert (Zeilen oben) | `TestEinsetzenAlleTeile` über `SetzeEin`, je Teil Benutzer, Passwort, Host, Port, Datenbank |
-| Variablen einmal gelesen (U2) | Grenze, unten | `TestUpstreamEinmalGelesen` |
+| Variablen einmal gelesen (U2), erste Hälfte: die Adresse steht nach `Parse` eingesetzt in `RecordOptions.Upstream` | Adresse nicht in `c.Record.Upstream` übernommen (Mutant A1 der Verifikation; dieselbe Mutation wie *Adresse nicht übernommen* in DoD-Punkt 1) | `TestUpstreamEinmalGelesen` (`einsetzen_test.go:251`: Name `v` statt `erst:5432`), dazu `TestUpstreamVerbindung`, `TestUpstreamEinsetzen`, `TestUpstreamVariableFehlt`, `TestUpstreamReihenfolgeAmEnde`, `TestDateiUpstream` |
+| Variablen einmal gelesen (U2), zweite Hälfte: ein `Setenv` nach `Parse` wirkt nicht | Grenze, unten | — |
 
 **Grüne Mutanten, eingeordnet.**
 
@@ -491,8 +501,10 @@ rot.
 **Grenzen.**
 
 - *U2, Einsetzen beim Verbinden statt beim Lesen* ist im Zuschnitt nicht baubar, ohne
-  `postgres.Upstream` zu ändern (§1, Schicht-Abgrenzung; §6 U2). `TestUpstreamEinmalGelesen`
-  sichert die Form der Übergabe: `RecordOptions.Upstream` ist ein fester Text.
+  `postgres.Upstream` zu ändern (§1, Schicht-Abgrenzung; §6 U2). Die zweite Hälfte von
+  `TestUpstreamEinmalGelesen` (`Setenv` nach `Parse`) kann deshalb nicht rot werden; sie
+  sichert nur die Form der Übergabe: `RecordOptions.Upstream` ist ein fester Text. Die erste
+  Hälfte hält Mutant A1 (Tabelle oben).
 - *Vorrang des Namens vor `host:port`* (A7) hat keinen Fall: Ein Name enthält kein `:`,
   `host:port` immer eines (akzeptiertes Negativ in §6, A7).
 - Die einzelnen Zeichen der Regel F-521 prüft `hostPortForm`, mit Mutanten je Zeichen belegt im
@@ -533,13 +545,57 @@ Stand `a482303`).
   ohne Handbuch, kein Ausschluss); dort steht die Sendung jetzt in §1 unter *Übernommen aus*
   diesem Slice und in §3, mit der Kennung dieses Slice; hier in §1 *Ausdrücklich NICHT* und §3.
   Stehen geblieben sind Stellen außerhalb der Absätze aus DoD-Punkt 3, die `play` schon
-  vorher nannten (Einleitung von §5, Beispiel mit `play:`, Zeile `PGR-E4005` in §7).
+  vorher nannten (Einleitung von §5, Zeile `PGR-E4005` in §7); das Beispiel mit `play:` gehört
+  in DoD-Punkt 3 und ist mit der Nacharbeit zur Verifikation umgestellt (V-125, unten).
 - *F-532, F-535* sind Hinweise an Architect und Verifier; kein Code.
 
 | Lauf | Stand | Ergebnis |
 |---|---|---|
 | `make test`, `make lint` | Nacharbeit, vor dem Commit | Exit 0, `0 issues.` |
 | `make docs-check`, `make kopf-check` | Nacharbeit, vor dem Commit | 0 Befunde, Exit 0 |
+| `make gates` | Commit der Nacharbeit | Exit 0, vor der Übergabe |
+
+**Nacharbeit zur Verifikation** (`docs/reviews/2026-10-09-verifikation-slice-v1-abschluss-upstream-verbinden.md`,
+Stand `e74077b`).
+
+- *V-125, Beispiel in §5 Konfigurationsdatei.* Merkmal: Ein Text im Handbuch zeigt eine
+  Eingabe, die das gelieferte Binary ablehnt. Ausprägungen in §5 *Konfigurationsdatei*: (1) der
+  Abschnitt `play:` im Beispiel, (2) `play:` in der Abschnittsliste davor, (3) `--upstream
+  staging` und `PGWIRE_RECORDER_UPSTREAM=staging` im Satz nach dem Beispiel: Die einzige
+  Betriebsart mit `--upstream` ist heute `record`, und dort ist `staging` wegen
+  `sslmode=require` `PGR-E2004`. Das Beispiel zeigt jetzt einen Abschnitt `record:` mit
+  `upstream: lokal`, `listen: 127.0.0.1:15432` und `output: ./recordings/users.yaml`, die
+  Liste nennt `record:` und `replay:`, der Satz nennt `lokal`. Die Verbindung `staging` bleibt
+  im Beispiel, weil sie Platzhalter und `sslmode` zeigt; der Absatz zu `record` sagt, dass
+  `require` dort ungültig ist. Die Rückkehr von `play:` geht an `slice-v1-abschluss-einspielen`
+  (dort §1 *Übernommen aus* diesem Slice und §3, mit der Kennung dieses Slice; sein §1
+  *Ausdrücklich NICHT* schließt das Handbuch nicht aus, die Zeitangaben gehen an
+  `slice-v1-abschluss-zeitangaben`, deshalb nennt die Sendung `keep_timing` und `timing_mode`
+  nicht).
+
+  Probe mit dem gebauten Image (`make build`, `pgwire-recorder:dev`), das Beispiel per `awk`
+  wörtlich aus dem Handbuch in eine Datei unter dem Scratch-Pfad der Sitzung, Lauf mit
+  `docker run --network none`:
+
+  | Probe | Stand des Handbuchs | Ergebnis |
+  |---|---|---|
+  | `config show --config beispiel.yaml` | vor der Nacharbeit | Exit 2, `Konfiguration [PGR-E2004]: Konfigurationsdatei: play: unbekannter Schlüssel` |
+  | `config show --config beispiel.yaml` | nach der Nacharbeit | Exit 0, erste Zeile der Pfad, danach der Inhalt der Datei |
+  | `record --config beispiel.yaml`, nach 2 s `docker stop` | nach der Nacharbeit | Exit 0, `record gestartet listen=127.0.0.1:15432 upstream=localhost:5432`, `Herunterfahren begonnen sessions=0`, `record beendet output=./recordings/users.yaml` |
+  | `record --config beispiel.yaml --upstream staging` | nach der Nacharbeit | Exit 2, `connections.staging: sslmode=require ist bei record ungültig, …` (Grund für Ausprägung 3) |
+
+- *V-126, U2.* Die Tabelle zu DoD-Punkt 2 führt U2 in zwei Zeilen: die erste Hälfte von
+  `TestUpstreamEinmalGelesen` mit Mutant A1 (`c.Record.Upstream = adresse` in `upstreamRecord`
+  durch `_ = adresse` ersetzt), die zweite als Grenze. A1 selbst gefahren: frische Kopie wie in
+  *Weg der Mutanten* oben, `docker build --target test`, rot in sechs Tests, darunter
+  `TestUpstreamEinmalGelesen` an `einsetzen_test.go:251`; Kopie und Image danach gelöscht.
+
+Kein Produkt-Code und kein Test geändert; keine Randform entschieden.
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `make build` | Nacharbeit, vor dem Commit | Exit 0 |
+| `make docs-check`, `make kopf-check` | Nacharbeit, vor dem Commit | `d-check: 405 Datei(en) geprüft, 0 Befund(e)`, Exit 0 |
 | `make gates` | Commit der Nacharbeit | Exit 0, vor der Übergabe |
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung

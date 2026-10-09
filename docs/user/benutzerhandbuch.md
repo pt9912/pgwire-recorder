@@ -616,25 +616,24 @@ Werkzeug nicht (`PGR-E2004`); fehlt `.pgwire-recorder.yaml`, liest es keine Date
 Die Schlüssel heißen wie die Optionen, mit `_` statt `-` und ohne `--`; einen
 Schlüssel `config` gibt es nicht, und Groß- und Kleinschreibung zählt. Einstellungen
 für alle Betriebsarten (`log_level`) und benannte Verbindungen stehen oben, die
-übrigen in einem Abschnitt je Betriebsart (`record:`, `replay:`, `play:`):
+übrigen in einem Abschnitt je Betriebsart (`record:`, `replay:`):
 
 ```yaml
 log_level: info
 connections:
   lokal: "postgresql://dev@localhost:5432/myapp"
   staging: "postgresql://app:${STAGING_PASSWORD}@staging.example.com:5432/myapp?sslmode=require"
-play:
-  upstream: staging
-  input: ./recordings/users.yaml
-  keep_timing: true
-  timing_mode: relative
+record:
+  upstream: lokal
+  listen: 127.0.0.1:15432
+  output: ./recordings/users.yaml
 ```
 
 Eine Verbindung ist eine URL der Form
 `postgresql://[benutzer[:passwort]@]host[:port]/datenbank[?sslmode=…]`; die Datenbank
 ist Pflicht, ohne Port gilt `5432`, und eine IPv6-Adresse steht in eckigen Klammern
 (`postgresql://[::1]:5432/db`). Der Name einer Verbindung enthält weder `:` noch `@`
-noch `$`. Danach genügt `--upstream staging`, ebenso `PGWIRE_RECORDER_UPSTREAM=staging`
+noch `$`. Danach genügt `--upstream lokal`, ebenso `PGWIRE_RECORDER_UPSTREAM=lokal`
 oder der Schlüssel `upstream`. Ein Name gilt nur in genau dieser Schreibweise und nur
 aus der gewählten Datei; ohne Datei ist ein Wert ohne `:` ungültig. Jeder Wert von
 `--upstream` und `PGWIRE_RECORDER_UPSTREAM` ist der Name einer Verbindung oder hat die
