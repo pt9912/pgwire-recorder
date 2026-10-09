@@ -1,0 +1,91 @@
+# Review-Report: slice-v1-abschluss-einspielen — 2026-10-09
+
+**Review-Art:** Code-Review. Geprüft wird gegen Plan §1, §3 und §6, gegen die Spezifikation `LH-FA-20.a` (mit *Randformen je Schritt*) und `LH-FA-17.a` *Wirkung einer URL*, gegen [ADR-0001](../plan/adr/0001-hexagonale-architektur.md), [ADR-0004](../plan/adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0010](../plan/adr/0010-verwendung-von-pgproto3.md), [ADR-0016](../plan/adr/0016-einspielen-anmeldung-und-tls.md) und [ADR-0017](../plan/adr/0017-einspielen-sequenziell-und-fehlersemantik.md) und gegen die Hard Rules. Gegen die DoD prüft dieses Review nicht, das ist Aufgabe des Verifiers.
+
+**Gegenstand:** der Kern von `play`, ein Code-Commit `8025485` auf `e4963ee` (Diff `e4963ee..8025485`, +2374 −49 mit Plan). Neu sind `internal/adapters/driven/postgres/einspielen.go`, `internal/hexagon/ports/driven/einspielziel.go`, `internal/hexagon/ports/driving/play.go` und `internal/hexagon/services/play.go` mit ihren Tests, `internal/bootstrap/play_test.go`, `internal/adapters/driving/cli/play_test.go` und `test/integration/play_e2e_test.go`. Geändert sind `cli.go`, `upstream.go`, `verbindung.go`, `bootstrap.go`, `fehler.go` (zwei Codes), das Handbuch, die Abdeckungstabellen und Plan §3 und §7. Grundlage vor dem Code sind die Commits des Architect `f7c9c79`, `36b9d56`, `19f5512` und `e4963ee` und die Schnitte `cee5fc1` und `e0b193d`; gelesen, nicht als Diff geprüft.
+
+**Skill:** `.harness/skills/reviewer.md` @ `32afc69`
+**Modell:** claude-opus-5-5 · **Datum:** 2026-10-09
+
+> **Zitier-Form** *(dieser Block bleibt stehen — er ist Norm, kein
+> Ausfüll-Hinweis)*. Dieser Report friert ein; was er zitiert, bewegt sich
+> weiter. Deshalb: **Kennung, nicht Adresse** — `slice-<Kennung>` statt seines
+> Lifecycle-Pfads, `make <target>` statt eines Links auf die Sensor-Datei, eine
+> Baseline-Stelle als **Tag + Pfad in Inline-Code** statt als Link. Ein
+> `pfad`-Feld auf den **geprüften Gegenstand** zitiert den Stand des Laufs.
+
+**Eingangs-Kontext:**
+
+- `docs/plan/planning/in-progress/slice-v1-abschluss-einspielen.md`: ganz gelesen am Stand `8025485`, mit §7 *Belege des Implementers*. Den Bericht des Implementers habe ich nicht gelesen; was der Auftrag daraus nennt (Handbuch §4, zweites Signal beim blockierten Senden), steht auch in §7.
+- `spec/spezifikation.md` `LH-FA-20.a` ganz, `LH-FA-17.a` *Wirkung einer URL*, `SPEC-038`; [`LH-FA-20`](../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-17`](../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [`LH-FA-14`](../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-QA-05`](../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler).
+- ADRs oben, Abschnitt *Entscheidung*.
+- `AGENTS.md` §3.3, §3.5, §3.7 und §3.9 bis §3.13, dort auch *Nachzählen beim Eintragen*.
+- Die Nehmer der beiden Schnitte, §1, §3, §6 und §8: `slice-v1-abschluss-einspielen-anmeldung`, `slice-v1-abschluss-einspielen-tls`, `slice-v1-abschluss-einspielen-laufsteuerung`, `slice-v1-abschluss-einspielen-extended`.
+- Vorheriger Report am selben Modul: `slice-v1-abschluss-upstream-verbinden` (F-530 bis F-536, darin F-533). Die Nummern dieses Laufs beginnen bei F-547.
+
+**Ausgeführte Läufe:**
+
+- **Arbeitsweise der Mutanten.** Je Mutant eine frische Kopie von `go.mod`, `go.sum`, `cmd/`, `internal/` und `test/` per `cp -r` ohne `-p` unter dem Scratch-Pfad, genau eine Ersetzung, `gofmt -l` auf der Datei leer, dann `go test -count=1` der Pakete `postgres`, `services`, `bootstrap` (bei A auch `cli`) im eigenen Image der Stufe `deps` (`rev-einspielen-deps`), netzlos, per Bind-Mount. Im Repo nichts geändert; die Kopien danach gelöscht.
+- **Mutanten.** A: `Schliesse` nimmt `Lock` statt `TryLock` — grün. B: `Verbinde` wählt mit `context.Background()` statt `ctx` — grün. C: `fehlerImAufbau` ohne SQLSTATE und Meldung im Text — grün. D: `Schliesse` ohne `SetWriteDeadline` — grün. E: `abbruch` aus `ctx` statt `WithoutCancel(ctx)` — rot (`TestPlayErstesSignal`, `TestPlayErstesSignalImAufbau`). F: Zeile `play beendet` entfernt — rot (`TestRunPlaySignalImStart`). G: Meldung bei `FATAL` ohne `M` — rot (`TestPlayFehlerantwort`).
+- **Sonden** (Testdatei im Paket `postgres_test`, nur in der Kopie). S1: Server liest nach dem Aufbau nichts, `Anfrage` mit 64 MiB blockiert, danach `Schliesse` — Original grün in 0,5 s, Mutant A rot („Schliesse endet binnen 5 s nicht“). S2: `Dialer.ControlContext` wartet auf das Ende seines ctx, dann `cancel` — Original grün, Mutant B rot („Verbinde endet binnen 5 s … nicht“).
+- **Handbuch V-125.** Das Beispiel aus §5 *Konfigurationsdatei* als `.pgwire-recorder.yaml`; `config show` im Image `pgwire-recorder:dev` aus `make build`, netzlos: Exit 0, `stderr` leer. `play --input x.yaml` dort: `PGR-E3001`, Exit 3. `play --help` gelesen.
+- **Gates.** `make a-check`: `gesamt: 0 Befund(e)`. `make test`: grün. `make docs-check` vor dem Commit dieses Reports: grün.
+
+---
+
+## Findings
+
+| ID | Kategorie | Befund | Quelle | Pfad | Verifizierbar | Klasse |
+|---|---|---|---|---|---|---|
+| F-547 | MEDIUM | Dass das zweite Signal eine Session auch während eines blockierten Sendens schließt, hält keine Mutation: Mutant A (`Lock` statt `TryLock`) und Mutant D (ohne Schreibfrist für `Terminate`) bleiben grün. Sonde S1 zeigt, dass ein Test machbar ist und A unterscheidet. §7 nennt die Lücke als *Grenze ohne Test*; das ersetzt den Test nicht. *Failure-Szenario:* Ein Umbau auf `Lock` lässt `play` beim zweiten Signal hängen, solange eine große Anfrage an einen Server geht, der nicht liest; nur `SIGKILL` beendet den Prozess, und kein Gate wird rot. Die Kommentare an Port und Adapter sagen beides zu. | `LH-FA-20.a` *Abbruchsignal*; Plan §6 *Zweites Signal*; `AGENTS.md` §3.10, §3.11 | `internal/adapters/driven/postgres/einspielen.go` · `if s.schreiben.TryLock() {`; `internal/hexagon/ports/driven/einspielziel.go` · „auch während Anfrage oder Naechste warten“ | ja (Mutanten A und D, Sonde S1, `go test`) | Zusage nur für einen Teil ihrer Fälle von einer Mutation gehalten |
+| F-548 | MEDIUM | Dass das zweite Signal den Verbindungsversuch abbricht, hält keine Mutation: Mutant B (Wählen ohne `ctx`) bleibt grün, weil `TestEinspielAufbauAbgebrochen` erst nach dem Wählen abbricht. Sonde S2 zeigt, dass ein Test ohne Netz machbar ist. *Failure-Szenario:* Verwirft eine Firewall die Verbindung, endet `play` nach dem zweiten Signal erst mit der Frist des Betriebssystems für den Verbindungsaufbau, und kein Gate wird rot. | `LH-FA-20.a` *Abbruchsignal* („auch während des Verbindungsversuchs“); Plan §6 *Zweites Signal im Aufbau* (R3); `AGENTS.md` §3.10, §3.11 | `internal/adapters/driven/postgres/einspielen.go` · `conn, err := z.Dialer.DialContext(ctx, "tcp", z.Address)`; · „oder bricht den Verbindungsversuch ab“ | ja (Mutant B, Sonde S2, `go test`) | Zusage nur für einen Teil ihrer Fälle von einer Mutation gehalten |
+| F-549 | MEDIUM | Dass die Meldung einer Fehlerantwort im Aufbau SQLSTATE und Meldung nennt, hält keine Mutation: Mutant C bleibt in allen Unit-Tests grün; `TestE2EPlayAufbau` prüft nur `code=` (gelesen, nicht gefahren). *Failure-Szenario:* Ein Umbau verliert SQLSTATE und `M`, und eine abgelehnte Anmeldung (28P01), ein unbekannter Benutzer (28000) und eine fehlende Datenbank (3D000) sind in der Log-Zeile nicht mehr zu unterscheiden. | `LH-FA-20.a` *Meldungen*; [`LH-QA-05`](../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler); Plan §6 *Fehler nach dem Start*; `AGENTS.md` §3.10, §3.11 | `internal/adapters/driven/postgres/einspielen.go` · `"Fehlerantwort im Aufbau %s „%s“", e.Code, e.Message` | ja (Mutant C, `go test`) | Zusage nur für einen Teil ihrer Fälle von einer Mutation gehalten |
+| F-550 | MEDIUM | Plan §3 sagt für den Bootstrap zu, die Optionen von `play` gehen an den Play-Service, und verweist auf die Schicht-Abgrenzung von `slice-v1-abschluss-einspielen-laufsteuerung`; jener schließt Code im Bootstrap aus und zählt deshalb zwei Schichten (dort §1 und §8). Geliefert reicht der Bootstrap nur Benutzer und Datenbank als einzelne Argumente. *Failure-Szenario:* Jede der drei Optionen der Laufsteuerung braucht eine Änderung an diesem Aufruf; der Nehmer trifft damit seinen eigenen Ausschluss und die Rückführung in seinem §4, oder er wächst still um eine Schicht. | Plan §3, Zeile `internal/bootstrap`; `AGENTS.md` §3.13 (mit *Nachzählen beim Eintragen*), §3.9 | `internal/bootstrap/bootstrap.go` · `services.NewPlayService(ctx, recording.YAML{}, o.Input, ziel, o.User, o.Database)` | nein (Lesen gegen §1 des Nehmers) | Zusage an einen Nehmer im Code nicht eingelöst |
+| F-551 | MEDIUM | Das Handbuch nennt als Standard von `--user` und `--database` „Daten aus der Aufzeichnung“, und §5 *Konfigurationsdatei* beschreibt die Wirkung einer Verbindung nur für `record`. Geliefert gelten bei `play` Benutzer und Datenbank der URL vor der Aufzeichnung (`TestPlayVerbindung`). Das in diesem Commit ergänzte Beispiel `play: upstream: lokal` verbindet damit als `dev` zu `myapp`. Plan §1 gibt F-533 „ganz ab, geteilt nach diesen beiden Teilen“ (Passwort, TLS); den ersten Teil von F-533, die Wirkung wie geliefert, führt keiner der beiden Nehmer. *Failure-Szenario:* Wer nach Tabelle und Beispiel einspielt, erwartet die Datenbank der Aufzeichnung, und `play` führt deren DDL und DML in `myapp` aus. | Plan §1 (*Übernommen aus* `slice-v1-abschluss-upstream-verbinden`, F-533) und §3, Zeile Handbuch; `LH-FA-17.a` *Wirkung einer URL*; `AGENTS.md` §3.11, §3.13 | `docs/user/benutzerhandbuch.md` · „`PGWIRE_RECORDER_USER` \| Daten aus der Aufzeichnung“; · „Bei `record` zählen nur Host und Port der URL“ | ja (`TestPlayVerbindung` gegen die Tabellenzeile) | Teil einer Sendung ohne Nehmer |
+| F-552 | LOW | Die Meldung einer Fehlerantwort mit `FATAL` oder `PANIC` nennt neben SQLSTATE und `M` den Schweregrad. Plan §6 und *Meldungen* sagen „keine weiteren Felder“. Der Wert ist aus fester Menge und trägt keine Daten. | `LH-FA-20.a` *Meldungen*; Plan §6 *Fehler nach dem Start* | `internal/hexagon/services/play.go` · `"Fehlerantwort %s des Servers %s „%s“, die Verbindung endet", schwere,` | ja (Test auf den genauen Text) | Meldung nennt mehr Felder als zugesagt |
+| F-553 | INFO | Zum Handbuch §4 (*Eine Aufzeichnung in eine Datenbank einspielen*), das der Implementer als offen nennt: Es beschreibt den Zielstand mit Passwort, TLS, Laufsteuerung, Zeitangaben und Vergleich; in diesem Stand sind diese Optionen bei `play` `PGR-E2001`, und `PGWIRE_RECORDER_PASSWORD` bleibt unbeachtet. Jeder Teil hat einen Nehmer in `welle-v1-abschluss`, der den Text wahr macht, und `slice-erster-release-veroeffentlichung` startet erst, wenn die Welle `done` ist. Ein Nutzer sieht den Zwischenstand also nur auf dem Hauptzweig. Die Hilfe von `play` sagt nur zu, was gilt. Anders liegt die Zeile `PGR-E4004` in §7: „Die Meldung nennt die Anfrage“. Nach *Meldungen* nennt sie Session, Nummer, SQLSTATE und `M`, nicht den Text der Anfrage, und dafür nennt kein Slice eine Adresse. | Plan §3, Zeile Handbuch; `LH-FA-20.a` *Meldungen* | `docs/user/benutzerhandbuch.md` · „Setzen Sie bei Bedarf das Passwort“; · „Die Meldung nennt die Anfrage und die Antwort der Datenbank.“ | nein | — (Hinweis an den Verifier und den Planner) |
+| F-554 | INFO | Größe: Der Diff war in einer Review-Sitzung prüfbar. Die 630 Produktzeilen verteilen sich auf kleine Funktionen, und §7 belegt die Zusagen je Zeile; die Rückführung aus §4 ist aus Sicht des Reviews nicht eingetreten. §7 *Größe* misst gegen „die Schätzung von 1600 bis 2000 aus dem Auftrag“. Diese Zahl steht in keinem Artefakt: §6 nennt 1700 bis 2300 und sagt, dass nach dem Schnitt nicht neu geschätzt wurde. | Plan §4, §6 *Größe des Kerns*, §7; `v6.16.0` · `regelwerk/modul-05-planning-harness.md` §Ziel-Form: Slice | Plan §7 · „knapp über der Schätzung von 1600 bis 2000 aus dem Auftrag“ | nein | — (Hinweis an den Verifier) |
+
+## Negativbefunde
+
+| Bereich | Ergebnis |
+|---|---|
+| Hexagon, [ADR-0001](../plan/adr/0001-hexagonale-architektur.md), [ADR-0004](../plan/adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0010](../plan/adr/0010-verwendung-von-pgproto3.md) | geprüft, ohne Befund. `services/play.go` importiert `context`, `errors`, `fmt`, `model` und `ports/driven`; die Ports nur `context` und `model`. `pgproto3` liegt nur in `driven/postgres`. Den Code einer Nachricht `R` liest der Adapter selbst, alles andere dekodiert `pgproto3` (Plan §6, R2). `make a-check`: 0 Befunde. |
+| [ADR-0016](../plan/adr/0016-einspielen-anmeldung-und-tls.md), [ADR-0017](../plan/adr/0017-einspielen-sequenziell-und-fehlersemantik.md) | geprüft, ohne Befund. Klasse 28 ist `PGR-E4005`, alles andere im Aufbau `PGR-E4002`; jedes Verfahren ist `PGR-E4005` ohne Senden. Die Sessions laufen nacheinander in der Reihenfolge der Datei, und der Leser verlangt `id` = Stelle (`sessionFromDTO`). Die erste Fehlerantwort bricht ab. |
+| `AGENTS.md` §3.12, je Operation gegen §6 | geprüft, Befund nur F-552. Verglichen habe ich Optionen, Start (Ladefehler vor Art, Extended über alle Sessions, keine Verbindung), Startup-Daten (Kopie, Vorrang, Aufzeichnung unverändert), Aufbau (abschließende Liste, `R` vor und nach `AuthenticationOk`, `ReadyForQuery` vor `AuthenticationOk`, Länge unter 4, Puffer geht mit), Abbruch im Aufbau ohne `Terminate`, Interaktion (Copy, nicht lesbar, Verbindungsende, `FATAL`/`PANIC` aus `V`, sonst `S`, kein Weiterlesen nach `PGR-E4004`, keine Frist), Ende einer Session, erstes Signal (im Aufbau mit `WithoutCancel`), zweites Signal und Zeilen `info`/`error`. Keine weitere Randform ist im Code still entschieden. |
+| `AGENTS.md` §3.9 | geprüft, ohne Befund außer F-550. Der Code-Commit ändert §6 nicht, damit erscheint keine Randform im Code-Commit. §3 folgt den Dateien des Diffs; §1 passt zum Gelieferten. |
+| `AGENTS.md` §3.13 mit *Nachzählen beim Eintragen* | geprüft, Befunde F-550 und F-551. Der Code-Commit nennt keine neue Adresse; die Adresse `slice-v1-abschluss-anmeldung` für `record` in §7 steht schon im Register. Die vier Nehmer der Schnitte nennen den Geber unter *Übernimmt* und ihre Zählung in §8: drei Liefer-Punkte und zwei Schichten. Bei Anmeldung und TLS zählt der Bootstrap nicht als Schicht, ihr §3 ändert ihn. Bei der Laufsteuerung ist er ausgeschlossen. |
+| `AGENTS.md` §3.10, Tabelle in §7 | geprüft, Befunde F-547 bis F-549. Die Stichproben E, F und G werden mit dem genannten Test rot, die Zeilen der Tabelle dazu halten. Der grüne Mutant „Startup ohne Fehlerprüfung“ ist äquivalent, wie §7 sagt: Das Lesen danach ist ebenfalls `PGR-E4002`. |
+| `AGENTS.md` §3.11, Kommentare, Hilfe, Abdeckungs-Deklarationen | geprüft, Befunde F-547 bis F-549. Die Hilfe von `play` (Passwort `PGR-E4005`, Vorrang von `--user` und `--database`) ist durch `TestEinspielAufbauFehler` (Klartext, MD5, SASL) und `TestPlayVerbindung` gedeckt. Die Deklarationen der Tests für das zweite Signal sagen nur „während es auf eine Antwort wartet“ zu. |
+| Handbuch §5, V-125, *Log-Ausgaben*, nach `--` | geprüft, Befunde F-551 und F-553. Das Beispiel als Datei startet `config show` mit Exit 0 und leerem `stderr`; Stufen `error` und `info` und `play` nach `--` stimmen mit Code und Tests überein. |
+| `SPEC-038` *Warten in Tests* | geprüft, ohne Befund. Jedes Warten auf Kanal oder Ende hat eine eigene Frist als Literal (5 s oder 30 s) und eine Meldung, die das Ereignis nennt; `bootstrap.Run`, `Verbinde` und `spiele` sind synchrone Aufrufe, die Fakes warten auf Freigaben des Tests. |
+| `record` unverändert | geprüft, ohne Befund. `postgres/upstream.go` ist nicht im Diff; `adresseRecord` ist umgebaut, Reihenfolge und Text von `sslmode=require` und Port sind gleich, `TestUpstream*` grün. |
+| Hard Rules 3.3, 3.5, 3.7; Commit-Message | geprüft, ohne Befund. Kein Move, keine ADR geändert. Die neuen Kommentare sind Zusagen oder Kopplungen. Die Message nennt `slice-v1-abschluss-einspielen` und [`LH-FA-20`](../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), keine `SPEC-` oder `ARC-`Kennung. |
+
+## Summary
+
+| Kategorie | Anzahl |
+|---|---|
+| HIGH | 0 |
+| MEDIUM | 5 |
+| LOW | 1 |
+| INFO | 2 |
+
+- F-547: Das zweite Signal beim blockierten Senden hält keine Mutation (A, D grün; Sonde S1 unterscheidet).
+- F-548: Der Abbruch des Verbindungsversuchs hält keine Mutation (B grün; Sonde S2 unterscheidet).
+- F-549: SQLSTATE und Meldung einer Fehlerantwort im Aufbau hält keine Mutation (C grün).
+- F-550: Der Bootstrap reicht die Optionen nicht so weiter, wie die Laufsteuerung es für ihren Ausschluss voraussetzt.
+- F-551: Das Handbuch nennt für `--user` und `--database` die Aufzeichnung als Standard; der erste Teil von F-533 hat keinen Nehmer.
+- F-552: Die Meldung bei `FATAL`/`PANIC` nennt den Schweregrad als weiteres Feld.
+- F-553: Handbuch §4 ist bis zum Ende der Welle Zielstand; die Zeile `PGR-E4004` widerspricht *Meldungen*.
+- F-554: Der Diff war in einer Sitzung prüfbar; §7 misst gegen eine Zahl ohne Artefakt.
+
+Wiederkehrende Klassen: `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (F-547, F-548, F-549), `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (F-547, F-548, F-549), `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (F-550, F-551).
+
+**Finding-Klassen dieses Laufs:** Zusage nur für einen Teil ihrer Fälle von einer Mutation gehalten · Zusage an einen Nehmer im Code nicht eingelöst · Teil einer Sendung ohne Nehmer · Meldung nennt mehr Felder als zugesagt
+
+## Verdikt
+
+**Merge-blockierend:** ja, bis F-547 bis F-551 bearbeitet sind. Das gelieferte Verhalten ist korrekt: Die Sonden zeigen, dass der Code heute beim blockierten Senden und im Verbindungsversuch richtig abbricht. Es fehlen die Tests, die das halten (F-547 bis F-549). F-550 und F-551 betreffen Nehmer: einer hängt an einer Zusage, die der Code nicht einlöst, einem Teil einer Sendung fehlt der Nehmer. Aufbau, Interaktion, erstes Signal, Start und Optionen halten am Code, an den Tests und an den Stichproben.
+
+**Übergabe:** F-547, F-548, F-549, F-550 und F-552 gehen an den Implementer. F-551 geht an den Planner (wer den ersten Teil von F-533 führt), danach an den Implementer. Widerspricht der Implementer F-550, läuft der Konflikt über den Architect. F-553 und F-554 gehen an den Verifier, F-553 zusätzlich an den Planner wegen der Zeile `PGR-E4004`. Dieser Report ersetzt keine Verifikation.
