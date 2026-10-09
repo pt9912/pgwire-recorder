@@ -285,8 +285,9 @@ func TestDateiUpstream(t *testing.T) {
 // unbekannter Name, einer in anderer Schreibweise, einer mit $$, der nach $$
 // keinen Namen trifft, leerer Host, kein Port, ein Port außerhalb 1 bis 65535
 // oder dekodiert geschrieben, IPv6 ohne oder mit offener Klammer; ein
-// ungültiger Name zählt nicht als Name, der erste Fehler ist der, der in der
-// Datei zuerst steht (LH-FA-17.a, L4).
+// ungültiger Name zählt nicht als Name, auch einer mit $, den ein Wert nach $$
+// wörtlich trifft; der erste Fehler ist der, der in der Datei zuerst steht
+// (LH-FA-17.a, L1, L4).
 func TestDateiUpstreamUngueltig(t *testing.T) {
 	leere(t, "record")
 	leere(t, "replay")
@@ -314,9 +315,10 @@ func TestDateiUpstreamUngueltig(t *testing.T) {
 		}
 	}
 	for inhalt, stelle := range map[string]string{
-		"record:\n  upstream: a@b\nconnections:\n  a@b: postgresql://h/db\n": "Konfigurationsdatei: record.upstream: weder Name",
-		"connections:\n  a@b: postgresql://h/db\nrecord:\n  upstream: a@b\n": "Konfigurationsdatei: connections: Name einer Verbindung",
-		"record:\n  upstream: v\nconnections:\n  v: postgres://h/db\n":       "Konfigurationsdatei: connections.v: Schema",
+		"record:\n  upstream: a@b\nconnections:\n  a@b: postgresql://h/db\n":             "Konfigurationsdatei: record.upstream: weder Name",
+		"connections:\n  a@b: postgresql://h/db\nrecord:\n  upstream: a@b\n":             "Konfigurationsdatei: connections: Name einer Verbindung",
+		"record:\n  upstream: \"a$$$$b\"\nconnections:\n  \"a$$b\": postgresql://h/db\n": "Konfigurationsdatei: record.upstream: weder Name",
+		"record:\n  upstream: v\nconnections:\n  v: postgres://h/db\n":                   "Konfigurationsdatei: connections.v: Schema",
 	} {
 		if _, err := recordMit(t, inhalt); !istDatei(err) || !strings.Contains(err.Error(), stelle) {
 			t.Errorf("%q: %v, erwartet %q", inhalt, err, stelle)
