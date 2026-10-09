@@ -98,8 +98,8 @@ func ladeGewaehlte(cli string) (string, *datei, error) {
 // dem Öffnen; dann Lesen, Kodierung und YAML, dann Schlüssel und Werte in der
 // Reihenfolge der Datei. Jeder Fehler ist PGR-E2004 und nennt die Stelle, nie
 // einen Wert und nicht den Pfad; eine Meldung zu ungültigem YAML nennt die
-// Zeile, außer zu einem Alias ohne Anker und einem Anker, der sich selbst
-// enthält (Grenze: die Bibliothek nennt dafür keine Stelle).
+// Zeile, außer zu einem Alias ohne Anker (Grenze: die Bibliothek nennt dafür
+// keine Stelle).
 func ladeDatei(pfad, quelle string) (*datei, error) {
 	info, err := os.Stat(pfad)
 	if err != nil {
@@ -194,11 +194,9 @@ func nichtDruckbar(r rune) bool {
 // genannte Zeile (leer, wenn er keine nennt) und die Ursache.
 var yamlFehler = regexp.MustCompile(`(?s)^yaml: (?:line ([0-9]+): )?(.*)$`)
 
-// Fehler aus dem Bezug zwischen Knoten: Sie nennen keine Stelle in der Datei.
-var (
-	aliasOhneAnker    = regexp.MustCompile(`(?s)^unknown anchor '.*' referenced$`)
-	ankerEnthaeltSich = regexp.MustCompile(`(?s)^anchor '.*' value contains itself$`)
-)
+// aliasOhneAnker ist der Fehler der Bibliothek zu einem Alias ohne Anker, ein
+// Fehler aus dem Bezug zwischen Knoten ohne Stelle in der Datei.
+var aliasOhneAnker = regexp.MustCompile(`(?s)^unknown anchor '.*' referenced$`)
 
 // parserFehler meldet, ob ursache ein Fehler des Parsers der Bibliothek ist:
 // einer der elf Texte aus parserc.go, im genauen Vergleich, weil Texte des
@@ -219,10 +217,9 @@ func parserFehler(ursache string) bool {
 
 // ungueltigesYAML ist PGR-E2004 für ungültiges YAML mit der Zeile ab 1
 // (LH-FA-17.a *Fehler*): die Zahl im Text der Bibliothek, bei einem Fehler des
-// Parsers plus 1; ohne Zahl Zeile 1. Ein Alias ohne Anker und ein Anker, der
-// sich selbst enthält, nennen die Ursache ohne Zeile und ohne den Namen. Vom
-// Text der Bibliothek übernimmt es sonst nichts, er kann Inhalt der Datei
-// tragen.
+// Parsers plus 1; ohne Zahl Zeile 1. Ein Alias ohne Anker nennt die Ursache
+// ohne Zeile und ohne den Namen. Vom Text der Bibliothek übernimmt es sonst
+// nichts, er kann Inhalt der Datei tragen.
 func ungueltigesYAML(err error) error {
 	m := yamlFehler.FindStringSubmatch(err.Error())
 	if m == nil {
@@ -230,11 +227,8 @@ func ungueltigesYAML(err error) error {
 	}
 	ursache := m[2]
 	if m[1] == "" {
-		switch {
-		case aliasOhneAnker.MatchString(ursache):
+		if aliasOhneAnker.MatchString(ursache) {
 			return model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei: ungültiges YAML, Alias ohne Anker")
-		case ankerEnthaeltSich.MatchString(ursache):
-			return model.Errorf(model.CodeConfigFile, nil, "Konfigurationsdatei: ungültiges YAML, Anker enthält sich selbst")
 		}
 		return fehlerZeile(1)
 	}

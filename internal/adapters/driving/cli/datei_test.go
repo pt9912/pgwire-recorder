@@ -510,7 +510,8 @@ func utf16(text string, little, mitBOM bool) []byte {
 // PGR-E2004 mit der Zeile, auch in einem Kommentar; ebenso jedes Zeichen, das
 // YAML 1.2 nicht als druckbar zulässt (NUL, U+0001, U+007F, U+0080, U+FFFE,
 // U+FFFF), auch UTF-16LE ohne BOM in Zeile 1; ein Tabulator bleibt gültig; ein
-// Alias ohne Anker nennt die Ursache ohne Zeile und Namen (LH-FA-17.a).
+// Alias ohne Anker nennt die Ursache ohne Zeile und Namen; ein Anker, der sich
+// selbst enthält, ist ein Anker und nennt die Stelle (LH-FA-17.a).
 func TestDateiKodierung(t *testing.T) {
 	leere(t, "replay")
 	for _, inhalt := range []string{
@@ -562,6 +563,14 @@ func TestDateiKodierung(t *testing.T) {
 	_, err := replayMit("--config=" + schreibe(t, "a: *x\n"))
 	if !istDatei(err) || err.Error() != "Konfiguration [PGR-E2004]: Konfigurationsdatei: ungültiges YAML, Alias ohne Anker" {
 		t.Errorf("Alias ohne Anker: %v", err)
+	}
+	for inhalt, genau := range map[string]string{
+		"log_level: &x [*x]\n":            "Konfiguration [PGR-E2004]: Konfigurationsdatei: log_level: Anker ist ungültig",
+		"replay:\n  listen: &x {b: *x}\n": "Konfiguration [PGR-E2004]: Konfigurationsdatei: replay.listen: Anker ist ungültig",
+	} {
+		if _, err := replayMit("--config=" + schreibe(t, inhalt)); err == nil || err.Error() != genau {
+			t.Errorf("Anker, der sich selbst enthält, %q: %v, erwartet %q", inhalt, err, genau)
+		}
 	}
 }
 

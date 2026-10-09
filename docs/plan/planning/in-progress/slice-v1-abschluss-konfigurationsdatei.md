@@ -599,10 +599,16 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
      `leseYAML` ist der Zweig nicht erreichbar (`a: &x [*x]`, `a: &x {b: *x}` und die
      Blockform lesen ohne Fehler; die Datei ist danach als Anker ungültig, mit Stelle), und
      der Mutant, der seine Meldung ändert, bleibt grün. Die Spezifikation sagt nur, dass ohne
-     Zeile allein diese Fälle bleiben; ihr widerspricht der Stand nicht. **Ausgang: offen,
-     Entscheidung des Nutzers vor dem `git mv`** (Nacharbeit hier: Zweig und Zusage enger,
-     oder Randform an `slice-v1-abschluss-verbindungen-platzhalter`, der `datei.go` ohnehin
-     ändert).
+     Zeile allein diese Fälle bleiben; ihr widerspricht der Stand nicht. **Ausgang:
+     behoben in diesem Slice** (Entscheidung des Nutzers vom 2026-10-09): Der Zweig ist aus
+     `ungueltigesYAML` entfernt, der Kommentar dort und der Kopfkommentar von `ladeDatei`
+     nennen ohne Zeile nur noch den Alias ohne Anker. `TestDateiKodierung` belegt, dass
+     `log_level: &x [*x]` und `replay:\n  listen: &x {b: *x}` die Meldung der Ankerprüfung
+     mit Stelle ergeben (`log_level: Anker ist ungültig`, `replay.listen: Anker ist
+     ungültig`); rot über die entfernte Ankerprüfung, ebenso bleibt der Mutant *Name in die
+     Meldung zum Alias ohne Anker* rot. Die Spezifikation nennt den Fall in `LH-FA-17.a`
+     *Fehler* weiter als Meldung ohne Zeile; geändert ist sie nicht (Hinweis an den Architect
+     im Bericht).
   - **Summary-Zeilen:** Review
     `docs/reviews/2026-10-09-review-slice-v1-abschluss-konfigurationsdatei.md`: „0 HIGH · 4
     MEDIUM · 6 LOW · 3 INFO (F-506 die Tag-Prüfung über die Textstelle lässt Tags bei BOM,
@@ -913,7 +919,7 @@ alle rot; die 14 Mutanten der Nacharbeit zum Review dort erneut gefahren, alle r
 
 Die Fälle zu ungültigem YAML in `TestDateiUngueltig` prüfen die Meldung genau. Der Kommentar
 an `parserFehler` ist eine Kopplung an die Version v3.0.5 der Bibliothek, der Kopfkommentar
-von `ladeDatei` nennt die Grenze (Alias ohne Anker, Anker, der sich selbst enthält). Handbuch
+von `ladeDatei` nennt die Grenze (Alias ohne Anker). Handbuch
 §4 (V-120): `config show` meldet `PGR-E2004` oder `PGR-E2006`, nie `PGR-E2005`. Läufe am Baum
 des Liefer-Commits vor dem Commit: `make test` grün, `make lint` Exit 0, `make abdeckung`
 geschrieben, `make gates` Exit 0 (darin `d-check: 383 Datei(en) geprüft, 0 Befund(e)`,
