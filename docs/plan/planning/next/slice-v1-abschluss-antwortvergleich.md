@@ -98,7 +98,7 @@ dasteht.
 
 - Die Zusage, was nicht verglichen wird, ist schwer zu ändern; Treiber mit abweichenden Hinweisen oder Parameterstatus sind im Test zu belegen — **Ausgang:** offen bis Closure.
 - Das Halten der Antworten bis zum Ende der Interaktion kostet Speicher bei großen Resultsets — **Ausgang:** offen bis Closure.
-- Die Teile von `LH-FA-24.a` §Unvollständige Aufzeichnung, die aufgezeichnete Interaktionen ohne `ReadyForQuery` behandeln, sind seit der Entscheidung in `LH-FA-02.b` §Fehlerantwort vor dem Abbruch (`slice-replay-semantik-fehlerreplay`) nicht mehr erreichbar: Der Recorder schreibt keine solche Interaktion, und der Leser lehnt sie als beschädigt ab (`PGR-E3003`). Dieser Slice bereinigt sie in der Spezifikation; seine DoD sagt für sie nichts zu — **Ausgang:** offen bis Closure.
+- Die Teile von `LH-FA-24.a` §Unvollständige Aufzeichnung, die aufgezeichnete Interaktionen ohne `ReadyForQuery` behandeln, sind seit der Entscheidung in `LH-FA-02.b` §Fehlerantwort vor dem Abbruch (`slice-replay-semantik-fehlerreplay`) nicht mehr erreichbar: Der Recorder schreibt keine solche Interaktion, und der Leser lehnt sie als beschädigt ab (`PGR-E3003`). Dieser Slice bereinigt sie in der Spezifikation, dazu in `LH-FA-20.a` den Teil der Tabellenzeile *Verbindung endet nach dem ersten `ReadyForQuery`* mit Vergleich, der ein aufgezeichnetes Ende behandelt, und den Satz „Wo die Aufzeichnung ein Verbindungsende zeigt, wartet der Recorder …“ (übergeben von `slice-v1-abschluss-einspielen`, das Schritt 3 bereinigt hat; die Klausel in `LH-FA-24` des Lastenhefts bleibt Sache des Nutzers); seine DoD sagt für sie nichts zu — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 

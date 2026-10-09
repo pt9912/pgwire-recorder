@@ -65,7 +65,7 @@ gewöhnliches Argument.
 **Ende der Optionen.** Das erste Argument, das genau `--` lautet, beendet die
 Optionen, an jeder Stelle, auch an der Stelle eines Optionswerts; für die
 Hilfe-Suche und das Lesen der Optionen gilt dieselbe Lesart. Was danach steht,
-ist ein gewöhnliches Argument; `record` und `replay` nehmen keines an
+ist ein gewöhnliches Argument; `record`, `replay` und `play` nehmen keines an
 (`PGR-E2001`, unerwartetes Argument). Fehlt einer Option vor `--` dadurch ihr
 Wert (`--input --`), ist das `PGR-E2001` (Option ohne Wert). Der Wert `--` geht
 nur mit `=` (`--input=--`). Kein Fehlertext nennt die Hilfe-Anforderung des
@@ -828,11 +828,14 @@ einer der vier Namen in Kleinbuchstaben; jeder andere Wert, auch der leere
 `trace`, `off`), ist `PGR-E2001`; eine leere Umgebungsvariable gilt als nicht
 gesetzt. In die Stufen gehen:
 
-* `error`: jeder Verbindungsfehler (LH-FA-13.b) als Log-Zeile,
+* `error`: jeder Verbindungsfehler (LH-FA-13.b) als Log-Zeile, bei `play` jeder
+  Fehler nach dem Start (`LH-FA-20.a`), auch einer, nach dem das Einspielen
+  weiterläuft,
 * `warn`: jede Warnung; jede Zeile dieser Stufe trägt einen Meldungscode
   (`PGR-W…`), ein Hinweis ohne Maßnahme für den Anwender steht unter `info`
   oder `debug`,
-* `info`: Start und Ende von `record` und `replay` und der Beginn des
+* `info`: Start und Ende von `record`, `replay` und `play`, bei `play` das erste
+  Abbruchsignal (`LH-FA-20.a`), und der Beginn des
   Herunterfahrens (LH-FA-13.a), keine Zeile je Verbindung oder Interaktion,
 * `debug`: Ereignisse je Verbindung; welche, ist nicht Vertrag.
 
@@ -1060,7 +1063,10 @@ zusammengeführte Wert nennt. Die Wirkung einer URL:
   `--user` und `--database` gehen vor denen der URL, diese vor den Startup-Daten der
   Session. TLS gilt, wenn `--upstream-tls` (Option, Umgebungsvariable oder
   Schlüssel) gesetzt ist; ist es nicht gesetzt, entscheidet `sslmode`. Ein
-  ausdrücklich gesetztes `--upstream-tls` geht dem `sslmode` vor.
+  ausdrücklich gesetztes `--upstream-tls` geht dem `sslmode` vor, auch mit dem
+  Wert `false`. Die Variablen der Platzhalter aller Teile der benutzten Verbindung
+  sind Pflicht (`PGR-E2005`), auch in einem Teil, den `--user` oder `--database`
+  überschreibt, und im Passwort auch dann, wenn der Server keines verlangt.
 * `record`: nur Host und Port. Benutzer, Passwort und Datenbank der URL werden
   ignoriert, weil `record` die Anmeldung des Clients vermittelt; `sslmode=require`
   ist ein Konfigurationsfehler (`PGR-E2004`, ungültiger `sslmode` der benutzten
@@ -1126,7 +1132,9 @@ die Datei (Wahl, Lesen, YAML, dann Schlüssel, Werte und Klartext-Passwörter in
 Reihenfolge der Datei, innerhalb einer URL in der Reihenfolge ihrer Teile); zuletzt,
 nach der Zusammenführung, Pflichtoptionen, Kombinationen, `--upstream` (der Wert der
 Kommandozeile, dann der der Umgebungsvariable), `sslmode=require` der benutzten Verbindung
-bei `record`, die Variablen der Platzhalter der benutzten Verbindung und danach ihr Port
+bei `record`, bei `play` `--upstream-ca` ohne TLS (`PGR-E2001`; eine Kombination, die
+erst nach `--upstream` steht, weil TLS vom `sslmode` der benutzten Verbindung abhängt),
+die Variablen der Platzhalter der benutzten Verbindung und danach ihr Port
 nach dem Einsetzen:
 
 | Ursache | Code |
@@ -1372,8 +1380,8 @@ pgwire-recorder play \
 3. Die Client-Nachrichten der Interaktionen werden in der aufgezeichneten
    Reihenfolge gesendet: bei einer einfachen Anfrage die `Query`, bei einer
    Extended-Interaktion die Nachrichten jeder Gruppe (`SPEC-041`). Nach jeder
-   Interaktion wartet der Recorder auf das `ReadyForQuery`, bei einer aufgezeichneten
-   Interaktion ohne `ReadyForQuery` auf das aufgezeichnete Verbindungsende.
+   Interaktion wartet der Recorder auf das `ReadyForQuery`; innerhalb einer
+   Extended-Interaktion gilt *Gruppen* unten.
 4. Die Serverantworten werden gelesen und verworfen, mit Ausnahme einer
    `ErrorResponse`. Ein Vergleich mit den aufgezeichneten Antworten findet nur mit
    `--compare-responses` statt (`LH-FA-24.a`); die Antworten werden dann bis zum
@@ -1405,6 +1413,7 @@ wiederholen sie nicht.
 | Verbindung endet nach dem ersten `ReadyForQuery`, auch durch einen `FATAL` | `PGR-E4003`, Exit-Code `4`, immer | **Aufgezeichnetes Ende, das der Server genauso verursacht** (gleicher SQLSTATE; ohne aufgezeichnete `ErrorResponse` ohne SQLSTATE-Vergleich): erwartet, die Session endet, das Einspielen macht mit der nächsten Session weiter. **`FATAL` ohne Vorbild oder mit anderem SQLSTATE, oder ein `ReadyForQuery`, wo die Aufzeichnung das Ende zeigt**: Abweichung `PGR-E5004`, Exit-Code `5`; die Verbindung ist beendet, die Session endet, mit `--continue-on-error` läuft die nächste Session. **Verbindungsverlust ohne Fehlerantwort des Servers** (zum Beispiel Netzwerkabbruch): `PGR-E4003`, Exit-Code `4` | `PGR-E4003`: immer sofort; erwartetes Ende: nein; `PGR-E5004`: ohne `--continue-on-error` sofort |
 | `ErrorResponse` des Servers auf eine Anfrage | `PGR-E4004`, Exit-Code `4` am Ende; zählt nicht, wenn `--allow-recorded-errors` gesetzt ist und die aufgezeichnete Interaktion eine `ErrorResponse` enthält | der Vergleich entscheidet: gleicher SQLSTATE an der aufgezeichneten Stelle gilt als erwartet, jeder andere Fehler ist eine Abweichung; `PGR-E4004` entfällt | ohne `--continue-on-error` sofort, außer bei erwartetem Fehler |
 | Abweichung der Antwort (`LH-FA-24.a`) | kein Vergleich | `PGR-E5004`, Exit-Code `5` am Ende; je Interaktion die erste Abweichung | ohne `--continue-on-error` sofort |
+| Serverantwort, die das Einspielen nicht lesen oder nicht bedienen kann (*Interaktion* unten) | `PGR-E6001`, Exit-Code `6` | gleich | immer sofort |
 | Abbruchsignal (Schritt 7) | Exit-Code `0`, wenn bis dahin kein Fehler auftrat, sonst `4` | `0`, nach einer Abweichung `5` | nach der laufenden Interaktion (oder Session) |
 
 Ein Verbindungsverlust ohne Fehlerantwort (`PGR-E4002`, `PGR-E4003`, `PGR-E4005`)
@@ -1416,6 +1425,92 @@ Vergleich nach einer Fehlerantwort) oder `5` (mit Vergleich nach einer Abweichun
 Das Einspielen ist sequenziell: die Anfragen einer Session nacheinander und die
 Sessions nacheinander. Ohne `--keep-timing` gibt es keine Wartezeiten; mit
 `--keep-timing` gilt `LH-FA-21.a`.
+
+**Randformen je Schritt.** Was die Tabelle oben festlegt, gilt; hier steht, was sie
+offenlässt.
+
+* *Start.* Nach den Prüfungen von `LH-FA-17.a` liest der Start die Datei aus
+  `--upstream-ca`, danach lädt er die Aufzeichnung (Schritt 1). Die Datei ist,
+  symbolischen Links gefolgt, eine reguläre Datei; ein Verzeichnis, eine FIFO, ein
+  Gerät oder ein Socket ist nicht lesbar, der Start wartet nie auf Eingabe. Sie
+  enthält mindestens einen PEM-Block, jeder Block hat den Typ `CERTIFICATE` und
+  enthält ein lesbares X.509-Zertifikat; Text außerhalb der Blöcke bleibt
+  unbeachtet. Sonst ist das `PGR-E2007`; die Meldung nennt die Option und die
+  Ursache, weder Pfad noch Inhalt. Jeder Fehler bis hierher ist ein Startfehler
+  (Zeile beim Prozessende, `LH-FA-14.a`), und es entsteht keine Verbindung. Enthält
+  die Aufzeichnung keine Session mit Interaktion, verbindet sich `play` nicht und
+  endet mit Exit-Code `0`. Ein Abbruchsignal während des Starts bricht ihn nicht ab;
+  danach beginnt keine Session.
+* *Startup-Daten.* `play` sendet die aufgezeichneten Startup-Parameter der Session
+  unverändert, `user` und `database` nach dem Vorrang aus `LH-FA-17.a` (Option, URL,
+  Aufzeichnung); fehlt ein Wert in allen dreien, fehlt der Parameter, und der Server
+  entscheidet (ohne Benutzer lehnt er die Anmeldung ab, `PGR-E4005`). Die
+  aufgezeichneten Serverparameter sendet `play` nicht.
+* *TLS.* Auf das `SSLRequest` ist `S` der Beginn der Aushandlung, `N` ist
+  `PGR-E4005`; jedes andere Byte und ein Verbindungsende davor sind `PGR-E4002`, ebenso
+  Bytes, die der Server nach `S` vor der Aushandlung sendet. Jeder Fehler der
+  Aushandlung selbst, auch ein Verbindungsende darin, ist `PGR-E4005`. Der Name im
+  Zertifikat wird gegen den Host der Verbindung geprüft, wie er eingesetzt ist; bei
+  einer IPv6-Adresse ohne ihre Zone gegen die IP-Adressen des Zertifikats. Lässt
+  sich der Zertifikatsspeicher des Systems nicht laden, gilt er als leer (Grenze).
+* *Anmeldung.* Das Passwort kommt aus dem Platzhalter der benutzten Verbindung,
+  sonst aus `PGWIRE_RECORDER_PASSWORD`; eine leere Variable gilt als nicht gesetzt.
+  Verlangt der Server ein Passwort und es gibt keines, ist das `PGR-E4005`, ohne dass
+  `play` etwas sendet; verlangt er keines, sendet `play` keines. SCRAM-SHA-256 läuft
+  ohne Channel Binding: Bietet der Server unter SASL kein `SCRAM-SHA-256` an, oder
+  verlangt er ein anderes Verfahren (Kerberos, GSSAPI, SSPI), ist das `PGR-E4005`,
+  ohne dass `play` etwas sendet. Jeder Fehler im SCRAM-Austausch (eine Nachricht des
+  Servers, die nicht passt oder sich nicht lesen lässt, eine falsche Serversignatur)
+  ist `PGR-E4005`. Das Passwort geht unverändert in das Verfahren, ohne SASLprep
+  (Grenze: Ein Passwort, das SASLprep ändern würde, kann bei SCRAM scheitern). Das
+  Klartext-Passwort sendet `play` auch ohne TLS, wenn der Server es verlangt (Grenze).
+* *Aufbau.* Eine Fehlerantwort im Aufbau ist mit SQLSTATE-Klasse 28 `PGR-E4005`, mit
+  jeder anderen `PGR-E4002`, gleich welcher Schweregrad. Ein Verbindungsende vor dem
+  ersten `ReadyForQuery` ohne Fehlerantwort und eine Nachricht, die im Aufbau nicht
+  vorgesehen ist oder sich nicht lesen lässt (etwa `NegotiateProtocolVersion`), sind
+  `PGR-E4002`. `BackendKeyData` wird verworfen; `play` sendet nie ein `CancelRequest`.
+* *Gruppen.* Nach einer Gruppe mit `Sync` wartet `play` auf das `ReadyForQuery`. Nach
+  einer Gruppe mit `Flush` wartet es, bevor es die nächste Gruppe sendet, auf die
+  Antwort jeder Client-Nachricht der Gruppe: `ParseComplete` auf `Parse`,
+  `BindComplete` auf `Bind`, `CloseComplete` auf `Close`, auf `Describe` einer
+  Anweisung `ParameterDescription` und danach `RowDescription` oder `NoData`, auf
+  `Describe` eines Portals `RowDescription` oder `NoData`, auf `Execute`
+  `CommandComplete`, `EmptyQueryResponse` oder `PortalSuspended`; auf `Flush` nichts.
+  Die aufgezeichneten Server-Nachrichten der Gruppe bestimmen das Warten nicht. Nach
+  einer `ErrorResponse` wartet `play` in dieser Interaktion nur noch auf das
+  `ReadyForQuery` nach ihrem `Sync`; läuft das Einspielen weiter, sendet es die
+  übrigen Gruppen ohne Warten dazwischen.
+* *Interaktion.* Jede andere Server-Nachricht wird gelesen und verworfen, auch
+  `NoticeResponse`, `ParameterStatus` und `NotificationResponse`. `CopyInResponse`,
+  `CopyOutResponse`, `CopyBothResponse` und eine Nachricht, die sich nicht lesen lässt,
+  ohne dass die Verbindung endet, sind `PGR-E6001` (Tabelle). Eine Fehlerantwort mit
+  dem Schweregrad `FATAL` oder `PANIC` (Feld `V`, ohne es `S`) ist kein `PGR-E4004`,
+  sondern sofort `PGR-E4003`, ohne auf das Verbindungsende zu warten. Ob ein Fehler
+  bei `--allow-recorded-errors` erwartet ist, entscheidet allein, ob die aufgezeichnete
+  Interaktion an irgendeiner Stelle eine `error_response` enthält, nicht SQLSTATE und
+  nicht Stelle; ein erwarteter Fehler ist keine Meldung. Scheitert das Senden, ist das
+  `PGR-E4003`, und `play` liest nicht weiter. Bricht `play` nach einem `PGR-E4004` ab,
+  liest es keine weitere Antwort. Auf eine Antwort wartet `play` ohne eigene Frist,
+  ebenso auf den Aufbau.
+* *Meldungen.* Jeder Fehler nach dem Start ist eine Log-Zeile der Stufe `error`
+  (`LH-FA-14.a`), je Fehlerantwort eine. Sie nennt die `id` der Session, bei einem
+  Fehler in einer Interaktion deren `sequence`, bei einer Fehlerantwort des Servers
+  deren SQLSTATE (`C`) und Meldung (`M`), keine weiteren Felder; nie das Passwort, nie
+  Parameterwerte (`SPEC-033`). Die Zeile beim Start nennt die Adresse als `host:port`
+  (`LH-FA-17.a`) und die Aufzeichnung, nie Benutzer, Passwort oder Datenbank.
+* *Ende einer Session.* Nach ihrer letzten Interaktion sendet `play` `Terminate` und
+  schließt die Verbindung; ein Fehler dabei ist keine Meldung und ändert den Exit-Code
+  nicht. Eine offene Transaktion am Ende setzt der Server mit dem Verbindungsende
+  zurück.
+* *Abbruchsignal.* Eine Session läuft ab dem Beginn ihres Verbindungsaufbaus. Trifft
+  das erste Signal während des Aufbaus ein, läuft er zu Ende; ein Fehler darin zählt.
+  Mit `--finish-session-on-interrupt` laufen danach alle Interaktionen der Session,
+  sonst keine. Eine Extended-Interaktion läuft bis zu ihrem `ReadyForQuery`. Das
+  zweite Signal sendet `Terminate`, soweit die Verbindung es sofort annimmt, schließt
+  sie und beendet den Prozess; die unterbrochene Interaktion ist kein Fehler, der
+  Exit-Code folgt der Zeile *Abbruchsignal*. Jedes weitere Signal bleibt ohne Wirkung.
+* *Exit-Code.* Bricht ein Fehler das Einspielen ab, gilt der Exit-Code seiner Klasse,
+  auch nach einem früheren `PGR-E4004`.
 
 ---
 
@@ -1890,7 +1985,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E5003` | Replay (Exit 5) | Anfrage einer Verbindung, zu der keine nicht zugeordnete Session mehr existiert (LH-FA-12.a, `SPEC-027`) |
 | `PGR-E5004` | Replay (Exit 5) | Serverantwort beim Einspielen weicht von der Aufzeichnung ab, auch ein Serverfehler ohne Vorbild in der Aufzeichnung, ebenso nach deren Ende (`SPEC-027`, LH-FA-24.a) |
 | `PGR-E6000` | nicht unterstützt (Exit 6) | Rückfall |
-| `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`) |
+| `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`), beim Einspielen eine Serverantwort, die `play` nicht lesen oder nicht bedienen kann (LH-FA-20.a) |
 | `PGR-E6002` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Protokollversion (LH-FA-05.e) |
 | `PGR-E6003` | nicht unterstützt (Exit 6) | unverschlüsselte Verbindung, obwohl TLS konfiguriert und `--allow-plaintext` nicht gesetzt ist (LH-FA-23.a) |
 | `PGR-W2001` | Replay | Sitzung endet vor Verbrauch aller Interaktionen, oder Sessions nie zugeordnet (LH-FA-03.b) |
@@ -2526,3 +2621,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Sicheres Schreiben: Setzen der Rechte und Schließen der temporären Datei gehören zum Fehlschlag; ersetzte Verknüpfung auf eine Datei gibt die Zugriffsrechte ihres Ziels weiter (`LH-FA-07.a`) |
 | 2026-10-09 | Sicheres Schreiben: Schließen und Entfernen der Probedatei, gescheitert `PGR-E3001` mit Ursache; nur ein vorhandener Name der temporären Datei führt zu einem neuen Versuch; Fehlermodi nennen jeden Fehlschlag (`LH-FA-07.a`) |
 | 2026-10-09 | Sicheres Schreiben: Probedatei auch nach gescheitertem Schließen entfernt; scheitern beide, eine Meldung mit dem Fehler des Entfernens als Ursache (`LH-FA-07.a`) |
+| 2026-10-09 | Einspielen: Randformen je Schritt vor dem Code (Datei aus `--upstream-ca`, Aufzeichnung ohne Session mit Interaktion, Startup-Daten, TLS-Antwort und Aushandlung, Passwortquelle und Verfahren ohne SASLprep und Channel Binding, Fehler im Aufbau, Warten nach einer `Flush`-Gruppe, nicht bedienbare Serverantwort `PGR-E6001`, `FATAL` als `PGR-E4003`, erwarteter Fehler je Interaktion, Meldungen, Ende einer Session, Signal im Aufbau und zweites Signal, Exit-Code beim Abbruch); Warten auf ein aufgezeichnetes Verbindungsende in Schritt 3 gestrichen, nicht erreichbar seit `LH-FA-02.b` (`LH-FA-20.a`); `play` ohne gewöhnliches Argument (`LH-FA-01.a`); Log-Zeilen von `play` (`LH-FA-14.a`); Variablen aller Teile bei `play`, ausdrücklich gesetztes `--upstream-tls=false`, Stelle von `--upstream-ca` ohne TLS in der Reihenfolge (`LH-FA-17.a`); `PGR-E6001` beim Einspielen (`SPEC-034`) |
