@@ -29,9 +29,10 @@ var _ driven.RecordingRepository = YAML{}
 // Leere ist nicht vorhanden. Ein vorhandener Pfad, der keine reguläre Datei ist,
 // ist PGR-E3001, auch mit replace; eine vorhandene reguläre Datei ohne replace
 // PGR-E2002; ein Pfad, dessen Zustand sich nicht feststellen lässt, PGR-E3001.
-// Danach legt Prepare im Verzeichnis eine Probedatei an und entfernt sie
-// sofort; gelingt das nicht, ist das PGR-E3001. Ein Verzeichnis legt Prepare
-// nicht an.
+// Danach legt Prepare im Verzeichnis eine Probedatei an, auch für eine
+// vorhandene Datei mit replace, und schließt und entfernt sie sofort; scheitert
+// einer der drei Schritte, ist das PGR-E3001 mit dem Fehler als Ursache. Ein
+// Verzeichnis legt Prepare nicht an.
 func (YAML) Prepare(_ context.Context, path string, replace bool) error {
 	return pruefe(path, replace, betriebssystem())
 }
@@ -53,7 +54,7 @@ func pruefe(path string, replace bool, ops dateiOps) error {
 		return model.Errorf(model.CodeRecordingIO, err, "Verzeichnis von %s nicht beschreibbar", path)
 	}
 	name := probe.Name()
-	return errors.Join(closeErr(probe.Close()), removeErr(ops.entfernen(name)))
+	return errors.Join(closeErr(ops.schliessen(probe)), removeErr(ops.entfernen(name)))
 }
 
 func closeErr(err error) error {
@@ -74,15 +75,15 @@ func removeErr(err error) error {
 // die es danach auf path verschiebt (LH-FA-07.a *Temporäre Datei*); die
 // Zieldatei ist damit vollständig oder unverändert. Eine neue Datei erhält die
 // Rechte 0666 nach der umask des Prozesses, eine ersetzte behält ihre
-// Zugriffsrechte (SPEC-033). Das Verschieben ersetzt eine symbolische
+// Zugriffsrechte (LH-FA-07.a *Rechte*). Das Verschieben ersetzt eine symbolische
 // Verknüpfung unter path, nicht ihr Ziel; die Zieldatei erhält dann die
 // Zugriffsrechte des Ziels der Verknüpfung.
 func (YAML) Write(_ context.Context, path string, rec model.Recording) error {
 	return schreibe(path, rec, betriebssystem())
 }
 
-// dateiOps sind die Operationen, über die pruefe die Probedatei anlegt und
-// entfernt und schreibe die temporäre Datei benennt, mit Rechten versieht,
+// dateiOps sind die Operationen, über die pruefe die Probedatei anlegt,
+// schließt und entfernt und schreibe die temporäre Datei benennt, mit Rechten versieht,
 // füllt, synchronisiert, schließt, verschiebt und entfernt.
 type dateiOps struct {
 	probe           func(dir, muster string) (*os.File, error)

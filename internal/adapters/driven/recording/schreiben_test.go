@@ -141,14 +141,88 @@ func TestPrepareVerzeichnis(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-07/Negative — lässt sich im Verzeichnis von --output keine
-// Datei anlegen, ist das beim Start PGR-E3001.
+// Datei anlegen, ist das beim Start PGR-E3001 mit dem Fehler als Ursache, für
+// einen fehlenden Pfad und mit --force für eine vorhandene Datei und eine
+// Verknüpfung auf sie.
 func TestPrepareVerzeichnisNichtBeschreibbar(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "rec.yaml")
-	err := recording.PruefeMit(path, false, recording.Eingriffe{Probe: func(dir, _ string) (*os.File, error) {
-		return nil, &fs.PathError{Op: "open", Path: dir, Err: fs.ErrPermission}
-	}})
-	if code(err) != model.CodeRecordingIO {
-		t.Fatalf("erwartet %s, erhalten %v", model.CodeRecordingIO, err)
+	for _, tc := range []struct {
+		name    string
+		anlegen func(t *testing.T, path string)
+		replace bool
+	}{
+		{"fehlt", func(*testing.T, string) {}, false},
+		{"vorhanden mit --force", func(t *testing.T, path string) {
+			if err := os.WriteFile(path, []byte("alt"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}, true},
+		{"Verknüpfung mit --force", func(t *testing.T, path string) {
+			ziel := filepath.Join(filepath.Dir(path), "ziel.yaml")
+			if err := os.WriteFile(ziel, []byte("alt"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink(ziel, path); err != nil {
+				t.Fatal(err)
+			}
+		}, true},
+	} {
+		path := filepath.Join(t.TempDir(), "rec.yaml")
+		tc.anlegen(t, path)
+		err := recording.PruefeMit(path, tc.replace, recording.Eingriffe{Probe: func(dir, _ string) (*os.File, error) {
+			return nil, &fs.PathError{Op: "open", Path: dir, Err: fs.ErrPermission}
+		}})
+		ms := model.Meldungen(err)
+		if len(ms) != 1 || ms[0].Code != model.CodeRecordingIO || !strings.Contains(ms[0].Text, "nicht beschreibbar") ||
+			!strings.Contains(ms[0].Text, fs.ErrPermission.Error()) {
+			t.Errorf("%s: erwartet eine Meldung %s mit Ursache, erhalten %+v", tc.name, model.CodeRecordingIO, ms)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-07/Negative — scheitert das Schließen oder das Entfernen der
+// Probedatei, ist das beim Start PGR-E3001 mit dem Fehler als Ursache, für einen
+// fehlenden Pfad und mit --force für eine vorhandene Datei; eine Probedatei, die
+// sich nicht entfernen lässt, bleibt liegen.
+func TestPrepareProbedateiScheitert(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		eingriffe recording.Eingriffe
+		bleibt    bool
+	}{
+		{"Schliessen", recording.Eingriffe{Schliessen: func(f *os.File) error {
+			_ = f.Close()
+			return errors.New("Schließen eingespielt gescheitert")
+		}}, false},
+		{"Entfernen", recording.Eingriffe{Entfernen: func(string) error {
+			return errors.New("Entfernen eingespielt gescheitert")
+		}}, true},
+	} {
+		for _, vorhanden := range []bool{false, true} {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "rec.yaml")
+			if vorhanden {
+				if err := os.WriteFile(path, []byte("alt"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			err := recording.PruefeMit(path, vorhanden, tc.eingriffe)
+			ms := model.Meldungen(err)
+			if len(ms) != 1 || ms[0].Code != model.CodeRecordingIO || !strings.Contains(ms[0].Text, "eingespielt gescheitert") {
+				t.Errorf("%s, vorhanden=%v: erwartet eine Meldung %s mit Ursache, erhalten %+v", tc.name, vorhanden, model.CodeRecordingIO, ms)
+			}
+			if !tc.bleibt {
+				continue
+			}
+			var probe []string
+			for _, e := range eintraege(t, dir) {
+				if strings.HasSuffix(e, ".probe") {
+					probe = append(probe, e)
+				}
+			}
+			if len(probe) != 1 {
+				t.Errorf("%s, vorhanden=%v: Probedateien im Verzeichnis %v, erwartet eine", tc.name, vorhanden, probe)
+			}
+		}
 	}
 }
 
@@ -255,6 +329,32 @@ func TestWriteBelegterName(t *testing.T) {
 	}
 	if _, err := (recording.YAML{}).Load(context.Background(), path); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Abdeckung: LH-FA-07/Negative — scheitert das Anlegen der temporären Datei
+// anders als an einem belegten Namen (ein zu langer Name, ein fehlendes
+// Verzeichnis), ist das sofort PGR-E3001 mit dem Fehler des Betriebssystems als
+// Ursache; Write zieht keinen neuen Namen.
+func TestWriteAndererFehlerBeimAnlegen(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		path    string
+		ursache error
+	}{
+		{"Name zu lang", filepath.Join(t.TempDir(), strings.Repeat("a", 240)+".yaml"), syscall.ENAMETOOLONG},
+		{"Verzeichnis fehlt", filepath.Join(t.TempDir(), "fehlt", "rec.yaml"), syscall.ENOENT},
+	} {
+		aufrufe := 0
+		err := recording.SchreibeMit(tc.path, beispiel(), recording.Eingriffe{Zufall: festerZufall(&aufrufe, func(n int) byte { return byte(n) })})
+		ms := model.Meldungen(err)
+		if len(ms) != 1 || ms[0].Code != model.CodeRecordingIO || !strings.Contains(ms[0].Text, tc.ursache.Error()) ||
+			strings.Contains(ms[0].Text, "kein freier Name") {
+			t.Errorf("%s: erwartet eine Meldung %s mit „%v“, erhalten %+v", tc.name, model.CodeRecordingIO, tc.ursache, ms)
+		}
+		if aufrufe != 1 {
+			t.Errorf("%s: Zufall %d-mal gezogen, erwartet 1", tc.name, aufrufe)
+		}
 	}
 }
 

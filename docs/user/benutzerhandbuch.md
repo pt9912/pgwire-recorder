@@ -171,8 +171,8 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
   Konfigurationsdatei.
 * Ist `--output` ein Verzeichnis oder sonst keine reguläre Datei, bricht das
   Werkzeug beim Start ab (`PGR-E3001`), auch mit `--force`. Das Verzeichnis der
-  Zieldatei muss bestehen; das Werkzeug legt es nicht an und bricht sonst beim
-  Start ab (`PGR-E3001`).
+  Zieldatei muss bestehen und beschreibbar sein; das Werkzeug legt es nicht an und
+  bricht sonst beim Start ab (`PGR-E3001`), auch mit `--force`.
 * Ist `--output` eine symbolische Verknüpfung, zählt ihr Ziel: Zeigt sie auf eine
   vorhandene Datei, gilt die Zieldatei als vorhanden. Mit `--force` ersetzt das
   Werkzeug die Verknüpfung durch die Aufzeichnung; ihr Ziel bleibt unverändert.
