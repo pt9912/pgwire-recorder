@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungen-platzhalter
+**Fund:** `LH-FA-17.a` regelte die Grenzen der Teile einer URL, nicht ihren Inhalt: Den Inhalt eines Hosts in und ohne Klammern und in `host:port` fand das Review (F-521, MEDIUM), die Reihenfolge innerhalb eines Parameters ebenso (F-522, `?password` ohne `=`), den Inhalt einer Zone die Verifikation (V-122). Der Architect entschied sie nach dem Code in `c4e7063` und `b519cbc`; die Rückgaben L1 bis L6 vor dem Code hatten sie nicht berührt.

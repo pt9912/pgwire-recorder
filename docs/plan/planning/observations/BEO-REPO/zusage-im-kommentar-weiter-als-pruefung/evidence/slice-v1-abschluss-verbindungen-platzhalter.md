@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungen-platzhalter
+**Fund:** Die Abdeckungs-Deklaration von `TestVerbindungUngueltig` sagte die Prüfreihenfolge Steuerzeichen, Schema, Benutzer, Host, Port, Datenbank, Parameter, Fragment zu, die Tests hielten sie zum Teil nicht (F-523); der Kommentar an `zerlegung` nannte ein Feld für den noch nicht gelesenen Text, das es nicht gibt (F-525). Umgesetzt in `0c26212`.
