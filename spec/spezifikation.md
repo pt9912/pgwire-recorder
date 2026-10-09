@@ -484,7 +484,9 @@ schreibt ein gültiges Recording ohne Sessions.
 1. Die Implementierung schreibt zunächst in eine temporäre Datei im Verzeichnis
    der Zieldatei.
 2. Sie verschiebt die temporäre Datei atomar beziehungsweise bestmöglich atomar
-   auf die Zieldatei.
+   auf die Zieldatei. *Grenze:* Geprüft ist das Verschieben nur unter Linux, mit
+   temporärer Datei und Zieldatei im selben Dateisystem; ob es unter macOS und Windows
+   atomar ist, ist nicht geprüft.
 
 Die Zieldatei ist damit zu jedem Zeitpunkt entweder nicht vorhanden oder ein
 vollständiges Recording; sie ist nie syntaktisch unvollständig. Bei einem
@@ -992,8 +994,8 @@ ausdrücklich geschriebener Tag (`!!str`, `!!int`, `!x`, auch der nicht spezifis
 ungültig wie ein Anker.
 Geprüft wird beim Laden die ganze Datei, unabhängig vom Kommando: auch der Abschnitt
 eines anderen Kommandos und jede Verbindung, auch eine nicht benutzte. Vom Kommando
-hängen nur `sslmode=require` bei `record` und die Variablen der Platzhalter der
-benutzten Verbindung ab.
+hängen nur `sslmode=require` bei einem Kommando ohne TLS zum Upstream (*Wirkung einer
+URL*) und die Variablen der Platzhalter der benutzten Verbindung ab.
 
 **Benannte Verbindungen.** Der Wert unter `connections:` ist eine URL der Form
 `postgresql://[benutzer[:passwort]@]host[:port]/datenbank[?parameter]`. Der
@@ -1071,6 +1073,11 @@ zusammengeführte Wert nennt. Die Wirkung einer URL:
   ignoriert, weil `record` die Anmeldung des Clients vermittelt; `sslmode=require`
   ist ein Konfigurationsfehler (`PGR-E2004`, ungültiger `sslmode` der benutzten
   Verbindung), weil `record` kein TLS zum Upstream kennt (`LH-FA-05.c`).
+
+Dasselbe gilt für jedes Kommando, das kein TLS zum Upstream kennt: `sslmode=require` der
+benutzten Verbindung ist dort `PGR-E2004` wie bei `record`, an derselben Stelle der
+Reihenfolge (*Fehler*) und mit der Verbindung als Stelle der Meldung; es verbindet nie ohne
+TLS, wo die Verbindung TLS verlangt.
 
 Namen für `--upstream` kommen nur aus der gewählten Datei; ohne Datei ist ein Wert ohne `:`
 ungültig. Die Variablen der benutzten Verbindung liest der Start einmal, nach der
@@ -1458,8 +1465,8 @@ offenlässt.
   Verlangt der Server ein Passwort und es gibt keines, ist das `PGR-E4005`, ohne dass
   `play` etwas sendet; verlangt er keines, sendet `play` keines. SCRAM-SHA-256 läuft
   ohne Channel Binding: Bietet der Server unter SASL kein `SCRAM-SHA-256` an, oder
-  verlangt er ein anderes Verfahren (Kerberos, GSSAPI, SSPI), ist das `PGR-E4005`,
-  ohne dass `play` etwas sendet. Jeder Fehler im SCRAM-Austausch (eine Nachricht des
+  verlangt er ein Verfahren, das `play` nicht unterstützt (etwa Kerberos, GSSAPI, SSPI),
+  ist das `PGR-E4005`, ohne dass `play` etwas sendet, auch wenn es ein Passwort gibt. Jeder Fehler im SCRAM-Austausch (eine Nachricht des
   Servers, die nicht passt oder sich nicht lesen lässt, eine falsche Serversignatur)
   ist `PGR-E4005`. Das Passwort geht unverändert in das Verfahren, ohne SASLprep
   (Grenze: Ein Passwort, das SASLprep ändern würde, kann bei SCRAM scheitern). Das
@@ -2622,3 +2629,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Sicheres Schreiben: Schließen und Entfernen der Probedatei, gescheitert `PGR-E3001` mit Ursache; nur ein vorhandener Name der temporären Datei führt zu einem neuen Versuch; Fehlermodi nennen jeden Fehlschlag (`LH-FA-07.a`) |
 | 2026-10-09 | Sicheres Schreiben: Probedatei auch nach gescheitertem Schließen entfernt; scheitern beide, eine Meldung mit dem Fehler des Entfernens als Ursache (`LH-FA-07.a`) |
 | 2026-10-09 | Einspielen: Randformen je Schritt vor dem Code (Datei aus `--upstream-ca`, Aufzeichnung ohne Session mit Interaktion, Startup-Daten, TLS-Antwort und Aushandlung, Passwortquelle und Verfahren ohne SASLprep und Channel Binding, Fehler im Aufbau, Warten nach einer `Flush`-Gruppe, nicht bedienbare Serverantwort `PGR-E6001`, `FATAL` als `PGR-E4003`, erwarteter Fehler je Interaktion, Meldungen, Ende einer Session, Signal im Aufbau und zweites Signal, Exit-Code beim Abbruch); Warten auf ein aufgezeichnetes Verbindungsende in Schritt 3 gestrichen, nicht erreichbar seit `LH-FA-02.b` (`LH-FA-20.a`); `play` ohne gewöhnliches Argument (`LH-FA-01.a`); Log-Zeilen von `play` (`LH-FA-14.a`); Variablen aller Teile bei `play`, ausdrücklich gesetztes `--upstream-tls=false`, Stelle von `--upstream-ca` ohne TLS in der Reihenfolge (`LH-FA-17.a`); `PGR-E6001` beim Einspielen (`SPEC-034`) |
+| 2026-10-09 | Einspielen: ein Verfahren, das `play` nicht unterstützt, ist `PGR-E4005` ohne Senden, auch wenn es ein Passwort gibt (`LH-FA-20.a`); `sslmode=require` bei jedem Kommando ohne TLS zum Upstream `PGR-E2004` wie bei `record` (`LH-FA-17.a`); Sicheres Schreiben: atomares Verschieben nur unter Linux im selben Dateisystem geprüft, macOS und Windows nicht (Grenze, `LH-FA-07.a`) |

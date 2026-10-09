@@ -193,20 +193,33 @@ keine.
 beschreibt, sondern der Stand dieses Slice, bis `slice-v1-abschluss-einspielen-anmeldung` und
 `slice-v1-abschluss-einspielen-tls` geliefert sind; vom Planner am 2026-10-09 nach dem Vorbild
 der *Optionen der Folge-Slices* oben gesetzt (derselbe Stand wie bei `record`, kein stilles
-Herabstufen auf eine Verbindung ohne Passwort oder ohne TLS). Der Architect bestätigt die vier
-Punkte vor dem ersten Code-Commit (`AGENTS.md` §3.12); die Folge-Slices ersetzen sie und ändern
-die Tests dazu (dort §6, *Ablösung des Zwischenstands*).
+Herabstufen auf eine Verbindung ohne Passwort oder ohne TLS). Vom Architect am 2026-10-09 vor
+dem ersten Code-Commit geprüft (`AGENTS.md` §3.12): Jeder Punkt folgt aus einer allgemeinen
+Regel der Spezifikation, angewandt auf den Umfang, den dieser Slice liefert; keine Regel nennt
+einen Slice oder einen Stand. Die Folge-Slices ersetzen die Punkte und ändern die Tests dazu
+(dort §1 *Aufsetzen* und §6 *Ablösung des Zwischenstands*); die Spezifikation ändern sie dafür
+nicht.
 
 - **`--upstream-tls`, `--upstream-ca`** [K] — bei `play` unbekannt (`PGR-E2001`), ihre
-  Schlüssel im Abschnitt `play:` unbekannt (`PGR-E2004`), ihre Umgebungsvariablen unbeachtet.
+  Schlüssel im Abschnitt `play:` unbekannt (`PGR-E2004`), ihre Umgebungsvariablen unbeachtet;
+  bestätigt, `LH-FA-17.a` (Umgebungsvariable einer Option, die das Kommando nicht kennt;
+  *Fehler*, unbekannter Schlüssel) und `PGR-E2001` (unbekannte Option), wie bei den
+  *Optionen der Folge-Slices* oben.
 - **`sslmode=require` der benutzten Verbindung** [K] — bei `play` `PGR-E2004` wie bei `record`
   (Bestand aus `slice-v1-abschluss-upstream-verbinden`); `play` baut keine Verbindung ohne TLS
-  auf, die TLS verlangt.
+  auf, die TLS verlangt. Neu entschieden in `LH-FA-17.a` *Wirkung einer URL* (jedes Kommando
+  ohne TLS zum Upstream, an der Stelle von `record` in der Reihenfolge, Meldung mit der
+  Verbindung).
 - **Passwort-Anforderung des Servers** (Klartext, MD5, SASL) [K] — wie ein nicht unterstütztes
-  Verfahren: `PGR-E4005`, nichts gesendet (die Regel aus `LH-FA-20.a` *Anmeldung* für
-  Kerberos, GSSAPI, SSPI, angewandt auf jedes Verfahren).
+  Verfahren: `PGR-E4005`, nichts gesendet, auch mit einem Passwort aus dem Platzhalter; neu
+  entschieden (allgemein gefasst) in `LH-FA-20.a` *Anmeldung* („ein Verfahren, das `play` nicht
+  unterstützt“), Abbruch sofort nach der Tabellenzeile *Verfahren nicht unterstützt*.
 - **`PGWIRE_RECORDER_PASSWORD`** [K] — unbeachtet; eine Variable im Passwortteil der benutzten
   Verbindung wird dennoch eingesetzt und ist, wenn sie fehlt, `PGR-E2005` (U8 oben).
+  Bestätigt: Ein Passwort geht nur in ein Verfahren (`LH-FA-20.a` *Anmeldung*), und ohne
+  unterstütztes Verfahren geht keines; die Variable hat damit keine beobachtbare Wirkung, eine
+  Prüfung ihres Werts kennt `LH-FA-17.a` nicht. `config show` listet sie wie jede aktive
+  Variable (`LH-FA-17.a` *Anzeige*).
 
 *Interaktion (Play-Service und Upstream-Adapter)*
 
@@ -297,7 +310,13 @@ die Tests dazu (dort §6, *Ablösung des Zwischenstands*).
   44 markierten Randformen. Nach diesem Anteil, grob und nicht gemessen, liegt die Schätzung
   des Architect für den Kern bei 1700 bis 2300 Zeilen und damit über der Grenze von
   `slice-v1-abschluss-konfigurationsdatei`; der Schnitt nach DoD-Punkten steht in §4 als
-  vorab benannte Rückführung — **Ausgang:** offen bis Closure.
+  vorab benannte Rückführung. Prüfung des Architect am Code (2026-10-09): Bestand trägt den
+  allgemeinen Leser, das Einsetzen, Query, Send und Receive des Upstream-Adapters und die
+  Signale in `main`; neu sind Play-Service, Port, die Einstufung des Aufbaus für `play`, das
+  Warten je Gruppe, Fehler- und Signalsteuerung, Bootstrap und Tests, geschätzt 2200 bis 2800
+  Zeilen mit Tests. Der Schnitt aus §4 (DoD-Punkt 3) allein reicht nicht und verlangte eine
+  Regel für das Signal bis zum Folge-Slice; Optionen und Empfehlung liegen dem Nutzer vor —
+  **Ausgang:** offen bis Closure.
 
 
 ## 7. Closure-Notiz
@@ -358,8 +377,8 @@ Slice, nicht vorher). Treffer:
   `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (26×, §3.11),
   `BEO-REPO/plan-folgt-korrektur-nicht` (21×, §3.9) und
   `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (4×, §3.13) — verkörpert; die Randformen in §6
-  sind vor dem Code entschieden (der *Zwischenstand* bestätigt der Architect vor dem ersten
-  Code-Commit), je Zusage eine Mutation mit Beleg in §7, und die Nehmer
+  sind vor dem Code entschieden (auch der *Zwischenstand*, vom Architect am
+  2026-10-09 bestätigt), je Zusage eine Mutation mit Beleg in §7, und die Nehmer
   `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` nennen
   diesen Slice unter *Übernimmt*, im selben Commit wie §1 hier.
 
