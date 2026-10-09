@@ -89,7 +89,8 @@ func TestUpstreamVerbindung(t *testing.T) {
 
 // Abdeckung: LH-FA-17/Boundary — die Variablen in Host und Port der benutzten
 // Verbindung werden einmal eingesetzt: Der Wert steht unverändert in seinem
-// Teil, weder dekodiert noch erneut ausgewertet, auch mit @, /, % oder ${;
+// Teil, weder dekodiert noch erneut ausgewertet noch gekürzt, auch mit @, /,
+// %, ${ oder Leerraum;
 // ein Host mit : steht danach in eckigen Klammern, auch einer, der keine
 // IPv6-Adresse ist; der Port gilt, wie er eingesetzt ist, auch mit führenden
 // Nullen und neben wörtlichen Ziffern (LH-FA-17.a *Geheimnisse*, U4, U5).
@@ -104,6 +105,7 @@ func TestUpstreamEinsetzen(t *testing.T) {
 		{"postgresql://${PGR_T_H}/db", "fe80::1%eth0", "", "", "[fe80::1%eth0]:5432"},
 		{"postgresql://${PGR_T_H}/db", "x${PGR_T_Y}", "", "gesetzt", "x${PGR_T_Y}:5432"},
 		{"postgresql://${PGR_T_H}/db", "a@b/%41", "", "", "a@b/%41:5432"},
+		{"postgresql://${PGR_T_H}/db", " h\t", "", "", " h\t:5432"},
 		{"postgresql://vor${PGR_T_H}nach/db", "-", "", "", "vor-nach:5432"},
 		{"postgresql://h:${PGR_T_P}/db", "", "05432", "", "h:05432"},
 		{"postgresql://h:5${PGR_T_P}/db", "", "5432", "", "h:55432"},
@@ -168,6 +170,8 @@ func TestUpstreamPortNachEinsetzen(t *testing.T) {
 		{"postgresql://h:${PGR_T_P}/db", "0"},
 		{"postgresql://h:${PGR_T_P}/db", "65536"},
 		{"postgresql://h:${PGR_T_P}/db", "5 GEHEIM"},
+		{"postgresql://h:${PGR_T_P}/db", " 5"},
+		{"postgresql://h:${PGR_T_P}/db", "5\n"},
 		{"postgresql://h:${PGR_T_P}/db", "-5"},
 		{"postgresql://h:${PGR_T_P}/db", "99999999999999999999"},
 		{"postgresql://h:9${PGR_T_P}/db", "0000"},
