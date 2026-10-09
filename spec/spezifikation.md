@@ -493,9 +493,12 @@ gültiges Recording behandelt.
   überschrieben, sondern ein neuer gezogen. Findet sich nach zehn Versuchen kein freier
   Name, ist das `PGR-E3001`.
 * *Rechte.* Eine neu angelegte Zieldatei erhält die Rechte `0666` nach der umask des
-  Prozesses; eine ersetzte behält ihre Zugriffsrechte. *Grenze:* Eigentümer, Gruppe und
-  weitere Attribute einer ersetzten Datei bleiben nicht erhalten.
-* *Fehlschlag.* Schlägt das Anlegen, Schreiben, Synchronisieren oder Verschieben fehl,
+  Prozesses; eine ersetzte behält ihre Zugriffsrechte. Ersetzt das Verschieben eine
+  symbolische Verknüpfung auf eine Datei, erhält die Zieldatei die Zugriffsrechte des
+  Ziels der Verknüpfung. *Grenze:* Eigentümer, Gruppe und weitere Attribute einer
+  ersetzten Datei bleiben nicht erhalten.
+* *Fehlschlag.* Schlägt das Anlegen, das Setzen der Rechte, das Schreiben, das
+  Synchronisieren, das Schließen der temporären Datei oder das Verschieben fehl,
   ist das `PGR-E3001`, und die Zieldatei bleibt unverändert. Eine angelegte temporäre
   Datei entfernt `record` dann; gelingt das nicht, bleibt sie liegen, und der Text des
   Fehlers beim Entfernen folgt als Ursache derselben Meldung (`SPEC-034`).
@@ -2511,3 +2514,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Benannte Verbindungen: Zone einer IPv6-Adresse nicht leer, nach der Dekodierung mit denselben Zeichen wie ein Host ohne Klammern, in der URL und in `host:port` (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen: Namen für `--upstream` nur aus der gewählten Datei; Variablen einmal nach der Zusammenführung gelesen; Stelle der Meldungen nach dem Einsetzen; Zusammensetzen zu `host:port` mit Port wie geschrieben oder eingesetzt und Klammern bei `:`; Host und Port kein Geheimnis, Zeile beim Start und Meldungen zum Upstream nennen die Adresse (`LH-FA-17.a`) |
 | 2026-10-09 | Sicheres Schreiben: vorhandener Pfad nach dem Ziel einer Verknüpfung, Verknüpfung ins Leere nicht vorhanden; keine reguläre Datei, nicht prüfbarer Pfad, fehlendes oder nicht beschreibbares Verzeichnis `PGR-E3001` beim Start, kein Anlegen von Verzeichnissen; Name, Rechte, Fehlschlag und übrig gebliebene temporäre Datei; Pfad, der nach dem Start entsteht (`LH-FA-07.a`) |
+| 2026-10-09 | Sicheres Schreiben: Setzen der Rechte und Schließen der temporären Datei gehören zum Fehlschlag; ersetzte Verknüpfung auf eine Datei gibt die Zugriffsrechte ihres Ziels weiter (`LH-FA-07.a`) |

@@ -96,9 +96,11 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `spec/spezifikation.md` (`LH-FA-07.a`) | keine Änderung durch den Implementer | Die Randformen in §6 sind entschieden (Architect, 2026-10-09, vor dem Code); eine Randform, die §6 nicht nennt, geht an den Architect zurück (`AGENTS.md` §3.12) |
-| `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben (vorhanden); neu nach §6: ein vorhandener Pfad, der keine reguläre Datei ist, beim Start `PGR-E3001`, ohne und mit `--force` (vorher `PGR-E2002` ohne, ein Fehler erst beim ersten Schreiben mit `--force`); temporäre Datei nach einem Fehlschlag entfernt, ein Fehler beim Entfernen als Ursache derselben Meldung (vorher blieb sie liegen). Die Dateioperationen von `Prepare` (Probedatei anlegen und entfernen) und `Write` (Zufall, Schreiben, Synchronisieren, Verschieben, Entfernen) stehen in einer Tabelle von Funktionen, die die Unit-Tests über `export_test.go` ersetzen |
+| `internal/adapters/driven/recording` | update | temporäre Datei, atomares Verschieben (vorhanden); neu nach §6: ein vorhandener Pfad, der keine reguläre Datei ist, beim Start `PGR-E3001`, ohne und mit `--force` (vorher `PGR-E2002` ohne, ein Fehler erst beim ersten Schreiben mit `--force`); temporäre Datei nach einem Fehlschlag entfernt, ein Fehler beim Entfernen als Ursache derselben Meldung (vorher blieb sie liegen). Die Dateioperationen von `Prepare` (Probedatei anlegen und entfernen) und `Write` (Zufall, Schreiben, Synchronisieren, Verschieben, Entfernen) stehen in einer Tabelle von Funktionen, die die Unit-Tests über `export_test.go` ersetzen. Nach den zwei Rückgaben aus §7 (Architect,
+2026-10-09) ändert sich das Verhalten nicht; die Tabelle nimmt das Setzen der Rechte und das
+Schließen auf, damit ein Test sie scheitern lassen kann |
 | `internal/adapters/driving/cli` | keine Änderung | `--output` und `--force` liefert der allgemeine Leser (§1); abgelehnt wird im Recording-Adapter |
-| `internal/adapters/driven/recording` (Unit-Tests `schreiben_test.go`), `test/integration` (`schreiben_e2e_test.go`, Helfer `startProzessIn` in `record_e2e_test.go`) | update | Boundary/Negative nach `LH-FA-07.a`; `--force` aus Kommandozeile, Umgebung und Datei nach `LH-FA-17.a` |
+| `internal/adapters/driven/recording` (Unit-Tests `schreiben_test.go`), `test/integration` (`schreiben_e2e_test.go`, Helfer `startProzessIn` in `record_e2e_test.go`) | update | Boundary/Negative nach `LH-FA-07.a`; `--force` aus Kommandozeile, Umgebung und Datei nach `LH-FA-17.a`. Neu nach den zwei Rückgaben aus §7: Fehlschlag beim Setzen der Rechte und beim Schließen (`PGR-E3001`, Zieldatei unverändert, temporäre Datei entfernt) und Rechte des Ziels bei ersetzter Verknüpfung, je mit Mutation (`AGENTS.md` §3.10) |
 | `docs/user/benutzerhandbuch.md` | update | atomares Schreiben, `--output` und `--force`, übrig gebliebene temporäre Dateien entfernt der Anwender |
 | `docs/user/abdeckung-*.md` | update | über `make abdeckung` aus den Deklarationen der neuen Tests |
 
@@ -161,14 +163,25 @@ dasteht.
 - **Rechte der Zieldatei** — neu `0666` nach der umask, ersetzt mit ihren Zugriffsrechten;
   Eigentümer, Gruppe und weitere Attribute nicht erhalten (Grenze); entschieden in
   `LH-FA-07.a` *Temporäre Datei* (Architect, 2026-10-09).
+- **Rechte, wenn `--force` eine symbolische Verknüpfung auf eine Datei ersetzt** — die
+  Zieldatei erhält die Zugriffsrechte des Ziels der Verknüpfung (wie *Vorhanden* nach dem
+  Ziel zählt); entschieden in `LH-FA-07.a` *Temporäre Datei*, *Rechte* (Architect,
+  2026-10-09, Rückgabe des Implementers aus §7). Der Code folgt schon (`os.Stat`); es fehlt
+  der Test (§3).
+- **Zieldatei beim Schreiben nicht prüfbar** (`os.Stat` vor dem Setzen der Rechte scheitert
+  anders als mit „nicht vorhanden“) — akzeptiertes Negativ, keine Zusage: Der Pfad ist beim
+  Start geprüft (*Zielpfad beim Start*), und ein Pfad, der sich danach ändert, liegt in der
+  dort genannten Grenze; der Code behandelt ihn wie eine neue Datei (Architect, 2026-10-09).
 - **Vorhandenes `--output` ohne `--force`** — Exit-Code 2 (`PGR-E2002`); entschieden in
   `SPEC-014` und `LH-FA-07.a`.
 - **Werte von `--force`** — nur `true` oder `false`; entschieden in `LH-FA-17.a`, geliefert von
   `slice-v1-abschluss-konfiguration` (§1, *Abgegeben*).
-- **Fehlschlag von Anlegen, Schreiben, Synchronisieren oder Verschieben** — `PGR-E3001`,
+- **Fehlschlag von Anlegen, Setzen der Rechte, Schreiben, Synchronisieren, Schließen oder
+  Verschieben** — `PGR-E3001`,
   Zieldatei unverändert, temporäre Datei entfernt; misslingt das Entfernen, bleibt sie, und
   der Fehler folgt als Ursache derselben Meldung; entschieden in `LH-FA-07.a` *Temporäre
-  Datei* (Architect, 2026-10-09). Exit-Code und Fortgang danach: `LH-FA-13.b` (bestehend).
+  Datei* (Architect, 2026-10-09; Setzen der Rechte und Schließen ergänzt am selben Tag auf
+  Rückgabe des Implementers aus §7). Exit-Code und Fortgang danach: `LH-FA-13.b` (bestehend).
 - **Abgrenzung zu `sqlite`** — *Zielpfad beim Start* gilt über `LH-FA-22.a` auch für
   `sqlite`; *Temporäre Datei* beschreibt `yaml`. Was davon für `sqlite` gilt, entscheidet
   `slice-v1-abschluss-sqlite-format` vor seinem Code (akzeptiertes Negativ hier: Der Adapter
