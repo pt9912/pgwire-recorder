@@ -1006,9 +1006,9 @@ ungültigem YAML nennt die Meldung die Zeile, gezählt ab 1 nach den Zeilenenden
 kein Zeichen der Datei. Liegt der Fehler in einem Konstrukt über mehrere Zeilen (Folge,
 Abbildung, Text in Anführungszeichen), ist das die Zeile, in der das Konstrukt beginnt, sonst
 die Zeile, in der der Fehler erkannt wird; beginnt das Konstrukt in Zeile 1, ist es die Zeile,
-in der der Fehler erkannt wird (Grenze). Ohne Zeile bleibt nur ein Fehler aus dem Bezug
-zwischen Knoten, ein Alias ohne Anker und ein Anker, der sich selbst enthält; die Meldung
-nennt dann die Ursache ohne den Namen des Ankers. Das gilt auch für einen doppelten Schlüssel, dessen Text sie nicht
+in der der Fehler erkannt wird (Grenze). Ohne Zeile bleibt nur ein Alias ohne Anker; die
+Meldung nennt dann die Ursache ohne den Namen des Ankers. Ein Anker, der sich selbst enthält,
+ist ein Anker und wird wie jeder Anker mit der Stelle abgelehnt („Anker ist ungültig“). Das gilt auch für einen doppelten Schlüssel, dessen Text sie nicht
 nennt, weil er an der Stelle eines Werts stehen kann. Zu einem leeren Schlüssel und einem,
 der kein Skalar ist, nennt sie als Stelle die Abbildung, in der er steht (oberste Ebene,
 Abschnitt). Der Start endet beim ersten
@@ -2406,3 +2406,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Konfigurationsdatei: nur eine reguläre Datei, geprüft vor dem Lesen; Kodierung UTF-8, BOM nur als erstes Zeichen übergangen; Zeilenenden nach YAML 1.2, `U+0085`, `U+2028` und `U+2029` ungültig; der nicht spezifische Tag `!`; doppelter Schlüssel in jeder Tiefe, Meldung zu ungültigem YAML mit der Zeile; leerer und nicht skalarer Schlüssel unbekannt mit der Abbildung als Stelle; `config show` ohne BOM und mit `\n` (`LH-FA-17.a`) |
 | 2026-10-09 | Konfigurationsdatei: Zeile zu ungültigem YAML bei einem Konstrukt über mehrere Zeilen, Grenze bei Beginn in Zeile 1, Meldung ohne Zeile nur für Alias ohne Anker und Anker, der sich selbst enthält; nicht druckbare Zeichen nach YAML 1.2 ungültig (`LH-FA-17.a`) |
 | 2026-10-09 | Benannte Verbindungen, Entscheidung des Nutzers: Name ohne `:` und `@`, sonst ungültiger Wert mit der Stelle `connections` ohne den Namen (`LH-FA-17.a`) |
+| 2026-10-09 | Konfigurationsdatei, Entscheidung des Nutzers: ohne Zeile nur der Alias ohne Anker; ein Anker, der sich selbst enthält, wird als Anker mit der Stelle abgelehnt (`LH-FA-17.a`) |
