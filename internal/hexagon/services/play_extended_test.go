@@ -239,11 +239,14 @@ func TestPlayExtendedFatal(t *testing.T) {
 // aufgezeichnete Interaktion in irgendeiner Gruppe eine error_response trägt: in
 // der ersten, einer mittleren oder der letzten, und der Server sendet den Fehler
 // in der ersten, einer mittleren oder der letzten Gruppe, unabhängig davon, in
-// welcher Gruppe die Aufzeichnung ihn trägt, und gleich mit welchem SQLSTATE; keine Meldung, Exit-Code 0, und die
+// welcher Gruppe die Aufzeichnung ihn trägt, und gleich mit welchem SQLSTATE, auch wenn der der Aufzeichnung ein anderer ist als der des Servers; keine Meldung, Exit-Code 0, und die
 // nächste Interaktion läuft ohne --continue-on-error. Trägt keine Gruppe eine, ist
 // sie PGR-E4004 (LH-FA-20.a *Interaktion*).
 func TestPlayExtendedErwarteterFehler(t *testing.T) {
-	fehlerAufgezeichnet := []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"C": "XX000", "M": "anders"}}}
+	aufgezeichnet := func(sqlstate string) []model.Response {
+		return []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"C": sqlstate, "M": "anders"}}}
+	}
+	fehlerAufgezeichnet := aufgezeichnet("XX000")
 	drei := func(aufgezeichnet1, aufgezeichnet2, aufgezeichnet3 []model.Response) model.Interaction {
 		return extendedInteraktion(1,
 			gruppe(aufgezeichnet1, cm(model.ClientParse), cm(model.ClientFlush)),
@@ -254,6 +257,9 @@ func TestPlayExtendedErwarteterFehler(t *testing.T) {
 	// Der Server sendet den Fehler in der ersten, mittleren oder letzten Gruppe;
 	// die Fehlerantwort beendet das Zählen, die Antworten davor zählen mit.
 	serverErste := [][]schritt{{fehler("42P01", "a")}, nil, {antwort(model.ResponseReadyForQuery)}}
+	serverLetzteMit := func(sqlstate string) [][]schritt {
+		return [][]schritt{{antwort(model.ResponseParseComplete)}, {antwort(model.ResponseBindComplete)}, {fehler(sqlstate, "a"), antwort(model.ResponseReadyForQuery)}}
+	}
 	serverMittlere := [][]schritt{{antwort(model.ResponseParseComplete)}, {fehler("42P01", "a")}, {antwort(model.ResponseReadyForQuery)}}
 	serverLetzte := [][]schritt{{antwort(model.ResponseParseComplete)}, {antwort(model.ResponseBindComplete)}, {fehler("42P01", "a"), antwort(model.ResponseReadyForQuery)}}
 	ablaufErste := []string{"verbinde", "gruppe parse,flush", "naechste", "gruppe bind,flush", "gruppe sync", "naechste", "anfrage B", "naechste", "schliesse"}
@@ -271,6 +277,9 @@ func TestPlayExtendedErwarteterFehler(t *testing.T) {
 		{"Aufzeichnung letzte, Server letzte Gruppe", drei(nil, nil, fehlerAufgezeichnet), serverLetzte, nil, ablaufLetzte},
 		{"Aufzeichnung erste, Server letzte Gruppe", drei(fehlerAufgezeichnet, nil, nil), serverLetzte, nil, ablaufLetzte},
 		{"Aufzeichnung letzte, Server mittlere Gruppe", drei(nil, nil, fehlerAufgezeichnet), serverMittlere, nil, ablaufMittlere},
+		{"Aufzeichnung 23505, Server 42P01", drei(nil, aufgezeichnet("23505"), nil), serverMittlere, nil, ablaufMittlere},
+		{"Aufzeichnung 42P01, Server 23505", drei(nil, nil, aufgezeichnet("42P01")), serverLetzteMit("23505"), nil, ablaufLetzte},
+		{"Aufzeichnung 23505, Server 40001", drei(aufgezeichnet("23505"), nil, nil), serverLetzteMit("40001"), nil, ablaufLetzte},
 		{"keine Gruppe, Server erste Gruppe", drei(nil, nil, nil), serverErste, []string{e4004("Session 1, Interaktion 1", "42P01", "a")}, nil},
 		{"keine Gruppe, Server mittlere Gruppe", drei(nil, nil, nil), serverMittlere, []string{e4004("Session 1, Interaktion 1", "42P01", "a")}, nil},
 	} {
