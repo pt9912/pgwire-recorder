@@ -530,6 +530,27 @@ Passwort nicht“ ist damit nach 0,01 s rot (vorher nach 120 s), die Frist von 3
 
 *Läufe der Nacharbeit zum Review.* Auf dem Stand `b263135` (sauberer Baum): `make gates` grün, Exit-Code 0, 4 min 38 s (darin `make test`, `make test-integration`, `make lint`, `make lint-gegenprobe`, `make abdeckung-check`). Die Mutanten liefen in frischen Kopien (`cp -r` ohne `-p`) im Image `pgwire-recorder:test`, `gofmt -l` leer, `go vet` ohne Befund; die Mutation des Bootstraps (`Password:` entfernt) in `internal/bootstrap`, rot nach 0,01 s. Das Gate-Ergebnis des Commits, der diese Zeile trägt, steht im Bericht.
 
+*Nacharbeit zur Verifikation (V-162).* Die beiden Tests der F-593-Zeilen oben standen im Plan und fehlten im Code; sie sind jetzt geschrieben. `TestAnmeldungScramSalzNichtKanonisch` lässt den Austausch mit `s=YQ==` (kanonisch) und `s=YR==` (Restbits gesetzt, Bytes `a`) gelingen; `TestAnmeldungScramSignaturNichtKanonisch` mit der kanonischen Serversignatur und mit einer, deren letztes Zeichen vor `=` die Restbits trägt (dieselben 32 Bytes). Mutation `.Strict()` an `base64.StdEncoding.DecodeString` in `dekodiereBase64`, frische Kopie (`cp -r` ohne `-p`), `gofmt -l` leer, `go vet` ohne Befund: rot sind `TestAnmeldungScramSalzNichtKanonisch/Restbits_gesetzt` und `TestAnmeldungScramSignaturNichtKanonisch/Restbits_gesetzt`; die Fälle `kanonisch` bleiben grün. Auf dem unveränderten Code sind alle vier Fälle grün. Ein Mutant, der Restbits nur in einem der beiden Felder ablehnt, wurde nicht gefahren; beide Felder rufen dieselbe Funktion `dekodiereBase64`, und jeder Test deckt eines.
+
+Zähler: 85 Unit-Mutanten in der Zählung der Zeile *Weg der Mutanten* (84 + dieser eine); die Mutanten der Tabellen *Nacharbeit zum Review* (F-591, F-593) stehen dort und sind in beiden Zahlen nicht enthalten. Von ihnen habe ich in dieser Nacharbeit nur die `.Strict()`-Mutation neu gefahren.
+
+*Namensabgleich (V-162).* Jeder Testname, der in diesem Plan steht, wurde per `grep "^func <Name>("` über `cmd/`, `internal/` und `test/` gesucht; Unterfall-Namen gegen die Ausgabe von `go test -v ./internal/...` (783 Namen) und, für E2E, gegen die Tabelle in `test/integration/play_anmeldung_e2e_test.go`. Die Auflistung steht hier verdichtet nach Datei; Schreibweisen mit `{a,b}`, `*` und `…` sind Kurzformen und wurden aufgelöst. Gefunden und fehlend:
+
+| Name | gefunden | Datei:Zeile |
+|---|---|---|
+| `TestAnmeldungKlartext`, `…MD5`, `…Scram`, `…ScramLeeresSalz`, `…ScramFehler`, `…ScramUnvorgesehen`, `…NachScramAbschluss`, `…OhnePasswort`, `…NichtUnterstuetzt`, `…AnforderungNichtLesbar`, `…WeitereAnforderung`, `…WeitereAnforderungArt`, `…FortsetzungOhneAustausch`, `…Abgelehnt`, `…SendenScheitert`, `…KeinPasswortVerlangt`, `…Verbinde`, `…Nonce`, `…Signal`, `…OhneGeheimnis`, `…StrukturenOhnePasswort`, `TestScramBeweisRFC7677`, `TestScramServerErste` | ja | `internal/adapters/driven/postgres/einspielen_anmeldung_test.go:131` bis `:1017` |
+| `TestAnmeldungScramSalzNichtKanonisch` | ja (neu) | `internal/adapters/driven/postgres/einspielen_anmeldung_test.go:386` |
+| `TestAnmeldungScramSignaturNichtKanonisch` | ja (neu) | `internal/adapters/driven/postgres/einspielen_anmeldung_test.go:407` |
+| `TestEinspielAufbauAbgebrochen`, `TestEinspielAufbauFehler` | ja | `internal/adapters/driven/postgres/einspielen_test.go:330`, `:178` |
+| `TestParsePlayFremdeUmgebung`, `TestParsePlayHilfe`, `TestPlayVerbindung`, `TestPlayPasswort`, `TestPlayOptionenOhnePasswort` | ja | `internal/adapters/driving/cli/play_test.go:65`, `:203`, `:125`, `:223`, `:269` |
+| `TestRunPlayPasswort`, `TestRunPlayErstesSignalInAnmeldung`, `TestRunPlayZweitesSignalInAnmeldung` | ja | `internal/bootstrap/play_anmeldung_test.go:134`, `:215`, `:251` |
+| `TestE2EPlayAnmeldung`, `TestE2EPlayAnmeldungOhneVerlangen`, `TestE2EPlayAnmeldungFehler` | ja | `test/integration/play_anmeldung_e2e_test.go:71`, `:112`, `:132` |
+| Unterfälle (u. a. `TestScramServerErste/r_mit_*`, `TestAnmeldungStrukturenOhnePasswort/*`, `TestAnmeldungWeitereAnforderungArt/*_dann_*`, `TestPlayPasswort/*`, `TestAnmeldungSignal/*`, `TestAnmeldungNichtUnterstuetzt/Kleinbuchstaben`) | ja, alle im Lauf von `go test -v`; die Fälle `TestE2EPlayAnmeldung/*` gegen die Tabelle im Quelltext, nicht gefahren | – |
+| Gutfall `NONCE!~`, `NONCE/+=` in `TestScramServerErste` | ja (Schleife nach der Tabelle) | `internal/adapters/driven/postgres/einspielen_anmeldung_test.go:257` |
+| Funktionen, Dateien, `BEO-REPO/*`-Verzeichnisse und Abdeckungs-Dateien, die der Plan nennt | gesucht per `grep -rw` bzw. `[ -e ]`; nichts fehlend | – |
+
+Nicht gefunden: nichts außer den zwei Tests, die jetzt stehen (V-162). Gegenstände, die der Plan als Mutation nennt und die keine Repo-Namen sind (`RawStdEncoding`, `strings.EqualFold`, `shutil.copyfile`), sind keine Zusagen über Code und wurden nicht gesucht. Commit-Hashes im Plan wurden nicht gegen `git` geprüft.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

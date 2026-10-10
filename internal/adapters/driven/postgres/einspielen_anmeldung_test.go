@@ -379,6 +379,59 @@ func TestAnmeldungScramLeeresSalz(t *testing.T) {
 	anmGesendet(t, l, anmErste(), anmAntwort(antwort))
 }
 
+// Abdeckung: LH-FA-20/Boundary — ein Salz in s= mit gesetzten Restbits (YR==
+// statt YQ== für die Bytes "a") ist gültiges Base64 mit denselben Bytes: der
+// Austausch gelingt, der Beweis ist über dem dekodierten Salz gerechnet, und
+// mit kanonischem Salz gelingt er ebenso (LH-FA-20.a *SCRAM-Austausch*).
+func TestAnmeldungScramSalzNichtKanonisch(t *testing.T) {
+	for _, f := range []struct{ name, salzText string }{
+		{"kanonisch", "YQ=="},
+		{"Restbits gesetzt", "YR=="},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			r := anmScramRundeSalzText(t, anmNonce, "GEHEIMpw", []byte("a"), f.salzText, 4096, "SERVER")
+			l, err := anmLauf(t, "GEHEIMpw", anmSasl("SCRAM-SHA-256"),
+				anmCode(11, r.erste), anmKette(anmCode(12, r.abschluss), anmBereit(t)))
+			if err != nil {
+				t.Fatalf("SCRAM mit s=%s: %v", f.salzText, err)
+			}
+			anmGesendet(t, l, anmErste(), anmAntwort(r.antwort))
+		})
+	}
+}
+
+// Abdeckung: LH-FA-20/Boundary — eine Serversignatur in v= mit gesetzten
+// Restbits im letzten Zeichen (dieselben 32 Bytes) ist gültiges Base64: der
+// Austausch gelingt; mit kanonischer Schreibweise gelingt er ebenso
+// (LH-FA-20.a *SCRAM-Austausch*).
+func TestAnmeldungScramSignaturNichtKanonisch(t *testing.T) {
+	r := anmScramRunde(t, "GEHEIMpw", []byte("salzsalzsalz"), 4096, "SERVER")
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+	kanonisch := strings.TrimPrefix(r.abschluss, "v=")
+	if !strings.HasSuffix(kanonisch, "=") || strings.HasSuffix(kanonisch, "==") {
+		t.Fatalf("Signatur ist nicht Base64 aus Vierergruppen mit einem Füllzeichen: %q", kanonisch)
+	}
+	letztes := kanonisch[len(kanonisch)-2]
+	i := strings.IndexByte(alphabet, letztes)
+	if i < 0 || i%4 != 0 {
+		t.Fatalf("letztes Zeichen %q trägt Restbits oder ist kein Alphabetzeichen", letztes)
+	}
+	restbits := "v=" + kanonisch[:len(kanonisch)-2] + string(alphabet[i+1]) + "="
+	for _, f := range []struct{ name, abschluss string }{
+		{"kanonisch", r.abschluss},
+		{"Restbits gesetzt", restbits},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			l, err := anmLauf(t, "GEHEIMpw", anmSasl("SCRAM-SHA-256"),
+				anmCode(11, r.erste), anmKette(anmCode(12, f.abschluss), anmBereit(t)))
+			if err != nil {
+				t.Fatalf("SCRAM mit %s: %v", f.abschluss, err)
+			}
+			anmGesendet(t, l, anmErste(), anmAntwort(r.antwort))
+		})
+	}
+}
+
 // Abdeckung: LH-FA-20/Negative — jeder Fehler im SCRAM-Austausch ist
 // PGR-E4005 und bricht sofort ab, ohne dass play danach etwas sendet oder
 // Terminate: eine erste Nachricht des Servers, die nicht passt (zu wenige
