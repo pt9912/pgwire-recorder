@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen-extended
+**Fund:** Der Upstream-Adapter liefert für eine nicht abbildbare Client-Nachricht (Zielart außer `statement` und `portal`, unbekannter Typ) `PGR-E1000` und sendet nichts von der Gruppe. Die Randform stand nicht in §6 und nicht in `LH-FA-20.a`; der Implementer meldete sie nach dem Code in §7 als „angefallen“ (Review F-582, LOW, mit F-583). Der Architect entschied sie am 2026-10-10 als akzeptiertes Negativ in §6: `Validate` lässt die Nachricht beim Laden nie durch, der Pfad ist im Zielstand unerreichbar.

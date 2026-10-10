@@ -178,6 +178,12 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     (seit slice-harness-vertraege-spezifikation): „mit A, B und C“, „je …“, „mit 1 ohne
     Zeile“ — je Bedingung eine Mutation, die nur sie bricht, und ein Fall, dem nur sie
     fehlt; rot unter einer Bedingung belegt die anderen nicht.
+    **Ein „gleich welche(r) X“ in Kommentar, Deklaration oder Plan-Zeile ist eine Zusage über
+    alle Ausprägungen von X** (seit slice-v1-abschluss-einspielen-extended): ein Fall je
+    Ausprägungsklasse, in dem sie auf beiden Seiten verschieden ist, und eine Mutation, die
+    auf eine einzelne Ausprägung festlegt (`== "42P01"`), nicht nur der naheliegende
+    Vergleich mit der anderen Seite; ein Fall, in dem die Werte gleich sind, belegt
+    „gleich welcher“ nicht. Hat der Test nur eine Ausprägung, fasst der Satz es enger.
     **Ein Befund aus Review oder Verifikation wird als Klasse behoben**
     (seit slice-harness-lint-werkzeug): Die Nacharbeit nennt das Merkmal, an dem der
     Wächter scheiterte (ein Einzug, eine Schreibweise, eine Stelle), und fährt neben der
