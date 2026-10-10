@@ -1,6 +1,7 @@
 package cli_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -60,11 +61,11 @@ func TestParsePlayFailOnUnconsumed(t *testing.T) {
 
 // Abdeckung: LH-FA-17/Boundary — bei play bleiben die Umgebungsvariablen der
 // Optionen unbeachtet, die dieser Stand von play nicht kennt (TLS,
-// Zeitangaben, Vergleich), auch mit ungültigem Wert, ebenso
-// PGWIRE_RECORDER_PASSWORD (LH-FA-17.a).
+// Zeitangaben, Vergleich), auch mit ungültigem Wert (LH-FA-17.a).
 func TestParsePlayFremdeUmgebung(t *testing.T) {
 	leere(t, "play")
-	for _, name := range []string{"UPSTREAM_TLS", "UPSTREAM_CA", "KEEP_TIMING", "TIMING_MODE", "TIMING_REFERENCE", "COMPARE_RESPONSES", "PASSWORD", "LISTEN", "SHUTDOWN_TIMEOUT"} {
+	t.Setenv(cli.EnvPassword, "")
+	for _, name := range []string{"UPSTREAM_TLS", "UPSTREAM_CA", "KEEP_TIMING", "TIMING_MODE", "TIMING_REFERENCE", "COMPARE_RESPONSES", "LISTEN", "SHUTDOWN_TIMEOUT"} {
 		t.Setenv("PGWIRE_RECORDER_"+name, "ungültig")
 	}
 	if got, err := playMit("--upstream=pg:1"); err != nil || got != (cli.PlayOptions{Upstream: "pg:1", Input: "r.yaml", LogLevel: cli.LogInfo}) {
@@ -123,10 +124,11 @@ func TestParsePlayLaufsteuerung(t *testing.T) {
 // einer URL*).
 func TestPlayVerbindung(t *testing.T) {
 	leere(t, "play")
+	t.Setenv(cli.EnvPassword, "")
 	variablen(t, map[string]*string{"PGR_T_U": w("app"), "PGR_T_PW": w("GEHEIM"), "PGR_T_H": w("db.example"), "PGR_T_P": w("6543"), "PGR_T_DB": w("shop")})
 	url := "postgresql://${PGR_T_U}:${PGR_T_PW}@${PGR_T_H}:${PGR_T_P}/${PGR_T_DB}"
 	config := "--config=" + schreibe(t, mitVerbindung(url))
-	if got, err := playMit("--upstream=v", config); err != nil || got != (cli.PlayOptions{Upstream: "db.example:6543", Input: "r.yaml", Einspielen: cli.Einspielvorgaben{User: "app", Database: "shop"}, LogLevel: cli.LogInfo}) {
+	if got, err := playMit("--upstream=v", config); err != nil || got != (cli.PlayOptions{Upstream: "db.example:6543", Input: "r.yaml", Einspielen: cli.Einspielvorgaben{User: "app", Database: "shop"}, Passwort: "GEHEIM", LogLevel: cli.LogInfo}) {
 		t.Errorf("Verbindung: %#v, %v", got, err)
 	}
 	if got, err := playMit("--upstream=v", config, "--user=ich", "--database=meine"); err != nil || got.Einspielen.User != "ich" || got.Einspielen.Database != "meine" || got.Upstream != "db.example:6543" {
@@ -200,12 +202,80 @@ func TestPlayVariablen(t *testing.T) {
 // Konfigurationsdatei (LH-FA-01.a); die globale Hilfe nennt play.
 func TestParsePlayHilfe(t *testing.T) {
 	text := hilfe(t, "play", "--help")
-	for _, teil := range []string{"Optionen von play:", "--upstream", "--input", "--user", "--database", "--continue-on-error", "PGWIRE_RECORDER_CONTINUE_ON_ERROR", "--allow-recorded-errors", "PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS", "--finish-session-on-interrupt", "PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT", "--log-level", "--config", "play:"} {
+	for _, teil := range []string{"Optionen von play:", "--upstream", "--input", "--user", "--database", "--continue-on-error", "PGWIRE_RECORDER_CONTINUE_ON_ERROR", "--allow-recorded-errors", "PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS", "--finish-session-on-interrupt", "PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT", "--log-level", "--config", "play:", "PGWIRE_RECORDER_PASSWORD", "scram-sha-256"} {
 		if !strings.Contains(text, teil) {
 			t.Errorf("Hilfe von play ohne %q:\n%s", teil, text)
 		}
 	}
 	if global := hilfe(t, "--help"); !strings.Contains(global, "  play     ") || !strings.Contains(global, "Optionen von play:") {
 		t.Errorf("globale Hilfe ohne play:\n%s", global)
+	}
+}
+
+// Abdeckung: LH-FA-20/Happy, LH-FA-20/Boundary, LH-FA-17/Boundary — das
+// Passwort von play ist der eingesetzte Passwortteil der benutzten
+// Verbindung; schreibt sie keinen, und bei host:port, ist es der Wert von
+// PGWIRE_RECORDER_PASSWORD; eine leere Variable gilt als nicht gesetzt. Schreibt
+// die Verbindung einen Passwortteil, bleibt die Variable unbeachtet, auch wenn
+// sie gesetzt ist, und fehlt die Variable des Platzhalters, ist das PGR-E2005,
+// ohne dass die Variable einspringt. Das Passwort gilt unverändert, mit
+// Leerraum, ohne Prozent-Dekodierung und mit $ (LH-FA-20.a *Passwort*).
+func TestPlayPasswort(t *testing.T) {
+	leere(t, "play")
+	roh := "  p%41$ss wort \t"
+	for _, f := range []struct {
+		name string
+		args []string
+		// url ist die benutzte Verbindung, "" heißt host:port.
+		url string
+		// platzhalter ist der Wert von PGR_T_PW, nil nicht gesetzt.
+		platzhalter *string
+		// env ist der Wert von PGWIRE_RECORDER_PASSWORD.
+		env  string
+		want cli.Passwort
+	}{
+		{"host:port mit Variable", nil, "", nil, roh, cli.Passwort(roh)},
+		{"host:port mit leerer Variable", nil, "", nil, "", ""},
+		{"Verbindung ohne Passwortteil mit Variable", nil, "postgresql://app@h/db", nil, "AUSENV", "AUSENV"},
+		{"Verbindung ohne Passwortteil und ohne Variable", nil, "postgresql://app@h/db", nil, "", ""},
+		{"Verbindung ohne Benutzer mit Variable", nil, "postgresql://h/db", nil, "AUSENV", "AUSENV"},
+		{"Platzhalter und Variable gesetzt", nil, "postgresql://app:${PGR_T_PW}@h/db", w(roh), "AUSENV", cli.Passwort(roh)},
+		{"Platzhalter, Variable leer", nil, "postgresql://app:${PGR_T_PW}@h/db", w(roh), "", cli.Passwort(roh)},
+		{"Platzhalter und --user", []string{"--user=ich"}, "postgresql://app:${PGR_T_PW}@h/db", w("AUSPLATZ"), "AUSENV", "AUSPLATZ"},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			variablen(t, map[string]*string{"PGR_T_PW": f.platzhalter})
+			t.Setenv(cli.EnvPassword, f.env)
+			args := append([]string{"--upstream=h:7"}, f.args...)
+			if f.url != "" {
+				args = append([]string{"--upstream=v", "--config=" + schreibe(t, mitVerbindung(f.url))}, f.args...)
+			}
+			got, err := playMit(args...)
+			if err != nil || got.Passwort != f.want {
+				t.Fatalf("Passwort %q, Fehler %v, erwartet %q", string(got.Passwort), err, string(f.want))
+			}
+		})
+	}
+	variablen(t, map[string]*string{"PGR_T_PW": nil})
+	t.Setenv(cli.EnvPassword, "AUSENV")
+	if _, err := playMit("--upstream=v", "--config="+schreibe(t, mitVerbindung("postgresql://app:${PGR_T_PW}@h/db"))); err == nil || !hatCode(err, model.CodeConfigVariable) || strings.Contains(err.Error(), "AUSENV") {
+		t.Errorf("Platzhalter ohne Variable neben gesetzter PGWIRE_RECORDER_PASSWORD: %v, erwartet %s", err, model.CodeConfigVariable)
+	}
+}
+
+// Abdeckung: LH-FA-20/Negative — eine Formatierung der
+// Optionen von play (%v, %+v, %#v, %s, %q, auch über einen Zeiger) gibt das
+// Passwort nicht aus (LH-FA-20.a *Passwort*).
+func TestPlayOptionenOhnePasswort(t *testing.T) {
+	o := cli.PlayOptions{Upstream: "h:1", Input: "r.yaml", Passwort: "GEHEIMPW"}
+	for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%q", "%x", "%d"} {
+		for _, arg := range []any{o, &o, []cli.PlayOptions{o}, map[string]cli.PlayOptions{"k": o}} {
+			if got := fmt.Sprintf(verb, arg); strings.Contains(got, "GEHEIMPW") || strings.Contains(strings.ToLower(got), "47454845494d5057") {
+				t.Errorf("%s gibt das Passwort aus: %s", verb, got)
+			}
+		}
+	}
+	if got := fmt.Sprintf("%+v", o); !strings.Contains(got, "h:1") {
+		t.Errorf("%%+v der Optionen ohne Upstream: %s", got)
 	}
 }

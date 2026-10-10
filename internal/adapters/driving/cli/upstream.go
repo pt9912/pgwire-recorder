@@ -35,11 +35,15 @@ func upstreamRecord(c *Command, g gelesen, d *datei) error {
 // upstreamPlay prüft wie upstreamRecord. Nennt der zusammengeführte Wert eine
 // Verbindung, ersetzt ihn deren Adresse (zielPlay), und Benutzer und
 // Datenbank der Verbindung gelten, wo --user beziehungsweise --database
-// nichts setzt (LH-FA-17.a *Wirkung einer URL*).
+// nichts setzt (LH-FA-17.a *Wirkung einer URL*). Das Passwort ist der
+// eingesetzte Passwortteil der benutzten Verbindung; schreibt sie keinen und
+// bei host:port, ist es der Wert von PGWIRE_RECORDER_PASSWORD, und eine leere
+// Variable gilt als nicht gesetzt (LH-FA-20.a *Passwort*).
 func upstreamPlay(c *Command, g gelesen, d *datei) error {
 	if err := pruefeUpstream(g, d); err != nil {
 		return err
 	}
+	c.Play.Passwort = Passwort(os.Getenv(envPassword))
 	v, ok := d.verbindung(c.Play.Upstream)
 	if !ok {
 		return nil
@@ -47,6 +51,9 @@ func upstreamPlay(c *Command, g gelesen, d *datei) error {
 	z, err := v.zielPlay(os.Getenv)
 	if err != nil {
 		return err
+	}
+	if z.mitPasswort {
+		c.Play.Passwort = Passwort(z.passwort)
 	}
 	c.Play.Upstream = z.adresse
 	if c.Play.Einspielen.User == "" {

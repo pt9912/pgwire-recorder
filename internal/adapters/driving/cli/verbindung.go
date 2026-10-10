@@ -521,10 +521,13 @@ func (v verbindung) adresseRecord(wert func(string) string) (string, error) {
 }
 
 // ziel ist, was play aus einer Verbindung nimmt: die Adresse host:port und
-// Benutzer und Datenbank nach dem Einsetzen; ein Benutzer, den die URL nicht
-// schreibt, ist "".
+// Benutzer, Passwort und Datenbank nach dem Einsetzen; ein Benutzer, den die URL
+// nicht schreibt, ist "". mitPasswort sagt, ob die URL ein Passwort schreibt;
+// dann ist passwort dessen eingesetzter Wert, sonst "".
 type ziel struct {
 	adresse, benutzer, datenbank string
+	mitPasswort                  bool
+	passwort                     string
 }
 
 // zielPlay ist das Ziel von play (LH-FA-17.a *Wirkung einer URL*), in dieser
@@ -544,7 +547,11 @@ func (v verbindung) zielPlay(wert func(string) string) (ziel, error) {
 	if err != nil {
 		return ziel{}, err
 	}
-	return ziel{adresse: adresse, benutzer: t[0], datenbank: t[4]}, nil
+	z := ziel{adresse: adresse, benutzer: t[0], datenbank: t[4]}
+	if v.mitPasswort {
+		z.mitPasswort, z.passwort = true, t[1]
+	}
+	return z, nil
 }
 
 // ohneTLS ist PGR-E2004 an connections.<Name>, wenn die Verbindung

@@ -109,7 +109,7 @@ func anfrage(seq int, sql string) model.Interaction {
 
 // leerePlay setzt die Umgebungsvariablen von play leer.
 func leerePlay(t *testing.T) {
-	for _, n := range []string{"UPSTREAM", "INPUT", "USER", "DATABASE", "LOG_LEVEL", "CONFIG"} {
+	for _, n := range []string{"UPSTREAM", "INPUT", "USER", "DATABASE", "LOG_LEVEL", "CONFIG", "PASSWORD"} {
 		t.Setenv("PGWIRE_RECORDER_"+n, "")
 	}
 	t.Chdir(t.TempDir())

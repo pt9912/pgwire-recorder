@@ -60,6 +60,15 @@ type lauf struct {
 	startup map[string]string
 	danach  []byte
 	ende    error
+	// gelesen sind die Client-Nachrichten, die der Fake-Server je Eintrag von
+	// jeAnfrage las, in der Reihenfolge.
+	gelesen []clientNachricht
+}
+
+// clientNachricht ist eine Nachricht des Clients: Typ und Rumpf.
+type clientNachricht struct {
+	typ   byte
+	rumpf []byte
 }
 
 // einspielServer nimmt eine Verbindung an, liest das Startup, sendet aufbau,
@@ -95,22 +104,27 @@ func einspielServer(t *testing.T, aufbau []byte, jeAnfrage ...[]byte) (string, <
 			return
 		}
 		_, _ = conn.Write(aufbau)
+		var gelesen []clientNachricht
 		for _, antwort := range jeAnfrage {
 			if antwort == nil {
-				ergebnis <- lauf{startup: sm.Parameters}
+				ergebnis <- lauf{startup: sm.Parameters, gelesen: gelesen}
 				return
 			}
 			var kopf [5]byte
 			if _, err := io.ReadFull(conn, kopf[:]); err != nil {
+				ergebnis <- lauf{startup: sm.Parameters, gelesen: gelesen, ende: err}
 				return
 			}
-			if _, err := io.ReadFull(conn, make([]byte, binary.BigEndian.Uint32(kopf[1:])-4)); err != nil {
+			rumpf := make([]byte, binary.BigEndian.Uint32(kopf[1:])-4)
+			if _, err := io.ReadFull(conn, rumpf); err != nil {
+				ergebnis <- lauf{startup: sm.Parameters, gelesen: gelesen, ende: err}
 				return
 			}
+			gelesen = append(gelesen, clientNachricht{kopf[0], rumpf})
 			_, _ = conn.Write(antwort)
 		}
 		rest, err := io.ReadAll(conn)
-		ergebnis <- lauf{startup: sm.Parameters, danach: rest, ende: err}
+		ergebnis <- lauf{startup: sm.Parameters, danach: rest, ende: err, gelesen: gelesen}
 	}()
 	return l.Addr().String(), ergebnis
 }
@@ -154,7 +168,8 @@ func geschlossen(t *testing.T, ergebnis <-chan lauf) lauf {
 // schließt die Verbindung, ohne dass play nach dem Startup etwas sendet, auch
 // kein Terminate: eine Fehlerantwort der SQLSTATE-Klasse 28 ist PGR-E4005,
 // jede andere PGR-E4002, gleich welcher Schweregrad; die Anforderung eines
-// Verfahrens (Code 2, 3, 5, 6, 7, 9, 10 und unbekannte) PGR-E4005; eine
+// Verfahrens (Code 2, 3, 5, 6, 7, 9, 10 und unbekannte; 3, 5 und 10 ohne
+// Passwort) PGR-E4005; eine
 // Fortsetzung (8, 11, 12), ein R ohne vollständigen Code, ein R nach
 // AuthenticationOk, ReadyForQuery vor AuthenticationOk, jede nicht
 // vorgesehene Nachricht, eine nicht lesbare und ein Verbindungsende vor dem

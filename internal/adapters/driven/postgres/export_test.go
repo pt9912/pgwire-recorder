@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"io"
 	"net"
 
 	"github.com/jackc/pgx/v5/pgproto3"
@@ -36,6 +37,32 @@ func NeueEinspielSession(conn net.Conn) driven.EinspielSession {
 
 // Aufbau reicht an aufbau weiter; conn stellt der Test.
 func Aufbau(conn net.Conn, startup map[string]string) error {
-	_, err := aufbau(conn, startup)
+	_, err := aufbau(conn, startup, zugang{})
 	return err
+}
+
+// AufbauMit reicht an aufbau mit passwort weiter; zufall liefert die Bytes der
+// Nonce, ohne zufall gilt crypto/rand; conn stellt der Test.
+func AufbauMit(conn net.Conn, startup map[string]string, passwort string, zufall io.Reader) error {
+	z := zugang{passwort: Passwort(passwort)}
+	if zufall != nil {
+		z.zufall = func(b []byte) { _, _ = io.ReadFull(zufall, b) }
+	}
+	_, err := aufbau(conn, startup, z)
+	return err
+}
+
+// ScramBeweis reicht an scramBeweis weiter.
+func ScramBeweis(passwort string, salz []byte, iterationen int, authMessage string) (beweis, serverSig []byte, err error) {
+	return scramBeweis(passwort, salz, iterationen, authMessage)
+}
+
+// LeseServerErste reicht an leseServerErste weiter.
+func LeseServerErste(nonce, text string) (servernonce string, salz []byte, iterationen int, grund string) {
+	return leseServerErste(nonce, text)
+}
+
+// Md5Antwort reicht an md5Antwort weiter.
+func Md5Antwort(passwort, benutzer string, salz []byte) string {
+	return md5Antwort(passwort, benutzer, salz)
 }

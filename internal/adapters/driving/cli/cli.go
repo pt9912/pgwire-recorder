@@ -39,12 +39,24 @@ type ReplayOptions struct {
 // PlayOptions sind die Optionen von `play` (LH-FA-20.a), soweit dieser Stand
 // sie kennt. Nennt --upstream eine benannte Verbindung, ist Upstream deren
 // Adresse host:port. Einspielen trägt die Optionen, die der Play-Service
-// auswertet.
+// auswertet. Passwort ist das Passwort der Anmeldung am Server (LH-FA-20.a
+// *Passwort*); "" heißt, es gibt keines.
 type PlayOptions struct {
 	Upstream   string
 	Input      string
 	Einspielen Einspielvorgaben
+	Passwort   Passwort
 	LogLevel   string
+}
+
+// Passwort ist ein Passwort der Anmeldung. Jede Formatierung gibt festen Text
+// aus, nie den Wert: Ein Aufruf mit %v, %+v, %#v, %s oder %q auf den Optionen
+// von play verrät es nicht (LH-FA-20.a *Passwort*).
+type Passwort string
+
+// Format gibt für jedes Verb den festen Text aus.
+func (Passwort) Format(f fmt.State, _ rune) {
+	_, _ = io.WriteString(f, "***")
 }
 
 // Einspielvorgaben sind die Optionen von `play`, die der Play-Service
@@ -68,6 +80,10 @@ type Einspielvorgaben struct {
 // envFailOnUnconsumed ist die Umgebungsvariable von --fail-on-unconsumed
 // (LH-FA-17.a).
 const envFailOnUnconsumed = "PGWIRE_RECORDER_FAIL_ON_UNCONSUMED"
+
+// envPassword ist die Umgebungsvariable des Passworts bei play (LH-FA-17.a,
+// LH-FA-20.a *Passwort*); eine Option dafür gibt es nicht.
+const envPassword = "PGWIRE_RECORDER_PASSWORD"
 
 // envLogLevel ist die Umgebungsvariable von --log-level (LH-FA-14.a).
 const envLogLevel = "PGWIRE_RECORDER_LOG_LEVEL"
@@ -117,7 +133,11 @@ const optionenReplay = `Optionen von replay:
 const optionenPlay = `Optionen von play:
   --upstream  PostgreSQL-Server als host:port oder Name einer Verbindung der
               Konfigurationsdatei (Pflicht); verlangt der Server ein
-              Passwort, endet play mit PGR-E4005
+              Passwort, nimmt play es aus dem Platzhalter der Verbindung,
+              sonst aus der Umgebungsvariable PGWIRE_RECORDER_PASSWORD, und
+              meldet sich mit Klartext-Passwort, md5 oder scram-sha-256 an;
+              ein falsches oder fehlendes Passwort endet play mit
+              PGR-E4005
   --input     Aufzeichnung (Pflicht)
   --user      Benutzer für jede Session, statt dem der Verbindung und der
               Aufzeichnung

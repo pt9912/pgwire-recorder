@@ -8,6 +8,7 @@ const (
 	EnvFailOnUnconsumed = envFailOnUnconsumed
 	EnvLogLevel         = envLogLevel
 	EnvShutdownTimeout  = envShutdownTimeout
+	EnvPassword         = envPassword
 )
 
 // Option beschreibt eine Option am allgemeinen Leser für Tests: Name,

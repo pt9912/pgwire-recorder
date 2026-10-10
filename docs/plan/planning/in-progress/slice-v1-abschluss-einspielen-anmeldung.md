@@ -133,11 +133,13 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/postgres` | update | Anmeldung als Client im Aufbau von `play`: Klartext, MD5, SCRAM-SHA-256 ohne Channel Binding; nicht unterstützte Verfahren und Fehler im SCRAM-Austausch als `PGR-E4005`; ersetzt den Zwischenstand des Kerns |
-| `internal/adapters/driving/cli` | update | Passwort aus dem eingesetzten Platzhalter der benutzten Verbindung, sonst aus `PGWIRE_RECORDER_PASSWORD` (leer gilt als nicht gesetzt); nie in Meldung oder Log |
-| `internal/bootstrap` | update | das Passwort an den Upstream-Adapter von `play` reichen; der Kommentar von `play` nennt die Kopplung an die erste Meldung des gelieferten Fehlers (F-569 aus `slice-v1-abschluss-einspielen-laufsteuerung`) |
-| `test/integration` | update | Server mit `password`, `md5` und `scram-sha-256` in `pg_hba.conf`; Happy/Negative nach LH-FA-20 |
-| `internal/adapters/driven/postgres` (Tests) | update | Fehler im SCRAM-Austausch und nicht unterstützte Verfahren gegen einen Testserver, der die Nachrichten vorgibt |
+| `internal/adapters/driven/postgres` | update | Anmeldung als Client im Aufbau von `play`: Klartext, MD5, SCRAM-SHA-256 ohne Channel Binding (neue Datei `anmeldung.go`, Standardbibliothek); nicht unterstützte Verfahren und Fehler im SCRAM-Austausch als `PGR-E4005`; ersetzt den Zwischenstand des Kerns; `Einspielziel` trägt das Passwort als `Passwort`, das bei keiner Formatierung ausgegeben wird |
+| `internal/adapters/driving/cli` | update | Passwort aus dem eingesetzten Platzhalter der benutzten Verbindung, sonst aus `PGWIRE_RECORDER_PASSWORD` (leer gilt als nicht gesetzt) in `PlayOptions.Passwort` (Typ `Passwort`, bei keiner Formatierung ausgegeben); Hilfetext von `play`; nie in Meldung oder Log |
+| `internal/bootstrap` | update | das Passwort an den Upstream-Adapter von `play` reichen (reine Verdrahtung, keine Schicht, Entscheidung des Nutzers vom 2026-10-10); der Kommentar von `play` nennt die Kopplung an die erste Meldung des gelieferten Fehlers (F-569 aus `slice-v1-abschluss-einspielen-laufsteuerung`) |
+| `test/integration`, `tools/test/run-integration-tests.sh` | update | der Runner legt auf der Instanz drei Benutzer mit `scram-sha-256`, `md5` und `password` in `pg_hba.conf` an und gibt ihre Passwörter an den Testlauf; neue Datei `play_anmeldung_e2e_test.go`: Happy/Negative nach LH-FA-20 gegen die reale Instanz |
+| `internal/adapters/driven/postgres` (Tests) | update | neue Datei `einspielen_anmeldung_test.go`: Fehler im SCRAM-Austausch und nicht unterstützte Verfahren gegen einen Testserver, der die Nachrichten vorgibt; Vektoren aus RFC 7677; der Fake-Server `einspielServer` merkt die Client-Nachrichten |
+| `internal/adapters/driving/cli`, `internal/bootstrap` (Tests) | update | Passwortquellen und Vorrang, Formatierung der Optionen; neue Datei `internal/bootstrap/play_anmeldung_test.go`: Passwort durch die Verdrahtung, Signal in der Anmeldung; `TestParsePlayFremdeUmgebung` und `TestPlayVerbindung` ändern sich (Ablösung des Zwischenstands) |
+| `docs/user/abdeckung-e2e.md`, `docs/user/abdeckung-unit.md` | erzeugt | `make abdeckung` aus den Deklarationen der Tests |
 
 ## 4. Trigger
 
@@ -269,7 +271,10 @@ an der genannten Stelle. Offen ist keine.
   Passwort-Anforderung `PGR-E4005` ohne Senden, und `PGWIRE_RECORDER_PASSWORD` bleibt
   unbeachtet (§6 von `slice-v1-abschluss-einspielen`, *Zwischenstand*). Die Tests des Kerns,
   die das für Klartext, MD5 oder SCRAM-SHA-256 prüfen, ändert dieser Slice; für die nicht
-  unterstützten Verfahren bleiben sie.
+  unterstützten Verfahren bleiben sie. Geändert: `TestParsePlayFremdeUmgebung` (die Variable
+  ist nicht mehr fremd) und `TestPlayVerbindung` (das Passwort steht in den Optionen); die
+  Aufbau-Tests des Kerns (`TestEinspielAufbauFehler`) bleiben, weil sie keine Passwort-Quelle
+  setzen: Ohne Passwort ist jede Anforderung von Klartext, MD5 und SASL `PGR-E4005` ohne Senden.
 
 **Risiken:**
 

@@ -120,9 +120,11 @@ func replay(ctx context.Context, ablauf <-chan struct{}, o cli.ReplayOptions, lo
 // bis zum Ende des Einspielens genau eine Zeile der Stufe info, nach dem
 // Einspielen je Meldung des Fehlers eine
 // Zeile der Stufe error und die Zeile zum Ende (LH-FA-20.a *Meldungen*,
-// LH-FA-14.a). Der Exit-Code ist der des Fehlers, ohne Fehler 0.
+// LH-FA-14.a). Der Exit-Code ist der der ersten Meldung des gelieferten
+// Fehlers, ohne Fehler 0; er hängt daran, dass der Play-Service den
+// abbrechenden Fehler darin zuerst stellt.
 func play(ctx context.Context, ablauf <-chan struct{}, o cli.PlayOptions, log *slog.Logger, stderr io.Writer) int {
-	ziel := &postgres.Einspielziel{Address: o.Upstream}
+	ziel := &postgres.Einspielziel{Address: o.Upstream, Password: postgres.Passwort(o.Passwort)}
 	service, err := services.NewPlayService(ctx, recording.YAML{}, o.Input, ziel, services.PlayOptions(o.Einspielen))
 	if err != nil {
 		return fail(stderr, err)
