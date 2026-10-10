@@ -528,6 +528,8 @@ auf dem Kanal, wenn die Verbindung endet, bevor er ein Passwort las; der Mutant 
 Passwort nicht“ ist damit nach 0,01 s rot (vorher nach 120 s), die Frist von 30 s bleibt als Literal
 (`SPEC-038`).
 
+*Läufe der Nacharbeit zum Review.* Auf dem Stand `b263135` (sauberer Baum): `make gates` grün, Exit-Code 0, 4 min 38 s (darin `make test`, `make test-integration`, `make lint`, `make lint-gegenprobe`, `make abdeckung-check`). Die Mutanten liefen in frischen Kopien (`cp -r` ohne `-p`) im Image `pgwire-recorder:test`, `gofmt -l` leer, `go vet` ohne Befund; die Mutation des Bootstraps (`Password:` entfernt) in `internal/bootstrap`, rot nach 0,01 s. Das Gate-Ergebnis des Commits, der diese Zeile trägt, steht im Bericht.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
