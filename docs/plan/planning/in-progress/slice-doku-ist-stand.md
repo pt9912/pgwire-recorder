@@ -390,6 +390,11 @@ Abweichung.
 **Größe:** Diff des Handbuchs +102/−214 Zeilen, README +26/−33; überwiegend Streichungen, in einer
 Review-Sitzung prüfbar — die Rückführung aus §4 greift nicht.
 
+**Gates:** `make gates` grün am Stand `94f26b0` auf sauberem Baum (Exit 0; `docs-check` 0 Befunde,
+`run-integration-tests`, `a-check-negativ`, `lint-gegenprobe`, `kopf-check-gegenprobe`,
+`abdeckung-gegenprobe`, `commit-msg-gegenprobe` je grün, `baseline-verify` OK). Kein weiterer
+Sensor betroffen: Der Slice ändert weder Code noch Tests noch Gates.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
