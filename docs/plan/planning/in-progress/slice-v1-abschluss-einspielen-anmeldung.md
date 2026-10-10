@@ -471,6 +471,8 @@ grün (darunter `TestE2EPlayAnmeldung` mit 6 Fällen, `TestE2EPlayAnmeldungOhneV
 `make gates` grün (Exit-Code 0, 3 min 50 s). Die Gates auf sauberem Baum nach dem Commit dieses
 Abschnitts stehen im Bericht an den Reviewer.
 
+*Läufe der Nacharbeit.* Auf dem Stand `e74e2fe` (sauberer Baum): `make gates` grün, Exit-Code 0, 3 min 50 s (darin `make test`, `make test-integration`, `make lint`, `make abdeckung-check`). Die Mutanten der Nacharbeit liefen im Image `pgwire-recorder:test` mit der Kopie von `internal/` als Bind-Mount; die drei Einzel-Mutanten der Frage 1 und der Mutant `"00"` ohne `gofmt`-Prüfung, die übrigen vier mit `gofmt -l` leer und `go vet` ohne Befund. Das Gate-Ergebnis des Commits, der diese Zeile trägt, steht im Bericht an den Reviewer.
+
 *Fragen an den Architect (Randform · Frage), entschieden am 2026-10-10 (§6, Randformen aus der Rückgabe des Implementers).* Frage 1 bis 4 sind umgesetzt, jede mit einem Test, der sie festlegt, und einer roten Mutation (Tabelle, Zeilen *Nacharbeit*); Frage 5 bleibt ein akzeptiertes Negativ ohne Test.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
