@@ -1516,13 +1516,20 @@ offenlässt.
   `n=` leer (der Server nimmt den der Startup-Daten) und eine Nonce aus 18 Zufallsbytes,
   Base64 kodiert. Die Fortsetzung des Servers (Code 11) besteht genau aus `r=`, `s=` und
   `i=` in dieser Reihenfolge, durch Komma getrennt, ohne weiteres Attribut und ohne Zeichen
-  dahinter. `r=` beginnt mit der Nonce von `play` und ist länger; `s=` ist gültiges Base64, auch leer
+  dahinter. `r=` beginnt mit der Nonce von `play` und ist länger und trägt nur druckbare Zeichen
+  außer dem Komma (`printable` in RFC 5802: 0x21 bis 0x7E ohne 0x2C; ein Leerzeichen, ein
+  Steuerzeichen und ein Byte ab 0x7F sind ein Fehler im Austausch); `s=` ist gültiges Base64, auch leer
   (RFC 5802 erlaubt es, und ein Server, der ein leeres Salz nennt, könnte ebenso eine
   Iteration wählen: die Annahme schwächt nichts); `i=` ist eine Dezimalzahl aus Ziffern
   ohne Vorzeichen und ohne führende Null (`posit-number` in RFC 5802, `i=0004096` ist
   ein Fehler im Austausch) von 1 bis 10 000 000 (Grenze: Eine
   höhere Zahl ist ein Fehler im Austausch, damit die Berechnung, die kein Signal
-  unterbricht, nur Sekunden dauert). Die Antwort (`SASLResponse`) trägt `c=biws`, die
+  unterbricht, nur Sekunden dauert). Base64 in `s=` und `v=` folgt der Grammatik `base64` der RFC:
+  Alphabet, Länge und Auffüllung wie in Go `base64.StdEncoding`, kein Zeilenumbruch; gesetzte
+  Restbits (`AB==`) lässt die Grammatik zu, und `play` nimmt sie an (Grund: Die Signatur
+  des Servers wird auf den dekodierten Bytes bytegenau geprüft, ein Salz mit Restbits ergibt
+  dieselben Bytes wie das kanonische, und eine Strenge über die Grammatik hinaus schlüge bei
+  einem Server fehl, den die RFC zulässt). Die Antwort (`SASLResponse`) trägt `c=biws`, die
   Nonce des Servers und den Beweis. Der Abschluss des Servers (Code 12) ist genau `v=` und
   die Base64-kodierte Signatur des Servers, ohne weiteres Attribut; eine abweichende
   Signatur, ein anderer Aufbau, auch `e=`, ist ein Fehler im Austausch. Ein Fehler im
@@ -2742,3 +2749,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-10 | Einspielen: Extended-Interaktionen, Randformen vor dem Code (Zählen der Antworten einer `Flush`-Gruppe je Antwort und nicht je Art; Senden einer Gruppe und Lesen der Antworten unabhängig voneinander, kein Verklemmen bei großen Gruppen) (`LH-FA-20.a`) |
 | 2026-10-10 | Einspielen: Anmeldung, Randformen vor dem Code (Passwort aus Verbindung oder Umgebung ohne Mischen, kein Passwort und nichts Abgeleitetes in Meldung, Log und Ursachenkette, Aufbau der Anforderungen Klartext, MD5 und SASL, Wahl von `SCRAM-SHA-256`, Aufbau der Nachrichten und Grenzen des SCRAM-Austauschs, Iterationszahl bis 10 000 000, Nachricht an unvorgesehener Stelle im Austausch `PGR-E4005`, weitere Anforderung nach einer Antwort `PGR-E4002`) (`LH-FA-20.a`) |
 | 2026-10-10 | Einspielen: Anmeldung, Randformen aus der Rückgabe des Implementers (zweite Anforderung auch nicht lesbar `PGR-E4002`, zweite Anforderung eines nicht unterstützten Verfahrens `PGR-E4005`, leeres Salz gültig, Iterationszahl ohne führende Null, Fehler der Schlüsselableitung `PGR-E4005` als Grenze ohne Test) (`LH-FA-20.a`) |
+| 2026-10-10 | Einspielen: Anmeldung, Servernonce nur druckbare Zeichen ohne Komma (`PGR-E4005`), Restbits in Base64 von `s=` und `v=` angenommen (`LH-FA-20.a`) |

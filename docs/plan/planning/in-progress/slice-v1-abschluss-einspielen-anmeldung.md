@@ -270,10 +270,24 @@ an der genannten Stelle. Offen ist keine.
     mit leerem Salz gelingen lässt (Berechnung mit leerem Salz gegen einen Vektor aus
     `hashlib`, nicht aus dem Code); Mutation: leeres Salz ablehnen.
   - Iterationszahl mit führender Null (`i=0004096`, auch `i=01`): `PGR-E4005`
-    (`posit-number` in RFC 5802). **Der Code weicht ab** (`leseIterationen` nimmt sie an).
-    **Auftrag:** Code ändern, Test in `TestScramServerErste` für `i=0004096` und `i=01`;
-    Mutation: Prüfung auf die führende Null entfernen. Der Zeilenumbruch in `s=` und `v=`
+    (`posit-number` in RFC 5802). Umgesetzt mit `e74e2fe` (Test in `TestScramServerErste` für
+    `i=0004096` und `i=01`, Mutation: Prüfung auf die führende Null entfernen). Der Zeilenumbruch in `s=` und `v=`
     bleibt ungültig (Test vorhanden).
+  - Servernonce mit Zeichen außerhalb von `printable` (Leerzeichen, Steuerzeichen, Byte ab
+    0x7F; `printable` = 0x21 bis 0x7E ohne 0x2C, RFC 5802 §7): `PGR-E4005`; neu in `LH-FA-20.a`
+    *SCRAM-Austausch* (Review F-593). **Der Code weicht ab** (`leseServerErste` erlaubt jedes
+    Zeichen außer dem Komma). **Auftrag:** `r=` zeichenweise prüfen; Test in
+    `TestScramServerErste` für `r=<Nonce>` plus Leerzeichen, plus Steuerzeichen (`\x01`),
+    plus Byte 0x80 und, als Gutfall, plus `/+=` (Zeichen des Base64-Alphabets); Mutation:
+    Prüfung entfernen (Test für Leerzeichen rot) und Grenze verschieben (`>= 0x20` statt
+    `>= 0x21`).
+  - Base64 mit gesetzten Restbits in `s=` und `v=` (`AB==`): angenommen; neu in `LH-FA-20.a`
+    *SCRAM-Austausch* (Review F-593), Grund dort (die Grammatik `base64` der RFC lässt es zu,
+    die Signatur wird bytegenau geprüft). Der Code stimmt. **Auftrag:** je ein Test, der einen
+    Austausch gelingen lässt, dessen `s=` (Salz, das der Test dekodiert gleich rechnet) und
+    `v=` (Letztes Zeichen so ersetzt, dass die dekodierten Bytes gleich bleiben und die
+    Restbits gesetzt sind) nicht-kanonisches Base64 tragen; Mutation: `.Strict()` in
+    `dekodiereBase64` (beide Tests rot).
   - Fehler der Schlüsselableitung: `PGR-E4005`, der Code stimmt; akzeptiertes Negativ ohne
     Test, Grund: nur im FIPS-Modus der Go-Laufzeit möglich, kein Lauf der Gates setzt ihn;
     die Spezifikation nennt es als Grenze und sagt nicht zu, es sei geprüft (`AGENTS.md`
