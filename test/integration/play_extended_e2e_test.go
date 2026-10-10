@@ -295,12 +295,13 @@ func gegendruckAufzeichnung(t *testing.T) string {
 	return pfad
 }
 
-// Abdeckung: LH-FA-20/Boundary, LH-FA-18/Boundary — eine Gruppe, deren
-// Nachrichten (16 MB Parameter) und Antworten (32 MB Ausgabe) größer sind als
-// die Puffer der Verbindung, verklemmt gegen die reale Instanz nicht: play sendet
-// und liest unabhängig voneinander und endet binnen 60 s mit Exit-Code 0; eine
-// Gruppe mit Flush, deren große Ausgabe verzögert eintrifft, wird abgewartet, bevor
-// die nächste Gruppe geht (LH-FA-20.a *Gruppen*).
+// Abdeckung: LH-FA-20/Boundary, LH-FA-18/Boundary — auf einem Host mit
+// Socket-Puffern unter 16 MB verklemmt eine Gruppe, deren Nachrichten (16 MB
+// Parameter) und Antworten (32 MB Ausgabe) größer sind als die Puffer der
+// Verbindung, gegen die reale Instanz nicht: play sendet und liest unabhängig
+// voneinander und endet binnen 60 s mit Exit-Code 0; dass play nach einer Gruppe
+// mit Flush wartet, belegt TestE2EPlayExtendedFlushWarten, nicht dieser Test
+// (LH-FA-20.a *Gruppen*).
 func TestE2EPlayExtendedGegendruck(t *testing.T) {
 	conn := leereDatenbank(t, "play_ext_gross")
 	ausfuehren(t, conn, "CREATE TABLE gross (n bigint)")
@@ -312,4 +313,83 @@ func TestE2EPlayExtendedGegendruck(t *testing.T) {
 	if got := wert(t, conn, "SELECT string_agg(n::text, ',' ORDER BY n DESC) FROM gross"); got != fmt.Sprintf("%d,7", parameterMB<<20) {
 		t.Fatalf("Zeilen %q, erwartet die Länge des Parameters und 7", got)
 	}
+}
+
+// flushWartenAufzeichnung schreibt eine Aufzeichnung mit einer Extended-Interaktion
+// aus zwei Gruppen: die erste endet mit Flush, ihre Ausführung braucht eine
+// Sekunde (pg_sleep), die zweite mit Sync.
+func flushWartenAufzeichnung(t *testing.T) string {
+	t.Helper()
+	const inhalt = `format: pgwire-recorder
+version: 1
+sessions:
+  - id: 1
+    startup:
+      user: postgres
+      database: postgres
+    interactions:
+      - sequence: 1
+        type: extended
+        groups:
+          - client:
+              - type: parse
+                statement: ""
+                sql: "SELECT pg_sleep(1)"
+                param_types: []
+              - type: bind
+                portal: ""
+                statement: ""
+                param_formats: []
+                params: []
+                result_formats: []
+              - type: execute
+                portal: ""
+                max_rows: 0
+              - type: flush
+            server: []
+          - client:
+              - type: parse
+                statement: ""
+                sql: "SELECT 2"
+                param_types: []
+              - type: bind
+                portal: ""
+                statement: ""
+                param_formats: []
+                params: []
+                result_formats: []
+              - type: execute
+                portal: ""
+                max_rows: 0
+              - type: sync
+            server:
+              - type: ready_for_query
+                tx_status: "I"
+`
+	pfad := filepath.Join(t.TempDir(), "rec.yaml")
+	if err := os.WriteFile(pfad, []byte(inhalt), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return pfad
+}
+
+// Abdeckung: LH-FA-20/Boundary, LH-FA-18/Boundary — nach einer Gruppe mit Flush,
+// deren Antworten eine Sekunde ausbleiben, sendet play die nächste Gruppe erst,
+// wenn die Antworten der ersten da sind: Der Recorder zwischen play und der
+// realen Instanz ordnet eine Antwort der zuletzt begonnenen Gruppe zu, und eine
+// Gruppe beginnt mit ihrer ersten Client-Nachricht; so stehen die Antworten der
+// ersten Gruppe nur dann in deren server:-Liste, wenn play die zweite Gruppe
+// nicht vorher gesendet hat (LH-FA-20.a *Gruppen*).
+func TestE2EPlayExtendedFlushWarten(t *testing.T) {
+	leereDatenbank(t, "play_ext_flush")
+	input := flushWartenAufzeichnung(t)
+	output := filepath.Join(t.TempDir(), "gespielt.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+	stdout, stderr, code := starteBisFrist(t, 30*time.Second, "play", "--upstream", rec.listen, "--input", input, "--database", "play_ext_flush")
+	if code != 0 || stdout != "" || strings.Contains(stderr, "level=ERROR") {
+		t.Fatalf("Exit-Code %d, stdout %q, stderr:\n%s", code, stdout, stderr)
+	}
+	rec.stop(t, 0)
+	text := lies(t, output)
+	inReihe(t, text, "- type: flush", "type: data_row", "type: command_complete", "- client:", "- type: sync", "type: ready_for_query")
 }

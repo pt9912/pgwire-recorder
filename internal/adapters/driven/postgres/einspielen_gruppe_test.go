@@ -184,7 +184,8 @@ func TestEinspielGruppeNachrichten(t *testing.T) {
 // Abdeckung: LH-FA-20/Negative — eine Client-Nachricht, die sich nicht auf
 // PGWire abbilden lässt (Zielart außer statement und portal), liefert Gruppe
 // als Fehler PGR-E1000, und von der Gruppe geht nichts auf die Verbindung
-// (LH-FA-20.a *Interaktion*).
+// (Verhalten des Adapters für eine nicht abbildbare Nachricht; Validate lässt
+// sie nie durch, Plan §6, akzeptiertes Negativ).
 func TestEinspielGruppeNichtAbbildbar(t *testing.T) {
 	addr, ergebnis := einspielServer(t, verbunden(t))
 	s := verbindeGruppen(t, addr)
@@ -300,7 +301,7 @@ func (c *steuerConn) zaehler() (schreibt, schliesst int) {
 
 // Abdeckung: LH-FA-20/Negative — scheitert das Senden einer Gruppe, kehrt Gruppe
 // zuvor zurück, und der Fehler PGR-E4003 kommt aus Naechste, auch wenn diese
-// gerade wartet, und aus der nächsten Operation; die Verbindung ist danach
+// gerade wartet, und aus der nächsten Gruppe; die Verbindung ist danach
 // geschlossen (LH-FA-20.a *Interaktion*, *Gruppen*).
 func TestEinspielGruppeSendefehler(t *testing.T) {
 	conn := neueSteuerConn(func([]byte) (int, error) { return 0, errors.New("kaputt") })

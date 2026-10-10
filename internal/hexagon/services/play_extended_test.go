@@ -237,10 +237,11 @@ func TestPlayExtendedFatal(t *testing.T) {
 // Abdeckung: LH-FA-20/Boundary — mit --allow-recorded-errors
 // ist eine Fehlerantwort in einer Extended-Interaktion erwartet, wenn die
 // aufgezeichnete Interaktion in irgendeiner Gruppe eine error_response trägt: in
-// der ersten, einer mittleren oder der letzten, gleich in welcher Gruppe der
-// Server den Fehler sendet und mit welchem SQLSTATE; keine Meldung, Exit-Code 0,
-// und die nächste Interaktion läuft ohne --continue-on-error. Trägt keine Gruppe
-// eine, ist sie PGR-E4004 (LH-FA-20.a *Interaktion*).
+// der ersten, einer mittleren oder der letzten, und der Server sendet den Fehler
+// in der ersten, einer mittleren oder der letzten Gruppe, unabhängig davon, in
+// welcher Gruppe die Aufzeichnung ihn trägt, und gleich mit welchem SQLSTATE; keine Meldung, Exit-Code 0, und die
+// nächste Interaktion läuft ohne --continue-on-error. Trägt keine Gruppe eine, ist
+// sie PGR-E4004 (LH-FA-20.a *Interaktion*).
 func TestPlayExtendedErwarteterFehler(t *testing.T) {
 	fehlerAufgezeichnet := []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"C": "XX000", "M": "anders"}}}
 	drei := func(aufgezeichnet1, aufgezeichnet2, aufgezeichnet3 []model.Response) model.Interaction {
@@ -250,27 +251,39 @@ func TestPlayExtendedErwarteterFehler(t *testing.T) {
 			gruppe(append(aufgezeichnet3, bereit()...), cm(model.ClientSync)),
 		)
 	}
+	// Der Server sendet den Fehler in der ersten, mittleren oder letzten Gruppe;
+	// die Fehlerantwort beendet das Zählen, die Antworten davor zählen mit.
+	serverErste := [][]schritt{{fehler("42P01", "a")}, nil, {antwort(model.ResponseReadyForQuery)}}
+	serverMittlere := [][]schritt{{antwort(model.ResponseParseComplete)}, {fehler("42P01", "a")}, {antwort(model.ResponseReadyForQuery)}}
+	serverLetzte := [][]schritt{{antwort(model.ResponseParseComplete)}, {antwort(model.ResponseBindComplete)}, {fehler("42P01", "a"), antwort(model.ResponseReadyForQuery)}}
+	ablaufErste := []string{"verbinde", "gruppe parse,flush", "naechste", "gruppe bind,flush", "gruppe sync", "naechste", "anfrage B", "naechste", "schliesse"}
+	ablaufMittlere := []string{"verbinde", "gruppe parse,flush", "naechste", "gruppe bind,flush", "naechste", "gruppe sync", "naechste", "anfrage B", "naechste", "schliesse"}
+	ablaufLetzte := []string{"verbinde", "gruppe parse,flush", "naechste", "gruppe bind,flush", "naechste", "gruppe sync", "naechste", "naechste", "anfrage B", "naechste", "schliesse"}
 	for _, f := range []struct {
-		name string
-		in   model.Interaction
-		want []string
+		name   string
+		in     model.Interaction
+		server [][]schritt
+		want   []string
+		ablauf []string
 	}{
-		{"erste Gruppe", drei(fehlerAufgezeichnet, nil, nil), nil},
-		{"mittlere Gruppe", drei(nil, fehlerAufgezeichnet, nil), nil},
-		{"letzte Gruppe", drei(nil, nil, fehlerAufgezeichnet), nil},
-		{"keine Gruppe", drei(nil, nil, nil), []string{e4004("Session 1, Interaktion 1", "42P01", "a")}},
+		{"Aufzeichnung erste, Server erste Gruppe", drei(fehlerAufgezeichnet, nil, nil), serverErste, nil, ablaufErste},
+		{"Aufzeichnung mittlere, Server mittlere Gruppe", drei(nil, fehlerAufgezeichnet, nil), serverMittlere, nil, ablaufMittlere},
+		{"Aufzeichnung letzte, Server letzte Gruppe", drei(nil, nil, fehlerAufgezeichnet), serverLetzte, nil, ablaufLetzte},
+		{"Aufzeichnung erste, Server letzte Gruppe", drei(fehlerAufgezeichnet, nil, nil), serverLetzte, nil, ablaufLetzte},
+		{"Aufzeichnung letzte, Server mittlere Gruppe", drei(nil, nil, fehlerAufgezeichnet), serverMittlere, nil, ablaufMittlere},
+		{"keine Gruppe, Server erste Gruppe", drei(nil, nil, nil), serverErste, []string{e4004("Session 1, Interaktion 1", "42P01", "a")}, nil},
+		{"keine Gruppe, Server mittlere Gruppe", drei(nil, nil, nil), serverMittlere, []string{e4004("Session 1, Interaktion 1", "42P01", "a")}, nil},
 	} {
 		t.Run(f.name, func(t *testing.T) {
 			rec := sitzung(f.in, interaktion(2, "B", "SELECT 1"))
-			ziel := &fakeZiel{sessions: []*fakeEinspiel{{gruppen: [][]schritt{{fehler("42P01", "a")}, nil, {antwort(model.ResponseReadyForQuery)}}}}}
+			ziel := &fakeZiel{sessions: []*fakeEinspiel{{gruppen: f.server}}}
 			err := spieleMit(context.Background(), t, nil, rec, ziel, services.PlayOptions{AllowRecordedErrors: true})
 			if !reflect.DeepEqual(texte(err), f.want) {
 				t.Fatalf("Meldungen %q, erwartet %q", texte(err), f.want)
 			}
-			ablauf := ziel.liste()
 			if f.want == nil {
-				if want := []string{"verbinde", "gruppe parse,flush", "naechste", "gruppe bind,flush", "gruppe sync", "naechste", "anfrage B", "naechste", "schliesse"}; !reflect.DeepEqual(ablauf, want) {
-					t.Fatalf("Ablauf %q, erwartet %q", ablauf, want)
+				if ablauf := ziel.liste(); !reflect.DeepEqual(ablauf, f.ablauf) {
+					t.Fatalf("Ablauf %q, erwartet %q", ablauf, f.ablauf)
 				}
 			}
 		})

@@ -182,7 +182,9 @@ func verworfen(typ byte) pgproto3.BackendMessage {
 // hält das Senden von Anfrage und einer Gruppe und das Terminate von Schliesse
 // auseinander. Die Gruppen sendet ein eigener Sender nacheinander aus
 // warteschlange, unabhängig vom Lesen in Naechste; zustand schützt
-// warteschlange, geschlossen und sendefehler.
+// warteschlange, senderLaeuft, geschlossen und sendefehler. weck weckt den
+// wartenden Sender nach einer eingereihten Gruppe, ende beendet ihn mit
+// Schliesse.
 type einspielSession struct {
 	conn      net.Conn
 	fe        *pgproto3.Frontend
@@ -273,10 +275,11 @@ func (s *einspielSession) sender() {
 	}
 }
 
-// sendeGruppe schreibt die Nachrichten einer Gruppe. Es liefert falsch, wenn der Sender enden soll: nach Schliesse, oder weil das
-// Senden scheiterte. Dann ist der Fehler PGR-E4003 für Naechste und die
-// nächste Gruppe gemerkt und die Verbindung geschlossen, damit ein wartendes Naechste endet;
-// nach Schliesse bleibt ein Fehler ohne Folge.
+// sendeGruppe schreibt die Nachrichten einer Gruppe. Es liefert falsch, wenn
+// der Sender enden soll: nach Schliesse, oder weil das Senden scheiterte. Dann
+// ist der Fehler PGR-E4003 für Naechste und die nächste Gruppe gemerkt und die
+// Verbindung geschlossen, damit ein wartendes Naechste endet; nach Schliesse
+// bleibt ein Fehler ohne Folge.
 func (s *einspielSession) sendeGruppe(gruppe []pgproto3.FrontendMessage) bool {
 	s.schreiben.Lock()
 	defer s.schreiben.Unlock()
