@@ -602,8 +602,8 @@ eine Dauer also etwa `0` oder `5s`. Ein leerer Wert, `null`, eine Liste oder
 Abbildung an der Stelle eines Werts sowie Anker, Aliase, Merge-Schlüssel und
 ausdrücklich geschriebene Tags (`!!str`) sind ungültig, ebenso ein Schlüssel, der
 in derselben Abbildung zweimal steht, und ein zweites YAML-Dokument in der Datei.
-Ein Abschnitt ohne Inhalt ist ungültig, `{}` setzt nichts; eine leere Datei oder
-eine nur mit Kommentaren ebenfalls nicht. Ein relativer Pfad gilt relativ zum
+Ein Abschnitt ohne Inhalt (`record:` allein) ist ungültig, `{}` setzt nichts; eine
+leere Datei und eine nur mit Kommentaren sind gültig und setzen ebenfalls nichts. Ein relativer Pfad gilt relativ zum
 aktuellen Verzeichnis, nicht zum Verzeichnis der Datei.
 
 Die Datei ist eine reguläre Datei in UTF-8; ein BOM am Anfang ist erlaubt, andere

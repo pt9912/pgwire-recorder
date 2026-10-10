@@ -60,7 +60,8 @@ auf Wunsch“.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Produkt-Code, Hilfetexte im Binary, Tests des Produkts und Gates — Schicht-Abgrenzung: Der
-  Slice ändert nur `docs/user/benutzerhandbuch.md` und `README.md` (und diesen Plan). Zeigt das
+  Slice ändert nur `docs/user/benutzerhandbuch.md` und `README.md`, die Sendungen in den neun
+  Nehmer-Plänen unter `next/` (§7, §3.13) und diesen Plan. Zeigt das
   Binary ein Verhalten, das die Spezifikation anders regelt, beschreibt das Handbuch das Binary
   (§6, *Verhalten neben der Spezifikation*); der Fund geht als Befund an den Planner, keine
   Korrektur am Code hier.
@@ -126,6 +127,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `docs/user/benutzerhandbuch.md` | update | alle Abschnitte gegen das gebaute Binary: Optionen gegen `--help`, Beispiele als Datei, Codes, Kopfzeilen, §11; Unbekanntes entfernt oder gekürzt |
 | `README.md` | update | Einleitung und *Was kann ich heute tun?* auf Geliefertes, ohne Chronik |
+| neun Pläne unter `docs/plan/planning/next/` (Nehmer, Liste in §7) | update | Sendung der Ist-Zustand-Stellen in DoD und §8 des Nehmers, mit der Kennung dieses Slice (`AGENTS.md` §3.13) |
 
 **Ansatz:**
 
@@ -382,6 +384,7 @@ Ein Vertrag (§3.10) entsteht nicht; die Mutationen belegen nur, dass die Prüfu
 | §4 Treiber | `record` und `replay` mit beiden Protokollen, ohne Verschlüsselung | `psql sslmode=prefer` | wie beschrieben |
 | §5 Einstellungen | Tabelle mit 14 Zeilen (Datenzeilen, eine je Option) wie `--help`; `sslmode=require` bei `record` und `play` ungültig, unbenutzt gültig; Passwort in der URL ohne Anmeldung | Proben oben (`config show` mit `require` Exit 0) | wie beschrieben |
 | §5 Exit-Codes | Zeile 5 ohne Vergleich | — | Zeilen 1–6 bleiben |
+| §5 Konfigurationsdatei, leere Datei | leere Datei und Datei nur mit Kommentaren gültig und ohne Wirkung; `record:` ohne Inhalt ungültig | `config show --config` mit leerer Datei, mit einer Zeile `# nur Kommentar`, mit `record:` allein (Scratch `impl2-doku-w`, Image `sha256:b45c7f918488…`) | leer und Kommentar: Ausgabe nur der Pfad, Exit 0; `record:`: `PGR-E2004` „record: erwartet eine Abbildung“, Exit 2 (Review V-153: vorher „ebenfalls nicht“, mehrdeutig) |
 | §6 Rollen | `record` ohne Passwort; `replay` nimmt jede Anmeldung an | `psql user=wer dbname=anders` mit `PGPASSWORD` an `replay`: Antworten wie aufgezeichnet | wie beschrieben |
 | §7 Fehlerbehebung | Codes oben; *Die Anwendung kann sich nicht verbinden* ohne TLS-Optionen | Proben oben | wie beschrieben |
 | §8 FAQ | ohne SQLite | — | — |
@@ -413,7 +416,9 @@ Abweichung.
 **Sendungen an die Folge-Slices** (Review F-570; §3.13): Jeder Nehmer trägt in seiner DoD (erster
 Liefer-Punkt) hinter der allgemeinen Ist-Zustand-Zeile einen Satz „Aus `slice-doku-ist-stand` …“ mit
 den Stellen, und in §8 eine Zeile zur Nachzählung (kein neuer Liefer-Punkt, keine neue Schicht).
-`grep -l slice-doku-ist-stand docs/plan/planning/next/*.md` findet die neun Nehmer.
+`grep -l slice-doku-ist-stand docs/plan/planning/next/*.md` findet zehn Dateien: die neun Nehmer
+der Tabelle und `slice-harness-upgrade-v6-18`, das die Kennung nur im Satz zur Reihenfolge nennt
+(kein Nehmer, keine Sendung).
 
 | Sendung | Nehmer | Stelle |
 |---|---|---|
