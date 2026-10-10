@@ -42,6 +42,12 @@ Nutzers vom 2026-10-09 (Geber `welle-erster-release`), die jener aus der Welle �
 4. Vor dem Tag ein Freshness-Audit der vendored Baseline und des gepinnten d-check.
 5. Ein Scan des Images vor dem Push in eine Registry.
 
+Aus `slice-doku-ist-stand` (dort §6, *Software-Version*): Mit dem ersten echten Tag trägt das
+Benutzerhandbuch die veröffentlichte Version im Ist-Zustand — im Kopf *Software-Version* und
+*Gültigkeitsbereich* die Ausgabe von `pgwire-recorder version` des veröffentlichten Binaries,
+in §11 *Änderungshistorie* statt „Es gibt keine veröffentlichte Version.“ die Zeile dieses
+Releases; die Stelle gehört zu DoD-Punkt 3.
+
 Dazu der erste echte Tag: Jener Slice belegt die Pipeline mit einem Probe-Tag, dieser setzt
 den ersten stabilen Tag mit Checkliste und Scan. Die Randformen der drei Punkte zogen aus §6
 jenes Slice hierher (§6 unten).
@@ -67,7 +73,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Die Pipeline scannt das Image jeder Plattform der Manifestliste vor dem Push; ein Befund über der Schwelle beendet den Lauf, bevor eine Registry etwas erhält (Punkt 5, Test mit einem Image über der Schwelle; Beleg in §7: Zusage · Mutation · roter Test, `AGENTS.md` §3.10). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 - [ ] `docs/maintainer/releasing.md` §5 beschreibt das Freshness-Audit der vendored Baseline und des gepinnten d-check vor dem Tag mit der Form seines Belegs; das Audit vor dem ersten echten Tag ist mit diesem Beleg ausgeführt (Punkt 4).
-- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): `docs/maintainer/releasing.md` §10 trägt die Freigabe-Checkliste mit Beleg je Punkt, Anti-Punkten und Incident-Klausel (Punkt 3). Der erste echte, stabile Tag ist nach ihr freigegeben: Binaries mit `SHA256SUMS` am Release, Image in beiden Registries mit gleichem Index-Digest und `:latest`, Smoke aus Abnahmeszenario 9 bestanden. Der ausgefüllte Eintrag steht in der Closure von welle-erster-release.
+- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): `docs/maintainer/releasing.md` §10 trägt die Freigabe-Checkliste mit Beleg je Punkt, Anti-Punkten und Incident-Klausel (Punkt 3). Der erste echte, stabile Tag ist nach ihr freigegeben: Binaries mit `SHA256SUMS` am Release, Image in beiden Registries mit gleichem Index-Digest und `:latest`, Smoke aus Abnahmeszenario 9 bestanden. Der ausgefüllte Eintrag steht in der Closure von welle-erster-release. Aus `slice-doku-ist-stand`: Das Benutzerhandbuch nennt im Kopf (*Software-Version*, *Gültigkeitsbereich*) die Version des veröffentlichten Binaries und trägt in §11 die Zeile des Releases an Stelle von „Es gibt keine veröffentlichte Version.“ (Beleg: `grep` im Handbuch und `version` des veröffentlichten Binaries).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -90,7 +96,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `docs/maintainer/releasing.md` §5, §10 | update | Freshness-Audit vor dem Tag, Freigabe-Checkliste |
 | Test der Pipeline | neu | Image über der Schwelle wird nicht veröffentlicht |
 | `docs/plan/planning/welle-erster-release-results.md` | neu (bei Welle-Closure) | ausgefüllter Eintrag der Checkliste des ersten Releases |
-| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
+| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung); Kopf *Software-Version* und §11 mit der veröffentlichten Version (aus `slice-doku-ist-stand`) |
 
 ## 4. Trigger
 
@@ -205,5 +211,7 @@ unter `evidence/`). Treffer:
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
+
+Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, `AGENTS.md` §3.13): Kopf und §11 des Handbuchs liegen in den zwei Dateien, die §3 schon führt, und in DoD-Punkt 3; kein neuer Liefer-Punkt. Schichten nach der Zählweise von `slice-harness-d-check-v0-85` §8 (Nutzer- und Wartungs-Doku `docs/user/` und `docs/maintainer/` sind eine Schicht): Release-Automatisierung und Dokumentation, zwei; die Sendung fügt keine hinzu.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

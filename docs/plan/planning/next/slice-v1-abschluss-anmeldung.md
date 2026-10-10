@@ -34,6 +34,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-harness-blackbox-driven`** (Review F-444, Verifikation V-85; Abgrenzung in `slice-tests-ueberlebende-mutanten`): ein Test, dass die Session aus `Open` den Lesepuffer des Aufbaus trägt, mit Test-Idee und Grenze in §6; er gehört zu DoD-Punkt 1, weil der Umbau der Aufbau-Schleife in `Open` genau diese Stelle berührt.
 
+**Übernommen aus `slice-doku-ist-stand`** (Verifikation V-152, Review F-573; bekannter Teilstand, keine neue Abweichung): Der Meldungstext des Binaries für ein Anmeldeverfahren, das `record` nicht vermittelt („der Upstream verlangt ein Anmeldeverfahren (…), das dieser Stand nicht vermittelt“, `internal/adapters/driven/postgres/upstream.go`), wird beim Liefern von SCRAM-SHA-256 so gefasst, dass er nur noch die Verfahren nennt, die `record` weiterhin nicht vermittelt; er gehört zu DoD-Punkt 2.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Anmeldung beim Einspielen (`play`) — `slice-v1-abschluss-einspielen-anmeldung` (dort §1, *Übernimmt*; seit dem Schnitt von `slice-v1-abschluss-einspielen` vom 2026-10-09); `play` rechnet den Austausch selbst, `record` vermittelt ihn.
@@ -48,7 +50,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol): Ein Client meldet sich über `record` an einem Server mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an und führt eine Anfrage aus; Passwort und Anmeldenachrichten stehen nicht in der Aufzeichnung (Integrationstest). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zum Passwort bei `record` — §1 *Voraussetzungen*, §4 *Eine Anwendung aufzeichnen* (Hinweise), §6 *Rollen und Rechte* („ohne Passwort“), §7 Zeile `PGR-E6001` (Ursache „beim Aufzeichnen verlangt die Datenbank ein Passwort“) und *Die Anwendung kann sich nicht verbinden* — und im README den Satz, dass die Datenbank den Benutzer ohne Passwort anmelden muss, soweit er `record` betrifft.
-- [ ] Eine fehlgeschlagene Anmeldung geht als Fehlerantwort des Servers unverändert an den Client; ein nicht vermitteltes Verfahren endet mit eindeutigem Meldungscode (Test).
+- [ ] Eine fehlgeschlagene Anmeldung geht als Fehlerantwort des Servers unverändert an den Client; ein nicht vermitteltes Verfahren endet mit eindeutigem Meldungscode, und sein Meldungstext sagt nicht mehr „das dieser Stand nicht vermittelt“, sobald SCRAM-SHA-256 vermittelt wird (aus `slice-doku-ist-stand`, V-152; Test).
 - [ ] Der Port zwischen PGWire-Adapter, Record-Service und Upstream-Adapter trägt den Anmeldeaustausch, ohne dass der Core PGWire-Typen kennt (`make a-check`).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -69,7 +71,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/ports/driving`, `…/driven`, `internal/hexagon/services` | update | Anmeldeaustausch als Folge fachlicher Nachrichten zwischen Client und Upstream |
-| `internal/adapters/driving/pgwire`, `internal/adapters/driven/postgres` | update | Weiterleitung der Anmeldenachrichten, `SetAuthType` für SASL |
+| `internal/adapters/driving/pgwire`, `internal/adapters/driven/postgres` | update | Weiterleitung der Anmeldenachrichten, `SetAuthType` für SASL; Meldungstext zu einem nicht vermittelten Verfahren (`upstream.go`, aus `slice-doku-ist-stand`, V-152) |
 | `test/integration` | update | Server mit `password`, `md5` und `scram-sha-256` in `pg_hba.conf` |
 | `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
@@ -135,5 +137,7 @@ nicht mehr.
 Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
 
 Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, `AGENTS.md` §3.13): Die Stellen liegen im ersten Liefer-Punkt und in denselben zwei Dateien (Handbuch, README); kein neuer Liefer-Punkt, keine neue Schicht, die Zählung der vorigen Zeile bleibt.
+
+Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (V-152, 2026-10-10, `AGENTS.md` §3.13): Der Meldungstext liegt in `internal/adapters/driven/postgres/upstream.go`, einer Datei, die §3 schon führt, und in DoD-Punkt 2; kein neuer Liefer-Punkt, keine neue Schicht. §3 führt Kern, PGWire-Adapter und Upstream-Adapter sowie die Dokumentation; ob der Plan nach der Schichtzählung der Dokumentation (`slice-doku-ist-stand`, V-151) über zwei Schichten liegt, hängt nicht an dieser Sendung und geht an den Planner.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
