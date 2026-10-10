@@ -93,32 +93,32 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): Eine Aufzeichnung mit Extended-Interaktionen — DDL
+- [x] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): Eine Aufzeichnung mit Extended-Interaktionen — DDL
       und DML mit Parametern, Gruppen mit `Sync` und mit `Flush`, gemischt mit einfachen
       Anfragen, über mehrere Sessions — wird gegen eine leere Instanz eingespielt, die weder
       Passwort noch TLS verlangt, und die Datenbank enthält danach deren Wirkung; eine
       Extended-Interaktion ist kein Startfehler `PGR-E6001` mehr (Integrationstest).
-- [ ] Innerhalb einer Extended-Interaktion wartet `play` nach `Sync` auf `ReadyForQuery` und
+- [x] Innerhalb einer Extended-Interaktion wartet `play` nach `Sync` auf `ReadyForQuery` und
       nach `Flush` auf die Antwort jeder Client-Nachricht der Gruppe, nicht auf die
       aufgezeichneten Server-Nachrichten; ein Abbruch nach `PGR-E4004` sendet keine weitere
       Gruppe und schließt mit `Terminate`; ein Abbruchsignal endet nach dem `ReadyForQuery`
       der laufenden Extended-Interaktion; eine Gruppe, deren Nachrichten und Antworten größer
       sind als die Puffer der Verbindung, verklemmt nicht (Test, Gegendruck-Szenario gegen die
       Instanz).
-- [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): Mit `--continue-on-error` wartet `play` nach einer Fehlerantwort in einer
+- [x] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): Mit `--continue-on-error` wartet `play` nach einer Fehlerantwort in einer
       Extended-Interaktion nur noch auf deren `ReadyForQuery`, sendet die übrigen Gruppen wie
       aufgezeichnet ohne Warten und endet mit Exit-Code 4; mit `--allow-recorded-errors` gilt
       der Fehler als erwartet, wenn die aufgezeichnete Interaktion in irgendeiner Gruppe eine
       `error_response` trägt (Test). Beleg in §7 für Punkt 1 bis 3: je Zusage Zusage ·
       Mutation · roter Test (`AGENTS.md` §3.10).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -273,10 +273,10 @@ genannten Stelle. Offen ist keine.
   eine Nachricht eine Antwort, die der Server nicht sendet, wartet `play` ohne eigene Frist
   (`LH-FA-20.a` *Interaktion*). Belegbar nur gegen einen echten Server, und nur gegen die
   Referenzversion 17 (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, §8) —
-  **Ausgang:** offen bis Closure.
+  **Ausgang:** entfallen — die Tabelle stimmt mit dem Server überein: Die Verifikation (V-157) hat `Bind`, `Close` und `Describe` eines Portals in `Flush`-Gruppen, dazu `NoData`, `EmptyQueryResponse` und `PortalSuspended`, gegen PostgreSQL 14, 16, 17 und 18 gefahren, ohne Hängen und ohne Antwort in der Nachbargruppe; `Parse`, `Describe` einer Anweisung und `Execute` belegt der Lauf gegen 17 im Gate. Der Rest, dass das Gate die Integrationstests nur gegen 17 fährt, ist der Gegenstand des Eintrags im Register und wird durch diesen Slice nicht zu einem Auftreten (§7).
 - Das Senden einer Gruppe braucht eine neue Operation am Upstream-Port (`Gruppe`, entschieden
   oben); der Port ist Teil des Diffs und zählt mit dem Play-Service als eine Schicht wie im
-  Kern (§6 dort, *Größe*), sonst wären es drei — **Ausgang:** offen bis Closure.
+  Kern (§6 dort, *Größe*), sonst wären es drei — **Ausgang:** entfallen — der Diff berührt außerhalb der Tests und der Dokumentation Play-Service, Port und Upstream-Adapter; der Port zählt mit dem Service als eine Schicht, der Adapter ist die zweite, die Bootstrap-Schicht ändert nur einen Test (Verifikation, `git diff --stat b23ff2c..ab90ba5`).
 
 ## 7. Closure-Notiz
 
@@ -388,7 +388,32 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 **Gelaufene Sensoren, die nicht Teil von `make gates` sind.** `make abdeckung` (Tabellen geschrieben und von `make abdeckung-check` im Gate bestätigt); die Mutationen oben. Nicht gelaufen und für diesen Slice nicht berührt: `make a-check-graph`, `make doc-trace` (Werkzeuge, kein Gate).
 
-**Offen für die Closure.** Die zwei Risiken aus §6 tragen noch keinen Ausgang. Zu *Warten nach `Flush` gegen den echten Server*: Gegen PostgreSQL 17 (gepinntes Image) laufen die Pipeline mit `Prepare` + `Flush` und das Gegendruck-Szenario durch; die Tabelle der Antworten stimmte dort für `Parse`, `Describe` einer Anweisung (zwei Antworten) und `Execute`; für `Bind`, `Close` und `Describe` eines Portals in einer `Flush`-Gruppe gibt es keinen Lauf gegen den Server (nur Unit-Tests gegen die Tabelle). Zu *Port ist Teil des Diffs*: Der Diff berührt Play-Service, Port und Upstream-Adapter.
+### Closure
+
+**Review und Verifikation.** Review `0657dde` (Code-Review, F-580 bis F-586: 1 MEDIUM, 2 LOW, 4 INFO), behoben in `a4934e5` und `ab90ba5`, Randformen vom Architect in `84285fa` entschieden. Verifikation `d826a0f`: DoD-Punkte 1 bis 4 (Liefer-Punkte und Gates) bestätigt, V-156 (LOW) behoben in `eedd409` und `308fe3e`, V-157 und V-158 INFO.
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge):
+
+| Risiko | Ausgang | Begründung |
+|---|---|---|
+| Warten nach `Flush` nur gegen eine Serverversion belegt | entfallen | V-157 belegt die Zuordnung der Antworten je Gruppe gegen PostgreSQL 14, 16, 17 und 18, auch für `Bind`, `Close` und `Describe` eines Portals; das Warten ohne Frist trat nicht ein. Kein Lauf liegt als Test im Repo; das Gate fährt weiter nur 17. Das ist der Gegenstand von `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (offen, 1×, Adresse `slice-v1-abschluss-postgres-versionen`); ein Lauf ohne Abweichung ist dort kein Auftreten, der Eintrag bekommt keine Datei. |
+| Port als dritte Schicht | entfallen | Trat nicht ein: Play-Service mit Port sind eine Schicht, der Upstream-Adapter die zweite; kein Produktionscode im Bootstrap, im CLI-Adapter oder im PGWire-Adapter. |
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure):
+
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — neue Datei `evidence/slice-v1-abschluss-einspielen-extended.md` (F-580, F-581, V-156; die Summary-Zeile des Reviews nennt F-580 und F-581, V-156 kam aus der Verifikation): 31 → 32 Dateien. Verkörpert (`AGENTS.md` §3.11, Schritt 19 und 20 von `implement-slice`); Sensor geplant (`slice-harness-mutation`). Im Modul des Einspielens trat die Klasse in diesem Slice zum fünften Mal in Folge der Reviews auf (F-564, F-565, F-580, F-581, V-156).
+- `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` — neue Datei `evidence/slice-v1-abschluss-einspielen-extended.md` (F-582): 6 → 7. Verkörpert (`AGENTS.md` §3.12). Die Randform war Bestandsverhalten des Upstream-Adapters (`toFrontendMessage`), das der Implementer übernahm; er meldete sie nach dem Code in §7 statt davor in §6.
+- `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` — keine Datei (V-157 ist kein Auftreten); bleibt 1×, offen.
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — kein Auftreten: Zu jeder Zusage von Punkt 1 bis 3 liegt eine Zeile Zusage · Mutation · roter Test vor, das Review fand keinen grünen Mutanten der Tabelle; F-580, F-581 und V-156 betreffen die Weite einer Zusage, nicht ihr Fehlen, und stehen unter der Klasse oben (kein Doppelzählen).
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3×.
+
+**Lerneintrag — geschärfte Regel.** Die Prüfung, ob die verkörperten Regeln (`AGENTS.md` §3.10, §3.11, Schritt 19 und 20 von `implement-slice`) greifen: Zwei der drei Funde sind Fälle, die sie schon nennen. F-580 ist §3.11 (Kommentar weiter als Test), F-581 „jede Bedingung ist eine eigene Zeile“ (Gruppe der Aufzeichnung und Gruppe des Servers). Der Implementer hatte die Mutationen je Zusage selbst gefahren und beide verfehlt; die Regel steht in dem Schritt, der gelesen wird, wenn der Test schon steht. V-156 zeigt die Lücke im Wortlaut: Der Implementer behob F-581 als Klasse (Merkmal Gruppe), las aber das „gleich mit welchem SQLSTATE“ derselben Deklaration nicht als Zusage über alle Ausprägungen eines zweiten Merkmals; der Mutant, der den SQLSTATE festschreibt, blieb grün. Geschärft ist Schritt 19: Ein „gleich welche(r) X“ ist eine Zusage über alle Ausprägungen von X, mit Fall (verschieden auf beiden Seiten) und Mutation (festgelegt auf eine Ausprägung); liegt der Fall nicht vor, fasst der Satz es enger. `liegt in` `.claude/commands/implement-slice.md` Schritt 19 · seit slice-v1-abschluss-einspielen-extended. **Kein neuer Sensor:** Der Sensor für die Klasse ist `slice-harness-mutation` (geplant, `open/`, unverändert); er bekommt aus dieser Closure keine Sendung (§3.13 nicht berührt). Ob sein Operatorsatz einen Mutanten wie `== "42P01"` erzeugt, ist die Frage an den Architect dieses Slice, nicht hier entschieden.
+
+**Technik ohne Verkörperung.** Der Beleg für „das Warten nach `Flush`“ gegen die echte Instanz (F-580) lief über einen `record` zwischen `play` und der Instanz: Die Zuordnung der Antworten zur zuletzt begonnenen Gruppe zeigt, ob `play` die nächste Gruppe vor oder nach ihnen sendet. Die Technik steht im Test `TestE2EPlayExtendedFlushWarten`; sie ist ein Weg, ein Warten ohne Zeitmessung zu beobachten, und keine Regel. Kein Eintrag.
+
+**Paarungen.** (a) Anker: `state.md` von `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` nennt `.claude/commands/implement-slice.md` Schritt 19; die Datei trägt dort `seit slice-v1-abschluss-einspielen-extended`. (b) Folge-Slice: `slice-v1-abschluss-einspielen-extended-doku` (`next/`) nimmt den Handbuch- und README-Teil an; `grep -n "slice-v1-abschluss-einspielen-extended"` findet die Kennung des Gebers in §1 und DoD. Die Sendung ist nachgetragen (Commit `743561e`) und stimmt mit dem Gelieferten überein: die Grenz-Sätze zu `play` und `PGR-E6001` (Handbuch §4 und §7, README) und, neu aufgenommen, die Sätze zu `--continue-on-error`, `--allow-recorded-errors` und dem Abbruchsignal im Handbuch §4 und der Untertitel im README; Liefer-Punkte (zwei) und Schichten (eine) nachgezählt. `slice-v1-abschluss-antwortvergleich` (`next/`) nennt den Geber in §1 (*Ausdrücklich NICHT*, Setzt-voraus) und in DoD-Punkt 2 den Vergleich von Extended-Interaktionen, auch `Flush`-Gruppen; keine Änderung nötig. (c) Register: beide eingetragenen Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
+
+**Stand der Gates.** Die Läufe stehen oben (`a4934e5`, `eedd409`); den Lauf auf dem Stand der Closure nennt der Bericht des Planners.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
