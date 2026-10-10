@@ -308,6 +308,81 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+**Belege des Implementers** (Code-Commit `1b63ef8` auf `85caec4`):
+
+*Größe und Schichten.* `git diff --shortstat 85caec4 1b63ef8`: 13 Dateien, +881 −54. Produkt-Code
++100 −31 (`services/play.go` +72 −26, CLI `cli.go` +23 −3, Kommentar des Ports `Player` +5 −2),
+Tests +753 −17, erzeugt (`make abdeckung`) +21 −2, Plan §3 +7 −4. Zwei Schichten (CLI-Adapter,
+Play-Service mit dem Kommentar seines Ports); `git diff --stat 85caec4 1b63ef8 --
+internal/bootstrap internal/adapters/driven internal/adapters/driving/pgwire
+internal/hexagon/model cmd` ist leer. Die Reihenfolge der Zeilen `error` trägt `errors.Join` im
+Play-Service; der gelieferte Bootstrap schreibt je Meldung eine Zeile und nimmt den Code der
+ersten. Keine Rückführung aus §4 ist eingetreten.
+
+*Randformen.* Keine Operation des Diffs entscheidet eine Randform außerhalb von §6; jede
+Zusage unten zeigt auf ihre Zeile in §6. Eine Frage an den Architect, die §6 nicht nennt, steht
+am Ende dieses Abschnitts.
+
+*Weg der Mutanten.* Je Mutant eine frische Kopie aller Dateien von `git ls-files -co
+--exclude-standard` (Python `shutil.copy`, ohne Übernahme der mtime, gleichwertig `cp -r` ohne
+`-p`) unter dem Scratch-Verzeichnis, genau eine Ersetzung im Wortlaut (gofmt-sauber, die Stufe
+`test` meldet keine nicht formatierte Datei), dann `make test` oder `make test-integration` in
+der Kopie, die Kopie danach gelöscht; die Integrationsläufe räumen Container, Netz und Volume
+selbst ab (`docker ps -a` und `docker network ls` mit `pgr-it` danach leer). Rot heißt: der
+genannte Test schlug mit der genannten Meldung fehl, nicht Build, Vet oder gofmt, und nicht
+über eine Gesamtfrist. Alle 21 Unit- und 6 E2E-Mutanten wurden rot; kein grüner Mutant.
+
+| Zusage (§6) | Mutation | roter Test |
+|---|---|---|
+| `--continue-on-error` setzt sein Feld (*Optionen der Laufsteuerung*) | setzt `AllowRecordedErrors` | `TestParsePlayLaufsteuerung/continue-on-error` (Feld `false` bei `--continue-on-error`, `=true`, Datei, Umgebung), `TestLeserAlleOptionen` |
+| `--allow-recorded-errors` ist boolesch, ohne Wert `true` (*Quellen und ungültige Werte*) | Art Text statt Wahrheitswert | `TestParsePlayLaufsteuerung/allow-recorded-errors` (ohne Wert `PGR-E2001`; `=1` angenommen), `TestLeserAlleOptionen` |
+| Standard `false` (Optionstabelle) | Standard von `--finish-session-on-interrupt` `true` | `TestLeserAlleOptionen` („ohne … erwartet Default“), `TestParsePlay`, `TestParsePlayLaufsteuerung` (ohne Quelle) |
+| `=false` ist `false` (*Quellen und ungültige Werte*) | `v != ""` statt `v == "true"` | `TestLeserAlleOptionen` („true und false ergeben dasselbe“), `TestParsePlayLaufsteuerung` |
+| Hilfe nennt die Option (akzeptiertes Negativ (d)) | Zeile `--finish-session-on-interrupt` umbenannt | `TestParsePlayHilfe` |
+| Fortsetzung nach `PGR-E4004` (*Fortsetzung*) | `if !ContinueOnError` → `if true` | `TestPlayFortsetzung` (nur die erste Meldung), `TestPlayFortsetzungAbbruch`, `TestPlaySignalNachFehlerantwort`; E2E `TestE2EPlayFortsetzung` (alle drei Quellen: eine statt zwei Zeilen `PGR-E4004`), `TestE2EPlayFortsetzungAbbruch`, `TestE2EPlayFinishSession/Umgebung_nach_früherem_Fehler` |
+| Rest der Interaktion bis `ReadyForQuery` gelesen (*Fortsetzung*; *Mehrere Fehlerantworten*) | nach `weiter` `return nil` | `TestPlayFortsetzung` (Ablauf: `anfrage B` vor dem `ReadyForQuery` von A; die zweite Fehlerantwort von A fehlt), `TestPlayFortsetzungAbbruch` |
+| Abbrechender Fehler zuerst, Exit-Code seiner Klasse (*Reihenfolge der Zeilen `error`*, *Exit-Code beim Abbruch nach einem früheren `PGR-E4004`*) | `errors.Join(append(frueher, err)...)` | `TestPlayFortsetzungAbbruch` (alle vier Fälle; `PGR-E6001` mit Exit-Code 4 statt 6); E2E `TestE2EPlayFortsetzungAbbruch/PGR-E6001` (Exit-Code 4 statt 6, Zeilen `PGR-E4004` vor `PGR-E6001`), `/PGR-E4003` |
+| Frühere `PGR-E4004` nach einem Abbruch gemeldet (*Meldungen*) | `errors.Join(err)` | `TestPlayFortsetzungAbbruch` (alle vier Fälle, nur die abbrechende Meldung) |
+| Frühere `PGR-E4004` ohne Abbruch gemeldet, Exit-Code 4 (*Fortsetzung*) | `return nil` statt `errors.Join(frueher...)` | `TestPlayFortsetzung`, `TestPlayErwarteterFehler/mit_--continue-on-error`, `TestPlayFinishSessionFehler/mit_--continue-on-error`, `TestPlaySignalNachFehlerantwort`, `TestPlayZweitesSignalNachFehlerantwort` |
+| Frühere in der Reihenfolge ihres Auftretens (*Reihenfolge der Zeilen `error`*) | neue vor die alten gestellt | `TestPlayFortsetzung` (d, c, a2, a1), `TestPlayFortsetzungAbbruch/PGR-E6001_in_Session_2` (b vor a) |
+| Fehlerantwort vor dem zweiten Signal ist eine Zeile, die Unterbrechung keine (*Fehlerantwort vor dem zweiten Signal*) | nach dem zweiten Signal `return nil` | `TestPlayZweitesSignalNachFehlerantwort` (keine Meldung, Exit-Code 0) |
+| erwartet nur mit `--allow-recorded-errors` (*Erwarteter Fehler*) | `erwartet := mitFehlerantwort(in)` | `TestPlayErwarteterFehler/ohne_Option` |
+| erwartet nur mit aufgezeichneter `error_response`; sonst `PGR-E4004` wie ohne Option (*Erwarteter Fehler*) | `erwartet := AllowRecordedErrors` | `TestPlayErwarteterFehler/ohne_aufgezeichnete_error_response`, `/mit_--continue-on-error`; E2E `TestE2EPlayErwarteterFehler` (Exit-Code 0 ohne Zeile statt 4) |
+| an irgendeiner Stelle der Aufzeichnung, nicht SQLSTATE (*Erwarteter Fehler*) | nur die erste aufgezeichnete Antwort geprüft | `TestPlayErwarteterFehler/erwartet`, `/mit_--continue-on-error`; E2E `TestE2EPlayErwarteterFehler` (alle drei Quellen: Exit-Code 4) |
+| `FATAL` bleibt `PGR-E4003`, auch erwartet (*Mehrere Fehlerantworten*) | Prüfung auf erwartet vor `FATAL` | `TestPlayErwarteterFehler/FATAL` (keine Meldung) |
+| erwarteter Fehler ohne Meldung (*Erwarteter Fehler*) | erwarteter Fehler an `weiter` gereicht | `TestPlayErwarteterFehler/erwartet`, `/mit_--continue-on-error` |
+| mit `--finish-session-on-interrupt` die übrigen Interaktionen der Session (*Erstes Signal im Aufbau*; Schritt 7) | Option in `session` nicht beachtet | `TestPlayFinishSession` (Signal in der Interaktion), `TestPlayFinishSessionFehler` (beide); E2E `TestE2EPlayFinishSession/Kommandozeile`, `/Umgebung_nach_früherem_Fehler` (Wirkung `1` statt `1,2`) |
+| nach dem Signal keine weitere Session, auch mit der Option (*Signal zwischen Sessions*) | Option auch in der Schleife der Sessions | `TestPlayFinishSession` (Session 2 läuft), `TestPlayFinishSessionFehler/mit_--continue-on-error` |
+| Fehlerregeln in der zu Ende laufenden Session (*Fehlerregeln in der zu Ende laufenden Session*) | Fehler nach dem ersten Signal verworfen | `TestPlayFinishSessionFehler/ohne_--continue-on-error` (Exit-Code 0 statt 4), `TestPlayErstesSignal` |
+| Signal nach einer Fehlerantwort: Exit-Code 4 (*Exit-Code beim Abbruchsignal nach einem früheren Fehler*; Risiko 3) | nach dem ersten Signal frühere Fehler verworfen | `TestPlaySignalNachFehlerantwort`, `TestPlayFinishSessionFehler/mit_--continue-on-error`; E2E `TestE2EPlayFinishSession/Umgebung_nach_früherem_Fehler` (Exit-Code 0 statt 4) |
+
+Nicht eigens mutiert, weil der allgemeine Leser es für jede Option trägt und `TestLeserAlleOptionen`
+die drei neuen Optionen mit ihrem Eintrag in der Optionstabelle des Tests einschließt: Vorrang
+Kommandozeile vor Umgebung vor Datei, `PGR-E2001` für eine ungültige Umgebungsvariable auch neben
+der Option, `PGR-E2004` mit dem Schlüssel und ohne den Wert, Schlüssel auf der falschen Ebene.
+Am Binary belegt `TestE2EPlayFortsetzung` die Umgebungsvariable mit `1` (`PGR-E2001`) und den
+Schlüssel mit `1` (`PGR-E2004`).
+
+*Läufe.* Am Arbeitsbaum vor dem Code-Commit: `make test` grün, `make test-integration` grün
+(darunter `TestE2EPlayFortsetzung`, `TestE2EPlayFortsetzungAbbruch`, `TestE2EPlayErwarteterFehler`,
+`TestE2EPlayFinishSession` mit je allen Unterfällen), `make lint` grün, `make abdeckung`
+geschrieben. `make gates` am sauberen Stand `1b63ef8`: grün (Exit-Code 0, Nachweis `record-gates` gestempelt; darunter `make test-integration` „run-integration-tests: gruen“, `make lint` und `make lint-gegenprobe` grün, d-check 444 Dateien ohne Befund, `make kopf-check`, `make abdeckung-check`, `make a-check` und die Gegenproben grün).
+
+*Handbuch und Hilfe.* Das Benutzerhandbuch beschreibt die drei Optionen schon im Zielstand
+(§4 *Hinweise*, Optionstabelle in §5); der Diff ändert es nicht, und jede seiner Aussagen zu den
+drei Optionen prüft ein E2E-Test oben (Fortsetzung mit Exit-Code 4, erwarteter Fehler,
+Session-Ende nach `SIGINT`/`SIGTERM`). Der Hilfetext von `play` sagt nur zu, was die Tests oben
+prüfen: Fortsetzung mit der nächsten Anfrage und Exit-Code 4, erwarteter Fehler bei
+aufgezeichneter Fehlerantwort, Ende nach der laufenden Session, die Umgebungsvariablen
+(`TestParsePlayHilfe`).
+
+*Frage an den Architect* (Randform · Frage, nicht entschieden, kein Code dazu): Ein abbrechender
+Fehler ohne Meldungscode nach einem früheren `PGR-E4004` · Der Port `Einspielziel` sagt für
+jeden Fehler einen Code zu, und der Upstream-Adapter liefert nur klassifizierte Fehler; käme doch
+einer ohne Code, hinge `model.Meldungen` ihn als Ursache an die erste klassifizierte Meldung
+(`SPEC-034` *Ausgabe*), und der Exit-Code wäre 4 statt 1. Genügt der Port-Vertrag als
+Ausschluss, oder braucht `LH-FA-20.a` *Exit-Code* eine Zeile dazu?
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
