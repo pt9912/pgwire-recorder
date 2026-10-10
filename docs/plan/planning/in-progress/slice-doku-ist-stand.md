@@ -256,6 +256,140 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Probe-Aufbau.** `make build` am Stand `248a248` (Image `pgwire-recorder:dev`,
+`sha256:b45c7f918488…`, `linux/amd64`, Benutzer `nonroot`). Proben in einem Scratch-Verzeichnis
+außerhalb des Repos; Netz `impl-doku-net` mit dem gepinnten PostgreSQL-Image aus
+`harness/mk/integration.mk` zweimal: `impl-doku-pg` (Alias `postgres`, Anmeldung `trust`) und
+`impl-doku-pgpw` (Passwort, SCRAM). Client ist `psql` aus demselben Image in einem eigenen
+Container; die Proben im Handbuch-Wortlaut („Anwendung auf `localhost:15432`“) laufen damit über
+den Containernamen statt `localhost`. Container, Netze, Compose-Projekte und Scratch-Dateien sind
+danach entfernt.
+
+**Optionen je Kommando gegen `--help`** (Handbuch §5, Tabelle; §4):
+
+| Kommando | `--help` nennt | Handbuch nennt (nachher) | entfernt (vorher im Handbuch, Probe `PGR-E2001` „flag provided but not defined“, Exit 2) |
+|---|---|---|---|
+| `record` | `--listen`, `--upstream`, `--output`, `--force`, `--shutdown-timeout`, `--log-level`, `--config` | dieselben | `--format`, `--record-timing`, `--record-empty-sessions`, `--tls-cert`, `--tls-key`, `--allow-plaintext` |
+| `replay` | `--listen`, `--input`, `--fail-on-unconsumed`, `--shutdown-timeout`, `--log-level`, `--config` | dieselben | `--session-assignment`, `--tls-cert`, `--tls-key`, `--allow-plaintext` |
+| `play` | `--upstream`, `--input`, `--user`, `--database`, `--continue-on-error`, `--allow-recorded-errors`, `--finish-session-on-interrupt`, `--log-level`, `--config` | dieselben | `--upstream-tls`, `--upstream-ca`, `--compare-responses`, `--keep-timing`, `--timing-mode`, `--timing-reference` |
+| `config show` | `--config` | dasselbe | — |
+
+Umgebungsvariablen: die Regel aus `--help` (`PGWIRE_RECORDER_` und Name der Option); das Handbuch
+nennt 14, je eine zu einer Option oben. `PGWIRE_RECORDER_PASSWORD` entfernt (keine Option; `play`
+mit gesetzter Variable gegen `impl-doku-pgpw`: `PGR-E4005`, Exit 4). Probe
+`PGWIRE_RECORDER_FORCE=true` ersetzt, `=1` ist `PGR-E2001`. Schlüssel der Datei: `record.format`,
+`record.record_timing`, `record.tls_cert`, `replay.session_assignment`, `play.compare_responses`,
+`play.upstream_tls`, `play.password` je `PGR-E2004` „unbekannter Schlüssel“, Exit 2; `force: true`
+ersetzt.
+
+**Prüfskript als Gegenprobe** (Scratch, nicht im Repo; vergleicht jede Option des Handbuchs mit
+`--help`, jede Variable mit einer Option, jeden Code mit dem Katalog
+`internal/hexagon/model/fehler.go`):
+
+| Stand | Ergebnis |
+|---|---|
+| Handbuch `HEAD` (`248a248`) | rot: 13 unbekannte Optionen, 14 Variablen ohne Option, 9 Codes nicht im Katalog (`PGR-E2000`, `E2003`, `E2007`, `E3000`, `E5000`, `E5004`, `E6000`, `E6003`, `W3002`) |
+| Handbuch nachher | grün |
+| Mutante: Satz mit `--compare-responses` zurück | rot, `Option unbekannt: --compare-responses` |
+| Mutante: Zeile `PGWIRE_RECORDER_PASSWORD` zurück | rot, `Variable ohne Option` |
+| Mutante: Zeile `PGR-E5004` zurück | rot, `Code nicht im Katalog` |
+
+Ein Vertrag (§3.10) entsteht nicht; die Mutationen belegen nur, dass die Prüfung oben greift.
+
+**Meldungscodes** (Handbuch §7; bleibt nur mit Eintrag im Katalog und Auslösung über das Binary):
+
+| Code | Auslösung | Ergebnis |
+|---|---|---|
+| `PGR-E1000` | keine Probe gefunden, kein E2E-Test | Zeile entfernt; Exit-Code 1 bleibt in der Tabelle *Exit-Codes*, weil das Binary die Klasse führt |
+| `PGR-E2001` | Probe (unbekannte Option, `version x`, `--log-level=bogus`) · `play_e2e_test.go` | bleibt, ohne Sammelcode `PGR-E2000` |
+| `PGR-E2002` | Probe (vorhandene Zieldatei) · `schreiben_e2e_test.go` | bleibt |
+| `PGR-E2004` | Probe (fehlende `--config`, unbekannter Schlüssel, `sslmode=require` bei `record` und `play`) · `konfiguration_e2e_test.go` | bleibt |
+| `PGR-E2005` | Probe (`play --upstream ci` ohne `CI_DB_HOST`) | bleibt |
+| `PGR-E2006` | Probe (Klartext-Passwort) · `konfiguration_e2e_test.go` | bleibt |
+| `PGR-E3001` | Probe (fehlende Aufzeichnung, Verzeichnis als `--output`, nicht beschreibbares Verzeichnis im Compose-Beispiel: Exit 3) · `schreiben_e2e_test.go` | bleibt, ohne `PGR-E3000` |
+| `PGR-E3002` | Probe (`version: 99`) | bleibt |
+| `PGR-E3003` | `replay_e2e_test.go` | bleibt |
+| `PGR-E3004` | Probe (`replay` mit `sessions: []`, Exit 3; `play` endet damit mit Exit 0, wie die Spezifikation es verlangt) | bleibt, „`replay` meldet den Fehler beim Start“ ergänzt |
+| `PGR-E4000` | Probe (`--ulimit nofile=20:20`, 40 Verbindungen: `accept4: too many open files`, Exit 4) | bleibt |
+| `PGR-E4001` | `unverbraucht_e2e_test.go` | bleibt |
+| `PGR-E4002` | `verbindung_e2e_test.go`, `play_e2e_test.go` | bleibt |
+| `PGR-E4003` | `extended_e2e_test.go`, `play_laufsteuerung_e2e_test.go` | bleibt |
+| `PGR-E4004` | `play_e2e_test.go` | bleibt, ohne `--compare-responses` |
+| `PGR-E4005` | Probe (`play` gegen `impl-doku-pgpw`: „verlangt ein Anmeldeverfahren (Code 10), das play nicht unterstützt“; `--user niemand`: SQLSTATE `28000`) · `play_e2e_test.go` | bleibt, Ursache auf Passwort und abgelehnte Anmeldung gekürzt |
+| `PGR-E4006` | `herunterfahren_e2e_test.go` | bleibt |
+| `PGR-E5001` | Probe (anderes SQL, Log-Zeile) · `replay_e2e_test.go` | bleibt, ohne `PGR-E5000` |
+| `PGR-E5002` | `unverbraucht_e2e_test.go` | bleibt |
+| `PGR-E5003` | Probe (dritte Verbindung bei zwei Sessions) | bleibt |
+| `PGR-E6001` | Probe (`record` gegen `impl-doku-pgpw`: Client erhält `FATAL … [PGR-E6001]`, Aufzeichnung `sessions: []`, Exit 6) · `record_e2e_test.go` (`COPY`) · `play_e2e_test.go` (Extended in `play`, Exit 6) | bleibt, ohne `PGR-E6000`, Ursachen ergänzt |
+| `PGR-E6002` | Probe (Startnachricht Protokoll 2.0 per `nc`) | bleibt |
+| `PGR-W2001` | Probe (`replay` beendet, Sessions nie zugeordnet) · `replay_e2e_test.go` | bleibt |
+| `PGR-W3001` | Probe (CancelRequest per `nc`) | bleibt |
+| `PGR-W3003` | Probe (HTTP-Anfrage per `nc`) · `record_e2e_test.go` | bleibt |
+| `PGR-E2003`, `PGR-E2007`, `PGR-E5004`, `PGR-E6003`, `PGR-W3002` | nicht im Katalog | Zeile entfernt |
+
+**Beispiele als Datei** (aus dem geänderten Handbuch extrahiert, je Codeblock eine Datei, Aufruf
+`pgwire-recorder …` als `docker run … pgwire-recorder:dev …`):
+
+| Beispiel | Probe | Ergebnis |
+|---|---|---|
+| §2 `docker run --rm pgwire-recorder:dev version` | als Skript | `pgwire-recorder dev`, Exit 0 |
+| §2 Binary aus dem Image | Skript in leerem Verzeichnis | kopiert, `./pgwire-recorder version` gibt `pgwire-recorder dev` aus; `file`: statisch gebunden, x86-64; läuft auch im Alpine-Container |
+| §2 Compose (Wiedergabe) | `docker compose up -d` mit `recordings/test.yaml`, `psql` gegen `recorder:5432` | aufgezeichnete Antworten, `stop`: Exit 0 |
+| §3 `record` | gegen `impl-doku-pg` (Alias `postgres`), `psql`, `docker stop` | `users.yaml` geschrieben, Exit 0 |
+| §3 `replay` | Datenbank gestoppt, derselbe Ablauf | dieselben Antworten; eine weitere Verbindung `PGR-E5003` |
+| §4 Compose (Aufzeichnen mit `stop_grace_period`) | mit Override-Datei, die den Dienst `postgres` ergänzt; `recordings` mit Modus 777 | `test.yaml` mit `SELECT 42`, Exit 0; mit Modus 755 Exit 3 (Satz zum beschreibbaren Verzeichnis) |
+| §4 `play` | gegen `postgres:5432` | Exit 0 |
+| §5 Konfigurationsdatei | als `.pgwire-recorder.yaml`: `config show` (Exit 0, Inhalt wie geschrieben); `record` ohne Optionen im Netz der Datenbank (`localhost:5432`); `play` ohne Optionen | `play` legt als `dev` in `myapp` an (Tabelle mit Eigentümer `dev`); `play --upstream ci` mit `CI_DB_HOST=postgres` Exit 0, ohne Variable `PGR-E2005` |
+| §5 Log-Zeilen | Binary aus dem Image, `TZ=Europe/Berlin` | `time=…+02:00 level=WARN msg="…" code=PGR-W2001` und `level=ERROR msg=Fehler code=PGR-E5001 error="Replay [PGR-E5001]: …"`; im Image ebenso mit `TZ` |
+
+**Abschnitte** (Aussage · Probe · Ergebnis):
+
+| Abschnitt | Aussage nachher | Probe | Ergebnis |
+|---|---|---|---|
+| Kopf | Version 0.2, Software-Version `dev`, Stand 10.10.2026, Gültigkeit für das aus dem Repository gebaute Binary | `version` | `pgwire-recorder dev` |
+| §1 Voraussetzungen | Datenbank ohne Passwort; Bauen mit Docker und `make`, Ausführen auf Linux der bauenden Architektur oder im Container; `sslmode=prefer` verbindet, `require` bricht ab | `psql sslmode=require` an `record` und `replay`: „server does not support SSL“; `prefer` an `replay` verbindet; Passwort: `PGR-E6001`/`PGR-E4005` | wie beschrieben; macOS, Windows, `arm64` entfernt |
+| §2 Installation | Bauen, Binary aus dem Image, Container mit `nonroot` | Beispiele oben; `docker image inspect`: Benutzer `nonroot`, Einstiegspunkt `/pgwire-recorder` | Releases, Homebrew, Registry-Images entfernt |
+| §3 Erste Schritte | unverändert | Beispiele oben | wie beschrieben |
+| §4 Aufzeichnen | ohne `--format`, `--record-timing`, `--record-empty-sessions`; Passwort-Grenze `PGR-E6001`; Compose mit `pgwire-recorder:dev` | Proben oben | wie beschrieben |
+| §4 Wiedergeben | ohne `--session-assignment` | Probe `PGR-E5003` | wie beschrieben |
+| §4 Verschlüsselte Verbindungen | Abschnitt entfernt | `--tls-cert`, `--tls-key`, `--allow-plaintext`: `PGR-E2001` | — |
+| §4 Einspielen | ohne Passwort-Schritt, ohne Zeit-, Vergleichs- und TLS-Hinweise; Grenzen Passwort (`PGR-E4005`), `sslmode=require` (`PGR-E2004`), Extended (`PGR-E6001`) | Proben oben, `play_e2e_test.go` (`TestE2EPlayZwischenstand`) | Abschlusszeile mit Zählern entfernt (Probe: `play beendet` ohne Zähler) |
+| §4 Treiber | `record` und `replay` mit beiden Protokollen, ohne Verschlüsselung | `psql sslmode=prefer` | wie beschrieben |
+| §5 Einstellungen | Tabelle mit 16 Zeilen wie `--help`; `sslmode=require` bei `record` und `play` ungültig, unbenutzt gültig; Passwort in der URL ohne Anmeldung | Proben oben (`config show` mit `require` Exit 0) | wie beschrieben |
+| §5 Exit-Codes | Zeile 5 ohne Vergleich | — | Zeilen 1–6 bleiben |
+| §6 Rollen | `record` ohne Passwort; `replay` nimmt jede Anmeldung an | `psql user=wer dbname=anders` mit `PGPASSWORD` an `replay`: Antworten wie aufgezeichnet | wie beschrieben |
+| §7 Fehlerbehebung | Codes oben; *Die Anwendung kann sich nicht verbinden* ohne TLS-Optionen | Proben oben | wie beschrieben |
+| §8 FAQ | ohne SQLite | — | — |
+| §11 | „Es gibt keine veröffentlichte Version.“ | — | — |
+
+**`grep` im Handbuch** (`-i`): `spezifikation|lastenheft|\bADR-|slice|welle|review` — vorher 0,
+nachher 0 Treffer; `noch nicht|noch keine|kommt mit|geplant|veröffentlichte Version|ghcr|homebrew|macOS|windows`
+— vorher 13, nachher 2: „die Zieldatei existiert noch nicht“ (Zustand der Datei, nicht des
+Produkts) und der Satz in §11 aus §6.
+
+**README** (`grep -iE "noch|erste Version|Beginn der Umsetzung|auf Wunsch|TLS"`): vorher 8 Zeilen
+(„steht am Beginn der Umsetzung“, „noch nicht“, „fehlt noch“, „vergleicht auf Wunsch“ zweimal, TLS zum
+Client), nachher 0. Leitsatz und *Kerngedanke* ohne Vergleich; „wartet `record` ohne Frist“
+durch `--shutdown-timeout` (Standard 5 Sekunden, aus `--help`) ersetzt; „Das Benutzerhandbuch
+beschreibt das Verhalten der ersten Version“ und „liegen vor“ entfernt; *Gates* zeigt auf
+`harness/README.md` §Sensors statt einer Liste.
+
+**Funde für den Planner** (Stelle im Handbuch · Verhalten des Binaries · Stelle der Spezifikation):
+
+- §1 *Voraussetzungen*, §4 *Eine Anwendung aufzeichnen*, §6, §7 `PGR-E6001` und *Die Anwendung kann
+  sich nicht verbinden* · `record` beendet die Verbindung des Clients mit `PGR-E6001`, wenn die
+  Datenbank ein Anmeldeverfahren verlangt (SCRAM), die Session wird nicht aufgezeichnet, Exit 6 ·
+  `spec/spezifikation.md` LH-FA-05.b (*Record*: vermittelt die Authentifizierung transparent) und
+  LH-FA-17.a (*record* „vermittelt die Anmeldung des Clients“).
+
+Keine weitere Abweichung gefunden; das Fehlen der Optionen oben ist Zielstand der Folge-Slices, keine
+Abweichung.
+
+**Größe:** Diff des Handbuchs +102/−214 Zeilen, README +26/−33; überwiegend Streichungen, in einer
+Review-Sitzung prüfbar — die Rückführung aus §4 greift nicht.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

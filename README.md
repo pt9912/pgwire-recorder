@@ -1,6 +1,6 @@
 # pgwire-recorder
 
-> **Zeichnet die Kommunikation zwischen Ihrer Anwendung und PostgreSQL auf, spielt sie ohne Datenbank wieder ab oder führt sie erneut gegen eine Datenbank aus und vergleicht die Antworten.**
+> **Zeichnet die Kommunikation zwischen Ihrer Anwendung und PostgreSQL auf, spielt sie ohne Datenbank wieder ab oder führt ihre einfachen Anfragen erneut gegen eine Datenbank aus.**
 
 ## Was ist pgwire-recorder?
 
@@ -8,38 +8,32 @@
 und PostgreSQL vermittelt. Im Modus `record` leitet es die Kommunikation an eine
 echte Datenbank weiter und speichert sie in einer Datei, im Modus `replay`
 beantwortet es dieselben Anfragen aus dieser Datei, ohne Datenbank, und im Modus
-`play` führt es die aufgezeichneten Anfragen gegen eine Datenbank aus und
-vergleicht auf Wunsch deren Antworten mit der Aufzeichnung. `record` und `replay`
-nehmen auf Wunsch verschlüsselte Verbindungen (TLS) von Anwendungen an. Es richtet
-sich an Entwickler, Tester und CI-Systeme. Die vollständige Beschreibung steht
-im [Lastenheft](spec/lastenheft.md).
+`play` führt es die aufgezeichneten Anfragen gegen eine Datenbank aus. Es richtet
+sich an Entwickler, Tester und CI-Systeme. Die Anforderungen stehen im
+[Lastenheft](spec/lastenheft.md).
 
 ## Was kann ich heute tun?
 
-Das Projekt steht am Beginn der Umsetzung. `pgwire-recorder record` vermittelt
-einfache Anfragen und das erweiterte Protokoll (vorbereitete Anweisungen, etwa
-von pgx im Standardmodus) zwischen einem Client und PostgreSQL und schreibt eine
-YAML-Aufzeichnung; `pgwire-recorder replay` beantwortet beide daraus ohne
-Datenbank. Lebendprüfungen von Verbindungspools (`pgxpool`, `database/sql`)
-beantwortet `replay` unabhängig davon, ob sie in der Aufzeichnung stehen; mit
-`--fail-on-unconsumed` endet `replay` mit einem Fehler, wenn aufgezeichnete
-Interaktionen nicht abgerufen wurden. `pgwire-recorder play` spielt die einfachen
-Anfragen einer Aufzeichnung gegen eine Datenbank ein, die weder ein Passwort noch
-TLS verlangt; nach einer Fehlerantwort der Datenbank bricht es ab, mit
-`--continue-on-error` läuft es weiter, und mit `--finish-session-on-interrupt`
-endet es nach einem Abbruchsignal erst nach der laufenden Sitzung. Eine
-Aufzeichnung mit vorbereiteten Anweisungen spielt `play` noch nicht ein. Die
-Passwort-Anmeldung fehlt noch. Beim Beenden wartet `record`
-ohne Frist auf laufende Anfragen; was das im Container bedeutet, sagt das
-Benutzerhandbuch.
+`pgwire-recorder record` vermittelt einfache Anfragen und das erweiterte Protokoll
+(vorbereitete Anweisungen, etwa von pgx im Standardmodus) zwischen einem Client und
+PostgreSQL und schreibt eine YAML-Aufzeichnung; `pgwire-recorder replay` beantwortet
+beide daraus ohne Datenbank. Lebendprüfungen von Verbindungspools (`pgxpool`,
+`database/sql`) beantwortet `replay` unabhängig davon, ob sie in der Aufzeichnung
+stehen; mit `--fail-on-unconsumed` endet `replay` mit einem Fehler, wenn
+aufgezeichnete Interaktionen nicht abgerufen wurden. `pgwire-recorder play` spielt
+die einfachen Anfragen einer Aufzeichnung gegen eine Datenbank ein; nach einer
+Fehlerantwort der Datenbank bricht es ab, mit `--continue-on-error` läuft es weiter,
+und mit `--finish-session-on-interrupt` endet es nach einem Abbruchsignal erst nach
+der laufenden Sitzung. Eine Aufzeichnung mit vorbereiteten Anweisungen lehnt `play`
+ab. Alle Verbindungen laufen unverschlüsselt, und die Datenbank muss den Benutzer
+ohne Passwort anmelden. Beim Beenden warten `record` und `replay` höchstens
+`--shutdown-timeout` (Standard 5 Sekunden) auf laufende Anfragen; was das im
+Container bedeutet, sagt das Benutzerhandbuch.
 
-- `make gates` läuft grün (Build, Unit- und Integrationstests über das
-  `Dockerfile`, Abdeckungstabellen, Architekturregeln samt Gegenproben, Doku-Referenzen und vendored
-  Baseline); `make help` zeigt alle Targets.
-- Lastenheft, Spezifikation, Architektur, die angenommenen Entscheidungen und die
-  Planung (Roadmap, Wellen, Slices) liegen vor.
-- Das [Benutzerhandbuch](docs/user/benutzerhandbuch.md) beschreibt das Verhalten
-  der ersten Version.
+- `make build` baut das Image `pgwire-recorder:dev` mit dem Binary; `make gates`
+  führt die Gates aus, `make help` zeigt alle Targets.
+- Das [Benutzerhandbuch](docs/user/benutzerhandbuch.md) beschreibt Bau, Aufruf und
+  Verhalten des Binaries.
 
 ## Warum pgwire-recorder?
 
@@ -59,14 +53,13 @@ Capture).
 Im Modus `replay` gibt der Recorder nur wieder, was er aufgezeichnet hat, strikt
 in der aufgezeichneten Reihenfolge. Eine Anfrage, die nicht zur Aufzeichnung
 passt, ist ein Fehler und bekommt nie eine geratene Antwort. Im Modus `play`
-führt er die aufgezeichneten Anfragen nacheinander aus, wertet Fehlerantworten
-des Servers und vergleicht auf Wunsch die Struktur der Antworten nach festgelegten
-Regeln.
+führt er die aufgezeichneten Anfragen nacheinander aus und wertet Fehlerantworten
+des Servers.
 
 ## Was macht es vertrauenswürdig?
 
 - **Prozess:** [`AGENTS.md`](AGENTS.md) (Hard Rules: die Regeln, die jede Änderung einhalten muss), [`harness/README.md`](harness/README.md) (Source Precedence: welche Quelle bei Konflikt gewinnt, und die Gates).
 - **Verträge:** [`spec/lastenheft.md`](spec/lastenheft.md) (`LH-*`-IDs mit Akzeptanzkriterien), danach [`spec/spezifikation.md`](spec/spezifikation.md) und [`spec/architecture.md`](spec/architecture.md).
-- **Gates:** `make gates` führt `make build`, `make test` und `make test-integration` (über das `Dockerfile`, Integration gegen PostgreSQL), `make a-check` (Architekturregeln) mit der Gegenprobe `make a-check-negativ` (PGWire-Bibliothek nur in den PGWire-Adaptern), `make docs-check` (Doku-Referenzen) und `make baseline-verify` (Integrität der vendored Baseline) aus.
+- **Gates:** `make gates` führt die Gates aus; welche es sind und was jedes prüft, steht in [`harness/README.md` §Sensors](harness/README.md#sensors-feedback-gates).
 - **Auditierbarkeit:** Entscheidungen in [`docs/plan/adr/`](docs/plan/adr/), Planung in [`docs/plan/planning/`](docs/plan/planning/), Reviews in [`docs/reviews/`](docs/reviews/).
 - **Rückverfolgbarkeit:** `make doc-trace` gibt die Requirements Traceability Matrix aus (Anforderung, Entscheidungen, Slices); sie ist ein Bericht und kein Gate.

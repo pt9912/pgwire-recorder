@@ -1,10 +1,10 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.1  
-Software-Version: noch nicht veröffentlicht  
-Stand: 06.10.2026  
+Version: 0.2  
+Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
+Stand: 10.10.2026  
 Autor: Projektteam pgwire-recorder  
-Gültigkeitsbereich: gilt für `pgwire-recorder` ab der ersten veröffentlichten Version
+Gültigkeitsbereich: gilt für das Binary `pgwire-recorder`, gebaut aus dem Repository (Ausgabe von `pgwire-recorder version`: `pgwire-recorder dev`)
 
 ## 1. Einleitung
 
@@ -36,13 +36,16 @@ CI-Systemen ausführen.
 
 * Ihre Anwendung kann Host und Port der Datenbankverbindung einstellen. Weitere
   Änderungen an der Anwendung sind nicht nötig.
-* Zum Aufzeichnen: eine erreichbare PostgreSQL-Datenbank.
-* Linux, macOS oder Windows auf `amd64` oder `arm64`, oder ein
-  Container-Laufzeitsystem.
-* Die Verbindung zum Werkzeug läuft ohne Verschlüsselung, es sei denn, Sie
-  stellen Zertifikat und Schlüssel bereit (siehe
-  [Verschlüsselte Verbindungen annehmen](#verschlüsselte-verbindungen-annehmen) und
-  [Fehlerbehebung](#7-fehlerbehebung)).
+* Zum Aufzeichnen und Einspielen: eine erreichbare PostgreSQL-Datenbank, die den
+  Benutzer ohne Passwort anmeldet. Verlangt sie ein Passwort, beendet `record` die
+  Verbindung Ihrer Anwendung mit `PGR-E6001`, und `play` endet mit `PGR-E4005`.
+* Zum Bauen: Docker und GNU `make`. Zum Ausführen: Linux auf der Architektur des
+  Rechners, auf dem Sie gebaut haben, oder ein Container-Laufzeitsystem (siehe
+  [Installation](#2-installation)).
+* Die Verbindung zum Werkzeug läuft ohne Verschlüsselung: `record` und `replay`
+  lehnen eine Anfrage nach Verschlüsselung ab. Ein Treiber mit `sslmode=prefer`
+  verbindet sich dann unverschlüsselt, einer mit `sslmode=require` bricht ab (siehe
+  [Fehlerbehebung](#die-anwendung-kann-sich-nicht-verbinden)).
 
 ### Wichtig: Aufzeichnungen können vertrauliche Daten enthalten
 
@@ -53,47 +56,50 @@ Sie Aufzeichnungen so, wie es zu ihrem Inhalt passt.
 
 ## 2. Installation
 
-### Binary
+Das Werkzeug entsteht aus dem Repository des Projekts. Der Build läuft in Docker;
+auf Ihrem Rechner brauchen Sie dafür nur Docker und GNU `make`.
 
-Das Binary `pgwire-recorder` gibt es für Linux, macOS und Windows, jeweils für
-`amd64` und `arm64`.
+### Aus dem Repository bauen
 
-1. Laden Sie das Binary für Ihre Plattform von den Releases des Projekt-Repositorys
-   auf GitHub herunter, und legen Sie es in ein Verzeichnis Ihres Suchpfads.
-2. Machen Sie die Datei unter Linux und macOS ausführbar.
-3. Prüfen Sie die Installation mit `pgwire-recorder version`.
+1. Klonen Sie das Repository, und wechseln Sie in sein Verzeichnis.
+2. Führen Sie `make build` aus. Das Ergebnis ist das Image `pgwire-recorder:dev`;
+   es enthält das Binary und braucht keine weitere Software.
+3. Prüfen Sie den Build:
 
-### Homebrew (macOS und Linux)
+   ```bash
+   docker run --rm pgwire-recorder:dev version
+   ```
 
-Das Werkzeug liegt in einem eigenen Tap, nicht im Standard-Repository von
-Homebrew; `brew install pgwire-recorder` allein findet es deshalb nicht. Sie
-brauchen zwei Schritte:
+   Die Ausgabe ist `pgwire-recorder dev`.
+
+### Das Binary aus dem Image
+
+Das Binary im Image ist ein statisch gebundenes Linux-Programm für die Architektur
+des Rechners, auf dem Sie gebaut haben. So kopieren Sie es in das aktuelle
+Verzeichnis:
 
 ```bash
-brew tap pt9912/pgwire-recorder
-brew install pgwire-recorder
+docker create --name pgwire-recorder-binary pgwire-recorder:dev
+docker cp pgwire-recorder-binary:/pgwire-recorder ./pgwire-recorder
+docker rm pgwire-recorder-binary
+./pgwire-recorder version
 ```
 
-Verlangt Ihre Homebrew-Version, einen Drittanbieter-Tap vor der Installation als
-vertrauenswürdig zu markieren, führen Sie diesen Schritt vor der Installation aus;
-die Meldung von Homebrew nennt den Befehl.
-
-Der Tap enthält nur veröffentlichte, stabile Versionen. Prüfen Sie die
-Installation mit `pgwire-recorder version`.
+Die Beispiele dieses Handbuchs rufen das Binary als `pgwire-recorder` auf. Legen Sie
+es dafür in ein Verzeichnis Ihres Suchpfads.
 
 ### Container
 
-Das Docker/OCI-Image für `linux/amd64` und `linux/arm64` enthält das Binary und
-braucht keine weitere Software; es läuft mit jedem OCI-kompatiblen
-Container-Laufzeitsystem, zum Beispiel Docker oder Podman. Sie finden es in der
-GitHub Container Registry (`ghcr.io/pt9912/pgwire-recorder`) und auf Docker Hub
-(`pt9912/pgwire-recorder`). Ein Beispiel für eine Wiedergabe in Docker Compose
-(setzen Sie die Version ein):
+Im Image ist das Binary der Einstiegspunkt: Die Argumente nach dem Image-Namen sind
+Kommando und Optionen. Das Image läuft als Benutzer `nonroot` (UID 65532); ein
+eingehängtes Verzeichnis, in das `record` schreibt, muss für ihn beschreibbar sein.
+Ein Beispiel für eine Wiedergabe in Docker Compose, mit dem Image aus
+`make build` auf demselben Rechner:
 
 ```yaml
 services:
   recorder:
-    image: ghcr.io/pt9912/pgwire-recorder:<Version>
+    image: pgwire-recorder:dev
     command:
       - replay
       - --listen=0.0.0.0:5432
@@ -157,14 +163,6 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
 
 #### Hinweise
 
-* Mit `--format sqlite` speichert das Werkzeug die Aufzeichnung als SQLite-Datei
-  statt als Textdatei. Die SQLite-Datei wächst mit jeder beendeten Sitzung und ist
-  für große Aufzeichnungen geeignet; sie ist binär und lässt sich nicht sinnvoll
-  vergleichen. Beim Wiedergeben und Einspielen erkennt das Werkzeug das Format
-  selbst.
-* Mit `--record-timing` hält die Aufzeichnung den zeitlichen Abstand der Anfragen
-  fest. Zwei Aufzeichnungen derselben Anwendung unterscheiden sich dann in diesen
-  Angaben.
 * Existiert die Zieldatei bereits, bricht das Werkzeug ab (`PGR-E2002`). Wollen
   Sie sie ersetzen, ergänzen Sie `--force`; dasselbe gilt für
   `PGWIRE_RECORDER_FORCE=true` und für `force: true` im Abschnitt `record` der
@@ -176,7 +174,7 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
 * Ist `--output` eine symbolische Verknüpfung, zählt ihr Ziel: Zeigt sie auf eine
   vorhandene Datei, gilt die Zieldatei als vorhanden. Mit `--force` ersetzt das
   Werkzeug die Verknüpfung durch die Aufzeichnung; ihr Ziel bleibt unverändert.
-* Im Standardformat (Textdatei) schreibt das Werkzeug die Aufzeichnung zuerst in
+* Das Werkzeug schreibt die Aufzeichnung zuerst in
   eine temporäre Datei `.<Name der Zieldatei>.<16 Hexziffern>.tmp` im Verzeichnis
   der Zieldatei und ersetzt die Zieldatei danach in einem Schritt. Die Zieldatei
   ist damit vollständig oder unverändert, auch nach dem zwangsweisen Beenden von
@@ -192,8 +190,10 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
   Zugriffsrechte dieser Datei.
 * Jede Verbindung Ihrer Anwendung mit mindestens einer Anfrage wird als eigene
   Sitzung aufgezeichnet. Verbindungen ohne Anfrage, zum Beispiel
-  Probe-Verbindungen eines Connection-Pools, werden nur mit
-  `--record-empty-sessions` aufgezeichnet.
+  Probe-Verbindungen eines Connection-Pools, werden nicht aufgezeichnet.
+* Verlangt die Datenbank ein Passwort, beendet das Werkzeug die Verbindung Ihrer
+  Anwendung mit `PGR-E6001`; die Verbindung wird nicht aufgezeichnet, und das
+  Werkzeug endet mit Exit-Code 6.
 * Beim Beenden nimmt das Werkzeug keine neuen Verbindungen an, schreibt eine
   Log-Zeile mit `sessions`, der Zahl der noch offenen Verbindungen, und wartet,
   bis jede Verbindung ihre laufende Anfrage oder Folge abgeschlossen hat. Es
@@ -212,12 +212,14 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
   Aufzeichnung jeder noch wartenden Verbindung. Der Standardwert von
   `--shutdown-timeout` (5 Sekunden) liegt darunter, damit die Aufzeichnung
   geschrieben wird. Wählen Sie eine längere Frist nur mit längerer Stopp-Frist,
-  in Docker Compose zum Beispiel mit `stop_grace_period`:
+  in Docker Compose zum Beispiel mit `stop_grace_period`; das Verzeichnis
+  `./recordings` muss für den Benutzer des Images beschreibbar sein (siehe
+  [Container](#container)):
 
   ```yaml
   services:
     recorder:
-      image: ghcr.io/pt9912/pgwire-recorder:<Version>
+      image: pgwire-recorder:dev
       command:
         - record
         - --listen=0.0.0.0:5432
@@ -258,9 +260,6 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)).
 * Die erste Verbindung mit einer Anfrage erhält die erste aufgezeichnete Sitzung,
   die zweite die zweite, und so weiter. Verbindungen ohne Anfrage zählen nicht.
-  Mit `--session-assignment connection` zählt stattdessen die Reihenfolge der
-  Verbindungen, auch ohne Anfrage; das geht nur mit Aufzeichnungen, die mit
-  `--record-empty-sessions` erzeugt wurden (sonst `PGR-E2001`).
   Nutzen Sie die Verbindungen nacheinander; bei gleichzeitiger Nutzung ist die
   Zuordnung nicht festgelegt. Eine Anfrage über die aufgezeichneten Sitzungen
   hinaus wird als Abweichung gemeldet (`PGR-E5003`).
@@ -289,62 +288,6 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   gewählt, dass er unter der Stopp-Frist von Docker (10 Sekunden) liegt; wählen
   Sie eine längere Frist nur mit längerer Stopp-Frist.
 
-### Verschlüsselte Verbindungen annehmen
-
-Damit nehmen `record` und `replay` verschlüsselte Verbindungen von Anwendungen an,
-zum Beispiel wenn ein Treiber Verschlüsselung verlangt.
-
-#### Voraussetzung
-
-Ein Zertifikat samt privatem Schlüssel liegt als PEM-Datei vor. Der Schlüssel darf
-nicht mit einem Passwort geschützt sein. Für einen Test erzeugen Sie beides zum
-Beispiel mit OpenSSL (der Name `localhost` ist der, den Ihre Anwendung verwendet):
-
-```bash
-openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
-  -keyout server-key.pem -out server.pem \
-  -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost"
-```
-
-#### Vorgehen
-
-1. Starten Sie `pgwire-recorder record` oder `pgwire-recorder replay` mit den
-   Optionen `--tls-cert` und `--tls-key`:
-
-   ```bash
-   pgwire-recorder replay \
-     --listen 0.0.0.0:5432 \
-     --input ./recordings/users.yaml \
-     --tls-cert ./certs/server.pem \
-     --tls-key ./certs/server-key.pem
-   ```
-
-2. Verbinden Sie Ihre Anwendung wie gewohnt, mit eingeschalteter Verschlüsselung.
-
-#### Ergebnis
-
-Ihre Anwendung verbindet sich verschlüsselt; Aufzeichnung und Wiedergabe laufen wie
-ohne Verschlüsselung. Die Aufzeichnung enthält keine Angabe zur Verschlüsselung und
-lässt sich mit und ohne sie wiedergeben.
-
-#### Hinweise
-
-* Die Optionen gelten nur zusammen. Ist eine Datei nicht lesbar oder kein gültiges
-  PEM, ist das Zertifikat abgelaufen, ist der Schlüssel mit einem Passwort geschützt
-  oder gehören Zertifikat und Schlüssel nicht zusammen, endet der Start mit
-  `PGR-E2007`. Relative Pfade gelten ab dem aktuellen Verzeichnis.
-* Ob der Name im Zertifikat zum Host passt und ob das Zertifikat vertrauenswürdig
-  ist, prüft Ihre Anwendung. Bei einem selbst erzeugten Zertifikat hinterlegen Sie
-  es dort als vertrauenswürdig.
-* Ist Verschlüsselung eingerichtet, weist das Werkzeug unverschlüsselte
-  Verbindungen ab (`PGR-E6003`). Mit `--allow-plaintext` lässt es beides zu.
-* Scheitert die Verschlüsselung einer einzelnen Verbindung, schließt das Werkzeug
-  sie und warnt (`PGR-W3002`); der Exit-Code ändert sich dadurch nicht.
-* Zertifikate der Anwendung (Client-Zertifikate) prüft das Werkzeug nicht. Die
-  Verbindung des Werkzeugs zur Datenbank beim Aufzeichnen bleibt unverschlüsselt.
-* Der Schlüssel erscheint weder in Meldungen noch in der Anzeige der
-  Konfiguration; schützen Sie die Datei selbst mit Dateirechten.
-
 ### Eine Aufzeichnung in eine Datenbank einspielen
 
 Damit führen Sie die aufgezeichneten Anfragen erneut aus, zum Beispiel um eine
@@ -352,16 +295,13 @@ Komponente zu testen, die Änderungen der Datenbank verarbeitet (Change Data Cap
 
 #### Voraussetzung
 
-Eine Aufzeichnung liegt vor, und die Zieldatenbank ist erreichbar. Der Benutzer
-und die Datenbank aus der Aufzeichnung existieren dort oder Sie geben sie
-ausdrücklich an.
+Eine Aufzeichnung mit einfachen Anfragen liegt vor, und die Zieldatenbank ist
+erreichbar und meldet den Benutzer ohne Passwort an. Der Benutzer und die Datenbank
+aus der Aufzeichnung existieren dort oder Sie geben sie ausdrücklich an.
 
 #### Vorgehen
 
-1. Setzen Sie bei Bedarf das Passwort in der Umgebungsvariable
-   `PGWIRE_RECORDER_PASSWORD` oder legen Sie es als Platzhalter `${VAR}` in einer
-   benannten Verbindung der Konfigurationsdatei ab; es gibt dafür keine Option.
-2. Starten Sie das Einspielen:
+1. Starten Sie das Einspielen:
 
    ```bash
    pgwire-recorder play \
@@ -369,7 +309,7 @@ ausdrücklich an.
      --input ./recordings/users.yaml
    ```
 
-3. Warten Sie, bis das Werkzeug endet.
+2. Warten Sie, bis das Werkzeug endet.
 
 #### Ergebnis
 
@@ -379,42 +319,10 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
 
 #### Hinweise
 
-* Das Einspielen läuft nacheinander. Ohne weitere Option gibt es keine
-  Wartezeiten. Mit `--keep-timing` stellt das Werkzeug den aufgezeichneten
-  zeitlichen Abstand her, sofern Sie die Aufzeichnung mit `--record-timing`
-  erzeugt haben. Mit `--timing-mode relative` (Standard) ist der Abstand zur
-  vorigen Anfrage nie kürzer als aufgezeichnet. Mit `--timing-mode absolute` liegt
-  keine Anfrage früher als im aufgezeichneten Abstand zu einem Bezugspunkt, den
-  `--timing-reference` wählt (`connect`: Beginn des Verbindungsaufbaus,
-  `first-request`: erste Anfrage); eine Verspätung wird dabei aufgeholt.
-  `--timing-mode` und `--timing-reference` brauchen `--keep-timing`.
-* Ohne weitere Option vergleicht das Werkzeug die Antworten der Datenbank nicht mit
-  der Aufzeichnung. Mit `--compare-responses` prüft es nach jeder Anfrage die
-  Struktur der Antwort: die Art und Reihenfolge der Nachrichten, die Spalten (Anzahl,
-  Name, Typ), den Befehl, Fehler (Fehlercode) und den Transaktionsstatus. Zeilenwerte,
-  Zeilenzahlen und Hinweise der Datenbank vergleicht es nicht. Bei einer Abweichung
-  endet das Einspielen mit `PGR-E5004` und Exit-Code 5; mit `--continue-on-error`
-  läuft es weiter und endet am Ende mit Exit-Code 5. Ein Fehler der Datenbank, den
-  die Aufzeichnung genauso enthält, gilt dann als erwartet und bricht nicht ab; ein
-  Fehler, den sie nicht enthält, ist eine Abweichung (`PGR-E5004` statt
-  `PGR-E4004`). `--allow-recorded-errors` hat mit Vergleich keine Wirkung; die
-  Kombination ist kein Fehler. Reicht die Aufzeichnung einer Anfrage nicht bis zum
-  Ende der Antwort, vergleicht das Werkzeug, soweit sie reicht; was der Server danach
-  sendet, ist keine Abweichung, außer einer Fehlerantwort, die die Aufzeichnung nicht
-  enthält. Endet die Aufzeichnung mit einem Verbindungsende und der Server
-  verursacht es genauso, gilt es als erwartet, und das Werkzeug macht mit der
-  nächsten Sitzung weiter. Beendet der Server die Verbindung mit einem anderen oder
-  ohne aufgezeichneten Fehler, oder antwortet er dort normal, ist das eine
-  Abweichung; ein Verbindungsverlust ohne Fehlerantwort (zum Beispiel ein
-  Netzwerkabbruch) bleibt `PGR-E4003`. Das Werkzeug meldet je Anfrage die erste
-  Abweichung. Bei jedem Ende des Laufs steht eine Zeile im Log (Stufe `info`, bei
-  `--log-level warn` also nicht sichtbar) mit der Zahl der eingespielten,
-  verglichenen und abweichenden Anfragen. Ein Verbindungsverlust beendet das
-  Einspielen immer mit Exit-Code 4, auch nach einer Abweichung.
 * Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
-  ab (`PGR-E4004`, Exit-Code 4; mit `--compare-responses` gilt stattdessen der
-  Vergleich). Mit `--continue-on-error` läuft es mit der nächsten Anfrage weiter
-  und meldet jeden dieser Fehler im Log; der Exit-Code ist dann 4. Bricht
+  ab (`PGR-E4004`, Exit-Code 4). Mit `--continue-on-error` läuft es mit der
+  nächsten Anfrage weiter und meldet jeden dieser Fehler im Log; der Exit-Code ist
+  dann 4. Bricht
   danach ein anderer Fehler das Einspielen ab, etwa eine Antwort, die das Werkzeug
   nicht verarbeiten kann (`PGR-E6001`), oder das Ende der Verbindung
   (`PGR-E4003`), ist der Exit-Code der dieses Fehlers (6 bzw. 4).
@@ -422,14 +330,13 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   `ERROR` nicht als Fehler, wenn auch die aufgezeichnete Anfrage mit einem Fehler
   beantwortet wurde. Ein Fehler mit dem Schweregrad `FATAL` beendet die Verbindung
   und bricht das Einspielen auch dann ab (`PGR-E4003`).
-* Mit `--upstream-tls` verbindet sich das Werkzeug verschlüsselt mit der
-  Datenbank und prüft deren Zertifikat; ein Überspringen der Prüfung gibt es nicht.
-  Verlangt die Datenbank Verschlüsselung und die Option fehlt, oder schlägt die
-  Anmeldung fehl, meldet es `PGR-E4005`.
-* Trägt die Datenbank ein Zertifikat einer eigenen Zertifizierungsstelle, geben Sie
-  deren Zertifikat mit `--upstream-ca` (PEM-Datei) an. Es ergänzt die Zertifikate
-  Ihres Systems; die Prüfung bleibt vollständig. Die Option gilt nur mit
-  Verschlüsselung; eine nicht lesbare Datei meldet `PGR-E2007`.
+* Das Werkzeug verbindet sich unverschlüsselt und ohne Passwort mit der Datenbank.
+  Verlangt sie ein Passwort oder lehnt sie die Anmeldung ab, etwa weil der Benutzer
+  fehlt, endet das Einspielen mit `PGR-E4005` (Exit-Code 4). Eine benannte
+  Verbindung mit `sslmode=require` ist bei `play` ungültig (`PGR-E2004`).
+* Enthält die Aufzeichnung eine Folge des erweiterten Protokolls (vorbereitete
+  Anweisungen), spielt das Werkzeug nichts ein und endet mit `PGR-E6001`
+  (Exit-Code 6); die Meldung nennt Sitzung und Nummer der Anfrage.
 * Bei `Strg+C` oder `SIGTERM` endet das Einspielen nach der laufenden Anfrage; mit
   `--finish-session-on-interrupt` erst nach der laufenden Sitzung. Ein zweites
   Signal schließt die Verbindung sofort, auch mit dieser Option; die unterbrochene
@@ -467,16 +374,14 @@ Exit-Code 0.
 
 ### Mit einem Datenbanktreiber arbeiten
 
-Das Werkzeug unterstützt das einfache und das erweiterte Anfrageprotokoll von
-PostgreSQL. Viele Treiber nutzen standardmäßig das erweiterte Protokoll mit
+`record` und `replay` unterstützen das einfache und das erweiterte Anfrageprotokoll
+von PostgreSQL. Viele Treiber nutzen standardmäßig das erweiterte Protokoll mit
 vorbereiteten Anweisungen. Dafür müssen Sie am Treiber nur Host und Port ändern.
 
 #### Voraussetzung
 
 Ihr Treiber verwendet Version 3.0 des PostgreSQL-Protokolls und lässt sich ohne
-Verschlüsselung betreiben, oder Sie stellen dem Werkzeug Zertifikat und Schlüssel
-bereit (siehe
-[Verschlüsselte Verbindungen annehmen](#verschlüsselte-verbindungen-annehmen)).
+Verschlüsselung betreiben.
 
 #### Vorgehen
 
@@ -484,8 +389,8 @@ bereit (siehe
 2. Tragen Sie in der Verbindungszeichenfolge Ihres Treibers Host und Port aus
    `--listen` ein.
 3. Stellen Sie die Verschlüsselung in der Verbindungszeichenfolge ab, zum Beispiel
-   mit `sslmode=disable`, oder starten Sie das Werkzeug mit Zertifikat und
-   Schlüssel.
+   mit `sslmode=disable`; mit `sslmode=prefer` verbindet sich der Treiber
+   unverschlüsselt.
 4. Führen Sie Ihren Ablauf aus.
 
 #### Ergebnis
@@ -595,8 +500,7 @@ ungültiger Aufruf (`PGR-E2001`), auch wenn Sie die Option zugleich angeben. Die
 ## 5. Einstellungen
 
 Die Einstellungen lassen sich über Optionen, über Umgebungsvariablen und über eine
-Konfigurationsdatei festlegen. Ausnahmen sind das Passwort (nur über die Umgebung
-oder einen Platzhalter in der Datei) und die benannten Verbindungen (nur in der
+Konfigurationsdatei festlegen. Ausnahme sind die benannten Verbindungen (nur in der
 Datei). Gilt dieselbe Einstellung mehrfach, setzt sich das Argument vor der
 Umgebungsvariablen vor der Konfigurationsdatei vor dem Standardwert durch. Ein leerer
 Wert auf der Kommandozeile (`--listen=`) ist ein ungültiger Aufruf (`PGR-E2001`),
@@ -609,28 +513,14 @@ nicht gesetzt.
 | `--upstream` | `record`, `play` | `PGWIRE_RECORDER_UPSTREAM` | Pflicht (`host:port` oder Name einer Verbindung) |
 | `--output` | `record` | `PGWIRE_RECORDER_OUTPUT` | Pflicht |
 | `--force` | `record` | `PGWIRE_RECORDER_FORCE` | `false` |
-| `--format` | `record` | `PGWIRE_RECORDER_FORMAT` | `yaml` (oder `sqlite`) |
-| `--record-timing` | `record` | `PGWIRE_RECORDER_RECORD_TIMING` | `false` |
-| `--record-empty-sessions` | `record` | `PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS` | `false` |
 | `--input` | `replay`, `play` | `PGWIRE_RECORDER_INPUT` | Pflicht |
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` |
 | `--shutdown-timeout` | `record`, `replay` | `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT` | `5s` (`0` ohne Frist; Einheit `ms`, `s` oder `m`) |
-| `--session-assignment` | `replay` | `PGWIRE_RECORDER_SESSION_ASSIGNMENT` | `first-request` (oder `connection`) |
 | `--user` | `play` | `PGWIRE_RECORDER_USER` | Benutzer der benutzten Verbindung, ohne ihn der der Aufzeichnung |
 | `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Datenbank der benutzten Verbindung, ohne sie die der Aufzeichnung |
 | `--continue-on-error` | `play` | `PGWIRE_RECORDER_CONTINUE_ON_ERROR` | `false` |
 | `--allow-recorded-errors` | `play` | `PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS` | `false` |
-| `--upstream-tls` | `play` | `PGWIRE_RECORDER_UPSTREAM_TLS` | `false` |
-| `--upstream-ca` | `play` | `PGWIRE_RECORDER_UPSTREAM_CA` | — (PEM-Datei, nur mit Verschlüsselung) |
-| `--compare-responses` | `play` | `PGWIRE_RECORDER_COMPARE_RESPONSES` | `false` |
 | `--finish-session-on-interrupt` | `play` | `PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT` | `false` |
-| `--keep-timing` | `play` | `PGWIRE_RECORDER_KEEP_TIMING` | `false` |
-| `--timing-mode` | `play` | `PGWIRE_RECORDER_TIMING_MODE` | `relative` (oder `absolute`) |
-| `--timing-reference` | `play` | `PGWIRE_RECORDER_TIMING_REFERENCE` | `connect` (oder `first-request`) |
-| `--tls-cert` | `record`, `replay` | `PGWIRE_RECORDER_TLS_CERT` | — (PEM-Datei, verlangt `--tls-key`) |
-| `--tls-key` | `record`, `replay` | `PGWIRE_RECORDER_TLS_KEY` | — (PEM-Datei, verlangt `--tls-cert`) |
-| `--allow-plaintext` | `record`, `replay` | `PGWIRE_RECORDER_ALLOW_PLAINTEXT` | `false` (verlangt `--tls-cert`) |
-| — (nur Umgebung) | `play` | `PGWIRE_RECORDER_PASSWORD` | — |
 | `--config` | `record`, `replay`, `play`, `config show` | `PGWIRE_RECORDER_CONFIG` | `.pgwire-recorder.yaml` im aktuellen Verzeichnis |
 | `--log-level` | `record`, `replay`, `play` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` |
 
@@ -654,7 +544,7 @@ für alle Betriebsarten (`log_level`) und benannte Verbindungen stehen oben, die
 log_level: info
 connections:
   lokal: "postgresql://dev@localhost:5432/myapp"
-  staging: "postgresql://app:${STAGING_PASSWORD}@staging.example.com:5432/myapp?sslmode=require"
+  ci: "postgresql://${CI_DB_HOST}:5432/myapp"
 record:
   upstream: lokal
   listen: 127.0.0.1:15432
@@ -685,10 +575,12 @@ Datenbank die Aufzeichnung nennt. Die Log-Zeile beim Start nennt auch hier nur
 Bei `record` zählen nur Host und Port der URL; Benutzer, Passwort und Datenbank
 vermittelt die Anwendung selbst. Das Werkzeug verbindet zu `host:port`, mit dem Port
 so, wie er geschrieben ist, und einem Host mit `:` in eckigen Klammern; die Log-Zeile
-beim Start nennt diese Adresse, nie Benutzer, Passwort oder Datenbank. Der Parameter
-`sslmode` kennt `disable` (Standard) und `require`. Bei `record` ist `require`
-ungültig (`PGR-E2004`), weil das Werkzeug beim Aufzeichnen unverschlüsselt zur
-Datenbank verbindet.
+beim Start nennt diese Adresse, nie Benutzer, Passwort oder Datenbank.
+
+Der Parameter `sslmode` kennt `disable` (Standard) und `require`. Bei `record` und
+`play` ist eine Verbindung mit `require` ungültig (`PGR-E2004`), weil das Werkzeug
+unverschlüsselt zur Datenbank verbindet; eine Verbindung mit `require`, die Sie nicht
+benutzen, bleibt gültig.
 
 Einen Platzhalter `${VAR}` in der URL einer Verbindung ersetzt das Werkzeug beim Start
 aus der gleichnamigen Umgebungsvariable, einmal und nur für die Verbindung, die Sie
@@ -701,7 +593,8 @@ wörtlich `${VAR}` ergibt. Ein Passwort, das nicht genau ein Platzhalter ist, un
 Parameter `password` sind ein Klartext-Passwort (`PGR-E2006`), in jeder Verbindung der
 Datei, auch einer, die Sie nicht benutzen. Eine nicht gesetzte Variable der benutzten
 Verbindung ist `PGR-E2005`, ein Port, der nach dem Einsetzen keine Zahl von 1 bis 65535
-ist, `PGR-E2004`.
+ist, `PGR-E2004`. Ein Passwort in der URL setzt `play` ein, meldet sich damit aber
+nicht an: Verlangt die Datenbank ein Passwort, endet `play` mit `PGR-E4005`.
 
 Wahrheitswerte lauten `true` oder `false`, mit oder ohne Anführungszeichen; `True`,
 `yes` und `1` sind ungültig. Für jeden Wert gilt dieselbe Form wie für die Option,
@@ -785,7 +678,7 @@ mit `--input=--` an. `record`, `replay` und `play` nehmen nach `--` kein Argumen
 | 2 | ungültiger Aufruf oder ungültige Konfiguration |
 | 3 | Aufzeichnung ungültig oder nicht zugreifbar |
 | 4 | Netzwerk- oder Datenbankfehler, auch eine Anfrage, die beim Beenden die Frist `--shutdown-timeout` unvollständig beendet hat (`PGR-E4006`) |
-| 5 | Abweichung bei der Wiedergabe, mit `--fail-on-unconsumed` auch nicht gestellte Anfragen oder nie verwendete Sitzungen, oder beim Einspielen mit `--compare-responses` eine abweichende Antwort |
+| 5 | Abweichung bei der Wiedergabe, mit `--fail-on-unconsumed` auch nicht gestellte Anfragen oder nie verwendete Sitzungen |
 | 6 | nicht unterstützte Funktion des Protokolls |
 
 Ein Fehler, der nur eine Verbindung betrifft, beendet diese Verbindung. Das
@@ -801,10 +694,10 @@ der Start, prüft das Werkzeug keine Sitzungen.
 ## 6. Rollen und Rechte
 
 Das Werkzeug kennt keine Benutzer, Rollen oder Anmeldung. Beim Aufzeichnen
-leitet es die Anmeldung an die Datenbank weiter; beim Wiedergeben ist die
-Anmeldung keine Sicherheitsgrenze, verlassen Sie sich nicht darauf, dass
-Zugangsdaten geprüft werden. Betreiben Sie es nur in
-einer kontrollierten Testumgebung, und lassen Sie es nur auf der Adresse
+leitet es Benutzer und Datenbank der Anwendung an die Datenbank weiter, ohne
+Passwort; beim Wiedergeben nimmt es jede Anmeldung an, gleich mit welchem
+Benutzer, welcher Datenbank und welchem Passwort, und prüft keine Zugangsdaten.
+Betreiben Sie es nur in einer kontrollierten Testumgebung, und lassen Sie es nur auf der Adresse
 lauschen, die Sie mit `--listen` angegeben haben.
 
 ## 7. Fehlerbehebung
@@ -827,32 +720,27 @@ für den Exit-Code.
 
 | Code | Bedeutung | Ursache und Lösung |
 |---|---|---|
-| `PGR-E1000` | sonstiger Fehler | Unerwarteter Fehler. Starten Sie mit `--log-level debug` neu, und melden Sie das Problem mit der Ausgabe. |
-| `PGR-E2000`, `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt, hat einen ungültigen Wert oder passt nicht zu einer anderen Option. Prüfen Sie den Aufruf mit `--help`. |
+| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt, hat einen ungültigen Wert oder passt nicht zu einer anderen Option. Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
-| `PGR-E2003` | zeitgetreues Einspielen ohne Zeitangaben | Mindestens einer Anfrage der Aufzeichnung fehlt die Zeitangabe. Zeichnen Sie mit `--record-timing` erneut auf, oder starten Sie ohne `--keep-timing`. |
 | `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte und `sslmode` (erlaubt sind `disable` und `require`). |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
-| `PGR-E2007` | Zertifikat, Schlüssel oder Zertifizierungsstelle nicht verwendbar | Die Datei fehlt, ist nicht lesbar oder kein gültiges PEM, oder Zertifikat und Schlüssel gehören nicht zusammen. Prüfen Sie `--tls-cert`, `--tls-key` und `--upstream-ca`; ein abgelaufenes eigenes Zertifikat und ein Schlüssel mit Passwort sind nicht zulässig. Läuft ein Zertifikat der Datenbank oder der Zertifizierungsstelle ab, meldet das Werkzeug beim Verbinden `PGR-E4005`. |
-| `PGR-E3000`, `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Prüfen Sie Pfad und Dateirechte. |
+| `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Prüfen Sie Pfad und Dateirechte. |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Zeichnen Sie erneut auf. |
-| `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
+| `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | `replay` meldet den Fehler beim Start. Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
 | `PGR-E4000` | Verbindung nicht anzunehmen | Das Werkzeug konnte eine eingehende Verbindung nicht annehmen, zum Beispiel weil zu viele Dateien offen sind. Es nimmt danach weiter Verbindungen an. Prüfen Sie die Grenzen des Systems. |
 | `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
-| `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler (ohne `--compare-responses`) | Die Meldung nennt die Sitzung und die Nummer der Anfrage in der Aufzeichnung, dazu SQLSTATE und Meldung der Datenbank, nicht den Text der Anfrage. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
-| `PGR-E4005` | Anmeldung an der Datenbank fehlgeschlagen oder nicht unterstützt, Zertifikat der Datenbank oder der Zertifizierungsstelle ungültig oder abgelaufen, oder die Datenbank verlangt Verschlüsselung | Prüfen Sie Benutzer und Passwort (`PGWIRE_RECORDER_PASSWORD`). Unterstützt sind Klartext-Passwort, MD5 und SCRAM-SHA-256. Setzen Sie `--upstream-tls`, wenn die Datenbank Verschlüsselung verlangt. |
+| `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Sitzung und die Nummer der Anfrage in der Aufzeichnung, dazu SQLSTATE und Meldung der Datenbank, nicht den Text der Anfrage. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
+| `PGR-E4005` | Anmeldung an der Datenbank abgelehnt oder nicht unterstützt | Beim Einspielen hat die Datenbank ein Passwort verlangt oder die Anmeldung abgelehnt, etwa weil der Benutzer fehlt; die Meldung nennt die Sitzung. `play` meldet sich nur ohne Passwort an. Prüfen Sie Benutzer und Datenbank (`--user`, `--database`), und lassen Sie die Anmeldung ohne Passwort zu. |
 | `PGR-E4006` | Anfrage beim Beenden unvollständig | Die Frist `--shutdown-timeout` ist abgelaufen, oder ein zweites Signal hat sie ablaufen lassen, während eine Anfrage lief. Die Meldung nennt die Sitzung und die Anfrage; beim Aufzeichnen fehlt diese Anfrage in der Aufzeichnung. Lassen Sie die Anwendung vor dem Beenden zur Ruhe kommen, oder wählen Sie eine längere Frist (siehe [Herunterfahren mit Frist](#herunterfahren-mit-frist)). |
-| `PGR-E5000`, `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
+| `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen aufgezeichnet sind. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
-| `PGR-E5004` | Antwort der Datenbank weicht von der Aufzeichnung ab | Nur mit `--compare-responses`. Die Meldung nennt Sitzung, Anfrage und die Art der Abweichung. Prüfen Sie, ob die Datenbank dieselbe Struktur liefert wie bei der Aufzeichnung (Tabellen, Spalten, Rechte). |
-| `PGR-E6000`, `PGR-E6001` | nicht unterstützte Nachricht | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht. |
+| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen verlangt die Datenbank ein Passwort; oder die Aufzeichnung für `play` enthält eine Folge des erweiterten Protokolls. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht, und lassen Sie die Anmeldung ohne Passwort zu. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls. Verwenden Sie einen Treiber, der sie nutzt. |
-| `PGR-E6003` | unverschlüsselte Verbindung nicht zugelassen | Das Werkzeug läuft mit `--tls-cert`, und die Anwendung hat ohne Verschlüsselung verbunden. Schalten Sie die Verschlüsselung in der Anwendung ein, oder starten Sie mit `--allow-plaintext`. |
 
 ### Warnungen
 
@@ -860,16 +748,16 @@ für den Exit-Code.
 |---|---|---|
 | `PGR-W2001` | Wiedergabe endete vor der letzten aufgezeichneten Anfrage, oder aufgezeichnete Sitzungen wurden nie verwendet | Ihr Test hat nicht alle aufgezeichneten Anfragen ausgeführt oder weniger Verbindungen mit Anfragen geöffnet als aufgezeichnet. Mit `--fail-on-unconsumed` wird das zum Fehler (`PGR-E5002`). |
 | `PGR-W3001` | Abbruchwunsch nicht weitergeleitet | Die Anwendung hat versucht, eine laufende Anfrage abzubrechen. Das Werkzeug leitet diesen Wunsch nicht weiter und schließt die Verbindung. |
-| `PGR-W3002` | Verschlüsselung einer Verbindung gescheitert | Die Anwendung hat die Aushandlung abgebrochen oder das Zertifikat nicht akzeptiert. Prüfen Sie, ob die Anwendung dem Zertifikat des Werkzeugs vertraut. |
 | `PGR-W3003` | Verbindung ohne PostgreSQL-Protokoll | Etwas anderes als ein PostgreSQL-Client hat den Port angesprochen, zum Beispiel ein HTTP-Gesundheitscheck. Das Werkzeug schließt die Verbindung; der Exit-Code ändert sich nicht. Ein reiner TCP-Check ohne Daten erzeugt keine Warnung. |
 
 ### Die Anwendung kann sich nicht verbinden
 
 Fordert Ihr Treiber eine verschlüsselte Verbindung an und bricht ab, wenn sie
-abgelehnt wird, schalten Sie die Verschlüsselung in der Verbindungszeichenfolge
-ab (zum Beispiel `sslmode=disable`), oder starten Sie das Werkzeug mit
-`--tls-cert` und `--tls-key`. Vertraut Ihr Treiber dem Zertifikat nicht, hinterlegen
-Sie dessen Zertifizierungsstelle im Treiber.
+abgelehnt wird (etwa mit `sslmode=require`), schalten Sie die Verschlüsselung in der
+Verbindungszeichenfolge ab (`sslmode=disable`), oder lassen Sie sie mit
+`sslmode=prefer` unverschlüsselt verbinden. Erhält Ihre Anwendung beim Aufzeichnen
+`PGR-E6001` mit dem Hinweis auf ein Anmeldeverfahren, verlangt die Datenbank ein
+Passwort; lassen Sie die Anmeldung dort ohne Passwort zu.
 
 ## 8. FAQ
 
@@ -877,8 +765,8 @@ Sie dessen Zertifizierungsstelle im Treiber.
 Nein. Die Wiedergabe beantwortet alle aufgezeichneten Anfragen aus der Datei.
 
 **Kann ich eine Aufzeichnung in die Versionsverwaltung legen?**
-Ja. Die Standard-Datei ist Text (YAML) und ändert sich nur, wenn sich die
-Aufzeichnung ändert; eine SQLite-Aufzeichnung ist binär. Beachten Sie den Hinweis zu vertraulichen Daten in der Einleitung.
+Ja. Die Aufzeichnung ist Text (YAML) und ändert sich nur, wenn sich die
+Aufzeichnung ändert. Beachten Sie den Hinweis zu vertraulichen Daten in der Einleitung.
 
 **Kann ich die Datei von Hand bearbeiten?**
 Das Werkzeug unterstützt das nicht. Zeichnen Sie stattdessen erneut auf.
@@ -914,4 +802,4 @@ oder Aufzeichnungen weitergeben.
 
 ## 11. Änderungshistorie
 
-Es gibt noch keine veröffentlichte Version.
+Es gibt keine veröffentlichte Version.
