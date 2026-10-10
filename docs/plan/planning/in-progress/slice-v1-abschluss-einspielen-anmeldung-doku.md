@@ -194,6 +194,8 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 **Gate-Lauf.** `make gates` auf sauberem Baum am Stand `8cc0a48` (Handbuch, README und Plan wie im Diff dieses Slice): Exit 0, einschließlich `docs-check` und `lint-gegenprobe`. Die Zeile selbst folgt in einem eigenen Commit; sie ändert nur diesen Plan.
 
+**Gate-Lauf der Nacharbeit.** `make gates` auf sauberem Baum am Stand `24d8f85` (Handbuch, README und Plan wie im Diff der Nacharbeit): Exit 0, einschließlich `docs-check` und `lint-gegenprobe`. Der erste Lauf am Stand `f060f1a` war rot (`docs-check`: ein Link in diesem Plan ohne Anker); behoben in `24d8f85`. Die Zeile selbst folgt in einem eigenen Commit; sie ändert nur diesen Plan.
+
 **Funde für den Planner.**
 
 1. Die Befehlsfolge aus `slice-doku-ist-stand` §7 meldet `PGWIRE_RECORDER_PASSWORD` bei jedem Lauf (Variable ohne Option); sie braucht die benannte Ausnahme oder einen Abzug dieser einen Variable, sonst liest sich jeder Lauf rot.
