@@ -333,7 +333,86 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+Die Closure-Notiz wird bei Closure gefüllt (vor dem `git mv` nach `done/`); bis dahin
+stehen hier die Belege des Implementers.
+
+### Belege des Implementers
+
+- *Asset:* `lab-regelwerk.zip` des Tags `v6.18.0`, sha256
+  `18e5443b4fca32ce452ec5dcf7cf011d7e04b0d29741b777a8dceaa452dcb8d9`. Soll-Wert Rang (1):
+  das Release-Asset `SHA256SUMS` (eine Zeile, nur das Zip) — `sha256sum -c` OK; Rang (2): das
+  Feld `digest` des Assets in der Release-API nennt denselben Wert. Abruf einmalig im Image der
+  Stufe `deps` (`--user`, Mount nur eines Temp-Verzeichnisses außerhalb des Repos); ins Repo mit
+  `cp` auf dem Host. Vor dem Entpacken: 68 Einträge, oberste Ebene nur `regelwerk/` und
+  `templates/`, kein absoluter Pfad, kein `..`, kein Symlink (54 × `-rw-r--r--`, 14 × `drwxr-xr-x`).
+- *`SHA256SUMS` des Tag-Verzeichnisses:* nach dem Entpacken neu erzeugt (`<sha256>  <pfad>`,
+  `regelwerk/` und `templates/`, `LC_ALL=C sort`), 54 Zeilen. Das Asset bringt keine eigene
+  Prüfsummenliste mit; die Gegenprobe läuft deshalb gegen die entpackten Asset-Dateien im
+  Temp-Baum (gleiche Erzeugung dort): identisch. `make baseline-verify` meldet
+  `v6.18.0 OK — 54 Dateien`.
+- *Audit:* Release-Liste des Kurs-Repos am 2026-10-10 gelesen (`v6.18.0`, `v6.17.0`, `v6.16.0`,
+  `v6.15.0`, `v6.14.1`); neuester Tag `v6.18.0` = Pin. `v6.17.0` ist durch den Sprung abgedeckt.
+- *Probe vor dem Tausch:* `make docs-check` in einer HEAD-Kopie ohne
+  `.harness/baseline/v6.16.0/` (Temp-Baum außerhalb des Repos): 473 Dateien, 0 Befunde. Es
+  gibt keinen Befund in eingefrorenen Dokumenten.
+- *Dateimenge und Gliederung:* `diff -rq` alt gegen neu: dieselben 54 Dateien, keine neue,
+  umbenannte oder entfallene; die Überschriften (`grep '^#'`, sortiert) aller Regelwerk-Dateien
+  sind identisch. Es gibt keinen neuen, umbenannten oder entfallenen Regelblock.
+- *Delta je Datei* (`diff -r`, 31 Dateien verschieden; 54 − 31 = 23 unverändert):
+  - nur Versionszeile (Quelle-Kommentar bzw. Asset-URL `v6.16.0` → `v6.18.0`, je 2 Zeilen):
+    `grundlagen-begriffe`, `-bootstrap`, `-durchsetzungsschicht`, `-klassifikation`,
+    `-referenz-richtung`, `-source-precedence`, `-traceability`, `modul-00`, `-01`, `-02`, `-03`,
+    `-04`, `-05`, `-06`, `-07`, `-08`, `-09`, `-11`, `-12`, `-14`, `-15`, `-16`,
+    `templates/AGENTS.template.md`, `templates/harness/conventions.template.md`;
+  - `regelwerk/README.md`: Versionszeilen, Stand-Zeile „Kurs-Welle 161 · 2026-10-10“;
+  - inhaltlich: `grundlagen-harness-dateien.md` (Disjunktheit geteilter Gate-Index-Teile:
+    wer die Prüfung hat, schaltet sie mit der Vereinigung ein; Release `v6.17.0`),
+    `modul-13-quality-gates.md` (derselbe Satz: ein Target in zwei Teilen sieht der Sensor nur
+    bei eigener Disjunktheitsprüfung), `modul-10-review-harness.md` (Absatz „Ein Deckungs-Sensor
+    prüft nur, was er als Zusage erkennt“; Dateiname des Reports mit der vollen Slice-Kennung),
+    `templates/.d-check.yml` (Kommentare zu `authority-disjoint`, d-check ≥ v0.83.0, und die
+    Schlüssel des Moduls `reviews`: `match: name`, `require-promises`, `recursive`,
+    `skip-pattern`, `skip-allows-empty`, d-check ≥ v0.85.0/v0.86.0),
+    `templates/docs/reviews/review-report.template.md` (Dateiname `<YYYY-MM-DD>-<slice-Kennung>.md`,
+    ein Review ohne Slice `<YYYY-MM-DD>-<diff-ref>.md`, „etwa mit Suffix `-r2`“),
+    `templates/harness/README.template.md` (Anleitung zum Modul `reviews`, ≥ v0.86.0).
+- *Die drei Punkte der Vorprüfung — Ausgang je Punkt:*
+  - Disjunktheit geteilter Gate-Index-Teile: dieses Repo führt den Gate-Index in einer Datei
+    (`harness/README.md` §Sensors); der Satz setzt ein Repo mit Teilen voraus. Kein Befund,
+    keine Änderung; die Zelle *Teil des Gate-Index* bleibt *kommt nicht mit*, Dauer unverändert
+    (`slice-harness-gate-index-werkzeug-teil` in `open/`).
+  - Anleitung zum Modul `reviews`: berührt keine verkörperte Regel dieses Repos (kein Text in
+    `AGENTS.md`, `harness/README.md`, den Commands oder dem Skill nennt das Modul); `.d-check.yml`
+    bleibt unverändert, das Modul bleibt aus (§1). Kein Befund; die Zelle *Doku-Konsistenz-Drift*
+    bleibt *liegt bei, nicht verdrahtet*. Der Absatz „Ein Deckungs-Sensor prüft nur, was er als
+    Zusage erkennt“ ist Lesestoff für den geplanten Slice, der das Modul aktiviert (nicht angelegt, keine Adresse, §6).
+  - Dateiname des Review-Reports: siehe unten.
+- *Regelblock-Tabelle:* alle Zellen gegen den neuen Baum gehalten, Messzeile auf `v6.18.0`.
+  Geprüft und unverändert: `modul-10` (Skill trägt die Urteilsgrundlage), `modul-13` (Aggregator
+  und Fragmente; die Disjunktheit betrifft Gate-Index in Teilen), `modul-15` (beide Zellen),
+  `grundlagen-harness-dateien` (beide Zellen), `modul-02` (Freshness-Audit: weiter *kommt nicht
+  mit*, die Aussage nennt keinen Tag). Zellen der übrigen Blöcke: kein Delta, unberührt. Es gibt
+  keine Abweichung, die eine neue Zeile verlangt.
+- *Adaptions-Durchgang:* `MR-000` (keine inhaltlichen Adaptionen) gilt unverändert; das Delta
+  führt zu keiner Adaption `MR-<NNN>`. Die aufgelöste `MR-001` trägt ihre Auflösung („seit
+  `v6.16.0`“) als Stand ihrer Zeit; das Delta berührt `grundlagen-referenz-richtung.md` nur in
+  der Versionszeile.
+- *Singletons gegen die Vorlagen des neuen Stands:* `AGENTS.md` (Vorlage: nur Asset-URL, nachgezogen),
+  `harness/conventions.md` (Vorlage: nur Asset-URL, nachgezogen), `harness/README.md` (Vorlage:
+  nur die Anleitung zum Modul `reviews`, nicht verkörpert, siehe oben).
+- *Stichprobe gegen den Bestand* (Modul 02, rotierend; letzter Lauf `modul-05` §Offene Risiken):
+  `modul-07-carveouts.md` §Ziel-Form: Carveout — im Komplement des Deltas (nur Versionszeile).
+  Gehalten gegen `docs/plan/carveouts/` und `carveout.template.md`: Der Bestand ist leer (nur
+  `.gitkeep`), `harness/README.md` nennt „Rote Gates: … bisher keiner“, in der Bindung-Spalte
+  steht kein `CO-<NNN>`; die sechs Pflicht-Header-Felder der Regel stehen in der Vorlage
+  (Status, Datum angelegt, Letzte Prüfung, Betroffenes Gate, Geltungsbereich, Folge-Slice).
+  Kein Fund.
+- *Verweisprobe:* `grep "v6\.16\.0"` über `AGENTS.md`,
+  `README.md`, `harness/` (ohne `harness/conventions/done/` und die Zeile `MR-001`), `.claude/`,
+  `.harness/skills/`, `tools/`, `Makefile`, `*.mk`, `spec/` ist leer;
+  `find . -path ./.git -prune -o -xtype l -print` ist leer; die Symlinks unter `.claude/rules/`
+  lösen auf `v6.18.0` auf. Verweise auf `v6.16.0` in `open/slice-harness-gate-index-werkzeug-teil.md`
+  und im Drift-Log der Roadmap nennen Herkunft, nicht den Stand, und bleiben.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
