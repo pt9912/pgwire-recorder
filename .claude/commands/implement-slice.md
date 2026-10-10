@@ -35,23 +35,10 @@ emittierten Durchsetzungsschicht):
   passt. **Jede Inhaltsänderung nach einem Gate-Lauf — inklusive jedes Commits und jedes `git mv`
   — macht den Stempel ungültig: `make gates` erneut laufen.** Ein Commit/Move ohne frischen
   Gate-Lauf lässt den Stop-Hook rot.
-- **Strenges Doc-Gate (d-check).** Zugesagt ist nur: `make docs-check` ist rot, wenn in einem
-  Absatz oder Listenpunkt, in einer Zeile ohne HTML-Kommentar, in `AGENTS.md` oder in einer `.md`
-  direkt unter `spec/`, `harness/`, `docs/plan/planning/` oder dessen `open/`, `next/`,
-  `in-progress/`, `done/` (die *genannten Orte*)
-  - die Zeichenfolge `ADR-` mit vier Ziffern als Wort im Text steht, blank oder in Inline-Code,
-    nicht in einem Link oder Bild;
-  - ein Markdown-Link der Form `[Text](Pfad)`, nicht in Inline-Code, mit relativem Pfad auf eine
-    `.md`-Datei zeigt, die es nicht gibt, oder auf einen Anker, den es in einer `.md` der
-    genannten Orte nicht gibt;
-  - in einer der drei Dateien unter `spec/`, außerhalb eines Abschnitts mit der Überschrift
-    `Geschichte`, eine Slice-Kennung (`slice-…`) oder `MR-` mit drei Ziffern als Wort im Text
-    steht, blank oder in Inline-Code, nicht in einem Link oder Bild, oder ein Markdown-Link wie
-    oben auf eine ADR-Datei unter `docs/plan/adr/` zeigt.
-
-  Andere Formen sagt dieser Block nicht zu; was das Gate genau prüft, legt `.d-check.yml` fest.
-  `LH-`-Kennungen ohne Link erzwingt das Gate noch nicht (`slice-harness-lh-links-pflicht`). Als
-  Regel, nicht als Befund des Gates: Kennungen immer als Links auf ihre Definition schreiben.
+- **Strenges Doc-Gate (d-check).** Als Regel: Kennungen (`LH-`, `ADR-`, `MR-`) als Anker-Links
+  auf ihre Definition schreiben. `LH-`-Kennungen ohne Link erzwingt das Gate noch nicht
+  (`slice-harness-lh-links-pflicht`). Was das Gate prüft, legt `.d-check.yml` fest;
+  `make docs-check` ist maßgeblich.
 - **Neue Artefakte per `cp` aus den vendored Templates** (`.harness/baseline/<tag>/templates/…`),
   dann ausfüllen — keine handgeschriebenen oder repo-gepflegten Template-Kopien.
 - **Commit via Message-Datei** (`git commit -F <datei>`): der Guard scannt den Command-String,

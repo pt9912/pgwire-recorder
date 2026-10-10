@@ -25,17 +25,10 @@ Lies den Adaptions-Block („MR-Block") in `harness/conventions.md`; die planung
   bestehendes Artefakt.** Ein `cp` gefolgt von vollem Überschreiben (`Write`) ist derselbe Verstoß,
   weil der `cp` verworfen wird. Das gilt für den Welle-Plan (`welle.template.md`) **und** jeden neuen
   Slice (`slice.template.md`).
-- **Strenges Doc-Gate (d-check).** Zugesagt ist nur: `make docs-check` ist rot, wenn in einem
-  Absatz oder Listenpunkt, in einer Zeile ohne HTML-Kommentar, in `AGENTS.md` oder in einer `.md`
-  direkt unter `spec/`, `harness/`, `docs/plan/planning/` oder dessen `open/`, `next/`,
-  `in-progress/`, `done/` (die *genannten Orte*) die Zeichenfolge `ADR-` mit vier Ziffern als
-  Wort im Text steht, blank oder in Inline-Code, nicht in einem Link oder Bild, oder ein
-  Markdown-Link der Form `[Text](Pfad)`, nicht in Inline-Code, mit relativem Pfad auf eine
-  `.md`-Datei zeigt, die es nicht gibt, oder auf einen Anker, den es in einer `.md` der genannten
-  Orte nicht gibt. Andere Formen sagt dieser Block nicht zu; was das Gate genau prüft, legt
-  `.d-check.yml` fest. `LH-`-Kennungen ohne Link erzwingt das Gate noch nicht
-  (`slice-harness-lh-links-pflicht`). Als Regel, nicht als Befund des Gates: Kennungen immer als
-  Links auf ihre Definition schreiben. Der Welle-Plan liegt direkt unter `docs/plan/planning/`.
+- **Strenges Doc-Gate (d-check).** Als Regel: Kennungen (`LH-`, `ADR-`, `MR-`) als Anker-Links
+  auf ihre Definition schreiben. `LH-`-Kennungen ohne Link erzwingt das Gate noch nicht
+  (`slice-harness-lh-links-pflicht`). Was das Gate prüft, legt `.d-check.yml` fest;
+  `make docs-check` ist maßgeblich.
 - **Docker-only + Gate-Nachweis/Stop-Hook.** Nur `make`-Targets, nie Host-Toolchain. `make gates`
   endet mit `record-gates`; jede Inhaltsänderung nach einem Gate-Lauf (inkl. Commit) macht den Stempel
   ungültig → `make gates` erneut laufen.

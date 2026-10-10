@@ -1,4 +1,4 @@
-# Slice slice-harness-d-check-v0-85: d-check v0.85.0, Freshness-Audit, Nachzählen im Review
+# Slice slice-harness-d-check-v0-85: d-check v0.86.0, Freshness-Audit, Nachzählen im Review
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -34,13 +34,16 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Das Doku-Gate läuft auf d-check `v0.85.0` (Tag und Digest gepinnt, ohne die zwei HIGH-CVEs des Images `v0.82.0`), die Workflow-Commands sagen über das Doku-Gate nur zu, was die Gegenprobe zeigt, §7 hält das Ergebnis des Freshness-Audits der vendored Baseline gegen die Release-Liste des Kurs-Repos fest, und der Reviewer-Skill prüft das Nachzählen beim Eintragen einer Sendung nach `AGENTS.md` §3.13.
+**Ziel:** Das Doku-Gate läuft auf d-check `v0.86.0` (Tag und Digest gepinnt, ohne die zwei HIGH-CVEs des Images `v0.82.0`), die Workflow-Commands sagen über das Verhalten des Doku-Gates nichts zu, sondern nennen die Link-Regel für Kennungen und verweisen auf `.d-check.yml`, §7 hält das Ergebnis des Freshness-Audits der vendored Baseline gegen die Release-Liste des Kurs-Repos fest, und der Reviewer-Skill prüft das Nachzählen beim Eintragen einer Sendung nach `AGENTS.md` §3.13.
 
 **Herkunft der drei Teile und der Berichtigung** (Entscheidungen des Nutzers vom 2026-10-09):
 
 - **Pin:** `ghcr.io/pt9912/d-check:v0.85.0` mit Digest
   `sha256:c07f1fe6053b1f790c4a1e01a76bcf4d3a8ff85e6eb609fe1aaaaf6ab6f09abe`; ein Probelauf
-  des Nutzers mit diesem Image fand im Arbeitsbaum 424 Dateien, 0 Befunde.
+  des Nutzers mit diesem Image fand im Arbeitsbaum 424 Dateien, 0 Befunde. Nach
+  Entscheidung des Nutzers vom 2026-10-10 ist der Pin auf `ghcr.io/pt9912/d-check:v0.86.0`
+  mit Digest `sha256:d90200e94db311a70f9b15045e1290feecde03e9185ad78fb1ebea265e6ee44b`
+  gehoben; die Kennung dieses Slice bleibt.
 - **Freshness-Audit:** Das Kurs-Repo führt `v6.17.0`, das Repo ist auf `v6.16.0` gepinnt
   (`harness/conventions.md` §Baseline). Geprüft und berichtet wird hier, gehoben nicht.
 - **Reviewer-Skill:** Die MEDIUM-Klasse *Adresse nimmt nicht an* in
@@ -68,7 +71,13 @@ zusammen mit der Begründungs-Pflicht je Punkt.
   auf: rot sind die Kernfälle, die die Gegenprobe zeigt, eingegrenzt nach Ort und Form; alles
   andere sagt er nicht zu und verweist auf `.d-check.yml`. Die gemessenen Ausnahmen bleiben in
   §7 als Messbefund, nicht als Zusage; ebenso der Link auf eine superseded ADR (F-561), den der
-  Block nicht mehr zusagt.
+  Block nicht mehr zusagt. Nach Verifikation V-141 bis V-144 (Entscheidung des Nutzers vom
+  2026-10-10): Auch die geschlossene Menge hielt nicht — Formen über einen Zeilenumbruch und
+  eingerückte Überschriften blieben grün. Der Block sagt deshalb kein rot/grün-Verhalten des
+  Gates mehr zu. Er nennt die Regel, Kennungen (`LH-`, `ADR-`, `MR-`) als Anker-Links zu
+  schreiben, dass `LH-` ohne Link noch nicht erzwungen ist (`slice-harness-lh-links-pflicht`),
+  und dass `.d-check.yml` festlegt, was das Gate prüft, und `make docs-check` maßgeblich ist.
+  Alle Gegenproben zum Block bleiben in §7 als Messbefund (Stand `v0.85.0`).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -106,28 +115,20 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **d-check `v0.85.0`:** `DCHECK_IMAGE` in `d-check.mk` nennt
-      `ghcr.io/pt9912/d-check:v0.85.0`, `DCHECK_DIGEST` den Digest
-      `sha256:c07f1fe6053b1f790c4a1e01a76bcf4d3a8ff85e6eb609fe1aaaaf6ab6f09abe`; der Digest
+- [ ] **d-check `v0.86.0`:** `DCHECK_IMAGE` in `d-check.mk` nennt
+      `ghcr.io/pt9912/d-check:v0.86.0`, `DCHECK_DIGEST` den Digest
+      `sha256:d90200e94db311a70f9b15045e1290feecde03e9185ad78fb1ebea265e6ee44b`; der Digest
       gehört zum Tag (Beleg in §7: Abruf des Tags, Digest der Ausgabe); `make docs-check`
       meldet 0 Befunde. Gegenprobe in einer Kopie des Arbeitsbaums mit dem neuen Image: ein
       toter Anker, eine Kennung `ADR-` ohne Link, ein totes Linkziel und ein Link aus einem
       Spec-Stratum auf eine ADR (Matrix) sind je rot (Beleg in §7: Mutation · Befundzeile).
       Der Block *Strenges Doc-Gate* in `.claude/commands/implement-slice.md`,
-      `.claude/commands/plan-welle.md` und `.claude/commands/close-welle.md` sagt eine
-      geschlossene Menge zu (Verifikation V-134, V-138): rot, in einem Absatz oder
-      Listenpunkt, in einer Zeile ohne HTML-Kommentar, in `AGENTS.md` oder einer `.md` direkt
-      unter `spec/`, `harness/`, `docs/plan/planning/` oder dessen vier Lifecycle-Verzeichnissen,
-      eine Kennung `ADR-` mit vier Ziffern als Wort im Text (blank oder in Inline-Code, nicht in
-      einem Link oder Bild) und ein Markdown-Link `[Text](Pfad)` mit relativem Pfad auf eine
-      `.md`, die es nicht gibt, oder auf einen Anker, den es in einer `.md` dieser Orte nicht
-      gibt; in `implement-slice.md` dazu in den drei Dateien unter `spec/`, außerhalb eines
-      Abschnitts `Geschichte`, eine Slice- oder `MR-`-Kennung in derselben Form und ein solcher
-      Link auf eine ADR. Jede dieser Zusagen zeigt eine Zeile der Gegenprobe in §7 rot. Der
-      Block zählt keine Ausnahme auf; er sagt, dass er andere Formen nicht zusagt und
-      `.d-check.yml` festlegt, was das Gate genau prüft, dass `LH-` ohne Link noch nicht
-      erzwungen ist (`slice-harness-lh-links-pflicht`) und, als Regel, nicht als Befund des
-      Gates, dass Kennungen als Links geschrieben werden (`AGENTS.md` §3.11).
+      `.claude/commands/plan-welle.md` und `.claude/commands/close-welle.md` sagt kein
+      rot/grün-Verhalten des Gates zu (Entscheidung des Nutzers vom 2026-10-10 nach
+      Verifikation V-141 bis V-144); er nennt nur die Regel, Kennungen (`LH-`, `ADR-`, `MR-`)
+      als Anker-Links zu schreiben, dass das Gate `LH-` ohne Link noch nicht erzwingt
+      (`slice-harness-lh-links-pflicht`), und dass `.d-check.yml` festlegt, was das Gate prüft,
+      und `make docs-check` maßgeblich ist.
 - [ ] **Freshness-Audit:** §7 nennt die Release-Liste des Kurs-Repos (neuester Tag gegen den
       gepinnten `v6.16.0`) und für das Delta bis zum neuesten Tag je Eintrag des
       Adaptions-Blocks (`MR-000`, aktive und aufgelöste) den Ausgang nach
@@ -157,9 +158,9 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `d-check.mk` | update | `DCHECK_IMAGE` auf `v0.85.0`, `DCHECK_DIGEST` auf den Digest des Tags; sonst unverändert (§1) |
+| `d-check.mk` | update | `DCHECK_IMAGE` auf `v0.86.0` (zuerst `v0.85.0`, gehoben am 2026-10-10), `DCHECK_DIGEST` auf den Digest des Tags; sonst unverändert (§1) |
 | `.harness/skills/reviewer.md` | update | neue MEDIUM-Klasse *Nehmer nicht nachgezählt* nach `AGENTS.md` §3.13 *Nachzählen beim Eintragen*, mit der Bedingung „im selben Commit“ (Review F-560); die Klasse *Adresse nimmt nicht an* bleibt unverändert |
-| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* auf eine geschlossene Zusage gefasst (DoD-Punkt 1, §1 *Berichtigung*, Verifikation V-134 und V-138): rot nur `ADR-` ohne Link und toter relativer `.md`-Link oder Anker, je in Absatz oder Listenpunkt an den genannten Orten, in `implement-slice.md` dazu Slice- und `MR-`-Kennung und Link auf eine ADR aus `spec/`; keine Ausnahmeliste, sondern der Satz, dass andere Formen nicht zugesagt sind und `.d-check.yml` maßgeblich ist; `LH-` noch nicht erzwungen. Unter `.claude/agents/` und `.harness/skills/` steht kein gleichlautender Block (§7) |
+| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* ohne Zusage über das Verhalten des Gates (DoD-Punkt 1, §1 *Berichtigung*, Verifikation V-141 bis V-144): die Regel, Kennungen als Anker-Links zu schreiben, `LH-` noch nicht erzwungen, `.d-check.yml` legt fest, `make docs-check` ist maßgeblich. Unter `.claude/agents/` und `.harness/skills/` steht kein gleichlautender Block (§7) |
 | dieser Plan, §7 | update | Belege des Pins (Digest, Gegenprobe) und Befund des Freshness-Audits |
 | `docs/plan/planning/open/slice-harness-lh-links-pflicht.md`, `docs/plan/planning/open/slice-harness-lh-links-bestand.md` | neu (Planung) | Nehmer der Teil-Zusage „bares `LH-`-Token ist rot“ und dessen abgeschnittener Bestand (§1, §3.13 mit Nachzählen in §8 dort); in `slice-harness-lh-links-pflicht` §6 dazu die Ausnahmen des `ids`-Moduls aus der Gegenprobe (Verifikation V-137) und die von d-check ausgelassenen Verzeichnisse (Verifikation V-139) |
 | `docs/plan/planning/in-progress/roadmap.md` | update (Planung) | zwei Zeilen im Drift-Log vom 2026-10-09: Anlage und Schnitt von `slice-harness-lh-links-pflicht` |
@@ -175,13 +176,13 @@ in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md); danach geht die Welle
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): `v0.85.0` meldet im Arbeitsbaum
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): der gepinnte Tag (`v0.86.0`) meldet im Arbeitsbaum
   Befunde, die mehr als eine kleine Korrektur der Doku verlangen, oder `d-check.mk` muss
   neu erzeugt werden, weil sich Ziele oder Aufruf von d-check geändert haben (§1). Schnitt
   dann: der Pin als eigener Slice; Audit und Skill sind ohne ihn lieferbar.
-- `in-progress` → `open` (blockiert — Carveout?): Der Tag `v0.85.0` ist nicht abrufbar, oder
+- `in-progress` → `open` (blockiert — Carveout?): Der gepinnte Tag (`v0.86.0`) ist nicht abrufbar, oder
   sein Digest ist nicht der genannte; dann zuerst die Klärung mit dem Nutzer, der Pin
-  bleibt bis dahin auf `v0.82.0`.
+  bleibt bis dahin auf dem vorigen Tag.
 
 ## 5. Closure-Trigger
 
@@ -205,7 +206,7 @@ Reviewer-Skill trägt eine verkörperte Regel in die Klassifikation.
 
 **Risiken:**
 
-- `v0.85.0` wertet die aktiven Module anders aus als `v0.82.0`, und der Probelauf mit 0
+- `v0.86.0` (davor `v0.85.0`) wertet die aktiven Module anders aus als `v0.82.0`, und der Probelauf mit 0
   Befunden verdeckt eine Prüfung, die still schwächer geworden ist
   (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`, 2×); die Gegenprobe in DoD-Punkt
   1 deckt vier Klassen, nicht alle (`spans` nicht) — **Ausgang:** offen bis Closure. Die
@@ -236,7 +237,43 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
-**Pin (DoD-Punkt 1).** Am 2026-10-09:
+**Pin auf `v0.86.0` (DoD-Punkt 1, Entscheidung des Nutzers vom 2026-10-10).** Am 2026-10-10:
+
+- *Digest gehört zum Tag:* `docker buildx imagetools inspect ghcr.io/pt9912/d-check:v0.86.0`
+  meldet einen OCI-Index mit `Digest: sha256:d90200e94db311a70f9b15045e1290feecde03e9185ad78fb1ebea265e6ee44b`
+  (Manifeste `linux/amd64` `sha256:7fbd5a20…`, `linux/arm64` `sha256:59e52bac…`);
+  `docker pull` desselben Tags, danach `docker image inspect --format '{{json .RepoDigests}}'`,
+  meldet denselben Digest. Gleich dem Digest der Release-Notiz.
+- *Ziele und Aufruf unverändert:* `--print-mk` von `v0.85.0` (`c07f1fe6…`) und `v0.86.0`
+  (`d90200e9…`) unterscheiden sich nur in der Zeile `DCHECK_IMAGE` (`diff`, eine Zeile); die
+  Rückführung nach §4 tritt nicht ein. Geändert sind in `d-check.mk` nur `DCHECK_IMAGE` und
+  `DCHECK_DIGEST`.
+- *Changelog `0.86.0`:* geändert ist `reviews.match: name`, neu `skip-allows-empty`; beide
+  wirken hier nicht — `.d-check.yml` führt weder das Modul `reviews` (`modules: [links,
+  anchors, ids, matrix, spans]`) noch einen Schlüssel `reviews` oder `skip-allows-empty`
+  (`grep`).
+- *Weitere Nennungen des alten Pins:* `grep` nach `v0.85.0` und `c07f1fe6` außerhalb von
+  `.git`, `.harness/` und `docs/reviews/` findet ihn in `d-check.mk` nicht mehr, sonst nur in
+  diesem Plan (Belege und Herkunft), im Drift-Log der Roadmap (Zeile vom 2026-10-09, Anlass
+  der Anlage) und in `open/slice-harness-lh-links-pflicht.md` (Messungen unter `v0.85.0`,
+  mit Version genannt) — Zeitdokumente bzw. Messbefunde mit Stand, bleiben stehen. Das
+  Heben des Pins ist keine Umplanung; das Drift-Log bekommt keine Zeile.
+- *`make docs-check` am Arbeitsbaum:* `d-check: 439 Datei(en) geprüft, 0 Befund(e)` mit
+  Digest `d90200e9…`.
+
+Gegenprobe gegen `v0.86.0` (`d90200e9…`) in Kopien des Arbeitsbaums: je Mutation eine frische
+Kopie im Scratchpad, jeder Eintrag der obersten Ebene außer `.git` mit `cp -r` ohne `-p`,
+Mutation per `printf` angehängt, Lauf `docker run --rm --network none` mit dem Digest, danach
+nur diese Kopie gelöscht. Unveränderte Kopie: `439 Datei(en) geprüft, 0 Befund(e)`, Exit 0.
+
+| Zusage | Mutation | Befundzeile (`v0.86.0`) |
+|---|---|---|
+| toter Anker ist rot (`anchors`) | Link auf `conventions.md#gibt-es-nicht`, an `harness/README.md` | `harness/README.md:141 conventions.md#gibt-es-nicht anchor-missing`, 1 Befund, Exit 1 |
+| Kennung `ADR-` ohne Link ist rot (`ids`) | `ADR-` mit vier Ziffern (0001) blank im Fließtext, an `harness/README.md` | `harness/README.md:141` · die Kennung · `id-unlinked`, 1 Befund, Exit 1 |
+| totes Linkziel ist rot (`links`) | Link auf `gibt-es-nicht.md`, an `harness/README.md` | `harness/README.md:141 gibt-es-nicht.md target-missing`, 1 Befund, Exit 1 |
+| Spec-Stratum nennt keine ADR (`matrix`) | Link aus `spec/architecture.md` auf ADR 0001 | `spec/architecture.md:645 … matrix-forbidden Referenz spec-straten → adr`, 1 Befund, Exit 1 |
+
+**Pin auf `v0.85.0` (Stand 2026-10-09, abgelöst durch den Pin oben).** Am 2026-10-09:
 
 - *Digest gehört zum Tag:* `docker buildx imagetools inspect ghcr.io/pt9912/d-check:v0.85.0`
   meldet einen OCI-Index mit `Digest: sha256:c07f1fe6053b1f790c4a1e01a76bcf4d3a8ff85e6eb609fe1aaaaf6ab6f09abe`
@@ -279,6 +316,12 @@ nicht ab und gibt den Punkt an den Planner (DoD berichtigen, oder ein eigener Sl
 aktiviert das Muster als Entscheidung über das Gate). Ebenso zu weit griff der Block
 *Strenges Doc-Gate* in drei Commands (`AGENTS.md` §3.11); der Planner hat DoD-Punkt 1
 berichtigt (Commit `dfb7e88`), der Block ist enger gefasst (Gegenprobe unten).
+
+**Messbefund zum Block *Strenges Doc-Gate*, Stand `v0.85.0`.** Seit der Entscheidung des
+Nutzers vom 2026-10-10 sagt der Block kein rot/grün-Verhalten des Gates zu (DoD-Punkt 1). Die
+folgenden Tabellen messen frühere Fassungen des Blocks, die solches Verhalten zusagten; sie
+bleiben als Messbefund über d-check `v0.85.0` unter `.d-check.yml` stehen, nicht als Zusage,
+und sind gegen `v0.86.0` nicht neu gefahren.
 
 **Gegenprobe zum Block *Strenges Doc-Gate*** (Berichtigung von DoD-Punkt 1), nur gegen
 `v0.85.0` (`c07f1fe6…`), am Stand `dfb7e88` mit den geänderten Commands im Arbeitsbaum. Je
@@ -456,6 +499,23 @@ gemessen zur Kontrolle:
 
 *Fundstellen:* `grep -rn "Strenges Doc-Gate"` über `.claude/`, `.harness/skills/` und
 `AGENTS.md` findet den Block nur in den drei Commands.
+
+**Messbefund der Verifikation V-141 bis V-144** (Schlussprüfung `8d79094`, Stand `v0.85.0`,
+gemessen im Verifikationsbericht): grün blieben ein Markdown-Link, dessen Text über einen
+Zeilenumbruch reicht (totes Ziel, toter Anker, Link aus `spec/` auf eine ADR; V-141), die
+Kennung `ADR-` in Inline-Code über einen Zeilenumbruch (V-142), Abschnitt und Anker nach einer
+Zeile `    ## …` in einem eingerückten Code-Block (V-143), ein Anker, den es nur als `<a id>`
+in einem HTML-Kommentar gibt (V-144). Grenzen des Gates, keine Zusage des Blocks mehr.
+
+**Block ohne Zusage (Entscheidung vom 2026-10-10).** Der Block in den drei Commands nennt die
+Regel, Kennungen (`LH-`, `ADR-`, `MR-`) als Anker-Links zu schreiben, dass `LH-` ohne Link
+noch nicht erzwungen ist (`slice-harness-lh-links-pflicht`), und dass `.d-check.yml` festlegt,
+was das Gate prüft, und `make docs-check` maßgeblich ist. Er sagt kein Verhalten des Gates zu,
+deshalb gibt es zu ihm keine Mutation (`AGENTS.md` §3.10 greift nur auf Zusagen); die Pflicht
+für `ADR-` belegt die Gegenprobe der Klasse `ids` oben. Inline-Code im Block steht je in einer
+Zeile. *Fundstellen:* `grep -rn "Strenges Doc-Gate"` über `.claude/`, `.harness/skills/` und
+`AGENTS.md` findet den Block nur in den drei Commands, dort nach dem Titel je mit demselben
+Wortlaut.
 
 **Freshness-Audit (DoD-Punkt 2).** `gh release list -R pt9912/ai-harness-course` am
 2026-10-09: neuester Tag `v6.17.0` (Latest, 2026-10-07), davor `v6.16.0` (2026-10-06, der

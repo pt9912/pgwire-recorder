@@ -57,8 +57,11 @@ vom 2026-10-09 *DoD berichtigen + eigener Slice*):
 - **Nebenbefund des Implementers des Gebers:** Der Block *Strenges Doc-Gate* in
   `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md` und
   `.claude/commands/close-welle.md` sagte Link-Pflicht für `LH-`, `ADR-` und `MR-` zu.
-  Der Geber fasst ihn auf das heute aktive Verhalten (sein DoD-Punkt 1, `AGENTS.md` §3.11);
-  dieser Slice zieht ihn auf das Verhalten nach, das er liefert.
+  Der Geber fasst ihn nach Entscheidung des Nutzers vom 2026-10-10 ohne Zusage über das
+  Verhalten des Gates (sein DoD-Punkt 1, `AGENTS.md` §3.11): Regel, Kennungen als Anker-Links
+  zu schreiben, `LH-` noch nicht erzwungen, `.d-check.yml` legt fest, `make docs-check` ist
+  maßgeblich. Ob dieser Slice dort wieder ein Verhalten zusagt (DoD-Punkt 3), ist beim
+  Übergang `open` → `next` zu entscheiden; mindestens fällt der Satz zu `LH-` weg.
 
 **Geschnitten am 2026-10-09** (Planner, Review F-556 zu `slice-harness-d-check-v0-85`): Mit
 der Schichtteilung in §8 berührte der Bestand in ADRs und in Nutzer- und Wartungs-Doku eine
@@ -172,8 +175,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): welle-v1-abschluss liegt in `done/`,
-`slice-harness-d-check-v0-85` liegt in `done/` (er liefert den Pin und die enge Fassung des
-Blocks *Strenges Doc-Gate*, die dieser Slice erweitert), und `slice-harness-lh-links-bestand`
+`slice-harness-d-check-v0-85` liegt in `done/` (er liefert den Pin und den Block *Strenges
+Doc-Gate* ohne Zusage über das Gate, den dieser Slice nachzieht), und `slice-harness-lh-links-bestand`
 liegt in `done/` (ADRs und Nutzer- und Wartungs-Doku verlinkt); WIP-Limit 1. Platz in der
 Harness-Reihe nach den Wellen (Drift-Log der Roadmap vom 2026-10-08): an ihrem Ende, nach
 `slice-harness-mutation`; ein Vorziehen entscheidet der Nutzer beim Übergang `open` → `next`.

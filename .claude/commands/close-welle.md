@@ -23,18 +23,10 @@ Wellen-Closure), Modul 7 (Carveouts), Modul 5 (Lifecycle). Bei Konflikt gilt der
 - **Docker-only + Gate-Nachweis/Stop-Hook.** Nur `make`-Targets; `make gates` endet mit
   `record-gates`. Jede Inhaltsänderung nach einem Gate-Lauf (inkl. Commit) macht den Stempel ungültig →
   nach dem Wave-Self-Close-Commit `make gates` grün bestätigen.
-- **Strenges Doc-Gate.** Zugesagt ist nur: `make docs-check` ist rot, wenn in einem
-  Absatz oder Listenpunkt, in einer Zeile ohne HTML-Kommentar, in `AGENTS.md` oder in einer `.md`
-  direkt unter `spec/`, `harness/`, `docs/plan/planning/` oder dessen `open/`, `next/`,
-  `in-progress/`, `done/` (die *genannten Orte*) die Zeichenfolge `ADR-` mit vier Ziffern als
-  Wort im Text steht, blank oder in Inline-Code, nicht in einem Link oder Bild, oder ein
-  Markdown-Link der Form `[Text](Pfad)`, nicht in Inline-Code, mit relativem Pfad auf eine
-  `.md`-Datei zeigt, die es nicht gibt, oder auf einen Anker, den es in einer `.md` der genannten
-  Orte nicht gibt. Andere Formen sagt dieser Block nicht zu; was das Gate genau prüft, legt
-  `.d-check.yml` fest. `LH-`-Kennungen ohne Link erzwingt das Gate noch nicht
-  (`slice-harness-lh-links-pflicht`). Als Regel, nicht als Befund des Gates: Kennungen immer als
-  Links auf ihre Definition schreiben. Die Results-Notiz liegt direkt unter `done/`, die
-  Roadmap in `in-progress/`.
+- **Strenges Doc-Gate.** Als Regel: Kennungen (`LH-`, `ADR-`, `MR-`) als Anker-Links
+  auf ihre Definition schreiben. `LH-`-Kennungen ohne Link erzwingt das Gate noch nicht
+  (`slice-harness-lh-links-pflicht`). Was das Gate prüft, legt `.d-check.yml` fest;
+  `make docs-check` ist maßgeblich.
 - **Neue Artefakte per `cp` aus den vendored Templates** — die Results-Notiz entsteht per `cp` aus
   `.harness/baseline/<tag>/templates/docs/plan/planning/welle-results.template.md` und wird danach
   ausgefüllt; die Welle-Datei bleibt Quelle der Plan-Struktur für alles, was das Template offenlässt.
