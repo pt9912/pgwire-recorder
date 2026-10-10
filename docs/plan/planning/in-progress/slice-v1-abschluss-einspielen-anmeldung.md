@@ -133,7 +133,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/postgres` | update | Anmeldung als Client im Aufbau von `play`: Klartext, MD5, SCRAM-SHA-256 ohne Channel Binding (neue Datei `anmeldung.go`, Standardbibliothek); nicht unterstützte Verfahren und Fehler im SCRAM-Austausch als `PGR-E4005`; ersetzt den Zwischenstand des Kerns; `Einspielziel` trägt das Passwort als `Passwort`, das bei keiner Formatierung ausgegeben wird |
+| `internal/adapters/driven/postgres` | update | Anmeldung als Client im Aufbau von `play`: Klartext, MD5, SCRAM-SHA-256 ohne Channel Binding (neue Datei `anmeldung.go`, Standardbibliothek); nicht unterstützte Verfahren und Fehler im SCRAM-Austausch als `PGR-E4005`; ersetzt den Zwischenstand des Kerns; `Einspielziel` trägt das Passwort als `Passwort`, das bei keiner Formatierung ausgegeben wird; `zugang` (und damit `anmeldung`) und `scramAustausch`, die es in einem unexportierten Feld halten, tragen ein eigenes `Format` |
 | `internal/adapters/driving/cli` | update | Passwort aus dem eingesetzten Platzhalter der benutzten Verbindung, sonst aus `PGWIRE_RECORDER_PASSWORD` (leer gilt als nicht gesetzt) in `PlayOptions.Passwort` (Typ `Passwort`, bei keiner Formatierung ausgegeben); Hilfetext von `play`; nie in Meldung oder Log |
 | `internal/bootstrap` | update | das Passwort an den Upstream-Adapter von `play` reichen (reine Verdrahtung, keine Schicht, Entscheidung des Nutzers vom 2026-10-10); der Kommentar von `play` nennt die Kopplung an die erste Meldung des gelieferten Fehlers (F-569 aus `slice-v1-abschluss-einspielen-laufsteuerung`) |
 | `test/integration`, `tools/test/run-integration-tests.sh` | update | der Runner legt auf der Instanz drei Benutzer mit `scram-sha-256`, `md5` und `password` in `pg_hba.conf` an und gibt ihre Passwörter an den Testlauf; neue Datei `play_anmeldung_e2e_test.go`: Happy/Negative nach LH-FA-20 gegen die reale Instanz |
@@ -275,19 +275,17 @@ an der genannten Stelle. Offen ist keine.
     bleibt ungültig (Test vorhanden).
   - Servernonce mit Zeichen außerhalb von `printable` (Leerzeichen, Steuerzeichen, Byte ab
     0x7F; `printable` = 0x21 bis 0x7E ohne 0x2C, RFC 5802 §7): `PGR-E4005`; neu in `LH-FA-20.a`
-    *SCRAM-Austausch* (Review F-593). **Der Code weicht ab** (`leseServerErste` erlaubt jedes
-    Zeichen außer dem Komma). **Auftrag:** `r=` zeichenweise prüfen; Test in
-    `TestScramServerErste` für `r=<Nonce>` plus Leerzeichen, plus Steuerzeichen (`\x01`),
-    plus Byte 0x80 und, als Gutfall, plus `/+=` (Zeichen des Base64-Alphabets); Mutation:
-    Prüfung entfernen (Test für Leerzeichen rot) und Grenze verschieben (`>= 0x20` statt
-    `>= 0x21`).
+    *SCRAM-Austausch* (Review F-593). `leseServerErste` prüft `r=` zeichenweise gegen 0x21 bis
+    0x7E; Test in `TestScramServerErste` für `r=<Nonce>` plus Leerzeichen, plus Steuerzeichen
+    (`\x01`), plus Byte 0x7F und 0x80, plus Zeilenumbruch und, als Gutfall, plus `/+=`
+    (Zeichen des Base64-Alphabets) sowie `!~`; Mutationen: Prüfung entfernen, untere Grenze
+    0x20, obere Grenze 0x7F und 0x7D, alle rot (§7).
   - Base64 mit gesetzten Restbits in `s=` und `v=` (`AB==`): angenommen; neu in `LH-FA-20.a`
     *SCRAM-Austausch* (Review F-593), Grund dort (die Grammatik `base64` der RFC lässt es zu,
-    die Signatur wird bytegenau geprüft). Der Code stimmt. **Auftrag:** je ein Test, der einen
-    Austausch gelingen lässt, dessen `s=` (Salz, das der Test dekodiert gleich rechnet) und
-    `v=` (Letztes Zeichen so ersetzt, dass die dekodierten Bytes gleich bleiben und die
-    Restbits gesetzt sind) nicht-kanonisches Base64 tragen; Mutation: `.Strict()` in
-    `dekodiereBase64` (beide Tests rot).
+    die Signatur wird bytegenau geprüft). Der Code stimmt. `TestAnmeldungScramSalzNichtKanonisch` und
+    `TestAnmeldungScramSignaturNichtKanonisch` lassen je einen Austausch gelingen, dessen
+    `s=` beziehungsweise `v=` im letzten Zeichen die Restbits trägt (dekodierte Bytes
+    gleich); Mutation: `.Strict()` in `dekodiereBase64` (beide Tests rot).
   - Fehler der Schlüsselableitung: `PGR-E4005`, der Code stimmt; akzeptiertes Negativ ohne
     Test, Grund: nur im FIPS-Modus der Go-Laufzeit möglich, kein Lauf der Gates setzt ihn;
     die Spezifikation nennt es als Grenze und sagt nicht zu, es sei geprüft (`AGENTS.md`
@@ -488,6 +486,47 @@ Abschnitts stehen im Bericht an den Reviewer.
 *Läufe der Nacharbeit.* Auf dem Stand `e74e2fe` (sauberer Baum): `make gates` grün, Exit-Code 0, 3 min 50 s (darin `make test`, `make test-integration`, `make lint`, `make abdeckung-check`). Die Mutanten der Nacharbeit liefen im Image `pgwire-recorder:test` mit der Kopie von `internal/` als Bind-Mount; die drei Einzel-Mutanten der Frage 1 und der Mutant `"00"` ohne `gofmt`-Prüfung, die übrigen vier mit `gofmt -l` leer und `go vet` ohne Befund. Das Gate-Ergebnis des Commits, der diese Zeile trägt, steht im Bericht an den Reviewer.
 
 *Fragen an den Architect (Randform · Frage), entschieden am 2026-10-10 (§6, Randformen aus der Rückgabe des Implementers).* Frage 1 bis 4 sind umgesetzt, jede mit einem Test, der sie festlegt, und einer roten Mutation (Tabelle, Zeilen *Nacharbeit*); Frage 5 bleibt ein akzeptiertes Negativ ohne Test.
+
+*Nacharbeit zum Review (F-591 bis F-596).*
+
+*F-591.* `fmt` ruft die Methode `Format` eines Felds nur, wenn es exportiert ist; `Passwort` in
+`zugang.passwort` und das `string`-Feld von `scramAustausch` gaben sich mit `%+v` preis. Gewählt ist der
+erste Weg (kleiner Diff, in der Datei `anmeldung.go`, keine Schicht, keine neue Randform): `zugang`
+und `scramAustausch` tragen ein eigenes `Format` mit festem Text; `anmeldung` bettet `zugang` ein und
+erbt es (ein eigenes `Format` an `anmeldung` war ein äquivalenter Mutant und ist entfernt). Der Kommentar
+am Typ `Passwort` nennt jetzt genau diese Typen. Klasse des Merkmals „Passwort in einem
+unexportierten Feld einer Struktur“: im Postgres-Adapter `zugang`, `anmeldung`, `scramAustausch`;
+`Einspielziel` und `cli.PlayOptions` halten es in einem exportierten Feld des Typs `Passwort` (Tests
+`TestAnmeldungOhneGeheimnis` letzte Schleife, `TestPlayOptionenOhnePasswort`, beide mit sieben Verben).
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `zugang` und `anmeldung` verraten das Passwort bei keiner Formatierung (`%v %+v %#v %s %q %x %d`, Wert, Zeiger, Liste, Abbildung) | `Format` an `zugang` entfernt | `TestAnmeldungStrukturenOhnePasswort/{zugang,anmeldung_Zeiger,anmeldung_Wert}` |
+| dieselbe, anderer Weg | `Format` an `zugang` gibt `z.passwort` aus | `TestAnmeldungStrukturenOhnePasswort/zugang` |
+| `anmeldung` hat das über `zugang` | `Format` an `anmeldung` gibt `a.passwort` aus (vor der Entfernung des eigenen `Format`) | `TestAnmeldungStrukturenOhnePasswort/anmeldung_*` |
+| `scramAustausch` verrät es bei keiner Formatierung | `Format` entfernt; `Format` gibt `s.passwort` aus | `TestAnmeldungStrukturenOhnePasswort/scramAustausch_{Zg.,Wert}` |
+
+*F-592.* §3 und §6 geprüft: die Zeile „Der Code weicht ab“ stand nur noch bei der Servernonce (F-593) und
+ist mit dieser Nacharbeit umformuliert; sonst keine Reste.
+
+*F-593 (Aufträge des Architect, `LH-FA-20.a` *SCRAM-Austausch*).*
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `r=` trägt nur Zeichen von 0x21 bis 0x7E | Prüfung entfernt (`if false`) | `TestScramServerErste/r_mit_{Leerzeichen,Leerzeichen_am_Ende,Steuerzeichen,Byte_0x7F,Byte_0x80,Zeilenumbruch}` |
+| untere Grenze 0x21 (Leerzeichen ist Fehler) | `< 0x20` | `…/r_mit_Leerzeichen`, `/r_mit_Leerzeichen_am_Ende` |
+| obere Grenze 0x7E (0x7F ist Fehler) | `> 0x7F` | `…/r_mit_Byte_0x7F` |
+| obere Grenze 0x7E (`~` ist gültig) | `> 0x7D` | `TestScramServerErste` (Gutfall `NONCE!~`, `NONCE/+=`) |
+| `s=` mit Restbits (`YR==` für `a`) wird angenommen | `.Strict()` in `dekodiereBase64` | `TestAnmeldungScramSalzNichtKanonisch` |
+| `v=` mit Restbits wird angenommen | `.Strict()` in `dekodiereBase64` | `TestAnmeldungScramSignaturNichtKanonisch` |
+
+*F-594.* Der Kommentar im E2E-Test beschreibt die Kopplung an das Verhalten des Servers (Review: ohne
+erwartete Aktion), kein Eingriff.
+*F-595.* `pg_reload_conf()` wirkt asynchron und der Runner wartet nicht darauf (in zwei Läufen des Reviews und in den Läufen dieser Nacharbeit nicht aufgetreten); kein Eingriff, als Beobachtung für die Closure vermerkt.
+*F-596.* Behoben: Der Fake-Server in `internal/bootstrap/play_anmeldung_test.go` meldet `keinPasswort`
+auf dem Kanal, wenn die Verbindung endet, bevor er ein Passwort las; der Mutant „Bootstrap reicht das
+Passwort nicht“ ist damit nach 0,01 s rot (vorher nach 120 s), die Frist von 30 s bleibt als Literal
+(`SPEC-038`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

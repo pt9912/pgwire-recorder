@@ -59,11 +59,13 @@ func anmeldeServer(t *testing.T, erwartet, verhalten string) (addr string, passw
 				_, _ = conn.Write(nachricht('R', 0, 0, 0, 3))
 				var kopf [5]byte
 				if _, err := io.ReadFull(conn, kopf[:]); err != nil {
+					pw <- keinPasswort
 					typen <- ""
 					return
 				}
 				rumpf := make([]byte, binary.BigEndian.Uint32(kopf[1:])-4)
 				if _, err := io.ReadFull(conn, rumpf); err != nil {
+					pw <- keinPasswort
 					typen <- ""
 					return
 				}
@@ -105,8 +107,13 @@ func anmeldeServer(t *testing.T, erwartet, verhalten string) (addr string, passw
 	return l.Addr().String(), pw, frei, typen
 }
 
+// keinPasswort meldet der Fake-Server statt des Passworts, wenn die Verbindung
+// endet, bevor er eines gelesen hat; der Test sieht es sofort statt nach der
+// Frist.
+const keinPasswort = "(Verbindung endete, bevor der Fake-Server ein Passwort las)"
+
 // anmeldePasswort wartet höchstens 30 s auf das Passwort, das der Fake-Server
-// gelesen hat.
+// gelesen hat, oder auf die Meldung keinPasswort.
 func anmeldePasswort(t *testing.T, pw <-chan string) string {
 	t.Helper()
 	select {

@@ -66,3 +66,30 @@ func LeseServerErste(nonce, text string) (servernonce string, salz []byte, itera
 func Md5Antwort(passwort, benutzer string, salz []byte) string {
 	return md5Antwort(passwort, benutzer, salz)
 }
+
+// ZugangMit liefert einen Zugang mit passwort.
+func ZugangMit(passwort string) any {
+	return zugang{passwort: Passwort(passwort)}
+}
+
+// AnmeldungMit liefert die Anmeldung eines Aufbaus mit passwort.
+func AnmeldungMit(passwort string) any {
+	return neueAnmeldung(map[string]string{"user": "u"}, zugang{passwort: Passwort(passwort)})
+}
+
+// ScramMit liefert einen SCRAM-Austausch mit passwort.
+func ScramMit(passwort string) any {
+	s, _ := neuerScramAustausch(passwort, nil)
+	return s
+}
+
+// ScramWertMit liefert den Austausch als Wert statt als Zeiger.
+func ScramWertMit(passwort string) any {
+	s, _ := neuerScramAustausch(passwort, nil)
+	return *s
+}
+
+// AnmeldungWertMit liefert die Anmeldung als Wert statt als Zeiger.
+func AnmeldungWertMit(passwort string) any {
+	return *neueAnmeldung(map[string]string{"user": "u"}, zugang{passwort: Passwort(passwort)})
+}

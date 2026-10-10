@@ -231,6 +231,12 @@ func TestScramServerErste(t *testing.T) {
 		{"s kein Base64", r + ",s=!!!,i=1", false},
 		{"s ohne Auffüllung", r + ",s=c2FsegA,i=1", false},
 		{"s mit Zeilenumbruch", r + ",s=c2Fs\negAB,i=1", false},
+		{"r mit Leerzeichen", "r=NONCEse rver," + s + ",i=1", false},
+		{"r mit Leerzeichen am Ende", "r=NONCEserver ," + s + ",i=1", false},
+		{"r mit Steuerzeichen", "r=NONCEse\x01rver," + s + ",i=1", false},
+		{"r mit Byte 0x7F", "r=NONCEserver\x7f," + s + ",i=1", false},
+		{"r mit Byte 0x80", "r=NONCEserver\x80," + s + ",i=1", false},
+		{"r mit Zeilenumbruch", "r=NONCEserver\n," + s + ",i=1", false},
 		{"r= fehlt", "x=NONCEserver," + s + ",i=1", false},
 		{"s= fehlt", r + ",x=c2FsegAB,i=1", false},
 		{"i= fehlt", r + "," + s + ",x=1", false},
@@ -247,6 +253,12 @@ func TestScramServerErste(t *testing.T) {
 				t.Fatalf("Nachricht angenommen: %q %q %d", servernonce, salz, n)
 			}
 		})
+	}
+	for _, nonce := range []string{"NONCE/+=", "NONCE!~", "NONCE" + "\x21" + "\x7e"} {
+		servernonce, _, _, grund := postgres.LeseServerErste("NONCE", "r="+nonce+","+s+",i=1")
+		if grund != "" || servernonce != nonce {
+			t.Errorf("Servernonce %q abgelehnt oder falsch gelesen: %q %q", nonce, servernonce, grund)
+		}
 	}
 	if _, _, n, _ := postgres.LeseServerErste("NONCE", gut("i=10000000")); n != 10_000_000 {
 		t.Errorf("Iterationen %d, erwartet 10000000", n)
@@ -272,8 +284,15 @@ func anmScramRunde(t *testing.T, passwort string, salz []byte, iterationen int, 
 // anmScramRundeFuer rechnet die Runde für die Nonce nonce von play.
 func anmScramRundeFuer(t *testing.T, nonce, passwort string, salz []byte, iterationen int, serverTeil string) scramRunde {
 	t.Helper()
+	return anmScramRundeSalzText(t, nonce, passwort, salz, b64(salz), iterationen, serverTeil)
+}
+
+// anmScramRundeSalzText rechnet die Runde, deren erste Nachricht das Salz als
+// salzText schreibt; salzText dekodiert zu salz.
+func anmScramRundeSalzText(t *testing.T, nonce, passwort string, salz []byte, salzText string, iterationen int, serverTeil string) scramRunde {
+	t.Helper()
 	servernonce := nonce + serverTeil
-	erste := fmt.Sprintf("r=%s,s=%s,i=%d", servernonce, b64(salz), iterationen)
+	erste := fmt.Sprintf("r=%s,s=%s,i=%d", servernonce, salzText, iterationen)
 	ohneBeweis := "c=biws,r=" + servernonce
 	auth := "n=,r=" + nonce + "," + erste + "," + ohneBeweis
 	gesalzen, err := pbkdf2.Key(sha256.New, passwort, salz, iterationen, 32)
@@ -934,6 +953,36 @@ func TestAnmeldungOhneGeheimnis(t *testing.T) {
 	for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%q", "%x"} {
 		if got := fmt.Sprintf(verb, ziel) + fmt.Sprintf(verb, *ziel); strings.Contains(got, "GEHEIM") || strings.Contains(strings.ToLower(got), "47454845494d7077") {
 			t.Errorf("%s des Einspielziels nennt das Passwort: %s", verb, got)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-20/Negative — zugang, anmeldung und scramAustausch, die das
+// Passwort in einem unexportierten Feld halten, geben es bei keiner
+// Formatierung aus (%v, %+v, %#v, %s, %q, %x, %d), als Wert, als Zeiger und in
+// einer Liste (LH-FA-20.a *Passwort*).
+func TestAnmeldungStrukturenOhnePasswort(t *testing.T) {
+	werte := map[string]any{
+		"zugang":              postgres.ZugangMit("GEHEIMpw"),
+		"anmeldung Zeiger":    postgres.AnmeldungMit("GEHEIMpw"),
+		"anmeldung Wert":      postgres.AnmeldungWertMit("GEHEIMpw"),
+		"scramAustausch Zg.":  postgres.ScramMit("GEHEIMpw"),
+		"scramAustausch Wert": postgres.ScramWertMit("GEHEIMpw"),
+	}
+	for name, w := range werte {
+		t.Run(name, func(t *testing.T) { strukturOhnePasswort(t, name, w) })
+	}
+}
+
+// strukturOhnePasswort formatiert w mit jedem Verb, einzeln, in einer Liste und
+// in einer Abbildung, und meldet jede Ausgabe, die das Passwort nennt.
+func strukturOhnePasswort(t *testing.T, name string, w any) {
+	t.Helper()
+	for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%q", "%x", "%d"} {
+		for _, got := range []string{fmt.Sprintf(verb, w), fmt.Sprintf(verb, []any{w}), fmt.Sprintf(verb, map[string]any{"k": w})} {
+			if strings.Contains(got, "GEHEIM") || strings.Contains(strings.ToLower(got), "47454845494d") {
+				t.Errorf("%s mit %s nennt das Passwort: %s", name, verb, got)
+			}
 		}
 	}
 }

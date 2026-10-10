@@ -23,12 +23,27 @@ import (
 
 // Passwort ist das Passwort der Anmeldung am Server (LH-FA-20.a *Passwort*).
 // Jede Formatierung gibt festen Text aus, nie den Wert: Ein Aufruf mit %v, %+v,
-// %#v, %s oder %q auf einem Wert, der ein Passwort trägt, verrät es nicht.
+// %#v, %s, %q oder %x auf einem Passwort, auf einem Einspielziel, einem Zugang,
+// einer Anmeldung oder einem SCRAM-Austausch, auch über einen Zeiger, verrät es
+// nicht. Die Strukturen, die das Passwort in einem Feld halten, tragen ein
+// eigenes Format, weil fmt die Methode eines unexportierten Felds nicht ruft.
 type Passwort string
 
 // Format gibt für jedes Verb den festen Text aus.
 func (Passwort) Format(f fmt.State, _ rune) {
 	_, _ = io.WriteString(f, "***")
+}
+
+// Format gibt für jedes Verb den festen Text aus, nie das Passwort. anmeldung
+// bettet zugang ein und erbt diese Methode.
+func (zugang) Format(f fmt.State, _ rune) {
+	_, _ = io.WriteString(f, "zugang{***}")
+}
+
+// Format gibt für jedes Verb den festen Text aus, nie das Passwort, die Nonce
+// oder die erwartete Signatur.
+func (scramAustausch) Format(f fmt.State, _ rune) {
+	_, _ = io.WriteString(f, "scramAustausch{***}")
 }
 
 // Codes der Anmelde-Nachricht R (LH-FA-20.a *Anmelde-Nachrichten*):
@@ -310,9 +325,11 @@ func (s *scramAustausch) pruefeAbschluss(vomServer string) error {
 }
 
 // leseServerErste liest die erste Nachricht des Servers: genau r=, s= und i= in
-// dieser Reihenfolge, durch Komma getrennt. r= beginnt mit nonce und ist
-// länger, s= ist gültiges Base64 (auch leer), i= eine Dezimalzahl aus Ziffern
-// ohne führende Null von 1 bis iterationenMax. Bei einem Fehler nennt grund ihn, sonst ist er "".
+// dieser Reihenfolge, durch Komma getrennt. r= beginnt mit nonce, ist länger
+// und trägt nur Zeichen von 0x21 bis 0x7E (printable in RFC 5802, das Komma
+// trennt schon), s= ist gültiges Base64 (auch leer), i= eine Dezimalzahl aus
+// Ziffern ohne führende Null von 1 bis iterationenMax. Bei einem Fehler nennt
+// grund ihn, sonst ist er "".
 func leseServerErste(nonce, text string) (servernonce string, salz []byte, iterationen int, grund string) {
 	teile := strings.Split(text, ",")
 	if len(teile) != 3 {
@@ -327,6 +344,11 @@ func leseServerErste(nonce, text string) (servernonce string, salz []byte, itera
 	if !strings.HasPrefix(r, nonce) || len(r) <= len(nonce) {
 		return "", nil, 0, "Nonce des Servers beginnt nicht mit der eigenen oder ist nicht länger"
 	}
+	for i := 0; i < len(r); i++ {
+		if r[i] < 0x21 || r[i] > 0x7E {
+			return "", nil, 0, "Nonce des Servers trägt ein Zeichen außerhalb der druckbaren ASCII-Zeichen"
+		}
+	}
 	salz, gueltig := dekodiereBase64(s)
 	if !gueltig {
 		return "", nil, 0, "Salz des Servers ist kein Base64"
@@ -338,8 +360,9 @@ func leseServerErste(nonce, text string) (servernonce string, salz []byte, itera
 	return r, salz, n, ""
 }
 
-// dekodiereBase64 dekodiert gültiges Base64 mit Auffüllung; Zeilenumbrüche, die
-// die Bibliothek überliest, gehören nicht zum Alphabet.
+// dekodiereBase64 dekodiert gültiges Base64 mit Auffüllung, auch mit gesetzten
+// Restbits (AB==); Zeilenumbrüche, die die Bibliothek überliest, gehören nicht
+// zum Alphabet.
 func dekodiereBase64(text string) ([]byte, bool) {
 	if strings.ContainsAny(text, "\r\n") {
 		return nil, false
