@@ -408,6 +408,61 @@ einer ohne Code, hinge `model.Meldungen` ihn als Ursache an die erste klassifizi
 Ausschluss, oder braucht `LH-FA-20.a` *Exit-Code* eine Zeile dazu? — Entschieden in §6,
 akzeptiertes Negativ (e).
 
+**Nacharbeit zum Review** (Report vom 2026-10-10 am Stand `5d22326`; Code-Commit `eda0bc9`):
+
+*Weg der Mutanten.* Wie oben, aber je Mutant eine Kopie des ganzen Arbeitsbaums per `cp -r`
+ohne `-p`, genau eine Ersetzung in `internal/hexagon/services/play.go` (gofmt-sauber, die Stufe
+`test` meldet keine Datei), dann `make test` und `make test-integration` in der Kopie; die
+Kopien danach gelöscht, `docker ps -a`, `docker network ls` und `docker volume ls` mit `pgr`
+danach leer. In beiden Läufen jedes Mutanten ist nur der neue Test rot, kein anderer.
+
+| Zusage (§6) | Mutation | roter Test |
+|---|---|---|
+| Das zweite Signal ist auch mit `--finish-session-on-interrupt` kein Fehler; frühere `PGR-E4004` bleiben die einzigen Meldungen (*Fehlerantwort vor dem zweiten Signal*; `LH-FA-20.a` *Abbruchsignal*) | M1 des Review: `if abbruch.Err() != nil && !s.optionen.FinishSessionOnInterrupt {` | `TestPlayZweitesSignalFinishSession/in_der_Interaktion` (`PGR-E4003` „geschlossen“, Exit-Code 4 statt 0), `/nach_früherem_Fehler` (`PGR-E4003` vor `PGR-E4004`), `/im_Aufbau` (`PGR-E4002`, Exit-Code 4 statt 0); E2E `TestE2EPlayZweitesSignal/mit_Option` (Exit-Code 4 mit Zeile `PGR-E4003` statt 0), `/mit_Option_nach_früherem_Fehler` (Zeile `PGR-E4003` vor `PGR-E4004`) |
+| Das zweite Signal schließt die Verbindung auch mit `--finish-session-on-interrupt` sofort (`LH-FA-20.a` *Abbruchsignal*) | M19 des Review: `stop := func() bool { return true }` und `context.AfterFunc(abbruch, us.Schliesse)` nur ohne `FinishSessionOnInterrupt` | `TestPlayZweitesSignalFinishSession/in_der_Interaktion`, `/nach_früherem_Fehler` („Play endet binnen 30 s nach dem zweiten Signal nicht“); E2E `TestE2EPlayZweitesSignal/mit_Option`, `/mit_Option_nach_früherem_Fehler` („play endet binnen 10 s nach dem zweiten Signal nicht“, die Anfrage `pg_sleep(30)` läuft weiter) |
+
+Grün bleiben unter beiden Mutanten `TestE2EPlayZweitesSignal/ohne_Option` (die Mutanten wirken nur
+mit der Option) und unter M19 `TestPlayZweitesSignalFinishSession/im_Aufbau` (der Aufbau endet
+über den Kontext, nicht über `Schliesse`). `/im_Aufbau` wird unter M1 rot; den Fall ohne
+Option hält im Unit-Test der Bestand `TestPlayZweitesSignal`. Das E2E-Paar wartet erst auf die Zeile zum Abbruchsignal und sendet dann
+das zweite Signal, sonst fiele es im Kanal von `main` mit dem ersten zusammen; danach beendet
+der Test die Anfrage `pg_sleep` am Server, die das Schließen der Verbindung überlebt.
+
+*Hilfe (F-565).* `--continue-on-error` sagt keinen Exit-Code mehr zu, nur die Fortsetzung mit der
+nächsten Anfrage (`TestPlayFortsetzung`, `TestE2EPlayFortsetzung`); `--allow-recorded-errors` nennt
+nur eine Fehlerantwort mit dem Schweregrad `ERROR` als „kein Fehler“, wenn die aufgezeichnete
+Anfrage eine trägt (`TestPlayErwarteterFehler`, `TestE2EPlayErwarteterFehler`; `FATAL` bleibt
+`PGR-E4003`, `/FATAL`). Den Wortlaut prüft kein Test; `TestParsePlayHilfe` prüft Optionen und
+Umgebungsvariablen und bleibt unverändert.
+
+*Handbuch und README (F-566).* Benutzerhandbuch §4 *Hinweise*: Mit `--continue-on-error` Exit-Code
+4, nach einem abbrechenden `PGR-E6001` oder `PGR-E4003` dessen Exit-Code (6 bzw. 4,
+`TestE2EPlayFortsetzungAbbruch`); `--allow-recorded-errors` für `ERROR`, `FATAL` bricht ab
+(`TestPlayErwarteterFehler/FATAL`); das zweite Signal schließt sofort, auch mit
+`--finish-session-on-interrupt`, die Unterbrechung ist kein Fehler, Exit-Code 0 bzw. 4 nach
+früherem Fehler (`TestE2EPlayZweitesSignal`, `TestE2EPlayFinishSession`). Ein Beispiel zu den drei
+Optionen führt das Handbuch nicht. `README.md` *Was kann ich heute tun?*: `play` spielt einfache
+Anfragen gegen eine Datenbank ohne Passwort und ohne TLS ein, Abbruch nach einer Fehlerantwort
+(`TestE2EPlayFehlerantwort`), `--continue-on-error` und `--finish-session-on-interrupt` (E2E oben);
+eine Aufzeichnung mit vorbereiteten Anweisungen spielt es nicht ein (`TestE2EPlayZwischenstand`).
+Für Passwort-Anmeldung, TLS und Antwortvergleich bei `play` sagt der geänderte Absatz nichts
+zu; die Beschreibung des Zielstands unter *Was ist pgwire-recorder?* („vergleicht auf Wunsch“)
+bleibt stehen. Die Aussage zu
+§4 im Absatz *Handbuch und Hilfe* oben galt am Stand `1b63ef8` nicht; sie gilt ab `eda0bc9`.
+
+*F-567* zur Kenntnis: Der Code-Commit `1b63ef8` änderte den Kommentar des Ports `Player`, Kopf und
+§1 zogen erst `ee23fad` nach. Diese Nacharbeit zieht §1 und §3 im Code-Commit `eda0bc9` mit.
+
+*Randformen.* Die Nacharbeit entscheidet keine Randform; §6 ist unverändert. Die neuen Tests
+prüfen *Fehlerantwort vor dem zweiten Signal* und *Abbruchsignal* aus `LH-FA-20.a` mit der Option.
+
+*Läufe.* Am Arbeitsbaum vor dem Commit: `make test` grün, `make test-integration` grün (darunter
+`TestE2EPlayZweitesSignal` mit allen drei Unterfällen), `make abdeckung` geschrieben, `make
+kopf-check` und `make docs-check` grün. `make gates` am sauberen Stand `eda0bc9`: grün (Exit-Code
+0; `make test-integration` „run-integration-tests: gruen“, `make lint` und `make lint-gegenprobe`
+grün, d-check 445 Dateien ohne Befund, `make a-check` 0 Befunde, die Gegenproben grün); nach den
+Mutanten-Läufen in den Kopien baut er die Images aus dem Arbeitsbaum neu.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
