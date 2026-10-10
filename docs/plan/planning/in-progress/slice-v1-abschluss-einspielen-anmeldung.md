@@ -157,6 +157,7 @@ Kern, besonders gegen die Form, in der der Kern den Aufbau in `Open` einstuft
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer
   Review-Sitzung prüfbar. Schnitt dann: Klartext und MD5 hier, SCRAM-SHA-256 als eigener
   Slice; jedes Verfahren wirkt für sich, beide Teile sind einzeln lieferbar. Der Schnitt senkt die Zahl der Schichten nicht (§8).
+  Ebenso zurück, sobald Logik in `internal/bootstrap` hineinkommt (mehr als das Reichen des Passworts und der Kommentar): Der Bootstrap zählt dann als dritte Schicht (§8, `AGENTS.md` §3.13).
 - `in-progress` → `open` (blockiert — Carveout?): SCRAM-SHA-256 lässt sich mit
   `pgproto3` und der Standardbibliothek nicht bauen und verlangt eine weitere Bibliothek im
   Upstream-Adapter; dann zuerst die Entscheidung (ADR) und die Regel in `.a-check.yml`. Geprüft vom
@@ -237,7 +238,8 @@ an der genannten Stelle. Offen ist keine.
     und fehlendes `SCRAM-SHA-256` sind `PGR-E4005` ohne Senden; kein Wechsel des Verfahrens.
   - Nachrichten des Austauschs: Aufbau und Reihenfolge von Server-erste-Nachricht
     (`r=`, `s=`, `i=`, nichts sonst), Servernonce (Präfix der eigenen Nonce, länger), Salz
-    (Base64), Iterationszahl (1 bis 10 000 000, Grenze mit Grund in der Spezifikation),
+    (Base64), Iterationszahl (1 bis 10 000 000, Grenze mit Grund in der Spezifikation;
+    vom Nutzer am 2026-10-10 bestätigt, bleibt),
     Abschluss (`v=` allein); `e=`, falsche Signatur, jede unvorgesehene Nachricht im
     Austausch `PGR-E4005`; weitere Fortsetzung nach dem Abschluss `PGR-E4002`; weitere
     Anforderung nach einer Antwort außerhalb des Austauschs `PGR-E4002`.
@@ -334,17 +336,14 @@ Nachgezählt beim Eintragen von F-568 und F-569 aus `slice-v1-abschluss-einspiel
 (2026-10-10, `AGENTS.md` §3.13): Die Bindung ist eine Randform in DoD-Punkt 2, der Kommentar im
 Bootstrap eine Zeile in einer Datei, die §3 schon führt; drei Liefer-Punkte, zwei Schichten nach
 der Teilung dieses Plans (CLI-Adapter, Upstream-Adapter; der Bootstrap reicht weiter, §1). Der
-Geber zählt den Bootstrap als eigene Schicht (dort §1, Schicht-Abgrenzung); nach dessen Teilung
-berührt dieser Plan schon ohne die Sendungen drei Schichten
-(`BEO-REPO/schichtteilung-je-plan-verschieden`, 2×). Die Teilung prüft der Architect vor dem
-ersten Code-Commit (§4 *Start*).
+Bootstrap zählt nur mit Logik, reine Verdrahtung nicht (Entscheidung des Nutzers vom
+2026-10-10, `AGENTS.md` §3.13); hier ist er Verdrahtung, also zwei Schichten, ohne die Sendungen
+und mit ihnen (`BEO-REPO/schichtteilung-je-plan-verschieden`, verkörpert).
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-einspielen-anmeldung-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 2. Schichten: zwei Schichten nach der Teilung dieses Plans (Upstream-Adapter, CLI-Adapter; der Bootstrap reicht weiter, §1; die Zeile oben nennt die Zählung mit dem Bootstrap als eigener Schicht).
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-einspielen-anmeldung-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 2. Schichten: zwei Schichten nach der Teilung dieses Plans (Upstream-Adapter, CLI-Adapter; der Bootstrap reicht weiter, §1; der Bootstrap zählt als reine Verdrahtung nicht, siehe die Entscheidung unten).
 
-Stand vor dem Beanspruchen (2026-10-10, Closure von `slice-v1-abschluss-einspielen-extended-doku`, ohne Schnitt): Die Tabelle in §3 führt den Upstream-Adapter, den CLI-Adapter und `internal/bootstrap` mit je einer eigenen Änderung (das Reichen des Passworts und den Kommentar zur Kopplung aus F-569), dazu Tests. Nach der Zählung in `AGENTS.md` §3.13 (im Produkt-Code zählt jede Schicht des Hexagons) sind das drei Schichten, nach der Teilung dieses Plans (der Bootstrap reicht weiter, §1) zwei; Liefer-Punkte: 2. Ob der Plan über der Grenze liegt, entscheidet der Architect vor dem ersten Code-Commit (§4 *Start*); der Schnitt, falls nötig, steht in §4 (Klartext und MD5 hier, SCRAM-SHA-256 als eigener Slice).
-
-Prüfung des Architect vor dem ersten Code-Commit (2026-10-10, `AGENTS.md` §3.13): Der Slice ändert Upstream-Adapter, CLI-Adapter und `internal/bootstrap` (ein Feld reichen, ein Kommentar). Zählt der Bootstrap wie in `slice-v1-abschluss-einspielen-laufsteuerung` und `slice-v1-abschluss-einspielen-extended` als Schicht, sind es drei Schichten, über der Grenze; nach dem Wortlaut („jede Schicht des Hexagons“, der Bootstrap steht in `.a-check.yml` unter `composition_root`, nicht unter `layers`) zwei. Der Schnitt in §4 (Klartext und MD5 hier, SCRAM-SHA-256 eigener Slice) senkt die Schichten nicht: Beide Teile brauchen CLI-Adapter, Upstream-Adapter und Bootstrap; er senkt nur den Umfang des Diffs. Die Zählung des Bootstrap entscheidet der Nutzer; bis dahin beginnt der Implementer keinen Code.
+Entscheidung des Nutzers zur Schichtzählung (2026-10-10, nach Prüfung des Architect vor dem ersten Code-Commit, `AGENTS.md` §3.13): Der Bootstrap (`internal/bootstrap`, `composition_root` in `.a-check.yml`) zählt nur dann als Schicht, wenn er Logik enthält; reine Verdrahtung (ein Feld durchreichen, ein Kommentar) ist keine Schicht. Dieser Slice ändert dort das Reichen des Passworts und den Kommentar zur Kopplung aus F-569: Verdrahtung. Schichten: zwei (Upstream-Adapter, CLI-Adapter); Liefer-Punkte: 2; der Plan liegt nicht über der Grenze, der Implementer beginnt nach §4 *Start*. Der Schnitt in §4 (Klartext und MD5 hier, SCRAM-SHA-256 eigener Slice) bleibt Rückführung, nicht Plan. Kommt Logik in den Bootstrap, geht der Slice nach §4 zurück. Die Obergrenze der SCRAM-Iterationen von 10 000 000 (§6) ist vom Nutzer bestätigt und bleibt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

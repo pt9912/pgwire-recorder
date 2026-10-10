@@ -343,6 +343,16 @@ Wartungs-Doku (`docs/user/`, `docs/maintainer/`, `README.md`) ist eine Schicht, 
 (Pläne, Roadmap, Register) keine; im Produkt-Code zählt jede Schicht des Hexagons, ebenso ihre
 Tests. Liegt ein Slice mit seinem Handbuch- und README-Teil über zwei Schichten, geht dieser
 Teil in einen eigenen Slice `<Kennung>-doku` direkt hinter ihm (§3.11).
+Der Bootstrap (`internal/bootstrap`, `composition_root`) zählt nur dann als Schicht, wenn er
+Logik enthält; reine Verdrahtung (ein Feld durchreichen, ein Kommentar) ist keine Schicht
+(seit slice-v1-abschluss-einspielen-anmeldung, Entscheidung des Nutzers vom 2026-10-10).
+Kommt Logik hinein (Datei lesen, Fehler einstufen, verzweigen), zählt er, und der Plan prüft
+die Grenze neu.
+
+**Falsch:** Ein Plan zählt den Bootstrap für das Reichen eines Feldes als dritte Schicht, ein
+anderer für dieselbe Änderung nicht.
+**Richtig:** Verdrahtung zählt nicht; liest der Bootstrap eine Datei oder stuft er einen
+Fehler ein, zählt er.
 
 **Falsch:** Ein Plan schreibt „Handbuch und README zählen als Dokumentation, nicht als Schicht“
 und bleibt mit zwei Code-Schichten bei zwei.
@@ -352,6 +362,7 @@ Doku-Folge-Slice ab.
 **Begründung:** Geber und Nehmer zählten im selben Commit mit verschiedenen Teilungen
 (`BEO-REPO/schichtteilung-je-plan-verschieden`). Entfernen oder Lockern setzt den
 Retirement-Check voraus: Ist die Beobachtung seit slice-doku-ist-stand wieder aufgetreten?
+Für die Zählung des Bootstrap gilt derselbe Check seit slice-v1-abschluss-einspielen-anmeldung.
 
 **Falsch:** Die siebte Übernahme wandert in einen vorhandenen Liefer-Punkt; der Nehmer
 bleibt bei drei Punkten und berührt vier Schichten, die Größe findet erst die Prüfung des
