@@ -277,6 +277,86 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Stand und Läufe.** Code- und Test-Stand: Commit `1d045fa` (Code, Tests, Plan §3) und `a9bc23a` (Abdeckungstabelle); auf `a9bc23a` lief `make gates` grün (Exit 0; darin `make test`, `make test-integration`, `make lint`, `make lint-gegenprobe`, `make a-check`, `make a-check-negativ`, `make kopf-check`, `make docs-check`, `make abdeckung-check`). Danach kamen `TestEinspielGruppeSchliesseVerwirftWarteschlange`, die Abdeckungstabelle dazu und dieser Abschnitt; der Lauf von `make gates` auf dem Commit, der sie trägt, steht mit Hash im Bericht (ein Commit kann seinen eigenen Hash nicht nennen). `make abdeckung` hat die Tabellen geschrieben. Größe des Diffs gegen `b23ff2c`: rund 1500 Zeilen eingefügt, rund 100 geändert oder entfernt, davon rund 1150 Zeilen in neuen Testdateien. Integrationslauf mit eigenem Netz und Container, vom Runner entfernt.
+
+**Mutationen.** Jede Mutation lief in einer frischen Kopie (`cp -r` ohne `-p`, gofmt-sauber, eine Änderung je Kopie), die Unit-Mutationen über `go test` im Image der Stufe `deps`, die Integrations-Mutationen über einen Build der Stufe `integration` der Kopie. Rot heißt: der genannte Test schlägt an der genannten Stelle fehl (Ablauf der Aufrufe weicht ab, Meldung oder Bytes weichen ab); keine Gesamtfrist trägt eine Zeile außer den ausdrücklich genannten Hänge-Fällen.
+
+*Warten innerhalb einer Extended-Interaktion (Service, `play.go`)* — jede Bedingung eine Zeile:
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| auf `Describe` einer Anweisung zwei Antworten | `n += 2` → `n++` | `TestPlayExtendedWarten` |
+| ebenso gegen den echten Server: nicht mehr als zwei | `n += 2` → `n += 3` | `TestE2EPlayExtended` (hängt, Frist 30 s) |
+| auf `Flush` keine Antwort | `Flush` zählt eine | `TestPlayExtendedNurFlush`, `TestPlayExtendedWarten`, `TestPlayExtendedAndereArt` |
+| ebenso gegen den echten Server | `Flush` zählt eine | `TestE2EPlayExtended` (hängt, Frist 30 s) |
+| auf `Parse` eine Antwort | `Parse` zählt keine | `TestPlayExtendedWarten` |
+| auf `Bind` eine Antwort | `Bind` zählt keine | `TestPlayExtendedWarten` |
+| auf `Close` eine Antwort | `Close` zählt keine | `TestPlayExtendedWarten` |
+| auf `Execute` eine Antwort | `Execute` zählt keine | `TestPlayExtendedWarten`, `TestPlayExtendedAndereArt` |
+| auf `Describe` eines Portals eine Antwort | `Describe` zählt keine (Anweisung eingeschlossen) | `TestPlayExtendedWarten` |
+| `DataRow` zählt nicht | `DataRow` zählt | `TestPlayExtendedWarten` |
+| `NoticeResponse` zählt nicht | `NoticeResponse` zählt | `TestPlayExtendedWarten` |
+| `ParameterStatus` zählt nicht | `ParameterStatus` zählt | `TestPlayExtendedWarten` |
+| die aufgezeichneten Server-Nachrichten bestimmen das Warten nicht | `n := len(g.Server)` | `TestPlayExtendedWarten`, `TestPlayExtendedAndereArt` |
+| eine Antwort anderer Art ändert das Warten nicht | `PortalSuspended` wird nicht gezählt | `TestPlayExtendedAndereArt` |
+| nach `Flush` wird gewartet, bevor die nächste Gruppe geht | kein Warten nach `Flush` | `TestPlayExtendedWarten` |
+| ebenso | die nächste Gruppe geht vor dem Lesen der Gruppe | `TestPlayExtendedWarten` |
+| nach `Sync` wird bis zum `ReadyForQuery` gelesen, ehe die nächste Interaktion beginnt | nach der letzten Gruppe kein Lesen | `TestPlayExtendedWarten`, `TestPlayExtendedAndereArt` |
+| `Gruppe` und `Naechste` liefern ihre Fehler weiter | Fehler von `Gruppe` ignoriert; Fehler von `Naechste` ignoriert | `TestPlayExtendedSendenLesenScheitert` (je Mutation) |
+| einfache Anfrage und Extended-Interaktion laufen nacheinander in einer Session | `Extended` wird wie eine einfache Anfrage gesendet | `TestPlayExtendedWarten`, `TestPlayExtendedGemischt` |
+| der Zwischenstand (`PGR-E6001` für Extended) entfällt | die Prüfung des Startfehlers wird wieder eingebaut | `TestPlayExtendedWarten`, `TestPlayStart` |
+
+*Fehler, Fortsetzung, erwarteter Fehler, Signal (Service)*:
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| ohne Optionen bricht eine Fehlerantwort ab: keine weitere Antwort gelesen | nach dem Fehler wird bis `ReadyForQuery` gelesen | `TestPlayExtendedFehlerBrichtAb` |
+| ebenso: keine weitere Gruppe gesendet | nach dem Fehler werden die übrigen Gruppen gesendet | `TestPlayExtendedFehlerBrichtAb` |
+| mit `--continue-on-error` zählt `play` nach der Fehlerantwort nicht mehr (übrige Gruppen ohne Warten dazwischen) | der Fehler beendet das Zählen nicht | `TestPlayExtendedFortsetzung` |
+| ebenso: danach wird bis `ReadyForQuery` gelesen, ehe die nächste Interaktion beginnt | nach einem Fehler kein Lesen bis `ReadyForQuery` | `TestPlayExtendedFortsetzung` |
+| erwarteter Fehler: error_response in der ersten Gruppe der Aufzeichnung | nur die erste Gruppe wird geprüft (kein Treffer in der mittleren und der letzten) | `TestPlayExtendedErwarteterFehler` |
+| ebenso: in der letzten Gruppe | nur die letzte Gruppe wird geprüft | `TestPlayExtendedErwarteterFehler` |
+| ebenso: in irgendeiner Gruppe, nicht nur in `Responses` | die Gruppen werden nicht geprüft | `TestPlayExtendedErwarteterFehler` |
+| `FATAL`/`PANIC` ist `PGR-E4003`, auch wenn der Fehler erwartet wäre | die Prüfung von `FATAL` entfällt; sie steht hinter der des erwarteten Fehlers | `TestPlayExtendedFatal` (je Mutation) |
+| Abbruchsignal: die Extended-Interaktion läuft bis zu ihrem `ReadyForQuery` | `ctx` wird zwischen den Gruppen geprüft | `TestPlayExtendedSignal` |
+
+*Port-Operation `Gruppe` (Adapter, `einspielen.go`)*:
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `Gruppe` kehrt zurück, ohne auf das Senden zu warten | `Gruppe` sendet selbst | `TestEinspielGruppeUnabhaengig` (Frist 5 s) |
+| ebenso gegen die Instanz mit großer Gruppe (Gegendruck) | `Gruppe` sendet selbst | `TestE2EPlayExtendedGegendruck` (hängt, Frist 60 s) |
+| das Lesen ist unabhängig vom Senden | `Naechste` hält die Sperre des Sendens | `TestEinspielGruppeUnabhaengig`, `TestEinspielGruppeNachrichten` |
+| mehrere Gruppen gehen in der Reihenfolge der Aufrufe | die Warteschlange wird rückwärts abgearbeitet | `TestEinspielGruppeNachrichten`, `TestEinspielGruppeUnabhaengig` |
+| ein Parameter mit `Null` ist SQL-NULL | `Null` wird zu leer | `TestEinspielGruppeNachrichten` |
+| ein leerer Wert ist leer, nicht NULL (Bytes nil und leer) | leere Bytes werden zu NULL | `TestEinspielGruppeNachrichten` |
+| `param_formats` unverändert | `ParameterFormatCodes: nil` | `TestEinspielGruppeNachrichten` |
+| `result_formats` unverändert | `ResultFormatCodes: nil` | `TestEinspielGruppeNachrichten` |
+| `Execute` mit `max_rows` | `MaxRows` entfällt | `TestEinspielGruppeNachrichten` |
+| Zielart von `Describe` und `Close` | `S` und `P` vertauscht | `TestEinspielGruppeNachrichten` |
+| Namen von Anweisung und Portal wie aufgezeichnet | Portal und Anweisung in `Bind` vertauscht; `ParameterOIDs` in `Parse` entfällt | `TestEinspielGruppeNachrichten` (je Mutation) |
+| Sendefehler ist `PGR-E4003` aus `Naechste`, auch wenn es wartet | `Naechste` fragt den Fehler nach dem Lesefehler nicht ab | `TestEinspielGruppeSendefehler` |
+| ebenso: Naechste liest nicht weiter, wenn die Antwort schon bereitliegt | `Naechste` fragt den Fehler vor dem Lesen nicht ab | `TestEinspielGruppeSendefehler` |
+| ebenso: die nächste Gruppe liefert den Fehler | `Gruppe` fragt den Fehler nicht ab | `TestEinspielGruppeSendefehler` |
+| ein Sendefehler schließt die Verbindung, ein wartendes `Naechste` endet | der Sender schließt nicht | `TestEinspielGruppeSendefehler`, `TestEinspielGruppeSchliesseBeimSenden` (Frist 5 s) |
+| `Schliesse` beendet den Sender (Sender läuft nicht weiter) | `Schliesse` schließt `ende` nicht | `TestEinspielGruppeSchliesseBeendetSender` |
+| `Schliesse` wartet nicht auf das Senden und schreibt kein `Terminate` dazwischen | `Schliesse` nimmt die Sperre mit `Lock` statt `TryLock` | `TestEinspielGruppeSchliesseBeimSenden`, `TestEinspielSchliesseBeimSenden` (Frist 5 s) |
+| ein Fehler nach `Schliesse` bleibt ohne Folge | der Sender merkt auch nach `Schliesse` einen Fehler | `TestEinspielGruppeSchliesseBeimSenden` |
+| nach `Schliesse` nimmt die Session keine Gruppe mehr an | die Prüfung entfällt | `TestEinspielGruppeSchliesseBeimSenden` |
+| `Schliesse` verwirft die eingereihten Gruppen: der Sender schreibt nach `Schliesse` nichts mehr | die Prüfung von `geschlossen` vor dem Senden entfällt | `TestEinspielGruppeSchliesseVerwirftWarteschlange` |
+
+**Grüne Mutanten.** Keiner, der in den Zeilen oben fehlt; jeder gefahrene Mutant war rot. Nicht gegen den echten Server gezeigt: Eine Fehlerantwort in einer `Flush`-Gruppe (die Fehlerfälle gegen die Instanz enden in der `Sync`-Gruppe, weil `pgx` so sendet); sie ist nur im Unit-Test belegt (`TestPlayExtendedFortsetzung`, `TestPlayExtendedFehlerBrichtAb`); die Mutation `n = 0` → `n--` im Zählen blieb in `TestE2EPlayExtendedFehler` grün, weil dort kein Fehler in einer `Flush`-Gruppe steht, und ist im Unit-Test rot (Zeile *mit `--continue-on-error` zählt `play` nicht mehr*).
+
+**Gegendruck-Szenario (DoD Punkt 2).** `TestE2EPlayExtendedGegendruck`: eine `Sync`-Gruppe mit 32 MB Ausgabe, dann 16 MB Parameter, eine `Flush`-Gruppe mit verzögerter 32-MB-Ausgabe vor einer `Sync`-Gruppe; Frist des Laufs 60 s als Literal (`starteBisFrist`); die Datenbank trägt danach die Länge des Parameters und 7. Der Lauf dauert gegen die Instanz rund 2 s; mit synchron sendendem `Gruppe` hängt er (Zeile oben).
+
+**Randformen.** Keine neu entschieden. Bei der Umsetzung angefallen, ohne eine Randform aus §6 zu berühren, und dem Architect zur Kenntnis: (1) Eine Client-Nachricht, die sich nicht abbilden lässt (Zielart außer `statement` und `portal`, unbekannter Typ), liefert `Gruppe` als `PGR-E1000` und sendet nichts von der Gruppe; `Validate` lässt sie beim Laden nie durch (`TestEinspielGruppeNichtAbbildbar`). (2) Ein `ReadyForQuery` in einer `Flush`-Gruppe zählt wie jede andere Antwort (§6, akzeptiertes Negativ: „wartet wie auf jede Antwort“). (3) Die Warteschlange der Gruppen im Adapter ist unbegrenzt; sie hält nur Verweise auf die geladene Aufzeichnung.
+
+**Gelaufene Sensoren, die nicht Teil von `make gates` sind.** `make abdeckung` (Tabellen geschrieben und von `make abdeckung-check` im Gate bestätigt); die Mutationen oben. Nicht gelaufen und für diesen Slice nicht berührt: `make a-check-graph`, `make doc-trace` (Werkzeuge, kein Gate).
+
+**Offen für die Closure.** Die zwei Risiken aus §6 tragen noch keinen Ausgang. Zu *Warten nach `Flush` gegen den echten Server*: Gegen PostgreSQL 17 (gepinntes Image) laufen die Pipeline mit `Prepare` + `Flush` und das Gegendruck-Szenario durch; die Tabelle der Antworten stimmte dort für `Parse`, `Describe` einer Anweisung (zwei Antworten) und `Execute`; für `Bind`, `Close` und `Describe` eines Portals in einer `Flush`-Gruppe gibt es keinen Lauf gegen den Server (nur Unit-Tests gegen die Tabelle). Zu *Port ist Teil des Diffs*: Der Diff berührt Play-Service, Port und Upstream-Adapter.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

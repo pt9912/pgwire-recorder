@@ -454,3 +454,48 @@ func TestEinspielGruppeSchliesseBeendetSender(t *testing.T) {
 	}
 	empfangen(t, ergebnis)
 }
+
+// warteAufKeinenSender wartet höchstens 5 s darauf, dass kein Sender mehr
+// läuft; sonst endet der Test mit meldung.
+func warteAufKeinenSender(t *testing.T, meldung string) {
+	t.Helper()
+	bis := time.Now().Add(5 * time.Second)
+	for senderZahl() != 0 {
+		if time.Now().After(bis) {
+			t.Fatalf("%s: %d Sender laufen binnen 5 s weiter", meldung, senderZahl())
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// Abdeckung: LH-FA-20/Boundary — Schliesse verwirft die eingereihten Gruppen:
+// Nach Schliesse sendet der Sender keine weitere Gruppe, auch wenn das Senden der
+// laufenden erst danach gelingt (LH-FA-20.a *Gruppen*).
+func TestEinspielGruppeSchliesseVerwirftWarteschlange(t *testing.T) {
+	warteAufKeinenSender(t, "Sender früherer Tests")
+	angefangen, frei := make(chan struct{}), make(chan struct{})
+	var einmal sync.Once
+	conn := neueSteuerConn(func(b []byte) (int, error) {
+		einmal.Do(func() { close(angefangen) })
+		<-frei
+		return len(b), nil
+	})
+	s := postgres.NeueEinspielSession(conn)
+	if err := gruppeBinnen(t, s, "erste Gruppe", model.ClientMessage{Type: model.ClientSync}); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-angefangen:
+	case <-time.After(5 * time.Second):
+		t.Fatal("die erste Gruppe beginnt binnen 5 s nicht zu senden")
+	}
+	if err := gruppeBinnen(t, s, "zweite Gruppe hinter der sendenden", model.ClientMessage{Type: model.ClientFlush}); err != nil {
+		t.Fatal(err)
+	}
+	s.Schliesse()
+	close(frei)
+	warteAufKeinenSender(t, "nach Schliesse")
+	if schreibt, _ := conn.zaehler(); schreibt != 1 {
+		t.Fatalf("%d Schreibvorgänge, erwartet 1: Schliesse verwirft die zweite Gruppe", schreibt)
+	}
+}
