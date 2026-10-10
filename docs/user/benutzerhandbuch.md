@@ -40,7 +40,7 @@ CI-Systemen ausführen.
   Passwort anmeldet. Verlangt sie ein Passwort, beendet `record` die Verbindung
   Ihrer Anwendung mit `PGR-E6001`.
 * Zum Einspielen: eine erreichbare PostgreSQL-Datenbank. Verlangt sie ein Passwort,
-  nennen Sie es `play` (siehe [Konfigurationsdatei](#konfigurationsdatei)).
+  nennen Sie es `play` (siehe [Einstellungen](#5-einstellungen)).
 * Zum Bauen: Docker und GNU `make`. Zum Ausführen: Linux auf der Architektur des
   Rechners, auf dem Sie gebaut haben, oder ein Container-Laufzeitsystem (siehe
   [Installation](#2-installation)).
@@ -300,7 +300,7 @@ Komponente zu testen, die Änderungen der Datenbank verarbeitet (Change Data Cap
 Eine Aufzeichnung liegt vor, und die Zieldatenbank ist
 erreichbar. Verlangt sie ein Passwort (Klartext, MD5 oder SCRAM-SHA-256), nennen Sie
 es `play` über den Platzhalter der Verbindung oder die Umgebungsvariable
-`PGWIRE_RECORDER_PASSWORD` (siehe [Konfigurationsdatei](#konfigurationsdatei)). Der
+`PGWIRE_RECORDER_PASSWORD` (siehe [Einstellungen](#5-einstellungen)). Der
 Benutzer und die Datenbank aus der Aufzeichnung existieren dort oder Sie geben sie
 ausdrücklich an.
 
