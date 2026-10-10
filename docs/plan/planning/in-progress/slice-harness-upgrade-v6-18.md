@@ -420,6 +420,11 @@ stehen hier die Belege des Implementers.
   steht kein `CO-<NNN>`; die sechs Pflicht-Header-Felder der Regel stehen in der Vorlage
   (Status, Datum angelegt, Letzte Prüfung, Betroffenes Gate, Geltungsbereich, Folge-Slice).
   Kein Fund.
+- *Gate-Lauf:* `make gates` auf sauberem Baum nach Commit 3 (`0e61bed`): Exit 0; darin
+  `baseline-verify: v6.18.0 OK — 54 Dateien` und `d-check: 473 Datei(en) geprüft, 0 Befund(e)`.
+  Der Diff trägt keine Mutation: Er ändert keinen Wächter und liefert keinen Vertrag; die
+  Gegenprobe der Baseline-Verifikation ist der Tausch selbst (alter Baum entfernt, `v6.18.0` OK).
+  Der Endstand nach dem Commit dieser Zeile ist ein weiterer `make gates`-Lauf (nur §7 geändert).
 - *Verweisprobe:* `grep "v6\.16\.0"` über `AGENTS.md`,
   `README.md`, `harness/` (ohne `harness/conventions/done/` und die Zeile `MR-001`), `.claude/`,
   `.harness/skills/`, `tools/`, `Makefile`, `*.mk`, `spec/` ist leer;
