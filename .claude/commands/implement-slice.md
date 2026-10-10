@@ -144,6 +144,13 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     Ein Satz, der unverändert bleibt und unmittelbar neben einem neuen Satz über denselben
     Gegenstand steht, liest sich für dessen Fall mit: Er bekommt eine Probe oder einen Test für
     diesen Fall oder wird enger gefasst (seit slice-v1-abschluss-einspielen-extended-doku).
+    Die Befehlsfolge aus `done/slice-doku-ist-stand.md` §7 (Optionen, Variablen und Codes des
+    Handbuchs gegen `--help` und Katalog) bleibt dort eingefroren und meldet
+    `PGWIRE_RECORDER_PASSWORD` bei jedem Lauf (Variable ohne Option, Handbuch §5). Der Plan, der
+    sie fährt, nennt diese Ausnahme und zieht die Variable in der Variablen-Zeile ab
+    (`comm -23 $W/v-hb $W/v-help | grep -vx PGWIRE_RECORDER_PASSWORD`); jede andere Variable ohne
+    Option bleibt ein Befund, und „grün“ ohne die benannte Ausnahme steht nicht im Plan
+    (seit slice-v1-abschluss-einspielen-anmeldung-doku).
 18. Die Pre-completion-Checkliste laufen: die DoD Punkt für Punkt **behaupten** und die
     **Sensor-Belege** anhängen — `make gates` **und die Nicht-Gate-Sensoren, die den Slice
     betreffen** (die dein Repo führt — z. B. ein Mutations-Sensor, wenn Wächter neu/geändert sind;
