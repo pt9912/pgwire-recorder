@@ -1514,10 +1514,15 @@ offenlässt.
   Anweisung `ParameterDescription` und danach `RowDescription` oder `NoData`, auf
   `Describe` eines Portals `RowDescription` oder `NoData`, auf `Execute`
   `CommandComplete`, `EmptyQueryResponse` oder `PortalSuspended`; auf `Flush` nichts.
-  Die aufgezeichneten Server-Nachrichten der Gruppe bestimmen das Warten nicht. Nach
+  Die aufgezeichneten Server-Nachrichten der Gruppe bestimmen das Warten nicht. Gezählt
+  wird je Antwort, nicht je Art: Eine Antwort anderer Art als erwartet ändert das Warten
+  nicht, und `DataRow`, `NoticeResponse` und `ParameterStatus` zählen nicht. Nach
   einer `ErrorResponse` wartet `play` in dieser Interaktion nur noch auf das
   `ReadyForQuery` nach ihrem `Sync`; läuft das Einspielen weiter, sendet es die
-  übrigen Gruppen ohne Warten dazwischen.
+  übrigen Gruppen ohne Warten dazwischen. Das Senden einer Gruppe und das Lesen der
+  Antworten laufen unabhängig voneinander: Ein Server, der erst weiterliest, wenn seine
+  Antworten abgenommen sind, blockiert `play` auch bei einer Gruppe nicht, deren
+  Nachrichten und Antworten groß sind. Scheitert das Senden, gilt *Interaktion*.
 * *Interaktion.* Jede andere Server-Nachricht wird gelesen und verworfen, auch
   `NoticeResponse`, `ParameterStatus` und `NotificationResponse`. `CopyInResponse`,
   `CopyOutResponse`, `CopyBothResponse` und eine Nachricht, die sich nicht lesen lässt,
@@ -2680,3 +2685,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Einspielen: eine Interaktion einer Art, die `play` nicht einspielt, ist beim Start `PGR-E6001` mit Exit-Code `6`, ohne Verbindung für irgendeine Session; Meldung mit `id`, `sequence` und Art der ersten, nach einem Ladefehler (`LH-FA-20.a`, `SPEC-034`) |
 | 2026-10-09 | Einspielen: Aufbau vom Verbindungsversuch bis zum ersten `ReadyForQuery`, gescheitertes Senden darin `PGR-E4002`, abschließende Liste der Nachrichten im Aufbau (`BackendKeyData`, `ParameterStatus`, `NoticeResponse`, `NotificationResponse` verworfen, `ReadyForQuery` vor `AuthenticationOk` `PGR-E4002`); Anmelde-Nachrichten nach ihrem Code (Anforderung, Fortsetzung, `R` nach `AuthenticationOk`); Abbruch im Aufbau ohne `Terminate`; zweites Signal im Aufbau ohne `Terminate`, kein Fehler (`LH-FA-20.a`) |
 | 2026-10-10 | Einspielen: Zeilen `error` nach dem Ende des Einspielens, der abbrechende Fehler zuerst, danach die früheren Fehlerantworten in der Reihenfolge ihres Auftretens, `time` als Zeitpunkt des Schreibens, keine gleichrangigen Fehler; Fehlerantwort vor dem zweiten Signal ist eine Zeile; Exit-Code aus der Klasse der ersten Zeile, ein abbrechender Fehler nach dem ersten Signal mit dem Code seiner Klasse; Fehlerregeln in der zu Ende laufenden Session, keine Session nach dem Signal (`LH-FA-20.a`) |
+| 2026-10-10 | Einspielen: Extended-Interaktionen, Randformen vor dem Code (Zählen der Antworten einer `Flush`-Gruppe je Antwort und nicht je Art; Senden einer Gruppe und Lesen der Antworten unabhängig voneinander, kein Verklemmen bei großen Gruppen) (`LH-FA-20.a`) |

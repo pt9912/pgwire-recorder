@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md), [ADR-0017](../../adr/0017-einspielen-sequenziell-und-fehlersemantik.md)
+**Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md), [ADR-0012](../../adr/0012-extended-query-gruppen.md), [ADR-0017](../../adr/0017-einspielen-sequenziell-und-fehlersemantik.md)
 
-**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-18.a` · `SPEC-034` · `SPEC-041` · `ARC-002` · `ARC-007`
+**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-18.a` · `SPEC-034` · `SPEC-041` · `ARC-002` · `ARC-004` · `ARC-007`
 
 **Verantwortlich:** pt9912
 
@@ -102,7 +102,9 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       nach `Flush` auf die Antwort jeder Client-Nachricht der Gruppe, nicht auf die
       aufgezeichneten Server-Nachrichten; ein Abbruch nach `PGR-E4004` sendet keine weitere
       Gruppe und schließt mit `Terminate`; ein Abbruchsignal endet nach dem `ReadyForQuery`
-      der laufenden Extended-Interaktion (Test).
+      der laufenden Extended-Interaktion; eine Gruppe, deren Nachrichten und Antworten größer
+      sind als die Puffer der Verbindung, verklemmt nicht (Test, Gegendruck-Szenario gegen die
+      Instanz).
 - [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): Mit `--continue-on-error` wartet `play` nach einer Fehlerantwort in einer
       Extended-Interaktion nur noch auf deren `ReadyForQuery`, sendet die übrigen Gruppen wie
       aufgezeichnet ohne Warten und endet mit Exit-Code 4; mit `--allow-recorded-errors` gilt
@@ -127,8 +129,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/postgres` | update | die Client-Nachrichten einer Gruppe senden und die Antworten bis `ReadyForQuery` beziehungsweise bis zur Antwort jeder Client-Nachricht der Gruppe lesen |
-| `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driven` | update | Gruppen einer Extended-Interaktion, Warten nach `Sync` und `Flush`, Abbruch, Fortsetzung, erwarteter Fehler und Signal innerhalb der Interaktion; der Startfehler für Extended-Interaktionen entfällt |
+| `internal/adapters/driven/postgres` | update | die Client-Nachrichten einer Gruppe nebenläufig zum Lesen senden (§6, *Senden und Lesen unabhängig*) |
+| `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driven` | update | neue Operation `Gruppe` am Port; Gruppen einer Extended-Interaktion, Zählen der Antworten je Gruppe, Warten nach `Sync` und `Flush`, Abbruch, Fortsetzung, erwarteter Fehler und Signal innerhalb der Interaktion; der Startfehler für Extended-Interaktionen entfällt |
 | `internal/hexagon/services` (Tests), `internal/adapters/driven/postgres` (Tests) | update | Warten je Gruppenende, Fehler in der ersten und in einer späteren Gruppe, Signal innerhalb der Interaktion, je Zusage eine Mutation |
 | `test/integration` | update | Extended-Szenario nach LH-FA-20 und LH-FA-18; die Tests des Kerns zum Zwischenstand *Aufzeichnung mit Extended-Interaktion* ändern |
 
@@ -193,6 +195,50 @@ genannten Stelle. Offen ist keine.
 - **Fortsetzung bei einer Extended-Interaktion** [L·E] — der Server verwirft bis `Sync`, die
   übrigen Gruppen ohne Warten, Rest der Interaktion wie aufgezeichnet, Exit-Code 4 am Ende
   nach einem `PGR-E4004`; bestätigt, `LH-FA-20.a` Schritt 6 und *Gruppen*.
+- **Zählen der Antworten einer `Flush`-Gruppe** [E] — je Antwort, nicht je Art: `Describe`
+  einer Anweisung zählt zwei, `Flush` keine; `DataRow`, `NoticeResponse`, `ParameterStatus`
+  und `NotificationResponse` zählen nicht; eine Antwort anderer Art als erwartet ändert das
+  Warten nicht; eine `ErrorResponse` beendet das Zählen der Interaktion. Neu entschieden in
+  `LH-FA-20.a` *Gruppen* (Commit der Prüfung vom 2026-10-10).
+- **Senden und Lesen unabhängig** [E] — Option A (gewählt): `Gruppe` am Port beginnt das Senden
+  der Gruppe und kehrt zurück; ein Fehler des Sendens kommt als `PGR-E4003` aus `Naechste`
+  oder der nächsten Operation, `Schliesse` beendet den Sender, und ein Fehler danach bleibt
+  ohne Folge; Nebenläufigkeit je Verbindung ist Sache des Adapters
+  ([ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md), dort Kontext und Option E), der
+  Service zählt und entscheidet. Verworfen: B, `Gruppe` sendet vor dem Lesen — ein
+  `pgx`-Batch ist eine `Sync`-Gruppe, und sind Eingabe und Ausgabe größer als die Puffer,
+  steht das Senden am Server und `play` wartet ohne eigene Frist; C, ein Puffer für die
+  Antworten — der Speicher wächst mit der Ausgabe ([ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md), Option B). Neu entschieden in
+  `LH-FA-20.a` *Gruppen*; mit [ADR-0017](../../adr/0017-einspielen-sequenziell-und-fehlersemantik.md)
+  vereinbar, das die Anfragen und Sessions nacheinander festlegt, nicht Senden und Lesen
+  innerhalb einer Interaktion. Die Gleichzeitigkeitszusage im Kommentar des Ports ändert sich
+  mit (`AGENTS.md` §3.11).
+- **Parameterwerte, Formate und Namen** [E] — wie aufgezeichnet gesendet: `Null` ist
+  SQL-NULL (Länge −1), ein leerer Wert ist ein leerer Wert, nicht NULL, gleich ob die
+  geladenen Bytes `nil` oder leer sind; `param_formats` und `result_formats` unverändert,
+  auch leer; benannte und unbenannte Anweisung und Portal wie aufgezeichnet. Entschieden in
+  `SPEC-041` und `SPEC-003`. Passt eine Anzahl nicht, entscheidet der Server (`PGR-E4004`).
+- **Erwarteter Fehler über alle Gruppen** [L·E] — `mitFehlerantwort` prüft auch die
+  Server-Nachrichten der Gruppen, nicht nur `Responses` (siehe oben, *Erwarteter Fehler
+  „in jeder Gruppe“*).
+- **Bestätigt ohne Änderung** [E], `LH-FA-20.a` *Interaktion*: `FATAL`/`PANIC` in einer Gruppe
+  `PGR-E4003` sofort; `CopyInResponse`, `CopyOutResponse`, `CopyBothResponse` oder eine nicht
+  lesbare Nachricht in einer Gruppe `PGR-E6001`; `NoticeResponse`, `ParameterStatus`,
+  `NotificationResponse` zwischen Antworten gelesen und verworfen; Verbindungsende in einer
+  Gruppe `PGR-E4003`.
+- **Akzeptierte Negative** (kein Code, kein Test; Grund je Punkt): *leere Gruppe*,
+  *Gruppe ohne Client-Nachricht* und *Gruppe mit `Sync` mitten in der Interaktion* — `Validate`
+  weist sie beim Laden ab (`PGR-E3003`), `play` sieht sie nie. *`CopyData` des Clients* — das
+  Format kennt keine solche Nachricht. *Anweisung über Sessions wiederverwenden* — jede Session
+  trägt ihr `Parse` selbst; fehlt es nach einem Fehler, antwortet der Server (`26000`,
+  `PGR-E4004`) wie bei jedem Fehler. *Vorbereitete Anweisung ohne `Close`* — `Terminate` und
+  das Verbindungsende räumen sie. *Pipelining über das `Sync` hinaus* — die aufgezeichnete
+  Folge nach einem `Sync` gehört zur nächsten Interaktion (`LH-FA-18.a`); `play` wartet vor ihr
+  auf das `ReadyForQuery` ([ADR-0017](../../adr/0017-einspielen-sequenziell-und-fehlersemantik.md)), die Wirkung auf dem Server ist dieselbe. *`ReadyForQuery`
+  in einer `Flush`-Gruppe* — ein Server sendet es ohne `Sync` nicht, ein Protokollbruch; `play`
+  wartet wie auf jede Antwort ohne Frist, das zweite Signal beendet es. *Antwort anderer Art
+  als erwartet* — gezählt wird je Antwort. *Serverversion* —
+  `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, Referenzversion 17.
 - **Ablösung des Zwischenstands *Aufzeichnung mit Extended-Interaktion*** — bis zu diesem
   Slice ist eine Extended-Interaktion ein Startfehler `PGR-E6001` (§6 von
   `slice-v1-abschluss-einspielen`, *Zwischenstand*, allgemein gefasst in `LH-FA-20.a` *Art
@@ -209,9 +255,9 @@ genannten Stelle. Offen ist keine.
   (`LH-FA-20.a` *Interaktion*). Belegbar nur gegen einen echten Server, und nur gegen die
   Referenzversion 17 (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, §8) —
   **Ausgang:** offen bis Closure.
-- Braucht das Senden einer Gruppe eine neue Operation am Upstream-Port, ist der Port Teil
-  des Diffs; er zählt mit dem Play-Service als eine Schicht wie im Kern (§6 dort, *Größe*),
-  sonst wären es drei — **Ausgang:** offen bis Closure.
+- Das Senden einer Gruppe braucht eine neue Operation am Upstream-Port (`Gruppe`, entschieden
+  oben); der Port ist Teil des Diffs und zählt mit dem Play-Service als eine Schicht wie im
+  Kern (§6 dort, *Größe*), sonst wären es drei — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
