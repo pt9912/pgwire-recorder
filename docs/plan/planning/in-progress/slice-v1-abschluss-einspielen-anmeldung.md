@@ -551,6 +551,8 @@ Zähler: 85 Unit-Mutanten in der Zählung der Zeile *Weg der Mutanten* (84 + die
 
 Nicht gefunden: nichts außer den zwei Tests, die jetzt stehen (V-162). Gegenstände, die der Plan als Mutation nennt und die keine Repo-Namen sind (`RawStdEncoding`, `strings.EqualFold`, `shutil.copyfile`), sind keine Zusagen über Code und wurden nicht gesucht. Commit-Hashes im Plan wurden nicht gegen `git` geprüft.
 
+*Läufe der Nacharbeit zur Verifikation.* Auf dem Stand `63e312d` (sauberer Baum): `make gates` grün, Exit-Code 0, 4 min 17 s (darin `make test`, `make test-integration`, `make lint`, `make lint-gegenprobe`, `make abdeckung-check`). Die Mutation lief in einer frischen Kopie im Image `pgwire-recorder:test` ohne Netz. Das Gate-Ergebnis des Commits, der diese Zeile trägt, steht im Bericht.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
