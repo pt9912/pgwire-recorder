@@ -1507,14 +1507,20 @@ offenlässt.
   Schreibweise; fehlt es in der Liste, auch bei leerer Liste und bei nur
   `SCRAM-SHA-256-PLUS`, ist das `PGR-E4005` ohne Senden. Eine weitere Anforderung der
   Codes 3, 5 oder 10, nachdem `play` eine beantwortet hat, ist außerhalb des
-  SCRAM-Austauschs `PGR-E4002`.
+  SCRAM-Austauschs `PGR-E4002`, auch wenn sich ihr Rest nicht lesen ließe (der Code
+  bestimmt die Art, den Rest liest `play` dann nicht). Eine Anforderung eines Verfahrens,
+  das `play` nicht unterstützt, auch eines unbekannten Codes, bleibt nach einer Antwort
+  `PGR-E4005`: Sie gehört nicht zu den drei Codes.
 * *SCRAM-Austausch.* Nach RFC 5802 und RFC 7677 ohne Channel Binding. Die erste Nachricht
   (`SASLInitialResponse`, Verfahren `SCRAM-SHA-256`) trägt den Kopf `n,,`, den Benutzer
   `n=` leer (der Server nimmt den der Startup-Daten) und eine Nonce aus 18 Zufallsbytes,
   Base64 kodiert. Die Fortsetzung des Servers (Code 11) besteht genau aus `r=`, `s=` und
   `i=` in dieser Reihenfolge, durch Komma getrennt, ohne weiteres Attribut und ohne Zeichen
-  dahinter. `r=` beginnt mit der Nonce von `play` und ist länger; `s=` ist gültiges Base64;
-  `i=` ist eine Dezimalzahl aus Ziffern ohne Vorzeichen von 1 bis 10 000 000 (Grenze: Eine
+  dahinter. `r=` beginnt mit der Nonce von `play` und ist länger; `s=` ist gültiges Base64, auch leer
+  (RFC 5802 erlaubt es, und ein Server, der ein leeres Salz nennt, könnte ebenso eine
+  Iteration wählen: die Annahme schwächt nichts); `i=` ist eine Dezimalzahl aus Ziffern
+  ohne Vorzeichen und ohne führende Null (`posit-number` in RFC 5802, `i=0004096` ist
+  ein Fehler im Austausch) von 1 bis 10 000 000 (Grenze: Eine
   höhere Zahl ist ein Fehler im Austausch, damit die Berechnung, die kein Signal
   unterbricht, nur Sekunden dauert). Die Antwort (`SASLResponse`) trägt `c=biws`, die
   Nonce des Servers und den Beweis. Der Abschluss des Servers (Code 12) ist genau `v=` und
@@ -1522,7 +1528,9 @@ offenlässt.
   Signatur, ein anderer Aufbau, auch `e=`, ist ein Fehler im Austausch. Ein Fehler im
   Austausch ist `PGR-E4005`, auch die Nachricht, die an dieser Stelle nicht vorgesehen ist:
   ein Code 12 vor Code 11, ein Code 11 nach der Antwort, `AuthenticationOk` vor Code 12, eine
-  Anforderung der Codes 3, 5 oder 10. Eine Fehlerantwort, ein `ReadyForQuery` und die
+  Anforderung der Codes 3, 5 oder 10. Lässt sich der Schlüssel nicht ableiten, was nur im
+  FIPS-Modus der Go-Laufzeit vorkommt, ist das `PGR-E4005` (Grenze: ohne Test, weil kein
+  Lauf ohne die Laufzeit-Einstellung es erreicht). Eine Fehlerantwort, ein `ReadyForQuery` und die
   verworfenen Nachrichten behandelt der Austausch wie sonst der Aufbau (*Aufbau*); mit
   dem Abschluss ist der Austausch beendet, eine weitere Fortsetzung danach ist
   `PGR-E4002` (*Anmelde-Nachrichten*). Ein Signal im Austausch gilt wie im Aufbau
@@ -2733,3 +2741,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-10 | Einspielen: Zeilen `error` nach dem Ende des Einspielens, der abbrechende Fehler zuerst, danach die früheren Fehlerantworten in der Reihenfolge ihres Auftretens, `time` als Zeitpunkt des Schreibens, keine gleichrangigen Fehler; Fehlerantwort vor dem zweiten Signal ist eine Zeile; Exit-Code aus der Klasse der ersten Zeile, ein abbrechender Fehler nach dem ersten Signal mit dem Code seiner Klasse; Fehlerregeln in der zu Ende laufenden Session, keine Session nach dem Signal (`LH-FA-20.a`) |
 | 2026-10-10 | Einspielen: Extended-Interaktionen, Randformen vor dem Code (Zählen der Antworten einer `Flush`-Gruppe je Antwort und nicht je Art; Senden einer Gruppe und Lesen der Antworten unabhängig voneinander, kein Verklemmen bei großen Gruppen) (`LH-FA-20.a`) |
 | 2026-10-10 | Einspielen: Anmeldung, Randformen vor dem Code (Passwort aus Verbindung oder Umgebung ohne Mischen, kein Passwort und nichts Abgeleitetes in Meldung, Log und Ursachenkette, Aufbau der Anforderungen Klartext, MD5 und SASL, Wahl von `SCRAM-SHA-256`, Aufbau der Nachrichten und Grenzen des SCRAM-Austauschs, Iterationszahl bis 10 000 000, Nachricht an unvorgesehener Stelle im Austausch `PGR-E4005`, weitere Anforderung nach einer Antwort `PGR-E4002`) (`LH-FA-20.a`) |
+| 2026-10-10 | Einspielen: Anmeldung, Randformen aus der Rückgabe des Implementers (zweite Anforderung auch nicht lesbar `PGR-E4002`, zweite Anforderung eines nicht unterstützten Verfahrens `PGR-E4005`, leeres Salz gültig, Iterationszahl ohne führende Null, Fehler der Schlüsselableitung `PGR-E4005` als Grenze ohne Test) (`LH-FA-20.a`) |

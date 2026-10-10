@@ -257,6 +257,27 @@ an der genannten Stelle. Offen ist keine.
   - Frist: keine eigene beim Warten auf die Anmeldung (*Interaktion*, *Aufbau*); die
     Berechnung von SCRAM ist nicht unterbrechbar und durch die Obergrenze der Iterationen auf
     Sekunden begrenzt (akzeptiertes Negativ, Grund in der Spezifikation).
+- **Randformen aus der Rückgabe des Implementers (§7, Fragen 1 bis 5)**, vom Architect am
+  2026-10-10 vor dem Review entschieden [A], neu in `LH-FA-20.a` *Verfahren* und
+  *SCRAM-Austausch*:
+  - Zweite Anforderung, auch nicht lesbar (Code 5 mit drei Byte Salz nach einer Antwort):
+    `PGR-E4002`, der Code bestimmt die Art; der Code stimmt. **Auftrag:** ein Test, der es
+    festlegt; Mutation: Lesbarkeit vor `beantwortet` prüfen.
+  - Zweite Anforderung eines nicht unterstützten Verfahrens (Code 7, unbekannter Code) nach
+    einer Antwort: `PGR-E4005`; der Code stimmt. **Auftrag:** ein Test; Mutation:
+    `beantwortet` vor dem Verfahren prüfen.
+  - Leeres Salz (`s=`): gültig. Der Code stimmt. **Auftrag:** ein Test, der einen Austausch
+    mit leerem Salz gelingen lässt (Berechnung mit leerem Salz gegen einen Vektor aus
+    `hashlib`, nicht aus dem Code); Mutation: leeres Salz ablehnen.
+  - Iterationszahl mit führender Null (`i=0004096`, auch `i=01`): `PGR-E4005`
+    (`posit-number` in RFC 5802). **Der Code weicht ab** (`leseIterationen` nimmt sie an).
+    **Auftrag:** Code ändern, Test in `TestScramServerErste` für `i=0004096` und `i=01`;
+    Mutation: Prüfung auf die führende Null entfernen. Der Zeilenumbruch in `s=` und `v=`
+    bleibt ungültig (Test vorhanden).
+  - Fehler der Schlüsselableitung: `PGR-E4005`, der Code stimmt; akzeptiertes Negativ ohne
+    Test, Grund: nur im FIPS-Modus der Go-Laufzeit möglich, kein Lauf der Gates setzt ihn;
+    die Spezifikation nennt es als Grenze und sagt nicht zu, es sei geprüft (`AGENTS.md`
+    §3.11).
 - **Bibliothek für SCRAM** — entschieden: Standardbibliothek (`crypto/pbkdf2`, `crypto/hmac`,
   `crypto/sha256`, `crypto/md5`, `crypto/rand`), keine weitere Bibliothek. Die SCRAM-Teile
   von `pgconn` sind nicht exportiert, `pgproto3` stellt nur die Nachrichten
