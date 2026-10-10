@@ -61,6 +61,15 @@ ist jede Passwort-Anforderung des Servers bei `play` ein nicht unterstütztes Ve
 (`PGR-E4005`, nichts gesendet), und `PGWIRE_RECORDER_PASSWORD` bleibt unbeachtet
 (Zwischenstand in §6 jenes Slice); diesen Zwischenstand ersetzt dieser Slice.
 
+**Aus `slice-v1-abschluss-einspielen-laufsteuerung`** (Review F-568 und F-569 jenes Slice):
+
+- die Bindung an den Vertrag der Ports `Einspielziel` und `EinspielSession`, nach dem jeder
+  Fehler seinen Meldungscode trägt; auf ihr ruht das akzeptierte Negativ (e) jenes Slice, und
+  jeder neue Fehler der Anmeldung hält sie (§6, *Bindung an den Vertrag der Ports*);
+- der Kommentar von `play` im Bootstrap nennt die Kopplung, dass der Exit-Code der der ersten
+  Meldung des gelieferten Fehlers ist und der Play-Service den abbrechenden Fehler darin zuerst
+  stellt (`AGENTS.md` §3.7, Kopplung); der Slice ändert den Bootstrap ohnehin (§3).
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - TLS zum Server, `--upstream-tls`, `--upstream-ca` und `sslmode=require` —
@@ -129,7 +138,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/adapters/driven/postgres` | update | Anmeldung als Client im Aufbau von `play`: Klartext, MD5, SCRAM-SHA-256 ohne Channel Binding; nicht unterstützte Verfahren und Fehler im SCRAM-Austausch als `PGR-E4005`; ersetzt den Zwischenstand des Kerns |
 | `internal/adapters/driving/cli` | update | Passwort aus dem eingesetzten Platzhalter der benutzten Verbindung, sonst aus `PGWIRE_RECORDER_PASSWORD` (leer gilt als nicht gesetzt); nie in Meldung oder Log |
-| `internal/bootstrap` | update | das Passwort an den Upstream-Adapter von `play` reichen |
+| `internal/bootstrap` | update | das Passwort an den Upstream-Adapter von `play` reichen; der Kommentar von `play` nennt die Kopplung an die erste Meldung des gelieferten Fehlers (F-569 aus `slice-v1-abschluss-einspielen-laufsteuerung`) |
 | `test/integration` | update | Server mit `password`, `md5` und `scram-sha-256` in `pg_hba.conf`; Happy/Negative nach LH-FA-20 |
 | `internal/adapters/driven/postgres` (Tests) | update | Fehler im SCRAM-Austausch und nicht unterstützte Verfahren gegen einen Testserver, der die Nachrichten vorgibt |
 | `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: Passwort einer Verbindung bei `play` (F-533), Grenzen *SASLprep* und *Klartext ohne TLS* |
@@ -209,6 +218,14 @@ an der genannten Stelle. Offen ist keine.
   Nachgezählt beim Eintragen beider Punkte (`AGENTS.md` §3.13): drei Liefer-Punkte, zwei
   Schichten (CLI-Adapter, Upstream-Adapter); beide liegen im Upstream-Adapter und in
   DoD-Punkt 2.
+- **Bindung an den Vertrag der Ports** (aus `slice-v1-abschluss-einspielen-laufsteuerung`, dort
+  §6 akzeptiertes Negativ (e), Review F-568) — jeder neue Fehler der Anmeldung (fehlendes
+  Passwort, nicht unterstütztes Verfahren, Fehler im SCRAM-Austausch, Verbindungsende) verlässt
+  den Upstream-Adapter mit seinem Meldungscode (`PGR-E4005` oder `PGR-E4002`), keiner ohne Code;
+  sonst hinge er nach `SPEC-034` *Ausgabe* als Ursache an eine frühere Meldung, mit Exit-Code 4
+  statt 1. Entschieden vom Architect am 2026-10-10 dort: keine eigene Regel, der Ausschluss ruht
+  auf dem Vertrag der Ports (Kommentar an `Verbinde`). Geprüft mit DoD-Punkt 2, der für jeden
+  Fehlschlag den Code zusagt; kein neuer Liefer-Punkt.
 - **Falsches Passwort** — der Server antwortet im Aufbau mit SQLSTATE-Klasse 28, das ist
   `PGR-E4005` nach der Regel *Aufbau* des Kerns (`LH-FA-20.a` *Aufbau*, Marke [K]); hier
   geprüft mit einer Anmeldung, dort mit einem unbekannten Benutzer.
@@ -278,6 +295,15 @@ unter `evidence/`). Treffer:
   sind vor dem Code entschieden, je Zusage eine Mutation mit Beleg in §7, die Geber
   `slice-v1-abschluss-einspielen`, `slice-v1-abschluss-anmeldung` und
   `slice-v1-abschluss-antwortvergleich` zeigen im selben Commit hierher.
+
+Nachgezählt beim Eintragen von F-568 und F-569 aus `slice-v1-abschluss-einspielen-laufsteuerung`
+(2026-10-10, `AGENTS.md` §3.13): Die Bindung ist eine Randform in DoD-Punkt 2, der Kommentar im
+Bootstrap eine Zeile in einer Datei, die §3 schon führt; drei Liefer-Punkte, zwei Schichten nach
+der Teilung dieses Plans (CLI-Adapter, Upstream-Adapter; der Bootstrap reicht weiter, §1). Der
+Geber zählt den Bootstrap als eigene Schicht (dort §1, Schicht-Abgrenzung); nach dessen Teilung
+berührt dieser Plan schon ohne die Sendungen drei Schichten
+(`BEO-REPO/schichtteilung-je-plan-verschieden`, 2×). Die Teilung prüft der Architect vor dem
+ersten Code-Commit (§4 *Start*).
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 

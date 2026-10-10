@@ -59,6 +59,11 @@ unbekannt (`PGR-E2004`), ihre Umgebungsvariablen unbeachtet, und `sslmode=requir
 benutzten Verbindung ist bei `play` wie bei `record` `PGR-E2004` (Zwischenstand in §6 jenes
 Slice); diesen Zwischenstand ersetzt dieser Slice.
 
+**Aus `slice-v1-abschluss-einspielen-laufsteuerung`** (Review F-568 jenes Slice): die Bindung an
+den Vertrag der Ports `Einspielziel` und `EinspielSession`, nach dem jeder Fehler seinen
+Meldungscode trägt; auf ihr ruht das akzeptierte Negativ (e) jenes Slice, und jeder neue Fehler
+von TLS und Zertifikat im Aufbau hält sie (§6, *Bindung an den Vertrag der Ports*).
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Anmeldung mit Passwort — `slice-v1-abschluss-einspielen-anmeldung` (dort §1,
@@ -202,6 +207,15 @@ an der genannten Stelle. Offen ist keine.
   ist keine Nachricht; neu entschieden in `LH-FA-20.a` *Abbruch im Aufbau*. Nachgezählt beim
   Eintragen (`AGENTS.md` §3.13): drei Liefer-Punkte, zwei Schichten (CLI-Adapter,
   Upstream-Adapter); der Punkt liegt im Upstream-Adapter, ohne eigene Zusage in der DoD.
+- **Bindung an den Vertrag der Ports** (aus `slice-v1-abschluss-einspielen-laufsteuerung`, dort
+  §6 akzeptiertes Negativ (e), Review F-568) — jeder neue Fehler im Aufbau mit TLS (Antwort auf
+  `SSLRequest`, Aushandlung, Zertifikat, Ablehnung ohne TLS) verlässt den Upstream-Adapter mit
+  seinem Meldungscode (`PGR-E4005` oder `PGR-E4002`), keiner ohne Code; sonst hinge er nach
+  `SPEC-034` *Ausgabe* als Ursache an eine frühere Meldung, mit Exit-Code 4 statt 1. Entschieden
+  vom Architect am 2026-10-10 dort: keine eigene Regel, der Ausschluss ruht auf dem Vertrag der
+  Ports (Kommentar an `Verbinde`). Geprüft mit DoD-Punkt 2, der für jeden Fehlschlag den Code
+  zusagt; kein neuer Liefer-Punkt. `PGR-E2007` entsteht beim Start vor jeder Interaktion und
+  hat keinen früheren Fehler.
 - **Server lehnt unverschlüsselte Verbindung ab** — `PGR-E4005`; bestätigt, Tabelle
   *Fehlerregeln beim Einspielen* in `LH-FA-20.a`; hier geprüft, weil der Fall einen Server mit
   TLS-Pflicht braucht.
@@ -274,6 +288,14 @@ unter `evidence/`). Treffer:
   sind vor dem Code entschieden, je Zusage eine Mutation mit Beleg in §7, die Geber
   `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-antwortvergleich` zeigen im selben
   Commit hierher.
+
+Nachgezählt beim Eintragen von F-568 aus `slice-v1-abschluss-einspielen-laufsteuerung`
+(2026-10-10, `AGENTS.md` §3.13): Die Bindung ist eine Randform in DoD-Punkt 2; drei
+Liefer-Punkte, zwei Schichten nach der Teilung dieses Plans (CLI-Adapter, Upstream-Adapter; der
+Bootstrap reicht weiter, §1). Der Geber zählt den Bootstrap als eigene Schicht (dort §1,
+Schicht-Abgrenzung); nach dessen Teilung berührt dieser Plan schon ohne die Sendung drei
+Schichten (`BEO-REPO/schichtteilung-je-plan-verschieden`, 2×). Die Teilung prüft der Architect
+vor dem ersten Code-Commit (§4 *Start*).
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 

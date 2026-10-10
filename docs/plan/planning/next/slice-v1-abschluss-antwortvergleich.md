@@ -32,6 +32,14 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** `pgwire-recorder play --compare-responses` vergleicht die Struktur der Serverantworten und Fehler mit der Aufzeichnung und meldet Abweichungen als `PGR-E5004` mit Exit-Code 5.
 
+**Aus `slice-v1-abschluss-einspielen-laufsteuerung`** (Verifikation V-147 jenes Slice): der
+Hinweis zu `--compare-responses` im Benutzerhandbuch §4 *Eine Aufzeichnung in eine Datenbank
+einspielen*, *Hinweise*. Er sagt die Wirkung von `--continue-on-error` (Fortsetzung, Exit-Code
+5) und `--allow-recorded-errors` (mit Vergleich ohne Wirkung, die Kombination kein Fehler) zu;
+bis zu diesem Slice ist `--compare-responses` bei `play` unbekannt (`PGR-E2001`). Dieser Slice
+bringt den Hinweis auf den gelieferten Stand; er sagt nur zu, was ein Test prüft
+(`AGENTS.md` §3.11, DoD-Punkt 3).
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Vergleich von Zeilenwerten und Toleranzregeln für Felder — Out-of-Scope von LH-FA-24.
@@ -47,7 +55,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen): Gegen eine Instanz mit gleicher Antwortstruktur endet das Einspielen mit Vergleich mit Erfolg, gegen eine abweichende mit `PGR-E5004` und Exit-Code 5; ein Serverfehler ohne Vorbild in der Aufzeichnung ist `PGR-E5004`, nicht `PGR-E4004`; ein `FATAL` ohne Vorbild oder mit anderem SQLSTATE ist `PGR-E5004`, ein Netzwerkabbruch ohne Fehlerantwort ist `PGR-E4003`; ein Abbruch sendet keine weiteren Nachrichten oder Gruppen der Interaktion; bei Extended wird nach einem Fehler bis zum `Sync` weitergesendet (Abnahmeszenario 16; Integrationstest).
 - [ ] Jede Art der Abweichung (Nachrichtenart, Spaltenbeschreibung, Befehl ohne Zahlen, Fehler, Transaktionsstatus) wird erkannt und mit Session, Sequenznummer und Art gemeldet, Unterschiede nur in Zeilenwerten, Zeilenzahlen und Hinweisen nicht (Test, einfach und Extended, auch `Flush`-Gruppen).
-- [ ] `--continue-on-error` und `--allow-recorded-errors` wirken wie spezifiziert, `--continue-on-error` läuft nach einer Abweichung weiter, der Exit-Code am Ende ist 5, ein Verbindungsfehler beendet immer mit 4; ein Fehler mit gleichem SQLSTATE wie aufgezeichnet gilt als erwartet und bricht nicht ab, ein anderer SQLSTATE ist `PGR-E5004`; `--allow-recorded-errors` ist mit Vergleich ohne Wirkung; ein Abbruchsignal endet nach einer Abweichung mit 5, ein Verbindungsfehler nach einer Abweichung mit 4; bei jedem Ende des Laufs (auch Abbruch und Signal) steht die Log-Zeile mit eingespielt, verglichen, abweichend; ohne `--compare-responses` findet kein Vergleich statt (Test).
+- [ ] `--continue-on-error` und `--allow-recorded-errors` wirken wie spezifiziert, `--continue-on-error` läuft nach einer Abweichung weiter, der Exit-Code am Ende ist 5, ein Verbindungsfehler beendet immer mit 4; ein Fehler mit gleichem SQLSTATE wie aufgezeichnet gilt als erwartet und bricht nicht ab, ein anderer SQLSTATE ist `PGR-E5004`; `--allow-recorded-errors` ist mit Vergleich ohne Wirkung; ein Abbruchsignal endet nach einer Abweichung mit 5, ein Verbindungsfehler nach einer Abweichung mit 4; bei jedem Ende des Laufs (auch Abbruch und Signal) steht die Log-Zeile mit eingespielt, verglichen, abweichend; ohne `--compare-responses` findet kein Vergleich statt (Test); der Hinweis zu `--compare-responses` im Benutzerhandbuch §4 *Hinweise* sagt zu diesen Optionen nur zu, was diese Tests prüfen (V-147 aus `slice-v1-abschluss-einspielen-laufsteuerung`).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -69,6 +77,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/services` (Play-Service) | update | Normalisierung und Vergleich der Antworten, ohne PGWire-Typen |
 | `internal/adapters/driving/cli` | update | Option `--compare-responses`, Abbildung auf Exit-Code 5 |
 | `test/integration` | update | Happy/Boundary/Negative nach LH-FA-24 |
+| `docs/user/benutzerhandbuch.md` | update | §4 *Hinweise*: Hinweis zu `--compare-responses` mit `--continue-on-error` und `--allow-recorded-errors` auf dem gelieferten Stand (V-147 aus `slice-v1-abschluss-einspielen-laufsteuerung`) |
 
 ## 4. Trigger
 
@@ -129,5 +138,10 @@ nicht mehr.
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
+
+Nachgezählt beim Eintragen von V-147 aus `slice-v1-abschluss-einspielen-laufsteuerung`
+(2026-10-10, `AGENTS.md` §3.13): Der Hinweis im Handbuch liegt in DoD-Punkt 3, kein neuer
+Liefer-Punkt; drei Liefer-Punkte. Schichten mit Code bleiben zwei (Play-Service,
+CLI-Adapter); das Benutzerhandbuch zählt wie beim Geber als Dokumentation, nicht als Schicht.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

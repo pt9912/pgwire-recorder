@@ -59,9 +59,11 @@ dessen §6) nach dem zweiten Schnitt vom 2026-10-09 (Option O3 des Architect, do
   `PGR-E4004` entsteht, wenn der Bootstrap den Exit-Code aus der ersten Meldung bildet (§4
   *Start*, §6 *Reihenfolge der Zeilen `error`* und Risiken unten).
 
-Die Aussagen zu den drei Optionen und zu `play` in `README.md` und im Benutzerhandbuch §4
-bringt der Slice auf den gelieferten Stand; sie sagen nur zu, was ein Test prüft
-(`AGENTS.md` §3.11).
+Die Aussagen zu den drei Optionen ohne Vergleich und zu `play` in `README.md` und im
+Benutzerhandbuch §4 bringt der Slice auf den gelieferten Stand; sie sagen nur zu, was ein Test
+prüft (`AGENTS.md` §3.11). Den Hinweis zu `--compare-responses` mit `--continue-on-error` und
+`--allow-recorded-errors` in §4 *Hinweise* übernimmt `slice-v1-abschluss-antwortvergleich`
+(Verifikation V-147; dort §1 und DoD-Punkt 3).
 
 Dieser Slice ist auch die Adresse der Abgrenzung *Einspielen selbst und Fehlersemantik der
 Serverfehler* von `slice-v1-abschluss-antwortvergleich` (dort §1), soweit sie die drei
@@ -83,8 +85,9 @@ Kerns, die das prüfen, ändert dieser Slice.
   (dort §1, *Übernimmt*); bis dahin spielt `play` keine Extended-Interaktion ein
   (Zwischenstand des Kerns), getestet wird hier mit einfachen Anfragen.
 - Die Wirkung der Optionen mit `--compare-responses` (Exit-Code 5, `--allow-recorded-errors`
-  ohne Wirkung, Fortsetzung nach einer Abweichung) — `slice-v1-abschluss-antwortvergleich`
-  (dort DoD-Punkt 3); sie setzt den Vergleich voraus.
+  ohne Wirkung, Fortsetzung nach einer Abweichung) samt ihrem Hinweis im Benutzerhandbuch §4
+  *Hinweise* — `slice-v1-abschluss-antwortvergleich` (dort §1 und DoD-Punkt 3, Hinweis seit
+  V-147); sie setzt den Vergleich voraus.
 - Anmeldung mit Passwort und TLS zum Server — `slice-v1-abschluss-einspielen-anmeldung` und
   `slice-v1-abschluss-einspielen-tls`; getestet wird gegen einen Server ohne Passwort und
   ohne TLS.
@@ -508,6 +511,15 @@ Nachgezählt bei der Rückgabe des Implementers am 2026-10-10: Der Kommentar des
 `Player` liegt in der Schicht *Ports*, nicht im Play-Service; §1 nennt ihn jetzt und warum er
 keine dritte Schicht ist. Drei Liefer-Punkte, zwei Schichten mit Code (CLI-Adapter,
 Play-Service), kein Code im Bootstrap.
+
+Nachgezählt bei der Closure am 2026-10-10 beim Eintragen der Sendungen (`AGENTS.md` §3.13):
+V-147 in `slice-v1-abschluss-antwortvergleich` (§1, §3, DoD-Punkt 3): drei Liefer-Punkte, zwei
+Schichten mit Code (Play-Service, CLI-Adapter). F-568 in `slice-v1-abschluss-einspielen-anmeldung`
+und `slice-v1-abschluss-einspielen-tls` (je §1 und §6, Randform in DoD-Punkt 2), F-569 in
+`slice-v1-abschluss-einspielen-anmeldung` (§1, §3, Bootstrap schon in §3): je drei Liefer-Punkte,
+je zwei Schichten nach der Teilung jener Pläne; nach der Teilung dieses Plans, der den Bootstrap
+als Schicht zählt (§1), berühren beide schon ohne die Sendungen drei
+(`BEO-REPO/schichtteilung-je-plan-verschieden`, §7).
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
