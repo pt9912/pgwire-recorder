@@ -321,3 +321,72 @@ V-138 und V-139 erledigt; die geschlossene Form konvergiert: Von 64 gezielten Fo
 **Closure-blockierend:** V-141 und V-142 ja — der Weg ist eine Eingrenzung, keine Ausnahmeliste: in Block und DoD-Wortlaut „Inline-Code und Link je innerhalb einer Zeile“ (oder gleichwertig) und je eine grüne Kontrollzeile in §7. V-143 nein; vor der Closure entweder im Block eingrenzen (Abschnitt und Anker zählen auch nach einer eingerückten `##`-Zeile, das ist die Grenze des Gates) oder vom Architect als Lesart hinnehmen lassen und in §7 als Messbefund nennen. V-144 nein.
 
 **Übergabe:** V-141, V-142 an den Implementer (Block), DoD-Wortlaut über den Planner; V-143 an den Implementer oder Architect zur Lesart; V-144 zur Kenntnis.
+
+## Abschluss — 2026-10-10
+
+**Gegenstand:** die Nacharbeit nach den Entscheidungen des Nutzers vom 2026-10-10 (Pin auf d-check `v0.86.0`; Block *Strenges Doc-Gate* ohne rot/grün-Zusage): `fda566b` (Pin, Block in den drei Commands, Plan §1 bis §7, Nehmer `slice-harness-lh-links-pflicht`) und `ec02c4f` (nur der Absatz *Letzter Lauf* in §7, `git show` bestätigt sechs Zeilen). Beim Start war der Arbeitsbaum sauber, HEAD `ec02c4f`. Proben mit Präfix `ver4-dcheck-`, Kopien wie oben (jeder Eintrag der obersten Ebene außer `.git` mit `cp -r` ohne `-p`), Lauf `docker run --rm --network none` mit dem Digest aus `d-check.mk`, danach nur diese Kopien gelöscht.
+
+### Pin
+
+- `docker buildx imagetools inspect ghcr.io/pt9912/d-check:v0.86.0`, selbst gefahren: OCI-Index, `Digest: sha256:d90200e94db311a70f9b15045e1290feecde03e9185ad78fb1ebea265e6ee44b`, Manifeste `linux/amd64` `7fbd5a20…`, `linux/arm64` `59e52bac…` — gleich `DCHECK_DIGEST` in `d-check.mk` und dem Beleg in §7. `DCHECK_IMAGE` nennt `v0.86.0`; sonst ist `d-check.mk` unverändert (Diff `fda566b`, zwei Zeilen).
+- `make docs-check` (im Gate-Lauf unten): `439 Datei(en) geprüft, 0 Befund(e)` mit `d90200e9…`.
+- Der alte Pin (`v0.85.0`, `c07f1fe6`) steht außerhalb von `.git`, `.harness/` und `docs/reviews/` nur in diesem Plan, im Drift-Log der Roadmap und in `slice-harness-lh-links-pflicht` — wie §7 sagt.
+
+### Gegenprobe gegen `v0.86.0` (Stichprobe, alle vier Klassen)
+
+Unveränderte Kopie `439 Datei(en) geprüft, 0 Befund(e)`, Exit 0. Je eine frische Kopie, Mutation per `printf` angehängt:
+
+| Klasse | Mutation | Ergebnis |
+|---|---|---|
+| `ids` | die Kennung `ADR-` mit 0001 blank, `harness/README.md` | `harness/README.md:141 … id-unlinked`, 1 Befund, Exit 1 |
+| `anchors` | Link auf `conventions.md#gibt-es-nicht`, `harness/README.md` | `harness/README.md:141 … anchor-missing`, 1 Befund, Exit 1 |
+| `links` | Link auf `gibt-es-nicht.md`, `harness/README.md` | `harness/README.md:141 gibt-es-nicht.md target-missing`, 1 Befund, Exit 1 |
+| `matrix` | Link aus `spec/architecture.md` auf ADR 0001 | `spec/architecture.md:645 … matrix-forbidden Referenz spec-straten → adr`, 1 Befund, Exit 1 |
+| Kontrolle zum Block | eine Lastenheft-Kennung blank, `harness/README.md` | 0 Befunde, Exit 0 — der Satz „`LH-` erzwingt das Gate noch nicht“ stimmt am Stand |
+
+Jede Befundzeile wie in §7. **Die Gegenprobe in §7 trägt.**
+
+### Block *Strenges Doc-Gate*
+
+In `.claude/commands/implement-slice.md`, `plan-welle.md` und `close-welle.md` je derselbe Wortlaut nach dem Titel (`grep -rn "Strenges Doc-Gate"` über `.claude/`, `.harness/skills/`, `AGENTS.md`, `harness/`: nur diese drei Stellen). Er enthält vier Sätze: eine Regel an den Schreiber (Kennungen als Anker-Links), eine Aussage über das Gate (`LH-` ohne Link noch nicht erzwungen), einen Rang-Zeiger (`.d-check.yml` legt fest) und einen zweiten (`make docs-check` ist maßgeblich). Zusage, die ein Test widerlegen könnte, ist nur der zweite Satz; er ist eine Negativ-Aussage, die DoD-Punkt 1 ausdrücklich verlangt, und die Kontrolle oben bestätigt sie. Die Regel ist keine Aussage über das Gate; die Rang-Zeiger sagen kein Verhalten zu. Keine rot/grün-Zusage mehr, damit sind V-141 bis V-144 gegenstandslos (in §7 als Messbefund, Stand `v0.85.0`). Eine Unschärfe in der Regel selbst: V-145.
+
+**Plan folgt:** Titel, §1 (*Ziel*, *Herkunft* Pin, *Berichtigung* mit der Entscheidung vom 2026-10-10), DoD-Punkt 1, §3 (Zeilen `d-check.mk` und drei Commands), §4 (beide Rückführungen nennen `v0.86.0`), §6 (erstes Risiko nennt `v0.86.0`) und §7 (Beleg des Pins, Gegenprobe der vier Klassen gegen `v0.86.0`, Messbefund V-141 bis V-144, *Block ohne Zusage*, *Letzter Lauf* an `fda566b`) sind nachgezogen (`AGENTS.md` §3.9). Die *Randformen*-Zeile in §6 (keine) bleibt richtig: Ein Image-Wechsel und ein Block ohne Zusage liefern keinen neuen Vertrag. Die Schicht-Abgrenzung in §1 deckt den Diff.
+
+### Nehmer `slice-harness-lh-links-pflicht`
+
+Die Berichtigung trägt: §1 *Nebenbefund* nennt den Block in der Form des Gebers nach der Entscheidung vom 2026-10-10 (Regel, `LH-` noch nicht erzwungen, `.d-check.yml`, `make docs-check`) und macht die Frage, ob der Nehmer dort wieder ein Verhalten zusagt, zur Entscheidung beim Übergang `open` → `next`; §4 *Start* sagt, der Geber liefere den Block „ohne Zusage über das Gate, den dieser Slice nachzieht“. Die Sendung an den Nehmer ist damit eher kleiner geworden; nachzuzählen ist nichts. **Einordnung, kein Befund gegen diesen Slice:** §1 *Ziel* („sagt genau dieses Verhalten zu“) und DoD-Punkt 3 dort setzen die Zusage weiter voraus, die §1 *Nebenbefund* offen lässt — eine offene Frage des Nehmers, die beim Übergang `open` → `next` mit entschieden wird (V-146).
+
+### Urteil je DoD-Punkt (Abschluss)
+
+- **Punkt 1** — Pin `v0.86.0` und Digest gegen die Registry, 0 Befunde, Gegenprobe der vier Klassen, Block ohne rot/grün-Zusage mit den drei verlangten Bestandteilen: **bestätigt**. Die frühere Ablehnung (V-134, V-138, V-141, V-142) betraf die Teil-Zusage über den Block; die gibt es nach der Entscheidung vom 2026-10-10 nicht mehr.
+- **Punkt 2** — Freshness-Audit: **bestätigt** (seit der ersten Prüfung nicht im Diff).
+- **Punkt 3** — Reviewer-Skill: **bestätigt** (nicht im Diff).
+- **Punkt 4** — `make gates`: Beleg in §7 an `fda566b`; eigener Lauf an `ec02c4f` **bestätigt** (*Lauf* unten).
+- **Review** — Report liegt vor (`docs/reviews/2026-10-09-review-slice-harness-d-check-v0-85.md`): bestätigt. Die Nacharbeit `fda566b` hat kein Review gesehen; ihr Diff ist Text in den drei Commands, zwei Zeilen Pin und Plan — ob ein erneutes Review nötig ist, entscheidet der Planner.
+- **Closure-Notiz, Register, Risiko-Ausgänge, Paarungen** — noch nicht fällig (Slice in `in-progress/`); nicht geprüft.
+
+### Lauf
+
+`make gates` an `ec02c4f`, gestartet bei sauberem Arbeitsbaum: Exit 0; darin `baseline-verify: v6.16.0 OK — 54 Dateien`, `d-check: 439 Datei(en) geprüft, 0 Befund(e)` mit Digest `d90200e9…`, `run-integration-tests: gruen`, je `gruen` `a-check-negativ`, `commit-msg-gegenprobe`, `abdeckung-gegenprobe`, `kopf-check-gegenprobe`, `lint-gegenprobe`. Während des Laufs entstand dieser Abschnitt; `make docs-check` danach mit ihm: `439 Datei(en) geprüft, 0 Befund(e)`.
+
+## Findings des Abschlusses
+
+| ID | Kategorie | Befund | Quelle | Pfad | Verifizierbar | Klasse |
+|---|---|---|---|---|---|---|
+| V-145 | INFO | Die Regel „Kennungen (`LH-`, `ADR-`, `MR-`) als Anker-Links auf ihre Definition“ ist für `ADR-` enger als die Praxis: An den Orten von `AGENTS.md`, `harness/`, `spec/` und `docs/plan/planning/` stehen 342 Links mit Text `ADR-` und vier Ziffern, alle auf die ADR-Datei, keiner mit Anker. Kein Gate-Verhalten, kein Widerspruch zur DoD (der Block folgt ihrem Wortlaut); die Unschärfe liegt im Wortlaut selbst. Für eine Neufassung genügt „als Links auf ihre Definition (Anker, wo die Definition ein Abschnitt ist)“. | Plan §2 DoD-Punkt 1 | alle drei Commands · „als Anker-Links auf ihre Definition schreiben“ | ja (`grep` über die genannten Orte) | — |
+| V-146 | INFO | Im Nehmer `slice-harness-lh-links-pflicht` setzen §1 *Ziel* und DoD-Punkt 3 eine Zusage des Blocks über das Gate voraus, die §1 *Nebenbefund* seit `fda566b` offen lässt. Einordnung: offene Frage des Nehmers, beim Übergang `open` → `next` zu entscheiden; kein Befund gegen diesen Slice. | `AGENTS.md` §3.13 | `slice-harness-lh-links-pflicht` §1 · „sagt genau dieses Verhalten zu“; DoD-Punkt 3 · „sagt die Linkpflicht … zu“ | ja (Lesen) | — |
+
+## Summary des Abschlusses
+
+| Kategorie | Anzahl |
+|---|---|
+| HIGH | 0 |
+| MEDIUM | 0 |
+| LOW | 0 |
+| INFO | 2 |
+
+**Finding-Klassen:** keine wiederkehrende. V-141 bis V-144 sind mit dem Block ohne Zusage gegenstandslos; die Zuordnung der vorigen Läufe zu `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (V-134, V-138, V-141 bis V-143) bleibt Sache der Closure.
+
+## Verdikt des Abschlusses
+
+**Alle vier Liefer-Punkte der DoD bestätigt**, Pin und Gegenprobe selbst nachgefahren, `make gates` an `ec02c4f` grün. **Closure-blockierend:** nichts. V-145 zur Kenntnis an den Planner (Wortlaut für eine spätere Fassung, etwa im Nehmer), V-146 an den Planner für den Übergang `open` → `next` von `slice-harness-lh-links-pflicht`. Offen für die Closure bleiben die konstanten Pflichten (Closure-Notiz, Register, Risiko-Ausgänge, Paarungen).
