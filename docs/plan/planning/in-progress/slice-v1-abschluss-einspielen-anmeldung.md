@@ -301,6 +301,168 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+**Belege des Implementers** (Code-Commit `c8b7f44` auf `f9bc4d0`):
+
+*Größe und Schichten.* `git diff --shortstat f9bc4d0 c8b7f44`: 18 Dateien, +1971 −77. Produkt-Code
++449 −57 (`anmeldung.go` neu +389, `einspielen.go` +16 −49, CLI `cli.go` +22 −2, `upstream.go`
++8 −1, `verbindung.go` +10 −3, Bootstrap `bootstrap.go` +4 −2), Tests +1434 −11, Runner der
+Integrationstests +38 −1, erzeugt (`make abdeckung`) +39 −2, Plan §3 +11 −6. Zwei Schichten
+(Upstream-Adapter, CLI-Adapter); der Bootstrap enthält nur das Reichen des Passworts und den
+Kommentar zur Kopplung (F-569), keine Logik, `git diff f9bc4d0 c8b7f44 -- internal/bootstrap/bootstrap.go`
+ist +4 −2. Keine Rückführung aus §4 ist eingetreten: SCRAM-SHA-256 baut mit der
+Standardbibliothek (`crypto/pbkdf2`, `crypto/hmac`, `crypto/sha256`, `crypto/md5`, `crypto/rand`),
+`go.mod` und `.a-check.yml` sind unverändert.
+
+*Randformen.* Jede Operation des Diffs ist gegen §6 gemessen: Senden (Antwort auf eine
+Anforderung; scheitert es, `PGR-E4002`, *Verbindungsende und Senden*), Empfangen (Code der
+Nachricht `R`, *Anmelde-Nachrichten*), Schließen (nach einem Fehler ohne `Terminate`, *Abbruch im
+Aufbau*), Fehler (`PGR-E4005` oder `PGR-E4002` nach der Tabelle in *Anmeldung* und *SCRAM-Austausch*),
+Aufräumen (`Verbinde` schließt bei jedem Fehler), Zufall (18 Bytes, Base64, *SCRAM-Austausch*),
+Zeit (keine eigene Frist, *Frist*). Keine Operation entscheidet eine Randform außerhalb von §6.
+Vier Kombinationen und Lesarten, die §6 und die Spezifikation nicht ausdrücklich entscheiden,
+stehen als Fragen am Ende dieses Abschnitts; keine ist durch einen Test festgelegt und keine in §6
+eingetragen.
+
+*Weg der Mutanten.* Je Mutant eine frische Kopie von `internal/` (Python `shutil.copyfile`, ohne
+Übernahme der mtime, gleichwertig `cp -r` ohne `-p`) unter dem Scratch-Verzeichnis, genau eine
+Ersetzung im Wortlaut, danach im Image der Stufe `test` (`pgwire-recorder:test`) mit der Kopie
+als Bind-Mount über `/src/internal` (nicht über den Build-Kontext, die mtime ist ohne Wirkung):
+`gofmt -l` leer, `go vet` ohne Befund, dann `go test -count=1` des Pakets. Rot heißt: ein
+genannter Test schlug mit der genannten Meldung fehl, nicht Build, Vet oder gofmt, und nicht über
+eine Gesamtfrist. Die E2E-Mutanten liefen in einer Kopie aller verfolgten Dateien außer
+`.harness/` mit `make test-integration` (Container, Netz und Volume räumt der Runner ab; `docker ps -a`,
+`docker network ls` und `docker volume ls` mit `pgr-it` danach leer). 76 Unit-Mutanten (Lauf auf dem
+Stand `c8b7f44`): 75 rot, 1 grün und äquivalent (Zeile am Ende der Tabelle); 5 E2E-Mutanten, alle rot.
+
+| Zusage (§6) | Mutation | roter Test |
+|---|---|---|
+| Klartext: das Passwort unverändert (*Passwort*, *Verfahren*) | `strings.TrimSpace` auf das gesendete Passwort | `TestAnmeldungKlartext` (Passwort `"  ä%41$ ss "`) |
+| Klartext: der Rumpf ist nur der Code, jedes Byte dahinter macht die Anforderung nicht lesbar | Prüfung `len(rest) != 0` entfernt | `TestAnmeldungAnforderungNichtLesbar/Klartext_mit_Rest` |
+| MD5: Benutzer ist der `user` der gesendeten Startup-Daten, ohne `user` leer | Benutzer fest `postgres` | `TestAnmeldungMD5/anderer_Benutzer`, `/ohne_Benutzer`, `/Benutzer_u`; `TestAnmeldungWeitereAnforderung` |
+| MD5: MD5 aus Passwort und Benutzer, in dieser Reihenfolge | `benutzer + passwort` | `TestAnmeldungMD5` (fünf Vektoren aus `hashlib`, nicht aus dem Code) |
+| MD5: gefolgt vom Salz | Salz nicht angehängt | `TestAnmeldungMD5` (fünf Fälle, darunter `anderes_Salz`) |
+| MD5: die Antwort beginnt mit `md5` | Präfix leer | `TestAnmeldungMD5` (fünf Fälle) |
+| MD5: genau vier Byte Salz (mehr als vier ist nicht lesbar) | `len(rest) < 4` | `TestAnmeldungAnforderungNichtLesbar/MD5_mit_fünf_Byte` |
+| MD5: genau vier Byte Salz (weniger als vier ist nicht lesbar) | `len(rest) > 4` | `TestAnmeldungAnforderungNichtLesbar/MD5_ohne_Salz`, `/MD5_mit_drei_Byte` |
+| kein Passwort, Klartext verlangt: `PGR-E4005`, nichts gesendet | Prüfung `fehlendesPasswort` in `klartext` entfernt | `TestAnmeldungOhnePasswort/Klartext` (gesendet `p\x00…`), `TestAnmeldungVerbinde`, `TestEinspielAufbauFehler/Klartext` |
+| kein Passwort, MD5 verlangt: `PGR-E4005`, nichts gesendet | Prüfung in `md5` entfernt | `TestAnmeldungOhnePasswort/MD5`, `TestEinspielAufbauFehler/MD5` |
+| kein Passwort, SCRAM verlangt: `PGR-E4005`, nichts gesendet | Prüfung in `sasl` entfernt | `TestAnmeldungOhnePasswort/SCRAM`, `TestEinspielAufbauFehler/SASL` |
+| ein fehlendes Passwort ist `PGR-E4005` (Code) | `CodeUpstream` statt `CodeLogin` | `TestAnmeldungOhnePasswort`, `TestAnmeldungVerbinde`, `TestEinspielAufbauFehler` |
+| ein leeres Passwort gilt als keines | Bedingung `a.passwort == ""` entfernt | `TestAnmeldungOhnePasswort`, `TestAnmeldungVerbinde`, `TestEinspielAufbauFehler` |
+| kein Passwort wird gesendet, wenn der Server keines verlangt | bei `AuthenticationOk` ein `PasswordMessage` nachgeschoben | `TestAnmeldungKlartext`, `TestAnmeldungMD5`, `TestAnmeldungScram` (Bytes nach der Antwort), `TestAnmeldungKeinPasswortVerlangt`; E2E `TestE2EPlayAnmeldung/*`, `TestE2EPlayAnmeldungOhneVerlangen` |
+| SCRAM: `SCRAM-SHA-256` genau in dieser Schreibweise | `strings.EqualFold` | `TestAnmeldungNichtUnterstuetzt/Kleinbuchstaben` |
+| SCRAM: der Name ganz, nicht als Präfix (`-PLUS` allein ist `PGR-E4005`) | `strings.HasPrefix` | `TestAnmeldungNichtUnterstuetzt/nur_PLUS`, `/mit_Anhängsel` |
+| SCRAM: gewählt auch wenn nicht das erste der Liste | nur das erste Verfahren geprüft | `TestAnmeldungScram/SCRAM_nach_PLUS` |
+| SASL: kein Byte hinter dem leeren Namen | `lesbar` immer wahr | `TestAnmeldungAnforderungNichtLesbar/SASL_mit_Bytes_danach`, `/SASL_mit_zwei_Enden` |
+| SASL: jeder Name mit NUL abgeschlossen | fehlendes NUL ohne Fehler | `TestAnmeldungAnforderungNichtLesbar/SASL_ohne_NUL` |
+| ein nicht unterstütztes Verfahren ist `PGR-E4005`, nichts gesendet | `CodeUpstream` statt `CodeLogin` | `TestAnmeldungNichtUnterstuetzt` (Kerberos, SCM, GSS, SSPI, unbekannt, SASL ohne SCRAM), `TestEinspielAufbauFehler` |
+| kein Wechsel des Verfahrens: nach einer Antwort auf Klartext ist eine weitere Anforderung `PGR-E4002` | `beantwortet` in `klartext` nicht gesetzt | `TestAnmeldungWeitereAnforderung/Klartext_dann_*` (drei Fälle) |
+| kein Wechsel des Verfahrens: nach einer Antwort auf MD5 | `beantwortet` in `md5` nicht gesetzt | `TestAnmeldungWeitereAnforderung/MD5_dann_*` (drei Fälle) |
+| eine weitere Anforderung ist `PGR-E4002` (Code) | `CodeLogin` statt `CodeUpstream` | `TestAnmeldungWeitereAnforderung`, `TestAnmeldungNachScramAbschluss/{Klartext,MD5,SASL}` |
+| eine Fortsetzung (8, 11, 12) ohne laufenden Austausch ist `PGR-E4002` | Fall entfernt | `TestAnmeldungFortsetzungOhneAustausch` (drei Fälle), `TestAnmeldungNachScramAbschluss` |
+| gescheitertes Senden der Antwort ist `PGR-E4002` (Senden) | Fehler von `conn.Write` verworfen | `TestAnmeldungSendenScheitert` (die Meldung nennt „nicht zu senden“; der Code allein wäre auch der des Lesens danach) |
+| gescheitertes Senden der Antwort ist `PGR-E4002` (Code) | `CodeLogin` statt `CodeUpstream` | `TestAnmeldungSendenScheitert` |
+| SCRAM: die Nonce besteht aus 18 Zufallsbytes | 16 Bytes | `TestAnmeldungScram` (Nonce `AQIDBAUGBwgJCgsMDQ4PEBES` genau), `TestAnmeldungScramFehler`, `TestAnmeldungNonce` |
+| SCRAM: die Nonce ist je Verbindung eine andere | feste Bytes statt `crypto/rand` | `TestAnmeldungNonce` („zwei Verbindungen mit derselben Nonce“) |
+| SCRAM: erste Nachricht mit leerem Benutzer `n=` | `n=u` | `TestAnmeldungScram`, `TestAnmeldungScramFehler` |
+| SCRAM: erste Nachricht mit dem Kopf `n,,` | `y,,` | `TestAnmeldungScram`, `TestAnmeldungScramFehler` |
+| SCRAM: die Antwort trägt `c=biws` | `c=eSws` | `TestAnmeldungScram`, `TestAnmeldungScramFehler` |
+| SCRAM: der Beweis geht aus dem Passwort hervor | Passwort um ein Zeichen verlängert | `TestAnmeldungScram`, `TestAnmeldungScramFehler` |
+| SCRAM: die Auth-Message beginnt mit dem client-first-bare | ohne diesen Teil | `TestAnmeldungScram`, `TestAnmeldungScramFehler` |
+| SCRAM: Beweis = ClientKey XOR ClientSignature | nur ClientSignature | `TestScramBeweisRFC7677` (Beweis aus RFC 7677), `TestAnmeldungScram`; E2E `TestE2EPlayAnmeldung/scram-sha-256_*` (echter Server, 28P01) |
+| SCRAM: die Serversignatur kommt aus dem Server Key | Label `Client Key` | `TestScramBeweisRFC7677` (Signatur aus RFC 7677), `TestAnmeldungScram` |
+| SCRAM: PBKDF2 mit den Iterationen des Servers | Iterationen + 1 | `TestScramBeweisRFC7677`, `TestAnmeldungScram` |
+| erste Nachricht des Servers: genau drei Attribute (zu viele) | `len(teile) < 3` | `TestScramServerErste/vier_Attribute`, `/Komma_am_Ende`, `TestAnmeldungScramFehler` |
+| erste Nachricht des Servers: r=, s=, i= in dieser Reihenfolge | Attribute in jeder Reihenfolge gelesen | `TestScramServerErste/andere_Reihenfolge`, `TestAnmeldungScramFehler/erste_Nachricht:_andere_Reihenfolge` |
+| Servernonce beginnt mit der eigenen | Präfixprüfung entfernt | `TestScramServerErste/r_ohne_eigene_Nonce`, `TestAnmeldungScramFehler/…fremde_Nonce` |
+| Servernonce ist länger als die eigene (gleich lang ist ein Fehler) | `len(r) < len(nonce)`; ebenso die Längenprüfung ganz entfernt | `TestScramServerErste/r_gleich_der_eigenen_Nonce`, `TestAnmeldungScramFehler/erste_Nachricht:_Nonce_nicht_länger` |
+| Salz ist gültiges Base64 | Ergebnis der Dekodierung nicht geprüft | `TestScramServerErste` (drei Fälle), `TestAnmeldungScramFehler/erste_Nachricht:_Salz_kein_Base64` |
+| Salz: Base64 ohne Zeilenumbruch | Prüfung auf `\r\n` entfernt | `TestScramServerErste/s_mit_Zeilenumbruch` |
+| Salz: Base64 mit Auffüllung | `RawStdEncoding` mit abgeschnittenem `=` | `TestScramServerErste/s_ohne_Auffüllung` |
+| Iterationen höchstens 10 000 000 (über der Grenze) | `n > Grenze+1` | `TestScramServerErste/Iterationen_über_der_Obergrenze`, `TestAnmeldungScramFehler/…Iterationen_über_der_Obergrenze` |
+| Iterationen: genau 10 000 000 gilt | `n >= Grenze` | `TestScramServerErste/Iterationen_genau_an_der_Obergrenze` |
+| Iterationen mindestens 1 | `n >= 0` | `TestScramServerErste/Iterationen_0`, `TestAnmeldungScramFehler/…Iterationen_0` |
+| Iterationen nur Ziffern (ohne Vorzeichen) | Ziffernprüfung entfernt | `TestScramServerErste/Iterationen_keine_Zahl`, `/mit_Vorzeichen`, `/mit_Exponent` |
+| Iterationen: ein Wert über dem Bereich von `int` läuft nicht über | Prüfung erst nach der Schleife | `TestScramServerErste/Iterationen_2_hoch_64_plus_5` (liefe nach dem Überlauf als 5) |
+| Abschluss: die Signatur wird geprüft | Vergleich `hmac.Equal` entfällt | `TestAnmeldungScramFehler/Abschluss:_falsche_Signatur`, `…_ein_Byte_kürzer`, `…_länger`, `TestAnmeldungOhneGeheimnis/SCRAM_falsche_Signatur` |
+| Abschluss: genau `v=` (ohne `v=` kein Abschluss) | Präfix nicht verlangt | `TestAnmeldungScramFehler/Abschluss:_ohne_v=`, `TestAnmeldungScram` |
+| Abschluss: kein weiteres Attribut hinter der Signatur | Text ab dem Komma abgeschnitten | `TestAnmeldungScramFehler/Abschluss:_v=_mit_weiterem_Attribut` |
+| Abschluss beendet den Austausch (danach `PGR-E4002`) | Stufe bleibt `Abschluss erwartet` | `TestAnmeldungNachScramAbschluss` (Code 11, 12, 8, 3, 5, 10), `TestAnmeldungScram` |
+| im Austausch ist Code 12 vor Code 11 ein Fehler (auch mit gültigem Inhalt einer ersten Nachricht) | Code 12 an der ersten Stelle angenommen | `TestAnmeldungScramUnvorgesehen/Code_12_mit_dem_Inhalt_der_ersten_Nachricht` |
+| im Austausch ist Code 11 nach der Antwort ein Fehler (auch mit gültigem Inhalt eines Abschlusses) | Code 11 an der zweiten Stelle angenommen | `TestAnmeldungScramUnvorgesehen/Code_11_mit_dem_Inhalt_des_Abschlusses` |
+| im Austausch ist jede unvorgesehene Nachricht `PGR-E4005` (`AuthenticationOk`, Anforderungen 3, 5, 10, 7, unbekannt, 8) | der Austausch gilt nie als laufend | `TestAnmeldungScram`, `TestAnmeldungScramFehler`, `TestAnmeldungScramUnvorgesehen` (14 Fälle: E4002 statt E4005) |
+| ein Fehler im Austausch ist `PGR-E4005` (Code) | `CodeUpstream` statt `CodeLogin` | `TestAnmeldungScramFehler` (alle Fälle), `TestAnmeldungScramUnvorgesehen` |
+| falsches Passwort ist `PGR-E4005` mit SQLSTATE in der Meldung, andere Klasse und `ReadyForQuery` vor `AuthenticationOk` `PGR-E4002`, Verbindungsende `PGR-E4002`, nach Klartext, MD5 und SCRAM (erste Nachricht, Antwort) | (Einstufung liegt beim Kern, hier geprüft mit einem Passwort; der Kern-Mutant steht in `slice-v1-abschluss-einspielen`) | `TestAnmeldungAbgelehnt` (4 Abläufe × 4 Ausgänge), E2E `TestE2EPlayAnmeldungFehler` (drei Verfahren × falsch, leer, Anfang des richtigen) |
+| Passwort nicht in Meldung, Log, Ursachenkette: Einspielziel (Formatierung) | `Format` gibt den Wert aus | `TestAnmeldungOhneGeheimnis` (letzte Schleife: `%v`, `%+v`, `%#v`, `%s`, `%q`, `%x`) |
+| Passwort nicht in Meldung, Log, Ursachenkette: abgeleiteter Wert (erwartete Signatur) | Signatur in die Meldung | `TestAnmeldungOhneGeheimnis/SCRAM_falsche_Signatur` |
+| Passwort nicht in Meldung, Log, Ursachenkette: Inhalt einer Nachricht (Abschluss) | Nachrichtentext in die Meldung | `TestAnmeldungOhneGeheimnis/SCRAM_Abschluss_ohne_v=` |
+| Passwort nicht in Meldung, Log, Ursachenkette: Inhalt einer Nachricht (erste Nachricht) | Nachrichtentext in die Meldung | `TestAnmeldungOhneGeheimnis/SCRAM_erste_Nachricht_mit_Inhalt` |
+| `Verbinde` reicht `Password` an die Anmeldung | `zugang{}` statt `zugang{passwort: …}` | `TestAnmeldungVerbinde`, `TestAnmeldungNonce`, `TestAnmeldungSignal` |
+| Bootstrap reicht das Passwort weiter | `Password:` entfernt | `TestRunPlayPasswort` (vier Fälle), `TestRunPlayErstesSignalInAnmeldung`, `TestRunPlayZweitesSignalInAnmeldung`; E2E `TestE2EPlayAnmeldung/*`, `TestE2EPlayAnmeldungFehler/*` |
+| Passwort aus `PGWIRE_RECORDER_PASSWORD` (host:port und Verbindung ohne Passwortteil) | Variable nicht gelesen | `TestPlayPasswort` (drei Fälle), `TestRunPlayPasswort/Variable_bei_host:port` |
+| Variable auch bei host:port | bei host:port auf `""` gesetzt | `TestPlayPasswort/host:port_mit_Variable` |
+| Variable bei einer Verbindung ohne Passwortteil | jede Verbindung gilt als mit Passwortteil | `TestPlayPasswort/Verbindung_ohne_Passwortteil_mit_Variable`, `/…ohne_Benutzer_mit_Variable` |
+| der Platzhalter geht der Variable vor | Variable geht vor, wenn gesetzt | `TestPlayPasswort/Platzhalter_und_Variable_gesetzt`, `/Platzhalter_und_--user`; E2E `TestE2EPlayAnmeldung/*_Platzhalter_vor_der_Variable` |
+| Passwort aus dem Platzhalter | Passwortteil ignoriert | `TestPlayVerbindung`, `TestPlayPasswort` (drei Fälle) |
+| Passwort unverändert, ohne Kürzen (Platzhalter) | `TrimSpace` | `TestPlayPasswort/Platzhalter_und_Variable_gesetzt` |
+| Passwort unverändert, ohne Kürzen (Variable) | `TrimSpace` | `TestPlayPasswort/host:port_mit_Variable` |
+| Optionen von `play` geben das Passwort bei keiner Formatierung aus | `Format` gibt den Wert aus | `TestPlayOptionenOhnePasswort` (sieben Verben, Wert, Zeiger, Liste, Abbildung) |
+| Hilfe nennt `PGWIRE_RECORDER_PASSWORD` | Name aus dem Text entfernt | `TestParsePlayHilfe` |
+| `Verbinde` bricht ab, wenn ctx endet (zweites Signal), auch nach dem Passwort und im SCRAM-Austausch | `context.AfterFunc` durch Attrappe ersetzt | `TestAnmeldungSignal/nach_dem_Passwort`, `/im_SCRAM-Austausch` („endet binnen 5 s nicht“), `TestEinspielAufbauAbgebrochen` |
+| nach einem Fehler der Anmeldung kein `Terminate` | `Terminate` vor dem Schließen gesendet | `TestAnmeldungVerbinde`, `TestEinspielAufbauFehler` (sechs Fälle: Bytes nach dem Startup) |
+| das erste Signal lässt die Anmeldung zu Ende laufen | `Verbinde` bekommt den ctx des ersten Signals | `TestRunPlayErstesSignalInAnmeldung` („play endet nach dem ersten Signal vor der Antwort des Servers“, Exit-Code 4) |
+| das zweite Signal schließt ohne `Terminate`, Exit-Code 0 | (`TestRunPlayZweitesSignalInAnmeldung` hält es; Mutant `AfterFunc` oben) | `TestRunPlayZweitesSignalInAnmeldung`, `TestAnmeldungSignal` |
+| E2E: SCRAM gegen den echten Server | Beweis nur ClientSignature (Zeile oben) | `TestE2EPlayAnmeldung/scram-sha-256_Variable`, `/…Platzhalter_vor_der_Variable` |
+| E2E: MD5 gegen den echten Server | `benutzer + passwort` (Zeile oben) | `TestE2EPlayAnmeldung/md5_Variable`, `/md5_Platzhalter_vor_der_Variable` |
+| E2E: das Passwort erreicht den Server über den Bootstrap | `Password:` entfernt (Zeile oben) | `TestE2EPlayAnmeldung` (sechs Fälle), `TestE2EPlayAnmeldungFehler` |
+| E2E: ein unverlangtes Passwort wird nicht gesendet (der Server wertet es als ungültige Nachricht) | Passwort bei `AuthenticationOk` gesendet | `TestE2EPlayAnmeldungOhneVerlangen`, `TestE2EPlayAnmeldung/*_Variable` |
+| E2E: Platzhalter vor Variable am echten Server | Variable geht vor | `TestE2EPlayAnmeldung/scram-sha-256_Platzhalter_vor_der_Variable`, `/md5_…`, `/password_…` |
+
+Grüner Mutant, äquivalent: Nach einem Abbruch durch das zweite Signal (`!stop()` in `Verbinde`)
+hat `context.AfterFunc` die Verbindung schon geschlossen; ein `Terminate`, das dort nachgeschoben
+wird (`verbinde-abbruch-mit-terminate`), geht nirgendwohin. Die Grenze trägt `Verbinde` (§6,
+*Abbruch im Aufbau*: „keine weitere Nachricht“, geschlossen); eine Test-Idee dazu gibt es nicht,
+weil der Mutant über die Schnittstelle nichts verändert.
+
+Im ersten Lauf der Mutanten grün und deshalb nachgearbeitet (vor dem Code-Commit): (1) Der
+Test `TestAnmeldungOhneGeheimnis` war durch eine Bearbeitung der Datei verloren; vier
+Geheimnis-Mutanten blieben grün, bis er wieder dastand. (2) `TestAnmeldungSendenScheitert` prüfte nur
+den Code `PGR-E4002`, den auch das folgende Lesen liefert; er prüft jetzt die Meldung. (3) Die
+Fälle „Code 12 vor Code 11“ und „Code 11 nach der Antwort“ trugen den Inhalt der falschen
+Nachricht und waren über den Inhalt abgelehnt, nicht über den Code (äquivalent im Ergebnis); sie
+tragen jetzt auch den Inhalt der Stelle, die den Code erwartet (gleich welcher Inhalt, ein anderer
+Code ist ein Fehler). (4) Die Obergrenze der Iterationen kippte bei `2^64 + 5` nicht, weil der
+Test nur einen Wert nahm, der nach dem Überlauf außerhalb des Bereichs lag. (5) Die Prüfung auf
+einen leeren Text in `leseIterationen` war überflüssig (`n >= 1` trägt sie, der Mutant blieb grün);
+sie ist entfernt.
+
+*Läufe.* Am Arbeitsbaum vor dem Code-Commit `c8b7f44`: `make test` grün; `make test-integration`
+grün (darunter `TestE2EPlayAnmeldung` mit 6 Fällen, `TestE2EPlayAnmeldungOhneVerlangen`,
+`TestE2EPlayAnmeldungFehler` mit 9 Fällen gegen PostgreSQL 17 mit `scram-sha-256`, `md5` und
+`password` in `pg_hba.conf`); `make lint` grün (0 Befunde); `make abdeckung` geschrieben;
+`make gates` grün (Exit-Code 0, 3 min 50 s). Die Gates auf sauberem Baum nach dem Commit dieses
+Abschnitts stehen im Bericht an den Reviewer.
+
+*Fragen an den Architect (Randform · Frage).* Keine ändert den Code, keine ist durch einen Test
+festgelegt:
+
+1. **Zweite Anforderung, die auch nicht lesbar ist** — Eine weitere Anforderung der Codes 3, 5, 10,
+   nachdem `play` eine beantwortet hat, ist `PGR-E4002`; eine nicht lesbare Anforderung eines
+   unterstützten Verfahrens ist `PGR-E4005`. Ist eine zweite Anforderung, die zugleich nicht lesbar
+   ist (etwa Code 5 mit drei Byte Salz), `PGR-E4002` (Code bestimmt die Art, Lesart des Codes: so
+   umgesetzt) oder `PGR-E4005`? Beide enden mit Exit-Code 4.
+2. **Zweite Anforderung eines nicht unterstützten Verfahrens** — Code 7 nach einer Antwort: heute
+   `PGR-E4005` (nicht unterstützt geht vor „weitere Anforderung“); bestätigen oder `PGR-E4002`.
+3. **Leeres Salz** — `s=` ohne Wert ist gültiges (leeres) Base64 und wird angenommen, mit der
+   Berechnung über ein leeres Salz. Gültig oder `PGR-E4005`?
+4. **Führende Nullen und Zeilenumbruch** — `i=0004096` gilt als Dezimalzahl aus Ziffern (4096); ein
+   Zeilenumbruch im Base64 von `s=` und `v=` ist ungültig (Lesart von „gültiges Base64“, die
+   Bibliothek überliest ihn sonst); der Zeilenumbruch ist durch einen Test festgelegt
+   (`TestScramServerErste/s_mit_Zeilenumbruch`), die führenden Nullen nicht.
+5. **Fehler der Schlüsselableitung** — `crypto/pbkdf2` kann einen Fehler liefern (nur im
+   FIPS-Modus der Go-Laufzeit); er ist hier `PGR-E4005` „Schlüsselableitung nicht möglich“, ohne
+   Test (nicht erreichbar ohne GODEBUG).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
