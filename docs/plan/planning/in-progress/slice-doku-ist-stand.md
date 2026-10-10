@@ -499,7 +499,7 @@ Review-Sitzung prüfbar — die Rückführung aus §4 greift nicht.
 `run-integration-tests`, `a-check-negativ`, `lint-gegenprobe`, `kopf-check-gegenprobe`,
 `abdeckung-gegenprobe`, `commit-msg-gegenprobe` je grün, `baseline-verify` OK). Nach der Nacharbeit zum Review (F-570 bis F-575): `make gates` grün am Stand `5f4dfa0` auf
 sauberem Baum (Exit 0, alle Gates wie oben). Nach der Nacharbeit zur Verifikation (V-148, V-150, V-153): `make gates` grün am Stand `33de11d` auf
-sauberem Baum (Exit 0). Kein weiterer
+sauberem Baum (Exit 0). Nach der Closure (Entscheidung zu V-151, V-149, V-152): `make gates` grün am Stand `a59768f` auf sauberem Baum (Exit 0, `docs-check` 0 Befunde, alle Gegenproben und `run-integration-tests` grün, `baseline-verify` OK). Kein weiterer
 Sensor betroffen: Der Slice ändert weder Code noch Tests noch Gates.
 
 **Ergebnis der Closure**
