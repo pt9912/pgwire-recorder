@@ -127,6 +127,6 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — der Fall entstand, weil der Test nur den `CancelRequest` mit Schlüssel prüfte.
 
-Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: zwei Schichten (PGWire-Adapter, Dokumentation).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

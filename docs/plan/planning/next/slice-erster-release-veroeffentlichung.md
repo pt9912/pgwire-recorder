@@ -65,7 +65,6 @@ und der erste echte Tag. Dieser Slice belegt die Pipeline mit einem Probe-Tag.
 - Reproduzierbarkeit des Images — `LH-QA-01` verlangt sie nur für das Binary; das Image wird
   über seinen Digest identifiziert (Punkt 2).
 
-
 ## 2. Definition of Done
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -120,7 +119,6 @@ Pipeline bleibt hier, dazu Wiederanlauf und Fehlertabelle; Scan, Audit, Checklis
 echte Tag gehen an `slice-erster-release-freigabe`. Der Slice lag in `next/` und hat nicht
 begonnen; ein Übergang fällt nicht an.
 - `in-progress` → `open`: Zugangsdaten für die Registries fehlen — extern klären.
-
 
 ## 5. Closure-Trigger
 
@@ -223,8 +221,6 @@ der Entscheidungen vom 2026-10-09. Treffer:
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
-
-Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, `AGENTS.md` §3.13): Die Stellen liegen im ersten Liefer-Punkt und in denselben zwei Dateien (Handbuch, README); kein neuer Liefer-Punkt, keine neue Schicht, die Zählung der vorigen Zeile bleibt.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: zwei Schichten (Release-Automatisierung, Dokumentation).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
