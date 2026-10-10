@@ -95,7 +95,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Hinweis, der eine unbekannte Option beschreibt (darunter `--compare-responses`,
       `--keep-timing`, `--upstream-tls`, `--upstream-ca` und das Passwort bei `play`), ist
       entfernt oder auf Geliefertes gekürzt; jede Codezeile in §7 *Fehlercodes* und
-      *Warnungen* ist im Binary erreichbar oder entfernt (Beleg in §7 je Abschnitt).
+      *Warnungen* ist durch einen Test oder eine Probe belegt oder entfernt (Beleg in §7 je Abschnitt).
 - [ ] Jedes Beispiel des Handbuchs (Aufrufe, Konfigurationsdatei, Ausgaben) läuft als Datei
       gegen das gebaute Binary mit dem beschriebenen Ergebnis (`AGENTS.md` §3.11); die
       Kopfzeilen (*Software-Version*, *Stand*, *Gültigkeitsbereich*) und §11
@@ -221,8 +221,9 @@ findet und ersetzt.
   gegen die Regel, die `--help` nennt, und je Beispieldatei mit `config show`; jedes Beispiel als
   Datei gegen das Binary, `record` und `play` gegen das gepinnte PostgreSQL-Image (§3). Eine
   Zeile in §7 *Fehlercodes* und *Warnungen* bleibt, wenn der Code im Katalog des Binaries steht
-  (`internal/hexagon/model/fehler.go`) **und** eine Probe oder ein Integrations- bzw. E2E-Test
-  ihn über das Binary auslöst; ein Sammelcode der Klasse (`PGR-E2000`, `PGR-E3000`, …), den der
+  (`internal/hexagon/model/fehler.go`) **und** ein Test oder eine Probe ihn auslöst; löst ihn
+  keine Eingabe aus und trägt ihn nur ein Unit-Test (`PGR-E1000`), bleibt die Zeile mit einem
+  Ist-Satz, der das sagt, und die Zeile *1 · sonstiger Fehler* der Exit-Codes nennt ihn; ein Sammelcode der Klasse (`PGR-E2000`, `PGR-E3000`, …), den der
   Katalog nicht führt, entfällt aus der Zeile. Beleg je Abschnitt in §7.
 - **Abdeckungstabellen** `docs/user/abdeckung-*.md` — nicht Teil des Handbuch-Begriffs aus
   §3.11: Sie sind Abdeckungs-Deklarationen der Tests, von `make abdeckung` erzeugt, und ihre
@@ -327,7 +328,7 @@ Ein Vertrag (§3.10) entsteht nicht; die Mutationen belegen nur, dass die Prüfu
 
 | Code | Auslösung | Ergebnis |
 |---|---|---|
-| `PGR-E1000` | keine Probe gefunden, kein E2E-Test | Zeile entfernt; Exit-Code 1 bleibt in der Tabelle *Exit-Codes*, weil das Binary die Klasse führt |
+| `PGR-E1000` | neun Fehlformen (Listen-Adresse, Verzeichnis, `/dev/null`, `/dev/full`, unbekannter Upstream, …) lösen ihn nicht aus; Unit-Tests `TestFailJeKlasse`, `TestFehlerFremd`, `TestFehlerGleichrangig` | bleibt als Ist-Satz „Ein Defekt des Werkzeugs; keine Eingabe löst ihn aus“; Exit-Code 1 nennt ihn (Verifikation V-149) |
 | `PGR-E2001` | Probe (unbekannte Option, `version x`, `--log-level=bogus`) · `play_e2e_test.go` | bleibt, ohne Sammelcode `PGR-E2000` |
 | `PGR-E2002` | Probe (vorhandene Zieldatei) · `schreiben_e2e_test.go` | bleibt |
 | `PGR-E2004` | Probe (fehlende `--config`, unbekannter Schlüssel, `sslmode=require` bei `record` und `play`) · `konfiguration_e2e_test.go` | bleibt |

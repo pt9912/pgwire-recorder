@@ -674,7 +674,7 @@ mit `--input=--` an. `record`, `replay` und `play` nehmen nach `--` kein Argumen
 | Exit-Code | Bedeutung |
 |---|---|
 | 0 | erfolgreich beendet, auch nach `Strg+C` oder `SIGTERM`, wenn zuvor kein Fehler auftrat |
-| 1 | sonstiger Fehler |
+| 1 | sonstiger Fehler (`PGR-E1000`) |
 | 2 | ungültiger Aufruf oder ungültige Konfiguration |
 | 3 | Aufzeichnung ungültig oder nicht zugreifbar |
 | 4 | Netzwerk- oder Datenbankfehler, auch eine Anfrage, die beim Beenden die Frist `--shutdown-timeout` unvollständig beendet hat (`PGR-E4006`) |
@@ -720,6 +720,7 @@ für den Exit-Code.
 
 | Code | Bedeutung | Ursache und Lösung |
 |---|---|---|
+| `PGR-E1000` | sonstiger Fehler | Ein Defekt des Werkzeugs; keine Eingabe löst ihn aus. Melden Sie das Problem mit der Ausgabe des Laufs. |
 | `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert. Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
 | `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte und `sslmode` (erlaubt sind `disable` und `require`). |
