@@ -16,11 +16,12 @@ import (
 
 // schritt ist eine Antwort von Naechste: eine Nachricht oder ein Fehler.
 // blockiert wartet vorher, bis Schliesse läuft, und liefert dann einen Fehler
-// PGR-E4003.
+// PGR-E4003. vorher läuft, wenn nicht nil, bevor Naechste den Schritt liefert.
 type schritt struct {
 	r         model.Response
 	err       error
 	blockiert bool
+	vorher    func()
 }
 
 // fakeZiel ist das Einspielziel der Tests. Je Verbinde nimmt es die nächste
@@ -114,6 +115,9 @@ func (s *fakeEinspiel) Naechste() (model.Response, error) {
 	}
 	x := s.folge[0]
 	s.folge = s.folge[1:]
+	if x.vorher != nil {
+		x.vorher()
+	}
 	if x.blockiert {
 		<-s.zu
 		return model.Response{}, model.Errorf(model.CodeConnectionLost, nil, "geschlossen")

@@ -31,16 +31,19 @@ func werteJeArt() map[string][3]string {
 // den Startup-Daten der Session, den die Option leer lässt.
 func tabelle() map[string]string {
 	return map[string]string{
-		"listen":             "",
-		"upstream":           "",
-		"output":             "",
-		"force":              "false",
-		"input":              "",
-		"fail-on-unconsumed": "false",
-		"shutdown-timeout":   "5s",
-		"log-level":          "info",
-		"user":               ohneStandard,
-		"database":           ohneStandard,
+		"listen":                      "",
+		"upstream":                    "",
+		"output":                      "",
+		"force":                       "false",
+		"input":                       "",
+		"fail-on-unconsumed":          "false",
+		"shutdown-timeout":            "5s",
+		"log-level":                   "info",
+		"user":                        ohneStandard,
+		"database":                    ohneStandard,
+		"continue-on-error":           "false",
+		"allow-recorded-errors":       "false",
+		"finish-session-on-interrupt": "false",
 	}
 }
 
@@ -272,7 +275,7 @@ func TestLeserOptionen(t *testing.T) {
 	for kommando, want := range map[string][]string{
 		"record": {"listen", "upstream", "output", "force", "shutdown-timeout", "log-level"},
 		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "log-level"},
-		"play":   {"upstream", "input", "user", "database", "log-level"},
+		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "finish-session-on-interrupt", "log-level"},
 	} {
 		var got []string
 		for _, o := range cli.Optionen(kommando) {

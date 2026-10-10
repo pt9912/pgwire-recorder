@@ -59,16 +59,60 @@ func TestParsePlayFailOnUnconsumed(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-17/Boundary — bei play bleiben die Umgebungsvariablen der
-// Optionen unbeachtet, die dieser Stand von play nicht kennt (Laufsteuerung,
-// TLS, Zeitangaben, Vergleich), auch mit ungültigem Wert, ebenso
+// Optionen unbeachtet, die dieser Stand von play nicht kennt (TLS,
+// Zeitangaben, Vergleich), auch mit ungültigem Wert, ebenso
 // PGWIRE_RECORDER_PASSWORD (LH-FA-17.a).
 func TestParsePlayFremdeUmgebung(t *testing.T) {
 	leere(t, "play")
-	for _, name := range []string{"CONTINUE_ON_ERROR", "ALLOW_RECORDED_ERRORS", "FINISH_SESSION_ON_INTERRUPT", "UPSTREAM_TLS", "UPSTREAM_CA", "KEEP_TIMING", "TIMING_MODE", "TIMING_REFERENCE", "COMPARE_RESPONSES", "PASSWORD", "LISTEN", "SHUTDOWN_TIMEOUT"} {
+	for _, name := range []string{"UPSTREAM_TLS", "UPSTREAM_CA", "KEEP_TIMING", "TIMING_MODE", "TIMING_REFERENCE", "COMPARE_RESPONSES", "PASSWORD", "LISTEN", "SHUTDOWN_TIMEOUT"} {
 		t.Setenv("PGWIRE_RECORDER_"+name, "ungültig")
 	}
 	if got, err := playMit("--upstream=pg:1"); err != nil || got != (cli.PlayOptions{Upstream: "pg:1", Input: "r.yaml", LogLevel: cli.LogInfo}) {
 		t.Fatalf("fremde Umgebungsvariable ausgewertet: %#v, %v", got, err)
+	}
+}
+
+// Abdeckung: LH-FA-20/Happy, LH-FA-17/Boundary — --continue-on-error,
+// --allow-recorded-errors und --finish-session-on-interrupt setzen je genau ihr
+// Feld der Einspielvorgaben: ohne Wert, mit =true, aus der Umgebungsvariable
+// und aus dem Abschnitt play: true, mit =false und ohne Quelle false; ohne
+// Wert geht die Option einer Umgebungsvariable mit false vor; 1, True und yes
+// sind auf der Kommandozeile PGR-E2001 (LH-FA-17.a, LH-FA-20.a).
+func TestParsePlayLaufsteuerung(t *testing.T) {
+	for _, f := range []struct {
+		name, env, schluessel string
+		want                  cli.Einspielvorgaben
+	}{
+		{"continue-on-error", "PGWIRE_RECORDER_CONTINUE_ON_ERROR", "continue_on_error", cli.Einspielvorgaben{ContinueOnError: true}},
+		{"allow-recorded-errors", "PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS", "allow_recorded_errors", cli.Einspielvorgaben{AllowRecordedErrors: true}},
+		{"finish-session-on-interrupt", "PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT", "finish_session_on_interrupt", cli.Einspielvorgaben{FinishSessionOnInterrupt: true}},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			leere(t, "play")
+			for _, args := range [][]string{{"--" + f.name}, {"--" + f.name + "=true"}, {"--config=" + schreibe(t, "play:\n  "+f.schluessel+": true\n")}} {
+				if got, err := playMit(append([]string{"--upstream=pg:1"}, args...)...); err != nil || got.Einspielen != f.want {
+					t.Errorf("%q: %#v, %v, erwartet %#v", args, got.Einspielen, err, f.want)
+				}
+			}
+			for _, args := range [][]string{nil, {"--" + f.name + "=false"}} {
+				if got, err := playMit(append([]string{"--upstream=pg:1"}, args...)...); err != nil || got.Einspielen != (cli.Einspielvorgaben{}) {
+					t.Errorf("%q: %#v, %v, erwartet ohne Wirkung", args, got.Einspielen, err)
+				}
+			}
+			for _, w := range []string{"1", "True", "yes"} {
+				if _, err := playMit("--upstream=pg:1", "--"+f.name+"="+w); !istUsage(err) {
+					t.Errorf("--%s=%s: erwartet %s, erhalten %v", f.name, w, model.CodeUsage, err)
+				}
+			}
+			t.Setenv(f.env, "true")
+			if got, err := playMit("--upstream=pg:1"); err != nil || got.Einspielen != f.want {
+				t.Errorf("%s=true: %#v, %v", f.env, got.Einspielen, err)
+			}
+			t.Setenv(f.env, "false")
+			if got, err := playMit("--upstream=pg:1", "--"+f.name); err != nil || got.Einspielen != f.want {
+				t.Errorf("%s=false neben --%s: %#v, %v", f.env, f.name, got.Einspielen, err)
+			}
+		})
 	}
 }
 
@@ -156,7 +200,7 @@ func TestPlayVariablen(t *testing.T) {
 // Konfigurationsdatei (LH-FA-01.a); die globale Hilfe nennt play.
 func TestParsePlayHilfe(t *testing.T) {
 	text := hilfe(t, "play", "--help")
-	for _, teil := range []string{"Optionen von play:", "--upstream", "--input", "--user", "--database", "--log-level", "--config", "play:"} {
+	for _, teil := range []string{"Optionen von play:", "--upstream", "--input", "--user", "--database", "--continue-on-error", "PGWIRE_RECORDER_CONTINUE_ON_ERROR", "--allow-recorded-errors", "PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS", "--finish-session-on-interrupt", "PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT", "--log-level", "--config", "play:"} {
 		if !strings.Contains(text, teil) {
 			t.Errorf("Hilfe von play ohne %q:\n%s", teil, text)
 		}

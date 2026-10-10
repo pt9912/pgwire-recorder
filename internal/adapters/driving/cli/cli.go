@@ -50,14 +50,19 @@ type PlayOptions struct {
 // Einspielvorgaben sind die Optionen von `play`, die der Play-Service
 // auswertet. User und Database tragen ohne --user beziehungsweise --database
 // Benutzer und Datenbank der benutzten Verbindung (LH-FA-17.a *Wirkung einer
-// URL*); "" heißt, die Startup-Daten der Session gelten.
+// URL*); "" heißt, die Startup-Daten der Session gelten. ContinueOnError,
+// AllowRecordedErrors und FinishSessionOnInterrupt sind --continue-on-error,
+// --allow-recorded-errors und --finish-session-on-interrupt (LH-FA-20.a).
 //
 // Kopplung: Der Play-Service führt einen Typ mit denselben Feldern in
 // derselben Reihenfolge, und der Bootstrap konvertiert diesen in jenen; eine
 // Option kommt in beiden Typen hinzu, sonst baut der Bootstrap nicht.
 type Einspielvorgaben struct {
-	User     string
-	Database string
+	User                     string
+	Database                 string
+	ContinueOnError          bool
+	AllowRecordedErrors      bool
+	FinishSessionOnInterrupt bool
 }
 
 // envFailOnUnconsumed ist die Umgebungsvariable von --fail-on-unconsumed
@@ -118,6 +123,18 @@ const optionenPlay = `Optionen von play:
               Aufzeichnung
   --database  Datenbank für jede Session, statt der der Verbindung und der
               Aufzeichnung
+  --continue-on-error[=true|false]
+              nach einer Fehlerantwort des Servers (PGR-E4004) macht play mit
+              der nächsten Anfrage weiter und endet mit Exit-Code 4;
+              Umgebungsvariable PGWIRE_RECORDER_CONTINUE_ON_ERROR
+  --allow-recorded-errors[=true|false]
+              eine Fehlerantwort ist erwartet und kein Fehler, wenn die
+              aufgezeichnete Anfrage ebenfalls eine trägt; Umgebungsvariable
+              PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS
+  --finish-session-on-interrupt[=true|false]
+              nach dem ersten SIGINT oder SIGTERM endet play erst nach der
+              laufenden Session; Umgebungsvariable
+              PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT
 ` + optionLogLevel + optionConfig + optionUmgebung
 
 const optionUmgebung = `
@@ -314,6 +331,9 @@ func optionen(kommando string) []option {
 			{name: "input", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Play.Input = v }},
 			{name: "user", art: artText(), setze: func(c *Command, v string) { c.Play.Einspielen.User = v }},
 			{name: "database", art: artText(), setze: func(c *Command, v string) { c.Play.Einspielen.Database = v }},
+			{name: "continue-on-error", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.ContinueOnError = v == "true" }},
+			{name: "allow-recorded-errors", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.AllowRecordedErrors = v == "true" }},
+			{name: "finish-session-on-interrupt", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.FinishSessionOnInterrupt = v == "true" }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Play.LogLevel = v }},
 		}
 	}

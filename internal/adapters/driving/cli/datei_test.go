@@ -200,7 +200,6 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 		{"Schlüssel config oben", "config: x.yaml\n", "config"},
 		{"Schlüssel config im Abschnitt", "replay:\n  config: x.yaml\n", "replay.config"},
 		{"Option eines anderen Kommandos in play", "play:\n  output: GEHEIM\n", "play.output"},
-		{"Option der Laufsteuerung in play", "play:\n  continue_on_error: true\n", "play.continue_on_error"},
 		{"Option von TLS in play", "play:\n  upstream_tls: true\n", "play.upstream_tls"},
 		{"Option eines Folge-Slice in play", "play:\n  keep_timing: true\n", "play.keep_timing"},
 		{"fail_on_unconsumed in play", "play:\n  fail_on_unconsumed: true\n", "play.fail_on_unconsumed"},

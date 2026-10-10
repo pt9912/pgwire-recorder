@@ -8,7 +8,10 @@ import "context"
 type Player interface {
 	// Play spielt ein, bis die Aufzeichnung zu Ende ist, ein Fehler abbricht
 	// oder ein Abbruchsignal es beendet: Endet ctx (erstes Signal), endet es
-	// nach der laufenden Interaktion; wird ablauf geschlossen (zweites Signal),
-	// sofort. Es liefert den Fehler, nach dem es abgebrochen hat, sonst nil.
+	// nach der laufenden Interaktion, mit --finish-session-on-interrupt nach
+	// der laufenden Session; wird ablauf geschlossen (zweites Signal), sofort.
+	// Es liefert die Fehler des Laufs als reine Zusammenfassung, den, nach dem
+	// es abgebrochen hat, zuerst, danach die, nach denen es weiterlief, in der
+	// Reihenfolge ihres Auftretens; ohne Fehler nil.
 	Play(ctx context.Context, ablauf <-chan struct{}) error
 }
