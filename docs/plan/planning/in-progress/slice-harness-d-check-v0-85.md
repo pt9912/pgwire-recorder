@@ -1,4 +1,4 @@
-# Slice slice-harness-d-check-v0-85: d-check v0.86.0, Freshness-Audit, Nachzählen im Review
+# Slice slice-harness-d-check-v0-85: d-check v0.86.1, Freshness-Audit, Nachzählen im Review
 
 **Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
 Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
@@ -34,7 +34,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Das Doku-Gate läuft auf d-check `v0.86.0` (Tag und Digest gepinnt, ohne die zwei HIGH-CVEs des Images `v0.82.0`), die Workflow-Commands sagen über das Verhalten des Doku-Gates nichts zu, sondern nennen die Link-Regel für Kennungen und verweisen auf `.d-check.yml`, §7 hält das Ergebnis des Freshness-Audits der vendored Baseline gegen die Release-Liste des Kurs-Repos fest, und der Reviewer-Skill prüft das Nachzählen beim Eintragen einer Sendung nach `AGENTS.md` §3.13.
+**Ziel:** Das Doku-Gate läuft auf d-check `v0.86.1` (Tag und Digest gepinnt, ohne die zwei HIGH-CVEs des Images `v0.82.0`), die Workflow-Commands sagen über das Verhalten des Doku-Gates nichts zu, sondern nennen die Link-Regel für Kennungen und verweisen auf `.d-check.yml`, §7 hält das Ergebnis des Freshness-Audits der vendored Baseline gegen die Release-Liste des Kurs-Repos fest, und der Reviewer-Skill prüft das Nachzählen beim Eintragen einer Sendung nach `AGENTS.md` §3.13.
 
 **Herkunft der drei Teile und der Berichtigung** (Entscheidungen des Nutzers vom 2026-10-09):
 
@@ -43,7 +43,10 @@ zusammen mit der Begründungs-Pflicht je Punkt.
   des Nutzers mit diesem Image fand im Arbeitsbaum 424 Dateien, 0 Befunde. Nach
   Entscheidung des Nutzers vom 2026-10-10 ist der Pin auf `ghcr.io/pt9912/d-check:v0.86.0`
   mit Digest `sha256:d90200e94db311a70f9b15045e1290feecde03e9185ad78fb1ebea265e6ee44b`
-  gehoben; die Kennung dieses Slice bleibt.
+  gehoben; die Kennung dieses Slice bleibt. Nach Information des Nutzers vom 2026-10-10 ist
+  der Pin auf `ghcr.io/pt9912/d-check:v0.86.1` mit Digest
+  `sha256:3e0b9779a71e2fa942960e8b961428fba036455c535513d34a75bfb799ffce0e` gehoben, ein
+  Sicherheitsrelease (`golang.org/x/net` `v0.60.0`).
 - **Freshness-Audit:** Das Kurs-Repo führt `v6.17.0`, das Repo ist auf `v6.16.0` gepinnt
   (`harness/conventions.md` §Baseline). Geprüft und berichtet wird hier, gehoben nicht.
 - **Reviewer-Skill:** Die MEDIUM-Klasse *Adresse nimmt nicht an* in
@@ -115,9 +118,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **d-check `v0.86.0`:** `DCHECK_IMAGE` in `d-check.mk` nennt
-      `ghcr.io/pt9912/d-check:v0.86.0`, `DCHECK_DIGEST` den Digest
-      `sha256:d90200e94db311a70f9b15045e1290feecde03e9185ad78fb1ebea265e6ee44b`; der Digest
+- [ ] **d-check `v0.86.1`:** `DCHECK_IMAGE` in `d-check.mk` nennt
+      `ghcr.io/pt9912/d-check:v0.86.1`, `DCHECK_DIGEST` den Digest
+      `sha256:3e0b9779a71e2fa942960e8b961428fba036455c535513d34a75bfb799ffce0e`; der Digest
       gehört zum Tag (Beleg in §7: Abruf des Tags, Digest der Ausgabe); `make docs-check`
       meldet 0 Befunde. Gegenprobe in einer Kopie des Arbeitsbaums mit dem neuen Image: ein
       toter Anker, eine Kennung `ADR-` ohne Link, ein totes Linkziel und ein Link aus einem
@@ -158,7 +161,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `d-check.mk` | update | `DCHECK_IMAGE` auf `v0.86.0` (zuerst `v0.85.0`, gehoben am 2026-10-10), `DCHECK_DIGEST` auf den Digest des Tags; sonst unverändert (§1) |
+| `d-check.mk` | update | `DCHECK_IMAGE` auf `v0.86.1` (zuerst `v0.85.0`, dann `v0.86.0`, beide Hebungen am 2026-10-10), `DCHECK_DIGEST` auf den Digest des Tags; sonst unverändert (§1) |
 | `.harness/skills/reviewer.md` | update | neue MEDIUM-Klasse *Nehmer nicht nachgezählt* nach `AGENTS.md` §3.13 *Nachzählen beim Eintragen*, mit der Bedingung „im selben Commit“ (Review F-560); die Klasse *Adresse nimmt nicht an* bleibt unverändert |
 | `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* ohne Zusage über das Verhalten des Gates (DoD-Punkt 1, §1 *Berichtigung*, Verifikation V-141 bis V-144): die Regel, Kennungen als Anker-Links zu schreiben, `LH-` noch nicht erzwungen, `.d-check.yml` legt fest, `make docs-check` ist maßgeblich. Unter `.claude/agents/` und `.harness/skills/` steht kein gleichlautender Block (§7) |
 | dieser Plan, §7 | update | Belege des Pins (Digest, Gegenprobe) und Befund des Freshness-Audits |
@@ -176,11 +179,11 @@ in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md); danach geht die Welle
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): der gepinnte Tag (`v0.86.0`) meldet im Arbeitsbaum
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): der gepinnte Tag (`v0.86.1`) meldet im Arbeitsbaum
   Befunde, die mehr als eine kleine Korrektur der Doku verlangen, oder `d-check.mk` muss
   neu erzeugt werden, weil sich Ziele oder Aufruf von d-check geändert haben (§1). Schnitt
   dann: der Pin als eigener Slice; Audit und Skill sind ohne ihn lieferbar.
-- `in-progress` → `open` (blockiert — Carveout?): Der gepinnte Tag (`v0.86.0`) ist nicht abrufbar, oder
+- `in-progress` → `open` (blockiert — Carveout?): Der gepinnte Tag (`v0.86.1`) ist nicht abrufbar, oder
   sein Digest ist nicht der genannte; dann zuerst die Klärung mit dem Nutzer, der Pin
   bleibt bis dahin auf dem vorigen Tag.
 
@@ -206,7 +209,7 @@ Reviewer-Skill trägt eine verkörperte Regel in die Klassifikation.
 
 **Risiken:**
 
-- `v0.86.0` (davor `v0.85.0`) wertet die aktiven Module anders aus als `v0.82.0`, und der Probelauf mit 0
+- `v0.86.1` (davor `v0.86.0` und `v0.85.0`) wertet die aktiven Module anders aus als `v0.82.0`, und der Probelauf mit 0
   Befunden verdeckt eine Prüfung, die still schwächer geworden ist
   (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`, 2×); die Gegenprobe in DoD-Punkt
   1 deckt vier Klassen, nicht alle (`spans` nicht) — **Ausgang:** offen bis Closure. Die
@@ -237,7 +240,40 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
-**Pin auf `v0.86.0` (DoD-Punkt 1, Entscheidung des Nutzers vom 2026-10-10).** Am 2026-10-10:
+**Pin auf `v0.86.1` (DoD-Punkt 1, Information des Nutzers vom 2026-10-10: Sicherheitsrelease,
+`golang.org/x/net` `v0.60.0`, laut Changelog keine Verhaltensänderung).** Am 2026-10-10:
+
+- *Digest gehört zum Tag:* `docker buildx imagetools inspect ghcr.io/pt9912/d-check:v0.86.1`
+  meldet einen OCI-Index mit `Digest: sha256:3e0b9779a71e2fa942960e8b961428fba036455c535513d34a75bfb799ffce0e`
+  (Manifeste `linux/amd64` `sha256:1d3b0a2b…`, `linux/arm64` `sha256:01e31f8f…`);
+  `docker pull` desselben Tags, danach `docker image inspect --format '{{json .RepoDigests}}'`,
+  meldet den Index-Digest (daneben den des Manifests `linux/amd64`). Gleich dem Digest der
+  Release-Notiz.
+- *Ziele und Aufruf unverändert:* `--print-mk` von `v0.86.0` (`d90200e9…`) und `v0.86.1`
+  (`3e0b9779…`), je 76 Zeilen, unterscheiden sich nur in der Zeile `DCHECK_IMAGE` (`diff`,
+  eine Zeile); die Rückführung nach §4 tritt nicht ein. Geändert sind in `d-check.mk` nur
+  `DCHECK_IMAGE` und `DCHECK_DIGEST`; `.d-check.yml` ist unverändert.
+- *Weitere Nennungen des alten Pins:* `grep` nach `v0.86.0` und `d90200e9` außerhalb von
+  `.git`, `.harness/` und `docs/reviews/` findet ihn nur in diesem Plan (Herkunft und
+  Belege mit Stand), nicht mehr in `d-check.mk`.
+- *`make docs-check` am Arbeitsbaum:* `d-check: 439 Datei(en) geprüft, 0 Befund(e)` mit
+  Digest `3e0b9779…`.
+
+Gegenprobe gegen `v0.86.1` (`3e0b9779…`) in Kopien des Arbeitsbaums: je Mutation eine frische
+Kopie im Scratchpad, jeder Eintrag der obersten Ebene außer `.git` mit `cp -r` ohne `-p`,
+Mutation per `printf` angehängt, Lauf `docker run --rm --network none` mit dem Digest, danach
+nur diese Kopie gelöscht. Unveränderte Kopie: `439 Datei(en) geprüft, 0 Befund(e)`, Exit 0.
+
+| Zusage | Mutation | Befundzeile (`v0.86.1`) |
+|---|---|---|
+| toter Anker ist rot (`anchors`) | Link auf `conventions.md#gibt-es-nicht`, an `harness/README.md` | `harness/README.md:141 conventions.md#gibt-es-nicht anchor-missing`, 1 Befund, Exit 1 |
+| Kennung `ADR-` ohne Link ist rot (`ids`) | `ADR-` mit vier Ziffern (0001) blank im Fließtext, an `harness/README.md` | `harness/README.md:141` · die Kennung · `id-unlinked`, 1 Befund, Exit 1 |
+| totes Linkziel ist rot (`links`) | Link auf `gibt-es-nicht.md`, an `harness/README.md` | `harness/README.md:141 gibt-es-nicht.md target-missing`, 1 Befund, Exit 1 |
+| Spec-Stratum nennt keine ADR (`matrix`) | Link aus `spec/architecture.md` auf ADR 0001 | `spec/architecture.md:645 … matrix-forbidden Referenz spec-straten → adr`, 1 Befund, Exit 1 |
+| Kontrolle: bares `LH-`-Token bleibt grün (nicht erzwungen, `slice-harness-lh-links-pflicht`) | `LH-FA-01` blank, angehängt an `harness/README.md`, an `spec/spezifikation.md` und an diesen Plan (drei Kopien) | kein Befund, je `439 Datei(en) geprüft, 0 Befund(e)`, Exit 0 — wie unter `v0.85.0` und `v0.82.0` |
+
+**Pin auf `v0.86.0` (Stand 2026-10-10, abgelöst durch den Pin auf `v0.86.1` oben; DoD-Punkt 1,
+Entscheidung des Nutzers vom 2026-10-10).** Am 2026-10-10:
 
 - *Digest gehört zum Tag:* `docker buildx imagetools inspect ghcr.io/pt9912/d-check:v0.86.0`
   meldet einen OCI-Index mit `Digest: sha256:d90200e94db311a70f9b15045e1290feecde03e9185ad78fb1ebea265e6ee44b`
@@ -273,7 +309,7 @@ nur diese Kopie gelöscht. Unveränderte Kopie: `439 Datei(en) geprüft, 0 Befun
 | totes Linkziel ist rot (`links`) | Link auf `gibt-es-nicht.md`, an `harness/README.md` | `harness/README.md:141 gibt-es-nicht.md target-missing`, 1 Befund, Exit 1 |
 | Spec-Stratum nennt keine ADR (`matrix`) | Link aus `spec/architecture.md` auf ADR 0001 | `spec/architecture.md:645 … matrix-forbidden Referenz spec-straten → adr`, 1 Befund, Exit 1 |
 
-**Pin auf `v0.85.0` (Stand 2026-10-09, abgelöst durch den Pin oben).** Am 2026-10-09:
+**Pin auf `v0.85.0` (Stand 2026-10-09, abgelöst durch den Pin auf `v0.86.0` oben).** Am 2026-10-09:
 
 - *Digest gehört zum Tag:* `docker buildx imagetools inspect ghcr.io/pt9912/d-check:v0.85.0`
   meldet einen OCI-Index mit `Digest: sha256:c07f1fe6053b1f790c4a1e01a76bcf4d3a8ff85e6eb609fe1aaaaf6ab6f09abe`
@@ -321,7 +357,7 @@ berichtigt (Commit `dfb7e88`), der Block ist enger gefasst (Gegenprobe unten).
 Nutzers vom 2026-10-10 sagt der Block kein rot/grün-Verhalten des Gates zu (DoD-Punkt 1). Die
 folgenden Tabellen messen frühere Fassungen des Blocks, die solches Verhalten zusagten; sie
 bleiben als Messbefund über d-check `v0.85.0` unter `.d-check.yml` stehen, nicht als Zusage,
-und sind gegen `v0.86.0` nicht neu gefahren.
+und sind gegen `v0.86.0` und `v0.86.1` nicht neu gefahren.
 
 **Gegenprobe zum Block *Strenges Doc-Gate*** (Berichtigung von DoD-Punkt 1), nur gegen
 `v0.85.0` (`c07f1fe6…`), am Stand `dfb7e88` mit den geänderten Commands im Arbeitsbaum. Je

@@ -4,8 +4,8 @@
 # '^docs?-' (listet docs-check mit) und DCHECK_DIGEST auf den erzeugenden
 # Image-Digest gepinnt (Reproduzierbarkeit). Übrige advisory doc-*-Targets verbatim.
 # Einbinden: `include d-check.mk`; eigene .d-check.yml danebenlegen.
-DCHECK_IMAGE ?= ghcr.io/pt9912/d-check:v0.86.0
-DCHECK_DIGEST ?= sha256:d90200e94db311a70f9b15045e1290feecde03e9185ad78fb1ebea265e6ee44b
+DCHECK_IMAGE ?= ghcr.io/pt9912/d-check:v0.86.1
+DCHECK_DIGEST ?= sha256:3e0b9779a71e2fa942960e8b961428fba036455c535513d34a75bfb799ffce0e
 # TRACE_FLAGS: optionale Flags für die RTM-Targets (z. B. --json).
 TRACE_FLAGS ?=
 
