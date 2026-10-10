@@ -277,24 +277,13 @@ func TestE2EPlayVorrang(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-20/Negative — bis zu den Folge-Slices spielt play gegen die
-// reale Instanz nichts ein, wenn die Aufzeichnung eine Extended-Interaktion
-// enthält, auch in einer späteren Session (PGR-E6001 mit Session und Nummer,
-// Exit-Code 6), wenn die benutzte Verbindung sslmode=require verlangt
-// (PGR-E2004, Exit-Code 2) und mit --upstream-tls (PGR-E2001, Exit-Code 2);
-// keiner der Fälle schreibt eine Log-Zeile (LH-FA-20.a *Art der Interaktion*,
-// LH-FA-17.a *Wirkung einer URL*).
+// reale Instanz nichts ein, wenn die benutzte Verbindung sslmode=require
+// verlangt (PGR-E2004, Exit-Code 2) und mit --upstream-tls (PGR-E2001,
+// Exit-Code 2); keiner der Fälle schreibt eine Log-Zeile (LH-FA-17.a *Wirkung
+// einer URL*).
 func TestE2EPlayZwischenstand(t *testing.T) {
 	conn := leereDatenbank(t, "play_zwischenstand")
 	einfach := einspielAufzeichnung(t, []string{"CREATE TABLE vorher (n int)"})
-	inhalt, err := os.ReadFile(einfach)
-	if err != nil {
-		t.Fatal(err)
-	}
-	extended := filepath.Join(t.TempDir(), "extended.yaml")
-	session2 := "  - id: 2\n    startup:\n      user: postgres\n      database: postgres\n    interactions:\n      - sequence: 1\n        type: extended\n        groups:\n          - client:\n              - type: parse\n                statement: \"\"\n                sql: \"SELECT $1::int\"\n                param_types: []\n              - type: sync\n            server:\n              - type: parse_complete\n              - type: ready_for_query\n                tx_status: \"I\"\n"
-	if err := os.WriteFile(extended, append(inhalt, session2...), 0o644); err != nil {
-		t.Fatal(err)
-	}
 	dir := t.TempDir()
 	host, port, _ := strings.Cut(os.Getenv("PGR_UPSTREAM"), ":")
 	datei := fmt.Sprintf("connections:\n  tls: \"postgresql://postgres@%s:%s/play_zwischenstand?sslmode=require\"\n", host, port)
@@ -307,7 +296,6 @@ func TestE2EPlayZwischenstand(t *testing.T) {
 		exit    int
 		meldung []string
 	}{
-		{"Extended in Session 2", []string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--input", extended, "--database", "play_zwischenstand"}, 6, []string{"PGR-E6001", "Session 2, Interaktion 1"}},
 		{"sslmode=require", []string{"--upstream", "tls", "--input", einfach}, 2, []string{"PGR-E2004", "connections.tls", "sslmode=require"}},
 		{"--upstream-tls", []string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--input", einfach, "--database", "play_zwischenstand", "--upstream-tls=require"}, 2, []string{"PGR-E2001", "upstream-tls"}},
 	} {

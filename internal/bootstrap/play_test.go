@@ -183,29 +183,18 @@ func TestRunPlayFehlerantwort(t *testing.T) {
 
 // Abdeckung: LH-FA-20/Negative, LH-FA-14/Negative — ein Startfehler ist die
 // Zeile beim Prozessende ohne Log-Zeile davor, auch nach einem Abbruchsignal
-// während des Starts: eine Extended-Interaktion PGR-E6001 mit Exit-Code 6,
-// eine nicht ladbare Aufzeichnung Exit-Code 3; play verbindet sich dabei nicht
-// (LH-FA-20.a *Start*, *Art der Interaktion*).
+// während des Starts: eine nicht ladbare Aufzeichnung Exit-Code 3; play
+// verbindet sich dabei nicht (LH-FA-20.a *Start*).
 func TestRunPlayStartfehler(t *testing.T) {
 	leerePlay(t)
 	addr, typen := playServer(t, nil)
-	extended := model.Interaction{Sequence: 2, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
-		Client: []model.ClientMessage{{Type: model.ClientSync}},
-		Server: []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}},
-	}}}
-	input := einfacheAufzeichnung(t, []model.Interaction{anfrage(1, "A"), extended})
 	beendet, aus := context.WithCancel(context.Background())
 	aus()
 	for _, ctx := range []context.Context{context.Background(), beendet} {
 		var stdout, stderr bytes.Buffer
-		code := bootstrap.Run(ctx, nil, []string{"play", "--upstream", addr, "--input", input}, "dev", &stdout, &stderr)
-		if code != 6 || stderr.String() != "nicht unterstützt [PGR-E6001]: Session 1, Interaktion 2: eine Interaktion der Art extended spielt play nicht ein\n" {
-			t.Fatalf("Exit-Code %d, stderr %q", code, stderr.String())
+		if code := bootstrap.Run(ctx, nil, []string{"play", "--upstream", addr, "--input", filepath.Join(t.TempDir(), "fehlt.yaml")}, "dev", &stdout, &stderr); code != 3 || strings.Contains(stderr.String(), "level=") {
+			t.Fatalf("nicht ladbar: Exit-Code %d, stderr %q", code, stderr.String())
 		}
-	}
-	var stdout, stderr bytes.Buffer
-	if code := bootstrap.Run(context.Background(), nil, []string{"play", "--upstream", addr, "--input", filepath.Join(t.TempDir(), "fehlt.yaml")}, "dev", &stdout, &stderr); code != 3 || strings.Contains(stderr.String(), "level=") {
-		t.Fatalf("nicht ladbar: Exit-Code %d, stderr %q", code, stderr.String())
 	}
 	select {
 	case b := <-typen:

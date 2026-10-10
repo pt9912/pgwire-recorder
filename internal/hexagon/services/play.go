@@ -10,9 +10,9 @@ import (
 )
 
 // PlayService erfüllt den Play-Use-Case (ARC-002, LH-FA-20.a): Er spielt die
-// einfachen Anfragen einer Aufzeichnung Session für Session über eigene
-// Verbindungen gegen einen Server ein und bricht beim ersten Fehler ab, der
-// nach PlayOptions nicht weiterläuft.
+// einfachen Anfragen und die Extended-Interaktionen einer Aufzeichnung Session
+// für Session über eigene Verbindungen gegen einen Server ein und bricht beim
+// ersten Fehler ab, der nach PlayOptions nicht weiterläuft.
 type PlayService struct {
 	ziel     driven.Einspielziel
 	optionen PlayOptions
@@ -45,10 +45,9 @@ type PlayOptions struct {
 
 // NewPlayService ist der Start des Einspielens (LH-FA-20.a *Start*): Es lädt
 // die Aufzeichnung; ein Fehler dabei und eine Interaktion, die Validate nicht
-// besteht (PGR-E3003), gehen vor. Danach ist die erste Interaktion, die keine
-// einfache Anfrage ist, in der Reihenfolge der Sessions und ihrer
-// Interaktionen, PGR-E6001 mit Session, Nummer und Art (*Art der
-// Interaktion*). o sind die Optionen des Einspielens.
+// besteht (PGR-E3003), gehen vor. Jede Interaktion, die Validate besteht, ist
+// eine einfache Anfrage oder eine Extended-Interaktion und wird eingespielt.
+// o sind die Optionen des Einspielens.
 func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path string, ziel driven.Einspielziel, o PlayOptions) (*PlayService, error) {
 	rec, err := repo.Load(ctx, path)
 	if err != nil {
@@ -63,11 +62,6 @@ func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path s
 	}
 	s := &PlayService{ziel: ziel, optionen: o}
 	for _, sess := range rec.Sessions {
-		for _, in := range sess.Interactions {
-			if in.Request.Type != model.RequestQuery {
-				return nil, model.Errorf(model.CodeUnsupported, nil, "Session %d, Interaktion %d: eine Interaktion der Art %s spielt play nicht ein", sess.ID, in.Sequence, in.Request.Type)
-			}
-		}
 		if len(sess.Interactions) > 0 {
 			s.sessions = append(s.sessions, sess)
 		}
@@ -161,22 +155,92 @@ func (s *PlayService) startup(sess model.Session) map[string]string {
 	return out
 }
 
-// interaktion sendet die Anfrage und liest bis zum ReadyForQuery; jede
-// Antwort außer einer Fehlerantwort verwirft sie. Eine Fehlerantwort mit dem
-// Schweregrad FATAL oder PANIC (Feld V, ohne es S) ist PGR-E4003 und bricht
-// ab, auch wenn sie erwartet wäre. Jede andere ist mit AllowRecordedErrors
-// erwartet, wenn die Aufzeichnung der Interaktion eine error_response trägt,
-// und ohne Meldung; sonst ist sie PGR-E4004, mit ContinueOnError an weiter
-// gereicht, ohne ihn der Fehler, nach dem interaktion ohne weiteres Lesen
-// abbricht. Nach einer erwarteten oder weitergereichten Fehlerantwort liest sie
-// weiter bis zum ReadyForQuery. Die Meldung nennt von der Fehlerantwort
-// SQLSTATE und Meldung, keine weiteren Felder (LH-FA-20.a *Interaktion*,
-// *Meldungen*, Schritt 6).
+// interaktion spielt eine Interaktion ein: eine einfache Anfrage mit anfrage,
+// eine Extended-Interaktion mit extended. Beide verwerfen jede Antwort außer
+// einer Fehlerantwort. Eine Fehlerantwort mit dem Schweregrad FATAL oder PANIC
+// (Feld V, ohne es S) ist PGR-E4003 und bricht ab, auch wenn sie erwartet
+// wäre. Jede andere ist mit AllowRecordedErrors erwartet, wenn die Aufzeichnung
+// der Interaktion eine error_response trägt, und ohne Meldung; sonst ist sie
+// PGR-E4004, mit ContinueOnError an weiter gereicht, ohne ihn der Fehler, nach
+// dem die Interaktion ohne weiteres Lesen abbricht. Nach einer erwarteten oder
+// weitergereichten Fehlerantwort liest sie weiter bis zum ReadyForQuery. Die
+// Meldung nennt von der Fehlerantwort SQLSTATE und Meldung, keine weiteren
+// Felder (LH-FA-20.a *Interaktion*, *Meldungen*, Schritt 6).
 func (s *PlayService) interaktion(us driven.EinspielSession, in model.Interaction, weiter func(error)) error {
-	if err := us.Anfrage(in.Request.SQL); err != nil {
+	erwartet := s.optionen.AllowRecordedErrors && mitFehlerantwort(in)
+	if in.Request.Type == model.RequestExtended {
+		return s.extended(us, in.Groups, erwartet, weiter)
+	}
+	return s.anfrage(us, in.Request.SQL, erwartet, weiter)
+}
+
+// anfrage sendet eine einfache Anfrage und liest bis zum ReadyForQuery.
+func (s *PlayService) anfrage(us driven.EinspielSession, sql string, erwartet bool, weiter func(error)) error {
+	if err := us.Anfrage(sql); err != nil {
 		return err
 	}
-	erwartet := s.optionen.AllowRecordedErrors && mitFehlerantwort(in)
+	return s.bisBereit(us, erwartet, weiter)
+}
+
+// extended sendet die Gruppen einer Extended-Interaktion in ihrer Reihenfolge
+// (LH-FA-20.a *Gruppen*). Nach einer Gruppe mit Flush liest sie, bevor sie die
+// nächste sendet, die Antworten auf jede Client-Nachricht der Gruppe
+// (erwarteteAntworten); nach der letzten Gruppe, die mit Sync endet, liest sie
+// bis zum ReadyForQuery. Nach einer Fehlerantwort, die nicht abbricht, zählt
+// sie nicht mehr: Sie sendet die übrigen Gruppen ohne Warten dazwischen und
+// liest dann bis zum ReadyForQuery.
+func (s *PlayService) extended(us driven.EinspielSession, gruppen []model.Group, erwartet bool, weiter func(error)) error {
+	fehlerGesehen := false
+	for _, g := range gruppen {
+		if err := us.Gruppe(g.Client); err != nil {
+			return err
+		}
+		if fehlerGesehen || g.Client[len(g.Client)-1].Type != model.ClientFlush {
+			continue
+		}
+		for n := erwarteteAntworten(g.Client); n > 0; {
+			r, err := us.Naechste()
+			if err != nil {
+				return err
+			}
+			switch r.Type {
+			case model.ResponseDataRow, model.ResponseNoticeResponse, model.ResponseParameterStatus:
+				continue
+			case model.ResponseErrorResponse:
+				if err := s.fehlerantwort(r, erwartet, weiter); err != nil {
+					return err
+				}
+				fehlerGesehen = true
+				n = 0
+			default:
+				n--
+			}
+		}
+	}
+	return s.bisBereit(us, erwartet, weiter)
+}
+
+// erwarteteAntworten ist die Zahl der Antworten, auf die der Server nach einer
+// Gruppe mit Flush antwortet: eine je Parse, Bind, Close und Execute und je
+// Describe eines Portals, zwei je Describe einer Anweisung
+// (ParameterDescription und RowDescription oder NoData), keine auf Flush.
+func erwarteteAntworten(nachrichten []model.ClientMessage) int {
+	n := 0
+	for _, m := range nachrichten {
+		switch {
+		case m.Type == model.ClientFlush || m.Type == model.ClientSync:
+		case m.Type == model.ClientDescribe && m.Target == model.TargetStatement:
+			n += 2
+		default:
+			n++
+		}
+	}
+	return n
+}
+
+// bisBereit liest bis zum ReadyForQuery und verwirft jede Antwort außer einer
+// Fehlerantwort.
+func (s *PlayService) bisBereit(us driven.EinspielSession, erwartet bool, weiter func(error)) error {
 	for {
 		r, err := us.Naechste()
 		if err != nil {
@@ -186,29 +250,53 @@ func (s *PlayService) interaktion(us driven.EinspielSession, in model.Interactio
 		case model.ResponseReadyForQuery:
 			return nil
 		case model.ResponseErrorResponse:
-			schwere := r.Fields["V"]
-			if schwere == "" {
-				schwere = r.Fields["S"]
+			if err := s.fehlerantwort(r, erwartet, weiter); err != nil {
+				return err
 			}
-			if schwere == "FATAL" || schwere == "PANIC" {
-				return model.Errorf(model.CodeConnectionLost, nil, "Fehlerantwort des Servers %s „%s“, die Verbindung endet", r.Fields["C"], r.Fields["M"])
-			}
-			if erwartet {
-				continue
-			}
-			fehler := model.Errorf(model.CodeServerError, nil, "Fehlerantwort des Servers %s „%s“", r.Fields["C"], r.Fields["M"])
-			if !s.optionen.ContinueOnError {
-				return fehler
-			}
-			weiter(fehler)
 		}
 	}
 }
 
+// fehlerantwort stuft eine Fehlerantwort ein: FATAL und PANIC sind PGR-E4003;
+// eine erwartete ist keine Meldung; jede andere ist PGR-E4004, mit
+// ContinueOnError an weiter gereicht, sonst der Fehler, den sie liefert.
+func (s *PlayService) fehlerantwort(r model.Response, erwartet bool, weiter func(error)) error {
+	schwere := r.Fields["V"]
+	if schwere == "" {
+		schwere = r.Fields["S"]
+	}
+	if schwere == "FATAL" || schwere == "PANIC" {
+		return model.Errorf(model.CodeConnectionLost, nil, "Fehlerantwort des Servers %s „%s“, die Verbindung endet", r.Fields["C"], r.Fields["M"])
+	}
+	if erwartet {
+		return nil
+	}
+	fehler := model.Errorf(model.CodeServerError, nil, "Fehlerantwort des Servers %s „%s“", r.Fields["C"], r.Fields["M"])
+	if !s.optionen.ContinueOnError {
+		return fehler
+	}
+	weiter(fehler)
+	return nil
+}
+
 // mitFehlerantwort meldet, ob die Aufzeichnung der Interaktion an irgendeiner
-// Stelle eine error_response trägt (LH-FA-20.a *Interaktion*).
+// Stelle eine error_response trägt, in den Antworten einer einfachen Anfrage
+// oder in den Server-Nachrichten jeder Gruppe (LH-FA-20.a *Interaktion*).
 func mitFehlerantwort(in model.Interaction) bool {
-	for _, r := range in.Responses {
+	if trifftFehlerantwort(in.Responses) {
+		return true
+	}
+	for _, g := range in.Groups {
+		if trifftFehlerantwort(g.Server) {
+			return true
+		}
+	}
+	return false
+}
+
+// trifftFehlerantwort meldet, ob eine der Antworten eine error_response ist.
+func trifftFehlerantwort(antworten []model.Response) bool {
+	for _, r := range antworten {
 		if r.Type == model.ResponseErrorResponse {
 			return true
 		}

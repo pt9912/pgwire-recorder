@@ -83,15 +83,41 @@ func (z *fakeZiel) Verbinde(ctx context.Context, startup map[string]string) (dri
 
 // fakeEinspiel ist eine Session des fakeZiel: je Anfrage die nächste Folge
 // aus antworten; beiAnfrage läuft mit dem Text der Anfrage, anfrageFehler
-// liefert Anfrage als Fehler.
+// liefert Anfrage als Fehler. Je Gruppe hängt Gruppe die nächste Folge aus
+// gruppen an die noch ungelesenen Antworten an; beiGruppe läuft mit der Nummer
+// der Gruppe seit dem Aufbau (ab 1), gruppeFehler liefert Gruppe als Fehler.
 type fakeEinspiel struct {
 	ziel          *fakeZiel
 	antworten     [][]schritt
+	gruppen       [][]schritt
 	folge         []schritt
 	beiAnfrage    func(string)
 	anfrageFehler error
+	beiGruppe     func(int)
+	gruppeFehler  error
+	nGruppen      int
 	zu            chan struct{}
 	einmal        sync.Once
+}
+
+func (s *fakeEinspiel) Gruppe(nachrichten []model.ClientMessage) error {
+	var typen []string
+	for _, m := range nachrichten {
+		typen = append(typen, string(m.Type))
+	}
+	s.ziel.notiere("gruppe " + strings.Join(typen, ","))
+	s.nGruppen++
+	if s.beiGruppe != nil {
+		s.beiGruppe(s.nGruppen)
+	}
+	if s.gruppeFehler != nil {
+		return s.gruppeFehler
+	}
+	if len(s.gruppen) > 0 {
+		s.folge = append(s.folge, s.gruppen[0]...)
+		s.gruppen = s.gruppen[1:]
+	}
+	return nil
 }
 
 func (s *fakeEinspiel) Anfrage(sql string) error {
@@ -305,26 +331,17 @@ func TestPlayFehler(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-20/Negative — der Start lädt die Aufzeichnung; ein
-// Ladefehler und eine beschädigte Interaktion gehen vor; danach ist die erste
-// Interaktion einer Art, die play nicht einspielt (Extended), in der
-// Reihenfolge der Sessions und Interaktionen PGR-E6001 mit Session, Nummer und
-// Art, auch hinter einfachen Anfragen und in einer späteren Session; der Start
-// verbindet sich dabei nie (LH-FA-20.a *Start*, *Art der Interaktion*).
+// Ladefehler und eine beschädigte Interaktion gehen vor; eine Extended-Interaktion,
+// auch hinter einfachen Anfragen und in einer späteren Session, ist kein
+// Startfehler; der Start verbindet sich dabei nie (LH-FA-20.a *Start*).
 func TestPlayStart(t *testing.T) {
-	extended := model.Interaction{Sequence: 3, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
-		Client: []model.ClientMessage{{Type: model.ClientSync}},
-		Server: []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}},
-	}}}
-	spaeter := extended
-	spaeter.Sequence = 1
 	rec := model.NewRecording()
 	s2 := anfragen(2, nil, "A", "B")
-	s2.Interactions = append(s2.Interactions, extended)
-	s3 := model.Session{ID: 3, Interactions: []model.Interaction{spaeter}}
+	s2.Interactions = append(s2.Interactions, syncInteraktion(3))
+	s3 := model.Session{ID: 3, Interactions: []model.Interaction{syncInteraktion(1)}}
 	rec.Sessions = []model.Session{anfragen(1, nil, "X"), s2, s3}
 	ziel := &fakeZiel{}
-	_, err := services.NewPlayService(context.Background(), ladeRepo{rec: rec}, "r.yaml", ziel, services.PlayOptions{})
-	if codeVon(err) != model.CodeUnsupported || err.Error() != "nicht unterstützt [PGR-E6001]: Session 2, Interaktion 3: eine Interaktion der Art extended spielt play nicht ein" {
+	if _, err := services.NewPlayService(context.Background(), ladeRepo{rec: rec}, "r.yaml", ziel, services.PlayOptions{}); err != nil {
 		t.Errorf("Extended: %v", err)
 	}
 	kaputt := rec

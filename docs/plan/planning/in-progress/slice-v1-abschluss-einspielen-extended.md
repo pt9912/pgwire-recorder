@@ -131,8 +131,10 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/adapters/driven/postgres` | update | die Client-Nachrichten einer Gruppe nebenläufig zum Lesen senden (§6, *Senden und Lesen unabhängig*) |
 | `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driven` | update | neue Operation `Gruppe` am Port; Gruppen einer Extended-Interaktion, Zählen der Antworten je Gruppe, Warten nach `Sync` und `Flush`, Abbruch, Fortsetzung, erwarteter Fehler und Signal innerhalb der Interaktion; der Startfehler für Extended-Interaktionen entfällt |
-| `internal/hexagon/services` (Tests), `internal/adapters/driven/postgres` (Tests) | update | Warten je Gruppenende, Fehler in der ersten und in einer späteren Gruppe, Signal innerhalb der Interaktion, je Zusage eine Mutation |
-| `test/integration` | update | Extended-Szenario nach LH-FA-20 und LH-FA-18; die Tests des Kerns zum Zwischenstand *Aufzeichnung mit Extended-Interaktion* ändern |
+| `internal/hexagon/services` (Tests), `internal/adapters/driven/postgres` (Tests) | update | Warten je Gruppenende, Fehler in der ersten und in einer späteren Gruppe, Signal innerhalb der Interaktion, je Zusage eine Mutation; neue Dateien `play_extended_test.go` und `einspielen_gruppe_test.go`; `TestPlayStart` ändert sich (Zwischenstand) |
+| `internal/bootstrap` (Tests) | update | `TestRunPlayStartfehler` verliert den Fall *Extended-Interaktion* (Zwischenstand), der Fall *nicht ladbar* bleibt |
+| `test/integration` | update | neue Datei `play_extended_e2e_test.go` (Extended-Szenario nach LH-FA-20 und LH-FA-18, Fehlerfälle, Gegendruck-Szenario); `TestE2EPlayZwischenstand` in `play_e2e_test.go` verliert den Fall *Extended in Session 2* |
+| `docs/user/abdeckung-*.md` | update | von `make abdeckung` aus den Deklarationen der Tests erzeugt |
 
 ## 4. Trigger
 

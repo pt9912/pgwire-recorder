@@ -20,13 +20,22 @@ type Einspielziel interface {
 
 // EinspielSession ist eine aufgebaute Verbindung zum Server beim Einspielen.
 //
-// Gleichzeitigkeit: Anfrage und Naechste laufen nacheinander. Schliesse darf
-// jederzeit laufen, auch während Anfrage oder Naechste warten, und beendet
-// beide mit einem Fehler.
+// Gleichzeitigkeit: Anfrage und Naechste laufen nacheinander. Gruppe beginnt
+// das Senden und kehrt zurück; das Senden der Gruppen läuft in der Session
+// unabhängig davon, ob Naechste liest. Schliesse darf jederzeit laufen, auch
+// während Anfrage sendet oder Gruppe sendet oder Naechste wartet, und beendet
+// sie mit einem Fehler.
 type EinspielSession interface {
 	// Anfrage sendet eine einfache Anfrage; scheitert das Senden, ist das
 	// PGR-E4003.
 	Anfrage(sql string) error
+	// Gruppe beginnt das Senden der Client-Nachrichten einer Gruppe einer
+	// Extended-Interaktion in ihrer Reihenfolge und kehrt zurück, ohne auf das
+	// Ende des Sendens zu warten; mehrere Gruppen sendet die Session nacheinander
+	// in der Reihenfolge der Aufrufe. Scheitert das Senden, ist das PGR-E4003 aus
+	// Naechste oder der nächsten Gruppe; ein Fehler nach Schliesse bleibt ohne
+	// Folge.
+	Gruppe(nachrichten []model.ClientMessage) error
 	// Naechste liest die nächste Server-Nachricht und liefert sie, wenn das
 	// Modell sie kennt; Nachrichten ohne Abbildung im Modell, etwa
 	// NotificationResponse, liest und verwirft sie. Eine CopyInResponse,

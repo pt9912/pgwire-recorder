@@ -179,17 +179,31 @@ func verworfen(typ byte) pgproto3.BackendMessage {
 }
 
 // einspielSession ist eine aufgebaute Verbindung beim Einspielen. schreiben
-// hält das Senden von Anfrage und das Terminate von Schliesse auseinander.
+// hält das Senden von Anfrage und einer Gruppe und das Terminate von Schliesse
+// auseinander. Die Gruppen sendet ein eigener Sender nacheinander aus
+// warteschlange, unabhängig vom Lesen in Naechste; zustand schützt
+// warteschlange, geschlossen und sendefehler.
 type einspielSession struct {
 	conn      net.Conn
 	fe        *pgproto3.Frontend
 	schreiben sync.Mutex
+
+	zustand       sync.Mutex
+	warteschlange [][]pgproto3.FrontendMessage
+	senderLaeuft  bool
+	weck          chan struct{}
+	ende          chan struct{}
+	geschlossen   bool
+	sendefehler   error
 }
 
 // neueEinspielSession ist die Session auf conn; sie liest aus r, das die
 // Bytes hinter dem Aufbau noch trägt, und schreibt auf conn.
 func neueEinspielSession(conn net.Conn, r io.Reader) *einspielSession {
-	return &einspielSession{conn: conn, fe: pgproto3.NewFrontend(r, conn)}
+	return &einspielSession{
+		conn: conn, fe: pgproto3.NewFrontend(r, conn),
+		weck: make(chan struct{}, 1), ende: make(chan struct{}),
+	}
 }
 
 func (s *einspielSession) Anfrage(sql string) error {
@@ -202,10 +216,109 @@ func (s *einspielSession) Anfrage(sql string) error {
 	return nil
 }
 
+// Gruppe bildet die Nachrichten auf PGWire ab und reiht sie für den Sender
+// ein; es wartet nicht auf das Senden. Ein früherer Fehler des Sendens ist
+// PGR-E4003.
+func (s *einspielSession) Gruppe(nachrichten []model.ClientMessage) error {
+	if err := s.fehlerDesSendens(); err != nil {
+		return err
+	}
+	msgs := make([]pgproto3.FrontendMessage, 0, len(nachrichten))
+	for _, m := range nachrichten {
+		msg, err := toFrontendMessage(m)
+		if err != nil {
+			return err
+		}
+		msgs = append(msgs, msg)
+	}
+	s.zustand.Lock()
+	if s.geschlossen {
+		s.zustand.Unlock()
+		return model.Errorf(model.CodeConnectionLost, nil, "Gruppe nach dem Schließen der Verbindung")
+	}
+	s.warteschlange = append(s.warteschlange, msgs)
+	if !s.senderLaeuft {
+		s.senderLaeuft = true
+		go s.sender()
+	}
+	s.zustand.Unlock()
+	select {
+	case s.weck <- struct{}{}:
+	default:
+	}
+	return nil
+}
+
+// sender sendet die eingereihten Gruppen nacheinander, bis Schliesse ihn
+// beendet oder ein Senden scheitert.
+func (s *einspielSession) sender() {
+	for {
+		s.zustand.Lock()
+		var gruppe []pgproto3.FrontendMessage
+		if len(s.warteschlange) > 0 {
+			gruppe, s.warteschlange = s.warteschlange[0], s.warteschlange[1:]
+		}
+		s.zustand.Unlock()
+		if gruppe == nil {
+			select {
+			case <-s.weck:
+				continue
+			case <-s.ende:
+				return
+			}
+		}
+		if !s.sendeGruppe(gruppe) {
+			return
+		}
+	}
+}
+
+// sendeGruppe schreibt die Nachrichten einer Gruppe. Es liefert falsch, wenn der Sender enden soll: nach Schliesse, oder weil das
+// Senden scheiterte. Dann ist der Fehler PGR-E4003 für Naechste und die
+// nächste Gruppe gemerkt und die Verbindung geschlossen, damit ein wartendes Naechste endet;
+// nach Schliesse bleibt ein Fehler ohne Folge.
+func (s *einspielSession) sendeGruppe(gruppe []pgproto3.FrontendMessage) bool {
+	s.schreiben.Lock()
+	defer s.schreiben.Unlock()
+	s.zustand.Lock()
+	zu := s.geschlossen
+	s.zustand.Unlock()
+	if zu {
+		return false
+	}
+	for _, m := range gruppe {
+		s.fe.Send(m)
+	}
+	err := s.fe.Flush()
+	if err == nil {
+		return true
+	}
+	s.zustand.Lock()
+	if !s.geschlossen {
+		s.sendefehler = model.Errorf(model.CodeConnectionLost, err, "Gruppe an den Server nicht zu senden")
+	}
+	s.zustand.Unlock()
+	_ = s.conn.Close()
+	return false
+}
+
+// fehlerDesSendens ist der gemerkte Fehler eines gescheiterten Sendens, sonst nil.
+func (s *einspielSession) fehlerDesSendens() error {
+	s.zustand.Lock()
+	defer s.zustand.Unlock()
+	return s.sendefehler
+}
+
 func (s *einspielSession) Naechste() (model.Response, error) {
 	for {
+		if err := s.fehlerDesSendens(); err != nil {
+			return model.Response{}, err
+		}
 		msg, err := s.fe.Receive()
 		if err != nil {
+			if err := s.fehlerDesSendens(); err != nil {
+				return model.Response{}, err
+			}
 			if istVerbindungsende(err) {
 				return model.Response{}, model.Errorf(model.CodeConnectionLost, err, "Verbindung zum Server beendet")
 			}
@@ -221,9 +334,16 @@ func (s *einspielSession) Naechste() (model.Response, error) {
 	}
 }
 
-// Schliesse sendet Terminate nur, wenn gerade keine Anfrage sendet, und
-// höchstens terminateFrist lang; danach schließt es die Verbindung.
+// Schliesse beendet den Sender, sendet Terminate nur, wenn gerade nichts
+// sendet, und höchstens terminateFrist lang; danach schließt es die
+// Verbindung.
 func (s *einspielSession) Schliesse() {
+	s.zustand.Lock()
+	if !s.geschlossen {
+		s.geschlossen = true
+		close(s.ende)
+	}
+	s.zustand.Unlock()
 	if s.schreiben.TryLock() {
 		_ = s.conn.SetWriteDeadline(time.Now().Add(terminateFrist))
 		s.fe.Send(&pgproto3.Terminate{})
