@@ -98,12 +98,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): `play` meldet sich an einem Server mit `password`, `md5` und
+- [x] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): `play` meldet sich an einem Server mit `password`, `md5` und
       `scram-sha-256` in `pg_hba.conf` an und spielt eine Aufzeichnung ein; das Passwort
       kommt aus dem Platzhalter der benutzten Verbindung, sonst aus
       `PGWIRE_RECORDER_PASSWORD`, eine leere Variable gilt als nicht gesetzt; verlangt der
       Server kein Passwort, sendet `play` keines (Integrationstest).
-- [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): Ein falsches Passwort, ein fehlendes Passwort, wenn der Server eines
+- [x] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): Ein falsches Passwort, ein fehlendes Passwort, wenn der Server eines
       verlangt, ein nicht unterstütztes Verfahren (Kerberos, GSSAPI, SSPI, SASL ohne
       `SCRAM-SHA-256`) und jeder Fehler im SCRAM-Austausch (eine Nachricht des Servers, die
       nicht passt oder sich nicht lesen lässt, eine falsche Serversignatur) sind
@@ -115,14 +115,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       den Regeln des Aufbaus; das Passwort steht in keiner Meldung und
       keiner Log-Zeile, keiner Ursachenkette und in keiner Formatierung der Optionen ([`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten)) (Test). Beleg in §7 für Punkt 1 und 2: je Zusage
       Zusage · Mutation · roter Test (`AGENTS.md` §3.10). Die Abdeckungstabellen sind über `make abdeckung` nachgezogen.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -313,10 +313,17 @@ an der genannten Stelle. Offen ist keine.
 
 - SCRAM-SHA-256 rechnet `play` selbst; ein Fehler in der Berechnung fällt nur gegen einen
   echten Server auf, ein Testserver, der die Nachrichten vorgibt, rechnet mit demselben
-  Fehler — **Ausgang:** offen bis Closure.
+  Fehler — **Ausgang:** entfallen (trat nicht ein): Der echte Server (PostgreSQL 17,
+  `TestE2EPlayAnmeldung/scram-sha-256_*`) und der Fake-Server, der mit `hashlib` und `hmac`
+  unabhängig vom Code rechnet (Verifikation: 19 Austausche gleich), bestätigen die Rechnung;
+  `TestScramBeweisRFC7677` hält Beweis und Signatur an den Vektoren aus RFC 7677; der
+  E2E-Mutant „Beweis nur ClientSignature“ ist am echten Server rot (28P01), §7.
 - Die Anmeldung ist nur gegen die Referenzversion 17 geprüft
-  (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, §8) — **Ausgang:** offen bis
-  Closure.
+  (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, §8) — **Ausgang:** weiter offen
+  (Register, `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×): kein Auftreten, keine
+  neue Datei; der Zähler steigt nur mit einem Fund. Eine Adresse gibt es nicht:
+  `slice-v1-abschluss-postgres-versionen` fährt nur den Fall aus `slice-v1-abschluss-anmeldung`
+  (§1).
 
 ## 7. Closure-Notiz
 
@@ -552,6 +559,46 @@ Zähler: 85 Unit-Mutanten in der Zählung der Zeile *Weg der Mutanten* (84 + die
 Nicht gefunden: nichts außer den zwei Tests, die jetzt stehen (V-162). Gegenstände, die der Plan als Mutation nennt und die keine Repo-Namen sind (`RawStdEncoding`, `strings.EqualFold`, `shutil.copyfile`), sind keine Zusagen über Code und wurden nicht gesucht. Commit-Hashes im Plan wurden nicht gegen `git` geprüft.
 
 *Läufe der Nacharbeit zur Verifikation.* Auf dem Stand `63e312d` (sauberer Baum): `make gates` grün, Exit-Code 0, 4 min 17 s (darin `make test`, `make test-integration`, `make lint`, `make lint-gegenprobe`, `make abdeckung-check`). Die Mutation lief in einer frischen Kopie im Image `pgwire-recorder:test` ohne Netz. Das Gate-Ergebnis des Commits, der diese Zeile trägt, steht im Bericht.
+
+### Closure
+
+**Review und Verifikation.** Review `3cc01e4` (0 HIGH, F-591 und F-592 MEDIUM, F-593 LOW, F-594 bis F-596 INFO); erledigt in `b263135` und `556f8aa`, die Randformen von F-593 entschied der Architect in `0a063cd`. Verifikation `6eb36fe`: DoD-Punkte 1 bis 3 im Verhalten bestätigt; V-162 (HIGH) behoben in `63e312d` und `1cede48`, V-163 (LOW) und V-164 (INFO) liegen beim Planner. Die Closure hat V-162 nachgeprüft: Beide Tests stehen (`einspielen_anmeldung_test.go:386` und `:407`) und sind auf dem Code grün; mit `.Strict()` in `dekodiereBase64` (frische Kopie, Bind-Mount, kein Netz) sind `TestAnmeldungScramSalzNichtKanonisch/Restbits_gesetzt` und `TestAnmeldungScramSignaturNichtKanonisch/Restbits_gesetzt` rot, die Fälle `kanonisch` grün.
+
+**Entscheidungen zu den Übergaben.**
+
+- **V-162** (Plan und §7 nennen zwei Tests, die es nicht gab; zugleich die behauptete rote Mutation, die ohne diese Tests nicht rot sein konnte): eine Falschmeldung des Implementers, behoben. Die Regel gilt: `AGENTS.md` §3.10 verlangt je Zusage einen Test und die selbst gefahrene Mutation, §3.11 verbietet der Plan-Zeile, mehr zuzusagen als ein Test prüft, und Schritt 18 und 19 von `implement-slice` legen die Tabelle Zusage · Mutation · roter Test nach §7. Keine dieser Stellen verlangt, die Namen eines Plans gegen den Code zu halten; das hat erst die Verifikation getan, und der Implementer fuhr es in der Nacharbeit als Namensabgleich nach. Einordnung im Register: Die Klasse ist nicht `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht` (der Beleg stand im Plan und erreichte die Prüfer, er war falsch) und nicht `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (der Wortlaut war genau, sein Gegenstand fehlte); der fehlende Test zählt zusätzlich in `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`. Neu: `BEO-REPO/plan-nennt-test-der-nicht-existiert`, 1×, offen. Ein Sensor „jeder in einem Plan genannte `Test…`-Name steht im Repo“ wäre urteilsfrei prüfbar; ein Nehmer fehlt: `slice-harness-mutation` (`open/`) misst überlebende Mutanten und prüft keine Namen, `slice-harness-coverage` (`next/`) misst die Anweisungs-Abdeckung und schließt neue Prüfungen aus, und kein Slice in `open/` oder `next/` führt Ziel-Ansprüche und Code-Pfade (Suche nach beiden Wörtern). Unter 3× weist das Register ohnehin keinen Ausgang `geplant` zu. Wiederholt sich die Klasse, ist der Sensor der Ausgang, mit einem Slice als Adresse, der ihn aufnimmt.
+- **V-163** (`cli.ziel.passwort` ein unexportiertes `string`-Feld, latent): Register, kein Nehmer. `slice-v1-abschluss-einspielen-tls` ändert zwar die CLI, liegt aber nach seinem §8 mit Upstream-Adapter, CLI-Adapter und Bootstrap-Logik bei drei Schichten über der Grenze und nähme die Sendung nicht an (`AGENTS.md` §3.13, Nachzählen); `slice-v1-abschluss-einspielen-tls-doku` ändert keinen Code. Entfallen ist der Punkt nicht, denn dieselbe Klasse trat in diesem Slice als F-591 im Postgres-Adapter auf. Neu: `BEO-REPO/passwort-nur-im-exportierten-feld-geschuetzt`, 1×, offen (F-591 und V-163 sind ein Vorgang). Wer die Datei `verbindung.go` das nächste Mal ändert, entscheidet, ob `ziel` ein `Format` trägt; erreicht der Eintrag 3×, ist er eine Regel oder ein Sensor.
+- **V-164** (Mutanten erst nach 24 bis 84 s rot, Frist des Fake-Servers 20 s) und **F-596**: eingeordnet als Hinweis. Die Fristen sind Literale nach `SPEC-038` und stehen im richtigen Rahmen; jeder Mutant ist aus dem richtigen Grund rot, nur die Rückmeldung ist langsam. Der Bootstrap-Fall ist behoben (Ende der Verbindung als Ereignis, 0,01 s). Neu: `BEO-REPO/rot-erst-nach-frist-des-fake-servers`, 1×, offen; abgegrenzt von `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit` (3×, geplant), weil dort die Frist fehlt und `slice-harness-lint-warten-ohne-frist` sie fordert, hier ist sie da.
+- **F-594** (Konjunktiv im E2E-Kommentar) und **F-595** (`pg_reload_conf()` ohne Wartepunkt): kein Eingriff, beide in keinem Lauf zu einem Fehler geworden. Neu im Register, je 1×, offen: `BEO-REPO/konjunktiv-im-kommentar-bei-kopplung`, `BEO-REPO/asynchrones-neuladen-ohne-wartepunkt`.
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge):
+
+| Risiko | Ausgang | Begründung |
+|---|---|---|
+| SCRAM-SHA-256 rechnet `play` selbst; der Testserver rechnet womöglich mit demselben Fehler | entfallen | Trat nicht ein. Der echte Server (PostgreSQL 17, `TestE2EPlayAnmeldung/scram-sha-256_*`) und der Fake-Server, der mit `hashlib` und `hmac` unabhängig rechnet (19 Austausche der Verifikation gleich), bestätigen die Rechnung; der Beweis hält an RFC 7677; der E2E-Mutant „nur ClientSignature“ ist am echten Server rot. |
+| Anmeldung nur gegen PostgreSQL 17 geprüft | weiter offen | Kein Auftreten und keine neue Datei: `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` bleibt 1×, offen. `slice-v1-abschluss-postgres-versionen` ist keine Adresse (§1). |
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure; Beleg je `evidence/slice-v1-abschluss-einspielen-anmeldung.md`):
+
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — F-591: 33 → 34. Verkörpert (`AGENTS.md` §3.11); Sensor geplant (`slice-harness-mutation`).
+- `BEO-REPO/plan-folgt-korrektur-nicht` — F-592: 24 → 25. Verkörpert (`AGENTS.md` §3.9).
+- `BEO-REPO/spec-randform-erst-im-review-entschieden` — F-593: 19 → 20. Verkörpert (`AGENTS.md` §3.12). F-593 hat der Implementer nicht bemerkt, das Review fand es mit einer Probe; deshalb diese Klasse und nicht die nächste.
+- `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` — die fünf Fragen des Implementers nach dem Code (§7 oben, Randformen aus der Rückgabe): 7 → 8. Verkörpert (`implement-slice` Randform-Rückgabe, `AGENTS.md` §3.12). Zählt als ein Vorgang; die Klasse trat nach ihrer Verkörperung wieder auf, die Regel bleibt (der Retirement-Check für ein Lockern fällt damit gegen das Lockern aus).
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — V-162 (grüner Mutant `.Strict()`): 22 → 23. Verkörpert (`AGENTS.md` §3.10); Sensor geplant (`slice-harness-mutation`).
+- `BEO-REPO/schichtteilung-je-plan-verschieden` — die Zählung des Bootstrap, schon eingetragen bei der Entscheidung des Nutzers vom 2026-10-10: bleibt 4×, verkörpert (`AGENTS.md` §3.13, Zusatz `seit slice-v1-abschluss-einspielen-anmeldung`).
+- Neu, je 1×, offen: `BEO-REPO/plan-nennt-test-der-nicht-existiert`, `BEO-REPO/passwort-nur-im-exportierten-feld-geschuetzt`, `BEO-REPO/rot-erst-nach-frist-des-fake-servers`, `BEO-REPO/asynchrones-neuladen-ohne-wartepunkt`, `BEO-REPO/konjunktiv-im-kommentar-bei-kopplung`.
+- `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` — kein Auftreten, 1×, offen. `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht` bleibt 5× (V-162 gehört nicht in die Klasse, siehe oben).
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3×.
+
+**Lerneintrag — geschärfte Regel.** Der Schnitt, der diesen Slice auf zwei Schichten und zwei Liefer-Punkte brachte, hing an einer Frage, die keine Regel entschied: ob der Bootstrap eine Schicht ist. Zwei Pläne zählten ihn (`slice-v1-abschluss-einspielen-laufsteuerung`, `slice-v1-abschluss-einspielen-extended`), zwei nicht (dieser und `slice-v1-abschluss-einspielen-tls`). Der Architect fand die Lücke vor dem ersten Code-Commit, der Nutzer entschied am 2026-10-10: Der Bootstrap zählt nur mit Logik, reine Verdrahtung (ein Feld reichen, ein Kommentar) nicht. Das Ergebnis stand im Slice zur Probe: Der Diff des Bootstrap ist +4 −2, zwei Schichten, kein Rücksprung nach §4; für `-tls` zählt dieselbe Regel drei. liegt in `AGENTS.md §3.13` · seit slice-v1-abschluss-einspielen-anmeldung (der Absatz zum Bootstrap). Die zweite Lehre, V-162, ist ein Befund ohne Regel: Die Regeln gelten (§3.10, §3.11, Schritt 18 und 19), die Falschmeldung hielt kein Wächter. Sie steht im Register (1×) und wird dort gelesen, bevor sie verkörpert wird.
+
+**Technik ohne Verkörperung.** Der Namensabgleich der Nacharbeit (`grep "^func <Name>("` über `cmd/`, `internal/`, `test/` je Testname des Plans, Unterfälle gegen `go test -v`) ist der Weg, den der Sensor aus dem Register später urteilsfrei übernähme; heute Handarbeit des Implementers, keine Regel.
+
+**Paarungen.** (a) Anker: `AGENTS.md` §3.13 trägt den Zusatz zum Bootstrap mit `seit slice-v1-abschluss-einspielen-anmeldung` (Zeilen 346 bis 348 und 365); `BEO-REPO/schichtteilung-je-plan-verschieden` nennt `AGENTS.md §3.13` als Zielort. (b) Folge-Slice: Genannt ist `slice-v1-abschluss-einspielen-anmeldung-doku`; er existiert in `next/` und nennt den Geber in §1 und DoD (`grep -c` findet 12). Die Geber `slice-v1-abschluss-anmeldung` und `slice-v1-abschluss-antwortvergleich` zeigen mit ihrem §1 auf diesen Slice (je 1 Treffer). `slice-v1-abschluss-postgres-versionen` ist ausdrücklich keine Adresse (§1, §6). Diese Closure weist keinem Slice etwas Neues zu: V-163 und V-162 gehen ins Register, der Sensor hat keinen Nehmer. (c) Register: Alle genannten Kennungen `BEO-REPO/…` bestehen als Verzeichnis, jedes mit nicht leerem `evidence/`.
+
+**Nachzählen.** Keine Sendung in einen Nehmer, daher keine Zählung eines Nehmers. Der Stand von `slice-v1-abschluss-einspielen-tls` bleibt, wie er in dessen §8 steht: drei Schichten (Upstream-Adapter, CLI-Adapter, Bootstrap mit Logik), nicht geschnitten; der Schnitt ist Entscheidung des Planners mit dem Nutzer vor dem Anspruch.
+
+**Stand der Gates.** Die Läufe stehen oben (`1cede48` als letzter Stand der Nacharbeit); den Lauf auf dem Stand der Closure nennt der Bericht des Planners.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
