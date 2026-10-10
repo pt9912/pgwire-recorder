@@ -188,6 +188,8 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 **Nicht gefahren.** Die übrigen Codeblöcke des Handbuchs (Aufzeichnen, Wiedergeben, Compose, Docker-Aufrufe) sind in diesem Lauf unberührt und nicht erneut als Datei gelaufen; die Nachbarsätze zu `record`/`replay` ohne Passwort-Aussage (§4 Aufzeichnen, Zeile `PGR-E6001` bei `record`) wurden nicht erneut geprobt. Iterationsobergrenze, Frist, unterbrechbare Berechnung: im Handbuch ungenannt (akzeptiertes Negativ, §6). Review, Verifikation, Closure: nicht Teil dieses Laufs.
 
+**Gate-Lauf.** `make gates` auf sauberem Baum am Stand `8cc0a48` (Handbuch, README und Plan wie im Diff dieses Slice): Exit 0, einschließlich `docs-check` und `lint-gegenprobe`. Die Zeile selbst folgt in einem eigenen Commit; sie ändert nur diesen Plan.
+
 **Funde für den Planner.**
 
 1. Die Befehlsfolge aus `slice-doku-ist-stand` §7 meldet `PGWIRE_RECORDER_PASSWORD` bei jedem Lauf (Variable ohne Option); sie braucht die benannte Ausnahme oder einen Abzug dieser einen Variable, sonst liest sich jeder Lauf rot.
