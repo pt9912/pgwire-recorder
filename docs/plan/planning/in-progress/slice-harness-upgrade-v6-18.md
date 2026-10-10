@@ -189,12 +189,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen** (`AGENTS.md` §3.12) — **offen, der Architect entscheidet sie nach dem Start und
-vor dem ersten Commit** (§4). Der Slice legt keinen Werkzeugvertrag an und ändert keinen; der
-Ort der Entscheidung ist deshalb, wie in `slice-harness-upgrade-v6-16` (dort §6), dieser
-Abschnitt. Die Entscheidungen jenes Slice sind der Vorschlag, den der Architect gegen den neuen
-Stand prüft. Was hier nicht steht, entscheidet der Implementer nicht, er gibt es zurück
-(`.claude/commands/implement-slice.md`, Randform-Rückgabe).
+**Randformen** (`AGENTS.md` §3.12) — **entschieden vom Architect am 2026-10-10**, nach dem
+Start und vor dem ersten Commit (§4). **Ort ist dieser Abschnitt**, nicht die Spezifikation und
+keine ADR: Der Slice legt keinen Werkzeugvertrag an und ändert keinen (kein `make`-Ziel, kein
+Skript unter `tools/`, `.d-check.yml` und `d-check.mk` unberührt, Kopf bleibt `—`); es ist ein
+einmaliger Wartungsschritt nach Baseline-Regelwerk `modul-02-harness-bootstrap.md`
+§Freshness-Audit der vendored Baseline, wie in `slice-harness-upgrade-v6-16` (dort §6). Die
+Punkte mit „Vorschlag“ unten sind **bestätigt, wie formuliert**, soweit der Block *Entscheidungen
+des Architect* nach der Liste sie nicht ändert oder ergänzt. Verlangt die Umsetzung doch eine
+Änderung an einem Werkzeugvertrag, gilt §4 *Rückführungen*. Was hier nicht steht, entscheidet
+der Implementer nicht, er gibt es zurück (`.claude/commands/implement-slice.md`,
+Randform-Rückgabe).
 
 - **Alte Baseline** — Vorschlag: `v6.16.0` fällt im selben Commit, der `v6.18.0` anlegt; das
   Delta zeigen `diff -r` im Temp-Baum vorher und `git diff -M` danach (dort *Alte Baseline*).
@@ -224,6 +229,82 @@ Stand prüft. Was hier nicht steht, entscheidet der Implementer nicht, er gibt e
   umdeuten (Link → Code-Span mit gleichem Text und unverändertem Pfad), je Datei eine Zeile in
   §7; alles, was Inhalt änderte, ist Halt und Rückgabe (dort *Befunde in eingefrorenen
   Dokumenten*).
+
+**Entscheidungen des Architect (2026-10-10)** — Ergänzungen und Schärfungen zu den Punkten oben:
+
+- **Reihenfolge der Schritte.** (0) Vorbereitung, nichts im Repo: Asset in ein Temp-Verzeichnis
+  außerhalb des Repos laden (Weg wie *Netzzugriff*), sha256 gegen die `SHA256SUMS` des Releases
+  halten (Halt bei Abweichung, §4), `unzip -l` auf absolute Pfade, `..`, Symlinks (Halt),
+  entpacken, `diff -r` alt gegen neu, Probe in einer HEAD-Kopie ohne
+  `.harness/baseline/v6.16.0/` mit `make docs-check`. (1) **Ein Commit:** Baum tauschen,
+  Symlinks, `AGENTS.md` §1 (Asset-URL), `harness/conventions.md` §Baseline, §Adoptierte
+  Konventions-Quellen (Asset-URL, Stand-Zeile) und Messzeile der Regelblock-Tabelle — so ist der
+  `grep` aus Liefer-Punkt 1 an jedem Commit leer und `make baseline-verify` sieht nie zwei
+  Tag-Verzeichnisse. (2) Abgleich: Regelblock-Tabelle (Werte), `MR-000`, Aufgelöste Adaptionen.
+  (3) Kleine Anpassungen und Folge-Slices, je Befund ein Commit-Thema. Closure-Reihenfolge nach
+  `AGENTS.md` §3.3.
+- **Verweise auf `v6.16.0` in Zeitdokumenten** (Pläne in `done/`, `docs/reviews/`,
+  Register-Belege, `harness/conventions/done/`): **nicht anfassen.** Einzige Ausnahme: ein
+  Befund der Probe (d-check meldet `target-missing`/`anchor-missing`) wird nach *Befunde in
+  eingefrorenen Dokumenten* behandelt (Link → Code-Span mit unverändertem Pfad, eine Zeile in
+  §7). Lebende Pläne, die `v6.16.0` als Maß ihrer Aussage nennen (`open/slice-harness-gate-index-werkzeug-teil`,
+  Herkunft „v6.13.0 → v6.16.0“) und die Roadmap-Drift-Log-Zeilen sind Chronik und bleiben; nennt
+  der Plan `v6.16.0` als aktuellen Stand statt als Herkunft, ist es ein Befund des Abgleichs
+  (Satz, im Maß von §4). Die Zeile `MR-001` in §Aufgelöste Adaptionen bleibt (Stand ihrer
+  Auflösung).
+- **`.d-check.yml` / `scan.ignore`.** Unverändert. `.harness/**` steht in `scan.ignore`, der neue
+  Baum liegt unter demselben Pfad; d-check sieht ihn nicht. Jede Änderung an `.d-check.yml` ist
+  eine Rückführung (§4); die Aktivierung des Moduls `reviews` ist Nicht-Ziel (§1).
+- **`SHA256SUMS`.** Es zählt die `SHA256SUMS` des **Releases** (Soll-Wert für das Asset, Halt bei
+  Abweichung). Die vendored `SHA256SUMS` unter `v6.18.0/` wird wie unter `v6.16.0` **nach dem
+  Entpacken neu erzeugt** (`<sha256>  <pfad>` relativ zum Tag-Verzeichnis, nur `regelwerk/` und
+  `templates/`, `LC_ALL=C sort`), weil das Skript genau diese Form liest und die Vollständigkeit
+  gegen die Datei prüft. Hat das Asset eine Datei gleichen Namens in der Form, wird der entpackte
+  Inhalt zusätzlich gegen sie geprüft und das Ergebnis in §7 genannt; weicht ihre Form ab, wird
+  sie nicht übernommen. Die sha256 des Assets steht in §7 *Belege*, in keinem lebenden Dokument.
+- **Regelblock-Tabelle.** Vorprüfung des Koordinators: keine neuen, umbenannten, entfallenen
+  Blöcke. Der Implementer belegt das mit `ls` beider Bäume (Dateinamen und Abschnitte
+  `modul-*.md`, `grundlagen-*.md`); jede Abweichung ist ein Eintrag in §7 und eine Zeile mit
+  genau einem Wert in der Tabelle. Zellen von Blöcken ohne Delta bleiben unberührt; zu
+  prüfen sind die Zellen der Blöcke, die das Delta berührt: `modul-10` (Dateiname des
+  Reports), `modul-13` (Gate-Index, Disjunktheit), `modul-15` (Modul `reviews`; Zelle *Doku-Konsistenz-Drift*
+  bleibt *liegt bei, nicht verdrahtet*, solange `modules:` das Modul nicht führt) und
+  `grundlagen-harness-dateien.md` (Zelle „Teil des Gate-Index“ bleibt *kommt nicht mit*, Dauer
+  unverändert, solange `slice-harness-gate-index-werkzeug-teil` offen ist). Die Messzeile nennt
+  `v6.18.0`.
+- **Freshness-Audit-Aussage.** Die Aussage „Sensor kommt nicht mit“ im Abschnitt *Der
+  mitgelieferte Baum altert still* bleibt unverändert und wahr; sie nennt keinen Tag. In §7 steht
+  als Audit-Beleg: Release-Liste gelesen am Tag des Laufs, neuester Tag `v6.18.0` = Pin.
+  `v6.17.0` ist durch den Sprung abgedeckt (*Zwei Releases in einem Sprung*).
+- **Stichprobe gegen den Bestand** (Modul 02: ein Abschnitt, rotierend, Komplementärmenge zum
+  Delta). Letzter Lauf: `modul-05-planning-harness.md` §Offene Risiken (v6.16-Slice). Dieser
+  Lauf: **`modul-07-carveouts.md` §Ziel-Form: Carveout** gegen `docs/plan/carveouts/`
+  (Vorlage `carveout.template.md`) und den Bestand dort; fehlt der Abschnitt im Komplement (hat
+  `diff -r` ihn berührt), nimmt der Implementer den nächsten ohne Delta in der Reihenfolge
+  `modul-04-adrs.md` §Ziel-Form, `modul-03-spec.md` §Ziel-Form: Architektur-Sicht und nennt die
+  Wahl in §7. Frage je Regel: im ausgefüllten Artefakt oder als deklarierte Abweichung? Ein
+  einzelner Fund geht den Weg einer Diskrepanz (Folge-Slice oder Register), mehrere treffen die
+  `MR-000`-Aussage (Rückführung §4, neue Adaption).
+- **Dateiname des Review-Reports** (Vorprüfung nennt „tun wir bereits“ — **das trifft nur halb**).
+  Bestand: `<datum>-<rolle>-<slice-Kennung>.md` (`-review-`, `-verifikation-`, `-mutationen-`,
+  Folgeläufe `folge-review-N-…`); neue Regel laut Vorprüfung:
+  `<YYYY-MM-DD>-<slice-Kennung>.md`, Folgeläufe Suffix `-r2`. Die volle Kennung führt der Bestand,
+  Rollen-Infix und Folgelauf-Form weichen ab. **Entscheidung nur für das, was der Wortlaut des
+  neuen Stands trägt:** Der Implementer liest die Regel im Temp-Baum (`modul-10`, `review-report.template.md`)
+  und trägt die Folgelauf-Form `-r2` (Suffix) in `.harness/skills/reviewer.md` §Output und die
+  Commands nach, **wenn** die Regel den Rollen-Infix nicht verbietet. Verbietet sie ihn, ist das
+  eine **Nutzerentscheidung** (Optionen im Bericht), nicht Sache des Implementers. Eingefrorene
+  Reports behalten ihren Namen. Kein Sensor liest den Namen (`.d-check.yml`, `.githooks/commit-msg`
+  und `tools/` nennen kein Muster in `docs/reviews/`; `harness/mk/vorgaben.mk` nimmt den Ordner
+  nur aus `slice-mv` aus) — das dritte Risiko ist damit auf den Wortlaut reduziert.
+- **Schnitt nach `AGENTS.md` §3.13.** Zwei Liefer-Punkte (Baum und Verweise · Abgleich), Maß
+  ≤ 3. Schichten: **Harness** (vendored Baum, Konventionen, Skills, Commands, Symlinks) und
+  **Doku** (Planung, Register); kein Code, keine Spec — zwei, Maß ≤ 2. Wächst der Abgleich über
+  das Maß aus §4, gilt die Rückführung. Keine Sendung an einen anderen Slice nötig; ein Befund,
+  den der Abgleich an `slice-harness-gate-index-werkzeug-teil` oder an den geplanten
+  Reviews-Modul-Slice weist, trägt der Implementer dort im selben Commit in §1 oder DoD mit der
+  Kennung dieses Slice ein (§3.13); der Reviews-Slice ist **nicht angelegt**, also keine Adresse:
+  der Punkt geht als Register-Eintrag, nicht als Zuweisung.
 
 **Risiken:**
 
