@@ -228,7 +228,10 @@ Kommentar, Hilfetext, Abdeckungs-Deklaration, Plan-Zeile und Benutzerhandbuch sa
 nur zu, was ein Test oder Gate prüft. Reicht der Satz weiter, wird er enger gefasst oder
 bekommt seinen Test (§3.10). Ein Beispiel im Benutzerhandbuch gilt erst als belegt, wenn
 es als Datei gegen das gebaute Binary läuft; gelesen gegen den Code ist es nicht geprüft
-(seit slice-v1-abschluss-upstream-verbinden).
+(seit slice-v1-abschluss-upstream-verbinden). Prosa über ein Gate (Command, Plan, Kommentar)
+beschreibt sein Verhalten nicht nach: Sie nennt die Regel an den Schreiber und zeigt auf die
+Konfiguration als Quelle (`.d-check.yml`, `.a-check.yml`, `.golangci.yml`); ein Verhalten des
+Gates gilt erst als zugesagt, wenn eine Gegenprobe es zeigt (seit slice-harness-d-check-v0-85).
 
 **Falsch:** „prüft beide Adapter“ über einer Gegenprobe, die einen prüft.
 **Richtig:** „prüft den Recording-Adapter“, oder die Gegenprobe prüft beide.
@@ -239,10 +242,16 @@ gelesen für richtig.
 **Richtig:** Das Beispiel liegt als Datei vor und läuft gegen das gebaute Binary, etwa mit
 `config show`, ohne Meldung.
 
+**Falsch:** Ein Command zählt auf, wann `make docs-check` rot ist; jede Runde der Prüfung
+findet eine weitere Form, die grün bleibt.
+**Richtig:** Der Command nennt die Regel, Kennungen als Links zu schreiben, und sagt, dass
+`.d-check.yml` festlegt, was das Gate prüft.
+
 **Begründung:** Eine Zusage ohne Prüfung liest jeder Lauf als geprüft
 (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`). Entfernen oder Lockern setzt
 den Retirement-Check voraus: Ist die Beobachtung seit welle-extended-query wieder
-aufgetreten, für das Handbuch seit slice-v1-abschluss-upstream-verbinden?
+aufgetreten, für das Handbuch seit slice-v1-abschluss-upstream-verbinden, für Prosa über ein
+Gate seit slice-harness-d-check-v0-85?
 
 ### 3.12 Randformen eines neuen Vertrags sind vor dem Code entschieden (seit slice-harness-randformen-vor-code)
 

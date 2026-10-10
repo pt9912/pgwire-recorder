@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-d-check-v0-85
+**Fund:** In `dfb7e88` zählte der Geber `slice-harness-d-check-v0-85` Gate-Konfiguration und Agenten-Anweisungen als Schichten, der Nehmer `slice-harness-lh-links-pflicht` Gate-Konfiguration und „Dokumentation“ (Spezifikation, Pläne, Commands); nach der Teilung des Gebers berührte der Nehmer vier Schichten (Review F-556). Gemeinsame Schichtteilung in §8 der drei Pläne und Schnitt des Nehmers in `6db272b`.
