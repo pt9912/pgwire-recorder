@@ -134,6 +134,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/services` (Tests), `internal/adapters/driven/postgres` (Tests) | update | Warten je Gruppenende, Fehler in der ersten und in einer späteren Gruppe, Signal innerhalb der Interaktion, je Zusage eine Mutation; neue Dateien `play_extended_test.go` und `einspielen_gruppe_test.go`; `TestPlayStart` ändert sich (Zwischenstand) |
 | `internal/bootstrap` (Tests) | update | `TestRunPlayStartfehler` verliert den Fall *Extended-Interaktion* (Zwischenstand), der Fall *nicht ladbar* bleibt |
 | `test/integration` | update | neue Datei `play_extended_e2e_test.go` (Extended-Szenario nach LH-FA-20 und LH-FA-18, Fehlerfälle, Gegendruck-Szenario); `TestE2EPlayZwischenstand` in `play_e2e_test.go` verliert den Fall *Extended in Session 2* |
+| Kommentare und Abdeckungs-Deklarationen (Auftrag nach `F-582`, `F-583`, `F-585`) | update | `TestEinspielGruppeNichtAbbildbar`: Zitat statt `LH-FA-20.a` *Interaktion* der Satz „Verhalten des Adapters für eine nicht abbildbare Nachricht; `Validate` lässt sie nie durch (§6, akzeptiertes Negativ)“, im Test und (über `make abdeckung`) in der Zeile von `abdeckung-unit.md`; Kommentar vor `TestEinspielGruppeSendefehler`: „der nächsten Gruppe“ statt „der nächsten Operation“ (Port-Kommentar sagt es schon so); Deklaration von `TestE2EPlayExtendedGegendruck` (Kommentar und Zeile in `abdeckung-e2e.md`): Zusage „auf einem Host mit Socket-Puffern unter 16 MB“ |
 | `docs/user/abdeckung-*.md` | update | von `make abdeckung` aus den Deklarationen der Tests erzeugt |
 
 ## 4. Trigger
@@ -204,7 +205,7 @@ genannten Stelle. Offen ist keine.
   `LH-FA-20.a` *Gruppen* (Commit der Prüfung vom 2026-10-10).
 - **Senden und Lesen unabhängig** [E] — Option A (gewählt): `Gruppe` am Port beginnt das Senden
   der Gruppe und kehrt zurück; ein Fehler des Sendens kommt als `PGR-E4003` aus `Naechste`
-  oder der nächsten Operation, `Schliesse` beendet den Sender, und ein Fehler danach bleibt
+  oder der nächsten Gruppe, `Schliesse` beendet den Sender, und ein Fehler danach bleibt
   ohne Folge; Nebenläufigkeit je Verbindung ist Sache des Adapters
   ([ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md), dort Kontext und Option E), der
   Service zählt und entscheidet. Verworfen: B, `Gruppe` sendet vor dem Lesen — ein
@@ -241,6 +242,22 @@ genannten Stelle. Offen ist keine.
   wartet wie auf jede Antwort ohne Frist, das zweite Signal beendet es. *Antwort anderer Art
   als erwartet* — gezählt wird je Antwort. *Serverversion* —
   `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, Referenzversion 17.
+  *Nicht abbildbare Client-Nachricht* (Zielart außer `statement` und `portal`, unbekannter
+  Typ) — `Gruppe` liefert `PGR-E1000` und sendet nichts von der Gruppe, wie der
+  Upstream-Adapter es für diese Nachricht schon tat; `Validate` lässt sie beim Laden nie durch
+  (`PGR-E3003`), der Pfad ist im Zielstand unerreichbar, darum steht er nicht in `LH-FA-20.a`
+  (entschieden vom Architect am 2026-10-10, auf `F-582`); `TestEinspielGruppeNichtAbbildbar`
+  hält das Verhalten des Adapters, nicht eine Regel der Spezifikation. *Unbegrenzte
+  Warteschlange der Gruppen im Adapter* — sie hält nur Verweise auf die geladene Aufzeichnung,
+  und der Ablauf hält sie klein: `play` liest nach jeder `Flush`-Gruppe, ehe es die nächste
+  einreiht, und reiht nur nach einer Fehlerantwort die übrigen Gruppen der einen Interaktion
+  ein (`F-583`). *Gegendruck-Test hängt an der Puffergröße des Hosts* — der Mutant „`Gruppe`
+  sendet selbst“ verklemmt nur bei Socket-Puffern unter der Summe der Parameter und der
+  Ausgabe (16 und 32 MB); ein Host mit größeren Puffern lässt den Mutanten grün. Die Zusage
+  des Tests gilt darum *auf einem Host mit Puffern unter 16 MB*; Puffer klein zu halten
+  bräuchte Socket-Optionen im Docker-Netz und wöge mehr als der Rest des Falls (`F-585`).
+  *Goroutinen-Zählung im Adapter-Test* — `senderZahl` zählt im ganzen Prozess und hängt an
+  jedem Test des Pakets, der `Schliesse` nicht erreicht; die Meldung nennt das (`F-585`).
 - **Ablösung des Zwischenstands *Aufzeichnung mit Extended-Interaktion*** — bis zu diesem
   Slice ist eine Extended-Interaktion ein Startfehler `PGR-E6001` (§6 von
   `slice-v1-abschluss-einspielen`, *Zwischenstand*, allgemein gefasst in `LH-FA-20.a` *Art
