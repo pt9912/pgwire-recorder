@@ -49,16 +49,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
-- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-einspielen-extended` liefert, im Ist-Zustand des gebauten Binaries: Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zur Extended-Interaktion bei `play` — §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Voraussetzung „mit einfachen Anfragen“ und der Hinweis, dass eine Folge des erweiterten Protokolls mit `PGR-E6001` endet) und §7 Zeile `PGR-E6001` (Ursache „die Aufzeichnung für `play` enthält eine Folge des erweiterten Protokolls“) — und im README die Sätze „spielt die einfachen Anfragen … ein“ und „Eine Aufzeichnung mit vorbereiteten Anweisungen lehnt `play` ab“. Dazu (Nachtrag der Closure von `slice-v1-abschluss-einspielen-extended`, `AGENTS.md` §3.13): im Handbuch §4 *Hinweise* die Sätze zu `--continue-on-error` und `--allow-recorded-errors` (bei Extended wartet `play` nach einer Fehlerantwort nur noch auf deren `ReadyForQuery`, Exit-Code 4, die Datenbank führt den Rest der Interaktion bis zum `Sync` nicht aus (Prüfweg und Grenze in §6); ein Fehler gilt als erwartet, wenn die Aufzeichnung in irgendeiner Gruppe der Interaktion eine Fehlerantwort trägt, `FATAL` bleibt `PGR-E4003`) und zum Abbruchsignal (bei Extended endet `play` nach dem `ReadyForQuery` der laufenden Interaktion, nicht nach der laufenden Anfrage). Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
-- [ ] `README.md` nennt, was `slice-v1-abschluss-einspielen-extended` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt (auch der Untertitel in Zeile 3, der `play` auf „einfache Anfragen“ beschränkt; Nachtrag der Closure von `slice-v1-abschluss-einspielen-extended`), Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-einspielen-extended` liefert, im Ist-Zustand des gebauten Binaries: Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zur Extended-Interaktion bei `play` — §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Voraussetzung „mit einfachen Anfragen“ und der Hinweis, dass eine Folge des erweiterten Protokolls mit `PGR-E6001` endet) und §7 Zeile `PGR-E6001` (Ursache „die Aufzeichnung für `play` enthält eine Folge des erweiterten Protokolls“) — und im README die Sätze „spielt die einfachen Anfragen … ein“ und „Eine Aufzeichnung mit vorbereiteten Anweisungen lehnt `play` ab“. Dazu (Nachtrag der Closure von `slice-v1-abschluss-einspielen-extended`, `AGENTS.md` §3.13): im Handbuch §4 *Hinweise* die Sätze zu `--continue-on-error` und `--allow-recorded-errors` (bei Extended wartet `play` nach einer Fehlerantwort nur noch auf deren `ReadyForQuery`, Exit-Code 4, die Datenbank führt den Rest der Interaktion bis zum `Sync` nicht aus (Prüfweg und Grenze in §6); ein Fehler gilt als erwartet, wenn die Aufzeichnung in irgendeiner Gruppe der Interaktion eine Fehlerantwort trägt, `FATAL` bleibt `PGR-E4003`) und zum Abbruchsignal (bei Extended endet `play` nach dem `ReadyForQuery` der laufenden Interaktion, nicht nach der laufenden Anfrage). Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
+- [x] `README.md` nennt, was `slice-v1-abschluss-einspielen-extended` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt (auch der Untertitel in Zeile 3, der `play` auf „einfache Anfragen“ beschränkt; Nachtrag der Closure von `slice-v1-abschluss-einspielen-extended`), Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -124,8 +124,8 @@ dasteht.
 
 **Risiken:**
 
-- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** offen bis Closure.
-- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** offen bis Closure.
+- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** weiter offen (Register, `BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×; kein Auftreten, keine neue Datei: der Diff trägt keinen neuen Codeblock, die Sätze beschreiben das Verhalten von `play` und der Datenbank, nicht eine Eigenschaft des Dateisystems; alle Proben, auch die der Verifikation, liefen nur unter Linux im Container).
+- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** entfallen (trat nicht ein: die Stellen aus DoD-Punkt 1 und 2 sind ersetzt, die Suche nach „einfache Anfragen“, „Folge des erweiterten Protokolls“ als Ablehnungsgrund und „lehnt“ findet nichts Verbliebenes, Verifikation Punkt 1 und 2; der Eintrag trägt den Vermerk „Teil geliefert“ ohne Zähler).
 
 ## 7. Closure-Notiz
 
@@ -175,6 +175,43 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 **Mutation (§3.10)** entfällt (kein neuer Vertrag); die Probe-Matrix ersetzt sie.
 
 **Gate-Lauf.** `make gates` am Stand `2cb0519` auf sauberem Baum: Exit 0 (docs-check 0 Befunde, test, test-integration, a-check, lint und ihre Gegenproben grün).
+
+### Closure
+
+**Review und Verifikation.** Review `bec21ad` (F-587 LOW, F-588 bis F-590 INFO; keine HIGH, keine MEDIUM), F-587 behoben in `2cb0519` und `8892421` (Probe 6 in §7, Handbuch unverändert). Verifikation `bb0dfd3`: DoD-Punkte 1 bis 3 bestätigt, V-159 bis V-161 INFO.
+
+**Entscheidungen zu den Übergaben des Planners.**
+
+- **F-588 und V-160** (Begriff „Interaktion“ in der Meldung, „Nummer der Anfrage“ im Handbuch): Ins Register, kein Nehmer. Das Handbuch ist am Binary nicht falsch; eine Bereinigung wäre eine Wortwahl in einem Slice, dessen Gegenstand sie nicht ist. Der einzige Doku-Slice, der dieselben Abschnitte noch anfasst (`slice-v1-abschluss-einspielen-anmeldung-doku`), steht mit drei Liefer-Punkten an der Grenze und nähme sie nicht an (`AGENTS.md` §3.13). Welche Seite den Begriff ändert, Handbuch oder Meldung, entscheidet die Spezifikation (`LH-FA-20.a` *Interaktion*), nicht dieser Slice. `BEO-REPO/begriff-der-meldung-weicht-vom-handbuch-ab`, neu, 1×, offen.
+- **V-161** (`FATAL` bei Extended ruhe nur auf einer Probe, kein Test): Die Feststellung stimmt nur halb. `TestPlayExtendedFatal` in `internal/hexagon/services/play_extended_test.go` trägt die Zusage für eine Extended-Interaktion (`FATAL`, Fehlerantwort aufgezeichnet, beide Optionen: `PGR-E4003`, Exit 4, keine weitere Gruppe) und ist in `abdeckung-unit.md` deklariert; der Test lief in `slice-v1-abschluss-einspielen-extended` mit Mutationen rot. Offen ist nur ein Lauf gegen eine echte Datenbank, und den trägt Probe 6. Keine Sendung (kein Nehmer nimmt an: `slice-v1-abschluss-einspielen-anmeldung` läge mit einem weiteren Test nach der Zählung des Hexagons über zwei Schichten, siehe dessen §8, und der Punkt gehört nicht zu ihrem Gegenstand) und kein eigener Eintrag; der Fund steht im Beleg von `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`. Die Verifikation bleibt als Lauf-Beleg unverändert.
+- **F-589** (README „Slices“ in der Zeile zu `make doc-trace`): Bestand bleibt stehen. `AGENTS.md` §3.11 verbietet dem README Chronik und Zielstand, nicht das Wort; die Zeile erklärt die Spalten der Ausgabe eines Targets und sagt nichts über einen Stand.
+- **V-159** (Umbruch zweier Absätze nach dem Ersetzen): Hinweis, kein Auftrag; der gerenderte Text ist richtig, kein Gate betroffen. Nachgezogen wird beim nächsten Slice, der diese Absätze ohnehin ändert.
+- **F-590**: Bestätigung, keine Handlung.
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge):
+
+| Risiko | Ausgang | Begründung |
+|---|---|---|
+| Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut | weiter offen | Kein Auftreten und keine neue Datei: Der Diff trägt keinen neuen Codeblock, die Sätze beschreiben `play` und die Datenbank. Alle Proben liefen nur unter Linux im Container; der Eintrag `BEO-REPO/verhalten-nur-unter-linux-geprueft` (1×, offen) führt die Klasse. |
+| Der Slice liefert seinen Teil von Handbuch und README nicht vollständig | entfallen | Trat nicht ein (Verifikation Punkt 1 und 2). Der Eintrag `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` bleibt 1×, offen, und trägt den Vermerk „Teil geliefert“ ohne Zähler; neun Doku-Folge-Slices stehen noch aus. |
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure):
+
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — neue Datei `evidence/slice-v1-abschluss-einspielen-extended-doku.md` (F-587): 32 → 33. Verkörpert (`AGENTS.md` §3.11, Schritt 17, 19 und 20 von `implement-slice`); Sensor geplant (`slice-harness-mutation`).
+- `BEO-REPO/begriff-der-meldung-weicht-vom-handbuch-ab` — neu, `evidence/slice-v1-abschluss-einspielen-extended-doku.md` (F-588, V-160): 1×, offen.
+- `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` — kein Auftreten; Vermerk „Teil geliefert“ in `state.md`, bleibt 1×, offen.
+- `BEO-REPO/verhalten-nur-unter-linux-geprueft` — kein Auftreten (siehe Risiko); bleibt 1×, offen.
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3×. Keine Datei für V-159 (Form, einmalig) und F-589 (Einordnung).
+
+**Lerneintrag — geschärfte Regel.** Die Probe-Matrix hat den Doku-Slice getragen, ohne Mutation: Jede neue Aussage hatte eine Zeile, und was sich nicht belegen ließ, blieb ungenannt; das ist die Form aus `slice-doku-ist-stand` §6 und braucht keine neue Regel. Die Lücke lag anderswo: F-587 war ein Satz, der *nicht* geändert wurde. Der Architect hatte ihn in §6 als „bleibt, wie er ist“ entschieden, weil er Extended nicht nennt; er stand aber unmittelbar hinter dem neuen Satz über dieselbe Option und las sich damit für Extended mit. Die Matrix prüfte neue Sätze, nicht die Reichweite der Nachbarn. Geschärft ist Schritt 17 von `implement-slice`: Ein unverändert bleibender Satz neben einem neuen Satz über denselben Gegenstand bekommt eine Probe oder einen Test für dessen Fall oder wird enger gefasst. `liegt in` `.claude/commands/implement-slice.md` Schritt 17 · seit slice-v1-abschluss-einspielen-extended-doku. **Kein neuer Sensor:** Ein Sensor, der Handbuch gegen Binary prüft, ist in §1 ausgeschlossen; die Regel steht in dem Schritt, den der Implementer beim Schreiben der Sätze liest.
+
+**Technik ohne Verkörperung.** Die Aufzeichnung für eine Probe, die `record` nicht erzeugen kann (`FATAL` beendet die Sitzung, `record` endet mit `PGR-E6001`), entsteht von Hand aus der Aufzeichnung einer ähnlichen Anfrage, SQL ersetzt (Probe 6). Ein Weg, keine Regel. Kein Eintrag.
+
+**Paarungen.** (a) Anker: `state.md` von `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` nennt `.claude/commands/implement-slice.md` Schritt 17; die Datei trägt dort `seit slice-v1-abschluss-einspielen-extended-doku`. (b) Folge-Slice: Diese Closure weist keinem Slice etwas Neues zu (V-160 ins Register, V-161 keine Sendung). Die bestehenden Adressen für Passwort und `sslmode=require`, `slice-v1-abschluss-einspielen-anmeldung-doku` und `slice-v1-abschluss-einspielen-tls-doku`, liegen in `next/` und nennen ihren Geber `slice-doku-ist-stand` (`grep -c` je 6); ihre Sätze blieben in diesem Slice unangefasst. (c) Register: die vier genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
+
+**Nachzählen.** Eingetragen wurde nur der Stand der Schichtzählung in §8 von `slice-v1-abschluss-einspielen-anmeldung` (drei Schichten nach der Zählung des Hexagons, zwei nach der Teilung des Plans, ohne Schnitt; der Architect entscheidet vor dem Code). Keine Sendung, daher kein Nachzählen eines Nehmers.
+
+**Stand der Gates.** Die Läufe stehen oben (`2cb0519`); den Lauf auf dem Stand der Closure nennt der Bericht des Planners.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
