@@ -347,3 +347,74 @@ func TestPlayZweitesSignalNachFehlerantwort(t *testing.T) {
 		t.Fatalf("Ablauf %q, erwartet %q", got, want)
 	}
 }
+
+// Abdeckung: LH-FA-20/Boundary — auch mit --finish-session-on-interrupt
+// schließt das zweite Signal die laufende Verbindung sofort, in einer
+// Interaktion, die auf eine Antwort wartet, und bricht einen laufenden Aufbau
+// ab; die unterbrochene Interaktion und der unterbrochene Aufbau sind kein
+// Fehler, und keine weitere Interaktion oder Session beginnt. Ohne früheren
+// Fehler ist der Exit-Code 0, nach einem früheren PGR-E4004 mit
+// --continue-on-error 4 mit dessen Meldung als einziger (LH-FA-20.a
+// *Abbruchsignal*, *Meldungen*).
+func TestPlayZweitesSignalFinishSession(t *testing.T) {
+	for _, f := range []struct {
+		name   string
+		o      services.PlayOptions
+		ziel   func(erstesSignal func()) *fakeZiel
+		warte  int
+		want   []string
+		exit   int
+		ablauf []string
+	}{
+		{
+			name: "in der Interaktion",
+			o:    services.PlayOptions{FinishSessionOnInterrupt: true},
+			ziel: func(erstesSignal func()) *fakeZiel {
+				return &fakeZiel{sessions: []*fakeEinspiel{{antworten: [][]schritt{{{blockiert: true}}}, beiAnfrage: func(string) { erstesSignal() }}}}
+			},
+			warte:  3,
+			ablauf: []string{"verbinde", "anfrage A", "naechste", "schliesse"},
+		},
+		{
+			name: "nach früherem Fehler",
+			o:    services.PlayOptions{FinishSessionOnInterrupt: true, ContinueOnError: true},
+			ziel: func(erstesSignal func()) *fakeZiel {
+				return &fakeZiel{sessions: []*fakeEinspiel{{antworten: [][]schritt{{fehler("42P01", "a"), {blockiert: true}}}, beiAnfrage: func(string) { erstesSignal() }}}}
+			},
+			warte:  4,
+			want:   []string{e4004("Session 1, Interaktion 1", "42P01", "a")},
+			exit:   4,
+			ablauf: []string{"verbinde", "anfrage A", "naechste", "naechste", "schliesse"},
+		},
+		{
+			name: "im Aufbau",
+			o:    services.PlayOptions{FinishSessionOnInterrupt: true},
+			ziel: func(erstesSignal func()) *fakeZiel {
+				return &fakeZiel{verbindeBlockiert: true, beimVerbinden: erstesSignal}
+			},
+			warte:  1,
+			ablauf: []string{"verbinde"},
+		},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			ziel := f.ziel(cancel)
+			s, err := services.NewPlayService(context.Background(), ladeRepo{rec: drei()}, "r.yaml", ziel, f.o)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ablauf := make(chan struct{})
+			err = warteAufPlay(ctx, t, s, ablauf, func() {
+				bis(t, func() bool { return len(ziel.liste()) >= f.warte }, "Play wartet nicht binnen 30 s auf den Server")
+				close(ablauf)
+			})
+			if !reflect.DeepEqual(texte(err), f.want) || exitVon(err) != f.exit {
+				t.Fatalf("Meldungen %q, Exit-Code %d, erwartet %q mit %d", texte(err), exitVon(err), f.want, f.exit)
+			}
+			if got := ziel.liste(); !reflect.DeepEqual(got, f.ablauf) {
+				t.Fatalf("Ablauf %q, erwartet %q", got, f.ablauf)
+			}
+		})
+	}
+}

@@ -125,11 +125,12 @@ const optionenPlay = `Optionen von play:
               Aufzeichnung
   --continue-on-error[=true|false]
               nach einer Fehlerantwort des Servers (PGR-E4004) macht play mit
-              der nächsten Anfrage weiter und endet mit Exit-Code 4;
-              Umgebungsvariable PGWIRE_RECORDER_CONTINUE_ON_ERROR
+              der nächsten Anfrage weiter; Umgebungsvariable
+              PGWIRE_RECORDER_CONTINUE_ON_ERROR
   --allow-recorded-errors[=true|false]
-              eine Fehlerantwort ist erwartet und kein Fehler, wenn die
-              aufgezeichnete Anfrage ebenfalls eine trägt; Umgebungsvariable
+              eine Fehlerantwort mit dem Schweregrad ERROR ist kein Fehler,
+              wenn die aufgezeichnete Anfrage ebenfalls eine trägt;
+              Umgebungsvariable
               PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS
   --finish-session-on-interrupt[=true|false]
               nach dem ersten SIGINT oder SIGTERM endet play erst nach der

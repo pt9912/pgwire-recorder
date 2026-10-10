@@ -23,8 +23,13 @@ YAML-Aufzeichnung; `pgwire-recorder replay` beantwortet beide daraus ohne
 Datenbank. Lebendprüfungen von Verbindungspools (`pgxpool`, `database/sql`)
 beantwortet `replay` unabhängig davon, ob sie in der Aufzeichnung stehen; mit
 `--fail-on-unconsumed` endet `replay` mit einem Fehler, wenn aufgezeichnete
-Interaktionen nicht abgerufen wurden. Die Passwort-Anmeldung und das Einspielen
-(`play`) fehlen noch. Beim Beenden wartet `record`
+Interaktionen nicht abgerufen wurden. `pgwire-recorder play` spielt die einfachen
+Anfragen einer Aufzeichnung gegen eine Datenbank ein, die weder ein Passwort noch
+TLS verlangt; nach einer Fehlerantwort der Datenbank bricht es ab, mit
+`--continue-on-error` läuft es weiter, und mit `--finish-session-on-interrupt`
+endet es nach einem Abbruchsignal erst nach der laufenden Sitzung. Eine
+Aufzeichnung mit vorbereiteten Anweisungen spielt `play` noch nicht ein. Die
+Passwort-Anmeldung fehlt noch. Beim Beenden wartet `record`
 ohne Frist auf laufende Anfragen; was das im Container bedeutet, sagt das
 Benutzerhandbuch.
 

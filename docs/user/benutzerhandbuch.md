@@ -412,9 +412,16 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   verglichenen und abweichenden Anfragen. Ein Verbindungsverlust beendet das
   Einspielen immer mit Exit-Code 4, auch nach einer Abweichung.
 * Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
-  ab (`PGR-E4004`; mit `--compare-responses` gilt stattdessen der Vergleich). Mit `--continue-on-error` läuft es weiter und endet am Ende
-  mit Exit-Code 4. Mit `--allow-recorded-errors` gilt ein Fehler nicht, wenn auch
-  die aufgezeichnete Anfrage mit einem Fehler beantwortet wurde.
+  ab (`PGR-E4004`, Exit-Code 4; mit `--compare-responses` gilt stattdessen der
+  Vergleich). Mit `--continue-on-error` läuft es mit der nächsten Anfrage weiter
+  und meldet jeden dieser Fehler im Log; der Exit-Code ist dann 4. Bricht
+  danach ein anderer Fehler das Einspielen ab, etwa eine Antwort, die das Werkzeug
+  nicht verarbeiten kann (`PGR-E6001`), oder das Ende der Verbindung
+  (`PGR-E4003`), ist der Exit-Code der dieses Fehlers (6 bzw. 4).
+* Mit `--allow-recorded-errors` gilt ein Fehler der Datenbank mit dem Schweregrad
+  `ERROR` nicht als Fehler, wenn auch die aufgezeichnete Anfrage mit einem Fehler
+  beantwortet wurde. Ein Fehler mit dem Schweregrad `FATAL` beendet die Verbindung
+  und bricht das Einspielen auch dann ab (`PGR-E4003`).
 * Mit `--upstream-tls` verbindet sich das Werkzeug verschlüsselt mit der
   Datenbank und prüft deren Zertifikat; ein Überspringen der Prüfung gibt es nicht.
   Verlangt die Datenbank Verschlüsselung und die Option fehlt, oder schlägt die
@@ -424,7 +431,9 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   Ihres Systems; die Prüfung bleibt vollständig. Die Option gilt nur mit
   Verschlüsselung; eine nicht lesbare Datei meldet `PGR-E2007`.
 * Bei `Strg+C` oder `SIGTERM` endet das Einspielen nach der laufenden Anfrage; mit
-  `--finish-session-on-interrupt` erst nach der laufenden Sitzung.
+  `--finish-session-on-interrupt` erst nach der laufenden Sitzung. Ein zweites
+  Signal schließt die Verbindung sofort, auch mit dieser Option; die unterbrochene
+  Anfrage zählt nicht als Fehler. Der Exit-Code ist 0, nach einem früheren Fehler 4.
 * Das Einspielen führt Anfragen aus. Verwenden Sie es nicht gegen eine Datenbank,
   deren Inhalt Sie nicht verändern dürfen.
 

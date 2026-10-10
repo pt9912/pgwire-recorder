@@ -59,6 +59,10 @@ dessen §6) nach dem zweiten Schnitt vom 2026-10-09 (Option O3 des Architect, do
   `PGR-E4004` entsteht, wenn der Bootstrap den Exit-Code aus der ersten Meldung bildet (§4
   *Start*, §6 *Reihenfolge der Zeilen `error`* und Risiken unten).
 
+Die Aussagen zu den drei Optionen und zu `play` in `README.md` und im Benutzerhandbuch §4
+bringt der Slice auf den gelieferten Stand; sie sagen nur zu, was ein Test prüft
+(`AGENTS.md` §3.11).
+
 Dieser Slice ist auch die Adresse der Abgrenzung *Einspielen selbst und Fehlersemantik der
 Serverfehler* von `slice-v1-abschluss-antwortvergleich` (dort §1), soweit sie die drei
 Optionen ohne Vergleich betrifft.
@@ -136,13 +140,15 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driving/cli` | update | Optionen `--continue-on-error`, `--allow-recorded-errors` und `--finish-session-on-interrupt` am allgemeinen Leser mit Umgebung und Schlüsseln im Abschnitt `play:`, je ein Feld in `Einspielvorgaben`, Hilfetext von `play`; ersetzt den Stand *unbekannt* des Kerns |
+| `internal/adapters/driving/cli` | update | Optionen `--continue-on-error`, `--allow-recorded-errors` und `--finish-session-on-interrupt` am allgemeinen Leser mit Umgebung und Schlüsseln im Abschnitt `play:`, je ein Feld in `Einspielvorgaben`, Hilfetext von `play` (sagt nur zu, was ein Test prüft: kein Exit-Code bei `--continue-on-error`, erwartet nur eine Fehlerantwort mit dem Schweregrad `ERROR`; Review F-565); ersetzt den Stand *unbekannt* des Kerns |
 | `internal/adapters/driving/cli` (Tests) | update | `TestParsePlayLaufsteuerung` neu; Optionstabelle, Reihenfolge und Hilfe in den Tests des Lesers nachgezogen; die Fälle des Stands *unbekannt* (Umgebungsvariablen unbeachtet, Schlüssel `continue_on_error` ungültig) entfernt |
 | `internal/hexagon/services` (Play-Service) | update | dieselben Felder in derselben Reihenfolge in `PlayOptions` (der Bootstrap des Kerns konvertiert den Wert, ohne ein Feld zu nennen); Fortsetzung nach `PGR-E4004`, erwarteter Fehler, Session-Ende nach dem Signal; `Play` liefert die Fehler des Laufs per `errors.Join`, den abbrechenden zuerst, danach die früheren in der Reihenfolge ihres Auftretens (§6, *Reihenfolge der Zeilen `error`*) |
 | `internal/hexagon/ports/driving` | update | nur der Kommentar des Ports `Player`: Ende mit `--finish-session-on-interrupt` und die Fehler des Laufs als Zusammenfassung |
-| `internal/hexagon/services` (Tests) | update | `play_laufsteuerung_test.go`: Fortsetzung, Abbruch nach früheren Fehlern, erwarteter Fehler, Signal im Aufbau, in und nach der letzten Interaktion mit `--finish-session-on-interrupt`, Signal nach einer Fehlerantwort, zweites Signal nach einer Fehlerantwort; je Zusage eine Mutation |
-| `test/integration` | update | `play_laufsteuerung_e2e_test.go`: Happy/Boundary/Negative nach LH-FA-20 für die drei Optionen aus Kommandozeile, Umgebung und `play:`, Abbruch mit `PGR-E6001` und `PGR-E4003` nach früherem `PGR-E4004`, `SIGINT`/`SIGTERM` am Binary, gegen einen Server ohne Passwort und ohne TLS |
+| `internal/hexagon/services` (Tests) | update | `play_laufsteuerung_test.go`: Fortsetzung, Abbruch nach früheren Fehlern, erwarteter Fehler, Signal im Aufbau, in und nach der letzten Interaktion mit `--finish-session-on-interrupt`, Signal nach einer Fehlerantwort, zweites Signal nach einer Fehlerantwort, zweites Signal mit `--finish-session-on-interrupt` in der Interaktion, nach früherem Fehler und im Aufbau (`TestPlayZweitesSignalFinishSession`, Review F-564); je Zusage eine Mutation |
+| `test/integration` | update | `play_laufsteuerung_e2e_test.go`: Happy/Boundary/Negative nach LH-FA-20 für die drei Optionen aus Kommandozeile, Umgebung und `play:`, Abbruch mit `PGR-E6001` und `PGR-E4003` nach früherem `PGR-E4004`, `SIGINT`/`SIGTERM` am Binary, zwei Signale am Binary ohne und mit `--finish-session-on-interrupt` (`TestE2EPlayZweitesSignal`, Review F-564), gegen einen Server ohne Passwort und ohne TLS |
 | `docs/user/abdeckung-*.md` | update | erzeugt mit `make abdeckung` |
+| `docs/user/benutzerhandbuch.md` | update | §4 *Eine Aufzeichnung in eine Datenbank einspielen*, *Hinweise*: Exit-Code nach einem abbrechenden Fehler bei `--continue-on-error`, `FATAL` bei `--allow-recorded-errors`, zweites Signal; nur Geprüftes (Review F-566) |
+| `README.md` | update | *Was kann ich heute tun?*: `play` mit dem gelieferten Stand statt „fehlt noch“, ohne Zusage für vorbereitete Anweisungen, Passwort-Anmeldung und TLS |
 
 ## 4. Trigger
 

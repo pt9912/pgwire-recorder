@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -331,6 +332,109 @@ func TestE2EPlayFinishSession(t *testing.T) {
 			}
 			if got := wert(t, conn, "SELECT string_agg(n::text, ',' ORDER BY n) FROM t"); got != f.wirkt {
 				t.Fatalf("Wirkung %q, erwartet %s", got, f.wirkt)
+			}
+		})
+	}
+}
+
+// stderrMitSignal sammelt stderr von play und schließt abbruch, sobald die
+// Zeile zum ersten Abbruchsignal geschrieben ist.
+type stderrMitSignal struct {
+	mu      sync.Mutex
+	buf     bytes.Buffer
+	abbruch chan struct{}
+	einmal  sync.Once
+}
+
+func (s *stderrMitSignal) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	n, err := s.buf.Write(p)
+	if strings.Contains(s.buf.String(), "Abbruchsignal") {
+		s.einmal.Do(func() { close(s.abbruch) })
+	}
+	return n, err
+}
+
+func (s *stderrMitSignal) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.String()
+}
+
+// Abdeckung: LH-FA-20/Boundary, LH-FA-14/Boundary — gegen die reale Instanz
+// schließt ein zweites SIGINT oder SIGTERM, während der Server eine Anfrage
+// ausführt, die Verbindung von play sofort, ohne und mit
+// --finish-session-on-interrupt: play endet binnen 10 s nach dem zweiten
+// Signal, keine weitere Anfrage und keine weitere Session läuft, und die
+// unterbrochene Anfrage ist kein Fehler. Der Exit-Code ist 0 ohne früheren
+// Fehler und 4 nach einem früheren PGR-E4004 mit --continue-on-error, dessen
+// Zeile error die einzige ist (LH-FA-20.a *Abbruchsignal*, *Meldungen*,
+// *Exit-Code*).
+func TestE2EPlayZweitesSignal(t *testing.T) {
+	conn := leereDatenbank(t, "play_zweites")
+	ausfuehren(t, conn, "CREATE TABLE t (n int)")
+	ohneFehler := aufzeichnungE2E(t,
+		[]anfrageE2E{q("INSERT INTO t VALUES (1)"), q("SELECT pg_sleep(30)"), q("INSERT INTO t VALUES (2)")},
+		[]anfrageE2E{q("INSERT INTO t VALUES (3)")},
+	)
+	mitFehler := aufzeichnungE2E(t,
+		[]anfrageE2E{q("INSERT INTO t VALUES (1)"), q("SELECT * FROM fehlt"), q("SELECT pg_sleep(30)"), q("INSERT INTO t VALUES (2)")},
+		[]anfrageE2E{q("INSERT INTO t VALUES (3)")},
+	)
+	for _, f := range []struct {
+		name          string
+		input         string
+		erstes, zweit syscall.Signal
+		args          []string
+		exit          int
+		zeilen        string
+	}{
+		{"ohne Option", ohneFehler, syscall.SIGINT, syscall.SIGINT, nil, 0, "INFO play gestartet | INFO Abbruchsignal, play endet vorzeitig | INFO play beendet"},
+		{"mit Option", ohneFehler, syscall.SIGTERM, syscall.SIGTERM, []string{"--finish-session-on-interrupt"}, 0, "INFO play gestartet | INFO Abbruchsignal, play endet vorzeitig | INFO play beendet"},
+		{"mit Option nach früherem Fehler", mitFehler, syscall.SIGINT, syscall.SIGTERM, []string{"--finish-session-on-interrupt", "--continue-on-error"}, 4, "INFO play gestartet | INFO Abbruchsignal, play endet vorzeitig | ERROR PGR-E4004 | INFO play beendet"},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			ausfuehren(t, conn, "TRUNCATE t")
+			// Der Server führt pg_sleep nach dem Schließen der Verbindung weiter
+			// aus; der nächste Fall wartet auf genau ein pg_sleep.
+			t.Cleanup(func() {
+				wert(t, conn, "SELECT count(pg_terminate_backend(pid)) FROM pg_stat_activity WHERE datname = 'play_zweites' AND pid <> pg_backend_pid()")
+			})
+			stderr := &stderrMitSignal{abbruch: make(chan struct{})}
+			cmd := exec.Command(os.Getenv("PGR_BINARY"), append([]string{"play", "--upstream", os.Getenv("PGR_UPSTREAM"), "--input", f.input, "--database", "play_zweites"}, f.args...)...)
+			cmd.Stderr = stderr
+			if err := cmd.Start(); err != nil {
+				t.Fatal(err)
+			}
+			beendet := make(chan error, 1)
+			go func() { beendet <- cmd.Wait() }()
+			t.Cleanup(func() { _ = cmd.Process.Kill() })
+			warteAufSchlaf(t, conn, "play_zweites")
+			if err := cmd.Process.Signal(f.erstes); err != nil {
+				t.Fatalf("erstes Signal: %v", err)
+			}
+			select {
+			case <-stderr.abbruch:
+			case <-time.After(30 * time.Second):
+				t.Fatalf("play schreibt binnen 30 s nach dem ersten Signal keine Zeile zum Abbruchsignal:\n%s", stderr.String())
+			}
+			if err := cmd.Process.Signal(f.zweit); err != nil {
+				t.Fatalf("zweites Signal: %v", err)
+			}
+			var code int
+			select {
+			case err := <-beendet:
+				code = exitCodeOf(err)
+			case <-time.After(10 * time.Second):
+				t.Fatalf("play endet binnen 10 s nach dem zweiten Signal nicht:\n%s", stderr.String())
+			}
+			zeilen := logZeilen(t, stderr.String())
+			if code != f.exit || form(zeilen) != f.zeilen {
+				t.Fatalf("Exit-Code %d, Zeilen %s, erwartet %d mit %s:\n%s", code, form(zeilen), f.exit, f.zeilen, stderr.String())
+			}
+			if got := wert(t, conn, "SELECT string_agg(n::text, ',' ORDER BY n) FROM t"); got != "1" {
+				t.Fatalf("Wirkung %q, erwartet 1", got)
 			}
 		})
 	}
