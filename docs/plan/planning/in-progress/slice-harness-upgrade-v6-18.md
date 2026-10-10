@@ -84,7 +84,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Baseline `v6.18.0` vendored:** `.harness/baseline/v6.18.0/{regelwerk,templates}/` mit
+- [x] **Baseline `v6.18.0` vendored:** `.harness/baseline/v6.18.0/{regelwerk,templates}/` mit
       `SHA256SUMS` aus dem Release-Asset `lab-regelwerk.zip` des Tags, dessen sha256 vor dem
       Entpacken gegen die `SHA256SUMS` des Releases geprüft ist (Wert und Quelle in §7);
       `.harness/baseline/v6.16.0/` ist im selben Commit entfernt; `make baseline-verify` grün
@@ -96,7 +96,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       den Stand ihrer Auflösung nennt), `.claude/`, `.harness/skills/`, `tools/`, `Makefile`,
       `*.mk` und `spec/` ist leer, die beiden Symlinks unter `.claude/rules/` lösen auf
       `v6.18.0` auf, und `find . -path ./.git -prune -o -xtype l -print` ist leer.
-- [ ] **Abgleich `v6.16.0` → `v6.18.0`:** Jeder Regelblock des neuen Baums steht in der Tabelle
+- [x] **Abgleich `v6.16.0` → `v6.18.0`:** Jeder Regelblock des neuen Baums steht in der Tabelle
       *Welche Regelblöcke des Baums hier einen Träger haben* in `harness/conventions.md` mit
       genau einem Wert; neue, umbenannte und entfallene Blöcke sind in §7 einzeln genannt. Das
       Delta der Regelwerk-Dateien und der Vorlagen (`diff -r` über den ganzen Baum) ist gegen
@@ -109,14 +109,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       gegen `.harness/skills/reviewer.md` und den Bestand unter `docs/reviews/`. Jeder Befund hat
       genau einen Ausgang: behoben (klein, Maß in §4), Folge-Slice mit Kennung in `open/` oder
       Eintrag im Beobachtungs-Register.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -311,13 +311,19 @@ Randform-Rückgabe).
 - Das Delta berührt eine verkörperte Regel, ohne dass der Abgleich es sieht
   (`BEO-REPO/verkoerperte-regel-nach-baseline-sprung-nicht-nachgezogen`, 1×) — Gegenmittel:
   `diff -r` über den ganzen Baum, je geänderter Abschnitt die verkörperte Stelle gesucht —
-  **Ausgang:** offen bis Closure.
+  **Ausgang:** *entfallen* — der Abgleich lief über den ganzen Baum (31 verschiedene Dateien, nur sechs mit
+  inhaltlichem Delta); Review und Verifikation (Stichprobe über fünf Abschnitte) fanden keine
+  verkörperte Regel, die dem Delta widerspricht. Der Eintrag im Register bleibt bei 1× (kein neuer Beleg).
 - Ein lebender Verweis auf `.harness/baseline/v6.16.0/` bleibt stehen und bricht mit dem
   Entfernen, oder bleibt in einem Code-Span unentdeckt — Gegenmittel: `grep` und `find` aus
-  dem ersten Liefer-Punkt — **Ausgang:** offen bis Closure.
+  dem ersten Liefer-Punkt — **Ausgang:** *entfallen* — `grep`, `find -xtype l` und `make docs-check`
+  (0 Befunde) sind leer bzw. grün; die Verifikation hat sie selbst gefahren (V-154 Punkt 1) und
+  `make baseline-verify` meldet `v6.18.0 OK`.
 - Die Regel zum Dateinamen des Review-Reports passt nicht zum Commit-Träger oder zum
   Doku-Gate (ein Name, den `.d-check.yml` oder `.githooks/commit-msg` anders liest) —
-  **Ausgang:** offen bis Closure.
+  **Ausgang:** *entfallen* — kein Sensor liest den Namen (`.d-check.yml`, `.githooks/commit-msg`,
+  `tools/`); Review und Verifikation bestätigen es. Was bleibt, ist die Abweichung vom Namen der
+  Vorlage ohne Prüfer, sie steht als eigener Eintrag im Register (siehe §7 *Register*).
 
 ## 7. Closure-Notiz
 
@@ -431,6 +437,51 @@ stehen hier die Belege des Implementers.
   `find . -path ./.git -prune -o -xtype l -print` ist leer; die Symlinks unter `.claude/rules/`
   lösen auf `v6.18.0` auf. Verweise auf `v6.16.0` in `open/slice-harness-gate-index-werkzeug-teil.md`
   und im Drift-Log der Roadmap nennen Herkunft, nicht den Stand, und bleiben.
+
+### Closure-Notiz
+
+**Review und Verifikation.** Review `docs/reviews/2026-10-10-review-slice-harness-upgrade-v6-18.md`
+(`48a6b00`): 0 HIGH, 0 MEDIUM, 0 LOW, 4 INFO (F-576 bis F-579). Verifikation
+`docs/reviews/2026-10-10-verifikation-slice-harness-upgrade-v6-18.md` (`6d0f8a4`): beide Liefer-Punkte
+und `make gates` bestätigt, 2 INFO (V-154, V-155), nicht blockierend. Der Slice lief ohne Rückführung.
+
+**Ausgang je Finding.** F-576: Register-Eintrag `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`
+(1×). F-577: Bestand bleibt bewusst stehen (§1, eingefrorene Zeitdokumente), keine Aktion.
+F-578: Register-Eintrag `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo` (1×). F-579: vom Architect
+entschieden (§6), Rename-Erkennung hält, keine Aktion. V-154: erledigt mit dieser Closure. V-155:
+Evidenz unter `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Beleg-Zeile nannte als Gegenprobe
+„der Tausch selbst“, weiter als geprüft; verkörpert in `AGENTS.md` §3.11).
+
+**Register** (Stand am Ende dieser Closure; Zähler = Dateien unter `evidence/`):
+
+| Kennung | Stand | Zähler | Beleg |
+|---|---|---|---|
+| `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab` | offen, neu | 1× | F-576 |
+| `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo` | offen, neu | 1× | F-578 |
+| `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` | verkörpert | 31× | V-155 |
+| `BEO-REPO/verkoerperte-regel-nach-baseline-sprung-nicht-nachgezogen` | offen | 1× (unverändert) | kein neuer Beleg: der Abgleich fand keine übersehene Regel |
+
+Kein nicht verkörperter Eintrag erreicht mit dieser Closure 3×. Beide neuen Einträge zeigen auf einen
+künftigen wellenlosen Slice, der das d-check-Modul `reviews` aktiviert; er ist nach Entscheidung des
+Nutzers vom 2026-10-10 **nicht angelegt**, also keine Adresse und keine Zuweisung nach `AGENTS.md` §3.13.
+Einzuordnen wäre er in der wellenlosen Harness-Reihe, nach den Wellen und bei `slice-harness-lh-links-pflicht`,
+weil beide das Doku-Gate verschärfen; die Reihenfolge entscheidet der Nutzer beim Anlegen. Seine Start-Aufgabe
+ist die Prüfung des Dateinamens mit `match: name` gegen den Bestand (F-576) und die Zuordnung Report zu Slice
+(F-578).
+
+**Lerneintrag** (Form: *benannte Spec-Lücke*). Ein Baseline-Sprung, der ein Modul des Gates anbietet, das
+dieses Repo nicht verdrahtet, lässt zwei Aussagen ohne Prüfer zurück: die Namensform der Reports (Rollen-Infix)
+und der Absatz zum Deckungs-Sensor. Beide sind jetzt benannt und stehen im Register; geschlossen werden sie
+erst vom Slice zum Modul `reviews`. Dazu die Beobachtung aus V-155: Eine Beleg-Zeile „Gegenprobe ist der
+Tausch selbst“ ersetzt keine gebrochene Gegenprobe des Gates; der Verifier fuhr sie, alle sieben Fälle rot.
+Das trifft die bestehende Regel `AGENTS.md` §3.11 und zählt dort. Eine neue Regel entsteht nicht.
+
+**Gegenstand:** geliefert, kein Wegfall.
+
+**Paarungen.** (a) *Anker*: kein Feld `liegt in` in dieser Closure, nichts verkörpert; leer. (b) *Folge-Slice*:
+kein Folge-Slice genannt; der Slice zum Modul `reviews` ist ausdrücklich nicht angelegt und nicht zugewiesen,
+`slice-harness-gate-index-werkzeug-teil` (`open/`) ist nur als Bestand genannt, ohne Sendung. (c) *Register*:
+die drei Kennungen oben existieren als Verzeichnis und tragen je ein nicht leeres `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
