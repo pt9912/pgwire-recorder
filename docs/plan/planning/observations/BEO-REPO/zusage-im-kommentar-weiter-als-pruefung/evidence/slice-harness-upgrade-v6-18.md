@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-upgrade-v6-18
+**Fund:** §7 des Plans nannte als Gegenprobe der Baseline-Verifikation „der Tausch selbst“; die Fälle geänderte, fehlende und zusätzliche Datei sowie fehlende oder abweichende Summenzeile hatte der Implementer nicht gebrochen, nur der Reviewer den ersten. Der Verifier fuhr alle Fälle (alle rot, V-155, INFO); die Zeile blieb als Beleg des Implementers stehen und ist durch den Lauf der Verifikation gedeckt.
