@@ -154,7 +154,9 @@ dessen Verifikation): Der gelieferte Bootstrap bildet den Exit-Code aus der **er
 des Fehlers, den der Play-Service liefert, und schreibt die Zeilen `error` erst nach dem
 Einspielen, in dieser Reihenfolge. `LH-FA-20.a` *Exit-Code* verlangt nach einem früheren
 `PGR-E4004` den Code des **abbrechenden** Fehlers (4 oder 6); Reihenfolge und Zeitpunkt der
-Zeilen `error` legen weder `LH-FA-20.a` *Meldungen* noch `LH-FA-14.a` fest.
+Zeilen `error` legen weder `LH-FA-20.a` *Meldungen* noch `LH-FA-14.a` fest. Geprüft und
+entschieden am 2026-10-10 (§6, *Reihenfolge der Zeilen `error`*): ohne Code im Bootstrap
+umsetzbar, die Rückführung *dritte Schicht* tritt nicht ein.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -191,8 +193,12 @@ dasteht.
 `slice-v1-abschluss-einspielen`, geprüft vom Architect am 2026-10-09 vor dem ersten
 Code-Commit jenes Slice und für den zweiten Schnitt markiert. Neu entschieden heißt: im Commit
 jener Prüfung in `LH-FA-20.a`, sonst an der genannten Stelle. Die Teile mit [L·E] liefert
-`slice-v1-abschluss-einspielen-extended` (§1). Offen ist eine: *Reihenfolge der Zeilen
-`error`*, übergeben bei der Closure von `slice-v1-abschluss-einspielen`.
+`slice-v1-abschluss-einspielen-extended` (§1). Vom Architect am 2026-10-10 vor dem ersten
+Code-Commit dieses Slice gegen den gelieferten Kern geprüft (Bootstrap konvertiert
+`cli.Einspielvorgaben` per Typumwandlung in `services.PlayOptions`, reicht erstes und zweites
+Signal als `ctx` und `ablauf` an den Play-Service, schreibt je Meldung des gelieferten Fehlers
+nach dem Einspielen eine Zeile `error` und bildet den Exit-Code aus der ersten); „neu
+entschieden am 2026-10-10“ heißt: im Commit dieser Prüfung in `LH-FA-20.a`. Offen ist keine.
 
 - **Optionen der Laufsteuerung** [L] — am allgemeinen Leser, Abschnitt `play:`; bestätigt,
   `LH-FA-17.a` und `LH-FA-20.a` (Optionstabelle).
@@ -214,11 +220,55 @@ jener Prüfung in `LH-FA-20.a`, sonst an der genannten Stelle. Die Teile mit [L�
 - **Exit-Code beim Abbruch nach einem früheren `PGR-E4004`** [L] — der des abbrechenden
   Fehlers (4 oder 6); neu entschieden in `LH-FA-20.a` *Exit-Code*.
 - **Reihenfolge der Zeilen `error`** [L] — übergeben von `slice-v1-abschluss-einspielen`
-  (dort §7, V-129 aus dessen Verifikation), **offen**: In welcher Reihenfolge und zu welchem
-  Zeitpunkt `play` die Zeilen `error` schreibt, wenn nach einem oder mehreren `PGR-E4004` ein
-  Fehler abbricht, und wie der Bootstrap dann den Exit-Code des abbrechenden Fehlers bildet
-  (`LH-FA-20.a` *Exit-Code* gegen *Meldungen* und `LH-FA-14.a`). Der Architect entscheidet sie
-  vor dem ersten Code-Commit in `LH-FA-20.a` (§4 *Start*); bis dahin beginnt kein Code.
+  (dort §7, V-129 aus dessen Verifikation); neu entschieden am 2026-10-10 in `LH-FA-20.a`
+  *Meldungen* und *Exit-Code*: Die Zeilen stehen nach dem Ende des Einspielens (`time` ist der
+  Zeitpunkt des Schreibens), der abbrechende Fehler zuerst, danach die früheren, nach denen
+  das Einspielen weiterlief, in der Reihenfolge ihres Auftretens; ohne Abbruch alle in dieser
+  Reihenfolge. Der Exit-Code ist der der Klasse der ersten Zeile, ohne Zeile `0`. Die Fehler
+  eines Laufs sind keine gleichrangigen Fehler (`SPEC-034`). Umsetzbar ohne Bootstrap: Der
+  Play-Service liefert die Fehler als reine Zusammenfassung in dieser Reihenfolge, der
+  gelieferte Bootstrap schreibt sie und nimmt den Code der ersten.
+- **Fehlerantwort vor dem zweiten Signal** [L] — eine Fehlerantwort, die mit
+  `--continue-on-error` eintraf, bevor das zweite Signal ihre Interaktion unterbricht, ist eine
+  Zeile und zählt; die Unterbrechung selbst nicht; neu entschieden am 2026-10-10 in
+  `LH-FA-20.a` *Meldungen*.
+- **Abbrechender Fehler nach dem ersten Signal** [L] — im laufenden Aufbau, in der laufenden
+  Interaktion oder mit `--finish-session-on-interrupt` in der laufenden Session: Exit-Code
+  seiner Klasse, nicht die Zeile *Abbruchsignal*; diese zählt Fehler bis zum Ende des
+  Einspielens. Neu entschieden am 2026-10-10 in `LH-FA-20.a` *Exit-Code* und Tabellenzeile
+  *Abbruchsignal* (der Kern verhält sich schon so, ohne dass eine Regel es sagte).
+- **Fehlerregeln in der zu Ende laufenden Session; Signal zwischen Sessions** [L] — mit
+  `--finish-session-on-interrupt` gelten für die übrigen Interaktionen die Fehlerregeln wie
+  ohne Signal; trifft das Signal zwischen zwei Sessions ein, beginnt keine Session mehr, auch
+  mit der Option; neu entschieden am 2026-10-10 in `LH-FA-20.a` *Abbruchsignal*. Ein Signal im
+  Start: keine Session, bestätigt, *Start*.
+- **Mehrere Fehlerantworten in einer Interaktion** [L] — beim Weiterlesen bis zum
+  `ReadyForQuery` ist jede eine Zeile (*Meldungen*, „je Fehlerantwort eine“), erwartet ist
+  jede, wenn die Aufzeichnung der Interaktion eine `error_response` trägt (*Interaktion*);
+  `FATAL` oder `PANIC` ist `PGR-E4003`, auch bei erwartetem Fehler (Tabelle, „immer“);
+  bestätigt.
+- **Verbindungsende beim Weiterlesen nach einer Fehlerantwort** [L] — `PGR-E4003` bricht ab,
+  Exit-Code 4, die Fehlerantwort davor ist eine frühere Zeile; bestätigt, Tabelle und
+  *Meldungen*.
+- **Kombinationen der Optionen** [L] — `--continue-on-error` mit `--allow-recorded-errors`:
+  ein erwarteter Fehler zählt nicht, jeder andere läuft weiter und zählt; ein erwarteter
+  Fehler ohne `--continue-on-error` läuft ebenso weiter (Schritt 6);
+  `--finish-session-on-interrupt` ohne Signal ohne Wirkung; bestätigt, Tabelle und Schritt 6.
+  Mit `--compare-responses`: `slice-v1-abschluss-antwortvergleich` (§1 oben).
+- **Quellen und ungültige Werte** [L] — Kommandozeile, Umgebung, `play:`; boolesch nach
+  `LH-FA-17.a` (ohne Wert `true`, `=true` oder `=false`, jeder andere Wert `PGR-E2001`, in der
+  Datei `PGR-E2004`; leere Umgebungsvariable nicht gesetzt; eine ungültige Umgebungsvariable
+  auch bei gesetzter Option `PGR-E2001`); bestätigt, `LH-FA-17.a` und Optionstabelle.
+- **Akzeptierte Negative** — (a) Die Zeilen `error` erscheinen erst am Ende des Laufs, nicht
+  beim Fehler: Sofortiges Schreiben verlangte einen Port für Meldungen und Code im Bootstrap
+  (dritte Schicht, §4) für eine Ausgabe, die das Lastenheft nicht verlangt (`LH-FA-14`,
+  `LH-FA-20`); `time` ist kein Vertragsschlüssel (`LH-FA-14.a` *Zeilenform*). (b) Der
+  Play-Service hält die Fehler bis zum Ende; ihr Speicher wächst mit ihrer Zahl, höchstens
+  einer je Fehlerantwort einer Aufzeichnung, die ohnehin ganz im Speicher liegt. (c) Ein
+  Fehler, der mit dem zweiten Signal zusammenfällt, kann als Unterbrechung gelten (Bestand
+  des Kerns, *Abbruchsignal*). (d) Der Hilfetext von `play` nennt die drei Optionen; sein
+  Wortlaut ist kein Vertrag (`LH-FA-01.a`) und sagt nur zu, was ein Test prüft (`AGENTS.md`
+  §3.11).
 - **Ablösung des Stands *unbekannt*** — bis zu diesem Slice sind die drei Optionen bei `play`
   unbekannt, ohne eigene Regel (§6 von `slice-v1-abschluss-einspielen`, *Optionen der
   Laufsteuerung*); dieser Slice ändert die Tests des Kerns dazu, die Spezifikation nicht.
@@ -226,12 +276,14 @@ jener Prüfung in `LH-FA-20.a`, sonst an der genannten Stelle. Die Teile mit [L�
 **Risiken:**
 
 - Der gelieferte Kern reicht Optionen oder Signale nicht so an den Play-Service, dass dieser
-  Slice ohne Änderung im Bootstrap auskommt; dann berührt er drei Schichten (§1, §4) —
+  Slice ohne Änderung im Bootstrap auskommt; dann berührt er drei Schichten (§1, §4). Vorab
+  geprüft am 2026-10-10: Optionen per Typumwandlung, Signale als `ctx` und `ablauf` (§6) —
   **Ausgang:** offen bis Closure.
 - Die Entscheidung zur Randform *Reihenfolge der Zeilen `error`* verlangt Code im Bootstrap
   (übergeben von `slice-v1-abschluss-einspielen`, V-129): Ohne ihn endet `--continue-on-error`
   nach `PGR-E4004` und einem abbrechenden `PGR-E6001` mit Exit-Code 4 statt 6, oder der
-  Slice trifft seinen Ausschluss *Code im Bootstrap* und die Rückführung in §4 —
+  Slice trifft seinen Ausschluss *Code im Bootstrap* und die Rückführung in §4. Entschieden am
+  2026-10-10 so, dass der gelieferte Bootstrap genügt (§6) —
   **Ausgang:** offen bis Closure.
 - Ein Signal zwischen einer Fehlerantwort und der Fortsetzung: Der Exit-Code 4 folgt aus der
   Tabellenzeile *Abbruchsignal*, belegt ist er erst mit einem Test, der das Signal genau dort
@@ -289,6 +341,10 @@ Nachgezählt beim Eintragen der Frage aus V-129 (Closure von `slice-v1-abschluss
 den Exit-Code des abbrechenden Fehlers schon zu. Drei Liefer-Punkte, zwei Schichten
 (CLI-Adapter, Play-Service), solange die Entscheidung ohne Code im Bootstrap auskommt; sonst
 die Rückführung *dritte Schicht* in §4.
+
+Nachgezählt bei der Vorab-Prüfung des Architect am 2026-10-10: Die neu entschiedenen
+Randformen in §6 sind Randformen, keine Liefer-Punkte; keine neue Zuweisung an einen anderen
+Slice. Drei Liefer-Punkte, zwei Schichten (CLI-Adapter, Play-Service), kein Code im Bootstrap.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 

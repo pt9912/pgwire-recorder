@@ -1421,7 +1421,7 @@ wiederholen sie nicht.
 | `ErrorResponse` des Servers auf eine Anfrage | `PGR-E4004`, Exit-Code `4` am Ende; zählt nicht, wenn `--allow-recorded-errors` gesetzt ist und die aufgezeichnete Interaktion eine `ErrorResponse` enthält | der Vergleich entscheidet: gleicher SQLSTATE an der aufgezeichneten Stelle gilt als erwartet, jeder andere Fehler ist eine Abweichung; `PGR-E4004` entfällt | ohne `--continue-on-error` sofort, außer bei erwartetem Fehler |
 | Abweichung der Antwort (`LH-FA-24.a`) | kein Vergleich | `PGR-E5004`, Exit-Code `5` am Ende; je Interaktion die erste Abweichung | ohne `--continue-on-error` sofort |
 | Serverantwort, die das Einspielen nicht lesen oder nicht bedienen kann (*Interaktion* unten) | `PGR-E6001`, Exit-Code `6` | gleich | immer sofort |
-| Abbruchsignal (Schritt 7) | Exit-Code `0`, wenn bis dahin kein Fehler auftrat, sonst `4` | `0`, nach einer Abweichung `5` | nach der laufenden Interaktion (oder Session) |
+| Abbruchsignal (Schritt 7) | Exit-Code `0`, wenn bis zum Ende des Einspielens kein Fehler auftrat, sonst `4`; bricht ein Fehler ab, gilt *Exit-Code* unten | `0`, nach einer Abweichung `5` | nach der laufenden Interaktion (oder Session) |
 
 Ein Verbindungsverlust ohne Fehlerantwort (`PGR-E4002`, `PGR-E4003`, `PGR-E4005`)
 endet immer mit Exit-Code `4`, auch nach einer früheren Abweichung. Wo die
@@ -1536,6 +1536,15 @@ offenlässt.
   deren SQLSTATE (`C`) und Meldung (`M`), keine weiteren Felder; nie das Passwort, nie
   Parameterwerte (`SPEC-033`). Die Zeile beim Start nennt die Adresse als `host:port`
   (`LH-FA-17.a`) und die Aufzeichnung, nie Benutzer, Passwort oder Datenbank.
+  Die Zeilen `error` schreibt `play` nach dem Ende des Einspielens, nach der Zeile zum
+  Abbruchsignal und vor der Zeile zum Ende; `time` ist der Zeitpunkt des Schreibens,
+  nicht der des Fehlers. Bricht ein Fehler das Einspielen ab, steht seine Zeile zuerst,
+  danach die der früheren Fehler, nach denen das Einspielen weiterlief (etwa `PGR-E4004`
+  mit `--continue-on-error`), in der Reihenfolge ihres Auftretens; ohne abbrechenden
+  Fehler stehen alle in der Reihenfolge ihres Auftretens. Die Fehler eines Laufs
+  entstehen nicht bei einem Ereignis und sind keine gleichrangigen Fehler (`SPEC-034`);
+  ihre Reihenfolge legt dieser Absatz fest. Eine Fehlerantwort, die vor dem zweiten Signal eintraf, ist eine
+  Zeile, auch wenn das Signal ihre Interaktion unterbricht.
 * *Ende einer Session.* Nach ihrer letzten Interaktion sendet `play` `Terminate` und
   schließt die Verbindung; ein Fehler dabei ist keine Meldung und ändert den Exit-Code
   nicht. Eine offene Transaktion am Ende setzt der Server mit dem Verbindungsende
@@ -1543,13 +1552,19 @@ offenlässt.
 * *Abbruchsignal.* Eine Session läuft ab dem Beginn ihres Verbindungsaufbaus. Trifft
   das erste Signal während des Aufbaus ein, läuft er zu Ende; ein Fehler darin zählt.
   Mit `--finish-session-on-interrupt` laufen danach alle Interaktionen der Session,
-  sonst keine. Eine Extended-Interaktion läuft bis zu ihrem `ReadyForQuery`. Das
-  zweite Signal sendet `Terminate`, soweit die Verbindung es sofort annimmt, im Aufbau
-  nicht (*Abbruch im Aufbau*), schließt sie, auch während des Verbindungsversuchs, und
+  sonst keine; für sie gelten die Fehlerregeln wie ohne Signal. Zwischen zwei Sessions
+  läuft keine, und nach dem Signal beginnt keine weitere, auch mit der Option. Eine
+  Extended-Interaktion läuft bis zu ihrem `ReadyForQuery`. Das zweite Signal sendet
+  `Terminate`, soweit die Verbindung es sofort annimmt, im Aufbau nicht (*Abbruch im
+  Aufbau*), schließt sie, auch während des Verbindungsversuchs, und
   beendet den Prozess; die unterbrochene Interaktion und ein unterbrochener Aufbau sind
   kein Fehler, der Exit-Code folgt der Zeile *Abbruchsignal*. Jedes weitere Signal bleibt ohne Wirkung.
 * *Exit-Code.* Bricht ein Fehler das Einspielen ab, gilt der Exit-Code seiner Klasse,
-  auch nach einem früheren `PGR-E4004`.
+  auch nach einem früheren `PGR-E4004` und auch, wenn er nach dem ersten Abbruchsignal
+  im laufenden Aufbau, in der laufenden Interaktion oder, mit
+  `--finish-session-on-interrupt`, in der laufenden Session eintritt. Damit ist der
+  Exit-Code jedes Laufs nach dem Start der der Klasse der ersten Zeile `error`
+  (*Meldungen*), ohne Zeile `error` `0`; das gilt auch nach einem Abbruchsignal.
 
 ---
 
@@ -2664,3 +2679,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Einspielen: ein Verfahren, das `play` nicht unterstützt, ist `PGR-E4005` ohne Senden, auch wenn es ein Passwort gibt (`LH-FA-20.a`); `sslmode=require` bei jedem Kommando ohne TLS zum Upstream `PGR-E2004` wie bei `record` (`LH-FA-17.a`); Sicheres Schreiben: atomares Verschieben nur unter Linux im selben Dateisystem geprüft, macOS und Windows nicht (Grenze, `LH-FA-07.a`) |
 | 2026-10-09 | Einspielen: eine Interaktion einer Art, die `play` nicht einspielt, ist beim Start `PGR-E6001` mit Exit-Code `6`, ohne Verbindung für irgendeine Session; Meldung mit `id`, `sequence` und Art der ersten, nach einem Ladefehler (`LH-FA-20.a`, `SPEC-034`) |
 | 2026-10-09 | Einspielen: Aufbau vom Verbindungsversuch bis zum ersten `ReadyForQuery`, gescheitertes Senden darin `PGR-E4002`, abschließende Liste der Nachrichten im Aufbau (`BackendKeyData`, `ParameterStatus`, `NoticeResponse`, `NotificationResponse` verworfen, `ReadyForQuery` vor `AuthenticationOk` `PGR-E4002`); Anmelde-Nachrichten nach ihrem Code (Anforderung, Fortsetzung, `R` nach `AuthenticationOk`); Abbruch im Aufbau ohne `Terminate`; zweites Signal im Aufbau ohne `Terminate`, kein Fehler (`LH-FA-20.a`) |
+| 2026-10-10 | Einspielen: Zeilen `error` nach dem Ende des Einspielens, der abbrechende Fehler zuerst, danach die früheren Fehlerantworten in der Reihenfolge ihres Auftretens, `time` als Zeitpunkt des Schreibens, keine gleichrangigen Fehler; Fehlerantwort vor dem zweiten Signal ist eine Zeile; Exit-Code aus der Klasse der ersten Zeile, ein abbrechender Fehler nach dem ersten Signal mit dem Code seiner Klasse; Fehlerregeln in der zu Ende laufenden Session, keine Session nach dem Signal (`LH-FA-20.a`) |
