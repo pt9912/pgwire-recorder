@@ -298,6 +298,20 @@ annimmt, fand erst das Review (`BEO-REPO/folge-slice-adresse-nimmt-nicht-an`). E
 oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
 slice-lint-bestand-kern-driven wieder aufgetreten?
 
+**Auch eine Bindung ist eine Sendung** (seit slice-v1-abschluss-einspielen-laufsteuerung): Ruht
+ein akzeptiertes Negativ, eine Grenze oder eine Randform darauf, dass ein anderer Slice etwas
+einhält, ist das eine Zuweisung wie die vier oben. Derselbe Commit trägt die Bindung in §1 des
+Nehmers ein, mit der Kennung des Gebers, und nennt sie dort in §6.
+
+**Falsch:** Ein akzeptiertes Negativ schließt einen Fall aus, weil zwei spätere Slices an den
+Vertrag eines Ports gebunden seien; keiner der beiden nennt die Bindung.
+**Richtig:** Beide nennen sie in §1 mit der Kennung des Gebers und in §6 als Randform.
+
+**Begründung:** Die Aufzählung der vier Formen las sich als abschließend, und die Bindung ging
+ohne Eintrag hinaus; das Review fand es (`BEO-REPO/folge-slice-adresse-nimmt-nicht-an`).
+Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
+slice-v1-abschluss-einspielen-laufsteuerung wieder aufgetreten?
+
 **Nachzählen beim Eintragen** (seit slice-v1-abschluss-einspielen): Wer eine Sendung in
 einen Nehmer einträgt, zählt im selben Commit dessen Liefer-Punkte und Schichten nach,
 mit der Sendung (Baseline-Regelwerk `modul-05-planning-harness.md` §Ziel-Form: Slice:

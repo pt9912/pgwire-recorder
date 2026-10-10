@@ -110,29 +110,29 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): `--continue-on-error`, `--allow-recorded-errors` und
+- [x] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): `--continue-on-error`, `--allow-recorded-errors` und
       `--finish-session-on-interrupt` wirken bei `play` aus Kommandozeile, Umgebung und dem
       Abschnitt `play:` mit der Priorität und den booleschen Werten nach `LH-FA-17.a`; mit
       `--continue-on-error` läuft das Einspielen nach einer Fehlerantwort mit der nächsten
       Interaktion weiter und endet mit Exit-Code 4, je `PGR-E4004` eine Log-Zeile `error`;
       ein Verbindungsfehler bricht auch mit der Option ab, nach einem früheren `PGR-E4004`
       mit dem Exit-Code des abbrechenden Fehlers (4 oder 6) (Integrationstest).
-- [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): Mit `--allow-recorded-errors` gilt eine Fehlerantwort als erwartet, wenn
+- [x] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): Mit `--allow-recorded-errors` gilt eine Fehlerantwort als erwartet, wenn
       die aufgezeichnete Interaktion eine `error_response` trägt: keine Meldung, kein
       Abbruch, kein Beitrag zum Exit-Code; trägt sie keine, ist es `PGR-E4004` wie ohne
       Option (Test).
-- [ ] `SIGINT` und `SIGTERM` beenden das Einspielen mit `--finish-session-on-interrupt` nach
+- [x] `SIGINT` und `SIGTERM` beenden das Einspielen mit `--finish-session-on-interrupt` nach
       der laufenden Session, ein erstes Signal im Aufbau nach der ganzen Session; der
       Exit-Code beim Abbruchsignal ist 4 nach einem früheren Fehler, sonst 0 (Test). Beleg in
       §7 für Punkt 1 bis 3: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -308,16 +308,24 @@ entschieden am 2026-10-10“ heißt: im Commit dieser Prüfung in `LH-FA-20.a`. 
 - Der gelieferte Kern reicht Optionen oder Signale nicht so an den Play-Service, dass dieser
   Slice ohne Änderung im Bootstrap auskommt; dann berührt er drei Schichten (§1, §4). Vorab
   geprüft am 2026-10-10: Optionen per Typumwandlung, Signale als `ctx` und `ablauf` (§6) —
-  **Ausgang:** offen bis Closure.
+  **Ausgang:** entfallen: `internal/bootstrap` ist nicht im Diff (`git diff --stat
+  85caec4..785fca9 -- internal/bootstrap` leer, Verifikation §3), die drei Optionen wirken aus
+  allen drei Quellen am Binary (Verifikation, Punkt 1 bis 3); geliefert ist der Slice, eintreten
+  kann das Risiko für ihn nicht mehr.
 - Die Entscheidung zur Randform *Reihenfolge der Zeilen `error`* verlangt Code im Bootstrap
   (übergeben von `slice-v1-abschluss-einspielen`, V-129): Ohne ihn endet `--continue-on-error`
   nach `PGR-E4004` und einem abbrechenden `PGR-E6001` mit Exit-Code 4 statt 6, oder der
   Slice trifft seinen Ausschluss *Code im Bootstrap* und die Rückführung in §4. Entschieden am
   2026-10-10 so, dass der gelieferte Bootstrap genügt (§6) —
-  **Ausgang:** offen bis Closure.
+  **Ausgang:** entfallen: Am Binary endet `--continue-on-error` nach `PGR-E4004` und einem
+  abbrechenden `PGR-E6001` mit Exit-Code 6, die Zeile `PGR-E6001` zuerst (Verifikation, Punkt 1);
+  Mutant I1 macht `TestE2EPlayFortsetzungAbbruch/PGR-E6001` rot; der Bootstrap ist unverändert.
 - Ein Signal zwischen einer Fehlerantwort und der Fortsetzung: Der Exit-Code 4 folgt aus der
   Tabellenzeile *Abbruchsignal*, belegt ist er erst mit einem Test, der das Signal genau dort
-  setzt — **Ausgang:** offen bis Closure.
+  setzt — **Ausgang:** entfallen: `TestPlaySignalNachFehlerantwort` setzt das Signal nach der
+  Fehlerantwort und vor der Fortsetzung, Exit-Code 4; die Mutanten V4, V6 und V12 der
+  Verifikation machen ihn rot, am Binary ebenso (Verifikation, Punkt 3, „Exit 4 nach früherem
+  Fehler“).
 
 ## 7. Closure-Notiz
 
@@ -334,6 +342,110 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+- **Belege zur DoD:** DoD-Punkt 1 bis 4 bestätigt von der Verifikation
+  (`docs/reviews/2026-10-10-verifikation-slice-v1-abschluss-einspielen-laufsteuerung.md`, Stand
+  `785fca9`), am Binary je Quelle und mit eigenen Mutanten (V1 bis V17, I1 bis I3, M1, M19, alle
+  rot); `make gates` grün im eigenen Lauf der Verifikation. Die Belege des Implementers stehen
+  unten (*Belege des Implementers*, *Nacharbeit zum Review*).
+- **Summary-Zeilen:** Review
+  `docs/reviews/2026-10-10-review-slice-v1-abschluss-einspielen-laufsteuerung.md` (Stand
+  `ee23fad`): „HIGH 0, MEDIUM 1, LOW 2, INFO 3. Finding-Klassen dieses Laufs: Zusage nur für
+  einen Teil ihrer Fälle von einer Mutation gehalten · Zusage im Hilfetext weiter als die
+  Prüfung · Plan folgt der Korrektur erst im Folge-Commit.“ Verifikation (Stand `785fca9`):
+  DoD-Punkt 1 bis 4 bestätigt, ein Befund V-147 (LOW, an den Planner); F-564 und F-565 behoben,
+  F-566 Hinweise behoben, F-567 erledigt, F-568 und F-569 eingeordnet.
+- **Was hat funktioniert:** Die Randformen standen vor dem ersten Code-Commit in `LH-FA-20.a`
+  (`85caec4` vor `1b63ef8`), auch die übergebene *Reihenfolge der Zeilen `error`* (V-129 aus
+  `slice-v1-abschluss-einspielen`); sie ließ sich mit `errors.Join` im Play-Service umsetzen,
+  ohne Code im Bootstrap, und keine Rückführung aus §4 trat ein. Die Rückgabe des Implementers
+  (abbrechender Fehler ohne Meldungscode) ging vor dem Review an den Architect und wurde als
+  akzeptiertes Negativ (e) entschieden (`ee23fad`). Review und Verifikation fanden keine
+  Randform, die der Code außerhalb von §6 entscheidet.
+- **Was ging anders als geplant:** Die Tabelle der Mutanten in §7 hielt das zweite Signal nur
+  ohne `--finish-session-on-interrupt`; mit der Option blieben M1 und M19 grün (F-564, MEDIUM,
+  nachgezogen in `eda0bc9`). Hilfe und Handbuch sagten Exit-Code 4 und „erwartet“ weiter zu,
+  als geprüft war (F-565, F-566), und §7 nannte das Handbuch geprüft; der Hinweis zu
+  `--compare-responses` im Handbuch blieb danach stehen (V-147). Kopf und §1 folgten dem
+  Kommentar des Ports erst im Commit des Architect (F-567). Das akzeptierte Negativ (e) berief
+  sich auf eine Bindung von `slice-v1-abschluss-einspielen-anmeldung` und
+  `slice-v1-abschluss-einspielen-tls`, die keiner der beiden nannte (F-568). Der Kommentar von
+  `play` im Bootstrap nennt die neue Kopplung an die erste Meldung nicht (F-569); der Bootstrap
+  lag außerhalb dieses Slice. Ausgänge der Übergaben: V-147 in
+  `slice-v1-abschluss-antwortvergleich` (§1, §3, DoD-Punkt 3), F-568 in
+  `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` (je §1 und
+  §6), F-569 in `slice-v1-abschluss-einspielen-anmeldung` (§1, §3), dem nächsten Slice der
+  Reihenfolge, der den Bootstrap ändert (`slice-v1-abschluss-einspielen-extended` schließt
+  Code im Bootstrap aus, dort §1); eingetragen in `90a3570`, nachgezählt in §8. §1 sagt die
+  Aussagen im Handbuch jetzt ohne Vergleich zu. Den Hinweisen im selben Abschnitt des
+  Handbuchs zu `--keep-timing`, `--upstream-tls`, `--upstream-ca` und zum Passwort in
+  *Vorgehen*, die nach V-147 dieselbe Lage haben und keine der drei Optionen nennen, gibt
+  diese Closure keine Adresse; sie liegen außerhalb dieses Slice.
+- **Steering-Loop-Eintrag:** Guide geschärft: `AGENTS.md` §3.13 nennt neben den vier Formen
+  einer Zuweisung die Bindung — ruht ein akzeptiertes Negativ, eine Grenze oder eine Randform
+  darauf, dass ein anderer Slice etwas einhält, trägt derselbe Commit sie in §1 des Nehmers ein,
+  mit der Kennung des Gebers, und nennt sie dort in §6 — liegt in `AGENTS.md §3.13 (Auch eine Bindung ist eine Sendung)`.
+  Auslöser: `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (verkörpert, mit diesem Slice 6×;
+  F-568 ist eine Form, die die Aufzählung nicht nannte, wie zuvor V-129 in
+  `slice-v1-abschluss-einspielen`, dort §7, Urteil des Nutzers offen). Die Sendung von F-568 ist
+  nach Auftrag des Nutzers vom 2026-10-10 mit der Kennung dieses Slice eingetragen; die Regel
+  hält diese Lesart fest.
+
+  Retirement-Checks: `AGENTS.md` §3.9 (seit welle-walking-skeleton) ist wieder aufgetreten
+  (F-567); die Regel bleibt. §3.10 (seit welle-extended-query) ist wieder aufgetreten (F-564);
+  die Regel bleibt. §3.11 (seit welle-extended-query) ist wieder aufgetreten (F-565, F-566,
+  V-147); die Regel bleibt. §3.12 (seit slice-harness-randformen-vor-code) ist in diesem Slice
+  nicht wieder aufgetreten: Die Randformen standen vor dem Code, die Rückgabe ging vor dem Code
+  an den Architect; still entschieden hatte der Code des Kerns *Abbrechender Fehler nach dem
+  ersten Signal*, gefunden bei der Prüfung vor dem Code dieses Slice (§6; Beleg im Register).
+  §3.13 (seit slice-lint-bestand-kern-driven) ist wieder aufgetreten (F-568, V-147) und mit
+  diesem Slice geschärft.
+
+  **Reviewer-Skill §Pflege:** Das Review meldet die Klasse von F-564 zum vierten Mal (F-547 bis
+  F-549 in `slice-v1-abschluss-einspielen`, F-564); damit greift `.harness/skills/reviewer.md`
+  §Pflege. Was das heißt, je Frage des Abschnitts: (1) Die Kategorie bleibt richtig — MEDIUM,
+  denn das Verhalten war richtig, die Zusage im Kommentar aber von keiner Mutation gehalten.
+  (2) Eine Regel, die es verhindert hätte, besteht: `AGENTS.md` §3.10 und
+  `.claude/commands/implement-slice.md` Schritt 19, *Jede Bedingung einer mehrteiligen Zusage
+  ist eine eigene Zeile* (seit slice-harness-vertraege-spezifikation); „auch mit
+  `--finish-session-on-interrupt`“ ist eine solche Bedingung. Keine neue Regel, keine
+  Folge-ADR. (3) Die Fitness Function ist geplant: der Sensor-Ausgang von
+  `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`, `slice-harness-mutation`. Der Skill bleibt
+  unverändert (Auftrag des Nutzers vom 2026-10-10); ob die Klasse dort eine eigene Zeile
+  bekommt, entscheidet der Nutzer.
+- **Beobachtungs-Register (`../observations/`):** gesichtet am Stand `90a3570` (Zähler =
+  Dateien unter `evidence/`); je Eintrag `evidence/slice-v1-abschluss-einspielen-laufsteuerung.md`.
+  - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`: **Beleg**, 21× → 22× (F-564), Stand
+    verkörpert, bleibt.
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`: **Beleg**, 28× → 29× (F-564, F-565,
+    F-566, V-147), Stand verkörpert, bleibt.
+  - `BEO-REPO/plan-folgt-korrektur-nicht`: **Beleg**, 22× → 23× (F-567), Stand verkörpert,
+    bleibt.
+  - `BEO-REPO/spec-randform-erst-im-review-entschieden`: **Beleg**, 18× → 19× (*Abbrechender
+    Fehler nach dem ersten Signal*, im Kern still entschieden), Stand verkörpert, bleibt.
+  - `BEO-REPO/folge-slice-adresse-nimmt-nicht-an`: **Beleg**, 5× → 6× (F-568, V-147), Stand
+    verkörpert, mit diesem Slice geschärft (Steering-Loop-Eintrag oben).
+  - `BEO-REPO/schichtteilung-je-plan-verschieden`: **Beleg**, 1× → 2× (beim Eintragen von F-568
+    und F-569: dieser Plan zählt den Bootstrap als Schicht, `slice-v1-abschluss-einspielen-anmeldung`
+    und `slice-v1-abschluss-einspielen-tls` zählen ihn nicht), Stand offen.
+  - Einmalig und nicht eingetragen: F-569 (Kommentar an einer Stelle außerhalb des Slice, mit
+    Adresse). Mit diesem Slice erreicht kein Eintrag ohne Ausgang die Schwelle 3× neu.
+- **Folge-Slices:** keiner neu. Nehmer der Sendungen: `slice-v1-abschluss-antwortvergleich`,
+  `slice-v1-abschluss-einspielen-anmeldung`, `slice-v1-abschluss-einspielen-tls` (alle
+  `next/`); `slice-v1-abschluss-einspielen-extended` führt die Teile [L·E] (§1). Vor ihm steht
+  nach Entscheidung des Nutzers vom 2026-10-10 `slice-harness-upgrade-v6-18` (wellenlos, kein
+  Folge-Slice dieses Slice).
+- **Risiken aus §6:** drei, alle **entfallen** (Begründung je in §6). Randformen und akzeptierte
+  Negative sind Entscheidungen, keine Risiken.
+- **Drei Paarungen:** Anker: `grep -n "seit slice-v1-abschluss-einspielen-laufsteuerung"
+  AGENTS.md` findet §3.13 *Auch eine Bindung ist eine Sendung*. Folge-Slice: `grep -n
+  "slice-v1-abschluss-einspielen-laufsteuerung"` findet die Kennung in §1 und DoD-Punkt 3 von
+  `slice-v1-abschluss-antwortvergleich`, in §1 (und §6) von
+  `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` und in §1
+  von `slice-v1-abschluss-einspielen-extended`; keiner schließt die Sendung in *Ausdrücklich
+  NICHT* aus, keiner liegt in `done/`. Register: die sechs Einträge oben tragen
+  `evidence/slice-v1-abschluss-einspielen-laufsteuerung.md`, jedes Verzeichnis mit nicht leerem
+  `evidence/`. Die nächste Welle-Closure prüft die Paarungen erneut.
 
 **Belege des Implementers** (Code-Commit `1b63ef8` auf `85caec4`):
 
