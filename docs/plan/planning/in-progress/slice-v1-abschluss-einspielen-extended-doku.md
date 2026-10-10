@@ -143,6 +143,34 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Probe-Aufbau.** `make build` am Stand `2e010b5` (Image `pgwire-recorder:dev`, `sha256:b8abba88772c…`). Proben in einem Scratch-Verzeichnis außerhalb des Repos; Netz `impl-extdoku-net` mit dem gepinnten PostgreSQL-Image aus `harness/mk/integration.mk` (`postgres:17-alpine@sha256:b0f9560a…`, Anmeldung `trust`), je Probe eine eigene Datenbank mit `t (n int PRIMARY KEY, s text)`. Probe 1 zeichnet mit `record` und `psql` (`\bind`, Image wie der Server) auf; Aufzeichnungen der Proben 2 bis 5 sind von Hand geschrieben (`psql` 17 kennt keine Pipeline, `record` kann Copy nicht erzeugen). Container, Netz und Scratch-Dateien sind danach entfernt.
+
+| Nr. | Aussage (Handbuch/README) | Probe | Ergebnis |
+|---|---|---|---|
+| 1 | `play` spielt Extended-Interaktionen ein; „mit einfachen Anfragen“ entfällt (§4 Voraussetzung, README-Satz, Untertitel Zeile 3) | `record` + `psql`: zwei `INSERT … \bind … \g`; `play --database p1` | Exit 0, Zeilen `1:eins`, `2:zwei` |
+| 2a | Fehler in einer Extended-Folge: Rest bis `Sync` nicht ausgeführt, Exit 4 | 1. Folge: `INSERT (1)` (Schlüssel vorhanden) mit Flush, danach `INSERT (2)` mit Sync; 2. Folge `INSERT (3)`; ohne Option | Exit 4, ein `PGR-E4004` („Interaktion 1“, 23505), Tabelle `1:vorhanden` |
+| 2b | `--continue-on-error`: nächste Folge läuft, Exit 4 | dieselbe Aufzeichnung | Exit 4, ein `PGR-E4004`, Tabelle `1:vorhanden,3:naechste` (Zeile 2 fehlt) |
+| 3a | `--allow-recorded-errors`: Fehlerantwort irgendwo in der aufgezeichneten Folge genügt | wie 2, Fehlerantwort (23505) nur in der Sync-Gruppe aufgezeichnet, Fehler tritt in der Flush-Gruppe auf | Exit 0, keine Zeile `error`, Tabelle `1:vorhanden,3:naechste` |
+| 3b | ohne die Option wirkt die aufgezeichnete Fehlerantwort nicht | dieselbe Aufzeichnung ohne Option | Exit 4, `PGR-E4004` |
+| 3c | ohne Fehlerantwort in der Aufzeichnung bleibt es ein Fehler, auch mit der Option | Aufzeichnung aus 2 mit `--allow-recorded-errors` | Exit 4, `PGR-E4004` |
+| 3d | Gleichheit der SQLSTATE ist nicht verlangt | Aufzeichnung aus 3a mit `XX000` statt `23505` | Exit 0 |
+| 4a | Signal: `play` endet nach der laufenden Folge | Folge `INSERT … FROM (SELECT pg_sleep(4))`, zweite Folge `INSERT (11)`, zweite Sitzung `INSERT (12)`; `SIGTERM` nach 1,5 s | Exit 0, Log `Abbruchsignal, play endet vorzeitig`, 2,1 s nach dem Signal beendet, Tabelle `10:warten` |
+| 4b | mehrere Gruppen: endet nach dem `Sync` der Folge | Folge mit Flush-Gruppe `pg_sleep(4)` und Sync-Gruppe `INSERT (20)`, zweite Folge `INSERT (21)`; `SIGTERM` nach 1,5 s | Exit 0, Tabelle `10:warten,20:gruppe-b` |
+| 4c | `--finish-session-on-interrupt`: nach der laufenden Sitzung | wie 4a mit der Option | Exit 0, Tabelle `10:warten,11:zweite` (kein `12`) |
+| 4d | zweites Signal: Verbindung sofort geschlossen, kein Fehler, auch mit der Option | wie 4a und 4c, zweites `SIGTERM` 0,5 s nach dem ersten | Exit 0, beendet 0,02 s nach dem zweiten Signal, keine Zeile `error`; der bestehende Satz gilt damit auch für Extended |
+| 5a | COPY-Datenstrom von der Datenbank: `PGR-E6001`, Exit 6 | Folge `COPY t FROM STDIN` nach einer Folge `INSERT (5)`, danach `INSERT (6)`; auch mit `--continue-on-error` | Exit 6, `PGR-E6001` („Session 1, Interaktion 2“, `CopyInResponse`), Tabelle `5:vorher` |
+| 5b | wie 5a für `COPY … TO STDOUT` | Folge `COPY t TO STDOUT` | Exit 6, `PGR-E6001` (`CopyOutResponse`), Tabelle `5:vorher` |
+
+**Neue und entfernte Aussagen.** Handbuch §4 *Voraussetzung* („mit einfachen Anfragen“) entfernt (Probe 1). *Hinweise*: neu der Satz zu Fehler und `--continue-on-error` bei Extended (2a, 2b), der Zusatz zu `--allow-recorded-errors` (3a bis 3d), der Satz zum Abbruchsignal bei Extended (4a bis 4c); der Satz „Enthält die Aufzeichnung eine Folge des erweiterten Protokolls … spielt nichts ein“ ersetzt durch den Wortlaut aus §6 (5a, 5b); er war auch falsch („spielt nichts ein“: Folgen vor dem Copy laufen, 5a). §7 Zeile `PGR-E6001`: Ursache „Aufzeichnung enthält eine Folge des erweiterten Protokolls“ ersetzt durch „die Datenbank antwortet bei `play` mit einem COPY-Datenstrom“. README: Untertitel „einfachen“ entfernt, Satz zu `play` nennt einfache wie vorbereitete Anweisungen, der Satz „lehnt `play` ab“ ersetzt durch den Copy-Satz.
+
+**Ungenannt geblieben (entschieden in §6):** Warten je Antwort, Gegendruck, `CopyBothResponse`, nicht lesbare Serverantwort, Aufzeichnung endet mitten in einer Interaktion; Passwort (`PGR-E4005`) und `sslmode=require` (`PGR-E2004`) unverändert; keine Serverversion genannt. `FATAL` bei Extended: der Satz bleibt unverändert, `test/integration/play_laufsteuerung_e2e_test.go` und `play_extended_e2e_test.go` tragen `FATAL` nur für einfache Anfragen (`TestE2EPlayFortsetzungAbbruch`, `q(...)`), eine Extended-Probe ist nicht gefahren.
+
+**Optionen, Variablen, Codes** (Befehlsfolge aus `slice-doku-ist-stand` §7, erneut gefahren): bei den Optionen nur `--h`, `--help`, `--version` (Nicht-Optionen im Handbuch) und `--rm`, `--name` (`docker run`); Variablen und Codes ohne Ausgabe, grün. `grep -n -i -E "spec/|lastenheft|slice|welle|review|LH-|SPEC-|noch nicht|kommt|geplant|künftig"` über das Handbuch findet nur Bestand ohne Bezug (`noch nicht` in §3 „Zieldatei existiert noch nicht“, „kommt“ in der Ruhefrist von `record`); `make docs-check`: 0 Befunde. Das Handbuch trägt keinen neuen Codeblock; das Beispiel in §4 (`play --upstream … --input …`) hat die Form der Probe 1.
+
+**Mutation (§3.10)** entfällt (kein neuer Vertrag); die Probe-Matrix ersetzt sie.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

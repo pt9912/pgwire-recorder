@@ -1,6 +1,6 @@
 # pgwire-recorder
 
-> **Zeichnet die Kommunikation zwischen Ihrer Anwendung und PostgreSQL auf, spielt sie ohne Datenbank wieder ab oder führt ihre einfachen Anfragen erneut gegen eine Datenbank aus.**
+> **Zeichnet die Kommunikation zwischen Ihrer Anwendung und PostgreSQL auf, spielt sie ohne Datenbank wieder ab oder führt ihre Anfragen erneut gegen eine Datenbank aus.**
 
 ## Was ist pgwire-recorder?
 
@@ -21,14 +21,14 @@ beide daraus ohne Datenbank. Lebendprüfungen von Verbindungspools (`pgxpool`,
 `database/sql`) beantwortet `replay` unabhängig davon, ob sie in der Aufzeichnung
 stehen; mit `--fail-on-unconsumed` endet `replay` mit einem Fehler, wenn
 aufgezeichnete Interaktionen nicht abgerufen wurden. `pgwire-recorder play` spielt
-die einfachen Anfragen einer Aufzeichnung gegen eine Datenbank ein; nach einer
-Fehlerantwort der Datenbank bricht es ab, mit `--continue-on-error` läuft es weiter,
-und mit `--finish-session-on-interrupt` endet es nach einem Abbruchsignal erst nach
-der laufenden Sitzung. Eine Aufzeichnung mit vorbereiteten Anweisungen lehnt `play`
-ab. Alle Verbindungen laufen unverschlüsselt, und die Datenbank muss den Benutzer
-ohne Passwort anmelden. Beim Beenden warten `record` und `replay` höchstens
-`--shutdown-timeout` (Standard 5 Sekunden) auf laufende Anfragen; was das im
-Container bedeutet, sagt das Benutzerhandbuch.
+die Anfragen einer Aufzeichnung, einfache wie vorbereitete Anweisungen, gegen eine
+Datenbank ein; nach einer Fehlerantwort der Datenbank bricht es ab, mit
+`--continue-on-error` läuft es weiter, und mit `--finish-session-on-interrupt` endet
+es nach einem Abbruchsignal erst nach der laufenden Sitzung. Antwortet die Datenbank
+mit einem COPY-Datenstrom, endet `play` mit `PGR-E6001`. Alle Verbindungen laufen
+unverschlüsselt, und die Datenbank muss den Benutzer ohne Passwort anmelden. Beim Beenden warten `record` und `replay` höchstens `--shutdown-timeout`
+(Standard 5 Sekunden) auf laufende Anfragen; was das im Container bedeutet, sagt das
+Benutzerhandbuch.
 
 - `make build` baut das Image `pgwire-recorder:dev` mit dem Binary; `make gates`
   führt die Gates aus, `make help` zeigt alle Targets.

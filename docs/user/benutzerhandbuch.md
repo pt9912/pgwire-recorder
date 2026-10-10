@@ -295,7 +295,7 @@ Komponente zu testen, die Änderungen der Datenbank verarbeitet (Change Data Cap
 
 #### Voraussetzung
 
-Eine Aufzeichnung mit einfachen Anfragen liegt vor, und die Zieldatenbank ist
+Eine Aufzeichnung liegt vor, und die Zieldatenbank ist
 erreichbar und meldet den Benutzer ohne Passwort an. Der Benutzer und die Datenbank
 aus der Aufzeichnung existieren dort oder Sie geben sie ausdrücklich an.
 
@@ -326,18 +326,25 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   danach ein anderer Fehler das Einspielen ab, etwa eine Antwort, die das Werkzeug
   nicht verarbeiten kann (`PGR-E6001`), oder das Ende der Verbindung
   (`PGR-E4003`), ist der Exit-Code der dieses Fehlers (6 bzw. 4).
+* Antwortet die Datenbank auf eine Anfrage des erweiterten Protokolls mit einem
+  Fehler, führt sie die übrigen Nachrichten dieser Folge bis zu deren `Sync` nicht
+  aus. Mit `--continue-on-error` macht das Einspielen danach mit der nächsten
+  Folge weiter, der Exit-Code ist dann 4.
 * Mit `--allow-recorded-errors` gilt ein Fehler der Datenbank mit dem Schweregrad
   `ERROR` nicht als Fehler, wenn auch die aufgezeichnete Anfrage mit einem Fehler
-  beantwortet wurde. Ein Fehler mit dem Schweregrad `FATAL` beendet die Verbindung
+  beantwortet wurde. Bei einer Folge des erweiterten Protokolls genügt eine
+  Fehlerantwort an irgendeiner Stelle der aufgezeichneten Folge. Ein Fehler mit dem
+  Schweregrad `FATAL` beendet die Verbindung
   und bricht das Einspielen auch dann ab (`PGR-E4003`).
 * Das Werkzeug verbindet sich unverschlüsselt und ohne Passwort mit der Datenbank.
   Verlangt sie ein Passwort oder lehnt sie die Anmeldung ab, etwa weil der Benutzer
   fehlt, endet das Einspielen mit `PGR-E4005` (Exit-Code 4). Eine benannte
   Verbindung mit `sslmode=require` ist bei `play` ungültig (`PGR-E2004`).
-* Enthält die Aufzeichnung eine Folge des erweiterten Protokolls (vorbereitete
-  Anweisungen), spielt das Werkzeug nichts ein und endet mit `PGR-E6001`
+* Antwortet die Datenbank mit einem COPY-Datenstrom (`COPY … FROM STDIN`,
+  `COPY … TO STDOUT`), kann `play` ihn nicht verarbeiten und endet mit `PGR-E6001`
   (Exit-Code 6); die Meldung nennt Sitzung und Nummer der Anfrage.
-* Bei `Strg+C` oder `SIGTERM` endet das Einspielen nach der laufenden Anfrage; mit
+* Bei `Strg+C` oder `SIGTERM` endet das Einspielen nach der laufenden Anfrage, bei
+  einer Folge des erweiterten Protokolls nach deren `Sync`; mit
   `--finish-session-on-interrupt` erst nach der laufenden Sitzung. Ein zweites
   Signal schließt die Verbindung sofort, auch mit dieser Option; die unterbrochene
   Anfrage zählt nicht als Fehler. Der Exit-Code ist 0, nach einem früheren Fehler 4.
@@ -740,7 +747,7 @@ für den Exit-Code.
 | `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen aufgezeichnet sind. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
-| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen verlangt die Datenbank ein Passwort; oder die Aufzeichnung für `play` enthält eine Folge des erweiterten Protokolls. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht, und lassen Sie die Anmeldung ohne Passwort zu. |
+| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen verlangt die Datenbank ein Passwort; oder die Datenbank antwortet bei `play` mit einem COPY-Datenstrom. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht, und lassen Sie die Anmeldung ohne Passwort zu. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls. Verwenden Sie einen Treiber, der sie nutzt. |
 
 ### Warnungen
