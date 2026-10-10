@@ -340,9 +340,8 @@ Nachricht `R`, *Anmelde-Nachrichten*), Schließen (nach einem Fehler ohne `Termi
 Aufbau*), Fehler (`PGR-E4005` oder `PGR-E4002` nach der Tabelle in *Anmeldung* und *SCRAM-Austausch*),
 Aufräumen (`Verbinde` schließt bei jedem Fehler), Zufall (18 Bytes, Base64, *SCRAM-Austausch*),
 Zeit (keine eigene Frist, *Frist*). Keine Operation entscheidet eine Randform außerhalb von §6.
-Vier Kombinationen und Lesarten, die §6 und die Spezifikation nicht ausdrücklich entscheiden,
-stehen als Fragen am Ende dieses Abschnitts; keine ist durch einen Test festgelegt und keine in §6
-eingetragen.
+Die Kombinationen und Lesarten, die der erste Lauf offen ließ, sind in §6 entschieden (Randformen aus
+der Rückgabe des Implementers) und durch Tests festgelegt (Tabelle, Zeilen *Nacharbeit*).
 
 *Weg der Mutanten.* Je Mutant eine frische Kopie von `internal/` (Python `shutil.copyfile`, ohne
 Übernahme der mtime, gleichwertig `cp -r` ohne `-p`) unter dem Scratch-Verzeichnis, genau eine
@@ -352,8 +351,8 @@ als Bind-Mount über `/src/internal` (nicht über den Build-Kontext, die mtime i
 genannter Test schlug mit der genannten Meldung fehl, nicht Build, Vet oder gofmt, und nicht über
 eine Gesamtfrist. Die E2E-Mutanten liefen in einer Kopie aller verfolgten Dateien außer
 `.harness/` mit `make test-integration` (Container, Netz und Volume räumt der Runner ab; `docker ps -a`,
-`docker network ls` und `docker volume ls` mit `pgr-it` danach leer). 76 Unit-Mutanten (Lauf auf dem
-Stand `c8b7f44`): 75 rot, 1 grün und äquivalent (Zeile am Ende der Tabelle); 5 E2E-Mutanten, alle rot.
+`docker network ls` und `docker volume ls` mit `pgr-it` danach leer). 84 Unit-Mutanten (76 auf dem
+Stand `c8b7f44`, 8 in der Nacharbeit): 83 rot, 1 grün und äquivalent (Zeile am Ende der Tabelle); 5 E2E-Mutanten, alle rot.
 
 | Zusage (§6) | Mutation | roter Test |
 |---|---|---|
@@ -414,6 +413,14 @@ Stand `c8b7f44`): 75 rot, 1 grün und äquivalent (Zeile am Ende der Tabelle); 5
 | im Austausch ist jede unvorgesehene Nachricht `PGR-E4005` (`AuthenticationOk`, Anforderungen 3, 5, 10, 7, unbekannt, 8) | der Austausch gilt nie als laufend | `TestAnmeldungScram`, `TestAnmeldungScramFehler`, `TestAnmeldungScramUnvorgesehen` (14 Fälle: E4002 statt E4005) |
 | ein Fehler im Austausch ist `PGR-E4005` (Code) | `CodeUpstream` statt `CodeLogin` | `TestAnmeldungScramFehler` (alle Fälle), `TestAnmeldungScramUnvorgesehen` |
 | falsches Passwort ist `PGR-E4005` mit SQLSTATE in der Meldung, andere Klasse und `ReadyForQuery` vor `AuthenticationOk` `PGR-E4002`, Verbindungsende `PGR-E4002`, nach Klartext, MD5 und SCRAM (erste Nachricht, Antwort) | (Einstufung liegt beim Kern, hier geprüft mit einem Passwort; der Kern-Mutant steht in `slice-v1-abschluss-einspielen`) | `TestAnmeldungAbgelehnt` (4 Abläufe × 4 Ausgänge), E2E `TestE2EPlayAnmeldungFehler` (drei Verfahren × falsch, leer, Anfang des richtigen) |
+| Nacharbeit, Frage 1: eine weitere Anforderung, auch nicht lesbar, ist `PGR-E4002` (Code bestimmt die Art), Klartext mit Rest | Prüfung `beantwortet` in `klartext` hinter die Lesbarkeit | `TestAnmeldungWeitereAnforderungArt/{Klartext,MD5}_dann_Klartext_mit_Rest` |
+| Nacharbeit, Frage 1: dasselbe für MD5 (drei Byte Salz, ohne Salz) | Prüfung in `md5` hinter die Lesbarkeit | `TestAnmeldungWeitereAnforderungArt/{Klartext,MD5}_dann_MD5_mit_drei_Byte_Salz`, `/…_MD5_ohne_Salz` |
+| Nacharbeit, Frage 1: dasselbe für SASL (Liste ohne Ende) | Prüfung in `sasl` hinter die Lesbarkeit | `TestAnmeldungWeitereAnforderungArt/{Klartext,MD5}_dann_SASL_ohne_Ende` |
+| Nacharbeit, Frage 1: alle drei Verfahren zugleich | die allgemeine Prüfung entfernt, in jedem Verfahren hinter die Lesbarkeit (gofmt-sauber) | die acht Fälle der drei Zeilen darüber |
+| Nacharbeit, Frage 2: ein nicht unterstütztes Verfahren (Code 7, 9, unbekannt) nach einer Antwort bleibt `PGR-E4005` | `beantwortet` vor dem Verfahren prüfen | `TestAnmeldungWeitereAnforderungArt/{Klartext,MD5}_dann_Code_7`, `/…_Code_9`, `/…_unbekannter_Code` (sechs Fälle) |
+| Nacharbeit, Frage 3: leeres Salz (`s=`) ist gültig und der Austausch gelingt mit dem Beweis aus `hashlib` | `len(salz) == 0` lehnt ab | `TestAnmeldungScramLeeresSalz` |
+| Nacharbeit, Frage 4: Iterationen ohne führende Null (`i=0004096`, `i=01`, `i=010`) | Prüfung `HasPrefix(text, "0")` entfernt | `TestScramServerErste/Iterationen_mit_führenden_Nullen`, `/…mit_einer_führenden_Null`, `/Iterationen_10_mit_führender_Null` |
+| Nacharbeit, Frage 4: nur eine Ausprägung der führenden Null abgefangen | Prüfung auf `"00"` statt `"0"` | `TestScramServerErste/Iterationen_mit_einer_führenden_Null`, `/Iterationen_10_mit_führender_Null` (der Fall `i=0004096` allein fängt es nicht) |
 | Passwort nicht in Meldung, Log, Ursachenkette: Einspielziel (Formatierung) | `Format` gibt den Wert aus | `TestAnmeldungOhneGeheimnis` (letzte Schleife: `%v`, `%+v`, `%#v`, `%s`, `%q`, `%x`) |
 | Passwort nicht in Meldung, Log, Ursachenkette: abgeleiteter Wert (erwartete Signatur) | Signatur in die Meldung | `TestAnmeldungOhneGeheimnis/SCRAM_falsche_Signatur` |
 | Passwort nicht in Meldung, Log, Ursachenkette: Inhalt einer Nachricht (Abschluss) | Nachrichtentext in die Meldung | `TestAnmeldungOhneGeheimnis/SCRAM_Abschluss_ohne_v=` |
@@ -464,25 +471,7 @@ grün (darunter `TestE2EPlayAnmeldung` mit 6 Fällen, `TestE2EPlayAnmeldungOhneV
 `make gates` grün (Exit-Code 0, 3 min 50 s). Die Gates auf sauberem Baum nach dem Commit dieses
 Abschnitts stehen im Bericht an den Reviewer.
 
-*Fragen an den Architect (Randform · Frage).* Keine ändert den Code, keine ist durch einen Test
-festgelegt:
-
-1. **Zweite Anforderung, die auch nicht lesbar ist** — Eine weitere Anforderung der Codes 3, 5, 10,
-   nachdem `play` eine beantwortet hat, ist `PGR-E4002`; eine nicht lesbare Anforderung eines
-   unterstützten Verfahrens ist `PGR-E4005`. Ist eine zweite Anforderung, die zugleich nicht lesbar
-   ist (etwa Code 5 mit drei Byte Salz), `PGR-E4002` (Code bestimmt die Art, Lesart des Codes: so
-   umgesetzt) oder `PGR-E4005`? Beide enden mit Exit-Code 4.
-2. **Zweite Anforderung eines nicht unterstützten Verfahrens** — Code 7 nach einer Antwort: heute
-   `PGR-E4005` (nicht unterstützt geht vor „weitere Anforderung“); bestätigen oder `PGR-E4002`.
-3. **Leeres Salz** — `s=` ohne Wert ist gültiges (leeres) Base64 und wird angenommen, mit der
-   Berechnung über ein leeres Salz. Gültig oder `PGR-E4005`?
-4. **Führende Nullen und Zeilenumbruch** — `i=0004096` gilt als Dezimalzahl aus Ziffern (4096); ein
-   Zeilenumbruch im Base64 von `s=` und `v=` ist ungültig (Lesart von „gültiges Base64“, die
-   Bibliothek überliest ihn sonst); der Zeilenumbruch ist durch einen Test festgelegt
-   (`TestScramServerErste/s_mit_Zeilenumbruch`), die führenden Nullen nicht.
-5. **Fehler der Schlüsselableitung** — `crypto/pbkdf2` kann einen Fehler liefern (nur im
-   FIPS-Modus der Go-Laufzeit); er ist hier `PGR-E4005` „Schlüsselableitung nicht möglich“, ohne
-   Test (nicht erreichbar ohne GODEBUG).
+*Fragen an den Architect (Randform · Frage), entschieden am 2026-10-10 (§6, Randformen aus der Rückgabe des Implementers).* Frage 1 bis 4 sind umgesetzt, jede mit einem Test, der sie festlegt, und einer roten Mutation (Tabelle, Zeilen *Nacharbeit*); Frage 5 bleibt ein akzeptiertes Negativ ohne Test.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

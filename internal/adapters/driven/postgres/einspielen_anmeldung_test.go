@@ -195,8 +195,8 @@ func TestScramBeweisRFC7677(t *testing.T) {
 // Abdeckung: LH-FA-20/Boundary, LH-FA-20/Negative — die erste Nachricht des
 // Servers im SCRAM-Austausch besteht genau aus r=, s= und i= in dieser
 // Reihenfolge; r= beginnt mit der Nonce von play und ist länger, s= ist
-// gültiges Base64 (ohne Zeilenumbruch), i= eine Dezimalzahl aus Ziffern von 1
-// bis 10 000 000 (LH-FA-20.a *SCRAM-Austausch*).
+// gültiges Base64 (ohne Zeilenumbruch), i= eine Dezimalzahl aus Ziffern ohne
+// führende Null von 1 bis 10 000 000 (LH-FA-20.a *SCRAM-Austausch*).
 func TestScramServerErste(t *testing.T) {
 	const r = "r=NONCEserver"
 	const s = "s=c2FsegAB"
@@ -215,6 +215,9 @@ func TestScramServerErste(t *testing.T) {
 		{"Iterationen negativ", gut("i=-1"), false},
 		{"Iterationen mit Vorzeichen", gut("i=+5"), false},
 		{"Iterationen leer", gut("i="), false},
+		{"Iterationen mit führenden Nullen", gut("i=0004096"), false},
+		{"Iterationen mit einer führenden Null", gut("i=01"), false},
+		{"Iterationen 10 mit führender Null", gut("i=010"), false},
 		{"Iterationen keine Zahl", gut("i=abc"), false},
 		{"Iterationen mit Leerraum dahinter", gut("i=4096 "), false},
 		{"Iterationen mit Exponent", gut("i=1e3"), false},
@@ -334,6 +337,27 @@ func TestAnmeldungScram(t *testing.T) {
 			anmGesendet(t, l, anmErste(), anmAntwort(r.antwort))
 		})
 	}
+}
+
+// Abdeckung: LH-FA-20/Boundary — ein leeres Salz (s=) in der ersten Nachricht
+// des Servers ist gültig: play liest es als leeres Salz und rechnet den Beweis
+// darüber, gegen einen Vektor, den Python (hashlib, hmac) für das Passwort
+// GEHEIMpw, die feste Nonce, 4096 Iterationen und die Servernonce SERVER
+// gerechnet hat (LH-FA-20.a *SCRAM-Austausch*).
+func TestAnmeldungScramLeeresSalz(t *testing.T) {
+	const erste = "r=" + anmNonce + "SERVER,s=,i=4096"
+	servernonce, salz, n, grund := postgres.LeseServerErste(anmNonce, erste)
+	if grund != "" || servernonce != anmNonce+"SERVER" || len(salz) != 0 || n != 4096 {
+		t.Fatalf("leeres Salz nicht gelesen: %q %q %d %q", servernonce, salz, n, grund)
+	}
+	const antwort = "c=biws,r=" + anmNonce + "SERVER,p=y253gaxpbQlQX+qMApvbQJrWp72N1nTYBsi6Lyeq+r8="
+	const abschluss = "v=gN80RGhfm/TVcpyOZOO/BehrjyCE0J9An8DL0PIVzlI="
+	l, err := anmLauf(t, "GEHEIMpw", anmSasl("SCRAM-SHA-256"),
+		anmCode(11, erste), anmKette(anmCode(12, abschluss), anmBereit(t)))
+	if err != nil {
+		t.Fatalf("SCRAM mit leerem Salz: %v", err)
+	}
+	anmGesendet(t, l, anmErste(), anmAntwort(antwort))
 }
 
 // Abdeckung: LH-FA-20/Negative — jeder Fehler im SCRAM-Austausch ist
@@ -569,6 +593,43 @@ func TestAnmeldungWeitereAnforderung(t *testing.T) {
 					t.Fatalf("Fehler %v, erwartet %s", err, model.CodeUpstream)
 				}
 				anmGesendet(t, l, e.antwort)
+			})
+		}
+	}
+}
+
+// Abdeckung: LH-FA-20/Negative — nach einer Antwort auf Klartext oder MD5
+// bestimmt der Code die Art: Eine weitere Anforderung der Codes 3, 5 oder 10 ist
+// PGR-E4002, auch wenn sich ihr Rest nicht lesen ließe; eine Anforderung eines
+// Verfahrens, das play nicht unterstützt (Code 7, 9, unbekannt), bleibt
+// PGR-E4005 (LH-FA-20.a *Verfahren*).
+func TestAnmeldungWeitereAnforderungArt(t *testing.T) {
+	ersten := map[string][]byte{"Klartext": anmKlartext(), "MD5": anmMD5(1, 2, 3, 4)}
+	zweiten := []struct {
+		name string
+		z    []byte
+		want string
+	}{
+		{"MD5 mit drei Byte Salz", anmMD5(1, 2, 3), model.CodeUpstream},
+		{"MD5 ohne Salz", anmMD5(), model.CodeUpstream},
+		{"Klartext mit Rest", anmeldung(3, 1), model.CodeUpstream},
+		{"SASL ohne Ende", anmeldung(10, 'S'), model.CodeUpstream},
+		{"Code 7", anmeldung(7), model.CodeLogin},
+		{"Code 9", anmeldung(9), model.CodeLogin},
+		{"unbekannter Code", anmeldung(99), model.CodeLogin},
+	}
+	for en, e := range ersten {
+		for _, z := range zweiten {
+			t.Run(en+" dann "+z.name, func(t *testing.T) {
+				antwort := anmPasswort("GEHEIMpw")
+				if en == "MD5" {
+					antwort = anmPasswort(postgres.Md5Antwort("GEHEIMpw", "u", []byte{1, 2, 3, 4}))
+				}
+				l, err := anmLauf(t, "GEHEIMpw", e, anmKette(z.z, anmBereit(t)))
+				if code(err) != z.want {
+					t.Fatalf("Fehler %v, erwartet %s", err, z.want)
+				}
+				anmGesendet(t, l, antwort)
 			})
 		}
 	}

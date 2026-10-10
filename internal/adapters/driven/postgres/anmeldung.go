@@ -117,7 +117,8 @@ func (a *anmeldung) bearbeite(conn net.Conn, rumpf []byte) error {
 // anforderung beantwortet die Anforderung eines Verfahrens mit genau diesem
 // Verfahren (LH-FA-20.a *Verfahren*): Klartext, MD5 oder SASL. Eine weitere
 // Anforderung dieser drei Codes, nachdem play eine beantwortet hat, ist
-// PGR-E4002; ein Verfahren, das play nicht unterstützt, PGR-E4005.
+// PGR-E4002, auch wenn sich ihr Rest nicht lesen ließe; ein Verfahren, das play
+// nicht unterstützt, PGR-E4005, auch nach einer Antwort.
 func (a *anmeldung) anforderung(code uint32, rest []byte) (pgproto3.FrontendMessage, error) {
 	switch code {
 	case anmeldungKlartext, anmeldungMD5, anmeldungSASL:
@@ -310,8 +311,8 @@ func (s *scramAustausch) pruefeAbschluss(vomServer string) error {
 
 // leseServerErste liest die erste Nachricht des Servers: genau r=, s= und i= in
 // dieser Reihenfolge, durch Komma getrennt. r= beginnt mit nonce und ist
-// länger, s= ist gültiges Base64, i= eine Dezimalzahl aus Ziffern von 1 bis
-// iterationenMax. Bei einem Fehler nennt grund ihn, sonst ist er "".
+// länger, s= ist gültiges Base64 (auch leer), i= eine Dezimalzahl aus Ziffern
+// ohne führende Null von 1 bis iterationenMax. Bei einem Fehler nennt grund ihn, sonst ist er "".
 func leseServerErste(nonce, text string) (servernonce string, salz []byte, iterationen int, grund string) {
 	teile := strings.Split(text, ",")
 	if len(teile) != 3 {
@@ -347,10 +348,13 @@ func dekodiereBase64(text string) ([]byte, bool) {
 	return b, err == nil
 }
 
-// leseIterationen liest eine Dezimalzahl aus Ziffern ohne Vorzeichen von 1 bis
-// iterationenMax; der leere Text und ein Wert darüber sind ungültig, ohne zu
-// überlaufen.
+// leseIterationen liest eine Dezimalzahl aus Ziffern ohne Vorzeichen und ohne
+// führende Null von 1 bis iterationenMax; der leere Text und ein Wert darüber
+// sind ungültig, ohne zu überlaufen.
 func leseIterationen(text string) (int, bool) {
+	if strings.HasPrefix(text, "0") {
+		return 0, false
+	}
 	n := 0
 	for _, c := range text {
 		if c < '0' || c > '9' {
