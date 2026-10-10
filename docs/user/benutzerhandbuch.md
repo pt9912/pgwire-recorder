@@ -36,9 +36,11 @@ CI-Systemen ausführen.
 
 * Ihre Anwendung kann Host und Port der Datenbankverbindung einstellen. Weitere
   Änderungen an der Anwendung sind nicht nötig.
-* Zum Aufzeichnen und Einspielen: eine erreichbare PostgreSQL-Datenbank, die den
-  Benutzer ohne Passwort anmeldet. Verlangt sie ein Passwort, beendet `record` die
-  Verbindung Ihrer Anwendung mit `PGR-E6001`, und `play` endet mit `PGR-E4005`.
+* Zum Aufzeichnen: eine erreichbare PostgreSQL-Datenbank, die den Benutzer ohne
+  Passwort anmeldet. Verlangt sie ein Passwort, beendet `record` die Verbindung
+  Ihrer Anwendung mit `PGR-E6001`.
+* Zum Einspielen: eine erreichbare PostgreSQL-Datenbank. Verlangt sie ein Passwort,
+  nennen Sie es `play` (siehe [Konfigurationsdatei](#konfigurationsdatei)).
 * Zum Bauen: Docker und GNU `make`. Zum Ausführen: Linux auf der Architektur des
   Rechners, auf dem Sie gebaut haben, oder ein Container-Laufzeitsystem (siehe
   [Installation](#2-installation)).
@@ -296,8 +298,11 @@ Komponente zu testen, die Änderungen der Datenbank verarbeitet (Change Data Cap
 #### Voraussetzung
 
 Eine Aufzeichnung liegt vor, und die Zieldatenbank ist
-erreichbar und meldet den Benutzer ohne Passwort an. Der Benutzer und die Datenbank
-aus der Aufzeichnung existieren dort oder Sie geben sie ausdrücklich an.
+erreichbar. Verlangt sie ein Passwort (Klartext, MD5 oder SCRAM-SHA-256), nennen Sie
+es `play` über den Platzhalter der Verbindung oder die Umgebungsvariable
+`PGWIRE_RECORDER_PASSWORD` (siehe [Konfigurationsdatei](#konfigurationsdatei)). Der
+Benutzer und die Datenbank aus der Aufzeichnung existieren dort oder Sie geben sie
+ausdrücklich an.
 
 #### Vorgehen
 
@@ -336,10 +341,12 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   Fehlerantwort an irgendeiner Stelle der aufgezeichneten Folge. Ein Fehler mit dem
   Schweregrad `FATAL` beendet die Verbindung
   und bricht das Einspielen auch dann ab (`PGR-E4003`).
-* Das Werkzeug verbindet sich unverschlüsselt und ohne Passwort mit der Datenbank.
-  Verlangt sie ein Passwort oder lehnt sie die Anmeldung ab, etwa weil der Benutzer
-  fehlt, endet das Einspielen mit `PGR-E4005` (Exit-Code 4). Eine benannte
-  Verbindung mit `sslmode=require` ist bei `play` ungültig (`PGR-E2004`).
+* Das Werkzeug verbindet sich unverschlüsselt mit der Datenbank. Lehnt sie die
+  Anmeldung ab, etwa weil der Benutzer fehlt oder das Passwort falsch ist, oder fehlt
+  das Passwort, das sie verlangt, endet das Einspielen mit `PGR-E4005` (Exit-Code 4).
+  Eine benannte Verbindung mit `sslmode=require` ist bei `play` ungültig
+  (`PGR-E2004`).
+* Verlangt die Datenbank ein Klartext-Passwort, sendet `play` es über die Verbindung, wie sie ist, also ohne TLS unverschlüsselt.
 * Antwortet die Datenbank mit einem COPY-Datenstrom (`COPY … FROM STDIN`,
   `COPY … TO STDOUT`), kann `play` ihn nicht verarbeiten und endet mit `PGR-E6001`
   (Exit-Code 6); die Meldung nennt Sitzung und Nummer der Anfrage.
@@ -531,6 +538,20 @@ nicht gesetzt.
 | `--config` | `record`, `replay`, `play`, `config show` | `PGWIRE_RECORDER_CONFIG` | `.pgwire-recorder.yaml` im aktuellen Verzeichnis |
 | `--log-level` | `record`, `replay`, `play` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` |
 
+Das Passwort, mit dem sich `play` anmeldet, ist keine Option. Schreibt die benutzte
+Verbindung einen Passwortteil (siehe [Konfigurationsdatei](#konfigurationsdatei)), gilt
+der eingesetzte Wert seines Platzhalters, und die Umgebungsvariable
+`PGWIRE_RECORDER_PASSWORD` bleibt unbeachtet. Hat die Verbindung keinen Passwortteil,
+oder geben Sie `--upstream` als `host:port` an, gilt der Wert von
+`PGWIRE_RECORDER_PASSWORD`; eine leere Variable gilt als nicht gesetzt. Das Passwort
+kommt nur zum Einsatz, wenn die Datenbank eines verlangt: Verlangt sie keines
+(`trust`), bleibt eine gesetzte Variable ohne Wirkung, und die Anmeldung gelingt. Fehlt
+das Passwort, obwohl die Datenbank eines verlangt, endet `play` mit `PGR-E4005`. Keine
+Meldung und keine Log-Zeile von `play` und keine Ausgabe von `config show` nennt das
+Passwort; `config show` nennt den Namen `PGWIRE_RECORDER_PASSWORD`, wenn die Variable
+gesetzt ist, nie ihren Wert. `play` sendet das Passwort unverändert; ein Passwort mit
+Zeichen, die SASLprep ändert, kann bei SCRAM scheitern.
+
 ### Konfigurationsdatei
 
 Das Werkzeug verwendet genau **eine** Konfigurationsdatei, in dieser Reihenfolge:
@@ -552,6 +573,7 @@ log_level: info
 connections:
   lokal: "postgresql://dev@localhost:5432/myapp"
   ci: "postgresql://${CI_DB_HOST}:5432/myapp"
+  test: "postgresql://tester:${DB_PASSWORD}@localhost:5432/myapp"
 record:
   upstream: lokal
   listen: 127.0.0.1:15432
@@ -576,8 +598,9 @@ Bei `play` verbindet das Werkzeug zu Host und Port der URL und meldet jede Sitzu
 mit Benutzer und Datenbank der URL an; `--user` und `--database` gehen ihnen vor, und
 erst ohne beides gelten Benutzer und Datenbank der Aufzeichnung. Mit dem Beispiel
 oben spielt `play` also als `dev` in die Datenbank `myapp` ein, gleich, welche
-Datenbank die Aufzeichnung nennt. Die Log-Zeile beim Start nennt auch hier nur
-`host:port`.
+Datenbank die Aufzeichnung nennt. Mit `--upstream test` meldet sich `play` als
+`tester` mit dem Wert von `DB_PASSWORD` an. Die Log-Zeile beim Start nennt auch hier
+nur `host:port`.
 
 Bei `record` zählen nur Host und Port der URL; Benutzer, Passwort und Datenbank
 vermittelt die Anwendung selbst. Das Werkzeug verbindet zu `host:port`, mit dem Port
@@ -600,8 +623,8 @@ wörtlich `${VAR}` ergibt. Ein Passwort, das nicht genau ein Platzhalter ist, un
 Parameter `password` sind ein Klartext-Passwort (`PGR-E2006`), in jeder Verbindung der
 Datei, auch einer, die Sie nicht benutzen. Eine nicht gesetzte Variable der benutzten
 Verbindung ist `PGR-E2005`, ein Port, der nach dem Einsetzen keine Zahl von 1 bis 65535
-ist, `PGR-E2004`. Ein Passwort in der URL setzt `play` ein, meldet sich damit aber
-nicht an: Verlangt die Datenbank ein Passwort, endet `play` mit `PGR-E4005`.
+ist, `PGR-E2004`. Bei `play` ist der eingesetzte Wert eines Platzhalters im Passwort das
+Passwort der Anmeldung.
 
 Wahrheitswerte lauten `true` oder `false`, mit oder ohne Anführungszeichen; `True`,
 `yes` und `1` sind ungültig. Für jeden Wert gilt dieselbe Form wie für die Option,
@@ -700,10 +723,12 @@ der Start, prüft das Werkzeug keine Sitzungen.
 
 ## 6. Rollen und Rechte
 
-Das Werkzeug kennt keine Benutzer, Rollen oder Anmeldung. Beim Aufzeichnen
-leitet es Benutzer und Datenbank der Anwendung an die Datenbank weiter, ohne
-Passwort; beim Wiedergeben nimmt es jede Anmeldung an, gleich mit welchem
-Benutzer, welcher Datenbank und welchem Passwort, und prüft keine Zugangsdaten.
+Das Werkzeug verwaltet keine Benutzer und Rollen und prüft keine Zugangsdaten.
+Beim Aufzeichnen leitet es Benutzer und Datenbank der Anwendung an die Datenbank
+weiter, ohne Passwort; beim Wiedergeben nimmt es jede Anmeldung an, gleich mit
+welchem Benutzer, welcher Datenbank und welchem Passwort; beim Einspielen meldet es
+sich mit Benutzer, Datenbank und, wenn die Datenbank eines verlangt, dem Passwort an
+der Datenbank an.
 Betreiben Sie es nur in einer kontrollierten Testumgebung, und lassen Sie es nur auf der Adresse
 lauschen, die Sie mit `--listen` angegeben haben.
 
@@ -742,12 +767,12 @@ für den Exit-Code.
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
 | `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Sitzung und die Nummer der Anfrage in der Aufzeichnung, dazu SQLSTATE und Meldung der Datenbank, nicht den Text der Anfrage. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
-| `PGR-E4005` | Anmeldung an der Datenbank abgelehnt oder nicht unterstützt | Beim Einspielen hat die Datenbank ein Passwort verlangt oder die Anmeldung abgelehnt, etwa weil der Benutzer fehlt; die Meldung nennt die Sitzung. `play` meldet sich nur ohne Passwort an. Prüfen Sie Benutzer und Datenbank (`--user`, `--database`), und lassen Sie die Anmeldung ohne Passwort zu. |
+| `PGR-E4005` | Anmeldung an der Datenbank abgelehnt oder nicht unterstützt | Beim Einspielen hat die Datenbank die Anmeldung abgelehnt, etwa weil der Benutzer fehlt oder das Passwort falsch ist, oder sie verlangt ein Passwort, das `play` nicht hat, oder ein Anmeldeverfahren, das `play` nicht kann. Die Meldung nennt die Sitzung; bei einer Ablehnung außerdem SQLSTATE und Meldung der Datenbank, bei fehlendem Passwort, dass `play` keines hat. `play` meldet sich mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an; bietet die Datenbank nur `SCRAM-SHA-256-PLUS` an oder verlangt sie Kerberos, GSSAPI oder SSPI, endet `play` ebenfalls mit diesem Code. Prüfen Sie Benutzer und Datenbank (`--user`, `--database`) und das Passwort (siehe [Einstellungen](#5-einstellungen)). |
 | `PGR-E4006` | Anfrage beim Beenden unvollständig | Die Frist `--shutdown-timeout` ist abgelaufen, oder ein zweites Signal hat sie ablaufen lassen, während eine Anfrage lief. Die Meldung nennt die Sitzung und die Anfrage; beim Aufzeichnen fehlt diese Anfrage in der Aufzeichnung. Lassen Sie die Anwendung vor dem Beenden zur Ruhe kommen, oder wählen Sie eine längere Frist (siehe [Herunterfahren mit Frist](#herunterfahren-mit-frist)). |
 | `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen aufgezeichnet sind. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
-| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen verlangt die Datenbank ein Passwort; oder die Datenbank antwortet bei `play` mit einem COPY-Datenstrom. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht, und lassen Sie die Anmeldung ohne Passwort zu. |
+| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen verlangt die Datenbank ein Passwort; oder die Datenbank antwortet bei `play` mit einem COPY-Datenstrom. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht; verlangt die Datenbank beim Aufzeichnen ein Passwort, lassen Sie die Anmeldung dort ohne Passwort zu. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls. Verwenden Sie einen Treiber, der sie nutzt. |
 
 ### Warnungen

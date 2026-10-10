@@ -68,7 +68,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/user/benutzerhandbuch.md` | update | Abschnitte zu dem, was `slice-v1-abschluss-einspielen-anmeldung` liefert: Optionen gegen `--help`, Beispiele als Datei, Codes, Grenz-Sätze ersetzt |
+| `docs/user/benutzerhandbuch.md` | update | §1 *Voraussetzungen*, §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Voraussetzung, Hinweise), §5 (Absatz hinter der Optionstabelle, Beispiel, Platzhalter-Absatz), §6 *Rollen und Rechte* (Nachbarsatz zur Anmeldung, der für `play` nicht mehr gilt) und §7 (Zeilen `PGR-E4005`, `PGR-E6001`) zu dem, was `slice-v1-abschluss-einspielen-anmeldung` liefert: Optionen gegen `--help`, Beispiele als Datei, Codes, Grenz-Sätze ersetzt |
 | `README.md` | update | Sätze, die `slice-v1-abschluss-einspielen-anmeldung` überholt, im Ist-Zustand |
 
 **Ansatz:**

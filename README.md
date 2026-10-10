@@ -26,7 +26,9 @@ Datenbank ein; nach einer Fehlerantwort der Datenbank bricht es ab, mit
 `--continue-on-error` läuft es weiter, und mit `--finish-session-on-interrupt` endet
 es nach einem Abbruchsignal erst nach der laufenden Sitzung. Antwortet die Datenbank
 mit einem COPY-Datenstrom, endet `play` mit `PGR-E6001`. Alle Verbindungen laufen
-unverschlüsselt, und die Datenbank muss den Benutzer ohne Passwort anmelden. Beim Beenden warten `record` und `replay` höchstens `--shutdown-timeout`
+unverschlüsselt. `record` verlangt, dass die Datenbank den Benutzer ohne Passwort
+anmeldet; `play` meldet sich mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an, mit dem
+Passwort aus dem Platzhalter der Verbindung oder aus `PGWIRE_RECORDER_PASSWORD`. Beim Beenden warten `record` und `replay` höchstens `--shutdown-timeout`
 (Standard 5 Sekunden) auf laufende Anfragen; was das im Container bedeutet, sagt das
 Benutzerhandbuch.
 
