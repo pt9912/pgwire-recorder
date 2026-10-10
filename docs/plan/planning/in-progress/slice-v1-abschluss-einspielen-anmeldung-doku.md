@@ -149,6 +149,52 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Probe-Aufbau.** `make build` am Stand `36480b8` (Image `pgwire-recorder:dev`, `sha256:c2871ccf3ceb…`, Produktcode unverändert). Proben in einem Scratch-Verzeichnis außerhalb des Repos; Netz `impl-anmdoku-net`, ein PostgreSQL 17 aus dem gepinnten Image von `harness/mk/integration.mk` (`impl-anmdoku-pg`, Alias `postgres`), Aufzeichnung und `play` als `docker run … pgwire-recorder:dev` im selben Netz. Benutzer wie in `tools/test/run-integration-tests.sh` (`play_scram` mit Passwort `GEHEIM scram $%41` — Leerzeichen, `$`, `%` —, `play_md5`, `play_pw`), dazu `play_trust` (`trust`), `play_nbsp` (SCRAM, Passwort `GEHEIM` U+00A0 `x`), `play_sonder` (SCRAM, Passwort `a@b:c/d?e#f`). Die Aufzeichnung der Proben besteht aus `SELECT 1` (aufgezeichnet mit `record` und `psql` als `postgres`). Container, Netz, Images und Scratch-Dateien sind danach entfernt. Nur Linux im Container (`BEO-REPO/verhalten-nur-unter-linux-geprueft`).
+
+**Proben je Aussage** (`PL` = `play --upstream postgres:5432 --input sel.yaml`; „Variable“ = `PGWIRE_RECORDER_PASSWORD`; „ok“ = `play beendet`, Exit 0):
+
+| Aussage im Handbuch | Probe | Ergebnis |
+|---|---|---|
+| Klartext, MD5, SCRAM-SHA-256 melden an | `--user play_pw` / `play_md5` / `play_scram`, Variable richtig | je ok; SCRAM mit Leerzeichen und `$` im Wert |
+| Variable gilt bei `host:port` | dieselben Läufe (`host:port`) | ok |
+| Platzhalter vor Variable | Verbindung `mit` (`play_scram:${PW}@…`), Platzhalter richtig, Variable falsch | ok |
+| dasselbe umgekehrt | Platzhalter falsch, Variable richtig | `PGR-E4005`, `28P01`, Exit 4 |
+| Platzhalter ohne Variable | Platzhalter richtig, Variable ungesetzt | ok |
+| Verbindung ohne Passwortteil: Variable gilt | Verbindung `ohne` mit Variable richtig | ok |
+| Verbindung ohne Passwortteil, ohne Variable | `ohne`, Variable ungesetzt | `PGR-E4005` „der Server verlangt ein Passwort, play hat keines“, Exit 4 |
+| leere Variable gilt als nicht gesetzt | `PL` mit `PGWIRE_RECORDER_PASSWORD=` gegen `play_scram`, und `ohne` mit leerer Variable | je `PGR-E4005` „… play hat keines“ |
+| leerer Platzhalter-Wert / ungesetzter Platzhalter | `PW=` bzw. ungesetzt, Verbindung `mit` | `PGR-E2005`, Exit 2 (Bestand, unverändert) |
+| `trust`: Variable ohne Wirkung | `--user play_trust` mit und ohne Variable | beide ok |
+| falsches Passwort nennt SQLSTATE und Meldung der Datenbank | falsches Passwort gegen SCRAM, MD5, Klartext | je `PGR-E4005`, „Fehlerantwort im Aufbau 28P01 „password authentication failed for user …““, Exit 4 |
+| unbekannter Benutzer | `--user niemand` | `PGR-E4005`, `28000` „role … does not exist“, Exit 4 |
+| fehlendes Passwort: nur `PGR-E4005` | `play_scram` ohne Variable | `PGR-E4005` „der Server verlangt ein Passwort, play hat keines“ (Handbuch nennt kein „ohne etwas zu senden“) |
+| Platzhalter-Wert unverändert, auch Sonderzeichen | `play_sonder`, `PW=a@b:c/d?e#f` | ok (zu Zeichen `@ : / ? #` im Bestandssatz) |
+| SASLprep-Grenze | `play_nbsp` mit `GEHEIM` U+00A0 `x` über die Variable; zum Vergleich `psql` mit demselben Wert | `play`: `PGR-E4005`, `28P01`, Exit 4; `psql`: meldet an (SASLprep wirkt). Die Grenze steht im Handbuch |
+| Passwort erscheint nicht in Ausgaben | Marker `GEHEIM`, `--log-level debug`: richtiges und falsches Passwort je Verfahren (SCRAM, MD5, Klartext), Platzhalter richtig und falsch, Verbindung ohne Passwortteil; `config show` mit Platzhalter und gesetzter Variable; `PGR-E2006` (Klartext-Passwort `GEHEIMklar` in der Datei) mit `config show` und `play --log-level debug` | `grep -c GEHEIM` über jede Ausgabe: 0. `config show` endet mit der Zeile `PGWIRE_RECORDER_PASSWORD` (Name, nie Wert). Gegenprobe des `grep`: Verbindungsname `GEHEIMname` in der Datei, `config show`: 1 Treffer |
+| Beispiel §5 als Datei | `ex.yaml` aus dem Handbuch extrahiert; `config show --config` mit `CI_DB_HOST=x` | Ausgabe stimmt mit der Datei überein, Exit 0 |
+| Beispiel §5 gegen den Server | Zeile `test` mit `sed` auf `play_scram`, `postgres:5432`, Datenbank `postgres` gesetzt (nur diese drei Werte), `DB_PASSWORD=GEHEIM scram $%41`, `--upstream test`, ohne `--user` | ok, Benutzer aus der URL; ohne `DB_PASSWORD`: `PGR-E2005`, Exit 2 |
+| Beispiel §4 | `play --upstream postgres:5432 --input ./recordings/users.yaml` (Benutzer `postgres`, Server `trust`) | ok |
+| Klartext-Satz | `play_pw` über die unverschlüsselte Verbindung | ok (Probe 3); der Satz sagt nicht mehr als das |
+
+**Verfahren, die `play` nicht kann (Zeile `PGR-E4005`).** Kein Server löst sie aus; belegt sind sie durch `TestAnmeldungNichtUnterstuetzt` (`internal/adapters/driven/postgres/einspielen_anmeldung_test.go`) mit den Fällen `nur PLUS` (`SCRAM-SHA-256-PLUS` allein), `Kerberos` (Code 2), `GSS` (7), `SSPI` (9): Ergebnis `PGR-E4005`, nichts gesendet. Der Fall `SCM` (6) steht im Test, nicht im Handbuch. Mutanten in einer Kopie des Baums (`git archive`, `docker build --target test`; der Arbeitsbaum blieb unberührt): (1) `slices.Contains(verfahren, scramName)` durch einen Präfix-Vergleich ersetzt → rot `TestAnmeldungNichtUnterstuetzt/nur_PLUS` und `/mit_Anhängsel`; (2) Codes 2, 7, 9 in `anforderung` angenommen (`return nil, nil`) → rot `TestAnmeldungNichtUnterstuetzt/Kerberos`, `/GSS`, `/SSPI`, außerdem `TestAnmeldungWeitereAnforderungArt` und `TestEinspielAufbauFehler`. Nicht gefahren: ein Mutant für die Kerberos-Zeile außerhalb von Code 2, 7, 9.
+
+**Prüfung als Befehlsfolge** (die aus `done/slice-doku-ist-stand.md` §7, am Binary `36480b8`): Optionen des Handbuchs gegen `--help` aller vier Kommandos, Variablen gegen die Optionen, Codes gegen den Katalog. Ergebnis: Optionen nur `--h`, `--help`, `--version` (Handbuch nennt sie als Nicht-Optionen) und `--name`, `--rm` (`docker run`); Codes keine Ausgabe; Variablen genau `PGWIRE_RECORDER_PASSWORD` — **bekannte Ausnahme**: Die Variable ist keine Option und hat keine Tabellenzeile (§6), `--help` von `play` nennt sie (`internal/adapters/driving/cli/cli.go`, `envPassword`). Mutanten auf einer Kopie des Handbuchs: Satz mit `--upstream-tls` → rot (Optionen); `PGWIRE_RECORDER_PASSWORT` → rot (Variablen); `PGR-E4007` → rot (Codes). Die Befehlsfolge prüft Namen, nicht Zuordnung; die Zeilen der Tabelle in §5 sind unverändert (14), die Zuordnung der Sätze zum Verhalten belegt die Tabelle oben.
+
+**`grep`** (Handbuch, README): `grep -n "ohne Passwort"` → README Zeile 29 (`record`), Handbuch §6 (Aufzeichnen), §7 `PGR-E6001` (Aufzeichnen), §7 *Die Anwendung kann sich nicht verbinden* (Aufzeichnen); jeder Treffer betrifft `record`. Kein Treffer für `Spezifikation|Lastenheft|ADR|slice|welle|review|noch nicht|geplant|solange|künftig|bisher|zunächst` im Handbuch außer dem Alltagswort „noch nicht“ in §3 („die Zieldatei existiert noch nicht“, unverändert, bezieht sich auf eine Datei); in der README keiner.
+
+**Geänderte Aussagen.** Entfernt: „Zum Aufzeichnen und Einspielen … ohne Passwort … `play` endet mit `PGR-E4005`“ (§1), „meldet den Benutzer ohne Passwort an“ (§4 *Voraussetzung*), „verbindet sich unverschlüsselt und ohne Passwort“ und „Verlangt sie ein Passwort … `PGR-E4005`“ (§4 *Hinweise*), „Ein Passwort in der URL setzt `play` ein, meldet sich damit aber nicht an“ (§5), „`play` meldet sich nur ohne Passwort an … lassen Sie die Anmeldung ohne Passwort zu“ (§7 `PGR-E4005`), im README „die Datenbank muss den Benutzer ohne Passwort anmelden“. Neu: Passwortquellen und Grenzen (§5 Absatz hinter der Tabelle), Beispielverbindung `test`, Satz zum Platzhalter bei `play`, Klartext-Satz (§4), `PGR-E4005` mit Ursachen, Verfahren und Meldungsinhalt (§7), `PGR-E6001` auf `record` beschränkt (§7), README. Nachbarsatz neben den neuen Sätzen (Schritt 17): §6 *Rollen und Rechte* sagte „kennt keine Benutzer, Rollen oder Anmeldung … prüft keine Zugangsdaten“ für alle Betriebsarten; er steht jetzt für `record` und `replay` wie vorher und nennt für `play`, dass es sich mit Benutzer, Datenbank und gegebenenfalls Passwort anmeldet (Probe: Einspielen mit Passwort oben).
+
+**Nicht gefahren.** Die übrigen Codeblöcke des Handbuchs (Aufzeichnen, Wiedergeben, Compose, Docker-Aufrufe) sind in diesem Lauf unberührt und nicht erneut als Datei gelaufen; die Nachbarsätze zu `record`/`replay` ohne Passwort-Aussage (§4 Aufzeichnen, Zeile `PGR-E6001` bei `record`) wurden nicht erneut geprobt. Iterationsobergrenze, Frist, unterbrechbare Berechnung: im Handbuch ungenannt (akzeptiertes Negativ, §6). Review, Verifikation, Closure: nicht Teil dieses Laufs.
+
+**Funde für den Planner.**
+
+1. Die Befehlsfolge aus `slice-doku-ist-stand` §7 meldet `PGWIRE_RECORDER_PASSWORD` bei jedem Lauf (Variable ohne Option); sie braucht die benannte Ausnahme oder einen Abzug dieser einen Variable, sonst liest sich jeder Lauf rot.
+2. §6 des Plans nennt die Randform „Nachbarsatz in §6 *Rollen und Rechte*“ nicht; dieser Lauf hat ihn nach Schritt 17 angepasst (Wortlaut in der Zeile oben). Architect und Review prüfen, ob er trägt.
+3. `config show` listet `PGWIRE_RECORDER_PASSWORD` unter den gesetzten Variablen, obwohl die Variable keine Option ist; das Handbuch sagt es in der Zeile zu `config show` (§4) bereits für alle `PGWIRE_RECORDER_*`, der neue Absatz nennt es für die Passwort-Variable ausdrücklich.
+4. SASLprep: die Probe scheiterte (`PGR-E4005`), die Grenze steht deshalb im Handbuch; die Spezifikation und das Binary stimmen überein, kein Befund.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
