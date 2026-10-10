@@ -10,9 +10,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Eingesammelt wird er
-von der nächsten Welle-Closure. Vorgezogen nach Entscheidung des Nutzers vom 2026-10-10: nach
-`slice-v1-abschluss-einspielen-laufsteuerung` und vor `slice-v1-abschluss-einspielen-extended`
-(WIP-Limit 1); welle-v1-abschluss geht danach in der Reihenfolge ihres §5 weiter.
+von der nächsten Welle-Closure. Vorgezogen nach Entscheidung des Nutzers vom 2026-10-10: nach `slice-doku-ist-stand` und vor
+`slice-v1-abschluss-einspielen-extended` (WIP-Limit 1); welle-v1-abschluss geht danach in der
+Reihenfolge ihres §5 weiter.
 
 **Bezug:** [MR-000](../../../../harness/conventions.md#mr-000--baseline-aussage) (Baseline-Aussage: adoptierter Stand, Asset-Quelle, „keine inhaltlichen Adaptionen“ — der Slice hebt den Stand und prüft die Aussage gegen den neuen). Keine Anforderung des Lastenhefts im Scope: Der Slice ändert die Prüfumgebung, nicht das Produkt.
 
@@ -154,8 +154,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen-laufsteuerung` liegt in
-`done/` (WIP-Limit 1). Erster Schritt nach dem Start, vor dem ersten Commit an Baum oder
+**Start** (`next` → `in-progress`): `slice-doku-ist-stand` liegt in `done/` (WIP-Limit 1). Erster Schritt nach dem Start, vor dem ersten Commit an Baum oder
 Konventionen: Der Architect entscheidet die Randformen aus §6
 (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`); der Slice legt keinen neuen Vertrag
 an, aber er ändert die Grundlage des Gates `make baseline-verify`.
