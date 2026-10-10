@@ -141,6 +141,9 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     Benutzerhandbuch und `README.md` beschreiben dabei nur das gelieferte Verhalten des
     Binaries: keine Chronik, kein Zielstand, im Handbuch kein Verweis auf Spezifikation, ADRs,
     Slices, Wellen oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
+    Ein Satz, der unverändert bleibt und unmittelbar neben einem neuen Satz über denselben
+    Gegenstand steht, liest sich für dessen Fall mit: Er bekommt eine Probe oder einen Test für
+    diesen Fall oder wird enger gefasst (seit slice-v1-abschluss-einspielen-extended-doku).
 18. Die Pre-completion-Checkliste laufen: die DoD Punkt für Punkt **behaupten** und die
     **Sensor-Belege** anhängen — `make gates` **und die Nicht-Gate-Sensoren, die den Slice
     betreffen** (die dein Repo führt — z. B. ein Mutations-Sensor, wenn Wächter neu/geändert sind;
