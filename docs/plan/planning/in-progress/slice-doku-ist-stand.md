@@ -60,15 +60,17 @@ auf Wunsch“.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Produkt-Code, Hilfetexte im Binary, Tests des Produkts und Gates — Schicht-Abgrenzung: Der
-  Slice ändert nur `docs/user/benutzerhandbuch.md` und `README.md`, die Sendungen in den neun
-  Nehmer-Plänen unter `next/` (§7, §3.13) und diesen Plan. Zeigt das
+  Slice ändert nur `docs/user/benutzerhandbuch.md` und `README.md`, die Sendungen und
+  Schichtzählungen in den Plänen unter `next/` (§7, §3.13), die zehn Doku-Folge-Slices dort mit
+  `welle-v1-abschluss` und der Roadmap (§7, Entscheidung des Nutzers vom 2026-10-10), `AGENTS.md`
+  §3.11 und §3.13, das Register und diesen Plan. Zeigt das
   Binary ein Verhalten, das die Spezifikation anders regelt, beschreibt das Handbuch das Binary
   (§6, *Verhalten neben der Spezifikation*); der Fund geht als Befund an den Planner, keine
   Korrektur am Code hier.
 - Die Abschnitte des Handbuchs, die erst die Folge-Slices liefern (Vergleich, Zeitangaben,
   Extended beim Einspielen, Anmeldung, TLS, SQLite-Format und die übrigen) — ein Folge-Slice
-  übernimmt sie: Jeder trägt in seiner DoD, dass er seinen Teil von Handbuch und README im
-  Ist-Zustand liefert (seit slice-v1-abschluss-einspielen-laufsteuerung, je §2 und §3). Dieser
+  übernimmt sie, der Code-Slice in seiner DoD oder, wo die Schichtzählung das nicht zulässt, sein
+  Doku-Folge-Slice `<Kennung>-doku` direkt dahinter (§7; `AGENTS.md` §3.11, §3.13). Dieser
   Slice entfernt nur, was heute nicht stimmt.
 - `docs/user/benutzerhandbuch-standard.md` und die Abdeckungstabellen `docs/user/abdeckung-*.md`
   — Bestand bleibt bewusst stehen: Der Standard ist die Schreibanleitung, kein Ist-Zustand des
@@ -89,32 +91,32 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Das Benutzerhandbuch nennt nur Kommandos, Optionen, Umgebungsvariablen, Schlüssel der
+- [x] Das Benutzerhandbuch nennt nur Kommandos, Optionen, Umgebungsvariablen, Schlüssel der
       Konfigurationsdatei, Meldungscodes und Exit-Codes, die das gebaute Binary kennt: je
       Kommando sind die Optionen gegen `--help` des Binaries gehalten (Liste in §7), jeder
       Hinweis, der eine unbekannte Option beschreibt (darunter `--compare-responses`,
       `--keep-timing`, `--upstream-tls`, `--upstream-ca` und das Passwort bei `play`), ist
       entfernt oder auf Geliefertes gekürzt; jede Codezeile in §7 *Fehlercodes* und
       *Warnungen* ist durch einen Test oder eine Probe belegt oder entfernt (Beleg in §7 je Abschnitt).
-- [ ] Jedes Beispiel des Handbuchs (Aufrufe, Konfigurationsdatei, Ausgaben) läuft als Datei
+- [x] Jedes Beispiel des Handbuchs (Aufrufe, Konfigurationsdatei, Ausgaben) läuft als Datei
       gegen das gebaute Binary mit dem beschriebenen Ergebnis (`AGENTS.md` §3.11); die
       Kopfzeilen (*Software-Version*, *Stand*, *Gültigkeitsbereich*) und §11
       *Änderungshistorie* nennen den Ist-Zustand ohne Chronik, §1 *Voraussetzungen* und §2
       *Installation* nur, was ein Build aus dem Repository liefert (§6); das Handbuch enthält keinen
       Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch
       nicht“, „kommt“, „geplant“ über das Produkt (`grep` in §7).
-- [ ] `README.md` beschreibt in Leitsatz, Einleitung, *Was kann ich heute tun?* und
+- [x] `README.md` beschreibt in Leitsatz, Einleitung, *Was kann ich heute tun?* und
       *Kerngedanke* nur Geliefertes, ohne Chronik („steht am Beginn der Umsetzung“, „noch
       nicht“, „erste Version“), ohne „vergleicht auf Wunsch“ und ohne TLS zum Client; Verweise
       auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (§6).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -127,7 +129,10 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `docs/user/benutzerhandbuch.md` | update | alle Abschnitte gegen das gebaute Binary: Optionen gegen `--help`, Beispiele als Datei, Codes, Kopfzeilen, §11; Unbekanntes entfernt oder gekürzt |
 | `README.md` | update | Einleitung und *Was kann ich heute tun?* auf Geliefertes, ohne Chronik |
-| neun Pläne unter `docs/plan/planning/next/` (Nehmer, Liste in §7) | update | Sendung der Ist-Zustand-Stellen in DoD und §8 des Nehmers, mit der Kennung dieses Slice (`AGENTS.md` §3.13) |
+| Pläne unter `docs/plan/planning/next/` (Nehmer, Liste in §7) | update | Sendung der Ist-Zustand-Stellen in §1, DoD und §8 des Nehmers, mit der Kennung dieses Slice (`AGENTS.md` §3.13); §8 zählt die Schichten nach der einheitlichen Zählung |
+| zehn neue Pläne `slice-v1-abschluss-<Kennung>-doku` unter `next/`, `docs/plan/planning/welle-v1-abschluss.md` (§4, §5), Roadmap (Drift-Log) | neu / update | Doku-Folge-Slices direkt hinter ihrem Code-Slice (Entscheidung des Nutzers vom 2026-10-10 zu V-151) |
+| `AGENTS.md` §3.11, §3.13 | update | Schichtzählung für alle Pläne; Handbuch- und README-Teil im selben Slice oder im Doku-Folge-Slice |
+| `docs/plan/planning/observations/BEO-REPO/` | update | Belege der Klassen dieses Slice, neuer Eintrag `folge-slice-liefert-handbuch-teil-nicht` |
 
 **Ansatz:**
 
@@ -236,12 +241,12 @@ findet und ersetzt.
 
 - Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (etwa macOS,
   Homebrew, ein Treiber außerhalb des Containers); dann gilt es nicht als belegt
-  (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** offen bis Closure.
+  (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** entfallen: Das Handbuch nennt nur Linux, und jedes Beispiel lief als Datei gegen das Binary (§7); der Eintrag bleibt bei 1×.
 - Das Handbuch schrumpft so stark, dass Abschnitte des Standards
   (`benutzerhandbuch-standard.md`) leer stehen; jede Folge-Lieferung muss sie wieder füllen —
-  **Ausgang:** offen bis Closure.
+  **Ausgang:** entfallen: *Rollen und Rechte* (§6) und *FAQ* (§8) tragen Ist-Sätze, keine Überschrift des Standards steht leer (Verifikation, Abschnitt 1).
 - Ein Folge-Slice liefert seinen Handbuch-Teil nicht, weil seine DoD die Zeile nur im ersten
-  Liefer-Punkt trägt und das Review sie übersieht — **Ausgang:** offen bis Closure.
+  Liefer-Punkt trägt und das Review sie übersieht — **Ausgang:** weiter offen: → `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` im Register (1×; die Nehmer und ihre Doku-Folge-Slices schließen nach diesem Slice).
 
 ## 7. Closure-Notiz
 
@@ -414,12 +419,18 @@ beschreibt das Verhalten der ersten Version“ und „liegen vor“ entfernt; *G
 Keine weitere Abweichung gefunden; das Fehlen der Optionen oben ist Zielstand der Folge-Slices, keine
 Abweichung.
 
-**Sendungen an die Folge-Slices** (Review F-570; §3.13): Jeder Nehmer trägt in seiner DoD (erster
-Liefer-Punkt) hinter der allgemeinen Ist-Zustand-Zeile einen Satz „Aus `slice-doku-ist-stand` …“ mit
-den Stellen, und in §8 eine Zeile zur Nachzählung (kein neuer Liefer-Punkt, keine neue Schicht).
-`grep -l slice-doku-ist-stand docs/plan/planning/next/*.md` findet zehn Dateien: die neun Nehmer
-der Tabelle und `slice-harness-upgrade-v6-18`, das die Kennung nur im Satz zur Reihenfolge nennt
-(kein Nehmer, keine Sendung).
+**Sendungen an die Folge-Slices** (Review F-570, Verifikation V-151; §3.13): Der Handbuch- und
+README-Teil von zehn Code-Slices liegt nach der Entscheidung des Nutzers vom 2026-10-10 in je
+einem Doku-Folge-Slice `<Kennung>-doku` direkt hinter ihm (siehe *Doku-Folge-Slices* unten). Die
+Sendungen gehen an den Doku-Folge-Slice; der Code-Slice nennt die Abgabe in §1 *Ausdrücklich
+NICHT* und zählt seine Liefer-Punkte und Schichten ohne die Dokumentation. `grep -l
+slice-doku-ist-stand docs/plan/planning/next/*.md` findet 28 Dateien: die zehn Doku-Folge-Slices
+(§1 *Herkunft*, bei fünf davon auch die Sendung in der DoD), ihre zehn Code-Slices (Zeile
+*Nachgezählt*), sieben weitere Nehmer (`slice-v1-abschluss-container`,
+`slice-v1-abschluss-homebrew`, `slice-v1-abschluss-cancel-ohne-schluessel`,
+`slice-v1-abschluss-postgres-versionen`, `slice-erster-release-veroeffentlichung`,
+`slice-erster-release-homebrew-nachweis`, `slice-erster-release-freigabe`) und
+`slice-harness-upgrade-v6-18`, das die Kennung nur im Satz zur Reihenfolge nennt (kein Nehmer).
 
 | Sendung | Nehmer | Stelle |
 |---|---|---|
@@ -427,18 +438,59 @@ der Tabelle und `slice-harness-upgrade-v6-18`, das die Kennung nur im Satz zur R
 | Installation | `slice-erster-release-veroeffentlichung` | Handbuch §2 Release-Binaries und Registry-Images, §1 Plattform-Zeile |
 | Installation | `slice-v1-abschluss-homebrew` | Handbuch §2 Homebrew-Abschnitt, soweit der Probe-Tap ihn belegt |
 | Installation | `slice-erster-release-homebrew-nachweis` | Handbuch §2 Homebrew-Befehle, §1 Plattform-Zeile (macOS) |
-| Grenz-Satz Passwort `record` | `slice-v1-abschluss-anmeldung` | Handbuch §1, §4 (Aufzeichnen), §6, §7 `PGR-E6001` und *Die Anwendung kann sich nicht verbinden*; README |
-| Grenz-Satz Passwort `play` | `slice-v1-abschluss-einspielen-anmeldung` | Handbuch §1, §4 (Einspielen), §5, §7 `PGR-E4005`; README |
-| Grenz-Satz Extended `play` | `slice-v1-abschluss-einspielen-extended` | Handbuch §4 (Einspielen), §7 `PGR-E6001`; README |
-| Grenz-Satz TLS `play` | `slice-v1-abschluss-einspielen-tls` | Handbuch §4 (Einspielen), §5 `sslmode`, §1; README |
-| Grenz-Satz TLS zum Client | `slice-v1-abschluss-tls-client` | Handbuch §1, §4 (Treiber), §7 *Die Anwendung kann sich nicht verbinden*; README |
+| Software-Version | `slice-erster-release-freigabe` | Handbuch Kopf *Software-Version*, *Gültigkeitsbereich* und §11 (Punkt 4 des Auftrags; DoD-Punkt 3, §1, §3) |
+| Grenz-Satz Passwort `record` | `slice-v1-abschluss-anmeldung-doku` | Handbuch §1, §4 (Aufzeichnen), §6, §7 `PGR-E6001` und *Die Anwendung kann sich nicht verbinden*; README |
+| Meldungstext „das dieser Stand nicht vermittelt“ (F-573, V-152) | `slice-v1-abschluss-anmeldung` | `internal/adapters/driven/postgres/upstream.go`; §1, DoD-Punkt 2, §3 |
+| Grenz-Satz Passwort `play` | `slice-v1-abschluss-einspielen-anmeldung-doku` | Handbuch §1, §4 (Einspielen), §5, §7 `PGR-E4005`; README |
+| Grenz-Satz Extended `play` | `slice-v1-abschluss-einspielen-extended-doku` | Handbuch §4 (Einspielen), §7 `PGR-E6001`; README |
+| Grenz-Satz TLS `play` | `slice-v1-abschluss-einspielen-tls-doku` | Handbuch §4 (Einspielen), §5 `sslmode`, §1; README |
+| Grenz-Satz TLS zum Client | `slice-v1-abschluss-tls-client-doku` | Handbuch §1, §4 (Treiber), §7 *Die Anwendung kann sich nicht verbinden*; README |
+| Handbuch- und README-Teil ohne Grenz-Satz | `slice-v1-abschluss-sessions-doku`, `-protokollrand-doku`, `-sqlite-format-doku`, `-zeitangaben-doku`, `-antwortvergleich-doku` | die Abschnitte, die der Code-Slice liefert |
 
 Gelesen vor dem Eintragen: §1 *Ausdrücklich NICHT* und DoD jedes Nehmers; kein Ausschluss trifft
-die Sendung. Nachgezählt: Die allgemeine Zeile stand schon im ersten Liefer-Punkt jedes Nehmers; der
-Satz präzisiert sie, ohne Liefer-Punkt und ohne Schicht hinzuzufügen. Zählt die Dokumentation dagegen als Schicht (so zählt §8 dieses Plans), liegen
-`slice-v1-abschluss-einspielen-anmeldung`, `slice-v1-abschluss-einspielen-extended` und
-`slice-v1-abschluss-einspielen-tls` mit ihren zwei Code-Schichten schon durch die allgemeine Zeile
-bei drei; das hängt nicht an dieser Sendung und geht als Hinweis an den Planner.
+die Sendung, und die Doku-Folge-Slices sind neu angelegt (kein Ausschluss, `grep -n
+slice-doku-ist-stand` findet die Kennung in §1 *Herkunft*, bei fünf in der DoD). Annahme geprüft
+für `slice-v1-abschluss-anmeldung` (Meldungstext in §1, DoD-Punkt 2, §3) und
+`slice-erster-release-freigabe` (§1, DoD-Punkt 3, §3).
+
+**Doku-Folge-Slices** (V-151; Entscheidung des Nutzers vom 2026-10-10: „Dafür haben wir die Welle
+– man kann dafür einen weiteren Slice anlegen. So bleibt alles zusammen: Code-Erweiterung und
+Handbuch.“): Die Schichtzählung ist eine für alle Pläne (`AGENTS.md` §3.13, Teilung aus
+`slice-harness-d-check-v0-85` §8): Nutzer- und Wartungs-Doku eine Schicht, Planung keine. Mit ihr
+liegen zehn Slices über zwei Schichten, sobald ihr Handbuch- und README-Teil dazukommt:
+`slice-v1-abschluss-sessions` (Kern, PGWire-Adapter), `-protokollrand` (PGWire-, Upstream-Adapter),
+`-anmeldung` (Kern, PGWire-, Upstream-Adapter), `-einspielen-extended` (Kern, Upstream-Adapter),
+`-einspielen-anmeldung` und `-einspielen-tls` (Upstream-, CLI-Adapter, dort schon durch einen
+DoD-Punkt zum Handbuch), `-sqlite-format` (Recording-, CLI-Adapter), `-zeitangaben` (Kern,
+PGWire-, Recording-, CLI-Adapter), `-antwortvergleich` (Kern, CLI-Adapter) und `-tls-client`
+(PGWire-, CLI-Adapter). Jeder bekommt `<Kennung>-doku` in `next/` (aus der Vorlage, nur
+Handbuch und README, höchstens drei Liefer-Punkte, Voraussetzung ist der Code-Slice, Prüfweg und
+Randformen wie in §6 dieses Plans), in `welle-v1-abschluss` §4 und §5 direkt hinter dem Code-Slice
+(Reihenfolge jetzt 34 Schritte), im Drift-Log der Roadmap mit Datum und Grund. `AGENTS.md` §3.11
+lässt den Teil im selben Slice oder im Doku-Folge-Slice zu: Die Welle schließt erst mit beiden,
+ein Release entsteht erst danach. **Zwischen Code-Slice und Doku-Slice hinkt das Handbuch dem
+Binary hinterher; das ist akzeptiert, ein Release liegt nicht dazwischen.** Die Zeilen
+*Nachgezählt* aller Pläne in `next/` zählen jetzt nach der einheitlichen Zählung.
+`slice-v1-abschluss-container`, `-homebrew`, `-cancel-ohne-schluessel` und die drei Pläne von
+welle-erster-release liegen mit der Dokumentation bei zwei Schichten und bleiben ungeschnitten.
+
+**Funde der Zählung für den Planner** (nicht Folge der Dokumentation, schon vorher über zwei
+Schichten): `slice-v1-abschluss-anmeldung` (Kern, PGWire-Adapter, Upstream-Adapter),
+`slice-v1-abschluss-zeitangaben` (vier Code-Schichten) und `slice-v1-abschluss-postgres-versionen`
+(Spezifikation, Entscheidungen, Harness, Dokumentation). Jeder Plan nennt es in seiner Zeile
+*Nachgezählt*; der Architect prüft die Teilung vor dem ersten Code-Commit, der Planner entscheidet
+über den Schnitt. Der Handbuch-Teil, den `slice-v1-abschluss-einspielen-anmeldung` und
+`-einspielen-tls` aus Befund F-533 trugen, liegt jetzt in ihrem Doku-Folge-Slice: Die Kennung
+bleibt Adresse einen Hop länger (Code-Slice → Doku-Folge-Slice, jener nennt sie in §1).
+
+**Nachzug zu Review und Verifikation:** F-570 bis F-572, F-575 (`5f4dfa0`), V-148, V-150, V-153
+(`33de11d`) erledigt. V-149 / F-574 (`a35ea51`): Die Zeile `PGR-E1000` steht wieder in Handbuch
+§7, als Ist-Satz („Ein Defekt des Werkzeugs; keine Eingabe löst ihn aus“), die Exit-Code-Zeile
+nennt ihn; die Regel in §6 lautet „Test oder Probe“ (neun Fehlformen lösen ihn nicht aus,
+`TestFailJeKlasse`, `TestFehlerFremd`, `TestFehlerGleichrangig` tragen ihn). V-151: siehe
+*Doku-Folge-Slices*. V-152 / F-573 (bekannter Teilstand, keine neue Abweichung): Der Hinweis zum
+Meldungstext ist bei `slice-v1-abschluss-anmeldung` eingetragen (`ae19ada`); Handbuch §11 und der
+Kopf *Software-Version* gehören `slice-erster-release-freigabe`, der sie annimmt.
 
 **Größe:** Diff des Handbuchs +102/−214 Zeilen, README +26/−33; überwiegend Streichungen, in einer
 Review-Sitzung prüfbar — die Rückführung aus §4 greift nicht.
@@ -449,6 +501,46 @@ Review-Sitzung prüfbar — die Rückführung aus §4 greift nicht.
 sauberem Baum (Exit 0, alle Gates wie oben). Nach der Nacharbeit zur Verifikation (V-148, V-150, V-153): `make gates` grün am Stand `33de11d` auf
 sauberem Baum (Exit 0). Kein weiterer
 Sensor betroffen: Der Slice ändert weder Code noch Tests noch Gates.
+
+**Ergebnis der Closure**
+
+- **Gegenstand:** geliefert (Handbuch und README im Ist-Zustand), kein Übergabe-Fall.
+- **Was hat funktioniert:** Die Befehlsfolge (Optionen gegen `--help`, Variablen gegen Optionen,
+  Codes gegen den Katalog) fand 13 unbekannte Optionen, 14 Variablen ohne Option und 9 Codes
+  außerhalb des Katalogs im Handbuch; jede Mutante machte sie rot. Die Verifikation fand mit
+  eigener Probe keine falsche Aussage mehr.
+- **Was ging anders als geplant:** Die Regel „Verhalten im selben Zug mit Handbuch und README“
+  (`AGENTS.md` §3.11) stieß an die Größenregel: Mit der Dokumentation als Schicht lagen zehn Slices
+  über zwei Schichten, und die Pläne zählten verschieden (V-151, `BEO-REPO/schichtteilung-je-plan-verschieden`).
+  Der Nutzer entschied den Doku-Folge-Slice (siehe oben). Die Sendungen mussten nach dem Review
+  (F-570) und nach der Entscheidung zweimal umgehängt werden.
+- **Steering-Loop-Eintrag (geschärfte Regel):** Das Handbuch eines Slice liegt in ihm oder im
+  Doku-Folge-Slice direkt dahinter, und alle Pläne zählen die Dokumentation als eine Schicht und
+  die Planung gar nicht — liegt in `AGENTS.md §3.13` und `AGENTS.md §3.11`, Herkunfts-Anker
+  `seit slice-doku-ist-stand`. Auslöser: `BEO-REPO/schichtteilung-je-plan-verschieden`
+  (slice-harness-d-check-v0-85, slice-v1-abschluss-einspielen-laufsteuerung, slice-doku-ist-stand
+  — 3×). **Akzeptiertes Negativ, ausdrücklich:** Zwischen Code-Slice und Doku-Folge-Slice hinkt das
+  Handbuch dem Binary hinterher; die Welle schließt erst mit beiden, ein Release liegt nicht
+  dazwischen.
+- **Beobachtungs-Register:** `evidence/slice-doku-ist-stand.md` in
+  `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (7×, verkörpert; F-570),
+  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (30×, verkörpert; F-571, F-572, V-149,
+  V-150), `BEO-REPO/plan-folgt-korrektur-nicht` (24×, verkörpert; V-148) und
+  `BEO-REPO/schichtteilung-je-plan-verschieden` (3×, Ausgang verkörpert, Zielort
+  `AGENTS.md §3.13`; V-151); neu `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` (1×, offen;
+  Risiko 3). `BEO-REPO/verhalten-nur-unter-linux-geprueft` bleibt bei 1×. Kein nicht verkörperter
+  Eintrag erreicht 3×.
+- **Folge-Slices:** die zehn Doku-Folge-Slices `slice-v1-abschluss-sessions-doku`,
+  `-protokollrand-doku`, `-anmeldung-doku`, `-einspielen-extended-doku`,
+  `-einspielen-anmeldung-doku`, `-einspielen-tls-doku`, `-sqlite-format-doku`,
+  `-zeitangaben-doku`, `-antwortvergleich-doku`, `-tls-client-doku` (alle in `next/`, `grep -n
+  slice-doku-ist-stand` findet die Kennung in jedem), dazu die Nehmer der Sendungen oben.
+- **Risiken aus §6:** Risiko 1 und 2 entfallen (mit Grund in §6), Risiko 3 weiter offen →
+  `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`.
+- **Drei Paarungen:** (a) Anker: `AGENTS.md` §3.11 und §3.13 tragen `seit slice-doku-ist-stand`.
+  (b) Folge-Slices: jede genannte Datei liegt in `next/`, und die Kennung dieses Slice steht in
+  §1 oder DoD des Nehmers (`grep -n`). (c) Register: jede genannte Kennung ist ein Verzeichnis mit
+  nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -475,8 +567,14 @@ unter `evidence/`). Treffer:
 - `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (6×, §3.13) — verkörpert; die Folge-Slices
   nennen die Regel mit der Kennung von `slice-v1-abschluss-einspielen-laufsteuerung`.
 
-Liefer-Punkte: drei. Schichten: eine (Dokumentation), kein Code.
+- `BEO-REPO/schichtteilung-je-plan-verschieden` (2×, mit diesem Slice 3×, Ausgang verkörpert in
+  `AGENTS.md` §3.13) und `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` (neu, 1×, offen) —
+  beide aus V-151 und Risiko 3, Ausgänge in §7.
 
-Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
+Liefer-Punkte: drei. Schichten nach der Zählung in `AGENTS.md` §3.13: zwei (Nutzer-Doku:
+Handbuch und README; Harness: `AGENTS.md`), kein Produkt-Code; Pläne, Welle, Roadmap und Register
+zählen nicht.
+
+Außer `BEO-REPO/schichtteilung-je-plan-verschieden` erreicht keiner der Einträge mit diesem Plan die Schwelle 3× neu; jener ist mit dieser Closure verkörpert.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
