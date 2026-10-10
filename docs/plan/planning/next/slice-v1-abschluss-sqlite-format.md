@@ -33,6 +33,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
+- Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku` (dort §1 und DoD), direkt hinter diesem Slice in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über zwei Schichten. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen.
 - Umwandlung zwischen den Formaten und weitere Formate — Out-of-Scope von LH-FA-22.
 - Das Standardformat YAML — bleibt unverändert aus `slice-walking-skeleton-record`.
 
@@ -49,7 +50,6 @@ nur unter Linux im selben Dateisystem, macOS und Windows nicht) und ob sie für 
 einer Session in einer Transaktion eine eigene braucht. §6 nennt sie als Randform, der Architect
 dieses Slice entscheidet sie in `LH-FA-22.a`, vor dem ersten Code-Commit (`AGENTS.md` §3.12).
 
-
 ## 2. Definition of Done
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -57,7 +57,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-22`](../../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat): Eine Aufzeichnung mit `--format sqlite` liefert im Replay und beim Einspielen dasselbe Verhalten wie dieselbe Aufzeichnung als YAML (Roundtrip-Gleichheit, Abnahmeszenario 14); die Datei enthält zu jedem Zeitpunkt nur vollständige Sessions. Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
+- [ ] [`LH-FA-22`](../../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat): Eine Aufzeichnung mit `--format sqlite` liefert im Replay und beim Einspielen dasselbe Verhalten wie dieselbe Aufzeichnung als YAML (Roundtrip-Gleichheit, Abnahmeszenario 14); die Datei enthält zu jedem Zeitpunkt nur vollständige Sessions.
 - [ ] [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats): Eine Datei mit unbekannter Version (`PGR-E3002`) oder ohne gültige Aufzeichnung (`PGR-E3003`) wird in beiden Formaten erkannt (Test).
 - [ ] Die SQLite-Bibliothek ist im Architektur-Gate (`.a-check.yml`, `tech`-Regel) auf den Recording-Adapter begrenzt; eine absichtliche Verletzung lässt `make a-check` fehlschlagen (Test).
 - [ ] `make gates` grün.
@@ -82,7 +82,6 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/schema/schema.yaml`, `harness/mk/schema.mk` | vorhanden | neutrales Schema der Tabellenform (d-migrate); das SQL für SQLite wird daraus erzeugt und im Adapter eingebettet |
 | `.a-check.yml` (`tech`-Regel) | prüfen | Die Regel für `modernc.org/sqlite` liegt vor; der Slice belegt sie mit einer absichtlichen Verletzung |
 | `test/integration` | update | Roundtrip-Gleichheit beider Formate |
-| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -95,7 +94,6 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 - `in-progress` → `next`: die SQLite-Bibliothek verlangt native Abhängigkeiten für die Zielplattformen — zurück zur Zerlegung.
 - `in-progress` → `open`: Beide Formate tragen das Modell nicht gleich — Entscheidung klären.
-
 
 ## 5. Closure-Trigger
 
@@ -147,6 +145,6 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
-Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: zwei Schichten (Recording-Adapter, CLI-Adapter; das Schema und die Regel in `.a-check.yml` liegen vor und werden geprüft).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

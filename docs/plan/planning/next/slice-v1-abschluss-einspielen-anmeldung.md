@@ -50,7 +50,7 @@ Entscheidung des Nutzers; dort §1, *Abgegeben*). Im Einzelnen:
   Verbindung bei `play` aus Befund F-533 (Review von `slice-v1-abschluss-upstream-verbinden`,
   über `slice-v1-abschluss-einspielen`): das Passwort aus dem Platzhalter,
   `PGWIRE_RECORDER_PASSWORD`, wenn die Verbindung kein Passwort schreibt; dazu die beiden
-  Grenzen *SASLprep* und *Klartext ohne TLS*;
+  Grenzen *SASLprep* und *Klartext ohne TLS*; dieser Handbuch-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-einspielen-anmeldung-doku`;
 - die Randformen [A] aus §6 jenes Slice (§6 unten).
 
 **Aufsetzen.** Der Slice setzt auf dem Kern `slice-v1-abschluss-einspielen` auf: Dort sind
@@ -72,6 +72,7 @@ ist jede Passwort-Anforderung des Servers bei `play` ein nicht unterstütztes Ve
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
+- Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-einspielen-anmeldung-doku` (dort §1 und DoD), direkt hinter diesem Slice in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über zwei Schichten. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen.
 - TLS zum Server, `--upstream-tls`, `--upstream-ca` und `sslmode=require` —
   `slice-v1-abschluss-einspielen-tls` (dort §1, *Übernimmt*); beide hängen nur am Kern, nicht
   aneinander. Dass `play` ein Klartext-Passwort auch ohne TLS sendet, ist hier eine Grenze
@@ -101,7 +102,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `scram-sha-256` in `pg_hba.conf` an und spielt eine Aufzeichnung ein; das Passwort
       kommt aus dem Platzhalter der benutzten Verbindung, sonst aus
       `PGWIRE_RECORDER_PASSWORD`, eine leere Variable gilt als nicht gesetzt; verlangt der
-      Server kein Passwort, sendet `play` keines (Integrationstest). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zum Passwort bei `play` — §1 *Voraussetzungen*, §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Voraussetzung und Hinweise: „ohne Passwort“), §5 *Konfigurationsdatei* („Ein Passwort in der URL setzt `play` ein, meldet sich damit aber nicht an“, dort mit DoD-Punkt 3) und §7 Zeile `PGR-E4005` („`play` meldet sich nur ohne Passwort an“) — und im README den Satz, dass die Datenbank den Benutzer ohne Passwort anmelden muss, soweit er `play` betrifft.
+      Server kein Passwort, sendet `play` keines (Integrationstest).
 - [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): Ein falsches Passwort, ein fehlendes Passwort, wenn der Server eines
       verlangt, ein nicht unterstütztes Verfahren (Kerberos, GSSAPI, SSPI, SASL ohne
       `SCRAM-SHA-256`) und jeder Fehler im SCRAM-Austausch (eine Nachricht des Servers, die
@@ -112,12 +113,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `PGR-E4005`, ein Verbindungsende während der Anmeldung `PGR-E4002`, nach dem Fehler
       ohne `Terminate` (aus `slice-v1-abschluss-einspielen`, §6); das Passwort steht in keiner Meldung und
       keiner Log-Zeile ([`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten)) (Test). Beleg in §7 für Punkt 1 und 2: je Zusage
-      Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
-- [ ] Das Benutzerhandbuch beschreibt in §5 *Konfigurationsdatei* das Passwort einer
-      Verbindung bei `play` wie geliefert (aus dem Platzhalter, sonst
-      `PGWIRE_RECORDER_PASSWORD`, wenn die Verbindung kein Passwort schreibt; Befund F-533)
-      und nennt die Grenzen *SASLprep* und *Klartext ohne TLS*; die Abdeckungstabellen sind
-      über `make abdeckung` nachgezogen.
+      Zusage · Mutation · roter Test (`AGENTS.md` §3.10). Die Abdeckungstabellen sind über `make abdeckung` nachgezogen.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -141,8 +137,6 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/bootstrap` | update | das Passwort an den Upstream-Adapter von `play` reichen; der Kommentar von `play` nennt die Kopplung an die erste Meldung des gelieferten Fehlers (F-569 aus `slice-v1-abschluss-einspielen-laufsteuerung`) |
 | `test/integration` | update | Server mit `password`, `md5` und `scram-sha-256` in `pg_hba.conf`; Happy/Negative nach LH-FA-20 |
 | `internal/adapters/driven/postgres` (Tests) | update | Fehler im SCRAM-Austausch und nicht unterstützte Verfahren gegen einen Testserver, der die Nachrichten vorgibt |
-| `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: Passwort einer Verbindung bei `play` (F-533), Grenzen *SASLprep* und *Klartext ohne TLS* |
-| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -150,7 +144,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` liegt in `done/`
-(Kommando `play`, Verbindungsaufbau ohne Passwort, Einstufung der Fehler im Aufbau). Schritt 11
+(Kommando `play`, Verbindungsaufbau ohne Passwort, Einstufung der Fehler im Aufbau). Schritt 12
 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) (Schnitt vom
 2026-10-09). Die Randformen aus §6 entschied der Architect am 2026-10-09 vor dem Code in
 `LH-FA-20.a` *Anmeldung*; vor dem ersten Code-Commit prüft er die Liste gegen den gelieferten
@@ -308,8 +302,6 @@ ersten Code-Commit (§4 *Start*).
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
-
-Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, `AGENTS.md` §3.13): Die Stellen liegen im ersten Liefer-Punkt und in denselben zwei Dateien (Handbuch, README); kein neuer Liefer-Punkt, keine neue Schicht, die Zählung der vorigen Zeile bleibt.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-einspielen-anmeldung-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 2. Schichten: zwei Schichten nach der Teilung dieses Plans (Upstream-Adapter, CLI-Adapter; der Bootstrap reicht weiter, §1; die Zeile oben nennt die Zählung mit dem Bootstrap als eigener Schicht).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

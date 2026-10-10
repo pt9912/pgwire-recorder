@@ -35,9 +35,9 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
+- Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-zeitangaben-doku` (dort §1 und DoD), direkt hinter diesem Slice in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über zwei Schichten. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen.
 - Zeitgetreue Antworten im Replay-Modus — Out-of-Scope von LH-FA-21.
 - Paralleles Einspielen — Out-of-Scope von LH-FA-20 und LH-FA-21.
-
 
 ## 2. Definition of Done
 
@@ -46,7 +46,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, das Recording lässt sich in YAML und in SQLite per Roundtrip laden, ein ungültiger Wert ist `PGR-E3003` (Test). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
+- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, das Recording lässt sich in YAML und in SQLite per Roundtrip laden, ein ungültiger Wert ist `PGR-E3003` (Test).
 - [ ] `--keep-timing` hält die Pausen in beiden Modi und beiden Bezugspunkten ein, ohne sie zu verkürzen (Abnahmeszenario 13, Test mit Fake-Uhr).
 - [ ] Eine Aufzeichnung ohne `offset_ms` wird bei `--keep-timing` mit `PGR-E2003` (Exit-Code 2) abgelehnt (Test).
 - [ ] `make gates` grün.
@@ -70,7 +70,6 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driving/pgwire` | update | Messpunkt: Annahme der Verbindung und erste Client-Nachricht |
 | `internal/adapters/driven/recording` | update | Feld `offset_ms` im YAML, Prüfung |
 | `internal/adapters/driving/cli` | update | Optionen `--record-timing`, `--keep-timing`, `--timing-mode`, `--timing-reference` |
-| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -83,7 +82,6 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 - `in-progress` → `next`: das Zeitmodell verlangt eine Änderung am Recording-Format über das in Version 1 enthaltene Feld `offset_ms` hinaus; jedes neue Feld, auch ein optionales, erhöht `version` (`SPEC-001`) — zurück zur Zerlegung.
 - `in-progress` → `open`: Die Fake-Uhr bildet die monotone Uhr nicht ab — Carveout.
-
 
 ## 5. Closure-Trigger
 
@@ -131,6 +129,6 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
-Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-zeitangaben-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: vier Schichten (Kern mit Uhr-Port, PGWire-Adapter, Recording-Adapter, CLI-Adapter) und damit über zwei, auch ohne die Dokumentation; das war vor der Abgabe so und hängt nicht an ihr: Der Planner entscheidet vor dem ersten Code-Commit, ob dieser Plan geschnitten wird.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

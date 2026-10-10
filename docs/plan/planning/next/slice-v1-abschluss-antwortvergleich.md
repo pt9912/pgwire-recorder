@@ -34,6 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
+- Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-antwortvergleich-doku` (dort §1 und DoD), direkt hinter diesem Slice in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über zwei Schichten. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen.
 - Vergleich von Zeilenwerten und Toleranzregeln für Felder — Out-of-Scope von LH-FA-24.
 - Einspielen selbst und Fehlersemantik der Serverfehler — `slice-v1-abschluss-einspielen`; seit dessen zweitem Schnitt vom 2026-10-09 die drei Optionen der Laufsteuerung ohne Vergleich `slice-v1-abschluss-einspielen-laufsteuerung` und das Einspielen von Extended-Interaktionen `slice-v1-abschluss-einspielen-extended` (je §1, *Übernimmt*). Dieser Slice setzt alle drei voraus: DoD-Punkt 3 baut auf den Optionen auf, DoD-Punkt 1 und 2 vergleichen auch Extended-Interaktionen.
 - Anmeldung und TLS beim Einspielen — `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` (je §1, *Übernimmt*; seit dem Schnitt von `slice-v1-abschluss-einspielen` vom 2026-10-09); der Vergleich hängt an keinem der beiden.
@@ -45,7 +46,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen): Gegen eine Instanz mit gleicher Antwortstruktur endet das Einspielen mit Vergleich mit Erfolg, gegen eine abweichende mit `PGR-E5004` und Exit-Code 5; ein Serverfehler ohne Vorbild in der Aufzeichnung ist `PGR-E5004`, nicht `PGR-E4004`; ein `FATAL` ohne Vorbild oder mit anderem SQLSTATE ist `PGR-E5004`, ein Netzwerkabbruch ohne Fehlerantwort ist `PGR-E4003`; ein Abbruch sendet keine weiteren Nachrichten oder Gruppen der Interaktion; bei Extended wird nach einem Fehler bis zum `Sync` weitergesendet (Abnahmeszenario 16; Integrationstest). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
+- [ ] [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen): Gegen eine Instanz mit gleicher Antwortstruktur endet das Einspielen mit Vergleich mit Erfolg, gegen eine abweichende mit `PGR-E5004` und Exit-Code 5; ein Serverfehler ohne Vorbild in der Aufzeichnung ist `PGR-E5004`, nicht `PGR-E4004`; ein `FATAL` ohne Vorbild oder mit anderem SQLSTATE ist `PGR-E5004`, ein Netzwerkabbruch ohne Fehlerantwort ist `PGR-E4003`; ein Abbruch sendet keine weiteren Nachrichten oder Gruppen der Interaktion; bei Extended wird nach einem Fehler bis zum `Sync` weitergesendet (Abnahmeszenario 16; Integrationstest).
 - [ ] Jede Art der Abweichung (Nachrichtenart, Spaltenbeschreibung, Befehl ohne Zahlen, Fehler, Transaktionsstatus) wird erkannt und mit Session, Sequenznummer und Art gemeldet, Unterschiede nur in Zeilenwerten, Zeilenzahlen und Hinweisen nicht (Test, einfach und Extended, auch `Flush`-Gruppen).
 - [ ] `--continue-on-error` und `--allow-recorded-errors` wirken wie spezifiziert, `--continue-on-error` läuft nach einer Abweichung weiter, der Exit-Code am Ende ist 5, ein Verbindungsfehler beendet immer mit 4; ein Fehler mit gleichem SQLSTATE wie aufgezeichnet gilt als erwartet und bricht nicht ab, ein anderer SQLSTATE ist `PGR-E5004`; `--allow-recorded-errors` ist mit Vergleich ohne Wirkung; ein Abbruchsignal endet nach einer Abweichung mit 5, ein Verbindungsfehler nach einer Abweichung mit 4; bei jedem Ende des Laufs (auch Abbruch und Signal) steht die Log-Zeile mit eingespielt, verglichen, abweichend; ohne `--compare-responses` findet kein Vergleich statt (Test).
 - [ ] `make gates` grün.
@@ -69,7 +70,6 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/services` (Play-Service) | update | Normalisierung und Vergleich der Antworten, ohne PGWire-Typen |
 | `internal/adapters/driving/cli` | update | Option `--compare-responses`, Abbildung auf Exit-Code 5 |
 | `test/integration` | update | Happy/Boundary/Negative nach LH-FA-24 |
-| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -131,6 +131,6 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
-Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-antwortvergleich-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: zwei Schichten (Kern mit Play-Service, CLI-Adapter).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

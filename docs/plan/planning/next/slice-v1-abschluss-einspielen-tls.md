@@ -47,7 +47,7 @@ des Nutzers; dort §1, *Abgegeben*). Im Einzelnen:
 - im Benutzerhandbuch §5 *Konfigurationsdatei* der TLS-Teil der Wirkung einer Verbindung bei
   `play` aus Befund F-533 (Review von `slice-v1-abschluss-upstream-verbinden`, über
   `slice-v1-abschluss-einspielen`): `sslmode=require` mit TLS und Prüfung des Zertifikats, ein
-  gesetztes `--upstream-tls` vor `sslmode`;
+  gesetztes `--upstream-tls` vor `sslmode`; dieser Handbuch-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-einspielen-tls-doku`;
 - die Randformen [T] aus §6 jenes Slice (§6 unten). Dieser Slice ist auch die Adresse der
   Abgrenzung *TLS* von `slice-v1-abschluss-antwortvergleich` (dort §1).
 
@@ -66,6 +66,7 @@ von TLS und Zertifikat im Aufbau hält sie (§6, *Bindung an den Vertrag der Por
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
+- Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-einspielen-tls-doku` (dort §1 und DoD), direkt hinter diesem Slice in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über zwei Schichten. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen.
 - Die Anmeldung mit Passwort — `slice-v1-abschluss-einspielen-anmeldung` (dort §1,
   *Übernimmt*); beide hängen nur am Kern, nicht aneinander. Getestet wird hier gegen einen
   Server ohne Passwort-Anmeldung.
@@ -95,7 +96,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       IP-Adressen des Zertifikats; ein gesetztes `--upstream-tls`, auch ausdrücklich
       `false`, geht `sslmode=require` vor, aus jeder Quelle; ohne beides baut `play` keine
       TLS-Verbindung auf (Integrationstest gegen einen Server mit dem Zertifikat einer
-      eigenen Zertifizierungsstelle). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zu TLS und `sslmode=require` bei `play` — §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Hinweis „verbindet sich unverschlüsselt … `sslmode=require` ist bei `play` ungültig (`PGR-E2004`)“), §5 *Konfigurationsdatei* (Absatz zu `sslmode`, soweit er `play` betrifft, dort mit DoD-Punkt 3) und §1 *Voraussetzungen* (Zeile zur Verbindung zur Datenbank) — und im README den Satz „Alle Verbindungen laufen unverschlüsselt“, soweit er `play` betrifft.
+      eigenen Zertifizierungsstelle).
 - [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): `N` auf das `SSLRequest`, ein Fehler der Aushandlung, ein abgelaufenes,
       ungültiges oder auf einen anderen Namen ausgestelltes Zertifikat und ein Server, der
       eine unverschlüsselte Verbindung ablehnt, sind `PGR-E4005`; ein anderes Byte, ein
@@ -105,12 +106,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Verzeichnis ohne Warten), keinen PEM-Block, einen Block eines anderen Typs oder kein
       lesbares X.509-Zertifikat enthält, ist beim Start vor dem Laden der Aufzeichnung
       `PGR-E2007`, die Meldung nennt weder Pfad noch Inhalt ([`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten)) (Test). Beleg in
-      §7 für Punkt 1 und 2: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
-- [ ] Das Benutzerhandbuch beschreibt in §5 *Konfigurationsdatei* TLS einer Verbindung bei
-      `play` wie geliefert (`sslmode=require` mit TLS und Prüfung des Zertifikats, ein
-      gesetztes `--upstream-tls` vor `sslmode`; Befund F-533), dazu `--upstream-ca` und die
-      Grenze *Zertifikatsspeicher nicht ladbar*; die Abdeckungstabellen sind über
-      `make abdeckung` nachgezogen.
+      §7 für Punkt 1 und 2: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10). Die Abdeckungstabellen sind über `make abdeckung` nachgezogen.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -133,8 +129,6 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driving/cli` | update | Optionen `--upstream-tls` und `--upstream-ca` mit Umgebung und Schlüsseln im Abschnitt `play:`; „gesetzt“ vom Standardwert unterschieden; TLS nach `sslmode`; `--upstream-ca` ohne TLS `PGR-E2001` |
 | `internal/bootstrap` | update | die Datei aus `--upstream-ca` beim Start lesen (`PGR-E2007`) und die Zertifikate an den Upstream-Adapter reichen |
 | `test/integration` | update | Server mit TLS und dem Zertifikat einer eigenen Zertifizierungsstelle, abgelaufenes Zertifikat, falscher Name, Server, der unverschlüsselte Verbindungen ablehnt; Happy/Negative nach LH-FA-20 |
-| `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: TLS einer Verbindung bei `play` (F-533), `--upstream-ca`, Grenze |
-| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -142,7 +136,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` liegt in `done/`
-(Kommando `play`, Verbindungsaufbau ohne TLS, Einstufung der Fehler im Aufbau). Schritt 12
+(Kommando `play`, Verbindungsaufbau ohne TLS, Einstufung der Fehler im Aufbau). Schritt 14
 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md), direkt nach
 `slice-v1-abschluss-einspielen-anmeldung`, ohne von ihm abzuhängen (Schnitt vom 2026-10-09).
 Die Randformen aus §6 entschied der Architect am 2026-10-09 vor dem Code in `LH-FA-20.a`
@@ -300,8 +294,6 @@ vor dem ersten Code-Commit (§4 *Start*).
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
-
-Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, `AGENTS.md` §3.13): Die Stellen liegen im ersten Liefer-Punkt und in denselben zwei Dateien (Handbuch, README); kein neuer Liefer-Punkt, keine neue Schicht, die Zählung der vorigen Zeile bleibt.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-einspielen-tls-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 2. Schichten: zwei Schichten nach der Teilung dieses Plans (Upstream-Adapter, CLI-Adapter; der Bootstrap reicht weiter, §1; die Zeile oben nennt die Zählung mit dem Bootstrap als eigener Schicht).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

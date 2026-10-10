@@ -69,6 +69,7 @@ diesen Zwischenstand ersetzt dieser Slice.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
+- Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-einspielen-extended-doku` (dort §1 und DoD), direkt hinter diesem Slice in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über zwei Schichten. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen.
 - Der Vergleich der Antworten einer Extended-Interaktion, auch in `Flush`-Gruppen —
   `slice-v1-abschluss-antwortvergleich` (dort DoD-Punkt 2); er setzt das Einspielen voraus.
 - Die Optionen der Laufsteuerung selbst und ihre Wirkung bei einfachen Anfragen —
@@ -96,7 +97,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       und DML mit Parametern, Gruppen mit `Sync` und mit `Flush`, gemischt mit einfachen
       Anfragen, über mehrere Sessions — wird gegen eine leere Instanz eingespielt, die weder
       Passwort noch TLS verlangt, und die Datenbank enthält danach deren Wirkung; eine
-      Extended-Interaktion ist kein Startfehler `PGR-E6001` mehr (Integrationstest). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zur Extended-Interaktion bei `play` — §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Voraussetzung „mit einfachen Anfragen“ und der Hinweis, dass eine Folge des erweiterten Protokolls mit `PGR-E6001` endet) und §7 Zeile `PGR-E6001` (Ursache „die Aufzeichnung für `play` enthält eine Folge des erweiterten Protokolls“) — und im README die Sätze „spielt die einfachen Anfragen … ein“ und „Eine Aufzeichnung mit vorbereiteten Anweisungen lehnt `play` ab“.
+      Extended-Interaktion ist kein Startfehler `PGR-E6001` mehr (Integrationstest).
 - [ ] Innerhalb einer Extended-Interaktion wartet `play` nach `Sync` auf `ReadyForQuery` und
       nach `Flush` auf die Antwort jeder Client-Nachricht der Gruppe, nicht auf die
       aufgezeichneten Server-Nachrichten; ein Abbruch nach `PGR-E4004` sendet keine weitere
@@ -130,7 +131,6 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driven` | update | Gruppen einer Extended-Interaktion, Warten nach `Sync` und `Flush`, Abbruch, Fortsetzung, erwarteter Fehler und Signal innerhalb der Interaktion; der Startfehler für Extended-Interaktionen entfällt |
 | `internal/hexagon/services` (Tests), `internal/adapters/driven/postgres` (Tests) | update | Warten je Gruppenende, Fehler in der ersten und in einer späteren Gruppe, Signal innerhalb der Interaktion, je Zusage eine Mutation |
 | `test/integration` | update | Extended-Szenario nach LH-FA-20 und LH-FA-18; die Tests des Kerns zum Zwischenstand *Aufzeichnung mit Extended-Interaktion* ändern |
-| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -266,8 +266,6 @@ unter `evidence/`). Treffer:
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
-
-Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, `AGENTS.md` §3.13): Die Stellen liegen im ersten Liefer-Punkt und in denselben zwei Dateien (Handbuch, README); kein neuer Liefer-Punkt, keine neue Schicht, die Zählung der vorigen Zeile bleibt.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-einspielen-extended-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: zwei Schichten (Kern mit Play-Service und Port, Upstream-Adapter).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
