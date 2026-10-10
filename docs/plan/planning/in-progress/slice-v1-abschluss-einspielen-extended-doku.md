@@ -171,6 +171,8 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 **Mutation (§3.10)** entfällt (kein neuer Vertrag); die Probe-Matrix ersetzt sie.
 
+**Gate-Lauf.** `make gates` am Stand `880522e` auf sauberem Baum: Exit 0 (docs-check 0 Befunde, test, test-integration, a-check, lint und ihre Gegenproben grün).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
