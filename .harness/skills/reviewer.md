@@ -118,7 +118,9 @@ Zusätzlich am Ende: eine Zeile „geprüft, ohne Befund" pro betrachtetem
 Verzeichnis (Negativbefund-Zeile — sonst ist „keine Findings" nicht von „nicht
 geprüft" unterscheidbar). Report-Gerüst für den ganzen Lauf:
 `.harness/baseline/<tag>/templates/docs/reviews/review-report.template.md` (vendored), ein Report pro Lauf, Folgeläufe als
-neue Datei statt Überschreibung.
+neue Datei statt Überschreibung. Der Dateiname trägt Datum, Rolle und die **volle**
+Slice-Kennung (`<YYYY-MM-DD>-review-<slice-Kennung>.md`); ein Folgelauf
+hängt `-r2`, `-r3` an die Kennung (`<YYYY-MM-DD>-review-<slice-Kennung>-r2.md`).
 
 ## Pflege (Steering-Loop)
 

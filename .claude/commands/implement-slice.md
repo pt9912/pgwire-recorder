@@ -222,7 +222,8 @@ Hier endet die Implementation. Die übrigen Rollen laufen in **getrennten Kontex
 
 21. **→ Reviewer (Code-Review, Modul 10):** den Diff + Plan-Verweis an einen **unabhängigen**
     Reviewer übergeben (`.harness/skills/reviewer.md`, frischer Kontext — kein Selbst-Review). Er
-    kategorisiert Findings (HIGH/MEDIUM/LOW/INFO) in einen Report unter `docs/reviews/` und prüft
+    kategorisiert Findings (HIGH/MEDIUM/LOW/INFO) in einen Report unter `docs/reviews/`
+    (Dateiname mit voller Slice-Kennung, Folgelauf mit Suffix `-r2`, `.harness/skills/reviewer.md`) und prüft
     den Diff gegen **Plan + ADR + Hard Rules** (nicht die DoD). HIGH/MEDIUM auflösen; ein HIGH mit
     Rollen-Konflikt folgt Modul 8 §Konflikt-Pfad (Sequenz mit Übergabe-Artefakten, nie
     „herabstufen, weil der Implementer widerspricht").

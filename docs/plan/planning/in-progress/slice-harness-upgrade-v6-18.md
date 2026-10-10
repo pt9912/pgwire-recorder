@@ -387,6 +387,19 @@ stehen hier die Belege des Implementers.
     bleibt *liegt bei, nicht verdrahtet*. Der Absatz „Ein Deckungs-Sensor prüft nur, was er als
     Zusage erkennt“ ist Lesestoff für den geplanten Slice, der das Modul aktiviert (nicht angelegt, keine Adresse, §6).
   - Dateiname des Review-Reports: siehe unten.
+- *Dateiname des Review-Reports* (Wortlaut `modul-10-review-harness.md` §Harness-Einordnung
+  und `review-report.template.md`): „Abgelegt wird ein Report pro Lauf unter `docs/reviews/`, die
+  volle Slice-Kennung im Dateinamen, Folgeläufe als neue Datei statt Überschreibung“; Vorlage:
+  `<YYYY-MM-DD>-<slice-Kennung>.md`, „etwa mit Suffix `-r2`“. Der Wortlaut verbietet einen
+  Rollen-Infix nicht und verlangt die volle Kennung im Namen; der Bestand (`<datum>-review-<slice-Kennung>.md`,
+  `-verifikation-`, `-mutationen-`, `-validierung-`) trägt die volle Kennung. **Akzeptierte
+  Abweichung:** der Infix bleibt, weil er die Rolle des Reports im Namen hält und die volle
+  Kennung unberührt lässt; eingefrorene Reports behalten ihren Namen (§1). Nachgezogen ist nur die
+  Folgelauf-Form `-r2` (Suffix an der Kennung statt Präfix `folge-review-N-`) in
+  `.harness/skills/reviewer.md` §Output und `.claude/commands/implement-slice.md` Schritt 21.
+  Kein Sensor liest den Namen (`.d-check.yml`, `.githooks/commit-msg`, `tools/`); das dritte
+  Risiko aus §6 trifft damit nicht. Gegenstand dieser Abweichung ist ein künftiger Slice, der das
+  Modul `reviews` aktiviert (dort `match: name` gegen die Namen prüfen); er ist nicht angelegt.
 - *Regelblock-Tabelle:* alle Zellen gegen den neuen Baum gehalten, Messzeile auf `v6.18.0`.
   Geprüft und unverändert: `modul-10` (Skill trägt die Urteilsgrundlage), `modul-13` (Aggregator
   und Fragmente; die Disjunktheit betrifft Gate-Index in Teilen), `modul-15` (beide Zellen),
