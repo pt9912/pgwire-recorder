@@ -61,9 +61,9 @@ auf Wunsch“.
 
 - Produkt-Code, Hilfetexte im Binary, Tests des Produkts und Gates — Schicht-Abgrenzung: Der
   Slice ändert nur `docs/user/benutzerhandbuch.md` und `README.md` (und diesen Plan). Zeigt das
-  Binary ein Verhalten, das der Spezifikation widerspricht, beschreibt das Handbuch das
-  Verhalten des Binaries nicht; der Fund geht als Befund an den Planner, keine Korrektur am
-  Code hier.
+  Binary ein Verhalten, das die Spezifikation anders regelt, beschreibt das Handbuch das Binary
+  (§6, *Verhalten neben der Spezifikation*); der Fund geht als Befund an den Planner, keine
+  Korrektur am Code hier.
 - Die Abschnitte des Handbuchs, die erst die Folge-Slices liefern (Vergleich, Zeitangaben,
   Extended beim Einspielen, Anmeldung, TLS, SQLite-Format und die übrigen) — ein Folge-Slice
   übernimmt sie: Jeder trägt in seiner DoD, dass er seinen Teil von Handbuch und README im
@@ -98,12 +98,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [ ] Jedes Beispiel des Handbuchs (Aufrufe, Konfigurationsdatei, Ausgaben) läuft als Datei
       gegen das gebaute Binary mit dem beschriebenen Ergebnis (`AGENTS.md` §3.11); die
       Kopfzeilen (*Software-Version*, *Stand*, *Gültigkeitsbereich*) und §11
-      *Änderungshistorie* nennen den Ist-Zustand ohne Chronik; das Handbuch enthält keinen
+      *Änderungshistorie* nennen den Ist-Zustand ohne Chronik, §1 *Voraussetzungen* und §2
+      *Installation* nur, was ein Build aus dem Repository liefert (§6); das Handbuch enthält keinen
       Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch
       nicht“, „kommt“, „geplant“ über das Produkt (`grep` in §7).
-- [ ] `README.md` beschreibt in Einleitung und *Was kann ich heute tun?* nur Geliefertes, ohne
-      Chronik („steht am Beginn der Umsetzung“, „noch nicht“) und ohne „vergleicht auf
-      Wunsch“; Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand.
+- [ ] `README.md` beschreibt in Leitsatz, Einleitung, *Was kann ich heute tun?* und
+      *Kerngedanke* nur Geliefertes, ohne Chronik („steht am Beginn der Umsetzung“, „noch
+      nicht“, „erste Version“), ohne „vergleicht auf Wunsch“ und ohne TLS zum Client; Verweise
+      auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (§6).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -168,21 +170,64 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen** (`AGENTS.md` §3.12) — **offen, der Architect entscheidet sie vor dem ersten
-Commit** (§4). Der Slice legt keinen Vertrag an; Ort der Entscheidung ist dieser Abschnitt.
+**Randformen** (`AGENTS.md` §3.12) — vom Architect vor dem ersten Commit entschieden
+(2026-10-10). **Ort ist dieser Abschnitt, nicht die Spezifikation:** Der Slice legt keinen
+Vertrag an (keine Option, kein Format, kein Gate); er wendet die Regel aus `AGENTS.md` §3.11 auf
+zwei Dokumente der Ränge 6 und 7 an. Eine Spezifikationsstelle über das Handbuch zeigte aus dem
+Technik-Stratum nach unten und machte eine Schreibregel zu Produktverhalten. Akzeptiertes
+Negativ: Die Entscheidungen gehen mit diesem Plan nach `done/`; wiederkehrend ist nur die Form
+der Grenz-Sätze, und die steht danach im Handbuch selbst, wo der liefernde Folge-Slice sie
+findet und ersetzt.
 
-- **Software-Version** — die Zeile sagt heute „noch nicht veröffentlicht“; zu entscheiden, was
-  im Ist-Zustand dort steht (etwa die Ausgabe von `pgwire-recorder version` des gebauten
-  Binaries oder die Versionsdatei), solange kein Release vorliegt, und ob §11 dann leer bleibt.
-- **Teilweise geliefert** — ein Kommando, das nur einen Teil kann (etwa `play` ohne
-  vorbereitete Anweisungen, ohne Passwort-Anmeldung und ohne TLS): ob das Handbuch die Grenze
-  als Eigenschaft des Binaries nennt („spielt einfache Anfragen ein“) oder schweigt; „noch
-  nicht“ ist ausgeschlossen.
-- **Verhalten neben der Spezifikation** — zeigt das Binary ein Verhalten, das die
-  Spezifikation anders regelt: Das Handbuch beschreibt das Binary oder lässt die Stelle weg;
-  welches von beiden, entscheidet der Architect je Fund, der Fund geht an den Planner (§1).
-- **Verweise im README** — welche Verweise auf `spec/`, `docs/plan/` und `docs/reviews/`
-  bleiben und in welcher Form (§1, `AGENTS.md` §3.11).
+- **Software-Version** — die Zeile nennt die Ausgabe von `pgwire-recorder version` des gebauten
+  Binaries, heute `dev`; *Gültigkeitsbereich* nennt dasselbe Binary, gebaut aus dem Repository.
+  *Stand* ist das Datum der Änderung, *Version* (Handbuch) steigt auf `0.2`. §11 trägt den Satz
+  „Es gibt keine veröffentlichte Version.“ — Ist-Aussage ohne „noch“; je veröffentlichter
+  Version kommt die Zeile mit dem Release, das sie liefert.
+- **Installation und Voraussetzungen** (in der Liste nachgetragen, Handbuch §1 und §2 nennen
+  Releases, Homebrew-Tap und Registry-Images, die es nicht gibt) — §2 beschreibt den einzigen
+  Weg, den es gibt: Bauen aus dem Repository mit `make build` (Docker und GNU `make`), Aufruf
+  über das Image `pgwire-recorder:dev` und, als Linux-Programm für die Architektur des bauenden
+  Rechners, das aus dem Image kopierte Binary. Binaries, Homebrew, Registry-Images und das
+  Compose-Beispiel mit `ghcr.io` entfallen; ein Compose-Beispiel, falls es bleibt, nutzt
+  `pgwire-recorder:dev` und läuft als Datei. §1 *Voraussetzungen* nennt keine Plattform, die die
+  Probe nicht zeigt (kein macOS, kein Windows). Die Abschnitte liefern
+  `slice-v1-abschluss-homebrew`, `slice-v1-abschluss-container`,
+  `slice-erster-release-veroeffentlichung` und `slice-erster-release-homebrew-nachweis`, je mit
+  ihrer Zeile zum Ist-Zustand in DoD und §3.
+- **Teilweise geliefert** — das Handbuch nennt eine Grenze als Eigenschaft des Binaries im
+  Präsens, wenn das Binary an ihr beobachtbar reagiert (Meldungscode, Exit-Code, Ablehnung) und
+  die Probe die Reaktion zeigt, etwa „Verlangt die Datenbank ein Passwort, endet `play` mit
+  `PGR-E4005`“ (so sagt es `play --help` selbst) oder „`record` und `replay` lehnen eine
+  Anfrage nach Verschlüsselung ab; ein Treiber mit `sslmode=prefer` verbindet sich
+  unverschlüsselt“. Eine Grenze ohne beobachtbare Reaktion bleibt ungenannt. Kein Satz sagt,
+  dass etwas kommt; der liefernde Slice ersetzt den Grenz-Satz.
+- **Verhalten neben der Spezifikation** — das Handbuch beschreibt das Binary, belegt durch die
+  Probe; Weglassen verschwiege dem Leser ein Verhalten, dem er begegnet. Je Fund eine Zeile in §7
+  (Stelle im Handbuch · Verhalten des Binaries · Stelle der Spezifikation), die an den Planner
+  geht; der Implementer hält dafür nicht an. Ist unklar, ob das Binary überhaupt ein stabiles
+  Verhalten zeigt (etwa wechselnd zwischen Läufen), beschreibt das Handbuch die Stelle nicht und
+  der Fund geht ebenso an den Planner.
+- **Verweise im README** — die Verweise auf `spec/`, `docs/plan/`, `docs/reviews/`, `AGENTS.md`
+  und `harness/README.md` bleiben, ohne Aussage über einen Stand: „Die Anforderungen stehen im
+  Lastenheft“ statt „Die vollständige Beschreibung steht im Lastenheft“. Der Punkt *Gates* zählt
+  die Ziele nicht auf, sondern zeigt auf `harness/README.md` §Sensors (seine Liste ist heute
+  unvollständig). Leitsatz und *Kerngedanke* fallen unter den Ist-Zustand wie die Einleitung
+  (DoD-Punkt 3).
+- **Wie geprüft wird** — Optionen je Kommando gegen `--help` des gebauten Binaries (`record`,
+  `replay`, `play`, `config show`); Umgebungsvariablen und Schlüssel der Konfigurationsdatei
+  gegen die Regel, die `--help` nennt, und je Beispieldatei mit `config show`; jedes Beispiel als
+  Datei gegen das Binary, `record` und `play` gegen das gepinnte PostgreSQL-Image (§3). Eine
+  Zeile in §7 *Fehlercodes* und *Warnungen* bleibt, wenn der Code im Katalog des Binaries steht
+  (`internal/hexagon/model/fehler.go`) **und** eine Probe oder ein Integrations- bzw. E2E-Test
+  ihn über das Binary auslöst; ein Sammelcode der Klasse (`PGR-E2000`, `PGR-E3000`, …), den der
+  Katalog nicht führt, entfällt aus der Zeile. Beleg je Abschnitt in §7.
+- **Abdeckungstabellen** `docs/user/abdeckung-*.md` — nicht Teil des Handbuch-Begriffs aus
+  §3.11: Sie sind Abdeckungs-Deklarationen der Tests, von `make abdeckung` erzeugt, und ihre
+  Verweise auf das Lastenheft sind ihr Zweck. Unberührt (§1).
+- **`docs/user/benutzerhandbuch-standard.md`** — unberührt (§1). Ein Abschnitt, den der Standard
+  verlangt und für den das Binary nichts liefert, behält seine Überschrift mit einem Ist-Satz
+  (etwa „Das Werkzeug kennt keine Rollen.“), statt zu entfallen.
 
 **Risiken:**
 
