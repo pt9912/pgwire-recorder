@@ -111,8 +111,9 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       unterstütztem Verfahren sendet `play` nichts; eine Fortsetzung im SCRAM-Austausch, die
       nicht passt, und eine nicht lesbare Anforderung eines unterstützten Verfahrens sind
       `PGR-E4005`, ein Verbindungsende während der Anmeldung `PGR-E4002`, nach dem Fehler
-      ohne `Terminate` (aus `slice-v1-abschluss-einspielen`, §6); das Passwort steht in keiner Meldung und
-      keiner Log-Zeile ([`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten)) (Test). Beleg in §7 für Punkt 1 und 2: je Zusage
+      ohne `Terminate` (aus `slice-v1-abschluss-einspielen`, §6); ein Signal in der Anmeldung folgt
+      den Regeln des Aufbaus; das Passwort steht in keiner Meldung und
+      keiner Log-Zeile, keiner Ursachenkette und in keiner Formatierung der Optionen ([`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten)) (Test). Beleg in §7 für Punkt 1 und 2: je Zusage
       Zusage · Mutation · roter Test (`AGENTS.md` §3.10). Die Abdeckungstabellen sind über `make abdeckung` nachgezogen.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -155,10 +156,11 @@ Kern, besonders gegen die Form, in der der Kern den Aufbau in `Open` einstuft
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer
   Review-Sitzung prüfbar. Schnitt dann: Klartext und MD5 hier, SCRAM-SHA-256 als eigener
-  Slice; jedes Verfahren wirkt für sich, beide Teile sind einzeln lieferbar.
+  Slice; jedes Verfahren wirkt für sich, beide Teile sind einzeln lieferbar. Der Schnitt senkt die Zahl der Schichten nicht (§8).
 - `in-progress` → `open` (blockiert — Carveout?): SCRAM-SHA-256 lässt sich mit
   `pgproto3` und der Standardbibliothek nicht bauen und verlangt eine weitere Bibliothek im
-  Upstream-Adapter; dann zuerst die Entscheidung (ADR) und die Regel in `.a-check.yml`.
+  Upstream-Adapter; dann zuerst die Entscheidung (ADR) und die Regel in `.a-check.yml`. Geprüft vom
+  Architect am 2026-10-10: trägt mit der Standardbibliothek, die Bedingung ist nicht eingetreten (§6, *Bibliothek für SCRAM*).
 
 ## 5. Closure-Trigger
 
@@ -221,6 +223,43 @@ an der genannten Stelle. Offen ist keine.
   statt 1. Entschieden vom Architect am 2026-10-10 dort: keine eigene Regel, der Ausschluss ruht
   auf dem Vertrag der Ports (Kommentar an `Verbinde`). Geprüft mit DoD-Punkt 2, der für jeden
   Fehlschlag den Code zusagt; kein neuer Liefer-Punkt.
+- **Weitere Randformen, vom Architect am 2026-10-10 vor dem ersten Code-Commit entschieden** [A]
+  — alle neu in `LH-FA-20.a` *Passwort*, *Verfahren* und *SCRAM-Austausch*:
+  - Quelle und Vorrang: Passwortteil der benutzten Verbindung, sonst
+    `PGWIRE_RECORDER_PASSWORD`, auch bei `--upstream` als `host:port`; beides schließt sich
+    aus (die Variable bleibt bei einem Passwortteil unbeachtet); unverändert, ohne Kürzen;
+    ein nicht verlangtes Passwort ist kein Fehler; NUL im Passwort kein Fall.
+  - Aufbau der Anforderungen: Klartext (Rumpf nur der Code), MD5 (Code und vier Byte Salz),
+    SASL (Namen mit NUL, leerer Name als Ende, nichts dahinter); jede Abweichung ist
+    `PGR-E4005`; MD5 mit dem `user` der gesendeten Startup-Daten, ohne ihn leer (akzeptiertes
+    Negativ: Ein Server fordert ohne `user` kein MD5; der Fall trägt keine eigene Zusage).
+  - Wahl von `SCRAM-SHA-256` (genaue Schreibweise); `SCRAM-SHA-256-PLUS` allein, leere Liste
+    und fehlendes `SCRAM-SHA-256` sind `PGR-E4005` ohne Senden; kein Wechsel des Verfahrens.
+  - Nachrichten des Austauschs: Aufbau und Reihenfolge von Server-erste-Nachricht
+    (`r=`, `s=`, `i=`, nichts sonst), Servernonce (Präfix der eigenen Nonce, länger), Salz
+    (Base64), Iterationszahl (1 bis 10 000 000, Grenze mit Grund in der Spezifikation),
+    Abschluss (`v=` allein); `e=`, falsche Signatur, jede unvorgesehene Nachricht im
+    Austausch `PGR-E4005`; weitere Fortsetzung nach dem Abschluss `PGR-E4002`; weitere
+    Anforderung nach einer Antwort außerhalb des Austauschs `PGR-E4002`.
+  - Kein Passwort und nichts Abgeleitetes in Meldung, Log und Ursachenkette; die Optionen
+    von `play` geben es bei einer Formatierung nicht aus (Test mit `%+v`).
+  - Abbruch in der Anmeldung: erstes Signal lässt den Aufbau zu Ende laufen, zweites schließt
+    ohne `Terminate`; die Regel liefert der Kern (*Abbruchsignal*), hier mit einem
+    Server geprüft, der nach der Passwort-Antwort schweigt (zu DoD-Punkt 2, kein neuer
+    Liefer-Punkt).
+  - `config show` ändert dieser Slice nicht: Platzhalter bleiben unaufgelöst, die Variable
+    steht nur mit Namen (*Anzeige*, Test des Kerns der Konfiguration); akzeptiertes Negativ
+    ohne neuen Test, weil die Regel für jede `PGWIRE_RECORDER_*`-Variable gilt.
+  - Frist: keine eigene beim Warten auf die Anmeldung (*Interaktion*, *Aufbau*); die
+    Berechnung von SCRAM ist nicht unterbrechbar und durch die Obergrenze der Iterationen auf
+    Sekunden begrenzt (akzeptiertes Negativ, Grund in der Spezifikation).
+- **Bibliothek für SCRAM** — entschieden: Standardbibliothek (`crypto/pbkdf2`, `crypto/hmac`,
+  `crypto/sha256`, `crypto/md5`, `crypto/rand`), keine weitere Bibliothek. Die SCRAM-Teile
+  von `pgconn` sind nicht exportiert, `pgproto3` stellt nur die Nachrichten
+  (`SASLInitialResponse`, `SASLResponse`, `PasswordMessage`). [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md)
+  bleibt unberührt, es regelt `pgproto3`; `.a-check.yml` und `gomodguard` verlangen für die
+  Standardbibliothek keinen Eintrag; keine neue ADR. Damit entfällt die Bedingung der
+  Rückführung `in-progress` → `open` in §4.
 - **Falsches Passwort** — der Server antwortet im Aufbau mit SQLSTATE-Klasse 28, das ist
   `PGR-E4005` nach der Regel *Aufbau* des Kerns (`LH-FA-20.a` *Aufbau*, Marke [K]); hier
   geprüft mit einer Anmeldung, dort mit einem unbekannten Benutzer.
@@ -305,5 +344,7 @@ Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-einspielen-anmeldung-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 2. Schichten: zwei Schichten nach der Teilung dieses Plans (Upstream-Adapter, CLI-Adapter; der Bootstrap reicht weiter, §1; die Zeile oben nennt die Zählung mit dem Bootstrap als eigener Schicht).
 
 Stand vor dem Beanspruchen (2026-10-10, Closure von `slice-v1-abschluss-einspielen-extended-doku`, ohne Schnitt): Die Tabelle in §3 führt den Upstream-Adapter, den CLI-Adapter und `internal/bootstrap` mit je einer eigenen Änderung (das Reichen des Passworts und den Kommentar zur Kopplung aus F-569), dazu Tests. Nach der Zählung in `AGENTS.md` §3.13 (im Produkt-Code zählt jede Schicht des Hexagons) sind das drei Schichten, nach der Teilung dieses Plans (der Bootstrap reicht weiter, §1) zwei; Liefer-Punkte: 2. Ob der Plan über der Grenze liegt, entscheidet der Architect vor dem ersten Code-Commit (§4 *Start*); der Schnitt, falls nötig, steht in §4 (Klartext und MD5 hier, SCRAM-SHA-256 als eigener Slice).
+
+Prüfung des Architect vor dem ersten Code-Commit (2026-10-10, `AGENTS.md` §3.13): Der Slice ändert Upstream-Adapter, CLI-Adapter und `internal/bootstrap` (ein Feld reichen, ein Kommentar). Zählt der Bootstrap wie in `slice-v1-abschluss-einspielen-laufsteuerung` und `slice-v1-abschluss-einspielen-extended` als Schicht, sind es drei Schichten, über der Grenze; nach dem Wortlaut („jede Schicht des Hexagons“, der Bootstrap steht in `.a-check.yml` unter `composition_root`, nicht unter `layers`) zwei. Der Schnitt in §4 (Klartext und MD5 hier, SCRAM-SHA-256 eigener Slice) senkt die Schichten nicht: Beide Teile brauchen CLI-Adapter, Upstream-Adapter und Bootstrap; er senkt nur den Umfang des Diffs. Die Zählung des Bootstrap entscheidet der Nutzer; bis dahin beginnt der Implementer keinen Code.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

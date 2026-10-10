@@ -1482,6 +1482,52 @@ offenlässt.
   ist `PGR-E4005`. Das Passwort geht unverändert in das Verfahren, ohne SASLprep
   (Grenze: Ein Passwort, das SASLprep ändern würde, kann bei SCRAM scheitern). Das
   Klartext-Passwort sendet `play` auch ohne TLS, wenn der Server es verlangt (Grenze).
+* *Passwort.* Schreibt die benutzte Verbindung einen Passwortteil, ist dessen eingesetzter
+  Wert das Passwort, und `PGWIRE_RECORDER_PASSWORD` bleibt unbeachtet, auch wenn sie gesetzt
+  ist. Sonst ist es der Wert dieser Variable, auch bei `--upstream` als `host:port`, wenn sie
+  gesetzt und nicht leer ist. Der Start liest beide Quellen einmal; das Passwort gilt
+  unverändert, ohne Kürzen von Leerraum, und ein Passwort, das niemand verlangt (der Server
+  meldet ohne Passwort an, die Aufzeichnung hat keine Session mit Interaktion), ist kein
+  Fehler. Ein Passwort mit einem NUL-Byte kommt nicht vor, weil eine Umgebungsvariable keines
+  tragen kann (kein Fall). Weder eine Meldung noch eine Log-Zeile noch die Ursachenkette eines
+  Fehlers der Anmeldung nennt das Passwort, einen daraus abgeleiteten Wert (Schlüssel, Beweis,
+  Signatur, Nonce, Salz) oder den Inhalt einer Nachricht des Austauschs (`SPEC-033`); die
+  Meldung nennt den Grund in eigenen Worten und, bei einer Fehlerantwort des Servers, deren
+  SQLSTATE und Meldung (*Meldungen*). Die Optionen von `play` tragen das Passwort so, dass
+  eine Formatierung der Optionen es nicht ausgibt.
+* *Verfahren.* `play` antwortet auf die Anforderung des Servers mit genau dem verlangten
+  Verfahren und wechselt es nicht. Klartext (Code 3): Der Rumpf ist nur der Code, jedes Byte
+  dahinter macht die Anforderung nicht lesbar (`PGR-E4005`); die Antwort ist das Passwort.
+  MD5 (Code 5): Der Rumpf ist der Code und genau vier Byte Salz, sonst nicht lesbar
+  (`PGR-E4005`); die Antwort ist `md5` und das hexadezimale MD5 aus dem hexadezimalen MD5 von
+  Passwort und Benutzer, gefolgt vom Salz; Benutzer ist der `user` der gesendeten
+  Startup-Daten, ohne `user` leer. SASL (Code 10): Der Rumpf ist der Code und die Namen der
+  Verfahren, je mit NUL abgeschlossen, danach ein leerer Name als Ende und kein Byte weiter,
+  sonst nicht lesbar (`PGR-E4005`). Gewählt wird `SCRAM-SHA-256`, verglichen in genau dieser
+  Schreibweise; fehlt es in der Liste, auch bei leerer Liste und bei nur
+  `SCRAM-SHA-256-PLUS`, ist das `PGR-E4005` ohne Senden. Eine weitere Anforderung der
+  Codes 3, 5 oder 10, nachdem `play` eine beantwortet hat, ist außerhalb des
+  SCRAM-Austauschs `PGR-E4002`.
+* *SCRAM-Austausch.* Nach RFC 5802 und RFC 7677 ohne Channel Binding. Die erste Nachricht
+  (`SASLInitialResponse`, Verfahren `SCRAM-SHA-256`) trägt den Kopf `n,,`, den Benutzer
+  `n=` leer (der Server nimmt den der Startup-Daten) und eine Nonce aus 18 Zufallsbytes,
+  Base64 kodiert. Die Fortsetzung des Servers (Code 11) besteht genau aus `r=`, `s=` und
+  `i=` in dieser Reihenfolge, durch Komma getrennt, ohne weiteres Attribut und ohne Zeichen
+  dahinter. `r=` beginnt mit der Nonce von `play` und ist länger; `s=` ist gültiges Base64;
+  `i=` ist eine Dezimalzahl aus Ziffern ohne Vorzeichen von 1 bis 10 000 000 (Grenze: Eine
+  höhere Zahl ist ein Fehler im Austausch, damit die Berechnung, die kein Signal
+  unterbricht, nur Sekunden dauert). Die Antwort (`SASLResponse`) trägt `c=biws`, die
+  Nonce des Servers und den Beweis. Der Abschluss des Servers (Code 12) ist genau `v=` und
+  die Base64-kodierte Signatur des Servers, ohne weiteres Attribut; eine abweichende
+  Signatur, ein anderer Aufbau, auch `e=`, ist ein Fehler im Austausch. Ein Fehler im
+  Austausch ist `PGR-E4005`, auch die Nachricht, die an dieser Stelle nicht vorgesehen ist:
+  ein Code 12 vor Code 11, ein Code 11 nach der Antwort, `AuthenticationOk` vor Code 12, eine
+  Anforderung der Codes 3, 5 oder 10. Eine Fehlerantwort, ein `ReadyForQuery` und die
+  verworfenen Nachrichten behandelt der Austausch wie sonst der Aufbau (*Aufbau*); mit
+  dem Abschluss ist der Austausch beendet, eine weitere Fortsetzung danach ist
+  `PGR-E4002` (*Anmelde-Nachrichten*). Ein Signal im Austausch gilt wie im Aufbau
+  (*Abbruchsignal*): das erste lässt ihn zu Ende laufen, das zweite schließt die Verbindung
+  ohne `Terminate`.
 * *Aufbau.* Der Aufbau reicht vom Verbindungsversuch bis zum ersten `ReadyForQuery`. Eine
   Fehlerantwort im Aufbau ist mit SQLSTATE-Klasse 28 `PGR-E4005`, mit jeder anderen
   `PGR-E4002`, gleich welcher Schweregrad. Ein Verbindungsende vor dem ersten
@@ -2686,3 +2732,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-09 | Einspielen: Aufbau vom Verbindungsversuch bis zum ersten `ReadyForQuery`, gescheitertes Senden darin `PGR-E4002`, abschließende Liste der Nachrichten im Aufbau (`BackendKeyData`, `ParameterStatus`, `NoticeResponse`, `NotificationResponse` verworfen, `ReadyForQuery` vor `AuthenticationOk` `PGR-E4002`); Anmelde-Nachrichten nach ihrem Code (Anforderung, Fortsetzung, `R` nach `AuthenticationOk`); Abbruch im Aufbau ohne `Terminate`; zweites Signal im Aufbau ohne `Terminate`, kein Fehler (`LH-FA-20.a`) |
 | 2026-10-10 | Einspielen: Zeilen `error` nach dem Ende des Einspielens, der abbrechende Fehler zuerst, danach die früheren Fehlerantworten in der Reihenfolge ihres Auftretens, `time` als Zeitpunkt des Schreibens, keine gleichrangigen Fehler; Fehlerantwort vor dem zweiten Signal ist eine Zeile; Exit-Code aus der Klasse der ersten Zeile, ein abbrechender Fehler nach dem ersten Signal mit dem Code seiner Klasse; Fehlerregeln in der zu Ende laufenden Session, keine Session nach dem Signal (`LH-FA-20.a`) |
 | 2026-10-10 | Einspielen: Extended-Interaktionen, Randformen vor dem Code (Zählen der Antworten einer `Flush`-Gruppe je Antwort und nicht je Art; Senden einer Gruppe und Lesen der Antworten unabhängig voneinander, kein Verklemmen bei großen Gruppen) (`LH-FA-20.a`) |
+| 2026-10-10 | Einspielen: Anmeldung, Randformen vor dem Code (Passwort aus Verbindung oder Umgebung ohne Mischen, kein Passwort und nichts Abgeleitetes in Meldung, Log und Ursachenkette, Aufbau der Anforderungen Klartext, MD5 und SASL, Wahl von `SCRAM-SHA-256`, Aufbau der Nachrichten und Grenzen des SCRAM-Austauschs, Iterationszahl bis 10 000 000, Nachricht an unvorgesehener Stelle im Austausch `PGR-E4005`, weitere Anforderung nach einer Antwort `PGR-E4002`) (`LH-FA-20.a`) |
