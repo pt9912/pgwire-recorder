@@ -101,7 +101,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `scram-sha-256` in `pg_hba.conf` an und spielt eine Aufzeichnung ein; das Passwort
       kommt aus dem Platzhalter der benutzten Verbindung, sonst aus
       `PGWIRE_RECORDER_PASSWORD`, eine leere Variable gilt als nicht gesetzt; verlangt der
-      Server kein Passwort, sendet `play` keines (Integrationstest). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
+      Server kein Passwort, sendet `play` keines (Integrationstest). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zum Passwort bei `play` — §1 *Voraussetzungen*, §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Voraussetzung und Hinweise: „ohne Passwort“), §5 *Konfigurationsdatei* („Ein Passwort in der URL setzt `play` ein, meldet sich damit aber nicht an“, dort mit DoD-Punkt 3) und §7 Zeile `PGR-E4005` („`play` meldet sich nur ohne Passwort an“) — und im README den Satz, dass die Datenbank den Benutzer ohne Passwort anmelden muss, soweit er `play` betrifft.
 - [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): Ein falsches Passwort, ein fehlendes Passwort, wenn der Server eines
       verlangt, ein nicht unterstütztes Verfahren (Kerberos, GSSAPI, SSPI, SASL ohne
       `SCRAM-SHA-256`) und jeder Fehler im SCRAM-Austausch (eine Nachricht des Servers, die
@@ -309,5 +309,7 @@ ersten Code-Commit (§4 *Start*).
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
+
+Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, `AGENTS.md` §3.13): Die Stellen liegen im ersten Liefer-Punkt und in denselben zwei Dateien (Handbuch, README); kein neuer Liefer-Punkt, keine neue Schicht, die Zählung der vorigen Zeile bleibt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

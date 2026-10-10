@@ -95,7 +95,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       IP-Adressen des Zertifikats; ein gesetztes `--upstream-tls`, auch ausdrücklich
       `false`, geht `sslmode=require` vor, aus jeder Quelle; ohne beides baut `play` keine
       TLS-Verbindung auf (Integrationstest gegen einen Server mit dem Zertifikat einer
-      eigenen Zertifizierungsstelle). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
+      eigenen Zertifizierungsstelle). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zu TLS und `sslmode=require` bei `play` — §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Hinweis „verbindet sich unverschlüsselt … `sslmode=require` ist bei `play` ungültig (`PGR-E2004`)“), §5 *Konfigurationsdatei* (Absatz zu `sslmode`, soweit er `play` betrifft, dort mit DoD-Punkt 3) und §1 *Voraussetzungen* (Zeile zur Verbindung zur Datenbank) — und im README den Satz „Alle Verbindungen laufen unverschlüsselt“, soweit er `play` betrifft.
 - [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): `N` auf das `SSLRequest`, ein Fehler der Aushandlung, ein abgelaufenes,
       ungültiges oder auf einen anderen Namen ausgestelltes Zertifikat und ein Server, der
       eine unverschlüsselte Verbindung ablehnt, sind `PGR-E4005`; ein anderes Byte, ein
@@ -301,5 +301,7 @@ vor dem ersten Code-Commit (§4 *Start*).
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
+
+Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, `AGENTS.md` §3.13): Die Stellen liegen im ersten Liefer-Punkt und in denselben zwei Dateien (Handbuch, README); kein neuer Liefer-Punkt, keine neue Schicht, die Zählung der vorigen Zeile bleibt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

@@ -47,7 +47,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol): Ein Client meldet sich über `record` an einem Server mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an und führt eine Anfrage aus; Passwort und Anmeldenachrichten stehen nicht in der Aufzeichnung (Integrationstest). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
+- [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol): Ein Client meldet sich über `record` an einem Server mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an und führt eine Anfrage aus; Passwort und Anmeldenachrichten stehen nicht in der Aufzeichnung (Integrationstest). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zum Passwort bei `record` — §1 *Voraussetzungen*, §4 *Eine Anwendung aufzeichnen* (Hinweise), §6 *Rollen und Rechte* („ohne Passwort“), §7 Zeile `PGR-E6001` (Ursache „beim Aufzeichnen verlangt die Datenbank ein Passwort“) und *Die Anwendung kann sich nicht verbinden* — und im README den Satz, dass die Datenbank den Benutzer ohne Passwort anmelden muss, soweit er `record` betrifft.
 - [ ] Eine fehlgeschlagene Anmeldung geht als Fehlerantwort des Servers unverändert an den Client; ein nicht vermitteltes Verfahren endet mit eindeutigem Meldungscode (Test).
 - [ ] Der Port zwischen PGWire-Adapter, Record-Service und Upstream-Adapter trägt den Anmeldeaustausch, ohne dass der Core PGWire-Typen kennt (`make a-check`).
 - [ ] `make gates` grün.
@@ -133,5 +133,7 @@ nicht mehr.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
 Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
+
+Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, `AGENTS.md` §3.13): Die Stellen liegen im ersten Liefer-Punkt und in denselben zwei Dateien (Handbuch, README); kein neuer Liefer-Punkt, keine neue Schicht, die Zählung der vorigen Zeile bleibt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

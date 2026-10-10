@@ -211,8 +211,8 @@ findet und ersetzt.
 - **Verweise im README** — die Verweise auf `spec/`, `docs/plan/`, `docs/reviews/`, `AGENTS.md`
   und `harness/README.md` bleiben, ohne Aussage über einen Stand: „Die Anforderungen stehen im
   Lastenheft“ statt „Die vollständige Beschreibung steht im Lastenheft“. Der Punkt *Gates* zählt
-  die Ziele nicht auf, sondern zeigt auf `harness/README.md` §Sensors (seine Liste ist heute
-  unvollständig). Leitsatz und *Kerngedanke* fallen unter den Ist-Zustand wie die Einleitung
+  die Ziele nicht auf, sondern zeigt auf `harness/README.md` §Sensors (der Gate-Index steht einmal dort, `AGENTS.md` §4; eine zweite Liste im README
+  driftete gegen ihn). Leitsatz und *Kerngedanke* fallen unter den Ist-Zustand wie die Einleitung
   (DoD-Punkt 3).
 - **Wie geprüft wird** — Optionen je Kommando gegen `--help` des gebauten Binaries (`record`,
   `replay`, `play`, `config show`); Umgebungsvariablen und Schlüssel der Konfigurationsdatei
@@ -284,17 +284,40 @@ mit gesetzter Variable gegen `impl-doku-pgpw`: `PGR-E4005`, Exit 4). Probe
 `play.upstream_tls`, `play.password` je `PGR-E2004` „unbekannter Schlüssel“, Exit 2; `force: true`
 ersetzt.
 
-**Prüfskript als Gegenprobe** (Scratch, nicht im Repo; vergleicht jede Option des Handbuchs mit
-`--help`, jede Variable mit einer Option, jeden Code mit dem Katalog
-`internal/hexagon/model/fehler.go`):
+**Prüfung als Befehlsfolge** (aus dem Wurzelverzeichnis des Repos nach `make build`; `W` ist ein
+Verzeichnis außerhalb des Repos; vergleicht jede Option des Handbuchs mit `--help`, jede Variable
+mit einer Option, jeden Code mit dem Katalog `internal/hexagon/model/fehler.go`):
+
+```bash
+{ docker run --rm pgwire-recorder:dev --help
+  for k in record replay play "config show"; do docker run --rm pgwire-recorder:dev $k --help; done; } > $W/help.txt 2>&1
+grep -oE -- '--[a-z][a-z-]*' docs/user/benutzerhandbuch.md | sort -u > $W/o-hb
+grep -oE -- '--[a-z][a-z-]*' $W/help.txt | sort -u > $W/o-help
+comm -23 $W/o-hb $W/o-help          # Optionen des Handbuchs, die --help nicht kennt
+grep -oE 'PGWIRE_RECORDER_[A-Z_]+' docs/user/benutzerhandbuch.md | sort -u > $W/v-hb
+sed 's/^--//' $W/o-help | tr 'a-z-' 'A-Z_' | sed 's/^/PGWIRE_RECORDER_/' | sort -u > $W/v-help
+comm -23 $W/v-hb $W/v-help          # Variablen ohne Option
+grep -oE 'PGR-[EW][0-9]{4}' docs/user/benutzerhandbuch.md | sort -u > $W/c-hb
+grep -oE 'PGR-[EW][0-9]{4}' internal/hexagon/model/fehler.go | sort -u > $W/c-kat
+comm -23 $W/c-hb $W/c-kat           # Codes außerhalb des Katalogs
+```
 
 | Stand | Ergebnis |
 |---|---|
 | Handbuch `HEAD` (`248a248`) | rot: 13 unbekannte Optionen, 14 Variablen ohne Option, 9 Codes nicht im Katalog (`PGR-E2000`, `E2003`, `E2007`, `E3000`, `E5000`, `E5004`, `E6000`, `E6003`, `W3002`) |
-| Handbuch nachher | grün |
-| Mutante: Satz mit `--compare-responses` zurück | rot, `Option unbekannt: --compare-responses` |
-| Mutante: Zeile `PGWIRE_RECORDER_PASSWORD` zurück | rot, `Variable ohne Option` |
-| Mutante: Zeile `PGR-E5004` zurück | rot, `Code nicht im Katalog` |
+| Handbuch nachher (Stand der Nacharbeit) | grün: bei den Optionen nur `--h`, `--help`, `--version` (das Handbuch nennt sie als Nicht-Optionen) und `--rm`, `--name` (`docker run`); bei den Variablen und Codes keine Ausgabe; das Handbuch nennt 14 Variablen |
+| Mutante: Satz mit `--compare-responses` zurück | rot, `--compare-responses` in der ersten Ausgabe |
+| Mutante: Zeile `PGWIRE_RECORDER_PASSWORD` zurück | rot, die Variable in der zweiten Ausgabe |
+| Mutante: Zeile `PGR-E5004` zurück | rot, der Code in der dritten Ausgabe |
+
+Die Befehlsfolge prüft Namen, nicht die Zuordnung zu Kommandos, Standardwerte und Exit-Codes; die
+14 Datenzeilen der Tabelle in §5 sind von Hand gegen `--help` gehalten, die Exit-Codes durch die
+Proben unten. Kein Optionspaar lehnt das Binary ab: `--help` nennt keine Kombinationsregel, und
+`grep -rniE 'kombination|zusammen mit|nicht zusammen' internal --include=*.go` findet im Code
+nichts dergleichen; darum nennt die Zeile `PGR-E2001` in Handbuch §7 keine Kombination
+(Review F-571). Zu Plan §6 *Verweise im README* (F-572): `harness/README.md` §Sensors führt alle
+14 Ziele von `GATE_CHECKS` (`make -pn gates`), je eine Tabellenzeile; der Satz im README
+(„welche es sind und was jedes prüft, steht in …“) stimmt.
 
 Ein Vertrag (§3.10) entsteht nicht; die Mutationen belegen nur, dass die Prüfung oben greift.
 
@@ -357,7 +380,7 @@ Ein Vertrag (§3.10) entsteht nicht; die Mutationen belegen nur, dass die Prüfu
 | §4 Verschlüsselte Verbindungen | Abschnitt entfernt | `--tls-cert`, `--tls-key`, `--allow-plaintext`: `PGR-E2001` | — |
 | §4 Einspielen | ohne Passwort-Schritt, ohne Zeit-, Vergleichs- und TLS-Hinweise; Grenzen Passwort (`PGR-E4005`), `sslmode=require` (`PGR-E2004`), Extended (`PGR-E6001`) | Proben oben, `play_e2e_test.go` (`TestE2EPlayZwischenstand`) | Abschlusszeile mit Zählern entfernt (Probe: `play beendet` ohne Zähler) |
 | §4 Treiber | `record` und `replay` mit beiden Protokollen, ohne Verschlüsselung | `psql sslmode=prefer` | wie beschrieben |
-| §5 Einstellungen | Tabelle mit 16 Zeilen wie `--help`; `sslmode=require` bei `record` und `play` ungültig, unbenutzt gültig; Passwort in der URL ohne Anmeldung | Proben oben (`config show` mit `require` Exit 0) | wie beschrieben |
+| §5 Einstellungen | Tabelle mit 14 Zeilen (Datenzeilen, eine je Option) wie `--help`; `sslmode=require` bei `record` und `play` ungültig, unbenutzt gültig; Passwort in der URL ohne Anmeldung | Proben oben (`config show` mit `require` Exit 0) | wie beschrieben |
 | §5 Exit-Codes | Zeile 5 ohne Vergleich | — | Zeilen 1–6 bleiben |
 | §6 Rollen | `record` ohne Passwort; `replay` nimmt jede Anmeldung an | `psql user=wer dbname=anders` mit `PGPASSWORD` an `replay`: Antworten wie aufgezeichnet | wie beschrieben |
 | §7 Fehlerbehebung | Codes oben; *Die Anwendung kann sich nicht verbinden* ohne TLS-Optionen | Proben oben | wie beschrieben |
@@ -386,6 +409,30 @@ beschreibt das Verhalten der ersten Version“ und „liegen vor“ entfernt; *G
 
 Keine weitere Abweichung gefunden; das Fehlen der Optionen oben ist Zielstand der Folge-Slices, keine
 Abweichung.
+
+**Sendungen an die Folge-Slices** (Review F-570; §3.13): Jeder Nehmer trägt in seiner DoD (erster
+Liefer-Punkt) hinter der allgemeinen Ist-Zustand-Zeile einen Satz „Aus `slice-doku-ist-stand` …“ mit
+den Stellen, und in §8 eine Zeile zur Nachzählung (kein neuer Liefer-Punkt, keine neue Schicht).
+`grep -l slice-doku-ist-stand docs/plan/planning/next/*.md` findet die neun Nehmer.
+
+| Sendung | Nehmer | Stelle |
+|---|---|---|
+| Installation | `slice-v1-abschluss-container` | Handbuch §2 *Container*, *Das Binary aus dem Image*, §1 Plattform-Zeile |
+| Installation | `slice-erster-release-veroeffentlichung` | Handbuch §2 Release-Binaries und Registry-Images, §1 Plattform-Zeile |
+| Installation | `slice-v1-abschluss-homebrew` | Handbuch §2 Homebrew-Abschnitt, soweit der Probe-Tap ihn belegt |
+| Installation | `slice-erster-release-homebrew-nachweis` | Handbuch §2 Homebrew-Befehle, §1 Plattform-Zeile (macOS) |
+| Grenz-Satz Passwort `record` | `slice-v1-abschluss-anmeldung` | Handbuch §1, §4 (Aufzeichnen), §6, §7 `PGR-E6001` und *Die Anwendung kann sich nicht verbinden*; README |
+| Grenz-Satz Passwort `play` | `slice-v1-abschluss-einspielen-anmeldung` | Handbuch §1, §4 (Einspielen), §5, §7 `PGR-E4005`; README |
+| Grenz-Satz Extended `play` | `slice-v1-abschluss-einspielen-extended` | Handbuch §4 (Einspielen), §7 `PGR-E6001`; README |
+| Grenz-Satz TLS `play` | `slice-v1-abschluss-einspielen-tls` | Handbuch §4 (Einspielen), §5 `sslmode`, §1; README |
+| Grenz-Satz TLS zum Client | `slice-v1-abschluss-tls-client` | Handbuch §1, §4 (Treiber), §7 *Die Anwendung kann sich nicht verbinden*; README |
+
+Gelesen vor dem Eintragen: §1 *Ausdrücklich NICHT* und DoD jedes Nehmers; kein Ausschluss trifft
+die Sendung. Nachgezählt: Die allgemeine Zeile stand schon im ersten Liefer-Punkt jedes Nehmers; der
+Satz präzisiert sie, ohne Liefer-Punkt und ohne Schicht hinzuzufügen. Zählt die Dokumentation dagegen als Schicht (so zählt §8 dieses Plans), liegen
+`slice-v1-abschluss-einspielen-anmeldung`, `slice-v1-abschluss-einspielen-extended` und
+`slice-v1-abschluss-einspielen-tls` mit ihren zwei Code-Schichten schon durch die allgemeine Zeile
+bei drei; das hängt nicht an dieser Sendung und geht als Hinweis an den Planner.
 
 **Größe:** Diff des Handbuchs +102/−214 Zeilen, README +26/−33; überwiegend Streichungen, in einer
 Review-Sitzung prüfbar — die Rückführung aus §4 greift nicht.
