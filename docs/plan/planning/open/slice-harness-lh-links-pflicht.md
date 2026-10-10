@@ -37,7 +37,9 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 Nummer) und eine Kennung des Adaptions-Blocks (Präfix `MR-` mit drei Ziffern) ohne Link als
 Befund (`id-unlinked`), der lebende Bestand trägt beide als Links (ADRs und Nutzer- und
 Wartungs-Doku vorab durch `slice-harness-lh-links-bestand`), und der Block *Strenges
-Doc-Gate* der Workflow-Commands sagt genau dieses Verhalten zu.
+Doc-Gate* der Workflow-Commands sagt über das Gate weiter nichts zu: Die Pflicht trägt
+`.d-check.yml`, der Satz, `LH-` sei noch nicht erzwungen, entfällt (Entscheidung des Nutzers
+vom 2026-10-10, Verifikation V-146 zu `slice-harness-d-check-v0-85`).
 
 **Sendung aus `slice-harness-d-check-v0-85`** (`AGENTS.md` §3.13; Entscheidung des Nutzers
 vom 2026-10-09 *DoD berichtigen + eigener Slice*):
@@ -60,8 +62,9 @@ vom 2026-10-09 *DoD berichtigen + eigener Slice*):
   Der Geber fasst ihn nach Entscheidung des Nutzers vom 2026-10-10 ohne Zusage über das
   Verhalten des Gates (sein DoD-Punkt 1, `AGENTS.md` §3.11): Regel, Kennungen als Anker-Links
   zu schreiben, `LH-` noch nicht erzwungen, `.d-check.yml` legt fest, `make docs-check` ist
-  maßgeblich. Ob dieser Slice dort wieder ein Verhalten zusagt (DoD-Punkt 3), ist beim
-  Übergang `open` → `next` zu entscheiden; mindestens fällt der Satz zu `LH-` weg.
+  maßgeblich. Nach Entscheidung des Nutzers vom 2026-10-10 (Verifikation V-146 zum Geber)
+  sagt dieser Slice dort kein Verhalten zu; die Pflicht trägt `.d-check.yml`, und der Satz zu
+  `LH-` fällt weg (DoD-Punkt 1). Ein eigener DoD-Punkt *Aussage über das Gate* entfällt.
 
 **Geschnitten am 2026-10-09** (Planner, Review F-556 zu `slice-harness-d-check-v0-85`): Mit
 der Schichtteilung in §8 berührte der Bestand in ADRs und in Nutzer- und Wartungs-Doku eine
@@ -128,18 +131,17 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Kopien des Arbeitsbaums (Beleg in §7: Zusage · Mutation · Befundzeile, `AGENTS.md`
       §3.10): eine blanke Lastenheft-Kennung und eine blanke MR-Kennung in einer gescannten,
       nicht ausgenommenen Datei sind je rot (`id-unlinked`), dieselben als Link und in einer
-      ausgenommenen Datei grün, und je entschiedene Randform aus §6 ein Fall.
+      ausgenommenen Datei grün, und je entschiedene Randform aus §6 ein Fall. Im Block
+      *Strenges Doc-Gate* von `.claude/commands/implement-slice.md`,
+      `.claude/commands/plan-welle.md` und `.claude/commands/close-welle.md` entfällt der Satz,
+      das Gate erzwinge `LH-`-Kennungen ohne Link noch nicht; eine Zusage über das Gate kommt
+      nicht hinzu (Nebenbefund aus `slice-harness-d-check-v0-85`, Entscheidung des Nutzers
+      vom 2026-10-10).
 - [ ] **Bestand verlinkt:** Jede blanke Lastenheft- und MR-Kennung in den gescannten, nicht
       ausgenommenen Dateien unter `spec/`, `harness/`, in lebenden Plänen und in der Roadmap
       ist ein Link auf ihre Definition; ADRs und Nutzer- und Wartungs-Doku verlinkt
       `slice-harness-lh-links-bestand` vorab. `make docs-check` meldet 0 Befunde mit den
       Mustern aus Punkt 1.
-- [ ] **Aussage über das Gate** (Nebenbefund aus `slice-harness-d-check-v0-85`): Der Block
-      *Strenges Doc-Gate* in `.claude/commands/implement-slice.md`,
-      `.claude/commands/plan-welle.md` und `.claude/commands/close-welle.md` sagt die
-      Linkpflicht für Lastenheft- und MR-Kennungen so zu, wie Punkt 1 sie liefert,
-      Ausnahmen eingeschlossen, und nicht weiter (`AGENTS.md` §3.11); jede Zusage dort hat
-      eine Zeile der Gegenprobe in §7.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -161,7 +163,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `spec/spezifikation.md` §11 | update | neue Stelle: Linkpflicht der Kennungen im Doku-Gate mit den Randformen aus §6 (Architect, vor dem Code) |
 | `.d-check.yml` | update | `ids`-Muster für Lastenheft- und MR-Kennungen nach der Spezifikation; Kommentare über `ids` und die Klasse `adaptionsblock` auf den gemessenen Stand |
 | gescannte, nicht ausgenommene `.md` unter `spec/`, `harness/`, lebende Pläne, Roadmap | update | blanke Kennungen als Links; mechanisch, keine Aussage ändert sich. ADRs und Nutzer- und Wartungs-Doku: `slice-harness-lh-links-bestand` |
-| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate* auf das gelieferte Verhalten |
+| `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate*: der Satz zu `LH-` entfällt, keine Zusage über das Gate (DoD-Punkt 1, Entscheidung des Nutzers vom 2026-10-10) |
 | dieser Plan, §7 | update | Messung beim Start, Gegenprobe, Läufe |
 
 - Eine angenommene ADR wird nicht inhaltlich überschrieben (`AGENTS.md` §3.5). Ob ein Link
@@ -302,10 +304,13 @@ unter `evidence/`). Treffer:
 
 - `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (2×, offen) — Herkunft dieses
   Slice: DoD-Punkt 1 von `slice-harness-d-check-v0-85` las `.d-check.yml` als Linkpflicht
-  für Lastenheft-Kennungen. Ob das der dritte Beleg ist, entscheidet die Closure des Gebers;
-  hier daraus das erste Risiko in §6 und die Gegenprobe je Ausnahme.
-- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (27×, verkörpert, `AGENTS.md` §3.11) —
-  DoD-Punkt 3: jede Zusage im Block *Strenges Doc-Gate* mit einer Zeile der Gegenprobe.
+  für Lastenheft-Kennungen. Die Closure des Gebers zählt das nicht als Beleg (Entscheidung
+  des Nutzers vom 2026-10-10: die Konfiguration war richtig, falsch war die Prosa), der
+  Eintrag bleibt 2×; hier daraus das erste Risiko in §6 und die Gegenprobe je Ausnahme.
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (28×, verkörpert, `AGENTS.md` §3.11,
+  mit dem Zusatz zur Prosa über ein Gate seit slice-harness-d-check-v0-85) — der Block
+  *Strenges Doc-Gate* sagt kein Verhalten des Gates zu; DoD-Punkt 1 streicht dort nur den
+  Satz zu `LH-`.
 - `BEO-REPO/spec-randform-erst-im-review-entschieden` (18×, verkörpert, §3.12) und
   `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (1×, offen) — der Slice ist wellenlos
   und liefert einen neuen Vertrag; die Randformen stehen deshalb schon in §6, und der Weg zum
@@ -331,7 +336,12 @@ unter `evidence/`). Treffer:
   Spezifikation und `.d-check.yml`; weiter drei Liefer-Punkte und zwei Schichten. Nachgezählt
   mit der Randform *Von d-check ausgelassene Verzeichnisse* (Verifikation V-139 zu
   `slice-harness-d-check-v0-85`): ebenso eine Frage an den Architect, entschieden in der
-  Spezifikation; weiter drei Liefer-Punkte und zwei Schichten.
+  Spezifikation; weiter drei Liefer-Punkte und zwei Schichten. Nachgezählt nach der
+  Entscheidung des Nutzers vom 2026-10-10 (V-146 zum Geber, Closure des Gebers): Der
+  DoD-Punkt *Aussage über das Gate* entfällt, das Streichen des Satzes zu `LH-` im Block
+  gehört zu Punkt 1; **zwei Liefer-Punkte** (Muster mit Gegenprobe, Bestand) und weiter
+  **zwei Schichten** (Spezifikation; Harness: `.d-check.yml`, Commands, Links in
+  `harness/`).
 
 Keiner der Einträge erreicht mit diesem Plan neu die Schwelle 3×.
 
