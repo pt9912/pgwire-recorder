@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen-anmeldung
+**Fund:** Die Zusage „`s=` und `v=` mit gesetzten Restbits werden angenommen“ hatte keinen Test: Der Mutant `.Strict()` in `dekodiereBase64` blieb in allen Paketen grün, obwohl §6 und §7 zwei Tests dafür nannten (Verifikation V-162, HIGH). Die Tests stehen seit `63e312d`; der Mutant ist rot in `TestAnmeldungScramSalzNichtKanonisch/Restbits_gesetzt` und `TestAnmeldungScramSignaturNichtKanonisch/Restbits_gesetzt`, von der Closure nachgefahren.

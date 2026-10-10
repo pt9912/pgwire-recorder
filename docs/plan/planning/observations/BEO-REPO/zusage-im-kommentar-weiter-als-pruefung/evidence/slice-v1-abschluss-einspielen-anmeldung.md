@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen-anmeldung
+**Fund:** Der Kommentar am Typ `Passwort` sagte, jede Formatierung eines Werts, der ein Passwort trägt, verrate es nicht. Das galt nur für den Typ in einem exportierten Feld: `fmt` ruft `Format` eines unexportierten Felds nicht, `%+v` auf `zugang`, `anmeldung` und `scramAustausch` gab das Passwort aus; ein Test formatierte nur `Einspielziel` (Review F-591, MEDIUM). Behoben in `b263135` mit `Format` an den Strukturen und `TestAnmeldungStrukturenOhnePasswort`.

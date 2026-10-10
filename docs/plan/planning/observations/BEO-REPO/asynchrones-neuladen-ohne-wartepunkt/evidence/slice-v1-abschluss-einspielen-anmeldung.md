@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen-anmeldung
+**Fund:** `tools/test/run-integration-tests.sh` legt die drei Benutzer in `pg_hba.conf` an und ruft `pg_reload_conf()`, ohne zu warten; bis zur Wirkung gilt `trust` für sie, ein Fehlerfall mit `28P01` schlüge in diesem Fenster fehl (Review F-595, INFO). In keinem Lauf des Reviews, der Verifikation und der Nacharbeit aufgetreten (rund 120 Anmeldungen der Verifikation); kein Eingriff.

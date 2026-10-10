@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen-anmeldung
+**Fund:** Der Kommentar in `test/integration/play_anmeldung_e2e_test.go` („Ein unverlangtes Passwort wäre für den Server eine ungültige Nachricht, und das Einspielen gelänge nicht“) steht im Konjunktiv über den Fehlerfall und trägt die Kopplung des Tests an das Verhalten des Servers (Review F-594, INFO). Der E2E-Mutant (Passwort bei `AuthenticationOk`) ist rot, die Kopplung hält; kein Eingriff.
