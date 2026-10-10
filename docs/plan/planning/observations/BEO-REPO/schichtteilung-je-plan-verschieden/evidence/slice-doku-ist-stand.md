@@ -1,0 +1,2 @@
+**Vorgang:** slice-doku-ist-stand
+**Fund:** Der Geber `slice-doku-ist-stand` zählte die Dokumentation als Schicht (§8), die neun Nehmer schrieben „Handbuch und README zählen als Dokumentation, nicht als Schicht“ in ihre Zeilen *Nachgezählt*. Nach der Teilung von `slice-harness-d-check-v0-85` §8 lagen `slice-v1-abschluss-einspielen-anmeldung`, `-extended`, `-tls` und weitere schon durch ihren Handbuch-Teil über zwei Schichten (Verifikation V-151). Entscheidung des Nutzers vom 2026-10-10: eine Zählweise für alle Pläne, Doku-Folge-Slices; `AGENTS.md` §3.13 geschärft.

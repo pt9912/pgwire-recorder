@@ -249,7 +249,11 @@ Binary heute zeigt. Keine Chronik („noch nicht“, „kommt mit“, „bis zu�
 Zielbild steht in `spec/`. Das Handbuch verweist nicht auf Spezifikation, Lastenheft, ADRs,
 Slices, Wellen oder Reviews. `README.md` darf auf `spec/` zeigen (Verweis nach oben,
 `harness/README.md` §Source precedence), ohne Chronik und ohne zu sagen, was davon noch kommt.
-Ein Slice, der Verhalten liefert, liefert im selben Zug seinen Teil von Handbuch und README.
+Ein Slice, der Verhalten liefert, liefert seinen Teil von Handbuch und README im selben Slice
+oder, wenn die Schichtzählung (§3.13) das nicht zulässt, im Doku-Folge-Slice `<Kennung>-doku`
+direkt dahinter, in derselben Welle. Die Welle schließt erst mit beiden, und ein Release
+entsteht erst danach; zwischen Code-Slice und Doku-Slice hinkt das Handbuch dem Binary hinterher
+(seit slice-doku-ist-stand, Entscheidung des Nutzers vom 2026-10-10).
 
 **Falsch:** Das Handbuch beschreibt `--compare-responses` bei `play`, das das gebaute Binary mit
 `PGR-E2001` ablehnt, und eine Closure nimmt den Zielstand bis zum Ende der Welle hin.
@@ -332,6 +336,22 @@ einen Nehmer einträgt, zählt im selben Commit dessen Liefer-Punkte und Schicht
 mit der Sendung (Baseline-Regelwerk `modul-05-planning-harness.md` §Ziel-Form: Slice:
 höchstens drei Liefer-Punkte, höchstens zwei Schichten). Läge der Nehmer darüber, geht der
 Punkt an den Planner statt in den Nehmer.
+
+**Schichten zählen alle Pläne gleich** (seit slice-doku-ist-stand, Entscheidung des Nutzers
+vom 2026-10-10): nach der Teilung in `slice-harness-d-check-v0-85` §8. Nutzer- und
+Wartungs-Doku (`docs/user/`, `docs/maintainer/`, `README.md`) ist eine Schicht, die Planung
+(Pläne, Roadmap, Register) keine; im Produkt-Code zählt jede Schicht des Hexagons, ebenso ihre
+Tests. Liegt ein Slice mit seinem Handbuch- und README-Teil über zwei Schichten, geht dieser
+Teil in einen eigenen Slice `<Kennung>-doku` direkt hinter ihm (§3.11).
+
+**Falsch:** Ein Plan schreibt „Handbuch und README zählen als Dokumentation, nicht als Schicht“
+und bleibt mit zwei Code-Schichten bei zwei.
+**Richtig:** Der Plan zählt die Dokumentation als dritte Schicht und gibt ihren Teil an den
+Doku-Folge-Slice ab.
+
+**Begründung:** Geber und Nehmer zählten im selben Commit mit verschiedenen Teilungen
+(`BEO-REPO/schichtteilung-je-plan-verschieden`). Entfernen oder Lockern setzt den
+Retirement-Check voraus: Ist die Beobachtung seit slice-doku-ist-stand wieder aufgetreten?
 
 **Falsch:** Die siebte Übernahme wandert in einen vorhandenen Liefer-Punkt; der Nehmer
 bleibt bei drei Punkten und berührt vier Schichten, die Größe findet erst die Prüfung des
