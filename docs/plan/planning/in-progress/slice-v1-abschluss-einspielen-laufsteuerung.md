@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration), [`LH-FA-14`](../../../../spec/lastenheft.md#lh-fa-14--diagnoseausgaben), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0014](../../adr/0014-konfigurationsdatei.md), [ADR-0017](../../adr/0017-einspielen-sequenziell-und-fehlersemantik.md)
 
-**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-17.a` · `LH-FA-14.a` · `SPEC-017` · `SPEC-034` · `ARC-002` · `ARC-005`
+**Berührte Spec-Stellen:** `LH-FA-20.a` · `LH-FA-17.a` · `LH-FA-14.a` · `SPEC-017` · `SPEC-034` · `ARC-002` · `ARC-003` · `ARC-005`
 
 **Verantwortlich:** pt9912
 
@@ -89,7 +89,12 @@ Kerns, die das prüfen, ändert dieser Slice.
   Ergebnis des Laufs, aus dem der Bootstrap den Exit-Code bildet, entscheidet der
   Play-Service. Der Kern reicht die Optionen von `play` und die Signale an den Play-Service
   (dort §3). Braucht dieser Slice eine Änderung im Bootstrap oder im Upstream-Adapter, ist
-  das eine dritte Schicht und die Rückführung in §4.
+  das eine dritte Schicht und die Rückführung in §4. Der Driving Port `Player` (Schicht
+  *Ports*, `ARC-003`, nicht *Application*) ändert sich nur im Kommentar, der den Vertrag von
+  `Play` nennt, den der Play-Service erfüllt (`AGENTS.md` §3.7); Signatur und Importe bleiben.
+  Das zählt nicht als dritte Schicht: Die Größenregel misst, ob der Diff in einer
+  Review-Sitzung prüfbar ist, und ein Kommentar, der dem Service folgt, ändert daran nichts;
+  eine Änderung an Signatur oder Typen eines Ports wäre die Rückführung in §4.
 
 ## 2. Definition of Done
 
@@ -271,7 +276,20 @@ entschieden am 2026-10-10“ heißt: im Commit dieser Prüfung in `LH-FA-20.a`. 
   Fehler, der mit dem zweiten Signal zusammenfällt, kann als Unterbrechung gelten (Bestand
   des Kerns, *Abbruchsignal*). (d) Der Hilfetext von `play` nennt die drei Optionen; sein
   Wortlaut ist kein Vertrag (`LH-FA-01.a`) und sagt nur zu, was ein Test prüft (`AGENTS.md`
-  §3.11).
+  §3.11). (e) Ein abbrechender Fehler ohne Meldungscode nach einem früheren `PGR-E4004` hinge
+  nach `SPEC-034` *Ausgabe* als Ursache an die erste Meldung, Exit-Code 4 statt 1; entschieden
+  vom Architect am 2026-10-10 auf Rückgabe des Implementers (§7): keine Regel in `LH-FA-20.a`
+  oder `SPEC-034`, kein Code, kein Test. Grund: Am Code `de00222` entsteht er nicht. Laden und
+  `Validate` laufen im Start vor jeder Interaktion (Fehler beim Laden ohne Code ist dort der
+  Fall `PGR-E1000` von `SPEC-034`, ohne früheren Fehler); die Fehler des Play-Service selbst
+  tragen einen Code, `eingeordnet` behält ihn; der Upstream-Adapter liefert nur klassifizierte
+  Fehler, auch beim abgebrochenen Aufbau; `ctx` (erstes Signal) erreicht den Adapter nicht, und
+  Fehler nach dem zweiten Signal verwirft `Play`. Ausgeschlossen ist der Fall durch den
+  Vertrag des Ports `Einspielziel` und `EinspielSession` (je Fehler sein Code), an den auch
+  `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` mit
+  neuen Fehlern im Aufbau gebunden sind; bräche ein Adapter ihn, bliebe der Text als Ursache
+  sichtbar und der Exit-Code ungleich 0. Eine eigene Regel für `play` teilte die allgemeine
+  Regel von `SPEC-034`.
 - **Ablösung des Stands *unbekannt*** — bis zu diesem Slice sind die drei Optionen bei `play`
   unbekannt, ohne eigene Regel (§6 von `slice-v1-abschluss-einspielen`, *Optionen der
   Laufsteuerung*); dieser Slice ändert die Tests des Kerns dazu, die Spezifikation nicht.
@@ -381,7 +399,8 @@ Fehler ohne Meldungscode nach einem früheren `PGR-E4004` · Der Port `Einspielz
 jeden Fehler einen Code zu, und der Upstream-Adapter liefert nur klassifizierte Fehler; käme doch
 einer ohne Code, hinge `model.Meldungen` ihn als Ursache an die erste klassifizierte Meldung
 (`SPEC-034` *Ausgabe*), und der Exit-Code wäre 4 statt 1. Genügt der Port-Vertrag als
-Ausschluss, oder braucht `LH-FA-20.a` *Exit-Code* eine Zeile dazu?
+Ausschluss, oder braucht `LH-FA-20.a` *Exit-Code* eine Zeile dazu? — Entschieden in §6,
+akzeptiertes Negativ (e).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -423,6 +442,11 @@ die Rückführung *dritte Schicht* in §4.
 Nachgezählt bei der Vorab-Prüfung des Architect am 2026-10-10: Die neu entschiedenen
 Randformen in §6 sind Randformen, keine Liefer-Punkte; keine neue Zuweisung an einen anderen
 Slice. Drei Liefer-Punkte, zwei Schichten (CLI-Adapter, Play-Service), kein Code im Bootstrap.
+
+Nachgezählt bei der Rückgabe des Implementers am 2026-10-10: Der Kommentar des Driving Ports
+`Player` liegt in der Schicht *Ports*, nicht im Play-Service; §1 nennt ihn jetzt und warum er
+keine dritte Schicht ist. Drei Liefer-Punkte, zwei Schichten mit Code (CLI-Adapter,
+Play-Service), kein Code im Bootstrap.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
