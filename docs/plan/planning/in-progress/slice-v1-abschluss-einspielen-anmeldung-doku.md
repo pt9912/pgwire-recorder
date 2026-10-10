@@ -47,17 +47,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
-- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-einspielen-anmeldung` liefert, im Ist-Zustand des gebauten Binaries: Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zum Passwort bei `play` — §1 *Voraussetzungen*, §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Voraussetzung und Hinweise: „ohne Passwort“), §5 *Konfigurationsdatei* („Ein Passwort in der URL setzt `play` ein, meldet sich damit aber nicht an“, dort mit DoD-Punkt 3) und §7 Zeile `PGR-E4005` („`play` meldet sich nur ohne Passwort an“) — und im README den Satz, dass die Datenbank den Benutzer ohne Passwort anmelden muss, soweit er `play` betrifft. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
-- [ ] Das Benutzerhandbuch beschreibt in §5 *Konfigurationsdatei* das Passwort einer Verbindung bei `play` wie geliefert (aus dem Platzhalter, sonst `PGWIRE_RECORDER_PASSWORD`, wenn die Verbindung kein Passwort schreibt; Befund F-533) und nennt die Grenzen *SASLprep* und *Klartext ohne TLS*.
-- [ ] `README.md` nennt, was `slice-v1-abschluss-einspielen-anmeldung` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-einspielen-anmeldung` liefert, im Ist-Zustand des gebauten Binaries: Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zum Passwort bei `play` — §1 *Voraussetzungen*, §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Voraussetzung und Hinweise: „ohne Passwort“), §5 *Konfigurationsdatei* („Ein Passwort in der URL setzt `play` ein, meldet sich damit aber nicht an“, dort mit DoD-Punkt 3) und §7 Zeile `PGR-E4005` („`play` meldet sich nur ohne Passwort an“) — und im README den Satz, dass die Datenbank den Benutzer ohne Passwort anmelden muss, soweit er `play` betrifft. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
+- [x] Das Benutzerhandbuch beschreibt in §5 *Einstellungen* (Absatz hinter der Optionstabelle) das Passwort einer Verbindung bei `play` wie geliefert (aus dem Platzhalter, sonst `PGWIRE_RECORDER_PASSWORD`, wenn die Verbindung kein Passwort schreibt; Befund F-533) und die Grenze *SASLprep*, in §4 *Hinweise* die Grenze *Klartext ohne TLS* (Ort nach der Randform-Entscheidung in §6).
+- [x] `README.md` nennt, was `slice-v1-abschluss-einspielen-anmeldung` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -132,8 +132,8 @@ dasteht.
 
 **Risiken:**
 
-- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** offen bis Closure.
-- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** offen bis Closure.
+- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** weiter offen (Register), siehe §7 *Closure*.
+- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** entfallen, siehe §7 *Closure*.
 
 ## 7. Closure-Notiz
 
@@ -202,6 +202,40 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 2. §6 des Plans nennt die Randform „Nachbarsatz in §6 *Rollen und Rechte*“ nicht; dieser Lauf hat ihn nach Schritt 17 angepasst (Wortlaut in der Zeile oben). Architect und Review prüfen, ob er trägt.
 3. `config show` listet `PGWIRE_RECORDER_PASSWORD` unter den gesetzten Variablen, obwohl die Variable keine Option ist; das Handbuch sagt es in der Zeile zu `config show` (§4) bereits für alle `PGWIRE_RECORDER_*`, der neue Absatz nennt es für die Passwort-Variable ausdrücklich.
 4. SASLprep: die Probe scheiterte (`PGR-E4005`), die Grenze steht deshalb im Handbuch; die Spezifikation und das Binary stimmen überein, kein Befund.
+
+### Closure
+
+**Review und Verifikation.** Review `05fafac` (F-597 MEDIUM, F-598 LOW, F-599 und F-600 INFO), erledigt in `f060f1a`, `24d8f85`, `465f09b`. Verifikation `89e0faf`: DoD-Punkte 1 bis 3 bestätigt, kein blockierender Befund, V-165 und V-166 INFO. Eigener Gate-Lauf der Verifikation am Stand `465f09b`: Exit 0.
+
+**Entscheidungen zu den Übergaben des Planners.**
+
+- **V-165** (DoD-Punkt 2 nannte §5 *Konfigurationsdatei* für beide Grenzen, der Klartext-Satz steht nach der Randform-Entscheidung in §4 *Hinweise*): Die Entscheidung des Architect gilt, der Handbuch-Teil ist richtig; berichtigt ist der Wortlaut der DoD (`AGENTS.md` §3.9) auf §5 *Einstellungen* für Passwortquelle und SASLprep, §4 *Hinweise* für Klartext ohne TLS. Die Häkchen stehen auf dem berichtigten Wortlaut.
+- **V-166 und F-600** (Klartext-Satz nur indirekt belegt, SASLprep-Grenze nur durch Probe; lange Zeilen): Einordnung, keine Handlung. Beide Sätze sind als Grenze gefasst und sagen nicht mehr zu, als die Proben zeigen; `AGENTS.md` §3.11 ist nicht gebrochen, daher keine Evidence-Datei bei `zusage-im-kommentar-weiter-als-pruefung`. Ein SASLprep-Test wäre ein Produkt-Test und liegt außerhalb von §1; es gibt keinen Nehmer, der ihn annähme, und der Planner legt ihn nicht an. Die langen Zeilen sind Form ohne Gate (wie V-159 im Vorgänger).
+- **F-599**: erledigt (Verweise auf *Einstellungen*), keine Handlung.
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge):
+
+| Risiko | Ausgang | Begründung |
+|---|---|---|
+| Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut | weiter offen | Der Diff trägt ein Beispiel (`test` in §5), das als Datei gegen das Binary und einen Server lief, aber nur unter Linux im Container. Kein neues Auftreten; `BEO-REPO/verhalten-nur-unter-linux-geprueft` (1×, offen) führt die Klasse. |
+| Der Slice liefert seinen Teil von Handbuch und README nicht vollständig | entfallen | Trat nicht ein: Die Verifikation bestätigt Punkt 1 bis 3, die Suche nach den ersetzten Sätzen findet nichts Verbliebenes (alle Treffer von „ohne Passwort“ betreffen `record`). `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` bleibt 1×, offen, mit dem Vermerk „Teil geliefert“ ohne Zähler; acht Doku-Folge-Slices stehen noch aus. |
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure):
+
+- `BEO-REPO/plan-folgt-korrektur-nicht` — neue Datei `evidence/slice-v1-abschluss-einspielen-anmeldung-doku.md` (F-597): 25 → 26. Verkörpert (`AGENTS.md` §3.9, `make kopf-check`, zusätzlich `implement-slice` Schritt 17).
+- `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` — neue Datei `evidence/slice-v1-abschluss-einspielen-anmeldung-doku.md` (F-598): 8 → 9. Verkörpert (`AGENTS.md` §3.12).
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — kein Auftreten (V-166, F-600 sind keine Verletzung von §3.11); bleibt 34×, verkörpert.
+- `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` — kein Auftreten; Vermerk in `state.md`, bleibt 1×, offen.
+- `BEO-REPO/verhalten-nur-unter-linux-geprueft` — kein Auftreten; bleibt 1×, offen.
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3×.
+
+**Lerneintrag — geschärfte Regel.** Die Probe-Matrix hat den zweiten Doku-Slice wie den ersten getragen (jede neue Aussage eine Zeile, Ungenanntes bleibt ungenannt); das ist die Form aus `slice-doku-ist-stand` §6 und braucht keine neue Regel. Die Lücke lag in der Befehlsfolge: Sie steht eingefroren in `done/slice-doku-ist-stand.md` §7 und meldet seit der Variable `PGWIRE_RECORDER_PASSWORD` (keine Option, Handbuch §5) bei jedem Lauf eine Zeile. Der Plan schrieb „läuft grün“ und trug die Ausnahme nur in den Belegen (F-597); jeder spätere Lauf hätte die Zeile als Rot oder als Normalfall gelesen. Geschärft ist Schritt 17 von `implement-slice`: Der Plan, der die Befehlsfolge fährt, nennt die Ausnahme und zieht die Variable ab; jede andere Variable ohne Option bleibt ein Befund. `liegt in` `.claude/commands/implement-slice.md` Schritt 17 · seit slice-v1-abschluss-einspielen-anmeldung-doku. Die Pläne der acht weiteren Doku-Slices in `next/` nennen dieselbe Ausnahme statt „grün“ (derselbe Commit wie die Regel). **Kein neuer Sensor:** Ein Sensor, der Handbuch gegen Binary prüft, ist in §1 ausgeschlossen.
+
+**Paarungen.** (a) Anker: `state.md` von `BEO-REPO/plan-folgt-korrektur-nicht` nennt `.claude/commands/implement-slice.md` Schritt 17; die Datei trägt dort `seit slice-v1-abschluss-einspielen-anmeldung-doku`. (b) Folge-Slice: Diese Closure weist keinem Slice etwas zu; die Änderung der acht Pläne in `next/` ist Regelnachzug, keine Sendung. Die Adresse für `sslmode=require`, `slice-v1-abschluss-einspielen-tls-doku`, liegt in `next/` und nennt ihren Geber `slice-doku-ist-stand` (`grep` findet ihn); dass der Klartext-Satz in §4 *Hinweise* nach dem TLS-Slice wahr bleibt, ist in §6 dieses Plans entschieden, keine Zuweisung. (c) Register: die fünf genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
+
+**Nachzählen.** Keine Sendung in einen Nehmer, daher kein Nachzählen von Liefer-Punkten und Schichten.
+
+**Stand der Gates.** Die Läufe stehen oben (`24d8f85`, Verifikation `465f09b`); den Lauf auf dem Stand der Closure nennt der Bericht des Planners.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

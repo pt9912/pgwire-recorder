@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: `slice-v1-abschluss-einspielen-anmeldung-doku` (welle-v1-abschluss). Als Nächstes folgt [`slice-v1-abschluss-einspielen-tls`](../next/slice-v1-abschluss-einspielen-tls.md), das nach seinem §8 bei drei Schichten steht und vor dem Anspruch einen Schnitt braucht, mit [`slice-v1-abschluss-einspielen-tls-doku`](../next/slice-v1-abschluss-einspielen-tls-doku.md) (welle-v1-abschluss), danach in der Reihenfolge des §5 von welle-v1-abschluss die übrigen Slices (Anmeldung, TLS und weitere). Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
+In Arbeit: kein Slice. Als Nächstes folgt [`slice-v1-abschluss-einspielen-tls`](../next/slice-v1-abschluss-einspielen-tls.md), das nach seinem §8 bei drei Schichten steht und vor dem Anspruch einen Schnitt braucht; er wird nicht beansprucht, bis der Nutzer den Schnitt entschieden hat. Danach [`slice-v1-abschluss-einspielen-tls-doku`](../next/slice-v1-abschluss-einspielen-tls-doku.md) (welle-v1-abschluss) und in der Reihenfolge des §5 von welle-v1-abschluss die übrigen Slices. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
 
 
 
