@@ -439,7 +439,8 @@ Review-Sitzung prüfbar — die Rückführung aus §4 greift nicht.
 
 **Gates:** `make gates` grün am Stand `94f26b0` auf sauberem Baum (Exit 0; `docs-check` 0 Befunde,
 `run-integration-tests`, `a-check-negativ`, `lint-gegenprobe`, `kopf-check-gegenprobe`,
-`abdeckung-gegenprobe`, `commit-msg-gegenprobe` je grün, `baseline-verify` OK). Kein weiterer
+`abdeckung-gegenprobe`, `commit-msg-gegenprobe` je grün, `baseline-verify` OK). Nach der Nacharbeit zum Review (F-570 bis F-575): `make gates` grün am Stand `5f4dfa0` auf
+sauberem Baum (Exit 0, alle Gates wie oben). Kein weiterer
 Sensor betroffen: Der Slice ändert weder Code noch Tests noch Gates.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
