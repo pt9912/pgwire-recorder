@@ -300,6 +300,8 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 **Stand nach der Nacharbeit zum Review.** Auf `a4934e5` (Nacharbeit zu `F-580` bis `F-586`, sauberer Baum) lief `make gates` grün (Exit 0, darin `make test-integration` mit `TestE2EPlayExtendedFlushWarten`, `make lint`, `make lint-gegenprobe`, `make abdeckung-check`, `make docs-check`, `make kopf-check`); den Stand dieses Abschnitts trägt der Commit danach, dessen Lauf von `make gates` im Bericht steht.
 
+**Stand nach der Nacharbeit zur Verifikation.** Auf `eedd409` (Nacharbeit zu `V-156`, sauberer Baum) lief `make gates` grün (Exit 0, darin `make test`, `make test-integration`, `make lint`, `make abdeckung-check`, `make docs-check`, `make kopf-check`); den Stand dieses Absatzes trägt der Commit danach, dessen Lauf von `make gates` im Bericht steht.
+
 **Mutationen.** Jede Mutation lief in einer frischen Kopie (`cp -r` ohne `-p`, gofmt-sauber, eine Änderung je Kopie), die Unit-Mutationen über `go test` im Image der Stufe `deps`, die Integrations-Mutationen über einen Build der Stufe `integration` der Kopie. Rot heißt: der genannte Test schlägt an der genannten Stelle fehl (Ablauf der Aufrufe weicht ab, Meldung oder Bytes weichen ab); keine Gesamtfrist trägt eine Zeile außer den ausdrücklich genannten Hänge-Fällen.
 
 *Warten innerhalb einer Extended-Interaktion (Service, `play.go`)* — jede Bedingung eine Zeile:
