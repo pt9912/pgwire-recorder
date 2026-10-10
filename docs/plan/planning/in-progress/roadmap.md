@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: `slice-doku-ist-stand` (wellenlos). Als Nächstes folgt [`slice-harness-upgrade-v6-18`](../next/slice-harness-upgrade-v6-18.md) (wellenlos), danach [`slice-v1-abschluss-einspielen-extended`](../next/slice-v1-abschluss-einspielen-extended.md) mit [`slice-v1-abschluss-einspielen-extended-doku`](../next/slice-v1-abschluss-einspielen-extended-doku.md), [`slice-v1-abschluss-einspielen-anmeldung`](../next/slice-v1-abschluss-einspielen-anmeldung.md) mit [`slice-v1-abschluss-einspielen-anmeldung-doku`](../next/slice-v1-abschluss-einspielen-anmeldung-doku.md) und [`slice-v1-abschluss-einspielen-tls`](../next/slice-v1-abschluss-einspielen-tls.md) mit [`slice-v1-abschluss-einspielen-tls-doku`](../next/slice-v1-abschluss-einspielen-tls-doku.md) (welle-v1-abschluss).
+In Arbeit: `slice-doku-ist-stand` (wellenlos). Als Nächstes folgt [`slice-harness-upgrade-v6-18`](../in-progress/slice-harness-upgrade-v6-18.md) (wellenlos), danach [`slice-v1-abschluss-einspielen-extended`](../next/slice-v1-abschluss-einspielen-extended.md) mit [`slice-v1-abschluss-einspielen-extended-doku`](../next/slice-v1-abschluss-einspielen-extended-doku.md), [`slice-v1-abschluss-einspielen-anmeldung`](../next/slice-v1-abschluss-einspielen-anmeldung.md) mit [`slice-v1-abschluss-einspielen-anmeldung-doku`](../next/slice-v1-abschluss-einspielen-anmeldung-doku.md) und [`slice-v1-abschluss-einspielen-tls`](../next/slice-v1-abschluss-einspielen-tls.md) mit [`slice-v1-abschluss-einspielen-tls-doku`](../next/slice-v1-abschluss-einspielen-tls-doku.md) (welle-v1-abschluss).
 
 
 
