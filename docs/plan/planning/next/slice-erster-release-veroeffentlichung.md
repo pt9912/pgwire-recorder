@@ -73,7 +73,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Ein Probe-Tag veröffentlicht das Image mit `linux/amd64` und `linux/arm64` als eine Manifestliste in beiden Registries, und es besteht den Smoke aus Abnahmeszenario 9. Beide Registries tragen denselben Index-Digest, sonst endet der Lauf rot (Punkt 2); `:latest` wird nur bei einem stabilen Tag gesetzt, der Probe-Tag lässt es unverändert (Punkt 1). Beleg in §7: Lauf-Kennung und Digest des Probe-Tags (Test).
+- [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Ein Probe-Tag veröffentlicht das Image mit `linux/amd64` und `linux/arm64` als eine Manifestliste in beiden Registries, und es besteht den Smoke aus Abnahmeszenario 9. Beide Registries tragen denselben Index-Digest, sonst endet der Lauf rot (Punkt 2); `:latest` wird nur bei einem stabilen Tag gesetzt, der Probe-Tag lässt es unverändert (Punkt 1). Beleg in §7: Lauf-Kennung und Digest des Probe-Tags (Test). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 - [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Die Binaries für Linux, macOS und Windows (`amd64`, `arm64`) hängen mit einer Datei `SHA256SUMS` am GitHub-Release des Probe-Tags (`LH-FA-19.a`); zwei Builds desselben Tags liefern dieselben Summen. Die Release-Notes entstehen aus der neuen Zeile der Änderungshistorie des Handbuchs; ein `CHANGELOG.md` wird nicht geführt.
 - [ ] Vor jedem Push prüft die Pipeline, dass der Tag die Form `v<SemVer>` hat und der Version in der Versionsdatei entspricht; sonst endet sie, bevor etwas gebaut oder veröffentlicht wird (Punkte 6 und 7, Test mit falschem Tag und abweichender Datei). `docs/maintainer/releasing.md` §11 trägt die Fehlertabelle je Schritt der Pipeline und den Wiederanlauf; ein roter Probe-Lauf ist nach ihr wieder angestoßen (Punkt 8, Beleg in §7).
 - [ ] `make gates` grün.
@@ -97,6 +97,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Release-Automatisierung | neu | Prüfung von Tag und Versionsdatei, Build, Veröffentlichung mit Vergleich der Index-Digests, `:latest` nur bei stabilem Tag, Prüfsummen; der Scan vor dem Push kommt mit `slice-erster-release-freigabe` dazu |
 | Versionsdatei (Ort offen, §6) | neu | Version der Software, gegen den Tag geprüft |
 | `docs/maintainer/releasing.md` §3, §6, §8, §9, §11 | update | Versionsquelle, was der Tag auslöst, Kontrollen nach dem Push, Release-Notes, Fehlertabelle und Wiederanlauf |
+| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -221,5 +222,7 @@ der Entscheidungen vom 2026-10-09. Treffer:
   Zusage eine Mutation.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
+
+Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

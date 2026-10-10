@@ -44,7 +44,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol): Ein `CancelRequest` ohne Schlüssel (Länge 12) schließt die Verbindung mit `PGR-W3001` ohne Verbindungsfehler, in `record` und `replay` (Unit-Test mit 12 Byte).
+- [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol): Ein `CancelRequest` ohne Schlüssel (Länge 12) schließt die Verbindung mit `PGR-W3001` ohne Verbindungsfehler, in `record` und `replay` (Unit-Test mit 12 Byte). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 - [ ] [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus): pgx mit Kontext-Abbruch über `record` lässt den Lauf mit Exit-Code 0 enden, wenn sonst kein Fehler auftrat (Integrationstest).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -67,6 +67,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driving/pgwire` (`startup`) | update | Startcode `CancelRequest` vor der Bibliothek erkennen, Länge 12 und 16 annehmen |
 | `internal/adapters/driving/pgwire/server_test.go` | update | Negative nach `LH-FA-05`: 12 Byte |
 | `test/integration` | update | pgx mit Kontext-Abbruch, Exit-Code |
+| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -125,5 +126,7 @@ nicht mehr.
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
 **Vorgelagert — offene Beobachtungen sichten:** `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — der Fall entstand, weil der Test nur den `CancelRequest` mit Schlüssel prüfte.
+
+Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

@@ -101,7 +101,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `scram-sha-256` in `pg_hba.conf` an und spielt eine Aufzeichnung ein; das Passwort
       kommt aus dem Platzhalter der benutzten Verbindung, sonst aus
       `PGWIRE_RECORDER_PASSWORD`, eine leere Variable gilt als nicht gesetzt; verlangt der
-      Server kein Passwort, sendet `play` keines (Integrationstest).
+      Server kein Passwort, sendet `play` keines (Integrationstest). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 - [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): Ein falsches Passwort, ein fehlendes Passwort, wenn der Server eines
       verlangt, ein nicht unterstütztes Verfahren (Kerberos, GSSAPI, SSPI, SASL ohne
       `SCRAM-SHA-256`) und jeder Fehler im SCRAM-Austausch (eine Nachricht des Servers, die
@@ -142,6 +142,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `test/integration` | update | Server mit `password`, `md5` und `scram-sha-256` in `pg_hba.conf`; Happy/Negative nach LH-FA-20 |
 | `internal/adapters/driven/postgres` (Tests) | update | Fehler im SCRAM-Austausch und nicht unterstützte Verfahren gegen einen Testserver, der die Nachrichten vorgibt |
 | `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: Passwort einer Verbindung bei `play` (F-533), Grenzen *SASLprep* und *Klartext ohne TLS* |
+| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -306,5 +307,7 @@ berührt dieser Plan schon ohne die Sendungen drei Schichten
 ersten Code-Commit (§4 *Start*).
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
+
+Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

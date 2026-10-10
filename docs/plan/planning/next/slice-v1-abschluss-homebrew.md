@@ -47,7 +47,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Das Release-Verfahren erzeugt die Formel aus den Release-Binaries eines Probe-Tags und legt sie in einem Probe-Tap ab (nicht im Tap `pt9912/homebrew-pgwire-recorder`); die Prüfsummen stimmen (Test). Die Installation aus dem echten Tap (Abnahmeszenario 11) weist `welle-erster-release` nach.
+- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Das Release-Verfahren erzeugt die Formel aus den Release-Binaries eines Probe-Tags und legt sie in einem Probe-Tap ab (nicht im Tap `pt9912/homebrew-pgwire-recorder`); die Prüfsummen stimmen (Test). Die Installation aus dem echten Tap (Abnahmeszenario 11) weist `welle-erster-release` nach. Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 - [ ] Eine Vorabversion verändert den Tap nicht (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -69,6 +69,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Release-Verfahren (`docs/maintainer/releasing.md`) | update | Formel und Tap-Aktualisierung beschreiben |
 | Tap-Repository `pt9912/homebrew-pgwire-recorder` | neu (extern) | Formel je stabilem Release |
 | Smoke-Test der Installation | neu | Happy/Boundary nach LH-FA-19 |
+| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -129,5 +130,7 @@ nicht mehr.
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
+
+Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

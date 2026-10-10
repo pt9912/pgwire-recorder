@@ -96,7 +96,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       und DML mit Parametern, Gruppen mit `Sync` und mit `Flush`, gemischt mit einfachen
       Anfragen, über mehrere Sessions — wird gegen eine leere Instanz eingespielt, die weder
       Passwort noch TLS verlangt, und die Datenbank enthält danach deren Wirkung; eine
-      Extended-Interaktion ist kein Startfehler `PGR-E6001` mehr (Integrationstest).
+      Extended-Interaktion ist kein Startfehler `PGR-E6001` mehr (Integrationstest). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 - [ ] Innerhalb einer Extended-Interaktion wartet `play` nach `Sync` auf `ReadyForQuery` und
       nach `Flush` auf die Antwort jeder Client-Nachricht der Gruppe, nicht auf die
       aufgezeichneten Server-Nachrichten; ein Abbruch nach `PGR-E4004` sendet keine weitere
@@ -130,6 +130,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/services` (Play-Service), `internal/hexagon/ports/driven` | update | Gruppen einer Extended-Interaktion, Warten nach `Sync` und `Flush`, Abbruch, Fortsetzung, erwarteter Fehler und Signal innerhalb der Interaktion; der Startfehler für Extended-Interaktionen entfällt |
 | `internal/hexagon/services` (Tests), `internal/adapters/driven/postgres` (Tests) | update | Warten je Gruppenende, Fehler in der ersten und in einer späteren Gruppe, Signal innerhalb der Interaktion, je Zusage eine Mutation |
 | `test/integration` | update | Extended-Szenario nach LH-FA-20 und LH-FA-18; die Tests des Kerns zum Zwischenstand *Aufzeichnung mit Extended-Interaktion* ändern |
+| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -264,5 +265,7 @@ unter `evidence/`). Treffer:
   selben Commit hierher.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
+
+Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

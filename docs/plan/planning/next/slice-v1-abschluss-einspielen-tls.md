@@ -95,7 +95,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       IP-Adressen des Zertifikats; ein gesetztes `--upstream-tls`, auch ausdrücklich
       `false`, geht `sslmode=require` vor, aus jeder Quelle; ohne beides baut `play` keine
       TLS-Verbindung auf (Integrationstest gegen einen Server mit dem Zertifikat einer
-      eigenen Zertifizierungsstelle).
+      eigenen Zertifizierungsstelle). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 - [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): `N` auf das `SSLRequest`, ein Fehler der Aushandlung, ein abgelaufenes,
       ungültiges oder auf einen anderen Namen ausgestelltes Zertifikat und ein Server, der
       eine unverschlüsselte Verbindung ablehnt, sind `PGR-E4005`; ein anderes Byte, ein
@@ -134,6 +134,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/bootstrap` | update | die Datei aus `--upstream-ca` beim Start lesen (`PGR-E2007`) und die Zertifikate an den Upstream-Adapter reichen |
 | `test/integration` | update | Server mit TLS und dem Zertifikat einer eigenen Zertifizierungsstelle, abgelaufenes Zertifikat, falscher Name, Server, der unverschlüsselte Verbindungen ablehnt; Happy/Negative nach LH-FA-20 |
 | `docs/user/benutzerhandbuch.md` | update | §5 *Konfigurationsdatei*: TLS einer Verbindung bei `play` (F-533), `--upstream-ca`, Grenze |
+| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -298,5 +299,7 @@ Schichten (`BEO-REPO/schichtteilung-je-plan-verschieden`, 2×). Die Teilung prü
 vor dem ersten Code-Commit (§4 *Start*).
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
+
+Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

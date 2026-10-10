@@ -138,6 +138,9 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
 ## Pre-completion-Checkliste (Modul 9, Schritt 8 — letzte Handlung der Implementer-Rolle)
 
 17. Doku, ADR-Index und README aktualisieren, falls ein öffentlicher Vertrag berührt ist.
+    Benutzerhandbuch und `README.md` beschreiben dabei nur das gelieferte Verhalten des
+    Binaries: keine Chronik, kein Zielstand, im Handbuch kein Verweis auf Spezifikation, ADRs,
+    Slices, Wellen oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 18. Die Pre-completion-Checkliste laufen: die DoD Punkt für Punkt **behaupten** und die
     **Sensor-Belege** anhängen — `make gates` **und die Nicht-Gate-Sensoren, die den Slice
     betreffen** (die dein Repo führt — z. B. ein Mutations-Sensor, wenn Wächter neu/geändert sind;

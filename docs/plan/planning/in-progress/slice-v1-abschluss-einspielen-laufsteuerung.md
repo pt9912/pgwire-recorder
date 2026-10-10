@@ -62,8 +62,9 @@ dessen §6) nach dem zweiten Schnitt vom 2026-10-09 (Option O3 des Architect, do
 Die Aussagen zu den drei Optionen ohne Vergleich und zu `play` in `README.md` und im
 Benutzerhandbuch §4 bringt der Slice auf den gelieferten Stand; sie sagen nur zu, was ein Test
 prüft (`AGENTS.md` §3.11). Den Hinweis zu `--compare-responses` mit `--continue-on-error` und
-`--allow-recorded-errors` in §4 *Hinweise* übernimmt `slice-v1-abschluss-antwortvergleich`
-(Verifikation V-147; dort §1 und DoD-Punkt 3).
+`--allow-recorded-errors` in §4 *Hinweise* entfernt `slice-doku-ist-stand` (Verifikation V-147,
+Entscheidung des Nutzers vom 2026-10-10, dort §1); den Teil im Handbuch zum Vergleich liefert
+`slice-v1-abschluss-antwortvergleich` mit dem Vergleich (dort DoD-Punkt 1).
 
 Dieser Slice ist auch die Adresse der Abgrenzung *Einspielen selbst und Fehlersemantik der
 Serverfehler* von `slice-v1-abschluss-antwortvergleich` (dort §1), soweit sie die drei
@@ -85,9 +86,9 @@ Kerns, die das prüfen, ändert dieser Slice.
   (dort §1, *Übernimmt*); bis dahin spielt `play` keine Extended-Interaktion ein
   (Zwischenstand des Kerns), getestet wird hier mit einfachen Anfragen.
 - Die Wirkung der Optionen mit `--compare-responses` (Exit-Code 5, `--allow-recorded-errors`
-  ohne Wirkung, Fortsetzung nach einer Abweichung) samt ihrem Hinweis im Benutzerhandbuch §4
-  *Hinweise* — `slice-v1-abschluss-antwortvergleich` (dort §1 und DoD-Punkt 3, Hinweis seit
-  V-147); sie setzt den Vergleich voraus.
+  ohne Wirkung, Fortsetzung nach einer Abweichung) — `slice-v1-abschluss-antwortvergleich`
+  (dort DoD-Punkt 3, ihr Teil im Handbuch im Ist-Zustand dort DoD-Punkt 1); sie setzt den
+  Vergleich voraus.
 - Anmeldung mit Passwort und TLS zum Server — `slice-v1-abschluss-einspielen-anmeldung` und
   `slice-v1-abschluss-einspielen-tls`; getestet wird gegen einen Server ohne Passwort und
   ohne TLS.
@@ -371,16 +372,23 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
   sich auf eine Bindung von `slice-v1-abschluss-einspielen-anmeldung` und
   `slice-v1-abschluss-einspielen-tls`, die keiner der beiden nannte (F-568). Der Kommentar von
   `play` im Bootstrap nennt die neue Kopplung an die erste Meldung nicht (F-569); der Bootstrap
-  lag außerhalb dieses Slice. Ausgänge der Übergaben: V-147 in
-  `slice-v1-abschluss-antwortvergleich` (§1, §3, DoD-Punkt 3), F-568 in
+  lag außerhalb dieses Slice. Ausgänge der Übergaben: V-147 nach Entscheidung des Nutzers vom
+  2026-10-10 an den neuen `slice-doku-ist-stand`, der den Hinweis entfernt (dort §1), F-568 in
   `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` (je §1 und
   §6), F-569 in `slice-v1-abschluss-einspielen-anmeldung` (§1, §3), dem nächsten Slice der
   Reihenfolge, der den Bootstrap ändert (`slice-v1-abschluss-einspielen-extended` schließt
-  Code im Bootstrap aus, dort §1); eingetragen in `90a3570`, nachgezählt in §8. §1 sagt die
-  Aussagen im Handbuch jetzt ohne Vergleich zu. Den Hinweisen im selben Abschnitt des
-  Handbuchs zu `--keep-timing`, `--upstream-tls`, `--upstream-ca` und zum Passwort in
-  *Vorgehen*, die nach V-147 dieselbe Lage haben und keine der drei Optionen nennen, gibt
-  diese Closure keine Adresse; sie liegen außerhalb dieses Slice.
+  Code im Bootstrap aus, dort §1); F-568 und F-569 eingetragen in `90a3570`, nachgezählt in
+  §8. §1 sagt die Aussagen im Handbuch jetzt ohne Vergleich zu. Die Hinweise im selben
+  Abschnitt zu `--keep-timing`, `--upstream-tls`, `--upstream-ca` und zum Passwort in
+  *Vorgehen*, die nach V-147 dieselbe Lage haben, entfernt ebenfalls `slice-doku-ist-stand`.
+  Entscheidung des Nutzers vom 2026-10-10, hier festgehalten: „Im Handbuch immer nur den
+  Ist-Zustand beschreiben. Keine Chronik oder Verweise in die Spec, ADRs, Slices, Reviews
+  etc.“ und „Bitte auch im README.md den Ist-Zustand beschreiben. In ./spec liegt das
+  Zielbild.“ Damit ist das Urteil zu F-553 in `slice-v1-abschluss-einspielen` (dort §7:
+  Handbuch §4 bis zum Ende der Welle im Zielstand, kein Hinweis) überholt; das Zeitdokument
+  bleibt stehen. Jeder Produkt-Slice in `next/` trägt seit dieser Closure in seinem ersten
+  Liefer-Punkt, dass er seinen Teil von Handbuch und README im Ist-Zustand liefert, mit der
+  Kennung dieses Slice (nachgezählt je in §8 des Nehmers: keine Änderung der Zahl).
 - **Steering-Loop-Eintrag:** Guide geschärft: `AGENTS.md` §3.13 nennt neben den vier Formen
   einer Zuweisung die Bindung — ruht ein akzeptiertes Negativ, eine Grenze oder eine Randform
   darauf, dass ein anderer Slice etwas einhält, trägt derselbe Commit sie in §1 des Nehmers ein,
@@ -391,10 +399,18 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
   nach Auftrag des Nutzers vom 2026-10-10 mit der Kennung dieses Slice eingetragen; die Regel
   hält diese Lesart fest.
 
+  Zweiter Eintrag: Guide geschärft nach Entscheidung des Nutzers vom 2026-10-10:
+  Benutzerhandbuch und `README.md` beschreiben nur das gelieferte Verhalten des Binaries, ohne
+  Chronik und Zielstand, das Handbuch ohne Verweis auf Spezifikation, ADRs, Slices, Wellen oder
+  Reviews; das Zielbild steht in `spec/` — liegt in `AGENTS.md §3.11 (Handbuch und README beschreiben den Ist-Zustand)`
+  und `.claude/commands/implement-slice.md` Schritt 17. Auslöser: V-147 und
+  `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (verkörpert, mit diesem Slice 29×).
+  `.harness/skills/reviewer.md` nennt das Handbuch nicht und bleibt unverändert.
+
   Retirement-Checks: `AGENTS.md` §3.9 (seit welle-walking-skeleton) ist wieder aufgetreten
   (F-567); die Regel bleibt. §3.10 (seit welle-extended-query) ist wieder aufgetreten (F-564);
   die Regel bleibt. §3.11 (seit welle-extended-query) ist wieder aufgetreten (F-565, F-566,
-  V-147); die Regel bleibt. §3.12 (seit slice-harness-randformen-vor-code) ist in diesem Slice
+  V-147) und mit diesem Slice um den Ist-Zustand von Handbuch und README geschärft. §3.12 (seit slice-harness-randformen-vor-code) ist in diesem Slice
   nicht wieder aufgetreten: Die Randformen standen vor dem Code, die Rückgabe ging vor dem Code
   an den Architect; still entschieden hatte der Code des Kerns *Abbrechender Fehler nach dem
   ersten Signal*, gefunden bei der Prüfung vor dem Code dieses Slice (§6; Beleg im Register).
@@ -430,20 +446,23 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
     und `slice-v1-abschluss-einspielen-tls` zählen ihn nicht), Stand offen.
   - Einmalig und nicht eingetragen: F-569 (Kommentar an einer Stelle außerhalb des Slice, mit
     Adresse). Mit diesem Slice erreicht kein Eintrag ohne Ausgang die Schwelle 3× neu.
-- **Folge-Slices:** keiner neu. Nehmer der Sendungen: `slice-v1-abschluss-antwortvergleich`,
-  `slice-v1-abschluss-einspielen-anmeldung`, `slice-v1-abschluss-einspielen-tls` (alle
-  `next/`); `slice-v1-abschluss-einspielen-extended` führt die Teile [L·E] (§1). Vor ihm steht
-  nach Entscheidung des Nutzers vom 2026-10-10 `slice-harness-upgrade-v6-18` (wellenlos, kein
-  Folge-Slice dieses Slice).
+- **Folge-Slices:** `slice-doku-ist-stand` (Benutzerhandbuch und README im Ist-Zustand,
+  `next/`, wellenlos) — neu, nimmt V-147. Nehmer der Sendungen:
+  `slice-v1-abschluss-einspielen-anmeldung` (F-568, F-569), `slice-v1-abschluss-einspielen-tls`
+  (F-568), jeder Produkt-Slice in `next/` (Ist-Zustand, erster Liefer-Punkt);
+  `slice-v1-abschluss-einspielen-extended` führt die Teile [L·E] (§1). Reihenfolge nach
+  Entscheidung des Nutzers vom 2026-10-10: `slice-doku-ist-stand`, `slice-harness-upgrade-v6-18`
+  (wellenlos, kein Folge-Slice dieses Slice), danach welle-v1-abschluss nach ihrem §5.
 - **Risiken aus §6:** drei, alle **entfallen** (Begründung je in §6). Randformen und akzeptierte
   Negative sind Entscheidungen, keine Risiken.
 - **Drei Paarungen:** Anker: `grep -n "seit slice-v1-abschluss-einspielen-laufsteuerung"
-  AGENTS.md` findet §3.13 *Auch eine Bindung ist eine Sendung*. Folge-Slice: `grep -n
-  "slice-v1-abschluss-einspielen-laufsteuerung"` findet die Kennung in §1 und DoD-Punkt 3 von
-  `slice-v1-abschluss-antwortvergleich`, in §1 (und §6) von
-  `slice-v1-abschluss-einspielen-anmeldung` und `slice-v1-abschluss-einspielen-tls` und in §1
-  von `slice-v1-abschluss-einspielen-extended`; keiner schließt die Sendung in *Ausdrücklich
-  NICHT* aus, keiner liegt in `done/`. Register: die sechs Einträge oben tragen
+  AGENTS.md .claude/commands/implement-slice.md` findet §3.11 *Handbuch und README beschreiben
+  den Ist-Zustand*, §3.13 *Auch eine Bindung ist eine Sendung* und Schritt 17. Folge-Slice:
+  `grep -n "slice-v1-abschluss-einspielen-laufsteuerung"` findet die Kennung in §1 von
+  `slice-doku-ist-stand`, in §1 (und §6) von `slice-v1-abschluss-einspielen-anmeldung` und
+  `slice-v1-abschluss-einspielen-tls`, in §1 von `slice-v1-abschluss-einspielen-extended` und im
+  ersten Liefer-Punkt jedes Produkt-Slice in `next/`; keiner schließt die Sendung in
+  *Ausdrücklich NICHT* aus, keiner liegt in `done/`. Register: die sechs Einträge oben tragen
   `evidence/slice-v1-abschluss-einspielen-laufsteuerung.md`, jedes Verzeichnis mit nicht leerem
   `evidence/`. Die nächste Welle-Closure prüft die Paarungen erneut.
 
@@ -625,8 +644,9 @@ keine dritte Schicht ist. Drei Liefer-Punkte, zwei Schichten mit Code (CLI-Adapt
 Play-Service), kein Code im Bootstrap.
 
 Nachgezählt bei der Closure am 2026-10-10 beim Eintragen der Sendungen (`AGENTS.md` §3.13):
-V-147 in `slice-v1-abschluss-antwortvergleich` (§1, §3, DoD-Punkt 3): drei Liefer-Punkte, zwei
-Schichten mit Code (Play-Service, CLI-Adapter). F-568 in `slice-v1-abschluss-einspielen-anmeldung`
+V-147 an `slice-doku-ist-stand` (neu, drei Liefer-Punkte, eine Schicht: Dokumentation); die
+Regel zum Ist-Zustand im ersten Liefer-Punkt jedes Produkt-Slice in `next/`, ohne neuen
+Liefer-Punkt und ohne neue Schicht (je §8 dort). F-568 in `slice-v1-abschluss-einspielen-anmeldung`
 und `slice-v1-abschluss-einspielen-tls` (je §1 und §6, Randform in DoD-Punkt 2), F-569 in
 `slice-v1-abschluss-einspielen-anmeldung` (§1, §3, Bootstrap schon in §3): je drei Liefer-Punkte,
 je zwei Schichten nach der Teilung jener Pläne; nach der Teilung dieses Plans, der den Bootstrap

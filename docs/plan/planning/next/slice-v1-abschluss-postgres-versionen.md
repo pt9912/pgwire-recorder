@@ -56,7 +56,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung): `SPEC-029` und `LH-FA-05.e` nennen den beim Start bestätigten Versionsbereich (die fünf jüngsten erschienenen Hauptversionen) als feste Liste und was „unterstützt“ heißt; `SPEC-038` nennt die Versionsmatrix; das Benutzerhandbuch nennt den Bereich; [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung) trägt den Satz zur unterstützten Hauptversion.
+- [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung): `SPEC-029` und `LH-FA-05.e` nennen den beim Start bestätigten Versionsbereich (die fünf jüngsten erschienenen Hauptversionen) als feste Liste und was „unterstützt“ heißt; `SPEC-038` nennt die Versionsmatrix; das Benutzerhandbuch nennt den Bereich; [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung) trägt den Satz zur unterstützten Hauptversion. Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 - [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): `make test-postgres-versionen` hängt an `make gates` und fährt die Abnahmeszenarien 1, 2 und 7 gegen jede Version des Bereichs außer der Referenz 17, je mit per Digest gepinntem Image, dazu je Version den Fall SCRAM-SHA-256 des Anmeldetests aus `slice-v1-abschluss-anmeldung`, sodass jede Version auch mit Passwort-Anmeldung statt nur mit `trust` läuft (Entscheidung des Nutzers vom 2026-10-07); `harness/README.md` §Sensors führt das Ziel mit Bindung; bewusst gebrochen: ein Image ohne Digest, eine fehlende Version oder eine Testauswahl ohne Treffer färbt das Ziel rot.
 - [ ] [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay): `TestE2EReplayLebendpruefungWiePostgres` ist gegen jede Version der Liste grün: Für jede Version entspricht die versionsabhängige Leerraum-Menge der Erkennung der Antwort des Servers, auch für `\v` diesseits und jenseits der Versionsgrenze; weicht eine Version ab, sind die Versionsgrenze in `LH-FA-09.a` und der Tabellentest der Erkennung berichtigt.
 - [ ] `make gates` grün.
@@ -85,6 +85,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `test/integration` (`lebendpruefung_e2e_test.go` und die Tests der Teilmenge) | update (bedingt) | nur wenn ein Test eine Annahme über die Serverversion trägt (Meldungstexte, Parameter wie `server_version`); die Tabelle der Lebendprüfungen bleibt die aus `LH-FA-09.a`, die Erwartung je Zeile folgt der Version des Servers |
 | `internal/hexagon/services` (`lebendpruefung.go` und Tabellentest) | update (bedingt) | nur wenn eine Version der Liste von der Versionsgrenze abweicht, die `slice-extended-query-lebendpruefung` per Sonde bestimmt hat: Grenze berichtigt |
 | `harness/README.md` §Sensors, `docs/user/benutzerhandbuch.md`, `docs/user/abdeckung-*.md` | update | neues Ziel mit Bindung; unterstützte Versionen; Abdeckung, falls Deklarationen sich ändern |
+| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 **Variante der Matrix** — geprüft gegen [`AGENTS.md`](../../../../AGENTS.md) §3.6 (kein Gate wird gelockert) und die Laufzeit von `make gates`:
 
@@ -166,5 +167,7 @@ nicht mehr.
 - `BEO-REPO/plan-folgt-korrektur-nicht` — 5×, `verkörpert` ([`AGENTS.md`](../../../../AGENTS.md) §3.9); gilt als Regel, auch für den Kopf und die Liste der Versionen.
 
 Die Einträge über der Schwelle bekommen ihren Ausgang bei der Closure ihrer Welle, nicht hier.
+
+Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Spezifikation führt, der Code folgt ihr; `harness/conventions.md` deklariert `*` als Greenfield).

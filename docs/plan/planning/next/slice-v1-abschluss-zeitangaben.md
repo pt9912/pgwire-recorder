@@ -46,7 +46,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, das Recording lässt sich in YAML und in SQLite per Roundtrip laden, ein ungültiger Wert ist `PGR-E3003` (Test).
+- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, das Recording lässt sich in YAML und in SQLite per Roundtrip laden, ein ungültiger Wert ist `PGR-E3003` (Test). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 - [ ] `--keep-timing` hält die Pausen in beiden Modi und beiden Bezugspunkten ein, ohne sie zu verkürzen (Abnahmeszenario 13, Test mit Fake-Uhr).
 - [ ] Eine Aufzeichnung ohne `offset_ms` wird bei `--keep-timing` mit `PGR-E2003` (Exit-Code 2) abgelehnt (Test).
 - [ ] `make gates` grün.
@@ -70,6 +70,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/adapters/driving/pgwire` | update | Messpunkt: Annahme der Verbindung und erste Client-Nachricht |
 | `internal/adapters/driven/recording` | update | Feld `offset_ms` im YAML, Prüfung |
 | `internal/adapters/driving/cli` | update | Optionen `--record-timing`, `--keep-timing`, `--timing-mode`, `--timing-reference` |
+| `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
 
@@ -129,5 +130,7 @@ nicht mehr.
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
+
+Nachgezählt beim Eintragen der Regel *Handbuch und README beschreiben den Ist-Zustand* aus `slice-v1-abschluss-einspielen-laufsteuerung` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch-Teil liegt im ersten Liefer-Punkt, kein neuer Liefer-Punkt; Handbuch und README zählen als Dokumentation, nicht als Schicht. Liefer-Punkte und Schichten bleiben, wie dieser Plan sie zählt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

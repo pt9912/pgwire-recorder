@@ -242,6 +242,20 @@ gelesen für richtig.
 **Richtig:** Das Beispiel liegt als Datei vor und läuft gegen das gebaute Binary, etwa mit
 `config show`, ohne Meldung.
 
+**Handbuch und README beschreiben den Ist-Zustand** (seit
+slice-v1-abschluss-einspielen-laufsteuerung, Entscheidung des Nutzers vom 2026-10-10):
+`docs/user/benutzerhandbuch.md` und `README.md` beschreiben nur das Verhalten, das das gebaute
+Binary heute zeigt. Keine Chronik („noch nicht“, „kommt mit“, „bis zu“), kein Zielstand; das
+Zielbild steht in `spec/`. Das Handbuch verweist nicht auf Spezifikation, Lastenheft, ADRs,
+Slices, Wellen oder Reviews. `README.md` darf auf `spec/` zeigen (Verweis nach oben,
+`harness/README.md` §Source precedence), ohne Chronik und ohne zu sagen, was davon noch kommt.
+Ein Slice, der Verhalten liefert, liefert im selben Zug seinen Teil von Handbuch und README.
+
+**Falsch:** Das Handbuch beschreibt `--compare-responses` bei `play`, das das gebaute Binary mit
+`PGR-E2001` ablehnt, und eine Closure nimmt den Zielstand bis zum Ende der Welle hin.
+**Richtig:** Das Handbuch nennt nur, was das Binary kann; der Slice, der `--compare-responses`
+liefert, schreibt dessen Abschnitt.
+
 **Falsch:** Ein Command zählt auf, wann `make docs-check` rot ist; jede Runde der Prüfung
 findet eine weitere Form, die grün bleibt.
 **Richtig:** Der Command nennt die Regel, Kennungen als Links zu schreiben, und sagt, dass
@@ -251,7 +265,8 @@ findet eine weitere Form, die grün bleibt.
 (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`). Entfernen oder Lockern setzt
 den Retirement-Check voraus: Ist die Beobachtung seit welle-extended-query wieder
 aufgetreten, für das Handbuch seit slice-v1-abschluss-upstream-verbinden, für Prosa über ein
-Gate seit slice-harness-d-check-v0-85?
+Gate seit slice-harness-d-check-v0-85, für den Ist-Zustand von Handbuch und README seit
+slice-v1-abschluss-einspielen-laufsteuerung?
 
 ### 3.12 Randformen eines neuen Vertrags sind vor dem Code entschieden (seit slice-harness-randformen-vor-code)
 
