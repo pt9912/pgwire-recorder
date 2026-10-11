@@ -503,6 +503,8 @@ Driving Adapter; fachlich relevante Startup-Daten werden in Domain-Typen
 Beim Einspielen baut der Upstream-Adapter die Verbindung zum Server als Client auf:
 Authentifizierung und TLS (auf Wunsch) gehören ihm; der Core kennt weder Passwort
 noch Zertifikate, sondern erhält eine geöffnete Upstream-Session.
+Die Datei der zusätzlichen Zertifizierungsstelle liest und prüft der CLI Adapter beim Start
+und reicht die Zertifikate weiter; die Prüfung des Serverzertifikats baut der Upstream-Adapter.
 
 ### 4.5 Adapter-Verantwortung
 

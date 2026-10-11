@@ -1142,7 +1142,8 @@ Kommandozeile, dann der der Umgebungsvariable), `sslmode=require` der benutzten 
 bei `record`, bei `play` `--upstream-ca` ohne TLS (`PGR-E2001`; eine Kombination, die
 erst nach `--upstream` steht, weil TLS vom `sslmode` der benutzten Verbindung abhängt),
 die Variablen der Platzhalter der benutzten Verbindung und danach ihr Port
-nach dem Einsetzen:
+nach dem Einsetzen; als Letztes liest `play` die Datei aus `--upstream-ca`
+(`PGR-E2007`, `LH-FA-20.a` *Start*), erst nach allen Prüfungen dieser Aufzählung:
 
 | Ursache | Code |
 |---|---|
@@ -1471,6 +1472,10 @@ offenlässt.
   Zertifikat wird gegen den Host der Verbindung geprüft, wie er eingesetzt ist; bei
   einer IPv6-Adresse ohne ihre Zone gegen die IP-Adressen des Zertifikats. Lässt
   sich der Zertifikatsspeicher des Systems nicht laden, gilt er als leer (Grenze).
+  Ist der Host eine IP-Adresse (IPv4 oder IPv6), gilt das ebenso: Sie wird gegen die
+  IP-Adressen des Zertifikats geprüft, nie gegen seine DNS-Namen. Nach der Aushandlung
+  laufen Aufbau und Anmeldung unverändert auf der verschlüsselten Verbindung, auch mit
+  Klartext-Passwort, und `config show` liest die Datei aus `--upstream-ca` nicht.
 * *Anmeldung.* Das Passwort kommt aus dem Platzhalter der benutzten Verbindung,
   sonst aus `PGWIRE_RECORDER_PASSWORD`; eine leere Variable gilt als nicht gesetzt.
   Verlangt der Server ein Passwort und es gibt keines, ist das `PGR-E4005`, ohne dass
@@ -2750,3 +2755,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-10 | Einspielen: Anmeldung, Randformen vor dem Code (Passwort aus Verbindung oder Umgebung ohne Mischen, kein Passwort und nichts Abgeleitetes in Meldung, Log und Ursachenkette, Aufbau der Anforderungen Klartext, MD5 und SASL, Wahl von `SCRAM-SHA-256`, Aufbau der Nachrichten und Grenzen des SCRAM-Austauschs, Iterationszahl bis 10 000 000, Nachricht an unvorgesehener Stelle im Austausch `PGR-E4005`, weitere Anforderung nach einer Antwort `PGR-E4002`) (`LH-FA-20.a`) |
 | 2026-10-10 | Einspielen: Anmeldung, Randformen aus der Rückgabe des Implementers (zweite Anforderung auch nicht lesbar `PGR-E4002`, zweite Anforderung eines nicht unterstützten Verfahrens `PGR-E4005`, leeres Salz gültig, Iterationszahl ohne führende Null, Fehler der Schlüsselableitung `PGR-E4005` als Grenze ohne Test) (`LH-FA-20.a`) |
 | 2026-10-10 | Einspielen: Anmeldung, Servernonce nur druckbare Zeichen ohne Komma (`PGR-E4005`), Restbits in Base64 von `s=` und `v=` angenommen (`LH-FA-20.a`) |
+| 2026-10-11 | Einspielen: TLS, Stelle des Lesens der Datei aus `--upstream-ca` als letzte Prüfung des Starts (`LH-FA-17.a`); IPv4-Host gegen die IP-Adressen des Zertifikats, Aufbau und Anmeldung nach der Aushandlung unverändert, `config show` liest die Datei nicht (`LH-FA-20.a`) |

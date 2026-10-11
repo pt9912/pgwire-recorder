@@ -126,8 +126,9 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/adapters/driven/postgres` | update | `SSLRequest`, Aushandlung und Prüfung des Zertifikats im Aufbau von `play`; Einstufung `PGR-E4005` und `PGR-E4002` |
-| `internal/adapters/driving/cli` | update | Optionen `--upstream-tls` und `--upstream-ca` mit Umgebung und Schlüsseln im Abschnitt `play:`; „gesetzt“ vom Standardwert unterschieden; TLS nach `sslmode`; `--upstream-ca` ohne TLS `PGR-E2001` |
-| `internal/bootstrap` | update | die Datei aus `--upstream-ca` beim Start lesen (`PGR-E2007`) und die Zertifikate an den Upstream-Adapter reichen |
+| `internal/adapters/driving/cli` | update | Optionen `--upstream-tls` und `--upstream-ca` mit Umgebung und Schlüsseln im Abschnitt `play:`; „gesetzt“ vom Standardwert unterschieden; TLS nach `sslmode`; `--upstream-ca` ohne TLS `PGR-E2001`; die Datei aus `--upstream-ca` als letzte Prüfung des Starts lesen und einstufen (`PGR-E2007`), die Zertifikate als `[]*x509.Certificate` in den Optionen von `play` ablegen |
+| `internal/bootstrap` | update | Verdrahtung ohne Logik: `UpstreamTLS` und die Zertifikate aus den Optionen in den `Einspielziel` des Upstream-Adapters setzen; die Datei liest der CLI-Adapter (§6, *Ort der CA-Datei*) |
+| `internal/hexagon/model` | update | die Kennung `PGR-E2007` als Konstante neben den übrigen Codes; keine Logik, zählt wie die Verdrahtung nicht als Schicht |
 | `test/integration` | update | Server mit TLS und dem Zertifikat einer eigenen Zertifizierungsstelle, abgelaufenes Zertifikat, falscher Name, Server, der unverschlüsselte Verbindungen ablehnt; Happy/Negative nach LH-FA-20 |
 
 ## 4. Trigger
@@ -142,7 +143,8 @@ der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md), direk
 Die Randformen aus §6 entschied der Architect am 2026-10-09 vor dem Code in `LH-FA-20.a`
 und `LH-FA-17.a`; vor dem ersten Code-Commit prüft er die Liste gegen den gelieferten Kern und
 legt fest, in welchem Paket die CA-Datei gelesen und geprüft wird, gegen die Regeln von
-`make a-check` (`AGENTS.md` §3.12).
+`make a-check` (`AGENTS.md` §3.12). Geprüft und entschieden am 2026-10-11 (§6, *Ort der
+CA-Datei*): der CLI-Adapter, zwei Schichten.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -202,6 +204,27 @@ an der genannten Stelle. Offen ist keine.
   ist keine Nachricht; neu entschieden in `LH-FA-20.a` *Abbruch im Aufbau*. Nachgezählt beim
   Eintragen (`AGENTS.md` §3.13): drei Liefer-Punkte, zwei Schichten (CLI-Adapter,
   Upstream-Adapter); der Punkt liegt im Upstream-Adapter, ohne eigene Zusage in der DoD.
+- **Ort der CA-Datei** (geprüft vom Architect am 2026-10-11, Nutzerentscheidung Option A) —
+  der CLI-Adapter liest die Datei, stuft `PGR-E2007` ein und legt die Zertifikate als
+  `[]*x509.Certificate` in `cli.PlayOptions`; der Bootstrap setzt sie in den `Einspielziel`,
+  der Upstream-Adapter baut daraus mit dem Systemspeicher das `tls.Config`. `crypto/x509` und
+  `encoding/pem` sind Standardbibliothek; `.a-check.yml` schränkt nur `crypto/tls` (auf die
+  beiden PGWire-Adapter) ein, kein Gate ändert sich (`AGENTS.md` §3.6), keine ADR. Kein
+  `x509`-Typ erreicht Model, Services oder Ports (der Core kennt keine Zertifikate, `spec/architecture.md`
+  §4.4). Der Ort steht in `spec/architecture.md` §4.4. Die Reihenfolge stimmt mit
+  `LH-FA-17.a` und `LH-FA-20.a` *Start*: `--upstream-ca` ohne TLS (`PGR-E2001`) im Hook von
+  `--upstream` zwischen `pruefeUpstream` und `zielPlay`, die Datei danach als letzte Prüfung,
+  vor dem Laden der Aufzeichnung (das der Bootstrap erst nach `Parse` macht); ein Fehler nennt
+  die Option und die Ursache des Betriebssystems ohne Pfad (Muster `nichtLesbar`). Neu
+  entschieden in `LH-FA-17.a` *Fehler* (Stelle der Datei).
+- **Host als IP-Adresse, Aufbau nach der Aushandlung, `config show`** — IPv4 wie IPv6 gegen
+  die IP-Adressen des Zertifikats; nach der Aushandlung laufen Aufbau und Anmeldung wie ohne
+  TLS auf der verschlüsselten Verbindung, ein Klartext-Passwort ist über TLS zulässig;
+  `config show` liest die Datei nicht; neu entschieden in `LH-FA-20.a` *TLS*.
+- **Abbruchsignal in der Aushandlung** — der Aufbau schließt die Aushandlung ein; es gilt
+  *Abbruchsignal* (das erste lässt ihn zu Ende laufen, das zweite schließt ohne Fehler),
+  bestätigt, keine neue Regel; geprüft mit einem Test, der in der Aushandlung das zweite
+  Signal gibt.
 - **Bindung an den Vertrag der Ports** (aus `slice-v1-abschluss-einspielen-laufsteuerung`, dort
   §6 akzeptiertes Negativ (e), Review F-568) — jeder neue Fehler im Aufbau mit TLS (Antwort auf
   `SSLRequest`, Aushandlung, Zertifikat, Ablehnung ohne TLS) verlässt den Upstream-Adapter mit
@@ -223,11 +246,31 @@ an der genannten Stelle. Offen ist keine.
 
 - **TLS-Version und Verfahren** — die Voreinstellung der Standardbibliothek, keine Zusage.
 
+*Akzeptierte Negative der Prüfung vom 2026-10-11:*
+
+- **PostgreSQL mit `ssl=on` im Integrationstest** — der gepinnte Server (`postgres:17-alpine`)
+  enthält kein `openssl`, und das Runner-Skript erzeugte Zertifikate nur mit zusätzlichem
+  Werkzeug; der Slice prüft Aushandlung und Zertifikat deshalb gegen einen **TLS-Proxy im
+  Test** (Zertifikate zur Testzeit mit `crypto/x509` erzeugt, nichts eingecheckt): Er antwortet
+  `S`, handelt aus und reicht die entschlüsselte Verbindung an den echten PostgreSQL weiter.
+  Fehlerfälle (`N`, anderes Byte, abgelaufen, anderer Name, Server lehnt unverschlüsselt ab)
+  laufen gegen eine Test-Gegenstelle im Paket des Upstream-Adapters. Nicht geprüft: das
+  Zusammenspiel mit dem TLS-Server von OpenSSL; Grund: Client ist die Standardbibliothek, die
+  Gegenstelle ein Standard-TLS.
+- **Zertifikatsspeicher des Systems im Integrationstest** — das Zertifikat des Tests liegt
+  nicht im Speicher des Test-Containers, und `SSL_CERT_FILE` wirkt erst bei der ersten Ladung
+  im Prozess; der Speicher wird im Test des Upstream-Adapters über ein austauschbares Feld
+  geprüft (gefüllter Speicher nimmt, leerer und nicht ladbarer Speicher lehnen ab, nur
+  `--upstream-ca` nimmt), nicht Ende zu Ende. Die Grenze des Images steht im zweiten Risiko unten.
+- **SNI, Punkt am Ende des Hosts, Größe der CA-Datei, Zertifikat mit Kopfzeilen im PEM-Block**
+  — Verhalten der Standardbibliothek, keine Zusage; kein Fall des Produkts.
+
 **Risiken:**
 
-- Das Testgeschirr braucht Zertifikate einer eigenen Zertifizierungsstelle, ein abgelaufenes
-  und eines auf einen anderen Namen; zur Testzeit erzeugt, wächst das Geschirr, eingecheckt,
-  laufen sie ab — **Ausgang:** offen bis Closure.
+- Das Testgschirr braucht Zertifikate einer eigenen Zertifizierungsstelle, ein abgelaufenes
+  und eines auf einen anderen Namen — **Ausgang:** entschieden am 2026-10-11: zur Testzeit im
+  Test erzeugt, nicht eingecheckt (siehe Negative oben); offen bis Closure, ob das Geschirr
+  dadurch unvertretbar wächst.
 - Im Produkt-Image kann der Zertifikatsspeicher des Systems leer sein; dann prüft `play` nur
   gegen `--upstream-ca` (Grenze in `LH-FA-20.a` *TLS*) — **Ausgang:** offen bis Closure.
 
@@ -296,5 +339,8 @@ Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-einspielen-tls-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 2. Schichten: zwei Schichten nach der Teilung dieses Plans (Upstream-Adapter, CLI-Adapter; der Bootstrap reicht weiter, §1; die Zeile oben zählt den Bootstrap noch als eigene Schicht, überholt durch den Absatz unten).
 
-Nachgezählt nach der Entscheidung des Nutzers vom 2026-10-10 zum Bootstrap (`AGENTS.md` §3.13, seit slice-v1-abschluss-einspielen-anmeldung): Der Bootstrap zählt nur mit Logik. Hier liest er die Datei aus `--upstream-ca` beim Start und stuft den Fehler ein (`PGR-E2007`, §3), das ist Logik; er zählt also. Schichten: drei (Upstream-Adapter, CLI-Adapter, Bootstrap), der Plan liegt über der Grenze. Nicht geschnitten; der Planner entscheidet den Schnitt vor dem Anspruch (`next` → `in-progress`), der Architect prüft ihn vor dem ersten Code-Commit (§4 *Start*). Die Zeilen oben zählten den Bootstrap als Verdrahtung und sind überholt.
+Nachgezählt nach der Entscheidung des Nutzers vom 2026-10-10 zum Bootstrap (überholt durch den Absatz *Berichtigt* unten) (`AGENTS.md` §3.13, seit slice-v1-abschluss-einspielen-anmeldung): Der Bootstrap zählt nur mit Logik. Hier liest er die Datei aus `--upstream-ca` beim Start und stuft den Fehler ein (`PGR-E2007`, §3), das ist Logik; er zählt also. Schichten: drei (Upstream-Adapter, CLI-Adapter, Bootstrap), der Plan liegt über der Grenze. Nicht geschnitten; der Planner entscheidet den Schnitt vor dem Anspruch (`next` → `in-progress`), der Architect prüft ihn vor dem ersten Code-Commit (§4 *Start*). Die Zeilen oben zählten den Bootstrap als Verdrahtung und sind überholt.
+
+**Berichtigt am 2026-10-11 (Prüfung des Architect, Nutzerentscheidung Option A; `AGENTS.md` §3.13):** Die Datei aus `--upstream-ca` liest der CLI-Adapter (§6, *Ort der CA-Datei*); der Bootstrap hat keine Logik, er setzt `UpstreamTLS` und die Zertifikate in den `Einspielziel` und zählt nicht. Die Konstante `PGR-E2007` im Model ist eine Kennung ohne Logik und zählt wie die Verdrahtung nicht. Schichten: **zwei** (Upstream-Adapter, CLI-Adapter), Liefer-Punkte: **zwei** (DoD 1 und 2). Der Plan liegt innerhalb der Grenze; er wird nicht geschnitten, die Rückführung in §4 bleibt die Rückfallebene. Die Absätze oben, die drei Schichten nennen, sind überholt.
+
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
