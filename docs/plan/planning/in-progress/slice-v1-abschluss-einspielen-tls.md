@@ -359,6 +359,18 @@ es hier keinen Test und keine Test-Idee mit Adresse, weil die Untergrenze keine 
 „S, dann Gegenstelle nur TLS 1.0, Aushandlung scheitert“ prüft nur, dass eine Aushandlung, die
 scheitert (hier an der Untergrenze der Gegenstelle), PGR-E4005 ist.
 
+**Ein zweiter Mutant bleibt grün (V-167).** Der Mutant „Fehler des Ladens nimmt die
+Systemwurzeln“ (im Fehlerzweig `pool, _ = x509.SystemCertPool()`, danach die CA ergänzt) lässt
+alle Pakete grün (Upstream-Adapter, CLI-Adapter, Bootstrap; die Verifikation fuhr ihn als V32).
+Eine frühere Fassung dieses Abschnitts sagte, `…/nicht_ladbarer_Speicher,_in_CA` werde rot und
+*leer* und *nicht ladbar* würden erst mit CA getrennt; das stimmte nicht. Der Grund: Die
+Systemwurzeln des Test-Containers enthalten die Test-CA nicht, und mit CA gelingt der Aufbau in
+beiden Fassungen. Der Unterschied *leer* gegen *Systemwurzeln* ist nur mit einem Serverzertifikat
+einer vertrauten Wurzel zu beobachten, und das kann die Testumgebung nicht erzeugen. Der Mutant
+gilt deshalb als in der Testumgebung äquivalent; die Zusage steht in `LH-FA-20.a` *TLS* als
+„(Grenze)“. Was der Hook prüft, ist *Fehler und `nil` gelten als leer*, und dort ist der Mutant
+`nil` ohne Fehler rot.
+
 | Zusage | Mutation | roter Test |
 |---|---|---|
 | Mit TLS: SSLRequest, Aushandlung, Startup nur verschlüsselt | TLS-Zweig im Aufbau aus; SSLRequest-Nummer um 1 verändert; Startup nach der Aushandlung auf der Klartext-Verbindung | `TestEinspielTLS` (alle drei); der dritte auch `TestEinspielTLSKlartextPasswort`, `TestEinspielTLSAbbruchImAufbau` |
@@ -369,7 +381,7 @@ scheitert (hier an der Untergrenze der Gegenstelle), PGR-E4005 ist.
 | … eine IP-Adresse nur gegen IP-Adressen, nie gegen DNS-Namen | Namen einer IP-Adresse mit Punkt am Ende (dann DNS-Pfad) | `TestEinspielTLSZertifikatFehler/IP-Adresse_als_DNS-Name`, `TestEinspielTLSName/IPv4_gegen_IP-Adresse`, `TestEinspielTLSServerName` |
 | … IPv6 ohne Zone | **kein eigener Mutant fahrbar**: Kein Code des Produkts streift die Zone ab; die Standardbibliothek (Go 1.27, `VerifyHostname` über `netip`) gleicht eine IPv6-Adresse mit und ohne Zone gegen die IP-Adressen ab | `TestEinspielTLSServerName` hält das Verhalten der Standardbibliothek fest, `TestEinspielTLSIPv6MitZone` fährt `[::1%lo]` Ende zu Ende (endet ohne Prüfung, wenn die Schleife kein IPv6 hat; hier lief er) |
 | Zertifikatsspeicher des Systems **und** CA, nicht eines statt des anderen | CA ersetzt den Speicher; CA nicht aufgenommen | `TestEinspielTLSZertifikatsspeicher/im_Speicher,_andere_in_CA` und `/im_Speicher_neben_anderen,_eine_eigene`; `/nur_in_CA`, `/andere_im_Speicher,_in_CA`, `TestEinspielTLS` |
-| Speicher nicht ladbar gilt als leer | Fehler des Ladens nimmt die Systemwurzeln; Speicher `nil` ohne Fehler | `TestEinspielTLSZertifikatsspeicher/nicht_ladbarer_Speicher,_in_CA` und `/Speicher_nil_ohne_Fehler,_in_CA` (das zweite als Absturz) |
+| Speicher nicht ladbar gilt als leer | Speicher `nil` ohne Fehler; Fehler des Ladens nimmt die Systemwurzeln: **grün**, siehe *Ein zweiter Mutant bleibt grün (V-167)* | `TestEinspielTLSZertifikatsspeicher/Speicher_nil_ohne_Fehler,_in_CA` (als Absturz); für den Mutanten der Systemwurzeln **kein roter Test** |
 | `S` mit Bytes im selben Lesen: PGR-E4002 | Prüfung der Bytes nach `S` entfernt | `TestEinspielTLSAntwort/S_mit_einem_Byte_dahinter`, `/S_mit_TLS-Record_dahinter`, `TestEinspielTLSSendenUndLesen` |
 | `N`: PGR-E4005 | `N` als PGR-E4002 | `TestEinspielTLSAntwort/N`, `/N_mit_Bytes_dahinter` |
 | Anderes Byte: PGR-E4002 | als PGR-E4005 | `TestEinspielTLSAntwort/E`, `/Fehlerpaket`, `/x`, `/s`, `/Byte_eines_TLS-Records`, `/Byte_0` |
@@ -423,7 +435,8 @@ scheitert (hier an der Untergrenze der Gegenstelle), PGR-E4005 ist.
   Binaries); die Fälle *leerer*, *nicht ladbarer* und *gefüllter* Speicher prüft der Unit-Test
   über das austauschbare Feld. Ohne CA bleiben die Zeilen *leerer* und *nicht ladbarer Speicher*
   gegen einen Mutanten, der die Systemwurzeln des Containers einsetzt, grün (sie enthalten die
-  Test-CA nicht); getrennt wird das erst mit CA (`/nicht_ladbarer_Speicher,_in_CA`). Nicht
+  Test-CA nicht), und auch mit CA bleibt er grün (siehe *Ein zweiter Mutant bleibt grün
+  (V-167)*): Kein Test trennt den leeren Speicher von den Systemwurzeln des Containers. Nicht
   geprüft: der Speicher des Produkt-Images im Betrieb. Gemessen: Das Image
   `pgwire-recorder:dev` enthält `/etc/ssl/certs/ca-certificates.crt`; der Integrationstest
   fährt das Binary des Test-Images, nicht das des Produkt-Images (Risiko 2 in §6).
