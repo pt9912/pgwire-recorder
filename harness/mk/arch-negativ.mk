@@ -1,15 +1,17 @@
 # harness/mk/arch-negativ.mk — Gegenprobe des Architektur-Gates (ADR-0001, ADR-0010,
-# ADR-0027, ADR-0036)
+# ADR-0027, ADR-0036, ADR-0024)
 # · seit slice-walking-skeleton-build-gates.
 # Sie haengt an GATE_CHECKS. Sie belegt fuer pgproto3 und crypto/tls, dass a-check
 # einen Import im Domain Model und im Recording-Adapter ablehnt und in beiden
 # PGWire-Adaptern zulaesst, und fuer jeden der beiden YAML-Modulpfade, dass
 # a-check ihn im Domain Model, im Postgres-Adapter und im PGWire-Adapter ablehnt
-# und im CLI-Adapter zulaesst; andere Regeln prueft sie nicht.
+# und im CLI-Adapter zulaesst, und fuer modernc.org/sqlite, dass a-check den Import im
+# Domain Model, im Postgres-Adapter, im PGWire-Adapter und im CLI-Adapter ablehnt und
+# im Recording-Adapter zulaesst; andere Regeln prueft sie nicht.
 # Image und Runtime stammen aus a-check.mk.
 .PHONY: a-check-negativ
 
-a-check-negativ: ## Architektur-Gate-Gegenprobe: pgproto3 und crypto/tls nur in den PGWire-Adaptern, YAML nicht im PGWire-Adapter, aber im CLI-Adapter
+a-check-negativ: ## Architektur-Gate-Gegenprobe: pgproto3 und crypto/tls nur in den PGWire-Adaptern, YAML nicht im PGWire-Adapter, aber im CLI-Adapter, SQLite nur im Recording-Adapter
 	@A_CHECK_IMAGE='$(A_CHECK_IMAGE)' DOCKER='$(DOCKER)' bash tools/arch/a-check-negativ.sh
 
 GATE_CHECKS += a-check-negativ
