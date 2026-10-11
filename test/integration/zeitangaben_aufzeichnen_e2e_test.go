@@ -14,7 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/pt9912/pgwire-recorder/internal/adapters/driven/recording"
+	"github.com/pt9912/pgwire-recorder/internal/bootstrap/offsetlese"
 )
 
 // zeitAblauf führt über den Recorder unter listen eine einfache Anfrage, nach pause1 eine
@@ -45,25 +45,17 @@ func zeitAblauf(t *testing.T, listen string, pause1, pause2 time.Duration) {
 }
 
 // offsetsAus lädt die Aufzeichnung path mit dem Leser des Formats und liefert offset_ms der
-// Interaktionen der ersten Session; -1 steht für ein fehlendes Feld.
+// Interaktionen ihrer einzigen Session; offsetlese.Fehlt steht für ein fehlendes Feld.
 func offsetsAus(t *testing.T, path string) []int64 {
 	t.Helper()
-	rec, err := recording.Leser{}.Load(context.Background(), path)
+	sessions, err := offsetlese.Laden(path)
 	if err != nil {
 		t.Fatalf("laden: %v", err)
 	}
-	if len(rec.Sessions) != 1 {
-		t.Fatalf("%d Sessions, erwartet 1", len(rec.Sessions))
+	if len(sessions) != 1 {
+		t.Fatalf("%d Sessions, erwartet 1", len(sessions))
 	}
-	var out []int64
-	for _, in := range rec.Sessions[0].Interactions {
-		if in.OffsetMS == nil {
-			out = append(out, -1)
-			continue
-		}
-		out = append(out, *in.OffsetMS)
-	}
-	return out
+	return sessions[0]
 }
 
 // Abdeckung: LH-FA-21/Happy, LH-FA-22/Happy — Abnahmeszenario 13, Aufzeichnen-Hälfte: record
@@ -110,7 +102,7 @@ func TestE2ERecordOhneTiming(t *testing.T) {
 		zeitAblauf(t, rec.listen, pause, pause)
 		rec.stop(t, 0)
 		yaml = append(yaml, lies(t, output))
-		if got := offsetsAus(t, output); len(got) != 3 || got[0] != -1 || got[1] != -1 || got[2] != -1 {
+		if got := offsetsAus(t, output); len(got) != 3 || got[0] != offsetlese.Fehlt || got[1] != offsetlese.Fehlt || got[2] != offsetlese.Fehlt {
 			t.Errorf("yaml: offset_ms %v, erwartet ohne Feld", got)
 		}
 		if strings.Contains(lies(t, output), "offset_ms") {
@@ -124,7 +116,7 @@ func TestE2ERecordOhneTiming(t *testing.T) {
 	rec := startProzess(t, "record", "--upstream", os.Getenv("PGR_UPSTREAM"), "--output", output, "--format", "sqlite")
 	zeitAblauf(t, rec.listen, 0, 0)
 	rec.stop(t, 0)
-	if got := offsetsAus(t, output); len(got) != 3 || got[0] != -1 || got[1] != -1 || got[2] != -1 {
+	if got := offsetsAus(t, output); len(got) != 3 || got[0] != offsetlese.Fehlt || got[1] != offsetlese.Fehlt || got[2] != offsetlese.Fehlt {
 		t.Errorf("sqlite: offset_ms %v, erwartet ohne Feld", got)
 	}
 }

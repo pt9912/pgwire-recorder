@@ -32,7 +32,7 @@ func modulWurzel(t *testing.T) string {
 }
 
 // TestBinaryOhneTesthilfen prüft, dass keines der Pakete unter ./cmd/... die
-// Testhilfen tlsproxy und testpki oder das Paket testing, auch nicht mittelbar,
+// Testhilfen tlsproxy, offsetlese und testpki oder das Paket testing, auch nicht mittelbar,
 // importiert: `go list -deps ./cmd/...` läuft ohne Netz (GOPROXY=off) und die
 // Menge der Pakete wird gegen die Verbotsliste gehalten.
 func TestBinaryOhneTesthilfen(t *testing.T) {
@@ -49,9 +49,10 @@ func TestBinaryOhneTesthilfen(t *testing.T) {
 	}
 	const modul = "github.com/pt9912/pgwire-recorder"
 	verboten := map[string]bool{
-		"testing":                              true,
-		modul + "/internal/testpki":            true,
-		modul + "/internal/bootstrap/tlsproxy": true,
+		"testing":                                true,
+		modul + "/internal/testpki":              true,
+		modul + "/internal/bootstrap/tlsproxy":   true,
+		modul + "/internal/bootstrap/offsetlese": true,
 	}
 	pakete := strings.Fields(stdout.String())
 	gesehen := false
