@@ -32,7 +32,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Beim Laden einer Aufzeichnung — `replay`, `play`, in YAML wie in SQLite — sind `offset_ms`, die innerhalb einer Session absteigen, `PGR-E3003` (Exit-Code 3): die Aufzeichnung ist beschädigt. Gleiche Werte hintereinander und ein kleinerer Wert in der nächsten Session sind gültig. Das ist beobachtbar an einer Datei von Hand, ohne dass `--record-timing` oder `--keep-timing` existieren.
 
-**Übernommen aus `slice-v1-abschluss-zeitangaben`** (dort bis zum Schnitt DoD-Punkt 1, der letzte Halbsatz „ein ungültiger Wert ist `PGR-E3003` (Test)“): die Prüfung der Werte beim Lesen. Den Typ in SQLite (`offset_ms` weder `NULL` noch eine ganze Zahl) liefert der Leser schon (`slice-v1-abschluss-sqlite-format-lesen`, dort §1: Die Spalte hat einen geprüften Typ); die Form des Werts in YAML, auch das Vorzeichen, und das Absteigen liefert dieser Slice ( das Verhalten mit Zeitangaben — hier das Absteigen — ist der andere Liefer-Punkt, den jener Slice an `slice-v1-abschluss-zeitangaben` abgab).
+**Übernommen aus `slice-v1-abschluss-zeitangaben`** (dort bis zum Schnitt DoD-Punkt 1, der letzte Halbsatz „ein ungültiger Wert ist `PGR-E3003` (Test)“): die Prüfung der Werte beim Lesen. Den Typ in SQLite (`offset_ms` weder `NULL` noch eine ganze Zahl) liefert der Leser schon (`slice-v1-abschluss-sqlite-format-lesen`, dort §1: Die Spalte hat einen geprüften Typ); die Form des Werts in YAML, auch das Vorzeichen, und das Absteigen liefert dieser Slice. Das Verhalten mit Zeitangaben, hier das Absteigen, ist der andere Liefer-Punkt, den jener Slice an `slice-v1-abschluss-zeitangaben` abgab.
 
 **Herkunft:** Teil des Schnitts von `slice-v1-abschluss-zeitangaben` vom 2026-10-11 (Entscheidung des Nutzers vom 2026-10-11: vor dem Anspruch zu schneiden, weil der Plan vier Schichten berührte — Kern mit Uhr-Port, PGWire-Adapter, Recording-Adapter, CLI-Adapter — und damit über der Grenze von zwei lag, `AGENTS.md` §3.13; den Zuschnitt in vier Teile nach Lieferwert entschied der Planner mit seiner Empfehlung). Die vier Teile: `slice-v1-abschluss-zeitangaben-pruefen` (Lesen prüft die Werte), `slice-v1-abschluss-zeitangaben-uhr` (Uhr-Port und Systemuhr), `slice-v1-abschluss-zeitangaben-aufzeichnen` (`--record-timing`) und `slice-v1-abschluss-zeitangaben` (`--keep-timing`, schließt Abnahmeszenario 13); Handbuch und README zu allen vier liegen gemeinsam im Doku-Folge-Slice `slice-v1-abschluss-zeitangaben-doku` hinter dem letzten Teil (wie `slice-v1-abschluss-sqlite-format-doku` hinter dem Schreiben und dem Lesen: Zwischen den Code-Slices und dem Doku-Slice hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen, und die Welle schließt erst mit allen).
 
@@ -153,7 +153,7 @@ Kommentare weniger), 359 Go-Tests, 7 Tabellen, dazu die Datei von 32 KB.
 **Zusage · Mutation · roter Test.** Jede Mutation lief in einer frischen Kopie (`cp -r` ohne `-p`: `go.mod`, `go.sum`,
 `cmd/`, `internal/`, `test/`) mit einer Ersetzung in `yaml.go` und `go test` im Bind-Mount des gepinnten Images (der
 Mutant kommt ohne Build-Kontext an); E1 und E2 mit `make test-integration` in einer Kopie des ganzen Baums. Die
-Mutanten M1 bis M18 und V1 bis V11 stehen unten.
+Mutanten M1 bis M18, V1 bis V11 und C7 stehen unten.
 
 | Zusage | Mutation | roter Test |
 |---|---|---|
@@ -175,11 +175,12 @@ Mutanten M1 bis M18 und V1 bis V11 stehen unten.
 | die Meldung zur Form trägt Session und Interaktion auch in `sqlite` | Befund der Vorprüfung als Ursache umhüllt (M18) | `TestZeitangabenFormSQLite` |
 | eine kanonische Version außer 1 ist `PGR-E3002`, auch `0`, negativ, über `int64`, auch bei Fehlern im Inhalt | `0` als `PGR-E3003` (V6); negativ als `PGR-E3003` (V6b); über `int64` als `PGR-E3003` (V7) | `TestZeitangabenVersionVorForm` (`Version 0`, `-1`, `über int64`) |
 | `version: 2` ist `PGR-E3002` auch bei unbekanntem Schlüssel oder Fehler im Inhalt | Decoder vor der Prüfung der Version (V2); Prüfung des Inhalts vor der Version (V10) | `TestZeitangabenVersionVorForm` (`Version 2`, `Version 2, unbekannter Schlüssel`) |
-| fehlende Version oder Wert, der keine kanonische Dezimalzahl ist: `PGR-E3003` ohne Wert | `abc` als Version 0 (V3); fehlend als 0 (V4); führende Null erlaubt (V5); Wert in der Meldung (V11); Text in Anführungszeichen angenommen (V8) | `TestZeitangabenVersionVorForm` (`abc`, `fehlt`, `01`, `-0`, `1.0`, `"1"`, `null`, `0x2`) |
+| fehlende Version oder Wert, der keine kanonische Dezimalzahl ist: `PGR-E3003` ohne Wert | `abc` als Version 0 (V3); fehlend als 0 (V4); führende Null erlaubt (V5); Text in Anführungszeichen angenommen (V8); die Meldung trägt das Wort „Version“ (V11) | `TestZeitangabenVersionVorForm` (`abc`, `fehlt`, `01`, `-0`, `1.0`, `"1"`, `null`, `0x2`) |
+| die Meldung zu einer Version, die keine kanonische Dezimalzahl ist, nennt den Wert der Datei nicht | `v.Value` in der Meldung (C7) | `TestZeitangabenVersionVorForm` je Fall (`abc`, `01`, `-0`, `1.0`, `"1"`, `null`, `0x2`; der Text enthält den Wert nicht) |
 | eine falsche oder fehlende Formatkennung ist `PGR-E3003`, auch bei unbekannter Version | Version vor Formatkennung (V1); Formatkennung nicht verglichen (V9) | `TestZeitangabenVersionVorForm`, `TestUnmarshalFehler/fremdes_Format` |
 | `replay` und `play` enden beim Start mit Exit-Code 3 | Vergleich entfernt (E1); Prüfung des Styles entfernt (E2) | `TestE2ENichtAbsteigendeZeitangaben` (beide Formate, beide Befehle) |
 
-Summe: 29 Mutanten der Unit-Tests (M1 bis M18, V1 bis V11; V1 ist die Umstellung von Formatkennung und Version in einem Mutanten) und 2 am Binary (E1, E2); rot 31, grün 0 (E1 mit der Datei von `sqlite`: der Aufruf von `replay` endet nicht binnen 15 s). Ein Mutant des Vergleichs trifft beide
+Summe: 30 Mutanten der Unit-Tests (M1 bis M18, V1 bis V11, C7; V1 ist die Umstellung von Formatkennung und Version in einem Mutanten) und 2 am Binary (E1, E2); rot 32, grün 0 (E1 mit der Datei von `sqlite`: der Aufruf von `replay` endet nicht binnen 15 s). Ein Mutant des Vergleichs trifft beide
 Formate zugleich, weil `sqlite` durch dieselbe Stelle liest; die Fälle von `TestZeitangabenAbsteigendBeschaedigt`
 und `TestZeitangabenGueltig` laufen je Format (Teilnamen `, yaml` und `, sqlite`), beide Teile wurden rot gesehen.
 Die Prüfung der Art des Knotens entfiel nach der ersten Fassung: Eine Liste oder Abbildung hat den Wert "", den
