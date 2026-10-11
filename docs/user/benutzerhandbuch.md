@@ -348,7 +348,7 @@ Die Datei hat vier Tabellen:
 |---|---|
 | `meta` | Zeilen mit `key` und `value`: `format` (`pgwire-recorder`) und `version` |
 | `session` | eine Zeile je aufgezeichneter Verbindung: `id` (ab 1), `startup` und `server_parameters` als JSON-Text |
-| `interaction` | eine Zeile je Anfrage oder Folge des erweiterten Protokolls: `session_id`, `sequence`, `type` (`query` oder `extended`), `offset_ms` und `sql` (der Text einer einfachen Anfrage, bei `extended` leer) |
+| `interaction` | eine Zeile je Anfrage oder Folge des erweiterten Protokolls: `session_id`, `sequence`, `type` (`query` oder `extended`), `offset_ms` und `sql` (der Text einer einfachen Anfrage, bei `extended` ohne Wert, also `NULL`) |
 | `message` | die Nachrichten einer Interaktion: `session_id`, `sequence`, `position`, `direction` (`client` oder `server`), `group_no`, `kind` und `fields` als JSON-Text |
 
 Bei einer einfachen Anfrage stehen in `message` nur die Antworten des Servers; die
