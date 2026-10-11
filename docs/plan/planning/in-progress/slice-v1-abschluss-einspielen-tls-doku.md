@@ -200,6 +200,8 @@ Mutanten des Satzes: „die Zertifizierungsstelle, die es ausgestellt hat“ wä
 
 `grep -n -i` im Handbuch nach Slice, Welle, ADR-, LH-, SPEC-, ARC-, `spec/`, Lastenheft, Spezifikation, Review, „noch nicht“, „kommt“, „geplant“, „später“, „bisher“: Treffer: Bestand (Zeile 14 „später“, 153 „existiert noch nicht“ in der Voraussetzung einer Aufgabe, 595 „kommt nur zum Einsatz“) und ein neuer Satz (Zeile 371, „gleich ob es als Option … kommt“, im Sinn von Herkunft des Werts); keiner im Sinn von Künftigem. Die frühere Aussage „keiner in den neuen Sätzen“ war ungenau und ist hiermit berichtigt. README: kein Treffer auf Slice, Welle, „noch nicht“, „geplant“, „bisher“, „sicher“, „geschützt“ in den neuen Sätzen. `make docs-check` (d-check): 528 Dateien, 0 Befunde. `make gates` auf dem sauberen Baum `eea9569`: grün (Ausgang 0, 3 min 5 s). Stand nach der Nacharbeit: siehe unten, *Stand der Übergabe*.
 
+**Stand der Übergabe:** `make gates` auf dem sauberen Baum `be0a8aa` (Handbuch und Plan nach der Nacharbeit): grün (Ausgang 0, 3 min 6 s). Dieser Eintrag ist der letzte Commit und ändert nur §7; `make gates` auf dessen sauberem Baum ist die Übergabe-Messung (Bericht).
+
 **Abweichungen und Funde für den Planner:**
 
 - **DoD-Zeile 2:** Die Grenze *Zertifikatsspeicher nicht ladbar* nennt das Handbuch nicht; das ist die Entscheidung des Nutzers vom 2026-10-11 (Option A, §6). Der frühere Wortlaut dieses Punktes („Entscheidung des Nutzers“, schon vor dieser Entscheidung) war falsch: Es war eine Empfehlung des Architect; berichtigt. Die DoD-Zeile ist angeglichen. Das Handbuch sagt stattdessen: Lässt sich das Zertifikat des Servers weder mit dem Speicher des Systems noch mit `--upstream-ca` überprüfen, endet `play` mit `PGR-E4005`.
