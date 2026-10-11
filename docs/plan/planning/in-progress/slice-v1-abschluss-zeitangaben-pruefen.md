@@ -74,7 +74,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/adapters/driven/recording` (`yaml.go`: `formVorpruefung`, `sessionFromDTO`) | update | Form des Werts am YAML-Baum, Vergleich der `offset_ms` je Session in `sessionFromDTO`; SQLite läuft über `Unmarshal` durch dieselbe Stelle; Meldung ohne Wert aus der Datei |
-| Tests im Recording-Adapter und `test/integration` | neu/update | Negativ und Boundary je Format nach `LH-FA-21`; `replay` und `play` am Binary |
+| Tests im Recording-Adapter (`zeitangaben_pruefen_test.go`, `yaml_test.go`) und `test/integration` (`zeitangaben_pruefen_e2e_test.go`) | neu/update | Negativ und Boundary je Format nach `LH-FA-21`; `replay` und `play` am Binary; die Reihenfolge der Meldungen in `TestUnmarshalFehlerReihenfolge` folgt der Vorprüfung vor dem Dekodieren |
 | `docs/user/abdeckung-*.md` | update | von `make abdeckung` erzeugt |
 
 ## 4. Trigger
@@ -135,6 +135,71 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Stand.** Geliefert sind beide Liefer-Punkte der DoD mit `78a6b4c`. Geändert: `internal/adapters/driven/recording/yaml.go`
+(`Unmarshal`, `formVorpruefung`, neu `offsetForm` und `kanonischeDezimalzahl`, `sessionFromDTO`, `geprueftFromDTO`),
+`yaml_test.go` (`TestUnmarshalFehlerReihenfolge`), `docs/user/abdeckung-*.md`; neu `zeitangaben_pruefen_test.go` und
+`test/integration/zeitangaben_pruefen_e2e_test.go`. Handbuch, `README.md`, Kern, PGWire-Adapter, CLI und Bootstrap sind
+unverändert. Die Prüfung der Form des Werts liegt in `formVorpruefung` und läuft vor dem Dekodieren; die negative
+Prüfung `offset_ms negativ` in `geprueftFromDTO` entfällt, weil `-` keine kanonische Dezimalzahl ist. Der Befund der
+Vorprüfung gilt nach Formatkennung und Version (`TestZeitangabenVersionVorForm`). `--keep-timing` gibt es in diesem
+Stand nicht (`slice-v1-abschluss-zeitangaben`); die Tests am Binary rufen `replay` und `play` ohne die Option.
+**Größe:** `git diff --numstat 8e430ce..78a6b4c` zählt 421 Zeilen hinzu und 16 weg; davon 64 Go-Code (ohne
+Kommentare weniger), 350 Go-Tests, 7 Tabellen.
+
+**Zusage · Mutation · roter Test.** Jede Mutation lief in einer frischen Kopie (`cp -r` ohne `-p`: `go.mod`, `go.sum`,
+`cmd/`, `internal/`, `test/`) mit einer Ersetzung in `yaml.go` und `go test` im Bind-Mount des gepinnten Images (der
+Mutant kommt ohne Build-Kontext an); E1 und E2 mit `make test-integration` in einer Kopie des ganzen Baums. Die
+Mutanten M1 bis M20 stehen unten.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| absteigende Werte einer Session sind `PGR-E3003`, in `yaml` und `sqlite` | Vergleich entfernt (M2) | `TestZeitangabenAbsteigendBeschaedigt` (sechs Fälle, je Format); am Binary E1 `TestE2ENichtAbsteigendeZeitangaben` |
+| ein gleicher Wert hintereinander ist gültig | `<=` statt `<` (M1) | `TestZeitangabenGueltig`, `TestZeitangabenAbsteigendBeschaedigt/nach_gleichen_Werten` |
+| der Vergleich gilt je Session, ein kleinerer Wert in der nächsten ist gültig | Vorgänger über Sessions hinweg behalten (M3) | `TestZeitangabenGueltig/kleinerer_Wert_in_der_nächsten_Session` |
+| Mischform: Vergleich der vorhandenen Werte, auch über eine Interaktion ohne Wert | ein fehlender Wert setzt den Vorgänger zurück (M4); er zählt als 0 (M5) | `TestZeitangabenAbsteigendBeschaedigt/über_eine_Interaktion_ohne_Wert` (M4, M5), `TestZeitangabenGueltig` (M5) |
+| der Vergleich gilt gegen den vorigen Wert, nicht gegen den ersten | nur gegen den ersten Wert (M6) | `TestZeitangabenAbsteigendBeschaedigt/nicht_benachbart` |
+| die Meldung nennt keinen Wert (Vergleich) | Wert in der Meldung (M7) | `TestZeitangabenAbsteigendBeschaedigt` |
+| die Meldung nennt Session und Interaktion (Vergleich) | Interaktion nullbasiert (M8) | `TestZeitangabenAbsteigendBeschaedigt` |
+| Form: einfacher Skalar, kein Text in Anführungszeichen, kein ausdrücklicher Typ | `Style` nicht geprüft (M9) | `TestZeitangabenFormYAML` (`"…"`, `'…'`, `!!int`); am Binary E2 (Text) |
+| Form: keine führende Null | `s[0] == '0'` entfernt (M10) | `TestZeitangabenFormYAML/führende_Null` |
+| Form: Bereich von `int64` | Bereich ungeprüft (M11) | `TestZeitangabenFormYAML/über_int64`, `/weit_über_int64` |
+| Form: kein Vorzeichen | `-` erlaubt (M12) | `TestZeitangabenFormYAML/Minus`, `TestFelderDerVersion1`, `TestUnmarshalFehlerReihenfolge` |
+| Form: `null`, `~` und leerer Wert sind beschädigt, nicht „fehlt“ | `!!null` angenommen (M13) | `TestZeitangabenFormYAML/null`, `/Tilde`, `/leerer_Wert` |
+| die Meldung nennt keinen Wert und keine Zeile (Form) | Wert (M14) und Zeile (M15) in der Meldung; Vorprüfung nach dem Dekodieren (die Meldung der Bibliothek nennt Wert und Zeile, E2) | `TestZeitangabenFormYAML` je Schreibweise; E2 am Binary |
+| die Meldung nennt Session und Interaktion (Form) | Session und Interaktion vertauscht (M16) | `TestZeitangabenFormYAML` (Session 2, Interaktion 3) |
+| die Form wird in jeder Session geprüft | nur die erste Session (M17) | `TestZeitangabenFormYAML` |
+| die Meldung zur Form trägt Session und Interaktion auch in `sqlite` | Befund der Vorprüfung als Ursache umhüllt (M18) | `TestZeitangabenFormSQLite` |
+| Formatkennung und Version gehen dem Befund der Form voraus | Befund vor Formatkennung und Version (M19) | `TestZeitangabenVersionVorForm` |
+| der Befund der Form geht dem Fehler der Bibliothek beim Dekodieren voraus | Fehler der Bibliothek zuerst (M20) | `TestZeitangabenFormYAML` |
+| `replay` und `play` enden beim Start mit Exit-Code 3 | Vergleich entfernt (E1); Prüfung des Styles entfernt (E2) | `TestE2ENichtAbsteigendeZeitangaben` (beide Formate, beide Befehle) |
+
+Summe: 20 Mutanten der Unit-Tests (M1 bis M20) und 2 am Binary (E1, E2); rot 22, grün 0. Ein Mutant des Vergleichs trifft beide
+Formate zugleich, weil `sqlite` durch dieselbe Stelle liest; die Fälle von `TestZeitangabenAbsteigendBeschaedigt`
+und `TestZeitangabenGueltig` laufen je Format (Teilnamen `, yaml` und `, sqlite`), beide Teile wurden rot gesehen.
+Die Prüfung der Art des Knotens entfiel nach der ersten Fassung: Eine Liste oder Abbildung hat den Wert "", den
+`kanonischeDezimalzahl` ablehnt; `TestZeitangabenFormYAML` hält beide als Fälle.
+
+**Gegenprobe zur Fixture (Lehre V-175).** Jeder rote Fall trifft die genannte Prüfung: Die Fälle der Form haben davor
+eine Interaktion mit gültigem Wert und sind sonst gültig, die Fälle des Vergleichs sind sonst gültig und tragen
+keine Form, die die Vorprüfung ablehnt; die roten Läufe nennen die Prüfung (M7, M14) oder den Ort der Meldung (M8, M16).
+
+**Läufe (Stand `78a6b4c`).** `make test` grün, `make test-integration` grün (mit `TestE2ENichtAbsteigendeZeitangaben`),
+`make lint` ohne Befund, `make abdeckung` gefahren und die Tabellen mit `78a6b4c` eingetragen. `make gates` läuft nach
+dem letzten Commit auf sauberem Baum; sein Ergebnis steht im Bericht, nicht hier (ein Gate-Lauf belegt nur den Stand,
+auf dem er lief).
+
+**Namensabgleich.** Jeder Testname dieses Abschnitts hat `^func <Name>(` unter `internal/` oder `test/`.
+
+**Hinweis an den Architect (keine Randform, keine Rückgabe).** Die Vorprüfung steht jetzt vor dem Dekodieren
+(`formVorpruefung` nach dem Wortlaut in §6). Damit eine Datei mit unbekannter Version und einer Form von `offset_ms`, die
+Version 1 ablehnt, weiter `PGR-E3002` meldet (Spezifikation, *Ein Leser liest jede `version` von 1 bis zu seiner
+eigenen*), hält `Unmarshal` den Befund der Vorprüfung zurück, bis Formatkennung und Version geprüft sind; ein Fehler der
+Bibliothek beim Dekodieren tritt dann hinter den Befund zurück. Das ändert die Meldung für Dateien mit mehreren Fehlern
+(ein Befund der Vorprüfung statt des Fehlers der Bibliothek, beide `PGR-E3003`); die Spezifikation sagt zu dieser Folge
+„welcher gemeldet wird, ist nicht zugesagt“.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -156,5 +221,7 @@ nicht mehr.
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Liefer-Punkte: 2. Schichten: eine (Recording-Adapter, eine Stelle für beide Formate); nachgezählt vom Architect am 2026-10-11 (SQLite liest über `Unmarshal`, ein Helfer im Domain Model entfällt). Nachgezählt beim Schnitt (2026-10-11, `AGENTS.md` §3.13); die Sendung aus `slice-v1-abschluss-zeitangaben` (DoD-Halbsatz) steht in DoD-Punkt 1.
+
+Nachgezählt am Diff (Implementer, `78a6b4c`): Liefer-Punkte 2, Schichten eine (Recording-Adapter); Produkt-Code ohne Kommentare 64 Zeilen in `yaml.go`, ein Bootstrap ohne Änderung.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
