@@ -80,6 +80,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/services` (nur die drei Testdateien) | update | `time.After`/`time.Sleep`/`time.Now` durch `internal/testzeit` ersetzen, ohne Verhalten zu ändern; ohne das wird die Regel rot |
 | `internal/bootstrap/systemuhr.go` | neu | Systemuhr mit Logik (Warten mit Abbruch), bereitgestellt als `NeueSystemuhr`; wird hier nicht in einen Service verdrahtet, denn kein Service nimmt noch eine Uhr |
 | `.a-check.yml`, `tools/arch/a-check-negativ.sh`, `harness/mk/arch-negativ.mk`, `harness/README.md` | update | Regel „Kern bindet `time` nicht ein“ nach [ADR-0015](../../adr/0015-uhr-port.md), Fitness Function; Fallzahl und Beschreibung der Gegenprobe nachziehen; die Regel prüft den Import, nicht den Aufruf |
+| `internal/bootstrap/export_test.go`, `internal/testuhr/doc.go`, `internal/testzeit/doc.go` | update / neu | Zugriff des Tests auf den Ursprung der Systemuhr (`UrsprungMonoton`); Paketkommentare der beiden Testhilfen |
 | Tests | neu | Vertrag des Ports an der Fake-Uhr (`internal/testuhr/testuhr_test.go`) und an der Systemuhr (`internal/bootstrap/systemuhr_test.go`, `systemuhr_cpu_unix_test.go`), die Testhilfe (`internal/testzeit/testzeit_test.go`), Gegenprobe der Regel (`tools/arch/a-check-negativ.sh`) |
 
 ## 4. Trigger
@@ -116,6 +117,8 @@ dasteht.
 - *Abbruch:* Kontext endet vor oder während des Wartens; der Aufruf kehrt mit dessen Fehler zurück, kein neuer Code — entschieden ([ADR-0015](../../adr/0015-uhr-port.md), `LH-FA-21.a` *Uhr*).
 - *Monotone Zeit:* die Systemuhr zählt aus der monotonen Zeit des Prozesses (Ursprung bei ihrer Erzeugung), nie aus der Wanduhr — entschieden ebenda.
 - *Mehrere Wartende gleichzeitig:* die Fake-Uhr weckt jeden, dessen Zeitpunkt erreicht ist; Vorrücken um eine negative Zahl ist ein Programmierfehler der Tests — entschieden ebenda.
+- *Ferner Zeitpunkt:* ein Zeitpunkt, dessen Abstand zur Lesung die größte Dauer der Zeitbibliothek übersteigt (`math.MaxInt64`), und einer unterhalb jeder Lesung (`math.MinInt64`): Warten kehrt bei `MinInt64` sofort mit `nil` zurück, bei `MaxInt64` wartet es, bis der Kontext endet; die Systemuhr wartet dazu in Stufen dieser Dauer. Entschieden: `LH-FA-21.a` *Uhr* (warten, bis die Lesung den Zeitpunkt erreicht hat; vergangener Zeitpunkt sofort).
+- *Gleichzeitig Zeitpunkt erreicht und Kontext beendet:* der Fehler des Kontexts geht vor, in der Systemuhr und in der Fake-Uhr — entschieden ebenda (*ein beendeter Kontext geht vor*).
 - *Regel:* Die Regel greift am Import (`tech` mit `^time$`), nicht am Aufruf; sie lehnt damit auch einen Zeittyp ohne Aufruf ab, was der Port nicht braucht (akzeptiertes Negativ, [ADR-0015](../../adr/0015-uhr-port.md) sagt „Zeitaufrufe“: die Regel ist enger gefasst als nötig, nicht weiter). Auch die Tests des Kerns binden `time` nicht ein: a-check lehnt sie für Domain Model, Ports und Services ab, und sie auszunehmen lockerte die übrigen Regeln für diese Dateien (`AGENTS.md` §3.6); darum die Testhilfe `internal/testzeit`. Entschieden ebenda.
 
 **Risiken:**
@@ -177,14 +180,20 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 | Regel: `time` im Domain Model, in den Ports und in den Services abgelehnt | Eintrag aus `.a-check.yml` entfernt | `make a-check-negativ`: Fälle `model-time`, `ports-time`, `services-time` rot-erwartet, a-check grün |
 | Regel: Muster ist kein Teiltext | Muster `time` statt `^time$` | `make a-check-negativ`: Fall `model-runtime` |
 | Regel: Muster ist ein regulärer Ausdruck | `match: regex` entfernt | `make a-check-negativ`: die drei Fälle der Ablehnung |
-| Regel: Adapter zugelassen | `internal/adapters` aus der Liste entfernt | `make a-check-negativ`: Fall `pgwire-time` (und der Bestand der Adapter) |
+| Regel: Adapter zugelassen | `internal/adapters` aus der Liste entfernt | `make a-check`: 4 `tech-leak` in den Adaptern; `make a-check-negativ` in der Kopie: alle grün-erwarteten Fälle rot, darunter `pgwire-time` |
+| Regel: Integrationstests und Testhilfen zugelassen, jeder Eintrag trägt | je Eintrag einzeln entfernt (`test/`, `internal/testuhr`, `internal/testzeit`, `internal/testpki`) | `make a-check` (Kopie): 17 `tech-leak` unter `test/integration`; 1 in `internal/testuhr/testuhr_test.go`; 2 in `internal/testzeit`; 1 in `internal/testpki/testpki.go` |
+| Systemuhr: erreichter Zeitpunkt kehrt ohne Warten zurück | `<` statt `<=` bei „Zeitpunkt erreicht“ | `TestSystemuhrErreichterZeitpunktOhneWarten` (400 Aufrufe brauchen 400 ms) |
+| Fake: ein beendeter Kontext geht vor, auch wenn `Vorruecken` den Zeitpunkt zugleich erreicht | nach dem Wecken `nil` statt `ctx.Err()` | `TestUhrBeendeterKontextGehtVorBeimWecken` (Kontext, dessen `Err` erst nach dem Eintritt endet, damit der Fall deterministisch ist) |
 | Regel: die Tests des Kerns binden `time` nicht ein | `_ "time"` in `record_zwangsende_test.go` | `make a-check` (`app-impurity`, nennt die Datei) |
 
 **Grüne Mutanten:**
 
 - *Nachlesen nach dem Timer entfernt, ohne halbe Wartezeit* (`return nil` nach `timer.C`): grün, äquivalent. Ein Go-Timer läuft nicht früher ab als seine Dauer; die Lesung ist ab der gelesenen Lesung um mindestens `rest` Millisekunden gewachsen und damit abgeschnitten nicht kleiner als der Zeitpunkt. Die Gegenform (mit halber Wartezeit) ist rot, siehe Tabelle.
-- *`internal/bootstrap` aus der Liste der zugelassenen Orte entfernt*: grün, `internal/bootstrap/**` ist `composition_root` und von der Regel ausgenommen; der Eintrag in der Liste ist redundant (Fall `bootstrap-time` hält den zugelassenen Zustand fest, nicht den Eintrag). Das gilt ebenso für `cmd`, `test` und die Testhilfen unter `internal/`: a-check meldet sie als Dateien in keiner Schicht, ungeprüft.
+- *`internal/bootstrap` oder `cmd` in der Liste der zugelassenen Orte* (die Einträge der ersten Fassung): grün, `composition_root` nimmt beide von der Regel aus; beide Einträge sind entfernt. Gemessen ist das Gegenteil für alle übrigen Einträge: Jeder einzeln entfernt wird rot (Tabelle). Dass a-check Dateien ohne Schicht ungeprüft lässt, gilt für Schichten, nicht für `tech`: die Liste ist ein Muster auf dem Pfad, und jeder Eintrag steht wegen Dateien, die `time` einbinden. Fall `bootstrap-time` der Gegenprobe hält deshalb den Zustand fest (Composition Root nicht abgelehnt), nicht einen Eintrag; ohne die Ausnahme in `composition_root` wird der Baum rot.
 - *Begrenzung der Stufe entfernt, Nachlesen bleibt*: war zuerst grün (der Zeitpunkt `math.MaxInt64` endet am Abbruch des Kontexts, nur die Rechnerlast unterscheidet sich); über die CPU-Zeit fangbar, `TestSystemuhrFernerZeitpunktDrehtNicht`.
+
+- *`zeitpunkt < jetzt` statt `<=`* in der Systemuhr war grün (Verzögerung höchstens eine Millisekunde: Timer mit Dauer 0, nächste Lesung); jetzt rot, siehe Tabelle.
+- *Simultanes Wecken und Kontextende in der Fake-Uhr* lieferte zufällig `nil` oder den Fehler (`select`); jetzt liefert der Aufruf nach dem Wecken den Fehler des Kontexts, wenn er beendet ist; Test deterministisch über einen Kontext, dessen `Err` erst nach dem Eintritt endet.
 
 **Grenze:** Dass die Systemuhr einer Änderung der Wanduhr nicht folgt, prüft kein Test; geprüft ist, dass der Ursprung den Messwert der monotonen Zeit trägt (`TestSystemuhrUrsprungTraegtMonotonenMesswert`), und dass die Lesung nicht aus der Wanduhr stammt (Mutant oben). Ein Test, der die Wanduhr verstellt, ist im Container nicht möglich.
 
