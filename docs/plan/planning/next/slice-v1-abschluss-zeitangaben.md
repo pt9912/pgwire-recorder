@@ -33,6 +33,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-einspielen`** (dort §1, Abgrenzung): Zeitangaben und zeitgetreues Einspielen; das ist das Ziel oben.
 
+**Übernommen aus `slice-v1-abschluss-sqlite-format-lesen`** (dort §1, Abgrenzung): die Zeitangaben in der SQLite-Datei. Das Lesen der Spalte `interaction.offset_ms` liefert jener Slice (nur Spalte mit geprüftem Typ: negative und nicht ganze Werte sind `PGR-E3003`); dieser Slice schreibt sie mit `--record-timing` und belegt den Roundtrip.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-zeitangaben-doku` (dort §1 und DoD), direkt hinter diesem Slice in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über zwei Schichten. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen.
@@ -46,7 +48,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, das Recording lässt sich in YAML und in SQLite per Roundtrip laden, ein ungültiger Wert ist `PGR-E3003` (Test).
+- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): `--record-timing` trägt `offset_ms` ein, das Recording lässt sich in YAML und in SQLite per Roundtrip laden (das Lesen der SQLite-Spalte liefert `slice-v1-abschluss-sqlite-format-lesen`), ein ungültiger Wert ist `PGR-E3003` (Test).
 - [ ] `--keep-timing` hält die Pausen in beiden Modi und beiden Bezugspunkten ein, ohne sie zu verkürzen (Abnahmeszenario 13, Test mit Fake-Uhr).
 - [ ] Eine Aufzeichnung ohne `offset_ms` wird bei `--keep-timing` mit `PGR-E2003` (Exit-Code 2) abgelehnt (Test).
 - [ ] `make gates` grün.
@@ -130,5 +132,7 @@ nicht mehr.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-zeitangaben-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: vier Schichten (Kern mit Uhr-Port, PGWire-Adapter, Recording-Adapter, CLI-Adapter) und damit über zwei, auch ohne die Dokumentation; das war vor der Abgabe so und hängt nicht an ihr: Der Planner entscheidet vor dem ersten Code-Commit, ob dieser Plan geschnitten wird.
+
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format-lesen` (2026-10-11, `AGENTS.md` §3.13): Die Sendung steht im ersten Liefer-Punkt, der das Laden in SQLite schon nannte; Liefer-Punkte bleiben 3, die Schichten wie oben (das Lesen der Spalte liegt im Recording-Adapter, der schon zählt). Die Überschreitung der Schichten bleibt die Entscheidung vor dem ersten Code-Commit.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
