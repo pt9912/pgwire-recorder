@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: `slice-v1-abschluss-sqlite-format` (welle-v1-abschluss, Schritt 16, das Schreiben); direkt dahinter `slice-v1-abschluss-sqlite-format-lesen` (Schritt 17), dann `slice-v1-abschluss-sqlite-format-doku` (Schritt 18). Danach die übrigen Slices in der Reihenfolge des §5 von welle-v1-abschluss. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
+In Arbeit: nichts. Als Nächstes `slice-v1-abschluss-sqlite-format-lesen` (welle-v1-abschluss, Schritt 17, das Lesen), dann `slice-v1-abschluss-sqlite-format-doku` (Schritt 18). Danach die übrigen Slices in der Reihenfolge des §5 von welle-v1-abschluss. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
 
 
 
