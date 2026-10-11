@@ -15,7 +15,7 @@ func TestParseRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := cli.RecordOptions{Listen: ":15432", Upstream: "pg:5432", Output: "r.yaml", Force: true, LogLevel: cli.LogInfo, ShutdownTimeout: cli.StandardFrist}
+	want := cli.RecordOptions{Listen: ":15432", Upstream: "pg:5432", Output: "r.yaml", Force: true, Format: "yaml", LogLevel: cli.LogInfo, ShutdownTimeout: cli.StandardFrist}
 	if cmd.Name != "record" || cmd.Record != want {
 		t.Fatalf("erhalten %#v", cmd)
 	}
@@ -428,6 +428,73 @@ func TestParseLogLevelHilfe(t *testing.T) {
 			if text := hilfe(t, args...); !strings.Contains(text, "--log-level error|warn|info|debug") || !strings.Contains(text, cli.EnvLogLevel) {
 				t.Errorf("%v: Hilfe ohne --log-level: %q", args, text)
 			}
+		}
+	}
+}
+
+// Abdeckung: LH-FA-22/Happy, LH-FA-22/Boundary, LH-FA-22/Negative — record kennt --format mit genau den Werten yaml und sqlite in Kleinbuchstaben und
+// Standard yaml; jeder andere Wert (der leere, SQLite, sqlite3, YAML, mit Leerraum) ist
+// PGR-E2001, und die Meldung nennt die Option. Dieselbe Wertemenge gilt für
+// PGWIRE_RECORDER_FORMAT.
+func TestParseRecordFormat(t *testing.T) {
+	leere(t, "record")
+	basis := []string{"record", "--listen", ":1", "--upstream", "h:1", "--output", "r"}
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{
+		{nil, "yaml"},
+		{[]string{"--format=yaml"}, "yaml"},
+		{[]string{"--format=sqlite"}, "sqlite"},
+		{[]string{"--format", "sqlite"}, "sqlite"},
+	} {
+		cmd, err := cli.Parse(append(append([]string{}, basis...), tc.args...), &bytes.Buffer{})
+		if err != nil || cmd.Record.Format != tc.want {
+			t.Errorf("%v: Format %q, %v, erwartet %q", tc.args, cmd.Record.Format, err, tc.want)
+		}
+	}
+	for _, wert := range []string{"", "SQLite", "sqlite3", "YAML", "Yaml", " sqlite", "sqlite ", "yml", "json"} {
+		t.Setenv("PGWIRE_RECORDER_FORMAT", "")
+		if _, err := cli.Parse(append(append([]string{}, basis...), "--format="+wert), &bytes.Buffer{}); !istUsage(err) || !strings.Contains(err.Error(), "format") {
+			t.Errorf("--format=%q: erwartet %s mit format, erhalten %v", wert, model.CodeUsage, err)
+		}
+		t.Setenv("PGWIRE_RECORDER_FORMAT", wert)
+		if wert == "" {
+			continue
+		}
+		if _, err := cli.Parse(basis, &bytes.Buffer{}); !istUsage(err) || !strings.Contains(err.Error(), "PGWIRE_RECORDER_FORMAT") {
+			t.Errorf("PGWIRE_RECORDER_FORMAT=%q: erwartet %s mit der Umgebungsvariable, erhalten %v", wert, model.CodeUsage, err)
+		}
+	}
+	t.Setenv("PGWIRE_RECORDER_FORMAT", "sqlite")
+	if cmd, err := cli.Parse(basis, &bytes.Buffer{}); err != nil || cmd.Record.Format != "sqlite" {
+		t.Errorf("PGWIRE_RECORDER_FORMAT=sqlite: Format %q, %v", cmd.Record.Format, err)
+	}
+}
+
+// Formate nennt genau die Werte von --format, in der Reihenfolge der Hilfe.
+func TestFormate(t *testing.T) {
+	if got := strings.Join(cli.Formate(), " "); got != "yaml sqlite" {
+		t.Fatalf("Formate: %q", got)
+	}
+}
+
+// Die Hilfe von record nennt --format mit seiner Wertemenge und der
+// Umgebungsvariable; die von replay und play nennt es nicht.
+func TestHilfeFormat(t *testing.T) {
+	hilfe := func(kommando string) string {
+		var out bytes.Buffer
+		if _, err := cli.Parse([]string{kommando, "--help"}, &out); !errors.Is(err, cli.ErrHelp) {
+			t.Fatalf("%s --help: %v", kommando, err)
+		}
+		return out.String()
+	}
+	if h := hilfe("record"); !strings.Contains(h, "--format yaml|sqlite") || !strings.Contains(h, "PGWIRE_RECORDER_FORMAT") {
+		t.Errorf("Hilfe von record ohne --format:\n%s", h)
+	}
+	for _, kommando := range []string{"replay", "play"} {
+		if h := hilfe(kommando); strings.Contains(h, "--format") || strings.Contains(h, "PGWIRE_RECORDER_FORMAT") {
+			t.Errorf("Hilfe von %s nennt --format:\n%s", kommando, h)
 		}
 	}
 }

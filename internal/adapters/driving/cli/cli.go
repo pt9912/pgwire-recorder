@@ -23,6 +23,7 @@ type RecordOptions struct {
 	Upstream        string
 	Output          string
 	Force           bool
+	Format          string
 	LogLevel        string
 	ShutdownTimeout time.Duration
 }
@@ -136,6 +137,9 @@ const optionenRecord = `Optionen von record:
               Konfigurationsdatei (Pflicht)
   --output    Zieldatei der Aufzeichnung (Pflicht)
   --force     vorhandene Zieldatei ersetzen
+  --format yaml|sqlite
+              Format der Aufzeichnung, Standard yaml; Umgebungsvariable
+              PGWIRE_RECORDER_FORMAT
 ` + optionShutdownTimeout + optionLogLevel + optionConfig + optionUmgebung
 
 const optionenReplay = `Optionen von replay:
@@ -342,6 +346,10 @@ func artDauer() art {
 	return art{name: "dauer", pruefe: func(v string) error { return dauer{new(time.Duration)}.Set(v) }}
 }
 
+func artFormat() art {
+	return art{name: "format", pruefe: func(v string) error { return format{new(string)}.Set(v) }}
+}
+
 func artStufe() art {
 	return art{name: "stufe", pruefe: func(v string) error { return stufe{new(string)}.Set(v) }}
 }
@@ -364,6 +372,7 @@ func optionen(kommando string) []option {
 			{name: "upstream", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Upstream = v }, zuletzt: upstreamRecord},
 			{name: "output", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Output = v }},
 			{name: "force", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.Force = v == "true" }},
+			{name: "format", art: artFormat(), standard: formatYAML, setze: func(c *Command, v string) { c.Record.Format = v }},
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Record.ShutdownTimeout, v) }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Record.LogLevel = v }},
 		}
@@ -647,6 +656,30 @@ func (l stufe) Set(v string) error {
 		return nil
 	}
 	return errors.New("erlaubt sind error, warn, info und debug")
+}
+
+// Die Werte von --format (LH-FA-22.a *Wahl und Erkennung*).
+const (
+	formatYAML   = "yaml"
+	formatSQLite = "sqlite"
+)
+
+// Formate liefert die Werte von --format in der Reihenfolge der Hilfe (LH-FA-22.a
+// *Wahl und Erkennung*).
+func Formate() []string { return []string{formatYAML, formatSQLite} }
+
+// format ist der Wert von --format: genau yaml oder sqlite in Kleinbuchstaben;
+// jeder andere Wert, auch der leere, ist ein Fehler (LH-FA-22.a).
+type format struct{ wert *string }
+
+func (f format) Set(v string) error {
+	for _, erlaubt := range Formate() {
+		if v == erlaubt {
+			*f.wert = v
+			return nil
+		}
+	}
+	return errors.New("erlaubt sind yaml und sqlite")
 }
 
 // wahrheitswert ist der Wert einer booleschen Option nach LH-FA-17.a: genau

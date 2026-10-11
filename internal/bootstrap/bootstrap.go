@@ -59,7 +59,11 @@ func Run(ctx context.Context, ablauf <-chan struct{}, args []string, version str
 }
 
 func record(ctx context.Context, ablauf <-chan struct{}, o cli.RecordOptions, log *slog.Logger, stderr io.Writer) int {
-	service, err := services.NewRecordService(ctx, &postgres.Upstream{Address: o.Upstream}, recording.YAML{}, o.Output, o.Force)
+	repo, err := recording.New(o.Format)
+	if err != nil {
+		return fail(stderr, err)
+	}
+	service, err := services.NewRecordService(ctx, &postgres.Upstream{Address: o.Upstream}, repo, o.Output, o.Force)
 	if err != nil {
 		return fail(stderr, err)
 	}
