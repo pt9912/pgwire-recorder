@@ -105,6 +105,54 @@ func TestE2EPlayTLS(t *testing.T) {
 	}
 }
 
+// Abdeckung: LH-FA-20/Happy, LH-FA-20/Negative — ohne --upstream-ca prüft play
+// das Zertifikat des Servers gegen den Zertifikatsspeicher des Systems, den das
+// Binary als frischer Prozess lädt: Zeigt SSL_CERT_FILE im Umfeld des Prozesses
+// auf die Zertifizierungsstelle des Tests, gelingt sslmode=require gegen den
+// TLS-Proxy und die Anfrage wirkt in der Datenbank; ohne SSL_CERT_FILE ist
+// dieselbe Verbindung PGR-E4005 mit Exit-Code 4, der Proxy reicht nichts weiter
+// und nichts wird eingespielt (LH-FA-20.a *TLS*, Zertifikatsspeicher des
+// Systems).
+func TestE2EPlayTLSZertifikatsspeicherDesSystems(t *testing.T) {
+	conn := anmeldeDatenbank(t, "play_tls_sys")
+	ca := testpki.NeueCA(t, "E2E-CA")
+	proxy := tlsproxy.Start(t, zertifikatFuerLokal(t, ca), os.Getenv("PGR_UPSTREAM"), false)
+	host, port, _ := strings.Cut(proxy.Addr, ":")
+	datei := fmt.Sprintf("connections:\n  tls: \"postgresql://postgres@%s:%s/play_tls_sys?sslmode=require\"\n", host, port)
+	dir := verzeichnisMit(t, datei)
+	pfad := caDatei(t, dir, ca)
+	spielt := func(fall string) (string, int) {
+		input := aufzeichnungMit(t, "postgres", "play_tls_sys", "INSERT INTO spur VALUES (current_user, '"+fall+"')")
+		_, stderr, code := starteBis(t, dir, "play", "--input", input, "--upstream", "tls")
+		return stderr, code
+	}
+
+	t.Run("SSL_CERT_FILE nennt die Zertifizierungsstelle", func(t *testing.T) {
+		t.Setenv("SSL_CERT_FILE", pfad)
+		stderr, code := spielt("mit SSL_CERT_FILE")
+		if code != 0 || strings.Contains(stderr, "level=ERROR") {
+			t.Fatalf("Exit-Code %d, stderr:\n%s", code, stderr)
+		}
+		if proxy.TLSOk() != 1 || proxy.Klartext() != 0 {
+			t.Fatalf("TLS-Verbindungen %d, erwartet 1; ohne TLS %d", proxy.TLSOk(), proxy.Klartext())
+		}
+		if gefunden := spurVon(t, map[string]*pgconn.PgConn{"play_tls_sys": conn}, "mit SSL_CERT_FILE"); len(gefunden) != 1 {
+			t.Fatalf("eingespielt: %v", gefunden)
+		}
+	})
+	t.Run("ohne SSL_CERT_FILE", func(t *testing.T) {
+		t.Setenv("SSL_CERT_FILE", "")
+		weitergabe := proxy.Weitergabe()
+		stderr, code := spielt("ohne SSL_CERT_FILE")
+		if code != 4 || !strings.Contains(stderr, "code=PGR-E4005") || !strings.Contains(stderr, "unknown authority") {
+			t.Fatalf("Exit-Code %d, erwartet 4 mit PGR-E4005 und unknown authority, stderr:\n%s", code, stderr)
+		}
+		if proxy.Weitergabe() != weitergabe || len(spurVon(t, map[string]*pgconn.PgConn{"play_tls_sys": conn}, "ohne SSL_CERT_FILE")) != 0 {
+			t.Fatalf("trotz Fehler weitergereicht oder eingespielt")
+		}
+	})
+}
+
 // Abdeckung: LH-FA-20/Happy, LH-RB-01/Messung — nach der Aushandlung laufen
 // Aufbau und Anmeldung unverändert auf der verschlüsselten Verbindung: Über den
 // TLS-Proxy meldet sich play an der Instanz mit scram-sha-256, md5 und password

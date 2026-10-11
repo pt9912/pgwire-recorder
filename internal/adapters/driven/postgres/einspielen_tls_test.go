@@ -410,13 +410,13 @@ func TestEinspielTLSZertifikatsspeicher(t *testing.T) {
 // TLS-Records und ein Byte ähnlich `S`) und ein Verbindungsende davor
 // PGR-E4002, ebenso Bytes, die der Server nach `S` vor der Aushandlung sendet;
 // jeder Fehler der Aushandlung, auch ein Verbindungsende darin, Daten, die
-// kein TLS sind, und eine Version, die der Client nicht spricht, ist
-// PGR-E4005; danach sendet play nichts mehr (LH-FA-20.a *TLS*, *Abbruch im
-// Aufbau*).
+// kein TLS sind, und eine Gegenstelle, die nur TLS 1.0 spricht, sodass die
+// Aushandlung scheitert, ist PGR-E4005; danach sendet play nichts mehr
+// (LH-FA-20.a *TLS*, *Abbruch im Aufbau*).
 func TestEinspielTLSAntwort(t *testing.T) {
 	ca := testpki.NeueCA(t, "Test-CA")
-	alt := serverConfig(ca.Server(t, testpki.Blatt{IPs: lokal()}))
-	alt.MaxVersion = tls.VersionTLS10
+	nurTLS10 := serverConfig(ca.Server(t, testpki.Blatt{IPs: lokal()}))
+	nurTLS10.MaxVersion = tls.VersionTLS10
 	for _, f := range []struct {
 		name string
 		g    tlsStelle
@@ -435,7 +435,7 @@ func TestEinspielTLSAntwort(t *testing.T) {
 		{"S mit TLS-Record dahinter", tlsStelle{antwort: append([]byte("S"), 0x16, 3, 3, 0, 0)}, model.CodeUpstream},
 		{"S, dann Ende", tlsStelle{antwort: []byte("S"), schliesse: true}, model.CodeLogin},
 		{"S, dann kein TLS", tlsStelle{antwort: []byte("S"), nachHello: []byte("HTTP/1.1 400 Bad Request\r\n\r\n")}, model.CodeLogin},
-		{"S, dann TLS 1.0", tlsStelle{antwort: []byte("S"), config: alt}, model.CodeLogin},
+		{"S, dann Gegenstelle nur TLS 1.0, Aushandlung scheitert", tlsStelle{antwort: []byte("S"), config: nurTLS10}, model.CodeLogin},
 	} {
 		t.Run(f.name, func(t *testing.T) {
 			addr, ergebnis := f.g.starte(t, verbunden(t))

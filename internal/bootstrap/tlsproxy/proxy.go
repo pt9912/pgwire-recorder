@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"io"
 	"net"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -28,14 +29,16 @@ const sslRequestNummer = 80877103
 type Proxy struct {
 	// Addr ist die Adresse, auf der der Proxy lauscht.
 	Addr string
-	// Hello wird geschlossen, sobald ein hängender Proxy das erste Byte nach
-	// seiner Antwort `S` empfängt.
+	// Hello wird geschlossen, sobald ein hängender Proxy auf einer Verbindung
+	// das erste Byte nach seiner Antwort `S` empfängt; weitere Verbindungen
+	// schließen ihn nicht noch einmal.
 	Hello chan struct{}
 
 	ziel                        string
 	haengt                      bool
 	blatt                       tls.Certificate
 	tlsOk, klartext, weitergabe atomic.Int32
+	hello                       sync.Once
 }
 
 // TLSOk ist die Zahl der Verbindungen, die TLS aushandelten.
@@ -102,7 +105,7 @@ func (p *Proxy) bediene(conn net.Conn) {
 	_, _ = conn.Write([]byte("S"))
 	if p.haengt {
 		if _, err := io.ReadFull(conn, make([]byte, 1)); err == nil {
-			close(p.Hello)
+			p.hello.Do(func() { close(p.Hello) })
 		}
 		_, _ = io.Copy(io.Discard, conn)
 		return
