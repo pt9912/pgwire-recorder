@@ -1469,9 +1469,10 @@ offenlässt.
   `PGR-E4005`; jedes andere Byte und ein Verbindungsende davor sind `PGR-E4002`, ebenso
   Bytes, die der Server nach `S` vor der Aushandlung sendet. Die Aushandlung beginnt mit
   dem `S`: Scheitert das Senden des `SSLRequest`, ist das ein gescheitertes Senden im
-  Aufbau (`PGR-E4002`). Erkannt werden die Bytes nach `S`, die mit dem `S` eintreffen
-  (Grenze: ohne Test, weil die Segmentierung des Netzes nicht steuerbar ist); was später
-  eintrifft, stört die Aushandlung. Jeder Fehler der
+  Aufbau (`PGR-E4002`). Erkannt werden die Bytes nach `S`, die mit dem `S` eintreffen;
+  was später eintrifft, stört die Aushandlung (Grenze: ohne Test, weil die Segmentierung
+  des Netzes nicht steuerbar ist). Die TLS-Version und die Verfahren sind die Voreinstellung
+  der Standardbibliothek, ohne Zusage. Jeder Fehler der
   Aushandlung selbst, auch ein Verbindungsende darin, ist `PGR-E4005`. Der Name im
   Zertifikat wird gegen den Host der Verbindung geprüft, wie er eingesetzt ist; bei
   einer IPv6-Adresse ohne ihre Zone gegen die IP-Adressen des Zertifikats. Lässt
@@ -2760,3 +2761,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-10 | Einspielen: Anmeldung, Randformen aus der Rückgabe des Implementers (zweite Anforderung auch nicht lesbar `PGR-E4002`, zweite Anforderung eines nicht unterstützten Verfahrens `PGR-E4005`, leeres Salz gültig, Iterationszahl ohne führende Null, Fehler der Schlüsselableitung `PGR-E4005` als Grenze ohne Test) (`LH-FA-20.a`) |
 | 2026-10-10 | Einspielen: Anmeldung, Servernonce nur druckbare Zeichen ohne Komma (`PGR-E4005`), Restbits in Base64 von `s=` und `v=` angenommen (`LH-FA-20.a`) |
 | 2026-10-11 | Einspielen: TLS, Stelle des Lesens der Datei aus `--upstream-ca` als letzte Prüfung des Starts (`LH-FA-17.a`); IPv4-Host gegen die IP-Adressen des Zertifikats, Aufbau und Anmeldung nach der Aushandlung unverändert, `config show` liest die Datei nicht (`LH-FA-20.a`) |
+| 2026-10-11 | Einspielen: TLS, Grenze „ohne Test“ am Satzteil der später eintreffenden Bytes statt der mit dem `S` eintreffenden; TLS-Version und Verfahren ohne Zusage (`LH-FA-20.a`) |

@@ -130,7 +130,14 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/bootstrap` | update | Verdrahtung ohne Logik: `UpstreamTLS` und die Zertifikate aus den Optionen in den `Einspielziel` des Upstream-Adapters setzen (`postgres.Zertifikate(o.UpstreamCA)`); die Datei liest der CLI-Adapter (§6, *Ort der CA-Datei*) |
 | `internal/hexagon/model` | update | die Kennung `PGR-E2007` als Konstante neben den übrigen Codes; keine Logik, zählt wie die Verdrahtung nicht als Schicht |
 | `test/integration` | update | Happy/Negative nach LH-FA-20 über einen TLS-Proxy vor der Instanz: Zertifikat der eigenen Zertifizierungsstelle, abgelaufenes Zertifikat, falscher Name, Server, der unverschlüsselte Verbindungen ablehnt, Anmeldung über TLS |
-| `internal/testpki`, `internal/bootstrap/tlsproxy` | neu (Testhilfe) | Zertifikate zur Testzeit mit `crypto/x509`, nichts eingecheckt (`testpki`); der TLS-Proxy für die Integrationstests (`tlsproxy`). Der Proxy liegt unter `internal/bootstrap`, weil `.a-check.yml` `crypto/tls` nur in den beiden PGWire-Adaptern und der Verdrahtung zulässt und `test/integration` ihn nicht importieren darf; `testpki` kommt ohne `crypto/tls` aus. Nur Testcode importiert beide; sie gehören zu keiner Schicht und zählen nicht |
+| `internal/testpki`, `internal/bootstrap/tlsproxy` | neu (Testhilfe) | Zertifikate zur Testzeit mit `crypto/x509`, nichts eingecheckt (`testpki`); der TLS-Proxy für die Integrationstests (`tlsproxy`). Der Proxy liegt unter `internal/bootstrap`, weil `.a-check.yml` `crypto/tls` nur in den beiden PGWire-Adaptern und der Verdrahtung zulässt und `test/integration` ihn nicht importieren darf; `testpki` kommt ohne `crypto/tls` aus. Nur Testcode darf beide importieren (geprüft von einem Test, siehe Aufträge unten); sie gehören zu keiner Schicht und zählen nicht |
+
+**Aufträge aus der Review vom 2026-10-11 (Architect)** — kein neuer Liefer-Punkt, sie gehören zu DoD-Punkt 2 (Zusagen mit Mutation, `AGENTS.md` §3.10):
+
+- **F-602, Import der Testhilfen.** Ein Test im Paket `internal/bootstrap` (Unit-Test, Test-Image; kein neues Gate, keine ADR) ruft `go list -deps` über `./cmd/...` auf und hält die Menge gegen die Verbotsliste `testing`, `internal/testpki`, `internal/bootstrap/tlsproxy`. Mutation: Blank-Import von `tlsproxy` in `bootstrap.go`, der Test wird rot. Lässt sich `go list` im Test-Image nicht ohne Netz fahren, fällt der Auftrag zurück auf die engere Zusage: dann sagen beide `doc.go` „darf nur Testcode importieren“ und der Plan nennt, dass nichts es prüft. Die Gate-Alternative (Regel in `.a-check.yml` für `internal/bootstrap/**`) ist eine Gate-Änderung (`AGENTS.md` §3.6) und braucht eine ADR; sie ist hier nicht beauftragt. In beiden `doc.go` steht die Zusage nur in dem Maß, das der Test prüft.
+- **F-603, Standardpfad des Zertifikatsspeichers.** Ein Integrationstest startet das Binary mit `SSL_CERT_FILE` auf die CA-Datei der Testzeit im Prozessumfeld des Unterprozesses, `sslmode=require` ohne `--upstream-ca`, gegen den TLS-Proxy: Verbindung gelingt. Gegenprobe im selben Test: ohne `SSL_CERT_FILE` `PGR-E4005`. Mutation: der Standardpfad ersetzt `x509.SystemCertPool` durch einen leeren Speicher (Mutant M14 der Review), der Test wird rot. Beleg in §7.
+- **F-604, Untergrenze der TLS-Version.** Keine Zusage (§6): Der Fall „S, dann TLS 1.0“ in `einspielen_tls_test.go` heißt so, dass er sagt, was er prüft (die Gegenstelle spricht nur TLS 1.0 und die Aushandlung scheitert), kein Hinweis auf eine Untergrenze des Clients; kein Code.
+- **F-601, F-607** sind in `spec/architecture.md` §6 und `LH-FA-20.a` *TLS* berichtigt; F-605, F-606, F-608 zur Kenntnis.
 
 ## 4. Trigger
 
@@ -260,7 +267,9 @@ an der genannten Stelle. Offen ist keine.
 
 *Akzeptiertes Negativ der Prüfung vom 2026-10-09* (aus §6 von `slice-v1-abschluss-einspielen`):
 
-- **TLS-Version und Verfahren** — die Voreinstellung der Standardbibliothek, keine Zusage.
+- **TLS-Version und Verfahren** — die Voreinstellung der Standardbibliothek, keine Zusage
+  (`LH-FA-20.a` *TLS*); der Client setzt keine Untergrenze, und kein Test sagt eine zu
+  (Review F-604, 2026-10-11).
 
 *Akzeptierte Negative der Prüfung vom 2026-10-11:*
 
@@ -273,11 +282,13 @@ an der genannten Stelle. Offen ist keine.
   laufen gegen eine Test-Gegenstelle im Paket des Upstream-Adapters. Nicht geprüft: das
   Zusammenspiel mit dem TLS-Server von OpenSSL; Grund: Client ist die Standardbibliothek, die
   Gegenstelle ein Standard-TLS.
-- **Zertifikatsspeicher des Systems im Integrationstest** — das Zertifikat des Tests liegt
-  nicht im Speicher des Test-Containers, und `SSL_CERT_FILE` wirkt erst bei der ersten Ladung
-  im Prozess; der Speicher wird im Test des Upstream-Adapters über ein austauschbares Feld
+- **Zertifikatsspeicher des Systems** — Das Zertifikat des Tests liegt nicht im Speicher des
+  Test-Containers. Der Speicher wird im Test des Upstream-Adapters über ein austauschbares Feld
   geprüft (gefüllter Speicher nimmt, leerer und nicht ladbarer Speicher lehnen ab, nur
-  `--upstream-ca` nimmt), nicht Ende zu Ende. Die Grenze des Images steht im zweiten Risiko unten.
+  `--upstream-ca` nimmt); der **Standardpfad** (`x509.SystemCertPool`) wird zusätzlich Ende zu
+  Ende geprüft (§3, Auftrag F-603 der Review vom 2026-10-11): Das Binary läuft als frischer
+  Prozess, `SSL_CERT_FILE` wirkt dort bei der ersten Ladung. Die Grenze des Images steht im
+  zweiten Risiko unten.
 - **SNI, Punkt am Ende des Hosts, Größe der CA-Datei, Zertifikat mit Kopfzeilen im PEM-Block**
   — Verhalten der Standardbibliothek, keine Zusage; kein Fall des Produkts.
 
