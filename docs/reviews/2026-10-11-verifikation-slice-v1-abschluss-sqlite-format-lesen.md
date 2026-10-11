@@ -159,3 +159,21 @@ Befunde: 0 HIGH, 1 MEDIUM, 1 LOW, 2 INFO. Die drei DoD-Verhaltenspunkte sind bes
 **Übergabe an den Planner:** dieser Bericht mit V-175 (an den Implementer), V-176 (an den Implementer, Gate-Beleg an den Planner), V-177 und V-178 (an den Planner); dazu für die Closure die Ausgänge der drei Risiken (Abschnitt 1, *Übrige DoD-Punkte*) und die Klassen oben. Die Entscheidungen des Architect zu F-623 und F-630 tragen; die Nehmer `slice-v1-abschluss-sqlite-format-doku` und `slice-v1-abschluss-zeitangaben` nehmen an.
 
 **Aufgeräumt:** Container `ver-sl-pg`, `ver-sl-rec`, `ver-sl-rep`, `ver-sl-lock` und die Läufe `pgr-it-*`; Netz `ver-sl-net`; Images `ver-sl-rt`, `ver-sl-deps`; die Kopien und Verzeichnisse mit dem Präfix `ver-sl-` im Scratchpad. `docker ps -a`, `docker network ls`, `docker volume ls` und `docker images` mit `ver-sl` und `pgr-it` danach leer; die Images des Arbeitsbaums (`pgwire-recorder:*`) blieben stehen.
+
+---
+
+## 6. Nachtrag: Nachprüfung der Nacharbeit zu V-175 und V-176 (Stand `1d787cb`)
+
+Geprüft in frischer Kopie (`git archive HEAD`), Docker-only, Scratch-Präfix `ver-sn-`. Die Nacharbeit besteht aus `79a821a` (Code und Test) und `1d787cb` (nur Plan).
+
+| Befund | Prüfung | Urteil |
+|---|---|---|
+| V-175 fehlende Spalte `interaction.sql` | Aus einer Datei von `record --format sqlite` (zwei einfache Anfragen, echter PostgreSQL 17) entfernte ich jede der 17 Spalten einzeln (bei Schlüsselspalten durch Neuaufbau der Tabelle). `replay` und `play`: alle 34 Läufe Exit 3, `PGR-E3003`, Pfad der Datei in der Meldung, kein Wert aus der Datei; bei `interaction.sql` „no such column: sql“ statt des Textes `sql`. Der Leser nennt die Bezeichner jetzt in eckigen Klammern (`[sql]`). | behoben |
+| Test aus dem richtigen Grund rot | Neuer Test `TestLesenJedeFehlendeSpalteUndTabelle` (Datei nur aus einfachen Anfragen, 17 Spalten, 4 Tabellen, Zähler 17). Mutant Q-sql (nur `sql` wieder in doppelten Anführungszeichen) und Mutant Q-interaction (die ganze Abfrage von `interaction` zurück): beide rot mit „Spalte interaction.sql fehlt: <nil> (2 Sessions)“, `gofmt` sauber, frische Kopie. | bestätigt |
+| Schreibpfad, gleiches Muster | `grep` über `sqlite.go` und `sqlite_zeilen.go`: eine Abfrage mit doppelten Anführungszeichen, `SELECT "id" FROM "session"` (`pruefeSessions`); fehlt die Spalte, scheitert `Scan` der Zeichenkette in eine Zahl und es folgt `PGR-E3001`, was die Spezifikation für eine Datei mit anderen Nummern verlangt. Die `INSERT`-Anweisungen nennen Spalten in einer Liste, dort ist ein fehlender Bezeichner ein Fehler. Aus dem Quelltext gelesen, den Zweig habe ich nicht gefahren. | kein Fehlverhalten gefunden |
+| V-176 Belege im Plan | Gate-Beleg steht auf `79a821a` (letzter Code-Commit; `1d787cb` ändert nur den Plan); Stand-Absatz nennt „mit `45af81d` und den Nacharbeiten“; §8 nennt `97f3ca6..79a821a`: 2369 Zeilen Go, 888 Code, 1481 Tests, das stimmt mit `git diff --numstat` überein. | behoben |
+| Namensabgleich | Alle `Test…`-Namen aus dem Plan gefunden (außer Prosa-Treffer); der neue Test steht in `docs/user/abdeckung-unit.md`. Commit-Messages ab `400e9ec` ohne `SPEC-`/`ARC-`. | bestätigt |
+
+Offen bleiben die Einträge des Planner aus V-177 und V-178 (Entscheidung zu §4, Register, Ausgänge der Risiken). V-175 ist damit nicht mehr closure-blockierend. Ob `make gates` auf dem Stand dieses Nachtrags grün ist, steht in der Übergabe-Nachricht.
+
+**Aufgeräumt:** Container `ver-sn-pg`, `ver-sn-rec`, Netz `ver-sn-net`, Images `ver-sn-rt`, `ver-sn-deps` und die Kopien im Scratchpad; `docker ps -a` und `docker images` mit `ver-sn` und `pgr-it` danach leer.
