@@ -17,7 +17,7 @@ import (
 // sqliteKopf sind die ersten 16 Bytes einer SQLite-Datei: der Text SQLite format 3
 // und ein NUL-Byte. Der Test liest die Datei nur als Bytes und nimmt keinen
 // SQLite-Treiber und kein sqlite3 zu Hilfe.
-var sqliteKopf = []byte("SQLite format 3\x00")
+const sqliteKopf = "SQLite format 3\x00"
 
 // wartetAufInhalt wartet höchstens 15 s, bis die Datei path den Text teil enthält, und
 // liefert ihren Inhalt; sonst endet der Test.
@@ -69,7 +69,7 @@ func TestE2ERecordFormatSQLite(t *testing.T) {
 
 	ausfuehrenJeVerbindung(t, rec.listen, "SELECT 'erste_session';")
 	data := wartetAufInhalt(t, output, "erste_session")
-	if !bytes.HasPrefix(data, sqliteKopf) {
+	if !bytes.HasPrefix(data, []byte(sqliteKopf)) {
 		t.Fatalf("Datei beginnt mit %q", data[:16])
 	}
 	if bytes.Contains(data, []byte("zweite_session")) {
@@ -80,7 +80,7 @@ func TestE2ERecordFormatSQLite(t *testing.T) {
 
 	rec.stop(t, 0)
 	text := lies(t, output)
-	if !strings.HasPrefix(text, string(sqliteKopf)) || !strings.Contains(text, "erste_session") || !strings.Contains(text, "pgwire-recorder") {
+	if !strings.HasPrefix(text, sqliteKopf) || !strings.Contains(text, "erste_session") || !strings.Contains(text, "pgwire-recorder") {
 		t.Fatalf("Datei nach dem Beenden: %.40q", text)
 	}
 	verzeichnisEnthaelt(t, dir, "rec.sqlite")
@@ -112,7 +112,7 @@ func TestE2ERecordFormatQuellen(t *testing.T) {
 		rec := startProzessIn(t, dir, "record", append([]string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--output", output}, tc.args...)...)
 		rec.stop(t, 0)
 		data := lies(t, output)
-		if got := strings.HasPrefix(data, string(sqliteKopf)); got != tc.sqlite {
+		if got := strings.HasPrefix(data, sqliteKopf); got != tc.sqlite {
 			t.Errorf("%s: SQLite-Datei %v, erwartet %v: %.40q", tc.quelle, got, tc.sqlite, data)
 		}
 		if !tc.sqlite && !strings.Contains(data, "format: pgwire-recorder") {
