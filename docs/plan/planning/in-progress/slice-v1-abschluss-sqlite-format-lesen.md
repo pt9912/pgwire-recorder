@@ -97,6 +97,7 @@ Aussagen-Berührung steht hier gar nicht.
 - Schließen nach dem Lesen: der Fehler bleibt ignoriert, kein Test (kein herstellbarer Aufbau); der Doc-Kommentar sagt es im Indikativ, ohne Zusage.
 - Abbruch von `ctx` beim Lesen: `PGR-E3001` mit der Ursache; Test mit einem abgebrochenen `ctx` (Mutation: `PGR-E3003`).
 - Doppelter Schlüssel in `meta` `PGR-E3003` und Verstoß gegen `group_no` und die Reihenfolge der Gruppen `PGR-E3003`: sind beide schon Fälle von `TestLesenMeta` und `TestLesenInhaltVerletzt` (M14, B4 bis B8), kein neuer Code; der Test nennt die Stelle der Spezifikation.
+- Schlüssel `<<` (F-630): ein Test, dass eine `sqlite`-Datei mit `{"<<":"x"}` in `startup`, `server_parameters` und in einem Objekt von `fields` `PGR-E3003` liefert (Datei per rohem SQL, `Write` schreibt ihn nicht). Mutation: `c.Value == "<<" ||` in `ohneVerweise` (`yaml.go`) entfällt; der Schlüssel steht in der Datei als String in Anführungszeichen, `yaml`-Tests mit `<<` ohne Anführungszeichen fangen das nicht. Kein Produktcode.
 - Eine Randform, die §6 nicht nennt, entscheidet er nicht, sondern gibt sie dem Architect zurück (`AGENTS.md` §3.12).
 
 ## 4. Trigger
@@ -158,6 +159,7 @@ dasteht.
 | Doppelter Schlüssel in `meta` `PGR-E3003` | `LH-FA-22.a` *Lesen von `sqlite`* |
 | `group_no` ab 1 lückenlos in der Reihenfolge der Gruppen, Client-Nachricht nach Server-Nachricht derselben Gruppe `PGR-E3003` | `SPEC-043`, `LH-FA-22.a` *Lesen von `sqlite`* |
 | Speicher des Lesers: Aufzeichnung als Ganzes, Baum und Text, ein Mehrfaches der Dateigröße, ohne Obergrenze (akzeptiertes Negativ, Entscheidung des Nutzers vom 2026-10-11: „große Aufzeichnungen“ in `LH-FA-22` gilt nur für das Schreiben; der Leser darf wie der von `yaml` die Aufzeichnung im Speicher halten, ein Mehrfaches der Dateigröße, ohne zugesagte Obergrenze; keine Änderung des Lastenhefts, kein streamendes Lesen) | `LH-FA-22.a` *Grenzen* (Schreiben von `sqlite`) |
+| Schlüssel `<<` in `startup`, `server_parameters` oder `fields` (F-630): der Leser lehnt ihn wie `yaml` als Merge-Key ab (`PGR-E3003`), weil der Weg über `Unmarshal` ihn am Wert erkennt; das Schreiben (`SQLite.Write`, `PGR-E1000`) ist nicht zugesagt (akzeptiertes Negativ: Postgres kennt keinen Parameternamen `<<`, ohne Wiederkehr) | `LH-FA-22.a` *Lesen von `sqlite`* |
 | Leser mit Erkennung erfüllt den Port, `Prepare` und `Write` `PGR-E1000`; der Bootstrap tauscht nur den Wert | hier §3 (Adapter-Interna, `ARC-008`) |
 | `Load` des SQLite-Adapters aus `slice-v1-abschluss-sqlite-format` (Platzhalter mit `PGR-E1000`) wird hier durch den Leser ersetzt | `slice-v1-abschluss-sqlite-format` §3 (Geber); hier §1 |
 
@@ -333,6 +335,18 @@ Zeile trägt: `Aufzeichnung beschädigt` (Form, unbekannter Schlüssel) oder Ses
 Ursache der YAML-Bibliothek mit Wert und Zeile. Frage an den Architect, ob das die Zusage „die Art des Fehlers“ trägt.
 **Kommentare (F-626).** `Load` nennt, was der Leser selbst prüft und was `Unmarshal`; `JSONKnoten` nennt `!!map` und `!!seq`
 mit leerem Wert.
+
+### Entscheidung des Architect zu F-630
+
+Der Befund liest den Leser falsch. Der Leser baut aus der Datei einen YAML-Text und liest ihn mit `Unmarshal`; `ohneVerweise`
+vergleicht den Wert des Schlüssels (`<<`), nicht seine Schreibweise, und lehnt auch den Schlüssel in Anführungszeichen ab. Gemessen
+an einer Kopie des Arbeitsbaums: eine Datei mit `startup = {"<<":"x"}` liest `Leser.Load` mit `PGR-E3003`, `SQLite.Write` lehnt denselben Namen
+mit `PGR-E1000` ab (`Tag !!merge ist kein String`), `YAML.Marshal` schreibt `<<: x`, das `Unmarshal` mit `PGR-E3003` ablehnt.
+**Verdikt:** akzeptiertes Negativ für das Schreiben (kein Postgres-Parametername heißt `<<`, ohne Wiederkehr; die Ablehnung eines
+Schlüssels, den `yaml` nicht liest, ist konsistent), der Leser bleibt bei `PGR-E3003`. Festgehalten in `LH-FA-22.a` *Lesen von `sqlite`*
+und §6. Folge: ein Test ohne Produktcode, Auftrag in §3 letzter Punkt vor der Randform-Rückgabe. Die Spezifikation sagt nur das Lesen zu;
+dass `YAML.Write` den Namen schreibt und nicht lesen kann, ist Bestand von `slice-walking-skeleton-record` und bleibt stehen
+(Postgres-Namen ohne `<<`, harmlos).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

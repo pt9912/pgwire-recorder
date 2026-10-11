@@ -1738,7 +1738,10 @@ ignoriert sie; nur Fehlendes ist `PGR-E3003`. Die Meldung zu einem Fehler des In
 Wert aus der Datei und keine Zeilennummer (die Datei hat keine Textdarstellung mit Zeilen); wo der Leser den Fehler
 selbst feststellt, nennt sie außerdem Tabelle und Nummern der Zeile. Das Schließen der Datenbank
 nach dem Lesen meldet der Leser nicht: Die Aufzeichnung ist dann ganz gelesen, und ein Aufbau, in
-dem es scheitert, lässt sich nicht herstellen (nicht zugesagt). Geprüft wird in der Reihenfolge
+dem es scheitert, lässt sich nicht herstellen (nicht zugesagt). Ein Schlüssel `<<` in `startup`,
+`server_parameters` oder in einem JSON-Objekt von `fields` gilt wie in `yaml` als Merge-Key
+(`PGR-E3003`, `SPEC-001`), auch wenn er in der Datei ein gewöhnlicher String ist; dass `record`
+einen solchen Namen als `sqlite` schreibt, ist nicht zugesagt. Geprüft wird in der Reihenfolge
 Formatkennung, Version, Inhalt wie bei `yaml`. Eine Aufzeichnung ohne Sessions ist
 gültig. Die Reihenfolge der Zeilen in der Datei hat keine Bedeutung: Der Leser ordnet nach
 den Nummern von Session, Interaktion und Nachricht und prüft sie in dieser Ordnung. Das
@@ -2917,3 +2920,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Nummern der Sessions werden vor dem Anlegen und Öffnen für die ganze Aufzeichnung geprüft, doppelte Nummer und Lücke im Aufruf `PGR-E1000` statt `PGR-E3001`, Datei unberührt (`LH-FA-22.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Reihenfolge der Zeilen ohne Bedeutung, Fremdschlüssel beim Lesen nicht erzwungen, Zahl im JSON-Text ganz und kanonisch (sonst `PGR-E3003`), Write-Ahead-Log-Modus einer fremden Datei und Ersetzen der Datei zwischen Erkennung und Lesen ohne Zusage (`LH-FA-22.a`, `SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: maskiertes einzelnes Surrogat im JSON-Text `PGR-E3003` (`SPEC-043`), Meldung zu einem Fehler des Inhalts ohne Wert und ohne Zeilennummer, Schließen nach dem Lesen nicht gemeldet, Abbruch des Laufs `PGR-E3001`, doppelter Schlüssel in `meta` und Verstoß gegen die Zählung und Reihenfolge der Gruppen `PGR-E3003`, Speicher des Lesers ohne Obergrenze (`LH-FA-22.a`, `SPEC-043`) |
+| 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Schlüssel `<<` ist Merge-Key (`PGR-E3003`), sein Schreiben nicht zugesagt (`LH-FA-22.a`) |
