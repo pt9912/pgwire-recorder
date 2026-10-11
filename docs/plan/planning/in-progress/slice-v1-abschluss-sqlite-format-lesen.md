@@ -349,6 +349,19 @@ und §6. Folge: ein Test ohne Produktcode, Auftrag in §3 letzter Punkt vor der 
 dass `YAML.Write` den Namen schreibt und nicht lesen kann, ist Bestand von `slice-walking-skeleton-record` und bleibt stehen
 (Postgres-Namen ohne `<<`, harmlos).
 
+### Nacharbeit zu F-630 und F-623 (`182355c`)
+
+Ein Commit, `182355c`, nur ein Test (`TestLesenMergeKey`), kein Produktcode. Die Entscheidung zu F-623 (Art auf dem Weg
+über `Unmarshal` enger gefasst) verlangt keine Änderung: Der Code liefert dort schon „Aufzeichnung beschädigt“ oder Session
+und Interaktion, `TestLesenMeldungOhneWertUndZeile` prüft es.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| ein Schlüssel `<<` (in Anführungszeichen) in `startup`, `server_parameters` und einem Objekt von `fields` ist `PGR-E3003`; ähnliche Namen (`<`, `<<<`, `<< `, `x<<`) lesen als Name | `c.Value == "<<" \|\|` in `ohneVerweise` entfällt (MK1) | `TestLesenMergeKey` |
+
+Grün bleibt (MK2): `c.Tag == "!!merge"` entfällt. Der Schlüssel ohne Anführungszeichen trägt auch den Wert `<<` und fällt
+unter die erste Bedingung; die zweite ist neben ihr nicht zu trennen (äquivalent im Verhalten, nicht Gegenstand dieses Slice).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -374,6 +387,6 @@ Hälften.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (`AGENTS.md` §3.13): Liefer-Punkte: 3 (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung der Fehler). Schichten: eine (Recording-Adapter mit seinen Tests); der Bootstrap reicht den Leser nur durch (reine Verdrahtung, zählt nicht), der Integrationstest läuft über das Binary und trägt keine eigene Schicht; die Dokumentation liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`. Geschätzt 1300 bis 1700 Zeilen mit Tests (Nachzählung des Architect vom 2026-10-11: der Geber lag bei rund 2300 mit Tests für Schreiben, JSON und Zeilen; der Leser trägt weniger Code, aber die Tests der Randformen; unter einer Review-Sitzung von rund 2000). Gemessen nach der Nacharbeit zum Review (`git diff --numstat 97f3ca6..415b725 -- '*.go'`): 2311 Zeilen Go, davon 886 Code und 1425 Tests; Liefer-Punkte und Schichten wie gezählt (drei, eine). Der erste Stand (`45af81d`) lag bei 2090 (799 und 1291), §7 führt die Stufen.
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (`AGENTS.md` §3.13): Liefer-Punkte: 3 (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung der Fehler). Schichten: eine (Recording-Adapter mit seinen Tests); der Bootstrap reicht den Leser nur durch (reine Verdrahtung, zählt nicht), der Integrationstest läuft über das Binary und trägt keine eigene Schicht; die Dokumentation liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`. Geschätzt 1300 bis 1700 Zeilen mit Tests (Nachzählung des Architect vom 2026-10-11: der Geber lag bei rund 2300 mit Tests für Schreiben, JSON und Zeilen; der Leser trägt weniger Code, aber die Tests der Randformen; unter einer Review-Sitzung von rund 2000). Gemessen nach der Nacharbeit zum Review (`git diff --numstat 97f3ca6..415b725 -- '*.go'`): 2330 Zeilen Go, davon 886 Code und 1444 Tests (`git diff --numstat 97f3ca6..182355c -- '*.go'`); Liefer-Punkte und Schichten wie gezählt (drei, eine). Der erste Stand (`45af81d`) lag bei 2090 (799 und 1291), §7 führt die Stufen.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält die Aufzeichnung als Code unter Spezifikation und Entscheidungen).
