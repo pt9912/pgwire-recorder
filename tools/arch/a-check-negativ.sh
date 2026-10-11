@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # a-check-negativ — Gegenprobe des Architektur-Gates in Kopien des Arbeitsbaums.
-# Der Arbeitsbaum selbst bleibt unberuehrt. Siebzehn Faelle:
+# Der Arbeitsbaum selbst bleibt unberuehrt. Dreiundzwanzig Faelle:
 #
 #   1. internal/hexagon/model importiert pgproto3      → a-check meldet die Datei
 #   2. internal/adapters/driven/recording importiert
@@ -32,6 +32,12 @@
 #      modernc.org/sqlite                               → a-check meldet tech-leak
 #  17. internal/adapters/driven/recording importiert
 #      modernc.org/sqlite                               → a-check meldet nichts
+#  18. internal/hexagon/model importiert time           → a-check meldet die Datei
+#  19. internal/hexagon/ports/driven importiert time    → a-check meldet die Datei
+#  20. internal/hexagon/services importiert time        → a-check meldet die Datei
+#  21. internal/adapters/driving/pgwire importiert time → a-check meldet nichts
+#  22. internal/bootstrap importiert time               → a-check meldet nichts
+#  23. internal/hexagon/model importiert runtime        → a-check meldet nichts
 #
 # Die Faelle 4 und 5 halten fest, dass beide PGWire-Adapter beide Bibliotheken
 # nutzen duerfen (ADR-0010); die Faelle 1 bis 3, dass ein anderer Ort abgelehnt
@@ -40,8 +46,11 @@
 # lehnen jeden Modulpfad im Domain Model, im Postgres-Adapter und im
 # PGWire-Adapter ab. Die Faelle 13 bis 17 gelten der SQLite-Bibliothek (ADR-0024):
 # Fall 17 laesst sie im Recording-Adapter zu, die Faelle 13 bis 16 lehnen sie im
-# Domain Model, im Postgres-Adapter, im PGWire-Adapter und im CLI-Adapter ab. Andere
-# Regeln von .a-check.yml prueft die Gegenprobe nicht.
+# Domain Model, im Postgres-Adapter, im PGWire-Adapter und im CLI-Adapter ab. Die Faelle
+# 18 bis 23 gelten dem Paket time (ADR-0015, LH-FA-21.a *Uhr*): die Faelle 18 bis 20 lehnen es
+# im Domain Model, in den Driven Ports und in den Services ab, die Faelle 21 und 22 lassen es
+# im PGWire-Adapter und im Composition Root zu, Fall 23 laesst runtime im Domain Model zu
+# (das Muster ist kein Teiltext). Andere Regeln von .a-check.yml prueft die Gegenprobe nicht.
 #
 # Ausgang: 0, wenn alle Faelle das erwartete Ergebnis liefern, sonst 1.
 # Aufruf ueber `make a-check-negativ` (harness/mk/arch-negativ.mk), das Image und
@@ -117,8 +126,20 @@ fall cli-sqlite internal/adapters/driving/cli/negativprobe.go cli \
   "modernc.org/sqlite" rot "tech-leak"
 fall recording-sqlite internal/adapters/driven/recording/negativprobe.go recording \
   "modernc.org/sqlite" gruen ""
+fall model-time internal/hexagon/model/negativprobe.go model \
+  "time" rot "internal/hexagon/model/negativprobe.go"
+fall ports-time internal/hexagon/ports/driven/negativprobe.go driven \
+  "time" rot "internal/hexagon/ports/driven/negativprobe.go"
+fall services-time internal/hexagon/services/negativprobe.go services \
+  "time" rot "internal/hexagon/services/negativprobe.go"
+fall pgwire-time internal/adapters/driving/pgwire/negativprobe.go pgwire \
+  "time" gruen ""
+fall bootstrap-time internal/bootstrap/negativprobe.go bootstrap \
+  "time" gruen ""
+fall model-runtime internal/hexagon/model/negativprobe.go model \
+  "runtime" gruen ""
 
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "a-check-negativ: gruen — alle siebzehn Faelle wie erwartet (PGWire, TLS, YAML und SQLite an den geprueften Orten)"
+echo "a-check-negativ: gruen — alle dreiundzwanzig Faelle wie erwartet (PGWire, TLS, YAML, SQLite und time an den geprueften Orten)"

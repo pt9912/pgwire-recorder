@@ -50,6 +50,11 @@ tech:
   - {pattern: "go.yaml.in/yaml", adapter: ["internal/adapters/driven/recording", "internal/adapters/driving/cli"]}
   - {pattern: "gopkg.in/yaml", adapter: ["internal/adapters/driven/recording", "internal/adapters/driving/cli"]}
   - {pattern: "modernc.org/sqlite", adapter: "internal/adapters/driven/recording"}
+  # Grenze: die Regel greift am Import, nicht am Aufruf; auch ein Zeittyp ohne Aufruf
+  # ist im Kern abgelehnt (LH-FA-21.a *Uhr*). `^time$` trifft nur das Paket `time`,
+  # nicht `runtime`. Dateien in keiner Schicht (Testhilfen unter internal/) prüft
+  # a-check nicht.
+  - {pattern: "^time$", match: regex, adapter: ["internal/adapters", "internal/bootstrap", "cmd", "test", "internal/testuhr", "internal/testzeit", "internal/testpki"]}
   - {pattern: "crypto/tls", adapter: ["internal/adapters/driving/pgwire", "internal/adapters/driven/postgres"]}
 
 composition_root:
