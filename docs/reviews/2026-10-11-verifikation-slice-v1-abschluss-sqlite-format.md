@@ -104,7 +104,7 @@ Der Test prüft `schema.sql` gegen `SPEC-043`, nicht gegen `schema.yaml` (Entsch
 | `make a-check-negativ` | `a-check-negativ: gruen — alle siebzehn Faelle` am Arbeitsbaum | bestätigt |
 | die Gegenprobe fängt die Verletzung | `.a-check.yml` in einer Kopie: `modernc.org/sqlite` zusätzlich im CLI-Adapter zugelassen; `make a-check-negativ` in der Kopie: `ROT in Fall 'cli-sqlite' — erwartet rot, a-check war gruen`, Exit 2 | bestätigt |
 | Erlaubnisliste des Lint-Gates | `gomodguard_v2.allowed` führt `modernc.org/sqlite` (`.golangci.yml`, eine Zeile im Diff); Zeile in einer Kopie entfernt, `make lint`: `sqlite.go:18:2: import of package modernc.org/sqlite is blocked … (gomodguard_v2)` | bestätigt |
-| keine Lockerung | `.golangci.yml` ändert nur die Erlaubnisliste (Nachzug nach ADR-0034 Punkt 3, `AGENTS.md` §3.6); kein `//nolint` im Diff | bestätigt |
+| keine Lockerung | `.golangci.yml` ändert nur die Erlaubnisliste (Nachzug nach [ADR-0034](../plan/adr/0034-lint-gate-mit-solid-nahem-profil.md) Punkt 3, `AGENTS.md` §3.6); kein `//nolint` im Diff | bestätigt |
 
 ### Übrige DoD-Punkte (konstant je Slice)
 
@@ -137,7 +137,7 @@ Der Test prüft `schema.sql` gegen `SPEC-043`, nicht gegen `schema.yaml` (Entsch
 - `AGENTS.md` §3.2: kein `//nolint` im Diff. §3.3: kein Move im Diff. §3.6: nur die Erlaubnisliste, keine Senkung.
 - Port `Write`-Signatur, Handbuch und `README.md` sind unverändert (`git diff --stat 4914a4a..HEAD` nennt weder `docs/user/benutzerhandbuch.md` noch `README.md`).
 - Abdeckungstabellen: `make abdeckung-check` Exit 0.
-- Commit-Messages `4914a4a..a4dfd15` (elf Commits): kein `SPEC-` und kein `ARC-` (`grep` auf Betreff und Rumpf ohne Treffer, ADR-0035); jede nennt die Slice-Kennung und `LH-FA-22`.
+- Commit-Messages `4914a4a..a4dfd15` (elf Commits): kein `SPEC-` und kein `ARC-` (`grep` auf Betreff und Rumpf ohne Treffer, [ADR-0035](../plan/adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md)); jede nennt die Slice-Kennung und `LH-FA-22`.
 
 ---
 
