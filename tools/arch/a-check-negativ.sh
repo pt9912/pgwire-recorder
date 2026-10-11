@@ -36,7 +36,7 @@
 #  19. internal/hexagon/ports/driven importiert time    → a-check meldet die Datei
 #  20. internal/hexagon/services importiert time        → a-check meldet die Datei
 #  21. internal/adapters/driving/pgwire importiert time → a-check meldet nichts
-#  22. internal/bootstrap importiert time               → a-check meldet nichts
+#  22. internal/bootstrap importiert time               → a-check meldet nichts (Composition Root, ohne Listeneintrag)
 #  23. internal/hexagon/model importiert runtime        → a-check meldet nichts
 #
 # Die Faelle 4 und 5 halten fest, dass beide PGWire-Adapter beide Bibliotheken
@@ -48,8 +48,9 @@
 # Fall 17 laesst sie im Recording-Adapter zu, die Faelle 13 bis 16 lehnen sie im
 # Domain Model, im Postgres-Adapter, im PGWire-Adapter und im CLI-Adapter ab. Die Faelle
 # 18 bis 23 gelten dem Paket time (ADR-0015, LH-FA-21.a *Uhr*): die Faelle 18 bis 20 lehnen es
-# im Domain Model, in den Driven Ports und in den Services ab, die Faelle 21 und 22 lassen es
-# im PGWire-Adapter und im Composition Root zu, Fall 23 laesst runtime im Domain Model zu
+# im Domain Model, in den Driven Ports und in den Services ab, Fall 21 laesst es im PGWire-Adapter zu
+# (Listeneintrag `internal/adapters`), Fall 22 nimmt es im Composition Root hin (von
+# der Regel ausgenommen, kein Listeneintrag), Fall 23 laesst runtime im Domain Model zu
 # (das Muster ist kein Teiltext). Andere Regeln von .a-check.yml prueft die Gegenprobe nicht.
 #
 # Ausgang: 0, wenn alle Faelle das erwartete Ergebnis liefern, sonst 1.

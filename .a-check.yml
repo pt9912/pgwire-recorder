@@ -52,9 +52,10 @@ tech:
   - {pattern: "modernc.org/sqlite", adapter: "internal/adapters/driven/recording"}
   # Grenze: die Regel greift am Import, nicht am Aufruf; auch ein Zeittyp ohne Aufruf
   # ist im Kern abgelehnt (LH-FA-21.a *Uhr*). `^time$` trifft nur das Paket `time`,
-  # nicht `runtime`. Dateien in keiner Schicht (Testhilfen unter internal/) prüft
-  # a-check nicht.
-  - {pattern: "^time$", match: regex, adapter: ["internal/adapters", "internal/bootstrap", "cmd", "test", "internal/testuhr", "internal/testzeit", "internal/testpki"]}
+  # nicht `runtime`. Jeder Eintrag der Liste steht für Dateien, die `time` einbinden:
+  # die Adapter, die Integrationstests unter test/ und je eine Testhilfe. Der
+  # Composition Root steht nicht darin; `composition_root` nimmt ihn von der Regel aus.
+  - {pattern: "^time$", match: regex, adapter: ["internal/adapters", "test/", "internal/testuhr", "internal/testzeit", "internal/testpki"]}
   - {pattern: "crypto/tls", adapter: ["internal/adapters/driving/pgwire", "internal/adapters/driven/postgres"]}
 
 composition_root:

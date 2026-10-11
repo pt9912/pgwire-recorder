@@ -8,8 +8,8 @@
 # und im CLI-Adapter zulaesst, und fuer modernc.org/sqlite, dass a-check den Import im
 # Domain Model, im Postgres-Adapter, im PGWire-Adapter und im CLI-Adapter ablehnt und
 # im Recording-Adapter zulaesst, und fuer time (ADR-0015), dass a-check den Import im
-# Domain Model, in den Driven Ports und in den Services ablehnt, im PGWire-Adapter und
-# im Composition Root zulaesst und runtime im Domain Model zulaesst; andere Regeln
+# Domain Model, in den Driven Ports und in den Services ablehnt, im PGWire-Adapter zulaesst, im Composition Root nicht
+# ablehnt (von der Regel ausgenommen) und runtime im Domain Model zulaesst; andere Regeln
 # prueft sie nicht.
 # Image und Runtime stammen aus a-check.mk.
 .PHONY: a-check-negativ
