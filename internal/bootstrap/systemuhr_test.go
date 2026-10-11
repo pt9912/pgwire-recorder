@@ -118,6 +118,21 @@ func TestSystemuhrVergangenerZeitpunktSofort(t *testing.T) {
 	}
 }
 
+// Ein Zeitpunkt, den die Lesung erreicht hat, kehrt ohne Warten zurück: 400 Aufrufe
+// mit der eben gelesenen Zeit brauchen zusammen höchstens 100 ms.
+func TestSystemuhrErreichterZeitpunktOhneWarten(t *testing.T) {
+	u := bootstrap.NeueSystemuhr()
+	start := time.Now()
+	for range 400 {
+		if err := u.WarteBis(context.Background(), u.Jetzt()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if d := time.Since(start); d > 100*time.Millisecond {
+		t.Fatalf("400 Aufrufe mit erreichtem Zeitpunkt brauchten %v", d)
+	}
+}
+
 // Ein beendeter Kontext geht vor, auch bei vergangenem Zeitpunkt, und der Aufruf
 // liefert dessen Fehler.
 func TestSystemuhrBeendeterKontextVorDemWarten(t *testing.T) {

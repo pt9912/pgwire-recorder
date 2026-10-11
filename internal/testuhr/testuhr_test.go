@@ -3,6 +3,7 @@ package testuhr_test
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -199,5 +200,36 @@ func TestUhrVorrueckenNegativPanik(t *testing.T) {
 	}()
 	if u.Jetzt() != 5 {
 		t.Fatalf("Jetzt nach Vorruecken(-1): %d", u.Jetzt())
+	}
+}
+
+// spaeterEnde ist ein Kontext, dessen Err erst nach beenden einen Fehler liefert,
+// ohne dass Done geschlossen wird: Der Aufruf von WarteBis sieht ihn beim Eintritt
+// nicht beendet und wird nur durch Vorruecken geweckt.
+type spaeterEnde struct {
+	beendet atomic.Bool
+}
+
+func (*spaeterEnde) Deadline() (time.Time, bool) { return time.Time{}, false }
+func (*spaeterEnde) Done() <-chan struct{}       { return nil }
+func (*spaeterEnde) Value(any) any               { return nil }
+func (c *spaeterEnde) Err() error {
+	if c.beendet.Load() {
+		return context.Canceled
+	}
+	return nil
+}
+
+// Ist der Kontext beendet, wenn Vorruecken den Zeitpunkt erreicht, liefert WarteBis
+// den Fehler des Kontexts, nicht nil (LH-FA-21.a *Uhr*: ein beendeter Kontext geht
+// vor).
+func TestUhrBeendeterKontextGehtVorBeimWecken(t *testing.T) {
+	u := testuhr.Neu()
+	ctx := &spaeterEnde{}
+	ergebnis := wartet(ctx, t, u, 5)
+	ctx.beendet.Store(true)
+	u.Vorruecken(5)
+	if err := ergebnisBinnen(t, ergebnis, "WarteBis"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("WarteBis beim Wecken mit beendetem Kontext: %v", err)
 	}
 }

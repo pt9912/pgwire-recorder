@@ -29,9 +29,10 @@ func (u *Uhr) Jetzt() int64 {
 	return u.jetzt
 }
 
-// WarteBis nach der Zusage des Ports: ein beendeter ctx geht vor, ein erreichter
-// Zeitpunkt kehrt sofort mit nil zurück, sonst wartet der Aufruf auf Vorruecken
-// oder das Ende von ctx.
+// WarteBis nach der Zusage des Ports: ein beendeter ctx geht vor, auch wenn
+// Vorruecken den Zeitpunkt zugleich erreicht; ein erreichter Zeitpunkt kehrt
+// sofort mit nil zurück, sonst wartet der Aufruf auf Vorruecken oder das Ende von
+// ctx.
 func (u *Uhr) WarteBis(ctx context.Context, zeitpunkt int64) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -46,7 +47,7 @@ func (u *Uhr) WarteBis(ctx context.Context, zeitpunkt int64) error {
 	u.mu.Unlock()
 	select {
 	case <-w.geweckt:
-		return nil
+		return ctx.Err()
 	case <-ctx.Done():
 		u.mu.Lock()
 		delete(u.wartende, w)
