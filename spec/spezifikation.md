@@ -1715,8 +1715,9 @@ werden die vorhandenen Werte in der Reihenfolge der Interaktionen (fehlende Wert
 verlangt erst `--keep-timing`, `PGR-E2003`). Eine Session mit einer oder ohne
 Interaktion hat nichts zu vergleichen. Die Meldung nennt die Nummer der Session und
 der Interaktion, nie einen Wert aus der Datei und keine Zeilennummer, in beiden
-Formaten. Enthält eine Datei mehrere Fehler, ist jeder `PGR-E3003`; welcher
-gemeldet wird, ist nicht zugesagt (Grenze: Code und Exit-Code sind dieselben).
+Formaten. Enthält der Inhalt einer Datei mehrere Fehler, ist jeder `PGR-E3003`; welcher
+gemeldet wird, ist nicht zugesagt (Grenze: Code und Exit-Code sind dieselben). Formatkennung
+und Version gehen dem Inhalt voraus (`SPEC-001`, *Rangfolge der Prüfung*).
 
 **Einspielen.** Mit `--keep-timing` (Default `false`) stellt `play` den zeitlichen
 Abstand her; `--timing-mode` wählt:
@@ -2059,6 +2060,19 @@ oder `null`, macht das Recording zu einem beschädigten (`PGR-E3003`).
 Ein Leser liest jede `version` von 1 bis zu seiner eigenen; jede andere lehnt er ab
 (`PGR-E3002`). Ein Recording ohne oder mit abweichender `format`-Kennung ist
 beschädigt (`PGR-E3003`). Beides endet mit Exit-Code `3` (`SPEC-016`).
+
+**Rangfolge der Prüfung.** Ein Leser prüft in `yaml` wie in `sqlite` (`SPEC-043`) in dieser
+Reihenfolge: Lesbarkeit der Datei (Syntax, Anker, Alias, Merge-Key), Formatkennung,
+Version, Inhalt. Zugesagt ist der Vorrang jeder Stufe vor den folgenden: Eine Datei mit
+`version: 2` ist `PGR-E3002`, auch wenn der Inhalt Fehler trägt; eine falsche Formatkennung
+ist `PGR-E3003`, auch bei unbekannter Version. `version` ist in `yaml` ein Skalar in
+kanonischer Dezimalschreibweise wie in `sqlite`; fehlt der Schlüssel oder ist der Wert
+anderer Text (`abc`, `01`, `1.0`, `"1"`, `null`, `0x2`), ist die Datei `PGR-E3003` und
+die Meldung nennt keinen Wert; jede kanonische Zahl außer `1` ist `PGR-E3002`, auch `0`,
+eine negative und eine zu große für 64 Bit. Die Meldung zu `PGR-E3002` nennt die Version
+der Datei, die der Leser gelesen hat, und nie einen Wert, den die Datei nicht trägt.
+Innerhalb des Inhalts ist nicht zugesagt, welcher von mehreren Fehlern gemeldet wird
+(Grenze: Code und Exit-Code sind dieselben).
 
 Anker, Aliase und Merge-Keys von YAML (`&`, `*`, `<<`) sind nicht Teil des
 Formats; ein Recording, das einen davon enthält, ist beschädigt (`PGR-E3003`).

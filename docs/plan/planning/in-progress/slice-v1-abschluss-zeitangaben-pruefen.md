@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen)
 
-**Berührte Spec-Stellen:** `LH-FA-21.a` · `SPEC-043` · `SPEC-034`
+**Berührte Spec-Stellen:** `LH-FA-21.a` · `SPEC-001` · `SPEC-043` · `SPEC-034`
 
 **Verantwortlich:** pt9912
 
@@ -73,7 +73,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/recording` (`yaml.go`: `formVorpruefung`, `sessionFromDTO`) | update | Form des Werts am YAML-Baum, Vergleich der `offset_ms` je Session in `sessionFromDTO`; SQLite läuft über `Unmarshal` durch dieselbe Stelle; Meldung ohne Wert aus der Datei |
+| `internal/adapters/driven/recording` (`yaml.go`: `Unmarshal` mit Formatkennung und Version vor dem Inhalt, `formVorpruefung`, `offsetForm`, `kanonischeDezimalzahl`, `sessionFromDTO`, `geprueftFromDTO`) | update | Form des Werts am YAML-Baum, Vergleich der `offset_ms` je Session in `sessionFromDTO`; SQLite läuft über `Unmarshal` durch dieselbe Stelle; Meldung ohne Wert aus der Datei |
 | Tests im Recording-Adapter (`zeitangaben_pruefen_test.go`, `yaml_test.go`) und `test/integration` (`zeitangaben_pruefen_e2e_test.go`, die Datei `testdata/zeitangaben-absteigend.sqlite`) | neu/update | Negativ und Boundary je Format nach `LH-FA-21`; `replay` und `play` am Binary; die Reihenfolge der Meldungen in `TestUnmarshalFehlerReihenfolge` folgt der Vorprüfung vor dem Dekodieren |
 | `docs/user/abdeckung-*.md` | update | von `make abdeckung` erzeugt |
 
@@ -112,6 +112,8 @@ dasteht.
 - *Prüfung ohne Wunsch:* Die Prüfung gilt beim Laden jeder Aufzeichnung, in beiden Formaten, für `replay` und `play`, mit und ohne `--keep-timing`; „ignoriert“ meint das Warten, nicht die Prüfung — entschieden ebenda (*Prüfen* und Ende von *Einspielen*). Das Lastenheft wird nicht geändert: Eine beschädigte Datei ist bei negativen Werten schon heute abgelehnt, und „ignoriert“ (LH-FA-21 Boundary) beschreibt das Verwenden. Widerspricht der Nutzer, ist es eine Änderung am Lastenheft (Rückführung in §4).
 - *Form des Werts in YAML:* ein Skalar in kanonischer Dezimalschreibweise (`0` oder Ziffern ohne führende Null, ohne Vorzeichen, im Bereich von `int64`); `1.0`, `1.5`, `1e3`, `0x10`, Text in Anführungszeichen, `true`, `null` und ein Wert über dem Bereich sind beschädigt; `offset_ms: null` ist nicht „fehlt“ — entschieden ebenda. Die Bibliothek entscheidet nichts still; die Prüfung am YAML-Baum liegt vor dem Dekodieren (`formVorpruefung`).
 - *Meldung:* nennt Session und Interaktion, nie einen Wert aus der Datei und keine Zeilennummer, in beiden Formaten — entschieden ebenda (`BEO-REPO/yaml-meldung-nennt-wert-und-zeile` bleibt für die übrigen Meldungen von `yaml` offen, dieser Slice berührt ihn nicht). Mehrere Fehler in einer Datei: jeder ist `PGR-E3003`, welcher gemeldet wird, ist nicht zugesagt — akzeptiertes Negativ (Code und Exit-Code sind dieselben; ein Rang der Fehler wäre eine Zusage ohne Nutzen).
+- *Rangfolge der Prüfung (F-637, Architect am 2026-10-11, Empfehlung bis zur Antwort des Nutzers):* In `yaml` wie in `sqlite` gilt Lesbarkeit der Datei, Formatkennung, Version, Inhalt, und jede Stufe geht den folgenden voran — entschieden, `SPEC-001` *Rangfolge der Prüfung* (für `sqlite` schon in `SPEC-043`). Zugesagt ist damit: `version: 2` ist `PGR-E3002` auch bei Fehlern im Inhalt; falsche Formatkennung ist `PGR-E3003` auch bei unbekannter Version; `version: abc` (und fehlende, `01`, `1.0`, `"1"`, `null`) ist `PGR-E3003` ohne Wert in der Meldung, nie „Version 0“. Zwischen mehreren Fehlern des Inhalts bleibt nicht zugesagt, welcher gemeldet wird (akzeptiertes Negativ, wie oben). Der Code vor dieser Entscheidung (Befund der Form zurückgehalten, Fehler der Bibliothek hinter dem Befund; der Fehler der Bibliothek beim Dekodieren kam vor Formatkennung und Version; `version: abc` ergab `PGR-E3002 Version 0`) entsprach ihr nicht; der Implementer richtet ihn aus (Auftrag in der Übergabe des Architect).
+- *Fixture `testdata/zeitangaben-absteigend.sqlite` (F-639, Architect am 2026-10-11):* akzeptiert mit dokumentierter Herkunft — akzeptiertes Negativ: kein Generator, weil `test/integration` weder Adapter noch Bibliothek von `sqlite` einbinden darf und ein Hilfsprogramm dafür den Import nur verschöbe oder `make a-check` lockerte (`AGENTS.md` §3.6). Das Rezept steht im Kommentar der Variable `absteigendSQLite`; ein Schema-Wechsel, der die Datei ungültig macht, lässt `TestE2ENichtAbsteigendeZeitangaben` rot werden, weil die Meldung „Session 1, Interaktion 2“ dann ausbleibt.
 - *Eine Session mit einer oder ohne Interaktion:* nichts zu vergleichen, gültig — entschieden ebenda.
 
 **Risiken:**
