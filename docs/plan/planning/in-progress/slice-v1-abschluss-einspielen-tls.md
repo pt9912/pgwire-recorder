@@ -89,7 +89,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Mit `--upstream-tls` oder mit `sslmode=require` der benutzten Verbindung
+- [x] [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Mit `--upstream-tls` oder mit `sslmode=require` der benutzten Verbindung
       baut `play` die Verbindung mit TLS auf und prüft das Serverzertifikat gegen den
       Zertifikatsspeicher des Systems, ergänzt um die Zertifikate aus `--upstream-ca`, und
       den Namen gegen den eingesetzten Host, eine IPv6-Adresse ohne ihre Zone gegen die
@@ -97,7 +97,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `false`, geht `sslmode=require` vor, aus jeder Quelle; ohne beides baut `play` keine
       TLS-Verbindung auf (Integrationstest gegen einen Server mit dem Zertifikat einer
       eigenen Zertifizierungsstelle).
-- [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): `N` auf das `SSLRequest`, ein Fehler der Aushandlung, ein abgelaufenes,
+- [x] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler): `N` auf das `SSLRequest`, ein Fehler der Aushandlung, ein abgelaufenes,
       ungültiges oder auf einen anderen Namen ausgestelltes Zertifikat und ein Server, der
       eine unverschlüsselte Verbindung ablehnt, sind `PGR-E4005`; ein anderes Byte, ein
       Verbindungsende vor der Antwort und Bytes nach `S` vor der Aushandlung sind
@@ -107,14 +107,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       lesbares X.509-Zertifikat enthält, ist beim Start vor dem Laden der Aufzeichnung
       `PGR-E2007`, die Meldung nennt weder Pfad noch Inhalt ([`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten)) (Test). Beleg in
       §7 für Punkt 1 und 2: je Zusage Zusage · Mutation · roter Test (`AGENTS.md` §3.10). Die Abdeckungstabellen sind über `make abdeckung` nachgezogen.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -297,10 +297,17 @@ an der genannten Stelle. Offen ist keine.
 
 - Das Testgschirr braucht Zertifikate einer eigenen Zertifizierungsstelle, ein abgelaufenes
   und eines auf einen anderen Namen — **Ausgang:** entschieden am 2026-10-11: zur Testzeit im
-  Test erzeugt, nicht eingecheckt (siehe Negative oben); offen bis Closure, ob das Geschirr
-  dadurch unvertretbar wächst.
+  Test erzeugt, nicht eingecheckt (siehe Negative oben). **Ausgang bei Closure: entfallen.**
+  Das Geschirr (`testpki`, `tlsproxy`) umfasst rund 250 Zeilen, ohne Netz und ohne eingecheckte
+  Schlüssel; das Binary enthält es nicht (`TestBinaryOhneTesthilfen`), und das Review prüfte den
+  Diff in einer Sitzung (F-608). Die Fälle, die kein echter PostgreSQL trägt, laufen im Test des
+  Upstream-Adapters.
 - Im Produkt-Image kann der Zertifikatsspeicher des Systems leer sein; dann prüft `play` nur
-  gegen `--upstream-ca` (Grenze in `LH-FA-20.a` *TLS*) — **Ausgang:** offen bis Closure.
+  gegen `--upstream-ca` (Grenze in `LH-FA-20.a` *TLS*) — **Ausgang bei Closure: entfallen.** Gemessen von der
+  Verifikation: Das Image der Stufe `runtime` trägt `/etc/ssl/certs/ca-certificates.crt` mit
+  150 Zertifikaten, und `SSL_CERT_FILE` wirkt im Binary dieser Stufe; der Standardpfad ist Ende
+  zu Ende geprüft (F-603). Nicht geprüft bleibt ein Serverzertifikat einer öffentlichen
+  Zertifizierungsstelle im Betrieb; das ist die Grenze der Spezifikation, kein offenes Risiko.
 
 ## 7. Closure-Notiz
 
@@ -501,7 +508,47 @@ Abgleich des Abschnitts *Hinweise* und der Pfade ist nicht Teil des Skripts.
    rund 14 % über dem Maß): wie in *Größe* oben benannt; das Maß gehört dem Planner, die
    Nacharbeit fügt rund 190 Zeilen Go hinzu (Tests und Testhilfe), keinen Produktcode.
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+### Closure
+
+**Review und Verifikation.** Review `b221a16` (1 HIGH F-601, MEDIUM F-602, F-603, F-605, LOW F-604, INFO F-606 bis F-608); F-601 und F-607 berichtigte der Architect in `3a2f1f3`, F-602, F-603, F-604 und F-606 der Implementer in `058c677` (Belege in `a9c9330`), F-605 und F-608 sind zur Kenntnis. Verifikation `9f354ec`: DoD-Punkte 1 bis 3 bestätigt, auch gegen unabhängige TLS-Server (Falsifikationsversuche ohne Fund: Downgrade, Reihenfolge der Quellen, `PGR-E2007` ohne Pfad und Inhalt, Signale in der Aushandlung, `-race -count=8`); 37 Mutanten-Läufe der Verifikation, 34 rot aus dem richtigen Grund. V-167 (LOW, Beleg zum Mutanten der Systemwurzeln) ist in `42949e6` berichtigt (Abschnitt *Ein zweiter Mutant bleibt grün* oben), V-168 (INFO) liegt unten.
+
+**Entscheidungen zu den Übergaben.**
+
+- **V-167**: der Beleg war falsch, die Zusage nicht betroffen. Der Mutant „Fehler des Ladens nimmt die Systemwurzeln“ ist in der Testumgebung äquivalent; die Grenze trägt `LH-FA-20.a` *TLS*. Register: `BEO-REPO/plan-nennt-test-der-nicht-existiert` (Wortlaut der Klasse: „oder die Zeile behauptet für ihn eine rote Mutation, die nie gefahren wurde“; die Tests standen, die rote Mutation stimmte nicht), 1 → 2. Nicht `BEO-REPO/gruener-mutant-faelschlich-aequivalent`: Dort wird ein gefundener grüner Mutant zu Unrecht äquivalent genannt; hier wurde ein grüner Mutant rot genannt.
+- **V-168** (Sicht sagt „darf nur Testcode importieren“, der Test prüft „das Binary linkt sie nicht“): **akzeptierte Grenze**. Die gefährliche Hälfte, ein Testhilfe-Paket im ausgelieferten Binary, hält `TestBinaryOhneTesthilfen`; die andere, ein Import durch eine Nicht-Testdatei außerhalb von `./cmd/...`, hat kein Gate, und eines wäre eine Gate-Änderung (`AGENTS.md` §3.6) und braucht eine ADR. Die ist nicht beauftragt. Die Grenze steht in beiden `doc.go` und oben unter *Grenzen und nicht Geprüftes*. Keine Adresse, kein Eintrag; wird die Norm verletzt (eine Nicht-Testdatei importiert ein Testhilfe-Paket), ist das der Anlass für die ADR.
+- **F-605** (vier Randformen im Code, dann zurückgegeben): Klasse `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`, 9 → 10; verkörpert, die Regel gilt.
+- **F-602**, **F-604** und **F-607** zählen in `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, 34 → 35 (ein Vorgang); **F-603** in `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`, 23 → 24 (die falsche Begründung des akzeptierten Negativs ist der Lerneintrag unten).
+- **F-601** (HIGH, die Sicht nennt `go list`): ein Fehler des Architect, nicht des Implementers; neu `BEO-REPO/architektur-sicht-nennt-werkzeug`, 1×, offen.
+- **F-608** (Diff 2443 Zeilen, rund 14 % über dem Maß von etwa 2000): Wertung des Planners: Das Maß ist ein Richtwert für *eine Review-Sitzung*, und das Review prüfte den Diff in einer. Der Überhang liegt in den Tests (rund 1850 von 2288 Zeilen), die je Zusage eine Mutation tragen (`AGENTS.md` §3.10); das Produkt umfasst rund 350 Zeilen. Die Rückführung `in-progress` → `next` aus §4 (Diff nicht in einer Sitzung prüfbar) ist nicht eingetreten. Kein Register-Eintrag: einmalig, und die Zählung von Liefer-Punkten und Schichten, die die Größe bindet, hielt (zwei und zwei).
+- **F-606**: behoben, kein Eintrag.
+- **Nicht aufgetreten:** `BEO-REPO/verhalten-nur-unter-linux-geprueft` (kein Befund zur Plattform) und `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (kein Befund zu Serverversionen): keine neue Datei, je 1×, offen.
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge):
+
+| Risiko | Ausgang | Begründung |
+|---|---|---|
+| Das Testgeschirr braucht Zertifikate einer eigenen Zertifizierungsstelle, ein abgelaufenes und eines auf einen anderen Namen | entfallen | Zur Testzeit mit `crypto/x509` erzeugt, nichts eingecheckt; das Geschirr hat rund 250 Zeilen, das Binary enthält es nicht (`TestBinaryOhneTesthilfen`), das Review prüfte den Diff in einer Sitzung. |
+| Im Produkt-Image kann der Zertifikatsspeicher des Systems leer sein | entfallen | Gemessen von der Verifikation: das Image der Stufe `runtime` trägt `/etc/ssl/certs/ca-certificates.crt` mit 150 Zertifikaten, `SSL_CERT_FILE` wirkt im Binary; Standardpfad Ende zu Ende geprüft (`TestE2EPlayTLSZertifikatsspeicherDesSystems`, Mutant rot). Ein Zertifikat einer öffentlichen Zertifizierungsstelle im Betrieb ist ungeprüft; das ist die Grenze in `LH-FA-20.a` *TLS*, die das Handbuch im Doku-Folge-Slice nennt (DoD-Punkt 2 von `slice-v1-abschluss-einspielen-tls-doku`). |
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure; Beleg je `evidence/slice-v1-abschluss-einspielen-tls.md`):
+
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — F-602, F-604, F-607: 34 → 35. Verkörpert (`AGENTS.md` §3.11); Sensor geplant (`slice-harness-mutation`).
+- `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` — F-605: 9 → 10. Verkörpert (`AGENTS.md` §3.12).
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — F-603: 23 → 24. Verkörpert (`AGENTS.md` §3.10); Sensor geplant (`slice-harness-mutation`); der Zielort trägt den Zusatz zur Messung der Begründung eines Negativs, `seit slice-v1-abschluss-einspielen-tls`.
+- `BEO-REPO/plan-nennt-test-der-nicht-existiert` — V-167: 1 → 2, offen. Mit dem nächsten Auftreten 3×; dann ist ein Sensor („jeder Testname eines Plans steht im Repo, jede genannte rote Mutation ist gefahren“) der Ausgang, mit einem Slice als Adresse, der ihn aufnimmt; heute fehlt einer.
+- Neu, 1×, offen: `BEO-REPO/architektur-sicht-nennt-werkzeug` (F-601).
+- Kein Auftreten: `BEO-REPO/verhalten-nur-unter-linux-geprueft`, `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, beide 1×, offen.
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3×; `BEO-REPO/plan-nennt-test-der-nicht-existiert` steht bei 2×.
+
+**Lerneintrag — geschärfte Regel (zwei Sätze).** Das Review fand zwei Fehler, die keine Regel entschied, weil sie im Schreiben einer *Begründung* lagen, nicht einer Zusage. (1) Das akzeptierte Negativ zum Zertifikatsspeicher sagte, `SSL_CERT_FILE` wirke erst bei der ersten Ladung im Prozess, und ließ den Standardpfad ungeprüft; die Behauptung über die Umgebung war ungemessen und falsch (frischer Prozess: 0 gegen 150 Zertifikate), und der Architect hatte das Negativ am Vortag bestätigt. Die Regel: eine Begründung, die ein Verhalten der Umgebung behauptet, nennt ihre Messung. liegt in `.claude/commands/implement-slice.md` Schritt 19 · seit slice-v1-abschluss-einspielen-tls (der Absatz zur Messung der Begründung eines akzeptierten Negativs). (2) Der Architect schrieb den Aufruf `go list -deps ./cmd/...` in die Sicht (HIGH, F-601); `AGENTS.md` §3.4 nennt Wellen, Slices und Hashes, nicht aber den Werkzeugaufruf, und der Architect-Typ trug keinen Satz dazu. liegt in `.claude/agents/architect.md` · seit slice-v1-abschluss-einspielen-tls (der Absatz *Die Sicht nennt kein Werkzeug und keine Sprache*). Die zweite Regel steht bei 1× im Register; sie ist ein Feedforward-Satz, keine Verkörperung nach Schwelle, und `BEO-REPO/architektur-sicht-nennt-werkzeug` bleibt offen, bis sie sich bewährt oder die Klasse wiederkehrt.
+
+**Technik ohne Verkörperung.** Ein Muster aus diesem Slice steht im Code, nicht als Regel: Testhilfen, die `crypto/tls` brauchen und in `test/integration` nicht liegen dürfen, liegen in der Composition Root (`internal/bootstrap/tlsproxy`, von den Schichtregeln ausgenommen), und ein Test hält sie aus dem Binary (`TestBinaryOhneTesthilfen`: `go list -deps ./cmd/...` gegen eine Verbotsliste, ohne Netz im Test-Image). Wer eine weitere Testhilfe mit einer eingeschränkten Technik anlegt, folgt dem Muster; ein Sensor für den ersten Halbsatz der Norm fehlt (V-168).
+
+**Paarungen.** (a) Anker: `.claude/commands/implement-slice.md` Schritt 19 und `.claude/agents/architect.md` tragen je `seit slice-v1-abschluss-einspielen-tls`; `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` nennt den Zusatz in seiner `state.md`. (b) Folge-Slice: Genannt ist `slice-v1-abschluss-einspielen-tls-doku`; er existiert in `next/` und nimmt an: `grep` nach der Kennung des Gebers findet sie in seinem §1 und seiner DoD, und die Sendung dieser Closure (der Satz zum Klartext-Passwort) steht seit `566a3fb` in DoD-Punkt 1. `slice-v1-abschluss-antwortvergleich` zeigt mit seinem §1 auf diesen Slice (Abgrenzung *TLS*). Weitere Zuweisungen macht die Closure nicht: V-168 ist eine Grenze, F-608 eine Wertung. (c) Register: Alle genannten Kennungen `BEO-REPO/…` bestehen als Verzeichnis, jedes mit nicht leerem `evidence/`.
+
+**Nachzählen.** Eine Sendung in einen Nehmer: `slice-v1-abschluss-einspielen-tls-doku` (Handbuch §4, Satz zum Klartext-Passwort), eingetragen in `566a3fb`; Liefer-Punkte 3, Schichten eine (Dokumentation), innerhalb der Grenze. Der Hinweis zu `sslmode=require` bei `play` (das Handbuch sagt noch „ungültig“) und der Satz „Alle Verbindungen laufen unverschlüsselt“ im README stehen dort schon in DoD-Punkt 1 und 3; das Binary lässt `sslmode=require` bei `play` seit diesem Slice zu, das Handbuch hinkt bis zum Doku-Folge-Slice hinterher, ein Release liegt nicht dazwischen.
+
+**Stand der Gates.** Die Läufe stehen oben (`058c677` als letzter Stand der Nacharbeit). Den Lauf auf dem Stand der Closure nennt der Bericht des Planners; dieser Absatz nennt ihn nicht, weil ein Commit nach dem Lauf ihn ungültig machte.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
