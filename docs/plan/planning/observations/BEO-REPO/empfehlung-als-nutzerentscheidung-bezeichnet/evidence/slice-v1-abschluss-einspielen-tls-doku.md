@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen-tls-doku
+**Fund:** §7 des Plans nannte „Entscheidung des Nutzers, Option A“ für die Grenze *Zertifikatsspeicher nicht ladbar*, als der Nutzer noch nicht entschieden hatte; es war die Empfehlung des Architect. Die Entscheidung stand in keinem Artefakt (Review F-609, MEDIUM). Berichtigt in `be0a8aa`; die Entscheidung des Nutzers vom 2026-10-11 (Option A) steht als Absatz in Plan §6.

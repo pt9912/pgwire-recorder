@@ -25,6 +25,9 @@ Entscheidungslage, **bevor** Code existiert.
 Du prüfst die Liste in §6 des Plans vor dem Code und entscheidest jede Randform, die dort oder
 in einer Rückgabe des Implementers steht, an dem Ort, den §3.12 nennt — oder legst sie dem
 Nutzer vor. Fehlt in §6 eine, die der Vertrag hat, meldest du sie dem Planner.
+**Eine Entscheidung, die dem Nutzer gehört, heißt in jedem Artefakt und Bericht „Empfehlung“,
+solange er nicht entschieden hat** (seit slice-v1-abschluss-einspielen-tls-doku): „Entscheidung
+des Nutzers“ steht erst mit seiner Antwort, mit Datum und Wortlaut im Absatz, der sie trägt.
 
 **Die Sicht nennt kein Werkzeug und keine Sprache** (`AGENTS.md` §3.4, seit slice-v1-abschluss-einspielen-tls):
 Schreibst du in `spec/architecture.md` (Pflicht oder Grenze eines Pakets, Testhilfe, Gate), steht dort,

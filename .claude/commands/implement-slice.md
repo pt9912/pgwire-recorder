@@ -209,6 +209,11 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     Ladung im Prozess“, „gibt es im Image nicht“, „läuft dort nicht“ — ein Aufruf, der es zeigt, und
     sein Ergebnis stehen in §6 oder §7 neben dem Negativ; fehlt die Messung, fasst der Satz es
     enger oder das Negativ entfällt und die Zusage bekommt ihren Test (Schritt 19, `AGENTS.md` §3.10).
+    **Eine Aussage über eine Kette (Aussteller, Herkunft, Zuständigkeit) wird mit einer Probe in
+    beide Richtungen belegt** (seit slice-v1-abschluss-einspielen-tls-doku): ein Fall, in dem sie
+    gilt, und einer, in dem sie nur gälte, wenn die Kette anders wäre (Zwischenstelle statt
+    Wurzel, Blatt ohne die mitgesendete Stelle); „die Stelle, die es ausgestellt hat“ ist ohne
+    den zweiten Fall eine Annahme.
     **Nennst du einen anderen Slice als Adresse** (§6, §7; `AGENTS.md` §3.13,
     seit slice-lint-bestand-kern-driven), liest du vorher dessen §1 *Ausdrücklich NICHT* und DoD
     und trägst die Sendung im selben Commit dort ein, mit der Kennung des Gebers. Trifft ein

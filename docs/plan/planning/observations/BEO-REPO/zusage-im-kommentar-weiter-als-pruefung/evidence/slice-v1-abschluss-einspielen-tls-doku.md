@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen-tls-doku
+**Fund:** Das Handbuch sagte, das Zertifikat gelte, wenn „die Zertifizierungsstelle, die es ausgestellt hat“ im Speicher oder in `--upstream-ca` stehe; die Probe mit einem Zwischenzertifikat widerlegte es (Wurzel genügt, Zwischenstelle in der Datei genügt auch ohne Wurzel; Review F-610, LOW). Dazu: der Beleg in §7 sagte, das `grep` auf „kommt“ finde in den neuen Sätzen nichts, ein neuer Satz traf (F-611, INFO). Behoben in `be0a8aa` (Probe 16, sieben Fälle).

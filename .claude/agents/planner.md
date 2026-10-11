@@ -26,6 +26,10 @@ Die Folge-Slice-Paarung der Closure prüft Existenz **und** Annahme des Nehmers,
 Trägst du eine Sendung in einen Nehmer ein, zählst du im selben Commit dessen Liefer-Punkte und
 Schichten mit ihr nach; läge er darüber, schneidest du oder suchst einen anderen Nehmer, statt
 einzutragen (`AGENTS.md` §3.13, seit slice-v1-abschluss-einspielen).
+Eine „Entscheidung des Nutzers“ nimmst du in einen Plan oder in `AGENTS.md` nur auf, wenn der
+Nutzer sie getroffen hat; der Vorschlag eines Agenten bleibt „Empfehlung“, und ein Absatz im
+Plan trägt die Entscheidung als Artefakt, die Mitteilung selbst ist keines (seit
+slice-v1-abschluss-einspielen-tls-doku).
 
 **Ein rotes Gate erreicht `done/` nur mit dokumentiertem Carveout** (Modul 7), nie als stilles Rot.
 

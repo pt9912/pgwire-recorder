@@ -47,17 +47,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
-- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-einspielen-tls` liefert, im Ist-Zustand des gebauten Binaries: Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zu TLS und `sslmode=require` bei `play` — §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Hinweis „verbindet sich unverschlüsselt … `sslmode=require` ist bei `play` ungültig (`PGR-E2004`)“, dazu der Satz zum Klartext-Passwort „… also ohne TLS unverschlüsselt“, der mit TLS nicht mehr allgemein gilt: ein Klartext-Passwort ist über TLS verschlüsselt, ohne TLS nicht; Sendung aus `slice-v1-abschluss-einspielen-tls`), §5 *Konfigurationsdatei* (Absatz zu `sslmode`, soweit er `play` betrifft, dort mit DoD-Punkt 3) und §1 *Voraussetzungen* (Zeile zur Verbindung zur Datenbank) — und im README den Satz „Alle Verbindungen laufen unverschlüsselt“, soweit er `play` betrifft. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
-- [ ] Das Benutzerhandbuch beschreibt in §5 *Konfigurationsdatei* TLS einer Verbindung bei `play` wie geliefert (`sslmode=require` mit TLS und Prüfung des Zertifikats, ein gesetztes `--upstream-tls` vor `sslmode`; Befund F-533), dazu `--upstream-ca` und den beobachtbaren Fall, dass das Zertifikat des Servers weder mit dem Speicher des Systems noch mit `--upstream-ca` überprüfbar ist (`PGR-E4005`); die Grenze *Zertifikatsspeicher nicht ladbar* nennt das Handbuch nicht (§6, Entscheidung vom 2026-10-11). Kein Test ist geändert, `make abdeckung-check` ist grün.
-- [ ] `README.md` nennt, was `slice-v1-abschluss-einspielen-tls` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-einspielen-tls` liefert, im Ist-Zustand des gebauten Binaries: Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zu TLS und `sslmode=require` bei `play` — §4 *Eine Aufzeichnung in eine Datenbank einspielen* (Hinweis „verbindet sich unverschlüsselt … `sslmode=require` ist bei `play` ungültig (`PGR-E2004`)“, dazu der Satz zum Klartext-Passwort „… also ohne TLS unverschlüsselt“, der mit TLS nicht mehr allgemein gilt: ein Klartext-Passwort ist über TLS verschlüsselt, ohne TLS nicht; Sendung aus `slice-v1-abschluss-einspielen-tls`), §5 *Konfigurationsdatei* (Absatz zu `sslmode`, soweit er `play` betrifft, dort mit DoD-Punkt 3) und §1 *Voraussetzungen* (Zeile zur Verbindung zur Datenbank) — und im README den Satz „Alle Verbindungen laufen unverschlüsselt“, soweit er `play` betrifft. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
+- [x] Das Benutzerhandbuch beschreibt in §5 *Konfigurationsdatei* TLS einer Verbindung bei `play` wie geliefert (`sslmode=require` mit TLS und Prüfung des Zertifikats, ein gesetztes `--upstream-tls` vor `sslmode`; Befund F-533), dazu `--upstream-ca` und den beobachtbaren Fall, dass das Zertifikat des Servers weder mit dem Speicher des Systems noch mit `--upstream-ca` überprüfbar ist (`PGR-E4005`); die Grenze *Zertifikatsspeicher nicht ladbar* nennt das Handbuch nicht (§6, Entscheidung vom 2026-10-11). Kein Test ist geändert, `make abdeckung-check` ist grün.
+- [x] `README.md` nennt, was `slice-v1-abschluss-einspielen-tls` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -132,8 +132,8 @@ dasteht.
 
 **Risiken:**
 
-- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** offen bis Closure.
-- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** offen bis Closure.
+- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** weiter offen (Register: `state.md` von `BEO-REPO/verhalten-nur-unter-linux-geprueft`, kein Auftreten: alle Proben liefen unter Linux im Container, das Handbuch sagt nichts über eine andere Plattform zu).
+- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** entfallen: Er trat nicht ein; die Verifikation bestätigt Punkt 1 bis 3, und die Suche nach den ersetzten Sätzen findet nichts Verbliebenes (Vermerk „Teil geliefert“ im Register, ohne Zähler).
 
 ## 7. Closure-Notiz
 
@@ -220,7 +220,36 @@ Befehlsfolge aus Plan §3 danach erneut: Optionen des Handbuchs, die `--help` ni
 - **Nicht gefahren, nicht genannt:** Fake `S` und Schweigen, Zone einer IPv6-Adresse, MD5 und SCRAM mit TLS, Zertifikatsketten mit mehr als einem Zwischenzertifikat, der Standardpfad des Systems ohne `SSL_CERT_FILE` (das Zertifikat einer öffentlichen Zertifizierungsstelle wurde nicht gegen das Image geprobt), Windows und macOS (`BEO-REPO/verhalten-nur-unter-linux-geprueft`: alle Proben unter Linux im Container).
 - **Bestand (F-612):** Die Optionstabelle in Handbuch §5 führt `--config` vor `--log-level`, `play --help` führt `--log-level` vor `--config`; die neuen Zeilen stehen in der Reihenfolge von `play --help`.
 - Die Meldung von `PGR-E4005` mit TLS nennt neben Sitzung und Grund auch `host:port` des Servers; das Handbuch sagt „Sitzung und Grund“, was zutrifft, ohne die Adresse auszuschließen.
-- Ausgänge der Risiken aus §6 und die Closure-Notiz: bei Closure.
+- Ausgänge der Risiken aus §6 und die Closure-Notiz: siehe *Closure* unten.
+
+### Closure
+
+**Review und Verifikation.** Review `aab7ef2` (F-609 MEDIUM, F-610 LOW, F-611 bis F-613 INFO), erledigt in `be0a8aa` und `810ee49`. Verifikation `1f8df36`: DoD-Punkte 1 bis 3 bestätigt; V-169 (LOW, Stand-Kopf des Handbuchs) und V-170 (INFO, Klammer in `PGR-E2001`) erledigt in `de3596a` mit der Probe oben; V-171 siehe unten.
+
+**Entscheidungen zu den Übergaben.**
+
+- **V-171:** Die Entscheidung des Nutzers vom 2026-10-11 (Option A) steht als Absatz in §6; die Mitteilung selbst ist kein Artefakt, §6 trägt sie.
+- **F-612** (Reihenfolge der Optionstabelle in Handbuch §5 gegen `play --help`): Bestand bleibt bewusst stehen; die Tabelle ist Handbuch-Gliederung, keine Zusage über die Reihenfolge, und kein Wächter prüft sie. Keine Handlung, kein Nehmer.
+- **F-611, F-613:** erledigt, keine Handlung.
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge): siehe §6; Beispiel unter Linux nur: *weiter offen*; Teil von Handbuch und README nicht geliefert: *entfallen*.
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure):
+
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — neue Datei `evidence/slice-v1-abschluss-einspielen-tls-doku.md` (F-610, F-611): 35 → 36. Verkörpert (`AGENTS.md` §3.11); `state.md` führt zusätzlich den Absatz zur Kette.
+- `BEO-REPO/plan-folgt-korrektur-nicht` — neue Datei `evidence/slice-v1-abschluss-einspielen-tls-doku.md` (F-609, DoD nicht nachgezogen): 26 → 27. Verkörpert (`AGENTS.md` §3.9, `make kopf-check`).
+- `BEO-REPO/empfehlung-als-nutzerentscheidung-bezeichnet` — **neu**, `evidence/slice-v1-abschluss-einspielen-tls-doku.md` (F-609): 1×, offen; Regelzeile steht schon (siehe Lerneintrag).
+- `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` — kein Auftreten; vermerkt „Teil geliefert“ in `state.md`, bleibt 1×, offen.
+- `BEO-REPO/verhalten-nur-unter-linux-geprueft` — kein Auftreten; vermerkt in `state.md`, bleibt 1×, offen.
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3×.
+
+**Lerneintrag — geschärfte Regel (zwei Zeilen).** (a) Der Plan nannte eine Empfehlung des Architect „Entscheidung des Nutzers“, bevor der Nutzer entschieden hatte, und Review und Verifikation fanden die Entscheidung in keinem Artefakt (F-609). Eine Stelle, die das sagt, gab es nicht (`AGENTS.md` §3.12 regelt nur, *wo* eine Entscheidung des Nutzers steht). Ergänzt ist je eine Zeile in `.claude/agents/architect.md` (bis zur Antwort des Nutzers heißt der Vorschlag „Empfehlung“) und `.claude/agents/planner.md` (eine Entscheidung des Nutzers steht erst nach seiner Antwort im Plan; der Absatz ist das Artefakt, die Mitteilung nicht). `liegt in` `.claude/agents/architect.md` und `.claude/agents/planner.md` · seit slice-v1-abschluss-einspielen-tls-doku. (b) Der Satz über „die ausstellende Stelle“ galt für die Wurzel und fiel an der Probe mit einem Zwischenzertifikat (F-610): Eine Aussage über eine Kette bekommt eine Probe in beide Richtungen. `liegt in` `.claude/commands/implement-slice.md` Schritt 19 · seit slice-v1-abschluss-einspielen-tls-doku. **Kein neuer Sensor:** Ob ein Nutzer entschieden hat, ist eine Tatsache außerhalb des Repos, die kein Skript sieht.
+
+**Paarungen.** (a) Anker: Die Zielorte beider Zeilen existieren und tragen `seit slice-v1-abschluss-einspielen-tls-doku` (`grep`); `state.md` von `BEO-REPO/empfehlung-als-nutzerentscheidung-bezeichnet` und von `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` nennen sie. (b) Folge-Slice: Diese Closure weist keinem Slice etwas zu; F-612 bleibt als Bestand stehen. (c) Register: die fünf genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
+
+**Nachzählen.** Keine Sendung in einen Nehmer, daher kein Nachzählen von Liefer-Punkten und Schichten.
+
+**Stand der Gates.** `make gates` auf dem sauberen Baum `be0a8aa`: Exit 0; nach der Nacharbeit zu V-169 und V-170 (`de3596a`) und dem Closure-Commit gilt der Lauf auf dem Stand der Closure, den der Bericht des Planners nennt.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

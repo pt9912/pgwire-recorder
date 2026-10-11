@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen-tls-doku
+**Fund:** Die DoD-Zeile 2 verlangte die Grenze *Zertifikatsspeicher nicht ladbar* und nachgezogene Abdeckungstabellen; die Umsetzung wich ab (Handbuch nennt den beobachtbaren Fall), §7 nannte die Abweichung, die DoD stand unverändert (Review F-609, MEDIUM; Verifikation V-169 betraf zusätzlich den Stand-Kopf des Handbuchs). Behoben in `be0a8aa`: DoD-Zeile 2 angeglichen, Entscheidung in §6.
