@@ -18,7 +18,10 @@ import (
 // der Adapter meldet Ereignisse und führt aus, was zurückkommt. CloseSession
 // beendet jeden wartenden Aufruf der Session mit model.ErrSessionEnded, und
 // jeder spätere Aufruf liefert ihn ebenso, auch wenn sein Upstream-Aufruf nach
-// dem Ende erfolgreich zurückkam.
+// dem Ende erfolgreich zurückkam. Die Aufrufe der Client-Richtung einer Session
+// (Query, ClientMessage) kommen nacheinander; der Use Case ordnet gleichzeitige
+// Aufrufe nicht um und sagt für sie keine Ordnung der offset_ms zu
+// (LH-FA-21.a Messpunkt).
 //
 // Nach Shutdown beginnt keine neue Interaktion: Query und ClientMessage liefern
 // für eine Nachricht, die eine neue begänne, model.ErrShutdown und leiten sie

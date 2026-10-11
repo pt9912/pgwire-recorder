@@ -183,6 +183,8 @@ func (s *RecordService) OpenSession(ctx context.Context, startup map[string]stri
 // eine einfache Anfrage keine Interaktion mehr: Query liefert ErrShutdown, ohne
 // sie weiterzuleiten (LH-FA-13.a).
 func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error) {
+	// Die Ordnung der Lesungen setzt nacheinander kommende Aufrufe der
+	// Client-Richtung voraus (Recorder, LH-FA-21.a Messpunkt).
 	ankunft := s.lesung()
 	l, err := s.laufende(id)
 	if err != nil {
@@ -244,6 +246,8 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 // (LH-FA-13.a). Scheitert das Senden mit PGR-E6001, ist die Session nicht
 // übernehmbar, bevor der Fehler zurückgeht (LH-FA-02.b).
 func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) error {
+	// Die Ordnung der Lesungen setzt nacheinander kommende Aufrufe der
+	// Client-Richtung voraus (Recorder, LH-FA-21.a Messpunkt).
 	ankunft := s.lesung()
 	l, err := s.laufende(id)
 	if err != nil {
