@@ -11,7 +11,11 @@ import (
 )
 
 // absteigendSQLite ist eine Aufzeichnung im Format sqlite mit einer Session und zwei
-// Interaktionen, deren offset_ms 4711 und 4709 sind.
+// Interaktionen, deren offset_ms 4711 und 4709 sind. Herkunft: mit `record --format
+// sqlite` zwei Anfragen in einer Verbindung aufgenommen, dann offset_ms der beiden
+// Interaktionen auf 4711 und 4709 gesetzt. Eine Änderung des Schemas, die die Datei
+// ungültig macht, lässt den Test rot werden, weil "Session 1, Interaktion 2" dann
+// in der Meldung fehlt.
 //
 //go:embed testdata/zeitangaben-absteigend.sqlite
 var absteigendSQLite []byte

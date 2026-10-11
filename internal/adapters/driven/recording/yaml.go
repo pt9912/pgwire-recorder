@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"go.yaml.in/yaml/v3"
@@ -181,8 +182,8 @@ func Marshal(rec model.Recording) ([]byte, error) {
 // Unmarshal liest die YAML-Darstellung. Ein unlesbarer Inhalt, ein Anker, Alias
 // oder Merge-Key, eine fremde Formatkennung und jede Form, die formVorpruefung
 // oder fromDTO ablehnt, ist PGR-E3003, eine unbekannte Version PGR-E3002. Die
-// Vorprüfung läuft vor dem Dekodieren; ihr Befund gilt erst nach Formatkennung und
-// Version, und ein Fehler der Bibliothek beim Dekodieren tritt hinter ihn zurück.
+// Reihenfolge ist Lesbarkeit, Formatkennung, Version (kopfVorpruefung), dann
+// formVorpruefung, dann das Dekodieren und der Inhalt (SPEC-001).
 func Unmarshal(data []byte) (model.Recording, error) {
 	var doc yaml.Node
 	if err := yaml.Unmarshal(data, &doc); err != nil {
@@ -191,27 +192,48 @@ func Unmarshal(data []byte) (model.Recording, error) {
 	if err := ohneVerweise(&doc); err != nil {
 		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
 	}
-	vor := formVorpruefung(&doc)
+	if err := kopfVorpruefung(&doc); err != nil {
+		return model.Recording{}, err
+	}
+	if err := formVorpruefung(&doc); err != nil {
+		var me *model.Error
+		if errors.As(err, &me) {
+			return model.Recording{}, me
+		}
+		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
+	}
 	var d recordingDTO
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
-	if err := dec.Decode(&d); err != nil && vor == nil {
+	if err := dec.Decode(&d); err != nil {
 		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
 	}
-	if d.Format != model.Format {
-		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "Formatkennung %q statt %q", d.Format, model.Format)
-	}
-	if d.Version != model.Version {
-		return model.Recording{}, model.Errorf(model.CodeRecordingVersion, nil, "Version %d wird nicht unterstützt", d.Version)
-	}
-	if vor != nil {
-		var me *model.Error
-		if errors.As(vor, &me) {
-			return model.Recording{}, me
-		}
-		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, vor, "Aufzeichnung beschädigt")
-	}
 	return fromDTO(d)
+}
+
+// kopfVorpruefung prüft am YAML-Baum Formatkennung und Version, bevor der Decoder
+// läuft: eine andere oder fehlende Formatkennung ist PGR-E3003; fehlt version oder
+// ist ihr Wert keine kanonische Dezimalzahl (einfacher Skalar, `0` oder Ziffern
+// ohne führende Null, mit oder ohne `-`), ist es PGR-E3003 ohne Wert in der
+// Meldung; jede kanonische Zahl außer der Version des Formats ist PGR-E3002 mit
+// der gelesenen Version.
+func kopfVorpruefung(doc *yaml.Node) error {
+	if len(doc.Content) == 0 {
+		return model.Errorf(model.CodeRecordingBroken, nil, "Formatkennung fehlt")
+	}
+	wurzel := doc.Content[0]
+	if f := wert(wurzel, "format"); f == ohneWert || f.Kind != yaml.ScalarNode || f.Value != model.Format {
+		return model.Errorf(model.CodeRecordingBroken, nil, "Formatkennung stimmt nicht mit %q überein", model.Format)
+	}
+	v := wert(wurzel, "version")
+	text := strings.TrimPrefix(v.Value, "-")
+	if v == ohneWert || v.Kind != yaml.ScalarNode || v.Style != 0 || text == "0" && v.Value != "0" || !kanonischeDezimalzahl(text) {
+		return model.Errorf(model.CodeRecordingBroken, nil, "Schlüssel version fehlt oder ist keine kanonische Dezimalzahl")
+	}
+	if v.Value != strconv.Itoa(model.Version) {
+		return model.Errorf(model.CodeRecordingVersion, nil, "Version %s wird nicht unterstützt", v.Value)
+	}
+	return nil
 }
 
 // ohneVerweise lehnt jeden Anker und jeden Merge-Key im Baum ab (SPEC-001); ein
