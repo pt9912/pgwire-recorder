@@ -627,6 +627,11 @@ internal/bootstrap/**
 
 Eine Verletzung dieser Grenzen ist ein Befund des Gates.
 
+Testhilfen, die die Technik eines Adapters brauchen und zu keiner Schicht gehören
+(der TLS-Proxy der Integrationstests unter `internal/bootstrap/tlsproxy`, die Erzeugung
+von Zertifikaten unter `internal/testpki`), importiert nur Testcode; das Binary
+(`go list -deps ./cmd/...`) linkt sie nicht.
+
 ## 7. Erweiterungspunkte
 
 - **Anderes Recording-Backend:** Ein alternatives Backend implementiert

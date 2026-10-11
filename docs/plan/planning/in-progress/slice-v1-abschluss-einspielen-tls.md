@@ -218,6 +218,21 @@ an der genannten Stelle. Offen ist keine.
   vor dem Laden der Aufzeichnung (das der Bootstrap erst nach `Parse` macht); ein Fehler nennt
   die Option und die Ursache des Betriebssystems ohne Pfad (Muster `nichtLesbar`). Neu
   entschieden in `LH-FA-17.a` *Fehler* (Stelle der Datei).
+- **Rückgabe des Implementers (geprüft vom Architect am 2026-10-11, nach dem Code)** — vier
+  Punkte, die §6 nicht nannte, und ein Rand der Antwort auf `SSLRequest`:
+  (1) *Ort der Testhilfen*: `internal/bootstrap/tlsproxy` und `internal/testpki` bleiben; die
+  Composition Root ist von den Schichtregeln ausgenommen und darf `crypto/tls`; `go list -deps
+  ./cmd/...` zeigt keines der beiden Pakete und kein `testing` im Binary; kein Gate ändert sich
+  (`AGENTS.md` §3.6), keine ADR; Satz in `spec/architecture.md` beim Architektur-Gate.
+  (2) *Typ der Zertifikate*: `cli.Zertifikate` und `postgres.Zertifikate` sind Typen der
+  Adapter, die Umsetzung macht die Composition Root; akzeptiert, dass `PlayOptions` und
+  `Command` nicht mehr mit `==` vergleichbar sind. (3) *Senden des `SSLRequest` scheitert*:
+  `PGR-E4002`; die Aushandlung beginnt mit dem `S`; Satz in `LH-FA-20.a` *TLS*. (4)
+  *Hook-Signatur im Leser* (`option.zuletzt` mit `quellen`, `lies` geteilt): bestätigt,
+  CLI-intern, kein Vertrag. *Akzeptiertes Negativ:* Bytes nach `S` werden nur erkannt, wenn
+  sie mit dem `S` eintreffen; später eintreffende stören die Aushandlung (`PGR-E4005`).
+  Grund: Die Segmentierung von TCP ist im Test nicht steuerbar, und für den Client ist es
+  dasselbe Ereignis; steht als Grenze in `LH-FA-20.a` *TLS*.
 - **Host als IP-Adresse, Aufbau nach der Aushandlung, `config show`** — IPv4 wie IPv6 gegen
   die IP-Adressen des Zertifikats; nach der Aushandlung laufen Aufbau und Anmeldung wie ohne
   TLS auf der verschlüsselten Verbindung, ein Klartext-Passwort ist über TLS zulässig;

@@ -1467,7 +1467,11 @@ offenlässt.
   aufgezeichneten Serverparameter sendet `play` nicht.
 * *TLS.* Auf das `SSLRequest` ist `S` der Beginn der Aushandlung, `N` ist
   `PGR-E4005`; jedes andere Byte und ein Verbindungsende davor sind `PGR-E4002`, ebenso
-  Bytes, die der Server nach `S` vor der Aushandlung sendet. Jeder Fehler der
+  Bytes, die der Server nach `S` vor der Aushandlung sendet. Die Aushandlung beginnt mit
+  dem `S`: Scheitert das Senden des `SSLRequest`, ist das ein gescheitertes Senden im
+  Aufbau (`PGR-E4002`). Erkannt werden die Bytes nach `S`, die mit dem `S` eintreffen
+  (Grenze: ohne Test, weil die Segmentierung des Netzes nicht steuerbar ist); was später
+  eintrifft, stört die Aushandlung. Jeder Fehler der
   Aushandlung selbst, auch ein Verbindungsende darin, ist `PGR-E4005`. Der Name im
   Zertifikat wird gegen den Host der Verbindung geprüft, wie er eingesetzt ist; bei
   einer IPv6-Adresse ohne ihre Zone gegen die IP-Adressen des Zertifikats. Lässt
