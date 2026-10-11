@@ -2762,3 +2762,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-10 | Einspielen: Anmeldung, Servernonce nur druckbare Zeichen ohne Komma (`PGR-E4005`), Restbits in Base64 von `s=` und `v=` angenommen (`LH-FA-20.a`) |
 | 2026-10-11 | Einspielen: TLS, Stelle des Lesens der Datei aus `--upstream-ca` als letzte Prüfung des Starts (`LH-FA-17.a`); IPv4-Host gegen die IP-Adressen des Zertifikats, Aufbau und Anmeldung nach der Aushandlung unverändert, `config show` liest die Datei nicht (`LH-FA-20.a`) |
 | 2026-10-11 | Einspielen: TLS, Grenze „ohne Test“ am Satzteil der später eintreffenden Bytes statt der mit dem `S` eintreffenden; TLS-Version und Verfahren ohne Zusage (`LH-FA-20.a`) |
+| 2026-10-11 | Einspielen: Anmeldung, Iterationszahl `i=` ohne führende Null (strenge Fassung) vom Nutzer bestätigt; die Grammatik `posit-number` der RFC 5802 gegen den Originaltext geprüft (`LH-FA-20.a`) |
