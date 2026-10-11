@@ -74,7 +74,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/adapters/driven/recording` (`yaml.go`: `formVorpruefung`, `sessionFromDTO`) | update | Form des Werts am YAML-Baum, Vergleich der `offset_ms` je Session in `sessionFromDTO`; SQLite läuft über `Unmarshal` durch dieselbe Stelle; Meldung ohne Wert aus der Datei |
-| Tests im Recording-Adapter (`zeitangaben_pruefen_test.go`, `yaml_test.go`) und `test/integration` (`zeitangaben_pruefen_e2e_test.go`) | neu/update | Negativ und Boundary je Format nach `LH-FA-21`; `replay` und `play` am Binary; die Reihenfolge der Meldungen in `TestUnmarshalFehlerReihenfolge` folgt der Vorprüfung vor dem Dekodieren |
+| Tests im Recording-Adapter (`zeitangaben_pruefen_test.go`, `yaml_test.go`) und `test/integration` (`zeitangaben_pruefen_e2e_test.go`, die Datei `testdata/zeitangaben-absteigend.sqlite`) | neu/update | Negativ und Boundary je Format nach `LH-FA-21`; `replay` und `play` am Binary; die Reihenfolge der Meldungen in `TestUnmarshalFehlerReihenfolge` folgt der Vorprüfung vor dem Dekodieren |
 | `docs/user/abdeckung-*.md` | update | von `make abdeckung` erzeugt |
 
 ## 4. Trigger
@@ -137,16 +137,16 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
-**Stand.** Geliefert sind beide Liefer-Punkte der DoD mit `78a6b4c`. Geändert: `internal/adapters/driven/recording/yaml.go`
+**Stand.** Geliefert sind beide Liefer-Punkte der DoD mit `78a6b4c` und `341b569`. Geändert: `internal/adapters/driven/recording/yaml.go`
 (`Unmarshal`, `formVorpruefung`, neu `offsetForm` und `kanonischeDezimalzahl`, `sessionFromDTO`, `geprueftFromDTO`),
 `yaml_test.go` (`TestUnmarshalFehlerReihenfolge`), `docs/user/abdeckung-*.md`; neu `zeitangaben_pruefen_test.go` und
-`test/integration/zeitangaben_pruefen_e2e_test.go`. Handbuch, `README.md`, Kern, PGWire-Adapter, CLI und Bootstrap sind
+`test/integration/zeitangaben_pruefen_e2e_test.go` mit der Datei `testdata/zeitangaben-absteigend.sqlite` (32 KB, eingebettet; ein Test unter `test/integration` darf weder den Adapter noch die Bibliothek von `sqlite` einbinden, `make a-check`). Handbuch, `README.md`, Kern, PGWire-Adapter, CLI und Bootstrap sind
 unverändert. Die Prüfung der Form des Werts liegt in `formVorpruefung` und läuft vor dem Dekodieren; die negative
 Prüfung `offset_ms negativ` in `geprueftFromDTO` entfällt, weil `-` keine kanonische Dezimalzahl ist. Der Befund der
 Vorprüfung gilt nach Formatkennung und Version (`TestZeitangabenVersionVorForm`). `--keep-timing` gibt es in diesem
 Stand nicht (`slice-v1-abschluss-zeitangaben`); die Tests am Binary rufen `replay` und `play` ohne die Option.
-**Größe:** `git diff --numstat 8e430ce..78a6b4c` zählt 421 Zeilen hinzu und 16 weg; davon 64 Go-Code (ohne
-Kommentare weniger), 350 Go-Tests, 7 Tabellen.
+**Größe:** `git diff --numstat 8e430ce..341b569` (ohne Plan) zählt 408 Zeilen hinzu und 16 weg; davon 64 Go-Code (ohne
+Kommentare weniger), 337 Go-Tests, 7 Tabellen, dazu die Datei von 32 KB.
 
 **Zusage · Mutation · roter Test.** Jede Mutation lief in einer frischen Kopie (`cp -r` ohne `-p`: `go.mod`, `go.sum`,
 `cmd/`, `internal/`, `test/`) mit einer Ersetzung in `yaml.go` und `go test` im Bind-Mount des gepinnten Images (der
@@ -175,7 +175,7 @@ Mutanten M1 bis M20 stehen unten.
 | der Befund der Form geht dem Fehler der Bibliothek beim Dekodieren voraus | Fehler der Bibliothek zuerst (M20) | `TestZeitangabenFormYAML` |
 | `replay` und `play` enden beim Start mit Exit-Code 3 | Vergleich entfernt (E1); Prüfung des Styles entfernt (E2) | `TestE2ENichtAbsteigendeZeitangaben` (beide Formate, beide Befehle) |
 
-Summe: 20 Mutanten der Unit-Tests (M1 bis M20) und 2 am Binary (E1, E2); rot 22, grün 0. Ein Mutant des Vergleichs trifft beide
+Summe: 20 Mutanten der Unit-Tests (M1 bis M20) und 2 am Binary (E1, E2); rot 22, grün 0 (E1 mit der Datei von `sqlite`: der Aufruf von `replay` endet nicht binnen 15 s). Ein Mutant des Vergleichs trifft beide
 Formate zugleich, weil `sqlite` durch dieselbe Stelle liest; die Fälle von `TestZeitangabenAbsteigendBeschaedigt`
 und `TestZeitangabenGueltig` laufen je Format (Teilnamen `, yaml` und `, sqlite`), beide Teile wurden rot gesehen.
 Die Prüfung der Art des Knotens entfiel nach der ersten Fassung: Eine Liste oder Abbildung hat den Wert "", den
@@ -185,8 +185,8 @@ Die Prüfung der Art des Knotens entfiel nach der ersten Fassung: Eine Liste ode
 eine Interaktion mit gültigem Wert und sind sonst gültig, die Fälle des Vergleichs sind sonst gültig und tragen
 keine Form, die die Vorprüfung ablehnt; die roten Läufe nennen die Prüfung (M7, M14) oder den Ort der Meldung (M8, M16).
 
-**Läufe (Stand `78a6b4c`).** `make test` grün, `make test-integration` grün (mit `TestE2ENichtAbsteigendeZeitangaben`),
-`make lint` ohne Befund, `make abdeckung` gefahren und die Tabellen mit `78a6b4c` eingetragen. `make gates` läuft nach
+**Läufe (Stand `341b569`).** `make test` grün, `make test-integration` grün (mit `TestE2ENichtAbsteigendeZeitangaben`),
+`make lint` ohne Befund, `make a-check` ohne Befund, `make abdeckung` gefahren und die Tabellen mit `78a6b4c` eingetragen. `make gates` läuft nach
 dem letzten Commit auf sauberem Baum; sein Ergebnis steht im Bericht, nicht hier (ein Gate-Lauf belegt nur den Stand,
 auf dem er lief).
 
@@ -222,6 +222,6 @@ Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Liefer-Punkte: 2. Schichten: eine (Recording-Adapter, eine Stelle für beide Formate); nachgezählt vom Architect am 2026-10-11 (SQLite liest über `Unmarshal`, ein Helfer im Domain Model entfällt). Nachgezählt beim Schnitt (2026-10-11, `AGENTS.md` §3.13); die Sendung aus `slice-v1-abschluss-zeitangaben` (DoD-Halbsatz) steht in DoD-Punkt 1.
 
-Nachgezählt am Diff (Implementer, `78a6b4c`): Liefer-Punkte 2, Schichten eine (Recording-Adapter); Produkt-Code ohne Kommentare 64 Zeilen in `yaml.go`, ein Bootstrap ohne Änderung.
+Nachgezählt am Diff (Implementer, `341b569`): Liefer-Punkte 2, Schichten eine (Recording-Adapter); Produkt-Code ohne Kommentare 64 Zeilen in `yaml.go`, ein Bootstrap ohne Änderung.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
