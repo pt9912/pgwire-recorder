@@ -2047,13 +2047,13 @@ fest:
   Server-Nachrichten dort mit `group_no` (`SPEC-041`), das ab 1 lückenlos in der
   Reihenfolge der Gruppen zählt, und `position` zählt über beide Richtungen der
   Interaktion, in jeder Gruppe die Client-Nachrichten vor den Server-Nachrichten. `kind` nennt die
-  Nachrichtenart wie in `SPEC-041`. `bytes` ist die vollständige Nachricht im
-  Wire-Format (Binärwerte also ohne Base64), `fields` dieselbe Nachricht als
-  JSON-Text zur Prüfung. Beim Lesen gilt `bytes`; widersprechen sich beide, ist die
-  Aufzeichnung beschädigt (`PGR-E3003`). `fields` ist immer ein JSON-Objekt, bei einer
-  Nachricht ohne Felder `{}`; es trägt die Felder der Nachricht mit denselben
-  Schlüsseln und Werten wie ihre YAML-Darstellung (`SPEC-002`, `SPEC-041`, `SPEC-003`),
-  ohne den Schlüssel `type`, den `kind` trägt.
+  Nachrichtenart wie in `SPEC-041`. `fields` ist die einzige Darstellung der Nachricht
+  und beim Lesen maßgeblich; es steht in jeder Zeile (nie `NULL`) und ist immer ein
+  JSON-Objekt, bei einer Nachricht ohne Felder `{}`. Es trägt die Felder der Nachricht
+  mit denselben Schlüsseln und Werten wie ihre YAML-Darstellung (`SPEC-002`,
+  `SPEC-041`, `SPEC-003`), ohne den Schlüssel `type`, den `kind` trägt. Eine Zeile
+  ohne `fields` oder mit einem anderen JSON-Wert als einem Objekt macht die
+  Aufzeichnung beschädigt (`PGR-E3003`).
 * Die Zugehörigkeit einer Nachricht zu einer Interaktion (`session_id`, `sequence`)
   lässt sich im neutralen Modell nicht als zusammengesetzter Fremdschlüssel
   ausdrücken; der Adapter stellt sie sicher. Die Fremdschlüssel auf `session` sind
@@ -2834,3 +2834,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Einspielen: TLS, Grenze „ohne Test“ am Satzteil der später eintreffenden Bytes statt der mit dem `S` eintreffenden; TLS-Version und Verfahren ohne Zusage (`LH-FA-20.a`) |
 | 2026-10-11 | Einspielen: Anmeldung, Iterationszahl `i=` ohne führende Null (strenge Fassung) vom Nutzer bestätigt; die Grammatik `posit-number` der RFC 5802 gegen den Originaltext geprüft (`LH-FA-20.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Wertemenge von `--format`, Erkennung an den ersten 16 Bytes, Fehlerklassen des Lesens, Lesetransaktion, erster Schreibvorgang statt Start, vorhandene Datei ersetzt, nie ergänzt, Rollback-Journal eines früheren Laufs beim Start, Transaktion je Session und Nachholen nach Fehlschlag, Prüfung der Datei vor jedem Ergänzen, Einstellungen, Grenzen der Prüfung (`LH-FA-22.a`); `session.server_parameters`, Zählung von Nummern und Gruppen, Inhalt von `fields`, Version nur in `meta` (`SPEC-043`) |
+| 2026-10-11 | Aufzeichnungsformat `sqlite`: `message.bytes` entfällt, `fields` ist die einzige Darstellung der Nachricht, required und beim Lesen maßgeblich (`SPEC-043`) |

@@ -79,9 +79,22 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/adapters/driven/recording` | update | zweiter Adapter hinter `RecordingRepository`: SQLite, Formaterkennung, Transaktion je Session |
 | `internal/adapters/driving/cli` | update | Option `--format` |
-| `tools/schema/schema.yaml`, `harness/mk/schema.mk` | vorhanden | neutrales Schema der Tabellenform (d-migrate); das SQL für SQLite wird daraus erzeugt und im Adapter eingebettet |
-| `.a-check.yml` (`tech`-Regel) | prüfen | Die Regel für `modernc.org/sqlite` liegt vor; der Slice belegt sie mit einer absichtlichen Verletzung |
+| `tools/schema/schema.yaml` | update | Das Schema liegt für diesen Slice NICHT vor: `message.bytes` entfällt, `message.fields` wird `required`, `session.server_parameters` kommt hinzu (`SPEC-043`; Entscheidung des Nutzers vom 2026-10-11: `bytes` gestrichen). Das SQL für SQLite wird daraus erzeugt und im Adapter eingebettet |
+| `internal/hexagon/ports/driven/recording.go` | update | Der Kommentar von `Write` sagt „als Ganzes“; das stimmt für `sqlite` nicht (Ergänzen je Session) und wird nachgezogen (`AGENTS.md` §3.7, §3.11) |
+| `internal/adapters/driven/recording` | update | Fabrik `recording.New(format)`; der Bootstrap reicht nur `o.Format` durch und kennt keinen Adapter |
+| `tools/arch/a-check-negativ.sh`, `harness/mk/arch-negativ.mk` (Kopf), `harness/README.md` (Zeile `make a-check-negativ`) | update | Die Gegenprobe nennt `modernc.org/sqlite`: im Recording-Adapter zugelassen, im Domain Model, im Postgres-Adapter und in den PGWire-Adaptern abgelehnt; Skript, Kopfkommentar und Gate-Zeile sagen dasselbe (`AGENTS.md` §3.11) |
+| `go.mod`, `go.sum` | update | per `make go-mod-tidy`; `modernc.org/libc` exakt in der Version, die die `go.mod` der Bibliothek festlegt ([ADR-0024](../../adr/0024-sqlite-bibliothek.md)) |
+| `.a-check.yml` (`tech`-Regel) | prüfen | Die Regel für `modernc.org/sqlite` liegt vor; der Slice belegt sie mit der Gegenprobe oben |
 | `test/integration` | update | Roundtrip-Gleichheit beider Formate |
+
+**Aufträge an den Implementer** (vom Architect vor dem Code gesetzt; Quelle der Regeln: `LH-FA-22.a`, `SPEC-043`):
+
+- `tools/schema/schema.yaml` ändern: Spalte `bytes` entfernen, `fields` `required`, `session.server_parameters` ergänzen; das eingebettete SQL daraus neu erzeugen (`make schema-generate`).
+- Ersatztest für das eingebettete SQL (Entscheidung des Nutzers vom 2026-10-11: Drift zwischen `schema.yaml` und eingebettetem SQL ist akzeptiert, der Test ersetzt den Abgleich): Er legt das eingebettete SQL in einer In-Memory-Datenbank an und prüft Tabellen, Spalten sowie Primär- und Fremdschlüssel gegen die Liste in `SPEC-043`.
+- Transaktion je Session mit `BEGIN IMMEDIATE`; der Pfad der Datei geht als korrekt escapte `file:`-URI an die Bibliothek (Test mit `?`, `#`, `%` und Leerzeichen im Pfad).
+- Je Zusage dieses Vertrags ein Test und eine selbst gefahrene Mutation, im Bericht Zusage · Mutation · roter Test (`AGENTS.md` §3.10); dazu die gemeinsame Zusage der Fabrik (siehe §6).
+- Die Doc-Kommentare nachziehen, die der Slice ändert oder die ihm widersprechen (`AGENTS.md` §3.7, §3.11), insbesondere den Port-Kommentar von `Write`.
+- Eine Randform, die §6 nicht nennt, entscheidet er nicht, sondern gibt sie dem Architect zurück (`AGENTS.md` §3.12).
 
 ## 4. Trigger
 
@@ -93,6 +106,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next`: die SQLite-Bibliothek verlangt native Abhängigkeiten für die Zielplattformen — zurück zur Zerlegung.
+- `in-progress` → `next`: Der Slice braucht mehr als einen Codec-Pfad (Lesen und Schreiben von `sqlite` tragen das Modell nur mit einer zweiten, eigenen Abbildung der Nachrichten neben `yaml`) — zurück zur Zerlegung.
 - `in-progress` → `open`: Beide Formate tragen das Modell nicht gleich — Entscheidung klären.
 
 ## 5. Closure-Trigger
@@ -110,11 +124,26 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- **Randform** (aus `slice-v1-abschluss-schreiben`, §1 *Übernommen*): Grenze der Prüfung des
-  atomaren Verschiebens und der Transaktion je Session unter Linux, macOS und Windows — offen,
-  entscheidet der Architect dieses Slice in `LH-FA-22.a` vor dem ersten Code-Commit —
-  **Ausgang:** offen bis zu seiner Prüfung.
-- Die gewählte Bibliothek (reines Go, siehe [ADR-0024](../../adr/0024-sqlite-bibliothek.md)) ist für die sechs Zielplattformen erst durch den Build im Slice belegt — **Ausgang:** offen bis Closure.
+- **Risiko: Grenze der Prüfung für atomares Verschieben und Transaktion je Session** (aus `slice-v1-abschluss-schreiben`, §1 *Übernommen*) — **Ausgang: entfallen**, entschieden in `LH-FA-22.a` *Schreiben von `sqlite`*, *Grenzen* (Verschieben wie `LH-FA-07.a` Schritt 2, Transaktionen nur unter Linux auf einem lokalen Dateisystem geprüft, Stromausfall nicht belegt).
+- Die gewählte Bibliothek (reines Go, siehe [ADR-0024](../../adr/0024-sqlite-bibliothek.md)) ist für die sechs Zielplattformen erst durch den Build im Slice belegt — **Ausgang:** offen bis Closure (Register).
+
+**Randformen des neuen Vertrags** (`AGENTS.md` §3.12) — je Randform der Ort der Entscheidung; die Spezifikation steht vor dem ersten Code-Commit. Entscheidungen des Nutzers vom 2026-10-11: `message.bytes` entfällt (`fields` ist die einzige Darstellung), und der Ersatztest statt des Abgleichs mit dem eingebetteten SQL (§3).
+
+| Randform | Entschieden in |
+|---|---|
+| Rollback-Journal `<Zielpfad>-journal` beim Start (`PGR-E3001`, auch mit `--force` und ohne Zieldatei) | `LH-FA-22.a` *Schreiben von `sqlite`* |
+| Nachholen nach fehlgeschlagener Transaktion (nächster Schreibvorgang ergänzt, was fehlt) | `LH-FA-22.a` *Schreiben von `sqlite`* |
+| Verschwundene oder ersetzte Datei beim Ergänzen (`PGR-E3001`, Datei unberührt) | `LH-FA-22.a` *Schreiben von `sqlite`* |
+| Typ-Prüfung der Spaltenwerte beim Lesen (`PGR-E3003`) | `LH-FA-22.a` *Lesen von `sqlite`* |
+| `fields` fehlt oder ist kein JSON-Objekt; kein `bytes` (`PGR-E3003`) | `SPEC-043` |
+| Hilfe-Text und `RecordOptions` zu `--format`; Wertemenge, leerer Wert, `SQLite`, `sqlite3` (`PGR-E2001`); `replay`/`play` kennen `--format` nicht | `LH-FA-22.a` *Wahl und Erkennung* |
+| Abbruchsignal unterbricht keine Transaktion | `LH-FA-22.a` *Schreiben von `sqlite`* |
+| Lesetransaktion: ein Lesen sieht nur bei Beginn vollständige Sessions; Sperre fünf Sekunden | `LH-FA-22.a` *Lesen von `sqlite`* |
+| Pfad mit Sonderzeichen (`?`, `#`, `%`, Leerzeichen) gilt wörtlich | `LH-FA-22.a` *Schreiben von `sqlite`* |
+| Werte nur als Parameter vorbereiteter Anweisungen (SQL-Injection) | `LH-FA-22.a` *Schreiben von `sqlite`* |
+| `session.server_parameters` im Schema | `SPEC-043`; Nachzug in `tools/schema/schema.yaml` (Auftrag in §3) |
+| Fabrik `recording.New(format)` im Adapter; der Bootstrap reicht nur `o.Format` durch | `ARC-008` (Adapter-Grenze); hier §3 |
+| Gemeinsame Zusage: jeder Wert, den die CLI annimmt, nimmt `New` an | Zusage dieses Slice; Mutation: ein Wert der CLI-Wertemenge aus `New` streichen, der Test über alle CLI-Werte wird rot |
 
 ## 7. Closure-Notiz
 
@@ -145,6 +174,6 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
-Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: zwei Schichten (Recording-Adapter, CLI-Adapter; das Schema und die Regel in `.a-check.yml` liegen vor und werden geprüft).
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: zwei Schichten (Recording-Adapter, CLI-Adapter; der Bootstrap ist reine Verdrahtung, `schema.yaml` und die Regel in `.a-check.yml` sind Nachzug am Rand).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
