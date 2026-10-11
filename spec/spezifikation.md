@@ -1688,27 +1688,88 @@ ignoriert; der Replay-Modus ignoriert sie immer.
 ### LH-FA-22.a — Aufzeichnungsformat
 
 **Wahl und Erkennung.** `record` wählt das Format mit `--format` (Umgebungsvariable
-`PGWIRE_RECORDER_FORMAT`, Werte `yaml` und `sqlite`, Default `yaml`). Die
-Dateiendung hat keine Bedeutung; üblich sind `.yaml` und `.sqlite` (`SPEC-009`).
-`replay` und `play` erkennen das Format der Eingabedatei selbst: eine Datei, die mit
-der SQLite-Kopfzeile `SQLite format 3` beginnt, ist eine SQLite-Aufzeichnung, jede
-andere wird als YAML gelesen. Eine Datei, die in ihrem Format keine gültige
+`PGWIRE_RECORDER_FORMAT`, Schlüssel `format` im Abschnitt `record:` der
+Konfigurationsdatei, Default `yaml`). Die Wertemenge ist genau `yaml` oder `sqlite` in
+Kleinbuchstaben; jeder andere Wert, auch der leere, `SQLite` und `sqlite3`, ist
+`PGR-E2001` (`LH-FA-17.a`). Bei `replay` und `play` ist `--format` eine unbekannte
+Option (`PGR-E2001`). Das Format bestimmt nur, wie `record` schreibt. Die Dateiendung
+hat keine Bedeutung; üblich sind `.yaml` und `.sqlite` (`SPEC-009`).
+`replay` und `play` erkennen das Format der Eingabedatei selbst an ihren ersten 16
+Bytes: Sind sie `SQLite format 3` gefolgt von einem NUL-Byte, ist es eine
+SQLite-Aufzeichnung, jede andere Datei wird als YAML gelesen, auch eine leere oder
+kürzere (sie ist dort beschädigt). Eine Datei, die in ihrem Format keine gültige
 Aufzeichnung ist (falsche Formatkennung, fehlende Tabellen, unlesbarer oder
 widersprüchlicher Inhalt), ist beschädigt (`PGR-E3003`); eine unbekannte `version`
 ist `PGR-E3002`.
 
 **Lesen von `sqlite`.** Die Datei wird nur lesend geöffnet, auch auf einem
-schreibgeschützten Mount. Ist sie gesperrt oder nicht lesbar, ist das `PGR-E3001`.
+schreibgeschützten Mount, und nie verändert. Sie wird in einer einzigen
+Lesetransaktion gelesen: Schreibt ein `record`-Lauf dieselbe Datei, liefert das Lesen
+nur Sessions, die bei seinem Beginn vollständig waren. Ist die Datei nicht lesbar,
+gesperrt (das Lesen wartet höchstens fünf Sekunden auf die Sperre) oder scheitert ein
+Zugriff mit einem Ein- oder Ausgabefehler, ist das `PGR-E3001` mit der Ursache der
+Bibliothek. Jeder Fehler des Inhalts ist `PGR-E3003`: eine Datei mit der Kopfzeile, die
+kein gültiges SQLite ist, eine fremde SQLite-Datei und eine Datei mit fehlender Tabelle
+oder Spalte, `meta` ohne `format` oder `version`, eine andere Formatkennung, ein
+unbekannter Schlüssel in `meta`, ein Wert, dessen gespeicherte Art nicht die des Typs
+der Spalte ist (Text in `sequence`, `offset_ms` weder `NULL` noch eine ganze Zahl ≥ 0),
+ein JSON-Text, der ungültig ist, einen unbekannten Schlüssel oder eine Form trägt, die
+`yaml` ebenso ablehnt, und jede Aufzeichnung, die `yaml` aus inhaltlichen Gründen
+ablehnt (Nummern von Session, Interaktion und Nachricht, die nicht ab 1 lückenlos
+zählen, eine Session ohne Interaktion ohne `empty_sessions`, eine Interaktion, die in
+`SPEC-001` und `SPEC-041` als beschädigt gilt). Geprüft wird in der Reihenfolge
+Formatkennung, Version, Inhalt wie bei `yaml`. Eine Aufzeichnung ohne Sessions ist
+gültig. *Grenze:* Hinterlässt ein Absturz neben der Datei ein Rollback-Journal
+(`<Datei>-journal`), liest ein nur lesendes Öffnen die Datei nicht zurückgerollt; ob die
+Bibliothek das als Stand der Datei liest oder ablehnt, ist nicht zugesagt. Zurückgerollt
+wird beim nächsten schreibenden Öffnen durch SQLite, etwa mit dem Werkzeug `sqlite3`.
 
 **Schreiben von `sqlite`.** Beim Start prüft `record` den Zielpfad wie in
-`LH-FA-07.a`. Danach legt es in einer temporären Datei im Verzeichnis der Zieldatei
-eine gültige Aufzeichnung ohne Sessions an (Schema aus `SPEC-043`, `meta` gefüllt) und
-verschiebt sie atomar auf den Zielpfad; mit `--force` ersetzt dieser Schritt die
-vorhandene Datei. Jede beendete Session wird danach in einer Transaktion ergänzt; die
-Datei enthält zu jedem Zeitpunkt nur vollständige Sessions und wird nie als Ganzes
-neu geschrieben. Der Journalmodus ist das Rollback-Journal (`journal_mode=DELETE`),
-es entstehen keine WAL-Nebendateien, und Fremdschlüssel sind eingeschaltet
-(`foreign_keys=ON`).
+`LH-FA-07.a`, gleich welchen Inhalts die vorhandene Datei hat: ohne `--force` ist sie
+`PGR-E2002`, mit `--force` wird sie ersetzt, nie ergänzt (eine vorhandene Aufzeichnung
+fortzusetzen gibt es nicht). Zusätzlich ist eine vorhandene Datei `<Zielpfad>-journal`,
+das Rollback-Journal eines früheren Laufs, `PGR-E3001`, auch mit `--force` und auch ohne
+Zieldatei; SQLite würde es sonst gegen die neue Datei zurückrollen.
+
+Der erste Schreibvorgang (nach der ersten beendeten Session oder beim Beenden,
+`LH-FA-13.a`) legt in einer temporären Datei im Verzeichnis der Zieldatei eine gültige
+Aufzeichnung ohne Sessions an (Schema aus `SPEC-043`, `meta` gefüllt) und verschiebt
+sie atomar auf den Zielpfad; mit `--force` ersetzt dieser Schritt die vorhandene
+Datei. Bis dahin bleibt der Zielpfad unberührt, wie bei `yaml`. Name, Rechte,
+Fehlschlag und übrig gebliebene Datei der temporären Datei gelten wie in `LH-FA-07.a`
+*Temporäre Datei*; als Schreiben und Synchronisieren zählen das Anlegen von Schema und
+`meta` und das Schließen der Datenbank. Jeder Schreibvorgang ergänzt danach genau die
+beendeten Sessions, die die Datei noch nicht trägt, in der Reihenfolge ihrer Nummern,
+jede in einer eigenen Transaktion mit der Session, ihren Interaktionen und ihren
+Nachrichten; die Datei enthält zu jedem Zeitpunkt nur vollständige Sessions und wird nie
+als Ganzes neu geschrieben. Ein Abbruchsignal unterbricht keine Transaktion: sie läuft
+zu Ende.
+
+Scheitert eine Transaktion (Sperre länger als fünf Sekunden, voller Datenträger,
+Ein- oder Ausgabefehler), ist das `PGR-E3001` mit der Ursache der Bibliothek; die
+Transaktion ist zurückgerollt, die Datei trägt nur die zuvor ergänzten Sessions, und der
+nächste Schreibvorgang (die nächste beendete Session oder das Beenden) ergänzt, was
+fehlt. Jeder Schreibvorgang öffnet die Datei neu und legt sie nie an; fehlt sie, oder
+trägt `session` nicht genau die Nummern 1 bis zur zuletzt ergänzten Session (ein anderer
+Prozess oder eine ersetzte Datei), ist das `PGR-E3001`, und die Datei bleibt
+unberührt. Der Journalmodus ist das Rollback-Journal (`journal_mode=DELETE`), es
+entstehen keine WAL-Nebendateien, außer `<Zieldatei>-journal` während einer
+Transaktion; Fremdschlüssel sind eingeschaltet (`foreign_keys=ON`), und jede
+Transaktion wird beim Abschluss auf den Datenträger geschrieben (`synchronous=FULL`).
+Jeder Wert (SQL-Text, Startup-Parameter, Nachrichtenfelder) gelangt als Parameter einer
+vorbereiteten Anweisung in die Datenbank, nie als Text im SQL. Der Zielpfad gilt
+wörtlich, auch mit Zeichen wie `?`, `#`, `%` und Leerzeichen.
+
+*Grenzen:* Das atomare Verschieben des ersten Schreibvorgangs hat dieselbe Grenze wie
+`LH-FA-07.a` Schritt 2 (geprüft nur unter Linux, im selben Dateisystem). Das Ergänzen in
+Transaktionen ist nur unter Linux auf einem lokalen Dateisystem geprüft; ob Sperren und
+Rollback-Journal unter macOS, unter Windows und auf einem Netzwerk-Dateisystem halten,
+ist nicht geprüft, ebenso wenig, ob eine abgeschlossene Transaktion einen Stromausfall
+übersteht (`synchronous=FULL` ist gesetzt, nicht durch einen Test belegt). Ein Absturz
+mitten in einer Transaktion (`SIGKILL`, Stromausfall) hinterlässt das Rollback-Journal;
+der nächste Start von `record` mit demselben Pfad meldet es als `PGR-E3001`. Der
+Recorder hält die beendeten Sessions weiterhin im Speicher; `sqlite` spart das
+Neuschreiben der Datei, nicht den Speicher.
 
 **Beide Formate** tragen dasselbe logische Modell (`SPEC-002`, `SPEC-041`,
 `SPEC-043`); eine Aufzeichnung in einem Format und dieselbe Aufzeichnung im anderen
@@ -1970,20 +2031,29 @@ fest:
 
 * `meta` trägt `format` = `pgwire-recorder`, `version` (die Formatversion nach
   `SPEC-001`, unabhängig von der `version` der Schema-Datei) und bei
-  `--record-empty-sessions` die Zeile `empty_sessions` = `true`.
-* `session.startup` ist der JSON-Text der Startup-Parameter. `session.id` ist die
-  fortlaufende Nummer nach `LH-FA-12.a`.
+  `--record-empty-sessions` die Zeile `empty_sessions` = `true`. Die Version steht
+  nur dort; `PRAGMA user_version` wird weder geschrieben noch gelesen.
+* `session.startup` ist der JSON-Text der Startup-Parameter und
+  `session.server_parameters` der JSON-Text der `ParameterStatus`-Werte, die der Server
+  beim Verbindungsaufbau gesendet hat; beide sind ein Objekt (Name → Wert), ohne Einträge
+  `{}`. `session.id` ist die fortlaufende Nummer nach `LH-FA-12.a`; `session.id`,
+  `interaction.sequence` und `message.position` zählen ab 1 lückenlos.
 * `interaction.type` ist `query` oder `extended`; `interaction.sql` trägt den
   SQL-Text bei `query` und ist sonst `NULL`; `interaction.offset_ms` ist `NULL` ohne
   Zeitangaben, sonst eine ganze Zahl ≥ 0 (`LH-FA-21.a`).
 * `message` trägt die Nachrichten einer Interaktion in `position`-Reihenfolge. Bei
-  `query` stehen nur die Server-Nachrichten dort (`direction` = `server`), die
-  Anfrage steht in `interaction.sql`; bei `extended` stehen Client- und
-  Server-Nachrichten dort mit `group_no` (`SPEC-041`). `kind` nennt die
+  `query` stehen nur die Server-Nachrichten dort (`direction` = `server`, `group_no`
+  `NULL`), die Anfrage steht in `interaction.sql`; bei `extended` stehen Client- und
+  Server-Nachrichten dort mit `group_no` (`SPEC-041`), das ab 1 lückenlos in der
+  Reihenfolge der Gruppen zählt, und `position` zählt über beide Richtungen der
+  Interaktion, in jeder Gruppe die Client-Nachrichten vor den Server-Nachrichten. `kind` nennt die
   Nachrichtenart wie in `SPEC-041`. `bytes` ist die vollständige Nachricht im
   Wire-Format (Binärwerte also ohne Base64), `fields` dieselbe Nachricht als
   JSON-Text zur Prüfung. Beim Lesen gilt `bytes`; widersprechen sich beide, ist die
-  Aufzeichnung beschädigt (`PGR-E3003`).
+  Aufzeichnung beschädigt (`PGR-E3003`). `fields` ist immer ein JSON-Objekt, bei einer
+  Nachricht ohne Felder `{}`; es trägt die Felder der Nachricht mit denselben
+  Schlüsseln und Werten wie ihre YAML-Darstellung (`SPEC-002`, `SPEC-041`, `SPEC-003`),
+  ohne den Schlüssel `type`, den `kind` trägt.
 * Die Zugehörigkeit einer Nachricht zu einer Interaktion (`session_id`, `sequence`)
   lässt sich im neutralen Modell nicht als zusammengesetzter Fremdschlüssel
   ausdrücken; der Adapter stellt sie sicher. Die Fremdschlüssel auf `session` sind
@@ -2763,3 +2833,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Einspielen: TLS, Stelle des Lesens der Datei aus `--upstream-ca` als letzte Prüfung des Starts (`LH-FA-17.a`); IPv4-Host gegen die IP-Adressen des Zertifikats, Aufbau und Anmeldung nach der Aushandlung unverändert, `config show` liest die Datei nicht (`LH-FA-20.a`) |
 | 2026-10-11 | Einspielen: TLS, Grenze „ohne Test“ am Satzteil der später eintreffenden Bytes statt der mit dem `S` eintreffenden; TLS-Version und Verfahren ohne Zusage (`LH-FA-20.a`) |
 | 2026-10-11 | Einspielen: Anmeldung, Iterationszahl `i=` ohne führende Null (strenge Fassung) vom Nutzer bestätigt; die Grammatik `posit-number` der RFC 5802 gegen den Originaltext geprüft (`LH-FA-20.a`) |
+| 2026-10-11 | Aufzeichnungsformat `sqlite`: Wertemenge von `--format`, Erkennung an den ersten 16 Bytes, Fehlerklassen des Lesens, Lesetransaktion, erster Schreibvorgang statt Start, vorhandene Datei ersetzt, nie ergänzt, Rollback-Journal eines früheren Laufs beim Start, Transaktion je Session und Nachholen nach Fehlschlag, Prüfung der Datei vor jedem Ergänzen, Einstellungen, Grenzen der Prüfung (`LH-FA-22.a`); `session.server_parameters`, Zählung von Nummern und Gruppen, Inhalt von `fields`, Version nur in `meta` (`SPEC-043`) |
