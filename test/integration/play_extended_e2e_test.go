@@ -54,8 +54,15 @@ func personen(t *testing.T, conn *pgconn.PgConn) string {
 // Ausführungen und einem Sync; eine Transaktion.
 func nimmAufEinspielAblauf(t *testing.T, quelle string) string {
 	t.Helper()
-	output := filepath.Join(t.TempDir(), "rec.yaml")
-	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+	return nimmAufEinspielAblaufAls(t, quelle, "rec.yaml")
+}
+
+// nimmAufEinspielAblaufAls ist nimmAufEinspielAblauf mit der Aufzeichnung name im Format
+// yaml, bei der Endung .sqlite im Format sqlite.
+func nimmAufEinspielAblaufAls(t *testing.T, quelle, name string) string {
+	t.Helper()
+	output := filepath.Join(t.TempDir(), name)
+	rec := startProzess(t, "record", append([]string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--output", output}, formatArgs(name)...)...)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

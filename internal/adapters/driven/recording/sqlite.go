@@ -29,7 +29,8 @@ import (
 var schemaSQL string
 
 // sperrfristMS ist die Frist in Millisekunden, die ein Zugriff auf die Sperre einer
-// anderen Verbindung wartet (LH-FA-22.a *Schreiben von `sqlite`*).
+// anderen Verbindung wartet, beim Schreiben wie beim Lesen (LH-FA-22.a *Schreiben von
+// `sqlite`*, *Lesen von `sqlite`*).
 const sperrfristMS = 5000
 
 // SQLite speichert Aufzeichnungen im Format sqlite (SPEC-043, LH-FA-22.a). Der Wert
@@ -84,11 +85,6 @@ func (s *SQLite) Write(ctx context.Context, path string, rec model.Recording) er
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.schreibe(context.WithoutCancel(ctx), path, rec, betriebssystemSQLite())
-}
-
-// Load ist ein Platzhalter: Es liefert immer PGR-E1000 ohne Pfad und ohne Wert.
-func (*SQLite) Load(context.Context, string) (model.Recording, error) {
-	return model.Recording{}, model.Errorf(model.CodeInternal, nil, "Lesen von sqlite ist in diesem Stand nicht verfügbar")
 }
 
 // sqliteOps sind die Operationen, über die schreibe die temporäre Datei benennt, mit
@@ -248,10 +244,19 @@ func oeffne(ctx context.Context, path string) (*sql.DB, error) {
 	return db, nil
 }
 
-// dsnVon liefert die file:-URI von path mit den Einstellungen von oeffne. Der Pfad
-// gilt wörtlich: %, ? und # stehen als %XX, damit sie nichts anderes bedeuten
-// (TestSQLiteSonderzeichenImPfad).
+// dsnVon liefert die file:-URI von path mit den Einstellungen von oeffne.
 func dsnVon(path string) (string, error) {
+	uri, err := uriVon(path)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s?mode=rw&_txlock=immediate&_pragma=busy_timeout(%d)&_pragma=foreign_keys(ON)&_pragma=journal_mode(DELETE)&_pragma=synchronous(FULL)", uri, sperrfristMS), nil
+}
+
+// uriVon liefert die file:-URI von path ohne Parameter, für Schreiben und Lesen. Der
+// Pfad gilt wörtlich: %, ? und # stehen als %XX, damit sie nichts anderes bedeuten
+// (TestSQLiteSonderzeichenImPfad, TestLesenSonderzeichenImPfad).
+func uriVon(path string) (string, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return "", err
@@ -270,7 +275,6 @@ func dsnVon(path string) (string, error) {
 			fmt.Fprintf(&b, "%%%02X", c)
 		}
 	}
-	fmt.Fprintf(&b, "?mode=rw&_txlock=immediate&_pragma=busy_timeout(%d)&_pragma=foreign_keys(ON)&_pragma=journal_mode(DELETE)&_pragma=synchronous(FULL)", sperrfristMS)
 	return b.String(), nil
 }
 

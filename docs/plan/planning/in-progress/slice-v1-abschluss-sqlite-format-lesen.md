@@ -77,9 +77,9 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/recording` | update | Leser für `sqlite` hinter `RecordingRepository`: Formaterkennung an den ersten 16 Bytes, Lesetransaktion, Prüfung der Spalten und der Regeln aus `SPEC-043`, Umkehr des `base64:`-Escapes; Fehlerklassen nach dem primären Ergebniscode |
-| `internal/bootstrap` | update | `replay` und `play` setzen statt `recording.YAML{}` den Leser des Adapters ein; reine Verdrahtung, der Bootstrap kennt kein Format und unterscheidet keinen Fehler (Entscheidung vom 2026-10-11) |
-| `test/integration` | update | Roundtrip-Gleichheit beider Formate über das Binary (`record --format sqlite`, dann `replay` und `play`); ohne `sqlite3`-Binary und ohne Änderung an `tools/test/run-integration-tests.sh` |
+| `internal/adapters/driven/recording` | update | Leser für `sqlite` hinter `RecordingRepository`: `SQLite.Load` (`sqlite_lesen.go`: Lesetransaktion, Prüfung der Spalten und der Regeln aus `SPEC-043`, Fehlerklassen nach dem primären Ergebniscode; `sqlite_lesen_baum.go`: Interaktionen und Gruppen; `sqlite_json_lesen.go`: JSON-Baum und Umkehr des `base64:`-Escapes) und der Typ `Leser` (`leser.go`: Formaterkennung an den ersten 16 Bytes); `uriVon` in `sqlite.go` bildet die `file:`-URI für Schreiben und Lesen |
+| `internal/bootstrap` | update | `replay` und `play` setzen statt `recording.YAML{}` `recording.Leser{}` ein; reine Verdrahtung, der Bootstrap kennt kein Format und unterscheidet keinen Fehler (Entscheidung vom 2026-10-11) |
+| `test/integration` | update | Roundtrip-Gleichheit beider Formate über das Binary (`sqlite_lesen_e2e_test.go`: `record --format sqlite`, dann `replay` und `play`; die Aufzeichner `aufnehmenExtended` und `nimmAufEinspielAblaufAls` wählen das Format nach der Endung `.sqlite`); ohne `sqlite3`-Binary und ohne Änderung an `tools/test/run-integration-tests.sh` |
 
 **Aufträge an den Implementer** (vom Architect vor dem Code zu setzen und hier zu prüfen; Quelle der Regeln: `LH-FA-22.a`, `SPEC-043`; die Aufträge zum Lesen standen vor dem Schnitt in `slice-v1-abschluss-sqlite-format` §3):
 

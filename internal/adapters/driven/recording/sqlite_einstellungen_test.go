@@ -289,21 +289,6 @@ func TestSQLiteSchema(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-22/Negative — Load des SQLite-Adapters liefert immer PGR-E1000 mit dem
-// Text „Lesen von sqlite ist in diesem Stand nicht verfügbar“, ohne Pfad und ohne Wert,
-// auch für eine vorhandene gültige Datei.
-func TestSQLiteLoadPlatzhalter(t *testing.T) {
-	_, path := neueDatei(t, sessionsMit(1))
-	rec, err := (&recording.SQLite{}).Load(context.Background(), path)
-	ms := model.Meldungen(err)
-	if len(ms) != 1 || ms[0].Code != model.CodeInternal || err.Error() != "sonstiger Fehler [PGR-E1000]: Lesen von sqlite ist in diesem Stand nicht verfügbar" {
-		t.Fatalf("Meldungen %+v, Fehler %v", ms, err)
-	}
-	if !reflect.DeepEqual(rec, model.Recording{}) {
-		t.Fatalf("Aufzeichnung %#v", rec)
-	}
-}
-
 // Abdeckung: LH-FA-22/Boundary, LH-FA-22/Negative — die Fabrik New liefert für yaml den
 // YAML-Adapter, für sqlite den SQLite-Adapter und für jeden anderen Wert, auch den
 // leeren, SQLite und sqlite3, PGR-E2001.

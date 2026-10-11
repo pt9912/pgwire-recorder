@@ -122,3 +122,27 @@ func Oeffne(ctx context.Context, path string) (*sql.DB, error) { return oeffne(c
 // JSONText wandelt wert wie SQLite.Write für eine JSON-Spalte in JSON-Text, ohne den
 // Schlüssel ohne der obersten Abbildung.
 func JSONText(wert any, ohne string) (string, error) { return jsonText(wert, ohne) }
+
+// LeseMit liest path wie SQLite.Load; nach wird nach dem Lesen jeder Tabelle mit der
+// Lesetransaktion und dem Namen der Tabelle gerufen.
+func LeseMit(ctx context.Context, path string, nach func(tx *sql.Tx, tabelle string)) (model.Recording, error) {
+	text, err := leseAlsYAML(ctx, path, nach)
+	if err != nil {
+		return model.Recording{}, err
+	}
+	return Unmarshal(text)
+}
+
+// StufeCode liefert den Meldungscode, den SQLite.Load für den Ergebniscode code der
+// Bibliothek meldet.
+func StufeCode(code int) string { return stufeCode(code) }
+
+// JSONKnoten liest den JSON-Text text wie SQLite.Load und liefert Tag und Wert des
+// Skalars, oder "" und "" für einen Knoten, der kein Skalar ist.
+func JSONKnoten(text string) (tag, wert string, err error) {
+	n, err := jsonKnoten(text)
+	if err != nil {
+		return "", "", err
+	}
+	return n.Tag, n.Value, nil
+}

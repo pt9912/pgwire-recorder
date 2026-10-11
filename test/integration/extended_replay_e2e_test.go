@@ -90,10 +90,11 @@ func pgFehler(err error) string {
 }
 
 // aufnehmenExtended zeichnet extendedAblauf über record gegen die reale Instanz
-// in output auf und liefert die Sicht des Clients beim Aufzeichnen.
+// in output auf, bei der Endung .sqlite im Format sqlite, und liefert die Sicht
+// des Clients beim Aufzeichnen.
 func aufnehmenExtended(t *testing.T, output string) string {
 	t.Helper()
-	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+	rec := startProzess(t, "record", append([]string{"--upstream", os.Getenv("PGR_UPSTREAM"), "--output", output}, formatArgs(output)...)...)
 	sicht := extendedAblauf(t, rec.listen)
 	rec.stop(t, 0)
 	for _, z := range []string{`wert eins: "eins!" <nil>`, `wert zwei: "zwei!" <nil>`, "null: true <nil>", "zeile 3 6", "fehler: 22012 division by zero", "batch: 22012 division by zero", "einfach: 7 <nil>"} {

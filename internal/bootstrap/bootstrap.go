@@ -88,7 +88,7 @@ func replay(ctx context.Context, ablauf <-chan struct{}, o cli.ReplayOptions, lo
 	if o.FailOnUnconsumed {
 		opts = append(opts, services.FailOnUnconsumed)
 	}
-	service, err := services.NewReplayService(ctx, recording.YAML{}, o.Input, opts...)
+	service, err := services.NewReplayService(ctx, recording.Leser{}, o.Input, opts...)
 	if err != nil {
 		return fail(stderr, err)
 	}
@@ -134,7 +134,7 @@ func play(ctx context.Context, ablauf <-chan struct{}, o cli.PlayOptions, log *s
 		TLS:      o.UpstreamTLS,
 		CA:       postgres.Zertifikate(o.UpstreamCA),
 	}
-	service, err := services.NewPlayService(ctx, recording.YAML{}, o.Input, ziel, services.PlayOptions(o.Einspielen))
+	service, err := services.NewPlayService(ctx, recording.Leser{}, o.Input, ziel, services.PlayOptions(o.Einspielen))
 	if err != nil {
 		return fail(stderr, err)
 	}
