@@ -19,7 +19,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
 
-In Arbeit: `slice-v1-abschluss-einspielen-tls` (welle-v1-abschluss). Danach [`slice-v1-abschluss-einspielen-tls-doku`](../next/slice-v1-abschluss-einspielen-tls-doku.md) (welle-v1-abschluss) und in der Reihenfolge des §5 von welle-v1-abschluss die übrigen Slices. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
+In Arbeit: `slice-v1-abschluss-einspielen-tls` (welle-v1-abschluss). Danach [`slice-v1-abschluss-einspielen-tls-doku`](../in-progress/slice-v1-abschluss-einspielen-tls-doku.md) (welle-v1-abschluss) und in der Reihenfolge des §5 von welle-v1-abschluss die übrigen Slices. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
 
 
 
