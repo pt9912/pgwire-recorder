@@ -233,13 +233,12 @@ Klammern ist die des Laufs.
 | `replay` erkennt das Format selbst | `recording.YAML{}` statt `recording.Leser{}` in `replay` (K1) | am Binary `TestE2EReplaySQLite`, `TestE2EReplayExtendedSQLite`, `TestE2ELesenAbgelehnt` |
 | `play` erkennt das Format selbst | `recording.YAML{}` statt `recording.Leser{}` in `play` (K2) | am Binary `TestE2EPlaySQLite`, `TestE2ELesenAbgelehnt` |
 
-Summe: 92 Mutanten der Unit-Tests und 2 am Binary; rot 89, grün 5 (nächster Absatz). Die Läufe sind Lauf-Beleg und
+Summe: 92 Mutanten der Unit-Tests und 2 am Binary; rot 89, grün 5 (nächster Absatz; O5 ist nach dem Review rot, siehe *Nacharbeit zum Review*). Die Läufe sind Lauf-Beleg und
 nicht im Repo; die Tabelle trägt Mutation und Test.
 
-**Grüne Mutanten, eingeordnet.** Fünf bleiben grün und ändern das Verhalten nicht:
-(O5) `filepath.Abs` entfällt: SQLite löst einen relativen Pfad gegen das Arbeitsverzeichnis auf, `TestLesenSonderzeichenImPfad`
-fährt den relativen Fall unter Linux; die Form `/C:/…` für Windows ist ungeprüft (Grenze Plattform,
-`BEO-REPO/verhalten-nur-unter-linux-geprueft`). (I9) `group_no` ohne Prüfung der Art: Ein Wert, der keine ganze Zahl
+**Grüne Mutanten, eingeordnet.** Fünf blieben im ersten Lauf grün; vier ändern das Verhalten nicht, (O5) war nicht
+äquivalent (Berichtigung im Abschnitt *Nacharbeit zum Review*; die Form `/C:/…` für Windows bleibt ungeprüft, Grenze
+Plattform, `BEO-REPO/verhalten-nur-unter-linux-geprueft`). (I9) `group_no` ohne Prüfung der Art: Ein Wert, der keine ganze Zahl
 ist, wird zu 0, und 0 lehnen die Regeln der Gruppen an jeder Stelle ab; die Prüfung gibt die Meldung, ändert nicht das
 Ergebnis. (J13) Strings als `!!str` ohne Anführungszeichen: Der Encoder von `yaml.v3` setzt sie für jeden String, der
 sonst anders gelesen würde, selbst; der Stil macht es unabhängig davon. (E11) Jeder Fehler beim Lesen der 16 Bytes gilt
@@ -307,6 +306,34 @@ Die Meldungen der Dateien `sqlite_lesen*.go` und `sqlite_json_lesen.go` sind auf
 Änderungen steht nur noch Tabelle, Spalte, Nummer, Pfad und der Name der Konstante darin; die Ursache der Bibliothek
 (`sqlite`-Fehler, Base64) hängt an Meldungen zum Lesen und zu JSON, nicht an `Unmarshal`.
 
+### Nacharbeit zum Review (`415b725`)
+
+Ein Commit, `415b725`: F-623 bis F-626; F-627 ist dieser Plan. Mutationen wie oben (frische Kopie, `gofmt -l` leer,
+Bind-Mount).
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| jede Meldung zu einem Fehler des Inhalts nennt den Pfad der Datei: bei eigenen Prüfungen des Lesers und bei der unbekannten Version | Pfad entfällt bei eigenen Fehlern (MP1); nur bei `PGR-E3003` (MP5); Version-Fehler ohne Pfad (MP4) | `TestLesenMeldungOhneWertUndZeile` (Pfad je Fall) |
+| … und auf dem Weg über `Unmarshal` Pfad und Art (der Text des Fehlers von `Unmarshal`, etwa `Session 2 ohne Interaktion`) | Pfad entfällt (MP2); Art entfällt (MP3) | `TestLesenMeldungOhneWertUndZeile` |
+| … und bei eigenen Prüfungen die Art | nur der Pfad (MP6) | `TestLesenMeldungOhneWertUndZeile` (`enthaelt` je Fall) |
+| der Eingabepfad gilt wörtlich auch mit führendem `//`, beim Schreiben, Ergänzen und Lesen | `filepath.Abs` entfällt (O5); `file:`-URI des Lesens aus dem rohen Pfad (O5b) | `TestLesenPfadMitFuehrendemDoppelstrich` |
+| Abbruch von `ctx` zwischen den Tabellen: `PGR-E3001` mit Ursache und Pfad | `PGR-E3003` (AB1) | `TestLesenAbbruchWaehrendDesLesens` |
+
+**Berichtigung zu O5 (F-624).** `filepath.Abs` ist nicht äquivalent: Ein Pfad mit führendem `//` wird ohne `Abs` als
+`file://tmp/…` mit Authority gelesen und abgelehnt. Der Test deckt Lesen und Schreiben (`uriVon` bedient beide); der Mutant
+`W10` des Schreib-Slice ist dieselbe Ersetzung und mit diesem Test ebenfalls rot, `slice-v1-abschluss-sqlite-format` bleibt
+unverändert.
+**U7 (F-625).** `rows.Err()` in `zeilen` entfällt: grün. Ein Abbruch oder Fehler mitten in einer Tabelle fällt in
+`QueryContext` oder `Scan`, nicht in `rows.Err()`; ich habe den Zweig mit abgebrochenem `ctx` zwischen den Tabellen, mit
+beschädigten Seiten und mit Dateien aus 60 Sessions nicht erreicht. Der Zweig bleibt als Absicherung der Bibliothek
+(Vertrag von `database/sql`) und ist durch keinen Test belegt; die Zusage der Spezifikation „während des Lesens“ trägt der
+Test zwischen den Tabellen.
+**Meldung auf dem Weg über `Unmarshal` (F-623).** Die Art ist dort so fein wie der Text, den `Unmarshal` ohne Wert und
+Zeile trägt: `Aufzeichnung beschädigt` (Form, unbekannter Schlüssel) oder Session und Interaktion; eine feinere Art nähme die
+Ursache der YAML-Bibliothek mit Wert und Zeile. Frage an den Architect, ob das die Zusage „die Art des Fehlers“ trägt.
+**Kommentare (F-626).** `Load` nennt, was der Leser selbst prüft und was `Unmarshal`; `JSONKnoten` nennt `!!map` und `!!seq`
+mit leerem Wert.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -332,6 +359,6 @@ Hälften.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (`AGENTS.md` §3.13): Liefer-Punkte: 3 (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung der Fehler). Schichten: eine (Recording-Adapter mit seinen Tests); der Bootstrap reicht den Leser nur durch (reine Verdrahtung, zählt nicht), der Integrationstest läuft über das Binary und trägt keine eigene Schicht; die Dokumentation liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`. Geschätzt 1300 bis 1700 Zeilen mit Tests (Nachzählung des Architect vom 2026-10-11: der Geber lag bei rund 2300 mit Tests für Schreiben, JSON und Zeilen; der Leser trägt weniger Code, aber die Tests der Randformen; unter einer Review-Sitzung von rund 2000). Gemessen: 2137 Zeilen hinzu, davon 2090 Go (799 Code, 1291 Tests); Liefer-Punkte und Schichten wie gezählt (drei, eine).
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (`AGENTS.md` §3.13): Liefer-Punkte: 3 (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung der Fehler). Schichten: eine (Recording-Adapter mit seinen Tests); der Bootstrap reicht den Leser nur durch (reine Verdrahtung, zählt nicht), der Integrationstest läuft über das Binary und trägt keine eigene Schicht; die Dokumentation liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`. Geschätzt 1300 bis 1700 Zeilen mit Tests (Nachzählung des Architect vom 2026-10-11: der Geber lag bei rund 2300 mit Tests für Schreiben, JSON und Zeilen; der Leser trägt weniger Code, aber die Tests der Randformen; unter einer Review-Sitzung von rund 2000). Gemessen nach der Nacharbeit zum Review (`git diff --numstat 97f3ca6..415b725 -- '*.go'`): 2311 Zeilen Go, davon 886 Code und 1425 Tests; Liefer-Punkte und Schichten wie gezählt (drei, eine). Der erste Stand (`45af81d`) lag bei 2090 (799 und 1291), §7 führt die Stufen.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält die Aufzeichnung als Code unter Spezifikation und Entscheidungen).
