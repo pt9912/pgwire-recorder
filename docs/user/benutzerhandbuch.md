@@ -1,6 +1,6 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.2  
+Version: 0.3  
 Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
 Stand: 11.10.2026  
 Autor: Projektteam pgwire-recorder  
@@ -19,7 +19,9 @@ Das Werkzeug arbeitet in drei Betriebsarten:
 
 * **Aufzeichnen (`record`):** Ihre Anwendung verbindet sich mit
   `pgwire-recorder` statt direkt mit PostgreSQL. Das Werkzeug leitet alles an
-  die echte Datenbank weiter und speichert die Kommunikation in einer Datei.
+  die echte Datenbank weiter und speichert die Kommunikation in einer Datei, auf
+  Wunsch als SQLite-Datei statt als YAML (siehe
+  [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen)).
 * **Wiedergeben (`replay`):** Ihre Anwendung verbindet sich wieder mit
   `pgwire-recorder`. Das Werkzeug beantwortet die Anfragen aus der Datei. Eine
   Datenbank ist nicht nötig.
@@ -144,6 +146,9 @@ Datenbank wieder ab.
 
 Ihre Anwendung erhält dieselben Antworten wie beim Aufzeichnen.
 
+Dieses Beispiel schreibt YAML. Eine SQLite-Datei zeichnen Sie mit `--format sqlite`
+auf (siehe [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen)).
+
 ## 4. Aufgaben ausführen
 
 ### Eine Anwendung aufzeichnen
@@ -155,19 +160,21 @@ Die Datenbank ist erreichbar, und die Zieldatei existiert noch nicht.
 #### Vorgehen
 
 1. Starten Sie `pgwire-recorder record` mit den Optionen `--listen`,
-   `--upstream` und `--output`.
+   `--upstream` und `--output`; für eine SQLite-Datei statt YAML ergänzen Sie
+   `--format sqlite`.
 2. Verbinden Sie Ihre Anwendung mit der Adresse aus `--listen`.
 3. Führen Sie den gewünschten Ablauf aus.
 4. Beenden Sie das Werkzeug mit `Strg+C` oder `SIGTERM`.
 
 #### Ergebnis
 
-Die Datei aus `--output` enthält die aufgezeichnete Kommunikation. Sie wird nach
-dem Ende jeder Verbindung und beim Beenden aktualisiert.
+Die Datei aus `--output` enthält die aufgezeichnete Kommunikation, ohne `--format`
+als YAML. Sie wird nach dem Ende jeder Verbindung und beim Beenden aktualisiert.
 
 #### Hinweise
 
-* Existiert die Zieldatei bereits, bricht das Werkzeug ab (`PGR-E2002`). Wollen
+* Existiert die Zieldatei bereits, bricht das Werkzeug ab (`PGR-E2002`), gleich in
+  welchem Format sie vorliegt und welches Format Sie wählen. Wollen
   Sie sie ersetzen, ergänzen Sie `--force`; dasselbe gilt für
   `PGWIRE_RECORDER_FORCE=true` und für `force: true` im Abschnitt `record` der
   Konfigurationsdatei.
@@ -178,11 +185,16 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
 * Ist `--output` eine symbolische Verknüpfung, zählt ihr Ziel: Zeigt sie auf eine
   vorhandene Datei, gilt die Zieldatei als vorhanden. Mit `--force` ersetzt das
   Werkzeug die Verknüpfung durch die Aufzeichnung; ihr Ziel bleibt unverändert.
-* Das Werkzeug schreibt die Aufzeichnung zuerst in
+* Bis zur ersten Aktualisierung (nach der ersten beendeten Verbindung oder beim
+  Beenden) bleibt eine vorhandene Zieldatei mit `--force` unverändert. Das Werkzeug
+  schreibt die Aufzeichnung zuerst in
   eine temporäre Datei `.<Name der Zieldatei>.<16 Hexziffern>.tmp` im Verzeichnis
   der Zieldatei und ersetzt die Zieldatei danach in einem Schritt. Die Zieldatei
   ist damit vollständig oder unverändert, auch nach dem zwangsweisen Beenden von
-  Verbindungen beim Herunterfahren. Schlägt das Schreiben fehl, meldet das
+  Verbindungen beim Herunterfahren. Das gilt für `yaml` bei jeder Aktualisierung; bei
+  `sqlite` legt der erste Schreibvorgang die Datei auf diesem Weg an, und jede weitere
+  beendete Verbindung wird danach in der Zieldatei selbst ergänzt (siehe
+  [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen)). Schlägt das Schreiben fehl, meldet das
   Werkzeug `PGR-E3001` und entfernt die temporäre Datei; gelingt das Entfernen
   nicht, nennt dieselbe Meldung auch diesen Fehler. Endet der Prozess hart
   (zum Beispiel mit `SIGKILL`), kann sie liegen bleiben; das Werkzeug entfernt
@@ -235,11 +247,124 @@ dem Ende jeder Verbindung und beim Beenden aktualisiert.
       stop_grace_period: 60s
   ```
 
+### Das Format der Aufzeichnung festlegen
+
+`record` schreibt die Aufzeichnung in einem von zwei Formaten: `yaml` (Standard) ist
+eine Textdatei, `sqlite` ist eine SQLite-Datei, die Sie mit `sqlite3` oder einem
+anderen SQLite-Werkzeug abfragen können. `replay` und `play` lesen beide.
+
+#### Voraussetzung
+
+Wie beim Aufzeichnen: Die Datenbank ist erreichbar, und die Zieldatei existiert noch
+nicht. Das Verzeichnis der Zieldatei muss für das Werkzeug beschreibbar sein.
+
+#### Vorgehen
+
+1. Nennen Sie das Format beim Aufzeichnen:
+
+   ```bash
+   pgwire-recorder record \
+     --listen 0.0.0.0:15432 \
+     --upstream postgres:5432 \
+     --output ./recordings/users.sqlite \
+     --format sqlite
+   ```
+
+   Statt der Option genügt die Umgebungsvariable `PGWIRE_RECORDER_FORMAT=sqlite` oder
+   der Schlüssel `format` im Abschnitt `record:` der Konfigurationsdatei:
+
+   ```yaml
+   record:
+     listen: 0.0.0.0:15432
+     upstream: postgres:5432
+     output: ./recordings/users.sqlite
+     format: sqlite
+   ```
+
+2. Zeichnen Sie wie gewohnt auf, und beenden Sie das Werkzeug.
+3. Geben Sie die Datei wieder oder spielen Sie sie ein, ohne das Format zu nennen:
+
+   ```bash
+   pgwire-recorder replay --listen 0.0.0.0:15432 --input ./recordings/users.sqlite
+   pgwire-recorder play --upstream postgres:5432 --input ./recordings/users.sqlite
+   ```
+
+#### Ergebnis
+
+Die Datei aus `--output` ist eine SQLite-Datei. `replay` und `play` verhalten sich mit
+ihr wie mit einer YAML-Aufzeichnung desselben Ablaufs: Ihre Anwendung erhält dieselben
+Antworten, und `play` führt dieselben Anfragen aus.
+
+#### Hinweise
+
+* Die Werte von `--format` sind `yaml` und `sqlite`, in Kleinbuchstaben. Jeder andere
+  Wert, auch `SQLite`, `sqlite3` und ein leerer Wert auf der Kommandozeile, ist ein
+  ungültiger Aufruf (`PGR-E2001`); in der Konfigurationsdatei ist er `PGR-E2004`.
+  Der Standard ist `yaml`. Option, Umgebungsvariable und Konfigurationsdatei folgen der
+  Priorität aus [Einstellungen](#5-einstellungen); eine leere Umgebungsvariable gilt als
+  nicht gesetzt, eine mit ungültigem Wert ist `PGR-E2001`, auch wenn Sie die Option
+  zugleich angeben. `replay` und `play` kennen `--format` nicht (`PGR-E2001`).
+* `replay` und `play` erkennen das Format an den ersten Bytes der Datei, nicht an
+  ihrem Namen: Eine SQLite-Datei mit der Endung `.yaml` liest das Werkzeug als SQLite,
+  eine YAML-Datei mit der Endung `.sqlite` als YAML. Eine Datei, die nicht mit der
+  Kennung einer SQLite-Datei beginnt, liest es als YAML, auch eine leere; sie ist dann
+  beschädigt (`PGR-E3003`).
+* Eine vorhandene Zieldatei ersetzt `--force` vollständig; das Werkzeug ergänzt sie nie.
+  Eine YAML-Datei ersetzt es mit `--format sqlite` durch eine SQLite-Datei und umgekehrt.
+* Bei `sqlite` entsteht die Datei mit dem ersten Schreibvorgang, nach der ersten
+  beendeten Verbindung oder beim Beenden; vorher gibt es den Zielpfad nicht. Jede weitere
+  beendete Verbindung ergänzt das Werkzeug danach in der Datei. Zeichnen Sie ohne jede
+  Verbindung auf, entsteht eine gültige Datei ohne Sitzung; `replay` meldet sie beim
+  Start als `PGR-E3004`.
+* Neben der Zieldatei liegt während des Ergänzens eine Datei `<Zieldatei>-journal`. Liegt
+  beim Start von `record` eine solche Datei neben dem Zielpfad, endet `record` mit
+  `PGR-E3001`, auch mit `--force` und auch ohne Zieldatei. Sie ist das Rollback-Journal
+  eines früheren Laufs. Öffnen Sie die Zieldatei einmal mit `sqlite3` (eine Abfrage genügt),
+  dann macht SQLite den Abbruch rückgängig und entfernt die Datei; danach startet `record`
+  wieder. Mit der Zieldatei und ohne `--force` gilt zuerst `PGR-E2002`.
+* Die Datei lässt sich während des Aufzeichnens lesen: `sqlite3` und `replay` sehen die
+  Verbindungen, die zu dem Zeitpunkt beendet waren.
+* `replay` und `play` öffnen die Datei nur lesend und verändern sie nicht, auch auf einem
+  schreibgeschützten Verzeichnis. Hält ein anderer Prozess die Datei gesperrt, wartet das
+  Lesen höchstens fünf Sekunden und endet dann mit `PGR-E3001`.
+* Eine SQLite-Datei ist binär. Ist sie keine gültige Aufzeichnung dieses Werkzeugs (eine
+  fremde SQLite-Datei, eine fehlende Tabelle oder Spalte, eine abgeschnittene Datei,
+  ein widersprüchlicher Inhalt), meldet das Werkzeug `PGR-E3003`; eine unbekannte
+  Version der Datei ist `PGR-E3002`.
+* Das Aufzeichnen und Lesen von SQLite-Dateien ist unter Linux im Container auf einem
+  lokalen Dateisystem geprüft. Für andere Systeme und für Netzwerk-Dateisysteme ist es
+  nicht geprüft.
+
+#### Eine SQLite-Aufzeichnung abfragen
+
+Die Datei hat vier Tabellen:
+
+| Tabelle | Inhalt |
+|---|---|
+| `meta` | Zeilen mit `key` und `value`: `format` (`pgwire-recorder`) und `version` |
+| `session` | eine Zeile je aufgezeichneter Verbindung: `id` (ab 1), `startup` und `server_parameters` als JSON-Text |
+| `interaction` | eine Zeile je Anfrage oder Folge des erweiterten Protokolls: `session_id`, `sequence`, `type` (`query` oder `extended`), `offset_ms` und `sql` (der Text einer einfachen Anfrage, bei `extended` leer) |
+| `message` | die Nachrichten einer Interaktion: `session_id`, `sequence`, `position`, `direction` (`client` oder `server`), `group_no`, `kind` und `fields` als JSON-Text |
+
+Bei einer einfachen Anfrage stehen in `message` nur die Antworten des Servers; die
+Anfrage steht in `interaction.sql`. Der SQL-Text einer erweiterten Anfrage steht im Feld
+`sql` der Nachricht mit `kind = 'parse'`. Zum Beispiel:
+
+```bash
+sqlite3 ./recordings/users.sqlite "select session_id, sequence, sql from interaction where type = 'query'"
+sqlite3 ./recordings/users.sqlite "select session_id, sequence, json_extract(fields, '$.sql') from message where kind = 'parse'"
+```
+
+Der zweite Aufruf braucht ein `sqlite3` mit JSON-Funktionen. Ändern Sie die Datei nicht;
+das Werkzeug unterstützt das nicht.
+
 ### Eine Aufzeichnung wiedergeben
 
 #### Voraussetzung
 
-Eine Aufzeichnung mit einer Verbindung liegt vor.
+Eine Aufzeichnung mit einer Verbindung liegt vor, als YAML- oder als SQLite-Datei. Das
+Werkzeug erkennt das Format selbst (siehe
+[Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen)).
 
 #### Vorgehen
 
@@ -299,7 +424,7 @@ Komponente zu testen, die Änderungen der Datenbank verarbeitet (Change Data Cap
 
 #### Voraussetzung
 
-Eine Aufzeichnung liegt vor, und die Zieldatenbank ist
+Eine Aufzeichnung liegt vor, als YAML- oder als SQLite-Datei, und die Zieldatenbank ist
 erreichbar. Verlangt sie ein Passwort (Klartext, MD5 oder SCRAM-SHA-256), nennen Sie
 es `play` über den Platzhalter der Verbindung oder die Umgebungsvariable
 `PGWIRE_RECORDER_PASSWORD` (siehe [Einstellungen](#5-einstellungen)). Der
@@ -573,6 +698,7 @@ nicht gesetzt.
 | `--upstream` | `record`, `play` | `PGWIRE_RECORDER_UPSTREAM` | Pflicht (`host:port` oder Name einer Verbindung) |
 | `--output` | `record` | `PGWIRE_RECORDER_OUTPUT` | Pflicht |
 | `--force` | `record` | `PGWIRE_RECORDER_FORCE` | `false` |
+| `--format` | `record` | `PGWIRE_RECORDER_FORMAT` | `yaml` (Werte `yaml`, `sqlite`) |
 | `--input` | `replay`, `play` | `PGWIRE_RECORDER_INPUT` | Pflicht |
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` |
 | `--shutdown-timeout` | `record`, `replay` | `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT` | `5s` (`0` ohne Frist; Einheit `ms`, `s` oder `m`) |
@@ -803,15 +929,15 @@ für den Exit-Code.
 | Code | Bedeutung | Ursache und Lösung |
 |---|---|---|
 | `PGR-E1000` | sonstiger Fehler | Ein Defekt des Werkzeugs; keine Eingabe löst ihn aus. Melden Sie das Problem mit der Ausgabe des Laufs. |
-| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert, oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`). Prüfen Sie den Aufruf mit `--help`. |
+| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`). Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
-| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte und `sslmode` (erlaubt sind `disable` und `require`). |
+| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`) und `format` (erlaubt sind `yaml` und `sqlite`). |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
 | `PGR-E2007` | Datei von `--upstream-ca` nicht verwendbar | Die Datei fehlt, ist nicht lesbar, ist keine reguläre Datei oder enthält keine Zertifikate im PEM-Format. Die Meldung nennt die Option und den Grund, nicht den Pfad; der Exit-Code ist 2. Prüfen Sie Pfad, Rechte und Inhalt der Datei. |
-| `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Prüfen Sie Pfad und Dateirechte. |
-| `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
-| `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Zeichnen Sie erneut auf. |
+| `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Bei `sqlite` außerdem: Neben dem Zielpfad liegt eine Datei `<Zielpfad>-journal`, oder eine SQLite-Datei ist länger als fünf Sekunden gesperrt (die Meldung nennt `SQLITE_BUSY`). Prüfen Sie Pfad und Dateirechte, und siehe [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen). |
+| `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion; das gilt für beide Formate. Zeichnen Sie mit der verwendeten Version erneut auf. |
+| `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Bei einer SQLite-Datei auch: Sie ist keine SQLite-Datei oder eine fremde, eine Tabelle oder Spalte fehlt, sie ist abgeschnitten, oder ihr Inhalt ist ungültig (zum Beispiel falsche Formatkennung, keine lückenlose Nummerierung, ein Eintrag ohne zugehörige Sitzung). Zeichnen Sie erneut auf. |
 | `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | `replay` meldet den Fehler beim Start. Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
 | `PGR-E4000` | Verbindung nicht anzunehmen | Das Werkzeug konnte eine eingehende Verbindung nicht annehmen, zum Beispiel weil zu viele Dateien offen sind. Es nimmt danach weiter Verbindungen an. Prüfen Sie die Grenzen des Systems. |
 | `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
@@ -849,11 +975,14 @@ Passwort; lassen Sie die Anmeldung dort ohne Passwort zu.
 Nein. Die Wiedergabe beantwortet alle aufgezeichneten Anfragen aus der Datei.
 
 **Kann ich eine Aufzeichnung in die Versionsverwaltung legen?**
-Ja. Die Aufzeichnung ist Text (YAML) und ändert sich nur, wenn sich die
-Aufzeichnung ändert. Beachten Sie den Hinweis zu vertraulichen Daten in der Einleitung.
+Ja. Eine Aufzeichnung im Format `yaml` ist Text und ändert sich nur, wenn sich die
+Aufzeichnung ändert. Eine SQLite-Datei ist binär. Beachten Sie den Hinweis zu
+vertraulichen Daten in der Einleitung.
 
 **Kann ich die Datei von Hand bearbeiten?**
-Das Werkzeug unterstützt das nicht. Zeichnen Sie stattdessen erneut auf.
+Das Werkzeug unterstützt das bei keinem der beiden Formate. Zeichnen Sie stattdessen
+erneut auf. Eine SQLite-Aufzeichnung können Sie mit `sqlite3` abfragen (siehe
+[Eine SQLite-Aufzeichnung abfragen](#eine-sqlite-aufzeichnung-abfragen)).
 
 **Funktioniert die Wiedergabe, wenn ich die Anfragen umformuliere?**
 Nein. Die Anfrage muss Zeichen für Zeichen der aufgezeichneten entsprechen,
@@ -864,13 +993,15 @@ Kommentaren bestehen (Lebendprüfungen, siehe
 [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)).
 
 **Kann ich Aufzeichnungen auf einem anderen Rechner verwenden?**
-Ja. Die Datei enthält keine rechnerspezifischen Angaben des Werkzeugs.
+Ja, in beiden Formaten. Die Datei enthält keine rechnerspezifischen Angaben des
+Werkzeugs.
 
 ## 9. Glossar
 
 | Begriff | Bedeutung |
 |---|---|
-| Aufzeichnung | Datei mit der aufgezeichneten Kommunikation zwischen Anwendung und Datenbank |
+| Aufzeichnung | Datei mit der aufgezeichneten Kommunikation zwischen Anwendung und Datenbank, im Format `yaml` oder `sqlite` |
+| Format | Art, wie die Datei die Aufzeichnung speichert: `yaml` (Text) oder `sqlite` (SQLite-Datei) |
 | Verbindung | eine Datenbankverbindung Ihrer Anwendung; in der Aufzeichnung heißt sie Sitzung |
 | Einfaches Anfrageprotokoll | PostgreSQL-Protokollvariante, in der jede Anfrage als einzelner Text gesendet wird |
 | Erweitertes Anfrageprotokoll | Protokollvariante mit vorbereiteten Anweisungen und Parametern |

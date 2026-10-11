@@ -16,8 +16,9 @@ sich an Entwickler, Tester und CI-Systeme. Die Anforderungen stehen im
 
 `pgwire-recorder record` vermittelt einfache Anfragen und das erweiterte Protokoll
 (vorbereitete Anweisungen, etwa von pgx im Standardmodus) zwischen einem Client und
-PostgreSQL und schreibt eine YAML-Aufzeichnung; `pgwire-recorder replay` beantwortet
-beide daraus ohne Datenbank. Lebendprüfungen von Verbindungspools (`pgxpool`,
+PostgreSQL und schreibt eine Aufzeichnung, als YAML-Datei oder mit `--format sqlite` als
+SQLite-Datei; `pgwire-recorder replay` beantwortet einfache wie vorbereitete Anfragen
+daraus ohne Datenbank und erkennt das Format der Datei selbst, ebenso `play`. Lebendprüfungen von Verbindungspools (`pgxpool`,
 `database/sql`) beantwortet `replay` unabhängig davon, ob sie in der Aufzeichnung
 stehen; mit `--fail-on-unconsumed` endet `replay` mit einem Fehler, wenn
 aufgezeichnete Interaktionen nicht abgerufen wurden. `pgwire-recorder play` spielt
