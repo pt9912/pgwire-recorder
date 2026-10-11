@@ -37,6 +37,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - die Umkehr des `base64:`-Escapes beim Lesen und das Lesen von `{}`;
 - `PGR-E3002` und `PGR-E3003` beim Lesen, `meta.version`, `meta.empty_sessions` beim Lesen, Waisen, die Einstufung der Fehler des Lesens nach dem Ergebniscode;
 - die Roundtrip-Gleichheit beider Formate (Abnahmeszenario 14) und die gleiche Ablehnung beider Formate.
+- die Wirkung von `--record-empty-sessions` mit `--format sqlite` am Binary (`meta.empty_sessions`, `SPEC-043`; Verifikation V-174) — `slice-v1-abschluss-sessions` (dort §1 *Übernommen von* und DoD-Punkt 1): Die Option gibt es erst dort; dieser Slice prüft die Zeile nur im Adapter-Test (`TestSQLiteEmptySessions`).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
