@@ -190,7 +190,7 @@ neu (§1 *Ausdrücklich NICHT*). Reihenfolge nach Entscheidung des Nutzers vom 2
 `slice-harness-integration-wait` direkt vor `slice-v1-abschluss-herunterfahren` und
 `slice-harness-meldungskatalog-gate` direkt vor `slice-v1-abschluss-container`, dann
 `slice-harness-abdeckung-gate` und `slice-harness-coverage`, dann die Slices von
-welle-erster-release, danach `slice-harness-commit-struktur-id`,
+welle-erster-release und welle-v1-nachtrag, danach `slice-harness-commit-struktur-id`,
 `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
 `slice-harness-lint-warten-ohne-frist`, `slice-harness-mutation`; die Reihenfolge der
 Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md).

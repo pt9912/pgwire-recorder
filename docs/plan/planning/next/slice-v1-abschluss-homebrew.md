@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-v1-abschluss.
+**Welle:** welle-v1-nachtrag.
 
 **Bezug:** [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
 
@@ -46,7 +46,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Das Release-Verfahren erzeugt die Formel aus den Release-Binaries eines Probe-Tags und legt sie in einem Probe-Tap ab (nicht im Tap `pt9912/homebrew-pgwire-recorder`); die Prüfsummen stimmen (Test). Die Installation aus dem echten Tap (Abnahmeszenario 11) weist `welle-erster-release` nach. Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Installation*): Der Slice liefert im Handbuch den Abschnitt zu Homebrew in §2 *Installation* (Formel, Tap, Befehle), soweit das Release-Verfahren im Probe-Tap ihn belegt; was erst die Installation aus dem echten Tap belegt (macOS und Linux), liefert `slice-erster-release-homebrew-nachweis`.
+- [ ] [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Das Release-Verfahren erzeugt die Formel aus den Release-Binaries eines Probe-Tags und legt sie in einem Probe-Tap ab (nicht im Tap `pt9912/homebrew-pgwire-recorder`); die Prüfsummen stimmen (Test). Die Installation aus dem echten Tap (Abnahmeszenario 11) weist `slice-erster-release-homebrew-nachweis` nach (`welle-v1-nachtrag`, dort §1 und DoD-Punkt 1). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Installation*): Der Slice liefert im Handbuch den Abschnitt zu Homebrew in §2 *Installation* (Formel, Tap, Befehle), soweit das Release-Verfahren im Probe-Tap ihn belegt; was erst die Installation aus dem echten Tap belegt (macOS und Linux), liefert `slice-erster-release-homebrew-nachweis`.
 - [ ] Eine Vorabversion verändert den Tap nicht (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -75,7 +75,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-container` ist `done` (Release-Artefakte liegen vor).
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-container` ist `done` (Release-Artefakte liegen vor), und `welle-erster-release` ist `done` (Start-Trigger von `welle-v1-nachtrag`; Entscheidung des Nutzers vom 2026-10-11).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -97,7 +97,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Das Verhalten von Homebrew gegenüber Drittanbieter-Taps zeigt sich erst mit dem echten Tap — **Ausgang:** weiter offen, übergeben an `welle-erster-release`.
+- Das Verhalten von Homebrew gegenüber Drittanbieter-Taps zeigt sich erst mit dem echten Tap — **Ausgang:** weiter offen, übergeben an `slice-erster-release-homebrew-nachweis` (`welle-v1-nachtrag`, dort §6).
 - Zugangsdaten für den Tap-Push sind eine externe Betreiber-Handlung — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz

@@ -137,12 +137,12 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): Die Slices von welle-v1-abschluss außer
-`slice-v1-abschluss-container` und `slice-v1-abschluss-homebrew` liegen in `done/`
-(WIP-Limit 1); dieser Slice ist Schritt 33 der Reihenfolge. Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness, M3 vor M4):
+`slice-v1-abschluss-container` liegen in `done/`
+(WIP-Limit 1); dieser Slice ist Schritt 32 der Reihenfolge. Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 (Wellen vor Harness, M3 vor M4):
 die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
 `slice-v1-abschluss-herunterfahren` und `slice-harness-meldungskatalog-gate` direkt vor
 `slice-v1-abschluss-container`, dann `slice-harness-abdeckung-gate` und
-`slice-harness-coverage`, dann die Slices von welle-erster-release, danach
+`slice-harness-coverage`, dann die Slices von welle-erster-release und welle-v1-nachtrag, danach
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
 `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
 `slice-harness-mutation`; die Reihenfolge

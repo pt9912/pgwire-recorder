@@ -140,16 +140,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-harness-lint` liegt in `done/`, und
-welle-erster-release ist `done` (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers
+welle-erster-release und welle-v1-nachtrag sind `done` (WIP-Limit 1). Reihenfolge nach Entscheidung des Nutzers
 vom 2026-10-08 (Wellen vor Harness, M3 vor M4): die Slices von welle-v1-abschluss, darin
 `slice-harness-integration-wait` direkt vor `slice-v1-abschluss-herunterfahren` und
 `slice-harness-meldungskatalog-gate` direkt vor `slice-v1-abschluss-container`, dann
 `slice-harness-abdeckung-gate` und `slice-harness-coverage`, dann die Slices von
-welle-erster-release, danach dieser Slice als erster der übrigen Harness-Slices,
+welle-erster-release und welle-v1-nachtrag, danach dieser Slice als erster der übrigen Harness-Slices,
 `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
 `slice-harness-lint-warten-ohne-frist`, `slice-harness-mutation`. Die Reihenfolge der
 Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) und
-[welle-erster-release](../welle-erster-release.md). Zwischen diesem Slice und
+[welle-erster-release](../welle-erster-release.md) und [welle-v1-nachtrag](../welle-v1-nachtrag.md). Zwischen diesem Slice und
 den übrigen Harness-Slices besteht keine technische Abhängigkeit; dieser steht unter
 ihnen vorn, weil jeder weitere Commit das Muster wiederholen kann. Vor dem ersten
 Code-Commit entscheidet der Architect die Randformen aus §6 in §11 und ob eine

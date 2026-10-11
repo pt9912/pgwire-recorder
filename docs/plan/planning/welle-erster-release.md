@@ -18,7 +18,7 @@ zwei Positionen, nicht drei.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Wann Arbeit eine Welle braucht.
 
-Der erste Release ist veröffentlicht: die Binaries für die Zielplattformen und das Docker/OCI-Image in `ghcr.io` und `docker.io`, dazu die Homebrew-Formel im Tap. Abnahmeszenario 11 ([`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)) ist auf macOS und Linux nachgewiesen.
+Der erste Release ist veröffentlicht: die Binaries für die Zielplattformen und das Docker/OCI-Image in `ghcr.io` und `docker.io`. Die Homebrew-Formel im Tap und Abnahmeszenario 11 ([`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)) gehören seit der Entscheidung des Nutzers vom 2026-10-11 zu [welle-v1-nachtrag](welle-v1-nachtrag.md), die auf diese Welle folgt.
 
 ## 2. Trigger (Welle startet)
 
@@ -37,7 +37,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 
 - Alle Slices der Welle liegen in `done/`.
-- Abnahmeszenario 11 (Homebrew) ist auf macOS und Linux mit dem echten Tap nachgewiesen — das *Mehr* gegenüber den Slice-DoDs.
+- Der erste stabile Tag ist nach der Freigabe-Checkliste veröffentlicht (Binaries mit `SHA256SUMS` am Release, Image in beiden Registries mit gleichem Index-Digest, Smoke aus Abnahmeszenario 9 bestanden) — das *Mehr* gegenüber den Slice-DoDs, deren Pipeline nur ein Probe-Tag belegt. Abnahmeszenario 11 ist keine Bedingung dieser Welle; [welle-v1-nachtrag](welle-v1-nachtrag.md) weist es nach.
 - `make gates` grün.
 - Closure-Notiz in `welle-erster-release-results.md`; sie trägt den ausgefüllten Eintrag der Freigabe-Checkliste des ersten Releases (Entscheidung des Nutzers vom 2026-10-09, geliefert von `slice-erster-release-freigabe`).
 
@@ -51,24 +51,22 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 |---|---|---|
 | slice-erster-release-veroeffentlichung | Veröffentlichung von Binaries und Images | [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 | slice-erster-release-freigabe | Freigabe und erster echter Tag | [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew) |
-| slice-erster-release-homebrew-nachweis | Homebrew-Nachweis (Abnahmeszenario 11) | [`LH-FA-19`](../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew) |
 
 ## 5. Abhängigkeiten
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
-- Blockiert: —
+- Blockiert: Welle [welle-v1-nachtrag](welle-v1-nachtrag.md).
 - Wird blockiert von: Welle [welle-v1-abschluss](welle-v1-abschluss.md) und den wellenlosen Slices `slice-harness-abdeckung-gate` und `slice-harness-coverage`.
-- Innerhalb der Welle: `slice-erster-release-freigabe` setzt `slice-erster-release-veroeffentlichung` voraus (der Scan läuft in dessen Pipeline vor dem Push); `slice-erster-release-homebrew-nachweis` setzt `slice-erster-release-freigabe` voraus (erster stabiler Tag).
+- Innerhalb der Welle: `slice-erster-release-freigabe` setzt `slice-erster-release-veroeffentlichung` voraus (der Scan läuft in dessen Pipeline vor dem Push).
 
-**Reihenfolge** (Entscheidungen des Nutzers vom 2026-10-08: Wellen vor Harness, M3 vor M4; Schnitt von `slice-erster-release-veroeffentlichung` vom 2026-10-09; WIP-Limit 1):
+**Reihenfolge** (Entscheidungen des Nutzers vom 2026-10-08: Wellen vor Harness, M3 vor M4; Schnitt von `slice-erster-release-veroeffentlichung` vom 2026-10-09; Umplanung von `slice-erster-release-homebrew-nachweis` nach `welle-v1-nachtrag` vom 2026-10-11; WIP-Limit 1):
 
 1. `slice-erster-release-veroeffentlichung` — Pipeline für Binaries und Image, belegt mit einem Probe-Tag.
 2. `slice-erster-release-freigabe` — Scan, Freshness-Audit, Freigabe-Checkliste und der erste echte Tag (setzt 1 voraus).
-3. `slice-erster-release-homebrew-nachweis` — Abnahmeszenario 11 (setzt 2 voraus).
 
-Vor dieser Welle liegen `slice-harness-abdeckung-gate` und `slice-harness-coverage`: Mit Coverage wird Abnahmeszenario 17 nachweisbar, M3 ist damit vor M4 erreicht. Danach folgen die übrigen Harness-Slices, beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
+Vor dieser Welle liegen `slice-harness-abdeckung-gate` und `slice-harness-coverage`: Mit Coverage wird Abnahmeszenario 17 nachweisbar, M3 ist damit vor M4 erreicht. Danach folgt [welle-v1-nachtrag](welle-v1-nachtrag.md), dann die übrigen Harness-Slices, beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
 
 ## 6. Out-of-Scope für diese Welle
 
@@ -77,7 +75,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 Zielsetzung: Was nicht ausdrücklich ausgeschlossen ist, dehnt die Welle, bis
 der Closure-Trigger unerreichbar wird.
 
-- Die Aufnahme in das Standard-Repository von Homebrew — Out-of-Scope von LH-FA-19.
+- Die Homebrew-Formel im Tap und ihr Nachweis (Abnahmeszenario 11) — `slice-erster-release-homebrew-nachweis` in [welle-v1-nachtrag](welle-v1-nachtrag.md) (Entscheidung des Nutzers vom 2026-10-11); der Release ist ohne sie vollständig, weil kein Release-Artefakt von der Formel abhängt.
 - Weitere Plattformen oder Registries — nicht zugesichert.
 
 ## 7. Closure-Notiz

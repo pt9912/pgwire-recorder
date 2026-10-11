@@ -57,7 +57,7 @@ jenes Slice hierher (§6 unten).
 - Prüfung von Tag und Versionsdatei, Build, `SHA256SUMS`, Veröffentlichung mit gleichem
   Index-Digest, `:latest`, Fehlertabelle und Wiederanlauf — `slice-erster-release-veroeffentlichung`;
   er liegt vor diesem Slice, und der Scan setzt sich in dessen Pipeline vor den Push.
-- Die Homebrew-Formel im Tap und ihr Nachweis — `slice-erster-release-homebrew-nachweis`; er
+- Die Homebrew-Formel im Tap und ihr Nachweis — `slice-erster-release-homebrew-nachweis` (`welle-v1-nachtrag`); er
   setzt den ersten stabilen Tag dieses Slice voraus.
 - Ein Sensor für das Freshness-Audit — `harness/conventions.md` führt den Audit als Handlung,
   nicht als Sensor, weil er Netz über `bash`, `git` und `docker` hinaus braucht; Bestand bleibt

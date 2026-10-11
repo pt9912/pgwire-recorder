@@ -74,7 +74,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Die anderen Slices der Welle außer `slice-v1-abschluss-homebrew` sind `done` (der setzt diesen voraus), und `slice-harness-meldungskatalog-gate` liegt in `done/` (§1).
+**Start** (`next` → `in-progress`): Die anderen Slices der Welle sind `done`, und `slice-harness-meldungskatalog-gate` liegt in `done/` (§1).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

@@ -56,7 +56,7 @@ und der erste echte Tag. Dieser Slice belegt die Pipeline mit einem Probe-Tag.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Die Homebrew-Formel und ihr Nachweis — `slice-erster-release-homebrew-nachweis`.
+- Die Homebrew-Formel und ihr Nachweis — `slice-erster-release-homebrew-nachweis` (`welle-v1-nachtrag`).
 - Image-Scan, Freshness-Audit, Freigabe-Checkliste und der erste echte Tag —
   `slice-erster-release-freigabe` (oben, *Abgegeben*); er setzt diese Pipeline voraus, weil der
   Scan in ihr vor dem Push läuft.

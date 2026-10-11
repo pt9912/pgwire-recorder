@@ -18,6 +18,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 - [welle-v1-abschluss](../welle-v1-abschluss.md)
 - [welle-erster-release](../welle-erster-release.md)
+- [welle-v1-nachtrag](../welle-v1-nachtrag.md)
 
 In Arbeit: nichts. Als Nächstes `slice-v1-abschluss-sqlite-format-lesen` (welle-v1-abschluss, Schritt 17, das Lesen), dann `slice-v1-abschluss-sqlite-format-doku` (Schritt 18). Danach die übrigen Slices in der Reihenfolge des §5 von welle-v1-abschluss. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
 
@@ -43,8 +44,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 |---|---|---|---|
 | M1 | welle-walking-skeleton | `SELECT 1;` Record, PostgreSQL stoppen, Replay mit demselben Ergebnis | erreicht — [welle-walking-skeleton-results](../done/welle-walking-skeleton-results.md) |
 | M2 | welle-extended-query | Clients mit Standardtreibern (Extended Query) funktionieren mit Host/Port-Umstellung: Abnahmeszenario 7 nachweisbar | erreicht — [welle-extended-query-results](../done/welle-extended-query-results.md) |
-| M3 | welle-replay-semantik, welle-v1-abschluss; wellenlos `slice-harness-abdeckung-gate`, `slice-harness-coverage` | Produkt fertig: alle Anforderungen (MUSS und SOLL) umgesetzt, die Abnahmeszenarien 1 bis 10 und 12 bis 17 nachweisbar | offen |
-| M4 | welle-erster-release | erster Release veröffentlicht, Abnahmeszenario 11 (Homebrew) nachgewiesen | offen |
+| M3 | welle-replay-semantik, welle-v1-abschluss; wellenlos `slice-harness-abdeckung-gate`, `slice-harness-coverage` | Produkt fertig bis auf zwei Nachträge: alle Anforderungen (MUSS und SOLL) außer `LH-FA-19` (Homebrew) und dem `CancelRequest` ohne Schlüssel (`LH-FA-05.e`) umgesetzt, die Abnahmeszenarien 1 bis 10 und 12 bis 17 nachweisbar | offen |
+| M4 | welle-erster-release | erster Release veröffentlicht | offen |
+| M5 | welle-v1-nachtrag | Homebrew-Formel im Tap, Abnahmeszenario 11 (Homebrew) nachgewiesen, `CancelRequest` ohne Schlüssel behandelt: alle Anforderungen (MUSS und SOLL) umgesetzt | offen |
 
 ## Abhängigkeitsgraph
 
@@ -61,12 +63,14 @@ flowchart LR
     W3[welle-replay-semantik]
     W4[welle-v1-abschluss]
     W5[welle-erster-release]
+    W6[welle-v1-nachtrag]
 
     W1 --> W2
     W2 --> W3
     W3 --> W4
     W4 --> C[slice-harness-coverage]
     C --> W5
+    W5 --> W6
 ```
 
 ## Abgeschlossene Wellen
@@ -129,3 +133,4 @@ Roadmap, jede Zeile voll heißt treibende.
 | 2026-10-10 | `slice-doku-ist-stand` (wellenlos) angelegt und vor `slice-harness-upgrade-v6-18` gezogen, direkt nach `slice-v1-abschluss-einspielen-laufsteuerung`; jeder Produkt-Slice in `next/` liefert seinen Teil von Benutzerhandbuch und README im Ist-Zustand (erster Liefer-Punkt) | Entscheidung des Nutzers vom 2026-10-10 bei der Closure von `slice-v1-abschluss-einspielen-laufsteuerung` (Verifikation V-147): Handbuch und README beschreiben nur das gelieferte Verhalten, ohne Chronik und ohne Verweise auf Spezifikation, ADRs, Slices oder Reviews; das Zielbild steht in `spec/`. Die Regel steht in `AGENTS.md` §3.11; der Slice bringt den Bestand auf den Ist-Zustand, bevor die übrigen Slices ihren Teil liefern |
 | 2026-10-10 | welle-v1-abschluss um zehn Doku-Folge-Slices erweitert (`slice-v1-abschluss-einspielen-extended-doku`, `-einspielen-anmeldung-doku`, `-einspielen-tls-doku`, `-sqlite-format-doku`, `-zeitangaben-doku`, `-antwortvergleich-doku`, `-sessions-doku`, `-tls-client-doku`, `-anmeldung-doku`, `-protokollrand-doku`); jeder steht in der Reihenfolge direkt hinter seinem Code-Slice, die Schritte darunter sind neu nummeriert (34 statt 24); der Handbuch- und README-Teil jener Slices wandert in ihn | Entscheidung des Nutzers vom 2026-10-10 bei der Closure von `slice-doku-ist-stand` (Verifikation V-151): Mit der Dokumentation als eigener Schicht (`AGENTS.md` §3.13) lägen zehn Slices über zwei Schichten; „so bleibt alles zusammen: Code-Erweiterung und Handbuch“. Die Welle schließt erst mit beiden, ein Release liegt nicht dazwischen (`AGENTS.md` §3.11) |
 | 2026-10-11 | `slice-v1-abschluss-sqlite-format` vor dem ersten Code-Commit geschnitten: Er bleibt als *Schreiben* (`record --format sqlite`, Schema, Fabrik, Option, Architektur-Gate); das *Lesen* für `replay` und `play` (Formaterkennung, Fehlerklassen, Roundtrip) ist in `slice-v1-abschluss-sqlite-format-lesen` (welle-v1-abschluss, `next/`) aufgegangen. Reihenfolge in §5 von welle-v1-abschluss: Schreiben (16), Lesen (17), Doku (18); die Schritte dahinter sind neu nummeriert (35 statt 34); `slice-v1-abschluss-sqlite-format-doku` und `slice-v1-abschluss-zeitangaben` setzen auch das Lesen voraus | Entscheidung des Nutzers vom 2026-10-11 nach der Prüfung des Architect: der Diff des ganzen Slice, auf 2500 bis 3000 Zeilen geschätzt, ist nicht in einer Review-Sitzung prüfbar; Schnitt nach Option 1 (*Schreiben | Lesen*). Der Zwischenstand „sqlite schreibbar, aber nicht wiedergebbar“ ist wellenintern akzeptiert, ein Release liegt nicht dazwischen |
+| 2026-10-11 | `slice-v1-abschluss-homebrew` und `slice-v1-abschluss-cancel-ohne-schluessel` (aus welle-v1-abschluss) sowie `slice-erster-release-homebrew-nachweis` (aus welle-erster-release) in einer neuen Welle `welle-v1-nachtrag` aufgegangen, die nach welle-erster-release startet; Reihenfolge dort: Cancel, Homebrew, Nachweis. M4 heißt nur noch „erster Release veröffentlicht“, Abnahmeszenario 11 und der `CancelRequest` ohne Schlüssel gehören zu neuem M5; M3 nimmt beide aus „alle Anforderungen umgesetzt“. `slice-v1-abschluss-container` bleibt in welle-v1-abschluss und verliert den Ausschluss von Homebrew in seinem Start; die Schritte dahinter in §5 von welle-v1-abschluss sind neu nummeriert (33 statt 35); die Harness-Reihe startet nach welle-v1-nachtrag | Entscheidung des Nutzers vom 2026-10-11: Der erste Release soll nicht an der Homebrew-Bereitstellung und dem Randfall des `CancelRequest` hängen |
