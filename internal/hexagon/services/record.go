@@ -16,6 +16,8 @@ type RecordService struct {
 	upstream driven.Upstream
 	repo     driven.RecordingRepository
 	path     string
+	uhr      driven.Uhr
+	zeit     bool
 
 	mu       sync.Mutex
 	rec      model.Recording
@@ -29,6 +31,9 @@ type RecordService struct {
 // Zustandsänderung.
 type laufend struct {
 	upstream driven.UpstreamSession
+	// beginn ist die Lesung der Uhr beim Aufruf von OpenSession; nur mit
+	// Zeitaufzeichnung gesetzt.
+	beginn int64
 
 	mu          sync.Mutex
 	cond        *sync.Cond
@@ -53,6 +58,9 @@ type laufend struct {
 // offeneInteraktion ist eine Extended-Interaktion im Aufbau (LH-FA-18.a).
 type offeneInteraktion struct {
 	groups []model.Group
+	// ankunft ist die Lesung der Uhr beim Übernehmen der ersten Nachricht; nur
+	// mit Zeitaufzeichnung gesetzt.
+	ankunft int64
 	// aufbau: die letzte Gruppe nimmt noch Client-Nachrichten auf, ihr Flush
 	// oder Sync steht aus.
 	aufbau bool
@@ -90,22 +98,56 @@ func (l *laufend) merkeNichtUnterstuetzt(err error) {
 	}
 }
 
+// RecordOption stellt einen RecordService ein.
+type RecordOption func(*RecordService)
+
+// Zeitangaben stellt die Uhr des Laufs ein; mit aufzeichnen trägt jede
+// aufgezeichnete Interaktion offset_ms, den Unterschied zweier Lesungen dieser
+// Uhr (LH-FA-21.a *Aufzeichnen*, *Messpunkt*). Ohne aufzeichnen liest der
+// Service die Uhr nie.
+func Zeitangaben(uhr driven.Uhr, aufzeichnen bool) RecordOption {
+	return func(s *RecordService) { s.uhr, s.zeit = uhr, aufzeichnen }
+}
+
 // NewRecordService prüft den Zielpfad und liefert den Service.
-func NewRecordService(ctx context.Context, upstream driven.Upstream, repo driven.RecordingRepository, path string, replace bool) (*RecordService, error) {
+func NewRecordService(ctx context.Context, upstream driven.Upstream, repo driven.RecordingRepository, path string, replace bool, opts ...RecordOption) (*RecordService, error) {
 	if err := repo.Prepare(ctx, path, replace); err != nil {
 		return nil, err
 	}
-	return &RecordService{
+	s := &RecordService{
 		upstream: upstream,
 		repo:     repo,
 		path:     path,
 		rec:      model.NewRecording(),
 		sessions: map[model.SessionID]*laufend{},
-	}, nil
+	}
+	for _, o := range opts {
+		o(s)
+	}
+	return s, nil
+}
+
+// lesung liest die Uhr mit Zeitaufzeichnung, sonst nie (0).
+func (s *RecordService) lesung() int64 {
+	if !s.zeit {
+		return 0
+	}
+	return s.uhr.Jetzt()
+}
+
+// offset ist offset_ms einer Interaktion, die bei ankunft eintraf: die
+// Differenz der Lesungen, ohne Zeitaufzeichnung nil (LH-FA-21.a *Messpunkt*).
+func (s *RecordService) offset(l *laufend, ankunft int64) *int64 {
+	if !s.zeit {
+		return nil
+	}
+	ms := ankunft - l.beginn
+	return &ms
 }
 
 // OpenSession baut die Upstream-Session auf.
 func (s *RecordService) OpenSession(ctx context.Context, startup map[string]string) (model.SessionID, []model.Response, error) {
+	beginn := s.lesung()
 	up, responses, err := s.upstream.Open(ctx, startup)
 	if err != nil || up == nil {
 		return 0, responses, err
@@ -122,7 +164,7 @@ func (s *RecordService) OpenSession(ctx context.Context, startup map[string]stri
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.next++
-	l := &laufend{upstream: up, session: session}
+	l := &laufend{upstream: up, session: session, beginn: beginn}
 	l.cond = sync.NewCond(&l.mu)
 	s.sessions[s.next] = l
 	return s.next, responses, nil
@@ -141,6 +183,7 @@ func (s *RecordService) OpenSession(ctx context.Context, startup map[string]stri
 // eine einfache Anfrage keine Interaktion mehr: Query liefert ErrShutdown, ohne
 // sie weiterzuleiten (LH-FA-13.a).
 func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error) {
+	ankunft := s.lesung()
 	l, err := s.laufende(id)
 	if err != nil {
 		return nil, err
@@ -180,6 +223,7 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 	}
 	in := model.Interaction{
 		Sequence:  len(l.session.Interactions) + 1,
+		OffsetMS:  s.offset(l, ankunft),
 		Request:   model.Request{Type: model.RequestQuery, SQL: sql},
 		Responses: responses,
 	}
@@ -200,6 +244,7 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 // (LH-FA-13.a). Scheitert das Senden mit PGR-E6001, ist die Session nicht
 // übernehmbar, bevor der Fehler zurückgeht (LH-FA-02.b).
 func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) error {
+	ankunft := s.lesung()
 	l, err := s.laufende(id)
 	if err != nil {
 		return err
@@ -215,7 +260,7 @@ func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m
 			l.mu.Unlock()
 			return model.ErrShutdown
 		}
-		l.offen = append(l.offen, &offeneInteraktion{})
+		l.offen = append(l.offen, &offeneInteraktion{ankunft: ankunft})
 		n++
 	}
 	o := l.offen[n-1]
@@ -298,6 +343,7 @@ func (s *RecordService) AwaitServer(ctx context.Context, id model.SessionID) ([]
 		l.offen = l.offen[1:]
 		in := model.Interaction{
 			Sequence: len(l.session.Interactions) + 1,
+			OffsetMS: s.offset(l, o.ankunft),
 			Request:  model.Request{Type: model.RequestExtended},
 			Groups:   o.groups,
 		}

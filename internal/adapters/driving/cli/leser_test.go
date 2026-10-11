@@ -38,6 +38,7 @@ func tabelle() map[string]string {
 		"output":                      "",
 		"force":                       "false",
 		"format":                      "yaml",
+		"record-timing":               "false",
 		"input":                       "",
 		"fail-on-unconsumed":          "false",
 		"shutdown-timeout":            "5s",
@@ -286,7 +287,7 @@ func TestLeserLeererWert(t *testing.T) {
 // Optionen stehen in der Reihenfolge der Tabelle in LH-FA-17.a.
 func TestLeserOptionen(t *testing.T) {
 	for kommando, want := range map[string][]string{
-		"record": {"listen", "upstream", "output", "force", "format", "shutdown-timeout", "log-level"},
+		"record": {"listen", "upstream", "output", "force", "format", "record-timing", "shutdown-timeout", "log-level"},
 		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "log-level"},
 		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt", "upstream-ca", "log-level"},
 	} {
@@ -374,11 +375,12 @@ func TestLeserReihenfolge(t *testing.T) {
 func TestLeserFremdeUmgebung(t *testing.T) {
 	for _, kommando := range leserKommandos() {
 		leere(t, kommando)
-		for _, env := range []string{"PGWIRE_RECORDER_BOGUS", "PGWIRE_RECORDER_RECORD_TIMING", "PGWIRE_RECORDER_SESSION_ASSIGNMENT", "PGWIRE_RECORDER_KEEP_TIMING", "PGWIRE_RECORDER_"} {
+		for _, env := range []string{"PGWIRE_RECORDER_BOGUS", "PGWIRE_RECORDER_SESSION_ASSIGNMENT", "PGWIRE_RECORDER_KEEP_TIMING", "PGWIRE_RECORDER_"} {
 			t.Setenv(env, "ungültig")
 		}
 		if kommando != "record" {
 			t.Setenv("PGWIRE_RECORDER_FORMAT", "ungültig")
+			t.Setenv("PGWIRE_RECORDER_RECORD_TIMING", "ungültig")
 		}
 		if _, err := lese(basis(kommando, "")...); err != nil {
 			t.Errorf("%s: fremde Umgebungsvariable ausgewertet: %v", kommando, err)

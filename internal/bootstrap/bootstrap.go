@@ -63,7 +63,7 @@ func record(ctx context.Context, ablauf <-chan struct{}, o cli.RecordOptions, lo
 	if err != nil {
 		return fail(stderr, err)
 	}
-	service, err := services.NewRecordService(ctx, &postgres.Upstream{Address: o.Upstream}, repo, o.Output, o.Force)
+	service, err := services.NewRecordService(ctx, &postgres.Upstream{Address: o.Upstream}, repo, o.Output, o.Force, services.Zeitangaben(NeueSystemuhr(), o.RecordTiming))
 	if err != nil {
 		return fail(stderr, err)
 	}

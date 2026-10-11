@@ -24,6 +24,7 @@ type RecordOptions struct {
 	Output          string
 	Force           bool
 	Format          string
+	RecordTiming    bool
 	LogLevel        string
 	ShutdownTimeout time.Duration
 }
@@ -140,6 +141,11 @@ const optionenRecord = `Optionen von record:
   --format yaml|sqlite
               Format der Aufzeichnung, Standard yaml; Umgebungsvariable
               PGWIRE_RECORDER_FORMAT
+  --record-timing[=true|false]
+              trägt an jeder Interaktion offset_ms ein, die Millisekunden
+              vom Beginn der Session bis zum Eintreffen der ersten
+              Client-Nachricht der Interaktion; Standard false;
+              Umgebungsvariable PGWIRE_RECORDER_RECORD_TIMING
 ` + optionShutdownTimeout + optionLogLevel + optionConfig + optionUmgebung
 
 const optionenReplay = `Optionen von replay:
@@ -373,6 +379,7 @@ func optionen(kommando string) []option {
 			{name: "output", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Record.Output = v }},
 			{name: "force", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.Force = v == "true" }},
 			{name: "format", art: artFormat(), standard: formatYAML, setze: func(c *Command, v string) { c.Record.Format = v }},
+			{name: "record-timing", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.RecordTiming = v == "true" }},
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Record.ShutdownTimeout, v) }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Record.LogLevel = v }},
 		}

@@ -40,8 +40,10 @@ type Session struct {
 // nur Groups (SPEC-041). Validate prüft diese Form.
 type Interaction struct {
 	Sequence int
-	// OffsetMS ist der Abstand zum Beginn der Session in Millisekunden, nur mit
-	// Zeitaufzeichnung (LH-FA-21.a); sonst nil.
+	// OffsetMS ist der Unterschied zweier Lesungen der Uhr in Millisekunden: der
+	// Lesung bei der Ankunft der ersten Client-Nachricht der Interaktion und der
+	// Lesung beim Beginn der Session (LH-FA-21.a *Messpunkt*); nur mit
+	// Zeitaufzeichnung, sonst nil.
 	OffsetMS  *int64
 	Request   Request
 	Responses []Response
