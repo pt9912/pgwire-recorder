@@ -29,6 +29,9 @@ func jsonKnoten(text string) (*yaml.Node, error) {
 	if !utf8.ValidString(text) || !json.Valid([]byte(text)) {
 		return nil, fmt.Errorf("kein gültiger JSON-Text")
 	}
+	if err := ohneEinzelnesSurrogat(text); err != nil {
+		return nil, err
+	}
 	dec := json.NewDecoder(strings.NewReader(text))
 	dec.UseNumber()
 	return leseJSON(dec)
@@ -98,10 +101,10 @@ func leseListe(dec *json.Decoder) (*yaml.Node, error) {
 // und jede Zahl außerhalb der 64-Bit-Zahlen mit Vorzeichen sind ein Fehler.
 func zahlKnoten(text string) (*yaml.Node, error) {
 	if !kanonischeZahl.MatchString(text) {
-		return nil, fmt.Errorf("Zahl %q ist nicht kanonisch ganz", text)
+		return nil, fmt.Errorf("Zahl ist nicht kanonisch ganz")
 	}
 	if _, err := strconv.ParseInt(text, 10, 64); err != nil {
-		return nil, fmt.Errorf("Zahl %q außerhalb von 64 Bit", text)
+		return nil, fmt.Errorf("Zahl außerhalb von 64 Bit")
 	}
 	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!int", Value: text}, nil
 }
@@ -135,4 +138,48 @@ func textKnoten(s string) *yaml.Node {
 		return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!binary", Value: base64.StdEncoding.EncodeToString([]byte(s))}
 	}
 	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Style: yaml.DoubleQuotedStyle, Value: s}
+}
+
+// ohneEinzelnesSurrogat lehnt einen gültigen JSON-Text ab, der ein maskiertes einzelnes
+// Surrogat trägt (SPEC-043): ein hohes (\uD800 bis \uDBFF) ohne unmittelbar folgendes
+// tiefes oder ein tiefes (\uDC00 bis \uDFFF) ohne vorangehendes hohes. Ein Paar und das
+// Zeichen U+FFFD selbst sind gültig. Die Bibliothek ersetzt ein einzelnes Surrogat still
+// durch U+FFFD, deshalb liest die Prüfung den Text der Escapes.
+func ohneEinzelnesSurrogat(text string) error {
+	for i := 0; i < len(text); i++ {
+		if text[i] != '\\' {
+			continue
+		}
+		if text[i+1] != 'u' {
+			i++
+			continue
+		}
+		c := hexEscape(text, i)
+		switch {
+		case c >= 0xD800 && c <= 0xDBFF:
+			if hexEscape(text, i+6) < 0xDC00 || hexEscape(text, i+6) > 0xDFFF {
+				return fmt.Errorf("einzelnes Surrogat")
+			}
+			i += 11
+		case c >= 0xDC00 && c <= 0xDFFF:
+			return fmt.Errorf("einzelnes Surrogat")
+		default:
+			i += 5
+		}
+	}
+	return nil
+}
+
+// hexEscape liefert den Wert des Escapes \uXXXX an der Stelle i, oder -1, wenn dort keiner
+// steht. Der Text ist als gültiger JSON-Text geprüft: Ein Backslash steht nur in einem
+// String und ein \u hat vier Hexziffern.
+func hexEscape(text string, i int) int {
+	if i+6 > len(text) || text[i] != '\\' || text[i+1] != 'u' {
+		return -1
+	}
+	n, err := strconv.ParseUint(text[i+2:i+6], 16, 32)
+	if err != nil {
+		return -1
+	}
+	return int(n)
 }

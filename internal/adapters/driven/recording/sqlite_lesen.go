@@ -26,7 +26,23 @@ func (*SQLite) Load(ctx context.Context, path string) (model.Recording, error) {
 	if err != nil {
 		return model.Recording{}, err
 	}
-	return Unmarshal(text)
+	return ladeInhalt(path, text)
+}
+
+// ladeInhalt liest die übertragene Darstellung text der Datei path mit Unmarshal, dem Weg
+// von yaml. Ein Fehler behält seine Klasse; seine Meldung nennt nur die Datei, nicht die
+// Ursache der YAML-Bibliothek (Zeile und Wert der übertragenen Darstellung).
+func ladeInhalt(path string, text []byte) (model.Recording, error) {
+	rec, err := Unmarshal(text)
+	if err == nil {
+		return rec, nil
+	}
+	code := model.CodeRecordingBroken
+	var me *model.Error
+	if errors.As(err, &me) {
+		code = me.Code
+	}
+	return model.Recording{}, model.Errorf(code, nil, "%s: Inhalt der SQLite-Datei beschädigt", path)
 }
 
 // stufeCode liefert den Meldungscode für den Ergebniscode code der Bibliothek: ein
@@ -71,7 +87,8 @@ type lesung struct {
 }
 
 // leseAlsYAML liest die Datei path in einer Lesetransaktion und liefert die Aufzeichnung
-// als Text, den Unmarshal liest. nach ist der Eingriff von lesung.
+// als Text, den Unmarshal liest. Ein Fehler beim Schließen der Datenbank nach dem Lesen
+// bleibt unbeachtet. nach ist der Eingriff von lesung.
 func leseAlsYAML(ctx context.Context, path string, nach func(*sql.Tx, string)) ([]byte, error) {
 	uri, err := uriVon(path)
 	if err != nil {
@@ -184,7 +201,7 @@ func (l lesung) liesMeta(ctx context.Context) (bool, error) {
 			return false, beschaedigt("meta: Schlüssel und Wert sind kein TEXT")
 		}
 		if _, doppelt := meta[k]; doppelt {
-			return false, beschaedigt("meta: Schlüssel %q doppelt", k)
+			return false, beschaedigt("meta: ein Schlüssel doppelt")
 		}
 		meta[k] = v
 	}
@@ -199,27 +216,27 @@ func pruefeMeta(meta map[string]string) (bool, error) {
 		return false, beschaedigt("meta ohne %s", metaFormat)
 	}
 	if format != model.Format {
-		return false, beschaedigt("Formatkennung %q statt %q", format, model.Format)
+		return false, beschaedigt("meta: Formatkennung ist nicht %s", model.Format)
 	}
 	version, ok := meta[metaVersion]
 	if !ok {
 		return false, beschaedigt("meta ohne %s", metaVersion)
 	}
 	if !kanonischeZahl.MatchString(version) {
-		return false, beschaedigt("meta: version %q ist keine kanonische ganze Zahl", version)
+		return false, beschaedigt("meta: version ist keine kanonische ganze Zahl")
 	}
 	if version != "1" {
-		return false, model.Errorf(model.CodeRecordingVersion, nil, "Version %s wird nicht unterstützt", version)
+		return false, model.Errorf(model.CodeRecordingVersion, nil, "Version der Datei wird nicht unterstützt")
 	}
 	for k, v := range meta {
 		switch k {
 		case metaFormat, metaVersion:
 		case metaEmptySessions:
 			if v != "true" {
-				return false, beschaedigt("meta: %s trägt %q statt true", k, v)
+				return false, beschaedigt("meta: %s trägt nicht true", k)
 			}
 		default:
-			return false, beschaedigt("meta: unbekannter Schlüssel %q", k)
+			return false, beschaedigt("meta: unbekannter Schlüssel")
 		}
 	}
 	_, leere := meta[metaEmptySessions]
@@ -400,7 +417,7 @@ func interaktionVon(z []any) (int64, *interaktionBau, error) {
 			return 0, nil, beschaedigt("Session %d, Interaktion %d: sql einer Extended-Interaktion ist nicht NULL", sid, seq)
 		}
 	default:
-		return 0, nil, beschaedigt("Session %d, Interaktion %d: type %q unbekannt", sid, seq, art)
+		return 0, nil, beschaedigt("Session %d, Interaktion %d: type unbekannt", sid, seq)
 	}
 	return sid, i, nil
 }
@@ -462,7 +479,7 @@ func nachrichtVon(z []any) (nachrichtBau, error) {
 		n.gruppe = &g
 	}
 	if richtung != richtungClient && richtung != richtungServer {
-		return nachrichtBau{}, beschaedigt("Session %d, Interaktion %d, Nachricht %d: direction %q unbekannt", sid, seq, pos, richtung)
+		return nachrichtBau{}, beschaedigt("Session %d, Interaktion %d, Nachricht %d: direction unbekannt", sid, seq, pos)
 	}
 	felder, err := jsonKnoten(text)
 	if err != nil {

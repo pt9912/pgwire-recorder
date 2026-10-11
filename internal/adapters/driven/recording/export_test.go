@@ -130,7 +130,7 @@ func LeseMit(ctx context.Context, path string, nach func(tx *sql.Tx, tabelle str
 	if err != nil {
 		return model.Recording{}, err
 	}
-	return Unmarshal(text)
+	return ladeInhalt(path, text)
 }
 
 // StufeCode liefert den Meldungscode, den SQLite.Load für den Ergebniscode code der

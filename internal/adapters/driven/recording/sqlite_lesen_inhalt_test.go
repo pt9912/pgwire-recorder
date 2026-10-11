@@ -3,6 +3,7 @@ package recording_test
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -43,7 +44,8 @@ const (
 	ausNachricht = `session_id = 1 AND sequence = 2`
 )
 
-// Abdeckung: LH-FA-22/Negative, LH-QA-06/Messung — jede Spalte mit einer anderen gespeicherten Art als der ihres
+// Abdeckung: LH-FA-22/Negative, LH-QA-06/Messung — (Zählung und Reihenfolge der Gruppen: SPEC-043, group_no ab 1
+// lückenlos, Client- vor Server-Nachrichten) jede Spalte mit einer anderen gespeicherten Art als der ihres
 // Typs, jede Nummer, die nicht ab 1 lückenlos zählt, jede verwaiste und jede doppelte Zeile und
 // jede Zeile gegen die Regeln von SPEC-043 macht die Aufzeichnung beschädigt (PGR-E3003);
 // die zugehörigen Fälle, die gültig sind, lesen ohne Fehler.
@@ -177,7 +179,8 @@ func TestLesenLeereObjekteSindKeineEintraege(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-22/Negative, LH-QA-06/Messung — meta: ohne format oder version, mit anderer Formatkennung, mit
+// Abdeckung: LH-FA-22/Negative, LH-QA-06/Messung — meta (der doppelte Schlüssel nach LH-FA-22.a *Lesen von
+// `sqlite`*, der Rest nach SPEC-043): ohne format oder version, mit anderer Formatkennung, mit
 // einem unbekannten Schlüssel, mit einem Wert von empty_sessions außer true oder mit einer
 // Version, die keine kanonische Zahl ist, ist die Datei beschädigt (PGR-E3003); jede kanonische
 // Zahl außer 1, auch 0, eine negative und eine zu große für 64 Bit, ist PGR-E3002; geprüft
@@ -347,5 +350,86 @@ func TestLesenJSONTief(t *testing.T) {
 	rohSchreibe(t, path, `UPDATE message SET fields = '{"tag":`+tief+`}' WHERE session_id = 2 AND position = 1`)
 	if _, err := laden(path); codeVon(err) != beschaedigt {
 		t.Errorf("tief verschachtelt: %v", err)
+	}
+}
+
+// Abdeckung: LH-FA-22/Negative, LH-QA-06/Messung — ein maskiertes einzelnes Surrogat im JSON-Text (SPEC-043,
+// Regel base64:) ist PGR-E3003, als Wert wie als Schlüssel, in startup und tief verschachtelt in
+// fields: \ud800 und \udc00 allein, ein hohes ohne unmittelbar folgendes tiefes (\ud800x,
+// \ud800\u0041, \ud800\ud800) und ein tiefes vor einem hohen (\udc00\ud800); ein Paar, \ufffd
+// und das wörtliche Zeichen U+FFFD lesen als Zeichen, ebenso ein Backslash, dem ud800 als Text
+// folgt.
+func TestLesenSurrogate(t *testing.T) {
+	notice := `session_id = 1 AND sequence = 1 AND position = 4`
+	orte := func(inhalt string) []fall {
+		return []fall{
+			{"startup Wert " + inhalt, `UPDATE session SET startup = '{"a":"` + inhalt + `"}' WHERE id = 2`, ""},
+			{"startup Schlüssel " + inhalt, `UPDATE session SET startup = '{"` + inhalt + `":"v"}' WHERE id = 2`, ""},
+			{"Hinweis Wert " + inhalt, `UPDATE message SET fields = '{"notice":{"M":"` + inhalt + `"}}' WHERE ` + notice, ""},
+			{"Hinweis Schlüssel " + inhalt, `UPDATE message SET fields = '{"notice":{"` + inhalt + `":"v"}}' WHERE ` + notice, ""},
+		}
+	}
+	var faelle []fall
+	for _, inhalt := range []string{`\ud800`, `\uD800`, `\udc00`, `\udbff`, `\udfff`, `\ud800x`, `\ud800\u0041`, `\ud800\ud800`, `\ud800\ue000`, `\ud800\uffff`, `\udc00\ud800`, `x\ud800`, `\ud800\\`, `\ud800 `} {
+		for _, f := range orte(inhalt) {
+			f.want = beschaedigt
+			faelle = append(faelle, f)
+		}
+	}
+	for _, inhalt := range []string{`\ud83d\ude00`, `\ufffd`, "\ufffd", `\\ud800`, `\\\\ud800`, `\ud800` + `\udc00`, `\udbff\udfff`} {
+		faelle = append(faelle, orte(inhalt)...)
+	}
+	pruefeFaelle(t, faelle)
+	path := sqliteDatei(t, lesefixture())
+	rohSchreibe(t, path, `UPDATE session SET startup = '{"a":"\ud83d\ude00 \ufffd \\ud800"}' WHERE id = 2`)
+	if got := ladeOK(t, path).Sessions[1].Startup["a"]; got != "\U0001F600 \ufffd \\ud800" {
+		t.Errorf("gelesen: %q", got)
+	}
+}
+
+// Abdeckung: LH-FA-22/Negative — die Meldung zu einem Fehler des Inhalts nennt keinen Wert aus der Datei und
+// keine Zeilennummer, auf jedem Weg: bei einer eigenen Prüfung des Lesers (meta, Art, Richtung),
+// beim Weg über Unmarshal (unbekannter Schlüssel in fields, der die YAML-Bibliothek mit Zeile und
+// Wert melden würde) und beim JSON-Text (Schlüssel, Zahl, Base64, Syntax); die Meldung des Wegs
+// über Unmarshal nennt die Datei und dass der Inhalt beschädigt ist.
+func TestLesenMeldungOhneWertUndZeile(t *testing.T) {
+	zeile := regexp.MustCompile(`[Zz]eile \d+|line \d+`)
+	basis := sqliteDatei(t, lesefixture())
+	lockere(t, basis)
+	query := `session_id = 2 AND position = 1`
+	for _, c := range []struct{ name, sql, enthaelt, code string }{
+		{"meta Formatkennung", `UPDATE meta SET value = 'geheim-wert' WHERE key = 'format'`, "", ""},
+		{"meta Schlüssel", `INSERT INTO meta VALUES ('geheim-wert', 'x')`, "", ""},
+		{"meta Schlüssel doppelt", `INSERT INTO meta VALUES ('format', 'geheim-wert')`, "", ""},
+		{"meta version", `UPDATE meta SET value = 'geheim-wert' WHERE key = 'version'`, "", ""},
+		{"meta empty_sessions", `INSERT INTO meta VALUES ('empty_sessions', 'geheim-wert')`, "", ""},
+		{"Art der Interaktion", `UPDATE interaction SET type = 'geheim-wert' WHERE session_id = 2`, "Session 2, Interaktion 1", ""},
+		{"Richtung", `UPDATE message SET direction = 'geheim-wert' WHERE ` + query, "Session 2, Interaktion 1, Nachricht 1", ""},
+		{"unbekannter Schlüssel in fields", `UPDATE message SET fields = '{"tag":"x","geheim-wert":1}' WHERE ` + query, "Inhalt der SQLite-Datei beschädigt", ""},
+		{"unbekannte Art", `UPDATE message SET kind = 'geheim-wert' WHERE ` + query, "Inhalt der SQLite-Datei beschädigt", ""},
+		{"Zeile gegen die Regeln", `UPDATE message SET fields = '{"geheim-wert":1}' WHERE ` + query, "Inhalt der SQLite-Datei beschädigt", ""},
+		{"JSON Zahl", `UPDATE message SET fields = '{"geheim-wert":1.5}' WHERE ` + query, "Session 2, Interaktion 1, Nachricht 1", ""},
+		{"JSON Zahl als Wert", `UPDATE message SET fields = '{"tag":7.25125}' WHERE ` + query, "Session 2, Interaktion 1, Nachricht 1", ""},
+		{"meta version unbekannt", `UPDATE meta SET value = '4711' WHERE key = 'version'`, "", unbekannteV},
+		{"JSON Syntax", `UPDATE message SET fields = '{"geheim-wert"' WHERE ` + query, "Session 2, Interaktion 1, Nachricht 1", ""},
+		{"JSON Base64 im Schlüssel", `UPDATE session SET startup = '{"base64:geheim-wert!":"v"}' WHERE id = 2`, "session.startup", ""},
+		{"JSON Base64 im Wert", `UPDATE session SET server_parameters = '{"a":"base64:geheim-wert!"}' WHERE id = 2`, "session.server_parameters", ""},
+		{"JSON Wert kein String", `UPDATE session SET startup = '{"geheim-wert":1}' WHERE id = 2`, "session.startup", ""},
+		{"JSON Zahl in startup", `UPDATE session SET startup = '{"geheim-wert":1.5}' WHERE id = 2`, "session.startup", ""},
+	} {
+		path := kopiere(t, basis)
+		rohSchreibe(t, path, c.sql)
+		_, err := laden(path)
+		want := beschaedigt
+		if c.code != "" {
+			want = c.code
+		}
+		if codeVon(err) != want {
+			t.Errorf("%s: %v", c.name, err)
+			continue
+		}
+		if strings.Contains(err.Error(), "geheim-wert") || strings.Contains(err.Error(), "7.25125") || strings.Contains(err.Error(), "4711") || zeile.MatchString(err.Error()) || !strings.Contains(err.Error(), c.enthaelt) {
+			t.Errorf("%s: Meldung %q", c.name, err.Error())
+		}
 	}
 }

@@ -402,7 +402,7 @@ func TestLesenNichtLesbarUndKopfOhneInhalt(t *testing.T) {
 	}
 	abgebrochen, cancel := context.WithCancel(ctx)
 	cancel()
-	if _, err := (&recording.SQLite{}).Load(abgebrochen, sqliteDatei(t, sessionsMit(1))); code(err) != model.CodeRecordingIO {
+	if _, err := (&recording.SQLite{}).Load(abgebrochen, sqliteDatei(t, sessionsMit(1))); code(err) != model.CodeRecordingIO || !strings.Contains(err.Error(), "context canceled") {
 		t.Errorf("abgebrochen: %v", err)
 	}
 	for name, inhalt := range map[string]string{
