@@ -5,3 +5,5 @@ Zielort: `AGENTS.md §3.11` und `.claude/commands/implement-slice.md` Schritt 20
 **Sensor:** geplant — Kennung: `slice-harness-mutation`.
 
 Der Absatz zu einer Aussage über eine Kette (Probe in beide Richtungen) in `.claude/commands/implement-slice.md` Schritt 19 — Herkunfts-Anker `seit slice-v1-abschluss-einspielen-tls-doku` (Beleg `evidence/slice-v1-abschluss-einspielen-tls-doku.md`, F-610).
+
+Der Absatz zu einer Anleitung mit Folgeschritten (Ausgangszustand mit Inhalt und ohne, jeder Schritt der Kette mit Probe) in `.claude/commands/implement-slice.md` Schritt 19 sowie der Absatz zu einem Satz ohne eigene Probezeile und zu einem Zustandswort, das die Probe anders nennt, in `.claude/commands/implement-slice.md` Schritt 17 — Herkunfts-Anker `seit slice-v1-abschluss-sqlite-format-doku` (Beleg `evidence/slice-v1-abschluss-sqlite-format-doku.md`, F-631, F-632, F-636, V-179, V-180).

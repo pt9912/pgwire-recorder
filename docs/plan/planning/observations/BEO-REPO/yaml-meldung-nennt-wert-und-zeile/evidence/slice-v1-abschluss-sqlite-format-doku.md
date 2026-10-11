@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format-doku
+**Fund:** Dieselbe Datei, die ersten 15 Bytes einer SQLite-Kennung, meldet beim Lesen als `yaml` `PGR-E3003` mit Zeile und einem Stück des Dateiinhalts (`cannot unmarshal !!str …`; Review F-635, Verifikation V-181). Das Handbuch sagt über den Inhalt der Meldungen nichts zu und wird durch den Fund nicht falsch; die Lücke bleibt die Entscheidung des Nutzers vom 2026-10-11 (Regel vorerst nur für `sqlite`).

@@ -144,6 +144,11 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     Ein Satz, der unverändert bleibt und unmittelbar neben einem neuen Satz über denselben
     Gegenstand steht, liest sich für dessen Fall mit: Er bekommt eine Probe oder einen Test für
     diesen Fall oder wird enger gefasst (seit slice-v1-abschluss-einspielen-extended-doku).
+    Jeder Satz mit einer Verhaltensaussage hat in der Probe-Tabelle von §7 seine eigene Zeile,
+    auch ein Nebensatz über die Art, wie etwas geschieht („legt die Datei über die temporäre
+    Datei an“); ein Satz ohne Zeile wird gestrichen oder bekommt sie. Ein Wort, das einen
+    Zustand benennt („leer“), nennt ihn so, wie die Probe ihn zeigt („ohne Wert, `NULL`“)
+    (seit slice-v1-abschluss-sqlite-format-doku).
     Die Befehlsfolge aus `done/slice-doku-ist-stand.md` §7 (Optionen, Variablen und Codes des
     Handbuchs gegen `--help` und Katalog) bleibt dort eingefroren und meldet
     `PGWIRE_RECORDER_PASSWORD` bei jedem Lauf (Variable ohne Option, Handbuch §5). Der Plan, der
@@ -213,7 +218,10 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     beide Richtungen belegt** (seit slice-v1-abschluss-einspielen-tls-doku): ein Fall, in dem sie
     gilt, und einer, in dem sie nur gälte, wenn die Kette anders wäre (Zwischenstelle statt
     Wurzel, Blatt ohne die mitgesendete Stelle); „die Stelle, die es ausgestellt hat“ ist ohne
-    den zweiten Fall eine Annahme.
+    den zweiten Fall eine Annahme. Dazu zählt eine Anleitung mit Folgeschritten („dann macht X
+    rückgängig und entfernt Y, danach startet Z“): Der Ausgangszustand mit Inhalt und der ohne
+    (eine leere Datei) sind zwei Fälle, und jeder Schritt der Kette hat seine Probe
+    (seit slice-v1-abschluss-sqlite-format-doku).
     **Nennst du einen anderen Slice als Adresse** (§6, §7; `AGENTS.md` §3.13,
     seit slice-lint-bestand-kern-driven), liest du vorher dessen §1 *Ausdrücklich NICHT* und DoD
     und trägst die Sendung im selben Commit dort ein, mit der Kennung des Gebers. Trifft ein
