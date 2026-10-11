@@ -307,8 +307,8 @@ Antworten, und `play` führt dieselben Anfragen aus.
 * `replay` und `play` erkennen das Format an den ersten Bytes der Datei, nicht an
   ihrem Namen: Eine SQLite-Datei mit der Endung `.yaml` liest das Werkzeug als SQLite,
   eine YAML-Datei mit der Endung `.sqlite` als YAML. Eine Datei, die nicht mit der
-  Kennung einer SQLite-Datei beginnt, liest es als YAML, auch eine leere; sie ist dann
-  beschädigt (`PGR-E3003`).
+  Kennung einer SQLite-Datei beginnt, liest es als YAML und meldet `PGR-E3003`, wenn
+  sie als YAML nicht lesbar ist; das gilt auch für eine leere Datei.
 * Eine vorhandene Zieldatei ersetzt `--force` vollständig; das Werkzeug ergänzt sie nie.
   Eine YAML-Datei ersetzt es mit `--format sqlite` durch eine SQLite-Datei und umgekehrt.
 * Bei `sqlite` entsteht die Datei mit dem ersten Schreibvorgang, nach der ersten
@@ -316,17 +316,22 @@ Antworten, und `play` führt dieselben Anfragen aus.
   beendete Verbindung ergänzt das Werkzeug danach in der Datei. Zeichnen Sie ohne jede
   Verbindung auf, entsteht eine gültige Datei ohne Sitzung; `replay` meldet sie beim
   Start als `PGR-E3004`.
-* Neben der Zieldatei liegt während des Ergänzens eine Datei `<Zieldatei>-journal`. Liegt
-  beim Start von `record` eine solche Datei neben dem Zielpfad, endet `record` mit
-  `PGR-E3001`, auch mit `--force` und auch ohne Zieldatei. Sie ist das Rollback-Journal
-  eines früheren Laufs. Öffnen Sie die Zieldatei einmal mit `sqlite3` (eine Abfrage genügt),
-  dann macht SQLite den Abbruch rückgängig und entfernt die Datei; danach startet `record`
-  wieder. Mit der Zieldatei und ohne `--force` gilt zuerst `PGR-E2002`.
 * Die Datei lässt sich während des Aufzeichnens lesen: `sqlite3` und `replay` sehen die
   Verbindungen, die zu dem Zeitpunkt beendet waren.
 * `replay` und `play` öffnen die Datei nur lesend und verändern sie nicht, auch auf einem
-  schreibgeschützten Verzeichnis. Hält ein anderer Prozess die Datei gesperrt, wartet das
-  Lesen höchstens fünf Sekunden und endet dann mit `PGR-E3001`.
+  schreibgeschützten Verzeichnis.
+
+#### Randfälle
+
+* Liegt beim Start von `record` eine Datei `<Zieldatei>-journal` neben dem Zielpfad,
+  endet `record` mit `PGR-E3001`, auch mit `--force` und auch ohne Zieldatei; mit der
+  Zieldatei und ohne `--force` gilt zuerst `PGR-E2002`. Nennt die Meldung die Datei ein
+  Rollback-Journal eines früheren Laufs und hat sie Inhalt: Öffnen Sie die Zieldatei einmal mit
+  `sqlite3` (eine Abfrage genügt), dann macht SQLite den Abbruch rückgängig und entfernt
+  die Journal-Datei; danach startet `record`. Eine leere Journal-Datei entfernt
+  `sqlite3` nicht; löschen Sie sie selbst, danach startet `record`.
+* Hält ein anderer Prozess die Datei gesperrt, wartet das Lesen durch `replay` und
+  `play` höchstens fünf Sekunden und endet dann mit `PGR-E3001`.
 * Eine SQLite-Datei ist binär. Ist sie keine gültige Aufzeichnung dieses Werkzeugs (eine
   fremde SQLite-Datei, eine fehlende Tabelle oder Spalte, eine abgeschnittene Datei,
   ein widersprüchlicher Inhalt), meldet das Werkzeug `PGR-E3003`; eine unbekannte
@@ -935,7 +940,7 @@ für den Exit-Code.
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
 | `PGR-E2007` | Datei von `--upstream-ca` nicht verwendbar | Die Datei fehlt, ist nicht lesbar, ist keine reguläre Datei oder enthält keine Zertifikate im PEM-Format. Die Meldung nennt die Option und den Grund, nicht den Pfad; der Exit-Code ist 2. Prüfen Sie Pfad, Rechte und Inhalt der Datei. |
-| `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Bei `sqlite` außerdem: Neben dem Zielpfad liegt eine Datei `<Zielpfad>-journal`, oder eine SQLite-Datei ist länger als fünf Sekunden gesperrt (die Meldung nennt `SQLITE_BUSY`). Prüfen Sie Pfad und Dateirechte, und siehe [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen). |
+| `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Bei `sqlite` außerdem: Neben dem Zielpfad liegt eine Datei `<Zielpfad>-journal`, oder eine SQLite-Datei ist länger als fünf Sekunden gesperrt. Prüfen Sie Pfad und Dateirechte, und siehe [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen). |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion; das gilt für beide Formate. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Bei einer SQLite-Datei auch: Sie ist keine SQLite-Datei oder eine fremde, eine Tabelle oder Spalte fehlt, sie ist abgeschnitten, oder ihr Inhalt ist ungültig (zum Beispiel falsche Formatkennung, keine lückenlose Nummerierung, ein Eintrag ohne zugehörige Sitzung). Zeichnen Sie erneut auf. |
 | `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | `replay` meldet den Fehler beim Start. Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
