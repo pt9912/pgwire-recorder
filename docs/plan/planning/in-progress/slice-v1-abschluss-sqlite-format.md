@@ -184,6 +184,136 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Stand.** Geliefert sind die drei Liefer-Punkte der DoD (Schreiben mit Fabrik und Option, Schema mit
+Ersatztest, Architektur-Gate mit Erlaubnisliste) in vier Commits seit `4914a4a`: `f052e63`
+(Recording-Adapter, Schema, `go.mod`, Erlaubnisliste, Kommentare an Port und `RecordService`, Plan §3),
+`fc59441` (`--format`, Bootstrap, Test der gemeinsamen Zusage, Tests über das Binary), `07d34c4`
+(Gegenprobe des Architektur-Gates), `9ebab6c` (die Kopfzeile im Test über das Binary als Konstante: der
+erste `make gates` meldete `gochecknoglobals`, weil `make lint` vor dem Anlegen der Datei lief) und der
+Commit dieser Belege. Neu sind `internal/adapters/driven/recording/sqlite.go`, `sqlite_zeilen.go`,
+`sqlite_json.go`, `format.go`, `schema.sql`, `sqlite_test.go`, `sqlite_schreiben_test.go`,
+`sqlite_einstellungen_test.go`, `sqlite_json_test.go`, `sqlite_hilfen_test.go`,
+`internal/bootstrap/format_test.go` und `test/integration/sqlite_format_e2e_test.go`; geändert
+`export_test.go`, `cli.go`, `bootstrap.go`, der Port-Kommentar, `go.mod`, `go.sum`, `.golangci.yml`,
+`tools/harness/lint-gegenprobe.sh`, `tools/arch/a-check-negativ.sh`, `harness/mk/arch-negativ.mk`,
+`harness/README.md`, `tools/schema/schema.yaml` und `docs/user/abdeckung-*.md`. Port `Write`,
+Handbuch und `README.md` sind unverändert. **Größe:** `git diff --numstat 4914a4a..9ebab6c` zählt
+2794 Zeilen hinzu, davon 676 Go-Code und 1975 Go-Tests; die Schätzung in §4 war rund 1800. Die
+Rückführung *zu groß* aus §4 hängt an der Prüfbarkeit in einer Review-Sitzung, und die entscheidet das
+Review; die Tests sind überwiegend Tabellen mit rohem SQL.
+
+**Zusage · Mutation · roter Test.** Jede Mutation lief in einer frischen Kopie des Baums (`cp -r` ohne `-p`,
+`go.mod`, `go.sum`, `cmd/`, `internal/`, `test/`), mit einer Ersetzung, `gofmt -l` der Datei leer und
+`go test -count=1 -run <Tests>` im gepinnten Go-Image mit Bind-Mount (der Mutant kommt ohne Build-Kontext an);
+`E1` bis `E5` liefen mit `make test-integration` in einer Kopie des ganzen Baums. Die Kennung in Klammern
+ist die des Laufs.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `--format` nimmt genau `yaml` und `sqlite`, sonst `PGR-E2001` | `Set` vergleicht ohne Groß-/Kleinschreibung (C1, E5); `Set` nimmt jeden Wert an (C6) | `TestParseRecordFormat`, `TestLeserAlleOptionen`; am Binary `TestE2EFormatUngueltig` |
+| `sqlite` ist ein Wert von `--format` | `Formate()` ohne `sqlite` (C2) | `TestFormate`, `TestParseRecordFormat`, `TestLeserAlleOptionen` |
+| Standard ist `yaml` | Standard `sqlite` (C3) | `TestParseRecordFormat`, `TestLeserAlleOptionen`, `TestParseRecord` |
+| der Wert gelangt nach `RecordOptions.Format` | `setze` schreibt immer `yaml` (C7) | `TestParseRecordFormat`, `TestLeserAlleOptionen` |
+| `replay` und `play` kennen `--format` nicht | `replay` bekommt die Option (C4, E4) | `TestLeserOptionen`; am Binary `TestE2EFormatUngueltig` |
+| die Hilfe von `record` nennt `--format yaml\|sqlite` und die Umgebungsvariable | Hilfetext entfernt (C5) | `TestHilfeFormat` |
+| **gemeinsame Zusage:** jeder Wert der Kommandozeile nimmt `New` an | `sqlite` aus `New` gestrichen (F1, F1b) | `TestFormateDerKommandozeileKenntDieFabrik` (Bootstrap), `TestNewFormat` |
+| `New` lehnt jeden anderen Wert mit `PGR-E2001` ab | unbekannter Wert liefert YAML (F2); Code `PGR-E1000` (F3) | `TestNewFormat` |
+| der Bootstrap reicht `o.Format` durch | `recording.New("yaml")` (B1, E1) | `TestRunRecordFormat`; am Binary `TestE2ERecordFormatSQLite`, `TestE2ERecordFormatQuellen`, `TestE2ERecordFormatSQLiteJournal` |
+| `<Zielpfad>-journal` beim Start `PGR-E3001` | anderer Name geprüft (P1); Suffix `.journal` (P7); nur ohne `--force` (P3); kein Zweig für „nicht prüfbar“ (P5); Prüfung weg (E2) | `TestSQLitePrepareJournal`, `TestSQLitePrepareJournalReihenfolge`; am Binary `TestE2ERecordFormatSQLiteJournal` |
+| das Journal wird nach dem Zielpfad geprüft | Journal zuerst (P2b) | `TestSQLitePrepareJournal`, `TestSQLitePrepareJournalReihenfolge` |
+| „vorhanden“ wie beim Zielpfad (Verknüpfung nach ihrem Ziel) | `Lstat` statt `Stat` (P4) | `TestSQLitePrepareJournalReihenfolge` |
+| der Zielpfad wird wie bei `yaml` geprüft | `pruefe` aus `Prepare` entfernt (P6) | `TestSQLitePrepareZielpfad`, `TestSQLitePrepareJournal`, `TestSQLitePrepareJournalReihenfolge` |
+| der erste Schreibvorgang verschiebt die temporäre Datei atomar | `os.Rename` am Hook vorbei (W32) | `TestSQLiteNameDerTempDatei`, `TestSQLiteErsterSchreibvorgangScheitert` |
+| die Datei wird nie als Ganzes neu geschrieben | jeder Aufruf legt die Datei neu an (W31) | `TestSQLiteErgaenzt` (dieselbe Datei) |
+| jeder Schreibvorgang ergänzt genau die fehlenden Sessions | alle Sessions statt der fehlenden (W36); Zähler nicht erhöht (W20); umgekehrte Reihenfolge (W23) | `TestSQLiteErgaenzt`, `TestSQLiteHalbeSessionNie`, `TestSQLiteSchliessenScheitert` |
+| die Datei enthält zu jedem Zeitpunkt nur vollständige Sessions, je Session eine Transaktion | `Commit` statt `Rollback` (Z8); eine Transaktion für alle Sessions (W35); nach einem Fehler weiter (W22) | `TestSQLiteHalbeSessionNie`, `TestSQLiteTransaktionJeSession` |
+| der nächste Schreibvorgang ergänzt, was fehlt | `angelegt` vor dem Erfolg gesetzt (W25); nach dem Anlegen zurückgesetzt (W37) | `TestSQLiteErsterSchreibvorgangScheitert`, `TestSQLiteErgaenzt` |
+| die Datei wird vor jedem Ergänzen geprüft: fehlt sie, ist das `PGR-E3001` und sie wird nicht angelegt | `mode=rw` entfernt (W4) | `TestSQLiteDateiGeprueft` |
+| … trägt `session` nicht genau die Nummern 1 bis zur zuletzt ergänzten | Prüfung entfernt (W16); Prüfung nur bei neuen Sessions (W17); nur die Zahl (W19); nur die Nummern (W18) | `TestSQLiteDateiGeprueft` (acht Fälle) |
+| Schließen nach der Transaktion: `PGR-E3001`, nicht doppelt eingetragen | Fehler verschluckt (W15); Zähler nach dem Schließen zurückgenommen (W21) | `TestSQLiteSchliessenScheitert` |
+| ein Abbruchsignal unterbricht keine Transaktion | `ctx` statt `context.WithoutCancel(ctx)` (W1) | `TestSQLiteAbbruchUnterbrichtNicht` |
+| der Zielpfad gilt wörtlich (`?`, `#`, `%`, Leerzeichen) | `%`, `?` oder `#` nicht maskiert (W11, W12, W13) | `TestSQLiteSonderzeichenImPfad` |
+| jeder Wert ist ein Parameter einer Anweisung | SQL-Text, Startup oder Feld in den Anweisungstext gesetzt (Z16, Z17, Z18) | `TestSQLiteWerteAlsParameter` |
+| Rollback-Journal, `foreign_keys`, `synchronous=FULL`, Sperrfrist 5000 ms | `WAL` (W6); `NORMAL` (W7); `OFF` (W8) | `TestSQLiteEinstellungen`, `TestSQLiteFremdschluessel` |
+| jede Transaktion beginnt mit `BEGIN IMMEDIATE` | `_txlock` entfernt (W9) | `TestSQLiteTransaktionImmediate` |
+| die Sperrfrist beträgt fünf Sekunden | 60 s (W5b); 1 s (W5c) | `TestSQLiteSperrfrist`, `TestSQLiteEinstellungen` |
+| Name, Anlegen und Namenswahl der temporären Datei | Präfix `.` entfernt (T2); elf Versuche (T1); `O_TRUNC` statt `O_EXCL` (T3); jeder Fehler zieht einen neuen Namen (T5) | `TestSQLiteNameDerTempDatei`, `TestSQLiteAnlegenScheitert`, `TestSQLiteBelegterName` |
+| Rechte der temporären Datei (0666 nach umask; ersetzte Datei behält ihre) | `0o600` (T4); Rechte nicht gesetzt (W24) | `TestSQLiteRechte` |
+| Fehlschlag beim ersten Schreibvorgang: `PGR-E3001`, temporäre Datei entfernt, Entfernen als Ursache | Entfernen nicht aufgerufen (W26, W27); Fehler des Entfernens nicht verbunden (W28); Schließen ohne Fehler (W29) | `TestSQLiteErsterSchreibvorgangScheitert`, `TestSQLiteEntfernenScheitert` |
+| `meta`: Formatkennung, Version, `empty_sessions` nur mit leeren Sessions | `empty_sessions` immer (W30b), nie (W30), mit anderem Text (W30e); Version `1.0` (W30c); andere Kennung (W30d) | `TestSQLiteInhalt`, `TestSQLiteEmptySessions` |
+| Inhalt der Tabellen nach der Liste: `group_no` ab 1, `position` über beide Richtungen, Client vor Server in der Gruppe, `group_no` und `sql` nur bei der jeweiligen Art, `offset_ms` `NULL` oder Zahl, `direction`, Spaltenfolge | 0-basiert (Z1); `position` je Richtung (Z2); Server vor Client (Z3); `group_no` bei `query` (Z4); `sql` bei `query` fehlt (Z5), bei `extended` gesetzt (Z5b), leerer Text als `NULL` (Z5c); 0 als `NULL` (Z6); jede Zahl 1 (Z6b); `server_parameters` aus `startup` (Z7b); Spalten vertauscht (Z10, Z11); Richtung `client` (Z12); `Server` (Z15) | `TestSQLiteInhalt`, `TestSQLiteLeereWerte` |
+| `fields` ohne `type`, mit den Schlüsseln und Werten der YAML-Darstellung, nie `NULL` | `type` bleibt (Z13, Z14, J6); Zahlen als String (J7); `{}` als `null` (J11) | `TestSQLiteInhalt`, `TestSQLiteFieldsGleichYAML`, `TestSQLiteLeereWerte` |
+| die Umwandlung kennt Abbildung, Liste, String, Zahl, Wahrheitswert, `null` und maskiert `<`, `>`, `&` nicht | `null` als String (J8); Wahrheitswert immer `true` (J9); HTML maskiert (J10); `!!null`-Schlüssel nicht erkannt (J1) | `TestSQLiteJSONTypen` |
+| ein String ohne gültiges UTF-8 steht als `base64:` mit seinen Bytes, als Wert und als Schlüssel | Schlüssel nicht umgeschrieben (J4); Bytes ohne Präfix (J5) | `TestSQLiteStringOhneUTF8`, `TestSQLiteUmschreibungKehrtZurueck`, `TestSQLiteFluchtzeichen` |
+| ein gültiger String mit führendem `\` oder `base64:` steht mit einem weiteren `\` | nur `base64:` maskiert (J2); nur `\` maskiert (J3); nichts maskiert (J13) | `TestSQLiteFluchtzeichen`, `TestSQLiteUmschreibungKehrtZurueck` |
+| `interaction.sql` steht unverändert | Text durch die Umschreibung geschickt, hier um ein Zeichen verändert (Z9) | `TestSQLiteSQLUnveraendert`, `TestSQLiteInhalt` |
+| `Load` ist ein Platzhalter mit `PGR-E1000`, ohne Pfad | gibt `nil` zurück (W2); Code `PGR-E3003` (W3); Pfad in der Meldung (W3b) | `TestSQLiteLoadPlatzhalter` |
+| Aufruf mit weniger Sessions, als die Datei trägt, ist `PGR-E1000` und ändert nichts | Prüfung entfernt (W33) | `TestSQLiteWenigerSessionsAlsDieDatei` |
+| das Schema: Tabellen, Spalten, Typen, `NOT NULL`, Primär- und Fremdschlüssel nach der Liste | Spalte `server_parameters` entfernt (S1); Primärschlüssel von `message` verkürzt (S2); `ON DELETE CASCADE` entfernt (S3); Spalte `bytes` (S4); `fields` nullable (S5); `offset_ms` `NOT NULL` (S6); `meta` ohne Primärschlüssel (S7); `type` als Zahl (S8); Fremdschlüssel von `interaction` entfernt (S9) | `TestSQLiteSchema` |
+| `modernc.org/sqlite` im Architektur-Gate nur im Recording-Adapter | Regel entfernt (A1); auch im CLI-Adapter zugelassen (A2); nur im PGWire-Adapter zugelassen (A3); auch im Postgres-Adapter zugelassen (A4) | `make a-check-negativ`: A1 meldet die Fälle `model-sqlite`, `postgres-sqlite`, `pgwire-sqlite`, `cli-sqlite`; A2 `cli-sqlite`; A3 `recording-sqlite` (und die Fälle, deren Kopie nun selbst rot ist); A4 `postgres-sqlite` |
+| die Erlaubnisliste des Lint-Gates führt die Bibliothek | Eintrag aus `.golangci.yml` entfernt | `make lint`: `import of package modernc.org/sqlite is blocked` an `sqlite.go:18` (gomodguard_v2) |
+| `record --format sqlite` ergänzt nach jeder beendeten Session | `CloseSession` schreibt nicht mehr (E3) | `TestE2ERecordFormatSQLite` |
+
+Summe: 110 Mutanten der Unit-Tests (einschließlich `F1b`, `Z16` bis `Z18`, `T1` bis `T5`, `U1`), fünf am Binary
+(`E1` bis `E5`), vier der Gegenprobe (`A1` bis `A4`) und einer des Lint-Gates; alle rot bis auf drei äquivalente
+(nächster Absatz). Die Läufe sind Lauf-Beleg und nicht im Repo; die Tabelle trägt Mutation und Test.
+
+**Grüne Mutanten, eingeordnet.** Drei bleiben grün und ändern das Verhalten nicht:
+(B2) Der Bootstrap ignoriert den Fehler von `recording.New`: Die Kommandozeile lehnt vorher jeden Wert außer `yaml`
+und `sqlite` ab (`TestParseRecordFormat`, `TestRunRecordFormatUngueltig`), der Zweig ist durch kein Programm
+erreichbar. (W10) `filepath.Abs` entfällt: SQLite löst einen relativen Pfad gegen das Arbeitsverzeichnis auf,
+`TestSQLiteSonderzeichenImPfad` fährt den relativen Fall unter Linux; die Form `/C:/…` für Windows ist ungeprüft
+(Grenze Plattform, `BEO-REPO/verhalten-nur-unter-linux-geprueft`). (W14) Das Leerzeichen wird nicht als `%20`
+maskiert: SQLite nimmt es in einer `file:`-URI roh an. Im ersten Lauf waren außerdem grün und sind geändert:
+ein totes `nichtNil` für leere Abbildungen (die Bibliothek schreibt `nil` als `{}`), ein toter Zweig für ungültiges
+UTF-8 in `maskiere` (die Bibliothek schreibt solche Strings als `!!binary`) und das Entfernen von Leerraum vor
+`DecodeString` (das Zeilenumbrüche überspringt) — alle drei gelöscht; `null`, Wahrheitswert und die
+HTML-Maskierung ohne Test — jetzt `TestSQLiteJSONTypen`; der Mutant E5 am Binary — der Test prüft die Meldung der
+Kommandozeile (`erlaubt sind yaml und sqlite`), nicht nur das Wort `format`, das auch `Aufzeichnungsformat` der
+Fabrik enthält; ein Mutant `W25`, der den Fehler nicht baute, wurde neu gebaut; die Meldung des Journals
+(`vorhanden`, P3) prüft jetzt der Test.
+
+Nach dem ersten Lauf kam `U1` hinzu (`PRAGMA user_version = 1` im Schema geschrieben): rot an `TestSQLiteInhalt`, der
+`PRAGMA user_version` liest und `0` verlangt.
+
+**Läufe.** Alle im Docker-Netz oder im Image, nichts auf dem Host außer `make`, `docker` und `bash`.
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `make lint` | vor `f052e63`: 10 Befunde `errcheck` in den neuen Tests, behoben; im ersten `make gates` vor `9ebab6c`: 1 Befund `gochecknoglobals` im Test über das Binary, behoben; danach | 0 Befunde |
+| `make a-check-negativ` | vor `07d34c4` | grün, siebzehn Fälle |
+| `make test-integration` | vor `fc59441` und im zweiten `make gates` | grün; legt Netz, Volume und Container unter dem Namen `pgr-it-<pid>` an und entfernt sie danach |
+| `make docs-check`, `make kopf-check`, `make abdeckung-check` | nach dem Nachziehen von §3 und der Abdeckung | `d-check: 539 Datei(en) geprüft, 0 Befund(e)`; die beiden anderen Exit 0 |
+| `make schema-validate` | nach der Änderung von `schema.yaml` | `Validation passed` |
+| `make schema-generate` gegen `schema.sql` | vor `f052e63` | gleich bis auf die Kopfzeilen mit dem Zeitstempel |
+| `make gates` | auf `9ebab6c` mit den Abdeckungstabellen als Änderung | Exit 0, 5 min 26 s; `lint-gegenprobe: gruen`, `a-check-negativ: gruen — alle siebzehn Faelle`, `baseline-verify: v6.18.0 OK` |
+| Build des Binaries für sechs Plattformen | auf `9ebab6c` | `linux`, `darwin`, `windows` je `amd64` und `arm64`: `docker build --target build --build-arg TARGETOS=… --build-arg TARGETARCH=…` endet jeweils mit Exit 0; die Images danach per Name entfernt |
+
+Der Lauf für sechs Plattformen belegt das Bauen der reinen Go-Bibliothek, nicht ihr Verhalten; ausgeführt ist nur
+`linux/amd64` (Risiko in §6: *erst durch den Build im Slice belegt* — der Build ist belegt, das Verhalten auf den
+anderen Plattformen bleibt ungeprüft, `BEO-REPO/verhalten-nur-unter-linux-geprueft`).
+
+**Namensabgleich.** Ein Skript zog aus §3, §6 und diesem Abschnitt jeden Namen `Test…` und jeden Dateinamen in
+Backticks und suchte `^func <Name>(` in `internal/**/*_test.go` und `test/integration/*_test.go` sowie die Dateien
+im Baum: 47 Testnamen und 38 Dateien gefunden, nichts fehlt (`interaction.sql` ist eine Spalte, keine Datei).
+
+**Hinweise an den Architect** (Randformen, die §6 nicht nennt; im Code nach der nächstliegenden Lesart gelöst, hier
+zur Entscheidung):
+1. *Journal vorhanden.* `LH-FA-22.a` sagt „eine vorhandene Datei `<Zielpfad>-journal`“. Der Code prüft mit `os.Stat`,
+   also wie `LH-FA-07.a` *Vorhanden* für den Zielpfad: ein Verzeichnis oder eine Verknüpfung auf eine Datei ist
+   vorhanden (`PGR-E3001`), eine Verknüpfung ins Leere nicht, ein nicht feststellbarer Zustand ist `PGR-E3001`.
+   Tests: `TestSQLitePrepareJournalReihenfolge`.
+2. *Weniger Sessions als die Datei.* Ruft jemand `Write` mit einer Aufzeichnung auf, die weniger Sessions trägt, als
+   die Datei nach den bisherigen Aufrufen trägt, ist das `PGR-E1000` (ein Aufruffehler, kein Fehler der Datei) und die
+   Datei bleibt unberührt; der Service ruft das nie. Test: `TestSQLiteWenigerSessionsAlsDieDatei`.
+3. *Nummer der Session.* `Write` setzt `session.id` aus `model.Session.ID`; dass sie `1` bis `n` zählt, hält der
+   Service. Eine Doppelte oder eine Lücke verletzt den Primärschlüssel oder die Prüfung vor dem nächsten Ergänzen und
+   ist `PGR-E3001`; ein eigener Test fehlt.
+4. *Journal der temporären Datei.* Bleibt bei einem Absturz mitten im Anlegen ein `.<Name>.<Hex>.tmp-journal`
+   zurück, sucht und entfernt `record` es nicht (`LH-FA-07.a` *Übrig gebliebene Datei*).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -197,6 +327,6 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (Stand 2026-10-11): `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` und `BEO-REPO/spec-randform-erst-im-review-entschieden` (beide verkörpert, `AGENTS.md` §3.10 und §3.12) treffen den neuen Vertrag des Schreibens; §3 fordert die Mutation je Zusage, §6 nennt die Randformen. `BEO-REPO/verhalten-nur-unter-linux-geprueft` (1×, offen) trifft die Grenzen in §6. Keiner erreicht mit diesem Plan 3× neu.
 
-Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`; die Dokumentation zählt hier nicht mit. Nachgezählt beim Schnitt vom 2026-10-11 (Abgabe des Lesens an `slice-v1-abschluss-sqlite-format-lesen`): Liefer-Punkte: 3 (Schreiben mit Fabrik und Option, Schema mit Ersatztest, Architektur-Gate mit Erlaubnisliste). Schichten: zwei (Recording-Adapter, CLI-Adapter); der Bootstrap reicht nur `o.Format` an die Fabrik (Verdrahtung, keine Logik), der Kommentar am Port ist keine Schicht, `schema.yaml`, die Regel in `.a-check.yml` und das Lint-Profil sind Nachzug am Rand. Geschätzt rund 1800 Zeilen mit Tests. Gesichtet beim Schnitt: `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (2×) und `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel` (2×) treffen nicht, keine Hälfte liegt an der Grenze und der Slice läuft über `next/` zurück.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`; die Dokumentation zählt hier nicht mit. Nachgezählt beim Schnitt vom 2026-10-11 (Abgabe des Lesens an `slice-v1-abschluss-sqlite-format-lesen`): Liefer-Punkte: 3 (Schreiben mit Fabrik und Option, Schema mit Ersatztest, Architektur-Gate mit Erlaubnisliste). Schichten: zwei (Recording-Adapter, CLI-Adapter); der Bootstrap reicht nur `o.Format` an die Fabrik (Verdrahtung, keine Logik), der Kommentar am Port ist keine Schicht, `schema.yaml`, die Regel in `.a-check.yml` und das Lint-Profil sind Nachzug am Rand. Geschätzt rund 1800 Zeilen mit Tests. Nachgezählt bei der Umsetzung (Implementer): Liefer-Punkte 3, Schichten zwei (Recording-Adapter, CLI-Adapter); der Bootstrap tauscht `recording.YAML{}` gegen `recording.New(o.Format)` und gibt den Fehler der Fabrik zurück wie den von `NewRecordService` (Verdrahtung, keine Logik, `internal/bootstrap/format_test.go` mit ihr), die Kommentare an Port und `RecordService` sind keine Schicht; gemessen 2794 Zeilen hinzu, davon 676 Go-Code und 1975 Go-Tests (§7, *Größe*). Gesichtet beim Schnitt: `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (2×) und `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel` (2×) treffen nicht, keine Hälfte liegt an der Grenze und der Slice läuft über `next/` zurück.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

@@ -32,7 +32,8 @@ func neueDatei(t *testing.T, rec model.Recording) (*recording.SQLite, string) {
 // JSON-Objekt, je Interaktion Art, SQL (nur bei query) und offset_ms (NULL ohne
 // Zeitangaben, 0 ist 0), je Nachricht position über beide Richtungen, direction,
 // group_no (nur bei extended, ab 1) und kind, in jeder Gruppe die Client-Nachrichten
-// vor den Server-Nachrichten, und fields als JSON-Objekt ohne den Schlüssel type.
+// vor den Server-Nachrichten, und fields als JSON-Objekt ohne den Schlüssel type;
+// PRAGMA user_version bleibt 0.
 func TestSQLiteInhalt(t *testing.T) {
 	rec := extendedBeispiel()
 	null := int64(0)
@@ -47,6 +48,7 @@ func TestSQLiteInhalt(t *testing.T) {
 		}
 	}
 	check("meta", `SELECT key, value FROM meta ORDER BY key`, "format|pgwire-recorder", "version|1")
+	check("user_version", `PRAGMA user_version`, "0")
 	check("session", `SELECT id, startup, server_parameters FROM session`,
 		`1|{"database":"app","user":"app"}|{"server_version":"17.0"}`)
 	check("interaction", `SELECT session_id, sequence, type, offset_ms, sql FROM interaction ORDER BY sequence`,
