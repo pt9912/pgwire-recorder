@@ -3,38 +3,27 @@
 package integration_test
 
 import (
-	"context"
+	_ "embed"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/pt9912/pgwire-recorder/internal/adapters/driven/recording"
-	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
+
+// absteigendSQLite ist eine Aufzeichnung im Format sqlite mit einer Session und zwei
+// Interaktionen, deren offset_ms 4711 und 4709 sind.
+//
+//go:embed testdata/zeitangaben-absteigend.sqlite
+var absteigendSQLite []byte
 
 // Abdeckung: LH-FA-21/Negative — replay und play beenden den Start mit Exit-Code 3 und PGR-E3003,
 // wenn offset_ms innerhalb einer Session absteigt, in einer Aufzeichnung aus yaml wie aus sqlite,
 // und wenn offset_ms in yaml keine kanonische Dezimalzahl ist; die Meldung nennt Session und
 // Interaktion und keinen Wert, und es läuft nichts an (play verbindet sich nicht).
 func TestE2ENichtAbsteigendeZeitangaben(t *testing.T) {
-	absteigend := func(off ...int64) model.Recording {
-		rec := model.NewRecording()
-		s := model.Session{ID: 1}
-		for i := range off {
-			s.Interactions = append(s.Interactions, model.Interaction{
-				Sequence:  i + 1,
-				OffsetMS:  &off[i],
-				Request:   model.Request{Type: model.RequestQuery, SQL: "SELECT 1"},
-				Responses: []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}},
-			})
-		}
-		rec.Sessions = append(rec.Sessions, s)
-		return rec
-	}
 	dir := t.TempDir()
 	sqlite := filepath.Join(dir, "rec.sqlite")
-	if err := (&recording.SQLite{}).Write(context.Background(), sqlite, absteigend(4711, 4709)); err != nil {
+	if err := os.WriteFile(sqlite, absteigendSQLite, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	yamlText := func(offset string) string {
@@ -42,19 +31,17 @@ func TestE2ENichtAbsteigendeZeitangaben(t *testing.T) {
 			"      - sequence: 1\n        offset_ms: 4711\n        request: {type: query, sql: x}\n        responses:\n          - {type: ready_for_query, tx_status: I}\n" +
 			"      - sequence: 2\n        offset_ms: " + offset + "\n        request: {type: query, sql: x}\n        responses:\n          - {type: ready_for_query, tx_status: I}\n"
 	}
-	for name, c := range map[string]struct {
-		datei  string
-		inhalt []byte
-		wert   string
-	}{
-		"sqlite absteigend": {"rec.sqlite", nil, "4709"},
-		"yaml absteigend":   {"abst.yaml", []byte(yamlText("4709")), "4709"},
-		"yaml 1.5":          {"punkt.yaml", []byte(yamlText("4711.5")), "4711.5"},
-		"yaml Text":         {"text.yaml", []byte(yamlText(`"4712"`)), "4712"},
-	} {
-		input := filepath.Join(dir, c.datei)
-		if c.inhalt != nil {
-			if err := os.WriteFile(input, c.inhalt, 0o644); err != nil {
+	faelle := []struct{ name, datei, inhalt, wert string }{
+		{"sqlite absteigend", sqlite, "", "4709"},
+		{"yaml absteigend", "abst.yaml", yamlText("4709"), "4709"},
+		{"yaml 4711.5", "punkt.yaml", yamlText("4711.5"), "4711.5"},
+		{"yaml Text", "text.yaml", yamlText(`"4712"`), "4712"},
+	}
+	for _, c := range faelle {
+		input := c.datei
+		if c.inhalt != "" {
+			input = filepath.Join(dir, c.datei)
+			if err := os.WriteFile(input, []byte(c.inhalt), 0o644); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -65,7 +52,7 @@ func TestE2ENichtAbsteigendeZeitangaben(t *testing.T) {
 			stdout, stderr, code := starteBis(t, "", args...)
 			if code != 3 || !strings.Contains(stderr, "[PGR-E3003]") || stdout != "" ||
 				!strings.Contains(stderr, "Session 1, Interaktion 2") || strings.Contains(stderr, c.wert) {
-				t.Errorf("%s, %s: Exit-Code %d, stdout %q, stderr %q", name, args[0], code, stdout, stderr)
+				t.Errorf("%s, %s: Exit-Code %d, stdout %q, stderr %q", c.name, args[0], code, stdout, stderr)
 			}
 		}
 	}
