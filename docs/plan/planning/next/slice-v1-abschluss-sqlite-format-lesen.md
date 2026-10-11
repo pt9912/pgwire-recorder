@@ -38,6 +38,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - die Umkehr des `base64:`-Escapes beim Lesen (`SPEC-043`, Regel `base64:`) und das Lesen von `{}` in `startup` und `server_parameters` wie das fehlende Feld in `yaml`;
 - die Fehlerklassen des Lesens: `PGR-E3002` für jede kanonische Version außer 1, `PGR-E3003` für alles, was die Datei als Aufzeichnung ungültig macht (Typ-Prüfung der Spaltenwerte, verwaiste Zeilen, doppelter Schlüssel, `fields` fehlt oder ist kein Objekt, Zeile gegen die Regeln des Abschnitts), `PGR-E3001` für die Menge der primären Ergebniscodes aus `LH-FA-22.a` *Lesen von `sqlite`*, abgeschnittene Datei `PGR-E3003`;
 - das Lesen von `meta.version` (nur kanonischer Dezimaltext) und `meta.empty_sessions` (nur `true`);
+- das Ersetzen des Platzhalters `Load` des SQLite-Adapters (aus `slice-v1-abschluss-sqlite-format`, dort §3: liefert bis dahin `PGR-E1000`) durch den Leser, mit der Bildung der `file:`-URI aus dem Schreiben (kein zweiter Weg);
 - der Roundtrip über das Binary: `record --format sqlite` (aus `slice-v1-abschluss-sqlite-format`), dann `replay` und `play`, gleich dem Verhalten bei YAML, und die gleiche Ablehnung beider Formate bei unbekanntem Schlüssel, `null` und doppeltem Schlüssel.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
@@ -87,6 +88,7 @@ Aussagen-Berührung steht hier gar nicht.
 - Datei als `file:`-URI mit `mode=ro` zum Lesen; Fehlerklasse über `Error.Code()&0xff` und die Menge in `LH-FA-22.a` *Lesen von `sqlite`*; Test mit einer abgeschnittenen Datei an der Seitengrenze und mitten in einer Seite, jeweils `PGR-E3003`. Der Pfad geht als korrekt escapte `file:`-URI an die Bibliothek (Test mit `?`, `#`, `%` und Leerzeichen im Pfad, wie beim Schreiben in `slice-v1-abschluss-sqlite-format`).
 - Je Zusage dieses Vertrags ein Test und eine selbst gefahrene Mutation, im Bericht Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
 - Die Doc-Kommentare nachziehen, die der Slice ändert oder die ihm widersprechen (`AGENTS.md` §3.7, §3.11).
+- Erkennung vor dem Lesen (`LH-FA-22.a` *Wahl und Erkennung*): Datei öffnen, bis zu 16 Bytes lesen; Fehler dabei `PGR-E3001` mit der Ursache, weniger als 16 Bytes ist `yaml`; der Eingabepfad gilt wörtlich. Tests: fehlende Datei, Verzeichnis, leere und 15-Byte-Datei, Pfad mit Sonderzeichen.
 - Eine Randform, die §6 nicht nennt, entscheidet er nicht, sondern gibt sie dem Architect zurück (`AGENTS.md` §3.12).
 
 ## 4. Trigger
@@ -136,7 +138,9 @@ dasteht.
 | Rollback-Journal neben der Datei beim nur lesenden Öffnen (nicht zugesagt) | `LH-FA-22.a` *Lesen von `sqlite`*, *Grenze* |
 | Gleiche Ablehnung beider Formate bei unbekanntem Schlüssel, `null`, doppeltem Schlüssel | `LH-FA-22.a` *Lesen von `sqlite`* (Forderung an den Leser); Test hier |
 | Leser und Erkennung im Recording-Adapter, der Bootstrap reicht nur durch (wie die Fabrik für das Schreiben) | `ARC-008` (Adapter-Grenze); hier §3 — der Architect prüft sie vor dem Code |
-| **Offen, vom Planner beim Schnitt gefunden, der Architect entscheidet vor dem ersten Code-Commit:** Eingabepfad mit `?`, `#`, `%` und Leerzeichen beim Lesen (die Spezifikation nennt „gilt wörtlich“ nur für den Zielpfad des Schreibens); Fehler beim Lesen der ersten 16 Bytes für die Erkennung (Datei fehlt, nicht lesbar, Verzeichnis) — ob wie bei `yaml` `PGR-E3001` und in welcher Reihenfolge zur Erkennung | noch nicht entschieden |
+| Eingabepfad mit `?`, `#`, `%` und Leerzeichen gilt wörtlich, für die Erkennung wie für beide Leser | `LH-FA-22.a` *Wahl und Erkennung* |
+| Fehler beim Öffnen oder Lesen der ersten 16 Bytes (Datei fehlt, nicht lesbar, Verzeichnis, Ein- oder Ausgabefehler) `PGR-E3001` wie bei `yaml`; weniger als 16 Bytes ist `yaml`; Reihenfolge: Erkennung, dann Leser | `LH-FA-22.a` *Wahl und Erkennung* |
+| `Load` des SQLite-Adapters aus `slice-v1-abschluss-sqlite-format` (Platzhalter mit `PGR-E1000`) wird hier durch den Leser ersetzt | `slice-v1-abschluss-sqlite-format` §3 (Geber); hier §1 |
 
 ## 7. Closure-Notiz
 

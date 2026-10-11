@@ -1697,7 +1697,13 @@ hat keine Bedeutung; üblich sind `.yaml` und `.sqlite` (`SPEC-009`).
 `replay` und `play` erkennen das Format der Eingabedatei selbst an ihren ersten 16
 Bytes: Sind sie `SQLite format 3` gefolgt von einem NUL-Byte, ist es eine
 SQLite-Aufzeichnung, jede andere Datei wird als YAML gelesen, auch eine leere oder
-kürzere (sie ist dort beschädigt). Eine Datei, die in ihrem Format keine gültige
+kürzere (sie ist dort beschädigt). Die Erkennung kommt vor dem Lesen: Die Datei wird
+geöffnet und bis zu 16 Bytes werden gelesen. Scheitert das Öffnen oder das Lesen
+(Datei fehlt, nicht lesbar, ein Verzeichnis, Ein- oder Ausgabefehler), ist das
+`PGR-E3001` mit der Ursache, wie beim Lesen von `yaml`; weniger als 16 Bytes sind
+kein Fehler der Erkennung, sondern `yaml`. Der Pfad der Eingabedatei gilt wörtlich,
+auch mit Zeichen wie `?`, `#`, `%` und Leerzeichen, für die Erkennung wie für beide
+Leser. Eine Datei, die in ihrem Format keine gültige
 Aufzeichnung ist (falsche Formatkennung, fehlende Tabellen, unlesbarer oder
 widersprüchlicher Inhalt), ist beschädigt (`PGR-E3003`); eine unbekannte `version`
 ist `PGR-E3002`.
@@ -2875,3 +2881,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Wertemenge von `--format`, Erkennung an den ersten 16 Bytes, Fehlerklassen des Lesens, Lesetransaktion, erster Schreibvorgang statt Start, vorhandene Datei ersetzt, nie ergänzt, Rollback-Journal eines früheren Laufs beim Start, Transaktion je Session und Nachholen nach Fehlschlag, Prüfung der Datei vor jedem Ergänzen, Einstellungen, Grenzen der Prüfung (`LH-FA-22.a`); `session.server_parameters`, Zählung von Nummern und Gruppen, Inhalt von `fields`, Version nur in `meta` (`SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: `message.bytes` entfällt, `fields` ist die einzige Darstellung der Nachricht, required und beim Lesen maßgeblich (`SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Strings ohne gültiges UTF-8 in den JSON-Spalten als `base64:` mit Umschreibung (`SPEC-043`), `interaction.sql` unverändert; kanonische Dezimalschreibweise von `version`, `empty_sessions` nur `true`, zusätzliche Tabellen und Spalten ignoriert, verwaiste Zeilen, doppelte Schlüssel, `NULL` und Nicht-Objekte, Zeilen gegen die Regeln des Abschnitts; Fehlerklassen des Lesens nach primärem SQLite-Ergebniscode, abgeschnittene Datei `PGR-E3003`; Pfadprüfung vor dem Journal, Prüfung der Datei auch ohne Ergänzung, Schließen nach der Transaktion, jeder Fehler des Schreibens `PGR-E3001` (`LH-FA-22.a`, `SPEC-043`); `modernc.org/sqlite` in der Erlaubnisliste des Lint-Gates (`SPEC-049`) |
+| 2026-10-11 | Aufzeichnungsformat `sqlite`: Erkennung vor dem Lesen, Öffnen oder Lesen der ersten Bytes gescheitert `PGR-E3001` wie bei `yaml`, kürzere Datei als `yaml`; Eingabepfad wörtlich (`LH-FA-22.a`) |
