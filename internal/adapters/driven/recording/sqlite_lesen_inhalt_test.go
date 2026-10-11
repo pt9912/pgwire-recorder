@@ -437,3 +437,22 @@ func TestLesenMeldungOhneWertUndZeile(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-22/Negative — ein Schlüssel << ist in einer sqlite-Datei, wie in yaml, ein Merge-Key
+// und macht die Aufzeichnung beschädigt (PGR-E3003): in startup, in server_parameters und in einem Objekt von
+// fields, als Wert in Anführungszeichen geschrieben (Datei per rohem SQL, Write schreibt den Schlüssel
+// nicht); ein ähnlicher Schlüssel (<, <<<, << mit Zusatz) liest als gewöhnlicher Name.
+func TestLesenMergeKey(t *testing.T) {
+	notice := `session_id = 1 AND sequence = 1 AND position = 4`
+	faelle := []fall{
+		{"startup", `UPDATE session SET startup = '{"<<":"x"}' WHERE id = 2`, beschaedigt},
+		{"server_parameters", `UPDATE session SET server_parameters = '{"<<":"x"}' WHERE id = 2`, beschaedigt},
+		{"fields", `UPDATE message SET fields = '{"notice":{"<<":"x"}}' WHERE ` + notice, beschaedigt},
+	}
+	for _, name := range []string{"<", "<<<", "<< ", "x<<"} {
+		faelle = append(faelle,
+			fall{"startup " + name, `UPDATE session SET startup = '{"` + name + `":"x"}' WHERE id = 2`, ""},
+			fall{"fields " + name, `UPDATE message SET fields = '{"notice":{"` + name + `":"x"}}' WHERE ` + notice, ""})
+	}
+	pruefeFaelle(t, faelle)
+}
