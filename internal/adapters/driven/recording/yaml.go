@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"unicode/utf8"
 
 	"go.yaml.in/yaml/v3"
@@ -179,7 +180,9 @@ func Marshal(rec model.Recording) ([]byte, error) {
 
 // Unmarshal liest die YAML-Darstellung. Ein unlesbarer Inhalt, ein Anker, Alias
 // oder Merge-Key, eine fremde Formatkennung und jede Form, die formVorpruefung
-// oder fromDTO ablehnt, ist PGR-E3003, eine unbekannte Version PGR-E3002.
+// oder fromDTO ablehnt, ist PGR-E3003, eine unbekannte Version PGR-E3002. Die
+// Vorprüfung läuft vor dem Dekodieren; ihr Befund gilt erst nach Formatkennung und
+// Version, und ein Fehler der Bibliothek beim Dekodieren tritt hinter ihn zurück.
 func Unmarshal(data []byte) (model.Recording, error) {
 	var doc yaml.Node
 	if err := yaml.Unmarshal(data, &doc); err != nil {
@@ -188,10 +191,11 @@ func Unmarshal(data []byte) (model.Recording, error) {
 	if err := ohneVerweise(&doc); err != nil {
 		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
 	}
+	vor := formVorpruefung(&doc)
 	var d recordingDTO
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
-	if err := dec.Decode(&d); err != nil {
+	if err := dec.Decode(&d); err != nil && vor == nil {
 		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
 	}
 	if d.Format != model.Format {
@@ -200,8 +204,12 @@ func Unmarshal(data []byte) (model.Recording, error) {
 	if d.Version != model.Version {
 		return model.Recording{}, model.Errorf(model.CodeRecordingVersion, nil, "Version %d wird nicht unterstützt", d.Version)
 	}
-	if err := formVorpruefung(&doc); err != nil {
-		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, err, "Aufzeichnung beschädigt")
+	if vor != nil {
+		var me *model.Error
+		if errors.As(vor, &me) {
+			return model.Recording{}, me
+		}
+		return model.Recording{}, model.Errorf(model.CodeRecordingBroken, vor, "Aufzeichnung beschädigt")
 	}
 	return fromDTO(d)
 }
@@ -229,7 +237,12 @@ func ohneVerweise(n *yaml.Node) error {
 // nicht sieht (der Decoder liest null wie einen fehlenden Schlüssel) oder hier an
 // einer Stelle für einfache und Extended-Antworten prüft (SPEC-001, SPEC-041).
 // Die Meldung nennt Session und Interaktion nach ihrer Stellung in der Datei.
+// Sie läuft vor dem Dekodieren (Unmarshal), damit keine Meldung der Bibliothek mit
+// einem Wert oder einer Zeile der Datei an ihre Stelle tritt.
 //
+//   - offset_ms einer Interaktion steht, wenn vorhanden, als einfacher Skalar in
+//     kanonischer Dezimalschreibweise im Bereich von int64 (offsetForm); eine
+//     Meldung dazu trägt Session und Interaktion in ihrem Text.
 //   - request, responses und groups einer Interaktion stehen nicht mit null;
 //     interactionFromDTO unterscheidet die beiden Formen damit allein an der
 //     Anwesenheit.
@@ -244,12 +257,47 @@ func formVorpruefung(doc *yaml.Node) error {
 	}
 	for si, s := range wert(doc.Content[0], "sessions").Content {
 		for ii, i := range wert(s, "interactions").Content {
+			if grund := offsetForm(wert(i, "offset_ms")); grund != "" {
+				return model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d: offset_ms %s", si+1, ii+1, grund)
+			}
 			if err := interaktionVorpruefung(i); err != nil {
 				return fmt.Errorf("Session %d, Interaktion %d: %w", si+1, ii+1, err)
 			}
 		}
 	}
 	return nil
+}
+
+// offsetForm nennt, was an dem Wert n von offset_ms nicht stimmt, ohne den Wert zu
+// nennen; "" heißt: n fehlt (ohneWert) oder ist ein einfacher Skalar aus `0` oder
+// Ziffern ohne führende Null im Bereich von int64.
+func offsetForm(n *yaml.Node) string {
+	if n == ohneWert {
+		return ""
+	}
+	if n.Style != 0 || !kanonischeDezimalzahl(n.Value) {
+		return "ist keine kanonische Dezimalzahl"
+	}
+	if _, err := strconv.ParseInt(n.Value, 10, 64); err != nil {
+		return "liegt außerhalb des Bereichs"
+	}
+	return ""
+}
+
+// kanonischeDezimalzahl ist wahr für `0` und für Ziffern ohne führende Null.
+func kanonischeDezimalzahl(s string) bool {
+	if s == "0" {
+		return true
+	}
+	if s == "" || s[0] == '0' {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func interaktionVorpruefung(i *yaml.Node) error {
@@ -600,7 +648,8 @@ func fromDTO(d recordingDTO) (model.Recording, error) {
 
 // sessionFromDTO prüft die Session an der Stelle si der Liste in dieser
 // Reihenfolge: ihre Kennung, ob sie Interaktionen trägt (ohne nur mit
-// emptySessions), dann ihre Interaktionen der Reihe nach.
+// emptySessions), dann ihre Interaktionen der Reihe nach; nach jeder Interaktion
+// vergleicht sie deren offset_ms mit dem vorigen vorhandenen Wert der Session.
 func sessionFromDTO(si int, sd sessionDTO, emptySessions bool) (model.Session, error) {
 	if sd.ID != si+1 {
 		return model.Session{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d trägt die Kennung %d", si+1, sd.ID)
@@ -609,10 +658,17 @@ func sessionFromDTO(si int, sd sessionDTO, emptySessions bool) (model.Session, e
 		return model.Session{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d ohne Interaktion", sd.ID)
 	}
 	s := model.Session{ID: sd.ID, Startup: sd.Startup, ServerParameters: sd.ServerParameters}
+	var vorige *int64
 	for ii, id := range sd.Interactions {
 		i, err := geprueftFromDTO(sd.ID, ii, id)
 		if err != nil {
 			return model.Session{}, err
+		}
+		if id.OffsetMS != nil {
+			if vorige != nil && *id.OffsetMS < *vorige {
+				return model.Session{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d: offset_ms kleiner als der vorige der Session", sd.ID, id.Sequence)
+			}
+			vorige = id.OffsetMS
 		}
 		s.Interactions = append(s.Interactions, i)
 	}
@@ -620,14 +676,12 @@ func sessionFromDTO(si int, sd sessionDTO, emptySessions bool) (model.Session, e
 }
 
 // geprueftFromDTO prüft die Interaktion an der Stelle ii der Session in dieser
-// Reihenfolge: ihre Nummer, offset_ms, dann ihre Form (interactionFromDTO und
-// model.Interaction.Validate).
+// Reihenfolge: ihre Nummer, dann ihre Form (interactionFromDTO und
+// model.Interaction.Validate); die Form von offset_ms hat formVorpruefung vorher
+// geprüft.
 func geprueftFromDTO(sessionID, ii int, id interactionDTO) (model.Interaction, error) {
 	if id.Sequence != ii+1 {
 		return model.Interaction{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d: Interaktion %d trägt die Nummer %d", sessionID, ii+1, id.Sequence)
-	}
-	if id.OffsetMS != nil && *id.OffsetMS < 0 {
-		return model.Interaction{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d: offset_ms negativ", sessionID, id.Sequence)
 	}
 	i, err := interactionFromDTO(id)
 	if err == nil {

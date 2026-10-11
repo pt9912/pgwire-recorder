@@ -576,10 +576,11 @@ func TestVorpruefungNenntOrt(t *testing.T) {
 
 // Verletzt eine Aufzeichnung zwei Regeln der Struktur zugleich, meldet Unmarshal
 // genau eine. Der Test hält fest, welche der Bestand meldet; eine Zusage ist das
-// nicht, und wer die Reihenfolge bewusst ändert, passt ihn an. Im Bestand gehen
-// die Sessions der Reihe nach vor, je Session erst ihre Kennung, dann ob sie
-// Interaktionen trägt, dann ihre Interaktionen der Reihe nach; je Interaktion
-// erst die Nummer, dann offset_ms, dann ihre Form.
+// nicht, und wer die Reihenfolge bewusst ändert, passt ihn an. Im Bestand geht die
+// Vorprüfung vor dem Dekodieren voran (je Interaktion der Reihe nach erst die Form von
+// offset_ms); danach gehen die Sessions der Reihe nach vor, je Session erst ihre Kennung,
+// dann ob sie Interaktionen trägt, dann ihre Interaktionen der Reihe nach; je Interaktion
+// erst die Nummer, dann ihre Form, dann der Vergleich ihres offset_ms.
 func TestUnmarshalFehlerReihenfolge(t *testing.T) {
 	kopf := "format: pgwire-recorder\nversion: 1\nsessions:\n"
 	anfrage := func(nummer, zusatz string) string {
@@ -590,8 +591,10 @@ func TestUnmarshalFehlerReihenfolge(t *testing.T) {
 	}
 	cases := []struct{ name, data, want string }{
 		{"Kennung vor Session ohne Interaktion", kopf + "  - id: 2\n    interactions: []\n", "Session 1 trägt die Kennung 2"},
-		{"Nummer vor offset_ms", kopf + "  - id: 1\n    interactions:\n" + anfrage("2", "        offset_ms: -1\n"), "Session 1: Interaktion 1 trägt die Nummer 2"},
-		{"offset_ms vor der Form", kopf + "  - id: 1\n    interactions:\n" + abgeschnitten("1", "        offset_ms: -1\n"), "Session 1, Interaktion 1: offset_ms negativ"},
+		{"offset_ms vor der Nummer", kopf + "  - id: 1\n    interactions:\n" + anfrage("2", "        offset_ms: -1\n"), "Session 1, Interaktion 1: offset_ms ist keine kanonische Dezimalzahl"},
+		{"Nummer vor Absteigen", kopf + "  - id: 1\n    interactions:\n" + anfrage("1", "        offset_ms: 5\n") + anfrage("3", "        offset_ms: 4\n"), "Session 1: Interaktion 2 trägt die Nummer 3"},
+		{"offset_ms vor der Form", kopf + "  - id: 1\n    interactions:\n" + abgeschnitten("1", "        offset_ms: -1\n"), "Session 1, Interaktion 1: offset_ms ist keine kanonische Dezimalzahl"},
+		{"Form vor Absteigen", kopf + "  - id: 1\n    interactions:\n" + abgeschnitten("1", "        offset_ms: 5\n") + anfrage("2", "        offset_ms: 4\n"), "Session 1, Interaktion 1: endet nicht mit ready_for_query"},
 		{"frühere Interaktion vor späterer Nummer", kopf + "  - id: 1\n    interactions:\n" + abgeschnitten("1", "") + anfrage("3", ""), "Session 1, Interaktion 1: endet nicht mit ready_for_query"},
 		{"frühere Session vor späterer Kennung", kopf + "  - id: 1\n    interactions:\n" + abgeschnitten("1", "") + "  - id: 3\n    interactions:\n" + anfrage("1", ""), "Session 1, Interaktion 1: endet nicht mit ready_for_query"},
 	}
