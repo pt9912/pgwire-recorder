@@ -32,6 +32,9 @@ tables:
       startup:
         type: json
         required: true
+      server_parameters:
+        type: json
+        required: true
     primary_key: [id]
 
   interaction:
@@ -85,6 +88,5 @@ tables:
         max_length: 64
       fields:
         type: json
-      bytes:
-        type: binary
+        required: true
     primary_key: [session_id, sequence, position]

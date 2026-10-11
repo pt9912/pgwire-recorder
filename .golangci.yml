@@ -120,6 +120,7 @@ linters:
       allowed:
         - module: github.com/jackc/pgx/v5
         - module: go.yaml.in/yaml/v3
+        - module: modernc.org/sqlite
 
     revive:
       rules:

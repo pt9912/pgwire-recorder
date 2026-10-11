@@ -372,6 +372,7 @@ import (
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
 	_ "go.yaml.in/yaml/v3"
 	_ "golang.org/x/sync/errgroup"
+	_ "modernc.org/sqlite"
 )
 
 func errcheckFall() { os.Remove("errcheck-fall") }
@@ -1003,6 +1004,7 @@ kein_befund p8-ausnahme-test-unused-receiver "$S" "$A" 'func (t testTyp)' revive
 kein_befund p8-ausnahme-st1005 "$S" "$L" 'func st1005Frei' staticcheck
 kein_befund p5-gomodguard-frei-pgx "$S" "$L" 'pgx/v5/pgproto3' gomodguard_v2
 kein_befund p5-gomodguard-frei-yaml "$S" "$L" 'go.yaml.in/yaml/v3' gomodguard_v2
+kein_befund p5-gomodguard-frei-sqlite "$S" "$L" 'modernc.org/sqlite' gomodguard_v2
 befund p5-revive-blank-imports "$S" "$RF" '_ "strings"' revive 'blank-imports'
 befund p5-revive-context-as-argument "$S" "$RF" 'func kontextHinten' revive 'context-as-argument'
 befund p5-revive-context-keys-type "$S" "$RF" 'func schluessel' revive 'context-keys-type'

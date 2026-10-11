@@ -10,8 +10,8 @@ import (
 )
 
 // RecordService erfüllt den Record-Use-Case: Es vermittelt Sessions zum
-// Upstream und hält die Aufzeichnung. Nach jeder übernommenen Session schreibt
-// es die Aufzeichnung als Ganzes (LH-FA-07.a).
+// Upstream und hält die Aufzeichnung. Nach jeder übernommenen Session übergibt
+// es dem Repository die Aufzeichnung als Ganzes (LH-FA-07.a, LH-FA-22.a).
 type RecordService struct {
 	upstream driven.Upstream
 	repo     driven.RecordingRepository
