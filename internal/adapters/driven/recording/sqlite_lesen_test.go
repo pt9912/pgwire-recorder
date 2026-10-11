@@ -497,3 +497,40 @@ func TestLesenAbbruchWaehrendDesLesens(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-22/Negative — fehlt eine der 17 Spalten von meta, session, interaction und message, ist die
+// Datei beschädigt (PGR-E3003), auch wenn sie nur einfache Anfragen trägt (SQLite läse einen fehlenden
+// Bezeichner in doppelten Anführungszeichen sonst als Zeichenkette, etwa interaction.sql als Text sql);
+// dasselbe gilt für jede fehlende Tabelle.
+func TestLesenJedeFehlendeSpalteUndTabelle(t *testing.T) {
+	basis := sqliteDatei(t, sessionsMit(2))
+	lockere(t, basis)
+	if _, err := laden(basis); err != nil {
+		t.Fatal(err)
+	}
+	spalten := map[string][]string{
+		"meta":        {"key", "value"},
+		"session":     {"id", "startup", "server_parameters"},
+		"interaction": {"session_id", "sequence", "type", "offset_ms", "sql"},
+		"message":     {"session_id", "sequence", "position", "direction", "group_no", "kind", "fields"},
+	}
+	n := 0
+	for tabelle, cs := range spalten {
+		path := kopiere(t, basis)
+		rohSchreibe(t, path, `DROP TABLE `+tabelle)
+		if got, err := laden(path); code(err) != model.CodeRecordingBroken {
+			t.Errorf("Tabelle %s fehlt: %v (%d Sessions)", tabelle, err, len(got.Sessions))
+		}
+		for _, c := range cs {
+			n++
+			path := kopiere(t, basis)
+			rohSchreibe(t, path, `ALTER TABLE `+tabelle+` DROP COLUMN `+c)
+			if got, err := laden(path); code(err) != model.CodeRecordingBroken {
+				t.Errorf("Spalte %s.%s fehlt: %v (%d Sessions)", tabelle, c, err, len(got.Sessions))
+			}
+		}
+	}
+	if n != 17 {
+		t.Fatalf("%d Spalten geprüft statt 17", n)
+	}
+}

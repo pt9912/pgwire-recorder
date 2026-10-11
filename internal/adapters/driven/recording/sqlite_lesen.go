@@ -176,7 +176,9 @@ func (l lesung) liesAufzeichnung(ctx context.Context) (*yaml.Node, error) {
 	return wurzel, nil
 }
 
-// zeilen liefert die Zeilen der Anfrage an die Tabelle tabelle mit spalten Spalten, jede
+// zeilen liefert die Zeilen der Anfrage (Bezeichner in eckigen Klammern: SQLite liest einen
+// fehlenden Bezeichner in doppelten Anführungszeichen als Zeichenkette, in eckigen Klammern
+// ist er ein Fehler) an die Tabelle tabelle mit spalten Spalten, jede
 // Spalte als Wert der Bibliothek (nil, int64, float64, string oder []byte).
 func (l lesung) zeilen(ctx context.Context, tabelle, anfrage string, spalten int) ([][]any, error) {
 	rows, err := l.tx.QueryContext(ctx, anfrage)
@@ -212,7 +214,7 @@ func zeichen(w any) (string, bool) { v, ok := w.(string); return v, ok }
 
 // liesMeta liest meta (SPEC-043); es liefert, ob die Aufzeichnung leere Sessions trägt.
 func (l lesung) liesMeta(ctx context.Context) (bool, error) {
-	zeilen, err := l.zeilen(ctx, "meta", `SELECT "key", "value" FROM "meta"`, 2)
+	zeilen, err := l.zeilen(ctx, "meta", `SELECT [key], [value] FROM [meta]`, 2)
 	if err != nil {
 		return false, err
 	}
@@ -351,7 +353,7 @@ func liesStartup(spalte string, text any) (*yaml.Node, error) {
 }
 
 func (l lesung) liesSessionTabelle(ctx context.Context) ([]*sessionBau, error) {
-	zeilen, err := l.zeilen(ctx, "session", `SELECT "id", "startup", "server_parameters" FROM "session"`, 3)
+	zeilen, err := l.zeilen(ctx, "session", `SELECT [id], [startup], [server_parameters] FROM [session]`, 3)
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +378,7 @@ func (l lesung) liesSessionTabelle(ctx context.Context) ([]*sessionBau, error) {
 }
 
 func (l lesung) liesInteraktionen(ctx context.Context, sessions map[int64]*sessionBau) (map[[2]int64]*interaktionBau, error) {
-	zeilen, err := l.zeilen(ctx, "interaction", `SELECT "session_id", "sequence", "type", "offset_ms", "sql" FROM "interaction"`, 5)
+	zeilen, err := l.zeilen(ctx, "interaction", `SELECT [session_id], [sequence], [type], [offset_ms], [sql] FROM [interaction]`, 5)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +448,7 @@ func interaktionVon(z []any) (int64, *interaktionBau, error) {
 }
 
 func (l lesung) liesNachrichten(ctx context.Context, interaktionen map[[2]int64]*interaktionBau) error {
-	zeilen, err := l.zeilen(ctx, "message", `SELECT "session_id", "sequence", "position", "direction", "group_no", "kind", "fields" FROM "message"`, 7)
+	zeilen, err := l.zeilen(ctx, "message", `SELECT [session_id], [sequence], [position], [direction], [group_no], [kind], [fields] FROM [message]`, 7)
 	if err != nil {
 		return err
 	}
