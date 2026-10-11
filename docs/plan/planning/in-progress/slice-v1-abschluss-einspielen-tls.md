@@ -319,12 +319,16 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 ### Belege des Implementers
 
 **Stand und Läufe.** Alles Docker-only. `make gates` lief grün (Exit 0) auf dem Inhalt von
-Commit `147afea` (Produktcode, Tests, Plan §3 und §6, Abdeckungstabellen); in der Kette:
-`make test` (gofmt, vet, Unit-Tests), `make test-integration` (mit den neuen
-`TestE2EPlayTLS*`, `TestE2EPlayKlartextAbgelehnt`, `TestE2EPlayUpstreamCAFehler`),
-`make lint` (0 issues), `make a-check` (0 Befunde), `make a-check-negativ` und
-`make lint-gegenprobe` grün. `make abdeckung` ist nachgezogen. Der Stand dieses Absatzes
-steht in einem eigenen Commit nach `147afea`, der nur §7 ändert.
+Commit `147afea` (Produktcode, Tests, Plan §3 und §6, Abdeckungstabellen) und erneut auf dem
+Inhalt von Commit `058c677` (Nacharbeit zur Review vom 2026-10-11, F-602 bis F-604 und F-606,
+Plan §3, Abdeckungstabellen); in der Kette: `make test` (gofmt, vet, Unit-Tests),
+`make test-integration` (mit den `TestE2EPlayTLS*`, `TestE2EPlayKlartextAbgelehnt`,
+`TestE2EPlayUpstreamCAFehler`, seit `058c677` auch
+`TestE2EPlayTLSZertifikatsspeicherDesSystems`), `make lint` (0 issues), `make a-check`
+(0 Befunde), `make a-check-negativ` und `make lint-gegenprobe` grün. `make abdeckung` ist
+nachgezogen. Der Stand dieses Absatzes steht in einem eigenen Commit nach `058c677`, der nur
+§7 ändert; danach lief `make gates` ein weiteres Mal auf dem sauberen Baum, damit die Images
+den Baum zeigen (dieser Lauf steht hier nicht, er würde einen weiteren Commit verlangen).
 
 **Größe.** `3d0bd0c..147afea`: 27 Dateien, +2288 −130 Zeilen. Davon Produktcode +349 −55
 (Upstream-Adapter 96, CLI-Adapter ohne Tests 209 netto, Bootstrap 6, Model 1), Tests und
@@ -337,9 +341,23 @@ bei 350 Zeilen liegt und der Überhang in den Tests je Zusage und Quelle steht (
 (`cp -r` ohne `-p`, ohne `.git`), die Datei ersetzt, `gofmt -w` auf ihr, `gofmt -l` leer; die
 Unit-Mutanten laufen mit `go test -run` im gepinnten Test-Image mit Bind-Mount der Kopie (kein
 Build-Kontext, daher kein mtime-Fall), die Integrations-Mutanten mit `make test-integration`
-in der Kopie. Jeder Mutant ist **einmal rot gesehen**, an dem hier genannten Test und aus dem
-Grund der Zusage (Meldung gelesen); 62 Unit-Läufe, 8 Integrations-Läufe, kein grüner Mutant.
-Die Kopien sind entfernt; danach lief `make gates` neu, damit die Images den Baum zeigen.
+in der Kopie. Jeder Mutant der Tabelle ist **einmal rot gesehen**, an dem hier genannten Test und
+aus dem Grund der Zusage (Meldung gelesen). Bis `147afea`: 62 Unit-Läufe, 8 Integrations-Läufe,
+alle rot. **Berichtigt:** Die frühere Aussage „kein grüner Mutant“ stimmte nicht. Der Mutant
+M14 der Review (Standardpfad `x509.SystemCertPool` durch einen leeren Speicher) war bis
+F-603 grün; er ist seit `058c677` rot (Zeile *Standardpfad*). Nacharbeit zur Review: fünf
+Unit-Läufe (drei rot zu F-602, einer rot zu F-606, einer grün zu F-604) und zwei
+Integrations-Läufe (beide rot zu F-603); insgesamt 67 Unit- und 10 Integrations-Läufe. Die
+Kopien sind entfernt; danach lief `make gates` neu, damit die Images den Baum zeigen.
+
+**Ein Mutant bleibt grün (F-604).** `MinVersion: tls.VersionTLS10` im Client
+(`tlsKonfiguration`) lässt `go test ./internal/adapters/driven/postgres` grün. Er ändert das
+Verhalten (der Client nähme einen Server mit TLS 1.0 an), ist also über die Schnittstelle
+fangbar; fangen würde ihn nur ein Server mit `MinVersion` und `MaxVersion` TLS 1.0. Dafür gibt
+es hier keinen Test und keine Test-Idee mit Adresse, weil die Untergrenze keine Zusage ist (§6,
+*TLS-Version und Verfahren*): Wer sie zusagt, schreibt diesen Test mit der Zusage. Der Fall
+„S, dann Gegenstelle nur TLS 1.0, Aushandlung scheitert“ prüft nur, dass eine Aushandlung, die
+scheitert (hier an der Untergrenze der Gegenstelle), PGR-E4005 ist.
 
 | Zusage | Mutation | roter Test |
 |---|---|---|
@@ -357,7 +375,7 @@ Die Kopien sind entfernt; danach lief `make gates` neu, damit die Images den Bau
 | Anderes Byte: PGR-E4002 | als PGR-E4005 | `TestEinspielTLSAntwort/E`, `/Fehlerpaket`, `/x`, `/s`, `/Byte_eines_TLS-Records`, `/Byte_0` |
 | Ende vor der Antwort: PGR-E4002 | als PGR-E4005 | `TestEinspielTLSAntwort/Ende_davor`, `TestEinspielTLSSendenUndLesen` |
 | Senden des SSLRequest scheitert: PGR-E4002 | als PGR-E4005 | `TestEinspielTLSSendenUndLesen` |
-| Fehler der Aushandlung, auch Ende darin, Nicht-TLS, Version: PGR-E4005 | Aushandlung als PGR-E4002 | `TestEinspielTLSAntwort/S,_dann_Ende`, `/S,_dann_kein_TLS`, `/S,_dann_TLS_1.0`, `TestEinspielTLSZertifikatFehler` (6), `TestEinspielTLSName`, `TestEinspielTLSZertifikatsspeicher` |
+| Fehler der Aushandlung, auch Ende darin, Nicht-TLS, gescheiterte Aushandlung gegen eine Gegenstelle mit nur TLS 1.0: PGR-E4005 | Aushandlung als PGR-E4002 | `TestEinspielTLSAntwort/S,_dann_Ende`, `/S,_dann_kein_TLS`, `/S,_dann_Gegenstelle_nur_TLS_1.0,_Aushandlung_scheitert`, `TestEinspielTLSZertifikatFehler` (6), `TestEinspielTLSName`, `TestEinspielTLSZertifikatsspeicher` |
 | Server lehnt Klartext ab: PGR-E4005 | Klasse 28 nicht mehr PGR-E4005 | `TestEinspielKlartextAbgelehnt` |
 | Nach der Aushandlung läuft die Anmeldung auf TLS | Passwort im TLS-Aufbau weggelassen | `TestEinspielTLSKlartextPasswort`; Ende zu Ende `TestE2EPlayTLSAnmeldung` (scram, md5, password) lief grün, ohne eigene Mutation |
 | Abbruch im Aufbau: kein Terminate | `Terminate` nach dem Fehler | `TestEinspielTLSAbbruchImAufbau` |
@@ -387,6 +405,10 @@ Die Kopien sind entfernt; danach lief `make gates` neu, damit die Images den Bau
 | Die Datei vor dem Laden der Aufzeichnung | **keine Mutation gefahren**: Das Lesen steht im Parser der Kommandozeile, das Laden im Bootstrap danach; die Reihenfolge folgt aus dem Aufbau | `TestE2EPlayUpstreamCAFehler` (die Aufzeichnung fehlt, die Meldung ist trotzdem PGR-E2007 oder PGR-E2001, nie PGR-E3001) lief grün |
 | `config show` liest die Datei nicht | `config show` liest sie | `TestConfigShowLiestCANicht` |
 | Eine Formatierung gibt kein Zertifikat aus | `Format` der Zertifikate entfernt (CLI und Upstream-Adapter); `Format` gibt den Namen aus | `TestPlayOptionenOhneZertifikat`; `TestEinspielzielOhneZertifikat` (beide) |
+| Standardpfad: ohne `--upstream-ca` gilt der Zertifikatsspeicher des Systems, den das Binary als frischer Prozess lädt | Standardpfad `x509.SystemCertPool` durch einen leeren Speicher (M14 der Review) | `TestE2EPlayTLSZertifikatsspeicherDesSystems/SSL_CERT_FILE_nennt_die_Zertifizierungsstelle` (PGR-E4005, unknown authority) |
+| … ohne `SSL_CERT_FILE` ist dieselbe Verbindung PGR-E4005 (verneinend: nichts eingespielt, nichts weitergereicht) | `InsecureSkipVerify` | `TestE2EPlayTLSZertifikatsspeicherDesSystems/ohne_SSL_CERT_FILE` (als einziger Teilfall rot) |
+| Kein Paket unter `./cmd/...` importiert `testing`, den TLS-Proxy oder die Zertifikatserzeugung (verneinend; je Eintrag der Verbotsliste) | Blank-Import von `tlsproxy` in `bootstrap.go`; von `testing`; von `testpki` | `TestBinaryOhneTesthilfen`: der erste nennt alle drei Pakete, der zweite `testing`, der dritte `testpki` und `testing` (`testpki` importiert `testing`; `testpki` allein ist deshalb nicht von `testing` zu trennen) |
+| Der hängende Proxy schließt `Hello` einmal, auch bei einer zweiten Verbindung (Testhilfe) | `sync.Once` entfernt, `close(p.Hello)` | `TestHaengenderProxyZweiteVerbindung` (Absturz „close of closed channel“) |
 | Der Hilfetext nennt die Optionen | Zeile von `--upstream-ca` verändert | `TestPlayHilfeTLS` |
 
 **Grenzen und nicht Geprüftes.**
@@ -396,12 +418,18 @@ Die Kopien sind entfernt; danach lief `make gates` neu, damit die Images den Bau
   PGR-E4002 für jedes Byte vor der Aushandlung). Die Tests erzeugen den Fall mit einem
   Schreiben; ein Server, der `S` und sein Rauschen in zwei Segmenten sendet, ist ungeprüft.
 - *IPv6 ohne Zone*: wie in der Tabelle; das Verhalten ist das der Standardbibliothek.
-- *Zertifikatsspeicher des Systems*: nur über das austauschbare Feld im Unit-Test; ohne CA
-  bleiben die Zeilen *leerer* und *nicht ladbarer Speicher* gegen einen Mutanten, der die
-  Systemwurzeln des Containers einsetzt, grün (sie enthalten die Test-CA nicht); getrennt
-  wird das erst mit CA (`/nicht_ladbarer_Speicher,_in_CA`). Gemessen: Das Image
-  `pgwire-recorder:dev` enthält `/etc/ssl/certs/ca-certificates.crt`; Ende zu Ende ist das
-  nicht geprüft (Risiko 2 in §6).
+- *Zertifikatsspeicher des Systems*: Der Standardpfad ist Ende zu Ende geprüft
+  (`TestE2EPlayTLSZertifikatsspeicherDesSystems`, `SSL_CERT_FILE` im Prozessumfeld des
+  Binaries); die Fälle *leerer*, *nicht ladbarer* und *gefüllter* Speicher prüft der Unit-Test
+  über das austauschbare Feld. Ohne CA bleiben die Zeilen *leerer* und *nicht ladbarer Speicher*
+  gegen einen Mutanten, der die Systemwurzeln des Containers einsetzt, grün (sie enthalten die
+  Test-CA nicht); getrennt wird das erst mit CA (`/nicht_ladbarer_Speicher,_in_CA`). Nicht
+  geprüft: der Speicher des Produkt-Images im Betrieb. Gemessen: Das Image
+  `pgwire-recorder:dev` enthält `/etc/ssl/certs/ca-certificates.crt`; der Integrationstest
+  fährt das Binary des Test-Images, nicht das des Produkt-Images (Risiko 2 in §6).
+- *Testhilfen im Binary*: `TestBinaryOhneTesthilfen` prüft die Pakete unter `./cmd/...`; ob eine
+  Testdatei außerhalb von `./cmd/...` `tlsproxy` oder `testpki` importiert, prüft nichts
+  (`make a-check` nimmt `internal/bootstrap/**` aus, ein Gate dafür wäre eine ADR).
 - *MD5 und SCRAM über TLS* sind nur Ende zu Ende geprüft (`TestE2EPlayTLSAnmeldung`), ohne
   eigene Mutation; im Unit-Test nur das Klartext-Passwort.
 - *`localhost` und IPv6*: `TestEinspielTLSName` setzt voraus, dass `localhost`
@@ -410,11 +438,14 @@ Die Kopien sind entfernt; danach lief `make gates` neu, damit die Images den Bau
 - Der Mutant *Aushandlung vom Abbruch ausgenommen* nimmt zwei Schutzmittel zugleich, weil
   jedes allein genügt (Redundanz im Produkt, kein Mangel des Tests).
 
-**Namensabgleich.** Jeder Test und jeder Teilfall, der hier steht, wurde vor der Übergabe
-mit `grep` im Repo gefunden (Funktion `func <Name>(` bzw. die Zeilenbezeichnung der Tabelle
-im Quelltext des Tests, Unterstrich als Leerzeichen) mit einem Skript über den Abschnitt
-abgeglichen: 133 Namen geprüft; nicht gefunden nur `TestE2EPlayZwischenstand` (der Test ist
-als entfernt genannt) und ein Pfad im Image, der kein Testname ist.
+**Namensabgleich.** Jeder Test und jeder Teilfall in diesem Abschnitt wurde nach der
+Nacharbeit, vor der Übergabe, mit einem Skript gegen das Repo abgeglichen (Funktion
+`func <Name>(` für 45 Testnamen; für 70 Teilfälle der Name mit Unterstrichen als Leerzeichen
+als Zeichenkette irgendwo in den Go-Quellen, was nicht an den Test gebunden ist). Nicht
+gefunden: `TestE2EPlayZwischenstand` (als entfernt genannt) und zwei Teilfälle von
+`TestE2EPlayTLSZertifikatsspeicherDesSystems`, deren Name den Unterstrich von `SSL_CERT_FILE`
+selbst trägt (das Skript ersetzt ihn); beide stehen als `PASS` im Lauf von `make gates`. Der
+Abgleich des Abschnitts *Hinweise* und der Pfade ist nicht Teil des Skripts.
 
 **Hinweise an Architect, Planner und Review.**
 
@@ -424,8 +455,8 @@ als entfernt genannt) und ein Pfad im Image, der kein Testname ist.
    `internal/bootstrap/tlsproxy` (Verdrahtung, dort ist `crypto/tls` zulässig) und die
    Zertifikatserzeugung in `internal/testpki` (ohne `crypto/tls`). Beides gehört zu keiner
    Schicht; der a-check-Hinweis *gescannte Dateien ohne Schicht* wächst um die beiden Dateien
-   von `testpki`. Der Architect hat den Ort der Testhilfen nicht entschieden; ob er so bleibt,
-   ist seine Sache.
+   von `testpki`. Der Architect hat den Ort am 2026-10-11 bestätigt (§6, *Rückgabe des
+   Implementers*); dass kein Binary-Paket sie importiert, prüft `TestBinaryOhneTesthilfen`.
 2. *Typ der Zertifikate.* `PlayOptions` trägt `cli.Zertifikate` und der `Einspielziel`
    `postgres.Zertifikate`, benannte Typen über `[]*x509.Certificate` mit eigenem `Format`
    (Auftrag: kein Zertifikatsinhalt in Ausgaben); §6 *Ort der CA-Datei* nennt sie jetzt so.
@@ -445,6 +476,17 @@ als entfernt genannt) und ein Pfad im Image, der kein Testname ist.
    es eine Zeile.
 6. *Handbuch und README* sind nicht angefasst (Doku-Folge-Slice); das Handbuch nennt
    `sslmode=require` und `--upstream-tls` bei `play` noch als nicht verfügbar.
+
+7. *Befunde der Review vom 2026-10-11.* F-602, F-603 und F-604 sind mit den Zeilen oben
+   behoben (Tests, Mutanten, Namen). **F-605** (vier Randformen im Code vor §6): Der Ablauf ist
+   gelaufen, wie der Befund ihn beschreibt; die Randformen sind inzwischen in §6 entschieden, an
+   der Reihenfolge ändert sich nichts mehr, kein Code. **F-606** (`close(p.Hello)`): behoben mit
+   `sync.Once` und einem Test, weil der Aufwand klein war (vier Zeilen und ein Test von rund
+   40 Zeilen) und der Absturz den ganzen Testprozess trifft, nicht nur einen Test; Zeile
+   *Hello* in der Tabelle. **F-607** (Grenze am falschen Satzteil in `LH-FA-20.a`): Sache der
+   Spezifikation, nicht dieser Nacharbeit; der Architect hat sie berichtigt. **F-608** (Größe
+   rund 14 % über dem Maß): wie in *Größe* oben benannt; das Maß gehört dem Planner, die
+   Nacharbeit fügt rund 190 Zeilen Go hinzu (Tests und Testhilfe), keinen Produktcode.
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
