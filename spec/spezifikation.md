@@ -1775,11 +1775,13 @@ nichts zu ergänzen hat (die Datei trägt dann schon alle beendeten Sessions), u
 nie an; fehlt sie, oder
 trägt `session` nicht genau die Nummern 1 bis zur zuletzt ergänzten Session (ein anderer
 Prozess oder eine ersetzte Datei), ist das `PGR-E3001`, und die Datei bleibt
-unberührt. Die Nummern der Sessions vergibt der Aufrufer (`LH-FA-12.a`); eine Nummer, die nicht
-die nächste ist, ist `PGR-E3001`: eine doppelte, weil sie den Primärschlüssel verletzt, eine
-Lücke spätestens bei der Prüfung des nächsten Schreibvorgangs. Trägt eine Aufzeichnung weniger
-Sessions, als der Recorder zuletzt ergänzt hat, ist das ein Fehler des Aufrufers, kein Fehler der
-Datei: `PGR-E1000`, und die Datei bleibt unberührt. Der Journalmodus ist das Rollback-Journal (`journal_mode=DELETE`), es
+unberührt. Die Nummern der Sessions vergibt der Aufrufer (`LH-FA-12.a`). Jeder Schreibvorgang prüft
+sie, bevor er die Datei anlegt oder öffnet, für alle Sessions der Aufzeichnung: Zählen sie nicht
+ab 1 lückenlos (eine doppelte Nummer, eine Lücke, eine andere Reihenfolge), ist das ein Fehler
+des Aufrufers, kein Fehler der Datei: `PGR-E1000`, und die Datei bleibt unberührt, eine noch nicht
+angelegte wird nicht angelegt. Ebenso `PGR-E1000`, wenn eine Aufzeichnung weniger Sessions trägt,
+als der Recorder zuletzt ergänzt hat. Trägt dagegen die Datei selbst andere Nummern als die
+zuletzt ergänzten (siehe oben), ist das `PGR-E3001`. Der Journalmodus ist das Rollback-Journal (`journal_mode=DELETE`), es
 entstehen keine WAL-Nebendateien, außer `<Zieldatei>-journal` während einer
 Transaktion; Fremdschlüssel sind eingeschaltet (`foreign_keys=ON`), und jede
 Transaktion wird beim Abschluss auf den Datenträger geschrieben (`synchronous=FULL`).
@@ -2892,3 +2894,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Strings ohne gültiges UTF-8 in den JSON-Spalten als `base64:` mit Umschreibung (`SPEC-043`), `interaction.sql` unverändert; kanonische Dezimalschreibweise von `version`, `empty_sessions` nur `true`, zusätzliche Tabellen und Spalten ignoriert, verwaiste Zeilen, doppelte Schlüssel, `NULL` und Nicht-Objekte, Zeilen gegen die Regeln des Abschnitts; Fehlerklassen des Lesens nach primärem SQLite-Ergebniscode, abgeschnittene Datei `PGR-E3003`; Pfadprüfung vor dem Journal, Prüfung der Datei auch ohne Ergänzung, Schließen nach der Transaktion, jeder Fehler des Schreibens `PGR-E3001` (`LH-FA-22.a`, `SPEC-043`); `modernc.org/sqlite` in der Erlaubnisliste des Lint-Gates (`SPEC-049`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Erkennung vor dem Lesen, Öffnen oder Lesen der ersten Bytes gescheitert `PGR-E3001` wie bei `yaml`, kürzere Datei als `yaml`; Eingabepfad wörtlich (`LH-FA-22.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Journal des Zielpfads „vorhanden“ wie der Zielpfad, Journal der temporären Datei ist eine übrig gebliebene Datei, doppelte Nummer und Lücke `PGR-E3001`, weniger Sessions als zuletzt ergänzt `PGR-E1000` (`LH-FA-22.a`) |
+| 2026-10-11 | Aufzeichnungsformat `sqlite`: Nummern der Sessions werden vor dem Anlegen und Öffnen für die ganze Aufzeichnung geprüft, doppelte Nummer und Lücke im Aufruf `PGR-E1000` statt `PGR-E3001`, Datei unberührt (`LH-FA-22.a`) |
