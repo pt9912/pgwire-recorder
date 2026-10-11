@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format
+**Fund:** Die Randform *Nummer der Session* war in §6 genannt und vom Architect mit `PGR-E3001` entschieden; das Review fand den Unterfall, dass ein einziger Aufruf zwei gleiche neue Nummern trägt: die erste Session ist committet, die zweite scheitert, die Datei steht nicht auf dem Stand vor dem Aufruf (F-617, LOW). Der Architect ersetzte die Entscheidung am selben Tag (`PGR-E1000` vor dem Anlegen und Öffnen, Prüfung aller Nummern); Spezifikation, Plan und Tests folgten.

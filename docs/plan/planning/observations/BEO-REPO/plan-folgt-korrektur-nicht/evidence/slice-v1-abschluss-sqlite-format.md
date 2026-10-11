@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format
+**Fund:** Plan §1 *Übernommen* nannte die Randformen des Schreibens noch als offen, obwohl `LH-FA-22.a` sie entschied, und §8 sagte „das Repo enthält noch keinen Produktionscode“ (Review F-616, LOW); §7 trug drei Belege, die dem Endstand nicht mehr entsprachen: die Zahl der grünen Mutanten, den Gate-Lauf auf einem früheren Stand und „vier Commits“ statt elf (Verifikation V-172, LOW). Nachgezogen vom Implementer; der Gate-Beleg auf dem Endstand steht seit der Closure in §7.

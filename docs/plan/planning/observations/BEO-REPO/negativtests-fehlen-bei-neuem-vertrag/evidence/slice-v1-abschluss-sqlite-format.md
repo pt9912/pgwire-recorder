@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format
+**Fund:** Die Zusagen `journal_mode=DELETE` und `synchronous=FULL` standen als Pragmas in der URI; mit beiden entfernt blieb jeder Test grün, und §7 führte die Mutanten nicht (Review F-614, LOW). Das Szenario — eine fremde Datei im WAL-Modus mit passenden Nummern — hatte keinen Test. Nachgetragen: `TestSQLiteFremdeWALDatei` (rot ohne `journal_mode(DELETE)`); `synchronous(FULL)` ist als äquivalenter Mutant geführt (Standard der Bibliothek ist `FULL`).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format
+**Fund:** Die Bibliothek für `sqlite` ist für die sechs Zielplattformen gebaut (`linux`, `darwin`, `windows` je `amd64` und `arm64`, Exit 0), ausgeführt und geprüft ist nur `linux/amd64` im Container. `dsnVon` führt einen Zweig für Windows (`"/" + abs`, danach `C%3A`) ohne Zusage und ohne Test (Review F-618, INFO; grüner Mutant W10); die Grenze für das atomare Verschieben und das Ergänzen in Transaktionen nennt `LH-FA-22.a` *Grenzen* (nur Linux, lokales Dateisystem). Risiko aus §6 des Slice, Ausgang *weiter offen*.
