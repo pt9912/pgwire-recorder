@@ -47,16 +47,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
-- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-sqlite-format` und `slice-v1-abschluss-sqlite-format-lesen` liefern, im Ist-Zustand des gebauten Binaries: Die Abschnitte, die Kommandos, Optionen, Meldungscodes, Beispiele und Grenzen dieses Slice betreffen, stehen im Handbuch, und die Grenz-Sätze, die er überholt, sind ersetzt. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
-- [ ] `README.md` nennt, was `slice-v1-abschluss-sqlite-format` und `slice-v1-abschluss-sqlite-format-lesen` liefern, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-sqlite-format` und `slice-v1-abschluss-sqlite-format-lesen` liefern, im Ist-Zustand des gebauten Binaries: Die Abschnitte, die Kommandos, Optionen, Meldungscodes, Beispiele und Grenzen dieses Slice betreffen, stehen im Handbuch, und die Grenz-Sätze, die er überholt, sind ersetzt. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
+- [x] `README.md` nennt, was `slice-v1-abschluss-sqlite-format` und `slice-v1-abschluss-sqlite-format-lesen` liefern, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
+- [x] `make gates` grün — Beleg in §7, *Closure*, Stand der Gates.
+- [x] Review durchgeführt, Report `docs/reviews/2026-10-11-review-slice-v1-abschluss-sqlite-format-doku.md` und Verifikation `docs/reviews/2026-10-11-verifikation-slice-v1-abschluss-sqlite-format-doku.md` liegen vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag — §7, *Closure*.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -106,8 +106,8 @@ dasteht.
 
 **Risiken:**
 
-- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** offen bis Closure.
-- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** offen bis Closure.
+- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** *weiter offen* — alle Proben liefen unter Linux im Container; das Register führt den Eintrag (3× mit `slice-v1-abschluss-sqlite-format-lesen`, nicht zugewiesen) und vermerkt diesen Slice ohne neues Auftreten.
+- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** *entfallen* — Die Verifikation bestätigt Handbuch- und README-Teil beider Code-Slices (Punkt 1 und 2 der DoD); die Suche nach den ersetzten Grenz-Sätzen findet nichts Verbliebenes (`grep` nach „nur `yaml`“, „unbekannt“ zu `--format`: nur die Zeilen `PGR-E2001` mit dem Wertebereich und `PGR-E3002`). Das Register vermerkt „Teil geliefert“.
 
 ## 7. Closure-Notiz
 
@@ -192,6 +192,41 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 **Hinweise an Architect und Planner** (keine Randform dieses Slice, kein Befund gegen die Spezifikation):
 1. *Meldungen von `yaml` bei einer SQLite-Datei ohne gültige Kopfzeile:* Eine 15-Byte-Datei `SQLite format 3` meldet `PGR-E3003` mit einem Stück ihres Inhalts (`cannot unmarshal !!str …`); das ist die bekannte Lücke `BEO-REPO/yaml-meldung-nennt-wert-und-zeile`. Das Handbuch sagt über den Inhalt der Meldungen nichts.
 2. *`play` mit einer Aufzeichnung ohne Sitzung:* endet mit Exit 0 und den Zeilen „play gestartet“, „play beendet“, ohne Warnung. Die Spezifikation sagt, `play` führe Sessions ohne Interaktion nicht aus; ob eine Aufzeichnung ganz ohne Sitzung eine Meldung verdient, ist nicht entschieden. Das Handbuch nennt das Verhalten nicht.
+
+### Closure
+
+**Review und Verifikation.** Review (`24edefb`): F-631 (MEDIUM), F-632, F-633 (LOW), F-634 bis F-636 (INFO); F-631 bis F-633 und F-636 erledigt in `ab22809`. Verifikation (`f9e4417`): DoD-Punkte 1 und 2 bestätigt; V-179 und V-180 (LOW) erledigt in `4932680` mit den Proben in der Tabelle oben; V-181 (INFO) siehe unten.
+
+**Entscheidungen zu den Übergaben.**
+
+- **F-634** (`play` mit einer Aufzeichnung ohne Sitzung: Exit 0 ohne Meldung, `replay` meldet `PGR-E3004`): Das Handbuch sagt nichts Falsches. Die Spezifikation regelt es nicht: `PGR-E3004` ist für `replay` definiert (`LH-FA-03.a`), für `play` steht nur „führt Sessions ohne Interaktion nicht aus“. Eine **benannte Spezifikationslücke**, im Register als `BEO-REPO/play-ohne-sitzung-ohne-meldung` (neu, 1×, offen). Keine Zuweisung an einen Slice: Kein Slice, der `play` berührt, führt den Gegenstand (`slice-v1-abschluss-antwortvergleich` ändert den Ablauf von `play`, schließt aber die Zusage über Sitzungen nicht an), und die Entscheidung (ablehnen, warnen, schweigen) gehört zuerst in die Spezifikation, bei Lastenheft-Bezug dem Nutzer. Eine Zuweisung ohne annehmenden Nehmer wäre eine Adresse, die ins Leere zeigt (`AGENTS.md` §3.13); sie folgt bei 3× durch den Lese-Schritt.
+- **F-635, V-181** (Meldung zu einer 15-Byte-Datei nennt ein Stück des Dateiinhalts): `BEO-REPO/yaml-meldung-nennt-wert-und-zeile`, zweites Auftreten (1× → 2×); die Entscheidung des Nutzers vom 2026-10-11 (Regel vorerst nur für `sqlite`) gilt, das Handbuch macht dazu keine Zusage. Keine Handlung an diesem Slice.
+- **F-633** (Satzbezug „sie ist dann beschädigt“): Einzelfall der Verständlichkeit, behoben; kein Register-Eintrag.
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge): siehe §6; Beispiel läuft nur unter Linux: *weiter offen*; Teil von Handbuch und README nicht geliefert: *entfallen*.
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure):
+
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — neue Datei `evidence/slice-v1-abschluss-sqlite-format-doku.md` (F-631, F-632, F-636, V-179, V-180): 38 → 39. Verkörpert (`AGENTS.md` §3.11); `state.md` führt zusätzlich die zwei Absätze unten. Die Klasse „Satz ohne eigene Probezeile“ (F-636, V-180) und „Zusage weiter als die Probe“ (F-631, V-179) sind hier dieselbe Beobachtung (ein Satz sagt zu, was keine Probe zeigt); ein eigener Eintrag entsteht nicht. `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` meint etwas anderes (der Code-Slice liefert den Handbuch-Teil nicht).
+- `BEO-REPO/yaml-meldung-nennt-wert-und-zeile` — neue Datei `evidence/slice-v1-abschluss-sqlite-format-doku.md` (F-635, V-181): 1 → 2. Offen, nicht zugewiesen.
+- `BEO-REPO/play-ohne-sitzung-ohne-meldung` — **neu**, `evidence/slice-v1-abschluss-sqlite-format-doku.md` (F-634): 1×, offen.
+- `BEO-REPO/verhalten-nur-unter-linux-geprueft` — kein neues Auftreten; vermerkt in `state.md`, bleibt 3×, nicht zugewiesen (der Lese-Schritt der Closure von welle-v1-abschluss weist zu).
+- `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` — kein Auftreten; vermerkt „Teil geliefert“, bleibt 1×, offen.
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3× neu. Retirement-Check: `AGENTS.md` §3.11 (Handbuch gilt nur mit Probe) ist wieder aufgetreten (F-631, F-632, V-179, V-180); die Regel bleibt, ihr Ergebnis steht im Lerneintrag.
+
+**Lerneintrag — geschärfte Regel (zwei Absätze) und benannte Spezifikationslücke.**
+
+(a) Der Hinweis zum Journal sagte zu: „`sqlite3` macht den Abbruch rückgängig und entfernt die Datei, danach startet `record`“. Geprobt war ein Journal mit Inhalt; ein Journal der Länge 0 bleibt liegen, und der Text führte in eine Sackgasse (F-631). Die Kettenregel in Schritt 19 nannte nur Aussteller, Herkunft und Zuständigkeit; eine Anleitung mit Folgeschritten fiel nicht darunter. Sie nennt jetzt auch sie: Ausgangszustand mit Inhalt und ohne sind zwei Fälle, jeder Schritt der Kette hat seine Probe. `liegt in` `.claude/commands/implement-slice.md` Schritt 19 — Herkunfts-Anker `seit slice-v1-abschluss-sqlite-format-doku`.
+
+(b) Zwei Sätze zur Art des Schreibens hatten keine Zeile in der Probe-Tabelle (F-636, V-180), ein Wort („leer“) nannte einen Zustand anders, als die Probe ihn zeigt (V-179), und ein Wortlaut der Bibliothek stand im Handbuch (F-632, Wiederholung von F-615). Die Proben des Implementers waren je Aussage geführt, aber nicht je Satz; die Prüfung am Satz fand erst Review und Verifikation. Schritt 17 sagt jetzt: Jeder Satz mit einer Verhaltensaussage hat seine eigene Zeile, auch ein Nebensatz; das Zustandswort folgt der Probe. `liegt in` `.claude/commands/implement-slice.md` Schritt 17 — Herkunfts-Anker `seit slice-v1-abschluss-sqlite-format-doku`.
+
+(c) Benannte Spezifikationslücke: Die Spezifikation regelt `play` mit einer Aufzeichnung ohne Sitzung nicht (`BEO-REPO/play-ohne-sitzung-ohne-meldung`); `PGR-E3004` ist nur für `replay` definiert. Zuständig: Architect mit dem Nutzer, bevor ein Slice, der `play` berührt, das Verhalten festlegt.
+
+**Paarungen.** (a) Anker: Beide Zielorte (Schritt 17 und Schritt 19 in `.claude/commands/implement-slice.md`) tragen `seit slice-v1-abschluss-sqlite-format-doku` (`grep`), `state.md` von `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` nennt sie. (b) Folge-Slice: Diese Closure weist keinem Slice etwas zu; `slice-v1-abschluss-zeitangaben-doku` und die übrigen Doku-Folge-Slices bleiben, wie sie sind. (c) Register: die fünf genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
+
+**Nachzählen.** Keine Sendung in einen Nehmer, daher kein Nachzählen von Liefer-Punkten und Schichten. Dieser Slice hat 2 Liefer-Punkte und eine Schicht (Dokumentation), wie in §8.
+
+**Stand der Gates.** `make gates` auf dem sauberen Baum `4932680` (Stand nach der Nacharbeit zu V-179 und V-180, vor diesem Eintrag): Exit 0. Die Commits dieser Closure ändern nur Plan, Register, `implement-slice.md` und Roadmap; `make gates` auf dem Stand nach dem letzten Commit ist die Messung, die der Bericht des Planners nennt.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
