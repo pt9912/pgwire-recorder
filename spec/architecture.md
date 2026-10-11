@@ -199,7 +199,7 @@ Richtungen.
 | Port | Operationen |
 |---|---|
 | `RecordingRepository` | Recording anhand eines Pfads laden (das Format erkennt der Adapter); Recording unter einem Pfad neu anlegen (Format, Zielpfad, Ersetzen); eine beendete Session ergänzen (nach dem Ende jeder Session und beim kontrollierten Beenden; `yaml` schreibt dabei das ganze Recording neu, `sqlite` ergänzt in einer Transaktion) |
-| Uhr | aktuelle Zeit lesen und bis zu einem Zeitpunkt warten (Zeitangaben beim Aufzeichnen, zeitgetreues Einspielen); der Composition Root stellt die Systemuhr bereit, Tests eine Fake-Uhr |
+| Uhr | aktuelle Zeit lesen und bis zu einem Zeitpunkt warten (Zeitangaben beim Aufzeichnen, zeitgetreues Einspielen); der Core liest die Zeit nur über sie; der Composition Root stellt die Systemuhr bereit, Tests eine Fake-Uhr |
 | PostgreSQL-Upstream | Upstream-Session für einen Startup eröffnen; einfach: Anfrage senden und die Server-Nachrichten bis `ReadyForQuery` liefern; Extended: die Client-Nachrichten einer Gruppe senden und unabhängig davon die nächsten Server-Nachrichten liefern. Senden und Empfangen laufen gleichzeitig, jedes blockiert nur an seiner Richtung; Session schließen beendet wartendes Senden und Empfangen mit einem Fehler |
 
 Die Query-Operation kann streaming-orientiert gestaltet werden (Antworten einzeln

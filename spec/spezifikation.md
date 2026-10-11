@@ -1653,8 +1653,70 @@ ersten Client-Nachricht der Interaktion, gemessen mit einer monotonen Uhr. Das
 Feld steht auf der Ebene der Interaktion (`SPEC-002`, `SPEC-041`, `SPEC-043`) und
 fehlt ohne die Option. Eine Aufzeichnung mit Zeitangaben ist nicht reproduzierbar
 im Sinne von `SPEC-004`: zwei Läufe derselben Anwendung unterscheiden sich in
-`offset_ms`. Ein Wert, der keine ganze Zahl ≥ 0 ist, oder Werte, die innerhalb einer
-Session absteigen, machen das Recording zu einem beschädigten (`PGR-E3003`).
+`offset_ms`. Was beim Laden als beschädigt gilt, steht unter *Prüfen*.
+
+**Uhr.** Der Use Case liest die Zeit und wartet nur über einen Port „Uhr“; Domain
+Model, Use Cases und Ports der Anwendung nutzen keine Zeitfunktion der
+Standardbibliothek. Die Uhr liefert die Zeit als ganze Millisekunden (`int64`) seit
+einem Ursprung, den sie selbst wählt; ein Wert hat nur als Unterschied zweier
+Lesungen derselben Uhr eine Bedeutung. Die Lesung ist abgeschnitten, nie kleiner als
+die vorige und kennt keinen Typ der Zeitbibliothek. Das Warten nennt einen Zeitpunkt
+in derselben Zählung und ist durch den Kontext abbrechbar: Ist der Kontext beendet,
+kehrt der Aufruf mit dessen Fehler zurück, vor und während des Wartens und auch bei
+einem Zeitpunkt, der erreicht oder vergangen ist; sonst kehrt er mit `nil` zurück,
+sobald die Lesung den Zeitpunkt erreicht hat, bei einem erreichten oder vergangenen
+Zeitpunkt sofort. Die Systemuhr stellt der Composition Root bereit; die Uhr der
+Tests rückt nur auf Anweisung vor, um eine nicht negative Zahl von Millisekunden
+(eine negative ist ein Programmierfehler der Tests), und weckt dabei jeden
+Wartenden, dessen Zeitpunkt erreicht ist.
+
+Das Architektur-Gate (`make a-check`) hält Domain Model, Use Cases und Ports frei
+von der Zeitbibliothek, einschließlich ihrer Tests; Adapter, Composition Root, `cmd`
+und die Testhilfen unter `internal/` dürfen sie nutzen. Die Regel greift am Import,
+nicht am Aufruf: Auch ein Zeittyp ohne Aufruf ist dort abgelehnt. Die Gegenprobe
+(`make a-check-negativ`) zeigt je einen abgelehnten Fall im Domain Model, in den
+Ports und in den Use Cases und je einen zugelassenen im PGWire-Adapter und im
+Composition Root, dazu den Import eines Pakets, dessen Name `time` nur enthält.
+
+**Messpunkt.** Der Use Case misst, nicht der Adapter. `offset_ms` ist der
+Unterschied zweier Lesungen der Uhr: der Lesung bei der Ankunft der ersten
+Client-Nachricht der Interaktion und der Lesung beim Beginn der Session. Beginn der
+Session ist der Aufruf, mit dem der Use Case die Verbindung übernimmt, vor dem
+Aufbau der Upstream-Session; was der Client davor tut (TLS-Aushandlung,
+Startup-Nachricht), zählt nicht mit. Ankunft ist der Aufruf, mit dem der Use Case die
+erste Nachricht der Interaktion übernimmt (bei einer Extended-Interaktion die erste
+Client-Nachricht der ersten Gruppe, gleich welche Art), gelesen, bevor der Aufruf auf
+etwas wartet. Ein Client, der Anfragen vorausschickt, wird damit um die Wartezeit auf
+die vorige Antwort später gemessen als am Socket; der Wert ist nie kleiner als die
+Zeit bis zur Ankunft am Socket (Grenze, kein Fehler). Die Differenz zweier
+abgeschnittener Lesungen ist der Wert, es wird nicht gerundet. Die Werte einer
+Session steigen nicht ab, weil die Lesungen nicht kleiner werden und die
+Interaktionen in der Reihenfolge ihrer Ankunft nummeriert werden. Mit der Option trägt jede aufgezeichnete
+Interaktion das Feld, auch die Lebendprüfung (`LH-FA-09.a`); eine Interaktion, die
+beim Herunterfahren oder Abbrechen unvollständig endet, wird nicht übernommen
+(`LH-FA-13.a`) und hat keinen Wert. Jede Session misst von ihrem eigenen Beginn;
+eine Session ohne Interaktion trägt kein Feld.
+
+**Prüfen.** Die Prüfung gilt beim Laden jeder Aufzeichnung, in `yaml` und in
+`sqlite`, für `replay` und für `play`, mit und ohne `--keep-timing`: Sie hängt am
+Inhalt der Datei, nicht am Wunsch. Beschädigt (`PGR-E3003`, Exit-Code `3`) ist eine
+Aufzeichnung mit einem `offset_ms`, der keine ganze Zahl ≥ 0 ist, und mit
+`offset_ms`, die innerhalb einer Session absteigen. In `yaml` ist der Wert ein
+Skalar in kanonischer Dezimalschreibweise, `0` oder Ziffern ohne führende Null, ohne
+Vorzeichen, im Bereich von `int64`; jede andere Schreibweise ist beschädigt, auch
+`1.0`, `1.5`, `1e3`, `0x10`, ein Text in Anführungszeichen, `true`, `null` und ein
+Wert über dem Bereich. Ein Schlüssel `offset_ms` mit dem Wert `null` ist wie
+`request: null` beschädigt, nicht „fehlt“. In `sqlite` gilt die Regel des Typs der
+Spalte (`SPEC-043`). Absteigend ist ein Wert, der kleiner ist als der vorige Wert
+derselben Session; gleiche Werte hintereinander sind gültig, ebenso ein kleinerer
+Wert am Anfang der nächsten Session, denn jede Session zählt für sich. Eine
+Interaktion ohne `offset_ms` zwischen zwei mit Wert ist beim Laden gültig; verglichen
+werden die vorhandenen Werte in der Reihenfolge der Interaktionen (fehlende Werte
+verlangt erst `--keep-timing`, `PGR-E2003`). Eine Session mit einer oder ohne
+Interaktion hat nichts zu vergleichen. Die Meldung nennt die Nummer der Session und
+der Interaktion, nie einen Wert aus der Datei und keine Zeilennummer, in beiden
+Formaten. Enthält eine Datei mehrere Fehler, ist jeder `PGR-E3003`; welcher
+gemeldet wird, ist nicht zugesagt (Grenze: Code und Exit-Code sind dieselben).
 
 **Einspielen.** Mit `--keep-timing` (Default `false`) stellt `play` den zeitlichen
 Abstand her; `--timing-mode` wählt:
@@ -1680,8 +1742,51 @@ Ungültige Verwendung sind (`PGR-E2001`, Exit-Code `2`, Startfehler): `--timing-
 oder `--timing-reference` ohne `--keep-timing`, `--timing-reference` zusammen mit
 `relative`, ein Wert außerhalb der Aufzählungen. Fehlt irgendeiner Interaktion der
 Aufzeichnung `offset_ms`, ist die Verwendung ebenfalls ungültig (`PGR-E2003`,
-Exit-Code `2`, Startfehler). Ohne `--keep-timing` werden vorhandene Zeitangaben
-ignoriert; der Replay-Modus ignoriert sie immer.
+Exit-Code `2`, Startfehler). Ohne `--keep-timing` wartet `play` nie, und vorhandene
+Zeitangaben sind ohne Wirkung auf den Ablauf; der Replay-Modus wartet nie. Das
+Laden prüft sie dennoch (*Prüfen*): „ignoriert“ meint das Warten, nicht die Prüfung
+der Datei.
+
+**Randformen des Einspielens.**
+
+* *Gesetzt.* Ob `--keep-timing`, `--timing-mode` oder `--timing-reference` „gesetzt“
+  ist, entscheidet, ob eine Quelle (Option, Umgebungsvariable oder Datei) den Wert
+  nennt, auch den Wert des Defaults; der Default selbst zählt nicht. `--timing-reference
+  connect` mit `relative` (auch dem Default) ist deshalb `PGR-E2001`, ebenso
+  `--keep-timing=false` mit `--timing-mode absolute`. Die Prüfung gehört zu den
+  Kombinationen nach der Zusammenführung (`LH-FA-17.a`); die Reihenfolge der Optionen
+  auf der Kommandozeile ändert nichts. Kurzformen der Optionen gibt es nicht. Werte
+  nur in Kleinbuchstaben; der leere Wert, `Absolute` und `first_request` sind
+  `PGR-E2001` (Option, Umgebungsvariable) bzw. `PGR-E2004` (Schlüssel der Datei).
+  `record` und `replay` kennen die drei Optionen nicht (`PGR-E2001`), `play` kennt
+  `--record-timing` nicht.
+* *Prüfung der Werte.* `PGR-E2003` prüft der Start nach dem Laden und vor der Prüfung
+  der Art der Interaktion (`PGR-E6001`), vor jeder Verbindung: Sie sieht jede Session
+  mit Interaktionen; eine Session ohne Interaktion verlangt nichts. Die Meldung nennt die
+  Session und die Interaktion der ersten ohne `offset_ms` in der Reihenfolge der Sessions
+  und Interaktionen, keinen Wert. Ohne `--keep-timing` entfällt die Prüfung.
+* *Beginn einer Interaktion.* Der Zeitpunkt, zu dem `play` ihre erste Client-Nachricht
+  sendet, nach Ablauf einer Wartezeit; der Bezug von `relative` ist der Beginn der
+  vorigen aufgezeichneten Interaktion, auch wenn sie mit einer Fehlerantwort
+  endete und `--continue-on-error` weiterläuft. Eine Interaktion, die wegen eines
+  Abbruchs nicht gesendet wird, hat keinen Beginn.
+* *Wartezeit und Verbindungsaufbau.* Vor der ersten Interaktion einer Session wartet
+  `relative` nie; `absolute` mit `connect` wartet bis zum `offset_ms` der ersten
+  Interaktion, mit `first-request` nie. Der Bezugspunkt `connect` wird am Beginn jedes
+  Aufbaus gelesen; scheitert der Aufbau, gibt es keine Wartezeit, und der Fehler gilt
+  wie ohne Option (`LH-FA-20.a`).
+* *Abbruch.* Das erste Abbruchsignal beendet jede Wartezeit sofort, auch mit
+  `--finish-session-on-interrupt`; danach wartet `play` nicht mehr. Ohne die Option
+  sendet es die folgende Interaktion nicht und endet; mit der Option spielt es die
+  übrigen Interaktionen der Session ohne Wartezeit zu Ende und endet dann. Der Exit-Code
+  folgt der Tabelle des Abbruchsignals (`LH-FA-20.a`). Bricht das Einspielen mit einem
+  Fehler ab, gibt es keine weitere Wartezeit.
+* *Großer Wert.* Eine Obergrenze oder Warnung für die Wartezeit gibt es nicht: Der Wert
+  steht in der Aufzeichnung, die der Anwender gewählt hat, und die Wartezeit ist durch das
+  Signal abbrechbar (akzeptiertes Negativ). Der Zeitpunkt (Bezug plus Wert) wird bei
+  Überlauf von `int64` auf den größten Wert begrenzt, nie negativ.
+* *Mit `--compare-responses`.* Der Vergleich ändert die Wartezeit nicht; die Antwort wird
+  nach der Interaktion verglichen, die Wartezeit liegt davor.
 
 ---
 
@@ -2925,3 +3030,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: maskiertes einzelnes Surrogat im JSON-Text `PGR-E3003` (`SPEC-043`), Meldung zu einem Fehler des Inhalts ohne Wert und ohne Zeilennummer, Schließen nach dem Lesen nicht gemeldet, Abbruch des Laufs `PGR-E3001`, doppelter Schlüssel in `meta` und Verstoß gegen die Zählung und Reihenfolge der Gruppen `PGR-E3003`, Speicher des Lesers ohne Obergrenze (`LH-FA-22.a`, `SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Schlüssel `<<` ist Merge-Key (`PGR-E3003`), sein Schreiben nicht zugesagt (`LH-FA-22.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Art des Fehlers bei Fehlern der Prüfung von `yaml` nur „Aufzeichnung beschädigt“ mit Nummern, keine feinere Art (`LH-FA-22.a`) |
+| 2026-10-11 | Zeitangaben: Randformen aller Teile vor dem Code (Uhr als Port in ganzen Millisekunden mit Abbruch und Fake-Uhr, Architekturregel am Import mit Gegenprobe; Messpunkt im Use Case, Beginn der Session und Ankunft der Nachricht, keine Rundung; Prüfung der Werte beim Laden in beiden Formaten und in `replay` und `play` auch ohne `--keep-timing`, gleicher Wert gültig, Form des Werts in `yaml`, Meldung ohne Wert; „gesetzt“ bei den Kombinationen, `PGR-E2003` vor `PGR-E6001`, Bezug von `relative`, Abbruch einer Wartezeit, kein Grenzwert) (`LH-FA-21.a`) |
