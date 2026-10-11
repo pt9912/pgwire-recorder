@@ -76,7 +76,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` und `slice-v1-abschluss-sqlite-format` sind `done`.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen`, `slice-v1-abschluss-sqlite-format` und `slice-v1-abschluss-sqlite-format-lesen` sind `done` (das Laden der SQLite-Datei im Roundtrip liefert das Lesen).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
