@@ -137,8 +137,9 @@ func LeseMit(ctx context.Context, path string, nach func(tx *sql.Tx, tabelle str
 // Bibliothek meldet.
 func StufeCode(code int) string { return stufeCode(code) }
 
-// JSONKnoten liest den JSON-Text text wie SQLite.Load und liefert Tag und Wert des
-// Skalars, oder "" und "" für einen Knoten, der kein Skalar ist.
+// JSONKnoten liest den JSON-Text text wie SQLite.Load und liefert Tag und Wert des Knotens:
+// bei einem Skalar den Tag (etwa !!int) und den Text, bei einem Objekt !!map, bei einer Liste
+// !!seq, jeweils mit leerem Wert.
 func JSONKnoten(text string) (tag, wert string, err error) {
 	n, err := jsonKnoten(text)
 	if err != nil {

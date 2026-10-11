@@ -452,3 +452,48 @@ func TestLesenAbgeschnitten(t *testing.T) {
 		t.Errorf("unversehrt: %d Sessions", len(got.Sessions))
 	}
 }
+
+// Abdeckung: LH-FA-22/Boundary — der Eingabepfad gilt wörtlich auch in der Form mit führendem //, die unter Linux
+// derselbe Pfad ist wie mit einem /: Schreiben, Ergänzen und Lesen finden die Datei unter diesem Pfad
+// (ohne den absoluten Pfad würde die URI die Authority tmp lesen und abgelehnt).
+func TestLesenPfadMitFuehrendemDoppelstrich(t *testing.T) {
+	ctx := context.Background()
+	dir, err := filepath.Abs(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := "/" + filepath.Join(dir, "rec.sqlite")
+	s := &recording.SQLite{}
+	if err := s.Write(ctx, path, sessionsMit(1)); err != nil {
+		t.Fatalf("Schreiben: %v", err)
+	}
+	if err := s.Write(ctx, path, sessionsMit(2)); err != nil {
+		t.Fatalf("Ergänzen: %v", err)
+	}
+	for name, lesen := range map[string]func() (model.Recording, error){
+		"Leser":  func() (model.Recording, error) { return laden(path) },
+		"SQLite": func() (model.Recording, error) { return (&recording.SQLite{}).Load(ctx, path) },
+	} {
+		if got, err := lesen(); err != nil || !reflect.DeepEqual(got, sessionsMit(2)) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-22/Negative — bricht der Lauf ab, während die Datei gelesen wird (nach dem Lesen einer
+// Tabelle, vor der nächsten), ist das PGR-E3001 mit der Ursache und dem Pfad.
+func TestLesenAbbruchWaehrendDesLesens(t *testing.T) {
+	path := sqliteDatei(t, lesefixture())
+	for _, tabelle := range []string{"meta", "session", "interaction"} {
+		ctx, cancel := context.WithCancel(context.Background())
+		_, err := recording.LeseMit(ctx, path, func(_ *sql.Tx, t string) {
+			if t == tabelle {
+				cancel()
+			}
+		})
+		cancel()
+		if code(err) != model.CodeRecordingIO || !strings.Contains(err.Error(), "context canceled") || !strings.Contains(err.Error(), path) {
+			t.Errorf("Abbruch nach %s: %v", tabelle, err)
+		}
+	}
+}

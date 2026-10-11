@@ -16,10 +16,11 @@ import (
 
 // Load liest die Aufzeichnung aus der Datei path (LH-FA-22.a *Lesen von `sqlite`*): Die
 // Datei wird nur lesend geöffnet und in einer einzigen Lesetransaktion gelesen, nach der
-// Formatkennung, der Version und dem Inhalt in dieser Reihenfolge geprüft. Der Inhalt
-// wird zu dem Baum, den der Leser von yaml liest, und geht denselben Weg wie dort
-// (Unmarshal): Schlüssel, Formen und Regeln der Aufzeichnung prüft nur dieser eine Weg.
-// Die Fehlerklasse eines Fehlers der Bibliothek folgt aus seinem primären Ergebniscode
+// Formatkennung, der Version und dem Inhalt in dieser Reihenfolge geprüft. Der Leser prüft
+// Spalten, Nummern, Gruppen und verwaiste Zeilen selbst; den Inhalt führt er danach als Baum
+// durch Unmarshal, den Weg von yaml, der Schlüssel, Formen und die übrigen Regeln der
+// Aufzeichnung prüft. Jede Meldung zu einem Fehler des Inhalts nennt die Datei und die Art
+// des Fehlers, nie einen Wert aus der Datei und keine Zeile. Die Fehlerklasse eines Fehlers der Bibliothek folgt aus seinem primären Ergebniscode
 // (stufeCode), jeder Fehler des Inhalts ist PGR-E3003, eine unbekannte Version PGR-E3002.
 func (*SQLite) Load(ctx context.Context, path string) (model.Recording, error) {
 	text, err := leseAlsYAML(ctx, path, nil)
@@ -30,19 +31,20 @@ func (*SQLite) Load(ctx context.Context, path string) (model.Recording, error) {
 }
 
 // ladeInhalt liest die übertragene Darstellung text der Datei path mit Unmarshal, dem Weg
-// von yaml. Ein Fehler behält seine Klasse; seine Meldung nennt nur die Datei, nicht die
-// Ursache der YAML-Bibliothek (Zeile und Wert der übertragenen Darstellung).
+// von yaml. Ein Fehler behält seine Klasse; seine Meldung nennt die Datei und den Text
+// des Fehlers von Unmarshal (die Art, etwa "Aufzeichnung beschädigt" oder die Nummern von
+// Session und Interaktion), nicht die Ursache der YAML-Bibliothek (Zeile und Wert der
+// übertragenen Darstellung).
 func ladeInhalt(path string, text []byte) (model.Recording, error) {
 	rec, err := Unmarshal(text)
 	if err == nil {
 		return rec, nil
 	}
-	code := model.CodeRecordingBroken
 	var me *model.Error
 	if errors.As(err, &me) {
-		code = me.Code
+		return model.Recording{}, model.Errorf(me.Code, nil, "%s: Inhalt der SQLite-Datei beschädigt: %s", path, me.Msg)
 	}
-	return model.Recording{}, model.Errorf(code, nil, "%s: Inhalt der SQLite-Datei beschädigt", path)
+	return model.Recording{}, model.Errorf(model.CodeRecordingBroken, nil, "%s: Inhalt der SQLite-Datei beschädigt", path)
 }
 
 // stufeCode liefert den Meldungscode für den Ergebniscode code der Bibliothek: ein
@@ -75,7 +77,28 @@ func bibliotheksfehler(path string, err error) error {
 
 // beschaedigt ist der Fehler PGR-E3003 für eine Datei, die als Aufzeichnung ungültig ist.
 func beschaedigt(format string, args ...any) error {
-	return model.Errorf(model.CodeRecordingBroken, nil, format, args...)
+	return eigen(model.CodeRecordingBroken, format, args...)
+}
+
+// eigenerFehler ist ein Fehler des Inhalts, den der Leser selbst feststellt; seine Meldung
+// nennt die Art des Fehlers, den Pfad der Datei ergänzt mitDatei.
+type eigenerFehler struct{ e *model.Error }
+
+func (f *eigenerFehler) Error() string { return f.e.Error() }
+
+// eigen ist der Fehler der Klasse code, den der Leser selbst feststellt.
+func eigen(code, format string, args ...any) error {
+	return &eigenerFehler{model.Errorf(code, nil, format, args...)}
+}
+
+// mitDatei setzt vor die Meldung eines eigenen Fehlers den Pfad der Datei; jeden anderen
+// Fehler liefert es unverändert (die Fehler der Bibliothek nennen den Pfad schon).
+func mitDatei(path string, err error) error {
+	var ef *eigenerFehler
+	if errors.As(err, &ef) {
+		return model.Errorf(ef.e.Code, nil, "%s: %s", path, ef.e.Msg)
+	}
+	return err
 }
 
 // lesung ist ein Lesen der Datei path in der Lesetransaktion tx. nach ist nil oder wird
@@ -107,7 +130,7 @@ func leseAlsYAML(ctx context.Context, path string, nach func(*sql.Tx, string)) (
 	defer func() { _ = tx.Rollback() }()
 	wurzel, err := (lesung{tx, path, nach}).liesAufzeichnung(ctx)
 	if err != nil {
-		return nil, err
+		return nil, mitDatei(path, err)
 	}
 	text, err := yaml.Marshal(&yaml.Node{Kind: yaml.DocumentNode, Content: []*yaml.Node{wurzel}})
 	if err != nil {
@@ -226,7 +249,7 @@ func pruefeMeta(meta map[string]string) (bool, error) {
 		return false, beschaedigt("meta: version ist keine kanonische ganze Zahl")
 	}
 	if version != "1" {
-		return false, model.Errorf(model.CodeRecordingVersion, nil, "Version der Datei wird nicht unterstützt")
+		return false, eigen(model.CodeRecordingVersion, "Version der Datei wird nicht unterstützt")
 	}
 	for k, v := range meta {
 		switch k {

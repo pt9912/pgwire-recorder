@@ -388,7 +388,7 @@ func TestLesenSurrogate(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-22/Negative — die Meldung zu einem Fehler des Inhalts nennt keinen Wert aus der Datei und
-// keine Zeilennummer, auf jedem Weg: bei einer eigenen Prüfung des Lesers (meta, Art, Richtung),
+// keine Zeilennummer und nennt den Pfad der Datei und die Art des Fehlers, auf jedem Weg: bei einer eigenen Prüfung des Lesers (meta, Art, Richtung),
 // beim Weg über Unmarshal (unbekannter Schlüssel in fields, der die YAML-Bibliothek mit Zeile und
 // Wert melden würde) und beim JSON-Text (Schlüssel, Zahl, Base64, Syntax); die Meldung des Wegs
 // über Unmarshal nennt die Datei und dass der Inhalt beschädigt ist.
@@ -398,19 +398,20 @@ func TestLesenMeldungOhneWertUndZeile(t *testing.T) {
 	lockere(t, basis)
 	query := `session_id = 2 AND position = 1`
 	for _, c := range []struct{ name, sql, enthaelt, code string }{
-		{"meta Formatkennung", `UPDATE meta SET value = 'geheim-wert' WHERE key = 'format'`, "", ""},
-		{"meta Schlüssel", `INSERT INTO meta VALUES ('geheim-wert', 'x')`, "", ""},
-		{"meta Schlüssel doppelt", `INSERT INTO meta VALUES ('format', 'geheim-wert')`, "", ""},
-		{"meta version", `UPDATE meta SET value = 'geheim-wert' WHERE key = 'version'`, "", ""},
-		{"meta empty_sessions", `INSERT INTO meta VALUES ('empty_sessions', 'geheim-wert')`, "", ""},
+		{"meta Formatkennung", `UPDATE meta SET value = 'geheim-wert' WHERE key = 'format'`, "meta: Formatkennung", ""},
+		{"meta Schlüssel", `INSERT INTO meta VALUES ('geheim-wert', 'x')`, "meta: unbekannter Schlüssel", ""},
+		{"meta Schlüssel doppelt", `INSERT INTO meta VALUES ('format', 'geheim-wert')`, "meta: ein Schlüssel doppelt", ""},
+		{"meta version", `UPDATE meta SET value = 'geheim-wert' WHERE key = 'version'`, "meta: version", ""},
+		{"meta empty_sessions", `INSERT INTO meta VALUES ('empty_sessions', 'geheim-wert')`, "meta: empty_sessions", ""},
 		{"Art der Interaktion", `UPDATE interaction SET type = 'geheim-wert' WHERE session_id = 2`, "Session 2, Interaktion 1", ""},
 		{"Richtung", `UPDATE message SET direction = 'geheim-wert' WHERE ` + query, "Session 2, Interaktion 1, Nachricht 1", ""},
-		{"unbekannter Schlüssel in fields", `UPDATE message SET fields = '{"tag":"x","geheim-wert":1}' WHERE ` + query, "Inhalt der SQLite-Datei beschädigt", ""},
-		{"unbekannte Art", `UPDATE message SET kind = 'geheim-wert' WHERE ` + query, "Inhalt der SQLite-Datei beschädigt", ""},
-		{"Zeile gegen die Regeln", `UPDATE message SET fields = '{"geheim-wert":1}' WHERE ` + query, "Inhalt der SQLite-Datei beschädigt", ""},
+		{"unbekannter Schlüssel in fields", `UPDATE message SET fields = '{"tag":"x","geheim-wert":1}' WHERE ` + query, "Inhalt der SQLite-Datei beschädigt: Aufzeichnung beschädigt", ""},
+		{"unbekannte Art", `UPDATE message SET kind = 'geheim-wert' WHERE ` + query, "Inhalt der SQLite-Datei beschädigt: Session 2, Interaktion 1", ""},
+		{"Zeile gegen die Regeln", `UPDATE message SET fields = '{"geheim-wert":1}' WHERE ` + query, "Inhalt der SQLite-Datei beschädigt: Aufzeichnung beschädigt", ""},
+		{"Session ohne Interaktion", `DELETE FROM message WHERE session_id = 2; DELETE FROM interaction WHERE session_id = 2`, "Inhalt der SQLite-Datei beschädigt: Session 2 ohne Interaktion", ""},
 		{"JSON Zahl", `UPDATE message SET fields = '{"geheim-wert":1.5}' WHERE ` + query, "Session 2, Interaktion 1, Nachricht 1", ""},
 		{"JSON Zahl als Wert", `UPDATE message SET fields = '{"tag":7.25125}' WHERE ` + query, "Session 2, Interaktion 1, Nachricht 1", ""},
-		{"meta version unbekannt", `UPDATE meta SET value = '4711' WHERE key = 'version'`, "", unbekannteV},
+		{"meta version unbekannt", `UPDATE meta SET value = '4711' WHERE key = 'version'`, "Version der Datei wird nicht unterstützt", unbekannteV},
 		{"JSON Syntax", `UPDATE message SET fields = '{"geheim-wert"' WHERE ` + query, "Session 2, Interaktion 1, Nachricht 1", ""},
 		{"JSON Base64 im Schlüssel", `UPDATE session SET startup = '{"base64:geheim-wert!":"v"}' WHERE id = 2`, "session.startup", ""},
 		{"JSON Base64 im Wert", `UPDATE session SET server_parameters = '{"a":"base64:geheim-wert!"}' WHERE id = 2`, "session.server_parameters", ""},
@@ -427,6 +428,9 @@ func TestLesenMeldungOhneWertUndZeile(t *testing.T) {
 		if codeVon(err) != want {
 			t.Errorf("%s: %v", c.name, err)
 			continue
+		}
+		if !strings.Contains(err.Error(), path) {
+			t.Errorf("%s: Meldung ohne den Pfad der Datei: %q", c.name, err.Error())
 		}
 		if strings.Contains(err.Error(), "geheim-wert") || strings.Contains(err.Error(), "7.25125") || strings.Contains(err.Error(), "4711") || zeile.MatchString(err.Error()) || !strings.Contains(err.Error(), c.enthaelt) {
 			t.Errorf("%s: Meldung %q", c.name, err.Error())
