@@ -147,7 +147,50 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+### Belege des Implementers
+
+Wird bei Closure um die Closure-Notiz ergänzt (vor dem `git mv` nach `done/`). Kein Produkt-Code, kein Test, keine Mutation des Produkts: Der Slice liefert keinen neuen Vertrag; die Probe-Matrix aus §6 ersetzt die Mutation. Stand der Proben: Binary `pgwire-recorder:dev` (Stufe `runtime`, `make build` auf `15a789a`; `eea9569` ändert nur Handbuch und README), gefahren am 2026-10-11 unter Linux im Container.
+
+**Aufbau (nach den Proben entfernt: alle Container, das Netz, das Hilfsimage und das Scratch-Verzeichnis, nur Namen mit Präfix `impl-tlsdoku-`).** Netz `impl-tlsdoku-net` (`172.30.77.0/24`, `fd00:77::/64`); Server `postgres:17-alpine` mit dem Digest aus `harness/mk/integration.mk`: `pgssl` (`ssl=on`, gültiges Blatt von `ca.pem` mit `DNS:pgssl, DNS:pgpw, DNS:localhost, IP:172.30.77.10, IP:172.30.77.13, IP:fd00:77::10, IP:fd00:77::13`; `pg_hba`: `hostnossl … reject`, `hostssl … trust`), `pgexp` (dasselbe Blatt, gültig 2020-01-01 bis 2020-01-02), `pgplain` (`ssl=off`), `pgpw` (`ssl=on`, `hostssl … password`, `hostnossl … reject`, Benutzer `tester`), `pgpwplain` (`ssl=off`, `host … password`), `pgip` (dasselbe Blatt auf einer Adresse, die nicht darin steht); Zertifikate mit `openssl` 3.5 im Hilfscontainer (`ca.pem`, `ca2.pem`); Fake-Server (`python:3.13-alpine`, `socket`) mit den Antworten `N`, `Z` und Ende ohne Antwort. Aufzeichnung für `play`: mit `record` gegen `pgplain` aufgenommen (`DROP TABLE IF EXISTS probe`, `CREATE TABLE probe(id int)`, `INSERT INTO probe VALUES (1)`); „Tabelle“ unten heißt: danach `select count(*) from probe` gleich 1 auf dem Server, nach `DROP TABLE` vor dem Lauf. Jeder Aufruf lief als `docker run` des Binaries mit den Dateien als Bind-Mount (nonroot).
+
+| Aussage im Handbuch (§4 *Einspielen*, §5, §7) / README | Probe (Matrix aus §6) | Ergebnis |
+|---|---|---|
+| Beispiel `tls.yaml` mit `sslmode=require` plus `--upstream-ca ./ca.pem` (Handbuch §4, wörtlich als Dateien `tls.yaml`, `ca.pem`, `recordings/users.yaml`, Host `localhost` im Netzwerk-Namensraum des Containers von `pgssl`) | (1) | Exit 0, Tabelle; ohne `--upstream-ca`: Exit 4, `PGR-E4005`, „certificate signed by unknown authority“ |
+| `sslmode=require` wünscht TLS; `--upstream-tls`, Option / Umgebung / Schlüssel `upstream_tls` | (1), (2), (12) | Exit 0, Tabelle (`pgssl` lehnt Unverschlüsseltes ab, die Verbindung hatte TLS); Schlüssel `upstream_tls`, `upstream_ca` und Umgebung `PGWIRE_RECORDER_UPSTREAM_TLS`/`_CA`: Exit 0, Tabelle |
+| Ein gesetztes `--upstream-tls` geht `sslmode` vor, auch `false`, aus jeder Quelle | (12) | `sslmode=require` in der Datei gegen `pgplain` (lehnt TLS ab): mit `upstream_tls: false`, `--upstream-tls=false`, Umgebung `false` je Exit 0, Tabelle (kein TLS); Umgebung `false` und Option `=true`: Exit 4, „lehnt TLS ab“ (die Option geht der Umgebung vor); `--upstream-tls=false` mit `sslmode=require` gegen `pgssl`: Exit 4, `pg_hba … no encryption` (ohne TLS verbunden); `--upstream-tls` mit `sslmode=disable` in der Datei gegen `pgssl`: Exit 0, Tabelle (mit TLS) |
+| Ohne beides kein TLS | (12) | `host:port` gegen `pgplain`: Exit 0, Tabelle |
+| Jede Sitzung baut ihre Verbindung mit TLS auf | Aufzeichnung mit zwei Sitzungen gegen `pgssl` | Exit 0; im Log des Servers zwei Zeilen `SSL enabled` mehr als vorher |
+| Kein Überspringen; unbekannte Zertifizierungsstelle → `PGR-E4005` | (4) | Exit 4, `PGR-E4005`, `failed to verify certificate … unknown authority`, keine Tabelle (mit `ca2.pem` und ohne CA) |
+| Name gegen den Host, wie eingesetzt; Hostname als DNS-Name, IPv4/IPv6 als IP-Adresse | (3), (5) | `172.30.77.10` und `[fd00:77::10]`: Exit 0, Tabelle; Platzhalter `${DBH}`=`pgssl`: Exit 0; `${DBH}`=`pgother-pgssl`, `pgother-pgssl` als Host: Exit 4, „valid for pgssl, pgpw, localhost, not …“; `172.30.77.15` und `[fd00:77::15]` (nicht im Blatt): Exit 4, `PGR-E4005`. Die Zone einer IPv6-Adresse: nicht gefahren, nicht genannt |
+| Abgelaufenes Zertifikat → `PGR-E4005` | (6) | Exit 4, „certificate has expired“, keine Tabelle |
+| Antwort `N` → `PGR-E4005`, kein Rückfall; Server lehnt Unverschlüsseltes ab → `PGR-E4005` | (7), (9) | Fake `N`: Exit 4, „lehnt TLS ab“; `pgplain` mit `sslmode=require` und mit `--upstream-tls`: Exit 4, „lehnt TLS ab“, keine Tabelle (ein Rückfall hätte die Tabelle angelegt: `pgplain` nimmt Unverschlüsseltes an); ohne TLS gegen `pgssl`: Exit 4, `PGR-E4005`, `pg_hba … no encryption` |
+| Antwort weder `S` noch `N` / Ende davor → `PGR-E4002` | (8) | Fake `Z`: Exit 4, `PGR-E4002`, „weder S noch N“; Fake Ende ohne Antwort: Exit 4, `PGR-E4002`. Fake `S` und Schweigen: nicht gefahren, nicht genannt |
+| Meldungen nennen weder Pfad noch Inhalt der CA-Datei; Passwort nie | `grep -n -E` über die Ausgaben aller 50 Läufe auf Verzeichnis, Dateinamen und Kopfzeile der CA-Dateien sowie die Passwörter, dazu `grep -n -F` mit je zwei Zeilen Inhalt von `ca.pem` und `ca2.pem` | kein Treffer; die Gegenprobe des Suchmusters auf einen Text mit Pfad: 1 Treffer |
+| `--upstream-ca` ergänzt den Speicher; mehrere Zertifikate in einer Datei | (13), (11) | `SSL_CERT_FILE`=`ca.pem` und `--upstream-ca ca2.pem`: Exit 0; `SSL_CERT_FILE`=`ca2.pem` und `--upstream-ca ca.pem`: Exit 0; beide `ca2.pem`: Exit 4; Bündel `ca2.pem`+`ca.pem` als `--upstream-ca`: Exit 0 |
+| `--upstream-ca` ohne TLS → `PGR-E2001` | (10) | `host:port` ohne TLS und Datei mit `sslmode=disable`: Exit 2, `PGR-E2001`; auch mit `--upstream-tls=false` und `sslmode=require` |
+| Datei nicht lesbar, keine reguläre Datei, kein Zertifikat → `PGR-E2007`, Exit 2, ohne Pfad | (11) | fehlende Datei, Datei mit Rechten 000, Verzeichnis, Textdatei, leere Datei, PEM nur mit Schlüssel: je Exit 2, `PGR-E2007`, Meldung nennt `--upstream-ca` und Grund |
+| `SSL_CERT_FILE` zählt zum Speicher des Systems | (13) am Binary der Stufe `runtime` | `SSL_CERT_FILE`=`ca.pem` ohne `--upstream-ca`: Exit 0, Tabelle; mit Datei mit `sslmode=require` ebenso; ohne die Variable: Exit 4 (4). Bestehender Test: `TestE2EPlayTLSZertifikatsspeicherDesSystems` (`test/integration/play_tls_e2e_test.go`) |
+| Klartext-Passwort mit TLS auf der verschlüsselten, ohne TLS auf der unverschlüsselten Verbindung | (14) | `pgpw` mit `--upstream-tls`: Exit 0, Tabelle, Server-Log `method=password` und `SSL enabled (protocol=TLSv1.3 …)`; `pgpwplain` ohne TLS: Exit 0, Tabelle, `method=password` ohne `SSL enabled`; `pgpw` ohne TLS: Exit 4, `pg_hba … no encryption`; falsches Passwort: Exit 4, `PGR-E4005`, SQLSTATE `28P01`, das Passwort steht in keiner Ausgabe |
+| `record`: `sslmode=require` ungültig (`PGR-E2004`); ungenutzte Verbindung mit `require` gültig; `record` und `replay` nehmen TLS nicht an; `record` verbindet ohne TLS | (15) | `record` mit `require`: Exit 2, `PGR-E2004`; `record` und `replay` starten mit einer ungenutzten `require`-Verbindung in der Datei; `psql sslmode=require` gegen `replay` und `record`: „server does not support SSL“; `record` gegen `pgssl` mit `sslmode=prefer` des Clients: `pg_hba … no encryption`. `replay` hat keine Option `--upstream`: `PGR-E2001` |
+
+**Befehlsfolge aus Plan §3** (Optionen, Variablen, Codes des Handbuchs gegen `--help` und Katalog `internal/hexagon/model/fehler.go`, Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`):
+
+| Stand | Ergebnis |
+|---|---|
+| `15a789a` (vorher), Richtung Hilfe → Handbuch (`comm -13`) | rot: `--upstream-ca`, `--upstream-tls` fehlen; Katalog → Handbuch: `PGR-E2007` fehlt |
+| `eea9569` (nachher) | Optionen des Handbuchs, die `--help` nicht kennt: nur `--h`, `--help`, `--version` (Nicht-Optionen im Text) und `--rm`, `--name` (`docker run`); Variablen mit der benannten Ausnahme: leer; Codes: leer; Richtung Hilfe → Handbuch und Katalog → Handbuch: leer |
+| Mutanten an einer Kopie des Handbuchs: Zeile `--upstream-cert`, `PGWIRE_RECORDER_UPSTREAM_CERT`, `PGR-E2008` angehängt | je rot (1 Treffer in der jeweiligen Zeile); ohne die benannte Ausnahme: `PGWIRE_RECORDER_PASSWORD` in der Ausgabe |
+
+`grep -n -i` im Handbuch nach Slice, Welle, ADR-, LH-, SPEC-, ARC-, `spec/`, Lastenheft, Spezifikation, Review, „noch nicht“, „kommt“, „geplant“, „später“, „bisher“: Treffer nur im Bestand (Zeile 14 „später“, 153 „existiert noch nicht“ in der Voraussetzung einer Aufgabe, 594 „kommt nur zum Einsatz“), keiner in den neuen Sätzen. README: kein Treffer auf Slice, Welle, „noch nicht“, „geplant“, „bisher“, „sicher“, „geschützt“ in den neuen Sätzen. `make docs-check` (d-check): 528 Dateien, 0 Befunde. `make gates` auf dem sauberen Baum `eea9569`: grün (Ausgang 0, 3 min 5 s). Der Commit mit diesem Satz ändert nur §7 dieses Plans; `make gates` auf dessen sauberem Baum ist die Übergabe-Messung (Bericht).
+
+**Abweichungen und Funde für den Planner:**
+
+- **DoD-Zeile 2** nennt die Grenze *Zertifikatsspeicher nicht ladbar*; das Handbuch nennt sie nicht (Entscheidung des Nutzers, Option A, siehe §6). Es sagt stattdessen: Steht das Zertifikat der Zertifizierungsstelle weder im Speicher des Systems noch in `--upstream-ca`, endet `play` mit `PGR-E4005`. Der Planner gleicht die Zeile bei der Closure an.
+- **DoD-Zeile 2, Halbsatz Abdeckungstabellen:** Kein Test ist geändert; `make abdeckung` ist nicht gefahren, `make abdeckung-check` (Teil von `make gates`) ist grün.
+- **Nicht gefahren, nicht genannt:** Fake `S` und Schweigen, Zone einer IPv6-Adresse, MD5 und SCRAM mit TLS, Zertifikatsketten mit Zwischenzertifikat, der Standardpfad des Systems ohne `SSL_CERT_FILE` (das Zertifikat einer öffentlichen Zertifizierungsstelle wurde nicht gegen das Image geprobt), Windows und macOS (`BEO-REPO/verhalten-nur-unter-linux-geprueft`: alle Proben unter Linux im Container).
+- **Bestand, nicht geändert:** Die Optionstabelle in Handbuch §5 führt `--config` vor `--log-level`, `play --help` führt `--log-level` vor `--config`; die neuen Zeilen stehen in der Reihenfolge von `play --help`.
+- Die Meldung von `PGR-E4005` mit TLS nennt neben Sitzung und Grund auch `host:port` des Servers; das Handbuch sagt „Sitzung und Grund“, was zutrifft, ohne die Adresse auszuschließen.
+- Ausgänge der Risiken aus §6 und die Closure-Notiz: bei Closure.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
