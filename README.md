@@ -25,8 +25,12 @@ die Anfragen einer Aufzeichnung, einfache wie vorbereitete Anweisungen, gegen ei
 Datenbank ein; nach einer Fehlerantwort der Datenbank bricht es ab, mit
 `--continue-on-error` läuft es weiter, und mit `--finish-session-on-interrupt` endet
 es nach einem Abbruchsignal erst nach der laufenden Sitzung. Antwortet die Datenbank
-mit einem COPY-Datenstrom, endet `play` mit `PGR-E6001`. Alle Verbindungen laufen
-unverschlüsselt. `record` verlangt, dass die Datenbank den Benutzer ohne Passwort
+mit einem COPY-Datenstrom, endet `play` mit `PGR-E6001`. `record` und `replay` nehmen
+Verbindungen nur ohne TLS an, und `record` verbindet ohne TLS zur Datenbank; `play`
+verbindet auf Wunsch (`--upstream-tls` oder `sslmode=require` der Verbindung) mit TLS,
+prüft das Zertifikat des Servers, auch gegen eine eigene Zertifizierungsstelle
+(`--upstream-ca`), und meldet die Ablehnung von TLS und ein nicht passendes Zertifikat als `PGR-E4005`.
+`record` verlangt, dass die Datenbank den Benutzer ohne Passwort
 anmeldet; `play` meldet sich mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an, mit dem
 Passwort aus dem Platzhalter der Verbindung oder aus `PGWIRE_RECORDER_PASSWORD`. Beim Beenden warten `record` und `replay` höchstens `--shutdown-timeout`
 (Standard 5 Sekunden) auf laufende Anfragen; was das im Container bedeutet, sagt das

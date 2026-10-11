@@ -40,7 +40,9 @@ CI-Systemen ausführen.
   Passwort anmeldet. Verlangt sie ein Passwort, beendet `record` die Verbindung
   Ihrer Anwendung mit `PGR-E6001`.
 * Zum Einspielen: eine erreichbare PostgreSQL-Datenbank. Verlangt sie ein Passwort,
-  nennen Sie es `play` (siehe [Einstellungen](#5-einstellungen)).
+  nennen Sie es `play` (siehe [Einstellungen](#5-einstellungen)). Auf Wunsch verbindet
+  `play` mit TLS (siehe
+  [Eine Aufzeichnung in eine Datenbank einspielen](#eine-aufzeichnung-in-eine-datenbank-einspielen)).
 * Zum Bauen: Docker und GNU `make`. Zum Ausführen: Linux auf der Architektur des
   Rechners, auf dem Sie gebaut haben, oder ein Container-Laufzeitsystem (siehe
   [Installation](#2-installation)).
@@ -316,6 +318,23 @@ ausdrücklich an.
 
 2. Warten Sie, bis das Werkzeug endet.
 
+Mit TLS gegen einen Server, dessen Zertifikat eine eigene Zertifizierungsstelle
+ausgestellt hat: Die Konfigurationsdatei `tls.yaml` wünscht TLS mit `sslmode=require`,
+
+```yaml
+connections:
+  tls: "postgresql://dev@localhost:5432/myapp?sslmode=require"
+play:
+  upstream: tls
+  input: ./recordings/users.yaml
+```
+
+und `--upstream-ca` nennt die Datei mit dem Zertifikat dieser Zertifizierungsstelle:
+
+```bash
+pgwire-recorder play --config ./tls.yaml --upstream-ca ./ca.pem
+```
+
 #### Ergebnis
 
 Die Anfragen der Aufzeichnung sind in der aufgezeichneten Reihenfolge gegen die
@@ -341,12 +360,38 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   Fehlerantwort an irgendeiner Stelle der aufgezeichneten Folge. Ein Fehler mit dem
   Schweregrad `FATAL` beendet die Verbindung
   und bricht das Einspielen auch dann ab (`PGR-E4003`).
-* Das Werkzeug verbindet sich unverschlüsselt mit der Datenbank. Lehnt sie die
-  Anmeldung ab, etwa weil der Benutzer fehlt oder das Passwort falsch ist, oder fehlt
-  das Passwort, das sie verlangt, endet das Einspielen mit `PGR-E4005` (Exit-Code 4).
-  Eine benannte Verbindung mit `sslmode=require` ist bei `play` ungültig
-  (`PGR-E2004`).
-* Verlangt die Datenbank ein Klartext-Passwort, sendet `play` es über die Verbindung, wie sie ist, also ohne TLS unverschlüsselt.
+* Ohne Wunsch nach TLS verbindet sich das Werkzeug ohne TLS mit der Datenbank. Lehnt
+  sie die Anmeldung ab, etwa weil der Benutzer fehlt oder das Passwort falsch ist,
+  oder fehlt das Passwort, das sie verlangt, endet das Einspielen mit `PGR-E4005`
+  (Exit-Code 4); ebenso, wenn die Datenbank Verbindungen ohne Verschlüsselung ablehnt.
+* TLS wünschen Sie mit `--upstream-tls` oder mit `sslmode=require` in der benutzten
+  Verbindung (siehe [Konfigurationsdatei](#konfigurationsdatei)). Ein gesetztes
+  `--upstream-tls` geht `sslmode` vor, auch `--upstream-tls=false`, gleich ob es als
+  Option, als Umgebungsvariable oder als Schlüssel `upstream_tls` im Abschnitt `play:`
+  kommt. Ohne beides verbindet `play` ohne TLS. Mit TLS baut jede Sitzung der
+  Aufzeichnung ihre Verbindung mit TLS auf.
+* Mit TLS prüft `play` das Zertifikat des Servers; ein Überspringen der Prüfung gibt es
+  nicht. Das Zertifikat gilt, wenn die Zertifizierungsstelle, die es ausgestellt hat, im
+  Zertifikatsspeicher des Systems oder in der Datei von `--upstream-ca` steht, und wenn
+  es zum Host der Verbindung passt, so wie das Werkzeug ihn einsetzt: ein Hostname
+  steht als DNS-Name, eine IPv4- oder IPv6-Adresse als IP-Adresse im Zertifikat. Es
+  darf außerdem nicht abgelaufen sein. In diesen Fällen endet `play` mit `PGR-E4005` (Exit-Code
+  4): Das Zertifikat der Zertifizierungsstelle steht weder im Speicher des Systems
+  noch in `--upstream-ca`, der Host steht nicht im Zertifikat, das Zertifikat ist
+  abgelaufen, oder der Server antwortet auf die Anfrage nach Verschlüsselung mit `N`.
+  Auf `N` folgt kein Rückfall auf eine Verbindung ohne TLS. Die Meldung nennt die
+  Sitzung und den Grund, nie Pfad oder Inhalt der Datei aus `--upstream-ca`.
+  Antwortet der Server auf die Anfrage nach Verschlüsselung weder mit `S` noch mit `N`
+  oder beendet er die Verbindung davor, endet `play` mit `PGR-E4002`.
+* `--upstream-ca <Datei>` nennt eine PEM-Datei mit einem oder mehreren Zertifikaten
+  von Zertifizierungsstellen. Sie ergänzt den Zertifikatsspeicher des Systems und
+  ersetzt ihn nicht. Die Option verlangt TLS (sonst `PGR-E2001`). Ist die
+  Datei nicht lesbar, keine reguläre Datei oder enthält sie kein Zertifikat, startet
+  `play` nicht (`PGR-E2007`, Exit-Code 2); die Meldung nennt die Option und den Grund,
+  nicht den Pfad. Die Zertifikate in der Datei, die die Umgebungsvariable
+  `SSL_CERT_FILE` nennt, zählen zum Zertifikatsspeicher des Systems.
+* Verlangt die Datenbank ein Klartext-Passwort, sendet `play` es auf der Verbindung,
+  wie sie ist: mit TLS auf der verschlüsselten, ohne TLS auf der unverschlüsselten.
 * Antwortet die Datenbank mit einem COPY-Datenstrom (`COPY … FROM STDIN`,
   `COPY … TO STDOUT`), kann `play` ihn nicht verarbeiten und endet mit `PGR-E6001`
   (Exit-Code 6); die Meldung nennt Sitzung und Nummer der Anfrage.
@@ -534,7 +579,9 @@ nicht gesetzt.
 | `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Datenbank der benutzten Verbindung, ohne sie die der Aufzeichnung |
 | `--continue-on-error` | `play` | `PGWIRE_RECORDER_CONTINUE_ON_ERROR` | `false` |
 | `--allow-recorded-errors` | `play` | `PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS` | `false` |
+| `--upstream-tls` | `play` | `PGWIRE_RECORDER_UPSTREAM_TLS` | ohne die Option entscheidet `sslmode` der benutzten Verbindung, ohne beides `false` |
 | `--finish-session-on-interrupt` | `play` | `PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT` | `false` |
+| `--upstream-ca` | `play` | `PGWIRE_RECORDER_UPSTREAM_CA` | keine Datei, nur der Zertifikatsspeicher des Systems |
 | `--config` | `record`, `replay`, `play`, `config show` | `PGWIRE_RECORDER_CONFIG` | `.pgwire-recorder.yaml` im aktuellen Verzeichnis |
 | `--log-level` | `record`, `replay`, `play` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` |
 
@@ -607,10 +654,12 @@ vermittelt die Anwendung selbst. Das Werkzeug verbindet zu `host:port`, mit dem 
 so, wie er geschrieben ist, und einem Host mit `:` in eckigen Klammern; die Log-Zeile
 beim Start nennt diese Adresse, nie Benutzer, Passwort oder Datenbank.
 
-Der Parameter `sslmode` kennt `disable` (Standard) und `require`. Bei `record` und
-`play` ist eine Verbindung mit `require` ungültig (`PGR-E2004`), weil das Werkzeug
-unverschlüsselt zur Datenbank verbindet; eine Verbindung mit `require`, die Sie nicht
-benutzen, bleibt gültig.
+Der Parameter `sslmode` kennt `disable` (Standard) und `require`. Bei `record` ist eine
+Verbindung mit `require` ungültig (`PGR-E2004`), weil `record` unverschlüsselt zur
+Datenbank verbindet; eine Verbindung mit `require`, die Sie nicht benutzen, bleibt
+gültig. Bei `play` wünscht `require` TLS zum Server, mit Prüfung des Zertifikats; ein
+gesetztes `--upstream-tls` geht `sslmode` vor, auch mit `false`. Die Schlüssel
+`upstream_tls` und `upstream_ca` stehen im Abschnitt `play:`.
 
 Einen Platzhalter `${VAR}` in der URL einer Verbindung ersetzt das Werkzeug beim Start
 aus der gleichnamigen Umgebungsvariable, einmal und nur für die Verbindung, die Sie
@@ -753,11 +802,12 @@ für den Exit-Code.
 | Code | Bedeutung | Ursache und Lösung |
 |---|---|---|
 | `PGR-E1000` | sonstiger Fehler | Ein Defekt des Werkzeugs; keine Eingabe löst ihn aus. Melden Sie das Problem mit der Ausgabe des Laufs. |
-| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert. Prüfen Sie den Aufruf mit `--help`. |
+| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert, oder `--upstream-ca` steht ohne TLS (weder `--upstream-tls` noch `sslmode=require` der Verbindung). Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
 | `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte und `sslmode` (erlaubt sind `disable` und `require`). |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
+| `PGR-E2007` | Datei von `--upstream-ca` nicht verwendbar | Die Datei fehlt, ist nicht lesbar, ist keine reguläre Datei oder enthält keine Zertifikate im PEM-Format. Die Meldung nennt die Option und den Grund, nicht den Pfad; der Exit-Code ist 2. Prüfen Sie Pfad, Rechte und Inhalt der Datei. |
 | `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Prüfen Sie Pfad und Dateirechte. |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Zeichnen Sie erneut auf. |
@@ -765,9 +815,9 @@ für den Exit-Code.
 | `PGR-E4000` | Verbindung nicht anzunehmen | Das Werkzeug konnte eine eingehende Verbindung nicht annehmen, zum Beispiel weil zu viele Dateien offen sind. Es nimmt danach weiter Verbindungen an. Prüfen Sie die Grenzen des Systems. |
 | `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
-| `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. |
+| `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. Bei `play` mit TLS gehört dazu: Die Antwort auf die Anfrage nach Verschlüsselung ist weder `S` noch `N`, oder die Verbindung endet davor. |
 | `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Sitzung und die Nummer der Anfrage in der Aufzeichnung, dazu SQLSTATE und Meldung der Datenbank, nicht den Text der Anfrage. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
-| `PGR-E4005` | Anmeldung an der Datenbank abgelehnt oder nicht unterstützt | Beim Einspielen hat die Datenbank die Anmeldung abgelehnt, etwa weil der Benutzer fehlt oder das Passwort falsch ist, oder sie verlangt ein Passwort, das `play` nicht hat, oder ein Anmeldeverfahren, das `play` nicht kann. Die Meldung nennt die Sitzung; bei einer Ablehnung außerdem SQLSTATE und Meldung der Datenbank, bei fehlendem Passwort, dass `play` keines hat. `play` meldet sich mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an; bietet die Datenbank nur `SCRAM-SHA-256-PLUS` an oder verlangt sie Kerberos, GSSAPI oder SSPI, endet `play` ebenfalls mit diesem Code. Prüfen Sie Benutzer und Datenbank (`--user`, `--database`) und das Passwort (siehe [Einstellungen](#5-einstellungen)). |
+| `PGR-E4005` | Anmeldung oder TLS zur Datenbank abgelehnt oder nicht unterstützt | Beim Einspielen hat die Datenbank die Anmeldung abgelehnt, etwa weil der Benutzer fehlt oder das Passwort falsch ist, oder sie verlangt ein Passwort, das `play` nicht hat, oder ein Anmeldeverfahren, das `play` nicht kann. Die Meldung nennt die Sitzung; bei einer Ablehnung außerdem SQLSTATE und Meldung der Datenbank, bei fehlendem Passwort, dass `play` keines hat. `play` meldet sich mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an; bietet die Datenbank nur `SCRAM-SHA-256-PLUS` an oder verlangt sie Kerberos, GSSAPI oder SSPI, endet `play` ebenfalls mit diesem Code. Dasselbe gilt für eine Datenbank, die Verbindungen ohne Verschlüsselung ablehnt, wenn `play` kein TLS wünscht. Mit TLS endet `play` mit diesem Code auch, wenn die Datenbank TLS ablehnt (Antwort `N`, ohne Rückfall auf eine Verbindung ohne TLS) oder ihr Zertifikat nicht angenommen wird: Die Zertifizierungsstelle steht weder im Speicher des Systems noch in `--upstream-ca`, der Host steht nicht im Zertifikat, oder das Zertifikat ist abgelaufen. Die Meldung nennt die Sitzung und den Grund, nie Pfad oder Inhalt der Datei aus `--upstream-ca`. Prüfen Sie Benutzer und Datenbank (`--user`, `--database`), das Passwort (siehe [Einstellungen](#5-einstellungen)), den Host der Verbindung und `--upstream-ca`. |
 | `PGR-E4006` | Anfrage beim Beenden unvollständig | Die Frist `--shutdown-timeout` ist abgelaufen, oder ein zweites Signal hat sie ablaufen lassen, während eine Anfrage lief. Die Meldung nennt die Sitzung und die Anfrage; beim Aufzeichnen fehlt diese Anfrage in der Aufzeichnung. Lassen Sie die Anwendung vor dem Beenden zur Ruhe kommen, oder wählen Sie eine längere Frist (siehe [Herunterfahren mit Frist](#herunterfahren-mit-frist)). |
 | `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
