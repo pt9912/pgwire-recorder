@@ -157,7 +157,7 @@ dasteht.
 | Abbruch von `ctx` und jeder andere Fehler ohne Typ der Bibliothek `PGR-E3001` | `LH-FA-22.a` *Lesen von `sqlite`* |
 | Doppelter Schlüssel in `meta` `PGR-E3003` | `LH-FA-22.a` *Lesen von `sqlite`* |
 | `group_no` ab 1 lückenlos in der Reihenfolge der Gruppen, Client-Nachricht nach Server-Nachricht derselben Gruppe `PGR-E3003` | `SPEC-043`, `LH-FA-22.a` *Lesen von `sqlite`* |
-| Speicher des Lesers: Aufzeichnung als Ganzes, Baum und Text, ein Mehrfaches der Dateigröße, ohne Obergrenze (akzeptiertes Negativ nach Empfehlung des Architect: der Leser von `yaml` hält ebenso Datei, Baum und Modell, der Vorteil von `sqlite` liegt im Schreiben; die Bestätigung liegt beim Nutzer, siehe §7) | `LH-FA-22.a` *Grenzen* (Schreiben von `sqlite`) |
+| Speicher des Lesers: Aufzeichnung als Ganzes, Baum und Text, ein Mehrfaches der Dateigröße, ohne Obergrenze (akzeptiertes Negativ, Entscheidung des Nutzers vom 2026-10-11: „große Aufzeichnungen“ in `LH-FA-22` gilt nur für das Schreiben; der Leser darf wie der von `yaml` die Aufzeichnung im Speicher halten, ein Mehrfaches der Dateigröße, ohne zugesagte Obergrenze; keine Änderung des Lastenhefts, kein streamendes Lesen) | `LH-FA-22.a` *Grenzen* (Schreiben von `sqlite`) |
 | Leser mit Erkennung erfüllt den Port, `Prepare` und `Write` `PGR-E1000`; der Bootstrap tauscht nur den Wert | hier §3 (Adapter-Interna, `ARC-008`) |
 | `Load` des SQLite-Adapters aus `slice-v1-abschluss-sqlite-format` (Platzhalter mit `PGR-E1000`) wird hier durch den Leser ersetzt | `slice-v1-abschluss-sqlite-format` §3 (Geber); hier §1 |
 
@@ -276,12 +276,12 @@ eine Spalte, keine Datei).
 
 **Hinweise an den Architect** (Randformen, die §6 nicht nannte) — **entschieden vom Architect am 2026-10-11**, Ort: `LH-FA-22.a` *Lesen von `sqlite`*, *Grenzen* und `SPEC-043`; die Aufträge stehen in §3:
 1. *Maskiertes Surrogat im JSON-Text:* abgelehnt, `PGR-E3003`. Der Code liest heute U+FFFD; Auftrag in §3.
-2. *Stelle in der Meldung:* keine Zeile, kein Wert; Tabelle und Nummern bei eigenen Prüfungen. Der Code gibt die Ursache der YAML-Bibliothek weiter; Auftrag in §3.
+2. *Stelle in der Meldung:* keine Zeile, kein Wert; Tabelle und Nummern bei eigenen Prüfungen. Der Code gibt die Ursache der YAML-Bibliothek weiter; Auftrag in §3. Ob dieselbe Regel auch für `yaml` gilt, ist **entschieden vom Nutzer am 2026-10-11: nicht jetzt**; die Regel gilt vorerst nur für das Lesen von `sqlite`, das Thema geht als Beobachtung ins Register (der Planner trägt sie bei der Closure ein).
 3. *Schließen nach dem Lesen:* nicht gemeldet, akzeptiertes Negativ (Code stimmt überein).
 4. *Abbruch von `ctx`:* `PGR-E3001` (Code stimmt überein; Test fehlt, Auftrag in §3).
 5. *Doppelter Schlüssel in `meta`:* `PGR-E3003` (Code stimmt überein).
 6. *Gruppen:* Verstoß `PGR-E3003` (Code stimmt überein).
-7. *Speicher:* ohne Obergrenze, in `LH-FA-22.a` *Grenzen* als Beschreibung festgehalten; **Empfehlung** des Architect: akzeptiertes Negativ. Frage an den Nutzer: Liest er „für große Aufzeichnungen“ (`LH-FA-22`) als Zusage für das Lesen? Dann wäre eine Grenze oder ein streamendes Lesen eine Änderung des Lastenhefts oder ein eigener Slice.
+7. *Speicher:* ohne Obergrenze, in `LH-FA-22.a` *Grenzen* als Beschreibung festgehalten; **Entscheidung des Nutzers vom 2026-10-11:** „große Aufzeichnungen“ in `LH-FA-22` gilt nur für das Schreiben; der Leser darf wie der von `yaml` die Aufzeichnung im Speicher halten, ein Mehrfaches der Dateigröße, ohne zugesagte Obergrenze. Keine Änderung des Lastenhefts, kein streamendes Lesen. Die Frage an den Nutzer ist geschlossen.
 8. *Größe:* 2090 Zeilen Go, über der Schwelle von §4. **Empfehlung** des Architect an den Planner (Schnitt entscheidet er nicht): hinnehmen. Die Überschreitung ist rund 5 % über „rund 2000“, 1291 der Zeilen sind Tabellen-Tests, 799 Code in einer Schicht mit drei Liefer-Punkten; der in §4 genannte Schnitt (DoD-Punkt 3) ließe sich nicht liefern, denn `stufeCode` und seine Tests hängen am Leser, den DoD-Punkt 1 liefert, und der Code liegt gate-grün vor. Ob der Diff in einer Sitzung prüfbar ist, beurteilt am Ende das Review.
 
 

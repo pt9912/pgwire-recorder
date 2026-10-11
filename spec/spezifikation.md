@@ -1812,7 +1812,8 @@ Recorder hält die beendeten Sessions weiterhin im Speicher; `sqlite` spart das
 Neuschreiben der Datei, nicht den Speicher. Auch der Leser von `sqlite` lädt die Aufzeichnung als Ganzes
 in den Speicher, wie der von `yaml`, und hält sie während des Lesens zusätzlich als Baum und als Text;
 der Bedarf kann ein Mehrfaches der Dateigröße betragen. Eine Obergrenze ist weder zugesagt noch
-geprüft; der Vorteil von `sqlite` für große Aufzeichnungen liegt im Schreiben.
+geprüft; der Vorteil von `sqlite` für große Aufzeichnungen liegt im Schreiben (Entscheidung des Nutzers
+vom 2026-10-11: „große Aufzeichnungen“ in `LH-FA-22` gilt nur für das Schreiben).
 
 **Beide Formate** tragen dasselbe logische Modell (`SPEC-002`, `SPEC-041`,
 `SPEC-043`); eine Aufzeichnung in einem Format und dieselbe Aufzeichnung im anderen
