@@ -154,6 +154,7 @@ dasteht.
 | Write-Ahead-Log-Modus einer fremden Datei; Ersetzen der Datei zwischen Erkennung und Lesen (nicht zugesagt, akzeptiertes Negativ: harmlos und ohne Wiederkehr in diesem Werkzeug, das nur Journal-Modus schreibt) | `LH-FA-22.a` *Lesen von `sqlite`*, *Grenze* |
 | Maskiertes einzelnes Surrogat im JSON-Text (`\ud800` allein, Paar angenommen, U+FFFD selbst gültig) `PGR-E3003` | `SPEC-043` (Regel `base64:`) |
 | Meldung zu einem Fehler des Inhalts: ohne Wert aus der Datei, ohne Zeilennummer; Tabelle und Nummern, wo der Leser selbst feststellt | `LH-FA-22.a` *Lesen von `sqlite`* |
+| Art des Fehlers auf dem Weg über `Unmarshal` (F-623): nur „Aufzeichnung beschädigt“ oder Session und Interaktion mit Nummern, keine feinere Art (akzeptiertes Negativ: Wert und Zeile der übertragenen Darstellung gehörten sonst in die Meldung; ohne Wiederkehr, die Datei selbst nennt die Art nicht besser) | `LH-FA-22.a` *Lesen von `sqlite`* |
 | Schließen der Datenbank nach dem Lesen scheitert: nicht gemeldet, nicht zugesagt (akzeptiertes Negativ: die Aufzeichnung ist ganz gelesen, ein Aufbau mit dem Fehler ist nicht herstellbar, ohne Wiederkehr) | `LH-FA-22.a` *Lesen von `sqlite`* |
 | Abbruch von `ctx` und jeder andere Fehler ohne Typ der Bibliothek `PGR-E3001` | `LH-FA-22.a` *Lesen von `sqlite`* |
 | Doppelter Schlüssel in `meta` `PGR-E3003` | `LH-FA-22.a` *Lesen von `sqlite`* |
@@ -332,7 +333,7 @@ beschädigten Seiten und mit Dateien aus 60 Sessions nicht erreicht. Der Zweig b
 Test zwischen den Tabellen.
 **Meldung auf dem Weg über `Unmarshal` (F-623).** Die Art ist dort so fein wie der Text, den `Unmarshal` ohne Wert und
 Zeile trägt: `Aufzeichnung beschädigt` (Form, unbekannter Schlüssel) oder Session und Interaktion; eine feinere Art nähme die
-Ursache der YAML-Bibliothek mit Wert und Zeile. Frage an den Architect, ob das die Zusage „die Art des Fehlers“ trägt.
+Ursache der YAML-Bibliothek mit Wert und Zeile. **Entscheidung des Architect:** Die Zusage ist enger gefasst, nicht der Code geändert: Bei Fehlern der Prüfung von `yaml` ist die Art „Aufzeichnung beschädigt“ (mit Nummern bei Session und Interaktion), eine feinere nennt die Meldung nicht (`LH-FA-22.a` *Lesen von `sqlite`*, §6). Kein Auftrag an den Implementer: `TestLesenMeldungOhneWertUndZeile` (MP2, MP3) belegt die Zusage in dieser Fassung.
 **Kommentare (F-626).** `Load` nennt, was der Leser selbst prüft und was `Unmarshal`; `JSONKnoten` nennt `!!map` und `!!seq`
 mit leerem Wert.
 

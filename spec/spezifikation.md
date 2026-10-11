@@ -1736,7 +1736,10 @@ JSON-Objekt oder in `meta`, das ein fremdes Schema ohne Primärschlüssel zuläs
 Spalten, Indizes und Trigger, die `SPEC-043` nicht nennt, prüft der Leser nicht und
 ignoriert sie; nur Fehlendes ist `PGR-E3003`. Die Meldung zu einem Fehler des Inhalts nennt die Datei und die Art des Fehlers, nie einen
 Wert aus der Datei und keine Zeilennummer (die Datei hat keine Textdarstellung mit Zeilen); wo der Leser den Fehler
-selbst feststellt, nennt sie außerdem Tabelle und Nummern der Zeile. Das Schließen der Datenbank
+selbst feststellt, nennt sie außerdem Tabelle und Nummern der Zeile. Stellt `yaml`s Prüfung
+den Fehler fest (Form, unbekannter oder doppelter Schlüssel, `null`, Merge-Key), ist die Art nur
+„Aufzeichnung beschädigt“, bei einem Fehler einer Session oder Interaktion mit deren Nummern; eine
+feinere Art nennt die Meldung nicht, denn sie trüge Wert oder Zeile der übertragenen Darstellung. Das Schließen der Datenbank
 nach dem Lesen meldet der Leser nicht: Die Aufzeichnung ist dann ganz gelesen, und ein Aufbau, in
 dem es scheitert, lässt sich nicht herstellen (nicht zugesagt). Ein Schlüssel `<<` in `startup`,
 `server_parameters` oder in einem JSON-Objekt von `fields` gilt wie in `yaml` als Merge-Key
@@ -2921,3 +2924,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Reihenfolge der Zeilen ohne Bedeutung, Fremdschlüssel beim Lesen nicht erzwungen, Zahl im JSON-Text ganz und kanonisch (sonst `PGR-E3003`), Write-Ahead-Log-Modus einer fremden Datei und Ersetzen der Datei zwischen Erkennung und Lesen ohne Zusage (`LH-FA-22.a`, `SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: maskiertes einzelnes Surrogat im JSON-Text `PGR-E3003` (`SPEC-043`), Meldung zu einem Fehler des Inhalts ohne Wert und ohne Zeilennummer, Schließen nach dem Lesen nicht gemeldet, Abbruch des Laufs `PGR-E3001`, doppelter Schlüssel in `meta` und Verstoß gegen die Zählung und Reihenfolge der Gruppen `PGR-E3003`, Speicher des Lesers ohne Obergrenze (`LH-FA-22.a`, `SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Schlüssel `<<` ist Merge-Key (`PGR-E3003`), sein Schreiben nicht zugesagt (`LH-FA-22.a`) |
+| 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Art des Fehlers bei Fehlern der Prüfung von `yaml` nur „Aufzeichnung beschädigt“ mit Nummern, keine feinere Art (`LH-FA-22.a`) |
