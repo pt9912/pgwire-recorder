@@ -200,7 +200,11 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 		{"Schlüssel config oben", "config: x.yaml\n", "config"},
 		{"Schlüssel config im Abschnitt", "replay:\n  config: x.yaml\n", "replay.config"},
 		{"Option eines anderen Kommandos in play", "play:\n  output: GEHEIM\n", "play.output"},
-		{"Option von TLS in play", "play:\n  upstream_tls: true\n", "play.upstream_tls"},
+		{"upstream_tls in play mit ungültigem Wert", "play:\n  upstream_tls: GEHEIM\n", "play.upstream_tls"},
+		{"upstream_tls in record", "record:\n  upstream_tls: true\n", "record.upstream_tls"},
+		{"upstream_ca in play leer", "play:\n  upstream_ca: \"\"\n", "play.upstream_ca"},
+		{"upstream_ca in replay", "replay:\n  upstream_ca: GEHEIM\n", "replay.upstream_ca"},
+		{"upstream_ca oben", "upstream_ca: GEHEIM\n", "upstream_ca"},
 		{"Option eines Folge-Slice in play", "play:\n  keep_timing: true\n", "play.keep_timing"},
 		{"fail_on_unconsumed in play", "play:\n  fail_on_unconsumed: true\n", "play.fail_on_unconsumed"},
 		{"Abschnitt play ohne Inhalt", "play:\n", "play"},
@@ -253,7 +257,8 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 // oberste Ebene, Abschnitt oder connections: keine Abbildung oder ohne Inhalt,
 // ein unbekannter Schlüssel (auch config, ein anders geschriebener, einer im
 // falschen Abschnitt, einer im Abschnitt play:, den play in diesem Stand nicht
-// kennt, und einer, den der Stand noch nicht kennt), ein Merge-Schlüssel, ein leerer Wert, null, Liste oder
+// kennt, einer, den der Stand noch nicht kennt, upstream_tls mit ungültigem
+// Wert, upstream_ca leer oder im Abschnitt eines anderen Kommandos), ein Merge-Schlüssel, ein leerer Wert, null, Liste oder
 // Abbildung als Wert, Anker, Alias und jeder ausdrücklich geschriebene Tag, ein
 // Wert außerhalb der Wertemenge, ein ungültiger Name einer Verbindung; geprüft
 // wird auch der Abschnitt des anderen Kommandos; die Meldung nennt die Stelle

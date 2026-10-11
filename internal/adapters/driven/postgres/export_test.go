@@ -1,6 +1,8 @@
 package postgres
 
 import (
+	"context"
+	"crypto/x509"
 	"io"
 	"net"
 
@@ -92,4 +94,21 @@ func ScramWertMit(passwort string) any {
 // AnmeldungWertMit liefert die Anmeldung als Wert statt als Zeiger.
 func AnmeldungWertMit(passwort string) any {
 	return *neueAnmeldung(map[string]string{"user": "u"}, zugang{passwort: Passwort(passwort)})
+}
+
+// Aushandeln reicht an aushandeln weiter; conn stellt der Test.
+func Aushandeln(ctx context.Context, z *Einspielziel, conn net.Conn) (net.Conn, error) {
+	return z.aushandeln(ctx, conn)
+}
+
+// MitSystemspeicher setzt den Zertifikatsspeicher des Systems, den z
+// verwendet.
+func MitSystemspeicher(z *Einspielziel, f func() (*x509.CertPool, error)) *Einspielziel {
+	z.systemspeicher = f
+	return z
+}
+
+// ServerName reicht an serverName weiter.
+func ServerName(address string) string {
+	return serverName(address)
 }

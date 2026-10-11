@@ -3,6 +3,7 @@ package postgres
 import (
 	"bufio"
 	"context"
+	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -18,13 +19,20 @@ import (
 )
 
 // Einspielziel verbindet sich beim Einspielen je Session als Client mit dem
-// Server unter Address, ohne TLS, und meldet sich mit Password an, wenn der
-// Server ein Passwort verlangt; ohne Password (leer) gibt es keines
-// (LH-FA-20.a *Anmeldung*, *Passwort*).
+// Server unter Address und meldet sich mit Password an, wenn der Server ein
+// Passwort verlangt; ohne Password (leer) gibt es keines (LH-FA-20.a
+// *Anmeldung*, *Passwort*). Mit TLS handelt es vor dem Startup TLS aus und
+// prüft das Serverzertifikat gegen den Zertifikatsspeicher des Systems und die
+// Zertifikate aus CA (LH-FA-20.a *TLS*); ohne TLS bleibt die Verbindung
+// unverschlüsselt und CA unbeachtet. systemspeicher ersetzt in Tests den
+// Zertifikatsspeicher des Systems.
 type Einspielziel struct {
-	Address  string
-	Password Passwort
-	Dialer   net.Dialer
+	Address        string
+	Password       Passwort
+	TLS            bool
+	CA             Zertifikate
+	Dialer         net.Dialer
+	systemspeicher func() (*x509.CertPool, error)
 }
 
 var _ driven.Einspielziel = (*Einspielziel)(nil)
@@ -39,7 +47,7 @@ func (z *Einspielziel) Verbinde(ctx context.Context, startup map[string]string) 
 		return nil, model.Errorf(model.CodeUpstream, err, "Server %s nicht erreichbar", z.Address)
 	}
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
-	s, err := aufbau(conn, startup, zugang{passwort: z.Password})
+	s, err := z.aufbauen(ctx, conn, startup)
 	if !stop() {
 		_ = conn.Close()
 		return nil, model.Errorf(model.CodeUpstream, ctx.Err(), "Aufbau zu %s abgebrochen", z.Address)
@@ -49,6 +57,19 @@ func (z *Einspielziel) Verbinde(ctx context.Context, startup map[string]string) 
 		return nil, err
 	}
 	return s, nil
+}
+
+// aufbauen handelt, mit TLS, zuerst TLS aus (aushandeln) und baut dann über die
+// verschlüsselte Verbindung auf; ohne TLS baut es über conn auf.
+func (z *Einspielziel) aufbauen(ctx context.Context, conn net.Conn, startup map[string]string) (*einspielSession, error) {
+	if z.TLS {
+		verschluesselt, err := z.aushandeln(ctx, conn)
+		if err != nil {
+			return nil, err
+		}
+		conn = verschluesselt
+	}
+	return aufbau(conn, startup, zugang{passwort: z.Password})
 }
 
 // aufbau sendet das Startup, meldet sich an und liest bis zum ersten

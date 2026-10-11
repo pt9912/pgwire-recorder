@@ -16,6 +16,7 @@ const (
 	CodeConfigFile         = "PGR-E2004"
 	CodeConfigVariable     = "PGR-E2005"
 	CodeConfigPassword     = "PGR-E2006"
+	CodeConfigCA           = "PGR-E2007"
 	CodeRecordingIO        = "PGR-E3001"
 	CodeRecordingVersion   = "PGR-E3002"
 	CodeRecordingBroken    = "PGR-E3003"

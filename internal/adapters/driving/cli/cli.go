@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"crypto/x509"
 	"errors"
 	"flag"
 	"fmt"
@@ -40,13 +41,29 @@ type ReplayOptions struct {
 // sie kennt. Nennt --upstream eine benannte Verbindung, ist Upstream deren
 // Adresse host:port. Einspielen trägt die Optionen, die der Play-Service
 // auswertet. Passwort ist das Passwort der Anmeldung am Server (LH-FA-20.a
-// *Passwort*); "" heißt, es gibt keines.
+// *Passwort*); "" heißt, es gibt keines. UpstreamTLS sagt, ob die Verbindung
+// zum Server TLS nutzt: das gesetzte --upstream-tls, sonst sslmode=require der
+// benutzten Verbindung (LH-FA-17.a *Wirkung einer URL*). UpstreamCA sind die
+// Zertifikate der Datei aus --upstream-ca, gelesen beim Start; ohne die Option
+// sind es keine.
 type PlayOptions struct {
-	Upstream   string
-	Input      string
-	Einspielen Einspielvorgaben
-	Passwort   Passwort
-	LogLevel   string
+	Upstream    string
+	Input       string
+	Einspielen  Einspielvorgaben
+	Passwort    Passwort
+	UpstreamTLS bool
+	UpstreamCA  Zertifikate
+	LogLevel    string
+}
+
+// Zertifikate sind die Zertifikate einer Datei aus --upstream-ca. Jede
+// Formatierung gibt festen Text aus, nie ein Zertifikat: Ein Aufruf mit %v,
+// %+v, %#v, %s oder %q auf den Optionen von play verrät keines.
+type Zertifikate []*x509.Certificate
+
+// Format gibt für jedes Verb den festen Text aus.
+func (z Zertifikate) Format(f fmt.State, _ rune) {
+	_, _ = fmt.Fprintf(f, "Zertifikate{%d}", len(z))
 }
 
 // Passwort ist ein Passwort der Anmeldung. Jede Formatierung gibt festen Text
@@ -152,10 +169,21 @@ const optionenPlay = `Optionen von play:
               wenn die aufgezeichnete Anfrage ebenfalls eine trägt;
               Umgebungsvariable
               PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS
+  --upstream-tls[=true|false]
+              die Verbindung zum Server nutzt TLS und prüft sein Zertifikat
+              und seinen Namen; ohne die Option entscheidet sslmode der
+              Verbindung, und die Option geht vor, auch mit false;
+              Umgebungsvariable PGWIRE_RECORDER_UPSTREAM_TLS
   --finish-session-on-interrupt[=true|false]
               nach dem ersten SIGINT oder SIGTERM endet play erst nach der
               laufenden Session; Umgebungsvariable
               PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT
+  --upstream-ca <datei>
+              PEM-Datei mit Zertifikaten einer Zertifizierungsstelle, die
+              zusätzlich zum Zertifikatsspeicher des Systems gilt; nur mit
+              TLS (sonst PGR-E2001); eine Datei, die keine Zertifikate
+              enthält, endet play mit PGR-E2007; Umgebungsvariable
+              PGWIRE_RECORDER_UPSTREAM_CA
 ` + optionLogLevel + optionConfig + optionUmgebung
 
 const optionUmgebung = `
@@ -275,7 +303,8 @@ func Parse(args []string, out io.Writer) (Command, error) {
 // und der gewählten Datei (LH-FA-17.a *Fehler*), und darf ihren Wert im
 // Command ersetzen: upstreamRecord setzt c.Record.Upstream auf die Adresse der
 // benutzten Verbindung. Ein späterer zuletzt-Aufruf sieht den ersetzten Wert;
-// nil prüft nichts.
+// nil prüft nichts. Eine Option ohne setze trägt ihren Wert nur in quellen
+// (upstream-ca, deren Datei zuletzt gelesen wird).
 type option struct {
 	name     string
 	art      art
@@ -283,7 +312,7 @@ type option struct {
 	standard string
 	oben     bool
 	setze    func(*Command, string)
-	zuletzt  func(*Command, gelesen, *datei) error
+	zuletzt  func(*Command, gelesen, *datei, quellen) error
 }
 
 // art ist die Wertemenge einer Option: pruefe lehnt jeden Wert außerhalb ab,
@@ -354,7 +383,9 @@ func optionen(kommando string) []option {
 			{name: "database", art: artText(), setze: func(c *Command, v string) { c.Play.Einspielen.Database = v }},
 			{name: "continue-on-error", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.ContinueOnError = v == "true" }},
 			{name: "allow-recorded-errors", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.AllowRecordedErrors = v == "true" }},
+			{name: "upstream-tls", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.UpstreamTLS = v == "true" }},
 			{name: "finish-session-on-interrupt", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.FinishSessionOnInterrupt = v == "true" }},
+			{name: "upstream-ca", art: artText(), zuletzt: upstreamCA},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Play.LogLevel = v }},
 		}
 	}
@@ -407,11 +438,27 @@ func (k kommandozeile) Set(v string) error {
 // "true".
 func (k kommandozeile) IsBoolFlag() bool { return k.art.schalter }
 
-// gelesen ist der Stand einer Option nach dem Lesen der Quellen.
+// gelesen ist der Stand einer Option nach dem Lesen der Quellen: ob die
+// Kommandozeile, die Umgebungsvariable und die Datei sie setzen, und die
+// Werte von Kommandozeile und Umgebungsvariable.
 type gelesen struct {
-	cli, env     string
-	cliOk, envOk bool
+	cli, env              string
+	cliOk, envOk, dateiOk bool
 }
+
+// gesetzt meldet, ob irgendeine Quelle die Option setzt, auch mit dem Wert des
+// Standardwerts.
+func (g gelesen) gesetzt() bool { return g.cliOk || g.envOk || g.dateiOk }
+
+// quellen ist, was ein zuletzt-Aufruf von der Zusammenführung sieht: je Option,
+// nach ihrem Namen, den Stand ihrer Quellen und den zusammengeführten Wert.
+type quellen struct {
+	stand map[string]gelesen
+	wert  map[string]string
+}
+
+// gesetzt meldet, ob irgendeine Quelle die Option name setzt.
+func (q quellen) gesetzt(name string) bool { return q.stand[name].gesetzt() }
 
 // lies liest kommando nach LH-FA-17.a: zuerst die Kommandozeile, an deren
 // FlagSet genau die Optionen aus optionen und --config angemeldet sind, dann
@@ -430,25 +477,55 @@ func lies(kommando string, args []string) (Command, error) {
 	if err := liesKommandozeile(kommando, opts, stand, &config, args); err != nil {
 		return Command{}, err
 	}
+	if err := liesUmgebung(opts, stand); err != nil {
+		return Command{}, err
+	}
+	_, d, err := ladeGewaehlte(config.cli)
+	if err != nil {
+		return Command{}, err
+	}
+	cmd, q, err := zusammenfuehren(kommando, opts, stand, d)
+	if err != nil {
+		return Command{}, err
+	}
+	for i, o := range opts {
+		if o.zuletzt == nil {
+			continue
+		}
+		if err := o.zuletzt(&cmd, stand[i], d, q); err != nil {
+			return Command{}, err
+		}
+	}
+	return cmd, nil
+}
+
+// liesUmgebung liest die Umgebungsvariablen der Optionen in ihrer Reihenfolge
+// und prüft jeden gesetzten Wert; eine leere Variable gilt als nicht gesetzt.
+func liesUmgebung(opts []option, stand []gelesen) error {
 	for i, o := range opts {
 		v := os.Getenv(envName(o.name))
 		if v == "" {
 			continue
 		}
 		if err := o.art.pruefe(v); err != nil {
-			return Command{}, model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envName(o.name))
+			return model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envName(o.name))
 		}
 		stand[i].env, stand[i].envOk = v, true
 	}
-	_, d, err := ladeGewaehlte(config.cli)
-	if err != nil {
-		return Command{}, err
-	}
+	return nil
+}
+
+// zusammenfuehren übernimmt je Option den Wert nach der Priorität (SPEC-007) in
+// das Command, hält in stand fest, ob die Datei die Option setzt, und liefert
+// den Stand der Quellen mit den zusammengeführten Werten; eine Pflichtoption,
+// die keine Quelle setzt, ist PGR-E2001.
+func zusammenfuehren(kommando string, opts []option, stand []gelesen, d *datei) (Command, quellen, error) {
 	cmd := Command{Name: kommando}
+	q := quellen{stand: map[string]gelesen{}, wert: map[string]string{}}
 	for i, o := range opts {
 		v := o.standard
 		if w, ok := d.wert(kommando, o); ok {
-			v = w
+			v, stand[i].dateiOk = w, true
 		}
 		switch {
 		case stand[i].cliOk:
@@ -457,19 +534,14 @@ func lies(kommando string, args []string) (Command, error) {
 			v = stand[i].env
 		}
 		if o.pflicht && v == "" {
-			return Command{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption --%s fehlt", o.name)
+			return Command{}, quellen{}, model.Errorf(model.CodeUsage, nil, "Pflichtoption --%s fehlt", o.name)
 		}
-		o.setze(&cmd, v)
-	}
-	for i, o := range opts {
-		if o.zuletzt == nil {
-			continue
-		}
-		if err := o.zuletzt(&cmd, stand[i], d); err != nil {
-			return Command{}, err
+		q.stand[o.name], q.wert[o.name] = stand[i], v
+		if o.setze != nil {
+			o.setze(&cmd, v)
 		}
 	}
-	return cmd, nil
+	return cmd, q, nil
 }
 
 // liesKommandozeile liest die Argumente bis zum ersten "--" mit einem FlagSet,

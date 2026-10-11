@@ -124,7 +124,12 @@ func replay(ctx context.Context, ablauf <-chan struct{}, o cli.ReplayOptions, lo
 // Fehlers, ohne Fehler 0; er hängt daran, dass der Play-Service den
 // abbrechenden Fehler darin zuerst stellt.
 func play(ctx context.Context, ablauf <-chan struct{}, o cli.PlayOptions, log *slog.Logger, stderr io.Writer) int {
-	ziel := &postgres.Einspielziel{Address: o.Upstream, Password: postgres.Passwort(o.Passwort)}
+	ziel := &postgres.Einspielziel{
+		Address:  o.Upstream,
+		Password: postgres.Passwort(o.Passwort),
+		TLS:      o.UpstreamTLS,
+		CA:       postgres.Zertifikate(o.UpstreamCA),
+	}
 	service, err := services.NewPlayService(ctx, recording.YAML{}, o.Input, ziel, services.PlayOptions(o.Einspielen))
 	if err != nil {
 		return fail(stderr, err)

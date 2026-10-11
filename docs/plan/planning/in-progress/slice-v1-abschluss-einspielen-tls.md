@@ -125,11 +125,12 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/postgres` | update | `SSLRequest`, Aushandlung und Prüfung des Zertifikats im Aufbau von `play`; Einstufung `PGR-E4005` und `PGR-E4002` |
-| `internal/adapters/driving/cli` | update | Optionen `--upstream-tls` und `--upstream-ca` mit Umgebung und Schlüsseln im Abschnitt `play:`; „gesetzt“ vom Standardwert unterschieden; TLS nach `sslmode`; `--upstream-ca` ohne TLS `PGR-E2001`; die Datei aus `--upstream-ca` als letzte Prüfung des Starts lesen und einstufen (`PGR-E2007`), die Zertifikate als `[]*x509.Certificate` in den Optionen von `play` ablegen |
-| `internal/bootstrap` | update | Verdrahtung ohne Logik: `UpstreamTLS` und die Zertifikate aus den Optionen in den `Einspielziel` des Upstream-Adapters setzen; die Datei liest der CLI-Adapter (§6, *Ort der CA-Datei*) |
+| `internal/adapters/driven/postgres` | update | `SSLRequest`, Aushandlung und Prüfung des Zertifikats im Aufbau von `play` (`einspielen_tls.go`, `Einspielziel.TLS` und `.CA`); Einstufung `PGR-E4005` und `PGR-E4002` |
+| `internal/adapters/driving/cli` | update | Optionen `--upstream-tls` und `--upstream-ca` mit Umgebung und Schlüsseln im Abschnitt `play:`; „gesetzt“ vom Standardwert unterschieden (`gelesen.gesetzt`, `quellen`); TLS nach `sslmode`; `--upstream-ca` ohne TLS `PGR-E2001`; die Datei aus `--upstream-ca` als letzte Prüfung des Starts lesen und einstufen (`zertifizierungsstelle.go`, `PGR-E2007`), die Zertifikate als `Zertifikate` (Typ über `[]*x509.Certificate`, mit `Format`) in den Optionen von `play` ablegen; `PlayOptions` ist damit nicht mehr mit `==` vergleichbar |
+| `internal/bootstrap` | update | Verdrahtung ohne Logik: `UpstreamTLS` und die Zertifikate aus den Optionen in den `Einspielziel` des Upstream-Adapters setzen (`postgres.Zertifikate(o.UpstreamCA)`); die Datei liest der CLI-Adapter (§6, *Ort der CA-Datei*) |
 | `internal/hexagon/model` | update | die Kennung `PGR-E2007` als Konstante neben den übrigen Codes; keine Logik, zählt wie die Verdrahtung nicht als Schicht |
-| `test/integration` | update | Server mit TLS und dem Zertifikat einer eigenen Zertifizierungsstelle, abgelaufenes Zertifikat, falscher Name, Server, der unverschlüsselte Verbindungen ablehnt; Happy/Negative nach LH-FA-20 |
+| `test/integration` | update | Happy/Negative nach LH-FA-20 über einen TLS-Proxy vor der Instanz: Zertifikat der eigenen Zertifizierungsstelle, abgelaufenes Zertifikat, falscher Name, Server, der unverschlüsselte Verbindungen ablehnt, Anmeldung über TLS |
+| `internal/testpki`, `internal/bootstrap/tlsproxy` | neu (Testhilfe) | Zertifikate zur Testzeit mit `crypto/x509`, nichts eingecheckt (`testpki`); der TLS-Proxy für die Integrationstests (`tlsproxy`). Der Proxy liegt unter `internal/bootstrap`, weil `.a-check.yml` `crypto/tls` nur in den beiden PGWire-Adaptern und der Verdrahtung zulässt und `test/integration` ihn nicht importieren darf; `testpki` kommt ohne `crypto/tls` aus. Nur Testcode importiert beide; sie gehören zu keiner Schicht und zählen nicht |
 
 ## 4. Trigger
 
@@ -206,7 +207,7 @@ an der genannten Stelle. Offen ist keine.
   Upstream-Adapter); der Punkt liegt im Upstream-Adapter, ohne eigene Zusage in der DoD.
 - **Ort der CA-Datei** (geprüft vom Architect am 2026-10-11, Nutzerentscheidung Option A) —
   der CLI-Adapter liest die Datei, stuft `PGR-E2007` ein und legt die Zertifikate als
-  `[]*x509.Certificate` in `cli.PlayOptions`; der Bootstrap setzt sie in den `Einspielziel`,
+  `cli.Zertifikate` (benannter Typ über `[]*x509.Certificate`, dessen `Format` kein Zertifikat ausgibt) in `cli.PlayOptions`; der Bootstrap setzt sie als `postgres.Zertifikate` in den `Einspielziel`,
   der Upstream-Adapter baut daraus mit dem Systemspeicher das `tls.Config`. `crypto/x509` und
   `encoding/pem` sind Standardbibliothek; `.a-check.yml` schränkt nur `crypto/tls` (auf die
   beiden PGWire-Adapter) ein, kein Gate ändert sich (`AGENTS.md` §3.6), keine ADR. Kein

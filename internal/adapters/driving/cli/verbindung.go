@@ -510,7 +510,7 @@ func (v verbindung) einsetzen(wert func(string) string, teile ...teil) ([]string
 // der Port danach nicht die Form eines Ports, ist das PGR-E2004. Jede Meldung
 // nennt connections.<Name> und keinen Wert. wert liefert die Variablen.
 func (v verbindung) adresseRecord(wert func(string) string) (string, error) {
-	if err := v.ohneTLS("record"); err != nil {
+	if err := v.ohneTLS(); err != nil {
 		return "", err
 	}
 	hp, err := v.einsetzen(wert, v.host, v.port)
@@ -530,15 +530,12 @@ type ziel struct {
 	passwort                     string
 }
 
-// zielPlay ist das Ziel von play (LH-FA-17.a *Wirkung einer URL*), in dieser
-// Reihenfolge: sslmode=require ist PGR-E2004, weil dieser Stand von play ohne
-// TLS verbindet; dann werden alle Teile eingesetzt, in der Reihenfolge der URL
-// Benutzer, Passwort, Host, Port, Datenbank, die erste nicht gesetzte
-// Variable ist PGR-E2005; zuletzt der Port wie bei adresseRecord.
+// zielPlay ist das Ziel von play (LH-FA-17.a *Wirkung einer URL*): alle Teile
+// werden eingesetzt, in der Reihenfolge der URL Benutzer, Passwort, Host, Port,
+// Datenbank, die erste nicht gesetzte Variable ist PGR-E2005; zuletzt der Port
+// wie bei adresseRecord. sslmode ändert das Ziel nicht; ob TLS gilt, entscheidet
+// upstreamPlay.
 func (v verbindung) zielPlay(wert func(string) string) (ziel, error) {
-	if err := v.ohneTLS("play"); err != nil {
-		return ziel{}, err
-	}
 	t, err := v.einsetzen(wert, v.benutzer, v.passwort, v.host, v.port, v.datenbank)
 	if err != nil {
 		return ziel{}, err
@@ -555,10 +552,10 @@ func (v verbindung) zielPlay(wert func(string) string) (ziel, error) {
 }
 
 // ohneTLS ist PGR-E2004 an connections.<Name>, wenn die Verbindung
-// sslmode=require verlangt und kommando ohne TLS zum Upstream verbindet.
-func (v verbindung) ohneTLS(kommando string) error {
+// sslmode=require verlangt; record verbindet ohne TLS zum Upstream.
+func (v verbindung) ohneTLS() error {
 	if v.sslmode == "require" {
-		return fehlerDatei(unter("connections", v.name), "sslmode=require ist bei "+kommando+" ungültig, "+kommando+" verbindet ohne TLS zum Upstream")
+		return fehlerDatei(unter("connections", v.name), "sslmode=require ist bei record ungültig, record verbindet ohne TLS zum Upstream")
 	}
 	return nil
 }

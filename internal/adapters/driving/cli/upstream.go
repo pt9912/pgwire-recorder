@@ -16,7 +16,7 @@ var errUpstreamForm = errors.New("weder Name einer Verbindung der Konfigurations
 // --upstream (pruefeUpstream). Nennt der zusammengeführte Wert eine
 // Verbindung, ersetzt ihn deren Adresse (adresseRecord), mit den Variablen,
 // wie sie jetzt gesetzt sind; host:port bleibt, wie geschrieben.
-func upstreamRecord(c *Command, g gelesen, d *datei) error {
+func upstreamRecord(c *Command, g gelesen, d *datei, _ quellen) error {
 	if err := pruefeUpstream(g, d); err != nil {
 		return err
 	}
@@ -32,19 +32,29 @@ func upstreamRecord(c *Command, g gelesen, d *datei) error {
 	return nil
 }
 
-// upstreamPlay prüft wie upstreamRecord. Nennt der zusammengeführte Wert eine
-// Verbindung, ersetzt ihn deren Adresse (zielPlay), und Benutzer und
-// Datenbank der Verbindung gelten, wo --user beziehungsweise --database
-// nichts setzt (LH-FA-17.a *Wirkung einer URL*). Das Passwort ist der
-// eingesetzte Passwortteil der benutzten Verbindung; schreibt sie keinen und
-// bei host:port, ist es der Wert von PGWIRE_RECORDER_PASSWORD, und eine leere
+// upstreamPlay prüft wie upstreamRecord. Danach entscheidet es über TLS zum
+// Server: das gesetzte --upstream-tls (Option, Umgebungsvariable oder
+// Schlüssel), auch mit false, sonst sslmode=require der benutzten Verbindung;
+// --upstream-ca ohne TLS ist PGR-E2001, nach --upstream und vor den Variablen
+// der Platzhalter (LH-FA-17.a *Wirkung einer URL*, *Fehler*). Nennt der
+// zusammengeführte Wert eine Verbindung, ersetzt ihn deren Adresse (zielPlay),
+// und Benutzer und Datenbank der Verbindung gelten, wo --user
+// beziehungsweise --database nichts setzt. Das Passwort ist der eingesetzte
+// Passwortteil der benutzten Verbindung; schreibt sie keinen und bei
+// host:port, ist es der Wert von PGWIRE_RECORDER_PASSWORD, und eine leere
 // Variable gilt als nicht gesetzt (LH-FA-20.a *Passwort*).
-func upstreamPlay(c *Command, g gelesen, d *datei) error {
+func upstreamPlay(c *Command, g gelesen, d *datei, q quellen) error {
 	if err := pruefeUpstream(g, d); err != nil {
 		return err
 	}
 	c.Play.Passwort = Passwort(os.Getenv(envPassword))
 	v, ok := d.verbindung(c.Play.Upstream)
+	if !q.gesetzt("upstream-tls") {
+		c.Play.UpstreamTLS = ok && v.sslmode == "require"
+	}
+	if q.wert["upstream-ca"] != "" && !c.Play.UpstreamTLS {
+		return model.Errorf(model.CodeUsage, nil, "--upstream-ca verlangt TLS zum Server, mit --upstream-tls oder sslmode=require der Verbindung")
+	}
 	if !ok {
 		return nil
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -43,6 +44,7 @@ func tabelle() map[string]string {
 		"database":                    ohneStandard,
 		"continue-on-error":           "false",
 		"allow-recorded-errors":       "false",
+		"upstream-tls":                "false",
 		"finish-session-on-interrupt": "false",
 	}
 }
@@ -128,6 +130,10 @@ func basis(kommando, ohne string) []string {
 	return args
 }
 
+// gleich meldet, ob zwei Optionen gleich sind; sie tragen Zertifikate und sind
+// damit nicht mit == vergleichbar.
+func gleich(a, b any) bool { return reflect.DeepEqual(a, b) }
+
 func lese(args ...string) (cli.Command, error) {
 	return cli.Parse(args, &bytes.Buffer{})
 }
@@ -147,6 +153,11 @@ func lese(args ...string) (cli.Command, error) {
 func TestLeserAlleOptionen(t *testing.T) {
 	for _, kommando := range leserKommandos() {
 		for _, o := range cli.Optionen(kommando) {
+			if o.Name == "upstream-ca" {
+				// --upstream-ca verlangt TLS und eine lesbare Datei; seine Quellen,
+				// Vorrang und Fehler prüft TestPlayUpstreamCAQuellen.
+				continue
+			}
 			werte, ok := werteJeArt()[o.Art]
 			if !ok {
 				t.Fatalf("%s --%s: Wertemenge %q ohne Testwerte", kommando, o.Name, o.Art)
@@ -167,7 +178,7 @@ func TestLeserAlleOptionen(t *testing.T) {
 				t.Fatalf("%s --%s=%s: %v", kommando, o.Name, a, err)
 			}
 			mitB, err := lese(append(args, "--"+o.Name+"="+b)...)
-			if err != nil || mitA == mitB {
+			if err != nil || gleich(mitA, mitB) {
 				t.Fatalf("%s --%s: %s und %s ergeben dasselbe oder einen Fehler: %#v, %v", kommando, o.Name, a, b, mitB, err)
 			}
 
@@ -177,18 +188,18 @@ func TestLeserAlleOptionen(t *testing.T) {
 					t.Errorf("%s ohne Pflichtoption --%s: %#v, %v", kommando, o.Name, ohne, err)
 				}
 			} else if standard == ohneStandard {
-				if err != nil || ohne == mitA || ohne == mitB {
+				if err != nil || gleich(ohne, mitA) || gleich(ohne, mitB) {
 					t.Errorf("%s ohne --%s: %#v, %v, erwartet ohne Wert", kommando, o.Name, ohne, err)
 				}
-			} else if mitStandard, err2 := lese(append(args, "--"+o.Name+"="+standard)...); err != nil || err2 != nil || ohne != mitStandard {
+			} else if mitStandard, err2 := lese(append(args, "--"+o.Name+"="+standard)...); err != nil || err2 != nil || !gleich(ohne, mitStandard) {
 				t.Errorf("%s ohne --%s: %#v, %v, erwartet Default %q der Tabelle: %#v, %v", kommando, o.Name, ohne, err, standard, mitStandard, err2)
 			}
 
 			t.Setenv(o.Env, a)
-			if got, err := lese(args...); err != nil || got != mitA {
+			if got, err := lese(args...); err != nil || !gleich(got, mitA) {
 				t.Errorf("%s, %s=%s: %#v, %v, erwartet %#v", kommando, o.Env, a, got, err, mitA)
 			}
-			if got, err := lese(append(args, "--"+o.Name+"="+b)...); err != nil || got != mitB {
+			if got, err := lese(append(args, "--"+o.Name+"="+b)...); err != nil || !gleich(got, mitB) {
 				t.Errorf("%s, %s=%s, --%s=%s: %#v, %v, erwartet die Kommandozeile %#v", kommando, o.Env, a, o.Name, b, got, err, mitB)
 			}
 			_, err = lese(append(args, "--"+o.Name+"=")...)
@@ -224,15 +235,15 @@ func dreiQuellen(t *testing.T, kommando string, o cli.Option, args []string, mit
 	mitDatei := func(inhalt string, extra ...string) (cli.Command, error) {
 		return lese(append(append(append([]string{}, args...), "--config="+schreibe(t, inhalt)), extra...)...)
 	}
-	if got, err := mitDatei(schluesselIn(abschnitt, schluessel, a)); err != nil || got != mitA {
+	if got, err := mitDatei(schluesselIn(abschnitt, schluessel, a)); err != nil || !gleich(got, mitA) {
 		t.Errorf("%s, Datei %s: %s: %#v, %v, erwartet %#v", kommando, stelle, a, got, err, mitA)
 	}
 	t.Setenv(o.Env, b)
-	if got, err := mitDatei(schluesselIn(abschnitt, schluessel, a)); err != nil || got != mitB {
+	if got, err := mitDatei(schluesselIn(abschnitt, schluessel, a)); err != nil || !gleich(got, mitB) {
 		t.Errorf("%s, %s=%s, Datei %s: %s: %#v, %v, erwartet die Umgebungsvariable %#v", kommando, o.Env, b, stelle, a, got, err, mitB)
 	}
 	t.Setenv(o.Env, "")
-	if got, err := mitDatei(schluesselIn(abschnitt, schluessel, a), "--"+o.Name+"="+b); err != nil || got != mitB {
+	if got, err := mitDatei(schluesselIn(abschnitt, schluessel, a), "--"+o.Name+"="+b); err != nil || !gleich(got, mitB) {
 		t.Errorf("%s, --%s=%s, Datei %s: %s: %#v, %v, erwartet die Kommandozeile %#v", kommando, o.Name, b, stelle, a, got, err, mitB)
 	}
 	schlecht := []string{`""`}
@@ -275,7 +286,7 @@ func TestLeserOptionen(t *testing.T) {
 	for kommando, want := range map[string][]string{
 		"record": {"listen", "upstream", "output", "force", "shutdown-timeout", "log-level"},
 		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "log-level"},
-		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "finish-session-on-interrupt", "log-level"},
+		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt", "upstream-ca", "log-level"},
 	} {
 		var got []string
 		for _, o := range cli.Optionen(kommando) {

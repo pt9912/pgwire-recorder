@@ -28,3 +28,4 @@ Vollständig belegte Anforderungen stehen zusätzlich in
 | [`LH-FA-20`](../../spec/lastenheft.md) | E2E, Unit | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-QA-02`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E | vollständig |
 | [`LH-QA-06`](../../spec/lastenheft.md) | n/a | n/a | n/a | Unit | vollständig |
+| [`LH-RB-01`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E, Unit | vollständig |

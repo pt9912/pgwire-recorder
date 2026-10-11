@@ -21,11 +21,11 @@ func playMit(args ...string) (cli.PlayOptions, error) {
 func TestParsePlay(t *testing.T) {
 	leere(t, "play")
 	cmd, err := lese("play", "--upstream", "pg:5432", "--input", "r.yaml")
-	if err != nil || cmd.Name != "play" || cmd.Play != (cli.PlayOptions{Upstream: "pg:5432", Input: "r.yaml", LogLevel: cli.LogInfo}) {
+	if err != nil || cmd.Name != "play" || !gleich(cmd.Play, cli.PlayOptions{Upstream: "pg:5432", Input: "r.yaml", LogLevel: cli.LogInfo}) {
 		t.Fatalf("play ohne --user und --database: %#v, %v", cmd, err)
 	}
 	cmd, err = lese("play", "--upstream=pg:5432", "--input=r.yaml", "--user=u", "--database=d", "--log-level=debug")
-	if err != nil || cmd.Play != (cli.PlayOptions{Upstream: "pg:5432", Input: "r.yaml", Einspielen: cli.Einspielvorgaben{User: "u", Database: "d"}, LogLevel: cli.LogDebug}) {
+	if err != nil || !gleich(cmd.Play, cli.PlayOptions{Upstream: "pg:5432", Input: "r.yaml", Einspielen: cli.Einspielvorgaben{User: "u", Database: "d"}, LogLevel: cli.LogDebug}) {
 		t.Fatalf("play mit allen Optionen: %#v, %v", cmd, err)
 	}
 }
@@ -60,15 +60,16 @@ func TestParsePlayFailOnUnconsumed(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-17/Boundary — bei play bleiben die Umgebungsvariablen der
-// Optionen unbeachtet, die dieser Stand von play nicht kennt (TLS,
-// Zeitangaben, Vergleich), auch mit ungültigem Wert (LH-FA-17.a).
+// Optionen unbeachtet, die dieser Stand von play nicht kennt (Zeitangaben,
+// Vergleich) oder die zu einem anderen Kommando gehören, auch mit ungültigem
+// Wert (LH-FA-17.a).
 func TestParsePlayFremdeUmgebung(t *testing.T) {
 	leere(t, "play")
 	t.Setenv(cli.EnvPassword, "")
-	for _, name := range []string{"UPSTREAM_TLS", "UPSTREAM_CA", "KEEP_TIMING", "TIMING_MODE", "TIMING_REFERENCE", "COMPARE_RESPONSES", "LISTEN", "SHUTDOWN_TIMEOUT"} {
+	for _, name := range []string{"KEEP_TIMING", "TIMING_MODE", "TIMING_REFERENCE", "COMPARE_RESPONSES", "LISTEN", "SHUTDOWN_TIMEOUT"} {
 		t.Setenv("PGWIRE_RECORDER_"+name, "ungültig")
 	}
-	if got, err := playMit("--upstream=pg:1"); err != nil || got != (cli.PlayOptions{Upstream: "pg:1", Input: "r.yaml", LogLevel: cli.LogInfo}) {
+	if got, err := playMit("--upstream=pg:1"); err != nil || !gleich(got, cli.PlayOptions{Upstream: "pg:1", Input: "r.yaml", LogLevel: cli.LogInfo}) {
 		t.Fatalf("fremde Umgebungsvariable ausgewertet: %#v, %v", got, err)
 	}
 }
@@ -128,7 +129,7 @@ func TestPlayVerbindung(t *testing.T) {
 	variablen(t, map[string]*string{"PGR_T_U": w("app"), "PGR_T_PW": w("GEHEIM"), "PGR_T_H": w("db.example"), "PGR_T_P": w("6543"), "PGR_T_DB": w("shop")})
 	url := "postgresql://${PGR_T_U}:${PGR_T_PW}@${PGR_T_H}:${PGR_T_P}/${PGR_T_DB}"
 	config := "--config=" + schreibe(t, mitVerbindung(url))
-	if got, err := playMit("--upstream=v", config); err != nil || got != (cli.PlayOptions{Upstream: "db.example:6543", Input: "r.yaml", Einspielen: cli.Einspielvorgaben{User: "app", Database: "shop"}, Passwort: "GEHEIM", LogLevel: cli.LogInfo}) {
+	if got, err := playMit("--upstream=v", config); err != nil || !gleich(got, cli.PlayOptions{Upstream: "db.example:6543", Input: "r.yaml", Einspielen: cli.Einspielvorgaben{User: "app", Database: "shop"}, Passwort: "GEHEIM", LogLevel: cli.LogInfo}) {
 		t.Errorf("Verbindung: %#v, %v", got, err)
 	}
 	if got, err := playMit("--upstream=v", config, "--user=ich", "--database=meine"); err != nil || got.Einspielen.User != "ich" || got.Einspielen.Database != "meine" || got.Upstream != "db.example:6543" {
@@ -153,8 +154,8 @@ func TestPlayVerbindung(t *testing.T) {
 // gesetzte oder leere Variable in jedem Teil der benutzten Verbindung
 // PGR-E2005 mit der ersten in der Reihenfolge der URL (Benutzer, Passwort,
 // Host, Port, Datenbank), auch in einem Teil, den --user oder --database
-// überschreibt, und im Passwort (U8); sslmode=require ist PGR-E2004 vor den
-// Variablen, ein Port, der nach dem Einsetzen keiner ist, PGR-E2004 nach ihnen
+// überschreibt, und im Passwort (U8); sslmode=require ändert das nicht, ein Port,
+// der nach dem Einsetzen keiner ist, ist PGR-E2004 nach den Variablen
 // (LH-FA-17.a).
 func TestPlayVariablen(t *testing.T) {
 	leere(t, "play")
@@ -183,8 +184,8 @@ func TestPlayVariablen(t *testing.T) {
 	}
 	variablen(t, map[string]*string{"PGR_T_U": nil, "PGR_T_PW": nil, "PGR_T_H": nil, "PGR_T_P": w("GEHEIM"), "PGR_T_DB": nil})
 	_, err := playMit("--upstream=v", "--config="+schreibe(t, mitVerbindung(url+"?sslmode=require")))
-	if !istDatei(err) || err.Error() != "Konfiguration [PGR-E2004]: Konfigurationsdatei: connections.v: sslmode=require ist bei play ungültig, play verbindet ohne TLS zum Upstream" {
-		t.Errorf("sslmode=require vor den Variablen: %v", err)
+	if err == nil || err.Error() != fehlt("PGR_T_U") || !hatCode(err, model.CodeConfigVariable) {
+		t.Errorf("sslmode=require neben fehlenden Variablen: %v, erwartet %q", err, fehlt("PGR_T_U"))
 	}
 	variablen(t, map[string]*string{"PGR_T_U": w("1"), "PGR_T_PW": w("1"), "PGR_T_H": w("h"), "PGR_T_P": w("GEHEIM"), "PGR_T_DB": nil})
 	_, err = playMit("--upstream=v", "--config="+schreibe(t, mitVerbindung(url)))
