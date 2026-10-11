@@ -188,12 +188,12 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 ### Belege des Implementers
 
 **Stand.** Geliefert sind die drei Liefer-Punkte der DoD (Schreiben mit Fabrik und Option, Schema mit
-Ersatztest, Architektur-Gate mit Erlaubnisliste) in vier Commits seit `4914a4a`: `f052e63`
+Ersatztest, Architektur-Gate mit Erlaubnisliste) in Commits seit `4914a4a`, die ersten vier: `f052e63`
 (Recording-Adapter, Schema, `go.mod`, Erlaubnisliste, Kommentare an Port und `RecordService`, Plan §3),
 `fc59441` (`--format`, Bootstrap, Test der gemeinsamen Zusage, Tests über das Binary), `07d34c4`
 (Gegenprobe des Architektur-Gates), `9ebab6c` (die Kopfzeile im Test über das Binary als Konstante: der
-erste `make gates` meldete `gochecknoglobals`, weil `make lint` vor dem Anlegen der Datei lief) und der
-Commit dieser Belege. Neu sind `internal/adapters/driven/recording/sqlite.go`, `sqlite_zeilen.go`,
+erste `make gates` meldete `gochecknoglobals`, weil `make lint` vor dem Anlegen der Datei lief); die
+späteren Commits (Belege, Nacharbeit zum Review, Nummern der Sessions) stehen in `git log`. Neu sind `internal/adapters/driven/recording/sqlite.go`, `sqlite_zeilen.go`,
 `sqlite_json.go`, `format.go`, `schema.sql`, `sqlite_test.go`, `sqlite_schreiben_test.go`,
 `sqlite_einstellungen_test.go`, `sqlite_json_test.go`, `sqlite_hilfen_test.go`,
 `internal/bootstrap/format_test.go` und `test/integration/sqlite_format_e2e_test.go`; geändert
@@ -258,8 +258,8 @@ ist die des Laufs.
 | `record --format sqlite` ergänzt nach jeder beendeten Session | `CloseSession` schreibt nicht mehr (E3) | `TestE2ERecordFormatSQLite` |
 
 Summe: 110 Mutanten der Unit-Tests (einschließlich `F1b`, `Z16` bis `Z18`, `T1` bis `T5`, `U1`), fünf am Binary
-(`E1` bis `E5`), vier der Gegenprobe (`A1` bis `A4`) und einer des Lint-Gates; alle rot bis auf drei äquivalente
-(nächster Absatz). Die Läufe sind Lauf-Beleg und nicht im Repo; die Tabelle trägt Mutation und Test.
+(`E1` bis `E5`), vier der Gegenprobe (`A1` bis `A4`) und einer des Lint-Gates; alle rot bis auf sechs grüne (B2, W10, W14,
+`synchronous(FULL)`, `SetMaxOpenConns(1)` und N1c; die Einordnung steht im nächsten Absatz und in der Nacharbeit zum Review). Die Läufe sind Lauf-Beleg und nicht im Repo; die Tabelle trägt Mutation und Test.
 
 **Nachtrag zu den Aufträgen des Architect (`75874ba`).**
 
@@ -291,7 +291,7 @@ Der Primärschlüssel von `session` ist nach der Entscheidung zu F-617 nur noch 
 1. *F-617, doppelte oder nicht fortlaufende Nummern in einem Aufruf.* `Write` lehnt sie vorab ab: Die Nummern aller Sessions der Aufzeichnung werden vor `legeAn` und vor dem Öffnen geprüft, Fehler des Aufrufers `PGR-E1000` (wie „weniger Sessions“), Datei unberührt. Das geht ohne Port-Änderung, weil `Write` die ganze Aufzeichnung bekommt. Das ersetzt Punkt 3 der Entscheidungen vom selben Tag oben (doppelte Nummer und Lücke `PGR-E3001`): `PGR-E3001` bleibt für eine Datei, die andere Nummern trägt als zuletzt ergänzt. Eine Transaktion je Session bleibt; mitten im Aufruf kann die Prüfung der Nummern keine Session mehr verlieren, weil sie davor liegt. Spezifikation: `LH-FA-22.a` *Schreiben von `sqlite`*; Aufträge in §3. Der Satz „lässt die Datei auf dem Stand vor dem Aufruf“ gilt damit für jeden Aufruf mit falschen Nummern. Akzeptiertes Negativ: `yaml` prüft die Nummern beim Schreiben nicht und schreibt sie, wie sie kommen; der Aufrufer ist der Dienst, der sie lückenlos vergibt (`LH-FA-12.a`), und die Prüfung beim Lesen fängt es (`LH-FA-22.a`).
 2. *F-622, Zählung des Bootstrap.* Zwei Schichten. `AGENTS.md` §3.13 trennt Verdrahtung von Logik daran, ob der Bootstrap etwas entscheidet: Datei lesen, einen Fehler nach Art einstufen, nach einem Wert verzweigen. Der Zweig nach `recording.New(o.Format)` reicht jeden Fehler gleich weiter wie die Zweige nach `NewRecordService` und `Listen` darunter und unterscheidet nichts; er ist die Fehlerweitergabe der Verdrahtung, kein „verzweigen“ im Sinn der Regel (dort steht die Auswahl nach Inhalt). Die Grenze für die Zukunft: Ein `if err != nil { return fail(…) }` ohne Unterscheidung ist Verdrahtung; sobald der Bootstrap die Art des Fehlers oder einen Wert abfragt, zählt er. Kein Befund an den Planner, der Slice bleibt bei drei Liefer-Punkten und zwei Schichten (§8). Ein Wortlaut in `AGENTS.md` §3.13 ist nicht nötig: ein einzelner Grenzfall, der entschieden ist; kehrt er wieder, ist das der Anlass für die Schärfung.
 
-**Grüne Mutanten, eingeordnet.** Drei bleiben grün und ändern das Verhalten nicht:
+**Grüne Mutanten, eingeordnet.** Drei bleiben grün und ändern das Verhalten nicht (drei weitere, `synchronous(FULL)`, `SetMaxOpenConns(1)` und N1c, stehen in der Nacharbeit zum Review):
 (B2) Der Bootstrap ignoriert den Fehler von `recording.New`: Die Kommandozeile lehnt vorher jeden Wert außer `yaml`
 und `sqlite` ab (`TestParseRecordFormat`, `TestRunRecordFormatUngueltig`), der Zweig ist durch kein Programm
 erreichbar. (W10) `filepath.Abs` entfällt: SQLite löst einen relativen Pfad gegen das Arbeitsverzeichnis auf,
@@ -319,7 +319,7 @@ Nach dem ersten Lauf kam `U1` hinzu (`PRAGMA user_version = 1` im Schema geschri
 | `make docs-check`, `make kopf-check`, `make abdeckung-check` | nach dem Nachziehen von §3 und der Abdeckung | `d-check: 539 Datei(en) geprüft, 0 Befund(e)`; die beiden anderen Exit 0 |
 | `make schema-validate` | nach der Änderung von `schema.yaml` | `Validation passed` |
 | `make schema-generate` gegen `schema.sql` | vor `f052e63` | gleich bis auf die Kopfzeilen mit dem Zeitstempel |
-| `make gates` | auf `9ebab6c` mit den Abdeckungstabellen als Änderung | Exit 0, 5 min 26 s; `lint-gegenprobe: gruen`, `a-check-negativ: gruen — alle siebzehn Faelle`, `baseline-verify: v6.18.0 OK` |
+| `make gates` | auf `9ebab6c` mit den Abdeckungstabellen als Änderung (frühere Fassung des Codes; der Lauf auf dem Endstand wird vor der Closure eingetragen) | Exit 0, 5 min 26 s; `lint-gegenprobe: gruen`, `a-check-negativ: gruen — alle siebzehn Faelle`, `baseline-verify: v6.18.0 OK` |
 | Build des Binaries für sechs Plattformen | auf `9ebab6c` | `linux`, `darwin`, `windows` je `amd64` und `arm64`: `docker build --target build --build-arg TARGETOS=… --build-arg TARGETARCH=…` endet jeweils mit Exit 0; die Images danach per Name entfernt |
 
 Der Lauf für sechs Plattformen belegt das Bauen der reinen Go-Bibliothek, nicht ihr Verhalten; ausgeführt ist nur
