@@ -483,3 +483,72 @@ func TestSQLiteWenigerSessionsAlsDieDatei(t *testing.T) {
 		t.Fatalf("erwartet %s und unberührte Datei, erhalten %v", model.CodeInternal, err)
 	}
 }
+
+// Abdeckung: LH-FA-22/Negative — eine Session mit einer Nummer, die die Datei schon trägt,
+// ist PGR-E3001 (Primärschlüssel von session), und die Datei bleibt auf dem Stand vor dem
+// Aufruf.
+func TestSQLiteDoppelteSessionNummer(t *testing.T) {
+	s, path := neueDatei(t, sessionsMit(1))
+	vorher := mustRead(t, path)
+	rec := sessionsMit(2)
+	rec.Sessions[1].ID = 1
+	if err := s.Write(context.Background(), path, rec); code(err) != model.CodeRecordingIO {
+		t.Fatalf("erwartet %s, erhalten %v", model.CodeRecordingIO, err)
+	}
+	if !bytes.Equal(mustRead(t, path), vorher) {
+		t.Fatal("Datei verändert")
+	}
+}
+
+// Abdeckung: LH-FA-22/Negative — trägt die Datei eine Lücke in den Nummern (hier 1 und 3),
+// ist der nächste Schreibvorgang PGR-E3001, und die Datei bleibt unberührt.
+func TestSQLiteLueckeInDenNummern(t *testing.T) {
+	ctx := context.Background()
+	rec := sessionsMit(3)
+	rec.Sessions = append(rec.Sessions[:1], rec.Sessions[2:]...)
+	s, path := neueDatei(t, rec)
+	if got := sessionIDs(t, path); got != "1,3" {
+		t.Fatalf("Sessions %q", got)
+	}
+	vorher := mustRead(t, path)
+	for _, n := range []int{2, 3} {
+		if err := s.Write(ctx, path, sessionsMit(n)); code(err) != model.CodeRecordingIO {
+			t.Fatalf("Write mit %d Sessions: erwartet %s, erhalten %v", n, model.CodeRecordingIO, err)
+		}
+	}
+	if !bytes.Equal(mustRead(t, path), vorher) {
+		t.Fatal("Datei verändert")
+	}
+}
+
+// Abdeckung: LH-FA-22/Boundary — eine fremde temporäre Datei samt Journal
+// (.<Name>.<Hex>.tmp-journal) im Zielverzeichnis bleibt nach Prepare und Write
+// unverändert, ebenso die temporäre Datei selbst.
+func TestSQLiteFremdesTempJournal(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "rec.sqlite")
+	reste := map[string]string{
+		filepath.Join(dir, ".rec.sqlite.0123456789abcdef.tmp"):         "rest",
+		filepath.Join(dir, ".rec.sqlite.0123456789abcdef.tmp-journal"): "rest-journal",
+	}
+	for p, s := range reste {
+		if err := os.WriteFile(p, []byte(s), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s := &recording.SQLite{}
+	if err := s.Prepare(ctx, path, false); err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 2; i++ {
+		if err := s.Write(ctx, path, sessionsMit(i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for p, want := range reste {
+		if got := inhalt(t, p); got != want {
+			t.Errorf("%s: %q statt %q", p, got, want)
+		}
+	}
+}
