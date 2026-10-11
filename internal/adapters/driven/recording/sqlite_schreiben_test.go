@@ -484,34 +484,64 @@ func TestSQLiteWenigerSessionsAlsDieDatei(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-22/Negative — eine Session mit einer Nummer, die die Datei schon trägt,
-// ist PGR-E3001 (Primärschlüssel von session), und die Datei bleibt auf dem Stand vor dem
-// Aufruf.
-func TestSQLiteDoppelteSessionNummer(t *testing.T) {
-	s, path := neueDatei(t, sessionsMit(1))
-	vorher := mustRead(t, path)
-	rec := sessionsMit(2)
-	rec.Sessions[1].ID = 1
-	if err := s.Write(context.Background(), path, rec); code(err) != model.CodeRecordingIO {
-		t.Fatalf("erwartet %s, erhalten %v", model.CodeRecordingIO, err)
+// mitNummern liefert eine Aufzeichnung mit je einer Session je Nummer in ids.
+func mitNummern(ids ...int) model.Recording {
+	rec := sessionsMit(len(ids))
+	for i, id := range ids {
+		rec.Sessions[i].ID = id
 	}
-	if !bytes.Equal(mustRead(t, path), vorher) {
-		t.Fatal("Datei verändert")
+	return rec
+}
+
+// Abdeckung: LH-FA-22/Negative — Sessions, die nicht ab 1 lückenlos zählen (doppelt, Lücke,
+// andere Reihenfolge), sind vor dem Anlegen und Öffnen PGR-E1000 (ein Fehler des Aufrufers);
+// eine noch nicht angelegte Datei entsteht nicht, im Verzeichnis liegt nichts.
+func TestSQLiteNummernNeueDatei(t *testing.T) {
+	for name, ids := range map[string][]int{"doppelt": {1, 2, 2}, "Lücke": {1, 3}, "Reihenfolge": {2, 1}, "ab 0": {0, 1}, "erste doppelt": {1, 1}} {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "rec.sqlite")
+		if err := (&recording.SQLite{}).Write(context.Background(), path, mitNummern(ids...)); code(err) != model.CodeInternal {
+			t.Errorf("%s: erwartet %s, erhalten %v", name, model.CodeInternal, err)
+		}
+		if es := eintraege(t, dir); len(es) != 0 {
+			t.Errorf("%s: im Verzeichnis liegt %v", name, es)
+		}
 	}
 }
 
-// Abdeckung: LH-FA-22/Negative — trägt die Datei eine Lücke in den Nummern (hier 1 und 3),
-// ist der nächste Schreibvorgang PGR-E3001, und die Datei bleibt unberührt.
-func TestSQLiteLueckeInDenNummern(t *testing.T) {
+// Abdeckung: LH-FA-22/Negative — auf einer Datei mit den Sessions 1 und 2 ist eine Aufzeichnung
+// mit den Nummern 1, 2, 2 oder mit der Nummer 5 an Stelle 2 PGR-E1000, auch wenn die Nummer
+// eine schon ergänzte Session trifft; die Datei bleibt unverändert, und der nächste Write
+// mit 1, 2, 3 ergänzt Session 3.
+func TestSQLiteNummernBestehendeDatei(t *testing.T) {
 	ctx := context.Background()
-	rec := sessionsMit(3)
-	rec.Sessions = append(rec.Sessions[:1], rec.Sessions[2:]...)
-	s, path := neueDatei(t, rec)
-	if got := sessionIDs(t, path); got != "1,3" {
+	s, path := neueDatei(t, sessionsMit(2))
+	vorher := mustRead(t, path)
+	for name, ids := range map[string][]int{"doppelt": {1, 2, 2}, "schon ergänzte Session": {1, 5, 3}} {
+		if err := s.Write(ctx, path, mitNummern(ids...)); code(err) != model.CodeInternal {
+			t.Errorf("%s: erwartet %s, erhalten %v", name, model.CodeInternal, err)
+		}
+		if !bytes.Equal(mustRead(t, path), vorher) {
+			t.Errorf("%s: Datei verändert", name)
+		}
+	}
+	if err := s.Write(ctx, path, sessionsMit(3)); err != nil {
+		t.Fatalf("folgender Write: %v", err)
+	}
+	if got := sessionIDs(t, path); got != "1,2,3" {
 		t.Fatalf("Sessions %q", got)
 	}
+}
+
+// Abdeckung: LH-FA-22/Negative — trägt die Datei andere Nummern als zuletzt ergänzt (hier eine
+// von außen entfernte Zeile, also eine Lücke in der Datei), ist der nächste Write PGR-E3001,
+// auch bei einer Aufzeichnung mit fortlaufenden Nummern, und die Datei bleibt unberührt.
+func TestSQLiteLueckeInDerDatei(t *testing.T) {
+	ctx := context.Background()
+	s, path := neueDatei(t, sessionsMit(3))
+	rohSchreibe(t, path, `DELETE FROM session WHERE id = 2`)
 	vorher := mustRead(t, path)
-	for _, n := range []int{2, 3} {
+	for _, n := range []int{3, 4} {
 		if err := s.Write(ctx, path, sessionsMit(n)); code(err) != model.CodeRecordingIO {
 			t.Fatalf("Write mit %d Sessions: erwartet %s, erhalten %v", n, model.CodeRecordingIO, err)
 		}

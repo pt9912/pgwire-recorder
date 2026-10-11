@@ -117,10 +117,16 @@ func betriebssystemSQLite() sqliteOps {
 	}
 }
 
-// schreibe ist Write mit den Operationen ops. Die Zeilen der Sessions, die noch
-// fehlen, entstehen vor dem ersten Zugriff auf die Datei; ein Fehler darin lässt sie
-// unberührt.
+// schreibe ist Write mit den Operationen ops. Zuerst prüft es, dass die Sessions der
+// Aufzeichnung ab 1 lückenlos zählen (sonst PGR-E1000, ein Fehler des Aufrufers); die
+// Zeilen der Sessions, die noch fehlen, entstehen vor dem ersten Zugriff auf die Datei.
+// Ein Fehler darin lässt sie unberührt, eine noch nicht angelegte Datei entsteht nicht.
 func (s *SQLite) schreibe(ctx context.Context, path string, rec model.Recording, ops sqliteOps) error {
+	for i, session := range rec.Sessions {
+		if session.ID != i+1 {
+			return model.Errorf(model.CodeInternal, nil, "Session %d trägt die Nummer %d", i+1, session.ID)
+		}
+	}
 	if s.ergaenzt > len(rec.Sessions) {
 		return model.Errorf(model.CodeInternal, nil, "Aufzeichnung trägt weniger Sessions als die Datei")
 	}
