@@ -7,11 +7,11 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/services"
+	"github.com/pt9912/pgwire-recorder/internal/testzeit"
 )
 
 // Testdaten: c… sind Client-, s… Server-Nachrichten.
@@ -59,7 +59,7 @@ func warte(t *testing.T, was string, f func()) {
 	}()
 	select {
 	case <-fertig:
-	case <-time.After(2 * time.Second):
+	case <-testzeit.Nach(2000):
 		t.Fatalf("%s kehrt nicht zurück", was)
 	}
 }
@@ -396,7 +396,7 @@ func TestRecordNachDerLetztenInteraktion(t *testing.T) {
 	select {
 	case err := <-empfangen:
 		t.Fatalf("AwaitServer ohne laufende Interaktion zurückgekehrt: %v", err)
-	case <-time.After(100 * time.Millisecond):
+	case <-testzeit.Nach(100):
 	}
 	schliessen(t, s, id, model.EndClosed)
 	if err := <-empfangen; err != model.ErrSessionEnded {
@@ -421,7 +421,7 @@ func TestRecordQueryWartetAufExtended(t *testing.T) {
 		_, err := s.Query(context.Background(), id, "SELECT 2")
 		fertig <- err
 	}()
-	time.Sleep(50 * time.Millisecond)
+	testzeit.Schlafe(50)
 	select {
 	case err := <-fertig:
 		t.Fatalf("Query lief vor dem ReadyForQuery: %v", err)
@@ -431,7 +431,7 @@ func TestRecordQueryWartetAufExtended(t *testing.T) {
 	if _, err := s.AwaitServer(context.Background(), id); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(50 * time.Millisecond)
+	testzeit.Schlafe(50)
 	select {
 	case err := <-fertig:
 		t.Fatalf("Query lief vor der Zustellung: %v", err)
@@ -443,7 +443,7 @@ func TestRecordQueryWartetAufExtended(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-	case <-time.After(2 * time.Second):
+	case <-testzeit.Nach(2000):
 		t.Fatal("Query läuft nach der Zustellung nicht")
 	}
 	s.Delivered(context.Background(), id)
@@ -453,7 +453,7 @@ func TestRecordQueryWartetAufExtended(t *testing.T) {
 		_, err := s.AwaitServer(context.Background(), id)
 		gewartet <- err
 	}()
-	time.Sleep(50 * time.Millisecond)
+	testzeit.Schlafe(50)
 	select {
 	case err := <-gewartet:
 		t.Fatalf("AwaitServer ohne gesendete Gruppe: %v", err)
@@ -747,7 +747,7 @@ func TestRecordCloseBeendetWartende(t *testing.T) {
 	}()
 	// Niemand liest die Ausgabe: der Server blockiert beim Schreiben und liest
 	// nicht weiter, Send blockiert.
-	time.Sleep(100 * time.Millisecond)
+	testzeit.Schlafe(100)
 	select {
 	case err := <-gesendet:
 		t.Fatalf("Send kehrte zurück, obwohl der Server nicht liest: %v", err)
@@ -759,7 +759,7 @@ func TestRecordCloseBeendetWartende(t *testing.T) {
 		if !errors.Is(err, model.ErrSessionEnded) {
 			t.Fatalf("ClientMessage nach CloseSession: %v", err)
 		}
-	case <-time.After(2 * time.Second):
+	case <-testzeit.Nach(2000):
 		t.Fatal("ClientMessage endet nicht nach CloseSession")
 	}
 
@@ -779,7 +779,7 @@ func TestRecordCloseBeendetWartende(t *testing.T) {
 		_, err := s2.Query(ctx, id2, "SELECT 1")
 		query <- err
 	}()
-	time.Sleep(50 * time.Millisecond)
+	testzeit.Schlafe(50)
 	warte(t, "CloseSession", func() { _ = s2.CloseSession(ctx, id2, model.EndClosed) })
 	for name, ch := range map[string]chan error{"AwaitServer": await, "Query": query} {
 		select {
@@ -787,7 +787,7 @@ func TestRecordCloseBeendetWartende(t *testing.T) {
 			if !errors.Is(err, model.ErrSessionEnded) {
 				t.Fatalf("%s nach CloseSession: %v", name, err)
 			}
-		case <-time.After(2 * time.Second):
+		case <-testzeit.Nach(2000):
 			t.Fatalf("%s endet nicht nach CloseSession", name)
 		}
 	}
@@ -834,7 +834,7 @@ func TestRecordEndeNachErfolgreichemUpstream(t *testing.T) {
 			_, err := s.AwaitServer(ctx, id)
 			fertig <- err
 		}()
-		time.Sleep(50 * time.Millisecond)
+		testzeit.Schlafe(50)
 		if err := s.CloseSession(ctx, id, model.EndClosed); codeOf(err) != model.CodeConnectionLost {
 			t.Fatalf("CloseSession: %v", err)
 		}

@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/services"
+	"github.com/pt9912/pgwire-recorder/internal/testzeit"
 )
 
 // Abdeckung: LH-FA-13/Boundary — Record im Kern: meldet der Adapter das
@@ -104,7 +104,7 @@ func TestRecordZwangsendeEinfacheAnfrage(t *testing.T) {
 	}()
 	select {
 	case <-up.letzte.queryLaeuft:
-	case <-time.After(2 * time.Second):
+	case <-testzeit.Nach(2000):
 		t.Fatal("Query erreicht den Upstream nicht binnen 2 s")
 	}
 	var err error
@@ -118,7 +118,7 @@ func TestRecordZwangsendeEinfacheAnfrage(t *testing.T) {
 		if qerr != model.ErrSessionEnded {
 			t.Fatalf("Query nach dem Zwangsende: %v", qerr)
 		}
-	case <-time.After(2 * time.Second):
+	case <-testzeit.Nach(2000):
 		t.Fatal("Query kehrt nach dem Zwangsende nicht zurück")
 	}
 	rec := repo.last(t)

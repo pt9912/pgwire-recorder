@@ -7,11 +7,11 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/services"
+	"github.com/pt9912/pgwire-recorder/internal/testzeit"
 )
 
 // schritt ist eine Antwort von Naechste: eine Nachricht oder ein Fehler.
@@ -437,12 +437,12 @@ func TestPlayErstesSignalImAufbau(t *testing.T) {
 // mit meldung.
 func bis(t *testing.T, bedingung func() bool, meldung string) {
 	t.Helper()
-	frist := time.Now().Add(30 * time.Second)
+	frist := testzeit.NeueFrist(30000)
 	for !bedingung() {
-		if time.Now().After(frist) {
+		if frist.Abgelaufen() {
 			t.Fatal(meldung)
 		}
-		time.Sleep(time.Millisecond)
+		testzeit.Schlafe(1)
 	}
 }
 
@@ -456,7 +456,7 @@ func warteAufPlay(ctx context.Context, t *testing.T, s *services.PlayService, ab
 	select {
 	case err := <-fertig:
 		return err
-	case <-time.After(30 * time.Second):
+	case <-testzeit.Nach(30000):
 		t.Fatal("Play endet binnen 30 s nach dem zweiten Signal nicht")
 		return nil
 	}
