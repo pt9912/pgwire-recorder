@@ -67,8 +67,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/user/benutzerhandbuch.md` | update | Abschnitte zu dem, was `slice-v1-abschluss-sqlite-format` und `slice-v1-abschluss-sqlite-format-lesen` liefern: Optionen gegen `--help`, Beispiele als Datei, Codes, Grenz-Sätze ersetzt |
-| `README.md` | update | Sätze, die `slice-v1-abschluss-sqlite-format` und `slice-v1-abschluss-sqlite-format-lesen` überholen, im Ist-Zustand |
+| `docs/user/benutzerhandbuch.md` | update | Abschnitte zu dem, was `slice-v1-abschluss-sqlite-format` und `slice-v1-abschluss-sqlite-format-lesen` liefern: Optionen gegen `--help`, Beispiele als Datei, Codes, Grenz-Sätze ersetzt. Betroffen sind §1 (Zweck), §3 (Hinweis auf das Format), §4 (Aufzeichnen, Wiedergeben, Einspielen und der neue Abschnitt *Das Format der Aufzeichnung festlegen* samt *Eine SQLite-Aufzeichnung abfragen*), die Tabelle in §5, die Zeilen `PGR-E2001`, `PGR-E2004`, `PGR-E3001` bis `PGR-E3003` in §7, die FAQ und das Glossar |
+| `README.md` | update | Der Satz in *Was kann ich heute tun?*, der `record` und `replay` beschreibt: Format `sqlite` und Erkennung durch `replay` und `play` |
 
 **Ansatz:**
 
@@ -125,6 +125,68 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Stand.** Geändert sind `docs/user/benutzerhandbuch.md`, `README.md` und dieser Plan (§3, §7, §8, DoD); die Roadmap-Zeile *In Arbeit* nennt den Slice. Produkt-Code, Tests, Gates und `docs/user/abdeckung-*.md` sind unverändert. Das Handbuch trägt Version 0.3.
+
+**Probe-Aufbau.** `make build` am Stand `221ee96` (Image `pgwire-recorder:dev`, `sha256:d221c756b469…`, Produktcode unverändert). Proben in einem Scratch-Verzeichnis außerhalb des Repos; Netz `impl-sqldoku-net`, ein PostgreSQL 17.11 aus dem gepinnten Image von `harness/mk/integration.mk` (`impl-sqldoku-pg`, Servermodus `trust`), `record`, `replay` und `play` als `docker run … pgwire-recorder:dev` im selben Netz, Client `psql` aus dem PostgreSQL-Image (einfache und erweiterte Anfragen mit `\bind`, ein Fehler der Datenbank, Nicht-ASCII, `PGCLIENTENCODING=LATIN1`). Der Ablauf der Hauptproben: `select 1 as a, 'x' as b;`, `select $1::int + 1 as n, $2::text as t` mit `\bind 41 hallo`, `select * from nirgends;` (Fehlerantwort), `select 'ä€' as u;`. Die Beispiele des neuen Abschnitts liefen **wörtlich** (die Blöcke zogen ein Skript aus dem Handbuch, `record` mit `--format sqlite`, `record --config` mit dem YAML-Block, `replay`, `play`, beide `sqlite3`-Aufrufe) mit dem Binary aus dem Image in einem Container desselben Netzes (Host `postgres`, Port 15432 über `localhost`). `sqlite3` 3.45.1 auf dem Host für die Abfragen. Container, Netz und Scratch-Dateien sind danach entfernt. Nur Linux im Container, lokales Dateisystem (`BEO-REPO/verhalten-nur-unter-linux-geprueft`).
+
+**Proben je Aussage** (`Z` = `record --listen 0.0.0.0:15432 --upstream impl-sqldoku-pg:5432`; „Ablauf“ = die vier Anweisungen oben):
+
+| Aussage im Handbuch | Probe | Ergebnis |
+|---|---|---|
+| `--format sqlite` schreibt eine SQLite-Datei; ohne `--format` YAML | `Z --output users.sqlite --format sqlite`, `Z --output users.yaml`, Ablauf | `users.sqlite` beginnt mit `SQLite format 3` und NUL; `users.yaml` mit `format: pgwire-recorder` |
+| `replay` und `play` verhalten sich mit sqlite wie mit yaml (Gegenprobe: eine abweichende Anfrage) | Ablauf gegen `replay` aus beiden Dateien, Ausgabe von `psql` byte-gleich mit der direkten; `select 99;` gegen beide; `play` beider Dateien nach `drop table` | Ausgaben gleich (`cmp`); `select 99;` in beiden `PGR-E5001`, Exit 5; die Tabelle `pt` hat nach `play` aus beiden Formaten dieselben Zeilen (`1:ä€`, `2:zwei`) |
+| Bytes ohne UTF-8 kommen zurück | `PGCLIENTENCODING=LATIN1`, `select 'café'` mit dem Byte `0xE9`; `record` in beide Formate, `replay` | `interaction.sql` trägt `…63 61 66 E9…`; die Wiedergabe liefert `caf\351` in beiden Formaten |
+| Datei wird nach der ersten beendeten Verbindung aktualisiert | `Z --format sqlite`, `ls` vor der ersten Verbindung, nach der ersten, nach der zweiten | vorher nicht vorhanden; danach 1, dann 2 Zeilen in `session` |
+| `--force` ersetzt, ergänzt nie; vorher unverändert; Format wechselt | vorhandene Datei mit `--force` (sqlite → sqlite, yaml → sqlite, sqlite → yaml), `sha256sum` vor und nach der ersten Verbindung | eine Sitzung (die neue); Datei vor der ersten Verbindung unverändert, danach ersetzt; Format wie gewählt |
+| vorhandene Zieldatei ist `PGR-E2002`, gleich welches Format | sqlite auf yaml, yaml auf sqlite, sqlite auf sqlite, je ohne `--force`; Verknüpfung auf sqlite | je `PGR-E2002`, Exit 2 |
+| Rechte einer ersetzten Datei bleiben; neue Datei `0666` nach umask | vorhandene Datei `640` und `666`, Verknüpfung auf `600`, je `--force`; neue Datei unter umask `022` | `640`, `666`, `600` bleiben; neu `0644`; die Verknüpfung ist danach eine reguläre Datei, ihr Ziel unverändert |
+| `--format`: nur `yaml`, `sqlite`; Priorität Option > Variable > Datei | `SQLite`, `sqlite3`, leer als Option; Variable `sqlite`/`SQLite`/leer; Datei `format: sqlite` mit Variable `yaml`; Variable `sqlite` mit Option `yaml`; Variable `SQLite` mit gültiger Option; `format: SQLite` in der Datei; Option leer mit Variable `sqlite` | ungültige Werte `PGR-E2001` (Option, Variable), `PGR-E2004` (Datei), Exit 2; leere Variable gilt als nicht gesetzt (YAML); Option geht vor; Variable `SQLite` ist auch mit gültiger Option `PGR-E2001`; leere Option `PGR-E2001` |
+| `replay` und `play` kennen `--format` nicht | `replay … --format sqlite`, `play … --format sqlite` | je `PGR-E2001` (`flag provided but not defined`) |
+| `config show` nennt `PGWIRE_RECORDER_FORMAT` und `format:` | `config show --config` mit `format: sqlite` und gesetzter Variable | Datei, `record:` mit `format: sqlite`, Name der Variable ohne Wert |
+| Erkennung nach Inhalt, nicht nach Endung | sqlite-Inhalt als `falsch.yaml`, yaml-Inhalt als `falsch.sqlite`, `replay` | beide gelesen, Ausgabe gleich der direkten |
+| Datei ohne SQLite-Kennung ist YAML, auch eine leere, dann `PGR-E3003` | leere Datei, 15 Bytes `SQLite format 3` ohne NUL | `PGR-E3003` (`EOF`; `yaml: unmarshal errors …`) |
+| Zielpfad mit `?`, `#`, `%`, Leerzeichen | `--output "/rec/a b?#%x.sqlite"`, dann `replay` | Datei unter genau diesem Namen; Wiedergabe gleich der direkten |
+| Datei nur lesend, auch auf schreibgeschütztem Verzeichnis; `play` ändert sie nicht | `replay` mit `-v …:ro`, `sha256sum` vor und nach; `play` mit `sha256sum` | Wiedergabe gleich; Prüfsumme gleich; kein `-journal` entstanden |
+| Lesen wartet höchstens fünf Sekunden auf die Sperre, dann `PGR-E3001` | Sperre mit `begin exclusive` (Python, `sqlite3`) für 12 s: `replay`; für 3 s: `replay` | 12 s: nach 5,5 s `PGR-E3001` `database is locked (5) (SQLITE_BUSY)`, Exit 3; 3 s: „replay gestartet“ 30 ms nach dem Ende der Sperre (Zeitstempel beider Seiten) |
+| Datei während des Aufzeichnens lesbar | `Z --format sqlite`, eine Verbindung, dann `replay` auf die Datei und `sqlite3` | `replay` beantwortet die Anfrage; `sqlite3` zählt 1, nach der zweiten Verbindung 2 |
+| `PGR-E3001`: Journal neben dem Zielpfad, auch mit `--force`, auch ohne Zieldatei; Zieldatei ohne `--force` zuerst `PGR-E2002`; kein Journal-Befund bei yaml | leere Datei `j.sqlite-journal` ohne Zieldatei, mit `--force`; Zieldatei und Journal ohne `--force`; `j3.yaml-journal` bei yaml | `PGR-E3001` („Rollback-Journal eines früheren Laufs“), Exit 3; `PGR-E2002`; yaml startet |
+| `sqlite3` macht den Abbruch rückgängig und entfernt das Journal | ein echtes Journal (Python, `os._exit` mitten in einer Transaktion bei `cache_size=1`): `record` (`PGR-E3001`), dann `sqlite3 "select count(*) from session"`, dann `record --force` | Journal 9728 Bytes; nach der Abfrage `1` (Stand vor der Transaktion) und kein Journal; `record --force` startet (Exit 0) |
+| leere Aufzeichnung: gültige Datei ohne Sitzung, `replay` `PGR-E3004` | `Z --format sqlite` ohne Verbindung, `sqlite3`, `replay` | `meta` mit `format`, `version`, 0 Sitzungen; `PGR-E3004`, Exit 3 (wie bei yaml) |
+| Verbindung ohne Anfrage wird nicht aufgezeichnet | `psql -f /dev/null`, dann `select 1`; beide Formate | je eine Sitzung |
+| Beenden mit Frist: abgeschlossene Anfragen bleiben, `PGR-E4006`, Exit 4 | `--shutdown-timeout 1s`, Verbindung mit `select 1;` und `select pg_sleep(30);`, `docker stop` | in `interaction` nur `select 1 as erste;`; `PGR-E4006`, Exit 4 |
+| temporäre Datei: bei Fehler `PGR-E3001` ohne Rest; ein alter Rest bleibt unbemerkt | Verzeichnis nach dem Start auf `555`, eine Verbindung, beide Formate; ein Rest `.stale.sqlite.0123456789abcdef.tmp` neben dem Ziel | `PGR-E3001` („temporäre Datei … nicht anzulegen“), Verzeichnis leer, Exit 3; der Rest bleibt, das Log nennt ihn nicht |
+| Ziel ist Verzeichnis, Verzeichnis fehlt: `PGR-E3001` | `--output` auf ein Verzeichnis mit `--force`; `--output /rec/fehlt/x.sqlite` | je `PGR-E3001`, Exit 3 |
+| `PGR-E3001` beim Lesen: Datei fehlt, keine Rechte, Verzeichnis | `replay` auf `fehlt.db`, Datei `000`, Verzeichnis | je `PGR-E3001` |
+| `PGR-E3002` bei unbekannter Version, beide Formate | `meta.version = 2`; `version: 2` in yaml | je `PGR-E3002`, Exit 3 |
+| `PGR-E3003` bei sqlite: keine Datenbank, fremde Datei, fehlende Tabelle oder Spalte, abgeschnitten, ungültiger Inhalt | Kopf mit 16 und 40 Bytes, fremde Datenbank, `drop table message`, `drop column sql`, halbe und 300-Byte-Datei, Formatkennung, `version = 'abc'`, Lücke in `sequence`, verwaiste Zeile, JSON `{kaputt`, Schlüssel in `meta` | je `PGR-E3003`, Exit 3 |
+| Aufbau der Tabellen und Beispielabfragen | `.schema`, `select` auf alle vier Tabellen; die zwei `sqlite3`-Aufrufe aus dem Handbuch, wörtlich | `meta`, `session`, `interaction`, `message` mit den genannten Spalten; Abfrage 1 liefert `1|1|select 1 as a, 'x' as b;`, Abfrage 2 `1|2|select $1::int + 1 as n, $2::text as t ` |
+| Beispiele des neuen Abschnitts | wörtlich ausgeführt (siehe Aufbau) | `record` Exit 0 mit 1 Sitzung, `record --config` Exit 0 mit 1 Sitzung, `replay` beantwortet beide Anfragen, `play` Exit 0 |
+| keine rechnerspezifischen Angaben | `grep -a` nach Hostname des Containers, `/rec`, Netzname, Dateiname in `.sqlite` und `.yaml` | 0 Treffer in beiden |
+
+**Nicht in das Handbuch übernommen** (Probe zeigt es nicht oder die Grenze steht nur in der Spezifikation): dass zwei Läufe byte-gleiche SQLite-Dateien liefern oder nicht (in der Probe waren zwei Dateien gleich; zugesagt ist es nicht), die Obergrenze des Speichers beim Lesen, das Lesen einer Datei im WAL-Modus, ein Journal neben der Datei beim Lesen, Windows und macOS, Netzwerk-Dateisysteme, Verhalten von `play` mit einer Aufzeichnung ohne Sitzung.
+
+**Befehlsfolge aus `slice-doku-ist-stand` §7** (mit der benannten Ausnahme `PGWIRE_RECORDER_PASSWORD`, Variablen-Zeile `comm -23 $W/v-hb $W/v-help | grep -vx PGWIRE_RECORDER_PASSWORD`), am Stand dieses Commits:
+
+| Prüfung | Ergebnis |
+|---|---|
+| Optionen des Handbuchs gegen `--help` | nur `--h`, `--help`, `--version` (Nicht-Optionen im Handbuch), `--rm`, `--name` (`docker run`) |
+| Variablen ohne Option | leer |
+| Codes außerhalb des Katalogs | leer |
+| Mutant: `--format-bogus` angehängt | `--format-bogus` in der ersten Ausgabe |
+| Mutant: `PGWIRE_RECORDER_BOGUS` angehängt | in der zweiten Ausgabe |
+| Mutant: `PGR-E9999` angehängt | in der dritten Ausgabe |
+| Mutant: `--format` aus der Hilfe entfernt | `--format` in der ersten Ausgabe (die Option steht im Handbuch) |
+
+**`grep` über Handbuch und README.** Im Handbuch: kein Treffer für `ADR-`, `SPEC-`, `LH-`, `[Ss]lice`, `Welle`, `Spezifikation`, `Lastenheft`, `[Rr]eview`; kein neuer Satz mit „noch nicht“, „kommt“, „geplant“, „bisher“ (die vorhandene „später“ in der Einleitung gehört zum Ablauf der Wiedergabe, nicht zum Produktstand). Im README bleiben die Verweise auf `spec/` und `docs/plan/` ohne Aussage über einen Stand.
+
+**Namensabgleich.** `docs/user/benutzerhandbuch.md`, `README.md`, `internal/hexagon/model/fehler.go`, `harness/mk/integration.mk`, `done/slice-doku-ist-stand.md` und die zwei Slices `slice-v1-abschluss-sqlite-format` und `slice-v1-abschluss-sqlite-format-lesen` in `done/`: per `ls` und `grep` gefunden; die Anker `#das-format-der-aufzeichnung-festlegen` und `#eine-sqlite-aufzeichnung-abfragen` löst `make docs-check` auf (`d-check: 567 Datei(en) geprüft, 0 Befund(e)`).
+
+**Hinweise an Architect und Planner** (keine Randform dieses Slice, kein Befund gegen die Spezifikation):
+1. *Meldungen von `yaml` bei einer SQLite-Datei ohne gültige Kopfzeile:* Eine 15-Byte-Datei `SQLite format 3` meldet `PGR-E3003` mit einem Stück ihres Inhalts (`cannot unmarshal !!str …`); das ist die bekannte Lücke `BEO-REPO/yaml-meldung-nennt-wert-und-zeile`. Das Handbuch sagt über den Inhalt der Meldungen nichts.
+2. *`play` mit einer Aufzeichnung ohne Sitzung:* endet mit Exit 0 und den Zeilen „play gestartet“, „play beendet“, ohne Warnung. Die Spezifikation sagt, `play` führe Sessions ohne Interaktion nicht aus; ob eine Aufzeichnung ganz ohne Sitzung eine Meldung verdient, ist nicht entschieden. Das Handbuch nennt das Verhalten nicht.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -146,6 +208,6 @@ nicht mehr.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Liefer-Punkte: 2. Schichten nach der Zählung in `AGENTS.md` §3.13: eine (Dokumentation), kein Code.
+Liefer-Punkte: 2. Schichten nach der Zählung in `AGENTS.md` §3.13: eine (Dokumentation), kein Code. Nachgezählt bei der Umsetzung: Handbuch (ein Liefer-Punkt, mit dem neuen Abschnitt) und README (ein weiterer); der Diff berührt nur `docs/user/benutzerhandbuch.md`, `README.md`, diesen Plan und die Roadmap-Zeile.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
