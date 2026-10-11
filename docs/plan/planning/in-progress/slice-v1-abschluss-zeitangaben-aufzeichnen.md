@@ -79,11 +79,11 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` (Record-Service, `record.go`) | update | `offset_ms` je Interaktion mit der Uhr des Ports; Basis je Session = Lesung beim Aufruf von `OpenSession`, Ende = Lesung beim Übernehmen der ersten Nachricht der Interaktion (`Query`, erste `ClientMessage` nach dem Ende der vorigen Interaktion), vor jedem Warten; der Port `Recorder` bleibt unverändert |
+| `internal/hexagon/services` (Record-Service, `record.go`) | update | `offset_ms` je Interaktion mit der Uhr des Ports, eingestellt über die Option `services.Zeitangaben(uhr, aufzeichnen)` von `NewRecordService`; Basis je Session = Lesung beim Aufruf von `OpenSession`, Ende = Lesung beim Übernehmen der ersten Nachricht der Interaktion (`Query`, erste `ClientMessage` nach dem Ende der vorigen Interaktion), vor jedem Warten; der Port `Recorder` bleibt unverändert |
 | `internal/hexagon/model` (`recording.go`) | update | Kommentar von `OffsetMS` nennt „Beginn der Session“ in der Lesart von `LH-FA-21.a` *Messpunkt*; kein neues Feld |
 | `internal/adapters/driving/cli` | update | Option `--record-timing`, Umgebungsvariable, Schlüssel im Abschnitt `record:`, `config show`, Hilfe |
-| `internal/bootstrap` | update | `NeueSystemuhr()` aufrufen und die Uhr an den Record-Service reichen (reine Verdrahtung, keine Schicht, `AGENTS.md` §3.13; die Logik der Systemuhr liegt in `slice-v1-abschluss-zeitangaben-uhr`) |
-| Tests, `test/integration` | neu/update | Service mit Fake-Uhr, Roundtrip beider Formate am Binary, Optionstabelle; `docs/user/abdeckung-*.md` von `make abdeckung` |
+| `internal/bootstrap` | update | `NeueSystemuhr()` aufrufen und die Uhr mit `o.RecordTiming` an den Record-Service reichen, `services.Zeitangaben(NeueSystemuhr(), o.RecordTiming)` ohne Verzweigung (reine Verdrahtung, keine Schicht, `AGENTS.md` §3.13; die Logik der Systemuhr liegt in `slice-v1-abschluss-zeitangaben-uhr`) |
+| Tests, `test/integration` | neu/update | Service mit Fake-Uhr (`internal/hexagon/services/record_zeit_test.go`), Roundtrip beider Formate mit den echten Schreibern (`internal/bootstrap/record_zeit_test.go`) und am Binary, Optionstabelle; die Testhilfe `internal/bootstrap/offsetlese` lädt die Aufzeichnung für die Integrationstests (unter `test/` darf der Recording-Adapter nicht importiert werden), `TestBinaryOhneTesthilfen` hält sie aus dem Binary; `docs/user/abdeckung-*.md` von `make abdeckung` |
 
 ## 4. Trigger
 
@@ -148,6 +148,57 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Läufe:** Die Mutanten liefen in einer frischen Kopie des Baums ohne `.git` (`tar`, nicht im Repo), die Unit-Mutanten mit `go test` im Image `pgwire-recorder:test` ohne Netz und die Kopie als Bind-Mount, die Mutanten des Binaries mit `make test-integration` in der Kopie. Die Datei der Mutation wurde je Mutant aus dem Repo zurückgeschrieben. `make test`, `make lint`, `make a-check` und `make a-check-negativ` liefen grün nach `0bfbfe4`; `make gates` auf sauberem Baum nennt der Bericht (Stand nach dem letzten Commit).
+
+**Zusage · Mutation · roter Test** (Wortlaut `LH-FA-21.a` *Aufzeichnen*, *Uhr*, *Messpunkt*, Optionstabelle von `LH-FA-17.a`):
+
+| Zusage | Mutation (nur sie) | roter Test |
+|---|---|---|
+| Der Wert ist der Unterschied zweier Lesungen (Ankunft minus Beginn) | Operanden vertauscht (`l.beginn - ankunft`) | `TestRecordZeitEinfach` (`[-40 -45]`) |
+| Beginn der Session ist der Aufruf von `OpenSession` | Beginn konstant 0 | `TestRecordZeitEinfach` (`[140 145]`), `TestRecordZeitJedeSessionEigenerBeginn` |
+| … vor dem Aufbau der Upstream-Session | Beginn nach `upstream.Open` gelesen | `TestRecordZeitBeginnVorAufbau` (`[0]` statt `[30]`) |
+| Es wird nicht gerundet | Differenz auf 10 ms aufgerundet | `TestRecordZeitEinfach` (`[40 50]`) |
+| Jede Session misst von ihrem eigenen Beginn | Beginn der ersten Session für alle | `TestRecordZeitJedeSessionEigenerBeginn` (`Session b: [105]` statt `[5]`) |
+| Ankunft einer einfachen Anfrage ist der Aufruf von `Query` (nicht das Ende) | Lesung beim Übernehmen der Antwort | `TestRecordZeitAnkunftVorUpstream` (`[510]` statt `[10]`) |
+| … gelesen, bevor der Aufruf auf etwas wartet | Lesung nach der Warteschleife von `Query` | `TestRecordZeitAnkunftVorWarten` (`Query liest die Uhr nicht, bevor sie auf die Extended-Interaktion wartet`) |
+| Ankunft einer Extended-Interaktion ist die erste Client-Nachricht … | Lesung beim Abschluss der Interaktion | `TestRecordZeitExtendedErsteNachricht` (sieben Arten, `[130]` statt `[20]`), `TestRecordZeitExtendedMehrereGruppen`, `TestRecordZeitNichtAbsteigend` |
+| … gleich welche Art (a: Parse, Bind, Describe, Execute, Close, Flush, Sync) | Lesung nur bei `Parse` (sonst 0) | `TestRecordZeitExtendedErsteNachricht` (sechs Arten rot, Parse grün) |
+| … gleich welche Art (b) | Lesung beim `Sync` der Gruppe | `TestRecordZeitExtendedErsteNachricht` (sechs Arten rot, Sync grün), `TestRecordZeitExtendedMehrereGruppen` |
+| … der ersten Gruppe (nicht jeder) | Lesung bei der ersten Nachricht jeder Gruppe | `TestRecordZeitExtendedMehrereGruppen` (`[20]` statt `[10]`), `TestRecordZeitExtendedErsteNachricht` (Art Flush) |
+| Die erste Interaktion kann 0 tragen, das Feld steht dann da | `nil` bei Wert 0 | `TestRecordZeitNullSteht` (`[-1]` statt `[0]`) |
+| Die Werte einer Session steigen nicht ab (Nummer = Reihenfolge der Ankunft; einfach, Extended, Pipelining) | Wert der Extended-Interaktion um 100 ms je abgeschlossener Interaktion verschoben (`[10 -80 -170 240]`) | `TestRecordZeitNichtAbsteigend` (prüft die genauen Werte `[10 20 30 240]`; eine eigene Prüfung auf Absteigen gäbe es neben ihnen nicht her) |
+| Die Lebendprüfung trägt das Feld wie jede Anfrage | `nil` für Text, den `istLebendpruefung` annimmt | `TestRecordZeitLebendpruefung` (`[-1 -1]` statt `[3 7]`) |
+| Eine unvollständig endende Interaktion wird nicht übernommen, hat keinen Wert | `CloseSession` hängt die offenen Interaktionen an | `TestRecordZeitUnvollstaendigOhneWert` (`[10 20]` statt `[10]`) |
+| Ohne die Option fehlt das Feld | `offset` liefert immer einen Wert | `TestRecordOhneZeitangaben` (`[0 0]` statt ohne Feld) |
+| Ohne die Option liest der Service die Uhr nie (Kommentar von `Zeitangaben`) | `lesung` liest immer | `TestRecordOhneZeitangaben` (`4 Lesungen ohne Zeitaufzeichnung`) |
+| Dieser Slice ruft `WarteBis` nicht auf (§1) | `lesung` ruft nach `Jetzt` `WarteBis` | `TestRecordZeitWartetNie` |
+| Roundtrip yaml: aufzeichnen, laden, Werte gleich | Schreiber lässt `offset_ms` weg / schreibt Wert + 1 | `TestRecordZeitRoundtrip` (`yaml … ohne offset_ms` / `13, erwartet 12`) |
+| Roundtrip sqlite: aufzeichnen, laden, Werte gleich | Schreiber lässt `offset_ms` weg / schreibt Wert + 1 | `TestRecordZeitRoundtrip` (`sqlite … ohne offset_ms` / `13, erwartet 12`) |
+| Ohne die Option lädt die Aufzeichnung beider Formate ohne Feld | (derselbe Test, Zweig `mit=false`) | `TestRecordZeitRoundtrip`: kein eigener Mutant, der nur diesen Zweig bricht; er ist durch `TestRecordOhneZeitangaben` und `TestE2ERecordOhneTiming` gebunden |
+| Der Bootstrap verdrahtet die Systemuhr (ohne sie wäre der Unterschied 0) | `services.Zeitangaben(konstUhr{}, …)` mit Uhr, die immer 0 liest | `TestE2ERecordTiming` (`rec.yaml: [0 0 0]`, `rec.sqlite: [0 0 0]`) |
+| Die Pause des Clients zwischen zwei Interaktionen ist die Untergrenze des Unterschieds (300 ms, 200 ms) | dieselbe Mutation | `TestE2ERecordTiming` (Abstände 0) |
+| Der Bootstrap reicht die Option durch | `services.Zeitangaben(NeueSystemuhr(), false)` | `TestE2ERecordTiming` (`[-1 -1 -1]`), `TestE2ERecordTimingQuellen` (Umgebung und Datei) |
+| Ohne die Option ist die Ausgabe unabhängig vom Zeitverhalten (byte-gleich, Pausen 0 und 300 ms) | `services.Zeitangaben(NeueSystemuhr(), true)` | `TestE2ERecordOhneTiming` (`yaml nennt offset_ms ohne die Option`, `yaml unterscheidet sich zwischen den Läufen`, sqlite `[8 10 11]`), `TestE2ERecordTimingQuellen` (`false` auf der Kommandozeile) |
+| Option: Wert `--record-timing` setzt `RecordTiming` | `RecordTiming = false` | `TestRecordTimingQuellen` (Option, Wert, Datei, Umgebung), `TestLeserAlleOptionen` |
+| Option: Default `false` | Default `true` | `TestLeserAlleOptionen` (`erwartet Default "false"`), `TestRecordTimingQuellen`, `TestParseRecord` |
+| Option: Reihenfolge der Optionstabelle (nach `--format`) | Option nach `--log-level` | `TestLeserOptionen` |
+| Option: bei `replay` und `play` unbekannt (`PGR-E2001`) | Option bei `replay` mit angemeldet | `TestLeserOptionen`, `TestLeserAlleOptionen`, `TestLeserFremdeUmgebung`; am Binary `TestE2ERecordTimingUngueltig` (`replay: Exit-Code 3` statt 2) |
+| Option: Schlüssel `record_timing` im Abschnitt `record:` | Option aus `optionen("record")` entfernt | `TestLeserOptionen`, `TestRecordTimingQuellen` (`record.record_timing: unbekannter Schlüssel`) |
+| Option: Schlüssel bei `replay:`, `play:` und oben unbekannt (`PGR-E2004`) | Option bei `replay` mit angemeldet | `TestDateiUngueltig`, `TestConfigShowFehler` (Fall `record_timing in replay`, Wert `true`, damit nur die Ebene den Fehler macht) |
+| Option: nur `true` und `false` (Wertemenge Wahrheitswert), sonst `PGR-E2001` bzw. `PGR-E2004` | Wertemenge `text` statt Wahrheitswert | `TestLeserAlleOptionen`, `TestDateiUngueltig` (Fall `record_timing ungültig`), `TestRecordTimingQuellen` |
+| `--help` nennt die Option und ihre Umgebungsvariable | Hilfetext ohne den Absatz / ohne den Namen der Variable | `TestRecordTimingHilfe` (beide rot), am Binary `TestE2ERecordTimingHilfeUndConfigShow` (Variable fehlt) |
+
+**Grüne Mutanten:**
+
+- *Lebendprüfung:* Der Code kennt keinen Sonderpfad für sie; der Mutant der Tabelle ist künstlich (er legt einen an) und rot. Dass es keinen gibt, belegt der Test, nicht der Code.
+- *Ohne-Zweig des Roundtrip* (Zeile „Ohne die Option lädt die Aufzeichnung …“ der Tabelle): kein Mutant, der nur ihn bricht; die Zusage trägt `TestRecordOhneZeitangaben` (Dienst) und `TestE2ERecordOhneTiming` (Binary, beide Formate).
+
+**Gegenbeispiel zu „Werte steigen nicht ab“:** Kein Test fand eines. Beim Lesen des Codes fiel ein Fall auf, den der Vertrag der Benutzung ausschließt: Riefe ein Aufrufer `ClientMessage` (beginnt eine neue Extended-Interaktion) *während* einer wartenden `Query` auf, bekäme die `Query` die frühere Lesung, aber die höhere Nummer. Der PGWire-Adapter ruft beide aus derselben Schleife der Client-Richtung (`internal/adapters/driving/pgwire/server.go`, `nachricht`), `Query` blockiert sie bis zur Antwort; der Fall tritt über den Adapter nicht ein, und ein Test dafür ruft die Methoden gleichzeitig auf, wie es kein Aufrufer tut. Der Architect kann entscheiden, ob die Zusage im Vertrag des Use Case eine Zeile dazu braucht.
+
+**Grenzen:** (a) Die Untergrenze im E2E (300 ms, 200 ms) gilt für den Unterschied der Werte zweier Lesungen, die ganze Millisekunden abschneiden; der Unterschied ist nie kleiner als die Pause (die Differenz abgeschnittener Lesungen ist größer als die Dauer minus 1 und ganz). Eine obere Grenze prüft kein Test (§6, Risiko 1). (b) Das Kommandozeilen-Verhalten bei einem ungültigen Wert (die Meldung der Bibliothek nennt den Wert der Kommandozeile) ist das aller Wahrheitswert-Optionen und nicht Gegenstand dieses Slice (`LH-FA-17.a`: die Meldung zur Kommandozeile darf den Wert nennen). (c) In `TestDateiUngueltig` ist der Fall „Option, die der Stand nicht kennt“ von `record_timing` auf `record_empty_sessions` umgestellt (die Option kennt der Stand weiter nicht); `record_timing` hat eigene Fälle.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -167,6 +218,6 @@ nicht mehr.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Liefer-Punkte: 2. Schichten: zwei (Kern mit dem Record-Service, CLI-Adapter); der Bootstrap reicht die Uhr weiter und zählt als reine Verdrahtung nicht; Messpunkt im PGWire-Adapter wäre die dritte Schicht (§4). Nachgezählt beim Schnitt und vom Architect vor dem Code (2026-10-11, `AGENTS.md` §3.13; Messpunkt im Use Case, zwei Schichten bestätigt); nachgezählt beim Eintragen der Signatur des Ports und der Verdrahtung der Systemuhr (Planner, 2026-10-12, Closure von `slice-v1-abschluss-zeitangaben-uhr`): Liefer-Punkte 2 unverändert (die Namen stehen in DoD-Punkt 1, die Verdrahtung gehört zu ihm), Schichten 2 (Kern, CLI-Adapter); der Bootstrap ruft einen Konstruktor und reicht das Ergebnis, das ist Verdrahtung und zählt nicht, die Logik der Systemuhr zählt in `-uhr`; die Sendungen aus `slice-v1-abschluss-sqlite-format-lesen` und `slice-v1-abschluss-einspielen` stehen in §1 mit den Kennungen der Geber, in DoD-Punkt 1.
+Liefer-Punkte: 2. Schichten: zwei (Kern mit dem Record-Service, CLI-Adapter); der Bootstrap reicht die Uhr weiter und zählt als reine Verdrahtung nicht; Messpunkt im PGWire-Adapter wäre die dritte Schicht (§4). Nachgezählt beim Schnitt und vom Architect vor dem Code (2026-10-11, `AGENTS.md` §3.13; Messpunkt im Use Case, zwei Schichten bestätigt); nachgezählt beim Eintragen der Signatur des Ports und der Verdrahtung der Systemuhr (Planner, 2026-10-12, Closure von `slice-v1-abschluss-zeitangaben-uhr`): Liefer-Punkte 2 unverändert (die Namen stehen in DoD-Punkt 1, die Verdrahtung gehört zu ihm), Schichten 2 (Kern, CLI-Adapter); der Bootstrap ruft einen Konstruktor und reicht das Ergebnis, das ist Verdrahtung und zählt nicht, die Logik der Systemuhr zählt in `-uhr`; die Sendungen aus `slice-v1-abschluss-sqlite-format-lesen` und `slice-v1-abschluss-einspielen` stehen in §1 mit den Kennungen der Geber, in DoD-Punkt 1. Nachgezählt vom Implementer nach dem Code (2026-10-12): Liefer-Punkte 2, Schichten 2 (Kern mit dem Record-Service, CLI-Adapter); `internal/bootstrap` ruft `services.Zeitangaben(NeueSystemuhr(), o.RecordTiming)` ohne Verzweigung, das ist Verdrahtung und zählt nicht (`AGENTS.md` §3.13); die Testhilfe `internal/bootstrap/offsetlese` ist kein Produkt-Code im Binary (`TestBinaryOhneTesthilfen`).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
