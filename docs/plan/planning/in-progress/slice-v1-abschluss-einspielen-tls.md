@@ -289,6 +289,136 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
+### Belege des Implementers
+
+**Stand und Läufe.** Alles Docker-only. `make gates` lief grün (Exit 0) auf dem Inhalt von
+Commit `147afea` (Produktcode, Tests, Plan §3 und §6, Abdeckungstabellen); in der Kette:
+`make test` (gofmt, vet, Unit-Tests), `make test-integration` (mit den neuen
+`TestE2EPlayTLS*`, `TestE2EPlayKlartextAbgelehnt`, `TestE2EPlayUpstreamCAFehler`),
+`make lint` (0 issues), `make a-check` (0 Befunde), `make a-check-negativ` und
+`make lint-gegenprobe` grün. `make abdeckung` ist nachgezogen. Der Stand dieses Absatzes
+steht in einem eigenen Commit nach `147afea`, der nur §7 ändert.
+
+**Größe.** `3d0bd0c..147afea`: 27 Dateien, +2288 −130 Zeilen. Davon Produktcode +349 −55
+(Upstream-Adapter 96, CLI-Adapter ohne Tests 209 netto, Bootstrap 6, Model 1), Tests und
+Testhilfen etwa +1850 (Unit 1100, Bootstrap 132, Integration 359 −43, Testhilfen `testpki` und
+`tlsproxy` 246), Abdeckungstabellen +63, Plan 6. Das liegt rund 14 % über den ~2000 Zeilen
+mit Tests, die eine Review-Sitzung tragen soll; ich habe nicht angehalten, weil der Produktcode
+bei 350 Zeilen liegt und der Überhang in den Tests je Zusage und Quelle steht (§3.10).
+
+**Mutationen (`AGENTS.md` §3.10).** Weg: je Mutant eine frische Kopie des Arbeitsbaums
+(`cp -r` ohne `-p`, ohne `.git`), die Datei ersetzt, `gofmt -w` auf ihr, `gofmt -l` leer; die
+Unit-Mutanten laufen mit `go test -run` im gepinnten Test-Image mit Bind-Mount der Kopie (kein
+Build-Kontext, daher kein mtime-Fall), die Integrations-Mutanten mit `make test-integration`
+in der Kopie. Jeder Mutant ist **einmal rot gesehen**, an dem hier genannten Test und aus dem
+Grund der Zusage (Meldung gelesen); 62 Unit-Läufe, 8 Integrations-Läufe, kein grüner Mutant.
+Die Kopien sind entfernt; danach lief `make gates` neu, damit die Images den Baum zeigen.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Mit TLS: SSLRequest, Aushandlung, Startup nur verschlüsselt | TLS-Zweig im Aufbau aus; SSLRequest-Nummer um 1 verändert; Startup nach der Aushandlung auf der Klartext-Verbindung | `TestEinspielTLS` (alle drei); der dritte auch `TestEinspielTLSKlartextPasswort`, `TestEinspielTLSAbbruchImAufbau` |
+| Ohne TLS kein SSLRequest, auch mit gesetztem CA | TLS-Zweig immer an; Bootstrap setzt `TLS: true` | `TestEinspielOhneTLS`; `TestRunPlayTLS/ohne_TLS`, `TestRunPlayPasswort`, `TestRunPlay` |
+| Das Serverzertifikat wird geprüft, ein Überspringen gibt es nicht | `InsecureSkipVerify` | `TestEinspielTLSZertifikatFehler` (alle 6 Zeilen), `TestEinspielTLSName`, `TestEinspielTLSZertifikatsspeicher`; Ende zu Ende `TestE2EPlayTLSZertifikatFehler` (alle 5 Zeilen) |
+| Der Name wird geprüft | Kette geprüft, Name nicht | `TestEinspielTLSZertifikatFehler/andere_IP-Adresse`, `/nur_DNS-Name_localhost`, `/IP-Adresse_als_DNS-Name`, `TestEinspielTLSName/Name_gegen_anderen_DNS-Namen`, `/Name_gegen_IP-Adresse`; Ende zu Ende `TestE2EPlayTLSZertifikatFehler/andere_IP-Adresse`, `/Name_statt_IP-Adresse` |
+| … gegen den eingesetzten Host | Name fest `127.0.0.1`; Name mit Port | `TestEinspielTLSName/Name_gegen_DNS-Namen`, `/Name_gegen_IP-Adresse`; `TestEinspielTLS`, `TestEinspielTLSName`, `TestEinspielTLSIPv6MitZone` |
+| … eine IP-Adresse nur gegen IP-Adressen, nie gegen DNS-Namen | Namen einer IP-Adresse mit Punkt am Ende (dann DNS-Pfad) | `TestEinspielTLSZertifikatFehler/IP-Adresse_als_DNS-Name`, `TestEinspielTLSName/IPv4_gegen_IP-Adresse`, `TestEinspielTLSServerName` |
+| … IPv6 ohne Zone | **kein eigener Mutant fahrbar**: Kein Code des Produkts streift die Zone ab; die Standardbibliothek (Go 1.27, `VerifyHostname` über `netip`) gleicht eine IPv6-Adresse mit und ohne Zone gegen die IP-Adressen ab | `TestEinspielTLSServerName` hält das Verhalten der Standardbibliothek fest, `TestEinspielTLSIPv6MitZone` fährt `[::1%lo]` Ende zu Ende (endet ohne Prüfung, wenn die Schleife kein IPv6 hat; hier lief er) |
+| Zertifikatsspeicher des Systems **und** CA, nicht eines statt des anderen | CA ersetzt den Speicher; CA nicht aufgenommen | `TestEinspielTLSZertifikatsspeicher/im_Speicher,_andere_in_CA` und `/im_Speicher_neben_anderen,_eine_eigene`; `/nur_in_CA`, `/andere_im_Speicher,_in_CA`, `TestEinspielTLS` |
+| Speicher nicht ladbar gilt als leer | Fehler des Ladens nimmt die Systemwurzeln; Speicher `nil` ohne Fehler | `TestEinspielTLSZertifikatsspeicher/nicht_ladbarer_Speicher,_in_CA` und `/Speicher_nil_ohne_Fehler,_in_CA` (das zweite als Absturz) |
+| `S` mit Bytes im selben Lesen: PGR-E4002 | Prüfung der Bytes nach `S` entfernt | `TestEinspielTLSAntwort/S_mit_einem_Byte_dahinter`, `/S_mit_TLS-Record_dahinter`, `TestEinspielTLSSendenUndLesen` |
+| `N`: PGR-E4005 | `N` als PGR-E4002 | `TestEinspielTLSAntwort/N`, `/N_mit_Bytes_dahinter` |
+| Anderes Byte: PGR-E4002 | als PGR-E4005 | `TestEinspielTLSAntwort/E`, `/Fehlerpaket`, `/x`, `/s`, `/Byte_eines_TLS-Records`, `/Byte_0` |
+| Ende vor der Antwort: PGR-E4002 | als PGR-E4005 | `TestEinspielTLSAntwort/Ende_davor`, `TestEinspielTLSSendenUndLesen` |
+| Senden des SSLRequest scheitert: PGR-E4002 | als PGR-E4005 | `TestEinspielTLSSendenUndLesen` |
+| Fehler der Aushandlung, auch Ende darin, Nicht-TLS, Version: PGR-E4005 | Aushandlung als PGR-E4002 | `TestEinspielTLSAntwort/S,_dann_Ende`, `/S,_dann_kein_TLS`, `/S,_dann_TLS_1.0`, `TestEinspielTLSZertifikatFehler` (6), `TestEinspielTLSName`, `TestEinspielTLSZertifikatsspeicher` |
+| Server lehnt Klartext ab: PGR-E4005 | Klasse 28 nicht mehr PGR-E4005 | `TestEinspielKlartextAbgelehnt` |
+| Nach der Aushandlung läuft die Anmeldung auf TLS | Passwort im TLS-Aufbau weggelassen | `TestEinspielTLSKlartextPasswort`; Ende zu Ende `TestE2EPlayTLSAnmeldung` (scram, md5, password) lief grün, ohne eigene Mutation |
+| Abbruch im Aufbau: kein Terminate | `Terminate` nach dem Fehler | `TestEinspielTLSAbbruchImAufbau` |
+| Das zweite Signal in der Aushandlung schließt | Aushandlung vom Abbruch ausgenommen (`HandshakeContext` ohne `ctx` und `AfterFunc` nach dem Aufbau; beide Schutzmittel zugleich, denn jedes allein genügt) | `TestEinspielTLSAbbruchInDerAushandlung` (5-s-Frist), `TestE2EPlayTLSAbbruch` (10-s-Frist) |
+| Das erste Signal lässt den Aufbau weiterlaufen | Der Play-Service übergibt `Verbinde` das Kontext des ersten Signals (Änderung am Kern, nur zur Probe) | `TestE2EPlayTLSAbbruch` (play endet nach dem ersten Signal) |
+| `--upstream-tls` wirkt | Option setzt nichts | `TestPlayUpstreamTLS` (10 Zeilen), `TestLeserAlleOptionen` |
+| `sslmode=require` ⇒ TLS; `disable`, ohne Angabe und `host:port` ⇒ kein TLS | `sslmode` wirkungslos; jede benannte Verbindung ⇒ TLS | `TestPlayUpstreamTLS/Verbindung_require`; `/Verbindung_ohne_sslmode`, `/Verbindung_disable`; Ende zu Ende `TestE2EPlayTLS/sslmode=require`, `TestE2EPlayTLSAbgelehnt/sslmode=require` |
+| Ein gesetztes `--upstream-tls`, auch `false`, geht `sslmode` vor — je Quelle | Option, Umgebungsvariable, Schlüssel zählt je einzeln nicht als gesetzt; `sslmode` setzt immer | Option: `TestPlayUpstreamTLS/require,_Option_false`; Umgebung: `/require,_Umgebungsvariable_false`; Schlüssel: `/require,_Schlüssel_false`; gemeinsam `/require,_Option_false_vor_Umgebungsvariable_true`; Ende zu Ende `TestE2EPlayTLSAbgelehnt/require,_Schlüssel_false`, `TestE2EPlayTLS/Schlüssel_mit_relativem_Pfad` |
+| Kommandozeile vor Umgebung vor Schlüssel | Umgebung vor Kommandozeile | `TestPlayUpstreamTLS/Option_false_vor_Umgebungsvariable_true` und `/Option_true_vor_Umgebungsvariable_false`; `TestPlayUpstreamCAQuellen` |
+| `sslmode=require` ist bei `play` keine Fehlerverwendung mehr | `zielPlay` lehnt es wieder mit PGR-E2004 ab | `TestPlayVariablen`, `TestPlayUpstreamTLS` (6 Zeilen) |
+| Bootstrap reicht TLS und CA durch | `TLS` weggelassen; `CA` weggelassen | `TestRunPlayTLS/TLS_mit_Zertifizierungsstelle` und `/TLS_ohne_Zertifizierungsstelle`; `/TLS_mit_Zertifizierungsstelle`; Ende zu Ende `TestE2EPlayTLS` (5 Zeilen), `TestE2EPlayTLSAnmeldung` (3) |
+| `--upstream-ca` ohne TLS: PGR-E2001 (Bedingung *Option gesetzt*) | Fehler bei jeder Verwendung ohne TLS, auch ohne Option | `TestLeserAlleOptionen`, `TestParsePlay*`, `TestPlayVerbindung` |
+| … (Bedingung *ohne TLS*) | Fehler auch mit TLS | `TestPlayUpstreamCAOhneTLS/host:port,_Option_TLS`, `/host:port,_Umgebungsvariable_TLS`, `/host:port,_Schlüssel_TLS`, `/require` |
+| … je Weise ohne TLS und je Quelle | Prüfung entfernt | `TestPlayUpstreamCAOhneTLS` (8 Zeilen: host:port × Option/Umgebung/Schlüssel, Verbindung ohne und mit `disable`, `require` mit `false` aus Option, Umgebung, Schlüssel) |
+| … nach `--upstream`, vor den Variablen | Prüfung nach `zielPlay`; Prüfung vor `pruefeUpstream` | `TestPlayUpstreamCAOhneTLSReihenfolge` (beide) |
+| Die Datei aus `--upstream-ca` wird als letzte Prüfung gelesen | Lesen vor den Variablen der Platzhalter | `TestPlayUpstreamCAOhneTLSReihenfolge` |
+| Quelle von `--upstream-ca`: Option, Umgebung, Schlüssel | Umgebungsvariable ignoriert; Schlüssel ignoriert; Schlüssel auf der obersten Ebene | `TestPlayUpstreamCAQuellen`, `TestPlayUpstreamCAOhneTLS/host:port,_Umgebungsvariable` und `/host:port,_Schlüssel` |
+| Relativer Pfad ab dem aktuellen Verzeichnis, auch in der Datei | relativer Pfad gegen ein anderes Verzeichnis | `TestPlayUpstreamCAQuellen` |
+| E2007: reguläre Datei | Prüfung entfernt | `TestPlayUpstreamCAKeineRegulaere` (FIFO endet nicht binnen 10 s), `TestPlayUpstreamCADateiFehler/Verzeichnis`; Ende zu Ende `TestE2EPlayUpstreamCAFehler/Verzeichnis` |
+| E2007: mindestens ein Block | Prüfung entfernt | `TestPlayUpstreamCADateiFehler` (6 Zeilen: `leer`, `nur_Text`, `nur_Zeilenumbrüche`, `Block_ohne_Ende`, `Block_mit_ungültigem_base64`, `abgeschnittenes_Zertifikat`) |
+| E2007: jeder Block hat den Typ CERTIFICATE | Typ nicht geprüft | `TestPlayUpstreamCADateiFehler/Zertifikat_im_Block_TRUSTED_CERTIFICATE`, `/Zertifikat,_dann_Zertifikat_im_Block_X509_CERTIFICATE`, `/Zertifikat_im_Block_X509_CERTIFICATE,_dann_Zertifikat` |
+| … **jeder** Block, nicht nur der erste | nur der erste Block gelesen | `TestPlayUpstreamCADatei/zwei_Zertifikate`, `/zwei_Zertifikate_andersherum`, `TestPlayUpstreamCADateiFehler/Zertifikat,_dann_Block_CERTIFICATE_ohne_Zertifikat` |
+| E2007: lesbares X.509-Zertifikat | Fehler des Lesens ignoriert | `TestPlayUpstreamCADateiFehler/Block_CERTIFICATE_ohne_Zertifikat` (und zwei Zeilen mit gültigem Nachbarn) |
+| Text außerhalb der Blöcke bleibt unbeachtet | Text vor dem ersten Block abgelehnt; Text nach dem letzten abgelehnt | `TestPlayUpstreamCADatei/Text_davor`; `/Text_danach` |
+| Die Meldung nennt weder Pfad noch Inhalt | Pfad bei Fehler des Betriebssystems; Pfad bei fehlender Datei; Inhalt des Blocks | `TestPlayUpstreamCADateiFehler/Pfad_unterhalb_einer_Datei`; `/fehlende_Datei`; `/Block_CERTIFICATE_ohne_Zertifikat` (3 Zeilen) |
+| Der Code ist PGR-E2007 (Exit 2) | Wert der Konstante verändert | `TestPlayUpstreamCADateiFehler` (alle Zeilen) |
+| Die Datei vor dem Laden der Aufzeichnung | **keine Mutation gefahren**: Das Lesen steht im Parser der Kommandozeile, das Laden im Bootstrap danach; die Reihenfolge folgt aus dem Aufbau | `TestE2EPlayUpstreamCAFehler` (die Aufzeichnung fehlt, die Meldung ist trotzdem PGR-E2007 oder PGR-E2001, nie PGR-E3001) lief grün |
+| `config show` liest die Datei nicht | `config show` liest sie | `TestConfigShowLiestCANicht` |
+| Eine Formatierung gibt kein Zertifikat aus | `Format` der Zertifikate entfernt (CLI und Upstream-Adapter); `Format` gibt den Namen aus | `TestPlayOptionenOhneZertifikat`; `TestEinspielzielOhneZertifikat` (beide) |
+| Der Hilfetext nennt die Optionen | Zeile von `--upstream-ca` verändert | `TestPlayHilfeTLS` |
+
+**Grenzen und nicht Geprüftes.**
+
+- *Bytes nach `S`*: erkannt werden Bytes, die mit `S` im selben Lesen eintreffen; was erst
+  später eintrifft, stört die Aushandlung und ist PGR-E4005 (`LH-FA-20.a` *TLS* nennt
+  PGR-E4002 für jedes Byte vor der Aushandlung). Die Tests erzeugen den Fall mit einem
+  Schreiben; ein Server, der `S` und sein Rauschen in zwei Segmenten sendet, ist ungeprüft.
+- *IPv6 ohne Zone*: wie in der Tabelle; das Verhalten ist das der Standardbibliothek.
+- *Zertifikatsspeicher des Systems*: nur über das austauschbare Feld im Unit-Test; ohne CA
+  bleiben die Zeilen *leerer* und *nicht ladbarer Speicher* gegen einen Mutanten, der die
+  Systemwurzeln des Containers einsetzt, grün (sie enthalten die Test-CA nicht); getrennt
+  wird das erst mit CA (`/nicht_ladbarer_Speicher,_in_CA`). Gemessen: Das Image
+  `pgwire-recorder:dev` enthält `/etc/ssl/certs/ca-certificates.crt`; Ende zu Ende ist das
+  nicht geprüft (Risiko 2 in §6).
+- *MD5 und SCRAM über TLS* sind nur Ende zu Ende geprüft (`TestE2EPlayTLSAnmeldung`), ohne
+  eigene Mutation; im Unit-Test nur das Klartext-Passwort.
+- *`localhost` und IPv6*: `TestEinspielTLSName` setzt voraus, dass `localhost`
+  auflöst (sonst endet er ohne Prüfung); `TestEinspielTLSIPv6MitZone` setzt IPv6 auf der
+  Schleife voraus. Beide liefen hier.
+- Der Mutant *Aushandlung vom Abbruch ausgenommen* nimmt zwei Schutzmittel zugleich, weil
+  jedes allein genügt (Redundanz im Produkt, kein Mangel des Tests).
+
+**Namensabgleich.** Jeder Test und jeder Teilfall, der hier steht, wurde vor der Übergabe
+mit `grep` im Repo gefunden (Funktion `func <Name>(` bzw. die Zeilenbezeichnung der Tabelle
+im Quelltext des Tests, Unterstrich als Leerzeichen) mit einem Skript über den Abschnitt
+abgeglichen: 133 Namen geprüft; nicht gefunden nur `TestE2EPlayZwischenstand` (der Test ist
+als entfernt genannt) und ein Pfad im Image, der kein Testname ist.
+
+**Hinweise an Architect, Planner und Review.**
+
+1. *Testhilfen und `.a-check.yml`.* `make a-check` meldet `crypto/tls` und `pgproto3` in
+   `test/integration` und in einem Hilfspaket außerhalb der PGWire-Adapter als `tech-leak`.
+   Ohne Gate zu ändern (`AGENTS.md` §3.6) liegt der TLS-Proxy der Integrationstests deshalb in
+   `internal/bootstrap/tlsproxy` (Verdrahtung, dort ist `crypto/tls` zulässig) und die
+   Zertifikatserzeugung in `internal/testpki` (ohne `crypto/tls`). Beides gehört zu keiner
+   Schicht; der a-check-Hinweis *gescannte Dateien ohne Schicht* wächst um die beiden Dateien
+   von `testpki`. Der Architect hat den Ort der Testhilfen nicht entschieden; ob er so bleibt,
+   ist seine Sache.
+2. *Typ der Zertifikate.* `PlayOptions` trägt `cli.Zertifikate` und der `Einspielziel`
+   `postgres.Zertifikate`, benannte Typen über `[]*x509.Certificate` mit eigenem `Format`
+   (Auftrag: kein Zertifikatsinhalt in Ausgaben); §6 *Ort der CA-Datei* nennt sie jetzt so.
+   `PlayOptions` und `Command` sind damit nicht mehr mit `==` vergleichbar; die Tests
+   vergleichen mit `reflect.DeepEqual`.
+3. *Hook-Signatur im Leser.* `option.zuletzt` bekommt zusätzlich `quellen` (Stand und Wert je
+   Option), weil `--upstream-tls` „gesetzt“ von „Standardwert“ unterscheiden und `--upstream-ca`
+   erst zuletzt gelesen werden muss; `lies` ist dafür in `liesUmgebung` und `zusammenfuehren`
+   geteilt (Komplexität des Lint-Profils).
+4. *`ohneTLS` bei `play`.* `zielPlay` prüft `sslmode=require` nicht mehr; `ohneTLS` gilt nur
+   noch für `record` und nennt `record` fest. Die Tests des Zwischenstands (`TestPlayVariablen`,
+   `TestParsePlayFremdeUmgebung`, `TestDateiUngueltig`, `TestE2EPlayZwischenstand`) sind
+   angepasst beziehungsweise entfernt.
+5. *SSLRequest-Senden.* Ein gescheitertes Senden des SSLRequest habe ich als *gescheitertes
+   Senden im Aufbau* gelesen (PGR-E4002), nicht als Fehler der Aushandlung (PGR-E4005); die
+   Aushandlung beginnt in `LH-FA-20.a` *TLS* mit `S`. Wenn der Architect es anders meint, ist
+   es eine Zeile.
+6. *Handbuch und README* sind nicht angefasst (Doku-Folge-Slice); das Handbuch nennt
+   `sslmode=require` und `--upstream-tls` bei `play` noch als nicht verfügbar.
+
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
