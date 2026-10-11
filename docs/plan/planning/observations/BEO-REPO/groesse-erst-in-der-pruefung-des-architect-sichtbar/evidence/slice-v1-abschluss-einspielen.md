@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen
+**Fund:** Nach dem ersten Schnitt (drei Liefer-Punkte) schätzte der Architect den Kern bei der Prüfung am Code (2026-10-09) auf 2200 bis 2800 Zeilen mit Tests, über der Grenze einer Review-Sitzung; der Schnitt nach DoD-Punkten aus §4 reichte nicht, Laufsteuerung und Extended gingen an zwei weitere Slices (Entscheidung des Nutzers vom 2026-10-09, Option O3).
