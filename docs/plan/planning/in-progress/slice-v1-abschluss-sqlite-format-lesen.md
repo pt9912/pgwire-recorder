@@ -165,6 +165,122 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Stand.** Geliefert sind die drei Liefer-Punkte der DoD (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung
+der Fehler des Lesens) in einem Code-Commit, `45af81d` seit `97f3ca6`, und dem Commit dieser Belege. Neu sind
+`internal/adapters/driven/recording/leser.go`, `sqlite_lesen.go`, `sqlite_lesen_baum.go`, `sqlite_json_lesen.go`,
+`leser_test.go`, `sqlite_lesen_test.go`, `sqlite_lesen_inhalt_test.go` und `test/integration/sqlite_lesen_e2e_test.go`;
+geändert `sqlite.go` (`uriVon` für Schreiben und Lesen, der Platzhalter `Load` entfällt), `export_test.go`,
+`sqlite_einstellungen_test.go` (der Test des Platzhalters entfällt), `internal/bootstrap/bootstrap.go` (`replay` und
+`play` setzen `recording.Leser{}` ein), `extended_replay_e2e_test.go`, `play_extended_e2e_test.go`, §3 dieses Plans und
+`docs/user/abdeckung-*.md`. `go.mod`, `go.sum`, Port, Handbuch und `README.md` sind unverändert; die Bibliothek
+`modernc.org/sqlite/lib` gehört zum Modul des Treibers.
+**Größe:** `git diff --numstat 97f3ca6..45af81d` zählt 2137 Zeilen hinzu und 37 weg; davon 799 Go-Code, 1291 Go-Tests
+(1056 Unit-Tests in drei Dateien, 24 Zeilen Eingriffe in `export_test.go`, 211 am Binary) und 47 Doku und Tabellen.
+Die Schätzung in §8 war 1300 bis 1700, die Schwelle der Rückführung in §4 rund 2000: **überschritten**, mit 2090 Zeilen
+Go (Code und Tests). Die Entscheidung über Rückführung oder Schnitt (§4: DoD-Punkt 3 als eigener Slice) liegt beim
+Planner; die Tests sind überwiegend Tabellen mit rohem SQL.
+
+**Zusage · Mutation · roter Test.** Jede Mutation lief in einer frischen Kopie des Baums (`cp -r` ohne `-p`, `go.mod`,
+`go.sum`, `cmd/`, `internal/`, `test/`), mit Ersetzungen in einer Datei, `gofmt -l` der Datei leer und
+`go test -count=1 -run <Tests>` im gepinnten Go-Image mit Bind-Mount (der Mutant kommt ohne Build-Kontext an);
+`K1` und `K2` am Bootstrap liefen mit `make test-integration` in einer Kopie des ganzen Baums. Die Kennung in
+Klammern ist die des Laufs.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| nur eine Datei, die mit `SQLite format 3` und NUL beginnt, ist `sqlite`; jede andere, auch eine leere oder kürzere, wird als `yaml` gelesen | nur 15 Bytes verglichen (E1); ohne das NUL, kürzere Datei als Präfix angenommen (E2); kurze Datei ist ein Fehler (E3) | `TestLeserErkennungAnDenErsten16Bytes` |
+| die Erkennung folgt dem Inhalt, nicht der Endung | immer `yaml` (E6); immer `sqlite` (E7) | `TestLeserErkennungOhneEndung`, `TestLeserErkennungAnDenErsten16Bytes`, `TestLesenGleicheAblehnungBeiderFormate` |
+| Öffnen der Datei scheitert: `PGR-E3001` mit Pfad | Code `PGR-E3003` (E4); beim Lesen der 16 Bytes (E5) | `TestLeserNichtLesbar` |
+| `Prepare` und `Write` des Lesers sind `PGR-E1000` ohne Pfad | liefern `nil` (E8, E9); die Meldung nennt den Pfad (E10) | `TestLeserPrepareUndWrite` |
+| der Eingabepfad gilt wörtlich (`?`, `#`, `%`, Leerzeichen) | `file:`-URI ohne Maskierung (O4) | `TestLesenSonderzeichenImPfad` |
+| die Datei wird nur lesend geöffnet und nie verändert | `mode=rw` (O1) | `TestLesenNurLesend`; am Binary `TestE2EReplaySQLite`, `TestE2EPlaySQLite` (Bytes und Zeit unverändert) |
+| Sperrfrist fünf Sekunden | ohne Frist (O2); 20 s (O3) | `TestLesenSperrfrist` |
+| eine einzige Lesetransaktion | Anfragen außerhalb der Transaktion (O6); `immutable=1` (O7) | `TestLesenEineLesetransaktion` (O7 auch `TestLesenSperrfrist`) |
+| der Meldungscode folgt dem primären Ergebniscode: zehn Codes `PGR-E3001`, jeder andere `PGR-E3003` | je einer der zehn aus der Menge genommen (S PERM bis S PROTOCOL); ohne Maske auf den primären Code (S12); Rückfall `PGR-E3001` (S13) | `TestLesenStufeNachErgebniscode`; S13 auch `TestLesenFehlendeTabelleOderSpalte`, `TestLesenAbgeschnitten` |
+| ein abgeschnittenes Lesen (`IOERR_SHORT_READ`) ist `PGR-E3003` | Sonderfall entfernt (S11) | `TestLesenStufeNachErgebniscode` |
+| Fehler ohne Typ der Bibliothek (Abbruch von `ctx`) `PGR-E3001`; Fehler der Bibliothek nach Stufe | `PGR-E3003` (S14); jeder Fehler der Bibliothek `PGR-E3001` (S15) | `TestLesenNichtLesbarUndKopfOhneInhalt`, `TestLesenFehlendeTabelleOderSpalte`, `TestLesenAbgeschnitten` |
+| abgeschnittene Datei an der Seitengrenze und mitten in einer Seite: `PGR-E3003` | Rückfall `PGR-E3001` (S13); Fehler ohne Stufung (S15) | `TestLesenAbgeschnitten` (dreiundzwanzig Längen); am Binary `TestE2ELesenAbgelehnt` |
+| Reihenfolge: Formatkennung, Version, Inhalt | Version vor Formatkennung (M9); unbekannter Schlüssel vor Version (M10) | `TestLesenMeta` |
+| `meta`: `format` verlangt und gleich `pgwire-recorder`; `version` verlangt | Formatkennung ungeprüft (M1); fehlendes `format` angenommen (M2); fehlende `version` angenommen (M3) | `TestLesenMeta` |
+| `version`: nur kanonischer Dezimaltext (`PGR-E3003`), jede kanonische Zahl außer 1 `PGR-E3002` | Text ungeprüft (M4, M11); Code `PGR-E3003` für Version ≠ 1 (M5) | `TestLesenMeta` (dreizehn Texte, sieben Zahlen) |
+| `meta`: unbekannter Schlüssel, doppelter Schlüssel, kein TEXT: `PGR-E3003`; `empty_sessions` nur `true` | Schlüssel ignoriert (M6); doppelter ignoriert (M14); Wert ungeprüft (M7); `empty_sessions` ignoriert (M8); BLOB als Text (M12) | `TestLesenMeta`; M8 auch `TestLesenInhaltVerletzt`, `TestLesenRoundtrip` |
+| die Art der gespeicherten Werte ist die des Spaltentyps | Zahl nimmt `float64` (M13); `offset_ms` ungeprüft (I1); `sql` bei `query` ungeprüft (I2); `sql` bei `extended` ungeprüft (I3); unbekannter `type` (I4); `direction` ungeprüft (I8) | `TestLesenInhaltVerletzt` |
+| keine verwaiste Zeile | Interaktion ohne Session ignoriert (I5); Nachricht ohne Interaktion ignoriert (I6) | `TestLesenInhaltVerletzt` |
+| `position` zählt ab 1 lückenlos | Position ungeprüft (I7) | `TestLesenInhaltVerletzt` |
+| `group_no`: ab 1 lückenlos in der Reihenfolge, nur bei `extended`; Client vor Server in der Gruppe; `query` nur Server-Nachrichten | Richtung bei `query` ungeprüft (B1); `group_no` bei `query` ungeprüft (B2); `NULL` bei `extended` angenommen (B3); Beginn bei beliebiger Zahl (B4); Lücke (B5); zurück (B6); Client nach Server (B7); Gruppe 0 (B8) | `TestLesenInhaltVerletzt` |
+| die Reihenfolge der Zeilen hat keine Bedeutung | Sessions (I15), Interaktionen (I16) oder Nachrichten (I17) nicht nach Nummern geordnet | `TestLesenReihenfolgeDerZeilen` |
+| zusätzliche Tabellen, Spalten, Indizes und Trigger ignoriert | `SELECT *` für `message` (I18) oder `session` (I19) | `TestLesenIgnoriertZusaetze` |
+| `{}` in `startup` und `server_parameters` ist das fehlende Feld; beide sind Objekte mit String-Werten | `{}` bleibt leere Abbildung (I14); Nicht-Objekt angenommen (I12); Wert kein String angenommen (I13); `fields` kein Objekt angenommen (I11) | `TestLesenLeereObjekteSindKeineEintraege`, `TestLesenRoundtrip`, `TestLesenJSONVerletzt` |
+| derselbe Inhalt wie in `yaml` kommt zurück | Startup (B9), Server-Parameter (B10), `offset_ms` (B11) fehlen; `meta` nicht gelesen (I20) | `TestLesenRoundtrip` |
+| ungültiger JSON-Text und Text ohne gültiges UTF-8 `PGR-E3003`, auch tief verschachtelt | Syntax nicht vorab geprüft (J5); UTF-8 ungeprüft (J4) | `TestLesenJSONVerletzt`, `TestLesenJSONTief` |
+| JSON-Zahl: ganz, kanonisch, 64 Bit mit Vorzeichen, nicht über `float64` | über `float64` (J1); nicht kanonisch angenommen (J2); außerhalb 64 Bit angenommen (J3) | `TestLesenJSONZahlen` |
+| Umkehr der Umschreibung: `\` entfällt (eines), `base64:` dekodiert (Standard-Alphabet mit Auffüllung, sonst `PGR-E3003`), sonst wörtlich; Bytes ohne UTF-8 kommen zurück | `\` bleibt (J6); zwei Zeichen entfernt (J7); nicht dekodiert (J8); URL-Alphabet (J9); ohne Auffüllung (J10); Fehler ignoriert (J11); Bytes als Text (J12); Präfix ohne Beachtung der Schreibweise (J15) | `TestLesenStringOhneUTF8`, `TestLesenUmkehrDerUmschreibung` |
+| dieselbe Ablehnung in beiden Formaten (unbekannter Schlüssel, `null`, doppelter Schlüssel, Version) | immer `yaml` (E6); immer `sqlite` (E7) | `TestLesenGleicheAblehnungBeiderFormate` |
+| `replay` erkennt das Format selbst | `recording.YAML{}` statt `recording.Leser{}` in `replay` (K1) | am Binary `TestE2EReplaySQLite`, `TestE2EReplayExtendedSQLite`, `TestE2ELesenAbgelehnt` |
+| `play` erkennt das Format selbst | `recording.YAML{}` statt `recording.Leser{}` in `play` (K2) | am Binary `TestE2EPlaySQLite`, `TestE2ELesenAbgelehnt` |
+
+Summe: 92 Mutanten der Unit-Tests und 2 am Binary; rot 89, grün 5 (nächster Absatz). Die Läufe sind Lauf-Beleg und
+nicht im Repo; die Tabelle trägt Mutation und Test.
+
+**Grüne Mutanten, eingeordnet.** Fünf bleiben grün und ändern das Verhalten nicht:
+(O5) `filepath.Abs` entfällt: SQLite löst einen relativen Pfad gegen das Arbeitsverzeichnis auf, `TestLesenSonderzeichenImPfad`
+fährt den relativen Fall unter Linux; die Form `/C:/…` für Windows ist ungeprüft (Grenze Plattform,
+`BEO-REPO/verhalten-nur-unter-linux-geprueft`). (I9) `group_no` ohne Prüfung der Art: Ein Wert, der keine ganze Zahl
+ist, wird zu 0, und 0 lehnen die Regeln der Gruppen an jeder Stelle ab; die Prüfung gibt die Meldung, ändert nicht das
+Ergebnis. (J13) Strings als `!!str` ohne Anführungszeichen: Der Encoder von `yaml.v3` setzt sie für jeden String, der
+sonst anders gelesen würde, selbst; der Stil macht es unabhängig davon. (E11) Jeder Fehler beim Lesen der 16 Bytes gilt
+als kurze Datei: `YAML.Load` liest die Datei danach selbst und meldet denselben `PGR-E3001` mit derselben Meldung; der
+Fehler ist nur bei einer Datei beobachtbar, die sich zwischen den beiden Lesen ändert (nicht zugesagt). (E12) Der Fehler
+des Schließens der Datei der Erkennung entfällt: Das Schließen einer nur gelesenen Datei scheitert in keinem Aufbau,
+den ein Test herstellen kann.
+Im ersten Lauf waren außerdem grün und sind geändert: die eigene Prüfung auf doppelte Schlüssel in einem JSON-Objekt, die
+eigene Prüfung des Schlüssels `type` in `fields` und die auf negatives `offset_ms` — alle drei gelöscht, weil derselbe
+Fehler über den Weg von `yaml` (`Unmarshal`) schon abgelehnt wird (die Fälle bleiben als Tests, `TestLesenJSONVerletzt`,
+`TestLesenInhaltVerletzt`); Nachrichten ohne Interaktion (I6), `direction` bei `extended` (I8) und `NULL` in `group_no`
+mitten in einer Gruppe (B3) ohne Fall — jetzt Fälle in `TestLesenInhaltVerletzt`.
+**Nicht durch eine echte Datei erreicht:** `IOERR_SHORT_READ` liefern die abgeschnittenen Dateien nicht (die Bibliothek
+meldet `SQLITE_NOTADB` unter 512 Bytes und sonst `SQLITE_CORRUPT`, weil die Seitenzahl der Kopfzeile größer ist als die
+der Datei); die Zuordnung prüft `TestLesenStufeNachErgebniscode` mit der Zahl. Eine Datei, die mitten in einer
+ungenutzten Seite endet (das Ende einer Indexseite, die das Lesen nicht berührt), liest als gültige Aufzeichnung; der
+Test am Binary schneidet deshalb bei der halben Dateigröße.
+
+**Läufe.** Alle im Docker-Netz oder im Image, nichts auf dem Host außer `make`, `docker` und `bash`.
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `make lint` | vor dem Aufteilen von `liesMeta` und `liesInteraktionen`: 4 Befunde (`containedctx`, zweimal `cyclop`, `gocognit`), behoben; danach | 0 Befunde |
+| `make test-integration` | erster Lauf vor der Änderung des Schnitts in `TestE2ELesenAbgelehnt`: rot (der Fall schnitt in eine Indexseite); danach | grün (im Lauf von `make gates` 87 Tests, darunter die vier neuen); legt Netz, Volume und Container unter dem Namen `pgr-it-<pid>` an und entfernt sie danach |
+| `make docs-check`, `make kopf-check`, `make abdeckung-check` | nach `make abdeckung` und dem Nachziehen von §3 | `d-check: 548 Datei(en) geprüft, 0 Befund(e)`; die beiden anderen Exit 0 |
+| `make gates` | auf `45af81d`, Baum sauber | Exit 0, 6 min 11 s; `lint-gegenprobe: gruen`, `a-check-negativ: gruen — alle siebzehn Faelle`, `baseline-verify: v6.18.0 OK`, `kopf-check-gegenprobe: gruen`, `abdeckung-gegenprobe: gruen` |
+
+Der Commit dieser Belege ändert nur diesen Plan; ein `make gates` auf ihm ist im Bericht der Übergabe genannt, nicht hier.
+
+**Namensabgleich.** Ein Skript zog aus §3, §6 und diesem Abschnitt jeden Namen `Test…` und jeden Dateinamen in Backticks
+und suchte `^func <Name>(` in `internal/**/*_test.go` und `test/integration/*_test.go` sowie die Dateien im Baum:
+28 Testnamen und 24 Dateinamen gefunden, nichts fehlt (drei Dateien liegen im vendored Regelwerk, `interaction.sql` ist
+eine Spalte, keine Datei).
+
+**Hinweise an den Architect** (Randformen, die §6 nicht nennt; im Code nach der nächstliegenden Lesart gelöst, hier zur
+Entscheidung, `AGENTS.md` §3.12):
+1. *Maskiertes Surrogat im JSON-Text.* `"\ud800"` allein ist syntaktisch gültiger JSON-Text, und die Bibliothek liefert
+   dafür U+FFFD; der Leser lehnt es nicht ab. Frage: ablehnen (`PGR-E3003`)? Heute weder zugesagt noch getestet.
+2. *Stelle in der Meldung.* Ein Fehler des Inhalts geht durch `Unmarshal`; dessen Meldung nennt für manche Fehler eine
+   Zeile der übertragenen YAML-Darstellung, die es in der SQLite-Datei nicht gibt, Session und Interaktion nur für die
+   Vorprüfung und `Validate`. Frage: eine eigene Stelle für `sqlite`?
+3. *Schließen nach dem Lesen.* Scheitert das Schließen der Datenbank nach dem Lesen, ignoriert der Leser es (anders als das
+   Schreiben, `PGR-E3001`). Frage: ebenfalls `PGR-E3001`?
+4. *Abbruch von `ctx` beim Lesen* ist `PGR-E3001` (kein Fehler der Bibliothek); `LH-FA-22.a` nennt ihn nicht.
+5. *Doppelter Schlüssel in `meta`* (nur in einer fremden Datei ohne Primärschlüssel) ist `PGR-E3003`; `LH-FA-22.a` nennt den
+   doppelten Schlüssel für JSON-Objekte.
+6. *Gruppen.* `group_no` ab 1 lückenlos und die Client-Nachrichten einer Gruppe vor den Server-Nachrichten
+   (`SPEC-043`) liest der Leser als Regel des Abschnitts: Verstoß `PGR-E3003`.
+7. *Speicher.* Der Leser hält die Datei als Baum und als YAML-Text im Speicher, ein Mehrfaches der Dateigröße; die Zusage
+   für „große Aufzeichnungen“ (`LH-FA-22`) nennt keine Grenze.
+8. *Größe.* Siehe oben: 2090 Zeilen Go, über der Schwelle von §4.
+
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -190,6 +306,6 @@ Hälften.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (`AGENTS.md` §3.13): Liefer-Punkte: 3 (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung der Fehler). Schichten: eine (Recording-Adapter mit seinen Tests); der Bootstrap reicht den Leser nur durch (reine Verdrahtung, zählt nicht), der Integrationstest läuft über das Binary und trägt keine eigene Schicht; die Dokumentation liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`. Geschätzt 1300 bis 1700 Zeilen mit Tests (Nachzählung des Architect vom 2026-10-11: der Geber lag bei rund 2300 mit Tests für Schreiben, JSON und Zeilen; der Leser trägt weniger Code, aber die Tests der Randformen; unter einer Review-Sitzung von rund 2000).
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (`AGENTS.md` §3.13): Liefer-Punkte: 3 (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung der Fehler). Schichten: eine (Recording-Adapter mit seinen Tests); der Bootstrap reicht den Leser nur durch (reine Verdrahtung, zählt nicht), der Integrationstest läuft über das Binary und trägt keine eigene Schicht; die Dokumentation liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`. Geschätzt 1300 bis 1700 Zeilen mit Tests (Nachzählung des Architect vom 2026-10-11: der Geber lag bei rund 2300 mit Tests für Schreiben, JSON und Zeilen; der Leser trägt weniger Code, aber die Tests der Randformen; unter einer Review-Sitzung von rund 2000). Gemessen: 2137 Zeilen hinzu, davon 2090 Go (799 Code, 1291 Tests); Liefer-Punkte und Schichten wie gezählt (drei, eine).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält die Aufzeichnung als Code unter Spezifikation und Entscheidungen).
