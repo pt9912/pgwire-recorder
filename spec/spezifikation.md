@@ -1734,10 +1734,12 @@ JSON-Objekt) und eine verwaiste Zeile, eine `interaction` ohne `session` oder ei
 Spalten, Indizes und Trigger, die `SPEC-043` nicht nennt, prüft der Leser nicht und
 ignoriert sie; nur Fehlendes ist `PGR-E3003`. Geprüft wird in der Reihenfolge
 Formatkennung, Version, Inhalt wie bei `yaml`. Eine Aufzeichnung ohne Sessions ist
-gültig. *Grenze:* Hinterlässt ein Absturz neben der Datei ein Rollback-Journal
+gültig. Die Reihenfolge der Zeilen in der Datei hat keine Bedeutung: Der Leser ordnet nach
+den Nummern von Session, Interaktion und Nachricht und prüft sie in dieser Ordnung. Das
+Lesen erzwingt keine Fremdschlüssel; verwaiste Zeilen prüft der Leser selbst. *Grenze:* Hinterlässt ein Absturz neben der Datei ein Rollback-Journal
 (`<Datei>-journal`), liest ein nur lesendes Öffnen die Datei nicht zurückgerollt; ob die
 Bibliothek das als Stand der Datei liest oder ablehnt, ist nicht zugesagt. Zurückgerollt
-wird beim nächsten schreibenden Öffnen durch SQLite, etwa mit dem Werkzeug `sqlite3`.
+wird beim nächsten schreibenden Öffnen durch SQLite, etwa mit dem Werkzeug `sqlite3`. Ebenso ist nicht zugesagt, wie eine fremde SQLite-Datei im Write-Ahead-Log-Modus gelesen wird; die Aufzeichnungen dieses Werkzeugs sind es nicht. Wird die Datei zwischen Erkennung und Lesen ersetzt, liest der Leser, was er dann vorfindet; das ist nicht zugesagt.
 
 **Schreiben von `sqlite`.** Beim Start prüft `record` den Zielpfad wie in
 `LH-FA-07.a`, gleich welchen Inhalts die vorhandene Datei hat: ohne `--force` ist sie
@@ -2092,7 +2094,10 @@ fest:
   und beim Lesen maßgeblich; es steht in jeder Zeile (nie `NULL`) und ist immer ein
   JSON-Objekt, bei einer Nachricht ohne Felder `{}`. Es trägt die Felder der Nachricht
   mit denselben Schlüsseln und Werten wie ihre YAML-Darstellung (`SPEC-002`,
-  `SPEC-041`, `SPEC-003`), ohne den Schlüssel `type`, den `kind` trägt. Eine Zeile
+  `SPEC-041`, `SPEC-003`), ohne den Schlüssel `type`, den `kind` trägt. Eine Zahl in einem
+  JSON-Text ist eine ganze Zahl in kanonischer Dezimalschreibweise wie bei `version` im Bereich
+  der 64-Bit-Zahlen mit Vorzeichen; ein Bruch, ein Exponent und jede Zahl außerhalb des
+  Bereichs ist `PGR-E3003`. Eine Zeile
   ohne `fields` oder mit einem anderen JSON-Wert als einem Objekt macht die
   Aufzeichnung beschädigt (`PGR-E3003`).
 * Ein String in `session.startup`, `session.server_parameters` und `message.fields`, als
@@ -2895,3 +2900,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Erkennung vor dem Lesen, Öffnen oder Lesen der ersten Bytes gescheitert `PGR-E3001` wie bei `yaml`, kürzere Datei als `yaml`; Eingabepfad wörtlich (`LH-FA-22.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Journal des Zielpfads „vorhanden“ wie der Zielpfad, Journal der temporären Datei ist eine übrig gebliebene Datei, doppelte Nummer und Lücke `PGR-E3001`, weniger Sessions als zuletzt ergänzt `PGR-E1000` (`LH-FA-22.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Nummern der Sessions werden vor dem Anlegen und Öffnen für die ganze Aufzeichnung geprüft, doppelte Nummer und Lücke im Aufruf `PGR-E1000` statt `PGR-E3001`, Datei unberührt (`LH-FA-22.a`) |
+| 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Reihenfolge der Zeilen ohne Bedeutung, Fremdschlüssel beim Lesen nicht erzwungen, Zahl im JSON-Text ganz und kanonisch (sonst `PGR-E3003`), Write-Ahead-Log-Modus einer fremden Datei und Ersetzen der Datei zwischen Erkennung und Lesen ohne Zusage (`LH-FA-22.a`, `SPEC-043`) |
