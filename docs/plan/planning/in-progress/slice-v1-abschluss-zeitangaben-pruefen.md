@@ -44,7 +44,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Der Uhr-Port und die Systemuhr — `slice-v1-abschluss-zeitangaben-uhr`: Die Prüfung vergleicht Werte der Datei und braucht keine Uhr.
 - Fehlt `offset_ms` einer Interaktion, ist das hier kein Fehler — Bestand und Zusage der Spezifikation: Nur zeitgetreues Einspielen verlangt die Werte (`PGR-E2003`, `slice-v1-abschluss-zeitangaben`).
 - Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-zeitangaben-doku` (dort §1 und DoD), hinter dem letzten der vier Teile in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über der Grenze der Schichten.
-- Produkt-Code im Kern, im PGWire-Adapter, im CLI-Adapter und im Bootstrap — Schicht-Abgrenzung: Die Prüfung liegt in den Lesern des Recording-Adapters (YAML und SQLite) und, wenn beide denselben Vergleich brauchen, in einem Helfer des Domain Model; mehr Schichten berührt der Slice nicht (Rückführung in §4).
+- Produkt-Code im Kern, im PGWire-Adapter, im CLI-Adapter und im Bootstrap — Schicht-Abgrenzung: Die Prüfung liegt im Recording-Adapter an einer Stelle, `Unmarshal` in `yaml.go`, den auch der Leser von SQLite benutzt (Entscheidung des Architect vom 2026-10-11: kein Helfer im Domain Model, keine zweite Kopie); mehr Schichten berührt der Slice nicht (Rückführung in §4).
 
 ## 2. Definition of Done
 
@@ -53,7 +53,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): Eine Aufzeichnung, in der `offset_ms` innerhalb einer Session absteigen, lädt in YAML und in SQLite nicht: `PGR-E3003`, Exit-Code 3, die Meldung nennt Session und Interaktion (Test je Format, Negativ); gleiche Werte hintereinander und ein kleinerer Wert am Anfang der nächsten Session laden (Test je Format, Boundary).
+- [ ] [`LH-FA-21`](../../../../spec/lastenheft.md#lh-fa-21--zeitgetreues-einspielen): Eine Aufzeichnung, in der `offset_ms` innerhalb einer Session absteigen, lädt in YAML und in SQLite nicht: `PGR-E3003`, Exit-Code 3, die Meldung nennt Session und Interaktion und keinen Wert (Test je Format, Negativ); gleiche Werte hintereinander, ein kleinerer Wert am Anfang der nächsten Session und eine Interaktion ohne Wert zwischen zwei mit Wert laden (Test je Format, Boundary); in YAML ist jede Schreibweise von `offset_ms`, die keine kanonische Dezimalzahl ist, `PGR-E3003` (Test je Form: `1.0`, `1.5`, `1e3`, `0x10`, Text in Anführungszeichen, `true`, `null`, Wert über `int64`; Negativ).
 - [ ] Die Prüfung gilt beim Laden, nicht erst mit einer Option: `replay` und `play` auf einer solchen Datei enden beim Start mit `PGR-E3003` (Test am Binary, je ein Aufruf); `make abdeckung` ist gefahren, `make abdeckung-check` grün.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -73,8 +73,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/recording` (`yaml.go`, `sqlite_lesen_baum.go`) | update | Vergleich der `offset_ms` je Session nach dem Laden der Interaktionen; Meldung ohne Wert aus der Datei |
-| `internal/hexagon/model` | update (nur wenn beide Leser denselben Vergleich brauchen) | ein Helfer statt zwei Kopien; zählt als zweite Schicht (§8) |
+| `internal/adapters/driven/recording` (`yaml.go`: `formVorpruefung`, `sessionFromDTO`) | update | Form des Werts am YAML-Baum, Vergleich der `offset_ms` je Session in `sessionFromDTO`; SQLite läuft über `Unmarshal` durch dieselbe Stelle; Meldung ohne Wert aus der Datei |
 | Tests im Recording-Adapter und `test/integration` | neu/update | Negativ und Boundary je Format nach `LH-FA-21`; `replay` und `play` am Binary |
 | `docs/user/abdeckung-*.md` | update | von `make abdeckung` erzeugt |
 
@@ -87,8 +86,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer Review-Sitzung prüfbar, oder die Prüfung braucht eine dritte Schicht (Kern, PGWire-Adapter, CLI oder Bootstrap mit Logik); Schnitt dann: YAML und SQLite getrennt.
-- `in-progress` → `open` (blockiert — Carveout?): Die Spezifikation lässt die Randform *Prüfung ohne Wunsch* (§6) offen, und der Nutzer hat sie nicht entschieden; dann zuerst die Entscheidung des Nutzers.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer Review-Sitzung prüfbar, oder die Prüfung braucht eine zweite Schicht (Kern, PGWire-Adapter, CLI oder Bootstrap mit Logik); Schnitt dann: YAML und SQLite getrennt.
+- `in-progress` → `open` (blockiert — Carveout?): Der Nutzer widerspricht der Lesart von „ignoriert“ in `LH-FA-21.a` (Randform *Prüfung ohne Wunsch*, §6) und verlangt eine Änderung des Lastenhefts; dann zuerst seine Entscheidung.
 
 ## 5. Closure-Trigger
 
@@ -105,20 +104,20 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen** (`AGENTS.md` §3.12) — Liste für den Architect, geschrieben beim Schnitt vom 2026-10-11. Entschieden ist eine Randform erst, wenn die Spezifikation (Technik-Stratum) sie vor dem ersten Code-Commit trägt; die Planung hat die Spezifikation nicht geändert. Je Punkt steht, wo er entschieden ist, sonst *offen*: Der Architect entscheidet vor dem Code oder gibt die Frage an den Nutzer (Lastenheft-Bezug). Der Implementer entscheidet keine offene Randform (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
+**Randformen** (`AGENTS.md` §3.12) — vom Architect vor dem Code am 2026-10-11 entschieden, Ort: [`LH-FA-21.a`](../../../../spec/spezifikation.md#lh-fa-21a--zeitangaben) *Prüfen* und *Einspielen*. Die Entscheidungen der Randformen, die nicht der Nutzer trägt, sind Entscheidungen des Architect (Empfehlung, bis der Nutzer anderes sagt; der Nutzer hat am 2026-10-11 verfügt, ohne Nachfrage weiterzumachen).
 
-- *Absteigend:* Werte, die innerhalb einer Session absteigen, machen die Aufzeichnung beschädigt (`PGR-E3003`) — entschieden in `LH-FA-21.a` *Aufzeichnen*; der Vergleich gilt je Session, nicht über die Sessions hinweg — ebenda („innerhalb einer Session“).
-- *Gleicher Wert:* zwei Interaktionen mit demselben `offset_ms` — offen (der Wortlaut „absteigen“ lässt gleiche Werte zu; Empfehlung des Planners: gültig, nur ein kleinerer Wert als der vorige ist absteigend).
-- *Mischform:* eine Interaktion ohne `offset_ms` zwischen zwei mit Wert — offen (Empfehlung des Planners: Lesen erlaubt, verglichen werden die vorhandenen Werte in der Reihenfolge der Interaktionen; ohne Wert wird nichts verlangt, das tut nur `--keep-timing`, `PGR-E2003`).
-- *Prüfung ohne Wunsch:* „beschädigt“ (Laden) und „ohne `--keep-timing` ignoriert, im Replay immer“ (Verwenden) stehen in `LH-FA-21.a` nebeneinander; offen, ob die Prüfung auch ohne `--keep-timing` und im Replay greift (Empfehlung des Planners: ja, beim Laden — wie die Prüfung negativer Werte im Bestand, `yaml.go`; „ignoriert“ meint das Warten). Entscheidung der Spezifikation, bei Lastenheft-Bezug des Nutzers.
-- *Form des Werts in YAML:* Fließkomma (`1.5`, `1.0`), Zeichenkette, Hex, Exponent, `null`, Wert über dem Bereich von `int64` — offen; ohne Entscheidung entscheidet die YAML-Bibliothek still.
-- *Meldung:* nennt Session und Interaktion, nie einen Wert aus der Datei und keine Zeilennummer (Regel für `sqlite`, `SPEC-043`; für `yaml` ohne Regel, `BEO-REPO/yaml-meldung-nennt-wert-und-zeile`) — die eigene Prüfung dieses Slice hält die Regel in beiden Formaten; mehrere Fehler in einer Datei: welcher gemeldet wird — offen.
-- *Eine Session mit einer oder ohne Interaktion:* nichts zu vergleichen, gültig.
+- *Absteigend:* Werte, die innerhalb einer Session absteigen, machen die Aufzeichnung beschädigt (`PGR-E3003`); der Vergleich gilt je Session, nicht über Sessions hinweg — entschieden, `LH-FA-21.a` *Prüfen*.
+- *Gleicher Wert:* gültig; absteigend ist nur ein Wert, der kleiner ist als der vorige — entschieden ebenda.
+- *Mischform:* eine Interaktion ohne `offset_ms` zwischen zwei mit Wert ist beim Laden gültig; verglichen werden die vorhandenen Werte in der Reihenfolge der Interaktionen — entschieden ebenda.
+- *Prüfung ohne Wunsch:* Die Prüfung gilt beim Laden jeder Aufzeichnung, in beiden Formaten, für `replay` und `play`, mit und ohne `--keep-timing`; „ignoriert“ meint das Warten, nicht die Prüfung — entschieden ebenda (*Prüfen* und Ende von *Einspielen*). Das Lastenheft wird nicht geändert: Eine beschädigte Datei ist bei negativen Werten schon heute abgelehnt, und „ignoriert“ (LH-FA-21 Boundary) beschreibt das Verwenden. Widerspricht der Nutzer, ist es eine Änderung am Lastenheft (Rückführung in §4).
+- *Form des Werts in YAML:* ein Skalar in kanonischer Dezimalschreibweise (`0` oder Ziffern ohne führende Null, ohne Vorzeichen, im Bereich von `int64`); `1.0`, `1.5`, `1e3`, `0x10`, Text in Anführungszeichen, `true`, `null` und ein Wert über dem Bereich sind beschädigt; `offset_ms: null` ist nicht „fehlt“ — entschieden ebenda. Die Bibliothek entscheidet nichts still; die Prüfung am YAML-Baum liegt vor dem Dekodieren (`formVorpruefung`).
+- *Meldung:* nennt Session und Interaktion, nie einen Wert aus der Datei und keine Zeilennummer, in beiden Formaten — entschieden ebenda (`BEO-REPO/yaml-meldung-nennt-wert-und-zeile` bleibt für die übrigen Meldungen von `yaml` offen, dieser Slice berührt ihn nicht). Mehrere Fehler in einer Datei: jeder ist `PGR-E3003`, welcher gemeldet wird, ist nicht zugesagt — akzeptiertes Negativ (Code und Exit-Code sind dieselben; ein Rang der Fehler wäre eine Zusage ohne Nutzen).
+- *Eine Session mit einer oder ohne Interaktion:* nichts zu vergleichen, gültig — entschieden ebenda.
 
 **Risiken:**
 
 - Zwei Leser, zwei Kopien des Vergleichs: eine bricht, die andere nicht (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`, verkörpert in `AGENTS.md` §3.10) — **Ausgang:** offen bis Closure; Gegenmittel: Mutation je Format und je Randform, vom Implementer selbst rot gesehen.
-- Die Entscheidung zur Prüfung ohne Wunsch kommt nicht vor dem Code (`BEO-REPO/spec-randform-erst-im-review-entschieden`, verkörpert in `AGENTS.md` §3.12) — **Ausgang:** offen bis Closure.
+- Die Prüfung entscheidet im Code eine Randform still, die §6 nicht nennt (`BEO-REPO/spec-randform-erst-im-review-entschieden`, verkörpert in `AGENTS.md` §3.12): Der Implementer hält an und gibt sie zurück — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
@@ -156,6 +155,6 @@ nicht mehr.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Liefer-Punkte: 2. Schichten: eine (Recording-Adapter); zwei, wenn ein gemeinsamer Helfer im Domain Model liegt — höchstens zwei. Nachgezählt beim Schnitt (2026-10-11, `AGENTS.md` §3.13); die Sendung aus `slice-v1-abschluss-zeitangaben` (DoD-Halbsatz) steht in DoD-Punkt 1.
+Liefer-Punkte: 2. Schichten: eine (Recording-Adapter, eine Stelle für beide Formate); nachgezählt vom Architect am 2026-10-11 (SQLite liest über `Unmarshal`, ein Helfer im Domain Model entfällt). Nachgezählt beim Schnitt (2026-10-11, `AGENTS.md` §3.13); die Sendung aus `slice-v1-abschluss-zeitangaben` (DoD-Halbsatz) steht in DoD-Punkt 1.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

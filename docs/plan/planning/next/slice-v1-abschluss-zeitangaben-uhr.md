@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Der Kern liest die Zeit und wartet auf einen Zeitpunkt nur über einen Driven Port „Uhr“ ([ADR-0015](../../adr/0015-uhr-port.md)): Der Port, eine Fake-Uhr für Tests, die Systemuhr im Composition Root und die Architekturregel, die den Kern an den Port bindet, liegen vor, bevor ein Slice sie benutzt. Beobachtbar ist der Vertrag an Tests (Warten bis zum Zeitpunkt, Abbruch durch den Kontext, Vorrücken der Fake-Uhr) und am Gate `make a-check`; ein Verhalten des Binaries ändert sich nicht.
+**Ziel:** Der Kern liest die Zeit und wartet auf einen Zeitpunkt nur über einen Driven Port „Uhr“ ([ADR-0015](../../adr/0015-uhr-port.md)): Der Port, eine Fake-Uhr für Tests, die Systemuhr im Composition Root und die Architekturregel, die den Kern an den Port bindet, liegen vor, bevor ein Slice sie benutzt. Beobachtbar ist der Vertrag an Tests (Warten bis zum Zeitpunkt, Abbruch durch den Kontext, Vorrücken der Fake-Uhr) und am Gate `make a-check`; ein Verhalten des Binaries ändert sich nicht. Die drei Testdateien des Kerns, die heute `time` einbinden, wechseln dazu auf eine Testhilfe (§3); ohne das ist die Regel rot.
 
 **Übernommen aus `slice-v1-abschluss-zeitangaben`** (dort §3, Zeile *Kern, Uhr-Port* und DoD-Punkt 2, die Fake-Uhr): der Port und die Uhren. Die Folgepflicht aus [ADR-0015](../../adr/0015-uhr-port.md) (Architekturregeln halten den Kern frei von Zeitaufrufen der Standardbibliothek) ist hier der dritte Liefer-Punkt; sie war bisher kein Slice zugewiesen.
 
@@ -55,7 +55,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Driven Port „Uhr“ im Kern mit zwei Leistungen — die monotone Zeit lesen, bis zu einem Zeitpunkt warten, abbrechbar durch den Kontext — und eine Fake-Uhr, die Zeit nur auf Anweisung vorrückt ([ADR-0015](../../adr/0015-uhr-port.md)); Tests des Vertrags: Warten kehrt beim Erreichen des Zeitpunkts zurück, sofort bei einem Zeitpunkt in der Vergangenheit, mit dem Fehler des Kontexts beim Abbruch (vor und während des Wartens), und die Fake-Uhr weckt alle Wartenden, deren Zeitpunkt erreicht ist (Happy, Boundary, Negativ).
 - [ ] Systemuhr im Composition Root (`internal/bootstrap`), die den Port erfüllt: Zeit monoton, Warten abbrechbar; getestet an der Systemuhr selbst (Untergrenze der Wartezeit, Abbruch), nicht am Binary.
-- [ ] Architekturregel in `.a-check.yml`, die den Kern an den Port bindet, soweit a-check sie ausdrücken kann, mit Gegenprobe in `make a-check-negativ` (Kern mit Zeitaufruf abgelehnt, Adapter und Bootstrap zugelassen); kann a-check die Regel nicht ausdrücken, entfällt der Punkt mit Begründung in §7 und ein Eintrag im Register (Randform *Regel* in §6).
+- [ ] Architekturregel in `.a-check.yml`, die den Kern an den Port bindet (a-check drückt sie aus, vom Architect am 2026-10-11 an einer Kopie des Baums gesehen: ein `tech`-Eintrag mit `match: regex`, Muster `^time$`, und der Liste der zugelassenen Orte — `internal/adapters`, `internal/bootstrap`, `cmd`, `test` und die Testhilfen unter `internal/`), mit Gegenprobe in `make a-check-negativ`: abgelehnt Domain Model, Ports und Services (je eine Probe, a-check nennt die Datei), zugelassen PGWire-Adapter und Bootstrap, dazu der Import von `runtime` im Domain Model zugelassen (Muster ist kein Teiltext); die drei Dateien der Tests von `internal/hexagon/services`, die `time` einbinden, benutzen stattdessen eine Testhilfe außerhalb des Kerns (`LH-FA-21.a` *Uhr*).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -75,9 +75,11 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/ports/driven` | neu | Port „Uhr“ (Signatur nach Entscheidung des Architect, §6) |
-| `internal/hexagon/...` Testhilfe | neu | Fake-Uhr, Vorrücken nur auf Anweisung; Ort nach Entscheidung des Architect |
+| `internal/testuhr` (neu, Package außerhalb des Hexagons) | neu | Fake-Uhr, Vorrücken nur auf Anweisung um eine nicht negative Zahl; weckt alle Wartenden, deren Zeitpunkt erreicht ist; Ort und Zuschnitt entschieden vom Architect (2026-10-11) |
+| `internal/testzeit` (neu, Package außerhalb des Hexagons) | neu | Warten, Frist und Zeitgrenzen in ganzen Millisekunden für die Tests des Kerns, die heute `time` einbinden (`services/play_test.go`, `record_extended_test.go`, `record_zwangsende_test.go`); die einzige Stelle der Tests, die `time` einbindet |
+| `internal/hexagon/services` (nur die drei Testdateien) | update | `time.After`/`time.Sleep`/`time.Now` durch `internal/testzeit` ersetzen, ohne Verhalten zu ändern; ohne das wird die Regel rot |
 | `internal/bootstrap` | update | Systemuhr mit Logik (Warten mit Abbruch); wird hier nicht verdrahtet, nur bereitgestellt |
-| `.a-check.yml`, `harness/mk/` Gegenprobe | update | Regel „Kern ruft Zeit nur über den Port“ nach [ADR-0015](../../adr/0015-uhr-port.md), Fitness Function |
+| `.a-check.yml`, `tools/arch/a-check-negativ.sh`, `harness/mk/arch-negativ.mk`, `harness/README.md` | update | Regel „Kern bindet `time` nicht ein“ nach [ADR-0015](../../adr/0015-uhr-port.md), Fitness Function; Fallzahl und Beschreibung der Gegenprobe nachziehen; die Regel prüft den Import, nicht den Aufruf |
 | Tests | neu | Vertrag des Ports an der Fake-Uhr und an der Systemuhr, Gegenprobe der Regel |
 
 ## 4. Trigger
@@ -90,7 +92,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer Review-Sitzung prüfbar, oder der Slice braucht eine dritte Schicht (Systemuhr in einem Adapter statt im Bootstrap); die Gegenprobe der Regel ist dann ein eigener Slice.
-- `in-progress` → `open` (blockiert — Carveout?): a-check kann die Regel nur mit einer Änderung am Werkzeug ausdrücken; dann zuerst die Entscheidung, ob ein Carveout (Modul 7, [ADR-0015](../../adr/0015-uhr-port.md) Folgepflicht offen) oder ein Slice am Werkzeug sie trägt.
+- `in-progress` → `open` (blockiert — Carveout?): a-check lehnt `time` im Kern trotz der Konfiguration nicht ab oder lehnt die zugelassenen Orte ab (der Architect sah die Regel am 2026-10-11 an einer Kopie arbeiten); dann zuerst die Entscheidung, ob ein Carveout (Modul 7, [ADR-0015](../../adr/0015-uhr-port.md) Folgepflicht offen) oder ein Slice am Werkzeug sie trägt.
 
 ## 5. Closure-Trigger
 
@@ -107,18 +109,19 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen** (`AGENTS.md` §3.12) — Liste für den Architect, geschrieben beim Schnitt vom 2026-10-11. Entschieden ist eine Randform erst, wenn die Spezifikation (Technik-Stratum) sie vor dem ersten Code-Commit trägt; die Planung hat die Spezifikation nicht geändert. Je Punkt steht, wo er entschieden ist, sonst *offen*: Der Architect entscheidet vor dem Code oder gibt die Frage an den Nutzer (Lastenheft-Bezug). Der Implementer entscheidet keine offene Randform (`.claude/commands/implement-slice.md`, Randform-Rückgabe).
+**Randformen** (`AGENTS.md` §3.12) — vom Architect vor dem Code am 2026-10-11 entschieden, Ort: [`LH-FA-21.a`](../../../../spec/spezifikation.md#lh-fa-21a--zeitangaben) *Uhr*. Entscheidungen des Architect (Empfehlung, bis der Nutzer anderes sagt; der Nutzer hat am 2026-10-11 verfügt, ohne Nachfrage weiterzumachen).
 
-- *Einheit und Typ im Port:* Entschieden in [ADR-0015](../../adr/0015-uhr-port.md) ist nur der Zuschnitt (zwei Leistungen); die Signatur nicht. Empfehlung des Planners: ganze Millisekunden seit einem Ursprung der Uhr (kein `time`-Typ im Kern); dann ist „der Kern importiert `time` nicht“ als Import-Regel ausdrückbar. `offset_ms` ist eine ganze Zahl in Millisekunden (`LH-FA-21.a`). Entscheidung des Architect, offen.
-- *Zeitpunkt in der Vergangenheit oder jetzt:* Warten kehrt sofort zurück — offen.
-- *Abbruch:* Der Kontext endet vor oder während des Wartens; der Aufruf kehrt mit dessen Fehler zurück — entschieden in [ADR-0015](../../adr/0015-uhr-port.md) (abbrechbar durch den Kontext); der Fehler ist der des Kontexts, kein neuer Code.
-- *Monotone Zeit:* `LH-FA-21.a` verlangt eine monotone Uhr; eine Wanduhr, die zurückspringt, darf den Port nicht erreichen — entschieden dort.
-- *Mehrere Wartende gleichzeitig* (parallele Sessions im Record, ein Abbruch weckt alle): die Fake-Uhr weckt jeden, dessen Zeitpunkt erreicht ist — offen.
-- *Regel:* Ob a-check Tests der Kern-Packages ausnimmt (sie importieren `time` heute, `services/*_test.go`) und ob die Regel nach Import oder nach Aufruf greift — offen, Entscheidung des Architect mit der ersten Probe.
+- *Einheit und Typ im Port:* ganze Millisekunden als `int64` seit einem Ursprung, den die Uhr wählt; kein Typ der Zeitbibliothek im Port, abgeschnitten, nie kleiner als die vorige Lesung — entschieden ebenda. Die Namen der Leistungen wählt der Implementer, die Zusagen nicht.
+- *Zeitpunkt in der Vergangenheit oder jetzt:* Warten kehrt mit `nil` sofort zurück — entschieden ebenda; ein beendeter Kontext geht vor (Fehler des Kontexts auch bei vergangenem Zeitpunkt).
+- *Abbruch:* Kontext endet vor oder während des Wartens; der Aufruf kehrt mit dessen Fehler zurück, kein neuer Code — entschieden ([ADR-0015](../../adr/0015-uhr-port.md), `LH-FA-21.a` *Uhr*).
+- *Monotone Zeit:* die Systemuhr zählt aus der monotonen Zeit des Prozesses (Ursprung bei ihrer Erzeugung), nie aus der Wanduhr — entschieden ebenda.
+- *Mehrere Wartende gleichzeitig:* die Fake-Uhr weckt jeden, dessen Zeitpunkt erreicht ist; Vorrücken um eine negative Zahl ist ein Programmierfehler der Tests — entschieden ebenda.
+- *Regel:* Die Regel greift am Import (`tech` mit `^time$`), nicht am Aufruf; sie lehnt damit auch einen Zeittyp ohne Aufruf ab, was der Port nicht braucht (akzeptiertes Negativ, [ADR-0015](../../adr/0015-uhr-port.md) sagt „Zeitaufrufe“: die Regel ist enger gefasst als nötig, nicht weiter). Auch die Tests des Kerns binden `time` nicht ein: a-check lehnt sie für Domain Model, Ports und Services ab, und sie auszunehmen lockerte die übrigen Regeln für diese Dateien (`AGENTS.md` §3.6); darum die Testhilfe `internal/testzeit`. Entschieden ebenda.
 
 **Risiken:**
 
-- a-check kann nach Import, nicht nach Aufruf unterscheiden; die Regel verbietet dann mehr, als [ADR-0015](../../adr/0015-uhr-port.md) sagt, oder weniger — **Ausgang:** offen bis Closure.
+- Die Regel greift am Import und verbietet mehr, als [ADR-0015](../../adr/0015-uhr-port.md) wörtlich sagt (akzeptiertes Negativ, Grund oben) — **Ausgang:** offen bis Closure (erwartet: entfallen, mit diesem Grund).
+- Die Migration der drei Testdateien ändert deren Zeitverhalten (Frist, Schlafzeit) und macht einen Test flackern — **Ausgang:** offen bis Closure; Gegenmittel: dieselben Werte in Millisekunden, kein Test wird umgeschrieben außer an den Aufrufen von `time`.
 - Der Port steht vor seinem ersten Benutzer, und der Benutzer braucht eine andere Signatur (`BEO-REPO/folge-slice-adresse-nimmt-nicht-an`, verkörpert in `AGENTS.md` §3.13) — **Ausgang:** offen bis Closure; Gegenmittel: `slice-v1-abschluss-zeitangaben-aufzeichnen` und `slice-v1-abschluss-zeitangaben` nennen die Signatur in §1, nicht eine eigene.
 
 ## 7. Closure-Notiz
@@ -156,6 +159,6 @@ nicht mehr.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Liefer-Punkte: 3. Schichten: zwei (Kern mit dem Port, Bootstrap mit der Systemuhr — Logik: Warten mit Abbruch zählt, `AGENTS.md` §3.13); das Gate (`.a-check.yml`) ist ein Liefer-Punkt, keine Produkt-Schicht, wie bei `slice-v1-abschluss-sqlite-format`. Nachgezählt beim Schnitt (2026-10-11). Sitzt die Systemuhr in einem Adapter statt im Bootstrap, sind es zwei Schichten mit Adapter und Kern und derselbe Befund.
+Liefer-Punkte: 3 (die Migration der Tests gehört zum dritten Punkt, ohne sie ist die Regel rot). Schichten: zwei (Kern mit dem Port und seinen Tests, Bootstrap mit der Systemuhr — Logik: Warten mit Abbruch zählt, `AGENTS.md` §3.13); das Gate (`.a-check.yml`) ist ein Liefer-Punkt, keine Produkt-Schicht, wie bei `slice-v1-abschluss-sqlite-format`. Nachgezählt beim Schnitt und vom Architect vor dem Code (2026-10-11). Sitzt die Systemuhr in einem Adapter statt im Bootstrap, sind es zwei Schichten mit Adapter und Kern und derselbe Befund.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
