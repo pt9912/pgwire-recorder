@@ -1719,7 +1719,8 @@ SQLite-Ergebniscode: `SQLITE_PERM`, `BUSY`, `LOCKED`, `NOMEM`, `READONLY`, `INTE
 `IOERR`, `FULL`, `CANTOPEN` und `PROTOCOL` sind `PGR-E3001`, jeder andere Code (etwa
 `CORRUPT`, `NOTADB`, `ERROR`, `SCHEMA`, `CONSTRAINT`) ist `PGR-E3003`. Eine abgeschnittene
 Datei ist `PGR-E3003`, auch wenn die Bibliothek sie mit einem Ein- oder Ausgabefehler
-meldet (`SQLITE_IOERR_SHORT_READ`). Jeder Fehler des Inhalts ist `PGR-E3003`: eine Datei mit der Kopfzeile, die
+meldet (`SQLITE_IOERR_SHORT_READ`). Der Abbruch des Laufs während des Lesens und jeder andere Fehler, der kein Fehler der
+Bibliothek ist, ist `PGR-E3001` mit der Ursache. Jeder Fehler des Inhalts ist `PGR-E3003`: eine Datei mit der Kopfzeile, die
 kein gültiges SQLite ist, eine fremde SQLite-Datei und eine Datei mit fehlender Tabelle
 oder Spalte, `meta` ohne `format` oder `version`, eine andere Formatkennung, ein
 unbekannter Schlüssel in `meta`, ein Wert, dessen gespeicherte Art nicht die des Typs
@@ -1727,12 +1728,17 @@ der Spalte ist (Text in `sequence`, `offset_ms` weder `NULL` noch eine ganze Zah
 ein JSON-Text, der ungültig ist, einen unbekannten Schlüssel oder eine Form trägt, die
 `yaml` ebenso ablehnt, und jede Aufzeichnung, die `yaml` aus inhaltlichen Gründen
 ablehnt (Nummern von Session, Interaktion und Nachricht, die nicht ab 1 lückenlos
-zählen, eine Session ohne Interaktion ohne `empty_sessions`, eine Interaktion, die in
+zählen, Gruppen, deren `group_no` nicht ab 1 lückenlos in der Reihenfolge zählt oder in denen
+eine Client-Nachricht auf eine Server-Nachricht folgt (`SPEC-043`), eine Session ohne Interaktion ohne `empty_sessions`, eine Interaktion, die in
 `SPEC-001` und `SPEC-041` als beschädigt gilt, ein doppelter Schlüssel in einem
-JSON-Objekt) und eine verwaiste Zeile, eine `interaction` ohne `session` oder eine
+JSON-Objekt oder in `meta`, das ein fremdes Schema ohne Primärschlüssel zulässt) und eine verwaiste Zeile, eine `interaction` ohne `session` oder eine
 `message` ohne `interaction` (das Schema schließt sie nicht aus). Zusätzliche Tabellen,
 Spalten, Indizes und Trigger, die `SPEC-043` nicht nennt, prüft der Leser nicht und
-ignoriert sie; nur Fehlendes ist `PGR-E3003`. Geprüft wird in der Reihenfolge
+ignoriert sie; nur Fehlendes ist `PGR-E3003`. Die Meldung zu einem Fehler des Inhalts nennt die Datei und die Art des Fehlers, nie einen
+Wert aus der Datei und keine Zeilennummer (die Datei hat keine Textdarstellung mit Zeilen); wo der Leser den Fehler
+selbst feststellt, nennt sie außerdem Tabelle und Nummern der Zeile. Das Schließen der Datenbank
+nach dem Lesen meldet der Leser nicht: Die Aufzeichnung ist dann ganz gelesen, und ein Aufbau, in
+dem es scheitert, lässt sich nicht herstellen (nicht zugesagt). Geprüft wird in der Reihenfolge
 Formatkennung, Version, Inhalt wie bei `yaml`. Eine Aufzeichnung ohne Sessions ist
 gültig. Die Reihenfolge der Zeilen in der Datei hat keine Bedeutung: Der Leser ordnet nach
 den Nummern von Session, Interaktion und Nachricht und prüft sie in dieser Ordnung. Das
@@ -1803,7 +1809,10 @@ ist nicht geprüft, ebenso wenig, ob eine abgeschlossene Transaktion einen Strom
 mitten in einer Transaktion (`SIGKILL`, Stromausfall) hinterlässt das Rollback-Journal;
 der nächste Start von `record` mit demselben Pfad meldet es als `PGR-E3001`. Der
 Recorder hält die beendeten Sessions weiterhin im Speicher; `sqlite` spart das
-Neuschreiben der Datei, nicht den Speicher.
+Neuschreiben der Datei, nicht den Speicher. Auch der Leser von `sqlite` lädt die Aufzeichnung als Ganzes
+in den Speicher, wie der von `yaml`, und hält sie während des Lesens zusätzlich als Baum und als Text;
+der Bedarf kann ein Mehrfaches der Dateigröße betragen. Eine Obergrenze ist weder zugesagt noch
+geprüft; der Vorteil von `sqlite` für große Aufzeichnungen liegt im Schreiben.
 
 **Beide Formate** tragen dasselbe logische Modell (`SPEC-002`, `SPEC-041`,
 `SPEC-043`); eine Aufzeichnung in einem Format und dieselbe Aufzeichnung im anderen
@@ -2105,7 +2114,10 @@ fest:
   String, dessen Bytes es nicht sind (ein Client mit `client_encoding=LATIN1` sendet `é`
   als das Byte `0xE9`), steht als `base64:` und seine Bytes in Base64 (`SPEC-003`, Standard-Alphabet
   mit Auffüllung). Beginnt ein gültiger String mit `base64:` oder mit `\`, steht ein
-  weiteres `\` vor ihm. Der Leser kehrt das um: Beginnt ein String mit `\`, entfernt er
+  weiteres `\` vor ihm. Ein Escape in einem JSON-Text, der ein einzelnes Surrogat maskiert (`\ud800`
+bis `\udbff` ohne unmittelbar folgendes `\udc00` bis `\udfff`, oder dieses ohne vorangehendes), macht die
+Aufzeichnung beschädigt (`PGR-E3003`); ein Paar ist das eine Zeichen, und das Zeichen U+FFFD selbst ist
+gültig. Der Leser kehrt das um: Beginnt ein String mit `\`, entfernt er
   dieses eine Zeichen und nimmt den Rest wörtlich; beginnt er sonst mit `base64:`, dekodiert
   er den Rest (kein gültiges Base64 ist `PGR-E3003`); jeder andere String gilt wörtlich.
   Jeder String kommt so unverändert zurück, und die Aufzeichnung trägt dieselben Bytes
@@ -2114,7 +2126,9 @@ fest:
 * Ein Wert von `interaction.type`, `message.direction` oder `message.kind` außerhalb der
   Aufzählungen und eine Zeile, die den Regeln dieses Abschnitts widerspricht (`sql` bei
   `query` `NULL` oder bei `extended` gesetzt, `group_no` bei `query` gesetzt oder bei
-  `extended` `NULL`), macht die Aufzeichnung beschädigt (`PGR-E3003`).
+  `extended` `NULL`, ein `group_no`, das nicht ab 1 lückenlos in der Reihenfolge der Gruppen zählt,
+eine Client-Nachricht nach einer Server-Nachricht derselben Gruppe), macht die Aufzeichnung beschädigt
+(`PGR-E3003`).
 * Die Zugehörigkeit einer Nachricht zu einer Interaktion (`session_id`, `sequence`)
   lässt sich im neutralen Modell nicht als zusammengesetzter Fremdschlüssel
   ausdrücken; der Adapter stellt sie sicher. Die Fremdschlüssel auf `session` sind
@@ -2901,3 +2915,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Journal des Zielpfads „vorhanden“ wie der Zielpfad, Journal der temporären Datei ist eine übrig gebliebene Datei, doppelte Nummer und Lücke `PGR-E3001`, weniger Sessions als zuletzt ergänzt `PGR-E1000` (`LH-FA-22.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Nummern der Sessions werden vor dem Anlegen und Öffnen für die ganze Aufzeichnung geprüft, doppelte Nummer und Lücke im Aufruf `PGR-E1000` statt `PGR-E3001`, Datei unberührt (`LH-FA-22.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Reihenfolge der Zeilen ohne Bedeutung, Fremdschlüssel beim Lesen nicht erzwungen, Zahl im JSON-Text ganz und kanonisch (sonst `PGR-E3003`), Write-Ahead-Log-Modus einer fremden Datei und Ersetzen der Datei zwischen Erkennung und Lesen ohne Zusage (`LH-FA-22.a`, `SPEC-043`) |
+| 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: maskiertes einzelnes Surrogat im JSON-Text `PGR-E3003` (`SPEC-043`), Meldung zu einem Fehler des Inhalts ohne Wert und ohne Zeilennummer, Schließen nach dem Lesen nicht gemeldet, Abbruch des Laufs `PGR-E3001`, doppelter Schlüssel in `meta` und Verstoß gegen die Zählung und Reihenfolge der Gruppen `PGR-E3003`, Speicher des Lesers ohne Obergrenze (`LH-FA-22.a`, `SPEC-043`) |

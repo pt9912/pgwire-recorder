@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 - die Formaterkennung an den ersten 16 Bytes für `replay` und `play` und das Lesen der Datei in einer Lesetransaktion (`LH-FA-22.a` *Wahl und Erkennung*, *Lesen von `sqlite`*), mit `mode=ro` und der Sperrfrist von fünf Sekunden;
 - die Umkehr des `base64:`-Escapes beim Lesen (`SPEC-043`, Regel `base64:`) und das Lesen von `{}` in `startup` und `server_parameters` wie das fehlende Feld in `yaml`;
-- die Fehlerklassen des Lesens: `PGR-E3002` für jede kanonische Version außer 1, `PGR-E3003` für alles, was die Datei als Aufzeichnung ungültig macht (Typ-Prüfung der Spaltenwerte, verwaiste Zeilen, doppelter Schlüssel, `fields` fehlt oder ist kein Objekt, Zeile gegen die Regeln des Abschnitts), `PGR-E3001` für die Menge der primären Ergebniscodes aus `LH-FA-22.a` *Lesen von `sqlite`*, abgeschnittene Datei `PGR-E3003`;
+- die Fehlerklassen des Lesens: `PGR-E3002` für jede kanonische Version außer 1, `PGR-E3003` für alles, was die Datei als Aufzeichnung ungültig macht (Typ-Prüfung der Spaltenwerte, verwaiste Zeilen, doppelter Schlüssel, `fields` fehlt oder ist kein Objekt, Zeile gegen die Regeln des Abschnitts), `PGR-E3001` für die Menge der primären Ergebniscodes aus `LH-FA-22.a` *Lesen von `sqlite`*, abgeschnittene Datei `PGR-E3003`; dazu aus der Rückgabe des Implementers (Entscheidung des Architect vom 2026-10-11): ein maskiertes einzelnes Surrogat im JSON-Text, ein doppelter Schlüssel in `meta` und ein Verstoß gegen die Zählung und Reihenfolge der Gruppen `PGR-E3003`, der Abbruch des Laufs `PGR-E3001`, und eine Meldung zu einem Fehler des Inhalts ohne Wert und ohne Zeilennummer;
 - das Lesen von `meta.version` (nur kanonischer Dezimaltext) und `meta.empty_sessions` (nur `true`);
 - das Ersetzen des Platzhalters `Load` des SQLite-Adapters (aus `slice-v1-abschluss-sqlite-format`, dort §3: liefert bis dahin `PGR-E1000`) durch den Leser, mit der Bildung der `file:`-URI aus dem Schreiben (kein zweiter Weg);
 - der Roundtrip über das Binary: `record --format sqlite` (aus `slice-v1-abschluss-sqlite-format`), dann `replay` und `play`, gleich dem Verhalten bei YAML, und die gleiche Ablehnung beider Formate bei unbekanntem Schlüssel, `null` und doppeltem Schlüssel.
@@ -92,6 +92,11 @@ Aussagen-Berührung steht hier gar nicht.
 - Der Leser mit Erkennung ist ein Typ des Adapters, der den Port `RecordingRepository` erfüllt, damit `NewReplayService` und `NewPlayService` unverändert bleiben (`Load` erkennt und ruft `YAML.Load` oder den Leser von `SQLite`; `Prepare` und `Write` liefern `PGR-E1000`, ein Aufruf ist ein Programmierfehler). `New(format)` bleibt die Fabrik des Schreibens und ändert sich nicht. Ein Test belegt, dass `Load` mit beiden Formaten dieselbe Aufzeichnung liefert.
 - JSON-Zahl im Lesen: nur ganze, kanonische Zahlen im Bereich von 64 Bit mit Vorzeichen (`SPEC-043`); die Bibliothek darf sie nicht über `float64` führen (Test mit `9007199254740993`, `1.0`, `1e2`, `-0`, `9223372036854775808`).
 - Zeilen ordnet der Leser nach den Nummern, nicht nach der Reihenfolge in der Datei (Test mit vertauscht eingefügten Zeilen); `PRAGMA user_version` und Fremdschlüssel liest und erzwingt er nicht.
+- Maskiertes einzelnes Surrogat (`SPEC-043`): `jsonKnoten` lehnt es mit `PGR-E3003` ab, in Wert und Schlüssel, auch tief verschachtelt; die Bibliothek liefert dafür U+FFFD, also prüft der Leser den Text des Escapes selbst (kein Vergleich des Ergebnisses mit U+FFFD, denn das Zeichen selbst ist gültig). Tests in `sqlite_json_lesen`-Nähe (`TestLesenJSONVerletzt`): `"\ud800"`, `"\udc00"`, `"\ud800x"`, `"\ud800\u0041"`, `"\udc00\ud800"` abgelehnt; `"\ud83d\ude00"` (Paar) und ein wörtliches U+FFFD angenommen. Mutation: Prüfung entfällt; Paar wird abgelehnt; U+FFFD wird abgelehnt.
+- Meldung zu einem Fehler des Inhalts (`LH-FA-22.a` *Lesen von `sqlite`*): ohne Wert aus der Datei und ohne Zeilennummer. Die Ursache der YAML-Bibliothek aus `Unmarshal` (Text mit `line N` und eingebettetem Wert) steht für `sqlite` nicht in der Meldung; der Leser nennt Datei und Art, bei eigenen Prüfungen zusätzlich Tabelle und Nummern. Der Implementer prüft dazu jede Meldung der Dateien `sqlite_lesen*.go` und `sqlite_json_lesen.go` auf `%q`/`%v`/`%s` eines Werts aus der Datei. Test: je ein Fall pro Weg (eigene Prüfung, `Unmarshal`-Weg, JSON) mit einem Wert wie `geheim-wert` in der Datei; die Meldung enthält ihn nicht und passt nicht auf `[Zz]eile \d+|line \d+`. Mutation: Ursache der Bibliothek wieder durchgereicht; Wert in eine eigene Meldung. Die Meldungen des Lesens von `yaml` bleiben unverändert.
+- Schließen nach dem Lesen: der Fehler bleibt ignoriert, kein Test (kein herstellbarer Aufbau); der Doc-Kommentar sagt es im Indikativ, ohne Zusage.
+- Abbruch von `ctx` beim Lesen: `PGR-E3001` mit der Ursache; Test mit einem abgebrochenen `ctx` (Mutation: `PGR-E3003`).
+- Doppelter Schlüssel in `meta` `PGR-E3003` und Verstoß gegen `group_no` und die Reihenfolge der Gruppen `PGR-E3003`: sind beide schon Fälle von `TestLesenMeta` und `TestLesenInhaltVerletzt` (M14, B4 bis B8), kein neuer Code; der Test nennt die Stelle der Spezifikation.
 - Eine Randform, die §6 nicht nennt, entscheidet er nicht, sondern gibt sie dem Architect zurück (`AGENTS.md` §3.12).
 
 ## 4. Trigger
@@ -146,6 +151,13 @@ dasteht.
 | Zahl im JSON-Text: Bruch, Exponent, außerhalb 64 Bit `PGR-E3003` | `SPEC-043` |
 | Reihenfolge der Zeilen ohne Bedeutung; Fremdschlüssel und `user_version` beim Lesen nicht erzwungen und nicht gelesen | `LH-FA-22.a` *Lesen von `sqlite`*, `SPEC-043` |
 | Write-Ahead-Log-Modus einer fremden Datei; Ersetzen der Datei zwischen Erkennung und Lesen (nicht zugesagt, akzeptiertes Negativ: harmlos und ohne Wiederkehr in diesem Werkzeug, das nur Journal-Modus schreibt) | `LH-FA-22.a` *Lesen von `sqlite`*, *Grenze* |
+| Maskiertes einzelnes Surrogat im JSON-Text (`\ud800` allein, Paar angenommen, U+FFFD selbst gültig) `PGR-E3003` | `SPEC-043` (Regel `base64:`) |
+| Meldung zu einem Fehler des Inhalts: ohne Wert aus der Datei, ohne Zeilennummer; Tabelle und Nummern, wo der Leser selbst feststellt | `LH-FA-22.a` *Lesen von `sqlite`* |
+| Schließen der Datenbank nach dem Lesen scheitert: nicht gemeldet, nicht zugesagt (akzeptiertes Negativ: die Aufzeichnung ist ganz gelesen, ein Aufbau mit dem Fehler ist nicht herstellbar, ohne Wiederkehr) | `LH-FA-22.a` *Lesen von `sqlite`* |
+| Abbruch von `ctx` und jeder andere Fehler ohne Typ der Bibliothek `PGR-E3001` | `LH-FA-22.a` *Lesen von `sqlite`* |
+| Doppelter Schlüssel in `meta` `PGR-E3003` | `LH-FA-22.a` *Lesen von `sqlite`* |
+| `group_no` ab 1 lückenlos in der Reihenfolge der Gruppen, Client-Nachricht nach Server-Nachricht derselben Gruppe `PGR-E3003` | `SPEC-043`, `LH-FA-22.a` *Lesen von `sqlite`* |
+| Speicher des Lesers: Aufzeichnung als Ganzes, Baum und Text, ein Mehrfaches der Dateigröße, ohne Obergrenze (akzeptiertes Negativ nach Empfehlung des Architect: der Leser von `yaml` hält ebenso Datei, Baum und Modell, der Vorteil von `sqlite` liegt im Schreiben; die Bestätigung liegt beim Nutzer, siehe §7) | `LH-FA-22.a` *Grenzen* (Schreiben von `sqlite`) |
 | Leser mit Erkennung erfüllt den Port, `Prepare` und `Write` `PGR-E1000`; der Bootstrap tauscht nur den Wert | hier §3 (Adapter-Interna, `ARC-008`) |
 | `Load` des SQLite-Adapters aus `slice-v1-abschluss-sqlite-format` (Platzhalter mit `PGR-E1000`) wird hier durch den Leser ersetzt | `slice-v1-abschluss-sqlite-format` §3 (Geber); hier §1 |
 
@@ -262,23 +274,15 @@ und suchte `^func <Name>(` in `internal/**/*_test.go` und `test/integration/*_te
 28 Testnamen und 24 Dateinamen gefunden, nichts fehlt (drei Dateien liegen im vendored Regelwerk, `interaction.sql` ist
 eine Spalte, keine Datei).
 
-**Hinweise an den Architect** (Randformen, die §6 nicht nennt; im Code nach der nächstliegenden Lesart gelöst, hier zur
-Entscheidung, `AGENTS.md` §3.12):
-1. *Maskiertes Surrogat im JSON-Text.* `"\ud800"` allein ist syntaktisch gültiger JSON-Text, und die Bibliothek liefert
-   dafür U+FFFD; der Leser lehnt es nicht ab. Frage: ablehnen (`PGR-E3003`)? Heute weder zugesagt noch getestet.
-2. *Stelle in der Meldung.* Ein Fehler des Inhalts geht durch `Unmarshal`; dessen Meldung nennt für manche Fehler eine
-   Zeile der übertragenen YAML-Darstellung, die es in der SQLite-Datei nicht gibt, Session und Interaktion nur für die
-   Vorprüfung und `Validate`. Frage: eine eigene Stelle für `sqlite`?
-3. *Schließen nach dem Lesen.* Scheitert das Schließen der Datenbank nach dem Lesen, ignoriert der Leser es (anders als das
-   Schreiben, `PGR-E3001`). Frage: ebenfalls `PGR-E3001`?
-4. *Abbruch von `ctx` beim Lesen* ist `PGR-E3001` (kein Fehler der Bibliothek); `LH-FA-22.a` nennt ihn nicht.
-5. *Doppelter Schlüssel in `meta`* (nur in einer fremden Datei ohne Primärschlüssel) ist `PGR-E3003`; `LH-FA-22.a` nennt den
-   doppelten Schlüssel für JSON-Objekte.
-6. *Gruppen.* `group_no` ab 1 lückenlos und die Client-Nachrichten einer Gruppe vor den Server-Nachrichten
-   (`SPEC-043`) liest der Leser als Regel des Abschnitts: Verstoß `PGR-E3003`.
-7. *Speicher.* Der Leser hält die Datei als Baum und als YAML-Text im Speicher, ein Mehrfaches der Dateigröße; die Zusage
-   für „große Aufzeichnungen“ (`LH-FA-22`) nennt keine Grenze.
-8. *Größe.* Siehe oben: 2090 Zeilen Go, über der Schwelle von §4.
+**Hinweise an den Architect** (Randformen, die §6 nicht nannte) — **entschieden vom Architect am 2026-10-11**, Ort: `LH-FA-22.a` *Lesen von `sqlite`*, *Grenzen* und `SPEC-043`; die Aufträge stehen in §3:
+1. *Maskiertes Surrogat im JSON-Text:* abgelehnt, `PGR-E3003`. Der Code liest heute U+FFFD; Auftrag in §3.
+2. *Stelle in der Meldung:* keine Zeile, kein Wert; Tabelle und Nummern bei eigenen Prüfungen. Der Code gibt die Ursache der YAML-Bibliothek weiter; Auftrag in §3.
+3. *Schließen nach dem Lesen:* nicht gemeldet, akzeptiertes Negativ (Code stimmt überein).
+4. *Abbruch von `ctx`:* `PGR-E3001` (Code stimmt überein; Test fehlt, Auftrag in §3).
+5. *Doppelter Schlüssel in `meta`:* `PGR-E3003` (Code stimmt überein).
+6. *Gruppen:* Verstoß `PGR-E3003` (Code stimmt überein).
+7. *Speicher:* ohne Obergrenze, in `LH-FA-22.a` *Grenzen* als Beschreibung festgehalten; **Empfehlung** des Architect: akzeptiertes Negativ. Frage an den Nutzer: Liest er „für große Aufzeichnungen“ (`LH-FA-22`) als Zusage für das Lesen? Dann wäre eine Grenze oder ein streamendes Lesen eine Änderung des Lastenhefts oder ein eigener Slice.
+8. *Größe:* 2090 Zeilen Go, über der Schwelle von §4. **Empfehlung** des Architect an den Planner (Schnitt entscheidet er nicht): hinnehmen. Die Überschreitung ist rund 5 % über „rund 2000“, 1291 der Zeilen sind Tabellen-Tests, 799 Code in einer Schicht mit drei Liefer-Punkten; der in §4 genannte Schnitt (DoD-Punkt 3) ließe sich nicht liefern, denn `stufeCode` und seine Tests hängen am Leser, den DoD-Punkt 1 liefert, und der Code liegt gate-grün vor. Ob der Diff in einer Sitzung prüfbar ist, beurteilt am Ende das Review.
 
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
