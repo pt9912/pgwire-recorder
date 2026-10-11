@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format-lesen
+**Fund:** `replay` auf einer 15-Byte-Datei, die mit `SQLite format 3` beginnt, ohne Kopf, wird als `yaml` gelesen und meldet die Ursache der YAML-Bibliothek (`yaml: unmarshal errors: line 1: cannot unmarshal !!str …`) mit Zeile und einem Stück des Inhalts (Verifikation V-178). Folge der Entscheidung des Nutzers, die Regel nicht auf `yaml` auszudehnen; `yaml.go` ist im Diff nicht berührt.

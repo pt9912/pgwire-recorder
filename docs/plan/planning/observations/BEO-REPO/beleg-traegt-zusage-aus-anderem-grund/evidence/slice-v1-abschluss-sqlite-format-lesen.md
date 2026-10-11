@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format-lesen
+**Fund:** Der Fall `interaction.sql` in `TestLesenFehlendeTabelleOderSpalte` bleibt ohne die Prüfung grün, weil die Fixture eine Extended-Interaktion trägt, deren `sql` dann ungleich `NULL` ist und eine andere Prüfung auslöst; in einer Datei nur aus einfachen Anfragen las SQLite den fehlenden Bezeichner als Zeichenkette und der Leser nahm die Datei an (Verifikation V-175, MEDIUM). Behoben in `79a821a` mit eckigen Klammern und `TestLesenJedeFehlendeSpalteUndTabelle`.

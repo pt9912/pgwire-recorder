@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format-lesen
+**Fund:** Sperrfrist, Lesetransaktion und `mode=ro` des Lesens sind nur unter Linux im Container geprüft; `uriVon` trägt den Zweig für Windows (`"/" + abs`) jetzt für Lesen und Schreiben, ohne Zusage und ohne Test (Review F-629, INFO). `LH-FA-22.a` *Grenzen* nennt die Plattformgrenze nur für das Schreiben. Risiko aus §6 des Slice, Ausgang *weiter offen*.

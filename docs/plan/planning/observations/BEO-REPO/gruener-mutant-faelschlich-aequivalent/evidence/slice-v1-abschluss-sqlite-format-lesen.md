@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format-lesen
+**Fund:** §7 stufte O5 (`filepath.Abs` entfällt) als äquivalent ein. Ein Eingabepfad mit führendem `//` unterscheidet ihn: ohne `Abs` liest die Bibliothek `file://tmp/…` mit Authority und lehnt mit `PGR-E3003` ab (Review F-624, MEDIUM). Test `TestLesenPfadMitFuehrendemDoppelstrich` in `415b725`, der Mutant ist rot; die Form `/C:/…` für Windows bleibt ungeprüft.

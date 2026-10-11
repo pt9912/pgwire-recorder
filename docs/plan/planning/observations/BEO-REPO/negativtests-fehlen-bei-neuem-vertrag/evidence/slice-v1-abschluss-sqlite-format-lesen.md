@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format-lesen
+**Fund:** Die Zusage, ein Abbruch des Laufs „während des Lesens“ sei `PGR-E3001`, hatte einen Test nur vor dem Aufruf; der Mutant ohne `rows.Err()` blieb grün und stand nicht in §7 (Review F-625, LOW; der Zweig bleibt ohne Test, in §7 benannt). Die Zusage, eine Datei mit fehlender Spalte sei `PGR-E3003`, hatte für `interaction.sql` keinen Fall, der sie trug (Verifikation V-175, MEDIUM); behoben in `79a821a` mit `TestLesenJedeFehlendeSpalteUndTabelle`, die Mutanten Q-sql und Q-interaction sind rot.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format-lesen
+**Fund:** Die Nachzählung des Architect vom 2026-10-11 schätzte das Lesen auf 1300 bis 1700 Zeilen mit Tests, die Schwelle der Rückführung in §4 lag bei rund 2000. Gemessen sind am Endstand 2369 Zeilen Go (888 Code, 1481 Tests), 39 bis 82 Prozent über der Schätzung und rund 18 Prozent über der Schwelle (Review F-628, INFO; Verifikation V-177). Der Review hielt den Diff in einer Sitzung für prüfbar; der Planner nahm die Überschreitung hin (§4, §7 des Slice).

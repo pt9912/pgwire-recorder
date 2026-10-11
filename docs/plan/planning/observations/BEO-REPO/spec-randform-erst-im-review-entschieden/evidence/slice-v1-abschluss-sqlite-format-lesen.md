@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sqlite-format-lesen
+**Fund:** Das Review fand, dass `SQLite.Write` einen Schlüssel `<<` im Startup mit `PGR-E1000` ablehnt, während der Leser denselben Schlüssel aus einer fremden Datei als String liest; die Spezifikation und §6 nannten die Randform nicht (Review F-630, INFO). Der Architect entschied: akzeptiertes Negativ für das Schreiben, der Leser bleibt bei `PGR-E3003`; Test `TestLesenMergeKey` ohne Produktcode in `182355c`.
