@@ -110,6 +110,7 @@ Aussagen-Berührung steht hier gar nicht.
 - Ob `sqlite3` die Datei liest, prüft dieser Slice nicht (kein Hilfscontainer): die Unabhängigkeit vom Lesecode des Adapters liefert ein Test im Paket des Adapters, der die Datei mit rohem SQL gegen die Liste in `SPEC-043` liest. Dieser Slice hat keinen Leser; was der Test braucht, liest er mit der Bibliothek selbst.
 - `Load` des SQLite-Adapters (Entscheidung des Architect vom 2026-10-11, vor dem ersten Code-Commit): Der Port bleibt unverändert; `Load` ist ein Platzhalter und liefert immer `model.CodeInternal` (`PGR-E1000`) mit dem Text „Lesen von sqlite ist in diesem Stand nicht verfügbar“, ohne Pfad und ohne Wert, kein Pfad des Produkts ruft es. Ein Test belegt Code und Text (Mutation: Platzhalter liefert nil → rot); `slice-v1-abschluss-sqlite-format-lesen` ersetzt ihn (dort §1 und §6). Die Spezifikation nennt ihn nicht.
 - `.golangci.yml` und `lint-gegenprobe.sh` nachziehen (siehe Tabelle).
+- Nummern der Sessions (Entscheidung des Architect vom 2026-10-11, `LH-FA-22.a` *Schreiben von `sqlite`*): ein Test, dass ein `Write` mit einer doppelten Session-Nummer `PGR-E3001` liefert und die Datei auf dem Stand vor dem Aufruf lässt, und ein Test, dass eine Lücke (etwa `1` und `3`) spätestens beim nächsten `Write` `PGR-E3001` liefert; je eine Mutation (Primärschlüssel von `session` entfernt, Prüfung der Nummern vor dem Ergänzen entfernt) und im Bericht Zusage · Mutation · roter Test. Dazu ein Test für das Journal der temporären Datei (`record` rührt eine fremde `.<Name>.<Hex>.tmp-journal` nicht an) nach `LH-FA-07.a` *Übrig gebliebene Datei*: eine Datei dieses Namens im Verzeichnis bleibt nach `Prepare` und `Write` unverändert.
 - Eine Randform, die §6 nicht nennt, entscheidet er nicht, sondern gibt sie dem Architect zurück (`AGENTS.md` §3.12).
 
 ## 4. Trigger
@@ -166,6 +167,10 @@ dasteht.
 | `meta.version` und `meta.empty_sessions` beim Schreiben (`empty_sessions` nur mit `--record-empty-sessions`, dann `true`) | `SPEC-043` |
 | Fabrik `recording.New(format)` im Adapter; der Bootstrap reicht nur `o.Format` durch | `ARC-008` (Adapter-Grenze); hier §3 |
 | Gemeinsame Zusage: jeder Wert, den die CLI annimmt, nimmt `New` an | Zusage dieses Slice; Mutation: ein Wert der CLI-Wertemenge aus `New` streichen, der Test über alle CLI-Werte wird rot |
+| „Vorhanden“ beim Journal `<Zielpfad>-journal` wie beim Zielpfad (`Stat`: Verknüpfung nach ihrem Ziel, Verzeichnis vorhanden, Verknüpfung ins Leere nicht, nicht feststellbar `PGR-E3001`) | `LH-FA-22.a` *Schreiben von `sqlite`* (Entscheidung des Architect vom 2026-10-11) |
+| Aufruf mit weniger Sessions, als der Recorder zuletzt ergänzt hat: `PGR-E1000`, Datei unberührt | `LH-FA-22.a` *Schreiben von `sqlite`* (Entscheidung des Architect vom 2026-10-11) |
+| Nummer der Session, die nicht die nächste ist: doppelt `PGR-E3001` (Primärschlüssel), Lücke `PGR-E3001` spätestens beim nächsten Schreibvorgang | `LH-FA-22.a` *Schreiben von `sqlite`* (Entscheidung des Architect vom 2026-10-11); Test siehe §3 |
+| Rollback-Journal der temporären Datei nach einem Absturz mitten im Anlegen: übrig gebliebene Datei, `record` sucht und entfernt es nicht | `LH-FA-22.a` *Schreiben von `sqlite`*, mit `LH-FA-07.a` *Übrig gebliebene Datei* (Entscheidung des Architect vom 2026-10-11) |
 | `Load` des SQLite-Adapters bis `slice-v1-abschluss-sqlite-format-lesen`: Platzhalter mit `PGR-E1000`, Port unverändert; kein Pfad des Produkts ruft ihn; die Spezifikation beschreibt den Endstand und nennt ihn nicht | Entscheidung des Architect vom 2026-10-11, hier §3; Übernahme durch `slice-v1-abschluss-sqlite-format-lesen` §1 |
 
 ## 7. Closure-Notiz
@@ -299,20 +304,11 @@ anderen Plattformen bleibt ungeprüft, `BEO-REPO/verhalten-nur-unter-linux-gepru
 Backticks und suchte `^func <Name>(` in `internal/**/*_test.go` und `test/integration/*_test.go` sowie die Dateien
 im Baum: 47 Testnamen und 38 Dateien gefunden, nichts fehlt (`interaction.sql` ist eine Spalte, keine Datei).
 
-**Hinweise an den Architect** (Randformen, die §6 nicht nennt; im Code nach der nächstliegenden Lesart gelöst, hier
-zur Entscheidung):
-1. *Journal vorhanden.* `LH-FA-22.a` sagt „eine vorhandene Datei `<Zielpfad>-journal`“. Der Code prüft mit `os.Stat`,
-   also wie `LH-FA-07.a` *Vorhanden* für den Zielpfad: ein Verzeichnis oder eine Verknüpfung auf eine Datei ist
-   vorhanden (`PGR-E3001`), eine Verknüpfung ins Leere nicht, ein nicht feststellbarer Zustand ist `PGR-E3001`.
-   Tests: `TestSQLitePrepareJournalReihenfolge`.
-2. *Weniger Sessions als die Datei.* Ruft jemand `Write` mit einer Aufzeichnung auf, die weniger Sessions trägt, als
-   die Datei nach den bisherigen Aufrufen trägt, ist das `PGR-E1000` (ein Aufruffehler, kein Fehler der Datei) und die
-   Datei bleibt unberührt; der Service ruft das nie. Test: `TestSQLiteWenigerSessionsAlsDieDatei`.
-3. *Nummer der Session.* `Write` setzt `session.id` aus `model.Session.ID`; dass sie `1` bis `n` zählt, hält der
-   Service. Eine Doppelte oder eine Lücke verletzt den Primärschlüssel oder die Prüfung vor dem nächsten Ergänzen und
-   ist `PGR-E3001`; ein eigener Test fehlt.
-4. *Journal der temporären Datei.* Bleibt bei einem Absturz mitten im Anlegen ein `.<Name>.<Hex>.tmp-journal`
-   zurück, sucht und entfernt `record` es nicht (`LH-FA-07.a` *Übrig gebliebene Datei*).
+**Entscheidungen des Architect vom 2026-10-11 zu den Hinweisen des Implementers** (alle vier in `LH-FA-22.a` *Schreiben von `sqlite`* festgehalten, Tabelle in §6):
+1. *Journal vorhanden.* Gewollt: `Stat` wie beim Zielpfad (`LH-FA-07.a` *Vorhanden*, *Nicht prüfbar*). Code und `TestSQLitePrepareJournalReihenfolge` bleiben.
+2. *Weniger Sessions als zuletzt ergänzt.* `PGR-E1000` (Fehler des Aufrufers, Datei unberührt) ist richtig. Code und `TestSQLiteWenigerSessionsAlsDieDatei` bleiben.
+3. *Nummer der Session.* Eine Zusage: doppelte Nummer `PGR-E3001`, Lücke `PGR-E3001` spätestens beim nächsten Schreibvorgang. Auftrag an den Implementer in §3 (zwei Tests mit Mutation), der Code bleibt, wenn die Tests grün sind.
+4. *Journal der temporären Datei.* Eine übrig gebliebene Datei im Sinn von `LH-FA-07.a`; `record` sucht und entfernt es nicht. Der Code stimmt; Auftrag: ein Test (§3). Akzeptiertes Negativ: Bleibt das Journal im selben Lauf nach einem Fehlschlag liegen, weil die temporäre Datei entfernt wird, räumt `record` es nicht auf; ein Name mit demselben Zufallsteil kommt nicht wieder vor.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

@@ -1745,7 +1745,10 @@ wird beim nächsten schreibenden Öffnen durch SQLite, etwa mit dem Werkzeug `sq
 fortzusetzen gibt es nicht). Danach, nie davor, ist eine vorhandene Datei `<Zielpfad>-journal`,
 das Rollback-Journal eines früheren Laufs, `PGR-E3001`, auch mit `--force` und auch ohne
 Zieldatei; SQLite würde es sonst gegen die neue Datei zurückrollen. Eine vorhandene
-Zieldatei ohne `--force` zusammen mit einem Journal ist damit `PGR-E2002`.
+Zieldatei ohne `--force` zusammen mit einem Journal ist damit `PGR-E2002`. „Vorhanden“ gilt für das
+Journal wie für den Zielpfad (`LH-FA-07.a` *Vorhanden*, *Nicht prüfbar*): Eine Verknüpfung zählt nach
+ihrem Ziel, ein Verzeichnis dieses Namens ist vorhanden, eine Verknüpfung ins Leere nicht, und lässt
+sich nicht feststellen, ob der Pfad besteht, ist das `PGR-E3001`.
 
 Der erste Schreibvorgang (nach der ersten beendeten Session oder beim Beenden,
 `LH-FA-13.a`) legt in einer temporären Datei im Verzeichnis der Zieldatei eine gültige
@@ -1759,7 +1762,9 @@ beendeten Sessions, die die Datei noch nicht trägt, in der Reihenfolge ihrer Nu
 jede in einer eigenen Transaktion mit der Session, ihren Interaktionen und ihren
 Nachrichten; die Datei enthält zu jedem Zeitpunkt nur vollständige Sessions und wird nie
 als Ganzes neu geschrieben. Ein Abbruchsignal unterbricht keine Transaktion: sie läuft
-zu Ende.
+zu Ende. Das Rollback-Journal der temporären Datei (`<temporäre Datei>-journal`), das ein Absturz
+mitten im Anlegen hinterlässt, ist eine übrig gebliebene Datei im Sinn von `LH-FA-07.a`: `record`
+sucht und entfernt es nicht, und es trägt einen anderen Zufallsteil als jede spätere temporäre Datei.
 
 Scheitert eine Transaktion (Sperre länger als fünf Sekunden, voller Datenträger,
 Ein- oder Ausgabefehler), ist das `PGR-E3001` mit der Ursache der Bibliothek; die
@@ -1770,7 +1775,11 @@ nichts zu ergänzen hat (die Datei trägt dann schon alle beendeten Sessions), u
 nie an; fehlt sie, oder
 trägt `session` nicht genau die Nummern 1 bis zur zuletzt ergänzten Session (ein anderer
 Prozess oder eine ersetzte Datei), ist das `PGR-E3001`, und die Datei bleibt
-unberührt. Der Journalmodus ist das Rollback-Journal (`journal_mode=DELETE`), es
+unberührt. Die Nummern der Sessions vergibt der Aufrufer (`LH-FA-12.a`); eine Nummer, die nicht
+die nächste ist, ist `PGR-E3001`: eine doppelte, weil sie den Primärschlüssel verletzt, eine
+Lücke spätestens bei der Prüfung des nächsten Schreibvorgangs. Trägt eine Aufzeichnung weniger
+Sessions, als der Recorder zuletzt ergänzt hat, ist das ein Fehler des Aufrufers, kein Fehler der
+Datei: `PGR-E1000`, und die Datei bleibt unberührt. Der Journalmodus ist das Rollback-Journal (`journal_mode=DELETE`), es
 entstehen keine WAL-Nebendateien, außer `<Zieldatei>-journal` während einer
 Transaktion; Fremdschlüssel sind eingeschaltet (`foreign_keys=ON`), und jede
 Transaktion wird beim Abschluss auf den Datenträger geschrieben (`synchronous=FULL`).
@@ -2882,3 +2891,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: `message.bytes` entfällt, `fields` ist die einzige Darstellung der Nachricht, required und beim Lesen maßgeblich (`SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Strings ohne gültiges UTF-8 in den JSON-Spalten als `base64:` mit Umschreibung (`SPEC-043`), `interaction.sql` unverändert; kanonische Dezimalschreibweise von `version`, `empty_sessions` nur `true`, zusätzliche Tabellen und Spalten ignoriert, verwaiste Zeilen, doppelte Schlüssel, `NULL` und Nicht-Objekte, Zeilen gegen die Regeln des Abschnitts; Fehlerklassen des Lesens nach primärem SQLite-Ergebniscode, abgeschnittene Datei `PGR-E3003`; Pfadprüfung vor dem Journal, Prüfung der Datei auch ohne Ergänzung, Schließen nach der Transaktion, jeder Fehler des Schreibens `PGR-E3001` (`LH-FA-22.a`, `SPEC-043`); `modernc.org/sqlite` in der Erlaubnisliste des Lint-Gates (`SPEC-049`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Erkennung vor dem Lesen, Öffnen oder Lesen der ersten Bytes gescheitert `PGR-E3001` wie bei `yaml`, kürzere Datei als `yaml`; Eingabepfad wörtlich (`LH-FA-22.a`) |
+| 2026-10-11 | Aufzeichnungsformat `sqlite`: Journal des Zielpfads „vorhanden“ wie der Zielpfad, Journal der temporären Datei ist eine übrig gebliebene Datei, doppelte Nummer und Lücke `PGR-E3001`, weniger Sessions als zuletzt ergänzt `PGR-E1000` (`LH-FA-22.a`) |
