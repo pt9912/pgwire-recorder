@@ -187,7 +187,7 @@ Case zurückgibt.
 
 | Port | Verantwortung |
 |---|---|
-| Record-Use-Case | Verarbeitet eine Client-Session im Record-Modus. Operationen beider Richtungen (Client → Server, Server → Client) dürfen für dieselbe Session gleichzeitig laufen; das Beenden der Session beendet jeden wartenden Aufruf mit einem Fehler |
+| Record-Use-Case | Verarbeitet eine Client-Session im Record-Modus. Operationen beider Richtungen (Client → Server, Server → Client) dürfen für dieselbe Session gleichzeitig laufen, die Aufrufe einer Richtung derselben Session kommen nacheinander und werden nicht umgeordnet; das Beenden der Session beendet jeden wartenden Aufruf mit einem Fehler |
 | Replay-Use-Case | Verarbeitet eine Client-Session im Replay-Modus |
 | Play-Use-Case | Führt die Anfragen einer Aufzeichnung gegen einen Server aus; wird von der CLI gestartet, nicht von einer Client-Verbindung |
 

@@ -1691,7 +1691,11 @@ die vorige Antwort später gemessen als am Socket; der Wert ist nie kleiner als 
 Zeit bis zur Ankunft am Socket (Grenze, kein Fehler). Die Differenz zweier
 abgeschnittener Lesungen ist der Wert, es wird nicht gerundet. Die Werte einer
 Session steigen nicht ab, weil die Lesungen nicht kleiner werden und die
-Interaktionen in der Reihenfolge ihrer Ankunft nummeriert werden. Mit der Option trägt jede aufgezeichnete
+Interaktionen in der Reihenfolge ihrer Ankunft nummeriert werden. Das gilt unter einer
+Bedingung an den Aufrufer: Die Aufrufe der Client-Richtung einer Session (einfache Anfrage und
+Client-Nachricht) kommen nacheinander, der nächste erst, wenn der vorige zurückgekehrt ist; der
+Use Case ordnet gleichzeitige Aufrufe dieser Richtung nicht um und sagt für sie keine Ordnung der
+Werte zu (Grenze der Zusage, kein Fehler des Use Case; ein Test für den Adapter gibt es nicht). Mit der Option trägt jede aufgezeichnete
 Interaktion das Feld, auch die Lebendprüfung (`LH-FA-09.a`); eine Interaktion, die
 beim Herunterfahren oder Abbrechen unvollständig endet, wird nicht übernommen
 (`LH-FA-13.a`) und hat keinen Wert. Jede Session misst von ihrem eigenen Beginn;
@@ -3045,3 +3049,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Schlüssel `<<` ist Merge-Key (`PGR-E3003`), sein Schreiben nicht zugesagt (`LH-FA-22.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Art des Fehlers bei Fehlern der Prüfung von `yaml` nur „Aufzeichnung beschädigt“ mit Nummern, keine feinere Art (`LH-FA-22.a`) |
 | 2026-10-11 | Zeitangaben: Randformen aller Teile vor dem Code (Uhr als Port in ganzen Millisekunden mit Abbruch und Fake-Uhr, Architekturregel am Import mit Gegenprobe; Messpunkt im Use Case, Beginn der Session und Ankunft der Nachricht, keine Rundung; Prüfung der Werte beim Laden in beiden Formaten und in `replay` und `play` auch ohne `--keep-timing`, gleicher Wert gültig, Form des Werts in `yaml`, Meldung ohne Wert; „gesetzt“ bei den Kombinationen, `PGR-E2003` vor `PGR-E6001`, Bezug von `relative`, Abbruch einer Wartezeit, kein Grenzwert) (`LH-FA-21.a`) |
+| 2026-10-12 | Zeitangaben, Aufzeichnen: „Werte steigen nicht ab“ gilt unter der Bedingung, dass die Aufrufe der Client-Richtung einer Session nacheinander kommen; der Use Case ordnet gleichzeitige Aufrufe nicht um (`LH-FA-21.a`) |
