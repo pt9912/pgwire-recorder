@@ -2,7 +2,7 @@
 
 Version: 0.2  
 Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
-Stand: 10.10.2026  
+Stand: 11.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für das Binary `pgwire-recorder`, gebaut aus dem Repository (Ausgabe von `pgwire-recorder version`: `pgwire-recorder dev`)
 
@@ -386,7 +386,7 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   oder beendet er die Verbindung davor, endet `play` mit `PGR-E4002`.
 * `--upstream-ca <Datei>` nennt eine PEM-Datei mit einem oder mehreren Zertifikaten
   von Zertifizierungsstellen. Sie ergänzt den Zertifikatsspeicher des Systems und
-  ersetzt ihn nicht. Die Option verlangt TLS (sonst `PGR-E2001`). Ist die
+  ersetzt ihn nicht. Die Option verlangt, dass `play` TLS nutzt (sonst `PGR-E2001`): mit `--upstream-tls` oder `sslmode=require` der Verbindung, und ein gesetztes `--upstream-tls=false` heißt, dass `play` kein TLS nutzt. Ist die
   Datei nicht lesbar, keine reguläre Datei oder enthält sie kein Zertifikat, startet
   `play` nicht (`PGR-E2007`, Exit-Code 2); die Meldung nennt die Option und den Grund,
   nicht den Pfad. Die Zertifikate in der Datei, die die Umgebungsvariable
@@ -803,7 +803,7 @@ für den Exit-Code.
 | Code | Bedeutung | Ursache und Lösung |
 |---|---|---|
 | `PGR-E1000` | sonstiger Fehler | Ein Defekt des Werkzeugs; keine Eingabe löst ihn aus. Melden Sie das Problem mit der Ausgabe des Laufs. |
-| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert, oder `--upstream-ca` steht ohne TLS (weder `--upstream-tls` noch `sslmode=require` der Verbindung). Prüfen Sie den Aufruf mit `--help`. |
+| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert, oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`). Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
 | `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte und `sslmode` (erlaubt sind `disable` und `require`). |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |

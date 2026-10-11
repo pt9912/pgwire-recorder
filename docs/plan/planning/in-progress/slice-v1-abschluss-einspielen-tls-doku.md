@@ -167,6 +167,17 @@ Wird bei Closure um die Closure-Notiz ergänzt (vor dem `git mv` nach `done/`). 
 
 Mutanten des Satzes: „die Zertifizierungsstelle, die es ausgestellt hat“ wäre durch (a) belegt, durch (b) und (f) widerlegt (Zwischenstelle in der Datei genügt, auch ohne Wurzel); „nur die Wurzel genügt immer“ widerlegt (e). Der Satz trägt (a) bis (g). Wirkung auf die Zeile „Kein Überspringen …“ unten: unverändert, (4) und (c) zeigen dieselbe Meldung.
 
+**Nacharbeit zur Verifikation V-169 und V-170, 2026-10-11:** Handbuch-Kopf `Stand:` auf 11.10.2026. Die Zeile `PGR-E2001` (§7) und der Absatz zu `--upstream-ca` (§4) nennen jetzt alle belegten Fälle: `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`). Probe am Binary `pgwire-recorder:dev` (Stufe `runtime`, `docker run --network none`, Dateien im Scratch außerhalb des Repos, danach entfernt; `--upstream-ca` mit einer selbst erzeugten PEM-Datei):
+
+| Aufruf | Ergebnis |
+|---|---|
+| Datei mit `sslmode=require`, `--upstream-tls=false`, `--upstream-ca` | Exit 2, `PGR-E2001`, „--upstream-ca verlangt TLS zum Server“ |
+| Datei mit `sslmode=require`, `--upstream-ca`, dann `--upstream-tls=false` (Reihenfolge der Optionen vertauscht) | Exit 2, `PGR-E2001` |
+| Datei mit `sslmode=disable`, `--upstream-ca`, ohne `--upstream-tls` | Exit 2, `PGR-E2001` |
+| Gegenprobe: Datei mit `sslmode=require`, `--upstream-ca`, ohne `--upstream-tls` | kein `PGR-E2001` (Exit 3, `PGR-E3003`: die Aufzeichnung der Probe war leer) |
+
+Befehlsfolge aus Plan §3 danach erneut: Optionen des Handbuchs, die `--help` nicht kennt: nur `--h`, `--help`, `--version`, `--rm`, `--name`; Variablen (mit der benannten Ausnahme), Codes und beide Gegenrichtungen (Hilfe → Handbuch, Katalog → Handbuch): leer. `make docs-check`: 530 Dateien, 0 Befunde.
+
 **Aufbau (nach den Proben entfernt: alle Container, das Netz, das Hilfsimage und das Scratch-Verzeichnis, nur Namen mit Präfix `impl-tlsdoku-`).** Netz `impl-tlsdoku-net` (`172.30.77.0/24`, `fd00:77::/64`); Server `postgres:17-alpine` mit dem Digest aus `harness/mk/integration.mk`: `pgssl` (`ssl=on`, gültiges Blatt von `ca.pem` mit `DNS:pgssl, DNS:pgpw, DNS:localhost, IP:172.30.77.10, IP:172.30.77.13, IP:fd00:77::10, IP:fd00:77::13`; `pg_hba`: `hostnossl … reject`, `hostssl … trust`), `pgexp` (dasselbe Blatt, gültig 2020-01-01 bis 2020-01-02), `pgplain` (`ssl=off`), `pgpw` (`ssl=on`, `hostssl … password`, `hostnossl … reject`, Benutzer `tester`), `pgpwplain` (`ssl=off`, `host … password`), `pgip` (dasselbe Blatt auf einer Adresse, die nicht darin steht); Zertifikate mit `openssl` 3.5 im Hilfscontainer (`ca.pem`, `ca2.pem`); Fake-Server (`python:3.13-alpine`, `socket`) mit den Antworten `N`, `Z` und Ende ohne Antwort. Aufzeichnung für `play`: mit `record` gegen `pgplain` aufgenommen (`DROP TABLE IF EXISTS probe`, `CREATE TABLE probe(id int)`, `INSERT INTO probe VALUES (1)`); „Tabelle“ unten heißt: danach `select count(*) from probe` gleich 1 auf dem Server, nach `DROP TABLE` vor dem Lauf. Jeder Aufruf lief als `docker run` des Binaries mit den Dateien als Bind-Mount (nonroot).
 
 | Aussage im Handbuch (§4 *Einspielen*, §5, §7) / README | Probe (Matrix aus §6) | Ergebnis |
