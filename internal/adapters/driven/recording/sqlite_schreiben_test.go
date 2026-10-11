@@ -552,3 +552,31 @@ func TestSQLiteFremdesTempJournal(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-22/Boundary — ersetzt ein anderer Prozess die Datei durch eine SQLite-Datei
+// mit passenden Nummern im WAL-Modus, schreibt Write im Rollback-Journal: Die Kopfzeile der
+// Datei trägt danach Schreib- und Leseversion 1, und im Verzeichnis liegt weder -wal noch -shm.
+func TestSQLiteFremdeWALDatei(t *testing.T) {
+	ctx := context.Background()
+	s, path := neueDatei(t, sessionsMit(1))
+	fremd := filepath.Join(t.TempDir(), "fremd.sqlite")
+	if err := os.WriteFile(fremd, mustRead(t, path), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rohSchreibe(t, fremd, `PRAGMA journal_mode=WAL`)
+	if kopf := mustRead(t, fremd); kopf[18] != 2 || kopf[19] != 2 {
+		t.Fatalf("Fremddatei nicht im WAL-Modus: %d, %d", kopf[18], kopf[19])
+	}
+	if err := os.Rename(fremd, path); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Write(ctx, path, sessionsMit(2)); err != nil {
+		t.Fatal(err)
+	}
+	if kopf := mustRead(t, path); kopf[18] != 1 || kopf[19] != 1 {
+		t.Errorf("Schreib- und Leseversion nach Write: %d, %d, erwartet 1, 1", kopf[18], kopf[19])
+	}
+	if es := eintraege(t, filepath.Dir(path)); len(es) != 1 {
+		t.Errorf("im Verzeichnis liegt %v", es)
+	}
+}

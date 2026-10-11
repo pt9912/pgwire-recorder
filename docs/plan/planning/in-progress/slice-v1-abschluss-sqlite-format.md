@@ -47,16 +47,12 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen von `slice-v1-abschluss-schreiben`:** Was von `LH-FA-07.a` *Temporäre Datei*
 (Name, Rechte, Fehlschlag, übrig gebliebene Datei) und von der Probedatei aus *Zielpfad beim
-Start* für `sqlite` gilt, nennt §6 dieses Slice als Randformen und entscheidet der Architect
-in `LH-FA-22.a` *Schreiben von `sqlite`*, vor dem ersten Code-Commit (`AGENTS.md` §3.12).
-Dort gilt heute nur: Zielpfad wie in `LH-FA-07.a`, temporäre Datei im Verzeichnis der
-Zieldatei, atomar verschoben.
-Dazu, mit der Kennung `slice-v1-abschluss-schreiben` (Entscheidung des Nutzers vom
-2026-10-09): die Grenze der Prüfung für `sqlite` — ob für das atomare Verschieben in
-`LH-FA-22.a` *Schreiben von `sqlite`* dieselbe Grenze gilt wie in `LH-FA-07.a` Schritt 2 (geprüft
-nur unter Linux im selben Dateisystem, macOS und Windows nicht) und ob sie für das Ergänzen
-einer Session in einer Transaktion eine eigene braucht. §6 nennt sie als Randform, der Architect
-dieses Slice entscheidet sie in `LH-FA-22.a`, vor dem ersten Code-Commit (`AGENTS.md` §3.12).
+Start* für `sqlite` gilt, nennt §6 dieses Slice als Randformen; der Architect hat sie in
+`LH-FA-22.a` *Schreiben von `sqlite`* entschieden (Entscheidungen vom 2026-10-11, zuletzt
+`75874ba`), die Tests dazu stehen in §7. Die Grenze der Prüfung für `sqlite` (Mitteilung des
+Nutzers vom 2026-10-09, Kennung `slice-v1-abschluss-schreiben`) steht dort unter *Grenzen*: das
+atomare Verschieben wie in `LH-FA-07.a` Schritt 2 (geprüft nur unter Linux im selben Dateisystem),
+das Ergänzen in Transaktionen nur unter Linux auf einem lokalen Dateisystem.
 
 ## 2. Definition of Done
 
@@ -110,7 +106,7 @@ Aussagen-Berührung steht hier gar nicht.
 - Ob `sqlite3` die Datei liest, prüft dieser Slice nicht (kein Hilfscontainer): die Unabhängigkeit vom Lesecode des Adapters liefert ein Test im Paket des Adapters, der die Datei mit rohem SQL gegen die Liste in `SPEC-043` liest. Dieser Slice hat keinen Leser; was der Test braucht, liest er mit der Bibliothek selbst.
 - `Load` des SQLite-Adapters (Entscheidung des Architect vom 2026-10-11, vor dem ersten Code-Commit): Der Port bleibt unverändert; `Load` ist ein Platzhalter und liefert immer `model.CodeInternal` (`PGR-E1000`) mit dem Text „Lesen von sqlite ist in diesem Stand nicht verfügbar“, ohne Pfad und ohne Wert, kein Pfad des Produkts ruft es. Ein Test belegt Code und Text (Mutation: Platzhalter liefert nil → rot); `slice-v1-abschluss-sqlite-format-lesen` ersetzt ihn (dort §1 und §6). Die Spezifikation nennt ihn nicht.
 - `.golangci.yml` und `lint-gegenprobe.sh` nachziehen (siehe Tabelle).
-- Nummern der Sessions (Entscheidung des Architect vom 2026-10-11, `LH-FA-22.a` *Schreiben von `sqlite`*): ein Test, dass ein `Write` mit einer doppelten Session-Nummer `PGR-E3001` liefert und die Datei auf dem Stand vor dem Aufruf lässt, und ein Test, dass eine Lücke (etwa `1` und `3`) spätestens beim nächsten `Write` `PGR-E3001` liefert; je eine Mutation (Primärschlüssel von `session` entfernt, Prüfung der Nummern vor dem Ergänzen entfernt) und im Bericht Zusage · Mutation · roter Test. Dazu ein Test für das Journal der temporären Datei (`record` rührt eine fremde `.<Name>.<Hex>.tmp-journal` nicht an) nach `LH-FA-07.a` *Übrig gebliebene Datei*: eine Datei dieses Namens im Verzeichnis bleibt nach `Prepare` und `Write` unverändert.
+- Nummern der Sessions (Entscheidung des Architect vom 2026-10-11, `LH-FA-22.a` *Schreiben von `sqlite`*): ein Test, dass ein `Write` mit einer Session-Nummer, die die Datei schon trägt, `PGR-E3001` liefert und die Datei auf dem Stand vor dem Aufruf lässt (zwei gleiche neue Nummern in einem Aufruf: Randform-Rückgabe, siehe §7), und ein Test, dass eine Lücke (etwa `1` und `3`) spätestens beim nächsten `Write` `PGR-E3001` liefert; je eine Mutation (Primärschlüssel von `session` entfernt, Prüfung der Nummern vor dem Ergänzen entfernt) und im Bericht Zusage · Mutation · roter Test. Dazu ein Test für das Journal der temporären Datei (`record` rührt eine fremde `.<Name>.<Hex>.tmp-journal` nicht an) nach `LH-FA-07.a` *Übrig gebliebene Datei*: eine Datei dieses Namens im Verzeichnis bleibt nach `Prepare` und `Write` unverändert.
 - Eine Randform, die §6 nicht nennt, entscheidet er nicht, sondern gibt sie dem Architect zurück (`AGENTS.md` §3.12).
 
 ## 4. Trigger
@@ -269,12 +265,27 @@ Summe: 110 Mutanten der Unit-Tests (einschließlich `F1b`, `Z16` bis `Z18`, `T1`
 
 | Zusage | Mutation | roter Test |
 |---|---|---|
-| doppelte Session-Nummer ist `PGR-E3001`, die Datei bleibt auf dem Stand vor dem Aufruf | Primärschlüssel von `session` entfernt (N1b) | `TestSQLiteDoppelteSessionNummer` |
+| eine Session-Nummer, die die Datei schon trägt, ist `PGR-E3001`, die Datei bleibt auf dem Stand vor dem Aufruf (nicht belegt: zwei gleiche neue Nummern in einem Aufruf, siehe unten) | Eindeutigkeit von `session.id` aufgehoben mit `INSERT OR REPLACE` (N1c); Primärschlüssel entfernt (N1b, rot aus anderem Grund: 33 Tests, weil SQLite den Fremdschlüssel ohne Eindeutigkeit ablehnt) | `TestSQLiteDoppelteSessionNummer` (N1c) |
 | eine Lücke in den Nummern ist spätestens beim nächsten `Write` `PGR-E3001`, Datei unberührt | Prüfung vor dem Ergänzen entfernt (N2); Prüfung der einzelnen Nummer entfernt (N2b) | `TestSQLiteLueckeInDenNummern` |
 | eine fremde `.<Name>.<Hex>.tmp` und `.tmp-journal` bleiben nach `Prepare` und `Write` unverändert | `Write` entfernt das Journal einer temporären Datei (N3) | `TestSQLiteFremdesTempJournal` |
 
 Der Code blieb unverändert, die Prüfung griff. Die vier Mutanten liefen wie oben in frischen Kopien. Namensabgleich:
 die drei Tests existieren (`grep -n "^func TestSQLite…("` in `sqlite_schreiben_test.go`).
+
+**Nacharbeit zum Review (F-614 bis F-622).**
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `journal_mode=DELETE`: Ersetzt ein anderer Prozess die Datei durch eine mit passenden Nummern im WAL-Modus, schreibt `Write` im Rollback-Journal und lässt kein `-wal`/`-shm` liegen | Pragma `journal_mode(DELETE)` aus der URI entfernt (P-J) | `TestSQLiteFremdeWALDatei` |
+| `synchronous=FULL` | Pragma `synchronous(FULL)` entfernt (P-S): grün, äquivalent. Der Standard der Bibliothek auf der Verbindung ist `FULL` (`TestSQLiteEinstellungen` liest `2`), kein Aufruf kann den Wert anders beobachten; das Pragma bleibt als ausdrückliche Zusage der Spezifikation | – |
+
+Weitere grüne Mutanten, äquivalent: `db.SetMaxOpenConns(1)` entfernt (der Adapter benutzt je `Write` die Verbindung hintereinander; der Kommentar sagt die Zahl nicht mehr zu, F-615) und die Maskierung des Leerzeichens (W14, wie oben). Der Kommentar an `dsnVon` sagt nur noch zu, was `TestSQLiteSonderzeichenImPfad` prüft: `%`, `?` und `#` stehen als `%XX`.
+
+N1c (F-620): `INSERT OR REPLACE` bei `session` hebt nur die Eindeutigkeit auf und macht `TestSQLiteDoppelteSessionNummer` rot; N1b ist rot aus einem anderen Grund und belegt den Test nicht allein.
+
+**Randform-Rückgabe an den Architect (F-617).** Trägt ein einzelner `Write`-Aufruf zwei gleiche neue Nummern (etwa 1, 2, 2 auf eine neue Datei), ist die erste in ihrer Transaktion committet, die zweite scheitert mit `PGR-E3001` (`UNIQUE constraint failed: session.id`), und jeder weitere `Write` scheitert erneut an derselben Session. Die Datei steht danach nicht auf dem Stand vor dem Aufruf. Das ist mit „je Session eine Transaktion“ vereinbar, steht aber nicht in §6; ich habe weder Code noch Test dazu geändert, die Behauptung in §3 und §7 ist auf Nummern eingeengt, die die Datei schon trägt. Frage: Soll `Write` eine Aufzeichnung mit doppelten oder nicht fortlaufenden Nummern vorab ablehnen, oder gilt das Verhalten so?
+
+**Bootstrap in der Schichtzählung (F-622).** Der Zweig `if err != nil { return fail(stderr, err) }` nach `recording.New(o.Format)` gibt einen Fehler weiter wie der Zweig nach `NewRecordService` darunter, ohne ihn einzustufen oder zu verzweigen; ich zähle ihn als Verdrahtung und den Bootstrap nicht als Schicht (zwei Schichten). Zählt der Architect ihn nach `AGENTS.md` §3.13 („verzweigen“) als Logik, liegt der Slice bei drei Schichten; die Entscheidung liegt dort. Der Windows-Zweig in `dsnVon` (`"/" + abs`) hat keine Zusage und keinen Test (F-618).
 
 **Grüne Mutanten, eingeordnet.** Drei bleiben grün und ändern das Verhalten nicht:
 (B2) Der Bootstrap ignoriert den Fehler von `recording.New`: Die Kommandozeile lehnt vorher jeden Wert außer `yaml`
@@ -319,7 +330,7 @@ im Baum: 47 Testnamen und 38 Dateien gefunden, nichts fehlt (`interaction.sql` i
 1. *Journal vorhanden.* Gewollt: `Stat` wie beim Zielpfad (`LH-FA-07.a` *Vorhanden*, *Nicht prüfbar*). Code und `TestSQLitePrepareJournalReihenfolge` bleiben.
 2. *Weniger Sessions als zuletzt ergänzt.* `PGR-E1000` (Fehler des Aufrufers, Datei unberührt) ist richtig. Code und `TestSQLiteWenigerSessionsAlsDieDatei` bleiben.
 3. *Nummer der Session.* Eine Zusage: doppelte Nummer `PGR-E3001`, Lücke `PGR-E3001` spätestens beim nächsten Schreibvorgang. Auftrag an den Implementer in §3 (zwei Tests mit Mutation), der Code bleibt, wenn die Tests grün sind.
-4. *Journal der temporären Datei.* Eine übrig gebliebene Datei im Sinn von `LH-FA-07.a`; `record` sucht und entfernt es nicht. Der Code stimmt; Auftrag: ein Test (§3). Akzeptiertes Negativ: Bleibt das Journal im selben Lauf nach einem Fehlschlag liegen, weil die temporäre Datei entfernt wird, räumt `record` es nicht auf; ein Name mit demselben Zufallsteil kommt nicht wieder vor.
+4. *Journal der temporären Datei.* Eine übrig gebliebene Datei im Sinn von `LH-FA-07.a`; `record` sucht und entfernt es nicht. Der Code stimmt; Auftrag: ein Test (§3). Akzeptiertes Negativ: Bleibt das Journal im selben Lauf nach einem Fehlschlag liegen, weil die temporäre Datei entfernt wird, räumt `record` es nicht auf; dass ein Name mit demselben Zufallsteil nicht wiederkommt, ist keine geprüfte Zusage: Die Wahl ist zufällig (16 Hexziffern), `neueTempDatei` prüft nur die `.tmp`-Datei auf Belegung, nicht das Journal (F-621).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -334,6 +345,6 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (Stand 2026-10-11): `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` und `BEO-REPO/spec-randform-erst-im-review-entschieden` (beide verkörpert, `AGENTS.md` §3.10 und §3.12) treffen den neuen Vertrag des Schreibens; §3 fordert die Mutation je Zusage, §6 nennt die Randformen. `BEO-REPO/verhalten-nur-unter-linux-geprueft` (1×, offen) trifft die Grenzen in §6. Keiner erreicht mit diesem Plan 3× neu.
 
-Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`; die Dokumentation zählt hier nicht mit. Nachgezählt beim Schnitt vom 2026-10-11 (Abgabe des Lesens an `slice-v1-abschluss-sqlite-format-lesen`): Liefer-Punkte: 3 (Schreiben mit Fabrik und Option, Schema mit Ersatztest, Architektur-Gate mit Erlaubnisliste). Schichten: zwei (Recording-Adapter, CLI-Adapter); der Bootstrap reicht nur `o.Format` an die Fabrik (Verdrahtung, keine Logik), der Kommentar am Port ist keine Schicht, `schema.yaml`, die Regel in `.a-check.yml` und das Lint-Profil sind Nachzug am Rand. Geschätzt rund 1800 Zeilen mit Tests. Nachgezählt bei der Umsetzung (Implementer): Liefer-Punkte 3, Schichten zwei (Recording-Adapter, CLI-Adapter); der Bootstrap tauscht `recording.YAML{}` gegen `recording.New(o.Format)` und gibt den Fehler der Fabrik zurück wie den von `NewRecordService` (Verdrahtung, keine Logik, `internal/bootstrap/format_test.go` mit ihr), die Kommentare an Port und `RecordService` sind keine Schicht; gemessen 2794 Zeilen hinzu, davon 676 Go-Code und 1975 Go-Tests (§7, *Größe*); die drei Tests des Nachtrags (§7) kommen mit rund 70 Zeilen Go-Tests hinzu, ohne Code und ohne neue Schicht. Gesichtet beim Schnitt: `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (2×) und `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel` (2×) treffen nicht, keine Hälfte liegt an der Grenze und der Slice läuft über `next/` zurück.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`; die Dokumentation zählt hier nicht mit. Nachgezählt beim Schnitt vom 2026-10-11 (Abgabe des Lesens an `slice-v1-abschluss-sqlite-format-lesen`): Liefer-Punkte: 3 (Schreiben mit Fabrik und Option, Schema mit Ersatztest, Architektur-Gate mit Erlaubnisliste). Schichten: zwei (Recording-Adapter, CLI-Adapter); der Bootstrap reicht nur `o.Format` an die Fabrik (Verdrahtung, keine Logik), der Kommentar am Port ist keine Schicht, `schema.yaml`, die Regel in `.a-check.yml` und das Lint-Profil sind Nachzug am Rand. Geschätzt rund 1800 Zeilen mit Tests. Nachgezählt bei der Umsetzung (Implementer): Liefer-Punkte 3, Schichten zwei (Recording-Adapter, CLI-Adapter); der Bootstrap tauscht `recording.YAML{}` gegen `recording.New(o.Format)` und gibt den Fehler der Fabrik zurück wie den von `NewRecordService` (Verdrahtung nach meiner Zählung, keine Einstufung; der Grenzfall steht in §7 *Bootstrap in der Schichtzählung*; `internal/bootstrap/format_test.go` mit ihr), die Kommentare an Port und `RecordService` sind keine Schicht; gemessen 2794 Zeilen hinzu, davon 676 Go-Code und 1975 Go-Tests (§7, *Größe*); die drei Tests des Nachtrags (§7) kommen mit rund 70 Zeilen Go-Tests hinzu, ohne Code und ohne neue Schicht. Gesichtet beim Schnitt: `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (2×) und `BEO-REPO/rueckfuehrung-ohne-verzeichniswechsel` (2×) treffen nicht, keine Hälfte liegt an der Grenze und der Slice läuft über `next/` zurück.
 
-**Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält Produktionscode; die Sub-Area `REPO` ist in `harness/conventions.md` als Greenfield deklariert).

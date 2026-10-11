@@ -224,8 +224,8 @@ func legeSchemaAn(ctx context.Context, tmp string, rec model.Recording) (err err
 // oeffne öffnet die vorhandene Datei path mit den Einstellungen von LH-FA-22.a
 // *Schreiben von `sqlite`*: mode=rw (ohne legt SQLite die Datei still an), das
 // Rollback-Journal, foreign_keys=ON, synchronous=FULL, eine Sperrfrist von
-// sperrfristMS und BEGIN IMMEDIATE für jede Transaktion. Es hält höchstens eine
-// Verbindung und prüft, dass sie sich öffnen lässt.
+// sperrfristMS und BEGIN IMMEDIATE für jede Transaktion. Es prüft, dass sich die
+// Datenbank öffnen lässt.
 func oeffne(ctx context.Context, path string) (*sql.DB, error) {
 	dsn, err := dsnVon(path)
 	if err != nil {
@@ -243,8 +243,8 @@ func oeffne(ctx context.Context, path string) (*sql.DB, error) {
 }
 
 // dsnVon liefert die file:-URI von path mit den Einstellungen von oeffne. Der Pfad
-// gilt wörtlich: Jedes Byte außer Buchstaben, Ziffern und -._~/ steht als %XX, damit
-// ?, # und % nichts anderes bedeuten.
+// gilt wörtlich: %, ? und # stehen als %XX, damit sie nichts anderes bedeuten
+// (TestSQLiteSonderzeichenImPfad).
 func dsnVon(path string) (string, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
