@@ -183,7 +183,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 ### Belege des Implementers
 
 **Stand.** Geliefert sind die drei Liefer-Punkte der DoD (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung
-der Fehler des Lesens) in einem Code-Commit, `45af81d` seit `97f3ca6`, und dem Commit dieser Belege. Neu sind
+der Fehler des Lesens) mit `45af81d` und den Nacharbeiten zu Entscheidungen, Review und Verifikation (Abschnitte unten) seit `97f3ca6`. Neu sind
 `internal/adapters/driven/recording/leser.go`, `sqlite_lesen.go`, `sqlite_lesen_baum.go`, `sqlite_json_lesen.go`,
 `leser_test.go`, `sqlite_lesen_test.go`, `sqlite_lesen_inhalt_test.go` und `test/integration/sqlite_lesen_e2e_test.go`;
 geändert `sqlite.go` (`uriVon` für Schreiben und Lesen, der Platzhalter `Load` entfällt), `export_test.go`,
@@ -267,9 +267,9 @@ Test am Binary schneidet deshalb bei der halben Dateigröße.
 | `make lint` | vor dem Aufteilen von `liesMeta` und `liesInteraktionen`: 4 Befunde (`containedctx`, zweimal `cyclop`, `gocognit`), behoben; danach | 0 Befunde |
 | `make test-integration` | erster Lauf vor der Änderung des Schnitts in `TestE2ELesenAbgelehnt`: rot (der Fall schnitt in eine Indexseite); danach | grün (im Lauf von `make gates` 87 Tests, darunter die vier neuen); legt Netz, Volume und Container unter dem Namen `pgr-it-<pid>` an und entfernt sie danach |
 | `make docs-check`, `make kopf-check`, `make abdeckung-check` | nach `make abdeckung` und dem Nachziehen von §3 | `d-check: 548 Datei(en) geprüft, 0 Befund(e)`; die beiden anderen Exit 0 |
-| `make gates` | auf `45af81d`, Baum sauber | Exit 0, 6 min 11 s; `lint-gegenprobe: gruen`, `a-check-negativ: gruen — alle siebzehn Faelle`, `baseline-verify: v6.18.0 OK`, `kopf-check-gegenprobe: gruen`, `abdeckung-gegenprobe: gruen` |
+| `make gates` | auf `79a821a` (letzter Code-Commit), Baum sauber | Exit 0, 5 min 55 s; `lint-gegenprobe: gruen`, `a-check-negativ: gruen — alle siebzehn Faelle`, `baseline-verify: v6.18.0 OK`, `kopf-check-gegenprobe: gruen`, `abdeckung-gegenprobe: gruen` |
 
-Der Commit dieser Belege ändert nur diesen Plan; ein `make gates` auf ihm ist im Bericht der Übergabe genannt, nicht hier.
+Die Commits nach `79a821a` ändern nur diesen Plan; ein `make gates` auf ihnen ist im Bericht der Übergabe genannt, nicht hier.
 
 **Namensabgleich.** Ein Skript zog aus §3, §6 und diesem Abschnitt jeden Namen `Test…` und jeden Dateinamen in Backticks
 und suchte `^func <Name>(` in `internal/**/*_test.go` und `test/integration/*_test.go` sowie die Dateien im Baum:
@@ -362,6 +362,26 @@ und Interaktion, `TestLesenMeldungOhneWertUndZeile` prüft es.
 Grün bleibt (MK2): `c.Tag == "!!merge"` entfällt. Der Schlüssel ohne Anführungszeichen trägt auch den Wert `<<` und fällt
 unter die erste Bedingung; die zweite ist neben ihr nicht zu trennen (äquivalent im Verhalten, nicht Gegenstand dieses Slice).
 
+### Nacharbeit zur Verifikation (`79a821a`)
+
+**V-175.** Der Leser fragte die Spalten in doppelten Anführungszeichen ab; SQLite liest einen fehlenden Bezeichner so als
+Zeichenkette, `interaction.sql` wurde in einer Datei nur aus einfachen Anfragen zum Text `sql`. Die Abfragen nennen Bezeichner
+jetzt in eckigen Klammern (`[sql]`), ein fehlender ist ein Fehler und damit `PGR-E3003`. Die Ablehnung einer fehlenden Spalte
+nennt `LH-FA-22.a` *Lesen von `sqlite`* ausdrücklich; keine neue Randform.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| jede fehlende Spalte (17) und jede fehlende Tabelle von `meta`, `session`, `interaction`, `message` ist `PGR-E3003`, auch in einer Datei nur aus einfachen Anfragen | Abfrage von `interaction` wieder in doppelten Anführungszeichen (Q-interaction); nur `sql` (Q-sql); alle vier (Q-alle) | `TestLesenJedeFehlendeSpalteUndTabelle` |
+
+Grün bleiben die Mutanten für `meta`, `session` und `message` (Q-meta, Q-session, Q-message): Die Zeichenkette, die SQLite für
+eine fehlende Spalte liefert, trägt dort die falsche Art (Text in einer Zahlenspalte) oder fällt in die Prüfung des Inhalts
+(Formatkennung `value`, JSON `startup`, Richtung, Art, `fields`); nur ein freier Text, `interaction.sql`, nimmt sie an. Die
+eckigen Klammern gelten trotzdem für alle vier Abfragen. Der alte Test `TestLesenFehlendeTabelleOderSpalte` deckte `sql` nur
+mit einer Extended-Interaktion in der Datei ab; dort lehnt eine andere Prüfung die Datei ab.
+**Schreibpfad.** `SQLite.Write` fragt nur `SELECT "id" FROM "session"` ab (`pruefeSessions`): Fehlt die Spalte, liefert die
+Abfrage die Zeichenkette `id`, `Scan` in eine Zahl scheitert, und das Ergebnis ist `PGR-E3001` (gemessen: `Scan error … converting driver.Value type string ("id") to a int64`); die `INSERT`-Anweisungen
+nennen die Spalten in einer Liste, in der ein fehlender Bezeichner ein Fehler ist. Dasselbe Muster mit Folgen liegt dort nicht.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -387,6 +407,6 @@ Hälften.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (`AGENTS.md` §3.13): Liefer-Punkte: 3 (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung der Fehler). Schichten: eine (Recording-Adapter mit seinen Tests); der Bootstrap reicht den Leser nur durch (reine Verdrahtung, zählt nicht), der Integrationstest läuft über das Binary und trägt keine eigene Schicht; die Dokumentation liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`. Geschätzt 1300 bis 1700 Zeilen mit Tests (Nachzählung des Architect vom 2026-10-11: der Geber lag bei rund 2300 mit Tests für Schreiben, JSON und Zeilen; der Leser trägt weniger Code, aber die Tests der Randformen; unter einer Review-Sitzung von rund 2000). Gemessen nach der Nacharbeit zum Review (`git diff --numstat 97f3ca6..415b725 -- '*.go'`): 2330 Zeilen Go, davon 886 Code und 1444 Tests (`git diff --numstat 97f3ca6..182355c -- '*.go'`); Liefer-Punkte und Schichten wie gezählt (drei, eine). Der erste Stand (`45af81d`) lag bei 2090 (799 und 1291), §7 führt die Stufen.
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (`AGENTS.md` §3.13): Liefer-Punkte: 3 (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung der Fehler). Schichten: eine (Recording-Adapter mit seinen Tests); der Bootstrap reicht den Leser nur durch (reine Verdrahtung, zählt nicht), der Integrationstest läuft über das Binary und trägt keine eigene Schicht; die Dokumentation liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`. Geschätzt 1300 bis 1700 Zeilen mit Tests (Nachzählung des Architect vom 2026-10-11: der Geber lag bei rund 2300 mit Tests für Schreiben, JSON und Zeilen; der Leser trägt weniger Code, aber die Tests der Randformen; unter einer Review-Sitzung von rund 2000). Gemessen auf dem Stand `79a821a` (`git diff --numstat 97f3ca6..79a821a -- '*.go'`): 2369 Zeilen Go, davon 888 Code und 1481 Tests; Liefer-Punkte und Schichten wie gezählt (drei, eine). Der erste Stand (`45af81d`) lag bei 2090 (799 und 1291), §7 führt die Stufen.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält die Aufzeichnung als Code unter Spezifikation und Entscheidungen).
