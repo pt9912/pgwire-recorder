@@ -204,6 +204,11 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     ihn. Ändert er das Verhalten, ist er über die Schnittstelle fangbar: ein Test, oder,
     wo §1 neue Fälle ausschließt, eine Test-Idee mit ihrer Grenze in §7, der die Closure
     eine Adresse gibt. Eine Grenze „nur Urteil“ in §6 deckt nur den äquivalenten Mutanten.
+    **Die Begründung eines akzeptierten Negativs, die ein Verhalten der Umgebung behauptet, wird
+    gemessen, nicht angenommen** (seit slice-v1-abschluss-einspielen-tls): „wirkt erst bei der ersten
+    Ladung im Prozess“, „gibt es im Image nicht“, „läuft dort nicht“ — ein Aufruf, der es zeigt, und
+    sein Ergebnis stehen in §6 oder §7 neben dem Negativ; fehlt die Messung, fasst der Satz es
+    enger oder das Negativ entfällt und die Zusage bekommt ihren Test (Schritt 19, `AGENTS.md` §3.10).
     **Nennst du einen anderen Slice als Adresse** (§6, §7; `AGENTS.md` §3.13,
     seit slice-lint-bestand-kern-driven), liest du vorher dessen §1 *Ausdrücklich NICHT* und DoD
     und trägst die Sendung im selben Commit dort ein, mit der Kennung des Gebers. Trifft ein

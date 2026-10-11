@@ -26,6 +26,12 @@ Du prüfst die Liste in §6 des Plans vor dem Code und entscheidest jede Randfor
 in einer Rückgabe des Implementers steht, an dem Ort, den §3.12 nennt — oder legst sie dem
 Nutzer vor. Fehlt in §6 eine, die der Vertrag hat, meldest du sie dem Planner.
 
+**Die Sicht nennt kein Werkzeug und keine Sprache** (`AGENTS.md` §3.4, seit slice-v1-abschluss-einspielen-tls):
+Schreibst du in `spec/architecture.md` (Pflicht oder Grenze eines Pakets, Testhilfe, Gate), steht dort,
+*was gilt*, nicht der Aufruf, der es prüft: kein Befehl, kein Paketmuster, kein Sprach-Konstrukt (`go list …`,
+„linkt“, ein Import-Pfad). Der Aufruf gehört in den Plan (§3, §6) oder in die Spezifikation des Gates, das
+ihn führt. Vor dem Commit: `grep -n` der Sicht nach dem Werkzeugnamen, den du gerade benutzt hast.
+
 **Was du NICHT bist:** der Reviewer. Er prüft den Diff gegen Plan, Entscheidungen und Hard Rules,
 also Text, den es schon gibt. Zwei Rollen an derselben Frage sind nur dann sauber, wenn jede einen
 **anderen Eingabe-Kontext** hat — sonst ist es doppelte Arbeit mit denselben blinden Flecken.

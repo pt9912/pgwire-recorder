@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-einspielen-tls
+**Fund:** §7 behauptete, der Mutant „Fehler des Ladens nimmt die Systemwurzeln“ werde von `TestEinspielTLSZertifikatsspeicher/nicht_ladbarer_Speicher,_in_CA` rot; die Verifikation fuhr ihn (V32), alle Pakete blieben grün (V-167, LOW). Die Tests selbst standen im Code (Namensabgleich der Verifikation: alle gefunden); falsch war die rote Mutation der Zeile. Berichtigt in `42949e6`: Der Mutant ist in der Testumgebung äquivalent, weil nur ein Zertifikat einer vertrauten Wurzel ihn trennt.
