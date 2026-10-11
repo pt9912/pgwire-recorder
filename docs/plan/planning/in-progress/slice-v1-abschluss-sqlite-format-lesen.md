@@ -78,7 +78,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/adapters/driven/recording` | update | Leser für `sqlite` hinter `RecordingRepository`: Formaterkennung an den ersten 16 Bytes, Lesetransaktion, Prüfung der Spalten und der Regeln aus `SPEC-043`, Umkehr des `base64:`-Escapes; Fehlerklassen nach dem primären Ergebniscode |
-| `internal/bootstrap` | update | `replay` und `play` reichen die Wahl des Lesers durch statt `recording.YAML{}`; reine Verdrahtung, der Bootstrap kennt kein Format und keinen Adapter (wie die Fabrik in `slice-v1-abschluss-sqlite-format`) |
+| `internal/bootstrap` | update | `replay` und `play` setzen statt `recording.YAML{}` den Leser des Adapters ein; reine Verdrahtung, der Bootstrap kennt kein Format und unterscheidet keinen Fehler (Entscheidung vom 2026-10-11) |
 | `test/integration` | update | Roundtrip-Gleichheit beider Formate über das Binary (`record --format sqlite`, dann `replay` und `play`); ohne `sqlite3`-Binary und ohne Änderung an `tools/test/run-integration-tests.sh` |
 
 **Aufträge an den Implementer** (vom Architect vor dem Code zu setzen und hier zu prüfen; Quelle der Regeln: `LH-FA-22.a`, `SPEC-043`; die Aufträge zum Lesen standen vor dem Schnitt in `slice-v1-abschluss-sqlite-format` §3):
@@ -89,6 +89,9 @@ Aussagen-Berührung steht hier gar nicht.
 - Je Zusage dieses Vertrags ein Test und eine selbst gefahrene Mutation, im Bericht Zusage · Mutation · roter Test (`AGENTS.md` §3.10).
 - Die Doc-Kommentare nachziehen, die der Slice ändert oder die ihm widersprechen (`AGENTS.md` §3.7, §3.11).
 - Erkennung vor dem Lesen (`LH-FA-22.a` *Wahl und Erkennung*): Datei öffnen, bis zu 16 Bytes lesen; Fehler dabei `PGR-E3001` mit der Ursache, weniger als 16 Bytes ist `yaml`; der Eingabepfad gilt wörtlich. Tests: fehlende Datei, Verzeichnis, leere und 15-Byte-Datei, Pfad mit Sonderzeichen.
+- Der Leser mit Erkennung ist ein Typ des Adapters, der den Port `RecordingRepository` erfüllt, damit `NewReplayService` und `NewPlayService` unverändert bleiben (`Load` erkennt und ruft `YAML.Load` oder den Leser von `SQLite`; `Prepare` und `Write` liefern `PGR-E1000`, ein Aufruf ist ein Programmierfehler). `New(format)` bleibt die Fabrik des Schreibens und ändert sich nicht. Ein Test belegt, dass `Load` mit beiden Formaten dieselbe Aufzeichnung liefert.
+- JSON-Zahl im Lesen: nur ganze, kanonische Zahlen im Bereich von 64 Bit mit Vorzeichen (`SPEC-043`); die Bibliothek darf sie nicht über `float64` führen (Test mit `9007199254740993`, `1.0`, `1e2`, `-0`, `9223372036854775808`).
+- Zeilen ordnet der Leser nach den Nummern, nicht nach der Reihenfolge in der Datei (Test mit vertauscht eingefügten Zeilen); `PRAGMA user_version` und Fremdschlüssel liest und erzwingt er nicht.
 - Eine Randform, die §6 nicht nennt, entscheidet er nicht, sondern gibt sie dem Architect zurück (`AGENTS.md` §3.12).
 
 ## 4. Trigger
@@ -100,7 +103,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer Review-Sitzung prüfbar; die Schätzung liegt bei 900 bis 1000 Zeilen. Schnitt dann: DoD-Punkt 3 (Einstufung der Fehler des Lesens) als eigener Slice.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff ist nicht in einer Review-Sitzung prüfbar; die Schätzung des Architect vom 2026-10-11 liegt bei 1300 bis 1700 Zeilen mit Tests; Rückführung, wenn der Diff rund 2000 Zeilen übersteigt. Schnitt dann: DoD-Punkt 3 (Einstufung der Fehler des Lesens) als eigener Slice.
 - `in-progress` → `next`: Der Slice braucht mehr als einen Codec-Pfad (das Lesen von `sqlite` trägt das Modell nur mit einer zweiten, eigenen Abbildung der Nachrichten neben `yaml`) — zurück zur Zerlegung.
 - `in-progress` → `open`: Die Bibliothek liefert die Bytes eines Strings oder die Ergebniscodes nicht so, wie `LH-FA-22.a` und `SPEC-043` sie voraussetzen — Entscheidung klären.
 
@@ -140,6 +143,10 @@ dasteht.
 | Leser und Erkennung im Recording-Adapter, der Bootstrap reicht nur durch (wie die Fabrik für das Schreiben) | `ARC-008` (Adapter-Grenze); hier §3 — der Architect prüft sie vor dem Code |
 | Eingabepfad mit `?`, `#`, `%` und Leerzeichen gilt wörtlich, für die Erkennung wie für beide Leser | `LH-FA-22.a` *Wahl und Erkennung* |
 | Fehler beim Öffnen oder Lesen der ersten 16 Bytes (Datei fehlt, nicht lesbar, Verzeichnis, Ein- oder Ausgabefehler) `PGR-E3001` wie bei `yaml`; weniger als 16 Bytes ist `yaml`; Reihenfolge: Erkennung, dann Leser | `LH-FA-22.a` *Wahl und Erkennung* |
+| Zahl im JSON-Text: Bruch, Exponent, außerhalb 64 Bit `PGR-E3003` | `SPEC-043` |
+| Reihenfolge der Zeilen ohne Bedeutung; Fremdschlüssel und `user_version` beim Lesen nicht erzwungen und nicht gelesen | `LH-FA-22.a` *Lesen von `sqlite`*, `SPEC-043` |
+| Write-Ahead-Log-Modus einer fremden Datei; Ersetzen der Datei zwischen Erkennung und Lesen (nicht zugesagt, akzeptiertes Negativ: harmlos und ohne Wiederkehr in diesem Werkzeug, das nur Journal-Modus schreibt) | `LH-FA-22.a` *Lesen von `sqlite`*, *Grenze* |
+| Leser mit Erkennung erfüllt den Port, `Prepare` und `Write` `PGR-E1000`; der Bootstrap tauscht nur den Wert | hier §3 (Adapter-Interna, `ARC-008`) |
 | `Load` des SQLite-Adapters aus `slice-v1-abschluss-sqlite-format` (Platzhalter mit `PGR-E1000`) wird hier durch den Leser ersetzt | `slice-v1-abschluss-sqlite-format` §3 (Geber); hier §1 |
 
 ## 7. Closure-Notiz
@@ -183,6 +190,6 @@ Hälften.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (`AGENTS.md` §3.13): Liefer-Punkte: 3 (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung der Fehler). Schichten: eine (Recording-Adapter mit seinen Tests); der Bootstrap reicht den Leser nur durch (reine Verdrahtung, zählt nicht), der Integrationstest läuft über das Binary und trägt keine eigene Schicht; die Dokumentation liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`. Geschätzt 900 bis 1000 Zeilen mit Tests.
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (`AGENTS.md` §3.13): Liefer-Punkte: 3 (Lesen und Roundtrip, Ablehnung beider Formate, Einstufung der Fehler). Schichten: eine (Recording-Adapter mit seinen Tests); der Bootstrap reicht den Leser nur durch (reine Verdrahtung, zählt nicht), der Integrationstest läuft über das Binary und trägt keine eigene Schicht; die Dokumentation liegt im Doku-Folge-Slice `slice-v1-abschluss-sqlite-format-doku`. Geschätzt 1300 bis 1700 Zeilen mit Tests (Nachzählung des Architect vom 2026-10-11: der Geber lag bei rund 2300 mit Tests für Schreiben, JSON und Zeilen; der Leser trägt weniger Code, aber die Tests der Randformen; unter einer Review-Sitzung von rund 2000).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält die Aufzeichnung als Code unter Spezifikation und Entscheidungen).
