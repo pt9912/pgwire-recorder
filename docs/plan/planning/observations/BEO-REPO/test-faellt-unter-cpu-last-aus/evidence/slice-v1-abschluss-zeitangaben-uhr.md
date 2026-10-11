@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-zeitangaben-uhr
+**Fund (Verifikation V-187, INFO):** `TestRunPlayZweitesSignal` (`internal/bootstrap/play_test.go`) fiel unter hoher CPU-Last aus („binnen 30 s keine Client-Nachricht 'X'“), mit 40 gleichzeitigen Rechenschleifen auf 20 Kernen: 3 von 15 Durchgängen am Stand `7127433` und 2 von 12 am Stand `aa07a01` vor dem Slice. Der Slice ändert weder `internal/bootstrap/play.go` noch den Test; die Ursache ist nicht untersucht. Die Tests dieses Slice liefen bei 60 Rechenschleifen 75 Mal ohne Fehlschlag.

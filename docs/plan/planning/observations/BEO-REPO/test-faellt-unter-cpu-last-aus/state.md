@@ -1,0 +1,3 @@
+**Stand:** offen
+
+Ohne Adresse, unter 3×. `slice-harness-lint-warten-ohne-frist` ist keine: Sein Ziel ist die Prüfung auf einen Empfang ohne Frist (`SPEC-049` Punkt 9), und der Test trägt eine Frist von 30 s (`typenBis`, `time.After`); die Ursache unter Last löst die Prüfung nicht, und eine Sendung in seinen Plan müsste der Planner mit Nachzählung seiner Liefer-Punkte und Schichten eintragen (`AGENTS.md` §3.13). `slice-v1-abschluss-zeitangaben` ändert die Signalbehandlung des Play-Service (Abbruch einer Wartezeit) und berührt das Verhalten, das der Test prüft; eine Pflicht, den Test unter Last zu fahren, steht dort nicht.

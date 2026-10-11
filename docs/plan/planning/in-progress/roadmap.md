@@ -20,7 +20,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-erster-release](../welle-erster-release.md)
 - [welle-v1-nachtrag](../welle-v1-nachtrag.md)
 
-In Arbeit: `slice-v1-abschluss-zeitangaben-uhr` (welle-v1-abschluss, Schritt 20). Danach die übrigen Slices in der Reihenfolge des §5 von welle-v1-abschluss. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
+In Arbeit: nichts. Als Nächstes `slice-v1-abschluss-zeitangaben-aufzeichnen` (welle-v1-abschluss, Schritt 21), danach die übrigen Slices in der Reihenfolge des §5 von welle-v1-abschluss. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
 
 
 
