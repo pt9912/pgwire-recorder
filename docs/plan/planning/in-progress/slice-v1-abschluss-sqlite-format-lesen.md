@@ -285,6 +285,28 @@ eine Spalte, keine Datei).
 8. *Größe:* 2090 Zeilen Go, über der Schwelle von §4. **Empfehlung** des Architect an den Planner (Schnitt entscheidet er nicht): hinnehmen. Die Überschreitung ist rund 5 % über „rund 2000“, 1291 der Zeilen sind Tabellen-Tests, 799 Code in einer Schicht mit drei Liefer-Punkten; der in §4 genannte Schnitt (DoD-Punkt 3) ließe sich nicht liefern, denn `stufeCode` und seine Tests hängen am Leser, den DoD-Punkt 1 liefert, und der Code liegt gate-grün vor. Ob der Diff in einer Sitzung prüfbar ist, beurteilt am Ende das Review.
 
 
+### Nacharbeit zu den Entscheidungen des Architect (`ea1ef40`)
+
+Ein Commit, `18695d4`: Surrogat, Meldungen, Abbruch von `ctx`, Doc-Kommentar zum Schließen. Mutationen wie oben (frische
+Kopie, `gofmt -l` leer, Bind-Mount); die Kennung ist die des Laufs.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| ein maskiertes einzelnes Surrogat ist `PGR-E3003`, als Wert und Schlüssel, in `startup` und tief in `fields` | Prüfung entfällt (SG1); tiefes allein angenommen (SG5); Obergrenze des tiefen (SG6) oder Untergrenze (SG7) nicht geprüft; nur `\ud800` als hohes erkannt (SG8) | `TestLesenSurrogate` |
+| ein Paar, `\ufffd` und das wörtliche U+FFFD sind gültig | Paar abgelehnt (SG2); `\ufffd` abgelehnt (SG3); wörtliches U+FFFD abgelehnt (SG3b) | `TestLesenSurrogate` |
+| ein maskierter Backslash vor `ud800` ist Text | Backslash nicht übersprungen (SG4) | `TestLesenSurrogate` |
+| die Meldung nennt keinen Wert aus der Datei und keine Zeilennummer | Ursache der YAML-Bibliothek durchgereicht (ME1); Wert in eigener Meldung: Formatkennung (ME2), Schlüssel (ME3), `type` (ME4), `direction` (ME8), Zahl (ME5), Version (ME6); Zeilennummer (ME7) | `TestLesenMeldungOhneWertUndZeile` (achtzehn Fälle auf den drei Wegen: eigene Prüfung, `Unmarshal`, JSON) |
+| Abbruch von `ctx`: `PGR-E3001` mit der Ursache | `PGR-E3003` (CX1) | `TestLesenNichtLesbarUndKopfOhneInhalt` |
+
+Grün bleibt ein Mutant (ME9): Fällt `ladeInhalt` bei einem Fehler ohne `*model.Error` auf `PGR-E3001` statt `PGR-E3003`, ändert
+sich nichts, denn `Unmarshal` liefert nur `*model.Error`; der Rückfall ist nicht erreichbar. Der doppelte Schlüssel in
+`meta` und die Gruppen (Punkt 4 der Entscheidung) brauchten keinen Code; ihre Tests (`TestLesenMeta`,
+`TestLesenInhaltVerletzt`) nennen die Spezifikationsstelle in ihrer Deklaration. Das Schließen der Datenbank nach dem Lesen
+steht in der Doc von `leseAlsYAML`. **Größe jetzt:** 863 Zeilen Go-Code und 1375 Zeilen Go-Tests seit `97f3ca6`, zusammen 2238.
+Die Meldungen der Dateien `sqlite_lesen*.go` und `sqlite_json_lesen.go` sind auf `%q`, `%v` und `%s` geprüft: Nach den
+Änderungen steht nur noch Tabelle, Spalte, Nummer, Pfad und der Name der Konstante darin; die Ursache der Bibliothek
+(`sqlite`-Fehler, Base64) hängt an Meldungen zum Lesen und zu JSON, nicht an `Unmarshal`.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
