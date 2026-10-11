@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-zeitangaben-pruefen
+**Fund:** `SPEC-001` *Rangfolge der Prüfung* sagt zu, dass die Meldung zu einer `version`, die keine kanonische Dezimalzahl ist, keinen Wert nennt. `TestZeitangabenVersionVorForm` prüfte nur gegen das Wort "Version"; der Mutant C7, der den Wert der Datei an die Meldung hängt, blieb grün (Verifikation V-182, MEDIUM). Behoben in `0d8f285`: Der Test prüft je Fall, dass der Wert der Datei nicht in der Meldung steht; C7 ist rot.

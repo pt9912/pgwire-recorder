@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-zeitangaben-pruefen
+**Fund:** Plan §7 führte für die Zusage "die Meldung nennt keinen Wert" den Mutanten V11 (die Meldung trägt das Wort "Version") als rot; der Mutant, der den Wert der Datei trägt (C7), blieb grün, weil der Test das Wort statt des Werts prüfte (Verifikation V-182, MEDIUM). Der Beleg nannte die Zusage, der rote Test trug sie nicht. Behoben in `0d8f285`.

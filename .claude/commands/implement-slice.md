@@ -193,6 +193,12 @@ Review zu sein scheint: Dem Review weist du keine Randform zu.
     (seit slice-harness-vertraege-spezifikation): „mit A, B und C“, „je …“, „mit 1 ohne
     Zeile“ — je Bedingung eine Mutation, die nur sie bricht, und ein Fall, dem nur sie
     fehlt; rot unter einer Bedingung belegt die anderen nicht.
+    **Der Beleg einer Zusage ist die Mutation, die nur sie bricht, im Wortlaut der Spezifikation**
+    (seit slice-v1-abschluss-zeitangaben-pruefen): „nennt keinen Wert“ bricht ein Mutant, der den
+    Wert der Datei in die Meldung hängt, nicht einer, der ein Wort hineinschreibt; der rote Test
+    wird aus diesem Grund rot, die Ausgabe des Laufs nennt ihn. Rot vieler Tests (der Aufbau bricht)
+    oder einer anderen Prüfung belegt die Zusage nicht. Nennt §7 für eine Zusage einen Mutanten,
+    der etwas Näheres bricht, ist die Zeile unvollständig.
     **Ein „gleich welche(r) X“ in Kommentar, Deklaration oder Plan-Zeile ist eine Zusage über
     alle Ausprägungen von X** (seit slice-v1-abschluss-einspielen-extended): ein Fall je
     Ausprägungsklasse, in dem sie auf beiden Seiten verschieden ist, und eine Mutation, die

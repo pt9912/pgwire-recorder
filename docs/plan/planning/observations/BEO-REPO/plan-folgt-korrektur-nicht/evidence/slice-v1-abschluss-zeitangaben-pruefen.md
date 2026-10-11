@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-zeitangaben-pruefen
+**Fund:** Nach der Korrektur im Code nannte §3 nur `formVorpruefung` und `sessionFromDTO`; geändert waren auch `Unmarshal`, `geprueftFromDTO` und neu `offsetForm` und `kanonischeDezimalzahl`, und §1 ließ "Typ und Vorzeichen liefern die Leser schon" stehen, obwohl das Vorzeichen jetzt die Form prüft (Review F-638, LOW). Behoben in der Nacharbeit zum Review; ein Rest in der Formulierung von §1 (Verifikation V-184, INFO) ist mit der Closure berichtigt.

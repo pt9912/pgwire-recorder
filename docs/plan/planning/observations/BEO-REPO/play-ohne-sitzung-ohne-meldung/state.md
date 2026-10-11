@@ -1,3 +1,3 @@
-**Stand:** offen
+**Stand:** gestrichen
 
-Benannte Spezifikationslücke, 1×. Der Ausgang ist nicht zugewiesen (unter 3×); der Sichtungs-Schritt jeder Planung, die `play` berührt, liest die Beobachtung (`slice-v1-abschluss-antwortvergleich` ändert den Ablauf von `play`). Keine Zuweisung an einen Nehmer, weil keiner den Gegenstand führt und die Entscheidung zuerst in die Spezifikation gehört (Architect mit dem Nutzer).
+Begründung: `LH-FA-20.a` *Start* entscheidet den Fall, `play` ohne Session mit Interaktion verbindet sich nicht und endet mit Exit-Code `0` (Empfehlung des Architect: bewusst schweigen); die benannte Lücke besteht nicht. Das Verzeichnis bleibt liegen.

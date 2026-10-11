@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-zeitangaben-pruefen
+**Fund:** Die Rangfolge mehrerer Fehler zwischen Formatkennung, Version, Form des Werts und Fehler der Bibliothek stand nicht in §6 und entschied der Code: Eine Datei mit `version: abc` und einem unzulässigen `offset_ms` meldete `PGR-E3002` mit "Version 0", einem Wert, der nicht in der Datei steht (Review F-637, MEDIUM). Der Architect entschied die Rangfolge danach in `SPEC-001` (`ae1996d`), der Code folgte in `3cf1f57`.
