@@ -1708,7 +1708,12 @@ Lesetransaktion gelesen: Schreibt ein `record`-Lauf dieselbe Datei, liefert das 
 nur Sessions, die bei seinem Beginn vollständig waren. Ist die Datei nicht lesbar,
 gesperrt (das Lesen wartet höchstens fünf Sekunden auf die Sperre) oder scheitert ein
 Zugriff mit einem Ein- oder Ausgabefehler, ist das `PGR-E3001` mit der Ursache der
-Bibliothek. Jeder Fehler des Inhalts ist `PGR-E3003`: eine Datei mit der Kopfzeile, die
+Bibliothek. Welche Fehler der Bibliothek das sind, entscheidet ihr primärer
+SQLite-Ergebniscode: `SQLITE_PERM`, `BUSY`, `LOCKED`, `NOMEM`, `READONLY`, `INTERRUPT`,
+`IOERR`, `FULL`, `CANTOPEN` und `PROTOCOL` sind `PGR-E3001`, jeder andere Code (etwa
+`CORRUPT`, `NOTADB`, `ERROR`, `SCHEMA`, `CONSTRAINT`) ist `PGR-E3003`. Eine abgeschnittene
+Datei ist `PGR-E3003`, auch wenn die Bibliothek sie mit einem Ein- oder Ausgabefehler
+meldet (`SQLITE_IOERR_SHORT_READ`). Jeder Fehler des Inhalts ist `PGR-E3003`: eine Datei mit der Kopfzeile, die
 kein gültiges SQLite ist, eine fremde SQLite-Datei und eine Datei mit fehlender Tabelle
 oder Spalte, `meta` ohne `format` oder `version`, eine andere Formatkennung, ein
 unbekannter Schlüssel in `meta`, ein Wert, dessen gespeicherte Art nicht die des Typs
@@ -1717,7 +1722,11 @@ ein JSON-Text, der ungültig ist, einen unbekannten Schlüssel oder eine Form tr
 `yaml` ebenso ablehnt, und jede Aufzeichnung, die `yaml` aus inhaltlichen Gründen
 ablehnt (Nummern von Session, Interaktion und Nachricht, die nicht ab 1 lückenlos
 zählen, eine Session ohne Interaktion ohne `empty_sessions`, eine Interaktion, die in
-`SPEC-001` und `SPEC-041` als beschädigt gilt). Geprüft wird in der Reihenfolge
+`SPEC-001` und `SPEC-041` als beschädigt gilt, ein doppelter Schlüssel in einem
+JSON-Objekt) und eine verwaiste Zeile, eine `interaction` ohne `session` oder eine
+`message` ohne `interaction` (das Schema schließt sie nicht aus). Zusätzliche Tabellen,
+Spalten, Indizes und Trigger, die `SPEC-043` nicht nennt, prüft der Leser nicht und
+ignoriert sie; nur Fehlendes ist `PGR-E3003`. Geprüft wird in der Reihenfolge
 Formatkennung, Version, Inhalt wie bei `yaml`. Eine Aufzeichnung ohne Sessions ist
 gültig. *Grenze:* Hinterlässt ein Absturz neben der Datei ein Rollback-Journal
 (`<Datei>-journal`), liest ein nur lesendes Öffnen die Datei nicht zurückgerollt; ob die
@@ -1727,9 +1736,10 @@ wird beim nächsten schreibenden Öffnen durch SQLite, etwa mit dem Werkzeug `sq
 **Schreiben von `sqlite`.** Beim Start prüft `record` den Zielpfad wie in
 `LH-FA-07.a`, gleich welchen Inhalts die vorhandene Datei hat: ohne `--force` ist sie
 `PGR-E2002`, mit `--force` wird sie ersetzt, nie ergänzt (eine vorhandene Aufzeichnung
-fortzusetzen gibt es nicht). Zusätzlich ist eine vorhandene Datei `<Zielpfad>-journal`,
+fortzusetzen gibt es nicht). Danach, nie davor, ist eine vorhandene Datei `<Zielpfad>-journal`,
 das Rollback-Journal eines früheren Laufs, `PGR-E3001`, auch mit `--force` und auch ohne
-Zieldatei; SQLite würde es sonst gegen die neue Datei zurückrollen.
+Zieldatei; SQLite würde es sonst gegen die neue Datei zurückrollen. Eine vorhandene
+Zieldatei ohne `--force` zusammen mit einem Journal ist damit `PGR-E2002`.
 
 Der erste Schreibvorgang (nach der ersten beendeten Session oder beim Beenden,
 `LH-FA-13.a`) legt in einer temporären Datei im Verzeichnis der Zieldatei eine gültige
@@ -1749,14 +1759,19 @@ Scheitert eine Transaktion (Sperre länger als fünf Sekunden, voller Datenträg
 Ein- oder Ausgabefehler), ist das `PGR-E3001` mit der Ursache der Bibliothek; die
 Transaktion ist zurückgerollt, die Datei trägt nur die zuvor ergänzten Sessions, und der
 nächste Schreibvorgang (die nächste beendete Session oder das Beenden) ergänzt, was
-fehlt. Jeder Schreibvorgang öffnet die Datei neu und legt sie nie an; fehlt sie, oder
+fehlt. Jeder Schreibvorgang nach dem Anlegen öffnet die Datei neu und prüft sie, auch wenn er
+nichts zu ergänzen hat (die Datei trägt dann schon alle beendeten Sessions), und legt sie
+nie an; fehlt sie, oder
 trägt `session` nicht genau die Nummern 1 bis zur zuletzt ergänzten Session (ein anderer
 Prozess oder eine ersetzte Datei), ist das `PGR-E3001`, und die Datei bleibt
 unberührt. Der Journalmodus ist das Rollback-Journal (`journal_mode=DELETE`), es
 entstehen keine WAL-Nebendateien, außer `<Zieldatei>-journal` während einer
 Transaktion; Fremdschlüssel sind eingeschaltet (`foreign_keys=ON`), und jede
 Transaktion wird beim Abschluss auf den Datenträger geschrieben (`synchronous=FULL`).
-Jeder Wert (SQL-Text, Startup-Parameter, Nachrichtenfelder) gelangt als Parameter einer
+Scheitert das Schließen der Datenbank, nachdem die Transaktion abgeschlossen ist, ist
+das `PGR-E3001`; die Session ist ergänzt, und der nächste Schreibvorgang trägt sie nicht
+noch einmal ein. Jeder andere Fehler der Bibliothek beim Schreiben, auch eine verletzte
+Bedingung des Schemas, ist `PGR-E3001`. Jeder Wert (SQL-Text, Startup-Parameter, Nachrichtenfelder) gelangt als Parameter einer
 vorbereiteten Anweisung in die Datenbank, nie als Text im SQL. Der Zielpfad gilt
 wörtlich, auch mit Zeichen wie `?`, `#`, `%` und Leerzeichen.
 
@@ -2032,11 +2047,20 @@ fest:
 * `meta` trägt `format` = `pgwire-recorder`, `version` (die Formatversion nach
   `SPEC-001`, unabhängig von der `version` der Schema-Datei) und bei
   `--record-empty-sessions` die Zeile `empty_sessions` = `true`. Die Version steht
-  nur dort; `PRAGMA user_version` wird weder geschrieben noch gelesen.
+  nur dort; `PRAGMA user_version` wird weder geschrieben noch gelesen. `version` ist der
+  Text einer ganzen Zahl in kanonischer Dezimalschreibweise: `0` oder Ziffern ohne
+  führende Null, bei einer negativen Zahl mit `-` davor, ohne `+` und ohne Leerraum.
+  Anderer Text (`abc`, `01`, `+1`, ` 1`, `-0`, leer) ist `PGR-E3003`; jede kanonische
+  Zahl außer `1`, auch `0`, eine negative und eine zu große für 64 Bit, ist `PGR-E3002`.
+  `empty_sessions` trägt genau den Text `true`; jeder andere Wert ist `PGR-E3003`, die
+  Aufzeichnung ohne die Zeile hat keine leeren Sessions.
 * `session.startup` ist der JSON-Text der Startup-Parameter und
   `session.server_parameters` der JSON-Text der `ParameterStatus`-Werte, die der Server
   beim Verbindungsaufbau gesendet hat; beide sind ein Objekt (Name → Wert), ohne Einträge
-  `{}`. `session.id` ist die fortlaufende Nummer nach `LH-FA-12.a`; `session.id`,
+  `{}`; mit `null`, einem Nicht-Objekt oder einem Wert, der kein String ist, ist die
+  Aufzeichnung beschädigt (`PGR-E3003`), und `{}` liest der Leser wie das fehlende Feld
+  in `yaml` (das Modell trägt keine Einträge). `session.id` ist die fortlaufende Nummer
+  nach `LH-FA-12.a`; `session.id`,
   `interaction.sequence` und `message.position` zählen ab 1 lückenlos.
 * `interaction.type` ist `query` oder `extended`; `interaction.sql` trägt den
   SQL-Text bei `query` und ist sonst `NULL`; `interaction.offset_ms` ist `NULL` ohne
@@ -2054,6 +2078,21 @@ fest:
   `SPEC-041`, `SPEC-003`), ohne den Schlüssel `type`, den `kind` trägt. Eine Zeile
   ohne `fields` oder mit einem anderen JSON-Wert als einem Objekt macht die
   Aufzeichnung beschädigt (`PGR-E3003`).
+* Ein String in `session.startup`, `session.server_parameters` und `message.fields`, als
+  Wert wie als Schlüssel eines Objekts, ist JSON-Text und damit gültiges UTF-8. Ein
+  String, dessen Bytes es nicht sind (ein Client mit `client_encoding=LATIN1` sendet `é`
+  als das Byte `0xE9`), steht als `base64:` und seine Bytes in Base64 (`SPEC-003`, Standard-Alphabet
+  mit Auffüllung). Beginnt ein gültiger String mit `base64:` oder mit `\`, steht ein
+  weiteres `\` vor ihm. Der Leser kehrt das um: Beginnt ein String mit `\`, entfernt er
+  dieses eine Zeichen und nimmt den Rest wörtlich; beginnt er sonst mit `base64:`, dekodiert
+  er den Rest (kein gültiges Base64 ist `PGR-E3003`); jeder andere String gilt wörtlich.
+  Jeder String kommt so unverändert zurück, und die Aufzeichnung trägt dieselben Bytes
+  wie in `yaml`. `interaction.sql` ist eine Spalte vom Typ `TEXT` ohne diese Umschreibung
+  und trägt die Bytes des SQL-Textes unverändert, auch ohne gültiges UTF-8.
+* Ein Wert von `interaction.type`, `message.direction` oder `message.kind` außerhalb der
+  Aufzählungen und eine Zeile, die den Regeln dieses Abschnitts widerspricht (`sql` bei
+  `query` `NULL` oder bei `extended` gesetzt, `group_no` bei `query` gesetzt oder bei
+  `extended` `NULL`), macht die Aufzeichnung beschädigt (`PGR-E3003`).
 * Die Zugehörigkeit einer Nachricht zu einer Interaktion (`session_id`, `sequence`)
   lässt sich im neutralen Modell nicht als zusammengesetzter Fremdschlüssel
   ausdrücken; der Adapter stellt sie sicher. Die Fremdschlüssel auf `session` sind
@@ -2582,7 +2621,7 @@ und mit drei eigenen Prüfungen; es schreibt nichts in den Arbeitsbaum.
      eingebauten `print` und `println` sowie `os.Stdout` und `os.Stderr`; die beiden
      letzten sind unter `cmd/` und `test/` erlaubt.
    - `gomodguard_v2`: Erlaubt sind Importe aus der Standardbibliothek, dem Modul selbst
-     und den Modulen `github.com/jackc/pgx/v5` und `go.yaml.in/yaml/v3`. Jedes andere
+     und den Modulen `github.com/jackc/pgx/v5`, `go.yaml.in/yaml/v3` und `modernc.org/sqlite`. Jedes andere
      Modul ist ein Befund, auch eines, das `go.mod` als indirekt führt.
    - `revive`: die Regeln `blank-imports`, `context-as-argument`, `context-keys-type`,
      `dot-imports`, `empty-block`, `error-naming`, `error-return`, `error-strings`,
@@ -2835,3 +2874,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Einspielen: Anmeldung, Iterationszahl `i=` ohne führende Null (strenge Fassung) vom Nutzer bestätigt; die Grammatik `posit-number` der RFC 5802 gegen den Originaltext geprüft (`LH-FA-20.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Wertemenge von `--format`, Erkennung an den ersten 16 Bytes, Fehlerklassen des Lesens, Lesetransaktion, erster Schreibvorgang statt Start, vorhandene Datei ersetzt, nie ergänzt, Rollback-Journal eines früheren Laufs beim Start, Transaktion je Session und Nachholen nach Fehlschlag, Prüfung der Datei vor jedem Ergänzen, Einstellungen, Grenzen der Prüfung (`LH-FA-22.a`); `session.server_parameters`, Zählung von Nummern und Gruppen, Inhalt von `fields`, Version nur in `meta` (`SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: `message.bytes` entfällt, `fields` ist die einzige Darstellung der Nachricht, required und beim Lesen maßgeblich (`SPEC-043`) |
+| 2026-10-11 | Aufzeichnungsformat `sqlite`: Strings ohne gültiges UTF-8 in den JSON-Spalten als `base64:` mit Umschreibung (`SPEC-043`), `interaction.sql` unverändert; kanonische Dezimalschreibweise von `version`, `empty_sessions` nur `true`, zusätzliche Tabellen und Spalten ignoriert, verwaiste Zeilen, doppelte Schlüssel, `NULL` und Nicht-Objekte, Zeilen gegen die Regeln des Abschnitts; Fehlerklassen des Lesens nach primärem SQLite-Ergebniscode, abgeschnittene Datei `PGR-E3003`; Pfadprüfung vor dem Journal, Prüfung der Datei auch ohne Ergänzung, Schließen nach der Transaktion, jeder Fehler des Schreibens `PGR-E3001` (`LH-FA-22.a`, `SPEC-043`); `modernc.org/sqlite` in der Erlaubnisliste des Lint-Gates (`SPEC-049`) |

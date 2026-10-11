@@ -85,7 +85,8 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/arch/a-check-negativ.sh`, `harness/mk/arch-negativ.mk` (Kopf), `harness/README.md` (Zeile `make a-check-negativ`) | update | Die Gegenprobe nennt `modernc.org/sqlite`: im Recording-Adapter zugelassen, im Domain Model, im Postgres-Adapter und in den PGWire-Adaptern abgelehnt; Skript, Kopfkommentar und Gate-Zeile sagen dasselbe (`AGENTS.md` §3.11) |
 | `go.mod`, `go.sum` | update | per `make go-mod-tidy`; `modernc.org/libc` exakt in der Version, die die `go.mod` der Bibliothek festlegt ([ADR-0024](../../adr/0024-sqlite-bibliothek.md)) |
 | `.a-check.yml` (`tech`-Regel) | prüfen | Die Regel für `modernc.org/sqlite` liegt vor; der Slice belegt sie mit der Gegenprobe oben |
-| `test/integration` | update | Roundtrip-Gleichheit beider Formate |
+| `.golangci.yml`, `tools/harness/lint-gegenprobe.sh` | update | `gomodguard_v2.allowed` führt `modernc.org/sqlite` im selben Commit wie `go.mod` ([ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) Punkt 3, `SPEC-049`); die Gegenprobe bekommt den Fall `p5-gomodguard-frei-sqlite` neben `p5-gomodguard-frei-yaml`. Das ist der vorgesehene Nachzug einer Erlaubnisliste, keine Lockerung (`AGENTS.md` §3.6) |
+| `test/integration` | update | Roundtrip-Gleichheit beider Formate über das Binary (`record --format sqlite`, dann `replay` und `play`); ohne `sqlite3`-Binary und ohne Änderung an `tools/test/run-integration-tests.sh` |
 
 **Aufträge an den Implementer** (vom Architect vor dem Code gesetzt; Quelle der Regeln: `LH-FA-22.a`, `SPEC-043`):
 
@@ -94,6 +95,11 @@ Aussagen-Berührung steht hier gar nicht.
 - Transaktion je Session mit `BEGIN IMMEDIATE`; der Pfad der Datei geht als korrekt escapte `file:`-URI an die Bibliothek (Test mit `?`, `#`, `%` und Leerzeichen im Pfad).
 - Je Zusage dieses Vertrags ein Test und eine selbst gefahrene Mutation, im Bericht Zusage · Mutation · roter Test (`AGENTS.md` §3.10); dazu die gemeinsame Zusage der Fabrik (siehe §6).
 - Die Doc-Kommentare nachziehen, die der Slice ändert oder die ihm widersprechen (`AGENTS.md` §3.7, §3.11), insbesondere den Port-Kommentar von `Write`.
+- Strings ohne gültiges UTF-8 (`SPEC-043`, Regel `base64:` mit Umschreibung): ein Codec für Werte und Schlüssel an der Stelle, an der der JSON-Baum zu `yaml.Node` wird und zurück (Tag `!!binary` ↔ `base64:`); Tests mindestens für das Byte `0xE9` in Parse-SQL, einem Startup-Wert, einem Fehlerfeld und einem Schlüssel, für einen gültigen String, der mit `\` oder `base64:` beginnt, und für ungültiges Base64 (`PGR-E3003`); `interaction.sql` mit `0xE9` unverändert hin und zurück. Liefert die Bibliothek die Bytes von `interaction.sql` nicht unverändert zurück, gibt der Implementer es dem Architect zurück.
+- Der Codec bleibt ein Pfad (Rückführung §4): JSON-Baum ↔ `yaml.Node` ↔ die DTOs von `yaml`. Die Umwandlung kennt nur JSON-Typen (Zahl → `!!int`, String → `!!str` in Anführungszeichen, Wahrheitswert, `null`), keine Nachrichtenart; braucht sie ein Wissen über ein Feld, ist das die Rückführung. `Node.Decode` kennt kein `KnownFields`: der unbekannte Schlüssel und die Vorprüfung der Form gehen denselben Weg wie bei `yaml`. Ein Test belegt, dass dieselbe Aufzeichnung aus `yaml` und aus `sqlite` dieselbe Ablehnung bekommt (unbekannter Schlüssel, `null`, doppelter Schlüssel).
+- Datei als `file:`-URI mit `mode=ro` zum Lesen und `mode=rw` zum Ergänzen (ohne `mode` legt SQLite still an), `_txlock=immediate` nur für schreibende Transaktionen, Sperrfrist fünf Sekunden; `context.WithoutCancel` für die Transaktion. Fehlerklasse über `Error.Code()&0xff` und die Menge in `LH-FA-22.a` *Lesen von `sqlite`*; Test mit einer abgeschnittenen Datei an der Seitengrenze und mitten in einer Seite, jeweils `PGR-E3003`.
+- Ob `sqlite3` die Datei liest, prüft dieser Slice nicht (kein Hilfscontainer): die Unabhängigkeit vom Lesecode des Adapters liefert ein Test im Paket des Adapters, der die Datei mit rohem SQL gegen die Liste in `SPEC-043` liest.
+- `.golangci.yml` und `lint-gegenprobe.sh` nachziehen (siehe Tabelle).
 - Eine Randform, die §6 nicht nennt, entscheidet er nicht, sondern gibt sie dem Architect zurück (`AGENTS.md` §3.12).
 
 ## 4. Trigger
@@ -142,6 +148,12 @@ dasteht.
 | Pfad mit Sonderzeichen (`?`, `#`, `%`, Leerzeichen) gilt wörtlich | `LH-FA-22.a` *Schreiben von `sqlite`* |
 | Werte nur als Parameter vorbereiteter Anweisungen (SQL-Injection) | `LH-FA-22.a` *Schreiben von `sqlite`* |
 | `session.server_parameters` im Schema | `SPEC-043`; Nachzug in `tools/schema/schema.yaml` (Auftrag in §3) |
+| Strings ohne gültiges UTF-8 in `startup`, `server_parameters`, `fields` (Wert und Schlüssel); `interaction.sql` roh | `SPEC-043` |
+| `meta.version`: nur kanonischer Dezimaltext, sonst `PGR-E3003`; kanonische Zahl ≠ 1 `PGR-E3002`; `meta.empty_sessions` nur `true` | `SPEC-043` |
+| Zusätzliche Tabellen, Spalten, Indizes ignoriert; verwaiste Zeilen, doppelter Schlüssel, `NULL`, Zeile gegen die Regeln des Abschnitts, `{}` in `startup`/`server_parameters` | `LH-FA-22.a` *Lesen von `sqlite`*, `SPEC-043` |
+| Fehlerklasse beim Lesen nach primärem SQLite-Ergebniscode; abgeschnittene Datei `PGR-E3003` | `LH-FA-22.a` *Lesen von `sqlite`* |
+| Reihenfolge Pfadprüfung vor Journal; Prüfung der Datei auch ohne Ergänzung; Fehler beim Schließen nach der Transaktion; jeder Fehler des Schreibens `PGR-E3001` | `LH-FA-22.a` *Schreiben von `sqlite`* |
+| `modernc.org/sqlite` in der Erlaubnisliste des Lint-Gates | `SPEC-049`; Nachzug in `.golangci.yml` (Auftrag in §3) |
 | Fabrik `recording.New(format)` im Adapter; der Bootstrap reicht nur `o.Format` durch | `ARC-008` (Adapter-Grenze); hier §3 |
 | Gemeinsame Zusage: jeder Wert, den die CLI annimmt, nimmt `New` an | Zusage dieses Slice; Mutation: ein Wert der CLI-Wertemenge aus `New` streichen, der Test über alle CLI-Werte wird rot |
 
