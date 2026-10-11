@@ -74,13 +74,13 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/ports/driven` | neu | Port „Uhr“ (Signatur nach Entscheidung des Architect, §6) |
-| `internal/testuhr` (neu, Package außerhalb des Hexagons) | neu | Fake-Uhr, Vorrücken nur auf Anweisung um eine nicht negative Zahl; weckt alle Wartenden, deren Zeitpunkt erreicht ist; Ort und Zuschnitt entschieden vom Architect (2026-10-11) |
-| `internal/testzeit` (neu, Package außerhalb des Hexagons) | neu | Warten, Frist und Zeitgrenzen in ganzen Millisekunden für die Tests des Kerns, die heute `time` einbinden (`services/play_test.go`, `record_extended_test.go`, `record_zwangsende_test.go`); die einzige Stelle der Tests, die `time` einbindet |
+| `internal/hexagon/ports/driven/uhr.go` | neu | Port „Uhr“: `Jetzt() int64` und `WarteBis(ctx, zeitpunkt int64) error`; die Namen wählte der Implementer, die Zusagen stehen in `LH-FA-21.a` *Uhr* |
+| `internal/testuhr` (neu, Package außerhalb des Hexagons) | neu | Fake-Uhr (`Neu`, `Jetzt`, `WarteBis`, `Vorruecken`, `Wartende`), Vorrücken nur auf Anweisung um eine nicht negative Zahl (eine negative löst eine Panik aus); weckt alle Wartenden, deren Zeitpunkt erreicht ist; Ort und Zuschnitt entschieden vom Architect (2026-10-11) |
+| `internal/testzeit` (neu, Package außerhalb des Hexagons) | neu | `Nach`, `Schlafe`, `NeueFrist` und `Abgelaufen`: Warten, Frist und Zeitgrenzen in ganzen Millisekunden für die Tests des Kerns, die heute `time` einbinden (`services/play_test.go`, `record_extended_test.go`, `record_zwangsende_test.go`); die einzige Stelle der Tests, die `time` einbindet |
 | `internal/hexagon/services` (nur die drei Testdateien) | update | `time.After`/`time.Sleep`/`time.Now` durch `internal/testzeit` ersetzen, ohne Verhalten zu ändern; ohne das wird die Regel rot |
-| `internal/bootstrap` | update | Systemuhr mit Logik (Warten mit Abbruch); wird hier nicht verdrahtet, nur bereitgestellt |
+| `internal/bootstrap/systemuhr.go` | neu | Systemuhr mit Logik (Warten mit Abbruch), bereitgestellt als `NeueSystemuhr`; wird hier nicht in einen Service verdrahtet, denn kein Service nimmt noch eine Uhr |
 | `.a-check.yml`, `tools/arch/a-check-negativ.sh`, `harness/mk/arch-negativ.mk`, `harness/README.md` | update | Regel „Kern bindet `time` nicht ein“ nach [ADR-0015](../../adr/0015-uhr-port.md), Fitness Function; Fallzahl und Beschreibung der Gegenprobe nachziehen; die Regel prüft den Import, nicht den Aufruf |
-| Tests | neu | Vertrag des Ports an der Fake-Uhr und an der Systemuhr, Gegenprobe der Regel |
+| Tests | neu | Vertrag des Ports an der Fake-Uhr (`internal/testuhr/testuhr_test.go`) und an der Systemuhr (`internal/bootstrap/systemuhr_test.go`, `systemuhr_cpu_unix_test.go`), die Testhilfe (`internal/testzeit/testzeit_test.go`), Gegenprobe der Regel (`tools/arch/a-check-negativ.sh`) |
 
 ## 4. Trigger
 
@@ -138,7 +138,57 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+### Belege des Implementers
+
+**Läufe** (Stand: der Baum, der diesen Plan mit diesem Abschnitt trägt): `make gates` grün; `make test-integration` grün. Mutanten liefen in frischen Kopien des Baums (`cp`/`tar` ohne mtime, Test mit `go test` im Image `pgwire-recorder:test` ohne Netz, Kopie als Bind-Mount), nie im Repo; die Mutanten der Regel liefen mit dem Skript der Gegenprobe (`tools/arch/a-check-negativ.sh`) in Kopien.
+
+**Zusage · Mutation · roter Test** (Wortlaut `LH-FA-21.a` *Uhr*):
+
+| Zusage | Mutation (nur sie) | roter Test |
+|---|---|---|
+| Fake: rückt nur auf Anweisung vor | `Jetzt` addiert die Realzeit seit Start | `TestUhrRueckenNurAufAnweisung` (`Jetzt nach Wartezeit ohne Vorruecken: 20`) |
+| Fake: rückt nur auf Anweisung vor | `WarteBis` setzt die Uhr auf den Zeitpunkt | `TestUhrWartetBisZumZeitpunkt` (kehrt bei Jetzt 4 zurück) |
+| Fake: um die genannte Zahl | `jetzt = ms` statt `+=` | `TestUhrRueckenNurAufAnweisung` (3 statt 10) |
+| Fake: negative Zahl ist Programmierfehler | Panik entfernt | `TestUhrVorrueckenNegativPanik` |
+| Fake: null ist erlaubt (Grenze) | Panik schon bei `ms <= 0` | `TestUhrRueckenNurAufAnweisung` |
+| Fake: weckt jeden Wartenden, dessen Zeitpunkt erreicht ist (a: jeden) | weckt nur den ersten | `TestUhrWecktAlleErreichten` (zweiter Wartender mit 5 kehrt nicht zurück) |
+| Fake: (b: dessen Zeitpunkt erreicht ist, gleich) | `<` statt `<=` beim Wecken | `TestUhrWartetBisZumZeitpunkt`, `TestUhrWecktAlleErreichten` |
+| Fake: (c: nur diejenigen) | weckt alle | `TestUhrWartetBisZumZeitpunkt` (kehrt bei Jetzt 4 zurück), `TestUhrWecktAlleErreichten` (Zeitpunkt 10 bei Jetzt 7) |
+| Warten: erreichter Zeitpunkt sofort | `<` statt `<=` beim Prüfen | `TestUhrErreichterZeitpunktSofort` |
+| Warten: beendeter Kontext geht vor, auch bei vergangenem Zeitpunkt | Vorab-Prüfung des Kontexts entfernt | `TestUhrBeendeterKontextVorDemWarten` (`WarteBis(-1)` liefert nil) |
+| Warten: Fehler des Kontexts, vor dem Warten | Vorab-Prüfung liefert immer `context.Canceled` | `TestUhrBeendeterKontextVorDemWarten` (Frist abgelaufen) |
+| Warten: Fehler des Kontexts, während des Wartens | Abbruch liefert `context.Canceled` | `TestUhrAbbruchWaehrendDesWartens` (Fristablauf) |
+| Warten: Abbruch kehrt mit dem Fehler zurück (nicht nil) | Abbruch liefert nil | `TestUhrAbbruchWaehrendDesWartens` |
+| Warten: ein Abgebrochener wartet nicht mehr | Abbruch trägt den Wartenden nicht aus | `TestUhrAbbruchWaehrendDesWartens` (`Wartende nach Abbruch: 1`) |
+| Systemuhr: Ursprung bei ihrer Erzeugung | Ursprung eine Stunde zurück | `TestSystemuhrUrsprungBeiErzeugung`, `TestSystemuhrLesungAbgeschnitten` |
+| Systemuhr: Ursprung bei Erzeugung (Gegenform) | Lesung aus der Wanduhr (`UnixNano`) | `TestSystemuhrUrsprungBeiErzeugung` |
+| Systemuhr: abgeschnitten | Lesung gerundet statt abgeschnitten | `TestSystemuhrLesungAbgeschnitten` (`Lesung 8 ms über der Obergrenze 7 ms`) |
+| Systemuhr: nie kleiner als die vorige | Lesung plus 0 oder 1 nach Zufall | `TestSystemuhrMonoton` (`Lesung 1 nach 2`) |
+| Systemuhr: aus der monotonen Zeit | Ursprung ohne Messwert der monotonen Zeit (`Round(0)`) | `TestSystemuhrUrsprungTraegtMonotonenMesswert` |
+| Systemuhr: Warten nicht vor dem Zeitpunkt | halbe Wartezeit und kein Nachlesen nach dem Timer | `TestSystemuhrWartenUntergrenze` (`WarteBis(51) kehrte bei Lesung 26 zurück`) |
+| Systemuhr: erreichter oder vergangener Zeitpunkt sofort | Sofort-Rückkehr entfernt | `TestSystemuhrWartenUntergrenze`, `TestSystemuhrVergangenerZeitpunktSofort` (hängt) |
+| Systemuhr: vergangener Zeitpunkt, auch `math.MinInt64` | Abstand vor dem Vergleich gebildet (Überlauf) | `TestSystemuhrVergangenerZeitpunktSofort` (`WarteBis(-9223372036854775808)` hängt) |
+| Systemuhr: beendeter Kontext geht vor | Prüfung des Kontexts entfernt | `TestSystemuhrBeendeterKontextVorDemWarten` |
+| Systemuhr: Fehler des Kontexts, während des Wartens | Abbruch liefert `context.Canceled` / nil | `TestSystemuhrAbbruchWaehrendDesWartens` (Fristablauf / Abbruch) |
+| Systemuhr: Abbruch beendet das Warten | `ctx.Done` ignoriert | `TestSystemuhrAbbruchWaehrendDesWartens` (hängt) |
+| Systemuhr: ferner Zeitpunkt (Abstand über der größten Dauer) wartet bis zum Abbruch, ohne zu drehen | Begrenzung der Stufe entfernt | `TestSystemuhrFernerZeitpunktDrehtNicht` (`350.757ms CPU-Zeit`); mit zusätzlich entferntem Nachlesen auch `TestSystemuhrAbbruchWaehrendDesWartens` (nil statt Fehler) |
+| Testhilfe: ganze Millisekunden | Mikrosekunden | `TestWartenInMillisekunden` |
+| Testhilfe: Frist läuft nach ihren Millisekunden ab | Frist sofort / nie abgelaufen | `TestFristLaeuftNachMillisekundenAb` (zwei Mutanten) |
+| Regel: `time` im Domain Model, in den Ports und in den Services abgelehnt | Eintrag aus `.a-check.yml` entfernt | `make a-check-negativ`: Fälle `model-time`, `ports-time`, `services-time` rot-erwartet, a-check grün |
+| Regel: Muster ist kein Teiltext | Muster `time` statt `^time$` | `make a-check-negativ`: Fall `model-runtime` |
+| Regel: Muster ist ein regulärer Ausdruck | `match: regex` entfernt | `make a-check-negativ`: die drei Fälle der Ablehnung |
+| Regel: Adapter zugelassen | `internal/adapters` aus der Liste entfernt | `make a-check-negativ`: Fall `pgwire-time` (und der Bestand der Adapter) |
+| Regel: die Tests des Kerns binden `time` nicht ein | `_ "time"` in `record_zwangsende_test.go` | `make a-check` (`app-impurity`, nennt die Datei) |
+
+**Grüne Mutanten:**
+
+- *Nachlesen nach dem Timer entfernt, ohne halbe Wartezeit* (`return nil` nach `timer.C`): grün, äquivalent. Ein Go-Timer läuft nicht früher ab als seine Dauer; die Lesung ist ab der gelesenen Lesung um mindestens `rest` Millisekunden gewachsen und damit abgeschnitten nicht kleiner als der Zeitpunkt. Die Gegenform (mit halber Wartezeit) ist rot, siehe Tabelle.
+- *`internal/bootstrap` aus der Liste der zugelassenen Orte entfernt*: grün, `internal/bootstrap/**` ist `composition_root` und von der Regel ausgenommen; der Eintrag in der Liste ist redundant (Fall `bootstrap-time` hält den zugelassenen Zustand fest, nicht den Eintrag). Das gilt ebenso für `cmd`, `test` und die Testhilfen unter `internal/`: a-check meldet sie als Dateien in keiner Schicht, ungeprüft.
+- *Begrenzung der Stufe entfernt, Nachlesen bleibt*: war zuerst grün (der Zeitpunkt `math.MaxInt64` endet am Abbruch des Kontexts, nur die Rechnerlast unterscheidet sich); über die CPU-Zeit fangbar, `TestSystemuhrFernerZeitpunktDrehtNicht`.
+
+**Grenze:** Dass die Systemuhr einer Änderung der Wanduhr nicht folgt, prüft kein Test; geprüft ist, dass der Ursprung den Messwert der monotonen Zeit trägt (`TestSystemuhrUrsprungTraegtMonotonenMesswert`), und dass die Lesung nicht aus der Wanduhr stammt (Mutant oben). Ein Test, der die Wanduhr verstellt, ist im Container nicht möglich.
+
+Wird bei Closure gefüllt (vor dem `git mv` nach `done/`) — der Rest dieses Abschnitts: Lerneintrag, Ausgänge der Risiken.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -159,6 +209,6 @@ nicht mehr.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Liefer-Punkte: 3 (die Migration der Tests gehört zum dritten Punkt, ohne sie ist die Regel rot). Schichten: zwei (Kern mit dem Port und seinen Tests, Bootstrap mit der Systemuhr — Logik: Warten mit Abbruch zählt, `AGENTS.md` §3.13); das Gate (`.a-check.yml`) ist ein Liefer-Punkt, keine Produkt-Schicht, wie bei `slice-v1-abschluss-sqlite-format`. Nachgezählt beim Schnitt und vom Architect vor dem Code (2026-10-11). Sitzt die Systemuhr in einem Adapter statt im Bootstrap, sind es zwei Schichten mit Adapter und Kern und derselbe Befund.
+Liefer-Punkte: 3 (die Migration der Tests gehört zum dritten Punkt, ohne sie ist die Regel rot). Schichten: zwei (Kern mit dem Port und seinen Tests, Bootstrap mit der Systemuhr — Logik: Warten mit Abbruch zählt, `AGENTS.md` §3.13); das Gate (`.a-check.yml`) ist ein Liefer-Punkt, keine Produkt-Schicht, wie bei `slice-v1-abschluss-sqlite-format`. Nachgezählt beim Schnitt und vom Architect vor dem Code (2026-10-11), beim Umsetzen unverändert: drei Liefer-Punkte, zwei Schichten (Kern, Bootstrap). Sitzt die Systemuhr in einem Adapter statt im Bootstrap, sind es zwei Schichten mit Adapter und Kern und derselbe Befund.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
