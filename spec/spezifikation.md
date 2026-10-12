@@ -923,7 +923,7 @@ gesetzt, auch mit leerem Wert (`--listen=`), und ein leerer Wert ist für keine
 Option gültig (`PGR-E2001`, geprüft mit der Kommandozeile), auch wenn die
 Umgebungsvariable derselben Option gesetzt ist; nur eine leere Umgebungsvariable
 gilt als nicht gesetzt. Eine gesetzte, nicht leere Umgebungsvariable einer
-Option, die das Kommando nicht kennt (Spalte *Kommandos* der Tabelle unten), ist
+Option, die das Kommando nicht kennt (Spalte *Kommando* der Tabelle unten), ist
 `PGR-E2001`, gleich welchen Wert sie hat, wie die Option selbst auf der
 Kommandozeile; die Meldung nennt den Namen der Variable, nicht ihren Wert. Das
 gilt für jede Option der Tabelle. Zwei Ausnahmen: `PGWIRE_RECORDER_PASSWORD` hat

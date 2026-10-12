@@ -1,14 +1,14 @@
 # ADR-0038: Gate-Kette in voller und schneller Kette, Wahl am geänderten Pfad
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-12
 
-**Autor:** Architect (Empfehlung; Entscheidung beim Nutzer)
+**Autor:** Architect; angenommen durch Entscheidung des Nutzers vom 2026-10-12 („ok deine Vorschläge“, Option B mit den Setzungen unter Entscheidung)
 
 **Bezug:** [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes), [ADR-0034](0034-lint-gate-mit-solid-nahem-profil.md), [ADR-0026](0026-build-und-test-im-multistage-dockerfile.md), [ADR-0001](0001-hexagonale-architektur.md)
 
-**Schärft:** — (Prozess-ADR; die Spezifikation der Kettenwahl entsteht mit dem Folge-Slice als eigene Stelle im Technik-Stratum, `SPEC-049` bleibt unverändert, siehe Konsequenzen)
+**Schärft:** `SPEC-052` (Gate-Kette und Wahl der Kette, §11 Harness-Werkzeuge der Spezifikation; die Stelle legt der Folge-Slice an, die Kennung ist hier vergeben und löst auf, sobald sie steht; `SPEC-049` bleibt unverändert)
 
 **Regeln:** Baseline-Regelwerk `modul-04-adrs.md` §Ziel-Form: ADR (MADR).
 
@@ -27,7 +27,7 @@ Zwei Befunde aus dem Bestand bestimmen die Wahl:
 
 `make gates` ist heute die Zusage „voller Nachweis“. `AGENTS.md` §3.6 gilt für Schwellen; eine Bedingung an einem Gate ändert diese Zusage und gehört deshalb in eine ADR, obwohl keine Schwelle sinkt.
 
-## Entscheidung (Empfehlung)
+## Entscheidung
 
 Wir wählen **Option B, eng gefasst: zwei Ketten, die Wahl trifft eine Positivliste mit Rückfall auf die volle Kette.**
 
@@ -36,7 +36,10 @@ Wir wählen **Option B, eng gefasst: zwei Ketten, die Wahl trifft eine Positivli
 3. Der Stop-Hook wählt nicht über eine Liste der Eingaben je Gegenprobe, sondern **umgekehrt über eine Positivliste inerter Pfade** (Planung, Reports, Review-Berichte; weitere Pfade nur, wenn belegt ist, dass kein langsames Gate sie liest). Verglichen wird der Arbeitsbaum mit dem Stand des letzten **vollen** grünen Laufs; liegt jede geänderte, hinzugekommene oder gelöschte Datei auf der Positivliste und ist der Stand der schnellen Kette grün, gibt der Hook frei. Jeder andere Fall, ein fehlender Stand des vollen Laufs, ein nicht lesbarer Vergleich, ein unbekannter Pfad, verlangt `make gates` (fail-closed).
 4. Die Positivliste, die Form des Nachweises (Liste der Dateihashes des vollen Laufs statt eines einzelnen Hashs) und die Randformen (Umbenennung, Löschung, Symlink, untracked Datei, Pfad auf der Grenze) stehen in der Spezifikation, nicht hier (`AGENTS.md` §3.8). Gegenproben des Hooks sind Teil der Lieferung (`AGENTS.md` §3.10).
 
-Der Nutzer entscheidet, ob er diese Empfehlung annimmt und welche Pfade zur Positivliste gehören; bis dahin ist die ADR ein Vorschlag.
+**Setzungen des Nutzers (Entscheidung vom 2026-10-12):**
+
+- Die Positivliste enthält zu Beginn **nur `docs/plan/planning/` und `docs/reviews/`**. `docs/plan/adr/`, `spec/`, `docs/user/` und `README.md` bleiben draußen, bis ein Slice belegt, dass kein langsames Gate sie liest; das Benutzerhandbuch ist der heikle Fall, weil Beispiele als Dateien gegen das gebaute Binary laufen (`AGENTS.md` §3.11). Eine Aufnahme ist eine Änderung der Spezifikations-Stelle mit diesem Beleg; eine neue ADR braucht sie nicht, solange die Regel dieser Entscheidung gilt (Positivliste, Rückfall auf voll).
+- Der Nachweis wird eine **Dateiliste statt eines Hashs** (Änderung an `tools/harness/record-gates.sh` und `tools/harness/working-tree-hash.sh`). Das gehört in den Folge-Slice und wird dort mit einer Gegenprobe des Hooks abgesichert (Punkt 4).
 
 ## Verglichene Alternativen
 
@@ -54,7 +57,7 @@ Zu C bleibt festzuhalten: Die Messung ist eine Last-, keine Korrektheitsfrage. W
 - Positiv: Doku- und Planungs-Commits brauchen Sekunden statt Minuten; Code, Gates und Konfiguration behalten den vollen Nachweis; ein Fehler in der Pfadwahl führt zum vollen Lauf, nicht zu einem Grün.
 - Negativ: `tools/harness/record-gates.sh`, `tools/harness/working-tree-hash.sh` und der Hook ändern sich; der Hook ist die Stelle, die den Nachweis prüft, ein Fehler dort bleibt ungeprüft, solange keine Gegenprobe ihn fängt. Das ist das Restrisiko dieser Option und der Grund für Punkt 4 der Entscheidung.
 - Akzeptiertes Negativ: Ein Commit, der nur inerte Pfade ändert, aber eine Datei einführt, die später ein Gate liest, wird beim ersten Lauf der vollen Kette gefunden, nicht beim Doku-Commit. Der Grund: Die Positivliste nennt nur Pfade, die kein langsames Gate liest; ein späterer Leser ändert Code oder Gates und löst damit den vollen Lauf aus.
-- Folgepflicht: ein Folge-Slice (Kennung vergibt der Planner nach der Entscheidung des Nutzers) liefert die Spezifikations-Stelle, die schnelle Kette, die Nachweisform, die Hook-Änderung samt Gegenprobe und trägt die Gate-Zeilen in `harness/README.md` §Sensors nach. Die Kennung wird hier nicht erfunden. `harness/conventions.md` §Welche Regelblöcke des Baums hier einen Träger haben nennt `grundlagen-durchsetzungsschicht.md` und seine Träger; sie ziehen mit.
+- Folgepflicht: ein Folge-Slice (Kennung vergibt der Planner) liefert die Spezifikations-Stelle `SPEC-052`, die schnelle Kette, die Nachweisform, die Hook-Änderung samt Gegenprobe und trägt die Gate-Zeilen in `harness/README.md` §Sensors nach. Die Kennung wird hier nicht erfunden. `harness/conventions.md` §Welche Regelblöcke des Baums hier einen Träger haben nennt `grundlagen-durchsetzungsschicht.md` und seine Träger; sie ziehen mit.
 
 ## Fitness Function (falls maschinell prüfbar)
 
@@ -73,5 +76,6 @@ Wenn die volle Kette unter eine Minute fällt; wenn die Positivliste mehr Fehlen
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-12 | Proposed | — |
+| 2026-10-12 | Accepted: Entscheidung des Nutzers, Option B mit den Setzungen (Positivliste, Dateiliste) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

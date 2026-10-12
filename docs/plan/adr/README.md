@@ -41,7 +41,7 @@
 | [0035](0035-struktur-kennungen-im-commit-hook-abgelehnt.md) | Struktur-Kennungen im Commit-Hook abgelehnt | Accepted | [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit) |
 | [0036](0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) | YAML-Bibliothek auch für die Konfigurationsdatei im CLI-Adapter | Accepted | [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
 | [0037](0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md) | YAML-Bibliothek im CLI-Adapter auch für die Anzeige der Konfigurationsdatei | Accepted | [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
-| [0038](0038-gate-kette-voll-und-schnell.md) | Gate-Kette in voller und schneller Kette, Wahl am geänderten Pfad | Proposed | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
+| [0038](0038-gate-kette-voll-und-schnell.md) | Gate-Kette in voller und schneller Kette, Wahl am geänderten Pfad | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 
 ## Konventionen
 
