@@ -13,3 +13,7 @@ Der Satz zu den Mutanten der Befehlsfolge in `.claude/commands/implement-slice.m
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-umgebung-anderes-kommando` (F-1) — ein Handbuchsatz über „Variablen mit dem Präfix“ war weiter als die Probe; die Regel „gleich welche(r) X“ galt schon, der Implementer wandte sie erst nach dem Review an (Beleg `evidence/slice-v1-abschluss-umgebung-anderes-kommando.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-antwortvergleich` (F-667) — eine Abdeckungs-Deklaration nannte `LH-FA-17/Boundary`, die der Test nicht prüft (Beleg `evidence/slice-v1-abschluss-antwortvergleich.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-antwortvergleich-doku` (F-673, F-674, V-301) — Handbuchsätze weiter als die Probe, davon zwei als unveränderter Satz neben dem neuen Abschnitt (Beleg `evidence/slice-v1-abschluss-antwortvergleich-doku.md`).
+
+Der Satz zur Durchsicht nach der Klasse „unveränderter Satz neben einem neuen“ in `.claude/commands/implement-slice.md` Schritt 17 (das Merkmal kommt aus der Allgemeinregel, die der neue Abschnitt einschränkt, nicht aus dem Gegenstand) — Herkunfts-Anker `seit slice-v1-abschluss-antwortvergleich-doku` (Beleg `evidence/slice-v1-abschluss-antwortvergleich-doku.md`, F-673, V-301).

@@ -149,6 +149,10 @@ entschieden“) ersetzt die Rückgabe nicht, wenn der Commit sie schon trägt.
     Ein Satz, der unverändert bleibt und unmittelbar neben einem neuen Satz über denselben
     Gegenstand steht, liest sich für dessen Fall mit: Er bekommt eine Probe oder einen Test für
     diesen Fall oder wird enger gefasst (seit slice-v1-abschluss-einspielen-extended-doku).
+    Die Durchsicht nach dieser Klasse nimmt ihr Merkmal aus den Aussagen des neuen Abschnitts,
+    die eine Allgemeinregel des Bestands einschränken (eine Ausnahme beim Exit-Code, bei der
+    Reihenfolge, beim Standardwert), und sucht den Bestand nach dieser Allgemeinregel ab, nicht nur
+    nach Sätzen über denselben Gegenstand (seit slice-v1-abschluss-antwortvergleich-doku).
     Jeder Satz mit einer Verhaltensaussage hat in der Probe-Tabelle von §7 seine eigene Zeile,
     auch ein Nebensatz über die Art, wie etwas geschieht („legt die Datei über die temporäre
     Datei an“); ein Satz ohne Zeile wird gestrichen oder bekommt sie. Ein Wort, das einen

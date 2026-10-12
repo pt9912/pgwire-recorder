@@ -52,16 +52,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
-- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-antwortvergleich` liefert, im Ist-Zustand des gebauten Binaries (zu `--compare-responses` mit Umgebungsvariable und dem Verhalten beim anderen Kommando, aus `slice-v1-abschluss-umgebung-anderes-kommando`; Probe am gebauten Binary): Die Abschnitte, die Kommandos, Optionen, Meldungscodes, Beispiele und Grenzen dieses Slice betreffen, stehen im Handbuch, und die Grenz-Sätze, die er überholt, sind ersetzt. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
-- [ ] `README.md` nennt, was `slice-v1-abschluss-antwortvergleich` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-antwortvergleich` liefert, im Ist-Zustand des gebauten Binaries (zu `--compare-responses` mit Umgebungsvariable und dem Verhalten beim anderen Kommando, aus `slice-v1-abschluss-umgebung-anderes-kommando`; Probe am gebauten Binary): Die Abschnitte, die Kommandos, Optionen, Meldungscodes, Beispiele und Grenzen dieses Slice betreffen, stehen im Handbuch, und die Grenz-Sätze, die er überholt, sind ersetzt. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
+- [x] `README.md` nennt, was `slice-v1-abschluss-antwortvergleich` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -111,8 +111,8 @@ dasteht.
 
 **Risiken:**
 
-- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** offen bis Closure.
-- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** offen bis Closure.
+- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 3×, nicht zugewiesen) — **Ausgang:** *weiter offen* — bleibt 3× im Register, nicht zugewiesen (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, `state.md`); die Proben laufen unter Linux im Container, das Handbuch sagt zu anderen Plattformen nichts.
+- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** *entfallen* — nicht eingetreten: Die Verifikation bestätigt DoD-Punkte 1 und 2; was bis `slice-v1-abschluss-verbindungsende-doku` ungenannt bleibt (das aufgezeichnete Ende), ist keine Lücke dieses Teils, sondern die akzeptierte Lücke aus §1 (Entscheidung des Nutzers vom 2026-10-12) mit dem Nehmer `slice-v1-abschluss-verbindungsende-doku`; `state.md` der Beobachtung vermerkt „Teil geliefert“.
 
 ## 7. Closure-Notiz
 
@@ -235,9 +235,31 @@ Vorher/nachher am Binary: Exit 4 vor und nach der Änderung (das Binary ist unve
 
 **V-302 (INFO).** Begründung zu F-673 oben geändert. Ergebnis des Verifiers, nicht des Implementers und nicht ins Handbuch gehoben: mit `--compare-responses` bleibt COPY `PGR-E6001` (Exit 6), die abgelehnte Anmeldung `PGR-E4005` (Exit 4), und `--finish-session-on-interrupt` setzt die laufende Sitzung fort. Der Satz im Handbuch und der README-Satz bleiben bei „ohne `--compare-responses`“, weil keine Probe von mir die Aussage mit Option trägt.
 
-**V-303 (INFO).** `make gates` am Stand `ff4be93` (Arbeitsbaum sauber): Exit 0 (Laufzeit 5 min 7 s); er enthält Handbuch (`db1ef8d`) und diesen Abschnitt. Der Commit danach ändert nur diese Zeile.
+**V-303 (INFO).** Gate-Beleg für den letzten Stand der Arbeit: `make gates` am Stand `e0acab9` durch den Auftraggeber (Exit 0, 19:31:40 bis 19:39:23; Stand vor der Verifikation); am Stand `ff4be93` durch den Implementer (Arbeitsbaum sauber): Exit 0 (Laufzeit 5 min 7 s), er enthält Handbuch (`db1ef8d`) und diesen Abschnitt; am Stand `cbbf959` durch den Implementer, der sich von `ff4be93` nur in dieser Zeile unterscheidet (der Stop-Hook bestätigt den Baum bei `cbbf959` als gedeckt). Die Commits der Closure ändern nur diesen Plan, das Register, die Roadmap und `.claude/commands/implement-slice.md`; `make gates` am Stand nach der Closure steht aus und ist die Messung des Auftraggebers.
 
 **Befehlsfolge** am Stand `db1ef8d` (Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`): Optionen `--h`, `--help`, `--name`, `--rm`, `--version` (Nicht-Optionen bzw. `docker run`); Variablen leer; Codes leer. `make docs-check`: 656 Dateien, 0 Befunde.
+
+### Closure
+
+**Review und Verifikation.** Review (`59eab7c`): F-673, F-674 (LOW), F-675 bis F-678 (INFO); F-673, F-674 erledigt in `f106e12`, F-676 und F-678 (b) mit; F-675, F-677, F-678 (a) ohne Handlung (begründet in der Tabelle *Nacharbeit nach dem Review*). Verifikation (`c57f187`): DoD-Punkte 1 und 2 bestätigt; V-301 (LOW) erledigt in `db1ef8d`; V-302 (INFO): Die Begründung zu F-673 ist korrigiert, der Handbuchsatz bleibt bei „ohne `--compare-responses`“, weil keine Probe des Implementers die Aussage mit Option trägt; V-303 (INFO) steht oben (Gate-Stand `cbbf959`); V-304 (INFO): Roadmap-Zeile *In Arbeit* nachgezogen mit der Closure. F-675 bis F-677 sind INFO ohne Folge.
+
+**Offene Entscheidung des Nutzers:** keine. Die Lücke zum aufgezeichneten Ende des Servers (kein Satz im Handbuch) ist vom Nutzer akzeptiert (Entscheidung vom 2026-10-12, Option B, [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md)).
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge): siehe §6; Beispiel läuft nur unter Linux: *weiter offen*; Teil von Handbuch und README nicht geliefert: *entfallen*.
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure):
+
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — neue Datei `evidence/slice-v1-abschluss-antwortvergleich-doku.md` (F-673, F-674, V-301): 45 → 46. Verkörpert (`AGENTS.md` §3.11, `implement-slice.md` Schritt 17); `state.md` führt „Wiederaufgetreten, Regel bleibt“ und den Anker unten.
+- `BEO-REPO/plan-folgt-korrektur-nicht` — kein neues Auftreten (kein Befund gegen den Plan; V-303 betrifft den Gate-Beleg, nicht §1, §3, §6); bleibt 36×, verkörpert.
+- `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` — kein Auftreten; vermerkt „Teil geliefert“, bleibt 1×, offen.
+- `BEO-REPO/verhalten-nur-unter-linux-geprueft` — kein neues Auftreten; vermerkt in `state.md`, bleibt 3×, nicht zugewiesen (der Lese-Schritt der Closure von welle-v1-abschluss weist zu).
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3× neu. Retirement-Check: `AGENTS.md` §3.11 (Handbuch gilt nur mit Probe; unveränderter Satz neben einem neuen) ist wieder aufgetreten; die Regel bleibt.
+
+**Lerneintrag — geschärfte Regel.** Die Durchsicht nach der Klasse zu F-673 (Merkmal: „ein Satz über `play` ohne Bezug auf den Vergleich“) fand die Exit-Code-Sätze nicht, die der neue Abschnitt einschränkt (V-301): Das Merkmal kam aus dem Gegenstand, nicht aus der Allgemeinregel, die der Abschnitt durchbricht („der erste Fehler bestimmt den Exit-Code“). `implement-slice.md` Schritt 17 sagt jetzt: Die Durchsicht nimmt ihr Merkmal aus den Aussagen des neuen Abschnitts, die eine Allgemeinregel des Bestands einschränken, und sucht den Bestand nach dieser Allgemeinregel ab. `liegt in` `.claude/commands/implement-slice.md` Schritt 17 — Herkunfts-Anker `seit slice-v1-abschluss-antwortvergleich-doku`. Der Satz ist als Vorschlag des Planners eingetragen; der Nutzer kann ihn streichen.
+
+**Paarungen.** (a) Anker: Der Satz in Schritt 17 von `.claude/commands/implement-slice.md` trägt `seit slice-v1-abschluss-antwortvergleich-doku` (`grep`), `state.md` von `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` nennt ihn. (b) Folge-Slice: Die Sätze zu `FATAL`/`PANIC` bei `--compare-responses` (Abgrenzung in §1) gehen an `slice-v1-abschluss-verbindungsende-doku`. Der Nehmer liegt in `next/`, ist nicht geschlossen, nennt die Sendung in §1 (`Übernommen aus slice-v1-abschluss-antwortvergleich-doku`, `grep`) und führt `PGR-E5004` und `--compare-responses` im Handbuch-Punkt seiner DoD; sein §1 schließt sie nicht aus. (c) Register: die genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
+
+**Nachzählen.** Die Sendung steht im Nehmer seit seiner Eintragung (Planner, 2026-10-12, mit Nachzählung in dessen §8); diese Closure ändert den Nehmer nicht, daher kein weiteres Nachzählen. Dieser Slice hat 2 Liefer-Punkte und eine Schicht (Dokumentation), wie in §8.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
