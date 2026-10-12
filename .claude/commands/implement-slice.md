@@ -161,6 +161,9 @@ entschieden“) ersetzt die Rückgabe nicht, wenn der Commit sie schon trägt.
     (`comm -23 $W/v-hb $W/v-help | grep -vx PGWIRE_RECORDER_PASSWORD`); jede andere Variable ohne
     Option bleibt ein Befund, und „grün“ ohne die benannte Ausnahme steht nicht im Plan
     (seit slice-v1-abschluss-einspielen-anmeldung-doku).
+    Die Mutanten der Befehlsfolge stehen in `done/slice-v1-abschluss-einspielen-anmeldung-doku`
+    §7; ein Plan wiederholt sie nur, wenn er die Befehlsfolge ändert oder einen Wächter
+    hinzufügt (Schritt 19), sonst verweist er dorthin.
 18. Die Pre-completion-Checkliste laufen: die DoD Punkt für Punkt **behaupten** und die
     **Sensor-Belege** anhängen — `make gates` **und die Nicht-Gate-Sensoren, die den Slice
     betreffen** (die dein Repo führt — z. B. ein Mutations-Sensor, wenn Wächter neu/geändert sind;
