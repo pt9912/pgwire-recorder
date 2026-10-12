@@ -36,6 +36,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-verbindungsende-sqlite`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12): der E2E-Beleg, dass `record --format sqlite` ein echtes Ende aufzeichnet und die Datei `meta.version` 2 trägt, und aus `slice-v1-abschluss-verbindungsende-replay` (dort §3 und §6, Risiko): dass die handgeschriebenen Aufzeichnungen dessen Fixtures dem entsprechen, was PostgreSQL liefert.
 
+**Gebunden durch `slice-v1-abschluss-sessions`** (dort §1, *Nahtstelle zu den Verbindungsende-Slices*, Punkt 4; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): *Eine Verbindung wird erst mit eröffneter Session eine Session.* Ein Ende des Servers vor dem ersten `ReadyForQuery` bleibt ein Aufbaufehler (`PGR-E4002`/`PGR-E4005`) und erzeugt keine Session, auch mit `--record-empty-sessions`; `Open` liefert dann den Fehler und der Dienst die Kennung 0. Dieser Slice ändert `Open` nicht und erkennt ein Ende nur in der laufenden Interaktion nach dem ersten `ReadyForQuery`.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Use Case, `CloseSession`, die Übernahme der Session und die Zustellung im PGWire-Adapter — `slice-v1-abschluss-verbindungsende-record` (Vorgänger): andere Schichten.
@@ -115,7 +117,7 @@ dasteht.
 - *Fehlerantwort gelesen oder nicht (Lesestand) bei Sendefehler und Verbindungsende:* eine beim Bemerken des Endes nicht gelesene Fehlerantwort zählt nicht (`PGR-E4003`); eine gelesene `FATAL`/`PANIC` macht den Sendefehler danach zum Teil des Endes — `LH-FA-25.a` *Aufzeichnen*, `LH-FA-02.b` *Gelesen*.
 - *Leerlauf mit und ohne nachfolgende Anfrage; Sendefehler an den geschlossenen Upstream:* siehe DoD-Punkt 2 — `LH-FA-25.a` *Leerlauf*, `LH-FA-05.a`.
 - *Ende in einer `Sync`-Gruppe, in einer `Flush`-Gruppe, in einer unvollständigen Gruppe:* der Adapter meldet das Ende, wo es liegt; die Zuordnung zur Gruppe und `PGR-E6001` für die unvollständige trifft der Use Case (`slice-v1-abschluss-verbindungsende-record`) — `LH-FA-25.a` *Stelle*, `LH-FA-18.a`; bei einer `Flush`-Gruppe gilt die zeitabhängige Grenze von `LH-FA-18.a`.
-- *Ende vor dem ersten `ReadyForQuery`:* bleibt `PGR-E4002`/`PGR-E4005` (`Open` unverändert) — `LH-FA-25.a` *Kein Ende*.
+- *Ende vor dem ersten `ReadyForQuery`:* bleibt `PGR-E4002`/`PGR-E4005` (`Open` unverändert) und erzeugt keine Session, auch mit `--record-empty-sessions` (Bindung aus `slice-v1-abschluss-sessions`, Nahtstelle 4); Prüfung: `TestRecordAufbauFehlerKeineSession` und am Binary `TestE2ERecordKeineVerbindung` bleiben grün — `LH-FA-25.a` *Kein Ende*, `LH-FA-12.a` *Angenommene Verbindung*.
 - *Ende mit `--record-timing` und `--record-empty-sessions`:* nicht Sache des Adapters — `slice-v1-abschluss-verbindungsende-record`.
 - *Nach dem Ende gelesene Bytes:* werden nicht gelesen — `LH-FA-25.a` *Aufzeichnen*.
 
@@ -155,5 +157,7 @@ nicht mehr.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen. Treffer in der Sub-Area `REPO`: `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` (2×), `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (2×), `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (1×; §6) und `BEO-REPO/record-fehlerantwort-im-aufbau-ungeregelt` (1×; Fehlerantwort im Aufbau bleibt ausgenommen, §1) — der Plan nennt Schätzung und Schnitt vorab (§4). Keine weiteren Treffer.
 
 Nachgezählt beim Anlegen (Planner, 2026-10-12, `AGENTS.md` §3.13), einschließlich der Sendungen aus `slice-v1-abschluss-verbindungsende-record`, `-sqlite` und `-replay` (sie gehören zu DoD-Punkt 3 und fügen keinen Liefer-Punkt hinzu): Liefer-Punkte: 3 (Ende erkennen bei Query, Send und Receive; Leerlauf; Abnahmeszenario 18). Schichten: zwei (Upstream-Adapter, `ARC-007`; Kern nur als Vertrag des Ports, `ARC-004`). Schätzung des Planners: 700 bis 1200 Zeilen mit Tests.
+
+Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-sessions` (Nahtstelle 4, Planner, 2026-10-12, `AGENTS.md` §3.13): Sie verlangt keinen neuen Code (`Open` bleibt unverändert) und keinen neuen Test, nur dass vorhandene grün bleiben; sie gehört zu DoD-Punkt 1 und fügt weder Liefer-Punkt noch Schicht hinzu: Liefer-Punkte weiter 3, Schichten weiter zwei (Upstream-Adapter; Kern nur als Vertrag des Ports).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
