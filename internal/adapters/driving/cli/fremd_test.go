@@ -20,22 +20,26 @@ type zeileSpec struct {
 
 // tabelleSpec ist die Optionstabelle ohne --config in der Reihenfolge der
 // Spezifikation.
-var tabelleSpec = []zeileSpec{
-	{"listen", "record replay"}, {"upstream", "record play"}, {"output", "record"}, {"force", "record"},
-	{"format", "record"}, {"record-timing", "record"}, {"record-empty-sessions", "record"},
-	{"input", "replay play"}, {"fail-on-unconsumed", "replay"}, {"shutdown-timeout", "record replay"},
-	{"session-assignment", "replay"}, {"user", "play"}, {"database", "play"}, {"continue-on-error", "play"},
-	{"allow-recorded-errors", "play"}, {"upstream-tls", "play"}, {"finish-session-on-interrupt", "play"},
-	{"keep-timing", "play"}, {"timing-mode", "play"}, {"timing-reference", "play"},
-	{"tls-cert", "record replay"}, {"tls-key", "record replay"}, {"allow-plaintext", "record replay"},
-	{"upstream-ca", "play"}, {"compare-responses", "play"}, {"log-level", "record replay play"},
+func tabelleSpec() []zeileSpec {
+	return []zeileSpec{
+		{"listen", "record replay"}, {"upstream", "record play"}, {"output", "record"}, {"force", "record"},
+		{"format", "record"}, {"record-timing", "record"}, {"record-empty-sessions", "record"},
+		{"input", "replay play"}, {"fail-on-unconsumed", "replay"}, {"shutdown-timeout", "record replay"},
+		{"session-assignment", "replay"}, {"user", "play"}, {"database", "play"}, {"continue-on-error", "play"},
+		{"allow-recorded-errors", "play"}, {"upstream-tls", "play"}, {"finish-session-on-interrupt", "play"},
+		{"keep-timing", "play"}, {"timing-mode", "play"}, {"timing-reference", "play"},
+		{"tls-cert", "record replay"}, {"tls-key", "record replay"}, {"allow-plaintext", "record replay"},
+		{"upstream-ca", "play"}, {"compare-responses", "play"}, {"log-level", "record replay play"},
+	}
 }
 
 // nichtGelesen sind die Optionen der Tabelle, die der Stand noch nicht liest:
 // bei den eigenen Kommandos bleibt ihre Variable unbeachtet.
-var nichtGelesen = map[string]bool{
-	"tls-cert": true, "tls-key": true, "allow-plaintext": true, "session-assignment": true,
-	"record-empty-sessions": true, "compare-responses": true,
+func nichtGelesen() map[string]bool {
+	return map[string]bool{
+		"tls-cert": true, "tls-key": true, "allow-plaintext": true, "session-assignment": true,
+		"record-empty-sessions": true, "compare-responses": true,
+	}
 }
 
 func (z zeileSpec) kennt(kommando string) bool {
@@ -55,7 +59,7 @@ func envVon(name string) string {
 // leer.
 func leereAlle(t *testing.T) {
 	t.Helper()
-	for _, z := range tabelleSpec {
+	for _, z := range tabelleSpec() {
 		t.Setenv(envVon(z.name), "")
 	}
 	t.Setenv(cli.EnvPassword, "")
@@ -75,7 +79,7 @@ func meldetFremd(err error, env, wert string) bool {
 // Variable, nicht den Wert; eine leere Variable gilt als nicht gesetzt (LH-FA-17.a).
 func TestLeserUmgebungAndererKommandos(t *testing.T) {
 	for _, kommando := range leserKommandos() {
-		for _, z := range tabelleSpec {
+		for _, z := range tabelleSpec() {
 			if z.kennt(kommando) {
 				continue
 			}
@@ -102,8 +106,8 @@ func TestLeserUmgebungAndererKommandos(t *testing.T) {
 // ungültigem Wert; beim anderen Kommando ist sie PGR-E2001 (LH-FA-17.a).
 func TestLeserUmgebungNichtGelesenerOptionen(t *testing.T) {
 	for _, kommando := range leserKommandos() {
-		for _, z := range tabelleSpec {
-			if !nichtGelesen[z.name] {
+		for _, z := range tabelleSpec() {
+			if !nichtGelesen()[z.name] {
 				continue
 			}
 			env := envVon(z.name)
@@ -131,7 +135,7 @@ func TestLeserZuordnungGleichTabelle(t *testing.T) {
 		for _, o := range cli.Optionen(kommando) {
 			gelesen[o.Name] = true
 			ok := false
-			for _, z := range tabelleSpec {
+			for _, z := range tabelleSpec() {
 				if z.name == o.Name && z.kennt(kommando) {
 					ok = true
 				}
@@ -140,8 +144,8 @@ func TestLeserZuordnungGleichTabelle(t *testing.T) {
 				t.Errorf("%s liest --%s, die Tabelle ordnet sie dem Kommando nicht zu", kommando, o.Name)
 			}
 		}
-		for _, z := range tabelleSpec {
-			if z.kennt(kommando) && !gelesen[z.name] && !nichtGelesen[z.name] {
+		for _, z := range tabelleSpec() {
+			if z.kennt(kommando) && !gelesen[z.name] && !nichtGelesen()[z.name] {
 				t.Errorf("%s: --%s steht in der Tabelle, wird nicht gelesen und ist nicht als noch nicht gelesen benannt", kommando, z.name)
 			}
 		}
@@ -225,7 +229,7 @@ func TestLeserUmgebungNebenKommandozeile(t *testing.T) {
 // liest und prüft nichts (LH-FA-17.a, LH-FA-01.a).
 func TestLeserUmgebungConfigShowUndHilfe(t *testing.T) {
 	leereAlle(t)
-	for _, z := range tabelleSpec {
+	for _, z := range tabelleSpec() {
 		t.Setenv(envVon(z.name), "ungültig")
 	}
 	var out bytes.Buffer
