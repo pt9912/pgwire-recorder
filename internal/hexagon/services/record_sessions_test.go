@@ -291,8 +291,7 @@ func TestRecordParalleleSessions(t *testing.T) {
 // und keine Kennung, und die Session wird nicht geschrieben (LH-FA-12.a *Mit der
 // Option*, LH-FA-13.a *Meldung*). Ohne laufende und ohne abgeschlossene Interaktion
 // ist das Zwangsende das im Aufbau: Die Session wird auch mit der Option nicht
-// geschrieben, und es gibt keine Meldung (LH-FA-12.a *Angenommene Verbindung*);
-// mit einer abgeschlossenen Interaktion ohne laufende wird sie geschrieben.
+// geschrieben, und es gibt keine Meldung (LH-FA-12.a *Angenommene Verbindung*).
 func TestRecordZwangsendeLeereSession(t *testing.T) {
 	t.Run("Kennung genannt", func(t *testing.T) {
 		up := &fakeUpstream{}
