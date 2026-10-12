@@ -235,7 +235,7 @@ Vorher/nachher am Binary: Exit 4 vor und nach der Änderung (das Binary ist unve
 
 **V-302 (INFO).** Begründung zu F-673 oben geändert. Ergebnis des Verifiers, nicht des Implementers und nicht ins Handbuch gehoben: mit `--compare-responses` bleibt COPY `PGR-E6001` (Exit 6), die abgelehnte Anmeldung `PGR-E4005` (Exit 4), und `--finish-session-on-interrupt` setzt die laufende Sitzung fort. Der Satz im Handbuch und der README-Satz bleiben bei „ohne `--compare-responses`“, weil keine Probe von mir die Aussage mit Option trägt.
 
-**V-303 (INFO).** `make gates` am Stand `GATESTAND`: GATEERGEBNIS. Der Commit danach ändert nur diese Zeile.
+**V-303 (INFO).** `make gates` am Stand `ff4be93` (Arbeitsbaum sauber): Exit 0 (Laufzeit 5 min 7 s); er enthält Handbuch (`db1ef8d`) und diesen Abschnitt. Der Commit danach ändert nur diese Zeile.
 
 **Befehlsfolge** am Stand `db1ef8d` (Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`): Optionen `--h`, `--help`, `--name`, `--rm`, `--version` (Nicht-Optionen bzw. `docker run`); Variablen leer; Codes leer. `make docs-check`: 656 Dateien, 0 Befunde.
 
