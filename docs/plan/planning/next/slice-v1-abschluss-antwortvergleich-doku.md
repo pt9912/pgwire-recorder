@@ -44,6 +44,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Die Abschnitte des Handbuchs, die andere Slices liefern — jeder Slice führt seinen Teil in seinem Plan oder in seinem Doku-Folge-Slice; dieser Slice beschreibt nur, was `slice-v1-abschluss-antwortvergleich` liefert.
 - `docs/user/benutzerhandbuch-standard.md` und die Abdeckungstabellen `docs/user/abdeckung-*.md` — Bestand bleibt bewusst stehen: Der Standard ist die Schreibanleitung, kein Ist-Zustand des Binaries; die Tabellen schreibt `make abdeckung` im Code-Slice.
 - Ein Sensor, der Handbuch oder README gegen das Binary prüft — ein anderer Vorgang: Er wäre ein neues Gate mit eigenem Vertrag in der Spezifikation; dieser Slice prüft von Hand gegen das gebaute Binary.
+- Das Verhalten bei einem aufgezeichneten Ende des Servers (`FATAL`/`PANIC` an derselben Stelle mit demselben SQLSTATE ist erwartet, nicht `PGR-E5004`) — `slice-v1-abschluss-verbindungsende-doku` (dort §1, *Übernommen aus `slice-v1-abschluss-antwortvergleich-doku`*; Entscheidung des Nutzers vom 2026-10-12, Option B, [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md); Sendung des Planners, `AGENTS.md` §3.13): Der Satz in „Gebunden durch“, `FATAL` und `PANIC` seien `PGR-E5004`, beschreibt den Ist-Zustand, den dieser Slice nach `slice-v1-abschluss-antwortvergleich` vorfindet; `slice-v1-abschluss-verbindungsende-vergleich` ändert das Binary dahinter, und der Doku-Slice dazu ersetzt den Satz. Dieser Slice schreibt ihn so, wie das Binary heute zeigt.
 
 ## 2. Definition of Done
 
@@ -153,5 +154,7 @@ Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 Liefer-Punkte: 2. Schichten nach der Zählung in `AGENTS.md` §3.13: eine (Dokumentation), kein Code. Nachgezählt beim Eintragen der Übernahme aus `slice-v1-abschluss-umgebung-anderes-kommando` (Planner, 2026-10-12): Sie gehört zu DoD-Punkt 1 (Handbuch), kein neuer Liefer-Punkt; Liefer-Punkte weiter 2, Schichten weiter eine.
 
 Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-antwortvergleich` (Architect, 2026-10-12): Sie gehört zu DoD-Punkt 1 (Handbuch); Liefer-Punkte weiter 2, Schichten weiter eine.
+
+Nachgezählt beim Eintragen der Abgrenzung zum aufgezeichneten Ende des Servers (Planner, 2026-10-12, `AGENTS.md` §3.13): Sie nimmt dem Slice nichts und fügt nichts hinzu; Liefer-Punkte weiter 2, Schichten weiter eine.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
