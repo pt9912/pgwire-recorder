@@ -10,10 +10,10 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Eingesammelt
-wird er von der nächsten Welle-Closure. Eingeordnet am 2026-10-12 (Empfehlung des
-Planners, nicht vom Nutzer entschieden): nach den Slices von welle-v1-abschluss und
-direkt vor `slice-harness-integration-volumes` (WIP-Limit 1); Reihenfolge in §4 *Start*
-und im Drift-Log der Roadmap.
+wird er von der nächsten Welle-Closure. Eingeordnet am 2026-10-12 (Entscheidung des
+Nutzers): als Nächstes, direkt hinter `slice-v1-abschluss-zeitangaben-doku` und vor
+`slice-v1-abschluss-antwortvergleich` (WIP-Limit 1); Reihenfolge in §4 *Start* und im
+Drift-Log der Roadmap.
 
 **Bezug:** kein Lastenheft-Bezug — der Slice ändert nur den Standard eines Werkzeugs des
 Harness, keine Zusage des Produkts. Bindung an Entscheidungen:
@@ -39,7 +39,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** `make lint-gegenprobe` fährt ohne gesetztes `LINT_GEGENPROBE_PARALLEL` höchstens
 drei Läufe der Stufe `lint` gleichzeitig (bisher sechs): `tools/harness/lint-gegenprobe.sh`
-setzt den Standard auf 3 und nennt ihn in seinem Kopf.
+setzt den Standard auf 3 und nennt ihn in seinem Kopf, ohne die Zusage, ein Lauf von
+`make gates` prüfe ihn (Entscheidung des Nutzers vom 2026-10-12, §6).
 
 **Anlass** (Entscheidung des Nutzers vom 2026-10-12, den Standard auf 3 zu senken): Last auf
 dem Rechner (20 Kerne) und ein OOM-Kill am 2026-10-12 um 06:05. Der Kernel-Log nennt als
@@ -60,6 +61,9 @@ Der Slice senkt die Last der Gegenprobe; dass er den OOM behebt, sagt er nicht z
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
+- Ein Fall im Skript, der den Standard prüft — Bestand bleibt bewusst stehen: Entscheidung des
+  Nutzers vom 2026-10-12 (Weg (2) der Randform *Standard ohne Fall*, §6); der Kopf nennt die
+  Zahl und sagt nicht zu, dass ein Lauf sie prüft (`AGENTS.md` §3.11).
 - Gegenproben nur bei geänderten Eingaben fahren oder `make gates` aufteilen — Lockerung
   beziehungsweise Umbau eines Gates, nach `AGENTS.md` §3.6 eine ADR und eine Entscheidung des
   Architect; es ist ein anderer Vorgang als eine Zahl im Werkzeug. Es gibt dafür noch keinen
@@ -84,12 +88,9 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Standard: Ohne gesetztes `LINT_GEGENPROBE_PARALLEL` ist die Höchstzahl gleichzeitiger
       Läufe in `tools/harness/lint-gegenprobe.sh` 3 (Zeile `parallel=`); der Kopf des Skripts
-      nennt 3 als Standard und sagt nichts über die Wirkung auf Last, Speicher oder einen
-      OOM-Kill zu (`AGENTS.md` §3.11). Ein gültiger gesetzter Wert gilt unverändert.
-- [ ] Prüfung des Standards: nach der Entscheidung des Architect zur Randform *Standard ohne
-      Fall* (§6) entweder ein Fall im Skript, der rot wird, wenn der Standard nicht 3 ist,
-      mit der Mutation vom Implementer rot gesehen (`AGENTS.md` §3.10), oder der Kopf nennt
-      den Standard ohne Zusage, dass ein Lauf ihn prüft. Welche der beiden, steht in §6.
+      nennt 3 als Standard und sagt weder zu, dass ein Lauf von `make gates` ihn prüft, noch
+      etwas über die Wirkung auf Last, Speicher oder einen OOM-Kill zu (`AGENTS.md` §3.11).
+      Kein Fall im Skript prüft den Standard (Entscheidung des Nutzers, §6). Ein gültiger gesetzter Wert gilt unverändert.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -114,7 +115,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `tools/harness/lint-gegenprobe.sh` | update | `parallel=6` (Zeile 126) wird `parallel=3`; der Kopf (Zeile 13 ff.) nennt 3 als Standard; ein Fall für den Standard, falls der Architect ihn verlangt (§6) |
+| `tools/harness/lint-gegenprobe.sh` | update | `parallel=6` (Zeile 126) wird `parallel=3`; der Kopf (Zeile 13 ff.) nennt 3 als Standard, ohne die Zusage, ein Lauf prüfe ihn; kein neuer Fall (§6) |
 
 - Die Zahl 6 steht nach Suche vom 2026-10-12 (`grep -rn` nach `LINT_GEGENPROBE` und
   `PARALLEL` über `tools/`, `harness/`, `spec/`, `docs/`, `README.md`, `AGENTS.md`, `.claude/`)
@@ -132,20 +133,19 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Die Slices von welle-v1-abschluss liegen in `done/`
-(WIP-Limit 1); dieser Slice steht direkt vor `slice-harness-integration-volumes`, danach
-`slice-harness-abdeckung-gate`, `slice-harness-coverage`, die Slices von welle-erster-release
-und welle-v1-nachtrag und die übrige Harness-Reihe (Drift-Log der Roadmap vom 2026-10-12).
-Technisch hängt er an nichts. Die Reihenfolge ist eine Empfehlung des Planners: Der Slice ist
-klein, und die Last trifft jeden Lauf von `make gates`; der Nutzer kann ihn früher ziehen
-(Umplanung im Drift-Log). Vor dem ersten Code-Commit prüft der Architect die Randformen aus §6
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-zeitangaben-doku` liegt in `done/`
+(WIP-Limit 1); dieser Slice steht direkt dahinter und vor `slice-v1-abschluss-antwortvergleich`
+(Schritt 24) und den übrigen offenen Slices von welle-v1-abschluss, danach folgen sie in der
+Reihenfolge des §5 der Welle, dann `slice-harness-integration-volumes` und die übrigen
+(Drift-Log der Roadmap vom 2026-10-12). Technisch hängt er an nichts. Die Reihenfolge ist
+Entscheidung des Nutzers vom 2026-10-12. Vor dem ersten Code-Commit prüft der Architect die Randformen aus §6
 (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Architect verlangt für den
-  Standard mehr als einen Fall im Skript (etwa eine Änderung der Gegenprobe-Struktur) und der
-  Diff ist nicht in einer Review-Sitzung prüfbar.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Nutzer nimmt die Entscheidung
+  zu *Standard ohne Fall* (§6) zurück, der Fall verlangt eine Änderung der
+  Gegenprobe-Struktur, und der Diff ist nicht in einer Review-Sitzung prüfbar.
 - `in-progress` → `open` (blockiert — Carveout?): Der Nutzer verlangt statt der Senkung eine
   Aufteilung oder bedingte Läufe von `make gates` (erster Punkt von *Ausdrücklich NICHT*); dann
   entscheidet der Architect mit einer ADR, bevor der Slice weitergeht.
@@ -177,30 +177,31 @@ Eine nicht genannte oder offene Randform entscheidet der Implementer nicht, er g
 - *Gültiger gesetzter Wert* (etwa `6`) — **entschieden:** gilt unverändert und überstimmt den
   Standard; wer die frühere Parallelität will, setzt sie. Kein Fall ändert sich. Ein Aufrufer,
   der die Einstellung setzt, ist im Repo nicht zu finden (Suche in §3).
-- *Nicht gesetzt (Standard)* — **offen, an den Architect:** Der Kopf sagt „den Default fährt
-  jeder Lauf von `make gates`“; er hat keinen eigenen Fall. Dieser Lauf belegt, dass das Skript
-  mit dem Standard durchläuft, nicht, dass der Standard 3 ist: Wer `parallel=3` auf einen
-  anderen Wert ändert, bricht kein Gate. Lesart nach `AGENTS.md` §3.11: Eine Zusage „Nicht
-  gesetzt: 3“ im Kopf gilt erst, wenn ein Fall sie prüft. Der Planner entscheidet das nicht.
-  Zwei Wege, der Architect wählt: (1) ein Fall im Skript, der den Standard prüft — etwa die
-  Kopie ohne Profil aus den Fällen `einstellung-<wert>`, die den Wert des Standards ausgibt —,
-  mit der Mutation (Standard 6) vom Implementer rot gesehen; (2) kein Fall, und der Kopf nennt
-  die Zahl ohne die Zusage, ein Lauf prüfe sie (akzeptiertes Negativ, mit Begründung hier).
-  Mit (1) zählt der Slice zwei Liefer-Punkte, mit (2) einen.
+- *Nicht gesetzt (Standard)* — **entschieden:** Entscheidung des Nutzers vom 2026-10-12, Weg (2):
+  Kein Fall im Skript prüft den Standard. Der Kopf des Skripts nennt die Zahl 3 ohne die
+  Zusage, ein Lauf von `make gates` prüfe sie (`AGENTS.md` §3.11); wer `parallel=3` auf einen
+  anderen Wert ändert, bricht kein Gate, und das ist akzeptiertes Negativ: Der Wert ist eine
+  Höchstzahl mit Einstellung zum Überstimmen, und eine Last- oder Zeitgrenze ist keine Zusage
+  des Werkzeugs. Fundstelle der Entscheidung ist dieser Absatz; ob die Spezifikation sie nach
+  `AGENTS.md` §3.12 trägt, ist offen und steht beim nächsten Punkt.
 - *Weniger als drei Fälle oder Kerne* — **entschieden:** die Obergrenze ist eine Höchstzahl
   (`jobs -rp | wc -l` gegen `parallel`); weniger Fälle laufen alle, mehr warten. Unverändert,
   kein Fall nötig.
-- *Ort der Zahl* — **offen, an den Architect:** Die Zahl steht heute nur im Kopf des Skripts;
-  die Spezifikation nennt sie nicht (Suche in §3). Bleibt es dabei (Empfehlung des Planners, weil
+- *Ort der Zahl und Fundstelle der Entscheidung zu Standard ohne Fall* — **offen, an den Architect:** Die
+  Zahl steht heute nur im Kopf des Skripts; die Spezifikation nennt sie nicht (Suche in §3).
+  `AGENTS.md` §3.12 verlangt die Entscheidung einer Randform auch für Harness-Werkzeuge in der
+  Spezifikation; der Architect entscheidet, ob `SPEC-049` dafür eine Zeile braucht (etwa: die
+  Gegenprobe fährt ohne Einstellung höchstens drei Läufe gleichzeitig, ohne Prüfung des
+  Standards) oder ob der Hinweis „akzeptiertes Negativ“ in diesem Plan genügt. Bleibt es dabei (Empfehlung des Planners, weil
   die Spezifikation auch die Schwellen des Werkzeugs nicht dupliziert), ändert sich die
   Spezifikation nicht und der Kopf des Plans bleibt `—`. Entscheidet der Architect, die Zahl in
   die Spezifikation zu heben, trägt der Planner Kopf und `Berührte Spec-Stellen` nach.
 - *Wirkung auf Last und Speicher* — **keine Randform des Skripts, sondern Messung:** siehe die
   Risiken; das Skript sagt über sie nichts zu.
 
-**Mutationen** (`AGENTS.md` §3.10): Zusage dieses Slice ist „der Standard ist 3“. Mutation:
-`parallel=3` wird `parallel=6`; roter Fall: nur bei Weg (1) der Fall für den Standard, sonst
-keiner (Weg (2), akzeptiertes Negativ). Die Zusage „ein gesetzter Wert gilt unverändert“ ist
+**Mutationen** (`AGENTS.md` §3.10): Der Slice sagt nicht zu, dass der Standard 3 *geprüft*
+wird; die Mutation `parallel=3` wird `parallel=6` bleibt deshalb grün (Weg (2), akzeptiertes
+Negativ, kein roter Fall). Die Zusage „ein gesetzter Wert gilt unverändert“ ist
 nicht neu; ihre Fälle sind die bestehenden `einstellung-<wert>` für die ungültigen Werte, für
 gültige gibt es keinen.
 
@@ -280,9 +281,8 @@ gesichtet (Zähler = Dateien unter `evidence/`, gelesen am Stand `f60cb55`, 2026
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-**Zählung nach `AGENTS.md` §3.13:** Liefer-Punkte: 2 (der Standard mit Kopf; die Prüfung des
-Standards — als Fall oder als enger gefasster Kopf, nach Entscheidung des Architect; mit
-Weg (2) aus §6 genau 1). Die Messung als Beleg zählt nicht (Register). Schichten: 1
+**Zählung nach `AGENTS.md` §3.13:** Liefer-Punkte: 1 (der Standard mit Kopf; kein Fall für den
+Standard, Entscheidung des Nutzers vom 2026-10-12, §6). Die Messung als Beleg zählt nicht (Register). Schichten: 1
 (Harness-Werkzeug `tools/harness`); keine Nutzer- oder Wartungs-Doku, kein Produkt-Code, kein
 Bootstrap. Der Slice trägt keine Sendung in einen anderen Slice ein (kein Folge-Slice
 genannt, keine Bindung), also gibt es keinen Nehmer nachzuzählen.
