@@ -42,6 +42,7 @@
 | [0036](0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) | YAML-Bibliothek auch für die Konfigurationsdatei im CLI-Adapter | Accepted | [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
 | [0037](0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md) | YAML-Bibliothek im CLI-Adapter auch für die Anzeige der Konfigurationsdatei | Accepted | [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
 | [0038](0038-gate-kette-voll-und-schnell.md) | Gate-Kette in voller und schneller Kette, Wahl am geänderten Pfad | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
+| [0039](0039-aufzeichnung-kennt-das-verbindungsende.md) | Die Aufzeichnung kennt das Verbindungsende des Servers | Proposed | [`LH-FA-24`](../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen) |
 
 ## Konventionen
 
@@ -73,3 +74,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0035](0035-struktur-kennungen-im-commit-hook-abgelehnt.md) | ergänzt [0025](0025-benannte-slice-kennungen-im-commit-hook.md) und [0029](0029-benannte-welle-kennungen-im-commit-hook.md): Eine Message mit Struktur-Kennung lässt der Träger nicht durch und reicht sie nicht weiter, auch wenn sie eine benannte Slice- oder Welle-Kennung trägt; Merge- und Revert-Messages und Messages ohne Struktur-Kennung behandelt er nach [0025](0025-benannte-slice-kennungen-im-commit-hook.md) und [0029](0029-benannte-welle-kennungen-im-commit-hook.md) unverändert |
 | [0036](0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) | ergänzt [0027](0027-yaml-bibliothek.md) um den CLI-Adapter als zweiten Ort der Bibliothek, nur zum Lesen der Konfigurationsdatei; die Wahl der Bibliothek gilt nach [0027](0027-yaml-bibliothek.md) unverändert |
 | [0037](0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md) | ergänzt [0036](0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) um die Anzeige der gelesenen Konfigurationsdatei in `config show` als zweiten zulässigen Zweck im CLI-Adapter; sonst gilt [0036](0036-yaml-bibliothek-fuer-die-konfigurationsdatei.md) unverändert |
+| [0039](0039-aufzeichnung-kennt-das-verbindungsende.md) | ergänzt [0017](0017-einspielen-sequenziell-und-fehlersemantik.md) (aufgezeichnetes, gleich herbeigeführtes Verbindungsende ist beim Einspielen erwartet) und [0013](0013-sqlite-recording-backend.md) (zweite Formatversion); ersetzt keine ADR; gilt erst mit `Accepted` |
