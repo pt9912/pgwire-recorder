@@ -83,7 +83,8 @@ const (
 )
 
 // Zaehler liefert die Zähler des Laufs für die Zeile zum Ende; der Aufruf folgt
-// auf Play (LH-FA-24.a *Meldung*).
+// auf den einen Aufruf von Play, der die Interaktionen nacheinander einspielt
+// (LH-FA-24.a *Meldung*, *Aufruf-Voraussetzung*).
 func (s *PlayService) Zaehler() Zaehler { return s.zaehler }
 
 // NewPlayService ist der Start des Einspielens (LH-FA-20.a *Start*): Es lädt
