@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-zeitangaben-doku
+**Fund:** Der Commit `236a39e` änderte `.claude/commands/implement-slice.md` Schritt 17, ohne dass §1 (Abgrenzung), §3 (Tabelle), §7 *Stand* und §8 die Datei kannten; der Satz trug keinen Herkunfts-Anker (Verifikation V-204, MEDIUM). Nachgezogen in `aa6eed4` bis `729c508`: §1 *Außerdem*, Zeile in §3, Anker `seit slice-v1-abschluss-zeitangaben-doku`.

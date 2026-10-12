@@ -7,3 +7,5 @@ Weiter offen, kein Auftreten: `slice-v1-abschluss-einspielen-tls-doku` — alle 
 3× erreicht mit `slice-v1-abschluss-sqlite-format-lesen`. Der Ausgang ist nicht zugewiesen: Ob die Spezifikation die Zusage je Plattform schärft oder als Grenze nennt, steht aus (Architect mit dem Nutzer), und kein Slice ist Adresse für eine Regel dazu. Der Lese-Schritt der Closure von welle-v1-abschluss weist ihn zu.
 
 Weiter offen, kein neues Auftreten: `slice-v1-abschluss-sqlite-format-doku` — alle Proben des Handbuchs zu `sqlite` laufen unter Linux im Container auf einem lokalen Dateisystem; Review und Verifikation haben dazu keinen Befund (das Handbuch macht zu Windows, macOS und Netzwerk-Dateisystemen keine Aussage). Der Zähler bleibt bei 3.
+
+Weiter offen, kein neues Auftreten: `slice-v1-abschluss-zeitangaben-doku` — alle Proben des Handbuchs zu den Zeitangaben laufen unter Linux im Container; das Handbuch macht zu Windows, macOS und Netzwerk-Dateisystemen keine Aussage, Review und Verifikation haben dazu keinen Befund. Der Zähler bleibt bei 3.
