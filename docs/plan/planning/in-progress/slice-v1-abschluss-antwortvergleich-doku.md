@@ -179,6 +179,8 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 | 37 | §5: Eine Variable mit dem Präfix `PGWIRE_RECORDER_`, deren Name zu keiner Option gehört und die nicht `PGWIRE_RECORDER_PASSWORD` heißt, bleibt unbeachtet; `PGWIRE_RECORDER_PASSWORD` bleibt bei `record` und `replay` unbeachtet | Probe 36, ferner `PGWIRE_RECORDER_PASSWORD=x` je Kommando ohne Optionen (Nacharbeit, Image `sha256:e6c5ef3178…`) | alle sechs Läufe (BOGUS, PASSWORD je Kommando) Exit 2, nur `Pflichtoption … fehlt`, keine Meldung zur Variable; dass `play` `PGWIRE_RECORDER_PASSWORD` nutzt, trägt der Absatz danach (Bestand aus `slice-v1-abschluss-einspielen-anmeldung-doku`), ihn liest dieser Satz nicht neu |
 | 38 | Vorspann der *Hinweise* beim Einspielen: Anmeldung und TLS, COPY und `--finish-session-on-interrupt` beschrieben ohne `--compare-responses` | keine Probe: der Satz sagt nichts zu, was das Binary mit der Option tut, nur, welchen Lauf die Hinweise beschreiben | Zusage enger gefasst (F-673); die Sätze selbst unverändert, ihre Belege stehen in den Plänen, die sie lieferten |
 | 39 | README *Kerngedanke*: mit `--compare-responses` vergleicht `play` die Antworten mit der Aufzeichnung; README COPY-Satz ohne Option | Proben 4 bis 10 (Vergleich); COPY-Satz enger gefasst, keine Probe | wie dort |
+| 40 | Exit-Codes: „Das Werkzeug läuft weiter und liefert den Exit-Code des ersten aufgetretenen Fehlers“; Ausnahme: `play` mit `--compare-responses`, Verbindungsabbruch ohne Fehlerantwort nach einer Abweichung ist Exit 4 | `play --compare-responses --continue-on-error`; Aufzeichnung `select 1 as a` (Spalte `a` zu `b` editiert, Abweichung in Interaktion 1) und `select pg_sleep(8)`; `docker kill` des Servers nach 4 s | Exit 4; Zeilen `PGR-E4003` (Interaktion 2) und `PGR-E5004` (Interaktion 1, Position 1, Art `Spaltenbeschreibung`); `Z`: `eingespielt=2 verglichen=1 abweichend=1` |
+| 41 | Fehlerbehebung: „der erste zählt für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Codes)“ | Probe 40 | wie dort: Die Abweichung trat zuerst auf, der Exit-Code ist trotzdem 4 |
 
 **Stand der Gates.** `make gates` am Stand `d88b5e2` (Arbeitsbaum sauber, Handbuch und Beleg nach Befund (a)): Exit 0 (Laufzeit 5 min 0 s). Die beiden Commits danach (`0e70ecb`, `564294d`) ändern nur diese Zeile; `make gates` auf dem Stand nach dem letzten Commit ist die Messung, die der Bericht nennt.
 
@@ -202,7 +204,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 | Befund | Entscheidung | Beleg |
 |---|---|---|
-| F-673 (LOW): Sätze zu COPY, Anmeldung, TLS, `--finish-session-on-interrupt` | enger gefasst, keine Probe: Eine Probe bräuchte eine handgeschriebene Aufzeichnung mit COPY, einen Server mit Passwort und je eine mit Zertifikat; der Aufwand steht in keinem Verhältnis zu Sätzen, die nur den Lauf ohne Option beschreiben. Der Vorspann der *Hinweise* nennt jetzt alle vier Gruppen als Beschreibung des Einspielens ohne `--compare-responses`; README: COPY-Satz mit „Ohne `--compare-responses`“ | Zeilen 37 bis 39; `make docs-check` 0 Befunde |
+| F-673 (LOW): Sätze zu COPY, Anmeldung, TLS, `--finish-session-on-interrupt` | enger gefasst, keine eigene Probe des Implementers: Die enger gefasste Zusage („beschreibt den Lauf ohne `--compare-responses`“) ist wahr und sagt nichts darüber, was mit der Option geschieht. Die Verifikation fuhr COPY (`PGR-E6001`, Exit 6), die abgelehnte Anmeldung (`PGR-E4005`, Exit 4) und `--finish-session-on-interrupt` auch mit der Option: Das Binary verhält sich mit ihr wie ohne (V-302; Probe des Verifiers, nicht des Implementers, deshalb im Handbuch nicht gehoben). Der Vorspann der *Hinweise* nennt jetzt alle vier Gruppen als Beschreibung des Einspielens ohne `--compare-responses`; README: COPY-Satz mit „Ohne `--compare-responses`“ | Zeilen 37 bis 39; `make docs-check` 0 Befunde |
 | F-674 (LOW): „Variable mit dem Präfix …“ wörtlich auch für `PGWIRE_RECORDER_PASSWORD` bei `play` | Satz: „… deren Name zu keiner Option gehört und die nicht `PGWIRE_RECORDER_PASSWORD` heißt“ | Zeile 37; Befehlsfolge unten |
 | F-675 (INFO): Klammer zur Art `Nachrichtenart`; SQLSTATE der Aufzeichnung bei der Art `Fehler` | nicht nachgezogen: Eine zusätzliche oder fehlende Nachricht am Ende der Folge und die leere SQLSTATE der Aufzeichnung (Probe 23) haben keine Probe in diesem Lauf, die den Wortlaut der Ausgabe zeigt; ungenannt | — |
 | F-676 (INFO): Beleg zu `PANIC` | Zeile 24 nennt jetzt auch `TestPlayFehlerantwort` (ohne Vergleich) | Zeile 24 |
@@ -220,6 +222,22 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 **Kommentare (Schritt 20)** entfallen: kein Code, kein Skript und keine Konfiguration geändert.
 
 **Rückgaben an den Architect:** keine; keine Randform entschieden. **Nachzählen:** Liefer-Punkte 2, Schichten 1 (Nutzerdokumentation), wie in §8.
+
+### Nacharbeit nach der Verifikation (V-301, V-302, V-303)
+
+Verifikation `2026-10-12-verifikation-slice-v1-abschluss-antwortvergleich-doku`. Commit `db1ef8d` (Handbuch); dieser Abschnitt ist der Beleg dazu.
+
+**Stand.** Binary: `make build` am Stand `db1ef8d` (Image `sha256:63da44cc86ce…`); der Quellstand des Produkts ist unverändert (`6c4d53c`; seit dort nur Handbuch, README und Plan). Proben in einem Scratch-Verzeichnis außerhalb des Repos, Aufbau wie unter *Probe-Aufbau*: Docker-Netz, `postgres:17-alpine@sha256:b0f9560a…` (Anmeldung `trust`, Alias `postgres`), Aufzeichnung mit `record` und `psql -c "select 1 as a" -c "select pg_sleep(8)"`, die Spalte `a` der ersten Interaktion mit `sed` zu `b` geändert (Abweichung in Interaktion 1); Container, Netz und Dateien danach entfernt.
+
+**V-301 (LOW), Klasse „Satz über den Exit-Code des ersten Fehlers neben dem neuen Abschnitt“.** Merkmal: ein Satz, der den Exit-Code durch die zeitliche Ordnung der Fehler bestimmt, ohne den Vergleich zu nennen. Durchgesehen: Handbuch *Exit-Codes* („Das Werkzeug läuft weiter …“, geändert), *Fehlerbehebung* („der erste zählt“, geändert), die Sätze in *Einspielen* und *Zeitangaben* zum Exit-Code nach einem Signal (schon mit der Abweichung, Probe 26), `endet beim ersten Fehler` (Prüfung der Konfigurationsdatei beim Start, kein Exit-Code der Wiedergabe); README: kein Satz zu Exit-Codes außer dem zu `PGR-E5004` (Probe 4). Die Fassung nennt die Ausnahme, die die Probe 40 trägt (Verbindungsabbruch ohne Fehlerantwort nach einer Abweichung: Exit 4), und sagt nichts darüber hinaus.
+
+Vorher/nachher am Binary: Exit 4 vor und nach der Änderung (das Binary ist unverändert); die Sätze waren vorher für diesen Lauf falsch (die Abweichung trat zuerst auf, Exit 4), nachher nennen sie ihn. Die Fassung ohne Ausnahme gälte nur als Satz des Handbuchs, ein Test dafür existiert nicht (Handbuch-Sätze trägt die Probe, nicht ein Test).
+
+**V-302 (INFO).** Begründung zu F-673 oben geändert. Ergebnis des Verifiers, nicht des Implementers und nicht ins Handbuch gehoben: mit `--compare-responses` bleibt COPY `PGR-E6001` (Exit 6), die abgelehnte Anmeldung `PGR-E4005` (Exit 4), und `--finish-session-on-interrupt` setzt die laufende Sitzung fort. Der Satz im Handbuch und der README-Satz bleiben bei „ohne `--compare-responses`“, weil keine Probe von mir die Aussage mit Option trägt.
+
+**V-303 (INFO).** `make gates` am Stand `GATESTAND`: GATEERGEBNIS. Der Commit danach ändert nur diese Zeile.
+
+**Befehlsfolge** am Stand `db1ef8d` (Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`): Optionen `--h`, `--help`, `--name`, `--rm`, `--version` (Nicht-Optionen bzw. `docker run`); Variablen leer; Codes leer. `make docs-check`: 656 Dateien, 0 Befunde.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
