@@ -1203,7 +1203,9 @@ mit `--input=--` an. `record`, `replay` und `play` nehmen nach `--` kein Argumen
 
 Ein Fehler, der nur eine Verbindung betrifft, beendet diese Verbindung. Das
 Werkzeug läuft weiter und liefert den Exit-Code des ersten aufgetretenen Fehlers
-erst, wenn Sie es beenden. Scheitert beim Beenden das Schreiben der
+erst, wenn Sie es beenden. Eine Ausnahme ist `play` mit `--compare-responses`: Bricht die
+Verbindung ohne Fehlerantwort der Datenbank ab, ist der Exit-Code 4, auch wenn davor eine
+Antwort abwich (`PGR-E5004`). Scheitert beim Beenden das Schreiben der
 Aufzeichnung, ist der Exit-Code 3, auch wenn vorher ein anderer Fehler auftrat.
 Endet eine Verbindung durch einen Fehler und bleiben
 dabei Anfragen ihrer Sitzung offen, zählt der Fehler, der sie beendet hat, vor
@@ -1236,7 +1238,7 @@ im Log unter `error` und in der Fehlermeldung, die Ihre Anwendung erhält
 und Code; der Text danach kann sich ändern. Entstehen beim Ende einer Verbindung
 mehrere Fehler zugleich, etwa der Abbruch der Verbindung und ein Fehler beim
 Schreiben der Aufzeichnung, steht jeder in einer eigenen Zeile; der erste zählt
-für den Exit-Code.
+für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Codes).
 
 ### Fehlercodes
 
