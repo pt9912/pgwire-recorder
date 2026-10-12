@@ -34,6 +34,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-upstream-verbinden`** (Hinweis F-532 aus dessen Review, zugewiesen bei dessen Closure): Die Prüfungen nach der Zusammenführung laufen im CLI-Adapter je Option in der Reihenfolge der Optionstabelle (`zuletzt`); `LH-FA-17.a` *Fehler* verlangt am Ende Pflichtoptionen, Kombinationen, `--upstream`. Die Kombinationen dieses Slice (`--tls-key` allein, `--allow-plaintext` ohne `--tls-cert`, `PGR-E2001`) kommen bei `record` vor jedem Fehler von `--upstream`, gleich, wo ihre Optionen in der Tabelle stehen (Test: ungültige Kombination neben ungültigem `--upstream` meldet die Kombination; gehört zu DoD-Punkt 2).
 
+**Gebunden durch `slice-v1-abschluss-umgebung-anderes-kommando`** (dort §7, Paarungen, offene Frage zu V-3; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): `--tls-cert`, `--tls-key` und `--allow-plaintext` liest der Stand noch nicht; `nichtGelesen()` in `internal/adapters/driving/cli/fremd_test.go` führt sie. Dieser Slice liefert den Leser, kürzt `nichtGelesen()` um diese Option(en) und bindet ihn in `liesUmgebung` (`internal/adapters/driving/cli/cli.go`) an; die Zuordnung `zuordnung()` nennt sie für `record` und `replay` (Spalte *Kommando* der Optionstabelle, `LH-FA-17.a`). Sonst wird `TestLeserUmgebungNichtGelesenerOptionen` rot, weil die Variable beim eigenen Kommando dann geprüft wird (`TestLeserZuordnungGleichTabelle` bleibt grün). Beim anderen Kommando (`play`) ist die Variable schon jetzt `PGR-E2001`.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-tls-client-doku` (dort §1 und DoD), direkt hinter diesem Slice in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über zwei Schichten. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen.
@@ -48,7 +50,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-23`](../../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client): Ein Client verbindet sich verschlüsselt, `record` zeichnet auf und `replay` liefert die Aufzeichnung aus, jeweils wie bei einer unverschlüsselten Verbindung; dieselbe Aufzeichnung ist über beide Verbindungsarten gleich (Abnahmeszenario 15; Integrationstest).
-- [ ] Ohne Konfiguration wird `SSLRequest` mit `N` beantwortet; mit Konfiguration wird ein unverschlüsselter Client (auch nach `GSSENCRequest`) mit `PGR-E6003` abgewiesen, mit `--allow-plaintext` zugelassen, ein Klartext-`CancelRequest` bleibt `PGR-W3001`; mehrere Verbindungen nacheinander funktionieren; `--tls-key` allein und `--allow-plaintext` ohne `--tls-cert` sind `PGR-E2001` (Test).
+- [ ] Ohne Konfiguration wird `SSLRequest` mit `N` beantwortet; mit Konfiguration wird ein unverschlüsselter Client (auch nach `GSSENCRequest`) mit `PGR-E6003` abgewiesen, mit `--allow-plaintext` zugelassen, ein Klartext-`CancelRequest` bleibt `PGR-W3001`; mehrere Verbindungen nacheinander funktionieren; `--tls-key` allein und `--allow-plaintext` ohne `--tls-cert` sind `PGR-E2001` (Test); die Leser der drei Optionen (auch ihrer Umgebungsvariablen) sind angebunden und `nichtGelesen()` in `fremd_test.go` führt sie nicht mehr (aus `slice-v1-abschluss-umgebung-anderes-kommando`).
 - [ ] Nicht lesbare, ungültige, abgelaufene, verschlüsselte oder nicht passende Dateien beenden den Start mit `PGR-E2007` und Exit-Code 2, ein gescheiterter Handshake endet mit `PGR-W3002` ohne Wirkung auf den Exit-Code; Schlüssel erscheinen weder in Logs noch in `config show` (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -101,6 +103,8 @@ dasteht.
 
 - Test-Zertifikate müssen im Testlauf erzeugt werden; ein fest eingecheckter Schlüssel wäre ein Geheimnis im Repository — **Ausgang:** offen bis Closure.
 
+**Randform** (`AGENTS.md` §3.12; Bindung aus `slice-v1-abschluss-umgebung-anderes-kommando`, §1): *Variable beim eigenen und beim anderen Kommando* — `--tls-cert`, `--tls-key`, `--allow-plaintext`: beim eigenen Kommando liest der Leser die Variable, beim anderen Kommando (`play`) bleibt sie `PGR-E2001` (entschieden in der Spezifikation, `LH-FA-17.a`; Test: `TestLeserUmgebungNichtGelesenerOptionen` mit gekürztem `nichtGelesen()`, `TestLeserUmgebungAndererKommandos`).
+
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
@@ -131,5 +135,7 @@ nicht mehr.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-tls-client-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: zwei Schichten (PGWire-Adapter, CLI-Adapter).
+
+Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-umgebung-anderes-kommando` (Planner, 2026-10-12, `AGENTS.md` §3.13): Sie gehört zu DoD-Punkt 2 (Leser der Option und Kürzung von `nichtGelesen()` im Test des CLI-Adapters) und fügt keinen Liefer-Punkt hinzu: Liefer-Punkte 3. Schichten: zwei (PGWire-Adapter, CLI-Adapter); der CLI-Adapter war schon gezählt, `fremd_test.go` liegt in ihm.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

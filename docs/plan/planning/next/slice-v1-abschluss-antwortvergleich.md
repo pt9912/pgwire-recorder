@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen), [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0020](../../adr/0020-antwortvergleich-beim-einspielen.md), [ADR-0023](../../adr/0023-antwortvergleich-entscheidung.md)
 
-**Berührte Spec-Stellen:** `LH-FA-24.a` · `LH-FA-20.a` · `LH-FA-02.b` · `SPEC-018` · `SPEC-027` · `SPEC-034` · `SPEC-041` · `ARC-002`
+**Berührte Spec-Stellen:** `LH-FA-24.a` · `LH-FA-17.a` · `LH-FA-20.a` · `LH-FA-02.b` · `SPEC-018` · `SPEC-027` · `SPEC-034` · `SPEC-041` · `ARC-002`
 
 **Verantwortlich:** pt9912
 
@@ -32,6 +32,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** `pgwire-recorder play --compare-responses` vergleicht die Struktur der Serverantworten und Fehler mit der Aufzeichnung und meldet Abweichungen als `PGR-E5004` mit Exit-Code 5.
 
+**Gebunden durch `slice-v1-abschluss-umgebung-anderes-kommando`** (dort §7, Paarungen, offene Frage zu V-3; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): `--compare-responses` liest der Stand noch nicht; `nichtGelesen()` in `internal/adapters/driving/cli/fremd_test.go` führt sie. Dieser Slice liefert den Leser, kürzt `nichtGelesen()` um diese Option(en) und bindet ihn in `liesUmgebung` (`internal/adapters/driving/cli/cli.go`) an; die Zuordnung `zuordnung()` nennt sie für `play` (Spalte *Kommando* der Optionstabelle, `LH-FA-17.a`). Sonst wird `TestLeserUmgebungNichtGelesenerOptionen` rot, weil die Variable beim eigenen Kommando dann geprüft wird (`TestLeserZuordnungGleichTabelle` bleibt grün). Beim anderen Kommando (`record` und `replay`) ist die Variable schon jetzt `PGR-E2001`.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-antwortvergleich-doku` (dort §1 und DoD), direkt hinter diesem Slice in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über zwei Schichten. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen.
@@ -48,7 +50,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen): Gegen eine Instanz mit gleicher Antwortstruktur endet das Einspielen mit Vergleich mit Erfolg, gegen eine abweichende mit `PGR-E5004` und Exit-Code 5; ein Serverfehler ohne Vorbild in der Aufzeichnung ist `PGR-E5004`, nicht `PGR-E4004`; ein `FATAL` ohne Vorbild oder mit anderem SQLSTATE ist `PGR-E5004`, ein Netzwerkabbruch ohne Fehlerantwort ist `PGR-E4003`; ein Abbruch sendet keine weiteren Nachrichten oder Gruppen der Interaktion; bei Extended wird nach einem Fehler bis zum `Sync` weitergesendet (Abnahmeszenario 16; Integrationstest).
 - [ ] Jede Art der Abweichung (Nachrichtenart, Spaltenbeschreibung, Befehl ohne Zahlen, Fehler, Transaktionsstatus) wird erkannt und mit Session, Sequenznummer und Art gemeldet, Unterschiede nur in Zeilenwerten, Zeilenzahlen und Hinweisen nicht (Test, einfach und Extended, auch `Flush`-Gruppen).
-- [ ] `--continue-on-error` und `--allow-recorded-errors` wirken wie spezifiziert, `--continue-on-error` läuft nach einer Abweichung weiter, der Exit-Code am Ende ist 5, ein Verbindungsfehler beendet immer mit 4; ein Fehler mit gleichem SQLSTATE wie aufgezeichnet gilt als erwartet und bricht nicht ab, ein anderer SQLSTATE ist `PGR-E5004`; `--allow-recorded-errors` ist mit Vergleich ohne Wirkung; ein Abbruchsignal endet nach einer Abweichung mit 5, ein Verbindungsfehler nach einer Abweichung mit 4; bei jedem Ende des Laufs (auch Abbruch und Signal) steht die Log-Zeile mit eingespielt, verglichen, abweichend; ohne `--compare-responses` findet kein Vergleich statt (Test).
+- [ ] `--continue-on-error` und `--allow-recorded-errors` wirken wie spezifiziert, `--continue-on-error` läuft nach einer Abweichung weiter, der Exit-Code am Ende ist 5, ein Verbindungsfehler beendet immer mit 4; ein Fehler mit gleichem SQLSTATE wie aufgezeichnet gilt als erwartet und bricht nicht ab, ein anderer SQLSTATE ist `PGR-E5004`; `--allow-recorded-errors` ist mit Vergleich ohne Wirkung; ein Abbruchsignal endet nach einer Abweichung mit 5, ein Verbindungsfehler nach einer Abweichung mit 4; bei jedem Ende des Laufs (auch Abbruch und Signal) steht die Log-Zeile mit eingespielt, verglichen, abweichend; ohne `--compare-responses` findet kein Vergleich statt; der Leser der Option (auch ihrer Umgebungsvariablen) ist angebunden und `nichtGelesen()` in `fremd_test.go` führt sie nicht mehr (aus `slice-v1-abschluss-umgebung-anderes-kommando`) (Test).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -102,6 +104,8 @@ dasteht.
 - Das Halten der Antworten bis zum Ende der Interaktion kostet Speicher bei großen Resultsets — **Ausgang:** offen bis Closure.
 - Die Teile von `LH-FA-24.a` §Unvollständige Aufzeichnung, die aufgezeichnete Interaktionen ohne `ReadyForQuery` behandeln, sind seit der Entscheidung in `LH-FA-02.b` §Fehlerantwort vor dem Abbruch (`slice-replay-semantik-fehlerreplay`) nicht mehr erreichbar: Der Recorder schreibt keine solche Interaktion, und der Leser lehnt sie als beschädigt ab (`PGR-E3003`). Dieser Slice bereinigt sie in der Spezifikation, dazu in `LH-FA-20.a` den Teil der Tabellenzeile *Verbindung endet nach dem ersten `ReadyForQuery`* mit Vergleich, der ein aufgezeichnetes Ende behandelt, und den Satz „Wo die Aufzeichnung ein Verbindungsende zeigt, wartet der Recorder …“ (übergeben von `slice-v1-abschluss-einspielen`, das Schritt 3 bereinigt hat; die Klausel in `LH-FA-24` des Lastenhefts bleibt Sache des Nutzers); seine DoD sagt für sie nichts zu — **Ausgang:** offen bis Closure.
 
+**Randform** (`AGENTS.md` §3.12; Bindung aus `slice-v1-abschluss-umgebung-anderes-kommando`, §1): *Variable beim eigenen und beim anderen Kommando* — `--compare-responses` (nur `play`): beim eigenen Kommando liest der Leser die Variable, beim anderen Kommando (`record` und `replay`) bleibt sie `PGR-E2001` (entschieden in der Spezifikation, `LH-FA-17.a`; Test: `TestLeserUmgebungNichtGelesenerOptionen` mit gekürztem `nichtGelesen()`, `TestLeserUmgebungAndererKommandos`).
+
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
@@ -132,5 +136,7 @@ nicht mehr.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-antwortvergleich-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: zwei Schichten (Kern mit Play-Service, CLI-Adapter).
+
+Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-umgebung-anderes-kommando` (Planner, 2026-10-12, `AGENTS.md` §3.13): Sie gehört zu DoD-Punkt 3 (Leser der Option und Kürzung von `nichtGelesen()` im Test des CLI-Adapters) und fügt keinen Liefer-Punkt hinzu: Liefer-Punkte 3. Schichten: zwei (Kern mit Play-Service, CLI-Adapter); der CLI-Adapter war schon gezählt, `fremd_test.go` liegt in ihm.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
