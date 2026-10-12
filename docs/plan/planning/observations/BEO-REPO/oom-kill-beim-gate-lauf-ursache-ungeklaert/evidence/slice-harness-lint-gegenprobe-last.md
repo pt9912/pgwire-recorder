@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-lint-gegenprobe-last
+**Fund:** Kernel-Log 2026-10-12 06:05:46: `Out of memory: Killed process (bash)` mit anon-rss 17 021 048 kB. Nicht belegt, ob der Prozess zur Gegenprobe gehörte. Der Gate-Lauf `make gates` am Stand `b4ee633` belegte insgesamt höchstens 18 934 MB bei einer Basis von rund 15 GB (Standard 3); es wurde kein Einzelprozess dieser Größe gesehen. Für Parallelität 6 liegt keine RAM-Zahl derselben Messreihe vor. Die Senkung der Parallelität behebt den Kill möglicherweise nicht.

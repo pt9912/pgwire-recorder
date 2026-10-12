@@ -87,7 +87,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Standard: Ohne gesetztes `LINT_GEGENPROBE_PARALLEL` ist die Höchstzahl gleichzeitiger
+- [x] Standard: Ohne gesetztes `LINT_GEGENPROBE_PARALLEL` ist die Höchstzahl gleichzeitiger
       Läufe in `tools/harness/lint-gegenprobe.sh` 3 (Zeile `parallel=`); der Kopf des Skripts
       nennt 3 als Standard und sagt weder zu, dass ein Lauf von `make gates` ihn prüft, noch
       etwas über die Wirkung auf Last, Speicher oder einen OOM-Kill zu (`AGENTS.md` §3.11).
@@ -95,20 +95,20 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       gestrichen, die 6 im Kopf (Zeile 14) ersetzt, und der Kopf liest 3 als Höchstzahl je
       Lauf des Skripts, nicht als Obergrenze der Last von `make gates` (§6).
       Kein Fall im Skript prüft den Standard (Entscheidung des Nutzers, §6). Ein gültiger gesetzter Wert gilt unverändert.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben: eine weitere Datei
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: eine weitere Datei
       `evidence/slice-harness-lint-gegenprobe-last.md` in
       `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe/` mit der Messung dieses Slice
       (`make lint-gegenprobe` allein, Laufzeit, Load im Mittel und Maximum, RAM belegt im
       Maximum und Basis vor dem Lauf, Parallelität 3 als Standard, und `make gates` als
       Ganzes, falls der Auftraggeber es fährt); der Zähler folgt aus den Dateien (2×). Die
       Messung ist Beleg, kein Liefer-Punkt.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -265,8 +265,9 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 Änderung: Commit `10dc4c8` (`tools/harness/lint-gegenprobe.sh`: `parallel=3`, Kopf nennt 3 als
 Höchstzahl je Lauf des Skripts, keine Obergrenze der Last von `make gates`; der Satz „den Default
 fährt jeder Lauf von `make gates`“ ist gestrichen). Die Suche aus §3 (`LINT_GEGENPROBE`,
-`PARALLEL` über `tools/`, `harness/`, `spec/`, `docs/user`, `README.md`, `AGENTS.md`, `.claude/`,
-`Makefile`) fand danach nur das Skript selbst; keine weitere Fundstelle.
+`PARALLEL` über `tools/`, `harness/`, `spec/`, `docs/`, `README.md`, `AGENTS.md`, `.claude/`,
+`Makefile`) fand danach als Standard nur das Skript selbst; unter `docs/` stehen die Kennung nur in
+Plänen, Roadmap, Reviews und Belegen (Zeitdokumente), in keinem lebenden Dokument des Nutzers.
 
 **Messung nachher** (`make lint-gegenprobe` allein, Standard 3, Sampler alle 2 s mit
 `/proc/loadavg` (1-Minuten-Wert) und `/proc/meminfo` (MemTotal minus MemAvailable); Ausgang 0,
@@ -279,15 +280,60 @@ fährt jeder Lauf von `make gates`“ ist gestrichen). Die Suche aus §3 (`LINT_
 
 Vorwerte aus §1: Parallelität 6: 150 s, Load 57 / 75; 3: 167 s, 27,5 / 31,9, 18,7 GB;
 2: 188 s, 23,3 / 27,3, 17,9 GB. Der Lauf mit dem neuen Standard deckt sich mit der Messung des
-Planners für Parallelität 3 (Laufzeit gleich; Load und RAM im Maximum etwas höher, der Host war
-bei Start schon mit Load 22 belegt). Eine Messung der Parallelität 6 in diesem Lauf fehlt.
+Planners für Parallelität 3: Laufzeit gleich (166 s und 167 s gegen 167 s); Load im Maximum 38,0
+und 37,7 gegen 31,9, RAM im Maximum 19,3 GB gegen 18,7 GB; der Host war bei Start schon mit Load 22
+belegt. Eine Messung der Parallelität 6 in diesem Lauf fehlt.
 
 **Mutation:** `parallel=3` wird `parallel=6` bleibt grün — akzeptiertes Negativ (§6, Weg 2),
 nicht gefahren, da kein Fall den Standard prüft und der Kopf es nicht zusagt. Die Fälle
 `einstellung-<wert>` (ungültige Werte) liefen im Lauf mit und sind grün.
 
+**Gate-Lauf** (V-1): `make gates` am Stand `b4ee633`: Exit 0, 08:26:14 bis 08:31:01 (4 min 47 s).
+Gemessen vom Auftraggeber alle 2 s über den ganzen Lauf: Load im Mittel 21,4, Maximum 35,0; RAM
+belegt höchstens 18 934 MB (20 Kerne). Danach kamen nur Report-Commits (`9c4b0a6`, `a020454`) und
+die Closure-Commits; die Messung am Stand nach der Closure steht aus.
+
 **Nicht belegt:** dass die Senkung den OOM-Kill behebt; die Ursache ist ungeklärt (Risiko 1 in §6).
-Gemessen ist die Gegenprobe allein, nicht `make gates` als Ganzes.
+Gemessen ist die Gegenprobe allein; `make gates` als Ganzes ist einmal gemessen (siehe oben), mit
+einem Maximum von 18 934 MB bei einer Basis von rund 15 GB und ohne gesehenen Einzelprozess dieser
+Größe.
+
+### Review und Verifikation
+
+Review (`docs/reviews/2026-10-12-review-slice-harness-lint-gegenprobe-last.md`): HIGH 0, MEDIUM 0,
+LOW 0. Verifikation (`…-verifikation-…`): V-1 LOW (kein Gate-Lauf in §7): behoben, siehe
+*Gate-Lauf*. V-3 INFO (Load-Maximum und Suchumfang ungenau): behoben, Zahlen und `docs/` oben.
+V-2 INFO (Zeile 15 im Skriptkopf hat 136 Zeichen): Lesbarkeit, kein Befund gegen eine Regel;
+**ohne Folge**, das Skript bleibt unverändert.
+
+### Closure-Notiz
+
+**Ausgänge der Risiken aus §6:**
+
+- OOM-Kill durch die Senkung möglicherweise nicht behoben — **weiter offen:**
+  `BEO-REPO/oom-kill-beim-gate-lauf-ursache-ungeklaert` (neu, 1×; Beleg
+  `evidence/slice-harness-lint-gegenprobe-last.md`). Der Kernel-Log nennt am 2026-10-12 um 06:05:46
+  `Out of memory: Killed process (bash)` mit anon-rss 17 021 048 kB; ob der Prozess zur Gegenprobe
+  gehörte, ist nicht belegt.
+- Die Gegenprobe läuft länger — **weiter offen:** `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`
+  (Beleg `evidence/slice-harness-lint-gegenprobe-last.md`, Zähler 2×, unter der Schwelle 3×).
+- Messung gilt für einen Rechner mit 20 Kernen — **entfallen:** der Standard ist eine Höchstzahl mit
+  Einstellung zum Überstimmen; der Slice sagt keine Laufzeit oder Last für andere Rechner zu.
+
+**Lerneintrag (Form: benannte Spec-Lücke).** Weder `SPEC-049` noch [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) sagen etwas zu Last
+oder Speicher eines Gates; das ist bewusst so (§6: eine Zahl dazu wäre eine Zusage ohne Prüfung,
+`AGENTS.md` §3.11), und es bleibt die benannte Lücke: Es gibt keinen Sensor und keine Zusage zur
+Ressourcenlast von `make gates`, und die Ursache des OOM-Kills ist ungeklärt. Beobachtung dieses
+Laufs: Erst das Messen der Last (Zeit je Gate, Sampler für Load und RAM) zeigte, dass die eine
+Gegenprobe die Last trägt (Standard 6: Load 57 / 75 allein) und dass die Senkung auf 3 sie
+halbiert (27,5 / 31,9) bei rund 11 % mehr Laufzeit. Eine neue Regel entsteht daraus nicht, keine
+geschärfte Regel und kein Sensor; nichts wird verkörpert, deshalb kein Herkunfts-Anker. Zweite
+Beobachtung: ein `pkill -f` im selben Shell-Befehl tötet die eigene Shell (Exit 144), weil die
+Befehlszeile das Muster enthält: Register `BEO-REPO/pkill-f-toetet-die-eigene-shell` (neu, 1×).
+
+**Paarungen:** Anker: entfällt, nichts verkörpert. Folge-Slice: keiner genannt, keiner nötig (der
+Folge-Slice für eine Untersuchung des OOM-Kills ist bedingt und nicht angelegt, §6; Ausgang ist
+das Register). Register: drei Einträge, siehe oben.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
