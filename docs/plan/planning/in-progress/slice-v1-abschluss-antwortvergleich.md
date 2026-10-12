@@ -286,7 +286,7 @@ Alle Mutanten rot, keiner grün. Der Mutant Z2 ist vom Typ „Wartezeit hinter d
 
 ### Belege der Nacharbeit nach der Verifikation (V-1)
 
-**Stand.** Test-Commit nach `b1e4fb9` (drei Fälle in `vfaelle()`, `play_vergleich_test.go`); Arbeitsbaum davor `b1e4fb9`. `make gates` siehe Übergabe-Bericht; davor `make test` grün.
+**Stand.** Test-Commit nach `b1e4fb9` (drei Fälle in `vfaelle()`, `play_vergleich_test.go`); danach `fc1d81d` (zwei Fälle zum leeren Wort im Tag, V1f); Arbeitsbaum davor `b1e4fb9`. `make gates` siehe Übergabe-Bericht; davor `make test` grün.
 
 **Merkmal der Klasse in V-1.** Die Zusage zu `befehl()` hing an einem Fall, der auch ohne die Bedingung verschieden ist (`T1` gegen `T`). Geprüft sind alle Bedingungen von `befehl()`/`nurZiffern()`, je mit einem Mutanten, der nur sie bricht.
 
@@ -299,7 +299,7 @@ Alle Mutanten rot, keiner grün. Der Mutant Z2 ist vom Typ „Wartezeit hinter d
 | V1c | … nur am Ende, nicht Zahlwörter vor einem Wort (M-Zeile „Zahl vor einem Wort bleibt“) | alle Ziffern-Wörter entfernen | `…/Zahl_vor_einem_Wort_bleibt` |
 | V1d | Ein Tag aus Ziffern allein gilt als leer (M8) | `len(woerter) > 1` | `…/Tag_aus_Ziffern_allein` |
 | V1e | M7 (`TrimRight` über Ziffern und Leerzeichen) | `strings.TrimRight(tag, "0123456789 ")` | `…/Wort_mit_Ziffer_ist_keine_Zahl`, `…/Wort_mit_Ziffer_wird_nicht_abgeschnitten` |
-| V1f | Ein leeres Wort ist kein Zahlwort (`w != ""` in `nurZiffern`) | Bedingung `w != ""` entfällt | **grün**: Randform, die Spezifikation (`LH-FA-24.a` *Befehl*, „durch Leerzeichen getrennt“) nennt Tags mit doppeltem oder abschließendem Leerzeichen nicht; Rückgabe an den Architect, kein Test geschrieben |
+| V1f | Ein leeres Wort ist kein Zahlwort (`w != ""` in `nurZiffern`); der Tag wird an jedem einzelnen Leerzeichen getrennt, nicht zugeschnitten (Entscheidung des Architects, `8af93b2`, `LH-FA-24.a` *Befehl*) | Bedingung `w != ""` entfällt | **rot**: `TestVergleichStruktur/abschließendes_Leerzeichen_im_Tag` (`SELECT ` gegen `SELECT`: Mutant gleich, erwartet Position 1, Art Befehl) und `…/doppeltes_Leerzeichen_im_Tag` (`A  1` gegen `A 1`), je einfach und Extended; die übrigen Fälle bleiben grün (Basis `ok`, Mutant vier rote Unterfälle) |
 
 Alle Fälle von V1a bis V1d sind rot aus dem Grund der Zusage: je ein Test, die anderen Fälle der Tabelle bleiben grün.
 
