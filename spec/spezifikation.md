@@ -293,7 +293,8 @@ wenn bis dahin kein Verbindungsfehler auftrat.
 
 **Andere Kommandos.** Die Option gibt es nur bei `replay`. Bei `record` und
 `play` ist sie eine unbekannte Option (`PGR-E2001`, Exit-Code `2`); ihre
-Umgebungsvariable lassen sie unbeachtet (LH-FA-17.a).
+Umgebungsvariable `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` ist dort `PGR-E2001`, wenn sie
+gesetzt und nicht leer ist (LH-FA-17.a, Einstellungen).
 
 ---
 
@@ -921,9 +922,20 @@ mehrfach, gilt die letzte Angabe. Eine Option auf der Kommandozeile ist
 gesetzt, auch mit leerem Wert (`--listen=`), und ein leerer Wert ist für keine
 Option gültig (`PGR-E2001`, geprüft mit der Kommandozeile), auch wenn die
 Umgebungsvariable derselben Option gesetzt ist; nur eine leere Umgebungsvariable
-gilt als nicht gesetzt. Die Umgebungsvariable einer Option, die das
-Kommando nicht kennt, bleibt unbeachtet, ebenso eine mit dem Präfix, deren Name
-keiner Option entspricht. Geprüft wird jeder gesetzte Wert einer
+gilt als nicht gesetzt. Eine gesetzte, nicht leere Umgebungsvariable einer
+Option, die das Kommando nicht kennt (Spalte *Kommandos* der Tabelle unten), ist
+`PGR-E2001`, gleich welchen Wert sie hat, wie die Option selbst auf der
+Kommandozeile; die Meldung nennt den Namen der Variable, nicht ihren Wert. Das
+gilt für jede Option der Tabelle. Zwei Ausnahmen: `PGWIRE_RECORDER_PASSWORD` hat
+keine Option und bleibt bei `record` und `replay` unbeachtet, und eine Variable mit
+dem Präfix, deren Name keiner Option der Tabelle entspricht, bleibt bei jedem
+Kommando unbeachtet (ein Tippfehler ist von der Variable eines anderen Werkzeugs
+nicht zu unterscheiden). Eine Warnung statt des Fehlers gibt es nicht: der Katalog
+führt keinen Meldungscode für Warnungen des Starts, und eine Variable, die der Lauf
+nicht beachtet, soll nicht unbemerkt bleiben (Entscheidung des Nutzers vom
+2026-10-12: Fehler). Wer `record` und `play` in derselben Umgebung fährt, setzt die
+Variablen der Optionen des jeweils anderen Kommandos dort nicht. `config show` prüft
+von den Variablen nur `PGWIRE_RECORDER_CONFIG` (siehe *Anzeige*). Geprüft wird jeder gesetzte Wert einer
 Option des Kommandos, unabhängig von der Priorität: Eine gesetzte
 Umgebungsvariable mit ungültigem Wert ist `PGR-E2001`, auch wenn die Kommandozeile
 dieselbe Option setzt und damit vorgeht. Fordert der Aufruf die Hilfe an, wird
@@ -3056,3 +3068,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Zeitangaben: Randformen aller Teile vor dem Code (Uhr als Port in ganzen Millisekunden mit Abbruch und Fake-Uhr, Architekturregel am Import mit Gegenprobe; Messpunkt im Use Case, Beginn der Session und Ankunft der Nachricht, keine Rundung; Prüfung der Werte beim Laden in beiden Formaten und in `replay` und `play` auch ohne `--keep-timing`, gleicher Wert gültig, Form des Werts in `yaml`, Meldung ohne Wert; „gesetzt“ bei den Kombinationen, `PGR-E2003` vor `PGR-E6001`, Bezug von `relative`, Abbruch einer Wartezeit, kein Grenzwert) (`LH-FA-21.a`) |
 | 2026-10-12 | Zeitangaben, Aufzeichnen: „Werte steigen nicht ab“ gilt unter der Bedingung, dass die Aufrufe der Client-Richtung einer Session nacheinander kommen; der Use Case ordnet gleichzeitige Aufrufe nicht um (`LH-FA-21.a`) |
 | 2026-10-12 | Zeitangaben, Aufzeichnen: Beginn der Messung in *Aufzeichnen* nennt den *Messpunkt* statt „Annahme der Verbindung“; das Lastenheft nennt als Bezugspunkt den Verbindungsaufbau und legt ihn nicht auf TLS und Startup fest, kein Widerspruch (`LH-FA-21.a`) |
+| 2026-10-12 | Konfiguration, Entscheidung des Nutzers: Umgebungsvariable der Option eines anderen Kommandos ist `PGR-E2001` (bisher unbeachtet; ersetzt die Fassung vom 2026-10-05 und 2026-10-08), Ausnahmen `PGWIRE_RECORDER_PASSWORD` und Variable ohne passende Option, keine Warnung (`LH-FA-17.a`) |
