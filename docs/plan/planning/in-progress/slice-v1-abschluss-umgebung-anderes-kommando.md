@@ -352,8 +352,8 @@ und hier nur durch einen Fall ergänzt.
 | `false` bei `play` | `play` mit `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED=false` | Exit 2, `PGR-E2001` |
 | leere Variable gilt als nicht gesetzt | `record` ohne Optionen, `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED=` | Exit 2, `Pflichtoption --listen fehlt` |
 | `PGWIRE_RECORDER_PASSWORD` bei `record` und `replay` unbeachtet | `record` / `replay` ohne Optionen mit der Variable | Exit 2, `Pflichtoption --listen fehlt` |
-| Variable ohne Option unbeachtet (`PGWIRE_RECORDER_BOGUS`) | `replay` ohne Optionen | Exit 2, `Pflichtoption --listen fehlt` |
-| andere Schreibweise unbeachtet | `play` ohne Optionen, `pgwire_recorder_listen=x` | Exit 2, `Pflichtoption --upstream fehlt` |
+| `PGWIRE_RECORDER_BOGUS`, die zu keiner Option gehört, bleibt bei `record`, `replay` und `play` unbeachtet | `record`, `replay`, `play` je ohne Optionen mit der Variable | Exit 2, `Pflichtoption --listen fehlt` (`record`, `replay`), `Pflichtoption --upstream fehlt` (`play`) |
+| `pgwire_recorder_listen`, andere Schreibweise des Namens einer Option, bleibt unbeachtet | `play` ohne Optionen, `pgwire_recorder_listen=x` | Exit 2, `Pflichtoption --upstream fehlt` |
 | `config show` prüft nur `PGWIRE_RECORDER_CONFIG` | `config show` mit `PGWIRE_RECORDER_LISTEN=x`, `PGWIRE_RECORDER_FORCE=GEHEIM`; dann `PGWIRE_RECORDER_CONFIG=/gibt/es/nicht.yaml` | Exit 0, listet beide Namen; Exit 2, `PGR-E2004` |
 | (Satz der Hilfe, unverändert) Hilfe liest nichts | `play --help` mit `PGWIRE_RECORDER_LISTEN=x` | Exit 0, Hilfetext |
 | Zeile `PGR-E2001` der Meldungstabelle | wie die ersten Zeilen | Meldung nennt die Variable, nicht den Wert |
@@ -361,6 +361,26 @@ und hier nur durch einen Fall ergänzt.
 Der Satz „Wer `record` und `play` in derselben Umgebung ausführt, setzt dort die Variablen der Optionen der jeweils
 anderen Betriebsart nicht“ folgt aus den ersten beiden Zeilen. Das Handbuch nennt weder Spezifikation noch Slice;
 die Tabelle der Optionen (ohne die sechs noch nicht gelesenen) bleibt unverändert, `README.md` auch.
+
+**Nacharbeit nach dem Review** (2026-10-12, Stand `e1a33d1`; Befunde F-1 und F-2 des Reports):
+
+- F-1 (Handbuch, enge Fassung): Der Satz „eine Variable mit dem Präfix, die zu keiner Option gehört, bleibt bei jeder
+  Betriebsart unbeachtet“ las sich für die sechs noch nicht gelesenen Optionen mit. Vorher, gebautes Binary: `play` mit
+  `PGWIRE_RECORDER_TLS_CERT=x` endet mit Exit 2 und `Konfiguration [PGR-E2001]: Umgebungsvariable PGWIRE_RECORDER_TLS_CERT
+  gehört zu einer Option, die play nicht kennt`, der Satz sagte dort Falsches. Gewählt ist die enge Fassung, weil die Probe das
+  Handbuch um Optionen erweitern müsste, die das Binary noch nicht liest. Der Satz nennt jetzt nur die geprüften Fälle:
+  `PGWIRE_RECORDER_BOGUS` (gehört zu keiner Option) bei `record`, `replay` und `play`, `pgwire_recorder_listen` (andere
+  Schreibweise) und `PGWIRE_RECORDER_PASSWORD` bei `record` und `replay`. Keine allgemeine Aussage über Variablen mit dem
+  Präfix mehr; die Probe-Zeilen oben tragen die drei Namen (BOGUS jetzt bei allen drei Betriebsarten, aus `probe.sh`).
+  Der Test dazu: `TestLeserFremdeUmgebung` (BOGUS und Schreibweise, je Kommando); Mutation „jede Variable mit Präfix fremd“
+  in der Tabelle oben, rot dort.
+- F-2 (Plan §3): führt jetzt `abdeckung-gesamt.md` und `abdeckung-vollstaendig.md` und die Deklaration `LH-FA-01/Boundary`.
+  `LH-FA-01/Boundary` trifft zu: `TestLeserUmgebungConfigShowUndHilfe` ruft `record --help`, `replay -h`, `play --help` und
+  `config show --help` mit ungültigen Variablen jeder Option und erwartet die Hilfe ohne Fehler (`LH-FA-01.a`: die Hilfe geht
+  jeder Prüfung vor); die Mutation „Prüfung vor der Hilfe“ der Tabelle oben ist dort rot. Kopf, §1 und §6 nennen `LH-FA-01`
+  und die Hilfe schon; nichts weiter nachzuziehen.
+- Läufe: `make docs-check` (633 Dateien, 0 Befunde), `make abdeckung-check` grün, `make build` (Image unverändert zwischengespeichert,
+  Code seit `f1203f8` unberührt), `make gates` grün am Stand `e1a33d1` (4 min 45 s), erneut nach diesem Eintrag.
 
 **Randformen:** keine nicht genannte oder offene Randform gefunden, keine Rückgabe an den Architect. Gelesen wurde
 „kennt“ für die sechs noch nicht gelesenen Optionen nach der Zeile in §6 (Architect 2026-10-12). Die Meldung lautet
