@@ -2074,7 +2074,13 @@ findet kein Vergleich statt.
   bei `FATAL` und `PANIC` (*Ende der Aufzeichnung*).
 * *Befehl.* Die abschließenden Zahlen sind die Wörter am Ende des Tags, durch Leerzeichen
   getrennt, die nur aus Ziffern bestehen; `SELECT 5` und `INSERT 0 1` gelten als `SELECT`
-  und `INSERT`. Ein Tag aus Ziffern allein gilt als leer.
+  und `INSERT`. Ein Tag aus Ziffern allein gilt als leer. Der Tag wird an jedem einzelnen
+  Leerzeichen in Wörter getrennt, ohne ihn vorher zuzuschneiden; ein leeres Wort (doppeltes
+  oder abschließendes Leerzeichen) ist keine Zahl und beendet das Abstreifen. `SELECT `
+  gilt als `SELECT ` und ist verschieden von `SELECT`; `A  1` gilt als `A ` und ist
+  verschieden von `A 1`, das als `A` gilt. Der Leser prüft den Inhalt des Tags nicht, solche
+  Tags sind keine beschädigte Aufzeichnung (`PGR-E3003`); der Vergleich liest sie wie jeden
+  anderen Tag.
 * *Fehler.* Fehlt das Feld `C` einer `ErrorResponse`, gilt es als leerer Text; zwei
   Fehlerantworten ohne `C` sind gleich. Der Schweregrad wird nicht verglichen, außer dass
   `FATAL` und `PANIC` stets eine Abweichung sind (*Ende der Aufzeichnung*).
