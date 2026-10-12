@@ -68,7 +68,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 2. `slice-v1-abschluss-homebrew` — Verfahren der Formel, belegt mit einem Probe-Tag und einem Probe-Tap.
 3. `slice-erster-release-homebrew-nachweis` — Abnahmeszenario 11 mit dem echten Tap (setzt 2 voraus).
 
-Vor dieser Welle liegen `slice-harness-abdeckung-gate` und `slice-harness-coverage` (M3) und [welle-erster-release](welle-erster-release.md) (M4). Danach folgen die übrigen Harness-Slices, beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
+Vor dieser Welle liegen `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (M3) und [welle-erster-release](welle-erster-release.md) (M4). Danach folgen die übrigen Harness-Slices, beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
 
 ## 6. Out-of-Scope für diese Welle
 

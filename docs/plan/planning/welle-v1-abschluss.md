@@ -133,7 +133,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 34. `slice-v1-abschluss-protokollrand-doku` — Handbuch und README dazu (setzt 33 voraus).
 35. `slice-harness-meldungskatalog-gate` — wellenlos, Voraussetzung von Schritt 36; misst die Codes aller vorigen Schritte, bevor die Betriebsdokumentation den Katalog schreibt.
 36. `slice-v1-abschluss-container` — Abnahmeszenario 9 (setzt 1 bis 35 voraus).
-Nach dieser Welle folgen wellenlos `slice-harness-abdeckung-gate` und `slice-harness-coverage` (Abnahmeszenario 17, damit M3), dann [welle-erster-release](welle-erster-release.md), dann [welle-v1-nachtrag](welle-v1-nachtrag.md) (Homebrew und `CancelRequest` ohne Schlüssel, Entscheidung des Nutzers vom 2026-10-11), dann die übrigen Harness-Slices; deren Reihenfolge steht in ihrem §4.
+Nach dieser Welle folgen wellenlos `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (Abnahmeszenario 17, damit M3), dann [welle-erster-release](welle-erster-release.md), dann [welle-v1-nachtrag](welle-v1-nachtrag.md) (Homebrew und `CancelRequest` ohne Schlüssel, Entscheidung des Nutzers vom 2026-10-11), dann die übrigen Harness-Slices; deren Reihenfolge steht in ihrem §4.
 
 ## 6. Out-of-Scope für diese Welle
 
