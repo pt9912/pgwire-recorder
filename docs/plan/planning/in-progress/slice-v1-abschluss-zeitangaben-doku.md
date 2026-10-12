@@ -67,8 +67,9 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/user/benutzerhandbuch.md` | update | Abschnitte zu dem, was `slice-v1-abschluss-zeitangaben-pruefen`, `slice-v1-abschluss-zeitangaben-aufzeichnen` und `slice-v1-abschluss-zeitangaben` liefern: Optionen gegen `--help`, Beispiele als Datei, Codes, Grenz-Sätze ersetzt |
+| `docs/user/benutzerhandbuch.md` | update | Abschnitte zu dem, was `slice-v1-abschluss-zeitangaben-pruefen`, `slice-v1-abschluss-zeitangaben-aufzeichnen` und `slice-v1-abschluss-zeitangaben` liefern: Optionen gegen `--help`, Beispiele als Datei, Codes, Grenz-Sätze ersetzt; ein neuer Abschnitt *Zeitangaben aufzeichnen und einspielen* mit den Lesarten aus §1, die Zeilen der Tabelle in §5 und der *Fehlercodes*, die SQLite-Tabelle, Einleitung, FAQ und Glossar |
 | `README.md` | update | Sätze, die jene drei überholen, im Ist-Zustand |
+| `docs/plan/planning/in-progress/roadmap.md` | update | Zeile *In Arbeit* nennt den Slice (eigener Commit) |
 
 **Ansatz:**
 
@@ -125,6 +126,89 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Stand.** Geändert sind `docs/user/benutzerhandbuch.md` (Version 0.4: neuer Abschnitt *Zeitangaben aufzeichnen und einspielen*, vier Zeilen der Tabelle in §5, drei Zeilen und eine neue Zeile in *Fehlercodes*, Zeile `interaction` der SQLite-Tabelle, Einleitung, Hinweis bei *Eine Aufzeichnung wiedergeben*, FAQ, Glossar), `README.md`, `docs/plan/planning/in-progress/roadmap.md` (Zeile *In Arbeit*, eigener Commit) und dieser Plan (§3, §7, §8). Produkt-Code, Tests, Gates und `docs/user/abdeckung-*.md` sind unverändert.
+
+**Probe-Aufbau.** `make build` am Stand `15583ea` (Image `pgwire-recorder:dev`, `sha256:0a130c4a8cda…`, Produktcode unverändert). Proben in einem Scratch-Verzeichnis außerhalb des Repos. Netz `zd-net`, ein PostgreSQL 17.11 aus dem gepinnten Image von `harness/mk/integration.mk` (`zd-pg`, Servermodus `trust`, mit `log_statement=all`, `log_connections=on`, `log_min_duration_statement=0` und Zeitstempel mit Millisekunden; im Netz zusätzlich unter dem Namen `postgres`), `record`, `replay` und `play` als `docker run … pgwire-recorder:dev` im selben Netz, Client `psql` aus dem PostgreSQL-Image (Pausen des Clients mit `\! sleep`), für Pausen vor der Startup-Nachricht ein Roh-Client in Python (`SSLRequest`, Startup, Query). Gemessen wird **am Server**: `play` sendet an `zd-pg`, die Zeitstempel von „connection received“ und „statement“ im Server-Log sind Beginn der Verbindung und Beginn der Anfrage (die Zeit steht vor dem Warten auf eine Sperre); „ENDE“ ist die Zeile `duration` der Anfrage. Aufzeichnungen: `r1` (drei Einfügungen, Pausen 1 s und 1 s: `offset_ms` 4, 1012, 2016), `r2` (Sitzung 1 nach 2 s Pause: 2005, 3010; Sitzung 2: 2, 1008), `r3` (Pausen 8 s: 3, 8014, 16021), `fast` (4, 5, 6), `s1` (`r1` als SQLite). Die Blöcke des neuen Abschnitts liefen **wörtlich** (Dateien `blk0` bis `blk4`, aus dem Handbuch gezogen; `pgwire-recorder` als Funktion, die das Image mit dem Netz startet; `record` im Hintergrund mit `psql` als Anwendung, `play` im Vordergrund). Container (mit `docker rm -fv`) und Netz sind danach per Name entfernt; die Zahl der Volumes ist vor und nach den Proben 51, kein neues blieb liegen. Die Dateien liegen im Scratch-Verzeichnis der Sitzung außerhalb des Repos. Nur Linux im Container, lokales Dateisystem (`BEO-REPO/verhalten-nur-unter-linux-geprueft`).
+
+**Beispiele des Abschnitts (wörtlich).**
+
+| Block | Lauf | Ergebnis |
+|---|---|---|
+| `record … --record-timing` (YAML) | Block, dann `psql` mit zwei Einfügungen, 1 s Pause, `docker stop` | Exit 0; `sequence: 2` trägt `offset_ms: 1011` unter derselben Einrückung wie der Ausschnitt |
+| `play … --keep-timing` | Block gegen die Aufzeichnung | Exit 0; Server-Log: Anfrage 1 bei 2 ms, Anfrage 2 bei 1009 ms nach der Verbindung |
+| Konfigurationsdatei mit vier Schlüsseln | `record --config`, danach `play --config` | Aufzeichnung mit 2 Zeilen `offset_ms`; `play` Exit 0, Anfragen bei 2 ms und 1011 ms (`first-request`, `absolute`) |
+| `sqlite3 … select session_id, sequence, offset_ms from interaction` | Aufzeichnung mit `--format sqlite --record-timing` | `1|1|3` und `1|2|1010` |
+
+**Proben je Aussage.** `Z` = die Aufzeichnungen oben; „Server-Log“ = Zeit seit „connection received“ der Verbindung von `play`.
+
+| Aussage im Handbuch | Probe | Ergebnis (Gegenprobe) |
+|---|---|---|
+| `--record-timing` hält an jeder Anfrage die Zeit seit Beginn der Verbindung fest; ganze Zahl ab 0 | `r1` (Client: Einfügung, 1 s, Einfügung, 1 s, Einfügung); SQLite `typeof` | 4, 1012, 2016; `integer` (Pausen von 1 s ergeben Abstände von 1008 und 1004) |
+| Zeit bis zum Senden der Startup-Nachricht zählt nicht, auch nicht nach einer Anfrage nach Verschlüsselung | Roh-Client: 2 s vor Startup; `SSLRequest`, `N`, dann 2 s vor Startup; 2 s vor dem `SSLRequest`; 2 s nach Verbindungsaufbau vor dem `SSLRequest` | je `offset_ms` 4 |
+| Zeit zwischen Anmeldung und erster Anfrage zählt mit | Roh-Client: Startup sofort, nach `ReadyForQuery` 2 s Pause | 2005 (Gegenprobe zu den vier Fällen oben) |
+| Wert der ersten Anfrage nicht notwendig 0 | `psql` und Roh-Client ohne Pause | 4 und 3 |
+| Jede Verbindung zählt ab eigenem Beginn | `r2`: Sitzung 1 endet bei 3010, Sitzung 2 folgt | Sitzung 2: 2 und 1008 (nicht nach 3010) |
+| Anfragen beider Protokolle und Lebendprüfung tragen das Feld | `psql` mit `\bind` (erweitert) und Roh-Client mit `-- ping` | `type: extended` mit 1012; `-- ping` mit 1504; einfache Anfrage 4 |
+| Ohne `--record-timing` kein Feld (YAML), `NULL` (SQLite), Standard | `record` ohne Option, YAML und SQLite | `grep -c offset_ms` 0; SQLite `typeof` `null`, Wert leer; mit Option `integer` |
+| Zwei Aufzeichnungen desselben Ablaufs können sich in `offset_ms` unterscheiden | zwei Läufe mit `r1`-Ablauf, `diff` | drei Zeilen verschieden (4/3, 1013/1012, 2018/2017), alle `offset_ms`; keine andere Zeile |
+| `RECORD_TIMING=true` genügt; Schlüssel `record_timing: true` genügt | `record` mit der Variablen; `record --config` | je 1 Zeile `offset_ms` (Gegenprobe: ohne beides 0) |
+| Priorität Option vor Umgebung vor Datei; leere Umgebungsvariable gilt als nicht gesetzt | Umgebung `true` mit `--record-timing=false`; Datei `true` mit Option `false`; Umgebung `false` mit Datei `true`; Umgebung leer mit Datei `true` | 0, 0, 0 Zeilen; 1 Zeile (leer: Datei gilt) |
+| `--record-timing` nimmt keinen Wert, `=true`, `=false`; ungültig `=1`, `=True`, `=`: `PGR-E2001`; Umgebungsvariable `1`, `Geheim123`: `PGR-E2001`, auch mit Option; Datei `yes`: `PGR-E2004` | je ein `record` | Option ohne Wert, `=true`, `=false` starten; `=1`, `=True`, `=` Exit 2 `PGR-E2001`; Variable `1`, `Geheim123` Exit 2 `PGR-E2001`, auch mit `--record-timing`; Datei `yes` Exit 2 `PGR-E2004` |
+| `--keep-timing` wartet vor jeder Anfrage; ohne die Option wartet `play` nie, auch mit Zeitangaben | `play` von `r1` ohne und mit Option, Server-Log | ohne: 1, 9, 15 ms; mit: 3, 1012, 2016 ms (Abstände 1009 und 1004 bei aufgezeichneten 1008 und 1004) |
+| Für `--keep-timing` braucht jede Anfrage eine Zeitangabe; mit `--record-timing` aufzeichnen | `play --keep-timing` von `s0` (ohne Option aufgezeichnet) und von `r1`/`s1` | `s0`: `PGR-E2003`, Exit 2; `r1`, `s1`: Exit 0 |
+| `KEEP_TIMING=true` und `keep_timing: true` genügen; `timing_mode`, `timing_reference` als Umgebung und Datei | `play` mit Umgebung (`absolute`, `first-request`, `r2`), `play --config` mit `keep_timing: true` (`r1`) | Anfragen bei 2, 1008 / 1015, 2021 ms (`first-request`) bzw. 2, 1011, 2016 ms (Datei) |
+| Zeitangaben gelten für SQLite | `play --keep-timing` von `s1` | 2, 1012, 2017 ms |
+| `relative`: Standard; erste Anfrage ohne Wartezeit; sonst mindestens der aufgezeichnete Unterschied seit dem Beginn der vorigen Anfrage | `play --keep-timing` von `r1`, `r2` | `r1` siehe oben; `r2`: 3 ms, 1008 ms (aufgezeichneter Unterschied 1005), zweite Verbindung bei 1013 ms, ihre erste Anfrage 2 ms nach ihrem Beginn |
+| Dauert die vorige Anfrage länger als aufgezeichnet: nächste, sobald beantwortet; Verspätung später nicht aufgeholt | Tabelle `zlog` 3 s gesperrt (zweite Sitzung des Clients), `play --keep-timing` von `r1`, Server-Log | Anfrage 1 bei 2 ms, Ende 1693 ms; Anfrage 2 bei 1694 ms (1 ms nach dem Ende); Anfrage 3 bei 2698 ms = Beginn von 2 plus 1004 |
+| `absolute`: Bezugspunkt; Verspätung wird aufgeholt, Abstand kann kürzer sein | dieselbe Sperre, `--timing-mode absolute` | Anfrage 2 bei 1650 ms (1 ms nach dem Ende von 1), Anfrage 3 bei 2016 ms: Abstand 366 ms bei aufgezeichneten 1004 ms (Gegenprobe: `relative` 1004 ms) |
+| `connect` (Standard): Beginn des Verbindungsaufbaus, wartet auch vor der ersten Anfrage; `first-request` und `relative` ohne Wartezeit | `r2` mit `absolute` ohne `--timing-reference`, mit `first-request`, mit `relative` | `absolute`: 2003, 3009 ms (aufgezeichnet 2005, 3010), die zweite Verbindung bei 3014 ms, ihre Anfragen bei 3016 und 4021 ms; `first-request`: 2, 1007 ms, zweite Verbindung 1012 ms, Anfragen 1013 und 2020 ms; `relative`: 3, 1008 ms |
+| Jede Verbindung beginnt mit eigener Uhr; Verbindungen nacheinander | `r2` mit `absolute`: zweite Verbindung | öffnet bei 3014 ms, nachdem die letzte Anfrage der ersten bei 3009 ms begann; ihre Anfragen 2 ms und 1007 ms nach ihrem Beginn (nicht nach 3010) |
+| Werte nur Kleinbuchstaben; `Absolute`, `first_request`, leer: `PGR-E2001` (Option, Umgebungsvariable), `PGR-E2004` (Datei); Meldung nennt den Wert von Variable und Datei nicht; leere Umgebungsvariable gilt als nicht gesetzt | Option `Absolute`, `=`, `""`; `first_request`, `=`; Umgebung `Geheim123` bei Modus und `KEEP_TIMING`, `first_request` bei Referenz; Datei `Absolute`, `first_request`, `""`, `keep_timing: yes`; Umgebung leer | Optionen Exit 2 `PGR-E2001`; Umgebung Exit 2 `PGR-E2001`, `Geheim123` und `first_request` kommen in keiner Meldung der Umgebung vor, `Absolute` und `yes` in keiner der Datei; Datei Exit 2 `PGR-E2004` mit Schlüssel (`play.timing_mode` usw.), ohne Wert; leere Variable: Exit 0 |
+| `--keep-timing`: Wertemenge, Priorität, Umgebungsvariable wie bei `--record-timing` | `=1`, `=True`, `=`; Umgebung `1`, `True`, `Geheim123`, mit Option; Umgebung `false` mit `--keep-timing`; Umgebung `true` mit `--keep-timing=false`; Datei `keep_timing: true` und `timing_mode: absolute` mit Umgebung `false` und mit leerer Umgebung | `=1`, `=True`, `=` und die Umgebungswerte Exit 2 `PGR-E2001`, auch mit Option; Option `--keep-timing` mit Umgebung `false`: Exit 0; Umgebung `true` mit `=false` und `absolute`: `PGR-E2001`; Umgebung `false` vor Datei: `PGR-E2001`; leere Umgebung: Exit 0 |
+| Ungültig: `--timing-mode`/`--timing-reference` ohne `--keep-timing`; `--timing-reference` mit `relative`; als gesetzt gilt auch der Wert des Standards; Reihenfolge ändert nichts | `play` mit den Kombinationen (Option, Umgebung, Datei) | Exit 2 `PGR-E2001` bei: Modus allein, Referenz allein (`connect`, `first-request`), `--keep-timing --timing-reference connect`, `--timing-mode relative --timing-reference first-request`, `--keep-timing=false --timing-mode absolute`, Umgebung `TIMING_MODE=absolute` ohne `--keep-timing`, Datei `timing_mode: absolute` ohne `keep_timing`, Datei mit `keep_timing: false`, Datei `first-request` mit Option `--timing-mode relative`. Exit 0 bei: `--keep-timing`, `--keep-timing --timing-mode relative`, `--keep-timing=false`, `--timing-mode absolute --keep-timing`, `--timing-reference connect --timing-mode absolute --keep-timing`, beide Referenzen mit `absolute`, Datei mit Option `--keep-timing` |
+| `record` kennt die drei Optionen nicht, `play` nicht `--record-timing`, `replay` keine der vier | je ein Aufruf | Exit 2 `PGR-E2001` (`flag provided but not defined`) in allen acht Fällen |
+| `PGR-E2003`: beim Start, Exit 2, vor einer Verbindung; nennt Sitzung und erste Anfrage ohne Angabe; ohne `--keep-timing` wird eingespielt | `v-miss2` (Anfrage 2 ohne); `v-r2-miss-s2` (Sitzung 2, Anfrage 2); `v-r2-miss-s1i1` (Sitzung 1 Anfrage 1 und Sitzung 2 Anfrage 2); Server-Log; ohne `--keep-timing` | `Session 1, Interaktion 2`; `Session 2, Interaktion 2`; `Session 1, Interaktion 1` (die erste in der Reihenfolge); Server-Log: 0 Verbindungen; ohne `--keep-timing` Exit 0 |
+| Abbruchsignal beendet jede Wartezeit sofort; ohne Option keine weitere Anfrage; mit Option übrige ohne Wartezeit; Exit-Code 0 | `r3` (Pausen 8 s), Signal nach 3 s: `SIGTERM` ohne und mit `--finish-session-on-interrupt`; `SIGINT` bei erster Wartezeit von `absolute connect` (20 s), bei Wartezeit nach der ersten mit `first-request`, mit Option | ohne: Ende nach 0,3 s, nur Anfrage 1 am Server, Exit 0; mit: Anfragen 2 und 3 bei 3063 und 3066 ms, Exit 0; `connect`: Ende ohne Anfrage, Exit 0; `first-request`: nur Anfrage 1, Exit 0; `connect` mit Option: alle drei bei 2557 bis 2564 ms |
+| `replay` wartet nie auf Zeitangaben | `replay` von `r1` (Spanne 2 s), Client ohne Pause | drei Einfügungen in 0,57 s einschließlich des Starts des Clients, Exit 0 |
+| Prüfung beim Laden für `replay` und `play`, mit und ohne `--keep-timing`, YAML und SQLite | `v-desc`, `q-desc`, `q-neg` mit beiden Befehlen, ohne und mit Option | je Exit 3 `PGR-E3003` (SQLite mit `--keep-timing` für `play`) |
+| YAML: gültig `0` und Ziffern ohne führende Null bis 9223372036854775807; ungültig `1.5`, `5.0`, `1e3`, `0x10`, `007`, `+5`, `-1`, `"5"`, `true`, `null`, 9223372036854775808 | `r1` mit einem Wert an Stelle 2 bzw. 3; `play` ohne Option, `replay` für vier | Gültig (Exit 0): `5`, `0` an Stelle 1, 9223372036854775807 an Stelle 3; ungültig: je Exit 3 `PGR-E3003`, die letzte „außerhalb des Bereichs“, `replay` für `1.5`, `-1`, `null` und den Wert über dem Bereich ebenso |
+| SQLite: `NULL` oder ganze Zahl ab 0; negative Zahl, Text, Dezimalzahl beschädigt | `s1` mit `-1`, `'abc'`, `1.5`, `NULL` | `-1`, `abc`, `1.5`: Exit 3 `PGR-E3003` (`play`, `replay`); `NULL`: Exit 0, mit `--keep-timing` `PGR-E2003` |
+| Absteigend (kleiner als der vorige derselben Sitzung) ist beschädigt; gleiche Werte gültig; kleinerer Wert in der nächsten Sitzung gültig | `v-desc` (2016 → 5), `v-gleich` (1012, 1012), `q-gleich`, `r2` (Sitzung 2 beginnt bei 2 nach 3010) | `PGR-E3003` mit `Session 1, Interaktion 3`; `v-gleich`, `q-gleich`: Exit 0 (`play`, auch mit `--keep-timing`), `replay` läuft; `r2` Exit 0 |
+| Anfrage ohne `offset_ms` zwischen zwei mit Wert ist gültig; `play --keep-timing` lehnt sie ab | `v-miss2` mit `play`, `replay`, `play --keep-timing` | Exit 0; `replay` läuft; `PGR-E2003` |
+| Meldung nennt Nummer von Sitzung und Anfrage, nie den Wert | `v-desc-wert` (31337 → 271), `v-bad-wert` (4242.5), `q-wert` | `Session 1, Interaktion 3` bzw. `2`; weder `31337` noch `271` noch `4242.5` in der Meldung |
+| Beschädigung geht `PGR-E2003` vor, auch in einer anderen Sitzung; ohne Beschädigung `PGR-E2003` | `v-miss1-desc3` (Anfrage 1 ohne, Anfrage 3 absteigend), `v-r2-miss-s1-desc-s2` (Sitzung 1 Anfrage 1 ohne, Sitzung 2 absteigend), je mit `--keep-timing` | Exit 3 `PGR-E3003` (`Session 1, Interaktion 3` bzw. `Session 2, Interaktion 2`); Gegenprobe `v-miss2`: Exit 2 `PGR-E2003` |
+| Tabelle §5: Betriebsarten, Variablen, Standardwerte der vier Optionen | `--help` von `record` und `play` | `--record-timing` in `record`; `--keep-timing`, `--timing-mode`, `--timing-reference` in `play`; Standards `false`, `false`, `relative`, `connect` (Verhalten ohne die Option: siehe Zeilen oben) |
+| Zeile `PGR-E2001`, `PGR-E2003`, `PGR-E2004`, `PGR-E3003` in *Fehlercodes* | dieselben Proben | Codes, Exit-Codes 2, 2, 2, 3 wie in den Zeilen oben; die Schlüssel `record_timing`, `keep_timing`, `timing_mode`, `timing_reference` je `PGR-E2004` bei ungültigem Wert |
+| FAQ: bei jedem Aufzeichnen mit `--record-timing` können sich die Werte ändern | Zeile *Zwei Aufzeichnungen …* | siehe dort |
+| SQLite-Tabelle: `offset_ms` ohne `--record-timing` ohne Wert, also `NULL` | `s0` | `null`, Wert leer (Zeile oben) |
+| Hinweis bei *wiedergeben*: `replay` wartet nie, prüft beim Laden | Zeilen *replay wartet nie* und *Prüfung beim Laden* | siehe dort |
+| keine rechnerspezifischen Angaben (FAQ, unverändert; liest sich mit den neuen Werten) | `grep -a` nach Namen des Containers, des Netzes und `/rec` in `da.yaml` und `s1.sqlite` | 0 Treffer in beiden |
+
+**Nicht in das Handbuch übernommen** (Probe zeigt es nicht oder die Grenze steht nur in der Spezifikation): dass der Wert der ersten Anfrage die Zeit für den Aufbau zur Datenbank einschließt (die Probe misst nur 3 und 4 ms; ein langsamer Aufbau ist nicht erzeugt), die Reihenfolge der Werte einer Verbindung beim Aufzeichnen (alle Proben stiegen auf; zugesagt ist es für Anfragen, die nacheinander eintreffen), die Wartezeit bei großen Werten, `--compare-responses`, Windows und macOS, Netzwerk-Dateisysteme, der Wortlaut der Meldungen, eine Sitzung ohne Anfrage (das Binary lehnt sie in YAML als `PGR-E3003` ab, ohne mit Zeitangaben zu tun zu haben).
+
+**Befehlsfolge aus `slice-doku-ist-stand` §7** (mit der benannten Ausnahme `PGWIRE_RECORDER_PASSWORD`, Variablen-Zeile `comm -23 $W/v-hb $W/v-help | grep -vx PGWIRE_RECORDER_PASSWORD`), am Stand dieses Commits:
+
+| Prüfung | Ergebnis |
+|---|---|
+| Optionen des Handbuchs gegen `--help` | nur `--h`, `--help`, `--version` (Nicht-Optionen im Handbuch), `--rm`, `--name` (`docker run`) |
+| Variablen ohne Option | leer |
+| Codes außerhalb des Katalogs | leer |
+| Mutant: `--format-bogus` angehängt | `--format-bogus` in der ersten Ausgabe |
+| Mutant: `PGWIRE_RECORDER_BOGUS` angehängt | in der zweiten Ausgabe |
+| Mutant: `PGR-E9999` angehängt | in der dritten Ausgabe |
+| Mutant: `--keep-timing` aus der Hilfe entfernt | `--keep-timing` in der ersten Ausgabe (die Option steht im Handbuch) |
+
+**`grep` über Handbuch und README.** Im Handbuch: kein Treffer für `ADR-`, `SPEC-`, `LH-`, `[Ss]lice`, `Welle`, `Spezifikation`, `Lastenheft`, `[Rr]eview`; in den neuen Zeilen von Handbuch und README kein „noch nicht“, „kommt“, „geplant“, „bisher“, „später“, `compare-responses`. Im README bleiben die Verweise auf `spec/` und `docs/plan/` ohne Aussage über einen Stand.
+
+**Namensabgleich.** `docs/user/benutzerhandbuch.md`, `README.md`, `internal/hexagon/model/fehler.go`, `harness/mk/integration.mk`, `done/slice-doku-ist-stand.md` und die vier Slices `slice-v1-abschluss-zeitangaben-pruefen`, `-uhr`, `-aufzeichnen` und `slice-v1-abschluss-zeitangaben` in `done/`: per `ls` und `grep` gefunden; die Anker `#zeitangaben-aufzeichnen-und-einspielen` (Handbuch, mehrfach), `#mit-einem-datenbanktreiber-arbeiten` löst `make docs-check` auf.
+
+**Hinweise an Architect und Planner** (keine Randform dieses Slice, kein Befund gegen die Spezifikation):
+
+1. *Sitzung ohne Interaktion in YAML:* `interactions: []` und ein fehlender Schlüssel enden mit `PGR-E3003` („Session 2 ohne Interaktion“). Die Spezifikation von `LH-FA-21.a` sagt, eine Sitzung ohne Interaktion verlange bei `PGR-E2003` nichts; im Binary ist der Fall schon beim Laden beschädigt. Das Handbuch sagt dazu nichts.
+2. *Umgebungsvariable einer anderen Betriebsart:* `PGWIRE_RECORDER_RECORD_TIMING=true` bei `play` bleibt ohne Wirkung und ohne Meldung. Das Handbuch sagt dazu nichts.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -146,6 +230,6 @@ nicht mehr.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
-Liefer-Punkte: 2. Schichten nach der Zählung in `AGENTS.md` §3.13: eine (Dokumentation), kein Code. Nachgezählt beim Eintragen der Lesarten aus `slice-v1-abschluss-zeitangaben` (Planner, 2026-10-12, Closure jenes Slice): Liefer-Punkte 2 unverändert (die Lesarten gehören zu DoD-Punkt 1), Schichten 1.
+Liefer-Punkte: 2. Schichten nach der Zählung in `AGENTS.md` §3.13: eine (Dokumentation), kein Code. Nachgezählt beim Eintragen der Lesarten aus `slice-v1-abschluss-zeitangaben` (Planner, 2026-10-12, Closure jenes Slice): Liefer-Punkte 2 unverändert (die Lesarten gehören zu DoD-Punkt 1), Schichten 1. Nachgezählt beim Umsetzen (Implementer, 2026-10-12): Der Diff ändert `docs/user/benutzerhandbuch.md`, `README.md`, die Roadmap-Zeile *In Arbeit* und diesen Plan, keinen Code; Liefer-Punkte 2, Schichten 1 (Nutzerdokumentation; Planung zählt nicht).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

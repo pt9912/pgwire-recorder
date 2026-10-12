@@ -1,8 +1,8 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.3  
+Version: 0.4  
 Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
-Stand: 11.10.2026  
+Stand: 12.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für das Binary `pgwire-recorder`, gebaut aus dem Repository (Ausgabe von `pgwire-recorder version`: `pgwire-recorder dev`)
 
@@ -21,12 +21,16 @@ Das Werkzeug arbeitet in drei Betriebsarten:
   `pgwire-recorder` statt direkt mit PostgreSQL. Das Werkzeug leitet alles an
   die echte Datenbank weiter und speichert die Kommunikation in einer Datei, auf
   Wunsch als SQLite-Datei statt als YAML (siehe
-  [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen)).
+  [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen))
+  und mit der Zeit, zu der jede Anfrage eintraf (siehe
+  [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)).
 * **Wiedergeben (`replay`):** Ihre Anwendung verbindet sich wieder mit
   `pgwire-recorder`. Das Werkzeug beantwortet die Anfragen aus der Datei. Eine
   Datenbank ist nicht nötig.
 * **Einspielen (`play`):** Das Werkzeug führt die aufgezeichneten Anfragen aus der
-  Datei gegen eine Datenbank aus. Ihre Anwendung ist nicht beteiligt.
+  Datei gegen eine Datenbank aus. Ihre Anwendung ist nicht beteiligt. Auf Wunsch wartet
+  es vor jeder Anfrage auf ihre aufgezeichnete Zeit (siehe
+  [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)).
 
 ### Zielgruppe
 
@@ -348,7 +352,7 @@ Die Datei hat vier Tabellen:
 |---|---|
 | `meta` | Zeilen mit `key` und `value`: `format` (`pgwire-recorder`) und `version` |
 | `session` | eine Zeile je aufgezeichneter Verbindung: `id` (ab 1), `startup` und `server_parameters` als JSON-Text |
-| `interaction` | eine Zeile je Anfrage oder Folge des erweiterten Protokolls: `session_id`, `sequence`, `type` (`query` oder `extended`), `offset_ms` und `sql` (der Text einer einfachen Anfrage, bei `extended` ohne Wert, also `NULL`) |
+| `interaction` | eine Zeile je Anfrage oder Folge des erweiterten Protokolls: `session_id`, `sequence`, `type` (`query` oder `extended`), `offset_ms` (die Zeitangabe, ohne `--record-timing` ohne Wert, also `NULL`) und `sql` (der Text einer einfachen Anfrage, bei `extended` ohne Wert, also `NULL`) |
 | `message` | die Nachrichten einer Interaktion: `session_id`, `sequence`, `position`, `direction` (`client` oder `server`), `group_no`, `kind` und `fields` als JSON-Text |
 
 Bei einer einfachen Anfrage stehen in `message` nur die Antworten des Servers; die
@@ -421,6 +425,9 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   Hinweis: Der Standardwert von `--shutdown-timeout` (5 Sekunden) ist so
   gewählt, dass er unter der Stopp-Frist von Docker (10 Sekunden) liegt; wählen
   Sie eine längere Frist nur mit längerer Stopp-Frist.
+* Trägt die Aufzeichnung Zeitangaben (`offset_ms`), wartet `replay` nie auf sie; es
+  prüft sie beim Laden (siehe
+  [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)).
 
 ### Eine Aufzeichnung in eine Datenbank einspielen
 
@@ -533,6 +540,163 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   Anfrage zählt nicht als Fehler. Der Exit-Code ist 0, nach einem früheren Fehler 4.
 * Das Einspielen führt Anfragen aus. Verwenden Sie es nicht gegen eine Datenbank,
   deren Inhalt Sie nicht verändern dürfen.
+
+### Zeitangaben aufzeichnen und einspielen
+
+Mit `--record-timing` hält `record` an jeder Anfrage fest, wie viele Millisekunden nach
+dem Beginn der Verbindung sie eintraf. Mit `--keep-timing` wartet `play` vor jeder
+Anfrage auf diese Zeit. Ohne `--keep-timing` wartet `play` nie, auch wenn die Aufzeichnung
+Zeitangaben trägt.
+
+#### Voraussetzung
+
+Wie beim Aufzeichnen und beim Einspielen. Für `--keep-timing` muss jede Anfrage der
+Aufzeichnung eine Zeitangabe tragen; zeichnen Sie dafür mit `--record-timing` auf.
+
+#### Vorgehen
+
+1. Zeichnen Sie mit `--record-timing` auf:
+
+   ```bash
+   pgwire-recorder record \
+     --listen 0.0.0.0:15432 \
+     --upstream postgres:5432 \
+     --output ./recordings/users.yaml \
+     --record-timing
+   ```
+
+   Statt der Option genügt die Umgebungsvariable `PGWIRE_RECORDER_RECORD_TIMING=true`
+   oder der Schlüssel `record_timing: true` im Abschnitt `record:` der
+   Konfigurationsdatei.
+2. Zeichnen Sie wie gewohnt auf, und beenden Sie das Werkzeug.
+3. Spielen Sie die Aufzeichnung mit ihren Zeitangaben ein:
+
+   ```bash
+   pgwire-recorder play \
+     --upstream postgres:5432 \
+     --input ./recordings/users.yaml \
+     --keep-timing
+   ```
+
+   Statt der Option genügt `PGWIRE_RECORDER_KEEP_TIMING=true` oder der Schlüssel
+   `keep_timing: true` im Abschnitt `play:`. Diese Konfigurationsdatei setzt alle
+   vier Einstellungen der Zeitangaben; `timing_mode` und `timing_reference` erklären die
+   Hinweise zum Einspielen:
+
+   ```yaml
+   record:
+     record_timing: true
+   play:
+     keep_timing: true
+     timing_mode: absolute
+     timing_reference: first-request
+   ```
+
+#### Ergebnis
+
+Jede aufgezeichnete Anfrage trägt das Feld `offset_ms`. In YAML steht es neben
+`sequence`:
+
+```yaml
+      - sequence: 2
+        offset_ms: 1012
+        request:
+```
+
+In SQLite steht es in der Spalte `offset_ms` der Tabelle `interaction`:
+
+```bash
+sqlite3 ./recordings/users.sqlite "select session_id, sequence, offset_ms from interaction"
+```
+
+Beim Einspielen mit `--keep-timing` wartet `play` vor jeder Anfrage auf ihre aufgezeichnete
+Zeit.
+
+#### Hinweise zum Aufzeichnen
+
+* `offset_ms` ist eine ganze Zahl ab 0: die Millisekunden vom Beginn der Verbindung bis zum
+  Eintreffen der Anfrage.
+* Die Zeit, die Ihre Anwendung bis zum Senden der Startup-Nachricht braucht, zählt nicht
+  mit, auch nicht nach einer Anfrage nach Verschlüsselung. Die Zeit zwischen der Anmeldung
+  und der ersten Anfrage zählt mit.
+* Der Wert der ersten Anfrage einer Verbindung ist nicht notwendig 0.
+* Jede Verbindung zählt ab ihrem eigenen Beginn.
+* Das Feld tragen die Anfragen beider Protokolle, einfach und erweitert, und eine
+  Lebendprüfung (siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)).
+* Ohne `--record-timing`, dem Standard, tragen die Anfragen kein Feld: In YAML fehlt
+  `offset_ms`, in SQLite ist die Spalte ohne Wert, also `NULL`.
+* Zwei Aufzeichnungen desselben Ablaufs können sich mit `--record-timing` in den Werten von
+  `offset_ms` unterscheiden.
+* `--record-timing` nimmt keinen Wert oder `=true` beziehungsweise `=false`; die
+  Umgebungsvariable nimmt `true` oder `false`, leer gilt sie als nicht gesetzt. Jeder
+  andere Wert ist ungültig: als Option, auch `=1`, `=True` und `=` ohne Wert, und als
+  Umgebungsvariable `PGR-E2001`, als Schlüssel der Konfigurationsdatei `PGR-E2004`. Die
+  Umgebungsvariable mit ungültigem Wert ist auch dann `PGR-E2001`, wenn Sie die Option
+  zugleich angeben. Die Option geht der Umgebungsvariablen vor, diese der Datei.
+
+#### Hinweise zum Einspielen
+
+* `--keep-timing` nimmt keinen Wert oder `=true` beziehungsweise `=false`, die
+  Umgebungsvariable `PGWIRE_RECORDER_KEEP_TIMING` `true` oder `false`; Fehlerfälle,
+  leere Umgebungsvariable und Priorität wie bei `--record-timing`. Die Zeitangaben gelten
+  für YAML- und SQLite-Aufzeichnungen.
+* `--timing-mode` wählt, worauf `play` wartet; der Standard ist `relative`:
+  * `relative`: Vor jeder Anfrage außer der ersten einer Verbindung wartet `play`, bis seit
+    dem Beginn der vorigen Anfrage, dem Senden an die Datenbank, mindestens der Unterschied
+    der aufgezeichneten Zeiten beider Anfragen vergangen ist. Dauert die vorige Anfrage
+    länger als aufgezeichnet, sendet `play` die nächste, sobald sie beantwortet ist; die
+    Verspätung holt es bei den folgenden Anfragen nicht auf.
+  * `absolute`: Vor jeder Anfrage wartet `play`, bis seit einem Bezugspunkt mindestens die
+    aufgezeichnete Zeit der Anfrage vergangen ist. Ist `play` verspätet, holt es auf: Der
+    Abstand zwischen zwei Anfragen kann kürzer sein als aufgezeichnet.
+* `--timing-reference` wählt den Bezugspunkt von `absolute`; der Standard ist `connect`:
+  `connect` ist der Beginn des Verbindungsaufbaus zur Datenbank, `first-request` der
+  Beginn der ersten Anfrage der Verbindung. Mit `connect` wartet `play` auch vor der ersten
+  Anfrage, bis deren aufgezeichnete Zeit erreicht ist. Mit `first-request` und mit
+  `relative` sendet es die erste Anfrage jeder Verbindung ohne Wartezeit.
+* Jede Verbindung der Aufzeichnung beginnt mit einer eigenen Uhr; `play` spielt die
+  Verbindungen nacheinander ein.
+* Die Werte sind `relative` und `absolute` sowie `connect` und `first-request`, in
+  Kleinbuchstaben. Jeder andere Wert ist ein ungültiger Aufruf (`PGR-E2001`), in der
+  Konfigurationsdatei `PGR-E2004`, auch `Absolute`, `first_request` und ein leerer Wert;
+  die Meldung nennt den Wert der Umgebungsvariablen und der Datei nicht. Eine leere
+  Umgebungsvariable gilt als nicht gesetzt.
+* Ungültig sind außerdem (`PGR-E2001`, Exit-Code 2): `--timing-mode` oder
+  `--timing-reference` ohne `--keep-timing` und `--timing-reference` zusammen mit
+  `relative`. Als gesetzt gilt, was Option, Umgebungsvariable oder Datei nennt, auch den Wert
+  des Standards: `--timing-reference connect` mit `relative`, auch mit dem Standard
+  `relative`, ist ungültig, ebenso `--keep-timing=false` mit `--timing-mode absolute`. Die
+  Reihenfolge der Optionen ändert nichts. `record` kennt `--keep-timing`, `--timing-mode`
+  und `--timing-reference` nicht, `play` kennt `--record-timing` nicht, und `replay` kennt
+  keine der vier Optionen (`PGR-E2001`).
+* Trägt eine Anfrage der Aufzeichnung kein `offset_ms`, endet `play --keep-timing` beim Start
+  mit `PGR-E2003` (Exit-Code 2), bevor es eine Verbindung öffnet. Die Meldung nennt die
+  Sitzung und die Nummer der ersten Anfrage ohne Zeitangabe, in der Reihenfolge der Sitzungen
+  und Anfragen, keinen Wert. Ohne `--keep-timing` spielt `play` eine solche Aufzeichnung
+  ein.
+* Das erste Abbruchsignal (`Strg+C` oder `SIGTERM`) beendet jede Wartezeit sofort. Ohne
+  `--finish-session-on-interrupt` sendet `play` die folgenden Anfragen nicht und endet; mit
+  der Option spielt es die übrigen Anfragen der Sitzung ohne Wartezeit ein und endet dann.
+  Der Exit-Code ist 0.
+
+#### Prüfung beim Laden
+
+`replay` und `play` prüfen die Zeitangaben jeder Aufzeichnung beim Laden, mit und ohne
+`--keep-timing`. Eine Aufzeichnung ist beschädigt (`PGR-E3003`, Exit-Code 3), wenn
+
+* ein `offset_ms` keine ganze Zahl ab 0 ist. In YAML sind `0` und Ziffern ohne führende Null
+  bis 9223372036854775807 gültig; jede andere Schreibweise ist beschädigt, etwa `1.5`, `5.0`,
+  `1e3`, `0x10`, `007`, `+5`, `-1`, `"5"`, `true`, `null` und ein Wert über
+  9223372036854775807. In SQLite muss der Wert `NULL` oder eine ganze Zahl ab 0 sein; eine
+  negative Zahl, ein Text und eine Dezimalzahl sind beschädigt.
+* ein Wert kleiner ist als der vorige Wert derselben Sitzung.
+
+Gleiche Werte hintereinander sind gültig, ebenso ein kleinerer Wert am Anfang der nächsten
+Sitzung. Eine Anfrage ohne `offset_ms` zwischen zwei Anfragen mit Wert ist beim Laden gültig;
+`play --keep-timing` lehnt sie ab (`PGR-E2003`). Die Meldung nennt die Nummer der Sitzung und
+der Anfrage, nie einen Wert aus der Datei. Ist eine Anfrage beschädigt, meldet das Werkzeug
+`PGR-E3003`, auch wenn einer anderen Anfrage das Feld fehlt und `play --keep-timing`
+sonst `PGR-E2003` meldete.
 
 ### Die gewählte Konfigurationsdatei anzeigen
 
@@ -704,6 +868,7 @@ nicht gesetzt.
 | `--output` | `record` | `PGWIRE_RECORDER_OUTPUT` | Pflicht |
 | `--force` | `record` | `PGWIRE_RECORDER_FORCE` | `false` |
 | `--format` | `record` | `PGWIRE_RECORDER_FORMAT` | `yaml` (Werte `yaml`, `sqlite`) |
+| `--record-timing` | `record` | `PGWIRE_RECORDER_RECORD_TIMING` | `false` |
 | `--input` | `replay`, `play` | `PGWIRE_RECORDER_INPUT` | Pflicht |
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` |
 | `--shutdown-timeout` | `record`, `replay` | `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT` | `5s` (`0` ohne Frist; Einheit `ms`, `s` oder `m`) |
@@ -714,6 +879,9 @@ nicht gesetzt.
 | `--upstream-tls` | `play` | `PGWIRE_RECORDER_UPSTREAM_TLS` | ohne die Option entscheidet `sslmode` der benutzten Verbindung, ohne beides `false` |
 | `--finish-session-on-interrupt` | `play` | `PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT` | `false` |
 | `--upstream-ca` | `play` | `PGWIRE_RECORDER_UPSTREAM_CA` | keine Datei, nur der Zertifikatsspeicher des Systems |
+| `--keep-timing` | `play` | `PGWIRE_RECORDER_KEEP_TIMING` | `false` |
+| `--timing-mode` | `play` | `PGWIRE_RECORDER_TIMING_MODE` | `relative` (Werte `relative`, `absolute`; nur mit `--keep-timing`) |
+| `--timing-reference` | `play` | `PGWIRE_RECORDER_TIMING_REFERENCE` | `connect` (Werte `connect`, `first-request`; nur mit `--keep-timing` und `absolute`) |
 | `--config` | `record`, `replay`, `play`, `config show` | `PGWIRE_RECORDER_CONFIG` | `.pgwire-recorder.yaml` im aktuellen Verzeichnis |
 | `--log-level` | `record`, `replay`, `play` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` |
 
@@ -934,15 +1102,16 @@ für den Exit-Code.
 | Code | Bedeutung | Ursache und Lösung |
 |---|---|---|
 | `PGR-E1000` | sonstiger Fehler | Ein Defekt des Werkzeugs; keine Eingabe löst ihn aus. Melden Sie das Problem mit der Ausgabe des Laufs. |
-| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`). Prüfen Sie den Aufruf mit `--help`. |
+| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`), oder `--timing-mode` oder `--timing-reference` steht ohne `--keep-timing`, oder `--timing-reference` steht mit `relative` (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
-| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`) und `format` (erlaubt sind `yaml` und `sqlite`). |
+| `PGR-E2003` | Aufzeichnung ohne Zeitangabe bei `--keep-timing` | `play --keep-timing` hat eine Aufzeichnung, in der eine Anfrage kein `offset_ms` trägt. Die Meldung nennt die Sitzung und die Nummer der ersten Anfrage ohne Zeitangabe. Zeichnen Sie mit `--record-timing` erneut auf, oder spielen Sie ohne `--keep-timing` ein. |
+| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`), `format` (erlaubt sind `yaml` und `sqlite`), `record_timing` und `keep_timing` (erlaubt sind `true` und `false`), `timing_mode` (erlaubt sind `relative` und `absolute`) und `timing_reference` (erlaubt sind `connect` und `first-request`). |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
 | `PGR-E2007` | Datei von `--upstream-ca` nicht verwendbar | Die Datei fehlt, ist nicht lesbar, ist keine reguläre Datei oder enthält keine Zertifikate im PEM-Format. Die Meldung nennt die Option und den Grund, nicht den Pfad; der Exit-Code ist 2. Prüfen Sie Pfad, Rechte und Inhalt der Datei. |
 | `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Bei `sqlite` außerdem: Neben dem Zielpfad liegt eine Datei `<Zielpfad>-journal`, oder eine SQLite-Datei ist länger als fünf Sekunden gesperrt. Prüfen Sie Pfad und Dateirechte, und siehe [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen). |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion; das gilt für beide Formate. Zeichnen Sie mit der verwendeten Version erneut auf. |
-| `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Bei einer SQLite-Datei auch: Sie ist keine SQLite-Datei oder eine fremde, eine Tabelle oder Spalte fehlt, sie ist abgeschnitten, oder ihr Inhalt ist ungültig (zum Beispiel falsche Formatkennung, keine lückenlose Nummerierung, ein Eintrag ohne zugehörige Sitzung). Zeichnen Sie erneut auf. |
+| `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Bei einer SQLite-Datei auch: Sie ist keine SQLite-Datei oder eine fremde, eine Tabelle oder Spalte fehlt, sie ist abgeschnitten, oder ihr Inhalt ist ungültig (zum Beispiel falsche Formatkennung, keine lückenlose Nummerierung, ein Eintrag ohne zugehörige Sitzung). Auch: Ein `offset_ms` ist keine ganze Zahl ab 0, oder ein Wert ist kleiner als der vorige derselben Sitzung; die Meldung nennt die Sitzung und die Anfrage, nie den Wert (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Zeichnen Sie erneut auf. |
 | `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | `replay` meldet den Fehler beim Start. Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
 | `PGR-E4000` | Verbindung nicht anzunehmen | Das Werkzeug konnte eine eingehende Verbindung nicht annehmen, zum Beispiel weil zu viele Dateien offen sind. Es nimmt danach weiter Verbindungen an. Prüfen Sie die Grenzen des Systems. |
 | `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
@@ -981,8 +1150,9 @@ Nein. Die Wiedergabe beantwortet alle aufgezeichneten Anfragen aus der Datei.
 
 **Kann ich eine Aufzeichnung in die Versionsverwaltung legen?**
 Ja. Eine Aufzeichnung im Format `yaml` ist Text und ändert sich nur, wenn sich die
-Aufzeichnung ändert. Eine SQLite-Datei ist binär. Beachten Sie den Hinweis zu
-vertraulichen Daten in der Einleitung.
+Aufzeichnung ändert; zeichnen Sie mit `--record-timing` auf, können sich bei jedem
+Aufzeichnen desselben Ablaufs die Werte von `offset_ms` ändern. Eine SQLite-Datei ist
+binär. Beachten Sie den Hinweis zu vertraulichen Daten in der Einleitung.
 
 **Kann ich die Datei von Hand bearbeiten?**
 Das Werkzeug unterstützt das bei keinem der beiden Formate. Zeichnen Sie stattdessen
@@ -1012,6 +1182,7 @@ Werkzeugs.
 | Erweitertes Anfrageprotokoll | Protokollvariante mit vorbereiteten Anweisungen und Parametern |
 | Upstream | die echte Datenbank, an die `record` weiterleitet |
 | Meldungscode | Kennung einer Meldung des Werkzeugs, zum Beispiel `PGR-E5001` |
+| Zeitangabe | das Feld `offset_ms` einer Anfrage in der Aufzeichnung: die Millisekunden vom Beginn der Verbindung bis zum Eintreffen der Anfrage, aufgezeichnet mit `--record-timing` |
 
 ## 10. Support und Kontakt
 
