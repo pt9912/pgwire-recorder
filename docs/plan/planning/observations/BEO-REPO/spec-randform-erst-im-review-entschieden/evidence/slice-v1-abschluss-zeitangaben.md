@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-zeitangaben
+**Fund:** `LH-FA-21.a` *Randformen des Einspielens* ordnete `PGR-E2003` „nach dem Laden und vor der Prüfung der Art (`PGR-E6001`)“, ein Gegenstand, den `play` nicht kennt; die Ordnung zu `PGR-E3003` einer beschädigten Interaktion stand weder dort noch in §6. Das Review fand es (F-653, MEDIUM; F-656, INFO: Spezifikationssatz ohne Gegenstück im Code); entschieden vom Architect in `5dac153` (Spezifikation *Prüfung der Werte*, Plan §6).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-zeitangaben
+**Fund:** §3 nannte nicht die geänderten Testdateien `leser_test.go` und `play_test.go` des CLI-Adapters (`tabelle()`, `TestLeserOptionen`, `TestLeserAlleOptionen`, `TestLeserFremdeUmgebung`, `TestParsePlayFremdeUmgebung`) und die Testhilfe `beiSchliesse` in `internal/hexagon/services/play_test.go` (Verifikation V-193, LOW); der Gate-Absatz in §7 nannte den Stand `61a63d5`, nicht den späteren Stand mit Änderungen im Code (V-194, INFO). Behoben in `4dd9514`.

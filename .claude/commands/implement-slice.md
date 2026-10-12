@@ -134,6 +134,11 @@ Commit, der Code, Tests oder Gates ändert, fügt §6 des Slice-Plans keine Rand
 du beim Umsetzen auf eine Randform, die §6 nicht entscheidet, committest du keinen Code dazu,
 hältst an und gibst sie dem Architect zurück. Das gilt auch, wenn der Punkt nur Urteil des
 Review zu sein scheint: Dem Review weist du keine Randform zu.
+**Auch eine Lesart ist eine Entscheidung** (seit slice-v1-abschluss-zeitangaben): Nennt ein Satz
+der Spezifikation einen Gegenstand, den der Code nicht kennt (eine Prüfung, einen Fall, einen
+Meldungscode), und ordnet der Code zwei Wirkungen, die der Satz nicht ordnet (etwa zwei
+Startfehler), ist diese Ordnung eine Randform. Ein Absatz im Bericht („Lesart, nicht
+entschieden“) ersetzt die Rückgabe nicht, wenn der Commit sie schon trägt.
 
 ## Pre-completion-Checkliste (Modul 9, Schritt 8 — letzte Handlung der Implementer-Rolle)
 
