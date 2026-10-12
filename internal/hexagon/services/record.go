@@ -493,7 +493,9 @@ func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, en
 // wirdVerworfen sagt, ob das Ende die Session ausschließt: eine nicht
 // unterstützte Interaktion, das Zwangsende im Aufbau (EndForced ohne laufende
 // und ohne abgeschlossene Interaktion, auch mit leere) oder keine
-// abgeschlossene Interaktion ohne leere.
+// abgeschlossene Interaktion ohne leere. Die zweite Bedingung liest nur den
+// Zustand der Session; sie trifft damit auch eine ruhende Session ohne
+// Interaktion, deren Ende das Zwangsende vor dem Bemerken erreicht.
 func wirdVerworfen(end model.SessionEnd, unsupported bool, abgeschlossen int, laeuft, leere bool) bool {
 	imAufbau := end == model.EndForced && abgeschlossen == 0 && !laeuft
 	return end == model.EndUnsupported || unsupported || imAufbau || abgeschlossen == 0 && !leere

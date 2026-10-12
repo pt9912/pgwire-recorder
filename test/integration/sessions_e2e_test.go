@@ -509,11 +509,54 @@ func TestE2EVerbindungsfehlerParallel(t *testing.T) {
 	schreibe(t, lang, append(binary.BigEndian.AppendUint32(nil, uint32(4+len(start))), start...))
 	bisTyp(t, bufio.NewReader(lang), 'Z')
 	schreibe(t, lang, clientNachricht('Q', "SELECT pg_sleep(30);\x00"))
-	time.Sleep(300 * time.Millisecond)
+	upstream := verbinde(t, os.Getenv("PGR_UPSTREAM"))
+	defer schliesse(t, upstream)
+	warteAufSchlaf(t, upstream, "postgres")
 	rec.stop(t, 6)
 	enthaeltInReihe(t, rec.stderr.String(), "PGR-E6001", "PGR-E4006")
 	if text := lies(t, output); strings.Count(text, "- id:") != 1 || !strings.Contains(text, "sql: SELECT 'zweite';") {
 		t.Errorf("erwartet nur die Session der zweiten Verbindung:\n%s", text)
+	}
+}
+
+// Abdeckung: LH-FA-12/Negative, LH-FA-05/Negative — eine Startnachricht mit
+// vollständigem Kopf (8 Bytes, gültiger Code, Länge über 8), deren Rest fehlt, ist
+// PGR-E6001 mit Exit-Code 6 und keine Session, auch mit --record-empty-sessions;
+// die Aufzeichnung trägt die Kennzeichnung ohne Session. Weniger als 8 Bytes enden
+// still (Exit-Code 0).
+func TestE2ERecordHalbeStartnachricht(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		daten []byte
+		exit  int
+	}{
+		{"Kopf ohne Rest", []byte{0, 0, 0, 40, 0, 3, 0, 0}, 6},
+		{"weniger als 8 Bytes", []byte{0, 0, 0, 40, 0, 3, 0}, 0},
+	} {
+		output := filepath.Join(t.TempDir(), "rec.yaml")
+		rec := startProzess(t, "record", "--upstream", os.Getenv("PGR_UPSTREAM"), "--output", output, "--record-empty-sessions")
+		c, err := net.DialTimeout("tcp", rec.listen, 5*time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = c.SetDeadline(time.Now().Add(10 * time.Second))
+		schreibe(t, c, tc.daten)
+		// Das Ende des Schreibens ist das Ende der Nachricht; dass der Server die
+		// Verbindung danach schließt, zeigt, dass er sie behandelt hat.
+		if err := c.(*net.TCPConn).CloseWrite(); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := io.Copy(io.Discard, c); err != nil {
+			t.Fatalf("%s: Ende der Verbindung durch den Server: %v", tc.name, err)
+		}
+		_ = c.Close()
+		rec.stop(t, tc.exit)
+		if got := strings.Contains(rec.stderr.String(), "PGR-E6001"); got != (tc.exit == 6) {
+			t.Errorf("%s: PGR-E6001 in der Ausgabe %v:\n%s", tc.name, got, rec.stderr.String())
+		}
+		if text := lies(t, output); !strings.Contains(text, "empty_sessions: true") || !strings.Contains(text, "sessions: []") {
+			t.Errorf("%s: Aufzeichnung mit einer Session:\n%s", tc.name, text)
+		}
 	}
 }
 

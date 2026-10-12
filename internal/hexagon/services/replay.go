@@ -29,7 +29,7 @@ type ReplayService struct {
 	mu sync.Mutex
 	// frei sind die Sessions mit Interaktionen in der Reihenfolge ihrer Kennung.
 	// Mit `first-request` bleiben die, die noch keiner Verbindung zugeordnet
-	// sind; mit `connection` ändert sich die Liste nicht.
+	// sind; mit `connection` liest `OpenConnection` die Session aus `alle`.
 	frei []model.Session
 	// alle sind die Sessions der Aufzeichnung nach ihrer Kennung, auch die ohne
 	// Interaktion; nur `connection` liest sie.

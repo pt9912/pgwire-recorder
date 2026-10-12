@@ -292,6 +292,9 @@ func TestRecordParalleleSessions(t *testing.T) {
 // Option*, LH-FA-13.a *Meldung*). Ohne laufende und ohne abgeschlossene Interaktion
 // ist das Zwangsende das im Aufbau: Die Session wird auch mit der Option nicht
 // geschrieben, und es gibt keine Meldung (LH-FA-12.a *Angenommene Verbindung*).
+// Der Dienst sieht nur diesen Zustand: Der Fall "im Aufbau" ist auch der einer
+// ruhenden Session ohne Interaktion, die das Zwangsende vor dem Bemerken ihres
+// Endes trifft; sie wird ebenso nicht geschrieben und nicht gemeldet.
 func TestRecordZwangsendeLeereSession(t *testing.T) {
 	t.Run("Kennung genannt", func(t *testing.T) {
 		up := &fakeUpstream{}
