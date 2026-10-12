@@ -2031,8 +2031,12 @@ eine andere macht die Aufzeichnung zu einer beschädigten (`LH-FA-02.b` *Replay*
 `PGR-E3003`). Die Aufzeichnung kennt darum kein Verbindungsende, und die Folge des
 Servers wird bis zum `ReadyForQuery` verglichen. Eine `ErrorResponse` des Servers mit dem
 Schweregrad `FATAL` oder `PANIC` beendet die Verbindung vor diesem `ReadyForQuery` und ist
-stets eine Abweichung der Art Fehler, auch bei gleichem SQLSTATE wie eine aufgezeichnete
-`ErrorResponse` an der Stelle. Ein Verbindungsverlust ohne Fehlerantwort ist keine
+eine Abweichung der Art Fehler an ihrer Position, auch bei gleichem SQLSTATE wie eine
+aufgezeichnete `ErrorResponse` an der Stelle und auch dann, wenn die Aufzeichnung an dieser
+Stelle keine `ErrorResponse` hat (der aufgezeichnete SQLSTATE der Meldung ist dann leer). Das
+ist die Ausnahme von der Regel zur *Art* unten, nach der ein verschiedener Typ die Art
+Nachrichtenart ergibt. Weicht eine frühere Position ab, ist das die erste Abweichung und
+gilt ihre Art. Ein Verbindungsverlust ohne Fehlerantwort ist keine
 Abweichung, sondern `PGR-E4003` (`LH-FA-20.a`).
 
 **Meldung.** Die Abweichung wird als `PGR-E5004` gemeldet (Exit-Code `5`) und nennt
@@ -2058,13 +2062,16 @@ findet kein Vergleich statt.
 
 **Randformen des Vergleichs.**
 
-* *Position.* Sie zählt ab 1 in der normalisierten Folge. Fehlt auf einer Seite eine
-  Nachricht (die Folgen sind verschieden lang), ist es die Position der ersten Nachricht
-  ohne Gegenstück, also die Länge der kürzeren Folge plus 1, und die Art ist
-  Nachrichtenart.
+* *Position.* Sie zählt ab 1 in der normalisierten Folge und ist die erste Position, an der
+  die Nachrichten verschieden sind. Stimmen alle Positionen der kürzeren Folge überein und
+  die Folgen sind verschieden lang, ist es die Position der ersten Nachricht ohne
+  Gegenstück, die Länge der kürzeren Folge plus 1, und die Art ist Nachrichtenart. Fehlt
+  eine Nachricht in der Mitte, verschiebt sich der Rest, und gemeldet wird die erste
+  Position mit verschiedenem Typ oder Inhalt, nicht die Länge der kürzeren Folge plus 1.
 * *Art.* Haben beide Seiten an einer Position denselben Typ, nennt die Meldung die Art
   nach der Tabelle (Spaltenbeschreibung für `row_description` und
-  `parameter_description`, Befehl, Fehler, Transaktionsstatus); sonst Nachrichtenart.
+  `parameter_description`, Befehl, Fehler, Transaktionsstatus); sonst Nachrichtenart, außer
+  bei `FATAL` und `PANIC` (*Ende der Aufzeichnung*).
 * *Befehl.* Die abschließenden Zahlen sind die Wörter am Ende des Tags, durch Leerzeichen
   getrennt, die nur aus Ziffern bestehen; `SELECT 5` und `INSERT 0 1` gelten als `SELECT`
   und `INSERT`. Ein Tag aus Ziffern allein gilt als leer.

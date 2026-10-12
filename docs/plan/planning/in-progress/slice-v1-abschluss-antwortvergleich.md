@@ -115,6 +115,8 @@ dasteht.
 | Befehl mit und ohne Zahlen, Tag aus Ziffern allein | `LH-FA-24.a` *Randformen des Vergleichs*, *Befehl* |
 | Fehlerantwort ohne Feld `C`, Schweregrad, `FATAL`/`PANIC` | `LH-FA-24.a` *Randformen des Vergleichs*, *Fehler*, und *Ende der Aufzeichnung* |
 | Fehlende oder zusätzliche Nachricht, Position (ab 1), Art | `LH-FA-24.a` *Randformen des Vergleichs*, *Position*, *Art* |
+| Rückgabe des Implementers (Architect, 2026-10-12): `FATAL`/`PANIC` ohne `ErrorResponse` an der Stelle der Aufzeichnung: Art Fehler, aufgezeichneter SQLSTATE leer, eine frühere Abweichung geht vor (Ausnahme von *Art*). Code `erste()` und `TestVergleichFatalRand` bleiben, keine Nacharbeit | `LH-FA-24.a` *Ende der Aufzeichnung*, *Art* |
+| Rückgabe des Implementers (Architect, 2026-10-12): Position ist die erste Position mit verschiedener Nachricht; „Länge der kürzeren Folge plus 1“ nur bei gleichem Anfang. Code `erste()` und `TestVergleichStruktur` bleiben, keine Nacharbeit; ein Testfall mit fehlender Nachricht in der Mitte (Position 1) wäre eine Ergänzung nach Ermessen des Implementers, kein Muss. `PGR-E5004` in `SPEC-034` und `LH-FA-24` nennen die Position nicht anders | `LH-FA-24.a` *Randformen des Vergleichs*, *Position* |
 | Inhalt der Meldung: SQLSTATE beider Seiten ja, Text und Felder nie, Werte nie | `LH-FA-24.a` *Meldung* |
 | Extended: Folge aller Server-Nachrichten ohne Gruppengrenzen; Fehler mitten in der Interaktion; Abbruch erst am Ende der Interaktion, außer `FATAL`/`PANIC` | `LH-FA-24.a` (Einleitung), `LH-FA-20.a` Schritt 6 und *Gruppen* |
 | Aufgezeichnete Interaktion ohne `ReadyForQuery`, aufgezeichnetes Verbindungsende: gibt es nicht (Leser lehnt ab) | `LH-FA-24.a` *Ende der Aufzeichnung*, `LH-FA-02.b` *Replay* |
