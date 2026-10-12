@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-13`](../../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0031](../../adr/0031-lebendpruefungen-im-replay.md)
 
-**Berührte Spec-Stellen:** `LH-FA-12.a` · `LH-FA-09.a` · `LH-FA-03.b` · `LH-FA-13.b` · `LH-FA-02.b` · `SPEC-017` · `SPEC-028` · `SPEC-034` · `SPEC-043` · `ARC-002`
+**Berührte Spec-Stellen:** `LH-FA-12.a` · `LH-FA-09.a` · `LH-FA-03.b` · `LH-FA-13.b` · `LH-FA-02.b` · `LH-FA-21.a` · `SPEC-017` · `SPEC-028` · `SPEC-034` · `SPEC-043` · `ARC-002`
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -36,6 +36,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Übernommen aus `slice-replay-semantik-mismatch`:** Eine Session ohne Interaktion, auch eine nur aus Lebendprüfungen, ist mit und ohne `--fail-on-unconsumed` weder nicht verbraucht noch nie zugeordnet, auch bei `connection` (`LH-FA-03.b` §Verbraucht). Für `first-request` prüft das `TestReplayNichtsZuMelden`; für `connection` gehört der Test hierher, weil die Zuordnung nach `id` diese Sessions weiter führt und `Unassigned` sie dann nicht als nie zugeordnet zählen darf.
 
 **Übernommen von `slice-v1-abschluss-sqlite-format`** (dort §1, *Abgegeben*, und DoD; Verifikation V-174): Die Wirkung von `--record-empty-sessions` mit `--format sqlite` am Binary. Die Option gibt es erst mit diesem Slice, und `meta.empty_sessions` des Schreibens von `sqlite` (`SPEC-043`) ist bis dahin nur im Adapter-Test erreichbar. Der Test steht in DoD-Punkt 1; geschrieben wird mit `--format sqlite`, gelesen über `replay` (`slice-v1-abschluss-sqlite-format-lesen` liegt in der Reihenfolge davor).
+
+**Gebunden durch `slice-v1-abschluss-zeitangaben-aufzeichnen`** (dort §6 *Nicht absteigend* und §7; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13):
+
+1. Die Option `--record-empty-sessions` und ihr Schlüssel `record_empty_sessions` entstehen mit diesem Slice. Der Fall „Option, die der Stand nicht kennt“ in `TestDateiUngueltig` (`internal/adapters/driving/cli/datei_test.go`) benutzt heute den Schlüssel `record_empty_sessions` als Platzhalter einer unbekannten Option und wird mit der Lieferung laut rot. Dieser Slice stellt den Fall auf einen Schlüssel um, den auch spätere Slices nicht liefern, und führt `record_empty_sessions` mit eigenen Fällen (gültiger Wert, Ebene `replay:`/`play:`/oben, ungültiger Wert nach der Optionstabelle), wie `slice-v1-abschluss-zeitangaben-aufzeichnen` es für `record_timing` tat. Zum Test in DoD-Punkt 1.
+2. Die Zusage „Die Werte einer Session steigen nicht ab“ (`LH-FA-21.a` *Messpunkt*, `--record-timing`) gilt nur, wenn die Aufrufe der Client-Richtung einer Session (`Query`, `ClientMessage`) nacheinander kommen. Nebenläufig werden die Verbindungen (je eine Session mit eigener Schleife), nicht die Aufrufe einer Session. Dieser Slice hält das ein; kein Test prüft es (akzeptiertes Negativ im Geber, ein Adapter-Test wäre dort eine dritte Schicht). Zeigt sich im Code, dass die Nebenläufigkeit Aufrufe einer Session überlappen lässt, ist das ein Plan-Wechsel (§4).
 
 **Ziel:** Mehrere Client-Verbindungen werden im Record parallel als eigene Sessions aufgezeichnet (Verbindungen ohne Anfrage nicht); im Replay erhält die n-te Verbindung mit einer Anfrage die n-te Session; Verbindungsende und Verbindungsfehler verhalten sich wie spezifiziert.
 
@@ -72,7 +77,8 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/services` | update | Session-Verwaltung, Recording-Zustand mit Synchronisierung; Zuordnung `connection` nach `id`, auch für Sessions ohne Interaktion und solche nur aus Lebendprüfungen, die `NewReplayService` heute aus `frei` nimmt |
-| `internal/adapters/driving/pgwire` | update | Verbindungen nebenläufig |
+| `internal/adapters/driving/cli` | update | Optionen `--record-empty-sessions` und `--session-assignment` mit Umgebungsvariable, Schlüssel, `config show`, Hilfe; Fälle von `record_empty_sessions` in `TestDateiUngueltig` (Sendung aus `slice-v1-abschluss-zeitangaben-aufzeichnen`) |
+| `internal/adapters/driving/pgwire` | update | Verbindungen nebenläufig; die Client-Richtung je Session bleibt eine Schleife (Bindung aus `slice-v1-abschluss-zeitangaben-aufzeichnen`) |
 | `test/integration` | update | Happy/Boundary/Negative |
 
 ## 4. Trigger
@@ -85,6 +91,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next`: Parallelität verlangt eine Änderung des Recording-Formats — zurück zur Zerlegung.
+- `in-progress` → `next`: Der PGWire-Adapter ändert sich (dritte Schicht neben Kern und CLI-Adapter, siehe §8) oder die Nebenläufigkeit lässt Aufrufe einer Session überlappen (Bindung aus `slice-v1-abschluss-zeitangaben-aufzeichnen`) — zurück zur Zerlegung, Schnitt vor dem Anspruch.
 - `in-progress` → `open`: Die Zuordnungsregel (n-te Verbindung mit Anfrage, n-te Session) ändert sich durch eine Entscheidung des Auftraggebers — Carveout.
 
 ## 5. Closure-Trigger
@@ -101,6 +108,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst — **jedes** Risiko bekommt genau
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
+
+**Randformen** (`AGENTS.md` §3.12), soweit aus Bindungen anderer Slices bekannt: *Aufrufe einer Session* — nacheinander, nie gleichzeitig; entschieden im Geber `slice-v1-abschluss-zeitangaben-aufzeichnen` (Spezifikation `LH-FA-21.a` *Messpunkt*, Sicht Zeile *Record-Use-Case*), hier als Bindung genannt, ohne Test. Die übrigen Randformen dieses Slice trägt der Architect vor dem Code ein.
 
 - Ein Connection-Pool baut Verbindungen gleichzeitig auf; die Zuordnung ist dann nicht zugesichert — **Ausgang:** offen bis Closure.
 - Die Zuordnung `connection` übersieht Sessions nur aus Lebendprüfungen, weil das Replay sie beim Laden aus `frei` nimmt; die n-te Verbindung erhielte dann eine falsche Session. Ein Test mit einer solchen Session an einer mittleren `id` fängt das — **Ausgang:** offen bis Closure.
@@ -137,5 +146,7 @@ nicht mehr.
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-sessions-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 2. Schichten: zwei Schichten (Kern, PGWire-Adapter).
 
 Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-sqlite-format` (2026-10-11, `AGENTS.md` §3.13): Der Test mit `--format sqlite` liegt in DoD-Punkt 1 und in `test/integration`, ohne Code im Recording-Adapter; Liefer-Punkte weiter 2, Schichten weiter zwei (Kern, PGWire-Adapter).
+
+Nachgezählt beim Eintragen der Sendungen aus `slice-v1-abschluss-zeitangaben-aufzeichnen` (Planner, 2026-10-12, `AGENTS.md` §3.13): Beide Sendungen gehören zu DoD-Punkt 1 (Test mit `--record-empty-sessions`, Fälle der Option) und fügen keinen Liefer-Punkt hinzu: Liefer-Punkte 2. Schichten: Die Optionen `--record-empty-sessions` und `--session-assignment` gibt es im CLI-Adapter erst mit diesem Slice (nur die Tests der Optionstabelle nennen sie); der CLI-Adapter ist damit eine Schicht, die §3 bisher nicht führte. Kern und CLI-Adapter sind zwei; der PGWire-Adapter ist die dritte, wenn er sich ändert. Die gleichzeitigen Verbindungen lieferte der Walking Skeleton (§1, *Bereits geliefert*), die Zeile des PGWire-Adapters in §3 trägt damit höchstens Tests; der Architect prüft das vor dem Code. Ändert er den Adapter, liegt der Plan über der Grenze, und der Slice wird vor dem Anspruch geschnitten (§4). Eine Sendung schiebt ihn nicht darüber: Der Fall in `TestDateiUngueltig` liegt im CLI-Adapter, den die Option ohnehin berührt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
