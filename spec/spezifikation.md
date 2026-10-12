@@ -133,11 +133,14 @@ abgeschlossenen Interaktionen übernommen. Bricht die Client- oder die
 Upstream-Verbindung vor dem `ReadyForQuery` einer laufenden Interaktion ab, ist
 das, ohne Fehlerantwort davor, ein unerwartetes Verbindungsende (Verbindungsfehler, `PGR-E4003`); die
 unvollständige Interaktion wird nicht in das Recording übernommen, die
-vorherigen Interaktionen der Session bleiben erhalten.
+vorherigen Interaktionen der Session bleiben erhalten. Ausgenommen ist das Ende des
+Servers nach einer Fehlerantwort `FATAL` oder `PANIC` (`LH-FA-25.a`): Es ist erwartet und
+wird aufgezeichnet.
 
 **Fehlerantwort vor dem Abbruch.** Endet die Upstream-Verbindung vor dem
 `ReadyForQuery` einer laufenden Interaktion, nachdem der Upstream in dieser
-Interaktion eine `ErrorResponse` gesendet hat, ist die Interaktion nicht
+Interaktion eine `ErrorResponse` gesendet hat und keine mit dem Schweregrad `FATAL`
+oder `PANIC` (das ist ein Ende des Servers, `LH-FA-25.a`), ist die Interaktion nicht
 unterstützt (`PGR-E6001`, Exit-Code `6`, LH-FA-13.b):
 
 * *Gelesen.* Maßgeblich ist eine `ErrorResponse` der laufenden Interaktion, die
@@ -160,7 +163,9 @@ unterstützt (`PGR-E6001`, Exit-Code `6`, LH-FA-13.b):
   ändert daran nichts, weder die Klasse noch den Meldungstext: Der nennt die
   nicht lesbare Nachricht, nicht die `ErrorResponse`.
 
-* *Schweregrad.* Er zählt nicht: `FATAL`, `PANIC` und `ERROR` gelten gleich.
+* *Schweregrad.* `FATAL` und `PANIC` (Feld `V`, ohne es `S`) machen die Fehlerantwort zu
+  einem Ende des Servers (`LH-FA-25.a`), das dieser Abschnitt nicht behandelt; jeder andere
+  Schweregrad, auch `ERROR`, gilt gleich und ändert die Einstufung nicht.
 * *Stelle.* Die `ErrorResponse` darf an jeder Stelle der Antworten stehen, auch
   nach Ergebnissen einer anderen Anweisung derselben Anfrage oder als erste
   Antwort, wenn der Upstream sie zwischen zwei Interaktionen gesendet hat (sie
@@ -178,8 +183,9 @@ unterstützt (`PGR-E6001`, Exit-Code `6`, LH-FA-13.b):
 * *Aufzeichnung.* Die Session wird nicht übernommen, auch nicht ihre vorherigen
   Interaktionen (LH-FA-05.a) — anders als beim Abbruch ohne Fehlerantwort.
 * *Replay.* Eine Aufzeichnung enthält keine solche Interaktion. Eine Interaktion,
-  die nicht mit `ready_for_query` endet, macht die Aufzeichnung zu
-  einer beschädigten (`PGR-E3003`).
+  deren letzte Server-Nachricht weder `ready_for_query` noch das `connection_closed`
+  eines Endes nach `LH-FA-25.a` ist, macht die Aufzeichnung zu einer beschädigten
+  (`PGR-E3003`).
 
 **Weitergabe an den Client.** Im Record-Modus gehen die Serverantworten einer
 einfachen Anfrage in der Reihenfolge an den Client, in der der Upstream sie
@@ -188,7 +194,8 @@ unterstützt (LH-FA-05.a), erhält der Client keine von ihnen, sondern die
 `ErrorResponse` mit `PGR-E6001`, auch wenn vorher Ergebnisse einer anderen
 Anweisung derselben Anfrage kamen. v1 sagt nicht zu, dass eine Antwort vor dem
 `ReadyForQuery` ihrer Interaktion beim Client ankommt; bis dahin hält der
-Recorder die Antworten im Speicher, auch eine große Ergebnismenge (`SPEC-032`).
+Recorder die Antworten im Speicher, auch eine große Ergebnismenge (`SPEC-032`). Bei einem
+Ende des Servers (`LH-FA-25.a`) gelten die Antworten bis einschließlich der Fehlerantwort.
 
 ---
 
@@ -233,6 +240,9 @@ pgwire-recorder replay \
    Anfrage, zu der es keine nicht zugeordnete Session mehr gibt, ist das ein
    Replay-Mismatch (`PGR-E5003`); eine Lebendprüfung (LH-FA-09.a) ist dafür
    keine Anfrage.
+5. Trägt die Interaktion am Cursor ein Ende des Servers (`LH-FA-25.a`), schließt der
+   Recorder die Verbindung zum Client, nachdem er ihre Antworten gesendet hat; die
+   Session ist damit beendet, ohne Meldung und ohne Fehler.
 
 ---
 
@@ -255,13 +265,16 @@ davon immer Fehler.
 aufgezeichneten Antworten gesendet sind; eine Extended-Interaktion erst mit den
 Antworten ihrer letzten Gruppe (LH-FA-18.a). Eine Extended-Interaktion, die vor
 dem `Sync` ihrer letzten Gruppe endet, ist nicht verbraucht, auch wenn schon
-Gruppen beantwortet sind. Eine Session ohne Interaktion, auch eine nur aus
+Gruppen beantwortet sind. Eine Interaktion mit Ende des Servers (`LH-FA-25.a`) ist
+verbraucht, sobald ihre aufgezeichneten Antworten gesendet sind; sie ist die letzte
+ihrer Session, danach schließt das Replay die Verbindung. Eine Session ohne Interaktion, auch eine nur aus
 Lebendprüfungen (LH-FA-12.a), hat nichts zu verbrauchen: Sie ist weder nicht
 verbraucht noch nie zugeordnet, auch nicht bei `connection`.
 
 **Zeitpunkte.** Geprüft wird an zwei Stellen, mit und ohne Option gleich:
 
-1. *Ende einer Verbindung*, gleich aus welchem Grund: der Client schließt sie,
+1. *Ende einer Verbindung*, gleich aus welchem Grund: der Client schließt sie, das
+   Replay schließt sie nach einem aufgezeichneten Ende (`LH-FA-25.a`),
    ein Verbindungsfehler beendet sie, das Herunterfahren beendet sie nach der
    laufenden Interaktion, oder die Frist `--shutdown-timeout` beziehungsweise
    ein weiteres Signal beendet sie zwangsweise (LH-FA-13.a). Hat die Verbindung
@@ -434,7 +447,8 @@ mindestens gespeichert:
 - fortlaufende Interaktionsnummer,
 - Anfrageart (einfach oder Extended),
 - SQL-Text beziehungsweise die Client-Nachrichten der Extended-Interaktion,
-- geordnete Folge der zugehörigen Serverantworten,
+- geordnete Folge der zugehörigen Serverantworten, bei einem Ende des Servers mit
+  dessen Kennzeichen `connection_closed` (LH-FA-25.a),
 - für das Replay notwendige PGWire-Felder.
 
 Zeitangaben enthält die Aufzeichnung nur auf Wunsch (`--record-timing`,
@@ -597,7 +611,8 @@ mit einer Anfrage ohne Anweisung, etwa `-- ping`.
   Handshake `I`. Mitten in einer Extended-Interaktion ist eine Lebendprüfung
   eine Abweichung (LH-FA-18.a).
 * *Aufgezeichnete Lebendprüfungen.* Das Replay liest eine Aufzeichnung so, als
-  stünden die Interaktionen mit einer Lebendprüfung als Anfrage nicht darin: Der
+  stünden die Interaktionen mit einer Lebendprüfung als Anfrage, die kein Ende des
+  Servers trägt, nicht darin: Der
   Cursor überspringt sie, für die Session-Zuordnung (LH-FA-12.a) und die nicht
   verbrauchten Interaktionen (LH-FA-03.b) zählen sie nicht, und ihre
   aufgezeichneten Antworten verwendet es nicht. Eine Aufzeichnung, deren
@@ -605,6 +620,13 @@ mit einer Anfrage ohne Anweisung, etwa `-- ping`.
   Interaktion (`PGR-E3004`, LH-FA-03.a). Diagnosen nennen weiter die
   aufgezeichnete Interaktionsnummer (`sequence`). Record und Einspielen
   behandeln Lebendprüfungen wie jede andere Anfrage.
+* *Lebendprüfung mit Ende.* Trägt eine aufgezeichnete Lebendprüfung ein Ende des Servers
+  (`LH-FA-25.a`, etwa die erste Anfrage nach einem Zeitlimit für ruhende Sitzungen), ist
+  sie eine Interaktion wie jede andere: Das Replay überspringt sie nicht, sie zählt für die
+  Session-Zuordnung (`LH-FA-12.a`) und für die nicht verbrauchten Interaktionen, und ihre
+  Antworten werden verwendet. Steht der Cursor auf ihr, ist eine eingehende Lebendprüfung
+  mit gleichem SQL-Text diese Anfrage und wird nicht außer der Reihe beantwortet; mit
+  anderem Text gilt der Schritt 1 wie sonst.
 
 ---
 
@@ -630,7 +652,9 @@ Lebendprüfung beantwortet das Replay auch dann (LH-FA-09.a).
 
 `ErrorResponse` wird als Teil der geordneten Serverantworten der Interaktion
 aufgezeichnet (siehe LH-FA-05.a) und im Replay in gespeicherter Reihenfolge,
-einschließlich des abschließenden `ReadyForQuery`, wiedergegeben.
+einschließlich des abschließenden `ReadyForQuery`, wiedergegeben; bei einem Ende des
+Servers endet die Wiedergabe mit der Fehlerantwort und dem Schließen der Verbindung
+(`LH-FA-25.a`).
 
 **Diagnosefelder.** `ErrorResponse` und `NoticeResponse` werden je Feldcode
 aufgezeichnet; die Reihenfolge der Felder innerhalb der Nachricht ist nicht Teil
@@ -643,10 +667,12 @@ Client, im Record- wie im Replay-Modus. Ein anderer Feldcode wird mit seinem Wer
 aufgezeichnet und gesendet, auch wenn der Wert leer ist. Der Client erhält damit
 in beiden Modi dieselbe Nachricht.
 
-**Nicht aufzeichenbare Fehlerantwort.** Eine `ErrorResponse`, nach der der
-Upstream die Verbindung ohne `ReadyForQuery` beendet, ist nicht verlustfrei
-aufzuzeichnen und nicht unterstützt (`PGR-E6001`); die Regeln stehen in
-LH-FA-02.b §Fehlerantwort vor dem Abbruch.
+**Nicht aufzeichenbare Fehlerantwort.** Eine `ErrorResponse` mit einem anderen
+Schweregrad als `FATAL` oder `PANIC`, nach der der Upstream die Verbindung ohne
+`ReadyForQuery` beendet, ist nicht verlustfrei aufzuzeichnen und nicht unterstützt
+(`PGR-E6001`); die Regeln stehen in LH-FA-02.b §Fehlerantwort vor dem Abbruch. Eine
+`ErrorResponse` `FATAL` oder `PANIC`, mit der der Server die Verbindung beendet, ist als
+Ende des Servers aufzeichenbar (`LH-FA-25.a`).
 
 ---
 
@@ -660,7 +686,9 @@ Verbindung mit mindestens einer abgeschlossenen Interaktion wird als eigene Sess
 geführt; mit `--record-empty-sessions` jede angenommene Verbindung, auch eine ohne
 Anfrage (als Session ohne Interaktionen). Die `id` ist eine fortlaufende Zahl ab 1
 ohne Lücken und wird beim Schreiben der Session vergeben, in der Reihenfolge der
-Sessionenden; eine verworfene Session (LH-FA-05.a) erhält keine `id`. Werden die
+Sessionenden; eine verworfene Session (LH-FA-05.a) erhält keine `id`.
+Eine Interaktion mit Ende des Servers (`LH-FA-25.a`) ist eine abgeschlossene Interaktion und
+die letzte ihrer Session. Werden die
 Verbindungen nacheinander genutzt, ist das die Reihenfolge der ersten Anfragen. Mit
 `--record-empty-sessions` trägt das Recording die Kennzeichnung `empty_sessions:
 true` (YAML: Feld auf der obersten Ebene neben `format` und `version`; SQLite: Zeile
@@ -692,7 +720,7 @@ Eine Lebendprüfung (LH-FA-09.a) ist für die Zuordnung im Replay keine Anfrage:
 Sie löst keine Zuordnung aus, auch nicht, wenn keine Session mehr frei ist, und
 eine Verbindung, die nur Lebendprüfungen stellt, ist eine Verbindung ohne
 Anfrage. Für das Replay ist eine Session, deren Interaktionen alle
-Lebendprüfungen sind, eine Session ohne Interaktion: Bei `first-request` wird
+Lebendprüfungen ohne Ende des Servers sind (`LH-FA-09.a`), eine Session ohne Interaktion: Bei `first-request` wird
 sie übersprungen; bei `connection` erhält die n-te Verbindung sie wie jede
 Session ohne Interaktion. Das Einspielen behandelt Lebendprüfungen wie jede
 andere Anfrage und führt eine solche Session aus.
@@ -1365,7 +1393,7 @@ in `LH-FA-17.a`):
 |---|---|
 | `--user`, `--database` | überschreiben Benutzer und Datenbank der Verbindung und die Startup-Daten der jeweiligen Session |
 | `--continue-on-error` | ein Serverfehler einer Anfrage beendet das Einspielen nicht sofort |
-| `--allow-recorded-errors` | ein Serverfehler in einer Interaktion, deren Aufzeichnung ebenfalls eine `ErrorResponse` enthält, gilt als erwartet; mit `--compare-responses` ohne Wirkung, ohne dass die Kombination ein Fehler ist |
+| `--allow-recorded-errors` | ein Serverfehler in einer Interaktion, deren Aufzeichnung ebenfalls eine `ErrorResponse` enthält, gilt als erwartet, ebenso ein Ende des Servers (`FATAL` oder `PANIC`) in einer Interaktion, deren Aufzeichnung ein Ende trägt (`LH-FA-25.a`); mit `--compare-responses` ohne Wirkung, ohne dass die Kombination ein Fehler ist |
 | `--upstream-tls` | die Verbindung zum Server wird mit TLS aufgebaut |
 | `--upstream-ca` | eine zusätzliche Zertifizierungsstelle für die Prüfung des Serverzertifikats (nur mit TLS) |
 | `--compare-responses` | die Serverantworten werden mit der Aufzeichnung verglichen (`LH-FA-24.a`) |
@@ -1422,7 +1450,8 @@ pgwire-recorder play \
    Verbindung, soweit möglich, mit `Terminate`. Mit Vergleich wird eine Abweichung
    am Ende der Interaktion festgestellt (Schritt 4); der Abbruch erfolgt dann vor der
    nächsten Interaktion. Ausgenommen ist die Fehlerantwort `FATAL` oder `PANIC`, die
-   die Verbindung beendet: Sie ist sofort eine Abweichung (Tabelle).
+   die Verbindung beendet: Sie wird sofort eingestuft, als erwartetes Ende, als
+   Abweichung oder ohne Vergleich als Verbindungsfehler (Tabelle).
 7. **Abbruchsignal:** Bei `SIGINT` oder `SIGTERM` endet das Einspielen nach der
    laufenden Interaktion; eine Wartezeit (`LH-FA-21.a`) wird abgebrochen. Mit
    `--finish-session-on-interrupt` zuvor nach der laufenden Session. Ein zweites
@@ -1437,7 +1466,7 @@ wiederholen sie nicht.
 |---|---|---|---|
 | Server nicht erreichbar; `FATAL` beim Aufbau, der nicht die Anmeldung betrifft (zum Beispiel fehlende Datenbank) | `PGR-E4002`, Exit-Code `4` | gleich | immer sofort |
 | Anmeldung fehlgeschlagen (SQLSTATE-Klasse 28), Verfahren nicht unterstützt, TLS abgelehnt (der Server antwortet mit `N`), Zertifikat ungültig oder abgelaufen, Server lehnt unverschlüsselte Verbindung ab | `PGR-E4005`, Exit-Code `4` | gleich | immer sofort |
-| Verbindung endet nach dem ersten `ReadyForQuery`, auch durch einen `FATAL` | `PGR-E4003`, Exit-Code `4`, immer | **Fehlerantwort mit dem Schweregrad `FATAL` oder `PANIC`** (die Verbindung endet; die Aufzeichnung beendet jede Interaktion mit `ReadyForQuery` und kennt kein Verbindungsende, auch nicht bei gleichem SQLSTATE): Abweichung `PGR-E5004`, Exit-Code `5`, sofort festgestellt; die Session endet, mit `--continue-on-error` läuft die nächste Session. **Verbindungsverlust ohne Fehlerantwort des Servers** (zum Beispiel Netzwerkabbruch): `PGR-E4003`, Exit-Code `4` | `PGR-E4003`: immer sofort; `PGR-E5004`: ohne `--continue-on-error` sofort |
+| Verbindung endet nach dem ersten `ReadyForQuery`, auch durch eine Fehlerantwort `FATAL` oder `PANIC` | `PGR-E4003`, Exit-Code `4`, immer; ausgenommen ein Ende des Servers, das die Aufzeichnung der Interaktion trägt, mit `--allow-recorded-errors`: erwartet, keine Meldung, die Session endet und die nächste läuft (`LH-FA-25.a`) | **Fehlerantwort mit dem Schweregrad `FATAL` oder `PANIC`** (die Verbindung endet): Trägt die Aufzeichnung an derselben Stelle ein Ende mit demselben SQLSTATE, ist es erwartet (keine Meldung; die Session endet, die nächste läuft, auch ohne `--continue-on-error`); sonst Abweichung `PGR-E5004`, Exit-Code `5`, sofort festgestellt (`LH-FA-24.a` *Ende der Aufzeichnung*); die Session endet, mit `--continue-on-error` läuft die nächste Session. **Verbindungsverlust ohne Fehlerantwort des Servers** (zum Beispiel Netzwerkabbruch): `PGR-E4003`, Exit-Code `4` | `PGR-E4003`: immer sofort; `PGR-E5004`: ohne `--continue-on-error` sofort; erwartetes Ende: kein Abbruch |
 | `ErrorResponse` des Servers auf eine Anfrage | `PGR-E4004`, Exit-Code `4` am Ende; zählt nicht, wenn `--allow-recorded-errors` gesetzt ist und die aufgezeichnete Interaktion eine `ErrorResponse` enthält | der Vergleich entscheidet: gleicher SQLSTATE an der aufgezeichneten Stelle gilt als erwartet, jeder andere Fehler ist eine Abweichung; `PGR-E4004` entfällt | ohne `--continue-on-error` sofort, außer bei erwartetem Fehler |
 | Abweichung der Antwort (`LH-FA-24.a`) | kein Vergleich | `PGR-E5004`, Exit-Code `5` am Ende; je Interaktion die erste Abweichung | ohne `--continue-on-error` sofort |
 | Serverantwort, die das Einspielen nicht lesen oder nicht bedienen kann (*Interaktion* unten) | `PGR-E6001`, Exit-Code `6` | gleich | immer sofort |
@@ -1615,12 +1644,18 @@ offenlässt.
   `NoticeResponse`, `ParameterStatus` und `NotificationResponse`. `CopyInResponse`,
   `CopyOutResponse`, `CopyBothResponse` und eine Nachricht, die sich nicht lesen lässt,
   ohne dass die Verbindung endet, sind `PGR-E6001` (Tabelle). Eine Fehlerantwort mit
-  dem Schweregrad `FATAL` oder `PANIC` (Feld `V`, ohne es `S`) ist kein `PGR-E4004`,
-  sondern sofort `PGR-E4003`, ohne auf das Verbindungsende zu warten; mit
-  `--compare-responses` ist sie sofort die Abweichung `PGR-E5004` (Tabelle). Ob ein Fehler
-  bei `--allow-recorded-errors` erwartet ist, entscheidet allein, ob die aufgezeichnete
-  Interaktion an irgendeiner Stelle eine `error_response` enthält, nicht SQLSTATE und
-  nicht Stelle; ein erwarteter Fehler ist keine Meldung. Scheitert das Senden, ist das
+  dem Schweregrad `FATAL` oder `PANIC` (Feld `V`, ohne es `S`) ist kein `PGR-E4004`: Sie beendet
+  die Interaktion und die Session, ohne dass `play` auf das Verbindungsende wartet
+  (`LH-FA-25.a`). Ohne `--compare-responses` ist sie sofort `PGR-E4003`; mit
+  `--allow-recorded-errors` ist sie erwartet, wenn die aufgezeichnete Interaktion ein Ende
+  des Servers trägt (`connection_closed`), gleich welcher SQLSTATE und an welcher Stelle,
+  sonst bleibt sie `PGR-E4003`. Mit `--compare-responses` entscheidet der Vergleich
+  (`LH-FA-24.a` *Ende der Aufzeichnung*): erwartetes Ende oder sofort die Abweichung `PGR-E5004`
+  (Tabelle). Ob ein Fehler bei `--allow-recorded-errors` erwartet ist, entscheidet allein,
+  ob die aufgezeichnete Interaktion an irgendeiner Stelle eine `error_response` enthält,
+  nicht SQLSTATE und nicht Stelle; ein erwarteter Fehler ist keine Meldung. Eine
+  Fehlerantwort `ERROR` in einer Interaktion mit aufgezeichnetem Ende ist ein
+  gewöhnlicher Fehler (`PGR-E4004`, erwartet nach dieser Regel). Scheitert das Senden, ist das
   `PGR-E4003`, und `play` liest nicht weiter. Bricht `play` nach einem `PGR-E4004` ab,
   liest es keine weitere Antwort. Auf eine Antwort wartet `play` ohne eigene Frist,
   ebenso auf den Aufbau.
@@ -1643,7 +1678,8 @@ offenlässt.
   ihre Reihenfolge legt dieser Absatz fest. Eine Fehlerantwort, die vor dem zweiten Signal eintraf, ist eine
   Zeile, auch wenn das Signal ihre Interaktion unterbricht.
 * *Ende einer Session.* Nach ihrer letzten Interaktion sendet `play` `Terminate` und
-  schließt die Verbindung; ein Fehler dabei ist keine Meldung und ändert den Exit-Code
+  schließt die Verbindung; nach einem Ende des Servers (erwartet oder nicht) sendet es
+  kein `Terminate`, sondern schließt die Verbindung; ein Fehler dabei ist keine Meldung und ändert den Exit-Code
   nicht. Eine offene Transaktion am Ende setzt der Server mit dem Verbindungsende
   zurück.
 * *Abbruchsignal.* Eine Session läuft ab dem Beginn ihres Verbindungsaufbaus. Trifft
@@ -1910,7 +1946,8 @@ Fehlschlag und übrig gebliebene Datei der temporären Datei gelten wie in `LH-F
 `meta` und das Schließen der Datenbank. Jeder Schreibvorgang ergänzt danach genau die
 beendeten Sessions, die die Datei noch nicht trägt, in der Reihenfolge ihrer Nummern,
 jede in einer eigenen Transaktion mit der Session, ihren Interaktionen und ihren
-Nachrichten; die Datei enthält zu jedem Zeitpunkt nur vollständige Sessions und wird nie
+Nachrichten; die Transaktion der ersten Session mit einem Ende des Servers setzt
+zugleich `meta.version` auf 2 (`LH-FA-25.a`); die Datei enthält zu jedem Zeitpunkt nur vollständige Sessions und wird nie
 als Ganzes neu geschrieben. Ein Abbruchsignal unterbricht keine Transaktion: sie läuft
 zu Ende. Das Rollback-Journal der temporären Datei (`<temporäre Datei>-journal`), das ein Absturz
 mitten im Anlegen hinterlässt, ist eine übrig gebliebene Datei im Sinn von `LH-FA-07.a`: `record`
@@ -2026,18 +2063,32 @@ Zeilenwerte und Zeilenzahlen werden nicht verglichen. Eine `ErrorResponse` des
 Servers in einer Extended-Interaktion ändert den Vergleich nicht: die Folge ab dem
 Fehler bis zum `ReadyForQuery` wird wie aufgezeichnet verglichen.
 
-**Ende der Aufzeichnung.** Jede aufgezeichnete Interaktion endet mit `ready_for_query`;
-eine andere macht die Aufzeichnung zu einer beschädigten (`LH-FA-02.b` *Replay*,
-`PGR-E3003`). Die Aufzeichnung kennt darum kein Verbindungsende, und die Folge des
-Servers wird bis zum `ReadyForQuery` verglichen. Eine `ErrorResponse` des Servers mit dem
-Schweregrad `FATAL` oder `PANIC` beendet die Verbindung vor diesem `ReadyForQuery` und ist
-eine Abweichung der Art Fehler an ihrer Position, auch bei gleichem SQLSTATE wie eine
-aufgezeichnete `ErrorResponse` an der Stelle und auch dann, wenn die Aufzeichnung an dieser
-Stelle keine `ErrorResponse` hat (der aufgezeichnete SQLSTATE der Meldung ist dann leer). Das
-ist die Ausnahme von der Regel zur *Art* unten, nach der ein verschiedener Typ die Art
-Nachrichtenart ergibt. Weicht eine frühere Position ab, ist das die erste Abweichung und
-gilt ihre Art. Ein Verbindungsverlust ohne Fehlerantwort ist keine
-Abweichung, sondern `PGR-E4003` (`LH-FA-20.a`).
+**Ende der Aufzeichnung.** Jede aufgezeichnete Interaktion endet mit `ready_for_query` oder,
+bei einem Ende des Servers (`LH-FA-25.a`), mit einer `error_response` `FATAL` oder `PANIC` und
+`connection_closed`; eine andere macht die Aufzeichnung zu einer beschädigten
+(`LH-FA-02.b` *Replay*, `PGR-E3003`). Die Folge des Servers wird bis zum `ReadyForQuery`
+verglichen, oder, wenn der Server eine `ErrorResponse` mit dem Schweregrad `FATAL` oder `PANIC`
+sendet, bis zu ihr: Sie beendet die Verbindung, `play` fügt der Folge `connection_closed`
+an, und es wartet nicht auf das Verbindungsende. Daraus folgt:
+
+* Trägt die Aufzeichnung an derselben Position eine `error_response` `FATAL` oder `PANIC`
+  mit `connection_closed` dahinter und ist der SQLSTATE (Feld `C`) beider Seiten gleich, ist
+  das Ende erwartet: keine Abweichung, keine Meldung; die Session endet, auch ohne
+  `--continue-on-error` läuft die nächste.
+* Jede andere `ErrorResponse` `FATAL` oder `PANIC` des Servers ist eine Abweichung der Art
+  Fehler an ihrer Position: bei anderem SQLSTATE als das aufgezeichnete Ende, auch bei
+  gleichem SQLSTATE wie eine aufgezeichnete `ErrorResponse` an der Stelle, die kein Ende
+  ist, und auch dann, wenn die Aufzeichnung an dieser Stelle keine `ErrorResponse` hat (der
+  aufgezeichnete SQLSTATE der Meldung ist dann leer). Das ist die Ausnahme von der Regel zur
+  *Art* unten, nach der ein verschiedener Typ die Art Nachrichtenart ergibt.
+* Zeigt die Aufzeichnung ein Ende, und der Server sendet an dieser Stelle keine `ErrorResponse`
+  `FATAL` oder `PANIC` (etwa `ERROR` mit `ReadyForQuery`), vergleicht sich die Folge nach den
+  gewöhnlichen Regeln: Der erste verschiedene Typ oder Inhalt ist die Abweichung, bei `ERROR` mit
+  gleichem SQLSTATE die Position des `connection_closed` mit der Art Nachrichtenart.
+
+Weicht eine frühere Position ab, ist das die erste Abweichung und gilt ihre Art. Ein
+Verbindungsverlust ohne Fehlerantwort ist keine Abweichung, sondern `PGR-E4003`
+(`LH-FA-20.a`), auch wenn die Aufzeichnung ein Ende zeigt.
 
 **Meldung.** Die Abweichung wird als `PGR-E5004` gemeldet (Exit-Code `5`) und nennt
 Session, Sequenznummer, die Position der Nachricht in der normalisierten Folge und
@@ -2083,7 +2134,8 @@ findet kein Vergleich statt.
   anderen Tag.
 * *Fehler.* Fehlt das Feld `C` einer `ErrorResponse`, gilt es als leerer Text; zwei
   Fehlerantworten ohne `C` sind gleich. Der Schweregrad wird nicht verglichen, außer dass
-  `FATAL` und `PANIC` stets eine Abweichung sind (*Ende der Aufzeichnung*).
+  `FATAL` und `PANIC` des Servers nur als aufgezeichnetes Ende mit gleichem SQLSTATE
+  erwartet und sonst eine Abweichung sind (*Ende der Aufzeichnung*).
 * *Serverversion.* Der Vergleich gleicht Versionen nicht aus: Ein Typ-OID, ein Tag oder
   eine Folge, die eine andere Version anders liefert, ist eine Abweichung.
 * *Aufruf-Voraussetzung.* Der Vergleich sagt keine Ordnung der Werte über mehrere Aufrufe
@@ -2091,6 +2143,62 @@ findet kein Vergleich statt.
   (`LH-FA-20.a`).
 * *Signal.* Das erste Signal beendet die laufende Interaktion mit Vergleich wie ohne Signal,
   eine Abweichung darin wird festgestellt; das zweite Signal unterbricht sie ohne Vergleich.
+
+---
+
+### LH-FA-25.a — Verbindungsende durch den Server
+
+Ein *Ende des Servers* (kurz *Ende*) liegt vor, wenn der Upstream in einer laufenden
+Interaktion eine `ErrorResponse` mit dem Schweregrad `FATAL` oder `PANIC` sendet (Feld `V`,
+ohne es `S`) und danach die Verbindung beendet. Jeder andere Schweregrad ist kein Ende.
+Dieser Abschnitt legt Aufzeichnen, Wiedergeben und Version fest; das Einspielen und den
+Vergleich legen `LH-FA-20.a` und `LH-FA-24.a` fest.
+
+* *Form.* Die Interaktion trägt als letzte Server-Nachricht `connection_closed` (ohne Felder)
+  statt `ready_for_query`, unmittelbar nach der `error_response` des Endes (`SPEC-002`,
+  `SPEC-041`). Ein Ende ist die letzte Nachricht der letzten Interaktion einer Session, einmal
+  je Session. Bei einer Extended-Interaktion steht es in der letzten Gruppe, und diese endet
+  mit `Sync` oder `Flush`; Client-Nachrichten nach dieser Gruppe gehören nicht zur
+  Aufzeichnung.
+* *Aufzeichnen.* Hat der Recorder in der laufenden Interaktion eine solche `ErrorResponse`
+  gelesen, ist die Interaktion abgeschlossen, ohne dass er auf das Verbindungsende wartet;
+  was der Upstream danach sendet, liest er nicht. Die Session wird mit dieser Interaktion als
+  letzter übernommen. Der Recorder gibt dem Client die Antworten der Interaktion in der
+  Reihenfolge des Upstreams bis einschließlich der Fehlerantwort weiter und schließt dann
+  beide Verbindungen, ohne `ReadyForQuery`. Es entsteht weder eine Meldung noch ein Fehler,
+  und der Exit-Code bleibt unberührt. Maßgeblich ist der Lesestand (`LH-FA-02.b` *Gelesen*):
+  Eine Fehlerantwort, die der Recorder beim Bemerken eines Verbindungsendes nicht gelesen hat,
+  zählt nicht.
+* *Stelle.* Das Ende liegt in der Interaktion, deren Antworten die Fehlerantwort enthalten.
+  Eine Fehlerantwort zwischen zwei Interaktionen gehört zur nächsten (`LH-FA-05.a`). Bei einer
+  Extended-Interaktion ordnet `LH-FA-18.a` sie einer Gruppe zu, bei einer `Flush`-Gruppe mit
+  der dortigen zeitabhängigen Grenze. Liegt sie in einer Gruppe, die der Client nicht mit
+  `Sync` oder `Flush` abgeschlossen hat, ist die Interaktion nicht unterstützt (`PGR-E6001`,
+  `LH-FA-02.b`).
+* *Leerlauf.* Beendet der Server die Verbindung zwischen zwei Interaktionen (etwa durch
+  `idle_session_timeout`), ist das Ende nur aufzeichenbar, wenn der Client danach noch eine
+  Anfrage sendet: Die Fehlerantwort gehört dann zu dieser Anfrage, nach den Nachrichten
+  zwischen den Interaktionen (`LH-FA-05.a`). Scheitert das Senden dieser Anfrage an den
+  geschlossenen Upstream, ist das kein Fehler und ändert die Einstufung nicht. Sendet der
+  Client keine Anfrage mehr (`Terminate`, Ende der Client-Verbindung), endet die Session
+  regulär nach dem `ReadyForQuery` der letzten Interaktion (`LH-FA-02.b`), und die
+  Fehlerantwort wird nicht aufgezeichnet.
+* *Kein Ende.* Ein Verbindungsende des Upstreams ohne gelesene `ErrorResponse` `FATAL` oder
+  `PANIC` bleibt `PGR-E4003`, nach einer anderen gelesenen `ErrorResponse` `PGR-E6001`
+  (`LH-FA-02.b`); ein Ende vor dem ersten `ReadyForQuery` bleibt `PGR-E4002` beziehungsweise
+  `PGR-E4005` (`LH-FA-20.a` *Aufbau*). Das Ende der Client-Verbindung ist keines.
+* *Replay.* Die Interaktion wird wie jede andere abgeglichen (`LH-FA-09.a`, `LH-FA-18.a`).
+  Nach dem Senden ihrer aufgezeichneten Server-Nachrichten, deren letzte die Fehlerantwort ist,
+  schließt der Recorder die Verbindung zum Client, ohne `ReadyForQuery`, ohne Meldung und ohne
+  Fehler. Bei einer Extended-Interaktion geschieht das nach den Server-Nachrichten der Gruppe,
+  in der das Ende liegt; die Gruppen davor laufen wie sonst. Für Lebendprüfungen gilt
+  `LH-FA-09.a`, für die Session-Zuordnung `LH-FA-12.a`, für nicht verbrauchte Interaktionen
+  `LH-FA-03.b`.
+* *Version.* Eine Aufzeichnung mit mindestens einem Ende trägt `version: 2`, jede andere
+  `version: 1` (`SPEC-001`). In `yaml` bestimmt der Inhalt der Aufzeichnung die Version bei
+  jedem Schreiben. In `sqlite` legt der erste Schreibvorgang `meta.version` = 1 an, und die
+  Transaktion der ersten Session mit Ende setzt sie in derselben Transaktion auf 2
+  (`LH-FA-22.a`); scheitert die Transaktion, bleibt die Version 1.
 
 ---
 
@@ -2119,24 +2227,28 @@ version: 1
 `version` ist eine einzelne ganze Zahl und zählt Änderungen des Formats. Ein
 Leser lehnt jedes Feld ab, das er für seine Version nicht kennt (`PGR-E3003`);
 darum erhöht auch ein neues optionales Feld `version`.
-Version 1 umfasst einfache und Extended-Interaktionen: Bei einer einfachen steht
+Version 1 umfasst einfache und Extended-Interaktionen, Version 2 zusätzlich das Ende des
+Servers mit der Server-Nachricht `connection_closed` (`LH-FA-25.a`, `SPEC-002`, `SPEC-041`);
+der Schreiber schreibt 2 nur für eine Aufzeichnung, die ein Ende enthält, sonst 1. Ein Leser
+wendet auf jede Version die Nachrichtentypen dieser Version an: `connection_closed` in
+Version 1 macht das Recording zu einem beschädigten (`PGR-E3003`). Die Form der Interaktionen: Bei einer einfachen steht
 `type: query` in `request` (`SPEC-002`), bei einer Extended-Interaktion steht
 `type: extended` an der Interaktion selbst (`SPEC-041`); eine einfache trägt dort
 kein `type`. Ein anderer Wert von `type` an einer dieser Stellen, auch ein leerer
 oder `null`, macht das Recording zu einem beschädigten (`PGR-E3003`).
 
-Ein Leser liest jede `version` von 1 bis zu seiner eigenen; jede andere lehnt er ab
+Ein Leser liest jede `version` von 1 bis zu seiner eigenen (2); jede andere lehnt er ab
 (`PGR-E3002`). Ein Recording ohne oder mit abweichender `format`-Kennung ist
 beschädigt (`PGR-E3003`). Beides endet mit Exit-Code `3` (`SPEC-016`).
 
 **Rangfolge der Prüfung.** Ein Leser prüft in `yaml` wie in `sqlite` (`SPEC-043`) in dieser
 Reihenfolge: Lesbarkeit der Datei (Syntax, Anker, Alias, Merge-Key), Formatkennung,
 Version, Inhalt. Zugesagt ist der Vorrang jeder Stufe vor den folgenden: Eine Datei mit
-`version: 2` ist `PGR-E3002`, auch wenn der Inhalt Fehler trägt; eine falsche Formatkennung
+`version: 3` ist `PGR-E3002`, auch wenn der Inhalt Fehler trägt; eine falsche Formatkennung
 ist `PGR-E3003`, auch bei unbekannter Version. `version` ist in `yaml` ein Skalar in
 kanonischer Dezimalschreibweise wie in `sqlite`; fehlt der Schlüssel oder ist der Wert
 anderer Text (`abc`, `01`, `1.0`, `"1"`, `null`, `0x2`), ist die Datei `PGR-E3003` und
-die Meldung nennt keinen Wert; jede kanonische Zahl außer `1` ist `PGR-E3002`, auch `0`,
+die Meldung nennt keinen Wert; jede kanonische Zahl außer `1` und `2` ist `PGR-E3002`, auch `0`,
 eine negative und eine zu große für 64 Bit. Die Meldung zu `PGR-E3002` nennt die Version
 der Datei, die der Leser gelesen hat, und nie einen Wert, den die Datei nicht trägt.
 Innerhalb des Inhalts ist nicht zugesagt, welcher von mehreren Fehlern gemeldet wird
@@ -2173,6 +2285,20 @@ sessions:
           - type: ready_for_query
             tx_status: "I"
 ```
+
+Bei einem Ende des Servers (`LH-FA-25.a`, Version 2) endet `responses` mit der
+`error_response` des Endes und dem Typ `connection_closed` ohne Felder:
+
+```yaml
+        responses:
+          - type: error_response
+            # protokollrelevante Felder, `V` ist FATAL oder PANIC
+          - type: connection_closed
+```
+
+`connection_closed` steht nur als letzte Nachricht der letzten Interaktion einer Session,
+unmittelbar nach einer `error_response`, deren Schweregrad (Feld `V`, ohne es `S`) `FATAL`
+oder `PANIC` ist; jede andere Stelle macht das Recording zu einem beschädigten (`PGR-E3003`).
 
 Das endgültige Schema des Formats `yaml` wird durch Go-Datentypen und Schema-Tests
 verbindlich definiert, das des Formats `sqlite` durch `tools/schema/schema.yaml`
@@ -2227,7 +2353,7 @@ Unterstrich (`parse`, `bind`, `describe`, `execute`, `close`, `flush`, `sync`,
 `parse_complete`, `bind_complete`, `close_complete`, `parameter_description`,
 `row_description`, `no_data`, `data_row`, `command_complete`,
 `empty_query_response`, `portal_suspended`, `error_response`,
-`notice_response`, `parameter_status`, `ready_for_query`).
+`notice_response`, `parameter_status`, `ready_for_query`, ab Version 2 `connection_closed`).
 
 Jede Client-Nachricht trägt neben `type` genau die Felder ihres Typs, auch wenn sie
 leer sind (`portal: ""`, `param_types: []`, `max_rows: 0`):
@@ -2252,6 +2378,10 @@ steht er mit `null`, ist das Recording beschädigt. `server: []` ist zulässig (
 als `null: true`; ein Leser nimmt den Schlüssel `null` gequotet (`"null": true`)
 und ungequotet an. Binärwerte folgen `SPEC-003`.
 
+Bei einem Ende des Servers (`LH-FA-25.a`) ist `connection_closed` die letzte Nachricht
+von `server` der letzten Gruppe, unmittelbar nach der `error_response` des Endes, und
+diese Gruppe hat kein `ready_for_query`; für Stelle und Form gilt `SPEC-002` ebenso.
+
 Jede Interaktion, einfach oder Extended, kann das Feld `offset_ms` tragen (ganze
 Zahl ≥ 0, `LH-FA-21.a`); es steht neben `sequence`, bei einer Extended-Interaktion
 auch neben `type`. Simple-Interaktionen behalten `request`/`responses`
@@ -2267,13 +2397,14 @@ generate --target sqlite`, nicht von Hand. Diese Spezifikation legt die Bedeutun
 fest:
 
 * `meta` trägt `format` = `pgwire-recorder`, `version` (die Formatversion nach
-  `SPEC-001`, unabhängig von der `version` der Schema-Datei) und bei
+  `SPEC-001`, 1 oder 2, unabhängig von der `version` der Schema-Datei; die erste Session mit
+  Ende des Servers setzt sie von 1 auf 2, `LH-FA-22.a`) und bei
   `--record-empty-sessions` die Zeile `empty_sessions` = `true`. Die Version steht
   nur dort; `PRAGMA user_version` wird weder geschrieben noch gelesen. `version` ist der
   Text einer ganzen Zahl in kanonischer Dezimalschreibweise: `0` oder Ziffern ohne
   führende Null, bei einer negativen Zahl mit `-` davor, ohne `+` und ohne Leerraum.
   Anderer Text (`abc`, `01`, `+1`, ` 1`, `-0`, leer) ist `PGR-E3003`; jede kanonische
-  Zahl außer `1`, auch `0`, eine negative und eine zu große für 64 Bit, ist `PGR-E3002`.
+  Zahl außer `1` und `2`, auch `0`, eine negative und eine zu große für 64 Bit, ist `PGR-E3002`.
   `empty_sessions` trägt genau den Text `true`; jeder andere Wert ist `PGR-E3003`, die
   Aufzeichnung ohne die Zeile hat keine leeren Sessions.
 * `session.startup` ist der JSON-Text der Startup-Parameter und
@@ -2293,7 +2424,8 @@ fest:
   Server-Nachrichten dort mit `group_no` (`SPEC-041`), das ab 1 lückenlos in der
   Reihenfolge der Gruppen zählt, und `position` zählt über beide Richtungen der
   Interaktion, in jeder Gruppe die Client-Nachrichten vor den Server-Nachrichten. `kind` nennt die
-  Nachrichtenart wie in `SPEC-041`. `fields` ist die einzige Darstellung der Nachricht
+  Nachrichtenart wie in `SPEC-041`, ab Version 2 auch `connection_closed` mit `fields` `{}`
+  (`SPEC-002`); in Version 1 ist es ein Wert außerhalb der Aufzählung. `fields` ist die einzige Darstellung der Nachricht
   und beim Lesen maßgeblich; es steht in jeder Zeile (nie `NULL`) und ist immer ein
   JSON-Objekt, bei einer Nachricht ohne Felder `{}`. Es trägt die Felder der Nachricht
   mit denselben Schlüsseln und Werten wie ihre YAML-Darstellung (`SPEC-002`,
@@ -2403,7 +2535,7 @@ erzeugen einen für Entwickler verständlichen Text:
 | `SPEC-025` | beschädigtes Recording | 3 | `PGR-E3003` |
 | `SPEC-026` | nicht unterstützte PGWire-Nachricht | 6 | `PGR-E6001` |
 | `SPEC-027` | Replay-Mismatch, Abweichung beim Einspielen | 5 | `PGR-E5001`, `PGR-E5003`, `PGR-E5004` |
-| `SPEC-028` | unerwartetes Verbindungsende | 4 | `PGR-E4003` |
+| `SPEC-028` | unerwartetes Verbindungsende (nicht das Ende des Servers nach `LH-FA-25.a`) | 4 | `PGR-E4003` |
 
 **Logging-Felder.** Log-Level, Ziel und Geheimnisschutz stehen in LH-FA-14.a
 und `SPEC-005`/`SPEC-006`. Fehler und Warnungen tragen zusätzlich einen
@@ -2444,7 +2576,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E4000` | Netzwerk (Exit 4) | Rückfall |
 | `PGR-E4001` | Netzwerk (Exit 4) | Listen-Port nicht zu öffnen (`SPEC-021`) |
 | `PGR-E4002` | Netzwerk (Exit 4) | Upstream nicht erreichbar (`SPEC-022`) |
-| `PGR-E4003` | Netzwerk (Exit 4) | unerwartetes Verbindungsende (`SPEC-028`) |
+| `PGR-E4003` | Netzwerk (Exit 4) | unerwartetes Verbindungsende (`SPEC-028`); kein Verbindungsende des Servers, das `LH-FA-25.a` als Ende erwartet |
 | `PGR-E4004` | Netzwerk (Exit 4) | Server beantwortet eine eingespielte Anfrage mit einem Fehler, nur ohne `--compare-responses` (LH-FA-20.a) |
 | `PGR-E4005` | Netzwerk (Exit 4) | Anmeldung am Server fehlgeschlagen, Verfahren nicht unterstützt, TLS abgelehnt, ungültiges oder abgelaufenes Zertifikat des Servers oder der Zertifizierungsstelle, oder der Server lehnt unverschlüsselte Verbindungen ab (LH-FA-20.a) |
 | `PGR-E4006` | Netzwerk (Exit 4) | Frist beim Herunterfahren abgelaufen, eine Interaktion endete unvollständig (LH-FA-13.a) |
@@ -2452,9 +2584,9 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E5001` | Replay (Exit 5) | Replay-Mismatch (`SPEC-027`) |
 | `PGR-E5002` | Replay (Exit 5) | nicht verbrauchte Interaktionen oder Sessions bei `--fail-on-unconsumed` (LH-FA-03.b) |
 | `PGR-E5003` | Replay (Exit 5) | Anfrage einer Verbindung, zu der keine nicht zugeordnete Session mehr existiert (LH-FA-12.a, `SPEC-027`) |
-| `PGR-E5004` | Replay (Exit 5) | Serverantwort beim Einspielen weicht von der Aufzeichnung ab, auch ein Serverfehler ohne Vorbild in der Aufzeichnung und eine Fehlerantwort `FATAL` oder `PANIC` (`SPEC-027`, LH-FA-24.a) |
+| `PGR-E5004` | Replay (Exit 5) | Serverantwort beim Einspielen weicht von der Aufzeichnung ab, auch ein Serverfehler ohne Vorbild in der Aufzeichnung und eine Fehlerantwort `FATAL` oder `PANIC`, die die Aufzeichnung nicht als Ende zeigt (`SPEC-027`, LH-FA-24.a, `LH-FA-25.a`) |
 | `PGR-E6000` | nicht unterstützt (Exit 6) | Rückfall |
-| `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`), beim Einspielen eine Serverantwort, die `play` nicht lesen oder nicht bedienen kann, oder eine Interaktion einer Art, die `play` nicht einspielt (LH-FA-20.a) |
+| `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`), im Record auch eine `ErrorResponse` mit anderem Schweregrad als `FATAL` oder `PANIC`, nach der der Upstream die Verbindung ohne `ReadyForQuery` beendet (`LH-FA-02.b`, `LH-FA-25.a`), beim Einspielen eine Serverantwort, die `play` nicht lesen oder nicht bedienen kann, oder eine Interaktion einer Art, die `play` nicht einspielt (LH-FA-20.a) |
 | `PGR-E6002` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Protokollversion (LH-FA-05.e) |
 | `PGR-E6003` | nicht unterstützt (Exit 6) | unverschlüsselte Verbindung, obwohl TLS konfiguriert und `--allow-plaintext` nicht gesetzt ist (LH-FA-23.a) |
 | `PGR-W2001` | Replay | Sitzung endet vor Verbrauch aller Interaktionen, oder Sessions nie zugeordnet (LH-FA-03.b) |
@@ -3108,6 +3240,7 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Erkennung vor dem Lesen, Öffnen oder Lesen der ersten Bytes gescheitert `PGR-E3001` wie bei `yaml`, kürzere Datei als `yaml`; Eingabepfad wörtlich (`LH-FA-22.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Journal des Zielpfads „vorhanden“ wie der Zielpfad, Journal der temporären Datei ist eine übrig gebliebene Datei, doppelte Nummer und Lücke `PGR-E3001`, weniger Sessions als zuletzt ergänzt `PGR-E1000` (`LH-FA-22.a`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`: Nummern der Sessions werden vor dem Anlegen und Öffnen für die ganze Aufzeichnung geprüft, doppelte Nummer und Lücke im Aufruf `PGR-E1000` statt `PGR-E3001`, Datei unberührt (`LH-FA-22.a`) |
+| 2026-10-12 | Ende des Servers: `ErrorResponse` `FATAL` oder `PANIC` mit anschließendem Verbindungsende in einer laufenden Interaktion wird aufgezeichnet, wiedergegeben und beim Einspielen erwartet (`connection_closed`, Formatversion 2 nur mit Ende, Leerlauf nur mit nachfolgender Anfrage, `--allow-recorded-errors` auch ohne Vergleich); die Aussagen „kennt kein Verbindungsende“ und „`FATAL` stets Abweichung“ entfallen (`LH-FA-25.a`, `LH-FA-02.b`, `LH-FA-20.a`, `LH-FA-24.a`, `SPEC-001`, `SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Reihenfolge der Zeilen ohne Bedeutung, Fremdschlüssel beim Lesen nicht erzwungen, Zahl im JSON-Text ganz und kanonisch (sonst `PGR-E3003`), Write-Ahead-Log-Modus einer fremden Datei und Ersetzen der Datei zwischen Erkennung und Lesen ohne Zusage (`LH-FA-22.a`, `SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: maskiertes einzelnes Surrogat im JSON-Text `PGR-E3003` (`SPEC-043`), Meldung zu einem Fehler des Inhalts ohne Wert und ohne Zeilennummer, Schließen nach dem Lesen nicht gemeldet, Abbruch des Laufs `PGR-E3001`, doppelter Schlüssel in `meta` und Verstoß gegen die Zählung und Reihenfolge der Gruppen `PGR-E3003`, Speicher des Lesers ohne Obergrenze (`LH-FA-22.a`, `SPEC-043`) |
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Schlüssel `<<` ist Merge-Key (`PGR-E3003`), sein Schreiben nicht zugesagt (`LH-FA-22.a`) |

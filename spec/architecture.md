@@ -183,7 +183,11 @@ PGWire-Bibliothek durch.
 Replay-Fachlogik. Er führt keinen eigenen Interaktionszustand, meldet dem Use
 Case die Ereignisse der Verbindung (Client-Nachricht, Verbindungsende,
 `Terminate`, Schreibfehler zum Client, Herunterfahren) und führt aus, was der Use
-Case zurückgibt.
+Case zurückgibt. Beendet der Server die Verbindung mit einer Fehlerantwort
+`FATAL` oder `PANIC`, ist das ein fachliches Ende der Session und kein Verbindungsfehler:
+Der Adapter gibt die Antworten bis einschließlich der Fehlerantwort aus und schließt die
+Client-Verbindung; im Replay-Modus schließt er sie, wenn der Use Case das Ende einer
+aufgezeichneten Interaktion zurückgibt.
 
 | Port | Verantwortung |
 |---|---|
@@ -200,7 +204,7 @@ Richtungen.
 |---|---|
 | `RecordingRepository` | Recording anhand eines Pfads laden (das Format erkennt der Adapter); Recording unter einem Pfad neu anlegen (Format, Zielpfad, Ersetzen); eine beendete Session ergänzen (nach dem Ende jeder Session und beim kontrollierten Beenden; `yaml` schreibt dabei das ganze Recording neu, `sqlite` ergänzt in einer Transaktion) |
 | Uhr | aktuelle Zeit lesen und bis zu einem Zeitpunkt warten (Zeitangaben beim Aufzeichnen, zeitgetreues Einspielen); der Core liest die Zeit nur über sie; der Composition Root stellt die Systemuhr bereit, Tests eine Fake-Uhr |
-| PostgreSQL-Upstream | Upstream-Session für einen Startup eröffnen; einfach: Anfrage senden und die Server-Nachrichten bis `ReadyForQuery` liefern; Extended: die Client-Nachrichten einer Gruppe senden und unabhängig davon die nächsten Server-Nachrichten liefern. Senden und Empfangen laufen gleichzeitig, jedes blockiert nur an seiner Richtung; Session schließen beendet wartendes Senden und Empfangen mit einem Fehler |
+| PostgreSQL-Upstream | Upstream-Session für einen Startup eröffnen; einfach: Anfrage senden und die Server-Nachrichten bis `ReadyForQuery` oder bis zu einer Fehlerantwort `FATAL` oder `PANIC` liefern; Extended: die Client-Nachrichten einer Gruppe senden und unabhängig davon die nächsten Server-Nachrichten liefern. Senden und Empfangen laufen gleichzeitig, jedes blockiert nur an seiner Richtung; Session schließen beendet wartendes Senden und Empfangen mit einem Fehler |
 
 Die Query-Operation kann streaming-orientiert gestaltet werden (Antworten einzeln
 abrufen, Stream schließen), um große Resultsets nicht vollständig zu puffern.
@@ -209,7 +213,8 @@ puffert über die laufende Gruppe hinaus; ein Ziel, das nicht liest, hält nur
 seine Richtung an. Der Record-Service
 reicht dann jede Antwort über den Driving Adapter an den Client weiter, ohne
 eine zusätzliche Kopie des Resultsets neben der Aufzeichnung zu halten; eine
-Interaktion wird mit dem abschließenden `ReadyForQuery` Teil der Session, und
+Interaktion wird mit dem abschließenden `ReadyForQuery` Teil der Session, bei einem Ende des
+Servers mit der Fehlerantwort `FATAL` oder `PANIC`, und
 eine Session wird bis zum Schreiben des Recordings im Speicher gehalten.
 
 ### 2.4 Domain Model
@@ -229,7 +234,8 @@ Antworten sind eigene Typen mit ausschließlich protokollrelevanten Daten:
 `RowDescription`, `DataRow`, `CommandComplete`, `EmptyQueryResponse`,
 `ErrorResponse`, `NoticeResponse`, `ParameterStatus`, `ReadyForQuery` sowie die
 Antworten des Extended Query Protocol (`ParseComplete`, `BindComplete`,
-`CloseComplete`, `ParameterDescription`, `NoData`, `PortalSuspended`).
+`CloseComplete`, `ParameterDescription`, `NoData`, `PortalSuspended`) und das Ende der
+Verbindung durch den Server nach einer Fehlerantwort `FATAL` oder `PANIC`.
 
 Eine Interaktion ist entweder eine einfache Anfrage mit ihren Antworten oder
 eine geordnete Folge von Gruppen aus Client- und Server-Nachrichten (Extended
@@ -250,7 +256,9 @@ enthält keinen SQL-Parser.
   Extended-Interaktion mindestens eine Gruppe,
 - jede Gruppe endet mit `Flush` oder `Sync`,
 - eine abgeschlossene Interaktion besitzt einen gültigen Abschlusszustand
-  (`ReadyForQuery`; bei Extended das `ReadyForQuery` nach dem `Sync`).
+  (`ReadyForQuery`; bei Extended das `ReadyForQuery` nach dem `Sync`; oder das Ende der
+  Verbindung durch den Server nach einer Fehlerantwort `FATAL` oder `PANIC`, dann als letzte
+  Interaktion ihrer Session).
 
 Rein serialisierungstechnische Prüfungen liegen im Recording Adapter: Syntax der
 Persistenzdarstellung, Dekodierbarkeit binärer Felder, Formatkennung vorhanden,
@@ -303,7 +311,8 @@ Ablauf:
 4. Antworten kommen als Domain-Responses zurück beziehungsweise werden
    gestreamt; der Service erzeugt daraus eine `Interaction`.
 5. Die Responses werden über den Driving Adapter an den Client ausgegeben.
-6. Bei `ReadyForQuery` gilt die Interaktion als abgeschlossen.
+6. Bei `ReadyForQuery` gilt die Interaktion als abgeschlossen, ebenso mit einer
+   Fehlerantwort `FATAL` oder `PANIC` des Servers, die die Session beendet.
 7. Das Recording wird über `RecordingRepository` persistiert.
 
 ### Use-Case: LH-FA-03 — Replay-Modus
@@ -452,9 +461,11 @@ stateDiagram-v2
     STARTUP --> READY
     READY --> RECORDING_QUERY: Query
     RECORDING_QUERY --> READY: ReadyForQuery
+    RECORDING_QUERY --> CLOSED: Fehlerantwort FATAL oder PANIC
     READY --> RECORDING_GROUP: Extended-Nachricht
     RECORDING_GROUP --> RECORDING_GROUP: weitere Gruppe
     RECORDING_GROUP --> READY: ReadyForQuery nach Sync
+    RECORDING_GROUP --> CLOSED: Fehlerantwort FATAL oder PANIC
     READY --> CLOSED: Terminate
     READY --> FAILED: unsupported
 ```
@@ -469,12 +480,14 @@ stateDiagram-v2
     MATCH --> RESPOND: match
     MATCH --> FAILED: mismatch
     RESPOND --> READY
+    RESPOND --> CLOSED: Interaktion mit Ende des Servers
     READY --> MATCH_GROUP: Extended-Nachricht
     MATCH_GROUP --> MATCH_GROUP: match, Gruppe nicht vollständig
     MATCH_GROUP --> RESPOND_GROUP: match, letzte Nachricht der Gruppe
     MATCH_GROUP --> FAILED: mismatch
     RESPOND_GROUP --> MATCH_GROUP: Gruppe beantwortet, Interaktion läuft
     RESPOND_GROUP --> READY: ReadyForQuery nach Sync
+    RESPOND_GROUP --> CLOSED: Gruppe mit Ende des Servers
     READY --> FAILED: unsupported
     READY --> CLOSED: Terminate
 ```
@@ -555,7 +568,7 @@ konzeptionell, keine verbindliche API.
 | Fachliche Fehler (`Mismatch`, `UnsupportedInteraction`, `RecordingExhausted`, `InvalidRecording`) | im Core definiert beziehungsweise klassifiziert (`ARC-002`) | Fehlerkategorie, Session-ID, Interaction Sequence |
 | Infrastrukturfehler (`ConnectionRefused`, `FileNotFound`, `PermissionDenied`, `MalformedYAML`) | entstehen in den Driven Adaptern (`ARC-007`, `ARC-008`) und werden in für den Port geeignete Fehler übersetzt | Fehlerkategorie, Remote-Adresse im Adapterkontext |
 | Abbildung auf Exit Codes | äußerster Rand: CLI (`ARC-005`) | Fehlertext nach `stderr` |
-| Verbindungsfehler (Mismatch, nicht unterstützte Interaktion, Upstream-Fehler, unerwartetes Verbindungsende) | beenden die Application Session; der Driving Adapter beendet die Verbindung, der Prozess läuft weiter und der Rand merkt sich die Klasse des ersten Fehlers | Fehlerkategorie, Session-ID, Interaction Sequence |
+| Verbindungsfehler (Mismatch, nicht unterstützte Interaktion, Upstream-Fehler, unerwartetes Verbindungsende; nicht das Ende der Verbindung durch den Server nach einer Fehlerantwort `FATAL` oder `PANIC`, das die Session regulär beendet) | beenden die Application Session; der Driving Adapter beendet die Verbindung, der Prozess läuft weiter und der Rand merkt sich die Klasse des ersten Fehlers | Fehlerkategorie, Session-ID, Interaction Sequence |
 | OS-Signale | CLI / Bootstrap (`ARC-005`, `ARC-009`) lösen den Abbruch über den Kontext-Mechanismus aus | Modus |
 
 **Graceful Shutdown.** Signalbehandlung gehört zum äußersten Anwendungsrand:
