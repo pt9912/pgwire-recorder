@@ -67,8 +67,8 @@ Variablen unbeachtet, vier Tests erklären das (§3).
 gelesen): Vier Tests im Paket `internal/adapters/driving/cli` sagen „unbeachtet“ und folgen dem
 neuen Vertrag — `TestParseFailOnUnconsumedRecord` (`cli_test.go`), `TestLeserFremdeUmgebung`
 (`leser_test.go`), `TestParsePlayFailOnUnconsumed` und `TestParsePlayFremdeUmgebung`
-(`play_test.go`); ihre Zeilen in `docs/user/abdeckung-unit.md` sind 22 und 224 (der zweite Test, mit
-`LH-FA-03` und `LH-FA-17`), 172, 176 und 219. Von dem, was sie setzen, bleibt manches unbeachtet und
+(`play_test.go`); ihre Zeilen in `docs/user/abdeckung-unit.md` findet `grep -n` nach den vier Testnamen (Zeilennummern
+einer erzeugten Tabelle veralten mit jedem `make abdeckung`). Von dem, was sie setzen, bleibt manches unbeachtet und
 manches wird `PGR-E2001`: In `TestLeserFremdeUmgebung` bleiben `PGWIRE_RECORDER_BOGUS` und
 `PGWIRE_RECORDER_` unbeachtet, `PGWIRE_RECORDER_FORMAT`, `_RECORD_TIMING` (bei `replay` und `play`)
 und `_KEEP_TIMING`, `_TIMING_MODE`, `_TIMING_REFERENCE` (bei `record` und `replay`) werden Fehler,
@@ -76,7 +76,7 @@ und `PGWIRE_RECORDER_SESSION_ASSIGNMENT` ist bei `record` und `play` ein Fehler,
 (die Tabelle nennt es dort; der Stand liest die Option noch nicht, §6). In `TestParsePlayFremdeUmgebung`
 bleibt `PGWIRE_RECORDER_COMPARE_RESPONSES` bei `play` unbeachtet (die Tabelle nennt `play`; der Stand
 liest sie noch nicht), `_LISTEN` und `_SHUTDOWN_TIMEOUT` werden Fehler. **Nicht betroffen**, gelesen:
-`TestPlayPasswort` (Zeilen 180, 299 und 330, die Ausnahme `PGWIRE_RECORDER_PASSWORD` bei `play`);
+`TestPlayPasswort` (die Ausnahme `PGWIRE_RECORDER_PASSWORD` bei `play`);
 `TestRunHilfe` und `TestRunVersion` in `internal/bootstrap/bootstrap_test.go` (Hilfe und `version`
 lesen nichts, die Variable gehört dort zum eigenen Kommando); die Integrationstests setzen
 Variablen nur für das Kommando, das sie liest (`FORMAT`, `RECORD_TIMING`, `FORCE` bei `record`;
@@ -118,34 +118,34 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Liefer-Punkt 1:** Der CLI-Adapter prüft die Umgebungsvariablen der Optionen, die das
+- [x] **Liefer-Punkt 1:** Der CLI-Adapter prüft die Umgebungsvariablen der Optionen, die das
       Kommando nicht kennt, nach den Zusagen aus §1 und der Entscheidung der Randformen in
       `LH-FA-17.a` (§6): gesetzt, nicht leer → `PGR-E2001` mit dem Namen der Variable und ohne Wert;
       leer gilt als nicht gesetzt; `config show`, Hilfe und `version` nach §1; Ausnahmen nach §1. Die
       vier Tests aus §1 folgen dem Vertrag, jede Zusage hat einen Test, der unter ihrer Mutation rot
       wird (§6 *Mutationen*); die Abdeckungstabellen (`make abdeckung`) folgen den Deklarationen
-      der Tests, Zeilen 22, 172, 176, 219 und 224 von `docs/user/abdeckung-unit.md` sagen nicht mehr
+      der Tests, die Zeilen der vier Tests aus §1 in `docs/user/abdeckung-unit.md` sagen nicht mehr
       „unbeachtet“ für Variablen, die jetzt Fehler sind.
-- [ ] **Liefer-Punkt 2:** `docs/user/benutzerhandbuch.md` beschreibt die Regel im Ist-Zustand
+- [x] **Liefer-Punkt 2:** `docs/user/benutzerhandbuch.md` beschreibt die Regel im Ist-Zustand
       (`AGENTS.md` §3.11): im Abschnitt *Einstellungen* (gesetzte, nicht leere Umgebungsvariable der
       Option eines anderen Kommandos, Name statt Wert in der Meldung, die zwei Ausnahmen, `config show`)
       und in der Zeile `PGR-E2001` der Meldungstabelle; ohne Chronik, ohne Verweis auf Spezifikation,
       Lastenheft, ADRs, Slices, Wellen oder Reviews. Jede Aussage dort hat einen Test aus Punkt 1;
       ein Beispiel als Datei gegen das gebaute Binary ist nicht nötig, solange das Handbuch keines
       nennt.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Die Mutationen und ihre roten Tests stehen als Tabelle in §7 (Zusage · Mutation · roter Test),
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Die Mutationen und ihre roten Tests stehen als Tabelle in §7 (Zusage · Mutation · roter Test),
       vom Implementer selbst gefahren (`AGENTS.md` §3.10), dazu das Ergebnis der Suche nach Tests,
       die Variablen setzen (§1).
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben, falls eine Beobachtung anfiel; kein
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben, falls eine Beobachtung anfiel; kein
       Zähler wird gesetzt. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7
       notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -157,7 +157,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/adapters/driving/cli/cli.go` | update | Zuordnung *Option → Kommandos* für alle Optionen der Optionstabelle, auch die der Stand noch nicht liest; die Prüfung der Variablen anderer Kommandos in `lies` an der Stelle, die `LH-FA-17.a` (§6) festlegt; Namen und Zuschnitt wählt der Implementer |
 | `internal/adapters/driving/cli/cli_test.go`, `leser_test.go`, `play_test.go` | update | `TestParseFailOnUnconsumedRecord`, `TestLeserFremdeUmgebung`, `TestParsePlayFailOnUnconsumed`, `TestParsePlayFremdeUmgebung` auf den neuen Vertrag; neue Tests je Zusage aus §6 (Happy/Boundary/Negative nach `LH-FA-17.a`) |
-| `docs/user/abdeckung-unit.md`, `abdeckung-gesamt.md`, `abdeckung-vollstaendig.md` | erzeugt (`make abdeckung`) | folgen den Deklarationen; in `-unit.md` ändern sich die Zeilen 22, 172, 176, 219, 224, die Zeilen von `TestPlayPasswort` (180, 299, 330) bleiben; `TestLeserUmgebungConfigShowUndHilfe` deklariert zusätzlich `LH-FA-01/Boundary` (die Hilfe liest nichts, `LH-FA-01.a`), womit `LH-FA-01` in `-gesamt.md` von „teilweise“ auf „vollständig“ geht und `-vollstaendig.md` die Zeile `LH-FA-01` bekommt |
+| `docs/user/abdeckung-unit.md`, `abdeckung-gesamt.md`, `abdeckung-vollstaendig.md` | erzeugt (`make abdeckung`) | folgen den Deklarationen; in `-unit.md` ändern sich die Zeilen der vier Tests aus §1, die Zeilen von `TestPlayPasswort` bleiben; `TestLeserUmgebungConfigShowUndHilfe` deklariert zusätzlich `LH-FA-01/Boundary` (die Hilfe liest nichts, `LH-FA-01.a`), womit `LH-FA-01` in `-gesamt.md` von „teilweise“ auf „vollständig“ geht und `-vollstaendig.md` die Zeile `LH-FA-01` bekommt |
 | `docs/user/benutzerhandbuch.md` | update | Abschnitt *Einstellungen* und Zeile `PGR-E2001` der Meldungstabelle, im Ist-Zustand |
 
 - Kein Bootstrap: `internal/bootstrap` reicht den Befehl durch und bekommt keine Logik (`AGENTS.md`
@@ -290,8 +290,6 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
-
 ### Belege des Implementers
 
 **Läufe** (2026-10-12): `make test` und `make lint` grün; `make gates` grün am Stand `f1203f8` (Code, Tests,
@@ -391,6 +389,67 @@ die Tabelle der Optionen (ohne die sechs noch nicht gelesenen) bleibt unverände
 Optionen nicht führt und deren Variablen bei `play`/`record` je nach Kommando Fehler sind; die Slices, die diese
 Optionen liefern, schreiben ihren Teil. Der Slice schätzte den Diff auf 200 bis 400 Zeilen; gemessen (`git diff --shortstat`)
 sind es 372 hinzugefügte und 43 entfernte Zeilen in `internal/` und im Handbuch, ohne die erzeugten Tabellen.
+
+### Review und Verifikation
+
+Review (`docs/reviews/2026-10-12-review-slice-v1-abschluss-umgebung-anderes-kommando.md`): HIGH 0, MEDIUM 0,
+LOW 2. F-1 (Handbuchsatz zu Variablen mit Präfix weiter als die Probe) und F-2 (Plan §3 kannte zwei erzeugte
+Abdeckungsdateien nicht): behoben in `e1a33d1` und `1d160ce`, siehe *Nacharbeit nach dem Review*. F-3
+(zeitbezogenes „noch nicht“ im Kommentar) und F-4 (bewusste Abweichung vom Wortlaut der Spezifikation bei den sechs
+ungelesenen Optionen) INFO, **ohne Folge**: Die Slices, die den Leser liefern, ändern beide Stellen mit.
+
+Verifikation (`…-verifikation-…`, Stand `349a0b5`): Liefer-Punkte 1 und 2 bestätigt (31 Proben am gebauten Binary,
+sechs Mutationen selbst gefahren, alle rot). V-1 LOW (Plan nannte Zeilennummern von `abdeckung-unit.md`, die nach dem
+Diff nicht mehr stimmen): behoben, §1, §2 und §3 nennen die vier Testnamen statt Zeilen. V-2 INFO (die Zahl „68 Tests“
+der Mutationszeile ist nicht nachgezählt, die Zusage trägt): **ohne Folge**. V-3 INFO (`record` ignoriert
+`PGWIRE_RECORDER_TLS_CERT`, das Handbuch beschreibt es nicht, weil die Option dort fehlt): **ohne Folge** in diesem
+Slice; die Frage, ob die Slices, die den Leser liefern, einen Eintrag brauchen, liegt beim Planner-Auftraggeber (siehe
+Paarungen).
+
+**Gate-Lauf:** `make gates` am Stand `1d160ce`: Exit 0, 11:48:24 bis 11:53:07 (4 min 43 s), gefahren vom Auftraggeber;
+zuvor grün an `e1a33d1` und `4da61d6` (Implementer). Danach kamen nur Report-Commits (`c31c201`, `ef5665c`, `349a0b5`,
+nur `docs/reviews/`) und die Closure-Commits; die Messung am Stand nach der Closure steht aus.
+
+### Closure-Notiz
+
+**Ausgänge der Risiken aus §6:**
+
+- Tests, die Variablen eines Kommandos setzen und im selben Test ein anderes lesen — **entfallen:** Der Implementer
+  suchte sie (29 Dateien, §7 *Suche*), kein weiterer Test wurde rot; `make gates` läuft in der Stufe `test` ohne
+  Variablen des Aufrufers.
+- Die Zuordnung *Option → Kommandos* driftet von der Optionstabelle — **entfallen** als akzeptiertes Negativ
+  (Architect 2026-10-12, §6 *Quelle der Zuordnung*): Ein Test kann `spec/` nicht lesen (Build-Kontext), die Spalte
+  ändert nur ein Slice, der die Option liefert; das Review las gegen die Spezifikation und fand keine Drift. Kein
+  Beobachtungs-Eintrag.
+- Verhalten für Nutzer mit exportierten Variablen anderer Kommandos ändert sich — **entfallen:** Entscheidung des
+  Nutzers vom 2026-10-12 (Fehler); das Handbuch nennt es (Liefer-Punkt 2, vom Verifier bestätigt).
+- Eine Option kommt in einem späteren Slice zu einem Kommando ohne Zuordnung — **entfallen:** Die Zuordnung führt jede
+  Option der Tabelle, und `TestLeserZuordnungGleichTabelle` wird rot, wenn ein Leser eine Option ohne Zuordnung
+  anmeldet (Mutation „`optionen("play")` um `extra-option` erweitert“, rot).
+
+**Lerneintrag (Form: benannte Spec-Lücke).** Keine Regel verlangt, dass ein Plan auf eine *erzeugte* Datei mit
+Namen statt mit Zeilennummern zeigt: Der Plan nannte fünf Zeilen von `abdeckung-unit.md` (V-1) und kannte zwei der
+drei erzeugten Abdeckungsdateien nicht (F-2); beides folgt aus demselben Muster, dass der Plan eine Tabelle
+beschreibt, die `make abdeckung` neu schreibt. Die Closure setzt das Gegenmittel an dieser Stelle um (Testnamen
+statt Zeilen), verkörpert aber nichts: Die Klasse trat in diesem Slice zum ersten Mal in dieser Form auf, ein
+Herkunfts-Anker entfällt. Sie ist als Evidence zu `BEO-REPO/plan-folgt-korrektur-nicht` eingetragen
+(`AGENTS.md` §3.9 bleibt unverändert). Zweite Beobachtung: Der Handbuchsatz zu Variablen mit Präfix war weiter als
+seine Probe (F-1); `AGENTS.md` §3.11 sagt es schon (Absatz zu „gleich welche(r) X“), die Regel hielt, der Implementer
+wendete sie erst nach dem Review an. Evidence zu `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, Regel bleibt.
+
+**Register** (Zähler = Zahl der Dateien unter `evidence/`, nachgezählt): `BEO-REPO/plan-folgt-korrektur-nicht`
+34× → 35× (verkörpert, `AGENTS.md` §3.9, Regel bleibt), `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` 43× → 44×
+(verkörpert, `AGENTS.md` §3.11, Regel bleibt); Beleg je `evidence/slice-v1-abschluss-umgebung-anderes-kommando.md`.
+`BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (8×): **kein Auftreten eingetragen** — der Slice weist keinem anderen
+Slice etwas zu (§8), die Frage zu V-3 ist offen (unten). Die übrigen in §8 gesichteten Einträge blieben unberührt.
+
+**Paarungen:** Anker: entfällt, nichts verkörpert. Folge-Slice: keiner genannt, keiner nötig. Register: zwei
+Evidence-Dateien, siehe oben. **Offene Frage (nicht entschieden):** ob die Zuordnung und der Gleichheitstest für
+`slice-v1-abschluss-tls-client`, `-sessions` und `-antwortvergleich` genügen oder ob eine Bindung als Sendung (§3.13)
+in deren §1 gehört. Befund: Keiner der drei Pläne nennt diesen Slice (`grep` leer). Liefert einer den Leser einer der
+sechs Optionen, muss er `nichtGelesen()` in `fremd_test.go` um sie kürzen, sonst wird
+`TestLeserUmgebungNichtGelesenerOptionen` rot (die Variable beim eigenen Kommando wird dann geprüft); der Gleichheitstest
+bleibt grün. Das ist ein roter Test, den der Nehmer findet, aber keine genannte Aufgabe.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
