@@ -1766,7 +1766,12 @@ der Datei.
   `record` und `replay` kennen die drei Optionen nicht (`PGR-E2001`), `play` kennt
   `--record-timing` nicht.
 * *Prüfung der Werte.* `PGR-E2003` prüft der Start nach dem Laden und vor der Prüfung
-  der Art der Interaktion (`PGR-E6001`), vor jeder Verbindung: Sie sieht jede Session
+  der Art der Interaktion (`PGR-E6001`), vor jeder Verbindung. Zum Laden gehört die
+  Prüfung jeder Interaktion auf Gültigkeit (`LH-FA-20.a` Schritt 1): Ein Fehler dort ist
+  `PGR-E3003` (Exit-Code `3`) und geht `PGR-E2003` vor, auch wenn einer anderen
+  Interaktion `offset_ms` fehlt. Die Prüfung der Art hat heute keinen Fall, denn jede
+  gültige Interaktion spielt `play` ein; die Ordnung gilt für jede Art, die hinzukäme.
+  Die Prüfung sieht jede Session
   mit Interaktionen; eine Session ohne Interaktion verlangt nichts. Die Meldung nennt die
   Session und die Interaktion der ersten ohne `offset_ms` in der Reihenfolge der Sessions
   und Interaktionen, keinen Wert. Ohne `--keep-timing` entfällt die Prüfung.
