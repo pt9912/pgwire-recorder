@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** `record --record-timing` trägt an jeder Interaktion `offset_ms` ein — ganze Millisekunden zwischen der Annahme der Verbindung und dem Eintreffen der ersten Client-Nachricht der Interaktion, mit der monotonen Uhr des Ports —, in YAML und in SQLite; ohne die Option fehlt das Feld und die Ausgabe ist unabhängig vom Zeitverhalten. Die Aufzeichnung lässt sich in beiden Formaten laden (Roundtrip).
+**Ziel:** `record --record-timing` trägt an jeder Interaktion `offset_ms` ein — ganze Millisekunden zwischen dem Beginn der Session (`LH-FA-21.a` *Messpunkt*: der Aufruf von `OpenSession`, nach TLS und Startup des Clients) und dem Eintreffen der ersten Client-Nachricht der Interaktion, mit der monotonen Uhr des Ports —, in YAML und in SQLite; ohne die Option fehlt das Feld und die Ausgabe ist unabhängig vom Zeitverhalten. Die Aufzeichnung lässt sich in beiden Formaten laden (Roundtrip).
 
 **Übernommen aus `slice-v1-abschluss-zeitangaben`** (dort bis zum Schnitt DoD-Punkt 1 und §3, Zeilen *PGWire-Adapter*, *Recording-Adapter* und *CLI-Adapter*, Option `--record-timing`): das Aufzeichnen der Zeitangaben.
 

@@ -1648,7 +1648,7 @@ offenlässt.
 
 **Aufzeichnen.** Mit `--record-timing` (Default `false`) trägt der Recorder an
 jeder Interaktion das Feld `offset_ms` ein: eine ganze Zahl größer oder gleich
-null, die Millisekunden zwischen der Annahme der Verbindung und dem Eintreffen der
+null, die Millisekunden zwischen dem Beginn der Session (*Messpunkt*) und dem Eintreffen der
 ersten Client-Nachricht der Interaktion, gemessen mit einer monotonen Uhr. Das
 Feld steht auf der Ebene der Interaktion (`SPEC-002`, `SPEC-041`, `SPEC-043`) und
 fehlt ohne die Option. Eine Aufzeichnung mit Zeitangaben ist nicht reproduzierbar
@@ -3050,3 +3050,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Aufzeichnungsformat `sqlite`, Lesen: Art des Fehlers bei Fehlern der Prüfung von `yaml` nur „Aufzeichnung beschädigt“ mit Nummern, keine feinere Art (`LH-FA-22.a`) |
 | 2026-10-11 | Zeitangaben: Randformen aller Teile vor dem Code (Uhr als Port in ganzen Millisekunden mit Abbruch und Fake-Uhr, Architekturregel am Import mit Gegenprobe; Messpunkt im Use Case, Beginn der Session und Ankunft der Nachricht, keine Rundung; Prüfung der Werte beim Laden in beiden Formaten und in `replay` und `play` auch ohne `--keep-timing`, gleicher Wert gültig, Form des Werts in `yaml`, Meldung ohne Wert; „gesetzt“ bei den Kombinationen, `PGR-E2003` vor `PGR-E6001`, Bezug von `relative`, Abbruch einer Wartezeit, kein Grenzwert) (`LH-FA-21.a`) |
 | 2026-10-12 | Zeitangaben, Aufzeichnen: „Werte steigen nicht ab“ gilt unter der Bedingung, dass die Aufrufe der Client-Richtung einer Session nacheinander kommen; der Use Case ordnet gleichzeitige Aufrufe nicht um (`LH-FA-21.a`) |
+| 2026-10-12 | Zeitangaben, Aufzeichnen: Beginn der Messung in *Aufzeichnen* nennt den *Messpunkt* statt „Annahme der Verbindung“; das Lastenheft nennt als Bezugspunkt den Verbindungsaufbau und legt ihn nicht auf TLS und Startup fest, kein Widerspruch (`LH-FA-21.a`) |
