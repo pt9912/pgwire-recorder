@@ -34,9 +34,10 @@ prüft das Zertifikat des Servers, auch gegen eine eigene Zertifizierungsstelle
 `record` verlangt, dass die Datenbank den Benutzer ohne Passwort
 anmeldet; `play` meldet sich mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an, mit dem
 Passwort aus dem Platzhalter der Verbindung oder aus `PGWIRE_RECORDER_PASSWORD`.
-Mit `--record-timing` trägt `record` an jeder Anfrage die Millisekunden seit dem Beginn
-der Verbindung ein (`offset_ms`); `play --keep-timing` wartet vor jeder Anfrage auf diese
-Zeit, gemessen ab der vorigen Anfrage (`relative`, Standard) oder ab einem Bezugspunkt
+Mit `--record-timing` trägt `record` an jeder Anfrage die Millisekunden seit der
+Startup-Nachricht der Verbindung ein (`offset_ms`); `play --keep-timing` wartet vor den
+Anfragen auf diese Zeit (beim Standard `relative` ohne Wartezeit vor der ersten Anfrage
+einer Verbindung), gemessen ab der vorigen Anfrage (`relative`, Standard) oder ab einem Bezugspunkt
 (`--timing-mode absolute` mit `--timing-reference`), und `replay` wartet nie. Trägt eine Anfrage kein
 `offset_ms`, endet `play --keep-timing` mit `PGR-E2003`; ein ungültiges oder absteigendes
 `offset_ms` lehnen `replay` und `play` mit `PGR-E3003` ab. Beim Beenden warten `record` und `replay` höchstens `--shutdown-timeout`

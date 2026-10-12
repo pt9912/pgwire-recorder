@@ -22,14 +22,14 @@ Das Werkzeug arbeitet in drei Betriebsarten:
   die echte Datenbank weiter und speichert die Kommunikation in einer Datei, auf
   Wunsch als SQLite-Datei statt als YAML (siehe
   [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen))
-  und mit der Zeit, zu der jede Anfrage eintraf (siehe
+  und mit der Zeit seit der Startup-Nachricht, zu der jede Anfrage eintraf (siehe
   [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)).
 * **Wiedergeben (`replay`):** Ihre Anwendung verbindet sich wieder mit
   `pgwire-recorder`. Das Werkzeug beantwortet die Anfragen aus der Datei. Eine
   Datenbank ist nicht nötig.
 * **Einspielen (`play`):** Das Werkzeug führt die aufgezeichneten Anfragen aus der
   Datei gegen eine Datenbank aus. Ihre Anwendung ist nicht beteiligt. Auf Wunsch wartet
-  es vor jeder Anfrage auf ihre aufgezeichnete Zeit (siehe
+  es auf die aufgezeichneten Abstände zwischen den Anfragen (siehe
   [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)).
 
 ### Zielgruppe
@@ -544,9 +544,10 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
 ### Zeitangaben aufzeichnen und einspielen
 
 Mit `--record-timing` hält `record` an jeder Anfrage fest, wie viele Millisekunden nach
-dem Beginn der Verbindung sie eintraf. Mit `--keep-timing` wartet `play` vor jeder
-Anfrage auf diese Zeit. Ohne `--keep-timing` wartet `play` nie, auch wenn die Aufzeichnung
-Zeitangaben trägt.
+der Startup-Nachricht der Verbindung sie eintraf. Mit `--keep-timing` wartet `play` vor den
+Anfragen auf diese Zeit; beim Standard `relative` sendet es die erste Anfrage jeder
+Verbindung ohne Wartezeit. Ohne `--keep-timing` wartet `play` nie, auch wenn die
+Aufzeichnung Zeitangaben trägt.
 
 #### Voraussetzung
 
@@ -609,13 +610,16 @@ In SQLite steht es in der Spalte `offset_ms` der Tabelle `interaction`:
 sqlite3 ./recordings/users.sqlite "select session_id, sequence, offset_ms from interaction"
 ```
 
-Beim Einspielen mit `--keep-timing` wartet `play` vor jeder Anfrage auf ihre aufgezeichnete
-Zeit.
+Beim Einspielen mit `--keep-timing` wartet `play` vor den Anfragen auf ihre aufgezeichnete
+Zeit; beim Standard `relative` sendet es die erste Anfrage jeder Verbindung ohne Wartezeit.
+Liegen die erste und die letzte Anfrage einer Aufzeichnung mit einer Verbindung eine Sekunde
+auseinander, liegt zwischen den Log-Zeilen `play gestartet` und `play beendet` mit dem
+Standard `relative` mindestens eine Sekunde; ohne `--keep-timing` liegt weniger dazwischen.
 
 #### Hinweise zum Aufzeichnen
 
-* `offset_ms` ist eine ganze Zahl ab 0: die Millisekunden vom Beginn der Verbindung bis zum
-  Eintreffen der Anfrage.
+* `offset_ms` ist eine ganze Zahl ab 0: die Millisekunden seit der Startup-Nachricht der
+  Verbindung bis zum Eintreffen der Anfrage.
 * Die Zeit, die Ihre Anwendung bis zum Senden der Startup-Nachricht braucht, zählt nicht
   mit, auch nicht nach einer Anfrage nach Verschlüsselung. Die Zeit zwischen der Anmeldung
   und der ersten Anfrage zählt mit.
@@ -661,14 +665,21 @@ Zeit.
   Konfigurationsdatei `PGR-E2004`, auch `Absolute`, `first_request` und ein leerer Wert;
   die Meldung nennt den Wert der Umgebungsvariablen und der Datei nicht. Eine leere
   Umgebungsvariable gilt als nicht gesetzt.
-* Ungültig sind außerdem (`PGR-E2001`, Exit-Code 2): `--timing-mode` oder
-  `--timing-reference` ohne `--keep-timing` und `--timing-reference` zusammen mit
-  `relative`. Als gesetzt gilt, was Option, Umgebungsvariable oder Datei nennt, auch den Wert
-  des Standards: `--timing-reference connect` mit `relative`, auch mit dem Standard
-  `relative`, ist ungültig, ebenso `--keep-timing=false` mit `--timing-mode absolute`. Die
-  Reihenfolge der Optionen ändert nichts. `record` kennt `--keep-timing`, `--timing-mode`
-  und `--timing-reference` nicht, `play` kennt `--record-timing` nicht, und `replay` kennt
-  keine der vier Optionen (`PGR-E2001`).
+#### Ungültige Kombinationen
+
+Jeder dieser Aufrufe endet mit `PGR-E2001` (Exit-Code 2):
+
+* `--timing-mode` oder `--timing-reference` ohne `--keep-timing`.
+* `--timing-reference` zusammen mit `relative`.
+* Als gesetzt gilt, was Option, Umgebungsvariable oder Datei nennt, auch den Wert des
+  Standards: `--timing-reference connect` ist mit `relative`, auch mit dem Standard
+  `relative`, ungültig, und `--keep-timing=false` ist mit `--timing-mode absolute` ungültig.
+* Die Reihenfolge der Optionen ändert nichts.
+* `record` kennt `--keep-timing`, `--timing-mode` und `--timing-reference` nicht, `play`
+  kennt `--record-timing` nicht, und `replay` kennt keine der vier Optionen.
+
+#### Fehlende Zeitangaben und Abbruch
+
 * Trägt eine Anfrage der Aufzeichnung kein `offset_ms`, endet `play --keep-timing` beim Start
   mit `PGR-E2003` (Exit-Code 2), bevor es eine Verbindung öffnet. Die Meldung nennt die
   Sitzung und die Nummer der ersten Anfrage ohne Zeitangabe, in der Reihenfolge der Sitzungen
@@ -677,7 +688,7 @@ Zeit.
 * Das erste Abbruchsignal (`Strg+C` oder `SIGTERM`) beendet jede Wartezeit sofort. Ohne
   `--finish-session-on-interrupt` sendet `play` die folgenden Anfragen nicht und endet; mit
   der Option spielt es die übrigen Anfragen der Sitzung ohne Wartezeit ein und endet dann.
-  Der Exit-Code ist 0.
+  Der Exit-Code ist 0, nach einem früheren Fehler 4.
 
 #### Prüfung beim Laden
 
@@ -1182,7 +1193,7 @@ Werkzeugs.
 | Erweitertes Anfrageprotokoll | Protokollvariante mit vorbereiteten Anweisungen und Parametern |
 | Upstream | die echte Datenbank, an die `record` weiterleitet |
 | Meldungscode | Kennung einer Meldung des Werkzeugs, zum Beispiel `PGR-E5001` |
-| Zeitangabe | das Feld `offset_ms` einer Anfrage in der Aufzeichnung: die Millisekunden vom Beginn der Verbindung bis zum Eintreffen der Anfrage, aufgezeichnet mit `--record-timing` |
+| Zeitangabe | das Feld `offset_ms` einer Anfrage in der Aufzeichnung: die Millisekunden seit der Startup-Nachricht der Verbindung bis zum Eintreffen der Anfrage, aufgezeichnet mit `--record-timing` |
 
 ## 10. Support und Kontakt
 
