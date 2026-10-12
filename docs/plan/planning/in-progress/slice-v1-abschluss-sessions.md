@@ -299,6 +299,21 @@ Grüne Mutanten: keiner. Der Fall, dass der Aufbau nach dem Zwangsende noch geli
 
 **F-685 (INFO), Entscheidung:** Der Satz an `frei` („mit `connection` ändert sich die Liste nicht“) war wahr, aber ohne fangenden Test (der Mutant ist äquivalent: `Unassigned` zählt bei `connection` nach der Kennung). Der Kommentar sagt jetzt, was die Tests der Zuordnung fangen: mit `connection` liest `OpenConnection` die Session aus `alle` (Mutanten P1a bis P1c). Eine Aussage über `frei` entfällt, weil sie nur Kopplung benannt hätte, die kein Test trägt (`AGENTS.md` §3.7, §3.11). F-684 und F-681 sind Entscheidungen des Architects in §6 und §8; im Code ist dafür nichts zu ändern. F-685 (b): ein Lauf mit `-race` ist im Gate nicht vorgesehen und wurde nicht gefahren.
 
+**Nacharbeit zur Verifikation** (Stand Code `2d7e810`; V-305, V-306): `make test` grün, `make lint` `0 issues.`; das Ergebnis von `make gates` nennt der Bericht.
+
+**V-305** (Merkmal: ein Satz sagt „jede eröffnete Session“ und reicht weiter als der Code): Der Kommentar von `LeereSessions` und der des Feldes `leere` (beide `internal/hexagon/services/record.go`) nennen die Zusage jetzt so, wie die Tests sie prüfen, und die beiden Ausnahmen: Mit der Option wird auch eine Session ohne abgeschlossene Interaktion geschrieben, nach jedem Ende außer dem Zwangsende im Aufbau (`TestRecordLeereSessionJedesEnde`, `TestRecordZwangsendeLeereSession`); eine Session mit nicht unterstützter Interaktion wird auch mit der Option nicht geschrieben (`TestRecordLeereSessionNichtUnterstuetztVerworfen`). Durchsicht nach dem Merkmal („jede“ über Sessions): `EndForced` in `internal/hexagon/model/recording.go`, `CloseSession`, `nichtGeschrieben` und `wirdVerworfen` nennen die Ausnahmen schon; der Hilfetext der Option (`--record-empty-sessions`, `internal/adapters/driving/cli/cli.go`) sagt „zeichnet auch eine Verbindung ohne Anfrage als Session ohne Interaktionen auf“, ohne „jede“ und ohne Aussage über Zwangsende oder nicht unterstützte Interaktion; ihn stützt `TestE2ERecordEmptySessions` (Verbindung ohne Anfrage, yaml und sqlite), er bleibt unverändert, Handbuch und README ebenso. Kein Verhalten geändert; die Mutationstabelle oben gilt unverändert (die Zeile „jede eröffnete Session“ ist Wortlaut der Zusage im Plan, ihre Mutanten R1 bis R4b fangen die beiden Ausnahmen).
+
+**V-306, Größenprobe nach der Nacharbeit** (Metrik: `git diff --numstat b12f4b4..HEAD -- <Pfade>`, Summe der Spalten Einfügungen und Löschungen je Datei, Stand Code `2d7e810`; die Abdeckungstabellen liegen unter `docs/user/abdeckung-*.md`):
+
+| Pfade | Dateien | Einfügungen | Löschungen |
+|---|---|---|---|
+| `internal test` (ohne `docs/` und `spec/`, ohne Abdeckungstabellen) | 15 | 2045 | 70 |
+| davon Tests (`*_test.go`) | 9 | 1852 | 12 |
+| davon Produktcode | 6 | 193 | 58 |
+| `internal test` mit den vier Abdeckungstabellen | 19 | 2116 | 75 |
+
+Die Schwelle 2200 in §4 liegt über jeder dieser Zahlen (Summe Einfügungen plus Löschungen: 2115 ohne, 2191 mit den Tabellen); die Rückführung ist nicht eingetreten. **Hinweis an den Planner:** Welche der Metriken die Schwelle meint (Einfügungen allein, Einfügungen plus Löschungen, mit oder ohne Tests und Tabellen), steht in §4 nicht; die Zahlen liegen vollständig vor, die Entscheidung über die Metrik bleibt beim Planner.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
