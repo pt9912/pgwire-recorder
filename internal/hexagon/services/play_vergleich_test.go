@@ -150,6 +150,8 @@ func vfaelle() []vfall {
 		{name: "Wort mit Ziffer wird nicht abgeschnitten", soll: []model.Response{befehl("T1"), rfq}, ist: []model.Response{befehl("T2"), rfq}, position: 1, art: "Befehl"},
 		{name: "Wort mit Ziffer nach einem Befehl wird nicht abgeschnitten", soll: []model.Response{befehl("SELECT 1a"), rfq}, ist: []model.Response{befehl("SELECT 2a"), rfq}, position: 1, art: "Befehl"},
 		{name: "mehrere abschließende Zahlen", soll: []model.Response{befehl("INSERT 0 1"), rfq}, ist: []model.Response{befehl("INSERT 5 7"), rfq}},
+		{name: "abschließendes Leerzeichen im Tag", soll: []model.Response{befehl("SELECT "), rfq}, ist: []model.Response{befehl("SELECT"), rfq}, position: 1, art: "Befehl"},
+		{name: "doppeltes Leerzeichen im Tag", soll: []model.Response{befehl("A  1"), rfq}, ist: []model.Response{befehl("A 1"), rfq}, position: 1, art: "Befehl"},
 		{name: "Zahl vor einem Wort bleibt", soll: []model.Response{befehl("A 1 B"), rfq}, ist: []model.Response{befehl("A 2 B"), rfq}, position: 1, art: "Befehl"},
 		{name: "gleicher SQLSTATE, anderer Text und Felder", soll: []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"S": "ERROR", "C": "42P01", "M": "a", "D": "x"}}, rfq}, ist: []model.Response{fehlerMit("42P01", "b"), rfq}},
 		{name: "anderer Schweregrad, gleicher SQLSTATE", soll: []model.Response{schwer("WARNING", "WARNING", "42P01"), rfq}, ist: []model.Response{schwer("ERROR", "ERROR", "42P01"), rfq}},
