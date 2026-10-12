@@ -874,6 +874,19 @@ Wert auf der Kommandozeile (`--listen=`) ist ein ungültiger Aufruf (`PGR-E2001`
 auch wenn die Umgebungsvariable gesetzt ist; nur eine leere Umgebungsvariable gilt als
 nicht gesetzt.
 
+Die Umgebungsvariable einer Option, die die Betriebsart nicht kennt (Spalte
+*Betriebsart* der Tabelle), ist ein ungültiger Aufruf (`PGR-E2001`), sobald sie
+gesetzt und nicht leer ist, gleich welchen Wert sie hat, ob `true`, `5s` oder ein Wert,
+den die Option nicht annimmt; die Meldung nennt den Namen der Variable, nie ihren
+Wert. So ist `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` bei `record` und `play` ein
+Fehler und `PGWIRE_RECORDER_LISTEN` bei `play`. Wer `record` und `play` in derselben
+Umgebung ausführt, setzt dort die Variablen der Optionen der jeweils anderen
+Betriebsart nicht. `config show` prüft von den Variablen nur
+`PGWIRE_RECORDER_CONFIG`. Zwei Ausnahmen: `PGWIRE_RECORDER_PASSWORD` hat keine Option
+und bleibt bei `record` und `replay` unbeachtet, und eine Variable mit dem Präfix, die zu
+keiner Option gehört (`PGWIRE_RECORDER_BOGUS`), bleibt bei jeder Betriebsart unbeachtet,
+ebenso eine andere Schreibweise des Namens einer Option (`pgwire_recorder_listen`).
+
 | Option | Betriebsart | Umgebungsvariable | Standard |
 |---|---|---|---|
 | `--listen` | `record`, `replay` | `PGWIRE_RECORDER_LISTEN` | Pflicht |
@@ -1115,7 +1128,7 @@ für den Exit-Code.
 | Code | Bedeutung | Ursache und Lösung |
 |---|---|---|
 | `PGR-E1000` | sonstiger Fehler | Ein Defekt des Werkzeugs; keine Eingabe löst ihn aus. Melden Sie das Problem mit der Ausgabe des Laufs. |
-| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`), oder `--timing-mode` oder `--timing-reference` steht ohne `--keep-timing`, oder `--timing-reference` steht mit `relative` (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Prüfen Sie den Aufruf mit `--help`. |
+| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder eine gesetzte, nicht leere Umgebungsvariable gehört zu einer Option, die die Betriebsart nicht kennt (die Meldung nennt den Namen der Variable, nicht den Wert; siehe [Einstellungen](#5-einstellungen)), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`), oder `--timing-mode` oder `--timing-reference` steht ohne `--keep-timing`, oder `--timing-reference` steht mit `relative` (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
 | `PGR-E2003` | Aufzeichnung ohne Zeitangabe bei `--keep-timing` | `play --keep-timing` hat eine Aufzeichnung, in der eine Anfrage kein `offset_ms` trägt. Die Meldung nennt die Sitzung und die Nummer der ersten Anfrage ohne Zeitangabe. Zeichnen Sie mit `--record-timing` erneut auf, oder spielen Sie ohne `--keep-timing` ein. |
 | `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`), `format` (erlaubt sind `yaml` und `sqlite`), `record_timing` und `keep_timing` (erlaubt sind `true` und `false`), `timing_mode` (erlaubt sind `relative` und `absolute`) und `timing_reference` (erlaubt sind `connect` und `first-request`). |

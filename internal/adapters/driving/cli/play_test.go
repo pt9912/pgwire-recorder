@@ -42,35 +42,51 @@ func TestParsePlayArgument(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-03/Negative, LH-FA-17/Negative — play kennt
-// --fail-on-unconsumed nicht (PGR-E2001) und lässt
-// PGWIRE_RECORDER_FAIL_ON_UNCONSUMED unbeachtet, auch mit ungültigem Wert
-// (LH-FA-03.b §Andere Kommandos).
+// --fail-on-unconsumed nicht (PGR-E2001), und eine gesetzte, nicht leere
+// PGWIRE_RECORDER_FAIL_ON_UNCONSUMED ist bei play PGR-E2001, gleich welchen
+// Wert sie hat; die Meldung nennt den Namen, nicht den Wert (LH-FA-03.b
+// §Andere Kommandos, LH-FA-17.a).
 func TestParsePlayFailOnUnconsumed(t *testing.T) {
 	leere(t, "play")
-	t.Setenv(cli.EnvFailOnUnconsumed, "1")
 	if _, err := playMit("--upstream=pg:1", "--fail-on-unconsumed"); !istUsage(err) || !strings.Contains(err.Error(), "flag provided but not defined") {
 		t.Fatalf("play mit --fail-on-unconsumed: %v", err)
 	}
 	if _, err := playMit("--upstream=pg:1"); err != nil {
-		t.Fatalf("play wertet PGWIRE_RECORDER_FAIL_ON_UNCONSUMED aus: %v", err)
+		t.Fatalf("play ohne die Variable: %v", err)
 	}
+	for _, wert := range []string{"true", "false", "GEHEIM"} {
+		t.Setenv(cli.EnvFailOnUnconsumed, wert)
+		_, err := playMit("--upstream=pg:1")
+		if !istUsage(err) || !strings.Contains(err.Error(), cli.EnvFailOnUnconsumed) || strings.Contains(err.Error(), wert) {
+			t.Errorf("play mit %s=%s: erwartet %s mit dem Namen und ohne den Wert, erhalten %v", cli.EnvFailOnUnconsumed, wert, model.CodeUsage, err)
+		}
+	}
+	t.Setenv(cli.EnvFailOnUnconsumed, "")
 	if _, err := lese("play", "--upstream=pg:1", "--input=r.yaml", "--config="+schreibe(t, "play:\n  fail_on_unconsumed: true\n")); !istDatei(err) || !strings.Contains(err.Error(), "play.fail_on_unconsumed") {
 		t.Fatalf("Schlüssel fail_on_unconsumed in play: %v", err)
 	}
 }
 
-// Abdeckung: LH-FA-17/Boundary — bei play bleiben die Umgebungsvariablen der
-// Optionen unbeachtet, die dieser Stand von play nicht kennt (Vergleich) oder
-// die zu einem anderen Kommando gehören, auch mit ungültigem Wert
-// (LH-FA-17.a).
+// Abdeckung: LH-FA-17/Boundary — bei play ist die Umgebungsvariable einer
+// Option, die play nicht kennt, PGR-E2001, auch mit gültigem Wert; die einer
+// Option, die play kennt und dieser Stand nicht liest (--compare-responses),
+// bleibt unbeachtet, auch mit ungültigem Wert (LH-FA-17.a).
 func TestParsePlayFremdeUmgebung(t *testing.T) {
 	leere(t, "play")
 	t.Setenv(cli.EnvPassword, "")
-	for _, name := range []string{"COMPARE_RESPONSES", "LISTEN", "SHUTDOWN_TIMEOUT"} {
-		t.Setenv("PGWIRE_RECORDER_"+name, "ungültig")
-	}
+	t.Setenv("PGWIRE_RECORDER_COMPARE_RESPONSES", "ungültig")
 	if got, err := playMit("--upstream=pg:1"); err != nil || !gleich(got, cli.PlayOptions{Upstream: "pg:1", Input: "r.yaml", LogLevel: cli.LogInfo}) {
-		t.Fatalf("fremde Umgebungsvariable ausgewertet: %#v, %v", got, err)
+		t.Fatalf("Variable einer nicht gelesenen eigenen Option ausgewertet: %#v, %v", got, err)
+	}
+	for _, name := range []string{"LISTEN", "SHUTDOWN_TIMEOUT"} {
+		for _, wert := range []string{"127.0.0.1:1", "5s", "GEHEIM"} {
+			t.Setenv("PGWIRE_RECORDER_"+name, wert)
+			_, err := playMit("--upstream=pg:1")
+			if !istUsage(err) || !strings.Contains(err.Error(), "PGWIRE_RECORDER_"+name) || strings.Contains(err.Error(), wert) {
+				t.Errorf("play mit PGWIRE_RECORDER_%s=%s: erwartet %s mit dem Namen und ohne den Wert, erhalten %v", name, wert, model.CodeUsage, err)
+			}
+		}
+		t.Setenv("PGWIRE_RECORDER_"+name, "")
 	}
 }
 

@@ -157,17 +157,26 @@ func TestParseFailOnUnconsumedUmgebungNebenOption(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-17/Negative — record kennt
-// --fail-on-unconsumed nicht (PGR-E2001) und lässt ihre Umgebungsvariable
-// unbeachtet, auch mit ungültigem Wert.
+// Abdeckung: LH-FA-17/Negative — record kennt --fail-on-unconsumed nicht
+// (PGR-E2001), und eine gesetzte, nicht leere PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
+// ist bei record PGR-E2001, gleich welchen Wert sie hat; die Meldung nennt den
+// Namen der Variable, nicht den Wert, und eine leere Variable gilt als nicht
+// gesetzt (LH-FA-17.a).
 func TestParseFailOnUnconsumedRecord(t *testing.T) {
-	t.Setenv(cli.EnvFailOnUnconsumed, "1")
 	record := []string{"record", "--listen", ":1", "--upstream", "pg:5432", "--output", "r.yaml"}
+	t.Setenv(cli.EnvFailOnUnconsumed, "")
 	if _, err := cli.Parse(append(record, "--fail-on-unconsumed"), &bytes.Buffer{}); !istUsage(err) {
 		t.Fatalf("record mit --fail-on-unconsumed: %v", err)
 	}
 	if _, err := cli.Parse(record, &bytes.Buffer{}); err != nil {
-		t.Fatalf("record wertet die Umgebungsvariable aus: %v", err)
+		t.Fatalf("record mit leerer Variable: %v", err)
+	}
+	for _, wert := range []string{"true", "false", "GEHEIM"} {
+		t.Setenv(cli.EnvFailOnUnconsumed, wert)
+		_, err := cli.Parse(record, &bytes.Buffer{})
+		if !istUsage(err) || !strings.Contains(err.Error(), cli.EnvFailOnUnconsumed) || strings.Contains(err.Error(), wert) {
+			t.Errorf("record mit %s=%s: erwartet %s mit dem Namen und ohne den Wert, erhalten %v", cli.EnvFailOnUnconsumed, wert, model.CodeUsage, err)
+		}
 	}
 }
 

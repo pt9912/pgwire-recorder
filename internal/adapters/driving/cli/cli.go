@@ -511,9 +511,10 @@ func (q quellen) gesetzt(name string) bool { return q.stand[name].gesetzt() }
 
 // lies liest kommando nach LH-FA-17.a: zuerst die Kommandozeile, an deren
 // FlagSet genau die Optionen aus optionen und --config angemeldet sind, dann
-// die Umgebungsvariablen der Optionen in ihrer Reihenfolge, dann die gewählte
-// Konfigurationsdatei; jeder gesetzte Wert wird geprüft, ein ungültiger der
-// Kommandozeile oder einer Umgebungsvariable ist PGR-E2001, einer der Datei
+// die Umgebungsvariablen in einem Durchlauf über die Zeilen von zuordnung (die
+// Variable einer Option, die das Kommando nicht kennt, ist PGR-E2001), dann die
+// gewählte Konfigurationsdatei; jeder gesetzte Wert wird geprüft, ein ungültiger
+// der Kommandozeile oder einer Umgebungsvariable ist PGR-E2001, einer der Datei
 // PGR-E2004, auch wenn eine Quelle davor dieselbe Option setzt. Danach
 // übernimmt es je Option den Wert nach der Priorität (SPEC-007); eine
 // Pflichtoption, die keine Quelle setzt, ist PGR-E2001. Zuletzt ruft es je
@@ -526,7 +527,7 @@ func lies(kommando string, args []string) (Command, error) {
 	if err := liesKommandozeile(kommando, opts, stand, &config, args); err != nil {
 		return Command{}, err
 	}
-	if err := liesUmgebung(opts, stand); err != nil {
+	if err := liesUmgebung(kommando, opts, stand); err != nil {
 		return Command{}, err
 	}
 	_, d, err := ladeGewaehlte(config.cli)
@@ -548,16 +549,66 @@ func lies(kommando string, args []string) (Command, error) {
 	return cmd, nil
 }
 
-// liesUmgebung liest die Umgebungsvariablen der Optionen in ihrer Reihenfolge
-// und prüft jeden gesetzten Wert; eine leere Variable gilt als nicht gesetzt.
-func liesUmgebung(opts []option, stand []gelesen) error {
+// zeile ist eine Zeile der Optionstabelle in LH-FA-17.a: eine Option und die
+// Kommandos der Spalte *Kommando*.
+type zeile struct {
+	name      string
+	kommandos []string
+}
+
+// zuordnung ist die Spalte *Kommando* der Optionstabelle in LH-FA-17.a für jede
+// Option der Tabelle, auch die, die der Stand noch nicht liest, in der
+// Reihenfolge der Tabelle; --config und PGWIRE_RECORDER_PASSWORD sind keine
+// Zeilen.
+func zuordnung() []zeile {
+	rr, r, rp, p := []string{"record", "replay"}, []string{"record"}, []string{"replay"}, []string{"play"}
+	return []zeile{
+		{"listen", rr}, {"upstream", []string{"record", "play"}}, {"output", r}, {"force", r}, {"format", r},
+		{"record-timing", r}, {"record-empty-sessions", r}, {"input", []string{"replay", "play"}},
+		{"fail-on-unconsumed", rp}, {"shutdown-timeout", rr}, {"session-assignment", rp}, {"user", p},
+		{"database", p}, {"continue-on-error", p}, {"allow-recorded-errors", p}, {"upstream-tls", p},
+		{"finish-session-on-interrupt", p}, {"keep-timing", p}, {"timing-mode", p}, {"timing-reference", p},
+		{"tls-cert", rr}, {"tls-key", rr}, {"allow-plaintext", rr}, {"upstream-ca", p}, {"compare-responses", p},
+		{"log-level", leserKommandos()},
+	}
+}
+
+// kennt meldet, ob kommando in der Spalte *Kommando* der Zeile steht.
+func (z zeile) kennt(kommando string) bool {
+	for _, k := range z.kommandos {
+		if k == kommando {
+			return true
+		}
+	}
+	return false
+}
+
+// liesUmgebung liest die Umgebungsvariablen in einem Durchlauf über die Zeilen
+// der Zuordnung in der Reihenfolge der Tabelle: bei einer Option, die das
+// Kommando liest, prüft es den gesetzten Wert; bei einer Option, die das
+// Kommando kennt und der Stand noch nicht liest, bleibt die Variable
+// unbeachtet; bei einer Option, die das Kommando nicht kennt, ist eine gesetzte,
+// nicht leere Variable PGR-E2001 und nennt ihren Namen, nicht den Wert. Eine
+// leere Variable gilt als nicht gesetzt (LH-FA-17.a).
+func liesUmgebung(kommando string, opts []option, stand []gelesen) error {
+	index := map[string]int{}
 	for i, o := range opts {
-		v := os.Getenv(envName(o.name))
+		index[o.name] = i
+	}
+	for _, z := range zuordnung() {
+		v := os.Getenv(envName(z.name))
 		if v == "" {
 			continue
 		}
-		if err := o.art.pruefe(v); err != nil {
-			return model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envName(o.name))
+		if !z.kennt(kommando) {
+			return model.Errorf(model.CodeUsage, nil, "Umgebungsvariable %s gehört zu einer Option, die %s nicht kennt", envName(z.name), kommando)
+		}
+		i, ok := index[z.name]
+		if !ok {
+			continue
+		}
+		if err := opts[i].art.pruefe(v); err != nil {
+			return model.Errorf(model.CodeUsage, err, "Umgebungsvariable %s", envName(z.name))
 		}
 		stand[i].env, stand[i].envOk = v, true
 	}

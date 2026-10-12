@@ -378,25 +378,18 @@ func TestLeserReihenfolge(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-17/Boundary — eine Umgebungsvariable mit dem Präfix, deren
-// Name keiner Option des Kommandos entspricht, bleibt unbeachtet, auch mit
-// einem Wert, der für eine Option ungültig wäre (LH-FA-17.a).
+// Name keiner Option der Tabelle entspricht, bleibt bei record, replay und play
+// unbeachtet, auch mit einem Wert, der für eine Option ungültig wäre; ebenso
+// eine andere Schreibweise des Namens einer Option, denn der Name gilt genau,
+// und PGWIRE_RECORDER_PASSWORD bei record und replay (LH-FA-17.a).
 func TestLeserFremdeUmgebung(t *testing.T) {
 	for _, kommando := range leserKommandos() {
 		leere(t, kommando)
-		for _, env := range []string{"PGWIRE_RECORDER_BOGUS", "PGWIRE_RECORDER_SESSION_ASSIGNMENT", "PGWIRE_RECORDER_"} {
+		for _, env := range []string{"PGWIRE_RECORDER_BOGUS", "PGWIRE_RECORDER_", "pgwire_recorder_listen", "PGWIRE_RECORDER_Listen", "pgwire_recorder_upstream_tls", "PGWIRE_RECORDER_PASSWORD"} {
 			t.Setenv(env, "ungültig")
 		}
-		if kommando != "record" {
-			t.Setenv("PGWIRE_RECORDER_FORMAT", "ungültig")
-			t.Setenv("PGWIRE_RECORDER_RECORD_TIMING", "ungültig")
-		}
-		if kommando != "play" {
-			for _, name := range []string{"KEEP_TIMING", "TIMING_MODE", "TIMING_REFERENCE"} {
-				t.Setenv("PGWIRE_RECORDER_"+name, "ungültig")
-			}
-		}
-		if _, err := lese(basis(kommando, "")...); err != nil {
-			t.Errorf("%s: fremde Umgebungsvariable ausgewertet: %v", kommando, err)
+		if cmd, err := lese(basis(kommando, "")...); err != nil {
+			t.Errorf("%s: Variable ohne Option der Tabelle ausgewertet: %v (%#v)", kommando, err, cmd)
 		}
 	}
 }
