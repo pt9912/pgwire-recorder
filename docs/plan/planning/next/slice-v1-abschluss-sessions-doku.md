@@ -36,6 +36,15 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-umgebung-anderes-kommando`** (dort §7, offene Frage zu V-3; Planner, 2026-10-12, `AGENTS.md` §3.13): Das Handbuch nennt `--session-assignment` und `--record-empty-sessions` erst mit `slice-v1-abschluss-sessions` und nennt dann zu jeder Option ihre Umgebungsvariable mit den Kommandos, bei denen sie gilt; die Variable beim anderen Kommando ist `PGR-E2001` (Satz zur Meldung `PGR-E2001` im Handbuch, §5 *Einstellungen*). Das Handbuch beschreibt die Variable, nachdem das gebaute Binary sie liest.
 
+**Übernommen aus `slice-v1-abschluss-sessions`** (Architect, 2026-10-12, `AGENTS.md` §3.11, §3.13; der Wortlaut ist der Ist-Zustand nach der Lieferung jenes Slice und wird am gebauten Binary geprüft, nicht an diesem Absatz): Das Handbuch sagt in der Sprache des Nutzers, ohne Verweis auf Spezifikation oder Slices:
+
+- `record` zeichnet jede Verbindung mit mindestens einer abgeschlossenen Interaktion als eigene Session auf, mehrere Verbindungen gleichzeitig; die `id` zählt ab 1 in der Reihenfolge, in der die Sessions enden. Mit `--record-empty-sessions` (Umgebungsvariable `PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS`, Schlüssel `record_empty_sessions` im Abschnitt `record:`) wird auch eine Verbindung ohne Anfrage eine Session ohne Interaktionen, und das Recording trägt `empty_sessions: true` (YAML) beziehungsweise die Zeile `empty_sessions` in `meta` (SQLite), auch wenn keine Session entsteht. Keine Session ist eine Verbindung, deren Aufbau zum Server scheitert, und eine mit einer nicht unterstützten Interaktion.
+- `replay --session-assignment first-request` (Default; Umgebungsvariable `PGWIRE_RECORDER_SESSION_ASSIGNMENT`, Schlüssel `session_assignment` im Abschnitt `replay:`): Die n-te Verbindung, die eine Anfrage stellt, erhält die n-te Session mit Interaktion; Sessions ohne Interaktion werden übersprungen. `connection`: Die n-te Verbindung erhält die Session mit der `id` n, auch wenn sie nichts anfragt; das Recording muss mit `--record-empty-sessions` entstanden sein (`empty_sessions: true`), sonst endet `replay` beim Start mit `PGR-E2001`. Andere Werte, auch `Connection` und der leere, sind `PGR-E2001`.
+- Grenzen, die das Binary zeigt: Mehr Verbindungen als Sessions: eine Anfrage ist `PGR-E5003`, eine Lebendprüfung (nur Leerraum und Kommentare) wird beantwortet. Eine Anfrage an eine Session ohne Interaktion ist `PGR-E5001`. Die Zuordnung ist nur zugesichert, wenn die Clients ihre Verbindungen nacheinander aufbauen und nutzen. Ein Verbindungsfehler beendet nur diese Verbindung; `record` und `replay` laufen weiter, und der Exit-Code ist der des ersten gemerkten Fehlers.
+- `PGR-E5003` und `PGR-E4006` stehen im Meldungskatalog des Handbuchs bereits; geprüft wird ihr Text gegen den Katalog, ihre Beschreibung bei Sessions ergänzt nur, was das Binary zeigt.
+
+Der Satz zu `--format sqlite` mit `--record-empty-sessions` (Probe: schreiben, mit `replay` lesen) gehört dazu, wenn das Handbuch SQLite beschreibt (Abschnitt zum Format).
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Produkt-Code, Hilfetexte im Binary, Tests des Produkts und Gates — Schicht-Abgrenzung: Der Slice ändert nur `docs/user/benutzerhandbuch.md` und `README.md` und diesen Plan. Zeigt das Binary ein Verhalten, das die Spezifikation anders regelt, beschreibt das Handbuch das Binary (`slice-doku-ist-stand` §6, *Verhalten neben der Spezifikation*); der Fund geht als Befund an den Planner.
@@ -149,5 +158,7 @@ nicht mehr.
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Liefer-Punkte: 2. Schichten nach der Zählung in `AGENTS.md` §3.13: eine (Dokumentation), kein Code. Nachgezählt beim Eintragen der Übernahme aus `slice-v1-abschluss-umgebung-anderes-kommando` (Planner, 2026-10-12): Sie gehört zu DoD-Punkt 1 (Handbuch), kein neuer Liefer-Punkt; Liefer-Punkte weiter 2, Schichten weiter eine.
+
+Nachgezählt beim Eintragen der Übernahme aus `slice-v1-abschluss-sessions` (Architect, 2026-10-12): Sie gehört zu DoD-Punkt 1 (Handbuch) und DoD-Punkt 2 (README, soweit es die Optionen nennt); kein neuer Liefer-Punkt: Liefer-Punkte weiter 2, Schichten weiter eine (Dokumentation).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
