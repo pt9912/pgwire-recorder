@@ -86,7 +86,7 @@ func vergleichLauf(t *testing.T, db, input string, args ...string) (string, int)
 	return stderr, code
 }
 
-// Abdeckung: LH-FA-24/Happy, LH-FA-24/Boundary, LH-FA-17/Boundary — gegen die
+// Abdeckung: LH-FA-24/Happy, LH-FA-24/Boundary — gegen die
 // reale Instanz mit gleicher Antwortstruktur endet play mit --compare-responses
 // mit Exit-Code 0, auch mit --allow-recorded-errors; der Fehler, den die
 // Aufzeichnung genauso enthält, ist erwartet; unterscheiden sich nur Zeilenzahl
