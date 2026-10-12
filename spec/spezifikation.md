@@ -694,6 +694,25 @@ Verbindungen nacheinander genutzt, ist das die Reihenfolge der ersten Anfragen. 
 true` (YAML: Feld auf der obersten Ebene neben `format` und `version`; SQLite: Zeile
 in `meta`, `SPEC-043`).
 
+**Randformen des Recordings.**
+
+* *Angenommene Verbindung.* Eine Verbindung zählt, sobald ihre Startnachricht gelesen und die
+  Session zum Upstream eröffnet ist. `SSLRequest`, `GSSENCRequest` und `CancelRequest` sind keine
+  Verbindung. Eine Verbindung, die vor der Startnachricht endet, deren Aufbau zum Upstream
+  scheitert (Verbindungsfehler, LH-FA-13.b) oder die das Zwangsende im Aufbau trifft
+  (LH-FA-13.a), ist keine Session, auch mit `--record-empty-sessions`.
+* *Mit der Option.* Jede eröffnete Session wird am Ende geschrieben, auch eine ohne
+  abgeschlossene Interaktion: nach dem Ende durch den Client, nach einem Verbindungsfehler und
+  nach dem Zwangsende beim Herunterfahren; die Meldung `PGR-E4006` nennt dann die `id`, unter der
+  sie geschrieben wird (LH-FA-13.a). Eine Session mit einer nicht unterstützten Interaktion
+  (`PGR-E6001`, LH-FA-02.b) wird verworfen, mit und ohne die Option. Ohne die Option gilt der
+  erste Satz dieses Absatzes (mindestens eine abgeschlossene Interaktion).
+* *Kennzeichnung.* Das Recording trägt `empty_sessions`, sobald der Lauf die Option hat, auch
+  wenn keine Session entsteht (Recording ohne Sessions mit der Kennzeichnung).
+* *Gleichzeitiges Ende.* Enden Sessions gleichzeitig, vergibt jedes Ende genau eine `id`; die
+  `id`s bleiben eindeutig und ohne Lücken, welche Session welche erhält, ist nicht zugesichert
+  (dieselbe Voraussetzung wie bei der Zuordnung im Replay).
+
 **Replay.** `--session-assignment` wählt die Zuordnung der Sessions zu den
 Verbindungen in der Reihenfolge der `id`:
 
@@ -724,6 +743,35 @@ Lebendprüfungen ohne Ende des Servers sind (`LH-FA-09.a`), eine Session ohne In
 sie übersprungen; bei `connection` erhält die n-te Verbindung sie wie jede
 Session ohne Interaktion. Das Einspielen behandelt Lebendprüfungen wie jede
 andere Anfrage und führt eine solche Session aus.
+
+**Randformen der Zuordnung.**
+
+* *Wertemenge.* `--session-assignment` nimmt genau `first-request` und `connection`, klein
+  geschrieben, einen Alias gibt es nicht; jeder andere Wert, auch der leere, ist `PGR-E2001`
+  (Datei: `PGR-E2004`, Schlüssel `session_assignment` im Abschnitt `replay:`). Die Option gibt es
+  nur bei `replay`, `--record-empty-sessions` nur bei `record` (Schlüssel `record_empty_sessions`
+  im Abschnitt `record:`); ihre Umgebungsvariablen beim anderen Kommando sind `PGR-E2001`
+  (LH-FA-17.a).
+* *Kennzeichnung bei `connection`.* Das Laden prüft sie nach seinen eigenen Fehlern (Exit-Code
+  `3`, auch `PGR-E3004`): Fehlt `empty_sessions: true`, endet der Start mit `PGR-E2001`, bevor
+  der Port geöffnet wird. Die Kennzeichnung genügt; sie verlangt keine leere Session. Mit
+  `first-request` ist ein gekennzeichnetes Recording eines wie jedes andere, Sessions ohne
+  Interaktion werden übersprungen.
+* *Zählung der Verbindungen.* Die n-te Verbindung ist die n-te, deren Startnachricht gelesen
+  ist; `SSLRequest`, `GSSENCRequest`, `CancelRequest` und eine Verbindung, die vor der
+  Startnachricht endet, zählen nicht (wie im Record).
+* *Zuordnung bei `connection` mit der Annahme.* Die Session ist der Verbindung zugeordnet, sobald
+  deren Startnachricht gelesen ist, nicht erst mit der ersten Anfrage: Handshake, Version für
+  Lebendprüfungen und die Meldung am Ende der Verbindung (LH-FA-03.b) richten sich nach ihr. Eine
+  Session mit Interaktionen, deren Verbindung nichts anfragt, ist zugeordnet und am Ende der
+  Verbindung nicht verbraucht; nie zugeordnet ist bei `connection` eine Session mit
+  Interaktionen, deren `id` die Zahl der angenommenen Verbindungen übersteigt.
+* *Mehr Verbindungen als Sessions.* Die n-te Verbindung mit n über der Zahl der Sessions erhält
+  den Handshake der letzten Session; eine Anfrage, die keine Lebendprüfung ist, ist `PGR-E5003`,
+  eine Lebendprüfung wird beantwortet (Version nicht gesetzt, `LH-FA-09.a`).
+* *Anfrage an eine Session ohne Interaktion.* Eine Anfrage, die keine Lebendprüfung ist, ist ein
+  Replay-Mismatch (`PGR-E5001`, LH-FA-10.a) wie nach der letzten Interaktion einer Session; die
+  Diagnose nennt die Session und dass die Aufzeichnung keine (weitere) Interaktion erwartet.
 
 ---
 
@@ -829,7 +877,7 @@ gemerkt (`SPEC-034` §Ausgabe). Dem Client wird, wo das Protokoll es erlaubt, ei
 `ErrorResponse` mit dem Meldungscode im Meldungstext zugestellt; `PGR-E5002`
 entsteht erst beim Ende der Verbindung und wird nicht zugestellt (LH-FA-03.b). Der Prozess
 läuft weiter und merkt sich die Klasse des ersten aufgetretenen
-Verbindungsfehlers.
+Verbindungsfehlers. Entstehen Fehler verschiedener Verbindungen gleichzeitig, ist nicht zugesichert, welcher der erste ist.
 
 **Prozessende.** Sessions, die bis zum kontrollierten Herunterfahren nie
 zugeordnet wurden, zählen bei `--fail-on-unconsumed` als Fehler der Klasse 5
@@ -3248,5 +3296,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-11 | Zeitangaben: Randformen aller Teile vor dem Code (Uhr als Port in ganzen Millisekunden mit Abbruch und Fake-Uhr, Architekturregel am Import mit Gegenprobe; Messpunkt im Use Case, Beginn der Session und Ankunft der Nachricht, keine Rundung; Prüfung der Werte beim Laden in beiden Formaten und in `replay` und `play` auch ohne `--keep-timing`, gleicher Wert gültig, Form des Werts in `yaml`, Meldung ohne Wert; „gesetzt“ bei den Kombinationen, `PGR-E2003` vor `PGR-E6001`, Bezug von `relative`, Abbruch einer Wartezeit, kein Grenzwert) (`LH-FA-21.a`) |
 | 2026-10-12 | Zeitangaben, Aufzeichnen: „Werte steigen nicht ab“ gilt unter der Bedingung, dass die Aufrufe der Client-Richtung einer Session nacheinander kommen; der Use Case ordnet gleichzeitige Aufrufe nicht um (`LH-FA-21.a`) |
 | 2026-10-12 | Zeitangaben, Aufzeichnen: Beginn der Messung in *Aufzeichnen* nennt den *Messpunkt* statt „Annahme der Verbindung“; das Lastenheft nennt als Bezugspunkt den Verbindungsaufbau und legt ihn nicht auf TLS und Startup fest, kein Widerspruch (`LH-FA-21.a`) |
+| 2026-10-12 | Sessions: Randformen vor dem Code (angenommene Verbindung, Sessions ohne Interaktion mit `--record-empty-sessions` bei Fehler und Zwangsende, Kennzeichnung ohne Session, gleichzeitiges Ende; Wertemenge von `--session-assignment`, Prüfung der Kennzeichnung bei `connection`, Zählung und Zuordnung mit der Annahme, mehr Verbindungen als Sessions, Anfrage an eine Session ohne Interaktion, gleichzeitige Verbindungsfehler) (`LH-FA-12.a`, `LH-FA-13.b`, `LH-FA-03.b`) |
 | 2026-10-12 | Konfiguration, Entscheidung des Nutzers: Umgebungsvariable der Option eines anderen Kommandos ist `PGR-E2001` (bisher unbeachtet; ersetzt die Fassung vom 2026-10-05 und 2026-10-08), Ausnahmen `PGWIRE_RECORDER_PASSWORD` und Variable ohne passende Option, keine Warnung (`LH-FA-17.a`) |
 | 2026-10-12 | Konfiguration: Rangfolge der Umgebungsvariablen in einem Durchlauf über die Tabelle (fremde und eigene gemeinsam, nur der erste Fehler), vor der Datei; Schreibweise des Namens genau; Katalogzeile `PGR-E2001` nennt die Umgebungsvariable (`LH-FA-17.a`, `SPEC-034`) |
