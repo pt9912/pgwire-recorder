@@ -11,9 +11,10 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Eingesammelt
 wird er von der nächsten Welle-Closure. Eingeordnet am 2026-10-12 nach Entscheidung des
-Nutzers vom 2026-10-12: erst die Gate-Kette, dann `slice-v1-abschluss-umgebung-anderes-kommando`,
-beide vor `slice-v1-abschluss-antwortvergleich` (WIP-Limit 1); Reihenfolge in §4 *Start* und im
-Drift-Log der Roadmap. Der Zuschnitt in drei Slices (dieser, `slice-harness-gate-kette-stop-hook-liste` und `slice-harness-gate-kette-stop-hook-freigabe`; die Hook-Arbeit hieß bis zum Schnitt vor dem Start `slice-harness-gate-kette-stop-hook`) und die Reihenfolge dieser zuerst sind **Entscheidung des Nutzers vom 2026-10-12** („Deine
+Nutzers vom 2026-10-12 (Ziel: ein Release): nach dem Release, hinter `welle-erster-release` und
+`welle-v1-nachtrag` und vor `slice-harness-commit-struktur-id` (WIP-Limit 1); davor stehen
+`slice-v1-abschluss-umgebung-anderes-kommando` und `slice-v1-abschluss-antwortvergleich`. Reihenfolge in §4
+*Start* und im Drift-Log der Roadmap. Der Zuschnitt in drei Slices (dieser, `slice-harness-gate-kette-stop-hook-liste` und `slice-harness-gate-kette-stop-hook-freigabe`; die Hook-Arbeit hieß bis zum Schnitt vor dem Start `slice-harness-gate-kette-stop-hook`) und die Reihenfolge dieser zuerst sind **Entscheidung des Nutzers vom 2026-10-12** („Deine
 Empfehlungen“, §1).
 
 **Bezug:** kein Anspruch des Produkts — der Slice liefert ein Werkzeug des Harness.
@@ -158,13 +159,11 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `in-progress/` ist leer (WIP-Limit 1; `slice-harness-lint-gegenprobe-last`
-liegt in `done/`); dieser Slice steht direkt hinter den Slices von welle-v1-abschluss bis
-`slice-v1-abschluss-zeitangaben-doku` und vor `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`,
-`slice-v1-abschluss-umgebung-anderes-kommando` und `slice-v1-abschluss-antwortvergleich`
-(Drift-Log der Roadmap vom 2026-10-12). Technisch hängt er an nichts. Die Reihenfolge Gate-Kette
-vor `slice-v1-abschluss-umgebung-anderes-kommando` vor `slice-v1-abschluss-antwortvergleich` ist
-Entscheidung des Nutzers vom 2026-10-12. **Vor dem ersten Code-Commit:** Der Architect hat die Randformen aus §6
+**Start** (`next` → `in-progress`): `in-progress/` ist leer (WIP-Limit 1); `welle-erster-release` und
+`welle-v1-nachtrag` sind `done`. Dieser Slice steht direkt hinter diesen Wellen und vor
+`slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe` und
+`slice-harness-commit-struktur-id` (Drift-Log der Roadmap vom 2026-10-12). Technisch hängt er an nichts. Die
+Reihenfolge nach dem Release ist Entscheidung des Nutzers vom 2026-10-12 (Ziel: ein Release). Die offenen Rückfragen an den Architect (Merge-Konflikt zu `slice-harness-gate-kette-stop-hook-liste`, Eingangssatz von `SPEC-052`, neue Mutationen, Rückführungsgrenzen) bleiben offen, bis die Slices der Gate-Kette starten; sie halten das Release nicht auf. **Vor dem ersten Code-Commit:** Der Architect hat die Randformen aus §6
 am 2026-10-12 entschieden und die Größe geprüft (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`,
 `AGENTS.md` §3.12); die Stelle `SPEC-052` selbst entsteht als erster Commit des Slice (Übertragung von §6,
 ohne Code), und erst danach folgt der erste Code-Commit. Ergibt sich beim Übertragen eine Randform, die
@@ -320,7 +319,8 @@ mit den Gate-Zeilen). Gate-Läufe, Review, Closure-Notiz und Register zählen ni
 Harness-Werkzeug (`tools/harness`, `harness/mk`, `harness/README.md`, `harness/conventions.md`) und
 Spezifikation (`spezifikation.md` §11, §12; die Zählregel nimmt sie nicht aus, deshalb gezählt); keine
 Nutzer- oder Wartungs-Doku, kein Produkt-Code, kein Bootstrap. Planung (Pläne, Roadmap, Register) zählt
-nicht. Vom Architect am 2026-10-12 nachgeprüft (mit den Entscheidungen aus §6); geschätzt 400 bis 550
+nicht. Nachgezählt am 2026-10-12 bei der Umordnung (nach dem Release): Die Sendungen an die beiden Nehmer sind
+unverändert, die Zählung bleibt 3 Liefer-Punkte und 2 Schichten. Vom Architect am 2026-10-12 nachgeprüft (mit den Entscheidungen aus §6); geschätzt 400 bis 550
 Zeilen mit Tests, in einer Review-Sitzung prüfbar.
 **Sendungen in `slice-harness-gate-kette-stop-hook-liste`** (Dateiliste, Hook ohne Positivliste, Gegenprobe des
 Hooks, die Namen aus §1, die Hook-Randformen aus §6 nach der Verteilung dort) **und

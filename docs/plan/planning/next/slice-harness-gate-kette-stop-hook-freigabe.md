@@ -11,8 +11,8 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Eingesammelt
 wird er von der nächsten Welle-Closure. Eingeordnet am 2026-10-12 nach Entscheidung des
-Nutzers vom 2026-10-12 (Gate-Kette vor `slice-v1-abschluss-umgebung-anderes-kommando` vor
-`slice-v1-abschluss-antwortvergleich`): direkt hinter `slice-harness-gate-kette-stop-hook-liste`
+Nutzers vom 2026-10-12 (Ziel: ein Release; die Gate-Kette steht nach dem Release, hinter
+`welle-erster-release` und `welle-v1-nachtrag`): direkt hinter `slice-harness-gate-kette-stop-hook-liste`
 (WIP-Limit 1); Reihenfolge in §4 *Start* und im Drift-Log der Roadmap. Der Schnitt der Hook-Arbeit in
 `slice-harness-gate-kette-stop-hook-liste` und diesen Slice (vor dem Start, aus dem Plan
 `slice-harness-gate-kette-stop-hook`) ist **Entscheidung des Nutzers vom 2026-10-12**
@@ -150,8 +150,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-harness-gate-kette-stop-hook-liste` liegt in `done/`
-(WIP-Limit 1); dieser Slice steht direkt dahinter und vor `slice-v1-abschluss-umgebung-anderes-kommando`
-und `slice-v1-abschluss-antwortvergleich` (Drift-Log der Roadmap vom 2026-10-12). Der Name der
+(WIP-Limit 1); dieser Slice steht direkt dahinter und vor `slice-harness-commit-struktur-id` (Drift-Log der Roadmap vom
+2026-10-12); die Gate-Kette steht nach `welle-erster-release` und `welle-v1-nachtrag`. Die Reihenfolge nach dem
+Release ist Entscheidung des Nutzers vom 2026-10-12 (Ziel: ein Release). Die offenen Rückfragen an den Architect (Merge-Konflikt zu `slice-harness-gate-kette-stop-hook-liste`, Eingangssatz von `SPEC-052`, neue Mutationen, Rückführungsgrenzen) bleiben offen, bis die Slices der Gate-Kette starten; sie halten das Release nicht auf. Der Name der
 Dateiliste steht in §1 (Eintrag des Planners bei der Closure des Gebers; `grep` nach ihm in diesem Plan
 ist nicht leer). Die Randformen aus §6 sind in `SPEC-052` festgelegt; dieser Slice ändert sie nicht.
 
@@ -326,6 +327,8 @@ Closure-Notiz zählen nicht. Schichten: 1 — Harness-Werkzeug (`.claude/hooks`,
 `stop-hook-gegenprobe`, Prüfung nicht aufgelöster Index-Einträge vor der Pfad-Entscheidung, Name der
 Dateiliste) und der Randformen und Mutationen der Hook-Seite aus `slice-harness-gate-kette-schnell`, soweit
 verteilt: nachgezählt mit den Sendungen 3 Liefer-Punkte und 1 Schicht; der Name der Dateiliste ist Teil
-der Liefer-Punkte 1 bis 3, kein vierter. Geschätzt 260 bis 390 Zeilen mit Tests (§4).
+der Liefer-Punkte 1 bis 3, kein vierter. Geschätzt 260 bis 390 Zeilen mit Tests (§4). Nachgezählt am
+2026-10-12 bei der Umordnung (nach dem Release): Die Sendungen sind unverändert, die Zählung bleibt 3
+Liefer-Punkte und 1 Schicht.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
