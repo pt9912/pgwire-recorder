@@ -283,6 +283,25 @@ Alle Mutanten rot, keiner grün. Der Mutant Z2 ist vom Typ „Wartezeit hinter d
 
 **Rückgaben.** Keine: Die Randform zu F-665 war in `LH-FA-21.a` entschieden; §6 zeigt nur darauf.
 
+### Belege der Nacharbeit nach der Verifikation (V-1)
+
+**Stand.** Test-Commit nach `b1e4fb9` (drei Fälle in `vfaelle()`, `play_vergleich_test.go`); Arbeitsbaum davor `b1e4fb9`. `make gates` siehe Übergabe-Bericht; davor `make test` grün.
+
+**Merkmal der Klasse in V-1.** Die Zusage zu `befehl()` hing an einem Fall, der auch ohne die Bedingung verschieden ist (`T1` gegen `T`). Geprüft sind alle Bedingungen von `befehl()`/`nurZiffern()`, je mit einem Mutanten, der nur sie bricht.
+
+**Mutationen.** Kopie des Baums im Scratchpad, Bind-Mount von `internal` in `pgwire-recorder:test`, `touch` nach jeder Änderung, `go test ./internal/hexagon/services/ -run TestVergleich`; danach `diff -r internal` gegen das Repo: identisch. Basis grün.
+
+| # | Zusage | Mutation | roter Test |
+|---|---|---|---|
+| V1a | Nur Wörter aus Ziffern sind abschließende Zahlen (ein Wort mit Ziffer nicht) | `nurZiffern` → `strings.ContainsAny(w, "0123456789")` | `TestVergleichStruktur/Wort_mit_Ziffer_wird_nicht_abgeschnitten` (`T1` gegen `T2`), `…/Wort_mit_Ziffer_nach_einem_Befehl_wird_nicht_abgeschnitten` (`SELECT 1a` gegen `SELECT 2a`), je einfach und Extended; `…/Wort_mit_Ziffer_ist_keine_Zahl` bleibt grün (verschieden auch mit Mutant) |
+| V1b | … mehrere abschließende Zahlen, nicht nur die letzte | `for` → `if` in `befehl()` | `…/mehrere_abschließende_Zahlen` (`INSERT 0 1` gegen `INSERT 5 7`: gleich), sonst nichts |
+| V1c | … nur am Ende, nicht Zahlwörter vor einem Wort (M-Zeile „Zahl vor einem Wort bleibt“) | alle Ziffern-Wörter entfernen | `…/Zahl_vor_einem_Wort_bleibt` |
+| V1d | Ein Tag aus Ziffern allein gilt als leer (M8) | `len(woerter) > 1` | `…/Tag_aus_Ziffern_allein` |
+| V1e | M7 (`TrimRight` über Ziffern und Leerzeichen) | `strings.TrimRight(tag, "0123456789 ")` | `…/Wort_mit_Ziffer_ist_keine_Zahl`, `…/Wort_mit_Ziffer_wird_nicht_abgeschnitten` |
+| V1f | Ein leeres Wort ist kein Zahlwort (`w != ""` in `nurZiffern`) | Bedingung `w != ""` entfällt | **grün**: Randform, die Spezifikation (`LH-FA-24.a` *Befehl*, „durch Leerzeichen getrennt“) nennt Tags mit doppeltem oder abschließendem Leerzeichen nicht; Rückgabe an den Architect, kein Test geschrieben |
+
+Alle Fälle von V1a bis V1d sind rot aus dem Grund der Zusage: je ein Test, die anderen Fälle der Tabelle bleiben grün.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
