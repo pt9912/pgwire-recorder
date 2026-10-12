@@ -52,6 +52,7 @@ func tabelle() map[string]string {
 		"keep-timing":                 "false",
 		"timing-mode":                 "relative",
 		"timing-reference":            "connect",
+		"compare-responses":           "false",
 	}
 }
 
@@ -297,7 +298,7 @@ func TestLeserOptionen(t *testing.T) {
 	for kommando, want := range map[string][]string{
 		"record": {"listen", "upstream", "output", "force", "format", "record-timing", "shutdown-timeout", "log-level"},
 		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "log-level"},
-		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt", "keep-timing", "timing-mode", "timing-reference", "upstream-ca", "log-level"},
+		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt", "keep-timing", "timing-mode", "timing-reference", "upstream-ca", "compare-responses", "log-level"},
 	} {
 		var got []string
 		for _, o := range cli.Optionen(kommando) {

@@ -38,7 +38,7 @@ func tabelleSpec() []zeileSpec {
 func nichtGelesen() map[string]bool {
 	return map[string]bool{
 		"tls-cert": true, "tls-key": true, "allow-plaintext": true, "session-assignment": true,
-		"record-empty-sessions": true, "compare-responses": true,
+		"record-empty-sessions": true,
 	}
 }
 
@@ -101,9 +101,9 @@ func TestLeserUmgebungAndererKommandos(t *testing.T) {
 
 // Abdeckung: LH-FA-17/Boundary — die Umgebungsvariable einer Option, die das
 // Kommando kennt und der Stand noch nicht liest (--tls-cert, --tls-key,
-// --allow-plaintext, --session-assignment, --record-empty-sessions,
-// --compare-responses), bleibt beim eigenen Kommando unbeachtet, auch mit
-// ungültigem Wert; beim anderen Kommando ist sie PGR-E2001 (LH-FA-17.a).
+// --allow-plaintext, --session-assignment, --record-empty-sessions), bleibt beim
+// eigenen Kommando unbeachtet, auch mit ungültigem Wert; beim anderen Kommando
+// ist sie PGR-E2001 (LH-FA-17.a).
 func TestLeserUmgebungNichtGelesenerOptionen(t *testing.T) {
 	for _, kommando := range leserKommandos() {
 		for _, z := range tabelleSpec() {
@@ -127,7 +127,7 @@ func TestLeserUmgebungNichtGelesenerOptionen(t *testing.T) {
 // Abdeckung: LH-FA-17/Negative — die Zuordnung der Optionen zu den Kommandos
 // stimmt mit der Spalte Kommando überein: Jede Option, die ein Kommando am
 // allgemeinen Leser liest, steht in der Tabelle mit diesem Kommando, jede
-// Option der Tabelle mit diesem Kommando ist gelesen oder eine der sechs noch
+// Option der Tabelle mit diesem Kommando ist gelesen oder eine der fünf noch
 // nicht gelesenen, und --config ist keine Zeile (LH-FA-17.a).
 func TestLeserZuordnungGleichTabelle(t *testing.T) {
 	for _, kommando := range leserKommandos() {

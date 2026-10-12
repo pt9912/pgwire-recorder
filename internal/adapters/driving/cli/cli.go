@@ -84,6 +84,7 @@ func (Passwort) Format(f fmt.State, _ rune) {
 // URL*); "" heißt, die Startup-Daten der Session gelten. ContinueOnError,
 // AllowRecordedErrors und FinishSessionOnInterrupt sind --continue-on-error,
 // --allow-recorded-errors und --finish-session-on-interrupt (LH-FA-20.a).
+// CompareResponses ist --compare-responses (LH-FA-24.a).
 // KeepTiming ist --keep-timing; mit ihm sind TimingMode (relative oder absolute)
 // und, bei absolute, TimingReference (connect oder first-request) der Wert der
 // zusammengeführten Optionen (LH-FA-21.a *Einspielen*), sonst sind beide leer,
@@ -101,6 +102,7 @@ type Einspielvorgaben struct {
 	KeepTiming               bool
 	TimingMode               string
 	TimingReference          string
+	CompareResponses         bool
 }
 
 // envFailOnUnconsumed ist die Umgebungsvariable von --fail-on-unconsumed
@@ -216,6 +218,11 @@ const optionenPlay = `Optionen von play:
               TLS (sonst PGR-E2001); eine Datei, die keine Zertifikate
               enthält, endet play mit PGR-E2007; Umgebungsvariable
               PGWIRE_RECORDER_UPSTREAM_CA
+  --compare-responses[=true|false]
+              vergleicht die Struktur der Serverantworten jeder Interaktion
+              mit der Aufzeichnung; eine Abweichung ist PGR-E5004
+              (Exit-Code 5); Standard false; Umgebungsvariable
+              PGWIRE_RECORDER_COMPARE_RESPONSES
 ` + optionLogLevel + optionConfig + optionUmgebung
 
 const optionUmgebung = `
@@ -435,6 +442,7 @@ func optionen(kommando string) []option {
 			{name: "timing-mode", art: artZeitmodus(), standard: zeitRelative},
 			{name: "timing-reference", art: artZeitbezug(), standard: bezugConnect, zuletzt: zeitPlay},
 			{name: "upstream-ca", art: artText(), zuletzt: upstreamCA},
+			{name: "compare-responses", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.CompareResponses = v == "true" }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Play.LogLevel = v }},
 		}
 	}

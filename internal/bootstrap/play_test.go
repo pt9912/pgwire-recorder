@@ -109,7 +109,7 @@ func anfrage(seq int, sql string) model.Interaction {
 
 // leerePlay setzt die Umgebungsvariablen von play leer.
 func leerePlay(t *testing.T) {
-	for _, n := range []string{"UPSTREAM", "INPUT", "USER", "DATABASE", "LOG_LEVEL", "CONFIG", "PASSWORD"} {
+	for _, n := range []string{"UPSTREAM", "INPUT", "USER", "DATABASE", "LOG_LEVEL", "CONFIG", "PASSWORD", "COMPARE_RESPONSES"} {
 		t.Setenv("PGWIRE_RECORDER_"+n, "")
 	}
 	t.Chdir(t.TempDir())
@@ -178,6 +178,73 @@ func TestRunPlayFehlerantwort(t *testing.T) {
 	}
 	if got := typenBis(t, typen, 'X'); got != "QX" {
 		t.Fatalf("Client-Nachrichten %q", got)
+	}
+}
+
+// beendetZeilen sind die Zeilen von stderr, die "play beendet" nennen.
+func beendetZeilen(stderr string) []string {
+	var out []string
+	for _, z := range strings.Split(stderr, "\n") {
+		if strings.Contains(z, `msg="play beendet"`) {
+			out = append(out, z)
+		}
+	}
+	return out
+}
+
+// Abdeckung: LH-FA-24/Happy, LH-FA-24/Negative, LH-FA-20/Boundary — --compare-responses
+// (Kommandozeile oder Umgebungsvariable) erreicht den Play-Service: Bei gleicher
+// Struktur endet play mit Exit-Code 0, bei einer abweichenden mit PGR-E5004 und
+// Exit-Code 5; die eine Zeile zum Ende der Stufe info trägt eingespielt,
+// verglichen und abweichend, ohne Option verglichen und abweichend 0, bei
+// einem Lauf ohne Interaktion alle 0; bei --log-level warn erscheint sie nicht
+// (LH-FA-24.a *Meldung*, LH-FA-20.a *Meldungen*).
+func TestRunPlayVergleich(t *testing.T) {
+	leerePlay(t)
+	gleich := append(nachricht('C', []byte("SELECT 0\x00")...), nachricht('Z', 'I')...)
+	anders := append(nachricht('C', []byte("UPDATE 1\x00")...), nachricht('Z', 'I')...)
+	faelle := []struct {
+		name    string
+		antwort []byte
+		args    []string
+		env     string
+		code    int
+		zeile   string
+		fehler  string
+	}{
+		{"gleiche Struktur", gleich, []string{"--compare-responses"}, "", 0, "eingespielt=2 verglichen=2 abweichend=0", ""},
+		{"Umgebungsvariable", gleich, nil, "true", 0, "eingespielt=2 verglichen=2 abweichend=0", ""},
+		{"ohne Option", anders, nil, "", 0, "eingespielt=2 verglichen=0 abweichend=0", ""},
+		{"abweichende Struktur", anders, []string{"--compare-responses"}, "", 5, "eingespielt=1 verglichen=1 abweichend=1", "Replay [PGR-E5004]: Session 1, Interaktion 1: Antwort weicht von der Aufzeichnung ab: Position 1, Art Befehl"},
+	}
+	for _, f := range faelle {
+		t.Run(f.name, func(t *testing.T) {
+			t.Setenv("PGWIRE_RECORDER_COMPARE_RESPONSES", f.env)
+			addr, _ := playServer(t, f.antwort)
+			input := einfacheAufzeichnung(t, []model.Interaction{anfrage(1, "A"), anfrage(2, "B")})
+			var stdout, stderr bytes.Buffer
+			code := bootstrap.Run(context.Background(), nil, append([]string{"play", "--upstream", addr, "--input", input}, f.args...), "dev", &stdout, &stderr)
+			zeilen := beendetZeilen(stderr.String())
+			if code != f.code || len(zeilen) != 1 || !strings.HasSuffix(zeilen[0], f.zeile) {
+				t.Fatalf("Exit-Code %d, Zeilen zum Ende %q, erwartet %d mit Zusatz %q:\n%s", code, zeilen, f.code, f.zeile, stderr.String())
+			}
+			if f.fehler != "" && !strings.Contains(stderr.String(), `code=PGR-E5004 error="`+f.fehler+`"`) {
+				t.Fatalf("Zeile error ohne %q:\n%s", f.fehler, stderr.String())
+			}
+		})
+	}
+	var stdout, stderr bytes.Buffer
+	if code := bootstrap.Run(context.Background(), nil, []string{"play", "--upstream", "127.0.0.1:1", "--input", einfacheAufzeichnung(t)}, "dev", &stdout, &stderr); code != 0 {
+		t.Fatalf("Lauf ohne Interaktion: Exit-Code %d, stderr %q", code, stderr.String())
+	}
+	if zeilen := beendetZeilen(stderr.String()); len(zeilen) != 1 || !strings.HasSuffix(zeilen[0], "eingespielt=0 verglichen=0 abweichend=0") {
+		t.Fatalf("Lauf ohne Interaktion: %q", zeilen)
+	}
+	addr, _ := playServer(t, gleich)
+	stderr.Reset()
+	input := einfacheAufzeichnung(t, []model.Interaction{anfrage(1, "A")})
+	if code := bootstrap.Run(context.Background(), nil, []string{"play", "--upstream", addr, "--input", input, "--log-level", "warn"}, "dev", &stdout, &stderr); code != 0 || stderr.Len() > 0 {
+		t.Fatalf("--log-level warn: Exit-Code %d, stderr %q", code, stderr.String())
 	}
 }
 

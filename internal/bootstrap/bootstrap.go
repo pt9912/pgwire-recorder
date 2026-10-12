@@ -161,7 +161,8 @@ func play(ctx context.Context, ablauf <-chan struct{}, o cli.PlayOptions, log *s
 			code = m.Code
 		}
 	}
-	log.Info("play beendet")
+	z := service.Zaehler()
+	log.Info("play beendet", "eingespielt", z.Eingespielt, "verglichen", z.Verglichen, "abweichend", z.Abweichend)
 	return exitCode(code)
 }
 

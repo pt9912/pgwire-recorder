@@ -68,16 +68,10 @@ func TestParsePlayFailOnUnconsumed(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-17/Boundary — bei play ist die Umgebungsvariable einer
-// Option, die play nicht kennt, PGR-E2001, auch mit gültigem Wert; die einer
-// Option, die play kennt und dieser Stand nicht liest (--compare-responses),
-// bleibt unbeachtet, auch mit ungültigem Wert (LH-FA-17.a).
+// Option, die play nicht kennt, PGR-E2001, auch mit gültigem Wert (LH-FA-17.a).
 func TestParsePlayFremdeUmgebung(t *testing.T) {
 	leere(t, "play")
 	t.Setenv(cli.EnvPassword, "")
-	t.Setenv("PGWIRE_RECORDER_COMPARE_RESPONSES", "ungültig")
-	if got, err := playMit("--upstream=pg:1"); err != nil || !gleich(got, cli.PlayOptions{Upstream: "pg:1", Input: "r.yaml", LogLevel: cli.LogInfo}) {
-		t.Fatalf("Variable einer nicht gelesenen eigenen Option ausgewertet: %#v, %v", got, err)
-	}
 	for _, name := range []string{"LISTEN", "SHUTDOWN_TIMEOUT"} {
 		for _, wert := range []string{"127.0.0.1:1", "5s", "GEHEIM"} {
 			t.Setenv("PGWIRE_RECORDER_"+name, wert)
@@ -91,7 +85,7 @@ func TestParsePlayFremdeUmgebung(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-20/Happy, LH-FA-17/Boundary — --continue-on-error,
-// --allow-recorded-errors und --finish-session-on-interrupt setzen je genau ihr
+// --allow-recorded-errors, --finish-session-on-interrupt und --compare-responses setzen je genau ihr
 // Feld der Einspielvorgaben: ohne Wert, mit =true, aus der Umgebungsvariable
 // und aus dem Abschnitt play: true, mit =false und ohne Quelle false; ohne
 // Wert geht die Option einer Umgebungsvariable mit false vor; 1, True und yes
@@ -104,6 +98,7 @@ func TestParsePlayLaufsteuerung(t *testing.T) {
 		{"continue-on-error", "PGWIRE_RECORDER_CONTINUE_ON_ERROR", "continue_on_error", cli.Einspielvorgaben{ContinueOnError: true}},
 		{"allow-recorded-errors", "PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS", "allow_recorded_errors", cli.Einspielvorgaben{AllowRecordedErrors: true}},
 		{"finish-session-on-interrupt", "PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT", "finish_session_on_interrupt", cli.Einspielvorgaben{FinishSessionOnInterrupt: true}},
+		{"compare-responses", "PGWIRE_RECORDER_COMPARE_RESPONSES", "compare_responses", cli.Einspielvorgaben{CompareResponses: true}},
 	} {
 		t.Run(f.name, func(t *testing.T) {
 			leere(t, "play")
@@ -219,7 +214,7 @@ func TestPlayVariablen(t *testing.T) {
 // Konfigurationsdatei (LH-FA-01.a); die globale Hilfe nennt play.
 func TestParsePlayHilfe(t *testing.T) {
 	text := hilfe(t, "play", "--help")
-	for _, teil := range []string{"Optionen von play:", "--upstream", "--input", "--user", "--database", "--continue-on-error", "PGWIRE_RECORDER_CONTINUE_ON_ERROR", "--allow-recorded-errors", "PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS", "--finish-session-on-interrupt", "PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT", "--log-level", "--config", "play:", "PGWIRE_RECORDER_PASSWORD", "scram-sha-256"} {
+	for _, teil := range []string{"Optionen von play:", "--upstream", "--input", "--user", "--database", "--continue-on-error", "PGWIRE_RECORDER_CONTINUE_ON_ERROR", "--allow-recorded-errors", "PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS", "--finish-session-on-interrupt", "PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT", "--compare-responses", "PGWIRE_RECORDER_COMPARE_RESPONSES", "PGR-E5004", "(Exit-Code 5)", "--log-level", "--config", "play:", "PGWIRE_RECORDER_PASSWORD", "scram-sha-256"} {
 		if !strings.Contains(text, teil) {
 			t.Errorf("Hilfe von play ohne %q:\n%s", teil, text)
 		}

@@ -32,6 +32,7 @@ const (
 	CodeReplayMismatch     = "PGR-E5001"
 	CodeReplayUnconsumed   = "PGR-E5002"
 	CodeReplaySession      = "PGR-E5003"
+	CodeResponseMismatch   = "PGR-E5004"
 	CodeUnsupported        = "PGR-E6001"
 	CodeProtocolVersion    = "PGR-E6002"
 	CodeUnconsumed         = "PGR-W2001"

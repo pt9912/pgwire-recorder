@@ -22,6 +22,8 @@ type PlayService struct {
 	// uhr ist die Uhr der Wartezeiten (LH-FA-21.a *Einspielen*); nil bleibt
 	// ohne Wartezeiten und ohne KeepTiming unbenutzt.
 	uhr driven.Uhr
+	// zaehler sind die Zähler der Zeile zum Ende.
+	zaehler Zaehler
 }
 
 // PlayOption stellt einen PlayService ein.
@@ -52,6 +54,10 @@ func Wartezeiten(uhr driven.Uhr) PlayOption {
 // diese Werte; ein anderer ist beim Aufrufer ungültig (der CLI-Adapter lehnt ihn
 // mit PGR-E2001 ab), und was der Service dann tut, ist nicht zugesagt.
 //
+// CompareResponses ist --compare-responses: Der Service vergleicht die
+// Antworten jeder Interaktion mit der Aufzeichnung (LH-FA-24.a); mit ihm hat
+// AllowRecordedErrors keine Wirkung.
+//
 // Kopplung: Der CLI-Adapter liest die Optionen in einen Typ mit denselben
 // Feldern in derselben Reihenfolge, und der Bootstrap konvertiert ihn in
 // diesen; eine Option kommt in beiden Typen hinzu, sonst baut der Bootstrap
@@ -65,6 +71,7 @@ type PlayOptions struct {
 	KeepTiming               bool
 	TimingMode               string
 	TimingReference          string
+	CompareResponses         bool
 }
 
 // Werte von PlayOptions.TimingMode und PlayOptions.TimingReference.
@@ -74,6 +81,10 @@ const (
 	ReferenceConnect      = "connect"
 	ReferenceFirstRequest = "first-request"
 )
+
+// Zaehler liefert die Zähler des Laufs für die Zeile zum Ende; der Aufruf folgt
+// auf Play (LH-FA-24.a *Meldung*).
+func (s *PlayService) Zaehler() Zaehler { return s.zaehler }
 
 // NewPlayService ist der Start des Einspielens (LH-FA-20.a *Start*): Es lädt
 // die Aufzeichnung; ein Fehler dabei und eine Interaktion, die Validate nicht
@@ -188,6 +199,9 @@ func (s *PlayService) session(ctx, abbruch context.Context, sess model.Session, 
 		}
 		weiter := func(err error) { *frueher = append(*frueher, ort(err)) }
 		if err := s.interaktion(us, in, weiter); err != nil {
+			if errors.Is(err, errSessionEnde) {
+				return nil
+			}
 			return ort(err)
 		}
 	}
@@ -212,30 +226,69 @@ func (s *PlayService) startup(sess model.Session) map[string]string {
 }
 
 // interaktion spielt eine Interaktion ein: eine einfache Anfrage mit anfrage,
-// eine Extended-Interaktion mit extended. Beide verwerfen jede Antwort außer
-// einer Fehlerantwort. Eine Fehlerantwort mit dem Schweregrad FATAL oder PANIC
-// (Feld V, ohne es S) ist PGR-E4003 und bricht ab, auch wenn sie erwartet
-// wäre. Jede andere ist mit AllowRecordedErrors erwartet, wenn die Aufzeichnung
-// der Interaktion eine error_response trägt, und ohne Meldung; sonst ist sie
-// PGR-E4004, mit ContinueOnError an weiter gereicht, ohne ihn der Fehler, nach
-// dem die Interaktion ohne weiteres Lesen abbricht. Nach einer erwarteten oder
-// weitergereichten Fehlerantwort liest sie weiter bis zum ReadyForQuery. Die
-// Meldung nennt von der Fehlerantwort SQLSTATE und Meldung, keine weiteren
-// Felder (LH-FA-20.a *Interaktion*, *Meldungen*, Schritt 6).
+// eine Extended-Interaktion mit extended. Ohne CompareResponses verwerfen beide
+// jede Antwort außer einer Fehlerantwort. Eine Fehlerantwort mit dem Schweregrad
+// FATAL oder PANIC (Feld V, ohne es S) ist PGR-E4003 und bricht ab, auch wenn
+// sie erwartet wäre. Jede andere ist mit AllowRecordedErrors erwartet, wenn die
+// Aufzeichnung der Interaktion eine error_response trägt, und ohne Meldung;
+// sonst ist sie PGR-E4004, mit ContinueOnError an weiter gereicht, ohne ihn der
+// Fehler, nach dem die Interaktion ohne weiteres Lesen abbricht. Nach einer
+// erwarteten oder weitergereichten Fehlerantwort liest sie weiter bis zum
+// ReadyForQuery. Die Meldung nennt von der Fehlerantwort SQLSTATE und Meldung,
+// keine weiteren Felder (LH-FA-20.a *Interaktion*, *Meldungen*, Schritt 6).
+//
+// Mit CompareResponses hält sie die Antworten bis zum ReadyForQuery und
+// vergleicht sie dann mit der Aufzeichnung (LH-FA-24.a): Eine Abweichung ist
+// PGR-E5004, mit ContinueOnError an weiter gereicht, ohne ihn der Fehler. Eine
+// Fehlerantwort FATAL oder PANIC ist sofort die Abweichung PGR-E5004; mit
+// ContinueOnError endet dann die Session (errSessionEnde), die nächste läuft.
+// Ein PGR-E4004 und ein erwarteter Fehler gibt es dann nicht.
 func (s *PlayService) interaktion(us driven.EinspielSession, in model.Interaction, weiter func(error)) error {
-	erwartet := s.optionen.AllowRecordedErrors && mitFehlerantwort(in)
-	if in.Request.Type == model.RequestExtended {
-		return s.extended(us, in.Groups, erwartet, weiter)
+	s.zaehler.Eingespielt++
+	l := &lauf{us: us, weiter: weiter}
+	if s.optionen.CompareResponses {
+		l.v = neuerVergleich(in)
+	} else {
+		l.erwartet = s.optionen.AllowRecordedErrors && mitFehlerantwort(in)
 	}
-	return s.anfrage(us, in.Request.SQL, erwartet, weiter)
+	var err error
+	if in.Request.Type == model.RequestExtended {
+		err = s.extended(l, in.Groups)
+	} else {
+		err = s.anfrage(l, in.Request.SQL)
+	}
+	if err != nil || l.v == nil {
+		return err
+	}
+	return s.abschluss(l)
+}
+
+// lauf ist der Stand einer Interaktion beim Lesen der Antworten: die Session,
+// ob eine Fehlerantwort erwartet ist (nur ohne Vergleich), die Funktion für
+// Fehler, nach denen das Einspielen weiterläuft, und mit Vergleich dessen Stand
+// (sonst nil).
+type lauf struct {
+	us       driven.EinspielSession
+	erwartet bool
+	weiter   func(error)
+	v        *vergleich
+}
+
+// naechste liest die nächste Serverantwort; mit Vergleich merkt sie sie.
+func (l *lauf) naechste() (model.Response, error) {
+	r, err := l.us.Naechste()
+	if err == nil && l.v != nil {
+		l.v.nimm(r)
+	}
+	return r, err
 }
 
 // anfrage sendet eine einfache Anfrage und liest bis zum ReadyForQuery.
-func (s *PlayService) anfrage(us driven.EinspielSession, sql string, erwartet bool, weiter func(error)) error {
-	if err := us.Anfrage(sql); err != nil {
+func (s *PlayService) anfrage(l *lauf, sql string) error {
+	if err := l.us.Anfrage(sql); err != nil {
 		return err
 	}
-	return s.bisBereit(us, erwartet, weiter)
+	return s.bisBereit(l)
 }
 
 // extended sendet die Gruppen einer Extended-Interaktion in ihrer Reihenfolge
@@ -245,17 +298,17 @@ func (s *PlayService) anfrage(us driven.EinspielSession, sql string, erwartet bo
 // bis zum ReadyForQuery. Nach einer Fehlerantwort, die nicht abbricht, zählt
 // sie nicht mehr: Sie sendet die übrigen Gruppen ohne Warten dazwischen und
 // liest dann bis zum ReadyForQuery.
-func (s *PlayService) extended(us driven.EinspielSession, gruppen []model.Group, erwartet bool, weiter func(error)) error {
+func (s *PlayService) extended(l *lauf, gruppen []model.Group) error {
 	fehlerGesehen := false
 	for _, g := range gruppen {
-		if err := us.Gruppe(g.Client); err != nil {
+		if err := l.us.Gruppe(g.Client); err != nil {
 			return err
 		}
 		if fehlerGesehen || g.Client[len(g.Client)-1].Type != model.ClientFlush {
 			continue
 		}
 		for n := erwarteteAntworten(g.Client); n > 0; {
-			r, err := us.Naechste()
+			r, err := l.naechste()
 			if err != nil {
 				return err
 			}
@@ -263,7 +316,7 @@ func (s *PlayService) extended(us driven.EinspielSession, gruppen []model.Group,
 			case model.ResponseDataRow, model.ResponseNoticeResponse, model.ResponseParameterStatus:
 				continue
 			case model.ResponseErrorResponse:
-				if err := s.fehlerantwort(r, erwartet, weiter); err != nil {
+				if err := s.fehlerantwort(l, r); err != nil {
 					return err
 				}
 				fehlerGesehen = true
@@ -273,7 +326,7 @@ func (s *PlayService) extended(us driven.EinspielSession, gruppen []model.Group,
 			}
 		}
 	}
-	return s.bisBereit(us, erwartet, weiter)
+	return s.bisBereit(l)
 }
 
 // erwarteteAntworten ist die Zahl der Antworten, auf die der Server nach einer
@@ -296,9 +349,9 @@ func erwarteteAntworten(nachrichten []model.ClientMessage) int {
 
 // bisBereit liest bis zum ReadyForQuery und verwirft jede Antwort außer einer
 // Fehlerantwort.
-func (s *PlayService) bisBereit(us driven.EinspielSession, erwartet bool, weiter func(error)) error {
+func (s *PlayService) bisBereit(l *lauf) error {
 	for {
-		r, err := us.Naechste()
+		r, err := l.naechste()
 		if err != nil {
 			return err
 		}
@@ -306,32 +359,81 @@ func (s *PlayService) bisBereit(us driven.EinspielSession, erwartet bool, weiter
 		case model.ResponseReadyForQuery:
 			return nil
 		case model.ResponseErrorResponse:
-			if err := s.fehlerantwort(r, erwartet, weiter); err != nil {
+			if err := s.fehlerantwort(l, r); err != nil {
 				return err
 			}
 		}
 	}
 }
 
-// fehlerantwort stuft eine Fehlerantwort ein: FATAL und PANIC sind PGR-E4003;
-// eine erwartete ist keine Meldung; jede andere ist PGR-E4004, mit
-// ContinueOnError an weiter gereicht, sonst der Fehler, den sie liefert.
-func (s *PlayService) fehlerantwort(r model.Response, erwartet bool, weiter func(error)) error {
+// fehlerantwort stuft eine Fehlerantwort ein. Ohne Vergleich: FATAL und PANIC
+// sind PGR-E4003; eine erwartete ist keine Meldung; jede andere ist PGR-E4004,
+// mit ContinueOnError an weiter gereicht, sonst der Fehler, den sie liefert. Mit
+// Vergleich: FATAL und PANIC sind sofort die Abweichung (fatal), jede andere
+// geht in den Vergleich am Ende der Interaktion ein.
+func (s *PlayService) fehlerantwort(l *lauf, r model.Response) error {
 	schwere := r.Fields["V"]
 	if schwere == "" {
 		schwere = r.Fields["S"]
 	}
-	if schwere == "FATAL" || schwere == "PANIC" {
+	fatal := schwere == "FATAL" || schwere == "PANIC"
+	if l.v != nil {
+		if fatal {
+			return s.fatal(l)
+		}
+		return nil
+	}
+	if fatal {
 		return model.Errorf(model.CodeConnectionLost, nil, "Fehlerantwort des Servers %s „%s“, die Verbindung endet", r.Fields["C"], r.Fields["M"])
 	}
-	if erwartet {
+	if l.erwartet {
 		return nil
 	}
 	fehler := model.Errorf(model.CodeServerError, nil, "Fehlerantwort des Servers %s „%s“", r.Fields["C"], r.Fields["M"])
 	if !s.optionen.ContinueOnError {
 		return fehler
 	}
-	weiter(fehler)
+	l.weiter(fehler)
+	return nil
+}
+
+// errSessionEnde meldet der Session, dass ihre Verbindung durch eine
+// Fehlerantwort FATAL oder PANIC endete, deren Abweichung weiter gereicht ist:
+// Die Session endet ohne Fehler, die nächste läuft.
+var errSessionEnde = errors.New("Session endet")
+
+// fatal stellt die Abweichung einer Fehlerantwort FATAL oder PANIC fest: Die
+// Interaktion zählt als verglichen und abweichend. Ohne ContinueOnError ist sie
+// der Fehler, der abbricht, mit ihm wird sie weiter gereicht und die Session
+// endet (LH-FA-20.a Tabelle, *Interaktion*).
+func (s *PlayService) fatal(l *lauf) error {
+	s.zaehler.Verglichen++
+	s.zaehler.Abweichend++
+	fehler := model.Errorf(model.CodeResponseMismatch, nil, "%s", l.v.erste(true).text())
+	if !s.optionen.ContinueOnError {
+		return fehler
+	}
+	l.weiter(fehler)
+	return errSessionEnde
+}
+
+// abschluss vergleicht die Antworten einer Interaktion, die bis zu ihrem
+// ReadyForQuery gelesen sind, mit der Aufzeichnung (LH-FA-24.a): Die Interaktion
+// zählt als verglichen; weicht sie ab, zählt sie als abweichend, und die erste
+// Abweichung ist PGR-E5004, mit ContinueOnError an weiter gereicht, sonst der
+// Fehler, der abbricht.
+func (s *PlayService) abschluss(l *lauf) error {
+	s.zaehler.Verglichen++
+	u := l.v.erste(false)
+	if u == nil {
+		return nil
+	}
+	s.zaehler.Abweichend++
+	fehler := model.Errorf(model.CodeResponseMismatch, nil, "%s", u.text())
+	if !s.optionen.ContinueOnError {
+		return fehler
+	}
+	l.weiter(fehler)
 	return nil
 }
 
