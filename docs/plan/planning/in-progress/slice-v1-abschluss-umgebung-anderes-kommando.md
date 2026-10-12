@@ -292,6 +292,86 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Läufe** (2026-10-12): `make test` und `make lint` grün; `make gates` grün am Stand `f1203f8` (Code, Tests,
+Abdeckungstabellen, Handbuch; 5 min 41 s), erneut nach diesem Eintrag. Ein erster Lauf am Stand `b91131c` war rot
+in `make lint` (`gochecknoglobals` für `tabelleSpec` und `nichtGelesen` in `fremd_test.go`); beide sind Funktionen.
+`make abdeckung` hat `docs/user/abdeckung-unit.md`, `-gesamt.md` und `-vollstaendig.md` geschrieben: Die vier
+Deklarationen sagen nicht mehr „unbeachtet“ für Variablen, die Fehler sind; die Zeilen von `TestPlayPasswort`
+(`PGWIRE_RECORDER_PASSWORD` bei `play`) sind unverändert.
+
+**Suche nach Tests, die Variablen setzen** (`grep -rln "PGWIRE_RECORDER_" --include=*_test.go .`): 29 Dateien in
+`internal/adapters/driving/cli`, `internal/bootstrap` und `test/integration`. Umgebaut sind die vier Tests aus §1;
+kein weiterer Test wurde bei `make test` oder `make test-integration` rot, denn alle anderen setzen Variablen nur für das Kommando, das sie liest, oder leer. Die Tests, die
+`leserKommandos()` schleifen, räumen mit `leere` auf. `grep -rn "unbeacht" spec/ docs/user/ README.md internal/ harness/`
+fand keine weitere lebende Stelle, die „unbeachtet“ für die Variablen anderer Kommandos behauptet; die übrigen
+Treffer meinen `PGWIRE_RECORDER_PASSWORD`, Platzhalter nicht benutzter Verbindungen, PEM-Text und die Ausnahmen aus §1.
+
+**Mutationen** (`AGENTS.md` §3.10). Weg: Bind-Mount des Arbeitsbaums in das Image `pgwire-recorder:test`
+(`go test ./internal/adapters/driving/cli/`), der Mutant wird je Lauf in `cli.go` geschrieben und danach
+zurückgesetzt (`diff` gegen die Vorlage leer); der Mutant kommt so im Lauf an, kein Build-Kontext. Der Mutant
+baute in jedem Fall; „rot“ nennt die Tests der Zusage.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| gesetzte, nicht leere Variable eines anderen Kommandos ist `PGR-E2001` | Prüfung entfernt (`if false`) | `TestLeserUmgebungAndererKommandos`, `TestParseFailOnUnconsumedRecord`, `TestParsePlayFailOnUnconsumed`, `TestParsePlayFremdeUmgebung` |
+| jeder Wert, gültig oder nicht | nur Werte ablehnen, die die Wertemenge der Option ablehnt | `TestLeserUmgebungAndererKommandos` (Fälle `true`, `5s`), `TestParsePlayFremdeUmgebung` |
+| leer gilt als nicht gesetzt (fremde Variable) | `LookupEnv` nur im fremden Zweig (`gesetzt` statt nicht leer) | `TestLeserUmgebungAndererKommandos` (Fall mit leerer Variable) |
+| leer gilt als nicht gesetzt (allgemein) | `LookupEnv` für alle Variablen | 68 Tests, darunter `TestLeserUmgebungAndererKommandos` (Aufbau bricht; belegt die Zusage nur zusammen mit der Zeile darüber) |
+| Meldung nennt nie den Wert | Wert in die Meldung (`%s=%s`) | `TestLeserUmgebungAndererKommandos` (Fall `GEHEIM`), `TestParseFailOnUnconsumedRecord`, `TestParsePlayFailOnUnconsumed`, `TestParsePlayFremdeUmgebung` |
+| Meldung nennt den Namen | Name weggelassen | dieselben Tests |
+| jede Option der Tabelle ist erfasst | `user` aus der Zuordnung genommen | `TestLeserUmgebungAndererKommandos` (`record`, `replay`) |
+| jede Option mit ihren Kommandos | `output` auch `replay` zugeordnet | `TestLeserUmgebungAndererKommandos` |
+| jede Option, die ein Leser liest, steht in der Zuordnung | `optionen("play")` um `extra-option` erweitert | `TestLeserZuordnungGleichTabelle` |
+| sechs nicht gelesene Optionen: beim eigenen Kommando unbeachtet | nicht gelesene Option beim eigenen Kommando als fremd | `TestLeserUmgebungNichtGelesenerOptionen`, `TestParsePlayFremdeUmgebung` |
+| `PGWIRE_RECORDER_PASSWORD` bleibt bei `record`/`replay` unbeachtet | Passwort wie Option (`password` für `play` in der Zuordnung) | `TestLeserFremdeUmgebung` |
+| Variable mit Präfix ohne Option bleibt unbeachtet | jede Variable mit Präfix (außer Passwort, Config) fremd | `TestLeserFremdeUmgebung` |
+| der Name gilt genau | Schreibweise ignoriert (`EqualFold` über `os.Environ`) | `TestLeserFremdeUmgebung` (`pgwire_recorder_listen`) |
+| `config show` prüft nur `PGWIRE_RECORDER_CONFIG` | Prüfung auch in `parseConfig` | `TestLeserUmgebungConfigShowUndHilfe` |
+| die Hilfe liest nichts | Prüfung vor der Hilfe in `Parse` | `TestLeserUmgebungConfigShowUndHilfe`, `TestParseHilfeVorPruefung` |
+| Rangfolge: Variable vor Datei | Prüfung nach `ladeGewaehlte` | `TestLeserUmgebungReihenfolge` (Fall fremde Variable und ungültige Datei) |
+| Durchlauf in Tabellenreihenfolge: fremde vor eigenen | zwei Durchläufe, fremde zuerst | `TestLeserUmgebungReihenfolge` |
+| Durchlauf in Tabellenreihenfolge: eigene vor fremden | zwei Durchläufe, eigene zuerst | `TestLeserUmgebungReihenfolge` |
+| nur der erste Fehler (eine Meldung) | alle fremden Variablen in einer Meldung | `TestLeserUmgebungReihenfolge` |
+
+Keine grüne Mutation. Nicht als Mutation gefahren: die Zusage „Kommandozeile geht der Umgebung vor“ und die
+Priorität der Option des eigenen Kommandos (`TestLeserUmgebungNebenKommandozeile`); sie ist Bestand
+und hier nur durch einen Fall ergänzt.
+
+**Probe-Tabelle des Handbuchs** (gebautes Binary aus `make build`, Skript `probe.sh` im Scratchpad; Aufrufe mit
+`record --listen=127.0.0.1:0 --upstream=127.0.0.1:1 --output=x.yaml`, `play --upstream=127.0.0.1:1 --input=x.yaml`,
+`replay --listen=127.0.0.1:0 --input=x.yaml`, Umgebung nur mit den genannten Variablen):
+
+| Satz im Handbuch | Aufruf | Ergebnis |
+|---|---|---|
+| Variable einer unbekannten Option ist `PGR-E2001`, gleich welcher Wert (`true`) | `record` mit `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED=true` | Exit 2, `Konfiguration [PGR-E2001]: Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED gehört zu einer Option, die record nicht kennt` |
+| dasselbe bei `play` (`LISTEN`) | `play` mit `PGWIRE_RECORDER_LISTEN=127.0.0.1:1` | Exit 2, `PGR-E2001`, nennt `PGWIRE_RECORDER_LISTEN` |
+| Wert `5s` | `play` mit `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT=5s` | Exit 2, `PGR-E2001`, nennt den Namen |
+| Wert, den die Option nicht annimmt, und Name statt Wert | `play` mit `PGWIRE_RECORDER_FORCE=GEHEIM` | Exit 2, `PGR-E2001`, Meldung ohne `GEHEIM` |
+| `false` bei `play` | `play` mit `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED=false` | Exit 2, `PGR-E2001` |
+| leere Variable gilt als nicht gesetzt | `record` ohne Optionen, `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED=` | Exit 2, `Pflichtoption --listen fehlt` |
+| `PGWIRE_RECORDER_PASSWORD` bei `record` und `replay` unbeachtet | `record` / `replay` ohne Optionen mit der Variable | Exit 2, `Pflichtoption --listen fehlt` |
+| Variable ohne Option unbeachtet (`PGWIRE_RECORDER_BOGUS`) | `replay` ohne Optionen | Exit 2, `Pflichtoption --listen fehlt` |
+| andere Schreibweise unbeachtet | `play` ohne Optionen, `pgwire_recorder_listen=x` | Exit 2, `Pflichtoption --upstream fehlt` |
+| `config show` prüft nur `PGWIRE_RECORDER_CONFIG` | `config show` mit `PGWIRE_RECORDER_LISTEN=x`, `PGWIRE_RECORDER_FORCE=GEHEIM`; dann `PGWIRE_RECORDER_CONFIG=/gibt/es/nicht.yaml` | Exit 0, listet beide Namen; Exit 2, `PGR-E2004` |
+| (Satz der Hilfe, unverändert) Hilfe liest nichts | `play --help` mit `PGWIRE_RECORDER_LISTEN=x` | Exit 0, Hilfetext |
+| Zeile `PGR-E2001` der Meldungstabelle | wie die ersten Zeilen | Meldung nennt die Variable, nicht den Wert |
+
+Der Satz „Wer `record` und `play` in derselben Umgebung ausführt, setzt dort die Variablen der Optionen der jeweils
+anderen Betriebsart nicht“ folgt aus den ersten beiden Zeilen. Das Handbuch nennt weder Spezifikation noch Slice;
+die Tabelle der Optionen (ohne die sechs noch nicht gelesenen) bleibt unverändert, `README.md` auch.
+
+**Randformen:** keine nicht genannte oder offene Randform gefunden, keine Rückgabe an den Architect. Gelesen wurde
+„kennt“ für die sechs noch nicht gelesenen Optionen nach der Zeile in §6 (Architect 2026-10-12). Die Meldung lautet
+`Umgebungsvariable <NAME> gehört zu einer Option, die <Kommando> nicht kennt`; der Wortlaut ist nach §6 frei.
+
+**Verbleibende Risiken:** das Handbuch nennt für den Satz zu Variablen ohne Option nur Beispiele
+(`PGWIRE_RECORDER_BOGUS`, `pgwire_recorder_listen`), weil die Handbuch-Tabelle die sechs noch nicht gelesenen
+Optionen nicht führt und deren Variablen bei `play`/`record` je nach Kommando Fehler sind; die Slices, die diese
+Optionen liefern, schreiben ihren Teil. Der Slice schätzte den Diff auf 200 bis 400 Zeilen; gemessen (`git diff --shortstat`)
+sind es 372 hinzugefügte und 43 entfernte Zeilen in `internal/` und im Handbuch, ohne die erzeugten Tabellen.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
