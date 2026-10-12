@@ -13,6 +13,7 @@ const (
 	CodeInternal           = "PGR-E1000"
 	CodeUsage              = "PGR-E2001"
 	CodeOutputExists       = "PGR-E2002"
+	CodeTimingMissing      = "PGR-E2003"
 	CodeConfigFile         = "PGR-E2004"
 	CodeConfigVariable     = "PGR-E2005"
 	CodeConfigPassword     = "PGR-E2006"

@@ -86,6 +86,7 @@ func (z *fakeZiel) Verbinde(ctx context.Context, startup map[string]string) (dri
 // liefert Anfrage als Fehler. Je Gruppe hängt Gruppe die nächste Folge aus
 // gruppen an die noch ungelesenen Antworten an; beiGruppe läuft mit der Nummer
 // der Gruppe seit dem Aufbau (ab 1), gruppeFehler liefert Gruppe als Fehler.
+// beiSchliesse läuft in Schliesse, bevor es "schliesse" festhält.
 type fakeEinspiel struct {
 	ziel          *fakeZiel
 	antworten     [][]schritt
@@ -96,6 +97,7 @@ type fakeEinspiel struct {
 	beiGruppe     func(int)
 	gruppeFehler  error
 	nGruppen      int
+	beiSchliesse  func()
 	zu            chan struct{}
 	einmal        sync.Once
 }
@@ -152,6 +154,9 @@ func (s *fakeEinspiel) Naechste() (model.Response, error) {
 }
 
 func (s *fakeEinspiel) Schliesse() {
+	if s.beiSchliesse != nil {
+		s.beiSchliesse()
+	}
 	s.ziel.notiere("schliesse")
 	s.einmal.Do(func() { close(s.zu) })
 }

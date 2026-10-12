@@ -19,6 +19,19 @@ type PlayService struct {
 	// sessions sind die Sessions mit Interaktionen in der Reihenfolge der
 	// Aufzeichnung.
 	sessions []model.Session
+	// uhr ist die Uhr der Wartezeiten (LH-FA-21.a *Einspielen*); nil bleibt
+	// ohne Wartezeiten und ohne KeepTiming unbenutzt.
+	uhr driven.Uhr
+}
+
+// PlayOption stellt einen PlayService ein.
+type PlayOption func(*PlayService)
+
+// Wartezeiten stellt die Uhr ein, nach der KeepTiming die Pausen der Aufzeichnung
+// herstellt (LH-FA-21.a *Einspielen*). Ohne KeepTiming liest der Service die Uhr
+// nie.
+func Wartezeiten(uhr driven.Uhr) PlayOption {
+	return func(s *PlayService) { s.uhr = uhr }
 }
 
 // PlayOptions sind die Optionen von play, die der Play-Service auswertet
@@ -31,6 +44,12 @@ type PlayService struct {
 // --finish-session-on-interrupt: Nach dem ersten Abbruchsignal laufen die
 // übrigen Interaktionen der laufenden Session.
 //
+// KeepTiming ist --keep-timing: Vor jeder Interaktion wartet der Service nach
+// TimingMode (TimingRelative oder TimingAbsolute) und, bei TimingAbsolute,
+// TimingReference (ReferenceConnect oder ReferenceFirstRequest) auf die
+// aufgezeichnete Zeit (LH-FA-21.a *Einspielen*). Ein anderer Wert von TimingMode
+// gilt wie TimingRelative, ein anderer von TimingReference wie ReferenceConnect.
+//
 // Kopplung: Der CLI-Adapter liest die Optionen in einen Typ mit denselben
 // Feldern in derselben Reihenfolge, und der Bootstrap konvertiert ihn in
 // diesen; eine Option kommt in beiden Typen hinzu, sonst baut der Bootstrap
@@ -41,14 +60,27 @@ type PlayOptions struct {
 	ContinueOnError          bool
 	AllowRecordedErrors      bool
 	FinishSessionOnInterrupt bool
+	KeepTiming               bool
+	TimingMode               string
+	TimingReference          string
 }
+
+// Werte von PlayOptions.TimingMode und PlayOptions.TimingReference.
+const (
+	TimingRelative        = "relative"
+	TimingAbsolute        = "absolute"
+	ReferenceConnect      = "connect"
+	ReferenceFirstRequest = "first-request"
+)
 
 // NewPlayService ist der Start des Einspielens (LH-FA-20.a *Start*): Es lädt
 // die Aufzeichnung; ein Fehler dabei und eine Interaktion, die Validate nicht
 // besteht (PGR-E3003), gehen vor. Jede Interaktion, die Validate besteht, ist
 // eine einfache Anfrage oder eine Extended-Interaktion und wird eingespielt.
-// o sind die Optionen des Einspielens.
-func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path string, ziel driven.Einspielziel, o PlayOptions) (*PlayService, error) {
+// Mit KeepTiming prüft er danach, dass jede Interaktion jeder Session offset_ms
+// trägt (PGR-E2003, LH-FA-21.a *Randformen des Einspielens*). o sind die
+// Optionen des Einspielens.
+func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path string, ziel driven.Einspielziel, o PlayOptions, opts ...PlayOption) (*PlayService, error) {
 	rec, err := repo.Load(ctx, path)
 	if err != nil {
 		return nil, err
@@ -61,9 +93,17 @@ func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path s
 		}
 	}
 	s := &PlayService{ziel: ziel, optionen: o}
+	for _, opt := range opts {
+		opt(s)
+	}
 	for _, sess := range rec.Sessions {
 		if len(sess.Interactions) > 0 {
 			s.sessions = append(s.sessions, sess)
+		}
+	}
+	if o.KeepTiming {
+		if err := s.pruefeZeitangaben(); err != nil {
+			return nil, err
 		}
 	}
 	return s, nil
@@ -72,7 +112,8 @@ func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path s
 // Play spielt die Sessions ein (LH-FA-20.a). Endet ctx (erstes
 // Abbruchsignal), beginnt keine weitere Session und, ohne
 // FinishSessionOnInterrupt, keine weitere Interaktion; ein laufender Aufbau
-// läuft zu Ende, eine laufende Interaktion bis zu ihrem ReadyForQuery. Wird
+// läuft zu Ende, eine laufende Interaktion bis zu ihrem ReadyForQuery, eine
+// Wartezeit (KeepTiming) endet sofort, und danach wartet Play nicht mehr. Wird
 // ablauf geschlossen (zweites Signal), schließt es die laufende Verbindung
 // sofort; der unterbrochene Aufbau oder die unterbrochene Interaktion ist kein
 // Fehler. Ein nil-Kanal ablauf wird nie geschlossen.
@@ -110,23 +151,36 @@ func (s *PlayService) Play(ctx context.Context, ablauf <-chan struct{}) error {
 
 // session spielt eine Session über eine eigene Verbindung ein. Am Ende,
 // regulär oder nach einem Fehler, sendet sie Terminate und schließt die
-// Verbindung (Schliesse); endet abbruch, schließt sie sofort. Ein PGR-E4004,
-// nach dem das Einspielen weiterläuft, hängt sie mit seinem Ort an frueher an.
+// Verbindung (Schliesse); endet abbruch, schließt sie sofort und kehrt erst nach dem
+// Schließen zurück. Mit KeepTiming
+// wartet sie vor jeder Interaktion (warte). Ein PGR-E4004, nach dem das
+// Einspielen weiterläuft, hängt sie mit seinem Ort an frueher an.
 func (s *PlayService) session(ctx, abbruch context.Context, sess model.Session, frueher *[]error) error {
+	zeit := s.neuerTakt()
 	us, err := s.ziel.Verbinde(abbruch, s.startup(sess))
 	if err != nil {
 		return eingeordnet(err, "Session %d", sess.ID)
 	}
-	stop := context.AfterFunc(abbruch, us.Schliesse)
+	geschlossen := make(chan struct{})
+	stop := context.AfterFunc(abbruch, func() {
+		us.Schliesse()
+		close(geschlossen)
+	})
 	defer func() {
 		if stop() {
 			us.Schliesse()
+			return
 		}
+		<-geschlossen
 	}()
 	for _, in := range sess.Interactions {
 		if ctx.Err() != nil && !s.optionen.FinishSessionOnInterrupt {
 			return nil
 		}
+		if !s.warte(ctx, abbruch, zeit, in) {
+			return nil
+		}
+		zeit.beginnt(in)
 		ort := func(err error) error {
 			return eingeordnet(err, "Session %d, Interaktion %d", sess.ID, in.Sequence)
 		}

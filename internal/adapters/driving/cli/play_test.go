@@ -60,13 +60,13 @@ func TestParsePlayFailOnUnconsumed(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-17/Boundary — bei play bleiben die Umgebungsvariablen der
-// Optionen unbeachtet, die dieser Stand von play nicht kennt (Zeitangaben,
-// Vergleich) oder die zu einem anderen Kommando gehören, auch mit ungültigem
-// Wert (LH-FA-17.a).
+// Optionen unbeachtet, die dieser Stand von play nicht kennt (Vergleich) oder
+// die zu einem anderen Kommando gehören, auch mit ungültigem Wert
+// (LH-FA-17.a).
 func TestParsePlayFremdeUmgebung(t *testing.T) {
 	leere(t, "play")
 	t.Setenv(cli.EnvPassword, "")
-	for _, name := range []string{"KEEP_TIMING", "TIMING_MODE", "TIMING_REFERENCE", "COMPARE_RESPONSES", "LISTEN", "SHUTDOWN_TIMEOUT"} {
+	for _, name := range []string{"COMPARE_RESPONSES", "LISTEN", "SHUTDOWN_TIMEOUT"} {
 		t.Setenv("PGWIRE_RECORDER_"+name, "ungültig")
 	}
 	if got, err := playMit("--upstream=pg:1"); err != nil || !gleich(got, cli.PlayOptions{Upstream: "pg:1", Input: "r.yaml", LogLevel: cli.LogInfo}) {

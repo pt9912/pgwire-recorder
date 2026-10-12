@@ -84,6 +84,10 @@ func (Passwort) Format(f fmt.State, _ rune) {
 // URL*); "" heißt, die Startup-Daten der Session gelten. ContinueOnError,
 // AllowRecordedErrors und FinishSessionOnInterrupt sind --continue-on-error,
 // --allow-recorded-errors und --finish-session-on-interrupt (LH-FA-20.a).
+// KeepTiming ist --keep-timing; mit ihm sind TimingMode (relative oder absolute)
+// und, bei absolute, TimingReference (connect oder first-request) der Wert der
+// zusammengeführten Optionen (LH-FA-21.a *Einspielen*), sonst sind beide leer,
+// ebenso TimingReference bei relative.
 //
 // Kopplung: Der Play-Service führt einen Typ mit denselben Feldern in
 // derselben Reihenfolge, und der Bootstrap konvertiert diesen in jenen; eine
@@ -94,6 +98,9 @@ type Einspielvorgaben struct {
 	ContinueOnError          bool
 	AllowRecordedErrors      bool
 	FinishSessionOnInterrupt bool
+	KeepTiming               bool
+	TimingMode               string
+	TimingReference          string
 }
 
 // envFailOnUnconsumed ist die Umgebungsvariable von --fail-on-unconsumed
@@ -188,6 +195,21 @@ const optionenPlay = `Optionen von play:
               nach dem ersten SIGINT oder SIGTERM endet play erst nach der
               laufenden Session; Umgebungsvariable
               PGWIRE_RECORDER_FINISH_SESSION_ON_INTERRUPT
+  --keep-timing[=true|false]
+              wartet vor jeder Interaktion auf ihre aufgezeichnete Zeit
+              (offset_ms); fehlt sie einer Interaktion, endet play mit
+              PGR-E2003; Standard false; Umgebungsvariable
+              PGWIRE_RECORDER_KEEP_TIMING
+  --timing-mode relative|absolute
+              relative wartet seit dem Beginn der vorigen Interaktion,
+              absolute seit dem Bezugspunkt; Standard relative; nur mit
+              --keep-timing (sonst PGR-E2001); Umgebungsvariable
+              PGWIRE_RECORDER_TIMING_MODE
+  --timing-reference connect|first-request
+              Bezugspunkt von absolute, der Beginn des Verbindungsaufbaus
+              oder der Beginn der ersten Interaktion der Session; Standard
+              connect; nur mit --keep-timing und absolute (sonst PGR-E2001);
+              Umgebungsvariable PGWIRE_RECORDER_TIMING_REFERENCE
   --upstream-ca <datei>
               PEM-Datei mit Zertifikaten einer Zertifizierungsstelle, die
               zusätzlich zum Zertifikatsspeicher des Systems gilt; nur mit
@@ -356,6 +378,14 @@ func artFormat() art {
 	return art{name: "format", pruefe: func(v string) error { return format{new(string)}.Set(v) }}
 }
 
+func artZeitmodus() art {
+	return art{name: "zeitmodus", pruefe: func(v string) error { return zeitmodus{new(string)}.Set(v) }}
+}
+
+func artZeitbezug() art {
+	return art{name: "zeitbezug", pruefe: func(v string) error { return zeitbezug{new(string)}.Set(v) }}
+}
+
 func artStufe() art {
 	return art{name: "stufe", pruefe: func(v string) error { return stufe{new(string)}.Set(v) }}
 }
@@ -401,6 +431,9 @@ func optionen(kommando string) []option {
 			{name: "allow-recorded-errors", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.AllowRecordedErrors = v == "true" }},
 			{name: "upstream-tls", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.UpstreamTLS = v == "true" }},
 			{name: "finish-session-on-interrupt", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.FinishSessionOnInterrupt = v == "true" }},
+			{name: "keep-timing", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Play.Einspielen.KeepTiming = v == "true" }},
+			{name: "timing-mode", art: artZeitmodus(), standard: zeitRelative},
+			{name: "timing-reference", art: artZeitbezug(), standard: bezugConnect, zuletzt: zeitPlay},
 			{name: "upstream-ca", art: artText(), zuletzt: upstreamCA},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Play.LogLevel = v }},
 		}

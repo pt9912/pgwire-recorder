@@ -49,6 +49,9 @@ func tabelle() map[string]string {
 		"allow-recorded-errors":       "false",
 		"upstream-tls":                "false",
 		"finish-session-on-interrupt": "false",
+		"keep-timing":                 "false",
+		"timing-mode":                 "relative",
+		"timing-reference":            "connect",
 	}
 }
 
@@ -159,6 +162,11 @@ func TestLeserAlleOptionen(t *testing.T) {
 			if o.Name == "upstream-ca" {
 				// --upstream-ca verlangt TLS und eine lesbare Datei; seine Quellen,
 				// Vorrang und Fehler prüft TestPlayUpstreamCAQuellen.
+				continue
+			}
+			if o.Name == "timing-mode" || o.Name == "timing-reference" {
+				// Beide verlangen --keep-timing und, die zweite, den Modus absolute;
+				// ihre Quellen, Vorrang und Fehler prüft TestPlayZeitQuellen.
 				continue
 			}
 			werte, ok := werteJeArt()[o.Art]
@@ -289,7 +297,7 @@ func TestLeserOptionen(t *testing.T) {
 	for kommando, want := range map[string][]string{
 		"record": {"listen", "upstream", "output", "force", "format", "record-timing", "shutdown-timeout", "log-level"},
 		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "log-level"},
-		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt", "upstream-ca", "log-level"},
+		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt", "keep-timing", "timing-mode", "timing-reference", "upstream-ca", "log-level"},
 	} {
 		var got []string
 		for _, o := range cli.Optionen(kommando) {
@@ -375,12 +383,17 @@ func TestLeserReihenfolge(t *testing.T) {
 func TestLeserFremdeUmgebung(t *testing.T) {
 	for _, kommando := range leserKommandos() {
 		leere(t, kommando)
-		for _, env := range []string{"PGWIRE_RECORDER_BOGUS", "PGWIRE_RECORDER_SESSION_ASSIGNMENT", "PGWIRE_RECORDER_KEEP_TIMING", "PGWIRE_RECORDER_"} {
+		for _, env := range []string{"PGWIRE_RECORDER_BOGUS", "PGWIRE_RECORDER_SESSION_ASSIGNMENT", "PGWIRE_RECORDER_"} {
 			t.Setenv(env, "ungültig")
 		}
 		if kommando != "record" {
 			t.Setenv("PGWIRE_RECORDER_FORMAT", "ungültig")
 			t.Setenv("PGWIRE_RECORDER_RECORD_TIMING", "ungültig")
+		}
+		if kommando != "play" {
+			for _, name := range []string{"KEEP_TIMING", "TIMING_MODE", "TIMING_REFERENCE"} {
+				t.Setenv("PGWIRE_RECORDER_"+name, "ungültig")
+			}
 		}
 		if _, err := lese(basis(kommando, "")...); err != nil {
 			t.Errorf("%s: fremde Umgebungsvariable ausgewertet: %v", kommando, err)

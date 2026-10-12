@@ -134,7 +134,7 @@ func play(ctx context.Context, ablauf <-chan struct{}, o cli.PlayOptions, log *s
 		TLS:      o.UpstreamTLS,
 		CA:       postgres.Zertifikate(o.UpstreamCA),
 	}
-	service, err := services.NewPlayService(ctx, recording.Leser{}, o.Input, ziel, services.PlayOptions(o.Einspielen))
+	service, err := services.NewPlayService(ctx, recording.Leser{}, o.Input, ziel, services.PlayOptions(o.Einspielen), services.Wartezeiten(NeueSystemuhr()))
 	if err != nil {
 		return fail(stderr, err)
 	}
