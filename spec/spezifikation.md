@@ -700,10 +700,14 @@ in `meta`, `SPEC-043`).
   Session zum Upstream eröffnet ist. `SSLRequest`, `GSSENCRequest` und `CancelRequest` sind keine
   Verbindung. Eine Verbindung, die vor der Startnachricht endet, deren Aufbau zum Upstream
   scheitert (Verbindungsfehler, LH-FA-13.b) oder die das Zwangsende im Aufbau trifft
-  (LH-FA-13.a), ist keine Session, auch mit `--record-empty-sessions`.
+  (LH-FA-13.a), ist keine Session, auch mit `--record-empty-sessions`. Das gilt auch, wenn der
+  Aufbau zum Upstream nach dem Zwangsende noch gelingt: Der Record-Use-Case erkennt das Zwangsende
+  im Aufbau daran, dass die Session beim Zwangsende weder eine begonnene noch eine abgeschlossene
+  Interaktion hat, und schreibt sie nicht. Eine ruhende Session ohne Interaktion endet beim
+  Herunterfahren vor der Frist und wird mit der Option geschrieben; das Zwangsende trifft sie nicht.
 * *Mit der Option.* Jede eröffnete Session wird am Ende geschrieben, auch eine ohne
   abgeschlossene Interaktion: nach dem Ende durch den Client, nach einem Verbindungsfehler und
-  nach dem Zwangsende beim Herunterfahren; die Meldung `PGR-E4006` nennt dann die `id`, unter der
+  nach dem Zwangsende beim Herunterfahren (außer dem im Aufbau, *Angenommene Verbindung*); die Meldung `PGR-E4006` nennt dann die `id`, unter der
   sie geschrieben wird (LH-FA-13.a). Eine Session mit einer nicht unterstützten Interaktion
   (`PGR-E6001`, LH-FA-02.b) wird verworfen, mit und ohne die Option. Ohne die Option gilt der
   erste Satz dieses Absatzes (mindestens eine abgeschlossene Interaktion).
