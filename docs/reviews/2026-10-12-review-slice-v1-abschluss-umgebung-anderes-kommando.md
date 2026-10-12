@@ -90,5 +90,5 @@ Wiederkehrende Klasse: keine neue (die beiden LOW sind erstmalig an diesem Slice
 - `docs/user/benutzerhandbuch.md`: geprüft, Befund F-1.
 - `docs/user/abdeckung-*.md`: geprüft, Befund F-2 (Plan), Tabellen selbst ohne Befund.
 - `.golangci.yml`, `.a-check.yml`, `harness/`: nicht berührt, ohne Befund.
-- ADRs: keine berührt, keine verletzt (`ADR-0001`, `ADR-0034` gelesen), ohne Befund.
+- ADRs: keine berührt, keine verletzt ([ADR-0001](../plan/adr/0001-hexagonale-architektur.md), [ADR-0034](../plan/adr/0034-lint-gate-mit-solid-nahem-profil.md) gelesen), ohne Befund.
 - `docs/plan/planning/in-progress/slice-…`: Randformen in §6 vor dem Code entschieden (`AGENTS.md` §3.12), keine im Code-Commit neu eingetragen, ohne Befund.
