@@ -185,9 +185,15 @@ Text berichtigt.
 
 ### 3.9 Der Slice-Plan folgt jeder Korrektur (seit welle-walking-skeleton)
 
-Wer im Slice Code, Gates, Tests oder die Spezifikation ändert, zieht im selben
+Wer im Slice Code, Gates, Tests, die Spezifikation oder Harness-Artefakte
+(`.claude/commands/`, `.harness/skills/`, Hooks) ändert, zieht im selben
 Commit §1 (Ziel und Abgrenzung), §3 (Plan) und §6 (Risiken) des Slice-Plans nach,
-dazu den Kopf (`Bezug`, `Berührte Spec-Stellen`) und betroffene Folge-Slices.
+dazu den Kopf (`Bezug`, `Berührte Spec-Stellen`) und betroffene Folge-Slices. Die
+Harness-Artefakte zählen seit slice-v1-abschluss-zeitangaben-doku (Entscheidung des
+Nutzers vom 2026-10-12): Ein Satz in `implement-slice.md`, den der Plan weder in §1 noch
+in §3 nennt, ist derselbe Mismatch (`BEO-REPO/plan-folgt-korrektur-nicht`). Entfernen
+des Zusatzes setzt den Retirement-Check voraus: Ist die Beobachtung seit
+slice-v1-abschluss-zeitangaben-doku wieder aufgetreten?
 
 **Sensor für die Kopf-Hälfte** (seit slice-harness-kopf-sensor): `make kopf-check`
 meldet rot, wenn §1 oder §2 eines Slice-Plans in `open/`, `next/` oder
