@@ -157,7 +157,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/adapters/driving/cli/cli.go` | update | Zuordnung *Option → Kommandos* für alle Optionen der Optionstabelle, auch die der Stand noch nicht liest; die Prüfung der Variablen anderer Kommandos in `lies` an der Stelle, die `LH-FA-17.a` (§6) festlegt; Namen und Zuschnitt wählt der Implementer |
 | `internal/adapters/driving/cli/cli_test.go`, `leser_test.go`, `play_test.go` | update | `TestParseFailOnUnconsumedRecord`, `TestLeserFremdeUmgebung`, `TestParsePlayFailOnUnconsumed`, `TestParsePlayFremdeUmgebung` auf den neuen Vertrag; neue Tests je Zusage aus §6 (Happy/Boundary/Negative nach `LH-FA-17.a`) |
-| `docs/user/abdeckung-unit.md` | erzeugt (`make abdeckung`) | folgt den Deklarationen; Zeilen 22, 172, 176, 219, 224 ändern sich, die Zeilen von `TestPlayPasswort` (180, 299, 330) bleiben |
+| `docs/user/abdeckung-unit.md`, `abdeckung-gesamt.md`, `abdeckung-vollstaendig.md` | erzeugt (`make abdeckung`) | folgen den Deklarationen; in `-unit.md` ändern sich die Zeilen 22, 172, 176, 219, 224, die Zeilen von `TestPlayPasswort` (180, 299, 330) bleiben; `TestLeserUmgebungConfigShowUndHilfe` deklariert zusätzlich `LH-FA-01/Boundary` (die Hilfe liest nichts, `LH-FA-01.a`), womit `LH-FA-01` in `-gesamt.md` von „teilweise“ auf „vollständig“ geht und `-vollstaendig.md` die Zeile `LH-FA-01` bekommt |
 | `docs/user/benutzerhandbuch.md` | update | Abschnitt *Einstellungen* und Zeile `PGR-E2001` der Meldungstabelle, im Ist-Zustand |
 
 - Kein Bootstrap: `internal/bootstrap` reicht den Befehl durch und bekommt keine Logik (`AGENTS.md`

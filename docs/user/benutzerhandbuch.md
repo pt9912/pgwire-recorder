@@ -882,10 +882,10 @@ Wert. So ist `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` bei `record` und `play` ein
 Fehler und `PGWIRE_RECORDER_LISTEN` bei `play`. Wer `record` und `play` in derselben
 Umgebung ausführt, setzt dort die Variablen der Optionen der jeweils anderen
 Betriebsart nicht. `config show` prüft von den Variablen nur
-`PGWIRE_RECORDER_CONFIG`. Zwei Ausnahmen: `PGWIRE_RECORDER_PASSWORD` hat keine Option
-und bleibt bei `record` und `replay` unbeachtet, und eine Variable mit dem Präfix, die zu
-keiner Option gehört (`PGWIRE_RECORDER_BOGUS`), bleibt bei jeder Betriebsart unbeachtet,
-ebenso eine andere Schreibweise des Namens einer Option (`pgwire_recorder_listen`).
+`PGWIRE_RECORDER_CONFIG`. Unbeachtet bleiben: `PGWIRE_RECORDER_PASSWORD`, das keine Option
+hat, bei `record` und `replay`, ferner bei `record`, `replay` und `play` die Variable
+`PGWIRE_RECORDER_BOGUS`, die zu keiner Option gehört, und `pgwire_recorder_listen`, eine
+andere Schreibweise des Namens einer Option.
 
 | Option | Betriebsart | Umgebungsvariable | Standard |
 |---|---|---|---|
