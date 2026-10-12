@@ -87,11 +87,11 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services` | update | Session-Verwaltung, Recording-Zustand mit Synchronisierung; Zuordnung `connection` nach `id`, auch für Sessions ohne Interaktion und solche nur aus Lebendprüfungen, die `NewReplayService` heute aus `frei` nimmt; die Kommentare an `ReplayService`, `NewReplayService`, `OpenConnection`, `zuordnen` und `letzteNummer` sagen heute „Reihenfolge der ersten Anfrage“ und „jede Session des Cursors hat eine Interaktion“ und werden mit der Lieferung wahr gemacht (`AGENTS.md` §3.7); Record-Service: Kennzeichnung der Option und Schreiben der Sessions ohne abgeschlossene Interaktion (`CloseSession`, `Finish`) |
-| `internal/adapters/driving/cli` | update | Optionen `--record-empty-sessions` und `--session-assignment` mit Umgebungsvariable, Schlüssel, `config show`, Hilfe; Fälle von `record_empty_sessions` in `TestDateiUngueltig` (Sendung aus `slice-v1-abschluss-zeitangaben-aufzeichnen`) |
-| `internal/adapters/driving/pgwire` | unverändert | Verbindungen laufen dort schon nebenläufig, die Client-Richtung je Session bleibt eine Schleife (Bindung aus `slice-v1-abschluss-zeitangaben-aufzeichnen`); Entscheidung des Architect in §1 |
-| `internal/bootstrap` | update | reine Verdrahtung: die zwei Optionen an die Services reichen (`RecordService` mit der Option, `ReplayService` mit der Zuordnung); keine Logik, zählt nicht als Schicht (`AGENTS.md` §3.13) |
-| `test/integration` | update | Happy/Boundary/Negative |
+| `internal/hexagon/services` | update | geliefert: `RecordService` mit der Option `LeereSessions` (`CloseSession` entscheidet allein über das Schreiben: eine Session ohne abgeschlossene Interaktion wird mit der Option geschrieben, eine nicht unterstützte nie; `Finish` schreibt die Kennzeichnung `empty_sessions` auch ohne Session; `nichtGeschrieben` kennt den Grund mit der Option) und `ReplayService` mit der Option `ZuordnungNachVerbindung` (`OpenConnection` setzt die Session mit der Kennung n und liefert deren Serverparameter und Version, `alle` führt auch Sessions ohne Interaktion und nur aus Lebendprüfungen, `Unassigned` zählt nach der Zahl der Verbindungen, `NewReplayService` prüft die Kennzeichnung nach den Ladefehlern: `PGR-E2001`, `zuordnen` liefert bei einer Verbindung ohne Session `PGR-E5003`, `keineWeitere` ersetzt `letzteNummer` und greift bei null Interaktionen nicht außerhalb der Liste); der Schritt `ohneLebendpruefungen` in `NewReplayService` bleibt die eine Stelle, die entscheidet, was eine Interaktion ist; die Kommentare an `ReplayService`, `NewReplayService`, `OpenConnection`, `zuordnen`, `cursor` und der Port `driving.Replayer` sind nachgezogen (`AGENTS.md` §3.7) |
+| `internal/adapters/driving/cli` | update | geliefert: `--record-empty-sessions` (Wahrheitswert, nur `record`) und `--session-assignment first-request\|connection` (nur `replay`) mit Umgebungsvariable, Schlüssel, `config show`, Hilfe; `ReplayOptions.SessionAssignment` und die Konstanten `ZuordnungErsteAnfrage`, `ZuordnungVerbindung`; `nichtGelesen()` in `fremd_test.go` führt beide Optionen nicht mehr; der Platzhalter in `TestDateiUngueltig` ist `unbekannte_option`, `record_empty_sessions` und `session_assignment` haben eigene Fälle |
+| `internal/adapters/driving/pgwire` | unverändert | Verbindungen laufen dort schon nebenläufig, die Client-Richtung je Session bleibt eine Schleife (Bindung aus `slice-v1-abschluss-zeitangaben-aufzeichnen`); Entscheidung des Architect in §1; `git diff --stat` des Slice nennt keine Datei dort |
+| `internal/bootstrap` | update | reine Verdrahtung: `services.LeereSessions(o.RecordEmptySessions)` an den `RecordService`, `services.ZuordnungNachVerbindung` an den `ReplayService`, wenn `o.SessionAssignment` `connection` ist; keine Logik, zählt nicht als Schicht (`AGENTS.md` §3.13); die Prüfung der Kennzeichnung liegt im Service, der Fehler läuft über `fail` |
+| `test/integration` | update | `sessions_e2e_test.go` am Binary gegen PostgreSQL: Aufzeichnen mit der Option in `yaml` und `sqlite`, parallele Verbindungen und Kennungen nach der Reihenfolge der Enden, `connection` mit und ohne Kennzeichnung, Verbindungen, die nicht zählen, Zwangsende im Aufbau, Verbindungsfehler im Replay und im Record, Quellen und ungültige Werte |
 
 ## 4. Trigger
 
@@ -166,6 +166,108 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+### Belege des Implementers
+
+**Läufe** (Stand `b19f33a` für den Code, dazu die Commits dieses Abschnitts; `make gates` auf sauberem Baum nennt der Bericht): `make test` grün (gofmt, `go vet -tags integration`, alle Unit-Tests, 62 s); `make lint` `0 issues.`; `make a-check` 0 Befunde; `make docs-check` 657 Dateien, 0 Befunde; `make kopf-check` und `make abdeckung-check` Exit 0; `make abdeckung` hat die vier Tabellen neu geschrieben (`b19f33a`); `make test-integration` grün (alle Tests des Repos, 2 min 24 s). Diff `b12f4b4..b19f33a`: 18 Dateien, +2027 −73, ohne die vier Abdeckungstabellen +1958 −68 (Produktcode +170 −56, Tests +1788 −12); unter der Schwelle von 2200 in §4, die Rückführung trat nicht ein. Der PGWire-Adapter ist unberührt (`git diff --stat` nennt keine Datei unter `internal/adapters/driving/pgwire`), das Format und der Recording-Adapter ebenso.
+
+**Mutanten:** Je Mutant eine frische Kopie des Baums (`git ls-files -co`, ohne `.git`, im Scratchpad, nicht im Repo) unter einem neuen Pfad, die mutierte Datei danach mit `touch`; die Unit-Mutanten mit `go test -count=1` im Image `pgwire-recorder:test` ohne Netz, die Kopie als Bind-Mount nach `/src` (kein Build-Kontext, die Mutation kommt an: ein Mutant mit Übersetzungsfehler zeigt es, er wäre sonst grün); die Mutanten am Binary bauen das Image der Stufe `integration` aus der Kopie und führen die Tests gegen eine frische PostgreSQL-Instanz im eigenen Netz. Vor jedem Satz Mutanten lief die unveränderte Kopie grün (`basis-*`).
+
+**Zusage · Mutation (nur sie) · roter Test** (Wortlaut `LH-FA-12.a`, `LH-FA-13.b`, `LH-FA-17.a`; Kern, Record):
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Mit der Option wird jede eröffnete Session ohne abgeschlossene Interaktion geschrieben | `len(interactions) == 0 && !s.leere` zu `len(interactions) == 0` (R1) | `TestRecordLeereSessionJedesEnde` (fünf Fälle „mit Option“), `TestRecordLeereSessionNachSchreibfehler`, `TestRecordGleichzeitigesEnde`, `TestRecordZwangsendeLeereSession/Kennung_genannt` |
+| Ohne die Option wird sie nicht geschrieben (verneinend) | die Bedingung entfällt, jede Session ohne Interaktion wird geschrieben (R2) | `TestRecordLeereSessionJedesEnde` (fünf Fälle „ohne Option“), `TestRecordSessionOhneAnfrage`, `TestRecordParalleleSessions` (dritte Verbindung ohne Anfrage), `TestRecordZwangsende/ohne_abgeschlossene_Interaktion` |
+| … nach dem Ende durch den Client ohne Terminate | zusätzlich verwerfen bei `EndClosed` (R3) | `TestRecordLeereSessionJedesEnde/Client_ohne_Terminate_mit_Option` |
+| … nach dem Ende durch den Client mit Terminate | zusätzlich verwerfen bei `EndTerminate` | `…/Client_mit_Terminate_mit_Option` |
+| … nach einem Verbindungsfehler (Schreibfehler zum Client) | zusätzlich verwerfen bei `EndWriteFailed` | `…/Schreibfehler_zum_Client_mit_Option`, `TestRecordLeereSessionNachSchreibfehler` |
+| … nach einem Verbindungsfehler (Fehler des Use Case) | zusätzlich verwerfen bei `EndFailed` | `…/Fehler_des_Use_Case_mit_Option` |
+| … beim Herunterfahren | zusätzlich verwerfen bei `EndShutdown` | `…/Herunterfahren_mit_Option` |
+| … nach dem Zwangsende einer laufenden Interaktion | zusätzlich verwerfen bei `EndForced` | `TestRecordZwangsendeLeereSession/Kennung_genannt` |
+| Eine Session mit nicht unterstützter Interaktion wird verworfen, mit und ohne Option: (a) meldet der Adapter `EndUnsupported` | `end == model.EndUnsupported` entfällt (R4a) | `TestRecordLeereSessionNichtUnterstuetztVerworfen/EndUnsupported,_Option_true`, `TestRecordSessionNichtUnterstuetzt/Client-Nachricht` |
+| … (b) hat der Use Case sie selbst als nicht unterstützt markiert | `l.unsupported` entfällt (R4b) | `TestRecordLeereSessionNichtUnterstuetztVerworfen/Serverantwort_nicht_unterstützt…`, `TestRecordExtendedNichtDarstellbar` |
+| Die Kennzeichnung `empty_sessions` steht mit der Option | die Option setzt `rec.EmptySessions` nicht (R5a) | `TestRecordKennzeichnung`, `TestRecordLeereSessionJedesEnde` |
+| … steht ohne die Option nicht (verneinend) | `rec.EmptySessions` immer wahr (R5b) | `TestRecordKennzeichnung` (zweiter Teil) |
+| … steht auch ohne Session | `Finish` setzt sie ohne Session zurück (R5c) | `TestRecordKennzeichnung` (erster Teil) |
+| Die Kennung zählt ab 1 | `len(…)+1` zu `len(…)` (R6i) | `TestRecordKennungNachReihenfolgeDerEnden`, `TestRecordSessionMitInteraktionen` |
+| … ohne Lücken: eine verworfene Session erhält keine | verworfene Sessions zählen mit (R6ii) | `TestRecordKennungNachReihenfolgeDerEnden` |
+| … in der Reihenfolge der Enden (die Enden kommen im Test nacheinander) | die Session wird vorn eingefügt, die Kennung bleibt `len+1` (R6iii) | `TestRecordKennungNachReihenfolgeDerEnden` (Reihenfolge der Kennungen umgekehrt), `TestRecordGleichzeitigeSessions` |
+| Jedes Ende vergibt genau eine Kennung, eindeutig und ohne Lücken (gleichzeitiges Ende) | Kennung berechnet, Sperre freigegeben, 5 ms gewartet, Sperre genommen (R7) | `TestRecordGleichzeitigesEnde`, `TestRecordGleichzeitigeSessions` (doppelte Kennungen) |
+| Zwei parallele Verbindungen sind zwei Sessions mit je geordneten Interaktionen | `laufende` liefert immer die zuletzt geöffnete Session (R8) | `TestRecordParalleleSessions`, `TestRecordKennungNachReihenfolgeDerEnden` |
+| `PGR-E4006` nennt die Kennung, unter der die Session geschrieben wird | die Meldung nennt `0` (R9) | `TestRecordZwangsendeLeereSession/Kennung_genannt` (`Session 2`), `TestRecordZwangsende` |
+| … ist die laufende Interaktion nicht unterstützt, nennt sie diesen Grund | `nichtGeschrieben` ignoriert die Option (R10) | `TestRecordZwangsendeLeereSession/nicht_unterstützt` |
+| Scheitert der Aufbau zum Upstream (Fehler oder Fehlerantwort), ist die Kennung 0 und keine Session, auch mit der Option | `OpenSession` führt die Session trotz Fehler (A1) | `TestRecordAufbauFehlerKeineSession` (beide Fälle); am Binary `TestE2ERecordKeineVerbindung` |
+
+**Kern, Replay** (`ZuordnungNachVerbindung`):
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Die n-te Verbindung erhält die Session mit der Kennung n, auch ohne Interaktion und nur aus Lebendprüfungen | Session ohne Interaktion wird nicht zugeordnet (P1a) | `TestReplayConnectionNteVerbindungNteSession`, `TestReplayConnectionAnfrageAnSessionOhneInteraktion` |
+| … nach der Kennung, nicht nach der Stelle | Kennung um eins verschoben (P1b) / die n-te Session mit Interaktion (P1c) | `TestReplayConnectionNteVerbindungNteSession`, `…HandshakeUnabhaengigVonAnfragen`, `…Herunterfahren` |
+| Die Zuordnung geschieht mit der Annahme: Handshake nach der Session | der Handshake bleibt der der letzten Session (P2a) | `TestReplayConnectionNteVerbindungNteSession` (`Handshake von "s5"`), `…HandshakeUnabhaengigVonAnfragen` |
+| … Version für Lebendprüfungen vom Aufbau an | `vt` erst bei der ersten Anfrage (P2b) | `TestReplayConnectionServerversionJeSession` |
+| … Meldung am Ende der Verbindung nach der Session | eine Verbindung ohne Anfrage meldet nichts (P2c) | `TestReplayConnectionZuordnungMitDerAnnahme`, `…Herunterfahren` |
+| Nie zugeordnet ist nur eine Session mit Interaktionen über der Zahl der Verbindungen: (a) nicht jede freie | Filter entfällt (P3a) | `TestReplayConnectionZuordnungMitDerAnnahme`, `…SessionOhneInteraktionNichtZuMelden` |
+| … (b) nicht die der letzten Verbindung | `>` zu `>=` (P3b) | `TestReplayConnectionZuordnungMitDerAnnahme` |
+| … (c) nicht eine Session ohne Interaktion (verneinend; auch mit `--fail-on-unconsumed`) | `Unassigned` zählt alle Sessions (P3c) | `TestReplayConnectionSessionOhneInteraktionNichtZuMelden` (beide Läufe) |
+| Eine Session ohne Interaktion ist nicht „nicht verbraucht“ (verneinend) | `CloseConnection` meldet auch bei null Interaktionen (P9) | `TestReplayConnectionSessionOhneInteraktionNichtZuMelden` (Panik beim Index) |
+| Eine Anfrage an eine Session ohne Interaktion ist `PGR-E5001`, ohne Zugriff außerhalb der Liste | die Prüfung auf die leere Liste entfällt (P4a) | `TestReplayConnectionAnfrageAnSessionOhneInteraktion/nur_Lebendprüfungen` (Panik) |
+| … die Diagnose nennt die Session (Query) | `0` statt der Kennung (P4b) | `…AnfrageAnSessionOhneInteraktion` (beide Fälle) |
+| … die Diagnose nennt die Session (Extended-Nachricht) | `0` statt der Kennung (P4c) | `…AnfrageAnSessionOhneInteraktion` (beide Fälle) |
+| … die Diagnose sagt, dass die Aufzeichnung keine Interaktion erwartet | anderer Text (P4d) | `…AnfrageAnSessionOhneInteraktion` |
+| Mehr Verbindungen als Sessions: Handshake der letzten Session der Aufzeichnung | `letzte` bleibt die letzte mit Interaktion (P5a) | `TestReplayConnectionMehrVerbindungenAlsSessions` (Handshake einer anderen Session) |
+| … eine Anfrage, die keine Lebendprüfung ist, ist `PGR-E5003` | `PGR-E5001` statt `PGR-E5003` (P5b) | `TestReplayConnectionMehrVerbindungenAlsSessions` |
+| … eine Lebendprüfung wird beantwortet, `\v` nicht (Version nicht gesetzt); bei Version 16 ist `\v` keine Lebendprüfung, bei 17 eine | `istLebendpruefung(sql, true)` (P5c) | `TestReplayConnectionMehrVerbindungenAlsSessions`, `TestReplayConnectionServerversionJeSession` |
+| Die Kennzeichnung wird bei `connection` verlangt | die Prüfung entfällt (P6a) | `TestReplayConnectionKennzeichnung` |
+| … nach den Fehlern des Ladens (`PGR-E3004` geht vor) | Prüfung vor dem Fehler `PGR-E3004` (P6b) | `TestReplayConnectionKennzeichnung` (zwei Fälle) |
+| … sie genügt, eine leere Session wird nicht verlangt | die Prüfung verlangt eine Session ohne Interaktion (P6c) | `TestReplayConnectionKennzeichnung`, `…ServerversionJeSession` |
+| … der Fehler ist `PGR-E2001` mit Exit-Code 2 | andere Klasse (P6d) | `TestReplayConnectionKennzeichnung` |
+| … mit `first-request` ist die Aufzeichnung ohne Kennzeichnung gültig (verneinend) | die Prüfung gilt für beide Zuordnungen (P6e) | `TestReplayConnectionKennzeichnung` (`first-request ohne Kennzeichnung`) |
+| Mit `first-request` werden Sessions ohne Interaktion übersprungen, auch in einer gekennzeichneten Aufzeichnung | leere Sessions kommen in die Liste der freien (P7) | `TestReplayFirstRequestGekennzeichneteAufzeichnung`, `TestReplayConnectionKennzeichnung` |
+| Zwangsende bei `connection` wie bei `first-request` (`PGR-E4006` mit Kennung, nichts für eine Session ohne begonnene Interaktion) | `Forced` meldet bei `connection` nichts (P8) | `TestReplayConnectionHerunterfahren` |
+
+**CLI-Adapter und Bootstrap:**
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `--session-assignment` nimmt nur `first-request` und `connection`: (a) kein Alias | `conn` zusätzlich gültig (C1d) | `TestSessionAssignmentWertemenge` |
+| … (b) klein geschrieben | `Connection` zusätzlich gültig (C1a) | `TestSessionAssignmentWertemenge`, `TestLeserAlleOptionen`, `TestDateiUngueltig` |
+| … (c) `first_request` ist ungültig | `first_request` zusätzlich gültig (C1b) | `TestSessionAssignmentWertemenge`, `TestDateiUngueltig` |
+| … (d) der leere Wert ist ungültig | `""` zusätzlich gültig (C1c) | `TestSessionAssignmentWertemenge`, `TestLeserAlleOptionen`, `TestDateiUngueltig` |
+| … (e) Leerraum um den Wert ist ungültig | der Wert wird beschnitten (C1e) | `TestSessionAssignmentWertemenge` |
+| `--session-assignment` gibt es nur bei `replay` | Option auch bei `record` (C2a) | `TestSessionsOptionenNurBeiEigenemKommando`, `TestLeserZuordnungGleichTabelle` |
+| `--record-empty-sessions` gibt es nur bei `record` | Option auch bei `replay` (C2b) | `TestSessionsOptionenNurBeiEigenemKommando`, `TestLeserZuordnungGleichTabelle` |
+| Der Standard ist `first-request` / `false` | `connection` (C3a) / `true` (C3b) | `TestSessionAssignmentQuellen`, `TestParseReplay` / `TestRecordEmptySessionsQuellen`, `TestParseRecord` |
+| Die Leser sind angebunden: die Option steht in `optionen` | `record-empty-sessions` (C4a) / `session-assignment` (C4b) entfernt | `TestLeserOptionen`, `TestLeserZuordnungGleichTabelle`, `TestRecordEmptySessionsQuellen` / `TestSessionAssignmentQuellen` |
+| … ihre Umgebungsvariable wird beachtet | Variable bleibt unbeachtet (C6a, C6b) | `TestLeserAlleOptionen`, `TestRecordEmptySessionsQuellen` / `TestSessionAssignmentQuellen` |
+| … der Wert gelangt ins `Command` | fester Wert (C5a, C5b) | `TestLeserAlleOptionen`, `TestRecordEmptySessionsQuellen` / `TestSessionAssignmentQuellen` |
+| `nichtGelesen()` führt beide nicht mehr (Bindung aus `slice-v1-abschluss-umgebung-anderes-kommando`) | `nichtGelesen()` führt beide wieder (C7, Mutant im Test) | `TestLeserUmgebungNichtGelesenerOptionen` (die Variable ist beim eigenen Kommando nicht mehr unbeachtet, sondern `PGR-E2001`) |
+| Der Bootstrap reicht `--record-empty-sessions` durch | `services.LeereSessions(false)` (B1) | `TestRunRecordEmptySessionsKennzeichnung` (beide Formate); am Binary `TestE2ERecordEmptySessions` u. a. (I1) |
+| Der Bootstrap reicht `connection` durch, und nur `connection` | Option entfällt (B2) / immer gesetzt (B3) | `TestRunReplayConnectionKennzeichnung` / `TestRunReplayAusDatei`, `TestRunLogLevel` |
+| Die Prüfung der Kennzeichnung liegt vor dem Öffnen des Ports | Port zuerst geöffnet (B4) | `TestRunReplayConnectionKennzeichnung` (Port belegt: `PGR-E4001` statt `PGR-E2001`) |
+
+**Am Binary** (`test/integration`, Mutanten gegen eine frische PostgreSQL-Instanz):
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `--record-empty-sessions` wirkt am Binary (yaml und sqlite), Kennzeichnung und Session ohne Interaktion | `LeereSessions(false)` (I1) | `TestE2ERecordEmptySessions`, `TestE2ERecordKeineVerbindung`, `TestE2ERecordParalleleVerbindungen`, `TestE2ERecordZwangsendeImAufbau`, `TestE2EReplayConnection`, `TestE2EReplayConnectionOhneKennzeichnung`, `TestE2EReplayZaehlungDerVerbindungen`, `TestE2ESessionsQuellen` |
+| Mit `sqlite` steht `meta.empty_sessions` mit dem Wert `true` | der Schreiber schreibt `false` (I5) | `TestE2ERecordEmptySessions` (der Leser lehnt den Wert ab, `sqlite_lesen.go`) |
+| Der Prozess merkt die Klasse des ersten Verbindungsfehlers (`PGR-E6001` vor `PGR-E4006`, Exit-Code 6) | der letzte Fehler gilt (I2) | `TestE2EVerbindungsfehlerParallel` |
+| Eine Verbindung zählt im Replay erst mit der gelesenen Startnachricht (`SSLRequest`, `GSSENCRequest`, `CancelRequest`, Ende ohne Bytes zählen nicht) | der Server zählt jede angenommene Verbindung (I3) | `TestE2EReplayZaehlungDerVerbindungen` |
+| Im Record sind sie keine Session, auch mit der Option | für jede Nichtverbindung eine eröffnete und beendete Session (I4) | `TestE2ERecordKeineVerbindung` |
+
+**Grüne Mutanten:** keiner der Tabelle. Zwei Entwürfe waren unwirksam und sind ersetzt, nicht als grüne Mutanten gezählt: Der erste Mutant zur Reihenfolge der Enden sortierte nach der Öffnung, nachdem er die früheren Kennungen schon neu vergeben hatte, und änderte das Verhalten nicht (grün, äquivalent, ersetzt durch R6iii); der erste Mutant zu I4 öffnete die Session ohne `user` und scheiterte am Upstream (grün, unwirksam, mit `user` und `database` rot).
+
+**Zusagen ohne eigenen Mutanten, mit Grund:**
+
+1. *Aufrufe einer Session nacheinander* und *Aufruf-Voraussetzung der Zuordnung im Replay*: kein Test, entschieden als akzeptiertes Negativ in §6.
+2. *Zwangsende im Aufbau ist keine Session* (`LH-FA-12.a`): `TestE2ERecordZwangsendeImAufbau` belegt den Fall, in dem der Aufbau zum Upstream beim Zwangsende noch läuft (der Upstream des Tests antwortet nie): Der Lauf endet nach der Frist ohne `PGR-E4006` mit Exit-Code 0, die Aufzeichnung hat keine Session und trägt die Kennzeichnung. Der Fall, dass der Aufbau nach dem Zwangsende noch gelingt, ist **nicht getestet und nicht entschieden**, siehe Rückgabe 1.
+3. *Aufbau scheitert, kein Session*: der Mutant A1 fängt den Dienst; im Adapter liefert der Fehler die Kennung 0, und `CloseSession` mit 0 ist wirkungslos (`TestRecordAufbauFehlerKeineSession`), ein Mutant im Adapter, der eine Kennung ≠ 0 erfindet, wäre derselbe wie A1.
+
+**Rückgabe an den Architect** (Liste *Randform · Frage*, `AGENTS.md` §3.12; nichts davon steht im Code oder in §6):
+
+1. *Zwangsende im Aufbau, wenn der Aufbau danach noch gelingt* · `Server.oeffne` bricht den Aufbau beim Zwangsende ab und meldet eine Session, die trotzdem entsteht (der Upstream antwortete schon), mit `CloseSession(…, EndForced)`; der Dienst kennt keinen „Aufbau“ und behandelt sie wie jedes Zwangsende ohne laufende Interaktion: **mit** `--record-empty-sessions` wird sie als Session ohne Interaktion geschrieben, `LH-FA-12.a` *Angenommene Verbindung* sagt dagegen, eine Verbindung, die das Zwangsende im Aufbau trifft, sei keine Session, auch mit der Option. Wie entscheidet der Dienst das, ohne den PGWire-Adapter zu ändern (§1, dritte Schicht)? (a) Lesart im Dienst: `EndForced` ohne laufende und ohne abgeschlossene Interaktion ist „im Aufbau“ und wird nie geschrieben; sie widerspricht dem Satz „nach dem Zwangsende beim Herunterfahren … geschrieben“ nur für eine Session, die nach dem Aufbau ruht und keine Interaktion hatte, und diese beendet der Adapter beim Herunterfahren schon vor der Frist mit `EndShutdown`; (b) ein eigenes Ereignis `SessionEnd` für das Ende im Aufbau, gemeldet von `oeffne` (ändert den Adapter und den Port, dritte Schicht, Rückführung nach §4); (c) die Spezifikation nennt den Fall und lässt die Session zu. Der Implementer hat keinen der drei gewählt; die Lieferung verhält sich wie (c) ohne Spezifikationstext.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
