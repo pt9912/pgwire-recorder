@@ -36,6 +36,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-umgebung-anderes-kommando`** (dort §7, offene Frage zu V-3; Planner, 2026-10-12, `AGENTS.md` §3.13): Das Handbuch nennt `--compare-responses` erst mit `slice-v1-abschluss-antwortvergleich` und nennt dann zu jeder Option ihre Umgebungsvariable mit den Kommandos, bei denen sie gilt; die Variable beim anderen Kommando ist `PGR-E2001` (Satz zur Meldung `PGR-E2001` im Handbuch, §5 *Einstellungen*). Das Handbuch beschreibt die Variable, nachdem das gebaute Binary sie liest.
 
+**Gebunden durch `slice-v1-abschluss-antwortvergleich`** (dort §6 *Randformen* und §8; Sendung des Architect, 2026-10-12, `AGENTS.md` §3.13, §3.11): Das Handbuch trägt erst mit diesem Slice, was das Binary nach jenem Slice zeigt, und nur das, was ein Test jenes Slice prüft: `--compare-responses` bei `play` (Variable `PGWIRE_RECORDER_COMPARE_RESPONSES`, Schlüssel `compare_responses` unter `play:`); verglichen werden Art und Reihenfolge der Antworten, Spaltenbeschreibung (Anzahl, Name, Typ), Beschreibung der Parameter, der Befehl ohne abschließende Zahlen, der SQLSTATE eines Fehlers und der Transaktionsstatus, nicht Zeilenwerte, Zeilenzahlen, Hinweise und Einstellungen des Servers; eine Abweichung ist `PGR-E5004` mit Exit-Code 5 und nennt Session, Sequenznummer, Position und Art (bei einem Fehler die SQLSTATE beider Seiten, nie den Text), je Interaktion die erste; ein Serverfehler ohne Vorbild und eine Fehlerantwort `FATAL` oder `PANIC` sind `PGR-E5004`, ein Netzwerkabbruch ohne Fehlerantwort ist `PGR-E4003`; mit Vergleich ersetzt dieser die Fehlerregel (`PGR-E4004` entfällt), `--allow-recorded-errors` bleibt ohne Wirkung, `--continue-on-error` setzt nach einer Abweichung fort; die Zeile zum Ende des Laufs trägt `eingespielt`, `verglichen` und `abweichend` auf der Stufe `info`; ohne Option findet kein Vergleich statt. Welche dieser Sätze ins Handbuch kommen, bestimmt die Probe am gebauten Binary; was sie nicht zeigt, bleibt draußen. Zum Handbuch-Teil in DoD-Punkt 1; kein neuer Liefer-Punkt, Schichten weiter eine.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Produkt-Code, Hilfetexte im Binary, Tests des Produkts und Gates — Schicht-Abgrenzung: Der Slice ändert nur `docs/user/benutzerhandbuch.md` und `README.md` und diesen Plan. Zeigt das Binary ein Verhalten, das die Spezifikation anders regelt, beschreibt das Handbuch das Binary (`slice-doku-ist-stand` §6, *Verhalten neben der Spezifikation*); der Fund geht als Befund an den Planner.
@@ -149,5 +151,7 @@ nicht mehr.
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Liefer-Punkte: 2. Schichten nach der Zählung in `AGENTS.md` §3.13: eine (Dokumentation), kein Code. Nachgezählt beim Eintragen der Übernahme aus `slice-v1-abschluss-umgebung-anderes-kommando` (Planner, 2026-10-12): Sie gehört zu DoD-Punkt 1 (Handbuch), kein neuer Liefer-Punkt; Liefer-Punkte weiter 2, Schichten weiter eine.
+
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-antwortvergleich` (Architect, 2026-10-12): Sie gehört zu DoD-Punkt 1 (Handbuch); Liefer-Punkte weiter 2, Schichten weiter eine.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
