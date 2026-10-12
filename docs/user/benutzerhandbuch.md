@@ -994,9 +994,9 @@ Fehler, `PGWIRE_RECORDER_LISTEN` bei `play` und `PGWIRE_RECORDER_COMPARE_RESPONS
 Umgebung ausführt, setzt dort die Variablen der Optionen der jeweils anderen
 Betriebsart nicht. `config show` prüft von den Variablen nur
 `PGWIRE_RECORDER_CONFIG`. Unbeachtet bleiben: `PGWIRE_RECORDER_PASSWORD`, das keine Option
-hat, bei `record` und `replay`, ferner bei `record`, `replay` und `play` die Variable
-`PGWIRE_RECORDER_BOGUS`, die zu keiner Option gehört, und `pgwire_recorder_listen`, eine
-andere Schreibweise des Namens einer Option.
+hat, bei `record` und `replay`, ferner bei `record`, `replay` und `play` eine Variable mit
+dem Präfix `PGWIRE_RECORDER_`, deren Name zu keiner Option gehört, und
+`pgwire_recorder_listen`, eine andere Schreibweise des Namens einer Option.
 
 | Option | Betriebsart | Umgebungsvariable | Standard |
 |---|---|---|---|
