@@ -12,7 +12,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein Abnahmeszenario
 hängt an ihm. Eingesammelt wird er von der nächsten Welle-Closure. Eingeordnet am 2026-10-12 nach
 Entscheidung des Nutzers vom 2026-10-12: nach der Gate-Kette (`slice-harness-gate-kette-schnell`,
-`slice-harness-gate-kette-stop-hook`) und vor `slice-v1-abschluss-antwortvergleich` (WIP-Limit 1);
+`slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`) und vor `slice-v1-abschluss-antwortvergleich` (WIP-Limit 1);
 Reihenfolge in §4 *Start* und im Drift-Log der Roadmap. **Wellenlos** ist Entscheidung des Nutzers vom 2026-10-12
 („Deine Empfehlungen“; die Empfehlung des Planners, ihn nicht in `welle-v1-abschluss` zu führen, weil
 seine Closure-Bedingung keine andere als die DoD ist).
@@ -171,7 +171,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-gate-kette-stop-hook` liegt in `done/` (WIP-Limit 1);
+**Start** (`next` → `in-progress`): `slice-harness-gate-kette-stop-hook-freigabe` liegt in `done/` (WIP-Limit 1);
 dieser Slice steht direkt dahinter und vor `slice-v1-abschluss-antwortvergleich` (Drift-Log der
 Roadmap vom 2026-10-12). Technisch hängt er an nichts. Die Reihenfolge Gate-Kette vor diesem Slice
 vor `slice-v1-abschluss-antwortvergleich` ist Entscheidung des Nutzers vom 2026-10-12. Die
