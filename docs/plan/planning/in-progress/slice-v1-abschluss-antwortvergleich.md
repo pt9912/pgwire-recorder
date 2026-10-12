@@ -146,6 +146,114 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Stand.** Commits `6ef3cf6` (Kern, Leser, Zähler, Tests, Abdeckungstabellen), `79a380c` (Folgen verschiedener Länge mit gleichem Anfang), `b0122fd` (Kommentar von `Zaehler()`), `25ccf77` und `8e8b60d` (Integrationstests Extended-Fehler und Hinweise, Abdeckungstabelle). Geändert: `internal/hexagon/services/play.go`, neu `play_vergleich.go`, `internal/hexagon/model/fehler.go` (`CodeResponseMismatch`), `internal/adapters/driving/cli/cli.go` (Option, Hilfetext), `internal/bootstrap/bootstrap.go` (Zähler in der Zeile `play beendet`), Tests in `services`, `cli`, `bootstrap` und `test/integration`. Handbuch und `README.md` unverändert (`grep -i compare` in beiden ohne Treffer). `liesUmgebung` und `zuordnung()` sind unverändert: Die Option steht in `optionen("play")` an der Stelle der Tabelle (hinter `upstream-ca`), `zuordnung()` nannte sie schon.
+
+**Größe (§4).** Gegenüber `08787ed`, ohne `docs/` und `spec/`: 1441 Zeilen hinzugefügt, 54 entfernt. Einen Commit nur für DoD-Punkte 1 und 2 gab es nicht (Kern, Zähler und Option sind in `6ef3cf6` zusammen). Der Anteil von DoD-Punkt 3 (Fortsetzung, Zähler, Signal, Option, Leser, Zeile `play beendet` und ihre Tests) ist etwa 500 Zeilen: 274 Zeilen sind die Funktionen seiner Tests in `play_vergleich_test.go` und `play_vergleich_e2e_test.go` (ohne ihre Kommentare, dazu etwa 80), dazu Option, Leser, Hilfetext, die Tests in `cli` und `bootstrap` und die Zähler im Service. Für DoD-Punkte 1 und 2 bleiben etwa 940. Die Probe von 1400 Zeilen ist damit nicht eingetreten; kein Halt und kein Hinweis an den Planner aus diesem Grund (der Gesamtstand liegt unter der Schätzung des Architect in §8).
+
+**Läufe** (Stand `8e8b60d`, Arbeitsbaum sauber).
+
+| Sensor | Ergebnis |
+|---|---|
+| `make test` (gofmt, vet, Unit-Tests) | grün; alle Pakete `ok` |
+| `make lint` | `0 issues.` |
+| `make a-check` | `gesamt: 0 Befund(e)` |
+| `make gates` (07:08 min, Lauf nach `8e8b60d`) | Exit 0; darin `abdeckung-check`, `kopf-check`, `d-check` (636 Dateien, 0 Befunde), `baseline-verify`, `a-check-negativ`, `lint-gegenprobe`, `run-integration-tests: gruen` (beide Phasen) |
+| Integrationstests von `play --compare-responses` allein (`TestE2EPlayVergleich*`, zehn Tests) | grün gegen `postgres:17-alpine` |
+
+**Mutationen (Weg).** Jeder Mutant ändert eine Stelle in `play.go`, `play_vergleich.go`, `cli.go`, `bootstrap.go`, `fehler.go` oder `fremd_test.go`, das Testimage `pgwire-recorder:test` läuft mit dem Arbeitsbaum als Bind-Mount (`-v "$PWD":/src`, kein Build-Kontext, kein mtime-Problem) und `go test` über die Pakete des Mutanten; danach `git checkout` der Datei. Alle 70 Mutanten (Werkzeug im Scratch-Verzeichnis) sind **rot**, keiner grün; Stand `b0122fd` (Quellcode wie `8e8b60d`). Die Integrationstests liefen für `C2`, `M30`, `M33a`, `M1`, `M31`, `M3`, `M4`, `M5` nach `touch` der Datei im Image-Build (jeder rot, gelistet unten). Die Spalte „roter Test“ nennt aus der Ausgabe des Laufs die Tests (bei Tabellenfällen den Fall), an denen die Zusage hängt; rot sind bei vielen Mutanten weitere Tests.
+
+| # | Zusage | Mutation | roter Test |
+|---|---|---|---|
+| M1 | ohne `--compare-responses` findet kein Vergleich statt | Vergleich immer an (`if true`) | `TestVergleichOhneOption`; E2E `TestE2EPlayVergleichQuellen` |
+| M55 | ohne Option `verglichen` und `abweichend` 0 | `verglichen` zählt auch ohne Vergleich | `TestVergleichOhneOption` |
+| M2 | Position zählt ab 1 | Position ab 0 | `TestVergleichStruktur` (jeder Fall mit Abweichung) |
+| M3 | `data_row` entfällt vor dem Vergleich | `data_row` bleibt in der Folge | `TestVergleichStruktur/Zeilenwerte_und_Zeilenzahl`, `…/keine_Zeile`; E2E `TestE2EPlayVergleichGleich` |
+| M4 | `notice_response` entfällt | bleibt in der Folge | `TestVergleichStruktur/Hinweise_und_Parameterstatus_*`; E2E `TestE2EPlayVergleichHinweise` |
+| M5 | `parameter_status` entfällt | bleibt in der Folge | `TestVergleichStruktur/Hinweise_und_Parameterstatus_*`; E2E `TestE2EPlayVergleichHinweise` |
+| M50 | bei Extended zählt die Folge aller Gruppen ohne Grenzen | nur die Gruppe am Ende | `TestVergleichExtendedGruppen` |
+| M22 | der Nachrichtentyp wird verglichen (jede Nachricht) | Typvergleich aus | `TestVergleichStruktur/Nachrichtenart`, `…/fehlende_Nachricht` |
+| M56 | verschieden lange Folgen mit gleichem Anfang: Position hinter der kürzeren | Zweig entfernt | `TestVergleichStruktur/Aufzeichnung_länger,_Anfang_gleich` |
+| M12 | `row_description`: Anzahl der Spalten | nur die gemeinsamen Spalten | `TestVergleichStruktur/Spaltenzahl` |
+| M10 | … je Spalte der Name | Name nicht verglichen | `TestVergleichStruktur/Spaltenname` |
+| M11 | … je Spalte die Typ-OID | OID nicht verglichen | `TestVergleichStruktur/Typ-OID_der_Spalte`, `…/zweite_Spalte` |
+| M13 | … jede Spalte, nicht nur die erste | nur die erste Spalte | `TestVergleichStruktur/zweite_Spalte` |
+| M14 | … übrige Felder der Spalte nicht (Tabelle, Format, Größe) | ganze Spalte verglichen | `TestVergleichStruktur/übrige_Felder_der_Spalte` |
+| M15 | `parameter_description`: die Liste der Typ-OIDs | nur ihre Länge | `TestVergleichStruktur/Parameterbeschreibung,_OID` (Extended), `TestVergleichExtendedGruppen` |
+| M6 | `command_complete`: Tag ohne die abschließenden Zahlen | Tag ganz verglichen | `TestVergleichStruktur/Zahlen_am_Ende_des_Befehls`, `…/Befehl_mit_und_ohne_Zahl` |
+| M7 | … nur Wörter aus Ziffern sind Zahlen | `TrimRight` über Ziffern und Leerzeichen | `TestVergleichStruktur/Wort_mit_Ziffer_ist_keine_Zahl` |
+| M8 | … ein Tag aus Ziffern allein gilt als leer | mindestens ein Wort bleibt | `TestVergleichStruktur/Tag_aus_Ziffern_allein` |
+| M9 | … der ganze Befehl, nicht nur das erste Wort | nur das erste Wort | `TestVergleichStruktur/Wort_des_Befehls`, `…/Befehl_kürzer_um_ein_Wort` |
+| M16 | `error_response`: der SQLSTATE, nicht der Text | `M` statt `C` verglichen | `TestVergleichStruktur/gleicher_SQLSTATE,_anderer_Text_und_Felder`, `TestVergleichErwarteterFehler` |
+| M17 | … weitere Felder nicht | alle Felder verglichen | `TestVergleichStruktur/gleicher_SQLSTATE,_anderer_Text_und_Felder` |
+| M18 | … der Schweregrad nicht | `V` mit verglichen | `TestVergleichStruktur/anderer_Schweregrad,_gleicher_SQLSTATE` |
+| M19 | … der Text nicht | `M` mit verglichen | `TestVergleichStruktur/gleicher_SQLSTATE,_anderer_Text_und_Felder` |
+| M20 | … zwei Fehlerantworten ohne `C` sind gleich | ohne `C` immer verschieden | `TestVergleichStruktur/Fehler_ohne_Feld_C_auf_beiden_Seiten` |
+| M21 | `ready_for_query`: der Transaktionsstatus | nicht verglichen | `TestVergleichStruktur/Transaktionsstatus`, `TestVergleichFortsetzung` |
+| M23a | Meldung bei der Art Fehler: SQLSTATE beider Seiten, richtig zugeordnet | beide vertauscht | `TestVergleichStruktur/anderer_SQLSTATE`, `TestVergleichErwarteterFehler` |
+| M23b | … der SQLSTATE beider Seiten | nur der des Servers | `TestVergleichStruktur/anderer_SQLSTATE`, `TestVergleichFatal` |
+| M24 | Text und weitere Felder erscheinen nie in der Meldung | `M` statt `C` in der Meldung | `TestVergleichStruktur/anderer_SQLSTATE`, `TestVergleichErwarteterFehler` |
+| M25 | je Interaktion die erste Abweichung | die letzte Position gemeldet | `TestVergleichStruktur/erste_von_mehreren_Abweichungen`, `TestVergleichFatalRand` |
+| M26 | bei jeder Abweichung außer `FATAL`/`PANIC` wird bis zum `ReadyForQuery` gelesen | Fehler bei der ersten abweichenden Nachricht | `TestVergleichAbbruchNachInteraktion` (zählt die `naechste` im Ablauf), `TestVergleichExtendedFehlerMitten` |
+| M27 | der Abbruch erfolgt vor der nächsten Interaktion | Lauf geht ohne `--continue-on-error` weiter | `TestVergleichAbbruchNachInteraktion` |
+| M28 | `--continue-on-error` läuft nach einer Abweichung weiter | bricht immer ab | `TestVergleichFortsetzung`, `TestVergleichZweitesSignal` |
+| M29 | die Abweichung nach `--continue-on-error` ist eine Meldung, Exit-Code 5 | Abweichung verschluckt | `TestVergleichFortsetzung` (drei Meldungen in der Reihenfolge), `TestVergleichErstesSignal` |
+| M30 | ein Serverfehler ohne Vorbild ist `PGR-E5004`, nicht `PGR-E4004` | Vergleich-Zweig der Fehlerantwort aus | `TestVergleichFehlerOhneVorbild`; E2E `TestE2EPlayVergleichAbweichung/Serverfehler_ohne_Vorbild` |
+| M31 | ein Fehler mit gleichem SQLSTATE wie aufgezeichnet gilt als erwartet und bricht nicht ab | jeder Fehler bricht beim Lesen ab | `TestVergleichErwarteterFehler`, `TestVergleichExtendedFehlerMitten`; E2E `TestE2EPlayVergleichGleich`, `TestE2EPlayVergleichExtendedFehler` |
+| M32 | `--allow-recorded-errors` ist mit Vergleich ohne Wirkung | erwarteter Fehler gilt auch mit Vergleich | `TestVergleichErwarteterFehler` (anderer SQLSTATE bei aufgezeichnetem Fehler) |
+| M33a | `FATAL`/`PANIC` mit Vergleich ist `PGR-E5004`, nicht `PGR-E4003` | `PGR-E4003` | `TestVergleichFatal`, `TestVergleichFatalExtendedGruppen`; E2E `TestE2EPlayVergleichFatal` |
+| M34 | … auch bei gleichem SQLSTATE wie die aufgezeichnete | gleicher SQLSTATE ist keine Abweichung | `TestVergleichFatal` |
+| M33b | … sofort | Fehlerantwort geht in den Vergleich am Ende ein | `TestVergleichFatal` |
+| M35 | … play liest nach ihr nichts mehr (verneinend) | liest bis zum `ReadyForQuery` weiter | `TestVergleichFatal` (der Server liefert danach zwei Nachrichten; der Ablauf zählt vier `naechste`), `TestVergleichFatalExtendedGruppen` |
+| M52 | … in der Antwort auf eine Gruppe mit `Flush` sendet play keine weitere Gruppe (verneinend) | Fehlerantwort im Warten verschluckt | `TestVergleichFatalExtendedGruppen` |
+| M36a | die Interaktion zählt als verglichen | zählt nicht | `TestVergleichFatal`, `TestVergleichFatalFortsetzung` |
+| M36b | … und als abweichend | zählt nicht | `TestVergleichFatal`, `TestVergleichFatalFortsetzung` |
+| M37 | mit `--continue-on-error` endet die Session, die nächste läuft | die Session sendet die nächste Interaktion | `TestVergleichFatalFortsetzung` |
+| M38 | … die Session endet ohne Fehler | `errSessionEnde` wird als Fehler gemeldet | `TestVergleichFatalFortsetzung` |
+| M39 | … der Lauf bricht nicht ab | `PGR-E5004` bricht ab | `TestVergleichFatalFortsetzung` |
+| M40 | eine frühere Abweichung der Interaktion geht der Fehlerantwort vor | Fehlerantwort immer gemeldet | `TestVergleichFatalRand` |
+| M41 | die Position der Fehlerantwort in der normalisierten Folge | Position minus eins | `TestVergleichFatal`, `TestVergleichFatalFortsetzung` |
+| M42 | der Schweregrad kommt aus `V`, ohne `V` aus `S` | nur `S` | `TestVergleichFatal` (V FATAL bei S SCHWER), `TestVergleichFatalRand` (S FATAL, V ERROR), `TestPlayFehlerantwort` |
+| M43 | `PANIC` wie `FATAL` | `PANIC` entfernt | `TestVergleichFatal` (V PANIC, S PANIC) |
+| M44 | ein Verbindungsverlust ohne Fehlerantwort ist `PGR-E4003`, keine Abweichung | `PGR-E5004` | `TestVergleichVerbindungsverlust` |
+| M46 | … auch mit `--continue-on-error` sofort, Exit-Code 4 nach einer früheren Abweichung | Verlust wird mit der Option verschluckt | `TestVergleichVerbindungsverlust`, `TestVergleichFatalFortsetzung` |
+| M45 | eine Interaktion, die ein Verbindungsverlust oder das zweite Signal unterbricht, zählt nicht als verglichen (verneinend) | `verglichen` zählt am Beginn | `TestVergleichVerbindungsverlust`, `TestVergleichZweitesSignal` |
+| M54 | das zweite Signal unterbricht ohne Vergleich (verneinend) | die gelesenen Antworten werden verglichen und gezählt | `TestVergleichZweitesSignal`, `TestVergleichVerbindungsverlust` |
+| M53 | das erste Signal beendet die Interaktion mit Vergleich, eine Abweichung darin wird festgestellt | Fehler nach dem ersten Signal verschluckt | `TestVergleichErstesSignal` |
+| M47 | `eingespielt` zählt ab dem Beginn des Sendens, auch wenn es scheitert | zählt nur, wenn die Interaktion ohne Fehler endet | `TestVergleichZaehlerEingespielt` (einfach und Extended, ohne und mit Vergleich) |
+| M48 | `abweichend` zählt nur Interaktionen mit Abweichung, höchstens eine je Interaktion | zählt jede verglichene | `TestVergleichStruktur` (Zähler jedes Falls), `TestVergleichFortsetzung` |
+| M49 | `verglichen` zählt am Ende der Interaktion | zählt nie | `TestVergleichStruktur`, `TestVergleichAbbruchNachInteraktion` |
+| M51 | nach einer Fehlerantwort mitten in einer Extended-Interaktion werden die übrigen Gruppen ohne Warten gesendet | `fehlerGesehen` entfernt | `TestVergleichExtendedFehlerOhneWarten`, `TestPlayExtendedFortsetzung` |
+| C1 | Leser: die Option steht in `optionen("play")` | Eintrag entfernt | `TestLeserOptionen`, `TestLeserZuordnungGleichTabelle`, `TestParsePlayLaufsteuerung` |
+| C2 | Leser: Kommandozeile, Umgebungsvariable und Schlüssel `compare_responses` setzen das Feld | Feld bleibt `false` | `TestParsePlayLaufsteuerung/compare-responses`, `TestLeserAlleOptionen`; E2E `TestE2EPlayVergleichQuellen`, `…Gleich` |
+| C3 | Leser: Standard `false` | `true` | `TestLeserAlleOptionen`, `TestParsePlay` |
+| C6 | Option gehört zu `play` (Spalte *Kommando*): bei `record` und `replay` ist die Variable `PGR-E2001` | Zuordnung auf `record` und `replay` | `TestLeserAlleOptionen`, `TestLeserUmgebungAndererKommandos` |
+| C7 | Bindung aus `slice-v1-abschluss-umgebung-anderes-kommando`: `nichtGelesen()` führt die Option nicht, die Variable wird geprüft | `compare-responses` wieder in `nichtGelesen()` | `TestLeserUmgebungNichtGelesenerOptionen` (der Test verlangt die Variable einer Option in `nichtGelesen()` als unbeachtet, auch mit ungültigem Wert; der Leser prüft sie) |
+| C4 | Hilfetext nennt `--compare-responses` und die Variable | Option im Text umbenannt | `TestParsePlayHilfe` |
+| C5 | Hilfetext: Abweichung ist `PGR-E5004`, Exit-Code 5 | Exit-Code 4 im Text | `TestParsePlayHilfe` |
+| C8 | die Zeile `play beendet` trägt `verglichen` aus dem Zähler | `eingespielt` an dieser Stelle | `TestRunPlayVergleich` |
+| C10 | … `abweichend` aus dem Zähler | konstant 0 | `TestRunPlayVergleich` (Fall „abweichende Struktur“) |
+| C9 | … es entsteht keine zweite Zeile | zweite Zeile `play beendet` | `TestRunPlayVergleich`, `TestRunPlay` |
+| C11 | der Katalog nennt `PGR-E5004` | anderer Code | `TestRunPlayVergleich`, `TestVergleichStruktur` |
+
+**Nicht erreichbar.** Eine aufgezeichnete Folge, die vor der Position der Fehlerantwort `FATAL` endet, gibt es nicht: Sie endet in `ready_for_query`, das der Server vorher nicht schickte, die Folgen weichen dort schon ab; der Code hat den Zweig nicht. Der Zweig *Folgen verschiedener Länge mit gleichem Anfang* ist nur über eine einfache Aufzeichnung mit einem `ready_for_query` vor dem Ende erreichbar (`Validate` verbietet das nur bei Extended); `TestVergleichStruktur/Aufzeichnung_länger,_Anfang_gleich` fährt ihn (M56).
+
+**Geänderte bestehende Tests.** `fremd_test.go`: `nichtGelesen()` ohne `compare-responses` (Befund vorher: die Variable blieb beim eigenen Kommando unbeachtet; nachher: `TestLeserUmgebungNichtGelesenerOptionen` grün mit gekürzter Liste, rot mit der Option darin, C7). `play_test.go`: `TestParsePlayFremdeUmgebung` verliert den Teil zu einer Option, die `play` kennt und der Stand nicht liest (es gibt keine mehr); `TestParsePlayLaufsteuerung` führt die vierte Option, `TestParsePlayHilfe` ihren Hilfetext. `leser_test.go`: Standard und Optionsliste von `play`. `bootstrap/play_test.go`: `leerePlay` setzt die neue Variable leer.
+
+**Hilfetext (`AGENTS.md` §3.11).** Jeder Satz hat einen Test: *vergleicht die Struktur der Serverantworten jeder Interaktion mit der Aufzeichnung* (`TestVergleichStruktur`, `TestE2EPlayVergleichGleich`), *eine Abweichung ist PGR-E5004 (Exit-Code 5)* (`TestParsePlayHilfe` für den Text; `TestVergleichStruktur`, `TestRunPlayVergleich`, `TestE2EPlayVergleichAbweichung` für Code und Exit-Code), *Standard false* (`TestLeserAlleOptionen`), *Umgebungsvariable* (`TestParsePlayLaufsteuerung`, `TestE2EPlayVergleichQuellen`). Die Wirkung auf `--continue-on-error` und `--allow-recorded-errors` steht nicht im Hilfetext.
+
+**Akzeptierte Negative (§6).** (a) Der Service hält von der Folge des Servers nur die normalisierten Nachrichten (`data_row` kommt gar nicht in die Folge, `nimmNormalisiert`); kein Test, keine Zusage. (b) Kein Test mit zwei Serverversionen, wie dort. Beide unverändert.
+
+**Risiken (§6) für die Closure.** *Treiber mit abweichenden Hinweisen oder Parameterstatus*: gegen den realen Server belegt für beide Richtungen und beide Nachrichten (`TestE2EPlayVergleichHinweise`, Aufzeichnung mit `SET application_name` und `RAISE NOTICE`; dazu `pgx` im Extended-Modus in `TestE2EPlayVergleichExtended`); ob das für andere Treiber gilt, belegt der Test nicht. *Speicher bei großen Resultsets*: siehe (a), kein Test. *Aufgezeichnete Teile ohne `ReadyForQuery`*: entfallen (Architect).
+
+**Rückgaben und Hinweise.**
+
+1. **An den Architect, zur Bestätigung (Lesart in den Commits).** `LH-FA-24.a` *Ende der Aufzeichnung* sagt: `FATAL`/`PANIC` ist „stets eine Abweichung der Art Fehler“; *Art* sagt: bei verschiedenem Typ an einer Position ist die Art Nachrichtenart. Der Code liest den Satz zu `FATAL`/`PANIC` als den besonderen: Hat die Aufzeichnung an der Position keine `ErrorResponse` (etwa `command_complete`), ist die Art trotzdem Fehler, der SQLSTATE der Aufzeichnung ist leer („aufgezeichnet „“, Server „57P01““); eine frühere Abweichung der Interaktion geht vor. Festgehalten in `TestVergleichFatalRand` (Fall „FATAL an der Stelle von command_complete“). Wählt die Spezifikation anders, ändert sich `erste()` in `play_vergleich.go` um zwei Zeilen und dieser Fall.
+2. **An den Architect, zur Bestätigung.** `LH-FA-24.a` *Position*: „die Länge der kürzeren Folge plus 1“. Der Code meldet die Position der ersten Stelle, an der die Nachrichten verschieden sind (Stück für Stück, wie die Einleitung sagt); die Formel stimmt damit nur bei gleichem Anfang (`TestVergleichStruktur/Aufzeichnung_länger,_Anfang_gleich`, Position 3). Bei fehlender Nachricht in der Mitte (`TestVergleichStruktur/fehlende_Nachricht`: Aufzeichnung `row_description`, `command_complete`, `ready_for_query`, Server ohne `row_description`) meldet er Position 1, nicht Länge plus 1.
+3. **An den Nutzer (Lastenheft, kein Befund gegen den Slice).** Abnahmeszenario 16, dritter Satz („Endet die Aufzeichnung mit einem Verbindungsende, das der Server genauso verursacht, gilt es als erwartet“), ist nach der Bereinigung der Spezifikation unerreichbar: Die Aufzeichnung kennt kein Verbindungsende, ein Verbindungsverlust ohne Fehlerantwort ist `PGR-E4003`, `FATAL`/`PANIC` stets `PGR-E5004`. Er ist durch keinen Test belegt und nicht belegbar; das Lastenheft ist nicht geändert.
+4. **Für Review und Verifikation.** `errSessionEnde` ist ein Wert im Service, den `session()` in `nil` verwandelt; er verlässt den Service nicht. Der Service zählt `eingespielt` auch ohne Vergleich (DoD: Zeile `play beendet` trägt die Zähler immer); ohne Vergleich sind `verglichen` und `abweichend` 0.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
