@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-antwortvergleich
+**Fund:** Die Probe „über 1400 Zeilen nach dem Commit, der DoD-Punkte 1 und 2 erfüllt“ hatte keinen solchen Commit: `6ef3cf6` erfüllt alle drei Punkte (1350 + 48 = 1398), `35f1ec0` liegt bei 1441 + 54, `c03f502` bei 1494 + 54; der Abzug für DoD-Punkt 3 (etwa 500) ist geschätzt (Review F-672, Verifikation V-2). Der Planner wertete die Probe als wörtlich nicht eingetreten; gezählt wird hier die Form der Probe, nicht die Größe des Slice.

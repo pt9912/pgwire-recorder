@@ -11,3 +11,5 @@ Regelzeile zum Gegenmittel eines Gebers (die Namen, die der Implementer wählt, 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-zeitangaben-doku` (V-204) — eine Änderung an einem Harness-Artefakt (`implement-slice.md`) ohne Zeile im Plan; die Regel nennt Code, Gates, Tests und Spezifikation, das Harness-Artefakt ist dort nicht genannt, aber dieselbe Klasse. Die Verifikation fand es, der Implementer zog nach (Beleg `evidence/slice-v1-abschluss-zeitangaben-doku.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-umgebung-anderes-kommando` (F-2, V-1) — der Plan beschrieb erzeugte Abdeckungstabellen unvollständig und mit Zeilennummern, die veralten; behoben mit Testnamen statt Zeilen (Beleg `evidence/slice-v1-abschluss-umgebung-anderes-kommando.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-antwortvergleich` (F-668) — §1 und §3 beschrieben Leser und Exit-Code anders als der Diff (Beleg `evidence/slice-v1-abschluss-antwortvergleich.md`).

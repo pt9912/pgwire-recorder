@@ -11,3 +11,5 @@ Der Absatz zu einer Anleitung mit Folgeschritten (Ausgangszustand mit Inhalt und
 Der Satz zu den Mutanten der Befehlsfolge in `.claude/commands/implement-slice.md` Schritt 17 (sie stehen im Beleg-Slice `done/slice-v1-abschluss-einspielen-anmeldung-doku` §7; ein Plan wiederholt sie nur bei geänderter Befehlsfolge oder neuem Wächter, sonst verweist er dorthin; Entscheidung des Nutzers vom 2026-10-12) — Herkunfts-Anker `seit slice-v1-abschluss-zeitangaben-doku` (Beleg `evidence/slice-v1-abschluss-zeitangaben-doku.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-umgebung-anderes-kommando` (F-1) — ein Handbuchsatz über „Variablen mit dem Präfix“ war weiter als die Probe; die Regel „gleich welche(r) X“ galt schon, der Implementer wandte sie erst nach dem Review an (Beleg `evidence/slice-v1-abschluss-umgebung-anderes-kommando.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-antwortvergleich` (F-667) — eine Abdeckungs-Deklaration nannte `LH-FA-17/Boundary`, die der Test nicht prüft (Beleg `evidence/slice-v1-abschluss-antwortvergleich.md`).
