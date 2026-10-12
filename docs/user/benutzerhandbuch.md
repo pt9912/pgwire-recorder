@@ -1,6 +1,6 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.4  
+Version: 0.5  
 Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
 Stand: 12.10.2026  
 Autor: Projektteam pgwire-recorder  
@@ -30,7 +30,9 @@ Das Werkzeug arbeitet in drei Betriebsarten:
 * **Einspielen (`play`):** Das Werkzeug führt die aufgezeichneten Anfragen aus der
   Datei gegen eine Datenbank aus. Ihre Anwendung ist nicht beteiligt. Auf Wunsch wartet
   es auf die aufgezeichneten Abstände zwischen den Anfragen (siehe
-  [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)).
+  [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)) und
+  vergleicht die Antworten der Datenbank mit der Aufzeichnung (siehe
+  [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen)).
 
 ### Zielgruppe
 
@@ -480,6 +482,9 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
 
 #### Hinweise
 
+* Die drei folgenden Hinweise zu Fehlerantworten der Datenbank beschreiben das
+  Einspielen ohne `--compare-responses`; mit der Option gilt
+  [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen).
 * Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
   ab (`PGR-E4004`, Exit-Code 4). Mit `--continue-on-error` läuft es mit der
   nächsten Anfrage weiter und meldet jeden dieser Fehler im Log; der Exit-Code ist
@@ -537,9 +542,114 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   einer Folge des erweiterten Protokolls nach deren `Sync`; mit
   `--finish-session-on-interrupt` erst nach der laufenden Sitzung. Ein zweites
   Signal schließt die Verbindung sofort, auch mit dieser Option; die unterbrochene
-  Anfrage zählt nicht als Fehler. Der Exit-Code ist 0, nach einem früheren Fehler 4.
+  Anfrage zählt nicht als Fehler. Der Exit-Code ist 0, nach einem früheren Fehler 4, nach
+  einer Abweichung beim Vergleich 5.
 * Das Einspielen führt Anfragen aus. Verwenden Sie es nicht gegen eine Datenbank,
   deren Inhalt Sie nicht verändern dürfen.
+
+### Antworten beim Einspielen vergleichen
+
+Mit `--compare-responses` vergleicht `play` nach jeder Interaktion die Antworten der
+Datenbank mit den aufgezeichneten. Eine Interaktion ist eine einfache Anfrage oder
+eine Folge des erweiterten Protokolls bis zu ihrem `Sync`; ihre Nummer ist die der
+Aufzeichnung. So erkennen Sie, ob die Datenbank, in die Sie einspielen, anders
+antwortet als die, gegen die Sie aufgezeichnet haben, etwa mit anderen Spalten.
+
+#### Voraussetzung
+
+Wie beim Einspielen.
+
+#### Vorgehen
+
+1. Starten Sie das Einspielen mit der Option:
+
+   ```bash
+   pgwire-recorder play \
+     --upstream postgres:5432 \
+     --input ./recordings/users.yaml \
+     --compare-responses
+   ```
+
+   Statt der Option genügt die Umgebungsvariable
+   `PGWIRE_RECORDER_COMPARE_RESPONSES=true` oder der Schlüssel `compare_responses: true`
+   im Abschnitt `play:` der Konfigurationsdatei:
+
+   ```yaml
+   play:
+     upstream: postgres:5432
+     input: ./recordings/users.yaml
+     compare_responses: true
+   ```
+2. Warten Sie, bis das Werkzeug endet.
+
+#### Ergebnis
+
+Stimmen die Antworten der Datenbank mit der Aufzeichnung überein, endet `play` mit
+Exit-Code 0. Die Zeile zum Ende nennt, wie viele Interaktionen eingespielt und
+verglichen wurden und wie viele abwichen:
+
+```text
+time=2026-10-12T14:03:12.481+02:00 level=INFO msg="play beendet" eingespielt=3 verglichen=3 abweichend=0
+```
+
+Weicht eine Antwort ab, meldet `play` `PGR-E5004` und endet mit Exit-Code 5:
+
+```text
+time=2026-10-12T14:03:12.482+02:00 level=ERROR msg=Fehler code=PGR-E5004 error="Replay [PGR-E5004]: Session 1, Interaktion 1: Antwort weicht von der Aufzeichnung ab: Position 1, Art Spaltenbeschreibung"
+time=2026-10-12T14:03:12.482+02:00 level=INFO msg="play beendet" eingespielt=1 verglichen=1 abweichend=1
+```
+
+#### Hinweise
+
+* Verglichen werden die Art und die Reihenfolge der Antworten der Datenbank. Bei der
+  Beschreibung der Spalten zählen ihre Anzahl und je Spalte Name und Typ; beim
+  erweiterten Protokoll zählt auch die Beschreibung der Parameter. Bei einem
+  abgeschlossenen Befehl zählt der Befehl ohne die abschließenden Zahlen: `UPDATE 1` und
+  `UPDATE 7` sind gleich, `UPDATE 1` und `DELETE 1` nicht. Bei einem Fehler zählt der
+  SQLSTATE, bei der Bereitschaft für die nächste Anfrage der Transaktionsstatus. Das gilt
+  für einfache Anfragen und für das erweiterte Protokoll.
+* Nicht verglichen werden die Werte und die Zahl der Zeilen, Hinweise der Datenbank
+  (`NOTICE`), Meldungen über Einstellungen des Servers (etwa nach
+  `SET application_name`) und der Text eines Fehlers.
+* Die Meldung `PGR-E5004` nennt die Sitzung (`Session`), die Nummer der Interaktion, die
+  Position der ersten abweichenden Antwort und die Art der Abweichung. Die Position zählt
+  ab 1; Zeilen, Hinweise und Meldungen über Einstellungen zählen nicht mit. Die Art ist
+  `Nachrichtenart` (die Datenbank antwortet mit einer anderen Art von Antwort),
+  `Spaltenbeschreibung`, `Befehl`, `Fehler` oder `Transaktionsstatus`. Bei der Art
+  `Fehler` nennt die Meldung die SQLSTATE der Aufzeichnung und der Datenbank, nie den
+  Text des Fehlers. Je Interaktion meldet `play` die erste Abweichung.
+* Ohne `--continue-on-error` endet `play` nach der Interaktion mit der Abweichung; die
+  weiteren Interaktionen zählen nicht als eingespielt. Mit `--continue-on-error` macht es
+  mit der nächsten Interaktion weiter und meldet jede Interaktion mit einer Abweichung;
+  der Exit-Code ist dann 5. Ohne `--compare-responses` findet kein Vergleich statt.
+* Antwortet die Datenbank mit einem Fehler, den die Aufzeichnung an dieser Stelle nicht
+  trägt, ist das mit Vergleich `PGR-E5004` (Art `Nachrichtenart`) und nicht `PGR-E4004`.
+  Trägt die Aufzeichnung an dieser Stelle eine Fehlerantwort mit demselben SQLSTATE, ist
+  das keine Abweichung, auch bei einem anderen Text; `play` macht mit der nächsten
+  Interaktion weiter, ohne `--continue-on-error`. Ein anderer SQLSTATE ist `PGR-E5004`
+  mit der Art `Fehler`.
+* Mit Vergleich hat `--allow-recorded-errors` keine Wirkung: Ein Fehler ohne Vorbild oder
+  mit einem anderen SQLSTATE bleibt `PGR-E5004`, einer mit demselben SQLSTATE ist auch
+  ohne die Option erwartet.
+* Beendet die Datenbank die Verbindung mit einer Fehlerantwort `FATAL` oder `PANIC`, ist
+  das mit Vergleich `PGR-E5004`, auch wenn die Aufzeichnung an dieser Stelle einen Fehler
+  mit demselben SQLSTATE trägt. Die Art ist `Fehler` an der Position der Fehlerantwort;
+  weicht davor schon eine Antwort ab, nennt die Meldung diese Abweichung. Ohne Vergleich
+  ist es `PGR-E4003`.
+* Bricht die Verbindung ohne Fehlerantwort der Datenbank ab, ist das `PGR-E4003` mit
+  Exit-Code 4, auch nach einer Abweichung; beide Meldungen stehen im Log.
+* Das erste Abbruchsignal (`Strg+C`, `SIGTERM`) beendet die laufende Interaktion mit
+  Vergleich; eine Abweichung darin ist `PGR-E5004`, und der Exit-Code ist 5, wenn sie oder
+  eine frühere Interaktion abwich.
+* Die Zeile `play beendet` trägt die Zähler `eingespielt`, `verglichen` und `abweichend`.
+  Eine Interaktion, die ein Verbindungsverlust unterbricht, zählt als eingespielt, nicht
+  als verglichen. Ohne `--compare-responses` sind `verglichen` und `abweichend` 0. Die
+  Zeile hat die Stufe `info`; mit `--log-level warn` erscheint sie nicht.
+* Die Option gibt es nur bei `play`: bei `record` und `replay` ist sie ein ungültiger
+  Aufruf (`PGR-E2001`), ebenso `PGWIRE_RECORDER_COMPARE_RESPONSES`. Der Schlüssel
+  `compare_responses` im Abschnitt `record:` oder `replay:` ist `PGR-E2004`, ebenso ein
+  anderer Wert als `true` oder `false`. Die Umgebungsvariable mit einem anderen Wert ist
+  `PGR-E2001`.
 
 ### Zeitangaben aufzeichnen und einspielen
 
@@ -879,7 +989,8 @@ Die Umgebungsvariable einer Option, die die Betriebsart nicht kennt (Spalte
 gesetzt und nicht leer ist, gleich welchen Wert sie hat, ob `true`, `5s` oder ein Wert,
 den die Option nicht annimmt; die Meldung nennt den Namen der Variable, nie ihren
 Wert. So ist `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` bei `record` und `play` ein
-Fehler und `PGWIRE_RECORDER_LISTEN` bei `play`. Wer `record` und `play` in derselben
+Fehler, `PGWIRE_RECORDER_LISTEN` bei `play` und `PGWIRE_RECORDER_COMPARE_RESPONSES` bei
+`record` und `replay`. Wer `record` und `play` in derselben
 Umgebung ausführt, setzt dort die Variablen der Optionen der jeweils anderen
 Betriebsart nicht. `config show` prüft von den Variablen nur
 `PGWIRE_RECORDER_CONFIG`. Unbeachtet bleiben: `PGWIRE_RECORDER_PASSWORD`, das keine Option
@@ -908,6 +1019,7 @@ andere Schreibweise des Namens einer Option.
 | `--keep-timing` | `play` | `PGWIRE_RECORDER_KEEP_TIMING` | `false` |
 | `--timing-mode` | `play` | `PGWIRE_RECORDER_TIMING_MODE` | `relative` (Werte `relative`, `absolute`; nur mit `--keep-timing`) |
 | `--timing-reference` | `play` | `PGWIRE_RECORDER_TIMING_REFERENCE` | `connect` (Werte `connect`, `first-request`; nur mit `--keep-timing` und `absolute`) |
+| `--compare-responses` | `play` | `PGWIRE_RECORDER_COMPARE_RESPONSES` | `false` |
 | `--config` | `record`, `replay`, `play`, `config show` | `PGWIRE_RECORDER_CONFIG` | `.pgwire-recorder.yaml` im aktuellen Verzeichnis |
 | `--log-level` | `record`, `replay`, `play` | `PGWIRE_RECORDER_LOG_LEVEL` | `info` |
 
@@ -1083,7 +1195,7 @@ mit `--input=--` an. `record`, `replay` und `play` nehmen nach `--` kein Argumen
 | 2 | ungültiger Aufruf oder ungültige Konfiguration |
 | 3 | Aufzeichnung ungültig oder nicht zugreifbar |
 | 4 | Netzwerk- oder Datenbankfehler, auch eine Anfrage, die beim Beenden die Frist `--shutdown-timeout` unvollständig beendet hat (`PGR-E4006`) |
-| 5 | Abweichung bei der Wiedergabe, mit `--fail-on-unconsumed` auch nicht gestellte Anfragen oder nie verwendete Sitzungen |
+| 5 | Abweichung bei der Wiedergabe, mit `--fail-on-unconsumed` auch nicht gestellte Anfragen oder nie verwendete Sitzungen, bei `play` mit `--compare-responses` eine Antwort der Datenbank, die von der Aufzeichnung abweicht |
 | 6 | nicht unterstützte Funktion des Protokolls |
 
 Ein Fehler, der nur eine Verbindung betrifft, beendet diese Verbindung. Das
@@ -1131,7 +1243,7 @@ für den Exit-Code.
 | `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder eine gesetzte, nicht leere Umgebungsvariable gehört zu einer Option, die die Betriebsart nicht kennt (die Meldung nennt den Namen der Variable, nicht den Wert; siehe [Einstellungen](#5-einstellungen)), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`), oder `--timing-mode` oder `--timing-reference` steht ohne `--keep-timing`, oder `--timing-reference` steht mit `relative` (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
 | `PGR-E2003` | Aufzeichnung ohne Zeitangabe bei `--keep-timing` | `play --keep-timing` hat eine Aufzeichnung, in der eine Anfrage kein `offset_ms` trägt. Die Meldung nennt die Sitzung und die Nummer der ersten Anfrage ohne Zeitangabe. Zeichnen Sie mit `--record-timing` erneut auf, oder spielen Sie ohne `--keep-timing` ein. |
-| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`), `format` (erlaubt sind `yaml` und `sqlite`), `record_timing` und `keep_timing` (erlaubt sind `true` und `false`), `timing_mode` (erlaubt sind `relative` und `absolute`) und `timing_reference` (erlaubt sind `connect` und `first-request`). |
+| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`), `format` (erlaubt sind `yaml` und `sqlite`), `record_timing`, `keep_timing` und `compare_responses` (erlaubt sind `true` und `false`), `timing_mode` (erlaubt sind `relative` und `absolute`) und `timing_reference` (erlaubt sind `connect` und `first-request`). |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
 | `PGR-E2007` | Datei von `--upstream-ca` nicht verwendbar | Die Datei fehlt, ist nicht lesbar, ist keine reguläre Datei oder enthält keine Zertifikate im PEM-Format. Die Meldung nennt die Option und den Grund, nicht den Pfad; der Exit-Code ist 2. Prüfen Sie Pfad, Rechte und Inhalt der Datei. |
@@ -1143,12 +1255,13 @@ für den Exit-Code.
 | `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. Bei `play` mit TLS gehört dazu: Die Antwort auf die Anfrage nach Verschlüsselung ist weder `S` noch `N`, oder die Verbindung endet davor. |
-| `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Sitzung und die Nummer der Anfrage in der Aufzeichnung, dazu SQLSTATE und Meldung der Datenbank, nicht den Text der Anfrage. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. |
+| `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Sitzung und die Nummer der Anfrage in der Aufzeichnung, dazu SQLSTATE und Meldung der Datenbank, nicht den Text der Anfrage. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. Mit `--compare-responses` ist ein Fehler, den die Aufzeichnung an dieser Stelle nicht trägt, `PGR-E5004`. |
 | `PGR-E4005` | Anmeldung oder TLS zur Datenbank abgelehnt oder nicht unterstützt | Beim Einspielen hat die Datenbank die Anmeldung abgelehnt, etwa weil der Benutzer fehlt oder das Passwort falsch ist, oder sie verlangt ein Passwort, das `play` nicht hat, oder ein Anmeldeverfahren, das `play` nicht kann. Die Meldung nennt die Sitzung; bei einer Ablehnung außerdem SQLSTATE und Meldung der Datenbank, bei fehlendem Passwort, dass `play` keines hat. `play` meldet sich mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an; bietet die Datenbank nur `SCRAM-SHA-256-PLUS` an oder verlangt sie Kerberos, GSSAPI oder SSPI, endet `play` ebenfalls mit diesem Code. Dasselbe gilt für eine Datenbank, die Verbindungen ohne Verschlüsselung ablehnt, wenn `play` kein TLS wünscht. Mit TLS endet `play` mit diesem Code auch, wenn die Datenbank TLS ablehnt (Antwort `N`, ohne Rückfall auf eine Verbindung ohne TLS) oder ihr Zertifikat nicht angenommen wird: Das Zertifikat lässt sich weder mit dem Speicher des Systems noch mit `--upstream-ca` überprüfen, der Host steht nicht im Zertifikat, oder das Zertifikat ist abgelaufen. Die Meldung nennt die Sitzung und den Grund, nie Pfad oder Inhalt der Datei aus `--upstream-ca`. Prüfen Sie Benutzer und Datenbank (`--user`, `--database`), das Passwort (siehe [Einstellungen](#5-einstellungen)), den Host der Verbindung und `--upstream-ca`. |
 | `PGR-E4006` | Anfrage beim Beenden unvollständig | Die Frist `--shutdown-timeout` ist abgelaufen, oder ein zweites Signal hat sie ablaufen lassen, während eine Anfrage lief. Die Meldung nennt die Sitzung und die Anfrage; beim Aufzeichnen fehlt diese Anfrage in der Aufzeichnung. Lassen Sie die Anwendung vor dem Beenden zur Ruhe kommen, oder wählen Sie eine längere Frist (siehe [Herunterfahren mit Frist](#herunterfahren-mit-frist)). |
 | `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen aufgezeichnet sind. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
+| `PGR-E5004` | Antwort der Datenbank weicht von der Aufzeichnung ab | `play` mit `--compare-responses` hat bei einer Interaktion eine andere Antwort erhalten als aufgezeichnet. Die Meldung nennt Sitzung, Nummer der Interaktion, Position und Art der ersten Abweichung, bei der Art `Fehler` die SQLSTATE beider Seiten. Prüfen Sie, ob die Datenbank dieselbe Struktur hat wie die, gegen die Sie aufgezeichnet haben, oder zeichnen Sie erneut auf; siehe [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen). Der Exit-Code ist 5. |
 | `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen verlangt die Datenbank ein Passwort; oder die Datenbank antwortet bei `play` mit einem COPY-Datenstrom. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht; verlangt die Datenbank beim Aufzeichnen ein Passwort, lassen Sie die Anmeldung dort ohne Passwort zu. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls. Verwenden Sie einen Treiber, der sie nutzt. |
 
@@ -1208,6 +1321,7 @@ Werkzeugs.
 | Erweitertes Anfrageprotokoll | Protokollvariante mit vorbereiteten Anweisungen und Parametern |
 | Upstream | die echte Datenbank, an die `record` weiterleitet |
 | Meldungscode | Kennung einer Meldung des Werkzeugs, zum Beispiel `PGR-E5001` |
+| Interaktion | eine einfache Anfrage oder eine Folge des erweiterten Protokolls bis zu ihrem `Sync`, mit den Antworten der Datenbank; ihre Nummer in der Aufzeichnung steht in den Meldungen von `play` |
 | Zeitangabe | das Feld `offset_ms` einer Anfrage in der Aufzeichnung: die Millisekunden seit der Startup-Nachricht der Verbindung bis zum Eintreffen der Anfrage, aufgezeichnet mit `--record-timing` |
 
 ## 10. Support und Kontakt

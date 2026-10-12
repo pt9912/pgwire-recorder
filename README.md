@@ -23,9 +23,13 @@ daraus ohne Datenbank und erkennt das Format der Datei selbst, ebenso `play`. Le
 stehen; mit `--fail-on-unconsumed` endet `replay` mit einem Fehler, wenn
 aufgezeichnete Interaktionen nicht abgerufen wurden. `pgwire-recorder play` spielt
 die Anfragen einer Aufzeichnung, einfache wie vorbereitete Anweisungen, gegen eine
-Datenbank ein; nach einer Fehlerantwort der Datenbank bricht es ab, mit
-`--continue-on-error` läuft es weiter, und mit `--finish-session-on-interrupt` endet
-es nach einem Abbruchsignal erst nach der laufenden Sitzung. Antwortet die Datenbank
+Datenbank ein; ohne `--compare-responses` bricht es nach einer Fehlerantwort der
+Datenbank ab, mit `--continue-on-error` läuft es weiter, und mit
+`--finish-session-on-interrupt` endet es nach einem Abbruchsignal erst nach der laufenden
+Sitzung. Mit `--compare-responses` vergleicht `play` die Antworten der Datenbank mit der
+Aufzeichnung (Art und Reihenfolge der Antworten, Spalten, Befehl, SQLSTATE eines Fehlers,
+Transaktionsstatus; nicht Zeilenwerte und Hinweise) und meldet eine Abweichung als
+`PGR-E5004` mit Exit-Code 5. Antwortet die Datenbank
 mit einem COPY-Datenstrom, endet `play` mit `PGR-E6001`. `record` und `replay` nehmen
 Verbindungen nur ohne TLS an, und `record` verbindet ohne TLS zur Datenbank; `play`
 verbindet auf Wunsch (`--upstream-tls` oder `sslmode=require` der Verbindung) mit TLS,
