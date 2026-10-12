@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen), [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0020](../../adr/0020-antwortvergleich-beim-einspielen.md), [ADR-0023](../../adr/0023-antwortvergleich-entscheidung.md)
 
-**Berührte Spec-Stellen:** `LH-FA-24.a` · `LH-FA-17.a` · `LH-FA-20.a` · `LH-FA-02.b` · `SPEC-018` · `SPEC-027` · `SPEC-034` · `SPEC-041` · `ARC-002`
+**Berührte Spec-Stellen:** `LH-FA-24.a` · `LH-FA-17.a` · `LH-FA-20.a` · `LH-FA-21.a` · `LH-FA-02.b` · `SPEC-018` · `SPEC-027` · `SPEC-034` · `SPEC-041` · `ARC-002`
 
 **Verantwortlich:** pt9912
 
@@ -32,7 +32,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** `pgwire-recorder play --compare-responses` vergleicht die Struktur der Serverantworten und Fehler mit der Aufzeichnung und meldet Abweichungen als `PGR-E5004` mit Exit-Code 5.
 
-**Gebunden durch `slice-v1-abschluss-umgebung-anderes-kommando`** (dort §7, Paarungen, offene Frage zu V-3; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): `--compare-responses` liest der Stand noch nicht; `nichtGelesen()` in `internal/adapters/driving/cli/fremd_test.go` führt sie. Dieser Slice liefert den Leser, kürzt `nichtGelesen()` um diese Option(en) und bindet ihn in `liesUmgebung` (`internal/adapters/driving/cli/cli.go`) an; die Zuordnung `zuordnung()` nennt sie für `play` (Spalte *Kommando* der Optionstabelle, `LH-FA-17.a`). Sonst wird `TestLeserUmgebungNichtGelesenerOptionen` rot, weil die Variable beim eigenen Kommando dann geprüft wird (`TestLeserZuordnungGleichTabelle` bleibt grün). Beim anderen Kommando (`record` und `replay`) ist die Variable schon jetzt `PGR-E2001`.
+**Gebunden durch `slice-v1-abschluss-umgebung-anderes-kommando`** (dort §7, Paarungen, offene Frage zu V-3; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): `--compare-responses` liest der Stand noch nicht; `nichtGelesen()` in `internal/adapters/driving/cli/fremd_test.go` führt sie. Dieser Slice führt die Option in `optionen("play")` (`internal/adapters/driving/cli/cli.go`), deren Leser generisch ist (`liesUmgebung` bleibt unverändert), und kürzt `nichtGelesen()` um diese Option(en); die Zuordnung `zuordnung()` nennt sie für `play` schon (Spalte *Kommando* der Optionstabelle, `LH-FA-17.a`). Sonst wird `TestLeserUmgebungNichtGelesenerOptionen` rot, weil die Variable beim eigenen Kommando dann geprüft wird (`TestLeserZuordnungGleichTabelle` bleibt grün). Beim anderen Kommando (`record` und `replay`) ist die Variable schon jetzt `PGR-E2001`.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -71,7 +71,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/hexagon/services` (Play-Service) | update | Normalisierung und Vergleich der Antworten, ohne PGWire-Typen |
 | `internal/hexagon/model` | update | Katalogeintrag `PGR-E5004` (eine Konstante; zählt mit dem Play-Service als Kern, wie die Codes der früheren Play-Slices) |
-| `internal/adapters/driving/cli` | update | Option `--compare-responses` (Kommandozeile, Umgebungsvariable, Schlüssel), Hilfetext, Abbildung auf Exit-Code 5 |
+| `internal/adapters/driving/cli` | update | Option `--compare-responses` in `optionen("play")` (Kommandozeile, Umgebungsvariable, Schlüssel über den generischen Leser), Hilfetext; der Exit-Code 5 kommt aus der Klasse des Katalogeintrags `PGR-E5004` in `model`, der Adapter bildet ihn nicht ab |
 | `internal/bootstrap` | update | reicht die Zähler des Services an die Zeile zum Ende durch; reine Verdrahtung, keine Schicht (`AGENTS.md` §3.13), kein Lesen und kein Einstufen |
 | `test/integration` | update | Happy/Boundary/Negative nach LH-FA-24 |
 
@@ -121,6 +121,7 @@ dasteht.
 | Extended: Folge aller Server-Nachrichten ohne Gruppengrenzen; Fehler mitten in der Interaktion; Abbruch erst am Ende der Interaktion, außer `FATAL`/`PANIC` | `LH-FA-24.a` (Einleitung), `LH-FA-20.a` Schritt 6 und *Gruppen* |
 | Aufgezeichnete Interaktion ohne `ReadyForQuery`, aufgezeichnetes Verbindungsende: gibt es nicht (Leser lehnt ab) | `LH-FA-24.a` *Ende der Aufzeichnung*, `LH-FA-02.b` *Replay* |
 | Verbindungsverlust ohne Fehlerantwort: `PGR-E4003`, nach einer Abweichung ebenfalls 4 | `LH-FA-20.a` (Tabelle, Absatz darunter) |
+| `--keep-timing` zugleich mit `--compare-responses`: der Vergleich ändert die Wartezeit nicht, die Wartezeit liegt vor der Interaktion, die Antwort wird nach ihr verglichen; Test `TestPlayZeitMitVergleich` | `LH-FA-21.a` (*Mit `--compare-responses`*) |
 | Abbruch und Herunterfahren: erstes Signal (Interaktion wird verglichen), zweites Signal (ohne Vergleich), `--finish-session-on-interrupt` | `LH-FA-20.a` Schritt 7 und *Abbruchsignal*, `LH-FA-24.a` *Randformen des Vergleichs*, *Signal* |
 | Zähler: wann eine Interaktion `eingespielt`, `verglichen`, `abweichend` zählt; die Zeile zum Ende trägt sie, keine zweite Zeile; Stufe `info`; Lauf ohne Interaktion; ohne Option alle `verglichen`/`abweichend` 0 | `LH-FA-24.a` *Meldung*, `LH-FA-20.a` Schritt 4 und *Meldungen* |
 | Reihenfolge der Zeilen `error` bei Abweichungen: je Interaktion eine Zeile, in der Reihenfolge des Auftretens, abbrechende zuerst | `LH-FA-20.a` *Meldungen*, *Exit-Code* |
