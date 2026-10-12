@@ -425,6 +425,7 @@ zulässig, der PGWire 3.0 spricht (`SPEC-029`).
 | `CancelRequest` | Verbindung wird geschlossen, nicht an den Upstream weitergeleitet; kein Verbindungsfehler, Warnung `PGR-W3001` |
 | Verbindung ohne erste Nachricht (etwa eine TCP-Probe) | Verbindung wird geschlossen; kein Verbindungsfehler, keine Warnung |
 | erste Nachricht, die keine PGWire-Startnachricht ist: Längenfeld unter 8 oder über `SPEC-045` (etwa eine HTTP-Anfrage) | Verbindung wird ohne Antwort geschlossen; kein Verbindungsfehler, Warnung `PGR-W3003` |
+| Startnachricht mit vollständigem Kopf (8 Bytes), deren Rest die Verbindung nicht liefert (Abbruch oder Ende mitten in der Nachricht) | Verbindungsfehler `PGR-E6001` (Exit-Code `6`), keine Session; eine Verbindung, die vor dem vollständigen Kopf endet, ist die Zeile *Verbindung ohne erste Nachricht* |
 | Startnachricht mit anderer Protokollversion als 3.0 | `ErrorResponse` mit `PGR-E6002` (siehe oben) |
 | Sonderanfrage mit unbekanntem Code (Hauptnummer 1234) | nicht unterstützt (`PGR-E6001`) |
 | Extended-Query-Nachrichten (`Parse`, `Bind`, `Describe`, `Execute`, `Close`, `Flush`, `Sync`) | unterstützt (LH-FA-18.a) |
@@ -686,7 +687,10 @@ Verbindung mit mindestens einer abgeschlossenen Interaktion wird als eigene Sess
 geführt; mit `--record-empty-sessions` jede angenommene Verbindung, auch eine ohne
 Anfrage (als Session ohne Interaktionen). Die `id` ist eine fortlaufende Zahl ab 1
 ohne Lücken und wird beim Schreiben der Session vergeben, in der Reihenfolge der
-Sessionenden; eine verworfene Session (LH-FA-05.a) erhält keine `id`.
+Sessionenden. Ein Sessionende ist der Zeitpunkt, zu dem der Recorder das Ende bemerkt und die
+Session beendet, nicht der Zeitpunkt, zu dem der Client abbricht: Bricht der Client mitten in
+einer Anfrage ab, bemerkt der Recorder das erst, wenn die Anfrage an den Upstream zurückkehrt,
+und die `id` folgt diesem Zeitpunkt. Eine verworfene Session (LH-FA-05.a) erhält keine `id`.
 Eine Interaktion mit Ende des Servers (`LH-FA-25.a`) ist eine abgeschlossene Interaktion und
 die letzte ihrer Session. Werden die
 Verbindungen nacheinander genutzt, ist das die Reihenfolge der ersten Anfragen. Mit
@@ -704,7 +708,11 @@ in `meta`, `SPEC-043`).
   Aufbau zum Upstream nach dem Zwangsende noch gelingt: Der Record-Use-Case erkennt das Zwangsende
   im Aufbau daran, dass die Session beim Zwangsende weder eine begonnene noch eine abgeschlossene
   Interaktion hat, und schreibt sie nicht. Eine ruhende Session ohne Interaktion endet beim
-  Herunterfahren vor der Frist und wird mit der Option geschrieben; das Zwangsende trifft sie nicht.
+  Herunterfahren vor der Frist und wird mit der Option geschrieben. Trifft sie das Zwangsende,
+  bevor ihr Ende bemerkt ist (etwa durch ein zweites Signal, LH-FA-13.a *Zweites Signal*, das die
+  Frist sofort ablaufen lässt), sieht sie aus wie die im Aufbau: Sie wird nicht geschrieben,
+  auch mit der Option, und es gibt keine Meldung. Der Verlust ist hier bewusst hingenommen: Die
+  Session trägt keine Interaktion, und der Lauf wurde ausdrücklich erzwungen.
 * *Mit der Option.* Jede eröffnete Session wird am Ende geschrieben, auch eine ohne
   abgeschlossene Interaktion: nach dem Ende durch den Client, nach einem Verbindungsfehler und
   nach dem Zwangsende beim Herunterfahren (außer dem im Aufbau, *Angenommene Verbindung*); die Meldung `PGR-E4006` nennt dann die `id`, unter der
@@ -2638,7 +2646,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 | `PGR-E5003` | Replay (Exit 5) | Anfrage einer Verbindung, zu der keine nicht zugeordnete Session mehr existiert (LH-FA-12.a, `SPEC-027`) |
 | `PGR-E5004` | Replay (Exit 5) | Serverantwort beim Einspielen weicht von der Aufzeichnung ab, auch ein Serverfehler ohne Vorbild in der Aufzeichnung und eine Fehlerantwort `FATAL` oder `PANIC`, die die Aufzeichnung nicht als Ende zeigt (`SPEC-027`, LH-FA-24.a, `LH-FA-25.a`) |
 | `PGR-E6000` | nicht unterstützt (Exit 6) | Rückfall |
-| `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`), im Record auch eine `ErrorResponse` mit anderem Schweregrad als `FATAL` oder `PANIC`, nach der der Upstream die Verbindung ohne `ReadyForQuery` beendet (`LH-FA-02.b`, `LH-FA-25.a`), beim Einspielen eine Serverantwort, die `play` nicht lesen oder nicht bedienen kann, oder eine Interaktion einer Art, die `play` nicht einspielt (LH-FA-20.a) |
+| `PGR-E6001` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Nachricht (`SPEC-026`), eine Startnachricht, deren Rest nach vollständigem Kopf ausbleibt, im Record auch eine `ErrorResponse` mit anderem Schweregrad als `FATAL` oder `PANIC`, nach der der Upstream die Verbindung ohne `ReadyForQuery` beendet (`LH-FA-02.b`, `LH-FA-25.a`), beim Einspielen eine Serverantwort, die `play` nicht lesen oder nicht bedienen kann, oder eine Interaktion einer Art, die `play` nicht einspielt (LH-FA-20.a) |
 | `PGR-E6002` | nicht unterstützt (Exit 6) | nicht unterstützte PGWire-Protokollversion (LH-FA-05.e) |
 | `PGR-E6003` | nicht unterstützt (Exit 6) | unverschlüsselte Verbindung, obwohl TLS konfiguriert und `--allow-plaintext` nicht gesetzt ist (LH-FA-23.a) |
 | `PGR-W2001` | Replay | Sitzung endet vor Verbrauch aller Interaktionen, oder Sessions nie zugeordnet (LH-FA-03.b) |
