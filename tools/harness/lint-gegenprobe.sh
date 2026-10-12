@@ -10,13 +10,12 @@
 # Build-Kontext sie neu überträgt (Grenze von SPEC-049). Je Kopie ein Lauf von
 # `docker build --target lint`.
 #
-# LINT_GEGENPROBE_PARALLEL — Höchstzahl gleichzeitiger Läufe der Stufe. Nicht
-# gesetzt: 6. Gesetzt: eine positive ganze Zahl ohne Vorzeichen, Leerraum und
+# LINT_GEGENPROBE_PARALLEL — Höchstzahl gleichzeitiger Läufe der Stufe je Lauf dieses
+# Skripts, keine Obergrenze der Last von `make gates`. Nicht gesetzt: 3. Gesetzt: eine positive ganze Zahl ohne Vorzeichen, Leerraum und
 # führende Null (`^[1-9][0-9]*$`). Jeder andere Wert, auch der leere, bricht vor der
 # ersten Kopie ab: Ausgang 2 und auf stderr
 # `lint-gegenprobe: LINT_GEGENPROBE_PARALLEL ist keine positive ganze Zahl: '<wert>'`.
-# GEPRÜFT DURCH einstellung-<wert> (0, leer, -1, abc, ` 3`); den Default fährt jeder
-# Lauf von `make gates`.
+# GEPRÜFT DURCH einstellung-<wert> (0, leer, -1, abc, ` 3`).
 #
 # Ein roter Fall prüft neben dem Ausgang seine eigene Zeile: einen Befund von
 # golangci-lint an Pfad und Zeile mit dem Namen des Linters oder eine `lint:`-Zeile
@@ -123,7 +122,7 @@ export LC_ALL=C
 wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 docker_build="${DOCKER_BUILD:-docker build}"
 if [ -z "${LINT_GEGENPROBE_PARALLEL+gesetzt}" ]; then
-  parallel=6
+  parallel=3
 elif [[ "$LINT_GEGENPROBE_PARALLEL" =~ ^[1-9][0-9]*$ ]]; then
   parallel="$LINT_GEGENPROBE_PARALLEL"
 else
