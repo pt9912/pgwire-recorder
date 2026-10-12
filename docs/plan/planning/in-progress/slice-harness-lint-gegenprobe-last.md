@@ -260,6 +260,35 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+Änderung: Commit `10dc4c8` (`tools/harness/lint-gegenprobe.sh`: `parallel=3`, Kopf nennt 3 als
+Höchstzahl je Lauf des Skripts, keine Obergrenze der Last von `make gates`; der Satz „den Default
+fährt jeder Lauf von `make gates`“ ist gestrichen). Die Suche aus §3 (`LINT_GEGENPROBE`,
+`PARALLEL` über `tools/`, `harness/`, `spec/`, `docs/user`, `README.md`, `AGENTS.md`, `.claude/`,
+`Makefile`) fand danach nur das Skript selbst; keine weitere Fundstelle.
+
+**Messung nachher** (`make lint-gegenprobe` allein, Standard 3, Sampler alle 2 s mit
+`/proc/loadavg` (1-Minuten-Wert) und `/proc/meminfo` (MemTotal minus MemAvailable); Ausgang 0,
+`gruen`):
+
+| Lauf | Laufzeit | Load (Mittel / Maximum) | RAM belegt (Maximum) |
+|---|---|---|---|
+| 1 | 166 s | 27,8 / 38,0 | nicht erfasst (Sampler las `free` falsch) |
+| 2 | 167 s | 31,0 / 37,7 | 19,3 GB (Basis vor dem Lauf rund 15,6 GB; Load-Start 22,2) |
+
+Vorwerte aus §1: Parallelität 6: 150 s, Load 57 / 75; 3: 167 s, 27,5 / 31,9, 18,7 GB;
+2: 188 s, 23,3 / 27,3, 17,9 GB. Der Lauf mit dem neuen Standard deckt sich mit der Messung des
+Planners für Parallelität 3 (Laufzeit gleich; Load und RAM im Maximum etwas höher, der Host war
+bei Start schon mit Load 22 belegt). Eine Messung der Parallelität 6 in diesem Lauf fehlt.
+
+**Mutation:** `parallel=3` wird `parallel=6` bleibt grün — akzeptiertes Negativ (§6, Weg 2),
+nicht gefahren, da kein Fall den Standard prüft und der Kopf es nicht zusagt. Die Fälle
+`einstellung-<wert>` (ungültige Werte) liefen im Lauf mit und sind grün.
+
+**Nicht belegt:** dass die Senkung den OOM-Kill behebt; die Ursache ist ungeklärt (Risiko 1 in §6).
+Gemessen ist die Gegenprobe allein, nicht `make gates` als Ganzes.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
