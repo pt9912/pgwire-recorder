@@ -195,10 +195,8 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 | Optionen des Handbuchs gegen `--help` | nur `--h`, `--help`, `--version` (Nicht-Optionen im Handbuch), `--rm`, `--name` (`docker run`) |
 | Variablen ohne Option | leer |
 | Codes außerhalb des Katalogs | leer |
-| Mutant: `--format-bogus` angehängt | `--format-bogus` in der ersten Ausgabe |
-| Mutant: `PGWIRE_RECORDER_BOGUS` angehängt | in der zweiten Ausgabe |
-| Mutant: `PGR-E9999` angehängt | in der dritten Ausgabe |
-| Mutant: `--keep-timing` aus der Hilfe entfernt | `--keep-timing` in der ersten Ausgabe (die Option steht im Handbuch) |
+
+Dieser Slice ändert die Befehlsfolge nicht und führt keinen neuen Wächter ein; ihre Mutanten stehen in `done/slice-v1-abschluss-einspielen-anmeldung-doku` §7 und werden hier nicht wiederholt.
 
 **`grep` über Handbuch und README.** Im Handbuch: kein Treffer für `ADR-`, `SPEC-`, `LH-`, `[Ss]lice`, `Welle`, `Spezifikation`, `Lastenheft`, `[Rr]eview`; in den neuen Zeilen von Handbuch und README kein „noch nicht“, „kommt“, „geplant“, „bisher“, „später“, `compare-responses`. Im README bleiben die Verweise auf `spec/` und `docs/plan/` ohne Aussage über einen Stand.
 
