@@ -12,25 +12,37 @@ import (
 
 // ReplayService erfüllt den Replay-Use-Case: Er beantwortet Anfragen aus einer
 // Aufzeichnung mit strict sequential matching (LH-FA-09.a). Die Sessions werden
-// den Verbindungen in der Reihenfolge ihrer ersten Anfrage zugeordnet
-// (`first-request`, LH-FA-12.a). Lebendprüfungen beantwortet er außerhalb der
-// Reihe, aufgezeichnete überspringt er (ADR-0031).
+// den Verbindungen zugeordnet: mit `first-request` (Standard) in der Reihenfolge
+// der ersten Anfragen, mit `connection` (ZuordnungNachVerbindung) mit der
+// Annahme der n-ten Verbindung die Session mit der Kennung n (LH-FA-12.a).
+// Lebendprüfungen beantwortet er außerhalb der Reihe, aufgezeichnete überspringt
+// er (ADR-0031).
 type ReplayService struct {
 	// streng meldet nicht verbrauchte Interaktionen und nie zugeordnete
 	// Sessions als Fehler PGR-E5002 statt als Warnung PGR-W2001 (LH-FA-03.b).
 	streng bool
+	// nachVerbindung ordnet mit der Annahme der n-ten Verbindung die Session mit
+	// der Kennung n zu (`connection`), sonst bei der ersten Anfrage die nächste
+	// freie (`first-request`).
+	nachVerbindung bool
 
 	mu sync.Mutex
-	// frei sind die Sessions mit Interaktionen, die noch keiner Verbindung
-	// zugeordnet sind, in der Reihenfolge ihrer Kennung.
-	frei       []model.Session
+	// frei sind die Sessions mit Interaktionen in der Reihenfolge ihrer Kennung.
+	// Mit `first-request` bleiben die, die noch keiner Verbindung zugeordnet
+	// sind; mit `connection` ändert sich die Liste nicht.
+	frei []model.Session
+	// alle sind die Sessions der Aufzeichnung nach ihrer Kennung, auch die ohne
+	// Interaktion; nur `connection` liest sie.
+	alle       map[int]model.Session
 	letzte     model.Session
 	next       model.SessionID
 	verbindung map[model.SessionID]*cursor
 }
 
 // cursor ist der Replay-Cursor einer Verbindung; session ist nil, solange die
-// Verbindung keine Anfrage gestellt hat. pos ist die nächste erwartete
+// Verbindung keiner Session zugeordnet ist: mit `first-request` bis zur ersten
+// Anfrage, mit `connection` dauerhaft, wenn es keine Session mit der Kennung der
+// Verbindung gibt. pos ist die nächste erwartete
 // Interaktion, gruppe und nachricht innerhalb einer Extended-Interaktion die
 // nächste erwartete Gruppe und Client-Nachricht (ARC-002, LH-FA-18.a). status
 // ist der Transaktionsstatus des letzten ReadyForQuery, das die Verbindung
@@ -56,22 +68,31 @@ type ReplayOption func(*ReplayService)
 // Sessions als Fehler PGR-E5002 statt als Warnung PGR-W2001 (LH-FA-03.b).
 func FailOnUnconsumed(s *ReplayService) { s.streng = true }
 
+// ZuordnungNachVerbindung ordnet mit der Annahme der n-ten Verbindung die
+// Session mit der Kennung n zu, auch eine ohne Interaktion (`--session-assignment
+// connection`, LH-FA-12.a). Die Aufzeichnung muss `empty_sessions` tragen,
+// sonst ist NewReplayService PGR-E2001.
+func ZuordnungNachVerbindung(s *ReplayService) { s.nachVerbindung = true }
+
 // NewReplayService lädt die Aufzeichnung. Jede Interaktion muss Validate
 // bestehen, sonst ist die Aufzeichnung beschädigt (PGR-E3003); auf diese Form
 // verlassen sich Query und ClientMessage. Interaktionen, deren Anfrage nach
 // der Version ihrer Session eine Lebendprüfung ist, nimmt es nicht in die
 // Sessions auf; eine Session ohne
 // andere Interaktion ist damit eine Session ohne Interaktion (LH-FA-09.a). Eine
-// Aufzeichnung ohne Session mit Interaktion ist PGR-E3004 (LH-FA-03.a).
+// Aufzeichnung ohne Session mit Interaktion ist PGR-E3004 (LH-FA-03.a); mit
+// ZuordnungNachVerbindung und ohne `empty_sessions` in der Aufzeichnung ist es
+// danach PGR-E2001 (LH-FA-12.a).
 func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path string, opts ...ReplayOption) (*ReplayService, error) {
 	rec, err := repo.Load(ctx, path)
 	if err != nil {
 		return nil, err
 	}
-	s := &ReplayService{verbindung: map[model.SessionID]*cursor{}}
+	s := &ReplayService{verbindung: map[model.SessionID]*cursor{}, alle: map[int]model.Session{}}
 	for _, o := range opts {
 		o(s)
 	}
+	var letzteAlle model.Session
 	for _, sess := range rec.Sessions {
 		for _, in := range sess.Interactions {
 			if err := in.Validate(); err != nil {
@@ -79,6 +100,8 @@ func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path
 			}
 		}
 		sess.Interactions = ohneLebendpruefungen(sess.Interactions, vtLeerraum(sess.ServerParameters))
+		s.alle[sess.ID] = sess
+		letzteAlle = sess
 		if len(sess.Interactions) > 0 {
 			s.frei = append(s.frei, sess)
 		}
@@ -87,6 +110,12 @@ func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path
 		return nil, model.Errorf(model.CodeRecordingNoSession, nil, "%s enthält keine Session mit Interaktion", path)
 	}
 	s.letzte = s.frei[len(s.frei)-1]
+	if s.nachVerbindung {
+		if !rec.EmptySessions {
+			return nil, model.Errorf(model.CodeUsage, nil, "%s trägt keine Kennzeichnung empty_sessions, die --session-assignment connection verlangt", path)
+		}
+		s.letzte = letzteAlle
+	}
 	return s, nil
 }
 
@@ -105,14 +134,23 @@ func ohneLebendpruefungen(ins []model.Interaction, vt bool) []model.Interaction 
 }
 
 // OpenConnection liefert den Handshake mit den Serverparametern der nächsten
-// noch nicht zugeordneten Session, gibt es keine mehr, der letzten.
+// noch nicht zugeordneten Session, gibt es keine mehr, der letzten. Mit
+// ZuordnungNachVerbindung ordnet es der n-ten Verbindung die Session mit der
+// Kennung n zu und liefert deren Serverparameter; gibt es keine, bleibt die
+// Verbindung ohne Session und erhält die der letzten (LH-FA-12.a).
 func (s *ReplayService) OpenConnection(context.Context) (model.SessionID, []model.Response) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.next++
-	s.verbindung[s.next] = &cursor{status: "I"}
+	c := &cursor{status: "I"}
+	s.verbindung[s.next] = c
 	vorlage := s.letzte
-	if len(s.frei) > 0 {
+	if s.nachVerbindung {
+		if sess, ok := s.alle[int(s.next)]; ok {
+			c.session, c.vt = &sess, vtLeerraum(sess.ServerParameters)
+			vorlage = sess
+		}
+	} else if len(s.frei) > 0 {
 		vorlage = s.frei[0]
 	}
 	namen := make([]string, 0, len(vorlage.ServerParameters))
@@ -149,8 +187,8 @@ func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string)
 		return nil, err
 	}
 	if c.pos >= len(c.session.Interactions) {
-		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: nach Interaktion %d erwartet die Aufzeichnung keine weitere; empfangen %q",
-			c.session.ID, c.letzteNummer(), sql)
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: %s; empfangen %q",
+			c.session.ID, c.keineWeitere(), sql)
 	}
 	erwartet := c.session.Interactions[c.pos]
 	if erwartet.Request.Type != model.RequestQuery {
@@ -182,16 +220,15 @@ func (c *cursor) merke(rs []model.Response) {
 	}
 }
 
-// letzteNummer ist die aufgezeichnete Nummer der letzten erwarteten
-// Interaktion der Session, aufgezeichnete Lebendprüfungen nicht gezählt. Die
-// Session eines Cursors hat mindestens eine erwartete Interaktion: zuordnen
-// vergibt nur Sessions aus frei, und NewReplayService nimmt dort nur solche auf.
-// Die Prüfung auf die leere Liste schützt allein den Index.
-func (c *cursor) letzteNummer() int {
-	if len(c.session.Interactions) == 0 {
-		return 0
+// keineWeitere nennt in der Diagnose, was die Aufzeichnung am Ende der Session
+// erwartet: nach der letzten erwarteten Interaktion, aufgezeichnete
+// Lebendprüfungen nicht gezählt, keine weitere; eine Session ohne Interaktion
+// (mit `connection` zugeordnet) erwartet keine (LH-FA-12.a).
+func (c *cursor) keineWeitere() string {
+	if n := len(c.session.Interactions); n > 0 {
+		return fmt.Sprintf("nach Interaktion %d erwartet die Aufzeichnung keine weitere", c.session.Interactions[n-1].Sequence)
 	}
-	return c.session.Interactions[len(c.session.Interactions)-1].Sequence
+	return "die Aufzeichnung erwartet keine Interaktion"
 }
 
 // ClientMessage vergleicht eine Client-Nachricht des Extended Query Protocol
@@ -209,8 +246,8 @@ func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m m
 		return nil, err
 	}
 	if c.pos >= len(c.session.Interactions) {
-		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: nach Interaktion %d erwartet die Aufzeichnung keine weitere; empfangen %s",
-			c.session.ID, c.letzteNummer(), c.nachrichtText(m))
+		return nil, model.Errorf(model.CodeReplayMismatch, nil, "Session %d: %s; empfangen %s",
+			c.session.ID, c.keineWeitere(), c.nachrichtText(m))
 	}
 	erwartet := c.session.Interactions[c.pos]
 	if erwartet.Request.Type != model.RequestExtended {
@@ -246,14 +283,19 @@ func (s *ReplayService) ClientMessage(_ context.Context, id model.SessionID, m m
 	return g.Server, nil
 }
 
-// zuordnen liefert den Cursor der Verbindung und ordnet ihr bei der ersten
-// Anfrage die nächste freie Session zu; ist keine mehr frei, ist das PGR-E5003.
+// zuordnen liefert den Cursor der Verbindung und ordnet ihr mit `first-request`
+// bei der ersten Anfrage die nächste freie Session zu; ist keine mehr frei, ist
+// das PGR-E5003. Mit `connection` ist die Zuordnung mit der Annahme geschehen
+// (OpenConnection); eine Verbindung ohne Session ist PGR-E5003.
 func (s *ReplayService) zuordnen(id model.SessionID, empfangen string) (*cursor, error) {
 	c, ok := s.verbindung[id]
 	if !ok {
 		return nil, model.Errorf(model.CodeInternal, nil, "unbekannte Verbindung %d", id)
 	}
 	if c.session == nil {
+		if s.nachVerbindung {
+			return nil, model.Errorf(model.CodeReplaySession, nil, "Verbindung %d: keine aufgezeichnete Session mit der Kennung %d für %s", id, id, empfangen)
+		}
 		if len(s.frei) == 0 {
 			return nil, model.Errorf(model.CodeReplaySession, nil, "Verbindung %d: keine aufgezeichnete Session mehr frei für %s", id, empfangen)
 		}
@@ -520,15 +562,26 @@ func (s *ReplayService) CloseConnection(_ context.Context, id model.SessionID) (
 // Unassigned meldet die Sessions mit Interaktionen, die bis zum Ende des Laufs
 // keiner Verbindung zugeordnet wurden, mit ihrer Zahl und der Kennung der
 // ersten: mit FailOnUnconsumed als Fehler PGR-E5002, sonst als Warnung
-// PGR-W2001 (LH-FA-03.b). Ohne solche Session liefert es nil, nil.
+// PGR-W2001 (LH-FA-03.b). Mit ZuordnungNachVerbindung sind das die Sessions mit
+// Interaktionen, deren Kennung die Zahl der angenommenen Verbindungen übersteigt.
+// Ohne solche Session liefert es nil, nil.
 func (s *ReplayService) Unassigned() (*model.Warning, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if len(s.frei) == 0 {
+	nie := s.frei
+	if s.nachVerbindung {
+		nie = nil
+		for _, sess := range s.frei {
+			if sess.ID > int(s.next) {
+				nie = append(nie, sess)
+			}
+		}
+	}
+	if len(nie) == 0 {
 		return nil, nil
 	}
 	return s.meldung("%d aufgezeichnete Session(s) nie zugeordnet, die erste mit Kennung %d",
-		len(s.frei), s.frei[0].ID)
+		len(nie), nie[0].ID)
 }
 
 // meldung liefert denselben Text als Fehler PGR-E5002, wenn der Service

@@ -17,27 +17,37 @@ import (
 )
 
 // RecordOptions sind die Optionen von `record` (LH-FA-02.a), soweit dieser Stand
-// sie kennt.
+// sie kennt. RecordEmptySessions ist --record-empty-sessions (LH-FA-12.a).
 type RecordOptions struct {
-	Listen          string
-	Upstream        string
-	Output          string
-	Force           bool
-	Format          string
-	RecordTiming    bool
-	LogLevel        string
-	ShutdownTimeout time.Duration
+	Listen              string
+	Upstream            string
+	Output              string
+	Force               bool
+	Format              string
+	RecordTiming        bool
+	RecordEmptySessions bool
+	LogLevel            string
+	ShutdownTimeout     time.Duration
 }
 
 // ReplayOptions sind die Optionen von `replay` (LH-FA-03.a), soweit dieser Stand
-// sie kennt.
+// sie kennt. SessionAssignment ist der Wert von --session-assignment,
+// ZuordnungErsteAnfrage oder ZuordnungVerbindung (LH-FA-12.a).
 type ReplayOptions struct {
-	Listen           string
-	Input            string
-	FailOnUnconsumed bool
-	LogLevel         string
-	ShutdownTimeout  time.Duration
+	Listen            string
+	Input             string
+	FailOnUnconsumed  bool
+	SessionAssignment string
+	LogLevel          string
+	ShutdownTimeout   time.Duration
 }
+
+// Die Werte von --session-assignment (LH-FA-12.a); Standard ist
+// ZuordnungErsteAnfrage.
+const (
+	ZuordnungErsteAnfrage = "first-request"
+	ZuordnungVerbindung   = "connection"
+)
 
 // PlayOptions sind die Optionen von `play` (LH-FA-20.a), soweit dieser Stand
 // sie kennt. Nennt --upstream eine benannte Verbindung, ist Upstream deren
@@ -155,6 +165,10 @@ const optionenRecord = `Optionen von record:
               vom Beginn der Session bis zum Eintreffen der ersten
               Client-Nachricht der Interaktion; Standard false;
               Umgebungsvariable PGWIRE_RECORDER_RECORD_TIMING
+  --record-empty-sessions[=true|false]
+              zeichnet auch eine Verbindung ohne Anfrage als Session ohne
+              Interaktionen auf; Standard false; Umgebungsvariable
+              PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS
 ` + optionShutdownTimeout + optionLogLevel + optionConfig + optionUmgebung
 
 const optionenReplay = `Optionen von replay:
@@ -164,6 +178,14 @@ const optionenReplay = `Optionen von replay:
               nicht verbrauchte Interaktionen und nie zugeordnete Sessions
               sind ein Fehler (PGR-E5002, Exit-Code 5) statt einer Warnung;
               Umgebungsvariable PGWIRE_RECORDER_FAIL_ON_UNCONSUMED
+  --session-assignment first-request|connection
+              first-request ordnet die Sessions den Verbindungen in der
+              Reihenfolge der ersten Anfragen zu, connection der n-ten
+              Verbindung die Session mit der Kennung n (verlangt die
+              Kennzeichnung empty_sessions, die record
+              --record-empty-sessions schreibt, sonst PGR-E2001);
+              Standard first-request; Umgebungsvariable
+              PGWIRE_RECORDER_SESSION_ASSIGNMENT
 ` + optionShutdownTimeout + optionLogLevel + optionConfig + optionUmgebung
 
 const optionenPlay = `Optionen von play:
@@ -385,6 +407,10 @@ func artFormat() art {
 	return art{name: "format", pruefe: func(v string) error { return format{new(string)}.Set(v) }}
 }
 
+func artSitzungszuordnung() art {
+	return art{name: "sitzungszuordnung", pruefe: func(v string) error { return sitzungszuordnung{new(string)}.Set(v) }}
+}
+
 func artZeitmodus() art {
 	return art{name: "zeitmodus", pruefe: func(v string) error { return zeitmodus{new(string)}.Set(v) }}
 }
@@ -417,6 +443,7 @@ func optionen(kommando string) []option {
 			{name: "force", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.Force = v == "true" }},
 			{name: "format", art: artFormat(), standard: formatYAML, setze: func(c *Command, v string) { c.Record.Format = v }},
 			{name: "record-timing", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.RecordTiming = v == "true" }},
+			{name: "record-empty-sessions", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.RecordEmptySessions = v == "true" }},
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Record.ShutdownTimeout, v) }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Record.LogLevel = v }},
 		}
@@ -426,6 +453,7 @@ func optionen(kommando string) []option {
 			{name: "input", art: artText(), pflicht: true, setze: func(c *Command, v string) { c.Replay.Input = v }},
 			{name: "fail-on-unconsumed", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Replay.FailOnUnconsumed = v == "true" }},
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Replay.ShutdownTimeout, v) }},
+			{name: "session-assignment", art: artSitzungszuordnung(), standard: ZuordnungErsteAnfrage, setze: func(c *Command, v string) { c.Replay.SessionAssignment = v }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Replay.LogLevel = v }},
 		}
 	case "play":
@@ -779,6 +807,19 @@ func (f format) Set(v string) error {
 		}
 	}
 	return errors.New("erlaubt sind yaml und sqlite")
+}
+
+// sitzungszuordnung ist der Wert von --session-assignment: genau first-request
+// oder connection in Kleinbuchstaben, kein Alias; jeder andere Wert, auch der
+// leere, ist ein Fehler (LH-FA-12.a *Wertemenge*).
+type sitzungszuordnung struct{ wert *string }
+
+func (z sitzungszuordnung) Set(v string) error {
+	if v != ZuordnungErsteAnfrage && v != ZuordnungVerbindung {
+		return errors.New("erlaubt sind first-request und connection")
+	}
+	*z.wert = v
+	return nil
 }
 
 // wahrheitswert ist der Wert einer booleschen Option nach LH-FA-17.a: genau

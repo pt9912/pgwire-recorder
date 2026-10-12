@@ -12,10 +12,12 @@ import (
 type Replayer interface {
 	// OpenConnection nimmt eine Client-Verbindung an und liefert die Antworten
 	// des Verbindungsaufbaus (Serverparameter und ReadyForQuery) nach
-	// LH-FA-12.a.
+	// LH-FA-12.a. Bei der Zuordnung connection ordnet es der Verbindung ihre
+	// Session mit der Annahme zu; bei first-request geschieht das mit der ersten
+	// Anfrage (Query, ClientMessage).
 	OpenConnection(ctx context.Context) (model.SessionID, []model.Response)
-	// Query ordnet der Verbindung bei ihrer ersten Anfrage eine Session zu und
-	// liefert die aufgezeichneten Antworten der Interaktion am Cursor; eine
+	// Query ordnet der Verbindung bei ihrer ersten Anfrage (first-request) eine
+	// Session zu und liefert die aufgezeichneten Antworten der Interaktion am Cursor; eine
 	// abweichende Anfrage ist PGR-E5001, eine Anfrage ohne freie Session
 	// PGR-E5003 (LH-FA-09.a, LH-FA-10.a). Eine Lebendprüfung zwischen zwei
 	// Interaktionen beantwortet es außerhalb der Reihe mit EmptyQueryResponse

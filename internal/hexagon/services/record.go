@@ -18,6 +18,9 @@ type RecordService struct {
 	path     string
 	uhr      driven.Uhr
 	zeit     bool
+	// leere: auch eine eröffnete Session ohne abgeschlossene Interaktion wird
+	// geschrieben (--record-empty-sessions, LH-FA-12.a).
+	leere bool
 
 	mu       sync.Mutex
 	rec      model.Recording
@@ -107,6 +110,14 @@ type RecordOption func(*RecordService)
 // Service die Uhr nie.
 func Zeitangaben(uhr driven.Uhr, aufzeichnen bool) RecordOption {
 	return func(s *RecordService) { s.uhr, s.zeit = uhr, aufzeichnen }
+}
+
+// LeereSessions stellt --record-empty-sessions ein: Mit an wird jede eröffnete
+// Session geschrieben, auch eine ohne abgeschlossene Interaktion, und die
+// Aufzeichnung trägt die Kennzeichnung empty_sessions, auch ohne Session
+// (LH-FA-12.a *Recording*).
+func LeereSessions(an bool) RecordOption {
+	return func(s *RecordService) { s.leere, s.rec.EmptySessions = an, an }
 }
 
 // NewRecordService prüft den Zielpfad und liefert den Service.
@@ -418,8 +429,10 @@ func (l *laufend) uebernehmen(in model.Interaction) error {
 //   - EndShutdown, EndFailed: kein weiterer Fehler.
 //
 // Eine laufende Interaktion steht nie in der Session. Übernommen wird die
-// Session, wenn sie danach mindestens eine Interaktion trägt und keine nicht
-// unterstützte enthielt; die Kennung zählt lückenlos ab 1 (LH-FA-12.a).
+// Session, wenn sie keine nicht unterstützte Interaktion enthielt und danach
+// mindestens eine Interaktion trägt, mit LeereSessions auch ohne. Jedes Ende
+// einer übernommenen Session vergibt unter der Sperre des Service genau eine
+// Kennung, lückenlos ab 1 in der Reihenfolge der Enden (LH-FA-12.a).
 func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, end model.SessionEnd) error {
 	l, err := s.laufende(id)
 	if err != nil {
@@ -443,7 +456,7 @@ func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, en
 		interactions = interactions[:len(interactions)-l.unzugestellt]
 		verbindung = model.Errorf(model.CodeConnectionLost, nil, "Antwort nicht an den Client zu senden")
 	}
-	verwerfen := end == model.EndUnsupported || l.unsupported || len(interactions) == 0
+	verwerfen := end == model.EndUnsupported || l.unsupported || len(interactions) == 0 && !s.leere
 	// verworfen ist die Nummer der laufenden Interaktion beim Zwangsende, sonst 0.
 	verworfen := 0
 	if end == model.EndForced && l.laeuft() {
@@ -461,7 +474,7 @@ func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, en
 	if verwerfen {
 		if verworfen > 0 {
 			verbindung = model.Errorf(model.CodeShutdownTimeout, nil, "Frist beim Herunterfahren abgelaufen: Interaktion %d nicht abgeschlossen und verworfen; die Session wird %s",
-				verworfen, nichtGeschrieben(len(interactions)))
+				verworfen, nichtGeschrieben(len(interactions), s.leere))
 		}
 		return errors.Join(verbindung, upErr)
 	}
@@ -478,9 +491,10 @@ func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, en
 // Interaktionen nicht geschrieben wird (LH-FA-13.a *Meldung*): ohne
 // abgeschlossene Interaktion, sonst wegen einer nicht unterstützten
 // Interaktion; nur sie macht eine Session mit abgeschlossenen Interaktionen
-// beim Zwangsende nicht übernehmbar.
-func nichtGeschrieben(n int) string {
-	if n == 0 {
+// beim Zwangsende nicht übernehmbar, und mit leere (LeereSessions) auch eine
+// ohne.
+func nichtGeschrieben(n int, leere bool) string {
+	if n == 0 && !leere {
 		return "ohne abgeschlossene Interaktion nicht geschrieben"
 	}
 	return "wegen einer nicht unterstützten Interaktion (PGR-E6001) nicht geschrieben"

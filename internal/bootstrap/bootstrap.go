@@ -63,7 +63,8 @@ func record(ctx context.Context, ablauf <-chan struct{}, o cli.RecordOptions, lo
 	if err != nil {
 		return fail(stderr, err)
 	}
-	service, err := services.NewRecordService(ctx, &postgres.Upstream{Address: o.Upstream}, repo, o.Output, o.Force, services.Zeitangaben(NeueSystemuhr(), o.RecordTiming))
+	service, err := services.NewRecordService(ctx, &postgres.Upstream{Address: o.Upstream}, repo, o.Output, o.Force,
+		services.Zeitangaben(NeueSystemuhr(), o.RecordTiming), services.LeereSessions(o.RecordEmptySessions))
 	if err != nil {
 		return fail(stderr, err)
 	}
@@ -87,6 +88,9 @@ func replay(ctx context.Context, ablauf <-chan struct{}, o cli.ReplayOptions, lo
 	var opts []services.ReplayOption
 	if o.FailOnUnconsumed {
 		opts = append(opts, services.FailOnUnconsumed)
+	}
+	if o.SessionAssignment == cli.ZuordnungVerbindung {
+		opts = append(opts, services.ZuordnungNachVerbindung)
 	}
 	service, err := services.NewReplayService(ctx, recording.Leser{}, o.Input, opts...)
 	if err != nil {
