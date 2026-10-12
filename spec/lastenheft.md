@@ -251,7 +251,8 @@ Verschlüsselung zum Client nach LH-FA-23 Teil des Funktionsumfangs.
 
 **Beschreibung:** Eine Aufzeichnung muss genügend Informationen über
 unterstützte Client-Anfragen und zugehörige Serverantworten enthalten, um diese
-im Replay-Modus reproduzieren zu können.
+im Replay-Modus reproduzieren zu können. Dazu gehört ein Verbindungsende, das
+der Server in einer laufenden Interaktion herbeiführt (siehe LH-FA-25).
 
 **Akzeptanzkriterien:**
 
@@ -285,7 +286,12 @@ Testcode gespeichert, transportiert und versioniert werden.
 - **Boundary:** Given eine Aufzeichnung, die in ein anderes Verzeichnis oder auf
   einen anderen Rechner kopiert wurde, when sie dort verwendet wird, then
   funktioniert das Replay unverändert; der Recorder trägt keine
-  rechnerspezifischen Angaben in die Aufzeichnung ein.
+  rechnerspezifischen Angaben in die Aufzeichnung ein. Given eine Aufzeichnung
+  ohne Verbindungsende des Servers (LH-FA-25), when sie mit einer Version des
+  Produkts gelesen wird, die dieses Verbindungsende nicht kennt, then bleibt sie
+  lesbar; given eine Aufzeichnung mit Verbindungsende, when eine solche Version
+  sie liest, then wird sie als Aufzeichnung unbekannter Version erkannt (siehe
+  LH-QA-06), nicht als beschädigt.
 - **Negative:** Given eine unvollständige oder beschädigte Datei, when sie
   geladen wird, then wird sie als ungültiges Recording erkannt.
 
@@ -385,7 +391,8 @@ entsprechende beobachtbare Fehlerverhalten beim Replay reproduziert werden kann.
 - **Negative:** Given eine Fehlerantwort, die nicht verlustfrei aufgezeichnet
   werden kann, when sie im Record auftritt, then wird dies als nicht
   unterstützte Protokollinteraktion gemeldet, statt eine unvollständige
-  Aufzeichnung abzulegen.
+  Aufzeichnung abzulegen; aufzeichenbar ist eine Fehlerantwort, mit der der
+  Server die Verbindung beendet (siehe LH-FA-25).
 
 **Out-of-Scope:** Erzeugen frei definierter Fehlerantworten ohne vorheriges
 Recording.
@@ -738,8 +745,9 @@ Fehlercode). Nicht verglichen werden die Werte und die Anzahl der Zeilen, Hinwei
 und Einstellungen des Servers. Am Ende des Laufs nennt eine Zusammenfassung die
 Zahl der eingespielten, verglichenen und abweichenden Interaktionen. Mit diesem
 Wunsch gilt ein Fehler des Servers, den
-die Aufzeichnung genauso enthält, als erwartet; der Wunsch ist die ausdrückliche
-Wahl nach LH-FA-20. Ohne den Wunsch findet kein Vergleich statt (LH-FA-20).
+die Aufzeichnung genauso enthält, als erwartet, ebenso ein Verbindungsende des
+Servers, das die Aufzeichnung genauso zeigt (LH-FA-25); der Wunsch ist die
+ausdrückliche Wahl nach LH-FA-20. Ohne den Wunsch findet kein Vergleich statt (LH-FA-20).
 
 **Akzeptanzkriterien:**
 
@@ -754,18 +762,79 @@ Wahl nach LH-FA-20. Ohne den Wunsch findet kein Vergleich statt (LH-FA-20).
   given eine Aufzeichnung, die nicht bis zum Ende der Antwort reicht, when
   verglichen wird, then wird verglichen, soweit sie reicht, und ein Fehler des
   Servers ohne Vorbild in der Aufzeichnung bleibt eine Abweichung; given ein
-  Verbindungsende, das die Aufzeichnung ebenfalls zeigt und das der Server genauso
-  verursacht, when verglichen wird, then gilt es als erwartet; given kein Wunsch
-  nach Vergleich, when eingespielt wird, then wird nicht verglichen.
+  Verbindungsende, das die Aufzeichnung ebenfalls zeigt und das der Server an
+  derselben Stelle mit demselben Fehlercode verursacht (LH-FA-25), when verglichen
+  wird, then gilt es als erwartet, und das Einspielen geht mit der nächsten
+  Session weiter; given kein Wunsch nach Vergleich, when eingespielt wird, then
+  wird nicht verglichen.
 - **Negative:** Given eine Antwort mit abweichender Struktur oder einem
   abweichenden Fehler, wozu auch ein Fehler des Servers gehört, den die
-  Aufzeichnung nicht enthält, when verglichen wird, then wird die Abweichung mit
+  Aufzeichnung nicht enthält, und ein Verbindungsende des Servers, das die
+  Aufzeichnung nicht an dieser Stelle oder mit einem anderen Fehlercode zeigt,
+  when verglichen wird, then wird die Abweichung mit
   Interaktion und Art der Abweichung gemeldet, und der Lauf endet mit einem
   Fehlerstatus, der sich von dem eines Serverfehlers ohne Vergleich unterscheidet
   (siehe LH-QA-05).
 
 **Out-of-Scope:** Vergleich der Zeilenwerte; Toleranzregeln für einzelne Felder;
 Veränderung der Aufzeichnung anhand des Vergleichs.
+
+---
+
+### LH-FA-25 — Verbindungsende durch den Server
+
+**Priorität:** SOLL
+
+**Beschreibung:** Das Produkt soll ein Verbindungsende aufzeichnen, im Replay
+wiedergeben und beim Einspielen erwarten können, das der Server in einer
+laufenden Interaktion mit einer Fehlerantwort der Schwere `FATAL` oder `PANIC`
+herbeiführt (etwa der Abbruch einer Sitzung durch einen Administrator). Das
+Verbindungsende ist das letzte Ereignis seiner Session und steht an der Stelle
+der Interaktion, an der es eintrat. Im Record-Modus erhält der Client die
+Antworten des Servers, danach endet seine Verbindung. Im Replay-Modus beendet
+der Recorder die Verbindung an der aufgezeichneten Stelle. Das Einspielen löst
+das Verbindungsende nicht selbst aus: Es sendet die aufgezeichneten Anfragen, das
+Ende bewirkt der Server. Ein Ende im Leerlauf, also ohne laufende Anfrage, wird nur
+aufgezeichnet, wenn der Client danach noch eine Anfrage stellt; die Fehlerantwort
+gehört dann zu dieser Anfrage. Stellt er keine mehr, endet die Session regulär.
+Eine Aufzeichnung mit Verbindungsende hat eine neuere Formatversion als eine
+ohne (LH-QA-06); Aufzeichnungen ohne Verbindungsende behalten ihr Format.
+
+**Akzeptanzkriterien:**
+
+- **Happy Path:** Given ein Server, der eine Verbindung in einer laufenden
+  Interaktion mit einer Fehlerantwort `FATAL` beendet, when die Anwendung im
+  Record-Modus die Anfrage stellt, then erhält sie die Antworten des Servers und
+  die Aufzeichnung enthält das Verbindungsende; im Replay-Modus erhält die
+  Anwendung für dieselbe Anfrage dieselben Antworten, danach beendet der Recorder
+  die Verbindung (siehe Abnahmeszenario 18 in §7).
+- **Boundary:** Given eine Fehlerantwort `PANIC`, when der Server danach die
+  Verbindung beendet, then gilt sie wie `FATAL`; given ein Ende im Leerlauf
+  (etwa durch ein Zeitlimit für ruhende Sitzungen), when der Client danach keine
+  Anfrage mehr stellt, then wird es nicht aufgezeichnet und die Session endet
+  regulär, und when er danach eine Anfrage stellt, then gehört die Fehlerantwort
+  zu dieser Anfrage; given eine Aufzeichnung mit Verbindungsende, when sie
+  eingespielt wird und der Server an derselben Stelle mit demselben Fehlercode
+  endet, then gilt das Ende als erwartet, wenn der Anwender den Vergleich wünscht
+  (LH-FA-24) oder aufgezeichnete Fehler ausdrücklich als erwartet gelten lässt
+  (LH-FA-20); given eine Aufzeichnung ohne Verbindungsende, when sie aufgezeichnet
+  wird, then entsteht sie im bisherigen Format.
+- **Negative:** Given ein Verbindungsende ohne Fehlerantwort des Servers (etwa
+  ein Netzwerkabbruch), ein Ende vor dem Abschluss des Verbindungsaufbaus oder ein
+  Abbruch nach einer Fehlerantwort anderer Schwere, when sie im Record auftreten,
+  then werden sie nicht als Verbindungsende aufgezeichnet, sondern wie bisher als
+  Verbindungsfehler beziehungsweise als nicht unterstützte Interaktion gemeldet;
+  given ein Verbindungsende des Servers beim Einspielen, das die Aufzeichnung
+  nicht an dieser Stelle oder mit einem anderen Fehlercode zeigt, when
+  eingespielt wird, then bleibt es ein Verbindungsfehler beziehungsweise (mit
+  Vergleich) eine Abweichung; given ein aufgezeichnetes Verbindungsende, when
+  eingespielt wird, ohne dass der Anwender den Vergleich wünscht oder
+  aufgezeichnete Fehler als erwartet gelten lässt, then ist das Ende des Servers
+  ein Verbindungsfehler.
+
+**Out-of-Scope:** Auslösen eines Verbindungsendes durch das Einspielen;
+Aufzeichnen eines Netzwerkabbruchs oder eines Endes im Verbindungsaufbau;
+Wiedergabe eines Verbindungsendes ohne Fehlerantwort.
 
 ---
 
@@ -1011,8 +1080,10 @@ Eine Aufzeichnung wird mit Vergleich gegen eine PostgreSQL-Instanz eingespielt, 
 dieselbe Struktur liefert; der Lauf endet mit Erfolg. Gegen eine Instanz, deren
 Antwort in Struktur oder Fehler abweicht, meldet der Lauf die Abweichung und endet
 mit einem Fehlerstatus, der sich von dem eines Serverfehlers ohne Vergleich
-unterscheidet. Endet die Aufzeichnung mit einem Verbindungsende, das der Server
-genauso verursacht, gilt es als erwartet und der Lauf geht weiter. Bezug: LH-FA-24.
+unterscheidet. Zeigt die Aufzeichnung ein Verbindungsende des Servers
+(Abnahmeszenario 18), das der Server beim Einspielen an derselben Stelle mit
+demselben Fehlercode verursacht, gilt es als erwartet, und der Lauf geht mit der
+nächsten Session weiter. Bezug: LH-FA-24, LH-FA-25.
 
 ### Abnahmeszenario 17 — Prüfbarkeit des Quellcodes
 
@@ -1023,6 +1094,16 @@ ohne Befund. Zu jeder der drei Prüfungen gehört ein automatisierter Gegenfall,
 mit ihnen läuft: Er legt der Prüfung einen Quellstand vor, der genau ihre Bedingung
 verletzt, und die Prüfung meldet den Verstoß und endet mit einem Fehlerstatus.
 Bezug: LH-QA-07.
+
+### Abnahmeszenario 18 — Verbindungsende durch den Server
+
+Ein PostgreSQL-Server beendet die Verbindung in einer laufenden Anfrage mit einer
+Fehlerantwort `FATAL`. Eine Testanwendung erhält im Record-Modus die Antworten des
+Servers, und die Aufzeichnung enthält das Verbindungsende. Im Replay-Modus ohne
+PostgreSQL beantwortet der Recorder dieselbe Anfrage mit denselben Antworten und
+beendet dann die Verbindung. Ein Netzwerkabbruch ohne Fehlerantwort wird nicht als
+Verbindungsende aufgezeichnet, sondern als Verbindungsfehler gemeldet. Bezug:
+LH-FA-25, LH-FA-02, LH-FA-03.
 
 ## 8. Historie
 
