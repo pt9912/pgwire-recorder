@@ -151,7 +151,7 @@ welle-v1-abschluss und `slice-harness-integration-volumes` liegen in `done/` (WI
 die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
 `slice-v1-abschluss-herunterfahren` und `slice-harness-meldungskatalog-gate` direkt vor
 `slice-v1-abschluss-container`, dann `slice-harness-integration-volumes`,
-`slice-harness-abdeckung-gate` und `slice-harness-coverage`, dann die Slices von welle-erster-release und welle-v1-nachtrag, danach
+`slice-harness-abdeckung-gate` und `slice-harness-coverage`, dann die Slices von welle-erster-release und welle-v1-nachtrag, danach die drei Slices der Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; Entscheidung des Nutzers vom 2026-10-12, Ziel: ein Release), danach
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
 `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
 `slice-harness-mutation`; die Reihenfolge

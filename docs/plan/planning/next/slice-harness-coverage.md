@@ -156,14 +156,14 @@ die Slices von welle-v1-abschluss und `slice-harness-abdeckung-gate` liegen in `
 die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt vor
 `slice-v1-abschluss-herunterfahren` und `slice-harness-meldungskatalog-gate` direkt vor
 `slice-v1-abschluss-container`, dann `slice-harness-integration-volumes`,
-`slice-harness-abdeckung-gate` und `slice-harness-coverage`, dann die Slices von welle-erster-release und welle-v1-nachtrag, danach
+`slice-harness-abdeckung-gate` und `slice-harness-coverage`, dann die Slices von welle-erster-release und welle-v1-nachtrag, danach die drei Slices der Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; Entscheidung des Nutzers vom 2026-10-12, Ziel: ein Release), danach
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
 `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
 `slice-harness-mutation`; die Reihenfolge
 der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Dieser Slice ist der letzte
 vor M3: Mit ihm wird Abnahmeszenario 17 nachweisbar, nach der Entscheidung vom
 2026-10-08 vor welle-erster-release, damit M3 vor M4 erreicht ist. Nach ihm folgen
-welle-erster-release und welle-v1-nachtrag, dann `slice-harness-commit-struktur-id`,
+welle-erster-release und welle-v1-nachtrag, danach die drei Slices der Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; Entscheidung des Nutzers vom 2026-10-12, Ziel: ein Release), dann `slice-harness-commit-struktur-id`,
 `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving` und
 `slice-harness-mutation`; keiner der vier Harness-Slices trägt zu M3 bei, und keiner ist
 Vorbedingung dieses Slice. Vom Abdeckungs-Gate hängt dieser Slice
