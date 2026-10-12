@@ -130,6 +130,74 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Stand.** Geändert sind `docs/user/benutzerhandbuch.md` (Version 0.5: neuer Abschnitt *Antworten beim Einspielen vergleichen*; Einleitung, Vorspann der *Hinweise* beim Einspielen, zwei Sätze zum Exit-Code nach einem Signal, Satz und Tabellenzeile in §5, Exit-Code 5, Zeilen `PGR-E2004` und `PGR-E4004`, neue Zeile `PGR-E5004`, Glossar), `README.md` und dieser Plan (§7, §8). Produkt-Code, Tests, Gates, Hilfetexte und `docs/user/abdeckung-*.md` sind unverändert; `make abdeckung-check` endet mit Exit 0. Commits `ef0c823` (Handbuch, README) und `6f10a41` (Nachzug des Satzes zum Signal im Abschnitt zu den Zeitangaben).
+
+**Probe-Aufbau.** `make build` am Stand `6c4d53c` (Image `pgwire-recorder:dev`, `sha256:e6c5ef3178…`). Proben in einem Scratch-Verzeichnis außerhalb des Repos; Docker-Netz `impl-av-net` mit dem gepinnten PostgreSQL-Image aus `harness/mk/integration.mk` (`postgres:17-alpine@sha256:b0f9560a…`, Anmeldung `trust`, Netzalias `postgres`, damit die Beispiele des Handbuchs wörtlich laufen), je Probe eine Datenbank: `probe` (`t(n int, s text)`), `probe2` (andere Werte, drei Zeilen), `d_name` (Spalte `label`), `d_type` (`n bigint`), `d_cnt` (Spalte `x`), `dup` (Zeile mit dem Schlüssel, den die Aufzeichnung einfügt). Aufzeichnungen entstanden mit `record` und `psql` (einfach, `\bind` für das erweiterte Protokoll). Aufzeichnungen mit einer Abweichung, die kein Server auslöst, sind aus ihnen von Hand geändert (`sed`/`awk`: Tag, SQLSTATE, `tx_status`, Reihenfolge, SQL, entfernte `notice_response`/`parameter_status`/Server-Parameter) und in der Tabelle als *editiert* gekennzeichnet; `FATAL` entstand durch `pg_terminate_backend` aus einer zweiten Sitzung während `pg_sleep(8)`, der Verbindungsabbruch durch `docker kill` des Servers in `pg_sleep(8)`, das Signal durch `docker kill -s TERM`. Container, Netz und Scratch-Dateien sind danach entfernt.
+
+**Probe-Tabelle** (Handbuch = `docs/user/benutzerhandbuch.md`; `Z` = die Zeile `play beendet`; jeder Aufruf mit `play --upstream … --input …`, wo nichts anderes steht):
+
+| Nr. | Aussage (Handbuch/README) | Probe | Ergebnis |
+|---|---|---|---|
+| 1 | Beispiel *Vorgehen* (Option), wörtlich | `--upstream postgres:5432 --input ./recordings/users.yaml --compare-responses` | Exit 0, `Z`: `eingespielt=3 verglichen=3 abweichend=0` |
+| 2 | Variable `PGWIRE_RECORDER_COMPARE_RESPONSES=true` genügt | dasselbe ohne Option, Variable gesetzt | Exit 0, `verglichen=3` |
+| 3 | Schlüssel `compare_responses: true` im Abschnitt `play:` genügt, Beispieldatei | `--config ./compare.yaml` (Datei wie im Handbuch) | Exit 0, `verglichen=3`; `config show` nennt den Schlüssel |
+| 4 | Abweichung: `PGR-E5004`, Exit 5, die beiden Zeilen des Beispiels | `p2` gegen `d_cnt` | Exit 5, `level=ERROR … code=PGR-E5004 … Position 1, Art Spaltenbeschreibung`, `Z`: `eingespielt=1 verglichen=1 abweichend=1` |
+| 5 | Spalten: Anzahl, Name, Typ verglichen | `SELECT * FROM t` gegen `d_cnt` (Anzahl), `d_name` (Name), `d_type` (Typ) | je Exit 5, Art `Spaltenbeschreibung`; gegen `probe` Exit 0 |
+| 6 | Parameter verglichen (erweitertes Protokoll) | editiert: Describe auf `statement`, `parameter_description [23]`; gegen `probe` und `d_type` (`bigint`) | `probe` Exit 0; `d_type` Exit 5, Position 3, Art `Spaltenbeschreibung` |
+| 7 | Befehl ohne abschließende Zahlen: `UPDATE 1` gleich `UPDATE 7`, `UPDATE 1` nicht gleich `DELETE 1` | editiert: Tags `UPDATE 7`, `SELECT 99`; Tag `DELETE 1` | Exit 0 (`verglichen=3`); Exit 5, `Interaktion 2`, Position 1, Art `Befehl` |
+| 8 | Fehler: SQLSTATE verglichen, Text nicht | `SELECT 1/0` gegen `probe`, Text der Aufzeichnung editiert; SQL zu `SELECT * FROM nichtda` editiert | Exit 0; Exit 5, `Position 1, Art Fehler (SQLSTATE aufgezeichnet „22012“, Server „42P01“)`, kein Text |
+| 9 | Transaktionsstatus verglichen | editiert: `tx_status` von `BEGIN` auf `I` | Exit 5, Position 2, Art `Transaktionsstatus` |
+| 10 | Art und Reihenfolge der Antworten (Art `Nachrichtenart`) | editiert: `UPDATE …` durch `SELECT 1` ersetzt; erweitert: `parse_complete`/`bind_complete` vertauscht | je Exit 5, Position 1, Art `Nachrichtenart` |
+| 11 | Nicht verglichen: Werte und Zahl der Zeilen | `p1` gegen `probe2` (drei Zeilen, andere Werte), einfach und erweitert (`\bind`) | je Exit 0, `verglichen` gezählt |
+| 12 | Nicht verglichen: Hinweise (`NOTICE`) | `SELECT f()` (Funktion mit `RAISE NOTICE`) gegen `probe2` (ohne), und umgekehrt, einfach; erweitert gegen `probe2` | Exit 0 |
+| 13 | Nicht verglichen: Meldungen über Einstellungen | `SET application_name`, `parameter_status` aus der Aufzeichnung entfernt, einfach und erweitert; Server-Parameter der Datei editiert | Exit 0 |
+| 14 | Position zählt ab 1 ohne Zeilen, Hinweise, Einstellungen | editiert: Tag der Interaktion mit zwei Zeilen; mit `NOTICE`; mit `parameter_status` und geändertem `tx_status` | Position 2 in allen drei Fällen (Art `Befehl`, `Befehl`, `Transaktionsstatus`) |
+| 15 | Meldung nennt Sitzung und Interaktion; erweitert: Nummer der Aufzeichnung | Probe 7 (`Interaktion 2`), erweitert `Interaktion 1` | wie in den Zeilen |
+| 16 | Je Interaktion die erste Abweichung | editiert: Position 1 (Spalten) und Tag zugleich verschieden, zwei solche Interaktionen mit `--continue-on-error` | zwei Zeilen `PGR-E5004`, je `Position 1`; `abweichend=2` |
+| 17 | Ohne `--continue-on-error` endet `play` nach der Interaktion mit der Abweichung | Probe 4 (zwei Interaktionen) | `eingespielt=1` |
+| 18 | Mit `--continue-on-error` weiter, jede abweichende gemeldet, Exit 5 | zwei abweichende Interaktionen, auch mit Variablen statt Optionen | zwei Zeilen, Exit 5, `eingespielt=2 abweichend=2` |
+| 19 | Fehler ohne Vorbild: `PGR-E5004` (Art `Nachrichtenart`), nicht `PGR-E4004`; ohne Vergleich `PGR-E4004` | `INSERT` auf vorhandenen Schlüssel, einfach und erweitert, mit und ohne Option, mit `--continue-on-error` | mit Option Exit 5, Position 1 (einfach) und 4 (erweitert); ohne Option Exit 4, `PGR-E4004`; mit beiden Exit 5 |
+| 20 | Fehler mit demselben SQLSTATE: keine Abweichung, nächste Interaktion läuft, ohne `--continue-on-error` und ohne `--allow-recorded-errors` | `SELECT 1/0; SELECT 2;` | Exit 0, `eingespielt=2 verglichen=2 abweichend=0`; erweitert Exit 0; ohne Option derselbe Lauf `PGR-E4004`, Exit 4 |
+| 21 | Anderer SQLSTATE: Art `Fehler` mit beiden SQLSTATE | Probe 8, erweitert (editiert) | Exit 5, `aufgezeichnet „42P01“, Server „22012“` |
+| 22 | Mit Vergleich ist `--allow-recorded-errors` ohne Wirkung | Fehler ohne Vorbild, anderer SQLSTATE, gleicher SQLSTATE, je mit der Option; ohne Vergleich mit der Option und anderem SQLSTATE | Exit 5, Exit 5, Exit 0 (wie ohne Option); ohne Vergleich Exit 0 |
+| 23 | `FATAL`: mit Vergleich `PGR-E5004`, auch bei gleichem SQLSTATE; Art `Fehler` an der Position der Fehlerantwort; eine frühere Abweichung geht vor; ohne Vergleich `PGR-E4003` | `pg_sleep(8)`, Server beendet die Sitzung (`57P01`): Aufzeichnung ohne Fehler (`row_description` dann `FATAL`), mit aufgezeichnetem `ERROR 57P01` an Position 2 (editiert), mit aufgezeichnetem Fehler an Position 1 (frühere Abweichung); beides mit `--allow-recorded-errors` und `--continue-on-error`; ohne Vergleich | Exit 5, Position 2, Art `Fehler` (aufgezeichnet leer bzw. `57P01`); mit Fehler an Position 1 `Position 1, Art Nachrichtenart`; ohne Vergleich Exit 4, `PGR-E4003` |
+| 24 | `PANIC` wie `FATAL` | kein Server löst `PANIC` aus: `TestVergleichFatal` (Fall `V PANIC`, `S PANIC ohne V`, einfach und erweitert) in `internal/hexagon/services/play_vergleich_test.go` | Test grün im Lauf von `make gates` |
+| 25 | Verbindungsverlust ohne Fehlerantwort: `PGR-E4003`, Exit 4, auch nach einer Abweichung, beide Meldungen im Log | `docker kill` des Servers in `pg_sleep(8)`, ohne und nach einer Abweichung (`--continue-on-error`) | Exit 4; eine Zeile `PGR-E4003`; nach Abweichung zusätzlich `PGR-E5004`; `Z`: `verglichen=0` bzw. `eingespielt=2 verglichen=1 abweichend=1` |
+| 26 | Signal: laufende Interaktion mit Vergleich beendet, Abweichung darin `PGR-E5004`, Exit 5 auch bei früherer Abweichung | `SIGTERM` in `pg_sleep(8)`: ohne Abweichung; Abweichung in der laufenden Interaktion; frühere Abweichung (`--continue-on-error`); in der Wartezeit von `--keep-timing` nach Abweichung | Exit 0 mit `verglichen=1`; Exit 5, Art `Befehl`; Exit 5; Exit 5 mit `eingespielt=1` |
+| 27 | Zähler: `eingespielt`, `verglichen`, `abweichend`; unterbrochene Interaktion zählt nicht als verglichen | Proben 1, 4, 25 | wie dort |
+| 28 | Ohne `--compare-responses`: kein Vergleich, `verglichen`/`abweichend` 0 | `p1` und `p2` gegen `probe2`/`d_cnt` ohne Option; Option `=false` gegen Schlüssel `true`; Variable `false` gegen Schlüssel `true` | je Exit 0, `verglichen=0` |
+| 29 | `Z` hat die Stufe `info`, mit `--log-level warn` fehlt sie | `--log-level warn`, mit und ohne Abweichung | mit Abweichung nur die Zeile `PGR-E5004`, ohne Abweichung keine Ausgabe |
+| 30 | `record`, `replay`: Option `PGR-E2001`, Variable `PGR-E2001`, Schlüssel `PGR-E2004` | je Kommando | `flag provided but not defined`, Exit 2; `gehört zu einer Option, die record/replay nicht kennt`, Exit 2; `record.compare_responses: unbekannter Schlüssel`, `replay.…`, Exit 2 |
+| 31 | Anderer Wert als `true`/`false`: Variable `PGR-E2001`, Schlüssel `PGR-E2004` | `…=vielleicht`; `compare_responses: yes` | Exit 2, `erlaubt sind true und false`; Exit 2, `play.compare_responses: erlaubt sind true und false` |
+| 32 | Vorspann der *Hinweise* beim Einspielen: die drei Hinweise gelten ohne Vergleich | Proben 19, 20, 22, 23 gegen die Läufe ohne Option (`PGR-E4004`, Exit 4; `--allow-recorded-errors` entschuldigt jeden SQLSTATE, Exit 0; `PGR-E4003`) | wie dort |
+| 33 | README: Sätze zu `play` | Proben 4, 5, 7, 8, 9, 10, 11, 19 | wie dort |
+| 34 | Tabelle §5: Betriebsart `play`, Standard `false` | `--help` der vier Kommandos | `play --help` nennt `--compare-responses`; `grep -c compare` bei `record`, `replay`, `config show`: 0, 0, 0 |
+| 35 | Exit-Code 5, Zeilen `PGR-E2004`, `PGR-E4004`, `PGR-E5004`, Glossar | Proben 4, 31, 19 | wie dort |
+
+**Neue und geänderte Sätze neben Bestand.** Der Vorspann der *Hinweise* beim Einspielen grenzt die drei Sätze zu Fehlerantworten (`PGR-E4004`, `--continue-on-error`, `--allow-recorded-errors`, `FATAL`) gegen den Vergleich ab (Proben 19, 20, 22, 23, 32). Die beiden Sätze „Der Exit-Code ist 0, nach einem früheren Fehler 4“ (Einspielen, Zeitangaben) nennen jetzt die Abweichung (5; Probe 26). Die Zeile des Exit-Codes 5 und die Beispiele in §5 nennen den Vergleich (Proben 30, 4). Unverändert bleiben die Sätze zu TLS, Anmeldung, COPY und `--finish-session-on-interrupt`: Der Vergleich ändert nichts an ihnen, und keine Probe dieses Slice liest sie neu.
+
+**Ungenannt geblieben** (keine Probe am gebauten Binary oder nur Spezifikation): Verhalten je Serverversion (kein Ausgleich); Tag mit leerem Wort (`SELECT ` gegen `SELECT`); Fehlerantwort ohne Feld `C`; Gruppengrenzen beim erweiterten Protokoll; die folgende Sitzung nach `FATAL` mit `--continue-on-error`; `--keep-timing` neben `--compare-responses` (nur der Exit-Code nach Signal, Probe 26); Wert der Option außer `true`/`false`; die Rangfolge Option, Variable, Schlüssel für diese Option (Probe 28 zeigt sie, der Satz steht allgemein in §5 und bleibt dort); Lauf ohne eine Interaktion. Das Handbuch sagt nichts zu einem aufgezeichneten Verbindungsende (§1; Entscheidung des Nutzers vom 2026-10-12): Das Binary zeigt heute `FATAL`/`PANIC` mit Vergleich immer als `PGR-E5004`, und so steht es im Handbuch.
+
+**Befund an den Planner.** (a) Die Befehlsfolge aus `slice-doku-ist-stand` §7 (Optionen, Variablen, Codes) ist am Stand `6c4d53c` ohne meine Änderung rot: Die Variablen-Zeile mit der benannten Ausnahme `PGWIRE_RECORDER_PASSWORD` nennt `PGWIRE_RECORDER_BOGUS`, eine Variable in §5 des Handbuchs (Satz zu unbeachteten Variablen, eingeführt mit `slice-v1-abschluss-umgebung-anderes-kommando`, Commit `b91131c`), die zu keiner Option gehört. §3 dieses Plans verlangt „mit ihr ist die Ausgabe leer“; das stimmt nicht. Ich habe den Satz nicht geändert (er ist Bestand einer früheren Entscheidung und steht nicht in meinem Diff); die Ausnahme in `implement-slice.md` Schritt 17 und in §3 bräuchte `PGWIRE_RECORDER_BOGUS` als zweite benannte Ausnahme, oder der Satz im Handbuch nennt die Variable nicht. (b) Die Roadmap führt in Zeile 23 „In Arbeit: nichts“; ich habe sie nicht angefasst (Planung).
+
+**Befehlsfolge aus `slice-doku-ist-stand` §7** (Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`), am Stand `6f10a41`:
+
+| Prüfung | Ausgabe |
+|---|---|
+| Optionen des Handbuchs, die `--help` nicht kennt | `--h`, `--help`, `--version` (Nicht-Optionen im Handbuch), `--name`, `--rm` (`docker run`) |
+| Variablen ohne Option, ohne `PGWIRE_RECORDER_PASSWORD` | `PGWIRE_RECORDER_BOGUS` (Befund (a)) |
+| Codes außerhalb des Katalogs | leer |
+
+`--compare-responses` und `PGWIRE_RECORDER_COMPARE_RESPONSES` stehen nicht in der Ausgabe; `PGR-E5004` ist im Katalog. Die Befehlsfolge ist nicht geändert, kein Wächter eingeführt; ihre Mutanten stehen in `done/slice-v1-abschluss-einspielen-anmeldung-doku` §7 und werden nicht wiederholt. `grep -n -i -E "spec/|lastenheft|slice|welle|review|LH-|SPEC-|ADR|noch nicht|kommt|geplant|künftig"` über das Handbuch findet nur Bestand ohne Bezug (`noch nicht` in §3 „Zieldatei existiert noch nicht“, `kommt` in der Ruhefrist von `record` und in §4 zu TLS); `make docs-check`: 0 Befunde.
+
+**Mutation (§3.10)** entfällt: Der Slice liefert keinen neuen Vertrag, nur Beschreibung; die Probe-Tabelle ersetzt sie (rot wäre ein Satz ohne bestandene Probe).
+
+**Kommentare (Schritt 20)** entfallen: kein Code, kein Skript und keine Konfiguration geändert.
+
+**Rückgaben an den Architect:** keine; keine Randform entschieden. **Nachzählen:** Liefer-Punkte 2, Schichten 1 (Nutzerdokumentation), wie in §8.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -156,5 +224,7 @@ Liefer-Punkte: 2. Schichten nach der Zählung in `AGENTS.md` §3.13: eine (Dokum
 Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-antwortvergleich` (Architect, 2026-10-12): Sie gehört zu DoD-Punkt 1 (Handbuch); Liefer-Punkte weiter 2, Schichten weiter eine.
 
 Nachgezählt beim Eintragen der Abgrenzung zum aufgezeichneten Ende des Servers (Planner, 2026-10-12, `AGENTS.md` §3.13): Sie nimmt dem Slice nichts und fügt nichts hinzu; Liefer-Punkte weiter 2, Schichten weiter eine.
+
+Nachgezählt beim Umsetzen (Implementer, 2026-10-12): Der Diff ändert `docs/user/benutzerhandbuch.md`, `README.md` und diesen Plan, keinen Code; Liefer-Punkte 2, Schichten 1 (Nutzerdokumentation; Planung zählt nicht).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
