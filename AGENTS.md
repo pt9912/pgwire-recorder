@@ -287,6 +287,15 @@ sie dem Architect zurück (`.claude/commands/implement-slice.md`, Randform-Rück
 Randform, die erst ein Commit mit Code, Tests oder Gates in §6 einträgt, ist nicht genannt
 (seit slice-harness-blackbox-kern).
 
+**Aufruf-Voraussetzung gehört dazu** (seit slice-v1-abschluss-zeitangaben-aufzeichnen): Sagt ein Vertrag eine Ordnung
+oder Eindeutigkeit der Werte zu, die er über mehrere Aufrufe einer Session liefert (nicht absteigend, fortlaufend), nennt §6
+als Randform, ob diese Aufrufe nacheinander oder gleichzeitig kommen, und die Spezifikation bindet die Zusage an diese
+Voraussetzung. Bemerkt der Implementer ein Gegenbeispiel, hält er an und gibt es zurück; ein Satz in seinem Bericht ist keine Rückgabe.
+
+**Falsch:** Die Zusage „Werte steigen nicht ab“ steht ohne Bedingung, das Gegenbeispiel (zwei gleichzeitige Aufrufe) steht als
+Satz im Bericht, und das Review findet es.
+**Richtig:** §6 nennt „Aufrufe einer Session nacheinander“, die Spezifikation bindet die Zusage daran, der Port nennt es im Kommentar.
+
 **Falsch:** Der Leser behandelt `null` wie einen fehlenden Schlüssel, die
 Spezifikation sagt nichts dazu, und das Review findet es.
 **Richtig:** §6 nennt `null` und fehlenden Schlüssel und zeigt auf die Stelle der
@@ -296,7 +305,8 @@ Spezifikation, die beide entscheidet; dann folgt der Code.
 eine weitere Randform (`BEO-REPO/spec-randform-erst-im-review-entschieden`). Ein Diff,
 der eine Randform entscheidet, die §6 nicht nennt, ist ein Review-Befund gegen diese
 Regel. Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung
-seit slice-harness-randformen-vor-code wieder aufgetreten?
+seit slice-harness-randformen-vor-code wieder aufgetreten, für die Aufruf-Voraussetzung seit
+slice-v1-abschluss-zeitangaben-aufzeichnen?
 
 ### 3.13 Eine Adresse nimmt an, bevor sie genannt wird (seit slice-lint-bestand-kern-driven)
 

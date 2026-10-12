@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-zeitangaben-aufzeichnen
+**Fund:** (1) DoD-Punkt 1 sagte „byte-gleich der heutigen“ Ausgabe ohne die Option; `TestE2ERecordOhneTiming` vergleicht zwei Läufe miteinander, keinen Vorstand (Review F-652, INFO; in §7 enger gefasst). (2) Die Abdeckungstabellen führen `LH-FA-21` als `vollständig`, während `--keep-timing` aussteht (F-651, V-190, INFO): Die Zeile ist die mechanische Folge der Deklarationen (`SPEC-048`) und sagt mehr, als geprüft ist; ohne Aktion, bis `slice-v1-abschluss-zeitangaben` die Anforderung schließt.

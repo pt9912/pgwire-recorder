@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-zeitangaben-aufzeichnen
+**Fund:** `LH-FA-21.a` *Aufzeichnen* nannte als Beginn der Messung „die Annahme der Verbindung“, *Messpunkt* den Aufruf von `OpenSession` nach TLS und Startup; das Binary misst nach *Messpunkt* (Verifikation V-189, LOW). Behoben in `29c8628` (Architect): *Aufzeichnen* und §1 des Plans an *Messpunkt* angeglichen; das Lastenheft legt den Bezugspunkt nicht auf die Socket-Annahme fest, eine Änderung des Lastenhefts entstand nicht.
