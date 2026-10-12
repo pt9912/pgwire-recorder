@@ -95,11 +95,10 @@ func (u unterschied) text() string {
 
 // erste liefert die erste Abweichung der Folge des Servers von der
 // aufgezeichneten oder nil (LH-FA-24.a *Randformen des Vergleichs*): die erste
-// Position, an der die Nachrichten abweichen. Beide Folgen enden in ihrem
-// einzigen ready_for_query (die Aufzeichnung besteht Validate, der Service liest
-// bis zum ersten), eine fehlende oder zusätzliche Nachricht zeigt sich darum an
-// einer Position, an der beide Seiten eine Nachricht haben. Mit fatal endet die
-// Folge des Servers in einer Fehlerantwort FATAL oder PANIC: Sie ist stets eine
+// Position, an der die Nachrichten abweichen; stimmen alle Positionen der
+// kürzeren Folge überein und die Folgen sind verschieden lang, ist es die
+// Position hinter der kürzeren, die Art Nachrichtenart. Mit fatal endet die Folge
+// des Servers in einer Fehlerantwort FATAL oder PANIC: Sie ist stets eine
 // Abweichung der Art Fehler an ihrer Position, auch bei gleichem SQLSTATE,
 // sofern nicht eine frühere Position abweicht.
 func (v *vergleich) erste(fatal bool) *unterschied {
@@ -114,6 +113,9 @@ func (v *vergleich) erste(fatal bool) *unterschied {
 		}
 	}
 	if !fatal {
+		if len(v.ist) != len(v.soll) {
+			return &unterschied{position: grenze + 1, art: artNachricht}
+		}
 		return nil
 	}
 	p := len(v.ist)

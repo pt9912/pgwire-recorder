@@ -119,6 +119,7 @@ type vfall struct {
 	position    int
 	art, zusatz string
 	nurExtended bool
+	nurEinfach  bool
 }
 
 func vfaelle() []vfall {
@@ -153,6 +154,7 @@ func vfaelle() []vfall {
 		{name: "Fehler ohne Feld C auf beiden Seiten", soll: []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"M": "a"}}, rfq}, ist: []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"M": "b"}}, rfq}},
 		{name: "Fehler ohne Feld C nur beim Server", soll: []model.Response{fehlerMit("42P01", "x"), rfq}, ist: []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"M": "b"}}, rfq}, position: 1, art: "Fehler", zusatz: " (SQLSTATE aufgezeichnet „42P01“, Server „“)"},
 		{name: "Fehler nur beim Server", soll: []model.Response{befehl("SELECT 1"), rfq}, ist: []model.Response{fehlerMit("42P01", "geheim"), rfq}, position: 1, art: "Nachrichtenart"},
+		{name: "Aufzeichnung länger, Anfang gleich", nurEinfach: true, soll: []model.Response{befehl("SELECT 1"), rfq, befehl("SELECT 1"), rfq}, ist: []model.Response{befehl("SELECT 1"), rfq}, position: 3, art: "Nachrichtenart"},
 		{name: "Fehler nur in der Aufzeichnung", soll: []model.Response{fehlerMit("42P01", "geheim"), rfq}, ist: []model.Response{befehl("SELECT 1"), rfq}, position: 1, art: "Nachrichtenart"},
 		{name: "Transaktionsstatus", soll: []model.Response{befehl("BEGIN"), bereitMit("I")}, ist: []model.Response{befehl("BEGIN"), bereitMit("T")}, position: 2, art: "Transaktionsstatus"},
 		{name: "erste von mehreren Abweichungen", soll: []model.Response{zeilenkopf(spalte("a", 23)), befehl("SELECT 1"), bereitMit("I")}, ist: []model.Response{zeilenkopf(spalte("b", 23)), befehl("UPDATE 1"), bereitMit("T")}, position: 1, art: "Spaltenbeschreibung"},
@@ -178,7 +180,7 @@ func vfaelle() []vfall {
 func TestVergleichStruktur(t *testing.T) {
 	for _, f := range vfaelle() {
 		for _, extended := range []bool{false, true} {
-			if f.nurExtended && !extended {
+			if (f.nurExtended && !extended) || (f.nurEinfach && extended) {
 				continue
 			}
 			t.Run(fmt.Sprintf("%s/extended=%v", f.name, extended), func(t *testing.T) {

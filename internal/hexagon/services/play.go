@@ -132,10 +132,10 @@ func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path s
 // Fehler. Ein nil-Kanal ablauf wird nie geschlossen.
 //
 // Play liefert die Fehler des Laufs als reine Zusammenfassung (errors.Join):
-// den Fehler, nach dem es abgebrochen hat, zuerst, danach je PGR-E4004, nach
-// dem es weiterlief, einen in der Reihenfolge ihres Auftretens, auch wenn das
-// zweite Signal die Interaktion danach unterbricht; ohne Fehler nil
-// (LH-FA-20.a *Meldungen*, *Exit-Code*).
+// den Fehler, nach dem es abgebrochen hat, zuerst, danach je PGR-E4004 und je
+// PGR-E5004, nach dem es weiterlief, einen in der Reihenfolge ihres Auftretens,
+// auch wenn das zweite Signal die Interaktion danach unterbricht; ohne Fehler
+// nil (LH-FA-20.a *Meldungen*, *Exit-Code*).
 func (s *PlayService) Play(ctx context.Context, ablauf <-chan struct{}) error {
 	abbruch, abbrechen := context.WithCancel(context.WithoutCancel(ctx))
 	defer abbrechen()
@@ -166,8 +166,10 @@ func (s *PlayService) Play(ctx context.Context, ablauf <-chan struct{}) error {
 // regulär oder nach einem Fehler, sendet sie Terminate und schließt die
 // Verbindung (Schliesse); endet abbruch, schließt sie sofort und kehrt erst nach
 // dem Schließen zurück. Mit KeepTiming wartet sie vor jeder Interaktion (warte).
-// Ein PGR-E4004, nach dem das Einspielen weiterläuft, hängt sie mit seinem Ort
-// an frueher an.
+// Ein PGR-E4004 oder PGR-E5004, nach dem das Einspielen weiterläuft, hängt sie
+// mit seinem Ort an frueher an; die Session endet ohne Fehler, wenn eine
+// Fehlerantwort FATAL oder PANIC mit Vergleich weiter gereicht ist
+// (errSessionEnde).
 func (s *PlayService) session(ctx, abbruch context.Context, sess model.Session, frueher *[]error) error {
 	zeit := s.neuerTakt()
 	us, err := s.ziel.Verbinde(abbruch, s.startup(sess))
