@@ -665,6 +665,7 @@ Standard `relative` mindestens eine Sekunde; ohne `--keep-timing` liegt weniger 
   Konfigurationsdatei `PGR-E2004`, auch `Absolute`, `first_request` und ein leerer Wert;
   die Meldung nennt den Wert der Umgebungsvariablen und der Datei nicht. Eine leere
   Umgebungsvariable gilt als nicht gesetzt.
+
 #### Ungültige Kombinationen
 
 Jeder dieser Aufrufe endet mit `PGR-E2001` (Exit-Code 2):
@@ -674,9 +675,10 @@ Jeder dieser Aufrufe endet mit `PGR-E2001` (Exit-Code 2):
 * Als gesetzt gilt, was Option, Umgebungsvariable oder Datei nennt, auch den Wert des
   Standards: `--timing-reference connect` ist mit `relative`, auch mit dem Standard
   `relative`, ungültig, und `--keep-timing=false` ist mit `--timing-mode absolute` ungültig.
-* Die Reihenfolge der Optionen ändert nichts.
 * `record` kennt `--keep-timing`, `--timing-mode` und `--timing-reference` nicht, `play`
   kennt `--record-timing` nicht, und `replay` kennt keine der vier Optionen.
+
+Die Reihenfolge der Optionen ändert nichts.
 
 #### Fehlende Zeitangaben und Abbruch
 

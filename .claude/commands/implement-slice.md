@@ -163,7 +163,7 @@ entschieden“) ersetzt die Rückgabe nicht, wenn der Commit sie schon trägt.
     (seit slice-v1-abschluss-einspielen-anmeldung-doku).
     Die Mutanten der Befehlsfolge stehen in `done/slice-v1-abschluss-einspielen-anmeldung-doku`
     §7; ein Plan wiederholt sie nur, wenn er die Befehlsfolge ändert oder einen Wächter
-    hinzufügt (Schritt 19), sonst verweist er dorthin.
+    hinzufügt (Schritt 19), sonst verweist er dorthin (seit slice-v1-abschluss-zeitangaben-doku).
 18. Die Pre-completion-Checkliste laufen: die DoD Punkt für Punkt **behaupten** und die
     **Sensor-Belege** anhängen — `make gates` **und die Nicht-Gate-Sensoren, die den Slice
     betreffen** (die dein Repo führt — z. B. ein Mutations-Sensor, wenn Wächter neu/geändert sind;
