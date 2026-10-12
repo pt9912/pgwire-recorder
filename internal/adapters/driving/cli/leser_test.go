@@ -25,6 +25,9 @@ func werteJeArt() map[string][3]string {
 		"dauer":         {"1s", "2m", "5"},
 		"stufe":         {"warn", "debug", "INFO"},
 		"format":        {"sqlite", "yaml", "SQLite"},
+		// sitzungszuordnung: die zwei Werte von --session-assignment, klein
+		// geschrieben; Connection ist ungültig (LH-FA-12.a *Wertemenge*).
+		"sitzungszuordnung": {"first-request", "connection", "Connection"},
 	}
 }
 
@@ -39,6 +42,8 @@ func tabelle() map[string]string {
 		"force":                       "false",
 		"format":                      "yaml",
 		"record-timing":               "false",
+		"record-empty-sessions":       "false",
+		"session-assignment":          "first-request",
 		"input":                       "",
 		"fail-on-unconsumed":          "false",
 		"shutdown-timeout":            "5s",
@@ -296,8 +301,8 @@ func TestLeserLeererWert(t *testing.T) {
 // Optionen stehen in der Reihenfolge der Tabelle in LH-FA-17.a.
 func TestLeserOptionen(t *testing.T) {
 	for kommando, want := range map[string][]string{
-		"record": {"listen", "upstream", "output", "force", "format", "record-timing", "shutdown-timeout", "log-level"},
-		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "log-level"},
+		"record": {"listen", "upstream", "output", "force", "format", "record-timing", "record-empty-sessions", "shutdown-timeout", "log-level"},
+		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "session-assignment", "log-level"},
 		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt", "keep-timing", "timing-mode", "timing-reference", "upstream-ca", "compare-responses", "log-level"},
 	} {
 		var got []string

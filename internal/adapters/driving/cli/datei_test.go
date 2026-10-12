@@ -117,7 +117,7 @@ func TestDateiNichtLesbar(t *testing.T) {
 // Anführungszeichen sind Text, bei output also ein Pfad (LH-FA-17.a).
 func TestDateiGueltig(t *testing.T) {
 	leere(t, "replay")
-	standard := cli.ReplayOptions{Listen: "x", Input: "r.yaml", LogLevel: cli.LogInfo, ShutdownTimeout: cli.StandardFrist}
+	standard := cli.ReplayOptions{Listen: "x", Input: "r.yaml", SessionAssignment: cli.ZuordnungErsteAnfrage, LogLevel: cli.LogInfo, ShutdownTimeout: cli.StandardFrist}
 	mit := func(aendern func(*cli.ReplayOptions)) cli.ReplayOptions {
 		o := standard
 		aendern(&o)
@@ -214,7 +214,18 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 		{"Alias ohne Anker", "replay:\n  listen: *GEHEIM\n", "Konfigurationsdatei: ungültiges YAML, Alias ohne Anker"},
 		{"Option des anderen Kommandos", "record:\n  input: GEHEIM\n", "record.input"},
 		{"Option des anderen Kommandos replay", "replay:\n  output: GEHEIM\n", "replay.output"},
-		{"Option, die der Stand nicht kennt", "record:\n  record_empty_sessions: true\n", "record.record_empty_sessions"},
+		{"Option, die der Stand nicht kennt", "record:\n  unbekannte_option: true\n", "record.unbekannte_option"},
+		{"record_empty_sessions in replay", "replay:\n  record_empty_sessions: true\n", "replay.record_empty_sessions"},
+		{"record_empty_sessions in play", "play:\n  record_empty_sessions: true\n", "play.record_empty_sessions"},
+		{"record_empty_sessions oben", "record_empty_sessions: true\n", "record_empty_sessions"},
+		{"record_empty_sessions ungültig", "record:\n  record_empty_sessions: GEHEIM\n", "record.record_empty_sessions"},
+		{"session_assignment in record", "record:\n  session_assignment: connection\n", "record.session_assignment"},
+		{"session_assignment in play", "play:\n  session_assignment: connection\n", "play.session_assignment"},
+		{"session_assignment oben", "session_assignment: connection\n", "session_assignment"},
+		{"session_assignment ungültig", "replay:\n  session_assignment: GEHEIM\n", "replay.session_assignment"},
+		{"session_assignment groß", "replay:\n  session_assignment: Connection\n", "replay.session_assignment"},
+		{"session_assignment mit Unterstrich", "replay:\n  session_assignment: first_request\n", "replay.session_assignment"},
+		{"session_assignment leer", "replay:\n  session_assignment: \"\"\n", "replay.session_assignment"},
 		{"record_timing in replay", "replay:\n  record_timing: true\n", "replay.record_timing"},
 		{"record_timing in play", "play:\n  record_timing: true\n", "play.record_timing"},
 		{"record_timing oben", "record_timing: true\n", "record_timing"},
@@ -268,8 +279,10 @@ func ungueltigeDateien() []struct{ name, inhalt, stelle string } {
 // oberste Ebene, Abschnitt oder connections: keine Abbildung oder ohne Inhalt,
 // ein unbekannter Schlüssel (auch config, ein anders geschriebener, einer im
 // falschen Abschnitt, einer im Abschnitt play:, den play in diesem Stand nicht
-// kennt, einer, den der Stand noch nicht kennt, upstream_tls mit ungültigem
-// Wert, upstream_ca leer oder im Abschnitt eines anderen Kommandos), ein Merge-Schlüssel, ein leerer Wert, null, Liste oder
+// kennt, einer, den kein Stand liefert, record_empty_sessions und
+// session_assignment im Abschnitt eines anderen Kommandos und oben,
+// session_assignment auch mit Connection, first_request und leer, upstream_tls
+// mit ungültigem Wert, upstream_ca leer oder im Abschnitt eines anderen Kommandos), ein Merge-Schlüssel, ein leerer Wert, null, Liste oder
 // Abbildung als Wert, Anker, Alias und jeder ausdrücklich geschriebene Tag, ein
 // Wert außerhalb der Wertemenge, ein ungültiger Name einer Verbindung; geprüft
 // wird auch der Abschnitt des anderen Kommandos; die Meldung nennt die Stelle
