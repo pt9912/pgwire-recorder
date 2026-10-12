@@ -29,8 +29,8 @@ Datenbank ab, mit `--continue-on-error` läuft es weiter, und mit
 Sitzung. Mit `--compare-responses` vergleicht `play` die Antworten der Datenbank mit der
 Aufzeichnung (Art und Reihenfolge der Antworten, Spalten, Befehl, SQLSTATE eines Fehlers,
 Transaktionsstatus; nicht Zeilenwerte und Hinweise) und meldet eine Abweichung als
-`PGR-E5004` mit Exit-Code 5. Antwortet die Datenbank
-mit einem COPY-Datenstrom, endet `play` mit `PGR-E6001`. `record` und `replay` nehmen
+`PGR-E5004` mit Exit-Code 5. Ohne `--compare-responses` endet `play`, wenn die Datenbank
+mit einem COPY-Datenstrom antwortet, mit `PGR-E6001`. `record` und `replay` nehmen
 Verbindungen nur ohne TLS an, und `record` verbindet ohne TLS zur Datenbank; `play`
 verbindet auf Wunsch (`--upstream-tls` oder `sslmode=require` der Verbindung) mit TLS,
 prüft das Zertifikat des Servers, auch gegen eine eigene Zertifizierungsstelle
@@ -72,7 +72,7 @@ Im Modus `replay` gibt der Recorder nur wieder, was er aufgezeichnet hat, strikt
 in der aufgezeichneten Reihenfolge. Eine Anfrage, die nicht zur Aufzeichnung
 passt, ist ein Fehler und bekommt nie eine geratene Antwort. Im Modus `play`
 führt er die aufgezeichneten Anfragen nacheinander aus und wertet Fehlerantworten
-des Servers.
+des Servers; mit `--compare-responses` vergleicht er die Antworten mit der Aufzeichnung.
 
 ## Was macht es vertrauenswürdig?
 

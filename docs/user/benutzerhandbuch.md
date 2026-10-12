@@ -485,6 +485,8 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
 * Die drei folgenden Hinweise zu Fehlerantworten der Datenbank beschreiben das
   Einspielen ohne `--compare-responses`; mit der Option gilt
   [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen).
+  Ebenso beschreiben die Hinweise zu Anmeldung und TLS, zu COPY und zu
+  `--finish-session-on-interrupt` das Einspielen ohne diese Option.
 * Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
   ab (`PGR-E4004`, Exit-Code 4). Mit `--continue-on-error` läuft es mit der
   nächsten Anfrage weiter und meldet jeden dieser Fehler im Log; der Exit-Code ist
@@ -995,7 +997,8 @@ Umgebung ausführt, setzt dort die Variablen der Optionen der jeweils anderen
 Betriebsart nicht. `config show` prüft von den Variablen nur
 `PGWIRE_RECORDER_CONFIG`. Unbeachtet bleiben: `PGWIRE_RECORDER_PASSWORD`, das keine Option
 hat, bei `record` und `replay`, ferner bei `record`, `replay` und `play` eine Variable mit
-dem Präfix `PGWIRE_RECORDER_`, deren Name zu keiner Option gehört, und
+dem Präfix `PGWIRE_RECORDER_`, deren Name zu keiner Option gehört und die nicht
+`PGWIRE_RECORDER_PASSWORD` heißt, und
 `pgwire_recorder_listen`, eine andere Schreibweise des Namens einer Option.
 
 | Option | Betriebsart | Umgebungsvariable | Standard |
