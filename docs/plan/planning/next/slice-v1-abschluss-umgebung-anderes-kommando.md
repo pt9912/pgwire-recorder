@@ -13,9 +13,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 hängt an ihm. Eingesammelt wird er von der nächsten Welle-Closure. Eingeordnet am 2026-10-12 nach
 Entscheidung des Nutzers vom 2026-10-12: nach der Gate-Kette (`slice-harness-gate-kette-schnell`,
 `slice-harness-gate-kette-stop-hook`) und vor `slice-v1-abschluss-antwortvergleich` (WIP-Limit 1);
-Reihenfolge in §4 *Start* und im Drift-Log der Roadmap. **Offen für den Nutzer:** ob der Slice in
-`welle-v1-abschluss` gehört (§4 und Reihenfolge dort neu nummeriert) — der Planner hat ihn wellenlos
-angelegt, weil seine Closure-Bedingung keine andere als die DoD ist.
+Reihenfolge in §4 *Start* und im Drift-Log der Roadmap. **Wellenlos** ist Entscheidung des Nutzers vom 2026-10-12
+(„Deine Empfehlungen“; die Empfehlung des Planners, ihn nicht in `welle-v1-abschluss` zu führen, weil
+seine Closure-Bedingung keine andere als die DoD ist).
 
 **Bezug:** [`LH-FA-17`](../../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration)
 (Scope), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus) (die Option
@@ -25,8 +25,8 @@ angelegt, weil seine Closure-Bedingung keine andere als die DoD ist.
 **Berührte Spec-Stellen:** `LH-FA-17.a` (*Einstellungen*: Absatz zur Umgebungsvariable der Option
 eines anderen Kommandos, Reihenfolge der Fehler, Optionstabelle; Entscheidung des Nutzers vom
 2026-10-12, Spezifikation seit Commit `9bf8f06`) · `LH-FA-03.b` (*Andere Kommandos*) · `LH-FA-01.a`
-(Hilfe und `version` lesen nichts) · `SPEC-034` (Zeile `PGR-E2001` des Katalogs; ob sie die neue Ursache
-nennt, entscheidet der Architect, die Änderung ist nicht Teil dieses Slice)
+(Hilfe und `version` lesen nichts) · `SPEC-034` (Zeile `PGR-E2001` des Katalogs nennt die neue Ursache seit der Prüfung des
+Architect vom 2026-10-12; die Änderung ist nicht Teil dieses Slice)
 
 **Verantwortlich:** pt9912
 
@@ -100,15 +100,15 @@ Ergebnis in §7.
   Slice nicht vornimmt.
 - Änderung der Hilfe (`internal/adapters/driving/cli/cli.go`, Texte der Kommandos) — Bestand bleibt
   bewusst stehen: `LH-FA-01.a` verlangt keinen Satz dazu, und `TestLeserHilfe` hält fest, dass die Hilfe
-  keine Ausnahme nennt; der Architect bestätigt es vor dem Code (§6).
+  keine Ausnahme nennt; vom Architect am 2026-10-12 bestätigt (§6).
 - Änderung der Spezifikation, einschließlich der Zeile `PGR-E2001` in `SPEC-034` — Schicht-Abgrenzung:
-  Die Spezifikation führt, der Slice folgt; ob die Katalogzeile die neue Ursache nennt, entscheidet der
-  Architect (§6).
+  Die Spezifikation führt, der Slice folgt; die Katalogzeile nennt die neue Ursache seit der Prüfung
+  des Architect vom 2026-10-12, der Slice ändert sie nicht (§6).
 - `README.md` — sagt zu Umgebungsvariablen nichts und bleibt unverändert (Suche am 2026-10-12: keine
   Stelle, die „unbeachtet“ für Umgebungsvariablen anderer Kommandos behauptet).
 - Eine Prüfung der Variablen mit Kleinschreibung, mit anderem Präfix oder auf anderen Plattformen —
   Der Name einer Option der Tabelle ist die einzige Form; was ihr nicht entspricht, bleibt unbeachtet
-  (§6).
+  (§6; `LH-FA-17.a` seit dem 2026-10-12: der Name gilt genau).
 ## 2. Definition of Done
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -174,9 +174,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`): `slice-harness-gate-kette-stop-hook` liegt in `done/` (WIP-Limit 1);
 dieser Slice steht direkt dahinter und vor `slice-v1-abschluss-antwortvergleich` (Drift-Log der
 Roadmap vom 2026-10-12). Technisch hängt er an nichts. Die Reihenfolge Gate-Kette vor diesem Slice
-vor `slice-v1-abschluss-antwortvergleich` ist Entscheidung des Nutzers vom 2026-10-12. **Vor dem
-ersten Code-Commit:** Der Architect hat die Randformen aus §6, die dort als *offen* stehen, in
-`LH-FA-17.a` entschieden (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`, `AGENTS.md` §3.12).
+vor `slice-v1-abschluss-antwortvergleich` ist Entscheidung des Nutzers vom 2026-10-12. Die
+Randformen aus §6 sind vom Architect am 2026-10-12 vor dem Code in `LH-FA-17.a` entschieden
+(`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`, `AGENTS.md` §3.12).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -216,15 +216,17 @@ Randform entscheidet der Implementer nicht, er gibt sie zurück. Stand heute:
 | `config show` | entschieden: prüft von den Variablen nur `PGWIRE_RECORDER_CONFIG`; die Liste der aktiven Variablen am Ende bleibt | `LH-FA-17.a` *Anzeige* |
 | Hilfe; `version` | entschieden: lesen und prüfen nichts | `LH-FA-17.a`, `LH-FA-01.a` |
 | `PGWIRE_RECORDER_PASSWORD` | entschieden: bei `record` und `replay` unbeachtet (Ausnahme, vom Nutzer bestätigt), bei `play` das Passwort | `LH-FA-17.a` |
-| Variable mit Präfix, deren Name keiner Option der Tabelle entspricht (`PGWIRE_RECORDER_BOGUS`, `PGWIRE_RECORDER_`) | entschieden: unbeachtet. **Frage zur Bestätigung:** gilt das auch für andere Schreibweisen (`pgwire_recorder_listen`, `PGWIRE_RECORDER_Listen`)? Der Name entspricht der Option nicht | `LH-FA-17.a` |
-| Optionen der Tabelle, die der Stand noch nicht liest (sechs, §1), beim eigenen Kommando | **Bestätigung:** „kennt“ heißt: steht in der Spalte *Kommando*; bei diesen Kommandos bleibt die Variable unbeachtet, bis ihr Slice den Leser liefert; bei den anderen Kommandos ist sie `PGR-E2001` | `LH-FA-17.a` |
+| Variable mit Präfix, deren Name keiner Option der Tabelle entspricht (`PGWIRE_RECORDER_BOGUS`, `PGWIRE_RECORDER_`) | entschieden: unbeachtet. andere Schreibweisen (`pgwire_recorder_listen`, `PGWIRE_RECORDER_Listen`) ebenso: der Name gilt genau, Groß- und Kleinschreibung unterscheidet (Architect 2026-10-12) | `LH-FA-17.a` |
+| Optionen der Tabelle, die der Stand noch nicht liest (sechs, §1), beim eigenen Kommando | entschieden (Architect 2026-10-12): „kennt“ heißt: steht in der Spalte *Kommando*; beim eigenen Kommando bleibt die Variable unbeachtet, bis ihr Slice den Leser liefert (Stand des Codes, die Spezifikation sagt die Prüfung zu), beim anderen Kommando ist sie `PGR-E2001`. Keine Sendung: die drei Slices liefern ihren Leser nach ihrem eigenen §1; der Test der Gleichheit (Mutationen) wird rot, wenn ein Leser eine Option ohne Zuordnung anmeldet | `LH-FA-17.a` |
 | Variable gesetzt, und die Kommandozeile setzt dieselbe Option des eigenen Kommandos (eigene Option, ungültige Variable) | entschieden: die Variable wird geprüft, unabhängig von der Priorität. Die Option eines anderen Kommandos auf der Kommandozeile ist schon eine unbekannte Option und geht der Umgebung vor, weil die Kommandozeile zuerst geprüft wird | `LH-FA-17.a` |
-| **Rangfolge** der Prüfung gegenüber den anderen `PGR-E2001`-Prüfungen: Die Reihenfolge der Fehler nennt die Kommandozeile, dann die Variablen *der Optionen des Kommandos* in der Reihenfolge der Tabelle, dann die Datei; die Variablen anderer Kommandos stehen dort nicht | **offen — Architect** (Empfehlung des Planners: ein Durchlauf über die Variablen aller Optionen in der Reihenfolge der Tabelle, vor der Datei; die Reihenfolge der eigenen Variablen bleibt) | `LH-FA-17.a` *Fehler* |
-| mehrere fremde Variablen zugleich: welche meldet der Start (nur die erste, alle)? | **offen — Architect** (Empfehlung: die erste in der Reihenfolge der Tabelle, eine Meldung, wie sonst „der Start endet beim ersten Fehler“) | `LH-FA-17.a` *Fehler* |
-| fremde Variable und eine ungültige eigene Variable oder eine ungültige Datei zugleich | **offen — Architect**, folgt aus der Rangfolge | `LH-FA-17.a` *Fehler* |
-| Quelle der Zuordnung *Option → Kommandos*: die Optionstabelle der Spezifikation ist die Quelle, der Adapter führt sie als Daten; wer hält beide gleich? | **offen — Architect** (a: der Test hat die Erwartung hart kodiert aus der Spalte *Kommando*; b: ein Test liest die Tabelle aus `spec/`) | `LH-FA-17.a` |
-| Hilfetext unverändert | **offen — Architect** (Bestätigung, §1) | `LH-FA-01.a` |
-| Zeile `PGR-E2001` in `SPEC-034` nennt die neue Ursache nicht („unbekannte Option“ ohne Umgebung) | **offen — Architect** (Spezifikationsänderung, nicht Teil dieses Slice) | `SPEC-034` |
+| **Rangfolge** der Prüfung gegenüber den anderen `PGR-E2001`-Prüfungen | entschieden (Architect 2026-10-12): Kommandozeile; dann ein Durchlauf über die Variablen aller Optionen der Tabelle in ihrer Reihenfolge, bei einer Option des Kommandos der Wert, bei einer fremden die Variable selbst; dann die Datei; die Reihenfolge der eigenen Variablen bleibt | `LH-FA-17.a` *Fehler* |
+| mehrere fremde Variablen zugleich | entschieden: nur die erste in der Reihenfolge der Tabelle, eine Meldung (der Start endet beim ersten Fehler) | `LH-FA-17.a` *Fehler* |
+| fremde Variable und eine ungültige eigene Variable zugleich | entschieden: die in der Reihenfolge der Tabelle erste wird gemeldet (z. B. `play`: fremde `PGWIRE_RECORDER_LISTEN` steht vor `_INPUT`, `_SHUTDOWN_TIMEOUT` nach `_INPUT`) | `LH-FA-17.a` *Fehler* |
+| fremde Variable und ungültige Datei zugleich | entschieden: die fremde Variable (`PGR-E2001`), die Datei wird nicht gelesen | `LH-FA-17.a` *Fehler* |
+| `PGWIRE_RECORDER_CONFIG` und `PGWIRE_RECORDER_LOG_LEVEL` | entschieden: `CONFIG` kennen alle Kommandos (nie fremd; ihre Prüfung ist die der Datei), `LOG_LEVEL` kennen `record`, `replay`, `play`; bei `config show` nur `CONFIG` | `LH-FA-17.a` Tabelle, *Anzeige* |
+| Quelle der Zuordnung *Option → Kommandos* | entschieden (Architect 2026-10-12): Weg a. Der Test hält die Erwartung hart kodiert aus der Spalte *Kommando*; ein Test, der `spec/` liest, ist nicht möglich, weil der Build-Kontext der Stufe `test` `spec/` ausschließt (`.dockerignore`, [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)). Driftet die Spalte von der Zuordnung, fängt das das Review gegen die Spezifikation; **akzeptiertes Negativ**, weil nur ein Slice, der eine Option hinzufügt oder einem Kommando zuordnet, die Spalte ändert, und der setzt Zuordnung und Test dann mit (kein Beobachtungs-Eintrag) | `LH-FA-17.a` |
+| Hilfetext unverändert | entschieden: unverändert (Architect 2026-10-12); `LH-FA-01.a` verlangt keinen Satz, der Hilfetext sagt „jede Option ist auch über ihre Umgebungsvariable setzbar“ und bleibt wahr | `LH-FA-01.a` |
+| Zeile `PGR-E2001` in `SPEC-034` | entschieden: angepasst vom Architect am 2026-10-12 („gesetzte Umgebungsvariable einer Option, die das Kommando nicht kennt“); nicht Teil dieses Slice | `SPEC-034` |
 
 **Mutationen** (`AGENTS.md` §3.10): Der Implementer fährt je Zusage die Mutation selbst und trägt die
 Tabelle in §7 ein. Vorgegeben:
@@ -241,7 +243,9 @@ Tabelle in §7 ein. Vorgegeben:
 | Eine Variable mit Präfix ohne passende Option bleibt unbeachtet | jede Variable mit Präfix als fremd behandeln | Fall `PGWIRE_RECORDER_BOGUS` |
 | `config show` prüft nur `PGWIRE_RECORDER_CONFIG` | die Prüfung auch in `config show` | Fall `config show` mit fremder Variable |
 | Die Hilfe liest nichts | die Prüfung vor die Hilfe | Fall `record --help` mit fremder Variable |
-| Die Rangfolge nach `LH-FA-17.a` | Prüfung an einer anderen Stelle der Reihenfolge | Fall mit zwei Fehlern zugleich |
+| Die Rangfolge nach `LH-FA-17.a`: fremde Variable vor der Datei | Prüfung der fremden Variablen nach der Datei | fremde Variable und ungültige Datei zugleich |
+| Ein Durchlauf in der Reihenfolge der Tabelle, nur der erste Fehler | fremde Variablen in einem eigenen Durchlauf vor oder nach den eigenen; alle fremden melden | zwei fremde Variablen; fremde nach einer ungültigen eigenen, die in der Tabelle vor ihr steht, und davor |
+| Der Name gilt genau | Name ohne Beachtung der Schreibweise vergleichen | Fall `pgwire_recorder_listen` bei `play` unbeachtet |
 
 **Risiken:**
 
@@ -251,10 +255,10 @@ Tabelle in §7 ein. Vorgegeben:
   Aufrufers (`AGENTS.md` §3.1).
 - Die Zuordnung *Option → Kommandos* im Code driftet von der Optionstabelle der Spezifikation (ein
   späterer Slice liefert eine Option und ändert die Spalte, oder der Test hält eine Erwartung, die die
-  Spezifikation nicht mehr trägt) — **Ausgang:** weiter offen:
-  → `BEO-REPO/zuordnung-der-optionen-driftet-von-der-spezifikation` (neu bei der Closure angelegt,
-  1×); bindet der Architect die Gleichheit an einen Test, der die Tabelle der Spezifikation liest
-  (§6, *Quelle der Zuordnung*, Weg b), wählt die Closure den Ausgang neu.
+  Spezifikation nicht mehr trägt) — **Ausgang:** entfallen als akzeptiertes Negativ (Architect
+  2026-10-12, §6 *Quelle der Zuordnung*): Ein Test kann `spec/` nicht lesen (Build-Kontext), die Spalte
+  ändert nur ein Slice, der die Option liefert und Zuordnung und Test dann mit nachzieht, und das Review
+  liest gegen die Spezifikation; kein Beobachtungs-Eintrag.
 - Der Slice ändert Verhalten, das ein Nutzer mit exportierten Variablen anderer Kommandos bisher
   unbemerkt hatte (CI-Umgebung mit allen `PGWIRE_RECORDER_*` für `record` und `play` in einer
   Shell) — **Ausgang:** entfallen: Entscheidung des Nutzers vom 2026-10-12 (Fehler), die
