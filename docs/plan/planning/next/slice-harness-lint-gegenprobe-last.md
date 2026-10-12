@@ -40,7 +40,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ziel:** `make lint-gegenprobe` fährt ohne gesetztes `LINT_GEGENPROBE_PARALLEL` höchstens
 drei Läufe der Stufe `lint` gleichzeitig (bisher sechs): `tools/harness/lint-gegenprobe.sh`
 setzt den Standard auf 3 und nennt ihn in seinem Kopf, ohne die Zusage, ein Lauf von
-`make gates` prüfe ihn (Entscheidung des Nutzers vom 2026-10-12, §6).
+`make gates` prüfe ihn, und ohne ihn als Obergrenze der Last von `make gates` zu lesen
+(Entscheidung des Nutzers vom 2026-10-12, §6).
 
 **Anlass** (Entscheidung des Nutzers vom 2026-10-12, den Standard auf 3 zu senken): Last auf
 dem Rechner (20 Kerne) und ein OOM-Kill am 2026-10-12 um 06:05. Der Kernel-Log nennt als
@@ -90,6 +91,9 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Läufe in `tools/harness/lint-gegenprobe.sh` 3 (Zeile `parallel=`); der Kopf des Skripts
       nennt 3 als Standard und sagt weder zu, dass ein Lauf von `make gates` ihn prüft, noch
       etwas über die Wirkung auf Last, Speicher oder einen OOM-Kill zu (`AGENTS.md` §3.11).
+      Der Satz „den Default fährt jeder Lauf von `make gates`“ (Kopf, Zeilen 18–19) ist
+      gestrichen, die 6 im Kopf (Zeile 14) ersetzt, und der Kopf liest 3 als Höchstzahl je
+      Lauf des Skripts, nicht als Obergrenze der Last von `make gates` (§6).
       Kein Fall im Skript prüft den Standard (Entscheidung des Nutzers, §6). Ein gültiger gesetzter Wert gilt unverändert.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -115,7 +119,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `tools/harness/lint-gegenprobe.sh` | update | `parallel=6` (Zeile 126) wird `parallel=3`; der Kopf (Zeile 13 ff.) nennt 3 als Standard, ohne die Zusage, ein Lauf prüfe ihn; kein neuer Fall (§6) |
+| `tools/harness/lint-gegenprobe.sh` | update | `parallel=6` (Zeile 126) wird `parallel=3`; der Kopf (Zeile 13 ff.) nennt 3 als Standard (Zeile 14) und streicht den Satz „den Default fährt jeder Lauf von `make gates`“ (Zeilen 18–19), ohne die Zusage, ein Lauf prüfe ihn, und ohne 3 als Obergrenze der Last von `make gates` zu lesen; kein neuer Fall (§6) |
 
 - Die Zahl 6 steht nach Suche vom 2026-10-12 (`grep -rn` nach `LINT_GEGENPROBE` und
   `PARALLEL` über `tools/`, `harness/`, `spec/`, `docs/`, `README.md`, `AGENTS.md`, `.claude/`)
@@ -138,8 +142,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 (Schritt 24) und den übrigen offenen Slices von welle-v1-abschluss, danach folgen sie in der
 Reihenfolge des §5 der Welle, dann `slice-harness-integration-volumes` und die übrigen
 (Drift-Log der Roadmap vom 2026-10-12). Technisch hängt er an nichts. Die Reihenfolge ist
-Entscheidung des Nutzers vom 2026-10-12. Vor dem ersten Code-Commit prüft der Architect die Randformen aus §6
-(`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
+Entscheidung des Nutzers vom 2026-10-12. Der Architect hat die Randformen aus §6 am 2026-10-12
+geprüft (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`) und alle als entschieden
+bestätigt; der Plan ist vor dem ersten Code-Commit bereit.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -168,7 +173,7 @@ dasteht.
 
 **Randformen** (`AGENTS.md` §3.12) — der Slice ändert den Standard einer vorhandenen Einstellung
 und liefert keinen neuen Vertrag; die Randformen stehen trotzdem hier, weil die Einstellung
-einen Vertrag im Kopf des Skripts hat. **Zu prüfen vom Architect vor dem ersten Code-Commit.**
+einen Vertrag im Kopf des Skripts hat. **Vom Architect am 2026-10-12 geprüft, alle entschieden.**
 Eine nicht genannte oder offene Randform entscheidet der Implementer nicht, er gibt sie zurück.
 
 - *Ungültiger Wert* (`0`, leer, `-1`, `abc`, ` 3`) — **entschieden:** im Kopf des Skripts
@@ -176,26 +181,35 @@ Eine nicht genannte oder offene Randform entscheidet der Implementer nicht, er g
   Fälle `einstellung-<wert>`; unverändert.
 - *Gültiger gesetzter Wert* (etwa `6`) — **entschieden:** gilt unverändert und überstimmt den
   Standard; wer die frühere Parallelität will, setzt sie. Kein Fall ändert sich. Ein Aufrufer,
-  der die Einstellung setzt, ist im Repo nicht zu finden (Suche in §3).
+  der die Einstellung setzt, ist im Repo nicht zu finden (Suche in §3). Das gilt auch für eine in
+  der Umgebung des Aufrufers gesetzte gültige `LINT_GEGENPROBE_PARALLEL` (Shell-Export): sie
+  überstimmt den neuen Standard still, denn `harness/mk/lint.mk` reicht die Umgebung unverändert
+  durch. Entschieden (Architect, 2026-10-12): gilt unverändert, der Nutzer prüft seine
+  Umgebung; kein Code.
 - *Nicht gesetzt (Standard)* — **entschieden:** Entscheidung des Nutzers vom 2026-10-12, Weg (2):
   Kein Fall im Skript prüft den Standard. Der Kopf des Skripts nennt die Zahl 3 ohne die
-  Zusage, ein Lauf von `make gates` prüfe sie (`AGENTS.md` §3.11); wer `parallel=3` auf einen
-  anderen Wert ändert, bricht kein Gate, und das ist akzeptiertes Negativ: Der Wert ist eine
-  Höchstzahl mit Einstellung zum Überstimmen, und eine Last- oder Zeitgrenze ist keine Zusage
-  des Werkzeugs. Fundstelle der Entscheidung ist dieser Absatz; ob die Spezifikation sie nach
-  `AGENTS.md` §3.12 trägt, ist offen und steht beim nächsten Punkt.
+  Zusage, ein Lauf von `make gates` prüfe sie (`AGENTS.md` §3.11). Der Implementer streicht im
+  Kopf den Satz „den Default fährt jeder Lauf von `make gates`“ (Zeilen 18–19, am Ende des
+  Absatzes zu `einstellung-<wert>`) und ersetzt die 6 im Kopf (Zeile 14) durch 3; es genügt
+  nicht, nur die Zahl zu tauschen. **Akzeptiertes Negativ:** Wer `parallel=3` auf einen anderen
+  Wert ändert, bricht kein Gate. Grund: Der Standard ist eine Höchstzahl mit Einstellung zum
+  Überstimmen; Last oder Laufzeit sind keine Zusage des Werkzeugs. Die Entscheidung des Nutzers
+  (Weg 2, 2026-10-12) steht in diesem Absatz und in der Closure-Notiz; die Spezifikation trägt
+  sie nicht (nächster Punkt).
 - *Weniger als drei Fälle oder Kerne* — **entschieden:** die Obergrenze ist eine Höchstzahl
   (`jobs -rp | wc -l` gegen `parallel`); weniger Fälle laufen alle, mehr warten. Unverändert,
   kein Fall nötig.
-- *Ort der Zahl und Fundstelle der Entscheidung zu Standard ohne Fall* — **offen, an den Architect:** Die
-  Zahl steht heute nur im Kopf des Skripts; die Spezifikation nennt sie nicht (Suche in §3).
-  `AGENTS.md` §3.12 verlangt die Entscheidung einer Randform auch für Harness-Werkzeuge in der
-  Spezifikation; der Architect entscheidet, ob `SPEC-049` dafür eine Zeile braucht (etwa: die
-  Gegenprobe fährt ohne Einstellung höchstens drei Läufe gleichzeitig, ohne Prüfung des
-  Standards) oder ob der Hinweis „akzeptiertes Negativ“ in diesem Plan genügt. Bleibt es dabei (Empfehlung des Planners, weil
-  die Spezifikation auch die Schwellen des Werkzeugs nicht dupliziert), ändert sich die
-  Spezifikation nicht und der Kopf des Plans bleibt `—`. Entscheidet der Architect, die Zahl in
-  die Spezifikation zu heben, trägt der Planner Kopf und `Berührte Spec-Stellen` nach.
+- *Ort der Zahl und Fundstelle der Entscheidung zu Standard ohne Fall* — **entschieden**
+  (Architect, 2026-10-12): keine Zeile in `SPEC-049`. Der Standard ist die Höchstzahl eines
+  Werkzeug-Parameters und keine Randform des Lint-Vertrags; ein Spec-Satz „höchstens drei
+  Läufe“ wäre selbst eine Zusage ohne Prüfung (`AGENTS.md` §3.11). Fundstelle der Entscheidung
+  ist dieser Abschnitt §6. Die Spezifikation ändert sich nicht, der Kopf des Plans bleibt `—`;
+  es gibt keine Folge-ADR und keine Lockerung nach `AGENTS.md` §3.6.
+- *Lesart des Standards 3* — **entschieden:** 3 ist eine Höchstzahl je Lauf des Skripts und
+  keine Obergrenze der Last von `make gates`: Weitere Checks laufen unter `make` zusätzlich, und
+  die Messung (§1) gilt für die Gegenprobe allein. Anforderung an den Wortlaut: Der Kopf des
+  Skripts darf den Standard nicht anders lesen lassen, nennt also keine Last-, Speicher- oder
+  Zeitgrenze für `make gates`.
 - *Wirkung auf Last und Speicher* — **keine Randform des Skripts, sondern Messung:** siehe die
   Risiken; das Skript sagt über sie nichts zu.
 
