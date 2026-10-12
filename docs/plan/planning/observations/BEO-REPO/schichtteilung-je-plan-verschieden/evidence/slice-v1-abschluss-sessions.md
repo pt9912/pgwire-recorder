@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sessions
+**Fund:** Der Zweig `if o.SessionAssignment == cli.ZuordnungVerbindung` im Bootstrap: `AGENTS.md` §3.13 nennt „verzweigen“ unter den Dingen, die den Bootstrap zur Schicht machen; der Plan zählte ihn als Verdrahtung (Review F-684, INFO). Der Architect entschied: Abbildung eines Optionswerts eins zu eins auf einen Konstruktor-Parameter, wie `if o.FailOnUnconsumed`, ist Verdrahtung; ein Zweig, der etwas anderes tut, als eine Option durchzureichen, zählt (Plan §8).

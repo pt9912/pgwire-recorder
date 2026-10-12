@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sessions
+**Fund:** Der Kommentar von `LeereSessions` sagte „Mit an wird jede eröffnete Session geschrieben“; die Tests prüfen zwei Ausnahmen (nicht unterstützte Interaktion, Zwangsende im Aufbau), der Satz reichte weiter (Verifikation V-305, LOW). Dazu der Satz an `frei` („mit `connection` ändert sich die Liste nicht“), wahr, aber ohne fangenden Test, der Mutant äquivalent (Review F-685, INFO). Behoben in `2d7e810`, `a498a6c` und `0d23ed8`: Die Kommentare nennen die Ausnahmen und die Tests; der Satz an `frei` entfällt.

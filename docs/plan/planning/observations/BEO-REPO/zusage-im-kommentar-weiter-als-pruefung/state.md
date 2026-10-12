@@ -17,3 +17,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-antwor
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-antwortvergleich-doku` (F-673, F-674, V-301) — Handbuchsätze weiter als die Probe, davon zwei als unveränderter Satz neben dem neuen Abschnitt (Beleg `evidence/slice-v1-abschluss-antwortvergleich-doku.md`).
 
 Der Satz zur Durchsicht nach der Klasse „unveränderter Satz neben einem neuen“ in `.claude/commands/implement-slice.md` Schritt 17 (das Merkmal kommt aus der Allgemeinregel, die der neue Abschnitt einschränkt, nicht aus dem Gegenstand) — Herkunfts-Anker `seit slice-v1-abschluss-antwortvergleich-doku` (Beleg `evidence/slice-v1-abschluss-antwortvergleich-doku.md`, F-673, V-301).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-sessions` (V-305, F-685) — ein Kommentar sagte „jede eröffnete Session“, die Tests prüfen zwei Ausnahmen; ein Satz an `frei` hatte keinen fangenden Test (Beleg `evidence/slice-v1-abschluss-sessions.md`).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sessions
+**Fund:** Der Implementer beobachtete zwei Randformen des Verbindungsaufbaus (Startnachricht mit vollständigem Kopf, deren Rest fehlt, endet mit `PGR-E6001`; weniger als 8 Bytes endet still) und nannte sie nur im Bericht; §6 trug keine Spur der Rückgabe, und kein Test fuhr den Fall (Review F-680, MEDIUM: „ein Satz im Bericht ist nach §3.12 keine Rückgabe“). Der Architect entschied in §6 (Bestand bleibt), der Implementer lieferte `TestE2ERecordHalbeStartnachricht` mit Mutanten.

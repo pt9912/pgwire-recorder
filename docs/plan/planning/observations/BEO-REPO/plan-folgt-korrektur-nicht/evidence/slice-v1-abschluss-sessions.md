@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sessions
+**Fund:** §1 *Nahtstelle* Punkt 3 sagte, `-record` ändere nicht, dass „jede andere“ Session mit `--record-empty-sessions` geschrieben werde; seit `efc17ec` gilt das nicht für das Zwangsende im Aufbau. Dazu nannte die Zeile `internal/hexagon/services` in §3 die Bedingung des Schreibens nicht und ein Absatz in §8 die Schichten „Kern, PGWire-Adapter“ statt Kern und CLI-Adapter (Review F-683, LOW). Behoben in `60a5aaf`.

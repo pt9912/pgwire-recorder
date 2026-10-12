@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sessions
+**Fund:** §4 nannte die Schwelle „über 2200 Zeilen mit Tests“ ohne Metrik. Gemessen an dem Stand nach der Nacharbeit lag der Diff je nach Lesart bei 2115 (Summe unter `internal` und `test`), 2191 (mit Abdeckungstabellen) und 2206 (mit Tabellen und Spezifikation): ob die Probe eintrat, hing an der Lesart, nicht an einer Zahl (Verifikation V-306, LOW). Der Planner legte die Metrik bei der Closure in §4 fest; die Rückführung ist nicht eingetreten.

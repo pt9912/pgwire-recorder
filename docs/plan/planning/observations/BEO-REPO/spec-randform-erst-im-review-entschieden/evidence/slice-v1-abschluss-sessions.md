@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sessions
+**Fund:** Das Zwangsende im Aufbau erkennt `CloseSession` am Zustand der Session (weder laufende noch abgeschlossene Interaktion); eine ruhende Session ohne Interaktion, die das Zwangsende des zweiten Signals trifft, sieht gleich aus. Weder die Spezifikation noch §6 nannten diese Randform (Review F-679, MEDIUM); ebenso blieb offen, welcher Zeitpunkt „Reihenfolge der Sessionenden“ meint, der Abbruch des Clients oder das Bemerken (F-681, INFO). Der Architect entschied beide in §6 als akzeptierte Negative.

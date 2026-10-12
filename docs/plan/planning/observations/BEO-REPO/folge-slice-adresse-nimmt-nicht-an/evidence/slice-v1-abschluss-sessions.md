@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sessions
+**Fund:** Die Nahtstelle in §1 des Gebers (vier Punkte, „Eintrag in deren §1 jeweils durch den Planner“) stand in den Nehmern nur teilweise: `slice-v1-abschluss-verbindungsende-replay` nannte den Geber gar nicht, `-record` trug zwei der vier Punkte nicht, `-upstream` keinen (Verifikation V-308, LOW). Der Implementer hatte auf den Planner verwiesen (F-683); der Eintrag blieb bis zur Closure aus. Die Closure trug die Punkte in §1, §6 und §8 der drei Nehmer ein (`ac7649c`), mit Nachzählung.

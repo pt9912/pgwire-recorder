@@ -13,3 +13,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-zeitang
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-umgebung-anderes-kommando` (F-2, V-1) — der Plan beschrieb erzeugte Abdeckungstabellen unvollständig und mit Zeilennummern, die veralten; behoben mit Testnamen statt Zeilen (Beleg `evidence/slice-v1-abschluss-umgebung-anderes-kommando.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-antwortvergleich` (F-668) — §1 und §3 beschrieben Leser und Exit-Code anders als der Diff (Beleg `evidence/slice-v1-abschluss-antwortvergleich.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-sessions` (F-683) — der Plan folgte der Nacharbeit zum Zwangsende nicht an allen Stellen (§1, §3, §8) (Beleg `evidence/slice-v1-abschluss-sessions.md`).

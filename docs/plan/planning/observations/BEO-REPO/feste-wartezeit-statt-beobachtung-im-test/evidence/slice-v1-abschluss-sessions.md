@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sessions
+**Fund:** `TestE2EVerbindungsfehlerParallel` wartete nach dem Senden der langen Anfrage fest 300 ms, bevor es das Signal schickte, und erwartete danach `PGR-E4006` (Review F-682, LOW). Behoben in `0d23ed8`: Der Test wartet, bis `pg_stat_activity` die Anfrage am Upstream zeigt. Die Lastprobe (20 Wiederholungen je Fassung, Load Average 62) zeigte das Flackern der alten Fassung nicht (20 von 20 grün); der Grund der Änderung ist der Befund des Reviews, keine gesehene Rotfärbung.

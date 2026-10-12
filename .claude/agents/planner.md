@@ -30,6 +30,11 @@ Nennt §6 eines Gebers als Gegenmittel, dass Nehmer eine Signatur nennen, deren 
 Implementer wählt, trägst du die Namen bei der Closure des Gebers in die Nehmer ein, mit
 Nachzählung im selben Commit; das Risiko hat keinen Ausgang, solange `grep` nach den Namen im
 Nehmer leer bleibt (seit slice-v1-abschluss-zeitangaben-uhr).
+Legt der Architect in §1 eines Gebers eine Nahtstelle für Nehmer fest („Eintrag in deren §1 durch
+den Planner“), ist jeder Punkt eine Sendung an jeden Nehmer, den er bindet: Du trägst ihn in dessen
+§1 und §6 ein, mit Nachzählung im selben Commit, bevor der Geber nach `done/` geht. Geprüft ist
+das mit `grep` nach der Kennung des Gebers in jedem Nehmer der Reihe; ein Nehmer, der sie nicht
+nennt, ist keine Adresse (seit slice-v1-abschluss-sessions).
 Eine „Entscheidung des Nutzers“ nimmst du in einen Plan oder in `AGENTS.md` nur auf, wenn der
 Nutzer sie getroffen hat; der Vorschlag eines Agenten bleibt „Empfehlung“, und ein Absatz im
 Plan trägt die Entscheidung als Artefakt, die Mitteilung selbst ist keines (seit
