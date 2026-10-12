@@ -930,7 +930,8 @@ gilt für jede Option der Tabelle. Zwei Ausnahmen: `PGWIRE_RECORDER_PASSWORD` ha
 keine Option und bleibt bei `record` und `replay` unbeachtet, und eine Variable mit
 dem Präfix, deren Name keiner Option der Tabelle entspricht, bleibt bei jedem
 Kommando unbeachtet (ein Tippfehler ist von der Variable eines anderen Werkzeugs
-nicht zu unterscheiden). Eine Warnung statt des Fehlers gibt es nicht: der Katalog
+nicht zu unterscheiden); der Name gilt genau, die Groß- und Kleinschreibung
+unterscheidet, und `pgwire_recorder_listen` entspricht keiner Option. Eine Warnung statt des Fehlers gibt es nicht: der Katalog
 führt keinen Meldungscode für Warnungen des Starts, und eine Variable, die der Lauf
 nicht beachtet, soll nicht unbemerkt bleiben (Entscheidung des Nutzers vom
 2026-10-12: Fehler). Wer `record` und `play` in derselben Umgebung fährt, setzt die
@@ -1146,8 +1147,11 @@ nennt, weil er an der Stelle eines Werts stehen kann. Zu einem leeren Schlüssel
 der kein Skalar ist, nennt sie als Stelle die Abbildung, in der er steht (oberste Ebene,
 Abschnitt). Der Start endet beim ersten
 Fehler mit einer Meldung; geprüft wird in dieser Reihenfolge: die Kommandozeile; die
-Umgebungsvariablen der Optionen des Kommandos in der Reihenfolge der Tabelle unten;
-die Datei (Wahl, Lesen, YAML, dann Schlüssel, Werte und Klartext-Passwörter in der
+Umgebungsvariablen in einem Durchlauf über die Optionen der Tabelle unten in ihrer
+Reihenfolge, bei einer Option des Kommandos ihr Wert, bei einer Option, die das
+Kommando nicht kennt, die Variable selbst (`PGR-E2001`), sodass bei mehreren Fehlern
+nur der in der Reihenfolge der Tabelle erste gemeldet wird, gleich ob eine fremde
+Variable oder der Wert einer eigenen ungültig ist; die Datei (Wahl, Lesen, YAML, dann Schlüssel, Werte und Klartext-Passwörter in der
 Reihenfolge der Datei, innerhalb einer URL in der Reihenfolge ihrer Teile); zuletzt,
 nach der Zusammenführung, Pflichtoptionen, Kombinationen, `--upstream` (der Wert der
 Kommandozeile, dann der der Umgebungsvariable), `sslmode=require` der benutzten Verbindung
@@ -2382,7 +2386,7 @@ seiner Klasse, nie keinen Code. Ein Fehler ohne Klasse ist `PGR-E1000`.
 |---|---|---|
 | `PGR-E1000` | sonstiger Fehler (Exit 1) | Rückfall; unerwarteter interner Fehler |
 | `PGR-E2000` | Konfiguration (Exit 2) | Rückfall |
-| `PGR-E2001` | Konfiguration (Exit 2) | ungültige CLI-Verwendung: unbekannte Option, fehlende Pflichtoption, ungültiger Wert oder ungültige Kombination (`SPEC-020`) |
+| `PGR-E2001` | Konfiguration (Exit 2) | ungültige CLI-Verwendung: unbekannte Option, gesetzte Umgebungsvariable einer Option, die das Kommando nicht kennt, fehlende Pflichtoption, ungültiger Wert oder ungültige Kombination (`SPEC-020`) |
 | `PGR-E2002` | Konfiguration (Exit 2) | `--output` existiert bereits und `--force` ist nicht gesetzt (LH-FA-07.a) |
 | `PGR-E2003` | Konfiguration (Exit 2) | zeitgetreues Einspielen verlangt, aber mindestens einer Interaktion der Aufzeichnung fehlt `offset_ms` (LH-FA-21.a) |
 | `PGR-E2004` | Konfiguration (Exit 2) | Konfigurationsdatei nicht lesbar oder ungültig: YAML, Schlüssel, Abschnitt, Wert, `sslmode`, Platzhalter außerhalb einer URL (LH-FA-17.a) |
@@ -3069,3 +3073,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-12 | Zeitangaben, Aufzeichnen: „Werte steigen nicht ab“ gilt unter der Bedingung, dass die Aufrufe der Client-Richtung einer Session nacheinander kommen; der Use Case ordnet gleichzeitige Aufrufe nicht um (`LH-FA-21.a`) |
 | 2026-10-12 | Zeitangaben, Aufzeichnen: Beginn der Messung in *Aufzeichnen* nennt den *Messpunkt* statt „Annahme der Verbindung“; das Lastenheft nennt als Bezugspunkt den Verbindungsaufbau und legt ihn nicht auf TLS und Startup fest, kein Widerspruch (`LH-FA-21.a`) |
 | 2026-10-12 | Konfiguration, Entscheidung des Nutzers: Umgebungsvariable der Option eines anderen Kommandos ist `PGR-E2001` (bisher unbeachtet; ersetzt die Fassung vom 2026-10-05 und 2026-10-08), Ausnahmen `PGWIRE_RECORDER_PASSWORD` und Variable ohne passende Option, keine Warnung (`LH-FA-17.a`) |
+| 2026-10-12 | Konfiguration: Rangfolge der Umgebungsvariablen in einem Durchlauf über die Tabelle (fremde und eigene gemeinsam, nur der erste Fehler), vor der Datei; Schreibweise des Namens genau; Katalogzeile `PGR-E2001` nennt die Umgebungsvariable (`LH-FA-17.a`, `SPEC-034`) |
