@@ -800,7 +800,7 @@ Die Reihenfolge der Optionen ändert nichts.
 * Das erste Abbruchsignal (`Strg+C` oder `SIGTERM`) beendet jede Wartezeit sofort. Ohne
   `--finish-session-on-interrupt` sendet `play` die folgenden Anfragen nicht und endet; mit
   der Option spielt es die übrigen Anfragen der Sitzung ohne Wartezeit ein und endet dann.
-  Der Exit-Code ist 0, nach einem früheren Fehler 4.
+  Der Exit-Code ist 0, nach einem früheren Fehler 4, nach einer Abweichung beim Vergleich 5.
 
 #### Prüfung beim Laden
 
