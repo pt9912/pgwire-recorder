@@ -250,3 +250,81 @@ func TestE2EPlayVergleichExtended(t *testing.T) {
 		t.Fatalf("Exit-Code %d, stderr:\n%s", code, stderr)
 	}
 }
+
+// Abdeckung: LH-FA-24/Boundary, LH-FA-24/Negative — endet eine Extended-Interaktion
+// gegen die reale Instanz mit einer Fehlerantwort, die die Aufzeichnung genauso
+// trägt (ein Batch, dessen zweite Anweisung durch null teilt), sendet play mit
+// Vergleich die Gruppe bis zum Sync und endet mit Exit-Code 0 ohne Meldung; die
+// Anweisung nach dem Fehler läuft nicht, die danach folgende Anfrage schon. Trägt
+// die Aufzeichnung einen anderen SQLSTATE, ist es PGR-E5004 der Art Fehler mit
+// beiden SQLSTATE und Exit-Code 5 (Abnahmeszenario 16, LH-FA-24.a, LH-FA-20.a
+// Schritt 6).
+func TestE2EPlayVergleichExtendedFehler(t *testing.T) {
+	leereDatenbank(t, "vgl_extf_quelle")
+	input := nimmAufEinspielFehler(t, "vgl_extf_quelle")
+	conn := leereDatenbank(t, "vgl_extf_gleich")
+	_, stderr, code := starteBisFrist(t, 30*time.Second, "play", "--upstream", os.Getenv("PGR_UPSTREAM"), "--input", input, "--database", "vgl_extf_gleich", "--compare-responses")
+	z := strings.Split(zaehler(t, stderr), "/")
+	if code != 0 || strings.Contains(stderr, "level=ERROR") || z[0] != z[1] || z[2] != "0" || z[0] == "0" {
+		t.Fatalf("Exit-Code %d, Zähler %v, stderr:\n%s", code, z, stderr)
+	}
+	if got := wert(t, conn, "SELECT coalesce(string_agg(n::text, ',' ORDER BY n), '') FROM ergebnis"); got != "4" {
+		t.Fatalf("Zeilen %q, erwartet 4", got)
+	}
+	datei := geaendert(t, input, "22012", "22003")
+	stderr, code = vergleichLauf(t, "vgl_extf_abw", datei)
+	if code != 5 || strings.Count(stderr, "code=PGR-E5004") != 1 || !strings.Contains(stderr, "Art Fehler (SQLSTATE aufgezeichnet „22003“, Server „22012“)") {
+		t.Fatalf("anderer SQLSTATE: Exit-Code %d, stderr:\n%s", code, stderr)
+	}
+}
+
+// nimmAufEinfach zeichnet über record gegen die Datenbank quelle die
+// einfachen Anfragen sqls in einer Session auf und liefert den Pfad der
+// Aufzeichnung.
+func nimmAufEinfach(t *testing.T, quelle string, sqls ...string) string {
+	t.Helper()
+	output := filepath.Join(t.TempDir(), "rec.yaml")
+	rec := startRecorder(t, os.Getenv("PGR_UPSTREAM"), output)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, err := pgconn.Connect(ctx, dsnDatenbank(rec.listen, quelle))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sql := range sqls {
+		if _, err := conn.Exec(ctx, sql).ReadAll(); err != nil {
+			t.Fatalf("%s: %v", sql, err)
+		}
+	}
+	if err := conn.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	rec.stop(t, 0)
+	return output
+}
+
+// Abdeckung: LH-FA-24/Boundary — gegen die reale Instanz sind Hinweise
+// (NoticeResponse) und Parameterstatus (ParameterStatus) kein Teil des
+// Vergleichs, in beide Richtungen: Trägt nur die Aufzeichnung einen Hinweis und
+// einen Parameterstatus, trägt sie nur der Server, oder beide, endet play mit
+// Exit-Code 0 und ohne Abweichung (LH-FA-24.a, Normalisierung).
+func TestE2EPlayVergleichHinweise(t *testing.T) {
+	leereDatenbank(t, "vgl_hinw_quelle")
+	mit := nimmAufEinfach(t, "vgl_hinw_quelle", "SET application_name = 'a'", "DO $$ BEGIN RAISE NOTICE 'x'; END $$")
+	text := lies(t, mit)
+	if !strings.Contains(text, "type: parameter_status") || !strings.Contains(text, "type: notice_response") {
+		t.Fatalf("die Aufzeichnung trägt Parameterstatus und Hinweis nicht:\n%s", text)
+	}
+	ohne := nimmAufEinfach(t, "vgl_hinw_quelle", "SET work_mem = '5MB'", "DO $$ BEGIN NULL; END $$")
+	if text := lies(t, ohne); strings.Contains(text, "type: parameter_status") || strings.Contains(text, "type: notice_response") {
+		t.Fatalf("die Aufzeichnung trägt Parameterstatus oder Hinweis:\n%s", text)
+	}
+	nurAufgezeichnet := geaendert(t, geaendert(t, mit, "SET application_name = 'a'", "SET work_mem = '5MB'"), "RAISE NOTICE 'x'", "NULL")
+	nurServer := geaendert(t, geaendert(t, ohne, "SET work_mem = '5MB'", "SET application_name = 'b'"), "BEGIN NULL;", "BEGIN RAISE NOTICE 'y';")
+	for i, f := range []struct{ name, input string }{{"nur aufgezeichnet", nurAufgezeichnet}, {"nur Server", nurServer}, {"beide", mit}} {
+		stderr, code := vergleichLauf(t, "vgl_hinw_"+string(rune('a'+i)), f.input)
+		if code != 0 || strings.Contains(stderr, "level=ERROR") || zaehler(t, stderr) != "2/2/0" {
+			t.Fatalf("%s: Exit-Code %d, stderr:\n%s", f.name, code, stderr)
+		}
+	}
+}
