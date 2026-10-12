@@ -18,8 +18,9 @@ type RecordService struct {
 	path     string
 	uhr      driven.Uhr
 	zeit     bool
-	// leere: auch eine eröffnete Session ohne abgeschlossene Interaktion wird
-	// geschrieben (--record-empty-sessions, LH-FA-12.a).
+	// leere: auch eine Session ohne abgeschlossene Interaktion wird geschrieben,
+	// außer bei nicht unterstützter Interaktion und beim Zwangsende im Aufbau
+	// (--record-empty-sessions, LH-FA-12.a).
 	leere bool
 
 	mu       sync.Mutex
@@ -112,10 +113,14 @@ func Zeitangaben(uhr driven.Uhr, aufzeichnen bool) RecordOption {
 	return func(s *RecordService) { s.uhr, s.zeit = uhr, aufzeichnen }
 }
 
-// LeereSessions stellt --record-empty-sessions ein: Mit an wird jede eröffnete
-// Session geschrieben, auch eine ohne abgeschlossene Interaktion, und die
-// Aufzeichnung trägt die Kennzeichnung empty_sessions, auch ohne Session
-// (LH-FA-12.a *Recording*).
+// LeereSessions stellt --record-empty-sessions ein: Mit an wird auch eine
+// Session ohne abgeschlossene Interaktion geschrieben, nach jedem Ende außer
+// dem Zwangsende im Aufbau (TestRecordLeereSessionJedesEnde,
+// TestRecordZwangsendeLeereSession); eine Session mit nicht unterstützter
+// Interaktion wird auch mit an nicht geschrieben
+// (TestRecordLeereSessionNichtUnterstuetztVerworfen). Die Aufzeichnung trägt
+// die Kennzeichnung empty_sessions, auch ohne Session (LH-FA-12.a *Recording*,
+// *Mit der Option*).
 func LeereSessions(an bool) RecordOption {
 	return func(s *RecordService) { s.leere, s.rec.EmptySessions = an, an }
 }
