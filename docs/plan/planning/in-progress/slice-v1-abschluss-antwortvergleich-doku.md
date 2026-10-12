@@ -175,6 +175,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 | 33 | README: Sätze zu `play` | Proben 4, 5, 7, 8, 9, 10, 11, 19 | wie dort |
 | 34 | Tabelle §5: Betriebsart `play`, Standard `false` | `--help` der vier Kommandos | `play --help` nennt `--compare-responses`; `grep -c compare` bei `record`, `replay`, `config show`: 0, 0, 0 |
 | 35 | Exit-Code 5, Zeilen `PGR-E2004`, `PGR-E4004`, `PGR-E5004`, Glossar | Proben 4, 31, 19 | wie dort |
+| 36 | §5: Eine Variable mit dem Präfix `PGWIRE_RECORDER_`, deren Name zu keiner Option gehört, bleibt bei `record`, `replay` und `play` unbeachtet | `PGWIRE_RECORDER_BOGUS=x` und `PGWIRE_RECORDER_NICHTDA=x`, je Kommando ohne Optionen (`docker run -e … pgwire-recorder:dev <Kommando>`, Image `sha256:e6c5ef3178…`) | je Exit 2, `Pflichtoption --listen fehlt` (`record`, `replay`) bzw. `Pflichtoption --upstream fehlt` (`play`); keine Meldung zur Variable |
 
 **Stand der Gates.** `make gates` am Stand `485aa94` (Arbeitsbaum sauber): Exit 0 (Laufzeit 5 min 9 s). Der Commit danach ändert nur diese Zeile; `make gates` auf dem Stand nach dem letzten Commit ist die Messung, die der Bericht nennt.
 
@@ -182,17 +183,17 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 **Ungenannt geblieben** (keine Probe am gebauten Binary oder nur Spezifikation): Verhalten je Serverversion (kein Ausgleich); Tag mit leerem Wort (`SELECT ` gegen `SELECT`); Fehlerantwort ohne Feld `C`; Gruppengrenzen beim erweiterten Protokoll; die folgende Sitzung nach `FATAL` mit `--continue-on-error`; `--keep-timing` neben `--compare-responses` (nur der Exit-Code nach Signal, Probe 26); Wert der Option außer `true`/`false`; die Rangfolge Option, Variable, Schlüssel für diese Option (Probe 28 zeigt sie, der Satz steht allgemein in §5 und bleibt dort); Lauf ohne eine Interaktion. Das Handbuch sagt nichts zu einem aufgezeichneten Verbindungsende (§1; Entscheidung des Nutzers vom 2026-10-12): Das Binary zeigt heute `FATAL`/`PANIC` mit Vergleich immer als `PGR-E5004`, und so steht es im Handbuch.
 
-**Befund an den Planner.** (a) Die Befehlsfolge aus `slice-doku-ist-stand` §7 (Optionen, Variablen, Codes) ist am Stand `6c4d53c` ohne meine Änderung rot: Die Variablen-Zeile mit der benannten Ausnahme `PGWIRE_RECORDER_PASSWORD` nennt `PGWIRE_RECORDER_BOGUS`, eine Variable in §5 des Handbuchs (Satz zu unbeachteten Variablen, eingeführt mit `slice-v1-abschluss-umgebung-anderes-kommando`, Commit `b91131c`), die zu keiner Option gehört. §3 dieses Plans verlangt „mit ihr ist die Ausgabe leer“; das stimmt nicht. Ich habe den Satz nicht geändert (er ist Bestand einer früheren Entscheidung und steht nicht in meinem Diff); die Ausnahme in `implement-slice.md` Schritt 17 und in §3 bräuchte `PGWIRE_RECORDER_BOGUS` als zweite benannte Ausnahme, oder der Satz im Handbuch nennt die Variable nicht. (b) Die Roadmap führt in Zeile 23 „In Arbeit: nichts“; ich habe sie nicht angefasst (Planung).
+**Befund an den Planner.** (a) behoben mit `934c48a`: Die Befehlsfolge war am Stand `6c4d53c` rot, weil der Satz zu unbeachteten Variablen in §5 `PGWIRE_RECORDER_BOGUS` nannte (Bestand aus `b91131c`, `slice-v1-abschluss-umgebung-anderes-kommando`). Entscheidung des Auftraggebers (2026-10-12): keine zweite benannte Ausnahme; der Satz nennt die Variable nicht mehr, sondern „eine Variable mit dem Präfix `PGWIRE_RECORDER_`, deren Name zu keiner Option gehört“ (Probe 36). (b) Die Roadmap führt in Zeile 23 „In Arbeit: nichts“; ich habe sie nicht angefasst (Planung).
 
-**Befehlsfolge aus `slice-doku-ist-stand` §7** (Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`), am Stand `6f10a41`:
+**Befehlsfolge aus `slice-doku-ist-stand` §7** (Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`), am Stand `934c48a`:
 
 | Prüfung | Ausgabe |
 |---|---|
 | Optionen des Handbuchs, die `--help` nicht kennt | `--h`, `--help`, `--version` (Nicht-Optionen im Handbuch), `--name`, `--rm` (`docker run`) |
-| Variablen ohne Option, ohne `PGWIRE_RECORDER_PASSWORD` | `PGWIRE_RECORDER_BOGUS` (Befund (a)) |
+| Variablen ohne Option, ohne `PGWIRE_RECORDER_PASSWORD` | leer (Befund (a) behoben) |
 | Codes außerhalb des Katalogs | leer |
 
-`--compare-responses` und `PGWIRE_RECORDER_COMPARE_RESPONSES` stehen nicht in der Ausgabe; `PGR-E5004` ist im Katalog. Die Befehlsfolge ist nicht geändert, kein Wächter eingeführt; ihre Mutanten stehen in `done/slice-v1-abschluss-einspielen-anmeldung-doku` §7 und werden nicht wiederholt. `grep -n -i -E "spec/|lastenheft|slice|welle|review|LH-|SPEC-|ADR|noch nicht|kommt|geplant|künftig"` über das Handbuch findet nur Bestand ohne Bezug (`noch nicht` in §3 „Zieldatei existiert noch nicht“, `kommt` in der Ruhefrist von `record` und in §4 zu TLS); `make docs-check`: 0 Befunde.
+`--compare-responses` und `PGWIRE_RECORDER_COMPARE_RESPONSES` stehen nicht in der Ausgabe; `PGR-E5004` ist im Katalog. Die Befehlsfolge ist nicht geändert, kein Wächter eingeführt; mit der Variablen `PGWIRE_RECORDER_BOGUS` zusätzlich in der Liste der Handbuch-Variablen (Mutant) nennt die Variablen-Zeile sie wieder; ihre Mutanten stehen in `done/slice-v1-abschluss-einspielen-anmeldung-doku` §7 und werden nicht wiederholt. `grep -n -i -E "spec/|lastenheft|slice|welle|review|LH-|SPEC-|ADR|noch nicht|kommt|geplant|künftig"` über das Handbuch findet nur Bestand ohne Bezug (`noch nicht` in §3 „Zieldatei existiert noch nicht“, `kommt` in der Ruhefrist von `record` und in §4 zu TLS); `make docs-check`: 0 Befunde.
 
 **Mutation (§3.10)** entfällt: Der Slice liefert keinen neuen Vertrag, nur Beschreibung; die Probe-Tabelle ersetzt sie (rot wäre ein Satz ohne bestandene Probe).
 
