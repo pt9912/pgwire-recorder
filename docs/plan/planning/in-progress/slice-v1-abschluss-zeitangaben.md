@@ -154,6 +154,8 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 **Läufe:** Die Mutanten liefen in frischen Kopien des Baums (`cp -r` ohne `-p`, ohne `.git`, im Scratchpad, nicht im Repo; je Mutant eine eigene Kopie, danach entfernt), die Unit-Mutanten mit `go test` im Go-Image des `Dockerfile` ohne Zwischenstand und die Kopie als Bind-Mount, die Mutanten des Binaries mit `make test-integration` in der Kopie (der `ENTRYPOINT` der Kopie auf die Tests dieses Slice beschränkt). Dies sind 58 Mutanten (54 auf Unit-Ebene: 31 im Service, 22 im CLI-Adapter, 1 im Bootstrap; 4 am Binary); die Spalte „roter Test“ nennt die Tests, die zur Zusage gehören, nicht jeden roten Test des Laufs (beim Mutanten „Prüfung läuft immer“, bei „Fehlerantwort bricht nicht ab“ und bei „Umgebung vor Option“ sind es mehr).
 
+**Gate-Läufe:** `make gates` lief grün am Stand `61a63d5` auf sauberem Baum, darin `make test`, `make lint`, `make a-check`, `make a-check-negativ`, `make abdeckung-check` und `make test-integration` mit den Tests dieses Slice (`TestE2EPlayKeepTiming`, `TestE2EPlayKeepTimingQuellen`, `TestE2EPlayKeepTimingUngueltig`, `TestE2EPlayKeepTimingOhneOffset`, `TestE2EPlayKeepTimingHilfeUndConfigShow`, `TestE2EReplayIgnoriertZeitangaben`); `make kopf-check` und `make docs-check` ebenso. Spätere Commits ändern nur diesen Absatz.
+
 **Zusage · Mutation · roter Test** (Wortlaut `LH-FA-21.a` *Einspielen* und *Randformen des Einspielens*, Optionstabelle von `LH-FA-17.a`):
 
 | Zusage | Mutation (nur sie) | roter Test |
