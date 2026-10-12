@@ -29,7 +29,8 @@ type PlayOption func(*PlayService)
 
 // Wartezeiten stellt die Uhr ein, nach der KeepTiming die Pausen der Aufzeichnung
 // herstellt (LH-FA-21.a *Einspielen*). Ohne KeepTiming liest der Service die Uhr
-// nie.
+// nie; mit KeepTiming ist die Option Pflicht des Aufrufers, ohne sie endet der
+// Lauf in einem Nil-Zugriff (nicht zugesagt).
 func Wartezeiten(uhr driven.Uhr) PlayOption {
 	return func(s *PlayService) { s.uhr = uhr }
 }
@@ -47,8 +48,9 @@ func Wartezeiten(uhr driven.Uhr) PlayOption {
 // KeepTiming ist --keep-timing: Vor jeder Interaktion wartet der Service nach
 // TimingMode (TimingRelative oder TimingAbsolute) und, bei TimingAbsolute,
 // TimingReference (ReferenceConnect oder ReferenceFirstRequest) auf die
-// aufgezeichnete Zeit (LH-FA-21.a *Einspielen*). Ein anderer Wert von TimingMode
-// gilt wie TimingRelative, ein anderer von TimingReference wie ReferenceConnect.
+// aufgezeichnete Zeit (LH-FA-21.a *Einspielen*). Der Service erwartet genau
+// diese Werte; ein anderer ist beim Aufrufer ungültig (der CLI-Adapter lehnt ihn
+// mit PGR-E2001 ab), und was der Service dann tut, ist nicht zugesagt.
 //
 // Kopplung: Der CLI-Adapter liest die Optionen in einen Typ mit denselben
 // Feldern in derselben Reihenfolge, und der Bootstrap konvertiert ihn in
@@ -151,10 +153,10 @@ func (s *PlayService) Play(ctx context.Context, ablauf <-chan struct{}) error {
 
 // session spielt eine Session über eine eigene Verbindung ein. Am Ende,
 // regulär oder nach einem Fehler, sendet sie Terminate und schließt die
-// Verbindung (Schliesse); endet abbruch, schließt sie sofort und kehrt erst nach dem
-// Schließen zurück. Mit KeepTiming
-// wartet sie vor jeder Interaktion (warte). Ein PGR-E4004, nach dem das
-// Einspielen weiterläuft, hängt sie mit seinem Ort an frueher an.
+// Verbindung (Schliesse); endet abbruch, schließt sie sofort und kehrt erst nach
+// dem Schließen zurück. Mit KeepTiming wartet sie vor jeder Interaktion (warte).
+// Ein PGR-E4004, nach dem das Einspielen weiterläuft, hängt sie mit seinem Ort
+// an frueher an.
 func (s *PlayService) session(ctx, abbruch context.Context, sess model.Session, frueher *[]error) error {
 	zeit := s.neuerTakt()
 	us, err := s.ziel.Verbinde(abbruch, s.startup(sess))

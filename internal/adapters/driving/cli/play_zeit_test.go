@@ -195,7 +195,9 @@ func TestPlayZeitWerteUngueltig(t *testing.T) {
 func TestPlayZeitHilfe(t *testing.T) {
 	text := strings.Join(strings.Fields(hilfe(t, "play", "--help")), " ")
 	for _, teil := range []string{
-		"--keep-timing[=true|false]", "PGWIRE_RECORDER_KEEP_TIMING", "fehlt sie einer Interaktion, endet play mit PGR-E2003",
+		"--keep-timing[=true|false]", "PGWIRE_RECORDER_KEEP_TIMING", "fehlt sie einer Interaktion, endet play mit PGR-E2003", "PGR-E2003; Standard false; Umgebungsvariable",
+		"relative wartet seit dem Beginn der vorigen Interaktion, absolute seit dem Bezugspunkt",
+		"der Beginn des Verbindungsaufbaus oder der Beginn der ersten Interaktion der Session",
 		"--timing-mode relative|absolute", "PGWIRE_RECORDER_TIMING_MODE", "Standard relative",
 		"--timing-reference connect|first-request", "PGWIRE_RECORDER_TIMING_REFERENCE", "Standard connect",
 		"nur mit --keep-timing (sonst PGR-E2001)", "nur mit --keep-timing und absolute (sonst PGR-E2001)",
