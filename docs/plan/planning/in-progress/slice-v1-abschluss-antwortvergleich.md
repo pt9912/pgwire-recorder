@@ -257,6 +257,32 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 3. **An den Nutzer (Lastenheft, kein Befund gegen den Slice).** Abnahmeszenario 16, dritter Satz („Endet die Aufzeichnung mit einem Verbindungsende, das der Server genauso verursacht, gilt es als erwartet“), ist nach der Bereinigung der Spezifikation unerreichbar: Die Aufzeichnung kennt kein Verbindungsende, ein Verbindungsverlust ohne Fehlerantwort ist `PGR-E4003`, `FATAL`/`PANIC` stets `PGR-E5004`. Er ist durch keinen Test belegt und nicht belegbar; das Lastenheft ist nicht geändert.
 4. **Für Review und Verifikation.** `errSessionEnde` ist ein Wert im Service, den `session()` in `nil` verwandelt; er verlässt den Service nicht. Der Service zählt `eingespielt` auch ohne Vergleich (DoD: Zeile `play beendet` trägt die Zähler immer); ohne Vergleich sind `verglichen` und `abweichend` 0.
 
+### Belege der Nacharbeit nach dem Review (F-665 bis F-668)
+
+**Stand.** Commits `f15305e` (Test, Deklaration, Abdeckungstabellen) und `7da285c` (Plan: Kopf, §1, §3, §6); Arbeitsbaum davor `d6d7214`. `make gates`: Exit 0 (6:55 min, Stand `7da285c`, darin `abdeckung-check`, `kopf-check`, `d-check` mit 0 Befunden, `lint-gegenprobe: gruen`, `run-integration-tests`). Davor `make test` grün, `make lint` ohne Befund, `make abdeckung-check`, `make docs-check` (637 Dateien, 0 Befunde), `make kopf-check`.
+
+**Mutationen (Weg wie oben).** Testimage `pgwire-recorder:test` mit Bind-Mount, `touch` nach jeder Änderung, Datei danach zurückgesetzt. Merkmal der Klasse in F-665: die Zusage steht in der Spezifikation für die Kombination zweier Optionen; Ausprägungen: Wartezeit entfällt, Wartezeit hinter der Interaktion, Vergleich entfällt.
+
+| # | Zusage | Mutation | roter Test |
+|---|---|---|---|
+| Z0 | Basis | keine | `TestPlayZeitMitVergleich` grün |
+| Z1 | Der Vergleich ändert die Wartezeit nicht (mit Vergleich wartet die zweite Interaktion bis zum aufgezeichneten Abstand) | `warte` entfällt mit `CompareResponses` | `TestPlayZeitMitVergleich` (Play endete, erwartet 1 Wartende) |
+| Z2 | … die Wartezeit liegt vor der Interaktion, nicht dahinter | `warte` nach `interaktion` statt davor | `TestPlayZeitMitVergleich` (Play endete, erwartet 1 Wartende) |
+| Z3 | … die Antwort wird mit `--keep-timing` verglichen | Vergleich nur ohne `KeepTiming` | `TestPlayZeitMitVergleich` (Meldungen leer, Exit-Code 0, erwartet `PGR-E5004`, 5) |
+| E1 | Die Zeile `play beendet` steht auf Stufe `info` (F-666) | `log.Warn` statt `log.Info` | `TestRunPlay`, `TestRunPlayFehlerantwort`, `TestRunPlayVergleich`, `TestRunPlaySignalImStart` |
+| E2 | … sie erscheint auch bei einem Lauf ohne Interaktion mit drei Nullen | Zeile nur bei nicht leeren Zählern | `TestRunPlayVergleich` (Lauf ohne Interaktion, Zeilen `[]`), `TestRunPlaySignalImStart` |
+| E3 | Position bei fehlender Nachricht am Anfang ist die erste verschiedene, nicht Länge plus 1 | Längenprüfung vor der Schleife in `erste()` | `TestVergleichStruktur/fehlende_Nachricht` (Position 3 statt 1, extended=false und true) |
+| E4a | Die Meldung nennt die Session | Session 0 in `ort` | `TestVergleichExtendedGruppen`, `TestVergleichExtendedFehlerMitten`, `TestVergleichFatalExtendedGruppen`, `TestVergleichErstesSignal`, `TestVergleichZweitesSignal` |
+| E4b | … und die Sequenznummer | Sequenznummer 0 in `ort` | dieselben fünf Tests |
+
+Alle Mutanten rot, keiner grün. Der Mutant Z2 ist vom Typ „Wartezeit hinter der Interaktion samt Vergleich“, so wie F-665 ihn nennt.
+
+**F-667.** Vorher: `abdeckung-e2e.md` führte unter `LH-FA-17` Boundary die Zeile von `TestE2EPlayVergleichGleich`; nachher: die Zeile fehlt, `TestE2EPlayVergleichQuellen` trägt `LH-FA-17/Boundary` weiter. `make abdeckung-check` grün.
+
+**F-668.** §1 und §3 nennen die Bindung wie erfüllt (Eintrag in `optionen("play")`, `liesUmgebung` unverändert, Exit-Code aus der Klasse des Katalogeintrags). Keine Zusage gestrichen, die ein Test prüft (`TestLeserOptionen`, `TestLeserUmgebungNichtGelesenerOptionen`, `TestRunPlayVergleich` unverändert).
+
+**Rückgaben.** Keine: Die Randform zu F-665 war in `LH-FA-21.a` entschieden; §6 zeigt nur darauf.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
