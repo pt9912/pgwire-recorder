@@ -209,6 +209,8 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 | F-677 (INFO), F-678 (a) Exit-Code-Sätze | kein Handlungsbedarf; ungenannt | — |
 | F-678 (b) README *Kerngedanke*, Zählung „Der Commit danach“ | README-Satz ergänzt (mit Vergleich vergleicht `play` die Antworten); die Zeile zum Stand der Gates nennt die beiden Commits `0e70ecb` und `564294d` | Zeile 39 |
 
+**Stand der Gates nach der Nacharbeit.** `make gates` am Stand `baafed2` (Arbeitsbaum sauber): Exit 0. Der Commit danach ändert nur diese Zeile; der Bericht nennt den Lauf am letzten Commit.
+
 **Klasse, nicht nur Einzelfall (F-673):** Merkmal: ein Satz über `play` ohne Bezug auf den Vergleich, neben dem neuen Abschnitt. Durchgesehen: Hinweise zu Anmeldung, TLS, COPY und Signal (Vorspann); Abschnitt *Zeitangaben* (Satz zu `--finish-session-on-interrupt`, Exit-Code-Satz mit Abweichung, Probe 26); README (COPY, Kerngedanke). README-Satz zu `PGR-E4005` und TLS (Zeile „meldet die Ablehnung von TLS … als `PGR-E4005`“) bleibt: er sagt nichts über Fehlerantworten des Vergleichs und wurde vom Review nicht beanstandet.
 
 **Befehlsfolge** am Stand `f106e12` (Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`): Optionen `--h`, `--help`, `--name`, `--rm`, `--version` (Nicht-Optionen bzw. `docker run`); Variablen leer; Codes leer. Der neue Satz nennt `PGWIRE_RECORDER_PASSWORD` im Text; das ist die benannte Ausnahme, die Befehlsfolge bleibt grün. `make docs-check`: 655 Dateien, 0 Befunde.
