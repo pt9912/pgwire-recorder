@@ -289,7 +289,10 @@ func TestRecordParalleleSessions(t *testing.T) {
 // schon eine Session geschrieben ist); die Session steht in der Aufzeichnung.
 // Ist die laufende Interaktion nicht unterstützt, nennt die Meldung diesen Grund
 // und keine Kennung, und die Session wird nicht geschrieben (LH-FA-12.a *Mit der
-// Option*, LH-FA-13.a *Meldung*).
+// Option*, LH-FA-13.a *Meldung*). Ohne laufende und ohne abgeschlossene Interaktion
+// ist das Zwangsende das im Aufbau: Die Session wird auch mit der Option nicht
+// geschrieben, und es gibt keine Meldung (LH-FA-12.a *Angenommene Verbindung*);
+// mit einer abgeschlossenen Interaktion ohne laufende wird sie geschrieben.
 func TestRecordZwangsendeLeereSession(t *testing.T) {
 	t.Run("Kennung genannt", func(t *testing.T) {
 		up := &fakeUpstream{}
@@ -305,6 +308,22 @@ func TestRecordZwangsendeLeereSession(t *testing.T) {
 		}
 		if rec := repo.last(t); len(rec.Sessions) != 2 || len(rec.Sessions[1].Interactions) != 0 {
 			t.Fatalf("Sessions: %#v", rec.Sessions)
+		}
+	})
+	t.Run("im Aufbau", func(t *testing.T) {
+		s, repo := neuLeer(t, &fakeUpstream{}, true)
+		id := session(t, s)
+		if err := s.CloseSession(context.Background(), id, model.EndForced); err != nil {
+			t.Fatalf("Meldung beim Zwangsende im Aufbau: %v", err)
+		}
+		if n := schreibungen(repo); n != 0 {
+			t.Fatalf("Session im Aufbau geschrieben: %#v", repo.last(t))
+		}
+		if err := s.Finish(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		if rec := repo.last(t); len(rec.Sessions) != 0 || !rec.EmptySessions {
+			t.Fatalf("Aufzeichnung: %#v", rec)
 		}
 	})
 	t.Run("nicht unterstützt", func(t *testing.T) {

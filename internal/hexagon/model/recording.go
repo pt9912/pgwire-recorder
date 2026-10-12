@@ -95,6 +95,8 @@ const (
 	// EndFailed heißt: Ein Aufruf des Use Case endete mit einem Fehler.
 	EndFailed
 	// EndForced heißt: Die Frist beim Herunterfahren ist abgelaufen, und der
-	// Adapter hat die Verbindung zwangsweise beendet (LH-FA-13.a).
+	// Adapter hat die Verbindung zwangsweise beendet (LH-FA-13.a). Ohne laufende
+	// und ohne abgeschlossene Interaktion schreibt der Record die Session nicht,
+	// auch mit LeereSessions (LH-FA-12.a).
 	EndForced
 )

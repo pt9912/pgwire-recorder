@@ -425,7 +425,10 @@ func (l *laufend) uebernehmen(in model.Interaction) error {
 //   - EndForced: läuft eine Interaktion, ist das PGR-E4006; die Meldung nennt
 //     die Kennung, unter der die Session geschrieben wird, oder dass sie nicht
 //     geschrieben wird, und die Nummer, die die verworfene Interaktion getragen
-//     hätte (LH-FA-13.a).
+//     hätte (LH-FA-13.a). Ohne laufende und ohne abgeschlossene Interaktion
+//     gilt das Ende als Zwangsende im Aufbau: Die Session wird nie geschrieben,
+//     auch mit LeereSessions, und es gibt keine Meldung (LH-FA-12.a
+//     *Angenommene Verbindung*).
 //   - EndShutdown, EndFailed: kein weiterer Fehler.
 //
 // Eine laufende Interaktion steht nie in der Session. Übernommen wird die
@@ -456,7 +459,7 @@ func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, en
 		interactions = interactions[:len(interactions)-l.unzugestellt]
 		verbindung = model.Errorf(model.CodeConnectionLost, nil, "Antwort nicht an den Client zu senden")
 	}
-	verwerfen := end == model.EndUnsupported || l.unsupported || len(interactions) == 0 && !s.leere
+	verwerfen := wirdVerworfen(end, l.unsupported, len(interactions), l.laeuft(), s.leere)
 	// verworfen ist die Nummer der laufenden Interaktion beim Zwangsende, sonst 0.
 	verworfen := 0
 	if end == model.EndForced && l.laeuft() {
@@ -485,6 +488,15 @@ func (s *RecordService) CloseSession(ctx context.Context, id model.SessionID, en
 	}
 	s.rec.Sessions = append(s.rec.Sessions, session)
 	return errors.Join(verbindung, s.repo.Write(ctx, s.path, s.rec), upErr)
+}
+
+// wirdVerworfen sagt, ob das Ende die Session ausschließt: eine nicht
+// unterstützte Interaktion, das Zwangsende im Aufbau (EndForced ohne laufende
+// und ohne abgeschlossene Interaktion, auch mit leere) oder keine
+// abgeschlossene Interaktion ohne leere.
+func wirdVerworfen(end model.SessionEnd, unsupported bool, abgeschlossen int, laeuft, leere bool) bool {
+	imAufbau := end == model.EndForced && abgeschlossen == 0 && !laeuft
+	return end == model.EndUnsupported || unsupported || imAufbau || abgeschlossen == 0 && !leere
 }
 
 // nichtGeschrieben nennt, warum eine Session mit n abgeschlossenen
