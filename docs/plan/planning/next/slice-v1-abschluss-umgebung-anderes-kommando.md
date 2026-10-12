@@ -11,9 +11,11 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein Abnahmeszenario
 hängt an ihm. Eingesammelt wird er von der nächsten Welle-Closure. Eingeordnet am 2026-10-12 nach
-Entscheidung des Nutzers vom 2026-10-12: nach der Gate-Kette (`slice-harness-gate-kette-schnell`,
-`slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`) und vor `slice-v1-abschluss-antwortvergleich` (WIP-Limit 1);
-Reihenfolge in §4 *Start* und im Drift-Log der Roadmap. **Wellenlos** ist Entscheidung des Nutzers vom 2026-10-12
+Entscheidung des Nutzers vom 2026-10-12 (Ziel: ein Release): als Nächstes, direkt hinter den Slices von
+welle-v1-abschluss bis `slice-v1-abschluss-zeitangaben-doku` und vor `slice-v1-abschluss-antwortvergleich`
+(WIP-Limit 1); die Gate-Kette (`slice-harness-gate-kette-schnell`,
+`slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`) steht seit
+derselben Entscheidung nach dem Release, nicht davor. Reihenfolge in §4 *Start* und im Drift-Log der Roadmap. **Wellenlos** ist Entscheidung des Nutzers vom 2026-10-12
 („Deine Empfehlungen“; die Empfehlung des Planners, ihn nicht in `welle-v1-abschluss` zu führen, weil
 seine Closure-Bedingung keine andere als die DoD ist).
 
@@ -171,11 +173,16 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-gate-kette-stop-hook-freigabe` liegt in `done/` (WIP-Limit 1);
-dieser Slice steht direkt dahinter und vor `slice-v1-abschluss-antwortvergleich` (Drift-Log der
-Roadmap vom 2026-10-12). Technisch hängt er an nichts. Die Reihenfolge Gate-Kette vor diesem Slice
-vor `slice-v1-abschluss-antwortvergleich` ist Entscheidung des Nutzers vom 2026-10-12. Die
-Randformen aus §6 sind vom Architect am 2026-10-12 vor dem Code in `LH-FA-17.a` entschieden
+**Start** (`next` → `in-progress`): `in-progress/` ist leer (WIP-Limit 1; `slice-harness-lint-gegenprobe-last`
+und `slice-v1-abschluss-zeitangaben-doku` liegen in `done/`); dieser Slice steht direkt hinter den Slices von
+welle-v1-abschluss bis `slice-v1-abschluss-zeitangaben-doku` und vor `slice-v1-abschluss-antwortvergleich`
+(Drift-Log der Roadmap vom 2026-10-12). Technisch hängt er an nichts, auch nicht an der Gate-Kette: seine
+Dateien (§3) und Zusagen (§6) berühren weder `SPEC-052` noch `tools/harness`, `harness/mk` oder die Hooks,
+und seine DoD verlangt `make gates`, die volle Kette, die heute schon läuft. Die Reihenfolge — dieser Slice
+zuerst, die Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`,
+`slice-harness-gate-kette-stop-hook-freigabe`) nach dem Release — ist Entscheidung des Nutzers vom
+2026-10-12 (Ziel: ein Release; vorher stand die Gate-Kette davor, ebenfalls Entscheidung des Nutzers vom
+2026-10-12). Die Randformen aus §6 sind vom Architect am 2026-10-12 vor dem Code in `LH-FA-17.a` entschieden
 (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`, `AGENTS.md` §3.12).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
