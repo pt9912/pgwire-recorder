@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Die Einstufung ohne Vergleich, das Schließen ohne `Terminate` und der Einspiel-Adapter — `slice-v1-abschluss-verbindungsende-einspielen` (Vorgänger): andere Verzweigung des Service und andere Schicht.
 - Ein Verbindungsverlust ohne Fehlerantwort bei aufgezeichnetem Ende — bleibt `PGR-E4003`, keine Abweichung (`LH-FA-24.a`); ein anderer Vorgang als das Ende des Servers.
 - Aufzeichnen und Wiedergeben des Endes — `-record`, `-upstream`, `-replay`.
-- Benutzerhandbuch und `README.md` — `slice-v1-abschluss-verbindungsende-doku` (`AGENTS.md` §3.11, §3.13), dort auch die Sätze zu `FATAL`/`PANIC` und `PGR-E5004` aus `slice-v1-abschluss-antwortvergleich-doku`.
+- Benutzerhandbuch und `README.md` — `slice-v1-abschluss-verbindungsende-doku` (`AGENTS.md` §3.11, §3.13), dort auch die Sätze zu `FATAL`/`PANIC` und `PGR-E5004` aus `slice-v1-abschluss-antwortvergleich-doku`. Die Handbuch-Lücke bis dahin (der Satz zu `FATAL`/`PANIC` für eine handgeschriebene Aufzeichnung mit `connection_closed` stimmt nicht mehr) ist akzeptiert, Entscheidung des Nutzers vom 2026-10-12 (dort §1).
 
 ## 2. Definition of Done
 
@@ -121,7 +121,7 @@ dasteht.
 **Risiken:**
 
 - Der Diff liegt über einer Review-Sitzung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`, 2×; das Vorbild `slice-v1-abschluss-antwortvergleich` maß rund 1450 Zeilen, davon etwa 1100 Tests): die Rückführung in §4 benennt den Schnitt — **Ausgang:** offen bis Closure.
-- Szenario 16 Satz 3 stützt sich auf `pg_terminate_backend` und `57P01`; andere Serverversionen sind nicht geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×) — **Ausgang:** offen bis Closure (erwartet: weiter offen → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, solange die Matrix aus `slice-v1-abschluss-postgres-versionen` das Szenario nicht fährt).
+- Szenario 16 Satz 3 stützt sich auf `pg_terminate_backend` und `57P01`; andere Serverversionen sind nicht geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×). **Akzeptiertes Negativ** (Entscheidung des Nutzers vom 2026-10-12): Szenario 16 Satz 3 läuft nur gegen PostgreSQL 17; die Matrix aus `slice-v1-abschluss-postgres-versionen` fährt es nicht mit (dort §1 als Abgrenzung, `AGENTS.md` §3.13) — **Ausgang:** weiter offen → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`.
 
 ## 7. Closure-Notiz
 

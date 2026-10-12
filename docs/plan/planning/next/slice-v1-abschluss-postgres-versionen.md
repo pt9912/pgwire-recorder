@@ -45,6 +45,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Protokollversion 3.2 (PostgreSQL 18) — bleibt Bestand: `LH-FA-05.e` lehnt jede andere Startversion als 3.0 mit `PGR-E6002` ab, und das gilt unverändert auch gegen einen Server, der 3.2 spricht. Der Slice prüft nur, dass ein Client mit 3.0 gegen jeden Server des Bereichs funktioniert; eine Aushandlung (`NegotiateProtocolVersion`) wäre ein anderer Vorgang mit eigener Anforderung.
 - Der Protokollrand (Tabelle in `LH-FA-05.e`) und seine Tests — `slice-v1-abschluss-protokollrand`; dieser Slice ändert an der Tabelle nichts und nimmt ihre Tests nicht in die Matrix.
 - Die volle Integrationssuite gegen jede Version im Gate — Laufzeit wächst mit der Zahl der Versionen, ohne dass Tests ohne Serverabhängigkeit (Signale, Gegendruck, Schreibfehler) etwas Neues zeigen. Ein Lauf von Hand bleibt möglich, weil `POSTGRES_IMAGE` in `integration.mk` überschreibbar ist.
+- Abnahmeszenario 18 und Szenario 16 Satz 3 (Verbindungsende durch den Server, `slice-v1-abschluss-verbindungsende-upstream` und `-vergleich`) in der Matrix — Entscheidung des Nutzers vom 2026-10-12: Beide laufen nur gegen PostgreSQL 17, die Referenzversion des vollen Gates. Begründung: Sie stützen sich auf `pg_terminate_backend`, `57P01` und `idle_session_timeout`, deren Verhalten je Hauptversion eigene Prüfung bräuchte; der Zuwachs an Gate-Laufzeit steht dafür nicht im Verhältnis. Die Lücke bleibt benannt (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`).
 - Ein Wechsel der Referenzversion des vollen Gates — bleibt 17; ein Tausch im selben Slice ersetzte eine bestehende Prüfung statt sie zu ergänzen (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`).
 - Ein Sensor, der den Bereich gegen die Release-Liste von PostgreSQL hält — bräuchte Netz zur Laufzeit des Gates; die Pflege ist eine Handlung (§6), kein Lauf.
 - Kein Produkt-Code außer der Erkennung der Lebendprüfung, und die nur bei einer Abweichung — Schicht-Abgrenzung: Record, Replay-Ablauf und Adapter bleiben unberührt.
@@ -169,5 +170,7 @@ nicht mehr.
 Die Einträge über der Schwelle bekommen ihren Ausgang bei der Closure ihrer Welle, nicht hier.
 
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: Spezifikation, Entscheidungen, Harness und Dokumentation, also vier Schichten und damit über zwei; das war vor dieser Zählung so (die Dokumentation steht in `docs/user/` neben dem Harness) und hängt nicht an ihr: Der Planner entscheidet vor dem ersten Code-Commit, ob dieser Plan geschnitten wird.
+
+Nachgezählt beim Eintragen der Abgrenzung zu Szenario 18 und Szenario 16 Satz 3 (2026-10-12, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Abgrenzung ist ein Ausschluss, kein Liefer-Punkt; Liefer-Punkte (drei) und Schichten (vier, wie oben) bleiben unverändert.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Spezifikation führt, der Code folgt ihr; `harness/conventions.md` deklariert `*` als Greenfield).

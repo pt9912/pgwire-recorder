@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Das Ende mit `--compare-responses` (erwartet bei gleichem SQLSTATE, Abweichung `PGR-E5004`, Zähler `verglichen`, Szenario 16 Satz 3), der Hilfetext von `--allow-recorded-errors` und `--compare-responses` im Binary — `slice-v1-abschluss-verbindungsende-vergleich` (dort §1 und DoD; Sendung des Planners, 2026-10-12): andere Verzweigung des Service (`play_vergleich.go`) und der CLI-Adapter als zweite Schicht; mit ihm läge dieser Plan über der Grenze (drei Schichten, Diff über einer Review-Sitzung). Bis dahin nennt der Hilfetext der Option das Ende nicht; er sagt zu, was ein Test prüft (`AGENTS.md` §3.11).
 - Das Aufzeichnen und das Wiedergeben des Endes — `-record`, `-upstream`, `-replay`: `play` löst das Ende nicht aus, es sendet die aufgezeichneten Anfragen, das Ende bewirkt der Server (`LH-FA-25`, Out-of-Scope).
 - Ein Verbindungsende ohne Fehlerantwort (Netzwerkabbruch) als erwartetes Ende — Out-of-Scope von `LH-FA-25`; es bleibt `PGR-E4003`.
-- Benutzerhandbuch und `README.md` — `slice-v1-abschluss-verbindungsende-doku` (`AGENTS.md` §3.11, §3.13).
+- Benutzerhandbuch und `README.md` — `slice-v1-abschluss-verbindungsende-doku` (`AGENTS.md` §3.11, §3.13). Die Handbuch-Lücke bis dahin (der Satz zu `FATAL`/`PANIC` für eine handgeschriebene Aufzeichnung mit `connection_closed` stimmt nicht mehr) ist akzeptiert, Entscheidung des Nutzers vom 2026-10-12 (dort §1).
 
 ## 2. Definition of Done
 

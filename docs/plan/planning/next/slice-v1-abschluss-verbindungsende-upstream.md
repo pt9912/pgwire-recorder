@@ -121,7 +121,7 @@ dasteht.
 
 **Risiken:**
 
-- Das Verhalten des Servers (`57P01`, `idle_session_timeout` ab PostgreSQL 14) ist nur gegen die Referenzversion 17 geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×); ob die Matrix aus `slice-v1-abschluss-postgres-versionen` Abnahmeszenario 18 mitfährt, ist eine Frage an den Nutzer, nicht in diesem Plan entschieden — **Ausgang:** offen bis Closure (erwartet: weiter offen → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`).
+- Das Verhalten des Servers (`57P01`, `idle_session_timeout` ab PostgreSQL 14) ist nur gegen die Referenzversion 17 geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×); **Akzeptiertes Negativ** (Entscheidung des Nutzers vom 2026-10-12): Abnahmeszenario 18 läuft nur gegen PostgreSQL 17; die Matrix aus `slice-v1-abschluss-postgres-versionen` fährt es nicht mit (dort §1 als Abgrenzung, `AGENTS.md` §3.13) — **Ausgang:** weiter offen → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`.
 - Ein Netzwerkabbruch ohne Fehlerantwort braucht im E2E einen Weg, die Verbindung zu kappen (Proxy, Container anhalten); das Mittel wählt der Implementer, die Zusage ist `PGR-E4003` statt Ende — **Ausgang:** offen bis Closure.
 - Der Diff liegt an der Grenze einer Review-Sitzung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`, 2×): die Rückführung in §4 benennt den Schnitt — **Ausgang:** offen bis Closure.
 
