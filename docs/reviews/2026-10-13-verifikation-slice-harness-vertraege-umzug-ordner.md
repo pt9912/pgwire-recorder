@@ -1,6 +1,6 @@
 # Verifikation: slice-harness-vertraege-umzug-ordner
 
-**Rolle:** Verifier. **Datum:** 2026-10-13. **Spanne:** `6459815` bis `1722af9` (HEAD). **Gegenstand:** [slice-harness-vertraege-umzug-ordner](../plan/planning/in-progress/slice-harness-vertraege-umzug-ordner.md) gegen DoD (§2), [ADR-0040](../plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), [MR-002](../../harness/conventions.md#mr-002) und Spezifikation. Review: [Review-Report](2026-10-13-review-slice-harness-vertraege-umzug-ordner.md).
+**Rolle:** Verifier. **Datum:** 2026-10-13. **Spanne:** `6459815` bis `1722af9` (HEAD). **Gegenstand:** [slice-harness-vertraege-umzug-ordner](../plan/planning/done/slice-harness-vertraege-umzug-ordner.md) gegen DoD (§2), [ADR-0040](../plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), [MR-002](../../harness/conventions.md#mr-002) und Spezifikation. Review: [Review-Report](2026-10-13-review-slice-harness-vertraege-umzug-ordner.md).
 
 Alle Belege unten sind in diesem Lauf selbst erzeugt, nicht aus §7 übernommen.
 

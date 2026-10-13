@@ -1,7 +1,7 @@
 # Review slice-harness-vertraege-umzug-ordner
 
 **Rolle:** Reviewer. **Datum:** 2026-10-13.
-**Gegenstand:** Diff `6459815..e77b87e` gegen den Plan `docs/plan/planning/in-progress/slice-harness-vertraege-umzug-ordner.md`, [ADR-0040](../plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), MR-002, `AGENTS.md` §3.3, §3.7 bis §3.14.
+**Gegenstand:** Diff `6459815..e77b87e` gegen den Plan `docs/plan/planning/done/slice-harness-vertraege-umzug-ordner.md`, [ADR-0040](../plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), MR-002, `AGENTS.md` §3.3, §3.7 bis §3.14.
 **Summary:** 0 HIGH · 1 MEDIUM · 1 LOW · 3 INFO.
 
 ## Findings
@@ -19,7 +19,7 @@
 
 - `kategorie`: LOW
 - `quelle`: `AGENTS.md` §3.9 (Plan folgt der Korrektur)
-- `pfad`: `docs/plan/planning/in-progress/slice-harness-vertraege-umzug-ordner.md` · "`AGENTS.md` | update | §2 (Rang 2) und §3.12"
+- `pfad`: `docs/plan/planning/done/slice-harness-vertraege-umzug-ordner.md` · "`AGENTS.md` | update | §2 (Rang 2) und §3.12"
 - `befund`: Der Zwischenstand "§3.12 nennt zwei Orte" steht in §3 des Plans, aber weder in §1 noch in §6 (Risiko "Zwischenstand mit zwei Orten" nennt nur die Suche nach `SPEC-049`/`SPEC-052`, nicht die Aussage in `AGENTS.md`). Der Gegenstand der Sendung (F-1) ist im Geber nicht als Sendung benannt.
 - `verifizierbar`: nein
 - `klasse`: Zwischenstand-Sendung nicht in §1/§6 des Gebers
