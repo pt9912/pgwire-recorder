@@ -1,23 +1,15 @@
 #!/usr/bin/env bash
-# working-tree-hash — inhaltsbasierter Hash ueber alle getrackten UND untracked
-# Dateien (exclude-standard, respektiert .gitignore). Gemeinsame Quelle der
-# Wahrheit fuer record-gates und den Stop-Hook — keine Logik-Dopplung.
-#
-# INHALTSBASIERT statt diff-basiert: ein Commit ohne Inhaltsaenderung laesst den
-# Hash unveraendert — der Gate-Nachweis bleibt gueltig. Ein Commit OHNE
-# vorherigen Gate-Lauf erzeugt dagegen keinen passenden Nachweis und wird vom
-# Stop-Hook nicht mehr durchgewunken.
+# working-tree-hash — Hash über die Dateiliste des Arbeitsbaums (getrackte und untracked
+# Dateien ohne ignorierte, Inhalt, Link-Ziel und Pfad je Eintrag; Form und Erzeugung in
+# tools/harness/dateiliste.sh). Die Ausgabe wechselt genau dann, wenn sich die Liste
+# ändert; ein Commit ohne Inhaltsänderung lässt sie gleich. Der Stand der schnellen Kette
+# (gates-schnell.sh) und der Hash neben dem Nachweis des vollen Laufs (record-gates.sh)
+# nutzen diese Ausgabe; die Logik der Liste steht nur in dateiliste.sh.
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
+wurzel="$(git rev-parse --show-toplevel)"
+cd "$wurzel"
+# shellcheck source=tools/harness/dateiliste.sh
+. tools/harness/dateiliste.sh
 
-git ls-files -z --cached --others --exclude-standard \
-  | sort -zu \
-  | while IFS= read -r -d '' f; do
-      if [ -L "$f" ]; then
-        printf 'LINK %s -> %s\n' "$f" "$(readlink -- "$f")"
-      elif [ -f "$f" ]; then
-        sha256sum -- "$f"
-      else
-        printf 'GONE %s\n' "$f"
-      fi
-    done | sha256sum | awk '{print $1}'
+hash="$(dateiliste_erzeugen | sha256sum)"
+printf '%s\n' "${hash%% *}"

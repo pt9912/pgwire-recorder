@@ -73,8 +73,9 @@ festgelegt, hier eingetragen; kein Eintrag bei dessen Closure mehr): Ziel der sc
 `gates-schnell`, Stand der schnellen Kette `.harness/state/gates-schnell-passed.diffsha` (Hash des
 Arbeitsbaums, von diesem Slice nicht gelesen), Gegenprobe der Kette `gates-schnell-gegenprobe`, Gegenprobe
 des Hooks `stop-hook-gegenprobe` (dieser Slice legt sie an, der Folge-Slice erweitert sie). Die
-Dateiliste des vollen Laufs liegt in einer **neuen** Datei unter `.harness/state/` (Name wählt der
-Implementer dieses Slice, nicht `gates-passed.diffsha`): Ein alter Hash wird so nie als Liste gelesen.
+Dateiliste des vollen Laufs liegt in einer **neuen** Datei unter `.harness/state/`, neben
+`gates-passed.diffsha`: `.harness/state/gates-passed.dateiliste` (Name vom Implementer gewählt): Ein alter Hash
+wird so nie als Liste gelesen.
 `SPEC-052` Teil *Hook* gilt nach seinem Eingangssatz (Wortlaut: `slice-harness-gate-kette-schnell` §6, Zeile *Zwischenstand*), soweit ein Fall von `stop-hook-gegenprobe` die Zusage nennt;
 dieser Slice liefert das Gate und ändert die Spezifikation nicht.
 
@@ -164,7 +165,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/harness/record-gates.sh` | update | schreibt die Dateiliste statt eines Hashs, nur nach grünem `make gates` |
 | `tools/harness/working-tree-hash.sh` | update / ersetzt | liefert dieselbe Liste für den Arbeitsbaum (Form nach `SPEC-052`: NUL-getrennte Felder Art, Wert, Pfad); bleibt für den Stand der schnellen Kette eine Hash-Ausgabe, die genau dann wechselt, wenn sich der Arbeitsbaum ändert, denn `gates-schnell` ruft sie auf; Schreiber und Hook teilen sich die Logik |
 | `.claude/hooks/stop-require-gates.sh` | update | Freigabe nur bei identischer Liste, Rückfall auf voll bei jedem anderen Fall; Kopf-Kommentar neu |
-| `tools/harness/` (neue Gegenprobe des Hooks) und ihr Fragment unter `harness/mk/` | neu | je Randform dieses Slice ein Fall in einem Temp-Repo; hängt an `GATE_CHECKS` |
+| `tools/harness/dateiliste.sh` | neu | die Funktionen der Liste (`dateiliste_erzeugen`, `dateiliste_pruefen`) und der Pfad `.harness/state/gates-passed.dateiliste`; `record-gates.sh`, `working-tree-hash.sh` und der Hook laden sie mit `source` (eine Logik, keine Dopplung) |
+| `tools/harness/stop-hook-gegenprobe.sh` und `harness/mk/stop-hook-gegenprobe.mk` | neu | je Randform dieses Slice ein Fall in einem Temp-Repo; hängt an `GATE_CHECKS` |
+| `harness/mk/gates-schnell.mk`, `tools/harness/gates-schnell-gegenprobe.sh` | update | `stop-hook-gegenprobe` endet auf `-gegenprobe` und steht damit in der Ausnahmeliste (`SPEC-052` Punkt 2 und 4); die Kopien der Gegenprobe der Kette tragen `dateiliste.sh` und führen den Namen in ihrer Attrappen-Liste |
 | `harness/README.md` §Sensors | update | Zeile der Gegenprobe, Bindung [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) |
 | `harness/conventions.md` (Träger-Tabelle, Zeile `grundlagen-durchsetzungsschicht.md`) | update | nennt die Träger des geänderten Hooks (Dateiliste, Hook, gegebenenfalls ersetzte Datei) |
 

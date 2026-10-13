@@ -29,7 +29,7 @@ fehler=0
 melde() { echo "gates-schnell-gegenprobe: ROT — $*" >&2; fehler=1; }
 
 SCHNELL="docs-check kopf-check baseline-verify abdeckung-check lint test build a-check"
-LANGSAM="lint-gegenprobe kopf-check-gegenprobe abdeckung-gegenprobe hook-gegenprobe a-check-negativ test-integration"
+LANGSAM="lint-gegenprobe kopf-check-gegenprobe abdeckung-gegenprobe hook-gegenprobe stop-hook-gegenprobe a-check-negativ test-integration"
 
 # gate_variable <wurzel> <name> — Wörter der Make-Variable aus der Datenbank von make.
 gate_variable() {
@@ -68,7 +68,7 @@ fixture() {
   cp "$wurzel/Makefile" "$w/Makefile"
   cp "$wurzel/harness/mk/gates-schnell.mk" "$wurzel/harness/mk/enforce.mk" "$w/harness/mk/"
   cp "$wurzel/tools/harness/gates-schnell.sh" "$wurzel/tools/harness/working-tree-hash.sh" \
-    "$wurzel/tools/harness/record-gates.sh" "$w/tools/harness/"
+    "$wurzel/tools/harness/dateiliste.sh" "$wurzel/tools/harness/record-gates.sh" "$w/tools/harness/"
   printf '.harness/state/\n' > "$w/.gitignore"
   {
     printf 'FAKE_SCHNELL := %s neu-x\n' "$SCHNELL"
