@@ -13,8 +13,10 @@
 #   untracked Datei), sperrt.
 # - Scheitert ein Schritt (git, Lesen einer Datei) oder bricht der Hook ab, antwortet er
 #   `block`, nie ohne Antwort.
-# - Der Schleifenschutz (`stop_hook_active`) antwortet `approve`, damit ein dauerhaft rotes
-#   Gate keine Endlosschleife erzeugt.
+# - Der Schleifenschutz (`stop_hook_active: true`) antwortet `approve` vor jeder Prüfung, die zu
+#   `block` führt (Konflikt, fehlender oder beschädigter Stand, scheiternder Schritt, fehlende
+#   dateiliste.sh), damit ein dauerhaft rotes Gate keine Endlosschleife erzeugt; `false` oder
+#   ein fehlendes Feld lässt jede dieser Prüfungen gelten.
 # Die Zusagen gelten für Läufe nacheinander: Änderung, `make gates` und Hook kommen nicht
 # gleichzeitig.
 set -euo pipefail
@@ -26,7 +28,7 @@ aktuell=""
 # einem Befehl mit Umleitung (`> "$aktuell"`) hielte sie sonst in dieser Umleitung fest.
 exec 3>&1
 
-# Jedes Ende ohne Antwort (Abbruch durch set -e, fehlende Datei, Signal) endet hier mit
+# Jedes Ende ohne Antwort (Abbruch durch set -e, fehlende Datei) endet hier mit
 # Antwort `block` und Status 0.
 sicherung() {
   if [ "$antwort" -eq 0 ]; then

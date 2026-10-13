@@ -8,10 +8,11 @@
 # an der Kopie von Hook oder Skript) müssen die benannten Fälle rot werden, die als grün
 # genannten Fälle grün bleiben.
 #
-# Fälle: Punkt 1 (Liste nur nach grünem `make gates`, Hash daneben), 10 (Hash wechselt genau mit dem Arbeitsbaum), 11 (Form, Pfade mit Zeilenumbruch und
-# Leerzeichen), 14 (Inhalt, Link-Ziel, Umbenennung, gelöschte und neue Datei), 16 (Identität gibt
+# Fälle: Punkt 1 (Liste nur nach grünem `make gates`, Hash daneben), 10 (Hash wechselt genau mit dem Arbeitsbaum), 11 (Form, Pfade mit Zeilenumbruch,
+# Leerzeichen innen, am Anfang und am Ende, Tabulator, Backslash und Nicht-UTF-8), 14 (Inhalt, Link-Ziel, Umbenennung, gelöschte und neue Datei), 16 (Identität gibt
 # frei), 17 (Merge-Konflikt vor der Identität), 18 (untracked Datei), 19 (kein Stand, auch bei
-# sauberem Baum), 20 (nicht lesbarer Vergleich, Abbruch, beschädigte Liste, Schleifenschutz),
+# sauberem Baum), 20 (nicht lesbarer Vergleich, Abbruch, beschädigte Liste, Schleifenschutz vor jeder
+# Prüfung, die zu `block` führt),
 # 21 (Make-Flags beim Schreiben des Nachweises: -i entfernt ihn, -n, -q, -t lassen ihn stehen),
 # 22 (Aufrufarten: Arbeitsverzeichnis im Unterverzeichnis, leere Umgebung).
 #
@@ -25,8 +26,9 @@
 #   Mechanismus: make führt das Rezept des Nachweises dort nicht aus (Punkt 21).
 # - Die Gates der Kopie sind Attrappen; die echte Gate-Kette fährt sie nicht.
 # - Die Fehler von git und sha256sum kommen von Wrappern vor dem echten Programm im PATH.
-# - Als root bleibt eine Datei mit Rechten 000 lesbar; dann ist p20-stand-unlesbar nicht
-#   herstellbar und wird laut übersprungen.
+# - Als root bleibt eine Datei mit Rechten 000 lesbar; dann sind p20-stand-unlesbar und sein
+#   Mutant m-unlesbar-als-unveraendert nicht herstellbar und werden beide mit einer Meldung
+#   auf stderr übersprungen, ohne dass die Gegenprobe deshalb rot endet.
 # - Sortierung und Einmaligkeit der Liste haben keinen eigenen Fall (SPEC-052 Punkt 11,
 #   akzeptiertes Negativ); gleichzeitige Läufe sind nicht zugesagt (Punkt 8, ohne Fall).
 #
@@ -191,6 +193,8 @@ FAELLE=(
   p16-identisch
   p14-inhalt p14-link-ziel p14-umbenennung p14-geloescht p14-geloescht-index p14-neu-getrackt
   p18-untracked p11-zeilenumbruch p11-leerzeichen p11-form
+  p11-fuehrendes-leerzeichen p11-abschliessendes-leerzeichen p11-tabulator p11-backslash
+  p11-nicht-utf8 p11-utf8
   p17-konflikt-identisch
   p19-ohne-stand-sauber p19-ohne-stand-geaendert
   p20-stand-unlesbar
@@ -200,6 +204,9 @@ FAELLE=(
   p20-git-u-scheitert p20-git-liste-scheitert p20-datei-nicht-lesbar
   p20-abbruch p20-lib-fehlt p20-kein-repo p20-ohne-git
   p20-schleifenschutz p20-schleifenschutz-false
+  p20-schleifenschutz-konflikt p20-schleifenschutz-ohne-stand p20-schleifenschutz-beschaedigt
+  p20-schleifenschutz-kein-repo p20-schleifenschutz-ohne-git p20-schleifenschutz-git-u
+  p20-schleifenschutz-git-liste p20-schleifenschutz-lib-fehlt
   p10-hash-stabil p10-hash-wechselt
   p1-liste-bei-gruen p1-liste-nicht-bei-rot p1-hash-neben-liste
   p21-i-rot p21-i-gruen p21-i-env p21-i-ki p21-i-lang p21-i-j p21-n p21-q p21-t p21-ni
@@ -227,6 +234,22 @@ f_p11_leerzeichen() {
   printf 'a\n' > "$c/sp ace.txt"
   stand; echo b >> "$c/sp ace.txt"; hook; ist p11-leerzeichen block
 }
+
+# pfadform <fall> <dateiname> — ein Pfad dieser Form: die unveränderte Liste gibt frei, eine
+# Änderung des Inhalts der Datei sperrt (der Pfad muss unverändert in die Liste gelangen).
+pfadform() {
+  local r=""
+  kopie "$1"; printf 'a\n' > "$c/$2"; stand
+  hook; [ "$ent" = approve ] || r=x
+  echo b >> "$c/$2"; hook; [ "$ent" = block ] || r=x
+  [ -z "$r" ] || echo "$1"
+}
+f_p11_fuehrendes_leerzeichen() { pfadform p11-fuehrendes-leerzeichen ' lead.txt'; }
+f_p11_abschliessendes_leerzeichen() { pfadform p11-abschliessendes-leerzeichen 'trail.txt '; }
+f_p11_tabulator() { pfadform p11-tabulator $'\ttab\tmitte.txt\t'; }
+f_p11_backslash() { pfadform p11-backslash 'bs\x.txt'; }
+f_p11_nicht_utf8() { pfadform p11-nicht-utf8 $'inv\xffalid.txt'; }
+f_p11_utf8() { pfadform p11-utf8 'ä.txt'; }
 
 # Form der Liste: alle vier Arten, ein Pfad mit Zeilenumbruch und einer mit Leerzeichen, in
 # einem Mini-Repo; die erwarteten Bytes stehen hier, unabhängig vom Erzeuger.
@@ -260,14 +283,18 @@ f_p11_form() {
 # hash_von <text> — SHA-256 des Textes mit Zeilenvorschub, 64 Hexzeichen.
 hash_von() { printf '%s\n' "$1" | "$REAL_SHA" | cut -c1-64; }
 
-f_p17_konflikt_identisch() {
-  kopie p17-konflikt-identisch
+# merge_konflikt — stellt in c einen nicht aufgelösten Index-Eintrag her; Status 1, wenn keiner entsteht.
+merge_konflikt() {
   git -C "$c" checkout -q -b zweig
   echo zweig > "$c/a.txt"; git -C "$c" commit -qam zweig
   git -C "$c" checkout -q main
   echo haupt > "$c/a.txt"; git -C "$c" commit -qam haupt
   git -C "$c" merge -q zweig > /dev/null 2>&1 || true
-  [ -n "$(git -C "$c" ls-files -u)" ] || { echo p17-konflikt-identisch; return; }
+  [ -n "$(git -C "$c" ls-files -u)" ]
+}
+f_p17_konflikt_identisch() {
+  kopie p17-konflikt-identisch
+  merge_konflikt || { echo p17-konflikt-identisch; return; }
   stand; hook; ist p17-konflikt-identisch block
 }
 
@@ -278,13 +305,21 @@ f_p19_ohne_stand_sauber() {
 }
 f_p19_ohne_stand_geaendert() { kopie p19-ohne-stand-geaendert; echo x >> "$c/a.txt"; hook; ist p19-ohne-stand-geaendert block; }
 
+# unlesbar_geht — Status 0, wenn eine Datei mit Rechten 000 hier unlesbar ist (nicht als root).
+unlesbar_geht() {
+  local d="$arbeit/unlesbar-probe" r=0
+  : > "$d"; chmod 000 "$d"
+  [ ! -r "$d" ] || r=1
+  rm -f -- "$d"
+  return "$r"
+}
 f_p20_stand_unlesbar() {
-  kopie p20-stand-unlesbar; stand
-  chmod 000 "$c/.harness/state/gates-passed.dateiliste"
-  if [ -r "$c/.harness/state/gates-passed.dateiliste" ]; then
+  if ! unlesbar_geht; then
     echo "stop-hook-gegenprobe: p20-stand-unlesbar übersprungen (Dateien mit Rechten 000 sind lesbar)" >&2
     return
   fi
+  kopie p20-stand-unlesbar; stand
+  chmod 000 "$c/.harness/state/gates-passed.dateiliste"
   hook; ist p20-stand-unlesbar block
 }
 
@@ -327,6 +362,36 @@ f_p20_schleifenschutz() {
 f_p20_schleifenschutz_false() {
   kopie p20-schleifenschutz-false; stand; echo x >> "$c/a.txt"
   hook '{"stop_hook_active": false}'; ist p20-schleifenschutz-false block
+}
+
+# schutz <fall> — mit dem Zustand in c: `stop_hook_active: true` gibt frei, `false` sperrt.
+schutz() {
+  local r=""
+  hook '{"stop_hook_active": true}'; [ "$ent" = approve ] || r=x
+  hook '{"stop_hook_active": false}'; [ "$ent" = block ] || r=x
+  [ -z "$r" ] || echo "$1"
+}
+f_p20_schleifenschutz_konflikt() {
+  kopie p20-schleifenschutz-konflikt
+  merge_konflikt || { echo p20-schleifenschutz-konflikt; return; }
+  stand; schutz p20-schleifenschutz-konflikt
+}
+f_p20_schleifenschutz_ohne_stand() { kopie p20-schleifenschutz-ohne-stand; schutz p20-schleifenschutz-ohne-stand; }
+f_p20_schleifenschutz_beschaedigt() {
+  kopie p20-schleifenschutz-beschaedigt; stand
+  printf 'Q' > "$c/.harness/state/gates-passed.dateiliste"
+  schutz p20-schleifenschutz-beschaedigt
+}
+f_p20_schleifenschutz_kein_repo() { kopie p20-schleifenschutz-kein-repo; stand; cwd="$arbeit/leer"; schutz p20-schleifenschutz-kein-repo; }
+f_p20_schleifenschutz_ohne_git() { kopie p20-schleifenschutz-ohne-git; stand; pfad="$arbeit/ohne-git"; schutz p20-schleifenschutz-ohne-git; }
+f_p20_schleifenschutz_git_u() {
+  kopie p20-schleifenschutz-git-u; stand; pfad="$arbeit/shim:$PATH"; shim=u; schutz p20-schleifenschutz-git-u
+}
+f_p20_schleifenschutz_git_liste() {
+  kopie p20-schleifenschutz-git-liste; stand; pfad="$arbeit/shim:$PATH"; shim=liste; schutz p20-schleifenschutz-git-liste
+}
+f_p20_schleifenschutz_lib_fehlt() {
+  kopie p20-schleifenschutz-lib-fehlt; stand; rm -f "${c:?}/${LIB:?}"; schutz p20-schleifenschutz-lib-fehlt
 }
 
 f_p10_hash_stabil() {
@@ -511,6 +576,16 @@ sedmut $LIB 's/"\${hash%% \*}" "\$pfad"/"$pfad" "${hash%% *}"/'; rot p11-form
 fixture m-art-x-als-g
 sedmut $LIB "s/'X\\\\0\\\\0/'G\\\\0\\\\0/"; rot p11-form
 
+fixture m-ohne-ifs
+sedmut $LIB "s/while IFS= read -r -d '' pfad/while read -r -d '' pfad/"
+rot "p11-fuehrendes-leerzeichen p11-abschliessendes-leerzeichen p11-tabulator" "p11-backslash p11-nicht-utf8 p11-utf8 p11-leerzeichen p11-zeilenumbruch p11-form"
+fixture m-read-ohne-r
+sedmut $LIB "s/while IFS= read -r -d '' pfad/while IFS= read -d '' pfad/"
+rot p11-backslash "p11-fuehrendes-leerzeichen p11-abschliessendes-leerzeichen p11-tabulator p11-nicht-utf8 p11-utf8 p11-leerzeichen p11-zeilenumbruch p11-form"
+fixture m-nicht-utf8-normalisiert
+sedmut $LIB 's/| LC_ALL=C sort -zu/| iconv -c -f UTF-8 -t UTF-8 | LC_ALL=C sort -zu/'
+rot p11-nicht-utf8 "p11-utf8 p11-fuehrendes-leerzeichen p11-abschliessendes-leerzeichen p11-tabulator p11-backslash p11-leerzeichen p11-zeilenumbruch p11-form"
+
 # --- Punkt 17: Merge-Konflikt vor der Identität ---------------------------------------
 fixture m-konflikt-nicht-gelesen
 ersetze $HOOK "$L_KONFLIKT" 'konflikt=""'; rot p17-konflikt-identisch
@@ -525,7 +600,12 @@ fixture m-sauberer-baum-frei
 ersetze $HOOK "$L_STANDFEHLT" '[ -f "$stand" ] || { [ -z "$(git status --porcelain=v1)" ] && frei; voll "x"; }'
 rot p19-ohne-stand-sauber p19-ohne-stand-geaendert
 fixture m-unlesbar-als-unveraendert
-ersetze $HOOK "$L_STANDFEHLT" "$L_STANDFEHLT"$'\n''[ -r "$stand" ] || frei'; rot p20-stand-unlesbar
+ersetze $HOOK "$L_STANDFEHLT" "$L_STANDFEHLT"$'\n''[ -r "$stand" ] || frei'
+if unlesbar_geht; then
+  rot p20-stand-unlesbar
+else
+  echo "stop-hook-gegenprobe: Mutant 'm-unlesbar-als-unveraendert' übersprungen (Dateien mit Rechten 000 sind lesbar)" >&2
+fi
 
 # --- Punkt 20: beschädigte Liste, je Fehlform ------------------------------------------
 fixture m-leer-gilt
@@ -565,10 +645,37 @@ fixture m-ohne-trap
 ersetze $HOOK "$L_TRAP" ''; rot "p20-abbruch p20-lib-fehlt p20-kein-repo p20-ohne-git"
 
 # --- Punkt 20: Schleifenschutz -------------------------------------------------------
+SCHUTZ_ALLE="p20-schleifenschutz-kein-repo p20-schleifenschutz-ohne-git p20-schleifenschutz-lib-fehlt p20-schleifenschutz-git-u
+  p20-schleifenschutz-konflikt p20-schleifenschutz-ohne-stand p20-schleifenschutz-beschaedigt p20-schleifenschutz-git-liste"
 fixture m-schleifenschutz-aus
-ersetze $HOOK "$L_LOOP" 'if false; then'; rot p20-schleifenschutz p20-schleifenschutz-false
+ersetze $HOOK "$L_LOOP" 'if false; then'; rot "p20-schleifenschutz $SCHUTZ_ALLE" p20-schleifenschutz-false
 fixture m-schleifenschutz-wert-ignoriert
-ersetze $HOOK "$L_LOOP" 'if [[ "$input" =~ \"stop_hook_active\" ]]; then'; rot p20-schleifenschutz-false p20-schleifenschutz
+ersetze $HOOK "$L_LOOP" 'if [[ "$input" =~ \"stop_hook_active\" ]]; then'
+rot "p20-schleifenschutz-false $SCHUTZ_ALLE" p20-schleifenschutz
+
+# schutz_nach <Zeile des Hooks> — der Schleifenschutz steht hinter dieser Zeile statt vor allen Prüfungen.
+schutz_nach() {
+  ersetze $HOOK "$L_LOOP" 'if false; then'
+  ersetze $HOOK "$1" "$1"$'\n'"$L_LOOP"$'\n''  frei'$'\n''fi'
+}
+fixture m-schutz-nach-source
+schutz_nach '. tools/harness/dateiliste.sh'
+rot "p20-schleifenschutz-kein-repo p20-schleifenschutz-ohne-git p20-schleifenschutz-lib-fehlt" "p20-schleifenschutz p20-schleifenschutz-git-u p20-schleifenschutz-konflikt p20-schleifenschutz-ohne-stand p20-schleifenschutz-beschaedigt p20-schleifenschutz-git-liste"
+fixture m-schutz-nach-git-u
+schutz_nach "$L_KONFLIKT"
+rot "p20-schleifenschutz-git-u" "p20-schleifenschutz p20-schleifenschutz-konflikt p20-schleifenschutz-ohne-stand p20-schleifenschutz-beschaedigt p20-schleifenschutz-git-liste"
+fixture m-schutz-nach-konflikt
+schutz_nach "$L_KONFLIKT2"
+rot "p20-schleifenschutz-konflikt" "p20-schleifenschutz p20-schleifenschutz-ohne-stand p20-schleifenschutz-beschaedigt p20-schleifenschutz-git-liste"
+fixture m-schutz-nach-stand-fehlt
+schutz_nach "$L_STANDFEHLT"
+rot "p20-schleifenschutz-ohne-stand" "p20-schleifenschutz p20-schleifenschutz-beschaedigt p20-schleifenschutz-git-liste"
+fixture m-schutz-nach-pruefung
+schutz_nach 'dateiliste_pruefen "$stand" || voll "The recorded file list is unreadable or damaged."'
+rot "p20-schleifenschutz-beschaedigt" "p20-schleifenschutz p20-schleifenschutz-git-liste"
+fixture m-schutz-nach-erzeugen
+schutz_nach "$L_ERZEUGEN"
+rot "p20-schleifenschutz-git-liste" "p20-schleifenschutz"
 
 # --- Punkt 10: Hash -----------------------------------------------------------------
 fixture m-hash-konstant
