@@ -25,7 +25,11 @@ Kette am geänderten Pfad; Accepted 2026-10-12), das sich auf
 
 **Berührte Spec-Stellen:** `SPEC-052` (von `slice-harness-gate-kette-schnell` in
 `spezifikation.md` §11 angelegt, mit den Randformen vom Architect entschieden; dieser Slice ändert
-sie nicht)
+sie nicht; der Architect hat Punkte 9, 10, 12, 15 und 22 am 2026-10-14 vor dem Code geschärft, §6
+*Ergänzung*). Der Umzug der Verträge der Harness-Werkzeuge nach `harness/vertraege/`
+([ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), Accepted 2026-10-13) folgt
+direkt auf diesen Slice und zieht den Verweis auf `SPEC-052` nach; dieser Slice liegt vor ihm und ändert
+den Ort nicht
 
 **Verantwortlich:** pt9912
 
@@ -110,16 +114,19 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] **Liefer-Punkt 1:** `.claude/hooks/stop-require-gates.sh` gibt nach `SPEC-052` frei, wenn alle
       geänderten Pfade auf der Positivliste liegen (Grenze mit Schrägstrich, bytegenau und case-sensitiv;
-      gelöscht, umbenannt mit beiden Pfaden, untracked wie getrackt; Pfad mit `.`/`..`/leerem Segment,
-      absolut oder mit NUL gilt als beschädigte Liste) **und** der Stand der schnellen Kette grün ist
-      (Hash des aktuellen Arbeitsbaums gleich der Datei; fehlend, ungleich oder nicht lesbar heißt kein
-      Stand); bei identischer Liste gibt er ohne Stand der schnellen Kette frei; jeder andere Fall
+      gelöscht, umbenannt mit beiden Pfaden, untracked wie getrackt; Pfad mit `.`/`..`/leerem Segment
+      oder absolut gilt als beschädigte Liste, geprüft an den Pfaden der Differenz; Art `X` ist nie inert;
+      ein NUL im Pfad endet als Feldzahl-Fehler des Gebers, ohne eigenen Fall) **und** der Stand der schnellen Kette grün ist
+      (Hash des aktuellen Arbeitsbaums, aus `tools/harness/working-tree-hash.sh` gerufen, nicht nachgebaut,
+      gleich der Datei; fehlend, ungleich, leer oder nicht lesbar heißt kein Stand; fehlt das Skript oder
+      scheitert es, gilt `block`, beim Schleifenschutz `approve`); bei identischer Liste gibt er ohne Stand der schnellen Kette frei; jeder andere Fall
       verlangt `make gates`. Der Kopf-Kommentar sagt die Positivliste zu, soweit die Gegenprobe sie prüft
       (`AGENTS.md` §3.7, §3.11).
 - [ ] **Liefer-Punkt 2:** Ein Symlink ist inert, wenn Link-Pfad und das lexikalisch gegen das Verzeichnis
       des Links aufgelöste Ziel (Eintrag `L`) auf der Positivliste liegen; Ziel außerhalb des Repos,
-      absolut oder nicht auflösbar ist nicht inert. Liegt irgendwo im Arbeitsbaum ein Link außerhalb der
-      Positivliste, dessen Ziel auf sie zeigt, ist jede Änderung nicht inert (Spiegelregel).
+      absolut oder nicht auflösbar ist nicht inert; ein Ziel, das ein Verzeichnis der Liste selbst benennt, ebenso. Liegt irgendwo im
+      Arbeitsbaum ein Link außerhalb der Positivliste, dessen Ziel auf sie zeigt, sie benennt oder ihr Vorfahr
+      ist (`docs`, `docs/plan`, die Wurzel), ist jede Änderung nicht inert (Spiegelregel; `SPEC-052` Punkt 15).
 - [ ] **Liefer-Punkt 3:** Die Gegenprobe `stop-hook-gegenprobe` macht je Randform dieses Slice (§6) einen
       Fall in einem Temp-Repo, der nur im inerten Fall freigibt; ihre Zeile in `harness/README.md`
       §Sensors nennt die Positivliste und die Bindung an
@@ -173,16 +180,30 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 Dateiliste steht in §1 (Eintrag des Planners bei der Closure des Gebers; `grep` nach ihm in diesem Plan
 ist nicht leer). Die Randformen aus §6 sind in `SPEC-052` festgelegt; dieser Slice ändert sie nicht.
 
-**Größe — Verteilung der Schätzung des Architect (700 bis 950 Zeilen ungeteilt) durch den Planner, vom
-Architect am 2026-10-13 bestätigt und um die erweiterte Positivliste ergänzt:** dieser Slice 280 bis 420 Zeilen mit Tests (Hook 60 bis 90,
-Gegenprobe mit gut einem Dutzend Fällen 220 bis 330; die Positivliste mit `docs/user/` und `README.md` bringt Pfadklassen, keine neue Logik); in *einer* Review-Sitzung prüfbar.
+**Größe — Schätzung des Architect vom 2026-10-14 nach `AGENTS.md` §3.14 (ersetzt die Zahl 280 bis 420, die vor
+§3.14 in anderer Lesart stand):** Metrik ist die Summe aus Einfügungen und Löschungen von `git diff --numstat
+<Basis>..<letzter Commit des Slice> -- tools harness .claude`, Tests eingeschlossen; Basis ist der Commit, der
+diesen Slice nach `in-progress/` bewegt (Plan, Register und Spezifikation liegen außerhalb dieser Pfade). Geschätzt
+**550 bis 750 Zeilen**: Hook 130 bis 170 (Pfadregel mit Zulässigkeit, Differenz beider Listen, Symlink-Auflösung
+und Spiegelregel, Stand der schnellen Kette, Kopf-Kommentar); Gegenprobe 400 bis 570 (Gerüst-Erweiterung 60: Dateien
+der Positivliste in `fixture`, `stand_schnell`, Helfer je Pfadklasse; gut fünfzig Fälle mit je einer Mutation, weil
+`AGENTS.md` §3.10 je Element einer Aufzählung einen Fall und eine Mutation verlangt; der Faktor 2 gegenüber dem
+Produktcode ergäbe 300 und gilt hier als Untergrenze, weil die Aufzählungen der Positivliste und des Symlinks mehr
+Fälle tragen als der Satz des Gebers); `harness/README.md` und `harness/conventions.md` 5 bis 15. Zum Vergleich: der
+Geber lag bei Schätzung 440 bis 620 und Messung 1065, davon Gegenprobe 769. In *einer* Review-Sitzung prüfbar: ja, mit
+deutlichem Abstand unter der Messung des Gebers, die der Verifier „am Rand“ nannte. Ein Schnitt vorab ist nicht
+nötig; der Schnitt, falls die Marke eintritt, steht unten.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff liegt über einer Review-Sitzung
-  (über 500 Zeilen mit Tests; die Schätzung des Architect liegt bei 280 bis 420). Schnitt dann: die Symlink-Regel mit
-  ihren Fällen (Liefer-Punkt 2) als eigener Slice hinter der Positivliste; beide mit der Gegenprobe ihrer
-  Zusagen, denn ohne Gegenprobe schließt keiner.
+  (Marke: die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> --
+  tools harness .claude` liegt über 900; die alte Marke war 500 in unbenannter Lesart, die Schätzung des Architect liegt bei 550 bis
+  750, der Geber maß 1065 und war „am Rand“). Schnitt dann nach Lieferwert: erst die Positivliste mit Pfaden, Stand der
+  schnellen Kette und Freigabe (Liefer-Punkt 1 und ihre Fälle); danach die Symlink-Regel mit Spiegelregel und
+  ihren Fällen (Liefer-Punkt 2) als eigener Slice. In der Zwischenstufe ist ein geänderter Link nie inert, und die
+  Spiegelregel steht schon im ersten Slice (sonst gäbe es eine Lücke); beide mit der Gegenprobe ihrer Zusagen,
+  denn ohne Gegenprobe schließt keiner. Kennungen legt der Planner an, nicht dieser Plan.
 - `in-progress` → `open` (blockiert — Carveout?): Der Nutzer nimmt
   [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) zurück, oder das Format der Antwort des
   Stop-Hooks ändert sich so, dass die Gegenprobe nicht mehr gegen die echte Eingabe und Ausgabe des
@@ -238,6 +259,44 @@ die Spezifikation, vor jedem Code). Dieser Slice trägt davon, ohne Doppelung mi
 - gleichzeitige Läufe (**Aufruf-Voraussetzung**: nacheinander, `AGENTS.md` §3.12): `SPEC-052` bindet jede
   Zusage daran, der Hook sagt gleichzeitige Läufe nicht zu.
 
+**Ergänzung — Entscheidung des Architect, 2026-10-14 (Fundstelle `SPEC-052`, vor dem Code in die Spezifikation
+eingetragen).** Alle Randformen dieses Plans sind entschieden; keine ist „offen“. Punkte 9, 12, 13 und 15, die der Geber
+nicht prüft und dieser Slice liefert, sind es mit den Zusätzen unten; Punkt 13 (Beleg für `docs/user/` und `README.md`)
+liefert keinen eigenen Fall, er begründet die Aufnahme (die Fälle sind die der Pfadklassen in Punkt 12):
+
+- **Reihenfolge** (Punkt 9): Schleifenschutz, Konflikt, fehlender oder beschädigter Stand des vollen Laufs, Identität, Pfadregel,
+  Stand der schnellen Kette. Die Pfadregel ersetzt keine frühere Prüfung: eigener Fall je Schritt, der vor ihr steht, mit einer
+  inerten Änderung und grünem Stand der schnellen Kette (Konflikt, fehlender Stand, beschädigter Stand: `block`).
+- **Wahl der Kette und Aufruf**: kein Wahl-Skript. Die Pfadregel steht im Hook selbst und nirgends sonst, in reinem `bash`; der Hook ruft nur
+  `tools/harness/working-tree-hash.sh` zusätzlich (Punkt 10). Fehlt das Skript: `block`, beim Schleifenschutz `approve` (je ein Fall). Aufrufarten
+  des Treibers für den Hook sind in `SPEC-052` Punkt 22 entschieden und gelten für die Freigabe mit (Fall in Unterverzeichnis und in
+  leerer Umgebung mit inertem Unterschied und grünem Stand der schnellen Kette). Der Hook ruft kein `make`: `-n`, `-q`, `-t`, `-i`
+  und `MAKEFLAGS` sind für den Stand der schnellen Kette in `slice-harness-gate-kette-schnell` (Punkt 6) entschieden und dort
+  gefahren; hier gilt: Der Hook vergleicht den Hash und prüft den Ursprung der Datei nicht, weil ein Lauf mit `-i` keinen
+  Stand schreibt und einen älteren löscht (kein Fall im Hook, akzeptiertes Negativ mit diesem Grund; Punkt 10).
+- **Hash-Vergleich** (Punkt 10): der Hash, nicht die Bytes der Datei; Datei leer oder fehlend: kein Stand (je ein Fall).
+- **Pfade der Differenz** (Punkt 12): Zulässigkeit wird an den Pfaden der Differenz beider Listen geprüft; die Fälle für `.`, `..`,
+  leeres Segment und absoluten Pfad legen den Pfad in den Stand des vollen Laufs (Eintrag der Form F mit gültigem Hash), der
+  Arbeitsbaum hat ihn nicht; je Form ein Fall. NUL: kein eigener Fall (Feldzahl-Fehler des Gebers). Die Seite des
+  Arbeitsbaums hat keinen herstellbaren Fall (akzeptiertes Negativ).
+- **Art `X`** (Gitlink im Pfad der Positivliste geändert): nie inert, ein Fall.
+- **Symlink** (Punkt 15), je Element ein Fall: Link und Ziel inert (frei); Ziel außerhalb des Repos; absolutes Ziel; Ziel über die
+  Wurzel hinaus (nicht auflösbar); Ziel in einem Pfad außerhalb der Liste innerhalb des Repos; Ziel ist ein Verzeichnis der Liste
+  selbst; Wechsel der Art in beide Richtungen (Datei zu Link, Link zu Datei, jeweils mit dem nicht inerten Ziel auf einer Seite). Spiegelregel,
+  je Zieltyp ein Fall: Ziel auf der Liste; Ziel ist ein Verzeichnis der Liste; Ziel ist Vorfahr (`docs`); Ziel ist die Wurzel (`..` vom
+  Verzeichnis eines Links aus); absolutes Ziel unter der Wurzel. Gegenrichtungen (absolutes Ziel außerhalb, Ziel über die Wurzel
+  hinaus spiegeln nicht) sind ein Ärgernis, keine Lücke, ohne Mutation.
+- **Positivliste ändert sich selbst** (Punkt 12): Änderung am Hook, an `tools/harness/dateiliste.sh`, an
+  `tools/harness/working-tree-hash.sh` und an `spec/spezifikation.md` ist nicht inert und verlangt `make gates` (je ein Fall mit grünem Stand
+  der schnellen Kette). Akzeptiertes Negativ: Der geänderte Hook entscheidet über seine eigene Änderung.
+- **Nicht inert, je Element der Aufzählung in Punkt 9** (Code, Gates, Profile, Skripte, `Dockerfile`, Fragmente, `go.mod`) und die
+  Bedingung (b) von Punkt 13 (`.dockerignore`) sowie `.d-check.yml`: je ein Fall mit inertem Unterschied daneben nicht nötig, der
+  Pfad allein genügt (`internal/`, `Makefile`, `harness/mk/`, `.golangci.yml`, `tools/`, `Dockerfile`, `go.mod`, `.dockerignore`,
+  `.d-check.yml`).
+- **Gegenprobe-Gerüst** (Hinweis für den Implementer, keine Randform): Die Zeilenkonstanten des Hooks in `stop-hook-gegenprobe.sh`
+  (`L_CMP`, `L_KONFLIKT`, `L_SCHLUSS` und die übrigen) bleiben erhalten oder werden im selben Commit nachgezogen; `fixture` bekommt
+  Dateien auf der Positivliste, ohne dass ein Fall des Gebers sich ändert (deren Pfade liegen außerhalb).
+
 Eine nicht genannte oder offene Randform entscheidet der Implementer nicht, er gibt sie zurück.
 
 **Mutationen** (`AGENTS.md` §3.10): Der Implementer fährt je Zusage die Mutation selbst und trägt die
@@ -246,15 +305,27 @@ Architect hat sie am 2026-10-13 bestätigt oder geschärft (Spalte *Herkunft*). 
 
 | Zusage | Mutation | roter Fall | Herkunft |
 |---|---|---|---|
-| Nur ein Pfad der Positivliste gibt frei | `spec/` in die Positivliste aufnehmen | Änderung in `spec/` gibt frei → rot | Architect |
+| Nur ein Pfad der Positivliste gibt frei (`spec/`) | `spec/` in die Positivliste aufnehmen | Änderung in `spec/` gibt frei → rot | Architect |
 | Ein Pfad auf der Grenze zählt nicht | Präfix ohne Verzeichnisgrenze vergleichen | `docs/plan/planning-x/` gibt frei → rot | Architect |
 | Gelöschte und umbenannte Dateien zählen mit beiden Pfaden | nur den neuen Pfad prüfen | Umbenennung aus einem nicht inerten Pfad in einen inerten gibt frei → rot | Architect |
 | Ein Symlink zählt mit seinem Ziel | Link ohne Ziel vergleichen | Link in inertem Pfad mit Ziel außerhalb gibt frei → rot | Architect |
 | Ohne grünen Stand der schnellen Kette gibt der Hook nicht frei | Prüfung des Stands der schnellen Kette entfernen | rote oder fehlende Kette gibt frei → rot | Architect |
 | Ein Link außerhalb der Positivliste mit Ziel darin macht jede Änderung nicht inert | die Spiegelregel entfernen | Änderung in `docs/plan/planning/` gibt frei → rot | Architect |
-| Ein Pfad mit `..`, absolut oder leerem Segment gilt als beschädigte Liste | Segmente nicht prüfen | `docs/plan/planning/../../internal/x.go` gibt frei → rot | Architect |
-| Ein leerer Diff gibt ohne Stand der schnellen Kette frei | Stand der schnellen Kette auch dann verlangen | Hook blockiert bei identischem Baum → rot | Architect |
+| Spiegelregel je Zieltyp: Ziel auf der Liste · Verzeichnis der Liste · Vorfahr (`docs`) · Wurzel · absolutes Ziel unter der Wurzel | je Zieltyp nur diesen Typ aus der Spiegelregel nehmen | Änderung in `docs/plan/planning/` gibt frei → rot, der Fall des Typs allein | Architect, 2026-10-14 |
+| Ein Pfad mit `..`, absolut oder leerem Segment gilt als beschädigte Liste (je Form) | je Form nur diese nicht prüfen (vier Mutationen: `..`, `.`, leeres Segment, absolut) | `docs/plan/planning/../../internal/x.go`, `docs/plan/planning/./x`, `docs/plan/planning//x`, absolut mit inerter Endung im Stand gibt frei → rot, der Fall der Form allein | Architect, geschärft 2026-10-14 |
+| Ein leerer Diff gibt ohne Stand der schnellen Kette frei | Stand der schnellen Kette auch dann verlangen | Hook blockiert bei identischem Baum, auch mit fehlendem, leerem und ungleichem Stand → rot | Architect |
 | Der Stand der schnellen Kette gehört zum aktuellen Arbeitsbaum | nur das Vorhandensein der Stand-Datei prüfen, nicht ihren Hash | Stand eines anderen Arbeitsbaums gibt frei → rot | Planner, geschärft (Architect, 2026-10-13) |
+| Eine leere Stand-Datei der schnellen Kette ist kein Stand | leere Datei als Stand gelten lassen | leere Datei gibt frei → rot | Architect, 2026-10-14 |
+| Der Hook ruft `working-tree-hash.sh`; fehlt es, gilt `block`, beim Schleifenschutz `approve` | Fehlen des Skripts überlesen (`|| true`) · Schleifenschutz hinter den Aufruf stellen | Skript fehlt bei inertem Unterschied → `block`; mit `stop_hook_active: true` → `approve` → rot | Architect, 2026-10-14 |
+| Die Pfadregel ersetzt keine frühere Prüfung (Reihenfolge, je Schritt ein Fall) | Pfadregel vor die Konfliktprüfung · vor die Prüfung des Standes des vollen Laufs auf Vorhandensein · vor `dateiliste_pruefen` stellen (drei Mutationen) | inerter Unterschied bei Konflikt · fehlendem Stand · beschädigtem Stand gibt frei → rot, jeweils der Fall des Schritts allein | Architect, 2026-10-14 |
+| Gelöschte Datei außerhalb der Positivliste zählt | Pfade nur aus der Liste des Arbeitsbaums prüfen | gelöschte Datei in `internal/` neben grünem Stand der schnellen Kette gibt frei → rot | Architect, 2026-10-14 |
+| Eine Umbenennung prüft den alten Pfad | nur den alten Pfad ignorieren (neuen prüfen) | Umbenennung aus `docs/user/` nach `internal/` gibt frei → rot (Gegenstück zur Zeile oben) | Architect, 2026-10-14 |
+| Ein geänderter Eintrag der Art `X` ist nie inert | `X` wie `F` behandeln | geändertes Gitlink unter `docs/user/` gibt frei → rot | Architect, 2026-10-14 |
+| Jeder Eintrag der Positivliste gibt frei: `docs/plan/planning/`, `docs/reviews/`, `README.md`, in jeder Tiefe | je Eintrag entfernen (drei Mutationen) · nur die erste Ebene unter dem Eintrag zulassen | Änderung in `docs/plan/planning/a/b/c.md`, `docs/reviews/…`, `README.md` gibt nicht frei → rot, je Eintrag allein | Architect, 2026-10-14 |
+| Die Grenze gilt je Eintrag: `docs/plan/planning-x/`, `docs/reviews-alt/`, `docs/users/`, Datei `docs/reviews`, Datei `docs/user`, `README.md.bak` | je Eintrag den Schrägstrich bzw. den Gleichheitsvergleich weglassen (sechs Mutationen) | der Pfad des Eintrags gibt frei → rot, je Eintrag allein | Architect, 2026-10-14 |
+| Der Hook kennt die Positivliste nur an einer Stelle und nicht inert sind Hook, `dateiliste.sh`, `working-tree-hash.sh`, die Spezifikation und die Aufzählung in Punkt 9 | je Pfad in die Positivliste aufnehmen (zehn Mutationen: Hook, `dateiliste.sh`, `working-tree-hash.sh`, `internal/`, `Makefile`, `harness/mk/`, `.golangci.yml`, `Dockerfile`, `go.mod`, `.dockerignore`, `.d-check.yml` → je eine) | Änderung des Pfades gibt frei → rot, je Pfad allein | Architect, 2026-10-14 |
+| Freigabe in Unterverzeichnis und leerer Umgebung | Aufruf des Hash-Skripts relativ zum Aufrufer · Programm außerhalb der bisherigen verlangen | inerter Unterschied und grüner Stand: `approve` aus Unterverzeichnis und aus `env -i` → rot | Architect, 2026-10-14 |
+| Symlink je Element (Link und Ziel inert · Ziel außerhalb · absolut · über die Wurzel · Ziel in Pfad außerhalb der Liste · Ziel ist Verzeichnis der Liste · Wechsel der Art in beide Richtungen) | je Element nur dieses Element lockern | der Fall des Elements allein (inert: frei; sonst: gibt frei → rot) | Architect, 2026-10-14 |
 | `docs/user/` ist inert, auch die Abdeckungstabellen | `docs/user/` aus der Positivliste nehmen | Änderung in `docs/user/benutzerhandbuch.md` und in `docs/user/abdeckung-e2e.md` gibt nicht frei → rot | Architect, 2026-10-13 |
 | Nur die Wurzel-`README.md` ist inert | den Namen `README.md` in jeder Tiefe vergleichen | `harness/README.md` gibt frei → rot | Architect, 2026-10-13 |
 | Die Positivliste vergleicht case-sensitiv | Groß-/Kleinschreibung nicht unterscheiden | `docs/Plan/planning/` und `readme.md` geben frei → rot | Planner, bestätigt (Architect, 2026-10-13) |
@@ -285,6 +356,17 @@ Planners, damit die Prüfung vor der Pfad-Entscheidung liegt und in der Zwischen
   prüft (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`, 2×) — **Ausgang:** entfallen: Der
   Kopf-Kommentar sagt nur zu, was ein Fall der Gegenprobe prüft (`AGENTS.md` §3.11), und jede Mutation
   der Tabelle ist rot gesehen; tritt es dennoch auf, legt das Review den dritten Beleg an.
+- Der geänderte Hook entscheidet über seine eigene Änderung (Positivliste ändert sich selbst): Ein Fehler im neuen Hook, der ihn
+  immer freigeben ließe, wäre sein eigener Freigabegrund — **Ausgang:** entfallen: Die Änderung am Hook ist nicht inert, der Hook gibt sie nur
+  frei, wenn er sich selbst falsch liest, und das fangen die Fälle der Gegenprobe und das Review; ein akzeptiertes Negativ von `SPEC-052`
+  Punkt 12 mit diesem Grund.
+- Der Hook gibt öfter frei als der volle Lauf für dieselbe Menge — **Ausgang:** entfallen: Er gibt nur frei, wenn jeder Unterschied zum
+  Stand des vollen Laufs auf der Positivliste liegt, kein Gate der Ausnahmeliste diese Pfade liest (`SPEC-052` Punkt 13) und die schnelle
+  Kette für genau diesen Arbeitsbaum grün war; jede Abweichung ist `block`, und jeder dieser Schritte hat einen Fall mit einer Mutation (Tabelle).
+- Der Umzug der Verträge nach `harness/vertraege/` ([ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md)) berührt
+  diesen Slice nicht: `harness/vertraege/` steht nicht auf der Positivliste, ein Umzug ändert nur Pfade, die den vollen Lauf verlangen —
+  **Ausgang:** entfallen: Der Umzug-Slice zieht Verweise auf `SPEC-052` (Kopf, §1, Kommentare in Hook und Gegenprobe) selbst nach; ändert er eine
+  Zusage, hat er den Vertrag geändert.
 - Der Nutzen schrumpft, wenn die Gegenproben schneller werden ([ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md), *Re-Evaluierungs-Trigger*)
   — **Ausgang:** entfallen: Der Slice sagt keine Zeitersparnis zu; die Messung steht als Beleg im
   Register.
@@ -368,4 +450,13 @@ Liefer-Punkte und 1 Schicht. Nachgezählt vom Architect am 2026-10-13 mit der er
 Logik (dieselbe Präfix-Regel, dazu ein Gleichheitsvergleich für `README.md`); die Zählung bleibt 3 Liefer-Punkte
 und 1 Schicht, die Schätzung 260 bis 390 Zeilen steigt um etwa 20 bis 30 (bis 420), keine Rückgabe an den Planner; vom Architect am 2026-10-13 als 280 bis 420 übernommen.
 
+Nachgezählt vom Architect am 2026-10-14 mit den Zusätzen von `SPEC-052` (Reihenfolge, Hash-Aufruf, Zulässigkeit, Art `X`, Symlink-Einzelheiten,
+Selbständerung): 3 Liefer-Punkte, 1 Schicht. Die Zusätze liegen im Hook (Liefer-Punkt 1 und 2) und in der Gegenprobe (Liefer-Punkt 3), kein vierter
+Punkt, keine neue Schicht. Die Größe steht in §4 in der Metrik von `AGENTS.md` §3.14 (550 bis 750 Zeilen, Marke 900). Sendungen: Geber
+`slice-harness-gate-kette-schnell` und `slice-harness-gate-kette-stop-hook-liste` stehen mit Kennung in §1.
+
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+**Vermerk Architect, 2026-10-13/14:** Prüfung vor dem Code; Randformen, Größe, Fail-open-Grenzen und Sendungen entschieden wie in §1, §4 und §6;
+`SPEC-052` Punkte 9, 10, 12, 15, 22 geschärft. Der Plan ist bereit für den Start (offen: nichts für den Planner außer Verteilung der Kennungen eines
+späteren Schnitts, falls die Marke eintritt).

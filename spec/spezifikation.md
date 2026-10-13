@@ -3275,10 +3275,24 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
    Hook vergleicht den Arbeitsbaum mit dem Stand des letzten vollen grünen Laufs. Liegt jede
    geänderte, hinzugekommene oder gelöschte Datei auf der Positivliste (Punkt 12) und ist der
    Stand der schnellen Kette grün, gibt er frei. Jeder andere Fall verlangt `make gates`.
+    Reihenfolge der Prüfungen: Schleifenschutz (Punkt 20), nicht aufgelöster Index-Eintrag
+    (Punkt 17), fehlender oder beschädigter Stand des vollen Laufs (Punkte 19, 20),
+    Identität der Listen (Punkt 16), danach die Pfadregel (Punkte 12, 14, 15, 18), zuletzt der
+    Stand der schnellen Kette (Punkt 10). Die Positivliste ersetzt keine der früheren Prüfungen.
 10. **Bezugsgröße des Stands der schnellen Kette.** Der Hook vergleicht den Stand der
     schnellen Kette (Punkt 5) mit dem Hash des aktuellen Arbeitsbaums; ungleich, fehlend oder
     nicht lesbar heißt: kein Stand. `tools/harness/working-tree-hash.sh` bleibt eine Ausgabe,
-    die genau dann wechselt, wenn sich der Arbeitsbaum ändert.
+    die genau dann wechselt, wenn sich der Arbeitsbaum ändert. Der Hook ruft dieses Skript und
+    baut den Hash nicht nach; fehlt das Skript oder scheitert es, gilt Punkt 20 (`block`,
+    beim Schleifenschutz `approve`). Verglichen wird der Hash, nicht die Bytes der Datei:
+    ein angehängter Zeilenumbruch ändert nichts (akzeptiertes Negativ; Grund: Zugesagt ist nur
+    der Schreiber der schnellen Kette (Punkt 5), und eine fremde Datei mit dem passenden Hash
+    gibt nur frei, wenn der Hash des Arbeitsbaums stimmt, nie öfter). Der Hook ruft kein
+    `make`; die Make-Flags `-n`, `-q`, `-t`, `-i` und `MAKEFLAGS` wirken auf den Stand nur
+    beim Schreiben (Punkt 6), und der Hook stützt sich darauf, ohne den Ursprung der Datei zu
+    prüfen: Ein Lauf mit `-i` schreibt keinen Stand und löscht einen älteren, also kann kein
+    Stand eines solchen Laufs vorliegen; den Fall dafür führt die Gegenprobe der Ketten
+    (Punkt 6), nicht die des Hooks.
 11. **Form des Stands des vollen Laufs.** Der Stand des vollen Laufs ist eine Dateiliste: eine
     Datei aus NUL-getrennten Feldern, drei je Eintrag: Art, Wert, Pfad. Art `F` (reguläre
     Datei; Wert = SHA-256 des Inhalts, 64 Hexzeichen), `L` (Symlink; Wert = `readlink`-Ziel
@@ -3302,7 +3316,20 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     `harness/README.md` sind nicht inert (`harness/README.md` bleibt draußen: der Beleg von
     Punkt 13 gilt nur für die Wurzel-`README.md`; wer sie aufnehmen will, belegt sie). Ein
     Pfad mit Segment `.`, `..` oder leerem Segment, ein absoluter Pfad oder ein Pfad mit NUL
-    gilt als beschädigte Liste (Punkt 20), nie als inert.
+    gilt als beschädigte Liste (Punkt 20), nie als inert. Geprüft werden die Pfade, in denen
+    sich Stand des vollen Laufs und Arbeitsbaum unterscheiden, beider Listen; ein solcher
+    Pfad im Stand gibt nie frei. Für die Seite des Arbeitsbaums gibt es keinen herstellbaren
+    Fall, weil `git ls-files` ihn nicht liefert (akzeptiertes Negativ). Ein Pfad mit NUL ist
+    in der Form (Punkt 11) nicht darstellbar und endet als Feldzahl-Fehler (Punkt 20), ohne
+    eigenen Fall dieses Punktes. Ein geänderter Eintrag der Art `X` (Verzeichnis, Gitlink)
+    ist nie inert, auch unter einem Pfad der Positivliste: sein Inhalt steht nicht in der
+    Liste. Die Positivliste steht an einer Stelle, im Hook
+    `.claude/hooks/stop-require-gates.sh`, und diese Spezifikation nennt sie; eine Änderung an
+    Hook, `tools/harness/dateiliste.sh`, `tools/harness/working-tree-hash.sh` oder dieser
+    Spezifikation ist nicht inert und verlangt den vollen Lauf. Akzeptiertes Negativ: Der
+    geänderte Hook entscheidet über seine eigene Änderung (er verlangt den vollen Lauf, wenn
+    er sich nicht selbst freigibt); eine Abweichung zwischen der Liste im Hook und dieser
+    Stelle fängt nur der Fall je Pfadklasse der Gegenprobe, kein Vergleich.
 13. **Beleg für `docs/user/` und `README.md`; Abdeckungstabellen.** Beide sind ohne Ausnahme
     aufgenommen. Kein Gate der Ausnahmeliste (Punkt 2) liest
     eine Datei unter `docs/user/` oder die `README.md`: die Docker-Gates (`test-integration`,
@@ -3346,7 +3373,17 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     auflösbares ist nicht inert. Gespiegelt: Liegt irgendwo im Arbeitsbaum ein Link außerhalb
     der Positivliste, dessen Ziel auf sie zeigt, liest ein Gate über ihn inerte Pfade; dann
     gilt jede Änderung als nicht inert. Der Bestand hat Links nur unter `.claude/rules/` mit
-    Zielen außerhalb der Positivliste.
+    Zielen außerhalb der Positivliste. Einzelheiten: Geprüft wird je geändertem Link jeder
+    Eintrag `L`, der ihn trägt (Stand und Arbeitsbaum, auch bei einem Wechsel der Art, etwa
+    Datei zu Link). Ziel „auf der Positivliste“ heißt für die Inertheit: ein Pfad unter einem
+    Verzeichnis-Eintrag mit Schrägstrich oder genau `README.md`; ein Ziel, das ein Verzeichnis
+    der Liste selbst benennt (`docs/user`, `docs/user/`), ist nicht inert. Für die Spiegelregel
+    zählt weiter: Ein Ziel, das auf der Liste liegt, ein Verzeichnis der Liste benennt oder
+    ein Vorfahr davon ist (`docs`, `docs/plan`, die Wurzel `.`), spiegelt; maßgeblich ist die
+    Liste des Arbeitsbaums. Ein absolutes Ziel unter der Wurzel des Repos wird gegen sie
+    aufgelöst und zählt dann für die Spiegelregel wie ein relatives; für die Inertheit ist es
+    nicht inert. Ein Ziel, das über die Wurzel hinaus auflöst, ist außerhalb und spiegelt
+    nicht.
 16. **Leerer Diff gegen den vollen Lauf.** Ist die Liste des Arbeitsbaums mit dem Stand des
     vollen Laufs identisch und gibt es keinen nicht aufgelösten Index-Eintrag (Punkt 17), gibt
     der Hook frei, ohne Stand der schnellen Kette: der volle Nachweis deckt den Baum, die
@@ -3400,7 +3437,10 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     und gibt in einer leeren Umgebung dieselbe Antwort. Zugesagt mit Fall: (a) ein Arbeitsverzeichnis in einem
     Unterverzeichnis des Repos gibt dieselbe Antwort wie die Wurzel; (b) eine leere Umgebung
     (`env -i`; `PATH` nicht gesetzt, `bash` mit absolutem Pfad gestartet) gibt bei identischer
-    Liste `approve`, bei jedem Unterschied `block`. Nicht zugesagt ist die Wirkung einzelner
+    Liste `approve`, bei jedem Unterschied `block`; beide Aufrufarten gelten auch für die
+    Freigabe nach Punkt 9 (inerter Unterschied und grüner Stand der schnellen Kette geben
+    `approve`). Der Hook ruft dafür nur `bash`, `git`, die bisher genutzten Programme und
+    `tools/harness/working-tree-hash.sh`. Nicht zugesagt ist die Wirkung einzelner
     gesetzter Variablen (`PATH` für die Programmsuche, `TMPDIR` für die temporäre Datei, `GIT_*`
     über `git`); akzeptiertes Negativ: der Hook liest keine davon selbst, die Aufrufart des
     Treibers setzt sie nicht, und ein `TMPDIR` im Arbeitsbaum sperrt (`block`), gibt nie frei.
@@ -3514,3 +3554,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-13 | Harness-Werkzeuge: Gate-Kette in voller und schneller Kette mit Ausnahmeliste, Stand der schnellen Kette, Wahl der Kette am geänderten Pfad (Positivliste, Dateiliste des vollen Laufs, Randformen), Hook-Teil nur zugesagt, soweit `stop-hook-gegenprobe` ihn prüft (`SPEC-052`) |
 | 2026-10-13 | Harness-Werkzeuge: Schleifenschutz des Hooks als akzeptierte Grenze (Vorrang vor Konflikt, fehlendem Stand, `git`-Fehler), Umgebung des Hooks als leere Umgebung gefasst, Voraussetzung der Dateiliste (`SPEC-052`) |
 | 2026-10-13 | Harness-Werkzeuge: Nachweis des vollen Laufs bei überlesenen Fehlern (`make -i gates`) und Make-Flags, Aufrufarten des Stop-Hooks, Beleg für `docs/user/` und `README.md` für jede Gegenprobe der Ausnahmeliste (`SPEC-052`) |
+| 2026-10-14 | Harness-Werkzeuge: Reihenfolge der Prüfungen des Hooks, Positivliste an einer Stelle und Selbständerung, Art `X`, Zulässigkeit der Pfade, Symlink-Einzelheiten (Spiegelregel mit Vorfahr, absolutes Ziel), Vergleich des Hashes der schnellen Kette, Freigabe in Unterverzeichnis und leerer Umgebung (`SPEC-052`) |
