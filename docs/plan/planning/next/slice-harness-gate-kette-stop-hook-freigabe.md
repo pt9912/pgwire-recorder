@@ -65,8 +65,15 @@ vergleicht die Datei mit dem Hash des aktuellen Arbeitsbaums und liest sie unver
 nach einem Lauf entsteht, in dem die Gates tatsächlich liefen (kein Stand bei `-n`, `-q`, `-t` und `-i`, ein älterer entfällt
 nach Rot, Abbruch und `-i`), und dass der volle Nachweis davon getrennt bleibt. **Nicht zugesagt** und nicht Grundlage des Hooks
 sind: dass nur die schnelle Kette die Datei schreibt und dass der volle Lauf sie nicht löscht (akzeptierte Negative des Gebers,
-§6). **Name der Dateiliste:** wählt der Implementer von
-`slice-harness-gate-kette-stop-hook-liste`; der Planner trägt ihn bei dessen Closure hier ein (§6).
+§6). **Name der Dateiliste** (gewählt vom Implementer von `slice-harness-gate-kette-stop-hook-liste`, eingetragen
+vom Planner bei dessen Closure): `.harness/state/gates-passed.dateiliste`, neben `gates-passed.diffsha` (dem Hash dieser Liste); die
+Funktionen `dateiliste_erzeugen` und `dateiliste_pruefen` und die Variable `DATEILISTE_STAND` stehen in `tools/harness/dateiliste.sh`, das der Hook mit `source` lädt.
+**Gerüst des Gebers in `tools/harness/stop-hook-gegenprobe.sh`**, das dieser Slice erweitert: die Tabelle `FAELLE`, die Hilfen `fixture`, `kopie`,
+`stand` (schreibt den Stand mit `record-gates.sh` im Normalaufruf), `hook`, `ist`, `stub` und `sedmut`; ein Fall trägt die Punktnummer
+im Namen (`p<Punkt>-…`). **Zusagen des Gebers, auf die dieser Slice sich stützt** (`SPEC-052` Teil 2, vom Geber mit Fall geprüft; dieser Slice ändert sie nicht): Punkt 11 (Form
+der Liste, Arten `F`, `L`, `G`, `X`), 16 (identische Liste gibt frei), 17 (Konflikt vor jeder Entscheidung), 19 (fehlender Stand sperrt),
+20 (beschädigte Liste, Abbruch als `block`; der Schleifenschutz ist akzeptierte Grenze und überstimmt auch diesen Slice), 21 (`make -i gates` schreibt
+keinen Nachweis, ein älterer entfällt) und 22 (Unterverzeichnis, leere Umgebung). Die Positivliste steht nach der Prüfung des Konflikts und ersetzt die Prüfung der Liste des Standes nicht.
 `SPEC-052` Teil *Hook* gilt nach seinem Eingangssatz (Wortlaut: `slice-harness-gate-kette-schnell` §6, Zeile *Zwischenstand*), soweit ein Fall von `stop-hook-gegenprobe` die Zusage nennt;
 dieser Slice erweitert das Gate um die Fälle der Positivliste, jeder mit der Punktnummer aus `SPEC-052` in seinem Namen (wie im Geber), und ändert die Spezifikation nicht: Der Eingangssatz bleibt mit diesen Fällen wahr, ohne dass jemand ihn nachzieht.
 
@@ -221,6 +228,10 @@ die Spezifikation, vor jedem Code). Dieser Slice trägt davon, ohne Doppelung mi
   Stand ihn nicht sperrt);
 - Stand der schnellen Kette fehlt, ist rot oder gehört zu einem anderen Arbeitsbaum (der Hash des
   aktuellen Arbeitsbaums weicht von der Datei ab oder die Datei fehlt): voll;
+- Bindung an den Geber `slice-harness-gate-kette-stop-hook-liste` (§1, eingetragen bei dessen Closure): Der Hook liest den Stand des
+  vollen Laufs nur über `dateiliste_pruefen` und `dateiliste_erzeugen` aus `tools/harness/dateiliste.sh`, ein zweiter Leser entfällt; die Fälle der
+  Positivliste legen den Stand mit `record-gates.sh` im Normalaufruf an, `make -i gates` ist dafür kein Weg (Punkt 21); der Schleifenschutz
+  (`stop_hook_active`, Punkt 20) steht vor allen Prüfungen dieses Slice und bleibt dort;
 - Bindung an den Geber `slice-harness-gate-kette-schnell` (`SPEC-052` Punkte 5 bis 7, §1): Der Hook liest den Stand
   unverändert und vergleicht nur den Hash; er stützt sich nicht darauf, dass nur die schnelle Kette die Datei schreibt
   oder dass der volle Lauf sie stehen lässt (nicht zugesagt; der Geber hat beides als akzeptiertes Negativ entschieden);
@@ -346,7 +357,9 @@ Closure-Notiz zählen nicht. Schichten: 1 — Harness-Werkzeug (`.claude/hooks`,
 `stop-hook-gegenprobe`, Prüfung nicht aufgelöster Index-Einträge vor der Pfad-Entscheidung, Name der
 Dateiliste) und der Randformen und Mutationen der Hook-Seite aus `slice-harness-gate-kette-schnell`, soweit
 verteilt: nachgezählt mit den Sendungen 3 Liefer-Punkte und 1 Schicht; der Name der Dateiliste ist Teil
-der Liefer-Punkte 1 bis 3, kein vierter. Die Bindung an `SPEC-052` Teil 1 (§1, Punkte 5 bis 7 des Gebers
+der Liefer-Punkte 1 bis 3, kein vierter. Nachgezählt am 2026-10-13 bei der Closure von `slice-harness-gate-kette-stop-hook-liste` (Sendung: der Name
+`.harness/state/gates-passed.dateiliste`, die Funktionen und das Gerüst aus §1, die Bindung aus §6): Namen und Bindung ändern die Liefer-Punkte nicht
+(der Name ist Teil der Liefer-Punkte 1 bis 3, die Bindung ein Satz in §6), die Zählung bleibt 3 Liefer-Punkte und 1 Schicht. Die Bindung an `SPEC-052` Teil 1 (§1, Punkte 5 bis 7 des Gebers
 `slice-harness-gate-kette-schnell`, bei dessen Closure eingetragen) ist kein vierter Liefer-Punkt und keine Schicht: Der Hook
 liest den Stand ohnehin (Liefer-Punkt 1); nachgezählt 3 Liefer-Punkte, 1 Schicht. Geschätzt 280 bis 420 Zeilen mit Tests (§4). Nachgezählt am
 2026-10-13 bei der Umordnung (vor die Release-Slices): Die Sendungen sind unverändert, die Zählung bleibt 3
