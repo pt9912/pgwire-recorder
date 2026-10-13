@@ -200,6 +200,22 @@ Größenschätzung aus §1 am 2026-10-13 bestätigt (mit den Änderungen in §1 
   Dateiliste mit Schreiber und ihrer Gegenprobe (Format, beschädigte Liste) zuerst, der Vergleich im
   Hook mit seinen Fällen danach; beide mit der Gegenprobe ihrer Zusagen, denn ohne Gegenprobe schließt
   keiner.
+- **Urteil zur Marke (Planner, 2026-10-13, Größe des Code-Commits `b259381`).** *Metrik* (§4 nannte keine; hier
+  festgelegt, wie bei `slice-v1-abschluss-sessions`): Summe aus Einfügungen und Löschungen von
+  `git diff --numstat 9662e13..HEAD -- tools harness .claude` (Skripte, Fragmente, Hook, Tests und
+  Gegenprobe eingeschlossen; `docs/` und `spec/` ausgeschlossen, hier unberührt). *Messung:* 704 Einfügungen,
+  74 Löschungen, Summe 778, netto 630 (`stop-hook-gegenprobe.sh` 537, Hook 65/45, `dateiliste.sh` 56,
+  `record-gates.sh` 16/6, `working-tree-hash.sh` 12/20, übrige 20). Die Marke von 700 ist nach der Metrik
+  **eingetreten** (78 darüber); die Schätzung des Architect (440 bis 620) liegt 158 unter der Messung. Nach
+  Einfügungen allein (704) ist sie knapp erreicht, nach netto (630) nicht: die Probe hing an der Lesart.
+  *Test-Code zählt mit* („mit Tests“ in dieser Marke); ohne die Gegenprobe läge der Rest bei 241.
+  *Prüfbarkeit in einer Sitzung:* ja. Prüfgegenstand sind der Hook (110 Zeilen geändert), die Liste (56) und
+  eine tabellengetriebene Gegenprobe, die der Reviewer gegen die Mutationstabelle in §6 liest, nicht Zeile
+  für Zeile als Logik; 41 Mutanten sind rot gesehen. *Urteil:* **keine Rückführung, Fortsetzung.** Der Schnitt
+  des Vorab-Satzes (Liste zuerst, Vergleich danach) trennte fertigen, grünen Code, der Hook ohne seine
+  Fälle wäre ein Gate ohne Gegenprobe, und zwei Reviews desselben Hooks kosten mehr als eine Sitzung. Der
+  Reviewer meldet in seiner Summary-Zeile, ob der Diff in einer Sitzung prüfbar war; meldet er nein,
+  entscheidet der Planner neu. Belege im Register: §8.
 - `in-progress` → `open` (blockiert — Carveout?): Der Nutzer nimmt
   [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) zurück, oder das Format der Antwort des
   Stop-Hooks ändert sich so, dass die Gegenprobe nicht mehr gegen die echte Eingabe und Ausgabe des
@@ -432,6 +448,12 @@ gesichtet (Zähler = Dateien unter `evidence/`, gelesen am Stand `f1f4415`, 2026
   `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (verkörpert, `AGENTS.md` §3.11) und
   `BEO-REPO/slice-waechst-durch-uebernahmen` (verkörpert, `AGENTS.md` §3.13) — Mutationen in §6, kein
   Kommentar sagt mehr zu, als die Gegenprobe prüft, die Sendungen sind nachgezählt.
+
+**Nachtrag (Planner, 2026-10-13, Marke eingetreten, §4 *Urteil zur Marke*):** Zwei Einträge erhalten einen Beleg und
+erreichen 3× ohne Regel: `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` (Schätzung 440 bis 620, gemessen 778,
+das Mehr in der gemeinsamen Gegenprobe) und `BEO-REPO/groessenprobe-ohne-messbaren-stand` (Marke ohne Metrik, 630
+netto, 704 eingefügt, 778 als Summe). `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` bleibt bei 2×
+(Closure, DoD). Die Zuweisung (*verkörpert* oder *geplant*) steht beim Nutzer.
 
 Kein Eintrag erreicht mit diesem Plan die Schwelle 3× neu; der dritte Beleg zu
 `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` entsteht bei der Closure.

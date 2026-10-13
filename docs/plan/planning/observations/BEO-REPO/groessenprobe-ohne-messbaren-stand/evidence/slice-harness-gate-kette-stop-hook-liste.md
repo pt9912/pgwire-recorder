@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gate-kette-stop-hook-liste
+**Fund:** §4 nannte die Marke „über 700 Zeilen mit Tests“ ohne Metrik. Gemessen lag der Diff je nach Lesart bei 630 (netto), 704 (Einfügungen) und 778 (Summe aus Einfügungen und Löschungen): ob die Marke eintrat, hing an der Lesart. Der Planner legte die Metrik in §4 fest (Summe, `tools harness .claude`, ohne `docs/`); die Marke ist nach ihr eingetreten, die Rückführung nicht.

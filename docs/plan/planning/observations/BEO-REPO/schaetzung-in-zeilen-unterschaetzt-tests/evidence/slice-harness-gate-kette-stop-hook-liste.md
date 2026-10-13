@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gate-kette-stop-hook-liste
+**Fund:** Die Schätzung des Architect lag bei 440 bis 620 Zeilen mit Tests (zuvor 700 bis 950 ungeteilt); gemessen sind 778 als Summe aus Einfügungen und Löschungen (704/74, netto 630; `git diff --numstat 9662e13..HEAD -- tools harness .claude`), 158 über der Obergrenze und 78 über der Marke von 700. Das Mehr liegt in der Gegenprobe (537 Zeilen, 41 Mutanten). Der Planner führte den Slice fort (§4 *Urteil zur Marke*).
