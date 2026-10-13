@@ -3221,7 +3221,8 @@ die beiden Ketten fahren, welchen Stand die schnelle Kette hinterlässt und, im 
 nach welcher Regel der Stop-Hook `.claude/hooks/stop-require-gates.sh` zwischen den Ketten
 wählt. Alle Zusagen dieser Kennung gelten unter der Aufruf-Voraussetzung von Punkt 8.
 
-**Teil 1: die Ketten.** Die Punkte 1 bis 8 prüft `make gates-schnell-gegenprobe`.
+**Teil 1: die Ketten.** Die Punkte 1 bis 7 prüft `make gates-schnell-gegenprobe`; Punkt 8 ist
+eine Bindung der Zusagen und hat keinen Fall.
 
 1. **Volle Kette.** Die volle Kette ist `GATE_CHECKS` selbst, ohne zweite Liste: Jedes Gate,
    das ein Fragment unter `harness/mk/` an `GATE_CHECKS` hängt, fährt `make gates`. Ein Gate
@@ -3229,25 +3230,30 @@ wählt. Alle Zusagen dieser Kennung gelten unter der Aufruf-Voraussetzung von Pu
    den Nachweis des vollen Laufs `.harness/state/gates-passed.diffsha`.
 2. **Schnelle Kette.** Die schnelle Kette ist `GATE_CHECKS` ohne die Ausnahmeliste. Die
    Ausnahmeliste steht im Fragment der Kette, `harness/mk/gates-schnell.mk`, und nennt jedes
-   Gate mit `-gegenprobe` im Namen, dazu `a-check-negativ` und `test-integration`. `build`,
+   Gate, dessen Name auf `-gegenprobe` endet, dazu `a-check-negativ` und `test-integration`. `build`,
    `test` und alle übrigen Gates fährt die schnelle Kette. Sie fährt kein Gate der
    Ausnahmeliste.
 3. **Neues Gate.** Ein neues Gate läuft in beiden Ketten, bis es ausdrücklich in die
-   Ausnahmeliste aufgenommen wird; ein Fehler der Liste kostet Zeit, nie ein Gate.
+   Ausnahmeliste aufgenommen wird; ein Fehler der Liste kostet Zeit, nie ein Gate der vollen
+   Kette: Ein fehlender Eintrag lässt ein langsames Gate in der schnellen Kette laufen, ein
+   Eintrag zu viel nimmt ein Gate aus der schnellen Kette, die volle fährt es weiter.
 4. **Deckung der Ausnahmeliste.** Jeder Eintrag der Ausnahmeliste steht in `GATE_CHECKS`,
-   und jedes Gate in `GATE_CHECKS` mit `-gegenprobe` im Namen sowie `a-check-negativ` und
+   und jedes Gate in `GATE_CHECKS`, dessen Name auf `-gegenprobe` endet, sowie `a-check-negativ` und
    `test-integration` steht in der Ausnahmeliste. Ein neues Gate dieser Namen macht die
    Gegenprobe der Kette rot, bis jemand entscheidet.
 5. **Stand der schnellen Kette.** Bei einem grünen Lauf der schnellen Kette schreibt sie den
    Hash des ganzen Arbeitsbaums zum Ende des Laufs, die unveränderte Ausgabe von
    `tools/harness/working-tree-hash.sh`, in `.harness/state/gates-schnell-passed.diffsha`.
-   Nur die schnelle Kette schreibt diese Datei.
+   Ändert ein Gate des Laufs den Arbeitsbaum, gilt der Hash nach dem Lauf.
 6. **Roter oder abgebrochener Lauf.** Nach einem roten oder abgebrochenen Lauf der schnellen
    Kette existiert kein Stand; ein älterer entfällt. Zugesagt ist das Ergebnis, nicht der
-   Mechanismus.
+   Mechanismus. Ein Stand entsteht nur nach einem Lauf, in dem die Gates tatsächlich liefen:
+   Ein Aufruf mit dem Make-Flag `-n`, `-q` oder `-t` (das Rezept fährt kein Gate oder keines
+   wirklich) schreibt keinen Stand und entfernt keinen; ein Aufruf mit `-i` (Fehler werden
+   überlesen) schreibt keinen, ein älterer entfällt. Maßgeblich sind die Flags in `MAKEFLAGS`,
+   auch aus der Umgebung.
 7. **Der volle Nachweis bleibt getrennt.** Die schnelle Kette schreibt, verändert und löscht
-   den Nachweis des vollen Laufs nie und ersetzt ihn nie; der volle Lauf berührt den Stand der
-   schnellen Kette nicht.
+   den Nachweis des vollen Laufs nie und ersetzt ihn nie.
 8. **Aufruf-Voraussetzung.** Zugesagt ist nacheinander: Änderung des Arbeitsbaums, Lauf der
    vollen Kette, Lauf der schnellen Kette und Hook kommen nicht gleichzeitig. Gleichzeitige
    Läufe sind nicht zugesagt. Ein Hook, der eine halb geschriebene Datei liest, endet in „kein
@@ -3293,18 +3299,18 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     Pfad mit Segment `.`, `..` oder leerem Segment, ein absoluter Pfad oder ein Pfad mit NUL
     gilt als beschädigte Liste (Punkt 20), nie als inert.
 13. **Beleg für `docs/user/` und `README.md`; Abdeckungstabellen.** Beide sind ohne Ausnahme
-    aufgenommen. Kein Gate der Ausnahmeliste (`lint-gegenprobe`, `kopf-check-gegenprobe`,
-    `abdeckung-gegenprobe`, `hook-gegenprobe`, `a-check-negativ`, `test-integration`) liest
+    aufgenommen. Kein Gate der Ausnahmeliste (Punkt 2) liest
     eine Datei unter `docs/user/` oder die `README.md`: die Docker-Gates (`test-integration`,
     `lint-gegenprobe` über `docker build` einer Kopie des Arbeitsbaums, ebenso `build`, `test`,
     `lint`) sehen nur den Build-Kontext, und der ist eine Allowlist, die `docs/` und
     `README.md` nicht freigibt (`.dockerignore`: `*`, dann nur `go.mod`, `go.sum`, `cmd/`,
     `internal/`, `test/`, `.golangci.yml`, `tools/harness/lint.sh`); ein Go-Test, der dort
     läse, wäre im Container rot. `a-check-negativ` kopiert den Baum, aber `a-check` liest nach
-    `.a-check.yml` nur `**/*.go`. `kopf-check-gegenprobe`, `abdeckung-gegenprobe` und
-    `hook-gegenprobe` fahren in Temp-Bäumen (`abdeckung-gegenprobe` baut ihr eigenes
-    `docs/user/`). Die Tabellen `docs/user/abdeckung-*.md` liest nur `abdeckung-check`
-    (`tools/test/abdeckung.sh --check`), und das läuft in der schnellen Kette (kein Name mit
+    `.a-check.yml` nur `**/*.go`. `kopf-check-gegenprobe`, `abdeckung-gegenprobe`,
+    `hook-gegenprobe` und `gates-schnell-gegenprobe` fahren in Temp-Bäumen
+    (`abdeckung-gegenprobe` baut ihr eigenes `docs/user/`, die Kopien von
+    `gates-schnell-gegenprobe` tragen nur Makefile, Fragmente und Skripte). Die Tabellen `docs/user/abdeckung-*.md` liest nur `abdeckung-check`
+    (`tools/test/abdeckung.sh --check`), und das läuft in der schnellen Kette (kein Name auf
     `-gegenprobe`): Eine Änderung an ihnen ohne Änderung an Tests (die Deklarationen stehen in
     `*_test.go`, nicht inert) ist von Hand möglich und wird von `abdeckung-check` rot gemeldet,
     sodass die schnelle Kette sie fängt; deshalb nicht ausgenommen, kein Rückfall auf die
