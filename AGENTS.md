@@ -383,6 +383,20 @@ mit der Sendung (Baseline-Regelwerk `modul-05-planning-harness.md` §Ziel-Form: 
 höchstens drei Liefer-Punkte, höchstens zwei Schichten). Läge der Nehmer darüber, geht der
 Punkt an den Planner statt in den Nehmer.
 
+**Auch eine Ortsangabe wird nachgezählt** (seit slice-harness-vertraege-umzug-gate-kette,
+Entscheidung des Nutzers vom 2026-10-13): Die Zählung steht je Nehmer in dessen §8, im Commit,
+der die Sendung einträgt; ein Hinweis an den Planner ersetzt sie nicht. Liegt der Nehmer schon
+darüber, nennt die Zählung das und den vorgemerkten Schnitt.
+
+**Falsch:** Der Umzug einer Vertragsstelle trägt die neue Ortsangabe in vier Nehmer ein; der
+Bericht meldet die Zählung als Hinweis, §8 der Nehmer bleibt leer, und das Review findet es.
+**Richtig:** Jeder der vier Nehmer führt im selben Commit eine Zählung mit der Kennung des Gebers.
+
+**Begründung:** Die Regel galt dem Wortlaut nach für eine Sendung mit Inhalt, und eine Ortsangabe
+las sich als keine (`BEO-REPO/slice-waechst-durch-uebernahmen`, zwei Slices in Folge). Entfernen
+oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
+slice-harness-vertraege-umzug-gate-kette wieder aufgetreten?
+
 **Schichten zählen alle Pläne gleich** (seit slice-doku-ist-stand, Entscheidung des Nutzers
 vom 2026-10-10): nach der Teilung in `slice-harness-d-check-v0-85` §8. Nutzer- und
 Wartungs-Doku (`docs/user/`, `docs/maintainer/`, `README.md`) ist eine Schicht, die Planung

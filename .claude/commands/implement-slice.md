@@ -257,6 +257,8 @@ entschieden“) ersetzt die Rückgabe nicht, wenn der Commit sie schon trägt.
     selben Commit zählst du Liefer-Punkte und Schichten des Nehmers mit der Sendung nach
     (höchstens drei, höchstens zwei); läge er darüber, trägst du nicht ein und gibst den
     Punkt an den Planner (`AGENTS.md` §3.13, seit slice-v1-abschluss-einspielen).
+    Das gilt auch für eine Ortsangabe: die Zählung steht je Nehmer in dessen §8, im Commit der
+    Sendung; ein Hinweis an den Planner ersetzt sie nicht (seit slice-harness-vertraege-umzug-gate-kette).
     **Der Mutant muss im Build ankommen** (seit slice-replay-semantik-mismatch): Ein Lauf
     über den Docker-Build-Kontext (`make build`, `make test`, `make test-integration`)
     überträgt eine Datei nicht neu, deren Größe und mtime dem zuletzt übertragenen Stand
