@@ -3213,6 +3213,155 @@ geschriebene Message, deren Betreff mit `Merge ` oder `Revert ` beginnt, geht na
 Punkt 4 ungeprüft durch. Eine Kennung, die ein Zeilenumbruch teilt, ist keine Nennung.
 Gelesen wird nur die Message-Datei; was der Commit ändert, liest der Träger nicht.
 
+### SPEC-052 — Gate-Kette und Wahl der Kette (`gates-schnell`)
+
+`make gates` ist die volle Kette der Gates, `make gates-schnell` ihre schnelle Hälfte, und
+`make gates-schnell-gegenprobe` prüft die schnelle Kette. Die Kennung legt fest, welche Gates
+die beiden Ketten fahren, welchen Stand die schnelle Kette hinterlässt und, im zweiten Teil,
+nach welcher Regel der Stop-Hook `.claude/hooks/stop-require-gates.sh` zwischen den Ketten
+wählt. Alle Zusagen dieser Kennung gelten unter der Aufruf-Voraussetzung von Punkt 8.
+
+**Teil 1: die Ketten.** Die Punkte 1 bis 8 prüft `make gates-schnell-gegenprobe`.
+
+1. **Volle Kette.** Die volle Kette ist `GATE_CHECKS` selbst, ohne zweite Liste: Jedes Gate,
+   das ein Fragment unter `harness/mk/` an `GATE_CHECKS` hängt, fährt `make gates`. Ein Gate
+   kann aus ihr nicht still fallen, weil kein Fragment sie aufzählt. `make gates` schreibt
+   den Nachweis des vollen Laufs `.harness/state/gates-passed.diffsha`.
+2. **Schnelle Kette.** Die schnelle Kette ist `GATE_CHECKS` ohne die Ausnahmeliste. Die
+   Ausnahmeliste steht im Fragment der Kette, `harness/mk/gates-schnell.mk`, und nennt jedes
+   Gate mit `-gegenprobe` im Namen, dazu `a-check-negativ` und `test-integration`. `build`,
+   `test` und alle übrigen Gates fährt die schnelle Kette. Sie fährt kein Gate der
+   Ausnahmeliste.
+3. **Neues Gate.** Ein neues Gate läuft in beiden Ketten, bis es ausdrücklich in die
+   Ausnahmeliste aufgenommen wird; ein Fehler der Liste kostet Zeit, nie ein Gate.
+4. **Deckung der Ausnahmeliste.** Jeder Eintrag der Ausnahmeliste steht in `GATE_CHECKS`,
+   und jedes Gate in `GATE_CHECKS` mit `-gegenprobe` im Namen sowie `a-check-negativ` und
+   `test-integration` steht in der Ausnahmeliste. Ein neues Gate dieser Namen macht die
+   Gegenprobe der Kette rot, bis jemand entscheidet.
+5. **Stand der schnellen Kette.** Bei einem grünen Lauf der schnellen Kette schreibt sie den
+   Hash des ganzen Arbeitsbaums zum Ende des Laufs, die unveränderte Ausgabe von
+   `tools/harness/working-tree-hash.sh`, in `.harness/state/gates-schnell-passed.diffsha`.
+   Nur die schnelle Kette schreibt diese Datei.
+6. **Roter oder abgebrochener Lauf.** Nach einem roten oder abgebrochenen Lauf der schnellen
+   Kette existiert kein Stand; ein älterer entfällt. Zugesagt ist das Ergebnis, nicht der
+   Mechanismus.
+7. **Der volle Nachweis bleibt getrennt.** Die schnelle Kette schreibt, verändert und löscht
+   den Nachweis des vollen Laufs nie und ersetzt ihn nie; der volle Lauf berührt den Stand der
+   schnellen Kette nicht.
+8. **Aufruf-Voraussetzung.** Zugesagt ist nacheinander: Änderung des Arbeitsbaums, Lauf der
+   vollen Kette, Lauf der schnellen Kette und Hook kommen nicht gleichzeitig. Gleichzeitige
+   Läufe sind nicht zugesagt. Ein Hook, der eine halb geschriebene Datei liest, endet in „kein
+   Stand“ oder „beschädigt“ und damit bei der vollen Kette; mehr wird nicht zugesagt, ein
+   atomares Schreiben und ein Fall dafür entfallen.
+
+**Teil 2: der Hook.** Die Zusagen dieses Teils gelten, soweit das Gate
+`stop-hook-gegenprobe` sie prüft, und nur so weit: Ein Punkt, den kein Fall der Gegenprobe
+nennt, ist nicht zugesagt. Führt `make help` kein Ziel dieses Namens, ist der Hook-Teil
+insgesamt nicht zugesagt.
+
+Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft. Die Punkte
+9 bis 20 gelten nach dieser Regel und für den Hook, nicht für die Gegenprobe der Ketten.
+
+9. **Wahl der Kette.** `make gates` ist der einzige Nachweis für Code, Gates, Profile,
+   Skripte, `Dockerfile`, Fragmente, `go.mod` und alles, was Punkt 12 nicht freigibt. Der
+   Hook vergleicht den Arbeitsbaum mit dem Stand des letzten vollen grünen Laufs. Liegt jede
+   geänderte, hinzugekommene oder gelöschte Datei auf der Positivliste (Punkt 12) und ist der
+   Stand der schnellen Kette grün, gibt er frei. Jeder andere Fall verlangt `make gates`.
+10. **Bezugsgröße des Stands der schnellen Kette.** Der Hook vergleicht den Stand der
+    schnellen Kette (Punkt 5) mit dem Hash des aktuellen Arbeitsbaums; ungleich, fehlend oder
+    nicht lesbar heißt: kein Stand. `tools/harness/working-tree-hash.sh` bleibt eine Ausgabe,
+    die genau dann wechselt, wenn sich der Arbeitsbaum ändert.
+11. **Form des Stands des vollen Laufs.** Der Stand des vollen Laufs ist eine Dateiliste: eine
+    Datei aus NUL-getrennten Feldern, drei je Eintrag: Art, Wert, Pfad. Art `F` (reguläre
+    Datei; Wert = SHA-256 des Inhalts, 64 Hexzeichen), `L` (Symlink; Wert = `readlink`-Ziel
+    unverändert), `G` (im Index, im Arbeitsbaum fehlend; Wert leer), `X` (anderer Typ:
+    Verzeichnis, Gitlink; Wert leer). Der Pfad ist wie `git ls-files -z` ihn liefert (getrackt
+    und untracked, ohne ignorierte), die Sortierung bytegenau, ein Pfad höchstens einmal.
+    Zeilenumbruch, Leerzeichen, Tabulator und Nicht-UTF-8 im Pfad sind damit ohne Sonderfall.
+    Sortierung und Einmaligkeit sind Form, keine Zusage mit eigenem Fall (akzeptiertes
+    Negativ; Grund: Schreiber und Leser erzeugen die Liste mit derselben Funktion, eine
+    abweichende Sortierung macht aus „identisch“ höchstens „voll“, nie „frei“). Der
+    Ausführungs-Modus gehört nicht zum Eintrag (akzeptiertes Negativ: wie der Hash heute; eine
+    Modusänderung ohne Inhaltsänderung bleibt ungeprüft).
+12. **Positivliste, Grenze der Pfade, Groß- und Kleinschreibung.** Inert ist ein Pfad, der mit
+    `docs/plan/planning/`, `docs/reviews/` oder `docs/user/` beginnt, einschließlich des
+    Schrägstrichs, oder genau `README.md` ist (Wurzel), bytegenau und case-sensitiv.
+    `docs/plan/planning-x/…`, `docs/reviews-alt/…`, `docs/users/…`, `docs/Plan/planning/…`,
+    eine Datei namens `docs/reviews` oder `docs/user`, `readme.md`, `README.md.bak` und
+    `harness/README.md` sind nicht inert (`harness/README.md` bleibt draußen: der Beleg von
+    Punkt 13 gilt nur für die Wurzel-`README.md`; wer sie aufnehmen will, belegt sie). Ein
+    Pfad mit Segment `.`, `..` oder leerem Segment, ein absoluter Pfad oder ein Pfad mit NUL
+    gilt als beschädigte Liste (Punkt 20), nie als inert.
+13. **Beleg für `docs/user/` und `README.md`; Abdeckungstabellen.** Beide sind ohne Ausnahme
+    aufgenommen. Kein Gate der Ausnahmeliste (`lint-gegenprobe`, `kopf-check-gegenprobe`,
+    `abdeckung-gegenprobe`, `hook-gegenprobe`, `a-check-negativ`, `test-integration`) liest
+    eine Datei unter `docs/user/` oder die `README.md`: die Docker-Gates (`test-integration`,
+    `lint-gegenprobe` über `docker build` einer Kopie des Arbeitsbaums, ebenso `build`, `test`,
+    `lint`) sehen nur den Build-Kontext, und der ist eine Allowlist, die `docs/` und
+    `README.md` nicht freigibt (`.dockerignore`: `*`, dann nur `go.mod`, `go.sum`, `cmd/`,
+    `internal/`, `test/`, `.golangci.yml`, `tools/harness/lint.sh`); ein Go-Test, der dort
+    läse, wäre im Container rot. `a-check-negativ` kopiert den Baum, aber `a-check` liest nach
+    `.a-check.yml` nur `**/*.go`. `kopf-check-gegenprobe`, `abdeckung-gegenprobe` und
+    `hook-gegenprobe` fahren in Temp-Bäumen (`abdeckung-gegenprobe` baut ihr eigenes
+    `docs/user/`). Die Tabellen `docs/user/abdeckung-*.md` liest nur `abdeckung-check`
+    (`tools/test/abdeckung.sh --check`), und das läuft in der schnellen Kette (kein Name mit
+    `-gegenprobe`): Eine Änderung an ihnen ohne Änderung an Tests (die Deklarationen stehen in
+    `*_test.go`, nicht inert) ist von Hand möglich und wird von `abdeckung-check` rot gemeldet,
+    sodass die schnelle Kette sie fängt; deshalb nicht ausgenommen, kein Rückfall auf die
+    volle Kette. Das Handbuch und die `README.md` liest von den Gates der schnellen Kette
+    `docs-check` (Verweise, Anker; `.d-check.yml`, Wurzel `.`). Die Aufnahme gilt, solange
+    (a) `docs-check` und `abdeckung-check` in der schnellen Kette stehen (die Gegenprobe der
+    Kette hält die Ausnahmeliste, Punkt 4) und (b) der Build-Kontext `docs/` und `README.md`
+    nicht freigibt; beides sind Änderungen an Gates oder `.dockerignore`, also nicht inert und
+    im vollen Lauf. Die schnelle Kette fährt für eine Handbuch-Änderung kein Gate weniger über
+    das Handbuch als die volle (kein langsames Gate liest es), aber sie liefert nicht den
+    Nachweis „`make gates` grün über den ganzen Baum“, und ob ein Beispiel im Handbuch gegen
+    das gebaute Binary läuft, prüft kein Gate, sondern die Probe von Implementer und Verifier;
+    sie bleibt Pflicht der Rollen und wird durch die schnelle Kette nicht ersetzt. Akzeptiertes
+    Negativ (Grund: gleiche Folge wie beim akzeptierten Negativ der Positivliste): Ein
+    künftiger Leser von `docs/user/` oder `README.md` in einem Host-Skript eines langsamen
+    Gates ändert Skript oder Gate und löst den vollen Lauf aus; der Beleg ist dann beim Review
+    dieser Änderung neu zu führen, eine eigene Sperre dafür entfällt.
+14. **Gelöschte oder umbenannte Datei.** Verglichen wird je Pfad die Menge beider Listen
+    (Stand des vollen Laufs, aktueller Arbeitsbaum): ein Pfad, dessen Eintrag fehlt, neu ist
+    oder abweicht, gilt als geändert. Eine Umbenennung ist damit ein gelöschter und ein
+    hinzugekommener Pfad, beide müssen inert sein.
+15. **Symlink.** Inert ist ein geänderter Link nur, wenn Link-Pfad und Ziel inert sind; das
+    Ziel wird aus dem Eintrag `L` lexikalisch gegen das Verzeichnis des Links aufgelöst (ohne
+    das Dateisystem zu befragen) und muss danach innerhalb des Repos auf der Positivliste
+    liegen; ein Ziel außerhalb des Repos, ein absolutes Ziel oder ein nicht lexikalisch
+    auflösbares ist nicht inert. Gespiegelt: Liegt irgendwo im Arbeitsbaum ein Link außerhalb
+    der Positivliste, dessen Ziel auf sie zeigt, liest ein Gate über ihn inerte Pfade; dann
+    gilt jede Änderung als nicht inert. Der Bestand hat Links nur unter `.claude/rules/` mit
+    Zielen außerhalb der Positivliste.
+16. **Leerer Diff gegen den vollen Lauf.** Ist die Liste des Arbeitsbaums mit dem Stand des
+    vollen Laufs identisch und gibt es keinen nicht aufgelösten Index-Eintrag (Punkt 17), gibt
+    der Hook frei, ohne Stand der schnellen Kette: der volle Nachweis deckt den Baum, die
+    schnelle Kette ist eine Teilmenge.
+17. **Merge-Konflikt.** Ein nicht aufgelöster Index-Eintrag (`git ls-files -u` nicht leer) ist
+    nie inert: voll. Die Prüfung steht vor jeder Entscheidung, auch vor „identisch“: Die Liste
+    trägt die Index-Stufen nicht, ein Konflikt kann bei identischer Liste bestehen, und ein
+    Hook, der die Identität zuerst prüfte, gäbe ihn frei. Sie ist die erste Prüfung des Hooks
+    nach dem Schleifenschutz (`stop_hook_active`). Konfliktmarker im Inhalt einer inerten Datei
+    ändern nichts, ihr Pfad entscheidet.
+18. **Untracked Datei.** Eine untracked Datei zählt wie eine getrackte
+    (`git ls-files --others --exclude-standard`): in der Positivliste inert, sonst nicht. Eine
+    durch `.gitignore` ausgeblendete Datei ist nicht Teil der Liste (Bestand, bewusst stehen
+    gelassen: ein Gate, das sie liest, hat sie auch heute nicht im Hash).
+19. **Erster Lauf ohne Stand des vollen Laufs.** Ein fehlender Stand des vollen Laufs
+    verlangt `make gates`, auch bei sauberem Baum. Ein frischer Klon oder Worktree
+    (`.harness/state/` ist ignoriert) sperrt damit den ersten Stop, bis `make gates` lief.
+    Der Kopf-Kommentar des Hooks sagt diese Sperre zu.
+20. **Nicht lesbarer Vergleich; Abbruch des Hooks; beschädigte Dateiliste.** Scheitert `git`,
+    ist eine Datei nicht lesbar oder bricht der Hook mitten im Lauf ab, gilt: voll, und zwar
+    als Antwort `block`, nicht als Abbruch ohne Antwort. Der Schleifenschutz
+    (`stop_hook_active`) steht davor und bleibt. Ist die Dateiliste des vollen Laufs gelöscht
+    oder beschädigt, gilt ebenfalls: voll. Beschädigt ist: leere Datei, Feldzahl nicht durch 3
+    teilbar, unbekannte Art, `F` mit Wert, der nicht 64 Hexzeichen ist, `G` oder `X` mit Wert,
+    doppelter Pfad, Pfad nach Punkt 12 unzulässig. Eine am Eintragsende abgeschnittene Liste
+    ist nicht beschädigt, aber unschädlich: die fehlenden Pfade gelten als hinzugekommen und
+    entscheiden nach ihrem Pfad.
+
 ## 12. Historie
 
 Regeln dieser Sektion: **kein ADR- und kein Slice-Verweis.** Die Decken-Regel
@@ -3311,3 +3460,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-12 | Sessions: Randformen vor dem Code (angenommene Verbindung, Sessions ohne Interaktion mit `--record-empty-sessions` bei Fehler und Zwangsende, Kennzeichnung ohne Session, gleichzeitiges Ende; Wertemenge von `--session-assignment`, Prüfung der Kennzeichnung bei `connection`, Zählung und Zuordnung mit der Annahme, mehr Verbindungen als Sessions, Anfrage an eine Session ohne Interaktion, gleichzeitige Verbindungsfehler) (`LH-FA-12.a`, `LH-FA-13.b`, `LH-FA-03.b`) |
 | 2026-10-12 | Konfiguration, Entscheidung des Nutzers: Umgebungsvariable der Option eines anderen Kommandos ist `PGR-E2001` (bisher unbeachtet; ersetzt die Fassung vom 2026-10-05 und 2026-10-08), Ausnahmen `PGWIRE_RECORDER_PASSWORD` und Variable ohne passende Option, keine Warnung (`LH-FA-17.a`) |
 | 2026-10-12 | Konfiguration: Rangfolge der Umgebungsvariablen in einem Durchlauf über die Tabelle (fremde und eigene gemeinsam, nur der erste Fehler), vor der Datei; Schreibweise des Namens genau; Katalogzeile `PGR-E2001` nennt die Umgebungsvariable (`LH-FA-17.a`, `SPEC-034`) |
+| 2026-10-13 | Harness-Werkzeuge: Gate-Kette in voller und schneller Kette mit Ausnahmeliste, Stand der schnellen Kette, Wahl der Kette am geänderten Pfad (Positivliste, Dateiliste des vollen Laufs, Randformen), Hook-Teil nur zugesagt, soweit `stop-hook-gegenprobe` ihn prüft (`SPEC-052`) |
