@@ -191,6 +191,10 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 | 40 | Hinweis *Aufzeichnen* (Passwort) und Zeilen `PGR-E3004`, `PGR-E5003`: neue Teilsätze | Zeilen 18, 30, 23, 26 | wie dort |
 | 41 | MV *Voraussetzung*: die Zuordnung gilt für Verbindungen, die die Anwendung nacheinander aufbaut und nutzt | Zeilen 22 bis 32: Verbindungen nacheinander (`psql` hintereinander), nicht gleichzeitig | wie dort; gleichzeitiger Aufbau nicht gefahren, der Satz sagt dazu nichts |
 | 42 | Katalogzeile `PGR-E4006`: die Meldung nennt die Sitzung und die Anfrage | `select pg_sleep(20)`, `--shutdown-timeout 500ms`, `--record-empty-sessions`, `docker stop` | Meldung an den Client und im Log: `Interaktion 1 nicht abgeschlossen und verworfen; die Session wird als Session 1 geschrieben`, Exit 4; die Aufzeichnung hat `- id: 1` |
+| 43 | Hinweis *Aufzeichnen* (Eine Verbindung mit abgeschlossener Anfrage ist eine Sitzung; nutzt sie `COPY`, nicht, `PGR-E6001`, Exit-Code 6); MV Einleitung; README; Verbindungsfehler | Verbindung A `select 'vorher'`, danach `COPY (SELECT 1) TO STDOUT` (ohne Option), Verbindung B danach mit `select 'b1'`, `select 'b2'`; `docker stop` | A: `connection to server was lost`; zwei Meldungen `PGR-E6001`; Exit 6; Aufzeichnung nur mit `- id: 1` und den Anfragen von B, `vorher` fehlt |
+| 44 | MV *Hinweise zum Aufzeichnen*: keine Sitzung auch mit der Option, `COPY` (`PGR-E6001`, Exit-Code 6) | wie 43 mit `--record-empty-sessions`, nur A | Exit 6, `empty_sessions: true`, `sessions: []` |
+| 45 | Hinweis *Beenden*: Die abgeschlossenen Anfragen einer Verbindung, die das Zwangsende trifft, bleiben; war eine Anfrage begonnen, fehlt sie (`PGR-E4006`, Exit 4) | `select 'vorher'`, danach `select pg_sleep(20)`, `--shutdown-timeout 500ms`, `docker stop`, ohne Option | Exit 4, zwei Meldungen `PGR-E4006`; `- id: 1` mit der einen Interaktion `select 'vorher'`, `pg_sleep` fehlt |
+| 46 | derselbe Satz, `COPY` als erste Anfrage (ohne Option) | `COPY (SELECT 1) TO STDOUT` als erste Anfrage, ohne Option | Exit 6, `PGR-E6001`, `sessions: []`, keine Kennzeichnung |
 
 **Stand der Gates.** `make gates` am Stand `a4f956f` (Arbeitsbaum sauber): Exit 0 (Laufzeit 5 min 15 s), `make abdeckung-check` und `make docs-check` (669 Dateien, 0 Befunde) darin. Der Commit danach ändert nur diese Zeile; `make gates` auf dem Stand nach dem letzten Commit ist die Messung, die der Bericht nennt.
 
@@ -246,6 +250,46 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 **Mutationen (§3.10)** entfallen: Beschreibung, kein neuer Vertrag; ein Satz ohne bestandene Probe oder ohne enge Fassung wäre der „rote“ Fall, und die Negativsätze zu gleichzeitigem Ende und gleichzeitigen Fehlern haben bewusst keine Probe (Gleichzeitigkeit ist nicht deterministisch zu proben, Review F-687).
 
 **Befehlsfolge** aus `slice-doku-ist-stand` §7 (Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`), am Stand `de603fb`: Optionen des Handbuchs, die `--help` nicht kennt: `--h`, `--help`, `--version`, `--name`, `--rm`; Variablen ohne Option: leer; Codes außerhalb des Katalogs: leer. Keine zweite Ausnahme; Befehlsfolge unverändert, keine neuen Mutanten. `make docs-check`: 670 Dateien, 0 Befunde.
+
+### Nacharbeit nach der Verifikation (V-310 bis V-313)
+
+**Stand.** Commit `2441376` (Handbuch, README); Proben gegen `pgwire-recorder:dev` `deb48422487d` (`make build` neu gefahren, derselbe Image-Stand; Produkt-Code unverändert), PostgreSQL wie oben (`postgres:17-alpine@sha256:b0f9560a…`, Anmeldung `trust`, eigenes Docker-Netz, danach entfernt), Clients `psql` aus dem Image der Datenbank, Dateien im Scratch-Verzeichnis außerhalb des Repos. Der Aufbau ist der von *Probe-Aufbau* oben; die Proben des Verifiers (V-310: `select 'vorher'`, dann `COPY`) laufen als Zeilen 43, 44, 46, dazu Zeile 45 für den Nachbarsatz zu V-313.
+
+**Merkmal der Klasse.** Eine Allgemeinaussage über *Verbindungen* oder *Sitzungen* („jede“, „alle“, „immer“, „stets“, „nie“, „keine“, „jeweils“), die der neue Abschnitt einschränkt (`COPY` und die Fälle ohne Startnachricht sind keine Sitzung). Die Durchsicht nahm dieses Merkmal, nicht die Wörter der letzten Nacharbeit: `grep -nEi` im Handbuch und in der README auf diese Quantoren, einmal je Zeile und einmal je Absatz (Zeilenumbrüche entfernt), jeweils zusammen mit `Verbindung`, `Sitzung` oder `Session`. Treffer und Entscheidung:
+
+| Stelle (Handbuch, Zeile vor der Nacharbeit) | Satz | Entscheidung |
+|---|---|---|
+| 215 *Aufzeichnen*, Hinweis (V-310) | „Jede Verbindung …, die mindestens eine Anfrage abgeschlossen hat, wird als eigene Sitzung aufgezeichnet“ | eng gefasst: „Eine Verbindung …“, nutzt sie `COPY`, wird sie nicht aufgezeichnet (`PGR-E6001`, Exit-Code 6); Proben 43, 44, 46 (ohne und mit Option, `COPY` nach einer abgeschlossenen Anfrage und als erste), „auch mehrere gleichzeitig“ Zeile 8 |
+| 217 bis 220 derselbe Hinweis | „mit `--record-empty-sessions` werden sie es“ (Verbindungen ohne Anfrage) | eng gefasst: „soweit sie keine der Ausnahmen sind, die der Abschnitt nennt“; Proben 10, 15 bis 20 (Zeilen der Ausnahmen) |
+| 446 neuer Abschnitt, Einleitung (V-310) | „zeichnet jede Verbindung als eigene Sitzung auf“ | eng gefasst: eine Verbindung, die eine Anfrage abgeschlossen hat; nutzt sie `COPY`, nicht (`PGR-E6001`); Proben 43, 8 |
+| README 47 (V-310) | „zeichnet jede Verbindung, die eine Anfrage abgeschlossen hat, als eigene Sitzung auf“; „wird auch eine Verbindung ohne Anfrage eine Sitzung“ | eng gefasst wie 215 und 217; Proben 43, 10 |
+| 229 bis 231 Hinweis *Beenden* (V-313) | „Die abgeschlossenen Anfragen einer solchen Verbindung bleiben in der Aufzeichnung“ | verbunden: „hat sie keine abgeschlossen, gilt“ der Abschnitt (Verweis, keine neue Aussage); Probe 45 für den Satz selbst, Zeile 11 für den Verweis |
+| Glossar, „Verbindung“ | „in der Aufzeichnung heißt sie Sitzung“ | eng gefasst: „wird sie aufgezeichnet, heißt sie …“ (Aussage ohne neue Zusage, Zeilen 43, 44 zeigen Verbindungen, die es nicht werden) |
+| Glossar, „Sitzung ohne Interaktionen“ | „die Sitzung einer Verbindung ohne abgeschlossene Anfrage; sie entsteht nur mit der Option“ | eng gefasst: „… nicht jede solche Verbindung ist eine Sitzung“ mit Verweis; Zeilen 15 bis 20 |
+| 178 *Aufzeichnen*, Ergebnis | „nach dem Ende jeder Sitzung“ | unverändert: Aussage über Sitzungen, nicht über Verbindungen; Zeile 12 |
+| 226, 228 *Beenden*; 1138, 1143 *Herunterfahren mit Frist* | „bis jede Verbindung ihre laufende Anfrage … abgeschlossen hat“; „beendet … jede noch laufende Verbindung zwangsweise“ | unverändert: Aussagen über das Warten und das Beenden laufender Verbindungen, keine über das Aufzeichnen; die Ausnahme im Aufbau (ohne Meldung) steht im Satz darunter und im Abschnitt; Zeilen 11, 17 |
+| 120 *Einspielen*; 663 bis 665 | „Jede Sitzung mit Interaktionen läuft über eine eigene Verbindung“ | unverändert: Sitzungen mit Interaktionen, die Ausnahme (ohne Interaktionen) steht im Satz; Zeile 36 |
+| 140, 155, 910, 944, 956 (Zeitangaben) | „die erste Anfrage jeder Verbindung“ | unverändert: gilt für Verbindungen der Aufzeichnung mit Anfragen; eine Sitzung ohne Interaktionen hat keine Anfrage, der Satz sagt nichts über sie; Probe liegt in `slice-v1-abschluss-zeitangaben-doku` |
+| 157, 923, 957 (Zeitangaben) | „Jede Verbindung zählt ab ihrem eigenen Beginn“ | unverändert: wie vorige Zeile |
+| 699 (TLS bei `play`) | „jede Verbindung, die `play` öffnet“ | unverändert: Aussage über `play`, nicht über die Aufzeichnung |
+| 1272 (`play`, Konfigurationsdatei) | „meldet jede Sitzung mit Benutzer und Datenbank an“ | unverändert: Aussage über `play`; eine Sitzung ohne Interaktionen öffnet keine Verbindung (Zeile 36), der Satz sagt nichts über sie |
+| 1036, 1300 bis 1302, 1441 (Konfigurationsdatei) | „jede Verbindung der Datei“, „keine Verbindung benutzt“ | unverändert: „Verbindung“ heißt dort die benannte URL, nicht die Datenbankverbindung der Anwendung |
+| 1336 (Log-Stufen) | „Fehler, die eine Verbindung beenden“ | unverändert: keine Aussage über das Aufzeichnen |
+| 1388 bis 1402 (Exit-Code 5, Absatz darunter) | „nie verwendete Sitzungen mit Anfragen“ | unverändert: in der Nacharbeit zum Review (Zeile 28) belegt |
+| README 6 | „Lebendprüfungen von Verbindungspools … beantwortet `replay` unabhängig davon“ | unverändert: Aussage über Anfragen, nicht über das Aufzeichnen von Verbindungen |
+
+Weitere Treffer des Absatz-Greps (Aussagen über Optionen, Werte, Codes, Zeitangaben und die Wiedergabe, etwa „Jeder andere Wert“, „Jede Anfrage muss genau der aufgezeichneten entsprechen“, „jede Meldung trägt einen Code“) nennen „jeder“ oder „keine“ ohne Aussage über das Aufzeichnen einer Verbindung als Sitzung; sie bleiben unverändert.
+
+| Befund | Entscheidung | Beleg |
+|---|---|---|
+| V-310 | eng gefasst, drei Sätze und die Folge (siehe Tabelle); die Fassung belegt die Probe des Verifiers als Datei gegen das gebaute Binary | Zeilen 43, 44, 46 |
+| V-311 | der Stand des letzten `make gates` steht im Abschnitt *Stand der Gates nach der Nacharbeit* unten, in einem eigenen Commit | unten |
+| V-312 | der Absatz zu den Sitzungen steht in der README als eigener Absatz hinter dem Absatz zu den Zeitangaben, die Zeilen sind umbrochen; die Aussagen sind bis auf die enge Fassung (V-310) unverändert | `git diff 770517b..2441376 -- README.md` |
+| V-313 | verbunden (siehe Tabelle) | Zeile 45 |
+
+**Mutationen (§3.10)** entfallen: Beschreibung, kein neuer Vertrag. Der rote Fall ist der Satz ohne Probe: Die Fassung „Jede Verbindung … wird aufgezeichnet“ ist durch Zeile 43 widerlegt, die enge Fassung durch sie belegt.
+
+**Befehlsfolge** aus `slice-doku-ist-stand` §7 (Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`), am Stand `2441376`: Optionen des Handbuchs, die `--help` nicht kennt: `--h`, `--help`, `--name`, `--rm`, `--version`; Variablen ohne Option: leer; Codes außerhalb des Katalogs: leer. Keine zweite Ausnahme; Befehlsfolge unverändert, keine neuen Mutanten. `make docs-check`: 671 Dateien, 0 Befunde.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
