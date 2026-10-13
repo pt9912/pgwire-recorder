@@ -103,10 +103,10 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `harness/vertraege/README.md` | neu | Gegenstand, Rang 2 geteilt, Reihe über beide Orte (höchste vergebene Nummer, plus eins), Einleitung von §11, Historie der Verträge (Wortlaut der Zeilen aus §12) |
-| `harness/vertraege/SPEC-047-kopf-der-plaene.md`, `SPEC-048-abdeckung.md`, `SPEC-050-struktur-kennungen-im-commit.md` | neu | Text aus §11 (Zeilen 2880 bis 2953, 2954 bis 3011, 3165 bis 3215 am Stand `231089e`); Dateinamen sind Vorschlag des Planners, der Architect entscheidet (§6) |
+| `harness/vertraege/SPEC-047-kopf-der-plaene.md`, `SPEC-048-abdeckung.md`, `SPEC-050-struktur-kennungen-im-commit.md` | neu | Text aus §11 (Zeilen 2880 bis 2953, 2954 bis 3011, 3165 bis 3215 am Stand `231089e`); Dateinamen nach §6 Randform 1 |
 | `spec/spezifikation.md` | update | die drei Verträge aus §11 und die Zeilen der *Historie* mit `SPEC-047`, `SPEC-048`, `SPEC-050` entfernt; sonst nichts |
 | `harness/README.md` | update | §Source precedence: Rang 2 trägt beide Orte (Randform 7); §Sensors: Links der Zeilen von `make kopf-check` und `make abdeckung-check` auf den neuen Pfad (zu `SPEC-050` führt §Sensors keine Zeile; es entsteht keine) |
-| `AGENTS.md` | update | §2 (Rang 2) und §3.12 (Ort der Randform-Entscheidung für Harness-Werkzeuge); die Herkunft in der Form `seit <Kennung>` setzt der Implementer bei der Closure |
+| `AGENTS.md` | update | §2 (Rang 2) und §3.12 (Ort der Randform-Entscheidung für Harness-Werkzeuge: `harness/vertraege/`, für `SPEC-049` und `SPEC-052` bis zu deren Umzug `spec/spezifikation.md` §11; Herkunft `seit slice-harness-vertraege-umzug-ordner`) |
 | `harness/sensors/kopf-check.md`, `harness/sensors/abdeckung-check.md` | update | Links auf den Vertrag (MR-002 Adaption 8: die Lesart bleibt dort) |
 | `tools/harness/kopf-check.sh`, `tools/harness/kopf-check-gegenprobe.sh`, `tools/test/abdeckung.sh`, `tools/test/abdeckung-gegenprobe.sh` | update (nur Kommentare) | „Vertrag: spec/spezifikation.md SPEC-0xx“ nennt den neuen Pfad |
 | `docs/plan/adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md` | update (Link) | Referenz-Nachzug nach [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), keine Überschreibung der Entscheidung |
@@ -194,6 +194,49 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`). Die Belege aus §2 (Vergleich gegen den Stand `231089e`, `grep` der alten Pfade, Prüfung von `SPEC-047` auf den Ort) stehen hier, nicht im Bericht.
+
+### Belege des Implementers
+
+Basis der Größenprobe: `6459815` (Move `next → in-progress`).
+
+**Läufe.** `make gates` auf `0da0595` (Stand nach dem Umzug und dem Nachzug der Verweise): Exit 0, `lint-gegenprobe: gruen`, `stop-hook-gegenprobe: gruen — 138 Fälle`. `make docs-check` auf demselben Stand: `710 Datei(en) geprüft, 0 Befund(e)`; `make kopf-check` ohne Ausgabe.
+
+**Liefer-Punkt 1 — wortgleich.** Vergleich je Vertrag gegen `231089e` (Zeilenbereiche 2880–2953, 2954–3011, 3165–3215; Abweichung nur die `#`-Überschrift statt `###` und keine Leerzeile am Ende):
+
+```
+git show 231089e:spec/spezifikation.md | sed -n "$A,${B}p" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' | sed '1s/^### /# /' | diff - harness/vertraege/<datei>
+```
+
+Ausgabe für alle drei Dateien: leer (Exit 0). Die Einleitung im `README.md` weicht an den drei Stellen von Randform 4 ab („Dieser Ordner“, „Keine Kennung dieses Ordners“, Link `../../spec/lastenheft.md#…`); die zwei Historie-Zeilen sind wortgleich zu den Zeilen 3524 und 3525.
+
+**Liefer-Punkt 2 — Spezifikation.** `git diff 231089e HEAD --stat -- spec`: `spec/spezifikation.md | 185 ---`, keine Einfügung (132 Zeilen `SPEC-047`/`SPEC-048`, 51 Zeilen `SPEC-050`, 2 Historie-Zeilen). `SPEC-049` und `SPEC-052` und die Einleitung von §11 stehen unverändert. `grep -c "harness/vertraege" spec/spezifikation.md` ergibt 0.
+
+**Liefer-Punkt 3 — Verweise.**
+
+```
+$ grep -rn "spezifikation.md#spec-0\(47\|48\|50\)" --exclude-dir=.git --exclude-dir=.harness .
+(keine Ausgabe, Exit 1)
+$ grep -n "harness/\|spezifikation.md" harness/vertraege/SPEC-047-kopf-der-plaene.md
+(keine Ausgabe, Exit 1)
+```
+
+Die Form ohne Link (`grep -rn "spezifikation.md SPEC-0" …`, Randform 10) trifft für die drei Verträge nur noch `docs/plan/planning/done/slice-harness-vertraege-spezifikation.md:378` und `docs/reviews/2026-10-06-verifikation-slice-harness-vertraege-spezifikation.md:54` (Zeitdokumente, bleiben nach Randform 9) und diesen Plan; alle weiteren Treffer nennen `SPEC-049` oder `SPEC-052` (die Folge-Slices).
+
+**Zusage · Mutation · roter Lauf** (Mutation einzeln gefahren, danach `git checkout`):
+
+| Zusage | Mutation | roter Lauf |
+|---|---|---|
+| der Text ist wortgleich | ein Zeichen vor Zeile 3 von `SPEC-048-abdeckung.md` | der Vergleich oben meldet `3c3` mit beiden Zeilen |
+| jeder Link auf einen Vertrag zeigt auf den neuen Ort | Pfad in `harness/sensors/kopf-check.md:9` zurück auf `../../spec/spezifikation.md` | `make docs-check`: `anchor-missing`, 1 Befund |
+| die Spezifikation verweist nicht auf `harness/` | ein Link auf `../harness/vertraege/README.md` am Ende von `spec/spezifikation.md` | `make docs-check`: `matrix-forbidden — Referenz spec-straten → aussen ist nicht erlaubt` |
+| `SPEC-047` nennt den Ort nicht | eine Zeile `Ort: harness/vertraege` am Ende von `SPEC-047-kopf-der-plaene.md` | `grep -n "harness/\|spezifikation.md"` meldet Zeile 74 |
+
+Die Rang-Aussagen in `harness/README.md` und `AGENTS.md` §2 haben kein Gate (`MR-002` Adaption 4); sie sagen nichts über eine Prüfung.
+
+**Größe** (Metrik `AGENTS.md` §3.14, `git diff --numstat 6459815..<Commit> -- spec harness AGENTS.md tools .claude docs/plan docs/reviews`, Summe aus Einfügungen und Löschungen): 473 auf `0da0595` vor diesem Eintrag; Marke 750 nicht erreicht.
+
+**Beobachtung zu `BEO-REPO/werkzeug-festlegung-ausserhalb-technik-stratum`:** Der Ort wurde nicht übersehen; keine Evidence-Datei vom Implementer vorgeschlagen (Urteil der Closure).
+
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
