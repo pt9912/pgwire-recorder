@@ -1,8 +1,8 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.5  
+Version: 0.6  
 Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
-Stand: 12.10.2026  
+Stand: 13.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für das Binary `pgwire-recorder`, gebaut aus dem Repository (Ausgabe von `pgwire-recorder version`: `pgwire-recorder dev`)
 
@@ -175,7 +175,9 @@ Die Datenbank ist erreichbar, und die Zieldatei existiert noch nicht.
 #### Ergebnis
 
 Die Datei aus `--output` enthält die aufgezeichnete Kommunikation, ohne `--format`
-als YAML. Sie wird nach dem Ende jeder Verbindung und beim Beenden aktualisiert.
+als YAML. Sie wird nach dem Ende jeder Sitzung und beim Beenden aktualisiert; was eine
+Sitzung ist, steht unter
+[Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben).
 
 #### Hinweise
 
@@ -191,7 +193,7 @@ als YAML. Sie wird nach dem Ende jeder Verbindung und beim Beenden aktualisiert.
 * Ist `--output` eine symbolische Verknüpfung, zählt ihr Ziel: Zeigt sie auf eine
   vorhandene Datei, gilt die Zieldatei als vorhanden. Mit `--force` ersetzt das
   Werkzeug die Verknüpfung durch die Aufzeichnung; ihr Ziel bleibt unverändert.
-* Bis zur ersten Aktualisierung (nach der ersten beendeten Verbindung oder beim
+* Bis zur ersten Aktualisierung (nach dem Ende der ersten Sitzung oder beim
   Beenden) bleibt eine vorhandene Zieldatei mit `--force` unverändert. Das Werkzeug
   schreibt die Aufzeichnung zuerst in
   eine temporäre Datei `.<Name der Zieldatei>.<16 Hexziffern>.tmp` im Verzeichnis
@@ -199,7 +201,7 @@ als YAML. Sie wird nach dem Ende jeder Verbindung und beim Beenden aktualisiert.
   ist damit vollständig oder unverändert, auch nach dem zwangsweisen Beenden von
   Verbindungen beim Herunterfahren. Das gilt für `yaml` bei jeder Aktualisierung; bei
   `sqlite` legt der erste Schreibvorgang die Datei auf diesem Weg an, und jede weitere
-  beendete Verbindung wird danach in der Zieldatei selbst ergänzt (siehe
+  beendete Sitzung wird danach in der Zieldatei selbst ergänzt (siehe
   [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen)). Schlägt das Schreiben fehl, meldet das
   Werkzeug `PGR-E3001` und entfernt die temporäre Datei; gelingt das Entfernen
   nicht, nennt dieselbe Meldung auch diesen Fehler. Endet der Prozess hart
@@ -210,12 +212,15 @@ als YAML. Sie wird nach dem Ende jeder Verbindung und beim Beenden aktualisiert.
   der umask `022` also `0644`); eine ersetzte behält ihre Zugriffsrechte. Ersetzt
   das Werkzeug eine Verknüpfung auf eine Datei, erhält die Zieldatei die
   Zugriffsrechte dieser Datei.
-* Jede Verbindung Ihrer Anwendung mit mindestens einer Anfrage wird als eigene
-  Sitzung aufgezeichnet. Verbindungen ohne Anfrage, zum Beispiel
-  Probe-Verbindungen eines Connection-Pools, werden nicht aufgezeichnet.
+* Jede Verbindung Ihrer Anwendung, die mindestens eine Anfrage abgeschlossen hat, wird
+  als eigene Sitzung aufgezeichnet, auch wenn mehrere Verbindungen gleichzeitig offen
+  sind. Verbindungen ohne Anfrage, zum Beispiel Probe-Verbindungen eines
+  Connection-Pools, werden nicht aufgezeichnet; mit `--record-empty-sessions` werden
+  sie es (siehe
+  [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)).
 * Verlangt die Datenbank ein Passwort, beendet das Werkzeug die Verbindung Ihrer
-  Anwendung mit `PGR-E6001`; die Verbindung wird nicht aufgezeichnet, und das
-  Werkzeug endet mit Exit-Code 6.
+  Anwendung mit `PGR-E6001`; die Verbindung wird nicht aufgezeichnet, auch nicht mit
+  `--record-empty-sessions`, und das Werkzeug endet mit Exit-Code 6.
 * Beim Beenden nimmt das Werkzeug keine neuen Verbindungen an, schreibt eine
   Log-Zeile mit `sessions`, der Zahl der noch offenen Verbindungen, und wartet,
   bis jede Verbindung ihre laufende Anfrage oder Folge abgeschlossen hat. Es
@@ -317,13 +322,13 @@ Antworten, und `play` führt dieselben Anfragen aus.
   sie als YAML nicht lesbar ist; das gilt auch für eine leere Datei.
 * Eine vorhandene Zieldatei ersetzt `--force` vollständig; das Werkzeug ergänzt sie nie.
   Eine YAML-Datei ersetzt es mit `--format sqlite` durch eine SQLite-Datei und umgekehrt.
-* Bei `sqlite` entsteht die Datei mit dem ersten Schreibvorgang, nach der ersten
-  beendeten Verbindung oder beim Beenden; vorher gibt es den Zielpfad nicht. Jede weitere
-  beendete Verbindung ergänzt das Werkzeug danach in der Datei. Zeichnen Sie ohne jede
+* Bei `sqlite` entsteht die Datei mit dem ersten Schreibvorgang, nach dem Ende der ersten
+  Sitzung oder beim Beenden; vorher gibt es den Zielpfad nicht. Jede weitere
+  beendete Sitzung ergänzt das Werkzeug danach in der Datei. Zeichnen Sie ohne jede
   Verbindung auf, entsteht eine gültige Datei ohne Sitzung; `replay` meldet sie beim
   Start als `PGR-E3004`.
 * Die Datei lässt sich während des Aufzeichnens lesen: `sqlite3` und `replay` sehen die
-  Verbindungen, die zu dem Zeitpunkt beendet waren.
+  Sitzungen, die zu dem Zeitpunkt beendet waren.
 * `replay` und `play` öffnen die Datei nur lesend und verändern sie nicht, auch auf einem
   schreibgeschützten Verzeichnis.
 
@@ -352,8 +357,8 @@ Die Datei hat vier Tabellen:
 
 | Tabelle | Inhalt |
 |---|---|
-| `meta` | Zeilen mit `key` und `value`: `format` (`pgwire-recorder`) und `version` |
-| `session` | eine Zeile je aufgezeichneter Verbindung: `id` (ab 1), `startup` und `server_parameters` als JSON-Text |
+| `meta` | Zeilen mit `key` und `value`: `format` (`pgwire-recorder`), `version` und, mit `--record-empty-sessions`, `empty_sessions` (Wert `true`) |
+| `session` | eine Zeile je aufgezeichneter Sitzung: `id` (ab 1), `startup` und `server_parameters` als JSON-Text |
 | `interaction` | eine Zeile je Anfrage oder Folge des erweiterten Protokolls: `session_id`, `sequence`, `type` (`query` oder `extended`), `offset_ms` (die Zeitangabe, ohne `--record-timing` ohne Wert, also `NULL`) und `sql` (der Text einer einfachen Anfrage, bei `extended` ohne Wert, also `NULL`) |
 | `message` | die Nachrichten einer Interaktion: `session_id`, `sequence`, `position`, `direction` (`client` oder `server`), `group_no`, `kind` und `fields` als JSON-Text |
 
@@ -373,7 +378,7 @@ das Werkzeug unterstützt das nicht.
 
 #### Voraussetzung
 
-Eine Aufzeichnung mit einer Verbindung liegt vor, als YAML- oder als SQLite-Datei. Das
+Eine Aufzeichnung mit mindestens einer Sitzung mit einer Anfrage liegt vor, als YAML- oder als SQLite-Datei. Das
 Werkzeug erkennt das Format selbst (siehe
 [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen)).
 
@@ -398,20 +403,24 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   Antwort (`PGR-E5001`). Ausgenommen sind Anfragen, die nur aus Leerraum und
   Kommentaren bestehen, wie Treiber sie als Lebendprüfung senden (siehe
   [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)).
-* Die erste Verbindung mit einer Anfrage erhält die erste aufgezeichnete Sitzung,
-  die zweite die zweite, und so weiter. Verbindungen ohne Anfrage zählen nicht.
-  Nutzen Sie die Verbindungen nacheinander; bei gleichzeitiger Nutzung ist die
-  Zuordnung nicht festgelegt. Eine Anfrage über die aufgezeichneten Sitzungen
-  hinaus wird als Abweichung gemeldet (`PGR-E5003`).
+* Beim Standard `--session-assignment first-request` erhält die erste Verbindung mit
+  einer Anfrage die erste aufgezeichnete Sitzung mit Interaktionen, die zweite die
+  zweite, und so weiter. Verbindungen ohne Anfrage zählen nicht, Sitzungen ohne
+  Interaktionen werden übersprungen. Nutzen Sie die Verbindungen nacheinander; bei
+  gleichzeitiger Nutzung ist die Zuordnung nicht festgelegt. Eine Anfrage über die
+  aufgezeichneten Sitzungen mit Interaktionen hinaus wird als Abweichung gemeldet
+  (`PGR-E5003`). Die andere Zuordnung, `connection`, beschreibt
+  [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben).
 * Endet eine Verbindung, bevor alle Anfragen ihrer Sitzung gestellt und
   beantwortet sind, warnt das Werkzeug (`PGR-W2001`), gleich ob die Anwendung
   die Verbindung schließt, ein Fehler sie beendet oder das Werkzeug beim
   Beenden. Eine Folge des erweiterten Protokolls zählt erst mit der Antwort auf
   ihr letztes `Sync` als gestellt. Die Meldung nennt die Sitzung, wie viele
   ihrer Anfragen offen sind, wie viele sie hat, und die Nummer der ersten
-  offenen; Lebendprüfungen zählen nicht mit. Aufgezeichnete Sitzungen, die nie
-  eine Verbindung erhalten haben, meldet das Werkzeug beim Beenden mit ihrer
-  Zahl und der Kennung der ersten. Mit `--fail-on-unconsumed` ist beides ein
+  offenen; Lebendprüfungen zählen nicht mit. Aufgezeichnete Sitzungen mit
+  Interaktionen, die nie eine Verbindung erhalten haben, meldet das Werkzeug beim
+  Beenden mit ihrer Zahl und der Kennung der ersten; eine Sitzung ohne Interaktionen
+  gehört nicht dazu. Mit `--fail-on-unconsumed` ist beides ein
   Fehler (`PGR-E5002`, Exit-Code 5) mit demselben Text; die Anwendung erhält
   ihn nicht, weil die Verbindung dann schon endet.
 * Beim Beenden beantwortet das Werkzeug eine begonnene Folge des erweiterten
@@ -430,6 +439,176 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
 * Trägt die Aufzeichnung Zeitangaben (`offset_ms`), wartet `replay` nie auf sie; es
   prüft sie beim Laden (siehe
   [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)).
+
+### Mehrere Verbindungen aufzeichnen und wiedergeben
+
+Eine Anwendung öffnet oft mehrere Verbindungen zur Datenbank, etwa über einen
+Connection-Pool. `record` zeichnet jede Verbindung als eigene Sitzung auf, auch wenn
+mehrere gleichzeitig offen sind. `replay` ordnet die aufgezeichneten Sitzungen den
+Verbindungen Ihrer Anwendung zu; die Option `--session-assignment` wählt, wie.
+
+#### Voraussetzung
+
+Wie beim Aufzeichnen und beim Wiedergeben. Die Zuordnung beim Wiedergeben ist nur
+zugesichert, wenn Ihre Anwendung ihre Verbindungen nacheinander aufbaut und nutzt.
+
+#### Vorgehen
+
+1. Zeichnen Sie auf. Soll auch eine Verbindung ohne Anfrage eine Sitzung werden,
+   ergänzen Sie `--record-empty-sessions`:
+
+   ```bash
+   pgwire-recorder record \
+     --listen 0.0.0.0:15432 \
+     --upstream postgres:5432 \
+     --output ./recordings/users.yaml \
+     --record-empty-sessions
+   ```
+
+   Statt der Option genügt die Umgebungsvariable
+   `PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS=true` oder der Schlüssel
+   `record_empty_sessions: true` im Abschnitt `record:` der Konfigurationsdatei:
+
+   ```yaml
+   record:
+     listen: 0.0.0.0:15432
+     upstream: postgres:5432
+     output: ./recordings/users.yaml
+     record_empty_sessions: true
+   ```
+2. Geben Sie die Aufzeichnung wieder. Soll die n-te Verbindung die Sitzung mit der
+   `id` n erhalten, wählen Sie `connection`:
+
+   ```bash
+   pgwire-recorder replay \
+     --listen 0.0.0.0:15432 \
+     --input ./recordings/users.yaml \
+     --session-assignment connection
+   ```
+
+   Statt der Option genügt die Umgebungsvariable
+   `PGWIRE_RECORDER_SESSION_ASSIGNMENT=connection` oder der Schlüssel
+   `session_assignment: connection` im Abschnitt `replay:`:
+
+   ```yaml
+   replay:
+     listen: 0.0.0.0:15432
+     input: ./recordings/users.yaml
+     session_assignment: connection
+   ```
+
+#### Ergebnis
+
+Mit `--record-empty-sessions` trägt die Aufzeichnung die Kennzeichnung
+`empty_sessions`. Die ersten Zeilen einer YAML-Datei:
+
+```yaml
+format: pgwire-recorder
+version: 1
+empty_sessions: true
+sessions:
+  - id: 1
+```
+
+Bei einer SQLite-Datei steht die Kennzeichnung als Zeile in `meta`; diese Abfrage liefert
+neben `format` und `version` auch `empty_sessions` mit dem Wert `true`:
+
+```bash
+sqlite3 ./recordings/users.sqlite "select key, value from meta"
+```
+
+Mit `--session-assignment connection` erhält die n-te Verbindung die Sitzung mit der `id` n,
+auch wenn sie keine Interaktionen hat.
+
+#### Hinweise zum Aufzeichnen
+
+* Die `id` der Sitzungen zählt ab 1 in der Reihenfolge, in der die Sitzungen enden, nicht in
+  der Reihenfolge, in der die Verbindungen begannen: Endet die später begonnene Verbindung
+  zuerst, hat ihre Sitzung die `id` 1.
+* Ohne `--record-empty-sessions` ist eine Verbindung ohne abgeschlossene Anfrage keine
+  Sitzung. Mit der Option wird sie eine Sitzung ohne Interaktionen: In YAML steht
+  `interactions: []`, in SQLite eine Zeile in `session` ohne Zeilen in `interaction`. Das
+  gilt auch für eine Verbindung, die beim zwangsweisen Beenden nach Ablauf von
+  `--shutdown-timeout` ihre erste Anfrage noch ausführte (`PGR-E4006`) oder keine gestellt
+  hatte.
+* Ohne die Option legt das Ende einer Verbindung ohne Anfrage die Zieldatei nicht an; mit der
+  Option legt es sie an.
+* Die Kennzeichnung steht mit der Option in der Aufzeichnung, auch wenn keine Sitzung
+  entstand, und fehlt ohne die Option.
+* Keine Sitzung ist, auch mit der Option, eine Verbindung, deren Aufbau zur Datenbank
+  scheitert (`PGR-E4002`, Exit-Code 4), eine, auf der Ihre Anwendung `COPY` nutzt
+  (`PGR-E6001`, Exit-Code 6), und eine, die das zwangsweise Beenden im Aufbau zur Datenbank
+  trifft (ohne Meldung, Exit-Code 0).
+* Eine Verbindung zählt erst mit ihrer Startnachricht. Eine Verbindung, die vorher endet, ist
+  keine Sitzung, auch mit der Option: eine ohne gesendete Daten, eine mit nur einer Anfrage
+  nach Verschlüsselung, die `record` ablehnt, und eine mit nur einem Abbruchwunsch
+  (`PGR-W3001`).
+* Bricht eine Verbindung mitten in der Startnachricht ab, nachdem sie mindestens 8 Bytes
+  gesendet hat, ist das `PGR-E6001` mit Exit-Code 6, und die Verbindung ist keine Sitzung.
+  Nach weniger als 8 Bytes endet sie ohne Meldung.
+* `--record-empty-sessions` nimmt keinen Wert oder `=true` beziehungsweise `=false`; jeder
+  andere Wert, auch `=1`, `=True` und `=` ohne Wert, ist ein ungültiger Aufruf
+  (`PGR-E2001`). Die Umgebungsvariable nimmt `true` oder `false`, leer gilt sie als nicht
+  gesetzt, jeder andere Wert ist `PGR-E2001`; im Schlüssel der Konfigurationsdatei ist ein
+  anderer Wert `PGR-E2004`. Die Option geht der Umgebungsvariablen vor, diese der Datei
+  (siehe [Einstellungen](#5-einstellungen)).
+* Mit `--format sqlite` gilt dasselbe; `replay` liest die SQLite-Datei wie dieselbe
+  Aufzeichnung als YAML, auch mit `--session-assignment connection`.
+
+#### Hinweise zum Wiedergeben
+
+* Mit `connection` erhält die n-te Verbindung die Sitzung mit der `id` n, auch wenn Ihre
+  Anwendung auf ihr nichts anfragt und die Sitzung keine Interaktionen hat. Der Standard
+  `first-request` ordnet nach den Anfragen zu (siehe
+  [Eine Aufzeichnung wiedergeben](#eine-aufzeichnung-wiedergeben)).
+* Stellt Ihre Anwendung auf einer Verbindung, deren Sitzung keine Interaktionen hat, eine
+  Anfrage, ist das eine Abweichung (`PGR-E5001`). Stellt sie eine Anfrage auf einer
+  Verbindung, zu der es keine Sitzung mit dieser `id` gibt, ist das `PGR-E5003`. Eine
+  Lebendprüfung (siehe
+  [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)) beantwortet
+  `replay` auch dann.
+* `connection` verlangt eine Aufzeichnung mit der Kennzeichnung `empty_sessions`, also mit
+  `--record-empty-sessions` aufgezeichnet. Fehlt sie, endet `replay` beim Start mit
+  `PGR-E2001` (Exit-Code 2); mit `first-request` startet `replay` mit derselben Aufzeichnung.
+* Eine Sitzung ohne Interaktionen ist mit und ohne `--fail-on-unconsumed` weder nicht
+  verbraucht noch nie zugeordnet, bei `first-request` wie bei `connection`. Eine Sitzung mit
+  Interaktionen, die nie eine Verbindung erhält, ist nie zugeordnet (`PGR-W2001`, mit
+  `--fail-on-unconsumed` `PGR-E5002`).
+* Eine Verbindung zählt ab ihrer Startnachricht. Eine Anfrage nach Verschlüsselung, die
+  `replay` ablehnt, ein Abbruchwunsch und eine Verbindung ohne gesendete Daten zählen bei
+  keiner der beiden Zuordnungen als Verbindung; eine Verbindung, die erst nach der Anfrage
+  nach Verschlüsselung ihre Startnachricht sendet, zählt einmal.
+* Enthält die Aufzeichnung nur Sitzungen ohne Interaktionen, endet `replay` beim Start mit
+  `PGR-E3004`, mit beiden Zuordnungen.
+* `--session-assignment` kennt die Werte `first-request` und `connection`, in
+  Kleinbuchstaben. Jeder andere Wert, auch `Connection`, `first_request` und ein leerer Wert,
+  ist ein ungültiger Aufruf (`PGR-E2001`), in der Konfigurationsdatei `PGR-E2004`. Die
+  Umgebungsvariable `PGWIRE_RECORDER_SESSION_ASSIGNMENT` gilt wie die Option; eine leere
+  gilt als nicht gesetzt, ein ungültiger Wert ist `PGR-E2001`, die Meldung nennt den Namen der
+  Variable. Die Option geht der Umgebungsvariablen vor, diese der Datei.
+
+#### Verbindungsfehler
+
+Ein Fehler, der nur eine Verbindung betrifft, beendet diese Verbindung; `record` und `replay`
+laufen weiter. Weicht beim Wiedergeben auf einer Verbindung die Anfrage ab (`PGR-E5001`),
+läuft eine andere, schon offene Verbindung vollständig durch. Nutzt beim Aufzeichnen eine
+Verbindung `COPY` (`PGR-E6001`), wird die andere aufgezeichnet. Der Exit-Code ist der des
+ersten gemerkten Fehlers, im ersten Fall 5, im zweiten 6; ein später folgender Fehler einer
+anderen Klasse ändert ihn nicht.
+
+#### Ungültige Aufrufe
+
+Jeder dieser Aufrufe endet mit `PGR-E2001` (Exit-Code 2):
+
+* `--session-assignment` bei `record` oder `play`, `--record-empty-sessions` bei `replay` oder
+  `play`.
+* Die Umgebungsvariable einer der beiden Optionen beim anderen Kommando:
+  `PGWIRE_RECORDER_SESSION_ASSIGNMENT` bei `record` oder `play`,
+  `PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS` bei `replay` oder `play`, auch mit dem Wert `false`.
+
+Der Schlüssel einer der beiden Optionen in einem anderen Abschnitt der Konfigurationsdatei ist
+`PGR-E2004`: `session_assignment` unter `record:` oder `play:`, `record_empty_sessions` unter
+`replay:` oder `play:`.
 
 ### Eine Aufzeichnung in eine Datenbank einspielen
 
@@ -477,8 +656,9 @@ pgwire-recorder play --config ./tls.yaml --upstream-ca ./ca.pem
 #### Ergebnis
 
 Die Anfragen der Aufzeichnung sind in der aufgezeichneten Reihenfolge gegen die
-Datenbank ausgeführt; sie enthält danach deren Wirkung. Jede Sitzung der
-Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
+Datenbank ausgeführt; sie enthält danach deren Wirkung. Jede Sitzung mit Interaktionen
+läuft über eine eigene Verbindung, die Sitzungen nacheinander; für eine Sitzung ohne
+Interaktionen öffnet `play` keine Verbindung.
 
 #### Hinweise
 
@@ -512,8 +692,8 @@ Aufzeichnung läuft über eine eigene Verbindung, die Sitzungen nacheinander.
   Verbindung (siehe [Konfigurationsdatei](#konfigurationsdatei)). Ein gesetztes
   `--upstream-tls` geht `sslmode` vor, auch `--upstream-tls=false`, gleich ob es als
   Option, als Umgebungsvariable oder als Schlüssel `upstream_tls` im Abschnitt `play:`
-  kommt. Ohne beides verbindet `play` ohne TLS. Mit TLS baut jede Sitzung der
-  Aufzeichnung ihre Verbindung mit TLS auf.
+  kommt. Ohne beides verbindet `play` ohne TLS. Mit TLS baut jede Verbindung, die `play`
+  zur Datenbank öffnet, TLS auf.
 * Mit TLS prüft `play` das Zertifikat des Servers; ein Überspringen der Prüfung gibt es
   nicht. Das Zertifikat gilt, wenn eine Zertifizierungsstelle aus seiner Kette im
   Zertifikatsspeicher des Systems oder in der Datei von `--upstream-ca` steht (die Kette
@@ -968,7 +1148,7 @@ Anfragen wartet; die Frist zählt ab dem ersten Signal.
 
 Mit `--fail-on-unconsumed` wertet das Werkzeug es als Fehler (`PGR-E5002`,
 Exit-Code 5), wenn ein Test nicht alle aufgezeichneten Anfragen ausführt oder
-eine aufgezeichnete Sitzung nie verwendet; ohne die Option ist es eine Warnung
+eine aufgezeichnete Sitzung mit Anfragen nie verwendet; ohne die Option ist es eine Warnung
 (`PGR-W2001`), und der Exit-Code bleibt 0. Die Option nimmt keinen Wert oder
 `=true` beziehungsweise `=false`; jeder andere Wert, auch `=` ohne Wert und
 `=1`, ist ein ungültiger Aufruf (`PGR-E2001`). Die Umgebungsvariable
@@ -991,8 +1171,9 @@ Die Umgebungsvariable einer Option, die die Betriebsart nicht kennt (Spalte
 gesetzt und nicht leer ist, gleich welchen Wert sie hat, ob `true`, `5s` oder ein Wert,
 den die Option nicht annimmt; die Meldung nennt den Namen der Variable, nie ihren
 Wert. So ist `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` bei `record` und `play` ein
-Fehler, `PGWIRE_RECORDER_LISTEN` bei `play` und `PGWIRE_RECORDER_COMPARE_RESPONSES` bei
-`record` und `replay`. Wer `record` und `play` in derselben
+Fehler, `PGWIRE_RECORDER_LISTEN` bei `play`, `PGWIRE_RECORDER_COMPARE_RESPONSES` bei
+`record` und `replay`, `PGWIRE_RECORDER_SESSION_ASSIGNMENT` bei `record` und `play` und
+`PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS` bei `replay` und `play`. Wer `record` und `play` in derselben
 Umgebung ausführt, setzt dort die Variablen der Optionen der jeweils anderen
 Betriebsart nicht. `config show` prüft von den Variablen nur
 `PGWIRE_RECORDER_CONFIG`. Unbeachtet bleiben: `PGWIRE_RECORDER_PASSWORD`, das keine Option
@@ -1009,8 +1190,10 @@ dem Präfix `PGWIRE_RECORDER_`, deren Name zu keiner Option gehört und die nich
 | `--force` | `record` | `PGWIRE_RECORDER_FORCE` | `false` |
 | `--format` | `record` | `PGWIRE_RECORDER_FORMAT` | `yaml` (Werte `yaml`, `sqlite`) |
 | `--record-timing` | `record` | `PGWIRE_RECORDER_RECORD_TIMING` | `false` |
+| `--record-empty-sessions` | `record` | `PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS` | `false` |
 | `--input` | `replay`, `play` | `PGWIRE_RECORDER_INPUT` | Pflicht |
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` |
+| `--session-assignment` | `replay` | `PGWIRE_RECORDER_SESSION_ASSIGNMENT` | `first-request` (Werte `first-request`, `connection`) |
 | `--shutdown-timeout` | `record`, `replay` | `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT` | `5s` (`0` ohne Frist; Einheit `ms`, `s` oder `m`) |
 | `--user` | `play` | `PGWIRE_RECORDER_USER` | Benutzer der benutzten Verbindung, ohne ihn der der Aufzeichnung |
 | `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Datenbank der benutzten Verbindung, ohne sie die der Aufzeichnung |
@@ -1198,7 +1381,7 @@ mit `--input=--` an. `record`, `replay` und `play` nehmen nach `--` kein Argumen
 | 2 | ungültiger Aufruf oder ungültige Konfiguration |
 | 3 | Aufzeichnung ungültig oder nicht zugreifbar |
 | 4 | Netzwerk- oder Datenbankfehler, auch eine Anfrage, die beim Beenden die Frist `--shutdown-timeout` unvollständig beendet hat (`PGR-E4006`) |
-| 5 | Abweichung bei der Wiedergabe, mit `--fail-on-unconsumed` auch nicht gestellte Anfragen oder nie verwendete Sitzungen, bei `play` mit `--compare-responses` eine Antwort der Datenbank, die von der Aufzeichnung abweicht |
+| 5 | Abweichung bei der Wiedergabe, mit `--fail-on-unconsumed` auch nicht gestellte Anfragen oder nie verwendete Sitzungen mit Anfragen, bei `play` mit `--compare-responses` eine Antwort der Datenbank, die von der Aufzeichnung abweicht |
 | 6 | nicht unterstützte Funktion des Protokolls |
 
 Ein Fehler, der nur eine Verbindung betrifft, beendet diese Verbindung. Das
@@ -1209,7 +1392,7 @@ Antwort abwich (`PGR-E5004`). Scheitert beim Beenden das Schreiben der
 Aufzeichnung, ist der Exit-Code 3, auch wenn vorher ein anderer Fehler auftrat.
 Endet eine Verbindung durch einen Fehler und bleiben
 dabei Anfragen ihrer Sitzung offen, zählt der Fehler, der sie beendet hat, vor
-`PGR-E5002`; beide stehen im Log. Nie verwendete Sitzungen zählen zuletzt und
+`PGR-E5002`; beide stehen im Log. Nie verwendete Sitzungen mit Anfragen zählen zuletzt und
 bestimmen den Exit-Code nur, wenn vorher kein Fehler auftrat. Scheitert schon
 der Start, prüft das Werkzeug keine Sitzungen.
 
@@ -1245,17 +1428,17 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | Code | Bedeutung | Ursache und Lösung |
 |---|---|---|
 | `PGR-E1000` | sonstiger Fehler | Ein Defekt des Werkzeugs; keine Eingabe löst ihn aus. Melden Sie das Problem mit der Ausgabe des Laufs. |
-| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder eine gesetzte, nicht leere Umgebungsvariable gehört zu einer Option, die die Betriebsart nicht kennt (die Meldung nennt den Namen der Variable, nicht den Wert; siehe [Einstellungen](#5-einstellungen)), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`), oder `--timing-mode` oder `--timing-reference` steht ohne `--keep-timing`, oder `--timing-reference` steht mit `relative` (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Prüfen Sie den Aufruf mit `--help`. |
+| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder eine gesetzte, nicht leere Umgebungsvariable gehört zu einer Option, die die Betriebsart nicht kennt (die Meldung nennt den Namen der Variable, nicht den Wert; siehe [Einstellungen](#5-einstellungen)), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`), oder `--timing-mode` oder `--timing-reference` steht ohne `--keep-timing`, oder `--timing-reference` steht mit `relative` (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)), oder `--session-assignment` hat einen anderen Wert als `first-request` und `connection`, oder `replay` soll mit `--session-assignment connection` eine Aufzeichnung wiedergeben, die nicht mit `--record-empty-sessions` entstand (siehe [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)). Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
 | `PGR-E2003` | Aufzeichnung ohne Zeitangabe bei `--keep-timing` | `play --keep-timing` hat eine Aufzeichnung, in der eine Anfrage kein `offset_ms` trägt. Die Meldung nennt die Sitzung und die Nummer der ersten Anfrage ohne Zeitangabe. Zeichnen Sie mit `--record-timing` erneut auf, oder spielen Sie ohne `--keep-timing` ein. |
-| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`), `format` (erlaubt sind `yaml` und `sqlite`), `record_timing`, `keep_timing` und `compare_responses` (erlaubt sind `true` und `false`), `timing_mode` (erlaubt sind `relative` und `absolute`) und `timing_reference` (erlaubt sind `connect` und `first-request`). |
+| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`), `format` (erlaubt sind `yaml` und `sqlite`), `record_timing`, `record_empty_sessions`, `keep_timing` und `compare_responses` (erlaubt sind `true` und `false`), `session_assignment` (erlaubt sind `first-request` und `connection`), `timing_mode` (erlaubt sind `relative` und `absolute`) und `timing_reference` (erlaubt sind `connect` und `first-request`). |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
 | `PGR-E2007` | Datei von `--upstream-ca` nicht verwendbar | Die Datei fehlt, ist nicht lesbar, ist keine reguläre Datei oder enthält keine Zertifikate im PEM-Format. Die Meldung nennt die Option und den Grund, nicht den Pfad; der Exit-Code ist 2. Prüfen Sie Pfad, Rechte und Inhalt der Datei. |
 | `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Bei `sqlite` außerdem: Neben dem Zielpfad liegt eine Datei `<Zielpfad>-journal`, oder eine SQLite-Datei ist länger als fünf Sekunden gesperrt. Prüfen Sie Pfad und Dateirechte, und siehe [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen). |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion; das gilt für beide Formate. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Bei einer SQLite-Datei auch: Sie ist keine SQLite-Datei oder eine fremde, eine Tabelle oder Spalte fehlt, sie ist abgeschnitten, oder ihr Inhalt ist ungültig (zum Beispiel falsche Formatkennung, keine lückenlose Nummerierung, ein Eintrag ohne zugehörige Sitzung). Auch: Ein `offset_ms` ist keine ganze Zahl ab 0, oder ein Wert ist kleiner als der vorige derselben Sitzung; die Meldung nennt die Sitzung und die Anfrage, nie den Wert (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Zeichnen Sie erneut auf. |
-| `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | `replay` meldet den Fehler beim Start. Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
+| `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | `replay` meldet den Fehler beim Start. Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, auch wenn `--record-empty-sessions` Sitzungen ohne Interaktionen aufgezeichnet hat, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
 | `PGR-E4000` | Verbindung nicht anzunehmen | Das Werkzeug konnte eine eingehende Verbindung nicht annehmen, zum Beispiel weil zu viele Dateien offen sind. Es nimmt danach weiter Verbindungen an. Prüfen Sie die Grenzen des Systems. |
 | `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
@@ -1263,9 +1446,9 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Sitzung und die Nummer der Anfrage in der Aufzeichnung, dazu SQLSTATE und Meldung der Datenbank, nicht den Text der Anfrage. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. Mit `--compare-responses` ist ein Fehler, den die Aufzeichnung an dieser Stelle nicht trägt, `PGR-E5004`. |
 | `PGR-E4005` | Anmeldung oder TLS zur Datenbank abgelehnt oder nicht unterstützt | Beim Einspielen hat die Datenbank die Anmeldung abgelehnt, etwa weil der Benutzer fehlt oder das Passwort falsch ist, oder sie verlangt ein Passwort, das `play` nicht hat, oder ein Anmeldeverfahren, das `play` nicht kann. Die Meldung nennt die Sitzung; bei einer Ablehnung außerdem SQLSTATE und Meldung der Datenbank, bei fehlendem Passwort, dass `play` keines hat. `play` meldet sich mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an; bietet die Datenbank nur `SCRAM-SHA-256-PLUS` an oder verlangt sie Kerberos, GSSAPI oder SSPI, endet `play` ebenfalls mit diesem Code. Dasselbe gilt für eine Datenbank, die Verbindungen ohne Verschlüsselung ablehnt, wenn `play` kein TLS wünscht. Mit TLS endet `play` mit diesem Code auch, wenn die Datenbank TLS ablehnt (Antwort `N`, ohne Rückfall auf eine Verbindung ohne TLS) oder ihr Zertifikat nicht angenommen wird: Das Zertifikat lässt sich weder mit dem Speicher des Systems noch mit `--upstream-ca` überprüfen, der Host steht nicht im Zertifikat, oder das Zertifikat ist abgelaufen. Die Meldung nennt die Sitzung und den Grund, nie Pfad oder Inhalt der Datei aus `--upstream-ca`. Prüfen Sie Benutzer und Datenbank (`--user`, `--database`), das Passwort (siehe [Einstellungen](#5-einstellungen)), den Host der Verbindung und `--upstream-ca`. |
 | `PGR-E4006` | Anfrage beim Beenden unvollständig | Die Frist `--shutdown-timeout` ist abgelaufen, oder ein zweites Signal hat sie ablaufen lassen, während eine Anfrage lief. Die Meldung nennt die Sitzung und die Anfrage; beim Aufzeichnen fehlt diese Anfrage in der Aufzeichnung. Lassen Sie die Anwendung vor dem Beenden zur Ruhe kommen, oder wählen Sie eine längere Frist (siehe [Herunterfahren mit Frist](#herunterfahren-mit-frist)). |
-| `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet. Die Meldung nennt die erwartete und die empfangene Anfrage. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
-| `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. |
-| `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen aufgezeichnet sind. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
+| `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet, oder mit `--session-assignment connection` eine Anfrage auf einer Verbindung, deren Sitzung keine Interaktionen hat. Die Meldung nennt die erwartete und die empfangene Anfrage; erwartet die Aufzeichnung keine, nennt sie das und die empfangene. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
+| `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. Eine Sitzung ohne Interaktionen zählt nicht dazu. |
+| `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen mit Interaktionen aufgezeichnet sind; mit `--session-assignment connection` hat sie auf einer Verbindung eine Anfrage gestellt, zu der es keine Sitzung mit der Nummer der Verbindung gibt. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
 | `PGR-E5004` | Antwort der Datenbank weicht von der Aufzeichnung ab | `play` mit `--compare-responses` hat bei einer Interaktion eine andere Antwort erhalten als aufgezeichnet. Die Meldung nennt Sitzung, Nummer der Interaktion, Position und Art der ersten Abweichung, bei der Art `Fehler` die SQLSTATE beider Seiten. Prüfen Sie, ob die Datenbank dieselbe Struktur hat wie die, gegen die Sie aufgezeichnet haben, oder zeichnen Sie erneut auf; siehe [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen). Der Exit-Code ist 5. |
 | `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen verlangt die Datenbank ein Passwort; oder die Datenbank antwortet bei `play` mit einem COPY-Datenstrom. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht; verlangt die Datenbank beim Aufzeichnen ein Passwort, lassen Sie die Anmeldung dort ohne Passwort zu. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls. Verwenden Sie einen Treiber, der sie nutzt. |
@@ -1274,7 +1457,7 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 
 | Code | Bedeutung | Hinweis |
 |---|---|---|
-| `PGR-W2001` | Wiedergabe endete vor der letzten aufgezeichneten Anfrage, oder aufgezeichnete Sitzungen wurden nie verwendet | Ihr Test hat nicht alle aufgezeichneten Anfragen ausgeführt oder weniger Verbindungen mit Anfragen geöffnet als aufgezeichnet. Mit `--fail-on-unconsumed` wird das zum Fehler (`PGR-E5002`). |
+| `PGR-W2001` | Wiedergabe endete vor der letzten aufgezeichneten Anfrage, oder aufgezeichnete Sitzungen mit Interaktionen wurden nie verwendet | Ihr Test hat nicht alle aufgezeichneten Anfragen ausgeführt oder weniger Verbindungen mit Anfragen geöffnet als Sitzungen mit Interaktionen aufgezeichnet sind. Mit `--fail-on-unconsumed` wird das zum Fehler (`PGR-E5002`). |
 | `PGR-W3001` | Abbruchwunsch nicht weitergeleitet | Die Anwendung hat versucht, eine laufende Anfrage abzubrechen. Das Werkzeug leitet diesen Wunsch nicht weiter und schließt die Verbindung. |
 | `PGR-W3003` | Verbindung ohne PostgreSQL-Protokoll | Etwas anderes als ein PostgreSQL-Client hat den Port angesprochen, zum Beispiel ein HTTP-Gesundheitscheck. Das Werkzeug schließt die Verbindung; der Exit-Code ändert sich nicht. Ein reiner TCP-Check ohne Daten erzeugt keine Warnung. |
 
@@ -1322,6 +1505,7 @@ Werkzeugs.
 | Aufzeichnung | Datei mit der aufgezeichneten Kommunikation zwischen Anwendung und Datenbank, im Format `yaml` oder `sqlite` |
 | Format | Art, wie die Datei die Aufzeichnung speichert: `yaml` (Text) oder `sqlite` (SQLite-Datei) |
 | Verbindung | eine Datenbankverbindung Ihrer Anwendung; in der Aufzeichnung heißt sie Sitzung |
+| Sitzung ohne Interaktionen | die Sitzung einer Verbindung ohne abgeschlossene Anfrage; sie entsteht nur mit `--record-empty-sessions` |
 | Einfaches Anfrageprotokoll | PostgreSQL-Protokollvariante, in der jede Anfrage als einzelner Text gesendet wird |
 | Erweitertes Anfrageprotokoll | Protokollvariante mit vorbereiteten Anweisungen und Parametern |
 | Upstream | die echte Datenbank, an die `record` weiterleitet |
