@@ -2130,7 +2130,9 @@ Spezifikation nicht zu. Die Warnung trägt `code` und `remote` und als Fehlertex
 des Handshakes, nie Zertifikat oder Schlüssel. Der Handshake hat kein eigenes Zeitlimit,
 wie der Verbindungsaufbau sonst; Herunterfahren und Zwangsende beenden ihn ohne Meldung
 (`LH-FA-13.a`), auch ohne `PGR-W3002`. Ein `GSSENCRequest` wird wie bisher mit `N`
-abgelehnt. Auf der verschlüsselten Verbindung sind ein weiterer `SSLRequest` und ein
+abgelehnt. Ein `SSLRequest` oder `GSSENCRequest`, dessen Längenfeld nicht 8 ist (bei Länge
+unter 8 oder über dem Höchstmaß gilt `PGR-W3003`, `LH-FA-05.e`), erhält keine Antwort und ist
+`PGR-E6001`; auch mit TLS beginnt kein Handshake. Auf der verschlüsselten Verbindung sind ein weiterer `SSLRequest` und ein
 `GSSENCRequest` nicht unterstützt (`PGR-E6001`, `LH-FA-05.e`). Ein TLS-Handshake als
 erste Nachricht ohne `SSLRequest` (direktes TLS) ist keine PGWire-Startnachricht
 (`PGR-W3003`, `LH-FA-05.e`), auch mit `--allow-plaintext`; ein Client mit direktem TLS
