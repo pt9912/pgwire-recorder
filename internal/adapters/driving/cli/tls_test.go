@@ -268,8 +268,9 @@ func x25519(t *testing.T) []byte {
 // 4,ENCRYPTED), mit einem anderen Blocktyp (CERTIFICATE, PUBLIC KEY), mit zwei
 // Blöcken (auch Schlüssel und Zertifikat, Zertifikat und Schlüssel), mit
 // unlesbarem Inhalt und mit einem Schlüssel, der nicht zum Zertifikat passt
-// (gleiche und andere Art), ist PGR-E2007 mit --tls-key und der Ursache; die
-// Meldung nennt weder Pfad noch Inhalt (LH-FA-23.a *Dateien*).
+// (gleiche und andere Art), ist PGR-E2007 mit der Option; die Ursache prüft der
+// Test nur bei Dateien mit einem einzigen Mangel, bei mehreren ist der Text nicht
+// zugesagt; die Meldung nennt weder Pfad noch Inhalt (LH-FA-23.a *Dateien*).
 func TestTLSDateienFehler(t *testing.T) {
 	ca := testpki.NeueCA(t, "CA")
 	b := ca.Server(t, testpki.Blatt{})
@@ -281,10 +282,10 @@ func TestTLSDateienFehler(t *testing.T) {
 	}{
 		{"--tls-cert", "leer", "", "kein PEM-Block"},
 		{"--tls-cert", "Schlüsselblock", key, "nicht den Typ CERTIFICATE"},
-		{"--tls-cert", "Zertifikat, dann Schlüssel", cert + key, "nicht den Typ CERTIFICATE"},
-		{"--tls-cert", "Schlüssel, dann Zertifikat", key + cert, "nicht den Typ CERTIFICATE"},
+		{"--tls-cert", "Zertifikat, dann Schlüssel", cert + key, ""},
+		{"--tls-cert", "Schlüssel, dann Zertifikat", key + cert, ""},
 		{"--tls-cert", "Block ohne Zertifikat", pemBlock("CERTIFICATE", nil, rumpf), "kein lesbares X.509-Zertifikat"},
-		{"--tls-cert", "Zertifikat, dann Block ohne Zertifikat", cert + pemBlock("CERTIFICATE", nil, rumpf), "kein lesbares X.509-Zertifikat"},
+		{"--tls-cert", "Zertifikat, dann Block ohne Zertifikat", cert + pemBlock("CERTIFICATE", nil, rumpf), ""},
 		{"--tls-key", "leer", "", "kein PEM-Block"},
 		{"--tls-key", "ENCRYPTED PRIVATE KEY", pemBlock("ENCRYPTED PRIVATE KEY", nil, rumpf), "verschlüsselt"},
 		{"--tls-key", "Proc-Type 4,ENCRYPTED", pemBlock("RSA PRIVATE KEY", map[string]string{"Proc-Type": "4,ENCRYPTED", "DEK-Info": "AES-128-CBC,00"}, rumpf), "verschlüsselt"},
@@ -292,7 +293,7 @@ func TestTLSDateienFehler(t *testing.T) {
 		{"--tls-key", "PUBLIC KEY", pemBlock("PUBLIC KEY", nil, rumpf), "keinen der Typen"},
 		{"--tls-key", "zwei Schlüssel", key + key, "mehr als ein PEM-Block"},
 		{"--tls-key", "Schlüssel, dann Zertifikat", key + cert, "mehr als ein PEM-Block"},
-		{"--tls-key", "Zertifikat, dann Schlüssel", cert + key, "keinen der Typen"},
+		{"--tls-key", "Zertifikat, dann Schlüssel", cert + key, ""},
 		{"--tls-key", "X25519-Schlüssel", pemBlock("PRIVATE KEY", nil, x25519(t)), "weder RSA noch ECDSA noch Ed25519"},
 		{"--tls-key", "unlesbarer Schlüssel", pemBlock("PRIVATE KEY", nil, rumpf), "keinen lesbaren Schlüssel"},
 		{"--tls-key", "unlesbarer RSA-Schlüssel", pemBlock("RSA PRIVATE KEY", nil, rumpf), "keinen lesbaren Schlüssel"},
@@ -310,7 +311,7 @@ func TestTLSDateienFehler(t *testing.T) {
 				}
 				cp, kp := schreibe(t, certInhalt), schreibe(t, keyInhalt)
 				_, err := tlsLese(t, kommando, "--tls-cert="+cp, "--tls-key="+kp)
-				if !hatCode(err, model.CodeConfigCA) || !strings.HasPrefix(err.Error(), "Konfiguration [PGR-E2007]: "+f.option+": ") || !strings.Contains(err.Error(), f.ursache) {
+				if !hatCode(err, model.CodeConfigCA) || !strings.HasPrefix(err.Error(), "Konfiguration [PGR-E2007]: "+f.option+": ") || (f.ursache != "" && !strings.Contains(err.Error(), f.ursache)) {
 					t.Fatalf("Fehler %v, erwartet %s mit %s und %q", err, model.CodeConfigCA, f.option, f.ursache)
 				}
 				for _, geheim := range []string{cp, kp, "GEHEIM", "BEGIN"} {
@@ -453,6 +454,29 @@ func TestTLSHilfe(t *testing.T) {
 			if !strings.Contains(text, teil) {
 				t.Errorf("Hilfe von %s ohne %q:\n%s", kommando, teil, text)
 			}
+		}
+	}
+}
+
+// Abdeckung: LH-FA-23/Boundary — Text außerhalb der PEM-Blöcke bleibt in beiden
+// Dateien unbeachtet: vor dem ersten, zwischen zwei Blöcken und nach dem letzten,
+// bei der Schlüsseldatei auch nach dem Schlüsselblock (LH-FA-23.a *Dateien*).
+func TestTLSTextAusserhalbDerBloecke(t *testing.T) {
+	ca := testpki.NeueCA(t, "CA")
+	b := ca.Server(t, testpki.Blatt{})
+	cert, key := string(b.PEM()), string(b.SchluesselPEM(t, "PRIVATE KEY"))
+	for _, f := range []struct{ name, cert, key string }{
+		{"vor", "Kommentar\n" + cert, "Kommentar\n" + key},
+		{"zwischen", cert + "dazwischen\n" + string(ca.PEM()), key},
+		{"nach", cert + "Ende\n", key + "Ende\n"},
+	} {
+		for _, kommando := range tlsKommandos() {
+			t.Run(kommando+"/"+f.name, func(t *testing.T) {
+				cmd, err := tlsLese(t, kommando, "--tls-cert="+schreibe(t, f.cert), "--tls-key="+schreibe(t, f.key))
+				if z := zugangVon(cmd); err != nil || z.Zertifikat != f.cert || z.Schluessel != cli.Schluessel(f.key) {
+					t.Fatalf("Fehler %v", err)
+				}
+			})
 		}
 	}
 }

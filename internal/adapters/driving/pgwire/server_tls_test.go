@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -263,12 +264,13 @@ func TestTLSHandshakeScheitert(t *testing.T) {
 		}},
 	} {
 		t.Run(f.name, func(t *testing.T) {
-			l := tlsRecord(context.Background(), t, &fakeRecorder{}, z, false)
+			rec := &fakeRecorder{}
+			l := tlsRecord(context.Background(), t, rec, z, false)
 			f.tue(t, l)
 			l.endet(t)
 			l.warnung(t, model.CodeHandshake, cert)
-			if l.s.FirstErrorCode() != "" {
-				t.Fatalf("Fehler gemerkt: %q", l.s.FirstErrorCode())
+			if l.s.FirstErrorCode() != "" || rec.opened != 0 {
+				t.Fatalf("Fehler gemerkt: %q, Sessions %d (Klartext in der Verbindung)", l.s.FirstErrorCode(), rec.opened)
 			}
 		})
 	}
@@ -587,5 +589,69 @@ func TestTLSEndeOhneCloseNotify(t *testing.T) {
 		if end := rec.lastEnd(t); end != model.EndClosed || l.s.FirstErrorCode() != "" {
 			t.Fatalf("%s: Session-Ende %v, erster Fehler %q", name, end, l.s.FirstErrorCode())
 		}
+	}
+}
+
+// mitschnitt hält die Bytes fest, die der Client von der Verbindung liest.
+type mitschnitt struct {
+	net.Conn
+	mu  sync.Mutex
+	roh []byte
+}
+
+func (m *mitschnitt) Read(p []byte) (int, error) {
+	n, err := m.Conn.Read(p)
+	m.mu.Lock()
+	m.roh = append(m.roh, p[:n]...)
+	m.mu.Unlock()
+	return n, err
+}
+
+func (m *mitschnitt) laenge() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.roh)
+}
+
+// alerts zählt die Records des Typs Alert (21) ab dem Byte ab; sie sind in TLS 1.2
+// unverschlüsselt als Typ erkennbar.
+func (m *mitschnitt) alerts(ab int) int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	n := 0
+	r := m.roh[ab:]
+	for len(r) >= 5 {
+		if r[0] == 21 {
+			n++
+		}
+		laenge := 5 + int(binary.BigEndian.Uint16(r[3:5]))
+		if len(r) < laenge {
+			break
+		}
+		r = r[laenge:]
+	}
+	return n
+}
+
+// Abdeckung: LH-FA-23/Boundary — der Recorder sendet beim Schließen einer
+// verschlüsselten Verbindung kein close_notify, auch nicht beim Herunterfahren:
+// Der Client liest das Ende, aber keinen Alert (LH-FA-23.a *Aushandlung*). Das
+// Zwangsende mit einem Client, der nicht liest, prüft TestTLSZwangsende.
+func TestTLSEndeOhneAlert(t *testing.T) {
+	z, _ := tlsEin(t, false, testpki.Blatt{})
+	ctx, cancel := context.WithCancel(context.Background())
+	l := tlsRecord(ctx, t, &fakeRecorder{shutdownEndet: true}, z, false)
+	tap := &mitschnitt{Conn: l.client}
+	l.client = tap
+	tc := l.aushandeln(t, &tls.Config{InsecureSkipVerify: true, MaxVersion: tls.VersionTLS12})
+	startup(t, pgproto3.NewFrontend(tc, tc))
+	ab := tap.laenge()
+	cancel()
+	if _, err := tc.Read(make([]byte, 1)); err == nil {
+		t.Fatal("Verbindung nicht beendet")
+	}
+	l.endet(t)
+	if n := tap.alerts(ab); n != 0 {
+		t.Fatalf("%d Alerts nach dem Verbindungsaufbau, erwartet keiner", n)
 	}
 }
