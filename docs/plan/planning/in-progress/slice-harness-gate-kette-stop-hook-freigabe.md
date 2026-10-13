@@ -386,6 +386,82 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Code-Commits:** `6c6182b` (Hook und Gegenprobe), `a1fca6c` (Gate-Zeile, Träger-Tabelle, Fragment-Kopf, drei Commands),
+`34a268f` und `b512b23` (Gegenprobe: zwei Rotfärbungen nachgezogen). Der Hook ist in einer Kopie im Scratchpad entwickelt und erst nach grüner
+Gegenprobe eingespielt worden; der alte Stand: `git show 5822f9f:.claude/hooks/stop-require-gates.sh` und `git show 5822f9f:tools/harness/stop-hook-gegenprobe.sh`
+(zurück: `git checkout 5822f9f -- .claude/hooks/stop-require-gates.sh tools/harness/`).
+
+**Aufbau des Hooks:** Die Positivliste steht einmal, in `inert()`; `zulaessig()` lehnt absolute Pfade und Segmente `.`, `..`, leer ab; `ziel_lage()` löst das Ziel eines
+Links lexikalisch auf; `spiegel()` ist die Spiegelregel; `schnell_gruen()` ruft `bash tools/harness/working-tree-hash.sh` (kein Nachbau) und vergleicht den Hash mit dem Inhalt
+von `.harness/state/gates-schnell-passed.diffsha`; `freigabe()` fährt Pfadregel, dann Stand der schnellen Kette und endet in `frei` oder `voll`. Der Hook ruft kein `make`. Die Gegenprobe
+setzt `export LC_ALL=C` im Hook voraus (bytegenaue Muster, auch für Nicht-UTF-8-Pfade); das ist Implementierung, keine Randform.
+
+**Größe** (Metrik aus §4, `git diff --numstat 8349a65..b512b23 -- tools harness .claude`): 610 Einfügungen, 29 Löschungen, Summe **639** (Schätzung 550 bis 750, Marke 900).
+Hook 200/8 (Schätzung 130 bis 170: die Zulässigkeit, die Auflösung des Ziels und die Spiegelregel brauchen je eine Funktion), Gegenprobe 392/9 (Schätzung 400 bis 570),
+`harness/README.md`, `harness/conventions.md`, Fragment-Kopf je 1/1, drei Commands je 5/3. 70 neue Fälle (Schätzung: gut fünfzig), 136 insgesamt.
+
+**Befund der Gegenprobe (vorher/nachher):** Der erste Lauf der neuen Mutanten meldete fünf Rotfärbungen, die nicht stimmten: (1) `m-pfad-vor-konflikt` färbte auch `p9-stand-beschaedigt`
+(die Freigabe stand dort vor beiden späteren Prüfungen: Erwartung berichtigt); (2) derselbe Fall unter `m-pfad-vor-stand-fehlt`, dessen Mutant sich nicht auf das Vorhandensein beschränkte
+(jetzt `[ -f "$stand" ] || freigabe`); (3) `m-absolut-relativ` färbte `p12-unzulaessig-absolut` nicht, weil der Pfad `/abs/docs/user/x.md` auch ohne `/` nicht mit `docs/user/` beginnt
+(Pfad im Fall jetzt `/docs/user/x.md`); (4) `m-nur-arbeitsbaum` färbte `p14-geloescht-nicht-inert` nicht, weil eine im Arbeitsbaum gelöschte, im Index gebliebene Datei als `G`-Eintrag
+in der Liste des Arbeitsbaums steht (neuer Fall `p14-geloescht-index-nicht-inert` mit `git rm`); (5) `m-spiegel-ohne-verzeichnis` färbte auch `p15-spiegel-absolut`, dessen Ziel ein Verzeichnis der Liste ist
+(Erwartung berichtigt). Danach grün.
+
+**Läufe:** Wird nach dem letzten Lauf von `make gates` ergänzt (unten).
+
+**Mutationen** (`bash tools/harness/stop-hook-gegenprobe.sh`; Mutant = `sed`/`awk` auf der Kopie von Hook oder Skript im Temp-Repo, vom Skript selbst gefahren, frische Kopie je Mutant: kein
+Docker-Build-Kontext. „rot“: der Fall meldet sich, „grün bleibt“: der Fall bleibt mit dem Mutanten grün. Die Mutanten in Klammern stehen mit ihrem Namen in der Gegenprobe):
+
+| Zusage | Mutation | roter Fall (grün bleibt) |
+|---|---|---|
+| Der Konflikt steht vor der Pfadregel (Punkt 9) | `m-pfad-vor-konflikt`: Freigabe vor `git ls-files -u` | `p9-konflikt` (grün: `p9-stand-fehlt`) |
+| Der fehlende Stand steht vor der Pfadregel | `m-stand-fehlt-als-unveraendert`: `[ -f "$stand" ] \|\| frei`; `m-pfad-vor-stand-fehlt`: `\|\| freigabe` | `p9-stand-fehlt` (nur unter dem ersten); der zweite bleibt grün, äquivalent: ohne Datei bricht das Lesen in der Freigabe ab, Antwort `block` |
+| Der beschädigte Stand steht vor der Pfadregel | `m-pfad-vor-pruefung`: Freigabe vor `dateiliste_pruefen` | `p9-stand-beschaedigt` (grün: `p9-konflikt`, `p9-stand-fehlt`) |
+| Jeder Pfad der Positivliste gibt frei, in jeder Tiefe | `m-ohne-planning`, `m-ohne-reviews`, `m-ohne-user`, `m-ohne-readme` (je ein Eintrag entfernt) | `p12-planning-tief`; `p12-reviews-tief`; `p12-user-tief`, `p13-docs-user`, `p9-freigabe`; `p12-readme` |
+| … nicht nur die erste Ebene | `m-planning-erste-ebene`, `m-reviews-erste-ebene`, `m-user-erste-ebene` | `p12-planning-tief`; `p12-reviews-tief`; `p12-user-tief` (grün: `p9-freigabe`) |
+| `docs/user/` ist inert, auch die Abdeckungstabellen | `m-ohne-user` | `p13-docs-user` (Handbuch und `abdeckung-e2e.md`) |
+| Nur die Wurzel-`README.md` | `m-readme-jede-tiefe`: `README.md \| */README.md` | `p12-harness-readme` (grün: `p12-readme`) |
+| Case-sensitiv | `m-case-egal`: `shopt -s nocasematch` | `p12-case-planning`, `p12-case-readme` (grün: `p9-freigabe`) |
+| Die Grenze gilt je Eintrag | sechs Mutanten `m-aufnahme-14` bis `-19`: `docs/plan/planning-*`, `docs/reviews-*`, `docs/users/*`, `docs/reviews`, `docs/user`, `README.md.bak` je als zusätzlicher Eintrag | `p12-grenze-planning-x`; `-reviews-alt`; `-users`; `-datei-reviews`; `-datei-user`; `-readme-bak`, je der Fall allein |
+| `harness/README.md` ist nicht inert | `m-aufnahme-20`: `harness/README.md` aufgenommen | `p12-harness-readme` |
+| Die Positivliste kennt nur diese Pfade; nicht inert sind Hook, `dateiliste.sh`, `working-tree-hash.sh`, Spezifikation und die Aufzählung in Punkt 9 | dreizehn Mutanten `m-aufnahme-1` bis `-13` (`-5` ist `tools/*`, mit drei Fällen): `spec/*`, Hook, `dateiliste.sh`, `working-tree-hash.sh`, `internal/*`, `Makefile`, `harness/mk/*`, `.golangci.yml`, `Dockerfile`, `go.mod`, `.dockerignore`, `.d-check.yml` je aufgenommen | `p12-selbst-spec`; `p12-selbst-hook`; `p12-selbst-dateiliste`; `p12-selbst-hash`; `p9-nicht-inert-internal`, `-makefile`, `-harness-mk`, `-golangci`, `-dockerfile`, `-go-mod`, `-dockerignore`, `-d-check`; `tools/*`: `p9-nicht-inert-tools`, `p12-selbst-dateiliste`, `p12-selbst-hash` |
+| Pfad mit `..` im Unterschied ist nie inert | `m-ohne-punktpunkt` | `p12-unzulaessig-punktpunkt` (grün: `-punkt`, `-leer`, `-absolut`) |
+| … mit `.` | `m-ohne-punkt` | `p12-unzulaessig-punkt` (grün: die übrigen) |
+| … mit leerem Segment | `m-ohne-leeres-segment` | `p12-unzulaessig-leer` (grün: die übrigen) |
+| … absolut | `m-absolut-relativ`: Prüfung auf `/` entfernt **und** `inert` liest ohne führenden `/` (zwei Änderungen); die Prüfung allein zu entfernen (`m-ohne-absolut`) bleibt grün | `p12-unzulaessig-absolut` (grün unter `m-ohne-absolut`: äquivalent, die Positivliste lehnt `/docs/user/x.md` am Pfadanfang ab) |
+| Untracked zählt nach seinem Pfad | `m-untracked-inert`: ein nicht getrackter Pfad ist inert | `p18-untracked-nicht-inert` (grün: `p14-neu-nicht-inert`) |
+| Gelöschte und umbenannte Dateien zählen mit beiden Pfaden | `m-nur-arbeitsbaum`: Pfade nur aus der Liste des Arbeitsbaums | `p14-geloescht-index-nicht-inert`, `p14-umbenennung-nach-inert` (grün: `p14-geloescht-nicht-inert`, `p14-umbenennung-von-inert`, `p14-neu-nicht-inert`) |
+| … der neue Pfad zählt | `m-nur-stand`: Pfade nur aus der Liste des Stands | `p14-umbenennung-von-inert`, `p14-neu-nicht-inert`, `p18-untracked-nicht-inert` (grün: `p14-geloescht-nicht-inert`, `p14-geloescht-index-nicht-inert`, `p14-umbenennung-nach-inert`) |
+| Eine Datei auf der Grenze zählt nicht (Datei `docs/reviews`, `docs/user`) | siehe die Grenze oben | `p12-grenze-datei-reviews`, `p12-grenze-datei-user` |
+| Ein geänderter Eintrag der Art `X` ist nie inert | `m-art-x-wie-datei`: die Zeile entfernt | `p12-art-x` |
+| Ein Symlink zählt mit seinem Ziel | `m-link-ohne-ziel`: nur der Link-Pfad | alle Ziel- und Art-Fälle von Punkt 15 (acht); grün: `p15-link-inert` |
+| Ein Ziel, das ein Verzeichnis der Liste benennt, ist nicht inert | `m-verzeichnis-inert` | `p15-ziel-verzeichnis` (grün: `p15-ziel-ausserhalb-liste`, `p15-link-inert`) |
+| Ein Ziel über die Wurzel hinaus ist nicht inert | `m-ueber-wurzel-bleibt-innen`: `..` an der Wurzel bleibt an der Wurzel | `p15-ziel-aussen`, `p15-ziel-ueber-wurzel` |
+| Ein absolutes Ziel ist nicht inert | `m-absolut-wie-relativ`: `ABS=1` entfernt | `p15-ziel-absolut` (grün: `p15-ziel-absolut-aussen`) |
+| … außerhalb des Repos | `m-absolut-ohne-zweig`: der absolute Zweig entfällt | `p15-ziel-absolut`, `p15-ziel-absolut-aussen` |
+| Art-Wechsel in beide Richtungen | `m-art-nur-stand`; `m-art-nur-arbeitsbaum`: nur eine Seite geprüft | `p15-art-datei-zu-link`; `p15-art-link-zu-datei` (je der andere grün) |
+| Die Spiegelregel | `m-ohne-spiegel` | `p15-spiegel-liste`, `-verzeichnis`, `-vorfahr`, `-wurzel`, `-absolut` |
+| … je Zieltyp | `m-spiegel-ohne-liste`; `-ohne-verzeichnis`; `-ohne-vorfahr`; `-ohne-wurzel`; `-ohne-absolut` | `p15-spiegel-liste`; `-verzeichnis` (und `-absolut`, dessen Ziel ein Verzeichnis ist); `-vorfahr`; `-wurzel`; `-absolut` |
+| Ohne grünen Stand der schnellen Kette keine Freigabe | `m-schnell-nicht-geprueft` | `p10-fehlt`, `p10-fremd`, `p10-leer`, `p10-unlesbar` |
+| Der Stand gehört zum aktuellen Arbeitsbaum | `m-schnell-nur-vorhanden`: `[ -n "$gespeichert" ]` | `p10-fremd` (grün: `p10-fehlt`, `p10-leer`) |
+| Eine leere Stand-Datei ist kein Stand | `m-schnell-leer-gilt` | `p10-leer` (grün: `p10-fehlt`, `p10-fremd`) |
+| Eine nicht lesbare Stand-Datei ist kein Stand | `m-schnell-unlesbar-gilt`: `cat … \|\| printf "$hash"` | `p10-unlesbar` (als Nutzer 1000 gelaufen), `p10-fehlt` (grün: `p10-leer`, `p10-fremd`) |
+| Ein scheiterndes Hash-Skript sperrt | `m-skript-ueberlesen`: `\|\| true` | `p10-skript-scheitert` (grün: `p10-skript-fehlt`, `p10-skript-leer`) |
+| Ein fehlendes Hash-Skript sperrt | `m-skript-fehlt-ersatz`: bei Fehlen den gespeicherten Stand nehmen; `m-skript-ueberlesen` bleibt hier grün, äquivalent: die leere Ausgabe wird abgelehnt | `p10-skript-fehlt` (grün: `p10-skript-leer`, `p10-skript-scheitert`) |
+| Eine leere Ausgabe des Hash-Skripts sperrt | `m-hash-leer-gilt`: die Prüfung entfernt | `p10-skript-leer` (grün: `p10-skript-fehlt`, `p10-skript-scheitert`) |
+| Der Schleifenschutz steht vor dem Aufruf des Skripts | `m-schutz-nach-hash` | `p10-skript-fehlt-schleifenschutz` |
+| Ein leerer Diff gibt ohne passenden Stand der schnellen Kette frei | `m-schnell-bei-identitaet`: auch dort den Stand verlangen | `p16-identisch` (fehlend), `p16-schnell-leer`, `p16-schnell-fremd` |
+| Der Hash kommt aus dem Skript, auch im Unterverzeichnis und in leerer Umgebung | `m-22-hash-relativ`: Aufruf über `$OLDPWD`; `m-22-hash-home`: `${HOME:?}` vor dem Aufruf | `p22-freigabe-unterverzeichnis` (grün: `p22-freigabe-leere-umgebung`, `p9-freigabe`); `p22-freigabe-leere-umgebung` (grün: `p22-freigabe-unterverzeichnis`, `p9-freigabe`) |
+| Der Konflikt steht vor der Identität (Fall von (a); die Zeile `L_SCHLUSS` der Gegenprobe ist auf den Aufruf `freigabe` nachgezogen) | `m-identitaet-zuerst` | `p17-konflikt-identisch` |
+
+**Grüne Mutanten, eingeordnet:** (1) `m-pfad-vor-stand-fehlt`: äquivalent, ohne Stand bricht die Freigabe beim Lesen ab; die Zusage trägt `m-stand-fehlt-als-unveraendert` mit
+`p9-stand-fehlt`. (2) `m-ohne-absolut`: äquivalent, die Positivliste hält jeden absoluten Pfad am Anfang draußen; die Prüfung auf `/` ist zweite Verteidigung, rot erst mit `m-absolut-relativ`. (3) `m-skript-ueberlesen`
+bei fehlendem Skript: äquivalent, die Prüfung auf leere Ausgabe fängt es; rot mit `m-skript-fehlt-ersatz` und `m-hash-leer-gilt` je an ihrem Fall. Die Seite des Arbeitsbaums hat für
+unzulässige Pfade keinen herstellbaren Fall (`SPEC-052` Punkt 12, akzeptiertes Negativ). Die Tabelle des Plans (§6) nennt für „leere Datei“, „`|| true`“ und „absolut“ Mutationen, die in dieser Fassung
+des Hooks äquivalent wären; sie sind durch die oben genannten ersetzt, die nur ihre Zusage brechen.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
