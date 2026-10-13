@@ -3227,7 +3227,8 @@ eine Bindung der Zusagen und hat keinen Fall.
 1. **Volle Kette.** Die volle Kette ist `GATE_CHECKS` selbst, ohne zweite Liste: Jedes Gate,
    das ein Fragment unter `harness/mk/` an `GATE_CHECKS` hängt, fährt `make gates`. Ein Gate
    kann aus ihr nicht still fallen, weil kein Fragment sie aufzählt. `make gates` schreibt
-   den Nachweis des vollen Laufs `.harness/state/gates-passed.diffsha`.
+   den Nachweis des vollen Laufs `.harness/state/gates-passed.diffsha`, dazu die Dateiliste
+   (Punkt 11); bei den Make-Flags `-i`, `-n`, `-q`, `-t` gilt Punkt 21.
 2. **Schnelle Kette.** Die schnelle Kette ist `GATE_CHECKS` ohne die Ausnahmeliste. Die
    Ausnahmeliste steht im Fragment der Kette, `harness/mk/gates-schnell.mk`, und nennt jedes
    Gate, dessen Name auf `-gegenprobe` endet, dazu `a-check-negativ` und `test-integration`. `build`,
@@ -3267,7 +3268,7 @@ nennt, ist nicht zugesagt. Führt `make help` kein Ziel dieses Namens, ist der H
 insgesamt nicht zugesagt.
 
 Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft. Die Punkte
-9 bis 20 gelten nach dieser Regel und für den Hook, nicht für die Gegenprobe der Ketten.
+9 bis 22 gelten nach dieser Regel und für den Hook, nicht für die Gegenprobe der Ketten.
 
 9. **Wahl der Kette.** `make gates` ist der einzige Nachweis für Code, Gates, Profile,
    Skripte, `Dockerfile`, Fragmente, `go.mod` und alles, was Punkt 12 nicht freigibt. Der
@@ -3307,10 +3308,12 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     `README.md` nicht freigibt (`.dockerignore`: `*`, dann nur `go.mod`, `go.sum`, `cmd/`,
     `internal/`, `test/`, `.golangci.yml`, `tools/harness/lint.sh`); ein Go-Test, der dort
     läse, wäre im Container rot. `a-check-negativ` kopiert den Baum, aber `a-check` liest nach
-    `.a-check.yml` nur `**/*.go`. `kopf-check-gegenprobe`, `abdeckung-gegenprobe`,
-    `hook-gegenprobe` und `gates-schnell-gegenprobe` fahren in Temp-Bäumen
-    (`abdeckung-gegenprobe` baut ihr eigenes `docs/user/`, die Kopien von
-    `gates-schnell-gegenprobe` tragen nur Makefile, Fragmente und Skripte). Die Tabellen `docs/user/abdeckung-*.md` liest nur `abdeckung-check`
+    `.a-check.yml` nur `**/*.go`. Jedes Gate der Ausnahmeliste, dessen Name auf `-gegenprobe` endet, außer
+    `lint-gegenprobe` (oben), fährt in Temp-Bäumen, die es selbst anlegt, und liest
+    `docs/user/` und die `README.md` des Arbeitsbaums nicht (`abdeckung-gegenprobe` baut ihr
+    eigenes `docs/user/`; die Temp-Repos von `gates-schnell-gegenprobe` und
+    `stop-hook-gegenprobe` tragen nur Makefile, Fragmente, Skripte und Hook). Ein künftiges Gate
+    dieser Art, das beide liest, ist eine Änderung an einem Gate: nicht inert, voller Lauf. Die Tabellen `docs/user/abdeckung-*.md` liest nur `abdeckung-check`
     (`tools/test/abdeckung.sh --check`), und das läuft in der schnellen Kette (kein Name auf
     `-gegenprobe`): Eine Änderung an ihnen ohne Änderung an Tests (die Deklarationen stehen in
     `*_test.go`, nicht inert) ist von Hand möglich und wird von `abdeckung-check` rot gemeldet,
@@ -3365,9 +3368,38 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     (`stop_hook_active`) steht davor und bleibt. Ist die Dateiliste des vollen Laufs gelöscht
     oder beschädigt, gilt ebenfalls: voll. Beschädigt ist: leere Datei, Feldzahl nicht durch 3
     teilbar, unbekannte Art, `F` mit Wert, der nicht 64 Hexzeichen ist, `G` oder `X` mit Wert,
-    doppelter Pfad, Pfad nach Punkt 12 unzulässig. Eine am Eintragsende abgeschnittene Liste
+    doppelter Pfad, Pfad nach Punkt 12 unzulässig. Ein unzulässiger Pfad im Stand sperrt in
+    jedem Fall, weil er nie mit der Liste des Arbeitsbaums identisch ist; ob ein Hook mit
+    Positivliste ihn als Beschädigung erkennt, bevor er ihn liest, prüft ein Fall dieses
+    Hooks, nicht der Hook ohne Positivliste. Eine am Eintragsende abgeschnittene Liste
     ist nicht beschädigt, aber unschädlich: die fehlenden Pfade gelten als hinzugekommen und
     entscheiden nach ihrem Pfad.
+21. **Make-Flags beim Schreiben des Nachweises des vollen Laufs.** Der Hook glaubt den Nachweis,
+    also schreibt ihn `make gates` nur nach einem Lauf, in dem die Gates tatsächlich liefen und
+    kein Fehler überlesen wurde. Ein Aufruf mit dem Make-Flag `-i` (`--ignore-errors`, in
+    `MAKEFLAGS` gleich welcher Schreibweise, auch aus der Umgebung und zusammen mit anderen
+    Flags wie `-k` oder `-j`) schreibt weder die Dateiliste noch `gates-passed.diffsha`; ein
+    älterer Nachweis beider Dateien entfällt, auch bei grünem Lauf. Ein Aufruf mit `-n`, `-q`
+    oder `-t` schreibt keinen Nachweis und entfernt keinen; das gilt auch zusammen mit `-i`
+    (Vorrang wie in Punkt 6). Zugesagt ist das Ergebnis, nicht der Mechanismus: `-n`, `-q` und
+    `-t` hält `make` selbst, weil das Rezept des Nachweises weder `$(MAKE)` noch `+` trägt und
+    deshalb nicht läuft; `-i` prüft das Skript, das den Nachweis schreibt. Ein roter Lauf ohne
+    `-i` lässt einen älteren Nachweis stehen, weil das Rezept des Nachweises nicht läuft
+    (akzeptiertes Negativ; Grund: der ältere Nachweis beschreibt den Baum seines grünen Laufs
+    und gibt nur bei identischer Liste frei).
+22. **Aufrufarten des Hooks.** Der Hook entscheidet über den Baum des Repos, in dem sein
+    Arbeitsverzeichnis liegt (`git rev-parse --show-toplevel`), nicht über das Repo seiner Datei,
+    und liest keine Umgebungsvariable. Zugesagt mit Fall: (a) ein Arbeitsverzeichnis in einem
+    Unterverzeichnis des Repos gibt dieselbe Antwort wie die Wurzel; (b) eine leere Umgebung
+    (`env -i`; `PATH` nicht gesetzt, `bash` mit absolutem Pfad gestartet) gibt bei identischer
+    Liste `approve`, bei jedem Unterschied `block`. Nicht Gegenstand: `bash -e` (der Hook setzt
+    `set -euo pipefail` selbst, die Option ändert nichts) und eine fehlende Variable
+    `CLAUDE_PROJECT_DIR` (der Aufruf des Treibers startet den Hook dann nicht; kein Code des
+    Hooks läuft, er kann nicht antworten). Akzeptiertes Negativ: Ein Arbeitsverzeichnis in einem
+    anderen Repo ist keine Randform dieses Hooks, sondern des Treibers (Aufruf-Voraussetzung,
+    Punkt 8): der Hook urteilt über das Repo, in dem er läuft, nach dessen eigenem Stand; ein
+    Repo ohne `tools/harness/dateiliste.sh`, ohne Stand oder ohne Git-Repo endet in `block`
+    (Fälle von Punkt 19 und 20).
 
 ## 12. Historie
 
@@ -3468,3 +3500,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-12 | Konfiguration, Entscheidung des Nutzers: Umgebungsvariable der Option eines anderen Kommandos ist `PGR-E2001` (bisher unbeachtet; ersetzt die Fassung vom 2026-10-05 und 2026-10-08), Ausnahmen `PGWIRE_RECORDER_PASSWORD` und Variable ohne passende Option, keine Warnung (`LH-FA-17.a`) |
 | 2026-10-12 | Konfiguration: Rangfolge der Umgebungsvariablen in einem Durchlauf über die Tabelle (fremde und eigene gemeinsam, nur der erste Fehler), vor der Datei; Schreibweise des Namens genau; Katalogzeile `PGR-E2001` nennt die Umgebungsvariable (`LH-FA-17.a`, `SPEC-034`) |
 | 2026-10-13 | Harness-Werkzeuge: Gate-Kette in voller und schneller Kette mit Ausnahmeliste, Stand der schnellen Kette, Wahl der Kette am geänderten Pfad (Positivliste, Dateiliste des vollen Laufs, Randformen), Hook-Teil nur zugesagt, soweit `stop-hook-gegenprobe` ihn prüft (`SPEC-052`) |
+| 2026-10-13 | Harness-Werkzeuge: Nachweis des vollen Laufs bei überlesenen Fehlern (`make -i gates`) und Make-Flags, Aufrufarten des Stop-Hooks, Beleg für `docs/user/` und `README.md` für jede Gegenprobe der Ausnahmeliste (`SPEC-052`) |
