@@ -9,7 +9,8 @@
 # genannten Fälle grün bleiben.
 #
 # Fälle: Punkt 1 (Liste nur nach grünem `make gates`, Hash daneben), 9 (Freigabe bei inerten Pfaden und grünem Stand der
-# schnellen Kette; Reihenfolge der Prüfungen; Pfade außerhalb der Positivliste), 10 (Hash wechselt genau mit dem Arbeitsbaum;
+# schnellen Kette; Reihenfolge der Prüfungen; Pfade außerhalb der Positivliste; der `reason` bei fehlendem Stand der
+# schnellen Kette nennt `make gates-schnell`, nur dort), 10 (Hash wechselt genau mit dem Arbeitsbaum;
 # Stand der schnellen Kette fehlt, ist leer, nicht lesbar oder fremd; das Hash-Skript fehlt, scheitert oder liefert nichts),
 # 11 (Form, Pfade mit Zeilenumbruch,
 # Leerzeichen innen, am Anfang und am Ende, Tabulator, Backslash und Nicht-UTF-8), 12 und 13 (Positivliste je Eintrag in jeder
@@ -118,7 +119,7 @@ L_LOOP='if [[ "$input" =~ \"stop_hook_active\"[[:space:]]*:[[:space:]]*true ]]; 
 L_SCHLUSS='freigabe'
 L_HASH='  hash="$(bash tools/harness/working-tree-hash.sh)"'
 L_GESPEICHERT='  gespeichert="$(cat -- .harness/state/gates-schnell-passed.diffsha 2> /dev/null || :)"'
-L_SCHNELL_CMP='  [ "$hash" = "$gespeichert" ] || voll "The fast gates chain has no passed run for this working tree."'
+L_SCHNELL_CMP='  [ "$hash" = "$gespeichert" ] || voll "The fast gates chain has no passed run for this working tree." '"'"'Run `make gates-schnell` (or `make gates`).'"'"
 L_HASH_LEER='  [ -n "$hash" ] || voll "The working tree hash is empty."'
 L_LINK='      [ "$art" != L ] || link_inert "$p" "${WERT["$seite:$p"]}" || voll "A changed symlink is not inert."'
 L_ARTX='      [ "$art" != X ] || voll "A changed entry of type X is never inert."'
@@ -208,6 +209,10 @@ hook() {
 
 # ist <fall> <erwartet> — meldet den Fall, wenn die Antwort nicht die erwartete ist.
 ist() { [ "$ent" = "$2" ] || echo "$1"; }
+# grund <fall> <teilstring> / kein_grund <fall> <teilstring> — meldet den Fall, wenn der `reason` der Antwort
+# den Teilstring nicht (grund) oder doch (kein_grund) enthält; nur die Fälle des `reason` in Punkt 9 rufen sie.
+grund() { case "$hout" in *'"reason":"'*"$2"*) ;; *) echo "$1" ;; esac; }
+kein_grund() { case "$hout" in *"$2"*) echo "$1" ;; esac; }
 
 # stub <inhalt> — ersetzt in c den Erzeuger der Liste durch einen, der die Bytes liefert, und
 # legt dieselben Bytes als Nachweis ab: zwei gleiche Listen, die beschädigt sind.
@@ -242,7 +247,7 @@ FAELLE=(
   p21-i-rot p21-i-gruen p21-i-env p21-i-ki p21-i-lang p21-i-j p21-n p21-q p21-t p21-ni
   p22-unterverzeichnis p22-leere-umgebung
   p14-geloescht-index-nicht-inert
-  p9-freigabe p9-konflikt p9-stand-fehlt p9-stand-beschaedigt p9-nicht-inert-internal
+  p9-freigabe p9-konflikt p9-stand-fehlt p9-stand-fehlt-nicht-inert p9-stand-beschaedigt p9-nicht-inert-internal
   p9-nicht-inert-makefile p9-nicht-inert-harness-mk p9-nicht-inert-golangci p9-nicht-inert-tools
   p9-nicht-inert-dockerfile p9-nicht-inert-go-mod p9-nicht-inert-dockerignore
   p9-nicht-inert-d-check p10-fehlt p10-fremd p10-leer p10-unlesbar p10-skript-fehlt
@@ -251,7 +256,7 @@ FAELLE=(
   p12-grenze-planning-x p12-grenze-reviews-alt p12-grenze-users p12-grenze-datei-reviews
   p12-grenze-datei-user p12-grenze-readme-bak p12-case-planning p12-case-readme p12-harness-readme
   p12-selbst-hook p12-selbst-dateiliste p12-selbst-hash p12-selbst-spec p12-unzulaessig-punktpunkt
-  p12-unzulaessig-punkt p12-unzulaessig-leer p12-unzulaessig-absolut p14-geloescht-inert
+  p12-unzulaessig-punkt p12-unzulaessig-leer p12-unzulaessig-leer-ende p12-unzulaessig-absolut p14-geloescht-inert
   p14-geloescht-nicht-inert p14-umbenennung-inert p14-umbenennung-nach-inert
   p14-umbenennung-von-inert p14-neu-nicht-inert p18-untracked-nicht-inert p12-art-x p15-link-inert
   p15-ziel-aussen p15-ziel-ueber-wurzel p15-ziel-absolut p15-ziel-absolut-aussen
@@ -575,6 +580,11 @@ f_p9_konflikt() {
   stand; aendere docs/user/u.md; schnell; hook; ist p9-konflikt block
 }
 f_p9_stand_fehlt() { kopie p9-stand-fehlt; aendere docs/user/u.md; schnell; hook; ist p9-stand-fehlt block; }
+# Der Stand der schnellen Kette fehlt, die Änderung ist nicht inert: der `reason` nennt die schnelle Kette nicht.
+f_p9_stand_fehlt_nicht_inert() {
+  kopie p9-stand-fehlt-nicht-inert; stand; aendere internal/x.go; hook
+  ist p9-stand-fehlt-nicht-inert block; kein_grund p9-stand-fehlt-nicht-inert 'make gates-schnell'
+}
 f_p9_stand_beschaedigt() {
   local felder i
   kopie p9-stand-beschaedigt; stand
@@ -595,7 +605,10 @@ f_p9_nicht_inert_go_mod() { pfad_fall p9-nicht-inert-go-mod block go.mod; }
 f_p9_nicht_inert_dockerignore() { pfad_fall p9-nicht-inert-dockerignore block .dockerignore; }
 f_p9_nicht_inert_d_check() { pfad_fall p9-nicht-inert-d-check block .d-check.yml; }
 
-f_p10_fehlt() { kopie p10-fehlt; stand; aendere docs/user/u.md; hook; ist p10-fehlt block; }
+f_p10_fehlt() {
+  kopie p10-fehlt; stand; aendere docs/user/u.md; hook
+  ist p10-fehlt block; grund p10-fehlt 'make gates-schnell'
+}
 f_p10_fremd() { kopie p10-fremd; stand; schnell; aendere docs/user/u.md; hook; ist p10-fremd block; }
 f_p10_leer() {
   kopie p10-leer; stand; aendere docs/user/u.md
@@ -674,6 +687,7 @@ unzulaessig() {
 f_p12_unzulaessig_punktpunkt() { unzulaessig p12-unzulaessig-punktpunkt 'docs/plan/planning/../../internal/x.go'; }
 f_p12_unzulaessig_punkt() { unzulaessig p12-unzulaessig-punkt 'docs/plan/planning/./x.md'; }
 f_p12_unzulaessig_leer() { unzulaessig p12-unzulaessig-leer 'docs/plan/planning//x.md'; }
+f_p12_unzulaessig_leer_ende() { unzulaessig p12-unzulaessig-leer-ende 'docs/user/x/'; }
 f_p12_unzulaessig_absolut() { unzulaessig p12-unzulaessig-absolut '/docs/user/x.md'; }
 
 # Gelöscht, umbenannt, neu, untracked (Punkte 14, 18) und Art X (Punkt 12).
@@ -965,11 +979,20 @@ fixture m-pfad-vor-pruefung
 vor 'dateiliste_pruefen "$stand" || voll "The recorded file list is unreadable or damaged."'
 rot p9-stand-beschaedigt "p9-konflikt p9-stand-fehlt"
 
+# `reason` bei fehlendem Stand der schnellen Kette (Punkt 9): nur dort nennt er die schnelle Kette.
+fixture m-hinweis-immer
+ersetze $HOOK "  local hinweis='Run \`make gates\`.'" "  local hinweis='Run \`make gates-schnell\` (or \`make gates\`).'"; rot p9-stand-fehlt-nicht-inert p10-fehlt
+fixture m-hinweis-nie
+ersetze $HOOK "$L_SCHNELL_CMP" '  [ "$hash" = "$gespeichert" ] || voll "The fast gates chain has no passed run for this working tree."'; rot p10-fehlt p9-stand-fehlt-nicht-inert
+fixture m-stand-vor-pfadregel
+ersetze $HOOK '  pfadregel' '  schnell_gruen'; sedmut $HOOK '0,/^  schnell_gruen$/! s/^  schnell_gruen$/  pfadregel/'
+rot p9-stand-fehlt-nicht-inert p10-fehlt
+
 # Stand der schnellen Kette (Punkt 10).
 fixture m-schnell-nicht-geprueft
 ersetze $HOOK "$L_SCHNELL_CMP" ''; rot "p10-fehlt p10-fremd p10-leer $UNL"
 fixture m-schnell-nur-vorhanden
-ersetze $HOOK "$L_SCHNELL_CMP" '  [ -n "$gespeichert" ] || voll "x"'; rot p10-fremd "p10-fehlt p10-leer"
+ersetze $HOOK "$L_SCHNELL_CMP" '  [ -n "$gespeichert" ] || voll "x" '"'"'Run `make gates-schnell` (or `make gates`).'"'"; rot p10-fremd "p10-fehlt p10-leer"
 fixture m-schnell-leer-gilt
 ersetze $HOOK "$L_GESPEICHERT" "$L_GESPEICHERT"$'\n''  [ ! -e .harness/state/gates-schnell-passed.diffsha ] || [ -s .harness/state/gates-schnell-passed.diffsha ] || gespeichert="$hash"'
 rot p10-leer "p10-fehlt p10-fremd"
@@ -1052,11 +1075,15 @@ ersetze $HOOK "$L_README" '    README.md | */README.md) return 0 ;;'; rot p12-ha
 
 # Unzulässiger Pfad in der Differenz (Punkt 12): je Form ohne ihre Prüfung.
 fixture m-ohne-punktpunkt
-ersetze $HOOK '  case "/$1/" in */../*) return 1 ;; esac' ''; rot p12-unzulaessig-punktpunkt "p12-unzulaessig-punkt p12-unzulaessig-leer p12-unzulaessig-absolut"
+ersetze $HOOK '  case "/$1/" in */../*) return 1 ;; esac' ''; rot p12-unzulaessig-punktpunkt "p12-unzulaessig-punkt p12-unzulaessig-leer p12-unzulaessig-leer-ende p12-unzulaessig-absolut"
 fixture m-ohne-punkt
-ersetze $HOOK '  case "/$1/" in */./*) return 1 ;; esac' ''; rot p12-unzulaessig-punkt "p12-unzulaessig-punktpunkt p12-unzulaessig-leer p12-unzulaessig-absolut"
+ersetze $HOOK '  case "/$1/" in */./*) return 1 ;; esac' ''; rot p12-unzulaessig-punkt "p12-unzulaessig-punktpunkt p12-unzulaessig-leer p12-unzulaessig-leer-ende p12-unzulaessig-absolut"
 fixture m-ohne-leeres-segment
-ersetze $HOOK '  case "$1" in "" | *//* | */) return 1 ;; esac' ''; rot p12-unzulaessig-leer "p12-unzulaessig-punktpunkt p12-unzulaessig-punkt p12-unzulaessig-absolut"
+ersetze $HOOK '  case "$1" in "" | *//* | */) return 1 ;; esac' ''; rot "p12-unzulaessig-leer p12-unzulaessig-leer-ende" "p12-unzulaessig-punktpunkt p12-unzulaessig-punkt p12-unzulaessig-absolut"
+fixture m-ohne-leeres-segment-mitte
+ersetze $HOOK '  case "$1" in "" | *//* | */) return 1 ;; esac' '  case "$1" in "" | */) return 1 ;; esac'; rot p12-unzulaessig-leer "p12-unzulaessig-leer-ende p12-unzulaessig-punkt p12-unzulaessig-punktpunkt p12-unzulaessig-absolut"
+fixture m-ohne-leeres-segment-ende
+ersetze $HOOK '  case "$1" in "" | *//* | */) return 1 ;; esac' '  case "$1" in "" | *//*) return 1 ;; esac'; rot p12-unzulaessig-leer-ende "p12-unzulaessig-leer p12-unzulaessig-punkt p12-unzulaessig-punktpunkt p12-unzulaessig-absolut"
 fixture m-ohne-absolut
 ersetze $HOOK '  case "$1" in /*) return 1 ;; esac' ''; rot "" "p12-unzulaessig-absolut p12-unzulaessig-punktpunkt"
 fixture m-absolut-relativ

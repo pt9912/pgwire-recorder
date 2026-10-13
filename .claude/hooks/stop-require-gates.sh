@@ -24,7 +24,9 @@
 #   Änderung nicht inert.
 # - Der Stand der schnellen Kette passt, wenn der Inhalt von
 #   .harness/state/gates-schnell-passed.diffsha die Ausgabe von tools/harness/working-tree-hash.sh
-#   ist; fehlend, leer, ungleich oder ein scheiterndes Skript sperrt.
+#   ist; fehlend, leer, ungleich oder ein scheiterndes Skript sperrt. Fehlt der Stand oder
+#   gehört er zu einem anderen Arbeitsbaum, obwohl jede Änderung inert ist, nennt der `reason`
+#   `make gates-schnell`; jede andere Sperre nennt nur `make gates`.
 # - Scheitert ein Schritt (git, Lesen einer Datei) oder bricht der Hook ab, antwortet er
 #   `block`, nie ohne Antwort.
 # - Der Schleifenschutz (`stop_hook_active: true`) antwortet `approve` vor jeder Prüfung, die zu
@@ -61,9 +63,12 @@ frei() {
   exit 0
 }
 
+# voll <grund> [<hinweis>] — der Hinweis nennt `make gates`, wenn kein anderer gegeben ist.
 voll() {
+  local hinweis='Run `make gates`.'
+  [ $# -lt 2 ] || hinweis="$2"
   antwort=1
-  printf '{"decision":"block","reason":"%s Run `make gates`."}\n' "$1" >&3
+  printf '{"decision":"block","reason":"%s %s"}\n' "$1" "$hinweis" >&3
   exit 0
 }
 
@@ -245,7 +250,7 @@ schnell_gruen() {
   hash="$(bash tools/harness/working-tree-hash.sh)"
   [ -n "$hash" ] || voll "The working tree hash is empty."
   gespeichert="$(cat -- .harness/state/gates-schnell-passed.diffsha 2> /dev/null || :)"
-  [ "$hash" = "$gespeichert" ] || voll "The fast gates chain has no passed run for this working tree."
+  [ "$hash" = "$gespeichert" ] || voll "The fast gates chain has no passed run for this working tree." 'Run `make gates-schnell` (or `make gates`).'
 }
 
 # freigabe — Positivliste und Stand der schnellen Kette; endet immer in `frei` oder `voll`.

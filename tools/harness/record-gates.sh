@@ -3,8 +3,10 @@
 # abgedeckt hat: die Dateiliste (.harness/state/gates-passed.dateiliste, Form und Erzeugung
 # in tools/harness/dateiliste.sh) und deren Hash (.harness/state/gates-passed.diffsha, die
 # Ausgabe von working-tree-hash.sh). Läuft als LETZTER gates-Prerequisite, also nur nach
-# grünen Gates. Der Stop-Hook gibt nur frei, wenn die Dateiliste des Arbeitsbaums mit
-# dieser identisch ist.
+# grünen Gates. Der Stop-Hook gibt frei, wenn die Dateiliste des Arbeitsbaums mit dieser
+# identisch ist oder wenn jeder Unterschied auf der Positivliste des Hooks liegt und der Stand
+# der schnellen Kette zum Arbeitsbaum passt (SPEC-052 Punkt 9; stop-hook-gegenprobe: p16-identisch,
+# p9-freigabe).
 # Make-Flags (SPEC-052 Punkt 21): Die Buchstaben im ersten Wort von MAKEFLAGS, wenn es nicht
 # mit `-` beginnt, entscheiden wie in gates-schnell.sh: bei i überliest make rote Gates, der
 # Nachweis wird nicht geschrieben und ein älterer entfernt. -n, -q und -t prüft dieses Skript
