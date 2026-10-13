@@ -271,6 +271,86 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Commits** (Basis `d075d3f`): `cb37a34` (`SPEC-052` und Historie, ohne Code), `f633694` (Fragment
+`harness/mk/gates-schnell.mk`, Skripte `tools/harness/gates-schnell.sh` und
+`tools/harness/gates-schnell-gegenprobe.sh`, zwei Gate-Zeilen in `harness/README.md`, Träger-Zeile in
+`harness/conventions.md`), dieser Beleg-Commit. **Größe:** 434 Zeilen eingefügt, 1 entfernt (`SPEC-052` 150,
+Gegenprobe 239, Fragment und Skript 42, Doku 3); unter der Rückführungsgrenze von 650.
+
+**`SPEC-052`** ist die Übertragung der Tabelle aus §6, nummeriert: Teil 1 (Punkte 1 bis 8) trägt die Zeilen
+*Zugehörigkeit*, *Bezugsgröße* (Stand), *Roter Lauf nach einem grünen* und *Gleichzeitige Läufe*; Teil 2
+(Punkte 9 bis 20) beginnt mit dem Eingangssatz aus der Zeile *Zwischenstand* im Wortlaut und trägt die
+übrigen Zeilen, *Beleg für `docs/user/` und `README.md`* eingeschlossen. Ergänzt habe ich nur die
+Rückbezüge zwischen den Punkten (etwa „Punkt 12“ statt „Zeile oben“) und, in Punkt 9, den Satz aus
+[ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) *Entscheidung* Punkt 3; Verweise auf ADR und Slice
+stehen nicht in der Spezifikation. `make docs-check` nach dem Eintrag und nach den Gate-Zeilen: 0 Befunde.
+
+**Mutationen** (`AGENTS.md` §3.10), am echten Arbeitsbaum gefahren (Mutation per `sed` auf die Datei, dann
+`bash tools/harness/gates-schnell-gegenprobe.sh`, danach `git checkout` der Datei); „roter Fall“ ist die
+erste Zeile der Ausgabe, die Kopie `ok` ist die unveränderte Kopie mit Attrappen. Mutanten kommen ohne
+Docker-Build an: Gegenprobe und Kette laufen auf dem Host und lesen die Dateien direkt.
+
+| Zusage | Mutation (am Arbeitsbaum) | roter Fall |
+|---|---|---|
+| Die schnelle Kette fährt kein langsames Gate | `lint-gegenprobe` aus `GATE_SCHNELL_AUSNAHME` genommen | Kopie `ok`: `p2-langsam`; Arbeitsbaum: `p4-name` |
+| ebenso | `test-integration` aus der Liste genommen | Kopie `ok`: `p2-langsam`; Arbeitsbaum: `p4-name` |
+| Die schnelle Kette fährt jedes andere Gate | `kopf-check` in die Liste genommen | Kopie `ok`: `p2-schnell` (und `p6-rot`, weil das rote Gate nicht läuft) |
+| Ein neues Gate läuft in beiden Ketten | Kette aus fester Liste statt `GATE_CHECKS` gebildet | Kopie `ok`: `p3-neu` (die Attrappe `neu-x` ohne Eintrag fehlt im Log) |
+| Die Ausnahmeliste deckt sich mit `GATE_CHECKS` (Eintrag ohne Gate) | `phantom` in die Liste | Kopie `ok` und Arbeitsbaum: `p4-eintrag` |
+| ebenso (Gate ohne Eintrag) | Fragment `harness/mk/zz.mk` mit `GATE_CHECKS += x-gegenprobe`, ohne Eintrag in der Liste | Arbeitsbaum: `p4-name` |
+| Ein rotes Gate der Kette lässt keinen Stand zurück | `rm -f "$stand"` im Skript gestrichen | Kopie `ok`: `p6-rot` (und `p6-abbruch`) |
+| Ein abgebrochener Lauf lässt keinen Stand zurück | `rm -f` zu Beginn durch `trap … ERR` ersetzt (Entfernen erst im Fehlerfall) | Kopie `ok`: `p6-abbruch`, **nicht** `p6-rot` (der Abbruch beendet die Prozessgruppe, der Trap läuft nicht) |
+| Ein grüner Lauf schreibt den Stand | die Zeile, die ihn schreibt, gestrichen | Kopie `ok`: `p5-stand` |
+| Nur den schnellen Stand, der volle Nachweis bleibt | Stand an den Pfad `gates-passed.diffsha` geschrieben | Kopie `ok`: `p7-nachweis` (der vorhandene volle Nachweis wird überschrieben) und `p7-nachweis-neu` (er entsteht ohne `make gates`) |
+| `make gates` ist unverändert und enthält jedes Gate | `record-gates: $(filter-out kopf-check,$(GATE_CHECKS))` im `Makefile` | Kopie `ok`: `p1-voll` |
+| ebenso | `record-gates: $(GATE_CHECKS) gates-schnell` im `Makefile` | Kopie `ok`: `p1-voll` |
+| Die Gegenprobe hängt an `GATE_CHECKS` | die Zeile `GATE_CHECKS += gates-schnell-gegenprobe` gestrichen | Kopie `ok`: `anschluss-gegenprobe` (und `p4-eintrag`) |
+| Die Gegenprobe endet bei Rot mit Exit ungleich 0 | `-@` vor dem Aufruf der Gegenprobe im Rezept | Kopie `ok`: `anschluss-exit-gegenprobe` |
+| Die Kette endet bei Rot mit Exit ungleich 0 | `-@` vor dem Aufruf von `gates-schnell.sh` im Rezept | Kopie `ok`: `anschluss-exit-schnell` (und `p6-rot`) |
+
+Zusätzlich trägt die Gegenprobe je Zeile der Tabelle einen Mutanten in der Kopie (`m-…`), der die
+benannte Prüfung rot färben muss, bei `m-eintrag-ohne-gate` und `m-entfernen-erst-bei-rot` nur sie;
+sie sind der Grund, warum die Prüfung nicht aus Versehen leer läuft. Die unveränderte Kopie und der
+Arbeitsbaum sind grün (4 s). Kein Mutant blieb grün.
+
+**Läufe der schnellen Kette** (`make gates-schnell`, Docker-Cache warm, Go-Quelltext unverändert):
+`docs-check` 1,4 s, `kopf-check` 0,2 s, `baseline-verify` 0,0 s, `abdeckung-check` 1,6 s, `lint` 0,5 s,
+`test` 0,5 s, `build` 0,6 s, `a-check` 0,4 s; die Kette zusammen 7,2 bis 7,5 s, Stand
+`.harness/state/gates-schnell-passed.diffsha` gleich der Ausgabe von `working-tree-hash.sh`. Mit einer
+geänderten Zeile in `cmd/pgwire-recorder/main.go` (Kommentar, danach zurückgesetzt) 102 s, weil `test`,
+`lint`, `build` und `a-check` neu laufen; `make gates` braucht rund 270 s ([ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md), gemessen am 2026-10-12).
+Ein roter Lauf (ein Kommentar ohne Leerzeile am Ende derselben Datei) beendete die Kette mit Exit 2 und ließ
+keinen Stand zurück; den Grund des Rots habe ich nicht untersucht. Die Zeit ist keine Zusage der Spezifikation.
+
+**Auslegung, die ich dem Architect zur Bestätigung vorlege** (keine Randform; die Spezifikation und die
+Tabelle in §6 lassen je nur diese Lesart zu, §6 ist nicht geändert):
+
+1. `gates-schnell` hängt **nicht** an `GATE_CHECKS`. Die Zeile *Die Gegenprobe hängt an `GATE_CHECKS` …*
+   in §6 und die Zusage *`make gates` ist unverändert* (Mutation „die Kette in seine Aufrufkette hängen“)
+   lassen es nicht zu: `gates-schnell` in `GATE_CHECKS` hieße, `make gates` fährt die schnelle Kette ein
+   zweites Mal, und `GATE_CHECKS` ohne die Ausnahmeliste enthielte das Ziel selbst. DoD Liefer-Punkt 3
+   („hängt mit der Kette an `GATE_CHECKS`“) lese ich als: die Gegenprobe hängt an `GATE_CHECKS`.
+2. `gates-schnell-gegenprobe` steht in der Ausnahmeliste (sieben Einträge statt der sechs in der Zeile
+   *Beleg für `docs/user/` und `README.md`*): Punkt 4 von `SPEC-052` verlangt jedes Gate mit `-gegenprobe`
+   im Namen in der Liste, sonst wäre die Gegenprobe der Kette bei ihrem eigenen Namen rot. Sie liest
+   weder `docs/user/` noch `README.md` (Kopien tragen nur `Makefile`, Fragmente und Skripte), der Beleg
+   gilt damit auch für sie.
+
+**Randformen:** keine zurückgegeben; Teil 2 der Spezifikation (Hook) ist durch den Eingangssatz bis zu
+`stop-hook-gegenprobe` nicht zugesagt, `make help` führt kein Ziel dieses Namens.
+
+**Kommentare** (`AGENTS.md` §3.7, §3.11): neu geschrieben sind der Kopf von `gates-schnell.mk`, von
+`gates-schnell.sh` und von `gates-schnell-gegenprobe.sh`; jede Zusage darin hat eine Prüfung der Tabelle
+(Ausnahmeliste, Stand, kein Stand nach Rot und Abbruch, voller Nachweis, Anschluss an `GATE_CHECKS`).
+Die Grenze der Gegenprobe (Attrappen als Gates, Aufruf-Voraussetzung ohne Fall) steht in ihrem Kopf. Die
+Zeile `GEPRÜFT DURCH` im Fragment nennt die Gegenprobe, ohne Punkte zu zählen.
+
+**Weitere Stellen der Gate-Kette** (Plan §3): `grep -rn "make gates"` über `AGENTS.md`, `harness/`,
+`.claude/commands/` und `.claude/agents/` fand keine Beschreibung, die durch die schnelle Kette falsch wird
+(`make gates` ist unverändert, der Hook bleibt bei `make gates`). Handbuch und `README.md` sind nicht berührt.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
