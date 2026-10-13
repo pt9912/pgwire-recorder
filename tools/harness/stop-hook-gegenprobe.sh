@@ -819,7 +819,7 @@ ersetze $HOOK "$L_SCHLUSS" "$L_KONFLIKT2"$'\n'"$L_SCHLUSS"; rot p17-konflikt-ide
 
 # --- Punkt 19: fehlender Stand, auch bei sauberem Baum ----------------------------------
 fixture m-stand-fehlt-als-unveraendert
-ersetze $HOOK "$L_STANDFEHLT" '[ -f "$stand" ] || frei'; rot "p19-ohne-stand-sauber p19-ohne-stand-geaendert"
+ersetze $HOOK "$L_STANDFEHLT" '[ -f "$stand" ] || frei'; rot "p19-ohne-stand-sauber p19-ohne-stand-geaendert p9-stand-fehlt"
 fixture m-sauberer-baum-frei
 ersetze $HOOK "$L_STANDFEHLT" '[ -f "$stand" ] || { [ -z "$(git status --porcelain=v1)" ] && frei; voll "x"; }'
 rot p19-ohne-stand-sauber p19-ohne-stand-geaendert
