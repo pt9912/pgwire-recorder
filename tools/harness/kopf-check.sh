@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # kopf-check — prüft, dass der Kopf jedes lebenden Slice-Plans die Kennungen führt,
 # die §1 oder §2 des Plans nennen.
-# Vertrag: spec/spezifikation.md SPEC-047 (Punkte 1 bis 9 und Grenze); wie ein Lauf
+# Vertrag: harness/vertraege/SPEC-047-kopf-der-plaene.md (Punkte 1 bis 9 und Grenze); wie ein Lauf
 # zu lesen ist: harness/sensors/kopf-check.md.
 # Aufruf: kopf-check.sh [<wurzel>] (ohne Wurzel das aktuelle Verzeichnis)
 #

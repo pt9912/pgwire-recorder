@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # kopf-check-gegenprobe — prüft tools/harness/kopf-check.sh gegen seinen Vertrag
-# (spec/spezifikation.md SPEC-047) an kleinen Bäumen in einem Temp-Verzeichnis; der
+# (harness/vertraege/SPEC-047-kopf-der-plaene.md) an kleinen Bäumen in einem Temp-Verzeichnis; der
 # Arbeitsbaum bleibt unberührt. Je Fall ein Baum mit einem oder mehreren Plänen;
 # erwartet ist Exit 0 ohne Ausgabe (grün), Exit 1 mit bestimmten Befund-Zeilen auf
 # stderr (rot) oder, ohne Ablage, Exit 2 mit der Abbruchzeile. Die Fälle sind nach den

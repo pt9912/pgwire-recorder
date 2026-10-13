@@ -19,7 +19,7 @@ Entscheidung vom 2026-10-07 stehen `slice-harness-commit-struktur-id`,
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Nachweis der Messmethoden 1 und 3). Bindung an Entscheidungen: [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Nachweisart Gate, geteilte Messung; Folgepflicht dieser ADR), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Deklaration je Anforderung und Pfad; ihre Darstellung in der RTM ergänzt bzw. ersetzt teilweise eine neue ADR, die der Architect in diesem Slice vor dem Code schreibt, Entscheidung des Nutzers vom 2026-10-06; sonst gilt sie unverändert).
 
-**Berührte Spec-Stellen:** `SPEC-048` (Vertrag von `abdeckung` im Abschnitt für Harness-Werkzeuge, fortgeschrieben)
+**Berührte Spec-Stellen:** `SPEC-048` (Vertrag von `abdeckung` in `harness/vertraege/SPEC-048-abdeckung.md`, fortgeschrieben)
 
 **Verantwortlich:** pt9912
 
@@ -78,11 +78,10 @@ Slice mit seinem Platz in der Reihe entschieden.
 - Deklarationen an Tests und der ungeteilte Pfad `Messung` — Bestand bleibt bewusst
   stehen ([ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md)); die heute
   mit ungeteilter Messung belegten Qualitätsanforderungen werden nicht umgeschrieben.
-- Lastenheft, Produkt-Code und die Spezifikation außerhalb ihres Abschnitts für
-  Harness-Werkzeuge — Schicht-Abgrenzung: Der Slice ändert das Abdeckungs-Skript,
+- Lastenheft, Produkt-Code und die Spezifikation — Schicht-Abgrenzung: Der Slice ändert das Abdeckungs-Skript,
   seine Gegenprobe, den Kopf der Lint-Gegenprobe, die erzeugten Tabellen unter
-  `docs/user/` und `harness/README.md`, in der Spezifikation nur den Abdeckungs-Vertrag
-  in jenem Abschnitt.
+  `docs/user/` und `harness/README.md`, in `harness/vertraege/` nur den Abdeckungs-Vertrag
+  `SPEC-048`.
 
 ## 2. Definition of Done
 
@@ -96,7 +95,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Randformen aus §6, schreibt die Tabelle der Nachweisart Gate und zählt eine
       geteilte Messung erst mit allen Teilen als vollständig; die Deklarationen an Tests
       und der Pfad `Messung` bleiben gültig, die übrigen Tabellen unverändert bis auf die
-      neue Nachweisart. Die Randformen stehen am Ort aus §6 (Abschnitt für Harness-Werkzeuge der Spezifikation, angelegt von `slice-harness-vertraege-spezifikation`), und
+      neue Nachweisart. Die Randformen stehen am Ort aus §6 (`harness/vertraege/SPEC-048-abdeckung.md`), und
       `harness/README.md` §Sensors nennt beim Vertrag von `make abdeckung-check` die
       Nachweisart Gate und die geteilte Messung, mit Bindung an [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md);
       beide sagen nur zu, was die Gegenprobe prüft (`AGENTS.md` §3.11).
@@ -199,7 +198,7 @@ dasteht.
 **Randformen des Vertrags** (`AGENTS.md` §3.12). Vorgegeben durch
 [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) und §6 *Nachweis* von
 `slice-lastenheft-pruefbarkeit` (Architect, 2026-10-06); vor dem Code zu bestätigen.
-**Ort** (F-406): der Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum), angelegt von `slice-harness-vertraege-spezifikation`; dort steht der Vertrag von `abdeckung` unter `SPEC-048`, die dieser Slice mit den neuen Randformen fortschreibt; eine neue Kennung vergibt er nicht (eine Kennung je Werkzeug, Architect in §6 *Kennungen* von `slice-harness-vertraege-spezifikation`). Die ADR trägt Entscheidung und Gründe. Jede dort zugesagte Randform bekommt einen Fall in
+**Ort** (F-406): der Ordner `harness/vertraege/` (Technik-Stratum, [`MR-002`](../../../../harness/conventions.md#mr-002)); dort steht der Vertrag von `abdeckung` unter `SPEC-048`, die dieser Slice mit den neuen Randformen fortschreibt; eine neue Kennung vergibt er nicht (eine Kennung je Werkzeug, Architect in §6 *Kennungen* von `slice-harness-vertraege-spezifikation`). Die ADR trägt Entscheidung und Gründe. Jede dort zugesagte Randform bekommt einen Fall in
 `make abdeckung-gegenprobe` (`AGENTS.md` §3.10, §3.11). Bis zum Code stehen sie hier:
 
 - **Pfad-Schreibweise** — `Messung-<i>-von-<n>` mit 2 ≤ n und 1 ≤ i ≤ n.

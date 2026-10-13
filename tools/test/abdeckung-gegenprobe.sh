@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # abdeckung-gegenprobe — prüft tools/test/abdeckung.sh gegen seinen Vertrag
-# (spec/spezifikation.md SPEC-048) an kleinen Bäumen in einem Temp-Verzeichnis; der
+# (harness/vertraege/SPEC-048-abdeckung.md) an kleinen Bäumen in einem Temp-Verzeichnis; der
 # Arbeitsbaum bleibt unberührt. Abgelehnt werden müssen, je mit Exit 1 und einer
 # Zeile auf stderr, die die Testdatei mit Zeile nennt: eine Leerzeile zwischen
 # Deklaration und Test, eine Deklaration über einer Hilfsfunktion, zwei

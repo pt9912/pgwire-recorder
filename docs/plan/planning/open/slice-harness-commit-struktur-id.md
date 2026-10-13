@@ -22,8 +22,8 @@ Slice-Kennungen im Träger, Lesebereich bis zur Scissors-Zeile, ohne Kommentarze
 Welle-Kennungen), [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) (Accepted am 2026-10-08 nach Entscheidung des
 Nutzers: Ablehnung von Struktur-Kennungen, ergänzt beide).
 
-**Berührte Spec-Stellen:** [`SPEC-050`](../../../../spec/spezifikation.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg) (Commit-Träger, vom Architect vor dem Code
-geschrieben) · `spezifikation.md` §12 (*Historie*)
+**Berührte Spec-Stellen:** [`SPEC-050`](../../../../harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg) (Commit-Träger, vom Architect vor dem Code
+geschrieben) · `harness/vertraege/README.md` (*Historie*)
 
 **Verantwortlich:** pt9912
 
@@ -79,7 +79,7 @@ erst nach dem Commit gefunden; ein Sensor im Commit-Pfad fängt es davor.
 - Die mitgelieferte Prüfung `tools/harness/commit-msg-traceability.sh` — Bestand bleibt
   stehen: Ein erneuter Bootstrap schreibt sie neu; die Ablehnung liegt darum im Träger.
 - Produkt-Code, Lastenheft und Sicht — Schicht-Abgrenzung: Der Slice ändert Träger,
-  Gegenprobe, Doku und in der Spezifikation nur §11 und §12 (Architect).
+  Gegenprobe, Doku und in `harness/vertraege/` nur `SPEC-050` und die Historie (Architect).
 
 ## 2. Definition of Done
 
@@ -90,12 +90,12 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Vertrag und Träger: `SPEC-050` führt die Ablehnung und jede Randform aus §6 als
       Entscheidung, dazu die Grenzen (Architect, vor dem ersten Code-Commit, mit
-      Historien-Zeile in §12 und [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md)). Der Träger lehnt danach jede Message
+      Historien-Zeile in `harness/vertraege/README.md` und [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md)). Der Träger lehnt danach jede Message
       ab, die nach `SPEC-050` eine Struktur-Kennung nennt, mit Ausgabe und Ausgang nach
       Punkt 6, auch wenn eine zugelassene Kennung daneben steht (Punkt 5); jede Message
       ohne Struktur-Kennung und jede nach Punkt 4 ausgenommene behandelt er wie heute.
 - [ ] Gegenprobe: `make hook-gegenprobe` führt je Randform aus §6 mindestens einen Fall
-      mit der Erwartung aus §11 (abgelehnt oder angenommen); die 15 vorhandenen Fälle
+      mit der Erwartung aus `SPEC-050` (abgelehnt oder angenommen); die 15 vorhandenen Fälle
       bleiben mit ihrer Erwartung. Je Zusage ist die Mutation gesehen (`AGENTS.md`
       §3.10). Der Beleg des Implementers — je Zusage Zusage · Mutation · roter Fall,
       dazu eine Probe-Message mit Struktur-Kennung gegen den mit `make hooks-install`
@@ -127,10 +127,10 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` §11, §12 | update (Architect, vor dem Code, geliefert) | `SPEC-050` mit der Ablehnung, den Entscheidungen zu den Randformen aus §6 und den Grenzen; Historien-Zeile |
+| `harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md`, `harness/vertraege/README.md` (*Historie*) | update (Architect, vor dem Code, geliefert) | `SPEC-050` mit der Ablehnung, den Entscheidungen zu den Randformen aus §6 und den Grenzen; Historien-Zeile |
 | `docs/plan/adr/0035-…` und ADR-Index | neu (Architect, vor dem Code, geliefert) | [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) ergänzt [ADR-0025](../../adr/0025-benannte-slice-kennungen-im-commit-hook.md) und [ADR-0029](../../adr/0029-benannte-welle-kennungen-im-commit-hook.md) um die Ablehnung; Entscheidung und Gründe, `Schärft:` `SPEC-050` (`AGENTS.md` §3.8); Accepted am 2026-10-08 nach Entscheidung des Nutzers |
 | `.githooks/commit-msg` | update | Ablehnung nach `SPEC-050` **vor** dem frühen Exit 0 für benannte Slices und Wellen; Kopfkommentar |
-| `tools/hook/commit-msg-gegenprobe.sh` | update | je Randform aus §6 ein Fall mit der Erwartung aus §11; die Tabelle im Kopf folgt; die 15 vorhandenen Fälle bleiben |
+| `tools/hook/commit-msg-gegenprobe.sh` | update | je Randform aus §6 ein Fall mit der Erwartung aus `SPEC-050`; die Tabelle im Kopf folgt; die 15 vorhandenen Fälle bleiben |
 | `harness/mk/hook-gegenprobe.mk` | update | Hilfetext des Ziels nennt die Ablehnung |
 | `harness/README.md`, `AGENTS.md` §5 | update | §Sensors und §Traceability rules; Regel 1 nennt ihren Träger |
 
@@ -152,12 +152,12 @@ Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) un
 [welle-erster-release](../welle-erster-release.md) und [welle-v1-nachtrag](../welle-v1-nachtrag.md). Zwischen diesem Slice und
 den übrigen Harness-Slices besteht keine technische Abhängigkeit; dieser steht unter
 ihnen vorn, weil jeder weitere Commit das Muster wiederholen kann. Vor dem ersten
-Code-Commit entscheidet der Architect die Randformen aus §6 in §11 und ob eine
+Code-Commit entscheidet der Architect die Randformen aus §6 in `SPEC-050` und ob eine
 Folge-ADR nötig ist (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Entscheidungen in §11
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Entscheidungen in `SPEC-050`
   verlangen ein Lesen der Message über einen Zeilen-Ausdruck hinaus (etwa Backticks
   über Zeilengrenzen oder Code-Blöcke), und Träger, Gegenprobe und Doku sind nicht in
   einer Review-Sitzung prüfbar; dann trägt dieser Slice die Ablehnung im Fließtext,
@@ -190,7 +190,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — entschieden vom Architect am
-2026-10-08 vor dem ersten Code-Commit, in [`SPEC-050`](../../../../spec/spezifikation.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg); die Gründe in
+2026-10-08 vor dem ersten Code-Commit, in [`SPEC-050`](../../../../harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg); die Gründe in
 [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md). Was dort nicht steht, entscheidet der Implementer nicht, er gibt es
 zurück.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # abdeckung — bildet die Abdeckungstabellen aus den Abdeckungs-Deklarationen der Tests.
-# Vertrag: spec/spezifikation.md SPEC-048 (Punkte 1 bis 6 und Grenze); wie ein Lauf
+# Vertrag: harness/vertraege/SPEC-048-abdeckung.md (Punkte 1 bis 6 und Grenze); wie ein Lauf
 # zu lesen ist: harness/sensors/abdeckung-check.md.
 # Aufruf: abdeckung.sh [--check] [<wurzel>] (ohne --check schreibt es die Tabellen,
 # mit --check prüft es nur; ohne Wurzel das aktuelle Verzeichnis)

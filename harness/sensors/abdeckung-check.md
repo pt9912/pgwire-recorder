@@ -5,7 +5,7 @@
 ## Vertrag
 
 Rot heißt: Eine Abdeckungs-Deklaration oder ein Test verletzt
-[`SPEC-048`](../../spec/spezifikation.md#spec-048--abdeckung-je-anforderung-und-pfad-abdeckung)
+[`SPEC-048`](../vertraege/SPEC-048-abdeckung.md#spec-048--abdeckung-je-anforderung-und-pfad-abdeckung)
 (Form der Deklaration, Paarung aus Anforderung und Pfad, Anforderung nicht im
 Lastenheft, Test `TestE2E…` ohne Deklaration; Punkte 1 bis 3), oder eine der vier
 Tabellen `docs/user/abdeckung-*.md` entspricht nicht dem Stand, den die Deklarationen
@@ -51,4 +51,4 @@ Keine: Der Lauf hat keine benannte Abbruch-Meldung, die vor der Prüfung greift.
 ## Bindung
 
 [ADR-0028](../../docs/plan/adr/0028-abdeckung-je-anforderung-und-pfad.md) · Vertrag
-[`SPEC-048`](../../spec/spezifikation.md#spec-048--abdeckung-je-anforderung-und-pfad-abdeckung)
+[`SPEC-048`](../vertraege/SPEC-048-abdeckung.md#spec-048--abdeckung-je-anforderung-und-pfad-abdeckung)

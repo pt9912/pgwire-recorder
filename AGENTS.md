@@ -59,7 +59,7 @@ statt frei zu formulieren.
 In dieser Reihenfolge:
 
 1. [`spec/lastenheft.md`](spec/lastenheft.md) — vertraglich abnahmebindend.
-2. [`spec/spezifikation.md`](spec/spezifikation.md) — technisch verbindlich, fortschreibbar.
+2. [`spec/spezifikation.md`](spec/spezifikation.md) für das Produkt und [`harness/vertraege/`](harness/vertraege/README.md) für die Werkzeuge — technisch verbindlich, fortschreibbar.
 3. [`spec/architecture.md`](spec/architecture.md) — Komponenten- und Sequenzsicht.
 4. [`docs/plan/adr/`](docs/plan/adr/) — ADR-Verzeichnis und -Index.
 5. [`docs/plan/planning/in-progress/roadmap.md`](docs/plan/planning/in-progress/roadmap.md) — Wellen-Sequenz.
@@ -302,7 +302,9 @@ Randformen, etwa fehlender, leerer oder unbekannter Wert, Alias, Abbruch und
 Herunterfahren, was ein Diagnose-Feld je Nachrichtenart heißt, Verhalten je
 Serverversion, und je Randform, wo sie entschieden ist. Entschieden ist jede vor dem
 ersten Code-Commit, in der Spezifikation (Technik-Stratum), auch für
-Harness-Werkzeuge (seit slice-lastenheft-pruefbarkeit); auch eine Entscheidung des
+Harness-Werkzeuge (seit slice-lastenheft-pruefbarkeit): in `harness/vertraege/`, für die Verträge
+`SPEC-049` und `SPEC-052` in `spec/spezifikation.md` §11 (Ort seit
+slice-harness-vertraege-umzug-ordner); auch eine Entscheidung des
 Nutzers wird dort festgehalten. Eine ADR trägt nur Entscheidung und Gründe und zeigt mit
 `Schärft:` auf diese Stelle (§3.8). Der Architect prüft die Liste vor dem Code. Eine nicht
 genannte oder offene Randform entscheidet der Implementer nicht, er hält an und gibt

@@ -6,7 +6,7 @@
 
 Rot heißt: Ein Slice-Plan in `docs/plan/planning/open/`, `docs/plan/planning/next/`
 oder `docs/plan/planning/in-progress/` verletzt
-[`SPEC-047`](../../spec/spezifikation.md#spec-047--kopf-der-pläne-kopf-check): §1 oder
+[`SPEC-047`](../vertraege/SPEC-047-kopf-der-plaene.md#spec-047--kopf-der-pläne-kopf-check): §1 oder
 §2 nennt eine Kennung aus Lastenheft, Spezifikation oder Sicht, die keines der beiden
 Kopf-Felder `Bezug` und `Berührte Spec-Stellen` führt, oder dem Plan fehlt ein
 Kopf-Feld oder einer der beiden Abschnitte, oder der Plan ist nicht lesbar. Was als
@@ -62,7 +62,7 @@ nachzutragen oder die Nennung in §1 oder §2 zu berichtigen (`AGENTS.md` §3.9)
 ## Bindung
 
 [ADR-0032](../../docs/plan/adr/0032-kopf-sensor-fuer-slice-plaene.md) · Vertrag
-[`SPEC-047`](../../spec/spezifikation.md#spec-047--kopf-der-pläne-kopf-check)
+[`SPEC-047`](../vertraege/SPEC-047-kopf-der-plaene.md#spec-047--kopf-der-pläne-kopf-check)
 
 An der Gate-Kette von `make gates` hängt neben `make kopf-check` auch seine
 Gegenprobe `make kopf-check-gegenprobe`; sie prüft, ob das Werkzeug richtig ist,

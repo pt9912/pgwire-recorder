@@ -8,7 +8,7 @@
 
 **Bezug:** [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [ADR-0025](0025-benannte-slice-kennungen-im-commit-hook.md), [ADR-0029](0029-benannte-welle-kennungen-im-commit-hook.md)
 
-**Schärft:** [`SPEC-050`](../../../spec/spezifikation.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg)
+**Schärft:** [`SPEC-050`](../../../harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg)
 
 **Regeln:** Baseline-Regelwerk `modul-04-adrs.md` §Ziel-Form: ADR (MADR).
 
@@ -22,7 +22,7 @@
 
 ## Entscheidung
 
-Wir wählen **F**: Der Träger `.githooks/commit-msg` lehnt eine Message ab, die eine Struktur-Kennung nennt, vor jeder Annahme nach [ADR-0025](0025-benannte-slice-kennungen-im-commit-hook.md) und [ADR-0029](0029-benannte-welle-kennungen-im-commit-hook.md). Gezählt wird nur die genaue Schreibweise als ganzes Wort, im selben Lesebereich wie die Annahme; Merge- und Revert-Messages sind ausgenommen. Die Einzelregeln stehen in [`SPEC-050`](../../../spec/spezifikation.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg).
+Wir wählen **F**: Der Träger `.githooks/commit-msg` lehnt eine Message ab, die eine Struktur-Kennung nennt, vor jeder Annahme nach [ADR-0025](0025-benannte-slice-kennungen-im-commit-hook.md) und [ADR-0029](0029-benannte-welle-kennungen-im-commit-hook.md). Gezählt wird nur die genaue Schreibweise als ganzes Wort, im selben Lesebereich wie die Annahme; Merge- und Revert-Messages sind ausgenommen. Die Einzelregeln stehen in [`SPEC-050`](../../../harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg).
 
 ## Verglichene Alternativen
 
@@ -39,7 +39,7 @@ Wir wählen **F**: Der Träger `.githooks/commit-msg` lehnt eine Message ab, die
 
 - Positiv: Eine Struktur-Kennung in der Message fällt im aktivierten Klon beim Commit auf, nicht im Review.
 - Negativ (akzeptiert): Ein Klon ohne Aktivierung, `--no-verify`, ein anderes Kommentarzeichen und eine selbst geschriebene Message mit Betreff `Merge ` oder `Revert ` bleiben ungeprüft; das Review bleibt zweiter Leser. Bestehende Commits bleiben, wie sie sind.
-- Folgepflicht: Die Gegenprobe des Trägers hält je Punkt von [`SPEC-050`](../../../spec/spezifikation.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg) einen Fall; ihre vorhandenen Fälle bleiben mit ihrer Erwartung.
+- Folgepflicht: Die Gegenprobe des Trägers hält je Punkt von [`SPEC-050`](../../../harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md#spec-050--struktur-kennungen-im-commit-träger-commit-msg) einen Fall; ihre vorhandenen Fälle bleiben mit ihrer Erwartung.
 
 ## Fitness Function (falls maschinell prüfbar)
 
