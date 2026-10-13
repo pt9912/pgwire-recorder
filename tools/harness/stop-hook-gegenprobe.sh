@@ -17,6 +17,9 @@
 # 22 (Aufrufarten: Arbeitsverzeichnis im Unterverzeichnis, leere Umgebung).
 #
 # GRENZE der Gegenprobe:
+# - Der Schleifenschutz (`stop_hook_active: true`) antwortet `approve` auch bei Konflikt, fehlendem
+#   oder beschädigtem Stand, scheiterndem git und fehlender dateiliste.sh: gewollte Grenze des
+#   Hooks (SPEC-052 Punkt 20). Je Zustand ein Fall p20-schleifenschutz-*; `false` sperrt dort.
 # - Sie fährt den Hook mit seiner Eingabe auf stdin und liest seine Ausgabe; ob die Umgebung
 #   von Claude Code die Antwort so liest, prüft sie nicht. Von den Aufrufarten prüft sie das
 #   Arbeitsverzeichnis im Unterverzeichnis und die leere Umgebung (Punkt 22); `bash -e` und

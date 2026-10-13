@@ -4,6 +4,10 @@
 # und dem Stop-Hook; Schreiber, Hash und Leser teilen sich damit diese eine Logik.
 # Die Funktionen laufen im Wurzelverzeichnis des Repos.
 #
+# Voraussetzung (nicht zugesagt, ohne Fall): bash ab Version 4 (`local -A`) und GNU-Werkzeuge
+# (`readlink -z`, `sort -z`), wie das Repo GNU `make` voraussetzt. Fehlt sie, bricht der Lauf ab
+# (SPEC-052 Punkt 20).
+#
 # GEPRÜFT DURCH tools/harness/stop-hook-gegenprobe.sh.
 
 # Pfad des Nachweises des vollen Laufs: die Dateiliste, neben gates-passed.diffsha.
