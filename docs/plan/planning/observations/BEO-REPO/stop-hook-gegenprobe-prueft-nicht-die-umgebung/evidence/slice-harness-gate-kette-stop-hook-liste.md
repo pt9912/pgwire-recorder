@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gate-kette-stop-hook-liste
+**Fund:** Risiko 2 des Slice-Plans, Ausgang weiter offen: Die Gegenprobe fährt den Hook in Temp-Repos mit seiner Eingabe (`{}` und `stop_hook_active`) und liest seine Ausgabe; die Umgebung von Claude Code liest sie nicht. Der Hook antwortet in allen gefahrenen Fehlerformen `block` oder `approve` (Review: Abbruch, `SIGTERM`, `git`-Fehler, fehlende Dateien; Verifikation: Proben von Hand), ob der Treiber sie so liest, steht nirgends in einem Test.

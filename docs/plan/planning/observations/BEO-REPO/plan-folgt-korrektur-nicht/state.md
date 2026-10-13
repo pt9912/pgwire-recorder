@@ -19,3 +19,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-session
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-sessions-doku` (F-690, F-691) — der Plan sagte über das Handbuch, was der Diff nicht mehr hielt, und trug eine Entscheidung des Architect nicht (Beleg `evidence/slice-v1-abschluss-sessions-doku.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-gate-kette-schnell` (F-697) — die Aufzählung der Ausnahmeliste in §6 und in `SPEC-052` zählte sechs Einträge, die Liste hat sieben; der Bericht sagte „§6 ist nicht geändert“ (Beleg `evidence/slice-harness-gate-kette-schnell.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-gate-kette-stop-hook-liste` (F-706) — drei Command-Texte und eine Zeile von §3 nannten den alten Nachweis, obwohl der Plan das `grep` verlangte (Beleg `evidence/slice-harness-gate-kette-stop-hook-liste.md`).

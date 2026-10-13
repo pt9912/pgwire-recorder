@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gate-kette-stop-hook-liste
+**Fund:** Der Plan verlangte in §3, jede lebende Stelle nachzuziehen, die den Hash als Nachweis nennt (`grep` über `.claude/`); `implement-slice.md`, `plan-welle.md` und `close-welle.md` nannten weiter den „Content-Hash“ und den „Stempel“, und §3 des Plans selbst („schreibt die Dateiliste statt eines Hashs“) stimmte nicht mit dem Code überein, in dem `gates-passed.diffsha` der Hash der Liste bleibt (Review F-706, LOW). Nachgezogen in den drei Commands und in §3.
