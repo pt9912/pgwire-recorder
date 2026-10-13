@@ -41,8 +41,8 @@
 
 ### F-5 INFO
 
-- `quelle`: `AGENTS.md` §3.5, ADR-0040 (akzeptiertes Negativ) · `pfad`: `docs/plan/adr/0038-gate-kette-voll-und-schnell.md` · "§11 Harness-Werkzeuge der Spezifikation"
-- `befund`: Die angenommene ADR-0038 nennt weiter §11 der Spezifikation als Ort von `SPEC-052`; sie ist unveränderlich und der Fließtext ist kein Link. Ebenso `MR-002` (Zustandsabsatz "Der Umzug geschieht erst im Umzug-Slice ..."): Closure-Arbeit nach §5 des Plans, vor `git mv` nach `done/` zu klären.
+- `quelle`: `AGENTS.md` §3.5, [ADR-0040](../plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) (akzeptiertes Negativ) · `pfad`: `docs/plan/adr/0038-gate-kette-voll-und-schnell.md` · "§11 Harness-Werkzeuge der Spezifikation"
+- `befund`: Die angenommene [ADR-0038](../plan/adr/0038-gate-kette-voll-und-schnell.md) nennt weiter §11 der Spezifikation als Ort von `SPEC-052`; sie ist unveränderlich und der Fließtext ist kein Link. Ebenso `MR-002` (Zustandsabsatz "Der Umzug geschieht erst im Umzug-Slice ..."): Closure-Arbeit nach §5 des Plans, vor `git mv` nach `done/` zu klären.
 - `klasse`: Fließtext in Entscheidung bleibt (akzeptiert) / Zustand von MR-002 offen bis Closure
 
 ### F-6 INFO
