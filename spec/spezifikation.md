@@ -2877,138 +2877,6 @@ Kennung dieses Abschnitts ist eine Zusage des Produkts, und keine erweitert eine
 Anforderung des Lastenhefts. Die Schnittstelle eines Werkzeugs ist sein
 `make`-Target. Die Punkte einer Kennung sind nummeriert; die Nummer ist ihre Adresse.
 
-### SPEC-047 — Kopf der Pläne (`kopf-check`)
-
-`make kopf-check` gleicht zwei Mengen von Kennungen ab, ohne über Inhalt zu urteilen:
-Was §1 oder §2 eines lebenden Slice-Plans an Kennungen nennt, führt der Kopf des
-Plans.
-
-1. **Gegenstand.** Geprüft werden die Dateien, deren Name mit dem Präfix `slice` und
-   einem Bindestrich beginnt und auf `.md` endet, flach in
-   `docs/plan/planning/open/`, `docs/plan/planning/next/` und
-   `docs/plan/planning/in-progress/`. Nicht geprüft werden Unterverzeichnisse dieser
-   drei, `docs/plan/planning/done/` (flach und archiviert), Welle-Pläne, Roadmap,
-   Register und andere Dateien.
-2. **Kennungen.** Gezählt werden `LH-XX-NN`, `LH-XX-NN.x`, `SPEC-NNN` und `ARC-NNN`
-   (X ein Großbuchstabe, N eine Ziffer, x ein Kleinbuchstabe) in genau dieser
-   Schreibweise und als ganzes Wort; Wortzeichen sind Buchstabe, Ziffer und
-   Unterstrich. Ein Punkt beendet das Wort: Folgt einer Hauptkennung nach dem Punkt
-   keine Unterkennung (etwa `.ab`), zählt die Hauptkennung. Auszeichnung ist ohne
-   Belang: Code-Span, Linktext, Hervorhebung und Codeblock zählen gleich. Link-Anker sind
-   klein geschrieben und darum keine Nennung. Eine andere Schreibweise (klein, ohne
-   führende Null, mit zusätzlicher Ziffer, ohne Bindestrich) ist keine Kennung, weder
-   im Kopf noch in §1 oder §2.
-3. **Bereich.** `SPEC-NNN bis SPEC-MMM`, ebenso mit `ARC`, steht im Kopf wie in §1 und
-   §2 für jede Kennung von NNN bis MMM. Backticks um die beiden Enden sind erlaubt, und
-   ein Zeilenumbruch innerhalb eines Absatzes zählt als Leerraum; in §1 und §2 reicht
-   ein Bereich auch über Absatzgrenzen (siehe *Grenze*). Für die Kennungen
-   dazwischen steht der Bereich nur, wenn beide Enden ganze Wörter derselben Klasse
-   sind und NNN kleiner als MMM ist. Andere Bereichsformen (Gedankenstrich,
-   Bindestrich) gibt es nicht.
-4. **Gleichheit ist exakt.** Eine Unterkennung im Kopf deckt ihre Hauptkennung nicht,
-   eine Hauptkennung keine Unterkennung.
-5. **Kopf.** Der Kopf sind die Absätze, die mit `**Bezug:**` und
-   `**Berührte Spec-Stellen:**` beginnen, vor der ersten Zeile `## `, je bis zur
-   nächsten Leerzeile. Eine Leerzeile ist eine Zeile, die leer ist oder nur
-   Leerzeichen und Tabs trägt. Ein Absatz beginnt nur in der ersten Zeile der Datei
-   oder nach einer Leerzeile; eine Feldmarke mitten in einer Zeile oder in einer
-   Folgezeile (direkt nach `# …`, nach `---` oder nach einem anderen Feld) ist kein
-   Feld. Geprüft wird gegen die Vereinigung beider Felder; in welchem Feld eine
-   Kennung steht, ist ohne Belang, und ein anderes Feld des Kopfs zählt nicht. `—`
-   ist die leere Menge, Mehrfachnennung ist ohne Belang, eine Kopf-Kennung ohne
-   Nennung in §1 oder §2 ist kein Befund.
-6. **§1 und §2.** Ein Abschnitt reicht von der Zeile `## 1.` bzw. `## 2.`, die
-   mitzählt, bis zur nächsten Zeile `## `; erkannt wird er an der Nummer, nicht am
-   Titel. Unterüberschriften beenden ihn nicht. Ausgenommen ist der Absatz, der mit
-   `Regeln dieser Sektion` beginnt, bis zur nächsten Leerzeile; dieselben Worte
-   mitten in einem Absatz nehmen nichts aus. Alles übrige zählt, auch Abgrenzung,
-   Herkunft und Bereits-Geliefertes; eine Markierung für eine Nennung ohne Anspruch
-   gibt es nicht.
-7. **Formfehler.** Fehlt einem geprüften Plan eines der beiden Kopf-Felder oder einer
-   der beiden Abschnitte, ist das ein Befund.
-8. **Ausgabe und Ausgang.** Je Befund eine Zeile auf stderr,
-   `kopf-check: <pfad>: <abschnitt>: <befund>`, mit dem Pfad relativ zur Wurzel des
-   Repos; der Abschnitt ist `Kopf`, `§1`, `§2` oder `Datei`. Der Befund lautet
-   `<Kennung> fehlt im Kopf`, `Feld Bezug fehlt`, `Feld Berührte Spec-Stellen fehlt`,
-   `Abschnitt ## 1. fehlt`, `Abschnitt ## 2. fehlt` oder `nicht lesbar`. Eine Kennung erscheint
-   je Abschnitt einmal. Sortiert wird nach Pfad, Abschnitt und Befund in Bytefolge
-   (`Kopf` vor `§1` und `§2`); stdout bleibt leer. Ein Plan, der nicht lesbar ist
-   oder an dessen Auswertung die Prüfung scheitert, ist genau ein Befund
-   `<pfad>: Datei: nicht lesbar`, gleich an welcher Position; die übrigen Pläne
-   werden weiter gelesen. Die Prüfung liest alle Pläne und endet dann mit Ausgang 1
-   bei mindestens einem Befund, mit 0 ohne Befund und ohne Ausgabe, mit 2 und einer
-   Zeile, die `docs/plan/planning fehlt` nennt, wenn die Ablage
-   `docs/plan/planning/` fehlt. Ein fehlendes Lifecycle-Verzeichnis enthält keinen
-   Plan und ist kein Abbruch.
-9. **Start ohne Stufung.** Die Prüfung ist vom ersten Lauf an voll scharf:
-   `make kopf-check` hängt an der Gate-Kette von `make gates` und endet mit
-   Fehlerstatus, wenn die Prüfung rot ist.
-
-**Grenze.** Ob eine Kennung existiert, in welchem Kopf-Feld sie steht und was
-außerhalb von §1 und §2 steht, prüft das Werkzeug nicht. Codeblöcke werden nicht
-gesondert verfolgt: Eine Zeile `## ` in einem Codeblock beendet den Abschnitt. In §1
-und §2 werden die gezählten Zeilen eines Abschnitts aneinandergehängt; ein Bereich
-reicht dort auch über eine Leerzeile und über einen ausgenommenen Absatz
-`Regeln dieser Sektion` hinweg. Das macht §1 und §2 nur strenger, nie still grün.
-
-### SPEC-048 — Abdeckung je Anforderung und Pfad (`abdeckung`)
-
-`make abdeckung` schreibt die Abdeckungstabellen `docs/user/abdeckung-*.md` aus den
-Abdeckungs-Deklarationen der Tests; `make abdeckung-check` prüft, dass sie dem
-erzeugten Stand entsprechen, und schreibt nichts. Beide wenden dieselben Regeln an.
-
-1. **Deklaration.** Gelesen werden die Testdateien (Name auf `_test.go`) im Repo außer
-   unter den Verzeichnissen `.git/` und `.harness/` an der Wurzel des Repos; ein
-   gleichnamiges Verzeichnis tiefer im Baum wird gelesen. In einer gelesenen
-   Testdatei steht direkt über `func Test…`, ohne Leerzeile und am Zeilenanfang:
-
-   ```text
-   // Abdeckung: <Anforderung>/<Pfad>, … — <Kurzbeschreibung>
-   ```
-
-   Folgezeilen mit `//` setzen sie fort und werden mit einem Leerzeichen angefügt.
-   Fehlformen sind: eine eingerückte Deklaration, eine Deklaration ohne „ — “ und eine
-   Deklaration, auf die nicht unmittelbar ein Test folgt (Leerzeile, andere Funktion,
-   weitere Deklaration, Dateiende).
-2. **Anforderung und Pfad.** Der Pfad ist bei funktionalen Anforderungen (`LH-FA`)
-   eines der Akzeptanzkriterien `Happy`, `Boundary` oder `Negative`, bei
-   Qualitätsanforderungen (`LH-QA`) und Randbedingungen (`LH-RB`) `Messung`; jede
-   andere Paarung ist eine Fehlform. Eine Anforderung, die das Lastenheft nicht als
-   Überschrift dritter Ebene führt (`### <Anforderung> …`), ist eine Fehlform.
-3. **Nachweisart nach Ort.** Ein Test in einer Datei unter `test/integration/` ist ein
-   E2E-Nachweis, jeder andere ein Unit-Nachweis. Jeder gelesene Test, dessen Name mit
-   `TestE2E` beginnt, trägt eine Deklaration, gleich in welchem Verzeichnis er liegt;
-   fehlt sie, ist das eine Fehlform.
-4. **Tabellen.** Unter `docs/user/` entstehen vier Tabellen:
-   - `docs/user/abdeckung-e2e.md` und `docs/user/abdeckung-unit.md`: je Deklaration
-     und Paar aus Anforderung und Pfad eine Zeile mit Anforderung (Link auf das
-     Lastenheft), Pfad, Kurzbeschreibung, Test und Datei, sortiert nach Anforderung,
-     Pfad und Test; ein `|` in der Kurzbeschreibung ist maskiert.
-   - `docs/user/abdeckung-gesamt.md`: je Anforderung mit mindestens einer
-     Deklaration eine Zeile mit den Spalten `Happy`, `Boundary`, `Negative` und
-     `Messung` — je die Nachweisarten, die den Pfad belegen, durch Komma getrennt,
-     `—` für unbelegt, `n/a` für nicht anwendbar — und dem Stand `vollständig` oder
-     `teilweise`.
-   - `docs/user/abdeckung-vollstaendig.md`: nur die vollständig belegten
-     Anforderungen, je mit den beteiligten Nachweisarten. Vollständig ist eine
-     `LH-FA` mit `Happy`, `Boundary` und `Negative`, gleich aus welcher Nachweisart,
-     eine `LH-QA` oder `LH-RB` mit `Messung`; Teilabdeckung steht hier nicht.
-5. **Schreiben und Prüfen.** `make abdeckung` schreibt nur die Tabellen, die vom
-   erzeugten Stand abweichen oder fehlen, setzt deren Rechte auf 0644 und meldet je
-   geschriebener Tabelle eine Zeile `abdeckung: <pfad> geschrieben` auf stdout; eine
-   aktuelle Tabelle bleibt unberührt, auch in ihren Rechten. `make abdeckung-check`
-   vergleicht nur und meldet je veralteter Tabelle eine Zeile mit ihrem Pfad auf
-   stderr.
-6. **Ausgang.** Die Prüfung endet mit 0 ohne Fehlform und, beim Prüfen, ohne
-   veraltete Tabelle. Sie endet mit 1 bei mindestens einer Fehlform, je mit einer
-   Zeile auf stderr, die Datei und Zeile nennt (bei einem Test `TestE2E…` ohne
-   Deklaration die Zeile des Tests), oder beim Prüfen bei mindestens einer veralteten
-   Tabelle. Fehlt das Lastenheft, endet sie mit 2 und einer Meldung auf stderr.
-
-**Grenze.** Ob eine Deklaration ihren Pfad tatsächlich belegt, prüft das Werkzeug
-nicht: Es liest Deklarationen, es führt keine Tests aus. Führt das Lastenheft keine
-Überschrift `### LH-…`, endet die Prüfung mit 1 ohne eine Zeile auf stderr.
-
 ### SPEC-049 — Lint-Profil (`lint`)
 
 `make lint` prüft den Go-Code des Moduls statisch nach dem Profil in `.golangci.yml`
@@ -3161,57 +3029,6 @@ Build-Kontexts dieselben wie bei einem früheren Lauf mit Ausgang 0, nimmt der B
 Ergebnis der Stufe aus dem Cache, ohne neu zu prüfen; ein Lauf mit Ausgang ungleich 0
 liegt nie im Cache. Eine Datei, deren Größe und Änderungszeit seit dem letzten Lauf
 gleich blieben, überträgt der Build nicht neu; ihre Änderung sieht der Lauf dann nicht.
-
-### SPEC-050 — Struktur-Kennungen im Commit-Träger (`commit-msg`)
-
-`.githooks/commit-msg` ist der Träger, den git vor jedem Commit mit dem Pfad der Datei
-der vorgeschlagenen Message aufruft; Exit ungleich 0 bricht den Commit ab. Aktiviert
-wird er mit `make hooks-install`, seine Gegenprobe ist `make hook-gegenprobe`. Diese
-Kennung legt fest, wann er eine Message wegen einer Struktur-Kennung ablehnt. Was er
-sonst annimmt und was er an die mitgelieferte Prüfung weiterreicht, legt sie nicht
-fest.
-
-1. **Ort.** Die Ablehnung liegt im Träger `.githooks/commit-msg` selbst, nicht in der
-   mitgelieferten Prüfung `tools/harness/commit-msg-traceability.sh`.
-2. **Lesebereich.** Gelesen wird die Message-Datei bis vor die erste Zeile, die genau
-   `# ------------------------ >8 ------------------------` lautet (je 24 Bindestriche),
-   die Scissors-Zeile von `git commit -v`; eine Zeile in anderer Form beendet den
-   Bereich nicht. Nicht gelesen werden Kommentarzeilen: Zeilen, deren erstes Zeichen
-   nach führenden Leerzeichen und Tabs `#` ist.
-3. **Struktur-Kennung.** `SPEC-NNN` und `ARC-NNN` mit genau drei Ziffern, in genau
-   dieser Schreibweise und als ganzes Wort; Wortzeichen sind Buchstabe, Ziffer und
-   Unterstrich, jedes andere Zeichen grenzt ab, auch `-`, `/`, `#`, `.`, Backtick,
-   Anführungszeichen, `>` und Wagenrücklauf. Die Kennung zählt darum auch in Backticks,
-   in einem Zitat, in Klammern, als Linktext und als Teil eines Pfads oder
-   Dateinamens. Keine Struktur-Kennung ist eine andere Schreibweise (`spec-049`,
-   `Spec-049`, `arc-003`), eine andere Ziffernzahl (`SPEC-49`, `SPEC-0491`) oder ein
-   Platzhalter (`SPEC-<NNN>`, `SPEC-NNN`, `ARC-*`); ein Link-Anker wie
-   `spezifikation.md#spec-049--lint-profil-lint` ist klein geschrieben und darum keine
-   Nennung. Ob die Kennung in Spezifikation oder Sicht existiert, ist ohne Belang. In
-   `SPEC-035 bis SPEC-040` sind die beiden Enden je eine Nennung.
-4. **Merge und Revert.** Beginnt der Betreff mit `Merge ` oder `Revert `, sucht der
-   Träger keine Struktur-Kennung. Betreff ist die erste Zeile des Lesebereichs, die
-   weder leer ist noch nur Leerraum trägt noch Kommentarzeile ist, ohne führende
-   Leerzeichen und Tabs.
-5. **Vorrang.** Die Suche nach Struktur-Kennungen läuft vor jeder Annahme: Eine
-   Message mit Struktur-Kennung wird abgelehnt, auch wenn sie daneben eine Kennung
-   trägt, die der Träger oder die mitgelieferte Prüfung annimmt. Eine Message ohne
-   Struktur-Kennung im Lesebereich, eine nach Punkt 4 ausgenommene und ein Aufruf ohne
-   lesbare Message-Datei gehen den Weg, den der Träger ohne diese Kennung geht.
-6. **Ausgabe und Ausgang.** Je Nennung eine Zeile auf stderr,
-   `commit-msg: Zeile <n>: Struktur-Kennung <Kennung>`, mit `<n>` der Zeilennummer in
-   der Message-Datei ab 1, Kommentarzeilen mitgezählt. Eine Kennung, die in derselben
-   Zeile mehrmals steht, erscheint für diese Zeile einmal; geordnet wird nach Zeile,
-   innerhalb einer Zeile nach erstem Auftreten. Danach folgt genau eine Zeile
-   `commit-msg: Struktur-Kennungen (SPEC-NNN, ARC-NNN) gehoeren nicht in die Commit-Message`.
-   stdout bleibt leer, der Ausgang ist 1.
-
-**Grenze.** Ein Klon ohne `make hooks-install` und ein Commit mit
-`git commit --no-verify` bleiben ungeprüft. Ein anderes Kommentarzeichen als `#`
-(`core.commentChar`) kennt der Träger nicht: Eine solche Zeile wird gelesen. Eine selbst
-geschriebene Message, deren Betreff mit `Merge ` oder `Revert ` beginnt, geht nach
-Punkt 4 ungeprüft durch. Eine Kennung, die ein Zeilenumbruch teilt, ist keine Nennung.
-Gelesen wird nur die Message-Datei; was der Commit ändert, liest der Träger nicht.
 
 ### SPEC-052 — Gate-Kette und Wahl der Kette (`gates-schnell`)
 
@@ -3521,8 +3338,6 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-07 | Lint-Profil: Leerraum nach `exclusions:` und `rules:` ist Blockform, ein `-` allein ist ein Eintrag (`SPEC-049`) |
 | 2026-10-08 | Lint-Profil: ob eine Regel zu den zulässigen gehört, als Grenze (`SPEC-049`) |
 | 2026-10-06 | Kette mit mehreren Ursachen: der erste klassifizierte Fehler in Tiefensuche (`SPEC-034`) |
-| 2026-10-06 | Harness-Werkzeuge: Abschnitt angelegt; Prüfung des Kopfs lebender Pläne (`SPEC-047`) und Abdeckung je Anforderung und Pfad (`SPEC-048`) mit ihrem heutigen Vertrag übertragen (`LH-QA-07`, Messmethode 4) |
-| 2026-10-08 | Harness-Werkzeuge: Commit-Träger lehnt Struktur-Kennungen in der Commit-Message ab; Lesebereich, Schreibweise und Wortgrenze, Merge und Revert, Vorrang vor der Annahme, Ausgabe und Ausgang (`SPEC-050`) |
 | 2026-10-08 | Herunterfahren: Attribut `sessions` der Zeile beim Beginn, ohne offene Verbindung, Startphase, was die Frist begrenzt, Zwangsende auch im Aufbau, `PGR-E4006` nur bei unvollständiger Interaktion und ohne `PGR-E4003`, Inhalt der Meldung, zweites Signal auch bei `0`, weitere Signale ohne Wirkung, Upstream-Verbindung im Aufbau und Verbindung aus dem Rückstau in der Startphase als Grenze, Grund einer nicht geschriebenen Session (`LH-FA-13.a`, `LH-FA-14.a`); Form der Dauer von `--shutdown-timeout` mit führenden Nullen vor einer Einheit (`LH-FA-17.a`); Schreibfrist der Fehlerantwort beim Ende einer Session (`SPEC-051`, `LH-FA-18.a`) |
 | 2026-10-08 | Warten in Tests: ein synchroner Aufruf des Prüflings ohne Frist fällt nicht unter die Regel, sie gilt nur für Kanäle und das Ende eines gestarteten Prozesses; Entscheidung des Nutzers (`SPEC-038`) |
 | 2026-10-08 | Konfiguration: Umgebungsvariable mit Präfix ohne passende Option unbeachtet, doppelter Schlüssel ist ungültiges YAML, Name einer Verbindung nur bei genauer Übereinstimmung, Wert weder Name noch `host:port` ungültig, `sslmode=require` bei `record` ist `PGR-E2004`, Klartext-Passwort in jeder Verbindung, `config show` ohne `PGR-E2005`, aktive Umgebungsvariablen (`LH-FA-17.a`) |
