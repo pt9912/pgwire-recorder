@@ -409,7 +409,12 @@ Hook 200/8 (Schätzung 130 bis 170: die Zulässigkeit, die Auflösung des Ziels 
 in der Liste des Arbeitsbaums steht (neuer Fall `p14-geloescht-index-nicht-inert` mit `git rm`); (5) `m-spiegel-ohne-verzeichnis` färbte auch `p15-spiegel-absolut`, dessen Ziel ein Verzeichnis der Liste ist
 (Erwartung berichtigt). Danach grün.
 
-**Läufe:** Wird nach dem letzten Lauf von `make gates` ergänzt (unten).
+**Läufe** (Code-Commit `b512b23`, Belege-Commit `2a95992`, Baum sauber): `make gates` Exit 0, 7 min 18 s (438 s); darin `stop-hook-gegenprobe: gruen — 136 Fälle der Punkte 1, 9 bis 22 …`
+(gemessen für sich: 2 min 3 s; der Geber lag bei 12 s mit 40 Fällen, der Stand davor bei 31 s mit 66), `gates-schnell-gegenprobe: gruen`, `d-check: 693 Datei(en) geprüft, 0 Befund(e)`,
+`baseline-verify: v6.18.0 OK`, `kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`. Der erste Lauf von `make gates` am Stand `34a268f` dauerte 7 min 16 s (436 s). Danach der Hook im
+Arbeitsbaum: `{"decision":"approve"}`; ein Doku-Commit (dieser Eintrag, unter `docs/plan/planning/`) und `make gates-schnell` (Exit 0, 8 s, Docker-Cache warm) ändern daran nichts:
+`{"decision":"approve"}` ohne erneuten vollen Lauf. Die Last dessen, was der Hook spart, ist der volle Lauf (7 min 18 s, Docker-Builds, Integrationstests, die Gegenproben); die schnelle Kette
+fährt keine von ihnen. Der Hook ruft das Hash-Skript einmal (die Liste ein zweites Mal); gemessen im Repo mit einem inerten Unterschied: 4,5 s je Aufruf des Hooks.
 
 **Mutationen** (`bash tools/harness/stop-hook-gegenprobe.sh`; Mutant = `sed`/`awk` auf der Kopie von Hook oder Skript im Temp-Repo, vom Skript selbst gefahren, frische Kopie je Mutant: kein
 Docker-Build-Kontext. „rot“: der Fall meldet sich, „grün bleibt“: der Fall bleibt mit dem Mutanten grün. Die Mutanten in Klammern stehen mit ihrem Namen in der Gegenprobe):
