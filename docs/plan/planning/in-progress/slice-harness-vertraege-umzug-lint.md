@@ -31,7 +31,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Der Vertrag des Lint-Profils, `SPEC-049` (153 Zeilen, zehn Punkte), steht als Datei in `harness/vertraege/`, im Text unverändert gegenüber
+**Ziel:** Der Vertrag des Lint-Profils, `SPEC-049` (152 Zeilen, zehn Punkte), steht als Datei in `harness/vertraege/`, im Text unverändert gegenüber
 `spezifikation.md §11` am Stand `231089e`; er und die neun Zeilen seiner *Historie* sind aus der Spezifikation verschwunden, und jeder Verweis auf ihn zeigt
 auf den neuen Pfad.
 
@@ -55,7 +55,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [x] **Liefer-Punkt 1 — die Datei.** `harness/vertraege/SPEC-049-lint-profil.md` trägt den Text von `SPEC-049` aus `spezifikation.md §11` am Stand `231089e` (Zeilen 3012 bis 3164),
+- [x] **Liefer-Punkt 1 — die Datei.** `harness/vertraege/SPEC-049-lint-profil.md` trägt den Text von `SPEC-049` aus `spezifikation.md §11` am Stand `231089e` (Zeilen 3012 bis 3163),
       unverändert bis auf die Abweichungen, die `slice-harness-vertraege-umzug-ordner` für alle Verträge festlegt (Dateiname, Überschriftsebene); das `README.md` des Ordners führt den Vertrag
       und die neun Zeilen seiner Historie (Wortlaut aus §12). Beleg in §7: der Vergleich (Befehl und Ausgabe).
 - [x] **Liefer-Punkt 2 — die Spezifikation.** `spec/spezifikation.md` führt `SPEC-049` und die neun Zeilen seiner *Historie* nicht mehr; sonst unverändert; kein Verweis der Spezifikation
@@ -85,7 +85,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `harness/vertraege/SPEC-049-lint-profil.md` | neu | Text aus §11 (Zeilen 3012 bis 3164 am Stand `231089e`) |
+| `harness/vertraege/SPEC-049-lint-profil.md` | neu | Text aus §11 (Zeilen 3012 bis 3163 am Stand `231089e`) |
 | `harness/vertraege/README.md` | update | Eintrag des Vertrags und neun Zeilen Historie (Wortlaut aus §12, Reihenfolge nach Datum) |
 | `spec/spezifikation.md` | update | `SPEC-049` und neun Zeilen der *Historie* entfernt |
 | `harness/README.md` | update | §Sensors: Links und Nennungen in den Zeilen von `make lint` und `make lint-gegenprobe` |
@@ -98,7 +98,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 Ansatz: wie in `slice-harness-vertraege-umzug-ordner`: Der Text wandert per Ausschneiden, der Vergleich in §7 belegt es. Es entsteht kein Code, kein Test und kein Mutant; die
 Gegenprobe des Lint-Gates (`make lint-gegenprobe`) läuft im Gate-Lauf unverändert und belegt, dass die Kommentaränderungen in `.golangci.yml` und den Skripten das Gate nicht verändern.
-Die Zahl der Verweise ist hoch (17 Dateien außerhalb der Spezifikation mit Link, rund 22 Zeilen) und mechanisch; sie ändert die Größe nicht, weil sie unter Liefer-Punkt 3 eine Aufgabe zählt.
+Die Zahl der Verweise ist hoch (18 Dateien außerhalb der Spezifikation mit Link, rund 22 Zeilen) und mechanisch; sie ändert die Größe nicht, weil sie unter Liefer-Punkt 3 eine Aufgabe zählt.
 
 ## 4. Trigger
 
@@ -113,7 +113,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe aus Einfügungen und Löschungen von
   `git diff --numstat <Basis>..<letzter Commit des Slice> -- spec harness AGENTS.md tools .claude .golangci.yml docs/plan docs/reviews` liegt über 600
-  (`<Basis>` ist der Commit des Übergangs `next → in-progress` auf dem Hauptzweig; Metrik nach `AGENTS.md` §3.14; Schätzung des Planners 350 bis 480: 153 Zeilen Vertragstext, doppelt gezählt, dazu Historie und rund 22 Zeilen Verweise; kein Code, der Faktor 2 aus §3.14 entfällt).
+  (`<Basis>` ist der Commit des Übergangs `next → in-progress` auf dem Hauptzweig; Metrik nach `AGENTS.md` §3.14; Schätzung des Planners 350 bis 480: 152 Zeilen Vertragstext, doppelt gezählt, dazu Historie und rund 22 Zeilen Verweise; kein Code, der Faktor 2 aus §3.14 entfällt).
 - `in-progress` → `open` (blockiert — Carveout?): Eine Änderung der Kommentare in `.golangci.yml` oder in den Skripten ändert die Antwort von `make lint` oder `make lint-gegenprobe`
   (dann ist der Kommentar ein Teil der Zusage und der Fall gehört dem Architect), oder `slice-harness-vertraege-umzug-ordner` schließt nicht.
 
@@ -134,17 +134,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Ein Link in einem Zeitdokument bricht erst im Doku-Gate und nicht beim Umzug des Vertrags; der Slice zählt die Links vorher (`grep`, 17 Dateien außerhalb der Spezifikation) — **Ausgang:** offen bis Closure.
+- Ein Link in einem Zeitdokument bricht erst im Doku-Gate und nicht beim Umzug des Vertrags; der Slice zählt die Links vorher (`grep`, 18 Dateien außerhalb der Spezifikation) — **Ausgang:** offen bis Closure.
 - Pfadangaben in Kommentaren ohne Link fängt kein Gate (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`) — **Ausgang:** offen bis Closure.
 - Ein Kommentar in `.golangci.yml` ist Teil der Datei, die `make lint` und seine Gegenprobe lesen; eine Änderung des Wortlauts darf deren Antwort nicht ändern — **Ausgang:** offen bis Closure.
 
-**Prüfung des Architect vor dem Code** (2026-10-13, Stand `795f1c0`): Bezug zu [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Schärft `SPEC-049`), [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) und [MR-002](../../../../harness/conventions.md#mr-002) bestätigt. Nachgemessen am Stand `231089e`: `SPEC-049` 3012 bis 3164 (153 Zeilen), neun Historie-Zeilen 3514 bis 3522, jede nennt nur `SPEC-049`. Größe bestätigt, in der Metrik von `AGENTS.md` §3.14: 153 Zeilen doppelt 306, neun gelöschte Historie-Zeilen und rund zehn im `README.md` des Ordners, rund 22 Zeilen Verweise doppelt 44: **370 bis 430**, innerhalb der Schätzung des Planners (350 bis 480), unter der Marke 600. Zählung 3 Liefer-Punkte und 2 Schichten bestätigt. Kein Schnitt, keine Folge-ADR.
+**Prüfung des Architect vor dem Code** (2026-10-13, Stand `795f1c0`): Bezug zu [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Schärft `SPEC-049`), [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) und [MR-002](../../../../harness/conventions.md#mr-002) bestätigt. Nachgemessen am Stand `231089e`: `SPEC-049` 3012 bis 3163 (152 Zeilen), neun Historie-Zeilen 3514 bis 3522, jede nennt nur `SPEC-049`. Größe bestätigt, in der Metrik von `AGENTS.md` §3.14: 152 Zeilen doppelt 304, neun gelöschte Historie-Zeilen und rund zehn im `README.md` des Ordners, rund 22 Zeilen Verweise doppelt 44: **370 bis 430**, innerhalb der Schätzung des Planners (350 bis 480), unter der Marke 600. Zählung 3 Liefer-Punkte und 2 Schichten bestätigt. Kein Schnitt, keine Folge-ADR.
 
 **Randformen** (`AGENTS.md` §3.12): Es gelten die Entscheidungen 1 bis 11 aus §6 von `slice-harness-vertraege-umzug-ordner` (Dateiname, Überschrift, Text mit Ortsangabe, Einleitung, Regel der Historie-Zeilen, Reihe, Rang, Stop-Hook, Zeitdokumente, Skript-Kommentare, Stand von `commit-struktur-id`). Zusätzlich für diesen Vertrag, **entschieden vom Architect am 2026-10-13**, Ort: dieser Plan:
 
 1. *Dateiname.* `SPEC-049-lint-profil.md`, bestätigt.
 2. *Neun Zeilen Historie.* Genau die Zeilen 3514 bis 3522 am Stand `231089e` (2026-10-06 bis 2026-10-08), die erste („Harness-Werkzeuge: Lint-Profil mit Linter, Schwellen, …“) eingeschlossen. Sie stehen im `README.md` nach der Regel der Einsortierung aus Randform 5 des Ordner-Slice (Datum aufsteigend; am selben Tag die Zeile „Abschnitt angelegt“ zuerst, die übrigen in der Reihenfolge der Spezifikation): die fünf Lint-Zeilen vom 2026-10-06 folgen also auf „Abschnitt angelegt“.
-3. *Vertrag nennt eine Kennung des Produkts oder einen Pfad.* Entschieden: Der Text von `SPEC-049` nennt keinen Pfad der Spezifikation und kein `harness/` (Zeilen 3012 bis 3164 gelesen); ein Befund beim Vergleich ist eine Randform, die der Implementer zurückgibt.
+3. *Vertrag nennt eine Kennung des Produkts oder einen Pfad.* Entschieden: Der Text von `SPEC-049` nennt keinen Pfad der Spezifikation und kein `harness/` (Zeilen 3012 bis 3163 gelesen); ein Befund beim Vergleich ist eine Randform, die der Implementer zurückgibt.
 4. *Plan `slice-harness-lint-warten-ohne-frist`.* Ortsangabe des Vertrags (Kopf, §1, §3, §6) ist `harness/vertraege/SPEC-049-lint-profil.md`, und die Historie des Vertrags steht in `harness/vertraege/README.md`; die Nennung `spezifikation.md` §12 im Kopf bleibt für die Historie der Spezifikation (die Zeile zu `SPEC-038`) und zieht mit `slice-harness-vertraege-umzug-gate-kette` auf §11 (Nummer der Historie nach dem Wegfall von §11). Sonst nichts (Bindung nach `AGENTS.md` §3.13: der Nehmer nennt den Ort mit der Kennung dieses Gebers).
 5. *Kommentare.* `harness/mk/lint.mk` nennt `SPEC-049` ohne Pfad (Zeilen 5 und 17) und bleibt unverändert; der Pfad steht in `.golangci.yml` (Zeile 2), `tools/harness/lint.sh` (Zeile 5) und `tools/harness/lint-gegenprobe.sh` (Zeile 4). Der Kommentar in `.golangci.yml` bleibt **eine** Zeile, damit die Zeilen der Datei, die `make lint` und die Gegenprobe nennen, sich nicht verschieben; dass die Antwort der Gegenprobe gleich bleibt, belegt der Gate-Lauf.
 6. *Weitere Pläne mit Link.* Neben `slice-tests-ueberlebende-mutanten` und `-driving` (Link auf `SPEC-049` Punkt 7) zählt der `grep` aus Liefer-Punkt 3 jede weitere Datei; was er findet und nicht in §3 steht, wird im selben Commit nachgezogen und in §7 genannt.
