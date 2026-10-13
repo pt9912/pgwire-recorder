@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode (4)). Bindung an Entscheidungen: [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) (Ort) mit Adaption [MR-002](../../../../harness/conventions.md#mr-002); der Vertrag bleibt von [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) geschärft. Bindung aus `slice-harness-gate-kette-stop-hook-freigabe` (V-343, benannte Spec-Lücke): siehe §1.
 
-**Berührte Spec-Stellen:** `SPEC-052` (Vertrag von `gates-schnell` und Stop-Hook: der Ort wechselt von `spezifikation.md §11` nach `harness/vertraege/`; Punkt 22 (b) wird eindeutig gefasst) · `spezifikation.md §11` (*Harness-Werkzeuge*: Einleitung und letzter Vertrag gehen, die Überschrift entfällt) · `spezifikation.md §12` (*Historie*, verliert fünf Zeilen)
+**Berührte Spec-Stellen:** `SPEC-052` (Vertrag von `gates-schnell` und Stop-Hook: der Ort wechselt von `spezifikation.md §11` nach `harness/vertraege/`; Punkt 22 (b) wird eindeutig gefasst) · `SPEC-049` (nur die Ortsangabe in `AGENTS.md` §3.12, vom Vorgänger-Slice gestrichen; hier nicht berührt) · `spezifikation.md §11` (*Harness-Werkzeuge*: Einleitung und letzter Vertrag gehen, die Überschrift entfällt) · `spezifikation.md §12` (*Historie*, verliert fünf Zeilen)
 
 **Verantwortlich:** pt9912
 
@@ -35,6 +35,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 `231089e` bis auf Punkt 22 (b), den der Architect eindeutig fasst; mit ihm verschwindet der Abschnitt *Harness-Werkzeuge* ganz aus der Spezifikation (Einleitung, Überschrift, fünf Zeilen der
 *Historie*), und jeder Verweis auf den Vertrag und jeder Plan, der `spezifikation.md §11` als Ort neuer Kennungen nennt, zeigt auf den neuen Ort.
 
+**Sendung aus `slice-harness-vertraege-umzug-ordner` (Zwischenstand mit zwei Orten).** `AGENTS.md` §3.12 nennt für `SPEC-052` (und bis `slice-harness-vertraege-umzug-lint` für `SPEC-049`) `spec/spezifikation.md` §11. Dieser Slice nimmt an: Er streicht die Ausnahme für `SPEC-052` und damit den Zwischenstand mit zwei Orten; danach nennt §3.12 nur `harness/vertraege/` als Ort, ohne Ausnahme und ohne Chronik (`AGENTS.md` §3.7).
+
 **Bindung aus `slice-harness-gate-kette-stop-hook-freigabe` (V-343, benannte Spec-Lücke).** Punkt 22 (b) liest sich einzeln als „leere Umgebung: bei identischer Liste `approve`, bei jedem Unterschied
 `block`“; erst der folgende Satz („beide Aufrufarten gelten auch für die Freigabe nach Punkt 9“) hebt das auf. Der Code ist richtig; die Gegenprobe prüft die Freigabe in beiden Aufrufarten
 (`p22-freigabe-unterverzeichnis`, `p22-freigabe-leere-umgebung`, Mutanten `m-22-hash-relativ`, `m-22-hash-home`). Dieser Slice ist der Nehmer: Der Architect fasst (b) bei der Neuschrift so,
@@ -43,7 +45,7 @@ dass der Satz für sich allein gelesen nicht das Gegenteil sagt; mehr ändert er
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Ordner, `README.md`, Rang, Reihe der Kennungen und die Verträge von `kopf-check`, `abdeckung` und `commit-msg`: `slice-harness-vertraege-umzug-ordner` (Voraussetzung, er liegt vor diesem Slice in `done/`). Dieser Slice trägt nur den Vertrag, seine Historie-Zeilen und das Entfernen der Einleitung nach.
-- Der Vertrag des Lint-Profils: `slice-harness-vertraege-umzug-lint` (Voraussetzung, liegt davor in `done/`).
+- Der Vertrag des Lint-Profils und die Ausnahme für `SPEC-049` in `AGENTS.md` §3.12: `slice-harness-vertraege-umzug-lint` (Voraussetzung, liegt davor in `done/`; Sendung aus `slice-harness-vertraege-umzug-ordner` an jenen).
 - Jede andere Änderung an Wortlaut oder Zusage von `SPEC-052`: Der Umzug ist wortgleich (Entscheidung des Nutzers); was der Architect darüber hinaus für nötig hält, ist eine Randform in §6 und geht, wenn es mehr als die Bindung ist, zurück an den Planner (Klasse 3: ein anderer Vorgang, Arbeit am Vertrag statt am Ort).
 - Die Stop-Hook-Logik, `tools/harness/dateiliste.sh`, `tools/harness/working-tree-hash.sh`, `tools/harness/record-gates.sh`, `tools/harness/gates-schnell.sh`: nur Kommentare mit dem alten Pfad ändern sich (Klasse 4: kein Produkt-Code, keine Logik). Ausnahme nur, wenn der Architect in §6 Randform 2 entscheidet, dass die Selbständerung eines Vertrags in der Gegenprobe einen Fall bekommt.
 - Pläne, die einen *bestehenden* Vertrag fortschreiben (`slice-harness-commit-struktur-id`, `slice-harness-abdeckung-gate`, `slice-harness-lint-warten-ohne-frist`): bereits in den ersten beiden Slices nachgezogen.
@@ -67,7 +69,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `make gates-schnell-gegenprobe`, `make stop-hook-gegenprobe`), die Kommentare von `.claude/hooks/stop-require-gates.sh`, `tools/harness/gates-schnell.sh`, `tools/harness/gates-schnell-gegenprobe.sh`,
       `tools/harness/stop-hook-gegenprobe.sh`, `tools/harness/record-gates.sh`, `tools/harness/dateiliste.sh`, `harness/mk/gates-schnell.mk`, `harness/mk/stop-hook-gegenprobe.mk`; in den Plänen
       `slice-harness-lh-links-pflicht`, `slice-harness-meldungskatalog-gate`, `slice-harness-coverage`, `slice-harness-mutation` der Ort neuer Kennungen (Kopf, §1, §3, §6; die nächste freie Nummer ist 053);
-      `AGENTS.md` §3.12 und die Rollen- und Command-Texte unter `.claude/`, falls sie `spezifikation.md §11` oder „die Spezifikation“ für Harness-Werkzeuge nennen.
+      `AGENTS.md` §3.12 (Sendung aus `slice-harness-vertraege-umzug-ordner`): die Ausnahme für `SPEC-052` und der Zwischenstand mit zwei Orten entfallen, der Ort ist `harness/vertraege/` ohne Ausnahme; die Rollen- und Command-Texte unter `.claude/`, falls sie `spezifikation.md §11` oder „die Spezifikation“ für Harness-Werkzeuge nennen.
       Beleg in §7: `grep -rn "spezifikation.md#spec-052\|spezifikation.md SPEC-052\|spezifikation.md §11\|spezifikation.md.*§ ?11" --exclude-dir=.git --exclude-dir=.harness .` ohne Treffer außerhalb von Zeitdokumenten und Entscheidungen (Reviews, Pläne in `done/`, ADRs, `MR-002`), und `grep -rn "§ \?12" docs/plan/planning/open docs/plan/planning/next` ohne Verweis auf die Historie der Spezifikation.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -95,7 +97,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `harness/README.md` | update | §Sensors: Links und Nennungen in den Zeilen von `make gates-schnell`, `make gates-schnell-gegenprobe`, `make stop-hook-gegenprobe` |
 | `.claude/hooks/stop-require-gates.sh`, `tools/harness/gates-schnell.sh`, `tools/harness/gates-schnell-gegenprobe.sh`, `tools/harness/stop-hook-gegenprobe.sh`, `tools/harness/record-gates.sh`, `tools/harness/dateiliste.sh`, `harness/mk/gates-schnell.mk`, `harness/mk/stop-hook-gegenprobe.mk` | update (nur Kommentare) | „Vertrag: spec/spezifikation.md SPEC-052“ nennt den neuen Pfad |
 | `tools/harness/stop-hook-gegenprobe.sh` | update (Entscheidung des Nutzers vom 2026-10-13, §6 Randform 2) | ein Fall für die Selbständerung des Vertrags am neuen Pfad (`p12-selbst-vertrag`), mit Mutation; sonst unverändert |
-| `AGENTS.md`, `.claude/agents/architect.md` | update, falls sie den alten Ort nennen | Ortsangabe der Spezifikation für Harness-Werkzeuge; Stand zum Planungszeitpunkt: `AGENTS.md` §3.12 ist von `slice-harness-vertraege-umzug-ordner` angepasst, `architect.md` Zeile 35 nennt „die Spezifikation des Gates“ |
+| `AGENTS.md`, `.claude/agents/architect.md` | update, falls sie den alten Ort nennen | Ortsangabe der Spezifikation für Harness-Werkzeuge; `AGENTS.md` §3.12 verliert hier die Ausnahme für `SPEC-052` (Sendung aus `slice-harness-vertraege-umzug-ordner`, Randform 9); Stand zum Planungszeitpunkt: §3.12 ist von `slice-harness-vertraege-umzug-ordner` angepasst, `architect.md` Zeile 35 nennt „die Spezifikation des Gates“ |
 | `docs/plan/planning/open/slice-harness-lh-links-pflicht.md`, `slice-harness-mutation.md`; `next/slice-harness-meldungskatalog-gate.md`, `next/slice-harness-coverage.md` | update | Ort neuer Kennungen: `harness/vertraege/` statt `spezifikation.md §11`, nächste freie Nummer 053 (`AGENTS.md` §3.9); die Ortsänderung fügt keinem dieser Pläne einen Liefer-Punkt hinzu und keine Schicht (die Festlegung liegt jetzt in der Schicht Harness, die jeder von ihnen schon berührt) |
 | `docs/plan/planning/in-progress/roadmap.md` | update | Stand erst bei der Closure |
 | `docs/reviews/2026-10-13-verifikation-slice-harness-gate-kette-stop-hook-freigabe.md` und weitere Reviews mit Link | update (Links) | nur, wo das Doku-Gate sonst bricht |
@@ -154,6 +156,7 @@ dasteht.
 6. *`MR-002`.* Der Zustandsabsatz („Der Umzug geschieht erst im Umzug-Slice …“) lautet danach als Zustand: aktiv, jeder Vertrag eines Harness-Werkzeugs steht in `harness/vertraege/`; keine Chronik (`AGENTS.md` §3.7). Adaption und Auflösungs-Trigger bleiben; der Absatz im Geltungsbereich „bisher `spec/spezifikation.md` §11, künftig …“ wird auf „`harness/vertraege/`“ gekürzt.
 7. *Rollen-Datei `.claude/agents/architect.md`.* Entschieden: unverändert. „Die Spezifikation des Gates“ bleibt als Aussage wahr (die Festlegung eines Gates); das Technik-Stratum bleibt (`MR-002` Adaption 2). Die Command-Texte unter `.claude/commands/` nennen §11 nicht (geprüft am 2026-10-13); der `grep` aus Liefer-Punkt 3 belegt es erneut.
 8. *Nachzug der vier Pläne.* Der Ort neuer Kennungen heißt dort `harness/vertraege/` und die nächste freie Nummer 053; ein Plan, der „Abschnitt für Harness-Werkzeuge der Spezifikation“ im Fließtext sagt, wird im selben Zug berichtigt. `slice-harness-abdeckung-gate` hat der Ordner-Slice schon nachgezogen.
+9. *Ortsangabe in `AGENTS.md` §3.12 (Sendung aus `slice-harness-vertraege-umzug-ordner`, `AGENTS.md` §3.13).* Zusage: Nach diesem Slice nennt §3.12 `harness/vertraege/` als Ort und keine Ausnahme mehr (`spec/spezifikation.md` §11 kommt dort nicht mehr vor, auch kein „bis zu deren Umzug“). Beleg: `grep -n "spezifikation.md. §11\|§11" AGENTS.md` zeigt keine Zeile, die §11 als Ort für Harness-Werkzeuge nennt. Zeile in einer bereits berührten Datei und Schicht (Harness), derselbe Liefer-Punkt 3.
 
 ## 7. Closure-Notiz
 
@@ -193,7 +196,7 @@ Hälften.
 `stop-hook-gegenprobe-prueft-nicht-die-umgebung` (Treffer nur, wenn (b) der Randform 2 gewählt wird) · `schnitt-laesst-haelfte-an-der-grenze` (2×, offen: dieser Slice ist die größte Hälfte, Marke und Schätzung in der Metrik von `AGENTS.md` §3.14) ·
 `groessenprobe-ohne-messbaren-stand` und `schaetzung-in-zeilen-unterschaetzt-tests` (je 3×, verkörpert in §3.14) · `slice-waechst-durch-uebernahmen` (3×, verkörpert: Nachzählung unten).
 
-**Nachgezählt** (`AGENTS.md` §3.13): Liefer-Punkte 3 (Datei samt V-343, Spezifikation, Verweise). Schichten 2: Spezifikation (`spec/`) und Harness (`harness/`, `tools/`, `.claude/`, `AGENTS.md`); Planung ist keine Schicht, Produkt-Code unberührt. Die Bindung aus `slice-harness-gate-kette-stop-hook-freigabe` fügt keinen Liefer-Punkt hinzu: Sie gehört zu Punkt 1 (dieselbe Datei), ihr Beleg wird in §7 eigens geführt; der Planner urteilt so, der Architect bestätigt vor dem Code.
+**Nachgezählt** (`AGENTS.md` §3.13): Liefer-Punkte 3 (Datei samt V-343, Spezifikation, Verweise). Schichten 2: Spezifikation (`spec/`) und Harness (`harness/`, `tools/`, `.claude/`, `AGENTS.md`); Planung ist keine Schicht, Produkt-Code unberührt. **Mit der Sendung aus `slice-harness-vertraege-umzug-ordner` nachgezählt:** `AGENTS.md` §3.12 steht schon in Liefer-Punkt 3 und in der Schicht Harness; es bleiben 3 Liefer-Punkte und 2 Schichten, die Schätzung 550 bis 750 (mit Fall 680 bis 780) wächst um eine Zeile, Marke 900 unberührt. Die Bindung aus `slice-harness-gate-kette-stop-hook-freigabe` fügt keinen Liefer-Punkt hinzu: Sie gehört zu Punkt 1 (dieselbe Datei), ihr Beleg wird in §7 eigens geführt; der Planner urteilt so, der Architect bestätigt vor dem Code.
 
 **Modus-Begründungsblock — Umfang.** Pflicht, sobald mindestens eine berührte
 Sub-Area BF oder Hybrid ist — einer pro Sub-Area. Bei reinem GF genügt der

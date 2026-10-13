@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode (4)). Bindung an Entscheidungen: [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) (Ort) mit Adaption [MR-002](../../../../harness/conventions.md#mr-002); der Vertrag bleibt von [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) geschärft.
 
-**Berührte Spec-Stellen:** `SPEC-049` (Vertrag von `lint`: der Ort wechselt von `spezifikation.md §11` nach `harness/vertraege/`, der Text bleibt) · `spezifikation.md §11` (*Harness-Werkzeuge*, verliert diesen Vertrag) · `spezifikation.md §12` (*Historie*, verliert neun Zeilen)
+**Berührte Spec-Stellen:** `SPEC-049` (Vertrag von `lint`: der Ort wechselt von `spezifikation.md §11` nach `harness/vertraege/`, der Text bleibt) · `SPEC-052` (nur die Ortsangabe in `AGENTS.md` §3.12 bleibt für ihn stehen; Umzug im Folge-Slice) · `spezifikation.md §11` (*Harness-Werkzeuge*, verliert diesen Vertrag) · `spezifikation.md §12` (*Historie*, verliert neun Zeilen)
 
 **Verantwortlich:** pt9912
 
@@ -35,9 +35,12 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 `spezifikation.md §11` am Stand `231089e`; er und die neun Zeilen seiner *Historie* sind aus der Spezifikation verschwunden, und jeder Verweis auf ihn zeigt
 auf den neuen Pfad.
 
+**Sendung aus `slice-harness-vertraege-umzug-ordner` (Zwischenstand mit zwei Orten).** `AGENTS.md` §3.12 nennt als Ort der Randform-Entscheidung `harness/vertraege/` und für die Verträge `SPEC-049` und `SPEC-052` `spec/spezifikation.md` §11. Dieser Slice nimmt `SPEC-049` an: Nach seinem Umzug nennt §3.12 `SPEC-049` nicht mehr als Ausnahme (der Ort ist `harness/vertraege/`); die Ausnahme für `SPEC-052` bleibt stehen, bis `slice-harness-vertraege-umzug-gate-kette` sie streicht.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Ordner, `README.md`, Rang und Reihe der Kennungen: Sie entstehen in `slice-harness-vertraege-umzug-ordner` und liegen vor diesem Slice (Voraussetzung: Er startet erst, wenn jener in `done/` liegt). Dieser Slice trägt nur die Historie-Zeilen und den Eintrag des Vertrags in das `README.md` nach.
+- Die Ausnahme für `SPEC-052` in `AGENTS.md` §3.12 und der Wegfall des Zwischenstands: `slice-harness-vertraege-umzug-gate-kette` (Klasse 1; Sendung aus `slice-harness-vertraege-umzug-ordner`). Grund: Solange `SPEC-052` in §11 steht, ist die Ausnahme wahr.
 - Der Vertrag der Gate-Kette und Einleitung und Rest von §11: `slice-harness-vertraege-umzug-gate-kette` (Klasse 1). Grund: Der Vertrag ist mit 262 Zeilen der größte und trägt eine Klarstellung (V-343), die einen eigenen Slice füllt.
 - Der Text von `SPEC-049` wird nicht umgeschrieben (Entscheidung des Nutzers: wortgleich verschieben); der neue Punkt, den `slice-harness-lint-warten-ohne-frist` schreibt, entsteht dort, in der Datei am neuen Ort.
 - Das Lint-Profil `.golangci.yml`, `tools/harness/lint.sh`, `tools/harness/lint-gegenprobe.sh`: nur Kommentare mit dem alten Pfad ändern sich, keine Regel, kein Fall, kein Mutant (Klasse 4: kein Produkt-Code, und die Gegenprobe prüft den Vertrag, nicht seinen Ort).
@@ -60,6 +63,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [ ] **Liefer-Punkt 3 — die Verweise.** Jeder Verweis auf `SPEC-049` zeigt auf den neuen Ort: die Links in `harness/README.md`, `harness/sensors/lint.md`,
       [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md), den Plänen in `open/`, den Plänen in `done/` und den Reviews, wo sie sonst bricht; die Pfadangaben in den Kommentaren von
       `.golangci.yml`, `tools/harness/lint.sh`, `tools/harness/lint-gegenprobe.sh`; die Ortsangabe in `slice-harness-lint-warten-ohne-frist` (Kopf, §1, §3, §6).
+      `AGENTS.md` §3.12 (Sendung aus `slice-harness-vertraege-umzug-ordner`): nennt `SPEC-049` nicht mehr mit `spec/spezifikation.md` §11, die Ausnahme gilt nur noch für `SPEC-052`.
       Beleg in §7: `grep -rn "spezifikation.md#spec-049" --exclude-dir=.git --exclude-dir=.harness .` und `grep -rn "spezifikation.md SPEC-049" --exclude-dir=.git .` ohne Treffer.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -86,6 +90,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `spec/spezifikation.md` | update | `SPEC-049` und neun Zeilen der *Historie* entfernt |
 | `harness/README.md` | update | §Sensors: Links und Nennungen in den Zeilen von `make lint` und `make lint-gegenprobe` |
 | `harness/sensors/lint.md` | update | drei Links auf den Vertrag |
+| `AGENTS.md` | update | §3.12: Ausnahme für `SPEC-049` gestrichen, Ausnahme für `SPEC-052` bleibt (Sendung aus `slice-harness-vertraege-umzug-ordner`, Randform 7) |
 | `.golangci.yml`, `tools/harness/lint.sh`, `tools/harness/lint-gegenprobe.sh` | update (nur Kommentare) | „Vertrag: spec/spezifikation.md SPEC-049“ nennt den neuen Pfad (`harness/mk/lint.mk` nennt keinen Pfad und bleibt, Randform 5) |
 | `docs/plan/adr/0034-lint-gate-mit-solid-nahem-profil.md` | update (Link) | Referenz-Nachzug nach [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), keine Überschreibung der Entscheidung |
 | `docs/plan/planning/open/slice-harness-lint-warten-ohne-frist.md`, `slice-tests-ueberlebende-mutanten.md`, `slice-tests-ueberlebende-mutanten-driving.md` | update | Links und Ortsangabe des Vertrags (`AGENTS.md` §3.9) |
@@ -143,6 +148,7 @@ dasteht.
 4. *Plan `slice-harness-lint-warten-ohne-frist`.* Ortsangabe des Vertrags (Kopf, §1, §3, §6) ist `harness/vertraege/SPEC-049-lint-profil.md`, und die Historie des Vertrags steht in `harness/vertraege/README.md`; die Nennung `spezifikation.md` §12 im Kopf bleibt für die Historie der Spezifikation (die Zeile zu `SPEC-038`) und zieht mit `slice-harness-vertraege-umzug-gate-kette` auf §11 (Nummer der Historie nach dem Wegfall von §11). Sonst nichts (Bindung nach `AGENTS.md` §3.13: der Nehmer nennt den Ort mit der Kennung dieses Gebers).
 5. *Kommentare.* `harness/mk/lint.mk` nennt `SPEC-049` ohne Pfad (Zeilen 5 und 17) und bleibt unverändert; der Pfad steht in `.golangci.yml` (Zeile 2), `tools/harness/lint.sh` (Zeile 5) und `tools/harness/lint-gegenprobe.sh` (Zeile 4). Der Kommentar in `.golangci.yml` bleibt **eine** Zeile, damit die Zeilen der Datei, die `make lint` und die Gegenprobe nennen, sich nicht verschieben; dass die Antwort der Gegenprobe gleich bleibt, belegt der Gate-Lauf.
 6. *Weitere Pläne mit Link.* Neben `slice-tests-ueberlebende-mutanten` und `-driving` (Link auf `SPEC-049` Punkt 7) zählt der `grep` aus Liefer-Punkt 3 jede weitere Datei; was er findet und nicht in §3 steht, wird im selben Commit nachgezogen und in §7 genannt.
+7. *Ortsangabe in `AGENTS.md` §3.12 (Sendung aus `slice-harness-vertraege-umzug-ordner`, `AGENTS.md` §3.13).* Zusage: Nach diesem Slice nennt §3.12 `spec/spezifikation.md` §11 nur noch für `SPEC-052`; `SPEC-049` steht unter `harness/vertraege/`. Beleg: `grep -n "SPEC-049" AGENTS.md` zeigt keine Zeile, die §11 als Ort nennt. Ein Rest, der `SPEC-049` weiter in §11 verortet, ist ein Befund gegen diesen Slice. Die Zeile ist Verdrahtung des Ortes im Harness, keine neue Schicht und kein neuer Liefer-Punkt (sie gehört zu Liefer-Punkt 3).
 
 ## 7. Closure-Notiz
 
@@ -181,7 +187,7 @@ Hälften.
 `plan-folgt-korrektur-nicht` (41×, verkörpert: Ortsangaben in Plänen ziehen mit) · `zusage-im-kommentar-weiter-als-pruefung` (51×, verkörpert: Kommentare nennen den Pfad nur, soweit ein `grep` ihn belegt) ·
 `schnitt-laesst-haelfte-an-der-grenze` (2×, offen: dieser Slice ist die mittlere Hälfte des Schnitts, Größe bekannt und kleiner als die beiden anderen) · `slice-waechst-durch-uebernahmen` (3×, verkörpert: Nachzählung unten).
 
-**Nachgezählt** (`AGENTS.md` §3.13): Liefer-Punkte 3 (Datei, Spezifikation, Verweise). Schichten 2: Spezifikation (`spec/`) und Harness (`harness/`, Skripte, `.golangci.yml`); Planung (ADR, Pläne, Reviews) ist keine Schicht, Produkt-Code unberührt (die Kommentare in `internal/` bleiben).
+**Nachgezählt** (`AGENTS.md` §3.13): Liefer-Punkte 3 (Datei, Spezifikation, Verweise). Schichten 2: Spezifikation (`spec/`) und Harness (`harness/`, Skripte, `.golangci.yml`); Planung (ADR, Pläne, Reviews) ist keine Schicht, Produkt-Code unberührt (die Kommentare in `internal/` bleiben). **Mit der Sendung aus `slice-harness-vertraege-umzug-ordner` nachgezählt:** `AGENTS.md` §3.12 gehört zu Liefer-Punkt 3 (Verweise) und liegt in der Schicht Harness; es bleiben 3 Liefer-Punkte und 2 Schichten. Größe: eine Zeile mehr, Schätzung 370 bis 440, Marke 600 unberührt.
 
 **Modus-Begründungsblock — Umfang.** Pflicht, sobald mindestens eine berührte
 Sub-Area BF oder Hybrid ist — einer pro Sub-Area. Bei reinem GF genügt der

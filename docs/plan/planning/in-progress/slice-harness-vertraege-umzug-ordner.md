@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode (4): die Prüfumgebung des Projekts, deren Werkzeuge die Verträge festlegen). Bindung an Entscheidungen: [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) (Ort, Ablage, Rang, Gate-Klasse, Zeitpunkt) mit Adaption [MR-002](../../../../harness/conventions.md#mr-002); die Verträge bleiben von [ADR-0032](../../adr/0032-kopf-sensor-fuer-slice-plaene.md), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) und [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md) geschärft.
 
-**Berührte Spec-Stellen:** `SPEC-047` · `SPEC-048` · `SPEC-050` (die Verträge von `kopf-check`, `abdeckung` und `commit-msg`: der Ort wechselt von `spezifikation.md §11` nach `harness/vertraege/`, der Text bleibt) · `spezifikation.md §11` (*Harness-Werkzeuge*, verliert diese drei Verträge) · `spezifikation.md §12` (*Historie*, verliert deren Zeilen)
+**Berührte Spec-Stellen:** `SPEC-047` · `SPEC-048` · `SPEC-050` (die Verträge von `kopf-check`, `abdeckung` und `commit-msg`: der Ort wechselt von `spezifikation.md §11` nach `harness/vertraege/`, der Text bleibt) · `SPEC-049` · `SPEC-052` (nur die Ortsangabe in `AGENTS.md` §3.12, der Zwischenstand mit zwei Orten, abgegeben an die Folge-Slices; Text und Ort der Verträge bleiben) · `spezifikation.md §11` (*Harness-Werkzeuge*, verliert diese drei Verträge) · `spezifikation.md §12` (*Historie*, verliert deren Zeilen)
 
 **Verantwortlich:** pt9912
 
@@ -59,6 +59,7 @@ Ort der Historie). Die Verträge von Lint-Profil und Gate-Kette folgen in je ein
   §11 fällt; `slice-harness-vertraege-umzug-gate-kette` zieht sie nach (Klasse 1, dort in §1 und DoD).
 - Kein Produkt-Code und kein Test: Kommentare in Skripten, die den alten Pfad nennen, ändern sich, Logik nicht (Klasse 4).
   Die Kommentare in `internal/` nennen die Kennung ohne Pfad und bleiben (Klasse 2: Die Kennung löst weiter auf).
+- Der Zwischenstand mit zwei Orten in `AGENTS.md` §3.12 (`SPEC-049` und `SPEC-052` in `spec/spezifikation.md` §11) bleibt nach diesem Slice stehen und ist abgegeben: an `slice-harness-vertraege-umzug-lint` für `SPEC-049`, an `slice-harness-vertraege-umzug-gate-kette` für `SPEC-052` samt Wegfall des Zwischenstands; beide nennen die Sendung in §1 und DoD mit der Kennung dieses Slice (Klasse 1, `AGENTS.md` §3.13).
 - Kein Stub in der Spezifikation ([ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) schließt ihn aus: Die Spezifikation darf nicht auf `harness/` verweisen).
 
 ## 2. Definition of Done
@@ -158,7 +159,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 - Der Text eines Vertrags nennt selbst den alten Ort (in `SPEC-050` steht ein Beispiel-Anker `spezifikation.md#spec-049…` als Text, kein Link) — wortgleich, entschieden in Randform 3 — **Ausgang:** offen bis Closure.
-- Zwischenstand mit zwei Orten: Wer `SPEC-049` oder `SPEC-052` sucht, findet sie bis zu den Folge-Slices noch in §11; das `README.md` des Ordners sagt, welche Verträge der Ordner führt, und nur das (`AGENTS.md` §3.7: Zustand, keine Chronik) — **Ausgang:** offen bis Closure.
+- Zwischenstand mit zwei Orten: Wer `SPEC-049` oder `SPEC-052` sucht, findet sie bis zu den Folge-Slices noch in §11; das `README.md` des Ordners sagt, welche Verträge der Ordner führt, und nur das (`AGENTS.md` §3.7: Zustand, keine Chronik). Der Nachzug der Ortsangabe in `AGENTS.md` §3.12 ist abgegeben: `slice-harness-vertraege-umzug-lint` trägt ihn für `SPEC-049`, `slice-harness-vertraege-umzug-gate-kette` für `SPEC-052` samt Wegfall des Zwischenstands (beide in §1, DoD und §6 mit der Kennung dieses Slice) — **Ausgang:** offen bis Closure.
 - Verweise ohne Link (Pfadangaben in Kommentaren, Fließtext in Plänen) fängt kein Gate; der Beleg ist ein `grep`, der nur diese Form kennt (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`) — **Ausgang:** offen bis Closure.
 - Die Schnitt-Grenze: Eine Hälfte des Umzugs (Einleitung von §11, Reihe der Kennungen) liegt von Anfang an im Ordner, obwohl zwei Verträge noch fehlen; läge ein Fehler dort, träfe er die beiden Folge-Slices (`BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`, 2×, offen) — **Ausgang:** offen bis Closure.
 
