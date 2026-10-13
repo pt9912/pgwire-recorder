@@ -598,7 +598,7 @@ die Laufzeit des Hooks (F-721) ist nicht verändert und nicht zugesagt.
 
 **Läufe der engen Sensoren** (Code-Commit `9e727fb`): `make hook-gegenprobe` grün, `make stop-hook-gegenprobe` grün (138 Fälle), `make gates-schnell-gegenprobe` grün, `make gates-schnell` grün.
 
-**Stand der Gates der Nacharbeit** (Code-Commit `9e727fb`, Belege-Commit davor: `git log -1 --format=%h -- docs/plan/planning/in-progress/slice-harness-gate-kette-stop-hook-freigabe.md` am Stand des Laufs; Baum sauber): `make gates` Exit 0, 7 min 22,9 s;
+**Stand der Gates der Nacharbeit** (Code-Commit `9e727fb`, Belege-Commit davor: `git log -1 --format=%h -- docs/plan/planning/done/slice-harness-gate-kette-stop-hook-freigabe.md` am Stand des Laufs; Baum sauber): `make gates` Exit 0, 7 min 22,9 s;
 darin `d-check: 694 Datei(en) geprüft, 0 Befund(e)`, `baseline-verify: v6.18.0 OK`, `commit-msg-gegenprobe: gruen` (hook-gegenprobe), `stop-hook-gegenprobe: gruen — 138 Fälle`, `gates-schnell-gegenprobe: gruen`,
 `kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`, `a-check-negativ: gruen`, `run-integration-tests: gruen`. Danach `bash .claude/hooks/stop-require-gates.sh </dev/null` im Arbeitsbaum: `{"decision":"approve"}`.
 
