@@ -449,8 +449,8 @@ Verbindungen Ihrer Anwendung zu; die Option `--session-assignment` wählt, wie.
 
 #### Voraussetzung
 
-Wie beim Aufzeichnen und beim Wiedergeben. Die Zuordnung beim Wiedergeben ist nur
-zugesichert, wenn Ihre Anwendung ihre Verbindungen nacheinander aufbaut und nutzt.
+Wie beim Aufzeichnen und beim Wiedergeben. Die Zuordnung beim Wiedergeben gilt für
+Verbindungen, die Ihre Anwendung nacheinander aufbaut und nutzt.
 
 #### Vorgehen
 
@@ -522,15 +522,17 @@ auch wenn sie keine Interaktionen hat.
 
 #### Hinweise zum Aufzeichnen
 
-* Die `id` der Sitzungen zählt ab 1 in der Reihenfolge, in der die Sitzungen enden, nicht in
-  der Reihenfolge, in der die Verbindungen begannen: Endet die später begonnene Verbindung
-  zuerst, hat ihre Sitzung die `id` 1.
+* Enden die Sitzungen nacheinander, zählt die `id` ab 1 in der Reihenfolge, in der sie enden,
+  nicht in der Reihenfolge, in der die Verbindungen begannen: Endet die später begonnene
+  Verbindung zuerst, hat ihre Sitzung die `id` 1. Enden Sitzungen gleichzeitig, ist nicht
+  zugesichert, welche Sitzung welche `id` erhält.
 * Ohne `--record-empty-sessions` ist eine Verbindung ohne abgeschlossene Anfrage keine
   Sitzung. Mit der Option wird sie eine Sitzung ohne Interaktionen: In YAML steht
   `interactions: []`, in SQLite eine Zeile in `session` ohne Zeilen in `interaction`. Das
   gilt auch für eine Verbindung, die beim zwangsweisen Beenden nach Ablauf von
-  `--shutdown-timeout` ihre erste Anfrage noch ausführte (`PGR-E4006`) oder keine gestellt
-  hatte.
+  `--shutdown-timeout` ihre erste Anfrage noch ausführte (`PGR-E4006`). Endet eine
+  Verbindung ohne Anfrage beim Herunterfahren vor Ablauf der Frist, ist sie mit der Option
+  eine Sitzung.
 * Ohne die Option legt das Ende einer Verbindung ohne Anfrage die Zieldatei nicht an; mit der
   Option legt es sie an.
 * Die Kennzeichnung steht mit der Option in der Aufzeichnung, auch wenn keine Sitzung
@@ -593,8 +595,10 @@ Ein Fehler, der nur eine Verbindung betrifft, beendet diese Verbindung; `record`
 laufen weiter. Weicht beim Wiedergeben auf einer Verbindung die Anfrage ab (`PGR-E5001`),
 läuft eine andere, schon offene Verbindung vollständig durch. Nutzt beim Aufzeichnen eine
 Verbindung `COPY` (`PGR-E6001`), wird die andere aufgezeichnet. Der Exit-Code ist der des
-ersten gemerkten Fehlers, im ersten Fall 5, im zweiten 6; ein später folgender Fehler einer
-anderen Klasse ändert ihn nicht.
+ersten aufgetretenen Fehlers, im ersten Fall 5, im zweiten 6. Treten Fehler verschiedener
+Verbindungen gleichzeitig auf, ist nicht zugesichert, welcher der erste ist. Folgt auf
+`PGR-E6001` später `PGR-E4006`, bleibt der Exit-Code 6; Ausnahmen nennt
+[Exit-Codes](#exit-codes).
 
 #### Ungültige Aufrufe
 
@@ -1386,7 +1390,8 @@ mit `--input=--` an. `record`, `replay` und `play` nehmen nach `--` kein Argumen
 
 Ein Fehler, der nur eine Verbindung betrifft, beendet diese Verbindung. Das
 Werkzeug läuft weiter und liefert den Exit-Code des ersten aufgetretenen Fehlers
-erst, wenn Sie es beenden. Eine Ausnahme ist `play` mit `--compare-responses`: Bricht die
+erst, wenn Sie es beenden; treten Fehler verschiedener Verbindungen gleichzeitig auf, ist
+nicht zugesichert, welcher der erste ist. Eine Ausnahme ist `play` mit `--compare-responses`: Bricht die
 Verbindung ohne Fehlerantwort der Datenbank ab, ist der Exit-Code 4, auch wenn davor eine
 Antwort abwich (`PGR-E5004`). Scheitert beim Beenden das Schreiben der
 Aufzeichnung, ist der Exit-Code 3, auch wenn vorher ein anderer Fehler auftrat.
