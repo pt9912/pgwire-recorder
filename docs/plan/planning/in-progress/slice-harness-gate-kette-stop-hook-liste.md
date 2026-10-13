@@ -415,6 +415,15 @@ im Arbeitsbaum: `{"decision":"approve"}`; vor dem Lauf, ohne Liste: `block` („
 Kopie (Scratchpad) entwickelt und erst nach grüner Gegenprobe eingespielt worden; der alte Stand: `git show 9662e13:.claude/hooks/stop-require-gates.sh`
 (zurück: `git checkout 9662e13 -- .claude/hooks/stop-require-gates.sh`).
 
+**Lauf der Nacharbeit** (Commit `78b35ab`, Code-Commit `e92db76`, Baum sauber): `make gates` Exit 0, 5 min 39 s; darin
+`stop-hook-gegenprobe: gruen — 52 Fälle der Punkte 1, 10, 11, 14, 16 bis 22 …` (22 s), `gates-schnell-gegenprobe: gruen`,
+`d-check: 682 Datei(en) geprüft, 0 Befund(e)`, `baseline-verify: v6.18.0 OK`, `kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`. Danach der Hook im
+Arbeitsbaum: `{"decision":"approve"}`. Der Hook selbst ist in dieser Nacharbeit unverändert; geändert sind `record-gates.sh` und die Gegenprobe.
+**Größe der Nacharbeit** (Metrik des Planners aus §4, `git diff --numstat 9662e13..HEAD -- tools harness .claude`): 845 Einfügungen, 75 Löschungen,
+Summe 920, netto 770 (`stop-hook-gegenprobe.sh` 659, `record-gates.sh` 34/6, Hook 65/45, `dateiliste.sh` 56); gegenüber dem Stand 778 sind es +142
+(`stop-hook-gegenprobe.sh` +122, `record-gates.sh` +18/0, Fragment-Kommentar und Zeile in `harness/README.md` je 1). Die Erwartung des Architect (+60 bis 95) ist
+überschritten: die Gegenprobe wächst um zwölf Fälle mit Hilfsfunktionen und zehn Mutanten, `record-gates.sh` um 18 Zeilen mit Kommentar.
+
 **Befund der Gegenprobe an der unveränderten Kopie (vorher/nachher):** Erster Lauf: `Kopie 'ok' ist nicht grün: p20-git-liste-scheitert
 p20-datei-nicht-lesbar` — der Hook antwortete leer, weil die Antwort des Abbruch-Handlers in der Umleitung `> "$aktuell"` des gerade
 scheiternden Befehls landete. Behoben mit Dateikennung 3 für jede Antwort (`exec 3>&1`, `>&3`); danach beide Fälle grün.
