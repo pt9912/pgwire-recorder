@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-sessions-doku
+**Fund:** §7 *Ungenannt geblieben* führte den Satz „nur zugesichert, wenn nacheinander“ als nicht im Handbuch stehend, obwohl der neue Abschnitt ihn enthielt (Review F-690, LOW); §1 und §7 *Rückgaben* nannten eine Entscheidung des Architect, die in Plan oder Diff nicht festgehalten war (F-691, LOW; festgehalten in §1 mit `597cf48`). Behoben mit `de603fb` und `597cf48`.
