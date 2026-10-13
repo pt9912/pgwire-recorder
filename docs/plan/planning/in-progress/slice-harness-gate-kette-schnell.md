@@ -281,11 +281,12 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 `harness/mk/gates-schnell.mk`, Skripte `tools/harness/gates-schnell.sh` und
 `tools/harness/gates-schnell-gegenprobe.sh`, zwei Gate-Zeilen in `harness/README.md`, Träger-Zeile in
 `harness/conventions.md`), `a203246` (Belege), `b5cb7b3` (Entscheidungen des Architect nach dem Review: `SPEC-052`, §6),
-`0e8fa93` (Nacharbeit: Make-Flags, Fälle der Gegenprobe, Kopf des Fragments, Gate-Zeile), dieser Beleg-Commit.
-**Größe** (`git diff --shortstat d075d3f HEAD` ohne `docs/`): 557 Zeilen eingefügt, 1 entfernt (`SPEC-052` 156, Gegenprobe 333,
-Fragment 23, Skript 42, Doku 3); das sind 123 mehr als die 434 des ersten Stands und mehr als die 40 bis 80 der Schätzung
-des Architect (475 bis 515); unter der Rückführungsgrenze von 650. Das Mehr liegt in der Gegenprobe (+94: ein Fall für das
-Ende des Laufs, die Make-Flags je mit und ohne Stand, zwölf Mutanten).
+`0e8fa93` (Nacharbeit: Make-Flags, Fälle der Gegenprobe, Kopf des Fragments, Gate-Zeile), `6e22c4b` (Entscheidung des Architect zu `-n`/`-q`/`-t` mit `-i`),
+`68bfa16` (Fall `p6-ni` und Mutant `m-i-vor-n` in der Gegenprobe), dieser Beleg-Commit.
+**Größe** (`git diff --shortstat d075d3f HEAD` ohne `docs/`): 563 Zeilen eingefügt, 1 entfernt (`SPEC-052` 157, Gegenprobe 338,
+Fragment 23, Skript 42, Doku 3); das sind 129 mehr als die 434 des ersten Stands und mehr als die 40 bis 80 der Schätzung
+des Architect (475 bis 515); unter der Rückführungsgrenze von 650. Das Mehr liegt in der Gegenprobe (+99: ein Fall für das
+Ende des Laufs, die Make-Flags je mit und ohne Stand, `-n` mit `-i`, dreizehn Mutanten); die Rückführungsgrenze von 650 ist nicht erreicht (87 darunter).
 
 **`SPEC-052`** ist die Übertragung der Tabelle aus §6, nummeriert: Teil 1 (Punkte 1 bis 8) trägt die Zeilen
 *Zugehörigkeit*, *Bezugsgröße* (Stand), *Roter Lauf nach einem grünen* und *Gleichzeitige Läufe*; Teil 2
@@ -387,15 +388,22 @@ Beide Auslegungen hat der Architect am 2026-10-13 bestätigt (§6, DoD Liefer-Pu
 
 **Nacharbeit, Klasse der Befunde** (Schritt 19, „als Klasse beheben“): F-694 war „ein Aufruf, in dem kein Gate wirklich lief, schreibt den Stand“; das Merkmal ist
 der Make-Flag, der das Rezept leerlaufen lässt oder Fehler überliest. Gefahren ist je Ausprägung ein Fall und eine Mutation (`n`, `q`, `t`, `i`; dazu `-k`, `-j`, `-s`
-als Flags, die nichts ändern); die Fälle `-n -i` und andere Kombinationen haben keinen Fall (siehe Rückgabe unten). F-695 war „Zusage ohne fangende Mutation“; behoben für
+als Flags, die nichts ändern); die Kombination `-n -i` hat den Fall `p6-ni` (siehe Rückgabe unten). F-695 war „Zusage ohne fangende Mutation“; behoben für
 Punkt 5 (Ende des Laufs) und Punkt 7 (löscht nie), die übrigen beiden Zusagen hat der Architect aus `SPEC-052` genommen. F-696: der Satz der Spezifikation nennt 1 bis 7,
 Kopf der Gegenprobe, Schlusszeile und Zeile in `harness/README.md` ebenso. F-698: der Kopf von `gates-schnell.mk` sagt, was die Gates brauchen, und dass die
 Gegenprobe Docker nicht ruft (kein Fall, `gates-schnell-gegenprobe.sh` ruft es nicht auf). F-699 und F-700: nach der Entscheidung des Architect Wortlaut `-gegenprobe`
 im Namen (`SPEC-052` Punkt 2 und 4) und Muster `*-gegenprobe` stehen jetzt gleich; der Überschuss in der Liste wird über `p2-schnell` und `p4-eintrag` gefangen.
 
-**Rückgabe an den Architect, entschieden am 2026-10-13** (Zeile *Make-Flags* in §6, `SPEC-052` Punkt 6: `-n`, `-q`, `-t` vor `-i`; der Code trägt diese Reihenfolge schon): **`MAKEFLAGS` mit `-n` (oder `-q`, `-t`) und
-`-i` zugleich.** `SPEC-052` Punkt 6 sagt für `-n`, `-q`, `-t` „entfernt keinen“, für `-i` „ein älterer entfällt“. Bei `make -n -i` gilt beides. Der Code behandelt n, q, t
-vor `-i`: der Stand bleibt unberührt, es wird nichts geschrieben. Fall der Gegenprobe: `p6-flags-ni` (Kopie mit Attrappen, `MAKEFLAGS=ni`, vorhandener Stand bleibt); Mutation: Vorrang vertauschen, der Stand entfällt, der Fall wird rot.
+**Rückgabe an den Architect, entschieden** (Architect, 2026-10-13, Commit `6e22c4b`; Zeile *Make-Flags* in §6, `SPEC-052` Punkt 6): **`MAKEFLAGS` mit `-n` (oder `-q`, `-t`) und
+`-i` zugleich.** Es gilt `-n`/`-q`/`-t`: Der Lauf schreibt keinen Stand, ein vorhandener bleibt unberührt. Das ist die Reihenfolge, die `gates-schnell.sh` schon trägt; der Code ist unverändert.
+Fall der Gegenprobe: `p6-ni` (Kopie mit Attrappen, `MAKEFLAGS=ni`, einmal ohne und einmal mit vorhandenem Stand; geprüft werden `p6-ni-schreibt` und `p6-ni-entfernt`,
+nach dem Muster der übrigen Flag-Fälle `p6-<name>-…`; der Name im Auftrag lautete `p6-flags-ni`). Mutation (`AGENTS.md` §3.10), selbst gefahren:
+
+| Zusage (`SPEC-052` Punkt 6) | Mutation (Kopie `m-i-vor-n`, im Skript) | roter Fall |
+|---|---|---|
+| `-n`, `-q`, `-t` haben Vorrang vor `-i`: der Stand bleibt unberührt | `*i*) ueberlesen=1 ;;` zu `*i*) ueberlesen=1; trocken=0 ;;` (`-i` gewinnt, der Stand entfällt) | `p6-ni-entfernt` (nur dieser, `rot … exakt`; kein anderer Fall ist rot, weil `-i` allein und `n`, `q`, `t` allein `trocken` schon anders setzen) |
+
+Die Gegenprobe ist mit dem Mutanten und unverändert grün (`make gates-schnell-gegenprobe`, rund 17 s).
 
 **Kommentare** (`AGENTS.md` §3.7, §3.11): neu geschrieben sind der Kopf von `gates-schnell.mk`, von
 `gates-schnell.sh` und von `gates-schnell-gegenprobe.sh`; jede Zusage darin hat eine Prüfung der Tabelle
