@@ -113,7 +113,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Liefer-Punkt 1:** `.claude/hooks/stop-require-gates.sh` gibt nach `SPEC-052` frei, wenn alle
+- [x] **Liefer-Punkt 1:** `.claude/hooks/stop-require-gates.sh` gibt nach `SPEC-052` frei, wenn alle
       geänderten Pfade auf der Positivliste liegen (Grenze mit Schrägstrich, bytegenau und case-sensitiv;
       gelöscht, umbenannt mit beiden Pfaden, untracked wie getrackt; Pfad mit `.`/`..`/leerem Segment
       oder absolut gilt als beschädigte Liste, geprüft an den Pfaden der Differenz; Art `X` ist nie inert;
@@ -123,26 +123,26 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       scheitert es, gilt `block`, beim Schleifenschutz `approve`); bei identischer Liste gibt er ohne Stand der schnellen Kette frei; jeder andere Fall
       verlangt `make gates`. Der Kopf-Kommentar sagt die Positivliste zu, soweit die Gegenprobe sie prüft
       (`AGENTS.md` §3.7, §3.11).
-- [ ] **Liefer-Punkt 2:** Ein Symlink ist inert, wenn Link-Pfad und das lexikalisch gegen das Verzeichnis
+- [x] **Liefer-Punkt 2:** Ein Symlink ist inert, wenn Link-Pfad und das lexikalisch gegen das Verzeichnis
       des Links aufgelöste Ziel (Eintrag `L`) auf der Positivliste liegen; Ziel außerhalb des Repos,
       absolut oder nicht auflösbar ist nicht inert; ein Ziel, das ein Verzeichnis der Liste selbst benennt, ebenso. Liegt irgendwo im
       Arbeitsbaum ein Link außerhalb der Positivliste, dessen Ziel auf sie zeigt, sie benennt oder ihr Vorfahr
       ist (`docs`, `docs/plan`, die Wurzel), ist jede Änderung nicht inert (Spiegelregel; `SPEC-052` Punkt 15).
-- [ ] **Liefer-Punkt 3:** Die Gegenprobe `stop-hook-gegenprobe` macht je Randform dieses Slice (§6) einen
+- [x] **Liefer-Punkt 3:** Die Gegenprobe `stop-hook-gegenprobe` macht je Randform dieses Slice (§6) einen
       Fall in einem Temp-Repo, der nur im inerten Fall freigibt; ihre Zeile in `harness/README.md`
       §Sensors nennt die Positivliste und die Bindung an
       [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md), soweit die Zeile aus
       `slice-harness-gate-kette-stop-hook-liste` sie bisher nicht trägt; `harness/conventions.md` (Träger-Tabelle,
       Zeile `grundlagen-durchsetzungsschicht.md`) bleibt richtig oder wird nachgezogen.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8). Der Reviewer prüft
       fail-closed ausdrücklich: Jede Abweichung von „inert und Stand grün“ verlangt `make gates`.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Die Mutationen und ihre roten Fälle stehen als Tabelle in §7 (Zusage · Mutation · roter
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Die Mutationen und ihre roten Fälle stehen als Tabelle in §7 (Zusage · Mutation · roter
       Fall), vom Implementer selbst gefahren (`AGENTS.md` §3.10).
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben: eine weitere Datei
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: eine weitere Datei
       `evidence/slice-harness-gate-kette-stop-hook-freigabe.md` in
       `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe/` mit der Messung dieses Slice (Dauer von
       `make gates` und der schnellen Kette; Freigabe eines Stops nach einem Doku-Commit; Last und
@@ -151,8 +151,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       eingetragen, bekommt seinen Ausgang *verkörpert* (Zielort und Herkunfts-Anker `seit
       slice-harness-gate-kette-stop-hook-freigabe`), sofern die Messung die Senkung zeigt, sonst *offen* mit
       Begründung. Die Messung ist Beleg, kein Liefer-Punkt.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -613,6 +613,51 @@ V-344 und V-345 ohne Folge.
 `d-check: 695 Datei(en) geprüft, 0 Befund(e)`, `baseline-verify: v6.18.0 OK`, `commit-msg-gegenprobe: gruen`, `stop-hook-gegenprobe: gruen — 138 Fälle`,
 `gates-schnell-gegenprobe: gruen`, `kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`, `a-check-negativ: gruen`, `run-integration-tests: gruen`.
 Danach `bash .claude/hooks/stop-require-gates.sh </dev/null` im Arbeitsbaum: `{"decision":"approve"}`.
+
+### Closure (Planner, 2026-10-13)
+
+**Gegenstand und Lieferung.** Liefer-Punkte 1 bis 3 sind vom Verifier bestätigt (Report `docs/reviews/2026-10-13-verifikation-slice-harness-gate-kette-stop-hook-freigabe.md`, Commit `67cf485`: 0 HIGH, 0 MEDIUM, 2 LOW, 4 INFO). Review: `docs/reviews/2026-10-13-review-slice-harness-gate-kette-stop-hook-freigabe.md`, Commit `785ed69` (0 HIGH, 1 MEDIUM, 3 LOW, 7 INFO). Entscheidungen des Architect: `23414ff`, `2f49e7e`, `d788954`, `5822f9f`, `1b7c390`, `278140c`.
+
+**Gate-Lauf (Belege des Implementers, nicht des Planners).** `make gates` Exit 0, 7 min 32,0 s am Stand `e48f655`/`1459432` (letzter Stand mit Änderung an `tools`, `harness`, `.claude`, `spec`); danach kamen `0af4744` und diese Closure, beide nur unter `docs/plan/planning/` (inert), und `make gates-schnell` (Exit 0). Der Hook im Arbeitsbaum antwortete am `HEAD` `0af4744` `approve`. **Die Messung am Stand nach der Closure steht aus** (Auftraggeber); der Planner hat `make gates` nicht gefahren. Gefahren hat er `make hook-gegenprobe` (grün) und `make docs-check` und `make kopf-check`.
+
+**F-713 ist geheilt (vom Planner geprüft).** `tools/hook/commit-msg-gegenprobe.sh` (`b6c2fbe`) legt Slices und Wellen seiner Positivfälle in einem eigenen Temp-Repo an und liest den Planungsbaum des Arbeitsbaums nicht. Probe des Planners: das Skript mit seinem Träger und der Traceability-Prüfung allein in einem Verzeichnis ohne `docs/` gefahren (kein Planungsbaum): Exit 0, Meldung `commit-msg-gegenprobe: gruen`; `make hook-gegenprobe` im Arbeitsbaum: grün. Die Verifikation fuhr dieselbe Probe mit Kopien, in denen Slices verschoben waren (Tabelle in *Belege der Nacharbeit*: alt Exit 1, neu Exit 0). Damit liest kein Gate der Ausnahmeliste `docs/plan/planning/`, und [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) Entscheidung 3 gilt für diesen Stand.
+
+**Befunde ohne Folge.** F-717 (`SPEC-052` Punkt 21 nachgezogen), F-718 (Ersetzung bestätigt), F-719 (gelöst durch die `reason`-Fälle), F-720 (behoben), F-721 (kein `timeout`, keine Dauer zugesagt; Register unten), F-722 (`export LC_ALL=C` ohne Zusage und Fall, Entscheidung des Architect), F-723 (Beleg von Punkt 13 vollständig) und V-344 (Nacharbeit nach dem Review (b) hat keinen zweiten Report, die Rollenfolge verlangt ihn nicht), V-345 (die Probe eines Handbuch-Beispiels gegen das gebaute Binary bleibt Pflicht von Implementer und Verifier eines Slice mit Handbuch-Änderung; dieser ändert keines): INFO, kein Folge-Slice. F-714, F-715, F-716, V-340, V-342 sind behoben (`9e727fb`, `2f34a98`, `e48f655`, `1459432`); V-341 ist mit dem Gate-Lauf oben beantwortet.
+
+**Offener Punkt: V-343 (benannte Spec-Lücke).** `SPEC-052` Punkt 22 (b) liest sich einzeln als „leere Umgebung: bei identischer Liste `approve`, bei jedem Unterschied `block`“; erst der folgende Satz („beide Aufrufarten gelten auch für die Freigabe nach Punkt 9“) hebt das auf. Die Gegenprobe prüft die Freigabe in beiden Aufrufarten (`p22-freigabe-unterverzeichnis`, `p22-freigabe-leere-umgebung`, Mutanten `m-22-hash-relativ`, `m-22-hash-home`); der Code ist richtig. Entscheidung des Architect: als offenen Punkt nennen, die Spezifikation in diesem Slice nicht ändern. Der Punkt hat keinen Nehmer: Weder Slice noch Register-Zeile nehmen ihn an (`AGENTS.md` §3.13 verlangt vor einer Zuweisung den Blick in den Nehmer); eine Berichtigung des Wortlauts wäre eine Änderung von `SPEC-052` im Beschluss des Architect, nicht in einem Slice-Plan. Wer `SPEC-052` Punkt 22 das nächste Mal anfasst (etwa der Umzug nach `harness/vertraege/`, [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md)), liest diesen Absatz.
+
+**Größe** (Urteil des Planners nach der Marke aus §4): Summe **730** (`git diff --numstat 8349a65..9e727fb -- tools harness .claude`: 670 Einfügungen, 60 Löschungen; vom Planner nachgerechnet), Schätzung des Architect 550 bis 750, Marke 900: **nicht eingetreten**, keine Rückführung. Die Nacharbeit nach `9e727fb` ist Kommentar und Plantext. Reviewer (F-721) und Verifier: in einer Sitzung prüfbar. Die Schätzung in der Metrik von `AGENTS.md` §3.14 traf (730 gegen 550 bis 750); beim Geber `slice-harness-gate-kette-stop-hook-liste` lag die Schätzung ohne diese Metrik bei 440 bis 620 und die Messung bei 1065. Das ist ein Beleg dafür, dass §3.14 wirkt; ein Zähler im Register entsteht daraus nicht (Zeile im `state.md` von `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`, ohne Evidence-Datei).
+
+**Risiken aus §6, je ein Ausgang.**
+
+| Risiko (§6) | Ausgang | Begründung bzw. Träger |
+|---|---|---|
+| Der Hook ist das Restrisiko der Entscheidung | entfallen | Die Gegenprobe macht je Randform einen Fall (138), jede Mutation der Tabellen ist rot gesehen; der Verifier fuhr zwanzig eigene Mutationen, alle rot an den benannten Fällen |
+| Die Gegenprobe prüft nicht die Umgebung von Claude Code | weiter offen | `BEO-REPO/stop-hook-gegenprobe-prueft-nicht-die-umgebung` (2×, Evidence F-721) |
+| Ein Pfad der Positivliste wird später von einem langsamen Gate gelesen | entfallen | Ein späterer Leser ändert Skript oder Gate und löst den vollen Lauf aus (akzeptiertes Negativ der ADR); der vorhandene Leser (F-713) ist geheilt |
+| Zwei Läufe gleichzeitig | entfallen | `SPEC-052` bindet die Zusagen an Läufe nacheinander; ein halb geschriebener Stand endet bei voll |
+| Die Positivliste liest sich als Zusage, die die Gegenprobe nur auf und neben der Grenze prüft | entfallen | Der Kopf des Hooks sagt nur zu, was ein Fall prüft (V-340 behoben); `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` bleibt bei 2× (kein neuer Beleg) |
+| Der geänderte Hook entscheidet über seine eigene Änderung | entfallen | Die Änderung am Hook ist nicht inert (Fall `p12-selbst-hook`); akzeptiertes Negativ von `SPEC-052` Punkt 12 |
+| Der Hook gibt öfter frei als der volle Lauf für dieselbe Menge | entfallen | Jeder Schritt hat Fall und Mutation; F-713 war der einzige vorhandene Leser und ist geheilt (Verifikation: kein weiterer unter den langsamen Gates) |
+| Der Umzug der Verträge nach `harness/vertraege/` berührt diesen Slice nicht | entfallen | Der Slice liegt vor dem Umzug und ändert den Ort nicht. Der Nachzug der Verweise auf `SPEC-052` (Hook, Gegenprobe, Plan) ist Folgepflicht in [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) *Konsequenzen*; der Slice dafür ist in der Roadmap vorgemerkt und noch nicht angelegt, hat also keine Kennung. Das Risiko ist daher nicht *eingetreten* mit Kennung; die Vormerkung der Roadmap ist der Träger, ein Register-Eintrag wäre ein zweiter Mechanismus für dieselbe Pflicht |
+| Der Nutzen schrumpft, wenn die Gegenproben schneller werden | entfallen | Der Slice sagt keine Zeitersparnis zu; die Messung steht als Evidence im Register |
+
+**Register** (Commit `300362f`; Zähler = Dateien unter `evidence/`, nachgezählt):
+
+| Eintrag | Beleg | Zähler, Stand |
+|---|---|---|
+| `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` | Messung dieses Slice | 4×, **verkörpert** (Zielort Hook, schnelle Kette, `SPEC-052`; Anker `seit slice-harness-gate-kette-stop-hook-freigabe`); der Weg eines Doku-Stops sinkt von 7 min 32 s auf 8 s plus 4,5 s, die Laufzeit von `make gates` wuchs (2 min 9 s allein `stop-hook-gegenprobe`) |
+| `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` | F-716, F-719 | 32×, verkörpert (`AGENTS.md` §3.10), Regel bleibt |
+| `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` | F-714, F-717, V-340 | 51×, verkörpert (`AGENTS.md` §3.11), Regel bleibt |
+| `BEO-REPO/plan-folgt-korrektur-nicht` | F-715, F-718, V-342 | 41×, verkörpert (`AGENTS.md` §3.9), Regel bleibt |
+| `BEO-REPO/stop-hook-gegenprobe-prueft-nicht-die-umgebung` | Risiko 2, F-721 | 2×, offen |
+| `BEO-REPO/beleg-ueber-den-bestand-ohne-probe` (neu) | F-713 | 1×, offen |
+
+F-713 steht bewusst nicht unter `BEO-REPO/spec-randform-erst-im-review-entschieden`: Dort fehlt eine Randform in der Spezifikation; hier stand ein falscher Beleg des Architect in ihr (Urteil des Planners). Kein Eintrag steht mit diesem Slice neu bei 3× ohne Ausgang.
+
+**Lerneintrag — benannte Spec-Lücke und zwei Beobachtungen.** (1) Form *benannte Spec-Lücke*: V-343, oben; sie ist als Lücke benannt und nicht beauftragt. (2) Ein Beleg des Architect („kein langsames Gate liest diese Pfade“) wurde im Review widerlegt (F-713). Ein Beleg über den Bestand ist eine Aussage zu einem Stand und braucht eine Probe, die ihn hält; das Review fuhr sie (Slices verschieben, `hook-gegenprobe`), der Architect hatte sie nicht gefahren. Das ist einmal aufgetreten und steht als `BEO-REPO/beleg-ueber-den-bestand-ohne-probe` (1×, offen) im Register; eine Regel folgt erst ab 3× (Schwelle des Registers, und die Rolle des Architect sieht einen einmaligen Blindfleck als akzeptiertes Negativ vor). Wird der dritte Beleg gezählt, ist der Vorschlag: ein Satz in `AGENTS.md` §3.12, ein Beleg aus dem Bestand nenne die Probe, die ihn wieder prüft. (3) Die Schätzung in der Metrik von `AGENTS.md` §3.14 hat getroffen (730 gegen 550 bis 750): kein Anlass für eine Änderung der Regel. Keine Regel in `AGENTS.md`, `.claude/` oder `harness/` wird mit dieser Closure geändert; Entscheidungen des Nutzers: keine offen.
+
+**Paarungen.** (a) Anker: `grep -rn "seit slice-harness-gate-kette-stop-hook-freigabe" docs/plan/planning/observations` findet `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe/state.md`. (b) Folge-Slice: kein Risiko ist *eingetreten*; V-343 und der Umzug haben keinen angelegten Nehmer (oben). (c) Register: die genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
