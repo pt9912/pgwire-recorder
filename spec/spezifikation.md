@@ -3286,6 +3286,9 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     Verzeichnis, Gitlink; Wert leer). Der Pfad ist wie `git ls-files -z` ihn liefert (getrackt
     und untracked, ohne ignorierte), die Sortierung bytegenau, ein Pfad höchstens einmal.
     Zeilenumbruch, Leerzeichen, Tabulator und Nicht-UTF-8 im Pfad sind damit ohne Sonderfall.
+    Die Erzeugung setzt bash ab Version 4 und GNU-Werkzeuge (`readlink -z`, `sort -z`) voraus,
+    wie das Repo GNU `make` voraussetzt; ein Fall mit einer anderen Umgebung gibt es nicht,
+    die Voraussetzung ist nicht zugesagt. Fehlt sie, bricht der Lauf ab, und Punkt 20 gilt.
     Sortierung und Einmaligkeit sind Form, keine Zusage mit eigenem Fall (akzeptiertes
     Negativ; Grund: Schreiber und Leser erzeugen die Liste mit derselben Funktion, eine
     abweichende Sortierung macht aus „identisch“ höchstens „voll“, nie „frei“). Der
@@ -3352,7 +3355,7 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     nie inert: voll. Die Prüfung steht vor jeder Entscheidung, auch vor „identisch“: Die Liste
     trägt die Index-Stufen nicht, ein Konflikt kann bei identischer Liste bestehen, und ein
     Hook, der die Identität zuerst prüfte, gäbe ihn frei. Sie ist die erste Prüfung des Hooks
-    nach dem Schleifenschutz (`stop_hook_active`). Konfliktmarker im Inhalt einer inerten Datei
+    nach dem Schleifenschutz (`stop_hook_active`, Punkt 20). Konfliktmarker im Inhalt einer inerten Datei
     ändern nichts, ihr Pfad entscheidet.
 18. **Untracked Datei.** Eine untracked Datei zählt wie eine getrackte
     (`git ls-files --others --exclude-standard`): in der Positivliste inert, sonst nicht. Eine
@@ -3364,8 +3367,13 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     Der Kopf-Kommentar des Hooks sagt diese Sperre zu.
 20. **Nicht lesbarer Vergleich; Abbruch des Hooks; beschädigte Dateiliste.** Scheitert `git`,
     ist eine Datei nicht lesbar oder bricht der Hook mitten im Lauf ab, gilt: voll, und zwar
-    als Antwort `block`, nicht als Abbruch ohne Antwort. Der Schleifenschutz
-    (`stop_hook_active`) steht davor und bleibt. Ist die Dateiliste des vollen Laufs gelöscht
+    als Antwort `block`, nicht als Abbruch ohne Antwort. Davon ausgenommen ist der
+    Schleifenschutz: Ist `stop_hook_active` wahr, antwortet der Hook `approve`, auch bei einem
+    Konflikt (Punkt 17), bei fehlendem Stand (Punkt 19), wenn `git` scheitert und wenn
+    `tools/harness/dateiliste.sh` fehlt; bei `false` und bei fehlendem Feld gilt `block`.
+    Akzeptierte Grenze: Das Fail-open ist gewollt, damit ein dauerhaft rotes Gate keine
+    Endlosschleife erzeugt, und es überstimmt auch die Sperre durch Konflikt und fehlenden
+    Stand. Ist die Dateiliste des vollen Laufs gelöscht
     oder beschädigt, gilt ebenfalls: voll. Beschädigt ist: leere Datei, Feldzahl nicht durch 3
     teilbar, unbekannte Art, `F` mit Wert, der nicht 64 Hexzeichen ist, `G` oder `X` mit Wert,
     doppelter Pfad, Pfad nach Punkt 12 unzulässig. Ein unzulässiger Pfad im Stand sperrt in
@@ -3389,10 +3397,14 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     und gibt nur bei identischer Liste frei).
 22. **Aufrufarten des Hooks.** Der Hook entscheidet über den Baum des Repos, in dem sein
     Arbeitsverzeichnis liegt (`git rev-parse --show-toplevel`), nicht über das Repo seiner Datei,
-    und liest keine Umgebungsvariable. Zugesagt mit Fall: (a) ein Arbeitsverzeichnis in einem
+    und gibt in einer leeren Umgebung dieselbe Antwort. Zugesagt mit Fall: (a) ein Arbeitsverzeichnis in einem
     Unterverzeichnis des Repos gibt dieselbe Antwort wie die Wurzel; (b) eine leere Umgebung
     (`env -i`; `PATH` nicht gesetzt, `bash` mit absolutem Pfad gestartet) gibt bei identischer
-    Liste `approve`, bei jedem Unterschied `block`. Nicht Gegenstand: `bash -e` (der Hook setzt
+    Liste `approve`, bei jedem Unterschied `block`. Nicht zugesagt ist die Wirkung einzelner
+    gesetzter Variablen (`PATH` für die Programmsuche, `TMPDIR` für die temporäre Datei, `GIT_*`
+    über `git`); akzeptiertes Negativ: der Hook liest keine davon selbst, die Aufrufart des
+    Treibers setzt sie nicht, und ein `TMPDIR` im Arbeitsbaum sperrt (`block`), gibt nie frei.
+    Nicht Gegenstand: `bash -e` (der Hook setzt
     `set -euo pipefail` selbst, die Option ändert nichts) und eine fehlende Variable
     `CLAUDE_PROJECT_DIR` (der Aufruf des Treibers startet den Hook dann nicht; kein Code des
     Hooks läuft, er kann nicht antworten). Akzeptiertes Negativ: Ein Arbeitsverzeichnis in einem
@@ -3500,4 +3512,5 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-12 | Konfiguration, Entscheidung des Nutzers: Umgebungsvariable der Option eines anderen Kommandos ist `PGR-E2001` (bisher unbeachtet; ersetzt die Fassung vom 2026-10-05 und 2026-10-08), Ausnahmen `PGWIRE_RECORDER_PASSWORD` und Variable ohne passende Option, keine Warnung (`LH-FA-17.a`) |
 | 2026-10-12 | Konfiguration: Rangfolge der Umgebungsvariablen in einem Durchlauf über die Tabelle (fremde und eigene gemeinsam, nur der erste Fehler), vor der Datei; Schreibweise des Namens genau; Katalogzeile `PGR-E2001` nennt die Umgebungsvariable (`LH-FA-17.a`, `SPEC-034`) |
 | 2026-10-13 | Harness-Werkzeuge: Gate-Kette in voller und schneller Kette mit Ausnahmeliste, Stand der schnellen Kette, Wahl der Kette am geänderten Pfad (Positivliste, Dateiliste des vollen Laufs, Randformen), Hook-Teil nur zugesagt, soweit `stop-hook-gegenprobe` ihn prüft (`SPEC-052`) |
+| 2026-10-13 | Harness-Werkzeuge: Schleifenschutz des Hooks als akzeptierte Grenze (Vorrang vor Konflikt, fehlendem Stand, `git`-Fehler), Umgebung des Hooks als leere Umgebung gefasst, Voraussetzung der Dateiliste (`SPEC-052`) |
 | 2026-10-13 | Harness-Werkzeuge: Nachweis des vollen Laufs bei überlesenen Fehlern (`make -i gates`) und Make-Flags, Aufrufarten des Stop-Hooks, Beleg für `docs/user/` und `README.md` für jede Gegenprobe der Ausnahmeliste (`SPEC-052`) |

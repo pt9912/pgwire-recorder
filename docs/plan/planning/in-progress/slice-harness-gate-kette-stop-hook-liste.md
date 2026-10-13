@@ -306,9 +306,15 @@ Architect hat sie am 2026-10-13 bestätigt, geschärft oder geteilt (Spalte *Her
 | `-n`, `-q`, `-t` schreiben nichts und entfernen nichts, auch mit `-i` (Vorrang, Punkt 21) | das Rezept in `harness/mk/enforce.mk` mit `+` führen (läuft dann unter `-n`); dazu bei `-q` zusätzlich die Voraussetzungen von `record-gates` im `Makefile` entfernen | Gemessen (§7): mit `+` allein `p21-n`, `p21-t`, `p21-ni` (älterer Nachweis geändert) → rot, `p21-q` bleibt grün (`make -q` hält an der Voraussetzung, das Rezept läuft nicht); mit `+` und ohne Voraussetzungen alle vier rot | Architect, 2026-10-13; Fassung nach Messung |
 | Unter `-i` entfällt jede der beiden Dateien | nur den Hash entfernen (Liste bleibt); nur die Liste entfernen (Hash bleibt) | je alle sechs `p21-i-*` rot | Implementer (jede Bedingung der Zusage „Liste und Hash“ ist eine Zeile) |
 | Der Hook gilt für das Repo seines Arbeitsverzeichnisses, auch aus einem Unterverzeichnis (Punkt 22 a) | `git rev-parse --show-toplevel` durch `pwd` ersetzen | `p22-unterverzeichnis` (identisch `approve`, geändert `block`) → rot | Architect, 2026-10-13 |
-| Der Hook liest keine Umgebung (Punkt 22 b) | `: "${HOME:?}"` vor die erste Prüfung setzen | `p22-leere-umgebung` (`env -i`, identisch → `approve`) → rot | Architect, 2026-10-13 |
+| Der Hook gibt in einer leeren Umgebung dieselbe Antwort (Punkt 22 b; nicht zugesagt: einzelne Variablen `PATH`, `TMPDIR`, `GIT_*`, akzeptiertes Negativ, Grund in Punkt 22) | `: "${HOME:?}"` vor die erste Prüfung setzen | `p22-leere-umgebung` (`env -i`, identisch → `approve`) → rot | Architect, 2026-10-13 |
 
 Sortierung und Einmaligkeit der Liste haben keine eigene Mutation (**akzeptiertes Negativ**, Architect, 2026-10-13; Grund: Schreiber und Leser erzeugen die Liste mit derselben Funktion, eine abweichende Sortierung macht aus „identisch“ höchstens „voll“, nie „frei“; ein doppelter Pfad in der gelesenen Liste ist beschädigt und hat seinen Fall oben).
+
+**Entschieden vom Architect, 2026-10-13, aus dem Review (a)** (F-704, F-707 b, F-710; Fundstelle `SPEC-052` Punkte 11, 20, 22):
+
+- **Schleifenschutz als akzeptierte Grenze** (Punkt 20): `stop_hook_active: true` → `approve` auch bei Konflikt, fehlendem Stand, scheiterndem `git` und fehlender `dateiliste.sh`; `false` oder fehlendes Feld → `block`. Bestand des alten Hooks, keine Lockerung nach `AGENTS.md` §3.6. Der Kopf der Gegenprobe trägt dieselbe Aussage und nennt die vier Fälle des Implementers (F-704).
+- **Umgebung** (Punkt 22): gefasst als „leere Umgebung gibt dieselbe Antwort“, ein Fall je Variable entfällt (akzeptiertes Negativ, Grund in Punkt 22: der Hook liest keine selbst, `TMPDIR` im Baum sperrt nur).
+- **bash ab 4 und GNU-Werkzeuge** (Punkt 11): als Voraussetzung beschrieben, nicht zugesagt, kein Fall (Host des Repos ist Linux; ein Fall mit vorgetäuschtem bash 3 kostete mehr als die Voraussetzung wiegt, §3.11 verbietet nur die Zusage). Der Kopf von `dateiliste.sh` nennt sie und die Folge (Abbruch, Punkt 20: `block`).
 
 **Entschieden vom Architect, 2026-10-13** (Rückgaben des Implementers aus §7; Fundstelle `SPEC-052`):
 
