@@ -122,13 +122,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Liefer-Punkt 1:** Der Nachweis des vollen Laufs ist die Dateiliste nach `SPEC-052`:
+- [x] **Liefer-Punkt 1:** Der Nachweis des vollen Laufs ist die Dateiliste nach `SPEC-052`:
       `tools/harness/record-gates.sh` schreibt sie nur nach grünem `make gates`,
       `tools/harness/working-tree-hash.sh` (oder sein Nachfolger) liefert dieselbe Liste für den
       Arbeitsbaum; beide teilen sich die Logik, keine Dopplung zwischen Schreiber und Hook. Die
       Hash-Ausgabe für `gates-schnell` bleibt. Ein Lauf mit `-i` in `MAKEFLAGS` schreibt weder Liste noch
       Hash, ein älterer Nachweis beider entfällt; `-n`, `-q`, `-t` lassen ihn stehen (`SPEC-052` Punkt 21).
-- [ ] **Liefer-Punkt 2:** `.claude/hooks/stop-require-gates.sh` gibt nur bei identischer Liste frei und
+- [x] **Liefer-Punkt 2:** `.claude/hooks/stop-require-gates.sh` gibt nur bei identischer Liste frei und
       verlangt in jedem anderen Fall `make gates` (fehlender oder beschädigter Stand auch bei sauberem
       Baum, nicht lesbarer Vergleich, nicht aufgelöster Index-Eintrag, Abbruch als Antwort `block`);
       der Schleifenschutz (`stop_hook_active`) bleibt; der Kopf-Kommentar beschreibt das neue Verhalten
@@ -137,7 +137,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Die Prüfung nicht aufgelöster Index-Einträge ist die erste Prüfung nach dem Schleifenschutz, auch vor
       „Liste identisch“. Der Hook urteilt über das Repo seines Arbeitsverzeichnisses und liest keine
       Umgebungsvariable (`SPEC-052` Punkt 22).
-- [ ] **Liefer-Punkt 3:** Die Gegenprobe `stop-hook-gegenprobe` macht je Randform aus §6 einen Fall in
+- [x] **Liefer-Punkt 3:** Die Gegenprobe `stop-hook-gegenprobe` macht je Randform aus §6 einen Fall in
       einem Temp-Repo, der nur im inerten Fall freigibt (dazu `p21-*` für die Make-Flags des Nachweises und
       `p22-*` für die Aufrufarten), und hängt an `GATE_CHECKS`;
       `harness/README.md` §Sensors führt ihre Zeile mit Bindung an
@@ -145,22 +145,23 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Zeile `grundlagen-durchsetzungsschicht.md`) nennt die Träger des geänderten Hooks. Die Gegenprobe
       heißt `stop-hook-gegenprobe` (ein anderer Name als `make hook-gegenprobe`, die dem Commit-Träger
       `.githooks/commit-msg` gehört).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün (Stand, Läufe und Vorbehalt in §7 *Stand der Gates*).
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8). Der Reviewer prüft
       fail-closed ausdrücklich: Jede Abweichung von „Liste identisch“ verlangt `make gates`.
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Die Mutationen und ihre roten Fälle stehen als Tabelle in §7 (Zusage · Mutation · roter
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Die Mutationen und ihre roten Fälle stehen als Tabelle in §7 (Zusage · Mutation · roter
       Fall), vom Implementer selbst gefahren (`AGENTS.md` §3.10).
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben: eine weitere Datei
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: eine weitere Datei
       `evidence/slice-harness-gate-kette-stop-hook-liste.md` in
       `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar/` (dritter Beleg: Die Prüfung des
       Architect vor dem Start fand den ungeteilten Plan über der Grenze); der Zähler folgt aus den
-      Dateien (3×) und der Eintrag bekommt seinen Ausgang. Die Messung der Laufzeit liefert der
+      Dateien (3×). Die Zuweisung des Ausgangs (`verkörpert` oder `geplant`) steht beim Nutzer, der Eintrag
+      trägt den Vermerk (§7 *Offen beim Nutzer*). Die Messung der Laufzeit liefert der
       Folge-Slice `slice-harness-gate-kette-stop-hook-freigabe`.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -206,7 +207,7 @@ Größenschätzung aus §1 am 2026-10-13 bestätigt (mit den Änderungen in §1 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff liegt über einer Review-Sitzung
-  (über 700 Zeilen mit Tests; die Schätzung des Architect liegt bei 440 bis 620). Schnitt dann nach Lieferwert:
+  (über 700 Zeilen mit Tests, Metrik im *Urteil zur Marke* unten; die Schätzung des Architect liegt bei 440 bis 620). Schnitt dann nach Lieferwert:
   Dateiliste mit Schreiber und ihrer Gegenprobe (Format, beschädigte Liste) zuerst, der Vergleich im
   Hook mit seinen Fällen danach; beide mit der Gegenprobe ihrer Zusagen, denn ohne Gegenprobe schließt
   keiner.
@@ -226,6 +227,22 @@ Größenschätzung aus §1 am 2026-10-13 bestätigt (mit den Änderungen in §1 
   Fälle wäre ein Gate ohne Gegenprobe, und zwei Reviews desselben Hooks kosten mehr als eine Sitzung. Der
   Reviewer meldet in seiner Summary-Zeile, ob der Diff in einer Sitzung prüfbar war; meldet er nein,
   entscheidet der Planner neu. Belege im Register: §8.
+- **Urteil zur Marke bei 1065 (Planner, 2026-10-13, Nacharbeit zum Review, Commit `d16d816`).** *Metrik* wie oben, mit dem
+  Endpunkt „letzter Commit des Slice“ statt `HEAD` (V-330: `HEAD` zählt mit `b397d6f` 42 Zeilen von `MR-002` mit, die nicht zu
+  diesem Slice gehören): `git diff --numstat 9662e13..d16d816 -- tools harness .claude`, 979 Einfügungen, 86 Löschungen, Summe
+  **1065**, netto 893 (`stop-hook-gegenprobe.sh` 769 davon). Verlauf 778 · 920 · 1065; die Schätzung des Architect (440 bis 620)
+  liegt 445 darunter. *Marke:* eingetreten nach jeder Lesart (Summe 1065, Einfügungen 979, netto 893), 365 über 700.
+  *Prüfbarkeit in einer Sitzung:* ja, am Rand. Der Reviewer sagte bei 920 ja, wenn die Gegenprobe gegen die Mutationstabelle gelesen
+  wird (F-711); der Verifier sagte bei 1065 „prüfbar in einer Sitzung, am Rand“ (neun eigene Mutationen, Hook von Hand gefahren) und trüge eine
+  weitere Ausweitung nicht mehr. Beide haben den Diff in einer Sitzung geprüft; die Bedingung des Vorab-Satzes oben (der Reviewer meldet nein)
+  ist nicht ausgelöst. *Urteil:* **die Marke gilt als eingetreten, der Slice als in einer Sitzung prüfbar; keine Rückführung, der Slice schließt.**
+  Gründe: (1) Der Zweck der Marke, eine Prüfung in einer Sitzung, ist erbracht; die beiden MEDIUM-Befunde sind behoben und vom Architect
+  entschieden, und eine Rückführung schickte fertigen, geprüften Code in eine zweite Prüfung, ohne dass ein Befund auf den Schnitt zeigt.
+  (2) Das Mehr liegt im Tabellen-Code: 769 von 1065 Zeilen (72 Prozent) sind die tabellengetriebene Gegenprobe, der Rest liegt bei 296, der Hook ändert 110 Zeilen.
+  (3) Die Fortsetzung bei 1065 ist Entscheidung des Nutzers vom 2026-10-13 (V-331). Die Grenze ist damit nicht gelockert:
+  `slice-harness-gate-kette-stop-hook-freigabe` erweitert dieselbe Gegenprobe um mindestens ein Dutzend Fälle, und seine Schätzung
+  (280 bis 420, vor `AGENTS.md` §3.14 gegeben) ist nach dieser Regel neu zu rechnen, bevor er startet. Register: `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`
+  und `BEO-REPO/groessenprobe-ohne-messbaren-stand` sind mit `AGENTS.md` §3.14 verkörpert (§7).
 - `in-progress` → `open` (blockiert — Carveout?): Der Nutzer nimmt
   [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) zurück, oder das Format der Antwort des
   Stop-Hooks ändert sich so, dass die Gegenprobe nicht mehr gegen die echte Eingabe und Ausgabe des
@@ -372,16 +389,16 @@ Ziel“, „Spiegelregel“, „Segmente“, „Stand der schnellen Kette“, �
   nicht (DoD-Punkt 3).
 - Die Gegenprobe fährt den Hook in Temp-Repos mit dessen Eingabe, nicht in der Umgebung von Claude
   Code; ob die Umgebung die Antwort (`decision`) so liest, prüft sie nicht — **Ausgang:** weiter offen:
-  → `BEO-REPO/stop-hook-gegenprobe-prueft-nicht-die-umgebung` (neu bei der Closure angelegt, 1×).
+  → `BEO-REPO/stop-hook-gegenprobe-prueft-nicht-die-umgebung` (mit dieser Closure angelegt, 1×).
 - Zwei Läufe gleichzeitig (der Hook liest, während `make gates` die Liste schreibt) — **Ausgang:**
   entfallen: `SPEC-052` bindet die Zusagen an Läufe nacheinander (Aufruf-Voraussetzung, entschieden
   am 2026-10-12, `AGENTS.md` §3.12), und der Hook sagt gleichzeitige Läufe nicht zu; eine halb
   geschriebene Liste endet bei voll (beschädigt oder „kein Stand“), ein atomares Schreiben bringt keinen
   neuen Schutz.
 - Der Hook sperrt nach der Änderung der Zusage (fehlender Stand bei sauberem Baum) den ersten Stop in
-  einem frischen Klon oder Worktree — **Ausgang:** eingetreten ist es mit dem Slice selbst (gewollt,
-  Entscheidung des Nutzers vom 2026-10-12, [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md)
-  Punkt 3); der Kopf-Kommentar des Hooks sagt es.
+  einem frischen Klon oder Worktree — **Ausgang:** entfallen: Das ist die gewollte Zusage (Entscheidung des Nutzers vom 2026-10-12,
+  [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) Punkt 3, `SPEC-052` Punkt 19), kein Risiko mehr; der Kopf-Kommentar
+  des Hooks sagt es, und `p19-ohne-stand-sauber` und `p19-ohne-stand-geaendert` prüfen es.
 - Der Name der Dateiliste wählt der Implementer, der Folge-Slice liest sie über dieselbe Funktion —
   **Ausgang:** eingetreten: `slice-harness-gate-kette-stop-hook-freigabe` (nimmt an: §1 und DoD nennen die
   Liste, die Funktion und `stop-hook-gegenprobe`; der Planner trägt den Namen bei der Closure dieses Slice
@@ -392,8 +409,8 @@ Ziel“, „Spiegelregel“, „Segmente“, „Stand der schnellen Kette“, �
   `slice-harness-gate-kette-stop-hook-freigabe` (nimmt an: Randform und Mutation „Segmente“ stehen dort in
   §6 und DoD).
 - Die Größe zeigte sich erst in der Prüfung des Architect (ungeteilt 700 bis 950 statt 500 bis 750) —
-  **Ausgang:** weiter offen: → `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` (2×; dies ist
-  der dritte Beleg, die Evidence legt diese Closure an, DoD).
+  **Ausgang:** weiter offen: → `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` (3× mit dieser
+  Closure; die Evidence liegt, die Zuweisung steht beim Nutzer, §7).
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
@@ -555,6 +572,84 @@ ist der Stand, den der Hook am Ende sieht.
 **Größe der Nacharbeit** (Metrik des Planners aus §4): 979 Einfügungen, 86 Löschungen, Summe **1065**, netto 893 (`git diff --numstat 9662e13..HEAD -- tools harness .claude`);
 gegenüber 920 und 770 sind es +145 und +123: `stop-hook-gegenprobe.sh` 769 (+110), Command-Texte +18/−11, `dateiliste.sh` +4, Hook-Kopf +2/0.
 
+### Closure
+
+**Review** (`docs/reviews/2026-10-13-review-slice-harness-gate-kette-stop-hook-liste.md`, Commit `074285b`): 0 HIGH, 2 MEDIUM (F-703, F-704), 3 LOW
+(F-705 bis F-707), 5 INFO (F-708 bis F-712). Behoben oder entschieden: F-703 (Fälle `p11-*` je Pfadform, `4aff64b`), F-704 (Entscheidung des Architect
+`d1ae3b6`: Schleifenschutz als akzeptierte Grenze in `SPEC-052` Punkt 20; Fälle `p20-schleifenschutz-*` je Schritt, `4aff64b`, Kopf der Gegenprobe `cc336f2`), F-705 (Fall und Mutant
+fragen dieselbe Funktion `unlesbar_geht`, als root laut übersprungen, `4aff64b`), F-706 (drei Command-Texte und §3, `876fc01`, `d16d816`), F-707 a (das Wort „Signal“ steht
+nicht mehr im Kommentar, `4aff64b`), F-707 b und F-710 (Entscheidung `d1ae3b6`: Punkt 22 als „leere Umgebung“, Punkt 11 nennt bash ab 4 als Voraussetzung ohne Fall; `cc336f2`).
+F-708, F-709, F-711 und F-712 sind INFO ohne Folge (F-711: Größe, Urteil unten; F-712: Verschärfung nach [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) Punkt 3, keine Lockerung nach `AGENTS.md` §3.6).
+
+**Entscheidungen des Architect** (Reihenfolge der Commits): `23414ff` (Randformen vor dem Code, Namen, Größe), `d788954` (Rückfragen des Planners: Konfliktprüfung vor Identität, Eingangssatz),
+`2f49e7e` (Positivliste mit `docs/user/` und `README.md`), `b5cb7b3` (Entscheidungen im Geber `slice-harness-gate-kette-schnell`), `c005555` (Rückgaben des Implementers: Make-Flags des Nachweises, Aufrufarten des Hooks,
+`SPEC-052` Punkte 13, 20 bis 22), `d1ae3b6` (F-704, F-707 b, F-710).
+
+**Verifikation** (`docs/reviews/2026-10-13-verifikation-slice-harness-gate-kette-stop-hook-liste.md`, Commits `03d31cb`, `5ac8a2c`): 0 HIGH, 0 MEDIUM, 2 LOW, 3 INFO. Liefer-Punkte 1 bis 3, Review, Mutationen und
+Entscheidungs-Konformität bestätigt; neun eigene Mutationen (V1 bis V9) rot an den Fällen des Plans, kein Mutant blieb grün; der Hook von Hand gefahren (Probe 7), der Nachweis unter `make` in allen Schreibweisen von `-i`, `-n`, `-q`, `-t` (Probe 8).
+
+| Befund | Behandlung |
+|---|---|
+| V-330 (LOW): Größe 1065 gilt am Stand `d16d816`, am `HEAD` 1107 (`MR-002`, nicht dieser Slice) | berichtigt: §4 *Urteil zur Marke bei 1065* nennt den Endpunkt der Metrik („letzter Commit des Slice“), §7 *Größe* die Zahl am Stand `d16d816` (1065, netto 893) |
+| V-331 (LOW): Die Fortsetzung bei 1065 stand nicht im Plan | nachgetragen: §4 *Urteil zur Marke bei 1065* und §7 *Größe* tragen sie als Entscheidung des Nutzers vom 2026-10-13 |
+| V-332 (INFO): die Schlusszeile „66 Fälle“ zählt auch als root, wo einer übersprungen ist | INFO ohne Folge-Slice; als Beleg bei `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, die übersprungenen Fälle stehen auf `stderr` |
+| V-333 (INFO): Der Schleifenschutz steht vor `git rev-parse` und `source`; für die Teilmenge „kein Repo, ohne `git`“ ist es die Fassung des Architect, nicht Bestand des alten Hooks | INFO ohne Folge: Claude Code liest einen Abbruch ohne Antwort nicht als `block`, also keine Lockerung; der Architect hat es als akzeptierte Grenze in `SPEC-052` Punkt 20 gefasst (Fälle `p20-schleifenschutz-kein-repo`, `-ohne-git`) |
+| V-334 (INFO): „bricht der Lauf ab“ für fehlendes bash 4 ohne Fall; „sperrt“ wäre enger | INFO; als Beleg bei `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, die Wortlaut-Berichtigung in `SPEC-052` Punkt 11 und im Kopf von `dateiliste.sh` steht beim Architect (nicht in diesem Slice geändert: die Spezifikation ändert der Architect) |
+
+**Größe.** Gemessen am Stand `d16d816` (letzter Code-Commit des Slice; Metrik aus §4): 979 Einfügungen, 86 Löschungen, Summe **1065**, netto 893; Verlauf 778 · 920 · 1065, die Schätzung des Architect lag bei 440 bis 620. Die
+Marke von 700 ist eingetreten, der Slice gilt als in einer Sitzung prüfbar, die Fortsetzung ist Entscheidung des Nutzers vom 2026-10-13 (Urteil und Gründe: §4 *Urteil zur Marke bei 1065*). Die Größe zeigte sich nicht
+in der Zählung (drei Liefer-Punkte, eine Schicht), sondern in der Tabelle: 769 Zeilen Gegenprobe mit 66 Fällen und rund fünfzig Mutanten. Register: `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` (3×) und
+`BEO-REPO/groessenprobe-ohne-messbaren-stand` (3×) sind mit dem Lerneintrag verkörpert; `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` steht bei 3× ohne Ausgang (*Offen beim Nutzer*).
+
+**Stand der Gates.** `make gates` Exit 0 am Stand `b397d6f` (5 min 48 s; darin `stop-hook-gegenprobe: gruen — 66 Fälle`, `gates-schnell-gegenprobe`, `kopf-check-gegenprobe`, `lint-gegenprobe`,
+`d-check`, `baseline-verify`) und ein zweites Mal am Stand `23f9381` (Exit 0 laut Implementer, der Stop-Hook gab danach `approve`). Seither ändern Commits nur Dokumente ([ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), `MR-002`, die Reports, den Plan, das
+Register, `AGENTS.md`, die Roadmap): `git diff 23f9381..HEAD` über `tools`, `.claude`, `harness/mk`, `Makefile`, die Gate-Konfigurationen und den Go-Code ist leer. Der Planner hat `make gates` nicht gefahren; gefahren hat er
+`make docs-check` (0 Befunde) und `make kopf-check`. **Die Messung am Stand nach der Closure steht aus (Auftraggeber).** Die Laufzeit von `make gates` wuchs mit der Gegenprobe dieses Slice (31 s, bei rund 5 min 45 s Gesamtlauf); die Messung der Ersparnis liefert
+`slice-harness-gate-kette-stop-hook-freigabe` (`BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`, dort geplant; unverändert, kein neuer Beleg hier).
+
+**Register** (`AGENTS.md` §3.9 bis §3.14 und Modul 5: dieselbe Route für Review-Klassen). Je eine Datei `evidence/slice-harness-gate-kette-stop-hook-liste.md`, Commits `ae3fad1`, `73ce679`:
+
+| Eintrag | Befund | Stand nach dem Beleg |
+|---|---|---|
+| `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` | F-703, F-704: Zusagen mit Aufzählung (Pfadformen) und Ortsangabe („davor“) ohne Mutation je Element | verkörpert; Wiederaufgetreten, Regel bleibt |
+| `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` | F-705, F-707, V-332, V-334: Kopf, Kommentar und Satz der Spezifikation weiter als der Fall | verkörpert; Wiederaufgetreten, Regel bleibt |
+| `BEO-REPO/plan-folgt-korrektur-nicht` | F-706: drei Command-Texte und §3 nannten den alten Nachweis, obwohl der Plan das `grep` verlangte | verkörpert; Wiederaufgetreten, Regel bleibt |
+| `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` | Schätzung 440 bis 620, gemessen 778 · 920 · 1065 | 3×, **verkörpert** (`AGENTS.md` §3.14, Entscheidung des Nutzers vom 2026-10-13) |
+| `BEO-REPO/groessenprobe-ohne-messbaren-stand` | Marke ohne Metrik: 630 · 704 · 778 je nach Lesart | 3×, **verkörpert** (`AGENTS.md` §3.14) |
+| `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` | der ungeteilte Plan über der Grenze, gefunden in der Prüfung des Architect | 2× → **3×**, Ausgang offen beim Nutzer |
+| `BEO-REPO/stop-hook-gegenprobe-prueft-nicht-die-umgebung` | Risiko 2 aus §6 | neu, 1×, offen |
+
+Nicht gezählt: `BEO-REPO/spec-randform-erst-im-review-entschieden` und `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`. Die Make-Flags des Nachweises (`-i`) und die Aufrufarten des Hooks standen nicht in §6; der Implementer
+bemerkte sie und gab sie zurück (§7, Rückgaben 1 und 2), der Architect entschied vor dem Code der Nacharbeit (`c005555`, Code `e92db76`), nicht das Review. Das ist die Regel von `AGENTS.md` §3.12 in Wirkung, kein Auftreten.
+Der Plan stammt vom 2026-10-12, den Absatz *Aufrufarten des Treibers* trug §3.12 erst seit `slice-harness-gate-kette-schnell` (2026-10-13). `BEO-REPO/randform-wellenlos-ohne-architect-vor-code`: nicht aufgetreten, der Architect
+entschied die Randformen vor dem Code (`23414ff`, `d788954`). `BEO-REPO/gate-uebergeht-ablage-eintrag-still` (1×): nicht aufgetreten, ein nicht lesbarer Eintrag und eine beschädigte Liste sperren (`p20-*`).
+`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (2×): nicht berührt.
+
+**Lerneintrag — geschärfte Regel.** Der Slice zeigte zwei Dinge. (1) Die Schätzung der Größe ging an der Gegenprobe vorbei: Der Architect schätzte in Zeilen mit Tests (440 bis 620), gemessen sind 1065, weil eine
+tabellengetriebene Gegenprobe mit 66 Fällen und rund fünfzig Mutanten zwei Drittel des Diffs trägt, und die Marke der Rückführung nannte keine Metrik, sodass ihr Eintreten bei 778 an der Lesart hing (630, 704 oder 778). Der
+Nutzer hat am 2026-10-13 entschieden, die Regel in `AGENTS.md` aufzunehmen: Jede Rückführungs-Marke nennt ihre Metrik, und der Architect schätzt in ihr und rechnet für Tabellen- und Gegenprobe-Code mit rund dem Doppelten des Produktcodes.
+**Entscheidung des Nutzers**, im Wortlaut „Regel in AGENTS.md aufnehmen“; der Absatz ist `AGENTS.md` §3.14. `liegt in` `AGENTS.md` §3.14 — Herkunfts-Anker `seit slice-harness-gate-kette-stop-hook-liste`. (2) Die Gegenprobe des Hooks
+fing erst im Review die Pfadformen (F-703) und den Ort des Schleifenschutzes (F-704), je zwei Mutationen, die sie grün ließ: Eine Zusage, die eine Aufzählung nennt („Zeilenumbruch, Leerzeichen, Tabulator und Nicht-UTF-8“), und eine
+Ortsangabe („davor“) tragen mehrere Zusagen, nicht eine. Die Klasse ist `AGENTS.md` §3.10 („zu jeder Zusage eine Mutation“); sie galt und wurde erst nach dem Review angewandt. **Benannte Spec-Lücke:** `SPEC-052` Punkt 20 sagte nicht, dass das Fail-open
+des Schleifenschutzes auch Konflikt, fehlenden Stand und scheiterndes `git` überstimmt; der Architect hat es als akzeptierte Grenze gefasst (`d1ae3b6`), Kopf der Gegenprobe und Punkt 20 nennen es. Eine Schärfung von §3.10 um „je Element einer Aufzählung
+und je Schritt einer Ortsangabe ein Fall“ ist eine **Empfehlung des Planners**, keine Entscheidung; sie steht beim Nutzer (*Offen beim Nutzer*).
+
+**Risiken aus §6, je ein Ausgang.** (1) Der Hook als Restrisiko der Entscheidung: *entfallen* — die Gegenprobe macht je Randform einen Fall (66), jede Mutation der Tabellen in §7 ist rot gesehen (Reviewer 13, Verifier 9 eigene),
+ohne sie schlösse der Slice nicht. (2) Die Gegenprobe prüft nicht die Umgebung von Claude Code: *weiter offen* — `BEO-REPO/stop-hook-gegenprobe-prueft-nicht-die-umgebung` (1×). (3) Zwei Läufe gleichzeitig: *entfallen* — `SPEC-052` Punkt 8 bindet
+die Zusagen an Läufe nacheinander, der Hook sagt gleichzeitige Läufe nicht zu; eine halb geschriebene Liste endet bei `block`. (4) Sperre des ersten Stops im frischen Klon: *entfallen* — gewollte Zusage (Entscheidung des Nutzers vom 2026-10-12, `SPEC-052` Punkt 19),
+kein Risiko; Kopf-Kommentar des Hooks, Fälle `p19-ohne-stand-sauber`, `p19-ohne-stand-geaendert`. (5) Der Name der Dateiliste: *eingetreten* — `slice-harness-gate-kette-stop-hook-freigabe`; §1 und §6 des Nehmers nennen `.harness/state/gates-passed.dateiliste`, `dateiliste_erzeugen`,
+`dateiliste_pruefen` und das Gerüst (`grep` nach der Kennung des Gebers im Nehmer trifft), nachgezählt in dessen §8 im Commit `4935143`. (6) Ein unzulässiger Pfad in der Liste: *eingetreten* — `slice-harness-gate-kette-stop-hook-freigabe` (Randform und Mutation „Segmente“ in §6 und DoD Liefer-Punkt 1).
+(7) Größe erst in der Prüfung des Architect sichtbar: *weiter offen* — `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` (3×, Ausgang beim Nutzer).
+
+**Paarungen.** (a) Anker: `AGENTS.md` §3.14 trägt `seit slice-harness-gate-kette-stop-hook-liste` (`grep`), die `state.md` von `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` und `BEO-REPO/groessenprobe-ohne-messbaren-stand` nennen ihn. (b) Folge-Slice:
+`slice-harness-gate-kette-stop-hook-freigabe` liegt in `next/`, ist nicht geschlossen und nennt den Geber `slice-harness-gate-kette-stop-hook-liste` in §1 (Voraussetzung, Name, Gerüst, Zusagen), §4, §6 und §8 (`grep`); er nimmt an: seine DoD führt die Positivliste, den Stand der schnellen Kette und
+die Fälle der Gegenprobe. Die Bindung an die Zusagen des Gebers steht in §1 und §6 des Nehmers. (c) Register: die genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
+
+**Umzug der Harness-Verträge.** [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) (Accepted) und `MR-002` sehen den Umzug von `SPEC-052` in den Ordner `harness/vertraege/` direkt hinter `slice-harness-gate-kette-stop-hook-freigabe` vor; dieser Slice ändert daran nichts, sein Kopf (*Berührte Spec-Stellen*) nennt `SPEC-052` am heutigen Ort.
+
+**Offen beim Nutzer.** (1) `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` steht bei 3× ohne Ausgang; die Entscheidung des Nutzers vom 2026-10-13 betraf die beiden anderen Einträge. Empfehlung des Planners: `verkörpert` mit Zielort `AGENTS.md` §3.14 (Wortlaut im `state.md` des Eintrags). (2) Empfehlung des Planners
+(keine Entscheidung): `AGENTS.md` §3.10 um den Satz zu Aufzählung und Ortsangabe schärfen. (3) Die Fortsetzung bei 1065 ist als Entscheidung des Nutzers vom 2026-10-13 eingetragen, nach dem Auftrag des Auftraggebers; der Nutzer kann sie berichtigen.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -598,8 +693,8 @@ gesichtet (Zähler = Dateien unter `evidence/`, gelesen am Stand `f1f4415`, 2026
 **Nachtrag (Planner, 2026-10-13, Marke eingetreten, §4 *Urteil zur Marke*):** Zwei Einträge erhalten einen Beleg und
 erreichen 3× ohne Regel: `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` (Schätzung 440 bis 620, gemessen 778,
 das Mehr in der gemeinsamen Gegenprobe) und `BEO-REPO/groessenprobe-ohne-messbaren-stand` (Marke ohne Metrik, 630
-netto, 704 eingefügt, 778 als Summe). `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` bleibt bei 2×
-(Closure, DoD). Die Zuweisung (*verkörpert* oder *geplant*) steht beim Nutzer.
+netto, 704 eingefügt, 778 als Summe). `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` erreicht mit der
+Closure 3×. Zuweisung der beiden ersten: *verkörpert* in `AGENTS.md` §3.14 (Entscheidung des Nutzers vom 2026-10-13); die der dritten steht beim Nutzer (§7).
 
 Kein Eintrag erreicht mit diesem Plan die Schwelle 3× neu; der dritte Beleg zu
 `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` entsteht bei der Closure.
