@@ -291,6 +291,8 @@ Weitere Treffer des Absatz-Greps (Aussagen über Optionen, Werte, Codes, Zeitang
 
 **Befehlsfolge** aus `slice-doku-ist-stand` §7 (Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`), am Stand `2441376`: Optionen des Handbuchs, die `--help` nicht kennt: `--h`, `--help`, `--name`, `--rm`, `--version`; Variablen ohne Option: leer; Codes außerhalb des Katalogs: leer. Keine zweite Ausnahme; Befehlsfolge unverändert, keine neuen Mutanten. `make docs-check`: 671 Dateien, 0 Befunde.
 
+**Stand der Gates nach der Nacharbeit** (V-311). `make gates` am Stand `b62b8fd` (Arbeitsbaum sauber, letzter Commit mit Inhalt von Handbuch, README und Plan-Belegen): Exit 0 (alle inneren Gates der Kette; die Ausgabe endet mit `lint-gegenprobe: gruen`). Der Commit danach ändert nur diesen Absatz; ein weiterer `make gates` auf dem Stand danach stempelt den Arbeitsbaum für den Stop-Hook. Die Läufe für `de603fb` und `9b0a79a` (V-311) deckt dieser Lauf mit: er liegt nach beiden.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
