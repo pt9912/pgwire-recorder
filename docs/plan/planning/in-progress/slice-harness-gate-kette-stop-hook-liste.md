@@ -170,11 +170,11 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `tools/harness/record-gates.sh` | update | schreibt die Dateiliste statt eines Hashs, nur nach grünem `make gates`; liest `MAKEFLAGS` wie `gates-schnell.sh`: bei `i` keine Schreibung, ein älterer Nachweis entfällt (`SPEC-052` Punkt 21) |
+| `tools/harness/record-gates.sh` | update | schreibt die Dateiliste und neben ihr `gates-passed.diffsha` (der Hash dieser Liste, unverändert benannt), nur nach grünem `make gates`; liest `MAKEFLAGS` wie `gates-schnell.sh`: bei `i` keine Schreibung, ein älterer Nachweis entfällt (`SPEC-052` Punkt 21) |
 | `tools/harness/working-tree-hash.sh` | update / ersetzt | liefert dieselbe Liste für den Arbeitsbaum (Form nach `SPEC-052`: NUL-getrennte Felder Art, Wert, Pfad); bleibt für den Stand der schnellen Kette eine Hash-Ausgabe, die genau dann wechselt, wenn sich der Arbeitsbaum ändert, denn `gates-schnell` ruft sie auf; Schreiber und Hook teilen sich die Logik |
 | `.claude/hooks/stop-require-gates.sh` | update | Freigabe nur bei identischer Liste, Rückfall auf voll bei jedem anderen Fall; Kopf-Kommentar neu |
 | `tools/harness/dateiliste.sh` | neu | die Funktionen der Liste (`dateiliste_erzeugen`, `dateiliste_pruefen`) und der Pfad `.harness/state/gates-passed.dateiliste`; `record-gates.sh`, `working-tree-hash.sh` und der Hook laden sie mit `source` (eine Logik, keine Dopplung) |
-| `tools/harness/stop-hook-gegenprobe.sh` und `harness/mk/stop-hook-gegenprobe.mk` | neu | je Randform dieses Slice ein Fall in einem Temp-Repo, darunter `p21-*` (Make-Flags des Nachweises) und `p22-*` (Aufrufarten); hängt an `GATE_CHECKS` |
+| `tools/harness/stop-hook-gegenprobe.sh` und `harness/mk/stop-hook-gegenprobe.mk` | neu | je Randform dieses Slice ein Fall in einem Temp-Repo, darunter `p11-*` (Pfadformen: Leerzeichen am Anfang und am Ende, Tabulator, Backslash, Nicht-UTF-8), `p20-schleifenschutz-*` (Schleifenschutz vor jeder Prüfung, die zu `block` führt), `p21-*` (Make-Flags des Nachweises) und `p22-*` (Aufrufarten); hängt an `GATE_CHECKS` |
 | `harness/mk/gates-schnell.mk`, `tools/harness/gates-schnell-gegenprobe.sh` | update | `stop-hook-gegenprobe` endet auf `-gegenprobe` und steht damit in der Ausnahmeliste (`SPEC-052` Punkt 2 und 4); die Kopien der Gegenprobe der Kette tragen `dateiliste.sh` und führen den Namen in ihrer Attrappen-Liste |
 | `harness/README.md` §Sensors | update | Zeile der Gegenprobe, Bindung [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) |
 | `harness/conventions.md` (Träger-Tabelle, Zeile `grundlagen-durchsetzungsschicht.md`) | update | nennt die Träger des geänderten Hooks (Dateiliste, Hook, gegebenenfalls ersetzte Datei) |
@@ -182,6 +182,8 @@ Aussagen-Berührung steht hier gar nicht.
 - Jeder Fall der Gegenprobe trägt die Nummer des Punktes aus `SPEC-052` in seinem Namen (Architect, 2026-10-13; sonst ist „ein Fall nennt den Punkt“ im Eingangssatz nicht prüfbar).
 - Der Hook liest den Nachweis über dieselbe Funktion, die ihn schreibt; ein zweiter Leser der Liste
   wäre die Logik-Dopplung, die der Kopf von `working-tree-hash.sh` heute ausschließt.
+- Nachgezogen nach dem Review (F-706): `.claude/commands/implement-slice.md`, `plan-welle.md` und `close-welle.md` nennen den Nachweis als
+  Dateiliste des letzten grünen vollen Laufs plus ihren Hash; ein fehlender Nachweis sperrt auch bei sauberem Baum; `make -i gates` schreibt keinen.
 - Der Implementer prüft vor dem Commit, ob eine weitere lebende Stelle den Hash als Nachweis nennt
   (`grep -rn "gates-passed\|working-tree-hash\|record-gates"` über `AGENTS.md`, `harness/`,
   `.claude/`, `tools/`, `docs/`) und zieht sie im selben Commit nach.
@@ -507,6 +509,47 @@ geändert, `dateiliste.sh` 56, Plan und Doku 9). Über der Marke von 700 Zeilen 
 2. Aufrufarten des Treibers (`AGENTS.md` §3.12): §6 nennt sie nicht als Aufrufarten; als Fälle von Punkt 20 (git scheitert) sind „kein Repo“ und „ohne git“ gefahren. Offen ohne Fall: `bash -e` (der Hook setzt eigene Optionen), leere Umgebung (`env -i`), Arbeitsverzeichnis in einem anderen gültigen Repo (der Hook liest dessen Baum), `CLAUDE_PROJECT_DIR` fehlt (der Hook liest sie nicht; der Aufruf in `.claude/settings.json` ruft ihn dann gar nicht).
 3. Aufgabe des Auftrags nennt „Pfad mit `..`“ unter den beschädigten Listen; §6 weist unzulässige Pfade dem Folge-Slice zu (Segmente). Nicht umgesetzt; in diesem Slice sperrt jeder Unterschied, ein Pfad mit `..` im Stand ist nie identisch mit der Liste des Arbeitsbaums.
 
+**Nacharbeit nach dem Review (a)** (Report `2026-10-13-review-slice-harness-gate-kette-stop-hook-liste`: F-703 bis F-707, F-710; Entscheidung des
+Architect `d1ae3b6`; Code-Commits `4aff64b`, `cc336f2`, Commands `876fc01`). Der Hook ist bis auf seinen Kopfkommentar unverändert; geändert sind die Gegenprobe
+(66 statt 52 Fälle), der Kopf von `dateiliste.sh` und drei Command-Texte. Die Fälle sind gegen die Zusagen von `SPEC-052` Punkte 11 und 20 geschrieben, Randformen
+sind keine hinzugekommen (Pfadformen: Punkt 11 und §1; Schleifenschutz: Punkt 20 mit der Entscheidung des Architect).
+
+**Läufe:** `make stop-hook-gegenprobe` grün, 66 Fälle, 31 s (Nutzer 1000); dasselbe Skript als root (Container `ai-harness-init:host`, `id -u` = 0, bash 5.2.37,
+Arbeitsbaum read-only eingehängt): vorher (Stand `074285b`) `ROT — Mutant 'm-unlesbar-als-unveraendert' färbt 'p20-stand-unlesbar' nicht rot`, Exit 1; nachher
+beide laut übersprungen (`p20-stand-unlesbar übersprungen …`, `Mutant 'm-unlesbar-als-unveraendert' übersprungen …`), `gruen`, Exit 0. `make gates-schnell-gegenprobe` grün.
+
+**Befund der Gegenprobe (vorher/nachher), F-705:** Fall und Mutant fragen jetzt dieselbe Funktion `unlesbar_geht` (legt eine Datei mit Rechten 000 an, prüft `[ ! -r ]`),
+nicht mehr der Fall `[ -r ]` auf dem Stand und der Mutant nichts.
+
+**Mutationen der Nacharbeit** (vom Skript selbst gefahren, Mutant = `sed`/`awk` auf der Kopie von Hook oder `dateiliste.sh` im Temp-Repo). Gegenprobe der Gegenprobe:
+Eine Erwartung des Mutanten `m-ohne-ifs` von Hand um `p11-backslash` erweitert, das der Mutant nicht färbt → `ROT — Mutant 'm-ohne-ifs' färbt 'p11-backslash' nicht rot`.
+
+| Zusage | Mutation | roter Fall (grün bleibt) |
+|---|---|---|
+| Pfad mit führendem oder abschließendem Leerzeichen und mit Tabulator bleibt unverändert im Eintrag (Punkt 11; F-703 M6) | `IFS=` im `read` von `dateiliste_erzeugen` entfernt | `p11-fuehrendes-leerzeichen`, `p11-abschliessendes-leerzeichen`, `p11-tabulator` (grün: `p11-backslash`, `p11-nicht-utf8`, `p11-utf8`, `p11-leerzeichen`, `p11-zeilenumbruch`, `p11-form`) |
+| Pfad mit Backslash bleibt unverändert (Punkt 11; F-703 M7) | `read` ohne `-r` | `p11-backslash` (grün: alle übrigen `p11-*`) |
+| Pfad mit Nicht-UTF-8 bleibt unverändert (Punkt 11) | Pfade durch `iconv -c -f UTF-8 -t UTF-8` geschickt (Exit 0, lässt die ungültigen Bytes aus) | `p11-nicht-utf8` (grün: `p11-utf8` mit gültigem Umlaut, alle übrigen) |
+| Schleifenschutz steht vor `git rev-parse`, `cd`, `source` (Punkt 20; F-704 M10) | Schutz hinter `source` verschoben | `p20-schleifenschutz-kein-repo`, `-ohne-git`, `-lib-fehlt` (grün: `-git-u`, `-konflikt`, `-ohne-stand`, `-beschaedigt`, `-git-liste`, `p20-schleifenschutz`) |
+| … vor `git ls-files -u` | Schutz hinter die Zeile `konflikt=…` | zusätzlich `-git-u` (grün: `-konflikt`, `-ohne-stand`, `-beschaedigt`, `-git-liste`) |
+| … vor der Prüfung des Konflikts | Schutz hinter die Prüfung `[ -z "$konflikt" ]` | zusätzlich `-konflikt` (grün: `-ohne-stand`, `-beschaedigt`, `-git-liste`) |
+| … vor der Prüfung des fehlenden Stands | Schutz hinter `[ -f "$stand" ]` | zusätzlich `-ohne-stand` (grün: `-beschaedigt`, `-git-liste`) |
+| … vor der Prüfung der Liste des Standes | Schutz hinter `dateiliste_pruefen` | zusätzlich `-beschaedigt` (grün: `-git-liste`) |
+| … vor dem Erzeugen der Liste | Schutz hinter `dateiliste_erzeugen > "$aktuell"` | zusätzlich `-git-liste` (grün: `p20-schleifenschutz`) |
+| Der Schleifenschutz gilt in allen acht Zuständen | `if false` an Stelle der Prüfung; Wert `true` nicht gelesen | alle acht `p20-schleifenschutz-*` zusätzlich zu `p20-schleifenschutz` bzw. `-false` |
+| `stop_hook_active: false` oder fehlendes Feld sperrt in jedem Zustand | Wert nicht gelesen | die `false`-Hälfte jedes der acht Fälle; fehlendes Feld: `p17-konflikt-identisch`, `p19-ohne-stand-sauber`, `p20-kein-repo`, `p20-ohne-git`, `p20-lib-fehlt` (vorhanden, Feld fehlt in `{}`) |
+
+**F-707 (a), Signal:** die einfachere Richtung gewählt: „Signal“ steht nicht mehr im Kommentar an `sicherung`. Grund: Ein deterministischer Fall bräuchte einen
+mitten im Lauf blockierenden Kindprozess (`FIFO`) und das Warten auf dessen Start, und eine Mutation, die nur das Signal bricht, gibt es nicht (derselbe `trap … EXIT`
+fängt `exit 3` und `SIGTERM`; ohne ihn bricht schon `p20-abbruch`). Gefahren hat es der Reviewer von Hand (`SIGTERM` → `block`, Status 0); zugesagt ist es nicht.
+**F-707 (b), F-710:** vom Architect entschieden (`d1ae3b6`: Punkt 22 auf „leere Umgebung gibt dieselbe Antwort“ gefasst, Punkt 11 nennt bash ab 4 und GNU-Werkzeuge als
+Voraussetzung ohne Zusage); umgesetzt im Kopf von `dateiliste.sh` (Voraussetzung, nicht zugesagt, kein Fall). Keine neue Rückgabe.
+**F-706:** `grep -rn -i "Content-Hash\|Stempel\|stempelt" .claude docs/plan/planning/in-progress` fand `implement-slice.md` (Zeilen 33 bis 37), `plan-welle.md` (33),
+`close-welle.md` (24, 129) und diesen Plan (§3, Zeile `record-gates.sh`); alle nachgezogen. Bewusst stehen geblieben: der Hilfetext `Gate-Nachweis stempeln` von
+`record-gates` in `harness/mk/enforce.mk` (Name eines Ziels, kein Satz über den Nachweis; der Hook-Kommentar nennt ihn Dateiliste).
+
+**Größe der Nacharbeit** (Metrik des Planners aus §4): 979 Einfügungen, 86 Löschungen, Summe **1065**, netto 893 (`git diff --numstat 9662e13..HEAD -- tools harness .claude`);
+gegenüber 920 und 770 sind es +145 und +123: `stop-hook-gegenprobe.sh` 769 (+110), Command-Texte +18/−11, `dateiliste.sh` +4, Hook-Kopf +2/0.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -568,5 +611,7 @@ aus §6, soweit hier verteilt): nachgezählt mit der Sendung 3 Liefer-Punkte und
 Teil der Liefer-Punkte 1 bis 3, kein vierter. **Sendung an `slice-harness-gate-kette-stop-hook-freigabe`**
 (§1): dort nachgezählt, im selben Commit wie dieser Plan. Geschätzt 440 bis 620 Zeilen mit Tests (§1,
 Verteilung der Schätzung des Architect, am 2026-10-13 korrigiert); in einer Review-Sitzung prüfbar. Vom Architect am 2026-10-13 nachgezählt: 3 Liefer-Punkte, 1 Schicht.
+Nachgezählt nach dem Review (Implementer, 2026-10-13): Die Nacharbeit (Fälle und Mutanten der Gegenprobe, Kopfkommentare, drei Command-Texte) liefert keinen vierten
+Punkt und berührt keine zweite Schicht (die Command-Texte liegen unter `.claude/`, Harness-Werkzeug); Größe in §7.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
