@@ -55,17 +55,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Liefer-Punkt 1 — die Datei.** `harness/vertraege/SPEC-049-lint-profil.md` trägt den Text von `SPEC-049` aus `spezifikation.md §11` am Stand `231089e` (Zeilen 3012 bis 3164),
+- [x] **Liefer-Punkt 1 — die Datei.** `harness/vertraege/SPEC-049-lint-profil.md` trägt den Text von `SPEC-049` aus `spezifikation.md §11` am Stand `231089e` (Zeilen 3012 bis 3164),
       unverändert bis auf die Abweichungen, die `slice-harness-vertraege-umzug-ordner` für alle Verträge festlegt (Dateiname, Überschriftsebene); das `README.md` des Ordners führt den Vertrag
       und die neun Zeilen seiner Historie (Wortlaut aus §12). Beleg in §7: der Vergleich (Befehl und Ausgabe).
-- [ ] **Liefer-Punkt 2 — die Spezifikation.** `spec/spezifikation.md` führt `SPEC-049` und die neun Zeilen seiner *Historie* nicht mehr; sonst unverändert; kein Verweis der Spezifikation
+- [x] **Liefer-Punkt 2 — die Spezifikation.** `spec/spezifikation.md` führt `SPEC-049` und die neun Zeilen seiner *Historie* nicht mehr; sonst unverändert; kein Verweis der Spezifikation
       auf `harness/`; `make docs-check` grün.
-- [ ] **Liefer-Punkt 3 — die Verweise.** Jeder Verweis auf `SPEC-049` zeigt auf den neuen Ort: die Links in `harness/README.md`, `harness/sensors/lint.md`,
+- [x] **Liefer-Punkt 3 — die Verweise.** Jeder Verweis auf `SPEC-049` zeigt auf den neuen Ort: die Links in `harness/README.md`, `harness/sensors/lint.md`,
       [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md), den Plänen in `open/`, den Plänen in `done/` und den Reviews, wo sie sonst bricht; die Pfadangaben in den Kommentaren von
       `.golangci.yml`, `tools/harness/lint.sh`, `tools/harness/lint-gegenprobe.sh`; die Ortsangabe in `slice-harness-lint-warten-ohne-frist` (Kopf, §1, §3, §6).
       `AGENTS.md` §3.12 (Sendung aus `slice-harness-vertraege-umzug-ordner`): nennt `SPEC-049` nicht mehr mit `spec/spezifikation.md` §11, die Ausnahme gilt nur noch für `SPEC-052`.
       Beleg in §7: `grep -rn "spezifikation.md#spec-049" --exclude-dir=.git --exclude-dir=.harness .` und `grep -rn "spezifikation.md SPEC-049" --exclude-dir=.git .` ohne Treffer.
-- [ ] `make gates` grün.
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -166,6 +166,43 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`). Die Belege aus §2 (Vergleich gegen den Stand `231089e`, `grep` der alten Pfade) stehen hier, nicht im Bericht.
+
+### Belege des Implementers
+
+Basis der Größenprobe: `f4b6d6d` (Move `next → in-progress`). Commits: `cdefb4c` (Vertrag, Spezifikation, Historie), `2b2a1cc` (Verweise, Kommentare, `AGENTS.md`, Plan `slice-harness-lint-warten-ohne-frist`).
+
+**Läufe.** `make gates` auf `2b2a1cc`: Exit 0, `lint: 0 issues`, `lint-gegenprobe: gruen — Grundlauf ohne Befund, jeder Fall je Punkt von SPEC-049 wie erwartet`, `stop-hook-gegenprobe: gruen — 138 Fälle`. `make docs-check` auf demselben Stand: `714 Datei(en) geprüft, 0 Befund(e)`. Die Kommentare in `.golangci.yml`, `lint.sh` und `lint-gegenprobe.sh` ändern die Antwort der Gegenprobe nicht (derselbe Wortlaut des Ergebnisses wie vor dem Slice; `.golangci.yml` bleibt bei einer Kommentarzeile an Zeile 2).
+
+**Liefer-Punkt 1 — wortgleich.** Vergleich gegen `231089e` (Zeilen 3012 bis 3163; Abweichung nur `#` statt `###` in der Überschrift und keine Leerzeile am Ende):
+
+```
+git show 231089e:spec/spezifikation.md | sed -n '3012,3163p' | sed '1s/^### /# /' | diff - harness/vertraege/SPEC-049-lint-profil.md
+```
+
+Ausgabe leer. Die neun Historie-Zeilen: `git show 231089e:spec/spezifikation.md | sed -n '3514,3522p'` gegen die neun Zeilen im `README.md` des Ordners (Einsortierung nach `Abschnitt angelegt`, vor der Zeile von `SPEC-050`): wortgleich. `grep -n "harness/\|spezifikation.md" harness/vertraege/SPEC-049-lint-profil.md` und `grep -n "](" …`: keine Ausgabe (Randform 3: der Text nennt keinen Pfad).
+
+**Liefer-Punkt 2 — Spezifikation.** `git diff 231089e HEAD --stat -- spec`: `1 file changed, 347 deletions(-)`, keine Einfügung (185 aus `slice-harness-vertraege-umzug-ordner`, 162 hier: 152 Zeilen Vertrag samt Leerzeile davor, neun Historie-Zeilen). `grep -c "harness/vertraege" spec/spezifikation.md` ergibt 0. Die Zeile der Historie vom 2026-10-11 (`modernc.org/sqlite` in der Erlaubnisliste, nennt `SPEC-049` als eine von mehreren Änderungen) gehört nicht zu den neun Zeilen und bleibt (Randform 2); sie nennt keinen Pfad.
+
+**Liefer-Punkt 3 — Verweise.** `grep -rn "spezifikation.md#spec-049" --exclude-dir=.git --exclude-dir=.harness .` trifft nur Text, keinen Link: `harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md:25` (Beispiel-Anker, wortgleich nach Randform 3 des Ordner-Slice), `done/slice-harness-vertraege-umzug-ordner.md:161,172` (Zeitdokument, dieselbe Stelle) und diesen Plan (Zeilen 67, 94: die Greps und das Zitat des alten Kommentars). `grep -rn "spezifikation.md SPEC-049" --exclude-dir=.git .` trifft nur diesen Plan (Zeile 67, 94). Gezählt vorher: 17 Dateien mit Link außerhalb der Spezifikation (§6); nachgezogen sind 18 (`harness/README.md`, `harness/sensors/lint.md`, [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md), drei Pläne in `open/`, acht in `done/`, vier Berichte in `docs/reviews/`); die Zählung des Plans lag um eine Datei darunter, alle 18 stehen in §3. Der Diff hat 25 Dateien mit Vertrag, Historie, Spezifikation, `AGENTS.md`, drei Kommentardateien und diesem Plan. Der `grep` aus Randform 6 fand keine Datei, die nicht in §3 steht. Plan `slice-harness-lint-warten-ohne-frist`: Kopf, §1, §3 (Zeile für den Vertrag und Zeile für `SPEC-038`/§12 getrennt), §6 nennen `harness/vertraege/SPEC-049-lint-profil.md`; §1 trägt `Ort seit slice-harness-vertraege-umzug-lint` (Bindung nach `AGENTS.md` §3.13). `grep -n "SPEC-049" AGENTS.md`: keine Zeile nennt `SPEC-049` mit §11 (§3.12 nennt `SPEC-052`).
+
+**Zusage · Mutation · roter Lauf** (einzeln gefahren, danach `git checkout`):
+
+| Zusage | Mutation | roter Lauf |
+|---|---|---|
+| der Text ist wortgleich | ein `X` vor Zeile 3 von `SPEC-049-lint-profil.md` | der Vergleich oben meldet `3c3` mit beiden Zeilen |
+| jeder Link auf den Vertrag zeigt auf den neuen Ort | `harness/sensors/lint.md:8` zurück auf `../../spec/spezifikation.md#spec-049…` | `make docs-check`: 1 Befund, `anchor-missing` |
+| die Spezifikation verweist nicht auf `harness/` | Link auf `../harness/vertraege/README.md` am Ende von `spec/spezifikation.md` | `make docs-check`: `matrix-forbidden — Referenz spec-straten → aussen ist nicht erlaubt` |
+| die Spezifikation führt `SPEC-049` nicht mehr | Zeile `### SPEC-049 — Lint-Profil (`lint`)` am Ende von `spec/spezifikation.md` | `grep -c "^### SPEC-049" spec/spezifikation.md` meldet 1 statt 0 (der Beleg ist ein `grep`, kein Gate) |
+| `AGENTS.md` §3.12 nennt `SPEC-049` nicht mehr als Ausnahme | „für die Verträge `SPEC-049` und“ wieder eingesetzt | `grep -n "SPEC-049" AGENTS.md` meldet Zeile 305 (ein `grep`, kein Gate) |
+| die neun Historie-Zeilen stehen im `README.md` | die Zeile vom 2026-10-08 gelöscht | `grep -c` auf die neun Zeilen meldet 8 statt 9 |
+
+Rang- und Ortsaussagen in Prosa haben kein Gate; die zwei `grep`-Zeilen oben sind der Beleg, nicht eine Sperre. Ein Kommentar mit dem alten Pfad (`lint.sh`, `lint-gegenprobe.sh`, `.golangci.yml`) fängt kein Gate (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`); der Nachzug ist per `grep` belegt (Ausgabe der drei Dateien nennt `harness/vertraege/SPEC-049-lint-profil.md`).
+
+**Größe** (Metrik `AGENTS.md` §3.14, `git diff --numstat f4b6d6d..2b2a1cc -- spec harness AGENTS.md tools .claude .golangci.yml docs/plan docs/reviews`, Summe aus Einfügungen und Löschungen): **393** (+198, −195) vor diesem Beleg-Commit; Marke 600 nicht erreicht, Schätzung des Architect 370 bis 430 getroffen. Eine Review-Runde steht noch aus (Schätzung ≈ 15 % darunter, Lerneintrag aus dem Ordner-Slice).
+
+**Rückgaben an den Architect:** keine; keine Randform außerhalb von §6 aufgetreten.
+
+**Beobachtung:** keine Evidence-Datei vom Implementer vorgeschlagen (Urteil der Closure).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
