@@ -66,14 +66,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `AGENTS.md` §3.12 (Sendung aus `slice-harness-vertraege-umzug-ordner`): nennt `SPEC-049` nicht mehr mit `spec/spezifikation.md` §11, die Ausnahme gilt nur noch für `SPEC-052`.
       Beleg in §7: `grep -rn "spezifikation.md#spec-049" --exclude-dir=.git --exclude-dir=.harness .` und `grep -rn "spezifikation.md SPEC-049" --exclude-dir=.git .` ohne Treffer.
 - [x] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Handbuch und README unberührt: Das Produktverhalten ändert sich nicht (`AGENTS.md` §3.11).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Handbuch und README unberührt: Das Produktverhalten ändert sich nicht (`AGENTS.md` §3.11).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -134,9 +134,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Ein Link in einem Zeitdokument bricht erst im Doku-Gate und nicht beim Umzug des Vertrags; der Slice zählt die Links vorher (`grep`, 18 Dateien außerhalb der Spezifikation) — **Ausgang:** offen bis Closure.
-- Pfadangaben in Kommentaren ohne Link fängt kein Gate (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`) — **Ausgang:** offen bis Closure.
-- Ein Kommentar in `.golangci.yml` ist Teil der Datei, die `make lint` und seine Gegenprobe lesen; eine Änderung des Wortlauts darf deren Antwort nicht ändern — **Ausgang:** offen bis Closure.
+- Ein Link in einem Zeitdokument bricht erst im Doku-Gate und nicht beim Umzug des Vertrags; der Slice zählt die Links vorher (`grep`, 18 Dateien außerhalb der Spezifikation) — **Ausgang: entfallen** — Grund: Die 18 Dateien sind nachgezogen (§7, Zählung des Plans lag um eine unter der Messung), `make docs-check` meldet 715 Dateien, 0 Befunde; kein Link brach erst im Gate.
+- Pfadangaben in Kommentaren ohne Link fängt kein Gate (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`) — **Ausgang: entfallen** — Grund: Der `grep` der Form ohne Link ist gefahren (§7, Verifikation selbst nachgefahren); er trifft nur Zeitdokumente (akzeptiertes Negativ der ADR), Pläne als Zitat und den wortgleichen Beispiel-Anker in `SPEC-050`, die drei Kommentare und `AGENTS.md` §3.12 sind nachgezogen.
+- Ein Kommentar in `.golangci.yml` ist Teil der Datei, die `make lint` und seine Gegenprobe lesen; eine Änderung des Wortlauts darf deren Antwort nicht ändern — **Ausgang: entfallen** — Grund: Der Kommentar in `.golangci.yml` bleibt eine Zeile (Zeile 2), `make lint-gegenprobe` meldet unverändert „gruen — Grundlauf ohne Befund, jeder Fall je Punkt von SPEC-049 wie erwartet“ (Implementer und Verifikation, `make gates` Exit 0).
 
 **Prüfung des Architect vor dem Code** (2026-10-13, Stand `795f1c0`): Bezug zu [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Schärft `SPEC-049`), [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) und [MR-002](../../../../harness/conventions.md#mr-002) bestätigt. Nachgemessen am Stand `231089e`: `SPEC-049` 3012 bis 3163 (152 Zeilen), neun Historie-Zeilen 3514 bis 3522, jede nennt nur `SPEC-049`. Größe bestätigt, in der Metrik von `AGENTS.md` §3.14: 152 Zeilen doppelt 304, neun gelöschte Historie-Zeilen und rund zehn im `README.md` des Ordners, rund 22 Zeilen Verweise doppelt 44: **370 bis 430**, innerhalb der Schätzung des Planners (350 bis 480), unter der Marke 600. Zählung 3 Liefer-Punkte und 2 Schichten bestätigt. Kein Schnitt, keine Folge-ADR.
 
@@ -203,6 +203,26 @@ Rang- und Ortsaussagen in Prosa haben kein Gate; die zwei `grep`-Zeilen oben sin
 **Rückgaben an den Architect:** keine; keine Randform außerhalb von §6 aufgetreten.
 
 **Beobachtung:** keine Evidence-Datei vom Implementer vorgeschlagen (Urteil der Closure).
+
+### Closure-Notiz
+
+**Geliefert:** `SPEC-049` steht wortgleich in `harness/vertraege/SPEC-049-lint-profil.md`, das `README.md` des Ordners führt den Vertrag und seine neun Historie-Zeilen, die Spezifikation führt beides nicht mehr (nur Löschungen, kein Verweis auf `harness/`), 18 Dateien mit Link, drei Kommentardateien und `AGENTS.md` §3.12 zeigen auf den neuen Ort. Verifikation: [Bericht](../../../reviews/2026-10-13-verifikation-slice-harness-vertraege-umzug-lint.md) bestätigt die drei Liefer-Punkte, `make gates` (Exit 0), `make docs-check`, `make kopf-check`, die Unberührtheit von Handbuch und README (kein Pfad unter `docs/user/`, Wurzel-`README.md`, `internal/`, `cmd/`, `test/` im Diff) und sechs selbst gefahrene Mutationen; keine HIGH/MEDIUM-Befunde.
+
+**Größe** (Metrik `AGENTS.md` §3.14, `git diff --numstat f4b6d6d..f8c287c -- spec harness AGENTS.md tools .claude .golangci.yml docs/plan docs/reviews`): **522** (316 + 206, Stand der Verifikation); Marke 600 nicht erreicht. Die Schätzung des Architect (370 bis 430) lag darunter, weil Review-Report, Berichtigung (F-2), §7-Belege und Verifikationsbericht nicht in ihr standen; derselbe Abstand wie im Ordner-Slice (614 gegen 480 bis 560).
+
+**Ausgang je Risiko aus §6:** alle drei *entfallen*, mit Grund in §6 (Links: 18 Dateien nachgezogen, `docs-check` 0 Befunde · Pfade in Kommentaren: `grep` gefahren, nur Zeitdokumente und Zitate · Kommentar in `.golangci.yml`: Antwort der Gegenprobe unverändert).
+
+**Ausgang F-1 (Review LOW, Verifikation L-1; Nehmer `slice-harness-lint-warten-ohne-frist` ohne Nachzählung):** *weiter offen*, ins Register: Evidence-Datei `evidence/slice-harness-vertraege-umzug-lint.md` bei `BEO-REPO/slice-waechst-durch-uebernahmen`. Der Nehmer zählt 3 Liefer-Punkte (Prüfung, Gegenprobe, Bestand) und 3 Schichten (Harness, Kern mit `record_extended_test.go`, Driven-Adapter Postgres) und lag darüber, bevor diese Sendung eintrug; die Sendung ändert nur den Ort (`spec/` nach `harness/`), nicht die Zählung. Der Nehmer trägt die Zählung jetzt in seinem §8, im selben Commit wie diese Closure. Kein Schnitt jetzt, mit Grund: Welche Stellen der Bestand-Punkt trifft, hängt an den Randformen, die der Architect erst beim Start des Nehmers entscheidet (Test-Doubles, `select` ohne Zeitgeber, Hilfsfunktionen); ein Schnitt jetzt schnitte nach einer Zahl, die sich ändert. Die Rückführung steht in §4 des Nehmers vorab (die Bereinigung wird ein eigener Slice vor ihm); die Kennung des Folge-Schnitts vergibt der Planner vor dem `open → next` des Nehmers, und der Nehmer geht nicht nach `next/`, bevor er auf zwei Schichten und drei Punkte gezählt ist.
+
+**Beobachtungs-Register:**
+- `BEO-REPO/slice-waechst-durch-uebernahmen`: Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.13 *Nachzählen beim Eintragen*): Der Implementer trug die Bindung in den Nehmer ein, zählte ihn aber nicht nach (Review F-1); Evidence-Datei `evidence/slice-harness-vertraege-umzug-lint.md`. Retirement-Check bestanden (nicht entfernt, nicht gelockert).
+- `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`: kein neues Auftreten, 2× bleibt; dieser Slice war die mittlere Hälfte, Größe bekannt (522 gegen Marke 600), kein Fehler an der Grenze.
+- `BEO-REPO/werkzeug-festlegung-ausserhalb-technik-stratum`: keine Evidence-Datei, der Ort wurde nicht übersehen.
+- `BEO-REPO/plan-folgt-korrektur-nicht` (F-2, Zahlen 153/3164/17 gegen 152/3163/18): kein Auftreten, weil das Review den Plan vor der Verifikation berichtigt sah und die Zahlen im Plan nachgezogen sind; die Zählung des Plans lag aber um eine Datei unter der Messung, ein Messfehler, kein Mismatch zum Diff.
+
+**Lerneintrag (Steering Loop):** Form: Wiederaufgetreten, Regel bleibt (`BEO-REPO/slice-waechst-durch-uebernahmen`, Herkunfts-Anker `seit slice-v1-abschluss-einspielen`); geändert wird `AGENTS.md` nicht. Die Regel *Nachzählen beim Eintragen* wurde nicht angewandt, weil die Sendung nur den Ort änderte und der Implementer dann keine Zählung für nötig hielt; die Regel nennt aber jede Sendung, auch eine Ortsangabe, und ein Nehmer, der schon über der Grenze liegt, wird durch eine Sendung nicht kleiner. Vorschläge an den Nutzer, nicht als Eintrag: (1) `AGENTS.md` §3.13 *Nachzählen beim Eintragen* um „auch bei einer Ortsangabe, und liegt der Nehmer schon darüber, nennt die Zählung das und den Schnitt“ ergänzen; (2) die Schätzung des Architect für wellenlose Slices nennt die Review-Runde (Report, Berichtigung, Verifikationsbericht) mit rund 20 bis 25 % — zweiter Fall in Folge (Ordner-Slice 614 gegen 560, hier 522 gegen 430), noch ohne Beobachtung im Register, weil die Marke beide Male nicht erreicht wurde.
+
+**Paarungen:** (a) *Anker* — der Lerneintrag trägt kein Feld `liegt in`, keine Verkörperung; nichts zu prüfen. (b) *Folge-Slice* — die Sendung aus `slice-harness-vertraege-umzug-ordner` an diesen Slice ist getragen; der Nehmer `slice-harness-vertraege-umzug-gate-kette` liegt in `next/` und nennt in §1 und DoD die Sendung aus dem Ordner-Slice (unverändert); der Nehmer `slice-harness-lint-warten-ohne-frist` liegt in `open/` und nennt `slice-harness-vertraege-umzug-lint` in §1 (`grep -n "slice-harness-vertraege-umzug-lint"` findet die Zeile; Kopf, §3 und §6 nennen den neuen Ort). Ein Folge-Schnitt-Slice für F-1 ist nicht angelegt (Ausgang *weiter offen*, keine Kennung zu prüfen). (c) *Register* — `BEO-REPO/slice-waechst-durch-uebernahmen` existiert mit neuer Evidence-Datei, die vier genannten Kennungen existieren als Verzeichnis.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

@@ -401,4 +401,6 @@ Treffer:
 Keiner der Einträge unter der Schwelle erreicht mit diesem Plan 3×; vor dem Code entsteht
 keine neue Lücke.
 
+**Nachgezählt** (`AGENTS.md` §3.13, mit der Sendung aus `slice-harness-vertraege-umzug-lint`, die nur den Ort des Vertrags ändert): Liefer-Punkte 3 (Prüfung, Gegenprobe, Bestand). Schichten 3: Harness (`tools/harness/`, `harness/`), Kern (`internal/hexagon/services/record_extended_test.go`) und Driven-Adapter Postgres (`upstream_extended_test.go`); Tests der Hexagon-Schichten zählen als Schicht, die Planung nicht. **Der Plan liegt über der Grenze von zwei Schichten**, und das schon vor dieser Sendung; sie ändert die Zählung nicht. Vor dem `open → next` schneidet der Planner: Der Bestand-Punkt (Bereinigung der Tests in Kern und Driven-Adaptern) wird ein eigener Slice vor diesem (Rückführung in §4), die Kennung vergibt der Planner dann; dieser Slice behält Prüfung und Gegenprobe (zwei Liefer-Punkte, Schicht Harness). Nicht jetzt geschnitten, weil die Zahl der Stellen an den Randformen hängt, die der Architect erst beim Start entscheidet (`BEO-REPO/slice-waechst-durch-uebernahmen`, Evidence `slice-harness-vertraege-umzug-lint`).
+
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

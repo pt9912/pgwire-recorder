@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-vertraege-umzug-lint
+**Fund:** Der Slice trug eine Bindung (Ort des Vertrags mit Kennung des Gebers) in den Nehmer `slice-harness-lint-warten-ohne-frist` ein, ohne dessen Liefer-Punkte und Schichten im selben Commit nachzuzählen (Review F-1, LOW; Verifikation L-1). Der Nehmer zählt 3 Liefer-Punkte und 3 Schichten (Harness, Kern, Driven-Adapter Postgres) und lag darüber, bevor die Sendung eintrug; die Sendung änderte nur den Ort. Die Zählung steht seit der Closure in §8 des Nehmers, der Schnitt ist dort und in seinem §4 vorgemerkt.
