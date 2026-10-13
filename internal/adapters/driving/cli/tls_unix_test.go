@@ -3,6 +3,7 @@
 package cli_test
 
 import (
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,7 @@ import (
 )
 
 // Abdeckung: LH-FA-23/Negative, LH-FA-23/Boundary — jede der beiden Dateien ist,
-// Links gefolgt, eine reguläre Datei: Ein Verzeichnis, eine FIFO und ein Link auf
+// Links gefolgt, eine reguläre Datei: Ein Verzeichnis, eine FIFO, ein Gerät (/dev/null), ein Socket und ein Link auf
 // ein Verzeichnis sind PGR-E2007 „keine reguläre Datei“ ohne Pfad, geprüft vor
 // dem Öffnen, sodass der Start nicht auf die FIFO wartet; ein Link auf eine
 // reguläre Datei wird gelesen (LH-FA-23.a *Dateien*).
@@ -24,6 +25,12 @@ func TestTLSDateiKeineRegulaere(t *testing.T) {
 	if err := syscall.Mkfifo(fifo, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	sock := filepath.Join(dir, "GEHEIMsock")
+	l, err := net.Listen("unix", sock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
 	for _, e := range []struct{ was, ziel, pfad string }{{"mkdir", "", verz}, {"symlink", key, linkDatei}, {"symlink", verz, linkVerz}} {
 		var err error
 		if e.was == "mkdir" {
@@ -36,7 +43,7 @@ func TestTLSDateiKeineRegulaere(t *testing.T) {
 		}
 	}
 	for _, kommando := range tlsKommandos() {
-		for _, pfad := range []string{fifo, verz, linkVerz} {
+		for _, pfad := range []string{fifo, verz, linkVerz, "/dev/null", sock} {
 			for _, option := range []string{"--tls-cert", "--tls-key"} {
 				args := []string{"--tls-cert=" + cert, "--tls-key=" + key}
 				if option == "--tls-cert" {

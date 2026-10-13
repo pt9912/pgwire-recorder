@@ -106,3 +106,78 @@ func TestRunReplayTLS(t *testing.T) {
 		})
 	}
 }
+
+// Abdeckung: LH-FA-23/Negative, LH-RB-01/Messung — mit --log-level=debug erscheint der
+// Schlüssel in keiner Zeile: nicht beim Start, nicht bei einem gelungenen und einem
+// gescheiterten Handshake, nicht bei einem abgewiesenen Klartext-Client, und ein
+// Start mit nicht passendem Schlüssel nennt ihn nicht (LH-FA-23.a *Dateien*).
+func TestRunTLSLogOhneSchluessel(t *testing.T) {
+	t.Setenv("PGWIRE_RECORDER_FAIL_ON_UNCONSUMED", "")
+	ca := testpki.NeueCA(t, "CA")
+	blatt, anderes := ca.Server(t, testpki.Blatt{}), ca.Server(t, testpki.Blatt{})
+	dir := t.TempDir()
+	dateien := map[string][]byte{"c.pem": blatt.PEM(), "k.pem": blatt.SchluesselPEM(t, "PRIVATE KEY"), "x.pem": anderes.SchluesselPEM(t, "PRIVATE KEY")}
+	for name, inhalt := range dateien {
+		if err := os.WriteFile(filepath.Join(dir, name), inhalt, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cert, key, fremd := filepath.Join(dir, "c.pem"), filepath.Join(dir, "k.pem"), filepath.Join(dir, "x.pem")
+	pruefe := func(was, log string) {
+		t.Helper()
+		zeilen := strings.Split(string(dateien["k.pem"]), "\n")
+		for _, geheim := range []string{"PRIVATE KEY", zeilen[1], string(dateien["x.pem"])[40:70]} {
+			if strings.Contains(log, geheim) {
+				t.Errorf("%s: das Log nennt Schlüsselinhalt %q:\n%s", was, geheim, log)
+			}
+		}
+	}
+	var stderr bytes.Buffer
+	if code := bootstrap.Run(context.Background(), nil, []string{"replay", "--listen", "127.0.0.1:0", "--input", aufzeichnung(t), "--tls-cert", cert, "--tls-key", fremd, "--log-level=debug"}, "dev", io.Discard, &stderr); code != 2 || !strings.Contains(stderr.String(), "PGR-E2007") {
+		t.Fatalf("nicht passender Schlüssel: Exit-Code %d, stderr:\n%s", code, stderr.String())
+	}
+	pruefe("Start mit nicht passendem Schlüssel", stderr.String())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	listen := freieAdresse(t)
+	stderr.Reset()
+	ende := make(chan int, 1)
+	args := []string{"replay", "--listen", listen, "--input", aufzeichnung(t), "--tls-cert", cert, "--tls-key", key, "--log-level=debug"}
+	go func() { ende <- bootstrap.Run(ctx, nil, args, "dev", io.Discard, &stderr) }()
+	dial := func() net.Conn {
+		for i := 0; i < 100; i++ {
+			if c, err := net.Dial("tcp", listen); err == nil {
+				_ = c.SetDeadline(time.Now().Add(10 * time.Second))
+				return c
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+		t.Fatal("Server lauscht nicht")
+		return nil
+	}
+	ssl := []byte{0, 0, 0, 8, 0x04, 0xd2, 0x16, 0x2f}
+	c := dial()
+	_, _ = c.Write(ssl)
+	_, _ = io.ReadFull(c, make([]byte, 1))
+	if err := tls.Client(c, &tls.Config{InsecureSkipVerify: true}).Handshake(); err != nil {
+		t.Fatal(err)
+	}
+	c.Close()
+	c = dial()
+	_, _ = c.Write(ssl)
+	_, _ = io.ReadFull(c, make([]byte, 1))
+	c.Close()
+	c = dial()
+	_, _ = c.Write(tlsStartnachricht())
+	_, _ = io.Copy(io.Discard, c)
+	c.Close()
+	time.Sleep(200 * time.Millisecond)
+	cancel()
+	<-ende
+	log := stderr.String()
+	if !strings.Contains(log, "PGR-W3002") || !strings.Contains(log, "PGR-E6003") {
+		t.Fatalf("Log ohne die erwarteten Zeilen:\n%s", log)
+	}
+	pruefe("Lauf mit Handshakes", log)
+}

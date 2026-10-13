@@ -76,9 +76,9 @@ func (s *Server) sonderanfrage(ctx context.Context, k *kanal, code uint32) bool 
 
 // sslAnfrage beantwortet einen SSLRequest und meldet, ob der Aufbau
 // weitergeht. Ohne TLS-Konfiguration ist die Antwort „N“ (LH-FA-05.c). Mit ihr
-// führt es den Handshake aus, mindestens TLS 1.2; Bytes, die der Client nach
-// dem SSLRequest vor der Antwort sendet, beenden die Verbindung mit PGR-W3002,
-// bevor ein Handshake beginnt. Ein gescheiterter Handshake ist die Warnung
+// führt es den Handshake aus, mindestens TLS 1.2; Bytes, die beim Senden
+// des S schon empfangen sind, beenden die Verbindung mit PGR-W3002, bevor ein
+// Handshake beginnt; später eintreffende scheitern im Handshake. Ein gescheiterter Handshake ist die Warnung
 // PGR-W3002 und ändert den Prozessausgang nicht; Herunterfahren und Zwangsende
 // beenden ihn ohne Meldung. Auf einer verschlüsselten Verbindung ist ein
 // weiterer SSLRequest PGR-E6001 (LH-FA-23.a *Aushandlung*).

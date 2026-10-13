@@ -133,8 +133,8 @@ func TestTLSQuellen(t *testing.T) {
 				t.Helper()
 				cmd, err := lese(append(basis(kommando, ""), args...)...)
 				z := zugangVon(cmd)
-				if err != nil || !z.Gesetzt() || z.Zertifikat != string(wollen.PEM()) || z.Schluessel != cli.Schluessel(wollen.SchluesselPEM(t, "PRIVATE KEY")) || z.KlartextErlaubt != klartext {
-					t.Errorf("%s: Fehler %v, Zugang gesetzt %v, Zertifikat gleich %v, Klartext %v, erwartet Klartext %v", was, err, z.Gesetzt(), z.Zertifikat == string(wollen.PEM()), z.KlartextErlaubt, klartext)
+				if err != nil || z.Zertifikat == "" || z.Zertifikat != string(wollen.PEM()) || z.Schluessel != cli.Schluessel(wollen.SchluesselPEM(t, "PRIVATE KEY")) || z.KlartextErlaubt != klartext {
+					t.Errorf("%s: Fehler %v, Zugang gesetzt %v, Zertifikat gleich %v, Klartext %v, erwartet Klartext %v", was, err, z.Zertifikat != "", z.Zertifikat == string(wollen.PEM()), z.KlartextErlaubt, klartext)
 				}
 			}
 			pruefe("Option", []string{"--tls-cert=" + cert1, "--tls-key=" + key1, "--allow-plaintext"}, b1, true)
@@ -164,8 +164,8 @@ func TestTLSQuellen(t *testing.T) {
 			}
 			t.Setenv("PGWIRE_RECORDER_ALLOW_PLAINTEXT", "")
 			t.Setenv("PGWIRE_RECORDER_TLS_CERT", "")
-			if cmd, err := lese(basis(kommando, "")...); err != nil || zugangVon(cmd).Gesetzt() {
-				t.Errorf("leere Variablen: %v, gesetzt %v", err, zugangVon(cmd).Gesetzt())
+			if cmd, err := lese(basis(kommando, "")...); err != nil || zugangVon(cmd).Zertifikat != "" {
+				t.Errorf("leere Variablen: %v, gesetzt %v", err, zugangVon(cmd).Zertifikat != "")
 			}
 			for _, o := range []string{"--tls-cert=", "--tls-key="} {
 				if _, err := lese(append(basis(kommando, ""), o)...); !istUsage(err) || !strings.Contains(err.Error(), o[2:len(o)-1]) {
@@ -206,6 +206,7 @@ func zweiSchluessel(t *testing.T, art testpki.Art, typ string) []byte {
 func TestTLSDateienGueltig(t *testing.T) {
 	ca := testpki.NeueCA(t, "CA")
 	abgelaufen := ca.Server(t, testpki.Blatt{Von: time.Now().Add(-3 * time.Hour), Bis: time.Now().Add(-2 * time.Hour)})
+	kuenftig := ca.Server(t, testpki.Blatt{Von: time.Now().Add(time.Hour), Bis: time.Now().Add(2 * time.Hour)})
 	ecdsa, rsa, ed := ca.Server(t, testpki.Blatt{}), ca.Server(t, testpki.Blatt{Art: testpki.RSA}), ca.Server(t, testpki.Blatt{Art: testpki.Ed25519})
 	for _, f := range []struct {
 		name string
@@ -218,6 +219,7 @@ func TestTLSDateienGueltig(t *testing.T) {
 		{"Ed25519 als PRIVATE KEY", ed, "PRIVATE KEY", string(ed.PEM())},
 		{"RSA als RSA PRIVATE KEY", rsa, "RSA PRIVATE KEY", string(rsa.PEM())},
 		{"ECDSA als EC PRIVATE KEY", ecdsa, "EC PRIVATE KEY", string(ecdsa.PEM())},
+		{"Kette mit noch nicht gültigem zweiten Zertifikat", ecdsa, "PRIVATE KEY", string(ecdsa.PEM()) + string(kuenftig.PEM())},
 		{"Kette mit abgelaufenem zweiten Zertifikat", ecdsa, "PRIVATE KEY", string(ecdsa.PEM()) + string(abgelaufen.PEM())},
 		{"ohne Namen", ca.Server(t, testpki.Blatt{}), "PRIVATE KEY", ""},
 		{"anderer Name", ca.Server(t, testpki.Blatt{DNS: []string{"anderswo.example"}}), "PRIVATE KEY", ""},
@@ -403,7 +405,7 @@ func TestTLSRelativ(t *testing.T) {
 	t.Chdir(dir)
 	datei := schreibe(t, "record:\n  tls_cert: c.pem\n  tls_key: k.pem\n")
 	for _, args := range [][]string{{"--tls-cert=c.pem", "--tls-key=k.pem"}, {"--config=" + datei}} {
-		if cmd, err := tlsLese(t, "record", args...); err != nil || !cmd.Record.TLS.Gesetzt() {
+		if cmd, err := tlsLese(t, "record", args...); err != nil || cmd.Record.TLS.Zertifikat == "" {
 			t.Errorf("%q: %v", args, err)
 		}
 	}

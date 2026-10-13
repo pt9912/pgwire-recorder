@@ -23,9 +23,6 @@ type TLSZugang struct {
 	KlartextErlaubt bool
 }
 
-// Gesetzt sagt, ob TLS konfiguriert ist.
-func (z TLSZugang) Gesetzt() bool { return len(z.Zertifikat) > 0 }
-
 // Schluessel ist die PEM-Datei eines privaten Schlüssels. Jede Formatierung
 // gibt festen Text aus, nie den Inhalt: Ein Aufruf mit %v, %+v, %#v, %s oder %q
 // auf den Optionen von record oder replay verrät ihn nicht (LH-FA-23.a

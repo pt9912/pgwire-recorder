@@ -655,3 +655,65 @@ func TestTLSEndeOhneAlert(t *testing.T) {
 		t.Fatalf("%d Alerts nach dem Verbindungsaufbau, erwartet keiner", n)
 	}
 }
+
+// Abdeckung: LH-FA-23/Boundary, LH-FA-05/Boundary — ein SSLRequest oder GSSENCRequest,
+// dessen Längenfeld nicht 8 ist, erhält keine Antwort (weder N noch S) und ist
+// PGR-E6001, auch mit TLS ohne Handshake; ist die Länge unter 8 oder über dem Höchstmaß,
+// gilt als erste Prüfung PGR-W3003 ohne Antwort und ohne gemerkten Fehler (LH-FA-23.a
+// *Aushandlung*, LH-FA-05.e).
+func TestTLSSonderanfrageMitFalscherLaenge(t *testing.T) {
+	z, _ := tlsEin(t, false, testpki.Blatt{})
+	for _, mitTLS := range []bool{false, true} {
+		for _, code := range []uint32{pgwire.CodeSSLRequest, pgwire.CodeGSSEncRequest} {
+			for _, laenge := range []uint32{7, 9, 12, 10000, 10001} {
+				ziel := (*pgwire.TLS)(nil)
+				if mitTLS {
+					ziel = z
+				}
+				l := tlsRecord(context.Background(), t, &fakeRecorder{}, ziel, false)
+				msg := make([]byte, 8)
+				binary.BigEndian.PutUint32(msg[0:4], laenge)
+				binary.BigEndian.PutUint32(msg[4:8], code)
+				if laenge >= 8 && laenge <= 10000 {
+					msg = append(msg, make([]byte, laenge-8)...)
+				}
+				_, _ = l.client.Write(msg)
+				w3003 := laenge < 8 || laenge > 10000
+				if w3003 {
+					if n, _ := io.Copy(io.Discard, l.client); n != 0 {
+						t.Fatalf("TLS %v, Code %d, Länge %d: %d Bytes Antwort", mitTLS, code, laenge, n)
+					}
+					l.endet(t)
+					l.warnung(t, model.CodeForeignProtocol, nil)
+					if l.s.FirstErrorCode() != "" {
+						t.Fatalf("Fehler gemerkt: %q", l.s.FirstErrorCode())
+					}
+					continue
+				}
+				if e := fehlerantwort(t, pgproto3.NewFrontend(l.client, l.client)); !strings.Contains(e.Message, model.CodeUnsupported) {
+					t.Fatalf("TLS %v, Code %d, Länge %d: ErrorResponse %+v", mitTLS, code, laenge, e)
+				}
+				l.endet(t)
+				if l.s.FirstErrorCode() != model.CodeUnsupported {
+					t.Fatalf("erster Fehler %q", l.s.FirstErrorCode())
+				}
+			}
+		}
+	}
+}
+
+// Abdeckung: LH-FA-23/Happy — der Server liefert die Kette der Zertifikatsdatei aus:
+// Der Client sieht nach dem Handshake das Zertifikat des Servers und das zweite (LH-FA-23.a).
+func TestTLSKetteWirdAusgeliefert(t *testing.T) {
+	ca := testpki.NeueCA(t, "CA")
+	blatt := ca.Server(t, testpki.Blatt{})
+	z, err := pgwire.NeuesTLS(append(blatt.PEM(), ca.PEM()...), blatt.SchluesselPEM(t, "PRIVATE KEY"), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	l := tlsRecord(context.Background(), t, &fakeRecorder{}, z, false)
+	kette := l.aushandeln(t, nil).ConnectionState().PeerCertificates
+	if len(kette) != 2 || !kette[1].Equal(ca.Zertifikat) {
+		t.Fatalf("%d Zertifikate ausgeliefert, erwartet 2 mit der Zertifizierungsstelle an zweiter Stelle", len(kette))
+	}
+}
