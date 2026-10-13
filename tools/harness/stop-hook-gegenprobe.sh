@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # stop-hook-gegenprobe — prüft den Stop-Hook .claude/hooks/stop-require-gates.sh und die
 # Dateiliste (tools/harness/dateiliste.sh, working-tree-hash.sh, record-gates.sh) gegen die
-# Punkte von SPEC-052 (spec/spezifikation.md), die sie in diesem Stand zusagt. Der Name jedes
+# Punkte von SPEC-052 (harness/vertraege/SPEC-052-gate-kette.md), die sie in diesem Stand zusagt. Der Name jedes
 # Falls trägt die Nummer des Punktes (pNN-…). Der Arbeitsbaum bleibt unberührt: jeder Fall
 # läuft in einer Kopie eines Temp-Repos, das Makefile, Fragment, Skripte und Hook aus dem
 # Arbeitsbaum trägt. Die unveränderte Kopie muss jeden Fall bestehen; je Mutant (Änderung
@@ -145,7 +145,8 @@ menge() { local t="${TPL_MENGE//@OPT@/$1}"; t="${t//@E@/$EINTRAG}"; printf '%s' 
 # Dateien des Temp-Repos auf der Positivliste und daneben (Pfade der Fälle der Punkte 9 bis 15).
 DATEIEN_FIXTURE="docs/plan/planning/p.md docs/reviews/r.md docs/user/u.md docs/user/abdeckung-e2e.md
   docs/user/benutzerhandbuch.md README.md harness/README.md internal/x.go .golangci.yml tools/x.sh
-  Dockerfile go.mod .dockerignore .d-check.yml spec/spezifikation.md"
+  Dockerfile go.mod .dockerignore .d-check.yml spec/spezifikation.md
+  harness/vertraege/SPEC-052-gate-kette.md"
 # fixture <name> — legt das Temp-Repo an (Makefile, Fragment, Skripte, Hook) und setzt w.
 fixture() {
   mname="$1"
@@ -256,7 +257,7 @@ FAELLE=(
   p16-schnell-fremd p12-planning-tief p12-reviews-tief p12-user-tief p12-readme p13-docs-user
   p12-grenze-planning-x p12-grenze-reviews-alt p12-grenze-users p12-grenze-datei-reviews
   p12-grenze-datei-user p12-grenze-readme-bak p12-case-planning p12-case-readme p12-harness-readme
-  p12-selbst-hook p12-selbst-dateiliste p12-selbst-hash p12-selbst-spec p12-unzulaessig-punktpunkt
+  p12-selbst-hook p12-selbst-dateiliste p12-selbst-hash p12-selbst-spec p12-selbst-vertrag p12-unzulaessig-punktpunkt
   p12-unzulaessig-punkt p12-unzulaessig-leer p12-unzulaessig-leer-ende p12-unzulaessig-absolut p14-geloescht-inert
   p14-geloescht-nicht-inert p14-umbenennung-inert p14-umbenennung-nach-inert
   p14-umbenennung-von-inert p14-neu-nicht-inert p18-untracked-nicht-inert p12-art-x p15-link-inert
@@ -678,6 +679,7 @@ f_p12_selbst_hook() { pfad_fall p12-selbst-hook block "$HOOK"; }
 f_p12_selbst_dateiliste() { pfad_fall p12-selbst-dateiliste block "$LIB"; }
 f_p12_selbst_hash() { pfad_fall p12-selbst-hash block "$HASH"; }
 f_p12_selbst_spec() { pfad_fall p12-selbst-spec block spec/spezifikation.md; }
+f_p12_selbst_vertrag() { pfad_fall p12-selbst-vertrag block harness/vertraege/SPEC-052-gate-kette.md; }
 
 # Pfad der Differenz unzulässig (Punkt 12): ein Eintrag im Stand, den der Arbeitsbaum nicht hat.
 unzulaessig() {
@@ -1030,6 +1032,7 @@ aufnahme() {
   rot "$2"
 }
 aufnahme 'spec/*' p12-selbst-spec
+aufnahme 'harness/vertraege/*' p12-selbst-vertrag
 aufnahme '.claude/hooks/stop-require-gates.sh' p12-selbst-hook
 aufnahme 'tools/harness/dateiliste.sh' p12-selbst-dateiliste
 aufnahme 'tools/harness/working-tree-hash.sh' p12-selbst-hash

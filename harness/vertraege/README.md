@@ -28,6 +28,7 @@ ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/
 | `SPEC-048` | `abdeckung` | [`SPEC-048-abdeckung.md`](SPEC-048-abdeckung.md) |
 | `SPEC-049` | `lint` | [`SPEC-049-lint-profil.md`](SPEC-049-lint-profil.md) |
 | `SPEC-050` | `commit-msg` | [`SPEC-050-struktur-kennungen-im-commit.md`](SPEC-050-struktur-kennungen-im-commit.md) |
+| `SPEC-052` | `gates-schnell`, `stop-hook-gegenprobe` | [`SPEC-052-gate-kette.md`](SPEC-052-gate-kette.md) |
 
 ## Historie
 
@@ -44,3 +45,8 @@ ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/
 | 2026-10-07 | Lint-Profil: Leerraum nach `exclusions:` und `rules:` ist Blockform, ein `-` allein ist ein Eintrag (`SPEC-049`) |
 | 2026-10-08 | Lint-Profil: ob eine Regel zu den zulässigen gehört, als Grenze (`SPEC-049`) |
 | 2026-10-08 | Harness-Werkzeuge: Commit-Träger lehnt Struktur-Kennungen in der Commit-Message ab; Lesebereich, Schreibweise und Wortgrenze, Merge und Revert, Vorrang vor der Annahme, Ausgabe und Ausgang (`SPEC-050`) |
+| 2026-10-13 | Harness-Werkzeuge: Gate-Kette in voller und schneller Kette mit Ausnahmeliste, Stand der schnellen Kette, Wahl der Kette am geänderten Pfad (Positivliste, Dateiliste des vollen Laufs, Randformen), Hook-Teil nur zugesagt, soweit `stop-hook-gegenprobe` ihn prüft (`SPEC-052`) |
+| 2026-10-13 | Harness-Werkzeuge: Schleifenschutz des Hooks als akzeptierte Grenze (Vorrang vor Konflikt, fehlendem Stand, `git`-Fehler), Umgebung des Hooks als leere Umgebung gefasst, Voraussetzung der Dateiliste (`SPEC-052`) |
+| 2026-10-13 | Harness-Werkzeuge: Nachweis des vollen Laufs bei überlesenen Fehlern (`make -i gates`) und Make-Flags, Aufrufarten des Stop-Hooks, Beleg für `docs/user/` und `README.md` für jede Gegenprobe der Ausnahmeliste (`SPEC-052`) |
+| 2026-10-14 | Harness-Werkzeuge: Beleg der Positivliste auch für `docs/plan/planning/` und `docs/reviews/` (Gegenprobe des Commit-Trägers ohne Bezug auf den Planungsbaum des Arbeitsbaums), `reason` bei fehlendem Stand der schnellen Kette, Pfad mit leerem Segment am Ende, Laufzeit des Hooks, Wortlaut zum älteren Nachweis (`SPEC-052`) |
+| 2026-10-14 | Harness-Werkzeuge: Reihenfolge der Prüfungen des Hooks, Positivliste an einer Stelle und Selbständerung, Art `X`, Zulässigkeit der Pfade, Symlink-Einzelheiten (Spiegelregel mit Vorfahr, absolutes Ziel), Vergleich des Hashes der schnellen Kette, Freigabe in Unterverzeichnis und leerer Umgebung (`SPEC-052`) |
