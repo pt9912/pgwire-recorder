@@ -22,9 +22,11 @@ Wellen-Closure), Modul 7 (Carveouts), Modul 5 (Lifecycle). Bei Konflikt gilt der
 
 - **Docker-only + Gate-Nachweis/Stop-Hook.** Nur `make`-Targets; `make gates` endet mit
   `record-gates`, das nach einem grünen Lauf die Dateiliste des Working Tree als Nachweis schreibt
-  (`make -i gates` schreibt keinen). Der Stop-Hook gibt nur bei identischer Liste frei, ein fehlender
-  Nachweis sperrt auch bei sauberem Tree; jede Änderung der Liste nach einem Gate-Lauf (Inhalt,
-  neue, gelöschte oder umbenannte Datei) → nach dem Wave-Self-Close-Commit `make gates` grün bestätigen.
+  (`make -i gates` schreibt keinen). Der Stop-Hook gibt bei identischer Liste frei oder wenn jeder
+  Unterschied auf der Positivliste liegt (`inert` in `.claude/hooks/stop-require-gates.sh`) und
+  `make gates-schnell` für diesen Arbeitsbaum grün war; ein fehlender Nachweis sperrt auch bei
+  sauberem Tree; jede andere Änderung der Liste nach einem Gate-Lauf (Inhalt, neue, gelöschte oder
+  umbenannte Datei) → nach dem Wave-Self-Close-Commit `make gates` grün bestätigen.
 - **Strenges Doc-Gate.** Als Regel: Kennungen (`LH-`, `ADR-`, `MR-`) als Anker-Links
   auf ihre Definition schreiben. `LH-`-Kennungen ohne Link erzwingt das Gate noch nicht
   (`slice-harness-lh-links-pflicht`). Was das Gate prüft, legt `.d-check.yml` fest;

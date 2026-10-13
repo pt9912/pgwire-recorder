@@ -31,9 +31,11 @@ Lies den Adaptions-Block („MR-Block") in `harness/conventions.md`; die planung
   `make docs-check` ist maßgeblich.
 - **Docker-only + Gate-Nachweis/Stop-Hook.** Nur `make`-Targets, nie Host-Toolchain. `make gates`
   endet mit `record-gates`, das nach einem grünen Lauf die Dateiliste des Working Tree als Nachweis
-  schreibt (`make -i gates` schreibt keinen); der Stop-Hook gibt nur bei identischer Liste frei, ein
-  fehlender Nachweis sperrt auch bei sauberem Tree. Jede Änderung der Liste nach einem Gate-Lauf
-  (Inhalt, neue, gelöschte oder umbenannte Datei) → `make gates` erneut laufen.
+  schreibt (`make -i gates` schreibt keinen); der Stop-Hook gibt bei identischer Liste frei oder wenn
+  jeder Unterschied auf der Positivliste liegt (`inert` in `.claude/hooks/stop-require-gates.sh`) und
+  `make gates-schnell` für diesen Arbeitsbaum grün war; ein fehlender Nachweis sperrt auch bei
+  sauberem Tree. Jede andere Änderung der Liste nach einem Gate-Lauf (Inhalt, neue, gelöschte oder
+  umbenannte Datei) → `make gates` erneut laufen.
 - **Commit via Message-Datei** (`git commit -F <datei>`).
 
 ## Kontext lesen

@@ -33,9 +33,11 @@ emittierten Durchsetzungsschicht):
 - **Gate-Nachweis + Stop-Hook.** `make gates` endet mit `record-gates`, das nach einem grünen Lauf
   die Dateiliste des Working Tree (je Datei Art, Inhalts-Hash oder Link-Ziel, Pfad) und deren Hash
   als Nachweis schreibt; `make -i gates` schreibt keinen Nachweis und entfernt einen älteren. Der
-  Stop-Hook gibt den Abschluss nur frei, wenn die Dateiliste des aktuellen Trees mit der des
-  Nachweises identisch ist; ein fehlender Nachweis sperrt auch bei sauberem Tree (frischer Klon).
-  **Jede Änderung der Liste nach einem Gate-Lauf — Inhalt, Link-Ziel, neue, gelöschte oder
+  Stop-Hook gibt den Abschluss frei, wenn die Dateiliste des aktuellen Trees mit der des
+  Nachweises identisch ist, oder wenn jeder Unterschied auf der Positivliste liegt (`inert` in
+  `.claude/hooks/stop-require-gates.sh` ist die Quelle) und `make gates-schnell` für diesen
+  Arbeitsbaum grün war; ein fehlender Nachweis sperrt auch bei sauberem Tree (frischer Klon).
+  **Jede andere Änderung der Liste nach einem Gate-Lauf — Inhalt, Link-Ziel, neue, gelöschte oder
   umbenannte Datei, also auch jedes `git mv` — lässt den Stop-Hook sperren: `make gates` erneut
   laufen.**
 - **Strenges Doc-Gate (d-check).** Als Regel: Kennungen (`LH-`, `ADR-`, `MR-`) als Anker-Links
