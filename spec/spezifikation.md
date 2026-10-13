@@ -2107,8 +2107,8 @@ PEM-Block vom Typ `PRIVATE KEY`, `RSA PRIVATE KEY` oder `EC PRIVATE KEY` (RSA, E
 Ed25519); ein Block vom Typ `ENCRYPTED PRIVATE KEY` oder mit der Kopfzeile
 `Proc-Type: 4,ENCRYPTED` ist ein verschlüsselter Schlüssel, jeder andere Typ und ein
 zweiter Block sind ungültig. Der Schlüssel passt, wenn sein öffentlicher Teil der des
-Zertifikats ist. Eine Datei, die Zertifikat und Schlüssel zugleich enthält, wird nicht
-unterstützt. Verwendung und Namen des Zertifikats (Schlüsselverwendung, Aussteller) prüft
+Zertifikats ist. Eine Datei, die Zertifikat und Schlüssel zugleich enthält, ist ungültig
+(Entscheidung des Nutzers vom 2026-10-13). Verwendung und Namen des Zertifikats (Schlüsselverwendung, Aussteller) prüft
 der Recorder nicht. Die Meldung `PGR-E2007` nennt die Option und die Ursache, weder den
 Pfad noch den Inhalt (`LH-RB-01`); Schlüssel erscheinen in keiner Meldung.
 
@@ -2129,7 +2129,7 @@ abgelehnt. Auf der verschlüsselten Verbindung sind ein weiterer `SSLRequest` un
 `GSSENCRequest` nicht unterstützt (`PGR-E6001`, `LH-FA-05.e`). Ein TLS-Handshake als
 erste Nachricht ohne `SSLRequest` (direktes TLS) ist keine PGWire-Startnachricht
 (`PGR-W3003`, `LH-FA-05.e`), auch mit `--allow-plaintext`; ein Client mit direktem TLS
-wird nicht bedient (Grenze). Die Verbindungen werden gleichzeitig behandelt; ein
+wird nicht bedient (Grenze, Entscheidung des Nutzers vom 2026-10-13). Die Verbindungen werden gleichzeitig behandelt; ein
 langsamer Handshake hält keine andere Verbindung auf. TLS betrifft nur die Seite des
 Clients; das Verhalten hängt nicht von der Version des Servers ab.
 
