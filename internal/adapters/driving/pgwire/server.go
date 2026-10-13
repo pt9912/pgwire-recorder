@@ -1,7 +1,6 @@
 package pgwire
 
 import (
-	"bufio"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -40,6 +39,8 @@ type Server struct {
 	recorder driving.Recorder
 	replayer driving.Replayer
 	log      *slog.Logger
+	// tls ist die Verschlüsselung zum Client; nil ohne Konfiguration.
+	tls *TLS
 
 	wg sync.WaitGroup
 
@@ -190,32 +191,31 @@ func (s *Server) Serve(ctx context.Context, l net.Listener) {
 	}
 }
 
-func (s *Server) handle(ctx context.Context, conn net.Conn) {
-	defer conn.Close()
+func (s *Server) handle(ctx context.Context, roh net.Conn) {
+	k := neuerKanal(roh)
+	defer func() { _ = k.conn.Close() }()
 	// Im Verbindungsaufbau beendet das Zwangsende die Verbindung ohne Meldung
 	// (LH-FA-13.a *Zwangsende*); die Sitzungen stellen die Wirkung um.
-	z := s.anmelden(func() { _ = conn.Close() })
+	z := s.anmelden(func() { _ = roh.Close() })
 	defer s.abmelden(z)
 
-	// Endet ctx im Verbindungsaufbau, bricht das Lesen der Startnachricht ab.
-	// Danach wachen recordSitzung und replaySitzung selbst über ctx.
+	// Endet ctx im Verbindungsaufbau, bricht das Lesen der Startnachricht und der
+	// TLS-Handshake ab. Danach wachen recordSitzung und replaySitzung selbst über ctx.
 	fertig := make(chan struct{})
 	go func() {
 		select {
 		case <-ctx.Done():
-			_ = conn.SetReadDeadline(time.Now())
+			_ = roh.SetReadDeadline(time.Now())
 		case <-fertig:
 		}
 	}()
 
-	br := bufio.NewReader(conn)
-	be := pgproto3.NewBackend(br, conn)
-
-	startup, ok := s.startup(conn, br, be)
+	startup, ok := s.startup(ctx, k)
 	if !ok {
 		close(fertig)
 		return
 	}
+	conn, be := k.conn, k.be
 
 	a, ok := s.oeffne(ctx, startup.Parameters)
 	close(fertig)
@@ -803,43 +803,58 @@ func kopieOderNil[T any](s []T) []T {
 	return append([]T(nil), s...)
 }
 
-// startup liest die erste Client-Nachricht. SSL- und GSS-Anfragen beantwortet
-// er mit „N“ (LH-FA-05.c), ein CancelRequest schließt die Verbindung
-// (PGR-W3001). Jede andere Protokollversion als 3.0 ist PGR-E6002, eine
+// startup liest die erste Client-Nachricht. Eine SSL-Anfrage beantwortet
+// sslAnfrage, eine GSS-Anfrage „N“ (LH-FA-05.c); auf einer verschlüsselten
+// Verbindung ist die GSS-Anfrage PGR-E6001. Ein CancelRequest schließt die
+// Verbindung (PGR-W3001). Jede andere Protokollversion als 3.0 ist PGR-E6002, eine
 // unbekannte Sonderanfrage (Hauptnummer 1234) PGR-E6001. Eine erste Nachricht,
 // die keine PGWire-Startnachricht sein kann, schließt die Verbindung ohne Antwort
-// und nur mit der Warnung PGR-W3003; eine Verbindung ohne erste Nachricht endet
+// und nur mit der Warnung PGR-W3003, auch die erste Nachricht eines Clients mit
+// direktem TLS; eine Verbindung ohne erste Nachricht endet
 // still (LH-FA-05.e). Der Startcode wird vor pgproto3 gelesen, weil die
-// Bibliothek unbekannte Codes ohne Antwort ablehnt.
-func (s *Server) startup(conn net.Conn, br *bufio.Reader, be *pgproto3.Backend) (*pgproto3.StartupMessage, bool) {
+// Bibliothek unbekannte Codes ohne Antwort ablehnt. Ist TLS konfiguriert und
+// Klartext nicht erlaubt, ist eine unverschlüsselte Startnachricht der Version
+// 3.0 PGR-E6003 (LH-FA-23.a *Unverschlüsselte Clients*).
+func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessage, bool) {
 	for {
-		kopf, err := br.Peek(8)
+		kopf, err := k.br.Peek(8)
 		if err != nil {
 			// Eine Verbindung ohne Startnachricht, zum Beispiel eine TCP-Probe.
 			s.log.Debug("Verbindung ohne Startnachricht beendet", "grund", err.Error())
 			return nil, false
 		}
-		if !s.startkopf(conn, be, binary.BigEndian.Uint32(kopf[0:4]), binary.BigEndian.Uint32(kopf[4:8])) {
+		laenge, code := binary.BigEndian.Uint32(kopf[0:4]), binary.BigEndian.Uint32(kopf[4:8])
+		if !s.startkopf(k.conn, k.be, laenge, code) {
 			return nil, false
 		}
+		if laenge == 8 && (code == codeSSLRequest || code == codeGSSEncRequest) {
+			// Beide Anfragen liest der Adapter selbst, nicht pgproto3: dessen Leser
+			// zieht Bytes hinter der Anfrage in einen eigenen Puffer, und sslAnfrage
+			// sieht sie in k.br (LH-FA-23.a *Aushandlung*).
+			_, _ = k.br.Discard(8)
+			if !s.sonderanfrage(ctx, k, code) {
+				return nil, false
+			}
+			continue
+		}
 
-		msg, err := be.ReceiveStartupMessage()
+		msg, err := k.be.ReceiveStartupMessage()
 		if err != nil {
-			s.fail(be, model.Errorf(model.CodeUnsupported, err, "Startnachricht nicht lesbar"))
+			s.fail(k.be, model.Errorf(model.CodeUnsupported, err, "Startnachricht nicht lesbar"))
 			return nil, false
 		}
 		switch m := msg.(type) {
-		case *pgproto3.SSLRequest, *pgproto3.GSSEncRequest:
-			if _, err := conn.Write([]byte{'N'}); err != nil {
-				return nil, false
-			}
 		case *pgproto3.CancelRequest:
 			s.log.Warn("CancelRequest empfangen und nicht weitergeleitet", "code", model.CodeCancelRequest)
 			return nil, false
 		case *pgproto3.StartupMessage:
+			if s.tls != nil && !s.tls.klartext && !k.verschluesselt {
+				s.fail(k.be, model.Errorf(model.CodePlaintext, nil, "unverschlüsselte Verbindung nicht zugelassen; der Recorder verlangt TLS"))
+				return nil, false
+			}
 			return m, true
 		default:
-			s.fail(be, model.Errorf(model.CodeUnsupported, nil, "Startnachricht %T wird nicht unterstützt", m))
+			s.fail(k.be, model.Errorf(model.CodeUnsupported, nil, "Startnachricht %T wird nicht unterstützt", m))
 			return nil, false
 		}
 	}

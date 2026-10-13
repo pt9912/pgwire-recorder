@@ -59,6 +59,10 @@ func Run(ctx context.Context, ablauf <-chan struct{}, args []string, version str
 }
 
 func record(ctx context.Context, ablauf <-chan struct{}, o cli.RecordOptions, log *slog.Logger, stderr io.Writer) int {
+	t, err := pgwire.NeuesTLS([]byte(o.TLS.Zertifikat), []byte(o.TLS.Schluessel), o.TLS.KlartextErlaubt)
+	if err != nil {
+		return fail(stderr, err)
+	}
 	repo, err := recording.New(o.Format)
 	if err != nil {
 		return fail(stderr, err)
@@ -75,6 +79,7 @@ func record(ctx context.Context, ablauf <-chan struct{}, o cli.RecordOptions, lo
 	log.Info("record gestartet", "listen", l.Addr().String(), "upstream", o.Upstream)
 
 	server := pgwire.NewRecordServer(service, log)
+	server.MitTLS(t)
 	betreiben(ctx, ablauf, l, server, o.ShutdownTimeout, log)
 
 	if err := service.Finish(context.WithoutCancel(ctx)); err != nil {
@@ -85,6 +90,10 @@ func record(ctx context.Context, ablauf <-chan struct{}, o cli.RecordOptions, lo
 }
 
 func replay(ctx context.Context, ablauf <-chan struct{}, o cli.ReplayOptions, log *slog.Logger, stderr io.Writer) int {
+	t, err := pgwire.NeuesTLS([]byte(o.TLS.Zertifikat), []byte(o.TLS.Schluessel), o.TLS.KlartextErlaubt)
+	if err != nil {
+		return fail(stderr, err)
+	}
 	var opts []services.ReplayOption
 	if o.FailOnUnconsumed {
 		opts = append(opts, services.FailOnUnconsumed)
@@ -103,6 +112,7 @@ func replay(ctx context.Context, ablauf <-chan struct{}, o cli.ReplayOptions, lo
 	log.Info("replay gestartet", "listen", l.Addr().String(), "input", o.Input)
 
 	server := pgwire.NewReplayServer(service, log)
+	server.MitTLS(t)
 	betreiben(ctx, ablauf, l, server, o.ShutdownTimeout, log)
 
 	// Nie zugeordnete Sessions werden nach allen Verbindungsfehlern gemerkt und
