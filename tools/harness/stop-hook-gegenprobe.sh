@@ -15,7 +15,7 @@
 # Stand der schnellen Kette fehlt, ist leer, nicht lesbar oder fremd; das Hash-Skript fehlt, scheitert oder liefert nichts),
 # 11 (Form, Pfade mit Zeilenumbruch,
 # Leerzeichen innen, am Anfang und am Ende, Tabulator, Backslash und Nicht-UTF-8), 12 und 13 (Positivliste je Eintrag in jeder
-# Tiefe, Grenze je Eintrag, Groß- und Kleinschreibung, unzulässige Pfade, Art X, Hook und Spezifikation nicht inert),
+# Tiefe, Grenze je Eintrag, Groß- und Kleinschreibung, unzulässige Pfade, Art X, Hook, Spezifikation und Vertrag nicht inert),
 # 14 (Inhalt, Link-Ziel, Umbenennung, gelöschte und neue Datei), 15 (Symlink: Ziel, Art, Spiegelregel je Zieltyp),
 # 16 (Identität gibt frei, auch ohne passenden Stand der schnellen Kette), 17 (Merge-Konflikt vor der Identität),
 # 18 (untracked Datei), 19 (kein Stand, auch bei sauberem Baum), 20 (nicht lesbarer Vergleich, Abbruch, beschädigte Liste,
@@ -674,7 +674,8 @@ f_p12_grenze_readme_bak() { pfad_fall p12-grenze-readme-bak block README.md.bak;
 f_p12_case_planning() { pfad_fall p12-case-planning block docs/Plan/planning/n.md; }
 f_p12_case_readme() { pfad_fall p12-case-readme block readme.md; }
 f_p12_harness_readme() { pfad_fall p12-harness-readme block harness/README.md; }
-# Selbständerung (Punkt 12): Hook, Skripte der Liste und Spezifikation sind nicht inert.
+# Selbständerung (Punkt 12): Hook, Skripte der Liste, Spezifikation und der Vertrag
+# harness/vertraege/SPEC-052-gate-kette.md sind nicht inert.
 f_p12_selbst_hook() { pfad_fall p12-selbst-hook block "$HOOK"; }
 f_p12_selbst_dateiliste() { pfad_fall p12-selbst-dateiliste block "$LIB"; }
 f_p12_selbst_hash() { pfad_fall p12-selbst-hash block "$HASH"; }
