@@ -11,3 +11,5 @@ Weiter offen, kein neues Auftreten (Risiko aus §6 von `slice-v1-abschluss-zeita
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.13): `slice-v1-abschluss-sessions` (V-308) — eine Nahtstelle, die der Architect im Geber festlegt, stand in den Nehmern nur teilweise (Beleg `evidence/slice-v1-abschluss-sessions.md`).
 
 Geschärft: der Satz zur Nahtstelle des Architect in `.claude/agents/planner.md` (jeder Punkt in §1 und §6 des bindenden Nehmers, mit Nachzählung, bevor der Geber nach `done/` geht; `grep` nach der Kennung des Gebers in jedem Nehmer der Reihe) — Herkunfts-Anker `seit slice-v1-abschluss-sessions`.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.13): `slice-harness-vertraege-umzug-ordner` (Review F-1) — eine bewusst stehen gelassene Ortsangabe (Zwischenstand) ist eine Sendung an die Nehmer des Umzugs (Beleg `evidence/slice-harness-vertraege-umzug-ordner.md`).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-vertraege-umzug-ordner
+**Fund:** Der Zwischenstand mit zwei Orten in `AGENTS.md` §3.12 (`SPEC-049` und `SPEC-052` in `spec/spezifikation.md` §11) war an `slice-harness-vertraege-umzug-lint` und `slice-harness-vertraege-umzug-gate-kette` abgegeben, aber nur in §3 des Gebers; die Nehmer nannten den Geber nicht in §1 und DoD (Review F-1, MEDIUM; F-2 LOW: der Geber trug die Sendung nicht in §1 und §6). Der Nachzug in beiden Nehmern, mit Nachzählung, geschah in `1722af9`, vor der Closure.

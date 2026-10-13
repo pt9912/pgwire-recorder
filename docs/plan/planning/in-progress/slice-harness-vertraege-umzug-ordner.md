@@ -70,28 +70,28 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] **Liefer-Punkt 1 — der Ordner.** `harness/vertraege/README.md` (Gegenstand des Ordners, Rang 2 mit `spec/spezifikation.md`
+- [x] **Liefer-Punkt 1 — der Ordner.** `harness/vertraege/README.md` (Gegenstand des Ordners, Rang 2 mit `spec/spezifikation.md`
       geteilt, Reihe der Kennungen über beide Orte als Regel, nicht als Zahl (Randform 6), Einleitung von §11, Historie der Verträge) und je eine Datei für
       `SPEC-047`, `SPEC-048`, `SPEC-050`; der Text ist gegenüber `spezifikation.md §11` am Stand `231089e` unverändert bis auf die
       Abweichungen, die §6 benennt. Beleg in §7: der Vergleich (Befehl und Ausgabe), nicht „im Bericht“.
-- [ ] **Liefer-Punkt 2 — die Spezifikation.** `spec/spezifikation.md` führt die drei Verträge und die Zeilen ihrer *Historie* nicht
+- [x] **Liefer-Punkt 2 — die Spezifikation.** `spec/spezifikation.md` führt die drei Verträge und die Zeilen ihrer *Historie* nicht
       mehr; §11 behält Einleitung und die beiden übrigen Verträge unverändert; die Spezifikation verweist nicht auf `harness/`;
       `make docs-check` grün (Klasse `spec-straten` gegen `aussen`).
-- [ ] **Liefer-Punkt 3 — die Verweise.** Jeder Verweis auf die drei Verträge zeigt auf den neuen Ort: Links (Anker bleiben, der Pfad
+- [x] **Liefer-Punkt 3 — die Verweise.** Jeder Verweis auf die drei Verträge zeigt auf den neuen Ort: Links (Anker bleiben, der Pfad
       wechselt) in `harness/README.md`, den Sensor-Dateien, [ADR-0035](../../adr/0035-struktur-kennungen-im-commit-hook-abgelehnt.md), den Plänen in `open/` und `next/`
       und, wo sie sonst bricht, in Reviews und `done/`; `harness/README.md` §Source precedence (Rang 2 trägt beide Orte, neun Ränge)
       und §Sensors; `AGENTS.md` §2 (Rang 2) und §3.12 (Ort der Randform-Entscheidung); die Pfadangabe in den Kommentaren der Skripte.
       Beleg in §7: `grep -rn "spezifikation.md#spec-0\(47\|48\|50\)" --exclude-dir=.git --exclude-dir=.harness .` ohne Treffer, und
       der Text von `SPEC-047` nennt den Ort nicht (`MR-002` Adaption 5).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Handbuch und README unberührt: Das Produktverhalten ändert sich nicht (`AGENTS.md` §3.11).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Handbuch und README unberührt: Das Produktverhalten ändert sich nicht (`AGENTS.md` §3.11).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -158,10 +158,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Der Text eines Vertrags nennt selbst den alten Ort (in `SPEC-050` steht ein Beispiel-Anker `spezifikation.md#spec-049…` als Text, kein Link) — wortgleich, entschieden in Randform 3 — **Ausgang:** offen bis Closure.
-- Zwischenstand mit zwei Orten: Wer `SPEC-049` oder `SPEC-052` sucht, findet sie bis zu den Folge-Slices noch in §11; das `README.md` des Ordners sagt, welche Verträge der Ordner führt, und nur das (`AGENTS.md` §3.7: Zustand, keine Chronik). Der Nachzug der Ortsangabe in `AGENTS.md` §3.12 ist abgegeben: `slice-harness-vertraege-umzug-lint` trägt ihn für `SPEC-049`, `slice-harness-vertraege-umzug-gate-kette` für `SPEC-052` samt Wegfall des Zwischenstands (beide in §1, DoD und §6 mit der Kennung dieses Slice) — **Ausgang:** offen bis Closure.
-- Verweise ohne Link (Pfadangaben in Kommentaren, Fließtext in Plänen) fängt kein Gate; der Beleg ist ein `grep`, der nur diese Form kennt (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`) — **Ausgang:** offen bis Closure.
-- Die Schnitt-Grenze: Eine Hälfte des Umzugs (Einleitung von §11, Reihe der Kennungen) liegt von Anfang an im Ordner, obwohl zwei Verträge noch fehlen; läge ein Fehler dort, träfe er die beiden Folge-Slices (`BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`, 2×, offen) — **Ausgang:** offen bis Closure.
+- Der Text eines Vertrags nennt selbst den alten Ort (in `SPEC-050` steht ein Beispiel-Anker `spezifikation.md#spec-049…` als Text, kein Link) — wortgleich, entschieden in Randform 3 — **Ausgang: entfallen** — Grund: `SPEC-050` ist wortgleich übertragen (Vergleich in §7 leer), der Beispiel-Anker bleibt Text im Code-Span; `make docs-check` meldet auf dem Stand der Closure 0 Befunde (Randform 3, am Stand der Verifikation 711 Dateien).
+- Zwischenstand mit zwei Orten: Wer `SPEC-049` oder `SPEC-052` sucht, findet sie bis zu den Folge-Slices noch in §11; das `README.md` des Ordners sagt, welche Verträge der Ordner führt, und nur das (`AGENTS.md` §3.7: Zustand, keine Chronik). Der Nachzug der Ortsangabe in `AGENTS.md` §3.12 ist abgegeben: `slice-harness-vertraege-umzug-lint` trägt ihn für `SPEC-049`, `slice-harness-vertraege-umzug-gate-kette` für `SPEC-052` samt Wegfall des Zwischenstands (beide in §1, DoD und §6 mit der Kennung dieses Slice) — **Ausgang: entfallen** — Grund: Beide Nehmer tragen die Sendung mit der Kennung dieses Slice in §1, DoD, §3, §6 und §8 (Review F-1/F-2 behoben, Verifikation per `grep` bestätigt, Nachzählung 3 Liefer-Punkte und 2 Schichten); das `README.md` des Ordners nennt nur den Zustand.
+- Verweise ohne Link (Pfadangaben in Kommentaren, Fließtext in Plänen) fängt kein Gate; der Beleg ist ein `grep`, der nur diese Form kennt (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`) — **Ausgang: entfallen** — Grund: Der `grep` der Form ohne Link (Randform 10) ist gefahren (§7); er trifft für die drei Verträge nur Zeitdokumente und diesen Plan, alle weiteren Treffer nennen `SPEC-049` oder `SPEC-052` und gehören den Folge-Slices.
+- Die Schnitt-Grenze: Eine Hälfte des Umzugs (Einleitung von §11, Reihe der Kennungen) liegt von Anfang an im Ordner, obwohl zwei Verträge noch fehlen; läge ein Fehler dort, träfe er die beiden Folge-Slices (`BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`, 2×, offen) — **Ausgang: entfallen** — Grund: Der Fehler in der vorweg gelegten Hälfte (Einleitung, Reihe) ist nicht eingetreten; Review und Verifikation fanden dort nichts, und die Rückführungs-Marke (750) blieb unberührt (614). Die Beobachtung `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` bleibt bei 2×: Der Fall ist ein Gegenbeispiel, keine Evidence-Datei; die beiden Folge-Slices sichten sie in ihrem §8, bis sie geschlossen sind.
 
 **Prüfung des Architect vor dem Code** (2026-10-13, Stand `795f1c0`, Spezifikation unverändert seit `231089e`): Bezug zu [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) und [MR-002](../../../../harness/conventions.md#mr-002) bestätigt (Ort, Ablage, Rang, Gate-Klasse `aussen`). Zeilenbereiche am Stand `231089e` nachgemessen: `SPEC-047` 2880 bis 2953 (74), `SPEC-048` 2954 bis 3011 (58), `SPEC-050` 3165 bis 3215 (51), zusammen 183. Größe bestätigt, in der Metrik von `AGENTS.md` §3.14: 183 Zeilen Vertragstext doppelt (neu und gelöscht) 366, dazu `README.md` des Ordners rund 45 (Einleitung, Rang, Reihe, Tabelle der Verträge, zwei Zeilen Historie), die zwei gelöschten Historie-Zeilen, rund 15 Dateien Nachzug mit je ein bis drei geänderten Zeilen (doppelt gezählt rund 60), `AGENTS.md` und `harness/README.md` rund 20: **480 bis 560**, innerhalb der Schätzung des Planners (450 bis 600), unter der Marke 750. Zählung 3 Liefer-Punkte und 2 Schichten bestätigt. Kein Schnitt, keine Folge-ADR.
 
@@ -228,15 +228,30 @@ Die Form ohne Link (`grep -rn "spezifikation.md SPEC-0" …`, Randform 10) triff
 | Zusage | Mutation | roter Lauf |
 |---|---|---|
 | der Text ist wortgleich | ein Zeichen vor Zeile 3 von `SPEC-048-abdeckung.md` | der Vergleich oben meldet `3c3` mit beiden Zeilen |
-| jeder Link auf einen Vertrag zeigt auf den neuen Ort | Pfad in `harness/sensors/kopf-check.md:9` zurück auf `../../spec/spezifikation.md` | `make docs-check`: `anchor-missing`, 1 Befund |
+| jeder Link auf einen Vertrag zeigt auf den neuen Ort | Pfad in `harness/sensors/kopf-check.md:9` zurück auf `../../spec/spezifikation.md` | `make docs-check`: 1 Befund; die Klasse hängt am gewählten Pfad (Verifikation L-1): `../../spec/spezifikation.md` meldet `repo-escape`, ein Pfad auf `spezifikation.md` mit dem Anker, der dort nicht mehr löst, `anchor-missing` |
 | die Spezifikation verweist nicht auf `harness/` | ein Link auf `../harness/vertraege/README.md` am Ende von `spec/spezifikation.md` | `make docs-check`: `matrix-forbidden — Referenz spec-straten → aussen ist nicht erlaubt` |
 | `SPEC-047` nennt den Ort nicht | eine Zeile `Ort: harness/vertraege` am Ende von `SPEC-047-kopf-der-plaene.md` | `grep -n "harness/\|spezifikation.md"` meldet Zeile 74 |
 
 Die Rang-Aussagen in `harness/README.md` und `AGENTS.md` §2 haben kein Gate (`MR-002` Adaption 4); sie sagen nichts über eine Prüfung.
 
-**Größe** (Metrik `AGENTS.md` §3.14, `git diff --numstat 6459815..<Commit> -- spec harness AGENTS.md tools .claude docs/plan docs/reviews`, Summe aus Einfügungen und Löschungen): 473 auf `0da0595` vor diesem Eintrag; Marke 750 nicht erreicht.
+**Größe** (Metrik `AGENTS.md` §3.14, `git diff --numstat 6459815..<Commit> -- spec harness AGENTS.md tools .claude docs/plan docs/reviews`, Summe aus Einfügungen und Löschungen): 473 auf `0da0595` vor dem Nachzug von F-1/F-2; **614** auf `1722af9` (Stand der Verifikation, nach Review-Nachzug und diesen Belegen; 662 mit dem Verifikationsbericht); Marke 750 nicht erreicht. Die Schätzung des Architect (480 bis 560) lag darunter, weil die Review-Runde (Nachzug F-1/F-2, Report) nicht in ihr stand.
 
 **Beobachtung zu `BEO-REPO/werkzeug-festlegung-ausserhalb-technik-stratum`:** Der Ort wurde nicht übersehen; keine Evidence-Datei vom Implementer vorgeschlagen (Urteil der Closure).
+
+### Closure-Notiz
+
+**Geliefert:** Ordner `harness/vertraege/` mit `README.md` (Rang 2 geteilt, Reihe als Regel, Einleitung von §11, Historie) und den Verträgen `SPEC-047`, `SPEC-048`, `SPEC-050` wortgleich; die Spezifikation führt sie nicht mehr; Verweise zeigen auf den neuen Ort. Verifikation: [Bericht](../../../reviews/2026-10-13-verifikation-slice-harness-vertraege-umzug-ordner.md) bestätigt die drei Liefer-Punkte, `make gates` und die vier Mutationen selbst gefahren; keine HIGH/MEDIUM-Befunde offen (F-1 MEDIUM und F-2 LOW aus dem Review behoben).
+
+**Ausgang je Risiko aus §6:** alle vier *entfallen*, mit Grund in §6 (Beispiel-Anker bleibt Text · Zwischenstand abgegeben und von den Nehmern angenommen · `grep` gefahren · Schnitt-Grenze trug). Beim vierten ist das Urteil der Closure: *entfallen* statt *weiter offen*, weil das Risiko (Fehler in der vorweg gelegten Hälfte träfe die Folge-Slices) in diesem Slice nicht eintrat und nichts zu zählen ist; die Beobachtung selbst bleibt unverändert bei 2×.
+
+**Beobachtungs-Register:**
+- `BEO-REPO/folge-slice-adresse-nimmt-nicht-an`: Wiederaufgetreten (Review F-1, MEDIUM): Der Zwischenstand in `AGENTS.md` §3.12 war an zwei Folge-Slices abgegeben, die ihn nicht annahmen; Evidence-Datei `evidence/slice-harness-vertraege-umzug-ordner.md`. Regel §3.13 bleibt, Retirement-Check bestanden (nicht entfernt, nicht gelockert); der Zähler folgt aus den Dateien.
+- `BEO-REPO/werkzeug-festlegung-ausserhalb-technik-stratum`: keine Evidence-Datei, der Ort wurde nicht übersehen (Urteil der Closure; der Umzug ist der Gegenstand der Beobachtung, nicht ein neues Auftreten).
+- `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`: kein neues Auftreten, 2× bleibt; kein Eintrag über der Schwelle von 3×.
+
+**Lerneintrag (Steering Loop):** Die Regel hielt, aber erst im Review: Der Geber ließ einen Zwischenstand bewusst stehen (zwei Orte in §3.12), nannte ihn aber nur in §3 und in §1 als Abgabe, nicht als Sendung, die der Nehmer in §1 und DoD annimmt. Form: Wiederaufgetreten, Regel bleibt (`BEO-REPO/folge-slice-adresse-nimmt-nicht-an`, Herkunft `seit slice-lint-bestand-kern-driven`); geändert wird `AGENTS.md` nicht. Zweiter Befund: Die Schätzung des Architect (480 bis 560) nannte die Review-Runde nicht und lag 54 unter der Messung (614). Beides geht als Vorschlag an den Nutzer (Bericht der Closure), nicht als Eintrag in `AGENTS.md`.
+
+**Paarungen:** (a) *Anker* — der Lerneintrag trägt kein Feld `liegt in`, keine Verkörperung; nichts zu prüfen. (b) *Folge-Slice* — `slice-harness-vertraege-umzug-lint` und `slice-harness-vertraege-umzug-gate-kette` liegen in `next/`; `grep -n "slice-harness-vertraege-umzug-ordner"` findet die Sendung in §1 und DoD beider. (c) *Register* — die drei genannten Kennungen existieren als Verzeichnis, jedes mit nicht leerem `evidence/`.
 
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
