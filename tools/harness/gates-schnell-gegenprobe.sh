@@ -143,6 +143,8 @@ pruefe() {
   flagfall "$w" nenv n gates-schnell
   flagfall "$w" q "" -q gates-schnell
   flagfall "$w" t "" -t gates-schnell
+  # n zusammen mit i: n gilt, der Stand bleibt unberührt.
+  flagfall "$w" ni ni gates-schnell
   # -i: Fehler werden überlesen; der Lauf endet mit 0, ein älterer Stand entfällt, keiner entsteht.
   rm -f "$stand"; mf=""; fail=""
   lauf "$w" -i gates-schnell
@@ -294,6 +296,9 @@ rot m-i-nicht-erkannt p6-i-schreibt
 fixture m-i-wie-n
 sed -i 's|\*i\*) ueberlesen=1|*i*) trocken=1|' "$w/tools/harness/gates-schnell.sh"
 rot m-i-wie-n p6-i-entfernt
+fixture m-i-vor-n
+sed -i 's|\*i\*) ueberlesen=1 ;;|*i*) ueberlesen=1; trocken=0 ;;|' "$w/tools/harness/gates-schnell.sh"
+rot m-i-vor-n p6-ni-entfernt exakt
 fixture m-k-wie-n
 sed -i 's|^case "\$buchstaben" in \*n\*)|case "$buchstaben" in *n* \| *k*)|' "$w/tools/harness/gates-schnell.sh"
 rot m-k-wie-n p6-andere
