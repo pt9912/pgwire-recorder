@@ -165,6 +165,10 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/harness/` (Gegenprobe des Hooks aus `slice-harness-gate-kette-stop-hook-liste`) | update | je Randform dieses Slice ein Fall in einem Temp-Repo; das Fragment unter `harness/mk/` und die Anbindung an `GATE_CHECKS` bestehen |
 | `harness/README.md` §Sensors | update, falls nötig | Zeile der Gegenprobe nennt die Positivliste |
 | `harness/conventions.md` (Träger-Tabelle, Zeile `grundlagen-durchsetzungsschicht.md`) | update, falls nötig | nennt die Träger des geänderten Hooks |
+| `harness/mk/stop-hook-gegenprobe.mk` (Kopf) | update | nennt die Punkte 9 bis 22 |
+| `.claude/commands/implement-slice.md`, `plan-welle.md`, `close-welle.md` | update | nennen die Positivliste (`inert` im Hook als Quelle) und `make gates-schnell` |
+| `tools/harness/record-gates.sh` (Kopf) | update | nennt die Freigabe über die Positivliste statt „nur bei identischer Liste“ |
+| `tools/hook/commit-msg-gegenprobe.sh` | update | legt Slices und Wellen ihrer Fälle in einem eigenen Temp-Repo an und liest den Planungsbaum des Arbeitsbaums nicht (Beleg von `SPEC-052` Punkt 13) |
 
 - Der Hook liest die Liste über dieselbe Funktion wie in `slice-harness-gate-kette-stop-hook-liste`; die
   Positivliste ist die einzige neue Logik und steht nach der Prüfung nicht aufgelöster Index-Einträge.
@@ -518,6 +522,79 @@ Docker-Build-Kontext. „rot“: der Fall meldet sich, „grün bleibt“: der F
 bei fehlendem Skript: äquivalent, die Prüfung auf leere Ausgabe fängt es; rot mit `m-skript-fehlt-ersatz` und `m-hash-leer-gilt` je an ihrem Fall. Die Seite des Arbeitsbaums hat für
 unzulässige Pfade keinen herstellbaren Fall (`SPEC-052` Punkt 12, akzeptiertes Negativ). Die Tabelle des Plans (§6) nennt für „leere Datei“, „`|| true`“ und „absolut“ Mutationen, die in dieser Fassung
 des Hooks äquivalent wären; sie sind durch die oben genannten ersetzt, die nur ihre Zusage brechen.
+
+### Belege der Nacharbeit nach dem Review (b), 2026-10-14
+
+**Code-Commits:** `b6c2fbe` (F-713, `tools/hook/commit-msg-gegenprobe.sh`), `9e727fb` (F-720, F-716, F-714: Hook, `stop-hook-gegenprobe.sh`, Kopf von `record-gates.sh`). Der Hook ist in einer Kopie im
+Scratchpad geändert und erst nach grünem Lauf der Gegenprobe (138 Fälle) eingespielt worden; zurück: `git checkout 785ed69 -- .claude/hooks/stop-require-gates.sh tools/harness/ tools/hook/`.
+F-717 und F-718 sind Entscheidungen des Architect ohne Code; F-721 und F-722 bleiben ohne Code (Entscheidung des Architect); F-719 löst der `reason` (unten).
+
+**F-713, Befund vorher und nachher.** Kopie des Arbeitsbaums (alle Dateien des Index, eigenes Repo), je Zeile eine Menge aus dem Planungsbaum entfernt; „alt“ ist
+`tools/hook/commit-msg-gegenprobe.sh` aus `1b7c390`, „neu“ das Skript aus `b6c2fbe`, jeweils der Exit-Code:
+
+| Planungsbaum der Kopie | alt | neu |
+|---|---|---|
+| unverändert | 0 | 0 |
+| ohne Slice in `open/` (der Fall der Meldung des Reviews) | 1 | 0 |
+| ohne Slice in `done/` | 1 | 0 |
+| ohne flache Welle | 1 | 0 |
+| ohne geschlossene Welle | 1 | 0 |
+| ohne Closure-Notiz | 1 | 0 |
+| ohne jede Datei unter `docs/plan/planning/` | 1 | 0 |
+
+Das „alt“ ist zugleich die Mutante der Tabelle in §6 (Zeile *Kein Fall von `hook-gegenprobe` bezieht Slice oder Welle aus dem Index*): das Skript liest wieder aus dem Index, Exit 1, das Skript der Lieferung 0.
+Beleg von Hand, kein Dauerfall (akzeptiertes Negativ in §6).
+
+**F-713, Zusagen des Trägers (`SPEC-050`) je Fall mit Mutation.** Die Mutante steht in einer Kopie des Trägers (`.githooks/commit-msg` oder `tools/harness/commit-msg-traceability.sh`) in einem Verzeichnis ohne
+Planungsbaum; das Skript der Lieferung läuft dort (die Unverändert-Kontrolle: grün). Rot ist der Fall, den die Meldung `ROT — erwartet …` nennt; mehr rote Meldungen stehen dahinter:
+
+| Fall (Zusage) | Mutation | roter Fall (außer ihm) |
+|---|---|---|
+| ohne jede Kennung abgelehnt | `exec bash …traceability.sh` am Ende durch `exit 0` ersetzt | `Arbeit ohne Kennung`; zugleich die Fälle erfundene Slice-Kennung, `slice-mv`, Suffix, Wortteil, Kommentar, Scissors, erfundene Welle, `-results` |
+| erfundene Slice-Kennung abgelehnt | `case "$kennung" in slice-erfunden*) exit 0` vor der Prüfung | `slice-erfunden-gegenprobe` allein |
+| Name des Lifecycle-Werkzeugs (`slice-mv`) abgelehnt | `case … slice-mv) exit 0` | `slice-mv` allein |
+| Slice in `open/` angenommen | Muster nur `done/` | `slice-gegenprobe-offen`, Kennung im Rumpf |
+| Slice in `done/` angenommen | Muster nur `open/` | `slice-gegenprobe-fertig` allein |
+| Kennung nur im Rumpf angenommen | nur die erste Zeile lesen (`head -n 1`) | Rumpf-Fall allein |
+| angehängtes Suffix abgelehnt | `(-[a-z0-9]+)*` auf `{0,1}` gekappt | `…-zusatz`; zugleich `-results` |
+| vorangestellter Wortteil abgelehnt | Wortgrenze `(^|[^A-Za-z0-9_-])` entfernt | `xslice-gegenprobe-offen` allein |
+| Kommentarzeile zählt nicht | Filter `grep -v '^[[:space:]]*#'` entfernt | Kommentar-Fall allein |
+| Kennung unter der Scissors-Zeile zählt nicht | `sed '/^# -…/,$d'` durch `cat` ersetzt | Scissors-Fall allein |
+| Lastenheft-Kennung angenommen | `LH-[A-Z]{2}-[0-9]{2}` aus `patterns=` entfernt | `Arbeit (LH-QA-04)` allein |
+| flache Welle angenommen | Muster `docs/plan/planning/$kennung.md` entfernt | `welle-gegenprobe-offen` allein |
+| Welle in `done/` angenommen | Muster `*/$kennung.md` der Welle entfernt | `welle-gegenprobe-fertig` allein |
+| erfundene Welle abgelehnt | Muster der Welle auf `docs/plan/planning/*` | `welle-erfunden-gegenprobe` allein; ebenso `case … welle-erfunden*) exit 0` |
+| Closure-Notiz (`-results`) zählt nicht | Zeile `*-results) continue ;;` gestrichen | `welle-gegenprobe-fertig-results` allein |
+
+Das sind fünfzehn Fälle, je einer rot unter der Mutation seiner Zusage.
+
+**F-720 und F-719, der `reason`.** Der Hook gibt bei fehlendem Stand der schnellen Kette mit inerter Änderung ``Run `make gates-schnell` (or `make gates`).`` aus; alle übrigen Sperren behalten ``Run `make gates`.``
+`SPEC-052` Punkt 9 und §6 nennen den Fall „`p9-stand-fehlt`“; **dieser Fall prüft den Stand des vollen Laufs** (er legt nur den schnellen Stand an, Punkte 9 und 19) und sperrt mit ``Run `make gates`.``.
+Der Fall des Standes der schnellen Kette bei inerter Änderung ist `p10-fehlt`; die Prüfung von `grund … 'make gates-schnell'` steht dort. Der neue Fall `p9-stand-fehlt-nicht-inert` (voller Stand da, schneller fehlt, Änderung in
+`internal/x.go`) verlangt `kein_grund … 'make gates-schnell'`. Zuordnung als Frage an den Architect im Bericht. Mutanten:
+
+| Zusage | Mutation | roter Fall (grün bleibt) |
+|---|---|---|
+| Fehlt der Stand der schnellen Kette bei inerter Änderung, nennt der `reason` `make gates-schnell` | `m-hinweis-nie`: die Zeile `schnell_gruen` ohne Hinweis | `p10-fehlt` (grün: `p9-stand-fehlt-nicht-inert`) |
+| Jeder andere Fall nennt es nie | `m-hinweis-immer`: Standardhinweis von `voll` mit `make gates-schnell` | `p9-stand-fehlt-nicht-inert` (grün: `p10-fehlt`) |
+| Die Pfadregel steht vor dem Stand der schnellen Kette (beobachtbar am `reason`, F-719) | `m-stand-vor-pfadregel`: `schnell_gruen` vor `pfadregel` | `p9-stand-fehlt-nicht-inert` (grün: `p10-fehlt`) |
+
+Der bestehende Mutant `m-schnell-nur-vorhanden` (`voll "x"`) färbte beim ersten Lauf auch `p10-fehlt` rot, weil sein Text den Hinweis nicht trug; er trägt ihn jetzt und färbt nur `p10-fremd`.
+
+**F-716, Klasse „Teilform des leeren Segments“.** Merkmal: der Pfad hat ein leeres Segment, und das Segment steht in der Mitte oder am Ende. Neuer Fall `p12-unzulaessig-leer-ende` (Pfad `docs/user/x/` mit gültigem Hash im Stand);
+Mutanten: `m-ohne-leeres-segment-ende` (`| */` aus `zulaessig` entfernt) färbt `p12-unzulaessig-leer-ende` allein, `m-ohne-leeres-segment-mitte` (`*//*` entfernt) `p12-unzulaessig-leer` allein; der Mutant, der die ganze Zeile entfernt
+(`m-ohne-leeres-segment`), färbt beide.
+
+**F-714.** Der Kopf von `record-gates.sh` nennt die Freigabe über die Positivliste und den Stand der schnellen Kette und die Fälle `p16-identisch`, `p9-freigabe`; `grep -rn "gibt nur frei" tools` bleibt ohne Treffer.
+
+**Größe** (Metrik aus §4, `git diff --numstat 8349a65..9e727fb -- tools harness .claude`): 670 Einfügungen, 60 Löschungen, Summe **730** (Stand vor der Nacharbeit 639; Schätzung 700 bis 740, Marke 900). Anteil der Nacharbeit (`b512b23..9e727fb`): 71/42, Summe **113**
+(Schätzung 60 bis 100; darüber, weil Gegenprobe des Hooks 45 statt 25 bis 40: zwei zusätzliche Mutanten für das leere Segment und die dritte Mutante des `reason`).
+Dateien: `commit-msg-gegenprobe.sh` 23/28 (netto −5), Hook 8/3, `stop-hook-gegenprobe.sh` 36/9, `record-gates.sh` 4/2.
+
+**Laufzeit.** `make hook-gegenprobe`: vorher 0,17 s (ein Lauf am Stand `1b7c390`), nachher 0,18 bis 0,19 s (drei Läufe); `make stop-hook-gegenprobe`: 2 min 9,4 s mit 138 Fällen (vorher 2 min 3,8 s mit 136 Fällen, im Scratchpad gemessen);
+die Laufzeit des Hooks (F-721) ist nicht verändert und nicht zugesagt.
+
+**Läufe der engen Sensoren** (Code-Commit `9e727fb`): `make hook-gegenprobe` grün, `make stop-hook-gegenprobe` grün (138 Fälle), `make gates-schnell-gegenprobe` grün, `make gates-schnell` grün.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
