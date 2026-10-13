@@ -210,6 +210,12 @@ Jeder Mutant lief einzeln im Bind-Mount (`docker exec` im Image der Stufe `deps`
 | Text vor, zwischen, nach den Blöcken bleibt unbeachtet (Zertifikatsdatei) | Text vor / zwischen / nach den Blöcken abgelehnt (je ein Mutant) | `TestTLSTextAusserhalbDerBloecke/*/vor`, `…/zwischen`, `…/nach` |
 | Text vor und nach dem Schlüsselblock bleibt unbeachtet | Text vor / nach dem Block abgelehnt (je ein Mutant) | `TestTLSTextAusserhalbDerBloecke/*/vor`, `…/nach` |
 | Klartext nach dem `S` gelangt nicht in die TLS-Verbindung (`PGR-W3002`, keine Session) | nach dem `S` ohne Handshake weiter | `TestTLSHandshakeScheitert/Klartext_nach_dem_S` (Sessions 0) und weitere |
+| `SSLRequest`/`GSSENCRequest` mit Länge ungleich 8: `PGR-E6001` ohne Antwort und Handshake, unter 8 oder über dem Höchstmaß `PGR-W3003` | `laenge == 8 &&` entfernt | `TestTLSSonderanfrageMitFalscherLaenge` |
+| Kette der Zertifikatsdatei wird ausgeliefert | Datei auf das erste Zertifikat gekürzt | `TestTLSKetteWirdAusgeliefert` |
+| noch nicht gültiges zweites Zertifikat ändert den Start nicht | `NotBefore` des letzten Zertifikats geprüft | `TestTLSDateienGueltig/*/Kette_mit_noch_nicht_gültigem_zweiten_Zertifikat` |
+| Gerät (`/dev/null`) ist keine reguläre Datei | Zeichengeräte zugelassen | `TestTLSDateiKeineRegulaere`, `TestPlayUpstreamCAKeineRegulaere` |
+| Socket ist keine reguläre Datei | Sockets zugelassen | `TestTLSDateiKeineRegulaere` |
+| der Schlüssel erscheint in keiner Zeile, auch bei `--log-level=debug` | Schlüssel als Text in eine Debug-Zeile | `TestRunTLSLogOhneSchluessel`, `TestRunLogLevel` |
 | Zwangsende wartet nicht auf den Client | Schließen mit `close_notify` | `TestTLSZwangsende` |
 | Herunterfahren wirkt auf die verschlüsselte Session | `SetReadDeadline` ohne Wirkung | `TestTLSHerunterfahren`, `TestTLSZwangsende` |
 | Zwangsende erreicht die verschlüsselte Session | Session ohne angemeldetes Ziel | `TestTLSZwangsende` |
@@ -236,13 +242,14 @@ Jeder Mutant lief einzeln im Bind-Mount (`docker exec` im Image der Stufe `deps`
 **Ohne eigenen Mutanten, mit Grund**
 
 - *Zertifikat und Schlüssel werden nur beim Start geladen:* Der Server erhält Bytes und keinen Pfad; ein Nachladen ist im Code nicht angelegt. Es gibt keine Mutation, die nur sie bricht, ohne einen Pfad einzuführen.
+- *`TLSZugang.Gesetzt()` (Review F-8):* ohne Aufrufer im Produktcode, entfernt; die Tests prüfen `Zertifikat != ""`. `nichtGelesen()` bleibt leer, wie die Bindung aus `slice-v1-abschluss-umgebung-anderes-kommando` es verlangt; `TestLeserUmgebungNichtGelesenerOptionen` läuft ohne Fall.
 - *Reihenfolge der Ursache bei mehreren Mängeln einer Datei:* nicht zugesagt (§6, Rückgabe des Implementers); die Tests prüfen die Ursache nur bei Dateien mit einem Mangel.
 
 **Läufe** (Stand: Arbeitsbaum vor dem Commit der Belege, 2026-10-13):
 
 - `make gates` (voll): grün, Exit 0, darin `make lint` ohne Befund (`0 issues`; ein erster Lauf fand vier Befunde in den neuen Dateien, behoben), `make test-integration` (`run-integration-tests: gruen`), `make a-check-negativ` (23 Fälle), `make abdeckung-check`, `make docs-check`, `make kopf-check`, `make baseline-verify`, die Gegenproben.
 - Engster Sensor je Änderung: `go vet -tags integration ./...` und `go test` je Paket im Bind-Mount-Container; `go test -count=6 -run TLS` im PGWire-Adapter ohne Ausfall (Flatterprobe der Zeitfälle).
-- Größe nach `AGENTS.md` §3.14 (`git diff --numstat 4223e5e..<letzter Commit> -- internal test docs/user`): siehe Bericht an den Planner; vor den Commits 2094 Zeilen (Einfügungen plus Löschungen) einschließlich der Abdeckungstabellen unter `docs/user/` (48 Zeilen), unter der Marke 2300, über der Schätzung 1400 bis 1800.
+- Größe nach `AGENTS.md` §3.14 (`git diff --numstat 4223e5e..<letzter Commit> -- internal test docs/user`): 2334 Zeilen (Einfügungen plus Löschungen) nach der Nacharbeit zum Review, davor 2186 und 2094, einschließlich der Abdeckungstabellen unter `docs/user/`; unter der Marke 2500 (vom Planner gesetzt), über der Schätzung 1400 bis 1800.
 
 Die Rückgaben des Implementers sind vom Architect in §6 und in der Spezifikation entschieden und hier nachgezogen.
 
