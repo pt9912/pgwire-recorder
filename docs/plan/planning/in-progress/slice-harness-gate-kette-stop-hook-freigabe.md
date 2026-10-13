@@ -297,6 +297,55 @@ liefert keinen eigenen Fall, er begründet die Aufnahme (die Fälle sind die der
   (`L_CMP`, `L_KONFLIKT`, `L_SCHLUSS` und die übrigen) bleiben erhalten oder werden im selben Commit nachgezogen; `fixture` bekommt
   Dateien auf der Positivliste, ohne dass ein Fall des Gebers sich ändert (deren Pfade liegen außerhalb).
 
+**Entscheidungen des Architect nach dem Review, 2026-10-14 (b)** (F-713 bis F-722 des Reviews vom 2026-10-13; `SPEC-052`
+Punkte 9, 12, 13, 20, 21 sind geändert, vor dem Code der Nacharbeit):
+
+- **F-713 (MEDIUM): Entscheidung (c), die Vorbedingung beseitigen.** Das Skript `tools/hook/commit-msg-gegenprobe.sh` legt die
+  Slices und Wellen seiner Positivfälle in einem eigenen Temp-Repo an (`git init`, Dateien unter `docs/plan/planning/{open,done}/`
+  und flach in `docs/plan/planning/` und `done/` samt Closure-Notiz, `git add`; der Träger `.githooks/commit-msg` und
+  `tools/harness/commit-msg-traceability.sh` werden dorthin kopiert, soweit der Träger sie braucht) und fährt die bisherigen
+  fünfzehn Fälle dort. Es liest den Planungsbaum des Arbeitsbaums nicht mehr; das Abbrechen „kein Slice … im Index gefunden“
+  entfällt mit der Vorbedingung. Die Namen im Fall dürfen feste Namen sein. Damit liest kein Gate der Ausnahmeliste
+  `docs/plan/planning/`, `SPEC-052` Punkt 13 trägt den Beleg, die Positivliste bleibt, und die Ausnahmeliste bleibt unverändert.
+  Verworfen: (a) `hook-gegenprobe` in die schnelle Kette (0,17 s gemessen, trüge, aber die schnelle Kette ist nach
+  [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) Entscheidung 2 „ohne Gegenproben“ gefasst, und `SPEC-052` Punkte 2 und 4 bekämen
+  eine Ausnahme von der Namensregel, §1 dieses Plans schließt die Änderung der schnellen Kette aus); (b) den Pfad von der Liste nehmen
+  (verlöre die Hauptersparnis des Slice); (d) akzeptiertes Negativ (das Negativ der ADR deckt einen künftigen Leser, nicht
+  einen vorhandenen). **Verdikt zu [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) Entscheidung 3:** Die Entscheidung gilt, und der Stand
+  dieses Slice hat sie verletzt (ein vorhandenes langsames Gate las den Pfad, der Beleg in Punkt 13 fehlte für
+  `docs/plan/planning/`); kein Widerspruch der ADR, keine Folge-ADR, weil die Ausnahmeliste und der Beleg in der Spezifikation stehen.
+  Der Mangel ist **vor der Closure zu heilen** (die Closure ist ohne ihn blockiert, HIGH, wenn die Heilung unterbleibt). **Akzeptiertes
+  Negativ** (Grund: gleiche Folge wie in der ADR): Führt ein künftiges Gate der Ausnahmeliste den Planungsbaum wieder als Eingabe, ändert es
+  Skript oder Gate und löst den vollen Lauf aus; das Review dieser Änderung führt den Beleg neu. Ein Dauerfall dafür (das Skript in
+  einer Kopie ohne offene Slices fahren) entfällt: Er wäre ein weiteres langsames Gate für einen Fehler, der beim Ändern des Skripts
+  entsteht und dort auffällt. **Kosten:** 25 bis 40 Zeilen in `tools/hook/commit-msg-gegenprobe.sh`; kein Fragment, keine Ausnahmeliste, keine
+  Spezifikation. **Zuordnung:** Liefer-Punkt 1 (Bedingung der Freigabe: kein langsames Gate liest die Positivliste); §3 nimmt die Datei auf.
+- **F-717:** Der letzte Satz von `SPEC-052` Punkt 21 ist geändert (die Freigabe über die Positivliste ist genannt). `tools/harness/record-gates.sh`
+  (F-714) zieht der Implementer nach.
+- **F-718:** Die Ersetzung der drei äquivalenten Mutationen in §7 ist **bestätigt**; die Tabelle oben trägt sie (Zeilen *leere Stand-Datei*,
+  *Hash-Skript*, *Pfad mit `..`*). Die Zusage „absolut nie inert“ ist zweifach gesichert, die Mutation lockert beide; das Minimum ist eine Mutation mit
+  zwei Änderungen.
+- **F-720:** Der `reason` bei fehlendem oder ungleichem Stand der schnellen Kette (jede Änderung inert) lautet
+  ``The fast gates chain has no passed run for this working tree. Run `make gates-schnell` (or `make gates`).`` Der Implementer
+  ändert `schnell_gruen` und `voll` (Hinweis als Parameter, Standard `make gates`); alle übrigen Antworten behalten
+  ``Run `make gates`.`` Die Gegenprobe **prüft den `reason`**, aber nur in diesem Punkt: `p9-stand-fehlt` verlangt `make gates-schnell`
+  im `reason`, ein neuer Fall `p9-stand-fehlt-nicht-inert` (Stand fehlt, Änderung in `internal/`) verlangt, dass er es **nicht** nennt. Der
+  Treiber der Fälle bekommt dafür einen Helfer (`grund <Name> <Teilstring>`/`kein_grund`), der den `reason` aus der Antwort liest;
+  andere Fälle prüfen weiter nur `decision`. Das löst F-719 mit: die Ordnung „Pfadregel, zuletzt Stand“ ist beobachtbar.
+- **F-716:** Fall und Mutation, Punkt 12 bleibt (siehe Tabelle: `p12-unzulaessig-leer-ende`, Pfad `docs/user/x/` mit gültigem
+  Hash im Stand; Mutation: `| */` aus `zulaessig` entfernen). Der Fall legt ihn in den Stand, nicht in den Arbeitsbaum (wie die übrigen
+  Formen).
+- **F-721:** Keine Randform, ein akzeptiertes Negativ, in `SPEC-052` Punkt 20 gefasst (keine Dauer zugesagt, kein `timeout` im Eintrag; was
+  der Treiber bei Überschreiten tut, prüft die Gegenprobe nicht). Es gehört zum Risiko „Umgebung von Claude Code“ in der Liste unten
+  (`BEO-REPO/stop-hook-gegenprobe-prueft-nicht-die-umgebung`), kein neuer Eintrag. Eine Änderung an `.claude/settings.json` bleibt
+  außerhalb dieses Slice (§1).
+- **F-722:** `export LC_ALL=C` bleibt als Implementierung ohne Zusage und ohne Fall (kein erreichbares Fehlverhalten, aber die Zeile
+  hält die bytegenaue Mustererkennung in jeder Locale; sie zu streichen spart eine Zeile und öffnet eine Frage). Der Kopf des Hooks
+  sagt dazu nichts zu (so schon im Review). Kein Eintrag in der Spezifikation.
+- **Größe und Zählung (§3.13, §3.14):** 3 Liefer-Punkte (die Heilung von F-713 steht unter Punkt 1), 1 Schicht (Harness-Werkzeug); die
+  Nacharbeit schätze ich auf 60 bis 100 Zeilen in `tools harness .claude` (Skript des Commit-Trägers 25 bis 40, Hook 5, Gegenprobe des
+  Hooks 25 bis 40 mit Helfer, zwei Fällen, drei Mutationen). Stand 639; erwartet 700 bis 740, unter der Marke 900.
+
 Eine nicht genannte oder offene Randform entscheidet der Implementer nicht, er gibt sie zurück.
 
 **Mutationen** (`AGENTS.md` §3.10): Der Implementer fährt je Zusage die Mutation selbst und trägt die
@@ -312,11 +361,11 @@ Architect hat sie am 2026-10-13 bestätigt oder geschärft (Spalte *Herkunft*). 
 | Ohne grünen Stand der schnellen Kette gibt der Hook nicht frei | Prüfung des Stands der schnellen Kette entfernen | rote oder fehlende Kette gibt frei → rot | Architect |
 | Ein Link außerhalb der Positivliste mit Ziel darin macht jede Änderung nicht inert | die Spiegelregel entfernen | Änderung in `docs/plan/planning/` gibt frei → rot | Architect |
 | Spiegelregel je Zieltyp: Ziel auf der Liste · Verzeichnis der Liste · Vorfahr (`docs`) · Wurzel · absolutes Ziel unter der Wurzel | je Zieltyp nur diesen Typ aus der Spiegelregel nehmen | Änderung in `docs/plan/planning/` gibt frei → rot, der Fall des Typs allein | Architect, 2026-10-14 |
-| Ein Pfad mit `..`, absolut oder leerem Segment gilt als beschädigte Liste (je Form) | je Form nur diese nicht prüfen (vier Mutationen: `..`, `.`, leeres Segment, absolut) | `docs/plan/planning/../../internal/x.go`, `docs/plan/planning/./x`, `docs/plan/planning//x`, absolut mit inerter Endung im Stand gibt frei → rot, der Fall der Form allein | Architect, geschärft 2026-10-14 |
+| Ein Pfad mit `..`, absolut oder leerem Segment gilt als beschädigte Liste (je Form) | je Form nur diese nicht prüfen (fünf Mutationen: `..`, `.`, leeres Segment in der Mitte, leeres Segment am Ende, absolut). Absolut ist zweifach gesichert (Prüfung auf `/` in `zulaessig` und der Pfadanfang in `inert`): die Mutation lockert **beide** (`m-absolut-relativ`); die Prüfung allein zu entfernen (`m-ohne-absolut`) ist äquivalent und keine Mutation | `docs/plan/planning/../../internal/x.go`, `docs/plan/planning/./x`, `docs/plan/planning//x`, `docs/user/x/` (Ende auf `/`), absolut mit inerter Endung im Stand gibt frei → rot, der Fall der Form allein | Architect, geschärft 2026-10-14; Architect, 2026-10-14 (b) |
 | Ein leerer Diff gibt ohne Stand der schnellen Kette frei | Stand der schnellen Kette auch dann verlangen | Hook blockiert bei identischem Baum, auch mit fehlendem, leerem und ungleichem Stand → rot | Architect |
 | Der Stand der schnellen Kette gehört zum aktuellen Arbeitsbaum | nur das Vorhandensein der Stand-Datei prüfen, nicht ihren Hash | Stand eines anderen Arbeitsbaums gibt frei → rot | Planner, geschärft (Architect, 2026-10-13) |
-| Eine leere Stand-Datei der schnellen Kette ist kein Stand | leere Datei als Stand gelten lassen | leere Datei gibt frei → rot | Architect, 2026-10-14 |
-| Der Hook ruft `working-tree-hash.sh`; fehlt es, gilt `block`, beim Schleifenschutz `approve` | Fehlen des Skripts überlesen (`|| true`) · Schleifenschutz hinter den Aufruf stellen | Skript fehlt bei inertem Unterschied → `block`; mit `stop_hook_active: true` → `approve` → rot | Architect, 2026-10-14 |
+| Eine leere Stand-Datei der schnellen Kette ist kein Stand | eine vorhandene leere Datei als Stand gelten lassen (`m-schnell-leer-gilt`; „leere Datei verlangen“ wäre äquivalent, weil ein leerer Hash ohnehin ungleich ist) | `p10-leer` gibt frei → rot (`p10-fehlt`, `p10-fremd` bleiben grün) | Architect, 2026-10-14; bestätigt 2026-10-14 (b) |
+| Der Hook ruft `working-tree-hash.sh`; fehlt es oder scheitert es, gilt `block`, beim Schleifenschutz `approve` | je Zusage eine Mutation, die nur sie bricht: Scheitern des Skripts überlesen (`|| true`, `m-skript-ueberlesen`) · bei fehlendem Skript den gespeicherten Stand nehmen (`m-skript-fehlt-ersatz`; `|| true` allein wäre hier äquivalent, die leere Ausgabe wird abgelehnt) · leere Ausgabe gelten lassen (`m-hash-leer-gilt`) · Schleifenschutz hinter den Aufruf stellen | `p10-skript-scheitert` · `p10-skript-fehlt` · `p10-skript-leer` gibt frei → rot, je der Fall allein; mit `stop_hook_active: true` → `approve` → rot | Architect, 2026-10-14; bestätigt 2026-10-14 (b) |
 | Die Pfadregel ersetzt keine frühere Prüfung (Reihenfolge, je Schritt ein Fall) | Pfadregel vor die Konfliktprüfung · vor die Prüfung des Standes des vollen Laufs auf Vorhandensein · vor `dateiliste_pruefen` stellen (drei Mutationen) | inerter Unterschied bei Konflikt · fehlendem Stand · beschädigtem Stand gibt frei → rot, jeweils der Fall des Schritts allein | Architect, 2026-10-14 |
 | Gelöschte Datei außerhalb der Positivliste zählt | Pfade nur aus der Liste des Arbeitsbaums prüfen | gelöschte Datei in `internal/` neben grünem Stand der schnellen Kette gibt frei → rot | Architect, 2026-10-14 |
 | Eine Umbenennung prüft den alten Pfad | nur den alten Pfad ignorieren (neuen prüfen) | Umbenennung aus `docs/user/` nach `internal/` gibt frei → rot (Gegenstück zur Zeile oben) | Architect, 2026-10-14 |
@@ -330,6 +379,8 @@ Architect hat sie am 2026-10-13 bestätigt oder geschärft (Spalte *Herkunft*). 
 | Nur die Wurzel-`README.md` ist inert | den Namen `README.md` in jeder Tiefe vergleichen | `harness/README.md` gibt frei → rot | Architect, 2026-10-13 |
 | Die Positivliste vergleicht case-sensitiv | Groß-/Kleinschreibung nicht unterscheiden | `docs/Plan/planning/` und `readme.md` geben frei → rot | Planner, bestätigt (Architect, 2026-10-13) |
 | Eine untracked Datei zählt wie eine getrackte, nach ihrem Pfad | untracked Pfade pauschal als inert behandeln | untracked Datei in `internal/` neben geändertem inertem Pfad gibt frei → rot | Planner, geschärft (Architect, 2026-10-13; die Gegenrichtung, untracked inerter Pfad blockiert, ist ein Ärgernis, keine Lücke, und hat keine Mutation) |
+| Fehlt der Stand der schnellen Kette bei inerter Änderung, nennt der `reason` `make gates-schnell`; sonst nur `make gates` (`SPEC-052` Punkt 9) | im Hook den Hinweis `make gates-schnell` auch in den anderen Fällen nennen · ihn im Fall des fehlenden Standes weglassen · `schnell_gruen` vor die Pfadregel stellen | `p9-stand-fehlt` (`reason` nennt `make gates-schnell`), ein Fall „Stand fehlt, Änderung in `internal/`“ (`reason` nennt es nicht) → rot, je der Fall allein; die dritte Mutation färbt den zweiten Fall (die Ordnung ist damit beobachtbar) | Architect, 2026-10-14 (b) |
+| Kein Fall von `hook-gegenprobe` bezieht Slice oder Welle aus dem Index des Arbeitsbaums | das Skript liest wieder aus dem Index des Arbeitsbaums (die alte Fassung von `erster` und der Welle-Zeilen) | in einer Kopie des Arbeitsbaums, in der alle Slices aus `open/` nach `next/` bewegt sind, endet die Mutante mit Exit 1, das Skript der Lieferung mit 0; Beleg einmal von Hand in §7, kein Dauerfall (akzeptiertes Negativ unten) | Architect, 2026-10-14 (b) |
 
 Die Mutation „nicht aufgelöster Index-Eintrag“ der Tabelle des Architect steht in
 `slice-harness-gate-kette-stop-hook-liste` (dort als Konflikt bei sonst identischer Liste; Verteilung des
@@ -361,7 +412,8 @@ Planners, damit die Prüfung vor der Pfad-Entscheidung liegt und in der Zwischen
   frei, wenn er sich selbst falsch liest, und das fangen die Fälle der Gegenprobe und das Review; ein akzeptiertes Negativ von `SPEC-052`
   Punkt 12 mit diesem Grund.
 - Der Hook gibt öfter frei als der volle Lauf für dieselbe Menge — **Ausgang:** entfallen: Er gibt nur frei, wenn jeder Unterschied zum
-  Stand des vollen Laufs auf der Positivliste liegt, kein Gate der Ausnahmeliste diese Pfade liest (`SPEC-052` Punkt 13) und die schnelle
+  Stand des vollen Laufs auf der Positivliste liegt, kein Gate der Ausnahmeliste diese Pfade liest (`SPEC-052` Punkt 13, seit 2026-10-14 (b) auch für `docs/plan/planning/` und
+  `docs/reviews/`; `hook-gegenprobe` bezieht ihre Fälle aus einem eigenen Temp-Repo) und die schnelle
   Kette für genau diesen Arbeitsbaum grün war; jede Abweichung ist `block`, und jeder dieser Schritte hat einen Fall mit einer Mutation (Tabelle).
 - Der Umzug der Verträge nach `harness/vertraege/` ([ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md)) berührt
   diesen Slice nicht: `harness/vertraege/` steht nicht auf der Positivliste, ein Umzug ändert nur Pfade, die den vollen Lauf verlangen —
