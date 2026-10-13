@@ -409,6 +409,10 @@ Logik enthält; reine Verdrahtung (ein Feld durchreichen, ein Kommentar) ist kei
 Kommt Logik hinein (Datei lesen, Fehler einstufen, verzweigen), zählt er, und der Plan prüft
 die Grenze neu.
 
+**Meldungscode-Konstanten zählen nicht** (seit slice-v1-abschluss-tls-client, Entscheidung des
+Nutzers vom 2026-10-13): Eine neue Konstante des Meldungskatalogs in `internal/hexagon/model`
+(`PGR-…`) ist keine Schicht; Logik im Model zählt.
+
 **Falsch:** Ein Plan zählt den Bootstrap für das Reichen eines Feldes als dritte Schicht, ein
 anderer für dieselbe Änderung nicht.
 **Richtig:** Verdrahtung zählt nicht; liest der Bootstrap eine Datei oder stuft er einen
