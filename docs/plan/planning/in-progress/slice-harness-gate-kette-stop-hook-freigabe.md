@@ -26,7 +26,8 @@ Kette am geänderten Pfad; Accepted 2026-10-12), das sich auf
 **Berührte Spec-Stellen:** `SPEC-052` (von `slice-harness-gate-kette-schnell` in
 `spezifikation.md` §11 angelegt, mit den Randformen vom Architect entschieden; dieser Slice ändert
 sie nicht; der Architect hat Punkte 9, 10, 12, 15 und 22 am 2026-10-14 vor dem Code geschärft, §6
-*Ergänzung*). Der Umzug der Verträge der Harness-Werkzeuge nach `harness/vertraege/`
+*Ergänzung*, und nach dem Review (b) die Punkte 9, 12, 13, 20 und 21 geändert, §6 *Entscheidungen des
+Architect nach dem Review*; Punkt 9 zuletzt in `278140c`). Der Umzug der Verträge der Harness-Werkzeuge nach `harness/vertraege/`
 ([ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), Accepted 2026-10-13) folgt
 direkt auf diesen Slice und zieht den Verweis auf `SPEC-052` nach; dieser Slice liegt vor ihm und ändert
 den Ort nicht
