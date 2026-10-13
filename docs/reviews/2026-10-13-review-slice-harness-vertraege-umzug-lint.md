@@ -1,7 +1,7 @@
 # Review slice-harness-vertraege-umzug-lint
 
 **Rolle:** Reviewer. **Datum:** 2026-10-13.
-**Gegenstand:** Diff `f4b6d6d..9a5c80d` (Move-Commit bis HEAD) gegen den Plan `docs/plan/planning/in-progress/slice-harness-vertraege-umzug-lint.md`, [ADR-0040](../plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), [MR-002](../../harness/conventions.md#mr-002), `AGENTS.md` §3.3, §3.7 bis §3.14.
+**Gegenstand:** Diff `f4b6d6d..9a5c80d` (Move-Commit bis HEAD) gegen den Plan `docs/plan/planning/done/slice-harness-vertraege-umzug-lint.md`, [ADR-0040](../plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), [MR-002](../../harness/conventions.md#mr-002), `AGENTS.md` §3.3, §3.7 bis §3.14.
 **Summary:** 0 HIGH · 0 MEDIUM · 2 LOW · 3 INFO.
 
 ## Findings
@@ -19,7 +19,7 @@
 
 - `kategorie`: LOW
 - `quelle`: `AGENTS.md` §3.9 (Der Slice-Plan folgt jeder Korrektur)
-- `pfad`: `docs/plan/planning/in-progress/slice-harness-vertraege-umzug-lint.md` · "`SPEC-049` (153 Zeilen, zehn Punkte)"
+- `pfad`: `docs/plan/planning/done/slice-harness-vertraege-umzug-lint.md` · "`SPEC-049` (153 Zeilen, zehn Punkte)"
 - `befund`: Kopf-Ziel (§1), DoD-Punkt 1 ("Zeilen 3012 bis 3164") und §3 ("Zeilen 3012 bis 3164") nennen 153 Zeilen bzw. bis 3164; die Datei trägt 152 Zeilen (3012 bis 3163, Zeile 3164 ist leer), und §7 belegt das mit 3012 bis 3163. Ebenso zählt §3 und §6 "17 Dateien" gegen 18 nachgezogene in §7. §7 benennt die Abweichung, §1 bis §3 und §6 ziehen sie nicht nach.
 - `verifizierbar`: ja (`git show 231089e:spec/spezifikation.md | sed -n '3164p'` ist leer)
 - `klasse`: Zahl im Plan nach Messung nicht nachgezogen
@@ -38,7 +38,7 @@
 
 ### F-5 INFO
 
-- `quelle`: `AGENTS.md` §3.11 · `pfad`: `docs/plan/planning/in-progress/slice-harness-vertraege-umzug-lint.md` · "Rang- und Ortsaussagen in Prosa haben kein Gate"
+- `quelle`: `AGENTS.md` §3.11 · `pfad`: `docs/plan/planning/done/slice-harness-vertraege-umzug-lint.md` · "Rang- und Ortsaussagen in Prosa haben kein Gate"
 - `befund`: Die Zusagen "kein Verweis der Spezifikation auf `harness/`" (nur Links, durch `matrix-forbidden` gefangen) und "kein Pfad in Prosa" tragen nur über die `grep`-Zeilen in §7; der Plan sagt das selbst und sagt keine Sperre zu. Kein Verstoß gegen §3.11.
 - `klasse`: Zusage nur über `grep` belegt (benannt)
 
