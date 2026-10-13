@@ -24,8 +24,8 @@ Dateiliste, Hook; Accepted 2026-10-12), das sich auf
 [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) stützt.
 
 **Berührte Spec-Stellen:** `SPEC-052` (von `slice-harness-gate-kette-schnell` in
-`spezifikation.md` §11 angelegt, mit den Randformen vom Architect entschieden; dieser Slice ändert
-sie nicht)
+`spezifikation.md` §11 angelegt, mit den Randformen vom Architect entschieden; die Punkte 13 und 20 bis 22
+hat der Architect am 2026-10-13 aus den Rückgaben dieses Slice ergänzt; dieser Slice ändert sie nicht)
 
 **Verantwortlich:** pt9912
 
@@ -52,7 +52,9 @@ sperrt den ersten Stop, bis `make gates` gelaufen ist. **Entscheidung des Nutzer
 („Deine Empfehlungen“; [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) Punkt 3 wörtlich); der
 Kopf-Kommentar des Hooks (heute „Restlücke … CI ist das Netz“) wird umgeschrieben und beschreibt das neue
 Verhalten (`AGENTS.md` §3.7). Die Gegenprobe `stop-hook-gegenprobe` macht je Randform dieses Slice (§6)
-einen Fall, der nur im inerten Fall freigibt. Der Hook ist das Restrisiko der Entscheidung
+einen Fall, der nur im inerten Fall freigibt. Zum Nachweis gehört das Make-Flag `-i` (`SPEC-052` Punkt 21: ein
+Lauf mit überlesenen Fehlern schreibt keinen Nachweis, ein älterer entfällt) und zum Hook die Aufrufart
+(Punkt 22: Arbeitsverzeichnis im Unterverzeichnis, leere Umgebung). Der Hook ist das Restrisiko der Entscheidung
 ([ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md), *Konsequenzen*): Ohne seine Gegenprobe
 schließt der Slice nicht.
 
@@ -106,6 +108,9 @@ trägt ihn bei der Closure dieses Slice in den Nehmer ein (§6).
 - Die Hooks `.claude/hooks/pretooluse-command-guard.sh` und `.claude/hooks/span-emit.sh` und den
   Eintrag in `.claude/settings.json` — anderer Vorgang: Der Slice ändert den Nachweis und die Freigabe
   im Stop-Hook, nicht den Befehls-Wächter oder die Erfassung.
+- `bash -e` und eine fehlende Variable `CLAUDE_PROJECT_DIR` als Aufrufart des Hooks — nicht Gegenstand
+  (`SPEC-052` Punkt 22): der Hook setzt seine Optionen selbst, und der Aufruf des Treibers startet ihn ohne die
+  Variable nicht; kein Code des Hooks läuft, er kann nicht antworten.
 - Eine Prüfung gegen die echte Hook-Umgebung von Claude Code — die Gegenprobe fährt den Hook in
   Temp-Repos mit dessen Eingabe und liest dessen Ausgabe; ob die Umgebung die Antwort so liest, prüft
   sie nicht (Risiko in §6).
@@ -121,7 +126,8 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `tools/harness/record-gates.sh` schreibt sie nur nach grünem `make gates`,
       `tools/harness/working-tree-hash.sh` (oder sein Nachfolger) liefert dieselbe Liste für den
       Arbeitsbaum; beide teilen sich die Logik, keine Dopplung zwischen Schreiber und Hook. Die
-      Hash-Ausgabe für `gates-schnell` bleibt.
+      Hash-Ausgabe für `gates-schnell` bleibt. Ein Lauf mit `-i` in `MAKEFLAGS` schreibt weder Liste noch
+      Hash, ein älterer Nachweis beider entfällt; `-n`, `-q`, `-t` lassen ihn stehen (`SPEC-052` Punkt 21).
 - [ ] **Liefer-Punkt 2:** `.claude/hooks/stop-require-gates.sh` gibt nur bei identischer Liste frei und
       verlangt in jedem anderen Fall `make gates` (fehlender oder beschädigter Stand auch bei sauberem
       Baum, nicht lesbarer Vergleich, nicht aufgelöster Index-Eintrag, Abbruch als Antwort `block`);
@@ -129,9 +135,11 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       (`AGENTS.md` §3.7), nicht die Restlücke, und sagt die Sperre bei fehlendem Stand zu, auch bei sauberem
       Baum (Entscheidung des Nutzers vom 2026-10-12); der Fall der Gegenprobe dazu steht in Liefer-Punkt 3.
       Die Prüfung nicht aufgelöster Index-Einträge ist die erste Prüfung nach dem Schleifenschutz, auch vor
-      „Liste identisch“.
+      „Liste identisch“. Der Hook urteilt über das Repo seines Arbeitsverzeichnisses und liest keine
+      Umgebungsvariable (`SPEC-052` Punkt 22).
 - [ ] **Liefer-Punkt 3:** Die Gegenprobe `stop-hook-gegenprobe` macht je Randform aus §6 einen Fall in
-      einem Temp-Repo, der nur im inerten Fall freigibt, und hängt an `GATE_CHECKS`;
+      einem Temp-Repo, der nur im inerten Fall freigibt (dazu `p21-*` für die Make-Flags des Nachweises und
+      `p22-*` für die Aufrufarten), und hängt an `GATE_CHECKS`;
       `harness/README.md` §Sensors führt ihre Zeile mit Bindung an
       [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md); `harness/conventions.md` (Träger-Tabelle,
       Zeile `grundlagen-durchsetzungsschicht.md`) nennt die Träger des geänderten Hooks. Die Gegenprobe
@@ -162,11 +170,11 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `tools/harness/record-gates.sh` | update | schreibt die Dateiliste statt eines Hashs, nur nach grünem `make gates` |
+| `tools/harness/record-gates.sh` | update | schreibt die Dateiliste statt eines Hashs, nur nach grünem `make gates`; liest `MAKEFLAGS` wie `gates-schnell.sh`: bei `i` keine Schreibung, ein älterer Nachweis entfällt (`SPEC-052` Punkt 21) |
 | `tools/harness/working-tree-hash.sh` | update / ersetzt | liefert dieselbe Liste für den Arbeitsbaum (Form nach `SPEC-052`: NUL-getrennte Felder Art, Wert, Pfad); bleibt für den Stand der schnellen Kette eine Hash-Ausgabe, die genau dann wechselt, wenn sich der Arbeitsbaum ändert, denn `gates-schnell` ruft sie auf; Schreiber und Hook teilen sich die Logik |
 | `.claude/hooks/stop-require-gates.sh` | update | Freigabe nur bei identischer Liste, Rückfall auf voll bei jedem anderen Fall; Kopf-Kommentar neu |
 | `tools/harness/dateiliste.sh` | neu | die Funktionen der Liste (`dateiliste_erzeugen`, `dateiliste_pruefen`) und der Pfad `.harness/state/gates-passed.dateiliste`; `record-gates.sh`, `working-tree-hash.sh` und der Hook laden sie mit `source` (eine Logik, keine Dopplung) |
-| `tools/harness/stop-hook-gegenprobe.sh` und `harness/mk/stop-hook-gegenprobe.mk` | neu | je Randform dieses Slice ein Fall in einem Temp-Repo; hängt an `GATE_CHECKS` |
+| `tools/harness/stop-hook-gegenprobe.sh` und `harness/mk/stop-hook-gegenprobe.mk` | neu | je Randform dieses Slice ein Fall in einem Temp-Repo, darunter `p21-*` (Make-Flags des Nachweises) und `p22-*` (Aufrufarten); hängt an `GATE_CHECKS` |
 | `harness/mk/gates-schnell.mk`, `tools/harness/gates-schnell-gegenprobe.sh` | update | `stop-hook-gegenprobe` endet auf `-gegenprobe` und steht damit in der Ausnahmeliste (`SPEC-052` Punkt 2 und 4); die Kopien der Gegenprobe der Kette tragen `dateiliste.sh` und führen den Namen in ihrer Attrappen-Liste |
 | `harness/README.md` §Sensors | update | Zeile der Gegenprobe, Bindung [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) |
 | `harness/conventions.md` (Träger-Tabelle, Zeile `grundlagen-durchsetzungsschicht.md`) | update | nennt die Träger des geänderten Hooks (Dateiliste, Hook, gegebenenfalls ersetzte Datei) |
@@ -293,9 +301,10 @@ Architect hat sie am 2026-10-13 bestätigt, geschärft oder geteilt (Spalte *Her
 | Die Liste trägt jeden Pfad (Zeilenumbruch) | zeilenweise statt NUL-getrennt lesen | Pfad mit Zeilenumbruch → rot | Planner, bestätigt |
 | Die Liste trägt jeden Pfad (Leerzeichen) | Pfad ungequotet expandieren (Wortteilung) | Pfad mit Leerzeichen → rot | Architect, 2026-10-13 |
 | `make -i gates` schreibt keinen Nachweis, ein älterer entfällt (`SPEC-052` Punkt 21) | die `-i`-Prüfung in `record-gates.sh` entfernen | `p21-i-rot` (Attrappe `exit 1`) und `p21-i-gruen` schreiben Liste und Hash → rot | Architect, 2026-10-13 |
-| `-i` gilt in jeder Schreibweise von `MAKEFLAGS` | nur das literale `-i` im Wortlaut suchen statt der Buchstaben des ersten Worts | `p21-i-env` (`MAKEFLAGS=i`), `p21-i-ki`, `p21-i-lang` (`--ignore-errors`), `p21-i-j` (`-j4 -i`) → rot, `p21-i-rot` bleibt grün | Architect, 2026-10-13 |
+| `-i` gilt in jeder Schreibweise von `MAKEFLAGS` | nur das literale `-i` im Wortlaut von `MAKEFLAGS` suchen; nur das erste Wort genau `i` gelten lassen (statt der Buchstaben des ersten Worts) | Gemessen (§7): `make` schreibt `-i` als `i` in `MAKEFLAGS`, ein literales `-i` kommt nie vor; der erste Mutant färbt alle sechs `p21-i-*` rot (auch `p21-i-rot`, anders als der Plan des Architect annahm), der zweite nur `p21-i-ki` (`ik`) | Architect, 2026-10-13; Fassung nach Messung |
 | Ein älterer Nachweis entfällt unter `-i` | das Entfernen von Liste und Hash weglassen (nur nicht schreiben) | `p21-i-rot` und `p21-i-gruen` mit vorherigem grünen Lauf: Liste oder Hash bleibt → rot | Architect, 2026-10-13 |
-| `-n`, `-q`, `-t` schreiben nichts und entfernen nichts, auch mit `-i` (Vorrang, Punkt 21) | das Rezept in `harness/mk/enforce.mk` mit `+` führen (läuft dann unter `-n`) | `p21-n`, `p21-q`, `p21-t`, `p21-ni` (älterer Nachweis geändert) → rot | Architect, 2026-10-13 |
+| `-n`, `-q`, `-t` schreiben nichts und entfernen nichts, auch mit `-i` (Vorrang, Punkt 21) | das Rezept in `harness/mk/enforce.mk` mit `+` führen (läuft dann unter `-n`); dazu bei `-q` zusätzlich die Voraussetzungen von `record-gates` im `Makefile` entfernen | Gemessen (§7): mit `+` allein `p21-n`, `p21-t`, `p21-ni` (älterer Nachweis geändert) → rot, `p21-q` bleibt grün (`make -q` hält an der Voraussetzung, das Rezept läuft nicht); mit `+` und ohne Voraussetzungen alle vier rot | Architect, 2026-10-13; Fassung nach Messung |
+| Unter `-i` entfällt jede der beiden Dateien | nur den Hash entfernen (Liste bleibt); nur die Liste entfernen (Hash bleibt) | je alle sechs `p21-i-*` rot | Implementer (jede Bedingung der Zusage „Liste und Hash“ ist eine Zeile) |
 | Der Hook gilt für das Repo seines Arbeitsverzeichnisses, auch aus einem Unterverzeichnis (Punkt 22 a) | `git rev-parse --show-toplevel` durch `pwd` ersetzen | `p22-unterverzeichnis` (identisch `approve`, geändert `block`) → rot | Architect, 2026-10-13 |
 | Der Hook liest keine Umgebung (Punkt 22 b) | `: "${HOME:?}"` vor die erste Prüfung setzen | `p22-leere-umgebung` (`env -i`, identisch → `approve`) → rot | Architect, 2026-10-13 |
 
@@ -445,7 +454,31 @@ Docker-Build-Kontext: der Mutant liegt in der Kopie, die bash liest.
 | Der Hash wechselt genau mit dem Arbeitsbaum | Hash konstant; Hash mit Zeitstempel | `p10-hash-wechselt` (grün: `-stabil`); `p10-hash-stabil` (grün: `-wechselt`) |
 | Das Gate hängt an `GATE_CHECKS`, sein Exit gilt | Zeile `GATE_CHECKS +=` gestrichen; `-@bash` | `anschluss-gate-checks`; `anschluss-exit` |
 
-41 Mutanten, alle rot an den genannten Fällen, kein grüner Mutant. Zwei Einzel-Mutanten waren äquivalent und sind deshalb in der Form der Tabelle gefahren: Entfällt nur
+**Nacharbeit (Code-Commit `e92db76`, `SPEC-052` Punkte 21 und 22):** Der Nachweis liest `MAKEFLAGS` in `record-gates.sh`;
+die Gegenprobe führt 12 Fälle mehr (52 Fälle) und 10 Mutanten mehr. Die Form von `MAKEFLAGS` im Rezept ist an `make` 4.3 gemessen
+(Scratchpad, `printf 'x:\n\t@echo "[$$MAKEFLAGS]"'`): `-i` → `i`; `-j4 -i` → `i -j4 --jobserver-auth=3,4`; `-ki` → `ik`;
+`--ignore-errors` → `i`; `MAKEFLAGS=i`, `=-i`, `=--ignore-errors` in der Umgebung → `i`; `-ni` und `-i -n` führen das Rezept
+nicht aus. Die Fälle `p21-*` fahren `make gates` ohne `-s`, weil `-s` den Buchstaben `s` ins erste Wort schreibt (`is`).
+Jeder Fall legt vorher einen grünen Lauf als älteren Nachweis an und ändert danach `a.txt`, damit ein Schreiben den
+Nachweis ändert (`p21-n`, `p21-q`, `p21-t`, `p21-ni`: byte-gleich zu dem des grünen Laufs).
+
+| Zusage | Mutation | roter Fall (grün bleibt) |
+|---|---|---|
+| `-i` schreibt keinen Nachweis, ein älterer entfällt (Punkt 21) | `case`-Zweig `*i*` unwirksam gemacht (`*nie*`) | `p21-i-rot`, `p21-i-gruen`, `p21-i-env`, `p21-i-ki`, `p21-i-lang`, `p21-i-j` (grün: `p21-n`, `p21-q`, `p21-t`, `p21-ni`) |
+| `-i` gilt in jeder Schreibweise | `MAKEFLAGS` auf literales `*-i*` prüfen | alle sechs `p21-i-*` (auch `p21-i-rot`: `make` schreibt `i`, nicht `-i`; die Erwartung „`p21-i-rot` bleibt grün“ im Plan stimmte nicht) |
+| `-i` gilt in jeder Schreibweise (Buchstaben im ersten Wort) | erstes Wort muss genau `i` sein | `p21-i-ki` (`ik`) (grün: `p21-i-rot`, `p21-i-gruen`, `p21-i-env`, `p21-i-lang`, `p21-i-j`, `p21-n`, `p21-q`, `p21-t`, `p21-ni`) |
+| Unter `-i` entfällt der Hash | nur die Liste entfernen | alle sechs `p21-i-*` |
+| Unter `-i` entfällt die Liste | nur den Hash entfernen | alle sechs `p21-i-*` |
+| Unter `-i` entfällt ein älterer Nachweis | das Entfernen weglassen | alle sechs `p21-i-*` (mit dem vorherigen grünen Lauf) |
+| `-n`, `-t`, `-n` mit `-i` schreiben nichts und entfernen nichts | Rezept in `enforce.mk` mit `+` | `p21-n`, `p21-t`, `p21-ni` (grün: `p21-q`, alle `p21-i-*`) |
+| `-q` schreibt nichts und entfernt nichts | Rezept mit `+` und `record-gates` ohne Voraussetzungen (`Makefile`, Gates vor `record-gates` gezogen) | `p21-n`, `p21-q`, `p21-t`, `p21-ni` (grün: alle `p21-i-*`); mit `+` allein bleibt `p21-q` grün: `make -q` hält an der Voraussetzung, das Rezept läuft nicht |
+| Der Hook urteilt über das Repo seines Arbeitsverzeichnisses, auch aus dem Unterverzeichnis (Punkt 22 a) | `git rev-parse --show-toplevel` durch `pwd` | `p22-unterverzeichnis` (grün: `p22-leere-umgebung`) |
+| Der Hook liest keine Umgebungsvariable (Punkt 22 b) | `: "${HOME:?}"` vor der Eingabe | `p22-leere-umgebung` (grün: `p22-unterverzeichnis`) |
+
+`env -i` gibt bei identischer Liste `approve`, bei Änderung `block`; die Git-Konfiguration der Umgebung ändert die Antwort hier nicht
+(keine Rückgabe nach Auftrag 2). Die zehn Mutanten dieser Nacharbeit sind alle rot an den genannten Fällen, die genannten grünen Fälle bleiben grün.
+
+Die 41 Mutanten der ersten Tabelle: alle rot an den genannten Fällen, kein grüner Mutant. Zwei Einzel-Mutanten waren äquivalent und sind deshalb in der Form der Tabelle gefahren: Entfällt nur
 die Prüfung des Werts beim Lesen, fängt die des Pfads dieselbe Liste (Feldzahl); `F` mit leerem Wert fängt zusätzlich die Hex-Prüfung.
 Sortierung und Einmaligkeit haben keinen Fall (akzeptiertes Negativ, §6); Punkt 8 von `SPEC-052` (nacheinander) hat keinen Fall, der Kopf der
 Gegenprobe und des Hooks nennen die Bindung.
@@ -453,7 +486,7 @@ Gegenprobe und des Hooks nennen die Bindung.
 **Größe:** Code-Commit `b259381` gegenüber `9662e13`: 711 Einfügungen, 78 Löschungen in 11 Dateien (davon `stop-hook-gegenprobe.sh` 537, Hook 110 Zeilen
 geändert, `dateiliste.sh` 56, Plan und Doku 9). Über der Marke von 700 Zeilen aus §4 (Schätzung des Architect: 440 bis 620); Rückführung `in-progress → next` ist Entscheidung des Planners.
 
-**Rückgaben an den Architect (nicht entschieden):**
+**Rückgaben an den Architect (entschieden am 2026-10-13, Commit `c005555`; die Entscheidung steht in §6 und `SPEC-052` Punkte 13, 20 bis 22, umgesetzt im Code-Commit `e92db76`):**
 
 1. `make -i gates` mit rotem Gate schreibt die Liste und endet mit 0 (Probe im Scratchpad: Attrappe mit `exit 1`, `make -s -i gates`). `SPEC-052` Punkt 6 nennt `-i` nur für die schnelle Kette; für den Nachweis des vollen Laufs ist die Randform nicht genannt.
 2. Aufrufarten des Treibers (`AGENTS.md` §3.12): §6 nennt sie nicht als Aufrufarten; als Fälle von Punkt 20 (git scheitert) sind „kein Repo“ und „ohne git“ gefahren. Offen ohne Fall: `bash -e` (der Hook setzt eigene Optionen), leere Umgebung (`env -i`), Arbeitsverzeichnis in einem anderen gültigen Repo (der Hook liest dessen Baum), `CLAUDE_PROJECT_DIR` fehlt (der Hook liest sie nicht; der Aufruf in `.claude/settings.json` ruft ihn dann gar nicht).
