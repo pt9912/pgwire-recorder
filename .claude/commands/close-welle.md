@@ -21,8 +21,10 @@ Wellen-Closure), Modul 7 (Carveouts), Modul 5 (Lifecycle). Bei Konflikt gilt der
      emittierten Schicht stehen unten; ergänze/streiche nach deinem Repo. -->
 
 - **Docker-only + Gate-Nachweis/Stop-Hook.** Nur `make`-Targets; `make gates` endet mit
-  `record-gates`. Jede Inhaltsänderung nach einem Gate-Lauf (inkl. Commit) macht den Stempel ungültig →
-  nach dem Wave-Self-Close-Commit `make gates` grün bestätigen.
+  `record-gates`, das nach einem grünen Lauf die Dateiliste des Working Tree als Nachweis schreibt
+  (`make -i gates` schreibt keinen). Der Stop-Hook gibt nur bei identischer Liste frei, ein fehlender
+  Nachweis sperrt auch bei sauberem Tree; jede Änderung der Liste nach einem Gate-Lauf (Inhalt,
+  neue, gelöschte oder umbenannte Datei) → nach dem Wave-Self-Close-Commit `make gates` grün bestätigen.
 - **Strenges Doc-Gate.** Als Regel: Kennungen (`LH-`, `ADR-`, `MR-`) als Anker-Links
   auf ihre Definition schreiben. `LH-`-Kennungen ohne Link erzwingt das Gate noch nicht
   (`slice-harness-lh-links-pflicht`). Was das Gate prüft, legt `.d-check.yml` fest;
@@ -126,8 +128,8 @@ Wellen-Closure), Modul 7 (Carveouts), Modul 5 (Lifecycle). Bei Konflikt gilt der
 
 ## Abschluss
 
-8. `make gates` grün nach dem Commit bestätigen (der Stop-Hook-Stempel muss auf den aktuellen Tree
-   passen). Erst wenn **alle sechs Belege** vorliegen — Trigger · Carveout-Audit · Results-Notiz ·
+8. `make gates` grün nach dem Commit bestätigen (die Dateiliste des Nachweises muss der des aktuellen
+   Trees gleichen). Erst wenn **alle sechs Belege** vorliegen — Trigger · Carveout-Audit · Results-Notiz ·
    Archivierung (oder ihre nicht eingetretene Start-Bedingung) · Self-Close-Commit ·
    fortgeschriebene Roadmap — ist die Welle auditierbar geschlossen.
 

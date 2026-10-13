@@ -30,8 +30,10 @@ Lies den Adaptions-Block („MR-Block") in `harness/conventions.md`; die planung
   (`slice-harness-lh-links-pflicht`). Was das Gate prüft, legt `.d-check.yml` fest;
   `make docs-check` ist maßgeblich.
 - **Docker-only + Gate-Nachweis/Stop-Hook.** Nur `make`-Targets, nie Host-Toolchain. `make gates`
-  endet mit `record-gates`; jede Inhaltsänderung nach einem Gate-Lauf (inkl. Commit) macht den Stempel
-  ungültig → `make gates` erneut laufen.
+  endet mit `record-gates`, das nach einem grünen Lauf die Dateiliste des Working Tree als Nachweis
+  schreibt (`make -i gates` schreibt keinen); der Stop-Hook gibt nur bei identischer Liste frei, ein
+  fehlender Nachweis sperrt auch bei sauberem Tree. Jede Änderung der Liste nach einem Gate-Lauf
+  (Inhalt, neue, gelöschte oder umbenannte Datei) → `make gates` erneut laufen.
 - **Commit via Message-Datei** (`git commit -F <datei>`).
 
 ## Kontext lesen
