@@ -327,6 +327,72 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Name der Dateiliste:** `.harness/state/gates-passed.dateiliste` (neben `gates-passed.diffsha`, das
+bleibt und ist der Hash dieser Liste). Funktionen: `dateiliste_erzeugen` und `dateiliste_pruefen` in
+`tools/harness/dateiliste.sh`; Schreiber (`record-gates.sh`), Hash (`working-tree-hash.sh`) und Hook laden sie mit
+`source`. Der Planner trägt den Namen bei der Closure in `slice-harness-gate-kette-stop-hook-freigabe` ein (§6).
+
+**Läufe** (Code-Commit `b259381`, Baum sauber): `make gates` Exit 0, 5 min 45 s; darin `stop-hook-gegenprobe: gruen — 40 Fälle …`
+(12 s), `gates-schnell-gegenprobe: gruen`, `d-check: 680 Datei(en) geprüft, 0 Befund(e)`, `baseline-verify: v6.18.0 OK`. Danach der Hook
+im Arbeitsbaum: `{"decision":"approve"}`; vor dem Lauf, ohne Liste: `block` („file list missing“). Der Hook ist in einer
+Kopie (Scratchpad) entwickelt und erst nach grüner Gegenprobe eingespielt worden; der alte Stand: `git show 9662e13:.claude/hooks/stop-require-gates.sh`
+(zurück: `git checkout 9662e13 -- .claude/hooks/stop-require-gates.sh`).
+
+**Befund der Gegenprobe an der unveränderten Kopie (vorher/nachher):** Erster Lauf: `Kopie 'ok' ist nicht grün: p20-git-liste-scheitert
+p20-datei-nicht-lesbar` — der Hook antwortete leer, weil die Antwort des Abbruch-Handlers in der Umleitung `> "$aktuell"` des gerade
+scheiternden Befehls landete. Behoben mit Dateikennung 3 für jede Antwort (`exec 3>&1`, `>&3`); danach beide Fälle grün.
+
+**Mutationen** (`bash tools/harness/stop-hook-gegenprobe.sh`; Mutant = `sed`/`awk` auf der Kopie von Hook oder Skript im Temp-Repo, vom Skript selbst
+gefahren; „rot“ heißt: der Fall meldet sich, „grün bleibt“: der Fall bleibt mit dem Mutanten grün). Die Skripte laufen auf dem Host, kein
+Docker-Build-Kontext: der Mutant liegt in der Kopie, die bash liest.
+
+| Zusage | Mutation | roter Fall (grün bleibt) |
+|---|---|---|
+| Fehlender Stand verlangt `make gates` | `[ -f "$stand" ] \|\| frei` | `p19-ohne-stand-geaendert`, `p19-ohne-stand-sauber` |
+| Fehlender Stand bei sauberem Baum verlangt `make gates` | bei sauberem Baum freigeben, sonst `block` | `p19-ohne-stand-sauber` (grün: `p19-ohne-stand-geaendert`) |
+| Nicht lesbarer Stand verlangt `make gates` | `[ -r "$stand" ] \|\| frei` | `p20-stand-unlesbar` (läuft nicht als root; hier als Nutzer 1000 gelaufen) |
+| Beschädigt: leere Datei | `[ -s ]` entfernt | `p20-leer` |
+| Beschädigt: Feldzahl nicht durch 3 | beide `read … \|\| return 1` für Wert und Pfad entfernt; nur das für den Pfad entfernt; Prüfung des unterminierten letzten Felds entfernt | `p20-feldzahl-4`, `p20-feldzahl-5`; `p20-feldzahl-5` (grün: `-4`); `p20-feldzahl-unterminiert` |
+| Beschädigt: unbekannte Art | `*) return 1` → `*) ;;` | `p20-art` |
+| Beschädigt: `F` mit Wert ohne 64 Hexzeichen | `{64}` → `+`; `[0-9a-fA-F]` → `.` | `p20-hash-kurz` (grün: `-nichthex`); `p20-hash-nichthex` (grün: `-kurz`) |
+| Beschädigt: `G` oder `X` mit Wert | nur `G` ohne Prüfung; nur `X` ohne Prüfung | `p20-wert-g` (grün: `-x`); `p20-wert-x` (grün: `-g`) |
+| Beschädigt: doppelter Pfad | Prüfung des Pfads entfernt | `p20-doppelt` |
+| Nicht lesbarer Vergleich: `git ls-files -u` scheitert | `\|\| true` | `p20-git-u-scheitert` |
+| Nicht lesbarer Vergleich: Liste des Arbeitsbaums | `\|\| :` hinter dem Erzeuger im Hook; `pipefail` im Erzeuger aus | `p20-git-liste-scheitert`, `p20-datei-nicht-lesbar`; `p20-git-liste-scheitert` (grün: `p20-datei-nicht-lesbar`) |
+| Nicht lesbarer Vergleich: eine Datei nicht lesbar | `\|\| true` hinter `sha256sum` im Erzeuger | `p20-datei-nicht-lesbar` (grün: `p20-git-liste-scheitert`) |
+| Ein Abbruch antwortet `block` | `trap sicherung EXIT` entfernt | `p20-abbruch`, `p20-lib-fehlt`, `p20-kein-repo`, `p20-ohne-git` |
+| Der Schleifenschutz bleibt | `if false`; Wert `true` nicht gelesen | `p20-schleifenschutz` (grün: `-false`); `p20-schleifenschutz-false` (grün: `p20-schleifenschutz`) |
+| Die Liste entsteht nur bei grünem Lauf | `record-gates` vor die Gates gezogen | `p1-liste-nicht-bei-rot` (grün: `p1-liste-bei-gruen`) |
+| Ein grüner Lauf schreibt Liste und Hash | `mv` der Liste entfernt; Schreiben des Hashs entfernt | `p1-liste-bei-gruen`; `p1-hash-neben-liste` |
+| Merge-Konflikt verlangt `make gates`, vor „identisch“ | `git ls-files -u` nicht gelesen; Prüfung hinter die Identität verschoben | `p17-konflikt-identisch` (beide) |
+| Geänderter Inhalt, geändertes Link-Ziel | nur Pfade vergleichen; Werte von `F` ignoriert; Werte von `L` ignoriert | `p14-inhalt`, `p14-link-ziel`; `p14-inhalt` (grün: Link-Ziel, Umbenennung); `p14-link-ziel` (grün: Inhalt, Umbenennung) |
+| Umbenennung | nur Werte (sortiert) vergleichen | `p14-umbenennung` (grün: Inhalt, Link-Ziel) |
+| Gelöschte Datei | nur neue und abweichende Einträge, `G` ausgenommen | `p14-geloescht`, `p14-geloescht-index` (grün: Inhalt, Umbenennung) |
+| Neue Datei (getrackt, untracked, am Eintragsende abgeschnittene Liste) | nur Einträge des Standes gegen den Arbeitsbaum | `p14-neu-getrackt`, `p18-untracked`, `p20-abgeschnitten-eintragsende` (grün: Inhalt, gelöschte Datei) |
+| Untracked Datei | `--others` entfernt | `p18-untracked` (grün: `p14-neu-getrackt`) |
+| Pfad mit Zeilenumbruch | zeilenweise statt NUL-getrennt | `p11-zeilenumbruch`, `p11-form` (grün: `p11-leerzeichen`) |
+| Pfad mit Leerzeichen | `$pfad` ungequotet im Erzeuger | `p11-leerzeichen`, `p11-zeilenumbruch`, `p11-form` (die Wortteilung trifft den Zeilenumbruch mit; die Trennung der beiden leistet der Mutant davor) |
+| Form (Art, Wert, Pfad; vier Arten) | Pfad vor Wert; `X` als `G` | `p11-form` |
+| Eine identische Liste gibt frei | Hook blockiert immer | `p16-identisch` |
+| Der Hash wechselt genau mit dem Arbeitsbaum | Hash konstant; Hash mit Zeitstempel | `p10-hash-wechselt` (grün: `-stabil`); `p10-hash-stabil` (grün: `-wechselt`) |
+| Das Gate hängt an `GATE_CHECKS`, sein Exit gilt | Zeile `GATE_CHECKS +=` gestrichen; `-@bash` | `anschluss-gate-checks`; `anschluss-exit` |
+
+41 Mutanten, alle rot an den genannten Fällen, kein grüner Mutant. Zwei Einzel-Mutanten waren äquivalent und sind deshalb in der Form der Tabelle gefahren: Entfällt nur
+die Prüfung des Werts beim Lesen, fängt die des Pfads dieselbe Liste (Feldzahl); `F` mit leerem Wert fängt zusätzlich die Hex-Prüfung.
+Sortierung und Einmaligkeit haben keinen Fall (akzeptiertes Negativ, §6); Punkt 8 von `SPEC-052` (nacheinander) hat keinen Fall, der Kopf der
+Gegenprobe und des Hooks nennen die Bindung.
+
+**Größe:** Code-Commit `b259381` gegenüber `9662e13`: 711 Einfügungen, 78 Löschungen in 11 Dateien (davon `stop-hook-gegenprobe.sh` 537, Hook 110 Zeilen
+geändert, `dateiliste.sh` 56, Plan und Doku 9). Über der Marke von 700 Zeilen aus §4 (Schätzung des Architect: 440 bis 620); Rückführung `in-progress → next` ist Entscheidung des Planners.
+
+**Rückgaben an den Architect (nicht entschieden):**
+
+1. `make -i gates` mit rotem Gate schreibt die Liste und endet mit 0 (Probe im Scratchpad: Attrappe mit `exit 1`, `make -s -i gates`). `SPEC-052` Punkt 6 nennt `-i` nur für die schnelle Kette; für den Nachweis des vollen Laufs ist die Randform nicht genannt.
+2. Aufrufarten des Treibers (`AGENTS.md` §3.12): §6 nennt sie nicht als Aufrufarten; als Fälle von Punkt 20 (git scheitert) sind „kein Repo“ und „ohne git“ gefahren. Offen ohne Fall: `bash -e` (der Hook setzt eigene Optionen), leere Umgebung (`env -i`), Arbeitsverzeichnis in einem anderen gültigen Repo (der Hook liest dessen Baum), `CLAUDE_PROJECT_DIR` fehlt (der Hook liest sie nicht; der Aufruf in `.claude/settings.json` ruft ihn dann gar nicht).
+3. Aufgabe des Auftrags nennt „Pfad mit `..`“ unter den beschädigten Listen; §6 weist unzulässige Pfade dem Folge-Slice zu (Segmente). Nicht umgesetzt; in diesem Slice sperrt jeder Unterschied, ein Pfad mit `..` im Stand ist nie identisch mit der Liste des Arbeitsbaums.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
