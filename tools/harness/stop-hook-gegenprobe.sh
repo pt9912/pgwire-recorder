@@ -11,13 +11,18 @@
 # Fälle: Punkt 1 (Liste nur nach grünem `make gates`, Hash daneben), 10 (Hash wechselt genau mit dem Arbeitsbaum), 11 (Form, Pfade mit Zeilenumbruch und
 # Leerzeichen), 14 (Inhalt, Link-Ziel, Umbenennung, gelöschte und neue Datei), 16 (Identität gibt
 # frei), 17 (Merge-Konflikt vor der Identität), 18 (untracked Datei), 19 (kein Stand, auch bei
-# sauberem Baum), 20 (nicht lesbarer Vergleich, Abbruch, beschädigte Liste, Schleifenschutz).
+# sauberem Baum), 20 (nicht lesbarer Vergleich, Abbruch, beschädigte Liste, Schleifenschutz),
+# 21 (Make-Flags beim Schreiben des Nachweises: -i entfernt ihn, -n, -q, -t lassen ihn stehen),
+# 22 (Aufrufarten: Arbeitsverzeichnis im Unterverzeichnis, leere Umgebung).
 #
 # GRENZE der Gegenprobe:
 # - Sie fährt den Hook mit seiner Eingabe auf stdin und liest seine Ausgabe; ob die Umgebung
-#   von Claude Code die Antwort so liest, prüft sie nicht. Aufrufarten außerhalb davon
-#   (`bash -e`, leere Umgebung, fehlende Variable CLAUDE_PROJECT_DIR) sind nicht Gegenstand;
-#   „kein Repo“ und „ohne git“ sind Fälle des Scheiterns von git (Punkt 20).
+#   von Claude Code die Antwort so liest, prüft sie nicht. Von den Aufrufarten prüft sie das
+#   Arbeitsverzeichnis im Unterverzeichnis und die leere Umgebung (Punkt 22); `bash -e` und
+#   eine fehlende Variable CLAUDE_PROJECT_DIR sind nicht Gegenstand. „kein Repo“ und „ohne
+#   git“ sind Fälle des Scheiterns von git (Punkt 20).
+# - Die Make-Flags -n, -q und -t prüft sie am Ergebnis (Nachweis unverändert), nicht am
+#   Mechanismus: make führt das Rezept des Nachweises dort nicht aus (Punkt 21).
 # - Die Gates der Kopie sind Attrappen; die echte Gate-Kette fährt sie nicht.
 # - Die Fehler von git und sha256sum kommen von Wrappern vor dem echten Programm im PATH.
 # - Als root bleibt eine Datei mit Rechten 000 lesbar; dann ist p20-stand-unlesbar nicht
@@ -142,7 +147,7 @@ kopie() {
   cp -a "$w" "$c"
   git -C "$c" add -A
   git -C "$c" commit -q --allow-empty -m kopie
-  cwd="$c"; pfad="$PATH"; shim=""
+  cwd="$c"; pfad="$PATH"; shim=""; leer=0
 }
 
 # stand — schreibt den Nachweis des vollen Laufs in c, wie `make gates` es am Ende tut.
@@ -153,7 +158,11 @@ hook() {
   local json='{}' zeilen
   [ $# -eq 0 ] || json="$1"
   set +e
-  hout="$(cd "$cwd" && env PATH="$pfad" SHIM="$shim" "$BASH" "$c/$HOOK" <<< "$json" 2> /dev/null)"
+  if [ "$leer" -eq 1 ]; then
+    hout="$(cd "$cwd" && env -i "$BASH" "$c/$HOOK" <<< "$json" 2> /dev/null)"
+  else
+    hout="$(cd "$cwd" && env PATH="$pfad" SHIM="$shim" "$BASH" "$c/$HOOK" <<< "$json" 2> /dev/null)"
+  fi
   hcode=$?
   set -e
   zeilen="$(printf '%s\n' "$hout" | wc -l)"
@@ -193,6 +202,8 @@ FAELLE=(
   p20-schleifenschutz p20-schleifenschutz-false
   p10-hash-stabil p10-hash-wechselt
   p1-liste-bei-gruen p1-liste-nicht-bei-rot p1-hash-neben-liste
+  p21-i-rot p21-i-gruen p21-i-env p21-i-ki p21-i-lang p21-i-j p21-n p21-q p21-t p21-ni
+  p22-unterverzeichnis p22-leere-umgebung
 )
 
 f_p16_identisch() { kopie p16-identisch; stand; hook; ist p16-identisch approve; }
@@ -357,6 +368,84 @@ f_p1_hash_neben_liste() {
   [ "$(cat "$c/.harness/state/gates-passed.diffsha" 2> /dev/null)" = "$(cd "$c" && bash "$HASH")" ] || echo p1-hash-neben-liste
 }
 
+# Punkt 21: ein grüner Lauf als älterer Nachweis, dann der Baum geändert (ein Schreiben
+# würde den Nachweis ändern), dann `make gates` mit Flags.
+# lauf21 <fail> <MAKEFLAGS aus der Umgebung oder leer> <make-Argumente…> — Ausgang unerheblich.
+lauf21() {
+  local fail="$1" umgebung="$2" mf=()
+  shift 2
+  [ -z "$umgebung" ] || mf=("MAKEFLAGS=$umgebung")
+  (cd "$c" && env -u MAKELEVEL -u MFLAGS -u MAKEFLAGS "${mf[@]}" FAIL="$fail" \
+    make --no-print-directory "$@" gates > /dev/null 2>&1) || :
+}
+# vorlauf21 — grüner Lauf, Kopie des Nachweises, dann der Baum geändert; Status 1, wenn der Lauf scheitert.
+vorlauf21() {
+  make_gates || return 1
+  [ -s "$c/.harness/state/gates-passed.dateiliste" ] && [ -s "$c/.harness/state/gates-passed.diffsha" ] || return 1
+  cp "$c/.harness/state/gates-passed.dateiliste" "$arbeit/vor.dateiliste"
+  cp "$c/.harness/state/gates-passed.diffsha" "$arbeit/vor.diffsha"
+  echo x >> "$c/a.txt"
+}
+nachweis_weg() {
+  [ ! -e "$c/.harness/state/gates-passed.dateiliste" ] && [ ! -e "$c/.harness/state/gates-passed.diffsha" ]
+}
+nachweis_gleich() {
+  cmp -s "$arbeit/vor.dateiliste" "$c/.harness/state/gates-passed.dateiliste" \
+    && cmp -s "$arbeit/vor.diffsha" "$c/.harness/state/gates-passed.diffsha"
+}
+# i21 <fall> <fail> <umgebung> <make-Argumente…> — -i in irgendeiner Schreibweise: kein Nachweis.
+i21() {
+  local fall="$1" fail="$2" umgebung="$3"
+  shift 3
+  kopie "$fall"
+  vorlauf21 || { echo "$fall"; return; }
+  lauf21 "$fail" "$umgebung" "$@"
+  nachweis_weg || echo "$fall"
+}
+# n21 <fall> <MAKEFLAGS aus der Umgebung oder leer> <make-Argumente…> — Nachweis byte-gleich.
+n21() {
+  local fall="$1" umgebung="$2"
+  shift 2
+  kopie "$fall"
+  vorlauf21 || { echo "$fall"; return; }
+  lauf21 "" "$umgebung" "$@"
+  nachweis_gleich || echo "$fall"
+}
+f_p21_i_rot() { i21 p21-i-rot fake-b "" -i; }
+f_p21_i_gruen() { i21 p21-i-gruen "" "" -i; }
+f_p21_i_env() { i21 p21-i-env fake-b i; }
+f_p21_i_ki() { i21 p21-i-ki fake-b "" -ki; }
+f_p21_i_lang() { i21 p21-i-lang fake-b "" --ignore-errors; }
+f_p21_i_j() { i21 p21-i-j fake-b "" -j4 -i; }
+f_p21_n() { n21 p21-n "" -n; }
+f_p21_q() { n21 p21-q "" -q; }
+f_p21_t() { n21 p21-t "" -t; }
+f_p21_ni() {
+  local r
+  r="$(n21 p21-ni "" -ni)$(n21 p21-ni ni)"
+  [ -z "$r" ] || echo p21-ni
+}
+
+# Punkt 22: Aufrufarten. Identische Liste gibt frei, jeder Unterschied sperrt.
+f_p22_unterverzeichnis() {
+  local r=""
+  kopie p22-unterverzeichnis; stand; cwd="$c/dir"
+  hook
+  [ "$ent" = approve ] || r=x
+  echo x >> "$c/a.txt"; hook
+  [ "$ent" = block ] || r=x
+  [ -z "$r" ] || echo p22-unterverzeichnis
+}
+f_p22_leere_umgebung() {
+  local r=""
+  kopie p22-leere-umgebung; stand; leer=1
+  hook
+  [ "$ent" = approve ] || r=x
+  echo x >> "$c/a.txt"; hook
+  [ "$ent" = block ] || r=x
+  [ -z "$r" ] || echo p22-leere-umgebung
+}
+
 # fall <name> — führt den Fall aus; Ausgabe: sein Name, wenn er rot ist.
 fall() { "f_${1//-/_}"; }
 
@@ -496,6 +585,39 @@ sedmut $REC '/^mv -f/d'; rot p1-liste-bei-gruen p1-liste-nicht-bei-rot
 fixture m-hash-fehlt
 sedmut $REC '/gates-passed.diffsha$/d'; rot p1-hash-neben-liste p1-liste-bei-gruen
 
+# --- Punkt 21: Make-Flags beim Schreiben des Nachweises -----------------------------------
+FALLE_I="p21-i-rot p21-i-gruen p21-i-env p21-i-ki p21-i-lang p21-i-j"
+FALLE_NQT="p21-n p21-q p21-t p21-ni"
+fixture m-21-ohne-i
+sedmut $REC 's/^  \*i\*)$/  \*nie\*)/'; rot "$FALLE_I" "$FALLE_NQT"
+fixture m-21-literal-i
+sedmut $REC '/^esac$/,$ { s/^case "\$buchstaben" in$/case "$MAKEFLAGS" in/; s/^  \*i\*)$/  *-i*)/; }'; rot "$FALLE_I" "$FALLE_NQT"
+fixture m-21-wort-i
+sedmut $REC '/^esac$/,$ { s/^case "\$buchstaben" in$/case "$erstes" in/; s/^  \*i\*)$/  i)/; }'
+rot p21-i-ki "p21-i-rot p21-i-gruen p21-i-env p21-i-lang p21-i-j $FALLE_NQT"
+fixture m-21-nur-liste-bleibt
+sedmut $REC 's|^    rm -f -- .harness/state/gates-passed.diffsha "\$DATEILISTE_STAND"$|    rm -f -- .harness/state/gates-passed.diffsha|'
+rot "$FALLE_I" "$FALLE_NQT"
+fixture m-21-nur-hash-bleibt
+sedmut $REC 's|^    rm -f -- .harness/state/gates-passed.diffsha "\$DATEILISTE_STAND"$|    rm -f -- "$DATEILISTE_STAND"|'
+rot "$FALLE_I" "$FALLE_NQT"
+fixture m-21-nichts-entfernt
+sedmut $REC '/^    rm -f -- .harness\/state\/gates-passed.diffsha/d'
+rot "$FALLE_I" "$FALLE_NQT"
+fixture m-21-rezept-plus
+sedmut harness/mk/enforce.mk 's/^\t@bash tools\/harness\/record-gates.sh$/\t+@bash tools\/harness\/record-gates.sh/'
+rot "p21-n p21-t p21-ni" "p21-q $FALLE_I"
+fixture m-21-rezept-plus-ohne-voraussetzung
+sedmut harness/mk/enforce.mk 's/^\t@bash tools\/harness\/record-gates.sh$/\t+@bash tools\/harness\/record-gates.sh/'
+sedmut Makefile 's/^record-gates: \$(GATE_CHECKS)$/record-gates:/; s/^gates: record-gates /gates: record-gates $(GATE_CHECKS) /'
+rot "$FALLE_NQT" "$FALLE_I"
+
+# --- Punkt 22: Aufrufarten ------------------------------------------------------------
+fixture m-22-pwd
+ersetze $HOOK 'wurzel="$(git rev-parse --show-toplevel)"' 'wurzel="$(pwd)"'; rot p22-unterverzeichnis p22-leere-umgebung
+fixture m-22-home
+ersetze $HOOK 'input="$(cat || true)"' ': "${HOME:?}"'$'\n''input="$(cat || true)"'; rot p22-leere-umgebung p22-unterverzeichnis
+
 # --- Anschluss: das Gate hängt an GATE_CHECKS, sein Exit gilt -------------------------
 gate_variable() {
   { make -s --no-print-directory -C "$1" -pq help 2> /dev/null || true; } \
@@ -534,4 +656,4 @@ sedmut harness/mk/stop-hook-gegenprobe.mk 's|^\t@bash tools/harness/stop-hook-ge
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "stop-hook-gegenprobe: gruen — ${#FAELLE[@]} Fälle der Punkte 1, 10, 11, 14, 16 bis 20 je Mutant rot, unveränderte Kopie grün, Anschluss an GATE_CHECKS"
+echo "stop-hook-gegenprobe: gruen — ${#FAELLE[@]} Fälle der Punkte 1, 10, 11, 14, 16 bis 22 je Mutant rot, unveränderte Kopie grün, Anschluss an GATE_CHECKS"
