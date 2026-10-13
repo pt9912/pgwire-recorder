@@ -3275,13 +3275,13 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
    Hook vergleicht den Arbeitsbaum mit dem Stand des letzten vollen grünen Laufs. Liegt jede
    geänderte, hinzugekommene oder gelöschte Datei auf der Positivliste (Punkt 12) und ist der
    Stand der schnellen Kette grün, gibt er frei. Jeder andere Fall verlangt `make gates`.
-   Fehlt der Stand der schnellen Kette oder gehört er zu einem anderen Arbeitsbaum, obwohl
-   jede geänderte Datei auf der Positivliste liegt, nennt der `reason` `make gates-schnell`
-   (es genügt; `make gates` genügt ebenso). Jeder andere Fall nennt im `reason` nur
-   `make gates`, nie `make gates-schnell`. Die Gegenprobe prüft den `reason` in beiden
-   Richtungen: Fehlt der Stand bei inerter Änderung, nennt er `make gates-schnell`; fehlt er
-   bei einer nicht inerten Änderung, nennt er es nicht (damit ist auch die Reihenfolge
-   „Pfadregel, zuletzt Stand“ beobachtbar).
+   Fehlt der Stand der schnellen Kette, obwohl jede geänderte Datei auf der Positivliste
+   liegt, nennt der `reason` `make gates-schnell` (es genügt; `make gates` genügt ebenso).
+   Fehlt er bei einer nicht inerten Änderung, nennt der `reason` nur `make gates`, nie
+   `make gates-schnell` (damit ist auch die Reihenfolge „Pfadregel, zuletzt Stand“
+   beobachtbar). Die Gegenprobe prüft den `reason` in diesen beiden Fällen. Für alle übrigen
+   Sperren, auch für einen Stand eines anderen Arbeitsbaums, einen leeren und einen nicht
+   lesbaren Stand, ist der Wortlaut des `reason` nicht zugesagt.
     Reihenfolge der Prüfungen: Schleifenschutz (Punkt 20), nicht aufgelöster Index-Eintrag
     (Punkt 17), fehlender oder beschädigter Stand des vollen Laufs (Punkte 19, 20),
     Identität der Listen (Punkt 16), danach die Pfadregel (Punkte 12, 14, 15, 18), zuletzt der
