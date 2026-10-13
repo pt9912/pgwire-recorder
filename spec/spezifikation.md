@@ -1247,7 +1247,9 @@ bei `record`, bei `play` `--upstream-ca` ohne TLS (`PGR-E2001`; eine Kombination
 erst nach `--upstream` steht, weil TLS vom `sslmode` der benutzten Verbindung abhängt),
 die Variablen der Platzhalter der benutzten Verbindung und danach ihr Port
 nach dem Einsetzen; als Letztes liest `play` die Datei aus `--upstream-ca`
-(`PGR-E2007`, `LH-FA-20.a` *Start*), erst nach allen Prüfungen dieser Aufzählung:
+(`PGR-E2007`, `LH-FA-20.a` *Start*), `record` und `replay` die Dateien aus `--tls-cert`
+und `--tls-key`, in dieser Reihenfolge (`PGR-E2007`, `LH-FA-23.a` *Start*), erst nach
+allen Prüfungen dieser Aufzählung:
 
 | Ursache | Code |
 |---|---|
@@ -2077,17 +2079,74 @@ Sache des Clients. Ein relativer Pfad gilt ab dem aktuellen Verzeichnis, auch we
 er in der Konfigurationsdatei steht. Zertifikat und Schlüssel werden nur beim Start
 geladen; ein Ablauf danach ändert laufende und neue Verbindungen nicht.
 
+**Start.** Die drei Optionen haben Umgebungsvariablen und, in den Abschnitten `record:`
+und `replay:`, die Schlüssel `tls_cert`, `tls_key` und `allow_plaintext` (`LH-FA-17.a`);
+in `play:` ist ein Schlüssel falsch platziert (`PGR-E2004`), und die Variable beim
+Kommando `play` ist `PGR-E2001`. Die Quellen dürfen gemischt werden: Zertifikat aus der
+Umgebung, Schlüssel aus der Datei. Die Kombinationen werden nach der Zusammenführung
+geprüft und kommen vor jedem Fehler von `--upstream`: `--tls-cert` ohne `--tls-key`,
+`--tls-key` ohne `--tls-cert` und ein wirksamer Wert `true` von `--allow-plaintext` ohne
+`--tls-cert` sind `PGR-E2001`; bei mehreren Verstößen nennt die Meldung den ersten in der
+Reihenfolge `--tls-cert`, `--tls-key`, `--allow-plaintext`. `--allow-plaintext=false` ist
+auch ohne `--tls-cert` gültig. Ein leerer Pfad ist ein ungültiger Wert wie bei jeder
+Option, und bei mehrfacher Angabe auf der Kommandozeile gilt die letzte (`LH-FA-17.a`).
+Die Dateien liest der Start als letzte Prüfung der Kommandozeile und der Konfiguration,
+vor allem, was danach kommt (Ausgabedatei, Aufzeichnung, Listen): zuerst das Zertifikat,
+dann den Schlüssel; gemeldet wird der erste Fehler. `config show` liest keine der beiden
+Dateien.
+
+**Dateien.** Jede Datei ist, symbolischen Links gefolgt, eine reguläre Datei; ein
+Verzeichnis, eine FIFO, ein Gerät oder ein Socket ist nicht lesbar, der Start wartet nie
+auf Eingabe. Die Zertifikatsdatei enthält mindestens einen PEM-Block, und jeder Block
+hat den Typ `CERTIFICATE` und enthält ein lesbares X.509-Zertifikat (ein Schlüsselblock
+in der Zertifikatsdatei ist ungültig); der erste Block ist das Zertifikat des Servers,
+die weiteren die Kette, deren Gültigkeit der Recorder nicht prüft. Gültig ist das
+Zertifikat des Servers, wenn die Systemuhr beim Start zwischen Beginn und Ende seiner
+Gültigkeit liegt, beide Grenzen eingeschlossen. Die Schlüsseldatei enthält genau einen
+PEM-Block vom Typ `PRIVATE KEY`, `RSA PRIVATE KEY` oder `EC PRIVATE KEY` (RSA, ECDSA oder
+Ed25519); ein Block vom Typ `ENCRYPTED PRIVATE KEY` oder mit der Kopfzeile
+`Proc-Type: 4,ENCRYPTED` ist ein verschlüsselter Schlüssel, jeder andere Typ und ein
+zweiter Block sind ungültig. Der Schlüssel passt, wenn sein öffentlicher Teil der des
+Zertifikats ist. Eine Datei, die Zertifikat und Schlüssel zugleich enthält, wird nicht
+unterstützt. Verwendung und Namen des Zertifikats (Schlüsselverwendung, Aussteller) prüft
+der Recorder nicht. Die Meldung `PGR-E2007` nennt die Option und die Ursache, weder den
+Pfad noch den Inhalt (`LH-RB-01`); Schlüssel erscheinen in keiner Meldung.
+
 **Aushandlung.** Auf einen `SSLRequest` antwortet der Recorder mit `S` und führt den
 TLS-Handshake aus, mindestens TLS 1.2; danach folgt der PGWire-Verbindungsaufbau auf
-der verschlüsselten Verbindung. Scheitert der Handshake, endet die Verbindung mit der
-Warnung `PGR-W3002`; der Prozessausgang bleibt unverändert. `GSSENCRequest` wird wie
-bisher mit `N` abgelehnt.
+der verschlüsselten Verbindung. Die Verfahren sind die Voreinstellung der Bibliothek ohne
+weitere Zusage; der Recorder fordert kein Zertifikat des Clients an und handelt kein ALPN
+aus. Scheitert der Handshake, endet die Verbindung mit der Warnung `PGR-W3002`; der
+Prozessausgang bleibt unverändert. Das gilt auch für einen Client, der nach dem `S`
+abbricht oder Klartext sendet, und für einen Client, der Bytes nach dem `SSLRequest`
+sendet, bevor das `S` bei ihm ankam: Der Recorder beginnt den Handshake dann nicht und
+beendet die Verbindung mit `PGR-W3002`, damit kein Klartext in die verschlüsselte
+Verbindung gelangt. Die Warnung trägt `code` und `remote` und als Fehlertext die Ursache
+des Handshakes, nie Zertifikat oder Schlüssel. Der Handshake hat kein eigenes Zeitlimit,
+wie der Verbindungsaufbau sonst; Herunterfahren und Zwangsende beenden ihn ohne Meldung
+(`LH-FA-13.a`), auch ohne `PGR-W3002`. Ein `GSSENCRequest` wird wie bisher mit `N`
+abgelehnt. Auf der verschlüsselten Verbindung sind ein weiterer `SSLRequest` und ein
+`GSSENCRequest` nicht unterstützt (`PGR-E6001`, `LH-FA-05.e`). Ein TLS-Handshake als
+erste Nachricht ohne `SSLRequest` (direktes TLS) ist keine PGWire-Startnachricht
+(`PGR-W3003`, `LH-FA-05.e`), auch mit `--allow-plaintext`; ein Client mit direktem TLS
+wird nicht bedient (Grenze). Die Verbindungen werden gleichzeitig behandelt; ein
+langsamer Handshake hält keine andere Verbindung auf. TLS betrifft nur die Seite des
+Clients; das Verhalten hängt nicht von der Version des Servers ab.
+
+**Nach der Aushandlung.** Das Ende einer verschlüsselten Verbindung (`Terminate`, Schließen
+mit oder ohne `close_notify`, Abbruch) wird wie das Ende einer unverschlüsselten
+behandelt und gleich aufgezeichnet. Herunterfahren und Zwangsende wirken auf eine
+verschlüsselte Verbindung wie auf eine unverschlüsselte (`LH-FA-13.a`); das Zwangsende
+wartet nicht auf den Client.
 
 **Unverschlüsselte Clients.** Ist TLS konfiguriert, beantwortet der Recorder einen
 Verbindungsaufbau mit einer `StartupMessage` ohne vorherigen `SSLRequest` (auch nach
 einem mit `N` abgelehnten `GSSENCRequest`) mit einer `ErrorResponse` und beendet die
 Verbindung (`PGR-E6003`, Klasse „nicht unterstützt", ein Verbindungsfehler mit
-Exit-Code `6` nach `LH-FA-13.b`). Ein `CancelRequest` trägt keine Anfrage- und
+Exit-Code `6` nach `LH-FA-13.b`). Das gilt nur für eine `StartupMessage` der Version 3.0;
+eine andere Version ist `PGR-E6002`, eine unbekannte Sonderanfrage `PGR-E6001` und eine
+erste Nachricht, die keine Startnachricht ist, `PGR-W3003`, wie ohne TLS (`LH-FA-05.e`).
+Ein `CancelRequest` trägt keine Anfrage- und
 keine Antwortdaten und gilt wie sonst (`LH-FA-05.e`, `PGR-W3001`), auch ohne
 Verschlüsselung. Mit `--allow-plaintext` (nur zusammen mit `--tls-cert`, sonst
 `PGR-E2001`) bleibt die unverschlüsselte Verbindung zulässig; der Recorder bietet
@@ -2955,3 +3014,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-12 | Sessions: Randformen vor dem Code (angenommene Verbindung, Sessions ohne Interaktion mit `--record-empty-sessions` bei Fehler und Zwangsende, Kennzeichnung ohne Session, gleichzeitiges Ende; Wertemenge von `--session-assignment`, Prüfung der Kennzeichnung bei `connection`, Zählung und Zuordnung mit der Annahme, mehr Verbindungen als Sessions, Anfrage an eine Session ohne Interaktion, gleichzeitige Verbindungsfehler) (`LH-FA-12.a`, `LH-FA-13.b`, `LH-FA-03.b`) |
 | 2026-10-12 | Konfiguration, Entscheidung des Nutzers: Umgebungsvariable der Option eines anderen Kommandos ist `PGR-E2001` (bisher unbeachtet; ersetzt die Fassung vom 2026-10-05 und 2026-10-08), Ausnahmen `PGWIRE_RECORDER_PASSWORD` und Variable ohne passende Option, keine Warnung (`LH-FA-17.a`) |
 | 2026-10-12 | Konfiguration: Rangfolge der Umgebungsvariablen in einem Durchlauf über die Tabelle (fremde und eigene gemeinsam, nur der erste Fehler), vor der Datei; Schreibweise des Namens genau; Katalogzeile `PGR-E2001` nennt die Umgebungsvariable (`LH-FA-17.a`, `SPEC-034`) |
+| 2026-10-13 | TLS zum Client: Randformen vor dem Code (Quellen und Schlüssel der Datei, Kombinationen und ihre Stelle vor `--upstream`, Stelle des Ladens von Zertifikat und Schlüssel, Form beider Dateien, Gültigkeit gegen die Systemuhr, Meldung ohne Pfad, Handshake: Bytes vor dem `S`, Abbruch durch Herunterfahren, direktes TLS als Grenze, weiterer `SSLRequest` auf der verschlüsselten Verbindung, Ende ohne `close_notify`, Rangfolge von `PGR-E6003` hinter `PGR-E6002`, `PGR-E6001` und `PGR-W3003`, keine Wirkung der Serverversion) (`LH-FA-23.a`, `LH-FA-17.a`) |
