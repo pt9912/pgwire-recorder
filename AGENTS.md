@@ -228,6 +228,23 @@ geprüft ist (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`). Entfernen oder
 Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
 welle-extended-query wieder aufgetreten?
 
+**Aufzählung und Ortsangabe zählen je Element** (seit slice-harness-gate-kette-stop-hook-liste,
+Entscheidung des Nutzers vom 2026-10-13): Je Element einer Aufzählung in einer Zusage und je
+Schritt einer Ortsangabe (zum Beispiel „steht vor allen Prüfungen“) ein Fall und eine Mutation,
+die nur ihn bricht.
+
+**Falsch:** Die Zusage nennt „Zeilenumbruch, Leerzeichen, Tabulator und Nicht-UTF-8“ im Pfad und
+„davor“ für den Schleifenschutz; die Gegenprobe hat je Zusage einen Fall, Mutationen einzelner
+Pfadformen (F-703) und einzelner Schritte vor dem Schleifenschutz (F-704) bleiben grün, und das
+Review findet sie.
+**Richtig:** Ein Fall je Pfadform und einer je Schritt vor dem Schleifenschutz, jeder mit einer
+Mutation, die nur ihn bricht.
+
+**Begründung:** Eine Zusage mit Aufzählung oder Ortsangabe trägt mehrere Zusagen, und eine
+Mutation je Zusage zählte sie als eine (`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`).
+Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
+slice-harness-gate-kette-stop-hook-liste wieder aufgetreten?
+
 ### 3.11 Ein Kommentar sagt nur zu, was ein Test prüft (seit welle-extended-query)
 
 Kommentar, Hilfetext, Abdeckungs-Deklaration, Plan-Zeile und Benutzerhandbuch sagen
@@ -421,8 +438,9 @@ Gegenprobe mit dem Doppelten des Produktcodes an.
 
 **Begründung:** Eine Marke ohne Metrik lässt die Probe an der Lesart hängen
 (`BEO-REPO/groessenprobe-ohne-messbaren-stand`), und eine Schätzung ohne den Faktor der Tests liegt
-unter der Messung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`). Entfernen oder Lockern
-setzt den Retirement-Check voraus: Ist eine der beiden Beobachtungen seit
+unter der Messung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`); der ungeteilte Plan über der Grenze zeigte
+sich erst in der Prüfung des Architect (`BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar`).
+Entfernen oder Lockern setzt den Retirement-Check voraus: Ist eine der drei Beobachtungen seit
 slice-harness-gate-kette-stop-hook-liste wieder aufgetreten?
 
 ## 4. Quality Gates
