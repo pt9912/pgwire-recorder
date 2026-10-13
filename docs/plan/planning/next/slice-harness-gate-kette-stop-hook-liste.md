@@ -344,9 +344,11 @@ Hälften.
 **Vorgelagert — offene Beobachtungen sichten:** Register `docs/plan/planning/observations/BEO-REPO/`
 gesichtet (Zähler = Dateien unter `evidence/`, gelesen am Stand `f1f4415`, 2026-10-12). Treffer:
 
-- `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` (2×, offen) — Gegenstand der Hook-Arbeit; die Messung
-  (Freigabe eines Stops nach einem Doku-Commit) setzt die Positivliste voraus und liegt deshalb bei
-  `slice-harness-gate-kette-stop-hook-freigabe`, das den dritten Beleg und den Ausgang liefert. Dieser
+- `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` (3×, *geplant* mit der Kennung von
+  `slice-harness-gate-kette-stop-hook-freigabe`, seit `slice-harness-gate-kette-schnell`) — Gegenstand der
+  Hook-Arbeit; die Messung (Freigabe eines Stops nach einem Doku-Commit) setzt die Positivliste voraus und
+  liegt deshalb bei `slice-harness-gate-kette-stop-hook-freigabe`, das den vierten Beleg und den Ausgang
+  *verkörpert* liefert. Dieser
   Slice liefert keine Messung der Ersparnis.
 - `BEO-REPO/gate-uebergeht-ablage-eintrag-still` (1×, offen) — berührt: nicht lesbarer Eintrag und
   beschädigte Dateiliste sind Randformen dieses Slice (§6); übergeht der Hook einen Eintrag still, ist es

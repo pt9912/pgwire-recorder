@@ -307,12 +307,24 @@ Spezifikation sagt nichts dazu, und das Review findet es.
 **Richtig:** §6 nennt `null` und fehlenden Schlüssel und zeigt auf die Stelle der
 Spezifikation, die beide entscheidet; dann folgt der Code.
 
+**Aufrufarten des Treibers gehören dazu** (seit slice-harness-gate-kette-schnell, Vorschlag des Planners; der Nutzer kann ihn
+streichen): Liefert ein Werkzeug ein Ergebnis, das ein Hook oder ein Gate später glaubt (ein Stand, ein Nachweis, ein Exit-Code),
+nennt §6 als Randform die Aufrufarten außerhalb des Normalfalls, mit denen der Treiber (`make`, `bash`, `git`) das Rezept leerlaufen
+lässt oder Fehler überliest, bei `make` `-n`, `-q`, `-t`, `-i` und `MAKEFLAGS` aus der Umgebung, auch in Kombination, und je eine
+Entscheidung; die Spezifikation trägt sie.
+
+**Falsch:** `make -n gates-schnell` führt das Rezept aus, weil es `$(MAKE)` enthält, fährt kein Gate und schreibt den Stand, den der
+Hook als „grün“ liest; §6 nannte die Flags nicht, das Review fand es.
+**Richtig:** §6 nennt `-n`, `-q`, `-t` (kein Stand, ein vorhandener bleibt) und `-i` (kein Stand, ein älterer entfällt) samt dem
+Vorrang bei Kombination, und je Flag steht ein Fall in der Gegenprobe.
+
 **Begründung:** Was der Code still entscheidet, findet erst das Review, Runde um Runde
 eine weitere Randform (`BEO-REPO/spec-randform-erst-im-review-entschieden`). Ein Diff,
 der eine Randform entscheidet, die §6 nicht nennt, ist ein Review-Befund gegen diese
 Regel. Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung
 seit slice-harness-randformen-vor-code wieder aufgetreten, für die Aufruf-Voraussetzung seit
-slice-v1-abschluss-zeitangaben-aufzeichnen?
+slice-v1-abschluss-zeitangaben-aufzeichnen, für die Aufrufarten des Treibers seit
+slice-harness-gate-kette-schnell?
 
 ### 3.13 Eine Adresse nimmt an, bevor sie genannt wird (seit slice-lint-bestand-kern-driven)
 

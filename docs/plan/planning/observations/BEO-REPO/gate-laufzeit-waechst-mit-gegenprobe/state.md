@@ -1,1 +1,3 @@
-**Stand:** offen
+**Stand:** geplant — Kennung: `slice-harness-gate-kette-stop-hook-freigabe`
+
+Drittes Auftreten mit `slice-harness-gate-kette-schnell` (Beleg `evidence/slice-harness-gate-kette-schnell.md`, F-702): Die Kette, die den Lauf kürzt, bringt ihre Gegenprobe selbst in `make gates` mit. Ein Ausgang `verkörpert` ist erst wahr, wenn der Hook die Ersparnis zeigbar macht; das schreibt `slice-harness-gate-kette-stop-hook-freigabe` (Hook liest den Stand der schnellen Kette, Messung eines Stops nach einem Doku-Commit). Bis dahin ist der Ausgang `geplant`; zeigt die Messung keine Senkung, bleibt der Eintrag `offen` mit der Begründung dort. Zuweisung des Planners nach der Regel des Registers (ab 3× `geplant` mit Kennung).

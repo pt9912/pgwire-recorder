@@ -59,7 +59,13 @@ Index-Einträge **vor** jeder Entscheidung nach Pfad (dieser Slice stellt die Po
 davor), und das Gate `stop-hook-gegenprobe` mit dem Gerüst der Temp-Repos (dieser Slice fügt Fälle hinzu,
 er legt das Gate nicht an). `slice-harness-gate-kette-schnell` liegt davor in `done/`: `SPEC-052`, das Ziel
 `gates-schnell`, der Stand der schnellen Kette `.harness/state/gates-schnell-passed.diffsha` (Hash des
-Arbeitsbaums aus `tools/harness/working-tree-hash.sh`). **Name der Dateiliste:** wählt der Implementer von
+Arbeitsbaums aus `tools/harness/working-tree-hash.sh`). **Bindung (Geber `slice-harness-gate-kette-schnell`,
+`SPEC-052` Teil 1, Punkte 5 bis 7):** Der Hook stützt die Freigabe auf den Stand der schnellen Kette und nur auf ihn: Er
+vergleicht die Datei mit dem Hash des aktuellen Arbeitsbaums und liest sie unverändert. Zugesagt ist, dass der Stand nur
+nach einem Lauf entsteht, in dem die Gates tatsächlich liefen (kein Stand bei `-n`, `-q`, `-t` und `-i`, ein älterer entfällt
+nach Rot, Abbruch und `-i`), und dass der volle Nachweis davon getrennt bleibt. **Nicht zugesagt** und nicht Grundlage des Hooks
+sind: dass nur die schnelle Kette die Datei schreibt und dass der volle Lauf sie nicht löscht (akzeptierte Negative des Gebers,
+§6). **Name der Dateiliste:** wählt der Implementer von
 `slice-harness-gate-kette-stop-hook-liste`; der Planner trägt ihn bei dessen Closure hier ein (§6).
 `SPEC-052` Teil *Hook* gilt nach seinem Eingangssatz (Wortlaut: `slice-harness-gate-kette-schnell` §6, Zeile *Zwischenstand*), soweit ein Fall von `stop-hook-gegenprobe` die Zusage nennt;
 dieser Slice erweitert das Gate um die Fälle der Positivliste, jeder mit der Punktnummer aus `SPEC-052` in seinem Namen (wie im Geber), und ändert die Spezifikation nicht: Der Eingangssatz bleibt mit diesen Fällen wahr, ohne dass jemand ihn nachzieht.
@@ -125,8 +131,11 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `evidence/slice-harness-gate-kette-stop-hook-freigabe.md` in
       `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe/` mit der Messung dieses Slice (Dauer von
       `make gates` und der schnellen Kette; Freigabe eines Stops nach einem Doku-Commit; Last und
-      Laufzeit dessen, was der Hook spart); der Zähler folgt aus den Dateien (3×) und der Eintrag
-      bekommt seinen Ausgang. Die Messung ist Beleg, kein Liefer-Punkt.
+      Laufzeit dessen, was der Hook spart); der Zähler folgt aus den Dateien (4×; den dritten Beleg lieferte
+      `slice-harness-gate-kette-schnell`) und der Eintrag, dort mit dem Ausgang *geplant* (Kennung dieses Slice)
+      eingetragen, bekommt seinen Ausgang *verkörpert* (Zielort und Herkunfts-Anker `seit
+      slice-harness-gate-kette-stop-hook-freigabe`), sofern die Messung die Senkung zeigt, sonst *offen* mit
+      Begründung. Die Messung ist Beleg, kein Liefer-Punkt.
 - [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
 - [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 ## 3. Plan (vor Code)
@@ -212,6 +221,9 @@ die Spezifikation, vor jedem Code). Dieser Slice trägt davon, ohne Doppelung mi
   Stand ihn nicht sperrt);
 - Stand der schnellen Kette fehlt, ist rot oder gehört zu einem anderen Arbeitsbaum (der Hash des
   aktuellen Arbeitsbaums weicht von der Datei ab oder die Datei fehlt): voll;
+- Bindung an den Geber `slice-harness-gate-kette-schnell` (`SPEC-052` Punkte 5 bis 7, §1): Der Hook liest den Stand
+  unverändert und vergleicht nur den Hash; er stützt sich nicht darauf, dass nur die schnelle Kette die Datei schreibt
+  oder dass der volle Lauf sie stehen lässt (nicht zugesagt; der Geber hat beides als akzeptiertes Negativ entschieden);
 - gleichzeitige Läufe (**Aufruf-Voraussetzung**: nacheinander, `AGENTS.md` §3.12): `SPEC-052` bindet jede
   Zusage daran, der Hook sagt gleichzeitige Läufe nicht zu.
 
@@ -301,8 +313,9 @@ Hälften.
 **Vorgelagert — offene Beobachtungen sichten:** Register `docs/plan/planning/observations/BEO-REPO/`
 gesichtet (Zähler = Dateien unter `evidence/`, gelesen am Stand `f1f4415`, 2026-10-12). Treffer:
 
-- `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` (2×, offen) — Gegenstand: Mit der Messung dieses
-  Slice (DoD) steht der Eintrag bei 3× und braucht seinen Ausgang; er lautet *verkörpert*, Zielort
+- `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` (3×, *geplant* mit der Kennung dieses Slice, seit
+  `slice-harness-gate-kette-schnell`) — Gegenstand: Mit der Messung dieses Slice (DoD) steht der Eintrag
+  bei 4×; sein Ausgang lautet *verkörpert*, Zielort
   Hook und Kette, Herkunfts-Anker `seit slice-harness-gate-kette-stop-hook-freigabe`, sofern der Hook die
   Laufzeit eines Doku-Commits zeigbar senkt, sonst *offen* mit der Begründung.
 - `BEO-REPO/gate-uebergeht-ablage-eintrag-still` (1×, offen) — berührt: Symlink und nicht lesbarer
@@ -319,7 +332,8 @@ gesichtet (Zähler = Dateien unter `evidence/`, gelesen am Stand `f1f4415`, 2026
   `BEO-REPO/slice-waechst-durch-uebernahmen` (verkörpert, `AGENTS.md` §3.13) — Mutationen in §6, kein
   Kommentar sagt mehr zu, als die Gegenprobe prüft, die Sendungen sind nachgezählt.
 
-Dieser Slice führt den dritten Beleg für `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` und ist mit
+Dieser Slice führt den vierten Beleg für `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` (den dritten lieferte
+`slice-harness-gate-kette-schnell`, der Eintrag ist seither *geplant* mit der Kennung dieses Slice) und ist mit
 `slice-harness-gate-kette-schnell` selbst die Antwort darauf; sonst erreicht keiner der Einträge mit
 diesem Plan die Schwelle 3× neu.
 
@@ -332,7 +346,9 @@ Closure-Notiz zählen nicht. Schichten: 1 — Harness-Werkzeug (`.claude/hooks`,
 `stop-hook-gegenprobe`, Prüfung nicht aufgelöster Index-Einträge vor der Pfad-Entscheidung, Name der
 Dateiliste) und der Randformen und Mutationen der Hook-Seite aus `slice-harness-gate-kette-schnell`, soweit
 verteilt: nachgezählt mit den Sendungen 3 Liefer-Punkte und 1 Schicht; der Name der Dateiliste ist Teil
-der Liefer-Punkte 1 bis 3, kein vierter. Geschätzt 280 bis 420 Zeilen mit Tests (§4). Nachgezählt am
+der Liefer-Punkte 1 bis 3, kein vierter. Die Bindung an `SPEC-052` Teil 1 (§1, Punkte 5 bis 7 des Gebers
+`slice-harness-gate-kette-schnell`, bei dessen Closure eingetragen) ist kein vierter Liefer-Punkt und keine Schicht: Der Hook
+liest den Stand ohnehin (Liefer-Punkt 1); nachgezählt 3 Liefer-Punkte, 1 Schicht. Geschätzt 280 bis 420 Zeilen mit Tests (§4). Nachgezählt am
 2026-10-13 bei der Umordnung (vor die Release-Slices): Die Sendungen sind unverändert, die Zählung bleibt 3
 Liefer-Punkte und 1 Schicht. Nachgezählt vom Architect am 2026-10-13 mit der erweiterten Positivliste (`docs/user/`,
 `README.md`): zwei Mutationen mehr in der Tabelle, vier Pfadklassen mehr in den Fällen der Positivliste, keine neue

@@ -1,3 +1,5 @@
 **Stand:** offen
 
 Weiter offen, kein Auftreten (Urteil des Planners, `slice-v1-abschluss-sessions`): Geschätzt 1400 bis 1900 Zeilen mit Tests (Architect, ohne Abdeckungstabellen), gemessen 2115 (Summe unter `internal` und `test`, Metrik in §4 jenes Plans). Die Messung liegt über der Obergrenze, aber die Schwelle von 2200 wurde nicht überschritten, und die Abweichung liegt bei einem Zehntel, nicht bei der Hälfte; der Spielraum zur Schwelle war für sie gemeint. Zählte der Nutzer sie mit, wäre es das dritte Auftreten ohne Regel.
+
+Weiter offen, kein Auftreten (Urteil des Planners, `slice-harness-gate-kette-schnell`): Geschätzt 475 bis 515 Zeilen mit Tests (Architect, nach dem Review), gemessen 563 (`git diff --shortstat d075d3f HEAD` ohne `docs/`; V-320). Die Messung liegt 48 Zeilen (rund ein Zehntel) über der Obergrenze, 87 unter der Grenze von 650; die erste Schätzung (420 bis 580) hielt mit 434. Die Schätzung wuchs mit der Nacharbeit, und das Mehr liegt in der Gegenprobe. Dieselbe Lesart wie bei `slice-v1-abschluss-sessions` (ein Zehntel, nicht die Hälfte). Zählte der Nutzer beide mit, wäre es das vierte Auftreten ohne Regel.
