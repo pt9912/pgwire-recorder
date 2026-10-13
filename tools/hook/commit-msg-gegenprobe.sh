@@ -20,39 +20,34 @@
 #   mit erfundener Welle-Kennung                                abgelehnt
 #   Name einer Closure-Notiz einer Welle (-results)             abgelehnt
 #
-# Slices und Wellen fuer die Positivfaelle stammen aus dem Index (Slices aus
-# open/ und done/ samt Archiv-Ordnern, Wellen flach und unter done/); fehlt einer, bricht die
-# Gegenprobe ab. Ausgang: 0, wenn jeder Fall wie erwartet endet.
+# Slices und Wellen der Positivfaelle legt die Gegenprobe selbst in einem Temp-Repo an
+# (feste Namen unter docs/plan/planning/, im Index); sie liest den Planungsbaum des
+# Arbeitsbaums nicht. Der Traeger und die Pruefung der Traceability werden aus dem
+# Arbeitsbaum dorthin kopiert. Ausgang: 0, wenn jeder Fall wie erwartet endet.
 set -euo pipefail
 
-traeger=".githooks/commit-msg"
 arbeit="$(mktemp -d)"
 trap 'rm -rf "$arbeit"' EXIT
 
-# erster <lifecycle> — der erste Slice im Index unter diesem Verzeichnis, auch im
-# Archiv-Ordner einer Welle darunter.
-erster() {
-  git ls-files --cached -- "docs/plan/planning/$1/*slice-*.md" | grep -E '/slice-[^/]*\.md$' \
-    | sort | head -n 1 | xargs -r basename -s .md
-}
-offen="$(erster open)"
-fertig="$(erster done)"
-if [ -z "$offen" ] || [ -z "$fertig" ]; then
-  echo "commit-msg-gegenprobe: kein Slice in open/ oder done/ im Index gefunden" >&2
-  exit 1
-fi
-welle_offen="$(git ls-files --cached -- 'docs/plan/planning/welle-*.md' \
-  | grep -E '^docs/plan/planning/welle-[^/]*\.md$' | grep -v -- '-results\.md$' \
-  | sort | head -n 1 | xargs -r basename -s .md)"
-welle_fertig="$(git ls-files --cached -- 'docs/plan/planning/done/*welle-*.md' \
-  | grep -E '/welle-[^/]*\.md$' | grep -v -- '-results\.md$' \
-  | sort | head -n 1 | xargs -r basename -s .md)"
-notiz="$(git ls-files --cached -- 'docs/plan/planning/done/*welle-*-results.md' \
-  | sort | head -n 1 | xargs -r basename -s .md)"
-if [ -z "$welle_offen" ] || [ -z "$welle_fertig" ] || [ -z "$notiz" ]; then
-  echo "commit-msg-gegenprobe: keine offene oder geschlossene Welle oder keine Closure-Notiz im Index gefunden" >&2
-  exit 1
-fi
+repo="$arbeit/repo"
+mkdir -p "$repo/.githooks" "$repo/tools/harness"
+cp .githooks/commit-msg "$repo/.githooks/commit-msg"
+cp tools/harness/commit-msg-traceability.sh "$repo/tools/harness/commit-msg-traceability.sh"
+planung="$repo/docs/plan/planning"
+mkdir -p "$planung/open" "$planung/done"
+offen="slice-gegenprobe-offen"
+fertig="slice-gegenprobe-fertig"
+welle_offen="welle-gegenprobe-offen"
+welle_fertig="welle-gegenprobe-fertig"
+notiz="$welle_fertig-results"
+: > "$planung/open/$offen.md"
+: > "$planung/done/$fertig.md"
+: > "$planung/$welle_offen.md"
+: > "$planung/done/$welle_fertig.md"
+: > "$planung/done/$notiz.md"
+git -C "$repo" init -q
+git -C "$repo" add -A
+traeger="$repo/.githooks/commit-msg"
 
 fehler=0
 nr=0
