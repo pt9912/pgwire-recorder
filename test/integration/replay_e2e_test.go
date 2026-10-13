@@ -32,17 +32,26 @@ func aufnehmen(t *testing.T, queries ...string) (string, string) {
 // Verhalten als Text: Spaltennamen, Zeilen und Befehlsabschluss je Ergebnis.
 func beobachten(t *testing.T, listen string, queries ...string) string {
 	t.Helper()
+	return beobachtenMit(t, listen, "disable", true, queries...)
+}
+
+// beobachtenMit ist beobachten mit dem sslmode des Clients; ohne schliessen
+// bleibt die Verbindung offen.
+func beobachtenMit(t *testing.T, listen, sslmode string, schliessen bool, queries ...string) string {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	conn, err := pgconn.Connect(ctx, dsn(listen))
+	conn, err := pgconn.Connect(ctx, strings.Replace(dsn(listen), "sslmode=disable", "sslmode="+sslmode, 1))
 	if err != nil {
-		t.Fatalf("Verbindung zum Replay: %v", err)
+		t.Fatalf("Verbindung mit sslmode=%s: %v", sslmode, err)
 	}
-	defer func() {
-		if err := conn.Close(ctx); err != nil {
-			t.Error(err)
-		}
-	}()
+	if schliessen {
+		defer func() {
+			if err := conn.Close(ctx); err != nil {
+				t.Error(err)
+			}
+		}()
+	}
 	var b strings.Builder
 	for _, q := range queries {
 		results, err := conn.Exec(ctx, q).ReadAll()
