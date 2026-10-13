@@ -10,7 +10,8 @@
 #
 # Fälle: Punkt 1 (Liste nur nach grünem `make gates`, Hash daneben), 9 (Freigabe bei inerten Pfaden und grünem Stand der
 # schnellen Kette; Reihenfolge der Prüfungen; Pfade außerhalb der Positivliste; der `reason` bei fehlendem Stand der
-# schnellen Kette nennt `make gates-schnell`, nur dort), 10 (Hash wechselt genau mit dem Arbeitsbaum;
+# schnellen Kette nennt `make gates-schnell` bei inerter Änderung und nur `make gates` bei nicht inerter;
+# der Wortlaut bei fremdem, leerem und nicht lesbarem Stand ist nicht zugesagt und hat keinen Fall), 10 (Hash wechselt genau mit dem Arbeitsbaum;
 # Stand der schnellen Kette fehlt, ist leer, nicht lesbar oder fremd; das Hash-Skript fehlt, scheitert oder liefert nichts),
 # 11 (Form, Pfade mit Zeilenumbruch,
 # Leerzeichen innen, am Anfang und am Ende, Tabulator, Backslash und Nicht-UTF-8), 12 und 13 (Positivliste je Eintrag in jeder

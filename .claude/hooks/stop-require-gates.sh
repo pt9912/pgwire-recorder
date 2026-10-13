@@ -24,9 +24,11 @@
 #   Änderung nicht inert.
 # - Der Stand der schnellen Kette passt, wenn der Inhalt von
 #   .harness/state/gates-schnell-passed.diffsha die Ausgabe von tools/harness/working-tree-hash.sh
-#   ist; fehlend, leer, ungleich oder ein scheiterndes Skript sperrt. Fehlt der Stand oder
-#   gehört er zu einem anderen Arbeitsbaum, obwohl jede Änderung inert ist, nennt der `reason`
-#   `make gates-schnell`; jede andere Sperre nennt nur `make gates`.
+#   ist; fehlend, leer, ungleich oder ein scheiterndes Skript sperrt. Fehlt der Stand, obwohl
+#   jede Änderung inert ist, nennt der `reason` `make gates-schnell` (p10-fehlt); fehlt er bei
+#   einer nicht inerten Änderung, nennt der `reason` nur `make gates` (p9-stand-fehlt-nicht-inert).
+#   Der Wortlaut des `reason` bei einem Stand eines anderen Arbeitsbaums, einem leeren und einem
+#   nicht lesbaren Stand ist nicht zugesagt.
 # - Scheitert ein Schritt (git, Lesen einer Datei) oder bricht der Hook ab, antwortet er
 #   `block`, nie ohne Antwort.
 # - Der Schleifenschutz (`stop_hook_active: true`) antwortet `approve` vor jeder Prüfung, die zu
