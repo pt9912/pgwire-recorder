@@ -212,11 +212,12 @@ Sitzung ist, steht unter
   der umask `022` also `0644`); eine ersetzte behält ihre Zugriffsrechte. Ersetzt
   das Werkzeug eine Verknüpfung auf eine Datei, erhält die Zieldatei die
   Zugriffsrechte dieser Datei.
-* Jede Verbindung Ihrer Anwendung, die mindestens eine Anfrage abgeschlossen hat, wird
+* Eine Verbindung Ihrer Anwendung, die mindestens eine Anfrage abgeschlossen hat, wird
   als eigene Sitzung aufgezeichnet, auch wenn mehrere Verbindungen gleichzeitig offen
-  sind. Verbindungen ohne Anfrage, zum Beispiel Probe-Verbindungen eines
+  sind; nutzt sie `COPY`, wird sie nicht aufgezeichnet (`PGR-E6001`, Exit-Code 6).
+  Verbindungen ohne Anfrage, zum Beispiel Probe-Verbindungen eines
   Connection-Pools, werden nicht aufgezeichnet; mit `--record-empty-sessions` werden
-  sie es (siehe
+  sie es, soweit sie keine der Ausnahmen sind, die der Abschnitt nennt (siehe
   [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)).
 * Verlangt die Datenbank ein Passwort, beendet das Werkzeug die Verbindung Ihrer
   Anwendung mit `PGR-E6001`; die Verbindung wird nicht aufgezeichnet, auch nicht mit
@@ -227,7 +228,9 @@ Sitzung ist, steht unter
   wartet höchstens so lange, wie `--shutdown-timeout` angibt (siehe
   [Herunterfahren mit Frist](#herunterfahren-mit-frist)); danach beendet es jede
   noch laufende Verbindung zwangsweise. Die abgeschlossenen Anfragen einer
-  solchen Verbindung bleiben in der Aufzeichnung. War auf ihr eine Anfrage
+  solchen Verbindung bleiben in der Aufzeichnung; hat sie keine abgeschlossen, gilt
+  [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben).
+  War auf ihr eine Anfrage
   begonnen und nicht abgeschlossen, fehlt diese; Ihre Anwendung erhält die
   Fehlermeldung `PGR-E4006`, das Log nennt die Sitzung und die verworfene
   Anfrage, und das Werkzeug endet mit Exit-Code 4, wenn vorher kein anderer
@@ -443,8 +446,9 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
 ### Mehrere Verbindungen aufzeichnen und wiedergeben
 
 Eine Anwendung öffnet oft mehrere Verbindungen zur Datenbank, etwa über einen
-Connection-Pool. `record` zeichnet jede Verbindung als eigene Sitzung auf, auch wenn
-mehrere gleichzeitig offen sind. `replay` ordnet die aufgezeichneten Sitzungen den
+Connection-Pool. `record` zeichnet eine Verbindung, die eine Anfrage abgeschlossen hat, als
+eigene Sitzung auf, auch wenn mehrere gleichzeitig offen sind; nutzt sie `COPY`, zeichnet
+`record` sie nicht auf (`PGR-E6001`). `replay` ordnet die aufgezeichneten Sitzungen den
 Verbindungen Ihrer Anwendung zu; die Option `--session-assignment` wählt, wie.
 
 #### Voraussetzung
@@ -1509,8 +1513,8 @@ Werkzeugs.
 |---|---|
 | Aufzeichnung | Datei mit der aufgezeichneten Kommunikation zwischen Anwendung und Datenbank, im Format `yaml` oder `sqlite` |
 | Format | Art, wie die Datei die Aufzeichnung speichert: `yaml` (Text) oder `sqlite` (SQLite-Datei) |
-| Verbindung | eine Datenbankverbindung Ihrer Anwendung; in der Aufzeichnung heißt sie Sitzung |
-| Sitzung ohne Interaktionen | die Sitzung einer Verbindung ohne abgeschlossene Anfrage; sie entsteht nur mit `--record-empty-sessions` |
+| Verbindung | eine Datenbankverbindung Ihrer Anwendung; wird sie aufgezeichnet, heißt sie in der Aufzeichnung Sitzung |
+| Sitzung ohne Interaktionen | die Sitzung einer Verbindung ohne abgeschlossene Anfrage; sie entsteht nur mit `--record-empty-sessions`, und nicht jede solche Verbindung ist eine Sitzung (siehe [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)) |
 | Einfaches Anfrageprotokoll | PostgreSQL-Protokollvariante, in der jede Anfrage als einzelner Text gesendet wird |
 | Erweitertes Anfrageprotokoll | Protokollvariante mit vorbereiteten Anweisungen und Parametern |
 | Upstream | die echte Datenbank, an die `record` weiterleitet |

@@ -44,13 +44,18 @@ Anfragen auf diese Zeit (beim Standard `relative` ohne Wartezeit vor der ersten 
 einer Verbindung), gemessen ab der vorigen Anfrage (`relative`, Standard) oder ab einem Bezugspunkt
 (`--timing-mode absolute` mit `--timing-reference`), und `replay` wartet nie. Trägt eine Anfrage kein
 `offset_ms`, endet `play --keep-timing` mit `PGR-E2003`; ein ungültiges oder absteigendes
-`offset_ms` lehnen `replay` und `play` mit `PGR-E3003` ab. `record` zeichnet jede Verbindung, die eine Anfrage abgeschlossen hat, als eigene Sitzung auf,
-auch mehrere gleichzeitig; mit `--record-empty-sessions` wird auch eine Verbindung ohne Anfrage
-eine Sitzung ohne Interaktionen. `replay` ordnet beim Standard
-`--session-assignment first-request` die n-te Verbindung mit einer Anfrage der n-ten Sitzung mit
-Interaktionen zu; mit `--session-assignment connection` erhält die n-te Verbindung die Sitzung mit der `id` n, was eine
-mit `--record-empty-sessions` aufgezeichnete Datei verlangt (sonst `PGR-E2001`). Eine Anfrage ohne
-zugeordnete Sitzung ist `PGR-E5003`, eine Anfrage an eine Sitzung ohne Interaktionen `PGR-E5001`.
+`offset_ms` lehnen `replay` und `play` mit `PGR-E3003` ab.
+
+`record` zeichnet eine Verbindung, die eine Anfrage abgeschlossen hat, als eigene Sitzung auf,
+auch mehrere gleichzeitig; nutzt sie `COPY`, zeichnet `record` sie nicht auf (`PGR-E6001`).
+Mit `--record-empty-sessions` wird auch eine Verbindung ohne Anfrage eine Sitzung ohne
+Interaktionen, soweit sie keine der Ausnahmen ist, die das Benutzerhandbuch nennt. `replay`
+ordnet beim Standard `--session-assignment first-request` die n-te Verbindung mit einer
+Anfrage der n-ten Sitzung mit Interaktionen zu; mit `--session-assignment connection` erhält
+die n-te Verbindung die Sitzung mit der `id` n, was eine mit `--record-empty-sessions`
+aufgezeichnete Datei verlangt (sonst `PGR-E2001`). Eine Anfrage ohne zugeordnete Sitzung ist
+`PGR-E5003`, eine Anfrage an eine Sitzung ohne Interaktionen `PGR-E5001`.
+
 Beim Beenden warten `record` und `replay` höchstens `--shutdown-timeout`
 (Standard 5 Sekunden) auf laufende Anfragen; was das im Container bedeutet, sagt das
 Benutzerhandbuch.
