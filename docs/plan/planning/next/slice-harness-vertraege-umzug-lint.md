@@ -59,7 +59,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       auf `harness/`; `make docs-check` grün.
 - [ ] **Liefer-Punkt 3 — die Verweise.** Jeder Verweis auf `SPEC-049` zeigt auf den neuen Ort: die Links in `harness/README.md`, `harness/sensors/lint.md`,
       [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md), den Plänen in `open/`, den Plänen in `done/` und den Reviews, wo sie sonst bricht; die Pfadangaben in den Kommentaren von
-      `.golangci.yml`, `tools/harness/lint.sh`, `tools/harness/lint-gegenprobe.sh`, `harness/mk/lint.mk`; die Ortsangabe in `slice-harness-lint-warten-ohne-frist` (Kopf, §1, §3, §6).
+      `.golangci.yml`, `tools/harness/lint.sh`, `tools/harness/lint-gegenprobe.sh`; die Ortsangabe in `slice-harness-lint-warten-ohne-frist` (Kopf, §1, §3, §6).
       Beleg in §7: `grep -rn "spezifikation.md#spec-049" --exclude-dir=.git --exclude-dir=.harness .` und `grep -rn "spezifikation.md SPEC-049" --exclude-dir=.git .` ohne Treffer.
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -86,7 +86,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `spec/spezifikation.md` | update | `SPEC-049` und neun Zeilen der *Historie* entfernt |
 | `harness/README.md` | update | §Sensors: Links und Nennungen in den Zeilen von `make lint` und `make lint-gegenprobe` |
 | `harness/sensors/lint.md` | update | drei Links auf den Vertrag |
-| `.golangci.yml`, `tools/harness/lint.sh`, `tools/harness/lint-gegenprobe.sh`, `harness/mk/lint.mk` | update (nur Kommentare) | „Vertrag: spec/spezifikation.md SPEC-049“ nennt den neuen Pfad |
+| `.golangci.yml`, `tools/harness/lint.sh`, `tools/harness/lint-gegenprobe.sh` | update (nur Kommentare) | „Vertrag: spec/spezifikation.md SPEC-049“ nennt den neuen Pfad (`harness/mk/lint.mk` nennt keinen Pfad und bleibt, Randform 5) |
 | `docs/plan/adr/0034-lint-gate-mit-solid-nahem-profil.md` | update (Link) | Referenz-Nachzug nach [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), keine Überschreibung der Entscheidung |
 | `docs/plan/planning/open/slice-harness-lint-warten-ohne-frist.md`, `slice-tests-ueberlebende-mutanten.md`, `slice-tests-ueberlebende-mutanten-driving.md` | update | Links und Ortsangabe des Vertrags (`AGENTS.md` §3.9) |
 | `docs/plan/planning/done/slice-harness-blackbox-driven.md`, `-blackbox-einstieg.md`, `-blackbox-kern.md`, `-blackbox-pgwire.md`, `-lint.md`, `-lint-werkzeug.md`, `slice-lint-bestand-driving.md`, `slice-lint-bestand-kern-driven.md`; `docs/reviews/2026-10-06-review-slice-harness-lint-werkzeug.md`, `…-verifikation-slice-harness-blackbox-kern.md`, `…-verifikation-slice-harness-lint-werkzeug.md`, `docs/reviews/2026-10-07-verifikation-slice-harness-blackbox-driven.md` | update (Links) | nur die Pfade der Links, weil das Doku-Gate sonst bricht |
@@ -101,8 +101,8 @@ Die Zahl der Verweise ist hoch (17 Dateien außerhalb der Spezifikation mit Link
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-vertraege-umzug-ordner` liegt in `done/` (WIP-Limit 1). Erster Schritt nach dem Start, vor jedem Commit an Spezifikation oder
-`harness/`: Der Architect bestätigt, dass die Randformen aus §6 von `slice-harness-vertraege-umzug-ordner` für diesen Vertrag gelten und entscheidet die der Verweise (§6).
+**Start** (`next` → `in-progress`): `slice-harness-vertraege-umzug-ordner` liegt in `done/` (WIP-Limit 1). Die Randformen sind am 2026-10-13 vom Architect entschieden (§6 hier und im Ordner-Slice); der Implementer liest sie vor dem ersten Commit an Spezifikation oder
+`harness/` und gibt eine fehlende Form an den Architect zurück.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -133,13 +133,16 @@ dasteht.
 - Pfadangaben in Kommentaren ohne Link fängt kein Gate (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`) — **Ausgang:** offen bis Closure.
 - Ein Kommentar in `.golangci.yml` ist Teil der Datei, die `make lint` und seine Gegenprobe lesen; eine Änderung des Wortlauts darf deren Antwort nicht ändern — **Ausgang:** offen bis Closure.
 
-**Randformen** (`AGENTS.md` §3.12): Es gelten die Entscheidungen aus §6 von `slice-harness-vertraege-umzug-ordner` (Dateiname, Überschrift, Text mit Ortsangabe, Historie-Auswahl, Reihe, Stop-Hook,
-Zeitdokumente). Zusätzlich für diesen Vertrag, vom Architect vor dem ersten Commit, Ort: `harness/vertraege/README.md`:
+**Prüfung des Architect vor dem Code** (2026-10-13, Stand `795f1c0`): Bezug zu [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Schärft `SPEC-049`), [ADR-0040](../../adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) und [MR-002](../../../../harness/conventions.md#mr-002) bestätigt. Nachgemessen am Stand `231089e`: `SPEC-049` 3012 bis 3164 (153 Zeilen), neun Historie-Zeilen 3514 bis 3522, jede nennt nur `SPEC-049`. Größe bestätigt, in der Metrik von `AGENTS.md` §3.14: 153 Zeilen doppelt 306, neun gelöschte Historie-Zeilen und rund zehn im `README.md` des Ordners, rund 22 Zeilen Verweise doppelt 44: **370 bis 430**, innerhalb der Schätzung des Planners (350 bis 480), unter der Marke 600. Zählung 3 Liefer-Punkte und 2 Schichten bestätigt. Kein Schnitt, keine Folge-ADR.
 
-1. *Dateiname.* Vorschlag: `SPEC-049-lint-profil.md`.
-2. *Neun Zeilen Historie.* Die Zeilen vom 2026-10-06 bis 2026-10-08 mit „Lint-Profil“ oder `SPEC-049`; auch die erste („Harness-Werkzeuge: Lint-Profil mit Linter, Schwellen, …“) gehört dazu.
-3. *Vertrag nennt eine Kennung des Produkts oder einen Pfad.* Der Text von `SPEC-049` nennt keinen Pfad der Spezifikation; ein Befund beim Vergleich ist eine Randform, die der Implementer zurückgibt.
-4. *Plan `slice-harness-lint-warten-ohne-frist`.* Er schreibt einen neuen Punkt in `SPEC-049`; Ortsangabe in Kopf, §1, §3, §6 ist der neue Pfad, sonst nichts (Bindung nach `AGENTS.md` §3.13: der Nehmer nennt den Ort mit der Kennung dieses Gebers).
+**Randformen** (`AGENTS.md` §3.12): Es gelten die Entscheidungen 1 bis 11 aus §6 von `slice-harness-vertraege-umzug-ordner` (Dateiname, Überschrift, Text mit Ortsangabe, Einleitung, Regel der Historie-Zeilen, Reihe, Rang, Stop-Hook, Zeitdokumente, Skript-Kommentare, Stand von `commit-struktur-id`). Zusätzlich für diesen Vertrag, **entschieden vom Architect am 2026-10-13**, Ort: dieser Plan:
+
+1. *Dateiname.* `SPEC-049-lint-profil.md`, bestätigt.
+2. *Neun Zeilen Historie.* Genau die Zeilen 3514 bis 3522 am Stand `231089e` (2026-10-06 bis 2026-10-08), die erste („Harness-Werkzeuge: Lint-Profil mit Linter, Schwellen, …“) eingeschlossen. Sie stehen im `README.md` nach der Regel der Einsortierung aus Randform 5 des Ordner-Slice (Datum aufsteigend; am selben Tag die Zeile „Abschnitt angelegt“ zuerst, die übrigen in der Reihenfolge der Spezifikation): die fünf Lint-Zeilen vom 2026-10-06 folgen also auf „Abschnitt angelegt“.
+3. *Vertrag nennt eine Kennung des Produkts oder einen Pfad.* Entschieden: Der Text von `SPEC-049` nennt keinen Pfad der Spezifikation und kein `harness/` (Zeilen 3012 bis 3164 gelesen); ein Befund beim Vergleich ist eine Randform, die der Implementer zurückgibt.
+4. *Plan `slice-harness-lint-warten-ohne-frist`.* Ortsangabe des Vertrags (Kopf, §1, §3, §6) ist `harness/vertraege/SPEC-049-lint-profil.md`, und die Historie des Vertrags steht in `harness/vertraege/README.md`; die Nennung `spezifikation.md` §12 im Kopf bleibt für die Historie der Spezifikation (die Zeile zu `SPEC-038`) und zieht mit `slice-harness-vertraege-umzug-gate-kette` auf §11 (Nummer der Historie nach dem Wegfall von §11). Sonst nichts (Bindung nach `AGENTS.md` §3.13: der Nehmer nennt den Ort mit der Kennung dieses Gebers).
+5. *Kommentare.* `harness/mk/lint.mk` nennt `SPEC-049` ohne Pfad (Zeilen 5 und 17) und bleibt unverändert; der Pfad steht in `.golangci.yml` (Zeile 2), `tools/harness/lint.sh` (Zeile 5) und `tools/harness/lint-gegenprobe.sh` (Zeile 4). Der Kommentar in `.golangci.yml` bleibt **eine** Zeile, damit die Zeilen der Datei, die `make lint` und die Gegenprobe nennen, sich nicht verschieben; dass die Antwort der Gegenprobe gleich bleibt, belegt der Gate-Lauf.
+6. *Weitere Pläne mit Link.* Neben `slice-tests-ueberlebende-mutanten` und `-driving` (Link auf `SPEC-049` Punkt 7) zählt der `grep` aus Liefer-Punkt 3 jede weitere Datei; was er findet und nicht in §3 steht, wird im selben Commit nachgezogen und in §7 genannt.
 
 ## 7. Closure-Notiz
 
