@@ -1,7 +1,7 @@
 # Review slice-v1-abschluss-tls-client
 
 **Rolle:** Reviewer. **Datum:** 2026-10-13.
-**Gegenstand:** Diff `4223e5e..464ca8a` (Move-Commit bis HEAD, sieben Commits) gegen den Plan `docs/plan/planning/in-progress/slice-v1-abschluss-tls-client.md`, [ADR-0018](../plan/adr/0018-tls-zum-client.md), [LH-FA-23](../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client), `LH-FA-23.a`, `LH-FA-17.a` und die Randformen der Spezifikation, `AGENTS.md` §3.2, §3.6, §3.7, §3.9 bis §3.14.
+**Gegenstand:** Diff `4223e5e..464ca8a` (Move-Commit bis HEAD, sieben Commits) gegen den Plan `docs/plan/planning/done/slice-v1-abschluss-tls-client.md`, [ADR-0018](../plan/adr/0018-tls-zum-client.md), [LH-FA-23](../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client), `LH-FA-23.a`, `LH-FA-17.a` und die Randformen der Spezifikation, `AGENTS.md` §3.2, §3.6, §3.7, §3.9 bis §3.14.
 **Summary:** 0 HIGH · 3 MEDIUM · 2 LOW · 6 INFO.
 
 ## Findings
@@ -28,7 +28,7 @@
 
 - `kategorie`: MEDIUM
 - `quelle`: `AGENTS.md` §3.10, Plan §6 *Geheimnis* · `LH-RB-01`
-- `pfad`: `docs/plan/planning/in-progress/slice-v1-abschluss-tls-client.md` · "der Schlüssel erscheint in keiner Log-Zeile (auch `debug`)"
+- `pfad`: `docs/plan/planning/done/slice-v1-abschluss-tls-client.md` · "der Schlüssel erscheint in keiner Log-Zeile (auch `debug`)"
 - `befund`: Die Zusage nennt jede Log-Zeile, auch `debug`. Kein Test fährt `record` oder `replay` mit `--log-level=debug` und TLS und sucht den Schlüssel in der Ausgabe; die Logger der PGWire-Tests laufen auf Stufe `INFO` (`slog.NewTextHandler(log, nil)`), und die Warnung prüft nur auf `BEGIN`. Die Belege in §7 führen für diese Zusage keine Zeile (nur "keine Textform"). Szenario: Eine spätere Debug-Zeile im Start oder im Handshake, die Optionen oder Konfiguration ausgibt, bricht die Zusage, und nichts wird rot. Heute leckt der Code nicht (Text-Handler, `Format` des Typs `Schluessel`).
 - `verifizierbar`: ja (Test mit Stufe `debug` über `bootstrap.Run`)
 - `klasse`: Sicherheitszusage ohne Test auf der strengsten Stufe
@@ -53,7 +53,7 @@
 
 ### F-6 INFO
 
-- `quelle`: `AGENTS.md` §3.9, §3.14 · `pfad`: `docs/plan/planning/in-progress/slice-v1-abschluss-tls-client.md` · "vor den Commits 2094 Zeilen"
+- `quelle`: `AGENTS.md` §3.9, §3.14 · `pfad`: `docs/plan/planning/done/slice-v1-abschluss-tls-client.md` · "vor den Commits 2094 Zeilen"
 - `befund`: §7 nennt die Größe 2094. Die Metrik des Plans (`git diff --numstat 4223e5e..HEAD -- internal test docs/user`) misst am letzten Commit 2186 (2094 Einfügungen, 92 Löschungen), mit den Pfaden des Plans ohne `spec` und Plan. §7 nennt keinen Stand nach der Runde der Rückgabe. Keine Aktion für die Marke (2300), aber die Zahl im Plan folgt dem Stand nicht.
 - `klasse`: Zahl im Plan nach Messung nicht nachgezogen
 
@@ -112,4 +112,4 @@
 - `spec/spezifikation.md`: ohne Befund (kein Artefakt unterhalb oder außerhalb genannt).
 - `docs/user/abdeckung-*.md`: ohne Befund (erzeugt, `make abdeckung-check` in der Kette).
 - `.a-check.yml`, `.golangci.yml`, `Makefile`: unverändert, ohne Befund.
-- `docs/plan/planning/in-progress/slice-v1-abschluss-tls-client.md`: F-3 (Quelle), F-6, F-7.
+- `docs/plan/planning/done/slice-v1-abschluss-tls-client.md`: F-3 (Quelle), F-6, F-7.
