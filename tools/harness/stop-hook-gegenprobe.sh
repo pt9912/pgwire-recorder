@@ -8,13 +8,18 @@
 # an der Kopie von Hook oder Skript) müssen die benannten Fälle rot werden, die als grün
 # genannten Fälle grün bleiben.
 #
-# Fälle: Punkt 1 (Liste nur nach grünem `make gates`, Hash daneben), 10 (Hash wechselt genau mit dem Arbeitsbaum), 11 (Form, Pfade mit Zeilenumbruch,
-# Leerzeichen innen, am Anfang und am Ende, Tabulator, Backslash und Nicht-UTF-8), 14 (Inhalt, Link-Ziel, Umbenennung, gelöschte und neue Datei), 16 (Identität gibt
-# frei), 17 (Merge-Konflikt vor der Identität), 18 (untracked Datei), 19 (kein Stand, auch bei
-# sauberem Baum), 20 (nicht lesbarer Vergleich, Abbruch, beschädigte Liste, Schleifenschutz vor jeder
-# Prüfung, die zu `block` führt),
+# Fälle: Punkt 1 (Liste nur nach grünem `make gates`, Hash daneben), 9 (Freigabe bei inerten Pfaden und grünem Stand der
+# schnellen Kette; Reihenfolge der Prüfungen; Pfade außerhalb der Positivliste), 10 (Hash wechselt genau mit dem Arbeitsbaum;
+# Stand der schnellen Kette fehlt, ist leer, nicht lesbar oder fremd; das Hash-Skript fehlt, scheitert oder liefert nichts),
+# 11 (Form, Pfade mit Zeilenumbruch,
+# Leerzeichen innen, am Anfang und am Ende, Tabulator, Backslash und Nicht-UTF-8), 12 und 13 (Positivliste je Eintrag in jeder
+# Tiefe, Grenze je Eintrag, Groß- und Kleinschreibung, unzulässige Pfade, Art X, Hook und Spezifikation nicht inert),
+# 14 (Inhalt, Link-Ziel, Umbenennung, gelöschte und neue Datei), 15 (Symlink: Ziel, Art, Spiegelregel je Zieltyp),
+# 16 (Identität gibt frei, auch ohne passenden Stand der schnellen Kette), 17 (Merge-Konflikt vor der Identität),
+# 18 (untracked Datei), 19 (kein Stand, auch bei sauberem Baum), 20 (nicht lesbarer Vergleich, Abbruch, beschädigte Liste,
+# Schleifenschutz vor jeder Prüfung, die zu `block` führt),
 # 21 (Make-Flags beim Schreiben des Nachweises: -i entfernt ihn, -n, -q, -t lassen ihn stehen),
-# 22 (Aufrufarten: Arbeitsverzeichnis im Unterverzeichnis, leere Umgebung).
+# 22 (Aufrufarten: Arbeitsverzeichnis im Unterverzeichnis, leere Umgebung, auch bei der Freigabe).
 #
 # GRENZE der Gegenprobe:
 # - Der Schleifenschutz (`stop_hook_active: true`) antwortet `approve` auch bei Konflikt, fehlendem
@@ -32,6 +37,10 @@
 # - Als root bleibt eine Datei mit Rechten 000 lesbar; dann sind p20-stand-unlesbar und sein
 #   Mutant m-unlesbar-als-unveraendert nicht herstellbar und werden beide mit einer Meldung
 #   auf stderr übersprungen, ohne dass die Gegenprobe deshalb rot endet.
+# - Drei Mutanten bleiben grün und werden als grün geprüft: `[ -f "$stand" ] || freigabe` (ohne Stand bricht die
+#   Freigabe beim Lesen ab, `block`), die Streichung der Prüfung auf absolute Pfade (die Positivliste lehnt sie am
+#   Anfang des Pfades ab) und `|| true` am Hash-Skript bei fehlendem Skript (die leere Ausgabe wird abgelehnt).
+# - Die Seite des Arbeitsbaums hat für unzulässige Pfade keinen herstellbaren Fall (`git ls-files` liefert sie nicht).
 # - Sortierung und Einmaligkeit der Liste haben keinen eigenen Fall (SPEC-052 Punkt 11,
 #   akzeptiertes Negativ); gleichzeitige Läufe sind nicht zugesagt (Punkt 8, ohne Fall).
 #
@@ -106,7 +115,16 @@ L_STANDFEHLT='[ -f "$stand" ] || voll "No recorded successful make gates run (fi
 L_ERZEUGEN='dateiliste_erzeugen > "$aktuell"'
 L_TRAP='trap sicherung EXIT'
 L_LOOP='if [[ "$input" =~ \"stop_hook_active\"[[:space:]]*:[[:space:]]*true ]]; then'
-L_SCHLUSS='voll "The working tree differs from the last recorded gates run (commits without a gates run count too)."'
+L_SCHLUSS='freigabe'
+L_HASH='  hash="$(bash tools/harness/working-tree-hash.sh)"'
+L_GESPEICHERT='  gespeichert="$(cat -- .harness/state/gates-schnell-passed.diffsha 2> /dev/null || :)"'
+L_SCHNELL_CMP='  [ "$hash" = "$gespeichert" ] || voll "The fast gates chain has no passed run for this working tree."'
+L_HASH_LEER='  [ -n "$hash" ] || voll "The working tree hash is empty."'
+L_LINK='      [ "$art" != L ] || link_inert "$p" "${WERT["$seite:$p"]}" || voll "A changed symlink is not inert."'
+L_ARTX='      [ "$art" != X ] || voll "A changed entry of type X is never inert."'
+L_SEITEN='    for seite in s a; do'
+L_SPIEGEL='  spiegel'
+L_README='    README.md) return 0 ;;'
 
 # Vergleichszeilen: die Felder beider Listen je Zeile (tr), zu Einträgen oder Teilen davon (awk).
 IFS= read -r -d '' TPL <<'EOT' || true
@@ -122,6 +140,10 @@ TPL_MENGE="${TPL_MENGE%$'\n'}"
 menge() { local t="${TPL_MENGE//@OPT@/$1}"; t="${t//@E@/$EINTRAG}"; printf '%s' "${t//@F@/${2:-}}"; }
 
 # --- Temp-Repo und Läufer ------------------------------------------------------------
+# Dateien des Temp-Repos auf der Positivliste und daneben (Pfade der Fälle der Punkte 9 bis 15).
+DATEIEN_FIXTURE="docs/plan/planning/p.md docs/reviews/r.md docs/user/u.md docs/user/abdeckung-e2e.md
+  docs/user/benutzerhandbuch.md README.md harness/README.md internal/x.go .golangci.yml tools/x.sh
+  Dockerfile go.mod .dockerignore .d-check.yml spec/spezifikation.md"
 # fixture <name> — legt das Temp-Repo an (Makefile, Fragment, Skripte, Hook) und setzt w.
 fixture() {
   mname="$1"
@@ -140,6 +162,11 @@ fixture() {
   printf 'eins\n' > "$w/a.txt"
   printf 'zwei\n' > "$w/dir/b.txt"
   ln -s a.txt "$w/link"
+  for d in $DATEIEN_FIXTURE; do
+    mkdir -p "$(dirname "$w/$d")"
+    printf 'inhalt\n' > "$w/$d"
+  done
+  ln -s u.md "$w/docs/user/ln"
   git -C "$w" init -q -b main
   git -C "$w" add -A
   git -C "$w" commit -q -m basis
@@ -214,6 +241,23 @@ FAELLE=(
   p1-liste-bei-gruen p1-liste-nicht-bei-rot p1-hash-neben-liste
   p21-i-rot p21-i-gruen p21-i-env p21-i-ki p21-i-lang p21-i-j p21-n p21-q p21-t p21-ni
   p22-unterverzeichnis p22-leere-umgebung
+  p14-geloescht-index-nicht-inert
+  p9-freigabe p9-konflikt p9-stand-fehlt p9-stand-beschaedigt p9-nicht-inert-internal
+  p9-nicht-inert-makefile p9-nicht-inert-harness-mk p9-nicht-inert-golangci p9-nicht-inert-tools
+  p9-nicht-inert-dockerfile p9-nicht-inert-go-mod p9-nicht-inert-dockerignore
+  p9-nicht-inert-d-check p10-fehlt p10-fremd p10-leer p10-unlesbar p10-skript-fehlt
+  p10-skript-scheitert p10-skript-leer p10-skript-fehlt-schleifenschutz p16-schnell-leer
+  p16-schnell-fremd p12-planning-tief p12-reviews-tief p12-user-tief p12-readme p13-docs-user
+  p12-grenze-planning-x p12-grenze-reviews-alt p12-grenze-users p12-grenze-datei-reviews
+  p12-grenze-datei-user p12-grenze-readme-bak p12-case-planning p12-case-readme p12-harness-readme
+  p12-selbst-hook p12-selbst-dateiliste p12-selbst-hash p12-selbst-spec p12-unzulaessig-punktpunkt
+  p12-unzulaessig-punkt p12-unzulaessig-leer p12-unzulaessig-absolut p14-geloescht-inert
+  p14-geloescht-nicht-inert p14-umbenennung-inert p14-umbenennung-nach-inert
+  p14-umbenennung-von-inert p14-neu-nicht-inert p18-untracked-nicht-inert p12-art-x p15-link-inert
+  p15-ziel-aussen p15-ziel-ueber-wurzel p15-ziel-absolut p15-ziel-absolut-aussen
+  p15-ziel-ausserhalb-liste p15-ziel-verzeichnis p15-art-datei-zu-link p15-art-link-zu-datei
+  p15-spiegel-liste p15-spiegel-verzeichnis p15-spiegel-vorfahr p15-spiegel-wurzel
+  p15-spiegel-absolut p22-freigabe-unterverzeichnis p22-freigabe-leere-umgebung
 )
 
 f_p16_identisch() { kopie p16-identisch; stand; hook; ist p16-identisch approve; }
@@ -514,6 +558,183 @@ f_p22_leere_umgebung() {
   [ -z "$r" ] || echo p22-leere-umgebung
 }
 
+# --- Positivliste und Stand der schnellen Kette (Punkte 9, 10, 12 bis 15, 18, 22) -----------
+# aendere <datei…> — hängt der Datei in c eine Kommentarzeile an (legt sie bei Bedarf an).
+aendere() { local d; for d; do mkdir -p "$(dirname "$c/$d")"; echo '# x' >> "$c/$d"; done; }
+# schnell — schreibt den Stand der schnellen Kette in c: den Hash des Arbeitsbaums, wie die schnelle Kette ihn schreibt.
+schnell() { mkdir -p "$c/.harness/state"; (cd "$c" && bash "$wurzel/$HASH") > "$c/.harness/state/gates-schnell-passed.diffsha" || :; }
+# pfad_fall <fall> <erwartet> <datei…> — Stand des vollen Laufs, dann diese Dateien geändert, Stand der schnellen Kette grün.
+pfad_fall() { local f="$1" e="$2"; shift 2; kopie "$f"; stand; aendere "$@"; schnell; hook; ist "$f" "$e"; }
+# nach_stand <fall> <erwartet> <befehl…> — Stand des vollen Laufs, dann der Befehl (er liest c selbst), Stand der schnellen Kette grün.
+nach_stand() { local f="$1" e="$2"; kopie "$f"; stand; shift 2; "$@"; schnell; hook; ist "$f" "$e"; }
+
+f_p9_freigabe() { pfad_fall p9-freigabe approve docs/user/u.md; }
+f_p9_konflikt() {
+  kopie p9-konflikt
+  merge_konflikt || { echo p9-konflikt; return; }
+  stand; aendere docs/user/u.md; schnell; hook; ist p9-konflikt block
+}
+f_p9_stand_fehlt() { kopie p9-stand-fehlt; aendere docs/user/u.md; schnell; hook; ist p9-stand-fehlt block; }
+f_p9_stand_beschaedigt() {
+  local felder i
+  kopie p9-stand-beschaedigt; stand
+  mapfile -d '' -t felder < "$c/.harness/state/gates-passed.dateiliste"
+  for ((i = 2; i < ${#felder[@]}; i += 3)); do
+    [ "${felder[i]}" != docs/user/u.md ] || felder[i - 1]=abc
+  done
+  printf '%s\0' "${felder[@]}" > "$c/.harness/state/gates-passed.dateiliste"
+  schnell; hook; ist p9-stand-beschaedigt block
+}
+f_p9_nicht_inert_internal() { pfad_fall p9-nicht-inert-internal block internal/x.go; }
+f_p9_nicht_inert_makefile() { pfad_fall p9-nicht-inert-makefile block Makefile; }
+f_p9_nicht_inert_harness_mk() { pfad_fall p9-nicht-inert-harness-mk block harness/mk/fake.mk; }
+f_p9_nicht_inert_golangci() { pfad_fall p9-nicht-inert-golangci block .golangci.yml; }
+f_p9_nicht_inert_tools() { pfad_fall p9-nicht-inert-tools block tools/x.sh; }
+f_p9_nicht_inert_dockerfile() { pfad_fall p9-nicht-inert-dockerfile block Dockerfile; }
+f_p9_nicht_inert_go_mod() { pfad_fall p9-nicht-inert-go-mod block go.mod; }
+f_p9_nicht_inert_dockerignore() { pfad_fall p9-nicht-inert-dockerignore block .dockerignore; }
+f_p9_nicht_inert_d_check() { pfad_fall p9-nicht-inert-d-check block .d-check.yml; }
+
+f_p10_fehlt() { kopie p10-fehlt; stand; aendere docs/user/u.md; hook; ist p10-fehlt block; }
+f_p10_fremd() { kopie p10-fremd; stand; schnell; aendere docs/user/u.md; hook; ist p10-fremd block; }
+f_p10_leer() {
+  kopie p10-leer; stand; aendere docs/user/u.md
+  mkdir -p "$c/.harness/state"; : > "$c/.harness/state/gates-schnell-passed.diffsha"
+  hook; ist p10-leer block
+}
+f_p10_unlesbar() {
+  if ! unlesbar_geht; then
+    echo "stop-hook-gegenprobe: p10-unlesbar übersprungen (Dateien mit Rechten 000 sind lesbar)" >&2
+    return
+  fi
+  kopie p10-unlesbar; stand; aendere docs/user/u.md; schnell
+  chmod 000 "$c/.harness/state/gates-schnell-passed.diffsha"
+  hook; ist p10-unlesbar block
+}
+# Das Hash-Skript der Kopie ist vor dem Stand des vollen Laufs geändert (kein Unterschied zu ihm); den
+# Stand der schnellen Kette schreibt das unveränderte Skript des Arbeitsbaums.
+f_p10_skript_fehlt() {
+  kopie p10-skript-fehlt; rm -f "${c:?}/${HASH:?}"; stand; aendere docs/user/u.md; schnell
+  hook; ist p10-skript-fehlt block
+}
+f_p10_skript_scheitert() {
+  kopie p10-skript-scheitert; printf 'exit 1\n' >> "$c/$HASH"; stand; aendere docs/user/u.md; schnell
+  hook; ist p10-skript-scheitert block
+}
+f_p10_skript_leer() {
+  kopie p10-skript-leer; printf 'exit 0\n' > "$c/$HASH"; stand; aendere docs/user/u.md
+  hook; ist p10-skript-leer block
+}
+f_p10_skript_fehlt_schleifenschutz() {
+  kopie p10-skript-fehlt-schleifenschutz; rm -f "${c:?}/${HASH:?}"; stand; aendere docs/user/u.md; schnell
+  hook '{"stop_hook_active": true}'; ist p10-skript-fehlt-schleifenschutz approve
+}
+
+# Identität (Punkt 16): ein leerer Diff gibt auch frei, wenn der Stand der schnellen Kette leer oder fremd ist.
+f_p16_schnell_leer() {
+  kopie p16-schnell-leer; stand; mkdir -p "$c/.harness/state"; : > "$c/.harness/state/gates-schnell-passed.diffsha"
+  hook; ist p16-schnell-leer approve
+}
+f_p16_schnell_fremd() {
+  kopie p16-schnell-fremd; stand; mkdir -p "$c/.harness/state"
+  echo fremd > "$c/.harness/state/gates-schnell-passed.diffsha"
+  hook; ist p16-schnell-fremd approve
+}
+
+# Positivliste (Punkt 12): jeder Eintrag, in jeder Tiefe.
+f_p12_planning_tief() { pfad_fall p12-planning-tief approve docs/plan/planning/a/b/c.md; }
+f_p12_reviews_tief() { pfad_fall p12-reviews-tief approve docs/reviews/a/b/c.md; }
+f_p12_user_tief() { pfad_fall p12-user-tief approve docs/user/a/b/c.md; }
+f_p12_readme() { pfad_fall p12-readme approve README.md; }
+f_p13_docs_user() { pfad_fall p13-docs-user approve docs/user/benutzerhandbuch.md docs/user/abdeckung-e2e.md; }
+# Grenze der Einträge (Punkt 12): der Pfad daneben gibt nicht frei.
+f_p12_grenze_planning_x() { pfad_fall p12-grenze-planning-x block docs/plan/planning-x/n.md; }
+f_p12_grenze_reviews_alt() { pfad_fall p12-grenze-reviews-alt block docs/reviews-alt/n.md; }
+f_p12_grenze_users() { pfad_fall p12-grenze-users block docs/users/n.md; }
+f_p12_grenze_datei_reviews() { nach_stand p12-grenze-datei-reviews block ersetze_durch_datei docs/reviews; }
+f_p12_grenze_datei_user() { nach_stand p12-grenze-datei-user block ersetze_durch_datei docs/user; }
+# ersetze_durch_datei <pfad> — das Verzeichnis des Pfades in c wird eine Datei.
+ersetze_durch_datei() { rm -rf "${c:?}/${1:?}"; echo x > "$c/$1"; }
+f_p12_grenze_readme_bak() { pfad_fall p12-grenze-readme-bak block README.md.bak; }
+f_p12_case_planning() { pfad_fall p12-case-planning block docs/Plan/planning/n.md; }
+f_p12_case_readme() { pfad_fall p12-case-readme block readme.md; }
+f_p12_harness_readme() { pfad_fall p12-harness-readme block harness/README.md; }
+# Selbständerung (Punkt 12): Hook, Skripte der Liste und Spezifikation sind nicht inert.
+f_p12_selbst_hook() { pfad_fall p12-selbst-hook block "$HOOK"; }
+f_p12_selbst_dateiliste() { pfad_fall p12-selbst-dateiliste block "$LIB"; }
+f_p12_selbst_hash() { pfad_fall p12-selbst-hash block "$HASH"; }
+f_p12_selbst_spec() { pfad_fall p12-selbst-spec block spec/spezifikation.md; }
+
+# Pfad der Differenz unzulässig (Punkt 12): ein Eintrag im Stand, den der Arbeitsbaum nicht hat.
+unzulaessig() {
+  kopie "$1"; stand
+  printf 'F\0%s\0%s\0' "$H64" "$2" >> "$c/.harness/state/gates-passed.dateiliste"
+  schnell; hook; ist "$1" block
+}
+f_p12_unzulaessig_punktpunkt() { unzulaessig p12-unzulaessig-punktpunkt 'docs/plan/planning/../../internal/x.go'; }
+f_p12_unzulaessig_punkt() { unzulaessig p12-unzulaessig-punkt 'docs/plan/planning/./x.md'; }
+f_p12_unzulaessig_leer() { unzulaessig p12-unzulaessig-leer 'docs/plan/planning//x.md'; }
+f_p12_unzulaessig_absolut() { unzulaessig p12-unzulaessig-absolut '/docs/user/x.md'; }
+
+# Gelöscht, umbenannt, neu, untracked (Punkte 14, 18) und Art X (Punkt 12).
+loesche() { rm -f "${c:?}/$1"; }
+f_p14_geloescht_inert() { nach_stand p14-geloescht-inert approve loesche docs/user/u.md; }
+f_p14_geloescht_nicht_inert() { nach_stand p14-geloescht-nicht-inert block loesche internal/x.go; }
+git_rm() { git -C "$c" rm -q "$1"; }
+f_p14_geloescht_index_nicht_inert() { nach_stand p14-geloescht-index-nicht-inert block git_rm internal/x.go; }
+git_mv() { git -C "$c" mv "$1" "$2"; }
+f_p14_umbenennung_inert() { nach_stand p14-umbenennung-inert approve git_mv docs/user/u.md docs/user/v.md; }
+f_p14_umbenennung_nach_inert() { nach_stand p14-umbenennung-nach-inert block git_mv internal/x.go docs/user/x.go; }
+f_p14_umbenennung_von_inert() { nach_stand p14-umbenennung-von-inert block git_mv docs/user/u.md internal/u.go; }
+f_p14_neu_nicht_inert() { nach_stand p14-neu-nicht-inert block neu_getrackt internal/n.go; }
+neu_getrackt() { echo n > "$c/$1"; git -C "$c" add "$1"; }
+f_p18_untracked_nicht_inert() { nach_stand p18-untracked-nicht-inert block neu_untracked internal/n.go; }
+neu_untracked() { echo n > "$c/$1"; }
+f_p12_art_x() {
+  kopie p12-art-x
+  mkdir -p "$c/docs/user/sub"
+  git -C "$c" update-index --add --cacheinfo "160000,$(git -C "$c" rev-parse HEAD),docs/user/sub"
+  stand; rmdir "$c/docs/user/sub"; schnell; hook; ist p12-art-x block
+}
+
+# Symlink (Punkt 15): der Link docs/user/ln zeigt anders; Link-Pfad und Ziel müssen inert sein.
+ziel_neu() { ln -sfn "$1" "$c/docs/user/ln"; }
+f_p15_link_inert() { nach_stand p15-link-inert approve ziel_neu abdeckung-e2e.md; }
+f_p15_ziel_aussen() { nach_stand p15-ziel-aussen block ziel_neu ../../../docs/user/u.md; }
+f_p15_ziel_ueber_wurzel() { nach_stand p15-ziel-ueber-wurzel block ziel_neu ../../../../../docs/user/u.md; }
+f_p15_ziel_absolut() { kopie p15-ziel-absolut; stand; ziel_neu "$c/docs/user/u.md"; schnell; hook; ist p15-ziel-absolut block; }
+f_p15_ziel_absolut_aussen() { nach_stand p15-ziel-absolut-aussen block ziel_neu /docs/user/u.md; }
+f_p15_ziel_ausserhalb_liste() { nach_stand p15-ziel-ausserhalb-liste block ziel_neu ../../internal/x.go; }
+f_p15_ziel_verzeichnis() { nach_stand p15-ziel-verzeichnis block ziel_neu .; }
+datei_zu_link() { rm -f "${c:?}/docs/user/u.md"; ln -s ../../internal/x.go "$c/docs/user/u.md"; }
+f_p15_art_datei_zu_link() { nach_stand p15-art-datei-zu-link block datei_zu_link; }
+f_p15_art_link_zu_datei() {
+  kopie p15-art-link-zu-datei; ziel_neu ../../internal/x.go; stand
+  rm -f "${c:?}/docs/user/ln"; echo x > "$c/docs/user/ln"; schnell; hook; ist p15-art-link-zu-datei block
+}
+# Spiegelregel: ein Link außerhalb der Positivliste mit Ziel darin macht die Änderung einer inerten Datei nicht inert.
+spiegel_fall() {
+  local ziel="$2"
+  kopie "$1"; [ "$ziel" != ABS ] || ziel="$c/docs/user"
+  ln -s "$ziel" "$c/$3"; stand
+  aendere docs/plan/planning/p.md; schnell; hook; ist "$1" block
+}
+f_p15_spiegel_liste() { spiegel_fall p15-spiegel-liste docs/user/u.md sp1; }
+f_p15_spiegel_verzeichnis() { spiegel_fall p15-spiegel-verzeichnis docs/user sp2; }
+f_p15_spiegel_vorfahr() { spiegel_fall p15-spiegel-vorfahr docs sp3; }
+f_p15_spiegel_wurzel() { spiegel_fall p15-spiegel-wurzel .. dir/up; }
+f_p15_spiegel_absolut() { spiegel_fall p15-spiegel-absolut ABS sp5; }
+
+# Aufrufarten bei der Freigabe (Punkt 22).
+f_p22_freigabe_unterverzeichnis() {
+  kopie p22-freigabe-unterverzeichnis; stand; aendere docs/user/u.md; schnell; cwd="$c/dir"
+  hook; ist p22-freigabe-unterverzeichnis approve
+}
+f_p22_freigabe_leere_umgebung() {
+  kopie p22-freigabe-leere-umgebung; stand; aendere docs/user/u.md; schnell; leer=1
+  hook; ist p22-freigabe-leere-umgebung approve
+}
+
 # fall <name> — führt den Fall aus; Ausgabe: sein Name, wenn er rot ist.
 fall() { "f_${1//-/_}"; }
 
@@ -728,6 +949,165 @@ ersetze $HOOK 'wurzel="$(git rev-parse --show-toplevel)"' 'wurzel="$(pwd)"'; rot
 fixture m-22-home
 ersetze $HOOK 'input="$(cat || true)"' ': "${HOME:?}"'$'\n''input="$(cat || true)"'; rot p22-leere-umgebung p22-unterverzeichnis
 
+# --- Punkte 9, 10, 12 bis 15, 18, 22: Positivliste und Stand der schnellen Kette -----------------
+UNL=""
+if unlesbar_geht; then UNL=p10-unlesbar; fi
+
+# Reihenfolge (Punkt 9): die Freigabe läuft vor der Prüfung; der Fall des Schritts allein wird rot.
+# vor <zeile> — die Freigabe (Positivliste, Stand der schnellen Kette) steht vor dieser Zeile des Hooks.
+vor() { ersetze $HOOK "$1" 'stand="$DATEILISTE_STAND"; aktuell="$(mktemp)"; dateiliste_erzeugen > "$aktuell"; freigabe'$'\n'"$1"; }
+fixture m-pfad-vor-konflikt
+vor "$L_KONFLIKT"; rot p9-konflikt "p9-stand-fehlt"
+fixture m-pfad-vor-stand-fehlt
+ersetze $HOOK "$L_STANDFEHLT" '[ -f "$stand" ] || { aktuell="$(mktemp)"; dateiliste_erzeugen > "$aktuell"; freigabe; }'
+rot "" "p9-konflikt p9-stand-fehlt p9-stand-beschaedigt"
+fixture m-pfad-vor-pruefung
+vor 'dateiliste_pruefen "$stand" || voll "The recorded file list is unreadable or damaged."'
+rot p9-stand-beschaedigt "p9-konflikt p9-stand-fehlt"
+
+# Stand der schnellen Kette (Punkt 10).
+fixture m-schnell-nicht-geprueft
+ersetze $HOOK "$L_SCHNELL_CMP" ''; rot "p10-fehlt p10-fremd p10-leer $UNL"
+fixture m-schnell-nur-vorhanden
+ersetze $HOOK "$L_SCHNELL_CMP" '  [ -n "$gespeichert" ] || voll "x"'; rot p10-fremd "p10-fehlt p10-leer"
+fixture m-schnell-leer-gilt
+ersetze $HOOK "$L_GESPEICHERT" "$L_GESPEICHERT"$'\n''  [ ! -e .harness/state/gates-schnell-passed.diffsha ] || [ -s .harness/state/gates-schnell-passed.diffsha ] || gespeichert="$hash"'
+rot p10-leer "p10-fehlt p10-fremd"
+fixture m-schnell-unlesbar-gilt
+ersetze $HOOK "$L_GESPEICHERT" '  gespeichert="$(cat -- .harness/state/gates-schnell-passed.diffsha 2> /dev/null || printf "%s" "$hash")"'
+rot "p10-fehlt $UNL" "p10-leer p10-fremd"
+fixture m-skript-ueberlesen
+ersetze $HOOK "$L_HASH" "$L_HASH || true"; rot p10-skript-scheitert "p10-skript-fehlt p10-skript-leer"
+fixture m-hash-leer-gilt
+ersetze $HOOK "$L_HASH_LEER" ''; rot p10-skript-leer "p10-skript-fehlt p10-skript-scheitert"
+fixture m-schutz-nach-hash
+schutz_nach "$L_HASH"; rot p10-skript-fehlt-schleifenschutz
+fixture m-schnell-bei-identitaet
+ersetze $HOOK "$L_CMP" 'if cmp -s "$stand" "$aktuell"; then schnell_gruen'; rot "p16-identisch p16-schnell-leer p16-schnell-fremd"
+
+# Aufrufarten bei der Freigabe (Punkt 22).
+fixture m-22-hash-relativ
+ersetze $HOOK "$L_HASH" '  hash="$(bash "$OLDPWD/tools/harness/working-tree-hash.sh")"'
+rot p22-freigabe-unterverzeichnis "p22-freigabe-leere-umgebung p9-freigabe"
+fixture m-22-hash-home
+ersetze $HOOK "$L_HASH" '  hash="$(: "${HOME:?}"; bash tools/harness/working-tree-hash.sh)"'
+rot p22-freigabe-leere-umgebung "p22-freigabe-unterverzeichnis p9-freigabe"
+
+# Positivliste (Punkt 12): ein Pfad mehr auf der Liste wird rot; die Liste steht an einer Stelle.
+NA=0
+# aufnahme <muster> <rote Fälle> — das Muster steht zusätzlich in der Positivliste.
+aufnahme() {
+  NA=$((NA + 1))
+  fixture "m-aufnahme-$NA"
+  ersetze $HOOK "$L_README" "$L_README"$'\n'"    $1) return 0 ;;"
+  rot "$2"
+}
+aufnahme 'spec/*' p12-selbst-spec
+aufnahme '.claude/hooks/stop-require-gates.sh' p12-selbst-hook
+aufnahme 'tools/harness/dateiliste.sh' p12-selbst-dateiliste
+aufnahme 'tools/harness/working-tree-hash.sh' p12-selbst-hash
+aufnahme 'tools/*' "p9-nicht-inert-tools p12-selbst-dateiliste p12-selbst-hash"
+aufnahme 'internal/*' p9-nicht-inert-internal
+aufnahme 'Makefile' p9-nicht-inert-makefile
+aufnahme 'harness/mk/*' p9-nicht-inert-harness-mk
+aufnahme '.golangci.yml' p9-nicht-inert-golangci
+aufnahme 'Dockerfile' p9-nicht-inert-dockerfile
+aufnahme 'go.mod' p9-nicht-inert-go-mod
+aufnahme '.dockerignore' p9-nicht-inert-dockerignore
+aufnahme '.d-check.yml' p9-nicht-inert-d-check
+# Grenze je Eintrag (Punkt 12): der Pfad daneben gibt nicht frei.
+aufnahme 'docs/plan/planning-*' p12-grenze-planning-x
+aufnahme 'docs/reviews-*' p12-grenze-reviews-alt
+aufnahme 'docs/users/*' p12-grenze-users
+aufnahme 'docs/reviews' p12-grenze-datei-reviews
+aufnahme 'docs/user' p12-grenze-datei-user
+aufnahme 'README.md.bak' p12-grenze-readme-bak
+aufnahme 'harness/README.md' p12-harness-readme
+
+# Je Eintrag der Positivliste (Punkt 12): ohne ihn gibt sein Pfad nicht frei; nur die erste Ebene gibt nicht in jeder Tiefe frei.
+L_PLANNING='    docs/plan/planning/*) return 0 ;;'
+L_REVIEWS='    docs/reviews/*) return 0 ;;'
+L_USER='    docs/user/*) return 0 ;;'
+fixture m-ohne-planning
+ersetze $HOOK "$L_PLANNING" ''; rot p12-planning-tief
+fixture m-ohne-reviews
+ersetze $HOOK "$L_REVIEWS" ''; rot p12-reviews-tief
+fixture m-ohne-user
+ersetze $HOOK "$L_USER" ''; rot "p12-user-tief p13-docs-user p9-freigabe"
+fixture m-ohne-readme
+ersetze $HOOK "$L_README" ''; rot p12-readme
+fixture m-planning-erste-ebene
+ersetze $HOOK "$L_PLANNING" '    docs/plan/planning/*/*) ;;'$'\n'"$L_PLANNING"; rot p12-planning-tief p9-freigabe
+fixture m-reviews-erste-ebene
+ersetze $HOOK "$L_REVIEWS" '    docs/reviews/*/*) ;;'$'\n'"$L_REVIEWS"; rot p12-reviews-tief
+fixture m-user-erste-ebene
+ersetze $HOOK "$L_USER" '    docs/user/*/*) ;;'$'\n'"$L_USER"; rot p12-user-tief p9-freigabe
+fixture m-case-egal
+ersetze $HOOK 'export LC_ALL=C' 'export LC_ALL=C; shopt -s nocasematch'; rot "p12-case-planning p12-case-readme" p9-freigabe
+fixture m-readme-jede-tiefe
+ersetze $HOOK "$L_README" '    README.md | */README.md) return 0 ;;'; rot p12-harness-readme p12-readme
+
+# Unzulässiger Pfad in der Differenz (Punkt 12): je Form ohne ihre Prüfung.
+fixture m-ohne-punktpunkt
+ersetze $HOOK '  case "/$1/" in */../*) return 1 ;; esac' ''; rot p12-unzulaessig-punktpunkt "p12-unzulaessig-punkt p12-unzulaessig-leer p12-unzulaessig-absolut"
+fixture m-ohne-punkt
+ersetze $HOOK '  case "/$1/" in */./*) return 1 ;; esac' ''; rot p12-unzulaessig-punkt "p12-unzulaessig-punktpunkt p12-unzulaessig-leer p12-unzulaessig-absolut"
+fixture m-ohne-leeres-segment
+ersetze $HOOK '  case "$1" in "" | *//* | */) return 1 ;; esac' ''; rot p12-unzulaessig-leer "p12-unzulaessig-punktpunkt p12-unzulaessig-punkt p12-unzulaessig-absolut"
+fixture m-ohne-absolut
+ersetze $HOOK '  case "$1" in /*) return 1 ;; esac' ''; rot "" "p12-unzulaessig-absolut p12-unzulaessig-punktpunkt"
+fixture m-absolut-relativ
+ersetze $HOOK '  case "$1" in /*) return 1 ;; esac' ''
+sedmut $HOOK '/^inert() {/,/^}/ s/case "\$1" in/case "${1#\/}" in/'; rot p12-unzulaessig-absolut "p12-unzulaessig-punktpunkt p12-unzulaessig-punkt"
+
+# Gelöscht, umbenannt, neu, untracked, Art X (Punkte 12, 14, 18).
+fixture m-untracked-inert
+sedmut $HOOK '/^inert() {/a\  [ -n "$(git ls-files --error-unmatch -- "$1" 2> /dev/null)" ] || return 0'
+rot p18-untracked-nicht-inert p14-neu-nicht-inert
+fixture m-nur-arbeitsbaum
+sedmut $HOOK '/^diff_bilden() {/,/^}/ { /^  for p in \${SP/,/^  done/ d }'
+rot "p14-geloescht-index-nicht-inert p14-umbenennung-nach-inert" "p14-geloescht-nicht-inert p14-umbenennung-von-inert p14-neu-nicht-inert"
+fixture m-nur-stand
+sedmut $HOOK '/^diff_bilden() {/,/^}/ s/for p in \${AP\[@\]+"\${AP\[@\]}"}; do/for p in ${SP[@]+"${SP[@]}"}; do/'
+rot "p14-umbenennung-von-inert p14-neu-nicht-inert p18-untracked-nicht-inert" "p14-geloescht-nicht-inert p14-geloescht-index-nicht-inert p14-umbenennung-nach-inert"
+fixture m-art-x-wie-datei
+ersetze $HOOK "$L_ARTX" ''; rot p12-art-x
+
+# Symlink (Punkt 15): je Element nur dieses Element gelockert.
+fixture m-link-ohne-ziel
+ersetze $HOOK "$L_LINK" ''
+rot "p15-ziel-aussen p15-ziel-ueber-wurzel p15-ziel-absolut p15-ziel-absolut-aussen p15-ziel-ausserhalb-liste p15-ziel-verzeichnis p15-art-datei-zu-link p15-art-link-zu-datei" p15-link-inert
+fixture m-verzeichnis-inert
+ersetze $HOOK '  inert "$ZIEL"' '  inert "$ZIEL" || inert "$ZIEL/"'; rot p15-ziel-verzeichnis "p15-ziel-ausserhalb-liste p15-link-inert"
+fixture m-ueber-wurzel-bleibt-innen
+ersetze $HOOK "      ..) [ \"\${#STAPEL[@]}\" -gt 0 ] || return 1; unset 'STAPEL[\${#STAPEL[@]}-1]' ;;" "      ..) if [ \"\${#STAPEL[@]}\" -gt 0 ]; then unset 'STAPEL[\${#STAPEL[@]}-1]'; fi ;;"
+rot "p15-ziel-aussen p15-ziel-ueber-wurzel" "p15-ziel-ausserhalb-liste p15-link-inert"
+fixture m-absolut-wie-relativ
+ersetze $HOOK '      ABS=1' ''; rot p15-ziel-absolut "p15-ziel-absolut-aussen p15-ziel-ausserhalb-liste"
+fixture m-absolut-ohne-zweig
+ersetze $HOOK '    /*)' '    /nichtvorhanden*)'; rot "p15-ziel-absolut p15-ziel-absolut-aussen" "p15-ziel-ausserhalb-liste p15-link-inert"
+fixture m-art-nur-stand
+ersetze $HOOK "$L_SEITEN" '    for seite in s; do'; rot p15-art-datei-zu-link p15-art-link-zu-datei
+fixture m-art-nur-arbeitsbaum
+ersetze $HOOK "$L_SEITEN" '    for seite in a; do'; rot p15-art-link-zu-datei p15-art-datei-zu-link
+
+# Spiegelregel (Punkt 15): ganz entfernt, und je Zieltyp.
+SPIEGEL_ALLE="p15-spiegel-liste p15-spiegel-verzeichnis p15-spiegel-vorfahr p15-spiegel-wurzel p15-spiegel-absolut"
+fixture m-ohne-spiegel
+ersetze $HOOK "$L_SPIEGEL" ''; rot "$SPIEGEL_ALLE"
+fixture m-spiegel-ohne-liste
+ersetze $HOOK '  inert "$1" && return 0' ''; rot p15-spiegel-liste "p15-spiegel-verzeichnis p15-spiegel-vorfahr p15-spiegel-wurzel p15-spiegel-absolut"
+fixture m-spiegel-ohne-verzeichnis
+ersetze $HOOK '    docs/plan/planning | docs/reviews | docs/user) return 0 ;;' ''
+rot "p15-spiegel-verzeichnis p15-spiegel-absolut" "p15-spiegel-liste p15-spiegel-vorfahr p15-spiegel-wurzel"
+fixture m-spiegel-ohne-vorfahr
+ersetze $HOOK '    docs | docs/plan) return 0 ;;' ''; rot p15-spiegel-vorfahr "p15-spiegel-liste p15-spiegel-verzeichnis p15-spiegel-wurzel"
+fixture m-spiegel-ohne-wurzel
+ersetze $HOOK '    "") return 0 ;;' ''; rot p15-spiegel-wurzel "p15-spiegel-liste p15-spiegel-verzeichnis p15-spiegel-vorfahr"
+fixture m-spiegel-ohne-absolut
+sedmut $HOOK 's/^    \[ "\$LAGE" = innen \] || continue$/    [ "$LAGE" = innen ] \&\& [ "$ABS" -eq 0 ] || continue/'
+rot p15-spiegel-absolut "p15-spiegel-liste p15-spiegel-verzeichnis p15-spiegel-vorfahr p15-spiegel-wurzel"
+
 # --- Anschluss: das Gate hängt an GATE_CHECKS, sein Exit gilt -------------------------
 gate_variable() {
   { make -s --no-print-directory -C "$1" -pq help 2> /dev/null || true; } \
@@ -766,4 +1146,4 @@ sedmut harness/mk/stop-hook-gegenprobe.mk 's|^\t@bash tools/harness/stop-hook-ge
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "stop-hook-gegenprobe: gruen — ${#FAELLE[@]} Fälle der Punkte 1, 10, 11, 14, 16 bis 22 je Mutant rot, unveränderte Kopie grün, Anschluss an GATE_CHECKS"
+echo "stop-hook-gegenprobe: gruen — ${#FAELLE[@]} Fälle der Punkte 1, 9 bis 22 je Mutant rot, unveränderte Kopie grün, Anschluss an GATE_CHECKS"
