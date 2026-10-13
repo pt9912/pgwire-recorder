@@ -143,7 +143,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `spec/spezifikation.md` §11 und §12 | update | `SPEC-052` und Historie; **erster Commit des Slice, vor jedem Code** (`AGENTS.md` §3.12): der Implementer überträgt den Wortlaut aus §6, ohne zu entscheiden; der Reviewer prüft die Übereinstimmung mit §6 |
 | `harness/mk/` (neues Fragment) und `Makefile`, falls ein Aggregator nötig ist | neu / update | Ziel `gates-schnell`; die Menge ihrer Gates ist `GATE_CHECKS` ohne die Ausnahmeliste im Fragment (§6, Zugehörigkeit); Ziel-, Gegenprobe- und Stand-Name stehen fest (§1), Skriptnamen wählt der Implementer |
-| `tools/harness/` (neues Skript) | neu | schreibt den Stand der schnellen Kette bei grünem Lauf, in der Form von `SPEC-052`; berührt `record-gates.sh` und `working-tree-hash.sh` nicht (beide gehören `slice-harness-gate-kette-stop-hook-liste`) |
+| `tools/harness/` (neues Skript) | neu | schreibt den Stand der schnellen Kette bei grünem Lauf, in der Form von `SPEC-052`, und prüft vorher die Make-Flags in `MAKEFLAGS` (`SPEC-052` Punkt 6: `-n`, `-q`, `-t`, `-i`); berührt `record-gates.sh` und `working-tree-hash.sh` nicht (beide gehören `slice-harness-gate-kette-stop-hook-liste`) |
 | `tools/harness/` (neue Gegenprobe `gates-schnell-gegenprobe`) und ihr Fragment | neu | je Zusage ein Mutant in einem Temp-Baum, nach dem Vorbild von `tools/harness/kopf-check-gegenprobe.sh`; hängt an `GATE_CHECKS` |
 | `harness/README.md` §Sensors | update | Zeile der Kette und Zeile der Gegenprobe, Bindung [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) |
 | `harness/conventions.md` (Träger-Tabelle, Zeile `grundlagen-durchsetzungsschicht.md`) | update, falls nötig | nennt die neue Träger-Datei der Kette; die Hook-Seite der Zeile ziehen `slice-harness-gate-kette-stop-hook-liste` und `slice-harness-gate-kette-stop-hook-freigabe` nach |
@@ -280,8 +280,12 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 **Commits** (Basis `d075d3f`): `cb37a34` (`SPEC-052` und Historie, ohne Code), `f633694` (Fragment
 `harness/mk/gates-schnell.mk`, Skripte `tools/harness/gates-schnell.sh` und
 `tools/harness/gates-schnell-gegenprobe.sh`, zwei Gate-Zeilen in `harness/README.md`, Träger-Zeile in
-`harness/conventions.md`), dieser Beleg-Commit. **Größe:** 434 Zeilen eingefügt, 1 entfernt (`SPEC-052` 150,
-Gegenprobe 239, Fragment und Skript 42, Doku 3); unter der Rückführungsgrenze von 650.
+`harness/conventions.md`), `a203246` (Belege), `b5cb7b3` (Entscheidungen des Architect nach dem Review: `SPEC-052`, §6),
+`0e8fa93` (Nacharbeit: Make-Flags, Fälle der Gegenprobe, Kopf des Fragments, Gate-Zeile), dieser Beleg-Commit.
+**Größe** (`git diff --shortstat d075d3f HEAD` ohne `docs/`): 557 Zeilen eingefügt, 1 entfernt (`SPEC-052` 156, Gegenprobe 333,
+Fragment 23, Skript 42, Doku 3); das sind 123 mehr als die 434 des ersten Stands und mehr als die 40 bis 80 der Schätzung
+des Architect (475 bis 515); unter der Rückführungsgrenze von 650. Das Mehr liegt in der Gegenprobe (+94: ein Fall für das
+Ende des Laufs, die Make-Flags je mit und ohne Stand, zwölf Mutanten).
 
 **`SPEC-052`** ist die Übertragung der Tabelle aus §6, nummeriert: Teil 1 (Punkte 1 bis 8) trägt die Zeilen
 *Zugehörigkeit*, *Bezugsgröße* (Stand), *Roter Lauf nach einem grünen* und *Gleichzeitige Läufe*; Teil 2
@@ -314,6 +318,33 @@ Docker-Build an: Gegenprobe und Kette laufen auf dem Host und lesen die Dateien 
 | Die Gegenprobe endet bei Rot mit Exit ungleich 0 | `-@` vor dem Aufruf der Gegenprobe im Rezept | Kopie `ok`: `anschluss-exit-gegenprobe` |
 | Die Kette endet bei Rot mit Exit ungleich 0 | `-@` vor dem Aufruf von `gates-schnell.sh` im Rezept | Kopie `ok`: `anschluss-exit-schnell` (und `p6-rot`) |
 
+**Nacharbeit nach dem Review** (F-694, F-695; derselbe Weg: Mutation per `sed` auf `tools/harness/gates-schnell.sh`, danach
+`bash tools/harness/gates-schnell-gegenprobe.sh`, danach die Datei aus einer Sicherung zurück, `touch`; die Skripte laufen auf dem Host,
+der Mutant kommt ohne Docker-Build an). Die erste Zeile der Ausgabe ist der rote Fall der Kopie `ok`:
+
+| Zusage (`SPEC-052`) | Mutation (am Arbeitsbaum) | roter Fall |
+|---|---|---|
+| Punkt 5: der Hash gilt zum Ende des Laufs | Hash vor dem Aufruf von `make` gebildet (ein Gate der Kopie hängt eine Zeile an eine Datei im Baum) | `p5-ende` (nur dieser) |
+| Punkt 6: `-n` schreibt keinen Stand (ohne vorhandenen) | die Zeile für `n` gestrichen | `p6-n-schreibt` und `p6-nenv-schreibt` (Aufruf `-n` und `MAKEFLAGS=n` aus der Umgebung) |
+| Punkt 6: `-n` entfernt keinen vorhandenen Stand | das Entfernen unbedingt (`if true`) | `p6-n-entfernt`, `p6-nenv-entfernt`, `p6-q-entfernt`, `p6-t-entfernt` |
+| Punkt 6: `-n`, `-t` schreiben keinen Stand (trotz Lauf ohne Gate) | die Bedingung „trocken“ vor dem Schreiben gestrichen | `p6-n-schreibt`, `p6-nenv-schreibt`, `p6-t-schreibt` |
+| Punkt 6: `-q` entfernt keinen vorhandenen Stand | die Zeile für `q` gestrichen | `p6-q-entfernt` |
+| Punkt 6: `-t` schreibt keinen Stand | die Zeile für `t` gestrichen | `p6-t-schreibt` |
+| Punkt 6: `-i` schreibt keinen Stand | die Zeile für `i` gestrichen; die Bedingung „überlesen“ vor dem Schreiben gestrichen | `p6-i-entfernt`, `p6-i-schreibt` |
+| Punkt 6: bei `-i` entfällt ein älterer Stand | `-i` wie `-n` behandelt (Entfernen übersprungen) | `p6-i-entfernt` (nur dieser; rotes Gate und grüner Lauf bei vorhandenem Stand) |
+| Punkt 6: andere Flags (`-k`, `-j`, `-s`) ändern nichts | `k` wie `n` behandelt; ganze `MAKEFLAGS` statt des ersten Worts durchsucht (`--no-print-directory` enthält `n`) | `p6-andere`; bei der zweiten Mutation `p5-stand` und weitere |
+| Punkt 6: alle Flags | die Prüfung der Flags ganz gestrichen | `p6-n-schreibt`, `p6-nenv-schreibt`, `p6-q-entfernt`, `p6-t-schreibt`, `p6-i-entfernt`, `p6-i-schreibt` |
+| Punkt 7: die Kette löscht den vollen Nachweis nie | `rm -f` des Skripts nennt auch `gates-passed.diffsha` | `p7-nachweis` |
+
+Der Fall `-q` mit Stand hat keinen Mutanten, der nur „schreibt“ bricht (äquivalent): Ohne die Prüfung endet der innere
+`make -q` mit Exit 1, bevor das Skript schreibt; die Hälfte „schreibt keinen“ trägt dort `make` selbst, die Hälfte „entfernt
+keinen“ trägt `p6-q-entfernt`. Für die Zusage „auch aus der Umgebung“ gibt es einen Fall (`MAKEFLAGS=n`), aber keinen Mutanten,
+der nur ihn bricht: make reicht Aufruf-Flags und Umgebung gleich als Buchstaben im ersten Wort durch, das Skript kennt den
+Unterschied nicht (gemessen: `make -n` und `MAKEFLAGS=n make` liefern beide `n`; `-n -j2` liefert `n -j2`, `-j2` liefert ` -j2 …`).
+Die Zusagen „nur die schnelle Kette schreibt `gates-schnell-passed.diffsha`“ und „der volle Lauf berührt sie nicht“ stehen nicht
+mehr in `SPEC-052` (Entscheidung des Architect, §6 *Akzeptierte Negative der Kette*); die Gegenprobe fährt `make gates` nie, nur
+`make -n gates`, und ihr Kopf sagt es.
+
 Zusätzlich trägt die Gegenprobe je Zeile der Tabelle einen Mutanten in der Kopie (`m-…`), der die
 benannte Prüfung rot färben muss, bei `m-eintrag-ohne-gate` und `m-entfernen-erst-bei-rot` nur sie;
 sie sind der Grund, warum die Prüfung nicht aus Versehen leer läuft. Die unveränderte Kopie und der
@@ -326,24 +357,45 @@ Arbeitsbaum sind grün (4 s). Kein Mutant blieb grün.
 geänderten Zeile in `cmd/pgwire-recorder/main.go` (Kommentar, danach zurückgesetzt) 102 s, weil `test`,
 `lint`, `build` und `a-check` neu laufen; `make gates` braucht rund 270 s ([ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md), gemessen am 2026-10-12).
 Ein roter Lauf (ein Kommentar ohne Leerzeile am Ende derselben Datei) beendete die Kette mit Exit 2 und ließ
-keinen Stand zurück; den Grund des Rots habe ich nicht untersucht. Die Zeit ist keine Zusage der Spezifikation.
+keinen Stand zurück. Ursache (F-701, nachgefahren: `// probe` an `cmd/pgwire-recorder/main.go` angehängt, `make gates-schnell`,
+Datei zurückgesetzt): reproduzierbar, `make test` meldet in der Stufe `test` „nicht gofmt-formatiert: cmd/pgwire-recorder/main.go“
+(`gofmt -l` nicht leer); der Kommentar am Dateiende ohne Leerzeile davor ist nicht gofmt-konform. Das Rot kommt vom Gate `test`, nicht
+von der Kette, und der Beleg „kein Stand nach Rot“ trägt jetzt auch eine untersuchte Ursache. Die Zeit ist keine Zusage der Spezifikation.
+Nach der Nacharbeit: `make -n gates-schnell` und `MAKEFLAGS=n make gates-schnell` lassen den Stand unberührt (gefahren am Arbeitsbaum, Exit 0,
+kein Stand entstanden); `make gates-schnell` 7,8 s, Stand gleich der Ausgabe von `working-tree-hash.sh`.
+`make gates-schnell-gegenprobe` braucht jetzt rund 17 s (vorher 4 s), weil jede der rund vierzig Kopien nun rund 30 Läufe der Attrappen fährt.
+**F-702:** `make gates` fährt die Gegenprobe der Kette mit (Punkt 1 und 4 von `SPEC-052`, `GATE_CHECKS += gates-schnell-gegenprobe`); das ist keine
+Lockerung nach `AGENTS.md` §3.6 (ein Gate mehr, keines weniger), die Laufzeit steigt entsprechend (rund 17 s statt 4 s), kein Handlungsbedarf.
 
 **Auslegung, die ich dem Architect zur Bestätigung vorlege** (keine Randform; die Spezifikation und die
 Tabelle in §6 lassen je nur diese Lesart zu, §6 ist nicht geändert):
+
+Beide Auslegungen hat der Architect am 2026-10-13 bestätigt (§6, DoD Liefer-Punkt 3; Zeilen *Zugehörigkeit* und *Beleg*; Ausnahmeliste: sieben Einträge, Code, `harness/README.md`, `SPEC-052` Punkt 13 und Gegenprobe zählen gleich).
 
 1. `gates-schnell` hängt **nicht** an `GATE_CHECKS`. Die Zeile *Die Gegenprobe hängt an `GATE_CHECKS` …*
    in §6 und die Zusage *`make gates` ist unverändert* (Mutation „die Kette in seine Aufrufkette hängen“)
    lassen es nicht zu: `gates-schnell` in `GATE_CHECKS` hieße, `make gates` fährt die schnelle Kette ein
    zweites Mal, und `GATE_CHECKS` ohne die Ausnahmeliste enthielte das Ziel selbst. DoD Liefer-Punkt 3
    („hängt mit der Kette an `GATE_CHECKS`“) lese ich als: die Gegenprobe hängt an `GATE_CHECKS`.
-2. `gates-schnell-gegenprobe` steht in der Ausnahmeliste (sieben Einträge statt der sechs in der Zeile
-   *Beleg für `docs/user/` und `README.md`*): Punkt 4 von `SPEC-052` verlangt jedes Gate mit `-gegenprobe`
+2. `gates-schnell-gegenprobe` steht in der Ausnahmeliste (sieben Einträge): Punkt 4 von `SPEC-052` verlangt jedes Gate mit `-gegenprobe`
    im Namen in der Liste, sonst wäre die Gegenprobe der Kette bei ihrem eigenen Namen rot. Sie liest
    weder `docs/user/` noch `README.md` (Kopien tragen nur `Makefile`, Fragmente und Skripte), der Beleg
    gilt damit auch für sie.
 
 **Randformen:** keine zurückgegeben; Teil 2 der Spezifikation (Hook) ist durch den Eingangssatz bis zu
 `stop-hook-gegenprobe` nicht zugesagt, `make help` führt kein Ziel dieses Namens.
+
+**Nacharbeit, Klasse der Befunde** (Schritt 19, „als Klasse beheben“): F-694 war „ein Aufruf, in dem kein Gate wirklich lief, schreibt den Stand“; das Merkmal ist
+der Make-Flag, der das Rezept leerlaufen lässt oder Fehler überliest. Gefahren ist je Ausprägung ein Fall und eine Mutation (`n`, `q`, `t`, `i`; dazu `-k`, `-j`, `-s`
+als Flags, die nichts ändern); die Fälle `-n -i` und andere Kombinationen haben keinen Fall (siehe Rückgabe unten). F-695 war „Zusage ohne fangende Mutation“; behoben für
+Punkt 5 (Ende des Laufs) und Punkt 7 (löscht nie), die übrigen beiden Zusagen hat der Architect aus `SPEC-052` genommen. F-696: der Satz der Spezifikation nennt 1 bis 7,
+Kopf der Gegenprobe, Schlusszeile und Zeile in `harness/README.md` ebenso. F-698: der Kopf von `gates-schnell.mk` sagt, was die Gates brauchen, und dass die
+Gegenprobe Docker nicht ruft (kein Fall, `gates-schnell-gegenprobe.sh` ruft es nicht auf). F-699 und F-700: nach der Entscheidung des Architect Wortlaut `-gegenprobe`
+im Namen (`SPEC-052` Punkt 2 und 4) und Muster `*-gegenprobe` stehen jetzt gleich; der Überschuss in der Liste wird über `p2-schnell` und `p4-eintrag` gefangen.
+
+**Rückgabe an den Architect** (Randform, die §6 nicht nennt; der Code trägt die eine Reihenfolge, entschieden ist sie nicht): **`MAKEFLAGS` mit `-n` (oder `-q`, `-t`) und
+`-i` zugleich.** `SPEC-052` Punkt 6 sagt für `-n`, `-q`, `-t` „entfernt keinen“, für `-i` „ein älterer entfällt“. Bei `make -n -i` gilt beides. Der Code behandelt n, q, t
+vor `-i`: der Stand bleibt unberührt, es wird nichts geschrieben. Eine Entscheidung (und ein Fall) steht aus; bis dahin ist die Kombination nicht zugesagt.
 
 **Kommentare** (`AGENTS.md` §3.7, §3.11): neu geschrieben sind der Kopf von `gates-schnell.mk`, von
 `gates-schnell.sh` und von `gates-schnell-gegenprobe.sh`; jede Zusage darin hat eine Prüfung der Tabelle
