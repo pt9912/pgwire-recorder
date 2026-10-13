@@ -23,3 +23,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-gate-kette-s
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-gate-kette-stop-hook-liste` (F-706) — drei Command-Texte und eine Zeile von §3 nannten den alten Nachweis, obwohl der Plan das `grep` verlangte (Beleg `evidence/slice-harness-gate-kette-stop-hook-liste.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-gate-kette-stop-hook-freigabe` (F-715, F-718, V-342) — §3 nannte vier geänderte Dateien nicht, §6 und §7 nannten verschiedene Mutationen, der Kopf nannte die geänderten Spec-Punkte nicht (Beleg `evidence/slice-harness-gate-kette-stop-hook-freigabe.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-vertraege-umzug-gate-kette` (F-2) — §7 nannte 261 Zeilen und einen Vergleichsbefehl mit anderer Zeilenzahl als DoD und §3, die Datei trägt 262 (Beleg `evidence/slice-harness-vertraege-umzug-gate-kette.md`).

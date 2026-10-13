@@ -302,4 +302,13 @@ Hälften.
 
 Die Einträge über der Schwelle bekommen ihren Ausgang bei der Closure ihrer Welle, nicht hier.
 
+**Nachgezählt** mit der Sendung aus `slice-harness-vertraege-umzug-gate-kette` (Ort neuer
+Kennungen: `harness/vertraege/`, nächste freie Nummer 053; `AGENTS.md` §3.13): drei
+Liefer-Punkte (§2: Prüfung, Gegenprobe, Sensor-Datei, unverändert). Schichten ohne die bedingte
+Zeile von §3 (Bestands-Befund in `internal/hexagon/model/fehler.go` und `SPEC-034`): eine,
+Harness (Vertragsdatei, `tools/`, `harness/mk/`, `harness/sensors/`, `harness/README.md`). Mit
+der bedingten Zeile kämen Produkt-Code und Spezifikation dazu, also drei; das war vor der
+Sendung ebenso (die Vertragsdatei lag in der Spezifikation) und ist Sache der Entscheidung des
+Architects zu *Bestand* in §6, die Sendung ändert daran nichts.
+
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Spezifikation führt, der Code folgt ihr; `harness/conventions.md` deklariert `*` als Greenfield).

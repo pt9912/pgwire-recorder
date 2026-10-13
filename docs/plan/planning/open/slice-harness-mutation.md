@@ -312,4 +312,11 @@ Dateien unter `evidence/`). Treffer:
 Keiner der Einträge unter der Schwelle erreicht mit diesem Slice allein 3×; keine neue
 Lücke vor dem Code.
 
+**Nachgezählt** mit der Sendung aus `slice-harness-vertraege-umzug-gate-kette` (Ort neuer
+Kennungen: `harness/vertraege/`, nächste freie Nummer 053; `AGENTS.md` §3.13): drei
+Liefer-Punkte (§2: Gate, Gegenprobe, Doku, unverändert) und eine Schicht, Harness
+(Vertragsdatei, `Dockerfile`, `harness/mk/`, `tools/`, `harness/README.md`, `AGENTS.md`);
+die ADR ist Planung, keine Schicht. Die Vertragsdatei lag vorher in der Spezifikation; die
+Sendung senkt die Zahl der Schichten, sie erhöht keine.
+
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

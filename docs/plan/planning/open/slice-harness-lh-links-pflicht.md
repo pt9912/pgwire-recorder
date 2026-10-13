@@ -341,7 +341,13 @@ unter `evidence/`). Treffer:
   DoD-Punkt *Aussage über das Gate* entfällt, das Streichen des Satzes zu `LH-` im Block
   gehört zu Punkt 1; **zwei Liefer-Punkte** (Muster mit Gegenprobe, Bestand) und weiter
   **zwei Schichten** (Spezifikation; Harness: `.d-check.yml`, Commands, Links in
-  `harness/`).
+  `harness/`). Nachgezählt mit der Sendung aus `slice-harness-vertraege-umzug-gate-kette`
+  (Ort neuer Kennungen: `harness/vertraege/` statt `spezifikation.md §11`, Closure des Gebers
+  2026-10-13, Review F-3): weiter **zwei Liefer-Punkte** und **zwei Schichten**. Die neue Stelle
+  liegt in der Schicht Harness; die Schicht Spezifikation bleibt, weil die Links blanker
+  Kennungen in `spec/` mitziehen (§3, gescannte `.md` unter `spec/`). Die Etiketten „Vertrag“
+  (Zählung beim Schnitt) und „Spezifikation“ (jüngste Zählung) meinen dieselbe Zählung, die
+  Ortsänderung ändert die Zahl in keiner Lesart.
 
 Keiner der Einträge erreicht mit diesem Plan neu die Schwelle 3×.
 
