@@ -215,7 +215,8 @@ Jeder Mutant lief einzeln im Bind-Mount (`docker exec` im Image der Stufe `deps`
 | noch nicht gültiges zweites Zertifikat ändert den Start nicht | `NotBefore` des letzten Zertifikats geprüft | `TestTLSDateienGueltig/*/Kette_mit_noch_nicht_gültigem_zweiten_Zertifikat` |
 | Gerät (`/dev/null`) ist keine reguläre Datei | Zeichengeräte zugelassen | `TestTLSDateiKeineRegulaere`, `TestPlayUpstreamCAKeineRegulaere` |
 | Socket ist keine reguläre Datei | Sockets zugelassen | `TestTLSDateiKeineRegulaere` |
-| der Schlüssel erscheint in keiner Zeile, auch bei `--log-level=debug` | Schlüssel als Text in eine Debug-Zeile | `TestRunTLSLogOhneSchluessel`, `TestRunLogLevel` |
+| der Schlüssel erscheint in keiner Zeile von replay, auch bei `--log-level=debug` | Schlüssel als Text in eine Debug-Zeile nach dem Listen | `TestRunTLSLogOhneSchluessel/replay` (rot wegen des Schlüsselinhalts; `TestRunLogLevel` wird mit rot, wegen der Zusatzzeile, und belegt die Zusage nicht) |
+| der Schlüssel erscheint in keiner Zeile von record, auch bei `--log-level=debug` | Schlüssel als Text in eine Debug-Zeile am Anfang von `record`, nur bei gesetztem Schlüssel | `TestRunTLSLogOhneSchluessel/record` (rot wegen des Schlüsselinhalts; als einziger Test des Pakets) |
 | Zwangsende wartet nicht auf den Client | Schließen mit `close_notify` | `TestTLSZwangsende` |
 | Herunterfahren wirkt auf die verschlüsselte Session | `SetReadDeadline` ohne Wirkung | `TestTLSHerunterfahren`, `TestTLSZwangsende` |
 | Zwangsende erreicht die verschlüsselte Session | Session ohne angemeldetes Ziel | `TestTLSZwangsende` |
@@ -249,7 +250,7 @@ Jeder Mutant lief einzeln im Bind-Mount (`docker exec` im Image der Stufe `deps`
 
 - `make gates` (voll): grün, Exit 0, darin `make lint` ohne Befund (`0 issues`; ein erster Lauf fand vier Befunde in den neuen Dateien, behoben), `make test-integration` (`run-integration-tests: gruen`), `make a-check-negativ` (23 Fälle), `make abdeckung-check`, `make docs-check`, `make kopf-check`, `make baseline-verify`, die Gegenproben.
 - Engster Sensor je Änderung: `go vet -tags integration ./...` und `go test` je Paket im Bind-Mount-Container; `go test -count=6 -run TLS` im PGWire-Adapter ohne Ausfall (Flatterprobe der Zeitfälle).
-- Größe nach `AGENTS.md` §3.14 (`git diff --numstat 4223e5e..<letzter Commit> -- internal test docs/user`): 2334 Zeilen (Einfügungen plus Löschungen) nach der Nacharbeit zum Review, davor 2186 und 2094, einschließlich der Abdeckungstabellen unter `docs/user/`; unter der Marke 2500 (vom Planner gesetzt), über der Schätzung 1400 bis 1800.
+- Größe nach `AGENTS.md` §3.14 (`git diff --numstat 4223e5e..<letzter Commit> -- internal test docs/user`): 2351 Zeilen (Einfügungen plus Löschungen) nach der Nacharbeit zur Verifikation, davor 2334, 2186 und 2094, einschließlich der Abdeckungstabellen unter `docs/user/`; unter der Marke 2500 (vom Planner gesetzt), über der Schätzung 1400 bis 1800.
 
 Die Rückgaben des Implementers sind vom Architect in §6 und in der Spezifikation entschieden und hier nachgezogen.
 

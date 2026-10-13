@@ -112,6 +112,13 @@ func TestRunReplayTLS(t *testing.T) {
 // gescheiterten Handshake, nicht bei einem abgewiesenen Klartext-Client, und ein
 // Start mit nicht passendem Schlüssel nennt ihn nicht (LH-FA-23.a *Dateien*).
 func TestRunTLSLogOhneSchluessel(t *testing.T) {
+	for _, kommando := range []string{"replay", "record"} {
+		t.Run(kommando, func(t *testing.T) { runTLSLogOhneSchluessel(t, kommando) })
+	}
+}
+
+func runTLSLogOhneSchluessel(t *testing.T, kommando string) {
+	t.Helper()
 	t.Setenv("PGWIRE_RECORDER_FAIL_ON_UNCONSUMED", "")
 	ca := testpki.NeueCA(t, "CA")
 	blatt, anderes := ca.Server(t, testpki.Blatt{}), ca.Server(t, testpki.Blatt{})
@@ -133,7 +140,7 @@ func TestRunTLSLogOhneSchluessel(t *testing.T) {
 		}
 	}
 	var stderr bytes.Buffer
-	if code := bootstrap.Run(context.Background(), nil, []string{"replay", "--listen", "127.0.0.1:0", "--input", aufzeichnung(t), "--tls-cert", cert, "--tls-key", fremd, "--log-level=debug"}, "dev", io.Discard, &stderr); code != 2 || !strings.Contains(stderr.String(), "PGR-E2007") {
+	if code := bootstrap.Run(context.Background(), nil, append(quelle(t, kommando, "127.0.0.1:0"), "--tls-cert", cert, "--tls-key", fremd, "--log-level=debug"), "dev", io.Discard, &stderr); code != 2 || !strings.Contains(stderr.String(), "PGR-E2007") {
 		t.Fatalf("nicht passender Schlüssel: Exit-Code %d, stderr:\n%s", code, stderr.String())
 	}
 	pruefe("Start mit nicht passendem Schlüssel", stderr.String())
@@ -143,7 +150,7 @@ func TestRunTLSLogOhneSchluessel(t *testing.T) {
 	listen := freieAdresse(t)
 	stderr.Reset()
 	ende := make(chan int, 1)
-	args := []string{"replay", "--listen", listen, "--input", aufzeichnung(t), "--tls-cert", cert, "--tls-key", key, "--log-level=debug"}
+	args := append(quelle(t, kommando, listen), "--tls-cert", cert, "--tls-key", key, "--log-level=debug")
 	go func() { ende <- bootstrap.Run(ctx, nil, args, "dev", io.Discard, &stderr) }()
 	dial := func() net.Conn {
 		for i := 0; i < 100; i++ {
@@ -180,4 +187,14 @@ func TestRunTLSLogOhneSchluessel(t *testing.T) {
 		t.Fatalf("Log ohne die erwarteten Zeilen:\n%s", log)
 	}
 	pruefe("Lauf mit Handshakes", log)
+}
+
+// quelle liefert kommando mit listen und seiner Quelle: replay die Aufzeichnung,
+// record einen Upstream ohne Server und eine Ausgabedatei.
+func quelle(t *testing.T, kommando, listen string) []string {
+	t.Helper()
+	if kommando == "replay" {
+		return []string{"replay", "--listen", listen, "--input", aufzeichnung(t)}
+	}
+	return []string{"record", "--listen", listen, "--upstream", "127.0.0.1:1", "--output", filepath.Join(t.TempDir(), "rec.yaml")}
 }
