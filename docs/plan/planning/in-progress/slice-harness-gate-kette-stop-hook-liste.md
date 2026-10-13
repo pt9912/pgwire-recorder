@@ -547,6 +547,11 @@ Voraussetzung ohne Zusage); umgesetzt im Kopf von `dateiliste.sh` (Voraussetzung
 `close-welle.md` (24, 129) und diesen Plan (§3, Zeile `record-gates.sh`); alle nachgezogen. Bewusst stehen geblieben: der Hilfetext `Gate-Nachweis stempeln` von
 `record-gates` in `harness/mk/enforce.mk` (Name eines Ziels, kein Satz über den Nachweis; der Hook-Kommentar nennt ihn Dateiliste).
 
+**Stand der Gates der Nacharbeit** (Commit `b397d6f`, Baum sauber): `make gates` Exit 0, 5 min 48 s; darin `stop-hook-gegenprobe: gruen — 66 Fälle …`,
+`gates-schnell-gegenprobe: gruen`, `kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`, `d-check: 683 Datei(en) geprüft, 0 Befund(e)`, `baseline-verify: v6.18.0 OK`.
+Danach der Hook im Arbeitsbaum: `{"decision":"approve"}`. Der Commit mit dieser Zeile ändert den Plan und damit die Liste; ein zweiter `make gates` auf dem Commit danach
+ist der Stand, den der Hook am Ende sieht.
+
 **Größe der Nacharbeit** (Metrik des Planners aus §4): 979 Einfügungen, 86 Löschungen, Summe **1065**, netto 893 (`git diff --numstat 9662e13..HEAD -- tools harness .claude`);
 gegenüber 920 und 770 sind es +145 und +123: `stop-hook-gegenprobe.sh` 769 (+110), Command-Texte +18/−11, `dateiliste.sh` +4, Hook-Kopf +2/0.
 
