@@ -978,6 +978,9 @@ ersetze $HOOK "$L_GESPEICHERT" '  gespeichert="$(cat -- .harness/state/gates-sch
 rot "p10-fehlt $UNL" "p10-leer p10-fremd"
 fixture m-skript-ueberlesen
 ersetze $HOOK "$L_HASH" "$L_HASH || true"; rot p10-skript-scheitert "p10-skript-fehlt p10-skript-leer"
+fixture m-skript-fehlt-ersatz
+ersetze $HOOK "$L_HASH" '  hash="$(bash tools/harness/working-tree-hash.sh 2> /dev/null || cat .harness/state/gates-schnell-passed.diffsha)"'
+rot p10-skript-fehlt "p10-skript-leer p10-skript-scheitert"
 fixture m-hash-leer-gilt
 ersetze $HOOK "$L_HASH_LEER" ''; rot p10-skript-leer "p10-skript-fehlt p10-skript-scheitert"
 fixture m-schutz-nach-hash
