@@ -200,6 +200,10 @@ Jeder Mutant lief einzeln im Bind-Mount (`docker exec` im Image der Stufe `deps`
 | die Warnung nennt nie Zertifikat oder Schlüssel | PEM-Kopfzeile im Log | dieselben |
 | Herunterfahren beendet den Handshake ohne `PGR-W3002` | `ctx.Err()` nicht geprüft | `TestTLSAushandlungEndetBeiHerunterfahren` |
 | Zwangsende beendet den Handshake ohne `PGR-W3002` | `s.zwang` nicht geprüft | `TestTLSAushandlungEndetBeiHerunterfahren` |
+| der Recorder sendet beim Schließen kein `close_notify` (auch beim Herunterfahren) | Schließen mit `close_notify` | `TestTLSEndeOhneAlert` (TLS 1.2, kein Alert-Record nach dem Aufbau) |
+| Text vor, zwischen, nach den Blöcken bleibt unbeachtet (Zertifikatsdatei) | Text vor / zwischen / nach den Blöcken abgelehnt (je ein Mutant) | `TestTLSTextAusserhalbDerBloecke/*/vor`, `…/zwischen`, `…/nach` |
+| Text vor und nach dem Schlüsselblock bleibt unbeachtet | Text vor / nach dem Block abgelehnt (je ein Mutant) | `TestTLSTextAusserhalbDerBloecke/*/vor`, `…/nach` |
+| Klartext nach dem `S` gelangt nicht in die TLS-Verbindung (`PGR-W3002`, keine Session) | nach dem `S` ohne Handshake weiter | `TestTLSHandshakeScheitert/Klartext_nach_dem_S` (Sessions 0) und weitere |
 | Zwangsende wartet nicht auf den Client | Schließen mit `close_notify` | `TestTLSZwangsende` |
 | Herunterfahren wirkt auf die verschlüsselte Session | `SetReadDeadline` ohne Wirkung | `TestTLSHerunterfahren`, `TestTLSZwangsende` |
 | Zwangsende erreicht die verschlüsselte Session | Session ohne angemeldetes Ziel | `TestTLSZwangsende` |
@@ -226,7 +230,7 @@ Jeder Mutant lief einzeln im Bind-Mount (`docker exec` im Image der Stufe `deps`
 **Ohne eigenen Mutanten, mit Grund**
 
 - *Zertifikat und Schlüssel werden nur beim Start geladen:* Der Server erhält Bytes und keinen Pfad; ein Nachladen ist im Code nicht angelegt. Es gibt keine Mutation, die nur sie bricht, ohne einen Pfad einzuführen.
-- *Bytes nach dem `SSLRequest`, die erst nach dem Senden des `S` eintreffen:* nicht erkennbar; sie scheitern im Handshake mit `PGR-W3002` (Fall `Klartext nach dem S`).
+- *Reihenfolge der Ursache bei mehreren Mängeln einer Datei:* nicht zugesagt (§6, Rückgabe des Implementers); die Tests prüfen die Ursache nur bei Dateien mit einem Mangel.
 
 **Läufe** (Stand: Arbeitsbaum vor dem Commit der Belege, 2026-10-13):
 
@@ -234,7 +238,7 @@ Jeder Mutant lief einzeln im Bind-Mount (`docker exec` im Image der Stufe `deps`
 - Engster Sensor je Änderung: `go vet -tags integration ./...` und `go test` je Paket im Bind-Mount-Container; `go test -count=6 -run TLS` im PGWire-Adapter ohne Ausfall (Flatterprobe der Zeitfälle).
 - Größe nach `AGENTS.md` §3.14 (`git diff --numstat 4223e5e..<letzter Commit> -- internal test docs/user`): siehe Bericht an den Planner; vor den Commits 2094 Zeilen (Einfügungen plus Löschungen) einschließlich der Abdeckungstabellen unter `docs/user/` (48 Zeilen), unter der Marke 2300, über der Schätzung 1400 bis 1800.
 
-**Rückgaben und Lesarten** stehen im Bericht an den Planner (Randform · Frage); keine davon ist in §6 eingetragen.
+Die Rückgaben des Implementers sind vom Architect in §6 und in der Spezifikation entschieden und hier nachgezogen.
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
