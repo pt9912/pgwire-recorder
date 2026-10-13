@@ -186,11 +186,11 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 `done/` (WIP-Limit 1). Ist er ausdrücklich zurückgestellt, trifft die Prüfung auch dessen
 Stellen im PGWire-Adapter und im Bootstrap; dann schneidet der Planner vor dem Start
 neu (§1 *Ausdrücklich NICHT*). Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08
-(Wellen vor Harness, M3 vor M4): die Slices von welle-v1-abschluss, darin
+(Wellen vor Harness, M3 vor M4): die drei Slices der Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; Entscheidung des Nutzers vom 2026-10-13, vor die Release-Slices gezogen), dann die Slices von welle-v1-abschluss, darin
 `slice-harness-integration-wait` direkt vor `slice-v1-abschluss-herunterfahren` und
 `slice-harness-meldungskatalog-gate` direkt vor `slice-v1-abschluss-container`, dann
 `slice-harness-abdeckung-gate` und `slice-harness-coverage`, dann die Slices von
-welle-erster-release und welle-v1-nachtrag, danach die drei Slices der Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; Entscheidung des Nutzers vom 2026-10-12, Ziel: ein Release), danach `slice-harness-commit-struktur-id`,
+welle-erster-release und welle-v1-nachtrag, danach `slice-harness-commit-struktur-id`,
 `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
 `slice-harness-lint-warten-ohne-frist`, `slice-harness-mutation`; die Reihenfolge der
 Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md).

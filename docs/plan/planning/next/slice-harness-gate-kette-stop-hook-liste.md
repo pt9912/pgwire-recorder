@@ -11,8 +11,8 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Eingesammelt
 wird er von der nächsten Welle-Closure. Eingeordnet am 2026-10-12 nach Entscheidung des
-Nutzers vom 2026-10-12 (Ziel: ein Release; die Gate-Kette steht nach dem Release, hinter
-`welle-erster-release` und `welle-v1-nachtrag`): direkt hinter `slice-harness-gate-kette-schnell`
+Nutzers vom 2026-10-13 (die Gate-Kette steht vor den übrigen Release-Slices, vor
+`slice-v1-abschluss-tls-client`): direkt hinter `slice-harness-gate-kette-schnell`
 (WIP-Limit 1); Reihenfolge in §4 *Start* und im Drift-Log der Roadmap. Der Zuschnitt der Hook-Arbeit in
 `slice-harness-gate-kette-schnell`, diesen Slice und `slice-harness-gate-kette-stop-hook-freigabe`
 (vor dem Start geteilt; der Plan hieß bis zum 2026-10-12 `slice-harness-gate-kette-stop-hook`) und die
@@ -174,10 +174,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-harness-gate-kette-schnell` liegt in `done/` (WIP-Limit 1);
-dieser Slice steht direkt dahinter und vor `slice-harness-gate-kette-stop-hook-freigabe` und
-`slice-harness-commit-struktur-id` (Drift-Log der Roadmap vom 2026-10-12); `slice-harness-gate-kette-schnell`
-steht seinerseits nach `welle-erster-release` und `welle-v1-nachtrag`. Die Reihenfolge nach dem Release ist
-Entscheidung des Nutzers vom 2026-10-12 (Ziel: ein Release). Die offenen Rückfragen an den Architect (Merge-Konflikt zu `slice-harness-gate-kette-stop-hook-liste`, Eingangssatz von `SPEC-052`, neue Mutationen, Rückführungsgrenzen) bleiben offen, bis die Slices der Gate-Kette starten; sie halten das Release nicht auf. Die Namen aus §1 stehen im Plan. Die Randformen aus §6 sind in `SPEC-052`
+dieser Slice steht direkt dahinter und vor `slice-harness-gate-kette-stop-hook-freigabe`,
+`slice-v1-abschluss-tls-client` (Schritt 28) und den übrigen Release-Slices (Drift-Log der Roadmap vom 2026-10-13);
+`slice-harness-gate-kette-schnell` steht seinerseits vor `slice-v1-abschluss-tls-client`. Die Reihenfolge ist
+Entscheidung des Nutzers vom 2026-10-13. Die offenen Rückfragen an den Architect (Merge-Konflikt zu `slice-harness-gate-kette-stop-hook-liste`, Eingangssatz von `SPEC-052`, neue Mutationen, Rückführungsgrenzen) entscheidet er vor dem Start in §6. Die Namen aus §1 stehen im Plan. Die Randformen aus §6 sind in `SPEC-052`
 festgelegt (der Architect hat sie am 2026-10-12 in §6 des Gebers entschieden, dessen erster Commit
 überträgt sie); dieser Slice ändert sie nicht. **Vor dem Start:** Der Architect bestätigt die Verteilung der
 Randformen und Mutationen auf diesen Slice und `slice-harness-gate-kette-stop-hook-freigabe` und die
@@ -357,7 +357,7 @@ Liste; Gegenprobe mit den Gate-Zeilen). Messung, Gate-Läufe, Review, Closure-No
 nicht. Schichten: 1 — Harness-Werkzeug (`tools/harness`, `.claude/hooks`, `harness/mk`,
 `harness/README.md`, `harness/conventions.md`); keine Spezifikation (sie ändert
 `slice-harness-gate-kette-schnell`), keine Nutzer- oder Wartungs-Doku, kein Produkt-Code, kein Bootstrap.
-Nachgezählt am 2026-10-12 bei der Umordnung (nach dem Release): Die Sendungen von und an die Nachbarn sind
+Nachgezählt am 2026-10-13 bei der Umordnung (vor die Release-Slices): Die Sendungen von und an die Nachbarn sind
 unverändert, die Zählung bleibt 3 Liefer-Punkte und 1 Schicht.
 **Sendung des Gebers `slice-harness-gate-kette-schnell`** (die Namen aus §1, die Randformen der Hook-Seite
 aus §6, soweit hier verteilt): nachgezählt mit der Sendung 3 Liefer-Punkte und 1 Schicht; die Namen sind
