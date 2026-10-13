@@ -153,6 +153,11 @@ entschieden“) ersetzt die Rückgabe nicht, wenn der Commit sie schon trägt.
     die eine Allgemeinregel des Bestands einschränken (eine Ausnahme beim Exit-Code, bei der
     Reihenfolge, beim Standardwert), und sucht den Bestand nach dieser Allgemeinregel ab, nicht nur
     nach Sätzen über denselben Gegenstand (seit slice-v1-abschluss-antwortvergleich-doku).
+    Suchmerkmal sind die Quantoren über den Gegenstand des neuen Abschnitts („jede“, „alle“, „immer“, „stets“,
+    „nie“, „keine“, „jeweils“, zusammen mit dem Gegenstandswort), je Zeile und je Absatz, nicht die Wörter der
+    zuletzt gefundenen Ausnahme; §7 führt jeden Treffer mit seiner Entscheidung (eng gefasst, verbunden oder
+    unverändert mit Grund) und gilt für die erste Durchsicht, nicht erst für die Nacharbeit
+    (seit slice-v1-abschluss-sessions-doku, Vorschlag des Planners).
     Jeder Satz mit einer Verhaltensaussage hat in der Probe-Tabelle von §7 seine eigene Zeile,
     auch ein Nebensatz über die Art, wie etwas geschieht („legt die Datei über die temporäre
     Datei an“); ein Satz ohne Zeile wird gestrichen oder bekommt sie. Ein Wort, das einen

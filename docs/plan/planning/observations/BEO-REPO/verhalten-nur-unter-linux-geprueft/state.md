@@ -11,3 +11,5 @@ Weiter offen, kein neues Auftreten: `slice-v1-abschluss-sqlite-format-doku` — 
 Weiter offen, kein neues Auftreten: `slice-v1-abschluss-zeitangaben-doku` — alle Proben des Handbuchs zu den Zeitangaben laufen unter Linux im Container; das Handbuch macht zu Windows, macOS und Netzwerk-Dateisystemen keine Aussage, Review und Verifikation haben dazu keinen Befund. Der Zähler bleibt bei 3.
 
 Weiter offen, kein neues Auftreten: `slice-v1-abschluss-antwortvergleich-doku` — alle Proben des Handbuchs zum Antwortvergleich laufen unter Linux im Container; das Handbuch macht zu Windows, macOS und Netzwerk-Dateisystemen keine Aussage, Review und Verifikation haben dazu keinen Befund. Der Zähler bleibt bei 3.
+
+Weiter offen, kein neues Auftreten: `slice-v1-abschluss-sessions-doku` — alle Proben des Handbuchs zu mehreren Verbindungen laufen unter Linux im Container; das Handbuch macht zu Windows, macOS und Netzwerk-Dateisystemen keine Aussage, Review und Verifikation haben dazu keinen Befund. Der Zähler bleibt bei 3.
