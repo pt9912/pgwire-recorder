@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gates-schnell — fährt die Ziele der schnellen Gate-Kette und schreibt bei grünem
-# Lauf deren Stand (Vertrag: spec/spezifikation.md SPEC-052, Punkte 5 bis 7).
+# Lauf deren Stand (Vertrag: harness/vertraege/SPEC-052-gate-kette.md, Punkte 5 bis 7).
 # Aufruf: gates-schnell.sh <make> <ziel>…
 # Ein älterer Stand entfällt vor dem ersten Ziel; ein roter oder abgebrochener Lauf
 # lässt deshalb keinen zurück. Der Stand ist die unveränderte Ausgabe von

@@ -24,7 +24,7 @@ Abdeckung je Anforderung und Pfad), [ADR-0033](../../adr/0033-gate-nachweise-in-
 Nachweisart Gate). Die ADR des neuen Gates schreibt der Architect
 im Slice, vor dem Code; ihre Nummer vergibt der ADR-Index.
 
-**Berührte Spec-Stellen:** `spezifikation.md §11` (*Harness-Werkzeuge*: neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice)
+**Berührte Spec-Stellen:** `harness/vertraege/` (neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice; die nächste freie Nummer ist 053)
 
 **Verantwortlich:** pt9912
 
@@ -44,8 +44,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ziel:** Die Stufe `test` des `Dockerfile` misst die Anweisungs-Abdeckung der
 Unit-Tests (`go test -coverprofile`) und bricht ab, wenn sie unter der Schwelle
 liegt; das Gate ist damit Teil von `make gates`. Die Schwelle ist eine Zahl aus der
-Messung des heutigen Stands und steht nach Entscheidung des Nutzers vom 2026-10-06 im
-Abschnitt für Harness-Werkzeuge der Spezifikation, in der Kennung des Gates, als
+Messung des heutigen Stands und steht nach Entscheidung des Nutzers vom 2026-10-06 in der Datei der Kennung des Gates in `harness/vertraege/`, als
 Konstante mit Einheit und Begründung; die ADR des Gates hält Mechanismus, Messung mit
 Quellstand und die Regel, nach der die Zahl folgt, und setzt `Schärft:` auf die
 Kennung — nicht in diesem Plan.
@@ -95,8 +94,8 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] Gate mit Schwelle: Die Stufe `test` erzeugt das Profil, prüft es gegen die
-      Schwelle aus der Kennung des Gates im Abschnitt für Harness-Werkzeuge der
-      Spezifikation (nach den Randformen aus §6) und endet rot
+      Schwelle aus der Kennung des Gates in `harness/vertraege/`
+      (nach den Randformen aus §6) und endet rot
       darunter; `gofmt`, `go vet` und die Unit-Tests der Stufe bleiben unverändert. Die
       Messung des Stands, aus der die Schwelle folgt, steht mit Quellstand in der ADR;
       der Bestand ist grün.
@@ -133,7 +132,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `docs/plan/adr/<NNNN>-schwelle-testabdeckung.md`, `docs/plan/adr/README.md` | neu / update | ADR des Gates (Architect, vor dem Code): Messung mit Quellstand, Regel, nach der die Schwelle folgt, `Schärft:` auf die Kennung des Gates; Index-Zeile |
-| `spec/spezifikation.md` | update | Abschnitt für Harness-Werkzeuge: Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
+| `harness/vertraege/` (neue Datei der Kennung 053) | neu | Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
 | `Dockerfile` | update | Stufe `test`: Profil erzeugen und gegen die Schwelle prüfen, netzlos; die bestehenden Prüfungen der Stufe bleiben |
 | Prüfung der Schwelle (Ort nach §6 *Werkzeug*) | neu | wertet das Profil aus, nennt je Paket und gesamt den Wert und die Schwelle |
 | `harness/mk/build.mk` oder eigenes Fragment unter `harness/mk/` | update / neu | Schwelle als eine benannte Stelle (Build-Argument oder Konfiguration), Ziel der Gegenprobe an `GATE_CHECKS` |
@@ -206,7 +205,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **offen**. Entschieden werden
-sie vor dem ersten Code-Commit vom Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie Kennung, vergeben vom Slice, der es liefert); die ADR des
+sie vor dem ersten Code-Commit vom Architect und festgehalten in `harness/vertraege/` (Technik-Stratum, Ort seit `slice-harness-vertraege-umzug-gate-kette`; ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie Kennung, heute 053, vergeben vom Slice, der es liefert); die ADR des
 Gates trägt Entscheidung und Gründe und verweist mit `Schärft:` auf die Stelle. Eine
 Entscheidung des Nutzers wird dort festgehalten. Was dort nicht steht, entscheidet der
 Implementer nicht, er gibt es zurück.
@@ -335,8 +334,8 @@ Dateien unter `evidence/`). Treffer:
 - `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (1×) — dieser Slice ist
   wellenlos; §4 *Start* nennt den Architect-Schritt vor dem Code ausdrücklich.
 - `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — Entscheidungsort der
-  Randformen ist der Abschnitt für Harness-Werkzeuge der Spezifikation, angelegt von
-  `slice-harness-vertraege-spezifikation`; die ADR trägt Entscheidung und Gründe.
+  Randformen ist der Ordner `harness/vertraege/`, angelegt von
+  `slice-harness-vertraege-umzug-ordner`; die ADR trägt Entscheidung und Gründe.
 - `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (1×),
   `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (1×) und
   `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (1×) — je ein Risiko in §6.

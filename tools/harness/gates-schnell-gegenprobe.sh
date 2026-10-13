@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # gates-schnell-gegenprobe — prüft die schnelle Gate-Kette (harness/mk/gates-schnell.mk,
 # tools/harness/gates-schnell.sh) gegen die Punkte 1 bis 7 von SPEC-052
-# (spec/spezifikation.md) an Kopien in einem Temp-Verzeichnis; der Arbeitsbaum
+# (harness/vertraege/SPEC-052-gate-kette.md) an Kopien in einem Temp-Verzeichnis; der Arbeitsbaum
 # bleibt unberührt. Eine Kopie trägt Makefile, Fragment der Kette, Skripte der Kette
 # und ein Fragment mit Gates, die ihren Namen in eine Logdatei schreiben; die
 # unveränderte Kopie muss jede Prüfung bestehen, und je Mutant (sed auf der Kopie)

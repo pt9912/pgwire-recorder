@@ -1,5 +1,5 @@
 # harness/mk/stop-hook-gegenprobe.mk — Gegenprobe des Stop-Hooks und der Dateiliste des vollen
-# Laufs (ADR-0038; Vertrag SPEC-052, Punkte 1, 9 bis 22)
+# Laufs (ADR-0038; Vertrag harness/vertraege/SPEC-052-gate-kette.md, Punkte 1, 9 bis 22)
 # · seit slice-harness-gate-kette-stop-hook-liste.
 # Sie hängt an GATE_CHECKS und prüft .claude/hooks/stop-require-gates.sh mit
 # tools/harness/dateiliste.sh, working-tree-hash.sh und record-gates.sh in Temp-Repos. Sie

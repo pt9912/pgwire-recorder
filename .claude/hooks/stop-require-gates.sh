@@ -4,7 +4,7 @@
 # wenn jeder Unterschied zu ihr auf der Positivliste liegt (`inert`) und der Stand der schnellen
 # Kette zum Arbeitsbaum passt; jeder andere Fall verlangt `make gates` (Antwort `block`).
 # Liste und Vergleich: tools/harness/dateiliste.sh (dieselben Funktionen wie record-gates),
-# Vertrag: spec/spezifikation.md SPEC-052.
+# Vertrag: harness/vertraege/SPEC-052-gate-kette.md.
 #
 # Zugesagt, soweit tools/harness/stop-hook-gegenprobe.sh es je Fall prüft:
 # - Ein nicht aufgelöster Index-Eintrag (`git ls-files -u`) sperrt, als erste Prüfung nach

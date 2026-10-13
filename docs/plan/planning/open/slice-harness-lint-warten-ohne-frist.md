@@ -23,7 +23,7 @@ Prüfungen; ob die neue Prüfung eine eigene ADR braucht, entscheidet der Archit
 **Berührte Spec-Stellen:** `SPEC-049` (neuer Punkt für die Prüfung in `harness/vertraege/SPEC-049-lint-profil.md`, vom
 Architect vor dem Code geschrieben) · `SPEC-038` (*Warten in Tests*, angewandt; die Ausnahme für
 synchrone Aufrufe trägt der Architect nach Entscheidung des Nutzers vom 2026-10-08 ein) ·
-`spezifikation.md` §12 (*Historie*, für die Zeile zu `SPEC-038`; die Historie des Vertrags steht in
+`spezifikation.md` §11 (*Historie*, für die Zeile zu `SPEC-038`; die Historie des Vertrags steht in
 `harness/vertraege/README.md`)
 
 **Verantwortlich:** —
@@ -165,7 +165,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `harness/vertraege/SPEC-049-lint-profil.md` | update (Architect, vor dem Code) | neuer Punkt in `SPEC-049` mit den Randformen aus §6; die Historie-Zeile dazu steht in `harness/vertraege/README.md` |
-| `spec/spezifikation.md` | update (Architect, vor dem Code) | in `SPEC-038` *Warten in Tests* die Ausnahme für synchrone Aufrufe (Entscheidung des Nutzers vom 2026-10-08), falls noch nicht eingetragen; §12 *Historie* für diese Zeile |
+| `spec/spezifikation.md` | update (Architect, vor dem Code) | in `SPEC-038` *Warten in Tests* die Ausnahme für synchrone Aufrufe (Entscheidung des Nutzers vom 2026-10-08), falls noch nicht eingetragen; §11 *Historie* für diese Zeile |
 | `docs/plan/adr/` | neu (nur wenn der Architect eine ADR verlangt) | [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) ist angenommen und unveränderlich (`AGENTS.md` §3.5); eine neue Prüfung, die nicht aus ihr folgt, wäre eine ergänzende ADR mit `Schärft:` auf `SPEC-049` |
 | `tools/harness/lint.sh` | update | die Prüfung; Kopf *GEPRÜFT DURCH* um den neuen Punkt |
 | Programm unter `tools/harness/` | neu (nur bei Erkennung über den AST, §6) | liest die Testdateien mit `go/parser` in der Stufe `lint`, ohne Netz |

@@ -20,7 +20,7 @@ Stufen des Multistage-`Dockerfile`, netzlos außer der Download-Stufe). Die ADR 
 neuen Gates schreibt der Architect im Slice, vor dem Code; ihre Nummer vergibt der
 ADR-Index.
 
-**Berührte Spec-Stellen:** `spezifikation.md §11` (*Harness-Werkzeuge*: neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice)
+**Berührte Spec-Stellen:** `harness/vertraege/` (neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice; die nächste freie Nummer ist 053)
 
 **Verantwortlich:** —
 
@@ -87,8 +87,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-Die Schwelle steht nach Entscheidung des Nutzers vom 2026-10-06 im Abschnitt für
-Harness-Werkzeuge der Spezifikation, in der Kennung des Gates, als Konstante mit
+Die Schwelle steht nach Entscheidung des Nutzers vom 2026-10-06 in der Datei der Kennung des Gates in `harness/vertraege/`, als Konstante mit
 Einheit und Begründung; die ADR des Gates hält Mechanismus, Messung mit Quellstand und
 die Regel, nach der die Zahl folgt, und setzt `Schärft:` auf die Kennung.
 
@@ -130,7 +129,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `docs/plan/adr/<NNNN>-mutationstests-als-gate.md`, `docs/plan/adr/README.md` | neu / update | ADR des Gates (Architect, vor dem Code): Werkzeug, Messung mit Quellstand, Regel, nach der die Schwelle folgt, `Schärft:` auf die Kennung des Gates; Index-Zeile |
-| `spec/spezifikation.md` | update | Abschnitt für Harness-Werkzeuge: Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
+| `harness/vertraege/` (neue Datei der Kennung 053) | neu | Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
 | `Dockerfile` oder eigenes Werkzeug-Image | update / neu | Stufe oder Image mit dem gepinnten Werkzeug; netzlos außer der Download-Stufe |
 | `harness/mk/<mutation>.mk` | neu | Ziel des Gates und der Gegenprobe an `GATE_CHECKS`, Schwelle als eine benannte Stelle |
 | `tools/harness/<gegenprobe>.sh` | neu | Mutanten in einer Kopie unter eigenem Pfad: ein Test entfernt (rot), Stand genau an der Schwelle (grün), je Randform ein Fall |
@@ -193,7 +192,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **offen**. Entschieden werden
-sie vor dem ersten Code-Commit vom Architect und festgehalten im Abschnitt für Harness-Werkzeuge der Spezifikation (Technik-Stratum; angelegt von `slice-harness-vertraege-spezifikation`, ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie Kennung, vergeben vom Slice, der es liefert); die ADR des
+sie vor dem ersten Code-Commit vom Architect und festgehalten in `harness/vertraege/` (Technik-Stratum, Ort seit `slice-harness-vertraege-umzug-gate-kette`; ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie Kennung, heute 053, vergeben vom Slice, der es liefert); die ADR des
 Gates trägt Entscheidung und Gründe und verweist mit `Schärft:` auf die Stelle. Eine
 Entscheidung des Nutzers wird dort festgehalten. Was dort nicht steht, entscheidet der
 Implementer nicht, er gibt es zurück.
@@ -303,8 +302,8 @@ Dateien unter `evidence/`). Treffer:
 - `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` (1×) — dieser Slice ist
   wellenlos; §4 *Start* nennt den Architect-Schritt vor dem Code ausdrücklich.
 - `BEO-REPO/harness-lesart-ohne-entscheidungsort` (1×) — Entscheidungsort der
-  Randformen ist der Abschnitt für Harness-Werkzeuge der Spezifikation, angelegt von
-  `slice-harness-vertraege-spezifikation`; die ADR trägt Entscheidung und Gründe.
+  Randformen ist der Ordner `harness/vertraege/`, angelegt von
+  `slice-harness-vertraege-umzug-ordner`; die ADR trägt Entscheidung und Gründe.
 - `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` (1×) und
   `BEO-REPO/gate-regel-ersetzt-statt-ergaenzt` (1×) — je ein Risiko oder ein Fall der
   Gegenprobe; das Gate kommt hinzu, keine bestehende Prüfung der Stufe `test` fällt

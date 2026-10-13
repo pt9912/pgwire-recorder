@@ -1,4 +1,4 @@
-# harness/mk/gates-schnell.mk — die schnelle Gate-Kette (ADR-0038; Vertrag SPEC-052)
+# harness/mk/gates-schnell.mk — die schnelle Gate-Kette (ADR-0038; Vertrag harness/vertraege/SPEC-052-gate-kette.md)
 # · seit slice-harness-gate-kette-schnell.
 # `gates-schnell` fährt GATE_CHECKS ohne GATE_SCHNELL_AUSNAHME und schreibt bei
 # grünem Lauf den Stand .harness/state/gates-schnell-passed.diffsha; den Nachweis

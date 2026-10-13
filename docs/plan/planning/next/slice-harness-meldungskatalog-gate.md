@@ -17,7 +17,7 @@ in der wellenlosen Reihe nach `slice-harness-integration-wait` und vor
 
 **Bezug:** [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler) (stabile Meldungscodes je Ursache). Bindung an Entscheidungen: [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) (Folgepflicht: ein Gate, das Code-Tabelle und Katalog abgleicht).
 
-**Berührte Spec-Stellen:** `SPEC-034` (gelesen, Tabelle der Codes; geändert nur, wenn der Architect einen Bestands-Befund dort berichtigt) · `spezifikation.md §11` (neue Kennung für den Vertrag des Gates, vergeben vom Architect vor dem Code)
+**Berührte Spec-Stellen:** `SPEC-034` (gelesen, Tabelle der Codes; geändert nur, wenn der Architect einen Bestands-Befund dort berichtigt) · `harness/vertraege/` (neue Kennung für den Vertrag des Gates, vergeben vom Architect vor dem Code; die nächste freie Nummer ist 053)
 
 **Verantwortlich:** pt9912
 
@@ -39,7 +39,7 @@ Meldungskatalog der Spezifikation (Tabelle in `SPEC-034`) steht, und umgekehrt, 
 ein Code des Katalogs im Go-Code fehlt. Was als Code im Go-Code zählt, was als
 Katalog-Zeile und wie „umgekehrt“ für Codes gilt, die der Code noch nicht erzeugt,
 entscheidet der Architect vor dem ersten Code-Commit im Vertrag des Gates
-(`spezifikation.md §11`); die Randformen dazu stehen in §6. Geliefert wie
+(`harness/vertraege/`); die Randformen dazu stehen in §6. Geliefert wie
 `make kopf-check` und `make abdeckung-check`: ein Prüfskript unter `tools/harness/`
 mit Gate-Ziel, eine Gegenprobe als eigenes Gate-Ziel, beide über ein Fragment unter
 `harness/mk/` an `GATE_CHECKS`, eine Sensor-Datei unter `harness/sensors/` und je eine
@@ -88,7 +88,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler):
-      Der Vertrag des Gates steht vor dem ersten Code-Commit in `spezifikation.md §11`
+      Der Vertrag des Gates steht vor dem ersten Code-Commit in `harness/vertraege/`
       unter einer neuen Kennung und entscheidet jede Randform aus §6; das Prüfskript
       (bash, ohne Docker) hängt mit seinem Ziel über ein Fragment unter `harness/mk/`
       an `GATE_CHECKS` und ist am Stand des Starts grün, ein Befund des Bestands ist nach
@@ -122,7 +122,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` §11 (neue Kennung, Historie) | update (Architect, vor Code) | Vertrag des Gates: Gegenstand, Fundort, Richtung, Form, Ausgabe, Grenze; je Randform aus §6 ein nummerierter Punkt |
+| `harness/vertraege/` (neue Datei der Kennung 053, Historie im `README.md` des Ordners) | neu (Architect, vor Code) | Vertrag des Gates: Gegenstand, Fundort, Richtung, Form, Ausgabe, Grenze; je Randform aus §6 ein nummerierter Punkt |
 | `docs/plan/adr/` (neue ADR, Index) | new, update (bedingt, Architect) | nur wenn die Richtung „umgekehrt“ (§6) zwischen Alternativen entschieden wird, die [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) nicht trägt; sonst genügt der Vertrag |
 | `tools/harness/meldungskatalog-check.sh` | neu | liest die Codes aus dem Go-Code und aus der Tabelle in `SPEC-034` und vergleicht die Mengen |
 | `tools/harness/meldungskatalog-check-gegenprobe.sh` | neu | Fehlformen in Temp-Bäumen je Punkt des Vertrags, wie `tools/harness/kopf-check-gegenprobe.sh`; dazu der Fall mit Makefile und Fragment |
@@ -184,7 +184,7 @@ dasteht.
 
 **Randformen des neuen Vertrags** ([`AGENTS.md`](../../../../AGENTS.md) §3.12). Keine
 ist entschieden; der Architect entscheidet jede vor dem ersten Code-Commit im Vertrag
-(`spezifikation.md §11`), eine Entscheidung des Nutzers wird dort festgehalten. Der
+(`harness/vertraege/`), eine Entscheidung des Nutzers wird dort festgehalten. Der
 Implementer entscheidet keine still, sondern gibt eine nicht genannte zurück.
 
 1. **Richtung „umgekehrt“ und Codes, die der Code noch nicht erzeugt.** Stand

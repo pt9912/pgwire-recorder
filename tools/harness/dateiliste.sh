@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# dateiliste — Funktionen der Dateiliste des vollen Laufs (Form: spec/spezifikation.md
-# SPEC-052 Punkt 11). Wird mit `source` geladen von working-tree-hash.sh, record-gates.sh
+# dateiliste — Funktionen der Dateiliste des vollen Laufs (Form: harness/vertraege/SPEC-052-gate-kette.md
+# Punkt 11). Wird mit `source` geladen von working-tree-hash.sh, record-gates.sh
 # und dem Stop-Hook; Schreiber, Hash und Leser teilen sich damit diese eine Logik.
 # Die Funktionen laufen im Wurzelverzeichnis des Repos.
 #

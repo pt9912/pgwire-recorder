@@ -5,7 +5,7 @@
 # Ausgabe von working-tree-hash.sh). Läuft als LETZTER gates-Prerequisite, also nur nach
 # grünen Gates. Der Stop-Hook gibt frei, wenn die Dateiliste des Arbeitsbaums mit dieser
 # identisch ist oder wenn jeder Unterschied auf der Positivliste des Hooks liegt und der Stand
-# der schnellen Kette zum Arbeitsbaum passt (SPEC-052 Punkt 9; stop-hook-gegenprobe: p16-identisch,
+# der schnellen Kette zum Arbeitsbaum passt (harness/vertraege/SPEC-052-gate-kette.md Punkt 9; stop-hook-gegenprobe: p16-identisch,
 # p9-freigabe).
 # Make-Flags (SPEC-052 Punkt 21): Die Buchstaben im ersten Wort von MAKEFLAGS, wenn es nicht
 # mit `-` beginnt, entscheiden wie in gates-schnell.sh: bei i überliest make rote Gates, der

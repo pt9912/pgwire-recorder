@@ -16,7 +16,7 @@ von der nächsten Welle-Closure. Angelegt nach Entscheidung des Nutzers vom 2026
 
 **Bezug:** [MR-000](../../../../harness/conventions.md#mr-000--baseline-aussage) (Baseline-Aussage mit dem ID-Schema, dessen Lastenheft- und Adaptions-Kennungen das Doku-Gate als Link verlangen soll). Keine Anforderung des Lastenhefts im Scope: Der Slice schärft das Gate der Dokumentation, nicht das Produkt.
 
-**Berührte Spec-Stellen:** `spezifikation.md §11` (Harness-Werkzeuge: Dort entscheidet der Architect vor dem Code die Randformen der Linkpflicht aus §6, nach `AGENTS.md` §3.12 auch für Harness-Werkzeuge; die Kennung der neuen Stelle vergibt er beim Schreiben und trägt sie hier nach)
+**Berührte Spec-Stellen:** `harness/vertraege/` (Dort entscheidet der Architect vor dem Code die Randformen der Linkpflicht aus §6, nach `AGENTS.md` §3.12 auch für Harness-Werkzeuge; die Kennung der neuen Stelle vergibt er beim Schreiben und trägt sie hier nach, die nächste freie Nummer ist 053)
 
 **Verantwortlich:** —
 
@@ -160,7 +160,7 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` §11 | update | neue Stelle: Linkpflicht der Kennungen im Doku-Gate mit den Randformen aus §6 (Architect, vor dem Code) |
+| `harness/vertraege/` (neue Datei der Kennung 053) | neu | neue Stelle: Linkpflicht der Kennungen im Doku-Gate mit den Randformen aus §6 (Architect, vor dem Code) |
 | `.d-check.yml` | update | `ids`-Muster für Lastenheft- und MR-Kennungen nach der Spezifikation; Kommentare über `ids` und die Klasse `adaptionsblock` auf den gemessenen Stand |
 | gescannte, nicht ausgenommene `.md` unter `spec/`, `harness/`, lebende Pläne, Roadmap | update | blanke Kennungen als Links; mechanisch, keine Aussage ändert sich. ADRs und Nutzer- und Wartungs-Doku: `slice-harness-lh-links-bestand` |
 | `.claude/commands/implement-slice.md`, `.claude/commands/plan-welle.md`, `.claude/commands/close-welle.md` | update | Block *Strenges Doc-Gate*: der Satz zu `LH-` entfällt, keine Zusage über das Gate (DoD-Punkt 1, Entscheidung des Nutzers vom 2026-10-10) |
@@ -216,8 +216,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen** (`AGENTS.md` §3.12): Der Slice liefert einen neuen Vertrag (eine Zusage des
-Doku-Gates). Entschieden wird jede vor dem ersten Commit mit Gate-Konfiguration, in der
-Spezifikation §11, vom Architect; offen sind heute alle:
+Doku-Gates). Entschieden wird jede vor dem ersten Commit mit Gate-Konfiguration, in
+`harness/vertraege/`, vom Architect; offen sind heute alle:
 
 - **`link-policy`:** `always` (auch Inline-Code, wie beim Muster für `ADR-`) oder `prose`
   (Messung in §1: 2442 gegen 1441 Befunde ohne Ausnahmen).
@@ -316,7 +316,7 @@ unter `evidence/`). Treffer:
   und liefert einen neuen Vertrag; die Randformen stehen deshalb schon in §6, und der Weg zum
   Architect vor dem Code ist der Übergang `open` → `next` (Nutzer).
 - `BEO-REPO/werkzeug-festlegung-ausserhalb-technik-stratum` (1×, offen) — die Festlegung der
-  Linkpflicht gehört in die Spezifikation §11, nicht in `.d-check.yml`-Kommentare oder die
+  Linkpflicht gehört nach `harness/vertraege/`, nicht in `.d-check.yml`-Kommentare oder die
   Commands; daher die Spec-Zeile in §3.
 - `BEO-REPO/slice-waechst-durch-uebernahmen` (3×, verkörpert) und
   `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (5×, verkörpert) — dieser Slice ist Nehmer
@@ -326,8 +326,8 @@ unter `evidence/`). Treffer:
   auf zwei Schichten; nach der Teilung, die auch `slice-harness-d-check-v0-85` zählt, waren
   es vier (Spezifikation; Harness: `.d-check.yml` und Commands; Entscheidungen; Nutzer- und
   Wartungs-Doku). Deshalb geschnitten (§1): Nach dem Schnitt drei Liefer-Punkte (Muster mit
-  Gegenprobe, Bestand, Aussage über das Gate) und zwei Schichten (Spezifikation: neue Stelle
-  in §11 und Links; Harness: `.d-check.yml`, Commands, Links in `harness/`); Pläne und
+  Gegenprobe, Bestand, Aussage über das Gate) und zwei Schichten (Vertrag: neue Stelle
+  in `harness/vertraege/` und Links; Harness: `.d-check.yml`, Commands, Links in `harness/`); Pläne und
   Roadmap sind Planung. Die Abdeckungstabellen samt Generator bleiben draußen (§1), sonst
   kämen die Abdeckungs-Deklarationen der Tests unter `internal/` als weitere Schicht hinzu. Der abgeschnittene Teil,
   `slice-harness-lh-links-bestand`, ist dort nachgezählt (§8). Die Randform *Ausnahmen des
