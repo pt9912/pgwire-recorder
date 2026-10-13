@@ -43,7 +43,7 @@
 | [0037](0037-yaml-bibliothek-fuer-die-anzeige-der-konfigurationsdatei.md) | YAML-Bibliothek im CLI-Adapter auch für die Anzeige der Konfigurationsdatei | Accepted | [`LH-FA-17`](../../../spec/lastenheft.md#lh-fa-17--maschinenlesbare-konfiguration) |
 | [0038](0038-gate-kette-voll-und-schnell.md) | Gate-Kette in voller und schneller Kette, Wahl am geänderten Pfad | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0039](0039-aufzeichnung-kennt-das-verbindungsende.md) | Die Aufzeichnung kennt das Verbindungsende des Servers | Accepted | [`LH-FA-25`](../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server) |
-| [0040](0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) | Die Verträge der Harness-Werkzeuge stehen im Ordner harness, nicht in der Produktspezifikation | Proposed | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
+| [0040](0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) | Die Verträge der Harness-Werkzeuge stehen im Ordner harness, nicht in der Produktspezifikation | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 
 ## Konventionen
 

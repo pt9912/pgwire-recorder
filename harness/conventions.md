@@ -195,7 +195,7 @@ diese Datei verweisen darf; bei Abweichung gilt das Lastenheft.
 
 | MR | Titel | Geltungsbereich | Ersetzt-Baseline-Regel |
 |---|---|---|---|
-| <a id="mr-002"></a>[MR-002](conventions/MR-002-harness-vertraege-ausserhalb-der-spezifikation.md) | Verträge der Harness-Werkzeuge im Ordner `harness`, nicht in der Produktspezifikation — **Entwurf**, wirksam mit der Annahme von [ADR-0040](../docs/plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) | `SPEC-047`, `SPEC-048`, `SPEC-049`, `SPEC-050`, `SPEC-052` und künftige Verträge von Harness-Werkzeugen; Ort, Rang, Gate-Klasse `spec-straten` | `grundlagen-referenz-richtung.md` §Spec-Straten (Ort der Festlegung eines Werkzeugs) |
+| <a id="mr-002"></a>[MR-002](conventions/MR-002-harness-vertraege-ausserhalb-der-spezifikation.md) | Verträge der Harness-Werkzeuge im Ordner `harness`, nicht in der Produktspezifikation ([ADR-0040](../docs/plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), Accepted 2026-10-13) | `SPEC-047`, `SPEC-048`, `SPEC-049`, `SPEC-050`, `SPEC-052` und künftige Verträge von Harness-Werkzeugen; Ort, Rang, Referenz-Richtung (Ordner in Klasse `aussen`) | `grundlagen-referenz-richtung.md` §Spec-Straten (Ort der Festlegung eines Werkzeugs) |
 
 ### Aufgelöste Adaptionen
 
