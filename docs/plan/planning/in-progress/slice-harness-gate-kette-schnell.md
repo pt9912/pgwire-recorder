@@ -405,6 +405,8 @@ nach dem Muster der übrigen Flag-Fälle `p6-<name>-…`; der Name im Auftrag la
 
 Die Gegenprobe ist mit dem Mutanten und unverändert grün (`make gates-schnell-gegenprobe`, rund 17 s).
 
+**Stand der Gates:** `make gates` Exit 0 am Baum des Commits dieser Belege (Hash `23d0f621…62baae94`, davor `make docs-check` 0 Befunde); diese Zeile selbst ändert danach nur §7, `make gates` lief mit ihr ein zweites Mal.
+
 **Kommentare** (`AGENTS.md` §3.7, §3.11): neu geschrieben sind der Kopf von `gates-schnell.mk`, von
 `gates-schnell.sh` und von `gates-schnell-gegenprobe.sh`; jede Zusage darin hat eine Prüfung der Tabelle
 (Ausnahmeliste, Stand, kein Stand nach Rot und Abbruch, voller Nachweis, Anschluss an `GATE_CHECKS`).
