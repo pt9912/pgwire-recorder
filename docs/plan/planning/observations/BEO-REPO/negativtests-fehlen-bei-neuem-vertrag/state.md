@@ -13,3 +13,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-harness-gate-kette-
 Schärfung (Entscheidung des Nutzers vom 2026-10-13): `AGENTS.md §3.10` verlangt je Element einer Aufzählung in einer Zusage und je Schritt einer Ortsangabe einen Fall und eine Mutation, die nur ihn bricht — Herkunfts-Anker `seit slice-harness-gate-kette-stop-hook-liste` (F-703, F-704; Beleg `evidence/slice-harness-gate-kette-stop-hook-liste.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-harness-gate-kette-stop-hook-freigabe` (F-716, F-719) — eine Teilform eines Elements (nachgestelltes leeres Segment) und die Ordnung zweier Schritte ohne fangenden Fall, trotz der Schärfung vom 2026-10-13; behoben mit je einem Fall und Mutanten (Beleg `evidence/slice-harness-gate-kette-stop-hook-freigabe.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-v1-abschluss-tls-client` (F-2, F-3, F-4, V-1) — drei Zusagen mit Aufzählung (Dateiarten, Kette, „record und replay“) ohne Mutation je Element, trotz der Schärfung vom 2026-10-13; die Nacharbeit zu F-3 deckte nur ein Kommando, die Verifikation fand das andere (Beleg `evidence/slice-v1-abschluss-tls-client.md`).

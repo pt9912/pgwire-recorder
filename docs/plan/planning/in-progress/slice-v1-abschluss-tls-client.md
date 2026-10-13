@@ -49,17 +49,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-23`](../../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client): Ein Client verbindet sich verschlüsselt, `record` zeichnet auf und `replay` liefert die Aufzeichnung aus, jeweils wie bei einer unverschlüsselten Verbindung; dieselbe Aufzeichnung ist über beide Verbindungsarten gleich (Abnahmeszenario 15; Integrationstest).
-- [ ] Ohne Konfiguration wird `SSLRequest` mit `N` beantwortet; mit Konfiguration wird ein unverschlüsselter Client (auch nach `GSSENCRequest`, und nur mit einer `StartupMessage` der Version 3.0) mit `PGR-E6003` abgewiesen, mit `--allow-plaintext` zugelassen, ein Klartext-`CancelRequest` bleibt `PGR-W3001`; mehrere Verbindungen nacheinander funktionieren; `--tls-cert` oder `--tls-key` allein und `--allow-plaintext=true` ohne `--tls-cert` sind `PGR-E2001`, vor jedem Fehler von `--upstream` (Test; die Quellen Kommandozeile, Umgebung und Datei, auch gemischt); die Leser der drei Optionen (auch ihrer Umgebungsvariablen) sind angebunden und `nichtGelesen()` in `fremd_test.go` führt sie nicht mehr (aus `slice-v1-abschluss-umgebung-anderes-kommando`).
-- [ ] Nicht lesbare, ungültige, abgelaufene, verschlüsselte oder nicht passende Dateien beenden den Start mit `PGR-E2007` und Exit-Code 2, vor Ausgabedatei, Aufzeichnung und Listen; ein gescheiterter Handshake (auch Bytes vor dem `S`) endet mit `PGR-W3002` ohne Wirkung auf den Exit-Code; Herunterfahren und Zwangsende wirken auf eine verschlüsselte Verbindung wie auf eine unverschlüsselte; Schlüssel erscheinen weder in Logs noch in Meldungen noch in `config show` (Test).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-23`](../../../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client): Ein Client verbindet sich verschlüsselt, `record` zeichnet auf und `replay` liefert die Aufzeichnung aus, jeweils wie bei einer unverschlüsselten Verbindung; dieselbe Aufzeichnung ist über beide Verbindungsarten gleich (Abnahmeszenario 15; Integrationstest).
+- [x] Ohne Konfiguration wird `SSLRequest` mit `N` beantwortet; mit Konfiguration wird ein unverschlüsselter Client (auch nach `GSSENCRequest`, und nur mit einer `StartupMessage` der Version 3.0) mit `PGR-E6003` abgewiesen, mit `--allow-plaintext` zugelassen, ein Klartext-`CancelRequest` bleibt `PGR-W3001`; mehrere Verbindungen nacheinander funktionieren; `--tls-cert` oder `--tls-key` allein und `--allow-plaintext=true` ohne `--tls-cert` sind `PGR-E2001`, vor jedem Fehler von `--upstream` (Test; die Quellen Kommandozeile, Umgebung und Datei, auch gemischt); die Leser der drei Optionen (auch ihrer Umgebungsvariablen) sind angebunden und `nichtGelesen()` in `fremd_test.go` führt sie nicht mehr (aus `slice-v1-abschluss-umgebung-anderes-kommando`).
+- [x] Nicht lesbare, ungültige, abgelaufene, verschlüsselte oder nicht passende Dateien beenden den Start mit `PGR-E2007` und Exit-Code 2, vor Ausgabedatei, Aufzeichnung und Listen; ein gescheiterter Handshake (auch Bytes vor dem `S`) endet mit `PGR-W3002` ohne Wirkung auf den Exit-Code; Herunterfahren und Zwangsende wirken auf eine verschlüsselte Verbindung wie auf eine unverschlüsselte; Schlüssel erscheinen weder in Logs noch in Meldungen noch in `config show` (Test).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -104,7 +104,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- Test-Zertifikate müssen im Testlauf erzeugt werden; ein fest eingecheckter Schlüssel wäre ein Geheimnis im Repository — **Ausgang:** offen bis Closure.
+- Test-Zertifikate müssen im Testlauf erzeugt werden; ein fest eingecheckter Schlüssel wäre ein Geheimnis im Repository — **Ausgang bei Closure: entfallen.** `internal/testpki` und `tlsPaar` im Integrationstest erzeugen im Testlauf, der Diff führt keine Datei mit Schlüssel (§7, Risiken aus §6).
 
 **Randformen** (`AGENTS.md` §3.12), entschieden vom Architect am 2026-10-13 in `LH-FA-23.a` (Technik-Stratum), `LH-FA-17.a` (Stelle des Ladens in der Reihenfolge des Starts); [ADR-0018](../../adr/0018-tls-zum-client.md) trägt nur die Entscheidung. Je Randform ein Fall im Test und, nach `AGENTS.md` §3.10, eine Mutation, die nur ihn bricht; bei Aufzählungen je Element:
 
@@ -254,7 +254,43 @@ Jeder Mutant lief einzeln im Bind-Mount (`docker exec` im Image der Stufe `deps`
 
 Die Rückgaben des Implementers sind vom Architect in §6 und in der Spezifikation entschieden und hier nachgezogen.
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+### Closure
+
+**Review und Verifikation.** Review `ca21e61` (0 HIGH, 3 MEDIUM F-1 bis F-3, 2 LOW F-4 und F-5, 6 INFO F-6 bis F-11); die Randformen dazu entschied der Architect in `4f49cf9`, die Nacharbeit zu F-1 bis F-5 und F-8 liegt in `121962d`. Verifikation `8f9d09a` (DoD-Punkte 1 bis 3 bestätigt gegen das gebaute Binary und die gepinnte PostgreSQL-Version; Mutationen zu F-1, F-2, F-4 und die Stichproben rot aus dem richtigen Grund; `make gates` voll auf `3a1876c` grün, Exit 0): V-1 (MEDIUM, die Zusage „Schlüssel in keiner Log-Zeile, auch `debug`“ nur für `replay` belegt), V-2 (LOW, Test-Spalte der Zeile zum Schlüssel im Log), V-3 und V-4 (INFO). Nacharbeit `dec1d7b`: `TestRunTLSLogOhneSchluessel/record` (Zeile in der Tabelle oben, Mutant „Schlüssel in einer Debug-Zeile am Anfang von `record`, nur bei gesetztem Schlüssel“ rot als einziger Test des Pakets) und die Spalte der Zeile berichtigt. Diese Mutation hat der Implementer gefahren; die Verifikation hat sie nach der Nacharbeit nicht erneut gefahren. Handbuch und README sind unberührt (Verifikation: `git diff 4223e5e..3a1876c --name-only` ohne beide Dateien; unter `docs/user/` nur die vier Abdeckungstabellen); den Teil übernimmt `slice-v1-abschluss-tls-client-doku`.
+
+**Entscheidungen zu den Übergaben (Planner, 2026-10-13).**
+
+- **V-1**: behoben mit dem Test für `record` (`dec1d7b`); die Eingrenzung der Zusage in §6 und §7 auf `replay` entfällt, die Zusage gilt für beide Kommandos und hat für beide eine fangende Mutation.
+- **V-2**: berichtigt in `dec1d7b`. Kein Eintrag in `BEO-REPO/plan-nennt-test-der-nicht-existiert`: Die Verifikation zeigte die Zuordnung nicht als falsch, nur als nicht nachgefahren („für die Zusage unerheblich“); der Zähler bleibt bei 2×.
+- **F-6**: erledigt, §7 nennt 2351 (selbst gemessen für `4223e5e..dec1d7b -- internal test docs/user`: 2259 Einfügungen plus 92 Löschungen). **F-8**: `Gesetzt()` entfernt. **F-10** und **F-11**: akzeptierte Negative, in §6 entschieden, kein Eintrag. **V-3**: kein Befund am Slice.
+- **F-9** (Entscheidung des Architect nach dem Code, `246dce2` nach `a65a095`): die Rückgabe des Implementers kam im Plan an, nach dem Code; Register unten.
+- **F-7 und die Meldeschwelle.** Größe 2351 (Metrik `AGENTS.md` §3.14) gegen Marke 2500: **nicht erreicht**, Abstand 149, die Rückführung `in-progress` → `next` ist nicht eingetreten. Die Schätzung des Architect (1400 bis 1800 in dieser Metrik) ist um 551 (31 %) überschritten, beim Review um 386 (21 %), vor der Nacharbeit zum Review um 294 (16 %); die Marke musste von 2300 auf 2500 angehoben werden. Das Mehr liegt in den Tests (die größten Dateien des Diffs sind `server_tls_test.go` 719, `tls_test.go` 484, `bootstrap/tls_test.go` 200, `tls_client_e2e_test.go` 156, `tls_unix_test.go` 64 Zeilen), die je Element nach `AGENTS.md` §3.10 wachsen, und in drei Nachrunden (Review, Verifikation, Rückgabe des Implementers). Die Meldeschwelle (rund 1900) wurde ohne Anhalten überschritten; sie steht in keinem Artefakt des Repos (Review F-7: `grep` in Plan, `AGENTS.md`, `.claude/commands`, `harness/` leer), eine Überschreitung ist also gegen keine Regel prüfbar. Die Größenregel bleibt erfüllt: drei Liefer-Punkte, zwei Schichten, in einer Review-Sitzung geprüft.
+- **Randformen im Code vor §6.** F-1 (`laenge == 8`, im Code entschieden, in §6 und Spezifikation nicht genannt, vom Review gefunden) und die Rückgabe des Implementers (kein `close_notify`, Text außerhalb der PEM-Blöcke, Ursache bei mehreren Mängeln, Bytes nach dem `SSLRequest`, PKCS #8 anderer Art; fünf Randformen im Code `a65a095`, entschieden in `246dce2`).
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge):
+
+| Risiko | Ausgang | Begründung |
+|---|---|---|
+| Test-Zertifikate müssen im Testlauf erzeugt werden; ein eingecheckter Schlüssel wäre ein Geheimnis im Repository | entfallen | `internal/testpki` erzeugt Zertifikat und Schlüssel im Testlauf, `tlsPaar` im Integrationstest ebenso; `git diff --name-status 4223e5e..dec1d7b` führt keine Datei mit Schlüssel oder Zertifikat (Verifikation, DoD-Zeile *Closure-Notiz*). |
+
+Andere Risiken führt §6 nicht. Die akzeptierten Negative dort (Verhalten je Serverversion, `NeuesTLS` mit einem Wert) sind keine Risiken mit Ausgang und bleiben mit ihrer Begründung in §6 stehen.
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure; Beleg je `evidence/slice-v1-abschluss-tls-client.md`):
+
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — F-2 (Dateiarten), F-3 und V-1 (Schlüssel im Log, je Kommando), F-4 (Kette): 32 → 33. Verkörpert (`AGENTS.md` §3.10); Sensor geplant (`slice-harness-mutation`).
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — F-4 (Hilfetext zur Kette), F-5 (Kommentar an `sslAnfrage`): 51 → 52. Verkörpert (`AGENTS.md` §3.11); Sensor geplant (`slice-harness-mutation`).
+- `BEO-REPO/spec-randform-erst-im-review-entschieden` — F-1: 27 → 28. Verkörpert (`AGENTS.md` §3.12).
+- `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` — Rückgabe des Implementers, F-9: 13 → 14. Verkörpert (`.claude/commands/implement-slice.md` Randform-Rückgabe).
+- `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` — 3 → 4 (Urteil des Planners): Die Schätzung lag in der Metrik von `AGENTS.md` §3.14 (1400 bis 1800) und die Messung 16 % (vor der Nacharbeit), am Ende 31 % darüber; die Marke musste angehoben werden. Anders als bei `slice-v1-abschluss-sessions` und `slice-harness-gate-kette-schnell` (je rund ein Zehntel, Spielraum zur Schwelle reichte) trug hier der Spielraum nicht. Verkörpert (`AGENTS.md` §3.14), Regel bleibt.
+- Neu, 1×, offen: `BEO-REPO/meldeschwelle-ohne-artefakt` (F-7).
+- Kein Auftreten: `BEO-REPO/groessenprobe-ohne-messbaren-stand` (die Marke nannte ihre Metrik, die Probe hing an keiner Lesart), `BEO-REPO/plan-nennt-test-der-nicht-existiert` (2×, V-2 nicht als Auftreten gezählt, oben), `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (das akzeptierte Negativ in §6 ist die Antwort, TLS betrifft nur die Seite des Clients), `BEO-REPO/verhalten-nur-unter-linux-geprueft` (die Dateiarten-Fälle, Socket und FIFO, laufen nur unter Linux im Container; kein Befund), `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` (der Nehmer ist `slice-v1-abschluss-tls-client-doku`, die Verifikation bestätigt Handbuch und README als unberührt).
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3×; die vier verkörperten Regeln bleiben, `AGENTS.md` wird nicht geändert.
+
+**Lerneintrag — Wiederaufgetreten, Regel bleibt** (`AGENTS.md` §3.10, §3.12, §3.14); geändert wird keine Regel, kein `liegt in`. Drei der vier Funde der Klasse „Zusage ohne fangende Mutation“ waren Elemente einer Aufzählung, obwohl die Schärfung („je Element einer Aufzählung ein Fall und eine Mutation“, `seit slice-harness-gate-kette-stop-hook-liste`) schon galt: Gerät und Socket neben Verzeichnis und FIFO (F-2), die Kette der Zertifikatsdatei (F-4) und, am deutlichsten, „record und replay“ (F-3, V-1): Die Nacharbeit zum Review schloss die Lücke für `replay` und ließ `record` offen, die Verifikation fand es mit derselben Mutation am anderen Kommando. Ein Kommando, eine Stufe, eine Quelle ist ein Element der Aufzählung wie eine Pfadform. Was funktionierte: Der Architect entschied die Randformen vor der Nacharbeit, jede Nacharbeit bekam eine Zeile Zusage · Mutation · roter Test, und die Verifikation fuhr die Mutation an beiden Kommandos. Vorschläge an den Nutzer, nicht als Eintrag und nicht von dieser Closure geändert: (1) `.claude/commands/implement-slice.md` Schritt 19 (oder `AGENTS.md` §3.10): Eine Nacharbeit zu einem Fund dieser Klasse prüft die Zusage auf weitere Elemente derselben Aufzählung, vor allem „beide Kommandos“, „jede Stufe“, „jede Quelle“, statt nur das genannte zu schließen. (2) `AGENTS.md` §3.14 oder `architect.md`: Die Meldeschwelle steht neben der Marke in §4 des Plans (Zahl und Metrik), sonst ist ihr Überschreiten nicht prüfbar (`BEO-REPO/meldeschwelle-ohne-artefakt`, 1×). Retirement-Check bestanden (keine Regel entfernt oder gelockert).
+
+**Paarungen.** (a) Anker: Der Lerneintrag trägt kein Feld `liegt in`, keine Verkörperung; nichts zu prüfen. (b) Folge-Slice: Genannt ist `slice-v1-abschluss-tls-client-doku`; er existiert in `next/` und nimmt an: `grep -n "slice-v1-abschluss-tls-client"` findet die Kennung des Gebers in seinem §1 und seiner DoD. Die Sendung dieser Closure (Randformen der Spezifikation, die das Handbuch nennen muss) steht im selben Commit in seinem §6 und §8; Nachzählung: Liefer-Punkte 2, Schichten eine (Dokumentation), innerhalb der Grenze. `slice-v1-abschluss-postgres-versionen` bekommt keine Sendung (akzeptiertes Negativ in §6, keine Bindung). (c) Register: Alle genannten Kennungen `BEO-REPO/…` bestehen als Verzeichnis, jedes mit nicht leerem `evidence/`.
+
+**Stand der Gates.** Die Läufe stehen oben; die Verifikation fuhr `make gates` voll auf `3a1876c`. Den Lauf auf dem Stand der Closure nennt der Bericht des Planners, nicht dieser Absatz.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -276,5 +312,7 @@ Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-umgebung-anderes
 Nachgezählt bei der Prüfung des Architect (2026-10-13, `AGENTS.md` §3.13): Die Randformen aus §6 gehören zu den drei Liefer-Punkten (Aushandlung und Abweisung; Optionen und Kombinationen; Dateien und Fehler) und fügen keinen hinzu. Schichten: zwei. Die Meldungscodes in `internal/hexagon/model` sind Konstanten des Katalogs und zählen nicht als Schicht (Entscheidung des Nutzers vom 2026-10-13; wie `PGR-E2007` im Vorgänger `slice-v1-abschluss-einspielen-tls`, der mit CLI- und Upstream-Adapter bei zwei blieb); der Bootstrap ist Verdrahtung (§3). Damit bleibt der Slice bei zwei Schichten plus Verdrahtung. `internal/testpki` ist Testhilfe.
 
 Nachgezählt beim Implementieren (`AGENTS.md` §3.13): Liefer-Punkte 3, Schichten zwei (PGWire-Adapter, CLI-Adapter) plus Verdrahtung. Der Bootstrap verzweigt nicht (kein `if` auf „TLS gesetzt“) und stuft nichts ein; `NeuesTLS` liefert ohne Dateien `nil`. Die Meldungscodes bleiben Konstanten.
+
+Gesichtet bei der Closure (Planner, 2026-10-13; die Aussage „es trägt nur seine `README.md`“ oben galt zum Datum des Plans): Das Register trägt inzwischen `BEO-REPO/`. Treffer und Zählung stehen in §7, *Register*; keiner der nicht verkörperten Einträge erreicht mit diesem Slice 3×. Nachgezählt bei der Closure (`AGENTS.md` §3.13): Liefer-Punkte 3, Schichten zwei (PGWire-Adapter, CLI-Adapter) plus Verdrahtung, unverändert.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-tls-client
+**Fund:** Fünf Randformen standen im Code (`a65a095`), bevor der Architect sie entschied (`246dce2`): kein `close_notify` beim Schließen, Text außerhalb der PEM-Blöcke, Ursache bei mehreren Mängeln einer Datei, Bytes nach dem `SSLRequest` und PKCS-#8-Schlüssel anderer Art. Der Implementer gab sie zurück, aber nach dem Code (Review F-9, INFO; aus dem Diff nicht ablesbar, ob er vorher anhielt). Die Entscheidung des Architect deckte den Code.

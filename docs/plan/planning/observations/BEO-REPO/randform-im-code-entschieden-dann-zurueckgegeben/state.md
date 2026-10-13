@@ -7,3 +7,5 @@ Der Absatz *Auch eine Lesart ist eine Entscheidung* in `.claude/commands/impleme
 Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-v1-abschluss-antwortvergleich` (F-670, INFO) — zwei Lesarten im Code vor der Entscheidung des Architect, als Bericht statt als Rückgabe (Beleg `evidence/slice-v1-abschluss-antwortvergleich.md`).
 
 Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-v1-abschluss-sessions` (F-680, MEDIUM) — zwei beobachtete Randformen nur im Bericht statt als Rückgabe (Beleg `evidence/slice-v1-abschluss-sessions.md`).
+
+Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-v1-abschluss-tls-client` (F-9, INFO) — fünf Randformen im Code, danach zurückgegeben und vom Architect entschieden (Beleg `evidence/slice-v1-abschluss-tls-client.md`).

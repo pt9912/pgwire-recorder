@@ -29,3 +29,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-gate-kette-
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-gate-kette-stop-hook-liste` (F-705, F-707, V-332, V-334) — ein Kopf sagte ein Überspringen zu, das als root rot endete; ein Kommentar nannte ein Signal ohne Fall; ein Satz der Spezifikation reichte weiter als der Fall; zwei INFO-Stellen der Verifikation (Beleg `evidence/slice-harness-gate-kette-stop-hook-liste.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-gate-kette-stop-hook-freigabe` (F-714, F-717, V-340) — der Kopf eines Skripts und ein Satz der Spezifikation sagten „nur bei identischer Liste“ zu, wo der Hook auch über die Positivliste freigibt; ein Kopf nannte den Wortlaut des `reason` weiter, als ein Fall ihn prüft (Beleg `evidence/slice-harness-gate-kette-stop-hook-freigabe.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-tls-client` (F-4, F-5) — ein Hilfetext sagte die Kette zu, ein Kommentar alle Bytes vor dem `S`, beide weiter als Test und Spezifikation (Beleg `evidence/slice-v1-abschluss-tls-client.md`).

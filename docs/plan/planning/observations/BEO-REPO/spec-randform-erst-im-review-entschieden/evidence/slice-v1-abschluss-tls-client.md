@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-tls-client
+**Fund:** Der Code (`server.go`, `laenge == 8 && (code == codeSSLRequest || …)`) entschied die Randform „`SSLRequest` oder `GSSENCRequest` mit Länge ungleich 8“; weder §6 noch die Spezifikation nannten sie, kein Test hatte sie (Review F-1, MEDIUM). Entschieden vom Architect in `4f49cf9` (Länge unter 8 oder über dem Höchstmaß `PGR-W3003`, sonst `PGR-E6001` ohne Antwort), Test `TestTLSSonderanfrageMitFalscherLaenge` in `121962d`.

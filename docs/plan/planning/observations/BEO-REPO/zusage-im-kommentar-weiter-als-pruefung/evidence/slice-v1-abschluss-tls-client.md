@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-tls-client
+**Fund:** Der Hilfetext von `--tls-cert` und `LH-FA-23.a` sagten die Zertifikatskette zu, kein Test prüfte, dass der Server sie ausliefert (Review F-4, LOW); der Kommentar von `sslAnfrage` sagte zu, dass alle Bytes vor dem `S` zu `PGR-W3002` führen, der Code erkennt nur die beim Senden des `S` schon empfangenen (F-5, LOW). Behoben in `121962d`: `TestTLSKetteWirdAusgeliefert`, Kommentar auf die Spezifikation gefasst.

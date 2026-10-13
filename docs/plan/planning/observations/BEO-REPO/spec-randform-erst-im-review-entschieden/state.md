@@ -11,3 +11,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-sessio
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-gate-kette-schnell` (F-694) — die Aufrufarten des Treibers (Make-Flags `-n`, `-q`, `-t`, `-i`, auch aus `MAKEFLAGS`) standen in §6 nicht; die Regel nannte sie nicht (Beleg `evidence/slice-harness-gate-kette-schnell.md`).
 
 Der Absatz *Aufrufarten des Treibers gehören dazu* in `AGENTS.md §3.12` (ein Werkzeug, dessen Ergebnis ein Hook oder Gate später glaubt, nennt in §6 die Aufrufarten außerhalb des Normalfalls und je eine Entscheidung) — Herkunfts-Anker `seit slice-harness-gate-kette-schnell` (Beleg `evidence/slice-harness-gate-kette-schnell.md`, F-694). Als Vorschlag des Planners eingetragen; der Nutzer kann ihn streichen.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-tls-client` (F-1) — die Länge von `SSLRequest` und `GSSENCRequest` war im Code entschieden, in §6 und Spezifikation nicht genannt (Beleg `evidence/slice-v1-abschluss-tls-client.md`).
