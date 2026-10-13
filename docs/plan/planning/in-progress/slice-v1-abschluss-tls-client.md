@@ -70,12 +70,12 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driving/pgwire` | update | TLS-Terminierung, Aushandlung nach `SSLRequest`, Abweisung unverschlüsselter Clients (`PGR-E6003`), `PGR-W3002`; baut die TLS-Konfiguration aus den PEM-Bytes (`crypto/tls` nur hier, Fitness Function von [ADR-0018](../../adr/0018-tls-zum-client.md)) |
-| `internal/adapters/driving/cli` | update | Optionen `--tls-cert`, `--tls-key`, `--allow-plaintext` (Tabelle, Schlüssel der Datei, Hilfetext), Kombinationen, Laden und Prüfen beider Dateien nach `LH-FA-23.a` *Dateien* ohne `crypto/tls` (PEM, Gültigkeit und Passung über `crypto/x509`; die Regel des Architektur-Gates lässt `crypto/tls` im CLI-Adapter nicht zu und wird nicht gelockert, `AGENTS.md` §3.6), Fehlerabbildung auf `PGR-E2001` und `PGR-E2007`; der Schlüssel liegt in einem Typ, der ihn in keiner Textform ausgibt |
+| `internal/adapters/driving/pgwire` (`tls.go`, `server.go`) | update | TLS-Terminierung (`NeuesTLS`, `MitTLS`), Aushandlung nach `SSLRequest` (`sslAnfrage`), Abweisung unverschlüsselter Clients (`PGR-E6003`), `PGR-W3002`; `startup` liest `SSLRequest` und `GSSENCRequest` selbst statt über pgproto3, weil dessen Leser Bytes hinter der Anfrage in einen eigenen Puffer zieht; `tlsVerbindung` schließt ohne `close_notify`; baut die TLS-Konfiguration aus den PEM-Bytes (`crypto/tls` nur hier, Fitness Function von [ADR-0018](../../adr/0018-tls-zum-client.md)) |
+| `internal/adapters/driving/cli` (`tls.go`, `cli.go`, `zertifizierungsstelle.go`) | update | Optionen `--tls-cert`, `--tls-key`, `--allow-plaintext` (Tabelle, Schlüssel der Datei, Hilfetext), Kombinationen (`tlsKombination`, vor der `zuletzt`-Schleife), Laden und Prüfen beider Dateien nach `LH-FA-23.a` *Dateien* ohne `crypto/tls` (PEM, Gültigkeit und Passung über `crypto/x509`; die Regel des Architektur-Gates lässt `crypto/tls` im CLI-Adapter nicht zu und wird nicht gelockert, `AGENTS.md` §3.6), Fehlerabbildung auf `PGR-E2001` und `PGR-E2007`; der Schlüssel liegt in einem Typ, der ihn in keiner Textform ausgibt; die Systemuhr für die Gültigkeit kommt als Parameter in `parse` (`Parse` übergibt `time.Now`); die Lesefunktionen für Dateien und Zertifikate trägt `zertifizierungsstelle.go` für beide Optionsfamilien |
 | `internal/hexagon/model` | update | Meldungscodes `PGR-E6003` und `PGR-W3002` (Katalog-Konstanten, keine Logik; zählt nicht als Schicht, Entscheidung des Nutzers vom 2026-10-13, siehe §8) |
-| `internal/bootstrap` | update | reine Verdrahtung: reicht Zertifikat und Schlüssel (PEM-Bytes) an den PGWire-Server; ein Fehler der Konstruktion geht unverändert zurück; verzweigt oder stuft der Bootstrap ein, zählt er (`AGENTS.md` §3.13) |
-| `internal/testpki` | update | Testhilfe: Serverzertifikat mit Gültigkeit und Schlüssel als PEM, Schlüsselvarianten; erzeugt im Testlauf, nichts eingecheckt |
-| `test/integration` | update | Happy/Boundary/Negative nach LH-FA-23 |
+| `internal/bootstrap` | update | reine Verdrahtung: reicht Zertifikat, Schlüssel und Zulassung als Bytes an `pgwire.NeuesTLS` und das Ergebnis an `MitTLS`; ein Fehler der Konstruktion geht unverändert zurück; die Entscheidung „keine Verschlüsselung“ (leere Dateien) trifft `NeuesTLS`, nicht der Bootstrap (`AGENTS.md` §3.13) |
+| `internal/testpki` | update | Testhilfe: Serverzertifikat mit Gültigkeit, Schlüsselart (ECDSA, RSA, Ed25519), Verwendung und Schlüsselnutzung; Zertifikat und Schlüssel als PEM (`PRIVATE KEY`, `RSA PRIVATE KEY`, `EC PRIVATE KEY`); erzeugt im Testlauf, nichts eingecheckt |
+| `test/integration` (`tls_client_e2e_test.go`, `replay_e2e_test.go`) | update | Happy/Boundary/Negative nach LH-FA-23; `beobachtenMit` trägt den `sslmode` des Clients |
 
 ## 4. Trigger
 
@@ -136,6 +136,105 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
+### Belege des Implementers
+
+Jeder Mutant lief einzeln im Bind-Mount (`docker exec` im Image der Stufe `deps`, Quelle per Bind-Mount, `go test -count=1` im betroffenen Paket); die Datei wurde dabei neu geschrieben (neue mtime) und danach zurückgesetzt. Die zwei Mutanten der Integrationstests liefen über `make test-integration` (Build-Kontext, neue mtime). `tls.go` ohne Zusatz ist die Datei des jeweiligen Pakets (CLI: `internal/adapters/driving/cli/tls.go`, PGWire: `internal/adapters/driving/pgwire/tls.go`); „bei record und replay“ heißt, beide Kommandos tragen die Zeile.
+
+**Zusage · Mutation · roter Test, CLI-Adapter (`TestTLS…` in `tls_test.go`, `tls_unix_test.go`)**
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `--tls-cert` allein ist `PGR-E2001` | `case cert && !key` zu `case false` | `TestTLSKombination/*/nur_Zertifikat` |
+| `--tls-key` allein ist `PGR-E2001` | `case key && !cert` zu `case false` | `TestTLSKombination/record/nur_Schlüssel` |
+| `--allow-plaintext=true` ohne `--tls-cert` ist `PGR-E2001` (Wert und ohne Wert) | `case … && !cert` zu `case false` | `TestTLSKombination/*/nur_--allow-plaintext=true`, `…_ohne_Wert` |
+| `--allow-plaintext=false` ohne `--tls-cert` ist gültig | Bedingung `!= ""` statt `== "true"` | `TestTLSKombination`, `TestParseRecord`, `TestParseReplay` (47 Tests) |
+| bei mehreren Verstößen die erste Option der Reihenfolge | Fall `--allow-plaintext` vor `--tls-key` | `TestTLSKombination/*/Schlüssel_und_--allow-plaintext=true` |
+| die Meldung nennt den Pfad nicht | Pfad an die Meldung gehängt | `TestTLSKombination/*/nur_Zertifikat` |
+| Kombinationen kommen vor jedem Fehler von `--upstream` | `tlsKombination` nach der `zuletzt`-Schleife | `TestTLSReihenfolge`, `TestTLSKombination/*/nur_Schlüssel` |
+| Zertifikat wird vor dem Schlüssel geladen | Optionen `tls-key` und `tls-cert` vertauscht | `TestTLSKombination/*/beide_Dateien`, `TestLeserOptionen` |
+| Quelle Kommandozeile vor Umgebung vor Datei, gemischt | Umgebung vor Kommandozeile; Datei vor Umgebung | `TestTLSQuellen/record`, `…/replay` (beide Mutanten) |
+| Optionen und Zulassung nur beim eigenen Kommando | `zugang` liefert immer `Record`; `allow-plaintext` des Replay setzt `Record` | `TestTLSQuellen/replay`, `TestTLSDateienGueltig/replay/*` |
+| jede Datei, Links gefolgt, regulär | `os.Lstat` statt `os.Stat` | `TestTLSDateiKeineRegulaere`, `TestPlayUpstreamCAKeineRegulaere` |
+| Ende der Gültigkeit eingeschlossen | `!jetzt.Before(NotAfter)` | `TestTLSGueltigkeit/*/Ende` |
+| Beginn der Gültigkeit eingeschlossen | `!jetzt.After(NotBefore)` | `TestTLSGueltigkeit/*/Beginn` |
+| Gültigkeit der Kette nicht geprüft | Gültigkeit aller Zertifikate geprüft | `TestTLSDateienGueltig/*/Kette_mit_abgelaufenem_zweiten_Zertifikat` |
+| Namen ungeprüft | Zertifikat ohne Namen abgelehnt | `TestTLSDateienGueltig/*/ohne_Namen` |
+| Verwendung ungeprüft | Verwendung eines Clients abgelehnt | `TestTLSDateienGueltig/*/Verwendung_eines_Clients` |
+| Aussteller ungeprüft | `Verify` gegen die Systemwurzeln | `TestTLSKombination/*/beide_Dateien` und 69 weitere |
+| Gültigkeit gegen die Systemuhr | `Parse` mit fester Uhr (Epoche) | `TestTLSKombination/*/beide_Dateien` und 61 weitere |
+| Schlüssel `PRIVATE KEY` / `RSA PRIVATE KEY` / `EC PRIVATE KEY` | je Typfall entfernt | `TestTLSDateienGueltig/*/…_als_PRIVATE_KEY`, `…/RSA_als_RSA_PRIVATE_KEY`, `…/ECDSA_als_EC_PRIVATE_KEY` |
+| Schlüssel RSA / ECDSA / Ed25519 | je Art ohne öffentlichen Teil | `TestTLSDateienGueltig/*/RSA_als_PRIVATE_KEY`, `…/ECDSA…`, `…/Ed25519_als_PRIVATE_KEY` |
+| anderer Schlüssel (X25519) ungültig | Rückgabe `nil, nil` | `TestTLSDateienFehler/*/--tls-key/X25519-Schlüssel` |
+| `ENCRYPTED PRIVATE KEY` ist verschlüsselt | Typprüfung entfernt | `TestTLSDateienFehler/*/--tls-key/ENCRYPTED_PRIVATE_KEY` |
+| `Proc-Type: 4,ENCRYPTED` ist verschlüsselt | Kopfzeilenprüfung entfernt | `TestTLSDateienFehler/*/--tls-key/Proc-Type_4,ENCRYPTED` |
+| anderer Blocktyp ist ungültig | `CERTIFICATE` als Schlüssel angenommen | `TestTLSDateienFehler/*/--tls-key/Zertifikat` und `…/Zertifikat,_dann_Schlüssel` |
+| ein zweiter Block ist ungültig | Prüfung `&& false` | `TestTLSDateienFehler/*/--tls-key/zwei_Schlüssel`, `…/Schlüssel,_dann_Zertifikat` |
+| der Schlüssel passt zum Zertifikat | Vergleich durch `!= nil` ersetzt | `TestTLSDateienFehler/*/--tls-key/anderer_Schlüssel_derselben_Art`, `…/Schlüssel_einer_anderen_Art` |
+| ein Schlüsselblock in der Zertifikatsdatei ist ungültig | Typprüfung nur für `--upstream-ca` | `TestTLSDateienFehler/*/--tls-cert/Schlüsselblock` (und 6 weitere) |
+| `config show` liest die Dateien nicht | `parseConfig` liest `tls_cert` | `TestConfigShowLiestTLSNicht` |
+| relativer Pfad gilt ab dem aktuellen Verzeichnis | relativer Pfad ab der Wurzel | `TestTLSRelativ` |
+| der Schlüssel erscheint in keiner Textform | `Format` gibt den Inhalt aus | `TestTLSOptionenOhneSchluessel` |
+
+**Zusage · Mutation · roter Test, PGWire-Adapter (`server_tls_test.go`)**
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `SSLRequest` wird mit `S` beantwortet | Antwort `N` | `TestTLSAushandlung`, `TestTLSReplay`, `TestTLSMindestversion`, `TestTLSZweiterAufbau` |
+| kein Zertifikat des Clients angefordert | `ClientAuth: RequestClientCert` | `TestTLSAushandlung` |
+| kein ALPN ausgehandelt | `NextProtos: h2` | `TestTLSAushandlung` |
+| Mindestversion 1.2 | `MinVersion: TLS10` | `TestTLSMindestversion` |
+| ohne Klartext: `PGR-E6003` | Prüfung `false &&` | `TestTLSUnverschluesselt` |
+| `PGR-E6003` auch nach `GSSENCRequest` | `GSSENCRequest` setzt `verschluesselt` | `TestTLSUnverschluesselt` |
+| mit Klartext zugelassen | `klartext` ignoriert | `TestTLSUnverschluesselt`, `TestTLSNacheinanderUndGleichzeitig` |
+| andere Version bleibt `PGR-E6002` | `PGR-E6003` im Zweig der Version | `TestTLSRangfolge/andere_Version` |
+| Sonderanfrage bleibt `PGR-E6001` | `PGR-E6003` im Zweig der Sonderanfrage | `TestTLSRangfolge/unbekannte_Sonderanfrage` |
+| fremde erste Nachricht bleibt `PGR-W3003` | `PGR-E6003` im Zweig der Länge | `TestTLSRangfolge/keine_Startnachricht`, `TestTLSDirekt` |
+| `CancelRequest` bleibt `PGR-W3001` | `PGR-E6003` im Zweig `CancelRequest` | `TestTLSRangfolge/CancelRequest` |
+| mehrere Verbindungen nacheinander | `s.tls = nil` nach dem ersten Handshake | `TestTLSNacheinanderUndGleichzeitig`, `TestTLSZweiterAufbau` |
+| Abbruch nach dem `S` ist `PGR-W3002` | `io.EOF` ohne Warnung | `TestTLSHandshakeScheitert/Abbruch_nach_dem_S` |
+| Klartext nach dem `S` ist `PGR-W3002` | `tls.RecordHeaderError` ohne Warnung | `TestTLSHandshakeScheitert/Klartext_nach_dem_S` |
+| Bytes vor dem `S`: kein Handshake, kein `S`, `PGR-W3002` | Prüfung `Buffered` entfernt | `TestTLSHandshakeScheitert/Bytes_vor_dem_S` |
+| die Warnung trägt `remote` | `remote` entfernt | `TestTLSHandshakeScheitert/*`, `TestTLSMindestversion` |
+| die Warnung trägt `code` | `code` entfernt | dieselben |
+| die Warnung nennt nie Zertifikat oder Schlüssel | PEM-Kopfzeile im Log | dieselben |
+| Herunterfahren beendet den Handshake ohne `PGR-W3002` | `ctx.Err()` nicht geprüft | `TestTLSAushandlungEndetBeiHerunterfahren` |
+| Zwangsende beendet den Handshake ohne `PGR-W3002` | `s.zwang` nicht geprüft | `TestTLSAushandlungEndetBeiHerunterfahren` |
+| Zwangsende wartet nicht auf den Client | Schließen mit `close_notify` | `TestTLSZwangsende` |
+| Herunterfahren wirkt auf die verschlüsselte Session | `SetReadDeadline` ohne Wirkung | `TestTLSHerunterfahren`, `TestTLSZwangsende` |
+| Zwangsende erreicht die verschlüsselte Session | Session ohne angemeldetes Ziel | `TestTLSZwangsende` |
+| Ende ohne `close_notify` ist ein Verbindungsende | `io.ErrUnexpectedEOF` entfernt | `TestTLSEndeOhneCloseNotify`, `TestEndeOhneTerminate`, `TestExtendedEreignisse/Verbindungsende` |
+| weiterer `SSLRequest` ist `PGR-E6001` | Prüfung entfernt | `TestTLSZweiterAufbau` |
+| `GSSENCRequest` auf der verschlüsselten Verbindung ist `PGR-E6001` | Prüfung entfernt | `TestTLSZweiterAufbau` |
+| direktes TLS ist `PGR-W3003`, auch mit Klartext | `maxStartLaenge` bis zum Maximum | `TestTLSDirekt`, `TestTLSRangfolge/keine_Startnachricht`, `TestFremdeErsteNachricht` |
+| ein hängender Handshake hält keine andere Verbindung auf | Sperre `s.mu` um den Handshake | `TestTLSNacheinanderUndGleichzeitig` |
+| das Zertifikat wird nach dem Laden nicht mehr geprüft | Ablaufprüfung in `NeuesTLS` | `TestTLSZertifikatUngeprueft` |
+| ein Fehler der Konstruktion geht zurück | Fehler verschluckt | `TestTLSZertifikatUngeprueft` |
+| ohne Dateien keine Verschlüsselung (`nil`) | Verzweigung entfernt | `TestTLSZertifikatUngeprueft` |
+
+**Zusage · Mutation · roter Test, Bootstrap und Integrationstest**
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| replay reicht die Verschlüsselung durch | `MitTLS` entfernt | `TestRunReplayTLS/TLS`, `…/TLS_mit_Klartext` |
+| replay reicht die Zulassung durch | `false` statt `KlartextErlaubt` | `TestRunReplayTLS/TLS_mit_Klartext` |
+| Zertifikat und Schlüssel gehen in dieser Reihenfolge durch | vertauscht | `TestRunReplayTLS/TLS`, `…/TLS_mit_Klartext` |
+| record reicht die Verschlüsselung durch | `MitTLS` entfernt (`make test-integration`) | `TestE2ERecordTLS`, `TestE2EKlartextAbgewiesen`, `TestE2ERecordTLSBeendenMitOffenerVerbindung` |
+| die Aufzeichnung über TLS gleicht der unverschlüsselten | Startparameter `application_name=tls` bei verschlüsselter Verbindung (`make test-integration`) | `TestE2ERecordTLS` |
+| die Dateien werden beim Start geladen, vor der Ausgabedatei | beide Ladeschritte übersprungen (`make test-integration`) | `TestE2ETLSStartfehler` (`PGR-E2002` statt `PGR-E2007`), `TestE2ERecordTLS`, `TestE2EReplayTLS`, `TestE2EKlartextAbgewiesen`, `TestE2ERecordTLSBeendenMitOffenerVerbindung` |
+
+**Ohne eigenen Mutanten, mit Grund**
+
+- *Zertifikat und Schlüssel werden nur beim Start geladen:* Der Server erhält Bytes und keinen Pfad; ein Nachladen ist im Code nicht angelegt. Es gibt keine Mutation, die nur sie bricht, ohne einen Pfad einzuführen.
+- *Bytes nach dem `SSLRequest`, die erst nach dem Senden des `S` eintreffen:* nicht erkennbar; sie scheitern im Handshake mit `PGR-W3002` (Fall `Klartext nach dem S`).
+
+**Läufe** (Stand: Arbeitsbaum vor dem Commit der Belege, 2026-10-13):
+
+- `make gates` (voll): grün, Exit 0, darin `make lint` ohne Befund (`0 issues`; ein erster Lauf fand vier Befunde in den neuen Dateien, behoben), `make test-integration` (`run-integration-tests: gruen`), `make a-check-negativ` (23 Fälle), `make abdeckung-check`, `make docs-check`, `make kopf-check`, `make baseline-verify`, die Gegenproben.
+- Engster Sensor je Änderung: `go vet -tags integration ./...` und `go test` je Paket im Bind-Mount-Container; `go test -count=6 -run TLS` im PGWire-Adapter ohne Ausfall (Flatterprobe der Zeitfälle).
+- Größe nach `AGENTS.md` §3.14 (`git diff --numstat 4223e5e..<letzter Commit> -- internal test docs/user`): siehe Bericht an den Planner; vor den Commits 2094 Zeilen (Einfügungen plus Löschungen) einschließlich der Abdeckungstabellen unter `docs/user/` (48 Zeilen), unter der Marke 2300, über der Schätzung 1400 bis 1800.
+
+**Rückgaben und Lesarten** stehen im Bericht an den Planner (Randform · Frage); keine davon ist in §6 eingetragen.
+
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
@@ -156,5 +255,7 @@ Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026
 Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-umgebung-anderes-kommando` (Planner, 2026-10-12, `AGENTS.md` §3.13): Sie gehört zu DoD-Punkt 2 (Leser der Option und Kürzung von `nichtGelesen()` im Test des CLI-Adapters) und fügt keinen Liefer-Punkt hinzu: Liefer-Punkte 3. Schichten: zwei (PGWire-Adapter, CLI-Adapter); der CLI-Adapter war schon gezählt, `fremd_test.go` liegt in ihm.
 
 Nachgezählt bei der Prüfung des Architect (2026-10-13, `AGENTS.md` §3.13): Die Randformen aus §6 gehören zu den drei Liefer-Punkten (Aushandlung und Abweisung; Optionen und Kombinationen; Dateien und Fehler) und fügen keinen hinzu. Schichten: zwei. Die Meldungscodes in `internal/hexagon/model` sind Konstanten des Katalogs und zählen nicht als Schicht (Entscheidung des Nutzers vom 2026-10-13; wie `PGR-E2007` im Vorgänger `slice-v1-abschluss-einspielen-tls`, der mit CLI- und Upstream-Adapter bei zwei blieb); der Bootstrap ist Verdrahtung (§3). Damit bleibt der Slice bei zwei Schichten plus Verdrahtung. `internal/testpki` ist Testhilfe.
+
+Nachgezählt beim Implementieren (`AGENTS.md` §3.13): Liefer-Punkte 3, Schichten zwei (PGWire-Adapter, CLI-Adapter) plus Verdrahtung. Der Bootstrap verzweigt nicht (kein `if` auf „TLS gesetzt“) und stuft nichts ein; `NeuesTLS` liefert ohne Dateien `nil`. Die Meldungscodes bleiben Konstanten.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
