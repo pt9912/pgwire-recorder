@@ -2106,7 +2106,10 @@ Gültigkeit liegt, beide Grenzen eingeschlossen. Die Schlüsseldatei enthält ge
 PEM-Block vom Typ `PRIVATE KEY`, `RSA PRIVATE KEY` oder `EC PRIVATE KEY` (RSA, ECDSA oder
 Ed25519); ein Block vom Typ `ENCRYPTED PRIVATE KEY` oder mit der Kopfzeile
 `Proc-Type: 4,ENCRYPTED` ist ein verschlüsselter Schlüssel, jeder andere Typ und ein
-zweiter Block sind ungültig. Der Schlüssel passt, wenn sein öffentlicher Teil der des
+zweiter Block sind ungültig, ebenso ein PKCS-#8-Schlüssel, der weder RSA noch ECDSA noch
+Ed25519 ist. Text außerhalb der PEM-Blöcke bleibt in beiden Dateien unbeachtet, auch nach
+dem Schlüsselblock. Hat eine Datei mehrere Mängel, ist der Code `PGR-E2007`; welchen Mangel
+der Ursachentext nennt, ist nicht zugesagt. Der Schlüssel passt, wenn sein öffentlicher Teil der des
 Zertifikats ist. Eine Datei, die Zertifikat und Schlüssel zugleich enthält, ist ungültig
 (Entscheidung des Nutzers vom 2026-10-13). Verwendung und Namen des Zertifikats (Schlüsselverwendung, Aussteller) prüft
 der Recorder nicht. Die Meldung `PGR-E2007` nennt die Option und die Ursache, weder den
@@ -2119,9 +2122,11 @@ weitere Zusage; der Recorder fordert kein Zertifikat des Clients an und handelt 
 aus. Scheitert der Handshake, endet die Verbindung mit der Warnung `PGR-W3002`; der
 Prozessausgang bleibt unverändert. Das gilt auch für einen Client, der nach dem `S`
 abbricht oder Klartext sendet, und für einen Client, der Bytes nach dem `SSLRequest`
-sendet, bevor das `S` bei ihm ankam: Der Recorder beginnt den Handshake dann nicht und
-beendet die Verbindung mit `PGR-W3002`, damit kein Klartext in die verschlüsselte
-Verbindung gelangt. Die Warnung trägt `code` und `remote` und als Fehlertext die Ursache
+sendet, bevor er das `S` erhielt: Hat der Recorder beim Senden des `S` solche Bytes schon
+empfangen, beginnt er den Handshake nicht und beendet die Verbindung mit `PGR-W3002`;
+später eintreffende Bytes scheitern im Handshake mit `PGR-W3002`. Beides sorgt dafür,
+dass kein Klartext in die verschlüsselte Verbindung gelangt; mehr als das sagt die
+Spezifikation nicht zu. Die Warnung trägt `code` und `remote` und als Fehlertext die Ursache
 des Handshakes, nie Zertifikat oder Schlüssel. Der Handshake hat kein eigenes Zeitlimit,
 wie der Verbindungsaufbau sonst; Herunterfahren und Zwangsende beenden ihn ohne Meldung
 (`LH-FA-13.a`), auch ohne `PGR-W3002`. Ein `GSSENCRequest` wird wie bisher mit `N`
@@ -2133,7 +2138,7 @@ wird nicht bedient (Grenze, Entscheidung des Nutzers vom 2026-10-13). Die Verbin
 langsamer Handshake hält keine andere Verbindung auf. TLS betrifft nur die Seite des
 Clients; das Verhalten hängt nicht von der Version des Servers ab.
 
-**Nach der Aushandlung.** Das Ende einer verschlüsselten Verbindung (`Terminate`, Schließen
+**Nach der Aushandlung.** Der Recorder sendet beim Schließen einer verschlüsselten Verbindung, gleich aus welchem Grund, kein `close_notify`; der Client sieht das Ende der TCP-Verbindung. Das Ende einer verschlüsselten Verbindung (`Terminate`, Schließen
 mit oder ohne `close_notify`, Abbruch) wird wie das Ende einer unverschlüsselten
 behandelt und gleich aufgezeichnet. Herunterfahren und Zwangsende wirken auf eine
 verschlüsselte Verbindung wie auf eine unverschlüsselte (`LH-FA-13.a`); das Zwangsende
