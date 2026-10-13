@@ -188,7 +188,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 | 39 | Glossar: Sitzung ohne Interaktionen entsteht nur mit `--record-empty-sessions` | Zeilen 9, 10 | wie dort |
 | 40 | Hinweis *Aufzeichnen* (Passwort) und Zeilen `PGR-E3004`, `PGR-E5003`: neue Teilsätze | Zeilen 18, 30, 23, 26 | wie dort |
 
-**Stand der Gates.** Wird nach dem Lauf eingetragen.
+**Stand der Gates.** `make gates` am Stand `a4f956f` (Arbeitsbaum sauber): Exit 0 (Laufzeit 5 min 15 s), `make abdeckung-check` und `make docs-check` (669 Dateien, 0 Befunde) darin. Der Commit danach ändert nur diese Zeile; `make gates` auf dem Stand nach dem letzten Commit ist die Messung, die der Bericht nennt.
 
 **Neue und geänderte Sätze neben Bestand** (Schritt 17; Merkmal aus den Aussagen des neuen Abschnitts, die eine Allgemeinregel des Bestands einschränken: „jede Verbindung ohne Anfrage ist keine Sitzung“, „jede aufgezeichnete Sitzung hat Anfragen“, „eine beendete Verbindung schreibt die Datei“, „jede Sitzung läuft über eine Verbindung“, „der Exit-Code ist der des ersten Fehlers“; `grep` des Handbuchs nach `Sitzung`, `ohne Anfrage`, `beendete Verbindung`, `nie verwendet`, `Exit-Code`):
 
