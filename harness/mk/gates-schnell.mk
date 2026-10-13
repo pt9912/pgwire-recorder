@@ -6,8 +6,9 @@
 # nennt jedes Gate mit `-gegenprobe` im Namen, dazu a-check-negativ und
 # test-integration; `gates-schnell-gegenprobe` hält sie gegen GATE_CHECKS. Die
 # Gegenprobe hängt an GATE_CHECKS, `gates-schnell` selbst nicht (es wäre sonst
-# eigener Bestandteil). Beide laufen auf dem Host mit bash, make, git, sha256sum,
-# sort und coreutils; die Gegenprobe braucht dazu setsid, grep, sed und awk.
+# eigener Bestandteil). Die Gates der Kette brauchen, was ihre Ziele brauchen (`build`,
+# `test`, `lint`, `a-check`, `docs-check` fahren über Docker); die Gegenprobe fährt
+# Attrappen als Gates und ruft Docker nicht.
 # GEPRÜFT DURCH tools/harness/gates-schnell-gegenprobe.sh.
 GATE_SCHNELL_AUSNAHME := abdeckung-gegenprobe a-check-negativ gates-schnell-gegenprobe hook-gegenprobe kopf-check-gegenprobe lint-gegenprobe test-integration
 

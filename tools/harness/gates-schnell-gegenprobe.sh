@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gates-schnell-gegenprobe — prüft die schnelle Gate-Kette (harness/mk/gates-schnell.mk,
-# tools/harness/gates-schnell.sh) gegen die Punkte 1 bis 8 von SPEC-052
+# tools/harness/gates-schnell.sh) gegen die Punkte 1 bis 7 von SPEC-052
 # (spec/spezifikation.md) an Kopien in einem Temp-Verzeichnis; der Arbeitsbaum
 # bleibt unberührt. Eine Kopie trägt Makefile, Fragment der Kette, Skripte der Kette
 # und ein Fragment mit Gates, die ihren Namen in eine Logdatei schreiben; die
@@ -13,7 +13,9 @@
 #
 # GRENZE der Gegenprobe: Die Gates der Kopie sind Attrappen; ob die echten Gates in
 # der echten Reihenfolge laufen, prüft `make gates-schnell` selbst, nicht sie. Die
-# Aufruf-Voraussetzung (Punkt 8) ist eine Bindung der Zusage und hat keinen Fall.
+# Aufruf-Voraussetzung (Punkt 8) ist eine Bindung der Zusage und hat keinen Fall. Sie
+# fährt `make gates` nie, nur `make -n gates`; was der volle Lauf mit dem Stand der
+# schnellen Kette tut, ist nicht zugesagt und hat keinen Fall.
 #
 # Ausgang: 0, wenn jede Prüfung wie erwartet endet, sonst 1.
 set -euo pipefail
@@ -72,7 +74,7 @@ fixture() {
     printf 'FAKE_SCHNELL := %s neu-x\n' "$SCHNELL"
     printf 'FAKE_LANGSAM := %s\n' "$LANGSAM"
     printf 'FAKE := $(FAKE_SCHNELL) $(FAKE_LANGSAM)\n.PHONY: $(FAKE)\n$(FAKE):\n'
-    printf '\t@echo $@ >> "$(LOG)"; if [ "$(FAIL)" = "$@" ]; then exit 1; fi; if [ "$(ABBRUCH)" = "$@" ]; then kill -KILL 0; fi\n'
+    printf '\t@echo $@ >> "$(LOG)"; if [ "$(FAIL)" = "$@" ]; then exit 1; fi; if [ "$(ABBRUCH)" = "$@" ]; then kill -KILL 0; fi; if [ "$(AENDERE)" = "$@" ]; then echo x >> aenderung; fi\n'
     printf 'GATE_CHECKS += $(FAKE)\n'
   } > "$w/harness/mk/fake.mk"
   git -C "$w" init -q
@@ -85,7 +87,8 @@ lauf() {
   : > "$arbeit/log"
   set +e
   {
-    env -u MAKEFLAGS -u MAKELEVEL -u MFLAGS LOG="$arbeit/log" FAIL="${fail:-}" ABBRUCH="${abbruch:-}" \
+    env -u MAKELEVEL -u MFLAGS MAKEFLAGS="${mf:-}" LOG="$arbeit/log" FAIL="${fail:-}" ABBRUCH="${abbruch:-}" \
+      AENDERE="${aendere:-}" \
       setsid -w make -s --no-print-directory -C "$w" "$@" > "$arbeit/out" 2>&1
     code=$?
   } 2> /dev/null
@@ -99,7 +102,7 @@ pruefe() {
   deckung "$w"
 
   # Punkte 2, 3, 5, 7: grüner Lauf neben einem vorhandenen vollen Nachweis.
-  rm -f "$stand"; echo VOLL > "$voll"; fail=""; abbruch=""
+  rm -f "$stand"; echo VOLL > "$voll"; fail=""; abbruch=""; mf=""; aendere=""
   lauf "$w" gates-schnell
   [ "$code" -eq 0 ] || echo "lauf-gruen"
   for g in $LANGSAM; do grep -qxF "$g" "$arbeit/log" && echo "p2-langsam"; done
@@ -109,6 +112,14 @@ pruefe() {
     echo "p5-stand"
   fi
   [ "$(cat "$voll" 2> /dev/null)" = VOLL ] || echo "p7-nachweis"
+
+  # Punkt 5: ändert ein Gate des Laufs den Arbeitsbaum, gilt der Hash nach dem Lauf.
+  rm -f "$stand"; aendere=docs-check
+  lauf "$w" gates-schnell
+  aendere=""
+  if [ ! -f "$stand" ] || [ "$(cat "$stand")" != "$(cd "$w" && bash tools/harness/working-tree-hash.sh)" ]; then
+    echo "p5-ende"
+  fi
 
   # Punkt 7: ohne vollen Nachweis entsteht keiner.
   rm -f "$voll" "$stand"
@@ -126,6 +137,29 @@ pruefe() {
   lauf "$w" gates-schnell
   { [ "$code" -ne 0 ] && [ ! -e "$stand" ]; } || echo "p6-abbruch"
   abbruch=""
+
+  # Punkt 6: Make-Flags, mit und ohne vorhandenen Stand.
+  flagfall "$w" n "" -n gates-schnell
+  flagfall "$w" nenv n gates-schnell
+  flagfall "$w" q "" -q gates-schnell
+  flagfall "$w" t "" -t gates-schnell
+  # -i: Fehler werden überlesen; der Lauf endet mit 0, ein älterer Stand entfällt, keiner entsteht.
+  rm -f "$stand"; mf=""; fail=""
+  lauf "$w" -i gates-schnell
+  [ ! -e "$stand" ] || echo "p6-i-schreibt"
+  echo ALT > "$stand"; fail=kopf-check
+  lauf "$w" -i gates-schnell
+  fail=""
+  [ ! -e "$stand" ] || echo "p6-i-entfernt"
+  echo ALT > "$stand"
+  lauf "$w" -i gates-schnell
+  [ ! -e "$stand" ] || echo "p6-i-entfernt"
+  # andere Flags ändern nichts.
+  for f in -k -j2; do
+    rm -f "$stand"
+    lauf "$w" $f gates-schnell
+    [ -f "$stand" ] || echo "p6-andere"
+  done
 
   # Punkt 1: make gates fährt jedes Gate von GATE_CHECKS, nichts daneben.
   mapfile -t gates < <(gate_variable "$w" GATE_CHECKS)
@@ -149,6 +183,25 @@ pruefe() {
   [ "$code" -ne 0 ] || echo "anschluss-exit-schnell"
   lauf "$w-rot" gates-schnell-gegenprobe
   [ "$code" -ne 0 ] || echo "anschluss-exit-gegenprobe"
+}
+
+# flagfall <wurzel> <name> <MAKEFLAGS der Umgebung> <make-argument>… — ein Aufruf, der kein Gate
+# wirklich fährt (n, q, t), schreibt keinen Stand und entfernt keinen.
+flagfall() {
+  local w="$1" name="$2" stand="$1/.harness/state/gates-schnell-passed.diffsha"
+  mf="$3"; fail=""; abbruch=""
+  shift 3
+  rm -f "$stand"
+  lauf "$w" "$@"
+  [ ! -e "$stand" ] || echo "p6-$name-schreibt"
+  echo ALT > "$stand"
+  lauf "$w" "$@"
+  if [ ! -e "$stand" ]; then
+    echo "p6-$name-entfernt"
+  elif [ "$(cat "$stand")" != ALT ]; then
+    echo "p6-$name-schreibt"
+  fi
+  mf=""
 }
 
 # gruen <name> — die unveränderte Kopie besteht jede Prüfung.
@@ -205,15 +258,56 @@ sed -i '/^printf .*> "\$stand"$/d' "$w/tools/harness/gates-schnell.sh"; rot m-ke
 
 # --- Punkt 6: roter oder abgebrochener Lauf lässt keinen Stand ----------------------
 fixture m-stand-bleibt-nach-rot
-sed -i '/^rm -f "\$stand"$/d' "$w/tools/harness/gates-schnell.sh"; rot m-stand-bleibt-nach-rot p6-rot
+sed -i 's|^  rm -f "\$stand"$|  :|' "$w/tools/harness/gates-schnell.sh"; rot m-stand-bleibt-nach-rot p6-rot
 fixture m-entfernen-erst-bei-rot
-sed -i "s|^rm -f \"\\\$stand\"\$|trap 'rm -f \"\$stand\"' ERR|" "$w/tools/harness/gates-schnell.sh"
-rot m-entfernen-erst-bei-rot p6-abbruch exakt
+sed -i "s|^  rm -f \"\\\$stand\"\$|  trap 'rm -f \"\$stand\"' ERR|" "$w/tools/harness/gates-schnell.sh"
+rot m-entfernen-erst-bei-rot "p6-abbruch p6-i-entfernt" exakt
+
+# --- Punkt 5: der Hash gilt zum Ende des Laufs --------------------------------------
+fixture m-hash-vor-dem-lauf
+sed -i -e '/^hash="\$(bash tools\/harness\/working-tree-hash.sh)"$/d' \
+  -e 's|^"\$make_bin" "\$@"$|hash="$(bash tools/harness/working-tree-hash.sh)"\n&|' "$w/tools/harness/gates-schnell.sh"
+rot m-hash-vor-dem-lauf p5-ende exakt
+
+# --- Punkt 6: Make-Flags ------------------------------------------------------------
+fixture m-flags-gestrichen
+sed -i '/^case "\$buchstaben" in/d' "$w/tools/harness/gates-schnell.sh"
+rot m-flags-gestrichen p6-n-schreibt
+fixture m-n-nicht-erkannt
+sed -i '/^case "\$buchstaben" in \*n\*)/d' "$w/tools/harness/gates-schnell.sh"
+rot m-n-nicht-erkannt p6-n-schreibt
+fixture m-q-nicht-erkannt
+sed -i '/^case "\$buchstaben" in \*q\*)/d' "$w/tools/harness/gates-schnell.sh"
+rot m-q-nicht-erkannt p6-q-entfernt
+fixture m-t-nicht-erkannt
+sed -i '/^case "\$buchstaben" in \*t\*)/d' "$w/tools/harness/gates-schnell.sh"
+rot m-t-nicht-erkannt p6-t-schreibt
+fixture m-trocken-entfernt-doch
+sed -i 's|^if \[ "\$trocken" -eq 0 \]; then$|if true; then|' "$w/tools/harness/gates-schnell.sh"
+rot m-trocken-entfernt-doch p6-n-entfernt
+fixture m-trocken-schreibt-doch
+sed -i 's|^if \[ "\$trocken" -eq 1 \] \|\| |if |' "$w/tools/harness/gates-schnell.sh"
+rot m-trocken-schreibt-doch p6-n-schreibt
+fixture m-i-nicht-erkannt
+sed -i '/^case "\$buchstaben" in \*i\*)/d' "$w/tools/harness/gates-schnell.sh"
+rot m-i-nicht-erkannt p6-i-schreibt
+fixture m-i-wie-n
+sed -i 's|\*i\*) ueberlesen=1|*i*) trocken=1|' "$w/tools/harness/gates-schnell.sh"
+rot m-i-wie-n p6-i-entfernt
+fixture m-k-wie-n
+sed -i 's|^case "\$buchstaben" in \*n\*)|case "$buchstaben" in *n* \| *k*)|' "$w/tools/harness/gates-schnell.sh"
+rot m-k-wie-n p6-andere
+fixture m-ganzes-makeflags
+sed -i 's|^  \*) buchstaben="\$erstes" ;;|  *) buchstaben="$flags" ;;|' "$w/tools/harness/gates-schnell.sh"
+rot m-ganzes-makeflags p5-stand
 
 # --- Punkt 7: der volle Nachweis bleibt getrennt ------------------------------------
 fixture m-stand-am-pfad-des-vollen-nachweises
 sed -i 's/gates-schnell-passed/gates-passed/' "$w/tools/harness/gates-schnell.sh"
 rot m-stand-am-pfad-des-vollen-nachweises p7-nachweis-neu
+fixture m-loescht-den-vollen-nachweis
+sed -i 's|^  rm -f "\$stand"$|  rm -f "$stand" .harness/state/gates-passed.diffsha|' "$w/tools/harness/gates-schnell.sh"
+rot m-loescht-den-vollen-nachweis p7-nachweis
 
 # --- Punkt 1: make gates enthält jedes Gate von GATE_CHECKS, nichts daneben ---------
 fixture m-gate-aus-gates
@@ -236,4 +330,4 @@ rot m-gegenprobe-exit-ignoriert anschluss-exit-gegenprobe
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "gates-schnell-gegenprobe: gruen — Punkte 1 bis 7 und Anschluss je Mutant rot, unveränderte Kopie grün, Ausnahmeliste deckt GATE_CHECKS"
+echo "gates-schnell-gegenprobe: gruen — Punkte 1 bis 7 (Punkt 5 mit Ende des Laufs, Punkt 6 mit Make-Flags) und Anschluss je Mutant rot, unveränderte Kopie grün, Ausnahmeliste deckt GATE_CHECKS"
