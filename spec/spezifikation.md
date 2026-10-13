@@ -3251,7 +3251,8 @@ eine Bindung der Zusagen und hat keinen Fall.
    Ein Aufruf mit dem Make-Flag `-n`, `-q` oder `-t` (das Rezept fährt kein Gate oder keines
    wirklich) schreibt keinen Stand und entfernt keinen; ein Aufruf mit `-i` (Fehler werden
    überlesen) schreibt keinen, ein älterer entfällt. Maßgeblich sind die Flags in `MAKEFLAGS`,
-   auch aus der Umgebung.
+   auch aus der Umgebung. Stehen `-n`, `-q` oder `-t` zusammen mit `-i`, gilt `-n`, `-q`,
+   `-t`: der Lauf fährt kein Gate, ein vorhandener Stand bleibt unberührt.
 7. **Der volle Nachweis bleibt getrennt.** Die schnelle Kette schreibt, verändert und löscht
    den Nachweis des vollen Laufs nie und ersetzt ihn nie.
 8. **Aufruf-Voraussetzung.** Zugesagt ist nacheinander: Änderung des Arbeitsbaums, Lauf der
