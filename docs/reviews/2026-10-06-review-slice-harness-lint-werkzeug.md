@@ -10,7 +10,7 @@
 **Eingangs-Kontext:**
 
 - `docs/plan/planning/in-progress/slice-harness-lint-werkzeug.md` (ganz, Stand `2461551`), die Diffs von `docs/plan/planning/next/slice-harness-lint.md`, `docs/plan/planning/open/slice-lint-bestand-kern-driven.md` und `docs/plan/planning/open/slice-lint-bestand-driving.md`, dazu die DoD von `slice-harness-lint`
-- `spec/spezifikation.md` [`SPEC-049`](../../spec/spezifikation.md#spec-049--lint-profil-lint) Punkt 1 bis 10 und Grenze; [`LH-QA-07`](../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes)
+- `spec/spezifikation.md` [`SPEC-049`](../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) Punkt 1 bis 10 und Grenze; [`LH-QA-07`](../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes)
 - [ADR-0034](../plan/adr/0034-lint-gate-mit-solid-nahem-profil.md) (Accepted), [ADR-0026](../plan/adr/0026-build-und-test-im-multistage-dockerfile.md)
 - Vorbild `/Development/KI/ai-harness-init/.golangci.yml`
 - `Dockerfile`, `.dockerignore`, `Makefile`, `harness/mk/build.mk`, `harness/mk/lint.mk`, `harness/README.md` §Sensors

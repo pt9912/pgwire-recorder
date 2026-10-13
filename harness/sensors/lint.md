@@ -5,7 +5,7 @@
 ## Vertrag
 
 Rot heißt: Der Go-Code unter `cmd/`, `internal/` und `test/` verletzt
-[`SPEC-049`](../../spec/spezifikation.md#spec-049--lint-profil-lint): golangci-lint
+[`SPEC-049`](../vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint): golangci-lint
 meldet einen Befund nach dem Profil (Linter, Schwellen und Einstellungen, Punkte 1 bis
 5), eine Zeile trägt eine Direktive `nolint` (Punkt 6), die Brücke `export_test.go`
 trägt eine Testfunktion (Punkt 7), oder das Profil selbst ist nicht in Ordnung: Es
@@ -86,7 +86,7 @@ golangci-lint nicht.
 ## Bindung
 
 [ADR-0034](../../docs/plan/adr/0034-lint-gate-mit-solid-nahem-profil.md) · Vertrag
-[`SPEC-049`](../../spec/spezifikation.md#spec-049--lint-profil-lint) · Image
+[`SPEC-049`](../vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) · Image
 `golangci/golangci-lint` per Digest im `Dockerfile` (Stufe `lint`)
 
 An der Gate-Kette von `make gates` hängt neben `make lint` auch seine Gegenprobe

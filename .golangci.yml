@@ -1,5 +1,5 @@
 # .golangci.yml — Lint-Profil von pgwire-recorder, gelesen von der Stufe `lint`
-# des Dockerfile (`make lint`). Vertrag: spec/spezifikation.md SPEC-049.
+# des Dockerfile (`make lint`). Vertrag: harness/vertraege/SPEC-049-lint-profil.md.
 #
 # Ausnahmen stehen nur hier: als Einstellung unter `settings` oder als Regel unter
 # `exclusions.rules`, jede Regel mit einem Kommentarblock, dessen erste Zeile mit

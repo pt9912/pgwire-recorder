@@ -26,7 +26,7 @@ deklariert wird an ihr erst in `slice-harness-abdeckung-gate`),
 Ausnahmen, die Messung des Bestands, Einführung nach Bereinigung ohne Stufen und das
 Werkzeug-Ziel davor, Entscheidung 5 und 6).
 
-**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (`spezifikation.md` §11: Vertrag des Gates, vom Architect vor dem Code geschrieben, die Grenze am 2026-10-07 vor dem Code um ungültiges YAML und den Cache des Builds fortgeschrieben, Punkt 8 am 2026-10-07 nach dem ersten Code-Commit um Leerraum nach dem Doppelpunkt und den Eintrag `-` allein (Rückgaben aus `221845d`, §6), die Grenze am 2026-10-08 um die zulässigen Regeln (V-100, §6); dieser Slice liefert die zweite Hälfte von Punkt 10, den Anschluss an die Gate-Kette) · `spezifikation.md` §12 (*Historie*)
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) (`spezifikation.md` §11: Vertrag des Gates, vom Architect vor dem Code geschrieben, die Grenze am 2026-10-07 vor dem Code um ungültiges YAML und den Cache des Builds fortgeschrieben, Punkt 8 am 2026-10-07 nach dem ersten Code-Commit um Leerraum nach dem Doppelpunkt und den Eintrag `-` allein (Rückgaben aus `221845d`, §6), die Grenze am 2026-10-08 um die zulässigen Regeln (V-100, §6); dieser Slice liefert die zweite Hälfte von Punkt 10, den Anschluss an die Gate-Kette) · `spezifikation.md` §12 (*Historie*)
 
 **Verantwortlich:** pt9912
 

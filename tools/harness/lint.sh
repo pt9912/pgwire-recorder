@@ -2,7 +2,7 @@
 # lint — die Stufe `lint` des Dockerfile: drei eigene Prüfungen, Schema-Prüfung
 # des Profils und golangci-lint nach dem Profil .golangci.yml. Als Gate läuft sie
 # über `make lint` an der Gate-Kette von `make gates`.
-# Vertrag: spec/spezifikation.md SPEC-049 (Punkte 6 bis 9 für dieses Skript); wie
+# Vertrag: harness/vertraege/SPEC-049-lint-profil.md (Punkte 6 bis 9 für dieses Skript); wie
 # ein Lauf zu lesen ist: harness/sensors/lint.md.
 # Aufruf: in der Wurzel des Moduls, im Image von golangci-lint (bash, find, grep,
 # awk, sort, mktemp).

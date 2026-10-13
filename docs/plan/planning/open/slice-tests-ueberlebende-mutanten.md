@@ -38,7 +38,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Jeder hier gesammelte Mutant, der das Verhalten ändert und heute alle Tests
 überlebt, wird von einem Test über die exportierte Schnittstelle rot
-([`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) Punkt 7),
+([`SPEC-049`](../../../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) Punkt 7),
 bevor `slice-harness-mutation` den Bestand misst. Das Mutations-Gate startet damit
 nicht mit Lücken, die schon bekannt sind. Jeder Test prüft eine Zusage, die vorher in
 Lastenheft oder Spezifikation steht; wo sie fehlt, entscheidet der Architect sie vor

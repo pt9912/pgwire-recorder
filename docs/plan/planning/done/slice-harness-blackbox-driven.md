@@ -18,7 +18,7 @@ Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 3; Messmethode 1 für die Testdateien dieser Pakete). Bindung: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Export-Test-Brücke, Entscheidung 4; Bereinigung vor dem Gate ohne Stufen, Entscheidung 5: die Befunde der Testdateien dieser Pakete behebt dieser Slice), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abdeckungs-Deklarationen an den Tests bleiben unverändert).
 
-**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Punkt 7 und 8: Brücke und dauerhafte Ausnahmen, gegen die umgestellt wird. Geändert vom Architect unter der Kennung dieses Slice: Punkt 7, die Funktion, an die die Brücke zum Erzeugen weiterreicht, ruft auch der Produkt-Code)
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) (Punkt 7 und 8: Brücke und dauerhafte Ausnahmen, gegen die umgestellt wird. Geändert vom Architect unter der Kennung dieses Slice: Punkt 7, die Funktion, an die die Brücke zum Erzeugen weiterreicht, ruft auch der Produkt-Code)
 
 **Verantwortlich:** pt9912
 

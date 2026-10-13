@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (Modul 11). Ich prüfe, ob der Slice Plan und DoD erfüllt, also ob er richtig gebaut ist. Ob das Richtige gebaut wurde, prüft der Validator. Den Diff gegen Entscheidungen und Hard Rules hat der Reviewer geprüft. F-444 und F-447 hat er an mich übergeben.
 
-**Gegenstand:** Slice-Plan `docs/plan/planning/in-progress/slice-harness-blackbox-driven.md` (Kopf, §1 bis §8) gegen den Gesamt-Diff `aff75ee..874b29d`. Darin liegen `58e863c` (Architect: [`SPEC-049`](../../spec/spezifikation.md#spec-049--lint-profil-lint) Punkt 7, `newSession`, Plan §1, §3 und §6), `1c30e43` (Umbau, Belege in §7) und `874b29d` ([Review](2026-10-07-review-slice-harness-blackbox-driven.md), F-444 bis F-447). Während meines Laufs kam `f0ea7be` hinzu (Architect, Wortlaut von Punkt 7 nach F-445, nur `spec/spezifikation.md`). Die Datei habe ich nicht angefasst.
+**Gegenstand:** Slice-Plan `docs/plan/planning/in-progress/slice-harness-blackbox-driven.md` (Kopf, §1 bis §8) gegen den Gesamt-Diff `aff75ee..874b29d`. Darin liegen `58e863c` (Architect: [`SPEC-049`](../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) Punkt 7, `newSession`, Plan §1, §3 und §6), `1c30e43` (Umbau, Belege in §7) und `874b29d` ([Review](2026-10-07-review-slice-harness-blackbox-driven.md), F-444 bis F-447). Während meines Laufs kam `f0ea7be` hinzu (Architect, Wortlaut von Punkt 7 nach F-445, nur `spec/spezifikation.md`). Die Datei habe ich nicht angefasst.
 
 **Eingang:**
 

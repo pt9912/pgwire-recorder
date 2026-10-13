@@ -17,7 +17,7 @@ Bereinigungs-Reihe; Reihenfolge in §4 *Start*.
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Messmethode 1; das Werkzeug misst, das Gate liefert `slice-harness-lint`). Bindung an Entscheidungen: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Profil, dauerhafte Ausnahmen, Entscheidung 6: Werkzeug-Ziel vor dem Gate), [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md) (Stufe des Multistage-`Dockerfile`, Image per Digest gepinnt, Build-Kontext als Allowlist).
 
-**Berührte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Punkte 1 bis 9 und die erste Hälfte von Punkt 10: Werkzeug ohne Gate)
+**Berührte Spec-Stellen:** [`SPEC-049`](../../../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) (Punkte 1 bis 9 und die erste Hälfte von Punkt 10: Werkzeug ohne Gate)
 
 **Verantwortlich:** pt9912
 

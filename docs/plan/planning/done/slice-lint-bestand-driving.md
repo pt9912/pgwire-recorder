@@ -17,7 +17,7 @@ Nutzers vom 2026-10-06 (Bereinigung vor dem Gate, ohne Stufen); Reihenfolge in �
 
 **Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--pr체fbarkeit-des-quellcodes) (Messmethode 1: Bestand ohne Befund vor dem Gate). Bindung an Entscheidungen: [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Messung des Bestands, Entscheidung 5: Bereinigung vor dem Gate, Driving; nach `SPEC-049` Punkt 9 16 Befunde, erwartete Bereinigung der Kontexte mit `context.WithoutCancel`), [ADR-0001](../../adr/0001-hexagonale-architektur.md) (Schichten des Hexagons), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md) (`pgproto3` im PGWire-Adapter).
 
-**Ber체hrte Spec-Stellen:** [`SPEC-049`](../../../../spec/spezifikation.md#spec-049--lint-profil-lint) (Profil und Schwellen, gegen die bereinigt wird; der Slice 채ndert die Stelle nicht)
+**Ber체hrte Spec-Stellen:** [`SPEC-049`](../../../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) (Profil und Schwellen, gegen die bereinigt wird; der Slice 채ndert die Stelle nicht)
 
 **Verantwortlich:** pt9912
 

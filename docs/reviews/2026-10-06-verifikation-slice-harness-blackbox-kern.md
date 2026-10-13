@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (Modul 11). Ich prüfe, ob der Slice Plan und DoD erfüllt, also ob richtig gebaut wurde. Ob das Richtige gebaut wurde, prüft der Validator. Den Diff gegen Entscheidungen und Hard Rules hat der Reviewer geprüft; F-441 prüfe ich hier auf Auftrag als erneutes Review mit.
 
-**Gegenstand:** Slice-Plan `docs/plan/planning/in-progress/slice-harness-blackbox-kern.md` (Kopf, §1 bis §8) gegen den Gesamt-Diff `a12f16f..ebbf5b8`. Darin: `839e61c` (Umbau, Mutationstabelle in §7), `2bea0f0` ([Review](2026-10-06-review-slice-harness-blackbox-kern.md), F-441 bis F-443), `b0b2286` (Architect, [`SPEC-049`](../../spec/spezifikation.md#spec-049--lint-profil-lint) Punkt 7 und *Grenze*) und `ebbf5b8` (Nacharbeit F-441).
+**Gegenstand:** Slice-Plan `docs/plan/planning/in-progress/slice-harness-blackbox-kern.md` (Kopf, §1 bis §8) gegen den Gesamt-Diff `a12f16f..ebbf5b8`. Darin: `839e61c` (Umbau, Mutationstabelle in §7), `2bea0f0` ([Review](2026-10-06-review-slice-harness-blackbox-kern.md), F-441 bis F-443), `b0b2286` (Architect, [`SPEC-049`](../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) Punkt 7 und *Grenze*) und `ebbf5b8` (Nacharbeit F-441).
 
 **Eingang:**
 

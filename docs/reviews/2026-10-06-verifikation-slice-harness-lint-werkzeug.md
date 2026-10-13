@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (Modul 11). Ich prüfe, ob der Slice Plan und DoD erfüllt, also ob richtig gebaut wurde. Ob das Richtige gebaut wurde, prüft der Validator. Den Diff gegen Entscheidungen und Hard Rules hat der Reviewer geprüft.
 
-**Gegenstand:** Slice-Plan `docs/plan/planning/in-progress/slice-harness-lint-werkzeug.md` (Kopf, §1 bis §6, §8) gegen den Gesamt-Diff `2ee9527..8d9f0ee`. Darin: `4ab7e7b` ([`SPEC-049`](../../spec/spezifikation.md#spec-049--lint-profil-lint) Punkt 9), `2461551` (Umsetzung), `fa14758` ([Review](2026-10-06-review-slice-harness-lint-werkzeug.md), F-428 bis F-433), `f09e7c1` (Entscheidungen in `SPEC-049`) und `8d9f0ee` (Nacharbeit ohne eigenes Review).
+**Gegenstand:** Slice-Plan `docs/plan/planning/in-progress/slice-harness-lint-werkzeug.md` (Kopf, §1 bis §6, §8) gegen den Gesamt-Diff `2ee9527..8d9f0ee`. Darin: `4ab7e7b` ([`SPEC-049`](../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) Punkt 9), `2461551` (Umsetzung), `fa14758` ([Review](2026-10-06-review-slice-harness-lint-werkzeug.md), F-428 bis F-433), `f09e7c1` (Entscheidungen in `SPEC-049`) und `8d9f0ee` (Nacharbeit ohne eigenes Review).
 
 **Eingang:**
 
@@ -121,7 +121,7 @@ Jede Prüfung läuft auch bei einem Befund einer anderen: `p9a` zeigt die Zeile 
 
 ## Nachtrag: V-72 und V-74 nach `42d90e8` und `17daf26`
 
-**Gegenstand:** `42d90e8` ([`SPEC-049`](../../spec/spezifikation.md#spec-049--lint-profil-lint) Punkt 8 und *Grenze*), `17daf26` (`tools/harness/lint.sh`; Plan §3 und §6 in `docs/plan/planning/in-progress/slice-harness-lint-werkzeug.md`; der Punkt zur Gegenprobe in `docs/plan/planning/next/slice-harness-lint.md`). Beim Start war HEAD `17daf26` und der Arbeitsbaum sauber.
+**Gegenstand:** `42d90e8` ([`SPEC-049`](../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) Punkt 8 und *Grenze*), `17daf26` (`tools/harness/lint.sh`; Plan §3 und §6 in `docs/plan/planning/in-progress/slice-harness-lint-werkzeug.md`; der Punkt zur Gegenprobe in `docs/plan/planning/next/slice-harness-lint.md`). Beim Start war HEAD `17daf26` und der Arbeitsbaum sauber.
 
 **Proben:** jede in einer frischen Kopie aus `git archive` des genannten Stands, ohne `cp -p` und ohne Bind-Mount: Die Stufe `lint` bekommt das Profil über den Build-Kontext. Jedes Mutationsskript prüft, dass seine Ersetzung gegriffen hat. In jeder Mutation ist zusätzlich das `# Why:` der zweiten Regel durch `# Grund:` ersetzt.
 

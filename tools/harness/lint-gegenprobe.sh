@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # lint-gegenprobe — prüft das Lint-Gate (Stufe `lint` des Dockerfile mit
 # tools/harness/lint.sh und .golangci.yml) gegen seinen Vertrag
-# (spec/spezifikation.md SPEC-049) an Mutanten in Kopien des Arbeitsbaums.
+# (harness/vertraege/SPEC-049-lint-profil.md) an Mutanten in Kopien des Arbeitsbaums.
 # Aufruf: über `make lint-gegenprobe` (harness/mk/lint.mk), das DOCKER_BUILD
 # übergibt; auf dem Host mit bash, make, docker, grep, sed, awk und coreutils.
 #

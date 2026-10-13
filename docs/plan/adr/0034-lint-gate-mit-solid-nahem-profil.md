@@ -8,7 +8,7 @@
 
 **Bezug:** [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes), [ADR-0026](0026-build-und-test-im-multistage-dockerfile.md), [ADR-0001](0001-hexagonale-architektur.md)
 
-**Schärft:** [`SPEC-049`](../../../spec/spezifikation.md#spec-049--lint-profil-lint)
+**Schärft:** [`SPEC-049`](../../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint)
 
 **Regeln:** Baseline-Regelwerk `modul-04-adrs.md` §Ziel-Form: ADR (MADR).
 
@@ -41,7 +41,7 @@ Nach den dauerhaften Entscheidungen unten (`ST1005` 12, `ireturn` 5, `errcheck` 
 
 ## Entscheidung
 
-Wir führen `make lint` als Stufe `lint` des `Dockerfile` mit dem Profil des Vorbilds und seinen Schwellen ein, an dieses Repo angepasst; die Einzelregeln stehen in [`SPEC-049`](../../../spec/spezifikation.md#spec-049--lint-profil-lint). Im Einzelnen entschieden ist:
+Wir führen `make lint` als Stufe `lint` des `Dockerfile` mit dem Profil des Vorbilds und seinen Schwellen ein, an dieses Repo angepasst; die Einzelregeln stehen in [`SPEC-049`](../../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint). Im Einzelnen entschieden ist:
 
 1. **Durchsetzung statt Vertrauen.** golangci-lint wertet `//nolint` aus, statt es zu verbieten; eine eigene Prüfung in derselben Stufe meldet jede Direktive. Zwei weitere eigene Prüfungen halten die Form der Ausnahmen (`# Why:` über jeder Regel) und der Brücke (kein Test in `export_test.go`). `exclusions.warn-unused` wird zum Befund: Eine Regel, die nichts ausblendet, ist falsch gelesen oder überholt. In der Messung blendete eine verankerte Pfad-Regel nichts aus, weil golangci-lint Pfade relativ zur Konfiguration liest; die Warnung zeigte es, darum gilt `relative-path-mode: cfg` ausdrücklich.
 2. **Dauerhafte Ausnahmen mit Grund, der auch für neuen Code gilt.** Die Testdatei-Ausnahmen des Vorbilds; `ST1005`, weil deutsche Fehlertexte mit einem Substantiv beginnen; `ireturn` für Ports und `pgproto3`-Nachrichten, weil ein Adapter im Hexagon seinen Port liefert ([ADR-0001](0001-hexagonale-architektur.md)) und `pgproto3` Nachrichten als Interface führt ([ADR-0010](0010-verwendung-von-pgproto3.md)); `errcheck` für `Close` an Netz-Verbindung und Listener, weil ihr Fehler nach dem Ende nichts mehr ändert; `gochecknoglobals` je Datei und Name für zehn Nachschlage-Tabellen und Sentinel-Werte, die nur gelesen werden — Go kennt keine konstante Map. `main.version` braucht keine Ausnahme; der Linter lässt den Namen `version` selbst zu.
@@ -66,13 +66,13 @@ Wir führen `make lint` als Stufe `lint` des `Dockerfile` mit dem Profil des Vor
 
 - Positiv: Ab dem Gate macht jeder Befund und jedes `//nolint` den Lauf rot; jede Ausnahme im Profil hat einen Grund, der auch für neuen Code gilt.
 - Negativ (akzeptiert): Bis zum Gate prüft niemand neuen Code automatisch; das Werkzeug-Ziel misst nur, wer es aufruft. Ob ein `Why:` zutrifft, prüft Review. Testdateien im Paket `main` lässt `testpackage` zu; `cmd/` hat keine. Ein `//nolint` in einem String-Literal ist ein Befund.
-- Folgepflicht: Eine Gegenprobe hält jede Zusage aus [`SPEC-049`](../../../spec/spezifikation.md#spec-049--lint-profil-lint), die eine Mutation fangen kann, darunter die drei Rot-Fälle der Brücke und eine ungenutzte Regel.
+- Folgepflicht: Eine Gegenprobe hält jede Zusage aus [`SPEC-049`](../../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint), die eine Mutation fangen kann, darunter die drei Rot-Fälle der Brücke und eine ungenutzte Regel.
 
 ## Fitness Function (falls maschinell prüfbar)
 
 | Tooling | Regel | Make-Target |
 |---|---|---|
-| golangci-lint und eigene Prüfungen | Profil nach [`SPEC-049`](../../../spec/spezifikation.md#spec-049--lint-profil-lint) ohne Befund | `make lint`, bis zur Bereinigung Werkzeug ohne Gate, danach Gate-Ziel; genannt in `harness/README.md` |
+| golangci-lint und eigene Prüfungen | Profil nach [`SPEC-049`](../../../harness/vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) ohne Befund | `make lint`, bis zur Bereinigung Werkzeug ohne Gate, danach Gate-Ziel; genannt in `harness/README.md` |
 | Gegenprobe | je Zusage ein Mutant, der rot wird | Gegenproben-Ziel, genannt in `harness/README.md` §Sensors |
 
 ## Re-Evaluierungs-Trigger

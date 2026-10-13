@@ -20,10 +20,11 @@ Produkts. Bindung an Entscheidungen:
 [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) (Lint-Gate mit eigenen
 Prüfungen; ob die neue Prüfung eine eigene ADR braucht, entscheidet der Architect, §6).
 
-**Berührte Spec-Stellen:** `SPEC-049` (neuer Punkt für die Prüfung, vom Architect vor
-dem Code geschrieben) · `SPEC-038` (*Warten in Tests*, angewandt; die Ausnahme für
+**Berührte Spec-Stellen:** `SPEC-049` (neuer Punkt für die Prüfung in `harness/vertraege/SPEC-049-lint-profil.md`, vom
+Architect vor dem Code geschrieben) · `SPEC-038` (*Warten in Tests*, angewandt; die Ausnahme für
 synchrone Aufrufe trägt der Architect nach Entscheidung des Nutzers vom 2026-10-08 ein) ·
-`spezifikation.md` §12 (*Historie*)
+`spezifikation.md` §12 (*Historie*, für die Zeile zu `SPEC-038`; die Historie des Vertrags steht in
+`harness/vertraege/README.md`)
 
 **Verantwortlich:** —
 
@@ -44,7 +45,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 ein Warten auf ein Prozessende, das ohne Frist wartet, als Befund
 `lint: <pfad>:<zeile>: <befund>` (`SPEC-049` Punkt 9); ein `select` mit einem Fall für
 einen Zeitgeber oder `time.After` gilt als Frist. Die Regel steht als neuer Punkt in
-`SPEC-049`, vom Architect vor dem ersten Code-Commit geschrieben (`AGENTS.md` §3.12), und
+`harness/vertraege/SPEC-049-lint-profil.md` (Ort seit `slice-harness-vertraege-umzug-lint`), vom Architect vor dem ersten Code-Commit geschrieben (`AGENTS.md` §3.12), und
 setzt `SPEC-038` *Warten in Tests* in eine Maschine um. Danach trägt der Bestand keinen
 Befund der Prüfung: `make lint` hängt an `make gates` (`SPEC-049` Punkt 10), und eine
 Ausnahme, die Bestand ausblendet, gibt es nicht (Punkt 8).
@@ -163,7 +164,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `spec/spezifikation.md` | update (Architect, vor dem Code) | neuer Punkt in `SPEC-049` mit den Randformen aus §6; in `SPEC-038` *Warten in Tests* die Ausnahme für synchrone Aufrufe (Entscheidung des Nutzers vom 2026-10-08), falls noch nicht eingetragen; §12 *Historie* |
+| `harness/vertraege/SPEC-049-lint-profil.md` | update (Architect, vor dem Code) | neuer Punkt in `SPEC-049` mit den Randformen aus §6; die Historie-Zeile dazu steht in `harness/vertraege/README.md` |
+| `spec/spezifikation.md` | update (Architect, vor dem Code) | in `SPEC-038` *Warten in Tests* die Ausnahme für synchrone Aufrufe (Entscheidung des Nutzers vom 2026-10-08), falls noch nicht eingetragen; §12 *Historie* für diese Zeile |
 | `docs/plan/adr/` | neu (nur wenn der Architect eine ADR verlangt) | [ADR-0034](../../adr/0034-lint-gate-mit-solid-nahem-profil.md) ist angenommen und unveränderlich (`AGENTS.md` §3.5); eine neue Prüfung, die nicht aus ihr folgt, wäre eine ergänzende ADR mit `Schärft:` auf `SPEC-049` |
 | `tools/harness/lint.sh` | update | die Prüfung; Kopf *GEPRÜFT DURCH* um den neuen Punkt |
 | Programm unter `tools/harness/` | neu (nur bei Erkennung über den AST, §6) | liest die Testdateien mit `go/parser` in der Stufe `lint`, ohne Netz |
@@ -210,6 +212,7 @@ Prozessende, und ein solcher Mutant wird binnen der Frist rot.
 
 Erster Schritt nach dem Start, vor jedem Code-Commit: Der Architect entscheidet die
 Randformen aus §6 und schreibt den neuen Punkt in `SPEC-049`
+(`harness/vertraege/SPEC-049-lint-profil.md`)
 (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`); der Implementer misst den
 Bestand neu.
 
@@ -245,7 +248,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen** (`AGENTS.md` §3.12). Die Prüfung ist ein neuer Vertrag eines
-Harness-Werkzeugs; entschieden wird in der Spezifikation (`SPEC-049`, neuer Punkt), vor
+Harness-Werkzeugs; entschieden wird im Vertrag (`SPEC-049` in `harness/vertraege/SPEC-049-lint-profil.md`, neuer Punkt), vor
 dem ersten Code-Commit, vom Architect. Gesetzt vom Nutzer am 2026-10-08 sind nur die
 ersten drei; alle übrigen sind **offen**. Die Zahlen sind die Messung des Planners am
 Stand `bb36f2d` (§1).
