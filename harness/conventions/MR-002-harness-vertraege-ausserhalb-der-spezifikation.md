@@ -1,0 +1,40 @@
+# MR-002 — Verträge der Harness-Werkzeuge im Ordner harness, nicht in der Produktspezifikation
+
+Regeln dieser Datei: Pflichtfelder sind Datum, Geltungsbereich,
+**Ersetzt-Baseline-Regel**, Adaption, Begründung und Auflösungs-Trigger;
+`Löst auf` und `Ausgelöst durch Baseline-Stand` nur, wenn dieser Eintrag einen
+früheren ablöst. `Ersetzt-Baseline-Regel` nennt **genau eine** Regel der
+Baseline, an deren Stelle dieser Eintrag tritt — als Link mit
+Abschnitts-Anker in die vendored Fassung; ein Datei-Link benennt keine Regel.
+**Dieser Link trägt zwei Dinge, die sich bewegen, und für beide gibt es einen
+Wächter statt einer Formregel:** die *Tiefe* (nach dem `git mv` nach `done/`
+zeigt der relative Pfad eine Ebene zu hoch — der Umzug zieht die
+Pfad-Berichtigung nach sich, als eigener Commit; die Existenzprüfung des Links
+meldet sie, wenn sie ausbleibt) und die *Version* (jeder Baseline-Bump
+entwertet `<tag>` — der adoptierte Stand steht einmal im Adaptions-Block, ein
+Versions-Sensor prüft jeden Pin dagegen; Muster in `.d-check.yml`).
+Wer mehrere Regeln ersetzen will, schreibt mehrere Einträge. Ein Eintrag, der
+keine benannte Regel ersetzt, ist ein **Fork**, keine Adaption.
+
+**Zustand: Entwurf.** Die Vorlage kennt kein Statusfeld; der Zustand ist die Verzeichnis-Position,
+und `conventions/` heißt „aktiv“. Dieser Eintrag liegt dort als Entwurf, weil die Entscheidung
+des Nutzers (2026-10-13) die Verlegung verlangt, der Umzug aber erst hinter
+`slice-harness-gate-kette-stop-hook-freigabe` geschieht. **Wirksam wird die Adaption mit der
+Annahme von [ADR-0040](../../docs/plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md)**;
+bis der Umzug-Slice schließt, steht jeder Vertrag, den `harness/vertraege/` noch nicht führt, in
+§11 von `spec/spezifikation.md`. Der Index in [`../conventions.md`](../conventions.md) führt die
+Zeile mit dem Zusatz *Entwurf*.
+
+- **Datum:** 2026-10-13
+- **Geltungsbereich:** Die Verträge der Harness-Werkzeuge `SPEC-047` (Kopf der Pläne), `SPEC-048` (Abdeckung), `SPEC-049` (Lint-Profil), `SPEC-050` (Struktur-Kennungen im Commit-Träger), `SPEC-052` (Gate-Kette und Wahl der Kette) und jeder künftige Vertrag eines Harness-Werkzeugs: bisher `spec/spezifikation.md` §11, künftig der Ordner `harness/vertraege/`. Dazu die Stellen, die den Ort nennen: `harness/README.md` §Source precedence und §Sensors, `AGENTS.md` §2 und §3.12, die Gate-Klasse `spec-straten` in `.d-check.yml`. Nicht das Produkt: `spec/spezifikation.md` bleibt der Ort jeder Festlegung des Produkts.
+- **Ersetzt-Baseline-Regel:** [`grundlagen-referenz-richtung.md` §Spec-Straten](../../.harness/baseline/v6.18.0/regelwerk/grundlagen-referenz-richtung.md#spec-straten-mehr-als-ein-spec-dokument) — der Absatz *Auch die Werkzeuge des Harness treffen technische Festlegungen*: „Der Ort ist deshalb die Spezifikation, kein viertes Stratum“. `modul-03-spec.md` §Ziel-Form: Spezifikation (der Punkt *Festlegungen der Harness-Werkzeuge* der Spezifikation und der Vorlage) folgt aus dieser Regel und weicht mit ihr ab; er ist kein eigener Eintrag.
+- **Adaption:**
+  1. **Ort.** Die Festlegungen eines Harness-Werkzeugs stehen in `harness/vertraege/`, eine Datei je Kennung, `SPEC-<NNN>-<kurztitel>.md`. Die Überschrift der Datei behält den Wortlaut der bisherigen Überschrift (`SPEC-<NNN> — Titel (…)`), damit der Anker einer Kennung beim Umzug gleich bleibt. `harness/vertraege/README.md` trägt den Gegenstand des Ordners und die Historie der Verträge.
+  2. **Stratum.** Es bleibt das Technik-Stratum: fortschreibbar ohne Change Request, eine ADR schärft es mit `Schärft:`, das Lastenheft bleibt die Decke, die Verträge präzisieren und erweitern nie. Verlegt wird die Datei, nicht ihr Änderungs-Prozess. Ein viertes Stratum entsteht nicht; die Abweichung ist der Ort außerhalb von `spec/`.
+  3. **Kennung.** `SPEC-<NNN>` bleibt. Die Reihe zählt über beide Orte fortlaufend (höchste vergebene Nummer in `spec/spezifikation.md` und in `harness/vertraege/`, plus eins); sie bricht nicht, und kein Verweis ändert seine Kennung. `MR-000` zählt `SPEC-*` „je Datei“; für diese Reihe gilt: eine Reihe über beide Orte.
+  4. **Rang.** Rang 2 der Source Precedence trägt beide Orte: `spec/spezifikation.md` für das Produkt, `harness/vertraege/` für die Werkzeuge. Die Gegenstände sind disjunkt; wo sie sich trotzdem widersprechen, gewinnt das Lastenheft und der Widerspruch ist ein Befund. Die Rangzahl der Datei `harness/README.md` (9) gilt für diese Datei, nicht für den Ordner. Die Zahl der Ränge bleibt neun.
+  5. **Referenz-Richtung.** Die Verträge unterliegen derselben Decken-Regel wie die Spezifikation: kein ADR-, Slice-, Welle-, MR- und kein Verweis auf ein Artefakt außerhalb der Straten (Klasse `spec-straten` in `.d-check.yml`). Welche ADR einen Vertrag schärft, deklariert die ADR in `Schärft:`. Der Ort außerhalb von `spec/` lockert diese Grenze nicht.
+  6. **Verweise.** Die ADRs, Pläne, Reviews und Sensor-Dateien, die einen Anker in `spezifikation.md` nennen, werden auf den neuen Ort nachgezogen (Referenz-Nachzug, `modul-04-adrs.md` §Nachzug ist keine Überschreibung, ohne Folge-ADR). In `spec/spezifikation.md` bleibt kein Stub: Die Spezifikation darf auf `harness/` nicht verweisen, und ein Stub ohne Verweis trüge nur eine Überschrift.
+  7. **Lesart.** Die Sensor-Dateien `harness/sensors/<target>.md` bleiben der Ort der Lesart eines Laufs und verlinken den Vertrag; sie tragen keine Festlegung.
+- **Begründung:** Entscheidung des Nutzers vom 2026-10-13: Die Produktspezifikation soll nur das Produkt festlegen; §11 hat rund 545 Zeilen Werkzeugverträge (`SPEC-052` allein 200) und wächst mit jedem Harness-Slice, während seine Leser (Implementer, Reviewer eines Harness-Slice) mit dem Produkt nichts zu tun haben. Die Beobachtung `BEO-REPO/werkzeug-festlegung-ausserhalb-technik-stratum` wird damit erneut berührt; der Eintrag hier ändert ihren Sachverhalt nicht (der Ort bleibt Technik-Stratum), er benennt den neuen Ort. Entscheidung und Alternativen: [ADR-0040](../../docs/plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md).
+- **Auflösungs-Trigger:** Das Kurs-Repo ai-harness-course nennt einen Ort außerhalb der Produktspezifikation für Werkzeugverträge, oder das Repo führt wieder einen Abschnitt in `spec/spezifikation.md` ein; dann wird der Eintrag aufgelöst. Sonst permanent.
