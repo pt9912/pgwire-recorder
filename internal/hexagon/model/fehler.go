@@ -35,8 +35,10 @@ const (
 	CodeResponseMismatch   = "PGR-E5004"
 	CodeUnsupported        = "PGR-E6001"
 	CodeProtocolVersion    = "PGR-E6002"
+	CodePlaintext          = "PGR-E6003"
 	CodeUnconsumed         = "PGR-W2001"
 	CodeCancelRequest      = "PGR-W3001"
+	CodeHandshake          = "PGR-W3002"
 	CodeForeignProtocol    = "PGR-W3003"
 )
 

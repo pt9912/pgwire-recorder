@@ -170,6 +170,11 @@ func TestLeserAlleOptionen(t *testing.T) {
 				// Vorrang und Fehler prüft TestPlayUpstreamCAQuellen.
 				continue
 			}
+			if o.Name == "tls-cert" || o.Name == "tls-key" || o.Name == "allow-plaintext" {
+				// Alle drei stehen nur zusammen und verlangen lesbare Dateien; ihre
+				// Quellen, Vorrang und Fehler prüft TestTLSQuellen.
+				continue
+			}
 			if o.Name == "timing-mode" || o.Name == "timing-reference" {
 				// Beide verlangen --keep-timing und, die zweite, den Modus absolute;
 				// ihre Quellen, Vorrang und Fehler prüft TestPlayZeitQuellen.
@@ -301,8 +306,8 @@ func TestLeserLeererWert(t *testing.T) {
 // Optionen stehen in der Reihenfolge der Tabelle in LH-FA-17.a.
 func TestLeserOptionen(t *testing.T) {
 	for kommando, want := range map[string][]string{
-		"record": {"listen", "upstream", "output", "force", "format", "record-timing", "record-empty-sessions", "shutdown-timeout", "log-level"},
-		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "session-assignment", "log-level"},
+		"record": {"listen", "upstream", "output", "force", "format", "record-timing", "record-empty-sessions", "shutdown-timeout", "tls-cert", "tls-key", "allow-plaintext", "log-level"},
+		"replay": {"listen", "input", "fail-on-unconsumed", "shutdown-timeout", "session-assignment", "tls-cert", "tls-key", "allow-plaintext", "log-level"},
 		"play":   {"upstream", "input", "user", "database", "continue-on-error", "allow-recorded-errors", "upstream-tls", "finish-session-on-interrupt", "keep-timing", "timing-mode", "timing-reference", "upstream-ca", "compare-responses", "log-level"},
 	} {
 		var got []string

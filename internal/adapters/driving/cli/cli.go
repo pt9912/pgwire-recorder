@@ -17,7 +17,9 @@ import (
 )
 
 // RecordOptions sind die Optionen von `record` (LH-FA-02.a), soweit dieser Stand
-// sie kennt. RecordEmptySessions ist --record-empty-sessions (LH-FA-12.a).
+// sie kennt. RecordEmptySessions ist --record-empty-sessions (LH-FA-12.a). TLS
+// sind Zertifikat und Schlüssel aus --tls-cert und --tls-key, gelesen beim
+// Start, und --allow-plaintext (LH-FA-23.a).
 type RecordOptions struct {
 	Listen              string
 	Upstream            string
@@ -28,11 +30,13 @@ type RecordOptions struct {
 	RecordEmptySessions bool
 	LogLevel            string
 	ShutdownTimeout     time.Duration
+	TLS                 TLSZugang
 }
 
 // ReplayOptions sind die Optionen von `replay` (LH-FA-03.a), soweit dieser Stand
 // sie kennt. SessionAssignment ist der Wert von --session-assignment,
-// ZuordnungErsteAnfrage oder ZuordnungVerbindung (LH-FA-12.a).
+// ZuordnungErsteAnfrage oder ZuordnungVerbindung (LH-FA-12.a). TLS wie bei
+// RecordOptions.
 type ReplayOptions struct {
 	Listen            string
 	Input             string
@@ -40,6 +44,7 @@ type ReplayOptions struct {
 	SessionAssignment string
 	LogLevel          string
 	ShutdownTimeout   time.Duration
+	TLS               TLSZugang
 }
 
 // Die Werte von --session-assignment (LH-FA-12.a); Standard ist
@@ -169,7 +174,7 @@ const optionenRecord = `Optionen von record:
               zeichnet auch eine Verbindung ohne Anfrage als Session ohne
               Interaktionen auf; Standard false; Umgebungsvariable
               PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS
-` + optionShutdownTimeout + optionLogLevel + optionConfig + optionUmgebung
+` + optionShutdownTimeout + optionTLS + optionLogLevel + optionConfig + optionUmgebung
 
 const optionenReplay = `Optionen von replay:
   --listen    Adresse, auf der Clients angenommen werden (Pflicht)
@@ -186,7 +191,7 @@ const optionenReplay = `Optionen von replay:
               --record-empty-sessions schreibt, sonst PGR-E2001);
               Standard first-request; Umgebungsvariable
               PGWIRE_RECORDER_SESSION_ASSIGNMENT
-` + optionShutdownTimeout + optionLogLevel + optionConfig + optionUmgebung
+` + optionShutdownTimeout + optionTLS + optionLogLevel + optionConfig + optionUmgebung
 
 const optionenPlay = `Optionen von play:
   --upstream  PostgreSQL-Server als host:port oder Name einer Verbindung der
@@ -257,6 +262,24 @@ Abschnitt des Kommandos (record:, replay:, play:); die Umgebungsvariable geht de
 Datei vor, die Datei dem Standardwert.
 `
 
+const optionTLS = `  --tls-cert <datei>
+              PEM-Datei mit dem Zertifikat des Servers und seiner Kette; mit
+              --tls-cert und --tls-key nimmt der Recorder TLS von Clients an;
+              jede Option allein ist PGR-E2001; eine nicht lesbare, ungültige
+              oder abgelaufene Datei endet den Start mit PGR-E2007;
+              Umgebungsvariable PGWIRE_RECORDER_TLS_CERT
+  --tls-key <datei>
+              PEM-Datei mit dem privaten Schlüssel zum Zertifikat, ohne
+              Passwort; eine verschlüsselte oder nicht zum Zertifikat
+              passende Datei endet den Start mit PGR-E2007; Umgebungsvariable
+              PGWIRE_RECORDER_TLS_KEY
+  --allow-plaintext[=true|false]
+              mit TLS auch unverschlüsselte Clients zulassen, sonst weist der
+              Recorder sie mit PGR-E6003 ab; true nur mit --tls-cert (sonst
+              PGR-E2001); Standard false; Umgebungsvariable
+              PGWIRE_RECORDER_ALLOW_PLAINTEXT
+`
+
 const optionConfig = `  --config <datei>
               Konfigurationsdatei, Standard .pgwire-recorder.yaml im aktuellen
               Verzeichnis, sofern vorhanden; Umgebungsvariable
@@ -319,6 +342,11 @@ var ErrHelp = errors.New("Hilfe ausgegeben")
 // Kommando ist, sonst die globale (LH-FA-01.a). Das Kommando help gibt die
 // globale Hilfe aus.
 func Parse(args []string, out io.Writer) (Command, error) {
+	return parse(args, out, time.Now)
+}
+
+// parse ist Parse mit der Systemuhr jetzt.
+func parse(args []string, out io.Writer, jetzt func() time.Time) (Command, error) {
 	if hilfeVerlangt(args) {
 		text := usage
 		if len(args) > 0 {
@@ -337,11 +365,11 @@ func Parse(args []string, out io.Writer) (Command, error) {
 		fmt.Fprint(out, usage)
 		return Command{}, ErrHelp
 	case "record":
-		return parseRecord(args[1:])
+		return lies("record", args[1:], jetzt)
 	case "replay":
-		return parseReplay(args[1:])
+		return lies("replay", args[1:], jetzt)
 	case "play":
-		return lies("play", args[1:])
+		return lies("play", args[1:], jetzt)
 	case "config":
 		return parseConfig(args[1:])
 	case "version":
@@ -445,6 +473,10 @@ func optionen(kommando string) []option {
 			{name: "record-timing", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.RecordTiming = v == "true" }},
 			{name: "record-empty-sessions", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.RecordEmptySessions = v == "true" }},
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Record.ShutdownTimeout, v) }},
+
+			{name: "tls-cert", art: artText(), zuletzt: tlsZertifikat},
+			{name: "tls-key", art: artText(), zuletzt: tlsSchluessel},
+			{name: "allow-plaintext", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Record.TLS.KlartextErlaubt = v == "true" }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Record.LogLevel = v }},
 		}
 	case "replay":
@@ -454,6 +486,9 @@ func optionen(kommando string) []option {
 			{name: "fail-on-unconsumed", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Replay.FailOnUnconsumed = v == "true" }},
 			{name: "shutdown-timeout", art: artDauer(), standard: StandardFrist.String(), setze: func(c *Command, v string) { setzeDauer(&c.Replay.ShutdownTimeout, v) }},
 			{name: "session-assignment", art: artSitzungszuordnung(), standard: ZuordnungErsteAnfrage, setze: func(c *Command, v string) { c.Replay.SessionAssignment = v }},
+			{name: "tls-cert", art: artText(), zuletzt: tlsZertifikat},
+			{name: "tls-key", art: artText(), zuletzt: tlsSchluessel},
+			{name: "allow-plaintext", art: artWahrheitswert(), standard: "false", setze: func(c *Command, v string) { c.Replay.TLS.KlartextErlaubt = v == "true" }},
 			{name: "log-level", art: artStufe(), standard: LogInfo, oben: true, setze: func(c *Command, v string) { c.Replay.LogLevel = v }},
 		}
 	case "play":
@@ -540,6 +575,9 @@ func (g gelesen) gesetzt() bool { return g.cliOk || g.envOk || g.dateiOk }
 type quellen struct {
 	stand map[string]gelesen
 	wert  map[string]string
+	// jetzt liest die Systemuhr, gegen die der Start die Gültigkeit des
+	// Serverzertifikats prüft (LH-FA-23.a *Dateien*).
+	jetzt func() time.Time
 }
 
 // gesetzt meldet, ob irgendeine Quelle die Option name setzt.
@@ -555,8 +593,10 @@ func (q quellen) gesetzt(name string) bool { return q.stand[name].gesetzt() }
 // übernimmt es je Option den Wert nach der Priorität (SPEC-007); eine
 // Pflichtoption, die keine Quelle setzt, ist PGR-E2001. Zuletzt ruft es je
 // Option in ihrer Reihenfolge option.zuletzt, das prüft und den Wert ersetzen
-// kann (upstreamRecord setzt c.Record.Upstream auf die Adresse).
-func lies(kommando string, args []string) (Command, error) {
+// kann (upstreamRecord setzt c.Record.Upstream auf die Adresse); davor prüft es
+// die Kombinationen von --tls-cert, --tls-key und --allow-plaintext
+// (tlsKombination), die vor jedem Fehler von --upstream stehen.
+func lies(kommando string, args []string, jetzt func() time.Time) (Command, error) {
 	opts := optionen(kommando)
 	stand := make([]gelesen, len(opts))
 	var config gelesen
@@ -572,6 +612,10 @@ func lies(kommando string, args []string) (Command, error) {
 	}
 	cmd, q, err := zusammenfuehren(kommando, opts, stand, d)
 	if err != nil {
+		return Command{}, err
+	}
+	q.jetzt = jetzt
+	if err := tlsKombination(kommando, q); err != nil {
 		return Command{}, err
 	}
 	for i, o := range opts {
@@ -698,14 +742,6 @@ func liesKommandozeile(kommando string, opts []option, stand []gelesen, config *
 		return model.Errorf(model.CodeUsage, nil, "unerwartetes Argument %q", rest[0])
 	}
 	return nil
-}
-
-func parseRecord(args []string) (Command, error) {
-	return lies("record", args)
-}
-
-func parseReplay(args []string) (Command, error) {
-	return lies("replay", args)
 }
 
 // parseConfig liest config show: auf der Kommandozeile nur --config, von den

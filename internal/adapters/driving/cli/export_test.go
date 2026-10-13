@@ -1,6 +1,16 @@
 package cli
 
-import "go.yaml.in/yaml/v3"
+import (
+	"io"
+	"time"
+
+	"go.yaml.in/yaml/v3"
+)
+
+// ParseMitUhr ist Parse mit der Systemuhr jetzt.
+func ParseMitUhr(args []string, out io.Writer, jetzt func() time.Time) (Command, error) {
+	return parse(args, out, jetzt)
+}
 
 // Die Umgebungsvariablen von --fail-on-unconsumed, --log-level und
 // --shutdown-timeout.
