@@ -602,6 +602,18 @@ die Laufzeit des Hooks (F-721) ist nicht verändert und nicht zugesagt.
 darin `d-check: 694 Datei(en) geprüft, 0 Befund(e)`, `baseline-verify: v6.18.0 OK`, `commit-msg-gegenprobe: gruen` (hook-gegenprobe), `stop-hook-gegenprobe: gruen — 138 Fälle`, `gates-schnell-gegenprobe: gruen`,
 `kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`, `a-check-negativ: gruen`, `run-integration-tests: gruen`. Danach `bash .claude/hooks/stop-require-gates.sh </dev/null` im Arbeitsbaum: `{"decision":"approve"}`.
 
+**Nacharbeit nach der Verifikation** (V-340 bis V-342 des Reports vom 2026-10-13): Code-Commit `e48f655` (Kopf von `.claude/hooks/stop-require-gates.sh` und
+`tools/harness/stop-hook-gegenprobe.sh` sagen den `reason` nur zu, wo ein Fall ihn prüft: fehlender Stand bei inerter Änderung `p10-fehlt`, bei nicht inerter
+`p9-stand-fehlt-nicht-inert`; `tools/harness/record-gates.sh` und `harness/mk/stop-hook-gegenprobe.mk` tragen den Satz nicht, `grep` nach „anderen Arbeitsbaum“
+und „gates-schnell“ im Kommentar ohne weiteren Treffer); die Änderung ist nur Kommentar, die Gegenprobe lief in einer Kopie im Scratchpad vor dem Commit
+(`make stop-hook-gegenprobe` Exit 0, 138 Fälle, 2 min 10 s). Kopf des Plans (V-342) in `1459432`. V-343 ist Sache des Architect (Wortlaut von Punkt 22 (b)),
+V-344 und V-345 ohne Folge.
+
+**Stand der Gates nach der Verifikation** (V-341; Code-Commit `e48f655`, Kopf-Commit `1459432`; Baum sauber): `make gates` Exit 0, 7 min 32,0 s; darin
+`d-check: 695 Datei(en) geprüft, 0 Befund(e)`, `baseline-verify: v6.18.0 OK`, `commit-msg-gegenprobe: gruen`, `stop-hook-gegenprobe: gruen — 138 Fälle`,
+`gates-schnell-gegenprobe: gruen`, `kopf-check-gegenprobe: gruen`, `lint-gegenprobe: gruen`, `a-check-negativ: gruen`, `run-integration-tests: gruen`.
+Danach `bash .claude/hooks/stop-require-gates.sh </dev/null` im Arbeitsbaum: `{"decision":"approve"}`.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
