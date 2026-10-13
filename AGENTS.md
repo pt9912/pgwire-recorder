@@ -404,6 +404,27 @@ auf, ohne dass die Zahl steigt (`BEO-REPO/slice-waechst-durch-uebernahmen`). Ent
 oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
 slice-v1-abschluss-einspielen wieder aufgetreten?
 
+### 3.14 Eine Rückführungs-Marke nennt ihre Metrik, und die Schätzung rechnet in ihr (seit slice-harness-gate-kette-stop-hook-liste)
+
+Entscheidung des Nutzers vom 2026-10-13. Jede Rückführungs-Marke in §4 eines Plans („zu groß, über
+N Zeilen mit Tests“) nennt ihre Metrik: die Summe aus Einfügungen und Löschungen von
+`git diff --numstat <Basis>..<letzter Commit des Slice>` über die Pfade, die der Plan nennt, Tests
+eingeschlossen. Der Architect gibt Schätzungen in dieser Metrik an und rechnet für Tabellen- und
+Gegenprobe-Code mit rund dem Doppelten des Produktcodes.
+
+**Falsch:** §4 nennt „über 700 Zeilen mit Tests“; gemessen sind 630 (netto), 704 (Einfügungen) und
+778 (Summe), ob die Marke eintrat, hängt an der Lesart, und die Schätzung von 440 bis 620 Zeilen
+endet bei 1065, weil die Gegenprobe zwei Drittel des Diffs trägt.
+**Richtig:** §4 nennt „Summe aus Einfügungen und Löschungen von `git diff --numstat 9662e13..<letzter
+Commit> -- tools harness .claude`, über 700“; der Architect schätzt in dieser Zahl und setzt die
+Gegenprobe mit dem Doppelten des Produktcodes an.
+
+**Begründung:** Eine Marke ohne Metrik lässt die Probe an der Lesart hängen
+(`BEO-REPO/groessenprobe-ohne-messbaren-stand`), und eine Schätzung ohne den Faktor der Tests liegt
+unter der Messung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`). Entfernen oder Lockern
+setzt den Retirement-Check voraus: Ist eine der beiden Beobachtungen seit
+slice-harness-gate-kette-stop-hook-liste wieder aufgetreten?
+
 ## 4. Quality Gates
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-harness-dateien.md`
