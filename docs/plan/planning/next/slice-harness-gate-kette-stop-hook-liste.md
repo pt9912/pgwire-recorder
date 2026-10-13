@@ -89,14 +89,17 @@ trägt ihn bei der Closure dieses Slice in den Nehmer ein (§6).
 - `SPEC-052`, die schnelle Kette, ihr Stand und deren Gegenprobe — `slice-harness-gate-kette-schnell`
   (liegt vor diesem Slice in `done/`): Dieser Slice setzt sie voraus und ändert die Spezifikation nicht;
   gibt der Implementer eine Randform zurück, entscheidet der Architect in `SPEC-052`.
-- Positivliste (`docs/plan/planning/`, `docs/reviews/`), Grenze, Symlink-Regel mit Ziel und Spiegel,
+- Positivliste (`docs/plan/planning/`, `docs/reviews/`, `docs/user/`, `README.md`; Architect, 2026-10-13, Beleg in
+  `slice-harness-gate-kette-schnell` §6), Grenze, Symlink-Regel mit Ziel und Spiegel,
   Freigabe bei geänderten inerten Pfaden und das Lesen des Stands der schnellen Kette —
   `slice-harness-gate-kette-stop-hook-freigabe` (dort §1 und DoD; es nimmt an): Dieser Slice kennt nur
   „identisch“ oder „voll“; die Pfad-Logik ist der zweite Lieferwert und braucht ihre eigenen Fälle.
-- Aufnahme weiterer Pfade in die Positivliste (`docs/plan/adr/`, `spec/`, `docs/user/`, `README.md`) —
+- Aufnahme weiterer Pfade in die Positivliste (`docs/plan/adr/`, `spec/`) —
   Bestand bleibt bewusst stehen: [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md), *Setzungen des
   Nutzers*; eine Aufnahme ist eine Änderung von `SPEC-052` mit dem Beleg, dass kein langsames Gate den
-  Pfad liest. Es gibt dafür keinen Slice und keine Kennung.
+  Pfad liest. `docs/user/` und `README.md` sind seit der Entscheidung des Nutzers vom 2026-10-13 mit Beleg
+  aufgenommen (`slice-harness-gate-kette-schnell` §6); die Positivliste liefert
+  `slice-harness-gate-kette-stop-hook-freigabe`, nicht dieser Slice. Es gibt dafür keinen Slice und keine Kennung.
 - Änderung von `make gates` — [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md), *Entscheidung*
   Punkt 1: Die volle Kette bleibt der Nachweis für alles, was nicht auf der Positivliste steht.
 - Die Hooks `.claude/hooks/pretooluse-command-guard.sh` und `.claude/hooks/span-emit.sh` und den

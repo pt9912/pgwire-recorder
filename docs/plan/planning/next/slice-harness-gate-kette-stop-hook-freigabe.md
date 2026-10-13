@@ -44,7 +44,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Stop-Hook `.claude/hooks/stop-require-gates.sh` wählt die Kette nach `SPEC-052`: Er gibt
 frei, wenn jede seit dem Stand des letzten **vollen** grünen Laufs geänderte, hinzugekommene oder
-gelöschte Datei auf der Positivliste liegt (zu Beginn `docs/plan/planning/` und `docs/reviews/`) und der
+gelöschte Datei auf der Positivliste liegt (zu Beginn `docs/plan/planning/`, `docs/reviews/`, `docs/user/` und die Wurzel-`README.md`; Entscheidung des Nutzers vom 2026-10-13, Beleg in `slice-harness-gate-kette-schnell` §6) und der
 Stand der schnellen Kette (`gates-schnell`) grün ist; jeder andere Fall verlangt `make gates`
 (fail-closed). Die Gegenprobe `stop-hook-gegenprobe` bekommt je Randform dieses Slice einen Fall, der nur
 im inerten Fall freigibt. Der Hook ist das Restrisiko der Entscheidung
@@ -73,10 +73,12 @@ dieser Slice erweitert das Gate und ändert die Spezifikation nicht.
 - `SPEC-052`, die schnelle Kette, ihr Stand und deren Gegenprobe — `slice-harness-gate-kette-schnell`
   (liegt in `done/`): Dieser Slice ändert die Spezifikation nicht; gibt der Implementer eine Randform
   zurück, entscheidet der Architect in `SPEC-052`.
-- Aufnahme weiterer Pfade in die Positivliste (`docs/plan/adr/`, `spec/`, `docs/user/`, `README.md`) —
+- Aufnahme weiterer Pfade in die Positivliste (`docs/plan/adr/`, `spec/`, `harness/README.md`) —
   Bestand bleibt bewusst stehen: [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md), *Setzungen des
   Nutzers*; eine Aufnahme ist eine Änderung von `SPEC-052` mit dem Beleg, dass kein langsames Gate den Pfad
-  liest. Es gibt dafür keinen Slice und keine Kennung.
+  liest. `docs/user/` (einschließlich der Abdeckungstabellen) und die Wurzel-`README.md` stehen auf der
+  Positivliste, belegt vom Architect am 2026-10-13 (`slice-harness-gate-kette-schnell` §6). Es gibt dafür
+  keinen Slice und keine Kennung.
 - Änderung von `make gates` — [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md), *Entscheidung*
   Punkt 1: Die volle Kette bleibt der Nachweis für alles, was nicht auf der Positivliste steht.
 - Die Hooks `.claude/hooks/pretooluse-command-guard.sh` und `.claude/hooks/span-emit.sh` und den
@@ -192,8 +194,10 @@ Gebers `slice-harness-gate-kette-schnell` (Fundstelle `SPEC-052`; dessen erster 
 die Spezifikation, vor jedem Code). Dieser Slice trägt davon, ohne Doppelung mit
 `slice-harness-gate-kette-stop-hook-liste`:
 
-- Pfad auf der Positivliste; Pfad auf der Grenze (`docs/plan/planning-x/`, `docs/reviews-alt/`, eine Datei
-  `docs/reviews`); Groß- und Kleinschreibung (`docs/Plan/planning/`);
+- Pfad auf der Positivliste (`docs/plan/planning/`, `docs/reviews/`, `docs/user/`, `README.md`); Pfad auf der
+  Grenze (`docs/plan/planning-x/`, `docs/reviews-alt/`, `docs/users/`, eine Datei `docs/reviews` oder
+  `docs/user`, `README.md.bak`, `harness/README.md`); Groß- und Kleinschreibung (`docs/Plan/planning/`,
+  `readme.md`);
 - Pfad mit Segment `.`, `..` oder leerem Segment, absoluter Pfad, Pfad mit NUL: beschädigte Liste, nie
   inert;
 - gelöschte oder umbenannte Datei (beide Pfade gelten als geändert und müssen inert sein);
@@ -228,6 +232,8 @@ Architect bestätigt sie vor dem Start:
 | Ein Pfad mit `..`, absolut oder leerem Segment gilt als beschädigte Liste | Segmente nicht prüfen | `docs/plan/planning/../../internal/x.go` gibt frei → rot | Architect |
 | Ein leerer Diff gibt ohne Stand der schnellen Kette frei | Stand der schnellen Kette auch dann verlangen | Hook blockiert bei identischem Baum → rot | Architect |
 | Der Stand der schnellen Kette gehört zum aktuellen Arbeitsbaum | den Hash nicht mit dem aktuellen vergleichen | Stand eines anderen Arbeitsbaums gibt frei → rot | Planner |
+| `docs/user/` ist inert, auch die Abdeckungstabellen | `docs/user/` aus der Positivliste nehmen | Änderung in `docs/user/benutzerhandbuch.md` und in `docs/user/abdeckung-e2e.md` gibt nicht frei → rot | Architect, 2026-10-13 |
+| Nur die Wurzel-`README.md` ist inert | den Namen `README.md` in jeder Tiefe vergleichen | `harness/README.md` gibt frei → rot | Architect, 2026-10-13 |
 | Die Positivliste vergleicht case-sensitiv | Groß-/Kleinschreibung nicht unterscheiden | `docs/Plan/planning/` gibt frei → rot | Planner |
 | Eine untracked Datei zählt wie eine getrackte | untracked Dateien aus der Entscheidung nehmen | untracked Datei in `internal/` neben geändertem inertem Pfad gibt frei → rot | Planner |
 
@@ -328,6 +334,9 @@ Dateiliste) und der Randformen und Mutationen der Hook-Seite aus `slice-harness-
 verteilt: nachgezählt mit den Sendungen 3 Liefer-Punkte und 1 Schicht; der Name der Dateiliste ist Teil
 der Liefer-Punkte 1 bis 3, kein vierter. Geschätzt 260 bis 390 Zeilen mit Tests (§4). Nachgezählt am
 2026-10-13 bei der Umordnung (vor die Release-Slices): Die Sendungen sind unverändert, die Zählung bleibt 3
-Liefer-Punkte und 1 Schicht.
+Liefer-Punkte und 1 Schicht. Nachgezählt vom Architect am 2026-10-13 mit der erweiterten Positivliste (`docs/user/`,
+`README.md`): zwei Mutationen mehr in der Tabelle, vier Pfadklassen mehr in den Fällen der Positivliste, keine neue
+Logik (dieselbe Präfix-Regel, dazu ein Gleichheitsvergleich für `README.md`); die Zählung bleibt 3 Liefer-Punkte
+und 1 Schicht, die Schätzung 260 bis 390 Zeilen steigt um etwa 20 bis 30 (bis 420), keine Rückgabe an den Planner.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
