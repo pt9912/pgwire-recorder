@@ -1,3 +1,5 @@
-**Stand:** offen
+**Stand:** verkörpert
 
-Drittes Auftreten mit `slice-harness-gate-kette-stop-hook-liste` (Beleg `evidence/slice-harness-gate-kette-stop-hook-liste.md`), ohne Ausgang: Die Zuweisung (`verkörpert` oder `geplant`) steht beim Nutzer. Der Nutzer hat am 2026-10-13 „Regel in AGENTS.md aufnehmen“ für `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` und `BEO-REPO/groessenprobe-ohne-messbaren-stand` entschieden (`AGENTS.md` §3.14), nicht für diese Beobachtung. Empfehlung des Planners (keine Entscheidung): kein eigener Absatz, `verkörpert` mit Zielort `AGENTS.md` §3.14 und Herkunfts-Anker `seit slice-harness-gate-kette-stop-hook-liste`, weil die Prüfung des Architect vor dem Start den Fall jedes Mal gefangen hat und §3.14 ihr die Metrik gibt; Gegenargument: §3.14 schreibt die Schätzung vor dem Start nicht für jeden Plan vor.
+Zielort: `AGENTS.md §3.14` (Metrik der Rückführungs-Marke; der Architect schätzt in ihr und rechnet für Tabellen- und Gegenprobe-Code mit rund dem Doppelten des Produktcodes) — Herkunfts-Anker `seit slice-harness-gate-kette-stop-hook-liste` (Beleg `evidence/slice-harness-gate-kette-stop-hook-liste.md`; Entscheidung des Nutzers vom 2026-10-13: Zuweisung `verkörpert`, Zielort §3.14).
+
+Drittes Auftreten mit `slice-harness-gate-kette-stop-hook-liste`: Der Nutzer hat die Zuweisung am 2026-10-13 entschieden. Der Retirement-Check von §3.14 gilt für diese Beobachtung mit: Ist sie seit `slice-harness-gate-kette-stop-hook-liste` wieder aufgetreten?
