@@ -61,8 +61,8 @@ er legt das Gate nicht an). `slice-harness-gate-kette-schnell` liegt davor in `d
 `gates-schnell`, der Stand der schnellen Kette `.harness/state/gates-schnell-passed.diffsha` (Hash des
 Arbeitsbaums aus `tools/harness/working-tree-hash.sh`). **Name der Dateiliste:** wählt der Implementer von
 `slice-harness-gate-kette-stop-hook-liste`; der Planner trägt ihn bei dessen Closure hier ein (§6).
-`SPEC-052` Teil *Hook* gilt nach seinem Eingangssatz, soweit `stop-hook-gegenprobe` die Zusagen prüft;
-dieser Slice erweitert das Gate und ändert die Spezifikation nicht.
+`SPEC-052` Teil *Hook* gilt nach seinem Eingangssatz (Wortlaut: `slice-harness-gate-kette-schnell` §6, Zeile *Zwischenstand*), soweit ein Fall von `stop-hook-gegenprobe` die Zusage nennt;
+dieser Slice erweitert das Gate um die Fälle der Positivliste, jeder mit der Punktnummer aus `SPEC-052` in seinem Namen (wie im Geber), und ändert die Spezifikation nicht: Der Eingangssatz bleibt mit diesen Fällen wahr, ohne dass jemand ihn nachzieht.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -153,18 +153,18 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-harness-gate-kette-stop-hook-liste` liegt in `done/`
 (WIP-Limit 1); dieser Slice steht direkt dahinter und vor `slice-v1-abschluss-tls-client` (Schritt 28) und den übrigen Release-Slices (Drift-Log der Roadmap vom
-2026-10-13). Die Reihenfolge ist Entscheidung des Nutzers vom 2026-10-13. Die offenen Rückfragen an den Architect (Merge-Konflikt zu `slice-harness-gate-kette-stop-hook-liste`, Eingangssatz von `SPEC-052`, neue Mutationen, Rückführungsgrenzen) entscheidet er vor dem Start in §6. Der Name der
+2026-10-13). Die Reihenfolge ist Entscheidung des Nutzers vom 2026-10-13. Die Rückfragen des Planners hat der Architect am 2026-10-13 entschieden (§4 Größe, §6 Mutationen; Merge-Konflikt und Eingangssatz im Geber). Der Name der
 Dateiliste steht in §1 (Eintrag des Planners bei der Closure des Gebers; `grep` nach ihm in diesem Plan
 ist nicht leer). Die Randformen aus §6 sind in `SPEC-052` festgelegt; dieser Slice ändert sie nicht.
 
-**Größe — Verteilung der Schätzung des Architect (700 bis 950 Zeilen ungeteilt) durch den Planner, der
-Architect bestätigt vor dem Start:** dieser Slice 260 bis 390 Zeilen mit Tests (Hook 60 bis 90,
-Gegenprobe mit gut einem Dutzend Fällen 200 bis 300); in *einer* Review-Sitzung prüfbar.
+**Größe — Verteilung der Schätzung des Architect (700 bis 950 Zeilen ungeteilt) durch den Planner, vom
+Architect am 2026-10-13 bestätigt und um die erweiterte Positivliste ergänzt:** dieser Slice 280 bis 420 Zeilen mit Tests (Hook 60 bis 90,
+Gegenprobe mit gut einem Dutzend Fällen 220 bis 330; die Positivliste mit `docs/user/` und `README.md` bringt Pfadklassen, keine neue Logik); in *einer* Review-Sitzung prüfbar.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff liegt über einer Review-Sitzung
-  (über 500 Zeilen mit Tests; die Schätzung liegt bei 260 bis 390). Schnitt dann: die Symlink-Regel mit
+  (über 500 Zeilen mit Tests; die Schätzung des Architect liegt bei 280 bis 420). Schnitt dann: die Symlink-Regel mit
   ihren Fällen (Liefer-Punkt 2) als eigener Slice hinter der Positivliste; beide mit der Gegenprobe ihrer
   Zusagen, denn ohne Gegenprobe schließt keiner.
 - `in-progress` → `open` (blockiert — Carveout?): Der Nutzer nimmt
@@ -218,8 +218,8 @@ die Spezifikation, vor jedem Code). Dieser Slice trägt davon, ohne Doppelung mi
 Eine nicht genannte oder offene Randform entscheidet der Implementer nicht, er gibt sie zurück.
 
 **Mutationen** (`AGENTS.md` §3.10): Der Implementer fährt je Zusage die Mutation selbst und trägt die
-Tabelle in §7 ein. Die Zeilen mit „Planner“ in der letzten Spalte sind vom Planner abgeleitet, der
-Architect bestätigt sie vor dem Start:
+Tabelle in §7 ein. Die Zeilen mit „Planner“ in der letzten Spalte sind vom Planner abgeleitet; der
+Architect hat sie am 2026-10-13 bestätigt oder geschärft (Spalte *Herkunft*). Je Zeile bricht die Mutation nur ihre Zusage:
 
 | Zusage | Mutation | roter Fall | Herkunft |
 |---|---|---|---|
@@ -231,11 +231,11 @@ Architect bestätigt sie vor dem Start:
 | Ein Link außerhalb der Positivliste mit Ziel darin macht jede Änderung nicht inert | die Spiegelregel entfernen | Änderung in `docs/plan/planning/` gibt frei → rot | Architect |
 | Ein Pfad mit `..`, absolut oder leerem Segment gilt als beschädigte Liste | Segmente nicht prüfen | `docs/plan/planning/../../internal/x.go` gibt frei → rot | Architect |
 | Ein leerer Diff gibt ohne Stand der schnellen Kette frei | Stand der schnellen Kette auch dann verlangen | Hook blockiert bei identischem Baum → rot | Architect |
-| Der Stand der schnellen Kette gehört zum aktuellen Arbeitsbaum | den Hash nicht mit dem aktuellen vergleichen | Stand eines anderen Arbeitsbaums gibt frei → rot | Planner |
+| Der Stand der schnellen Kette gehört zum aktuellen Arbeitsbaum | nur das Vorhandensein der Stand-Datei prüfen, nicht ihren Hash | Stand eines anderen Arbeitsbaums gibt frei → rot | Planner, geschärft (Architect, 2026-10-13) |
 | `docs/user/` ist inert, auch die Abdeckungstabellen | `docs/user/` aus der Positivliste nehmen | Änderung in `docs/user/benutzerhandbuch.md` und in `docs/user/abdeckung-e2e.md` gibt nicht frei → rot | Architect, 2026-10-13 |
 | Nur die Wurzel-`README.md` ist inert | den Namen `README.md` in jeder Tiefe vergleichen | `harness/README.md` gibt frei → rot | Architect, 2026-10-13 |
-| Die Positivliste vergleicht case-sensitiv | Groß-/Kleinschreibung nicht unterscheiden | `docs/Plan/planning/` gibt frei → rot | Planner |
-| Eine untracked Datei zählt wie eine getrackte | untracked Dateien aus der Entscheidung nehmen | untracked Datei in `internal/` neben geändertem inertem Pfad gibt frei → rot | Planner |
+| Die Positivliste vergleicht case-sensitiv | Groß-/Kleinschreibung nicht unterscheiden | `docs/Plan/planning/` und `readme.md` geben frei → rot | Planner, bestätigt (Architect, 2026-10-13) |
+| Eine untracked Datei zählt wie eine getrackte, nach ihrem Pfad | untracked Pfade pauschal als inert behandeln | untracked Datei in `internal/` neben geändertem inertem Pfad gibt frei → rot | Planner, geschärft (Architect, 2026-10-13; die Gegenrichtung, untracked inerter Pfad blockiert, ist ein Ärgernis, keine Lücke, und hat keine Mutation) |
 
 Die Mutation „nicht aufgelöster Index-Eintrag“ der Tabelle des Architect steht in
 `slice-harness-gate-kette-stop-hook-liste` (dort als Konflikt bei sonst identischer Liste; Verteilung des
@@ -332,11 +332,11 @@ Closure-Notiz zählen nicht. Schichten: 1 — Harness-Werkzeug (`.claude/hooks`,
 `stop-hook-gegenprobe`, Prüfung nicht aufgelöster Index-Einträge vor der Pfad-Entscheidung, Name der
 Dateiliste) und der Randformen und Mutationen der Hook-Seite aus `slice-harness-gate-kette-schnell`, soweit
 verteilt: nachgezählt mit den Sendungen 3 Liefer-Punkte und 1 Schicht; der Name der Dateiliste ist Teil
-der Liefer-Punkte 1 bis 3, kein vierter. Geschätzt 260 bis 390 Zeilen mit Tests (§4). Nachgezählt am
+der Liefer-Punkte 1 bis 3, kein vierter. Geschätzt 280 bis 420 Zeilen mit Tests (§4). Nachgezählt am
 2026-10-13 bei der Umordnung (vor die Release-Slices): Die Sendungen sind unverändert, die Zählung bleibt 3
 Liefer-Punkte und 1 Schicht. Nachgezählt vom Architect am 2026-10-13 mit der erweiterten Positivliste (`docs/user/`,
 `README.md`): zwei Mutationen mehr in der Tabelle, vier Pfadklassen mehr in den Fällen der Positivliste, keine neue
 Logik (dieselbe Präfix-Regel, dazu ein Gleichheitsvergleich für `README.md`); die Zählung bleibt 3 Liefer-Punkte
-und 1 Schicht, die Schätzung 260 bis 390 Zeilen steigt um etwa 20 bis 30 (bis 420), keine Rückgabe an den Planner.
+und 1 Schicht, die Schätzung 260 bis 390 Zeilen steigt um etwa 20 bis 30 (bis 420), keine Rückgabe an den Planner; vom Architect am 2026-10-13 als 280 bis 420 übernommen.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

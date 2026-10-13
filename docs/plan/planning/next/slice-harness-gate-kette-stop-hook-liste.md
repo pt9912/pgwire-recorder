@@ -61,11 +61,11 @@ dem Start):** Der Plan hieß ungeteilt `slice-harness-gate-kette-stop-hook`; der
 auf 700 bis 950 Zeilen mit Tests (Logik der Dateiliste 100 bis 150, Hook 130 bis 180, Gegenprobe 450 bis
 650) und empfahl den Schnitt vor dem Start. Dieser Slice liefert die **Liste und einen Hook ohne
 Positivliste**: Er ist einzeln lieferbar, denn der Hook verlangt nach jeder Änderung `make gates` — das
-Verhalten, das `SPEC-052` Hook-Teil für die Zeit vor dem Gate `stop-hook-gegenprobe` nennt — und schließt
+Verhalten, das der Hook heute für jede Änderung zeigt — und schließt
 die Restlücke. `slice-harness-gate-kette-stop-hook-freigabe` liefert die Positivliste mit der Freigabe.
 **Größe, Verteilung der Schätzung des Architect (Planner, nicht gemessen; der Architect bestätigt):**
 dieser Slice 410 bis 590 Zeilen mit Tests (Logik der Liste 100 bis 150, Hook 60 bis 90, Gegenprobe mit
-rund anderthalb Dutzend Fällen 250 bis 350); der Folge-Slice 260 bis 390.
+rund anderthalb Dutzend Fällen 250 bis 350); der Folge-Slice 260 bis 390. **Architect, 2026-10-13:** Die Verteilung stimmt; durch die geteilten Mutationen (§6, Abweichung der Liste in vier Fällen, Leerzeichen, Konflikt bei identischer Liste) und die sechs Fehlformen der beschädigten Liste liegt die Gegenprobe bei rund 25 Fällen, tabellengetrieben 280 bis 400; dieser Slice **440 bis 620** Zeilen mit Tests, der Folge-Slice 280 bis 420.
 
 **Voraussetzung (Geber):** `slice-harness-gate-kette-schnell` liegt in `done/`: `SPEC-052` mit allen
 Randformen, das Ziel der schnellen Kette und ihr Stand. **Namen** (vom Architect am 2026-10-12 im Geber
@@ -75,7 +75,7 @@ Arbeitsbaums, von diesem Slice nicht gelesen), Gegenprobe der Kette `gates-schne
 des Hooks `stop-hook-gegenprobe` (dieser Slice legt sie an, der Folge-Slice erweitert sie). Die
 Dateiliste des vollen Laufs liegt in einer **neuen** Datei unter `.harness/state/` (Name wählt der
 Implementer dieses Slice, nicht `gates-passed.diffsha`): Ein alter Hash wird so nie als Liste gelesen.
-`SPEC-052` Teil *Hook* gilt nach seinem Eingangssatz, soweit `stop-hook-gegenprobe` die Zusagen prüft;
+`SPEC-052` Teil *Hook* gilt nach seinem Eingangssatz (Wortlaut: `slice-harness-gate-kette-schnell` §6, Zeile *Zwischenstand*), soweit ein Fall von `stop-hook-gegenprobe` die Zusage nennt;
 dieser Slice liefert das Gate und ändert die Spezifikation nicht.
 
 **Sendung an `slice-harness-gate-kette-stop-hook-freigabe`** (eingetragen im selben Commit wie dieser
@@ -125,7 +125,10 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       verlangt in jedem anderen Fall `make gates` (fehlender oder beschädigter Stand auch bei sauberem
       Baum, nicht lesbarer Vergleich, nicht aufgelöster Index-Eintrag, Abbruch als Antwort `block`);
       der Schleifenschutz (`stop_hook_active`) bleibt; der Kopf-Kommentar beschreibt das neue Verhalten
-      (`AGENTS.md` §3.7), nicht die Restlücke.
+      (`AGENTS.md` §3.7), nicht die Restlücke, und sagt die Sperre bei fehlendem Stand zu, auch bei sauberem
+      Baum (Entscheidung des Nutzers vom 2026-10-12); der Fall der Gegenprobe dazu steht in Liefer-Punkt 3.
+      Die Prüfung nicht aufgelöster Index-Einträge ist die erste Prüfung nach dem Schleifenschutz, auch vor
+      „Liste identisch“.
 - [ ] **Liefer-Punkt 3:** Die Gegenprobe `stop-hook-gegenprobe` macht je Randform aus §6 einen Fall in
       einem Temp-Repo, der nur im inerten Fall freigibt, und hängt an `GATE_CHECKS`;
       `harness/README.md` §Sensors führt ihre Zeile mit Bindung an
@@ -165,6 +168,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `harness/README.md` §Sensors | update | Zeile der Gegenprobe, Bindung [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) |
 | `harness/conventions.md` (Träger-Tabelle, Zeile `grundlagen-durchsetzungsschicht.md`) | update | nennt die Träger des geänderten Hooks (Dateiliste, Hook, gegebenenfalls ersetzte Datei) |
 
+- Jeder Fall der Gegenprobe trägt die Nummer des Punktes aus `SPEC-052` in seinem Namen (Architect, 2026-10-13; sonst ist „ein Fall nennt den Punkt“ im Eingangssatz nicht prüfbar).
 - Der Hook liest den Nachweis über dieselbe Funktion, die ihn schreibt; ein zweiter Leser der Liste
   wäre die Logik-Dopplung, die der Kopf von `working-tree-hash.sh` heute ausschließt.
 - Der Implementer prüft vor dem Commit, ob eine weitere lebende Stelle den Hash als Nachweis nennt
@@ -180,16 +184,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dieser Slice steht direkt dahinter und vor `slice-harness-gate-kette-stop-hook-freigabe`,
 `slice-v1-abschluss-tls-client` (Schritt 28) und den übrigen Release-Slices (Drift-Log der Roadmap vom 2026-10-13);
 `slice-harness-gate-kette-schnell` steht seinerseits vor `slice-v1-abschluss-tls-client`. Die Reihenfolge ist
-Entscheidung des Nutzers vom 2026-10-13. Die offenen Rückfragen an den Architect (Merge-Konflikt zu `slice-harness-gate-kette-stop-hook-liste`, Eingangssatz von `SPEC-052`, neue Mutationen, Rückführungsgrenzen) entscheidet er vor dem Start in §6. Die Namen aus §1 stehen im Plan. Die Randformen aus §6 sind in `SPEC-052`
+Entscheidung des Nutzers vom 2026-10-13. Die Rückfragen des Planners hat der Architect am 2026-10-13 entschieden (§1 Größe, §4 Rückführung, §6 Mutationen, Wortlaut des Eingangssatzes im Geber). Die Namen aus §1 stehen im Plan. Die Randformen aus §6 sind in `SPEC-052`
 festgelegt (der Architect hat sie am 2026-10-12 in §6 des Gebers entschieden, dessen erster Commit
-überträgt sie); dieser Slice ändert sie nicht. **Vor dem Start:** Der Architect bestätigt die Verteilung der
+überträgt sie); dieser Slice ändert sie nicht. **Vor dem Start:** Der Architect hat die Verteilung der
 Randformen und Mutationen auf diesen Slice und `slice-harness-gate-kette-stop-hook-freigabe` und die
-Größenschätzung aus §1 (Planner-Verteilung seiner Schätzung).
+Größenschätzung aus §1 am 2026-10-13 bestätigt (mit den Änderungen in §1 und §6).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Diff liegt über einer Review-Sitzung
-  (über 650 Zeilen mit Tests; die Schätzung liegt bei 410 bis 590). Schnitt dann nach Lieferwert:
+  (über 700 Zeilen mit Tests; die Schätzung des Architect liegt bei 440 bis 620). Schnitt dann nach Lieferwert:
   Dateiliste mit Schreiber und ihrer Gegenprobe (Format, beschädigte Liste) zuerst, der Vergleich im
   Hook mit seinen Fällen danach; beide mit der Gegenprobe ihrer Zusagen, denn ohne Gegenprobe schließt
   keiner.
@@ -245,8 +249,8 @@ Tabelle von §6 des Gebers `slice-harness-gate-kette-schnell` (Fundstelle `SPEC-
 Eine nicht genannte oder offene Randform entscheidet der Implementer nicht, er gibt sie zurück.
 
 **Mutationen** (`AGENTS.md` §3.10): Der Implementer fährt je Zusage die Mutation selbst und trägt die
-Tabelle in §7 ein. Die Zeilen mit „Planner“ in der letzten Spalte sind vom Planner abgeleitet, der
-Architect bestätigt sie vor dem Start:
+Tabelle in §7 ein. Die Zeilen mit „Planner“ in der letzten Spalte sind vom Planner abgeleitet; der
+Architect hat sie am 2026-10-13 bestätigt, geschärft oder geteilt (Spalte *Herkunft*). Je Zeile bricht die Mutation nur ihre Zusage:
 
 | Zusage | Mutation | roter Fall | Herkunft |
 |---|---|---|---|
@@ -257,10 +261,16 @@ Architect bestätigt sie vor dem Start:
 | Ein Abbruch des Hooks antwortet `block` | Fehlerbehandlung entfernen (Abbruch ohne Antwort) | Hook endet ohne `block` → rot | Architect |
 | Der Schleifenschutz bleibt | `stop_hook_active` nicht mehr lesen | Hook blockiert endlos → rot | Architect |
 | `make gates` schreibt die Dateiliste nur bei grünem Lauf | Schreiben vor die Gates ziehen | roter Lauf hinterlässt Liste → rot | Architect |
-| Ein nicht aufgelöster Index-Eintrag verlangt `make gates` | `git ls-files -u` nicht lesen | Konflikt bei sonst identischer Liste gibt frei → rot | Planner (Architect: Konflikt in inertem Pfad, Fall dort nicht möglich ohne Positivliste) |
-| Jede Abweichung der Liste verlangt `make gates` | nur Pfade oder nur Werte vergleichen | geänderter Inhalt, gelöschte, hinzugekommene, umbenannte Datei, geändertes Link-Ziel gibt frei → rot | Planner |
-| Eine identische Liste gibt frei | Hook blockiert immer | Gutfall blockiert → rot | Planner |
-| Die Liste trägt jeden Pfad (Zeilenumbruch, Leerzeichen) | zeilenweise statt NUL-getrennt lesen | Pfad mit Zeilenumbruch → rot | Planner |
+| Ein nicht aufgelöster Index-Eintrag verlangt `make gates`, vor „identisch“ | `git ls-files -u` nicht lesen, oder erst die Identität prüfen | Konflikt bei sonst identischer Liste gibt frei → rot | Planner, vom Architect bestätigt am 2026-10-13 (der frühere Vermerk „in inertem Pfad nicht möglich“ entfällt: der Fall liegt an der Identität, nicht am Pfad) |
+| Ein geänderter Inhalt oder ein geändertes Link-Ziel verlangt `make gates` | nur Pfade vergleichen | geänderter Inhalt; geändertes Link-Ziel gibt frei → rot | Planner, geteilt (Architect, 2026-10-13) |
+| Eine Umbenennung verlangt `make gates` | nur Werte (Hashes) vergleichen | Umbenennung bei gleichem Inhalt gibt frei → rot | Planner, geteilt |
+| Eine gelöschte Datei verlangt `make gates` | nur Pfade des Arbeitsbaums gegen den Stand prüfen (gelöschte ignorieren) | gelöschte Datei gibt frei → rot | Planner, geteilt |
+| Eine untracked Datei verlangt `make gates` | `git ls-files` ohne `--others` | neue untracked Datei gibt frei → rot | Planner, geteilt |
+| Eine identische Liste gibt frei | Hook blockiert immer | Gutfall blockiert → rot | Planner, bestätigt |
+| Die Liste trägt jeden Pfad (Zeilenumbruch) | zeilenweise statt NUL-getrennt lesen | Pfad mit Zeilenumbruch → rot | Planner, bestätigt |
+| Die Liste trägt jeden Pfad (Leerzeichen) | Pfad ungequotet expandieren (Wortteilung) | Pfad mit Leerzeichen → rot | Architect, 2026-10-13 |
+
+Sortierung und Einmaligkeit der Liste haben keine eigene Mutation (**akzeptiertes Negativ**, Architect, 2026-10-13; Grund: Schreiber und Leser erzeugen die Liste mit derselben Funktion, eine abweichende Sortierung macht aus „identisch“ höchstens „voll“, nie „frei“; ein doppelter Pfad in der gelesenen Liste ist beschädigt und hat seinen Fall oben).
 
 **Verteilung auf den Folge-Slice** (`slice-harness-gate-kette-stop-hook-freigabe`, dort Fälle und Zeilen):
 Positivliste, Grenze, Groß-/Kleinschreibung, Pfade mit `.`/`..`/leer/absolut, Symlink mit Ziel und
@@ -365,7 +375,7 @@ unverändert, die Zählung bleibt 3 Liefer-Punkte und 1 Schicht.
 **Sendung des Gebers `slice-harness-gate-kette-schnell`** (die Namen aus §1, die Randformen der Hook-Seite
 aus §6, soweit hier verteilt): nachgezählt mit der Sendung 3 Liefer-Punkte und 1 Schicht; die Namen sind
 Teil der Liefer-Punkte 1 bis 3, kein vierter. **Sendung an `slice-harness-gate-kette-stop-hook-freigabe`**
-(§1): dort nachgezählt, im selben Commit wie dieser Plan. Geschätzt 410 bis 590 Zeilen mit Tests (§1,
-Verteilung der Schätzung des Architect durch den Planner); in einer Review-Sitzung prüfbar.
+(§1): dort nachgezählt, im selben Commit wie dieser Plan. Geschätzt 440 bis 620 Zeilen mit Tests (§1,
+Verteilung der Schätzung des Architect, am 2026-10-13 korrigiert); in einer Review-Sitzung prüfbar. Vom Architect am 2026-10-13 nachgezählt: 3 Liefer-Punkte, 1 Schicht.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
