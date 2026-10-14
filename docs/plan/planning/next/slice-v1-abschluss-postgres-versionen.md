@@ -60,14 +60,15 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung): `SPEC-029` und `LH-FA-05.e` nennen den beim Start bestätigten Versionsbereich (die fünf jüngsten erschienenen Hauptversionen) als feste Liste und was „unterstützt“ heißt; `SPEC-038` nennt die Versionsmatrix; das Benutzerhandbuch nennt den Bereich; [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung) trägt den Satz zur unterstützten Hauptversion. Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
 - [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol): `make test-postgres-versionen` hängt an `make gates` und fährt die Abnahmeszenarien 1, 2 und 7 gegen jede Version des Bereichs außer der Referenz 17, je mit per Digest gepinntem Image, dazu je Version den Fall SCRAM-SHA-256 des Anmeldetests aus `slice-v1-abschluss-anmeldung`, sodass jede Version auch mit Passwort-Anmeldung statt nur mit `trust` läuft (Entscheidung des Nutzers vom 2026-10-07); `harness/README.md` §Sensors führt das Ziel mit Bindung; bewusst gebrochen: ein Image ohne Digest, eine fehlende Version oder eine Testauswahl ohne Treffer färbt das Ziel rot.
 - [ ] [`LH-FA-09`](../../../../spec/lastenheft.md#lh-fa-09--reproduzierbares-replay): `TestE2EReplayLebendpruefungWiePostgres` ist gegen jede Version der Liste grün: Für jede Version entspricht die versionsabhängige Leerraum-Menge der Erkennung der Antwort des Servers, auch für `\v` diesseits und jenseits der Versionsgrenze; weicht eine Version ab, sind die Versionsgrenze in `LH-FA-09.a` und der Tabellentest der Erkennung berichtigt.
-- [ ] `make gates` grün.
+- [ ] `make gates` grün. *(entfällt: kein Diff, nichts geliefert)*
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+      *(entfällt: kein Diff, nichts geliefert)*
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -121,14 +122,14 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-- **Versionsbereich unbestätigt.** Die Liste 15 bis 19 ist der Stand des Planers. Entschieden (Nutzer, 2026-10-05): die fünf jüngsten erschienenen Hauptversionen als feste Liste; ist 19 beim Start nicht erschienen, gelten die fünf jüngsten erschienenen (dann 14 bis 18). Beim Start wird die Release-Liste von PostgreSQL gelesen, bevor die Spezifikation die Liste nennt — **Ausgang:** offen bis Closure.
-- **Feste Liste altert.** Die Liste in der Spezifikation hebt sich nicht selbst an; mit jeder neuen Hauptversion fällt sie hinter die Entscheidung „fünf jüngste“ zurück, und kein Gate merkt es (ein Sensor bräuchte Netz, §1). Eine Folge-Adresse gibt es heute nicht: Ein Slice für das Anheben wäre ohne beobachtbaren Anlass geplant. Kandidat für den Ausgang: *weiter offen* → neue Beobachtung `BEO-REPO/postgres-versionsliste-altert` bei der Closure, mit dem beobachtbaren Anlass „eine neue Hauptversion von PostgreSQL ist erschienen“; tritt er ein, plant der Planer den Slice, der die Liste anhebt — **Ausgang:** offen bis Closure.
-- **Satz im Lastenheft.** Entschieden (Nutzer, 2026-10-05): ein Satz in [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung), der auf die Liste der Spezifikation zeigt, ohne Versionssprung (Draft). Offen bleibt die Formulierung: Das Lastenheft nennt die Versionen nicht selbst, sonst müsste jedes Anheben das Lastenheft ändern — **Ausgang:** offen bis Closure.
-- **Versionsgrenze für `\v`.** Die Erkennung der Lebendprüfung hängt nach `slice-extended-query-lebendpruefung` von `server_version` ab; die Grenze, ab der `\v` Leerraum ist, hat dort eine Sonde gegen 14 bis 18 auf 17 bestimmt; 19 ist nicht geprüft. Ob sie für jede Version der Liste stimmt und ob die übrigen Zeichen der Tabelle in `LH-FA-09.a` bei allen gleich gelten, prüft erst dieser Slice. Weicht eine Version ab, berichtigt er die Grenze; weicht sie in mehr ab als der Leerraum-Menge, greift die Rückführung aus §4 — **Ausgang:** offen bis Closure.
-- **Teilmenge fällt still leer.** Die Teilmenge wählt Tests über ihren Namen; ein umbenannter Test fiele aus der Matrix, und `go test -run` mit einem Muster ohne Treffer endet grün (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`). Der Runner muss je Version und Phase prüfen, dass die erwarteten Tests liefen, nicht nur, dass keiner rot war — **Ausgang:** offen bis Closure.
-- **Laufzeit des Gates.** Je Version kommt ein PostgreSQL-Start und die Teilmenge in zwei Phasen hinzu. Der Zuwachs der Variante C ist vom Nutzer akzeptiert (2026-10-05); gemessen wird `make gates` vor und nach dem Slice, die Closure-Notiz nennt beide Zahlen. Liegt der gemessene Zuwachs deutlich über der Schätzung, ist die Antwort eine kleinere Teilmenge oder ein Carveout, keine stille Herausnahme aus `GATE_CHECKS` ([`AGENTS.md`](../../../../AGENTS.md) §3.6) — **Ausgang:** offen bis Closure.
-- **Anmeldung je Image.** Der Fall SCRAM-SHA-256 braucht je Server einen Benutzer mit Passwort und eine Regel in `pg_hba.conf`; wie `slice-v1-abschluss-anmeldung` das gegen 17 einrichtet, muss für jedes Image des Bereichs gleich wirken (etwa `password_encryption`, Einstiegsskripte des Images). Weicht ein Image ab, gehört die Einrichtung in die Matrix, nicht in den Anmeldetest — **Ausgang:** offen bis Closure.
-- **Zweite Phase verdeckt.** Der Runner endet nach einer roten ersten Phase; eine Version, deren Record scheitert, zeigt nicht, ob Szenario 2 oder 7 gegen ihre Aufzeichnung trüge (`BEO-REPO/abnahme-ohne-postgres-nicht-einzeln-brechbar`). Die Matrix erbt das; der Bericht je Version nennt die Phase, in der er endete — **Ausgang:** offen bis Closure.
+- **Versionsbereich unbestätigt.** Die Liste 15 bis 19 ist der Stand des Planers. Entschieden (Nutzer, 2026-10-05): die fünf jüngsten erschienenen Hauptversionen als feste Liste; ist 19 beim Start nicht erschienen, gelten die fünf jüngsten erschienenen (dann 14 bis 18). Beim Start wird die Release-Liste von PostgreSQL gelesen, bevor die Spezifikation die Liste nennt — **Ausgang:** eingetreten: `slice-v1-abschluss-postgres-versionen-matrix` (übernommen, dort §6).
+- **Feste Liste altert.** Die Liste in der Spezifikation hebt sich nicht selbst an; mit jeder neuen Hauptversion fällt sie hinter die Entscheidung „fünf jüngste“ zurück, und kein Gate merkt es (ein Sensor bräuchte Netz, §1). Eine Folge-Adresse gibt es heute nicht: Ein Slice für das Anheben wäre ohne beobachtbaren Anlass geplant. Kandidat für den Ausgang: *weiter offen* → neue Beobachtung `BEO-REPO/postgres-versionsliste-altert` bei der Closure, mit dem beobachtbaren Anlass „eine neue Hauptversion von PostgreSQL ist erschienen“; tritt er ein, plant der Planer den Slice, der die Liste anhebt — **Ausgang:** eingetreten: `slice-v1-abschluss-postgres-versionen-zusage` (übernommen, dort §6).
+- **Satz im Lastenheft.** Entschieden (Nutzer, 2026-10-05): ein Satz in [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung), der auf die Liste der Spezifikation zeigt, ohne Versionssprung (Draft). Offen bleibt die Formulierung: Das Lastenheft nennt die Versionen nicht selbst, sonst müsste jedes Anheben das Lastenheft ändern — **Ausgang:** eingetreten: `slice-v1-abschluss-postgres-versionen-zusage` (übernommen, dort §6).
+- **Versionsgrenze für `\v`.** Die Erkennung der Lebendprüfung hängt nach `slice-extended-query-lebendpruefung` von `server_version` ab; die Grenze, ab der `\v` Leerraum ist, hat dort eine Sonde gegen 14 bis 18 auf 17 bestimmt; 19 ist nicht geprüft. Ob sie für jede Version der Liste stimmt und ob die übrigen Zeichen der Tabelle in `LH-FA-09.a` bei allen gleich gelten, prüft erst dieser Slice. Weicht eine Version ab, berichtigt er die Grenze; weicht sie in mehr ab als der Leerraum-Menge, greift die Rückführung aus §4 — **Ausgang:** eingetreten: `slice-v1-abschluss-postgres-versionen-matrix` (übernommen, dort §6).
+- **Teilmenge fällt still leer.** Die Teilmenge wählt Tests über ihren Namen; ein umbenannter Test fiele aus der Matrix, und `go test -run` mit einem Muster ohne Treffer endet grün (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`). Der Runner muss je Version und Phase prüfen, dass die erwarteten Tests liefen, nicht nur, dass keiner rot war — **Ausgang:** eingetreten: `slice-v1-abschluss-postgres-versionen-matrix` (übernommen, dort §6).
+- **Laufzeit des Gates.** Je Version kommt ein PostgreSQL-Start und die Teilmenge in zwei Phasen hinzu. Der Zuwachs der Variante C ist vom Nutzer akzeptiert (2026-10-05); gemessen wird `make gates` vor und nach dem Slice, die Closure-Notiz nennt beide Zahlen. Liegt der gemessene Zuwachs deutlich über der Schätzung, ist die Antwort eine kleinere Teilmenge oder ein Carveout, keine stille Herausnahme aus `GATE_CHECKS` ([`AGENTS.md`](../../../../AGENTS.md) §3.6) — **Ausgang:** eingetreten: `slice-v1-abschluss-postgres-versionen-matrix` (übernommen, dort §6).
+- **Anmeldung je Image.** Der Fall SCRAM-SHA-256 braucht je Server einen Benutzer mit Passwort und eine Regel in `pg_hba.conf`; wie `slice-v1-abschluss-anmeldung` das gegen 17 einrichtet, muss für jedes Image des Bereichs gleich wirken (etwa `password_encryption`, Einstiegsskripte des Images). Weicht ein Image ab, gehört die Einrichtung in die Matrix, nicht in den Anmeldetest — **Ausgang:** eingetreten: `slice-v1-abschluss-postgres-versionen-matrix` (übernommen, dort §6).
+- **Zweite Phase verdeckt.** Der Runner endet nach einer roten ersten Phase; eine Version, deren Record scheitert, zeigt nicht, ob Szenario 2 oder 7 gegen ihre Aufzeichnung trüge (`BEO-REPO/abnahme-ohne-postgres-nicht-einzeln-brechbar`). Die Matrix erbt das; der Bericht je Version nennt die Phase, in der er endete — **Ausgang:** eingetreten: `slice-v1-abschluss-postgres-versionen-matrix` (übernommen, dort §6).
 
 ## 7. Closure-Notiz
 
@@ -144,7 +145,42 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+- **Gegenstand:** übernommen von `slice-v1-abschluss-postgres-versionen-matrix` (Gate `make test-postgres-versionen` mit der
+  Teilmenge der Szenarien 1, 2 und 7, dem Fall SCRAM-SHA-256 und dem Lebendprüfungs-Abgleich gegen
+  jede Version des Bereichs; die Abgrenzungen zu Protokollversion 3.2, Protokollrand, voller
+  Suite, Szenario 18 und Szenario 16 Satz 3, Wechsel der Referenzversion und Sensor gegen die
+  Release-Liste; die Adresse der Beobachtung `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`
+  und der Versionsgrenze aus `slice-extended-query-lebendpruefung`) und `slice-v1-abschluss-postgres-versionen-zusage` (Zusage in
+  `SPEC-029`, `LH-FA-05.e`, `SPEC-038` und `LH-RB-02`, Handbuch und README, die Sendung der
+  Handbuch-Sätze zur Anmeldung aus `slice-v1-abschluss-anmeldung` und
+  `slice-v1-abschluss-anmeldung-doku`). Entscheidung des Nutzers vom 2026-10-14: Schnitt nach
+  Lieferwert, Matrix zuerst, weil eine Zusage nur sagt, was das Gate belegt (`AGENTS.md` §3.11).
+  Jede Übernahme aus §1 hat genau einen Nehmer; die Liefer-Punkte der DoD bleiben leer. Die
+  Wellen-Zugehörigkeit wandert mit dem Gegenstand: `slice-v1-abschluss-postgres-versionen-matrix` ist Schritt 32a, `slice-v1-abschluss-postgres-versionen-zusage` Schritt 32b in §5 von
+  [welle-v1-abschluss](../welle-v1-abschluss.md); Drift-Log der Roadmap vom 2026-10-14.
+- **Was hat funktioniert:** Die Übernahmen standen mit ihrem Geber in §1 und §6; jedes der acht
+  Risiken ließ sich einem Nehmer zuweisen, ohne eines zu teilen. Der Nutzer entschied den Schnitt
+  mit der Reihenfolge, die die Regel der Zusage verlangt (`AGENTS.md` §3.11).
+- **Was ging anders als geplant:** Der Plan zählte seit der Schichtzählung von
+  `slice-doku-ist-stand` (2026-10-10) vier Schichten und überließ den Schnitt dem Planner „vor
+  dem ersten Code-Commit“. In den vier Tagen bis dahin nahm er keine Sendung an: die Handbuch-Sätze
+  zur Anmeldung aus `slice-v1-abschluss-anmeldung-doku` blieben ohne Eintrag, weil ein Eintrag den
+  Nehmer über der Grenze gelassen hätte (dort §6). Erst der Schnitt machte die Sendung möglich.
+- **Steering-Loop-Eintrag:** benannte Beobachtung, gezählt, nicht verkörpert: Ein Plan, der
+  durch eine Regeländerung über die Grenze fiel und seinen Schnitt auf „vor dem ersten
+  Code-Commit“ legte, ist als Adresse tot, solange er ungeschnitten steht; Sendungen an ihn
+  unterbleiben oder verlängern ihn. Auslöser:
+  `BEO-REPO/plan-ueber-der-grenze-ohne-schnitt-blockiert-sendungen` (`slice-v1-abschluss-postgres-versionen` — 1×).
+- **Beobachtungs-Register (`../observations/`):**
+  `BEO-REPO/plan-ueber-der-grenze-ohne-schnitt-blockiert-sendungen/` neu angelegt, Beleg
+  `evidence/slice-v1-abschluss-postgres-versionen.md`.
+  `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` bleibt 1×, offen; seine Adresse ist
+  jetzt `slice-v1-abschluss-postgres-versionen-matrix`.
+- **Folge-Slices:** `slice-v1-abschluss-postgres-versionen-matrix` und `slice-v1-abschluss-postgres-versionen-zusage` — Dateien in `next/`, Welle welle-v1-abschluss.
+- **Risiken aus §6:** alle acht mit Ausgang *eingetreten* und der Kennung des Nehmers (siehe §6).
+- **Drei Paarungen:** Anker — keiner, nichts verkörpert; Folge-Slice — beide Nehmer liegen in
+  `next/` und nennen diesen Slice unter `Übernimmt:` (`grep -n "Übernimmt:"` in beiden findet ihn);
+  Register — der Beleg oben liegt.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -172,5 +208,7 @@ Die Einträge über der Schwelle bekommen ihren Ausgang bei der Closure ihrer We
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: Spezifikation, Entscheidungen, Harness und Dokumentation, also vier Schichten und damit über zwei; das war vor dieser Zählung so (die Dokumentation steht in `docs/user/` neben dem Harness) und hängt nicht an ihr: Der Planner entscheidet vor dem ersten Code-Commit, ob dieser Plan geschnitten wird.
 
 Nachgezählt beim Eintragen der Abgrenzung zu Szenario 18 und Szenario 16 Satz 3 (2026-10-12, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Abgrenzung ist ein Ausschluss, kein Liefer-Punkt; Liefer-Punkte (drei) und Schichten (vier, wie oben) bleiben unverändert.
+
+Nachgezählt beim Schnitt (Planner, 2026-10-14, `AGENTS.md` §3.13): Der Gegenstand liegt bei {M} (Liefer-Punkte 2, Schichten zwei: Harness mit seinen Tests, und eine ADR, wenn der Architect sie schreibt) und {Z} (Liefer-Punkte 3, Schichten zwei: Spezifikation, Dokumentation). Die Zählung dieses Plans (drei Liefer-Punkte, vier Schichten) gilt nicht mehr.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Spezifikation führt, der Code folgt ihr; `harness/conventions.md` deklariert `*` als Greenfield).

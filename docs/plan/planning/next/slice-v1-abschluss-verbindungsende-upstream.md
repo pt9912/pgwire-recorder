@@ -43,7 +43,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 - Der Use Case, `CloseSession`, die Übernahme der Session und die Zustellung im PGWire-Adapter — `slice-v1-abschluss-verbindungsende-record` (Vorgänger): andere Schichten.
 - Fehlerantwort `FATAL` im Verbindungsaufbau (etwa eine abgelehnte Anmeldung) — `Open` bleibt unverändert; das Ende vor dem ersten `ReadyForQuery` ist kein Ende nach `LH-FA-25` (Out-of-Scope; `BEO-REPO/record-fehlerantwort-im-aufbau-ungeregelt` bleibt offen).
 - Ein Netzwerkabbruch ohne Fehlerantwort als Ende — Out-of-Scope von `LH-FA-25`; er bleibt `PGR-E4003` (Teil von Abnahmeszenario 18, hier belegt).
-- Die Matrix der PostgreSQL-Versionen — `slice-v1-abschluss-postgres-versionen` fährt die Szenarien 1, 2 und 7; Szenario 18 läuft hier gegen die Referenzversion 17. Ob die Matrix es mitfährt, ist eine Frage an den Nutzer (§6).
+- Die Matrix der PostgreSQL-Versionen — `slice-v1-abschluss-postgres-versionen-matrix` fährt die Szenarien 1, 2 und 7; Szenario 18 läuft hier gegen die Referenzversion 17. Ob die Matrix es mitfährt, ist eine Frage an den Nutzer (§6).
 - Benutzerhandbuch und `README.md` — `slice-v1-abschluss-verbindungsende-doku` (`AGENTS.md` §3.11, §3.13).
 
 ## 2. Definition of Done
@@ -123,7 +123,7 @@ dasteht.
 
 **Risiken:**
 
-- Das Verhalten des Servers (`57P01`, `idle_session_timeout` ab PostgreSQL 14) ist nur gegen die Referenzversion 17 geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×); **Akzeptiertes Negativ** (Entscheidung des Nutzers vom 2026-10-12): Abnahmeszenario 18 läuft nur gegen PostgreSQL 17; die Matrix aus `slice-v1-abschluss-postgres-versionen` fährt es nicht mit (dort §1 als Abgrenzung, `AGENTS.md` §3.13) — **Ausgang:** weiter offen → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`.
+- Das Verhalten des Servers (`57P01`, `idle_session_timeout` ab PostgreSQL 14) ist nur gegen die Referenzversion 17 geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×); **Akzeptiertes Negativ** (Entscheidung des Nutzers vom 2026-10-12): Abnahmeszenario 18 läuft nur gegen PostgreSQL 17; die Matrix aus `slice-v1-abschluss-postgres-versionen-matrix` fährt es nicht mit (dort §1 als Abgrenzung, `AGENTS.md` §3.13) — **Ausgang:** weiter offen → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`.
 - Ein Netzwerkabbruch ohne Fehlerantwort braucht im E2E einen Weg, die Verbindung zu kappen (Proxy, Container anhalten); das Mittel wählt der Implementer, die Zusage ist `PGR-E4003` statt Ende — **Ausgang:** offen bis Closure.
 - Der Diff liegt an der Grenze einer Review-Sitzung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`, 2×): die Rückführung in §4 benennt den Schnitt — **Ausgang:** offen bis Closure.
 

@@ -123,7 +123,7 @@ dasteht.
 
 - Der Diff liegt über einer Review-Sitzung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`, 2×): die Rückführung in §4 benennt den Schnitt — **Ausgang:** offen bis Closure.
 - Das Schließen ohne `Terminate` braucht eine Änderung des Ports `Einspielziel` und des Adapters; die Zahl der Schichten (Kern mit Port, Einspiel-Adapter) ist zwei, und der Architect prüft vor dem Code, dass das Bootstrap und der CLI-Adapter unberührt bleiben — **Ausgang:** offen bis Closure.
-- Das Verhalten des Servers (`57P01` bei `pg_terminate_backend`) ist nur gegen die Referenzversion 17 geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×); ob die Matrix aus `slice-v1-abschluss-postgres-versionen` Abnahmeszenario 18 mitfährt, ist eine Frage an den Nutzer, nicht in diesem Plan entschieden — **Ausgang:** offen bis Closure (erwartet: weiter offen → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`).
+- Das Verhalten des Servers (`57P01` bei `pg_terminate_backend`) ist nur gegen die Referenzversion 17 geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×); ob die Matrix aus `slice-v1-abschluss-postgres-versionen-matrix` Abnahmeszenario 18 mitfährt, ist eine Frage an den Nutzer, nicht in diesem Plan entschieden — **Ausgang:** offen bis Closure (erwartet: weiter offen → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`).
 
 ## 7. Closure-Notiz
 

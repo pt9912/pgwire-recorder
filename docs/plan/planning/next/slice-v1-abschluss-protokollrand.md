@@ -31,7 +31,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Protokollversion 3.0, Authentifizierung, `SSLRequest`, `GSSENCRequest`, `CancelRequest` und nicht unterstützte Nachrichten verhalten sich wie in `LH-FA-05.e` festgelegt.
 
-**Übernommen aus `slice-v1-abschluss-cancel-ohne-schluessel` und `slice-v1-abschluss-postgres-versionen`** (dort je §1, Abgrenzung): der übrige Protokollrand und die Tests der Tabelle in `LH-FA-05.e`; das sind Ziel und DoD-Punkt 1 oben.
+**Übernommen aus `slice-v1-abschluss-cancel-ohne-schluessel` und `slice-v1-abschluss-postgres-versionen`** (dort je §1, Abgrenzung; der Geber ist in `slice-v1-abschluss-postgres-versionen-matrix` und `slice-v1-abschluss-postgres-versionen-zusage` aufgegangen, die Abgrenzung steht in `slice-v1-abschluss-postgres-versionen-matrix` §1): der übrige Protokollrand und die Tests der Tabelle in `LH-FA-05.e`; das sind Ziel und DoD-Punkt 1 oben.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 

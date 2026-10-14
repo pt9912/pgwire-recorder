@@ -121,7 +121,7 @@ dasteht.
 **Risiken:**
 
 - Der Diff liegt über einer Review-Sitzung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`, 2×; das Vorbild `slice-v1-abschluss-antwortvergleich` maß rund 1450 Zeilen, davon etwa 1100 Tests): die Rückführung in §4 benennt den Schnitt — **Ausgang:** offen bis Closure.
-- Szenario 16 Satz 3 stützt sich auf `pg_terminate_backend` und `57P01`; andere Serverversionen sind nicht geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×). **Akzeptiertes Negativ** (Entscheidung des Nutzers vom 2026-10-12): Szenario 16 Satz 3 läuft nur gegen PostgreSQL 17; die Matrix aus `slice-v1-abschluss-postgres-versionen` fährt es nicht mit (dort §1 als Abgrenzung, `AGENTS.md` §3.13) — **Ausgang:** weiter offen → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`.
+- Szenario 16 Satz 3 stützt sich auf `pg_terminate_backend` und `57P01`; andere Serverversionen sind nicht geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×). **Akzeptiertes Negativ** (Entscheidung des Nutzers vom 2026-10-12): Szenario 16 Satz 3 läuft nur gegen PostgreSQL 17; die Matrix aus `slice-v1-abschluss-postgres-versionen-matrix` fährt es nicht mit (dort §1 als Abgrenzung, `AGENTS.md` §3.13) — **Ausgang:** weiter offen → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`.
 
 ## 7. Closure-Notiz
 

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-postgres-versionen
+**Fund:** Seit der Schichtzählung von `slice-doku-ist-stand` (2026-10-10) zählte der Plan vier Schichten (Spezifikation, Entscheidungen, Harness, Dokumentation) bei drei Liefer-Punkten; sein §8 überließ den Schnitt dem Planner „vor dem ersten Code-Commit“. Die Sendung der Handbuch-Sätze zur Anmeldung aus `slice-v1-abschluss-anmeldung-doku` (§6) unterblieb, weil der Eintrag den Nehmer über der Grenze gelassen hätte; sie wurde erst mit dem Schnitt vom 2026-10-14 in `slice-v1-abschluss-postgres-versionen-zusage` eingetragen.
