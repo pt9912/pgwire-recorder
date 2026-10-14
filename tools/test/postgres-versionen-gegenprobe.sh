@@ -117,6 +117,11 @@ alle="$v14 $v15 $v16 $v17 $v18"
 liste=""
 q="'"
 tests=($namen1 $namen2)
+# Die Teilmenge der Tests im Wortlaut je Phase. Fragment und Gegenprobe müssen bei einer Änderung
+# der Teilmenge beide angefasst werden; der Fall p3-literal-phase<n> vergleicht diese Namen mit
+# dem Fragment der Kopie.
+literal1="TestE2ERecordSelect1 TestE2EVorbereitungOhnePostgres TestE2EVorbereitungExtendedOhnePostgres TestE2ERecordExtendedPgx TestE2ERecordAnmeldung/scram-sha-256 TestE2EReplayLebendpruefungWiePostgres"
+literal2="TestE2EOhnePostgresReplay TestE2EOhnePostgresExtendedReplay"
 FIXTURE_ZAEHLER=0
 
 # fixture — legt eine Kopie an und setzt w auf ihre Wurzel.
@@ -219,6 +224,10 @@ elementfall() {
   in_aus "Version 18, Phase $i: Test $t ohne PASS-Zeile" && in_aus "ROT — 18 (Phase $i)" \
     && phasenzeile "$i" | grep -qF -- "${t%%/*}" \
     && { [ "$t" = "${t%%/*}" ] || phasenzeile "$i" | grep -qF -- "${t#*/}"; }
+}
+# teilmenge_gleich <1|2> <namen> — die Namen der Phase im Fragment der Kopie sind genau diese.
+teilmenge_gleich() {
+  [ "$(make_variable "$w" "POSTGRES_TESTS_PHASE$1" | sort | tr '\n' ' ')" = "$(printf '%s\n' $2 | sort | tr '\n' ' ')" ]
 }
 # vor_naechster — Container, Netz und Volume einer Version sind entfernt, bevor die nächste startet.
 vor_naechster() {
@@ -332,6 +341,8 @@ pruefe() {
 
   # Punkt 3: je Test der Teilmenge — fehlt seine PASS-Zeile, ist die Version rot, und die Auswahl nennt ihn.
   for t in "${tests[@]}"; do ist "p3-element-$t" "elementfall '$t'"; done
+  ist p3-literal-phase1 'teilmenge_gleich 1 "$literal1"'
+  ist p3-literal-phase2 'teilmenge_gleich 2 "$literal2"'
   liste="$v17 $v18"
   ist p3-skip 'matrix AT_SKIP=TestE2EVorbereitungOhnePostgres; in_aus "Test TestE2EVorbereitungOhnePostgres übersprungen" && in_aus "ROT — 18 (Phase 1)"'
   ist p3-ohne-treffer 'matrix AT_KEINE=1; in_aus "Phase 1: Auswahl ohne Treffer" && in_aus "ROT — 18 (Phase 1)"'
@@ -368,6 +379,8 @@ pruefe() {
   ist p7-ende-bereit 'matrix AT_NICHT_BEREIT=15; leer'
   ist p7-ende-pull 'matrix AT_PULL_ROT=15; leer'
   ist p7-ende-gruen 'matrix; leer'
+  ist p7-ende-version 'matrix AT_VERSION_15=14.2; in_aus "ROT — 15 (Aufbau)" && leer'
+  ist p7-ende-einrichtung 'matrix AT_SQL_ROT=15; in_aus "ROT — 15 (Aufbau)" && leer'
   liste=""
   for a in INT:gruppe TERM:gruppe INT:skript TERM:skript; do
     ist "p7-sig${a%%:*}-${a##*:}" 'signalfall "${a%%:*}" "${a##*:}"; [ -e "$gesendet" ] && [ "$code" -ne 0 ] && leer && [ "$(anzahl "^run -d")" -eq 1 ]'
@@ -461,8 +474,13 @@ mut p2-vor-docker "$D_" 'if [ "$fehler" -ne 0 ]; then exit 2; fi' 'if [ "$fehler
 
 # --- Punkt 3: Teilmenge ---
 for t in "${tests[@]}"; do
-  mut "p3-element-${t//\//-}" "$F_" " $t" "" "p3-element-$t" "p3-element-$t"
+  mut "p3-element-${t//\//-}" "$F_" " $t" "" "p3-element-$t p3-literal" "p3-element-$t" "p3-literal-phase$([[ " $namen2 " == *" $t "* ]] && echo 2 || echo 1)"
 done
+# Ein Name in der anderen Phase färbt beide Phasen, ein zusätzlicher Name die Phase, in der er steht.
+mut p3-literal-verschoben-1 "$F_" "POSTGRES_TESTS_PHASE2 := TestE2EOhnePostgresReplay TestE2EOhnePostgresExtendedReplay" $'POSTGRES_TESTS_PHASE1 += TestE2EOhnePostgresReplay\nPOSTGRES_TESTS_PHASE2 := TestE2EOhnePostgresExtendedReplay' p3-literal p3-literal-phase1 p3-literal-phase2
+mut p3-literal-verschoben-2 "$F_" "POSTGRES_TESTS_PHASE2 := TestE2EOhnePostgresReplay" $'POSTGRES_TESTS_PHASE2 := TestE2ERecordSelect1 TestE2EOhnePostgresReplay\nPOSTGRES_TESTS_PHASE1 := $(filter-out TestE2ERecordSelect1,$(POSTGRES_TESTS_PHASE1))' p3-literal p3-literal-phase1 p3-literal-phase2
+mut p3-literal-hinzu-1 "$F_" "POSTGRES_TESTS_PHASE2 := " $'POSTGRES_TESTS_PHASE1 += TestE2EFremd\nPOSTGRES_TESTS_PHASE2 := ' p3-literal p3-literal-phase1
+mut p3-literal-hinzu-2 "$F_" "POSTGRES_TESTS_PHASE2 := " "POSTGRES_TESTS_PHASE2 := TestE2EFremd " p3-literal p3-literal-phase2
 mut p3-skip "$R_" 'if grep -Eq "^ *--- SKIP: $name \(" "$aus"; then # P3-skip' 'if false; then # P3-skip' "p3-skip p3-ohne-treffer" p3-skip
 mut p3-treffer "$R_" "if ! grep -Eq '^ *--- PASS: ' \"\$aus\"; then # P3-treffer" 'if false; then # P3-treffer' "p3-skip p3-ohne-treffer" p3-ohne-treffer
 mut p3-fehlt "$R_" 'rot=1 # P3-fehlt' 'rot=0 # P3-fehlt' "p3-skip p3-element p3-fehlt" p3-skip p3-fehlt-phase2 "${tests[@]/#/p3-element-}"
@@ -528,12 +546,14 @@ mut p6-build-rot-exit "$D_" 'nicht zu bauen" >&2
   exit 0' p6-build-rot p6-build-rot
 
 # --- Punkt 7: Aufräumen ---
-mut p7-container "$R_" '"$docker" rm -f "$tests" "$pg" >/dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-container p7-ende-rot p7-ende-bereit p7-ende-gruen p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
-mut p7-netz "$R_" '"$docker" network rm "$netz" >/dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-netz p7-ende-rot p7-ende-bereit p7-ende-pull p7-ende-gruen p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
-mut p7-volume "$R_" '"$docker" volume rm "$daten" >/dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-volume p7-ende-rot p7-ende-bereit p7-ende-pull p7-ende-gruen p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
+mut p7-container "$R_" '"$docker" rm -f "$tests" "$pg" >/dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-container p7-ende-rot p7-ende-bereit p7-ende-gruen p7-ende-version p7-ende-einrichtung p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
+mut p7-netz "$R_" '"$docker" network rm "$netz" >/dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-netz p7-ende-rot p7-ende-bereit p7-ende-pull p7-ende-gruen p7-ende-version p7-ende-einrichtung p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
+mut p7-volume "$R_" '"$docker" volume rm "$daten" >/dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-volume p7-ende-rot p7-ende-bereit p7-ende-pull p7-ende-gruen p7-ende-version p7-ende-einrichtung p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
 mut p7-ende-rot "$R_" '  exit "$status"' '  kill -KILL $$' p7-ende p7-ende-rot
 mut p7-ende-bereit "$R_" 'exit 1 # E-bereit' 'kill -KILL $$ # E-bereit' p7-ende p7-ende-bereit
 mut p7-ende-pull "$R_" '"$postgres_image" >/dev/null' '"$postgres_image" >/dev/null || kill -KILL $$' p7-ende p7-ende-pull
+mut p7-ende-version "$R_" "server_version '\$gemeldet'\" >&2"$'\n    exit 1' "server_version '\$gemeldet'\" >&2"$'\n    kill -KILL $$' p7-ende p7-ende-version
+mut p7-ende-einrichtung "$R_" 'SELECT pg_reload_conf();"' 'SELECT pg_reload_conf();" || kill -KILL $$' p7-ende p7-ende-einrichtung
 mut p7-ende-gruen "$R_" 'echo "run-integration-tests: gruen"' 'kill -KILL $$' "p7-ende p7-container p7-netz p7-volume p7-vor-naechster" p7-ende-gruen p7-container p7-netz p7-volume p7-vor-naechster
 mut p7-int-treiber "$D_" "trap 'beenden 130' INT # S-INT" "trap 'kill -KILL \$\$' INT # S-INT" p7-sig p7-sigINT-gruppe p7-sigINT-skript
 mut p7-term-treiber "$D_" "trap 'beenden 143' TERM # S-TERM" "trap 'kill -KILL \$\$' TERM # S-TERM" p7-sig p7-sigTERM-gruppe p7-sigTERM-skript
