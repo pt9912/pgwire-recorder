@@ -53,6 +53,11 @@ func TestE2ERecordAnmeldung(t *testing.T) {
 				}
 			}
 			ohneGeheimnis(t, text, rec.stderr.String())
+			for _, spur := range []string{"md5", "SCRAM", "n,,n=", "biws"} {
+				if strings.Contains(text, spur) {
+					t.Errorf("Aufzeichnung trägt eine Spur der Anmeldung (%q):\n%s", spur, text)
+				}
+			}
 		})
 	}
 }

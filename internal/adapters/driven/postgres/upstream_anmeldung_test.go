@@ -279,7 +279,7 @@ func TestVermittlungNichtVermittelt(t *testing.T) {
 			if c.code != "" && !strings.Contains(err.Error(), "Code "+c.code+")") {
 				t.Errorf("Meldung ohne den Code %q: %v", c.code, err)
 			}
-			for _, bibliothek := range []string{"pgproto3", "unknown authentication", "unimplemented", "AuthType"} {
+			for _, bibliothek := range []string{"pgproto3", "unknown authentication", "unimplemented", "AuthType", "dieser Stand"} {
 				if strings.Contains(err.Error(), bibliothek) {
 					t.Errorf("Meldung nennt die Bibliothek (%q): %v", bibliothek, err)
 				}
@@ -398,4 +398,32 @@ func TestVermittlungFehlerantwortDesServers(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Abdeckung: LH-FA-02/Boundary — die Session aus Open trägt den Lesepuffer des
+// Aufbaus: Schickt der Server hinter dem ReadyForQuery in demselben Schreibvorgang
+// eine NoticeResponse, liefert der erste Receive nach Open sie (auf TCP-Loopback
+// kommen beide Nachrichten in einem Lesevorgang an; zugesagt ist das nicht).
+func TestOpenSessionTraegtLesepufferDesAufbaus(t *testing.T) {
+	addr, srv := anmeldeServer(t, func(s *skriptServer) {
+		var alles []byte
+		for _, d := range aufbauOk() {
+			alles = append(alles, d...)
+		}
+		notice, _ := (&pgproto3.NoticeResponse{Severity: "NOTICE", Code: "00000", Message: "hinweis"}).Encode(nil)
+		_, _ = s.conn.Write(append(alles, notice...))
+	})
+	s, _, err := anmelden(t, addr, &spion{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := postgres.Verbindung(s).SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	out, err := s.Receive(ctx(t))
+	if err != nil || len(out) != 1 || out[0].Type != model.ResponseNoticeResponse || out[0].Fields["M"] != "hinweis" {
+		t.Errorf("Receive nach Open: %#v, %v", out, err)
+	}
+	_ = s.Close()
+	srv.rest(t)
 }
