@@ -29,3 +29,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-vertraege-um
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-tls-client-doku` (F-1) — der Plan nannte die Sitzungs-Sätze und den Satz zu `config show` nicht (Beleg `evidence/slice-v1-abschluss-tls-client-doku.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-anmeldung` (F-4, F-7, V-4) — ein Beleg auf älterem Code-Stand, eine überholte Zahl in §6 und eine Rechnung der Mutanten, die nicht aufging (Beleg `evidence/slice-v1-abschluss-anmeldung.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-anmeldung-doku` (F-1) — der Plan nannte die Änderung der Spezifikation durch den Architect während des Slice nicht (Beleg `evidence/slice-v1-abschluss-anmeldung-doku.md`).

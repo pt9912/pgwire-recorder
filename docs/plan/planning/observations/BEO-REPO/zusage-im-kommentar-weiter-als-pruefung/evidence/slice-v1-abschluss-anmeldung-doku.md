@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-anmeldung-doku
+**Fund:** Der Handbuchsatz zu `PGR-E4002` („eine Nachricht, die der Ablauf nicht vorsieht“) war weiter als die Probe und schloss die nicht lesbare Nachricht des Servers ein, für die `PGR-E6001` gilt (Verifikation V-1, LOW; behoben in `67cc189`); Sätze zur Datenbank nannten die Version nicht (Review F-3, LOW; behoben in `1291bcd`); ein Satz der Spezifikation sagte ein Verhalten des Servers zu, das nur eine Probe deckte (F-2, LOW; behoben vom Architect in `0aadcac`).

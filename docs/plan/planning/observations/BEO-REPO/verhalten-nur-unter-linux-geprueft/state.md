@@ -15,3 +15,5 @@ Weiter offen, kein neues Auftreten: `slice-v1-abschluss-antwortvergleich-doku` �
 Weiter offen, kein neues Auftreten: `slice-v1-abschluss-sessions-doku` — alle Proben des Handbuchs zu mehreren Verbindungen laufen unter Linux im Container; das Handbuch macht zu Windows, macOS und Netzwerk-Dateisystemen keine Aussage, Review und Verifikation haben dazu keinen Befund. Der Zähler bleibt bei 3.
 
 Weiter offen, kein neues Auftreten: `slice-v1-abschluss-tls-client-doku` — alle Proben des Handbuchs zu TLS zum Client laufen unter Linux im Container (Implementer und Verifier); das Handbuch macht zu Windows, macOS und Netzwerk-Dateisystemen keine Aussage, Review und Verifikation haben dazu keinen Befund. Der Zähler bleibt bei 3.
+
+Weiter offen, kein neues Auftreten: `slice-v1-abschluss-anmeldung-doku` — alle Proben des Handbuchs zur Anmeldung beim Aufzeichnen laufen unter Linux im Container (Implementer und Verifier); das Handbuch macht zu Windows und macOS keine Aussage, Review und Verifikation haben dazu keinen Befund. Der Zähler bleibt bei 3.

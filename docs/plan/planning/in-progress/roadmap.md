@@ -20,7 +20,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-erster-release](../welle-erster-release.md)
 - [welle-v1-nachtrag](../welle-v1-nachtrag.md)
 
-In Arbeit: nichts. Als Nächstes: `slice-v1-abschluss-anmeldung-doku` (welle-v1-abschluss, Schritt 31) und die übrigen Slices in der Reihenfolge des §5 von welle-v1-abschluss, danach `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (wellenlos), danach welle-erster-release, danach welle-v1-nachtrag, danach die übrige Harness-Reihe. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
+In Arbeit: nichts. Als Nächstes: `slice-v1-abschluss-postgres-versionen` (welle-v1-abschluss, Schritt 32) und die übrigen Slices in der Reihenfolge des §5 von welle-v1-abschluss, danach `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (wellenlos), danach welle-erster-release, danach welle-v1-nachtrag, danach die übrige Harness-Reihe. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
 
 
 

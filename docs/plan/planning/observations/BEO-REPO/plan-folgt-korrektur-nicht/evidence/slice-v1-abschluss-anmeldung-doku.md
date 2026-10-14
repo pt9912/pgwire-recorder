@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-anmeldung-doku
+**Fund:** Der Architect änderte während des Slice `LH-FA-05.b` in der Spezifikation (Satz zum Passwort als Startup-Parameter, `6a44529`, `0aadcac`); der Kopf des Plans nannte keine Spec-Stelle, §1 sagte „der Slice ändert nur Handbuch, README und diesen Plan“, und §7 beschrieb den gestrichenen Satz weiter (Review F-1, MEDIUM; `make kopf-check` prüft nur Kennungen aus §1 und §2). Die Regel (`AGENTS.md` §3.9) galt; nachgezogen in `30b9b49`.
