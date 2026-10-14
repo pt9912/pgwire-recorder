@@ -45,7 +45,7 @@ CI-Systemen ausführen.
 * Ihre Anwendung kann Host und Port der Datenbankverbindung einstellen. Außer an der
   Verschlüsselung (siehe unten) sind weitere Änderungen an der Anwendung nicht nötig.
 * Zum Aufzeichnen: eine erreichbare PostgreSQL-Datenbank. Meldet sich Ihre Anwendung
-  mit einem Passwort an, vermittelt `record` die Anmeldung (siehe
+  mit einem Passwort an, vermittelt `record` die Anmeldung (geprüft mit PostgreSQL 17; siehe
   [Eine Anwendung mit Passwort-Anmeldung aufzeichnen](#eine-anwendung-mit-passwort-anmeldung-aufzeichnen)).
 * Zum Einspielen: eine erreichbare PostgreSQL-Datenbank. Verlangt sie ein Passwort,
   nennen Sie es `play` (siehe [Einstellungen](#5-einstellungen)). Auf Wunsch verbindet
@@ -223,7 +223,7 @@ Sitzung ist, steht unter
   sie es, soweit sie keine der Ausnahmen sind, die der Abschnitt nennt (siehe
   [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)).
 * Die Anmeldung Ihrer Anwendung bei der Datenbank, auch mit Passwort, vermittelt das
-  Werkzeug (siehe
+  Werkzeug (geprüft mit PostgreSQL 17; siehe
   [Eine Anwendung mit Passwort-Anmeldung aufzeichnen](#eine-anwendung-mit-passwort-anmeldung-aufzeichnen)).
 * Beim Beenden nimmt das Werkzeug keine neuen Verbindungen an, schreibt eine
   Log-Zeile mit `sessions`, der Zahl der noch offenen Verbindungen, und wartet,
@@ -317,9 +317,11 @@ jedes Passwort an.
 * Channel Binding gelingt nicht: Verlangt Ihre Anwendung es (bei libpq 17
   `channel_binding=require`), bricht sie die Anmeldung ab, mit und ohne `--tls-cert`. Mit
   `channel_binding=prefer` gelingt die Anmeldung auch mit TLS zum Werkzeug.
-* Fordert die Datenbank ein anderes Verfahren an (etwa Kerberos, GSSAPI oder SSPI), beendet
-  das Werkzeug die Verbindung mit `PGR-E6001`; Ihre Anwendung erhält die Meldung, die
-  Verbindung wird nicht aufgezeichnet, und das Werkzeug endet mit Exit-Code 6.
+* Trifft das Werkzeug in der Anmeldung auf die Anforderung eines anderen Verfahrens als
+  Klartext-Passwort, MD5 und SCRAM-SHA-256, beendet es die Verbindung mit `PGR-E6001`; Ihre Anwendung erhält die Meldung, die
+  Verbindung wird nicht aufgezeichnet, und das Werkzeug endet mit Exit-Code 6. Geprüft ist die Reaktion des Werkzeugs auf Anforderungen der Codes 2, 6, 7, 9
+  und 42, die ein Ersatz-Server sendet; mit einem Server, der Kerberos, GSSAPI oder SSPI
+  spricht, ist sie nicht geprüft.
 * Sendet die Datenbank in der Anmeldung eine Nachricht, die der Ablauf nicht vorsieht, ist
   das `PGR-E4002`; beendet sie die Verbindung in der Anmeldung, ist es `PGR-E4003`. Ihre
   Anwendung erhält die Meldung, und das Werkzeug endet mit Exit-Code 4.
@@ -1621,7 +1623,7 @@ der Start, prüft das Werkzeug keine Sitzungen.
 
 Das Werkzeug verwaltet keine Benutzer und Rollen und prüft keine Zugangsdaten.
 Beim Aufzeichnen leitet es Benutzer und Datenbank der Anwendung an die Datenbank
-weiter und vermittelt die Anmeldung, ohne das Passwort aufzuzeichnen; beim Wiedergeben
+weiter und vermittelt die Anmeldung (geprüft mit PostgreSQL 17), ohne das Passwort aufzuzeichnen; beim Wiedergeben
 nimmt es jede Anmeldung an, gleich mit
 welchem Benutzer, welcher Datenbank und welchem Passwort; beim Einspielen meldet es
 sich mit Benutzer, Datenbank und, wenn die Datenbank eines verlangt, dem Passwort an
@@ -1672,7 +1674,7 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. Eine Sitzung ohne Interaktionen zählt nicht dazu. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen mit Interaktionen aufgezeichnet sind; mit `--session-assignment connection` hat sie auf einer Verbindung eine Anfrage gestellt, zu der es keine Sitzung mit der Nummer der Verbindung gibt. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
 | `PGR-E5004` | Antwort der Datenbank weicht von der Aufzeichnung ab | `play` mit `--compare-responses` hat bei einer Interaktion eine andere Antwort erhalten als aufgezeichnet. Die Meldung nennt Sitzung, Nummer der Interaktion, Position und Art der ersten Abweichung, bei der Art `Fehler` die SQLSTATE beider Seiten. Prüfen Sie, ob die Datenbank dieselbe Struktur hat wie die, gegen die Sie aufgezeichnet haben, oder zeichnen Sie erneut auf; siehe [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen). Der Exit-Code ist 5. |
-| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen fordert die Datenbank ein Anmeldeverfahren an, das das Werkzeug nicht vermittelt (nicht Klartext-Passwort, MD5 oder SCRAM-SHA-256); die Datenbank antwortet bei `play` mit einem COPY-Datenstrom; oder die Anwendung sendet auf einer verschlüsselten Verbindung eine weitere Anfrage nach Verschlüsselung. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht; fordert die Datenbank beim Aufzeichnen ein solches Verfahren an, lassen Sie für den Benutzer eines der drei vermittelten Verfahren zu. Die Meldung nennt den Code des Verfahrens. |
+| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen trifft das Werkzeug in der Anmeldung auf die Anforderung eines Verfahrens, das es nicht vermittelt (nicht Klartext-Passwort, MD5 oder SCRAM-SHA-256); die Datenbank antwortet bei `play` mit einem COPY-Datenstrom; oder die Anwendung sendet auf einer verschlüsselten Verbindung eine weitere Anfrage nach Verschlüsselung. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht; verlangt die Datenbank beim Aufzeichnen ein solches Verfahren, lassen Sie für den Benutzer eines der drei vermittelten Verfahren zu. Die Meldung nennt den Code des Verfahrens. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls. Verwenden Sie einen Treiber, der sie nutzt. |
 | `PGR-E6003` | unverschlüsselte Verbindung nicht zugelassen | `record` oder `replay` läuft mit `--tls-cert`, und die Anwendung beginnt ohne Verschlüsselung. Das Werkzeug beendet die Verbindung und zeichnet sie nicht auf; der Exit-Code ist 6. Verbinden Sie die Anwendung mit TLS (`sslmode=require`), oder starten Sie das Werkzeug mit `--allow-plaintext` (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)). |
 
@@ -1694,8 +1696,8 @@ oder lassen Sie sie mit `sslmode=prefer` unverschlüsselt verbinden; oder starte
 das Werkzeug mit `--tls-cert` und `--tls-key` (siehe
 [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)).
 Erhält Ihre Anwendung beim Aufzeichnen
-`PGR-E6001` mit dem Hinweis auf ein Anmeldeverfahren, fordert die Datenbank ein
-Verfahren an, das das Werkzeug nicht vermittelt; lassen Sie für den Benutzer Klartext-Passwort,
+`PGR-E6001` mit dem Hinweis auf ein Anmeldeverfahren, hat das Werkzeug die Anforderung
+eines Verfahrens getroffen, das es nicht vermittelt; lassen Sie für den Benutzer Klartext-Passwort,
 MD5 oder SCRAM-SHA-256 zu (siehe
 [Eine Anwendung mit Passwort-Anmeldung aufzeichnen](#eine-anwendung-mit-passwort-anmeldung-aufzeichnen)).
 
