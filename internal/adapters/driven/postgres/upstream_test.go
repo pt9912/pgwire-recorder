@@ -94,7 +94,7 @@ func TestOpenUndQuery(t *testing.T) {
 		&pgproto3.ReadyForQuery{TxStatus: 'I'},
 	})
 	up := &postgres.Upstream{Address: addr}
-	s, aufbau, err := up.Open(ctx(t), map[string]string{"user": "app"})
+	s, aufbau, err := up.Open(ctx(t), map[string]string{"user": "app"}, nil)
 	if err != nil || s == nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -113,27 +113,19 @@ func TestOpenUndQuery(t *testing.T) {
 	_ = s.Close()
 }
 
-// Abdeckung: LH-FA-05/Negative — verlangt der Server ein Anmeldeverfahren, endet
-// der Aufbau mit PGR-E6001; eine Fehlerantwort im Aufbau geht ohne Session an
+// Abdeckung: LH-FA-05/Negative — eine Fehlerantwort im Aufbau geht ohne Session an
 // den Client; eine nicht unterstützte Serverantwort ist PGR-E6001.
 func TestNichtVermittelbar(t *testing.T) {
-	t.Run("Anmeldeverfahren", func(t *testing.T) {
-		addr := fakeServer(t, []pgproto3.BackendMessage{&pgproto3.AuthenticationCleartextPassword{}}, nil)
-		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
-		if s != nil || code(err) != model.CodeUnsupported {
-			t.Fatalf("erwartet %s, erhalten %v", model.CodeUnsupported, err)
-		}
-	})
 	t.Run("Fehlerantwort im Aufbau", func(t *testing.T) {
 		addr := fakeServer(t, []pgproto3.BackendMessage{&pgproto3.AuthenticationOk{}, &pgproto3.ErrorResponse{Severity: "FATAL", Code: "3D000", Message: "database does not exist"}}, nil)
-		s, out, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+		s, out, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
 		if s != nil || err != nil || len(out) != 1 || out[0].Fields["C"] != "3D000" {
 			t.Fatalf("Session %v, Antworten %#v, Fehler %v", s, out, err)
 		}
 	})
 	t.Run("COPY", func(t *testing.T) {
 		addr := fakeServer(t, bereit(), []pgproto3.BackendMessage{&pgproto3.CopyOutResponse{}})
-		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -152,7 +144,7 @@ func TestUpstreamNichtErreichbar(t *testing.T) {
 	}
 	addr := l.Addr().String()
 	l.Close()
-	if _, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}); code(err) != model.CodeUpstream {
+	if _, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil); code(err) != model.CodeUpstream {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeUpstream, err)
 	}
 }
@@ -221,7 +213,7 @@ func pruefeAbbruch(t *testing.T, err error, want string, fehler *pgproto3.ErrorR
 // Fehler, statt auf den Server zu warten.
 func oeffne(t *testing.T, addr string) driven.UpstreamSession {
 	t.Helper()
-	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

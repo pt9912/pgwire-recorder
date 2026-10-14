@@ -199,29 +199,19 @@ func (s *Server) handle(ctx context.Context, roh net.Conn) {
 	z := s.anmelden(func() { _ = roh.Close() })
 	defer s.abmelden(z)
 
-	// Endet ctx im Verbindungsaufbau, bricht das Lesen der Startnachricht und der
-	// TLS-Handshake ab. Danach wachen recordSitzung und replaySitzung selbst über ctx.
-	fertig := make(chan struct{})
-	go func() {
-		select {
-		case <-ctx.Done():
-			_ = roh.SetReadDeadline(time.Now())
-		case <-fertig:
-		}
-	}()
-
-	startup, ok := s.startup(ctx, k)
+	startup, ok := s.startupBisSignal(ctx, k, roh)
 	if !ok {
-		close(fertig)
 		return
 	}
 	conn, be := k.conn, k.be
 
-	a, ok := s.oeffne(ctx, startup.Parameters)
-	close(fertig)
-	if !ok {
+	a, ok := s.oeffne(ctx, startup.Parameters, be)
+	if !ok || errors.Is(a.err, model.ErrClientEnde) {
+		// Der Client hat die Anmeldung beendet oder das Zwangsende ist gekommen:
+		// keine Meldung, keine Session (LH-FA-05.b *Ende durch den Client*).
 		return
 	}
+	_ = be.SetAuthType(pgproto3.AuthTypeOk)
 	id, responses := a.id, a.responses
 	if a.err != nil {
 		s.fail(be, a.err)
@@ -259,6 +249,34 @@ func (s *Server) handle(ctx context.Context, roh net.Conn) {
 	s.recordSitzung(ctx, conn, be, id, z)
 }
 
+// startupBisSignal liest die Startnachricht (startup). Endet ctx dabei, bricht
+// das Lesen der Startnachricht und der TLS-Handshake ab. Mit der Startnachricht
+// endet der Wächter: Die Anmeldung läuft nach dem ersten Signal zu Ende, auch
+// wenn sie auf den Client wartet (LH-FA-05.b *Abbruch und Herunterfahren*), und
+// die Lesefrist des Wächters gilt für sie nicht. Danach wachen recordSitzung und
+// replaySitzung selbst über ctx.
+func (s *Server) startupBisSignal(ctx context.Context, k *kanal, roh net.Conn) (*pgproto3.StartupMessage, bool) {
+	fertig := make(chan struct{})
+	beendet := make(chan struct{})
+	gewecktWorden := false
+	go func() {
+		defer close(beendet)
+		select {
+		case <-ctx.Done():
+			_ = roh.SetReadDeadline(time.Now())
+			gewecktWorden = true
+		case <-fertig:
+		}
+	}()
+	startup, ok := s.startup(ctx, k)
+	close(fertig)
+	<-beendet
+	if ok && gewecktWorden {
+		_ = roh.SetReadDeadline(time.Time{})
+	}
+	return startup, ok
+}
+
 // aufbau ist das Ergebnis des Verbindungsaufbaus beim Use Case.
 type aufbau struct {
 	id        model.SessionID
@@ -271,12 +289,12 @@ type aufbau struct {
 // Zwangsende wartet oeffne nicht auf ihn und meldet ok falsch: Es bricht den
 // Kontext des Aufbaus ab, und eine Record-Session, die danach noch entsteht,
 // beendet es mit model.EndForced (LH-FA-13.a *Zwangsende*).
-func (s *Server) oeffne(ctx context.Context, startup map[string]string) (aufbau, bool) {
+func (s *Server) oeffne(ctx context.Context, startup map[string]string, be *pgproto3.Backend) (aufbau, bool) {
 	octx, abbrechen := context.WithCancel(context.WithoutCancel(ctx))
 	ergebnis := make(chan aufbau, 1)
 	go func() {
 		var a aufbau
-		a.id, a.responses, a.err = s.open(octx, startup)
+		a.id, a.responses, a.err = s.open(octx, startup, be)
 		ergebnis <- a
 	}()
 	select {
@@ -923,12 +941,12 @@ func (s *Server) sendFailed(err error) {
 	s.note(model.Errorf(model.CodeConnectionLost, err, "Antwort nicht an den Client zu senden"))
 }
 
-func (s *Server) open(ctx context.Context, startup map[string]string) (model.SessionID, []model.Response, error) {
+func (s *Server) open(ctx context.Context, startup map[string]string, be *pgproto3.Backend) (model.SessionID, []model.Response, error) {
 	if s.replayer != nil {
 		id, out := s.replayer.OpenConnection(ctx)
 		return id, out, nil
 	}
-	return s.recorder.OpenSession(ctx, startup)
+	return s.recorder.OpenSession(ctx, startup, s.anmeldung(be))
 }
 
 // closeReplay beendet eine Replay-Verbindung und meldet, was der Use Case

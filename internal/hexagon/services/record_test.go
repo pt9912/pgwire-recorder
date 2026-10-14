@@ -18,7 +18,7 @@ type fakeUpstream struct {
 	letzte *fakeSession
 }
 
-func (f *fakeUpstream) Open(context.Context, map[string]string) (driven.UpstreamSession, []model.Response, error) {
+func (f *fakeUpstream) Open(context.Context, map[string]string, model.Anmeldung) (driven.UpstreamSession, []model.Response, error) {
 	session := neueFakeSession(f.queryErr)
 	f.mu.Lock()
 	f.letzte = session
@@ -152,7 +152,7 @@ func neu(t *testing.T, up driven.Upstream) (*services.RecordService, *fakeRepo) 
 func session(t *testing.T, s *services.RecordService, queries ...string) model.SessionID {
 	t.Helper()
 	ctx := context.Background()
-	id, _, err := s.OpenSession(ctx, map[string]string{"user": "app"})
+	id, _, err := s.OpenSession(ctx, map[string]string{"user": "app"}, nil)
 	if err != nil || id == 0 {
 		t.Fatalf("OpenSession: id=%d err=%v", id, err)
 	}
@@ -284,7 +284,7 @@ func TestRecordGleichzeitigeSessions(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			ctx := context.Background()
-			id, _, err := s.OpenSession(ctx, nil)
+			id, _, err := s.OpenSession(ctx, nil, nil)
 			if err != nil {
 				t.Error(err)
 				return

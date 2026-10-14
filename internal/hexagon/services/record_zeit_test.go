@@ -67,9 +67,9 @@ type uhrUpstream struct {
 	ms  int64
 }
 
-func (u uhrUpstream) Open(ctx context.Context, startup map[string]string) (driven.UpstreamSession, []model.Response, error) {
+func (u uhrUpstream) Open(ctx context.Context, startup map[string]string, anmeldung model.Anmeldung) (driven.UpstreamSession, []model.Response, error) {
 	u.uhr.Vorruecken(u.ms)
-	return u.Upstream.Open(ctx, startup)
+	return u.Upstream.Open(ctx, startup, anmeldung)
 }
 
 // Abdeckung: LH-FA-21/Happy — mit Zeitaufzeichnung trägt jede einfache Anfrage

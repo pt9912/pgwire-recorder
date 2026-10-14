@@ -101,7 +101,7 @@ func TestSendUndReceive(t *testing.T) {
 		{&pgproto3.BindComplete{}, &pgproto3.DataRow{Values: [][]byte{[]byte("1")}}, &pgproto3.PortalSuspended{}, &pgproto3.CloseComplete{},
 			&pgproto3.ParameterDescription{}, &pgproto3.ReadyForQuery{TxStatus: 'T'}},
 	})
-	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +181,7 @@ func TestReceiveEndetMitReadyForQuery(t *testing.T) {
 	addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{
 		{&pgproto3.ParseComplete{}, &pgproto3.ReadyForQuery{TxStatus: 'I'}, &pgproto3.ParseComplete{}},
 	})
-	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func TestReceiveEndetMitReadyForQuery(t *testing.T) {
 func TestReceiveFehler(t *testing.T) {
 	t.Run("COPY", func(t *testing.T) {
 		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{&pgproto3.CopyInResponse{}}})
-		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -223,7 +223,7 @@ func TestReceiveFehler(t *testing.T) {
 	})
 	t.Run("Verbindungsende", func(t *testing.T) {
 		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{nil})
-		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+		s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -317,7 +317,7 @@ func TestSendUndReceiveGleichzeitig(t *testing.T) {
 			}
 		}
 	})
-	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,7 +350,7 @@ func TestCloseBeendetWartende(t *testing.T) {
 	stumm := make(chan struct{})
 	t.Cleanup(func() { close(stumm) })
 	addr := rohServer(t, func(*pgproto3.Backend, net.Conn) { <-stumm })
-	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"})
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

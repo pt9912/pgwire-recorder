@@ -16,8 +16,9 @@ import (
 )
 
 // Upstream verbindet sich je Session mit dem realen PostgreSQL-Server.
-// Vermittelt wird ein Verbindungsaufbau ohne Passwort-Anmeldung; verlangt der
-// Server ein Anmeldeverfahren, endet der Aufbau mit PGR-E6001.
+// Vermittelt wird der Verbindungsaufbau samt Anmeldung mit Klartext-Passwort,
+// MD5 und SCRAM-SHA-256 (LH-FA-05.b *Vermittlung*, *Verfahren*); jedes andere
+// Verfahren endet mit PGR-E6001.
 type Upstream struct {
 	Address string
 	Dialer  net.Dialer
@@ -26,33 +27,45 @@ type Upstream struct {
 var _ driven.Upstream = (*Upstream)(nil)
 
 // Open baut die Verbindung auf und liefert die Antworten bis zum ersten
-// ReadyForQuery oder bis zur Fehlerantwort des Servers.
-func (u *Upstream) Open(ctx context.Context, startup map[string]string) (driven.UpstreamSession, []model.Response, error) {
+// ReadyForQuery oder bis zur Fehlerantwort des Servers. Die Anmeldung läuft
+// über anmeldung (vermittlung).
+func (u *Upstream) Open(ctx context.Context, startup map[string]string, anmeldung model.Anmeldung) (driven.UpstreamSession, []model.Response, error) {
 	conn, err := u.Dialer.DialContext(ctx, "tcp", u.Address)
 	if err != nil {
 		return nil, nil, model.Errorf(model.CodeUpstream, err, "Upstream %s nicht erreichbar", u.Address)
 	}
 	s := newSession(conn)
-	fe := s.fe
-	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: startup})
-	if err := fe.Flush(); err != nil {
+	s.fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: startup})
+	if err := s.fe.Flush(); err != nil {
 		conn.Close()
 		return nil, nil, model.Errorf(model.CodeUpstream, err, "Startup an %s nicht zu senden", u.Address)
 	}
+	responses, fertig, err := s.aufbauen(ctx, anmeldung)
+	if !fertig {
+		// Kein Terminate: Der Server bekommt nach einer abgebrochenen Anmeldung nichts mehr.
+		conn.Close()
+		return nil, responses, err
+	}
+	return s, responses, nil
+}
 
-	var responses []model.Response
+// aufbauen liest die Nachrichten des Servers bis zum ersten ReadyForQuery. fertig
+// ist falsch, wenn der Aufbau ohne Session endet: mit err, oder (err nil) mit der
+// Fehlerantwort des Servers als letzter Antwort.
+func (s *session) aufbauen(ctx context.Context, anmeldung model.Anmeldung) (responses []model.Response, fertig bool, err error) {
+	v := &vermittlung{rueckruf: anmeldung}
 	for {
-		msg, err := fe.Receive()
+		msg, err := s.fe.Receive()
 		if err != nil {
-			conn.Close()
-			return nil, responses, model.Errorf(model.CodeConnectionLost, err, "Verbindung zum Upstream im Verbindungsaufbau beendet")
+			return responses, false, v.lesefehler(s.fe, err)
+		}
+		if code, ok := anmeldecode(msg); ok {
+			if err := v.behandle(ctx, s.fe, code, msg); err != nil {
+				return responses, false, err
+			}
+			continue
 		}
 		switch m := msg.(type) {
-		case *pgproto3.AuthenticationOk:
-			// Ohne Passwort-Anmeldung; der Client erhält AuthenticationOk vom Adapter.
-		case *pgproto3.AuthenticationCleartextPassword, *pgproto3.AuthenticationMD5Password, *pgproto3.AuthenticationSASL:
-			conn.Close()
-			return nil, responses, model.Errorf(model.CodeUnsupported, nil, "der Upstream verlangt ein Anmeldeverfahren (%T), das dieser Stand nicht vermittelt", m)
 		case *pgproto3.ParameterStatus:
 			responses = append(responses, model.Response{Type: model.ResponseParameterStatus, Name: m.Name, Value: m.Value})
 		case *pgproto3.BackendKeyData:
@@ -61,14 +74,11 @@ func (u *Upstream) Open(ctx context.Context, startup map[string]string) (driven.
 		case *pgproto3.NoticeResponse:
 			responses = append(responses, model.Response{Type: model.ResponseNoticeResponse, Fields: noticeFields((*pgproto3.ErrorResponse)(m))})
 		case *pgproto3.ErrorResponse:
-			conn.Close()
-			return nil, append(responses, model.Response{Type: model.ResponseErrorResponse, Fields: noticeFields(m)}), nil
+			return append(responses, model.Response{Type: model.ResponseErrorResponse, Fields: noticeFields(m)}), false, nil
 		case *pgproto3.ReadyForQuery:
-			responses = append(responses, model.Response{Type: model.ResponseReadyForQuery, TxStatus: string(m.TxStatus)})
-			return s, responses, nil
+			return append(responses, model.Response{Type: model.ResponseReadyForQuery, TxStatus: string(m.TxStatus)}), true, nil
 		default:
-			conn.Close()
-			return nil, responses, model.Errorf(model.CodeUnsupported, nil, "Nachricht %T im Verbindungsaufbau wird nicht unterstützt", m)
+			return responses, false, model.Errorf(model.CodeUnsupported, nil, "Nachricht %T im Verbindungsaufbau wird nicht unterstützt", m)
 		}
 	}
 }

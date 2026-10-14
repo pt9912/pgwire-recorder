@@ -9,9 +9,14 @@ import (
 // Upstream ist der PostgreSQL-Upstream-Port (ARC-004).
 type Upstream interface {
 	// Open baut eine Verbindung zum Server auf und meldet sich mit den
-	// Startup-Parametern an. Die Antworten des Aufbaus gehen zurück; endet der
-	// Aufbau mit einer Fehlerantwort, ist die Session nil.
-	Open(ctx context.Context, startup map[string]string) (UpstreamSession, []model.Response, error)
+	// Startup-Parametern an. Verlangt der Server eine Anmeldung, gibt Open jede
+	// Anforderung über anmeldung an den Client und dessen Antwort an den Server
+	// weiter; anmeldung ist nicht nil. Die Aufrufe von anmeldung kommen
+	// nacheinander, nie gleichzeitig (LH-FA-05.b *Aufruf-Voraussetzung*); liefert
+	// sie einen Fehler, endet Open mit ihm und schließt die Verbindung zum Server
+	// ohne Terminate. Die Antworten des Aufbaus gehen zurück; endet der Aufbau
+	// mit einer Fehlerantwort, ist die Session nil.
+	Open(ctx context.Context, startup map[string]string, anmeldung model.Anmeldung) (UpstreamSession, []model.Response, error)
 }
 
 // UpstreamSession ist eine offene Verbindung zum Server.

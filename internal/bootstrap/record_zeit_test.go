@@ -16,7 +16,7 @@ import (
 // ReadyForQuery, eine Gruppe mit ParseComplete und ReadyForQuery.
 type zeitUpstream struct{}
 
-func (zeitUpstream) Open(context.Context, map[string]string) (driven.UpstreamSession, []model.Response, error) {
+func (zeitUpstream) Open(context.Context, map[string]string, model.Anmeldung) (driven.UpstreamSession, []model.Response, error) {
 	return zeitSession{}, []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}, nil
 }
 
@@ -51,7 +51,7 @@ func TestRecordZeitRoundtrip(t *testing.T) {
 				t.Fatal(err)
 			}
 			uhr.Vorruecken(1000)
-			id, _, err := s.OpenSession(ctx, map[string]string{"user": "app"})
+			id, _, err := s.OpenSession(ctx, map[string]string{"user": "app"}, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

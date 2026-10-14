@@ -584,7 +584,7 @@ type engpassUpstream struct {
 	letzte *engpassSession
 }
 
-func (e *engpassUpstream) Open(context.Context, map[string]string) (driven.UpstreamSession, []model.Response, error) {
+func (e *engpassUpstream) Open(context.Context, map[string]string, model.Anmeldung) (driven.UpstreamSession, []model.Response, error) {
 	e.letzte = &engpassSession{ein: make(chan model.ClientMessage, 2), aus: make(chan model.Response, 2), zu: make(chan struct{})}
 	go e.letzte.server()
 	return e.letzte, []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}, nil
@@ -681,7 +681,7 @@ func TestRecordGegendruck(t *testing.T) {
 	ctx := context.Background()
 	up := &engpassUpstream{}
 	s, repo := neu(t, up)
-	id, _, err := s.OpenSession(ctx, nil)
+	id, _, err := s.OpenSession(ctx, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -731,7 +731,7 @@ func TestRecordCloseBeendetWartende(t *testing.T) {
 	ctx := context.Background()
 	up := &engpassUpstream{}
 	s, _ := neu(t, up)
-	id, _, err := s.OpenSession(ctx, nil)
+	id, _, err := s.OpenSession(ctx, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

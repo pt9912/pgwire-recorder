@@ -30,8 +30,11 @@ import (
 type Recorder interface {
 	// OpenSession baut für eine Client-Verbindung die Upstream-Session auf.
 	// Die Antworten des Verbindungsaufbaus gehen unverändert an den Client;
-	// endet der Aufbau mit einer Fehlerantwort, ist die Kennung 0.
-	OpenSession(ctx context.Context, startup map[string]string) (model.SessionID, []model.Response, error)
+	// endet der Aufbau mit einer Fehlerantwort, ist die Kennung 0. Verlangt der
+	// Server eine Anmeldung, spricht der Aufbau über anmeldung mit dem Client
+	// (nacheinander, nie gleichzeitig); endet der Client die Verbindung dabei,
+	// liefert OpenSession model.ErrClientEnde und keine Session.
+	OpenSession(ctx context.Context, startup map[string]string, anmeldung model.Anmeldung) (model.SessionID, []model.Response, error)
 	// Query leitet eine einfache Anfrage weiter und liefert die Serverantworten
 	// bis einschließlich ReadyForQuery. Laufen Extended-Interaktionen, deren
 	// Sync schon gesendet ist, wartet Query, bis ihre Antworten zugestellt sind.

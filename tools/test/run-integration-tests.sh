@@ -8,7 +8,8 @@
 # diese Aufzeichnungen aus (PGR_OHNE_POSTGRES=1).
 # Auf der Instanz legt der Runner drei Benutzer an, deren Anmeldung pg_hba.conf
 # auf scram-sha-256, md5 und password festlegt; ihre Passwörter reichen
-# PGR_PW_SCRAM, PGR_PW_MD5 und PGR_PW_KLARTEXT an den Testlauf.
+# PGR_PW_SCRAM, PGR_PW_MD5 und PGR_PW_KLARTEXT an den Testlauf. Für play_reject
+# lehnt pg_hba.conf jede Verbindung ab.
 # Es schreibt nichts in den Arbeitsbaum;
 # die Abdeckungstabellen erzeugt `make abdeckung`.
 #
@@ -53,11 +54,11 @@ if [ "$bereit" -ne 1 ]; then
   echo "run-integration-tests: PostgreSQL nicht bereit" >&2
   exit 1
 fi
-# pg_hba.conf: Die Zeilen der drei Benutzer stehen vor der Zeile für alle.
+# pg_hba.conf: Die Zeilen der vier Benutzer stehen vor der Zeile für alle.
 "$docker" exec -i -u postgres "$pg" sh -c '
   set -e
   hba="$(psql -U postgres -At -c "SHOW hba_file")"
-  { printf "%s\n" "host all play_scram all scram-sha-256" "host all play_md5 all md5" "host all play_pw all password"; cat "$hba"; } > "$hba.neu"
+  { printf "%s\n" "host all play_scram all scram-sha-256" "host all play_md5 all md5" "host all play_pw all password" "host all play_reject all reject"; cat "$hba"; } > "$hba.neu"
   cat "$hba.neu" > "$hba"
   rm "$hba.neu"
   psql -U postgres -v ON_ERROR_STOP=1 -q' >/dev/null <<SQL

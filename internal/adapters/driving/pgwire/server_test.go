@@ -66,6 +66,14 @@ type fakeRecorder struct {
 	closeHalt   chan struct{}
 	closeLaeuft chan struct{}
 	closeEin    sync.Once
+	// anmeldeFolge sind die Anforderungen, die OpenSession vor dem Aufbau über
+	// den Rückruf gibt; anmeldeAntworten sind die Antworten des Clients,
+	// anmeldeFehler der Fehler des Rückrufs, und anmeldeEnde schließt OpenSession
+	// danach (mit anmeldeFehler als Rest).
+	anmeldeFolge     []model.Anmeldeanforderung
+	anmeldeAntworten [][]byte
+	anmeldeFehler    error
+	anmeldeEnde      chan struct{}
 
 	zuEin sync.Once
 	zuCh  chan struct{}
@@ -88,7 +96,20 @@ func (f *fakeRecorder) protokoll() string {
 	return strings.Join(f.ereignisse, " ")
 }
 
-func (f *fakeRecorder) OpenSession(ctx context.Context, _ map[string]string) (model.SessionID, []model.Response, error) {
+func (f *fakeRecorder) OpenSession(ctx context.Context, _ map[string]string, anmeldung model.Anmeldung) (model.SessionID, []model.Response, error) {
+	if f.anmeldeEnde != nil {
+		defer close(f.anmeldeEnde)
+	}
+	for _, a := range f.anmeldeFolge {
+		antwort, err := anmeldung(ctx, a)
+		f.mu.Lock()
+		f.anmeldeAntworten = append(f.anmeldeAntworten, antwort)
+		f.anmeldeFehler = err
+		f.mu.Unlock()
+		if err != nil {
+			return 0, nil, err
+		}
+	}
 	if f.openMitKontext {
 		close(f.openLaeuft)
 		<-ctx.Done()

@@ -161,10 +161,12 @@ func (s *RecordService) offset(l *laufend, ankunft int64) *int64 {
 	return &ms
 }
 
-// OpenSession baut die Upstream-Session auf.
-func (s *RecordService) OpenSession(ctx context.Context, startup map[string]string) (model.SessionID, []model.Response, error) {
+// OpenSession baut die Upstream-Session auf und reicht anmeldung an den
+// Upstream weiter; Anforderungen und Antworten der Anmeldung liest und hält es
+// nicht (LH-FA-05.b *Aufzeichnung*).
+func (s *RecordService) OpenSession(ctx context.Context, startup map[string]string, anmeldung model.Anmeldung) (model.SessionID, []model.Response, error) {
 	beginn := s.lesung()
-	up, responses, err := s.upstream.Open(ctx, startup)
+	up, responses, err := s.upstream.Open(ctx, startup, anmeldung)
 	if err != nil || up == nil {
 		return 0, responses, err
 	}

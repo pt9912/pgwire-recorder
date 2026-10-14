@@ -235,15 +235,15 @@ func TestRecordGleichzeitigesEnde(t *testing.T) {
 func TestRecordParalleleSessions(t *testing.T) {
 	s, repo := neu(t, &fakeUpstream{})
 	ctx := context.Background()
-	a, _, err := s.OpenSession(ctx, map[string]string{"user": "a"})
+	a, _, err := s.OpenSession(ctx, map[string]string{"user": "a"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, _, err := s.OpenSession(ctx, map[string]string{"user": "b"})
+	b, _, err := s.OpenSession(ctx, map[string]string{"user": "b"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ohne, _, err := s.OpenSession(ctx, map[string]string{"user": "ohne"})
+	ohne, _, err := s.OpenSession(ctx, map[string]string{"user": "ohne"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,7 +350,7 @@ func TestRecordZwangsendeLeereSession(t *testing.T) {
 // Fehlerantwort statt einer Session endet (fehler nil).
 type aufbauFehler struct{ fehler error }
 
-func (a aufbauFehler) Open(context.Context, map[string]string) (driven.UpstreamSession, []model.Response, error) {
+func (a aufbauFehler) Open(context.Context, map[string]string, model.Anmeldung) (driven.UpstreamSession, []model.Response, error) {
 	if a.fehler != nil {
 		return nil, nil, a.fehler
 	}
@@ -374,7 +374,7 @@ func TestRecordAufbauFehlerKeineSession(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			id, _, err := s.OpenSession(ctx, map[string]string{"user": "app"})
+			id, _, err := s.OpenSession(ctx, map[string]string{"user": "app"}, nil)
 			if id != 0 || (up.fehler != nil) != (err != nil) {
 				t.Fatalf("OpenSession: Kennung %d, Fehler %v", id, err)
 			}
