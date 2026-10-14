@@ -331,8 +331,17 @@ func TestAnmeldungZwangsende(t *testing.T) {
 // AuthenticationOk an den Client; es gibt weder Log-Zeile noch Meldung noch
 // Session (LH-FA-05.b *Fehlerantwort des Servers*).
 func TestAnmeldungFehlerantwortDesServers(t *testing.T) {
+	felder := map[string]string{
+		"S": "FATAL", "V": "FATAL", "C": "28P01", "M": "m", "D": "d", "H": "h", "P": "1", "p": "2", "q": "q", "W": "w",
+		"s": "s", "t": "t", "c": "c", "d": "dt", "n": "n", "F": "f", "L": "3", "R": "r", "Z": "z",
+	}
+	erwartet := pgproto3.ErrorResponse{
+		Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "28P01", Message: "m", Detail: "d", Hint: "h", Position: 1, InternalPosition: 2,
+		InternalQuery: "q", Where: "w", SchemaName: "s", TableName: "t", ColumnName: "c", DataTypeName: "dt", ConstraintName: "n",
+		File: "f", Line: 3, Routine: "r", UnknownFields: map[byte]string{'Z': "z"},
+	}
 	for _, mitAnforderung := range []bool{false, true} {
-		rec := &fakeRecorder{aufbauFehler: true}
+		rec := &fakeRecorder{aufbauFehler: true, fehlerFelder: felder}
 		if mitAnforderung {
 			rec.anmeldeFolge = []model.Anmeldeanforderung{{Code: 3}}
 		}
@@ -342,8 +351,8 @@ func TestAnmeldungFehlerantwortDesServers(t *testing.T) {
 			anforderungVon(t, fe)
 			_, _ = client.Write(rohP([]byte("falsch\x00")))
 		}
-		if e := fehlerantwort(t, fe); e.Code != "3D000" || e.Severity != "FATAL" || e.Message != "database does not exist" {
-			t.Errorf("ErrorResponse (mit Anforderung %v): %+v", mitAnforderung, e)
+		if e := fehlerantwort(t, fe); !reflect.DeepEqual(*e, erwartet) {
+			t.Errorf("ErrorResponse (mit Anforderung %v): %+v, erwartet %+v", mitAnforderung, *e, erwartet)
 		}
 		warteBis(t, ende, "Handle kehrt nicht zurück")
 		if s.FirstErrorCode() != "" || log.String() != "" || rec.opened != 0 {

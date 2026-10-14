@@ -30,6 +30,9 @@ type fakeRecorder struct {
 	ends         []model.SessionEnd
 	err          error
 	aufbauFehler bool
+	// fehlerFelder sind die Felder der Fehlerantwort von aufbauFehler; nil heißt
+	// Schweregrad, SQLSTATE und Meldung von „database does not exist“.
+	fehlerFelder map[string]string
 
 	ereignisse      []string
 	client          []model.ClientMessage
@@ -128,7 +131,11 @@ func (f *fakeRecorder) OpenSession(ctx context.Context, _ map[string]string, anm
 		return 0, nil, f.err
 	}
 	if f.aufbauFehler {
-		return 0, []model.Response{{Type: model.ResponseErrorResponse, Fields: map[string]string{"S": "FATAL", "C": "3D000", "M": "database does not exist"}}}, nil
+		felder := f.fehlerFelder
+		if felder == nil {
+			felder = map[string]string{"S": "FATAL", "C": "3D000", "M": "database does not exist"}
+		}
+		return 0, []model.Response{{Type: model.ResponseErrorResponse, Fields: felder}}, nil
 	}
 	f.opened++
 	return 1, []model.Response{
