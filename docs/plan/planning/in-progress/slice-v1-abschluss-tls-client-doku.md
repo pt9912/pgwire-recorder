@@ -126,7 +126,111 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+### Belege des Implementers
+
+Kein Produkt-Code, kein Test, kein neuer Wächter: Der Slice ändert `docs/user/benutzerhandbuch.md` und `README.md` (Commit `955951b`) und diesen Plan; eine Mutation des Produkts entfällt (`AGENTS.md` §3.10 gilt für neue Verträge). Die Befehlsfolge aus Plan §3 ist kein neuer Wächter; ihre Mutanten stehen in `done/slice-v1-abschluss-einspielen-anmeldung-doku` §7, hier einmal wiederholt (unten), weil Optionen, Variablen und Codes neu hinzukamen.
+
+**Aufbau der Proben** (alles unter Linux im Container, `BEO-REPO/verhalten-nur-unter-linux-geprueft`; nach den Proben entfernt: alle Container, das Netz `impl-tlscd-net` und das Scratch-Verzeichnis, nur Namen mit Präfix `impl-tlscd-`). Binary: `pgwire-recorder:dev` (Stufe `runtime`, `make build` auf `59e14db`; `955951b` ändert nur Handbuch und README). Server: `postgres:17-alpine` mit dem Digest aus `harness/mk/integration.mk` (`trust`), im eigenen Docker-Netz. Clients: `psql` (libpq 17) aus demselben Image, und `python:3.13-alpine` (Modul `ssl`, OpenSSL 3.5.8) für Rohnachrichten (`GSSENCRequest`, zweiter `SSLRequest`, TLS-Versionen, direktes TLS, Ende ohne `close_notify`, Zeit zwischen Handshake und Startnachricht). Zertifikate und Schlüssel mit OpenSSL 3.3.7 (`alpine:3.20`): Wurzel, Zwischenstelle, Blätter (EC, RSA, Ed25519; gültig, abgelaufen, noch nicht gültig, von der Zwischenstelle), Schlüssel als `PRIVATE KEY` (EC, RSA, Ed25519, X25519), `RSA PRIVATE KEY`, `EC PRIVATE KEY`, `ENCRYPTED PRIVATE KEY`, `EC PRIVATE KEY` mit `Proc-Type: 4,ENCRYPTED`. **Ein Fehler der ersten Läufe, behoben:** Die Recorder-Container, gegen die Clients liefen, trugen denselben Netz-Alias `recorder`; liefen zwei zugleich, löste der Alias auf beide auf, und einzelne Ergebnisse stammten vom falschen Container (die ersten Läufe von P4 und P5 mit zwei Containern sind verworfen). P3 lief mit genau einem Recorder im Netz; P4, P5 (wiederholt), P6, P7, P8 und P10 liefen nach einem `clean` vor jedem Start (genau ein Recorder), P1, P2, P9 und P11 starten ihre Container ohne Alias. Die Tabelle nennt nur diese Ergebnisse.
+
+| Nr. | Probe | Aufruf (Kurzform) |
+|---|---|---|
+| P1 | Dateien beim Start | `replay --tls-cert A --tls-key B` für die Fälle der Tabelle, Ausgang nach 3 s `SIGTERM` (Exit 124 des Zeitgebers heißt: lief) |
+| P2 | Kombinationen, Quellen | Optionen, Umgebung, Datei, `--config` mit `-w` (aktuelles Verzeichnis), `play` mit Option, Variable, Schlüssel |
+| P3 | Verbindungen zu `record` (Beispiel des Handbuchs) | `psql` mit `require`, `verify-full`, `prefer`, `disable`; danach Stopp und Exit-Code |
+| P4 | Kette | `replay` mit Zertifikatsdatei mit und ohne Zwischenzertifikat, `psql verify-full` gegen die Wurzel |
+| P5 | Rohnachrichten | `python`: `gssenc`, `second-ssl`, `second-gss`, `maxtls11`, `maxtls12`, `direct`, `closenotify`, `timing`, `tls-close` |
+| P6 | direktes TLS | `psql` mit `sslnegotiation=direct`, mit und ohne `--allow-plaintext` |
+| P7 | Ablauf nach dem Start | Zertifikat mit Gültigkeit von 14 s; Verbindung vor und nach dem Ablauf |
+| P8 | Schlüssel im Log | `record` und `replay` mit `--log-level debug`, drei Verbindungen (gültig, ohne TLS, nicht vertraut), `grep -F` der zweiten Zeile des Schlüssels |
+| P9 | Beispiele als Datei | die Blöcke des Abschnitts per `awk` aus dem Handbuch gezogen und ausgeführt (`openssl`-Aufruf, `record`, `psql`, `replay --config`) |
+| P10 | Sitzungen | `record --record-empty-sessions` und `replay` mit TLS: Abbruch nach dem `S`, Handshake und Ende, `sslmode=disable`, dann eine gültige Verbindung |
+| P11 | Container | Schlüssel mit Rechten `0600` des Benutzers 1000 (Image läuft als 65532), relativer Pfad ohne und mit `-w` |
+
+**Aussage im Handbuch · Test des Code-Slice · Probe · Ergebnis** (jeder Satz mit Verhaltensaussage hat eine Zeile; Tests in `internal/adapters/driving/cli` (CLI), `internal/adapters/driving/pgwire/server_tls_test.go` (PGW), `test/integration/tls_client_e2e_test.go` (E2E)):
+
+| Aussage (Abschnitt *Verschlüsselte Verbindungen der Anwendung annehmen*, sofern nicht anders genannt) | Test | Probe | Ergebnis |
+|---|---|---|---|
+| Ohne die Dateien nehmen `record` und `replay` nur Verbindungen ohne Verschlüsselung an (Einleitung) | Bestand (`SSLRequest` → `N`) | — | unverändert aus dem Bestand, eng gefasst auf „ohne `--tls-cert`“ |
+| Mit beiden Dateien: Verbindung verschlüsselt, Ablauf wie unverschlüsselt; einfache Anfragen ergeben dieselbe Aufzeichnung | `TestE2ERecordTLS` (Aufzeichnung byte-gleich), `TestE2EReplayTLS` | P3, P9 | `require` und `verify-full`: Ergebnis, Aufzeichnung enthält die Anfrage |
+| `replay` liefert über beide Verbindungsarten dieselben Antworten | `TestE2EReplayTLS`, `TestTLSReplay` | P9 | `replay --config` mit `psql verify-full`: Zeile `1` |
+| `--tls-cert` allein, `--tls-key` allein: `PGR-E2001` | CLI `TestTLSKombination` | P2 | Exit 2, „--tls-cert verlangt --tls-key“ und umgekehrt |
+| `--allow-plaintext=true` ohne die Dateien `PGR-E2001`, `=false` gültig | `TestTLSKombination` | P1, P2 | Exit 2 (Option und Umgebung `true`); `=false` und Umgebung `false`: lief |
+| Quellen mischen (Zertifikat aus der Umgebung, Schlüssel aus der Datei); Umgebungsvariablen, Schlüssel `tls_cert`, `tls_key`, `allow_plaintext` | `TestTLSQuellen/record`, `…/replay` | P2 | gemischt, nur Umgebung, nur Datei: lief |
+| Relativer Pfad ab dem aktuellen Verzeichnis, auch in der Datei | `TestTLSRelativ` | P11 | `-w /pki`: lief; ohne `-w`: Exit 2, „Datei nicht vorhanden“ (beide Richtungen) |
+| `play`: Optionen unbekannt (`PGR-E2001`); Variablen `PGR-E2001`; Schlüssel in `play:` `PGR-E2004` | `TestLeserUmgebungAndererKommandos` (Tabelle führt die drei Optionen), `TestTLSQuellen/play` | P2 | Option: „flag provided but not defined“; alle drei Variablen: Exit 2, `PGR-E2001`; `play.tls_cert`: `PGR-E2004` „unbekannter Schlüssel“ |
+| Zertifikatsdatei: mindestens ein `CERTIFICATE`, kein Block anderen Typs | `TestTLSDateienFehler/*/--tls-cert/Schlüsselblock` (und 6 weitere), `TestTLSDateienGueltig` | P1 | Schlüssel als Zertifikat und `beides.pem`: Exit 2, „PEM-Block hat nicht den Typ CERTIFICATE“; leere Datei: „kein PEM-Block“ |
+| Erster Block ist das Zertifikat des Servers, die weiteren die Kette, die ausgeliefert wird | `TestTLSKetteWirdAusgeliefert` | P4 | Kette in der Datei, Client mit Wurzel `verify-full`: Zeile; nur das Blatt der Zwischenstelle: „certificate verify failed“, Log `PGR-W3002`; Blatt direkt von der Wurzel: Zeile (beide Richtungen) |
+| Vertraut die Anwendung nur der Wurzel, gehören die Zwischenzertifikate hinter das Zertifikat (libpq, `verify-full`) | derselbe | P4 | wie oben, beide Richtungen |
+| Schlüsseldatei genau ein Block `PRIVATE KEY`, `RSA PRIVATE KEY`, `EC PRIVATE KEY`; RSA, ECDSA, Ed25519 | `TestTLSDateienGueltig/*/…`, `TestTLSDateienFehler/*/--tls-key/zwei_Schlüssel` | P1 | EC (PKCS #8, SEC1), RSA (PKCS #8, PKCS #1), Ed25519: lief; zwei Blöcke: „mehr als ein PEM-Block“; X25519: „weder RSA noch ECDSA noch Ed25519“ |
+| Schlüssel nicht verschlüsselt | `TestTLSDateienFehler/*/--tls-key/ENCRYPTED_PRIVATE_KEY`, `…/Proc-Type_4,ENCRYPTED` | P1, P11 | beide Formen: Exit 2, „der Schlüssel ist verschlüsselt“, ohne Rückfrage (auch mit `-i` und leerer Standardeingabe, mit `--log-level debug` genau eine Zeile) |
+| Eine Datei für Zertifikat und Schlüssel ist ungültig | `TestTLSDateienFehler/*/--tls-cert/Schlüsselblock` | P1 | `beides.pem` für beide Optionen: Exit 2 |
+| Text vor, zwischen, nach den Blöcken unbeachtet, in beiden Dateien | `TestTLSTextAusserhalbDerBloecke/*/vor`, `…/zwischen`, `…/nach` | P1 | Text vor, zwischen, nach den Blöcken (Zertifikatsdatei) und vor, nach (Schlüsseldatei): lief |
+| Start: zuerst Zertifikat, dann Schlüssel, erster Fehler gemeldet | `TestTLSKombination/*/beide_Dateien` | P1 | abgelaufenes Zertifikat und verschlüsselter Schlüssel: Meldung nennt `--tls-cert` (Gegenrichtung: gültiges Zertifikat, verschlüsselter Schlüssel: `--tls-key`) |
+| `PGR-E2007` bei: nicht lesbar, ohne gültigen Inhalt, abgelaufen, noch nicht gültig, verschlüsselter Schlüssel, Schlüssel passt nicht | `TestTLSDateienFehler`, `TestTLSGueltigkeit/*/Beginn`, `…/Ende`, `TestTLSDateienFehler/*/--tls-key/anderer_Schlüssel_derselben_Art`, `…/Schlüssel_einer_anderen_Art` | P1, P11 | je Exit 2, Option und Ursache in der Meldung, ohne Pfad; Datei mit Rechten `0600` für den Benutzer des Images: „Datei nicht lesbar: permission denied“; Schlüssel einer anderen Art zum EC-Zertifikat: „passt nicht zum Zertifikat“ |
+| Jede Datei, Links gefolgt, regulär; Verzeichnis, FIFO, Gerät, Socket `PGR-E2007`; Start wartet nie | `TestTLSDateiKeineRegulaere` | P1 | Verzeichnis, FIFO (beide Optionen), Socket, `/dev/null`: Exit 2 sofort, „keine reguläre Datei“ |
+| Die Meldung nennt die Option und die Ursache, nicht den Pfad | `TestE2ETLSStartfehler`, `TestTLSDateienFehler` | P1 | keine Meldung der Läufe nennt einen Pfad |
+| Ursache bei mehreren Mängeln nicht festgelegt | — (Spezifikation, §6 des Code-Slice) | — | Satz sagt nur „nicht festgelegt“; keine Zusage |
+| Prüfung der Dateien vor der der Ausgabedatei; vorhandene Ausgabedatei unberührt; nicht `PGR-E2002` | `TestE2ETLSStartfehler` | — | Test (vorhandene Datei bleibt, Ausgabe ohne `PGR-E2002`) |
+| `config show` liest die Dateien nicht | `TestConfigShowLiestTLSNicht` | P2 | `config show` mit Pfaden, die nicht existieren: Exit 0, Ausgabe nennt die Pfade (Handbuch §4 *Die gewählte Konfigurationsdatei anzeigen*) |
+| Gültigkeit nur beim Start, nur am Zertifikat des Servers, Beginn und Ende eingeschlossen | `TestTLSGueltigkeit/*/Beginn`, `…/Ende`, `TestTLSDateienGueltig/*/Kette_mit_abgelaufenem_zweiten_Zertifikat`, `…/Kette_mit_noch_nicht_gültigem_zweiten_Zertifikat` | P1 | Blatt abgelaufen: Exit 2; Blatt noch nicht gültig: Exit 2; Kette mit abgelaufenem zweiten Zertifikat: lief (beide Richtungen) |
+| Läuft das Zertifikat nach dem Start ab, werden neue Verbindungen weiter angenommen | `TestTLSZertifikatUngeprueft` | P7 | Gültigkeit 14 s: Verbindung vor und nach dem Ablauf mit `require` (Sitzung 1 und 2 der Aufzeichnung): je eine Zeile; `verify-full` danach: Client meldet „certificate verify failed“; Neustart mit demselben Zertifikat: Exit 2 „abgelaufen“ |
+| Namen, Verwendung, Aussteller ungeprüft; Sache der Anwendung | `TestTLSDateienGueltig/*/ohne_Namen`, `…/Verwendung_eines_Clients`, `TestTLSKombination/*/beide_Dateien` (Aussteller) | P1 | Blatt, dessen Wurzel nicht in der Datei steht: lief |
+| Antwort `S`, TLS mindestens 1.2; Client mit höchstens 1.1 scheitert | `TestTLSAushandlung`, `TestTLSMindestversion` | P5 | `maxtls12`: TLSv1.2; `maxtls11`: „tlsv1 alert protocol version“, Log `PGR-W3002`, „offered only unsupported versions“ |
+| Kein Zertifikat der Anwendung angefordert | `TestTLSAushandlung` | P3 | `psql` ohne Client-Zertifikat verbindet |
+| Handshake scheitert (nicht vertraut, abbricht, Klartext nach `S`): `PGR-W3002` mit `code`, `remote`, Ursache; nie Zertifikat oder Schlüssel; Exit-Code unverändert | `TestTLSHandshakeScheitert/*` (Abbruch nach dem `S`, Klartext nach dem `S`, Bytes vor dem `S`), `TestTLSMindestversion` | P3, P4, P5 | Client ohne Vertrauen: Log `level=WARN code=PGR-W3002 remote=… error=…`; `ssl-then-plain`: ebenso; Stopp danach Exit 0 |
+| Direktes TLS: `PGR-W3003`, auch mit `--allow-plaintext` | `TestTLSDirekt` | P5, P6 | `direct` (Python) und `psql sslnegotiation=direct` mit `--allow-plaintext`: Log `PGR-W3003`, Client „EOF“ |
+| Weiterer `SSLRequest` / `GSSENCRequest` auf der verschlüsselten Verbindung: `PGR-E6001` | `TestTLSZweiterAufbau` | P5 | `second-ssl`, `second-gss`: ErrorResponse und Log `PGR-E6001` |
+| Ohne `--allow-plaintext`: Klartext-Anwendung `PGR-E6003`, Verbindung endet, nicht aufgezeichnet, Exit-Code 6 beim Beenden | `TestE2EKlartextAbgewiesen`, `TestTLSUnverschluesselt` | P3, P10 | `sslmode=disable`: `PGR-E6003`, Stopp Exit 6; mit `--record-empty-sessions` keine Sitzung |
+| … auch nach `GSSENCRequest` (Antwort `N`) | `TestTLSUnverschluesselt` (`nachGSS`) | P5 | `gssenc`: `N`, dann `PGR-E6003`, Log, Exit 6 |
+| … nur für Protokollversion 3.0, sonst `PGR-E6002` | `TestTLSRangfolge/andere_Version` | — | Test |
+| Mit `--allow-plaintext` beide Arten | `TestE2ERecordTLS` (gemischt), `TestTLSUnverschluesselt` | P6 | `psql require` und `disable` gegen `--allow-plaintext`: beide angenommen |
+| Kein `close_notify`; Anwendung sieht das Ende der TCP-Verbindung | `TestTLSEndeOhneAlert` | P5 | `closenotify`: nach `Terminate` „EOF occurred in violation of protocol“ |
+| Ende ohne `close_notify` ist ein Verbindungsende wie ohne TLS | `TestTLSEndeOhneCloseNotify` | — | Test |
+| Ruhende verschlüsselte Verbindung hält das Beenden nicht auf; abgeschlossene Anfragen in der Aufzeichnung | `TestE2ERecordTLSBeendenMitOffenerVerbindung` | — | Test |
+| Schlüssel in keiner Log-Zeile, auch `debug` | `TestRunTLSLogOhneSchluessel/record`, `…/replay` | P8 | 0 Treffer (record 5, replay 6 Zeilen), Gegenprobe des Suchmusters auf die Schlüsseldatei: 1 Treffer |
+| Zeit zwischen Handshake und Startnachricht zählt nicht zu `offset_ms` (Bestandssatz, Handbuch *Zeitangaben aufzeichnen*, unverändert) | kein Test mit TLS; der Satz bleibt durch die Probe belegt | P5 `timing` | 1,5 s nach dem Handshake bis zur Startnachricht, `offset_ms: 3` der ersten Anfrage |
+| Einstellungen: Tabelle in §5, Variablen bei `play` | `TestLeserUmgebungAndererKommandos`, `TestTLSHilfe` | P2, Befehlsfolge | Hilfe → Handbuch leer |
+| Fehlercodes `PGR-E6003`, `PGR-W3002`, `PGR-W3003`, `PGR-E2007`, `PGR-E2001`, `PGR-E2004`, `PGR-E6001` | siehe die Zeilen oben | siehe oben | siehe oben |
+| Sitzungen: Verbindung mit gescheitertem TLS-Aufbau oder mit `PGR-E6003` ist keine Sitzung / zählt nicht (`record`, `replay` `first-request`) | `TestTLSHandshakeScheitert` und `TestTLSUnverschluesselt` (Sessions 0) | P10 | `record --record-empty-sessions`: Abbruch nach dem `S`, Handshake und Ende, `disable`: nur die gültige Verbindung ist Sitzung 1; `replay first-request`: danach erhält die gültige Verbindung Sitzung 1 |
+| Fehlerbehebung: `PGR-E6003` heißt Anwendung beginnt ohne Verschlüsselung; `PGR-W3002`; `PGR-W3003` | wie oben | P3, P5, P6 | wie oben |
+| Beispiele als Datei (`openssl`, `record`, `psql`, `replay --config`) | — (Gate: Schritt P9) | P9 | die vier Blöcke unverändert ausgeführt (`openssl`: `server.pem` beginnt mit `BEGIN CERTIFICATE`, `server.key` mit `BEGIN PRIVATE KEY`; `record` Exit 0 mit Aufzeichnung `sql: select 1 as eins`; `psql verify-full` Zeile `1`; `replay --config` mit `psql` Zeile `1`; `config show` mit der Datei ohne Fehler) |
+
+**Quantoren-Durchsicht des Bestands** (Merkmal: die Allgemeinregeln, die der neue Abschnitt einschränkt: Verschlüsselung der Anwendungsseite, Zählung von Verbindungen, Sitzungen, Exit-Code, „nie nach Eingaben fragen“; Suchbegriffe `grep -n -i -E "verschlüssel|\btls\b|unverschlüsselt"` über das Handbuch und die Quantoren „jede/alle/immer/nie/keine/nur“ über den Diff):
+
+| Fundstelle | Entscheidung |
+|---|---|
+| §1 *Voraussetzungen*, zwei Sätze („Weitere Änderungen … nicht nötig“, „läuft ohne Verschlüsselung“) | eng gefasst („Außer an der Verschlüsselung“, „solange … ohne `--tls-cert`“), verbunden mit dem neuen Abschnitt |
+| §4 *Mit einem Datenbanktreiber arbeiten* (Einleitung „nur Host und Port“, Voraussetzung, Schritt 3) | eng gefasst, verbunden |
+| §4 *Mehrere Verbindungen*, Aufzeichnen („Keine Sitzung ist …“), die Zeile zur Anfrage nach Verschlüsselung, Wiedergeben („zählt ab ihrer Startnachricht“) | eng gefasst auf „ohne `--tls-cert`“; ergänzt um `PGR-W3002` und `PGR-E6003` mit P10 |
+| §4 *Zeitangaben aufzeichnen*, „auch nicht nach einer Anfrage nach Verschlüsselung“ | unverändert, mit Probe (P5 `timing`) |
+| §4 *Einspielen*, „Ohne Wunsch nach TLS … ohne TLS mit der Datenbank“, `record` verbindet ohne TLS zur Datenbank (§5) | unverändert: Aussagen über die Seite der Datenbank, die TLS zur Anwendung nicht berührt (`record` mit TLS und ohne TLS zur Datenbank in P3, P9) |
+| §3 *Das Werkzeug fragt nie nach Eingaben* (Testautomatisierung) | unverändert, mit Probe: verschlüsselter Schlüssel endet mit Exit 2 ohne Rückfrage (P1) |
+| §5 Einleitung („Die Umgebungsvariable einer Option, die die Betriebsart nicht kennt …“) | ergänzt um die drei Variablen bei `play` (P2) |
+| §5 *Konfigurationsdatei* („Ein relativer Pfad gilt relativ zum aktuellen Verzeichnis“, „Wahrheitswerte“) | unverändert: gilt für `tls_cert`, `tls_key` (P2, P11) und `allow_plaintext` (`yes` → `PGR-E2004`, P2) |
+| §5 *Log-Ausgaben*, „Scheitert der Start, … genau den Fehlertext“ | unverändert, mit Probe: `PGR-E2007` mit `--log-level debug` eine Zeile (P1) |
+| §5 *Exit-Codes*, „6 nicht unterstützte Funktion“ | unverändert: `PGR-E6003` ist Klasse „nicht unterstützt“, Exit 6 (P3, P5) |
+| §6 *Rollen und Rechte*, „nimmt jede Anmeldung an“ | unverändert: TLS fordert kein Zertifikat der Anwendung an (P3) |
+| §7 *Fehlercodes*, `PGR-E4005` / `PGR-E4002` (TLS zur Datenbank) | unverändert: Seite der Datenbank |
+
+**Befehlsfolge aus Plan §3** (Optionen, Variablen, Codes des Handbuchs gegen `--help` und Katalog, Variablen-Zeile mit `grep -vx PGWIRE_RECORDER_PASSWORD`, ergänzt um die Gegenrichtungen Hilfe → Handbuch und Katalog → Handbuch):
+
+| Stand | Ergebnis |
+|---|---|
+| `59e14db` (vorher) | rot: Hilfe → Handbuch: `--allow-plaintext`, `--tls-cert`, `--tls-key`, Variablen `PGWIRE_RECORDER_ALLOW_PLAINTEXT`, `_TLS_CERT`, `_TLS_KEY`; Katalog → Handbuch: `PGR-E6003`, `PGR-W3002` |
+| `955951b` (nachher) | Optionen des Handbuchs, die `--help` nicht kennt: nur `--h`, `--help`, `--version`, `--rm`, `--name`; Variablen mit der benannten Ausnahme, Codes und beide Gegenrichtungen: leer |
+| Mutant (Kopie des Handbuchs mit angehängter Zeile `--tls-ca` `PGWIRE_RECORDER_TLS_CA` `PGR-E2099`) | je rot: `--tls-ca` unter den Optionen, `PGWIRE_RECORDER_TLS_CA` unter den Variablen, `PGR-E2099` unter den Codes |
+
+`grep -n -i` im Handbuch nach Slice, Welle, ADR-, LH-, SPEC-, ARC-, `spec/`, Lastenheft, Spezifikation, Review, „noch nicht“, „kommt“, „geplant“, „später“, „bisher“, „künftig“: Treffer nur im Bestand (Zeilen 14 „später“, 167 und 1214/1595 „noch nicht“ als Zustand des Zertifikats beziehungsweise der Zieldatei, 533/613 „später“ im Sinn der Reihenfolge, 712/1109/1375/1219 „kommt“ im Sinn von Herkunft, Eintreffen und Reihenfolge); keiner im Sinn von Künftigem. README: kein Treffer auf Slice, Welle, „noch nicht“, „geplant“, „bisher“. `make docs-check`: 732 Dateien, 0 Befunde.
+
+**Abweichungen und Funde für den Planner:**
+
+- **DoD-Zeile 2 (README):** Der Satz „Alle Verbindungen laufen unverschlüsselt“ steht im README nicht mehr (er war schon vor diesem Slice ersetzt); ersetzt habe ich den Satz „`record` und `replay` nehmen Verbindungen nur ohne TLS an …“. Der Wortlaut der DoD ist veraltet.
+- **Nicht gefahren, nicht genannt:** Windows und macOS; Treiber außer libpq 17 und Python `ssl` (pgx, JDBC); TLS-Aufbau von `record`/`replay` mit `--session-assignment connection` und gescheitertem Handshake; Schlüssel aus PKCS #8 mit RSA-4096; die Behauptung zu `sslnegotiation=direct` gilt als Beleg für libpq 17 (der Handbuch-Satz nennt die Version nicht).
+- **Verhalten neben der Spezifikation:** keines gefunden.
+- **Randformen:** Keine nicht genannte oder offene Randform entschieden; der Handbuch-Satz „Ursache bei mehreren Mängeln nicht festgelegt“ gibt die Spezifikation wieder.
+- **Abdeckungstabellen:** unberührt (`make abdeckung-check` Teil von `make gates`).
+
+Wird bei Closure um die Closure-Notiz ergänzt (vor dem `git mv` nach `done/`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
