@@ -53,12 +53,14 @@ func erwartetAntwort(code uint32) bool {
 }
 
 // skriptServer ist die Seite des Servers in einer Verbindung, die ein Skript
-// treibt. gelesen sind die Rümpfe der Nachrichten p, die das Skript las.
+// treibt. gelesen sind die Rümpfe der Nachrichten p, die das Skript las, und
+// fehler, was es dabei Unerwartetes sah; beides gilt nach fertig.
 type skriptServer struct {
 	conn    net.Conn
 	br      *bufio.Reader
 	fertig  chan struct{}
 	gelesen [][]byte
+	fehler  string
 }
 
 // lies liest eine Nachricht des Clients und liefert Typ und Rumpf.
@@ -78,6 +80,9 @@ func (s *skriptServer) lies() (byte, []byte, error) {
 func (s *skriptServer) rest(t *testing.T) string {
 	t.Helper()
 	<-s.fertig
+	if s.fehler != "" {
+		t.Error(s.fehler)
+	}
 	_ = s.conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	var typen string
 	for {
@@ -123,7 +128,7 @@ func anmeldeServer(t *testing.T, skript func(s *skriptServer)) (string, *skriptS
 // folgeSkript sendet die Codes der Folge der Reihe nach; auf einen, der eine
 // Antwort erwartet, liest es die Nachricht p, außer nach dem letzten. Danach
 // sendet es danach.
-func folgeSkript(t *testing.T, folge []uint32, danach ...[]byte) func(*skriptServer) {
+func folgeSkript(folge []uint32, danach ...[]byte) func(*skriptServer) {
 	return func(s *skriptServer) {
 		for i, code := range folge {
 			_, _ = s.conn.Write(rohR(code, datenZu(code)))
@@ -132,7 +137,7 @@ func folgeSkript(t *testing.T, folge []uint32, danach ...[]byte) func(*skriptSer
 			}
 			typ, rumpf, err := s.lies()
 			if err != nil || typ != 'p' {
-				t.Errorf("auf Code %d keine Nachricht p: %c, %v", code, typ, err)
+				s.fehler = fmt.Sprintf("auf Code %d keine Nachricht p: %c, %v", code, typ, err)
 				return
 			}
 			s.gelesen = append(s.gelesen, rumpf)
@@ -217,13 +222,14 @@ func TestVermittlungVerfahren(t *testing.T) {
 		{"Antwort mit NUL-Bytes", []uint32{rMD5}, [][]byte{{0, 0, 0}}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			addr, srv := anmeldeServer(t, folgeSkript(t, c.folge, append([][]byte{rohR(rOk, "")}, aufbauOk()[1:]...)...))
+			addr, srv := anmeldeServer(t, folgeSkript(c.folge, append([][]byte{rohR(rOk, "")}, aufbauOk()[1:]...)...))
 			r := &spion{antworten: c.antworten}
 			s, out, err := anmelden(t, addr, r)
 			if err != nil || s == nil {
 				t.Fatalf("Open: %v", err)
 			}
 			_ = s.Close()
+			rest := srv.rest(t)
 			if got, want := fmt.Sprint(r.codes()), fmt.Sprint(c.folge); got != want {
 				t.Fatalf("Aufrufe %s, erwartet %s", got, want)
 			}
@@ -239,7 +245,7 @@ func TestVermittlungVerfahren(t *testing.T) {
 			if len(out) != 2 || out[0].Type != model.ResponseParameterStatus || out[1].Type != model.ResponseReadyForQuery {
 				t.Errorf("Antworten des Aufbaus: %#v", out)
 			}
-			if rest := srv.rest(t); rest != "X" {
+			if rest != "X" {
 				t.Errorf("nach dem Aufbau sendet der Recorder %q, erwartet nur Terminate", rest)
 			}
 		})
@@ -306,7 +312,7 @@ func TestVermittlungReihenfolge(t *testing.T) {
 		{rOk, rKlartext}, {rOk, rOk}, {rOk, rSASLWeiter},
 	} {
 		t.Run(fmt.Sprint(folge), func(t *testing.T) {
-			addr, srv := anmeldeServer(t, folgeSkript(t, folge))
+			addr, srv := anmeldeServer(t, folgeSkript(folge))
 			r := &spion{}
 			s, _, err := anmelden(t, addr, r)
 			falsch := folge[len(folge)-1]
@@ -340,7 +346,7 @@ func TestVermittlungFehlerDesRueckrufs(t *testing.T) {
 		{"PGR-E6001 des Clients", []uint32{rMD5}, 0, unterstuetzt},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			addr, srv := anmeldeServer(t, folgeSkript(t, c.folge))
+			addr, srv := anmeldeServer(t, folgeSkript(c.folge))
 			r := &spion{fehler: map[int]error{c.i: c.err}}
 			s, out, err := anmelden(t, addr, r)
 			if s != nil || out != nil || !errors.Is(err, c.err) {
@@ -378,7 +384,7 @@ func TestVermittlungFehlerantwortDesServers(t *testing.T) {
 		{"mitten im SCRAM", []uint32{rSASL, rSASLWeiter}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			addr, srv := anmeldeServer(t, folgeSkript(t, c.folge, fehler))
+			addr, srv := anmeldeServer(t, folgeSkript(c.folge, fehler))
 			r := &spion{}
 			s, out, err := anmelden(t, addr, r)
 			if s != nil || err != nil || len(out) != 1 || out[0].Type != model.ResponseErrorResponse {
