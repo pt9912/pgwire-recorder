@@ -230,6 +230,13 @@ Kein Produkt-Code, kein Test, kein neuer Wächter: Der Slice ändert `docs/user/
 - **Randformen:** Keine nicht genannte oder offene Randform entschieden; der Handbuch-Satz „Ursache bei mehreren Mängeln nicht festgelegt“ gibt die Spezifikation wieder.
 - **Abdeckungstabellen:** unberührt (`make abdeckung-check` Teil von `make gates`).
 
+**Läufe und Größe:**
+
+- `make gates` (voll) auf dem sauberen Baum `dbe6232` (Handbuch und README seit `955951b` unverändert, danach nur dieser Plan): grün, Exit 0, 7 min 32 s; darin `make docs-check` (732 Dateien, 0 Befunde), `make test-integration` (`run-integration-tests: gruen`), `make a-check-negativ` (23 Fälle), `make baseline-verify`, `make lint-gegenprobe`, `make stop-hook-gegenprobe` (139 Fälle). Der Stop-Hook gibt auf diesem Stand frei (`{"decision":"approve"}`). Dieser Absatz ist der letzte Commit und ändert nur §7 (Positivliste); die Übergabe-Messung ist `make gates` auf `dbe6232`.
+- Engster Sensor je Änderung: `make docs-check` nach jeder Änderung am Handbuch (zuletzt 732 Dateien, 0 Befunde), die Befehlsfolge oben, die Beispiele als Datei (P9).
+- Größe (`AGENTS.md` §3.14, Summe aus Einfügungen und Löschungen von `git diff --numstat 59e14db..dbe6232`): Handbuch 226 (196 + 30), README 5 (4 + 1), dieser Plan 106 (105 + 1); ohne den Plan 231, mit dem Plan 337. Eine Marke nennt §4 nicht in Zeilen („nicht in einer Review-Sitzung prüfbar“).
+- Liefer-Punkte 2, Schichten eine (Dokumentation), unverändert gegenüber §8.
+
 Wird bei Closure um die Closure-Notiz ergänzt (vor dem `git mv` nach `done/`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
