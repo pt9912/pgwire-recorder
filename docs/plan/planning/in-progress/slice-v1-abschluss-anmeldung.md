@@ -148,20 +148,18 @@ Integrationstests; `reject` im Runner), `1de6493` und `a504fa4` (Testhilfe des S
 liefert der Doku-Folge-Slice.
 
 **Randformen und Rückgabe.** Keine Randform aus §6 oder der Spezifikation entschieden, kein
-Code-Commit ändert §6. Die folgenden vier Punkte gibt der Implementer als Liste *Randform · Frage* an den
-Architect zurück: Der Code trägt je eine Lesart, jede ist mit einer Zeile umzustellen, und kein Test
-pinnt sie (die Mutanten Y1 und Y2 sind grün, unten).
+Code-Commit ändert §6. Die vier Rückgaben des Implementers hat der Architect entschieden
+(`468997b`, `LH-FA-05.b`); der Code folgt ihnen, jeweils mit Fall und Mutation:
 
-| Randform | Frage |
-|---|---|
-| Nach `AuthenticationOk` kommt eine Nachricht `R` mit einem Code ohne Verfahren (2, 6, 7, 9, unbekannt) | `LH-FA-05.b` sagt „jede Nachricht `R` nach `AuthenticationOk`“ (`PGR-E4002`) und „jeder andere Code“ (`PGR-E6001`); der Code wählt `PGR-E4002` (Y1). Ist das gemeint? |
-| Zweiter Code 11 im laufenden SASL-Austausch | Die Spezifikation nennt Code 11 nur *ohne* laufenden Austausch als `PGR-E4002`; der Code gibt ein zweites 11 weiter (Y2). Soll es `PGR-E4002` sein? |
-| Schreibfehler an den Client, wenn die Anforderung nicht zu senden ist | Der Code behandelt ihn wie Reset (`ErrClientEnde`, keine Meldung); geprüft nur mit geschlossener `net.Pipe` (`TestAnmeldungEndeDesClients`, Zeile *Ende des Datenstroms vor dem Lesen der Anforderung*), nicht mit einem echten Schreibfehler einer TCP-Verbindung. Soll das so sein? |
-| Schreibfehler an den Server, wenn die Antwort `p` nicht zu senden ist | Der Code meldet `PGR-E4003`; ungetestet (kein Test erzwingt den Fehler beim Schreiben, der Mutant ist nicht gefahren). Soll das anders sein? |
+| Entscheidung | Fall | Mutation | roter Test |
+|---|---|---|---|
+| Code ohne Verfahren (2, 6, 7, 9, unbekannt) nach `AuthenticationOk` ist `PGR-E4002`, vor ihm `PGR-E6001` | je Code ein Fall | Y1: Klasse vertauscht (nach Ok `PGR-E6001`) | `TestVermittlungCodeOhneVerfahrenNachOk` (2, 6, 7, 9, 4242) |
+| zweites Code 11 im laufenden SASL-Austausch ist `PGR-E4002` | Reihenfolge-Zeile `[10 11 11]` | Y2: zweites 11 zugelassen | `TestVermittlungReihenfolge/[10_11_11]` |
+| Schreibfehler an den Client bei einer Anforderung ist das Ende des Clients, ohne Meldung | `…EndeDesClients` (vor dem Lesen der Anforderung), `…Zwangsende` | W5 und Y3: als `PGR-E4003` eingestuft | beide Zeilen |
+| Schreibfehler an den Server bei der Antwort `p` ist `PGR-E4003` | Server setzt die Verbindung zurück (Linger 0), der Rückruf wartet 300 ms | Y4: als `PGR-E4002` eingestuft | `TestVermittlungSchreibfehlerAmServer` |
 
-**Größe.** Metrik aus §4: `git diff --numstat fa5a64c..4c38fb7 -- internal test docs/user` ergibt
-1534 Einfügungen und 89 Löschungen, Summe **1623**; davon Code 420, Unit-Tests 1055,
-Integrationstests 121, Abdeckungstabellen 27. Die Meldeschwelle 2000 und die Marke 2500 sind nicht
+**Größe.** Metrik aus §4: `git diff --numstat fa5a64c..<letzter Code-Commit> -- internal test docs/user` ergibt
+nach den Entscheidungen des Architect 1576 Einfügungen und 89 Löschungen, Summe **1665** (vorher 1623, `4c38fb7`). Die Meldeschwelle 2000 und die Marke 2500 sind nicht
 erreicht; die Schätzung war 1800 bis 2400 (§4). Die Review-Runde steht aus.
 
 **Läufe.**
@@ -181,8 +179,7 @@ Arbeitsbaum ersetzt (bricht bei fehlendem Vorkommen ab), die Tests des Pakets mi
 ohne Belang) und die Datei danach mit `git checkout --` zurücksetzt; ein Mutant der Integration läuft
 über eine Kopie von `tools/test/run-integration-tests.sh` mit `-test.run '^TestE2ERecordAnmeldung'`
 und `docker build --target integration`. Gefahren: 131 Mutanten am Quelltext und 2 Architekturmutanten (eine
-zusätzliche Datei im Kern, eine im Upstream-Adapter; `make a-check`), davon 129 rot. Vier sind grün (Y1, Y2,
-W3, W3a, unten).
+zusätzliche Datei im Kern, eine im Upstream-Adapter; `make a-check`), davon 129 rot. Drei sind grün und äquivalent (W3, W3a, Y5, unten); Y1 und Y2 sind seit der Entscheidung rot.
 
 **DoD-Punkt 1 — die Anmeldung wird vermittelt, Passwort und Anmeldenachrichten stehen nicht in der Aufzeichnung.**
 
@@ -257,11 +254,8 @@ W3, W3a, unten).
 
 **Grüne Mutanten und äquivalente Fälle.**
 
-- **Y1** (nach AuthenticationOk ein Code ohne Verfahren ist PGR-E6001) und **Y2** (zweites Code 11
-  im laufenden SASL-Austausch ist PGR-E4002) ändern das Verhalten und sind über die Schnittstelle fangbar:
-  Test-Idee Y1: Server sendet `AuthenticationOk`, dann `R` mit Code 9; Y2: Server sendet 10, 11, 11, 12, Ok.
-  Beide Tests sind nicht geschrieben, weil sie die Lesart pinnten, die der Architect oben entscheiden soll;
-  die Closure gibt der Entscheidung die Adresse.
+- **Y5** (Fehler beim Senden der Antwort `p` übergangen) ist äquivalent: Auf der zurückgesetzten Verbindung
+  scheitert das folgende Lesen mit demselben `PGR-E4003`; kein Fall unterscheidet die beiden Stellen.
 - **W3** (`oeffne` kehrt beim Zwangsende nicht zurück) und **W3a** (`z.ende` schließt die Verbindung im Aufbau
   nicht) sind je für sich äquivalent: Beide Mechanismen beenden die Anmeldung beim Zwangsende, jeder reicht
   allein (`handle` schließt die Verbindung beim Rückkehren, `z.ende` schließt sie ohnehin). Zusammen (W3c) rot.
