@@ -66,7 +66,7 @@ func TestRecordAnmeldungRueckruf(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-05/Boundary, LH-RB-01/Boundary — weder Anforderungen noch
+// Abdeckung: LH-FA-05/Boundary — weder Anforderungen noch
 // Antworten der Anmeldung stehen in der Aufzeichnung (LH-FA-05.b
 // *Aufzeichnung*).
 func TestRecordAnmeldungNichtInDerAufzeichnung(t *testing.T) {

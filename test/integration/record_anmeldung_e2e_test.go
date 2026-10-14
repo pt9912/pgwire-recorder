@@ -22,7 +22,7 @@ func dsnMit(address, name, pw, optionen string) string {
 	return u.String()
 }
 
-// Abdeckung: LH-FA-05/Happy, LH-FA-02/Happy, LH-RB-01/Boundary — ein Client
+// Abdeckung: LH-FA-05/Happy, LH-FA-02/Happy — ein Client
 // meldet sich über record an einem Server mit scram-sha-256, md5 und password in
 // pg_hba.conf an und führt eine Anfrage aus; die Aufzeichnung trägt die Anfrage
 // und den Benutzer der Startnachricht, aber weder Passwort noch Anmeldenachrichten,
