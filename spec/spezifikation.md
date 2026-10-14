@@ -410,8 +410,14 @@ bis zur ersten Nachricht des Servers nichts.
   ein Code 12 vor Code 11, ein `AuthenticationOk` im laufenden SASL-Austausch vor Code 12, eine weitere
   Anforderung (Code 3, 5, 10), nachdem eine beantwortet ist oder während ein SASL-Austausch läuft, und
   jede Nachricht `R` nach `AuthenticationOk` sind `PGR-E4002`; die Folge am Server und am Client wie bei
-  *Nicht vermittelt*. Ein `ReadyForQuery` ohne vorheriges `AuthenticationOk` prüft der Recorder nicht
+  *Nicht vermittelt*. Ein zweites Code 11 im laufenden SASL-Austausch (nach der Antwort auf das erste) ist
+  ebenso `PGR-E4002`. Die Stelle geht dem Code vor: Eine Nachricht `R` nach `AuthenticationOk` ist
+  `PGR-E4002`, auch mit einem Code ohne Verfahren (2, 6, 7, 9, unbekannt); `PGR-E6001` gilt für diese
+  Codes nur vor `AuthenticationOk`. Ein `ReadyForQuery` ohne vorheriges `AuthenticationOk` prüft der Recorder nicht
   (akzeptiertes Negativ: Kein Server sendet es, der Recorder sendet `AuthenticationOk` selbst).
+* *Ende des Servers.* Scheitert das Senden einer Antwort an den Server oder endet seine Verbindung in
+  der Anmeldung, ist das `PGR-E4003` (wie das Ende des Datenstroms im übrigen Aufbau); das Senden der
+  Startnachricht bleibt `PGR-E4002`. Der Client erhält die Fehlerantwort.
 * *Antwort des Clients.* Auf jede Anforderung erwartet der Recorder genau eine Nachricht `p`
   (Passwort, Antwort auf MD5, `SASLInitialResponse` auf Code 10, `SASLResponse` auf Code 11), auf Code 12
   keine. Er leitet sie unverändert weiter, auch eine leere oder inhaltlich falsche; ob sie gilt,
@@ -423,7 +429,7 @@ bis zur ersten Nachricht des Servers nichts.
   Eine Nachricht `p` außerhalb der Anmeldung gilt wie bisher als nicht unterstützte Nachricht
   (`PGR-E6001`).
 * *Ende durch den Client.* Schließt der Client die Verbindung in der Anmeldung (Ende des Datenstroms,
-  Reset) oder sendet `Terminate`, ist das kein Verbindungsfehler und erzeugt weder Meldung noch Warnung:
+  Reset, auch ein Schreibfehler beim Senden einer Anforderung an ihn) oder sendet `Terminate`, ist das kein Verbindungsfehler und erzeugt weder Meldung noch Warnung:
   Es gibt keine Interaktion. Der Recorder schließt die Verbindung zum Server ohne `Terminate`; die
   Verbindung ist keine Session, auch nicht mit `--record-empty-sessions` (*Randformen des Recordings*).
 * *Fehlerantwort des Servers.* Eine Fehlerantwort im Aufbau, gleich welcher SQLSTATE und an welcher
