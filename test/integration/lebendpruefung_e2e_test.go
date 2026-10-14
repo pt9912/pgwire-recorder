@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -168,7 +169,19 @@ const vtAbVersion = 17
 // hauptversion liest die führenden Ziffern von server_version der Verbindung.
 func hauptversion(t *testing.T, conn *pgconn.PgConn) int {
 	t.Helper()
-	v := conn.ParameterStatus("server_version")
+	return hauptversionAus(t, conn.ParameterStatus("server_version"))
+}
+
+// fataler ist der Teil von testing.TB, den hauptversionAus braucht.
+type fataler interface {
+	Helper()
+	Fatalf(format string, args ...any)
+}
+
+// hauptversionAus liest die führenden Ziffern von v; ein Wert ohne führende Ziffer
+// beendet den Test mit Fatalf.
+func hauptversionAus(t fataler, v string) int {
+	t.Helper()
 	n := 0
 	for n < len(v) && v[n] >= '0' && v[n] <= '9' {
 		n++
@@ -178,6 +191,39 @@ func hauptversion(t *testing.T, conn *pgconn.PgConn) int {
 		t.Fatalf("server_version %q: %v", v, err)
 	}
 	return major
+}
+
+// merkFataler hält die Meldung von Fatalf fest und beendet die Goroutine wie t.Fatalf.
+type merkFataler struct{ meldung string }
+
+func (m *merkFataler) Helper() {}
+
+func (m *merkFataler) Fatalf(format string, args ...any) {
+	m.meldung = fmt.Sprintf(format, args...)
+	runtime.Goexit()
+}
+
+// TestHauptversionAus: die führenden Ziffern von server_version sind die Hauptversion;
+// ein Wert ohne führende Ziffer (vorangestelltes Zeichen, leer) endet mit Fatalf.
+func TestHauptversionAus(t *testing.T) {
+	for v, soll := range map[string]int{"14.24": 14, "17.5 (Debian)": 17, "18.6": 18, "9beta1": 9} {
+		var m merkFataler
+		if got := hauptversionAus(&m, v); got != soll || m.meldung != "" {
+			t.Errorf("hauptversionAus(%q) = %d (Meldung %q), erwartet %d", v, got, m.meldung, soll)
+		}
+	}
+	for _, v := range []string{"x14.24", "", " 17.1", "-17"} {
+		var m merkFataler
+		fertig := make(chan struct{})
+		go func() {
+			defer close(fertig)
+			hauptversionAus(&m, v)
+		}()
+		<-fertig
+		if m.meldung == "" {
+			t.Errorf("hauptversionAus(%q) endet ohne Fatalf", v)
+		}
+	}
 }
 
 // antwortArt beschreibt die Antwort auf die einfache Anfrage text: Fehler mit

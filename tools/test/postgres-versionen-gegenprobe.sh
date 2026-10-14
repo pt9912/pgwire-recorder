@@ -26,18 +26,26 @@ trap 'rm -rf "${arbeit:?}"' EXIT
 fehler=0
 melde() { echo "postgres-versionen-gegenprobe: ROT — $*" >&2; fehler=1; }
 
+gesendet="$arbeit/gesendet"
 bin="$arbeit/bin" log="$arbeit/log" st="$arbeit/zustand" aus="$arbeit/aus" schlaf="$arbeit/schlaf"
 mkdir -p "$bin"
 
 # Attrappe von docker. Vorgaben des Falls (Umgebung): AT_ROT="<phase>-<version> …",
 # AT_UMBENANNT und AT_SKIP=<test>, AT_KEINE=1, AT_NICHT_BEREIT, AT_PULL_ROT und AT_HBA_ROT=<version>,
-# AT_VERSION_<n>=<server_version>, AT_BAUEN_ROT=1, AT_HANGT=<datei> (der Testlauf
-# wartet, bis sein Container entfernt ist).
+# AT_SQL_ROT=<version> (ein Fehler im SQL der Einrichtung), AT_HBA_DATEI_ROT=<version> (die Datei
+# pg_hba.conf ist nicht zu schreiben), AT_VERSION_<n>=<server_version>, AT_BAUEN_ROT=1,
+# AT_HANGT=<datei> (der Testlauf wartet höchstens 3 s, bis sein Container entfernt ist).
+# Die Hauptversion eines Servers ist die des Image-Tags im Aufruf `run -d`; Container und Testlauf
+# derselben Version finden sie über den Namen ohne `-pg` und `-tests`.
+# Das Skript der Einrichtung (`exec -i … sh -c`) läuft mit einem psql der Attrappe: Es liest die
+# Datei pg_hba.conf aus einer Datei neben dem Log, endet mit 3 bei einem Fehler im SQL, wenn
+# `-v ON_ERROR_STOP=1` gesetzt ist, und sonst mit 0, wie psql.
 cat > "$bin/docker" <<'ATTRAPPE'
 #!/usr/bin/env bash
 printf '%s' "$*" | tr '\n' ' ' >> "$AT_LOG"; echo >> "$AT_LOG"
 sub="$1"; shift
-major() { local n="${1%-pg}"; n="${n%-tests}"; echo "${n##*-}"; }
+key() { local n="${1%-pg}"; echo "${n%-tests}"; }
+major() { cat "$AT_LOG.maj-$(key "$1")" 2> /dev/null; }
 case "$sub" in
   build) [ -z "${AT_BAUEN_ROT:-}" ] ;;
   network | volume)
@@ -46,22 +54,30 @@ case "$sub" in
   stop | logs) ;;
   exec)
     if [ "$1" = -i ]; then
-      cat > "$AT_LOG.sql-$4"
-      [[ " ${AT_HBA_ROT:-} " != *" $(major "$4") "* ]]
+      m="$(major "$4")"
+      export PSQL_SQL="$AT_LOG.sql-$4" PSQL_HBA="$AT_LOG.hba-$4" PSQL_SQLFEHLER=
+      if [[ " ${AT_HBA_ROT:-} " == *" $m "* ]]; then cat > "$PSQL_SQL"; exit 1; fi
+      [ -e "$PSQL_HBA" ] || echo "local all all trust" > "$PSQL_HBA"
+      if [[ " ${AT_HBA_DATEI_ROT:-} " == *" $m "* ]]; then PSQL_HBA="$AT_STATE/nicht-da/hba"; fi
+      if [[ " ${AT_SQL_ROT:-} " == *" $m "* ]]; then PSQL_SQLFEHLER=1; fi
+      sh -c "$7"
     elif [ "$2" = pg_isready ]; then [[ " ${AT_NICHT_BEREIT:-} " != *" $(major "$1") "* ]]
     else m="$(major "$1")"; v="AT_VERSION_$m"; echo "${!v-$m.1}"; fi ;;
   run)
-    name="$3"; m="$(major "$name")"
+    name="$3"
     if [ "$1" = -d ]; then
+      img="${*: -1}"; m="${img#*:}"; m="${m%%[!0-9]*}"; m="${m:-0}"
+      echo "$m" > "$AT_LOG.maj-$(key "$name")"
       [[ " ${AT_PULL_ROT:-} " != *" $m "* ]] || exit 1
       if ls "$AT_STATE"/c-*-pg > /dev/null 2>&1; then echo PARALLEL >> "$AT_LOG"; fi
       echo "$*" > "$AT_STATE/c-$name"; exit 0
     fi
+    m="$(major "$name")"
     phase=1; [[ "$*" != *PGR_OHNE_POSTGRES=1* ]] || phase=2
     echo "$*" > "$AT_STATE/c-$name"
     if [ -n "${AT_HANGT:-}" ]; then
       : > "$AT_HANGT"
-      for _ in $(seq 200); do [ -e "$AT_STATE/c-$name" ] || break; /bin/sleep 0.05; done; exit 1
+      for _ in $(seq 60); do [ -e "$AT_STATE/c-$name" ] || break; /bin/sleep 0.05; done; exit 1
     fi
     if [ -n "${AT_KEINE:-}" ]; then echo "testing: warning: no tests to run"; echo PASS
     else
@@ -78,7 +94,13 @@ case "$sub" in
 esac
 ATTRAPPE
 printf '#!/usr/bin/env bash\necho "$1" >> "%s"\n' "$schlaf" > "$bin/sleep"
-chmod +x "$bin/docker" "$bin/sleep"
+cat > "$bin/psql" <<'PSQL'
+#!/usr/bin/env bash
+case "$*" in *"SHOW hba_file"*) echo "$PSQL_HBA"; exit 0 ;; esac
+cat > "$PSQL_SQL"
+if [[ "$*" == *"-v ON_ERROR_STOP=1"* && -n "$PSQL_SQLFEHLER" ]]; then echo "ERROR" >&2; exit 3; fi
+PSQL
+chmod +x "$bin/docker" "$bin/sleep" "$bin/psql"
 
 # make_variable <wurzel> <name> — Wörter der Make-Variable aus der Datenbank von make.
 make_variable() {
@@ -112,7 +134,7 @@ lauf() {
   local e=()
   while [ "$1" != -- ]; do e+=("$1"); shift; done
   shift
-  rm -rf "${st:?}"; mkdir -p "$st"; : > "$log"; : > "$schlaf"; rm -f "$log".sql-*
+  rm -rf "${st:?}"; mkdir -p "$st"; : > "$log"; : > "$schlaf"; rm -f "$log".sql-* "$log".hba-* "$log".maj-*
   set +e
   {
     (cd "$w" && env -u MAKELEVEL -u MFLAGS MAKEFLAGS="${mf:-}" PATH="$bin:$PATH" AT_LOG="$log" AT_STATE="$st" \
@@ -223,18 +245,38 @@ namen_ok() {
 }
 # signalfall <INT|TERM> <gruppe|skript> — das Ziel hängt im Testlauf; das Signal geht an die
 # Prozessgruppe seiner eigenen Sitzung oder nur an das Skript.
+# Der Signalgeber wartet auf den Testlauf des Ziels; er gibt auf, wenn das Ziel endet oder 20 s
+# vergehen, ohne dass er läuft, und schreibt `gesendet` erst nach dem Signal.
 signalfall() {
   local marke="$arbeit/hangt" pidf="$arbeit/pid" wp
-  rm -f "$marke" "$pidf"
+  rm -f "$marke" "$pidf" "$gesendet"
   (
-    until [ -e "$marke" ] && [ -s "$pidf" ]; do /bin/sleep 0.05; done
+    limit=$((SECONDS + 20))
+    until [ -e "$marke" ] && [ -s "$pidf" ]; do
+      if [ "$SECONDS" -ge "$limit" ]; then exit 0; fi
+      if [ -s "$pidf" ] && ! kill -0 "$(cat "$pidf")" 2> /dev/null; then exit 0; fi
+      /bin/sleep 0.05
+    done
     if [ "$2" = gruppe ]; then kill -"$1" -- "-$(cat "$pidf")"; else kill -"$1" "$(cat "$pidf")"; fi
+    : > "$gesendet"
   ) &
   wp=$!
   lauf POSTGRES_VERSIONEN="$alle" POSTGRES_REFERENZ=17 POSTGRES_IMAGE="$refbild" POSTGRES_TESTS_PHASE1="$namen1" \
     POSTGRES_TESTS_PHASE2="$namen2" DOCKER="$bin/docker" AT_HANGT="$marke" -- \
     setsid bash -c 'echo $$ > "$1"; shift; exec "$@"' x "$pidf" bash tools/test/run-postgres-versionen.sh
   wait "$wp" || true
+}
+# weitergereicht — das Signal ging an das Ziel, und der Runner endete durch das SIGTERM des Skripts,
+# nicht durch das Ende seines Testlaufs (der Runner meldet einen roten Testlauf und liest das Log).
+weitergereicht() {
+  [ -e "$gesendet" ] && [ "$code" -ne 0 ] && ! in_aus "Testlauf rot" && [ "$(anzahl "^logs ")" -eq 0 ]
+}
+# stop_vor_phase2 — je Version stoppt der Runner den Server, bevor der Testlauf der Phase 2 beginnt.
+stop_vor_phase2() {
+  local v
+  for v in 14 15 16 18; do
+    [ "$(zeile "^stop pgr-pv-[0-9]+-$v-pg$")" -lt "$(zeile "^run --rm --name [^ ]*-$v-tests .*PGR_OHNE_POSTGRES=1")" ] || return 1
+  done
 }
 # p5_<…> <version> — Anmeldung je Version.
 p5_benutzer() { grep -qF "CREATE ROLE play_scram LOGIN PASSWORD 'GEHEIM scram \$%41'" "$(sqldatei "$1")"; }
@@ -262,7 +304,7 @@ pruefe() {
 
   # Punkte 3, 5, 6, 7, 9: ein grüner Lauf über 14, 15, 16 und 18.
   if lauft p3-auswahl p5-benutzer p5-methode p5-hba-vor-allgemeiner p5-kein-md5-klartext p6-gruen p6-reihenfolge \
-    p6-referenz-nicht p6-testimage-einmal p6-nacheinander p7-container p7-netz p7-volume p7-vor-naechster p7-namen p9-kein-stand; then
+    p3-phase2-ohne-postgres p6-referenz-nicht p6-testimage-einmal p6-nacheinander p7-container p7-netz p7-volume p7-vor-naechster p7-namen p9-kein-stand; then
     local vor nach
     vor="$(dateien)"
     matrix
@@ -279,6 +321,7 @@ pruefe() {
     ist p7-namen 'namen_ok'
     ist p9-kein-stand '[ "$vor" = "$nach" ]'
     ist p3-auswahl 'auswahl_ok'
+    ist p3-phase2-ohne-postgres 'stop_vor_phase2 2> /dev/null'
     for v in 14 15 16 18; do
       ist p5-benutzer "p5_benutzer $v"
       ist p5-methode "p5_methode $v"
@@ -306,6 +349,8 @@ pruefe() {
 
   # Punkt 5: scheitert die Einrichtung, ist die Version rot.
   ist p5-einrichtung-scheitert 'matrix AT_HBA_ROT=16; in_aus "ROT — 16 (Aufbau)"'
+  ist p5-sql-scheitert 'matrix AT_SQL_ROT=16; in_aus "ROT — 16 (Aufbau)"'
+  ist p5-hba-datei-scheitert 'matrix AT_HBA_DATEI_ROT=16; in_aus "ROT — 16 (Aufbau)"'
 
   # Punkt 6: Ablauf und Meldung.
   ist p6-build-rot 'matrix AT_BAUEN_ROT=1; [ "$code" -ne 0 ] && in_aus "das Testimage ist nicht zu bauen" && [ "$(anzahl "^build ")" -eq 1 ] && [ "$(grep -c . "$log")" -eq 1 ]'
@@ -325,10 +370,14 @@ pruefe() {
   ist p7-ende-gruen 'matrix; leer'
   liste=""
   for a in INT:gruppe TERM:gruppe INT:skript TERM:skript; do
-    ist "p7-sig${a%%:*}-${a##*:}" 'signalfall "${a%%:*}" "${a##*:}"; [ "$code" -ne 0 ] && leer && [ "$(anzahl "^run -d")" -eq 1 ]'
+    ist "p7-sig${a%%:*}-${a##*:}" 'signalfall "${a%%:*}" "${a##*:}"; [ -e "$gesendet" ] && [ "$code" -ne 0 ] && leer && [ "$(anzahl "^run -d")" -eq 1 ]'
+  done
+  # Das Skript gibt das Signal als SIGTERM an den Runner weiter; ein SIGTERM an die Gruppe erreicht den Runner ohnehin.
+  for a in INT:gruppe INT:skript TERM:skript; do
+    ist "p7-weiter-${a%%:*}-${a##*:}" 'signalfall "${a%%:*}" "${a##*:}"; weitergereicht'
   done
 
-  # Punkt 8: der Runner ohne Auswahl wie zuvor.
+  # Punkt 8: der Runner ohne Auswahl.
   if lauft p8-phase1 p8-phase2 p8-rollen p8-ohne-pruefung; then
     lauf POSTGRES_IMAGE=x DOCKER="$bin/docker" AT_NAMEN_1= AT_NAMEN_2= -- bash tools/test/run-integration-tests.sh
     ist p8-phase1 '[ "$(anzahl "^run --rm .*PGR_PW_KLARTEXT=[^ ]* pgwire-recorder:integration$")" -eq 1 ]'
@@ -422,10 +471,16 @@ mut p3-phase-fest "$R_" 'local aus="$1" ph="$2" name rot=0' 'local aus="$1" ph=1
 mut p3-phase-fest-16 "$R_" 'local aus="$1" ph="$2" name rot=0' 'local aus="$1" ph="$2" name rot=0; if [ "$version" = 16 ]; then ph=1; fi' p3 p3-fehlt-phase2
 mut p3-auswahl-sub "$R_" 'sub+=("${n#*/}")' ':' "p3-auswahl p3-element" p3-auswahl p3-element-TestE2ERecordAnmeldung/scram-sha-256
 
+# Phase 2 läuft ohne PostgreSQL: der Runner stoppt den Server davor, und zwar den Server.
+mut p3-stop-entfaellt "$R_" '"$docker" stop "$pg" >/dev/null' ':' p3-phase2 p3-phase2-ohne-postgres
+mut p3-stop-testcontainer "$R_" '"$docker" stop "$pg" >/dev/null' '"$docker" stop "$tests" >/dev/null' p3-phase2 p3-phase2-ohne-postgres
+
 # --- Punkt 4: Server ---
 mut p4-version "$R_" 'if [ "${gemeldet%%[!0-9]*}" != "$PGR_HAUPTVERSION" ]; then # P4-version' 'if false; then # P4-version' p4-version p4-version-abweichend p4-version-unlesbar p4-version-ohne-ziffer
 mut p4-unlesbar "$R_" '!= "$PGR_HAUPTVERSION" ]; then # P4-version' '!= "$PGR_HAUPTVERSION" ] && [ -n "$gemeldet" ]; then # P4-version' p4-version p4-version-unlesbar
 mut p4-ziffer "$R_" '${gemeldet%%[!0-9]*}' '${gemeldet//[!0-9]/}' p4-version p4-version-ohne-ziffer
+# „von der des Eintrags abweicht“ ohne die Formen „nicht lesbar“ und „ohne führende Ziffer“.
+mut p4-abweicht "$R_" 'if [ "${gemeldet%%[!0-9]*}" != "$PGR_HAUPTVERSION" ]; then # P4-version' 'if [ -z "${gemeldet%%[!0-9]*}" ]; then # P4-version' p4-version-abw p4-version-abweichend
 mut p4-60a "$R_" 'seq 1 120' 'seq 1 60' "p4-60 p4-nicht-bereit" p4-60-sekunden
 mut p4-60b "$R_" 'sleep 0.5' 'sleep 1' "p4-60 p4-nicht-bereit" p4-60-sekunden
 mut p4-bereit "$R_" 'exit 1 # E-bereit' ': # E-bereit' "p4-60 p4-nicht-bereit" p4-nicht-bereit p4-60-sekunden
@@ -444,8 +499,11 @@ mut p5-methode "$R_" 'play_scram all scram-sha-256' 'play_scram all md5' p5 p5-m
 mut p5-passwort-verschluesselung "$R_" "SET password_encryption = 'scram-sha-256';" "SET password_encryption = 'md5';" p5 p5-methode p5-kein-md5-klartext
 mut p5-hba-nach-allgemeiner "$R_" '{ printf "%s\n" '"'"'"$hba"'"'"'; cat "$hba"; }' '{ cat "$hba"; printf "%s\n" '"'"'"$hba"'"'"'; }' p5 p5-hba-vor-allgemeiner
 mut p5-rollen "$R_" '!= scram ]; then # P5-rollen' '!= nie ]; then # P5-rollen' p5 p5-kein-md5-klartext
-mut p5-einrichtung "$R_" 'SELECT pg_reload_conf();"' 'SELECT pg_reload_conf();" || true' p5 p5-einrichtung-scheitert
-mut p5-aufbau-einrichtung "$R_" 'SELECT pg_reload_conf();"' 'SELECT pg_reload_conf();" || { phase 1; exit 1; }' p5 p5-einrichtung-scheitert
+mut p5-einrichtung "$R_" 'SELECT pg_reload_conf();"' 'SELECT pg_reload_conf();" || true' p5 p5-einrichtung-scheitert p5-sql-scheitert p5-hba-datei-scheitert
+mut p5-aufbau-einrichtung "$R_" 'SELECT pg_reload_conf();"' 'SELECT pg_reload_conf();" || { phase 1; exit 1; }' p5 p5-einrichtung-scheitert p5-sql-scheitert p5-hba-datei-scheitert
+# Die Einrichtung ist rot durch den Exit-Code von psql (ON_ERROR_STOP) und durch den des Skripts (set -e), je eigens.
+mut p5-on-error-stop "$R_" ' -v ON_ERROR_STOP=1' '' "p5-sql p5-hba-datei" p5-sql-scheitert
+mut p5-set-e "$R_" $'  set -e\n  hba=' $'  hba=' "p5-sql p5-hba-datei" p5-hba-datei-scheitert
 
 # --- Punkt 6: Ablauf und Meldung ---
 mut p6-referenz "$D_" %P6-referenz "p6-referenz-nicht p6-alle-versionen" p6-referenz-nicht
@@ -480,6 +538,14 @@ mut p7-ende-gruen "$R_" 'echo "run-integration-tests: gruen"' 'kill -KILL $$' "p
 mut p7-int-treiber "$D_" "trap 'beenden 130' INT # S-INT" "trap 'kill -KILL \$\$' INT # S-INT" p7-sig p7-sigINT-gruppe p7-sigINT-skript
 mut p7-term-treiber "$D_" "trap 'beenden 143' TERM # S-TERM" "trap 'kill -KILL \$\$' TERM # S-TERM" p7-sig p7-sigTERM-gruppe p7-sigTERM-skript
 mut p7-term-runner "$R_" "trap 'trap \"\" TERM; exit 143' TERM # S-TERM" "trap 'kill -KILL \$\$' TERM # S-TERM" p7-sig p7-sigINT-gruppe p7-sigINT-skript p7-sigTERM-gruppe p7-sigTERM-skript
+
+# Das Skript reicht das Signal als SIGTERM an den Runner weiter; die Mutation reicht nichts weiter.
+mut p7-weiter "$D_" 'kill -TERM "$laeuft" 2> /dev/null || true' ':' "p7-sigINT-skript p7-sigTERM-skript p7-weiter" p7-weiter-INT-gruppe p7-weiter-INT-skript p7-weiter-TERM-skript
+# Die Namen tragen die Kennung des Laufs und die Hauptversion, je eigens.
+mut p7-namen-lauf "$D_" 'lauf="pgr-pv-$$"' 'lauf="pgr-pv-x"' "p7-namen p7-vor-naechster" p7-namen p7-vor-naechster
+mut p7-namen-haupt "$D_" 'PGR_LAUF="$lauf-$haupt"' 'PGR_LAUF="$lauf"' "p7-namen p7-vor-naechster" p7-namen p7-vor-naechster
+# Erreicht der Lauf den Testlauf nie, endet die Gegenprobe rot (der Signalgeber gibt auf), statt zu hängen.
+mut p7-sig-ohne-testlauf "$R_" '"$docker" volume create "$daten" >/dev/null' 'false' "p7-sigINT-skript p7-sigTERM-gruppe p7-weiter-INT-skript" p7-sigINT-skript p7-sigTERM-gruppe p7-weiter-INT-skript
 
 # --- Punkt 8: der Runner ohne Auswahl ---
 mut p8-phase1 "$R_" 'wahl_1=()' "wahl_1=(-test.run '^TestE2EOhnePostgres')" p8 p8-phase1

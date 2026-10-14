@@ -54,9 +54,9 @@ trap 'trap "" TERM; exit 143' TERM # S-TERM
 phase() { if [ -n "${PGR_PHASE_DATEI:-}" ]; then printf '%s\n' "$1" > "$PGR_PHASE_DATEI"; fi; }
 
 # Lange Aufrufe laufen im Hintergrund, damit ein Signal das wait beendet und die
-# Falle EXIT läuft; im Vordergrund liefe sie erst nach dem Aufruf. Ein Hintergrundjob
-# einer nicht interaktiven bash ignoriert SIGINT: Als Kind von run-postgres-versionen.sh
-# endet dieser Runner auf SIGTERM, das jenes Skript weiterreicht.
+# Falle EXIT läuft. Ein Hintergrundjob einer nicht interaktiven bash ignoriert SIGINT:
+# Als Kind von run-postgres-versionen.sh endet dieser Runner auf SIGTERM, das jenes
+# Skript weiterreicht.
 vordergrund() { "$@" & wait $!; }
 
 # auswahl <name>… — das Muster für -test.run; ein Name `Test/Sub` wählt Sub.
