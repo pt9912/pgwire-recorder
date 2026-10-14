@@ -43,7 +43,7 @@ Vorgehen: Diff und Plan §7 gelesen; die Tests des Pakets in einer Kopie des HEA
 
 ### F-5 INFO
 
-- `quelle`: [ADR-0041](../plan/adr/0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md) · `pfad`: ADR-0041 · "Der Record-Service stellt den Rückruf bereit"
+- `quelle`: [ADR-0041](../plan/adr/0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md) · `pfad`: [ADR-0041](../plan/adr/0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md) · "Der Record-Service stellt den Rückruf bereit"
 - `befund`: Im Diff stellt der PGWire-Adapter den Rückruf bereit (`func (s *Server) anmeldung`), und der Record-Service reicht ihn nur an den Upstream durch (`s.upstream.Open(ctx, startup, anmeldung)`). Die Entscheidung (Rückruf in `Open`, undurchsichtige Werte, Kern ohne PGWire-Typen, Driven Adapter ohne Driving Adapter) ist eingehalten; `make a-check` und die Mutanten des Implementers belegen sie. Die Wortwahl der ADR weicht ab; die ADR ist `Accepted` und wird nicht überschrieben (`AGENTS.md` §3.5). Keine Aktion.
 - `klasse`: Wortlaut der ADR enger als die Umsetzung
 
