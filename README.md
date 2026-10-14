@@ -38,9 +38,10 @@ Anwendung ohne TLS mit `PGR-E6003` ab, es sei denn, `--allow-plaintext` lässt b
 verbindet auf Wunsch (`--upstream-tls` oder `sslmode=require` der Verbindung) mit TLS,
 prüft das Zertifikat des Servers, auch gegen eine eigene Zertifizierungsstelle
 (`--upstream-ca`), und meldet die Ablehnung von TLS und ein nicht passendes Zertifikat als `PGR-E4005`.
-`record` verlangt, dass die Datenbank den Benutzer ohne Passwort
-anmeldet; `play` meldet sich mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an, mit dem
-Passwort aus dem Platzhalter der Verbindung oder aus `PGWIRE_RECORDER_PASSWORD`.
+`record` vermittelt die Anmeldung der Anwendung (Klartext-Passwort, MD5, SCRAM-SHA-256)
+und zeichnet das Passwort nicht auf (geprüft mit PostgreSQL 17); `play` meldet sich mit
+Klartext-Passwort, MD5 und SCRAM-SHA-256 an, mit dem Passwort aus dem Platzhalter der
+Verbindung oder aus `PGWIRE_RECORDER_PASSWORD`.
 Mit `--record-timing` trägt `record` an jeder Anfrage die Millisekunden seit der
 Startup-Nachricht der Verbindung ein (`offset_ms`); `play --keep-timing` wartet vor den
 Anfragen auf diese Zeit (beim Standard `relative` ohne Wartezeit vor der ersten Anfrage

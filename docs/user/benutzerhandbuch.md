@@ -1,6 +1,6 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.7  
+Version: 0.8  
 Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
 Stand: 14.10.2026  
 Autor: Projektteam pgwire-recorder  
@@ -44,9 +44,9 @@ CI-Systemen ausführen.
 
 * Ihre Anwendung kann Host und Port der Datenbankverbindung einstellen. Außer an der
   Verschlüsselung (siehe unten) sind weitere Änderungen an der Anwendung nicht nötig.
-* Zum Aufzeichnen: eine erreichbare PostgreSQL-Datenbank, die den Benutzer ohne
-  Passwort anmeldet. Verlangt sie ein Passwort, beendet `record` die Verbindung
-  Ihrer Anwendung mit `PGR-E6001`.
+* Zum Aufzeichnen: eine erreichbare PostgreSQL-Datenbank. Meldet sich Ihre Anwendung
+  mit einem Passwort an, vermittelt `record` die Anmeldung (siehe
+  [Eine Anwendung mit Passwort-Anmeldung aufzeichnen](#eine-anwendung-mit-passwort-anmeldung-aufzeichnen)).
 * Zum Einspielen: eine erreichbare PostgreSQL-Datenbank. Verlangt sie ein Passwort,
   nennen Sie es `play` (siehe [Einstellungen](#5-einstellungen)). Auf Wunsch verbindet
   `play` mit TLS (siehe
@@ -222,9 +222,9 @@ Sitzung ist, steht unter
   Connection-Pools, werden nicht aufgezeichnet; mit `--record-empty-sessions` werden
   sie es, soweit sie keine der Ausnahmen sind, die der Abschnitt nennt (siehe
   [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)).
-* Verlangt die Datenbank ein Passwort, beendet das Werkzeug die Verbindung Ihrer
-  Anwendung mit `PGR-E6001`; die Verbindung wird nicht aufgezeichnet, auch nicht mit
-  `--record-empty-sessions`, und das Werkzeug endet mit Exit-Code 6.
+* Die Anmeldung Ihrer Anwendung bei der Datenbank, auch mit Passwort, vermittelt das
+  Werkzeug (siehe
+  [Eine Anwendung mit Passwort-Anmeldung aufzeichnen](#eine-anwendung-mit-passwort-anmeldung-aufzeichnen)).
 * Beim Beenden nimmt das Werkzeug keine neuen Verbindungen an, schreibt eine
   Log-Zeile mit `sessions`, der Zahl der noch offenen Verbindungen, und wartet,
   bis jede Verbindung ihre laufende Anfrage oder Folge abgeschlossen hat. Es
@@ -263,6 +263,66 @@ Sitzung ist, steht unter
         - ./recordings:/recordings
       stop_grace_period: 60s
   ```
+
+### Eine Anwendung mit Passwort-Anmeldung aufzeichnen
+
+Meldet sich Ihre Anwendung bei der Datenbank mit einem Passwort an, zeichnen Sie sie wie
+eine Anwendung ohne Passwort auf: `record` reicht die Anmeldung zwischen Anwendung und Datenbank durch. Das
+Passwort kennt nur Ihre Anwendung; `record` hat dafür keine Option.
+
+#### Voraussetzung
+
+Die Datenbank meldet den Benutzer mit Klartext-Passwort, MD5 oder SCRAM-SHA-256 an, oder
+ohne Passwort. Geprüft ist das mit PostgreSQL 17 und mit `psql` aus libpq 17; andere
+Versionen der Datenbank und andere Treiber sind nicht geprüft.
+
+#### Vorgehen
+
+1. Starten Sie das Aufzeichnen, ohne Benutzer und Passwort zu nennen:
+
+   ```bash
+   pgwire-recorder record \
+     --listen 0.0.0.0:15432 \
+     --upstream postgres:5432 \
+     --output ./recordings/login.yaml
+   ```
+
+2. Verbinden Sie Ihre Anwendung mit Benutzer und Passwort wie mit der Datenbank, mit Host
+   und Port aus `--listen`, zum Beispiel mit `psql`:
+
+   ```bash
+   PGPASSWORD=geheim psql "host=localhost port=15432 user=app dbname=app sslmode=disable" -c "select 1"
+   ```
+
+3. Beenden Sie das Werkzeug mit `Strg+C`.
+
+#### Ergebnis
+
+Die Anfrage läuft wie gegen die Datenbank, und die Datei enthält sie mit Benutzer und
+Datenbank. Das Passwort und die Nachrichten der Anmeldung stehen weder in der Datei noch im
+Log, auch nicht mit `--log-level debug`. `replay` gibt die Datei wieder und nimmt dabei
+jedes Passwort an.
+
+#### Hinweise
+
+* Das Verfahren bestimmt die Datenbank. `record` liest weder Benutzer, Passwort und
+  Datenbank der Verbindung aus `--upstream` noch `PGWIRE_RECORDER_PASSWORD`; sie gelten nur
+  bei `play` (siehe [Einstellungen](#5-einstellungen)).
+* Lehnt die Datenbank die Anmeldung ab (falsches Passwort, unbekannter Benutzer, Regel
+  `reject`), erhält Ihre Anwendung deren Fehlerantwort unverändert. Das Werkzeug schreibt
+  dazu keine Meldung, und der Exit-Code ändert sich nicht. Dasselbe gilt, wenn Ihre
+  Anwendung die Verbindung in der Anmeldung beendet (Schließen, Rücksetzen oder
+  `Terminate`), ohne Fehlerantwort. Beides ist keine Sitzung, auch nicht mit
+  `--record-empty-sessions`.
+* Channel Binding gelingt nicht: Verlangt Ihre Anwendung es (bei libpq 17
+  `channel_binding=require`), bricht sie die Anmeldung ab, mit und ohne `--tls-cert`. Mit
+  `channel_binding=prefer` gelingt die Anmeldung auch mit TLS zum Werkzeug.
+* Fordert die Datenbank ein anderes Verfahren an (etwa Kerberos, GSSAPI oder SSPI), beendet
+  das Werkzeug die Verbindung mit `PGR-E6001`; Ihre Anwendung erhält die Meldung, die
+  Verbindung wird nicht aufgezeichnet, und das Werkzeug endet mit Exit-Code 6.
+* Sendet die Datenbank in der Anmeldung eine Nachricht, die der Ablauf nicht vorsieht, ist
+  das `PGR-E4002`; beendet sie die Verbindung in der Anmeldung, ist es `PGR-E4003`. Ihre
+  Anwendung erhält die Meldung, und das Werkzeug endet mit Exit-Code 4.
 
 ### Das Format der Aufzeichnung festlegen
 
@@ -547,7 +607,9 @@ auch wenn sie keine Interaktionen hat.
 * Keine Sitzung ist, auch mit der Option, eine Verbindung, deren Aufbau zur Datenbank
   scheitert (`PGR-E4002`, Exit-Code 4), eine, auf der Ihre Anwendung `COPY` nutzt
   (`PGR-E6001`, Exit-Code 6), und eine, die das zwangsweise Beenden im Aufbau zur Datenbank
-  trifft (ohne Meldung, Exit-Code 0). Das gilt auch für eine Verbindung, deren
+  trifft (ohne Meldung, Exit-Code 0). Ebenso keine Sitzung ist eine Verbindung, deren
+  Anmeldung nicht zu Ende geht (siehe
+  [Eine Anwendung mit Passwort-Anmeldung aufzeichnen](#eine-anwendung-mit-passwort-anmeldung-aufzeichnen)). Das gilt auch für eine Verbindung, deren
   TLS-Aufbau scheitert (`PGR-W3002`), und für eine unverschlüsselte, die das Werkzeug
   mit TLS abweist (`PGR-E6003`; siehe
   [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)).
@@ -931,7 +993,8 @@ Standard `relative` mindestens eine Sekunde; ohne `--keep-timing` liegt weniger 
   Verbindung bis zum Eintreffen der Anfrage.
 * Die Zeit, die Ihre Anwendung bis zum Senden der Startup-Nachricht braucht, zählt nicht
   mit, auch nicht nach einer Anfrage nach Verschlüsselung. Die Zeit zwischen der Anmeldung
-  und der ersten Anfrage zählt mit.
+  und der ersten Anfrage zählt mit, ebenso die Anmeldung bei einer Datenbank mit Passwort
+  einschließlich der Zeit, die Ihre Anwendung braucht, um das Passwort zu senden.
 * Der Wert der ersten Anfrage einer Verbindung ist nicht notwendig 0.
 * Jede Verbindung zählt ab ihrem eigenen Beginn.
 * Das Feld tragen die Anfragen beider Protokolle, einfach und erweitert, und eine
@@ -1558,7 +1621,8 @@ der Start, prüft das Werkzeug keine Sitzungen.
 
 Das Werkzeug verwaltet keine Benutzer und Rollen und prüft keine Zugangsdaten.
 Beim Aufzeichnen leitet es Benutzer und Datenbank der Anwendung an die Datenbank
-weiter, ohne Passwort; beim Wiedergeben nimmt es jede Anmeldung an, gleich mit
+weiter und vermittelt die Anmeldung, ohne das Passwort aufzuzeichnen; beim Wiedergeben
+nimmt es jede Anmeldung an, gleich mit
 welchem Benutzer, welcher Datenbank und welchem Passwort; beim Einspielen meldet es
 sich mit Benutzer, Datenbank und, wenn die Datenbank eines verlangt, dem Passwort an
 der Datenbank an.
@@ -1598,9 +1662,9 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Bei einer SQLite-Datei auch: Sie ist keine SQLite-Datei oder eine fremde, eine Tabelle oder Spalte fehlt, sie ist abgeschnitten, oder ihr Inhalt ist ungültig (zum Beispiel falsche Formatkennung, keine lückenlose Nummerierung, ein Eintrag ohne zugehörige Sitzung). Auch: Ein `offset_ms` ist keine ganze Zahl ab 0, oder ein Wert ist kleiner als der vorige derselben Sitzung; die Meldung nennt die Sitzung und die Anfrage, nie den Wert (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Zeichnen Sie erneut auf. |
 | `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | `replay` meldet den Fehler beim Start. Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, auch wenn `--record-empty-sessions` Sitzungen ohne Interaktionen aufgezeichnet hat, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
 | `PGR-E4000` | Verbindung nicht anzunehmen | Das Werkzeug konnte eine eingehende Verbindung nicht annehmen, zum Beispiel weil zu viele Dateien offen sind. Es nimmt danach weiter Verbindungen an. Prüfen Sie die Grenzen des Systems. |
-| `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
+| `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab, oder beim Aufzeichnen hat die Datenbank sie in der Anmeldung beendet. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
-| `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. Bei `play` mit TLS gehört dazu: Die Antwort auf die Anfrage nach Verschlüsselung ist weder `S` noch `N`, oder die Verbindung endet davor. |
+| `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. Beim Aufzeichnen auch: Die Datenbank hat in der Anmeldung eine Nachricht gesendet, die der Ablauf nicht vorsieht; die Meldung nennt deren Code. Bei `play` mit TLS gehört dazu: Die Antwort auf die Anfrage nach Verschlüsselung ist weder `S` noch `N`, oder die Verbindung endet davor. |
 | `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Sitzung und die Nummer der Anfrage in der Aufzeichnung, dazu SQLSTATE und Meldung der Datenbank, nicht den Text der Anfrage. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. Mit `--compare-responses` ist ein Fehler, den die Aufzeichnung an dieser Stelle nicht trägt, `PGR-E5004`. |
 | `PGR-E4005` | Anmeldung oder TLS zur Datenbank abgelehnt oder nicht unterstützt | Beim Einspielen hat die Datenbank die Anmeldung abgelehnt, etwa weil der Benutzer fehlt oder das Passwort falsch ist, oder sie verlangt ein Passwort, das `play` nicht hat, oder ein Anmeldeverfahren, das `play` nicht kann. Die Meldung nennt die Sitzung; bei einer Ablehnung außerdem SQLSTATE und Meldung der Datenbank, bei fehlendem Passwort, dass `play` keines hat. `play` meldet sich mit Klartext-Passwort, MD5 und SCRAM-SHA-256 an; bietet die Datenbank nur `SCRAM-SHA-256-PLUS` an oder verlangt sie Kerberos, GSSAPI oder SSPI, endet `play` ebenfalls mit diesem Code. Dasselbe gilt für eine Datenbank, die Verbindungen ohne Verschlüsselung ablehnt, wenn `play` kein TLS wünscht. Mit TLS endet `play` mit diesem Code auch, wenn die Datenbank TLS ablehnt (Antwort `N`, ohne Rückfall auf eine Verbindung ohne TLS) oder ihr Zertifikat nicht angenommen wird: Das Zertifikat lässt sich weder mit dem Speicher des Systems noch mit `--upstream-ca` überprüfen, der Host steht nicht im Zertifikat, oder das Zertifikat ist abgelaufen. Die Meldung nennt die Sitzung und den Grund, nie Pfad oder Inhalt der Datei aus `--upstream-ca`. Prüfen Sie Benutzer und Datenbank (`--user`, `--database`), das Passwort (siehe [Einstellungen](#5-einstellungen)), den Host der Verbindung und `--upstream-ca`. |
 | `PGR-E4006` | Anfrage beim Beenden unvollständig | Die Frist `--shutdown-timeout` ist abgelaufen, oder ein zweites Signal hat sie ablaufen lassen, während eine Anfrage lief. Die Meldung nennt die Sitzung und die Anfrage; beim Aufzeichnen fehlt diese Anfrage in der Aufzeichnung. Lassen Sie die Anwendung vor dem Beenden zur Ruhe kommen, oder wählen Sie eine längere Frist (siehe [Herunterfahren mit Frist](#herunterfahren-mit-frist)). |
@@ -1608,7 +1672,7 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. Eine Sitzung ohne Interaktionen zählt nicht dazu. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen mit Interaktionen aufgezeichnet sind; mit `--session-assignment connection` hat sie auf einer Verbindung eine Anfrage gestellt, zu der es keine Sitzung mit der Nummer der Verbindung gibt. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
 | `PGR-E5004` | Antwort der Datenbank weicht von der Aufzeichnung ab | `play` mit `--compare-responses` hat bei einer Interaktion eine andere Antwort erhalten als aufgezeichnet. Die Meldung nennt Sitzung, Nummer der Interaktion, Position und Art der ersten Abweichung, bei der Art `Fehler` die SQLSTATE beider Seiten. Prüfen Sie, ob die Datenbank dieselbe Struktur hat wie die, gegen die Sie aufgezeichnet haben, oder zeichnen Sie erneut auf; siehe [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen). Der Exit-Code ist 5. |
-| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen verlangt die Datenbank ein Passwort; die Datenbank antwortet bei `play` mit einem COPY-Datenstrom; oder die Anwendung sendet auf einer verschlüsselten Verbindung eine weitere Anfrage nach Verschlüsselung. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht; verlangt die Datenbank beim Aufzeichnen ein Passwort, lassen Sie die Anmeldung dort ohne Passwort zu. |
+| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen fordert die Datenbank ein Anmeldeverfahren an, das das Werkzeug nicht vermittelt (nicht Klartext-Passwort, MD5 oder SCRAM-SHA-256); die Datenbank antwortet bei `play` mit einem COPY-Datenstrom; oder die Anwendung sendet auf einer verschlüsselten Verbindung eine weitere Anfrage nach Verschlüsselung. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht; fordert die Datenbank beim Aufzeichnen ein solches Verfahren an, lassen Sie für den Benutzer eines der drei vermittelten Verfahren zu. Die Meldung nennt den Code des Verfahrens. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls. Verwenden Sie einen Treiber, der sie nutzt. |
 | `PGR-E6003` | unverschlüsselte Verbindung nicht zugelassen | `record` oder `replay` läuft mit `--tls-cert`, und die Anwendung beginnt ohne Verschlüsselung. Das Werkzeug beendet die Verbindung und zeichnet sie nicht auf; der Exit-Code ist 6. Verbinden Sie die Anwendung mit TLS (`sslmode=require`), oder starten Sie das Werkzeug mit `--allow-plaintext` (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)). |
 
@@ -1630,8 +1694,10 @@ oder lassen Sie sie mit `sslmode=prefer` unverschlüsselt verbinden; oder starte
 das Werkzeug mit `--tls-cert` und `--tls-key` (siehe
 [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)).
 Erhält Ihre Anwendung beim Aufzeichnen
-`PGR-E6001` mit dem Hinweis auf ein Anmeldeverfahren, verlangt die Datenbank ein
-Passwort; lassen Sie die Anmeldung dort ohne Passwort zu.
+`PGR-E6001` mit dem Hinweis auf ein Anmeldeverfahren, fordert die Datenbank ein
+Verfahren an, das das Werkzeug nicht vermittelt; lassen Sie für den Benutzer Klartext-Passwort,
+MD5 oder SCRAM-SHA-256 zu (siehe
+[Eine Anwendung mit Passwort-Anmeldung aufzeichnen](#eine-anwendung-mit-passwort-anmeldung-aufzeichnen)).
 
 Startet das Werkzeug mit `--tls-cert`, gilt:
 
