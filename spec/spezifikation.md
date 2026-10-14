@@ -441,9 +441,8 @@ bis zur ersten Nachricht des Servers nichts.
   trüge den Benutzernamen des Clients ins Log).
 * *Aufzeichnung.* Weder Anforderungen noch Antworten der Anmeldung noch `AuthenticationOk` stehen in der
   Aufzeichnung, auch kein Wert, der aus dem Passwort folgt. Die Startup-Parameter stehen unverändert
-  darin (`SPEC-003`): Der Recorder entfernt keinen. Ein Parameter, den der Server nicht kennt, lässt ihn
-  den Aufbau ablehnen (Fehlerantwort, keine Session); die Spezifikation sagt nichts darüber zu, ob ein
-  Server einen Parameter mit Zugangsdaten annimmt (`LH-RB-01`).
+  darin (`SPEC-003`): Der Recorder reicht sie unverändert an den Server und entfernt keinen
+  (`LH-RB-01`).
 * *Log und Meldungen.* Keine Zeile und keine Meldung nennt auf irgendeiner Stufe, auch `debug`, das
   Passwort, Salz, Nonce, Hash, Beweis oder Bytes einer Nachricht der Anmeldung; sie nennen den Code der
   Nachricht und höchstens den Namen des Verfahrens.
