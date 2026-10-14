@@ -128,6 +128,153 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Stand.** Geliefert sind DoD-Punkt 1 bis 3 und die beiden Übernahmen aus §1 (Lesepuffer des
+Aufbaus, Meldungstext) in diesen Commits: `ce47692` (Rückruf in Modell, Ports und Service;
+`vermittlung.go` im Upstream-Adapter; `anmeldung.go` und Wächter im PGWire-Adapter; Unit- und
+Integrationstests; `reject` im Runner), `1de6493` und `a504fa4` (Testhilfe des Skript-Servers),
+`6d74175`, `fddadc2`, `297c6fb`, `fcedfeb`, `4c38fb7` (weitere Fälle, Abdeckungstabellen über
+`make abdeckung`), `962543d` (§3 dieses Plans). Neu sind `internal/hexagon/model/anmeldung.go`,
+`internal/adapters/driven/postgres/vermittlung.go`, `internal/adapters/driving/pgwire/anmeldung.go`,
+`internal/hexagon/services/record_anmeldung_test.go`,
+`internal/adapters/driven/postgres/upstream_anmeldung_test.go`,
+`internal/adapters/driving/pgwire/server_anmeldung_test.go` und
+`test/integration/record_anmeldung_e2e_test.go`; geändert `upstream.go` (Aufbau in `aufbauen`),
+`server.go` (Wächter in `startupBisSignal`, `oeffne` mit `be`, `ErrClientEnde`, Rücksetzen von
+`SetAuthType`), die Ports, `record.go`, `tools/test/run-integration-tests.sh` (Zeile `reject` für
+`play_reject`) und die Abdeckungstabellen unter `docs/user/`. Der CLI-Adapter, `zuordnung()`,
+`nichtGelesen()` und `internal/bootstrap/bootstrap.go` sind unverändert. Handbuch und `README.md`
+liefert der Doku-Folge-Slice.
+
+**Randformen und Rückgabe.** Keine Randform aus §6 oder der Spezifikation entschieden, kein
+Code-Commit ändert §6. Die folgenden vier Punkte gibt der Implementer als Liste *Randform · Frage* an den
+Architect zurück: Der Code trägt je eine Lesart, jede ist mit einer Zeile umzustellen, und kein Test
+pinnt sie (die Mutanten Y1 und Y2 sind grün, unten).
+
+| Randform | Frage |
+|---|---|
+| Nach `AuthenticationOk` kommt eine Nachricht `R` mit einem Code ohne Verfahren (2, 6, 7, 9, unbekannt) | `LH-FA-05.b` sagt „jede Nachricht `R` nach `AuthenticationOk`“ (`PGR-E4002`) und „jeder andere Code“ (`PGR-E6001`); der Code wählt `PGR-E4002` (Y1). Ist das gemeint? |
+| Zweiter Code 11 im laufenden SASL-Austausch | Die Spezifikation nennt Code 11 nur *ohne* laufenden Austausch als `PGR-E4002`; der Code gibt ein zweites 11 weiter (Y2). Soll es `PGR-E4002` sein? |
+| Schreibfehler an den Client, wenn die Anforderung nicht zu senden ist | Der Code behandelt ihn wie Reset (`ErrClientEnde`, keine Meldung); geprüft nur mit geschlossener `net.Pipe` (`TestAnmeldungEndeDesClients`, Zeile *Ende des Datenstroms vor dem Lesen der Anforderung*), nicht mit einem echten Schreibfehler einer TCP-Verbindung. Soll das so sein? |
+| Schreibfehler an den Server, wenn die Antwort `p` nicht zu senden ist | Der Code meldet `PGR-E4003`; ungetestet (kein Test erzwingt den Fehler beim Schreiben, der Mutant ist nicht gefahren). Soll das anders sein? |
+
+**Größe.** Metrik aus §4: `git diff --numstat fa5a64c..4c38fb7 -- internal test docs/user` ergibt
+1534 Einfügungen und 89 Löschungen, Summe **1623**; davon Code 420, Unit-Tests 1055,
+Integrationstests 121, Abdeckungstabellen 27. Die Meldeschwelle 2000 und die Marke 2500 sind nicht
+erreicht; die Schätzung war 1800 bis 2400 (§4). Die Review-Runde steht aus.
+
+**Läufe.**
+
+| Lauf | Stand | Ergebnis |
+|---|---|---|
+| `make gates` (voll, ein Lauf, keine parallelen Läufe) | `4c38fb7` | Exit 0; darin `run-integration-tests: gruen`, `d-check: 737 Datei(en) geprüft, 0 Befund(e)`, `0 issues.`, `lint-gegenprobe: gruen`, `a-check-negativ: gruen`, `abdeckung-gegenprobe: gruen`, `stop-hook-gegenprobe: gruen` |
+| `make gates` | `962543d` | Exit 2: `TestE2ERecordAnmeldung/md5` rot, weil „md5“ im Benutzernamen `play_md5` der Aufzeichnung steht; die Spur ist seit `4c38fb7` `md5[0-9a-f]{32}`, der Lauf darüber grün |
+| `make lint` | vor `ce47692` (nach dem Auszug von `startupBisSignal`) | Exit 0, `0 issues.`; davor 2 Befunde (`cyclop`, `gocyclo`: `handle` mit 16) |
+| `make a-check` | `4c38fb7` | `gesamt: 0 Befund(e)`; Mutanten unten |
+| `make abdeckung-check` | `fcedfeb` | Exit 0 |
+| `make kopf-check`, `make docs-check` | nach dem Eintrag in §3 | Exit 0, 0 Befunde |
+
+**Weg der Mutanten.** Je Mutant ein Skript (Scratch-Pfad der Sitzung), das genau ein Vorkommen im
+Arbeitsbaum ersetzt (bricht bei fehlendem Vorkommen ab), die Tests des Pakets mit `-run` im
+`deps`-Image des Dockerfile mit Bind-Mount des Arbeitsbaums fährt (kein Build-Kontext, die mtime ist
+ohne Belang) und die Datei danach mit `git checkout --` zurücksetzt; ein Mutant der Integration läuft
+über eine Kopie von `tools/test/run-integration-tests.sh` mit `-test.run '^TestE2ERecordAnmeldung'`
+und `docker build --target integration`. Gefahren: 131 Mutanten am Quelltext und 2 Architekturmutanten (eine
+zusätzliche Datei im Kern, eine im Upstream-Adapter; `make a-check`), davon 129 rot. Vier sind grün (Y1, Y2,
+W3, W3a, unten).
+
+**DoD-Punkt 1 — die Anmeldung wird vermittelt, Passwort und Anmeldenachrichten stehen nicht in der Aufzeichnung.**
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| Klartext-Passwort (Code 3) wird vermittelt | U1: Code 3 in `folge` nicht zugelassen | `TestVermittlungVerfahren` (Klartext-Passwort, leere Antwort) und 8 weitere Zeilen mit Code 3 (6 von `…Reihenfolge`, Ende bei Klartext, `…FehlerantwortDesServers` nach Klartext) |
+| MD5 (Code 5) wird vermittelt | U2: Code 5 nicht zugelassen | `TestVermittlungVerfahren` (MD5, Antwort mit NUL-Bytes), Reihenfolge `[5 11]`, `[5 3]`, `…FehlerDesRueckrufs` (PGR-E6001 des Clients) |
+| SASL (Code 10) wird vermittelt | U3: Code 10 nicht zugelassen | `TestVermittlungVerfahren` (SCRAM-SHA-256) |
+| SASLContinue (Code 11) wird vermittelt | U4: Code 11 nicht zugelassen | `TestVermittlungVerfahren` (SCRAM-SHA-256), 5 Zeilen Reihenfolge, 2 Zeilen `…FehlerDesRueckrufs`, `…FehlerantwortDesServers` (mitten im SCRAM) |
+| SASLFinal (Code 12) wird vermittelt | U5: Code 12 nicht zugelassen; N9: Code 12 nicht erkannt | `TestVermittlungVerfahren` (SCRAM-SHA-256), Reihenfolge `[10 11 12 11]`, `[10 11 12 3]`, `…FehlerDesRueckrufs` (Ende bei Code 12) |
+| AuthenticationOk ohne Anforderung kommt an | U6 | `TestOpenUndQuery`, Reihenfolge `[0 3]`, `[0 0]`, `[0 11]` |
+| AuthenticationOk nach Klartext/MD5 kommt an | U7 | `TestVermittlungVerfahren` (Klartext-Passwort, MD5, leere Antwort, Antwort mit NUL-Bytes) |
+| AuthenticationOk nach Code 12 kommt an | U8 | `TestVermittlungVerfahren` (SCRAM-SHA-256) |
+| AuthenticationOk geht nicht an den Rückruf und nicht in die Antworten des Aufbaus | U13: Ok an den Rückruf | `TestVermittlungVerfahren` (alle 5 Zeilen), Reihenfolge `[0 3]`, `[0 0]`, `[0 11]` |
+| Antwort des Clients unverändert als `p` an den Server, auch leer und mit beliebigen Bytes | U9: als `PasswordMessage` gesendet | `TestVermittlungVerfahren` (alle 5 Zeilen) |
+| Code 12 geht an den Rückruf | U10: Rückruf für Code 12 übersprungen | `TestVermittlungVerfahren` (SCRAM-SHA-256), `…FehlerDesRueckrufs` (Ende bei Code 12) |
+| auf Code 12 geht keine Antwort an den Server | U11: Antwort auch auf Code 12 | `TestVermittlungVerfahren` (SCRAM-SHA-256), Reihenfolge `[10 11 12 12]`, `[10 11 12 11]`, `[10 11 12 3]` |
+| ein Fehler des Rückrufs bei Code 12 endet den Aufbau | U12: Fehler bei Code 12 übergangen | `TestVermittlungFehlerDesRueckrufs` (Ende bei Code 12) |
+| ein Fehler des Rückrufs endet Open mit genau diesem Fehler | U15: Fehler verschluckt | 30 Zeilen: `…FehlerDesRueckrufs` (alle 5), Reihenfolge, `Code 7` |
+| der Rückruf kommt vom Aufrufer des Service bis zum Upstream | S1: `nil` statt des Rückrufs | `TestRecordAnmeldungRueckruf` |
+| Service: keine Session, wenn der Client in der Anmeldung endet (auch mit `LeereSessions`) | S3: Session trotz `ErrClientEnde` | `TestRecordAnmeldungRueckruf` |
+| Anforderung unverändert (Code, Rest) an den Client | Z1: Rest der Nachricht weggelassen; Z2: Code immer 3 | `TestAnmeldungVermittelt` (MD5, SASL, SASL-Fortsetzung, Antwort von 70000 Bytes, SASL-Abschluss), je Mutant dieselben 5 Zeilen |
+| Antwort des Clients unverändert an den Use Case | Z3: um ein Byte gekürzt; Z4: `nil` statt leerer Folge; W6: `p` als Passwort gelesen | Z3: Klartext, MD5, SASL, SASL-Fortsetzung, 70000 Bytes; Z4: leere Antwort; W6: 6 Zeilen von `TestAnmeldungVermittelt`, beide von `…ErstesSignal`, `…AndereNachricht`, `…FehlerantwortDesServers` |
+| keine Höchstlänge der Antwort | W7: `SetMaxBodyLen(10000)` | `TestAnmeldungVermittelt` (Antwort von 70000 Bytes) |
+| auf Code 12 erwartet der Adapter keine Antwort | W8: Antwort auch auf Code 12 erwartet | `TestAnmeldungVermittelt` (SASL-Abschluss ohne Antwort) |
+| AuthenticationOk vor den übrigen Antworten des Aufbaus | W22: dahinter | `TestAnmeldungVermittelt` (7 Zeilen), beide von `…ErstesSignal`, `…AndereNachricht` |
+| weder Passwort noch Anforderung stehen in der Aufzeichnung (Service) | S2: Antwort im `Startup` der Session | `TestRecordAnmeldungNichtInDerAufzeichnung` |
+| … (Integration, Klartext, MD5, SCRAM-SHA-256) | E4: Antwort im `Startup` der Session | `TestE2ERecordAnmeldung` (scram-sha-256, md5, password); die Spuren `md5[0-9a-f]{32}`, `SCRAM`, `n,,n=` und `biws` fangen Antworten, die kein GEHEIM tragen |
+| ein Client meldet sich über `record` an und führt eine Anfrage aus (alle drei Verfahren) | E1: Rückruf des PGWire-Adapters endet sofort | `TestE2ERecordAnmeldung` (alle 3), `…Fehlerantwort` (3), `…ClientBeendet` |
+| kein Log einer Stufe nennt Anforderung oder Antwort | W18: `Debug` mit der Antwort; W19: `Debug` mit der Anforderung | W18: 9 Zeilen (Klartext, MD5, SASL, SASL-Fortsetzung, Terminate, Ende des Datenstroms nach der Anforderung, Reset, Warten auf die Antwort, Fehlerantwort); W19: 10 Zeilen |
+| eine Meldung nennt den Code, nie den Inhalt | X3: Reihenfolge-Meldung mit dem Inhalt in Hex; X4: Client-Nachricht mit `%+v` statt `%T`; N7: Text der Bibliothek in der Meldung | X3: 15 Zeilen Reihenfolge; X4: `Anfrage`, `Extended-Nachricht`; N7: Code 2, 6, 9, unbekannter Code |
+| auf den Client wartet die Anmeldung ohne eigene Frist | X5: Lesefrist von 1 s nach der Startnachricht | `TestAnmeldungWartetOhneFrist` |
+| erstes Signal beim Schreiben der Anforderung und beim Warten auf die Antwort unterbricht nicht | W1: Wächter läuft weiter und setzt die Lesefrist; W2: dasselbe mit der Schreibfrist | beide Mutanten rot in beiden Zeilen von `TestAnmeldungErstesSignal` (die Frist des Wächters wirkt auch auf das spätere Lesen bzw. Schreiben; ein Mutant, der nur eine der beiden Zeilen bricht, fand sich nicht) |
+| Zwangsende beendet die Anmeldung beim Schreiben der Anforderung und beim Warten auf die Antwort | W3c: `z.ende` leer **und** `oeffne` kehrt beim Zwangsende nicht zurück; W5: Schreibfehler der Anforderung ist ein Verbindungsfehler; W4: Lesefehler nach dem Zwangsende nicht auf das Ende des Clients abgebildet | W3c: beide Zeilen von `TestAnmeldungZwangsende`; W5: `…Zwangsende` (Schreiben) und `…EndeDesClients` (vor dem Lesen); W4: `…Zwangsende` (Warten) |
+| die Session aus `Open` trägt den Lesepuffer des Aufbaus (aus `slice-harness-blackbox-driven`) | U17: `Open` liefert eine Session mit neuem Frontend | `TestOpenSessionTraegtLesepufferDesAufbaus` |
+
+**DoD-Punkt 2 — Fehlerantwort des Servers unverändert, nicht vermitteltes Verfahren mit eindeutigem Code.**
+
+| Zusage | Mutation | rote Tests |
+|---|---|---|
+| Fehlerantwort am Anfang, nach Klartext, nach Code 10 und mitten im SCRAM geht zurück | U16: Fehlerantwort wird PGR-E6001 | `TestVermittlungFehlerantwortDesServers` (alle 4 Zeilen) |
+| … gleich welcher SQLSTATE | X1: nur 28P01; X2: nur Klasse 28 | X1: 28000, 3D000, 53300, 57P03, XX000; X2: 3D000, 53300, 57P03, XX000 (`TestVermittlungFehlerantwortJederSQLSTATE`) |
+| … mit jedem Feld im Upstream-Adapter | F1 bis F18 (je Feld von `noticeFields` entfernt: S, V, C, M, D, H, P, p, q, W, s, t, c, d, n, F, L, R), F99 (unbekannte Felder) | je Mutant alle 4 Zeilen von `TestVermittlungFehlerantwortDesServers` |
+| … mit jedem Feld im PGWire-Adapter | G1 bis G18 (je Feld von `errorResponse` entfernt), G99 (unbekannte Felder) | je Mutant `TestAnmeldungFehlerantwortDesServers` |
+| … wie bei einer Verbindung unmittelbar zum Server | E3: Feld `Routine` entfernt | `TestE2ERecordAnmeldungFehlerantwort` (scram-sha-256, md5, password, reject) |
+| Fehlerantwort geht ohne AuthenticationOk an den Client | Z5: AuthenticationOk davor | `TestAnmeldungFehlerantwortDesServers` |
+| Fehlerantwort geht überhaupt an den Client | W23: Versand entfernt | `TestAnmeldungFehlerantwortDesServers` |
+| keine Log-Zeile bei fehlgeschlagener Anmeldung | W21: Log-Zeile im Pfad ohne Session | `TestAnmeldungFehlerantwortDesServers` |
+| der Recorder sendet dem Server nach dem Abbruch weder eine Nachricht noch Terminate | U14: `Close` mit Terminate statt `conn.Close` | 40 Zeilen: alle von `…NichtVermittelt`, `…Reihenfolge`, `…FehlerDesRueckrufs`, `…FehlerantwortDesServers` |
+| Code 2 ist PGR-E6001 | N1 | `…NichtVermittelt/Code 2` |
+| Code 6 ist PGR-E6001 | N2 | `…/Code 6` |
+| Code 7 ist PGR-E6001 | N4 (als Code in der Reihenfolge); N5 (Typ der Bibliothek in der Meldung) | `…/Code 7` |
+| Code 9 ist PGR-E6001 | N3 | `…/Code 9` |
+| ein unbekannter Code ist PGR-E6001 | N6 | `…/unbekannter Code` |
+| eine nicht lesbare Nachricht des Servers im Aufbau ist PGR-E6001 | N8: PGR-E4003 | `…/nicht lesbare Nachricht`, `…/Nachricht R ohne Code` |
+| der Meldungstext sagt nicht mehr „das dieser Stand nicht vermittelt“ (V-152) | U18: alter Text | `…NichtVermittelt` (Code 2, 6, 7, 9, unbekannter Code) |
+| Reihenfolge des Servers: jede Zelle der Tabelle ist PGR-E4002 | R1 bis R22: je (Stand, Code) zugelassen | je Mutant genau seine Zeile(n) von `TestVermittlungReihenfolge`: `[8]`, `[11]`, `[12]`, `[3 11]`+`[5 11]`, `[3 12]`, `[3 8]`, `[3 3]`+`[5 3]`, `[3 5]`, `[3 10]`, `[10 12]`, `[10 0]`, `[10 3]`, `[10 5]`, `[10 10]`, `[10 11 0]`, `[10 11 3]`, `[10 11 12 12]`, `[10 11 12 11]`, `[10 11 12 3]`, `[0 3]`, `[0 0]`, `[0 11]` |
+| jede andere Nachricht des Clients als `p` und Terminate ist PGR-E6001 | W12: Anfrage gilt als Antwort; W13: Parse; W14: Sync; W15: FunctionCall; W16: nicht lesbare Nachricht beendet still | je Mutant genau seine Zeile von `TestAnmeldungAndereNachricht` (Anfrage, Extended-Nachricht, Sync, Funktion, nicht lesbar) |
+| eine Nachricht `p` nach der Anmeldung ist wie zuvor nicht unterstützt | W17: `SetAuthType` nicht zurückgesetzt | `TestAnmeldungAndereNachricht` (Nachricht `p` nach dem Aufbau, mit Anmeldung) |
+| Terminate in der Anmeldung ist kein Verbindungsfehler | W9 | `TestAnmeldungEndeDesClients/Terminate` |
+| Ende des Datenstroms ist kein Verbindungsfehler | W10 | `…/Ende des Datenstroms nach der Anforderung`, `…/Reset` |
+| Reset ist kein Verbindungsfehler | W11: `ECONNRESET` nicht als Ende der Verbindung | `…/Reset` |
+| das Ende des Clients erzeugt weder Meldung noch Session | W20 (Handler behandelt `ErrClientEnde` wie einen Fehler); E2 (Integration) | W20: 4 Zeilen von `TestAnmeldungEndeDesClients`; E2: `TestE2ERecordAnmeldungClientBeendet` |
+
+**DoD-Punkt 3 — der Port trägt den Austausch, der Kern kennt keine PGWire-Typen.**
+
+| Zusage | Mutation | Befund |
+|---|---|---|
+| der Kern importiert keine PGWire-Bibliothek | Datei `internal/hexagon/model/mutant_import.go` mit Import von `pgproto3` | `make a-check`: `core-impurity: Kern importiert github.com/jackc/pgx/v5/pgproto3`, `gesamt: 1 Befund(e)`, Exit 2 |
+| der Driven Adapter importiert keinen Driving Adapter | Datei im Upstream-Adapter mit Import des PGWire-Adapters | `make a-check`: `lateral-adapter`, `gesamt: 1 Befund(e)`, Exit 2 |
+| ohne die Dateien | Stand `4c38fb7` | `gesamt: 0 Befund(e)` |
+
+**Grüne Mutanten und äquivalente Fälle.**
+
+- **Y1** (nach AuthenticationOk ein Code ohne Verfahren ist PGR-E6001) und **Y2** (zweites Code 11
+  im laufenden SASL-Austausch ist PGR-E4002) ändern das Verhalten und sind über die Schnittstelle fangbar:
+  Test-Idee Y1: Server sendet `AuthenticationOk`, dann `R` mit Code 9; Y2: Server sendet 10, 11, 11, 12, Ok.
+  Beide Tests sind nicht geschrieben, weil sie die Lesart pinnten, die der Architect oben entscheiden soll;
+  die Closure gibt der Entscheidung die Adresse.
+- **W3** (`oeffne` kehrt beim Zwangsende nicht zurück) und **W3a** (`z.ende` schließt die Verbindung im Aufbau
+  nicht) sind je für sich äquivalent: Beide Mechanismen beenden die Anmeldung beim Zwangsende, jeder reicht
+  allein (`handle` schließt die Verbindung beim Rückkehren, `z.ende` schließt sie ohnehin). Zusammen (W3c) rot.
+
+**Kommentare.** Jeder neue oder geänderte Kommentar ist gegen `AGENTS.md` §3.7 und §3.11 geprüft. Zusagen in
+Kommentaren und ihre Tests: `model.Anmeldung`/`ErrClientEnde` („Ende des Datenstroms, Reset, Terminate, Zwangsende“)
+→ `TestAnmeldungEndeDesClients`, `TestAnmeldungZwangsende`; `RecordService.OpenSession` („liest und hält nicht“)
+→ `TestRecordAnmeldungNichtInDerAufzeichnung`; `startupBisSignal` → `TestAnmeldungErstesSignal`;
+`Upstream.Open` („Kein Terminate“) → die Zeilen von U14; `rohAnforderung`, `antwort` („jeden Rumpf unverändert,
+auch einen leeren“) → `TestAnmeldungVermittelt` (leere Antwort, 70000 Bytes). Die Aufruf-Voraussetzung
+(„Aufrufe nacheinander“) ist eine Voraussetzung des Aufrufers (`LH-FA-05.b`), keine Zusage des Adapters; er
+ruft den Rückruf in der Schleife von `aufbauen` nacheinander, und kein Mutant dazu ist gefahren.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
