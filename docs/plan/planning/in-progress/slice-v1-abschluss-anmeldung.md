@@ -75,9 +75,9 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/ports/driving`, `…/driven`, `internal/hexagon/services` | update | Anmeldeaustausch als Folge fachlicher Nachrichten zwischen Client und Upstream |
-| `internal/adapters/driving/pgwire`, `internal/adapters/driven/postgres` | update | Weiterleitung der Anmeldenachrichten, `SetAuthType` für SASL; Meldungstext zu einem nicht vermittelten Verfahren (`upstream.go`, aus `slice-doku-ist-stand`, V-152); im PGWire-Adapter endet die Lesefrist des Verbindungsaufbaus vor der Anmeldung (erstes Signal, `LH-FA-05.b` *Abbruch und Herunterfahren*) |
-| `test/integration` | update | Server mit `password`, `md5` und `scram-sha-256` in `pg_hba.conf` |
+| `internal/hexagon/model`, `internal/hexagon/ports/driving`, `…/driven`, `internal/hexagon/services` | update | Rückruf der Anmeldung (`model.Anmeldung`, `Anmeldeanforderung`, `ErrClientEnde`): Anforderung und Antwort als für den Kern undurchsichtige Werte zwischen Client und Upstream ([ADR-0041](../../adr/0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md)) |
+| `internal/adapters/driving/pgwire`, `internal/adapters/driven/postgres` | update | Upstream-Adapter: Reihenfolge des Servers und Weitergabe der Anforderungen (`vermittlung.go`); Meldungstext zu einem nicht vermittelten Verfahren (aus `slice-doku-ist-stand`, V-152). PGWire-Adapter: Austausch mit dem Client (`anmeldung.go`; die Nachricht `p` liest `SetAuthType(AuthTypeSASLContinue)` als `SASLResponse`, die jeden Rumpf unverändert nimmt); im PGWire-Adapter endet der Wächter mit der Startnachricht, damit die Lesefrist des ersten Signals für die Anmeldung nicht gilt (`LH-FA-05.b` *Abbruch und Herunterfahren*) |
+| `test/integration`, `tools/test/run-integration-tests.sh`, `docs/user/abdeckung-*.md` | update | Server mit `password`, `md5` und `scram-sha-256` in `pg_hba.conf` (die Benutzer legt der Runner schon an), dazu die Zeile `reject` für `play_reject`; Abdeckungstabellen über `make abdeckung` |
 
 ## 4. Trigger
 
