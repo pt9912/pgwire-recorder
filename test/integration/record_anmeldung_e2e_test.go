@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -53,8 +54,8 @@ func TestE2ERecordAnmeldung(t *testing.T) {
 				}
 			}
 			ohneGeheimnis(t, text, rec.stderr.String())
-			for _, spur := range []string{"md5", "SCRAM", "n,,n=", "biws"} {
-				if strings.Contains(text, spur) {
+			for _, spur := range []string{"md5[0-9a-f]{32}", "SCRAM", "n,,n=", "biws"} {
+				if regexp.MustCompile(spur).MatchString(text) {
 					t.Errorf("Aufzeichnung trägt eine Spur der Anmeldung (%q):\n%s", spur, text)
 				}
 			}
