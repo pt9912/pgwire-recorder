@@ -431,7 +431,7 @@ bis zur ersten Nachricht des Servers nichts.
   Feldern unverändert an den Client, ohne `AuthenticationOk`. Der Recorder schließt beide Verbindungen;
   die Verbindung ist keine Session, es gibt keine Meldung und keinen Einfluss auf den Exit-Code, wie
   bei jeder Fehlerantwort des Servers im Aufbau. Eine eigene Log-Zeile gibt es nicht
-  (akzeptiertes Negativ: Der Client sieht die Antwort, und eine Zeile bräuchte einen Meldungscode und
+  (Entscheidung des Nutzers vom 2026-10-14, akzeptiertes Negativ: Der Client sieht die Antwort, und eine Zeile bräuchte einen Meldungscode und
   trüge den Benutzernamen des Clients ins Log).
 * *Aufzeichnung.* Weder Anforderungen noch Antworten der Anmeldung noch `AuthenticationOk` stehen in der
   Aufzeichnung, auch kein Wert, der aus dem Passwort folgt. Die Startup-Parameter stehen unverändert

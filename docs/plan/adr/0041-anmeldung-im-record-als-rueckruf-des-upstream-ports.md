@@ -1,6 +1,6 @@
 # ADR-0041: Anmeldung im Record-Modus als Rückruf des Upstream-Ports
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-14
 
@@ -52,7 +52,8 @@ Wenn ein Verfahren Zustand über den Aufbau hinaus braucht (etwa eine erneute An
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-14 | Proposed (Architect; Empfehlung, Annahme durch den Nutzer steht aus) | — |
+| 2026-10-14 | Proposed | — |
+| 2026-10-14 | Accepted (Entscheidung des Nutzers vom 2026-10-14) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**.
 Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit

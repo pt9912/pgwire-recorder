@@ -44,7 +44,7 @@
 | [0038](0038-gate-kette-voll-und-schnell.md) | Gate-Kette in voller und schneller Kette, Wahl am geänderten Pfad | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0039](0039-aufzeichnung-kennt-das-verbindungsende.md) | Die Aufzeichnung kennt das Verbindungsende des Servers | Accepted | [`LH-FA-25`](../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server) |
 | [0040](0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md) | Die Verträge der Harness-Werkzeuge stehen im Ordner harness, nicht in der Produktspezifikation | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
-| [0041](0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md) | Anmeldung im Record-Modus als Rückruf des Upstream-Ports | Proposed | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
+| [0041](0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md) | Anmeldung im Record-Modus als Rückruf des Upstream-Ports | Accepted | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
 
 ## Konventionen
 
