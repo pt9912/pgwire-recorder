@@ -1,7 +1,7 @@
 # Review slice-v1-abschluss-anmeldung-doku
 
 Rolle: Reviewer. Datum: 2026-10-14.
-Gegenstand: Diff `ea5019b..6a44529` (Move-Commit bis HEAD, fünf Commits) gegen den Plan [`slice-v1-abschluss-anmeldung-doku`](../plan/planning/in-progress/slice-v1-abschluss-anmeldung-doku.md), den Code-Slice [`slice-v1-abschluss-anmeldung`](../plan/planning/done/slice-v1-abschluss-anmeldung.md), [LH-FA-05](../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), `LH-FA-05.b` (Randformen der Vermittlung, Record) in der [Spezifikation](../../spec/spezifikation.md) und `AGENTS.md` §3.7, §3.9, §3.11, §3.13, §3.14.
+Gegenstand: Diff `ea5019b..6a44529` (Move-Commit bis HEAD, fünf Commits) gegen den Plan [`slice-v1-abschluss-anmeldung-doku`](../plan/planning/done/slice-v1-abschluss-anmeldung-doku.md), den Code-Slice [`slice-v1-abschluss-anmeldung`](../plan/planning/done/slice-v1-abschluss-anmeldung.md), [LH-FA-05](../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), `LH-FA-05.b` (Randformen der Vermittlung, Record) in der [Spezifikation](../../spec/spezifikation.md) und `AGENTS.md` §3.7, §3.9, §3.11, §3.13, §3.14.
 
 **Summary: 0 HIGH · 1 MEDIUM · 2 LOW · 4 INFO.**
 
@@ -9,7 +9,7 @@ Gegenstand: Diff `ea5019b..6a44529` (Move-Commit bis HEAD, fünf Commits) gegen 
 
 ### F-1 MEDIUM
 - `quelle`: `AGENTS.md` §3.9 (Der Slice-Plan folgt jeder Korrektur)
-- `pfad`: `docs/plan/planning/in-progress/slice-v1-abschluss-anmeldung-doku.md` · "**Berührte Spec-Stellen:** — (der Slice ändert keine Spec-Stelle"
+- `pfad`: `docs/plan/planning/done/slice-v1-abschluss-anmeldung-doku.md` · "**Berührte Spec-Stellen:** — (der Slice ändert keine Spec-Stelle"
 - `befund`: Commit `6a44529` ändert `spec/spezifikation.md` (`LH-FA-05.b`, Punkt *Aufzeichnung*: Satz zum Passwort als Startup-Parameter gestrichen). Der Kopf des Plans nennt keine Spec-Stelle, §1 sagt „Der Slice ändert nur `docs/user/benutzerhandbuch.md` und `README.md` und diesen Plan“, und §7 beschreibt die Spezifikation weiter mit dem gestrichenen Satz („Die Spezifikation sagt zum Passwort als Startup-Parameter, es stehe in der Aufzeichnung“; „Der Satz der Spezifikation dazu (Grenze) ist … nicht zu belegen“). Der Plan stammt aus den Commits vor `6a44529` und folgt dieser Korrektur nicht.
 - `verifizierbar`: nein (`make kopf-check` prüft nur Kennungen aus §1 und §2)
 - `klasse`: Plan folgt der Korrektur nicht (`BEO-REPO/plan-folgt-korrektur-nicht`)
