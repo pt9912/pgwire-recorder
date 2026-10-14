@@ -166,7 +166,8 @@ erreicht; die Schätzung war 1800 bis 2400 (§4). Die Review-Runde steht aus.
 
 | Lauf | Stand | Ergebnis |
 |---|---|---|
-| `make gates` (voll, ein Lauf, keine parallelen Läufe) | `4c38fb7` | Exit 0; darin `run-integration-tests: gruen`, `d-check: 737 Datei(en) geprüft, 0 Befund(e)`, `0 issues.`, `lint-gegenprobe: gruen`, `a-check-negativ: gruen`, `abdeckung-gegenprobe: gruen`, `stop-hook-gegenprobe: gruen` |
+| `make gates` (voll, ein Lauf, kein pkill) | `84ad1de`, letzter Stand nach dem Review (nur §7 danach) | Exit 0, kein FAIL |
+| `make gates` (voll) | `4c38fb7` | Exit 0; darin `run-integration-tests: gruen`, `d-check: 737 Datei(en) geprüft, 0 Befund(e)`, `0 issues.`, `lint-gegenprobe: gruen`, `a-check-negativ: gruen`, `abdeckung-gegenprobe: gruen`, `stop-hook-gegenprobe: gruen` |
 | `make gates` | `962543d` | Exit 2: `TestE2ERecordAnmeldung/md5` rot, weil „md5“ im Benutzernamen `play_md5` der Aufzeichnung steht; die Spur ist seit `4c38fb7` `md5[0-9a-f]{32}`, der Lauf darüber grün |
 | `make lint` | vor `ce47692` (nach dem Auszug von `startupBisSignal`) | Exit 0, `0 issues.`; davor 2 Befunde (`cyclop`, `gocyclo`: `handle` mit 16) |
 | `make a-check` | `4c38fb7` | `gesamt: 0 Befund(e)`; Mutanten unten |
