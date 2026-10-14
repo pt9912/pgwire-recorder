@@ -29,6 +29,7 @@ ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/
 | `SPEC-049` | `lint` | [`SPEC-049-lint-profil.md`](SPEC-049-lint-profil.md) |
 | `SPEC-050` | `commit-msg` | [`SPEC-050-struktur-kennungen-im-commit.md`](SPEC-050-struktur-kennungen-im-commit.md) |
 | `SPEC-052` | `gates-schnell`, `stop-hook-gegenprobe` | [`SPEC-052-gate-kette.md`](SPEC-052-gate-kette.md) |
+| `SPEC-053` | `test-postgres-versionen` | [`SPEC-053-postgres-versionen.md`](SPEC-053-postgres-versionen.md) |
 
 ## Historie
 
@@ -50,3 +51,4 @@ ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/
 | 2026-10-13 | Harness-Werkzeuge: Nachweis des vollen Laufs bei überlesenen Fehlern (`make -i gates`) und Make-Flags, Aufrufarten des Stop-Hooks, Beleg für `docs/user/` und `README.md` für jede Gegenprobe der Ausnahmeliste (`SPEC-052`) |
 | 2026-10-14 | Harness-Werkzeuge: Beleg der Positivliste auch für `docs/plan/planning/` und `docs/reviews/` (Gegenprobe des Commit-Trägers ohne Bezug auf den Planungsbaum des Arbeitsbaums), `reason` bei fehlendem Stand der schnellen Kette, Pfad mit leerem Segment am Ende, Laufzeit des Hooks, Wortlaut zum älteren Nachweis (`SPEC-052`) |
 | 2026-10-14 | Harness-Werkzeuge: Reihenfolge der Prüfungen des Hooks, Positivliste an einer Stelle und Selbständerung, Art `X`, Zulässigkeit der Pfade, Symlink-Einzelheiten (Spiegelregel mit Vorfahr, absolutes Ziel), Vergleich des Hashes der schnellen Kette, Freigabe in Unterverzeichnis und leerer Umgebung (`SPEC-052`) |
+| 2026-10-14 | Harness-Werkzeuge: Versionsmatrix der Integrationstests mit Liste, Teilmenge, Eingabefehlern, Prüfung der Hauptversion des Servers, Ablauf, Aufräumen, Aufrufarten des Treibers und Grenzen (`SPEC-053`); Ausnahmeliste der schnellen Kette um `test-postgres-versionen` (`SPEC-052`) |

@@ -16,7 +16,7 @@ eine Bindung der Zusagen und hat keinen Fall.
    (Punkt 11); bei den Make-Flags `-i`, `-n`, `-q`, `-t` gilt Punkt 21.
 2. **Schnelle Kette.** Die schnelle Kette ist `GATE_CHECKS` ohne die Ausnahmeliste. Die
    Ausnahmeliste steht im Fragment der Kette, `harness/mk/gates-schnell.mk`, und nennt jedes
-   Gate, dessen Name auf `-gegenprobe` endet, dazu `a-check-negativ` und `test-integration`. `build`,
+   Gate, dessen Name auf `-gegenprobe` endet, dazu `a-check-negativ`, `test-integration` und `test-postgres-versionen`. `build`,
    `test` und alle übrigen Gates fährt die schnelle Kette. Sie fährt kein Gate der
    Ausnahmeliste.
 3. **Neues Gate.** Ein neues Gate läuft in beiden Ketten, bis es ausdrücklich in die
@@ -24,8 +24,8 @@ eine Bindung der Zusagen und hat keinen Fall.
    Kette: Ein fehlender Eintrag lässt ein langsames Gate in der schnellen Kette laufen, ein
    Eintrag zu viel nimmt ein Gate aus der schnellen Kette, die volle fährt es weiter.
 4. **Deckung der Ausnahmeliste.** Jeder Eintrag der Ausnahmeliste steht in `GATE_CHECKS`,
-   und jedes Gate in `GATE_CHECKS`, dessen Name auf `-gegenprobe` endet, sowie `a-check-negativ` und
-   `test-integration` steht in der Ausnahmeliste. Ein neues Gate dieser Namen macht die
+   und jedes Gate in `GATE_CHECKS`, dessen Name auf `-gegenprobe` endet, sowie `a-check-negativ`,
+   `test-integration` und `test-postgres-versionen` steht in der Ausnahmeliste. Ein neues Gate dieser Namen macht die
    Gegenprobe der Kette rot, bis jemand entscheidet.
 5. **Stand der schnellen Kette.** Bei einem grünen Lauf der schnellen Kette schreibt sie den
    Hash des ganzen Arbeitsbaums zum Ende des Laufs, die unveränderte Ausgabe von
@@ -127,6 +127,7 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     `README.md`); Abdeckungstabellen.** Alle vier sind ohne Ausnahme aufgenommen. Kein Gate der
     Ausnahmeliste (Punkt 2) liest eine Datei unter `docs/plan/planning/`, `docs/reviews/` oder
     `docs/user/` oder die `README.md`: die Docker-Gates (`test-integration`,
+    `test-postgres-versionen` (dieselbe Stufe des `Dockerfile`),
     `lint-gegenprobe` über `docker build` einer Kopie des Arbeitsbaums, ebenso `build`, `test`,
     `lint`) sehen nur den Build-Kontext, und der ist eine Allowlist, die `docs/` und
     `README.md` nicht freigibt (`.dockerignore`: `*`, dann nur `go.mod`, `go.sum`, `cmd/`,
