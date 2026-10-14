@@ -3,14 +3,14 @@
 # `gates-schnell` fährt GATE_CHECKS ohne GATE_SCHNELL_AUSNAHME und schreibt bei
 # grünem Lauf den Stand .harness/state/gates-schnell-passed.diffsha; den Nachweis
 # des vollen Laufs (`make gates`) schreibt und ersetzt es nie. Die Ausnahmeliste
-# nennt jedes Gate mit `-gegenprobe` im Namen, dazu a-check-negativ und
-# test-integration; `gates-schnell-gegenprobe` hält sie gegen GATE_CHECKS. Die
+# nennt jedes Gate mit `-gegenprobe` im Namen, dazu a-check-negativ,
+# test-integration und test-postgres-versionen; `gates-schnell-gegenprobe` hält sie gegen GATE_CHECKS. Die
 # Gegenprobe hängt an GATE_CHECKS, `gates-schnell` selbst nicht (es wäre sonst
 # eigener Bestandteil). Die Gates der Kette brauchen, was ihre Ziele brauchen (`build`,
 # `test`, `lint`, `a-check`, `docs-check` fahren über Docker); die Gegenprobe fährt
 # Attrappen als Gates und ruft Docker nicht.
 # GEPRÜFT DURCH tools/harness/gates-schnell-gegenprobe.sh.
-GATE_SCHNELL_AUSNAHME := abdeckung-gegenprobe a-check-negativ gates-schnell-gegenprobe hook-gegenprobe kopf-check-gegenprobe lint-gegenprobe stop-hook-gegenprobe test-integration
+GATE_SCHNELL_AUSNAHME := abdeckung-gegenprobe a-check-negativ gates-schnell-gegenprobe hook-gegenprobe kopf-check-gegenprobe lint-gegenprobe stop-hook-gegenprobe test-integration test-postgres-versionen test-postgres-versionen-gegenprobe
 
 .PHONY: gates-schnell gates-schnell-gegenprobe
 

@@ -29,7 +29,7 @@ fehler=0
 melde() { echo "gates-schnell-gegenprobe: ROT — $*" >&2; fehler=1; }
 
 SCHNELL="docs-check kopf-check baseline-verify abdeckung-check lint test build a-check"
-LANGSAM="lint-gegenprobe kopf-check-gegenprobe abdeckung-gegenprobe hook-gegenprobe stop-hook-gegenprobe a-check-negativ test-integration"
+LANGSAM="lint-gegenprobe kopf-check-gegenprobe abdeckung-gegenprobe hook-gegenprobe stop-hook-gegenprobe a-check-negativ test-integration test-postgres-versionen test-postgres-versionen-gegenprobe"
 
 # gate_variable <wurzel> <name> — Wörter der Make-Variable aus der Datenbank von make.
 gate_variable() {
@@ -55,7 +55,7 @@ deckung() {
   done
   for g in "${gates[@]}"; do
     case "$g" in
-      *-gegenprobe | a-check-negativ | test-integration)
+      *-gegenprobe | a-check-negativ | test-integration | test-postgres-versionen)
         in_liste "$g" "${ausnahme[@]}" || echo "p4-name" ;;
     esac
   done
@@ -238,6 +238,10 @@ fixture m-lint-gegenprobe
 sed -i "${AUSNAHME_ZEILE}s/ lint-gegenprobe//" "$w/harness/mk/gates-schnell.mk"; rot m-lint-gegenprobe p2-langsam
 fixture m-test-integration
 sed -i "${AUSNAHME_ZEILE}s/ test-integration//" "$w/harness/mk/gates-schnell.mk"; rot m-test-integration p2-langsam
+fixture m-test-postgres-versionen
+sed -i "${AUSNAHME_ZEILE}s/ test-postgres-versionen / /" "$w/harness/mk/gates-schnell.mk"; rot m-test-postgres-versionen p2-langsam; rot m-test-postgres-versionen p4-name
+fixture m-test-postgres-versionen-gegenprobe
+sed -i "${AUSNAHME_ZEILE}s/ test-postgres-versionen-gegenprobe//" "$w/harness/mk/gates-schnell.mk"; rot m-test-postgres-versionen-gegenprobe p2-langsam
 
 # --- Punkt 2: jedes andere Gate -----------------------------------------------------
 fixture m-schnelles-gate-in-liste
