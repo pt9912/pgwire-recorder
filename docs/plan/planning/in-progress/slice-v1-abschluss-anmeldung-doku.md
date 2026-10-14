@@ -270,6 +270,13 @@ while True:
 - **Randformen:** Keine nicht genannte oder offene Randform entschieden. Der Satz „Das Verfahren bestimmt die Datenbank“, die Aussagen zu Channel Binding und zum Ende des Servers (`PGR-E4003`) gibt `LH-FA-05.b` wieder; das Ende des Servers steht im Handbuch, weil die Spezifikation es entscheidet (*Ende des Servers*) und P6b es am Binary zeigt.
 - **Abdeckungstabellen:** unberührt.
 
+**Läufe und Größe:**
+
+- `make docs-check`: 744 Dateien, 0 Befunde (nach jeder Änderung am Handbuch, zuletzt auf `e12ab97` mit dem Plan); `make kopf-check`: Exit 0.
+- `make gates-schnell` auf dem Baum mit diesem Absatz (letzter Commit des Implementers): grün; `echo '{}' | bash .claude/hooks/stop-require-gates.sh` antwortet `{"decision":"approve"}` (Handbuch, README und Plan liegen auf der Positivliste, `make gates` voll ist nicht gelaufen; ein voller Lauf ist nicht nötig, weil kein Code, Test, Gate oder Skript im Diff steht).
+- Größe (`AGENTS.md` §3.14, Summe aus Einfügungen und Löschungen von `git diff --numstat ea5019b..<letzter Commit> -- docs/user README.md`, Stand `e12ab97`, danach ändern nur Pläne): Handbuch 96 (81 + 15), README 7 (4 + 3), zusammen **103**; Marke 300 und Meldeschwelle 220 nicht erreicht; Schätzung des Architect 120 bis 200 mit Review-Runde (ohne sie 103, im Band darunter, weil kein Satz der Schätzung ein zweites Mal gefasst werden musste). Der Plan zählt nicht in die Metrik (rund 200 Zeilen §7).
+- Liefer-Punkte 2, Schichten eine (Dokumentation), unverändert gegenüber §8.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
