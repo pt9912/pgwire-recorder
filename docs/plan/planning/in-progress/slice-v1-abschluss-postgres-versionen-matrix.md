@@ -170,6 +170,146 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
+### Belege des Implementers
+
+**Stand.** Basis 978341e (Übergang nach `in-progress/`), Code-Commit fc3e987. Größe in der Metrik von §4 (`git diff --numstat 978341e..fc3e987 -- harness tools test internal spec docs/plan/adr docs/user`): **767** (Einfügungen plus Löschungen), unter Meldeschwelle 1200 und Marke 1500; davon `tools/test/postgres-versionen-gegenprobe.sh` 486, `tools/test/run-integration-tests.sh` 132, `tools/test/run-postgres-versionen.sh` 100, `harness/mk/postgres-versionen.mk` 31, Rest 18 (`harness/README.md`, `gates-schnell.mk`, Gegenprobe der schnellen Kette).
+
+**Bereich bestätigt (2026-10-14, vor dem Code).** `docker pull postgres:19-alpine` endet mit `manifest unknown`; `https://www.postgresql.org/support/versioning/` führt 18.6, 17.11, 16.15, 15.19, 14.24 als unterstützte Hauptversionen, die Startseite nennt „PostgreSQL 19 Beta 4 Released“ vom 2026-09-24. 19 ist nicht erschienen, die Liste ist 14 bis 18. Digests aus `docker image inspect --format '{{index .RepoDigests 0}}'` nach `docker pull -q postgres:<n>-alpine`: 14 `4ea9e5ed…e77a`, 15 `f7d23353…bf81`, 16 `721873c3…80ea`, 17 `b0f9560a…4b24` (gleich `POSTGRES_IMAGE`), 18 `77f58511…1873` (die vollen Digests stehen im Fragment).
+
+**Läufe** (Docker 29.9.0, Images lokal vorhanden, Versionen nacheinander):
+
+| Lauf | Ergebnis | Dauer |
+|---|---|---|
+| `make gates` vor dem Slice (Basis 978341e, frischer Worktree, Build-Cache anderer Kontextpfad) | grün | 589 s |
+| `make gates` nach dem Slice (fc3e987, Arbeitsbaum, schreibt den Nachweis) | grün | 561 s |
+| `make test-postgres-versionen` (14, 15, 16, 18; Testimage aus dem Cache) | grün | 22 s |
+| dasselbe mit einer Version neben der Referenz | grün | 6 s |
+| `make test-postgres-versionen-gegenprobe` (unveränderte Kopie, 76 Mutationen) | grün | 80 s |
+| `make gates-schnell-gegenprobe` (mit den beiden neuen Mutanten) | grün | 24 s |
+| `make test-integration` (Referenz 17, volle Suite, geänderter Runner) | grün | 129 s |
+| `make docs-check` | 0 Befunde | — |
+
+Die Gesamtzeit von `make gates` ist kein Vergleich der beiden Zeilen: Die Messung vor dem Slice lief im Worktree mit anderem Kontextpfad und kälterem Cache, die danach im Arbeitsbaum; die Differenz liegt unter der Streuung. Der Zuwachs des Slice ist die Summe seiner eigenen Gates: rund 22 s (`test-postgres-versionen`, mit Pull der Images mehr) plus 80 s (Gegenprobe) plus 3 s (Gegenprobe der schnellen Kette), zusammen rund 105 s.
+
+**Zusage · Mutation · roter Test.** Die Gegenprobe prüft die unveränderte Kopie (alle Fälle grün) und fährt jede Mutation in einer Kopie; Ausgang 0 nur, wenn bei jeder Mutation von den Fällen ihrer Gruppe genau die benannten rot sind. Jede Mutation wurde dabei gesehen; „wirkungslos“ meldet die Gegenprobe selbst. Die Fälle heißen nach dem Punkt von `SPEC-053`; die Attrappe von `docker` ist im Kopf der Gegenprobe beschrieben. Spalte 1 ist der Punkt.
+
+| Punkt | Zusage | Mutation (Name in der Gegenprobe) | roter Test |
+|---|---|---|---|
+| 1 | Die Liste des Fragments ist gültig (vier Versionen neben der Referenz) | Fragment: `14-alpine@sha256:4ea9` → `14-alpine@sha256:4EA9` (`p1-liste`) | `p1-liste-gueltig` |
+| 2a | leere Liste ist rot vor docker | Treiber: Prüfzeile `P2a` entfällt (`p2a`) | `p2a-leere-liste` |
+| 2b | Referenz fehlt in der Liste ist rot vor docker | Treiber: Prüfzeile `P2b` entfällt (`p2b`) | `p2b-referenz-fehlt` |
+| 2c | Hauptversion doppelt ist rot vor docker | Treiber: Prüfzeile `P2c` entfällt (`p2c`) | `p2c-doppelt` |
+| 2c | Hauptversion der Referenz doppelt ist rot vor docker | Treiber: Prüfzeile `P2c-ref` entfällt (`p2c-referenz`) | `p2c-referenz-doppelt` |
+| 2d | keine andere Version als die Referenz ist rot vor docker | Treiber: Prüfzeile `P2d` entfällt (`p2d`) | `p2d-keine-andere` |
+| 2e | Eintrag ohne `=` ist rot vor docker | Treiber: Prüfzeile `P2e1` entfällt (`p2e1`) | `p2e1-ohne-gleich` |
+| 2e | leere Hauptversion ist rot vor docker | Treiber: Prüfzeile `P2e2` entfällt (`p2e2`) | `p2e2-leere-hauptversion` |
+| 2e | Hauptversion nicht aus Ziffern ist rot vor docker | Treiber: Prüfzeile `P2e3` entfällt (`p2e3`) | `p2e3-nicht-ziffern` |
+| 2e | Hauptversion mit führender Null ist rot vor docker | Treiber: Prüfzeile `P2e4` entfällt (`p2e4`) | `p2e4-fuehrende-null` |
+| 2f | Image ohne Tag ist rot vor docker | Treiber: Prüfzeile `P2f` entfällt (`p2f`) | `p2f-ohne-tag` |
+| 2g | Image ohne Digest ist rot vor docker | Treiber: Prüfzeile `P2g` entfällt (`p2g`) | `p2g-ohne-digest` |
+| 2h | Digest mit 63 Ziffern ist rot (64 Ziffern verlangt) | Treiber: `{64}` → `{1,64}` (`p2h-kurz`) | `p2h-digest-kurz` |
+| 2h | Digest mit 65 Ziffern ist rot | Treiber: `{64}` → `{64,}` (`p2h-lang`) | `p2h-digest-lang` |
+| 2h | Digest mit Großbuchstaben ist rot („kleine“ Hexziffern) | Treiber: `[0-9a-f]{64}` → `[0-9a-fA-F]{64}` (`p2h-gross`) | `p2h-digest-gross` |
+| 2h | Digest mit einem Zeichen außerhalb der Hexziffern ist rot | Treiber: `[0-9a-f]{64}` → `[0-9a-z]{64}` (`p2h-kein-hex`) | `p2h-digest-kein-hex` |
+| 2h | Digest eines anderen Verfahrens als sha256 ist rot | Treiber: `^sha256:` → `^sha[0-9]+:` (`p2h-verfahren`) | `p2h-digest-verfahren` |
+| 2i | Image der Referenz ungleich `POSTGRES_IMAGE` ist rot vor docker | Treiber: Prüfzeile `P2i` entfällt (`p2i`) | `p2i-referenz-image` |
+| 2 | jede der neun Formen endet vor dem ersten Aufruf von docker (Eingabefehler lässt den Lauf fortfahren) | Treiber: `if [ "$fehler" -ne 0 ]; then exit 2; fi` → `if [ "$fehler" -ne 0 ]; then :; fi` (`p2-vor-docker`) | alle 17 Fälle `p2*` |
+| 3 | ein übersprungener Test (`SKIP`) macht die Version rot | Runner: `if grep -Eq "^ *--- SKIP: $name \(" "$aus"; then # P3-skip` → `if false; then # P3-skip` (`p3-skip`) | `p3-skip` |
+| 3 | eine Auswahl ohne Treffer ist rot, nicht grün | Runner: `if ! grep -Eq '^ *--- PASS: ' "\$aus"; then # P3-treffer` → `if false; then # P3-treffer` (`p3-treffer`) | `p3-ohne-treffer` |
+| 3 | ein erwarteter Test ohne PASS-Zeile (umbenannt, nicht gewählt) macht die Version rot | Runner: `rot=1 # P3-fehlt` → `rot=0 # P3-fehlt` (`p3-fehlt`) | `p3-skip` und alle 8 Fälle `p3-element-*` |
+| 3 | die Auswahl von `-test.run` nennt jeden Test der Teilmenge | Runner: `top+=("${n%%/*}")` → `:` (`p3-auswahl-top`) | `p3-auswahl` und alle 8 Fälle `p3-element-*` |
+| 3 | die Auswahl nennt den Fall SCRAM-SHA-256 (Unterfall) der Anmeldung | Runner: `sub+=("${n#*/}")` → `:` (`p3-auswahl-sub`) | `p3-auswahl`, `p3-element-TestE2ERecordAnmeldung/scram-sha-256` |
+| 4 | abweichende, unlesbare Hauptversion des Servers ist rot (Vergleich am laufenden Server) | Runner: `if [ "${gemeldet%%[!0-9]*}" != "$PGR_HAUPTVERSION" ]; the…` → `if false; then # P4-version` (`p4-version`) | `p4-version-abweichend`, `p4-version-unlesbar`, `p4-version-ohne-ziffer` |
+| 4 | nicht lesbare Hauptversion (leer) ist rot | Runner: `!= "$PGR_HAUPTVERSION" ]; then # P4-version` → `!= "$PGR_HAUPTVERSION" ] && [ -n "$gemeldet" ]; then # P4…` (`p4-unlesbar`) | `p4-version-unlesbar` |
+| 4 | Hauptversion ohne führende Ziffer ist rot | Runner: `${gemeldet%%[!0-9]*}` → `${gemeldet//[!0-9]/}` (`p4-ziffer`) | `p4-version-ohne-ziffer` |
+| 4 | der Server ist nach 60 Sekunden nicht bereit: 120 Versuche | Runner: `seq 1 120` → `seq 1 60` (`p4-60a`) | `p4-60-sekunden` |
+| 4 | der Server ist nach 60 Sekunden nicht bereit: Wartezeit 0,5 Sekunden | Runner: `sleep 0.5` → `sleep 1` (`p4-60b`) | `p4-60-sekunden` |
+| 4 | ein Server, der nicht bereit wird, ist rot und nennt die Version | Runner: `exit 1 # E-bereit` → `: # E-bereit` (`p4-bereit`) | `p4-nicht-bereit` |
+| 4 | ein Image, das sich nicht ziehen oder starten lässt, ist rot | Runner: `"$postgres_image" >/dev/null` → `"$postgres_image" >/dev/null \|\| true` (`p4-pull`) | `p4-pull` |
+| 5 | je Version ein Benutzer mit Passwort | Runner: `CREATE ROLE play_scram LOGIN` → `CREATE ROLE play_scram NOLOGIN` (`p5-benutzer`) | `p5-benutzer` |
+| 5 | Methode `scram-sha-256` für ihn in `pg_hba.conf` | Runner: `play_scram all scram-sha-256` → `play_scram all md5` (`p5-methode`) | `p5-methode`, `p5-hba-vor-allgemeiner` |
+| 5 | das Passwort wird mit scram-sha-256 hinterlegt, nichts mit md5 | Runner: `SET password_encryption = 'scram-sha-256';` → `SET password_encryption = 'md5';` (`p5-passwort-verschluesselung`) | `p5-methode`, `p5-kein-md5-klartext` |
+| 5 | die Zeile steht vor der allgemeinen Zeile | Runner: `{ printf "%s\n" '"$hba"'; cat "$hba"; }` → `{ cat "$hba"; printf "%s\n" '"$hba"'; }` (`p5-hba-nach-allgemeiner`) | `p5-hba-vor-allgemeiner` |
+| 5 | Klartext-Passwort und MD5 laufen in der Matrix nicht | Runner: `!= scram ]; then # P5-rollen` → `!= nie ]; then # P5-rollen` (`p5-rollen`) | `p5-kein-md5-klartext` |
+| 5 | scheitert die Einrichtung, ist die Version rot | Runner: `SELECT pg_reload_conf();"` → `SELECT pg_reload_conf();" \|\| true` (`p5-einrichtung`) | `p5-einrichtung-scheitert` |
+| 6 | die Referenz fährt das Ziel nicht | Treiber: Prüfzeile `P6-referenz` entfällt (`p6-referenz`) | `p6-referenz-nicht` |
+| 6 | die Versionen laufen in der Reihenfolge der Liste | Treiber: `for e in "${eintraege[@]}"; do   haupt="${e%%=*}"   [ "$h…` → `for e in $(printf "%s\n" "${eintraege[@]}" \| tac); do   …` (`p6-reihenfolge`) | `p6-reihenfolge`, `p6-zusammenfassung`, `p7-vor-naechster` |
+| 6 | nie zwei Server gleichzeitig | Runner: `"$docker" rm -f "$tests" "$pg" >/dev/null 2>&1 \|\| true` → `"$docker" rm -f "$tests" >/dev/null 2>&1 \|\| true` (`p6-nacheinander`) | `p6-nacheinander`, `p7-container` |
+| 6 | ist Phase 1 rot, entfällt Phase 2 | Runner: `  exit "$status"` → `  :` (`p6-phase2`) | `p6-meldung-phase1`, `p6-keine-phase2`, `p6-zusammenfassung` |
+| 6 | das Ziel fährt alle Versionen auch nach einer roten | Treiber: `rot+=("$haupt ($ort)") # P6-phase` → `rot+=("$haupt ($ort)"); break # P6-phase` (`p6-weiter`) | `p6-alle-versionen`, `p6-keine-phase2`, `p6-zusammenfassung` |
+| 6 | die Zusammenfassung nennt die Stufe jeder roten Version | Treiber: `rot+=("$haupt ($ort)")` → `rot+=("$haupt")` (`p6-phase-fehlt`) | `p6-meldung-phase1`, `p6-meldung-phase2`, `p6-meldung-aufbau`, `p6-zusammenfassung` |
+| 6 | die Meldung nennt „Phase 1“ für eine Version mit roter Phase 1 | Treiber: `1) ort="Phase 1"` → `1) ort="Phase 2"` (`p6-ort1`) | `p6-meldung-phase1`, `p6-zusammenfassung` |
+| 6 | die Meldung nennt „Phase 2“ für eine Version mit roter Phase 2 | Treiber: `2) ort="Phase 2"` → `2) ort="Phase 1"` (`p6-ort2`) | `p6-meldung-phase2`, `p6-zusammenfassung` |
+| 6 | die Meldung nennt „Aufbau“ für eine Version, die vor Phase 1 rot wird (Lesart, siehe Rückgabe) | Treiber: `*) ort="Aufbau"` → `*) ort="Phase 1"` (`p6-ort-aufbau`) | `p6-meldung-aufbau` |
+| 6 | das Ziel endet mit Exit-Code ungleich 0, wenn eine Version rot war | Treiber: `exit 1 # P6-exit` → `exit 0 # P6-exit` (`p6-exit`) | `p6-exit` |
+| 6 | das Testimage wird einmal gebaut, nicht je Version | Treiber: `PGR_BAUEN=0` → `PGR_BAUEN=1` (`p6-bauen`) | `p6-testimage-einmal` |
+| 6 | ein roter Bau des Testimages beendet das Ziel rot, ohne Server | Treiber: `if ! wait "$laeuft"; then` → `if false; then` (`p6-build-rot`) | `p6-build-rot` |
+| 7 | Container einer Version sind entfernt (nach Ende, Fehler, rotem Lauf, Signal; vor der nächsten Version) | Runner: `"$docker" rm -f "$tests" "$pg" >/dev/null 2>&1 \|\| true` → `:` (`p7-container`) | `p7-container`, `p7-ende-rot`, `p7-ende-bereit`, `p7-ende-gruen`, `p7-vor-naechster`, `p7-sigINT-gruppe`, `p7-sigTERM-gruppe`, `p7-sigINT-skript`, `p7-sigTERM-skript` |
+| 7 | das Netz einer Version ist entfernt | Runner: `"$docker" network rm "$netz" >/dev/null 2>&1 \|\| true` → `:` (`p7-netz`) | `p7-netz`, `p7-ende-rot`, `p7-ende-bereit`, `p7-ende-pull`, `p7-ende-gruen`, `p7-vor-naechster`, `p7-sigINT-gruppe`, `p7-sigTERM-gruppe`, `p7-sigINT-skript`, `p7-sigTERM-skript` |
+| 7 | das Volume einer Version ist entfernt | Runner: `"$docker" volume rm "$daten" >/dev/null 2>&1 \|\| true` → `:` (`p7-volume`) | `p7-volume`, `p7-ende-rot`, `p7-ende-bereit`, `p7-ende-pull`, `p7-ende-gruen`, `p7-vor-naechster`, `p7-sigINT-gruppe`, `p7-sigTERM-gruppe`, `p7-sigINT-skript`, `p7-sigTERM-skript` |
+| 7 | Aufräumen nach einem roten Lauf (Phase 1 rot) | Runner: `  exit "$status"` → `  kill -KILL $$` (`p7-ende-rot`) | `p7-ende-rot` |
+| 7 | Aufräumen nach einem Fehler des Aufbaus: Server nicht bereit | Runner: `exit 1 # E-bereit` → `kill -KILL $$ # E-bereit` (`p7-ende-bereit`) | `p7-ende-bereit` |
+| 7 | Aufräumen nach einem Fehler des Aufbaus: Image nicht zu ziehen | Runner: `"$postgres_image" >/dev/null` → `"$postgres_image" >/dev/null \|\| kill -KILL $$` (`p7-ende-pull`) | `p7-ende-pull` |
+| 7 | Aufräumen nach grünem Ende | Runner: `echo "run-integration-tests: gruen"` → `kill -KILL $$` (`p7-ende-gruen`) | `p7-ende-gruen`, `p7-container`, `p7-netz`, `p7-volume`, `p7-vor-naechster` |
+| 7 | Aufräumen nach SIGINT | Treiber: `trap 'beenden 130' INT # S-INT` → `trap 'kill -KILL \$\$' INT # S-INT` (`p7-int-treiber`) | `p7-sigINT-gruppe`, `p7-sigINT-skript` |
+| 7 | Aufräumen nach SIGTERM (Treiber) | Treiber: `trap 'beenden 143' TERM # S-TERM` → `trap 'kill -KILL \$\$' TERM # S-TERM` (`p7-term-treiber`) | `p7-sigTERM-gruppe`, `p7-sigTERM-skript` |
+| 7 | Aufräumen nach SIGTERM (Runner) | Runner: `trap 'trap "" TERM; exit 143' TERM # S-TERM` → `trap 'kill -KILL \$\$' TERM # S-TERM` (`p7-term-runner`) | `p7-sigINT-gruppe`, `p7-sigINT-skript`, `p7-sigTERM-gruppe`, `p7-sigTERM-skript` |
+| 8 | Referenz ohne Auswahl: volle Suite in Phase 1 | Runner: `wahl_1=()` → `wahl_1=(-test.run '^TestE2EOhnePostgres')` (`p8-phase1`) | `p8-phase1` |
+| 8 | Referenz ohne Auswahl: in Phase 2 `^TestE2EOhnePostgres` | Runner: `wahl_2=(-test.run '^TestE2EOhnePostgres')` → `wahl_2=(-test.run '^TestE2E')` (`p8-phase2`) | `p8-phase2` |
+| 8 | Referenz ohne Auswahl legt alle vier Benutzer an | Runner: `!= scram ]; then # P5-rollen` → `!= scram ] && false; then # P5-rollen` (`p8-rollen`) | `p8-rollen` |
+| 8 | Referenz ohne Auswahl prüft keine erwarteten Tests | Runner: `if [ "${#tests_1[@]}" -gt 0 ]; then erwartet` → `if true; then erwartet` (`p8-pruefung`) | `p8-ohne-pruefung`, `p8-phase2` |
+| 9 | ein Rezept mit `$(MAKE)` fährt unter `-n`, `-q`, `-t`, `MAKEFLAGS=n` docker (Mutation: Rezept mit `$(MAKE)`) | Fragment: `@POSTGRES_VERSIONEN=` → `@$(MAKE) --version >/dev/null; POSTGRES_VERSIONEN=` (`p9-make`) | `p9-n`, `p9-q`, `p9-t`, `p9-makeflags-n`, `p9-n-und-i` |
+| 9 | ein Rezept mit `+` fährt unter `-n`, `-q`, `-t`, `MAKEFLAGS=n` docker (Mutation: Rezept mit `+`) | Fragment: `$\t@POSTGRES_VERSIONEN=` → `$\t+@POSTGRES_VERSIONEN=` (`p9-plus`) | `p9-n`, `p9-q`, `p9-t`, `p9-makeflags-n`, `p9-n-und-i` |
+| 9 | das Ziel schreibt keinen Stand | Fragment: `bash tools/test/run-postgres-versionen.sh` → `bash tools/test/run-postgres-versionen.sh && touch .harne…` (`p9-stand`) | `p9-kein-stand` |
+| 12 | `test-postgres-versionen` hängt an `GATE_CHECKS` | Fragment: `GATE_CHECKS += test-postgres-versionen ` → `GATE_CHECKS += ` (`p12-ziel`) | `p12-gate-checks-ziel` |
+| 12 | `test-postgres-versionen-gegenprobe` hängt an `GATE_CHECKS` | Fragment: `GATE_CHECKS += test-postgres-versionen test-postgres-vers…` → `GATE_CHECKS += test-postgres-versionen` (`p12-gegenprobe`) | `p12-gate-checks-gegenprobe` |
+| 3 | Test `TestE2ERecordSelect1` der Teilmenge: ohne PASS-Zeile ist die Version rot, die Auswahl nennt ihn | Fragment: `TestE2ERecordSelect1` aus der Liste gestrichen (`p3-element-…`) | `p3-element-TestE2ERecordSelect1` |
+| 3 | Test `TestE2EVorbereitungOhnePostgres` der Teilmenge: ohne PASS-Zeile ist die Version rot, die Auswahl nennt ihn | Fragment: `TestE2EVorbereitungOhnePostgres` aus der Liste gestrichen (`p3-element-…`) | `p3-element-TestE2EVorbereitungOhnePostgres` |
+| 3 | Test `TestE2EVorbereitungExtendedOhnePostgres` der Teilmenge: ohne PASS-Zeile ist die Version rot, die Auswahl nennt ihn | Fragment: `TestE2EVorbereitungExtendedOhnePostgres` aus der Liste gestrichen (`p3-element-…`) | `p3-element-TestE2EVorbereitungExtendedOhnePostgres` |
+| 3 | Test `TestE2ERecordExtendedPgx` der Teilmenge: ohne PASS-Zeile ist die Version rot, die Auswahl nennt ihn | Fragment: `TestE2ERecordExtendedPgx` aus der Liste gestrichen (`p3-element-…`) | `p3-element-TestE2ERecordExtendedPgx` |
+| 3 | Test `TestE2ERecordAnmeldung/scram-sha-256` der Teilmenge: ohne PASS-Zeile ist die Version rot, die Auswahl nennt ihn | Fragment: `TestE2ERecordAnmeldung/scram-sha-256` aus der Liste gestrichen (`p3-element-…`) | `p3-element-TestE2ERecordAnmeldung/scram-sha-256` |
+| 3 | Test `TestE2EReplayLebendpruefungWiePostgres` der Teilmenge: ohne PASS-Zeile ist die Version rot, die Auswahl nennt ihn | Fragment: `TestE2EReplayLebendpruefungWiePostgres` aus der Liste gestrichen (`p3-element-…`) | `p3-element-TestE2EReplayLebendpruefungWiePostgres` |
+| 3 | Test `TestE2EOhnePostgresReplay` der Teilmenge: ohne PASS-Zeile ist die Version rot, die Auswahl nennt ihn | Fragment: `TestE2EOhnePostgresReplay` aus der Liste gestrichen (`p3-element-…`) | `p3-element-TestE2EOhnePostgresReplay` |
+| 3 | Test `TestE2EOhnePostgresExtendedReplay` der Teilmenge: ohne PASS-Zeile ist die Version rot, die Auswahl nennt ihn | Fragment: `TestE2EOhnePostgresExtendedReplay` aus der Liste gestrichen (`p3-element-…`) | `p3-element-TestE2EOhnePostgresExtendedReplay` |
+
+Mutation und Fall der Aufzählung in Punkt 7 („Ende“): grün (`p7-ende-gruen`), rot (`p7-ende-rot`), Aufbau (`p7-ende-bereit`, `p7-ende-pull`), `SIGINT` und `SIGTERM` je an die Prozessgruppe und an das Skript (`p7-sigINT-gruppe`, `p7-sigINT-skript`, `p7-sigTERM-gruppe`, `p7-sigTERM-skript`); die Mutationen der Zeilen `p7-*` oben. Wer das Signal nicht aufräumt, färbt je nach Pfad `p7-sigINT-*` und `p7-sigTERM-*` rot (`p7-int-treiber`, `p7-term-treiber`, `p7-term-runner`).
+
+**Gegen echte Server gesehen** (kein Teil der Gegenprobe; `make test-postgres-versionen` und Mutation in der Arbeitskopie, danach zurückgesetzt, `touch` nach jeder Änderung, damit der Build-Kontext sie überträgt):
+
+| Zusage (Punkt) | Mutation | Ergebnis |
+|---|---|---|
+| 11, Grenze falsch gegen eine Version zwischen ihr und 17: `\v` | `test/integration/lebendpruefung_e2e_test.go`: `vtAbVersion = 17` → `19` | 14, 15, 16 grün; 18 rot in Phase 1: „PostgreSQL 18.6 beantwortet `\v` mit … die leere Anfrage …; `\v` Leerraum laut LH-FA-09.a: false“, Meldung `ROT — 18 (Phase 1)` |
+| 11, Grenze zu niedrig: eine Version unter 17 | `vtAbVersion = 17` → `16` | 14, 15 und 18 grün; 16 rot in Phase 1: „PostgreSQL 16.15 beantwortet `\v` mit fehler 42601 …; `\v` Leerraum laut LH-FA-09.a: true“ |
+| 11, Wert ohne führende Ziffer macht den Test rot | `hauptversion`: `v := "x" + conn.ParameterStatus("server_version")` | alle vier rot: `server_version "x14.24": strconv.Atoi: parsing "": invalid syntax` (die Mutation fasst nur die Eingabe an; ein Mutant, der den `Fatalf` entfernt, ist nicht gefahren) |
+| 11, Basis ohne Mutation | — | 14, 15, 16, 18 grün; `vtAbVersion = 17` stimmt für 14.24, 15.19, 16.15 und 18.6 (keine Berichtigung nötig, keine Rückführung §4 (b) oder (c)) |
+| 4, Digest, der zu einem anderen Tag gehört | Liste `17=… 15=postgres:15-alpine@sha256:<Digest von 16>` | `Version 15: der Server meldet server_version '16.15'`, `ROT — 15 (Aufbau)`, keine Reste |
+| 4, Image, das sich nicht ziehen lässt | `15=postgres:15-alpine@sha256:000…0` | `manifest unknown`, `ROT — 15 (Aufbau)`, 18 danach grün, keine Reste |
+| 3, Test fehlt (umbenannt) | `POSTGRES_TESTS_PHASE1="TestE2ERecordSelect1 TestE2ENichtDa"` | `Version 18, Phase 1: Test TestE2ENichtDa ohne PASS-Zeile`, `ROT — 18 (Phase 1)` |
+| 3, Auswahl ohne Treffer | `POSTGRES_TESTS_PHASE1="TestE2ENichtDa"` | `Auswahl ohne Treffer, kein Test bestanden`, `ROT — 18 (Phase 1)`; `go test` selbst endet dabei grün |
+| 7, `SIGINT` und `SIGTERM` an die Prozessgruppe von `make test-postgres-versionen` und an `tools/test/run-postgres-versionen.sh`, sobald der Testcontainer läuft | — | Exit 130 und 143; nach dem Ende der Prozesse 0 Container, 0 Netze, 0 Volumes. Über `make`: Bei `SIGTERM` an die Gruppe endet `make` vor dem Skript; die Reste verschwinden Sekunden später (siehe Rückgabe 5) |
+
+Nicht gefahren, weil ohne Mehrwert für den Slice: ein Lauf des vollen `make gates` gegen eine Version mit abweichender Grenze (keine Abweichung gefunden), ein roter Bau des Testimages gegen echtes Docker (nur Attrappe, `p6-build-rot`).
+
+**Namen der Nahtstelle** (für `slice-v1-abschluss-postgres-versionen-zusage`, §1 dort; der Planner trägt sie bei der Closure ein):
+
+1. Datei `harness/mk/postgres-versionen.mk`; Variablen `POSTGRES_REFERENZ` (`17`) und `POSTGRES_VERSIONEN` (Einträge `<Hauptversion>=<Image>`: 14, 15, 16, 17, 18); Referenz-Image gleich `POSTGRES_IMAGE` aus `harness/mk/integration.mk`.
+2. Teilmenge im Wortlaut (Variablen `POSTGRES_TESTS_PHASE1`, `POSTGRES_TESTS_PHASE2`): Phase 1 `TestE2ERecordSelect1` (Szenario 1), `TestE2EVorbereitungOhnePostgres` (Szenario 2, Vorbereitung), `TestE2EVorbereitungExtendedOhnePostgres` und `TestE2ERecordExtendedPgx` (Szenario 7), `TestE2ERecordAnmeldung/scram-sha-256` (Fall SCRAM-SHA-256), `TestE2EReplayLebendpruefungWiePostgres`; Phase 2 `TestE2EOhnePostgresReplay` (Szenario 2), `TestE2EOhnePostgresExtendedReplay` (Szenario 7).
+3. Berichtigung an der Versionsgrenze in `LH-FA-09.a`: keine; die Grenze 17 gilt für 14, 15, 16 und 18 (Lauf und Mutationen oben).
+4. Nachfahrbarer Lauf je Version, hier 16: `make test-postgres-versionen POSTGRES_VERSIONEN='16=postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea 17=postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24'` (der Eintrag der Referenz gehört zur Liste, das Ziel fährt ihn nicht; gelaufen, 6 s). Für eine andere Version den Eintrag aus dem Fragment einsetzen. Gegen die Referenz selbst: `make test-integration`.
+
+**Rückgabe an den Architect** (Randform · Frage; der Code trägt die Lesart schon, sie ist je eine Zeile zu ändern; `AGENTS.md` §3.12):
+
+1. *Stufe „Aufbau“.* Ein Fehler vor der ersten Testphase (Image nicht zu ziehen oder zu starten, Server nicht bereit, Hauptversion abweichend oder nicht lesbar, Einrichtung der Anmeldung scheitert) steht in der Zusammenfassung als `<Version> (Aufbau)`. `SPEC-053` Punkt 6 nennt nur die Phase 1 und 2. Soll „Aufbau“ so heißen, oder fällt der Fehler unter Phase 1?
+2. *Roter Bau des Testimages.* Er beendet das Ziel sofort mit `ROT — das Testimage ist nicht zu bauen` und Exit 1, ohne Version zu starten. Punkt 6 sagt „Das Testimage wird einmal gebaut“, nicht, was ein roter Bau tut.
+3. *Rote Phase 2 und Prüfung der erwarteten Tests in Phase 2.* Eine rote Phase 2 gilt als „Phase 2“; fehlt nur dort ein erwarteter Test, ebenso. Punkt 3 nennt die Meldung „Test, Version und Phase“; die Zuordnung der Prüfung zur Phase ist Lesart.
+4. *Zusammengeführte Ausgabe des Runners.* Der Runner leitet die Ausgabe von `docker run` des Testlaufs jetzt über `2>&1 | tee` in eine Datei (Voraussetzung der Prüfung); die Ausgabe der Tests auf stderr erscheint damit auch bei `make test-integration` auf stdout. Der Exit-Code und die Tests sind unverändert (Punkt 8 sagt „wie vor diesem Vertrag“).
+5. *Signal über `make`.* Punkt 7 sagt „nach `SIGINT` und `SIGTERM`“. Das Skript räumt vor seinem Ende auf (Fälle `p7-sig*`, echt gesehen). Bei `SIGTERM` an die Prozessgruppe von `make` endet `make` vor dem Skript, das danach Sekunden weiter aufräumt; `SIGINT` an die Gruppe endete mit Exit 130 ohne Reste; `SIGINT` nur an `make` ließ `make` das Skript abwarten, und alle vier Versionen liefen durch (Exit 130). Reicht „das Skript räumt auf“, oder soll ein Fall den Zeitpunkt nach dem Ende von `make` prüfen?
+6. *Ein Fall für „ziehen oder starten“.* Punkt 4 nennt „nicht ziehen oder starten“; die Attrappe lässt `docker run -d` scheitern und kann beides nicht trennen (`p4-pull`). Genügt das?
+
+**Behauptung zur DoD** (Bestätigung bleibt beim Verifier): Punkt 1 der DoD: Bereich 14 bis 18 bestätigt (oben), Liste in `harness/mk/postgres-versionen.mk`, Ziel hängt an `GATE_CHECKS` (`p12-*`), fährt 1, 2, 7, den Fall SCRAM-SHA-256 und den Lebendprüfungs-Abgleich gegen 14, 15, 16 und 18, je per Digest (`p2g`, `p2h-*`), `harness/README.md` §Sensors führt beide Ziele, die Ausnahmeliste und die Gegenprobe der schnellen Kette kennen sie (Mutanten `m-test-postgres-versionen*`), gebrochen und rot gesehen: Image ohne Digest, fehlende Version (Referenz fehlt, Hauptversion nicht aus Ziffern, nicht ziehbares Image), Auswahl ohne Treffer. Punkt 2: `TestE2EReplayLebendpruefungWiePostgres` grün gegen 14, 15, 16 und 18; die Grenze 17 stimmt, keine Rückführung. Punkt 3: `make gates` grün (561 s, Nachweis geschrieben). Die Nahtstelle (Punkt 9 der DoD) trägt der Planner bei der Closure ein; die Namen stehen oben.
+
+**Hinweise für die Closure (Ausgänge, Urteil beim Planner).** Versionsbereich: Belege oben, offen bleibt die Pflege von Hand, wenn 19 erscheint oder 14 endet (2026-11-12). Versionsgrenze für `\v`: bestätigt für 14, 15, 16, 18 (Lauf, Mutationen), 19 ungeprüft. Teilmenge fällt leer: Runner und Treiber verlangen je Test eine PASS-Zeile, drei Formen rot gesehen (Attrappe und echt). Laufzeit: oben, Zuwachs rund 105 s. Anmeldung je Image: gleiche Einrichtung wirkte auf 14, 15, 16, 18 (SCRAM-Fall grün). Zweite Phase verdeckt: erbt der Treiber, die Meldung nennt die Phase (`p6-meldung-phase1`). Namen der Nahtstelle: oben. Abweichung hebt die Schichten: nicht eingetreten. Beobachtung für das Register: `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` trat nicht wieder auf (die Prüfung der PASS-Zeilen schloss die Klasse); `BEO-REPO/spec-randform-erst-im-review-entschieden` berührt die Rückgabe oben.
+
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
