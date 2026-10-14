@@ -292,21 +292,23 @@ pruefe() {
   liste="$v17 $v18"
   ist p3-skip 'matrix AT_SKIP=TestE2EVorbereitungOhnePostgres; in_aus "Test TestE2EVorbereitungOhnePostgres übersprungen" && in_aus "ROT — 18 (Phase 1)"'
   ist p3-ohne-treffer 'matrix AT_KEINE=1; in_aus "Phase 1: Auswahl ohne Treffer" && in_aus "ROT — 18 (Phase 1)"'
+  liste="$v17 $v16"
+  ist p3-fehlt-phase2 'matrix AT_UMBENANNT=TestE2EOhnePostgresReplay; in_aus "Version 16, Phase 2: Test TestE2EOhnePostgresReplay ohne PASS-Zeile" && in_aus "ROT — 16 (Phase 2)" && ! in_aus "Phase 1"'
   liste=""
 
   # Punkt 4: der Server.
   ist p4-nicht-bereit 'matrix AT_NICHT_BEREIT=15; in_aus "Version 15: PostgreSQL nicht bereit" && in_aus "15 (Aufbau)"'
-  ist p4-60-sekunden 'matrix AT_NICHT_BEREIT=15; [ "$(schlafsumme)" = 60 ]'
-  ist p4-pull 'matrix AT_PULL_ROT=16; in_aus "16 (Aufbau)" && [ "$(anzahl "run -d .*postgres:18")" -eq 1 ]'
+  ist p4-60-sekunden 'matrix AT_NICHT_BEREIT=16; [ "$(schlafsumme)" = 60 ] && in_aus "16 (Aufbau)"'
+  ist p4-start 'matrix AT_PULL_ROT=16; in_aus "16 (Aufbau)" && [ "$(anzahl "run -d .*postgres:18")" -eq 1 ]'
   ist p4-version-abweichend 'matrix AT_VERSION_15=14.2; in_aus "Version 15: der Server meldet server_version ${q}14.2${q}" && in_aus "15 (Aufbau)"'
   ist p4-version-unlesbar 'matrix AT_VERSION_15=; in_aus "Version 15: der Server meldet server_version ${q}${q}" && in_aus "15 (Aufbau)"'
-  ist p4-version-ohne-ziffer 'matrix AT_VERSION_15=x15; in_aus "Version 15: der Server meldet server_version ${q}x15${q}"'
+  ist p4-version-ohne-ziffer 'matrix AT_VERSION_15=x15; in_aus "Version 15: der Server meldet server_version ${q}x15${q}" && in_aus "15 (Aufbau)"'
 
   # Punkt 5: scheitert die Einrichtung, ist die Version rot.
   ist p5-einrichtung-scheitert 'matrix AT_HBA_ROT=16; in_aus "ROT — 16 (Aufbau)"'
 
   # Punkt 6: Ablauf und Meldung.
-  ist p6-build-rot 'matrix AT_BAUEN_ROT=1; in_aus "das Testimage ist nicht zu bauen" && [ "$(anzahl "run -d")" -eq 0 ]'
+  ist p6-build-rot 'matrix AT_BAUEN_ROT=1; [ "$code" -ne 0 ] && in_aus "das Testimage ist nicht zu bauen" && [ "$(anzahl "^build ")" -eq 1 ] && [ "$(grep -c . "$log")" -eq 1 ]'
   ist p6-meldung-phase1 'matrix AT_ROT=1-15; in_aus "ROT — 15 (Phase 1)"'
   ist p6-keine-phase2 'matrix AT_ROT=1-15; [ "$(anzahl "^run --rm --name [^ ]*-15-tests .*PGR_OHNE_POSTGRES=1")" -eq 0 ] && [ "$(anzahl "^run --rm --name [^ ]*-16-tests .*PGR_OHNE_POSTGRES=1")" -eq 1 ]'
   ist p6-alle-versionen 'matrix AT_ROT=1-14; gestartet 15 16 18'
@@ -414,8 +416,10 @@ for t in "${tests[@]}"; do
 done
 mut p3-skip "$R_" 'if grep -Eq "^ *--- SKIP: $name \(" "$aus"; then # P3-skip' 'if false; then # P3-skip' "p3-skip p3-ohne-treffer" p3-skip
 mut p3-treffer "$R_" "if ! grep -Eq '^ *--- PASS: ' \"\$aus\"; then # P3-treffer" 'if false; then # P3-treffer' "p3-skip p3-ohne-treffer" p3-ohne-treffer
-mut p3-fehlt "$R_" 'rot=1 # P3-fehlt' 'rot=0 # P3-fehlt' "p3-skip p3-element" p3-skip "${tests[@]/#/p3-element-}"
+mut p3-fehlt "$R_" 'rot=1 # P3-fehlt' 'rot=0 # P3-fehlt' "p3-skip p3-element p3-fehlt" p3-skip p3-fehlt-phase2 "${tests[@]/#/p3-element-}"
 mut p3-auswahl-top "$R_" 'top+=("${n%%/*}")' ':' "p3-auswahl p3-element" p3-auswahl "${tests[@]/#/p3-element-}"
+mut p3-phase-fest "$R_" 'local aus="$1" ph="$2" name rot=0' 'local aus="$1" ph=1 name rot=0' p3 p3-fehlt-phase2 p3-element-TestE2EOhnePostgresReplay p3-element-TestE2EOhnePostgresExtendedReplay
+mut p3-phase-fest-16 "$R_" 'local aus="$1" ph="$2" name rot=0' 'local aus="$1" ph="$2" name rot=0; if [ "$version" = 16 ]; then ph=1; fi' p3 p3-fehlt-phase2
 mut p3-auswahl-sub "$R_" 'sub+=("${n#*/}")' ':' "p3-auswahl p3-element" p3-auswahl p3-element-TestE2ERecordAnmeldung/scram-sha-256
 
 # --- Punkt 4: Server ---
@@ -424,8 +428,15 @@ mut p4-unlesbar "$R_" '!= "$PGR_HAUPTVERSION" ]; then # P4-version' '!= "$PGR_HA
 mut p4-ziffer "$R_" '${gemeldet%%[!0-9]*}' '${gemeldet//[!0-9]/}' p4-version p4-version-ohne-ziffer
 mut p4-60a "$R_" 'seq 1 120' 'seq 1 60' "p4-60 p4-nicht-bereit" p4-60-sekunden
 mut p4-60b "$R_" 'sleep 0.5' 'sleep 1' "p4-60 p4-nicht-bereit" p4-60-sekunden
-mut p4-bereit "$R_" 'exit 1 # E-bereit' ': # E-bereit' "p4-60 p4-nicht-bereit" p4-nicht-bereit
-mut p4-pull "$R_" '"$postgres_image" >/dev/null' '"$postgres_image" >/dev/null || true' p4-pull p4-pull
+mut p4-bereit "$R_" 'exit 1 # E-bereit' ': # E-bereit' "p4-60 p4-nicht-bereit" p4-nicht-bereit p4-60-sekunden
+mut p4-start "$R_" '"$postgres_image" >/dev/null' '"$postgres_image" >/dev/null || true' p4-start p4-start
+# Stufe „Aufbau“: je Form eine Mutation, die die Stufe auf Phase 1 fallen lässt und nur ihren Fall rot färbt.
+mut p4-aufbau-bereit "$R_" 'exit 1 # E-bereit' 'phase 1; exit 1 # E-bereit' "p4-60 p4-nicht-bereit" p4-nicht-bereit p4-60-sekunden
+mut p4-aufbau-bereit-16 "$R_" 'exit 1 # E-bereit' '[ "$version" = 16 ] && phase 1; exit 1 # E-bereit' "p4-60 p4-nicht-bereit" p4-60-sekunden
+mut p4-aufbau-start "$R_" '"$postgres_image" >/dev/null' '"$postgres_image" >/dev/null || { phase 1; exit 1; }' p4-start p4-start
+mut p4-aufbau-abweichend "$R_" "server_version '\$gemeldet'\" >&2" "server_version '\$gemeldet'\" >&2; case \"\$gemeldet\" in [0-9]*) phase 1 ;; esac" p4-version p4-version-abweichend
+mut p4-aufbau-unlesbar "$R_" "server_version '\$gemeldet'\" >&2" "server_version '\$gemeldet'\" >&2; case \"\$gemeldet\" in '') phase 1 ;; esac" p4-version p4-version-unlesbar
+mut p4-aufbau-ohne-ziffer "$R_" "server_version '\$gemeldet'\" >&2" "server_version '\$gemeldet'\" >&2; case \"\$gemeldet\" in [!0-9]?*) phase 1 ;; esac" p4-version p4-version-ohne-ziffer
 
 # --- Punkt 5: Anmeldung ---
 mut p5-benutzer "$R_" 'CREATE ROLE play_scram LOGIN' 'CREATE ROLE play_scram NOLOGIN' p5 p5-benutzer
@@ -434,6 +445,7 @@ mut p5-passwort-verschluesselung "$R_" "SET password_encryption = 'scram-sha-256
 mut p5-hba-nach-allgemeiner "$R_" '{ printf "%s\n" '"'"'"$hba"'"'"'; cat "$hba"; }' '{ cat "$hba"; printf "%s\n" '"'"'"$hba"'"'"'; }' p5 p5-hba-vor-allgemeiner
 mut p5-rollen "$R_" '!= scram ]; then # P5-rollen' '!= nie ]; then # P5-rollen' p5 p5-kein-md5-klartext
 mut p5-einrichtung "$R_" 'SELECT pg_reload_conf();"' 'SELECT pg_reload_conf();" || true' p5 p5-einrichtung-scheitert
+mut p5-aufbau-einrichtung "$R_" 'SELECT pg_reload_conf();"' 'SELECT pg_reload_conf();" || { phase 1; exit 1; }' p5 p5-einrichtung-scheitert
 
 # --- Punkt 6: Ablauf und Meldung ---
 mut p6-referenz "$D_" %P6-referenz "p6-referenz-nicht p6-alle-versionen" p6-referenz-nicht
@@ -452,6 +464,10 @@ mut p6-ort-aufbau "$D_" '*) ort="Aufbau"' '*) ort="Phase 1"' "p6-meldung p6-zusa
 mut p6-exit "$D_" 'exit 1 # P6-exit' 'exit 0 # P6-exit' "p6-meldung p6-zusammenfassung p6-exit" p6-exit
 mut p6-bauen "$D_" 'PGR_BAUEN=0' 'PGR_BAUEN=1' p6-testimage-einmal p6-testimage-einmal
 mut p6-build-rot "$D_" 'if ! wait "$laeuft"; then' 'if false; then' p6-build-rot p6-build-rot
+mut p6-build-rot-aufruf "$D_" 'nicht zu bauen" >&2' 'nicht zu bauen" >&2; "$docker" network create --internal x' p6-build-rot p6-build-rot
+mut p6-build-rot-exit "$D_" 'nicht zu bauen" >&2
+  exit 1' 'nicht zu bauen" >&2
+  exit 0' p6-build-rot p6-build-rot
 
 # --- Punkt 7: Aufräumen ---
 mut p7-container "$R_" '"$docker" rm -f "$tests" "$pg" >/dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-container p7-ende-rot p7-ende-bereit p7-ende-gruen p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
