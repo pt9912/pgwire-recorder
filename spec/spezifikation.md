@@ -382,6 +382,79 @@ typische PostgreSQL-Treiber ohne reale Datenbankverbindung eine Session aufbauen
 können. v1 ist nicht als Sicherheitsgrenze gedacht; Replay läuft in einer
 kontrollierten Testumgebung.
 
+**Randformen der Vermittlung (Record).** Die Anmeldung ist Teil des Aufbaus: Sie reicht von der
+Startnachricht des Clients bis zum ersten `ReadyForQuery` des Servers. Der Recorder sendet dem Client
+bis zur ersten Nachricht des Servers nichts.
+
+* *Vermittlung.* Der Recorder rechnet nichts und liest keinen Inhalt der Verfahren: Eine Anforderung des
+  Servers (Nachricht `R`, Code 3, 5 oder 10) geht unverändert an den Client, die Antwort des Clients
+  (Nachricht `p`) unverändert an den Server. Salz, Nonce, Hash und Beweis des Verfahrens sind für ihn
+  undurchsichtig. Wie viele Nachrichten der Austausch braucht, bestimmt der Server. `AuthenticationOk`
+  (Code 0) sendet der Recorder dem Client wie ohne Passwort-Anmeldung: nach dem Ende des Aufbaus beim
+  Server und vor dessen übrigen Aufbau-Antworten; eine Nachricht `R` mit Code 12 (`SASLFinal`) geht
+  davor an den Client, ohne dass eine Antwort erwartet wird.
+* *Verfahren.* Vermittelt werden Klartext-Passwort (Code 3), MD5 (Code 5) und SASL (Code 10 mit den
+  Fortsetzungen 11 und 12). Zugesagt ist SCRAM-SHA-256; der Recorder liest die Liste der Mechanismen
+  nicht, ein anderer Mechanismus ist nicht zugesagt (Grenze). Das Verfahren bestimmt der Server, der
+  Recorder gibt keines vor und kennt keinen Alias; das Verhalten hängt nicht von der Version des Servers
+  ab. Channel Binding gelingt nicht, weil der Recorder TLS nur zum Client terminiert: Wählt ein Client
+  `SCRAM-SHA-256-PLUS`, scheitert die Anmeldung beim Server, dessen Fehlerantwort unverändert zum Client
+  geht; ein Client, der Channel Binding verlangt und es nicht angeboten bekommt, beendet die Verbindung
+  selbst (*Ende durch den Client*).
+* *Nicht vermittelt.* Jeder andere Code einer Anforderung (2, 6, 7, 9 und jeder unbekannte Code) und
+  eine Nachricht des Servers im Aufbau, die der Recorder nicht lesen kann, ist `PGR-E6001`
+  (`LH-FA-02.b`); der Recorder sendet dem Server weder eine weitere Nachricht noch `Terminate` und
+  schließt die Verbindung, der Client erhält die Fehlerantwort. Die Meldung nennt den Code, nie den
+  Inhalt der Nachricht.
+* *Reihenfolge des Servers.* Eine Fortsetzung (Code 8, 11, 12) ohne laufenden Austausch ihres Verfahrens,
+  ein Code 12 vor Code 11, ein `AuthenticationOk` im laufenden SASL-Austausch vor Code 12, eine weitere
+  Anforderung (Code 3, 5, 10), nachdem eine beantwortet ist oder während ein SASL-Austausch läuft, und
+  jede Nachricht `R` nach `AuthenticationOk` sind `PGR-E4002`; die Folge am Server und am Client wie bei
+  *Nicht vermittelt*. Ein `ReadyForQuery` ohne vorheriges `AuthenticationOk` prüft der Recorder nicht
+  (akzeptiertes Negativ: Kein Server sendet es, der Recorder sendet `AuthenticationOk` selbst).
+* *Antwort des Clients.* Auf jede Anforderung erwartet der Recorder genau eine Nachricht `p`
+  (Passwort, Antwort auf MD5, `SASLInitialResponse` auf Code 10, `SASLResponse` auf Code 11), auf Code 12
+  keine. Er leitet sie unverändert weiter, auch eine leere oder inhaltlich falsche; ob sie gilt,
+  entscheidet der Server. Der Recorder liest sie erst, nachdem er die Anforderung weitergegeben hat; ein
+  Client, der vor der Anforderung antwortet, ist nicht zugesagt (Grenze: kein Treiber tut es, und der
+  Zeitpunkt ist nicht stabil zu prüfen). Eine Höchstlänge der Antwort gibt es nicht (wie bei einer
+  `Query`). Jede andere Nachricht des Clients in der Anmeldung als `p` und `Terminate`, auch eine
+  nicht lesbare, ist `PGR-E6001`, ohne dass sie an den Server geht; Folge wie bei *Nicht vermittelt*.
+  Eine Nachricht `p` außerhalb der Anmeldung gilt wie bisher als nicht unterstützte Nachricht
+  (`PGR-E6001`).
+* *Ende durch den Client.* Schließt der Client die Verbindung in der Anmeldung (Ende des Datenstroms,
+  Reset) oder sendet `Terminate`, ist das kein Verbindungsfehler und erzeugt weder Meldung noch Warnung:
+  Es gibt keine Interaktion. Der Recorder schließt die Verbindung zum Server ohne `Terminate`; die
+  Verbindung ist keine Session, auch nicht mit `--record-empty-sessions` (*Randformen des Recordings*).
+* *Fehlerantwort des Servers.* Eine Fehlerantwort im Aufbau, gleich welcher SQLSTATE und an welcher
+  Stelle des Austauschs (falsches Passwort, `reject` in der Zugriffsregel des Servers), geht mit allen
+  Feldern unverändert an den Client, ohne `AuthenticationOk`. Der Recorder schließt beide Verbindungen;
+  die Verbindung ist keine Session, es gibt keine Meldung und keinen Einfluss auf den Exit-Code, wie
+  bei jeder Fehlerantwort des Servers im Aufbau. Eine eigene Log-Zeile gibt es nicht
+  (akzeptiertes Negativ: Der Client sieht die Antwort, und eine Zeile bräuchte einen Meldungscode und
+  trüge den Benutzernamen des Clients ins Log).
+* *Aufzeichnung.* Weder Anforderungen noch Antworten der Anmeldung noch `AuthenticationOk` stehen in der
+  Aufzeichnung, auch kein Wert, der aus dem Passwort folgt. Die Startup-Parameter stehen unverändert
+  darin (`SPEC-003`); ein Client, der ein Passwort als Startup-Parameter sendet, hat es in der
+  Aufzeichnung (Grenze: Kein üblicher Treiber tut es, `LH-RB-01`).
+* *Log und Meldungen.* Keine Zeile und keine Meldung nennt auf irgendeiner Stufe, auch `debug`, das
+  Passwort, Salz, Nonce, Hash, Beweis oder Bytes einer Nachricht der Anmeldung; sie nennen den Code der
+  Nachricht und höchstens den Namen des Verfahrens.
+* *Abbruch und Herunterfahren.* Das erste Signal unterbricht die Anmeldung nicht: Wie der übrige Aufbau
+  läuft sie zu Ende (`LH-FA-13.a`), auch wenn der Recorder auf den Client wartet; eine Lesefrist des
+  Clients, die der Aufbau setzt, gilt für die Anmeldung nicht. Das Zwangsende schließt die Verbindung
+  zum Client sofort und beendet damit ein Warten auf ihn; die Anmeldung endet, der Recorder schließt die
+  Verbindung zum Server, ohne Meldung (`LH-FA-13.a` *Zwangsende*).
+* *Wartezeit.* Auf den Client wartet der Recorder in der Anmeldung ohne eigene Frist, wie auf den Server.
+* *Aufruf-Voraussetzung.* Der Austausch einer Verbindung läuft strikt nacheinander: Der Use Case
+  gibt dem Adapter der Client-Seite eine Anforderung, wartet auf deren Antwort und erst dann die
+  nächste; es kommt nie ein zweiter Aufruf, solange einer läuft. Verschiedene Verbindungen sind
+  voneinander unabhängig.
+* *Aufruf und Konfiguration.* Die Anmeldung kennt keine Option, keine Umgebungsvariable und keinen
+  Schlüssel der Konfigurationsdatei. `PGWIRE_RECORDER_PASSWORD` und Benutzer, Passwort und
+  Datenbank der Verbindung bleiben bei `record` unbeachtet (`LH-FA-17.a`), der Start prüft
+  und liest dafür nichts Neues.
+
 ---
 
 ### LH-FA-05.c — TLS
@@ -3022,3 +3095,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-12 | Konfiguration, Entscheidung des Nutzers: Umgebungsvariable der Option eines anderen Kommandos ist `PGR-E2001` (bisher unbeachtet; ersetzt die Fassung vom 2026-10-05 und 2026-10-08), Ausnahmen `PGWIRE_RECORDER_PASSWORD` und Variable ohne passende Option, keine Warnung (`LH-FA-17.a`) |
 | 2026-10-12 | Konfiguration: Rangfolge der Umgebungsvariablen in einem Durchlauf über die Tabelle (fremde und eigene gemeinsam, nur der erste Fehler), vor der Datei; Schreibweise des Namens genau; Katalogzeile `PGR-E2001` nennt die Umgebungsvariable (`LH-FA-17.a`, `SPEC-034`) |
 | 2026-10-13 | TLS zum Client: Randformen vor dem Code (Quellen und Schlüssel der Datei, Kombinationen und ihre Stelle vor `--upstream`, Stelle des Ladens von Zertifikat und Schlüssel, Form beider Dateien, Gültigkeit gegen die Systemuhr, Meldung ohne Pfad, Handshake: Bytes vor dem `S`, Abbruch durch Herunterfahren, direktes TLS als Grenze, weiterer `SSLRequest` auf der verschlüsselten Verbindung, Ende ohne `close_notify`, Rangfolge von `PGR-E6003` hinter `PGR-E6002`, `PGR-E6001` und `PGR-W3003`, keine Wirkung der Serverversion) (`LH-FA-23.a`, `LH-FA-17.a`) |
+| 2026-10-14 | Authentifizierung, Record: Randformen der Vermittlung vor dem Code (Verfahren und Grenze der Mechanismen, nicht vermittelte Codes `PGR-E6001`, Reihenfolge des Servers `PGR-E4002`, Antwort und Ende des Clients, Fehlerantwort des Servers, Aufzeichnung und Log ohne Zugangsdaten, erstes Signal und Zwangsende, Aufruf-Voraussetzung, keine Option) (`LH-FA-05.b`) |

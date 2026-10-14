@@ -500,7 +500,12 @@ Driving Adapter; fachlich relevante Startup-Daten werden in Domain-Typen
 
 - **Record:** Der Record-Service nutzt den PostgreSQL-Outbound-Port, um eine
   passende Upstream-Session aufzubauen. Die konkrete PGWire-Authentifizierung
-  gegenüber PostgreSQL liegt im Driven PostgreSQL Adapter.
+  gegenüber PostgreSQL liegt im Driven PostgreSQL Adapter. Verlangt der Server
+  eine Passwort-Anmeldung, vermittelt der Record-Service sie als Folge fachlicher
+  Nachrichten, die er unverändert zwischen dem Upstream-Adapter und dem Driving
+  PGWire Adapter weiterreicht; er liest ihren Inhalt nicht, und der Core kennt
+  weder PGWire-Typen noch ein Passwort. Der Driving PGWire Adapter spricht die
+  Anmeldung mit dem Client.
 - **Replay:** Der Driving PGWire Adapter erzeugt den für den Testclient
   erforderlichen PGWire-Handshake anhand der vom Replay Use Case gelieferten
   Sessioninformationen. Authentifizierung im Replay-Modus ist keine

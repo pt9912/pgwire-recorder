@@ -11,7 +11,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** welle-v1-abschluss.
 
-**Bezug:** [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md)
+**Bezug:** [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [ADR-0004](../../adr/0004-postgresql-upstream-ist-driven-adapter.md), [ADR-0010](../../adr/0010-verwendung-von-pgproto3.md), [ADR-0041](../../adr/0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md) (Proposed, Empfehlung des Architects)
 
 **Berührte Spec-Stellen:** `LH-FA-05.b` · `LH-FA-02.a` · `SPEC-034` · `ARC-006` · `ARC-007` · `architecture.md §4.4`
 
@@ -36,11 +36,15 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-doku-ist-stand`** (Verifikation V-152, Review F-573; bekannter Teilstand, keine neue Abweichung): Der Meldungstext des Binaries für ein Anmeldeverfahren, das `record` nicht vermittelt („der Upstream verlangt ein Anmeldeverfahren (…), das dieser Stand nicht vermittelt“, `internal/adapters/driven/postgres/upstream.go`), wird beim Liefern von SCRAM-SHA-256 so gefasst, dass er nur noch die Verfahren nennt, die `record` weiterhin nicht vermittelt; er gehört zu DoD-Punkt 2.
 
+**Randformen** sind vor dem Code entschieden (Architect, 2026-10-14, `AGENTS.md` §3.12): [`LH-FA-05.b`](../../../../spec/spezifikation.md#lh-fa-05b--authentifizierung) *Randformen der Vermittlung (Record)*. Der Slice liefert genau sie; jede Aufzählung und Ortsangabe dort zählt je Element (§6).
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Benutzerhandbuch und `README.md` — Doku-Folge-Slice `slice-v1-abschluss-anmeldung-doku` (dort §1 und DoD), direkt hinter diesem Slice in derselben Welle (`AGENTS.md` §3.11, §3.13; Entscheidung des Nutzers vom 2026-10-10): Mit der Dokumentation als eigener Schicht läge dieser Plan über zwei Schichten. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen.
 - Anmeldung beim Einspielen (`play`) — `slice-v1-abschluss-einspielen-anmeldung` (dort §1, *Übernimmt*; seit dem Schnitt von `slice-v1-abschluss-einspielen` vom 2026-10-09); `play` rechnet den Austausch selbst, `record` vermittelt ihn.
-- Client-Zertifikate und GSSAPI/SSPI — außerhalb des Funktionsumfangs von v1 (`LH-FA-05.b`).
+- Client-Zertifikate und GSSAPI/SSPI — außerhalb des Funktionsumfangs von v1 (`LH-FA-05.b`); sie enden als nicht vermitteltes Verfahren (`PGR-E6001`, DoD-Punkt 2).
+- Andere SASL-Mechanismen als SCRAM-SHA-256 und Channel Binding — nicht zugesagt (Grenze in `LH-FA-05.b`): Der Recorder liest die Liste der Mechanismen nicht und terminiert TLS nur zum Client.
+- Eine Option, Umgebungsvariable oder ein Schlüssel für die Anmeldung — `record` vermittelt, die Zugangsdaten gehören dem Client (`LH-FA-05.b`); `zuordnung()` und `nichtGelesen()` im CLI-Adapter bleiben unberührt, dort entsteht kein Code.
 - Anmeldung gegen jede unterstützte PostgreSQL-Version — `slice-v1-abschluss-postgres-versionen` (dort §1 *Anmeldung je Version* und DoD-Punkt 2; Entscheidung des Nutzers vom 2026-10-07): Dessen Matrix fährt den Fall SCRAM-SHA-256 des Anmeldetests aus diesem Slice gegen jede Version außer 17 und startet erst, wenn dieser Slice in `done/` liegt; hier läuft der Anmeldetest gegen die Referenzversion 17. Der Test muss deshalb als Fall SCRAM-SHA-256 einzeln wählbar sein.
 
 ## 2. Definition of Done
@@ -72,7 +76,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/ports/driving`, `…/driven`, `internal/hexagon/services` | update | Anmeldeaustausch als Folge fachlicher Nachrichten zwischen Client und Upstream |
-| `internal/adapters/driving/pgwire`, `internal/adapters/driven/postgres` | update | Weiterleitung der Anmeldenachrichten, `SetAuthType` für SASL; Meldungstext zu einem nicht vermittelten Verfahren (`upstream.go`, aus `slice-doku-ist-stand`, V-152) |
+| `internal/adapters/driving/pgwire`, `internal/adapters/driven/postgres` | update | Weiterleitung der Anmeldenachrichten, `SetAuthType` für SASL; Meldungstext zu einem nicht vermittelten Verfahren (`upstream.go`, aus `slice-doku-ist-stand`, V-152); im PGWire-Adapter endet die Lesefrist des Verbindungsaufbaus vor der Anmeldung (erstes Signal, `LH-FA-05.b` *Abbruch und Herunterfahren*) |
 | `test/integration` | update | Server mit `password`, `md5` und `scram-sha-256` in `pg_hba.conf` |
 
 ## 4. Trigger
@@ -84,8 +88,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: Der Anmeldeaustausch verlangt einen anderen Zuschnitt des Record-Ports als eine Erweiterung — zurück zur Zerlegung.
-- `in-progress` → `open`: SCRAM mit Kanalbindung lässt sich ohne TLS zum Upstream nicht vermitteln — Carveout.
+- `in-progress` → `next`: Der Anmeldeaustausch verlangt einen anderen Zuschnitt des Record-Ports als den Rückruf in `Open` ([ADR-0041](../../adr/0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md)) — zurück zur Zerlegung. **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- internal test docs/user`, wobei die Basis der Commit des Übergangs nach `in-progress/` ist; **über 2500** geht der Slice zurück (Empfehlung des Architects, 2026-10-14: die Marke des Vorgängers `slice-v1-abschluss-tls-client`, den ein Review in einer Sitzung trug; gemessen dort 2351). **Meldeschwelle** neben der Marke: Erreicht die Summe **2000**, meldet der Implementer den Stand dem Architect, bevor er weiterarbeitet; über Schnitt oder Anhebung der Marke entscheidet der Planner. **Schätzung** (Architect, 2026-10-14, in dieser Metrik): Produktcode rund 400 Zeilen (Port und Modell 50, Record-Service 50, PGWire-Adapter 140, Upstream-Adapter 160); Tests nach dem Faktor 2 rund 800 (ein Fall und eine Mutation je Element der Aufzählungen in `LH-FA-05.b`, §6) und der Integrationstest samt Server-Konfiguration rund 290; zusammen rund 1500, mit dem Aufschlag der letzten Code-Slices (20 bis 30 %) und der Review-Runde (20 bis 30 %) **1800 bis 2400**. Schnitt dann nach Lieferwert: Klartext und MD5 mit Port und Fehlerpfaden, danach SCRAM-SHA-256 (`SetAuthType` für SASL, drei Schritte).
+- `in-progress` → `open`: Die Bibliothek ([ADR-0010](../../adr/0010-verwendung-von-pgproto3.md)) liest die Antworten der Anmeldung (`p` als `SASLInitialResponse` und `SASLResponse`) oder die Fortsetzungen (Code 11, 12) nicht, ohne dass der Slice sie selbst dekodiert — Entscheidung des Nutzers über die Wahl der Bibliothek, bevor weitergearbeitet wird. (Die frühere Bedingung „Kanalbindung“ entfällt: `LH-FA-05.b` sagt Channel Binding nicht zu.)
 
 ## 5. Closure-Trigger
 
@@ -102,6 +106,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
+**Randformen** (`AGENTS.md` §3.12) — entschieden in [`LH-FA-05.b`](../../../../spec/spezifikation.md#lh-fa-05b--authentifizierung) *Randformen der Vermittlung (Record)*, Architect 2026-10-14: fehlender, leerer und unbekannter Wert (leere Antwort `p`, unbekannter Code), Alias (keiner), mehrfache Angabe (zweite Anforderung, Antwort vor der Anforderung), Aufrufart (nacheinander, nie gleichzeitig; keine Option, `zuordnung()` und `nichtGelesen()` unberührt), Abbruch (Ende durch den Client; erstes Signal, Zwangsende), Verhalten je Serverversion, Schutz der Zugangsdaten, Reihenfolge am Start (nichts Neues). **Je Element ein Fall und eine Mutation, die nur es bricht** (`AGENTS.md` §3.10): die Codes 2, 6, 7, 9 und ein unbekannter (`PGR-E6001`); die Reihenfolge-Fälle des Servers (`PGR-E4002`); `p`, `Terminate`, Ende des Datenstroms, Reset und eine andere Nachricht des Clients in der Anmeldung; Klartext, MD5, SCRAM-SHA-256; Fehlerantwort am Anfang und mitten im SCRAM-Austausch; jeder Ort ohne Zugangsdaten (Aufzeichnung, jede Log-Stufe, Meldung); erstes Signal und Zwangsende je beim Warten auf den Client in der Anforderung und in der Antwort. Die Meldung zu einem nicht vermittelten Verfahren nennt den Code, nicht den Typ der Bibliothek.
+
+- **Größe, Schichten (Empfehlung des Architects, 2026-10-14; Entscheidung beim Nutzer):** Der Plan berührt drei Schichten (Kern mit Ports, PGWire-Adapter, Upstream-Adapter) und liegt über der Grenze von zwei. Ein Schnitt nach Lieferwert (Klartext und MD5, danach SCRAM-SHA-256) senkt die Zahl nicht: Jeder Teil braucht Port, Client-Seite und Server-Seite des Austauschs; ein Schnitt nach Schicht erzeugt Zombie-Slices. Empfehlung: den Plan ungeteilt lassen, mit Marke und Meldeschwelle aus §4. Der Nutzer entscheidet über die Abweichung von der Zwei-Schichten-Regel; bis dahin ist der Plan nicht freigegeben — **Ausgang:** offen bis Closure.
 - Die Vermittlung muss die Anmeldenachrichten aus der Aufzeichnung heraushalten, sonst stehen Passwort-Hashes darin (LH-RB-01) — **Ausgang:** offen bis Closure.
 - Dass die Session aus `Open` den Lesepuffer des Aufbaus trägt, prüft kein Test (`BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft`, seit slice-harness-blackbox-driven); der Umbau der Aufbau-Schleife berührt genau diese Stelle. Test-Idee: Der Server schickt AuthenticationOk, ReadyForQuery und eine NoticeResponse in einem Flush, der Test ruft nach `Open` einmal `Receive` und erwartet die Notice; rot, wenn `Open` eine Session mit neuem Frontend zurückgibt. Grenze: Dass beide Nachrichten in einem Lesevorgang ankommen, ist über TCP-Loopback stabil, aber nicht zugesagt; `net.Pipe` erreicht `Open` nicht, weil `Upstream.Dialer` ein `net.Dialer` ist — **Ausgang:** offen bis Closure.
 
@@ -134,6 +141,6 @@ nicht mehr.
 
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
 
-Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-anmeldung-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: drei Schichten (Kern mit Ports, PGWire-Adapter, Upstream-Adapter) und damit über zwei, auch ohne die Dokumentation; das war vor der Abgabe so und hängt nicht an ihr: Der Planner entscheidet vor dem ersten Code-Commit, ob dieser Plan geschnitten wird. Der Meldungstext zu einem nicht vermittelten Verfahren (aus `slice-doku-ist-stand`, V-152) liegt in `internal/adapters/driven/postgres/upstream.go` und in DoD-Punkt 2.
+Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Der Handbuch- und README-Teil liegt im Doku-Folge-Slice `slice-v1-abschluss-anmeldung-doku` direkt hinter diesem Plan, in derselben Welle; die Dokumentation zählt hier nicht mehr mit. Liefer-Punkte: 3. Schichten: drei Schichten (Kern mit Ports, PGWire-Adapter, Upstream-Adapter) und damit über zwei, auch ohne die Dokumentation; das war vor der Abgabe so und hängt nicht an ihr: Der Architect hat geprüft (2026-10-14): Ein Schnitt senkt die Schichtzahl nicht (§6); die Entscheidung über die Abweichung liegt beim Nutzer (Empfehlung: ungeteilt, Marke 2500, Meldeschwelle 2000, §4). Der Meldungstext zu einem nicht vermittelten Verfahren (aus `slice-doku-ist-stand`, V-152) liegt in `internal/adapters/driven/postgres/upstream.go` und in DoD-Punkt 2.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).
