@@ -1,0 +1,175 @@
+# Slice slice-v1-abschluss-postgres-versionen-zusage: Zusage der unterstützten PostgreSQL-Versionen
+
+**Lifecycle:** Der Zustand dieses Slice ist das Verzeichnis, in dem diese
+Datei liegt — eines von `open/`, `next/`, `in-progress/`, `done/`. Er
+wechselt nur durch `git mv`, siehe
+Baseline-Regelwerk `modul-05-planning-harness.md` §Lifecycle als State Machine.
+Übernimmt ein anderer Slice den Gegenstand oder entfällt er, geht diese Datei
+aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
+Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
+(§Ein Slice, dessen Gegenstand ein anderer übernimmt).
+
+**Welle:** welle-v1-abschluss.
+
+**Bezug:** [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung)
+
+**Berührte Spec-Stellen:** `LH-FA-05.b` · `LH-FA-05.e` · `LH-FA-09.a` · `SPEC-029` · `SPEC-038` · `LH-RB-02`
+
+**Verantwortlich:** pt9912
+
+**Autor:** pt9912. **Datum:** 2026-10-14.
+
+---
+
+## 1. Ziel und Abgrenzung
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Slice — Schnitt nach Lieferwert, nicht nach Schichten; jeder Slice
+ist einzeln lieferbar. **§1 nennt Ziel und Abgrenzung** (Out-of-Scope-Disziplin
+des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
+Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
+zusammen mit der Begründungs-Pflicht je Punkt.
+
+**Ziel:** Der Recorder sagt zu, mit welchen PostgreSQL-Hauptversionen er aufzeichnet, und die Zusage reicht genau so weit wie das Gate aus `slice-v1-abschluss-postgres-versionen-matrix`; Handbuch und README nennen den Bereich und, wo sie ein Verhalten des Servers beschreiben, die Version mit einem nachfahrbaren Lauf.
+
+**Übernimmt:** `slice-v1-abschluss-postgres-versionen` — dessen Teil *Zusage* (Entscheidung des Nutzers vom 2026-10-14, Schnitt nach Lieferwert, Matrix zuerst; dort §7 `Gegenstand:`). Der andere Teil, das Gate, liegt in `slice-v1-abschluss-postgres-versionen-matrix`. Dazu die Sendung der Handbuch-Sätze zur Anmeldung (unten).
+
+**Herkunft:** Die Spezifikation sagt in `LH-FA-05.e` und `SPEC-029` nur „jeder Server, der PGWire 3.0 spricht“, und das Lastenheft nennt keine Version. Entscheidungen des Nutzers (2026-10-05): Unterstützt werden die **fünf jüngsten erschienenen Hauptversionen** als feste Liste; die Spezifikation führt sie, ein späterer Slice hebt sie an; das Lastenheft bekommt einen Satz in [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung). Der Slice steht hinter der Matrix, weil eine Zusage nur sagt, was das Gate belegt (`AGENTS.md` §3.11). Die Liste bestätigt die Matrix beim Start gegen die Release-Liste von PostgreSQL; dieser Slice nennt sie so, wie die Matrix sie führt, und bestätigt sie nicht ein zweites Mal.
+
+- **Zusage in der Spezifikation:** `SPEC-029` und `LH-FA-05.e` nennen die Liste der Hauptversionen als feste Liste und was „unterstützt“ heißt, und ersetzen „jeder Server, der PGWire 3.0 spricht“. „Unterstützt“ heißt genau das, was die Matrix fährt: Gegen jede Version der Liste laufen die Abnahmeszenarien 1, 2 und 7, die Anmeldung mit SCRAM-SHA-256 und der Lebendprüfungs-Abgleich grün; die volle Integrationssuite läuft gegen die Referenzversion 17. Die Szenarien, die nur gegen 17 laufen (Abnahmeszenario 18 und Szenario 16 Satz 3, Entscheidung des Nutzers vom 2026-10-12), nennt die Zusage als Ausnahme; der Satz „die automatisierten Abnahmeszenarien laufen gegen jede von ihnen grün“ aus dem Ursprungsplan reicht weiter als das Gate und gilt hier nicht (`AGENTS.md` §3.11). `SPEC-038` (Kompatibilitätstests) nennt die Versionsmatrix. [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung) bekommt einen Satz: Der Record-Modus setzt einen PostgreSQL-Server einer unterstützten Hauptversion voraus, und welche das sind, nennt die Spezifikation; das Lastenheft steht auf Draft, kein Versionssprung.
+- **Handbuch und README:** Das Benutzerhandbuch nennt den Bereich (Abschnitt *Voraussetzungen*); Handbuch und README beschreiben, was die Matrix liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11).
+- **Sendung — Handbuch-Sätze zur Anmeldung** (Entscheidung des Nutzers vom 2026-10-14, Geber `slice-v1-abschluss-anmeldung` und `slice-v1-abschluss-anmeldung-doku`, dort je §6, Risiko zur Version des Servers; `AGENTS.md` §3.13): Die Sätze „geprüft mit PostgreSQL 17“ zur Anmeldung werden auf den Bereich nachgezogen, an diesen Stellen: `docs/user/benutzerhandbuch.md` §1 *Voraussetzungen*, §4 der Hinweis in *Eine Anwendung aufzeichnen*, der Abschnitt *Eine Anwendung mit Passwort-Anmeldung aufzeichnen* (Absatz *Voraussetzung*) und §6 *Rollen und Rechte*; dazu der Satz zur Anmeldung in `README.md`, der denselben Wortlaut trägt (Fund des Planners, nicht in der Entscheidung genannt). Ein Satz nennt den Bereich nur für die Verfahren und Versionen, für die §7 des Implementers einen Lauf führt, den ein Verifier nachfahren kann (`.claude/commands/implement-slice.md` Schritt 19, Entscheidung des Nutzers vom 2026-10-14); die Matrix fährt allein den Fall SCRAM-SHA-256 gegen die Versionen außer 17, Klartext und MD5 fährt sie nicht. Reicht für ein Verfahren kein Lauf, nennt der Satz die Versionen mit Lauf und sagt zu den übrigen nichts. Die Regel in Schritt 19 gilt seit `slice-v1-abschluss-anmeldung-doku` (Commit `c41c25d`); dieser Slice ändert `implement-slice.md` nicht, er wendet sie an.
+
+**Nahtstelle von `slice-v1-abschluss-postgres-versionen-matrix`** (Eintrag durch den Planner bei dessen Closure, mit Nachzählung im selben Commit; geprüft mit `grep -n "slice-v1-abschluss-postgres-versionen-matrix"` in dieser Datei): (1) die bestätigte Liste der Hauptversionen und die Referenzversion, wie die Matrix sie führt; (2) die Teilmenge der Matrix im Wortlaut, auf die „unterstützt“ in der Spezifikation zeigt; (3) jede Berichtigung der Versionsgrenze in `LH-FA-09.a` samt der Version, bei der sie auffiel; (4) der Aufruf, mit dem ein Verifier den Lauf je Version nachfährt (Datei, Variablen, `POSTGRES_IMAGE`), mit den Namen, die der Implementer der Matrix gewählt hat. Bis zur Closure der Matrix stehen die Punkte (1) bis (4) hier als Adresse, ohne Namen.
+
+**Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
+
+- Das Gate, die Liste mit Tags und Digests, der Lauf gegen eine Version und jede Berichtigung der Versionsgrenze der Lebendprüfung — `slice-v1-abschluss-postgres-versionen-matrix`: Dieser Slice sagt zu, was jener belegt; ändert er Gate oder Produktcode, hat er die Zusage vor ihren Beleg gestellt.
+- Versionen vor dem Bereich — die Entscheidung des Nutzers zieht die Grenze bei den fünf jüngsten Hauptversionen; eine ältere Version bleibt ungeprüft und nicht zugesagt, auch wenn sie PGWire 3.0 spricht. Die Zusage ersetzt „jeder Server, der PGWire 3.0 spricht“, sie ergänzt ihn nicht; eine Prüfung der Version des Servers im Recorder liefert dieser Slice nicht (Produkt-Code unberührt).
+- Server, die PGWire 3.0 sprechen, aber kein PostgreSQL der Liste sind (Pooler, andere Datenbanken) — nicht zugesagt und nicht abgelehnt; das Handbuch nennt keine Aussage zu ihnen.
+- Eine ADR zur Zusage — die Entscheidung des Nutzers steht in der Spezifikation (`AGENTS.md` §3.12), und die ADR zur Matrix liegt bei `slice-v1-abschluss-postgres-versionen-matrix`. Verlangt der Architect eine ADR, hebt sie die Schichten über zwei (§8) und geht an den Planner.
+- Handbuch-Sätze über ein Gegenüber außerhalb der Anmeldung (Client-Versionen, `psql` aus libpq 17, `slice-v1-abschluss-tls-client-doku`) — Bestand: Sie nennen ihre Version bereits (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, Gegenbelege); die Sendung betrifft die Version des Servers.
+- Windows und macOS sowie andere Treiber — kein Lauf; das Handbuch sagt dazu nichts (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 3×, offen).
+- Ein Sensor, der den Bereich gegen die Release-Liste von PostgreSQL hält — bräuchte Netz zur Laufzeit des Gates; die Pflege ist eine Handlung (§6), kein Lauf.
+- Kein Produkt-Code, kein Gate, keine Hilfetexte im Binary — Schicht-Abgrenzung: Der Slice ändert Spezifikation, Lastenheft, `docs/user/benutzerhandbuch.md`, `README.md` und diesen Plan.
+
+## 2. Definition of Done
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
+gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
+Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
+
+- [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung): `SPEC-029` und `LH-FA-05.e` nennen die von der Matrix geführte Liste der Hauptversionen als feste Liste und was „unterstützt“ heißt (genau die Teilmenge der Matrix, die Szenarien nur gegen 17 als Ausnahme); `SPEC-038` nennt die Versionsmatrix; [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung) trägt den Satz zur unterstützten Hauptversion; die Historie der Spezifikation nennt die Änderung. Jede Aussage der Zusage ist durch einen Lauf der Matrix belegt (§6).
+- [ ] `docs/user/benutzerhandbuch.md`: nennt den Bereich; die Sätze zur Anmeldung an den vier Stellen aus §1 nennen den Bereich oder die Versionen mit Lauf, und §7 führt zu jeder genannten Version und jedem Verfahren einen Lauf, den ein Verifier nachfahren kann; im Ist-Zustand, ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews.
+- [ ] `README.md`: der Satz zur Anmeldung nennt den Bereich oder die Versionen mit Lauf wie im Handbuch; im Ist-Zustand.
+- [ ] `make gates` grün.
+- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+      (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
+      Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
+- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+
+## 3. Plan (vor Code)
+
+Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
+§Was ist eine Sub-Area? — diese Liste liefert die **Pfad-Kandidaten** für §8,
+nicht die Antwort: Pfad-Berührung ist nicht hinreichend, und eine
+Aussagen-Berührung steht hier gar nicht.
+
+| Datei / Komponente | Änderungs-Art | Begründung |
+|---|---|---|
+| `spec/spezifikation.md` (`LH-FA-05.e`, `SPEC-029`, `SPEC-038`, Historie) | update | Versionsbereich als Liste, Bedeutung von „unterstützt“, Versionsmatrix der Kompatibilitätstests |
+| `spec/lastenheft.md` ([`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung)) | update | ein Satz zur unterstützten Hauptversion des Servers (Entscheidung des Nutzers, 2026-10-05); Draft, kein Versionssprung |
+| `docs/user/benutzerhandbuch.md` | update | Bereich in *Voraussetzungen*; die vier Stellen zur Anmeldung; Läufe je Version und Verfahren als Beleg in §7 |
+| `README.md` | update | Satz zur Anmeldung (Ist-Zustand) |
+| `docs/user/abdeckung-*.md` | update (bedingt) | nur wenn Deklarationen sich ändern; dieser Slice schreibt keinen Test |
+
+## 4. Trigger
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Trigger je Lifecycle-Übergang und WIP-Limit.
+
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-postgres-versionen-matrix` liegt in `done/`, die bestätigte Liste und die Namen der Nahtstelle stehen in §1 (Eintrag durch den Planner bei dessen Closure), und `slice-v1-abschluss-anmeldung-doku` liegt in `done/` (erfüllt). Der Slice steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) als Schritt 32b direkt hinter der Matrix.
+
+**Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
+
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): (a) **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- spec docs/user README.md`, wobei die Basis der Commit des Übergangs nach `in-progress/` ist; **über 400** geht der Slice zurück. **Meldeschwelle** neben der Marke: Erreicht die Summe **300**, meldet der Implementer den Stand dem Architect, bevor er weiterarbeitet; über Schnitt oder Anhebung der Marke entscheidet der Planner. **Schätzung** (Planner, 2026-10-14, in dieser Metrik; der Architect schätzt vor dem Code neu): kein Produktcode, kein Test, also kein Faktor; Spezifikation und Lastenheft rund 60 Zeilen, Handbuch rund 80 (Bereich, vier Stellen mit Löschungen und Einfügungen), README rund 10; zusammen rund 150, mit der Review-Runde (20 bis 30 %) **180 bis 250**. (b) Der Architect verlangt eine ADR oder eine Änderung außerhalb von Spezifikation, Lastenheft, Handbuch und README: Die Schichten stiegen über zwei, der Planner schneidet vor dem ersten Code-Commit (§8).
+- `in-progress` → `open` (blockiert — Carveout?): Das Gate der Matrix ist rot oder entfällt (die Zusage stünde ohne Beleg), oder der Nutzer zieht die Entscheidung zum Bereich zurück.
+
+## 5. Closure-Trigger
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Closure- und Lerneintrag-Regeln — zwei beobachtbare Kriterien **und** ein
+Lerneintrag; ohne ihn ist der Slice nur abgelegt.
+
+DoD vollständig, Review-Report liegt vor, Closure-Notiz mit Lerneintrag geschrieben.
+
+## 6. Risiken und offene Punkte
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Offene Risiken werden bei Closure aufgelöst — **jedes** Risiko bekommt genau
+**einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
+dasteht.
+
+**Randformen** (`AGENTS.md` §3.12) der geänderten Zusage. Der Slice legt keinen Vertrag eines Werkzeugs an, sondern ändert den Ort der Zusage (`SPEC-029`); entschieden werden sie vom Architect vor dem ersten Code-Commit in der Spezifikation (Technik-Stratum), soweit nicht schon entschieden:
+
+- *Lesart des Bereichs:* fünf jüngste erschienene Hauptversionen als feste Liste (Nutzer, 2026-10-05, übernommen); die Liste kommt aus der Matrix.
+- *Szenarien nur gegen 17:* Abnahmeszenario 18 und Szenario 16 Satz 3 laufen nur gegen die Referenz 17 und stehen in der Zusage als Ausnahme (Nutzer, 2026-10-12, übernommen).
+- *Nebenversion und Vorabversion:* die Zusage gilt für die Hauptversion; das Gate fährt je Hauptversion eine gepinnte Nebenversion, Vorabversionen sind nicht zugesagt. Entscheidung des Architect, Wortlaut in `SPEC-029`.
+- *Server außerhalb der Liste:* nicht zugesagt, nicht geprüft, nicht abgelehnt (§1); der Recorder prüft die Version des Servers nicht. Entscheidung des Architect, Wortlaut in `SPEC-029`.
+- *Sätze des Handbuchs je Verfahren:* Klartext und MD5 hat nur ein Lauf von Hand je Version belegt (MD5 ist ab PostgreSQL 18 abgekündigt); der Satz nennt die Versionen mit Lauf (§1). Empfehlung des Planners (keine Entscheidung des Nutzers): der Implementer fährt den Anmeldetest aus `test-integration` mit `POSTGRES_IMAGE` je Version von Hand und führt die Aufrufe in §7; ob der Nutzer stattdessen den Satz auf SCRAM-SHA-256 und die Versionen der Matrix begrenzt sehen will, ist offen.
+
+Risiken:
+
+- **Feste Liste altert.** Die Liste in der Spezifikation hebt sich nicht selbst an; mit jeder neuen Hauptversion fällt sie hinter die Entscheidung „fünf jüngste“ zurück, und kein Gate merkt es (ein Sensor bräuchte Netz, §1). Eine Folge-Adresse gibt es heute nicht: Ein Slice für das Anheben wäre ohne beobachtbaren Anlass geplant. Kandidat für den Ausgang: *weiter offen* → neue Beobachtung `BEO-REPO/postgres-versionsliste-altert` bei der Closure, mit dem beobachtbaren Anlass „eine neue Hauptversion von PostgreSQL ist erschienen“; tritt er ein, plant der Planner den Slice, der die Liste anhebt — **Ausgang:** offen bis Closure.
+- **Satz im Lastenheft.** Entschieden (Nutzer, 2026-10-05): ein Satz in [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung), der auf die Liste der Spezifikation zeigt, ohne Versionssprung (Draft). Offen bleibt die Formulierung: Das Lastenheft nennt die Versionen nicht selbst, sonst müsste jedes Anheben das Lastenheft ändern — **Ausgang:** offen bis Closure.
+- **Zusage reicht weiter als das Gate.** „Unterstützt“ liest sich als Zusage für alles; das Gate fährt die Teilmenge der Matrix und die Szenarien 18 und 16 Satz 3 nur gegen 17 (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`). Jede Aussage der Zusage trägt einen Lauf der Matrix, sonst wird sie enger gefasst — **Ausgang:** offen bis Closure.
+- **Handbuch-Satz ohne nachfahrbaren Lauf.** Ein Satz nennt eine Version, zu der §7 keinen Lauf führt (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×; Schritt 19). Die Aufrufe je Version und Verfahren kommen aus der Nahtstelle der Matrix; fehlt einer, nennt der Satz die Version nicht — **Ausgang:** offen bis Closure.
+- **MD5 gegen die jüngsten Versionen.** MD5 ist ab PostgreSQL 18 abgekündigt; ob der Server der Liste die Anmeldung mit MD5 noch annimmt, zeigt erst der Lauf. Lehnt eine Version ab, nennt der Satz sie nicht (siehe oben) — **Ausgang:** offen bis Closure.
+- **Namen der Nahtstelle fehlen.** Die Matrix wählt die Namen von Datei, Variablen und Aufruf; solange `grep -n "slice-v1-abschluss-postgres-versionen-matrix"` in dieser Datei nur die Punkte (1) bis (4) ohne Namen findet, kann der Implementer keinen Lauf nennen. Gegenmittel: Der Planner trägt sie bei der Closure der Matrix ein (Start-Bedingung in §4) — **Ausgang:** offen bis Closure.
+
+## 7. Closure-Notiz
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
+§Das Beobachtungs-Register (vorhandene `BEO-<NNN>` **zitieren** statt neu
+formulieren — sonst zählt das Register zwei Namen getrennt) ·
+`grundlagen-traceability.md` §Herkunfts-Anker für Steering-Loop-Regeln (das
+Feld `liegt in` steht **nur**, wenn mit diesem Slice wirklich etwas verkörpert
+wurde; Feld und Zielort auf **einer** Zeile, Sektionsangabe innerhalb der
+Backticks). Ging der Gegenstand an einen anderen Slice oder entfiel er, trägt
+diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
+aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
+(`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
+übernimmt).
+
+Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+## 8. Sub-Area-Prüfungen und Modus-Begründung
+
+Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
+§Ziel-Form: Sub-Area-Modus-Begründung — dort die **zwei vorgelagerten
+Schritte** (sie stehen in jedem Slice-Plan, unabhängig von Modus und
+Slice-Typ) und die **vier Pflichtkriterien** (Konventionen-Dichte ·
+Phase-Reife · Evidenz-/Diskrepanz-Risiko · Reconciliation-Aufwand), vier und
+nicht mehr.
+
+**Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
+
+**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (gemergter Stand, 2026-10-14); alle Einträge liegen in `REPO`. Einschlägig:
+
+- `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` — 1×, offen; die Sendung der Handbuch-Sätze ist die Antwort für den Handbuch-Teil, der Beleg je Version kommt von der Matrix.
+- `BEO-REPO/verhalten-nur-unter-linux-geprueft` — 3×, offen; die Läufe je Version laufen unter Linux im Container, das Handbuch sagt zu Windows und macOS nichts (§1). Ein weiteres Auftreten bliebe ein viertes Auftreten eines nicht verkörperten Eintrags.
+- `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` — 1×, offen; dieser Slice ist die Adresse des Handbuch-Teils der Zusage und der Sendung.
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — 55×, verkörpert (`AGENTS.md` §3.11); Grund der Reihenfolge und des engeren Wortlauts von „unterstützt“.
+- `BEO-REPO/spec-randform-erst-im-review-entschieden` — 29×, verkörpert (`AGENTS.md` §3.12); die Randformen stehen in §6.
+- `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` — 10×, verkörpert (`AGENTS.md` §3.13); die Sendung steht mit der Kennung des Gebers in §1.
+- `BEO-REPO/plan-folgt-korrektur-nicht` — 45×, verkörpert (`AGENTS.md` §3.9); gilt als Regel, auch für den Kopf.
+
+Die Einträge über der Schwelle bekommen ihren Ausgang bei der Closure ihrer Welle, nicht hier.
+
+Nachgezählt beim Anlegen, einschließlich der Sendung der Handbuch-Sätze (Planner, 2026-10-14, `AGENTS.md` §3.13): Liefer-Punkte: 3 (Spezifikation und Lastenheft; Handbuch; README); die Sendung gehört zu den Punkten Handbuch und README und fügt keinen hinzu. Schichten: zwei, Spezifikation (Lastenheft und Spezifikation, wie im Ursprungsplan) und Dokumentation (Handbuch und README, `AGENTS.md` §3.13). Eine ADR würde eine dritte Schicht sein, nicht Teil der Spezifikation: Die Source Precedence führt sie auf einem eigenen Rang (4), und der Ursprungsplan zählte „Spezifikation, Entscheidungen, Harness und Dokumentation“ getrennt; der Plan sieht keine vor (§1). Die Regel in `implement-slice.md` Schritt 19 ist Bestand und zählt nicht. Schätzung: 180 bis 250 Zeilen in der Metrik von §4.
+
+**Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Spezifikation führt, der Code folgt ihr; `harness/conventions.md` deklariert `*` als Greenfield).
