@@ -206,6 +206,13 @@ entschieden“) ersetzt die Rückgabe nicht, wenn der Commit sie schon trägt.
     (`AGENTS.md` §3.10, seit welle-extended-query): je Zusage ein Test, der die Mutation
     fängt, und die Mutation fährst du selbst, bevor du übergibst — in §7 je Zeile
     Zusage · Mutation · roter Test.
+    **Ein Handbuchsatz über ein Gegenüber nennt dessen Version** (seit
+    slice-v1-abschluss-anmeldung-doku, Entscheidung des Nutzers vom 2026-10-14): Verhalten eines
+    Servers, Clients, Treibers oder einer Bibliothek steht im Handbuch nur mit der Version, gegen
+    die die Probe lief, und §7 führt zu jeder genannten Version einen Lauf, den ein Verifier
+    nachfahren kann. Eine Umgebung, die nicht lief (Windows, macOS, ein anderer Treiber), erscheint
+    nicht als geprüft. Belege: `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` bei
+    slice-v1-abschluss-tls-client-doku (V-1, V-2) und slice-v1-abschluss-anmeldung-doku (F-3).
     **Eine verneinende Zusage ist eine eigene Zeile** (seit slice-replay-semantik-meldungscodes):
     „keine Antwort", „genau eine", „nichts danach" bekommt eine eigene Mutation — die, die das
     Verneinte doch tut (eine Nachricht mehr, die aufgezeichnete Antwort vor dem Fehler). Der
