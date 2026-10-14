@@ -51,16 +51,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
-- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-tls-client` liefert, im Ist-Zustand des gebauten Binaries (zu `--tls-cert`, `--tls-key` und `--allow-plaintext` mit Umgebungsvariable und dem Verhalten beim anderen Kommando, aus `slice-v1-abschluss-umgebung-anderes-kommando`; Probe am gebauten Binary): Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zu TLS zum Client bei `record` und `replay` — §1 *Voraussetzungen* („Die Verbindung zum Werkzeug läuft ohne Verschlüsselung“), §4 *Mit einem Datenbanktreiber arbeiten* (Voraussetzung „ohne Verschlüsselung“, Schritt 3 mit `sslmode=disable`/`prefer`) und §7 *Die Anwendung kann sich nicht verbinden* — und im README den Satz „Alle Verbindungen laufen unverschlüsselt“, soweit er die Verbindung der Anwendung betrifft. Dazu gehören die Sitzungs-Sätze unter *Mehrere Verbindungen aufzeichnen und wiedergeben* (`PGR-W3002` und `PGR-E6003` zählen bei `record` und bei `replay` mit `first-request` nicht als Sitzung) und der Satz zu `config show` (liest `tls_cert` und `tls_key` nicht). Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
-- [ ] `README.md` nennt, was `slice-v1-abschluss-tls-client` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; der Satz „`record` und `replay` nehmen Verbindungen nur ohne TLS an …“ ist durch den Satz ersetzt, der TLS ab 1.2 mit `--tls-cert` und `--tls-key`, die Abweisung einer Anwendung ohne TLS mit `PGR-E6003` und `--allow-plaintext` nennt („Alle Verbindungen laufen unverschlüsselt“ stand schon vor diesem Slice nicht mehr im README; Review F-2), Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-tls-client` liefert, im Ist-Zustand des gebauten Binaries (zu `--tls-cert`, `--tls-key` und `--allow-plaintext` mit Umgebungsvariable und dem Verhalten beim anderen Kommando, aus `slice-v1-abschluss-umgebung-anderes-kommando`; Probe am gebauten Binary): Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zu TLS zum Client bei `record` und `replay` — §1 *Voraussetzungen* („Die Verbindung zum Werkzeug läuft ohne Verschlüsselung“), §4 *Mit einem Datenbanktreiber arbeiten* (Voraussetzung „ohne Verschlüsselung“, Schritt 3 mit `sslmode=disable`/`prefer`) und §7 *Die Anwendung kann sich nicht verbinden* — und im README den Satz „Alle Verbindungen laufen unverschlüsselt“, soweit er die Verbindung der Anwendung betrifft. Dazu gehören die Sitzungs-Sätze unter *Mehrere Verbindungen aufzeichnen und wiedergeben* (`PGR-W3002` und `PGR-E6003` zählen bei `record` und bei `replay` mit `first-request` nicht als Sitzung) und der Satz zu `config show` (liest `tls_cert` und `tls_key` nicht). Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
+- [x] `README.md` nennt, was `slice-v1-abschluss-tls-client` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; der Satz „`record` und `replay` nehmen Verbindungen nur ohne TLS an …“ ist durch den Satz ersetzt, der TLS ab 1.2 mit `--tls-cert` und `--tls-key`, die Abweisung einer Anwendung ohne TLS mit `PGR-E6003` und `--allow-plaintext` nennt („Alle Verbindungen laufen unverschlüsselt“ stand schon vor diesem Slice nicht mehr im README; Review F-2), Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -110,9 +110,9 @@ dasteht.
 
 **Risiken:**
 
-- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** offen bis Closure.
-- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** offen bis Closure.
-- Clients mit eigener Zertifikatsprüfung scheitern an einem selbst signierten Zertifikat; das Handbuch muss den Weg beschreiben — **Ausgang:** offen bis Closure.
+- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** *weiter offen*, im Register (`state.md` von `BEO-REPO/verhalten-nur-unter-linux-geprueft`); Linux im Container ist die einzige belegte Umgebung (Implementer und Verifier, dazu OpenSSL 3.0.13 und 3.5.7), Windows und macOS sind nicht gefahren, das Handbuch sagt dazu nichts.
+- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** *entfallen*: Die Verifikation bestätigt den Teil (alle Stellen des Diffs stehen im Plan, die Befehlsfolge ist in beiden Gegenrichtungen leer, die Suche nach den ersetzten Sätzen findet nichts Verbliebenes). Die Lücke des Reviews (F-1) war eine Lücke des Plans, nicht der Lieferung; sie ist nachgezogen.
+- Clients mit eigener Zertifikatsprüfung scheitern an einem selbst signierten Zertifikat; das Handbuch muss den Weg beschreiben — **Ausgang:** *entfallen*: Das Handbuch beschreibt den Weg (Zertifikatsdatei als Wurzel, `verify-full` gegen `localhost`, Kette); die Verifikation fuhr das Beispiel als Datei gegen das Binary.
 
 ## 7. Closure-Notiz
 
@@ -241,7 +241,36 @@ Kein Produkt-Code, kein Test, kein neuer Wächter: Der Slice ändert `docs/user/
 - Größe (`AGENTS.md` §3.14, Summe aus Einfügungen und Löschungen von `git diff --numstat 59e14db..dbe6232`): Handbuch 226 (196 + 30), README 5 (4 + 1), dieser Plan 106 (105 + 1); ohne den Plan 231, mit dem Plan 337; der Messbereich endet bei `dbe6232`, am letzten Commit `77efd06` des Implementers stehen die Pläne bei 113 (112 + 1) und die Summe bei 344, den Plan-Commits nach dem Review (diese Nachträge) zählt die Messung nicht. Eine Marke nennt §4 nicht in Zeilen („nicht in einer Review-Sitzung prüfbar“).
 - Liefer-Punkte 2, Schichten eine (Dokumentation), unverändert gegenüber §8.
 
-Wird bei Closure um die Closure-Notiz ergänzt (vor dem `git mv` nach `done/`).
+### Closure
+
+**Review und Verifikation.** Review (0 HIGH, 0 MEDIUM, 1 LOW, 4 INFO): F-1 bis F-3 im Plan behoben (`174640b`), F-4 und F-5 ohne Handlung (Bestand, siehe Verifikation). Verifikation (`docs/reviews/2026-10-14-verifikation-slice-v1-abschluss-tls-client-doku.md`): DoD-Punkte 1 und 2 bestätigt, Punkt 3 mit Einschränkung (der volle Lauf ist nicht neu gefahren, der Beleg ist `dbe6232` und die Hook-Freigabe); V-1 (LOW, „mit libpq“ ohne Version) und V-2 (LOW, „OpenSSL 3.3“ nicht nachfahrbar) erledigt in `fda2eb4`: Das Handbuch nennt „libpq 17“ und „OpenSSL 3.0 und 3.5“, die Versionen, die der Verifier gefahren hat.
+
+**Größe** (`AGENTS.md` §3.14): Summe aus Einfügungen und Löschungen von `git diff --numstat 59e14db..fda2eb4` über die Pfade des Plans (`docs/user/benutzerhandbuch.md`, `README.md`, dieser Plan): Handbuch 226 (196 + 30), README 5 (4 + 1), Plan 125 (121 + 4), zusammen 356; ohne den Plan 231. Die Closure-Commits danach zählt die Messung nicht. §4 nennt keine Marke in Zeilen; die Bedingung „nicht in einer Review-Sitzung prüfbar“ trat nicht ein (ein Review-Lauf, 0 HIGH, 0 MEDIUM). Liefer-Punkte 2, Schichten eine (Dokumentation), wie §8.
+
+**Entscheidungen zu den Übergaben.**
+
+- **F-4, F-5, V-2 (Rest):** F-5 (zwei lange Zeilen in *Hinweise*): Bestand bleibt bewusst stehen, keine Konvention verlangt einen Umbruch. Keine Handlung, kein Nehmer.
+- **Windows, macOS, Treiber außer libpq 17 und Python `ssl`** (pgx, JDBC), **PostgreSQL-Versionen außer 17:** nicht gefahren und im Handbuch nicht genannt; die Grenze steht im Register (siehe unten), kein Slice ist Adresse dafür.
+- **Die Mitteilung des Verifiers zu den Risiko-Ausgängen** war ein Vorschlag; die Ausgänge in §6 sind die Entscheidung dieser Closure.
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge): siehe §6; Beispiel nur unter Linux: *weiter offen* (Register); Teil von Handbuch und README nicht geliefert: *entfallen*; selbst signiertes Zertifikat: *entfallen*.
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure):
+
+- `BEO-REPO/plan-folgt-korrektur-nicht` — neue Datei `evidence/slice-v1-abschluss-tls-client-doku.md` (F-1: der Plan nannte die Sitzungs-Sätze und den Satz zu `config show` nicht): 42 → 43. Verkörpert (`AGENTS.md` §3.9, `make kopf-check`); die Regel gilt, sie wurde erst nach dem Review angewandt.
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — neue Datei `evidence/slice-v1-abschluss-tls-client-doku.md` (V-1, V-2): 52 → 53. Verkörpert (`AGENTS.md` §3.11).
+- `BEO-REPO/verhalten-nur-unter-linux-geprueft` — kein neues Auftreten; vermerkt in `state.md`. Der Zähler bleibt bei 3, der Ausgang ist weiter nicht zugewiesen (Lese-Schritt der Closure von welle-v1-abschluss).
+- `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` — kein Auftreten: Der Eintrag betrifft die Version des Servers; hier ist die Version des Clients (libpq 17) im Handbuch genannt. Vermerkt in `state.md`, bleibt 1×, offen.
+- `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` — kein Auftreten; vermerkt „Teil geliefert“ in `state.md`, bleibt 1×, offen.
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3× neu (`BEO-REPO/verhalten-nur-unter-linux-geprueft` steht seit `slice-v1-abschluss-sqlite-format-lesen` auf 3×).
+
+**Lerneintrag — geschärfte Regel (Vorschlag des Planners, noch nicht verkörpert).** Ein Handbuchsatz über das Verhalten eines Gegenübers (Client, Treiber, Bibliothek, Server) war weiter als die Probe, weil er die Version nicht nannte, gegen die die Probe lief („mit libpq“ gegen libpq 17, V-1), und eine Versionsangabe stand im Handbuch, die der Verifier nicht nachfahren konnte (V-2). Der Satz zum Handbuch in `AGENTS.md` §3.11 und Schritt 17 und 19 von `implement-slice.md` verlangen die Probe, nicht die Version des Gegenübers. Vorgeschlagen ist eine Zeile in `.claude/commands/implement-slice.md` Schritt 19: Ein Handbuchsatz über das Verhalten eines Gegenübers nennt dessen Version, gegen die die Probe lief, und eine genannte Version steht in §7 mit dem Lauf, den ein Verifier nachfahren kann. Ob sie aufgenommen wird, entscheidet der Nutzer; bis dahin steht sie hier und trägt kein Feld `liegt in`. **Kein neuer Sensor:** Welche Version ein Satz meint, sieht kein Skript.
+
+**Paarungen.** (a) Anker: Diese Closure trägt kein Feld `liegt in`; die Regel ist nicht verkörpert, also kein Zielort zu prüfen. (b) Folge-Slice: Diese Closure weist keinem Slice etwas zu; die Grenze zu Windows, macOS und weiteren Treibern bleibt im Register. (c) Register: die fünf genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/`.
+
+**Nachzählen.** Keine Sendung in einen Nehmer, daher kein Nachzählen von Liefer-Punkten und Schichten.
+
+**Stand der Gates.** `make gates` (voll) auf `dbe6232` grün (Belege des Implementers oben); auf dem Stand der Closure bestätigt `make gates-schnell` den Baum, der Stop-Hook gibt auf Positivlisten-Unterschieden frei.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

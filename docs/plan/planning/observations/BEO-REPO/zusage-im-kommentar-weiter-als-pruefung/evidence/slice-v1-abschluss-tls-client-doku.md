@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-tls-client-doku
+**Fund:** Handbuchsätze zur Kette (`verify-full`) und zum direkten TLS sagten „mit libpq“, belegt war libpq 17 (V-1, LOW; Review F-4, INFO); die Angabe „der Aufruf lief mit OpenSSL 3.3“ stützte sich allein auf §7 des Implementers und war dem Verifier nicht nachfahrbar (V-2, LOW). Behoben mit der Nennung „libpq 17“ und „OpenSSL 3.0 und 3.5“, den Versionen des Verifiers (`fda2eb4`).

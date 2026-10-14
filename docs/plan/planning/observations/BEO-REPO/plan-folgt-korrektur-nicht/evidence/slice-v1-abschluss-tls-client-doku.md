@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-tls-client-doku
+**Fund:** Der Plan nannte zwei Handbuch-Stellen nicht, die der Diff änderte: die Sitzungs-Sätze unter *Mehrere Verbindungen aufzeichnen und wiedergeben* und den Satz zu `config show`; weder §1 noch §3 noch die DoD führten sie (Review F-1, LOW). Die Regel (`AGENTS.md` §3.9) galt; der Implementer zog den Plan erst nach dem Review nach (§1 *Lieferumfang im Handbuch*, §3, DoD, §8).
