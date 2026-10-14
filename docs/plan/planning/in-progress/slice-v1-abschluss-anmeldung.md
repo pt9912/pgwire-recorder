@@ -76,7 +76,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/model`, `internal/hexagon/ports/driving`, `…/driven`, `internal/hexagon/services` | update | Rückruf der Anmeldung (`model.Anmeldung`, `Anmeldeanforderung`, `ErrClientEnde`): Anforderung und Antwort als für den Kern undurchsichtige Werte zwischen Client und Upstream ([ADR-0041](../../adr/0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md)) |
-| `internal/adapters/driving/pgwire`, `internal/adapters/driven/postgres` | update | Upstream-Adapter: Reihenfolge des Servers und Weitergabe der Anforderungen (`vermittlung.go`); Meldungstext zu einem nicht vermittelten Verfahren (aus `slice-doku-ist-stand`, V-152). PGWire-Adapter: Austausch mit dem Client (`anmeldung.go`; die Nachricht `p` liest `SetAuthType(AuthTypeSASLContinue)` als `SASLResponse`, die jeden Rumpf unverändert nimmt); im PGWire-Adapter endet der Wächter mit der Startnachricht, damit die Lesefrist des ersten Signals für die Anmeldung nicht gilt (`LH-FA-05.b` *Abbruch und Herunterfahren*) |
+| `internal/adapters/driving/pgwire`, `internal/adapters/driven/postgres` | update | Upstream-Adapter: Reihenfolge des Servers und Weitergabe der Anforderungen (`vermittlung.go`); Meldungstext zu einem nicht vermittelten Verfahren (aus `slice-doku-ist-stand`, V-152). PGWire-Adapter: Austausch mit dem Client (`anmeldung.go`; die Nachricht `p` liest `SetAuthType(AuthTypeSASLContinue)` als `SASLResponse`, die jeden Rumpf unverändert nimmt); im PGWire-Adapter endet der Wächter mit der Startnachricht, damit die Lesefrist des ersten Signals für die Anmeldung nicht gilt (`LH-FA-05.b` *Abbruch und Herunterfahren*; Grenze: eine im Rennfenster schon gesetzte Frist ist ein akzeptiertes Negativ der Spezifikation) |
 | `test/integration`, `tools/test/run-integration-tests.sh`, `docs/user/abdeckung-*.md` | update | Server mit `password`, `md5` und `scram-sha-256` in `pg_hba.conf` (die Benutzer legt der Runner schon an), dazu die Zeile `reject` für `play_reject`; Abdeckungstabellen über `make abdeckung` |
 
 ## 4. Trigger
@@ -179,8 +179,8 @@ Arbeitsbaum ersetzt (bricht bei fehlendem Vorkommen ab), die Tests des Pakets mi
 `deps`-Image des Dockerfile mit Bind-Mount des Arbeitsbaums fährt (kein Build-Kontext, die mtime ist
 ohne Belang) und die Datei danach mit `git checkout --` zurücksetzt; ein Mutant der Integration läuft
 über eine Kopie von `tools/test/run-integration-tests.sh` mit `-test.run '^TestE2ERecordAnmeldung'`
-und `docker build --target integration`. Gefahren: 131 Mutanten am Quelltext und 2 Architekturmutanten (eine
-zusätzliche Datei im Kern, eine im Upstream-Adapter; `make a-check`), davon 129 rot. Drei sind grün und äquivalent (W3, W3a, Y5, unten); Y1 und Y2 sind seit der Entscheidung rot.
+und `docker build --target integration`. Gefahren: 140 Mutanten am Quelltext (S 3, U 18, N 9, R 22, F 19, X 5, W 25 mit W3a und W3c, G 19, Z 5, Y 5, E 4, M 5, W18real 1) und 2 Architekturmutanten (eine
+zusätzliche Datei im Kern, eine im Upstream-Adapter; `make a-check`), zusammen 142; 139 rot. Drei sind grün und äquivalent (W3, W3a, Y5, unten); Y1 und Y2 sind seit der Entscheidung rot.
 
 **DoD-Punkt 1 — die Anmeldung wird vermittelt, Passwort und Anmeldenachrichten stehen nicht in der Aufzeichnung.**
 
@@ -210,7 +210,7 @@ zusätzliche Datei im Kern, eine im Upstream-Adapter; `make a-check`), davon 129
 | weder Passwort noch Anforderung stehen in der Aufzeichnung (Service) | S2: Antwort im `Startup` der Session | `TestRecordAnmeldungNichtInDerAufzeichnung` |
 | … (Integration, Klartext, MD5, SCRAM-SHA-256) | E4: Antwort im `Startup` der Session | `TestE2ERecordAnmeldung` (scram-sha-256, md5, password); die Spuren `md5[0-9a-f]{32}`, `SCRAM`, `n,,n=` und `biws` fangen Antworten, die kein GEHEIM tragen |
 | ein Client meldet sich über `record` an und führt eine Anfrage aus (alle drei Verfahren) | E1: Rückruf des PGWire-Adapters endet sofort | `TestE2ERecordAnmeldung` (alle 3), `…Fehlerantwort` (3), `…ClientBeendet` |
-| kein Log einer Stufe nennt Anforderung oder Antwort | W18: `Debug` mit der Antwort; W19: `Debug` mit der Anforderung | W18: 9 Zeilen (Klartext, MD5, SASL, SASL-Fortsetzung, Terminate, Ende des Datenstroms nach der Anforderung, Reset, Warten auf die Antwort, Fehlerantwort); W19: 10 Zeilen |
+| kein Log einer Stufe nennt Anforderung oder Antwort (Integration: Spuren `GEHEIM`, `md5[0-9a-f]{32}`, `SCRAM`, `n,,n=`, `biws` auch im Debug-Log, alle drei Verfahren; W18real: Debug-Zeile mit der Antwort im Adapter, rot in scram-sha-256, md5 und password von `TestE2ERecordAnmeldung`) | W18: `Debug` mit der Antwort; W19: `Debug` mit der Anforderung | W18: 9 Zeilen (Klartext, MD5, SASL, SASL-Fortsetzung, Terminate, Ende des Datenstroms nach der Anforderung, Reset, Warten auf die Antwort, Fehlerantwort); W19: 10 Zeilen |
 | eine Meldung nennt den Code, nie den Inhalt | X3: Reihenfolge-Meldung mit dem Inhalt in Hex; X4: Client-Nachricht mit `%+v` statt `%T`; N7: Text der Bibliothek in der Meldung | X3: 15 Zeilen Reihenfolge; X4: `Anfrage`, `Extended-Nachricht`; N7: Code 2, 6, 9, unbekannter Code |
 | auf den Client wartet die Anmeldung ohne eigene Frist | X5: Lesefrist von 1 s nach der Startnachricht | `TestAnmeldungWartetOhneFrist` |
 | erstes Signal beim Schreiben der Anforderung und beim Warten auf die Antwort unterbricht nicht | W1: Wächter läuft weiter und setzt die Lesefrist; W2: dasselbe mit der Schreibfrist | beide Mutanten rot in beiden Zeilen von `TestAnmeldungErstesSignal` (die Frist des Wächters wirkt auch auf das spätere Lesen bzw. Schreiben; ein Mutant, der nur eine der beiden Zeilen bricht, fand sich nicht) |
@@ -256,7 +256,7 @@ zusätzliche Datei im Kern, eine im Upstream-Adapter; `make a-check`), davon 129
 **Grüne Mutanten und äquivalente Fälle.**
 
 - **Lesen am Server** (`LH-FA-05.b` *Ende des Servers*): `TestVermittlungLesefehlerAmServer` (Ende des Datenstroms, Reset); Mutant M5 (`istVerbindungsende` in `lesefehler` falsch) rot in beiden Zeilen.
-- **Wächter zurücknehmen** (`SetReadDeadline(time.Time{})` in `startupBisSignal`, Mutant M14 des Reviews) bleibt grün. Akzeptiertes Negativ: Das Fenster (Signal nach der Startnachricht, vor dem Ende des Wächters) ist nicht stabil zu treffen; der Kommentar sagt nur zu, was `TestAnmeldungErstesSignal` und `TestAnmeldungWartetOhneFrist` prüfen.
+- **Wächter zurücknehmen** (`SetReadDeadline(time.Time{})` in `startupBisSignal`, Mutant M14 des Reviews) bleibt grün. Akzeptiertes Negativ, seit `e1dc57b` als Grenze in `LH-FA-05.b` und in §6: Das Fenster (Signal nach der Startnachricht, vor dem Ende des Wächters) ist nicht stabil zu treffen; der Kommentar sagt nur zu, was `TestAnmeldungErstesSignal` und `TestAnmeldungWartetOhneFrist` prüfen.
 
 - **Y5** (Fehler beim Senden der Antwort `p` übergangen) ist äquivalent: Auf der zurückgesetzten Verbindung
   scheitert das folgende Lesen mit demselben `PGR-E4003`; kein Fall unterscheidet die beiden Stellen.
