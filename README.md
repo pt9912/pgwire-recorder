@@ -31,7 +31,10 @@ Aufzeichnung (Art und Reihenfolge der Antworten, Spalten, Befehl, SQLSTATE eines
 Transaktionsstatus; nicht Zeilenwerte und Hinweise) und meldet eine Abweichung als
 `PGR-E5004` mit Exit-Code 5. Ohne `--compare-responses` endet `play`, wenn die Datenbank
 mit einem COPY-Datenstrom antwortet, mit `PGR-E6001`. `record` und `replay` nehmen
-Verbindungen nur ohne TLS an, und `record` verbindet ohne TLS zur Datenbank; `play`
+Verbindungen der Anwendung ohne TLS an; mit `--tls-cert` und `--tls-key` (PEM-Dateien) nehmen
+sie TLS an (mindestens TLS 1.2, ohne ein Zertifikat der Anwendung zu verlangen) und weisen eine
+Anwendung ohne TLS mit `PGR-E6003` ab, es sei denn, `--allow-plaintext` lässt beides zu;
+`record` verbindet ohne TLS zur Datenbank; `play`
 verbindet auf Wunsch (`--upstream-tls` oder `sslmode=require` der Verbindung) mit TLS,
 prüft das Zertifikat des Servers, auch gegen eine eigene Zertifizierungsstelle
 (`--upstream-ca`), und meldet die Ablehnung von TLS und ein nicht passendes Zertifikat als `PGR-E4005`.

@@ -1,8 +1,8 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.6  
+Version: 0.7  
 Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
-Stand: 13.10.2026  
+Stand: 14.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für das Binary `pgwire-recorder`, gebaut aus dem Repository (Ausgabe von `pgwire-recorder version`: `pgwire-recorder dev`)
 
@@ -42,8 +42,8 @@ CI-Systemen ausführen.
 
 ### Voraussetzungen
 
-* Ihre Anwendung kann Host und Port der Datenbankverbindung einstellen. Weitere
-  Änderungen an der Anwendung sind nicht nötig.
+* Ihre Anwendung kann Host und Port der Datenbankverbindung einstellen. Außer an der
+  Verschlüsselung (siehe unten) sind weitere Änderungen an der Anwendung nicht nötig.
 * Zum Aufzeichnen: eine erreichbare PostgreSQL-Datenbank, die den Benutzer ohne
   Passwort anmeldet. Verlangt sie ein Passwort, beendet `record` die Verbindung
   Ihrer Anwendung mit `PGR-E6001`.
@@ -54,10 +54,13 @@ CI-Systemen ausführen.
 * Zum Bauen: Docker und GNU `make`. Zum Ausführen: Linux auf der Architektur des
   Rechners, auf dem Sie gebaut haben, oder ein Container-Laufzeitsystem (siehe
   [Installation](#2-installation)).
-* Die Verbindung zum Werkzeug läuft ohne Verschlüsselung: `record` und `replay`
-  lehnen eine Anfrage nach Verschlüsselung ab. Ein Treiber mit `sslmode=prefer`
-  verbindet sich dann unverschlüsselt, einer mit `sslmode=require` bricht ab (siehe
-  [Fehlerbehebung](#die-anwendung-kann-sich-nicht-verbinden)).
+* Die Verbindung Ihrer Anwendung zum Werkzeug läuft ohne Verschlüsselung, solange Sie
+  `record` oder `replay` ohne `--tls-cert` starten: Sie lehnen eine Anfrage nach
+  Verschlüsselung dann ab. Ein Treiber mit `sslmode=prefer` verbindet sich dann
+  unverschlüsselt, einer mit `sslmode=require` bricht ab (siehe
+  [Fehlerbehebung](#die-anwendung-kann-sich-nicht-verbinden)). Mit einem Zertifikat und
+  einem Schlüssel nehmen beide TLS an (siehe
+  [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)).
 
 ### Wichtig: Aufzeichnungen können vertrauliche Daten enthalten
 
@@ -544,11 +547,14 @@ auch wenn sie keine Interaktionen hat.
 * Keine Sitzung ist, auch mit der Option, eine Verbindung, deren Aufbau zur Datenbank
   scheitert (`PGR-E4002`, Exit-Code 4), eine, auf der Ihre Anwendung `COPY` nutzt
   (`PGR-E6001`, Exit-Code 6), und eine, die das zwangsweise Beenden im Aufbau zur Datenbank
-  trifft (ohne Meldung, Exit-Code 0).
+  trifft (ohne Meldung, Exit-Code 0). Das gilt auch für eine Verbindung, deren
+  TLS-Aufbau scheitert (`PGR-W3002`), und für eine unverschlüsselte, die das Werkzeug
+  mit TLS abweist (`PGR-E6003`; siehe
+  [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)).
 * Eine Verbindung zählt erst mit ihrer Startnachricht. Eine Verbindung, die vorher endet, ist
   keine Sitzung, auch mit der Option: eine ohne gesendete Daten, eine mit nur einer Anfrage
-  nach Verschlüsselung, die `record` ablehnt, und eine mit nur einem Abbruchwunsch
-  (`PGR-W3001`).
+  nach Verschlüsselung, die `record` ohne `--tls-cert` ablehnt, und eine mit nur einem
+  Abbruchwunsch (`PGR-W3001`).
 * Bricht eine Verbindung mitten in der Startnachricht ab, nachdem sie mindestens 8 Bytes
   gesendet hat, ist das `PGR-E6001` mit Exit-Code 6, und die Verbindung ist keine Sitzung.
   Nach weniger als 8 Bytes endet sie ohne Meldung.
@@ -581,9 +587,12 @@ auch wenn sie keine Interaktionen hat.
   Interaktionen, die nie eine Verbindung erhält, ist nie zugeordnet (`PGR-W2001`, mit
   `--fail-on-unconsumed` `PGR-E5002`).
 * Eine Verbindung zählt ab ihrer Startnachricht. Eine Anfrage nach Verschlüsselung, die
-  `replay` ablehnt, ein Abbruchwunsch und eine Verbindung ohne gesendete Daten zählen bei
-  keiner der beiden Zuordnungen als Verbindung; eine Verbindung, die erst nach der Anfrage
-  nach Verschlüsselung ihre Startnachricht sendet, zählt einmal.
+  `replay` ohne `--tls-cert` ablehnt, ein Abbruchwunsch und eine Verbindung ohne gesendete
+  Daten zählen bei keiner der beiden Zuordnungen als Verbindung; eine Verbindung, die erst
+  nach der Anfrage nach Verschlüsselung ihre Startnachricht sendet, zählt einmal. Ebenso
+  zählt bei `first-request` weder eine Verbindung, deren TLS-Aufbau scheitert
+  (`PGR-W3002`), noch eine unverschlüsselte, die das Werkzeug mit TLS abweist
+  (`PGR-E6003`).
 * Enthält die Aufzeichnung nur Sitzungen ohne Interaktionen, endet `replay` beim Start mit
   `PGR-E3004`, mit beiden Zuordnungen.
 * `--session-assignment` kennt die Werte `first-request` und `connection`, in
@@ -1035,7 +1044,8 @@ Exit-Code 0.
 #### Hinweise
 
 * Die Ausgabe enthält nie einen aufgelösten Wert, aber Hosts, Benutzer und Pfade der
-  Datei. Prüfen Sie sie, bevor Sie sie weitergeben.
+  Datei. Prüfen Sie sie, bevor Sie sie weitergeben. Die Dateien hinter `tls_cert` und
+  `tls_key` liest `config show` nicht.
 * Ist die Datei ungültig, zeigt das Werkzeug nichts und meldet `PGR-E2004` oder
   `PGR-E2006`. `PGR-E2005` meldet `config show` nie, weil es keine Verbindung benutzt.
 
@@ -1043,21 +1053,24 @@ Exit-Code 0.
 
 `record` und `replay` unterstützen das einfache und das erweiterte Anfrageprotokoll
 von PostgreSQL. Viele Treiber nutzen standardmäßig das erweiterte Protokoll mit
-vorbereiteten Anweisungen. Dafür müssen Sie am Treiber nur Host und Port ändern.
+vorbereiteten Anweisungen. Dafür ändern Sie am Treiber Host und Port, bei
+Bedarf auch die Verschlüsselung (siehe
+[Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)).
 
 #### Voraussetzung
 
-Ihr Treiber verwendet Version 3.0 des PostgreSQL-Protokolls und lässt sich ohne
-Verschlüsselung betreiben.
+Ihr Treiber verwendet Version 3.0 des PostgreSQL-Protokolls. Startet das Werkzeug ohne
+`--tls-cert`, lässt er sich ohne Verschlüsselung betreiben.
 
 #### Vorgehen
 
 1. Starten Sie `pgwire-recorder record` oder `pgwire-recorder replay`.
 2. Tragen Sie in der Verbindungszeichenfolge Ihres Treibers Host und Port aus
    `--listen` ein.
-3. Stellen Sie die Verschlüsselung in der Verbindungszeichenfolge ab, zum Beispiel
-   mit `sslmode=disable`; mit `sslmode=prefer` verbindet sich der Treiber
-   unverschlüsselt.
+3. Startet das Werkzeug ohne `--tls-cert`, stellen Sie die Verschlüsselung in der
+   Verbindungszeichenfolge ab, zum Beispiel mit `sslmode=disable`; mit
+   `sslmode=prefer` verbindet sich der Treiber unverschlüsselt. Mit `--tls-cert` und
+   `--tls-key` nimmt das Werkzeug die Anfrage nach Verschlüsselung an.
 4. Führen Sie Ihren Ablauf aus.
 
 #### Ergebnis
@@ -1109,6 +1122,137 @@ Antworten.
   erweiterten Protokolls, vor ihrem `Sync`, ist auch eine Lebendprüfung eine
   Abweichung (`PGR-E5001`). Aufzeichnen und Einspielen behandeln
   Lebendprüfungen wie jede andere Anfrage.
+
+### Verschlüsselte Verbindungen der Anwendung annehmen
+
+Mit einem Zertifikat und einem privaten Schlüssel nehmen `record` und `replay` TLS von
+Ihrer Anwendung an, beide Kommandos gleich. Ohne die beiden Dateien nehmen sie nur
+Verbindungen ohne Verschlüsselung an.
+
+#### Voraussetzung
+
+Zwei Dateien im PEM-Format: das Zertifikat des Servers, auf Wunsch gefolgt von seiner
+Kette, und sein privater Schlüssel ohne Passwort. Ihr Treiber kann eine verschlüsselte
+Verbindung aufbauen.
+
+Zum Ausprobieren erzeugen Sie ein selbst signiertes Zertifikat und seinen Schlüssel
+zum Beispiel mit OpenSSL (der Aufruf lief mit OpenSSL 3.3):
+
+```bash
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 30 \
+  -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
+  -keyout server.key -out server.pem
+```
+
+#### Vorgehen
+
+1. Starten Sie `record` oder `replay` mit den beiden Dateien:
+
+   ```bash
+   pgwire-recorder record \
+     --listen 127.0.0.1:15432 \
+     --upstream postgres:5432 \
+     --output ./recordings/users.yaml \
+     --tls-cert ./server.pem \
+     --tls-key ./server.key
+   ```
+
+   Statt der Optionen genügen die Umgebungsvariablen `PGWIRE_RECORDER_TLS_CERT` und
+   `PGWIRE_RECORDER_TLS_KEY` oder die Schlüssel `tls_cert` und `tls_key` im Abschnitt
+   `record:` oder `replay:` der Konfigurationsdatei:
+
+   ```yaml
+   replay:
+     listen: 127.0.0.1:15432
+     input: ./recordings/users.yaml
+     tls_cert: ./server.pem
+     tls_key: ./server.key
+   ```
+
+2. Verbinden Sie Ihre Anwendung mit `sslmode=require`. Soll der Treiber das Zertifikat
+   prüfen, geben Sie ihm bei einem selbst signierten Zertifikat die Zertifikatsdatei als
+   Wurzel; mit libpq (`psql`) und dem Zertifikat aus dem Beispiel oben:
+
+   ```bash
+   psql "host=localhost port=15432 dbname=myapp sslmode=verify-full sslrootcert=./server.pem"
+   ```
+
+3. Führen Sie Ihren Ablauf aus.
+
+#### Ergebnis
+
+Die Verbindung Ihrer Anwendung ist verschlüsselt, und ihr Ablauf ist der einer
+unverschlüsselten Verbindung. Die Aufzeichnung hält die Verschlüsselung nicht fest:
+Dieselben einfachen Anfragen ergeben über eine verschlüsselte und eine unverschlüsselte
+Verbindung dieselbe Aufzeichnung, und `replay` liefert eine Aufzeichnung über beide
+Verbindungsarten mit denselben Antworten aus.
+
+#### Hinweise
+
+* `--tls-cert` und `--tls-key` stehen nur zusammen; jede allein ist ein ungültiger
+  Aufruf (`PGR-E2001`). Die Quellen dürfen Sie mischen, etwa das Zertifikat aus der
+  Umgebung und den Schlüssel aus der Konfigurationsdatei; die Priorität steht unter
+  [Einstellungen](#5-einstellungen). Ein relativer Pfad gilt ab dem aktuellen
+  Verzeichnis, auch in der Konfigurationsdatei.
+* `play` kennt die Optionen `--tls-cert`, `--tls-key` und `--allow-plaintext` nicht
+  (`PGR-E2001`); ihre Umgebungsvariablen sind bei `play` ebenfalls `PGR-E2001`, ihre
+  Schlüssel im Abschnitt `play:` der Konfigurationsdatei `PGR-E2004`.
+* Die Zertifikatsdatei enthält mindestens einen Block vom Typ `CERTIFICATE` und
+  keinen Block eines anderen Typs. Der erste Block ist das Zertifikat des Servers, die weiteren sind seine Kette;
+  das Werkzeug liefert die Kette an die Anwendung aus. Vertraut Ihre Anwendung nur der
+  Wurzel, gehören die Zwischenzertifikate hinter das Zertifikat des Servers: Mit libpq
+  gelingt `sslmode=verify-full` gegen ein Zertifikat, das eine Zwischenstelle
+  ausgestellt hat, nur mit dieser Kette in der Datei.
+* Die Schlüsseldatei enthält genau einen Block vom Typ `PRIVATE KEY`, `RSA PRIVATE KEY`
+  oder `EC PRIVATE KEY` mit einem RSA-, ECDSA- oder Ed25519-Schlüssel, nicht
+  verschlüsselt. Eine Datei, die Zertifikat und Schlüssel zugleich enthält, ist
+  ungültig. In beiden Dateien bleibt Text außerhalb der Blöcke unbeachtet.
+* Beim Start prüft das Werkzeug beide Dateien, zuerst das Zertifikat, dann den
+  Schlüssel, und meldet den ersten Fehler als `PGR-E2007` (Exit-Code 2): eine Datei, die
+  der Prozess nicht lesen kann (im Container läuft er als Benutzer des Images, siehe
+  [Container](#container)), eine Datei ohne gültigen Inhalt, ein Zertifikat, das
+  abgelaufen oder noch nicht gültig ist, ein verschlüsselter Schlüssel und ein Schlüssel,
+  der nicht zum Zertifikat passt. Jede Datei muss, symbolischen Links gefolgt, eine
+  reguläre Datei sein; bei einem Verzeichnis, einer FIFO, einem Gerät und einem Socket
+  endet der Start mit `PGR-E2007`, ohne auf Eingabe zu warten. Die Meldung nennt die
+  Option und die Ursache, nicht den Pfad. Welche Ursache sie bei einer Datei mit
+  mehreren Mängeln nennt, ist nicht festgelegt. Die Prüfung der Dateien kommt vor der der
+  Ausgabedatei von `record`: Eine vorhandene Ausgabedatei bleibt dabei unberührt, und
+  die Meldung ist nicht `PGR-E2002`. `config show` liest die Dateien nicht.
+* Ob das Zertifikat gültig ist, prüft das Werkzeug nur beim Start und nur am Zertifikat
+  des Servers (Beginn und Ende der Gültigkeit eingeschlossen), nicht an der Kette. Läuft das
+  Zertifikat nach dem Start ab, nimmt das Werkzeug neue Verbindungen weiter an. Die Namen, die Verwendung und den Aussteller des Zertifikats prüft das
+  Werkzeug nicht; das ist Sache der Anwendung.
+* Das Werkzeug beantwortet die Anfrage nach Verschlüsselung mit `S` und handelt TLS
+  mit mindestens Version 1.2 aus; ein Client, der höchstens TLS 1.1 spricht, scheitert.
+  Es fordert kein Zertifikat der Anwendung an. Scheitert der TLS-Aufbau, etwa weil die
+  Anwendung dem Zertifikat nicht vertraut und abbricht oder nach der Antwort `S`
+  Klartext sendet, endet die Verbindung mit der Warnung `PGR-W3002` im Log, mit `code`,
+  `remote` und der Ursache, nie mit Zertifikat oder Schlüssel; der Exit-Code ändert sich
+  nicht.
+* Ein Client, der TLS ohne vorherige Anfrage nach Verschlüsselung beginnt (direktes
+  TLS, bei libpq `sslnegotiation=direct`), wird nicht bedient: Das Werkzeug
+  schließt die Verbindung mit der Warnung `PGR-W3003`, auch mit `--allow-plaintext`. Auf
+  einer verschlüsselten Verbindung ist eine weitere Anfrage nach Verschlüsselung, auch
+  eine nach GSSAPI-Verschlüsselung, `PGR-E6001`.
+* Ohne `--allow-plaintext` weist das Werkzeug eine Anwendung ab, die ohne
+  Verschlüsselung beginnt: Sie erhält `PGR-E6003`, die Verbindung endet, sie wird nicht
+  aufgezeichnet, und das Werkzeug endet beim Beenden mit Exit-Code 6. Das gilt auch,
+  wenn der Treiber zuvor eine GSSAPI-Verschlüsselung angefragt hat, die das Werkzeug
+  ablehnt, und nur für eine Startnachricht der Protokollversion 3.0; eine andere
+  Version ist wie sonst `PGR-E6002`. Mit `--allow-plaintext` nimmt das Werkzeug
+  verschlüsselte und unverschlüsselte Verbindungen an. Die Option steht nur mit
+  `--tls-cert`: `--allow-plaintext=true` ohne die Dateien ist `PGR-E2001`,
+  `--allow-plaintext=false` ohne sie gültig. Als Umgebungsvariable heißt sie
+  `PGWIRE_RECORDER_ALLOW_PLAINTEXT`, als Schlüssel `allow_plaintext` im Abschnitt
+  `record:` oder `replay:`.
+* Das Werkzeug sendet beim Schließen einer verschlüsselten Verbindung kein
+  `close_notify`; die Anwendung sieht das Ende der TCP-Verbindung. Beendet die
+  Anwendung ihre Verbindung ohne `close_notify`, ist das ein Verbindungsende wie ohne
+  TLS. Eine ruhende verschlüsselte Verbindung hält das Beenden nicht auf; ihre
+  abgeschlossenen Anfragen stehen in der Aufzeichnung.
+* Der Schlüssel erscheint in keiner Log-Zeile von `record` und `replay`, auch nicht mit
+  `--log-level debug`.
 
 ### Das Werkzeug in der Testautomatisierung verwenden
 
@@ -1181,7 +1325,9 @@ den die Option nicht annimmt; die Meldung nennt den Namen der Variable, nie ihre
 Wert. So ist `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` bei `record` und `play` ein
 Fehler, `PGWIRE_RECORDER_LISTEN` bei `play`, `PGWIRE_RECORDER_COMPARE_RESPONSES` bei
 `record` und `replay`, `PGWIRE_RECORDER_SESSION_ASSIGNMENT` bei `record` und `play` und
-`PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS` bei `replay` und `play`. Wer `record` und `play` in derselben
+`PGWIRE_RECORDER_RECORD_EMPTY_SESSIONS` bei `replay` und `play` und
+`PGWIRE_RECORDER_TLS_CERT`, `PGWIRE_RECORDER_TLS_KEY` und
+`PGWIRE_RECORDER_ALLOW_PLAINTEXT` bei `play`. Wer `record` und `play` in derselben
 Umgebung ausführt, setzt dort die Variablen der Optionen der jeweils anderen
 Betriebsart nicht. `config show` prüft von den Variablen nur
 `PGWIRE_RECORDER_CONFIG`. Unbeachtet bleiben: `PGWIRE_RECORDER_PASSWORD`, das keine Option
@@ -1203,6 +1349,9 @@ dem Präfix `PGWIRE_RECORDER_`, deren Name zu keiner Option gehört und die nich
 | `--fail-on-unconsumed` | `replay` | `PGWIRE_RECORDER_FAIL_ON_UNCONSUMED` | `false` |
 | `--session-assignment` | `replay` | `PGWIRE_RECORDER_SESSION_ASSIGNMENT` | `first-request` (Werte `first-request`, `connection`) |
 | `--shutdown-timeout` | `record`, `replay` | `PGWIRE_RECORDER_SHUTDOWN_TIMEOUT` | `5s` (`0` ohne Frist; Einheit `ms`, `s` oder `m`) |
+| `--tls-cert` | `record`, `replay` | `PGWIRE_RECORDER_TLS_CERT` | keine Datei; verlangt `--tls-key` |
+| `--tls-key` | `record`, `replay` | `PGWIRE_RECORDER_TLS_KEY` | keine Datei; verlangt `--tls-cert` |
+| `--allow-plaintext` | `record`, `replay` | `PGWIRE_RECORDER_ALLOW_PLAINTEXT` | `false`; `true` verlangt `--tls-cert` |
 | `--user` | `play` | `PGWIRE_RECORDER_USER` | Benutzer der benutzten Verbindung, ohne ihn der der Aufzeichnung |
 | `--database` | `play` | `PGWIRE_RECORDER_DATABASE` | Datenbank der benutzten Verbindung, ohne sie die der Aufzeichnung |
 | `--continue-on-error` | `play` | `PGWIRE_RECORDER_CONTINUE_ON_ERROR` | `false` |
@@ -1437,13 +1586,13 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | Code | Bedeutung | Ursache und Lösung |
 |---|---|---|
 | `PGR-E1000` | sonstiger Fehler | Ein Defekt des Werkzeugs; keine Eingabe löst ihn aus. Melden Sie das Problem mit der Ausgabe des Laufs. |
-| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder eine gesetzte, nicht leere Umgebungsvariable gehört zu einer Option, die die Betriebsart nicht kennt (die Meldung nennt den Namen der Variable, nicht den Wert; siehe [Einstellungen](#5-einstellungen)), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`), oder `--timing-mode` oder `--timing-reference` steht ohne `--keep-timing`, oder `--timing-reference` steht mit `relative` (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)), oder `--session-assignment` hat einen anderen Wert als `first-request` und `connection`, oder `replay` soll mit `--session-assignment connection` eine Aufzeichnung wiedergeben, die nicht mit `--record-empty-sessions` entstand (siehe [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)). Prüfen Sie den Aufruf mit `--help`. |
+| `PGR-E2001` | ungültiger Aufruf | Eine Option fehlt, ist unbekannt oder hat einen ungültigen Wert (bei `--format` jeder außer `yaml` und `sqlite`), oder eine gesetzte, nicht leere Umgebungsvariable gehört zu einer Option, die die Betriebsart nicht kennt (die Meldung nennt den Namen der Variable, nicht den Wert; siehe [Einstellungen](#5-einstellungen)), oder `--upstream-ca` steht, obwohl `play` kein TLS nutzt (ohne `--upstream-tls` und ohne `sslmode=require` der Verbindung, oder mit `--upstream-tls=false`), oder `--tls-cert` und `--tls-key` stehen nicht zusammen, oder `--allow-plaintext=true` steht ohne `--tls-cert` (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)), oder `--timing-mode` oder `--timing-reference` steht ohne `--keep-timing`, oder `--timing-reference` steht mit `relative` (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)), oder `--session-assignment` hat einen anderen Wert als `first-request` und `connection`, oder `replay` soll mit `--session-assignment connection` eine Aufzeichnung wiedergeben, die nicht mit `--record-empty-sessions` entstand (siehe [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)). Prüfen Sie den Aufruf mit `--help`. |
 | `PGR-E2002` | Zieldatei existiert bereits | Wählen Sie einen anderen Dateinamen, oder ergänzen Sie `--force`, um die Datei zu ersetzen. |
 | `PGR-E2003` | Aufzeichnung ohne Zeitangabe bei `--keep-timing` | `play --keep-timing` hat eine Aufzeichnung, in der eine Anfrage kein `offset_ms` trägt. Die Meldung nennt die Sitzung und die Nummer der ersten Anfrage ohne Zeitangabe. Zeichnen Sie mit `--record-timing` erneut auf, oder spielen Sie ohne `--keep-timing` ein. |
-| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`), `format` (erlaubt sind `yaml` und `sqlite`), `record_timing`, `record_empty_sessions`, `keep_timing` und `compare_responses` (erlaubt sind `true` und `false`), `session_assignment` (erlaubt sind `first-request` und `connection`), `timing_mode` (erlaubt sind `relative` und `absolute`) und `timing_reference` (erlaubt sind `connect` und `first-request`). |
+| `PGR-E2004` | Konfigurationsdatei nicht lesbar oder ungültig | Die Meldung nennt den Schlüssel oder die Verbindung. Prüfen Sie YAML, Schlüssel, Abschnitt, Werte, `sslmode` (erlaubt sind `disable` und `require`), `format` (erlaubt sind `yaml` und `sqlite`), `record_timing`, `record_empty_sessions`, `keep_timing`, `compare_responses` und `allow_plaintext` (erlaubt sind `true` und `false`), `session_assignment` (erlaubt sind `first-request` und `connection`), `timing_mode` (erlaubt sind `relative` und `absolute`) und `timing_reference` (erlaubt sind `connect` und `first-request`). Die Schlüssel `tls_cert`, `tls_key` und `allow_plaintext` stehen nur in `record:` und `replay:`; in `play:` sind sie unbekannt. |
 | `PGR-E2005` | Umgebungsvariable eines Platzhalters nicht gesetzt | Die Meldung nennt die Verbindung und die erste fehlende Variable. Setzen Sie sie mit einem nicht leeren Wert; eine leere Variable gilt als nicht gesetzt. Bei `record` zählen nur die Variablen in Host und Port. |
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
-| `PGR-E2007` | Datei von `--upstream-ca` nicht verwendbar | Die Datei fehlt, ist nicht lesbar, ist keine reguläre Datei oder enthält keine Zertifikate im PEM-Format. Die Meldung nennt die Option und den Grund, nicht den Pfad; der Exit-Code ist 2. Prüfen Sie Pfad, Rechte und Inhalt der Datei. |
+| `PGR-E2007` | Datei von `--upstream-ca`, `--tls-cert` oder `--tls-key` nicht verwendbar | Die Datei fehlt, ist nicht lesbar, ist keine reguläre Datei oder enthält keine Zertifikate im PEM-Format. Bei `--tls-cert` und `--tls-key` außerdem: das Zertifikat ist abgelaufen oder noch nicht gültig, der Schlüssel ist verschlüsselt oder passt nicht zum Zertifikat, oder eine Datei hat einen anderen Inhalt, als die Option verlangt (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)). Die Meldung nennt die Option und den Grund, nicht den Pfad; der Exit-Code ist 2. Prüfen Sie Pfad, Rechte und Inhalt der Datei. |
 | `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Bei `sqlite` außerdem: Neben dem Zielpfad liegt eine Datei `<Zielpfad>-journal`, oder eine SQLite-Datei ist länger als fünf Sekunden gesperrt. Prüfen Sie Pfad und Dateirechte, und siehe [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen). |
 | `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion; das gilt für beide Formate. Zeichnen Sie mit der verwendeten Version erneut auf. |
 | `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Bei einer SQLite-Datei auch: Sie ist keine SQLite-Datei oder eine fremde, eine Tabelle oder Spalte fehlt, sie ist abgeschnitten, oder ihr Inhalt ist ungültig (zum Beispiel falsche Formatkennung, keine lückenlose Nummerierung, ein Eintrag ohne zugehörige Sitzung). Auch: Ein `offset_ms` ist keine ganze Zahl ab 0, oder ein Wert ist kleiner als der vorige derselben Sitzung; die Meldung nennt die Sitzung und die Anfrage, nie den Wert (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Zeichnen Sie erneut auf. |
@@ -1459,8 +1608,9 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. Eine Sitzung ohne Interaktionen zählt nicht dazu. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen mit Interaktionen aufgezeichnet sind; mit `--session-assignment connection` hat sie auf einer Verbindung eine Anfrage gestellt, zu der es keine Sitzung mit der Nummer der Verbindung gibt. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
 | `PGR-E5004` | Antwort der Datenbank weicht von der Aufzeichnung ab | `play` mit `--compare-responses` hat bei einer Interaktion eine andere Antwort erhalten als aufgezeichnet. Die Meldung nennt Sitzung, Nummer der Interaktion, Position und Art der ersten Abweichung, bei der Art `Fehler` die SQLSTATE beider Seiten. Prüfen Sie, ob die Datenbank dieselbe Struktur hat wie die, gegen die Sie aufgezeichnet haben, oder zeichnen Sie erneut auf; siehe [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen). Der Exit-Code ist 5. |
-| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen verlangt die Datenbank ein Passwort; oder die Datenbank antwortet bei `play` mit einem COPY-Datenstrom. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht; verlangt die Datenbank beim Aufzeichnen ein Passwort, lassen Sie die Anmeldung dort ohne Passwort zu. |
+| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt, zum Beispiel `COPY`; beim Aufzeichnen verlangt die Datenbank ein Passwort; die Datenbank antwortet bei `play` mit einem COPY-Datenstrom; oder die Anwendung sendet auf einer verschlüsselten Verbindung eine weitere Anfrage nach Verschlüsselung. Verwenden Sie diese Funktion im aufgezeichneten Ablauf nicht; verlangt die Datenbank beim Aufzeichnen ein Passwort, lassen Sie die Anmeldung dort ohne Passwort zu. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls. Verwenden Sie einen Treiber, der sie nutzt. |
+| `PGR-E6003` | unverschlüsselte Verbindung nicht zugelassen | `record` oder `replay` läuft mit `--tls-cert`, und die Anwendung beginnt ohne Verschlüsselung. Das Werkzeug beendet die Verbindung und zeichnet sie nicht auf; der Exit-Code ist 6. Verbinden Sie die Anwendung mit TLS (`sslmode=require`), oder starten Sie das Werkzeug mit `--allow-plaintext` (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)). |
 
 ### Warnungen
 
@@ -1468,16 +1618,32 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 |---|---|---|
 | `PGR-W2001` | Wiedergabe endete vor der letzten aufgezeichneten Anfrage, oder aufgezeichnete Sitzungen mit Interaktionen wurden nie verwendet | Ihr Test hat nicht alle aufgezeichneten Anfragen ausgeführt oder weniger Verbindungen mit Anfragen geöffnet als Sitzungen mit Interaktionen aufgezeichnet sind. Mit `--fail-on-unconsumed` wird das zum Fehler (`PGR-E5002`). |
 | `PGR-W3001` | Abbruchwunsch nicht weitergeleitet | Die Anwendung hat versucht, eine laufende Anfrage abzubrechen. Das Werkzeug leitet diesen Wunsch nicht weiter und schließt die Verbindung. |
-| `PGR-W3003` | Verbindung ohne PostgreSQL-Protokoll | Etwas anderes als ein PostgreSQL-Client hat den Port angesprochen, zum Beispiel ein HTTP-Gesundheitscheck. Das Werkzeug schließt die Verbindung; der Exit-Code ändert sich nicht. Ein reiner TCP-Check ohne Daten erzeugt keine Warnung. |
+| `PGR-W3002` | TLS-Aufbau gescheitert | Eine Anwendung hat den TLS-Aufbau mit `record` oder `replay` nicht abgeschlossen, etwa weil sie dem Zertifikat nicht vertraut und abbricht, weil sie höchstens TLS 1.1 spricht oder weil sie nach der Antwort `S` Klartext sendet. Das Werkzeug beendet die Verbindung; der Exit-Code ändert sich nicht. Prüfen Sie, ob die Anwendung dem Zertifikat vertraut (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)). |
+| `PGR-W3003` | Verbindung ohne PostgreSQL-Protokoll | Etwas anderes als ein PostgreSQL-Client hat den Port angesprochen, zum Beispiel ein HTTP-Gesundheitscheck, oder ein Client beginnt mit TLS ohne vorherige Anfrage nach Verschlüsselung (direktes TLS), auch mit `--allow-plaintext`. Das Werkzeug schließt die Verbindung; der Exit-Code ändert sich nicht. Ein reiner TCP-Check ohne Daten erzeugt keine Warnung. |
 
 ### Die Anwendung kann sich nicht verbinden
 
 Fordert Ihr Treiber eine verschlüsselte Verbindung an und bricht ab, wenn sie
-abgelehnt wird (etwa mit `sslmode=require`), schalten Sie die Verschlüsselung in der
-Verbindungszeichenfolge ab (`sslmode=disable`), oder lassen Sie sie mit
-`sslmode=prefer` unverschlüsselt verbinden. Erhält Ihre Anwendung beim Aufzeichnen
+abgelehnt wird (etwa mit `sslmode=require`), und startet das Werkzeug ohne `--tls-cert`,
+schalten Sie die Verschlüsselung in der Verbindungszeichenfolge ab (`sslmode=disable`),
+oder lassen Sie sie mit `sslmode=prefer` unverschlüsselt verbinden; oder starten Sie
+das Werkzeug mit `--tls-cert` und `--tls-key` (siehe
+[Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)).
+Erhält Ihre Anwendung beim Aufzeichnen
 `PGR-E6001` mit dem Hinweis auf ein Anmeldeverfahren, verlangt die Datenbank ein
 Passwort; lassen Sie die Anmeldung dort ohne Passwort zu.
+
+Startet das Werkzeug mit `--tls-cert`, gilt:
+
+* Erhält Ihre Anwendung `PGR-E6003`, beginnt sie ohne Verschlüsselung (etwa mit
+  `sslmode=disable`). Verbinden Sie sie mit `sslmode=require` oder `prefer`, oder
+  starten Sie das Werkzeug mit `--allow-plaintext`.
+* Bricht Ihre Anwendung beim Verbinden ab und das Log nennt `PGR-W3002`, ist der
+  TLS-Aufbau gescheitert, etwa weil die Anwendung dem Zertifikat nicht vertraut. Prüfen
+  Sie, ob sie die Zertifikatsdatei oder die Wurzel der Kette kennt.
+* Beginnt Ihr Treiber TLS ohne vorherige Anfrage nach Verschlüsselung (direktes TLS,
+  bei libpq `sslnegotiation=direct`), bedient das Werkzeug ihn nicht,
+  und das Log nennt `PGR-W3003`; schalten Sie das direkte TLS ab.
 
 ## 8. FAQ
 
