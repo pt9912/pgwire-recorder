@@ -360,3 +360,22 @@ func TestAnmeldungFehlerantwortDesServers(t *testing.T) {
 		}
 	}
 }
+
+// Abdeckung: LH-FA-05/Boundary — auf den Client wartet der Recorder in der Anmeldung
+// ohne eigene Frist: Eine Antwort nach 1,5 s gilt wie jede andere (LH-FA-05.b
+// *Wartezeit*).
+func TestAnmeldungWartetOhneFrist(t *testing.T) {
+	rec := &fakeRecorder{anmeldeFolge: []model.Anmeldeanforderung{{Code: 3}}}
+	client, fe, _, _ := anmeldeVerbindung(context.Background(), t, rec, io.Discard, false)
+	anforderungVon(t, fe)
+	time.Sleep(1500 * time.Millisecond)
+	_, _ = client.Write(rohP([]byte("spät\x00")))
+	if got := bisAufbauEnde(t, fe); got[0] != "AuthenticationOk" {
+		t.Fatalf("Aufbau nach der Anmeldung: %v", got)
+	}
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	if rec.anmeldeFehler != nil || string(rec.anmeldeAntworten[0]) != "spät\x00" {
+		t.Errorf("Antworten %q, Fehler %v", rec.anmeldeAntworten, rec.anmeldeFehler)
+	}
+}

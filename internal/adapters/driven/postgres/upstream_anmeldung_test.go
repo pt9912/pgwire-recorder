@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -261,11 +262,11 @@ func TestVermittlungNichtVermittelt(t *testing.T) {
 	for _, c := range []struct {
 		name, nachricht, code string
 	}{
-		{"Code 2", string(rohR(2, "")), "2"},
-		{"Code 6", string(rohR(6, "")), "6"},
-		{"Code 7", string(rohR(7, "")), "7"},
-		{"Code 9", string(rohR(9, "")), "9"},
-		{"unbekannter Code", string(rohR(4242, "")), "4242"},
+		{"Code 2", string(rohR(2, "GEHEIM")), "2"},
+		{"Code 6", string(rohR(6, "GEHEIM")), "6"},
+		{"Code 7", string(rohR(7, "GEHEIM")), "7"},
+		{"Code 9", string(rohR(9, "GEHEIM")), "9"},
+		{"unbekannter Code", string(rohR(4242, "GEHEIM")), "4242"},
 		{"nicht lesbare Nachricht", string(rohNachricht('z', "x")), ""},
 		{"Nachricht R ohne Code", string(rohNachricht('R', "")), ""},
 	} {
@@ -279,7 +280,7 @@ func TestVermittlungNichtVermittelt(t *testing.T) {
 			if c.code != "" && !strings.Contains(err.Error(), "Code "+c.code+")") {
 				t.Errorf("Meldung ohne den Code %q: %v", c.code, err)
 			}
-			for _, bibliothek := range []string{"pgproto3", "unknown authentication", "unimplemented", "AuthType", "dieser Stand"} {
+			for _, bibliothek := range []string{"pgproto3", "unknown authentication", "unimplemented", "AuthType", "dieser Stand", "GEHEIM"} {
 				if strings.Contains(err.Error(), bibliothek) {
 					t.Errorf("Meldung nennt die Bibliothek (%q): %v", bibliothek, err)
 				}
@@ -318,6 +319,9 @@ func TestVermittlungReihenfolge(t *testing.T) {
 			falsch := folge[len(folge)-1]
 			if s != nil || code(err) != model.CodeUpstream || !strings.Contains(err.Error(), fmt.Sprintf("Code %d ", falsch)) {
 				t.Fatalf("erwartet %s mit Code %d, erhalten %v", model.CodeUpstream, falsch, err)
+			}
+			if d := datenZu(falsch); d != "" && (strings.Contains(err.Error(), d) || strings.Contains(err.Error(), hex.EncodeToString([]byte(d)))) {
+				t.Errorf("die Meldung nennt den Inhalt der Nachricht: %v", err)
 			}
 			if rest := srv.rest(t); rest != "" {
 				t.Errorf("der Recorder sendet nach dem Abbruch %q", rest)
@@ -426,4 +430,24 @@ func TestOpenSessionTraegtLesepufferDesAufbaus(t *testing.T) {
 	}
 	_ = s.Close()
 	srv.rest(t)
+}
+
+// Abdeckung: LH-FA-05/Negative — eine Fehlerantwort des Servers in der Anmeldung
+// geht gleich welcher SQLSTATE zurück, ohne Session und ohne Fehler: Anmeldung
+// (28P01, 28000), Datenbank (3D000), Überlast (53300, 57P03) und ein Fehler
+// außerhalb dieser Klassen (XX000) (LH-FA-05.b *Fehlerantwort des Servers*).
+func TestVermittlungFehlerantwortJederSQLSTATE(t *testing.T) {
+	for _, sqlstate := range []string{"28P01", "28000", "3D000", "53300", "57P03", "XX000"} {
+		t.Run(sqlstate, func(t *testing.T) {
+			fehler, _ := (&pgproto3.ErrorResponse{Severity: "FATAL", Code: sqlstate, Message: "m"}).Encode(nil)
+			addr, srv := anmeldeServer(t, folgeSkript([]uint32{rSASL, rSASLWeiter}, fehler))
+			s, out, err := anmelden(t, addr, &spion{})
+			if s != nil || err != nil || len(out) != 1 || out[0].Fields["C"] != sqlstate {
+				t.Fatalf("Session %v, Antworten %#v, Fehler %v", s, out, err)
+			}
+			if rest := srv.rest(t); rest != "" {
+				t.Errorf("der Recorder sendet nach dem Abbruch %q", rest)
+			}
+		})
+	}
 }
