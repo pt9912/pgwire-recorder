@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler)
 
-**Berührte Spec-Stellen:** — (der Slice ändert keine Spec-Stelle; er beschreibt das gelieferte Verhalten von `slice-v1-abschluss-anmeldung`)
+**Berührte Spec-Stellen:** `LH-FA-05.b` (Punkt *Aufzeichnung*: der Satz zum Passwort als Startup-Parameter ist ersetzt durch „Startup-Parameter stehen unverändert in der Aufzeichnung, der Recorder reicht sie unverändert durch“; geändert vom Architect nach Review F-2 dieses Slice, `6a44529` und `0aadcac`); sonst beschreibt der Slice das gelieferte Verhalten von `slice-v1-abschluss-anmeldung`
 
 **Verantwortlich:** pt9912
 
@@ -36,9 +36,10 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Produkt-Code, Hilfetexte im Binary, Tests des Produkts und Gates — Schicht-Abgrenzung: Der Slice ändert nur `docs/user/benutzerhandbuch.md` und `README.md` und diesen Plan. Zeigt das Binary ein Verhalten, das die Spezifikation anders regelt, beschreibt das Handbuch das Binary (`slice-doku-ist-stand` §6, *Verhalten neben der Spezifikation*); der Fund geht als Befund an den Planner.
+- Produkt-Code, Hilfetexte im Binary, Tests des Produkts und Gates — Schicht-Abgrenzung: Der Slice ändert nur `docs/user/benutzerhandbuch.md` und `README.md` und diesen Plan; die eine Änderung an `LH-FA-05.b` (siehe Kopf) hat der Architect gemacht, nicht der Implementer. Zeigt das Binary ein Verhalten, das die Spezifikation anders regelt, beschreibt das Handbuch das Binary (`slice-doku-ist-stand` §6, *Verhalten neben der Spezifikation*); der Fund geht als Befund an den Planner.
 - Die Abschnitte des Handbuchs, die andere Slices liefern — jeder Slice führt seinen Teil in seinem Plan oder in seinem Doku-Folge-Slice; dieser Slice beschreibt nur, was `slice-v1-abschluss-anmeldung` liefert.
 - `docs/user/benutzerhandbuch-standard.md` und die Abdeckungstabellen `docs/user/abdeckung-*.md` — Bestand bleibt bewusst stehen: Der Standard ist die Schreibanleitung, kein Ist-Zustand des Binaries; die Tabellen schreibt `make abdeckung` im Code-Slice.
+- Die Anmeldung betreffende Randformen, die das Handbuch bewusst nicht nennt (Review F-7): eine nicht lesbare Nachricht des Servers im Aufbau und eine Nachricht des Clients in der Anmeldung außer `p` und `Terminate` (beide `PGR-E6001`, `LH-FA-05.b`) — Lücke ohne Probe am Binary; sie bekommt eine, wenn ein Folge-Lauf sie belegt, bis dahin sagt das Handbuch nichts dazu.
 - Ein Sensor, der Handbuch oder README gegen das Binary prüft — ein anderer Vorgang: Er wäre ein neues Gate mit eigenem Vertrag in der Spezifikation; dieser Slice prüft von Hand gegen das gebaute Binary.
 
 ## 2. Definition of Done
@@ -47,7 +48,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
-- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-anmeldung` liefert, im Ist-Zustand des gebauten Binaries: Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zum Passwort bei `record` — §1 *Voraussetzungen*, §4 *Eine Anwendung aufzeichnen* (Hinweise), §6 *Rollen und Rechte* („ohne Passwort“), §7 Zeile `PGR-E6001` (Ursache „beim Aufzeichnen verlangt die Datenbank ein Passwort“) und *Die Anwendung kann sich nicht verbinden* — und im README den Satz, dass die Datenbank den Benutzer ohne Passwort anmelden muss, soweit er `record` betrifft. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
+- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-anmeldung` liefert, im Ist-Zustand des gebauten Binaries: Aus `slice-doku-ist-stand` (dort §6, *Teilweise geliefert*): Der Slice ersetzt im Handbuch die Grenz-Sätze zum Passwort bei `record` an den neun Stellen aus §3 (§1 *Voraussetzungen*, §4 zwei Hinweise und die Zeile zu den Zeitangaben, §6 *Rollen und Rechte*, §7 die Zeilen `PGR-E4002`, `PGR-E4003`, `PGR-E6001` und *Die Anwendung kann sich nicht verbinden*) — und im README den Satz, dass die Datenbank den Benutzer ohne Passwort anmelden muss, soweit er `record` betrifft. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
 - [ ] `README.md` nennt, was `slice-v1-abschluss-anmeldung` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -136,7 +137,7 @@ Kein Produkt-Code, kein Test, kein neuer Wächter: Der Slice ändert `docs/user/
 
 | Handbuch / README nennt | belegt durch | Nachfahren |
 |---|---|---|
-| PostgreSQL 17 (Handbuch *Voraussetzung* des neuen Abschnitts, README) | Server `postgres:17-alpine` (17.11), Proben P1 bis P5, P7, P8, P10, P11 | Aufbau, dann P1 |
+| PostgreSQL 17 (Handbuch *Voraussetzung* des neuen Abschnitts, §1 *Voraussetzungen*, §4 Hinweis, §6; README) | Server `postgres:17-alpine` (17.11), Proben P1 bis P5, P7, P8, P10, P11 | Aufbau, dann P1 |
 | libpq 17 / `psql` aus libpq 17 (Handbuch *Voraussetzung*, Hinweis zu Channel Binding) | `psql --version` im Server-Image: `psql (PostgreSQL) 17.11`; Proben P1, P4, P7 | `docker run --rm "$PGI" psql --version`, dann P7 |
 | keine weitere Version, kein weiterer Treiber, kein Betriebssystem | nicht gefahren (Handbuch sagt „nicht geprüft“, mehr nicht) | — |
 
@@ -214,7 +215,7 @@ while True:
 #   klar-falsch: Startnachricht, R lesen, send(b"p", b"falsch\0"), die naechste Nachricht (E) als Hex ausgeben
 ```
 
-**Probe, die nicht trug:** Ein Passwort als Startup-Parameter (`password=…` in der Startnachricht, `startup-param`): PostgreSQL 17 lehnt den Parameter ab (`unrecognized configuration parameter "password"`), die Verbindung wird keine Sitzung. Der Satz der Spezifikation dazu (Grenze) ist gegen PostgreSQL 17 nicht zu belegen; das Handbuch sagt dazu nichts.
+**Probe, die nicht trug:** Ein Passwort als Startup-Parameter (`password=…` in der Startnachricht, `startup-param`): PostgreSQL 17 lehnt den Parameter ab (`unrecognized configuration parameter "password"`), die Verbindung wird keine Sitzung. Die Spezifikation (`LH-FA-05.b` *Aufzeichnung*, vom Architect auf das Verhalten des Recorders gekürzt: Startup-Parameter stehen unverändert in der Aufzeichnung) macht dazu keine Aussage über den Server; das Handbuch sagt dazu nichts.
 
 **Aussage im Handbuch · Probe · Ergebnis · Gegenbeispiel** (jeder Satz mit Verhaltensaussage hat eine Zeile; Abschnitt *Eine Anwendung mit Passwort-Anmeldung aufzeichnen*, sofern nicht anders genannt):
 
@@ -230,7 +231,7 @@ while True:
 | Beendet die Anwendung die Verbindung in der Anmeldung (Schließen, Rücksetzen, `Terminate`), gilt dasselbe, ohne Fehlerantwort (*Hinweise*) | P8 | drei Wege, Log ohne Zeile, Exit 0 | — |
 | Beides ist keine Sitzung, auch nicht mit `--record-empty-sessions` (*Hinweise*; §4 *Hinweise zum Aufzeichnen*, „Ebenso keine Sitzung …“) | P4, P8, P6b | `sessions: []` bzw. nur die nachfolgende Sitzung mit `id: 1` | eine gelungene Anmeldung ist Sitzung (P1, P8 `danach`) |
 | Channel Binding gelingt nicht: `channel_binding=require` bricht ab, mit und ohne `--tls-cert`; mit `prefer` gelingt die Anmeldung auch mit TLS (*Hinweise*) | P7 | `require` beide Male Fehler, `prefer` beide Male `1` | beide Richtungen in einer Probe |
-| Fordert die Datenbank ein anderes Verfahren an, `PGR-E6001`, die Anwendung erhält die Meldung, nicht aufgezeichnet, Exit 6 (*Hinweise*; §7 Zeile `PGR-E6001`, *Die Anwendung kann sich nicht verbinden*) | P6 | Codes 2, 6, 7, 9, 42 (Stand-in-Server, kein echter Kerberos-Server); Meldung nennt „(Code N)“ | Code 3, 5, 10 werden vermittelt (P1) |
+| Trifft das Werkzeug auf die Anforderung eines anderen Verfahrens, `PGR-E6001`, die Anwendung erhält die Meldung, nicht aufgezeichnet, Exit 6 (*Hinweise*; §7 Zeile `PGR-E6001`, *Die Anwendung kann sich nicht verbinden*) | P6 | Codes 2, 6, 7, 9, 42 (Stand-in-Server, kein echter Kerberos-Server); Meldung nennt „(Code N)“ | Code 3, 5, 10 werden vermittelt (P1) |
 | Nachricht außerhalb des Ablaufs: `PGR-E4002`; Verbindung beendet in der Anmeldung: `PGR-E4003`; Exit 4 (*Hinweise*; §7 beide Zeilen) | P6b | drei Fälle, Meldung nennt den Code, Log-Zeile, Exit 4 | — |
 | Die Anmeldung zählt zur Zeit von `offset_ms`, auch die Zeit, die die Anwendung für das Passwort braucht (§4 *Zeitangaben*) | P10 | 1505 mit 1,5 s Wartezeit | 4 ohne Wartezeit |
 | Geprüft ist das mit PostgreSQL 17 und `psql` aus libpq 17; andere Versionen und Treiber sind nicht geprüft (*Voraussetzung*, README) | Tabelle der Versionen oben | Läufe P1 bis P12 | — |
@@ -265,7 +266,9 @@ while True:
 
 **Abweichungen und Funde für den Planner:**
 
-- **Verhalten neben der Spezifikation:** keines gefunden. Die Spezifikation sagt zum Passwort als Startup-Parameter, es stehe in der Aufzeichnung; PostgreSQL 17 lehnt den Parameter `password` ab, sodass die Grenze mit dem Server der Referenzversion nicht zu zeigen ist (Probe oben). Das Handbuch nennt sie nicht; ob die Spezifikation sie enger fasst, ist Sache des Planners.
+- **Verhalten neben der Spezifikation:** keines gefunden. Der Fund zum Startup-Parameter `password` (Probe oben) ist mit `6a44529` und `0aadcac` in `LH-FA-05.b` bereinigt (Architect); das Handbuch nennt ihn nicht.
+- **Bewusste Lücke (Review F-7):** Das Handbuch nennt nicht die nicht lesbare Nachricht des Servers und die Clientnachricht außer `p` und `Terminate` in der Anmeldung (`PGR-E6001`); keine Probe am Binary dazu in diesem Lauf (§1).
+- **Nachgezogen nach Review F-3:** Die Sätze zur Anmeldung in §1, §4 und §6 nennen „geprüft mit PostgreSQL 17“; der Satz zu anderen Verfahren bezieht sich auf das Werkzeug und nennt, dass die Codes 2, 6, 7, 9 und 42 von einem Ersatz-Server kamen (P6); die Zeile `PGR-E6001` und *Die Anwendung kann sich nicht verbinden* sprechen vom Werkzeug, das auf die Anforderung trifft.
 - **Nicht gefahren, nicht genannt:** Windows und macOS; andere Treiber (pgx, JDBC, `psycopg`) und andere libpq-Versionen; PostgreSQL außer 17 (die Matrix liefert `slice-v1-abschluss-postgres-versionen`); ein echter Server mit Kerberos, GSSAPI oder SSPI (die Codes 2, 7, 9 kamen von einem Stand-in-Server); ein Client, der `SCRAM-SHA-256-PLUS` anbietet, ohne dass der Server es tut; gleichzeitige Verbindungen in der Anmeldung; Herunterfahren während der Anmeldung (das Handbuch sagt dazu nichts).
 - **Randformen:** Keine nicht genannte oder offene Randform entschieden. Der Satz „Das Verfahren bestimmt die Datenbank“, die Aussagen zu Channel Binding und zum Ende des Servers (`PGR-E4003`) gibt `LH-FA-05.b` wieder; das Ende des Servers steht im Handbuch, weil die Spezifikation es entscheidet (*Ende des Servers*) und P6b es am Binary zeigt.
 - **Abdeckungstabellen:** unberührt.
