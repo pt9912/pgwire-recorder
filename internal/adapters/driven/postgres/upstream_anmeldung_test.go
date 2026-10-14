@@ -308,7 +308,7 @@ func TestVermittlungReihenfolge(t *testing.T) {
 		{rKlartext, rSASLWeiter}, {rKlartext, rSASLAbschluss}, {rKlartext, rGSSWeiter}, {rMD5, rSASLWeiter},
 		{rSASL, rSASLAbschluss}, {rSASL, rOk}, {rSASL, rSASLWeiter, rOk},
 		{rKlartext, rKlartext}, {rKlartext, rMD5}, {rKlartext, rSASL}, {rMD5, rKlartext},
-		{rSASL, rKlartext}, {rSASL, rMD5}, {rSASL, rSASL}, {rSASL, rSASLWeiter, rKlartext},
+		{rSASL, rKlartext}, {rSASL, rMD5}, {rSASL, rSASL}, {rSASL, rSASLWeiter, rKlartext}, {rSASL, rSASLWeiter, rSASLWeiter},
 		{rSASL, rSASLWeiter, rSASLAbschluss, rSASLAbschluss}, {rSASL, rSASLWeiter, rSASLAbschluss, rSASLWeiter}, {rSASL, rSASLWeiter, rSASLAbschluss, rKlartext},
 		{rOk, rKlartext}, {rOk, rOk}, {rOk, rSASLWeiter},
 	} {
@@ -449,5 +449,45 @@ func TestVermittlungFehlerantwortJederSQLSTATE(t *testing.T) {
 				t.Errorf("der Recorder sendet nach dem Abbruch %q", rest)
 			}
 		})
+	}
+}
+
+// Abdeckung: LH-FA-05/Negative — eine Nachricht R mit einem Code ohne Verfahren
+// (2, 6, 7, 9, unbekannt) nach AuthenticationOk ist PGR-E4002, nicht PGR-E6001;
+// vor AuthenticationOk gilt PGR-E6001 (LH-FA-05.b *Reihenfolge des Servers*).
+func TestVermittlungCodeOhneVerfahrenNachOk(t *testing.T) {
+	for _, c := range []uint32{2, 6, 7, 9, 4242} {
+		t.Run(fmt.Sprint(c), func(t *testing.T) {
+			addr, srv := anmeldeServer(t, func(s *skriptServer) {
+				_, _ = s.conn.Write(append(rohR(rOk, ""), rohR(c, "")...))
+			})
+			s, _, err := anmelden(t, addr, &spion{})
+			if s != nil || code(err) != model.CodeUpstream || !strings.Contains(err.Error(), fmt.Sprintf("Code %d ", c)) {
+				t.Fatalf("erwartet %s mit Code %d, erhalten %v", model.CodeUpstream, c, err)
+			}
+			if rest := srv.rest(t); rest != "" {
+				t.Errorf("der Recorder sendet nach dem Abbruch %q", rest)
+			}
+		})
+	}
+}
+
+// Abdeckung: LH-FA-05/Negative — scheitert das Senden der Antwort an den Server
+// (er hat die Verbindung zurückgesetzt), ist das PGR-E4003, ohne Session
+// (LH-FA-05.b *Ende des Servers*).
+func TestVermittlungSchreibfehlerAmServer(t *testing.T) {
+	addr, _ := anmeldeServer(t, func(s *skriptServer) {
+		_, _ = s.conn.Write(rohR(rKlartext, ""))
+		_ = s.conn.(*net.TCPConn).SetLinger(0)
+		s.conn.Close()
+	})
+	r := &spion{}
+	call := func(c context.Context, a model.Anmeldeanforderung) ([]byte, error) {
+		time.Sleep(300 * time.Millisecond)
+		return r.rufe(c, a)
+	}
+	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, call)
+	if s != nil || code(err) != model.CodeConnectionLost {
+		t.Fatalf("erwartet %s, erhalten %v", model.CodeConnectionLost, err)
 	}
 }

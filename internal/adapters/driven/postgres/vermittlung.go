@@ -40,7 +40,7 @@ func (s stand) folge(code uint32) (stand, bool) {
 		return standBeantwortet, true
 	case code == anmeldungSASL && s == standOffen:
 		return standSASL, true
-	case code == anmeldungSASLWeiter && (s == standSASL || s == standSASLLaeuft):
+	case code == anmeldungSASLWeiter && s == standSASL:
 		return standSASLLaeuft, true
 	case code == anmeldungSASLAbschluss && s == standSASLLaeuft:
 		return standSASLAbschluss, true
