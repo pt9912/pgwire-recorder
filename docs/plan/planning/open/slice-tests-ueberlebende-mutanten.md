@@ -418,7 +418,7 @@ das Verhalten ändert, sein Verbleib:
 | EV3 (V-60) | dieselbe | E2E geschlossen mit `TestE2EReplayNachDemEnde` (Closure von welle-replay-semantik) |
 | VF24 (V-52) | Verifikation `slice-replay-semantik-fehlerreplay` | geschlossen in `slice-replay-semantik-meldungscodes` |
 | `envFailOnUnconsumed` (F-456), PGR-E3003 nach `formVorpruefung` (F-457) | Review `slice-harness-blackbox-einstieg` | in einem anderen Paket rot (`TestE2EReplayNichtVerbraucht`; `TestUnmarshalExtendedFehler`, `TestVorpruefungNenntOrt`) |
-| R1 an `Open` (F-444, V-85) | Review `slice-harness-blackbox-driven` | Adresse `slice-v1-abschluss-anmeldung` §6 |
+| R1 an `Open` (F-444, V-85) | Review `slice-harness-blackbox-driven` | geschlossen in `slice-v1-abschluss-anmeldung` (`TestOpenSessionTraegtLesepufferDesAufbaus`) |
 | `meldeFrist` (F-451, V-87) | Review `slice-harness-blackbox-pgwire` | Adresse `slice-v1-abschluss-herunterfahren` §6 (übernommen aus `slice-v1-abschluss-betrieb`) |
 | R1 an `weiterlesen` (F-449), V9, VE2, M14 | Reviews und Verifikationen | äquivalent |
 
@@ -458,8 +458,8 @@ Dateien unter `evidence/`). Treffer:
   unbenannten Statements gegen den Server (§6 *Abgelehntes parse*) betrifft
   Serververhalten. Der Architect nennt, gegen welche Hauptversionen und welchen
   Quelltext er prüft.
-- `BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft` (1×) — bleibt bei
-  `slice-v1-abschluss-anmeldung` (§1, Abgrenzung).
+- `BEO-REPO/session-traegt-puffer-des-aufbaus-ungeprueft` (1×, gestrichen) — geliefert
+  in `slice-v1-abschluss-anmeldung` (§1, Abgrenzung).
 
 Für „Folge-Slice-Adresse nimmt die Sendung nicht an“ (F-459) führt das Register seit
 der Closure von `slice-lint-bestand-kern-driven` den Eintrag

@@ -108,6 +108,7 @@ dasteht.
 
 - Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, 1×) — **Ausgang:** offen bis Closure.
 - Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** offen bis Closure.
+- Handbuchsätze über das Verhalten des Servers (Verfahren, Fehlerantwort, Meldung) nennen keine Version, belegt ist allein die gepinnte PostgreSQL-Version 17, die Matrix weiterer Versionen liefert `slice-v1-abschluss-postgres-versionen` (Empfehlung des Planners aus der Closure von `slice-v1-abschluss-anmeldung`, nach `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, `slice-v1-abschluss-tls-client-doku` V-1; keine Entscheidung des Nutzers) — **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
@@ -147,5 +148,7 @@ nicht mehr.
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Liefer-Punkte: 2. Schichten nach der Zählung in `AGENTS.md` §3.13: eine (Dokumentation), kein Code.
+
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-anmeldung` (Planner, 2026-10-14, `AGENTS.md` §3.13): Das Risiko zur Version des Servers in §6 gehört zu den beiden Liefer-Punkten (Handbuch, README) und fügt keinen hinzu. Liefer-Punkte: 2. Schichten: eine (Dokumentation), kein Code.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.

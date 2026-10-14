@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-anmeldung
+**Fund:** Der Plan folgte dem Code nicht an drei Stellen: §7 führte den vollen Gate-Lauf auf `4c38fb7`, nach dem `e7e6953` und `e8790e7` Code und Tabellen änderten (Review F-4, INFO); §6 nannte „Stand 1623“, überholt durch §7 (F-7, INFO); die Rechnung der Mutanten in §7 ging nicht auf (Verifikation V-4, INFO: 131 + 2, davon 129 rot und drei grün). Nachgezogen in `adc3aee`, `84ad1de` und `3e8a057`.

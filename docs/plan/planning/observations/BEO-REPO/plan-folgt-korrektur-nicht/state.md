@@ -27,3 +27,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-gate-kette-s
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-vertraege-umzug-gate-kette` (F-2) — §7 nannte 261 Zeilen und einen Vergleichsbefehl mit anderer Zeilenzahl als DoD und §3, die Datei trägt 262 (Beleg `evidence/slice-harness-vertraege-umzug-gate-kette.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-tls-client-doku` (F-1) — der Plan nannte die Sitzungs-Sätze und den Satz zu `config show` nicht (Beleg `evidence/slice-v1-abschluss-tls-client-doku.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-anmeldung` (F-4, F-7, V-4) — ein Beleg auf älterem Code-Stand, eine überholte Zahl in §6 und eine Rechnung der Mutanten, die nicht aufging (Beleg `evidence/slice-v1-abschluss-anmeldung.md`).

@@ -33,3 +33,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-gate-kette-
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-tls-client` (F-4, F-5) — ein Hilfetext sagte die Kette zu, ein Kommentar alle Bytes vor dem `S`, beide weiter als Test und Spezifikation (Beleg `evidence/slice-v1-abschluss-tls-client.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-tls-client-doku` (V-1, V-2, F-4) — Handbuchsätze ohne die Version des Gegenübers, belegt war libpq 17; eine Versionsangabe, die der Verifier nicht nachfahren konnte (Beleg `evidence/slice-v1-abschluss-tls-client-doku.md`). Als Vorschlag des Planners nennt die Closure des Slice eine Zeile für `.claude/commands/implement-slice.md` Schritt 19; sie ist nicht verkörpert, der Nutzer entscheidet.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-anmeldung` (F-3) — der Kommentar von `startupBisSignal` sagte zu, was der Test nur für eine selbst gesetzte Frist prüft (Beleg `evidence/slice-v1-abschluss-anmeldung.md`).

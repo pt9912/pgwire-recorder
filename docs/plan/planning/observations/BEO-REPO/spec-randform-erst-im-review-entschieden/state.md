@@ -13,3 +13,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-gate-kette-
 Der Absatz *Aufrufarten des Treibers gehören dazu* in `AGENTS.md §3.12` (ein Werkzeug, dessen Ergebnis ein Hook oder Gate später glaubt, nennt in §6 die Aufrufarten außerhalb des Normalfalls und je eine Entscheidung) — Herkunfts-Anker `seit slice-harness-gate-kette-schnell` (Beleg `evidence/slice-harness-gate-kette-schnell.md`, F-694). Als Vorschlag des Planners eingetragen; der Nutzer kann ihn streichen.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-tls-client` (F-1) — die Länge von `SSLRequest` und `GSSENCRequest` war im Code entschieden, in §6 und Spezifikation nicht genannt (Beleg `evidence/slice-v1-abschluss-tls-client.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-anmeldung` (F-3, V-2) — das Rennfenster der Rücknahme der Lesefrist stand weder in §6 noch in der Spezifikation und wurde erst nach dem Review als akzeptiertes Negativ entschieden (Beleg `evidence/slice-v1-abschluss-anmeldung.md`).

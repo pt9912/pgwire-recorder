@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-anmeldung
+**Fund:** Der Kommentar von `startupBisSignal` sagte zu, dass die Lesefrist des Wächters für die Anmeldung nicht gilt; `TestAnmeldungWartetOhneFrist` fängt nur eine Frist, die der Code selbst nach der Startnachricht setzt (X5), die Rücknahme einer vom Wächter gesetzten Frist hat keinen Test (Review F-3, LOW; M14 grün). Behoben mit der Eingrenzung des Kommentars auf das, was `TestAnmeldungErstesSignal` und `TestAnmeldungWartetOhneFrist` prüfen, und dem akzeptierten Negativ in der Spezifikation (`e1dc57b`, `3fdf74e`).
