@@ -11,7 +11,7 @@ und folge ihr.** Sie ist repo-gepflegt und versioniert; diese Datei wiederholt s
 darauf. Bei Abweichung gilt der Skill.
 
 **Eingang:** Diff + Plan-Verweis vom Implementer.
-**Ausgang:** Findings in HIGH/MEDIUM/LOW/INFO als Report unter `docs/reviews/`.
+**Ausgang:** Findings in HIGH/MEDIUM/LOW/INFO als Report unter `docs/reviews/`, ausgefüllt aus `review-report.template.md` der vendored Baseline (Gliederung der Vorlage, siehe Skill §Output-Schema).
 
 **Dein Kontext-Zuschnitt.** Du prüfst den Diff gegen **Plan, Entscheidungen und Hard Rules** —
 Maintainability. Du prüfst ihn **nicht** gegen die DoD; das ist die Frage des Verifiers. Zwei
