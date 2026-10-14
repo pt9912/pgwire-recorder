@@ -308,7 +308,8 @@ func TestVermittlungReihenfolge(t *testing.T) {
 		{rKlartext, rSASLWeiter}, {rKlartext, rSASLAbschluss}, {rKlartext, rGSSWeiter}, {rMD5, rSASLWeiter},
 		{rSASL, rSASLAbschluss}, {rSASL, rOk}, {rSASL, rSASLWeiter, rOk},
 		{rKlartext, rKlartext}, {rKlartext, rMD5}, {rKlartext, rSASL}, {rMD5, rKlartext},
-		{rSASL, rKlartext}, {rSASL, rMD5}, {rSASL, rSASL}, {rSASL, rSASLWeiter, rKlartext}, {rSASL, rSASLWeiter, rSASLWeiter},
+		{rSASL, rKlartext}, {rSASL, rMD5}, {rSASL, rSASL}, {rSASL, rSASLWeiter, rKlartext}, {rSASL, rSASLWeiter, rSASLWeiter}, {rSASL, rSASLWeiter, rSASL}, {rSASL, rSASLWeiter, rMD5},
+		{rSASL, rSASLWeiter, rSASLAbschluss, rSASL}, {rSASL, rSASLWeiter, rSASLAbschluss, rMD5},
 		{rSASL, rSASLWeiter, rSASLAbschluss, rSASLAbschluss}, {rSASL, rSASLWeiter, rSASLAbschluss, rSASLWeiter}, {rSASL, rSASLWeiter, rSASLAbschluss, rKlartext},
 		{rOk, rKlartext}, {rOk, rOk}, {rOk, rSASLWeiter},
 	} {
@@ -489,5 +490,33 @@ func TestVermittlungSchreibfehlerAmServer(t *testing.T) {
 	s, _, err := (&postgres.Upstream{Address: addr}).Open(ctx(t), map[string]string{"user": "app"}, call)
 	if s != nil || code(err) != model.CodeConnectionLost {
 		t.Fatalf("erwartet %s, erhalten %v", model.CodeConnectionLost, err)
+	}
+}
+
+// Abdeckung: LH-FA-05/Negative — endet die Verbindung des Servers in der Anmeldung
+// beim Lesen (Ende des Datenstroms nach der Antwort, Reset), ist das PGR-E4003
+// ohne Session (LH-FA-05.b *Ende des Servers*).
+func TestVermittlungLesefehlerAmServer(t *testing.T) {
+	for _, reset := range []bool{false, true} {
+		name := "Ende des Datenstroms"
+		if reset {
+			name = "Reset"
+		}
+		t.Run(name, func(t *testing.T) {
+			addr, _ := anmeldeServer(t, func(s *skriptServer) {
+				_, _ = s.conn.Write(rohR(rKlartext, ""))
+				if _, _, err := s.lies(); err != nil {
+					s.fehler = err.Error()
+				}
+				if reset {
+					_ = s.conn.(*net.TCPConn).SetLinger(0)
+				}
+				s.conn.Close()
+			})
+			s, _, err := anmelden(t, addr, &spion{})
+			if s != nil || code(err) != model.CodeConnectionLost {
+				t.Fatalf("erwartet %s, erhalten %v", model.CodeConnectionLost, err)
+			}
+		})
 	}
 }

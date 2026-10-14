@@ -251,9 +251,11 @@ func (s *Server) handle(ctx context.Context, roh net.Conn) {
 
 // startupBisSignal liest die Startnachricht (startup). Endet ctx dabei, bricht
 // das Lesen der Startnachricht und der TLS-Handshake ab. Mit der Startnachricht
-// endet der Wächter: Die Anmeldung läuft nach dem ersten Signal zu Ende, auch
-// wenn sie auf den Client wartet (LH-FA-05.b *Abbruch und Herunterfahren*), und
-// die Lesefrist des Wächters gilt für sie nicht. Danach wachen recordSitzung und
+// endet der Wächter: Ein Signal nach der Startnachricht setzt keine Lesefrist
+// mehr, und die Anmeldung läuft nach dem ersten Signal zu Ende, auch wenn sie auf
+// den Client wartet (LH-FA-05.b *Abbruch und Herunterfahren*). Setzte der Wächter
+// seine Frist noch vor dem Ende, nimmt die Funktion sie zurück; dieses Fenster ist
+// nicht stabil zu treffen und hat keinen Test. Danach wachen recordSitzung und
 // replaySitzung selbst über ctx.
 func (s *Server) startupBisSignal(ctx context.Context, k *kanal, roh net.Conn) (*pgproto3.StartupMessage, bool) {
 	fertig := make(chan struct{})
