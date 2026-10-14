@@ -114,6 +114,8 @@ func anmeldeServer(t *testing.T, skript func(s *skriptServer)) (string, *skriptS
 		}
 		defer close(srv.fertig)
 		skript(srv)
+		// Der Server sendet nichts mehr: Ein Recorder, der weiterliest, sieht das Ende.
+		_ = conn.(*net.TCPConn).CloseWrite()
 	}()
 	return l.Addr().String(), srv
 }
