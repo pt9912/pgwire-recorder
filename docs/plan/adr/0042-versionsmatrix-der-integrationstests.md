@@ -1,6 +1,6 @@
 # ADR-0042: Versionsmatrix der Integrationstests als Teilmenge gegen die jüngsten Hauptversionen
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-14
 
@@ -54,5 +54,6 @@ Wenn die Laufzeit des Ziels die Kette dominiert, wenn eine Hauptversion erschein
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-14 | Proposed | — |
+| 2026-10-14 | Accepted (Entscheidung des Nutzers vom 2026-10-14) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
