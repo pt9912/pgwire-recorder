@@ -1136,7 +1136,7 @@ Kette, und sein privater Schlüssel ohne Passwort. Ihr Treiber kann eine verschl
 Verbindung aufbauen.
 
 Zum Ausprobieren erzeugen Sie ein selbst signiertes Zertifikat und seinen Schlüssel
-zum Beispiel mit OpenSSL (der Aufruf lief mit OpenSSL 3.3):
+zum Beispiel mit OpenSSL (der Aufruf lief mit OpenSSL 3.0 und 3.5):
 
 ```bash
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 30 \
@@ -1171,7 +1171,7 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 
 
 2. Verbinden Sie Ihre Anwendung mit `sslmode=require`. Soll der Treiber das Zertifikat
    prüfen, geben Sie ihm bei einem selbst signierten Zertifikat die Zertifikatsdatei als
-   Wurzel; mit libpq (`psql`) und dem Zertifikat aus dem Beispiel oben:
+   Wurzel; mit libpq 17 (`psql`) und dem Zertifikat aus dem Beispiel oben:
 
    ```bash
    psql "host=localhost port=15432 dbname=myapp sslmode=verify-full sslrootcert=./server.pem"
@@ -1200,7 +1200,7 @@ Verbindungsarten mit denselben Antworten aus.
 * Die Zertifikatsdatei enthält mindestens einen Block vom Typ `CERTIFICATE` und
   keinen Block eines anderen Typs. Der erste Block ist das Zertifikat des Servers, die weiteren sind seine Kette;
   das Werkzeug liefert die Kette an die Anwendung aus. Vertraut Ihre Anwendung nur der
-  Wurzel, gehören die Zwischenzertifikate hinter das Zertifikat des Servers: Mit libpq
+  Wurzel, gehören die Zwischenzertifikate hinter das Zertifikat des Servers: Mit libpq 17
   gelingt `sslmode=verify-full` gegen ein Zertifikat, das eine Zwischenstelle
   ausgestellt hat, nur mit dieser Kette in der Datei.
 * Die Schlüsseldatei enthält genau einen Block vom Typ `PRIVATE KEY`, `RSA PRIVATE KEY`
@@ -1231,7 +1231,7 @@ Verbindungsarten mit denselben Antworten aus.
   `remote` und der Ursache, nie mit Zertifikat oder Schlüssel; der Exit-Code ändert sich
   nicht.
 * Ein Client, der TLS ohne vorherige Anfrage nach Verschlüsselung beginnt (direktes
-  TLS, bei libpq `sslnegotiation=direct`), wird nicht bedient: Das Werkzeug
+  TLS, bei libpq 17 `sslnegotiation=direct`), wird nicht bedient: Das Werkzeug
   schließt die Verbindung mit der Warnung `PGR-W3003`, auch mit `--allow-plaintext`. Auf
   einer verschlüsselten Verbindung ist eine weitere Anfrage nach Verschlüsselung, auch
   eine nach GSSAPI-Verschlüsselung, `PGR-E6001`.
@@ -1642,7 +1642,7 @@ Startet das Werkzeug mit `--tls-cert`, gilt:
   TLS-Aufbau gescheitert, etwa weil die Anwendung dem Zertifikat nicht vertraut. Prüfen
   Sie, ob sie die Zertifikatsdatei oder die Wurzel der Kette kennt.
 * Beginnt Ihr Treiber TLS ohne vorherige Anfrage nach Verschlüsselung (direktes TLS,
-  bei libpq `sslnegotiation=direct`), bedient das Werkzeug ihn nicht,
+  bei libpq 17 `sslnegotiation=direct`), bedient das Werkzeug ihn nicht,
   und das Log nennt `PGR-W3003`; schalten Sie das direkte TLS ab.
 
 ## 8. FAQ

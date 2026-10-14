@@ -232,6 +232,8 @@ Kein Produkt-Code, kein Test, kein neuer Wächter: Der Slice ändert `docs/user/
 - **Randformen:** Keine nicht genannte oder offene Randform entschieden; der Handbuch-Satz „Ursache bei mehreren Mängeln nicht festgelegt“ gibt die Spezifikation wieder.
 - **Abdeckungstabellen:** unberührt (`make abdeckung-check` Teil von `make gates`).
 
+**Nacharbeit zur Verifikation V-1 und V-2 (2026-10-14):** Handbuch nennt „libpq 17“ in den Sätzen zu `psql` mit `verify-full`, zur Kette und zu `sslnegotiation=direct` (belegt: P3, P4, P6 mit libpq 17) und „OpenSSL 3.0 und 3.5“ statt „3.3“ (belegt: Verifikation mit 3.0.13 und 3.5.7; meine Probe lief mit 3.3.7, die Angabe 3.3 steht nicht mehr im Handbuch). Reine Prosa, keine Mutation. Version 0.7 und Stand 14.10.2026 bleiben (dieselbe Auslieferung). `make docs-check` und `make gates-schnell` siehe Bericht.
+
 **Läufe und Größe:**
 
 - `make gates` (voll) auf dem sauberen Baum `dbe6232` (Handbuch und README seit `955951b` unverändert, danach nur dieser Plan): grün, Exit 0, 7 min 32 s; darin `make docs-check` (732 Dateien, 0 Befunde), `make test-integration` (`run-integration-tests: gruen`), `make a-check-negativ` (23 Fälle), `make baseline-verify`, `make lint-gegenprobe`, `make stop-hook-gegenprobe` (139 Fälle). Der Stop-Hook gibt auf diesem Stand frei (`{"decision":"approve"}`). Dieser Absatz ist der letzte Commit und ändert nur §7 (Positivliste); die Übergabe-Messung ist `make gates` auf `dbe6232`.
