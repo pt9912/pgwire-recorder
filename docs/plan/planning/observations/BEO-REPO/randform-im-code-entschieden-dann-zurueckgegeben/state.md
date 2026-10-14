@@ -11,3 +11,5 @@ Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-
 Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-v1-abschluss-tls-client` (F-9, INFO) — fünf Randformen im Code, danach zurückgegeben und vom Architect entschieden (Beleg `evidence/slice-v1-abschluss-tls-client.md`).
 
 Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-v1-abschluss-anmeldung` (Y1 bis Y4) — vier Randformen im Code, danach zurückgegeben und vom Architect entschieden; der Code folgte der Entscheidung in zwei Fällen mit Änderung (Beleg `evidence/slice-v1-abschluss-anmeldung.md`).
+
+Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-v1-abschluss-postgres-versionen-matrix` (sechs Rückgaben nach dem Code-Commit) — Randformen, die §6 vor dem Code nicht nannte und der Code bereits entschieden hatte (Beleg `evidence/slice-v1-abschluss-postgres-versionen-matrix.md`).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-postgres-versionen-matrix
+**Fund:** Die Matrix führt 14 bis 18 (bestätigt am 2026-10-14 gegen die Release-Liste von PostgreSQL; 19 ist als Beta 4 vom 2026-09-24 nicht erschienen). PostgreSQL 14 endet am 2026-11-12. Die Pflege ist eine Handlung von Hand (`SPEC-053` Punkt 14), ohne Sensor und ohne Folge-Slice; beobachtbarer Anlass: eine neue Hauptversion erscheint oder 14 endet. Risiko „Versionsbereich unbestätigt“ aus §6, Ausgang *weiter offen*.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-postgres-versionen-matrix
+**Fund:** Die Grenze 17 stimmt für 14.24, 15.19, 16.15 und 18.6 (Lauf, Mutation der Grenze rot gesehen); 19 ist nicht erschienen und ungeprüft. Wird 19 in die Liste aufgenommen, färbt `TestE2EReplayLebendpruefungWiePostgres` die Version rot, wenn sie abweicht; die Berichtigung wäre ein eigener Slice (Rückführung §4 (c)). Risiko „Versionsgrenze für `\v`“ aus §6, Ausgang *weiter offen*.

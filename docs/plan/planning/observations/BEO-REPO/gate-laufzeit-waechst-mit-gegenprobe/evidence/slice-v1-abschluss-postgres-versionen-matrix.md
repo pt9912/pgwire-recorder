@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-postgres-versionen-matrix
+**Fund:** Die Gegenprobe der Matrix (102 Mutationen, 147 s) und die der schnellen Kette (24 s) kamen mit dem Gate in `make gates`; der Zuwachs des Slice ist rund 195 s (dazu 22 s das Ziel selbst), gemessen am Ende `make gates` 625 s. Die Gegenprobe der Matrix steht in der Ausnahmeliste der schnellen Kette (`SPEC-052` Punkt 13) und verlängert sie nicht; der Nutzer hatte den Zuwachs der Variante C am 2026-10-05 angenommen.

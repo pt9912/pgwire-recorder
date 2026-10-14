@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-postgres-versionen-matrix
+**Fund:** Die Matrix erbt die zwei Phasen des Runners: Ist Phase 1 einer Version rot, entfällt ihre Phase 2 (`SPEC-053` Punkt 6, Fall `p6-keine-phase2`), und der Bericht nennt die Phase. Eine Mutation, die das Replay bricht, zeigt in der Matrix nur Phase 1; ob Szenario 2 oder 7 gegen die Aufzeichnung dieser Version trüge, zeigt der Lauf nicht. Risiko „Zweite Phase verdeckt“ aus §6, Ausgang *weiter offen*.

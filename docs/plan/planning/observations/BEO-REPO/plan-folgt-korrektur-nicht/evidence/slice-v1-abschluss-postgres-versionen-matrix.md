@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-postgres-versionen-matrix
+**Fund:** Der Zuwachs der Laufzeit in §7 (rund 105 s) rechnete mit 80 s für die Gegenprobe und 3 s für die schnelle Kette und stand auf dem Stand `fc3e987`; nach der Nacharbeit lagen sie bei 141 s bis 151 s und 24 s (zusammen rund 175 s, am Ende rund 195 s mit 102 Mutationen), und die Zeile des grünen vollen Laufs für den Stand fehlte (Verifikation V-3, LOW). Berichtigt in `087967e`.

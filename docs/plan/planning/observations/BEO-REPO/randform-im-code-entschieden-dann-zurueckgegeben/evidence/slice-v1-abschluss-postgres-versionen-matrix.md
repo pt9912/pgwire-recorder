@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-postgres-versionen-matrix
+**Fund:** Sechs Randformen im Code-Commit `fc3e987`, danach zurückgegeben und vom Architect am selben Tag entschieden (`f0a2280`): Stufe „Aufbau“, roter Bau des Testimages, Phase der Prüfung der erwarteten Tests, zusammengeführte Ausgabe des Runners, Signal über `make`, „ziehen oder starten“. Die Gegenprobe folgte der Entscheidung in `8f97a05`; zwei wurden akzeptierte Negative, eine eine engere Fassung der Zusage.

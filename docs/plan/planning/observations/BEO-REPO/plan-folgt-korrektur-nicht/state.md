@@ -31,3 +31,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-tls-cli
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-anmeldung` (F-4, F-7, V-4) — ein Beleg auf älterem Code-Stand, eine überholte Zahl in §6 und eine Rechnung der Mutanten, die nicht aufging (Beleg `evidence/slice-v1-abschluss-anmeldung.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-anmeldung-doku` (F-1) — der Plan nannte die Änderung der Spezifikation durch den Architect während des Slice nicht (Beleg `evidence/slice-v1-abschluss-anmeldung-doku.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-postgres-versionen-matrix` (V-3) — eine Zahl in §7 auf dem Stand vor der Nacharbeit, ohne die Zeile des vollen Laufs (Beleg `evidence/slice-v1-abschluss-postgres-versionen-matrix.md`).
