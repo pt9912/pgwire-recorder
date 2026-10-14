@@ -448,9 +448,10 @@ bis zur ersten Nachricht des Servers nichts.
   Nachricht und höchstens den Namen des Verfahrens.
 * *Abbruch und Herunterfahren.* Das erste Signal unterbricht die Anmeldung nicht: Wie der übrige Aufbau
   läuft sie zu Ende (`LH-FA-13.a`), auch wenn der Recorder auf den Client wartet; eine Lesefrist des
-  Clients, die der Aufbau setzt, gilt für die Anmeldung nicht (Grenze, akzeptiertes Negativ: Eine Lesefrist,
-  die das Signal im Rennfenster zwischen Startnachricht und Ende des Wächters schon gesetzt hat, wird
-  nicht zurückgenommen; das Fenster ist nicht deterministisch zu prüfen). Das Zwangsende schließt die Verbindung
+  Clients, die der Aufbau setzt, gilt für die Anmeldung nicht (eine Lesefrist, die das Signal zwischen
+  Startnachricht und Ende des Wächters schon gesetzt hat, nimmt der Recorder zurück; akzeptiertes
+  Negativ: Dass sie im Rennfenster zurückgenommen wird, prüft kein Test, weil das Fenster nicht
+  deterministisch zu treffen ist). Das Zwangsende schließt die Verbindung
   zum Client sofort und beendet damit ein Warten auf ihn; die Anmeldung endet, der Recorder schließt die
   Verbindung zum Server, ohne Meldung (`LH-FA-13.a` *Zwangsende*).
 * *Wartezeit.* Auf den Client wartet der Recorder in der Anmeldung ohne eigene Frist, wie auf den Server.
