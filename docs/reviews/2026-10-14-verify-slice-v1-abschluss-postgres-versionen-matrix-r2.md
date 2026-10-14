@@ -1,0 +1,21 @@
+# Verifikation (Nachlauf) slice-v1-abschluss-postgres-versionen-matrix
+
+**Rolle:** Verifier (Modul 11, frischer Kontext). **Datum:** 2026-10-14. **Gegenstand:** die Nacharbeit zum Vorlauf (`docs/reviews/2026-10-14-verify-slice-v1-abschluss-postgres-versionen-matrix.md`, PASS mit V-1 bis V-4): Commit `b148045` (`tools/test/postgres-versionen-gegenprobe.sh`) und `087967e` (Plan §7, Abschnitt „Nacharbeit zur Verifikation“). Geprüft ist nur das Nachgezogene; alle Belege sind in diesem Lauf selbst erzeugt. Mutationen liefen ausschließlich in einer Kopie von HEAD (`git archive`) außerhalb des Arbeitsbaums; Container und Netze blieben leer (`docker ps -a` und `docker network ls`: 0 Reste).
+
+**Verdikt: PASS.** V-1, V-2, V-3 bestätigt, keine Regression, keine neuen Befunde.
+
+## Je V-Punkt
+
+| Punkt | Urteil | Beleg (selbst gefahren) |
+|---|---|---|
+| V-1 (MEDIUM): Teilmenge im Wortlaut | bestätigt | Kopie von HEAD, Mutationen gegen die Fälle der Gruppe `p3-literal` (jede Mutation wirkt, sonst meldet die Gegenprobe „wirkungslos“): `TestE2ERecordExtendedPgx` aus `POSTGRES_TESTS_PHASE1` gestrichen → rot genau `p3-element-TestE2ERecordExtendedPgx` und `p3-literal-phase1`; `TestE2ERecordSelect1` gestrichen → rot genau `p3-element-TestE2ERecordSelect1`, `p3-literal-phase1`; `TestE2EOhnePostgresExtendedReplay` nach Phase 1 verschoben → rot genau `p3-literal-phase1`, `p3-literal-phase2`; `TestE2EFremd` zu Phase 1 hinzugefügt → rot genau `p3-literal-phase1`. Die Literal-Liste der Gegenprobe (Zeilen 123, 124) ist wortgleich mit `POSTGRES_TESTS_PHASE1` und `POSTGRES_TESTS_PHASE2` in `harness/mk/postgres-versionen.mk` und mit Plan §7 „Namen der Nahtstelle“ Nr. 2: Phase 1 `TestE2ERecordSelect1` (Szenario 1), `TestE2EVorbereitungOhnePostgres` (Szenario 2), `TestE2EVorbereitungExtendedOhnePostgres`, `TestE2ERecordExtendedPgx` (Szenario 7), `TestE2ERecordAnmeldung/scram-sha-256` (SCRAM-Fall), `TestE2EReplayLebendpruefungWiePostgres` (Lebendprüfung); Phase 2 `TestE2EOhnePostgresReplay`, `TestE2EOhnePostgresExtendedReplay`. |
+| V-2 (LOW): Aufräumen nach „Hauptversion weicht ab“ und „Einrichtung scheitert“ | bestätigt | Eigene Mutation der Falle nur für den Pfad (`trap - EXIT; exit 1` nach der Meldung `server_version`; `|| { trap - EXIT; exit 3; }` hinter der Einrichtung), Fälle der Gruppe `p7-ende`: rot genau `p7-ende-version` bzw. `p7-ende-einrichtung`, die übrigen Fälle (`p7-ende-rot`, `-bereit`, `-pull`, `-gruen`) bleiben grün. Das Aufräumen für diese beiden Pfade ist damit je einzeln gedeckt. |
+| V-3 (LOW): Laufzeiten und Größe in §7 | bestätigt | `git diff --numstat 978341e..b148045 -- harness tools test internal spec docs/plan/adr docs/user` (Metrik von §4): 919 Einfügungen plus 38 Löschungen = **957**, wie behauptet; dieselbe Summe bis HEAD (`087967e` ändert nur den Plan, außerhalb der Pfade). Teilwerte: Gegenprobe 588, `run-integration-tests.sh` 132 (111+21), `SPEC-053` 40, `run-postgres-versionen.sh` 100, Fragment 31, `lebendpruefung_e2e_test.go` 48, Rest 18. Gegenprobe-Laufzeit 146 s gemessen (§7: 147 s), Mutationen: 94 Zeilen `mut` plus 8 in der Schleife je Test = **102**, wie in §7. Nachweis `.harness/state/gates-passed.diffsha` (20:02) liegt nach `b148045` (19:52); die Dateiliste des Nachweises (`gates-passed.dateiliste`) unterscheidet sich von der des Arbeitsbaums in genau einem Eintrag, `docs/plan/planning/in-progress/slice-v1-abschluss-postgres-versionen-matrix.md` (der Plan-Commit `087967e`), und der liegt auf der Positivliste. Der Hash allein ist daher nicht gleich (`784a7dd5…` gegen `16971133…`), der Stop-Hook gibt nach seiner Regel frei; der Code-Stand des Nachweises ist der von `b148045`. Der volle Lauf (625 s) wurde nicht neu gefahren. |
+
+## Regression
+
+`make test-postgres-versionen-gegenprobe` (einmal, Arbeitsbaum): grün, 2 min 26 s; Meldung „unveränderte Kopie grün, je Mutation genau die benannten Fälle rot“, 102 Mutationen laut Zählung. Arbeitsbaum danach unverändert (`git status` leer, bis auf diesen Report).
+
+## Befunde
+
+Keine neuen. Hinweis (INFO, ohne Handlung): Die Aussage „Hash gleich dem des Arbeitsbaums“ gilt für den Nachweis nur bis auf den Plan; die Prüfung liegt beim Hook über die Positivliste, nicht beim Hash-Vergleich.
