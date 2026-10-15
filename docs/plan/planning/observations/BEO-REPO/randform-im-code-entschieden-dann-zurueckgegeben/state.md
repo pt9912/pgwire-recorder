@@ -1,4 +1,6 @@
-**Stand:** verkörpert
+**Stand:** geplant — Kennung: `slice-harness-randform-stelle-und-lesart`
+
+Bisherige Verkörperung (gilt weiter, siehe unten). Die Beobachtung steht bei 18×; der Satz zu „Lesart“, „Auslegung“ und „§6 nennt nicht“ in §7 (ein Vermerk in §7 ersetzt die Rückgabe nicht) in `.claude/commands/implement-slice.md` Randform-Rückgabe wird mit dem Slice geschrieben, ohne Sensor; Entscheidung des Nutzers vom 2026-10-15 („ja deine Vorschläge“).
 
 Zielort: `.claude/commands/implement-slice.md` Randform-Rückgabe, `.harness/skills/reviewer.md` MEDIUM und `AGENTS.md §3.12` — Herkunfts-Anker `seit slice-harness-blackbox-kern`.
 

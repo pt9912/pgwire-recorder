@@ -1,4 +1,6 @@
-**Stand:** verkörpert
+**Stand:** geplant — Kennung: `slice-harness-randform-stelle-und-lesart`
+
+Bisherige Verkörperung (gilt weiter, siehe unten). Die Beobachtung steht über 3×; der Absatz *Die Stelle einer Nachricht gehört dazu* (Stelle jeder Nachricht, die eine Folge beendet oder ersetzt, und Reihenfolge mehrerer Ablehnungsgründe) in `AGENTS.md` §3.12 und im Satz zur Prüfung in `.claude/agents/architect.md` wird mit dem Slice geschrieben; Entscheidung des Nutzers vom 2026-10-15 („ja deine Vorschläge“).
 
 Zielort: `AGENTS.md §3.12`, `.claude/commands/plan-welle.md` Schritt 6, `.claude/agents/architect.md` und `.claude/commands/implement-slice.md` Schritte 12 und 13 und Randform-Rückgabe — Herkunfts-Anker `seit slice-harness-randformen-vor-code`.
 
