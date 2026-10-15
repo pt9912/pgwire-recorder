@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen), [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md), [ADR-0023](../../adr/0023-antwortvergleich-entscheidung.md)
 
-**Berührte Spec-Stellen:** `LH-FA-25.a` · `LH-FA-24.a` · `LH-FA-20.a` · `LH-FA-17.a` · `SPEC-034` · `ARC-002` · `ARC-005`
+**Berührte Spec-Stellen:** `LH-FA-25.a` · `LH-FA-24.a` · `LH-FA-20.a` · `LH-FA-17.a` · `SPEC-034` · `SPEC-029` · `ARC-002` · `ARC-005`
 
 **Verantwortlich:** pt9912
 
@@ -34,6 +34,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-verbindungsende-einspielen`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): das Ende mit `--compare-responses`, der Hilfetext von `--allow-recorded-errors` und `--compare-responses` im Binary und Abnahmeszenario 16, Satz 3. Jener Slice liefert die Einstufung ohne Vergleich und das Schließen ohne `Terminate` (Port `Einspielziel` und Einspiel-Adapter); dieser setzt ihn voraus und ändert beides nicht.
 
+**Übernommen aus `slice-v1-abschluss-postgres-versionen-zusage`** (dort §6, Randform „Szenarien nur gegen 17“; Sendung des Architect, 2026-10-15, `AGENTS.md` §3.13): `SPEC-029` Punkt 2 nennt das erwartete Verbindungsende beim Einspielen (Abnahmeszenario 16, dritter Satz) heute nicht, weil kein Test es prüft. Im Commit, der den Integrationstest zu Szenario 16 Satz 3 liefert, ergänzt dieser Slice Punkt 2 um den Satz „Das erwartete Verbindungsende beim Einspielen (Abnahmeszenario 16, dritter Satz) ist nur dort geprüft“ (dort = Referenz 17); vorher steht er nicht (`AGENTS.md` §3.11).
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Einstufung ohne Vergleich, das Schließen ohne `Terminate` und der Einspiel-Adapter — `slice-v1-abschluss-verbindungsende-einspielen` (Vorgänger): andere Verzweigung des Service und andere Schicht.
@@ -50,7 +52,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen), [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server): Mit Vergleich ist ein Ende erwartet, wenn die Aufzeichnung an der Position eine `error_response` `FATAL` oder `PANIC` mit `connection_closed` dahinter zeigt und der SQLSTATE (Feld `C`) beider Seiten gleich ist: keine Abweichung, keine Meldung, die Session endet, die nächste läuft ohne `--continue-on-error`. Jedes andere Ende ist `PGR-E5004`, sofort festgestellt — anderer SQLSTATE, gleicher SQLSTATE wie ein aufgezeichnetes `ERROR` ohne Ende, Aufzeichnung ohne Fehlerantwort an der Stelle (aufgezeichneter SQLSTATE leer) —; mit `--continue-on-error` endet dann die Session, die nächste läuft. Zeigt die Aufzeichnung ein Ende und antwortet der Server normal (`ERROR` mit `ReadyForQuery`), vergleicht sich die Folge nach den gewöhnlichen Regeln (Test, einfache Anfrage und Extended-Interaktion).
 - [ ] [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen): `play` fügt der Folge des Servers `connection_closed` an und liest nicht über die Fehlerantwort hinaus; `verglichen` zählt die Interaktion bis zur Fehlerantwort, `abweichend` höchstens einmal je Interaktion, `eingespielt` jede gespielte; `--allow-recorded-errors` bleibt mit Vergleich ohne Wirkung, ohne dass die Kombination ein Fehler ist. Der Hilfetext von `--allow-recorded-errors` nennt das aufgezeichnete Ende ohne Vergleich und die Wirkungslosigkeit mit Vergleich, soweit ein Test es prüft (Test im CLI-Adapter).
-- [ ] [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen), [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server): Abnahmeszenario 16, Satz 3, gegen PostgreSQL am Binary: Eine Aufzeichnung mit Ende wird mit Vergleich gegen den Server eingespielt, der das Ende an derselben Stelle mit demselben Fehlercode herbeiführt (`pg_terminate_backend`, `57P01`): Der Lauf geht mit der nächsten Session weiter und endet mit Exit-Code 0; bei anderem Fehlercode endet er mit `PGR-E5004` und Exit-Code 5; die Zeile zum Ende des Laufs trägt `eingespielt`, `verglichen` und `abweichend` (Integrationstest).
+- [ ] [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen), [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server): Abnahmeszenario 16, Satz 3, gegen PostgreSQL am Binary, dazu der Satz in `SPEC-029` Punkt 2, dass es nur gegen die Referenz 17 geprüft ist (Sendung aus `slice-v1-abschluss-postgres-versionen-zusage`, im Commit des Tests): Eine Aufzeichnung mit Ende wird mit Vergleich gegen den Server eingespielt, der das Ende an derselben Stelle mit demselben Fehlercode herbeiführt (`pg_terminate_backend`, `57P01`): Der Lauf geht mit der nächsten Session weiter und endet mit Exit-Code 0; bei anderem Fehlercode endet er mit `PGR-E5004` und Exit-Code 5; die Zeile zum Ende des Laufs trägt `eingespielt`, `verglichen` und `abweichend` (Integrationstest).
 - [ ] Je Zusage des neuen Vertrags eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -155,3 +157,5 @@ nicht mehr.
 Nachgezählt beim Anlegen (Planner, 2026-10-12, `AGENTS.md` §3.13): Liefer-Punkte: 3 (Ende im Vergleich mit Zählern, Hilfetext, E2E von Szenario 16 Satz 3). Schichten: zwei (Kern mit dem Service, `ARC-002`; CLI-Adapter, `ARC-005`, nur der Hilfetext). Schätzung des Planners: 600 bis 1000 Zeilen mit Tests.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
+
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-postgres-versionen-zusage` (Architect, 2026-10-15, `AGENTS.md` §3.13): ein Satz in `SPEC-029` Punkt 2 im Commit des Tests von Szenario 16 Satz 3; er gehört zu DoD-Punkt 3 und fügt weder Liefer-Punkt noch Schicht hinzu: Liefer-Punkte weiter 3, Schichten weiter zwei (Kern mit dem Service; CLI-Adapter); Schätzung unverändert, rund zwei Zeilen mehr.

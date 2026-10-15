@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md), [ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md)
 
-**Berührte Spec-Stellen:** `LH-FA-25.a` · `LH-FA-02.b` · `LH-FA-18.a` · `LH-FA-05.a` · `SPEC-034` · `ARC-004` · `ARC-007`
+**Berührte Spec-Stellen:** `LH-FA-25.a` · `LH-FA-02.b` · `LH-FA-18.a` · `LH-FA-05.a` · `SPEC-034` · `SPEC-029` · `ARC-004` · `ARC-007`
 
 **Verantwortlich:** pt9912
 
@@ -38,6 +38,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Gebunden durch `slice-v1-abschluss-sessions`** (dort §1, *Nahtstelle zu den Verbindungsende-Slices*, Punkt 4; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): *Eine Verbindung wird erst mit eröffneter Session eine Session.* Ein Ende des Servers vor dem ersten `ReadyForQuery` bleibt ein Aufbaufehler (`PGR-E4002`/`PGR-E4005`) und erzeugt keine Session, auch mit `--record-empty-sessions`; `Open` liefert dann den Fehler und der Dienst die Kennung 0. Dieser Slice ändert `Open` nicht und erkennt ein Ende nur in der laufenden Interaktion nach dem ersten `ReadyForQuery`.
 
+**Übernommen aus `slice-v1-abschluss-postgres-versionen-zusage`** (dort §6, Randform „Szenarien nur gegen 17“; Sendung des Architect, 2026-10-15, `AGENTS.md` §3.13): `SPEC-029` Punkt 2 nennt Abnahmeszenario 18 heute nicht, weil kein Test es prüft. Im Commit, der den Integrationstest zu Szenario 18 liefert, ergänzt dieser Slice Punkt 2 um den Satz „Das Abnahmeszenario 18 ist nur dort geprüft“ (dort = Referenz 17); vorher steht er nicht (`AGENTS.md` §3.11), und die Handbuch-Sätze bleiben beim Doku-Slice.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Use Case, `CloseSession`, die Übernahme der Session und die Zustellung im PGWire-Adapter — `slice-v1-abschluss-verbindungsende-record` (Vorgänger): andere Schichten.
@@ -55,7 +57,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus): Der Upstream-Adapter liefert bei `Query` die Antworten bis einschließlich einer gelesenen Fehlerantwort `FATAL`/`PANIC` und danach `connection_closed`, ohne weiter zu lesen, und liefert dieselbe Einstufung bei `Receive` und `Send` einer Extended-Interaktion; ein Ende ohne gelesene `FATAL`/`PANIC` ist `PGR-E4003`, nach einer anderen gelesenen `ErrorResponse` (`ERROR` und anschließender Abbruch) `PGR-E6001`; der Adapter wartet nicht auf das Verbindungsende (ein Server, der nach der Fehlerantwort offen bleibt, hält den Aufruf nicht auf) (Test mit Fake-Server).
 - [ ] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server): Ende im Leerlauf: Sendet der Client nach dem Ende des Servers noch eine Anfrage, gehört die Fehlerantwort zu ihr (nach den Nachrichten zwischen den Interaktionen), und ein Sendefehler an den geschlossenen Upstream ist kein Fehler und ändert die Einstufung nicht; ein Sendefehler vor einer gelesenen Fehlerantwort bleibt `PGR-E4003`; sendet der Client keine mehr, endet die Session regulär ohne Aufzeichnung der Fehlerantwort (Test mit Fake-Server und Integrationstest mit `idle_session_timeout`).
-- [ ] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server): Abnahmeszenario 18 am Binary gegen PostgreSQL 17 (`pg_terminate_backend(pg_backend_pid())`, `57P01`): Die Anwendung erhält im Record-Modus die Antworten und danach das Ende ihrer Verbindung; die Aufzeichnung enthält das Ende und trägt `version: 2` (YAML) beziehungsweise `meta.version` 2 (SQLite); im Replay ohne PostgreSQL erhält die Anwendung dieselben Antworten und danach das Ende; ein Netzwerkabbruch ohne Fehlerantwort wird nicht aufgezeichnet, sondern als `PGR-E4003` gemeldet; der Exit-Code des Ende-Laufs bleibt 0 (Integrationstest, Abdeckungstabelle `abdeckung-e2e.md`).
+- [ ] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server): Abnahmeszenario 18 am Binary gegen PostgreSQL 17, dazu der Satz in `SPEC-029` Punkt 2, dass es nur dort geprüft ist (Sendung aus `slice-v1-abschluss-postgres-versionen-zusage`, im Commit des Tests) (`pg_terminate_backend(pg_backend_pid())`, `57P01`): Die Anwendung erhält im Record-Modus die Antworten und danach das Ende ihrer Verbindung; die Aufzeichnung enthält das Ende und trägt `version: 2` (YAML) beziehungsweise `meta.version` 2 (SQLite); im Replay ohne PostgreSQL erhält die Anwendung dieselben Antworten und danach das Ende; ein Netzwerkabbruch ohne Fehlerantwort wird nicht aufgezeichnet, sondern als `PGR-E4003` gemeldet; der Exit-Code des Ende-Laufs bleibt 0 (Integrationstest, Abdeckungstabelle `abdeckung-e2e.md`).
 - [ ] Je Zusage des neuen Vertrags eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -161,3 +163,5 @@ Nachgezählt beim Anlegen (Planner, 2026-10-12, `AGENTS.md` §3.13), einschließ
 Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-sessions` (Nahtstelle 4, Planner, 2026-10-12, `AGENTS.md` §3.13): Sie verlangt keinen neuen Code (`Open` bleibt unverändert) und keinen neuen Test, nur dass vorhandene grün bleiben; sie gehört zu DoD-Punkt 1 und fügt weder Liefer-Punkt noch Schicht hinzu: Liefer-Punkte weiter 3, Schichten weiter zwei (Upstream-Adapter; Kern nur als Vertrag des Ports).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
+
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-postgres-versionen-zusage` (Architect, 2026-10-15, `AGENTS.md` §3.13): ein Satz in `SPEC-029` Punkt 2 im Commit des Tests von Szenario 18; er gehört zu DoD-Punkt 3 und fügt weder Liefer-Punkt noch Schicht hinzu (die Spezifikation zählt nicht als Schicht, Planung ebenso nicht): Liefer-Punkte weiter 3, Schichten weiter zwei (Upstream-Adapter; Kern nur als Vertrag des Ports); Schätzung unverändert, rund zwei Zeilen mehr.
