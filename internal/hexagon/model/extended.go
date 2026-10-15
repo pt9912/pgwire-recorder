@@ -143,12 +143,8 @@ func (g Group) validate(letzte bool) error {
 		return err
 	}
 	ende := len(g.Server) > 0 && g.Server[len(g.Server)-1].Type == ResponseConnectionClosed
-	endetMitSync := g.Client[len(g.Client)-1].Type == ClientSync
-	if endetMitSync && !letzte {
-		return errors.New("sync steht am Ende der letzten Gruppe (mit connection_closed auch flush), flush am Ende jeder anderen")
-	}
-	if !endetMitSync && letzte && !ende {
-		return errors.New("sync steht am Ende der letzten Gruppe (mit connection_closed auch flush), flush am Ende jeder anderen")
+	if err := g.validateAbschluss(letzte, ende); err != nil {
+		return err
 	}
 	if err := g.validateServer(letzte); err != nil {
 		return err
@@ -161,6 +157,17 @@ func (g Group) validate(letzte bool) error {
 	}
 	if letzte && !ende && (len(g.Server) == 0 || g.Server[len(g.Server)-1].Type != ResponseReadyForQuery) {
 		return errors.New("letzte Gruppe endet nicht mit ready_for_query")
+	}
+	return nil
+}
+
+// validateAbschluss prüft, womit die Client-Nachrichten der Gruppe enden: Die letzte
+// Gruppe endet mit sync, bei einem Ende des Servers (ende) auch mit flush, jede
+// andere mit flush.
+func (g Group) validateAbschluss(letzte, ende bool) error {
+	endetMitSync := g.Client[len(g.Client)-1].Type == ClientSync
+	if endetMitSync && !letzte || !endetMitSync && letzte && !ende {
+		return errors.New("sync steht am Ende der letzten Gruppe (mit connection_closed auch flush), flush am Ende jeder anderen")
 	}
 	return nil
 }

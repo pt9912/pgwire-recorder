@@ -32,20 +32,22 @@ func extendedEnde(letzter model.ClientMessageType, rs ...model.Response) model.I
 	return i
 }
 
-var fatal = map[string]string{"V": "FATAL", "S": "FATAL", "C": "57P01"}
+func fatalFelder() map[string]string {
+	return map[string]string{"V": "FATAL", "S": "FATAL", "C": "57P01"}
+}
 
 // Gültige Formen des Endes (LH-FA-25.a): FATAL und PANIC, der Schweregrad aus V oder, ohne V,
 // aus S, einfache Anfrage und Extended mit sync oder flush am Ende der letzten Gruppe.
 func TestValidateEndeGueltig(t *testing.T) {
 	for name, i := range map[string]model.Interaction{
-		"query FATAL":                  queryEnde(fehler(fatal), ende()),
+		"query FATAL":                  queryEnde(fehler(fatalFelder()), ende()),
 		"query PANIC":                  queryEnde(fehler(map[string]string{"V": "PANIC"}), ende()),
 		"query FATAL nur in S":         queryEnde(fehler(map[string]string{"S": "FATAL"}), ende()),
 		"query PANIC nur in S":         queryEnde(fehler(map[string]string{"S": "PANIC"}), ende()),
 		"query V FATAL gegen S ERROR":  queryEnde(fehler(map[string]string{"V": "FATAL", "S": "ERROR"}), ende()),
-		"query nach Hinweis und Daten": queryEnde(model.Response{Type: model.ResponseNoticeResponse}, model.Response{Type: model.ResponseDataRow}, fehler(fatal), ende()),
-		"extended mit sync":            extendedEnde(model.ClientSync, fehler(fatal), ende()),
-		"extended mit flush":           extendedEnde(model.ClientFlush, fehler(fatal), ende()),
+		"query nach Hinweis und Daten": queryEnde(model.Response{Type: model.ResponseNoticeResponse}, model.Response{Type: model.ResponseDataRow}, fehler(fatalFelder()), ende()),
+		"extended mit sync":            extendedEnde(model.ClientSync, fehler(fatalFelder()), ende()),
+		"extended mit flush":           extendedEnde(model.ClientFlush, fehler(fatalFelder()), ende()),
 		"extended PANIC":               extendedEnde(model.ClientSync, model.Response{Type: model.ResponseBindComplete}, fehler(map[string]string{"V": "PANIC"}), ende()),
 	} {
 		if err := i.Validate(); err != nil {
@@ -72,19 +74,19 @@ func TestValidateEndeFehler(t *testing.T) {
 		i    model.Interaction
 		want string
 	}{
-		{"query nicht letzte Nachricht", queryEnde(fehler(fatal), ende(), rfq), letzte},
-		{"query nicht letzte Nachricht, davor kein Fehler", queryEnde(ende(), fehler(fatal), ende()), letzte},
-		{"query mit Spalten", queryEnde(fehler(fatal), mitFeld(model.Response{Columns: []model.Column{{Name: "a"}}})), felder},
-		{"query mit Werten", queryEnde(fehler(fatal), mitFeld(model.Response{Values: []model.Value{{Null: true}}})), felder},
-		{"query mit Tag", queryEnde(fehler(fatal), mitFeld(model.Response{Tag: "x"})), felder},
-		{"query mit Feldern", queryEnde(fehler(fatal), mitFeld(model.Response{Fields: map[string]string{"V": "FATAL"}})), felder},
-		{"query mit Name", queryEnde(fehler(fatal), mitFeld(model.Response{Name: "x"})), felder},
-		{"query mit Value", queryEnde(fehler(fatal), mitFeld(model.Response{Value: "x"})), felder},
-		{"query mit TxStatus", queryEnde(fehler(fatal), mitFeld(model.Response{TxStatus: "I"})), felder},
-		{"query mit Parametertypen", queryEnde(fehler(fatal), mitFeld(model.Response{ParamTypes: []uint32{23}})), felder},
+		{"query nicht letzte Nachricht", queryEnde(fehler(fatalFelder()), ende(), rfq), letzte},
+		{"query nicht letzte Nachricht, davor kein Fehler", queryEnde(ende(), fehler(fatalFelder()), ende()), letzte},
+		{"query mit Spalten", queryEnde(fehler(fatalFelder()), mitFeld(model.Response{Columns: []model.Column{{Name: "a"}}})), felder},
+		{"query mit Werten", queryEnde(fehler(fatalFelder()), mitFeld(model.Response{Values: []model.Value{{Null: true}}})), felder},
+		{"query mit Tag", queryEnde(fehler(fatalFelder()), mitFeld(model.Response{Tag: "x"})), felder},
+		{"query mit Feldern", queryEnde(fehler(fatalFelder()), mitFeld(model.Response{Fields: map[string]string{"V": "FATAL"}})), felder},
+		{"query mit Name", queryEnde(fehler(fatalFelder()), mitFeld(model.Response{Name: "x"})), felder},
+		{"query mit Value", queryEnde(fehler(fatalFelder()), mitFeld(model.Response{Value: "x"})), felder},
+		{"query mit TxStatus", queryEnde(fehler(fatalFelder()), mitFeld(model.Response{TxStatus: "I"})), felder},
+		{"query mit Parametertypen", queryEnde(fehler(fatalFelder()), mitFeld(model.Response{ParamTypes: []uint32{23}})), felder},
 		{"query nur connection_closed", queryEnde(ende()), fatalNur},
 		{"query ohne Fehlerantwort davor", queryEnde(model.Response{Type: model.ResponseCommandComplete}, ende()), fatalNur},
-		{"query Hinweis mit FATAL statt Fehlerantwort", queryEnde(model.Response{Type: model.ResponseNoticeResponse, Fields: fatal}, ende()), fatalNur},
+		{"query Hinweis mit FATAL statt Fehlerantwort", queryEnde(model.Response{Type: model.ResponseNoticeResponse, Fields: fatalFelder()}, ende()), fatalNur},
 		{"query nach ERROR", queryEnde(fehler(map[string]string{"V": "ERROR", "S": "ERROR"}), ende()), fatalNur},
 		{"query ohne Schweregrad", queryEnde(fehler(map[string]string{"C": "57P01"}), ende()), fatalNur},
 		{"query ohne Felder", queryEnde(fehler(nil), ende()), fatalNur},
@@ -93,33 +95,33 @@ func TestValidateEndeFehler(t *testing.T) {
 		{"query fatal klein in V", queryEnde(fehler(map[string]string{"V": "fatal"}), ende()), fatalNur},
 		{"query fatal klein in S", queryEnde(fehler(map[string]string{"S": "fatal"}), ende()), fatalNur},
 		{"query panic klein in V", queryEnde(fehler(map[string]string{"V": "panic"}), ende()), fatalNur},
-		{"query Hinweis zwischen Fehler und Ende", queryEnde(fehler(fatal), model.Response{Type: model.ResponseNoticeResponse}, ende()), fatalNur},
+		{"query Hinweis zwischen Fehler und Ende", queryEnde(fehler(fatalFelder()), model.Response{Type: model.ResponseNoticeResponse}, ende()), fatalNur},
 		{"query FATAL mit Leerzeichen", queryEnde(fehler(map[string]string{"V": "FATAL "}), ende()), fatalNur},
-		{"extended nicht letzte Nachricht", extendedEnde(model.ClientSync, fehler(fatal), ende(), model.Response{Type: model.ResponseNoticeResponse}), letzte},
-		{"extended mit Feld", extendedEnde(model.ClientSync, fehler(fatal), mitFeld(model.Response{Tag: "x"})), felder},
+		{"extended nicht letzte Nachricht", extendedEnde(model.ClientSync, fehler(fatalFelder()), ende(), model.Response{Type: model.ResponseNoticeResponse}), letzte},
+		{"extended mit Feld", extendedEnde(model.ClientSync, fehler(fatalFelder()), mitFeld(model.Response{Tag: "x"})), felder},
 		{"extended nach ERROR", extendedEnde(model.ClientSync, fehler(map[string]string{"V": "ERROR"}), ende()), fatalNur},
 		{"extended ohne Fehlerantwort davor", extendedEnde(model.ClientSync, model.Response{Type: model.ResponseBindComplete}, ende()), fatalNur},
-		{"extended Hinweis zwischen Fehler und Ende", extendedEnde(model.ClientSync, fehler(fatal), model.Response{Type: model.ResponseNoticeResponse}, ende()), fatalNur},
-		{"extended mit ready_for_query in der Gruppe mit Ende", extendedEnde(model.ClientSync, fehler(fatal), rfq, ende()), "ready_for_query nur als letzte Nachricht der letzten Gruppe"},
-		{"extended mit ready_for_query nach dem Ende", extendedEnde(model.ClientSync, fehler(fatal), ende(), rfq), letzte},
+		{"extended Hinweis zwischen Fehler und Ende", extendedEnde(model.ClientSync, fehler(fatalFelder()), model.Response{Type: model.ResponseNoticeResponse}, ende()), fatalNur},
+		{"extended mit ready_for_query in der Gruppe mit Ende", extendedEnde(model.ClientSync, fehler(fatalFelder()), rfq, ende()), "ready_for_query nur als letzte Nachricht der letzten Gruppe"},
+		{"extended mit ready_for_query nach dem Ende", extendedEnde(model.ClientSync, fehler(fatalFelder()), ende(), rfq), letzte},
 		{"extended Ende in einer vorderen Gruppe", func() model.Interaction {
-			i := extendedEnde(model.ClientSync, fehler(fatal), ende())
-			i.Groups[0].Server = []model.Response{fehler(fatal), ende()}
+			i := extendedEnde(model.ClientSync, fehler(fatalFelder()), ende())
+			i.Groups[0].Server = []model.Response{fehler(fatalFelder()), ende()}
 			return i
 		}(), "Gruppe 1: connection_closed nur in der letzten Gruppe"},
 		{"extended Ende in der vorderen Gruppe, letzte Gruppe regulär", func() model.Interaction {
 			i := extendedBeispiel()
-			i.Groups[0].Server = []model.Response{fehler(fatal), ende()}
+			i.Groups[0].Server = []model.Response{fehler(fatalFelder()), ende()}
 			return i
 		}(), "Gruppe 1: connection_closed nur in der letzten Gruppe"},
 		{"extended vordere Gruppe mit sync, letzte mit Ende", func() model.Interaction {
-			i := extendedEnde(model.ClientSync, fehler(fatal), ende())
+			i := extendedEnde(model.ClientSync, fehler(fatalFelder()), ende())
 			i.Groups[0].Client[2].Type = model.ClientSync
 			return i
 		}(), "Gruppe 1: sync steht am Ende"},
 		{"extended ohne Ende, letzte Gruppe mit flush", extendedEnde(model.ClientFlush, model.Response{Type: model.ResponseBindComplete}), "Gruppe 2: sync steht am Ende"},
 		{"extended ohne Ende und ohne ready_for_query", extendedEnde(model.ClientSync, model.Response{Type: model.ResponseBindComplete}), "Gruppe 2: letzte Gruppe endet nicht mit ready_for_query"},
-		{"query ohne Ende und ohne ready_for_query", queryEnde(fehler(fatal)), "endet nicht mit ready_for_query"},
+		{"query ohne Ende und ohne ready_for_query", queryEnde(fehler(fatalFelder())), "endet nicht mit ready_for_query"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -134,9 +136,9 @@ func TestValidateEndeFehler(t *testing.T) {
 // Die Formregel einer Session (SPEC-002): connection_closed steht höchstens einmal, in der
 // letzten Interaktion; sie gilt für einfache und Extended-Interaktionen.
 func TestSessionValidateEnd(t *testing.T) {
-	einfach := queryEnde(fehler(fatal), ende())
+	einfach := queryEnde(fehler(fatalFelder()), ende())
 	normal := queryBeispiel()
-	gruppen := extendedEnde(model.ClientSync, fehler(fatal), ende())
+	gruppen := extendedEnde(model.ClientSync, fehler(fatalFelder()), ende())
 	erweitert := extendedBeispiel()
 	cases := []struct {
 		name string

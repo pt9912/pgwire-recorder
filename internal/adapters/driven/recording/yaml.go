@@ -344,17 +344,28 @@ func interaktionVorpruefung(i *yaml.Node, version string) error {
 		antworten = append(antworten, wert(g, "server").Content...)
 	}
 	for _, r := range antworten {
-		if wert(r, "type").Value == string(model.ResponseConnectionClosed) {
-			if version == strconv.Itoa(model.Version) {
-				return fmt.Errorf("connection_closed in Version %d", model.Version)
-			}
-			if len(r.Content) != 2 {
-				return fmt.Errorf("connection_closed trägt Schlüssel neben type")
-			}
+		if err := antwortVorpruefung(r, version); err != nil {
+			return err
 		}
-		if typ := wert(r, "type").Value; wert(r, "param_types") != ohneWert && typ != string(model.ResponseParameterDescription) {
-			return fmt.Errorf("Schlüssel \"param_types\" gehört nicht zu %s", typ)
+	}
+	return nil
+}
+
+// antwortVorpruefung prüft eine Serverantwort am YAML-Baum: connection_closed steht
+// nicht in Version 1 und trägt neben type keinen Schlüssel, param_types steht nur an
+// parameter_description.
+func antwortVorpruefung(r *yaml.Node, version string) error {
+	typ := wert(r, "type").Value
+	if typ == string(model.ResponseConnectionClosed) {
+		if version == strconv.Itoa(model.Version) {
+			return fmt.Errorf("connection_closed in Version %d", model.Version)
 		}
+		if len(r.Content) != 2 {
+			return fmt.Errorf("connection_closed trägt Schlüssel neben type")
+		}
+	}
+	if wert(r, "param_types") != ohneWert && typ != string(model.ResponseParameterDescription) {
+		return fmt.Errorf("Schlüssel \"param_types\" gehört nicht zu %s", typ)
 	}
 	return nil
 }
