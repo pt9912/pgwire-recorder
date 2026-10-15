@@ -382,6 +382,22 @@ typische PostgreSQL-Treiber ohne reale Datenbankverbindung eine Session aufbauen
 können. v1 ist nicht als Sicherheitsgrenze gedacht; Replay läuft in einer
 kontrollierten Testumgebung.
 
+**Auswahl im Replay.** Die Auswahl ist fest: Nach der Startnachricht sendet der Recorder
+`AuthenticationOk` (Code 0) als erste Nachricht, ohne vorherige Anforderung, danach die Antworten
+des Aufbaus aus der Aufzeichnung. Er fordert kein Passwort an und bietet kein Verfahren an; ein
+weiteres Verfahren (Klartext-Passwort, MD5, SCRAM) ist nicht zugesagt.
+
+* *Nichts wird geprüft.* Benutzer, Datenbank und jeder andere Parameter der Startnachricht werden im
+  Replay nicht geprüft; ein Benutzer, den die Aufzeichnung nicht kennt, wird bedient. Das gilt mit und
+  ohne TLS (`LH-FA-23.a`) gleich. Ausgenommen ist ein Parameter mit dem Präfix `_pq_.`
+  (`LH-FA-05.e`, *Startnachricht*).
+* *Nachricht `p`.* Sendet ein Client nach dem Aufbau eine Nachricht `p` (Passwort, SASL), ist sie wie
+  jede andere nicht unterstützte Nachricht `PGR-E6001`.
+* *Client mit Anforderung.* Ein Client, der eine Anmeldung verlangt (bei libpq `require_auth` mit einem
+  Verfahren, oder Channel Binding), beendet die Verbindung nach dem `AuthenticationOk` selbst; für den
+  Recorder ist das das Ende des Clients wie jedes andere, ohne eigene Meldung (Grenze: Das Verhalten
+  eines Treibers liegt beim Treiber; zugesagt ist nur, dass der Recorder kein Verfahren anfordert).
+
 **Randformen der Vermittlung (Record).** Die Anmeldung ist Teil des Aufbaus: Sie reicht von der
 Startnachricht des Clients bis zum ersten `ReadyForQuery` des Servers. Der Recorder sendet dem Client
 bis zur ersten Nachricht des Servers nichts.
@@ -503,21 +519,103 @@ steht in `SPEC-029`.
 | Interaktion | Verhalten |
 |---|---|
 | `SSLRequest` | mit `N` abgelehnt (LH-FA-05.c); mit Zertifikat und Schlüssel angenommen (LH-FA-23.a) |
-| `GSSENCRequest` | mit `N` abgelehnt |
+| `GSSENCRequest` | mit `N` abgelehnt; danach folgen eine `StartupMessage`, ein `SSLRequest` oder ein weiterer `GSSENCRequest` |
 | `CancelRequest` | Verbindung wird geschlossen, nicht an den Upstream weitergeleitet; kein Verbindungsfehler, Warnung `PGR-W3001` |
 | Verbindung ohne erste Nachricht (etwa eine TCP-Probe) | Verbindung wird geschlossen; kein Verbindungsfehler, keine Warnung |
 | erste Nachricht, die keine PGWire-Startnachricht ist: Längenfeld unter 8 oder über `SPEC-045` (etwa eine HTTP-Anfrage) | Verbindung wird ohne Antwort geschlossen; kein Verbindungsfehler, Warnung `PGR-W3003` |
 | Startnachricht mit vollständigem Kopf (8 Bytes), deren Rest die Verbindung nicht liefert (Abbruch oder Ende mitten in der Nachricht) | Verbindungsfehler `PGR-E6001` (Exit-Code `6`), keine Session; eine Verbindung, die vor dem vollständigen Kopf endet, ist die Zeile *Verbindung ohne erste Nachricht* |
 | Startnachricht mit anderer Protokollversion als 3.0 | `ErrorResponse` mit `PGR-E6002` (siehe oben) |
-| Sonderanfrage mit unbekanntem Code (Hauptnummer 1234) | nicht unterstützt (`PGR-E6001`) |
+| Sonderanfrage mit unbekanntem Code (Hauptnummer 1234, Nebennummer außer 5678, 5679 und 5680) | nicht unterstützt (`PGR-E6001`) |
 | Extended-Query-Nachrichten (`Parse`, `Bind`, `Describe`, `Execute`, `Close`, `Flush`, `Sync`) | unterstützt (LH-FA-18.a) |
-| `COPY`-Nachrichten | nicht unterstützt (`PGR-E6001`) |
+| `COPY`-Nachrichten (`CopyData`, `CopyDone`, `CopyFail` vom Client; `CopyInResponse`, `CopyOutResponse`, `CopyBothResponse` vom Server) | nicht unterstützt (`PGR-E6001`) |
 | `FunctionCall` | nicht unterstützt (`PGR-E6001`) |
-| `NotificationResponse` (asynchron, z. B. nach `LISTEN`) | nicht unterstützt (`PGR-E6001`) |
-| SQL-Befehle `LISTEN`/`NOTIFY` als `Query` | wie jede andere Query aufgezeichnet |
+| `NotificationResponse` (asynchron, z. B. nach `LISTEN`), gleich wann sie eintrifft | nicht unterstützt (`PGR-E6001`) |
+| SQL-Befehle `LISTEN`/`NOTIFY` als `Query` | wie jede andere Query aufgezeichnet, solange der Server keine `NotificationResponse` sendet; sendet er eine, gilt die Zeile darüber |
 
 Bei einer nicht unterstützten Interaktion wird die betroffene Verbindung mit
 einer `ErrorResponse` beendet; Fehlerebenen: LH-FA-13.b.
+
+**Randformen des Protokollrands.**
+
+* *Modus.* Jede Zeile der Tabelle gilt in `record` und in `replay`, mit und ohne TLS, soweit
+  `LH-FA-23.a` nichts anderes regelt. Ausgenommen sind die Zeilen, die eine Nachricht des Servers
+  betreffen: `CopyInResponse`, `CopyOutResponse`, `CopyBothResponse` und `NotificationResponse` gibt es
+  nur in `record`, denn `replay` liest keinen Server und keine Aufzeichnung enthält sie. `LISTEN` und
+  `NOTIFY` sind in `replay` aufgezeichnete Anfragen wie jede andere und liefern nie eine
+  `NotificationResponse`. Jede Verbindung wird für sich behandelt: Eine Verbindung am Protokollrand
+  beendet nur sich selbst, der Prozess nimmt weiter Verbindungen an, und eine zweite, reguläre
+  Verbindung bleibt in Antworten und Aufzeichnung unberührt; eine Zusage über die Ordnung zwischen
+  verschiedenen Verbindungen gibt es nicht. Eine Verbindung, die der Recorder vor dem Aufbau ablehnt oder beendet, verbraucht im `replay`
+  keine Session (`LH-FA-12.a`, *Zählung der Verbindungen*).
+* *Prüfreihenfolge der ersten Nachricht.* Erst die Länge (Zeile *erste Nachricht, die keine
+  Startnachricht ist*), dann der Code: eine Länge von 8 genügt, damit der Code geprüft wird; der Rest
+  der Nachricht wird danach nicht mehr gelesen, wenn der Code abgelehnt wird.
+* *Protokollversion.* Gelesen werden Hauptnummer und Nebennummer aus den vier Bytes nach der Länge. Nur
+  3.0 wird bedient. Jede andere, darunter 0.0, 2.0, 3.1, 3.2, 4.0 und 65535.x, ist `PGR-E6002` mit
+  `ErrorResponse` und Ende der Verbindung, in `record` ohne dass eine Verbindung zum Server entsteht.
+  Eine Aushandlung der Version (`NegotiateProtocolVersion`) gibt es nicht; ein Client, der 3.2
+  anbietet (libpq 18 mit `max_protocol_version=latest`), wird abgelehnt und muss auf 3.0 festgelegt
+  werden. Die Hauptnummer 1234 ist keine Version, sondern eine Sonderanfrage.
+* *Startnachricht 3.0.* Der Rumpf besteht aus Paaren von Namen und Wert, je mit einem Nullbyte
+  abgeschlossen, und einem weiteren Nullbyte am Ende. Ein Rumpf, den die PGWire-Bibliothek nicht lesen
+  kann, ist `PGR-E6001` mit `ErrorResponse` („Startnachricht nicht lesbar"): Länge 8 (ohne Rumpf),
+  Länge 9 (nur ein Nullbyte) und ein Rumpf ohne das abschließende Nullbyte. Ein Parameter mit dem
+  Präfix `_pq_.` (Protokollerweiterung) ist `PGR-E6001` mit `ErrorResponse`, in beiden Modi, in `record`
+  ohne Verbindung zum Server: Der Recorder handelt keine Erweiterung aus, und eine Antwort, die vorgäbe,
+  er täte es, gibt es nicht. Der Parameter `options` und jeder andere Name gelten wie jeder Parameter:
+  In `record` gehen sie unverändert an den Server und stehen in der Aufzeichnung (`SPEC-003`), in
+  `replay` bleiben sie unbeachtet.
+* *Sonderanfrage.* Hauptnummer 1234 mit der Nebennummer 5679 ist `SSLRequest`, 5680 `GSSENCRequest`,
+  5678 `CancelRequest`; jede andere ist `PGR-E6001` mit `ErrorResponse`, vor dem Lesen des Rests der
+  Nachricht, mit und ohne TLS. Ein `SSLRequest` oder `GSSENCRequest` mit einer Länge außer 8 ist
+  `PGR-E6001` ohne Antwort (Länge unter 8 oder über `SPEC-045`: `PGR-W3003`, siehe oben). Beim
+  `CancelRequest` ist die Länge 16 zugesagt (Prozess-ID und Schlüssel, 4 Bytes); der Recorder liest
+  beides nicht. Eine Länge von 8 ist `PGR-E6001` mit `ErrorResponse`; für andere Längen gibt es keine
+  Zusage (Grenze: die PGWire-Bibliothek entscheidet).
+* *Reihenfolge von `SSLRequest` und `GSSENCRequest`.* Ohne TLS-Konfiguration beantwortet der Recorder
+  jede dieser Anfragen mit `N`, in jeder Folge, danach folgt die Startnachricht; getestet sind Folgen aus
+  zwei Anfragen (Grenze: eine Obergrenze der Zahl gibt es nicht). Mit TLS-Konfiguration ist die
+  Antwort auf einen `GSSENCRequest` `N`; ein darauf folgender `SSLRequest` wird angenommen
+  (`LH-FA-23.a`). Hat der Client hinter einer Anfrage schon die nächste Nachricht gesendet, bevor er
+  die Antwort las, liest der Recorder sie nach dem `N`; das gilt nicht für Bytes hinter einem
+  `SSLRequest`, den der Recorder mit `S` annimmt (`LH-FA-23.a` *Aushandlung*).
+* *`COPY`.* Eine Nachricht `CopyData`, `CopyDone` oder `CopyFail` des Clients ist `PGR-E6001`
+  (SQLSTATE `0A000`), an jeder Stelle: v1 nimmt keine `COPY`-Antwort an, es gibt also nie eine
+  vorangehende `COPY`-Anfrage, auf die sie sich bezöge. Antwortet der Server auf eine Anfrage mit
+  `CopyInResponse`, `CopyOutResponse` oder `CopyBothResponse`, ist das `PGR-E6001` in `record`; die
+  Anfrage wird dem Client nicht beantwortet, er erhält die Fehlerantwort, und die Session wird nicht
+  aufgezeichnet (`LH-FA-06`). Der Recorder schließt die Verbindung zum Server; ob ein `Terminate`
+  vorausgeht, ist nicht zugesagt (Grenze: der Server beendet seine Session in beiden Fällen). Eine
+  `COPY`-Anfrage selbst ist eine Anfrage wie jede andere und geht an den Server.
+* *`FunctionCall`.* Die Nachricht ist `PGR-E6001`, an jeder Stelle und in beiden Modi: nach dem Aufbau, in
+  einer Extended-Sequenz (die ganze Session wird verworfen, auch die offene Gruppe, `LH-FA-18.a`)
+  und in der Anmeldung (`LH-FA-05.b`, *Antwort des Clients*); im `replay` gibt es keinen Wartepunkt,
+  dort gilt sie wie nach dem Aufbau.
+* *`NotificationResponse`.* Der Recorder zeichnet sie nicht auf und reicht sie nicht weiter. Trifft sie
+  vor dem `ReadyForQuery` einer Anfrage ein, ist das `PGR-E6001`: Der Client erhält die Fehlerantwort
+  statt der Antwort der Anfrage, die Session wird nicht aufgezeichnet. Trifft sie im Leerlauf ein,
+  zwischen zwei Anfragen, liest der Recorder sie spätestens bei der nächsten Anfrage der Session, und
+  dort ist es dasselbe `PGR-E6001`; ob er sie schon beim Eintreffen liest, ist nicht zugesagt (Grenze).
+  Im Aufbau ist sie `PGR-E6001`. Was der Upstream nach der letzten Interaktion sendet, wird nicht
+  aufgezeichnet und ist kein Fehler (Abschnitt *Nachrichten zwischen Interaktionen*).
+* *`LISTEN` und `NOTIFY`.* `LISTEN` allein und `NOTIFY` allein sind gewöhnliche Anfragen
+  (`CommandComplete` mit dem Tag `LISTEN` beziehungsweise `NOTIFY`) und werden aufgezeichnet. Hört eine
+  Session mit `LISTEN` auf einen Kanal und sendet sie selbst ein `NOTIFY` auf ihn, auch in derselben
+  Anfrage (`LISTEN x; NOTIFY x`), liefert der Server die Benachrichtigung vor dem `ReadyForQuery` an
+  dieselbe Verbindung: `PGR-E6001`, die Session wird nicht aufgezeichnet. Bei zwei Sessions wird die
+  sendende aufgezeichnet; die hörende erhält `PGR-E6001` bei ihrer nächsten Anfrage nach dem
+  Eintreffen (*Leerlauf* oben) und wird nicht aufgezeichnet. Die Benachrichtigung entsteht beim
+  Server; geprüft ist das Verhalten gegen die Referenz (`SPEC-029`), für die übrigen Hauptversionen nicht
+  durch einen Test (Grenze). `LISTEN` und `NOTIFY` als Anwendungsfall sind nicht zugesichert
+  (`SPEC-039`).
+* *Ungültiger Rumpf und abgebrochene Nachricht.* Eine vollständig gelesene Client-Nachricht, deren Rumpf
+  die PGWire-Bibliothek nicht lesen kann (etwa eine Nachricht `p` ohne Nullbyte), ist `PGR-E6001`
+  („nicht lesbar"), nicht das Ende des Clients. Endet die Verbindung des Clients mitten in einer
+  Nachricht, ist das das Ende des Clients wie zwischen zwei Nachrichten, ohne Meldung.
+* *Verbindung ohne erste Nachricht.* Endet die Verbindung vor dem achten Byte (kein Byte bis sieben
+  Bytes), durch Schließen oder durch Reset, ist das die Zeile *Verbindung ohne erste Nachricht*, in beiden
+  Modi und auch mit `--record-empty-sessions` ohne Session (`LH-FA-12.a`). Ab dem vollständigen
+  Kopf von 8 Bytes gilt die Zeile *Startnachricht mit vollständigem Kopf*.
 
 ---
 
@@ -3121,3 +3219,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-13 | TLS zum Client: Randformen vor dem Code (Quellen und Schlüssel der Datei, Kombinationen und ihre Stelle vor `--upstream`, Stelle des Ladens von Zertifikat und Schlüssel, Form beider Dateien, Gültigkeit gegen die Systemuhr, Meldung ohne Pfad, Handshake: Bytes vor dem `S`, Abbruch durch Herunterfahren, direktes TLS als Grenze, weiterer `SSLRequest` auf der verschlüsselten Verbindung, Ende ohne `close_notify`, Rangfolge von `PGR-E6003` hinter `PGR-E6002`, `PGR-E6001` und `PGR-W3003`, keine Wirkung der Serverversion) (`LH-FA-23.a`, `LH-FA-17.a`) |
 | 2026-10-14 | Authentifizierung, Record: Randformen der Vermittlung vor dem Code (Verfahren und Grenze der Mechanismen, nicht vermittelte Codes `PGR-E6001`, Reihenfolge des Servers `PGR-E4002`, Antwort und Ende des Clients, Fehlerantwort des Servers, Aufzeichnung und Log ohne Zugangsdaten, erstes Signal und Zwangsende, Aufruf-Voraussetzung, keine Option) (`LH-FA-05.b`) |
 | 2026-10-15 | Zugesagte PostgreSQL-Hauptversionen: feste Liste 14 bis 18 mit Referenz 17 und was „unterstützt" heißt, der Satz zu jedem Server mit PGWire 3.0 entfällt; Versionsmatrix in den Kompatibilitätstests (`LH-FA-05.e`, `SPEC-029`, `SPEC-038`) |
+| 2026-10-15 | Protokollrand: Randformen vor dem Code (Modus je Zeile, Prüfreihenfolge der ersten Nachricht, Protokollversion, Rumpf der Startnachricht und Parameter `_pq_.` in beiden Modi `PGR-E6001`, Sonderanfrage und Länge des `CancelRequest`, Folgen von `SSLRequest` und `GSSENCRequest`, `COPY` je Richtung, `FunctionCall`, `NotificationResponse` je Eintreffzeitpunkt, ungültiger Rumpf und abgebrochene Nachricht, gleichzeitige Verbindungen); Zeile `LISTEN`/`NOTIFY` berichtigt: eine Benachrichtigung an die eigene Verbindung ist `PGR-E6001`; feste Auswahl im Replay: `AuthenticationOk` ohne Anforderung, nichts geprüft (`LH-FA-05.b`, `LH-FA-05.e`) |
