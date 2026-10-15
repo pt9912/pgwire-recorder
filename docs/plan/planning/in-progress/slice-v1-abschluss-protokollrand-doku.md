@@ -54,16 +54,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
-- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-protokollrand` liefert (die fünf Inhalte unter *Inhalt der Sendung* in §1: `_pq_.`-Ablehnung `PGR-E6001` in `record` und `replay`, Zählung abgelehnter Verbindungen, `NotificationResponse`/`LISTEN`-`NOTIFY` mit `PGR-E6001` und nicht aufgezeichneter Session, feste Auswahl im Replay, COPY-Antworten), im Ist-Zustand des gebauten Binaries: Die Abschnitte, die Kommandos, Optionen, Meldungscodes, Beispiele und Grenzen dieses Slice betreffen, stehen im Handbuch, und die Grenz-Sätze, die er überholt, sind ersetzt. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
-- [ ] `README.md` nennt, was `slice-v1-abschluss-protokollrand` liefert (soweit es die fünf Inhalte aus §1 betrifft), im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
+- [x] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-protokollrand` liefert (die fünf Inhalte unter *Inhalt der Sendung* in §1: `_pq_.`-Ablehnung `PGR-E6001` in `record` und `replay`, Zählung abgelehnter Verbindungen, `NotificationResponse`/`LISTEN`-`NOTIFY` mit `PGR-E6001` und nicht aufgezeichneter Session, feste Auswahl im Replay, COPY-Antworten), im Ist-Zustand des gebauten Binaries: Die Abschnitte, die Kommandos, Optionen, Meldungscodes, Beispiele und Grenzen dieses Slice betreffen, stehen im Handbuch, und die Grenz-Sätze, die er überholt, sind ersetzt. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
+- [x] `README.md` nennt, was `slice-v1-abschluss-protokollrand` liefert (soweit es die fünf Inhalte aus §1 betrifft), im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
 - [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -147,8 +147,8 @@ Jede Probe ist ein Aufruf des gebauten Binarys gegen die genannte Datei oder Ver
 
 **Risiken:**
 
-- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, Registerstand 3× erreicht, Ausgang dort nicht zugewiesen; dieser Slice nennt die Grenze selbst, kein neues Auftreten) — **Ausgang:** offen bis Closure.
-- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** offen bis Closure.
+- Ein Beispiel läuft nur mit einer Umgebung, die die Probe nicht nachbaut (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, Registerstand 3× erreicht, Ausgang dort nicht zugewiesen; dieser Slice nennt die Grenze selbst, kein neues Auftreten) — **Ausgang:** *weiter offen* → Register (`BEO-REPO/verhalten-nur-unter-linux-geprueft`, Vermerk in `state.md`): Alle Proben P1 bis P16 liefen als Prozess unter Linux (Implementer und Verifier); das Handbuch sagt „unter Linux geprüft; für andere Systeme nicht geprüft“, also kein Auftreten und kein Entfallen. Der Zähler bleibt bei 3; der Ausgang ist dem Lese-Schritt der Closure von welle-v1-abschluss zugewiesen, nicht diesem Slice.
+- Der Slice liefert seinen Teil von Handbuch und README nicht vollständig, weil nur die DoD ihn trägt und das Review ihn übersieht (`BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** *entfallen*: Er trat nicht ein. Die Verifikation bestätigt alle fünf Inhalte der Sendung gegen das gebaute Binary; V-1 (Klartext bei TLS-Pflicht stand nur für `first-request` im Satz der Zählung) fand sie vor der Closure, und die Nacharbeit `ef8f5f2` hat ihn behoben, der Slice schloss nicht mit der Lücke. Die Suche nach den ersetzten Grenz-Sätzen findet nichts Verbliebenes (Befehlsfolge und `grep` in §7).
 
 ## 7. Closure-Notiz
 
@@ -322,6 +322,34 @@ Umgebung wie oben (Binary aus `make build`, Image-ID `9a27f080a356`, als Prozess
 | Übrige Treffer (`auch nicht mit --log-level debug` u. a.) | Bestand oder ohne Quantor über die Menge der Verbindungen |
 
 **Größe** (Metrik §4, `git diff --numstat cf08408 -- docs/user/benutzerhandbuch.md README.md` im Arbeitsbaum, nach den Änderungen der Nacharbeit): 85+26 und 11+1, Summe 123 (Marke über 200 nicht erreicht).
+
+### Closure
+
+**Review und Verifikation.** Review (`docs/reviews/2026-10-15-review-slice-v1-abschluss-protokollrand-doku.md`: 0 HIGH, 0 MEDIUM, 1 LOW, 1 INFO): F-1 (LOW, „jede Verbindung“ neben den abgelehnten Startnachrichten) behoben in `12b5a72`, Belege in `ffcfdbf`; F-2 (INFO, „im Container“ ohne Lauf) behoben durch Streichen des Zusatzes. Verifikation (`docs/reviews/2026-10-15-verify-slice-v1-abschluss-protokollrand-doku.md`: PASS, 0 HIGH, 0 MEDIUM, 3 LOW, 3 INFO): DoD-Punkte 1, 2 und 4 bestätigt, Punkt 3 durch den Hook getragen und `make gates-schnell` Exit 0 (voller Lauf vom Verifier nicht gefahren). V-1 bis V-3 (LOW) und V-4, V-5 (INFO) behoben in `ef8f5f2` und `28895f1` (Proben P12 bis P16 in §7); V-6 (INFO) ohne Handlung, die Grenze ist richtig eng gefasst. Die Nacharbeit ist vom Verifier nicht erneut gegengelesen; ihre Belege sind die Proben P12 bis P16 des Implementers.
+
+**Größe** (`AGENTS.md` §3.14, `git diff --numstat cf08408..<letzter Commit am Handbuch> -- docs/user/benutzerhandbuch.md README.md`): 85+26 und 11+1, Summe 123 nach der Nacharbeit; Marke 200 nicht erreicht, Schätzung des Architect 70 bis 140 getroffen. Liefer-Punkte 2, Schichten eine (Dokumentation), wie §8.
+
+**Entscheidungen zu den Übergaben.**
+
+- **V-6, P4 „keine Meldung `PGR-`“ (V-5):** V-6 ohne Handlung; V-5 ist in P4 und R5 auf „wenn eine andere Verbindung die Sitzung verbraucht hat“ präzisiert, der Handbuchsatz blieb wahr.
+- **`PGR-W2001` beim Abbruch des Clients im `replay`** (Hinweis des Implementers, P15 (a)): Das Handbuch nennt den Fall nicht ausdrücklich — bricht ein Client allein ab und verbraucht die einzige Sitzung nicht, meldet `replay` beim Beenden `PGR-W2001` bei Exit-Code 0. Kein Satz ist falsch, und die allgemeinen Sätze zu nie zugeordneten Sitzungen sowie die Tabellenzeile `PGR-W2001` decken den Fall. Eine Adresse dafür gibt es nicht: `slice-v1-abschluss-verbindungsende-doku` (`grep -n "W2001"` leer) hat das Ende durch den Server zum Gegenstand und nimmt den Abbruch des Clients nicht an; ein Slice dafür wäre ohne Anlass geplant. Ausgang: *weiter offen*, Vermerk in `state.md` von `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` (kein Auftreten). Das Register hat dafür keinen eigenen Eintrag; ob einer entstehen soll, entscheidet der Nutzer.
+- **Die Mitteilung des Verifiers zu den Risiko-Ausgängen** war ein Vorschlag; die Ausgänge in §6 sind die Entscheidung dieser Closure (Linux: weiter offen; Handbuch-Teil: entfallen).
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge): siehe §6; Beispiel nur unter Linux: *weiter offen* (Register); Teil von Handbuch und README nicht geliefert: *entfallen*.
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure):
+
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — neue Datei `evidence/slice-v1-abschluss-protokollrand-doku.md` (F-1, F-2, V-1, V-2, V-3, V-5): 57 → 58. Verkörpert (`AGENTS.md` §3.11, `.claude/commands/implement-slice.md` Schritt 17 und 19); die Regel zur Quantoren-Durchsicht galt, sie prüfte neu geschriebene Sätze nicht gegen die Ausnahmen derselben Seite.
+- `BEO-REPO/verhalten-nur-unter-linux-geprueft` — kein neues Auftreten; vermerkt in `state.md`. Der Zähler bleibt bei 3; der Ausgang ist dem Lese-Schritt der Closure von welle-v1-abschluss zugewiesen (dort steht er, hier nicht zu lösen).
+- `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` — kein Auftreten; vermerkt „Teil geliefert“ und die Lücke zu `PGR-W2001` ohne Adresse in `state.md`, bleibt 1×, offen.
+- `BEO-REPO/schichtteilung-je-plan-verschieden` — kein Auftreten (Zählung in §8 nach `AGENTS.md` §3.13, eine Schicht); nicht geändert.
+- Kein nicht verkörperter Eintrag erreicht mit diesem Slice 3× neu (`BEO-REPO/verhalten-nur-unter-linux-geprueft` steht seit `slice-v1-abschluss-sqlite-format-lesen` auf 3×).
+
+**Lerneintrag — geschärfte Regel (Vorschlag des Planners, noch nicht verkörpert).** Der Slice schrieb neue Sätze mit Quantor („jede Verbindung“, „wird aufgezeichnet“, „sie wird eine Sitzung“) auf Seiten, die dieselbe Verbindung an anderer Stelle mit Ausnahmen führen (abgelehnte Startnachricht, `p` oder `CopyData` nach dem Aufbau, Benachrichtigung nach der letzten Anfrage); die Durchsicht der Quantoren suchte nach dem Bestand und nach den Wörtern der zuletzt gefundenen Ausnahme, nicht nach den Ausnahmen, die dieselbe Seite schon aufzählt, und fand F-1, V-2 und V-3 erst Review und Verifikation in drei Gestalten derselben Klasse. Vorgeschlagen ist ein Satz in `.claude/commands/implement-slice.md` Schritt 17: Für jeden neu geschriebenen Satz mit Quantor oder mit „wird/ist … (nicht) aufgezeichnet“ listet die Durchsicht in §7 die Ausnahmen auf, die dieselbe Seite und dieselbe Aufzählung nennt, und gibt je Ausnahme eine Probe oder fasst den Satz eng; derselbe Satz steht an allen Stellen gleich, an denen er wiederkehrt (hier sechs Stellen im Handbuch und das README). **Kein neuer Sensor:** Welche Ausnahmen ein Satz meint, sieht kein Skript. **Offene Frage an den Nutzer:** Soll der Satz in Schritt 17 aufgenommen werden? Bis dahin trägt er kein Feld `liegt in`, und weder `AGENTS.md` noch `.claude/` sind mit diesem Slice geändert.
+
+**Paarungen.** (a) Anker: Diese Closure trägt kein Feld `liegt in`; die Regel ist nicht verkörpert, also kein Zielort zu prüfen. (b) Folge-Slice: Diese Closure weist keinem Slice etwas zu; `slice-v1-abschluss-verbindungsende-doku` wurde für den Fall zu `PGR-W2001` geprüft und nimmt ihn nicht an, deshalb steht er als Vermerk im Register und nicht als Zuweisung. (c) Register: die genannten Kennungen existieren als Verzeichnis mit nicht leerem `evidence/` (`zusage-im-kommentar-weiter-als-pruefung`, `verhalten-nur-unter-linux-geprueft`, `folge-slice-liefert-handbuch-teil-nicht`, `schichtteilung-je-plan-verschieden`).
+
+**Nachzählen.** Keine Sendung in einen Nehmer, daher kein Nachzählen von Liefer-Punkten und Schichten. `slice-v1-abschluss-verbindungsende-format` (Schritt 35) nennt diesen Slice nur als Start-Voraussetzung und ist unverändert.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
