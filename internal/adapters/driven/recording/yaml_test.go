@@ -180,7 +180,7 @@ func TestUnmarshalFehler(t *testing.T) {
 		name, data, want string
 	}{
 		{"fremdes Format", "format: anderes\nversion: 1\nsessions: []\n", model.CodeRecordingBroken},
-		{"unbekannte Version", "format: pgwire-recorder\nversion: 2\nsessions: []\n", model.CodeRecordingVersion},
+		{"unbekannte Version", "format: pgwire-recorder\nversion: 3\nsessions: []\n", model.CodeRecordingVersion},
 		{"kein YAML", "format: [\n", model.CodeRecordingBroken},
 		{"unbekannter Schlüssel", "format: pgwire-recorder\nversion: 1\nsessions: []\nextra: 1\n", model.CodeRecordingBroken},
 		{"unbekannter Anfrage-Typ", "format: pgwire-recorder\nversion: 1\nsessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        request: {type: bogus, sql: x}\n        responses: []\n", model.CodeRecordingBroken},

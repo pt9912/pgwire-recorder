@@ -1,5 +1,7 @@
 package model
 
+import "errors"
+
 // ResponseType ist die Art einer Serverantwort; die Namen folgen den
 // PGWire-Nachrichten in Kleinbuchstaben mit Unterstrich (SPEC-041).
 type ResponseType string
@@ -27,6 +29,11 @@ const (
 	ResponsePortalSuspended      ResponseType = "portal_suspended"
 )
 
+// ResponseConnectionClosed ist das Ende der Verbindung durch den Server (LH-FA-25.a,
+// Version 2 des Formats): ohne Felder, als letzte Nachricht der letzten Interaktion
+// einer Session, unmittelbar nach einer error_response FATAL oder PANIC (SPEC-002).
+const ResponseConnectionClosed ResponseType = "connection_closed"
+
 // simpleResponses sind die Serverantworten einer einfachen Anfrage,
 // extendedResponses die einer Gruppe einer Extended-Interaktion; Validate lehnt
 // jeden anderen Typ ab (SPEC-001).
@@ -40,6 +47,7 @@ var (
 		ResponseNoticeResponse:     true,
 		ResponseParameterStatus:    true,
 		ResponseReadyForQuery:      true,
+		ResponseConnectionClosed:   true,
 	}
 	extendedResponses = map[ResponseType]bool{
 		ResponseParseComplete:        true,
@@ -56,6 +64,7 @@ var (
 		ResponseNoticeResponse:       true,
 		ResponseParameterStatus:      true,
 		ResponseReadyForQuery:        true,
+		ResponseConnectionClosed:     true,
 	}
 )
 
@@ -69,7 +78,8 @@ var (
 //	parameter_description        ParamTypes (Typ-OIDs der Parameter)
 //	ready_for_query              TxStatus
 //
-// Die übrigen Typen tragen keine Felder.
+// Die übrigen Typen tragen keine Felder; connection_closed trägt keines, und Validate
+// lehnt es mit einem Feld ab.
 type Response struct {
 	Type       ResponseType
 	Columns    []Column
@@ -97,4 +107,72 @@ type Column struct {
 type Value struct {
 	Null  bool
 	Bytes []byte
+}
+
+// ohneFelder ist wahr, wenn keines der Felder von Response belegt ist.
+func (r Response) ohneFelder() bool {
+	return len(r.Columns) == 0 && len(r.Values) == 0 && r.Tag == "" && len(r.Fields) == 0 &&
+		r.Name == "" && r.Value == "" && r.TxStatus == "" && len(r.ParamTypes) == 0
+}
+
+// beendetVerbindung ist wahr für eine error_response, deren Schweregrad FATAL oder
+// PANIC ist: der Wert des Feldes "V"; ist "V" vorhanden, auch leer, entscheidet es
+// allein, und "S" zählt nur, wenn "V" fehlt. Der Vergleich ist genau (SPEC-002).
+func (r Response) beendetVerbindung() bool {
+	if r.Type != ResponseErrorResponse {
+		return false
+	}
+	schweregrad, ok := r.Fields["V"]
+	if !ok {
+		schweregrad = r.Fields["S"]
+	}
+	return schweregrad == "FATAL" || schweregrad == "PANIC"
+}
+
+// pruefeEnde prüft die Stellen von connection_closed in einer Nachrichtenfolge (die
+// Antworten einer einfachen Anfrage oder die Server-Nachrichten einer Gruppe):
+// connection_closed steht nur als letzte Nachricht, trägt keine Felder und folgt
+// unmittelbar auf eine error_response FATAL oder PANIC.
+func pruefeEnde(antworten []Response) error {
+	for idx, r := range antworten {
+		if r.Type != ResponseConnectionClosed {
+			continue
+		}
+		if idx != len(antworten)-1 {
+			return errors.New("connection_closed nur als letzte Nachricht")
+		}
+		if !r.ohneFelder() {
+			return errors.New("connection_closed trägt Felder")
+		}
+		if idx == 0 || !antworten[idx-1].beendetVerbindung() {
+			return errors.New("connection_closed nur unmittelbar nach einer error_response FATAL oder PANIC")
+		}
+	}
+	return nil
+}
+
+// endet ist wahr, wenn die Interaktion eine Antwort connection_closed trägt, an
+// welcher Stelle auch immer.
+func (i Interaction) endet() bool {
+	for _, r := range i.Responses {
+		if r.Type == ResponseConnectionClosed {
+			return true
+		}
+	}
+	for _, g := range i.Groups {
+		if g.endet() {
+			return true
+		}
+	}
+	return false
+}
+
+// endet ist wahr, wenn die Server-Nachrichten der Gruppe connection_closed tragen.
+func (g Group) endet() bool {
+	for _, r := range g.Server {
+		if r.Type == ResponseConnectionClosed {
+			return true
+		}
+	}
+	return false
 }

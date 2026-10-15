@@ -1,9 +1,15 @@
 package model
 
+import "fmt"
+
 // Formatkennung und Formatversion einer Aufzeichnung (SPEC-010).
 const (
 	Format  = "pgwire-recorder"
 	Version = 1
+	// VersionMitEnde ist die Formatversion, die das Ende des Servers
+	// (ResponseConnectionClosed) kennt (SPEC-001); Version bleibt die der übrigen
+	// Formate.
+	VersionMitEnde = 2
 )
 
 // Recording ist eine Aufzeichnung: geordnete Sessions mit ihren Interaktionen
@@ -32,6 +38,20 @@ type Session struct {
 	// Verbindungsaufbau gesendet hat.
 	ServerParameters map[string]string
 	Interactions     []Interaction
+}
+
+// ValidateEnd prüft die Form der Session für das Ende des Servers: connection_closed
+// steht höchstens einmal, in der letzten Interaktion (SPEC-002). Die Stellen innerhalb
+// einer Interaktion prüft Interaction.Validate; Aufrufe von ValidateEnd und Validate
+// sind Zustandsprüfungen ohne Ordnung über mehrere Aufrufe.
+func (s Session) ValidateEnd() error {
+	letzte := len(s.Interactions) - 1
+	for ii, i := range s.Interactions {
+		if ii != letzte && i.endet() {
+			return fmt.Errorf("Interaktion %d: connection_closed nur in der letzten Interaktion der Session", ii+1)
+		}
+	}
+	return nil
 }
 
 // Interaction ist eine abgeschlossene Anfrage mit allen Serverantworten bis

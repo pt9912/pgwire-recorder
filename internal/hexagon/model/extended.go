@@ -78,6 +78,12 @@ type Group struct {
 // ready_for_query, und keine andere Server-Nachricht der Interaktion ist es.
 // describe und close tragen die Zielart statement oder portal.
 //
+// Das Ende des Servers (LH-FA-25.a): connection_closed steht statt ready_for_query
+// als letzte Antwort einer einfachen Anfrage und als letzte Server-Nachricht der
+// letzten Gruppe, ohne Felder und unmittelbar nach einer error_response FATAL oder
+// PANIC (pruefeEnde). Die letzte Gruppe mit Ende endet mit sync oder flush, die
+// Gruppen davor mit flush, und ready_for_query steht in ihr nicht.
+//
 // Ein Nachrichten- oder Anfragetyp, den die Art nicht kennt, ist ein Fehler
 // (SPEC-001).
 func (i Interaction) Validate() error {
@@ -100,7 +106,10 @@ func (i Interaction) validateQuery() error {
 			return fmt.Errorf("Antwort-Typ %q unbekannt in einer einfachen Anfrage", r.Type)
 		}
 	}
-	if n := len(i.Responses); n == 0 || i.Responses[n-1].Type != ResponseReadyForQuery {
+	if err := pruefeEnde(i.Responses); err != nil {
+		return err
+	}
+	if n := len(i.Responses); n == 0 || i.Responses[n-1].Type != ResponseReadyForQuery && i.Responses[n-1].Type != ResponseConnectionClosed {
 		return errors.New("endet nicht mit ready_for_query")
 	}
 	return nil
@@ -125,19 +134,31 @@ func (i Interaction) validateExtended() error {
 // validate prüft eine Gruppe; letzte sagt, ob sie die Interaktion abschließt.
 // Die Prüfungen laufen in dieser Reihenfolge, und die erste verletzte meldet
 // ihren Fehler: die Client-Nachrichten, sync oder flush am Ende der Gruppe, die
-// Server-Nachrichten, ready_for_query am Ende der letzten Gruppe.
+// Server-Nachrichten, die Stellen von connection_closed, ready_for_query am Ende
+// der letzten Gruppe. Eine letzte Gruppe, deren letzte Server-Nachricht
+// connection_closed ist, endet mit sync oder flush und trägt kein ready_for_query.
 func (g Group) validate(letzte bool) error {
 	if err := g.validateClient(); err != nil {
 		return err
 	}
+	ende := letzte && len(g.Server) > 0 && g.Server[len(g.Server)-1].Type == ResponseConnectionClosed
 	endetMitSync := g.Client[len(g.Client)-1].Type == ClientSync
-	if endetMitSync != letzte {
-		return errors.New("sync steht genau am Ende der letzten Gruppe, flush am Ende jeder anderen")
+	if endetMitSync && !letzte {
+		return errors.New("sync steht am Ende der letzten Gruppe (mit connection_closed auch flush), flush am Ende jeder anderen")
+	}
+	if !endetMitSync && letzte && !ende {
+		return errors.New("sync steht am Ende der letzten Gruppe (mit connection_closed auch flush), flush am Ende jeder anderen")
 	}
 	if err := g.validateServer(letzte); err != nil {
 		return err
 	}
-	if letzte && (len(g.Server) == 0 || g.Server[len(g.Server)-1].Type != ResponseReadyForQuery) {
+	if !letzte && g.endet() {
+		return errors.New("connection_closed nur in der letzten Gruppe")
+	}
+	if err := pruefeEnde(g.Server); err != nil {
+		return err
+	}
+	if letzte && !ende && (len(g.Server) == 0 || g.Server[len(g.Server)-1].Type != ResponseReadyForQuery) {
 		return errors.New("letzte Gruppe endet nicht mit ready_for_query")
 	}
 	return nil

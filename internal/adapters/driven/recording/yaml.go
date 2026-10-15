@@ -215,8 +215,8 @@ func Unmarshal(data []byte) (model.Recording, error) {
 // läuft: eine andere oder fehlende Formatkennung ist PGR-E3003; fehlt version oder
 // ist ihr Wert keine kanonische Dezimalzahl (einfacher Skalar, `0` oder Ziffern
 // ohne führende Null, mit oder ohne `-`), ist es PGR-E3003 ohne Wert in der
-// Meldung; jede kanonische Zahl außer der Version des Formats ist PGR-E3002 mit
-// der gelesenen Version.
+// Meldung; jede kanonische Zahl außer model.Version und model.VersionMitEnde ist
+// PGR-E3002 mit der gelesenen Version.
 func kopfVorpruefung(doc *yaml.Node) error {
 	if len(doc.Content) == 0 {
 		return model.Errorf(model.CodeRecordingBroken, nil, "Formatkennung fehlt")
@@ -230,7 +230,7 @@ func kopfVorpruefung(doc *yaml.Node) error {
 	if v == ohneWert || v.Kind != yaml.ScalarNode || v.Style != 0 || text == "0" && v.Value != "0" || !kanonischeDezimalzahl(text) {
 		return model.Errorf(model.CodeRecordingBroken, nil, "Schlüssel version fehlt oder ist keine kanonische Dezimalzahl")
 	}
-	if v.Value != strconv.Itoa(model.Version) {
+	if v.Value != strconv.Itoa(model.Version) && v.Value != strconv.Itoa(model.VersionMitEnde) {
 		return model.Errorf(model.CodeRecordingVersion, nil, "Version %s wird nicht unterstützt", v.Value)
 	}
 	return nil
@@ -273,16 +273,19 @@ func ohneVerweise(n *yaml.Node) error {
 //   - jede Gruppe trägt client und server, beide nicht mit null.
 //   - param_types steht an keiner Serverantwort außer parameter_description,
 //     mit Wert oder mit null.
+//   - connection_closed steht nicht in Version 1 und trägt neben type keinen
+//     Schlüssel, auch keinen leeren oder mit null (SPEC-001, SPEC-002).
 func formVorpruefung(doc *yaml.Node) error {
 	if len(doc.Content) == 0 {
 		return nil
 	}
+	version := wert(doc.Content[0], "version").Value
 	for si, s := range wert(doc.Content[0], "sessions").Content {
 		for ii, i := range wert(s, "interactions").Content {
 			if grund := offsetForm(wert(i, "offset_ms")); grund != "" {
 				return model.Errorf(model.CodeRecordingBroken, nil, "Session %d, Interaktion %d: offset_ms %s", si+1, ii+1, grund)
 			}
-			if err := interaktionVorpruefung(i); err != nil {
+			if err := interaktionVorpruefung(i, version); err != nil {
 				return fmt.Errorf("Session %d, Interaktion %d: %w", si+1, ii+1, err)
 			}
 		}
@@ -322,7 +325,7 @@ func kanonischeDezimalzahl(s string) bool {
 	return true
 }
 
-func interaktionVorpruefung(i *yaml.Node) error {
+func interaktionVorpruefung(i *yaml.Node, version string) error {
 	for _, k := range []string{"request", "responses", "groups"} {
 		if v := wert(i, k); v != ohneWert && v.Tag == "!!null" {
 			return fmt.Errorf("%s: null", k)
@@ -341,6 +344,14 @@ func interaktionVorpruefung(i *yaml.Node) error {
 		antworten = append(antworten, wert(g, "server").Content...)
 	}
 	for _, r := range antworten {
+		if wert(r, "type").Value == string(model.ResponseConnectionClosed) {
+			if version == strconv.Itoa(model.Version) {
+				return fmt.Errorf("connection_closed in Version %d", model.Version)
+			}
+			if len(r.Content) != 2 {
+				return fmt.Errorf("connection_closed trägt Schlüssel neben type")
+			}
+		}
 		if typ := wert(r, "type").Value; wert(r, "param_types") != ohneWert && typ != string(model.ResponseParameterDescription) {
 			return fmt.Errorf("Schlüssel \"param_types\" gehört nicht zu %s", typ)
 		}
@@ -671,7 +682,8 @@ func fromDTO(d recordingDTO) (model.Recording, error) {
 // sessionFromDTO prüft die Session an der Stelle si der Liste in dieser
 // Reihenfolge: ihre Kennung, ob sie Interaktionen trägt (ohne nur mit
 // emptySessions), dann ihre Interaktionen der Reihe nach; nach jeder Interaktion
-// vergleicht sie deren offset_ms mit dem vorigen vorhandenen Wert der Session.
+// vergleicht sie deren offset_ms mit dem vorigen vorhandenen Wert der Session;
+// zuletzt prüft sie mit model.Session.ValidateEnd das Ende des Servers.
 func sessionFromDTO(si int, sd sessionDTO, emptySessions bool) (model.Session, error) {
 	if sd.ID != si+1 {
 		return model.Session{}, model.Errorf(model.CodeRecordingBroken, nil, "Session %d trägt die Kennung %d", si+1, sd.ID)
@@ -693,6 +705,9 @@ func sessionFromDTO(si int, sd sessionDTO, emptySessions bool) (model.Session, e
 			vorige = id.OffsetMS
 		}
 		s.Interactions = append(s.Interactions, i)
+	}
+	if err := s.ValidateEnd(); err != nil {
+		return model.Session{}, model.Errorf(model.CodeRecordingBroken, err, "Session %d", sd.ID)
 	}
 	return s, nil
 }

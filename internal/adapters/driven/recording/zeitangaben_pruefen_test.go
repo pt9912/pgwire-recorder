@@ -252,7 +252,7 @@ func TestZeitangabenFormSQLite(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-21/Negative — Lesbarkeit, Formatkennung und Version gehen dem Inhalt voran: eine
-// Aufzeichnung mit kanonischer Version außer 1 (auch 0, negativ, über int64) ist PGR-E3002, auch
+// Aufzeichnung mit kanonischer Version außer 1 und 2 (auch 0, negativ, über int64) ist PGR-E3002, auch
 // wenn der Inhalt Fehler trägt; eine fehlende Version oder ein Wert, der keine kanonische
 // Dezimalzahl ist, ist PGR-E3003 ohne Wert in der Meldung; eine falsche Formatkennung ist
 // PGR-E3003, auch bei unbekannter Version.
@@ -260,13 +260,14 @@ func TestZeitangabenVersionVorForm(t *testing.T) {
 	rumpf := "sessions:\n  - id: 1\n    interactions:\n      - sequence: 1\n        offset_ms: \"4711\"\n        request: {type: query, sql: x}\n        responses:\n          - {type: ready_for_query, tx_status: I}\n"
 	const fremd = "format: pgwire-recorder\n"
 	for _, c := range []struct{ name, text, code, enthaelt, nicht, wert string }{
-		{"Version 2", fremd + "version: 2\n" + rumpf, model.CodeRecordingVersion, "Version 2", "", ""},
-		{"Version 2, unbekannter Schlüssel", fremd + "version: 2\nunbekannt: 4711\n" + rumpf, model.CodeRecordingVersion, "Version 2", "", ""},
+		{"Version 3", fremd + "version: 3\n" + rumpf, model.CodeRecordingVersion, "Version 3", "", ""},
+		{"Version 3, unbekannter Schlüssel", fremd + "version: 3\nunbekannt: 4711\n" + rumpf, model.CodeRecordingVersion, "Version 3", "", ""},
 		{"Version 0", fremd + "version: 0\n" + rumpf, model.CodeRecordingVersion, "Version 0", "", ""},
 		{"Version -1", fremd + "version: -1\n" + rumpf, model.CodeRecordingVersion, "Version -1", "", ""},
 		{"Version über int64", fremd + "version: 9223372036854775808\n" + rumpf, model.CodeRecordingVersion, "Version 9223372036854775808", "", ""},
 		{"andere Formatkennung, Version 2", "format: pgwire-recorden\nversion: 2\n" + rumpf, model.CodeRecordingBroken, "Formatkennung", "Version", ""},
 		{"fehlende Formatkennung, Version 2", "version: 2\n" + rumpf, model.CodeRecordingBroken, "Formatkennung", "Version", ""},
+		{"Version 2", fremd + "version: 2\n" + rumpf, model.CodeRecordingBroken, "Session 1, Interaktion 1: offset_ms", "", ""},
 		{"Version 1", fremd + "version: 1\n" + rumpf, model.CodeRecordingBroken, "Session 1, Interaktion 1: offset_ms", "", ""},
 		{"Version abc", fremd + "version: abc\n" + rumpf, model.CodeRecordingBroken, "version", "Version", "abc"},
 		{"Version fehlt", fremd + rumpf, model.CodeRecordingBroken, "version", "Version", ""},

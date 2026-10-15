@@ -214,11 +214,11 @@ func TestValidateFehlerReihenfolge(t *testing.T) {
 		{"sync am Ende einer vorderen Gruppe vor einer unbekannten Server-Nachricht", func(i *model.Interaction) {
 			i.Groups[0].Client[2].Type = model.ClientSync
 			i.Groups[0].Server[0].Type = "copy_out_response"
-		}, "Gruppe 1: sync steht genau am Ende der letzten Gruppe, flush am Ende jeder anderen"},
+		}, "Gruppe 1: sync steht am Ende der letzten Gruppe (mit connection_closed auch flush), flush am Ende jeder anderen"},
 		{"flush am Ende der letzten Gruppe vor fehlendem ready_for_query", func(i *model.Interaction) {
 			i.Groups[1].Client[2].Type = model.ClientFlush
 			i.Groups[1].Server = i.Groups[1].Server[:3]
-		}, "Gruppe 2: sync steht genau am Ende der letzten Gruppe, flush am Ende jeder anderen"},
+		}, "Gruppe 2: sync steht am Ende der letzten Gruppe (mit connection_closed auch flush), flush am Ende jeder anderen"},
 		{"Client-Nachricht vor Server-Nachricht", func(i *model.Interaction) {
 			i.Groups[1].Client[0].Type = "copy_data"
 			i.Groups[1].Server[1].Type = "copy_out_response"

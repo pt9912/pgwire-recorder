@@ -237,7 +237,7 @@ sessions:
 	}
 	// Eine unbekannte Version: in beiden Formaten PGR-E3002.
 	ys := filepath.Join(t.TempDir(), "rec.yaml")
-	if err := os.WriteFile(ys, []byte(strings.Replace(yamlText("", "s"), "version: 1", "version: 2", 1)), 0o644); err != nil {
+	if err := os.WriteFile(ys, []byte(strings.Replace(yamlText("", "s"), "version: 1", "version: 3", 1)), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	sq := kopiere(t, gueltig)
