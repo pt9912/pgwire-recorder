@@ -163,6 +163,10 @@ entschieden“) ersetzt die Rückgabe nicht, wenn der Commit sie schon trägt.
     zuletzt gefundenen Ausnahme; §7 führt jeden Treffer mit seiner Entscheidung (eng gefasst, verbunden oder
     unverändert mit Grund) und gilt für die erste Durchsicht, nicht erst für die Nacharbeit
     (seit slice-v1-abschluss-sessions-doku, Vorschlag des Planners).
+    Für jeden neu geschriebenen Satz mit Quantor listet §7 zusätzlich die Ausnahmen, die dieselbe
+    Seite für denselben Gegenstand schon aufzählt, und gibt je Ausnahme eine Probe oder fasst den
+    Satz eng; derselbe Satz steht an allen Stellen gleich, an denen er wiederkehrt
+    (seit slice-v1-abschluss-protokollrand-doku, Entscheidung des Nutzers vom 2026-10-15).
     Jeder Satz mit einer Verhaltensaussage hat in der Probe-Tabelle von §7 seine eigene Zeile,
     auch ein Nebensatz über die Art, wie etwas geschieht („legt die Datei über die temporäre
     Datei an“); ein Satz ohne Zeile wird gestrichen oder bekommt sie. Ein Wort, das einen
