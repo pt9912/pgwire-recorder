@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-sqlite-schreiber
+**Fund (Verifikation V-1, LOW):** Die Zusage „genau eine Zeile `version` mit dem Wert 1, jede andere Zahl geänderter Zeilen ist `PGR-E3001`“ war für die Seite „null Zeilen“ (drei Fälle) geprüft, für „mehr als eine“ nicht; der Mutant `n != 1` zu `n == 0` blieb grün, obwohl die Seite in einer fremden Datei ohne Primärschlüssel erreichbar ist. Behoben in `ee11e96`: Fall „zwei Zeilen mit Wert 1“ in `TestSQLiteVersionZeileUnpassend`, `n == 0` und `n < 1` rot allein dort.
