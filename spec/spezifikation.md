@@ -2543,7 +2543,24 @@ Leser lehnt jedes Feld ab, das er für seine Version nicht kennt (`PGR-E3003`);
 darum erhöht auch ein neues optionales Feld `version`.
 Version 1 umfasst einfache und Extended-Interaktionen, Version 2 zusätzlich das Ende des
 Servers mit der Server-Nachricht `connection_closed` (`LH-FA-25.a`, `SPEC-002`, `SPEC-041`);
-der Schreiber schreibt 2 nur für eine Aufzeichnung, die ein Ende enthält, sonst 1. Das Feld `version` des Modells bestimmt das nicht: Der Schreiber richtet sich bei jedem Schreiben nach dem Inhalt, auch wenn das Feld 1 trägt und ein Ende da ist oder 2 trägt und keines. Ein Leser
+der Schreiber schreibt 2 nur für eine Aufzeichnung, die ein Ende enthält, sonst 1. Das Feld `version` des Modells bestimmt das nicht: Der Schreiber richtet sich bei jedem Schreiben nach dem Inhalt, auch wenn das Feld 1 trägt und ein Ende da ist oder 2 trägt und keines.
+
+**Schreiber in `yaml`.** Ein Ende liegt für die Wahl der Version vor, wenn irgendeine Antwort
+irgendeiner Interaktion irgendeiner Session `connection_closed` ist, in `responses` wie in
+`server` einer Gruppe, an jeder Stelle, auch einer falschen, und auch in einer Session, die
+nicht die letzte ist; dann schreibt er 2. Ohne Ende schreibt er 1, auch bei einer Aufzeichnung
+ohne Sessions und bei einer nur mit `empty_sessions`. Ein Wert des Feldes `version` außer 1 und 2,
+auch 0, ändert nichts. Der Schreiber prüft die Form des Endes nicht (Stelle, Anzahl,
+`ready_for_query` daneben, Felder neben `type`): Er schreibt, was die Aufzeichnung trägt, wie
+er auch keine andere Form prüft; die Form garantiert der Aufrufer, und eine Aufzeichnung mit
+verletzter Form ergibt eine Datei, die der Leser mit `PGR-E3003` ablehnt (`SPEC-002`). Trägt ein
+`connection_closed` im Modell Felder, schreibt er sie, und der Leser lehnt sie ab. Eine
+Aufzeichnung ohne Ende ergibt dieselben Bytes wie vor Einführung der Version 2, bis auf `version`
+einer Aufzeichnung, deren Feld 2 trägt (sie schreibt 1). Laden, Schreiben und erneutes Laden
+liefert dieselbe Aufzeichnung, ausgenommen das Feld `version` einer Datei der Version 2 ohne Ende
+(die Version 1 schreibt und liest). Die Zusagen sind Zustandsprüfungen: Der Schreiber liest die
+Aufzeichnung einmal je Schreiben und sagt nichts über die Reihenfolge oder Gleichzeitigkeit mehrerer
+Aufrufe zu. Ein Leser
 wendet auf jede Version die Nachrichtentypen dieser Version an: `connection_closed` in
 Version 1 macht das Recording zu einem beschädigten (`PGR-E3003`). Die Form der Interaktionen: Bei einer einfachen steht
 `type: query` in `request` (`SPEC-002`), bei einer Extended-Interaktion steht
@@ -2609,6 +2626,10 @@ Bei einem Ende des Servers (`LH-FA-25.a`, Version 2) endet `responses` mit der
             # protokollrelevante Felder, `V` ist FATAL oder PANIC
           - type: connection_closed
 ```
+
+Der Schreiber schreibt `connection_closed` in Blockform als eigenes Element der Liste mit dem
+einzigen Schlüssel `type`, in `responses` wie in `server` einer Gruppe, eingerückt wie die
+übrigen Nachrichten (`SPEC-004`).
 
 `connection_closed` steht nur als letzte Nachricht der letzten Interaktion einer Session,
 unmittelbar nach einer `error_response`, deren Schweregrad (Feld `V`, ohne es `S`) `FATAL`

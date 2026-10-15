@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-18`](../../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-FA-12`](../../../../spec/lastenheft.md#lh-fa-12--geordnete-interaktionen), [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md), [ADR-0030](../../adr/0030-full-duplex-im-record-pfad.md)
 
-**Berührte Spec-Stellen:** `LH-FA-25.a` · `LH-FA-02.b` · `LH-FA-12.a` · `LH-FA-18.a` · `LH-FA-21.a` · `SPEC-002` · `ARC-002` · `ARC-006`
+**Berührte Spec-Stellen:** `LH-FA-25.a` · `LH-FA-02.b` · `LH-FA-12.a` · `LH-FA-18.a` · `LH-FA-21.a` · `SPEC-001` · `SPEC-002` · `ARC-002` · `ARC-006`
 
 **Verantwortlich:** pt9912
 
@@ -35,6 +35,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Übernommen aus `slice-v1-abschluss-verbindungsende-format`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): das Aufzeichnen des Endes im Use Case und im PGWire-Adapter. Jener Slice liefert `connection_closed` und seine Formregeln im Modell (`Validate` nimmt die Interaktion mit Ende an); dieser benutzt sie.
 
 **Bindung aus `slice-v1-abschluss-verbindungsende-format`** (Closure des Gebers, Planner, 2026-10-15, `AGENTS.md` §3.13; dort §6 *Ort der Formregel einer Session*): Die Formregel einer Session (höchstens ein Ende, in der letzten Interaktion) liegt als `Session.ValidateEnd() error` im Modell, damit dieser Slice dieselbe Regel aufruft statt sie nachzubauen; `Interaction.Validate` allein nimmt ein Ende an jeder Interaktion an. Ob der Use Case sie beim Schreiben der Session ruft oder die Reihenfolge der Interaktionen sie von selbst erfüllt, entscheidet der Architect vor dem Code; ein eigener Nachbau der Regel im Service ist es nicht.
+
+**Bindung aus `slice-v1-abschluss-verbindungsende-format-schreiber`** (Architect, 2026-10-15, `AGENTS.md` §3.13; dort §6 *Aufrufer mit verletzter Form*, `SPEC-001` *Schreiber in `yaml`*): Der YAML-Schreiber prüft die Form des Endes nicht; er schreibt eine verletzte Form als Datei, die der Leser mit `PGR-E3003` ablehnt. Der Use Case garantiert darum, dass keine Session mit verletzter Form (Ende nicht in der letzten Interaktion, zweites Ende) in die Aufzeichnung gelangt — durch den Aufruf von `Session.ValidateEnd` oder durch eine Reihenfolge, die sie erfüllt, mit einem Test samt Mutation; welcher Weg, entscheidet der Architect vor dem Code (siehe die Bindung aus `-format` darüber).
 
 **Übernommen aus `slice-v1-abschluss-verbindungsende-replay`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12): der Record-Pfad des PGWire-Adapters. Die Abbildung von `connection_closed` auf „keine PGWire-Nachricht“ (`toMessage`, `send`) liefert jener Slice; dieser ruft sie auf und schließt in `richtungen` beide Verbindungen.
 
@@ -130,6 +132,7 @@ dasteht.
 - *Aufrufe der Client-Richtung einer Session nacheinander:* Bindung aus `slice-v1-abschluss-zeitangaben-aufzeichnen` (`LH-FA-21.a` *Messpunkt*), unverändert — hier genannt.
 - *Exit-Code:* ein Ende ist weder Meldung noch Fehler und ändert den Exit-Code nicht — `LH-FA-25.a` *Aufzeichnen*.
 - *Formregel der Session* (Bindung aus `slice-v1-abschluss-verbindungsende-format`): `Session.ValidateEnd` ist die eine Regel; der Service baut sie nicht nach. Offen für den Architect vor dem Code: ob und wo der Use Case sie ruft — `SPEC-002`.
+- *Form beim Schreiben* (Bindung aus `slice-v1-abschluss-verbindungsende-format-schreiber`): Der Schreiber in `yaml` prüft die Form des Endes nicht; der Use Case sichert sie, sonst ist die Datei für den Leser beschädigt — `SPEC-001` *Schreiber in `yaml`*.
 
 **Risiken:**
 
@@ -171,5 +174,7 @@ Nachgezählt beim Anlegen (Planner, 2026-10-12, `AGENTS.md` §3.13), einschließ
 Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-sessions` (Nahtstelle 3 und 4, Planner, 2026-10-12, `AGENTS.md` §3.13): Sie gehört zu DoD-Punkt 1 (Record-Service) und fügt keinen Liefer-Punkt und keine Schicht hinzu: eine Bindung an vorhandenen Code (`CloseSession`, `wirdVerworfen`, `OpenSession`) und ein Testfall (Zwangsende nach einer Interaktion mit Ende). Liefer-Punkte weiter 3, Schichten weiter zwei (Kern, PGWire-Adapter); die Schätzung bleibt bei 700 bis 1300 Zeilen, der Fall kommt mit einigen Dutzend Zeilen hinzu; der Slice liegt weiter an der Grenze aus §4.
 
 Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-verbindungsende-format` (Planner, 2026-10-15, `AGENTS.md` §3.13): Sie gehört zu DoD-Punkt 1 (Record-Service) und fügt keinen Liefer-Punkt und keine Schicht hinzu: ein Aufruf vorhandenen Codes im Modell (`Session.ValidateEnd`, vom Geber geliefert) und ein Testfall, falls der Architect den Aufruf verlangt. Liefer-Punkte weiter 3, Schichten weiter zwei (Kern, PGWire-Adapter); die Schätzung bleibt bei 700 bis 1300 Zeilen, der Slice liegt weiter an der Grenze aus §4.
+
+Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-verbindungsende-format-schreiber` (Architect, 2026-10-15, `AGENTS.md` §3.13): Sie liegt in derselben Zusage wie `Session.ValidateEnd` (DoD-Punkt 1, Record-Service) und fügt weder Liefer-Punkt noch Schicht hinzu; Liefer-Punkte weiter 3, Schichten weiter zwei, die Schätzung bleibt bei 700 bis 1300 Zeilen (ein Fall mit Mutation mehr, rund 30 Zeilen); der Slice liegt weiter an der Grenze aus §4, der vorgemerkte Schnitt gilt unverändert.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
