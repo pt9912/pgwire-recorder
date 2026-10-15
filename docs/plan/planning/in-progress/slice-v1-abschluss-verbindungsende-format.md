@@ -78,6 +78,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `internal/hexagon/model` (Tests: `ende_test.go`, `extended_test.go`) | update | `Validate` und `Session.ValidateEnd`: Happy/Negative je Randform aus §6; die zwei Meldungstexte der Stellung von `sync` und `flush` in `extended_test.go` folgen der neuen Meldung |
 | `internal/adapters/driven/recording/yaml.go` | update | Leser: beide Versionen (`kopfVorpruefung`), in der Vorprüfung am YAML-Baum `connection_closed` nicht in Version 1 und ohne Schlüssel neben `type` (auch leer oder `null`, was das Modell am dekodierten Wert nicht sieht), Aufruf von `Session.ValidateEnd` je Session; der Schreiber bleibt unberührt (`slice-v1-abschluss-verbindungsende-format-schreiber`) |
 | `internal/adapters/driven/recording` (Tests: `yaml_ende_test.go`, drei vorhandene) | update | Leser; Fixtures als Text im Test; `yaml_test.go`, `leser_test.go` und `zeitangaben_pruefen_test.go` nehmen für „unbekannte Version“ die 3 statt der 2 (der SQLite-Zweig von `leser_test.go` behält die 2) |
+| `test/integration/sqlite_lesen_e2e_test.go` | update | der Fall „yaml, Version 2“ von `TestE2ELesenAbgelehnt` nimmt die 3 (Version 2 ist gültig); der Fall „sqlite, Version 2“ bleibt |
 | `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests; Tests, die die alte Regel prüfen (kein Ende im Modell), gehören diesem Slice |
 
 ## 4. Trigger
