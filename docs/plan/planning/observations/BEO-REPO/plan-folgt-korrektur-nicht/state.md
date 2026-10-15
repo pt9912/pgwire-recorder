@@ -37,3 +37,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-postgre
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-postgres-versionen-zusage` (F-1, F-2, F-3) — ein Satz in §6 hinter dem Diff, eine Belegzeile für einen Stand, auf dem `make docs-check` rot war, ein zu weit gefasster Trefferstand (Beleg `evidence/slice-v1-abschluss-postgres-versionen-zusage.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-format` (F-2) — §3 nannte eine Abdeckungstabelle, die der Diff nicht änderte, und nicht die zwei, die er änderte (Beleg `evidence/slice-v1-abschluss-verbindungsende-format.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-randform-stelle-und-lesart` (F-2, V-3) — §3 trug nach der Lieferung den Entwurf des Wortlauts statt des gelieferten, und §6 trug noch das Wort „Entwurf“ (Beleg `evidence/slice-harness-randform-stelle-und-lesart.md`).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-randform-stelle-und-lesart
+**Fund (Review F-2, LOW; Verify V-3, INFO):** §3 des Plans trug „Entwurf des Wortlauts“ und die Entwurfsfassungen, der gelieferte Wortlaut wich ab (Plural, „und die Spezifikation bindet sie“, kein Halbsatz im Architect, „als eigene Feststellung“); §7 zählte die Abweichungen auf, §3 folgte dem Diff nicht. Nachgezogen in `d53f830`; das Wort „Entwurf“ in §6 (Risiko 4) bereinigte die Closure.
