@@ -934,7 +934,7 @@ Wiedergabe eines Verbindungsendes ohne Fehlerantwort.
   abgelehnt. Zugesagt ist der Record-Modus gegen die Hauptversionen von PostgreSQL,
   die die Spezifikation nennt.
 - **Nachweis:** Abnahmeszenarien in §7 laufen unter diesen Bedingungen; gegen
-  jede unterstützte Hauptversion läuft nur die Teilmenge der Kompatibilitätstests,
+  jede unterstützte Hauptversion läuft mindestens die Teilmenge der Kompatibilitätstests,
   die die Spezifikation nennt.
 
 ---

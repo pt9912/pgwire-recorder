@@ -2884,8 +2884,7 @@ Hauptversion. „Unterstützt" heißt genau:
    das Abspielen ohne Server (Abnahmeszenario 2), das erweiterte Protokoll (Abnahmeszenario 7),
    die Anmeldung mit SCRAM-SHA-256 und der Abgleich der Lebendprüfung mit dem Server.
 2. Gegen die Referenz 17 läuft zusätzlich die volle Integrationssuite. Die Anmeldung mit
-   Klartext-Passwort und mit MD5, das Abnahmeszenario 18 und das erwartete Verbindungsende beim
-   Einspielen (Abnahmeszenario 16, dritter Satz) sind nur dort geprüft.
+   Klartext-Passwort und mit MD5 sind nur dort geprüft.
 
 ## 7. Querschnittsvorgaben
 
