@@ -495,8 +495,8 @@ insbesondere `ReadyForQuery`, reproduziert.
 **Protokollversion.** v1 unterstützt PGWire-Protokollversion 3.0. Enthält die
 `StartupMessage` eine andere Protokollversion, beantwortet der Recorder sie mit
 einer `ErrorResponse` und beendet die Verbindung (`PGR-E6002`, Klasse
-„nicht unterstützt", Exit-Code `6`). Im Record-Modus ist jeder PostgreSQL-Server
-zulässig, der PGWire 3.0 spricht (`SPEC-029`).
+„nicht unterstützt", Exit-Code `6`). Welche PostgreSQL-Hauptversionen zugesagt sind,
+steht in `SPEC-029`.
 
 **Protokollrand.** Folgende Interaktionen sind in v1 eindeutig behandelt:
 
@@ -2867,11 +2867,25 @@ Für v1 sind keine Metriken und Tracing-Felder festgelegt.
 
 | ID | System | Version | Vertrag-Datei |
 |---|---|---|---|
-| `SPEC-029` | PostgreSQL (Upstream im Record-Modus), PGWire | PGWire-Protokollversion 3.0; jeder Server, der sie spricht | — |
+| `SPEC-029` | PostgreSQL (Upstream im Record-Modus), PGWire | PGWire-Protokollversion 3.0; PostgreSQL-Hauptversionen 14, 15, 16, 17 und 18, Referenz 17 | — |
 | `SPEC-030` | `github.com/jackc/pgx/v5/pgproto3` (Verarbeitung von PGWire-Nachrichten) | Major 5 | — |
 | `SPEC-031` | Docker/OCI-Image `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder` | OCI-Image-Format, `linux/amd64` und `linux/arm64` | — |
 | `SPEC-042` | Homebrew-Tap `pt9912/homebrew-pgwire-recorder` | eine Formel je stabilem Release | — |
 | `SPEC-044` | SQLite (Dateiformat der Aufzeichnung) | SQLite 3 | — |
+
+**`SPEC-029` — zugesagte Hauptversionen.** Zugesagt sind die PostgreSQL-Hauptversionen 14,
+15, 16, 17 und 18; die Referenz ist 17. Die Liste ist fest und ändert sich nur durch eine
+Änderung dieser Spezifikation. Nicht zugesagt sind eine andere Hauptversion, eine
+Vorabversion und ein Server, der PGWire 3.0 spricht, aber kein PostgreSQL einer dieser
+Hauptversionen ist. Geprüft wird je Hauptversion eine feste Nebenversion; zugesagt ist die
+Hauptversion. „Unterstützt" heißt genau:
+
+1. Gegen jede Hauptversion der Liste sind geprüft: das Aufzeichnen einer Abfrage (Abnahmeszenario 1),
+   das Abspielen ohne Server (Abnahmeszenario 2), das erweiterte Protokoll (Abnahmeszenario 7),
+   die Anmeldung mit SCRAM-SHA-256 und der Abgleich der Lebendprüfung mit dem Server.
+2. Gegen die Referenz 17 läuft zusätzlich die volle Integrationssuite. Die Anmeldung mit
+   Klartext-Passwort und mit MD5, das Abnahmeszenario 18 und das erwartete Verbindungsende beim
+   Einspielen (Abnahmeszenario 16, dritter Satz) sind nur dort geprüft.
 
 ## 7. Querschnittsvorgaben
 
@@ -2977,6 +2991,8 @@ mindestens:
 in seinem Standardmodus (Extended Query) und im Simple-Query-Modus für
 End-to-End-Tests verwendet. Zusätzliche Clients anderer Sprachen sind
 erwünscht, aber kein v1-Muss.
+Die Versionsmatrix der Kompatibilitätstests fährt die Fälle aus `SPEC-029` gegen jede
+Hauptversion der dortigen Liste und die volle Integrationssuite gegen die Referenz.
 
 **Warten in Tests.** Ein Test, der auf ein Ereignis wartet, das der Prüfling
 herbeiführt (ein Wert auf einem Kanal oder dessen Schließen, das Ende eines
@@ -3105,3 +3121,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-12 | Konfiguration: Rangfolge der Umgebungsvariablen in einem Durchlauf über die Tabelle (fremde und eigene gemeinsam, nur der erste Fehler), vor der Datei; Schreibweise des Namens genau; Katalogzeile `PGR-E2001` nennt die Umgebungsvariable (`LH-FA-17.a`, `SPEC-034`) |
 | 2026-10-13 | TLS zum Client: Randformen vor dem Code (Quellen und Schlüssel der Datei, Kombinationen und ihre Stelle vor `--upstream`, Stelle des Ladens von Zertifikat und Schlüssel, Form beider Dateien, Gültigkeit gegen die Systemuhr, Meldung ohne Pfad, Handshake: Bytes vor dem `S`, Abbruch durch Herunterfahren, direktes TLS als Grenze, weiterer `SSLRequest` auf der verschlüsselten Verbindung, Ende ohne `close_notify`, Rangfolge von `PGR-E6003` hinter `PGR-E6002`, `PGR-E6001` und `PGR-W3003`, keine Wirkung der Serverversion) (`LH-FA-23.a`, `LH-FA-17.a`) |
 | 2026-10-14 | Authentifizierung, Record: Randformen der Vermittlung vor dem Code (Verfahren und Grenze der Mechanismen, nicht vermittelte Codes `PGR-E6001`, Reihenfolge des Servers `PGR-E4002`, Antwort und Ende des Clients, Fehlerantwort des Servers, Aufzeichnung und Log ohne Zugangsdaten, erstes Signal und Zwangsende, Aufruf-Voraussetzung, keine Option) (`LH-FA-05.b`) |
+| 2026-10-15 | Zugesagte PostgreSQL-Hauptversionen: feste Liste 14 bis 18 mit Referenz 17 und was „unterstützt" heißt, der Satz zu jedem Server mit PGWire 3.0 entfällt; Versionsmatrix in den Kompatibilitätstests (`LH-FA-05.e`, `SPEC-029`, `SPEC-038`) |

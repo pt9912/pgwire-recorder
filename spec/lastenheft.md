@@ -931,8 +931,10 @@ Wiedergabe eines Verbindungsendes ohne Fehlerantwort.
   Recorders anstelle des PostgreSQL-Servers verwendet. Die für einen
   Replay-Test benötigten Interaktionen wurden zuvor erfolgreich aufgezeichnet.
   Nicht unterstützte PGWire-Funktionen werden mit einem klar erkennbaren Fehler
-  abgelehnt.
-- **Nachweis:** Abnahmeszenarien in §7 laufen unter diesen Bedingungen.
+  abgelehnt. Zugesagt ist der Record-Modus gegen die Hauptversionen von PostgreSQL,
+  die die Spezifikation nennt.
+- **Nachweis:** Abnahmeszenarien in §7 laufen unter diesen Bedingungen; die
+  Kompatibilitätstests laufen je unterstützter Hauptversion.
 
 ---
 

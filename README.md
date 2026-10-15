@@ -39,7 +39,8 @@ verbindet auf Wunsch (`--upstream-tls` oder `sslmode=require` der Verbindung) mi
 prüft das Zertifikat des Servers, auch gegen eine eigene Zertifizierungsstelle
 (`--upstream-ca`), und meldet die Ablehnung von TLS und ein nicht passendes Zertifikat als `PGR-E4005`.
 `record` vermittelt die Anmeldung der Anwendung (Klartext-Passwort, MD5, SCRAM-SHA-256)
-und zeichnet das Passwort nicht auf (geprüft mit PostgreSQL 17); `play` meldet sich mit
+und zeichnet das Passwort nicht auf (SCRAM-SHA-256 geprüft mit PostgreSQL 14 bis 18,
+Klartext-Passwort und MD5 mit PostgreSQL 17); `play` meldet sich mit
 Klartext-Passwort, MD5 und SCRAM-SHA-256 an, mit dem Passwort aus dem Platzhalter der
 Verbindung oder aus `PGWIRE_RECORDER_PASSWORD`.
 Mit `--record-timing` trägt `record` an jeder Anfrage die Millisekunden seit der

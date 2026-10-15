@@ -1,8 +1,8 @@
 # Benutzerhandbuch: pgwire-recorder
 
-Version: 0.8  
+Version: 0.9  
 Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
-Stand: 14.10.2026  
+Stand: 15.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für das Binary `pgwire-recorder`, gebaut aus dem Repository (Ausgabe von `pgwire-recorder version`: `pgwire-recorder dev`)
 
@@ -45,8 +45,14 @@ CI-Systemen ausführen.
 * Ihre Anwendung kann Host und Port der Datenbankverbindung einstellen. Außer an der
   Verschlüsselung (siehe unten) sind weitere Änderungen an der Anwendung nicht nötig.
 * Zum Aufzeichnen: eine erreichbare PostgreSQL-Datenbank. Meldet sich Ihre Anwendung
-  mit einem Passwort an, vermittelt `record` die Anmeldung (geprüft mit PostgreSQL 17; siehe
+  mit einem Passwort an, vermittelt `record` die Anmeldung (SCRAM-SHA-256 geprüft mit PostgreSQL 14 bis 18,
+  Klartext-Passwort und MD5 mit PostgreSQL 17; siehe
   [Eine Anwendung mit Passwort-Anmeldung aufzeichnen](#eine-anwendung-mit-passwort-anmeldung-aufzeichnen)).
+* Geprüft ist das Werkzeug mit PostgreSQL 14, 15, 16, 17 und 18: das Aufzeichnen einer
+  Abfrage, das Wiedergeben ohne Datenbank, das erweiterte Protokoll, die Anmeldung mit
+  SCRAM-SHA-256 und die Lebendprüfung. Mit PostgreSQL 17 laufen zusätzlich alle weiteren
+  Integrationstests des Werkzeugs, darunter die Anmeldung mit Klartext-Passwort und MD5.
+  Andere Hauptversionen und Vorabversionen sind nicht geprüft.
 * Zum Einspielen: eine erreichbare PostgreSQL-Datenbank. Verlangt sie ein Passwort,
   nennen Sie es `play` (siehe [Einstellungen](#5-einstellungen)). Auf Wunsch verbindet
   `play` mit TLS (siehe
@@ -223,7 +229,8 @@ Sitzung ist, steht unter
   sie es, soweit sie keine der Ausnahmen sind, die der Abschnitt nennt (siehe
   [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)).
 * Die Anmeldung Ihrer Anwendung bei der Datenbank, auch mit Passwort, vermittelt das
-  Werkzeug (geprüft mit PostgreSQL 17; siehe
+  Werkzeug (SCRAM-SHA-256 geprüft mit PostgreSQL 14 bis 18, Klartext-Passwort und MD5 mit
+  PostgreSQL 17; siehe
   [Eine Anwendung mit Passwort-Anmeldung aufzeichnen](#eine-anwendung-mit-passwort-anmeldung-aufzeichnen)).
 * Beim Beenden nimmt das Werkzeug keine neuen Verbindungen an, schreibt eine
   Log-Zeile mit `sessions`, der Zahl der noch offenen Verbindungen, und wartet,
@@ -273,8 +280,10 @@ Passwort kennt nur Ihre Anwendung; `record` hat dafür keine Option.
 #### Voraussetzung
 
 Die Datenbank meldet den Benutzer mit Klartext-Passwort, MD5 oder SCRAM-SHA-256 an, oder
-ohne Passwort. Geprüft ist das mit PostgreSQL 17 und mit `psql` aus libpq 17; andere
-Versionen der Datenbank und andere Treiber sind nicht geprüft.
+ohne Passwort. Geprüft ist SCRAM-SHA-256 mit PostgreSQL 14 bis 18; Klartext-Passwort, MD5
+und die Anmeldung ohne Passwort sind mit PostgreSQL 17 geprüft. Als Anwendung dienten ein
+Go-Programm mit pgx 5.11 und, gegen PostgreSQL 17, `psql` aus libpq 17; andere Versionen der
+Datenbank, andere Verfahren je Version und andere Treiber sind nicht geprüft.
 
 #### Vorgehen
 
@@ -1623,7 +1632,8 @@ der Start, prüft das Werkzeug keine Sitzungen.
 
 Das Werkzeug verwaltet keine Benutzer und Rollen und prüft keine Zugangsdaten.
 Beim Aufzeichnen leitet es Benutzer und Datenbank der Anwendung an die Datenbank
-weiter und vermittelt die Anmeldung (geprüft mit PostgreSQL 17), ohne das Passwort aufzuzeichnen; beim Wiedergeben
+weiter und vermittelt die Anmeldung (SCRAM-SHA-256 geprüft mit PostgreSQL 14 bis 18, Klartext-Passwort
+und MD5 mit PostgreSQL 17), ohne das Passwort aufzuzeichnen; beim Wiedergeben
 nimmt es jede Anmeldung an, gleich mit
 welchem Benutzer, welcher Datenbank und welchem Passwort; beim Einspielen meldet es
 sich mit Benutzer, Datenbank und, wenn die Datenbank eines verlangt, dem Passwort an
