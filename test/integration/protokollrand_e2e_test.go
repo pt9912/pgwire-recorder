@@ -81,8 +81,9 @@ func aufnehmenMitLeeren(t *testing.T, output string, anfragen ...string) {
 
 // Abdeckung: LH-FA-05/Negative, LH-FA-12/Boundary — am gebauten Binary in beiden Modi:
 // eine Startnachricht der Version 3.2 ist PGR-E6002, eine Sonderanfrage 1234.5677, ein
-// Parameter _pq_. in der Startnachricht und eine Nachricht p ohne Nullbyte, CopyData
-// und FunctionCall nach dem Aufbau sind PGR-E6001 mit Fehlerantwort; die Randverbindung
+// Parameter _pq_. in der Startnachricht, ein nicht lesbarer Rumpf (Länge 9) und eine
+// Nachricht p ohne Nullbyte, CopyData und FunctionCall nach dem Aufbau sind PGR-E6001
+// mit Fehlerantwort; die Randverbindung
 // beendet nur sich: Eine reguläre Verbindung danach läuft durch, im Replay mit der
 // ersten Session, wenn die Randverbindung vor dem Aufbau endete, sonst mit der zweiten;
 // der Lauf endet mit Exit-Code 6 (LH-FA-05.e).
@@ -105,6 +106,7 @@ func TestE2EProtokollrandBeideModi(t *testing.T) {
 		{"Version 3.2", false, kopf(8, 3<<16|2), "PGR-E6002", false},
 		{"Sonderanfrage 1234.5677", false, kopf(8, 1234<<16|5677), "PGR-E6001", false},
 		{"Parameter _pq_.", false, rohStartnachricht("_pq_.x", "1"), "PGR-E6001", false},
+		{"Rumpf nicht lesbar", false, append(kopf(9, 3<<16), 0), "PGR-E6001", false},
 		{"Nachricht p ohne Nullbyte", true, nachricht('p', "abc"), "PGR-E6001", true},
 		{"CopyData", true, nachricht('d', "x"), "PGR-E6001", true},
 		{"FunctionCall", true, nachricht('F', "\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00"), "PGR-E6001", true},
@@ -157,7 +159,7 @@ func TestE2ERecordErweiterungOhneUpstream(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-05/Boundary, LH-FA-12/Boundary — eine Verbindung, die ohne ein Byte,
-// nach 1 oder nach 7 Bytes endet, durch Schließen oder durch Reset, ist in beiden Modi
+// nach 1 bis 7 Bytes endet, durch Schließen oder durch Reset, ist in beiden Modi
 // kein Fehler (Exit-Code 0) und keine Session: im Record auch mit
 // --record-empty-sessions nur die eine reguläre Verbindung, im Replay erhält sie danach
 // die erste Session (LH-FA-05.e *Verbindung ohne erste Nachricht*).
@@ -172,7 +174,7 @@ func TestE2EProtokollrandTCPProbe(t *testing.T) {
 			aufnehmenMitLeeren(t, aufnahme, "SELECT 1;")
 			p = startProzess(t, "replay", "--input", aufnahme, "--session-assignment", "connection")
 		}
-		for _, n := range []int{0, 1, 7} {
+		for _, n := range []int{0, 1, 2, 3, 4, 5, 6, 7} {
 			for _, reset := range []bool{false, true} {
 				c, err := net.DialTimeout("tcp", p.listen, 5*time.Second)
 				if err != nil {

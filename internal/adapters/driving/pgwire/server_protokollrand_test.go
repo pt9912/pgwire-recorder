@@ -285,6 +285,116 @@ func TestProtokollrandStartnachricht(t *testing.T) {
 	randLauf(t, startFaelle(), z)
 }
 
+// startcodes liefert die Codes, für die die Prüfreihenfolge der ersten Nachricht gilt: die
+// Version 3.0, zwei andere Versionen und jede Sonderanfrage.
+func startcodes() []struct {
+	name string
+	code uint32
+} {
+	return []struct {
+		name string
+		code uint32
+	}{
+		{"3.0", pgproto3.ProtocolVersionNumber}, {"4.0", 4 << 16}, {"65535.1", 65535<<16 | 1},
+		{"SSLRequest", pgwire.CodeSSLRequest}, {"GSSENCRequest", pgwire.CodeGSSEncRequest},
+		{"CancelRequest", pgwire.CodeCancelRequest}, {"Sonderanfrage 1", sonder(1)},
+	}
+}
+
+// laengeFaelle sind Köpfe mit einer Länge außerhalb einer Startnachricht (unter 8,
+// über 10000), je Code, ohne Rest; der Server endet still, ohne ein Byte Antwort.
+func laengeFaelle() []randFall {
+	var fs []randFall
+	for _, c := range startcodes() {
+		for _, l := range []int{4, 7, 10001} {
+			fs = append(fs, stillFall(fmt.Sprintf("%s, Länge %d", c.name, l), rohKopf(l, c.code), false))
+		}
+	}
+	return fs
+}
+
+// restFaelle sind Köpfe mit gültiger Länge (40), deren Rest fehlt: Ein abgelehnter Code
+// ist schon am Kopf abgelehnt, der Rest wird nicht gelesen (sonst wäre es PGR-E6001
+// „Startnachricht nicht lesbar“).
+func restFaelle() []randFall {
+	return []randFall{
+		fehlerFall("Version 4.0, Länge 40 ohne Rest", rohKopf(40, 4<<16), model.CodeProtocolVersion),
+		fehlerFall("Version 65535.1, Länge 40 ohne Rest", rohKopf(40, 65535<<16|1), model.CodeProtocolVersion),
+		{name: "Sonderanfrage 1, Länge 40 ohne Rest", daten: rohKopf(40, sonder(1)), typen: "E", fehler: "unbekannte Sonderanfrage", erster: model.CodeUnsupported},
+		{name: "Sonderanfrage 5677, Länge 40 ohne Rest", daten: rohKopf(40, sonder(5677)), typen: "E", fehler: "unbekannte Sonderanfrage", erster: model.CodeUnsupported},
+	}
+}
+
+// Abdeckung: LH-FA-05/Boundary, LH-FA-05/Negative — Prüfreihenfolge der ersten Nachricht
+// (LH-FA-05.e): erst die Länge, dann der Code. Eine Länge unter 8 oder über 10000
+// beendet die Verbindung ohne Antwort und ohne Meldung, gleich welcher Code folgt
+// (3.0, 4.0, 65535.1, SSLRequest, GSSENCRequest, CancelRequest, Sonderanfrage); bei
+// gültiger Länge ist ein abgelehnter Code (Version 4.0, 65535.1, Sonderanfrage 1 und
+// 5677) schon am Kopf abgelehnt, ohne dass der fehlende Rest gelesen wird; in beiden
+// Modi und mit und ohne TLS.
+func TestProtokollrandPruefreihenfolge(t *testing.T) {
+	fs := append(laengeFaelle(), restFaelle()...)
+	randLauf(t, fs, nil)
+	z, _ := tlsEin(t, false, testpki.Blatt{})
+	randLauf(t, fs, z)
+}
+
+// zaehler liefert die Zahl der Sessions, die der Server in seinem Modus geöffnet hat.
+func (r *randServer) zaehler() int {
+	if r.replay {
+		r.rep.mu.Lock()
+		defer r.rep.mu.Unlock()
+		return r.rep.geoeffnet
+	}
+	r.rec.mu.Lock()
+	defer r.rec.mu.Unlock()
+	return r.rec.opened
+}
+
+// Abdeckung: LH-FA-12/Boundary, LH-FA-05/Negative — eine Verbindung, deren Startnachricht
+// der Recorder ablehnt (Version außer 3.0, nicht lesbarer Rumpf, Parameter _pq_.,
+// unverschlüsselt trotz TLS-Pflicht), zählt nicht: Sie öffnet keine Session, und die
+// nächste reguläre Verbindung desselben Servers öffnet die erste, in beiden Modi
+// (LH-FA-05.e *Zählung der Verbindungen*).
+func TestProtokollrandAbgelehnteVerbindungZaehltNicht(t *testing.T) {
+	z, _ := tlsEin(t, false, testpki.Blatt{})
+	for _, f := range []struct {
+		name    string
+		daten   []byte
+		tls     *pgwire.TLS
+		klartxt bool
+		code    string
+	}{
+		{"Version 4.0", rohKopf(8, 4<<16), nil, false, model.CodeProtocolVersion},
+		{"Rumpf nicht lesbar", rohKopf(9, pgproto3.ProtocolVersionNumber, 0), nil, false, model.CodeUnsupported},
+		{"_pq_.", rohStart("user", "app", "_pq_.x", "1"), nil, false, model.CodeUnsupported},
+		{"Klartext trotz TLS-Pflicht", rohStart("user", "app"), z, true, model.CodePlaintext},
+	} {
+		for _, replay := range []bool{false, true} {
+			t.Run(fmt.Sprintf("replay=%v/%s", replay, f.name), func(t *testing.T) {
+				r := neuerRandServer(t, replay, f.tls)
+				_, c := r.verbinde(f.klartxt)
+				_, _ = c.Write(f.daten)
+				if roh, _ := io.ReadAll(c); !strings.Contains(string(roh), f.code) {
+					t.Fatalf("Antwort %q ohne %s", roh, f.code)
+				}
+				if n := r.zaehler(); n != 0 {
+					t.Fatalf("abgelehnte Verbindung öffnete %d Sessions", n)
+				}
+				_, reg := r.verbinde(false)
+				_, _ = reg.Write(append(append(rohStart("user", "app"), rohNachricht('Q', "SELECT 1\x00")...), rohNachricht('X', "")...))
+				roh, _ := io.ReadAll(reg)
+				if !strings.Contains(string(roh), "SELECT 1") || strings.Contains(string(roh), "PGR-") {
+					t.Fatalf("Antwort der regulären Verbindung %q", roh)
+				}
+				if n := r.zaehler(); n != 1 {
+					t.Fatalf("nach der regulären Verbindung %d Sessions, erwartet 1", n)
+				}
+			})
+		}
+	}
+}
+
 func clientFaelle() []randFall {
 	start := rohStart("user", "app")
 	nach := func(name string, m []byte, erster string) randFall {

@@ -25,7 +25,7 @@
 diese Liste ist der Lauf nicht reproduzierbar):
 
 - Slice-Plan `slice-v1-abschluss-protokollrand` (§1, §3, §4, §6 mit den Entscheidungen des Architect, §7 *Belege des Implementers*, §8)
-- aktive ADRs: ADR-0001 (Hexagon), ADR-0010 (`pgproto3`), ADR-0026 (Build und Test im Dockerfile), ADR-0034 (Lint-Profil)
+- aktive ADRs: [ADR-0001](../plan/adr/0001-hexagonale-architektur.md) (Hexagon), [ADR-0010](../plan/adr/0010-verwendung-von-pgproto3.md) (`pgproto3`), [ADR-0026](../plan/adr/0026-build-und-test-im-multistage-dockerfile.md) (Build und Test im Dockerfile), [ADR-0034](../plan/adr/0034-lint-gate-mit-solid-nahem-profil.md) (Lint-Profil)
 - berührte `LH-*`-IDs: `LH-FA-05` (`.b` *Auswahl im Replay*, `.e` *Randformen des Protokollrands*), `LH-FA-18`, `LH-FA-12.a`, `LH-FA-23.a`, `SPEC-045`
 - `AGENTS.md` (Hard Rules, §3.7, §3.9 bis §3.14)
 

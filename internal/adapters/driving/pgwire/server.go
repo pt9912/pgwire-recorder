@@ -825,17 +825,17 @@ func kopieOderNil[T any](s []T) []T {
 // startup liest die erste Client-Nachricht. Eine SSL-Anfrage beantwortet
 // sslAnfrage, eine GSS-Anfrage „N“ (LH-FA-05.c); auf einer verschlüsselten
 // Verbindung ist die GSS-Anfrage PGR-E6001. Ein CancelRequest schließt die
-// Verbindung (PGR-W3001). Jede andere Protokollversion als 3.0 ist PGR-E6002, eine
-// unbekannte Sonderanfrage (Hauptnummer 1234) PGR-E6001, ebenso eine Startnachricht
-// mit einem Parameter _pq_. (vor der Prüfung auf TLS und vor dem Aufbau zum Upstream).
-// Eine erste Nachricht,
-// die keine PGWire-Startnachricht sein kann, schließt die Verbindung ohne Antwort
-// und nur mit der Warnung PGR-W3003, auch die erste Nachricht eines Clients mit
-// direktem TLS; eine Verbindung ohne erste Nachricht endet
-// still (LH-FA-05.e). Der Startcode wird vor pgproto3 gelesen, weil die
-// Bibliothek unbekannte Codes ohne Antwort ablehnt. Ist TLS konfiguriert und
-// Klartext nicht erlaubt, ist eine unverschlüsselte Startnachricht der Version
-// 3.0 PGR-E6003 (LH-FA-23.a *Unverschlüsselte Clients*).
+// Verbindung (PGR-W3001). Jede andere Protokollversion als 3.0 ist PGR-E6002,
+// eine unbekannte Sonderanfrage (Hauptnummer 1234) PGR-E6001, ebenso eine
+// Startnachricht mit einem Parameter _pq_. (vor der Prüfung auf TLS und vor dem
+// Aufbau zum Upstream). Eine erste Nachricht, die keine PGWire-Startnachricht
+// sein kann, schließt die Verbindung ohne Antwort und nur mit der Warnung
+// PGR-W3003, auch die erste Nachricht eines Clients mit direktem TLS; eine
+// Verbindung ohne erste Nachricht endet still (LH-FA-05.e). Der Startcode wird
+// vor pgproto3 gelesen, weil die Bibliothek unbekannte Codes ohne Antwort
+// ablehnt. Ist TLS konfiguriert und Klartext nicht erlaubt, ist eine
+// unverschlüsselte Startnachricht der Version 3.0 PGR-E6003 (LH-FA-23.a
+// *Unverschlüsselte Clients*).
 func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessage, bool) {
 	for {
 		kopf, err := k.br.Peek(8)
