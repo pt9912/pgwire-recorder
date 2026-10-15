@@ -144,6 +144,9 @@ der Spezifikation einen Gegenstand, den der Code nicht kennt (eine Prüfung, ein
 Meldungscode), und ordnet der Code zwei Wirkungen, die der Satz nicht ordnet (etwa zwei
 Startfehler), ist diese Ordnung eine Randform. Ein Absatz im Bericht („Lesart, nicht
 entschieden“) ersetzt die Rückgabe nicht, wenn der Commit sie schon trägt.
+Schreibst du in §7 „Lesart“, „Auslegung“ oder „§6 nennt nicht“ als eigene Feststellung, hast du eine Randform
+gefunden und hältst an; ein Vermerk in §7 ersetzt die Rückgabe nicht (`AGENTS.md` §3.12, seit
+slice-harness-randform-stelle-und-lesart, `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`).
 
 ## Pre-completion-Checkliste (Modul 9, Schritt 8 — letzte Handlung der Implementer-Rolle)
 

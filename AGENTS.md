@@ -336,13 +336,26 @@ Hook als „grün“ liest; §6 nannte die Flags nicht, das Review fand es.
 **Richtig:** §6 nennt `-n`, `-q`, `-t` (kein Stand, ein vorhandener bleibt) und `-i` (kein Stand, ein älterer entfällt) samt dem
 Vorrang bei Kombination, und je Flag steht ein Fall in der Gegenprobe.
 
+**Die Stelle einer Nachricht gehört dazu** (seit slice-harness-randform-stelle-und-lesart, Entscheidung des Nutzers vom
+2026-10-15): Enthält ein Vertrag eine Nachricht, die eine Folge beendet oder ersetzt (Ende, `ready_for_query`, `sync`), nennt §6
+je Nachrichtenart die zulässigen Stellen in der Folge (Anfang, Mitte, direkt vor dem Ende, letzte Gruppe, nicht letzte Gruppe)
+und je Stelle eine Entscheidung; die Spezifikation trägt sie. Kann eine Folge aus mehreren Gründen abgelehnt werden, nennt §6 die
+Reihenfolge der Gründe, und die Spezifikation bindet sie.
+
+**Falsch:** §6 nennt die Nachrichten `ready_for_query` und `connection_closed`, aber nicht, ob sie vor dem Ende oder mitten in der
+Folge stehen dürfen; der Implementer entscheidet beide im Code, und das Review findet sie (F-1 in
+`slice-v1-abschluss-verbindungsende-format`).
+**Richtig:** §6 führt je Nachricht die Stellen auf und zeigt auf die Stelle der Spezifikation, die jede entscheidet; dann folgt der
+Code.
+
 **Begründung:** Was der Code still entscheidet, findet erst das Review, Runde um Runde
 eine weitere Randform (`BEO-REPO/spec-randform-erst-im-review-entschieden`). Ein Diff,
 der eine Randform entscheidet, die §6 nicht nennt, ist ein Review-Befund gegen diese
 Regel. Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung
 seit slice-harness-randformen-vor-code wieder aufgetreten, für die Aufruf-Voraussetzung seit
 slice-v1-abschluss-zeitangaben-aufzeichnen, für die Aufrufarten des Treibers seit
-slice-harness-gate-kette-schnell?
+slice-harness-gate-kette-schnell, für die Stelle einer Nachricht seit
+slice-harness-randform-stelle-und-lesart?
 
 ### 3.13 Eine Adresse nimmt an, bevor sie genannt wird (seit slice-lint-bestand-kern-driven)
 
