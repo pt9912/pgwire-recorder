@@ -504,8 +504,8 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
   gehört nicht dazu. Mit `--fail-on-unconsumed` ist beides ein
   Fehler (`PGR-E5002`, Exit-Code 5) mit demselben Text; die Anwendung erhält
   ihn nicht, weil die Verbindung dann schon endet.
-* `replay` beginnt jede Verbindung mit `AuthenticationOk`, ohne ein Passwort zu
-  verlangen, mit und ohne `--tls-cert`. Benutzer, Datenbank und Optionen der
+* `replay` beginnt jede angenommene Verbindung mit `AuthenticationOk`, ohne ein Passwort zu
+  verlangen, mit und ohne `--tls-cert`; eine abgelehnte Verbindung erhält sofort die Fehlerantwort. Benutzer, Datenbank und Optionen der
   Startnachricht prüft es nicht: Ein Benutzer, den die Aufzeichnung nicht kennt, wird
   bedient. Sendet die Anwendung nach dem Aufbau eine Nachricht `p` (ein Passwort), ist das
   `PGR-E6001`. Verlangt ein Client eine Anmeldung (bei libpq 17 `require_auth` mit
@@ -664,7 +664,7 @@ auch wenn sie keine Interaktionen hat.
   nicht aufgezeichnet, die sendende von zwei Verbindungen schon. Trifft die Benachrichtigung nach der
   letzten Anfrage der zuhörenden Verbindung ein, ist das kein Fehler (Exit-Code 0). Zeichnen Sie
   keinen Ablauf auf, in dem eine Verbindung eine Benachrichtigung erhält.
-* Das Verhalten am Protokollrand ist unter Linux im Container geprüft; für andere Systeme ist es
+* Das Verhalten am Protokollrand ist unter Linux geprüft; für andere Systeme ist es
   nicht geprüft.
 * `--record-empty-sessions` nimmt keinen Wert oder `=true` beziehungsweise `=false`; jeder
   andere Wert, auch `=1`, `=True` und `=` ohne Wert, ist ein ungültiger Aufruf
@@ -1689,7 +1689,7 @@ Das Werkzeug verwaltet keine Benutzer und Rollen und prüft keine Zugangsdaten.
 Beim Aufzeichnen leitet es Benutzer und Datenbank der Anwendung an die Datenbank
 weiter und vermittelt die Anmeldung (SCRAM-SHA-256 geprüft mit PostgreSQL 14 bis 18, Klartext-Passwort
 und MD5 mit PostgreSQL 17), ohne das Passwort aufzuzeichnen; beim Wiedergeben
-verlangt es kein Passwort und bedient jeden Benutzer und jede
+verlangt es kein Passwort und bedient eine angenommene Verbindung mit jedem Benutzer und jeder
 Datenbank; beim Einspielen meldet es
 sich mit Benutzer, Datenbank und, wenn die Datenbank eines verlangt, dem Passwort an
 der Datenbank an.
