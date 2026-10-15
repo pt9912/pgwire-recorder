@@ -49,17 +49,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), `SPEC-001`: `Recording.HasEnd() bool` ist wahr, wenn irgendeine Interaktion irgendeiner Session ein Ende trägt. Der YAML-Schreiber schreibt `version: 2` mit mindestens einem Ende und sonst `version: 1`, bei jedem Schreiben nach dem Inhalt, nicht nach dem Feld `version` des Modells (Feld 1 mit Ende schreibt 2, Feld 2 ohne Ende schreibt 1); eine Aufzeichnung ohne Ende, auch eine ohne Sessions oder nur mit `empty_sessions`, schreibt `version: 1`; der Schreiber prüft die Form des Endes nicht, auch ein Ende an falscher Stelle schreibt 2 (Test je Stelle aus §6; `SPEC-001`; die vorhandenen Tests des Schreibers bleiben grün).
-- [ ] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-22`](../../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat), [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats): Der Roundtrip (Laden, Schreiben, Laden: gleich) gilt für Aufzeichnungen mit Ende — einfach, Extended mit `Sync`-Gruppe und mit `Flush`-Gruppe, mit `offset_ms`, mit `empty_sessions` —; eine Aufzeichnung ohne Ende schreibt unverändert `version: 1` (Test, Aufzeichnungen als Modell im Test, der Leser lädt die geschriebene Datei; Text nur für die Darstellung und den Fall ohne Ende).
-- [ ] Je Zusage des neuen Vertrags (Wahl der Version, Roundtrip) eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), `SPEC-001`: `Recording.HasEnd() bool` ist wahr, wenn irgendeine Interaktion irgendeiner Session ein Ende trägt. Der YAML-Schreiber schreibt `version: 2` mit mindestens einem Ende und sonst `version: 1`, bei jedem Schreiben nach dem Inhalt, nicht nach dem Feld `version` des Modells (Feld 1 mit Ende schreibt 2, Feld 2 ohne Ende schreibt 1); eine Aufzeichnung ohne Ende, auch eine ohne Sessions oder nur mit `empty_sessions`, schreibt `version: 1`; der Schreiber prüft die Form des Endes nicht, auch ein Ende an falscher Stelle schreibt 2 (Test je Stelle aus §6; `SPEC-001`; die vorhandenen Tests des Schreibers bleiben grün).
+- [x] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-22`](../../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat), [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats): Der Roundtrip (Laden, Schreiben, Laden: gleich) gilt für Aufzeichnungen mit Ende — einfach, Extended mit `Sync`-Gruppe und mit `Flush`-Gruppe, mit `offset_ms`, mit `empty_sessions` —; eine Aufzeichnung ohne Ende schreibt unverändert `version: 1` (Test, Aufzeichnungen als Modell im Test, der Leser lädt die geschriebene Datei; Text nur für die Darstellung und den Fall ohne Ende).
+- [x] Je Zusage des neuen Vertrags (Wahl der Version, Roundtrip) eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -132,9 +132,9 @@ Der Schreiber prüft nicht (oben); ein Test, der das sichert, ist der Fall „St
 
 **Risiken:**
 
-- Zwischenstand: Nach diesem Slice kann der Schreiber `version: 2` schreiben, aber kein Produktpfad erzeugt ein Ende (`slice-v1-abschluss-verbindungsende-record`, `-upstream`) — **Ausgang:** offen bis Closure (erwartet: eingetreten, `slice-v1-abschluss-verbindungsende-record` und `-upstream`, die das Ende aufzeichnen).
-- Die Wahl der Version beim Schreiben ist Voraussetzung des Roundtrips beider Formate in `slice-v1-abschluss-verbindungsende-sqlite` und des Abnahmeszenarios 18 in YAML in `slice-v1-abschluss-verbindungsende-upstream` — **Ausgang:** offen bis Closure (erwartet: eingetreten, `slice-v1-abschluss-verbindungsende-sqlite` und `-upstream`, beide nennen diesen Slice in §1 und im Start).
-- Der Diff liegt über der Marke (Schätzung 300 bis 500, `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`: Tests mit Mutationen je Element) — **Ausgang:** offen bis Closure; Meldeschwelle 550 und Marke 700 stehen in §4.
+- Zwischenstand: Nach diesem Slice kann der Schreiber `version: 2` schreiben, aber kein Produktpfad erzeugt ein Ende (`slice-v1-abschluss-verbindungsende-record`, `-upstream`) — **Ausgang:** *eingetreten* → Folge-Slices `slice-v1-abschluss-verbindungsende-record` und `slice-v1-abschluss-verbindungsende-upstream`, die das Ende aufzeichnen.
+- Die Wahl der Version beim Schreiben ist Voraussetzung des Roundtrips beider Formate in `slice-v1-abschluss-verbindungsende-sqlite` und des Abnahmeszenarios 18 in YAML in `slice-v1-abschluss-verbindungsende-upstream` — **Ausgang:** *eingetreten* → `slice-v1-abschluss-verbindungsende-sqlite` und `slice-v1-abschluss-verbindungsende-upstream`; beide nennen diesen Slice in §1 und im Start. Die Voraussetzung selbst ist mit dem Schreiber geliefert und belegt (`TestSchreibenVersionNachInhalt`, `TestRoundtripMitEnde`).
+- Der Diff liegt über der Marke (Schätzung 300 bis 500, `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`: Tests mit Mutationen je Element) — **Ausgang:** *entfallen* — gemessen 320 in der Metrik von §4, unter Schätzung (340 bis 500), Meldeschwelle 550 und Marke 700; Liefer-Punkte 2, Schichten zwei.
 
 ## 7. Closure-Notiz
 
@@ -184,7 +184,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 | Das Ende an der richtigen Stelle lädt | der Schreiber lehnt die richtige Stelle ab (einfach / letzte Gruppe) | `…/richtige_Stelle,_einfach` u. a. / `…/richtige_Stelle,_letzte_Gruppe` u. a. |
 | Laden lehnt die Formverletzung ab | (im Leser, `slice-v1-abschluss-verbindungsende-format`) | `TestSchreibenNimmtFormverletzungAn` erwartet `PGR-E3003` je Stelle |
 | Roundtrip einfach · Sync-Gruppe · Flush-Gruppe · `offset_ms` · `empty_sessions` | je ein Mutant, der das Ende (einfach, Sync, Flush), `offset_ms` oder `empty_sessions` nur der Aufzeichnung mit dem Kennzeichen der Form verliert | je genau `TestRoundtripMitEnde/<Form>` |
-| Laden, Schreiben, erneutes Laden (Nacharbeit `F-3`): von der geladenen Aufzeichnung aus schreiben und laden ist dieselbe Aufzeichnung | kein Mutant des Schreibers, den nur dieser zweite Durchgang färbt: der Schreiber ist eine Funktion des Modells, und die geladene Aufzeichnung unterscheidet sich von der gebauten nur im Feld `version`, das jeder Mutant schon im ersten Durchgang färbt (Grenze, kein Mutant zugesagt) | `TestRoundtripMitEnde/<Form>`, zweiter Durchgang (grün, belegt den Pfad; rot würde ihn ein Schreiber, der eine geladene Aufzeichnung anders schriebe als eine gebaute) |
+| Laden, Schreiben, erneutes Laden (Nacharbeit `F-3`): von der geladenen Aufzeichnung aus schreiben und laden ist dieselbe Aufzeichnung | Feld 1 ohne Ende schreibt 2 (`HasEnd() \|\| Version == 1`); für Aufzeichnungen mit Ende kein Mutant, der allein den zweiten Durchgang färbt (geladene und gebaute Form sind bis auf das Feld gleich, beide 2; Grenze, kein Mutant zugesagt) | `TestRoundtripMitEnde/Version_2_ohne_Ende`, nur im zweiten Durchgang („Laden, Schreiben, Laden weicht ab“; der erste Durchgang bleibt grün, weil das gebaute Feld 2 trägt); `TestRoundtripMitEnde/<Form>` mit Ende, zweiter Durchgang (grün, belegt den Pfad) |
 | Roundtrip Version 2 ohne Ende (gleich bis auf `version`) | Feld 2 schreibt 2 | `TestRoundtripMitEnde/Version_2_ohne_Ende` |
 | Darstellung: Blockform in `responses` / in `server` | Flow-Form `{type: connection_closed}` an der einen / der anderen Stelle | `TestSchreibenEndeDarstellung/in_responses` (und `mit_Feld_neben_type`) / `…/in_server_einer_Gruppe` |
 | Darstellung: Einrückung | eine Stufe tiefer in `responses` / in `server` | `…/in_responses` u. a. / `…/in_server_einer_Gruppe` u. a. |
@@ -193,12 +193,45 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 **Grüner Mutant:** `return 2` statt `model.VersionMitEnde` im Schreiber bleibt grün, weil die Konstante 2 ist (äquivalent: das Verhalten ist gleich). „Kein Literal“ ist eine Zusage über die Schreibweise; das Verhalten prüft `TestVersionMitEnde` des Modells (`VersionMitEnde == 2`) und die Mutation `VersionMitEnde = 3` oben. Sonst blieb kein Mutant grün.
 
-**Nacharbeit (Review `F-1` bis `F-7`):** `F-1` isoliert (oben, Mutation rot gesehen, nur der eine Fall); `F-2` §1 und DoD Punkt 2 auf „Modell im Test“ gezogen; `F-3` Test ergänzt (zweiter Durchgang, oben) und die Deklaration auf „Schreiben und Laden einer Aufzeichnung und, von der geladenen aus, Schreiben und erneutes Laden“ gefasst; `F-7` in `SPEC-001` nur gestrichen („liest die Aufzeichnung einmal je Schreiben“), die Zusage über Reihenfolge und Gleichzeitigkeit bleibt, keine Entscheidung des Architect (`4940cce`) ändert sich; `F-5` Fälle „negatives Feld mit/ohne Ende“ mit Mutationen (oben, je genau ein Fall rot); `F-6` §8 angepasst; `F-4` kein Handeln, die Äquivalenz von `return 2` bleibt oben dokumentiert. Klasse „Element der Aufzählung ohne isolierenden Fall“: die Fixtures mit Ende tragen nicht mehr das Feld der Aufzählung; Mutationen der Aufzählung (1 mit Ende, 2 ohne Ende, 0 und 3 je mit und ohne Ende, negativ je mit und ohne Ende) einzeln gefahren, je genau ein Fall rot (Ausnahme `Feld_2_ohne_Ende`, dazu `Roundtrip/Version_2_ohne_Ende`, der dasselbe Element ist). Lauf der Nacharbeit: `make gates` grün (Exit 0, ohne Flanke), Stand: Arbeitsbaum dieses Commits.
+**Nacharbeit (Review `F-1` bis `F-7`):** `F-1` isoliert (oben, Mutation rot gesehen, nur der eine Fall); `F-2` §1 und DoD Punkt 2 auf „Modell im Test“ gezogen; `F-3` Test ergänzt (zweiter Durchgang, oben) und die Deklaration auf „Schreiben und Laden einer Aufzeichnung und, von der geladenen aus, Schreiben und erneutes Laden“ gefasst; `F-7` in `SPEC-001` nur gestrichen („liest die Aufzeichnung einmal je Schreiben“), die Zusage über Reihenfolge und Gleichzeitigkeit bleibt, keine Entscheidung des Architect (`4940cce`) ändert sich; `F-5` Fälle „negatives Feld mit/ohne Ende“ mit Mutationen (oben, je genau ein Fall rot); `F-6` §8 angepasst; `F-4` kein Handeln, die Äquivalenz von `return 2` bleibt oben dokumentiert. Klasse „Element der Aufzählung ohne isolierenden Fall“: die Fixtures mit Ende tragen nicht mehr das Feld der Aufzählung; Mutationen der Aufzählung (1 mit Ende, 2 ohne Ende, 0 und 3 je mit und ohne Ende, negativ je mit und ohne Ende) einzeln gefahren, je genau ein Fall rot (Ausnahme `Feld_2_ohne_Ende`, dazu `Roundtrip/Version_2_ohne_Ende`, der dasselbe Element ist). Grenze der Isolierung (Verifikation V-3): „Feld 2 mit Ende schreibt 1“ färbt alle Fälle mit Ende, weil Feld 2 der Träger der übrigen Fixtures ist; das Element steht nicht in §6, die Zusage „Version folgt dem Inhalt, nicht dem Feld“ ist durch 0, 1, 3 und negativ je mit und ohne Ende isoliert. Lauf der Nacharbeit: `make gates` grün (Exit 0, ohne Flanke), Stand: Arbeitsbaum dieses Commits.
 
 **Randformen:** keine zusätzliche gefunden; §6 und `SPEC-001` entscheiden alle Fälle, die der Code berührt. Keine Rückgabe an den Architect.
 
-**Beobachtungen:** aus der Umsetzung keine eigene; die Eintragung ins Register entscheidet die Closure.
+**Beobachtungen:** aus der Umsetzung keine eigene; die Eintragung ins Register steht in der Closure unten.
 
+
+### Closure (Planner, 2026-10-15)
+
+**Review und Verifikation.** Review (0 HIGH, 0 MEDIUM, 3 LOW F-1 bis F-3, 4 INFO F-4 bis F-7): alle bearbeitet in `827763c` (F-4 bleibt als äquivalenter Mutant `return 2` dokumentiert, kein Handeln). Verifikation: PASS, 0 HIGH, 0 MEDIUM, 0 LOW, 5 INFO; 34 Mutanten nachgefahren, alle wie in §7 behauptet, `return 2` grün (äquivalent). V-1 ist in der Tabelle oben berichtigt, V-3 in der Nacharbeit-Zeile ergänzt, V-2 bestätigte der Architect (`bbc8d44`: die Straffung von `SPEC-001` ändert keine Entscheidung; den Zeilenumbruch glättet, wer die Stelle das nächste Mal berührt), V-4 akzeptiert (Überschneidung zweier Fälle, unerheblich für die Zusage), V-5 siehe Größe.
+
+**Gate-Nachweis.** Der volle `make gates` lief grün (Exit 0, §7 *Läufe* und *Nacharbeit*); der Stop-Hook gibt frei (`approve`, Verifikation), `make abdeckung-check` und `make kopf-check` Exit 0. Die Closure ändert nur Dateien auf der Positivliste (`docs/plan/planning/`).
+
+**Größe.** 320 in der Metrik von §4 (311 vor der Nacharbeit), unter der Schätzung des Architect (340 bis 500), Meldeschwelle 550 und Marke 700 nicht erreicht. Datenpunkt für `slice-harness-schaetzung-planner-faktor`: Produktcode 26, Tests 287, Tabelle 7, die Schätzung lag hier über der Messung (Register, Vermerk in `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`).
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge):
+
+| Risiko | Ausgang | Folge-Slice bzw. Begründung |
+|---|---|---|
+| Zwischenstand: Der Schreiber kann `version: 2` schreiben, aber kein Produktpfad erzeugt ein Ende | eingetreten | `slice-v1-abschluss-verbindungsende-record` und `slice-v1-abschluss-verbindungsende-upstream`; beide nehmen an (Paarung (b)) |
+| Die Wahl der Version ist Voraussetzung des Roundtrips beider Formate in `-sqlite` und des Abnahmeszenarios 18 in YAML in `-upstream` | eingetreten | `slice-v1-abschluss-verbindungsende-sqlite` und `slice-v1-abschluss-verbindungsende-upstream`, dieselben Kennungen wie in §6; die Voraussetzung selbst ist geliefert und belegt |
+| Der Diff liegt über der Marke | entfallen | gemessen 320 unter Schätzung, Meldeschwelle 550 und Marke 700; Liefer-Punkte 2, Schichten zwei |
+
+**Register** (Zähler = Dateien unter `evidence/`, Stand dieser Closure; Commit `6a1da80`):
+
+| Eintrag | Zähler | Fund | Stand |
+|---|---|---|---|
+| `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` | 37 | F-1, F-5: Fixtures nutzen das Feld einer Aufzählung als Träger, ein Element ohne Fall | verkörpert, Regel bleibt (Retirement-Check von §3.10: wieder aufgetreten, nicht gelockert) |
+| `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` | 60 | F-3, F-7, V-1: Deklaration, Satz der Spezifikation und Satz in §7 weiter als die Probe | verkörpert, Regel bleibt |
+| `BEO-REPO/plan-folgt-korrektur-nicht` | 50 | F-2, F-6: Text statt Modell, Nehmer nicht genannt | verkörpert, Regel bleibt |
+| `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` | 5 | kein Auftreten: 320 unter 340 bis 500, Datenpunkt V-5 | geplant (`slice-harness-schaetzung-planner-faktor`), Vermerk |
+| `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` | 4 | kein Auftreten | geplant (`slice-harness-schaetzung-planner-faktor`), Vermerk |
+| `BEO-REPO/spec-randform-erst-im-review-entschieden` | 31 | kein Auftreten: Randformen vor dem Code entschieden | verkörpert, Vermerk für den Retirement-Check von §3.12 |
+
+Kein Eintrag erreicht mit diesem Slice neu 3× ohne Regel; die drei Wiederauftreten betreffen Einträge, die schon `verkörpert` sind, und lösen den Retirement-Check ihrer Regeln aus (keine Regel entfernt oder gelockert).
+
+**Lerneintrag — benannte Spec-Lücke, Wiederaufgetreten, Regel bleibt** (`AGENTS.md` §3.9, §3.10, §3.11); geändert wird keine Regel, kein `liegt in`. Die Spec-Lücke ist **die Beschreibung einer Umsetzung als Zusage im Technik-Stratum** (F-7): `SPEC-001` sagte zu, der Schreiber lese die Aufzeichnung „einmal je Schreiben“, kein Test prüfte es, der Satz entfiel. Daneben trat die Klasse „Element einer Aufzählung ohne isolierenden Fall“ trotz der Schärfung von §3.10 wieder auf (F-1, F-5): Die Fixtures nutzten das Feld der Aufzählung als Träger für ein anderes Element. Was funktionierte: Der Architect entschied die Randformen vor dem Code (`4940cce`), die Zählung der Mutationstabelle nannte jedes Element, die Verifikation fuhr 34 Mutanten nach, und ein Slice ohne Auftreten bei Größe und Randformen belegt, dass Metrik, Meldeschwelle und Entscheidung vor dem Code tragen. Vorschläge an den Nutzer, nicht von dieser Closure in `AGENTS.md` oder `.claude/` geändert: (1) `AGENTS.md` §3.10 nimmt auf: „Das Feld einer Aufzählung trägt keine Fixture, die ein anderes Element prüft“ (Wirkung: F-1 und F-5 träten nicht auf; Gegenargument: die Klasse hat 37 Belege, die Regel wächst weiter). (2) `AGENTS.md` §3.11 oder der Architect nennt die Beschreibung einer Umsetzung („liest einmal je Schreiben“) im Technik-Stratum als Zusage ohne Test. (3) Die Schätzung des Faktors Tests zu Produktcode (hier 11 bei geschätzt 5) gehört zu `slice-harness-schaetzung-planner-faktor`.
+
+**Paarungen.** (a) Anker: Der Lerneintrag trägt kein Feld `liegt in`, keine Verkörperung; nichts zu prüfen. (b) Folge-Slice: Genannt sind `slice-v1-abschluss-verbindungsende-record`, `-upstream`, `-sqlite` und `slice-harness-schaetzung-planner-faktor`; alle existieren in `next/` und nehmen an: `grep -n "slice-v1-abschluss-verbindungsende-format-schreiber"` findet die Kennung des Gebers in `-sqlite` (§1 Zeilen 39 und 43, Start 88, Zählung 159), `-upstream` (§1 Zeile 35, Start 93, Zählung 173) und `-record` (Bindung in §1 Zeile 39, §6 Zeile 135, Zählung 178); `slice-harness-schaetzung-planner-faktor` trägt die Lücke (Register, `state.md`). (c) Register: Alle genannten Kennungen `BEO-REPO/…` bestehen als Verzeichnis, jedes mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
