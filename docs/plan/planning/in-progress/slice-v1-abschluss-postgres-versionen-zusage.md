@@ -88,7 +88,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `spec/spezifikation.md` (`LH-FA-05.e`, `SPEC-029`, `SPEC-038`, Historie) | update | Versionsbereich als Liste, Bedeutung von „unterstützt“, Versionsmatrix der Kompatibilitätstests |
 | `spec/lastenheft.md` ([`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung)) | update | ein Satz zur unterstützten Hauptversion des Servers (Entscheidung des Nutzers, 2026-10-05); Draft, kein Versionssprung |
-| `docs/user/benutzerhandbuch.md` | update | Bereich in *Voraussetzungen*; die vier Stellen zur Anmeldung (SCRAM-SHA-256: PostgreSQL 14 bis 18; Klartext und MD5: „PostgreSQL 17“, Entscheidung des Nutzers vom 2026-10-15); Läufe der Matrix und der Referenz als Beleg in §7 |
+| `docs/user/benutzerhandbuch.md` | update | Bereich in *Voraussetzungen* (eigener Punkt); in der Voraussetzung der Anmeldung der Client der Läufe (pgx 5.11; `psql` aus libpq 17 gegen 17); die vier Stellen zur Anmeldung (SCRAM-SHA-256: PostgreSQL 14 bis 18; Klartext und MD5: „PostgreSQL 17“, Entscheidung des Nutzers vom 2026-10-15); Läufe der Matrix und der Referenz als Beleg in §7 |
 | `README.md` | update | Satz zur Anmeldung (Ist-Zustand) |
 | `docs/user/abdeckung-*.md` | update (bedingt) | nur wenn Deklarationen sich ändern; dieser Slice schreibt keinen Test |
 
@@ -126,7 +126,7 @@ dasteht.
 - *Nebenversion und Vorabversion:* die Zusage gilt für die Hauptversion; das Gate fährt je Hauptversion eine gepinnte Nebenversion, Vorabversionen sind nicht zugesagt. Entscheidung des Architect, Wortlaut in `SPEC-029`.
 - *Server außerhalb der Liste:* nicht zugesagt und nicht geprüft (§1). „Nicht abgelehnt“ und „der Recorder prüft die Version nicht“ sagt keine Stelle zu, weil kein Test es prüft (`AGENTS.md` §3.11); `LH-FA-05.e` verliert den Satz „jeder PostgreSQL-Server zulässig, der PGWire 3.0 spricht“ ersatzlos, die Behandlung abweichender Protokollversionen (`PGR-E6002`) bleibt. Entscheidung des Architect (2026-10-15).
 
-**Entscheidungen des Architect vor dem ersten Code-Commit (2026-10-15).** Die Stellen sind noch nicht geschrieben; der Implementer schreibt sie mit diesen Vorgaben, ohne sie neu zu entscheiden. Eine Folge-ADR ist nicht nötig: Es wird nichts Angenommenes berührt (ADR-0042 trägt das Gate; die Zusage ist Spezifikation).
+**Entscheidungen des Architect vor dem ersten Code-Commit (2026-10-15).** Die Stellen sind noch nicht geschrieben; der Implementer schreibt sie mit diesen Vorgaben, ohne sie neu zu entscheiden. Eine Folge-ADR ist nicht nötig: Es wird nichts Angenommenes berührt ([ADR-0042](../../adr/0042-versionsmatrix-der-integrationstests.md) trägt das Gate; die Zusage ist Spezifikation).
 
 - *Wortlaut von `SPEC-029` (Tabelle §6, Spalte Version):* nennt die Hauptversionen 14, 15, 16, 17 und 18 als Liste, mit 17 als Referenz, **nicht** die Lesart „fünf jüngste“. Grund: Erscheint 19, bliebe eine Regel „fünf jüngste“ als Satz stehen, den die Liste dann verletzt; die Liste allein bleibt wahr, bis jemand sie ändert. Die Spalte „Vertrag-Datei“ bleibt `—`.
 - *Nennung der Matrix (Referenz-Richtung):* Spezifikation und Lastenheft nennen die Matrix als **Text** („Versionsmatrix der Kompatibilitätstests“) und geben kein Gate, kein `make`-Ziel, keinen Dateinamen und **keinen Link** auf `harness/vertraege/` an; der Vertrag des Gates steht dort, und die Spezifikation zeigt nicht nach `aussen`. Die Teilmenge steht in Worten (Aufzeichnen einer Abfrage, Abspielen ohne Server, erweitertes Protokoll, Anmeldung mit SCRAM-SHA-256, Lebendprüfung), nicht als Testnamen.
@@ -164,6 +164,49 @@ diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
 aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
+
+### Belege des Implementers (Stand: Commit `9458483` plus dieser Plan, 2026-10-15)
+
+Alle Läufe nacheinander im Arbeitsbaum, Docker-only; kein `pkill`, keine parallelen Läufe. Der Runner prüft je Version `server_version` gegen die Hauptversion (Mutation unten) und verlangt je Test eine PASS-Zeile.
+
+**Läufe je Version** (Aufruf: `make test-postgres-versionen POSTGRES_VERSIONEN='<N>=<Image> 17=<Image der Referenz>'`, Einträge aus `harness/mk/postgres-versionen.mk`, Nahtstelle (4) in §1):
+
+| Version | Aufruf (Eintrag `<N>=…`) | Ergebnis |
+|---|---|---|
+| 14 | `14=postgres:14-alpine@sha256:4ea9e5ed…e77a` | exit 0, 6 s, `Version 14 grün`, 9 PASS-Zeilen (Phase 1: sechs Tests mit Fall `scram-sha-256`; Phase 2: zwei) |
+| 15 | `15=postgres:15-alpine@sha256:f7d23353…bf81` | exit 0, 6 s, `Version 15 grün`, 9 PASS-Zeilen |
+| 16 | `16=postgres:16-alpine@sha256:721873c3…80ea` | exit 0, 6 s, `Version 16 grün`, 9 PASS-Zeilen |
+| 18 | `18=postgres:18-alpine@sha256:77f58511…1873` | exit 0, 6 s, `Version 18 grün`, 9 PASS-Zeilen |
+| 17 (Referenz) | `make test-integration` | exit 0, 129 s, 127 PASS-Zeilen ohne `FAIL`, darunter `TestE2ERecordAnmeldung/{scram-sha-256,md5,password}` |
+
+Die Digests stehen vollständig im Fragment; gekürzt nur hier.
+
+**Satz · Beleg** (die Texte prüft kein Gate; Deckung Text zu Lauf):
+
+| Satz (Stelle) | Beleg |
+|---|---|
+| Liste 14, 15, 16, 17, 18, Referenz 17 (`SPEC-029`, Handbuch *Voraussetzungen*) | die fünf Läufe oben; `POSTGRES_REFERENZ`/`POSTGRES_VERSIONEN` im Fragment |
+| Gegen jede Hauptversion: Aufzeichnen einer Abfrage (Szenario 1), Abspielen ohne Server (2), erweitertes Protokoll (7), Anmeldung SCRAM-SHA-256, Lebendprüfung-Abgleich | Phase 1 und 2 der Läufe 14, 15, 16, 18 (`POSTGRES_TESTS_PHASE1/2`); für 17 `make test-integration` (volle Suite) |
+| Referenz 17: volle Suite; Klartext-Passwort, MD5, Szenario 18, Szenario 16 dritter Satz nur dort | `make test-integration` (`TestE2ERecordAnmeldung/md5`, `/password`); die Matrix fährt diese nicht (Teilmenge im Fragment); Punkt 14 (5) von `SPEC-053` |
+| Je Hauptversion eine feste Nebenversion; Vorabversion nicht zugesagt | Pin per Digest im Fragment; der Runner bricht ab, wenn `server_version` die Hauptversion nicht trägt (Mutation unten) |
+| Handbuch/README: SCRAM-SHA-256 mit 14 bis 18 | die Läufe 14, 15, 16, 18 (Fall `scram-sha-256` des Tests `TestE2ERecordAnmeldung`) und `make test-integration` für 17 |
+| Handbuch/README: Klartext-Passwort und MD5 mit 17 | `make test-integration`, Fälle `md5` und `password` |
+| Handbuch: Anmeldung ohne Passwort mit 17 (Bestand, nicht erweitert) | `make test-integration` (die Tests ohne Rolle laufen gegen den Server mit `trust`, z. B. `TestE2ERecordSelect1`) |
+| Handbuch: Client pgx 5.11 | `go.mod` (`github.com/jackc/pgx/v5 v5.11.0`); `TestE2ERecordAnmeldung` nutzt `pgconn` aus pgx |
+| Handbuch: `psql` aus libpq 17 gegen PostgreSQL 17 (Bestand von `slice-v1-abschluss-anmeldung-doku`) | neu gefahren: `bash psqlprobe.sh` (Skript im Scratchpad des Laufs, nicht im Repo): PostgreSQL 17.11 mit `pg_hba.conf`-Zeilen scram-sha-256, md5, password, `pgwire-recorder:dev` (`make build`), `psql` 17.11 aus dem Server-Image; vier Anmeldungen (je Verfahren und `trust`) liefern ihre Zeile, 4 `sql:`-Einträge in der Aufzeichnung, 0 Treffer für Passwörter/`md5…`/`SCRAM`; Container und Netz danach entfernt |
+| Andere Hauptversionen und Vorabversionen nicht geprüft | verneinend; kein Lauf behauptet sie |
+
+**„Alle übrigen Szenarien“ (Vorgabe des Architect):** Nicht nachgewiesen und deshalb nicht geschrieben. `test/integration` zitiert nur die Szenarien 6, 7, 12 bis 16 im Kommentar; Szenarien wie 9 (Container), 11 (Homebrew) und 17 (Prüfbarkeit des Quellcodes) sind Gegenstand anderer Gates, und eine Zuordnung Szenario zu Test habe ich nicht für jedes Szenario geführt. Die Texte sagen „volle Integrationssuite“ (`make test-integration` fährt ohne Auswahlvariablen alle Tests mit dem Tag `integration`, Kopf von `tools/test/run-integration-tests.sh`) und im Handbuch „alle weiteren Integrationstests“, nicht „alle übrigen Szenarien“.
+
+**Mutation (die Zusage „Hauptversion N“ greift):** Eintrag `14=` mit dem Image von 16 (`POSTGRES_VERSIONEN='14=postgres:16-alpine@sha256:721873c3…80ea 17=…'`): exit 2, `Version 14: der Server meldet server_version '16.15'`, `ROT — 14 (Aufbau)`. Ein Lauf, der die Hauptversion nicht prüfte, bliebe grün. Weitere Mutationen für die Zusagen der Texte gibt es nicht: Texte tragen kein Gate (§6, Zahl der prüfbaren Aussagen); die Mutationen der Matrix selbst gehören zu `slice-v1-abschluss-postgres-versionen-matrix`.
+
+**Prüfungen der Texte:** `grep -n "harness/vertraege\|make " spec/*.md` und `grep -n "test-postgres\|test-integration" spec/*.md`: keine Treffer. Quantoren-Durchsicht (Schritt 17: „jede“, „alle“, „jeder“ mit Server, Datenbank, Version) in Handbuch, README, Spezifikation: kein weiterer Satz sagt etwas über „jeden Server“ oder „alle Versionen“ (die einzige Fundstelle, `LH-FA-05.e`, ist ersetzt); „geprüft mit PostgreSQL 17“ steht nach der Änderung nirgends mehr ohne Verfahren (`grep -n "geprüft mit PostgreSQL 17"` in Handbuch und README: keine Treffer). Handbuch ohne Verweis auf Spezifikation, ADR, Slices, Reviews; kein neues Beispiel, also keine Datei zu fahren.
+
+**Gates:** `make gates` exit 0, 10 min 25 s (nach Korrektur des Links `ADR-0042` in §6 dieses Plans; der erste Lauf war rot: `d-check` meldete `id-unlinked` an dieser Stelle, Vorgabe des Architect ohne Link, jetzt verlinkt).
+
+**Größe (§4):** `git diff --numstat 510e7ab..<letzter Commit> -- spec docs/user README.md`: 56 (Summe aus Einfügungen und Löschungen); Meldeschwelle 300, Marke 400 nicht berührt.
+
+**Rückgaben an den Architect:** keine. Keine Randform gefunden, die §6 nicht nennt; die Vorgabe „alle übrigen Szenarien“ ist oben enger gefasst (Entscheidung der Formulierung nach §6: Prüfung vor dem Satz).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
