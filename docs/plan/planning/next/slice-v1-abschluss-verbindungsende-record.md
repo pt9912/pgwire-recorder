@@ -50,7 +50,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Upstream-Adapter (Erkennen der Fehlerantwort `FATAL`/`PANIC`, nicht auf das Verbindungsende warten, Ende im Leerlauf mit nachfolgender Anfrage, Lesestand bei Sendefehler, Einstufung `PGR-E4003`/`PGR-E6001` im Adapter) und Abnahmeszenario 18 — `slice-v1-abschluss-verbindungsende-upstream` (dort §1 und DoD): andere Schicht (Upstream-Adapter); mit ihm läge dieser Plan über zwei Schichten. Dieser Slice behandelt, was der Port liefert.
-- SQLite-Aufzeichnung eines echten Endes — `slice-v1-abschluss-verbindungsende-upstream` (E2E); der Schreiber liegt in `slice-v1-abschluss-verbindungsende-sqlite`.
+- SQLite-Aufzeichnung eines echten Endes — `slice-v1-abschluss-verbindungsende-upstream` (E2E); der Schreiber liegt in `slice-v1-abschluss-verbindungsende-sqlite-schreiber` (Schnitt von `slice-v1-abschluss-verbindungsende-sqlite`, 2026-10-15).
 - Die Wiedergabe im Replay — `slice-v1-abschluss-verbindungsende-replay`.
 - Ein Netzwerkabbruch ohne Fehlerantwort, ein Ende im Verbindungsaufbau und `FATAL` im Aufbau (etwa eine abgelehnte Anmeldung) als Ende — Out-of-Scope von `LH-FA-25`; sie bleiben wie bisher (`PGR-E4003`, `PGR-E4002`, `PGR-E4005`; `slice-v1-abschluss-anmeldung`, Schritt 30, bleibt unberührt).
 - Benutzerhandbuch und `README.md` — `slice-v1-abschluss-verbindungsende-doku` (`AGENTS.md` §3.11, §3.13).
@@ -178,3 +178,5 @@ Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-verbindungsende-
 Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-verbindungsende-format-schreiber` (Architect, 2026-10-15, `AGENTS.md` §3.13): Sie liegt in derselben Zusage wie `Session.ValidateEnd` (DoD-Punkt 1, Record-Service) und fügt weder Liefer-Punkt noch Schicht hinzu; Liefer-Punkte weiter 3, Schichten weiter zwei, die Schätzung bleibt bei 700 bis 1300 Zeilen (ein Fall mit Mutation mehr, rund 30 Zeilen); der Slice liegt weiter an der Grenze aus §4, der vorgemerkte Schnitt gilt unverändert.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
+
+Nachgezählt beim Nachziehen der Kennung `slice-v1-abschluss-verbindungsende-sqlite-schreiber` (Planner, 2026-10-15, `AGENTS.md` §3.13, Schnitt von `slice-v1-abschluss-verbindungsende-sqlite`): Eine Kennung in einer Abgrenzung (Klasse 1), kein Code und kein Test; sie fügt weder Liefer-Punkt noch Schicht hinzu: Liefer-Punkte weiter 3, Schichten weiter zwei.

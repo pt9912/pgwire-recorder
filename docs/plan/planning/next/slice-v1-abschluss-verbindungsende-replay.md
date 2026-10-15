@@ -42,7 +42,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Record-Pfad des PGWire-Adapters (Antworten bis zur Fehlerantwort zustellen, beide Verbindungen schließen) und der Use Case `RecordService` — `slice-v1-abschluss-verbindungsende-record` (dort §1 und DoD): eigener Code-Pfad im Adapter (`richtungen`, nicht der Replay-Pfad) und eine andere Schicht des Kerns; mit ihm läge dieser Plan über der Grenze einer Review-Sitzung. Die Abbildung von `connection_closed` auf „keine PGWire-Nachricht“ entsteht hier und wird dort benutzt.
-- Das Einlesen einer SQLite-Datei mit Ende als Fixture — `slice-v1-abschluss-verbindungsende-sqlite` (liegt davor, Schritt 36): Der E2E-Test dieses Slice benutzt YAML; die Lesbarkeit der SQLite-Datei belegt jener Slice.
+- Das Einlesen einer SQLite-Datei mit Ende als Fixture — `slice-v1-abschluss-verbindungsende-sqlite` (der Leser, liegt davor, Schritt 36a): Der E2E-Test dieses Slice benutzt YAML; die Lesbarkeit der SQLite-Datei belegt jener Slice.
 - Einspielen und Vergleich — `-einspielen`, `-vergleich`: `play` benutzt den Replay-Service nicht.
 - Eine Ende-Antwort ohne `error_response` im Replay — Out-of-Scope von `LH-FA-25` („Wiedergabe eines Verbindungsendes ohne Fehlerantwort“); das Format lässt sie nicht zu (`PGR-E3003`).
 - Benutzerhandbuch und `README.md` — `slice-v1-abschluss-verbindungsende-doku` (`AGENTS.md` §3.11, §3.13).
@@ -88,7 +88,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-format` liegt in `done/` (Voraussetzung; das Laden einer Aufzeichnung mit Ende); dieser Slice ist Schritt 37 der Reihenfolge in §5 von welle-v1-abschluss und steht nach `slice-v1-abschluss-verbindungsende-sqlite`, damit seine Fixtures beide Formate wählen können. WIP-Limit 1.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-format` liegt in `done/` (Voraussetzung; das Laden einer Aufzeichnung mit Ende); dieser Slice ist Schritt 37 der Reihenfolge in §5 von welle-v1-abschluss und steht nach `slice-v1-abschluss-verbindungsende-sqlite` und `slice-v1-abschluss-verbindungsende-sqlite-schreiber` (Schritt 36a und 36b), damit seine Fixtures beide Formate wählen können. WIP-Limit 1.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -163,3 +163,5 @@ Nachgezählt beim Anlegen (Planner, 2026-10-12, `AGENTS.md` §3.13): Liefer-Punk
 Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-sessions` (Planner, 2026-10-12, `AGENTS.md` §3.13): Sie gehört zu DoD-Punkt 1 (Replay-Service) und fügt keinen Liefer-Punkt und keine Schicht hinzu: eine Bindung an zwei vorhandene Schritte (`ohneLebendpruefungen`, `OpenConnection`) und ein Testfall mit Ende bei `connection`. Liefer-Punkte weiter 3, Schichten weiter zwei (Kern, PGWire-Adapter); die Schätzung bleibt bei 600 bis 1000 Zeilen, der Fall kommt mit einigen Dutzend Zeilen hinzu.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
+
+Nachgezählt beim Nachziehen der Kennungen aus dem Schnitt von `slice-v1-abschluss-verbindungsende-sqlite` (Planner, 2026-10-15, `AGENTS.md` §3.13): Eine Ortsangabe in Abgrenzung und Start (Leser 36a, Schreiber 36b liegen davor), kein Code und kein Test; sie fügt weder Liefer-Punkt noch Schicht hinzu: Liefer-Punkte weiter 3, Schichten weiter zwei.

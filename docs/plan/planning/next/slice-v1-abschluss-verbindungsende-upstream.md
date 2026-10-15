@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-verbindungsende-record`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): der Upstream-Adapter und Abnahmeszenario 18. Der Use Case und die Zustellung liegen in jenem Slice; dieser setzt ihn voraus und liefert, was dessen Fakes bisher nur abbilden.
 
-**Übernommen aus `slice-v1-abschluss-verbindungsende-sqlite`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12): der E2E-Beleg, dass `record --format sqlite` ein echtes Ende aufzeichnet und die Datei `meta.version` 2 trägt, und aus `slice-v1-abschluss-verbindungsende-replay` (dort §3 und §6, Risiko): dass die handgeschriebenen Aufzeichnungen dessen Fixtures dem entsprechen, was PostgreSQL liefert.
+**Übernommen aus `slice-v1-abschluss-verbindungsende-sqlite-schreiber`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12 aus `slice-v1-abschluss-verbindungsende-sqlite`, mit dem Schnitt vom 2026-10-15 an den Schreiber gegangen): der E2E-Beleg, dass `record --format sqlite` ein echtes Ende aufzeichnet und die Datei `meta.version` 2 trägt, und aus `slice-v1-abschluss-verbindungsende-replay` (dort §3 und §6, Risiko): dass die handgeschriebenen Aufzeichnungen dessen Fixtures dem entsprechen, was PostgreSQL liefert.
 
 **Gebunden durch `slice-v1-abschluss-sessions`** (dort §1, *Nahtstelle zu den Verbindungsende-Slices*, Punkt 4; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): *Eine Verbindung wird erst mit eröffneter Session eine Session.* Ein Ende des Servers vor dem ersten `ReadyForQuery` bleibt ein Aufbaufehler (`PGR-E4002`/`PGR-E4005`) und erzeugt keine Session, auch mit `--record-empty-sessions`; `Open` liefert dann den Fehler und der Dienst die Kennung 0. Dieser Slice ändert `Open` nicht und erkennt ein Ende nur in der laufenden Interaktion nach dem ersten `ReadyForQuery`.
 
@@ -90,7 +90,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-record`, `slice-v1-abschluss-verbindungsende-sqlite` und `slice-v1-abschluss-verbindungsende-format-schreiber` liegen in `done/` (Voraussetzung; der Schreiber für die Aufzeichnung in YAML mit `version: 2`); `slice-v1-abschluss-anmeldung` liegt davor, weil es die Aufbau-Schleife im Upstream-Adapter umbaut. Dieser Slice ist Schritt 41 der Reihenfolge in §5 von welle-v1-abschluss. WIP-Limit 1.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-record`, `slice-v1-abschluss-verbindungsende-sqlite`, `slice-v1-abschluss-verbindungsende-sqlite-schreiber` und `slice-v1-abschluss-verbindungsende-format-schreiber` liegen in `done/` (Voraussetzung; der Schreiber für die Aufzeichnung in YAML mit `version: 2`); `slice-v1-abschluss-anmeldung` liegt davor, weil es die Aufbau-Schleife im Upstream-Adapter umbaut. Dieser Slice ist Schritt 41 der Reihenfolge in §5 von welle-v1-abschluss. WIP-Limit 1.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -171,3 +171,5 @@ Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-postgres-version
 Nachgezählt beim Eintragen der Berichtigung I-1 aus `slice-v1-abschluss-postgres-versionen-zusage` (Planner, 2026-10-15, `AGENTS.md` §3.13): ein Wort im Satz von `SPEC-029` Punkt 2, den dieser Slice ohnehin im Commit seines Tests schreibt; sie gehört zu DoD-Punkt 3 und fügt weder Liefer-Punkt noch Schicht hinzu (die Spezifikation zählt nicht als Schicht, Planung ebenso nicht). Liefer-Punkte weiter 3, Schichten weiter zwei (Upstream-Adapter; Kern nur als Vertrag des Ports); Schätzung unverändert.
 
 Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-verbindungsende-format-schreiber` (Planner, 2026-10-15, `AGENTS.md` §3.13): Der YAML-Schreiber ist Voraussetzung und keine Lieferung dieses Slice; er gehört zu DoD-Punkt 3 (Abnahmeszenario 18) und fügt weder Liefer-Punkt noch Schicht hinzu. Liefer-Punkte weiter 3, Schichten weiter zwei (Upstream-Adapter; Kern nur als Vertrag des Ports); Schätzung unverändert.
+
+Nachgezählt beim Nachziehen der Kennung `slice-v1-abschluss-verbindungsende-sqlite-schreiber` (Planner, 2026-10-15, `AGENTS.md` §3.13, Schnitt von `slice-v1-abschluss-verbindungsende-sqlite`): Die Sendung (E2E-Beleg der SQLite-Aufzeichnung, `meta.version` 2) bleibt in DoD-Punkt 3, nur der Geber heißt jetzt anders; die Voraussetzung des Starts nennt beide Hälften. Kein neuer Liefer-Punkt, keine neue Schicht: Liefer-Punkte weiter 3, Schichten weiter zwei.
