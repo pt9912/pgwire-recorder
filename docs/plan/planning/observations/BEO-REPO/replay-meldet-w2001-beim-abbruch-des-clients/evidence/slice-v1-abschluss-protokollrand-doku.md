@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-protokollrand-doku
+**Fund:** Probe P15 (a) in §7 von `done/slice-v1-abschluss-protokollrand-doku.md` (Nacharbeit zu V-5): `replay` mit einer Aufzeichnung aus einer Sitzung, nur `psql` 17.11 mit `require_auth=password`; `psql` bricht ab, `replay` endet mit Exit-Code 0 und einer Zeile `PGR-W2001`. Gegenprobe (b): verbraucht zuerst eine andere Verbindung die Sitzung, bleibt die Meldung aus.
