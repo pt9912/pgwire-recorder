@@ -94,7 +94,7 @@ Dazu ein Paar: *Falsch:* §4 nennt Marke 1000 und die Schätzung 650 bis 1000 �
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-format-schreiber` liegt in `done/` (Schritt 35b); dieser Slice steht in der wellenlosen Reihe direkt dahinter und vor Schritt 36 von welle-v1-abschluss (Empfehlung des Planners, nicht entschieden; Drift-Log der Roadmap vom 2026-10-15). WIP-Limit 1. Der Implementer legt den Wortlaut aus §3 (oder seine Überarbeitung) dem Nutzer vor und committet `AGENTS.md` und `plan-welle.md` erst nach der Bestätigung; bis dahin hält er an und gibt an den Aufrufer zurück.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-format-schreiber` liegt in `done/` (Schritt 35b, Voraussetzung); dieser Slice steht in der wellenlosen Reihe hinter Schritt 42 von welle-v1-abschluss (`slice-v1-abschluss-verbindungsende-doku`) und vor Schritt 43 (umgestellt am 2026-10-15, weil er auf die Bestätigung des Wortlauts durch den Nutzer wartet; Empfehlung des Planners, nicht entschieden; Drift-Log der Roadmap vom 2026-10-15). WIP-Limit 1. Der Implementer legt den Wortlaut aus §3 (oder seine Überarbeitung) dem Nutzer vor und committet `AGENTS.md` und `plan-welle.md` erst nach der Bestätigung; bis dahin hält er an und gibt an den Aufrufer zurück.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
