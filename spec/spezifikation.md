@@ -2195,11 +2195,37 @@ Fehlschlag und übrig gebliebene Datei der temporären Datei gelten wie in `LH-F
 beendeten Sessions, die die Datei noch nicht trägt, in der Reihenfolge ihrer Nummern,
 jede in einer eigenen Transaktion mit der Session, ihren Interaktionen und ihren
 Nachrichten; die Transaktion der ersten Session mit einem Ende des Servers setzt
-zugleich `meta.version` auf 2 (`LH-FA-25.a`); die Datei enthält zu jedem Zeitpunkt nur vollständige Sessions und wird nie
+zugleich `meta.version` auf 2 (`LH-FA-25.a`, unten *Ende und Version beim Schreiben von `sqlite`*); die Datei enthält zu jedem Zeitpunkt nur vollständige Sessions und wird nie
 als Ganzes neu geschrieben. Ein Abbruchsignal unterbricht keine Transaktion: sie läuft
 zu Ende. Das Rollback-Journal der temporären Datei (`<temporäre Datei>-journal`), das ein Absturz
 mitten im Anlegen hinterlässt, ist eine übrig gebliebene Datei im Sinn von `LH-FA-07.a`: `record`
 sucht und entfernt es nicht, und es trägt einen anderen Zufallsteil als jede spätere temporäre Datei.
+
+**Ende und Version beim Schreiben von `sqlite`** (`LH-FA-25.a`, `SPEC-001`, `SPEC-043`). Der erste
+Schreibvorgang legt `meta.version` mit dem Wert 1 an, in der temporären Datei, auch wenn die erste
+Session ein Ende trägt, und gleich welchen Wert das Feld `version` des Modells hat (0, 1, 2, 3, eine
+negative Zahl): Das Feld bestimmt die Version nicht, der Inhalt tut es. Eine Session trägt ein Ende,
+wenn irgendeine Antwort irgendeiner ihrer Interaktionen `connection_closed` ist, in `responses` wie
+in `server` einer Gruppe, an jeder Stelle, auch einer falschen; die Stelle prüft der Schreiber
+nicht. Die Transaktion der ersten Session mit Ende, die die Datei noch nicht trägt, setzt
+`meta.version` von 1 auf 2; sie ändert genau die eine Zeile `version` mit dem Wert 1. Findet
+sie diese Zeile nicht oder mit einem anderen Wert (ein anderer Prozess oder eine ersetzte Datei), ist
+das ein Fehler der Transaktion (`PGR-E3001`), und die Session wird nicht ergänzt. Jede andere
+Transaktion lässt `meta` unberührt: die einer Session ohne Ende, die einer zweiten oder späteren
+Session mit Ende und jede nach der Version 2. Eine Aufzeichnung ohne Sessions, nur mit leeren
+Sessions oder ohne Ende bleibt bei 1. Scheitert die Transaktion der ersten Session mit Ende,
+auch beim Setzen der Version, ist sie zurückgerollt: Die Datei trägt keine Zeile der Session, die
+Version bleibt 1, und der nächste Schreibvorgang ergänzt die Session und setzt die Version. Scheitert
+das Schließen der Datenbank nach der Transaktion, steht die Version 2, und der nächste
+Schreibvorgang ändert sie nicht. Ein Abbruchsignal unterbricht die Transaktion mit dem Ende nicht.
+`PRAGMA user_version` schreibt der Schreiber nicht. Das Ende steht als Zeile von `message` an der
+Stelle, an der das Modell die Nachricht trägt (`SPEC-043`); die Reihenfolge der Zeilen in der Datei
+ist nicht zugesagt. Der Schreiber prüft die Form des Endes nicht (Stelle, Anzahl, `ready_for_query`
+daneben), und trägt ein `connection_closed` im Modell Felder, schreibt er sie in `fields`; eine
+Datei mit verletzter Form oder mit Feldern lehnt der Leser ab (`PGR-E3003`, `SPEC-043`). Die
+Zusagen sind Zustandsprüfungen ohne Zusage über die Reihenfolge oder Gleichzeitigkeit mehrerer
+Aufrufe. Eine Aufzeichnung ohne Ende ergibt dieselben Zeilen wie vor Einführung der Version 2, mit
+`meta.version` = 1.
 
 Scheitert eine Transaktion (Sperre länger als fünf Sekunden, voller Datenträger,
 Ein- oder Ausgabefehler), ist das `PGR-E3001` mit der Ursache der Bibliothek; die
@@ -2559,7 +2585,16 @@ Aufzeichnung ohne Ende ergibt dieselben Bytes wie vor Einführung der Version 2,
 einer Aufzeichnung, deren Feld 2 trägt (sie schreibt 1). Laden, Schreiben und erneutes Laden
 liefert dieselbe Aufzeichnung, ausgenommen das Feld `version` einer Datei der Version 2 ohne Ende
 (die Version 1 schreibt und liest). Die Zusagen sind Zustandsprüfungen: Der Schreiber sagt nichts über die Reihenfolge oder Gleichzeitigkeit mehrerer
-Aufrufe zu. Ein Leser
+Aufrufe zu. **Schreiber in `sqlite`.** Die Version bestimmt der Inhalt wie in `yaml`, die Wahl trifft die
+Transaktion der ersten Session mit Ende (`LH-FA-22.a`, *Ende und Version beim Schreiben von
+`sqlite`*): ein Ende liegt vor, wenn irgendeine Antwort irgendeiner Interaktion der Session
+`connection_closed` ist, an jeder Stelle, auch einer falschen. Das Feld `version` des Modells
+ändert nichts. Der Schreiber prüft die Form des Endes nicht und schreibt Felder neben `type`, wie
+der von `yaml`. Laden, Schreiben und erneutes Laden liefert dieselbe Aufzeichnung, ausgenommen das
+Feld `version` einer Datei der Version 2 ohne Ende (die Version 1 schreibt und liest); dieselbe
+Aufzeichnung, in beiden Formaten geschrieben, liest gleich, auch in `version`.
+
+Ein Leser
 wendet auf jede Version die Nachrichtentypen dieser Version an: `connection_closed` in
 Version 1 macht das Recording zu einem beschädigten (`PGR-E3003`). Die Form der Interaktionen: Bei einer einfachen steht
 `type: query` in `request` (`SPEC-002`), bei einer Extended-Interaktion steht
@@ -2810,7 +2845,11 @@ fest:
   ist der Code derselbe, welcher gemeldet wird, ist nicht zugesagt. `PRAGMA user_version` ändert die
   Version nicht. Die Meldung zu `PGR-E3002` nennt bei `sqlite` keine Version, denn die Meldung nennt nie
   einen Wert aus der Datei. Der Schreiber von `sqlite` prüft die Form des Endes nicht, wie der von
-  `yaml` (`SPEC-001`); eine Datei mit verletzter Form lehnt der Leser ab.
+  `yaml` (`SPEC-001`); eine Datei mit verletzter Form lehnt der Leser ab. Er schreibt die Zeile
+  des Endes an der Stelle, an der das Modell die Nachricht trägt: `direction` = `server`,
+  `group_no` die Nummer der Gruppe (bei einer einfachen Interaktion `NULL`), `position` in der
+  Zählung der übrigen Nachrichten der Interaktion (bei einer Extended-Interaktion über beide
+  Richtungen), `fields` als der Text `{}`; trägt das Ende im Modell Felder, stehen sie in `fields`.
 * Ein String in `session.startup`, `session.server_parameters` und `message.fields`, als
   Wert wie als Schlüssel eines Objekts, ist JSON-Text und damit gültiges UTF-8. Ein
   String, dessen Bytes es nicht sind (ein Client mit `client_encoding=LATIN1` sendet `é`
@@ -3292,3 +3331,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-15 | Protokollrand: Randformen vor dem Code (Modus je Zeile, Prüfreihenfolge der ersten Nachricht, Protokollversion, Rumpf der Startnachricht und Parameter `_pq_.` in beiden Modi `PGR-E6001`, Sonderanfrage und Länge des `CancelRequest`, Folgen von `SSLRequest` und `GSSENCRequest`, `COPY` je Richtung, `FunctionCall`, `NotificationResponse` je Eintreffzeitpunkt, ungültiger Rumpf und abgebrochene Nachricht, gleichzeitige Verbindungen); Zeile `LISTEN`/`NOTIFY` berichtigt: eine Benachrichtigung an die eigene Verbindung ist `PGR-E6001`; feste Auswahl im Replay: `AuthenticationOk` ohne Anforderung, nichts geprüft (`LH-FA-05.b`, `LH-FA-05.e`) |
 | 2026-10-15 | Protokollrand: Parameter `_pq_.` ist `PGR-E6001` vor `PGR-E6003` (Reihenfolge ausdrücklich, `LH-FA-23.a` nennt ihn); beim `CancelRequest` liest die Bibliothek Prozess-ID und Schlüssel, der Recorder wertet sie nicht aus (`LH-FA-05.e`) |
 | 2026-10-15 | Aufzeichnungsformat `sqlite`, Ende des Servers: Darstellung als Zeile von `message`, Stelle nach den Nummern statt nach der Reihenfolge der Zeilen, Version 1 und 2 im Leser, Rangfolge `PGR-E3002` vor `PGR-E3003`, Meldung zu `PGR-E3002` ohne Version, Schreiber prüft die Form nicht (`LH-FA-25.a`, `SPEC-001`, `SPEC-043`) |
+| 2026-10-15 | Aufzeichnungsformat `sqlite`, Schreiben des Endes: Version 1 beim Anlegen unabhängig vom Feld des Modells, Session mit Ende ohne Prüfung der Stelle, nur die erste Transaktion mit Ende setzt die Version 2 (genau die Zeile mit dem Wert 1, sonst `PGR-E3001`), Rollback hält die Version 1, Schließen nach der Transaktion, Abbruch, `user_version`, Zeile des Endes an der Stelle des Modells, Felder werden geschrieben, Form wird nicht geprüft, Roundtrip beider Formate (`LH-FA-22.a`, `LH-FA-25.a`, `SPEC-001`, `SPEC-043`) |
