@@ -2619,7 +2619,17 @@ vorhanden, auch leer, entscheidet es allein, und `S` zählt nur, wenn `V` fehlt.
 ist genau: `fatal` und `Fatal` sind kein Ende. `connection_closed` trägt neben `type` keinen
 Schlüssel, auch keinen leeren oder mit dem Wert `null`; jeder ist `PGR-E3003`. Zwischen der
 `error_response` und `connection_closed` steht keine weitere Nachricht, auch keine
-`notice_response`. Bei einer Extended-Interaktion mit Ende endet die letzte Gruppe mit `Sync`
+`notice_response`. Eine einfache Interaktion mit Ende trägt kein `ready_for_query`, an keiner Stelle: Das Ende
+steht statt des `ready_for_query`, auch eines vor der `error_response`, und eine Folge wie
+`command_complete`, `ready_for_query`, `error_response`, `connection_closed` ist `PGR-E3003`.
+Ohne Ende prüft der Leser `ready_for_query` mitten in einer einfachen Interaktion weiterhin
+nicht (akzeptiertes Negativ: die Prüfung gab es für Version 1 nie, und sie lehnte Dateien ab,
+die bisher laden). Als Stelle des Endes gilt nur die letzte Server-Nachricht der Interaktion,
+bei einer Extended-Interaktion die der letzten Gruppe; `connection_closed` an jeder anderen
+Stelle, in einer einfachen wie in einer Extended-Interaktion und auch in einer Gruppe, die nicht
+die letzte ist, ist `PGR-E3003`. Die Formprüfung der Session erkennt ein Ende an jeder Stelle
+der Interaktion, auch an einer falschen: Ein falsch platziertes Ende in einer Interaktion vor
+der letzten ist darum ebenfalls `PGR-E3003`; welche Prüfung es meldet, ist nicht zugesagt. Bei einer Extended-Interaktion mit Ende endet die letzte Gruppe mit `Sync`
 oder mit `Flush`, jede Gruppe davor mit `Flush`, und eine Gruppe mit `connection_closed` trägt
 kein `ready_for_query`; ohne Ende bleibt die letzte Gruppe mit `Sync` und `ready_for_query`
 Pflicht. Die Form einer Interaktion (Stelle in der Interaktion) und die Form einer Session
