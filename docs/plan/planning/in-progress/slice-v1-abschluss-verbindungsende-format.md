@@ -219,7 +219,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 - *Allgemein:* `make abdeckung` hat `LH-FA-25` in `abdeckung-gesamt.md` als „vollständig“ (Unit) eingetragen, obwohl Record, Replay, Einspielen und SQLite fehlen; die Tabelle ist Ausgabe des Werkzeugs und zählt die Deklarationen, nicht den Umfang der Anforderung. Für das Review.
 - *Randformen:* keine nicht genannte oder offene Randform gefunden. Zwei Lesarten, die §6 nicht eigens nennt: ein `ready_for_query` mitten in einer einfachen Anfrage vor dem Ende bleibt wie bisher unbeanstandet (die Regel „nur als letzte Antwort“ gab es für die einfache Anfrage nicht); `Interaction.endet` zählt `connection_closed` an jeder Stelle als Ende, damit `ValidateEnd` auch eine nicht geprüfte Interaktion nicht übersieht. Beide ändern kein zugesagtes Verhalten.
 
-**Letzter Lauf.** (wird nach dem vollen `make gates` eingetragen)
+**Letzter Lauf.** `make gates` auf dem Stand des Commits „Plan §7 Belege des Implementers, §8 Messung“ (2026-10-15): Exit 0, alle Gates grün, darunter `lint`, `a-check`, `test`, `test-integration`, `test-postgres-versionen` und die Gegenproben. Davor zwei rote Läufe (siehe *Läufe*). Keine Datei außerhalb von `docs/plan/` hat sich seither geändert.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
