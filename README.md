@@ -52,7 +52,8 @@ einer Verbindung), gemessen ab der vorigen Anfrage (`relative`, Standard) oder a
 `offset_ms` lehnen `replay` und `play` mit `PGR-E3003` ab.
 
 `record` zeichnet eine Verbindung, die eine Anfrage abgeschlossen hat, als eigene Sitzung auf,
-auch mehrere gleichzeitig; nutzt sie `COPY`, zeichnet `record` sie nicht auf (`PGR-E6001`).
+auch mehrere gleichzeitig; antwortet die Datenbank ihr mit einem COPY-Datenstrom oder sendet sie
+ihr eine Benachrichtigung (`LISTEN` mit `NOTIFY`), zeichnet `record` sie nicht auf (`PGR-E6001`).
 Mit `--record-empty-sessions` wird auch eine Verbindung ohne Anfrage eine Sitzung ohne
 Interaktionen, soweit sie keine der Ausnahmen ist, die das Benutzerhandbuch nennt. `replay`
 ordnet beim Standard `--session-assignment first-request` die n-te Verbindung mit einer
@@ -60,6 +61,13 @@ Anfrage der n-ten Sitzung mit Interaktionen zu; mit `--session-assignment connec
 die n-te Verbindung die Sitzung mit der `id` n, was eine mit `--record-empty-sessions`
 aufgezeichnete Datei verlangt (sonst `PGR-E2001`). Eine Anfrage ohne zugeordnete Sitzung ist
 `PGR-E5003`, eine Anfrage an eine Sitzung ohne Interaktionen `PGR-E5001`.
+
+Am Rand des Protokolls gilt in `record` und `replay`: Ein Parameter `_pq_.` in der
+Startnachricht und eine Nachricht `p` nach dem Aufbau sind `PGR-E6001`, eine andere Protokollversion
+als 3.0 ist `PGR-E6002`. Eine Verbindung, deren Startnachricht das Werkzeug ablehnt, ist keine
+Sitzung und verbraucht im `replay` keine. `replay` beginnt jede Verbindung mit `AuthenticationOk`,
+ohne ein Passwort zu verlangen, und prüft Benutzer und Datenbank nicht; ein Client, der mit `require_auth` ein
+Anmeldeverfahren verlangt, bricht deshalb selbst ab.
 
 Beim Beenden warten `record` und `replay` höchstens `--shutdown-timeout`
 (Standard 5 Sekunden) auf laufende Anfragen; was das im Container bedeutet, sagt das
