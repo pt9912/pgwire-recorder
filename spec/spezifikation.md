@@ -564,15 +564,17 @@ einer `ErrorResponse` beendet; Fehlerebenen: LH-FA-13.b.
   Länge 9 (nur ein Nullbyte) und ein Rumpf ohne das abschließende Nullbyte. Ein Parameter mit dem
   Präfix `_pq_.` (Protokollerweiterung) ist `PGR-E6001` mit `ErrorResponse`, in beiden Modi, in `record`
   ohne Verbindung zum Server: Der Recorder handelt keine Erweiterung aus, und eine Antwort, die vorgäbe,
-  er täte es, gibt es nicht. Der Parameter `options` und jeder andere Name gelten wie jeder Parameter:
+  er täte es, gibt es nicht. Die Prüfung steht vor der auf TLS-Pflicht: Eine unverschlüsselte
+  Startnachricht 3.0 mit `_pq_.` an einen Recorder mit TLS-Konfiguration ohne `--allow-plaintext` ist
+  `PGR-E6001`, nicht `PGR-E6003` (`LH-FA-23.a`, *Unverschlüsselte Clients*). Der Parameter `options` und jeder andere Name gelten wie jeder Parameter:
   In `record` gehen sie unverändert an den Server und stehen in der Aufzeichnung (`SPEC-003`), in
   `replay` bleiben sie unbeachtet.
 * *Sonderanfrage.* Hauptnummer 1234 mit der Nebennummer 5679 ist `SSLRequest`, 5680 `GSSENCRequest`,
   5678 `CancelRequest`; jede andere ist `PGR-E6001` mit `ErrorResponse`, vor dem Lesen des Rests der
   Nachricht, mit und ohne TLS. Ein `SSLRequest` oder `GSSENCRequest` mit einer Länge außer 8 ist
   `PGR-E6001` ohne Antwort (Länge unter 8 oder über `SPEC-045`: `PGR-W3003`, siehe oben). Beim
-  `CancelRequest` ist die Länge 16 zugesagt (Prozess-ID und Schlüssel, 4 Bytes); der Recorder liest
-  beides nicht. Eine Länge von 8 ist `PGR-E6001` mit `ErrorResponse`; für andere Längen gibt es keine
+  `CancelRequest` ist die Länge 16 zugesagt (Prozess-ID und Schlüssel, 4 Bytes); die PGWire-Bibliothek
+  liest beides, der Recorder wertet keines von beiden aus. Eine Länge von 8 ist `PGR-E6001` mit `ErrorResponse`; für andere Längen gibt es keine
   Zusage (Grenze: die PGWire-Bibliothek entscheidet).
 * *Reihenfolge von `SSLRequest` und `GSSENCRequest`.* Ohne TLS-Konfiguration beantwortet der Recorder
   jede dieser Anfragen mit `N`, in jeder Folge, danach folgt die Startnachricht; getestet sind Folgen aus
@@ -2334,9 +2336,11 @@ wartet nicht auf den Client.
 Verbindungsaufbau mit einer `StartupMessage` ohne vorherigen `SSLRequest` (auch nach
 einem mit `N` abgelehnten `GSSENCRequest`) mit einer `ErrorResponse` und beendet die
 Verbindung (`PGR-E6003`, Klasse „nicht unterstützt", ein Verbindungsfehler mit
-Exit-Code `6` nach `LH-FA-13.b`). Das gilt nur für eine `StartupMessage` der Version 3.0;
-eine andere Version ist `PGR-E6002`, eine unbekannte Sonderanfrage `PGR-E6001` und eine
-erste Nachricht, die keine Startnachricht ist, `PGR-W3003`, wie ohne TLS (`LH-FA-05.e`).
+Exit-Code `6` nach `LH-FA-13.b`). Das gilt nur für eine `StartupMessage` der Version 3.0 ohne
+Parameter mit dem Präfix `_pq_.`; eine andere Version ist `PGR-E6002`, eine unbekannte
+Sonderanfrage `PGR-E6001`, ein nicht lesbarer Rumpf und ein Parameter `_pq_.` ebenfalls
+`PGR-E6001` und eine erste Nachricht, die keine Startnachricht ist, `PGR-W3003`, wie ohne TLS
+(`LH-FA-05.e`). `PGR-E6003` steht damit hinter `PGR-E6002`, `PGR-E6001` und `PGR-W3003`.
 Ein `CancelRequest` trägt keine Anfrage- und
 keine Antwortdaten und gilt wie sonst (`LH-FA-05.e`, `PGR-W3001`), auch ohne
 Verschlüsselung. Mit `--allow-plaintext` (nur zusammen mit `--tls-cert`, sonst
@@ -3224,3 +3228,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-14 | Authentifizierung, Record: Randformen der Vermittlung vor dem Code (Verfahren und Grenze der Mechanismen, nicht vermittelte Codes `PGR-E6001`, Reihenfolge des Servers `PGR-E4002`, Antwort und Ende des Clients, Fehlerantwort des Servers, Aufzeichnung und Log ohne Zugangsdaten, erstes Signal und Zwangsende, Aufruf-Voraussetzung, keine Option) (`LH-FA-05.b`) |
 | 2026-10-15 | Zugesagte PostgreSQL-Hauptversionen: feste Liste 14 bis 18 mit Referenz 17 und was „unterstützt" heißt, der Satz zu jedem Server mit PGWire 3.0 entfällt; Versionsmatrix in den Kompatibilitätstests (`LH-FA-05.e`, `SPEC-029`, `SPEC-038`) |
 | 2026-10-15 | Protokollrand: Randformen vor dem Code (Modus je Zeile, Prüfreihenfolge der ersten Nachricht, Protokollversion, Rumpf der Startnachricht und Parameter `_pq_.` in beiden Modi `PGR-E6001`, Sonderanfrage und Länge des `CancelRequest`, Folgen von `SSLRequest` und `GSSENCRequest`, `COPY` je Richtung, `FunctionCall`, `NotificationResponse` je Eintreffzeitpunkt, ungültiger Rumpf und abgebrochene Nachricht, gleichzeitige Verbindungen); Zeile `LISTEN`/`NOTIFY` berichtigt: eine Benachrichtigung an die eigene Verbindung ist `PGR-E6001`; feste Auswahl im Replay: `AuthenticationOk` ohne Anforderung, nichts geprüft (`LH-FA-05.b`, `LH-FA-05.e`) |
+| 2026-10-15 | Protokollrand: Parameter `_pq_.` ist `PGR-E6001` vor `PGR-E6003` (Reihenfolge ausdrücklich, `LH-FA-23.a` nennt ihn); beim `CancelRequest` liest die Bibliothek Prozess-ID und Schlüssel, der Recorder wertet sie nicht aus (`LH-FA-05.e`) |
