@@ -53,10 +53,15 @@ func endeInGruppe(abschluss func(int) nm) ia {
 // Session mit der Nummer ihrer Stellung) und meta.version auf version setzen. rueck schreibt
 // die Zeilen von message in umgekehrter Reihenfolge.
 func endeSQL(version string, rueck bool, sessions ...[]ia) string {
-	var b strings.Builder
-	b.WriteString(`DELETE FROM message; DELETE FROM interaction; DELETE FROM session; UPDATE meta SET value = '` + version + `' WHERE key = 'version';`)
+	return endeSQLGeordnet(version, rueck, false, sessions...)
+}
+
+// endeSQLGeordnet ist endeSQL, dazu schreibt iRueck die Zeilen von interaction in umgekehrter
+// Reihenfolge (die Nummern bleiben die der Stellung).
+func endeSQLGeordnet(version string, rueck, iRueck bool, sessions ...[]ia) string {
+	var sZeilen, iZeilen, mZeilen []string
 	for si, s := range sessions {
-		fmt.Fprintf(&b, `INSERT INTO session VALUES (%d, '{}', '{}');`, si+1)
+		sZeilen = append(sZeilen, fmt.Sprintf(`INSERT INTO session VALUES (%d, '{}', '{}');`, si+1))
 		for ii, i := range s {
 			art, sqlText, offset := "query", "'x'", "NULL"
 			if i.erw {
@@ -65,7 +70,7 @@ func endeSQL(version string, rueck bool, sessions ...[]ia) string {
 			if i.offset != "" {
 				offset = i.offset
 			}
-			fmt.Fprintf(&b, `INSERT INTO interaction VALUES (%d, %d, '%s', %s, %s);`, si+1, ii+1, art, offset, sqlText)
+			iZeilen = append(iZeilen, fmt.Sprintf(`INSERT INTO interaction VALUES (%d, %d, '%s', %s, %s);`, si+1, ii+1, art, offset, sqlText))
 			var zeilen []string
 			for mi, m := range i.msgs {
 				gruppe := "NULL"
@@ -75,15 +80,22 @@ func endeSQL(version string, rueck bool, sessions ...[]ia) string {
 				zeilen = append(zeilen, fmt.Sprintf(`INSERT INTO message VALUES (%d, %d, %d, '%s', %s, '%s', '%s');`, si+1, ii+1, mi+1, m.richtung, gruppe, m.art, m.felder))
 			}
 			if rueck {
-				for k := len(zeilen) - 1; k >= 0; k-- {
-					b.WriteString(zeilen[k])
-				}
-			} else {
-				b.WriteString(strings.Join(zeilen, ""))
+				umkehren(zeilen)
 			}
+			mZeilen = append(mZeilen, zeilen...)
 		}
 	}
-	return b.String()
+	if iRueck {
+		umkehren(iZeilen)
+	}
+	return `DELETE FROM message; DELETE FROM interaction; DELETE FROM session; UPDATE meta SET value = '` + version + `' WHERE key = 'version';` +
+		strings.Join(sZeilen, "") + strings.Join(iZeilen, "") + strings.Join(mZeilen, "")
+}
+
+func umkehren(z []string) {
+	for a, b := 0, len(z)-1; a < b; a, b = a+1, b-1 {
+		z[a], z[b] = z[b], z[a]
+	}
 }
 
 // endeFall ist eine Datei, die der Test auf einer gültigen Datei mit SQL aufbaut, und was der
@@ -111,8 +123,10 @@ func pruefeEndeFaelle(t *testing.T, faelle []endeFall) {
 			t.Errorf("%s: Meldungscode %q, erwartet %q (%v)", c.name, got, c.want, err)
 			continue
 		}
-		if c.want == unbekannteV && strings.Contains(err.Error(), "Version "+c.version) {
-			t.Errorf("%s: die Meldung nennt die Version: %v", c.name, err)
+		if c.want == unbekannteV {
+			if rest := strings.ReplaceAll(ohnePfad(err.Error()), unbekannteV, ""); strings.Contains(rest, c.version) {
+				t.Errorf("%s: die Meldung nennt die Zahl der Datei: %v", c.name, err)
+			}
 		}
 		if c.want != "" {
 			continue
@@ -222,7 +236,7 @@ func TestLesenEndeAbgelehntStelle(t *testing.T) {
 
 // Abdeckung: LH-FA-25/Negative — der Leser von sqlite prüft die Version vor dem Inhalt und vergleicht sie als Zahl:
 // jede kanonische Zahl außer 1 und 2 (0, 3, -1, 10, 20, eine über 64 Bit) ist PGR-E3002, auch bei einem Ende an
-// falscher Stelle, und ihre Meldung enthält nicht "Version" mit der Zahl; andere Schreibweisen von 2 (02, +2, mit
+// falscher Stelle, und ihre Meldung enthält die Zahl der Datei in keiner Form (auch nicht ohne das Wort Version); andere Schreibweisen von 2 (02, +2, mit
 // Leerzeichen davor oder danach) sind PGR-E3003.
 func TestLesenEndeVersionen(t *testing.T) {
 	gut := einSession(fertigeInteraktion())
@@ -261,6 +275,48 @@ func TestLesenEndeJeSession(t *testing.T) {
 		_, err := laden(path)
 		if codeVon(err) != c.want {
 			t.Errorf("%s: Meldungscode %q, erwartet %q (%v)", c.name, codeVon(err), c.want, err)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-25/Happy — der Leser von sqlite ordnet Interaktionen und Sessions nach ihren Nummern
+// (sequence, id), nicht nach der Reihenfolge der Zeilen: steht die Zeile der letzten Interaktion mit dem Ende
+// vor der der ersten, wird die Datei geladen und das Ende steht in der letzten Interaktion; steht die Zeile
+// der Session mit dem Ende vor der der ersten (die Tabelle session neu angelegt, denn id ist der Schlüssel der
+// Tabelle), trägt die zweite Session der Aufzeichnung das Ende.
+func TestLesenEndeNummernOrdnen(t *testing.T) {
+	basis := sqliteDatei(t, sessionsMit(1))
+	enden := func(rec model.Recording) (je []int) {
+		for _, s := range rec.Sessions {
+			n := 0
+			for _, i := range s.Interactions {
+				if endeIn(i) {
+					n++
+				}
+			}
+			je = append(je, n)
+		}
+		return je
+	}
+	for _, c := range []struct {
+		name     string
+		iRueck   bool
+		nachher  string
+		sessions [][]ia
+		want     []int
+	}{
+		{"Zeilen von interaction umgekehrt", true, "", einSession(fertigeInteraktion(), einf(fatal(), ende())), []int{1}},
+		{"Zeilen von session umgekehrt", false, `CREATE TABLE neu AS SELECT * FROM session ORDER BY id DESC; DROP TABLE session; ALTER TABLE neu RENAME TO session;`, [][]ia{{fertigeInteraktion()}, {einf(fatal(), ende())}}, []int{0, 1}},
+	} {
+		path := kopiere(t, basis)
+		rohSchreibe(t, path, endeSQLGeordnet("2", false, c.iRueck, c.sessions...)+c.nachher)
+		rec, err := laden(path)
+		if err != nil {
+			t.Errorf("%s: %v", c.name, err)
+			continue
+		}
+		if got := enden(rec); fmt.Sprint(got) != fmt.Sprint(c.want) {
+			t.Errorf("%s: Enden je Session %v, erwartet %v", c.name, got, c.want)
 		}
 	}
 }
