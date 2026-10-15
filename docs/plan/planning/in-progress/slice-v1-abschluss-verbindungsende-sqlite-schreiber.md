@@ -80,9 +80,11 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/recording/sqlite.go`, `sqlite_zeilen.go`, `sqlite_json.go` | update | Schreiber: Nachricht `connection_closed`, `meta.version` in der Transaktion |
-| `internal/adapters/driven/recording` (Tests) | update | Schreiben (Version, Transaktion mit Fehler), Roundtrip beider Formate |
-| `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests |
+| `internal/adapters/driven/recording/sqlite.go`, `sqlite_zeilen.go` | update | Schreiber: `meta.version` = `model.Version` beim Anlegen, Stand „Ende gesetzt“ im Schreiber, `UPDATE meta` in der Transaktion der ersten Session mit Ende, „Session mit Ende“ über `Recording{Sessions: {s}}.HasEnd()`; die Nachricht `connection_closed` entsteht schon aus der bestehenden Abbildung der Server-Antworten (`serverZeile`), der Test belegt Stelle und Form |
+| `internal/adapters/driven/recording/sqlite_schreiben_ende_test.go` | neu | Tests: Wahl der Version, wer setzt, Fehlerweg, Darstellung, Stellen, Roundtrip beider Formate |
+| `docs/user/abdeckung-unit.md` | update (`make abdeckung`) | Tabelle aus den Deklarationen der Tests |
+
+`sqlite_json.go` und `export_test.go` bleiben unberührt; die Tabelle `abdeckung-e2e.md` ändert sich nicht (kein E2E-Test in diesem Slice).
 
 ## 4. Trigger
 
@@ -146,8 +148,8 @@ Fixtures: `sEnde`, `sSession`, `sRec`, `sEinfach`, `sExtended`, `sGruppe` aus `y
 
 **Risiken:**
 
-- Ein Fehler in der Transaktion ist ohne Einspeisung nicht erreichbar. Geprüft (Architect, 2026-10-15): Das Mittel ist ein Auslöser in der Datei (`rohSchreibe`) und eine doppelte `sequence`, beides ohne Änderung am Produktcode oder an `export_test.go` (oben *Mittel für den Fehler in der Transaktion*) — **Ausgang:** offen bis Closure; zu belegen ist, dass beide Fälle rot werden, wenn die Version außerhalb der Transaktion gesetzt wird.
-- Der Diff liegt über der Marke (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`: Tests mit Mutationen je Element, Roundtrip je Form; Schätzung des Architect 480 bis 760, Mitte 620 (62 %), Meldeschwelle 800) — **Ausgang:** offen bis Closure.
+- Ein Fehler in der Transaktion ist ohne Einspeisung nicht erreichbar. Geprüft (Architect, 2026-10-15): Das Mittel ist ein Auslöser in der Datei (`rohSchreibe`) und eine doppelte `sequence`, beides ohne Änderung am Produktcode oder an `export_test.go` (oben *Mittel für den Fehler in der Transaktion*) — **Ausgang:** offen bis Closure; zu belegen ist, dass beide Fälle rot werden, wenn die Version außerhalb der Transaktion gesetzt wird. Belegt in §7: Der Mutant „Version nach dem Commit in einer eigenen Transaktion“ färbt den Fall mit dem Auslöser, der Mutant „Version vor dem Einfügen in einer eigenen Transaktion“ den Fall mit der doppelten `sequence`.
+- Der Diff liegt über der Marke (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`: Tests mit Mutationen je Element, Roundtrip je Form; Schätzung des Architect 480 bis 760, Mitte 620 (62 %), Meldeschwelle 800) — gemessen: 596 in der Metrik von §4 (§7), 60 % der Marke; **Ausgang:** offen bis Closure.
 
 ## 7. Closure-Notiz
 
@@ -164,6 +166,64 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+### Belege des Implementers
+
+**Messung der Marke** (`AGENTS.md` §3.14): `git diff --numstat b5933e85de09b686e4e204d17d6bb85d0a092b37 -- internal docs/user` über den Stand vor dem Commit des Implementers (neue Datei mit `git add -N`): `sqlite.go` 14/6, `sqlite_zeilen.go` 32/3, `sqlite_schreiben_ende_test.go` 520/0, `abdeckung-unit.md` 21/0; Summe **596** (Einfügungen 587, Löschungen 9). Unter der Meldeschwelle 800 und unter der Marke 1000; Schätzung des Architect 480 bis 760, Faktor Tests zu Produktcode rund 9,5 (520 : 55, Produktcode als Summe der Einfügungen und Löschungen).
+
+**Weg der Mutationen.** Eine Kopie des Baums (`go.mod`, `go.sum`, `internal/`) außerhalb des Repos, im Quelltext der Kopie je Mutant ein Zweig, der über die Umgebungsvariable `MUT` (und `MUT_USER` oder `MUT_K` für schlüsselnde Mutanten) einschaltet; das Testbinary einmal mit `go test -c` im Image `deps` gebaut (`--network=none`, Bind-Mount der Kopie, kein Build-Kontext, daher kein mtime-Problem), je Mutant ein Lauf des Binarys mit gesetzter Variable gegen `TestSQLite(Version|Ende|SchreibenNimmt|Roundtrip)`. Ohne `MUT` läuft das Binary der Kopie grün (PASS), der Repo-Quelltext enthält keinen Mutanten. „Rot“ nennt den Test, der rot wird; weitere rote Tests stehen dahinter, wo der Mutant sie mitfärbt.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| mit Ende steht die Version auf 2 | Version wird nie gesetzt (`keine`) | `TestSQLiteVersionNachInhalt` alle Fälle „mit Ende“ und die Fälle der anderen Tests, die 2 erwarten |
+| ohne Ende bleibt sie 1 | Version wird in der ersten Transaktion gesetzt, auch ohne Ende (`immer`) | `VersionNachInhalt`/„Feld N ohne Ende“ (fünf), „nur empty_sessions“, `VersionWerSetzt`/„spätere Session setzt, frühere nicht“ und „Session ohne Ende ändert meta nicht“, `EndeDarstellung`/„ohne Ende“, `Roundtrip`/„Version 2 ohne Ende“ |
+| Feld 1 mit Ende schreibt 2 | Ende wirkt nicht, wenn `rec.Version == 1` (`feld1`) | nur `VersionNachInhalt`/„Feld 1 mit Ende“ |
+| Feld 2, 0, 3, -1 bestimmen die Version nicht | Anlegen schreibt `rec.Version`, wenn er K ist (`feld`, K je 2, 0, 3, -1; vier Läufe) | je K `VersionNachInhalt`/„Feld K mit Ende“ und „Feld K ohne Ende“ (beide, weil beide dasselbe Anlegen treffen); bei K = 2 zusätzlich alle `Roundtrip`-Fälle, weil das erneute Schreiben aus der geladenen Aufzeichnung (Version 2) das Feld trägt |
+| ohne Sessions und nur `empty_sessions` bleiben bei 1 | Anlegen schreibt 2 ohne Sessions (`leer2`) · bei `EmptySessions` (`empty2`) | `VersionNachInhalt`/„ohne Sessions“ · `VersionNachInhalt`/„nur empty_sessions“ und `Roundtrip`/„empty_sessions“ |
+| Ende nur in einer späteren Session setzt 2 | nur die erste Session des Schreibvorgangs entscheidet (`nurErste`) | `VersionNachInhalt`/„Ende nur in einer späteren Session“ (und `VersionAbbruchUnterbrichtNicht`) |
+| Ende nur in einer nicht letzten Session setzt 2 | nur die letzte Session des Schreibvorgangs entscheidet (`nurLetzte`) | `VersionNachInhalt`/„Ende nur in einer nicht letzten Session“ und „Flush-Gruppe mit Ende, zweite Session ohne“, `SchreibenNimmtFormverletzungAn`/„nicht letzte Session“, `VersionWerSetzt`/„zweite Session mit Ende im selben Schreibvorgang“, `Roundtrip`/„empty_sessions“ |
+| Ende in einer Gruppe zählt (ohne einfaches Ende) | `HasEnd` sieht nur `Responses` (`hasEndeResponses`) | `VersionNachInhalt`/„Ende in einer Extended-Gruppe, in keiner einfachen Interaktion“ und „Flush-Gruppe …“, `SchreibenNimmtFormverletzungAn`/„letzte Gruppe“, „nicht letzte Gruppe“, „mitten in der letzten Gruppe“, `Roundtrip`/„Sync-Gruppe“, „Flush-Gruppe“ |
+| Ende in einer einfachen Interaktion zählt (ohne Gruppe mit Ende) | `HasEnd` sieht nur `Groups` (`hasEndeGroups`) | `VersionNachInhalt`/„Ende in einer einfachen Interaktion, in keiner Gruppe“ (und jeder andere Fall mit einfachem Ende, 32 Teilfälle) |
+| Anlegen schreibt 1, die Transaktion 2 | Anlegen schreibt 2 bei Ende in der Aufzeichnung (`anlegen2`) | `VersionFehlerInDerTransaktion`/„doppelte sequence im ersten Schreibvorgang“ (und alle Fälle mit Ende, weil der `UPDATE` keine Zeile mit Wert 1 findet) |
+| eine zweite Session mit Ende ändert meta nicht | jede Session mit Ende setzt (`jede`) | `VersionWerSetzt`/„zweite Session mit Ende ändert meta nicht“ und „… im selben Schreibvorgang“, „Laden nach späteren Schreibvorgängen“, `VersionSchliessenScheitert` |
+| eine Session ohne Ende nach der Version 2 ändert meta nicht | Sessions ohne Ende setzen nach der Version 2 (`nachV2`) | `VersionWerSetzt`/„Session ohne Ende nach der Version 2 ändert meta nicht“ (und die Fälle mit nicht letzter Session) |
+| Zeile `version` fehlt oder steht auf 2: `PGR-E3001`, Session nicht ergänzt | Zeilenzahl nicht geprüft (`zeilenzahl`) | `VersionZeileUnpassend`/„Zeile fehlt“, „Wert 2“, „Zeile fehlt, andere Zeile mit Wert 1“ (alle drei: ohne die Prüfung gelingt jeder Weg zu null Zeilen) |
+| nur eine Zeile mit dem Wert 1 | `UPDATE` ohne `value = '1'` (`ohneWert`) | nur `VersionZeileUnpassend`/„Wert 2“ |
+| nur die Zeile `version` | `UPDATE` ohne `key = 'version'` (`ohneKey`) | nur `VersionZeileUnpassend`/„Zeile fehlt, andere Zeile mit Wert 1“ |
+| `PRAGMA user_version` bleibt 0 | die Transaktion setzt `user_version` = 2 (`userVersion`) | `VersionNachInhalt` alle Fälle „mit Ende“ (Prüfung von `user_version`) |
+| Scheitert das Setzen, ist die Transaktion zurückgerollt | bei Fehler des `UPDATE` committen statt zurückrollen (`commitTrotz`) | `VersionFehlerInDerTransaktion`/„Auslöser beim Setzen“, `VersionZeileUnpassend` (drei) |
+| die Version steht in derselben Transaktion (Auslöser) | `UPDATE` in einer eigenen Transaktion nach dem Commit (`ausserhalb`) | `VersionFehlerInDerTransaktion`/„Auslöser beim Setzen“ (die Session steht danach in der Datei), `VersionZeileUnpassend` (drei) |
+| die Version steht in derselben Transaktion (doppelte `sequence`) | `UPDATE` in einer eigenen Transaktion vor dem Einfügen (`davor`) | `VersionFehlerInDerTransaktion`/„doppelte sequence im ersten Schreibvorgang“, `VersionZeileUnpassend` (drei) |
+| der nächste Schreibvorgang nach einem Fehler setzt 2 | „Ende gesetzt“ schon vor dem Commit gemerkt (`flagVorCommit`) | `VersionFehlerInDerTransaktion`/„Auslöser beim Setzen“ und „doppelte sequence im ersten Schreibvorgang“ |
+| scheitert das Schließen nach der Transaktion, steht 2 und der nächste Schreibvorgang ändert sie nicht | „Ende gesetzt“ erst nach dem Schließen (`nachSchliessen`) | `VersionSchliessenScheitert` (und `VersionWerSetzt`/„zweite Session mit Ende im selben Schreibvorgang“) |
+| ein Abbruch des Kontexts unterbricht die Transaktion mit dem Ende nicht | `Write` reicht `ctx` ohne `WithoutCancel` durch (`abbruch`) | `VersionAbbruchUnterbrichtNicht` |
+| Session mit Ende und falscher Nummer ist `PGR-E1000`, keine Datei | Prüfung der Nummern nach dem Anlegen (`nummerNach`) | `EndeMitFalscherNummer` |
+| das Ende steht an `position` nach der Fehlerantwort | Position + 1 (`endePos`) | `EndeDarstellung`/„einfach“ und die übrigen Fälle mit Ende (20 Teilfälle) |
+| `position` über beide Richtungen | Position zählt nur Server-Nachrichten, wenn eine Gruppe vorliegt (`endePosNurServer`) | `EndeDarstellung`/„Sync-Gruppe“, „Flush-Gruppe“ (einfach bleibt grün) |
+| `group_no` bei einer Gruppe | `group_no` `NULL` (`endeGruppeNull`) | `EndeDarstellung`/„Sync-Gruppe“, „Flush-Gruppe“, `Roundtrip`/„Sync-Gruppe“, „Flush-Gruppe“ |
+| `group_no` ist die Nummer der Gruppe | `group_no` immer 1 (`endeGruppeEins`) | nur `EndeDarstellung`/„Flush-Gruppe“, `Roundtrip`/„Flush-Gruppe“ |
+| `group_no` `NULL` bei einfacher Interaktion | `group_no` 1 bei einfacher Interaktion (`endeEinfachGruppe`) | `EndeDarstellung`/„einfach“, „mit offset_ms“, `Roundtrip`/„einfach“, „offset_ms“, „empty_sessions“ |
+| `direction` `server` | `direction` `client` (`endeRichtung`) | `EndeDarstellung`/„einfach“ und die übrigen Fälle mit Ende (14 Teilfälle) |
+| `sequence` der Interaktion | `sequence` + 100 (`endeSeq`) | `EndeDarstellung`/„einfach“ und die übrigen Fälle mit Ende (14 Teilfälle) |
+| `kind` `connection_closed` | `kind` `connectionclosed` (`endeKind`) | `EndeDarstellung` alle Fälle mit Ende |
+| `fields` genau `{}` (Text mit zwei Zeichen) | `fields` `{ }` (`endeFelder`) | `EndeDarstellung`/„einfach“, „Sync-Gruppe“, „Flush-Gruppe“, „mit offset_ms“, „Feld neben type steht in fields“, `SchreibenNimmtFormverletzungAn`/„Feld neben type“ |
+| ein Feld im Modell steht in `fields`, nicht verworfen | `fields` bei `connection_closed` immer `{}` (`endeVerwerfen`) | nur `EndeDarstellung`/„Feld neben type steht in fields“ und `SchreibenNimmtFormverletzungAn`/„Feld neben type“ |
+| `offset_ms` an der Interaktion mit Ende | `offset_ms` `NULL` bei Interaktion mit Ende (`offsetEnde`) | `EndeDarstellung`/„offset_ms an der Interaktion mit Ende“, `Roundtrip`/„offset_ms“ |
+| ohne Ende dieselben Zeilen wie bisher | zusätzliche Zeile in `meta` (`metaExtra`) | `EndeDarstellung`/„ohne Ende“ und weitere Fälle, die `meta` zählen |
+| der Schreiber lehnt keine Stelle ab (14 Fälle) | je Stelle: der Schreiber lehnt die Aufzeichnung mit dem Nutzer der Stelle ab (`ablehnen`, `MUT_USER` je Stelle; 14 Läufe) | je Lauf genau der Fall dieser Stelle in `SchreibenNimmtFormverletzungAn`, kein anderer |
+| der Schreiber setzt für jede Stelle 2 | je Stelle: die Version wird für diese Aufzeichnung nicht gesetzt (`ohneVersion`, `MUT_USER` je Stelle; 14 Läufe) | je Lauf genau der Fall dieser Stelle, kein anderer |
+| Roundtrip je Form, gleich dem YAML | je Form: die Zeile des Endes entfällt für die Aufzeichnung der Form (`ohneEndeZeile`, `MUT_USER` je Form; fünf Läufe) | je Lauf genau `Roundtrip`/<Form> (einfach, Sync-Gruppe, Flush-Gruppe, offset_ms, empty_sessions) |
+| Roundtrip mit `offset_ms` | `offset_ms` entfällt für die Form (`ohneOffset`) | nur `Roundtrip`/„offset_ms“ |
+| Roundtrip mit `empty_sessions` | die Zeile `empty_sessions` entfällt für die Form (`ohneEmptyMeta`) | nur `Roundtrip`/„empty_sessions“ |
+| Version 2 ohne Ende schreibt 1 | Feld bestimmt die Version, K = 2 (`feld`) · `immer` | `Roundtrip`/„Version 2 ohne Ende“ (neben den oben genannten) |
+
+**Grüne Mutanten:** keine; jeder der Läufe oben färbte mindestens den genannten Test. Mitgefärbt sind Tests, die denselben Mechanismus treffen (die Zeilen „Feld K“ als Paar, `anlegen2` und `keine` alle Fälle mit Ende, die Mutanten der Darstellung die Fälle mit Ende überhaupt); wo die Zeile „nur“ sagt, blieb jeder andere Test grün. Nicht gefahren: „Reihenfolge der Zeilen in der Datei“ (nicht zugesagt, §6) und „Aufruf-Voraussetzung“ (keine).
+
+**Abwesenheitszusagen** prüfen die Form des Werts (`err == nil`, Zeilenzahl, Wert von `meta.version`), nicht den Wortlaut einer Meldung; nur `PGR-E3001` mit der Ursache im Text (`meta gesperrt`, eingespielter Schließfehler) prüft Anwesenheit der Ursache, wie §6 es verlangt.
+
+**Fixtures.** Alle Fälle außer „Feld N“ tragen im Modell das Feld `version` 5 (`feldNeutral`), das kein Fall der Wahl der Version nennt; Ende in einer Extended-Gruppe (ohne einfaches Ende) und Ende in einer einfachen Interaktion (ohne Gruppe) sind eigene Fälle; die Stellen tragen je Fall einen eigenen Startup-Parameter `user`, der nur den Mutanten schlüsselt.
+
+**Läufe.** `make abdeckung`: `abdeckung-unit.md` um 21 Zeilen ergänzt. Engster Sensor: `TestSQLite(Version|Ende|SchreibenNimmt|Roundtrip)` im Image `deps`, `--network=none`: grün. `make lint` nach dem ersten Lauf von `make gates` (13 Befunde `contextcheck` an Aufrufen der Hilfen `neueDatei` und `laden` in Unterfällen mit `ctx` im Gültigkeitsbereich der Tests; behoben, indem diese Tests `context.Background()` am Aufruf tragen): `0 issues`. `make gates` danach vollständig: Exit 0, jede Stufe grün, einschließlich `make test-integration`, `make test-postgres-versionen` und der Gegenproben; kein Fehlschlag der Flanke `p7-int-treiber` in diesem Lauf.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -185,3 +245,5 @@ Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-verbindungsende-
 Nachgezählt bei der Prüfung des Architect vor dem Code (2026-10-15, `AGENTS.md` §3.13): Liefer-Punkte 2 (Schreiber mit Version in der Transaktion; Roundtrip). Schichten **zwei**: Recording-Adapter (`ARC-008`) und `docs/user` (die Abdeckungstabellen, die `make abdeckung` aus den Deklarationen der Tests schreibt; `docs/user` zählt als Schicht, §3.13 *Schichten zählen alle Pläne gleich*) — die Zählung „eine“ vom Anlegen war um diese Tabellen zu niedrig, die Grenze von zwei hält. Das Modell bleibt unberührt (`Recording.HasEnd` auf eine Aufzeichnung mit einer Session, keine neue Methode), der Port ebenso. Schätzung in der Metrik von §4: 480 bis 760, Mitte 620, 62 % der Marke 1000, unter 70 %.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
+
+Nachgezählt nach der Umsetzung (Implementer, 2026-10-15, `AGENTS.md` §3.13): Liefer-Punkte 2 (Schreiber mit Version in der Transaktion; Roundtrip). Schichten zwei: Recording-Adapter (`ARC-008`) und `docs/user` (Abdeckungstabelle); das Modell, der Port und `sqlite_json.go` sind unberührt. Messung in der Metrik von §4: **596** (Einfügungen 587, Löschungen 9, bis zum Commit des Implementers), 60 % der Marke 1000, unter der Meldeschwelle 800; der Schnitt Version in der Transaktion | Roundtrip war nicht nötig.

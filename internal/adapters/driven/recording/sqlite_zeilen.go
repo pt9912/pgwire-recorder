@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 )
@@ -22,6 +24,8 @@ type sessionZeilen struct {
 	serverParameters string
 	interaktionen    []interaktionZeile
 	nachrichten      []nachrichtZeile
+	// mitEnde: irgendeine Antwort irgendeiner Interaktion ist connection_closed.
+	mitEnde bool
 }
 
 type interaktionZeile struct {
@@ -44,7 +48,7 @@ type nachrichtZeile struct {
 // stehen als JSON-Objekt, ohne Einträge als {}; die Nachrichten einer Interaktion
 // zählen ab 1 in der Reihenfolge der Interaktion (SPEC-043).
 func zeilenDerSession(s model.Session) (sessionZeilen, error) {
-	z := sessionZeilen{id: s.ID}
+	z := sessionZeilen{id: s.ID, mitEnde: model.Recording{Sessions: []model.Session{s}}.HasEnd()}
 	var err error
 	if z.startup, err = jsonText(s.Startup, ""); err != nil {
 		return z, err
@@ -121,10 +125,11 @@ func serverZeile(sequence, position int, gruppe sql.NullInt64, r model.Response)
 	return nachrichtZeile{sequence: sequence, position: position, richtung: richtungServer, gruppe: gruppe, art: string(r.Type), felder: felder}, nil
 }
 
-// ergaenzeSession fügt die Zeilen z in einer Transaktion ein (BEGIN IMMEDIATE); bei
+// ergaenzeSession fügt die Zeilen z in einer Transaktion ein (BEGIN IMMEDIATE); mit
+// setzeVersion setzt dieselbe Transaktion meta.version auf model.VersionMitEnde. Bei
 // einem Fehler ist die Transaktion zurückgerollt und die Datei unverändert. Alle
 // Werte gelangen als Parameter vorbereiteter Anweisungen in die Datenbank.
-func ergaenzeSession(ctx context.Context, db *sql.DB, z sessionZeilen) error {
+func ergaenzeSession(ctx context.Context, db *sql.DB, z sessionZeilen, setzeVersion bool) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -132,7 +137,31 @@ func ergaenzeSession(ctx context.Context, db *sql.DB, z sessionZeilen) error {
 	if err := fuegeEin(ctx, tx, z); err != nil {
 		return errors.Join(err, tx.Rollback())
 	}
+	if setzeVersion {
+		if err := setzeVersionMitEnde(ctx, tx); err != nil {
+			return errors.Join(err, tx.Rollback())
+		}
+	}
 	return tx.Commit()
+}
+
+// setzeVersionMitEnde ändert in tx genau die Zeile version von meta mit dem Wert
+// model.Version auf model.VersionMitEnde; jede andere Zahl geänderter Zeilen ist ein
+// Fehler.
+func setzeVersionMitEnde(ctx context.Context, tx *sql.Tx) error {
+	res, err := tx.ExecContext(ctx, `UPDATE "meta" SET "value" = ? WHERE "key" = 'version' AND "value" = ?`,
+		strconv.Itoa(model.VersionMitEnde), strconv.Itoa(model.Version))
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return fmt.Errorf("meta.version nicht auf %d zu setzen: %d Zeilen mit dem Wert %d", model.VersionMitEnde, n, model.Version)
+	}
+	return nil
 }
 
 func fuegeEin(ctx context.Context, tx *sql.Tx, z sessionZeilen) error {

@@ -41,6 +41,9 @@ type SQLite struct {
 	angelegt bool
 	// ergaenzt zählt die Sessions, die die Datei trägt: die Nummern 1 bis ergaenzt.
 	ergaenzt int
+	// endeGesetzt: die Transaktion der ersten Session mit Ende ist abgeschlossen, die
+	// Datei trägt meta.version = 2 (LH-FA-22.a *Ende und Version beim Schreiben von `sqlite`*).
+	endeGesetzt bool
 }
 
 var _ driven.RecordingRepository = (*SQLite)(nil)
@@ -79,8 +82,9 @@ func journalName(path string) string { return path + "-journal" }
 // einer eigenen Transaktion (LH-FA-22.a *Schreiben von `sqlite`*). Der erste Aufruf
 // legt die Datei über eine temporäre Datei im Zielverzeichnis an und verschiebt sie
 // auf path; Name, Rechte und Fehlschlag der temporären Datei gelten wie bei
-// YAML.Write. Ein Abbruch von ctx unterbricht keine Transaktion. Jeder Fehler der
-// Bibliothek ist PGR-E3001.
+// YAML.Write. Die Transaktion der ersten Session mit Ende setzt meta.version von 1
+// auf 2; jede andere lässt meta unberührt. Ein Abbruch von ctx unterbricht keine
+// Transaktion. Jeder Fehler der Bibliothek ist PGR-E3001.
 func (s *SQLite) Write(ctx context.Context, path string, rec model.Recording) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -153,16 +157,19 @@ func (s *SQLite) schreibe(ctx context.Context, path string, rec model.Recording,
 }
 
 // ergaenze prüft, dass die Datei genau die Sessions 1 bis s.ergaenzt trägt, und
-// ergänzt danach die Sessions aus zeilen, jede in einer Transaktion; nach jeder
+// ergänzt danach die Sessions aus zeilen, jede in einer Transaktion; die der ersten
+// Session mit Ende setzt dabei meta.version auf model.VersionMitEnde. Nach jeder
 // abgeschlossenen zählt s.ergaenzt, bei einem Fehler endet es ohne die übrigen.
 func (s *SQLite) ergaenze(ctx context.Context, db *sql.DB, zeilen []sessionZeilen) error {
 	if err := pruefeSessions(ctx, db, s.ergaenzt); err != nil {
 		return err
 	}
 	for _, z := range zeilen {
-		if err := ergaenzeSession(ctx, db, z); err != nil {
+		setzeVersion := z.mitEnde && !s.endeGesetzt
+		if err := ergaenzeSession(ctx, db, z, setzeVersion); err != nil {
 			return err
 		}
+		s.endeGesetzt = s.endeGesetzt || setzeVersion
 		s.ergaenzt++
 	}
 	return nil
@@ -197,7 +204,8 @@ func legeAn(ctx context.Context, path string, rec model.Recording, ops sqliteOps
 }
 
 // legeSchemaAn legt in der Datei tmp in einer Transaktion Schema und meta an: die
-// Formatkennung, die Version und bei rec.EmptySessions die Zeile empty_sessions.
+// Formatkennung, die Version model.Version (das Feld Version von rec bestimmt sie
+// nicht) und bei rec.EmptySessions die Zeile empty_sessions.
 func legeSchemaAn(ctx context.Context, tmp string, rec model.Recording) (err error) {
 	db, err := oeffne(ctx, tmp)
 	if err != nil {
@@ -208,7 +216,7 @@ func legeSchemaAn(ctx context.Context, tmp string, rec model.Recording) (err err
 	if err != nil {
 		return err
 	}
-	meta := [][2]string{{"format", rec.Format}, {"version", strconv.Itoa(rec.Version)}}
+	meta := [][2]string{{"format", rec.Format}, {"version", strconv.Itoa(model.Version)}}
 	if rec.EmptySessions {
 		meta = append(meta, [2]string{"empty_sessions", "true"})
 	}
