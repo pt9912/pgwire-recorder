@@ -53,17 +53,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), `SPEC-002`, `SPEC-041`: `connection_closed` ist ein Antworttyp des Modells. `Validate` nimmt ihn nur als letzte Server-Nachricht an, unmittelbar nach einer `error_response` mit dem Schweregrad `FATAL` oder `PANIC` (Feld `V`, ohne es `S`) und ohne Felder: bei einer einfachen Anfrage statt `ready_for_query`, bei einer Extended-Interaktion in der letzten Gruppe, die dann mit `Sync` oder `Flush` endet und kein `ready_for_query` trägt. Eine Session trägt höchstens ein Ende, in ihrer letzten Interaktion: `Session.ValidateEnd() error` (Test).
-- [ ] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats), `SPEC-001`: Der YAML-Leser nimmt `version: 1` und `version: 2` an, auch Version 2 ohne Ende. `connection_closed` in Version 1, an einer anderen Stelle als der Form, nicht nach `FATAL`/`PANIC` und mit Feldern sind `PGR-E3003`; `version: 3` und jede andere ganze Zahl sind `PGR-E3002`. Der Leser ruft `Session.ValidateEnd` nach den Interaktionen jeder Session (Test mit handgeschriebenen Aufzeichnungen als Text; die vorhandenen Tests des Lesers bleiben grün).
-- [ ] Je Zusage des neuen Vertrags (Modell, Formregeln, Leser) eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), `SPEC-002`, `SPEC-041`: `connection_closed` ist ein Antworttyp des Modells. `Validate` nimmt ihn nur als letzte Server-Nachricht an, unmittelbar nach einer `error_response` mit dem Schweregrad `FATAL` oder `PANIC` (Feld `V`, ohne es `S`) und ohne Felder: bei einer einfachen Anfrage statt `ready_for_query`, bei einer Extended-Interaktion in der letzten Gruppe, die dann mit `Sync` oder `Flush` endet und kein `ready_for_query` trägt. Eine Session trägt höchstens ein Ende, in ihrer letzten Interaktion: `Session.ValidateEnd() error` (Test).
+- [x] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats), `SPEC-001`: Der YAML-Leser nimmt `version: 1` und `version: 2` an, auch Version 2 ohne Ende. `connection_closed` in Version 1, an einer anderen Stelle als der Form, nicht nach `FATAL`/`PANIC` und mit Feldern sind `PGR-E3003`; `version: 3` und jede andere ganze Zahl sind `PGR-E3002`. Der Leser ruft `Session.ValidateEnd` nach den Interaktionen jeder Session (Test mit handgeschriebenen Aufzeichnungen als Text; die vorhandenen Tests des Lesers bleiben grün).
+- [x] Je Zusage des neuen Vertrags (Modell, Formregeln, Leser) eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -135,9 +135,9 @@ dasteht.
 
 **Risiken:**
 
-- Zwischenstand: Nach diesem Slice lädt `replay` eine Aufzeichnung mit Ende, der PGWire-Adapter kennt `connection_closed` aber noch nicht — **Ausgang:** offen bis Closure (erwartet: eingetreten, `slice-v1-abschluss-verbindungsende-replay`, direkt dahinter in der Reihenfolge nach `slice-v1-abschluss-verbindungsende-sqlite`).
+- Zwischenstand: Nach diesem Slice lädt `replay` eine Aufzeichnung mit Ende, der PGWire-Adapter kennt `connection_closed` aber noch nicht — **Ausgang:** eingetreten: `slice-v1-abschluss-verbindungsende-replay` (Schritt 37, gibt `connection_closed` wieder; nennt in §1 „Übernommen aus `slice-v1-abschluss-verbindungsende-format`“ und in §4 diesen Slice als Start).
 - Der ungeteilte Plan lag über einer Review-Sitzung (Prüfung des Architect vom 2026-10-15: 850 bis 1250, §8; `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar`) — **Ausgang:** eingetreten: `slice-v1-abschluss-verbindungsende-format-schreiber` nimmt den Schreiber mit Roundtrip auf (Schnitt vom 2026-10-15, §1 und §4).
-- Dieser Teil überschreitet trotz des Schnitts Meldeschwelle oder Marke (Schätzung 550 bis 750; `slice-v1-abschluss-protokollrand` maß 23 % über der Obergrenze, das wären etwa 920; `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`, Tests mit Tabelle von Randformen und Mutationen je Element) — **Ausgang:** offen bis Closure; Meldeschwelle 800 und Marke 1000 stehen in §4.
+- Dieser Teil überschreitet trotz des Schnitts Meldeschwelle oder Marke (Schätzung 550 bis 750; `slice-v1-abschluss-protokollrand` maß 23 % über der Obergrenze, das wären etwa 920; `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`, Tests mit Tabelle von Randformen und Mutationen je Element) — **Ausgang:** entfallen: gemessen 655 in der Metrik von §4 (Meldeschwelle 800 und Marke 1000 nicht erreicht, Schätzung 550 bis 750 getroffen); `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` trat nicht auf (Vermerk im Register).
 - Die Formregel einer Session („höchstens ein Ende, in der letzten Interaktion“) braucht einen Ort im Modell, den die Spezifikation nicht vorgibt (Methode an `Session` oder `Recording`, Aufruf aus den Lesern); die Wahl hat der Architect getroffen (oben, `Session.ValidateEnd`) — **Ausgang:** entfallen: entschieden vor dem Code, kein offener Punkt.
 
 ## 7. Closure-Notiz
@@ -237,6 +237,42 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 - *Review F-3:* nicht geändert; die Abdeckungstabelle ist Ausgabe des Werkzeugs, die Lesart von „vollständig“ bei teilweise gelieferter Anforderung liegt beim Planner. *F-5:* keine Aktion.
 
 **Letzter Lauf.** `make gates` auf dem Arbeitsbaum der Nacharbeit aus dem Review (2026-10-15, vor ihrem Commit): Exit 0, alle Gates grün, darunter `lint`, `a-check`, `test`, `test-integration`, `test-postgres-versionen` und die Gegenproben. Davor ein roter Lauf der Nacharbeit: `docs-check` meldete eine Kennung ohne Link in der Eingangs-Kontext-Zeile des Review-Reports (`id-unlinked`); die Zeile trägt jetzt den Link, sonst nichts am Report. Keine Datei außerhalb von `docs/plan/` hat sich seit dem grünen Lauf geändert.
+
+### Closure (Planner, 2026-10-15)
+
+**Review und Verifikation.** Review `3d14ef7` (0 HIGH, 1 MEDIUM F-1, 1 LOW F-2, 3 INFO F-3 bis F-5); F-1 durch den Architect (`aed8a49`, `SPEC-002` und Plan §6) und die Nacharbeit `91a5228` behoben, F-2 und F-4 behoben, F-3 siehe Register, F-5 keine Aktion. Verifikation `357b872`: **PASS mit Befunden**, 0 HIGH, 0 MEDIUM, 0 LOW, 4 INFO (V-1 bis V-4); alle DoD-Punkte bestätigt, 18 Mutanten nachgefahren, jeder färbt die in §7 genannten Tests (M4b grün, äquivalent), die Abgrenzung ist eingehalten, die Messung 655 stimmt. V-1 ist in `8ad8446` berichtigt, V-2 ist Kenntnisnahme (die Tests binden die Reihenfolge der Prüfungen mehr als der Vertrag; bei einem Refactor der Prüfreihenfolge die Texte nachziehen), V-3 siehe Register, V-4 (Änderung eines Review-Reports durch den Implementer, formal, im Commit-Text nicht genannt) ist kein Rücksprung; künftig nennt der Commit-Text die Änderung eines Reports.
+
+**Gate-Nachweis.** Der volle `make gates` lief auf dem Arbeitsbaum der Nacharbeit grün (Exit 0, §7 *Letzter Lauf*); danach änderten sich nur Dateien auf der Positivliste (`docs/plan/planning/`, `docs/reviews/`); der Stop-Hook gab `approve`. Die Verifikation fuhr `make gates` nicht erneut, die Läufe der beiden Unit-Pakete und der Mutanten selbst.
+
+**Größe.** 655 in der Metrik aus §4 (erste Fassung 590, Nacharbeit +65), Meldeschwelle 800 und Marke 1000 nicht erreicht, Schätzung 550 bis 750 getroffen; Liefer-Punkte 2, Schichten 2 (§8).
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge):
+
+| Risiko | Ausgang | Begründung |
+|---|---|---|
+| Zwischenstand: `replay` lädt eine Aufzeichnung mit Ende, der PGWire-Adapter kennt `connection_closed` noch nicht | eingetreten | Folge-Slice `slice-v1-abschluss-verbindungsende-replay`; er nimmt an (§1 „Übernommen aus … format“, §4 Start) |
+| Der ungeteilte Plan lag über einer Review-Sitzung | eingetreten | Folge-Slice `slice-v1-abschluss-verbindungsende-format-schreiber` nimmt den Schreiber mit Roundtrip auf (§1 und DoD); Register: `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` (Beleg dieses Slice), Lücke bei `slice-harness-schaetzung-planner-faktor` |
+| Dieser Teil überschreitet Meldeschwelle oder Marke | entfallen | gemessen 655 unter Meldeschwelle 800 und Marke 1000, in der Schätzung; die Randform-Rückgabe an den Architect trug den Zuwachs von 590 auf 655 |
+| Ort der Formregel einer Session | entfallen | entschieden vor dem Code (`Session.ValidateEnd`), geliefert und nachgewiesen (`TestSessionValidateEnd`, der Leser ruft sie) |
+
+**Register** (Zähler = Dateien unter `evidence/`, Stand dieser Closure; Beleg je `evidence/slice-v1-abschluss-verbindungsende-format.md`):
+
+| Eintrag | Zähler | Fund | Stand |
+|---|---|---|---|
+| `BEO-REPO/spec-randform-erst-im-review-entschieden` | 31 | F-1: Stelle von `ready_for_query` und `connection_closed` in der Nachrichtenfolge | verkörpert, Regel bleibt |
+| `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` | 18 | F-1: bemerkt, in §7 vermerkt, nicht zurückgegeben | verkörpert, Regel bleibt |
+| `BEO-REPO/plan-folgt-korrektur-nicht` | 48 | F-2: §3 nennt die falsche Abdeckungstabelle | verkörpert, Regel bleibt |
+| `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` | 59 | V-1: „gibt es nicht“ in §7 weiter als die Probe | verkörpert, Regel bleibt |
+| `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` | 5 | kein Auftreten: 655 in 550 bis 750 | geplant (`slice-harness-schaetzung-planner-faktor`), Vermerk |
+| `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` | 4 | Beleg vom Schnitt, unverändert | geplant (`slice-harness-schaetzung-planner-faktor`) |
+| `BEO-REPO/test-prueft-teilstring-gegen-meldung-mit-zufallspfad` | 1 | F-4: Teilstring gegen Meldung mit `t.TempDir()`, nicht Last | neu, offen, unter der Schwelle |
+| `BEO-REPO/abdeckung-vollstaendig-vor-lieferung-der-anforderung` | 1 | F-3, V-3: `vollständig` nach dem ersten von acht Slices | neu, offen, ohne Adresse (`slice-harness-abdeckung-gate` ist keine, siehe `state.md`) |
+
+Kein Eintrag erreicht mit diesem Slice neu 3× ohne Regel; die vier Wiederauftreten betreffen Einträge, die schon `verkörpert` sind, und lösen den Retirement-Check ihrer Regeln aus (keine Regel entfernt oder gelockert). F-3 ist damit beim Planner entschieden: Register-Eintrag statt Änderung der Tabelle, Lesart `vollständig` = drei Pfade gedeckt (`SPEC-048`), keine Aussage über die Lieferung.
+
+**Lerneintrag — benannte Spec-Lücke, Wiederaufgetreten, Regel bleibt** (`AGENTS.md` §3.9, §3.10, §3.11, §3.12); geändert wird keine Regel, kein `liegt in`. Die Spec-Lücke ist **die Stelle einer Nachricht in der Nachrichtenfolge als Randform**: `ready_for_query` vor dem Ende einer einfachen Anfrage und `connection_closed` mitten in der Folge standen weder in §6 noch in `SPEC-002`; der Implementer entschied sie im Code und vermerkte sie nur in §7 (F-1), der Architect trug sie nach (`aed8a49`). Die Nacharbeit zählte die Ausprägungen der Klasse (Anfang · Mitte · direkt davor · zwischen Fehlerantwort und Ende; einfach · Extended letzte Gruppe · nicht letzte Gruppe) und gab jeder einen Fall mit eigener Mutation; die Verifikation fuhr sie nach. Was funktionierte: Der Architect entschied vor dem Code (`690e353`) mehr Randformen als je zuvor in einem Format-Slice, die Mutationstabelle zählte je Element, und die Doppelung zweier Verteidigungen (M4b äquivalent, M4 bricht die Zusage) wurde ehrlich ausgewiesen. Neu: ein Test mit Teilstring gegen einen Zufallspfad (`t.TempDir()`) lieferte einen seltenen Fehlalarm, den der Implementer der Last zuschrieb; Review und Verifikation fanden die Ursache durch Reproduktion mit `TMPDIR` (Register, 1×). Vorschläge an den Nutzer, nicht als Eintrag und nicht von dieser Closure in `AGENTS.md` oder `.claude/` geändert: (1) `AGENTS.md` §3.12 oder `architect.md`: Die Stelle einer Nachricht in der Nachrichtenfolge ist eine Randform (Tabelle Nachricht × Stelle: Anfang, Mitte, direkt davor, direkt danach, letzte Gruppe, nicht letzte Gruppe) und steht in §6 vor dem Code. (2) `.claude/commands/implement-slice.md` Randform-Rückgabe: Eine Lesart, die §7 „Lesart“ nennt, ist eine Rückgabe und hält den Implementer an (der Satz „ein Satz im Bericht ist keine Rückgabe“ steht in §3.12 nur bei der Aufruf-Voraussetzung). Retirement-Check bestanden (keine Regel entfernt oder gelockert).
+
+**Paarungen.** (a) Anker: Der Lerneintrag trägt kein Feld `liegt in`, keine Verkörperung; nichts zu prüfen. (b) Folge-Slice: Genannt sind `slice-v1-abschluss-verbindungsende-replay`, `slice-v1-abschluss-verbindungsende-format-schreiber`, `slice-v1-abschluss-verbindungsende-sqlite`, `slice-v1-abschluss-verbindungsende-record` und `slice-harness-schaetzung-planner-faktor`; alle existieren in `next/` und nehmen an: `grep -n "slice-v1-abschluss-verbindungsende-format"` findet die Kennung des Gebers in §1 von `-replay` (Zeile 35), `-format-schreiber` (Zeilen 33 bis 39), `-sqlite` (Zeilen 33 bis 39) und `-record` (Zeilen 35 und 37), `slice-harness-schaetzung-planner-faktor` trägt die Lücke aus `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` (Register, `state.md`). Die Bindung dieses Gebers (`Session.ValidateEnd`, `model.VersionMitEnde`) steht seit `ac45571` in §1, §6 und §8 (Nachzählung) von `-sqlite`, `-record` und `-format-schreiber`. (c) Register: Alle genannten Kennungen `BEO-REPO/…` bestehen als Verzeichnis, jedes mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
