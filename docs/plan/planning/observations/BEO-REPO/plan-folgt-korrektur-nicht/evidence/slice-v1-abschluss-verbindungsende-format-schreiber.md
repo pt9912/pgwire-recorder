@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-format-schreiber
+**Fund (Review F-2, LOW; F-6, INFO):** (a) §1 und DoD Punkt 2 nannten „Text“-Fixtures, die Tests bauen Modelle, und §3 sagte schon „Modell“. (b) §8 sagte „kein Nehmer eingetragen“, obwohl der Architect die Bindung „Schreiber prüft die Form nicht“ in `-record` (§1, §6, §8) eingetragen hatte (`4940cce`). Beides nachgezogen in `827763c`.

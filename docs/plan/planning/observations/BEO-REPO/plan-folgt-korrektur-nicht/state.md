@@ -39,3 +39,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-postgre
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-format` (F-2) — §3 nannte eine Abdeckungstabelle, die der Diff nicht änderte, und nicht die zwei, die er änderte (Beleg `evidence/slice-v1-abschluss-verbindungsende-format.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-randform-stelle-und-lesart` (F-2, V-3) — §3 trug nach der Lieferung den Entwurf des Wortlauts statt des gelieferten, und §6 trug noch das Wort „Entwurf“ (Beleg `evidence/slice-harness-randform-stelle-und-lesart.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-format-schreiber` (F-2, F-6) — §1 und DoD nannten Text-Fixtures statt Modelle, §8 nannte keinen Nehmer trotz der Bindung in `-record` (Beleg `evidence/slice-v1-abschluss-verbindungsende-format-schreiber.md`).
