@@ -17,3 +17,5 @@ Teil geliefert, kein Auftreten: `slice-v1-abschluss-sessions-doku` — Verifikat
 Teil geliefert, kein Auftreten: `slice-v1-abschluss-tls-client-doku` — Verifikation bestätigt Handbuch- und README-Teil von `slice-v1-abschluss-tls-client` und die Übernahme aus `slice-v1-abschluss-umgebung-anderes-kommando`; die Lücke des Reviews (F-1) war eine Lücke des Plans, nicht der Lieferung.
 
 Teil geliefert, kein Auftreten: `slice-v1-abschluss-anmeldung-doku` — Verifikation bestätigt Handbuch- und README-Teil von `slice-v1-abschluss-anmeldung`; die Suche nach den ersetzten Sätzen (Datenbank ohne Passwort) findet nichts Verbliebenes. Die Lücke zur nicht lesbaren Nachricht (F-7, V-1) ist eine benannte Lücke und ein behobener zu weiter Satz, kein nicht gelieferter Teil.
+
+Teil geliefert, kein Auftreten: `slice-v1-abschluss-postgres-versionen-zusage` — die Verifikation bestätigt Handbuch- und README-Teil der Sendung aus `slice-v1-abschluss-anmeldung` und `slice-v1-abschluss-anmeldung-doku` (die Sätze „geprüft mit PostgreSQL 17“ zur Anmeldung sind je Verfahren nachgezogen).

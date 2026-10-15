@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-postgres-versionen-zusage
+**Fund:** Die Liste 14, 15, 16, 17 und 18 steht jetzt auch in `SPEC-029` (Tabelle §6, Spalte Version); sie hebt sich nicht selbst an, und weder Spezifikation noch Handbuch nennen Daten oder Ereignisse (keine Chronik). Zwei Orte (Fragment der Matrix, Spezifikation) laufen auseinander, wenn nur einer von Hand geändert wird; ein Sensor wäre ein eigener Vorgang. Anlass bleibt: eine neue Hauptversion von PostgreSQL erscheint (PostgreSQL 14 endet am 2026-11-12). Risiko „Feste Liste altert“ aus §6, Ausgang *weiter offen*.

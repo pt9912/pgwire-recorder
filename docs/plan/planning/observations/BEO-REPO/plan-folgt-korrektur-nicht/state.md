@@ -33,3 +33,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-anmeldu
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-anmeldung-doku` (F-1) — der Plan nannte die Änderung der Spezifikation durch den Architect während des Slice nicht (Beleg `evidence/slice-v1-abschluss-anmeldung-doku.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-postgres-versionen-matrix` (V-3) — eine Zahl in §7 auf dem Stand vor der Nacharbeit, ohne die Zeile des vollen Laufs (Beleg `evidence/slice-v1-abschluss-postgres-versionen-matrix.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-postgres-versionen-zusage` (F-1, F-2, F-3) — ein Satz in §6 hinter dem Diff, eine Belegzeile für einen Stand, auf dem `make docs-check` rot war, ein zu weit gefasster Trefferstand (Beleg `evidence/slice-v1-abschluss-postgres-versionen-zusage.md`).

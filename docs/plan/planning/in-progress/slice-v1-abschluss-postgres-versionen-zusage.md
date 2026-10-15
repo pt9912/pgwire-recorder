@@ -65,17 +65,17 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung): `SPEC-029` und `LH-FA-05.e` nennen die von der Matrix geführte Liste der Hauptversionen als feste Liste und was „unterstützt“ heißt (genau die Teilmenge der Matrix; die volle Suite gegen 17); `SPEC-038` nennt die Versionsmatrix; [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung) trägt den Satz zur unterstützten Hauptversion; die Historie der Spezifikation nennt die Änderung. Jede Aussage der Zusage ist durch einen Lauf der Matrix belegt (§6).
-- [ ] `docs/user/benutzerhandbuch.md`: nennt den Bereich; die Sätze zur Anmeldung an den vier Stellen aus §1 nennen für SCRAM-SHA-256 PostgreSQL 14 bis 18 und für Klartext und MD5 PostgreSQL 17 (Entscheidung des Nutzers vom 2026-10-15), und §7 führt zu jeder genannten Version und jedem Verfahren einen Lauf, den ein Verifier nachfahren kann; im Ist-Zustand, ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews.
-- [ ] `README.md`: der Satz zur Anmeldung nennt je Verfahren dieselben Versionen wie das Handbuch (SCRAM-SHA-256: 14 bis 18; Klartext und MD5: 17); im Ist-Zustand.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung): `SPEC-029` und `LH-FA-05.e` nennen die von der Matrix geführte Liste der Hauptversionen als feste Liste und was „unterstützt“ heißt (genau die Teilmenge der Matrix; die volle Suite gegen 17); `SPEC-038` nennt die Versionsmatrix; [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung) trägt den Satz zur unterstützten Hauptversion; die Historie der Spezifikation nennt die Änderung. Jede Aussage der Zusage ist durch einen Lauf der Matrix belegt (§6).
+- [x] `docs/user/benutzerhandbuch.md`: nennt den Bereich; die Sätze zur Anmeldung an den vier Stellen aus §1 nennen für SCRAM-SHA-256 PostgreSQL 14 bis 18 und für Klartext und MD5 PostgreSQL 17 (Entscheidung des Nutzers vom 2026-10-15), und §7 führt zu jeder genannten Version und jedem Verfahren einen Lauf, den ein Verifier nachfahren kann; im Ist-Zustand, ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews.
+- [x] `README.md`: der Satz zur Anmeldung nennt je Verfahren dieselben Versionen wie das Handbuch (SCRAM-SHA-256: 14 bis 18; Klartext und MD5: 17); im Ist-Zustand.
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -144,12 +144,12 @@ dasteht.
 
 Risiken:
 
-- **Feste Liste altert.** Die Liste in der Spezifikation hebt sich nicht selbst an; mit jeder neuen Hauptversion fällt sie hinter die Entscheidung „fünf jüngste“ zurück, und kein Gate merkt es (ein Sensor bräuchte Netz, §1). Eine Folge-Adresse gibt es heute nicht: Ein Slice für das Anheben wäre ohne beobachtbaren Anlass geplant. Kandidat für den Ausgang: *weiter offen* → `BEO-REPO/postgres-versionsliste-altert` (angelegt bei der Closure von `slice-v1-abschluss-postgres-versionen-matrix`, 1×; die Closure dieses Slice hängt ihre Datei an), mit dem beobachtbaren Anlass „eine neue Hauptversion von PostgreSQL ist erschienen“; tritt er ein, plant der Planner den Slice, der die Liste anhebt — **Ausgang:** offen bis Closure.
-- **Satz im Lastenheft.** Entschieden (Nutzer, 2026-10-05): ein Satz in [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung), der auf die Liste der Spezifikation zeigt, ohne Versionssprung (Draft). Die Formulierung ist entschieden (Architect, 2026-10-15, siehe Randformen): Das Lastenheft nennt die Versionen nicht selbst, sonst müsste jedes Anheben das Lastenheft ändern — **Ausgang:** offen bis Closure.
-- **Zusage reicht weiter als das Gate.** „Unterstützt“ liest sich als Zusage für alles; das Gate fährt die Teilmenge der Matrix (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`). Jede Aussage der Zusage trägt einen Lauf, sonst wird sie enger gefasst. Eingetreten in V-1 (Szenario 18 und 16 Satz 3 in Punkt 2 ohne Test) und V-2 („nur“ in der Nachweis-Zeile); beide sind enger gefasst (siehe Randformen), die Szenarien gehen als Sendung an `slice-v1-abschluss-verbindungsende-upstream` und `-vergleich` — **Ausgang:** offen bis Closure; Kandidat: *eingetreten* → `slice-v1-abschluss-verbindungsende-upstream`, `slice-v1-abschluss-verbindungsende-vergleich`.
-- **Handbuch-Satz ohne nachfahrbaren Lauf.** Ein Satz nennt eine Version, zu der §7 keinen Lauf führt (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×; Schritt 19). Die Aufrufe je Version kommen aus der Nahtstelle der Matrix (§1, Punkt 4); fehlt einer, nennt der Satz die Version nicht — **Ausgang:** offen bis Closure.
-- **MD5 gegen die jüngsten Versionen.** MD5 ist ab PostgreSQL 18 abgekündigt; ob der Server der Liste die Anmeldung mit MD5 noch annimmt, zeigt erst der Lauf. Mit der Entscheidung des Nutzers vom 2026-10-15 nennt das Handbuch MD5 nur für 17; Kandidat für den Ausgang: *entfallen*, weil kein Satz MD5 für eine andere Version zusagt — **Ausgang:** offen bis Closure.
-- **Namen der Nahtstelle fehlen.** Die Matrix wählte die Namen von Datei, Variablen und Aufruf; sie stehen seit deren Closure in §1 (Punkte 1 bis 4), und `grep -n "slice-v1-abschluss-postgres-versionen-matrix"` und `grep -n "POSTGRES_VERSIONEN"` in dieser Datei finden sie. Bleibt ein Name aus dem Fragment hinter dem Stand der Matrix zurück (ein Rename), bricht der Aufruf in §7 beim Nachfahren — **Ausgang:** offen bis Closure.
+- **Feste Liste altert.** Die Liste in der Spezifikation hebt sich nicht selbst an; mit jeder neuen Hauptversion fällt sie hinter die Entscheidung „fünf jüngste“ zurück, und kein Gate merkt es (ein Sensor bräuchte Netz, §1). Eine Folge-Adresse gibt es heute nicht: Ein Slice für das Anheben wäre ohne beobachtbaren Anlass geplant. Kandidat für den Ausgang: *weiter offen* → `BEO-REPO/postgres-versionsliste-altert` (angelegt bei der Closure von `slice-v1-abschluss-postgres-versionen-matrix`, 1×; die Closure dieses Slice hängt ihre Datei an), mit dem beobachtbaren Anlass „eine neue Hauptversion von PostgreSQL ist erschienen“; tritt er ein, plant der Planner den Slice, der die Liste anhebt — **Ausgang:** *weiter offen* → `BEO-REPO/postgres-versionsliste-altert` (2×, `evidence/slice-v1-abschluss-postgres-versionen-zusage.md`).
+- **Satz im Lastenheft.** Entschieden (Nutzer, 2026-10-05): ein Satz in [`LH-RB-02`](../../../../spec/lastenheft.md#lh-rb-02--einsatzumgebung), der auf die Liste der Spezifikation zeigt, ohne Versionssprung (Draft). Die Formulierung ist entschieden (Architect, 2026-10-15, siehe Randformen): Das Lastenheft nennt die Versionen nicht selbst, sonst müsste jedes Anheben das Lastenheft ändern — **Ausgang:** *entfallen*: Der Satz steht in `LH-RB-02` in der entschiedenen Fassung (Commits `9458483`, `1bc7dc7`, `8ccf3c3`) und nennt keine Versionsnummer; die Verifikation bestätigte ihn, das Risiko einer offenen Formulierung kann nicht mehr eintreten.
+- **Zusage reicht weiter als das Gate.** „Unterstützt“ liest sich als Zusage für alles; das Gate fährt die Teilmenge der Matrix (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`). Jede Aussage der Zusage trägt einen Lauf, sonst wird sie enger gefasst. Eingetreten in V-1 (Szenario 18 und 16 Satz 3 in Punkt 2 ohne Test) und V-2 („nur“ in der Nachweis-Zeile); beide sind enger gefasst (siehe Randformen), die Szenarien gehen als Sendung an `slice-v1-abschluss-verbindungsende-upstream` und `-vergleich` — **Ausgang:** *eingetreten* → Folge-Slices `slice-v1-abschluss-verbindungsende-upstream` und `slice-v1-abschluss-verbindungsende-vergleich`; beide nehmen an (`grep -n "slice-v1-abschluss-postgres-versionen-zusage"` findet die Sendung in §1 und DoD, Nachzählung in §8: je 3 Liefer-Punkte, 2 Schichten).
+- **Handbuch-Satz ohne nachfahrbaren Lauf.** Ein Satz nennt eine Version, zu der §7 keinen Lauf führt (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×; Schritt 19). Die Aufrufe je Version kommen aus der Nahtstelle der Matrix (§1, Punkt 4); fehlt einer, nennt der Satz die Version nicht — **Ausgang:** *entfallen*: §7 führt je Version (14, 15, 16, 18 über die Matrix, 17 über `make test-integration`) und je Verfahren einen Aufruf, und die Verifikation fuhr beide nach; kein Satz nennt eine Version ohne Lauf.
+- **MD5 gegen die jüngsten Versionen.** MD5 ist ab PostgreSQL 18 abgekündigt; ob der Server der Liste die Anmeldung mit MD5 noch annimmt, zeigt erst der Lauf. Mit der Entscheidung des Nutzers vom 2026-10-15 nennt das Handbuch MD5 nur für 17; **Ausgang:** *entfallen*, weil kein Satz MD5 für eine andere Version zusagt (Handbuch und README nennen MD5 nur mit 17, Lauf `make test-integration`, Fall `md5`; die Verifikation bestätigte es).
+- **Namen der Nahtstelle fehlen.** Die Matrix wählte die Namen von Datei, Variablen und Aufruf; sie stehen seit deren Closure in §1 (Punkte 1 bis 4), und `grep -n "slice-v1-abschluss-postgres-versionen-matrix"` und `grep -n "POSTGRES_VERSIONEN"` in dieser Datei finden sie. Bleibt ein Name aus dem Fragment hinter dem Stand der Matrix zurück (ein Rename), bricht der Aufruf in §7 beim Nachfahren — **Ausgang:** *entfallen*: Die Aufrufe in §7 liefen mit den Namen der Nahtstelle, und die Verifikation fuhr sie mit denselben Namen nach (Exit 0).
 
 ## 7. Closure-Notiz
 
@@ -234,7 +234,23 @@ echo "Treffer Geheimnis: $(grep -c -E 'pw[SMK]|md5[0-9a-f]{32}|SCRAM' $S/rec/r.y
 
 **Rückgaben an den Architect:** keine. Keine Randform gefunden, die §6 nicht nennt; die Vorgabe „alle übrigen Szenarien“ ist oben enger gefasst (Entscheidung der Formulierung nach §6: Prüfung vor dem Satz).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+### Closure (Planner, 2026-10-15)
+
+**Stand:** HEAD `5804e96`; voller `make gates` grün für diesen Stand (Meldung des Auftraggebers; diese Closure fährt keine Gates). Review-Report `docs/reviews/2026-10-15-review-slice-v1-abschluss-postgres-versionen-zusage.md` (F-1 bis F-7, alle behoben oder ohne Aktion), Verifier-Reports `…-verify-…-zusage.md` (V-1 MEDIUM, V-2 LOW, beide behoben) und `…-r2.md` (PASS, V-1 und V-2 geschlossen, 1 INFO). Kein Gate rot, kein Carveout.
+
+**Kriterien:** (1) DoD-Punkte 1 bis 3 sind geliefert und vom Verifier gegen die Läufe geprüft; (2) `make gates` grün, `make docs-check` und `make kopf-check` ohne Befund.
+
+**Lerneintrag — benannte Spec-Lücke.** Die Zusage in `SPEC-029` Punkt 2 und die Nachweis-Zeile von `LH-RB-02` beschrieben im Entwurf einen Zielstand (Abnahmeszenario 18 und Szenario 16 Satz 3 „nur gegen 17 geprüft“; „nur“ auch für die Referenz 17), den erst die Tests zweier Folge-Slices prüfen. Die Lücke ist benannt und hat Adressen: `slice-v1-abschluss-verbindungsende-upstream` nimmt den Satz zu Szenario 18, `slice-v1-abschluss-verbindungsende-vergleich` den zu Szenario 16 Satz 3 in `SPEC-029` Punkt 2 auf, je im Commit des Tests; bis dahin steht keiner in der Spezifikation. Der Zähler: `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Regel `AGENTS.md` §3.11 gilt, Wiederauftreten, kein neuer Wortlaut); `BEO-REPO/plan-folgt-korrektur-nicht` (F-1 bis F-3, Regel §3.9 gilt). Eine neue Regel ist nicht eingetragen; ob ein Spec-Entwurf vor dem Satz je Zusage den Lauf nennen muss, entscheidet der Nutzer.
+
+**Register-Zeilen:** `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (neuer Beleg, verkörpert, Regel bleibt) · `BEO-REPO/plan-folgt-korrektur-nicht` (neuer Beleg, verkörpert) · `BEO-REPO/postgres-versionsliste-altert` (2×, offen) · neu `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig` (1×, offen: die Mutation `p7-int-treiber` färbte im ersten vollen `make gates` einmal zusätzlich `p7-sigTERM-gruppe`) · Kein Auftreten, Zähler 1: `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`.
+
+**Risiko-Ausgänge:** siehe §6, je Risiko einer (1 *weiter offen*, 1 *eingetreten*, 4 *entfallen*).
+
+**Sendung I-1** (Verifier-Report `…-r2.md`, INFO): Der Numerus des Satzes „Die Anmeldung mit Klartext-Passwort und mit MD5 sind nur dort geprüft“ in `SPEC-029` Punkt 2 wird berichtigt, sobald ein Nehmer die Stelle berührt. Adresse: `slice-v1-abschluss-verbindungsende-upstream` und `slice-v1-abschluss-verbindungsende-vergleich` (beide schreiben einen Satz in Punkt 2), in beiden §1 mit der Kennung dieses Gebers und Nachzählung in §8 (je 3 Liefer-Punkte, 2 Schichten, unverändert).
+
+**Paarungen:** (a) Anker: kein Eintrag mit `liegt in`; (b) Folge-Slice: `slice-v1-abschluss-verbindungsende-upstream`, `slice-v1-abschluss-verbindungsende-vergleich` liegen in `next/` und nennen die Kennung dieses Gebers in §1 und DoD (`grep -n` je Nehmer ≥ 1); (c) Register: jede genannte `BEO-REPO/…` existiert als Verzeichnis mit nicht leerem `evidence/`.
+
+**Folge:** Die Liste der Versionen bleibt eine Handlung von Hand (`BEO-REPO/postgres-versionsliste-altert`); nächster Slice laut Roadmap: `slice-v1-abschluss-protokollrand` (Schritt 33).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-postgres-versionen-zusage
+**Fund:** Erster voller `make gates` des Implementers: `postgres-versionen-gegenprobe` rot, Mutation `p7-int-treiber` färbte zusätzlich `p7-sigTERM-gruppe`; danach `make test-postgres-versionen-gegenprobe` allein grün, zweiter voller `make gates` exit 0 (Plan §7, *Nachzug nach V-1 und V-2*). Verifier und Review sahen es nicht; Ursache nicht untersucht.

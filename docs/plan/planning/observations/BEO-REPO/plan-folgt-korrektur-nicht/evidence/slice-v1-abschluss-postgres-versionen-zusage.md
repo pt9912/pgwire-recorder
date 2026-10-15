@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-postgres-versionen-zusage
+**Fund:** §6 sagte nach der Umsetzung noch „Die Stellen sind noch nicht geschrieben“ (Review F-3); die Zeile *Gates* in §7 belegte „`make gates` exit 0“ für einen Stand, auf dem `make docs-check` am HEAD rot war, weil die Kennung der ADR dort ungelinkt stand (F-1); der Trefferstand eines `grep` in §7 war zu weit gefasst (F-2). Nachgezogen in `d6dd49b`.
