@@ -2543,7 +2543,7 @@ Leser lehnt jedes Feld ab, das er für seine Version nicht kennt (`PGR-E3003`);
 darum erhöht auch ein neues optionales Feld `version`.
 Version 1 umfasst einfache und Extended-Interaktionen, Version 2 zusätzlich das Ende des
 Servers mit der Server-Nachricht `connection_closed` (`LH-FA-25.a`, `SPEC-002`, `SPEC-041`);
-der Schreiber schreibt 2 nur für eine Aufzeichnung, die ein Ende enthält, sonst 1. Ein Leser
+der Schreiber schreibt 2 nur für eine Aufzeichnung, die ein Ende enthält, sonst 1. Das Feld `version` des Modells bestimmt das nicht: Der Schreiber richtet sich bei jedem Schreiben nach dem Inhalt, auch wenn das Feld 1 trägt und ein Ende da ist oder 2 trägt und keines. Ein Leser
 wendet auf jede Version die Nachrichtentypen dieser Version an: `connection_closed` in
 Version 1 macht das Recording zu einem beschädigten (`PGR-E3003`). Die Form der Interaktionen: Bei einer einfachen steht
 `type: query` in `request` (`SPEC-002`), bei einer Extended-Interaktion steht
@@ -2613,6 +2613,19 @@ Bei einem Ende des Servers (`LH-FA-25.a`, Version 2) endet `responses` mit der
 `connection_closed` steht nur als letzte Nachricht der letzten Interaktion einer Session,
 unmittelbar nach einer `error_response`, deren Schweregrad (Feld `V`, ohne es `S`) `FATAL`
 oder `PANIC` ist; jede andere Stelle macht das Recording zu einem beschädigten (`PGR-E3003`).
+
+Randformen des Endes in der Datei: Der Schweregrad ist der Wert des Feldes `V`; ist `V`
+vorhanden, auch leer, entscheidet es allein, und `S` zählt nur, wenn `V` fehlt. Der Vergleich
+ist genau: `fatal` und `Fatal` sind kein Ende. `connection_closed` trägt neben `type` keinen
+Schlüssel, auch keinen leeren oder mit dem Wert `null`; jeder ist `PGR-E3003`. Zwischen der
+`error_response` und `connection_closed` steht keine weitere Nachricht, auch keine
+`notice_response`. Bei einer Extended-Interaktion mit Ende endet die letzte Gruppe mit `Sync`
+oder mit `Flush`, jede Gruppe davor mit `Flush`, und eine Gruppe mit `connection_closed` trägt
+kein `ready_for_query`; ohne Ende bleibt die letzte Gruppe mit `Sync` und `ready_for_query`
+Pflicht. Die Form einer Interaktion (Stelle in der Interaktion) und die Form einer Session
+(höchstens ein Ende, in der letzten Interaktion) prüft der Leser beide; die Zusagen sind
+Zustandsprüfungen ohne Ordnung über mehrere Aufrufe. Hat eine Datei mehrere dieser Fehler, ist
+der Code derselbe (`PGR-E3003`); nur eine nicht unterstützte Version geht vor (`SPEC-001`).
 
 Das endgültige Schema des Formats `yaml` wird durch Go-Datentypen und Schema-Tests
 verbindlich definiert, das des Formats `sqlite` durch `tools/schema/schema.yaml`
