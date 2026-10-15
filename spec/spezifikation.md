@@ -2558,8 +2558,7 @@ verletzter Form ergibt eine Datei, die der Leser mit `PGR-E3003` ablehnt (`SPEC-
 Aufzeichnung ohne Ende ergibt dieselben Bytes wie vor Einführung der Version 2, bis auf `version`
 einer Aufzeichnung, deren Feld 2 trägt (sie schreibt 1). Laden, Schreiben und erneutes Laden
 liefert dieselbe Aufzeichnung, ausgenommen das Feld `version` einer Datei der Version 2 ohne Ende
-(die Version 1 schreibt und liest). Die Zusagen sind Zustandsprüfungen: Der Schreiber liest die
-Aufzeichnung einmal je Schreiben und sagt nichts über die Reihenfolge oder Gleichzeitigkeit mehrerer
+(die Version 1 schreibt und liest). Die Zusagen sind Zustandsprüfungen: Der Schreiber sagt nichts über die Reihenfolge oder Gleichzeitigkeit mehrerer
 Aufrufe zu. Ein Leser
 wendet auf jede Version die Nachrichtentypen dieser Version an: `connection_closed` in
 Version 1 macht das Recording zu einem beschädigten (`PGR-E3003`). Die Form der Interaktionen: Bei einer einfachen steht

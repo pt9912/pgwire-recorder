@@ -64,7 +64,7 @@ func schreibeUndLade(t *testing.T, rec model.Recording) (string, model.Recording
 // Abdeckung: LH-FA-25/Happy — der Schreiber wählt die Version nach dem Inhalt: 2 mit einem Ende
 // (Responses oder Gruppe einer Extended-Interaktion, in einer späteren oder einer nicht letzten
 // Session), sonst 1 (auch ohne Sessions und nur mit empty_sessions); das Feld version des Modells
-// bestimmt sie nicht (1 mit Ende schreibt 2, 2 ohne Ende schreibt 1, 0 und 3 ändern nichts).
+// bestimmt sie nicht (1 mit Ende schreibt 2, 2 ohne Ende schreibt 1, 0, 3 und ein negativer Wert ändern nichts).
 func TestSchreibenVersionNachInhalt(t *testing.T) {
 	mitEnde := sEinfach(1, sFatal(), sEnde())
 	ohne := sEinfach(1, sCC(), sRFQ())
@@ -81,16 +81,18 @@ func TestSchreibenVersionNachInhalt(t *testing.T) {
 		{"Feld 0 ohne Ende", sRec(0, sSession(1, "u", ohne)), "1"},
 		{"Feld 3 mit Ende", sRec(3, sSession(1, "u", mitEnde)), "2"},
 		{"Feld 3 ohne Ende", sRec(3, sSession(1, "u", ohne)), "1"},
-		{"Ende nur in der letzten Session", sRec(1, sSession(1, "u", ohne), sSession(2, "u", mitEnde)), "2"},
-		{"Ende nur in der ersten von zwei Sessions", sRec(1, sSession(1, "u", mitEnde), sSession(2, "u", ohne)), "2"},
+		{"negatives Feld mit Ende", sRec(-1, sSession(1, "u", mitEnde)), "2"},
+		{"negatives Feld ohne Ende", sRec(-1, sSession(1, "u", ohne)), "1"},
+		{"Ende nur in der letzten Session", sRec(2, sSession(1, "u", ohne), sSession(2, "u", mitEnde)), "2"},
+		{"Ende nur in der ersten von zwei Sessions", sRec(2, sSession(1, "u", mitEnde), sSession(2, "u", ohne)), "2"},
 		{"ohne Sessions", sRec(1), "1"},
 		{"nur empty_sessions", func() model.Recording {
 			r := sRec(1, sSession(1, "u"))
 			r.EmptySessions = true
 			return r
 		}(), "1"},
-		{"Ende in einer Extended-Gruppe", sRec(1, sSession(1, "u", sExtended(1, sGruppe(model.ClientSync, sFatal(), sEnde())))), "2"},
-		{"Ende in einer einfachen Interaktion", sRec(1, sSession(1, "u", ohne, mitEnde)), "2"},
+		{"Ende in einer Extended-Gruppe", sRec(2, sSession(1, "u", sExtended(1, sGruppe(model.ClientSync, sFatal(), sEnde())))), "2"},
+		{"Ende in einer einfachen Interaktion", sRec(2, sSession(1, "u", ohne, mitEnde)), "2"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -116,17 +118,17 @@ func TestSchreibenNimmtFormverletzungAn(t *testing.T) {
 		rec  model.Recording
 		lade bool
 	}{
-		{"richtige Stelle, einfach", sRec(1, sSession(1, "u", sEinfach(1, sFatal(), sEnde()))), true},
-		{"richtige Stelle, letzte Gruppe", sRec(1, sSession(1, "u", sExtended(1, sGruppe(model.ClientSync, sFatal(), sEnde())))), true},
-		{"richtige Stelle, nicht letzte Session", sRec(1, sSession(1, "u", sEinfach(1, sFatal(), sEnde())), sSession(2, "u", sEinfach(1, sCC(), sRFQ()))), true},
-		{"Anfang der Folge", sRec(1, sSession(1, "u", sEinfach(1, sEnde(), sFatal(), sCC()))), false},
-		{"Mitte der Folge", sRec(1, sSession(1, "u", sEinfach(1, sFatal(), sEnde(), sCC()))), false},
-		{"nicht letzte Interaktion", sRec(1, sSession(1, "u", sEinfach(1, sFatal(), sEnde()), sEinfach(2, sCC(), sRFQ()))), false},
-		{"nicht letzte Gruppe", sRec(1, sSession(1, "u", sExtended(1, sGruppe(model.ClientFlush, sFatal(), sEnde()), sGruppe(model.ClientSync, sCC(), sRFQ())))), false},
-		{"mitten in der letzten Gruppe", sRec(1, sSession(1, "u", sExtended(1, sGruppe(model.ClientSync, sFatal(), sEnde(), sCC())))), false},
-		{"zwei Enden in einer Session", sRec(1, sSession(1, "u", sEinfach(1, sFatal(), sEnde()), sEinfach(2, sFatal(), sEnde()))), false},
-		{"ready_for_query neben dem Ende", sRec(1, sSession(1, "u", sEinfach(1, sCC(), sRFQ(), sFatal(), sEnde()))), false},
-		{"Feld neben type", sRec(1, sSession(1, "u", sEinfach(1, sFatal(), model.Response{Type: model.ResponseConnectionClosed, Tag: "x"}))), false},
+		{"richtige Stelle, einfach", sRec(2, sSession(1, "u", sEinfach(1, sFatal(), sEnde()))), true},
+		{"richtige Stelle, letzte Gruppe", sRec(2, sSession(1, "u", sExtended(1, sGruppe(model.ClientSync, sFatal(), sEnde())))), true},
+		{"richtige Stelle, nicht letzte Session", sRec(2, sSession(1, "u", sEinfach(1, sFatal(), sEnde())), sSession(2, "u", sEinfach(1, sCC(), sRFQ()))), true},
+		{"Anfang der Folge", sRec(2, sSession(1, "u", sEinfach(1, sEnde(), sFatal(), sCC()))), false},
+		{"Mitte der Folge", sRec(2, sSession(1, "u", sEinfach(1, sFatal(), sEnde(), sCC()))), false},
+		{"nicht letzte Interaktion", sRec(2, sSession(1, "u", sEinfach(1, sFatal(), sEnde()), sEinfach(2, sCC(), sRFQ()))), false},
+		{"nicht letzte Gruppe", sRec(2, sSession(1, "u", sExtended(1, sGruppe(model.ClientFlush, sFatal(), sEnde()), sGruppe(model.ClientSync, sCC(), sRFQ())))), false},
+		{"mitten in der letzten Gruppe", sRec(2, sSession(1, "u", sExtended(1, sGruppe(model.ClientSync, sFatal(), sEnde(), sCC())))), false},
+		{"zwei Enden in einer Session", sRec(2, sSession(1, "u", sEinfach(1, sFatal(), sEnde()), sEinfach(2, sFatal(), sEnde()))), false},
+		{"ready_for_query neben dem Ende", sRec(2, sSession(1, "u", sEinfach(1, sCC(), sRFQ(), sFatal(), sEnde()))), false},
+		{"Feld neben type", sRec(2, sSession(1, "u", sEinfach(1, sFatal(), model.Response{Type: model.ResponseConnectionClosed, Tag: "x"}))), false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -161,9 +163,9 @@ func TestSchreibenEndeDarstellung(t *testing.T) {
 		rec  model.Recording
 		want string
 	}{
-		{"in responses", sRec(1, sSession(1, "u", sEinfach(1, sFatal(), sEnde()))), einfach},
-		{"in server einer Gruppe", sRec(1, sSession(1, "u", sExtended(1, sGruppe(model.ClientSync, sFatal(), sEnde())))), erweitert},
-		{"mit Feld neben type", sRec(1, sSession(1, "u", sEinfach(1, model.Response{Type: model.ResponseConnectionClosed, Tag: "x"}))),
+		{"in responses", sRec(2, sSession(1, "u", sEinfach(1, sFatal(), sEnde()))), einfach},
+		{"in server einer Gruppe", sRec(2, sSession(1, "u", sExtended(1, sGruppe(model.ClientSync, sFatal(), sEnde())))), erweitert},
+		{"mit Feld neben type", sRec(2, sSession(1, "u", sEinfach(1, model.Response{Type: model.ResponseConnectionClosed, Tag: "x"}))),
 			kopf + "      - sequence: 1\n        request:\n          type: query\n          sql: x\n        responses:\n          - type: connection_closed\n            tag: x\n"},
 	}
 	for _, c := range cases {
@@ -189,25 +191,25 @@ func TestSchreibenEndeDarstellung(t *testing.T) {
 	})
 }
 
-// Abdeckung: LH-FA-25/Happy, LH-FA-22/Happy, LH-QA-06/Messung — Laden, Schreiben und erneutes Laden
-// liefert dieselbe Aufzeichnung mit Ende: einfach, Extended mit Sync-Gruppe, mit Flush-Gruppe (nach
+// Abdeckung: LH-FA-25/Happy, LH-FA-22/Happy, LH-QA-06/Messung — Schreiben und Laden einer Aufzeichnung
+// und, von der geladenen Aufzeichnung aus, Schreiben und erneutes Laden liefern dieselbe Aufzeichnung mit Ende: einfach, Extended mit Sync-Gruppe, mit Flush-Gruppe (nach
 // einer Gruppe mit flush), mit offset_ms an der Interaktion mit Ende, mit empty_sessions; eine Datei
 // der Version 2 ohne Ende ist gleich bis auf version, die Version 1 schreibt und liest.
 func TestRoundtripMitEnde(t *testing.T) {
 	off := int64(7)
 	mitOffset := sEinfach(1, sFatal(), sEnde())
 	mitOffset.OffsetMS = &off
-	leer := sRec(1, sSession(1, "rt-leer", sEinfach(1, sFatal(), sEnde())), sSession(2, "rt-leer"))
+	leer := sRec(2, sSession(1, "rt-leer", sEinfach(1, sFatal(), sEnde())), sSession(2, "rt-leer"))
 	leer.EmptySessions = true
 	cases := []struct {
 		name    string
 		rec     model.Recording
 		version int
 	}{
-		{"einfach", sRec(1, sSession(1, "rt-einfach", sEinfach(1, sCC(), sRFQ()), sEinfach(2, sFatal(), sEnde()))), 2},
-		{"Sync-Gruppe", sRec(1, sSession(1, "rt-sync", sExtended(1, sGruppe(model.ClientSync, sFatal(), sEnde())))), 2},
-		{"Flush-Gruppe", sRec(1, sSession(1, "rt-flush", sExtended(1, sGruppe(model.ClientFlush, sCC()), sGruppe(model.ClientFlush, sFatal(), sEnde())))), 2},
-		{"offset_ms", sRec(1, sSession(1, "rt-offset", mitOffset)), 2},
+		{"einfach", sRec(2, sSession(1, "rt-einfach", sEinfach(1, sCC(), sRFQ()), sEinfach(2, sFatal(), sEnde()))), 2},
+		{"Sync-Gruppe", sRec(2, sSession(1, "rt-sync", sExtended(1, sGruppe(model.ClientSync, sFatal(), sEnde())))), 2},
+		{"Flush-Gruppe", sRec(2, sSession(1, "rt-flush", sExtended(1, sGruppe(model.ClientFlush, sCC()), sGruppe(model.ClientFlush, sFatal(), sEnde())))), 2},
+		{"offset_ms", sRec(2, sSession(1, "rt-offset", mitOffset)), 2},
 		{"empty_sessions", leer, 2},
 		{"Version 2 ohne Ende", sRec(2, sSession(1, "rt-v2", sEinfach(1, sCC(), sRFQ()))), 1},
 	}
@@ -221,6 +223,13 @@ func TestRoundtripMitEnde(t *testing.T) {
 			want.Version = c.version
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("Roundtrip weicht ab:\n got %#v\nwant %#v", got, want)
+			}
+			_, again, err := schreibeUndLade(t, got)
+			if err != nil {
+				t.Fatalf("erneutes Laden: %v", err)
+			}
+			if !reflect.DeepEqual(again, got) {
+				t.Fatalf("Laden, Schreiben, Laden weicht ab:\n got %#v\nwant %#v", again, got)
 			}
 		})
 	}
