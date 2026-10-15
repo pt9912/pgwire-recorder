@@ -176,6 +176,68 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
+### Belege des Implementers (2026-10-15)
+
+**Stand und Größe.** Basis `5c4b3ae`; Commits des Implementers `9d56324`, `0e90cf0`, `f99192a`, `c7e0f97` (und der Commit dieser Belege). Metrik aus §4, `git diff --numstat 5c4b3ae..<letzter Commit> -- internal test spec docs/user`: **1026** (Einfügungen 1004, Löschungen 22); Marke 1400 und Meldeschwelle 1050 nicht erreicht. Aufteilung: Spezifikation 109 (Architect, Commit `5101274` nach der Basis), Produkt-Code 101 (`server.go` 47, `leser.go` 50, `tls.go` 4), Tests 791 (`server_protokollrand_test.go` 403, `protokollrand_e2e_test.go` 336, `upstream_protokollrand_test.go` 44, kleine Änderungen an zwei vorhandenen Testdateien 8), erzeugte Tabellen 25. Die Schätzung der Tests (500 bis 700) lag um rund 90 Zeilen zu niedrig, die Summe (800 bis 1000, Streuung bis 1100) innerhalb der Streuung.
+
+**Läufe** (alle nacheinander, kein paralleler Docker-Lauf; Container, Netze und Volumes der Läufe entfernt):
+
+| Lauf | Stand | Ergebnis | Laufzeit |
+|---|---|---|---|
+| `make test` (nach den Code-Änderungen, vor den neuen Tests) | Arbeitsbaum | grün | 63 s |
+| `make test-integration` mit `PGR_TESTS_1` = die fünf neuen E2E-Tests (Phase 2 rot, weil sie ohne Phase 1 der übrigen Tests läuft; nicht Teil des Belegs) | Arbeitsbaum | die fünf neuen Tests grün | 13 s bis 90 s je Lauf |
+| `make lint` | `c7e0f97` | 0 Befunde (vorher 3: `startup` zu komplex nach Zyklomatik und Kognition, `errcheck` im Test; behoben durch `annehmen`) | 16 s |
+| `make gates` | `c7e0f97` | grün, Exit 0 (Versionsmatrix 14 bis 18 grün, Stop-Hook-Gegenprobe 139 Fälle) | 12 min 22 s |
+
+Drei frühere `make gates` im Lauf waren rot und führten zurück in den Plan: `abdeckung-check` (Tabellen nach neuer Deklaration nicht erneuert; `make abdeckung`), `a-check` (`pgproto3` in `test/integration` ist ein Tech-Leck; die E2E-Tests nutzen die Hilfsfunktionen des Bestands `leseNachricht`, `clientNachricht`, `bisTyp`, `schreibe`) und `lint`.
+
+**Befund vorher und nachher.** Vorher (Basis-Code, nachgestellt durch die Mutanten `pq-weg` und `ende-io-eof-alt`): Ein Parameter `_pq_.` ging an den Upstream; eine Nachricht `p` oder `Parse` ohne Nullbyte endete still als Ende des Clients (in der Anmeldung ebenso). Nachher: beide `PGR-E6001` mit Fehlerantwort, im Record endet die Session als nicht unterstützt und wird nicht aufgezeichnet.
+
+**Mutationstabelle** (Zusage · Mutation · roter Test). „Zeile“ ist eine Zeile der Tabellen in `server_protokollrand_test.go`; jede läuft in {Record, Replay} × {ohne, mit TLS}, also vier Mal, außer wo es anders steht. Mutanten laufen in frischen Kopien des Arbeitsbaums per Bind-Mount (kein Build-Kontext, keine mtime-Falle); Skripte und Rohausgabe liegen im Scratchpad der Sitzung.
+
+| Zusage | Mutation | roter Test (nur dieser, außer wo genannt) |
+|---|---|---|
+| Parameter `_pq_.` ist `PGR-E6001` | `pq-weg`: Prüfung abgeschaltet | Zeilen `_pq_.`, `_pq_.foo`; `ErweiterungVorKlartext` |
+| nur Präfix, kein Teilstring | `pq-contains`: `HasPrefix` → `Contains` | Zeile `_pq_. nicht am Anfang` |
+| Präfix mit Punkt | `pq-praefix-ohne-punkt`: `_pq_` | Zeile `_pq_ ohne Punkt` |
+| Präfix mit Unterstrich | `pq-praefix-ohne-unterstrich`: `pq_.` | Zeile `pq_. ohne Unterstrich`, dazu `_pq_.`, `_pq_.foo` |
+| `_pq_.` vor der Prüfung auf TLS (`PGR-E6001` vor `PGR-E6003`) | `pq-nach-klartext`: Reihenfolge getauscht | `ErweiterungVorKlartext` (1) |
+| `_pq_.` vor dem Aufbau zum Upstream | `pq-nach-aufbau`: Prüfung in `handle` nach `oeffne`; E2E `pq-nach-aufbau2`: nach dem Fehlerzweig des Aufbaus | Zeilen `_pq_.`, `_pq_.foo` (Session geöffnet), `ErweiterungVorKlartext`; E2E `TestE2ERecordErweiterungOhneUpstream` (Upstream nicht erreichbar, `PGR-E4002` statt `PGR-E6001`) und `BeideModi/replay/Parameter__pq_.` |
+| Version 0.0, 2.0, 3.1, 3.2, 4.0, 65535.1 ist `PGR-E6002` | `version-<v>`: der Wert wird wie 3.0 weitergereicht, je Wert ein Mutant (6) | je die Zeile `Version <v>`; E2E für 3.2 `BeideModi/{record,replay}/Version_3.2` |
+| Sonderanfrage 5677, 5681, 1 ist `PGR-E6001` | `sonder-<n>`: Verbindung schließt still, je Nebennummer ein Mutant (3) | je die Zeile; bei 1 auch `Gleichzeitig`; E2E für 5677 |
+| `CancelRequest` Länge 8 ist `PGR-E6001` | `cancel-laenge-8`: schließt still | Zeile `CancelRequest Länge 8` |
+| Rumpf der Startnachricht nicht lesbar: Länge 8, Länge 9, ohne abschließendes Nullbyte, Kopf ohne Rest | `rumpf-laenge-<n>` (8, 9, 13, 40): schließt still | je die eigene Zeile. Der erste Versuch mit Länge 18 färbte jede Startnachricht dieser Länge; die Zeile hat Länge 13 |
+| 0 bis 7 Bytes enden still | `bytes-<k>` (0 bis 7): `PGR-E6001` bei k gelesenen Bytes im Peek | je die Zeile `<k> Bytes` und, soweit der Server die Bytes nach dem Reset sah, `<k> Bytes, Reset`; E2E `TCPProbe` für 0, 1 und 7 |
+| CopyData, CopyDone, CopyFail, FunctionCall, Nachricht `p` sind `PGR-E6001` | `nachricht-<typ>`: die Nachricht wirkt wie `Terminate` (5) | je die Zeile (bei FunctionCall beide Zeilen); bei `p` auch `TestAnmeldungAndereNachricht`; E2E für `p` ohne Nullbyte, CopyData, FunctionCall |
+| FunctionCall in einer Extended-Sequenz | `functioncall-in-extended`: wirkt nach einem `Parse` wie `Terminate` | Zeile `FunctionCall in einer Extended-Sequenz` (die Zeile `nach dem Aufbau` wird mit rot, weil der Mutant seinen Zustand über Tests hinweg behält) |
+| ein Rumpf, den die Bibliothek nicht liest, ist nicht das Ende des Clients | `ende-io-eof-alt`: `verbindungsende` zählt zusätzlich `io.EOF` (das Verhalten der Basis) | Zeilen `Nachricht p ohne Nullbyte`, `Parse ohne Nullbyte`; `TestAnmeldungAndereNachricht/Rumpf ohne Nullbyte`; E2E `BeideModi/{record,replay}/Nachricht_p_ohne_Nullbyte` |
+| dasselbe nur im Replay, nur im Record, in der Anmeldung | `replay-lesefehler-still`, `record-lesefehler-still`, `anmeldung-eof-still` | je die Zeilen des einen Modus; die Zeile der Anmeldung |
+| das Ende des Clients ist ohne Meldung | `replay-ende-meldung`, `record-ende-meldung`: `PGR-E6001` auch beim Ende | 21 rote Zeilen im Lauf je Modus (alle mit Ende des Clients); E2E `ReplayAuswahl` |
+| `AuthenticationOk` ist die erste Nachricht | `authok-zuletzt`: nach den Antworten des Aufbaus | jede Zeile mit Aufbau (76 rote Zeilen im Lauf), `TestAnmeldungAndereNachricht` |
+| jede Folge aus zwei Anfragen (GSS·GSS, GSS·SSL, SSL·GSS, SSL·SSL) | `folge-<a>-<b>`: die Folge beendet die Verbindung (4) | je die Zeile `AnfragenFolgen`; bei GSS·SSL auch `GSSdannSSLMitTLS` |
+| Bytes hinter einer Anfrage werden nach dem `N` gelesen | `anfrage-puffer-verworfen`: neuer Leser nach der Anfrage | alle vier Zeilen `AnfragenFolgen` |
+| mit TLS ist die Antwort auf GSS `N`, der folgende SSLRequest wird angenommen | `gss-mit-tls-beendet` | `GSSdannSSLMitTLS` |
+| die Randverbindung beendet nur sich | `rand-beendet-server`: `Zwangsende` bei gescheitertem Aufbau | `Gleichzeitig` (Unit, 1); E2E 10 rote Zeilen im Lauf |
+| eine Verbindung vor dem Aufbau verbraucht im Replay keine Session | `replay-oeffnet-frueh`: `OpenConnection` vor der Startnachricht | 97 rote Zeilen im Lauf (Unit); E2E 8 |
+| CopyIn-, CopyOut-, CopyBothResponse und NotificationResponse sind `PGR-E6001`, vor `ReadyForQuery` und im Aufbau | `anfrage-<typ>`: `toResponse` bildet sie ab; `aufbau-<typ>`: der Aufbau überspringt sie (je 4) | je die Zeile `<typ>/Anfrage` beziehungsweise `<typ>/Aufbau` |
+| `NotificationResponse` im Leerlauf, in einer Anfrage und in zwei Sessions ist `PGR-E6001` | `notification-uebersprungen` (E2E): `lies` überspringt sie | `ListenNotify/{beides in einer Anfrage, zwei Anfragen derselben Session, zwei Sessions}` |
+| Replay prüft Benutzer, Datenbank und `options` nicht | `replay-prueft-benutzer`, `-datenbank`, `-option` (E2E) | `TestE2EReplayAuswahl` (je Mutant) |
+| Replay fordert kein Verfahren an | `replay-fordert-passwort` (E2E): `AuthenticationCleartextPassword` vor dem `AuthenticationOk` | `TestE2EReplayAuswahl` |
+
+**Grüne und äquivalente Mutanten, eingeordnet.**
+
+- `pq-contains` war beim ersten Lauf grün (die Zeile `x_pq_.y` fehlte); die Zeile `_pq_. nicht am Anfang` ist die Folge, danach rot.
+- `bytes-2`: Die Zeile `2 Bytes, Reset` im Replay blieb grün (die Zeile `2 Bytes` wurde rot); Grenze in §6.
+- Der E2E-Lauf von `cancel-laenge-8` bleibt grün: Die Zeile ist nur im Unit-Test; ein E2E-Fall dafür steht nicht in der Tabelle der Entscheidungen (§6, *Sonderanfrage*).
+- Der E2E-Lauf von `anfrage-NotificationResponse` (die Abbildung als `NoData`) bleibt grün, **verändert aber das Verhalten nicht beobachtbar am Client**: Gemessen ist die Fehlerantwort `nicht unterstützt [PGR-E6001]: Interaktion 1 nicht in der Form der Aufzeichnung: Antwort-Typ "no_data" unbekannt in einer einfachen Anfrage`; die Aufzeichnung lehnt den Typ ab und liefert denselben Code. Der Unit-Test des Adapters färbt ihn rot (`NotificationResponse/Anfrage`), der E2E-Mutant `notification-uebersprungen` die drei Fälle.
+- Kein Mutant bricht nur den Abbruch mitten in einer Nachricht und nur die Benachrichtigung nach der letzten Interaktion: §6, *Grenzen der Tests*.
+
+**Randformen und Lesarten.** Keine Randform wurde im Code entschieden. Die Reihenfolge `PGR-E6001` (Parameter `_pq_.`) vor `PGR-E6003` steht in `LH-FA-23.a` *Unverschlüsselte Clients* (E6003 hinter E6002, E6001 und W3003) und im Drift-Log der Spezifikation; `ErweiterungVorKlartext` belegt sie. Die Meldung zur Erweiterung nennt den Namen des Parameters nicht.
+
+**Durchsicht der Quantoren.** Handbuch und `README.md` sind nicht berührt (`slice-v1-abschluss-protokollrand-doku`); Kommentar und Deklarationen der neuen Tests sagen nur zu, was ein Test belegt. Die Deklaration von `TestAnmeldungAndereNachricht` nennt den Rumpf ohne Nullbyte. Treffer in Kommentaren: keiner zu ändern.
+
+**Für die Closure (Planner).** Die Tabelle in `LH-FA-05.e` ist an diesen Stellen mit Tests belegt: Version, Sonderanfrage, `CancelRequest`, Folgen der Anfragen, Rumpf, `_pq_.`, Nachrichten des Clients, Abbruch, TCP-Probe, Antworten des Servers, `LISTEN`/`NOTIFY`, Auswahl im Replay. Offen für den Nutzer bleiben die zwei Fragen aus §6 (nichts umgesetzt). Beobachtungen aus dem Lauf, die ins Register gehören könnten (Entscheidung beim Planner): (1) `a-check` zeigt ein Tech-Leck in `test/integration` erst im vollen Gate-Lauf, nicht im engeren Sensor `go vet`; (2) das Testgeschirr eines Mutanten, das auf einen festen Text im Quelltext zielt (`rumpf-laenge-18`), färbt mehr als eine Zeile, wenn eine Länge mehrfach vorkommt.
+
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
