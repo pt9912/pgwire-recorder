@@ -661,7 +661,8 @@ func valueToDTO(v model.Value) valueDTO {
 // Liste der Sessions fehlt nicht, jede Session trägt Interaktionen mit
 // fortlaufender Nummer, und jede Interaktion hat die Form, die
 // model.Interaction.Validate verlangt — eine einfache endet mit ready_for_query,
-// eine Extended-Interaktion mit der Sync-Gruppe und deren ready_for_query
+// eine Extended-Interaktion mit der Sync-Gruppe und deren ready_for_query,
+// beide bei einem Ende des Servers mit connection_closed
 // (LH-FA-07, LH-FA-18.a). Eine Datei, die genau an einer Session-Grenze endet,
 // bleibt eine gültige kürzere Aufzeichnung.
 func fromDTO(d recordingDTO) (model.Recording, error) {

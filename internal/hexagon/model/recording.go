@@ -7,8 +7,7 @@ const (
 	Format  = "pgwire-recorder"
 	Version = 1
 	// VersionMitEnde ist die Formatversion, die das Ende des Servers
-	// (ResponseConnectionClosed) kennt (SPEC-001); Version bleibt die der übrigen
-	// Formate.
+	// (ResponseConnectionClosed) kennt (SPEC-001); Version ist die ohne Ende.
 	VersionMitEnde = 2
 )
 
@@ -42,8 +41,7 @@ type Session struct {
 
 // ValidateEnd prüft die Form der Session für das Ende des Servers: connection_closed
 // steht höchstens einmal, in der letzten Interaktion (SPEC-002). Die Stellen innerhalb
-// einer Interaktion prüft Interaction.Validate; Aufrufe von ValidateEnd und Validate
-// sind Zustandsprüfungen ohne Ordnung über mehrere Aufrufe.
+// einer Interaktion prüft Interaction.Validate.
 func (s Session) ValidateEnd() error {
 	letzte := len(s.Interactions) - 1
 	for ii, i := range s.Interactions {
@@ -55,7 +53,8 @@ func (s Session) ValidateEnd() error {
 }
 
 // Interaction ist eine abgeschlossene Anfrage mit allen Serverantworten bis
-// einschließlich ReadyForQuery (LH-FA-02.b, LH-FA-18.a). Request.Type nennt die
+// einschließlich ReadyForQuery, bei einem Ende des Servers einschließlich
+// connection_closed (LH-FA-02.b, LH-FA-18.a, LH-FA-25.a). Request.Type nennt die
 // Art: Eine einfache Anfrage trägt SQL und Responses, eine Extended-Interaktion
 // nur Groups (SPEC-041). Validate prüft diese Form.
 type Interaction struct {

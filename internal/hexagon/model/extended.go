@@ -74,8 +74,9 @@ type Group struct {
 // Eine Extended-Interaktion trägt weder SQL noch Antworten außerhalb ihrer
 // Gruppen und mindestens eine Gruppe (LH-FA-18.a). Jede Gruppe hat mindestens
 // eine Client-Nachricht; die letzte ist flush oder sync, und keine davor ist es.
-// Nur die letzte Gruppe endet mit sync. Ihre letzte Server-Nachricht ist
-// ready_for_query, und keine andere Server-Nachricht der Interaktion ist es.
+// Nur die letzte Gruppe endet mit sync. Ohne Ende des Servers ist ihre letzte
+// Server-Nachricht ready_for_query, und keine andere Server-Nachricht der
+// Interaktion ist es.
 // describe und close tragen die Zielart statement oder portal.
 //
 // Das Ende des Servers (LH-FA-25.a): connection_closed steht statt ready_for_query

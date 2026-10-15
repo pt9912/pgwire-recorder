@@ -51,7 +51,7 @@ func gruppeEnde(abschluss string, server ...string) string {
 	return gruppe([]string{parseNachricht, abschluss}, server...)
 }
 
-// Abdeckung: LH-FA-25/Roundtrip — der Leser lädt connection_closed ohne Felder als letzte Antwort
+// Abdeckung: LH-FA-25/Happy — der Leser lädt connection_closed ohne Felder als letzte Antwort
 // der letzten Interaktion einer Session unmittelbar nach einer error_response FATAL oder PANIC
 // (Schweregrad aus V, ohne V aus S), in einer einfachen Interaktion und in einer Extended-Interaktion,
 // deren letzte Gruppe mit sync oder flush endet; auch mit offset_ms, empty_sessions und
@@ -72,7 +72,8 @@ func TestUnmarshalEnde(t *testing.T) {
 		{"extended, flush", endeKopf("2", "") + endeSession(1, erweitert(1, gruppeEnde("{type: flush}", fatalNachricht, endeNachricht))), 2, true},
 		{"extended, vordere Flush-Gruppe", endeKopf("2", "") + endeSession(1, erweitert(1, gruppeEnde("{type: flush}", "{type: parse_complete}"), gruppeEnde(syncNachricht, fatalNachricht, endeNachricht))), 2, true},
 		{"Ende in der letzten von zwei Interaktionen", endeKopf("2", "") + endeSession(1, einfach(1, "", "{type: command_complete, tag: x}", rfqNachricht), einfach(2, "", fatalNachricht, endeNachricht)), 2, true},
-		{"mit offset_ms und empty_sessions", endeKopf("2", "empty_sessions: true\n") + endeSession(1, einfach(1, "        offset_ms: 5\n", "{type: command_complete, tag: x}", rfqNachricht), einfach(2, "        offset_ms: 9\n", fatalNachricht, endeNachricht)) + "  - id: 2\n    interactions: []\n", 2, true},
+		{"mit offset_ms", endeKopf("2", "") + endeSession(1, einfach(1, "        offset_ms: 5\n", "{type: command_complete, tag: x}", rfqNachricht), einfach(2, "        offset_ms: 9\n", fatalNachricht, endeNachricht)), 2, true},
+		{"mit empty_sessions", endeKopf("2", "empty_sessions: true\n") + endeSession(1, einfach(1, "", fatalNachricht, endeNachricht)) + "  - id: 2\n    interactions: []\n", 2, true},
 		{"Version 2 ohne Ende", endeKopf("2", "") + endeSession(1, einfach(1, "", "{type: command_complete, tag: x}", rfqNachricht)), 2, false},
 		{"Version 1 ohne Ende", endeKopf("1", "") + endeSession(1, einfach(1, "", "{type: command_complete, tag: x}", rfqNachricht)), 1, false},
 	}
@@ -156,7 +157,7 @@ func TestUnmarshalEndeAbgelehnt(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-25/Negative — ein Ende je Session ist erlaubt: zwei Sessions mit je einem Ende in
+// Abdeckung: LH-FA-25/Boundary — ein Ende je Session ist erlaubt: zwei Sessions mit je einem Ende in
 // ihrer letzten Interaktion laden.
 func TestUnmarshalEndeJeSession(t *testing.T) {
 	text := endeKopf("2", "") + endeSession(1, einfach(1, "", fatalNachricht, endeNachricht)) + endeSession(2, einfach(1, "", "{type: command_complete, tag: x}", rfqNachricht), einfach(2, "", fatalNachricht, endeNachricht))
@@ -183,6 +184,7 @@ func TestUnmarshalVersionen(t *testing.T) {
 		{"Version 99999999999999999999", rumpf("99999999999999999999", gut), model.CodeRecordingVersion},
 		{"Version 3 mit Fehler im Inhalt", rumpf("3", kaputt), model.CodeRecordingVersion},
 		{"Version 3 mit Ende", rumpf("3", ende), model.CodeRecordingVersion},
+		{"Version 3 mit Schlüssel neben type", rumpf("3", endeSession(1, einfach(1, "", fatalNachricht, "{type: connection_closed, tag: x}"))), model.CodeRecordingVersion},
 		{"Version 2 mit Fehler im Inhalt", rumpf("2", kaputt), model.CodeRecordingBroken},
 	}
 	for _, c := range cases {
