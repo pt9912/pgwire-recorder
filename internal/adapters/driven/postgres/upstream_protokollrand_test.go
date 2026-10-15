@@ -29,7 +29,7 @@ func TestServerNachrichtenNichtUnterstuetzt(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer s.Close()
+			defer func() { _ = s.Close() }()
 			if out, err := s.Query(ctx(t), "SELECT 1"); code(err) != model.CodeUnsupported || len(out) != 0 {
 				t.Fatalf("erwartet %s ohne Antworten, erhalten %v, %#v", model.CodeUnsupported, err, out)
 			}

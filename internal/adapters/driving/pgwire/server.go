@@ -869,12 +869,7 @@ func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessag
 			s.log.Warn("CancelRequest empfangen und nicht weitergeleitet", "code", model.CodeCancelRequest)
 			return nil, false
 		case *pgproto3.StartupMessage:
-			if erweiterung(m.Parameters) {
-				s.fail(k.be, model.Errorf(model.CodeUnsupported, nil, "Protokollerweiterung (Parameter mit dem Präfix %s) wird nicht unterstützt", praefixErweiterung))
-				return nil, false
-			}
-			if s.tls != nil && !s.tls.klartext && !k.verschluesselt {
-				s.fail(k.be, model.Errorf(model.CodePlaintext, nil, "unverschlüsselte Verbindung nicht zugelassen; der Recorder verlangt TLS"))
+			if !s.annehmen(k, m) {
 				return nil, false
 			}
 			return m, true
@@ -883,6 +878,21 @@ func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessag
 			return nil, false
 		}
 	}
+}
+
+// annehmen prüft eine Startnachricht der Version 3.0 und meldet, ob der Aufbau
+// weitergeht: erst auf eine Protokollerweiterung (PGR-E6001), danach auf eine
+// unverschlüsselte Verbindung, die TLS nicht zulässt (PGR-E6003).
+func (s *Server) annehmen(k *kanal, m *pgproto3.StartupMessage) bool {
+	if erweiterung(m.Parameters) {
+		s.fail(k.be, model.Errorf(model.CodeUnsupported, nil, "Protokollerweiterung (Parameter mit dem Präfix %s) wird nicht unterstützt", praefixErweiterung))
+		return false
+	}
+	if s.tls != nil && !s.tls.klartext && !k.verschluesselt {
+		s.fail(k.be, model.Errorf(model.CodePlaintext, nil, "unverschlüsselte Verbindung nicht zugelassen; der Recorder verlangt TLS"))
+		return false
+	}
+	return true
 }
 
 // praefixErweiterung ist das Präfix der Parameter einer Protokollerweiterung in der
