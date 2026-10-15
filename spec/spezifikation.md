@@ -390,7 +390,7 @@ weiteres Verfahren (Klartext-Passwort, MD5, SCRAM) ist nicht zugesagt.
 * *Nichts wird geprüft.* Benutzer, Datenbank und jeder andere Parameter der Startnachricht werden im
   Replay nicht geprüft; ein Benutzer, den die Aufzeichnung nicht kennt, wird bedient. Das gilt mit und
   ohne TLS (`LH-FA-23.a`) gleich. Ausgenommen ist ein Parameter mit dem Präfix `_pq_.`
-  (`LH-FA-05.e`, *Startnachricht*).
+  (`LH-FA-05.e`, *Startnachricht 3.0*).
 * *Nachricht `p`.* Sendet ein Client nach dem Aufbau eine Nachricht `p` (Passwort, SASL), ist sie wie
   jede andere nicht unterstützte Nachricht `PGR-E6001`.
 * *Client mit Anforderung.* Ein Client, der eine Anmeldung verlangt (bei libpq `require_auth` mit einem
@@ -545,8 +545,10 @@ einer `ErrorResponse` beendet; Fehlerebenen: LH-FA-13.b.
   `NotificationResponse`. Jede Verbindung wird für sich behandelt: Eine Verbindung am Protokollrand
   beendet nur sich selbst, der Prozess nimmt weiter Verbindungen an, und eine zweite, reguläre
   Verbindung bleibt in Antworten und Aufzeichnung unberührt; eine Zusage über die Ordnung zwischen
-  verschiedenen Verbindungen gibt es nicht. Eine Verbindung, die der Recorder vor dem Aufbau ablehnt oder beendet, verbraucht im `replay`
-  keine Session (`LH-FA-12.a`, *Zählung der Verbindungen*).
+  verschiedenen Verbindungen gibt es nicht. Eine Verbindung, deren Startnachricht der Recorder ablehnt (Protokollversion außer 3.0,
+  nicht lesbarer Rumpf, Parameter `_pq_.`, unverschlüsselt trotz TLS-Pflicht) oder die vor der Startnachricht
+  endet, zählt nicht und verbraucht im `replay` keine Session (`LH-FA-12.a`; die Zählung steht in den Randformen des Replays,
+  *Zählung der Verbindungen*).
 * *Prüfreihenfolge der ersten Nachricht.* Erst die Länge (Zeile *erste Nachricht, die keine
   Startnachricht ist*), dann der Code: eine Länge von 8 genügt, damit der Code geprüft wird; der Rest
   der Nachricht wird danach nicht mehr gelesen, wenn der Code abgelehnt wird.
@@ -880,8 +882,8 @@ in `meta`, `SPEC-043`).
 
 **Randformen des Recordings.**
 
-* *Angenommene Verbindung.* Eine Verbindung zählt, sobald ihre Startnachricht gelesen und die
-  Session zum Upstream eröffnet ist. `SSLRequest`, `GSSENCRequest` und `CancelRequest` sind keine
+* *Angenommene Verbindung.* Eine Verbindung zählt, sobald ihre Startnachricht gelesen und vom Recorder
+  angenommen (siehe *Startnachricht 3.0*) und die Session zum Upstream eröffnet ist. `SSLRequest`, `GSSENCRequest` und `CancelRequest` sind keine
   Verbindung. Eine Verbindung, die vor der Startnachricht endet, deren Aufbau zum Upstream
   scheitert (Verbindungsfehler, LH-FA-13.b) oder die das Zwangsende im Aufbau trifft
   (LH-FA-13.a), ist keine Session, auch mit `--record-empty-sessions`. Das gilt auch, wenn der
@@ -950,10 +952,12 @@ andere Anfrage und führt eine solche Session aus.
   `first-request` ist ein gekennzeichnetes Recording eines wie jedes andere, Sessions ohne
   Interaktion werden übersprungen.
 * *Zählung der Verbindungen.* Die n-te Verbindung ist die n-te, deren Startnachricht gelesen
-  ist; `SSLRequest`, `GSSENCRequest`, `CancelRequest` und eine Verbindung, die vor der
-  Startnachricht endet, zählen nicht (wie im Record).
+  und vom Recorder angenommen ist (die Zeile *Startnachricht 3.0* nennt, was er ablehnt);
+  `SSLRequest`, `GSSENCRequest`, `CancelRequest`, eine Verbindung, die vor der Startnachricht endet,
+  und eine Verbindung mit abgelehnter Startnachricht (Protokollversion außer 3.0, nicht lesbarer Rumpf,
+  Parameter `_pq_.`, unverschlüsselt trotz TLS-Pflicht) zählen nicht (wie im Record).
 * *Zuordnung bei `connection` mit der Annahme.* Die Session ist der Verbindung zugeordnet, sobald
-  deren Startnachricht gelesen ist, nicht erst mit der ersten Anfrage: Handshake, Version für
+  deren Startnachricht gelesen und angenommen ist, nicht erst mit der ersten Anfrage: Handshake, Version für
   Lebendprüfungen und die Meldung am Ende der Verbindung (LH-FA-03.b) richten sich nach ihr. Eine
   Session mit Interaktionen, deren Verbindung nichts anfragt, ist zugeordnet und am Ende der
   Verbindung nicht verbraucht; nie zugeordnet ist bei `connection` eine Session mit
