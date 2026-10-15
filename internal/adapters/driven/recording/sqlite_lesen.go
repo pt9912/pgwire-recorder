@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 
 	"go.yaml.in/yaml/v3"
 	"modernc.org/sqlite"
@@ -149,7 +150,7 @@ const (
 // liesAufzeichnung liest meta und, wenn Formatkennung und Version stimmen, die Tabellen
 // session, interaction und message; es liefert den Baum der Aufzeichnung.
 func (l lesung) liesAufzeichnung(ctx context.Context) (*yaml.Node, error) {
-	leere, err := l.liesMeta(ctx)
+	leere, version, err := l.liesMeta(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +161,7 @@ func (l lesung) liesAufzeichnung(ctx context.Context) (*yaml.Node, error) {
 	wurzel := abbildung()
 	wurzel.Content = append(wurzel.Content,
 		schluessel("format"), textKnoten(model.Format),
-		schluessel("version"), &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!int", Value: "1"})
+		schluessel("version"), &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!int", Value: version})
 	if leere {
 		wurzel.Content = append(wurzel.Content, schluessel("empty_sessions"), &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!bool", Value: "true"})
 	}
@@ -212,21 +213,22 @@ func (l lesung) zeilen(ctx context.Context, tabelle, anfrage string, spalten int
 func ganzzahl(w any) (int64, bool) { v, ok := w.(int64); return v, ok }
 func zeichen(w any) (string, bool) { v, ok := w.(string); return v, ok }
 
-// liesMeta liest meta (SPEC-043); es liefert, ob die Aufzeichnung leere Sessions trägt.
-func (l lesung) liesMeta(ctx context.Context) (bool, error) {
+// liesMeta liest meta (SPEC-043); es liefert, ob die Aufzeichnung leere Sessions trägt, und
+// den Text der Version der Datei.
+func (l lesung) liesMeta(ctx context.Context) (bool, string, error) {
 	zeilen, err := l.zeilen(ctx, "meta", `SELECT [key], [value] FROM [meta]`, 2)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 	meta := map[string]string{}
 	for _, z := range zeilen {
 		k, kok := zeichen(z[0])
 		v, vok := zeichen(z[1])
 		if !kok || !vok {
-			return false, beschaedigt("meta: Schlüssel und Wert sind kein TEXT")
+			return false, "", beschaedigt("meta: Schlüssel und Wert sind kein TEXT")
 		}
 		if _, doppelt := meta[k]; doppelt {
-			return false, beschaedigt("meta: ein Schlüssel doppelt")
+			return false, "", beschaedigt("meta: ein Schlüssel doppelt")
 		}
 		meta[k] = v
 	}
@@ -234,38 +236,39 @@ func (l lesung) liesMeta(ctx context.Context) (bool, error) {
 }
 
 // pruefeMeta prüft meta in der Reihenfolge Formatkennung, Version, übrige Schlüssel und
-// liefert, ob die Aufzeichnung leere Sessions trägt.
-func pruefeMeta(meta map[string]string) (bool, error) {
+// liefert, ob die Aufzeichnung leere Sessions trägt, und den Text der Version
+// (model.Version oder model.VersionMitEnde).
+func pruefeMeta(meta map[string]string) (bool, string, error) {
 	format, ok := meta[metaFormat]
 	if !ok {
-		return false, beschaedigt("meta ohne %s", metaFormat)
+		return false, "", beschaedigt("meta ohne %s", metaFormat)
 	}
 	if format != model.Format {
-		return false, beschaedigt("meta: Formatkennung ist nicht %s", model.Format)
+		return false, "", beschaedigt("meta: Formatkennung ist nicht %s", model.Format)
 	}
 	version, ok := meta[metaVersion]
 	if !ok {
-		return false, beschaedigt("meta ohne %s", metaVersion)
+		return false, "", beschaedigt("meta ohne %s", metaVersion)
 	}
 	if !kanonischeZahl.MatchString(version) {
-		return false, beschaedigt("meta: version ist keine kanonische ganze Zahl")
+		return false, "", beschaedigt("meta: version ist keine kanonische ganze Zahl")
 	}
-	if version != "1" {
-		return false, eigen(model.CodeRecordingVersion, "Version der Datei wird nicht unterstützt")
+	if version != strconv.Itoa(model.Version) && version != strconv.Itoa(model.VersionMitEnde) {
+		return false, "", eigen(model.CodeRecordingVersion, "Version der Datei wird nicht unterstützt")
 	}
 	for k, v := range meta {
 		switch k {
 		case metaFormat, metaVersion:
 		case metaEmptySessions:
 			if v != "true" {
-				return false, beschaedigt("meta: %s trägt nicht true", k)
+				return false, "", beschaedigt("meta: %s trägt nicht true", k)
 			}
 		default:
-			return false, beschaedigt("meta: unbekannter Schlüssel")
+			return false, "", beschaedigt("meta: unbekannter Schlüssel")
 		}
 	}
 	_, leere := meta[metaEmptySessions]
-	return leere, nil
+	return leere, version, nil
 }
 
 // Die Knoten, aus denen der Baum der Aufzeichnung entsteht.

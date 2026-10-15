@@ -183,7 +183,7 @@ func TestLesenLeereObjekteSindKeineEintraege(t *testing.T) {
 // `sqlite`*, der Rest nach SPEC-043): ohne format oder version, mit anderer Formatkennung, mit
 // einem unbekannten Schlüssel, mit einem Wert von empty_sessions außer true oder mit einer
 // Version, die keine kanonische Zahl ist, ist die Datei beschädigt (PGR-E3003); jede kanonische
-// Zahl außer 1, auch 0, eine negative und eine zu große für 64 Bit, ist PGR-E3002; geprüft
+// Zahl außer 1 und 2, auch 0, eine negative und eine zu große für 64 Bit, ist PGR-E3002; geprüft
 // wird in der Reihenfolge Formatkennung, Version, Inhalt.
 func TestLesenMeta(t *testing.T) {
 	version := func(v string) string { return `UPDATE meta SET value = '` + v + `' WHERE key = 'version'` }
@@ -203,19 +203,19 @@ func TestLesenMeta(t *testing.T) {
 		{"empty_sessions leer", `INSERT INTO meta VALUES ('empty_sessions', '')`, beschaedigt},
 		{"empty_sessions TRUE", `INSERT INTO meta VALUES ('empty_sessions', 'TRUE')`, beschaedigt},
 		{"empty_sessions true", `INSERT INTO meta VALUES ('empty_sessions', 'true')`, ""},
-		{"Formatkennung vor Version", `UPDATE meta SET value = 'x' WHERE key = 'format'; ` + version("2"), beschaedigt},
-		{"Version vor Inhalt", version("2") + `; ` + kaputt, unbekannteV},
-		{"Version vor fehlender Tabelle", version("2") + `; DROP TABLE session`, unbekannteV},
-		{"Version vor unbekanntem Schlüssel", version("2") + `; INSERT INTO meta VALUES ('foo', 'bar')`, unbekannteV},
+		{"Formatkennung vor Version", `UPDATE meta SET value = 'x' WHERE key = 'format'; ` + version("3"), beschaedigt},
+		{"Version vor Inhalt", version("3") + `; ` + kaputt, unbekannteV},
+		{"Version vor fehlender Tabelle", version("3") + `; DROP TABLE session`, unbekannteV},
+		{"Version vor unbekanntem Schlüssel", version("3") + `; INSERT INTO meta VALUES ('foo', 'bar')`, unbekannteV},
 		{"unlesbare Version vor Inhalt", version("abc") + `; ` + kaputt, beschaedigt},
 	}
 	for _, v := range []string{"abc", "01", "+1", " 1", "1 ", "-0", "", "1.0", "0x1", "1e0", "00", "-01", "٣"} {
 		faelle = append(faelle, fall{fmt.Sprintf("version %q", v), version(v), beschaedigt})
 	}
-	for _, v := range []string{"0", "2", "-1", "10", "99999999999999999999", "-99999999999999999999", "9223372036854775808"} {
+	for _, v := range []string{"0", "3", "-1", "10", "99999999999999999999", "-99999999999999999999", "9223372036854775808"} {
 		faelle = append(faelle, fall{fmt.Sprintf("version %q", v), version(v), unbekannteV})
 	}
-	faelle = append(faelle, fall{"version 1", version("1"), ""})
+	faelle = append(faelle, fall{"version 1", version("1"), ""}, fall{"version 2", version("2"), ""})
 	pruefeFaelle(t, faelle)
 }
 

@@ -75,9 +75,9 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/adapters/driven/recording/sqlite_lesen.go`, `sqlite_lesen_baum.go`, `sqlite_json_lesen.go` | update | Leser: beide Versionen, Nachricht `connection_closed`, Version aus `meta` in den Baum statt fest `1`; Formregeln über `Unmarshal`, das `Validate` und `Session.ValidateEnd` ruft (Bindung aus `slice-v1-abschluss-verbindungsende-format`, Ort in §6) |
-| `internal/adapters/driven/recording` (Tests) | update | Lesen: Version 1 und 2, Negative je Randform, Dateien von Hand gebaut |
-| `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests |
+| `internal/adapters/driven/recording/sqlite_lesen.go` | update | Leser: `liesMeta` und `pruefeMeta` liefern den Text der Version (`model.Version` oder `model.VersionMitEnde`, sonst `PGR-E3002`), `liesAufzeichnung` schreibt ihn statt fest `1` in den Baum; die Nachricht `connection_closed` und die Formregeln (`Validate`, `Session.ValidateEnd`) laufen über `Unmarshal` (Bindung aus `slice-v1-abschluss-verbindungsende-format`, Ort in §6). `sqlite_lesen_baum.go` und `sqlite_json_lesen.go` bleiben unverändert: Das Ende ist eine Nachricht wie jede andere. |
+| `internal/adapters/driven/recording/sqlite_lesen_ende_test.go` (neu), `sqlite_lesen_inhalt_test.go`, `leser_test.go`, `test/integration/sqlite_lesen_e2e_test.go` | update | Lesen: Version 1 und 2, Negative je Randform, Dateien von Hand mit SQL gebaut; die bestehenden Fälle, die `2` als unbekannte Version führten (auch `TestE2ELesenAbgelehnt`, ein Fall, keine neue Zusage), nehmen `3` |
+| `docs/user/abdeckung-unit.md` | update (`make abdeckung`) | Tabelle aus den Deklarationen der Tests (`abdeckung-e2e.md` bleibt, der Slice hat keinen E2E-Test) |
 
 ## 4. Trigger
 
@@ -154,6 +154,53 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Läufe.** Der erste volle `make gates` war rot (Exit 2): `TestE2ELesenAbgelehnt` führte „sqlite, Version 2“ als unbekannte Version; der Fall nimmt `3` (derselbe Fehler wie in `slice-v1-abschluss-verbindungsende-format`). Zweiter voller Lauf `make gates` grün (Exit 0, ohne Flanke `p7-int-treiber`). Zwischendurch `go test ./internal/adapters/driven/recording/` per Bind-Mount ohne Netz grün.
+
+**Mutationstabelle** (`AGENTS.md` §3.10). Jede Mutation einzeln in einer Kopie des Baums (`/…/scratchpad/M`), `go test ./internal/adapters/driven/recording/ -run 'TestLesenEnde|TestLesenMeta|TestLesenMeldung|TestLesenGleiche|TestLesenUserVersion|TestLesenRoundtrip'` im Image `pgwire-recorder:test` mit `--network=none` und Bind-Mount (die Datei wird neu geschrieben, danach zurückgesetzt; der Mutant kommt an, Übersetzungsfehler wurden erkannt und der Mutant korrigiert). „Rot“ nennt die Tests, die rot wurden; weitere Fälle derselben Tests, die mitfärben, sind nicht genannt.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| das Ende ist eine Zeile von `message` und wird geladen (einfach) | `interaktionBau.knoten` lässt die Zeile `connection_closed` aus | `TestLesenEndeAngenommen` (alle Fälle mit einfachem Ende); mitgefärbt `TestLesenEndeAbgelehntStelle` „ready_for_query vor/nach dem Ende“ |
+| dasselbe (Extended) | `interaktionBau.gruppen` lässt die Zeile aus | `TestLesenEndeAngenommen` (Sync-, Flush-, vordere Flush-Gruppe, Zeile vor der Fehlerantwort); `TestLesenEndeAbgelehntDarstellung` „direction client, extended“, `…Stelle` „nicht in der letzten Gruppe“, „ready_for_query in der Gruppe“ (mitgefärbt, weil das Ende fehlt) |
+| `fields` ohne Schlüssel (Felder des Endes werden nicht verworfen) | `nachrichtBau.knoten` verwirft alle Felder von `connection_closed` | `TestLesenEndeAbgelehntDarstellung`: „fields mit tag“, „mit Wert null“, „mit leerem Namen“, „mit type“ |
+| Schlüssel `tag` ist `PGR-E3003` | verwirft nur den Schlüssel `tag` | nur „fields mit tag“ |
+| Schlüssel mit Wert `null` | verwirft nur Paare mit Wert `null` | nur „fields mit Wert null“ |
+| Schlüssel mit leerem Namen | verwirft nur den Schlüssel `""` | nur „fields mit leerem Namen“ |
+| Schlüssel `type` | verwirft nur den Schlüssel `type` | nur „fields mit type“ |
+| `direction` `client` mit `connection_closed` (einfach) | Prüfung `richtung != server` gilt nicht für `connection_closed` | nur „direction client, einfach“ |
+| dasselbe (Extended) | beide Zweige der Client-Nachrichten in `gruppen` lassen `connection_closed` aus (es landet in `server`) | **grün, äquivalent:** In einer Extended-Gruppe stehen die Client-Nachrichten vor den Server-Nachrichten (`SPEC-043`), eine Client-Zeile `connection_closed` landet also vor `error_response` in `server` und ist nicht die letzte Nachricht; `Group.validate` lehnt sie mit demselben Code ab. Der Fall „direction client, extended“ belegt den Code, nicht die Prüfung der Richtung |
+| `kind` genau (Großschreibung) | `nachrichtVon` setzt `kind` in Kleinbuchstaben | nur „kind in Großbuchstaben“ |
+| `kind` genau (Leerzeichen) | `nachrichtVon` entfernt Leerraum von `kind` | nur „kind mit Leerzeichen“ |
+| die Stelle folgt den Nummern, nicht der Reihenfolge der Zeilen | die Sortierung der Nachrichten entfällt | `TestLesenEndeAngenommen` „Zeile des Endes vor der Fehlerantwort“ (einfach und extended) |
+| `Session.ValidateEnd` ruft `Unmarshal`, der Leser baut sie nicht nach | der Aufruf in `sessionFromDTO` (`yaml.go`) entfällt | `TestLesenEndeJeSession` „Interaktion 1 von 2“ und „zwei Interaktionen“; `TestLesenEndeAbgelehntStelle` dieselben zwei Fälle |
+| der Leser liefert die Version der Datei (1 und 2) | der Baum trägt fest `"1"` | `TestLesenEndeAngenommen` (alle Fälle der Version 2: `PGR-E3003`) |
+| dasselbe | der Baum trägt fest `"2"` | `TestLesenEndeAngenommen` „Version 1 ohne Ende“ (Version 2 statt 1), `TestLesenEndeAbgelehntDarstellung` „Version 1, einfach/extended“ (angenommen statt `PGR-E3003`) |
+| Version 2 wird angenommen | nur `model.Version` angenommen | `TestLesenEndeAngenommen` (alle Fälle der Version 2), `TestLesenMeta` „version 2“ |
+| Version 2 ohne Ende wird angenommen | Version 2 ohne `connection_closed` im Text ist `PGR-E3002` | nur „Version 2 ohne Ende“, „…, extended“ (`TestLesenEndeAngenommen`) und `TestLesenMeta` „version 2“ |
+| die Zahl wird als Zahl verglichen (`10`) | `strings.HasPrefix(version, "1")` statt Vergleich | `TestLesenEndeVersionen` „Version 10“, über die Meldung (siehe Anmerkung) |
+| dasselbe (`20`) | `strings.HasPrefix(version, "2")` | „Version 20“, über die Meldung |
+| `0` ist `PGR-E3002` | `0` angenommen | „Version 0“, über die Meldung |
+| `3` ist `PGR-E3002` | `3` angenommen | „Version 3“, „Version 3, Ende vor der Fehlerantwort“ (beide Fälle) über die Meldung; `TestLesenMeta` „Version vor Inhalt/fehlender Tabelle/unbekanntem Schlüssel“ |
+| `-1` ist `PGR-E3002` | `-1` angenommen | „Version -1“, über die Meldung |
+| eine Zahl über 64 Bit ist `PGR-E3002` | Überlauf der Umwandlung als angenommen | „Version 99999999999999999999“ (`PGR-E3003` statt `PGR-E3002`), `TestLesenMeta` zwei Fälle |
+| `02` ist `PGR-E3003` | führende Nullen werden vor der Prüfung entfernt | „Version "02"“, `TestLesenMeta` „01“ |
+| `+2` ist `PGR-E3003` | ein `+` wird vor der Prüfung entfernt | „Version "+2"“, `TestLesenMeta` „+1“ |
+| ` 2` ist `PGR-E3003` | Leerzeichen davor werden entfernt | „Version " 2"“, `TestLesenMeta` „ 1“ |
+| `2 ` ist `PGR-E3003` | Leerzeichen danach werden entfernt | „Version "2 "“, `TestLesenMeta` „1 “ |
+| die Meldung zu `PGR-E3002` nennt keine Version | die Meldung trägt `Version <Zahl>` | `TestLesenEndeVersionen` alle E3002-Fälle, `TestLesenMeldungOhneWertUndZeile` „meta version unbekannt“ |
+| `PRAGMA user_version` ändert die Version nicht | der Leser setzt die Version aus `user_version` 1 oder 2 | `TestLesenEndeAngenommen` „user_version 1, meta.version 2, Ende“ und „user_version 2, meta.version 1 ohne Ende“, `TestLesenEndeAbgelehntDarstellung` „user_version 2, meta.version 1, Ende“, `TestLesenUserVersionIrrelevant` |
+| `PGR-E3002` geht dem Inhalt vor | die Version wird erst nach dem Inhalt geprüft (der Baum trägt `2` für eine fremde Version, `PGR-E3002` folgt nach der Form) | `TestLesenEndeVersionen` „Version 3, Ende vor der Fehlerantwort“ (einfach und Zeilen umgekehrt; `PGR-E3003` statt `PGR-E3002`), `TestLesenMeta` „Version vor Inhalt/fehlender Tabelle/unbekanntem Schlüssel“ |
+
+**Anmerkung zu den Zahlen.** `Unmarshal` prüft die Version noch einmal (`kopfVorpruefung`) und lehnt eine fremde Zahl mit `PGR-E3002` ab, wenn `pruefeMeta` sie durchlässt. Eine Mutation an der Zahlenmenge in `pruefeMeta` (`0`, `3`, `-1`, `10`, `20`) ändert deshalb den Code nicht, nur die Meldung (`Version <Zahl> wird nicht unterstützt` aus `Unmarshal` statt der Meldung ohne Zahl); der Test prüft die Meldung bei jedem `PGR-E3002`-Fall auf `Version <Zahl>`. Die Zusage „die Meldung nennt keine Version“ trägt damit die Zeile; die Zusage über die Menge der Zahlen hält die Prüfung in `Unmarshal` zusätzlich. Der Überlauf wird anders sichtbar: Eine Umwandlung, die ihn annimmt, macht aus `PGR-E3002` ein `PGR-E3003`.
+
+**Befund vorher und nachher.** Vorher: `liesAufzeichnung` schrieb fest `Value: "1"`, `pruefeMeta` nahm nur `"1"` an (`grep -n 'Value: "1"\|version != "1"' internal/adapters/driven/recording/sqlite_lesen.go`: zwei Treffer). Nachher: kein Treffer; `grep -n 'strconv.Itoa(model.Version' internal/adapters/driven/recording/sqlite_lesen.go` nennt `model.Version` und `model.VersionMitEnde`.
+
+**Größe.** Messung in der Metrik von §4 am Arbeitsbaum vor dem Commit (`git diff --numstat fa8486b -- internal docs/user`, die neue Datei mit `git add -N`): 330 (Einfügungen plus Löschungen: Produktcode 39, Tests 282, Tabelle 9, `test/integration` liegt außerhalb der Pfade der Metrik). Meldeschwelle 550 und Marke 700 nicht erreicht.
+
+**Randformen.** Keine nicht genannte oder offene Randform gefunden; die Meldung zu einem Fehler von `Session.ValidateEnd` im SQLite-Leser nennt Session und nicht die verletzte Regel (`ladeInhalt` gibt `me.Msg` aus, Ursache bleibt in `Unwrap`); zugesagt ist dort nur der Code, der Test prüft nur ihn.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -172,5 +219,7 @@ Nachgezählt beim Schnitt (Planner, 2026-10-15, `AGENTS.md` §3.13): Liefer-Punk
 Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-verbindungsende-format-schreiber` und der Bindung aus `slice-v1-abschluss-verbindungsende-format` (Planner, 2026-10-15): Der YAML-Schreiber ist hier keine Voraussetzung mehr (er gehört zum Roundtrip in `-sqlite-schreiber`); der Aufruf von `Session.ValidateEnd` gehört zum Leser-Punkt, `model.VersionMitEnde` zum Vergleich der Version. Liefer-Punkte weiter 1, Schichten weiter eine.
 
 Nachgezählt bei der Prüfung des Architect vor dem Code (2026-10-15, `AGENTS.md` §3.13): Liefer-Punkte 1. Schichten zwei: der Recording-Adapter und `docs/user` (die Abdeckungstabellen zählen als Nutzer-Doku-Schicht, anders als die Zeile des Planners vom selben Tag „eine“); die Spezifikation und der Plan sind keine Schicht dieser Lieferung. Schätzung in der Metrik von §4 mit dem Faktor Tests zu Produktcode von mindestens 5: Produktcode 20 bis 40 (Version aus `meta` in den Baum, Vergleich mit zwei Konstanten, Kommentare), Tests 190 bis 370 (rund 60 Zeilen Hilfe zum Bauen der Dateien, rund 45 Fälle zu 2 bis 4 Zeilen, Tabellen und Aufrufe), Tabellen etwa 10: **220 bis 420, Mitte 320, 46 % der Marke 700**. Die Meldeschwelle 550 gilt unverändert.
+
+Nachgezählt beim Umsetzen (Implementer, `AGENTS.md` §3.13): Liefer-Punkte 1. Schichten zwei: der Recording-Adapter und `docs/user` (Abdeckungstabelle); `test/integration` ändert einen Fall und ist keine zusätzliche Schicht der Lieferung. Gemessen 330 in der Metrik von §4 (Schätzung des Architect 220 bis 420), 47 % der Marke 700, unter der Meldeschwelle 550.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).

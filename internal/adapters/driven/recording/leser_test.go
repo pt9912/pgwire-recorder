@@ -241,7 +241,7 @@ sessions:
 		t.Fatal(err)
 	}
 	sq := kopiere(t, gueltig)
-	rohSchreibe(t, sq, `UPDATE meta SET value = '2' WHERE key = 'version'`)
+	rohSchreibe(t, sq, `UPDATE meta SET value = '3' WHERE key = 'version'`)
 	if _, err := laden(ys); codeVon(err) != unbekannteV {
 		t.Errorf("yaml: %v", err)
 	}

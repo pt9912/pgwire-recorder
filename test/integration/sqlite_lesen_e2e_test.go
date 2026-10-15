@@ -160,7 +160,7 @@ func TestE2ELesenAbgelehnt(t *testing.T) {
 		inhalt []byte
 		code   string
 	}{
-		{"sqlite, Version 2", ersetzt(roh, "version1", "version2"), "PGR-E3002"},
+		{"sqlite, Version 3", ersetzt(roh, "version1", "version3"), "PGR-E3002"},
 		{"yaml, Version 3", ersetzt([]byte(text), "version: 1", "version: 3"), "PGR-E3002"},
 		{"sqlite, andere Formatkennung", ersetzt(roh, "pgwire-recorder", "pgwire-recorden"), "PGR-E3003"},
 		{"yaml, andere Formatkennung", ersetzt([]byte(text), "pgwire-recorder", "pgwire-recorden"), "PGR-E3003"},
