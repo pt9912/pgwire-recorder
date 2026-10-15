@@ -933,8 +933,9 @@ Wiedergabe eines Verbindungsendes ohne Fehlerantwort.
   Nicht unterstützte PGWire-Funktionen werden mit einem klar erkennbaren Fehler
   abgelehnt. Zugesagt ist der Record-Modus gegen die Hauptversionen von PostgreSQL,
   die die Spezifikation nennt.
-- **Nachweis:** Abnahmeszenarien in §7 laufen unter diesen Bedingungen; die
-  Kompatibilitätstests laufen je unterstützter Hauptversion.
+- **Nachweis:** Abnahmeszenarien in §7 laufen unter diesen Bedingungen; gegen
+  jede unterstützte Hauptversion läuft nur die Teilmenge der Kompatibilitätstests,
+  die die Spezifikation nennt.
 
 ---
 
