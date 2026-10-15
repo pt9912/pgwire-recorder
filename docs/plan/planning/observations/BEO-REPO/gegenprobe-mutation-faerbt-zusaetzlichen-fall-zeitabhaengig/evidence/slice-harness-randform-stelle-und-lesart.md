@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-randform-stelle-und-lesart
+**Fund:** Der erste volle `make gates` des Slice war an `test-postgres-versionen-gegenprobe` rot (Mutation `p7-int-treiber`, zusätzlich rot `p7-sigTERM-skript`); der Einzellauf des Gates und der zweite volle `make gates` waren grün. Der Slice ändert nur Prosa unter `AGENTS.md` und `.claude/` und berührt Gate und Gegenprobe nicht (Review F-4, Verify V-4, Plan §7 *Läufe*); drittes Auftreten derselben Mutation.
