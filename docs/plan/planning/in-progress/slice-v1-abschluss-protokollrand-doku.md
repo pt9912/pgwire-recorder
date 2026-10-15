@@ -141,7 +141,7 @@ Jede Probe ist ein Aufruf des gebauten Binarys gegen die genannte Datei oder Ver
 
 **CancelRequest-Wortlaut** (nur nach P6): „Das Werkzeug leitet den Abbruchwunsch nicht an die Datenbank weiter und wertet weder Prozess-ID noch Schlüssel aus; es schließt die Verbindung und warnt mit `PGR-W3001`. Eine laufende Anfrage einer anderen Verbindung bleibt unberührt.“ Ohne P6: „Das Werkzeug leitet den Abbruchwunsch nicht weiter und schließt die Verbindung (`PGR-W3001`).“
 
-**Plattform** (`BEO-REPO/verhalten-nur-unter-linux-geprueft`): Plattformabhängig ist allein, wie eine Verbindung ohne Startnachricht endet (Schließen oder Zurücksetzen der TCP-Verbindung nach 0 bis 7 Bytes, `TestE2EProtokollrandTCPProbe`) und das Warten auf die Fehlerantwort; die Bytefolgen der Protokollnachrichten sind es nicht. Das Handbuch nennt die geprüfte Umgebung in einem Satz im Stil der Zeile zu SQLite: „Das Verhalten am Protokollrand ist unter Linux im Container geprüft; für andere Systeme ist es nicht geprüft.“ Der Satz steht einmal, in den Hinweisen zum Aufzeichnen neben der Aufzählung der Nicht-Sitzungen, ohne Version, Tag, Datum oder „bisher“. Das Risiko behält seinen Ausgang offen bis Closure; ein Test unter einem anderen System ist kein Gegenstand dieses Slice.
+**Plattform** (`BEO-REPO/verhalten-nur-unter-linux-geprueft`): Plattformabhängig ist allein, wie eine Verbindung ohne Startnachricht endet (Schließen oder Zurücksetzen der TCP-Verbindung nach 0 bis 7 Bytes, `TestE2EProtokollrandTCPProbe`) und das Warten auf die Fehlerantwort; die Bytefolgen der Protokollnachrichten sind es nicht. Das Handbuch nennt die geprüfte Umgebung in einem Satz im Stil der Zeile zu SQLite: „Das Verhalten am Protokollrand ist unter Linux geprüft; für andere Systeme ist es nicht geprüft.“ (Nacharbeit F-2: ohne „im Container“, weil §7 für den Container keinen Lauf der Proben trug; die Proben P1 bis P11 liefen als Prozess unter Linux, §7) Der Satz steht einmal, in den Hinweisen zum Aufzeichnen neben der Aufzählung der Nicht-Sitzungen, ohne Version, Tag, Datum oder „bisher“. Das Risiko behält seinen Ausgang offen bis Closure; ein Test unter einem anderen System ist kein Gegenstand dieses Slice.
 
 **Nicht entschieden, an den Planner:** keine Randform bleibt offen. Der Planner entscheidet nur, falls P1, P4 oder P6 ein Verhalten zeigen, das `spec/spezifikation.md` anders regelt (Verhalten neben der Spezifikation, Zeile in §7).
 
@@ -206,15 +206,15 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 | Benachrichtigung ist `PGR-E6001` (Exit-Code 6): `LISTEN` und `NOTIFY` in einer Anfrage, in zwei Anfragen derselben Verbindung, auf zwei Verbindungen; die empfangende wird nicht aufgezeichnet, die sendende schon; spätestens auf die nächste Anfrage der zuhörenden | `TestE2ERecordListenNotify` („beides in einer Anfrage“, „zwei Anfragen derselben Session“, „zwei Sessions“: `nicht`/`sieht` und `exit` 6) | Die Fälle „LISTEN allein“ und „Benachrichtigung nach der letzten Interaktion“ (Exit-Code 0) |
 | nach der letzten Anfrage der zuhörenden Verbindung: kein Fehler, Exit-Code 0 | `TestE2ERecordListenNotify` („Benachrichtigung nach der letzten Interaktion“, beide Sitzungen in der Datei) | — |
 | im `replay` sind `LISTEN`/`NOTIFY` aufgezeichnete Anfragen ohne Benachrichtigung | P3 (roh und `psql` 17.11) — der Satz steht im Handbuch **nicht** (Platz im Abschnitt gespart; kein Test trägt ihn über P3 hinaus) | entfällt |
-| `replay` beginnt mit `AuthenticationOk` ohne Passwort-Anforderung, mit und ohne `--tls-cert` | `TestE2EReplayAuswahl` (ohne TLS: `R` mit Code 0); P4 (TLS roh) | — |
+| `replay` beginnt jede angenommene Verbindung mit `AuthenticationOk` ohne Passwort-Anforderung, mit und ohne `--tls-cert`; eine abgelehnte Verbindung erhält sofort die Fehlerantwort (Nacharbeit F-1) | `TestE2EReplayAuswahl` (ohne TLS: `R` mit Code 0); P4 (TLS roh); abgelehnte Verbindung: P1, P8, P10, Nacharbeit F-1 (Lauf als Container) | Nacharbeit F-1: der Satz mit „jede Verbindung“ ist durch die erste Nachricht `E` statt `R` widerlegt |
 | Benutzer, Datenbank und Optionen werden nicht geprüft, ein unbekannter Benutzer wird bedient | `TestE2EReplayAuswahl` (`gibtesnicht`, `nix`, `options`); P4 (TLS) | — |
 | `require_auth` mit `password`, `md5`, `scram-sha-256`: Client bricht ab, `replay` Exit-Code 0, keine Meldung zum Abbruch, mit psql 17.11 | `TestE2EReplayAuswahl` (`scram-sha-256`, pgconn, kein `PGR-` im Log); P4 (alle drei, mit und ohne TLS) | P4: `require_auth=none` gelingt, `replay` Exit-Code 0; ohne P4 stünde nur `scram-sha-256` |
-| `replay` verlangt kein Passwort (Satz in der Passwort-Anmeldung und §6) | wie die Zeile zu `AuthenticationOk` | der alte Satz „nimmt jedes Passwort an“ ist enger gefasst (Quantor, unten) |
+| `replay` verlangt kein Passwort und bedient eine angenommene Verbindung mit jedem Benutzer und jeder Datenbank (Satz in der Passwort-Anmeldung und §6) | wie die Zeile zu `AuthenticationOk` | der alte Satz „nimmt jedes Passwort an“ ist enger gefasst (Quantor, unten) |
 | COPY-Antwort der Datenbank (`TO STDOUT`, `FROM STDIN`) im `record`: `PGR-E6001` statt der Antwort, Sitzung nicht aufgezeichnet, andere Verbindung schon, Exit-Code 6 | `TestE2ERecordNichtUnterstuetzt`, `TestE2ERecordWeitergabeNichtUnterstuetzt` (nur die Fehlerantwort, keine Ergebnisse), `sessions_e2e_test.go` Z. 491 (andere Verbindung); `FROM STDIN`: P5 | P5 (`FROM STDIN` und `TO STDOUT`) |
 | `max_protocol_version=3.0` bei libpq 18 (geprüft 18.6) verbindet mit `record` und `replay`; `latest` erhält `PGR-E6002` | P7 | P7 `latest`/`3.2` |
 | das Werkzeug handelt keine Version aus | P7, P11 (jede andere Version endet mit `PGR-E6002`, keine Antwort `NegotiateProtocolVersion`) | — |
 | Treiber „fordert keine Protokollerweiterung an“ (Voraussetzung), Ratschläge („stellen Sie … ein“) | Handlungsanweisung, keine Verhaltensaussage; Wirkung: P1, P2 | — |
-| Verhalten am Protokollrand ist unter Linux im Container geprüft; für andere Systeme nicht | Läufe der Tests im Container (`make test-integration`); `TestE2EProtokollrandTCPProbe` für die Plattformabhängigkeit; meine Proben liefen zusätzlich als Prozess unter Linux, nicht im Container, und tragen den Satz nicht | — |
+| Verhalten am Protokollrand ist unter Linux geprüft; für andere Systeme nicht | Proben P1 bis P11 als Prozess unter Linux (`uname -sr`: Linux 6.8.0-139-generic), `TestE2EProtokollrandTCPProbe` für die Plattformabhängigkeit; „im Container“ steht nicht mehr im Satz (Nacharbeit F-2); der Lauf von `replay` als Container steht in der Nacharbeit unten | ein Satz „im Container“ hätte einen Lauf aller Proben als Container verlangt; ohne ihn ist der Satz enger gefasst |
 | Meldungscodes-Tabelle E6001 bis E6003 | Sätze oben; Codes gegen den Katalog (`comm`, unten) | — |
 | README: dieselben Aussagen in Kürze | die Zeilen oben | — |
 
@@ -252,6 +252,33 @@ Der Satz zu `LISTEN`/`NOTIFY` im `replay` (R4, P3) steht nicht im Handbuch: Er h
 
 **Mutationen am Code** entfallen: Der Slice liefert keinen Vertrag und ändert keinen Code (§1); die Gegenproben sind die Gegenfälle der Tabellen.
 
+### Nacharbeit zum Review (F-1, F-2)
+
+**F-1 (LOW), Klasse „Quantor in neu geschriebenem Satz nicht gegen die Ausnahmen derselben Seite geprüft“.** Merkmal: ein Quantor über „Verbindung“ im Wiedergabe-Satz, den dieselbe Seite mit abgelehnten Startnachrichten einschränkt. Behoben als Klasse: `replay beginnt jede Verbindung mit AuthenticationOk` ist in README und Handbuch zu „jede angenommene Verbindung“ gefasst (Handbuch zusätzlich: „eine abgelehnte Verbindung erhält sofort die Fehlerantwort“); die zweite Stelle desselben Merkmals, §6 „bedient jeden Benutzer und jede Datenbank“, ist zu „bedient eine angenommene Verbindung mit jedem Benutzer und jeder Datenbank“ gefasst.
+
+Quantoren-Durchsicht der neu geschriebenen Zeilen dieses Diffs (`git diff cf08408..HEAD` auf Handbuch und README, Treffer auf `jede/jeder/jeden/alle/keine/keinen/nie/immer/nur`, je Treffer einzeln):
+
+| Neu geschriebene Stelle | Entscheidung |
+|---|---|
+| README und Handbuch „`replay` beginnt jede Verbindung mit `AuthenticationOk`“ | eng gefasst: „jede angenommene Verbindung“ (F-1) |
+| Handbuch §6 „bedient jeden Benutzer und jede Datenbank“ | eng gefasst: „eine angenommene Verbindung mit jedem Benutzer und jeder Datenbank“ |
+| Handbuch „Ein Benutzer, den die Aufzeichnung nicht kennt, wird bedient“ | unverändert: steht in der Aufzählung hinter „jede angenommene Verbindung“ und nennt keinen Quantor; P4 |
+| „Keine Sitzung ist, auch mit der Option, eine Verbindung, deren Startnachricht das Werkzeug ablehnt“ | unverändert: P2 (Datei mit genau 1 Sitzung), P8 |
+| „verbraucht im `replay` keine“ / „Sie verbraucht keine Sitzung“ (README, Hinweise) | unverändert: P8 (`first-request` und `connection`), P1 (`PGR-W2001`) |
+| „Daten zählen bei keiner der beiden Zuordnungen als Verbindung; ebenso eine Verbindung, deren Startnachricht das Werkzeug ablehnt“ | unverändert: P8 beide Zuordnungen |
+| „handelt keine andere [Version] aus“ | unverändert: P7, P11 (jede andere Version endet mit `PGR-E6002`) |
+| „`record` baut dafür keine Verbindung zur Datenbank auf“ | unverändert: `TestE2ERecordErweiterungOhneUpstream` |
+| „`replay` meldet diesen Abbruch nicht und zählt ihn nicht als Fehler“ | unverändert: P4 (Exit-Code 0, keine Meldung `PGR-`) |
+| „`replay` verlangt kein Passwort“, „bricht er selbst ab“, „keinen Ablauf aufzeichnen“, „keine Protokollerweiterung“ | unverändert: Verneinung der Aussage, kein Quantor über eine Menge, die eine Ausnahme einschränkt (Ratschläge: Handlungsanweisung); P4 |
+| „andere Verbindungen laufen weiter“, „die sendende von zwei Verbindungen schon“, „außer in den Fällen unten“ | unverändert: P2, P5, `TestE2ERecordListenNotify`; kein Quantor |
+| „`CopyData` / `p` ... das Werkzeug endet mit Exit-Code 6“ | unverändert: P9 (beide Modi) |
+
+Lauf gegen das gebaute Binary (2026-10-15, `make build`, Image `pgwire-recorder:dev`, Image-ID `9a27f080a356`; `replay` **als Container** mit `--network host`, Aufzeichnung mit einer Sitzung `x`, Python-Skript mit rohen Nachrichten im Scratch): Startnachricht 3.2 ergibt als erste Nachricht `E` mit `PGR-E6002`; `_pq_.x=1` ergibt `E` mit `PGR-E6001`; Rumpf Länge 9 ergibt `E` mit `PGR-E6001`; die reguläre Verbindung danach beginnt mit `R` (`AuthenticationOk`), `Z`. Der Klartext-Fall mit TLS-Pflicht ist durch P1 belegt (`PGR-E6003`, Fehlerantwort), nicht neu gefahren. Das alte „jede Verbindung“ wäre mit der ersten Nachricht `E` statt `R` widerlegt. `make docs-check` und `make gates-schnell` siehe Bericht.
+
+**F-2 (INFO).** Entscheidung: „im Container“ aus dem Satz gestrichen (Handbuch: „ist unter Linux geprüft; für andere Systeme ist es nicht geprüft“), statt einen Lauf aller Proben als Container nachzuholen; das Kleinste, das `AGENTS.md` §3.11 wahrt, denn die Proben P1 bis P11 liefen als Prozess unter Linux (Zeile oben). Der Lauf von `replay` als Container steht oben, trägt den Satz aber nicht allein.
+
+**Größe** (Metrik §4, `git diff --numstat cf08408..HEAD -- docs/user/benutzerhandbuch.md README.md`): 78+23 und 9+1, Summe 111 (Marke über 200 nicht erreicht); die Nacharbeit tauscht Zeilen im Bestand des Diffs.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -268,7 +295,7 @@ nicht mehr.
 
 - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (verkörpert, `AGENTS.md` §3.11) — genau der Gegenstand dieses Slice: Das Handbuch sagt nur zu, was das Binary zeigt.
 - `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` (1×, offen) — dieser Slice ist die Adresse des Teils von `slice-v1-abschluss-protokollrand`; seine Beobachtung ist das Risiko in §6.
-- `BEO-REPO/verhalten-nur-unter-linux-geprueft` (1×, offen) — Proben laufen nur unter Linux im Container (§6).
+- `BEO-REPO/verhalten-nur-unter-linux-geprueft` (1×, offen) — Proben laufen nur unter Linux (§6, §7).
 - `BEO-REPO/schichtteilung-je-plan-verschieden` (verkörpert, `AGENTS.md` §3.13) — dieser Slice ist die Folge der Zählung.
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
