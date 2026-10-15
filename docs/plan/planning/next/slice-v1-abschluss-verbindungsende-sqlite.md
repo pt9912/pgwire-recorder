@@ -34,9 +34,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-verbindungsende-format`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): SQLite als zweites Format des Endes. Das Modell mit seinen Formregeln und der YAML-Teil liegen in jenem Slice; dieser Slice benutzt `Validate` und die Fehlerklassen unverändert und setzt ihn voraus.
 
+**Übernommen aus `slice-v1-abschluss-verbindungsende-format-schreiber`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-15, `AGENTS.md` §3.13, Schnitt von `slice-v1-abschluss-verbindungsende-format`): der YAML-Schreiber mit Version nach dem Inhalt. Der Roundtrip in beiden Formaten (DoD-Punkt 3) schreibt dieselbe Aufzeichnung als YAML und als SQLite; den YAML-Schreiber liefert jener Slice, dieser benutzt ihn und setzt ihn voraus.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Das Modell, seine Formregeln und das YAML-Format — `slice-v1-abschluss-verbindungsende-format`: Vorgänger in der Reihenfolge; hier nur der Schreiber, der Leser und das Schema-Verhalten von `sqlite`.
+- Das Modell, seine Formregeln und der YAML-Leser — `slice-v1-abschluss-verbindungsende-format`; der YAML-Schreiber mit der Wahl der Version — `slice-v1-abschluss-verbindungsende-format-schreiber`: Vorgänger in der Reihenfolge; hier nur der Schreiber, der Leser und das Schema-Verhalten von `sqlite`.
 - Ein Ende, das `record` aus einem echten Upstream aufzeichnet, in einer SQLite-Datei — `slice-v1-abschluss-verbindungsende-upstream` (dort §1 und DoD, E2E von Abnahmeszenario 18): Hier schreibt der Test das Modell mit Ende von Hand; der Upstream-Adapter liefert es erst dort.
 - Wiedergabe, Einspielen und Vergleich — `-replay`, `-einspielen`, `-vergleich`: andere Schichten und andere Verträge.
 - Änderung am neutralen Schema `tools/schema/schema.yaml` und am Schema-Text — Entscheidung des Nutzers vom 2026-10-12 (bestätigt): `connection_closed` ist ein Wert der Spalte `message.kind`; `make schema-validate` bleibt unberührt.
@@ -81,7 +83,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-format` liegt in `done/` (Voraussetzung; Schritt 35); dieser Slice ist Schritt 36 der Reihenfolge in §5 von welle-v1-abschluss. WIP-Limit 1.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-format` und `slice-v1-abschluss-verbindungsende-format-schreiber` liegen in `done/` (Voraussetzung; Schritt 35a und 35b: Modell und Leser, YAML-Schreiber für den Roundtrip); dieser Slice ist Schritt 36 der Reihenfolge in §5 von welle-v1-abschluss. WIP-Limit 1.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -150,5 +152,7 @@ nicht mehr.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen. Treffer in der Sub-Area `REPO`: `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` (2×; Belege `slice-v1-abschluss-sqlite-format` und `slice-v1-abschluss-sqlite-format-lesen`, die beiden Vorgänger dieses Formats) — der Plan nennt seine Schätzung mit Tests und den Schnitt vorab; wird der Eintrag mit diesem Slice zum dritten Mal belegt, ist er eine Lücke. Keine weiteren Treffer.
 
 Nachgezählt beim Anlegen (Planner, 2026-10-12, `AGENTS.md` §3.13): Liefer-Punkte: 3 (Schreiber, Leser, Roundtrip). Schichten: eine (Recording-Adapter, `ARC-008`). Schätzung des Planners: 400 bis 750 Zeilen mit Tests.
+
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-verbindungsende-format-schreiber` (Planner, 2026-10-15, `AGENTS.md` §3.13): Der YAML-Schreiber ist Voraussetzung und keine Lieferung dieses Slice; er gehört zu DoD-Punkt 3 (Roundtrip, der ihn im Test benutzt) und fügt weder Liefer-Punkt noch Schicht hinzu. Liefer-Punkte weiter 3, Schichten weiter eine (Recording-Adapter); Schätzung unverändert. Die Rückführung in §4 (Schnitt Schreiber | Leser bei über 1000) bleibt Sache des Architect.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).

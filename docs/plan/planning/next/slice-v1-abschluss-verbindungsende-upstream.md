@@ -32,6 +32,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Der Upstream-Adapter stuft das Ende des Servers ein (`LH-FA-25.a` *Aufzeichnen*, *Stelle*, *Leerlauf*, *Kein Ende*): Liest er in der laufenden Interaktion eine `ErrorResponse` mit dem Schweregrad `FATAL` oder `PANIC`, ist die Interaktion abgeschlossen — er liefert die Antworten bis einschließlich dieser Fehlerantwort und danach `connection_closed`, ohne auf das Verbindungsende zu warten und ohne zu lesen, was danach kommt; bei einer einfachen Anfrage wie in einer Extended-Interaktion. Ein Ende im Leerlauf ist nur mit nachfolgender Anfrage aufzeichenbar; ein Verbindungsende ohne gelesene `FATAL`/`PANIC` bleibt `PGR-E4003`, nach einer anderen gelesenen `ErrorResponse` `PGR-E6001`, vor dem ersten `ReadyForQuery` `PGR-E4002` beziehungsweise `PGR-E4005`. Mit diesem Slice zeichnet `record` ein Ende gegen PostgreSQL auf und `replay` gibt es wieder: Abnahmeszenario 18 ist automatisiert.
 
+**Übernommen aus `slice-v1-abschluss-verbindungsende-format-schreiber`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-15, `AGENTS.md` §3.13, Schnitt von `slice-v1-abschluss-verbindungsende-format`): der YAML-Schreiber mit Version nach dem Inhalt. Abnahmeszenario 18 zeichnet in YAML auf und lädt die Datei wieder (DoD-Punkt 3); den Schreiber liefert jener Slice, dieser setzt ihn voraus.
+
 **Übernommen aus `slice-v1-abschluss-verbindungsende-record`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): der Upstream-Adapter und Abnahmeszenario 18. Der Use Case und die Zustellung liegen in jenem Slice; dieser setzt ihn voraus und liefert, was dessen Fakes bisher nur abbilden.
 
 **Übernommen aus `slice-v1-abschluss-verbindungsende-sqlite`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12): der E2E-Beleg, dass `record --format sqlite` ein echtes Ende aufzeichnet und die Datei `meta.version` 2 trägt, und aus `slice-v1-abschluss-verbindungsende-replay` (dort §3 und §6, Risiko): dass die handgeschriebenen Aufzeichnungen dessen Fixtures dem entsprechen, was PostgreSQL liefert.
@@ -88,7 +90,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-record` und `slice-v1-abschluss-verbindungsende-sqlite` liegen in `done/` (Voraussetzung); `slice-v1-abschluss-anmeldung` liegt davor, weil es die Aufbau-Schleife im Upstream-Adapter umbaut. Dieser Slice ist Schritt 41 der Reihenfolge in §5 von welle-v1-abschluss. WIP-Limit 1.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-record`, `slice-v1-abschluss-verbindungsende-sqlite` und `slice-v1-abschluss-verbindungsende-format-schreiber` liegen in `done/` (Voraussetzung; der Schreiber für die Aufzeichnung in YAML mit `version: 2`); `slice-v1-abschluss-anmeldung` liegt davor, weil es die Aufbau-Schleife im Upstream-Adapter umbaut. Dieser Slice ist Schritt 41 der Reihenfolge in §5 von welle-v1-abschluss. WIP-Limit 1.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -167,3 +169,5 @@ Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-sessions` (Nahts
 Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-postgres-versionen-zusage` (Architect, 2026-10-15, `AGENTS.md` §3.13): ein Satz in `SPEC-029` Punkt 2 im Commit des Tests von Szenario 18; er gehört zu DoD-Punkt 3 und fügt weder Liefer-Punkt noch Schicht hinzu (die Spezifikation zählt nicht als Schicht, Planung ebenso nicht): Liefer-Punkte weiter 3, Schichten weiter zwei (Upstream-Adapter; Kern nur als Vertrag des Ports); Schätzung unverändert, rund zwei Zeilen mehr.
 
 Nachgezählt beim Eintragen der Berichtigung I-1 aus `slice-v1-abschluss-postgres-versionen-zusage` (Planner, 2026-10-15, `AGENTS.md` §3.13): ein Wort im Satz von `SPEC-029` Punkt 2, den dieser Slice ohnehin im Commit seines Tests schreibt; sie gehört zu DoD-Punkt 3 und fügt weder Liefer-Punkt noch Schicht hinzu (die Spezifikation zählt nicht als Schicht, Planung ebenso nicht). Liefer-Punkte weiter 3, Schichten weiter zwei (Upstream-Adapter; Kern nur als Vertrag des Ports); Schätzung unverändert.
+
+Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-verbindungsende-format-schreiber` (Planner, 2026-10-15, `AGENTS.md` §3.13): Der YAML-Schreiber ist Voraussetzung und keine Lieferung dieses Slice; er gehört zu DoD-Punkt 3 (Abnahmeszenario 18) und fügt weder Liefer-Punkt noch Schicht hinzu. Liefer-Punkte weiter 3, Schichten weiter zwei (Upstream-Adapter; Kern nur als Vertrag des Ports); Schätzung unverändert.

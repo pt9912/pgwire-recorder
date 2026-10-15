@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-24`](../../../../spec/lastenheft.md#lh-fa-24--vergleich-der-antworten-beim-einspielen), [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung), [`LH-FA-22`](../../../../spec/lastenheft.md#lh-fa-22--wählbares-aufzeichnungsformat), [`LH-FA-03`](../../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-02`](../../../../spec/lastenheft.md#lh-fa-02--record-modus), [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md)
 
-**Berührte Spec-Stellen:** — (der Slice ändert keine Spec-Stelle; er beschreibt das gelieferte Verhalten von `slice-v1-abschluss-verbindungsende-format` bis `slice-v1-abschluss-verbindungsende-upstream`)
+**Berührte Spec-Stellen:** — (der Slice ändert keine Spec-Stelle; er beschreibt das gelieferte Verhalten von `slice-v1-abschluss-verbindungsende-format` und `slice-v1-abschluss-verbindungsende-format-schreiber` bis `slice-v1-abschluss-verbindungsende-upstream`)
 
 **Verantwortlich:** pt9912
 
@@ -30,7 +30,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** `docs/user/benutzerhandbuch.md` und `README.md` beschreiben das Verhalten, das die Slices `slice-v1-abschluss-verbindungsende-format`, `-sqlite`, `-replay`, `-einspielen`, `-vergleich`, `-record` und `-upstream` liefern, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews (`AGENTS.md` §3.11).
+**Ziel:** `docs/user/benutzerhandbuch.md` und `README.md` beschreiben das Verhalten, das die Slices `slice-v1-abschluss-verbindungsende-format`, `-format-schreiber`, `-sqlite`, `-replay`, `-einspielen`, `-vergleich`, `-record` und `-upstream` liefern, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews (`AGENTS.md` §3.11).
 
 **Herkunft:** Doku-Folge-Slice der sieben Code-Slices des Verbindungsendes, gebündelt hinter dem letzten, nach Entscheidung des Nutzers vom 2026-10-12 (Vorschlag des Planners; Begründung: Ein Anwender kann ein Ende erst mit `record` erzeugen; bis dahin kennt kein Weg des Binaries eine Aufzeichnung mit Ende außer handgeschriebenen Dateien, die das Handbuch nicht beschreibt. Der Doku-Teil ist ungeteilt, wie bei `slice-v1-abschluss-zeitangaben-doku` und `slice-v1-abschluss-sqlite-format-doku`.) Der Teil, den die Code-Slices in DoD und §3 trügen, liegt hier, weil die Dokumentation eine eigene Schicht ist (`AGENTS.md` §3.13). Zwischen den Code-Slices und diesem Slice hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen. Die Welle schließt erst mit diesem Slice (§3.11).
 
@@ -146,5 +146,7 @@ nicht mehr.
 Nachgezählt beim Anlegen (Planner, 2026-10-12, `AGENTS.md` §3.13): Liefer-Punkte: 2 (Handbuch, README). Schichten: eine (Nutzer- und Wartungs-Doku). Schätzung des Planners: 150 bis 300 Zeilen Text.
 
 Nachgezählt beim Eintragen der Übernahme aus `slice-v1-abschluss-sessions-doku` (Planner, 2026-10-13, `AGENTS.md` §3.13): Sie gehört zu DoD-Punkt 1 (Handbuch) und 2 (README), kein neuer Liefer-Punkt: Liefer-Punkte weiter 2, Schichten weiter eine (Nutzer- und Wartungs-Doku).
+
+Nachgezählt beim Eintragen der Kennung `slice-v1-abschluss-verbindungsende-format-schreiber` (Ziel und Berührte Spec-Stellen; Planner, 2026-10-15, `AGENTS.md` §3.13, Schnitt von `slice-v1-abschluss-verbindungsende-format`): Der Teil beschreibt, was das Binary zeigt, und gehört zu DoD-Punkt 1 (Handbuch) und 2 (README); kein neuer Liefer-Punkt: Liefer-Punkte weiter 2, Schichten weiter eine (Nutzer- und Wartungs-Doku).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
