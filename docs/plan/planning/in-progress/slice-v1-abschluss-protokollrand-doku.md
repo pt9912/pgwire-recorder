@@ -80,7 +80,7 @@ Aussagen-Berührung steht hier gar nicht.
 **Ansatz:**
 
 - Binary mit `make build` bauen, Proben netzlos in einem Scratch-Verzeichnis außerhalb des Repos (Beispieldateien, Aufzeichnungen), für `record` und `play` gegen das gepinnte PostgreSQL-Image aus `harness/mk/integration.mk` in einem eigenen Docker-Netz; Container, Netz und Dateien danach entfernt. Die Proben stehen als Liste in §7 (Aufruf, Ergebnis), nicht im Repo.
-- Die Proben P1 bis P7 und die Randformen R1 bis R8 aus §6 laufen und stehen mit Aufruf und Ergebnis in §7; die Tests, die §6 als Beleg nennt, werden nicht ausgeführt (kein Gate-Lauf in diesem Schritt), der Implementer prüft aber, dass jeder genannte Test die Aussage trägt, für die er genannt ist.
+- Die Proben P1 bis P7 und die Randformen R1 bis R8 aus §6 laufen und stehen mit Aufruf und Ergebnis in §7; für Sätze, die kein Test aus §6 trägt, laufen weitere Proben (P8 bis P11, §7); die Tests, die §6 als Beleg nennt, werden nicht ausgeführt (kein Gate-Lauf in diesem Schritt), der Implementer prüft aber, dass jeder genannte Test die Aussage trägt, für die er genannt ist.
 - Die Befehlsfolge aus `slice-doku-ist-stand` §7 (Optionen, Variablen und Codes des Handbuchs gegen `--help` und Katalog) läuft vor der Übergabe mit **einer benannten Ausnahme**: `PGWIRE_RECORDER_PASSWORD` ist keine Option und steht nicht in der Tabelle von §5; die Variablen-Zeile lautet `comm -23 $W/v-hb $W/v-help | grep -vx PGWIRE_RECORDER_PASSWORD`, und mit ihr ist die Ausgabe leer (Beleg und Mutanten: `slice-v1-abschluss-einspielen-anmeldung-doku` §7).
 
 ## 4. Trigger
@@ -165,6 +165,92 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+### Belege des Implementers
+
+**Umgebung der Proben** (2026-10-15): Binary aus `make build` (Image `pgwire-recorder:dev`, `pgwire-recorder version` meldet `dev`), mit `docker cp` aus dem Image in ein Scratch-Verzeichnis außerhalb des Repos kopiert und dort als Prozess gegen PostgreSQL gestartet. Upstream: `postgres:17-alpine@sha256:b0f9560a…` (17.11, `POSTGRES_HOST_AUTH_METHOD=trust`) in einem eigenen Docker-Netz, Port auf `127.0.0.1` veröffentlicht. Clients: ein Python-Skript mit rohen Nachrichten (Scratch, nicht im Repo), `psql` 17.11 (`postgres:17-alpine`) und `psql` 18.6 (`postgres:18-alpine`, Image-ID `c293117fcecd`) mit `--network host`. Ein Lauf zur Zeit; Container, Netz und Prozesse danach entfernt. Zeilen, die nicht auf eine Probe zeigen, tragen den Test aus §6.
+
+**Größe** (Metrik §4): `git diff --numstat cf08408..7a0be02 -- docs/user/benutzerhandbuch.md README.md` = 78+23 und 9+1, Summe 111 (Marke über 200 nicht erreicht).
+
+**Proben** (Aufruf, Ergebnis):
+
+| Probe | Aufruf | Ergebnis |
+|---|---|---|
+| P1 | `record` und `replay` je mit `--tls-cert server.pem --tls-key server.key` (ohne `--allow-plaintext`), rohe unverschlüsselte Startnachricht 3.0 mit `_pq_.x=1`; Gegenprobe ohne `_pq_.`-Parameter | beide Modi: Fehlerantwort `0A000` mit `PGR-E6001` („Protokollerweiterung … `_pq_.`“), Verbindung endet, Exit-Code 6; ohne `_pq_.`: `PGR-E6003`, Exit-Code 6. Im `replay` meldet das Log danach `PGR-W2001` „2 aufgezeichnete Session(s) nie zugeordnet“: die Verbindung hat keine Session verbraucht |
+| P2 | `record --record-empty-sessions`: Startnachricht 3.2, Startnachricht mit `_pq_.x`, Rumpf Länge 9 (ein Nullbyte), danach eine reguläre Verbindung mit `SELECT 1;` | 3.2: `PGR-E6002`; `_pq_.x`: `PGR-E6001`; Rumpf: `PGR-E6001`; die reguläre Verbindung läuft durch; Exit-Code 6; Aufzeichnung `empty_sessions: true` mit genau 1 Sitzung (`grep -c '- id:'`) |
+| P3 | Aufzeichnung mit zwei Sitzungen (`LISTEN x;`, `NOTIFY x;`, je eigene Verbindung, Exit-Code 0); `replay` ohne Zusatzoptionen: rohe Anfragen je Sitzung; dazu `psql` 17.11 mit `-c "LISTEN x;"` | Antworten `C`, `Z` je Sitzung, keine Nachricht `A`; `psql`: Exit-Code 0, Ausgabe `LISTEN`; `replay` Exit-Code 0, keine Meldung `PGR-` |
+| P4 | `replay --tls-cert … --tls-key …`: roh über TLS (SSLRequest, Antwort `S`, Benutzer `gibtesnicht`, Datenbank `nix`, Option `-c x=1`); dazu `psql` 17.11 `sslmode=require` mit `require_auth=password`, `md5`, `scram-sha-256`, `none`; dieselben vier ohne TLS (`sslmode=disable`) | TLS roh: erste Nachricht `R` mit Code 0 (`AuthenticationOk`), `Z`, die Anfrage `SELECT 1;` wird beantwortet. `require_auth=password`/`md5`/`scram-sha-256`: `psql` bricht ab („authentication method requirement … failed: server did not complete authentication“), mit und ohne TLS; `require_auth=none`: Ergebnis `1`, Exit-Code 0; `replay` Exit-Code 0 und keine Meldung `PGR-` in beiden Läufen (Läufe ohne den rohen Vorlauf, der die einzige Sitzung verbraucht hätte) |
+| P5 | `record`, rohe Verbindung A mit `COPY t FROM STDIN` (Tabelle `t` vorher angelegt), danach Verbindung B mit `SELECT 7;`; Wiederholung mit `COPY t TO STDOUT` | A: Fehlerantwort `PGR-E6001` („Serverantwort *pgproto3.CopyInResponse“ bzw. `CopyOutResponse`) statt der Antwort; B läuft durch; Exit-Code 6; Aufzeichnung: 1 Sitzung, `COPY` steht nicht darin, `SELECT 7` steht darin |
+| P6 | `record`: A (`SELECT pg_sleep(2);`), B mit `CancelRequest` und Prozess-ID und Schlüssel von A aus `BackendKeyData` | **nicht baubar**: A erhält kein `BackendKeyData` (Nachrichten bis `ReadyForQuery`: `R`, 14 mal `S`, `Z`; Kontrolle direkt gegen PostgreSQL: Abbruch mit `57014` gelingt). Der Halbsatz „wertet … nicht aus“ und der Satz zur anderen Verbindung entfallen; das Handbuch behält `PGR-W3001` unverändert (Wortlaut ohne P6) |
+| P7 | `psql` 18.6 mit `max_protocol_version=3.0`, `latest`, `3.2` gegen `record` und `replay` | `3.0`: Verbindung gelingt, Ergebnis `1`, in beiden Modi; `latest` und `3.2`: `PGR-E6002` („Protokollversion 3.2“), `record` und `replay` Exit-Code 6 |
+| P8 | `replay` (Aufzeichnung mit `--record-empty-sessions`, zwei Sitzungen `SELECT 1;`, `SELECT 2;`) mit `first-request` und mit `connection`: Startnachricht 3.2, `_pq_.x`, Rumpf Länge 9, danach zwei reguläre Verbindungen mit `SELECT 1;`, `SELECT 2;` | beide Zuordnungen: die abgelehnten Verbindungen erhalten `PGR-E6002`/`PGR-E6001`/`PGR-E6001`, die regulären `T D C Z` ohne `PGR-E5001`/`PGR-E5003`: keine Sitzung verbraucht; Exit-Code 6 |
+| P9 | rohe Nachricht `p` mit Rumpf `geheim\0` und rohe Nachricht `d` (`CopyData`) nach dem Aufbau, `record` und `replay` | `PGR-E6001` („Client-Nachricht *pgproto3.PasswordMessage“ bzw. `CopyData`), Verbindung endet (EOF), Exit-Code 6, in beiden Modi |
+| P10 | `record`, Startnachrichten Version 3.0: Länge 8 ohne Rumpf; Länge 9 mit Rumpf `x`; Länge 9 mit Rumpf Nullbyte; `user\0postgres\0` ohne abschließendes Nullbyte; gültige Startnachricht (Gegenprobe) | die vier ersten: `PGR-E6001` („Startnachricht nicht lesbar“), EOF; die gültige: `AuthenticationOk` und weiter; Exit-Code 6 |
+| P11 | Startnachricht Version 2.0, 3.1, 3.2, 4.0 gegen `record` und `replay` | jede: `PGR-E6002` („Protokollversion … wird nicht unterstützt“), Exit-Code 6 |
+
+**Sätze und Belege** (je Verhaltensaussage eine Zeile; Teststellen in `test/integration/protokollrand_e2e_test.go` und den in §6 genannten Dateien, von mir gelesen, nicht gefahren):
+
+| Satz im Handbuch/README | Beleg | Gegenprobe (rot gesehen, wenn Code oder Aufbau anders wäre) |
+|---|---|---|
+| `_pq_.` in der Startnachricht ist `PGR-E6001` in `record` und `replay`, Exit-Code 6, Fehlerantwort an die Anwendung | `TestE2EProtokollrandBeideModi` (Fall „Parameter _pq_.“, `fehlerAuf` prüft `PGR-E6001`, `p.stop(t, 6)`); P1, P2, P8 | Ohne `_pq_.` zeigt P1 `PGR-E6003`; Fehlerantwort liest der Test aus Feld `M` |
+| `record` baut dafür keine Verbindung zur Datenbank auf | `TestE2ERecordErweiterungOhneUpstream` (Upstream `127.0.0.1:1`, Exit-Code 6, kein `PGR-E4002` im Log) | Würde `record` verbinden, wäre es `PGR-E4002`, Exit-Code 4 (Text der Prüfung) |
+| mit TLS-Pflicht ist `_pq_.` `PGR-E6001` statt `PGR-E6003`, Exit-Code 6 | P1 (beide Modi) | P1 ohne `_pq_.` ergibt `PGR-E6003` |
+| Startnachricht mit Version außer 3.0 (Beispiel 3.2) ist `PGR-E6002`, Exit-Code 6, Verbindung endet | `TestE2EProtokollrandBeideModi` (Fall „Version 3.2“); P2, P7, P11 (2.0, 3.1, 3.2, 4.0) | — |
+| Rumpf nicht lesbar (zum Beispiel ohne abschließendes Nullbyte) ist `PGR-E6001` | Test (Fall „Rumpf nicht lesbar“, Länge 9); P2, P10 (vier Formen; die gültige Startnachricht als Gegenprobe läuft weiter) | P10, letzte Zeile |
+| diese Verbindungen sind keine Sitzung, auch mit `--record-empty-sessions` | P2 (1 Sitzung in der Datei); `TestE2EProtokollrandBeideModi` (Aufnahme mit Option, reguläre Verbindung danach) | P2 zählt Sitzungen mit `grep`, nicht den Exit-Code |
+| im `replay` verbrauchen sie keine Sitzung, bei `first-request` und `connection` | `connection`: `TestE2EProtokollrandBeideModi` (reguläre Verbindung erhält Session 1); beide: P8 (Antworten ohne `PGR-E5001`/`PGR-E5003`), P1 (`PGR-W2001`: Sitzungen nie zugeordnet) | Hätte die abgelehnte Verbindung eine Sitzung verbraucht, wäre die zweite reguläre Anfrage `PGR-E5003` (P8) |
+| „die nächste reguläre Verbindung erhält die Sitzung, die sie ohne sie erhielte“ | P8 | wie vorige Zeile |
+| Nachricht `p` nach dem Aufbau ist `PGR-E6001` (`record` und `replay`), Verbindung endet | `TestE2EProtokollrandBeideModi` („Nachricht p ohne Nullbyte“); P9 (mit Nullbyte, EOF) | P9: ohne `p` kein Fehler (Aufbau in P1 bis P8) |
+| `CopyData` der Anwendung ist `PGR-E6001`, Verbindung endet | Test (Fall „CopyData“); P9 | — |
+| `LISTEN`, `NOTIFY` allein werden aufgezeichnet | `TestE2ERecordListenNotify` („LISTEN allein“, „NOTIFY allein“) | — |
+| Benachrichtigung ist `PGR-E6001` (Exit-Code 6): `LISTEN` und `NOTIFY` in einer Anfrage, in zwei Anfragen derselben Verbindung, auf zwei Verbindungen; die empfangende wird nicht aufgezeichnet, die sendende schon; spätestens auf die nächste Anfrage der zuhörenden | `TestE2ERecordListenNotify` („beides in einer Anfrage“, „zwei Anfragen derselben Session“, „zwei Sessions“: `nicht`/`sieht` und `exit` 6) | Die Fälle „LISTEN allein“ und „Benachrichtigung nach der letzten Interaktion“ (Exit-Code 0) |
+| nach der letzten Anfrage der zuhörenden Verbindung: kein Fehler, Exit-Code 0 | `TestE2ERecordListenNotify` („Benachrichtigung nach der letzten Interaktion“, beide Sitzungen in der Datei) | — |
+| im `replay` sind `LISTEN`/`NOTIFY` aufgezeichnete Anfragen ohne Benachrichtigung | P3 (roh und `psql` 17.11) — der Satz steht im Handbuch **nicht** (Platz im Abschnitt gespart; kein Test trägt ihn über P3 hinaus) | entfällt |
+| `replay` beginnt mit `AuthenticationOk` ohne Passwort-Anforderung, mit und ohne `--tls-cert` | `TestE2EReplayAuswahl` (ohne TLS: `R` mit Code 0); P4 (TLS roh) | — |
+| Benutzer, Datenbank und Optionen werden nicht geprüft, ein unbekannter Benutzer wird bedient | `TestE2EReplayAuswahl` (`gibtesnicht`, `nix`, `options`); P4 (TLS) | — |
+| `require_auth` mit `password`, `md5`, `scram-sha-256`: Client bricht ab, `replay` Exit-Code 0, keine Meldung zum Abbruch, mit psql 17.11 | `TestE2EReplayAuswahl` (`scram-sha-256`, pgconn, kein `PGR-` im Log); P4 (alle drei, mit und ohne TLS) | P4: `require_auth=none` gelingt, `replay` Exit-Code 0; ohne P4 stünde nur `scram-sha-256` |
+| `replay` verlangt kein Passwort (Satz in der Passwort-Anmeldung und §6) | wie die Zeile zu `AuthenticationOk` | der alte Satz „nimmt jedes Passwort an“ ist enger gefasst (Quantor, unten) |
+| COPY-Antwort der Datenbank (`TO STDOUT`, `FROM STDIN`) im `record`: `PGR-E6001` statt der Antwort, Sitzung nicht aufgezeichnet, andere Verbindung schon, Exit-Code 6 | `TestE2ERecordNichtUnterstuetzt`, `TestE2ERecordWeitergabeNichtUnterstuetzt` (nur die Fehlerantwort, keine Ergebnisse), `sessions_e2e_test.go` Z. 491 (andere Verbindung); `FROM STDIN`: P5 | P5 (`FROM STDIN` und `TO STDOUT`) |
+| `max_protocol_version=3.0` bei libpq 18 (geprüft 18.6) verbindet mit `record` und `replay`; `latest` erhält `PGR-E6002` | P7 | P7 `latest`/`3.2` |
+| das Werkzeug handelt keine Version aus | P7, P11 (jede andere Version endet mit `PGR-E6002`, keine Antwort `NegotiateProtocolVersion`) | — |
+| Treiber „fordert keine Protokollerweiterung an“ (Voraussetzung), Ratschläge („stellen Sie … ein“) | Handlungsanweisung, keine Verhaltensaussage; Wirkung: P1, P2 | — |
+| Verhalten am Protokollrand ist unter Linux im Container geprüft; für andere Systeme nicht | Läufe der Tests im Container (`make test-integration`); `TestE2EProtokollrandTCPProbe` für die Plattformabhängigkeit; meine Proben liefen zusätzlich als Prozess unter Linux, nicht im Container, und tragen den Satz nicht | — |
+| Meldungscodes-Tabelle E6001 bis E6003 | Sätze oben; Codes gegen den Katalog (`comm`, unten) | — |
+| README: dieselben Aussagen in Kürze | die Zeilen oben | — |
+
+Der Satz zu `LISTEN`/`NOTIFY` im `replay` (R4, P3) steht nicht im Handbuch: Er hat mit P3 einen Beleg, aber keinen Test, und wurde zugunsten kurzer Hinweise weggelassen. (Planner: Wenn er stehen soll, trägt ihn P3.)
+
+**Quantoren-Durchsicht** (Merkmal: die Allgemeinregeln, die der neue Abschnitt einschränkt — Anmeldung/Passwort beim Wiedergeben, was `record` weiterleitet und aufzeichnet, was eine Sitzung ist, was am Treiber zu ändern ist; Suche nach `jede/alle/immer/stets/nie/keine/jeweils` zusammen mit Verbindung, Sitzung, Anmeldung, Passwort, Startnachricht, Version, COPY, Protokoll, Antwort; je Zeile und Absatz):
+
+| Stelle (vorher) | Entscheidung |
+|---|---|
+| §1 „Das Werkzeug leitet alles an die echte Datenbank weiter“ | eng gefasst: „die Kommunikation“ (COPY-Datenstrom und Benachrichtigung leitet es nicht weiter) |
+| §1 Voraussetzungen „weitere Änderungen an der Anwendung nicht nötig“ | eng gefasst: nur nötig, wenn die Anwendung eine Grenze am Rand des Protokolls berührt, mit Verweis |
+| §4 „wird als eigene Sitzung aufgezeichnet … nutzt sie `COPY`, wird sie nicht aufgezeichnet“ (zwei Stellen, README) | verbunden mit dem neuen Satz: COPY-Datenstrom oder Benachrichtigung; „nutzt COPY“ ersetzt, weil nicht der Aufruf, sondern die Antwort der Datenbank die Ursache ist |
+| §4 Passwort-Anmeldung „`replay` … nimmt dabei jedes Passwort an“ | eng gefasst: „verlangt dabei kein Passwort“ (P4/Test: kein Verfahren angeboten) |
+| §6 „beim Wiedergeben nimmt es jede Anmeldung an, gleich mit welchem Benutzer …“ | eng gefasst: „verlangt es kein Passwort und bedient jeden Benutzer und jede Datenbank“ |
+| Hinweise zum Aufzeichnen „Mit der Option wird sie eine Sitzung ohne Interaktionen“ und „mit der Option legt es [die Zieldatei] an“ | eng gefasst: „außer in den Fällen unten“ bzw. „wenn die Verbindung eine Sitzung wird“ (die Ausnahmen stehen in den Aufzählungen darunter, darunter die neue) |
+| Hinweise zum Wiedergeben „Verbindung zählt ab ihrer Startnachricht“ | verbunden: die neuen abgelehnten Startnachrichten stehen im selben Satz (P8) |
+| §1 FAQ „Die Wiedergabe beantwortet alle aufgezeichneten Anfragen aus der Datei“; Glossar „nicht jede solche Verbindung ist eine Sitzung“; §7 `PGR-E3004` | unverändert: betreffen weder Protokollrand noch Anmeldung |
+| Verbindungsfehler „Nutzt beim Aufzeichnen eine Verbindung `COPY` …“ | verbunden mit Benachrichtigung (siehe oben) |
+| Sätze mit `play` („jede Verbindung“ …) | unverändert: Betriebsart `play`, vom Protokollrand dieses Slice nicht berührt |
+
+**Greps und Befehlsfolge** (Stand `7a0be02`, `W` im Scratch):
+
+| Prüfung | Ergebnis |
+|---|---|
+| Befehlsfolge aus `done/slice-doku-ist-stand` §7: Optionen | nur `--h`, `--help`, `--version` (Nicht-Optionen im Handbuch), `--rm`, `--name` (`docker run`/`docker create`), wie dort eingefroren; keine neue Option, kein neuer Codeblock |
+| Variablen (`comm -23 $W/v-hb $W/v-help \| grep -vx PGWIRE_RECORDER_PASSWORD`) | leer |
+| Codes gegen `internal/hexagon/model/fehler.go` | leer |
+| `grep -ciE 'spezifikation\|lastenheft\|\bADR-\|slice\|welle\|review'` Handbuch | 0 (vorher 0) |
+| `grep -niE 'noch nicht\|noch keine\|kommt mit\|geplant\|veröffentlichte Version\|ghcr\|homebrew\|macOS\|windows'` Handbuch | 4 Treffer wie vorher (Zieldatei „existiert noch nicht“, „noch nicht gültig“ ×2, „Es gibt keine veröffentlichte Version.“) |
+| README `grep -ciE "noch\|erste Version\|Beginn der Umsetzung\|auf Wunsch\|TLS"` | 6 (vorher 6; keine neue Zeile) |
+| neue oder geänderte Zeilen in Codeblöcken | keine (nur Prosa und Tabellenzeilen) |
+| `make docs-check` | 787 Dateien, 0 Befunde |
+
+**Funde für den Planner:** (1) P6 nicht baubar: Das Binary reicht `BackendKeyData` nicht an die Anwendung weiter, daher entfallen der Halbsatz „wertet weder Prozess-ID noch Schlüssel aus“ und der Satz zur anderen Verbindung; das widerspricht der Spezifikation nicht (Abbruchkennung ist nach `SPEC-004` nicht Teil der Antworten). (2) P1, P4 und P6 zeigen kein Verhalten, das die Spezifikation anders regelt. (3) Der Satz zu `LISTEN`/`NOTIFY` im `replay` steht nicht im Handbuch (siehe oben). (4) Ein Parameter `_pq_.` mit TLS-Pflicht: Der Satz steht im TLS-Abschnitt und in der Tabelle. (5) Die Größe: 111 von 200.
+
+**Mutationen am Code** entfallen: Der Slice liefert keinen Vertrag und ändert keinen Code (§1); die Gegenproben sind die Gegenfälle der Tabellen.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
