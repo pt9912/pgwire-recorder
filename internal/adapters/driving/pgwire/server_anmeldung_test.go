@@ -143,7 +143,7 @@ func TestAnmeldungVermittelt(t *testing.T) {
 
 // Abdeckung: LH-FA-05/Negative — jede andere Nachricht des Clients als p und
 // Terminate in der Anmeldung (eine Anfrage, eine Extended-Nachricht, eine
-// Funktion, eine nicht lesbare) ist PGR-E6001 mit Fehlerantwort an den Client;
+// Funktion, eine nicht lesbare, auch mit Rumpf ohne Nullbyte) ist PGR-E6001 mit Fehlerantwort an den Client;
 // sie geht nicht an den Use Case, und weder Meldung noch Log nennen ihren Inhalt;
 // eine Nachricht p außerhalb der Anmeldung ist wie zuvor nicht unterstützt
 // (LH-FA-05.b *Antwort des Clients*, *Log und Meldungen*).
@@ -157,6 +157,7 @@ func TestAnmeldungAndereNachricht(t *testing.T) {
 		{"Sync", mustEncode(&pgproto3.Sync{})},
 		{"Funktion", mustEncode(&pgproto3.FunctionCall{Function: 1})},
 		{"nicht lesbar", append([]byte{'z', 0, 0, 0, 10}, "GEHEIM"...)},
+		{"Rumpf ohne Nullbyte", append([]byte{'P', 0, 0, 0, 10}, "GEHEIM"...)},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			rec := &fakeRecorder{anmeldeFolge: []model.Anmeldeanforderung{{Code: 3}}}

@@ -642,9 +642,14 @@ type fakeReplayer struct {
 	shutdownEin    sync.Once
 	// shutdowns zählt die Shutdown-Aufrufe.
 	shutdowns int
+	// geoeffnet zählt die Aufrufe von OpenConnection.
+	geoeffnet int
 }
 
 func (f *fakeReplayer) OpenConnection(context.Context) (model.SessionID, []model.Response) {
+	f.mu.Lock()
+	f.geoeffnet++
+	f.mu.Unlock()
 	return 7, []model.Response{
 		{Type: model.ResponseParameterStatus, Name: "server_version", Value: "17.0"},
 		{Type: model.ResponseReadyForQuery, TxStatus: "I"},

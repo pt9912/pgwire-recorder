@@ -56,7 +56,7 @@ type kanal struct {
 }
 
 func neuerKanal(conn net.Conn) *kanal {
-	br := bufio.NewReader(conn)
+	br := bufio.NewReader(leser{conn})
 	return &kanal{conn: conn, br: br, be: pgproto3.NewBackend(br, conn)}
 }
 
@@ -107,7 +107,7 @@ func (s *Server) sslAnfrage(ctx context.Context, k *kanal) bool {
 		return false
 	}
 	k.conn = tlsVerbindung{tc}
-	k.br = bufio.NewReader(k.conn)
+	k.br = bufio.NewReader(leser{k.conn})
 	k.be = pgproto3.NewBackend(k.br, k.conn)
 	k.verschluesselt = true
 	return true

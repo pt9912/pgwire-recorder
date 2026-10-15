@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"io"
 	"log/slog"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
@@ -827,7 +826,9 @@ func kopieOderNil[T any](s []T) []T {
 // sslAnfrage, eine GSS-Anfrage „N“ (LH-FA-05.c); auf einer verschlüsselten
 // Verbindung ist die GSS-Anfrage PGR-E6001. Ein CancelRequest schließt die
 // Verbindung (PGR-W3001). Jede andere Protokollversion als 3.0 ist PGR-E6002, eine
-// unbekannte Sonderanfrage (Hauptnummer 1234) PGR-E6001. Eine erste Nachricht,
+// unbekannte Sonderanfrage (Hauptnummer 1234) PGR-E6001, ebenso eine Startnachricht
+// mit einem Parameter _pq_. (vor der Prüfung auf TLS und vor dem Aufbau zum Upstream).
+// Eine erste Nachricht,
 // die keine PGWire-Startnachricht sein kann, schließt die Verbindung ohne Antwort
 // und nur mit der Warnung PGR-W3003, auch die erste Nachricht eines Clients mit
 // direktem TLS; eine Verbindung ohne erste Nachricht endet
@@ -868,6 +869,10 @@ func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessag
 			s.log.Warn("CancelRequest empfangen und nicht weitergeleitet", "code", model.CodeCancelRequest)
 			return nil, false
 		case *pgproto3.StartupMessage:
+			if erweiterung(m.Parameters) {
+				s.fail(k.be, model.Errorf(model.CodeUnsupported, nil, "Protokollerweiterung (Parameter mit dem Präfix %s) wird nicht unterstützt", praefixErweiterung))
+				return nil, false
+			}
 			if s.tls != nil && !s.tls.klartext && !k.verschluesselt {
 				s.fail(k.be, model.Errorf(model.CodePlaintext, nil, "unverschlüsselte Verbindung nicht zugelassen; der Recorder verlangt TLS"))
 				return nil, false
@@ -878,6 +883,20 @@ func (s *Server) startup(ctx context.Context, k *kanal) (*pgproto3.StartupMessag
 			return nil, false
 		}
 	}
+}
+
+// praefixErweiterung ist das Präfix der Parameter einer Protokollerweiterung in der
+// Startnachricht.
+const praefixErweiterung = "_pq_."
+
+// erweiterung meldet, ob die Startnachricht eine Protokollerweiterung verlangt.
+func erweiterung(parameter map[string]string) bool {
+	for name := range parameter {
+		if strings.HasPrefix(name, praefixErweiterung) {
+			return true
+		}
+	}
+	return false
 }
 
 // startkopf prüft Länge und Startcode der ersten Client-Nachricht, in dieser
@@ -899,14 +918,6 @@ func (s *Server) startkopf(conn net.Conn, be *pgproto3.Backend, laenge, code uin
 		s.fail(be, model.Errorf(model.CodeProtocolVersion, nil, "Protokollversion %d.%d wird nicht unterstützt", code>>16, code&0xffff))
 		return false
 	}
-}
-
-// verbindungsende meldet, ob ein Lesefehler das Ende der Client-Verbindung ist
-// und nicht eine unlesbare Nachricht.
-func verbindungsende(err error) bool {
-	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) ||
-		errors.Is(err, net.ErrClosed) || errors.Is(err, syscall.ECONNRESET) ||
-		errors.Is(err, os.ErrDeadlineExceeded)
 }
 
 // abbildungsfehler kennzeichnet eine Antwort, die nicht auf eine PGWire-Nachricht
