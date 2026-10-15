@@ -56,16 +56,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol): Jede Zeile der Tabelle in `LH-FA-05.e` ist durch einen Test belegt (Happy/Boundary/Negative); je Zeile weist die Deckung (`make abdeckung`) den Test nach, und wo eine Zeile in beiden Modi gilt, ist `replay` mit einem Fall belegt oder die Grenze steht in der Spezifikation. Die Zeilen *Extended-Query-Nachrichten* und die TLS-Hälfte von `SSLRequest` zählen mit ihren vorhandenen Tests (§1).
-- [ ] Der Replay-Handshake emuliert eine feste Auswahl von Authentifizierungsnachrichten, die die Spezifikation nennt (`LH-FA-05.b`, *Replay*; Entscheidung des Architect vor dem Code, §6), und ein Test belegt sie samt Randformen aus §6; der Handshake für den Go-Client im Standardmodus stammt aus `slice-extended-query-replay`. Die Dokumentation der Auswahl im Handbuch liefert `slice-v1-abschluss-protokollrand-doku`.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-05`](../../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol): Jede Zeile der Tabelle in `LH-FA-05.e` ist durch einen Test belegt (Happy/Boundary/Negative); je Zeile weist die Deckung (`make abdeckung`) den Test nach, und wo eine Zeile in beiden Modi gilt, ist `replay` mit einem Fall belegt oder die Grenze steht in der Spezifikation. Die Zeilen *Extended-Query-Nachrichten* und die TLS-Hälfte von `SSLRequest` zählen mit ihren vorhandenen Tests (§1).
+- [x] Der Replay-Handshake emuliert eine feste Auswahl von Authentifizierungsnachrichten, die die Spezifikation nennt (`LH-FA-05.b`, *Replay*; Entscheidung des Architect vor dem Code, §6), und ein Test belegt sie samt Randformen aus §6; der Handshake für den Go-Client im Standardmodus stammt aus `slice-extended-query-replay`. Die Dokumentation der Auswahl im Handbuch liefert `slice-v1-abschluss-protokollrand-doku`.
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -256,7 +256,42 @@ Frühere `make gates` im Lauf waren rot und führten zurück in den Plan (in der
 
 **Für die Closure (Planner).** Die Tabelle in `LH-FA-05.e` ist an diesen Stellen mit Tests belegt: Version, Sonderanfrage, `CancelRequest`, Folgen der Anfragen, Rumpf, `_pq_.`, Nachrichten des Clients, Abbruch, TCP-Probe, Antworten des Servers, `LISTEN`/`NOTIFY`, Auswahl im Replay. Offen für den Nutzer bleiben die zwei Fragen aus §6 (nichts umgesetzt). Beobachtungen aus dem Lauf, die ins Register gehören könnten (Entscheidung beim Planner): (1) `a-check` zeigt ein Tech-Leck in `test/integration` erst im vollen Gate-Lauf, nicht im engeren Sensor `go vet`; (2) das Testgeschirr eines Mutanten, das auf einen festen Text im Quelltext zielt (`rumpf-laenge-18`), färbt mehr als eine Zeile, wenn eine Länge mehrfach vorkommt.
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+### Closure (Planner, 2026-10-15)
+
+**Review und Verifikation.** Review `bd74c32` (0 HIGH, 2 MEDIUM F-1 und F-2, 3 LOW F-3 bis F-5, 2 INFO F-6 und F-7); Nacharbeit in `0347c8f` und `eccdbcb`, die Zählregel der Verbindungen entschied der Architect in `25f5595` (F-2). Verifikation `9e54e00`: **PASS mit Befunden**, 0 HIGH, 1 MEDIUM (V-1), 3 LOW (V-2 bis V-4, dazu V-5), INFO V-6 bis V-8; DoD-Punkte 1 bis 4 bestätigt, `make gates` im zweiten Lauf grün (Exit 0, 10 min 26 s; der erste war an der zeitabhängigen Gegenprobe `p7-int-treiber` rot, siehe Register). Alle acht Befunde sind abgearbeitet: V-1, V-3 und V-5 durch den Architect und den Planner in `a40b327` und `fdc0c93` (Sätze zur Reihenfolge `_pq_.` vor `PGR-E6003` in `LH-FA-05.e` und `LH-FA-23.a`, Wortlaut des `CancelRequest`, Inhalt der Sendung im Doku-Nehmer), V-2, V-4, V-6 und V-8 in `8049354` (Zeile `rest-gelesen-<code>` gemessen, `TestLeserEndeDesStroms` je Fehler des Datenstroms, Plan §1, §7, §8 berichtigt), V-7 als Grenze in §6. Die Verifikation hat die Nacharbeit zu V-4 nicht erneut als eigenen Bericht abgenommen; den Lauf nach `8049354` fährt der Orchestrator.
+
+**Größe.** 1234 in der Metrik aus §4 (`git diff --numstat 5c4b3ae..8049354 -- internal test spec docs/user`), Meldeschwelle 1250 und Marke 1400 nicht erreicht; Liefer-Punkte 2, Schichten 2 (§8).
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge):
+
+| Risiko | Ausgang | Begründung |
+|---|---|---|
+| Die Inventur findet mehr Lücken, die Zahl der Tests sprengt Größe oder Review-Sitzung | entfallen | Gemessen 1234 unter der Marke 1400, zwei Schichten, der Diff war in einer Review-Sitzung prüfbar (Review und Verifikation haben ihn geprüft); die Meldeschwelle musste angehoben werden, was `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` als Auftreten zählt, nicht als Risiko des Slice. |
+| `LISTEN`/`NOTIFY` in einer Session ist nicht aufgezeichnet, die Zeile der Tabelle muss berichtigt werden | entfallen | Der Architect hat die Zeile mit einer Sonde gegen 14, 17 und 18 berichtigt, das Lastenheft blieb unberührt, `TestE2ERecordListenNotify` läuft gegen 17 grün; das Verhalten der übrigen Versionen ist in der Spezifikation Grenze (Zähler `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` bleibt 1). Der Wunsch, `NotificationResponse` aufzuzeichnen, ist kein Rest dieses Risikos, sondern Nutzerfrage 2 (unten). |
+| Die Auswahl im Replay genügt einem Treiber nicht, der Anmeldung verlangt (`require_auth`) | entfallen | Das Gegenmittel trat ein und wirkt: Die Grenze steht in `LH-FA-05.b` *Auswahl im Replay* (v1 ist keine Sicherheitsgrenze), `TestE2EReplayAuswahl` belegt mit `pgconn` (`require_auth=scram-sha-256`), dass der Client selbst abbricht; die Sonde des Architect mit `psql` 17 und 18 bleibt deren Beleg. Ob das Replay weitere Verfahren emulieren soll, ist Nutzerfrage 1 (unten), keine Fortsetzung des Risikos. |
+
+**Offene Fragen an den Nutzer (nicht entschieden, kein Code hängt daran, kein Register-Eintrag):** (1) Soll `replay` Klartext-Passwort, MD5 oder SCRAM emulieren, damit auch ein Client mit `require_auth` ein Verfahren verlangt? Empfehlung des Architect: nein (neuer Funktionsumfang, v1 ist keine Sicherheitsgrenze). (2) Soll `record` eine `NotificationResponse` aufzeichnen und `replay` sie wiedergeben? Empfehlung des Architect: nein in v1 (Anforderung, Formatversion und Zusage über den Zeitpunkt im Leerlauf nötig, `SPEC-039` grenzt `LISTEN`/`NOTIFY` aus). Bis zu einer Entscheidung gilt der Stand der Spezifikation: nicht zugesagt.
+
+**Register** (Zähler = Dateien unter `evidence/`, gelesen am Stand dieser Closure; Beleg je `evidence/slice-v1-abschluss-protokollrand.md`):
+
+| Eintrag | Zähler | Fund | Stand |
+|---|---|---|---|
+| `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` | 57 | F-5, V-2, V-3: „nur dieser“ in der Belegspalte, „liest beides nicht“ | verkörpert, Regel bleibt |
+| `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` | 36 | F-1, V-4: Ortsangabe und Aufzählung ohne Mutation je Element | verkörpert, Regel bleibt |
+| `BEO-REPO/spec-randform-erst-im-review-entschieden` | 30 | V-1: Reihenfolge `_pq_.` vor `PGR-E6003` | verkörpert, Regel bleibt |
+| `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` | 17 | V-1, vom Verifier gefunden, nicht vom Implementer zurückgegeben | verkörpert, Regel bleibt |
+| `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` | 5 | geschätzt 800 bis 1000, gemessen 1234 | verkörpert, Regel bleibt (Auftreten trotz der Regel) |
+| `BEO-REPO/spezifikation-widerspricht-sich-im-wortlaut` | 2 | F-2: Zählregel der Verbindungen | offen, unter der Schwelle |
+| `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig` | 2 | V-8: `p7-int-treiber` einmal rot | offen, unter der Schwelle |
+| `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` | 1 | kein Auftreten (Sonde 14, 17, 18, Grenze benannt) | offen, Zähler unverändert |
+
+Kein Eintrag erreicht mit diesem Slice neu 3× ohne Regel; `BEO-REPO/spezifikation-widerspricht-sich-im-wortlaut` und `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig` stehen bei 2×. Zwei Beobachtungen des Implementers (Abschnitt *Für die Closure*) sind **nicht** eingetragen, ohne Wiederkehr im Bestand und ohne passenden Eintrag: (1) `a-check` zeigt ein Tech-Leck in `test/integration` erst im vollen Gate-Lauf, nicht im engeren Sensor; (2) ein Mutantengeschirr, das auf einen festen Quelltext zielt, färbt mehr als eine Zeile, wenn der Text mehrfach vorkommt. Ob sie ein eigenes Verzeichnis bekommen, entscheidet der Nutzer (Frage 5).
+
+**Lerneintrag — benannte Spec-Lücke, Wiederaufgetreten, Regel bleibt** (`AGENTS.md` §3.10, §3.11, §3.12, §3.14); geändert wird keine Regel, kein `liegt in`. Die Spec-Lücke ist die **Reihenfolge mehrerer Ablehnungen am Rand**: Der Code entschied `PGR-E6001` (`_pq_.`) vor `PGR-E6003`, die Spezifikation nannte sie nicht (V-1), und der Architect trug sie in `LH-FA-05.e` *Startnachricht 3.0* und `LH-FA-23.a` nach; ebenso hatte `LH-FA-05.e` für die Zählung abgelehnter Verbindungen einen anderen Wortlaut als `LH-FA-12.a` (F-2). Wiederaufgetreten sind „nur dieser“ in einer Belegspalte der Mutationstabelle (F-5, dann V-2 an der einen Zeile, die die Nacharbeit stehen ließ), Ortsangabe und Aufzählung ohne Mutation je Element (F-1, V-4) und die Schätzung, die in der Nacharbeit um den Faktor 8 statt 4 bis 5 wuchs (1234 gegen 800 bis 1000). Was funktionierte: Der Architect entschied die Randformen vor dem Code, jede Zeile bekam eine Mutation, und die Verifikation fuhr die Mutanten der Nacharbeit unabhängig nach. Vorschläge an den Nutzer, nicht als Eintrag und nicht von dieser Closure in `AGENTS.md` oder `.claude/` geändert: (3) `AGENTS.md` §3.12 oder `architect.md`: Hat ein Rand mehrere Ablehnungsgründe, ist ihre Reihenfolge eine Randform (Tabelle Gründe × Vorrang) und steht in §6 vor dem Code. (4) `.claude/commands/implement-slice.md` Schritt 19 oder `AGENTS.md` §3.14: Ein Quantor („nur dieser“) in einer Belegspalte steht nur nach Messung; die Schätzung der Tests rechnet bei einer Tabelle von Randformen mit Mutation je Element mit dem Achtfachen des Produktcodes statt dem Vier- bis Fünffachen. Frage (5) siehe Register. Retirement-Check bestanden (keine Regel entfernt oder gelockert).
+
+**Paarungen.** (a) Anker: Der Lerneintrag trägt kein Feld `liegt in`, keine Verkörperung; nichts zu prüfen. (b) Folge-Slice: Genannt sind `slice-v1-abschluss-protokollrand-doku` und `slice-v1-abschluss-cancel-ohne-schluessel`; beide existieren in `next/` und nehmen an: `grep -n "slice-v1-abschluss-protokollrand"` findet die Kennung des Gebers im §1 und in der DoD beziehungsweise im §1 und §4 des Nehmers (der Doku-Nehmer trägt den Inhalt der Sendung seit `fdc0c93`, Nachzählung dort in §8). Diese Closure schickt keine neue Sendung. (c) Register: Alle genannten Kennungen `BEO-REPO/…` bestehen als Verzeichnis, jedes mit nicht leerem `evidence/`.
+
+**Stand der Gates.** Die Läufe stehen oben; die Verifikation fuhr `make gates` voll grün auf `eccdbcb`, den Lauf auf dem Stand der Closure nennt der Bericht des Orchestrators, nicht dieser Absatz.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

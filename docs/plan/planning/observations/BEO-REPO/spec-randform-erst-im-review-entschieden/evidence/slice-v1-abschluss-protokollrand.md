@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-protokollrand
+**Fund:** Die Reihenfolge `PGR-E6001` (Parameter `_pq_.`) vor `PGR-E6003` (unverschlüsselt trotz TLS-Pflicht) war im Code entschieden (`annehmen`), in §6 und in der Spezifikation nicht genannt (Verifikation V-1, MEDIUM); §7 belegte „keine Randform im Code entschieden“ mit einer Stelle, die sie nicht trägt. Entschieden vom Architect in `a40b327`: Sätze in `LH-FA-05.e` *Startnachricht 3.0* und `LH-FA-23.a` *Unverschlüsselte Clients*, Drift-Log-Zeile; der Test `ErweiterungVorKlartext` belegt jetzt Code und Spezifikation.

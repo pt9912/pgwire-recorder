@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-protokollrand
+**Fund:** Die neue Zeile in `LH-FA-05.e` („eine abgelehnte Verbindung verbraucht im `replay` keine Session“) widersprach dem Wortlaut der *Zählung der Verbindungen* in `LH-FA-12.a` („die n-te, deren Startnachricht gelesen ist“, F-2, MEDIUM): ein Parameter `_pq_.` ist eine gelesene Startnachricht 3.0, der Code zählt sie nicht. Entschieden vom Architect in der Spezifikation (Wortlaut „gelesen und vom Recorder angenommen“ an allen Stellen), Lastenheft und Code unverändert; `TestProtokollrandAbgelehnteVerbindungZaehltNicht`.

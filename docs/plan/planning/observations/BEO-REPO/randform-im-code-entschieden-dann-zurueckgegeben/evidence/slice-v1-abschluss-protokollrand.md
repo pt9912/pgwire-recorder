@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-protokollrand
+**Fund:** Dieselbe Randform wie in `evidence/slice-v1-abschluss-protokollrand.md` unter `BEO-REPO/spec-randform-erst-im-review-entschieden`: Reihenfolge `_pq_.` vor `PGR-E6003`, im Code entschieden, vom Verifier gefunden (V-1) und an den Architect zurückgegeben (`a40b327`); der Implementer hatte sie nicht zurückgegeben, §7 nannte sie nicht als Entscheidung im Code.

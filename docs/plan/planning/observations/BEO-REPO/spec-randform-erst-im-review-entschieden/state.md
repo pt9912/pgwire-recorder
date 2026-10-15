@@ -15,3 +15,5 @@ Der Absatz *Aufrufarten des Treibers gehören dazu* in `AGENTS.md §3.12` (ein W
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-tls-client` (F-1) — die Länge von `SSLRequest` und `GSSENCRequest` war im Code entschieden, in §6 und Spezifikation nicht genannt (Beleg `evidence/slice-v1-abschluss-tls-client.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-anmeldung` (F-3, V-2) — das Rennfenster der Rücknahme der Lesefrist stand weder in §6 noch in der Spezifikation und wurde erst nach dem Review als akzeptiertes Negativ entschieden (Beleg `evidence/slice-v1-abschluss-anmeldung.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-protokollrand` (V-1) — die Reihenfolge zweier Ablehnungen (`_pq_.` vor `PGR-E6003`) war im Code entschieden und stand in keiner Stelle der Spezifikation; die Verifikation fand sie (Beleg `evidence/slice-v1-abschluss-protokollrand.md`). Keine Zeile in `AGENTS.md` oder `.claude/commands/`; ob §3.12 die Reihenfolge mehrerer Ablehnungsgründe an einem Rand als Randform nennen soll, entscheidet der Nutzer.
