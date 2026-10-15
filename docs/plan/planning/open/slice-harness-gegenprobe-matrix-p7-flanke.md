@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
 nächsten Welle-Closure. Angelegt am 2026-10-15 bei der Closure von
 `slice-harness-randform-stelle-und-lesart` (Register-Ausgang *geplant*: das dritte Auftreten
-erreicht die Schwelle); eine Stelle in der Reihenfolge ist nicht entschieden (§4 *Start*).
+erreicht die Schwelle); die Stelle in der Reihenfolge ist entschieden (Nutzer, 2026-10-15; §4 *Start*).
 
 **Bezug:** kein Anspruch des Produkts — die Prüfung gilt dem Gate `make test-postgres-versionen-gegenprobe`, nicht einer Zusage
 des Produkts. Bindung an das Register: `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig`;
@@ -22,7 +22,7 @@ Bindung an Entscheidungen: [ADR-0042](../../adr/0042-versionsmatrix-der-integrat
 **Berührte Spec-Stellen:** `SPEC-053` (Punkt 7, *Aufräumen*, mit Punkt 14 zum nachlaufenden Aufräumen nach `SIGTERM`, und die
 Zusage der Gegenprobe, dass Mutationen nur die Fälle ihrer Gruppe rot färben; Vertrag in `harness/vertraege/SPEC-053-postgres-versionen.md`)
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** Planner. **Datum:** 2026-10-15.
 
@@ -96,11 +96,11 @@ Welche Zeile in `harness/README.md` (Sensors, `make test-postgres-versionen-gege
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Slice liegt in `open/`; Priorisierung und Stelle in der Reihenfolge sind Entscheidung des Nutzers. Er blockiert kein Gate: Der Stop-Hook gab in allen drei Auftreten nach dem zweiten vollen Lauf frei. Wiederholt sich das Rot vor seinem Start in einem weiteren Slice, bleibt es ein Auftreten im Zähler dieser Beobachtung. WIP-Limit 1.
+**Start** (`next` → `in-progress`): Der Slice steht nach dem Verbindungsende-Block von welle-v1-abschluss (hinter `slice-v1-abschluss-verbindungsende-doku`, Schritt 42) und vor den wellenlosen Slices `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (Entscheidung des Nutzers vom 2026-10-15). Er blockiert kein Gate: Der Stop-Hook gab in allen drei Auftreten nach dem zweiten vollen Lauf frei. Wiederholt sich das Rot vor seinem Start in einem weiteren Slice, bleibt es ein Auftreten im Zähler dieser Beobachtung. WIP-Limit 1.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test harness/vertraege harness/README.md`, wobei die Basis der Stand des Hauptzweigs vor dem Anspruch ist und beim Start eingetragen wird; **über 200** geht der Slice zurück zur Zerlegung. **Meldeschwelle 160:** Erreicht die Summe 160, hält der Implementer an und meldet dem Planner. Schätzung des Planners: 60 bis 120 (Mitte 90), unsicher, solange die Ursache fehlt; die Gegenprobe trägt rund das Doppelte des Produktcodes, Tabellen- und Fall-Code eingeschlossen.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test harness/vertraege harness/README.md`, wobei die Basis der Stand des Hauptzweigs vor dem Anspruch ist und beim Start eingetragen wird; **über 200** geht der Slice zurück zur Zerlegung. **Meldeschwelle 160:** Erreicht die Summe 160, hält der Implementer an und meldet dem Planner. Schätzung des Planners: 60 bis 120 (Mitte 90), unsicher, solange die Ursache fehlt; Marke 200 und Meldeschwelle 160 bleiben Schätzung, der Architect setzt sie neu, sobald die Ursache feststeht (Entscheidung des Nutzers vom 2026-10-15); die Gegenprobe trägt rund das Doppelte des Produktcodes, Tabellen- und Fall-Code eingeschlossen.
 - `in-progress` → `open`: Die Flanke lässt sich nicht herstellen und die Ursache nicht belegen (kein Lauf zeigt sie in der Zahl von Wiederholungen, die der Architect festlegt) — der Slice wartet auf ein weiteres Auftreten, und die Beobachtung geht mit Begründung nach *offen* zurück, nicht nach *gestrichen*.
 - `in-progress` → `open`: Die Ursache liegt im Runner `tools/test/run-postgres-versionen.sh` oder im Aufräumen nach `SIGTERM` (`SPEC-053` Punkt 14) — der Gegenstand gehört einem anderen Slice (§1); der Planner schneidet ihn.
 
