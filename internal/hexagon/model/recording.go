@@ -27,6 +27,20 @@ func NewRecording() Recording {
 	return Recording{Format: Format, Version: Version}
 }
 
+// HasEnd ist wahr, wenn irgendeine Antwort irgendeiner Interaktion irgendeiner Session
+// connection_closed ist, in Responses wie in Server einer Gruppe, an jeder Stelle; die
+// Form des Endes prüft es nicht (SPEC-001).
+func (r Recording) HasEnd() bool {
+	for _, s := range r.Sessions {
+		for _, i := range s.Interactions {
+			if i.endet() {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Session ist eine aufgezeichnete Client-Verbindung. ID zählt ab 1 lückenlos in
 // der Reihenfolge, in der die Sessions in die Aufzeichnung übernommen werden.
 type Session struct {

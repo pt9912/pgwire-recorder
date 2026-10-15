@@ -591,9 +591,19 @@ func (v *valueDTO) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
+// formatVersion ist die Version, die der Schreiber schreibt: VersionMitEnde mit einem
+// Ende in der Aufzeichnung, sonst Version; das Feld Version des Modells bestimmt sie
+// nicht (SPEC-001).
+func formatVersion(rec model.Recording) int {
+	if rec.HasEnd() {
+		return model.VersionMitEnde
+	}
+	return model.Version
+}
+
 func toDTO(rec model.Recording) recordingDTO {
 	sessions := []sessionDTO{}
-	d := recordingDTO{Format: rec.Format, Version: rec.Version, EmptySessions: rec.EmptySessions, Sessions: &sessions}
+	d := recordingDTO{Format: rec.Format, Version: formatVersion(rec), EmptySessions: rec.EmptySessions, Sessions: &sessions}
 	for _, s := range rec.Sessions {
 		sd := sessionDTO{ID: s.ID, Startup: s.Startup, ServerParameters: s.ServerParameters, Interactions: []interactionDTO{}}
 		for _, i := range s.Interactions {

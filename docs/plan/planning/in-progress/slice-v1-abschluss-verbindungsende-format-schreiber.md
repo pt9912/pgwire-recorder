@@ -70,10 +70,10 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/model` (`recording.go`) | update | `Recording.HasEnd() bool` (Ort: Entscheidung des Architect in `slice-v1-abschluss-verbindungsende-format` §6) |
-| `internal/adapters/driven/recording/yaml.go` | update | Schreiber: Version nach dem Inhalt (`HasEnd`), nicht nach dem Feld `version` |
-| `internal/adapters/driven/recording` (Tests) | update | Schreiber und Roundtrip; Fixtures als Text im Test; ein Test von `HasEnd` am Modell |
-| `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests |
+| `internal/hexagon/model` (`recording.go`, `hasend_test.go`) | update, neu | `Recording.HasEnd() bool` (Ort: Entscheidung des Architect in `slice-v1-abschluss-verbindungsende-format` §6); `hasend_test.go`: ein Fall je Ort und Session (`TestHasEnd`) |
+| `internal/adapters/driven/recording/yaml.go` | update | Schreiber: `formatVersion` wählt `model.VersionMitEnde` mit Ende, sonst `model.Version`, nach dem Inhalt (`HasEnd`), nicht nach dem Feld `version`; `toDTO` ruft sie |
+| `internal/adapters/driven/recording/yaml_schreiben_ende_test.go` | neu | Tests des Schreibers und des Roundtrips: `TestSchreibenVersionNachInhalt`, `TestSchreibenNimmtFormverletzungAn`, `TestSchreibenEndeDarstellung`, `TestRoundtripMitEnde`; Aufzeichnungen als Modell im Test, der Leser lädt die geschriebene Datei |
+| `docs/user/abdeckung-unit.md` | update (`make abdeckung`) | Tabelle aus den Deklarationen der Tests; `abdeckung-e2e.md` bleibt (kein E2E-Test) |
 
 ## 4. Trigger
 
@@ -151,6 +151,50 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Läufe:** `make gates` grün (Exit 0, ohne Flanke in der Versionsmatrix-Gegenprobe); davor `make lint` einzeln (erster Lauf rot: `gochecknoglobals` für vier Hilfswerte im Test, danach als Funktionen). Der Stand der Mutationen: Bind-Mount des Arbeitsbaums in das Image `pgwire-recorder:test` mit `--network=none`, `go test -run 'Schreiben|Roundtrip|HasEnd'` über `./internal/adapters/driven/recording/` und `./internal/hexagon/model/`; nach jedem Lauf die Originaldateien zurückkopiert (kein Build-Kontext, also kein mtime-Problem). Stellen und Darstellung als Mutanten über eine Hilfsdatei im Paket, gesteuert über eine Umgebungsvariable; sie ist nicht Teil des Diffs.
+
+**Metrik** (`AGENTS.md` §3.14): Summe aus Einfügungen und Löschungen von `git diff --numstat 6c6dcd9 -- internal docs/user`: 311 (Produktcode 26, Tests 278, Tabelle 7); Meldeschwelle 550 und Marke 700 nicht erreicht.
+
+**Vorhandene Tests:** kein vorhandener Test mit `Recording{}` oder Version 0 ändert sich; alle Tests des Repos bleiben ohne Änderung grün.
+
+**Zusage · Mutation · roter Test** (jede Zeile: der Mutant färbt genau die genannten Fälle rot, wo nichts anderes steht):
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| `HasEnd`: Ende in `Responses` | nur `Groups` prüfen | `TestHasEnd/Ende_in_Responses` und vier weitere Fälle mit Ende in `Responses` |
+| `HasEnd`: Ende in `Server` einer Gruppe | nur `Responses` prüfen | `TestHasEnd/Ende_in_Server_einer_Gruppe`, `…_einer_nicht_letzten_Gruppe` |
+| `HasEnd`: an jeder Stelle (nicht letzte Nachricht) | nur die letzte Antwort einer Interaktion prüfen / nur die letzte Server-Nachricht einer Gruppe prüfen | `TestHasEnd/Ende_in_Responses,_nicht_letzte_Nachricht` / `…_in_Server_einer_Gruppe,_nicht_letzte_Nachricht` |
+| `HasEnd`: auch in einer nicht letzten Gruppe | nur die letzte Gruppe prüfen | `TestHasEnd/Ende_in_Server_einer_nicht_letzten_Gruppe` |
+| `HasEnd`: jede Interaktion | nur die erste / nur die letzte Interaktion | `TestHasEnd/Ende_in_der_letzten_Interaktion` / `…_in_einer_nicht_letzten_Interaktion` |
+| `HasEnd`: jede Session | nur die erste / nur die letzte Session | `TestHasEnd/Ende_nur_in_der_letzten_Session`, `…_in_der_mittleren_von_drei_Sessions` / `…_nur_in_der_ersten_Session` |
+| `HasEnd` falsch ohne Sessions / ohne Interaktion | wahr bei `len(Sessions)==0` / wahr bei einer Session ohne Interaktion | `TestHasEnd/ohne_Sessions` / `…Session_ohne_Interaktion` |
+| Version 2 mit Ende | immer `model.Version` | alle Fälle mit Ende in `TestSchreibenVersionNachInhalt`, `TestRoundtripMitEnde` u. a. |
+| Version 1 ohne Ende | immer `model.VersionMitEnde` | `…/Feld_0,_1,_2,_3_ohne_Ende`, `…/ohne_Sessions`, `…/nur_empty_sessions`, `TestSchreibenEndeDarstellung/ohne_Ende,_Bytes_bleiben`, `TestRoundtrip` (vorhanden) |
+| Feld 1 mit Ende schreibt 2 | Feld 1 schreibt 1 | `TestSchreibenVersionNachInhalt/Feld_1_mit_Ende` (alle Fixtures tragen Feld 1, darum färben sich alle Fälle mit Ende; die Zeile ist von „mit Ende 2“ nicht zu trennen) |
+| Feld 2 ohne Ende schreibt 1 | Feld 2 schreibt 2 | `TestSchreibenVersionNachInhalt/Feld_2_ohne_Ende`, `TestRoundtripMitEnde/Version_2_ohne_Ende` (nur diese) |
+| Feld 0 / Feld 3, je mit und ohne Ende | Feld 0 mit Ende schreibt 1 · Feld 0 ohne Ende schreibt 2 · Feld 3 mit Ende schreibt 1 · Feld 3 ohne Ende schreibt 2 | je genau `…/Feld_0_mit_Ende`, `…/Feld_0_ohne_Ende`, `…/Feld_3_mit_Ende`, `…/Feld_3_ohne_Ende` |
+| Feld des Modells bestimmt nichts | Feld 0 bis 3 übernehmen | alle Fälle mit Ende, `Feld_0_ohne_Ende`, `Feld_2_ohne_Ende`, `Feld_3_ohne_Ende` u. a. |
+| Ohne Sessions 1 / nur `empty_sessions` 1 | `len(Sessions)==0` schreibt 2 / `EmptySessions` schreibt 2 | `TestSchreibenVersionNachInhalt/ohne_Sessions` / `…/nur_empty_sessions` (je dazu der Leser-Roundtrip der Bestandstests) |
+| Konstante `model.VersionMitEnde` | `VersionMitEnde = 3` | alle Fälle mit Ende (der Schreiber folgt der Konstante) |
+| Schreiber lehnt nichts ab, je Stelle: Anfang · Mitte · nicht letzte Interaktion · nicht letzte Gruppe · mitten in der letzten Gruppe · zwei Enden · `ready_for_query` daneben · Feld neben `type` · nicht letzte Session | der Schreiber lehnt die Stelle ab (je ein Mutant) | `TestSchreibenNimmtFormverletzungAn/` mit dem Namen der Stelle; „nicht letzte Interaktion“ färbt zusätzlich „zwei Enden“ (zwei Enden in einer Session heißt ein Ende in einer nicht letzten Interaktion) |
+| Das Ende an der richtigen Stelle lädt | der Schreiber lehnt die richtige Stelle ab (einfach / letzte Gruppe) | `…/richtige_Stelle,_einfach` u. a. / `…/richtige_Stelle,_letzte_Gruppe` u. a. |
+| Laden lehnt die Formverletzung ab | (im Leser, `slice-v1-abschluss-verbindungsende-format`) | `TestSchreibenNimmtFormverletzungAn` erwartet `PGR-E3003` je Stelle |
+| Roundtrip einfach · Sync-Gruppe · Flush-Gruppe · `offset_ms` · `empty_sessions` | je ein Mutant, der das Ende (einfach, Sync, Flush), `offset_ms` oder `empty_sessions` nur der Aufzeichnung mit dem Kennzeichen der Form verliert | je genau `TestRoundtripMitEnde/<Form>` |
+| Roundtrip Version 2 ohne Ende (gleich bis auf `version`) | Feld 2 schreibt 2 | `TestRoundtripMitEnde/Version_2_ohne_Ende` |
+| Darstellung: Blockform in `responses` / in `server` | Flow-Form `{type: connection_closed}` an der einen / der anderen Stelle | `TestSchreibenEndeDarstellung/in_responses` (und `mit_Feld_neben_type`) / `…/in_server_einer_Gruppe` |
+| Darstellung: Einrückung | eine Stufe tiefer in `responses` / in `server` | `…/in_responses` u. a. / `…/in_server_einer_Gruppe` u. a. |
+| `connection_closed` mit Feld schreibt das Feld | das Feld verwerfen | `TestSchreibenEndeDarstellung/mit_Feld_neben_type`, `TestSchreibenNimmtFormverletzungAn/Feld_neben_type` |
+| Aufzeichnung ohne Ende, Bytes bleiben | ein Zeilenumbruch mehr am Ende ohne Ende | `TestSchreibenEndeDarstellung/ohne_Ende,_Bytes_bleiben` (nur dieser) |
+
+**Grüner Mutant:** `return 2` statt `model.VersionMitEnde` im Schreiber bleibt grün, weil die Konstante 2 ist (äquivalent: das Verhalten ist gleich). „Kein Literal“ ist eine Zusage über die Schreibweise; das Verhalten prüft `TestVersionMitEnde` des Modells (`VersionMitEnde == 2`) und die Mutation `VersionMitEnde = 3` oben. Sonst blieb kein Mutant grün.
+
+**Randformen:** keine zusätzliche gefunden; §6 und `SPEC-001` entscheiden alle Fälle, die der Code berührt. Keine Rückgabe an den Architect.
+
+**Beobachtungen:** aus der Umsetzung keine eigene; die Eintragung ins Register entscheidet die Closure.
+
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -165,5 +209,7 @@ nicht mehr.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (gemergter Stand). Treffer in der Sub-Area `REPO`: `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` und `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` (beide `verkörpert`, `AGENTS.md` §3.14; mit der Rückführung von `slice-v1-abschluss-verbindungsende-format` ein Auftreten trotz der Regel, Urteil im Register) — dieser Plan nennt Metrik, Meldeschwelle und Marke in §4 und liegt nach der Schätzung des Architect unter der Marke. `BEO-REPO/meldeschwelle-ohne-artefakt` (1×): §4 nennt die Meldeschwelle. `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` ist verkörpert (`AGENTS.md` §3.10): die Mutationstabelle steht in DoD und §7. Keine weiteren Treffer.
 
 Nachgezählt beim Anlegen (Planner, 2026-10-15, `AGENTS.md` §3.13): Liefer-Punkte: 2 (Schreiber mit `HasEnd` und Version nach dem Inhalt, Roundtrip). Schichten: zwei (Kern mit dem Modell, `ARC-001`; Recording-Adapter, `ARC-008`); der Handbuch- und README-Teil liegt in `slice-v1-abschluss-verbindungsende-doku`. Schätzung des Architect (2026-10-15, aus dem ungeteilten Plan): 300 bis 500 Zeilen mit Tests in der Metrik von §4; nach der Prüfung vor dem Code 340 bis 500 (Produktcode etwa 40, Tabellen und Fälle der Mutationen etwa das Siebenfache, vorhandene Hilfen in `yaml_ende_test.go` genutzt), Mitte 420 und damit 60 % der Marke, oberes Ende 71 %; kein Schnitt, die Meldeschwelle 550 trägt (Schnitt, falls sie erreicht wird: Version und Stellen | Roundtrip und Darstellung). Bindung aus `slice-v1-abschluss-verbindungsende-format` (Closure des Gebers, 2026-10-15): die Namen `model.VersionMitEnde` und `model.Version` für die Wahl der Version; sie gehört zu DoD-Punkt 1, ein Aufruf vorhandener Konstanten, ohne Liefer-Punkt und Schicht (Liefer-Punkte weiter 2, Schichten weiter zwei). Sendungen anderer Slices an diesen: `slice-v1-abschluss-verbindungsende-sqlite` und `-upstream` nennen ihn als Voraussetzung (dort §1, Start und §8 nachgezählt).
+
+Messung (Implementer, nach dem Code): Summe aus Einfügungen und Löschungen von `git diff --numstat 6c6dcd9 -- internal docs/user` 311 (Schätzung 340 bis 500, also darunter; Meldeschwelle 550 nicht erreicht). Liefer-Punkte und Schichten wie beim Anlegen: 2 und zwei; kein Nehmer eingetragen.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
