@@ -2,6 +2,7 @@ package pgwire
 
 import (
 	"context"
+	"io"
 	"net"
 
 	"github.com/jackc/pgx/v5/pgproto3"
@@ -41,4 +42,11 @@ func ToClientMessage(msg pgproto3.FrontendMessage) (model.ClientMessage, error) 
 // ToMessage reicht an toMessage weiter.
 func ToMessage(r model.Response) (pgproto3.BackendMessage, error) {
 	return toMessage(r)
+}
+
+// LeseFehler liest einmal von einem Leser über r und meldet, ob der Fehler als Ende
+// der Client-Verbindung gekennzeichnet ist.
+func LeseFehler(r io.Reader) (ende bool, err error) {
+	_, err = leser{r}.Read(make([]byte, 1))
+	return verbindungsende(err), err
 }
