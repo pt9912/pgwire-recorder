@@ -75,9 +75,9 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/model` (`response.go`, `recording.go`, `extended.go`) | update | Antworttyp `connection_closed`, Konstante der Version 2, Formregeln einer Interaktion und einer Session (`Session.ValidateEnd`) |
-| `internal/hexagon/model` (Tests) | update | `Validate`: Happy/Boundary/Negative je Randform aus §6 |
-| `internal/adapters/driven/recording/yaml.go` | update | Leser: beide Versionen, `PGR-E3002`/`PGR-E3003`, Aufruf von `Session.ValidateEnd`; der Schreiber bleibt unberührt (`slice-v1-abschluss-verbindungsende-format-schreiber`) |
-| `internal/adapters/driven/recording` (Tests) | update | Leser; Fixtures als Text im Test |
+| `internal/hexagon/model` (Tests: `ende_test.go`, `extended_test.go`) | update | `Validate` und `Session.ValidateEnd`: Happy/Negative je Randform aus §6; die zwei Meldungstexte der Stellung von `sync` und `flush` in `extended_test.go` folgen der neuen Meldung |
+| `internal/adapters/driven/recording/yaml.go` | update | Leser: beide Versionen (`kopfVorpruefung`), in der Vorprüfung am YAML-Baum `connection_closed` nicht in Version 1 und ohne Schlüssel neben `type` (auch leer oder `null`, was das Modell am dekodierten Wert nicht sieht), Aufruf von `Session.ValidateEnd` je Session; der Schreiber bleibt unberührt (`slice-v1-abschluss-verbindungsende-format-schreiber`) |
+| `internal/adapters/driven/recording` (Tests: `yaml_ende_test.go`, drei vorhandene) | update | Leser; Fixtures als Text im Test; `yaml_test.go`, `leser_test.go` und `zeitangaben_pruefen_test.go` nehmen für „unbekannte Version“ die 3 statt der 2 (der SQLite-Zweig von `leser_test.go` behält die 2) |
 | `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests; Tests, die die alte Regel prüfen (kein Ende im Modell), gehören diesem Slice |
 
 ## 4. Trigger

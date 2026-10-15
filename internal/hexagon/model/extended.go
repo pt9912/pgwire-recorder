@@ -142,7 +142,7 @@ func (g Group) validate(letzte bool) error {
 	if err := g.validateClient(); err != nil {
 		return err
 	}
-	ende := letzte && len(g.Server) > 0 && g.Server[len(g.Server)-1].Type == ResponseConnectionClosed
+	ende := len(g.Server) > 0 && g.Server[len(g.Server)-1].Type == ResponseConnectionClosed
 	endetMitSync := g.Client[len(g.Client)-1].Type == ClientSync
 	if endetMitSync && !letzte {
 		return errors.New("sync steht am Ende der letzten Gruppe (mit connection_closed auch flush), flush am Ende jeder anderen")
