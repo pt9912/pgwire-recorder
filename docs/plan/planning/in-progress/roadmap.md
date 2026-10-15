@@ -20,7 +20,7 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 - [welle-erster-release](../welle-erster-release.md)
 - [welle-v1-nachtrag](../welle-v1-nachtrag.md)
 
-In Arbeit: nichts. Als Nächstes: `slice-v1-abschluss-verbindungsende-format` (welle-v1-abschluss, Schritt 35a), danach `slice-v1-abschluss-verbindungsende-format-schreiber` (Schritt 35b), danach `slice-harness-schaetzung-planner-faktor` (wellenlos) und die übrigen Slices in der Reihenfolge des §5 von welle-v1-abschluss ab Schritt 36, danach `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (wellenlos), danach welle-erster-release, danach welle-v1-nachtrag, danach die übrige Harness-Reihe. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
+In Arbeit: `slice-v1-abschluss-verbindungsende-format` (welle-v1-abschluss, Schritt 35a). Als Nächstes: `slice-v1-abschluss-verbindungsende-format-schreiber` (Schritt 35b), danach `slice-harness-schaetzung-planner-faktor` (wellenlos) und die übrigen Slices in der Reihenfolge des §5 von welle-v1-abschluss ab Schritt 36, danach `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (wellenlos), danach welle-erster-release, danach welle-v1-nachtrag, danach die übrige Harness-Reihe. Nicht angelegt, vom Nutzer auf später gelegt: ein wellenloser Slice der Harness-Reihe, der das d-check-Modul `reviews` aktiviert (Register: `BEO-REPO/review-dateiname-rollen-infix-weicht-von-vorlage-ab`, `BEO-REPO/deckungs-sensor-absatz-ohne-adresse-im-repo`).
 
 
 
