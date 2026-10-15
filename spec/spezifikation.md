@@ -2579,8 +2579,8 @@ ist `PGR-E3003`, auch bei unbekannter Version. `version` ist in `yaml` ein Skala
 kanonischer Dezimalschreibweise wie in `sqlite`; fehlt der Schlüssel oder ist der Wert
 anderer Text (`abc`, `01`, `1.0`, `"1"`, `null`, `0x2`), ist die Datei `PGR-E3003` und
 die Meldung nennt keinen Wert; jede kanonische Zahl außer `1` und `2` ist `PGR-E3002`, auch `0`,
-eine negative und eine zu große für 64 Bit. Die Meldung zu `PGR-E3002` nennt die Version
-der Datei, die der Leser gelesen hat, und nie einen Wert, den die Datei nicht trägt.
+eine negative und eine zu große für 64 Bit. In `yaml` nennt die Meldung zu `PGR-E3002` die Version
+der Datei, die der Leser gelesen hat, und nie einen Wert, den die Datei nicht trägt; in `sqlite` nennt sie keine (`SPEC-043`).
 Innerhalb des Inhalts ist nicht zugesagt, welcher von mehreren Fehlern gemeldet wird
 (Grenze: Code und Exit-Code sind dieselben).
 
@@ -2792,6 +2792,25 @@ fest:
   Bereichs ist `PGR-E3003`. Eine Zeile
   ohne `fields` oder mit einem anderen JSON-Wert als einem Objekt macht die
   Aufzeichnung beschädigt (`PGR-E3003`).
+* *Ende des Servers* (`LH-FA-25.a`, `SPEC-002`). Das Ende ist eine Zeile von `message` mit
+  `kind` = `connection_closed`, `direction` = `server` und `fields` = `{}`; eine eigene Tabelle
+  oder Spalte gibt es nicht, das Schema bleibt. `kind` gilt genau: `Connection_Closed` ist ein
+  Wert außerhalb der Aufzählung. Eine Zeile `connection_closed` mit `direction` = `client` ist
+  `PGR-E3003`, ebenso `fields` mit irgendeinem Schlüssel, auch mit dem Wert `null` und auch `type`
+  (das Gegenstück zum Schlüssel neben `type` in `yaml`). Stelle und Form des Endes gelten wie in
+  `SPEC-002` und `SPEC-041` und folgen den Nummern, nicht der Reihenfolge der Zeilen in der Datei:
+  letzte Nachricht einer Interaktion ist die mit der höchsten `position`, letzte Gruppe die mit
+  dem höchsten `group_no`, letzte Interaktion einer Session die mit der höchsten `sequence`. Ein
+  Ende in einer Session, die nicht die letzte der Aufzeichnung ist, ist zulässig. Der Leser liest
+  `meta.version` 1 und 2 und liefert die Version der Datei, auch 2 ohne Ende (die Version 2 ohne
+  Ende ist gültig). `connection_closed` in einer Datei der Version 1 ist `PGR-E3003`. Die Version
+  geht dem Inhalt vor (`SPEC-001`, *Rangfolge der Prüfung*): Eine Datei mit einer anderen Version
+  als 1 und 2 ist `PGR-E3002`, auch wenn sie ein Ende an falscher Stelle trägt; eine Datei der
+  Version 1 mit Ende ist `PGR-E3003`, nicht `PGR-E3002`. Hat der Inhalt mehrere Fehler des Endes,
+  ist der Code derselbe, welcher gemeldet wird, ist nicht zugesagt. `PRAGMA user_version` ändert die
+  Version nicht. Die Meldung zu `PGR-E3002` nennt bei `sqlite` keine Version, denn die Meldung nennt nie
+  einen Wert aus der Datei. Der Schreiber von `sqlite` prüft die Form des Endes nicht, wie der von
+  `yaml` (`SPEC-001`); eine Datei mit verletzter Form lehnt der Leser ab.
 * Ein String in `session.startup`, `session.server_parameters` und `message.fields`, als
   Wert wie als Schlüssel eines Objekts, ist JSON-Text und damit gültiges UTF-8. Ein
   String, dessen Bytes es nicht sind (ein Client mit `client_encoding=LATIN1` sendet `é`
@@ -3272,3 +3291,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-15 | Zugesagte PostgreSQL-Hauptversionen: feste Liste 14 bis 18 mit Referenz 17 und was „unterstützt" heißt, der Satz zu jedem Server mit PGWire 3.0 entfällt; Versionsmatrix in den Kompatibilitätstests (`LH-FA-05.e`, `SPEC-029`, `SPEC-038`) |
 | 2026-10-15 | Protokollrand: Randformen vor dem Code (Modus je Zeile, Prüfreihenfolge der ersten Nachricht, Protokollversion, Rumpf der Startnachricht und Parameter `_pq_.` in beiden Modi `PGR-E6001`, Sonderanfrage und Länge des `CancelRequest`, Folgen von `SSLRequest` und `GSSENCRequest`, `COPY` je Richtung, `FunctionCall`, `NotificationResponse` je Eintreffzeitpunkt, ungültiger Rumpf und abgebrochene Nachricht, gleichzeitige Verbindungen); Zeile `LISTEN`/`NOTIFY` berichtigt: eine Benachrichtigung an die eigene Verbindung ist `PGR-E6001`; feste Auswahl im Replay: `AuthenticationOk` ohne Anforderung, nichts geprüft (`LH-FA-05.b`, `LH-FA-05.e`) |
 | 2026-10-15 | Protokollrand: Parameter `_pq_.` ist `PGR-E6001` vor `PGR-E6003` (Reihenfolge ausdrücklich, `LH-FA-23.a` nennt ihn); beim `CancelRequest` liest die Bibliothek Prozess-ID und Schlüssel, der Recorder wertet sie nicht aus (`LH-FA-05.e`) |
+| 2026-10-15 | Aufzeichnungsformat `sqlite`, Ende des Servers: Darstellung als Zeile von `message`, Stelle nach den Nummern statt nach der Reihenfolge der Zeilen, Version 1 und 2 im Leser, Rangfolge `PGR-E3002` vor `PGR-E3003`, Meldung zu `PGR-E3002` ohne Version, Schreiber prüft die Form nicht (`LH-FA-25.a`, `SPEC-001`, `SPEC-043`) |
