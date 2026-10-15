@@ -74,6 +74,7 @@ func TestUnmarshalEnde(t *testing.T) {
 		{"Ende in der letzten von zwei Interaktionen", endeKopf("2", "") + endeSession(1, einfach(1, "", "{type: command_complete, tag: x}", rfqNachricht), einfach(2, "", fatalNachricht, endeNachricht)), 2, true},
 		{"mit offset_ms", endeKopf("2", "") + endeSession(1, einfach(1, "        offset_ms: 5\n", "{type: command_complete, tag: x}", rfqNachricht), einfach(2, "        offset_ms: 9\n", fatalNachricht, endeNachricht)), 2, true},
 		{"mit empty_sessions", endeKopf("2", "empty_sessions: true\n") + endeSession(1, einfach(1, "", fatalNachricht, endeNachricht)) + "  - id: 2\n    interactions: []\n", 2, true},
+		{"Version 2 ohne Ende, ready_for_query mitten in einer einfachen Anfrage", endeKopf("2", "") + endeSession(1, einfach(1, "", "{type: command_complete, tag: x}", rfqNachricht, "{type: command_complete, tag: x}", rfqNachricht)), 2, false},
 		{"Version 2 ohne Ende", endeKopf("2", "") + endeSession(1, einfach(1, "", "{type: command_complete, tag: x}", rfqNachricht)), 2, false},
 		{"Version 1 ohne Ende", endeKopf("1", "") + endeSession(1, einfach(1, "", "{type: command_complete, tag: x}", rfqNachricht)), 1, false},
 	}
@@ -113,15 +114,28 @@ func endeIn(i model.Interaction) bool {
 // einem Schlüssel neben type (mit Wert, leer, null), nicht nach FATAL oder PANIC (nach ERROR, ohne
 // Fehlerantwort, V vor S, leeres V, fatal in Kleinschreibung), mit einer Nachricht zwischen
 // Fehlerantwort und Ende, in einer Extended-Gruppe mit ready_for_query, in einer vorderen Gruppe und
-// bei einer letzten Gruppe ohne Ende mit flush; die Meldung nennt die verletzte Regel.
+// bei einer letzten Gruppe ohne Ende mit flush, mit ready_for_query an jeder Stelle einer einfachen Interaktion
+// mit Ende (am Anfang, in der Mitte, direkt vor und nach der Fehlerantwort) und mit connection_closed an
+// einer falschen Stelle (mitten in der letzten Interaktion, einfach und Extended, in einer Interaktion vor
+// der letzten); die Meldung nennt die verletzte Regel, wo die Zeile sie nennt.
 func TestUnmarshalEndeAbgelehnt(t *testing.T) {
 	einfachEnde := func(antworten ...string) string {
 		return endeKopf("2", "") + endeSession(1, einfach(1, "", antworten...))
 	}
+	const ccN = "{type: command_complete, tag: x}"
 	extendedEndeText := func(server ...string) string {
 		return endeKopf("2", "") + endeSession(1, erweitert(1, gruppeEnde(syncNachricht, server...)))
 	}
 	cases := []struct{ name, text, want string }{
+		{"ready_for_query am Anfang, Ende statt ready_for_query", einfachEnde(rfqNachricht, ccN, fatalNachricht, endeNachricht), "ready_for_query in einer Interaktion mit connection_closed"},
+		{"ready_for_query in der Mitte, Ende statt ready_for_query", einfachEnde(ccN, rfqNachricht, ccN, fatalNachricht, endeNachricht), "ready_for_query in einer Interaktion mit connection_closed"},
+		{"ready_for_query direkt vor der Fehlerantwort, Ende statt ready_for_query", einfachEnde(ccN, rfqNachricht, fatalNachricht, endeNachricht), "ready_for_query in einer Interaktion mit connection_closed"},
+		{"ready_for_query zwischen Fehlerantwort und Ende", einfachEnde(fatalNachricht, rfqNachricht, endeNachricht), "nach einer error_response FATAL oder PANIC"},
+		{"Ende mitten in der letzten Interaktion, einfach", endeKopf("2", "") + endeSession(1, einfach(1, "", ccN, rfqNachricht), einfach(2, "", fatalNachricht, endeNachricht, ccN)), "nur als letzte Nachricht"},
+		{"Ende mitten in der letzten Gruppe, extended", endeKopf("2", "") + endeSession(1, einfach(1, "", ccN, rfqNachricht), erweitert(2, gruppeEnde(syncNachricht, fatalNachricht, endeNachricht, "{type: bind_complete}"))), "nur als letzte Nachricht"},
+		{"Ende in einer vorderen Gruppe, extended, mit Nachricht danach", endeKopf("2", "") + endeSession(1, erweitert(1, gruppeEnde("{type: flush}", fatalNachricht, endeNachricht, "{type: bind_complete}"), gruppeEnde(syncNachricht, ccN, rfqNachricht))), ""},
+		{"falsch platziertes Ende in einer Interaktion vor der letzten, einfach", endeKopf("2", "") + endeSession(1, einfach(1, "", fatalNachricht, endeNachricht, ccN), einfach(2, "", ccN, rfqNachricht)), ""},
+		{"falsch platziertes Ende in einer Interaktion vor der letzten, extended", endeKopf("2", "") + endeSession(1, erweitert(1, gruppeEnde(syncNachricht, fatalNachricht, endeNachricht, "{type: bind_complete}")), einfach(2, "", ccN, rfqNachricht)), ""},
 		{"Version 1, einfach", mitEnde("1"), "connection_closed in Version 1"},
 		{"Version 1, extended", endeKopf("1", "") + endeSession(1, erweitert(1, gruppeEnde(syncNachricht, fatalNachricht, endeNachricht))), "connection_closed in Version 1"},
 		{"nicht letzte Nachricht, einfach", einfachEnde(fatalNachricht, endeNachricht, rfqNachricht), "nur als letzte Nachricht"},

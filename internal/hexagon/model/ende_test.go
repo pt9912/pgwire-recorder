@@ -40,15 +40,16 @@ func fatalFelder() map[string]string {
 // aus S, einfache Anfrage und Extended mit sync oder flush am Ende der letzten Gruppe.
 func TestValidateEndeGueltig(t *testing.T) {
 	for name, i := range map[string]model.Interaction{
-		"query FATAL":                  queryEnde(fehler(fatalFelder()), ende()),
-		"query PANIC":                  queryEnde(fehler(map[string]string{"V": "PANIC"}), ende()),
-		"query FATAL nur in S":         queryEnde(fehler(map[string]string{"S": "FATAL"}), ende()),
-		"query PANIC nur in S":         queryEnde(fehler(map[string]string{"S": "PANIC"}), ende()),
-		"query V FATAL gegen S ERROR":  queryEnde(fehler(map[string]string{"V": "FATAL", "S": "ERROR"}), ende()),
-		"query nach Hinweis und Daten": queryEnde(model.Response{Type: model.ResponseNoticeResponse}, model.Response{Type: model.ResponseDataRow}, fehler(fatalFelder()), ende()),
-		"extended mit sync":            extendedEnde(model.ClientSync, fehler(fatalFelder()), ende()),
-		"extended mit flush":           extendedEnde(model.ClientFlush, fehler(fatalFelder()), ende()),
-		"extended PANIC":               extendedEnde(model.ClientSync, model.Response{Type: model.ResponseBindComplete}, fehler(map[string]string{"V": "PANIC"}), ende()),
+		"query FATAL":                             queryEnde(fehler(fatalFelder()), ende()),
+		"query PANIC":                             queryEnde(fehler(map[string]string{"V": "PANIC"}), ende()),
+		"query FATAL nur in S":                    queryEnde(fehler(map[string]string{"S": "FATAL"}), ende()),
+		"query PANIC nur in S":                    queryEnde(fehler(map[string]string{"S": "PANIC"}), ende()),
+		"query V FATAL gegen S ERROR":             queryEnde(fehler(map[string]string{"V": "FATAL", "S": "ERROR"}), ende()),
+		"query nach Hinweis und Daten":            queryEnde(model.Response{Type: model.ResponseNoticeResponse}, model.Response{Type: model.ResponseDataRow}, fehler(fatalFelder()), ende()),
+		"extended mit sync":                       extendedEnde(model.ClientSync, fehler(fatalFelder()), ende()),
+		"extended mit flush":                      extendedEnde(model.ClientFlush, fehler(fatalFelder()), ende()),
+		"query ohne Ende, ready_for_query mitten": queryEnde(model.Response{Type: model.ResponseCommandComplete}, model.Response{Type: model.ResponseReadyForQuery, TxStatus: "I"}, model.Response{Type: model.ResponseCommandComplete}, model.Response{Type: model.ResponseReadyForQuery, TxStatus: "I"}),
+		"extended PANIC":                          extendedEnde(model.ClientSync, model.Response{Type: model.ResponseBindComplete}, fehler(map[string]string{"V": "PANIC"}), ende()),
 	} {
 		if err := i.Validate(); err != nil {
 			t.Errorf("%s: %v", name, err)
@@ -63,7 +64,9 @@ func TestValidateEndeFehler(t *testing.T) {
 		letzte   = "connection_closed nur als letzte Nachricht"
 		felder   = "connection_closed trägt Felder"
 		fatalNur = "connection_closed nur unmittelbar nach einer error_response FATAL oder PANIC"
+		rfqEnde  = "ready_for_query in einer Interaktion mit connection_closed"
 	)
+	cc := model.Response{Type: model.ResponseCommandComplete}
 	mitFeld := func(r model.Response) model.Response {
 		r.Type = model.ResponseConnectionClosed
 		return r
@@ -75,6 +78,11 @@ func TestValidateEndeFehler(t *testing.T) {
 		want string
 	}{
 		{"query nicht letzte Nachricht", queryEnde(fehler(fatalFelder()), ende(), rfq), letzte},
+		{"query Ende in der Mitte, Nachricht ohne ready_for_query danach", queryEnde(fehler(fatalFelder()), ende(), cc), letzte},
+		{"query ready_for_query am Anfang, Ende statt ready_for_query", queryEnde(rfq, cc, fehler(fatalFelder()), ende()), rfqEnde},
+		{"query ready_for_query in der Mitte, Ende statt ready_for_query", queryEnde(cc, rfq, cc, fehler(fatalFelder()), ende()), rfqEnde},
+		{"query ready_for_query direkt vor der Fehlerantwort, Ende statt ready_for_query", queryEnde(cc, rfq, fehler(fatalFelder()), ende()), rfqEnde},
+		{"query ready_for_query zwischen Fehlerantwort und Ende", queryEnde(fehler(fatalFelder()), rfq, ende()), fatalNur},
 		{"query nicht letzte Nachricht, davor kein Fehler", queryEnde(ende(), fehler(fatalFelder()), ende()), letzte},
 		{"query mit Spalten", queryEnde(fehler(fatalFelder()), mitFeld(model.Response{Columns: []model.Column{{Name: "a"}}})), felder},
 		{"query mit Werten", queryEnde(fehler(fatalFelder()), mitFeld(model.Response{Values: []model.Value{{Null: true}}})), felder},
@@ -98,6 +106,7 @@ func TestValidateEndeFehler(t *testing.T) {
 		{"query Hinweis zwischen Fehler und Ende", queryEnde(fehler(fatalFelder()), model.Response{Type: model.ResponseNoticeResponse}, ende()), fatalNur},
 		{"query FATAL mit Leerzeichen", queryEnde(fehler(map[string]string{"V": "FATAL "}), ende()), fatalNur},
 		{"extended nicht letzte Nachricht", extendedEnde(model.ClientSync, fehler(fatalFelder()), ende(), model.Response{Type: model.ResponseNoticeResponse}), letzte},
+		{"extended Ende mitten in der letzten Gruppe", extendedEnde(model.ClientSync, fehler(fatalFelder()), ende(), model.Response{Type: model.ResponseBindComplete}), letzte},
 		{"extended mit Feld", extendedEnde(model.ClientSync, fehler(fatalFelder()), mitFeld(model.Response{Tag: "x"})), felder},
 		{"extended nach ERROR", extendedEnde(model.ClientSync, fehler(map[string]string{"V": "ERROR"}), ende()), fatalNur},
 		{"extended ohne Fehlerantwort davor", extendedEnde(model.ClientSync, model.Response{Type: model.ResponseBindComplete}, ende()), fatalNur},
@@ -156,6 +165,14 @@ func TestSessionValidateEnd(t *testing.T) {
 		{"Extended-Ende in der mittleren von dreien", []model.Interaction{normal, gruppen, normal}, "Interaktion 2:"},
 		{"zwei Enden in aufeinanderfolgenden Interaktionen", []model.Interaction{einfach, einfach}, "Interaktion 1:"},
 		{"zwei Enden, vorletztes Extended", []model.Interaction{normal, gruppen, einfach}, "Interaktion 2:"},
+		{"falsch platziertes Ende in der ersten von zwei, einfach", []model.Interaction{queryEnde(fehler(fatalFelder()), ende(), model.Response{Type: model.ResponseCommandComplete}), normal}, "Interaktion 1:"},
+		{"falsch platziertes Ende am Anfang der ersten von zwei, einfach", []model.Interaction{queryEnde(ende(), fehler(fatalFelder()), model.Response{Type: model.ResponseCommandComplete}), normal}, "Interaktion 1:"},
+		{"falsch platziertes Ende in der letzten Gruppe der ersten von zwei, Extended", []model.Interaction{extendedEnde(model.ClientSync, fehler(fatalFelder()), ende(), model.Response{Type: model.ResponseBindComplete}), normal}, "Interaktion 1:"},
+		{"falsch platziertes Ende in einer vorderen Gruppe der ersten von zwei, Extended", []model.Interaction{func() model.Interaction {
+			i := extendedBeispiel()
+			i.Groups[0].Server = []model.Response{fehler(fatalFelder()), ende(), model.Response{Type: model.ResponseBindComplete}}
+			return i
+		}(), normal}, "Interaktion 1:"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -151,6 +151,25 @@ func pruefeEnde(antworten []Response) error {
 	return nil
 }
 
+// ohneReadyForQuery prüft die Antworten einer einfachen Anfrage mit Ende: Sie tragen an
+// keiner Stelle ein ready_for_query, das Ende steht statt seiner (SPEC-002). Ohne
+// connection_closed in den Antworten prüft sie nichts.
+func ohneReadyForQuery(antworten []Response) error {
+	ende := false
+	for _, r := range antworten {
+		ende = ende || r.Type == ResponseConnectionClosed
+	}
+	if !ende {
+		return nil
+	}
+	for _, r := range antworten {
+		if r.Type == ResponseReadyForQuery {
+			return errors.New("ready_for_query in einer Interaktion mit connection_closed")
+		}
+	}
+	return nil
+}
+
 // endet ist wahr, wenn die Interaktion eine Antwort connection_closed trägt, an
 // welcher Stelle auch immer.
 func (i Interaction) endet() bool {

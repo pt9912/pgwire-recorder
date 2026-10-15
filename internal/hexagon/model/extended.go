@@ -80,7 +80,8 @@ type Group struct {
 // describe und close tragen die Zielart statement oder portal.
 //
 // Das Ende des Servers (LH-FA-25.a): connection_closed steht statt ready_for_query
-// als letzte Antwort einer einfachen Anfrage und als letzte Server-Nachricht der
+// als letzte Antwort einer einfachen Anfrage, die an keiner Stelle ein
+// ready_for_query trägt (ohneReadyForQuery), und als letzte Server-Nachricht der
 // letzten Gruppe, ohne Felder und unmittelbar nach einer error_response FATAL oder
 // PANIC (pruefeEnde). Die letzte Gruppe mit Ende endet mit sync oder flush, die
 // Gruppen davor mit flush, und ready_for_query steht in ihr nicht.
@@ -108,6 +109,9 @@ func (i Interaction) validateQuery() error {
 		}
 	}
 	if err := pruefeEnde(i.Responses); err != nil {
+		return err
+	}
+	if err := ohneReadyForQuery(i.Responses); err != nil {
 		return err
 	}
 	if n := len(i.Responses); n == 0 || i.Responses[n-1].Type != ResponseReadyForQuery && i.Responses[n-1].Type != ResponseConnectionClosed {

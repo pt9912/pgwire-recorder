@@ -25,7 +25,7 @@
 diese Liste ist der Lauf nicht reproduzierbar):
 
 - Slice-Plan `slice-v1-abschluss-verbindungsende-format` (§1, §3, §6, §7 Belege des Implementers)
-- `ADR-0039` (Aufzeichnung kennt das Verbindungsende); Randformen des Architect in `SPEC-001`, `SPEC-002` (Commit `690e353`)
+- [`ADR-0039`](../plan/adr/0039-aufzeichnung-kennt-das-verbindungsende.md) (Aufzeichnung kennt das Verbindungsende); Randformen des Architect in `SPEC-001`, `SPEC-002` (Commit `690e353`)
 - `LH-FA-25` (mit `LH-FA-25.a`), `LH-QA-06`
 - `AGENTS.md` (Hard Rules) §3.7 bis §3.14
 

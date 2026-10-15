@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -72,6 +74,11 @@ func ladeBeide(t *testing.T, rec model.Recording) map[string]struct {
 	return ergebnis
 }
 
+// ohnePfad streicht aus einer Meldung jeden Pfad unter dem Verzeichnis für temporäre Dateien.
+func ohnePfad(meldung string) string {
+	return regexp.MustCompile(regexp.QuoteMeta(os.TempDir())+`\S*`).ReplaceAllString(meldung, "<Pfad>")
+}
+
 // Abdeckung: LH-FA-21/Negative — Werte von offset_ms, die innerhalb einer Session absteigen, machen
 // die Aufzeichnung in yaml und in sqlite beschädigt (PGR-E3003); der Vergleich gilt je Session
 // gegen den vorigen vorhandenen Wert, auch über eine Interaktion ohne Wert hinweg und auch bei
@@ -96,7 +103,9 @@ func TestZeitangabenAbsteigendBeschaedigt(t *testing.T) {
 				if codeVon(e.err) != model.CodeRecordingBroken {
 					t.Fatalf("erwartet %s, erhalten %v", model.CodeRecordingBroken, e.err)
 				}
-				text := e.err.Error()
+				// Die Meldung des SQLite-Lesers nennt den Dateipfad, und t.TempDir() trägt eine Zufallszahl:
+				// geprüft wird die Meldung ohne ihn.
+				text := ohnePfad(e.err.Error())
 				if !strings.Contains(text, c.ort) {
 					t.Errorf("Meldung ohne %q: %s", c.ort, text)
 				}
