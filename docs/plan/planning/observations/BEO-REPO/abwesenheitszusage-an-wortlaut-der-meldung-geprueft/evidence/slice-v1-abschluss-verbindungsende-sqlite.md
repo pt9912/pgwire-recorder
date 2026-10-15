@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-sqlite
+**Fund (Review F-1, LOW):** Die Zusage „die Meldung zu `PGR-E3002` nennt keine Version“ (`SPEC-043`) wurde zuerst gegen den Wortlaut `Version <Zahl>` geprüft; Mutanten mit `Fassung <Zahl>` und `version=<Zahl>` blieben grün. Behoben in `654ad5a`; die Verifikation fuhr die drei Ausprägungen und die Variante in `kopfVorpruefung` nach (rot, eine äquivalent).

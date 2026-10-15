@@ -54,16 +54,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats), `SPEC-001`, `SPEC-043`: Der SQLite-Leser nimmt `meta.version` 1 und 2 an, auch Version 2 ohne Ende. `connection_closed` in einer Datei der Version 1, an einer anderen Stelle als der Form, nicht nach `FATAL`/`PANIC` oder mit Feldern sind `PGR-E3003`; ein Ende in einer Interaktion vor der letzten und ein zweites Ende in einer Session sind `PGR-E3003` über `Session.ValidateEnd`; jede andere Version ist `PGR-E3002` (Test je Randform aus §6, die Dateien von Hand gebaut).
-- [ ] Je Zusage des neuen Vertrags eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-QA-06`](../../../../spec/lastenheft.md#lh-qa-06--wartbarkeit-des-recording-formats), `SPEC-001`, `SPEC-043`: Der SQLite-Leser nimmt `meta.version` 1 und 2 an, auch Version 2 ohne Ende. `connection_closed` in einer Datei der Version 1, an einer anderen Stelle als der Form, nicht nach `FATAL`/`PANIC` oder mit Feldern sind `PGR-E3003`; ein Ende in einer Interaktion vor der letzten und ein zweites Ende in einer Session sind `PGR-E3003` über `Session.ValidateEnd`; jede andere Version ist `PGR-E3002` (Test je Randform aus §6, die Dateien von Hand gebaut).
+- [x] Je Zusage des neuen Vertrags eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -136,7 +136,7 @@ dasteht.
 
 **Risiken:**
 
-- Der Diff liegt über einer Review-Sitzung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`): Der Planner hat vor dem Anspruch geschnitten (Schätzung 260 bis 420, Mitte 49 % der Marke); die Rückführung in §4 benennt die Marke und die Meldeschwelle — **Ausgang:** offen bis Closure.
+- Der Diff liegt über einer Review-Sitzung (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`): Der Planner hat vor dem Anspruch geschnitten (Schätzung 260 bis 420, Mitte 49 % der Marke); die Rückführung in §4 benennt die Marke und die Meldeschwelle — **Ausgang: entfallen** — gemessen 387 in der Metrik von §4 (55 % der Marke 700, unter der Meldeschwelle 550, innerhalb der Schätzung 220 bis 420 des Architect); das Review lief in einer Sitzung ohne Größen-Finding.
 
 ## 7. Closure-Notiz
 
@@ -151,8 +151,6 @@ diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
 aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
-
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
@@ -216,6 +214,38 @@ Mutationen der Nacharbeit (Kopie des Baums, Bind-Mount, `--network=none`, Image 
 **Größe.** Messung in der Metrik von §4 am Arbeitsbaum vor dem Commit (`git diff --numstat fa8486b -- internal docs/user`, die neue Datei mit `git add -N`): 330 (Einfügungen plus Löschungen: Produktcode 39, Tests 282, Tabelle 9, `test/integration` liegt außerhalb der Pfade der Metrik). Nach der Nacharbeit (`git diff --numstat fa8486b..HEAD -- internal docs/user` nach dem Commit): 387 (359 Einfügungen plus 28 Löschungen: Produktcode 39, Tests 338, Tabelle 10). Meldeschwelle 550 und Marke 700 nicht erreicht.
 
 **Randformen.** Keine nicht genannte oder offene Randform gefunden; die Meldung zu einem Fehler von `Session.ValidateEnd` im SQLite-Leser nennt Session und nicht die verletzte Regel (`ladeInhalt` gibt `me.Msg` aus, Ursache bleibt in `Unwrap`); zugesagt ist dort nur der Code, der Test prüft nur ihn.
+
+### Closure (Planner, 2026-10-15)
+
+**Review und Verifikation.** Review (0 HIGH, 0 MEDIUM, 1 LOW F-1, 2 INFO F-2, F-3): alle bearbeitet in `654ad5a`. Verifikation: PASS, 0 HIGH, 0 MEDIUM, 0 LOW, 4 INFO; 24 Mutanten nachgefahren, alle wie in §7 behauptet, beide äquivalenten Mutanten tatsächlich äquivalent. V-1 ist in §7 berichtigt (Anmerkung zu den Zahlen, Nacharbeit, Zeile zur Zahl über 64 Bit), V-3 im Kopf (`SPEC-041`, `make kopf-check` Exit 0). V-2 („in keiner Form“ weiter als die Prüfung der Ziffernfolge) und V-4 (`TestLesenEndeNummernOrdnen` belegt den Weg des Endes durch die Ordnung, keine eigene Zusage des Endes) bleiben als **Grenze** stehen; Code, Test-Kommentar und Abdeckungszeile sind nicht geändert.
+
+**Gate-Nachweis.** Der volle `make gates` lief nach der Nacharbeit grün (Exit 0, §7 *Läufe*, ohne Flanke `p7-int-treiber`). Die Closure ändert nur Dateien auf der Positivliste (`docs/plan/planning/`).
+
+**Gegenstand:** geliefert (kein Fall von „übernommen“ oder „entfallen“); der Schreiber ist vor dem Anspruch in `slice-v1-abschluss-verbindungsende-sqlite-schreiber` aufgegangen.
+
+**Größe.** 387 in der Metrik von §4 (330 vor der Nacharbeit; Produktcode 39, Tests 338, Tabelle 10, Faktor Tests zu Produktcode 8,7), Schätzung des Architect 220 bis 420; Datenpunkt im Register bei `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` (Vermerk, kein Zählerzuwachs).
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge):
+
+| Risiko | Ausgang | Folge-Slice bzw. Begründung |
+|---|---|---|
+| Der Diff liegt über einer Review-Sitzung | entfallen | gemessen 387, 55 % der Marke 700, unter der Meldeschwelle 550; Review in einer Sitzung ohne Größen-Finding; Liefer-Punkte 1, Schichten zwei |
+
+**Register** (Zähler = Dateien unter `evidence/`):
+
+| Eintrag | Zähler | Fund | Stand |
+|---|---|---|---|
+| `BEO-REPO/abwesenheitszusage-an-wortlaut-der-meldung-geprueft` | 1 (neu) | F-1: Abwesenheitszusage über eine Meldung gegen einen Wortlaut geprüft | offen; nicht dieselbe Beobachtung wie `BEO-REPO/test-prueft-teilstring-gegen-meldung-mit-zufallspfad` (dort entscheidet ein Zufallspfad über einen Fehlalarm, hier ist der Test zu eng und lässt eine Verletzung durch), dessen Zähler deshalb bleibt |
+| `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` | 61 | F-2, V-1, V-2: Beleg und Anmerkung weiter als die Probe | verkörpert, Regel bleibt |
+| `BEO-REPO/beleg-traegt-zusage-aus-anderem-grund` | 3 | kein Auftreten: V-4 ist eine im Plan benannte Grenze | verkörpert, Vermerk |
+| `BEO-REPO/gruener-mutant-faelschlich-aequivalent` | 2 | kein Auftreten, Gegenbeleg: beide Äquivalenzen halten, begründet über eine Invariante der Struktur | offen, vermerkt |
+| `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` | 5 | kein Auftreten: 387 in 220 bis 420, Faktor 8,7 | geplant (`slice-harness-schaetzung-planner-faktor`), Vermerk |
+
+Kein Eintrag erreicht mit diesem Slice neu 3× ohne Regel.
+
+**Lerneintrag — geschärfte Regel als Vorschlag, benannte Lücke im Beleg.** Geändert wird keine Regel, kein `liegt in`. (1) Eine Zusage der Form „die Meldung nennt X nicht“ wurde gegen einen Wortlaut geprüft, und Mutanten mit anderem Wortlaut blieben grün (F-1); der Test prüft jetzt die Form des Werts. (2) Ein Beleg in §7 beschrieb eine Mutation, wie sie der Verfasser aus dem Code ableitete, nicht wie er sie fuhr (F-2, V-1); gefahren, nicht abgeleitet, trug die Tabelle. Was funktionierte: Der Schnitt vor dem Anspruch hielt den Diff bei 55 % der Marke, die Randformen standen vor dem Code, und zwei äquivalente Mutanten wurden über eine Invariante der Struktur belegt und hielten der Nachfahrt stand. Vorschläge an den Nutzer, nicht von dieser Closure in `AGENTS.md` oder `.claude/` geändert: (a) `.claude/commands/implement-slice.md` Schritt 19: „Eine Abwesenheitszusage über eine Meldung prüft die Form des Werts, nicht den Wortlaut, und der Beleg fährt mindestens zwei andere Wortlaute“ (Wirkung: F-1 träte nicht auf; Gegenargument: erst 1× aufgetreten, Schwelle 3× nicht erreicht, Empfehlung daher: abwarten). (b) Derselbe Schritt: Eine Anmerkung in §7 über die Isolierbarkeit einer Mutation nennt den Test und den Grund, der gefahren wurde (Wirkung: V-1 träte nicht auf; die Klasse hat 61 Belege). Beides ist Empfehlung, keine Entscheidung.
+
+**Paarungen.** (a) Anker: Der Lerneintrag trägt kein Feld `liegt in`, keine Verkörperung; nichts zu prüfen. (b) Folge-Slice: Genannt sind `slice-v1-abschluss-verbindungsende-sqlite-schreiber` (Bindung, §6) und `slice-harness-schaetzung-planner-faktor` (Datenpunkt); beide existieren in `next/`, und `grep -n "slice-v1-abschluss-verbindungsende-sqlite\b"` findet die Kennung des Gebers in `-sqlite-schreiber` (Herkunft Zeile 22, Zeile 47, Start Zeile 92); der Datenpunkt steht im Register. (c) Register: Alle genannten Kennungen `BEO-REPO/…` bestehen als Verzeichnis, jedes mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
