@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-format
+**Fund (Verifikation V-1, INFO):** Ein Satz in §7 *Grüne Mutanten und Grenzen* sagte, eine Mutation, die nur die Stelle „`ready_for_query` zwischen Fehlerantwort und Ende“ bricht und den Fall rot färbt, gebe es nicht; die Verifikation fuhr M4 (beide Stellen zugleich) und fand sie, und die Tabelle in §7 nannte sie schon. Berichtigt in `8ad8446`.

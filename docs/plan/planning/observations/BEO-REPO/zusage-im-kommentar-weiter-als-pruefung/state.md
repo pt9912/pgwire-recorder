@@ -45,3 +45,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-protok
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-protokollrand-doku` (F-1, F-2, V-1, V-2, V-3, V-5) — Handbuchsätze mit Quantor ohne die Ausnahmen, die dieselbe Seite aufzählt (Beleg `evidence/slice-v1-abschluss-protokollrand-doku.md`).
 
 Der Satz zu den Ausnahmen derselben Seite in `.claude/commands/implement-slice.md` Schritt 17 (für jeden neu geschriebenen Satz mit Quantor listet §7 die Ausnahmen, die dieselbe Seite für denselben Gegenstand aufzählt, mit Probe oder enger Fassung; derselbe Satz steht an allen Stellen gleich; Entscheidung des Nutzers vom 2026-10-15, Commit `076ded3`) — Herkunfts-Anker `seit slice-v1-abschluss-protokollrand-doku` (Beleg `evidence/slice-v1-abschluss-protokollrand-doku.md`, F-1, V-2, V-3).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-verbindungsende-format` (V-1) — ein Satz der Grenzen in §7 („gibt es nicht“) war weiter als die Probe und widersprach der Tabelle desselben Abschnitts (Beleg `evidence/slice-v1-abschluss-verbindungsende-format.md`).

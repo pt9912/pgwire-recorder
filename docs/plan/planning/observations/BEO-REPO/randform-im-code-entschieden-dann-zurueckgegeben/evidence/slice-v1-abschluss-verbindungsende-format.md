@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-format
+**Fund (Review F-1):** Der Implementer bemerkte zwei Lesarten (Stelle von `ready_for_query` vor dem Ende; Stelle von `connection_closed`), setzte sie im Code um und vermerkte sie nur in §7, ohne anzuhalten und ohne Rückgabe an den Architect; das Review fand es. Entschieden in `aed8a49`. Gleiche Klasse wie `evidence/slice-v1-abschluss-protokollrand.md`: bemerkt, nicht zurückgegeben.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-format
+**Fund (Review F-4, Verifikation unabhängig reproduziert):** `TestZeitangabenAbsteigendBeschaedigt/…sqlite` fiel selten aus; der Implementer nannte Last, das Review den Pfad. Die Meldung des SQLite-Lesers nennt den Dateipfad, `t.TempDir()` trägt eine Zufallszahl, und der Test lehnte jede Meldung mit einem der Werte als Teilstring ab. Reproduziert mit `TMPDIR=/tmp/t4709x`: Test der Basis rot, geänderter Test grün. Behoben in `91a5228`.
