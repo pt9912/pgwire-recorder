@@ -52,8 +52,10 @@ einer Verbindung), gemessen ab der vorigen Anfrage (`relative`, Standard) oder a
 `offset_ms` lehnen `replay` und `play` mit `PGR-E3003` ab.
 
 `record` zeichnet eine Verbindung, die eine Anfrage abgeschlossen hat, als eigene Sitzung auf,
-auch mehrere gleichzeitig; antwortet die Datenbank ihr mit einem COPY-Datenstrom oder sendet sie
-ihr eine Benachrichtigung (`LISTEN` mit `NOTIFY`), zeichnet `record` sie nicht auf (`PGR-E6001`).
+auch mehrere gleichzeitig; antwortet die Datenbank ihr mit einem COPY-Datenstrom, sendet sie ihr
+bis zum Ende ihrer letzten Anfrage eine Benachrichtigung (`LISTEN` mit `NOTIFY`) oder sendet die
+Anwendung nach dem Aufbau eine Nachricht `p` oder `CopyData`, zeichnet `record` sie nicht auf
+(`PGR-E6001`).
 Mit `--record-empty-sessions` wird auch eine Verbindung ohne Anfrage eine Sitzung ohne
 Interaktionen, soweit sie keine der Ausnahmen ist, die das Benutzerhandbuch nennt. `replay`
 ordnet beim Standard `--session-assignment first-request` die n-te Verbindung mit einer

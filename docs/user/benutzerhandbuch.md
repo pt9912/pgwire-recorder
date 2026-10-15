@@ -225,8 +225,9 @@ Sitzung ist, steht unter
   Zugriffsrechte dieser Datei.
 * Eine Verbindung Ihrer Anwendung, die mindestens eine Anfrage abgeschlossen hat, wird
   als eigene Sitzung aufgezeichnet, auch wenn mehrere Verbindungen gleichzeitig offen
-  sind; antwortet die Datenbank ihr mit einem COPY-Datenstrom oder sendet sie ihr eine
-  Benachrichtigung, wird sie nicht aufgezeichnet (`PGR-E6001`, Exit-Code 6; siehe
+  sind; antwortet die Datenbank ihr mit einem COPY-Datenstrom, sendet sie ihr bis zum Ende
+  ihrer letzten Anfrage eine Benachrichtigung oder sendet Ihre Anwendung nach dem Aufbau
+  eine Nachricht `p` oder `CopyData`, wird sie nicht aufgezeichnet (`PGR-E6001`, Exit-Code 6; siehe
   [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)).
   Verbindungen ohne Anfrage, zum Beispiel Probe-Verbindungen eines
   Connection-Pools, werden nicht aufgezeichnet; mit `--record-empty-sessions` werden
@@ -535,8 +536,9 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
 Eine Anwendung öffnet oft mehrere Verbindungen zur Datenbank, etwa über einen
 Connection-Pool. `record` zeichnet eine Verbindung, die eine Anfrage abgeschlossen hat, als
 eigene Sitzung auf, auch wenn mehrere gleichzeitig offen sind; antwortet die Datenbank ihr
-mit einem COPY-Datenstrom oder sendet sie ihr eine Benachrichtigung, zeichnet `record` sie nicht
-auf (`PGR-E6001`). `replay` ordnet die aufgezeichneten Sitzungen den
+mit einem COPY-Datenstrom, sendet sie ihr bis zum Ende ihrer letzten Anfrage eine Benachrichtigung
+oder sendet Ihre Anwendung nach dem Aufbau eine Nachricht `p` oder `CopyData`, zeichnet `record` sie
+nicht auf (`PGR-E6001`). `replay` ordnet die aufgezeichneten Sitzungen den
 Verbindungen Ihrer Anwendung zu; die Option `--session-assignment` wählt, wie.
 
 #### Voraussetzung
@@ -655,13 +657,15 @@ auch wenn sie keine Interaktionen hat.
   anfordert.
 * Sendet die Anwendung nach dem Aufbau eine Nachricht `p` (ein Passwort) oder COPY-Daten
   (`CopyData`), ist das `PGR-E6001`: Die Anwendung erhält die Fehlerantwort, die Verbindung
-  endet, und das Werkzeug endet mit Exit-Code 6.
+  endet, und das Werkzeug endet mit Exit-Code 6. Die Verbindung ist keine Sitzung, auch nicht mit
+  der Option und auch nicht, wenn sie vorher eine Anfrage abgeschlossen hat.
 * `LISTEN` und `NOTIFY` sind für sich gewöhnliche Anfragen und werden aufgezeichnet. Sendet die
-  Datenbank einer Verbindung, die zuhört, eine Benachrichtigung (`NotificationResponse`), ist das
-  `PGR-E6001` (Exit-Code 6): wenn `LISTEN` und `NOTIFY` auf denselben Kanal in einer Anfrage stehen,
-  in zwei Anfragen derselben Verbindung oder auf zwei Verbindungen. Die Anwendung erhält die
-  Fehlerantwort spätestens auf die nächste Anfrage der zuhörenden Verbindung; diese Verbindung wird
-  nicht aufgezeichnet, die sendende von zwei Verbindungen schon. Trifft die Benachrichtigung nach der
+  Datenbank einer Verbindung, die zuhört, bis zum Ende ihrer letzten Anfrage eine Benachrichtigung
+  (`NotificationResponse`), ist das `PGR-E6001` (Exit-Code 6): wenn `LISTEN` und `NOTIFY` auf
+  denselben Kanal in einer Anfrage stehen, in zwei Anfragen derselben Verbindung oder auf zwei
+  Verbindungen. Die Anwendung erhält die Fehlerantwort spätestens auf die nächste Anfrage der
+  zuhörenden Verbindung; diese Verbindung wird nicht aufgezeichnet, auch nicht mit der Option, die
+  sendende von zwei Verbindungen schon. Trifft die Benachrichtigung nach der
   letzten Anfrage der zuhörenden Verbindung ein, ist das kein Fehler (Exit-Code 0). Zeichnen Sie
   keinen Ablauf auf, in dem eine Verbindung eine Benachrichtigung erhält.
 * Das Verhalten am Protokollrand ist unter Linux geprüft; für andere Systeme ist es
@@ -698,13 +702,13 @@ auch wenn sie keine Interaktionen hat.
   `replay` ohne `--tls-cert` ablehnt, ein Abbruchwunsch und eine Verbindung ohne gesendete
   Daten zählen bei keiner der beiden Zuordnungen als Verbindung; ebenso eine Verbindung, deren
   Startnachricht das Werkzeug ablehnt (eine andere Protokollversion als 3.0, ein Parameter `_pq_.`,
-  ein nicht lesbarer Rumpf): Sie verbraucht keine Sitzung, und die nächste reguläre Verbindung erhält
-  die Sitzung, die sie ohne sie erhielte. Das Werkzeug lehnt einen Parameter `_pq_.` mit `PGR-E6001`
-  ab (Exit-Code 6). Eine Verbindung, die erst
+  ein nicht lesbarer Rumpf), und eine unverschlüsselte, die das Werkzeug mit TLS abweist
+  (`PGR-E6003`): Eine solche Verbindung verbraucht keine Sitzung, und die nächste reguläre
+  Verbindung erhält die Sitzung, die sie ohne sie erhielte. Das Werkzeug lehnt einen Parameter
+  `_pq_.` mit `PGR-E6001` ab (Exit-Code 6). Eine Verbindung, die erst
   nach der Anfrage nach Verschlüsselung ihre Startnachricht sendet, zählt einmal. Ebenso
-  zählt bei `first-request` weder eine Verbindung, deren TLS-Aufbau scheitert
-  (`PGR-W3002`), noch eine unverschlüsselte, die das Werkzeug mit TLS abweist
-  (`PGR-E6003`).
+  zählt bei `first-request` keine Verbindung, deren TLS-Aufbau scheitert
+  (`PGR-W3002`).
 * Enthält die Aufzeichnung nur Sitzungen ohne Interaktionen, endet `replay` beim Start mit
   `PGR-E3004`, mit beiden Zuordnungen.
 * `--session-assignment` kennt die Werte `first-request` und `connection`, in
@@ -719,8 +723,8 @@ auch wenn sie keine Interaktionen hat.
 Ein Fehler, der nur eine Verbindung betrifft, beendet diese Verbindung; `record` und `replay`
 laufen weiter. Weicht beim Wiedergeben auf einer Verbindung die Anfrage ab (`PGR-E5001`),
 läuft eine andere, schon offene Verbindung vollständig durch. Antwortet beim Aufzeichnen die
-Datenbank einer Verbindung mit einem COPY-Datenstrom oder einer Benachrichtigung (`PGR-E6001`),
-wird die andere aufgezeichnet. Der Exit-Code ist der des
+Datenbank einer Verbindung mit einem COPY-Datenstrom oder bis zum Ende ihrer letzten Anfrage mit
+einer Benachrichtigung (`PGR-E6001`), wird die andere aufgezeichnet. Der Exit-Code ist der des
 ersten aufgetretenen Fehlers, im ersten Fall 5, im zweiten 6. Treten Fehler verschiedener
 Verbindungen gleichzeitig auf, ist nicht zugesichert, welcher der erste ist. Folgt auf
 `PGR-E6001` später `PGR-E4006`, bleibt der Exit-Code 6; Ausnahmen nennt
@@ -1219,7 +1223,7 @@ Antworten.
   [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)).
 * Beim Aufzeichnen beendet das Werkzeug die Verbindung mit `PGR-E6001`, wenn die Datenbank mit
   einem COPY-Datenstrom antwortet (`COPY … TO STDOUT`, `COPY … FROM STDIN`) oder einer Verbindung
-  eine Benachrichtigung zusendet (`LISTEN` mit `NOTIFY`); die Verbindung wird dann nicht
+  bis zum Ende ihrer letzten Anfrage eine Benachrichtigung zusendet (`LISTEN` mit `NOTIFY`); die Verbindung wird dann nicht
   aufgezeichnet (siehe
   [Mehrere Verbindungen aufzeichnen und wiedergeben](#mehrere-verbindungen-aufzeichnen-und-wiedergeben)).
 * Beim Aufzeichnen beendet das Werkzeug die Verbindung mit `PGR-E6001`, wenn ein
@@ -1739,7 +1743,7 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. Eine Sitzung ohne Interaktionen zählt nicht dazu. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen mit Interaktionen aufgezeichnet sind; mit `--session-assignment connection` hat sie auf einer Verbindung eine Anfrage gestellt, zu der es keine Sitzung mit der Nummer der Verbindung gibt. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
 | `PGR-E5004` | Antwort der Datenbank weicht von der Aufzeichnung ab | `play` mit `--compare-responses` hat bei einer Interaktion eine andere Antwort erhalten als aufgezeichnet. Die Meldung nennt Sitzung, Nummer der Interaktion, Position und Art der ersten Abweichung, bei der Art `Fehler` die SQLSTATE beider Seiten. Prüfen Sie, ob die Datenbank dieselbe Struktur hat wie die, gegen die Sie aufgezeichnet haben, oder zeichnen Sie erneut auf; siehe [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen). Der Exit-Code ist 5. |
-| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt: einen Parameter, dessen Name mit `_pq_.` beginnt, in der Startnachricht (eine Protokollerweiterung; auch mit `--tls-cert`, wenn die Anwendung ohne Verschlüsselung beginnt, dann statt `PGR-E6003`), eine Startnachricht mit nicht lesbarem Rumpf (zum Beispiel ohne abschließendes Nullbyte), eine Nachricht `p` (Passwort) oder COPY-Daten (`CopyData`) nach dem Aufbau, oder auf einer verschlüsselten Verbindung eine weitere Anfrage nach Verschlüsselung. Beim Aufzeichnen außerdem: Das Werkzeug trifft in der Anmeldung auf die Anforderung eines Verfahrens, das es nicht vermittelt (nicht Klartext-Passwort, MD5 oder SCRAM-SHA-256); die Datenbank antwortet auf eine Anfrage mit einem COPY-Datenstrom (`COPY … TO STDOUT`, `COPY … FROM STDIN`); oder die Datenbank sendet einer Verbindung eine Benachrichtigung (`NotificationResponse`, durch `LISTEN` und `NOTIFY`). Bei `play` ist es ein COPY-Datenstrom der Datenbank. Stellen Sie den Treiber so ein, dass er keine Protokollerweiterung (`_pq_.`) sendet; verwenden Sie `COPY` mit Datenstrom nicht im aufgezeichneten Ablauf, und zeichnen Sie keinen Ablauf auf, in dem eine Verbindung eine Benachrichtigung erhält (`LISTEN` und `NOTIFY` für sich sind kein Fehler); verlangt die Datenbank beim Aufzeichnen ein nicht vermitteltes Verfahren, lassen Sie für den Benutzer eines der drei vermittelten Verfahren zu. Die Meldung zu einem Verfahren nennt dessen Code. |
+| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt: einen Parameter, dessen Name mit `_pq_.` beginnt, in der Startnachricht (eine Protokollerweiterung; auch mit `--tls-cert`, wenn die Anwendung ohne Verschlüsselung beginnt, dann statt `PGR-E6003`), eine Startnachricht mit nicht lesbarem Rumpf (zum Beispiel ohne abschließendes Nullbyte), eine Nachricht `p` (Passwort) oder COPY-Daten (`CopyData`) nach dem Aufbau, oder auf einer verschlüsselten Verbindung eine weitere Anfrage nach Verschlüsselung. Beim Aufzeichnen außerdem: Das Werkzeug trifft in der Anmeldung auf die Anforderung eines Verfahrens, das es nicht vermittelt (nicht Klartext-Passwort, MD5 oder SCRAM-SHA-256); die Datenbank antwortet auf eine Anfrage mit einem COPY-Datenstrom (`COPY … TO STDOUT`, `COPY … FROM STDIN`); oder die Datenbank sendet einer Verbindung bis zum Ende ihrer letzten Anfrage eine Benachrichtigung (`NotificationResponse`, durch `LISTEN` und `NOTIFY`). Bei `play` ist es ein COPY-Datenstrom der Datenbank. Stellen Sie den Treiber so ein, dass er keine Protokollerweiterung (`_pq_.`) sendet; verwenden Sie `COPY` mit Datenstrom nicht im aufgezeichneten Ablauf, und zeichnen Sie keinen Ablauf auf, in dem eine Verbindung eine Benachrichtigung erhält (`LISTEN` und `NOTIFY` für sich sind kein Fehler); verlangt die Datenbank beim Aufzeichnen ein nicht vermitteltes Verfahren, lassen Sie für den Benutzer eines der drei vermittelten Verfahren zu. Die Meldung zu einem Verfahren nennt dessen Code. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls; eine Startnachricht mit einer anderen Version, zum Beispiel 3.2, ist `PGR-E6002`, und das Werkzeug handelt keine Version aus. Verwenden Sie einen Treiber, der Version 3.0 nutzt; bei libpq 18 legt `max_protocol_version=3.0` ihn darauf fest. |
 | `PGR-E6003` | unverschlüsselte Verbindung nicht zugelassen | `record` oder `replay` läuft mit `--tls-cert`, und die Anwendung beginnt ohne Verschlüsselung. Das Werkzeug beendet die Verbindung und zeichnet sie nicht auf; der Exit-Code ist 6. Steht in der Startnachricht ein Parameter `_pq_.`, ist es `PGR-E6001`. Verbinden Sie die Anwendung mit TLS (`sslmode=require`), oder starten Sie das Werkzeug mit `--allow-plaintext` (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)). |
 
