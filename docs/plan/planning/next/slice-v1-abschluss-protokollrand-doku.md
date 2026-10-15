@@ -32,6 +32,13 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** `docs/user/benutzerhandbuch.md` und `README.md` beschreiben das Verhalten, das `slice-v1-abschluss-protokollrand` liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews (`AGENTS.md` §3.11).
 
+**Inhalt der Sendung:** Der Inhalt aus der Sendung von `slice-v1-abschluss-protokollrand` (Geber, `AGENTS.md` §3.13) ist:
+(1) ein Startparameter mit dem Präfix `_pq_.` ist `PGR-E6001`, in `record` und `replay`, auch an einem Recorder mit TLS-Pflicht (dort statt `PGR-E6003`);
+(2) die Zählung abgelehnter Verbindungen: Version außer 3.0, nicht lesbarer Rumpf, `_pq_.` und Klartext trotz TLS-Pflicht zählen nicht und verbrauchen im `replay` keine Session;
+(3) `NotificationResponse`, auch durch `LISTEN`/`NOTIFY`, ist `PGR-E6001` und die Session wird nicht aufgezeichnet;
+(4) die feste Auswahl im Replay: `AuthenticationOk` ohne Anforderung, eine Nachricht `p` nach dem Aufbau ist `PGR-E6001`, `require_auth` als Grenze;
+(5) die COPY-Antworten des Servers. Die Beispiele laufen als Datei gegen das gebaute Binary, das Handbuch beschreibt nur, was das Binary zeigt (`AGENTS.md` §3.11).
+
 **Herkunft:** Doku-Folge-Slice von `slice-v1-abschluss-protokollrand`, abgeschnitten nach Entscheidung des Nutzers vom 2026-10-10 („Dafür haben wir die Welle – man kann dafür einen weiteren Slice anlegen“) bei der Closure von `slice-doku-ist-stand` (Verifikation V-151): Mit dem Handbuch- und README-Teil als Dokumentation, einer eigenen Schicht (`AGENTS.md` §3.13), läge `slice-v1-abschluss-protokollrand` über zwei Schichten. Der Teil, den jener Slice in DoD und §3 trug, liegt hier; er setzt jenen Slice voraus (§4) und steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) direkt dahinter. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen, und die Welle schließt erst mit beiden.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
@@ -47,8 +54,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Ziel-Form: Slice — **≤ 3 Liefer-Punkte**; mehr heißt: der Slice ist zu groß und
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
-- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-protokollrand` liefert, im Ist-Zustand des gebauten Binaries: Die Abschnitte, die Kommandos, Optionen, Meldungscodes, Beispiele und Grenzen dieses Slice betreffen, stehen im Handbuch, und die Grenz-Sätze, die er überholt, sind ersetzt. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
-- [ ] `README.md` nennt, was `slice-v1-abschluss-protokollrand` liefert, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
+- [ ] Das Benutzerhandbuch beschreibt, was `slice-v1-abschluss-protokollrand` liefert (die fünf Inhalte unter *Inhalt der Sendung* in §1: `_pq_.`-Ablehnung `PGR-E6001` in `record` und `replay`, Zählung abgelehnter Verbindungen, `NotificationResponse`/`LISTEN`-`NOTIFY` mit `PGR-E6001` und nicht aufgezeichneter Session, feste Auswahl im Replay, COPY-Antworten), im Ist-Zustand des gebauten Binaries: Die Abschnitte, die Kommandos, Optionen, Meldungscodes, Beispiele und Grenzen dieses Slice betreffen, stehen im Handbuch, und die Grenz-Sätze, die er überholt, sind ersetzt. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11); das Handbuch enthält keinen Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews und kein „noch nicht“, „kommt“, „geplant“ über das Produkt (`grep`, Beleg in §7).
+- [ ] `README.md` nennt, was `slice-v1-abschluss-protokollrand` liefert (soweit es die fünf Inhalte aus §1 betrifft), im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Slice überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -147,5 +154,7 @@ nicht mehr.
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Liefer-Punkte: 2. Schichten nach der Zählung in `AGENTS.md` §3.13: eine (Dokumentation), kein Code.
+
+Nachgezählt beim Eintragen der Sendung von `slice-v1-abschluss-protokollrand` (Architect, 2026-10-15, `AGENTS.md` §3.13, Rückgabe V-5): Die fünf Inhalte liegen in den zwei vorhandenen Liefer-Punkten (Handbuch; README); Liefer-Punkte 2 (höchstens 3), Schichten eine (Handbuch und README zählen als eine Schicht; höchstens 2). Der Nehmer liegt nicht darüber, kein Schnitt vorgemerkt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
