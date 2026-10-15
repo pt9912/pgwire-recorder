@@ -170,10 +170,10 @@ func TestSQLiteVersionWerSetzt(t *testing.T) {
 	})
 }
 
-// Abdeckung: LH-FA-25/Negative, LH-FA-22/Negative — steht in der Datei die Zeile version von meta nicht
-// oder nicht mit dem Wert 1, ist das Setzen der Version in der Transaktion der ersten Session mit Ende
-// PGR-E3001 und die Session nicht ergänzt (keine Zeile der Session, meta unverändert); trägt meta
-// keine Zeile version, aber eine andere mit dem Wert 1, ändert die Transaktion diese nicht.
+// Abdeckung: LH-FA-25/Negative, LH-FA-22/Negative — steht in der Datei die Zeile version von meta nicht, nicht mit dem
+// Wert 1 oder zweimal mit dem Wert 1 (meta ohne Primärschlüssel von Hand gebaut), ist das Setzen der Version in der
+// Transaktion der ersten Session mit Ende PGR-E3001 und die Session nicht ergänzt (keine Zeile der Session, meta
+// unverändert); trägt meta keine Zeile version, aber eine andere mit dem Wert 1, ändert die Transaktion diese nicht.
 func TestSQLiteVersionZeileUnpassend(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -183,6 +183,7 @@ func TestSQLiteVersionZeileUnpassend(t *testing.T) {
 		{"Zeile fehlt", `DELETE FROM meta WHERE key = 'version'`, "format|pgwire-recorder"},
 		{"Wert 2", `UPDATE meta SET value = '2' WHERE key = 'version'`, "format|pgwire-recorder version|2"},
 		{"Zeile fehlt, andere Zeile mit Wert 1", `UPDATE meta SET key = 'anders' WHERE key = 'version'`, "anders|1 format|pgwire-recorder"},
+		{"zwei Zeilen mit Wert 1", `CREATE TABLE meta2 (key TEXT, value TEXT); INSERT INTO meta2 SELECT key, value FROM meta; INSERT INTO meta2 VALUES ('version', '1'); DROP TABLE meta; ALTER TABLE meta2 RENAME TO meta`, "format|pgwire-recorder version|1 version|1"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -339,8 +340,9 @@ func TestSQLiteEndeMitFalscherNummer(t *testing.T) {
 // server, der sequence der Interaktion und fields genau {} (Text mit zwei Zeichen): in einer einfachen
 // Interaktion mit group_no NULL und position nach der Fehlerantwort, in einer Sync-Gruppe und in einer
 // Flush-Gruppe mit der Nummer der Gruppe und position über beide Richtungen, unter den Server-Nachrichten der
-// Gruppe; offset_ms steht an der Interaktion mit Ende; eine Aufzeichnung ohne Ende schreibt dieselben
-// Zeilen wie bisher mit den meta-Zeilen format und version 1.
+// Gruppe; offset_ms steht an der Interaktion mit Ende; eine Aufzeichnung ohne Ende schreibt die
+// meta-Zeilen format und version 1 und in interaction und message die Schlüsselspalten (sequence, type; sequence,
+// position, direction, group_no, kind) einer einfachen und einer Extended-Interaktion mit Sync-Gruppe.
 func TestSQLiteEndeDarstellung(t *testing.T) {
 	off := int64(7)
 	mitOffset := ixEnde(1)
@@ -452,7 +454,7 @@ func TestSQLiteSchreibenNimmtFormverletzungAn(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-25/Happy, LH-FA-22/Happy, LH-QA-06/Messung — dieselbe Aufzeichnung mit Ende, als yaml und als sqlite geschrieben, liest gleich
-// (auch in version) und gleich der geschriebenen, und von der geladenen Aufzeichnung aus ergibt Schreiben und
+// (auch in version, 2) und gleich der geschriebenen bis auf version, das 2 trägt, und von der geladenen Aufzeichnung aus ergibt Schreiben und
 // erneutes Laden dieselbe: einfach, Extended mit Sync-Gruppe, mit Flush-Gruppe, mit offset_ms an der Interaktion mit
 // Ende, mit empty_sessions; eine Datei der Version 2 ohne Ende liest mit Version 2 und ergibt beim Schreiben die
 // Version 1, sonst gleich.
