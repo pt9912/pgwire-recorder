@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-25.a` · `LH-FA-22.a` · `SPEC-001` · `SPEC-002` · `SPEC-043` · `ARC-008`
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-15.
 
@@ -93,7 +93,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- internal docs/user`, Tests eingeschlossen, wobei die Basis der Stand des Hauptzweigs vor dem Anspruch ist (der Planner trägt den SHA beim Anspruch ein; der Übergang nach `in-progress/` ändert nichts unter den genannten Pfaden); **über 1000** geht der Slice zurück zur Zerlegung. **Meldeschwelle 800:** Erreicht die Summe 800, hält der Implementer an und meldet dem Planner, bevor er weiterarbeitet (`BEO-REPO/meldeschwelle-ohne-artefakt`). Schätzung des Planners in dieser Metrik: 500 bis 800, Mitte 650 und damit 65 % der Marke (§8); schneidet die Prüfung des Architect höher, ist der Schnitt Version in der Transaktion | Roundtrip (Zuschnitt: Planner).
+- `in-progress` → `next`: **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- internal docs/user`, Tests eingeschlossen, wobei die Basis der Stand des Hauptzweigs vor dem Anspruch ist (**Basis: `b5933e85de09b686e4e204d17d6bb85d0a092b37`**, eingetragen vom Planner beim Anspruch am 2026-10-15; der Übergang nach `in-progress/` ändert nichts unter den genannten Pfaden); **über 1000** geht der Slice zurück zur Zerlegung. **Meldeschwelle 800:** Erreicht die Summe 800, hält der Implementer an und meldet dem Planner, bevor er weiterarbeitet (`BEO-REPO/meldeschwelle-ohne-artefakt`). Schätzung des Planners in dieser Metrik: 500 bis 800, Mitte 650 und damit 65 % der Marke (§8), unter der Grenze von 70 %, am 2026-10-15 beim Anspruch bestätigt (Faktor Tests zu Produktcode mindestens 5, gemessene Datenpunkte 8 und 11); schneidet die Prüfung des Architect höher, ist der Schnitt Version in der Transaktion | Roundtrip (Zuschnitt: Planner).
 - `in-progress` → `next`: Das Setzen der Version in der Transaktion verlangt eine Änderung am Port `RecordingRepository` oder am Modell — zurück zur Zerlegung (dritte Schicht).
 - `in-progress` → `open`: Das neutrale Schema muss sich ändern (der Nutzer hat es am 2026-10-12 ausgeschlossen) — Change Request.
 
@@ -120,6 +120,7 @@ dasteht.
 - *Ende mit `offset_ms`:* wie jede Interaktion — `SPEC-043`, `LH-FA-21.a`.
 - *Jeder Schreibvorgang öffnet die Datei neu und prüft sie:* die Prüfung nimmt Version 2 an — `SPEC-043` (Schreibvorgang).
 - *Aufrufer mit verletzter Form* (Bindung aus `slice-v1-abschluss-verbindungsende-format-schreiber`): der Schreiber prüft die Form des Endes nicht; Stelle, Anzahl und Felder entscheidet der Leser — Architect bestätigt vor dem Code, ob die Setzung für SQLite gilt (`SPEC-001`, `SPEC-002`).
+- *Welche Sessions mit Ende die Transaktion auf Version 2 setzen* (Auftrag des Planners beim Anspruch, 2026-10-15): `SPEC-043` nennt „die Transaktion der ersten Session mit Ende“; was als „Session mit Ende“ zählt (irgendeine Antwort irgendeiner Interaktion ist `connection_closed`, an jeder Stelle, auch einer falschen, wie der Schreiber in `yaml` es für die Wahl der Version setzt, `SPEC-001`) und ob die Sperre der Datei die Prüfung mit abdeckt, bestätigt der Architect in der eigenen Prüfung vor dem ersten Code-Commit; der Implementer entscheidet es nicht.
 - *Konstante der Version 2* (Bindung aus `slice-v1-abschluss-verbindungsende-format`): `model.VersionMitEnde`, ein Literal ist es nicht — `SPEC-001`.
 - *Aufruf-Voraussetzung:* der Schreiber vergibt keine Werte, die über mehrere Aufrufe einer Session geordnet oder eindeutig sein müssten; ein Schreibvorgang an dieselbe Datei läuft unter der Sperre der Datei (`LH-FA-22.a`); keine Ordnungszusage — keine Voraussetzung (`AGENTS.md` §3.12). Aufrufarten des Treibers: keine (kein Hook oder Gate liest ein Ergebnis dieses Schreibers).
 
