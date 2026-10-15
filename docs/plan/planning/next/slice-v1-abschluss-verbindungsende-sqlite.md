@@ -34,6 +34,8 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Übernommen aus `slice-v1-abschluss-verbindungsende-format`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-12, `AGENTS.md` §3.13): SQLite als zweites Format des Endes. Das Modell mit seinen Formregeln und der YAML-Teil liegen in jenem Slice; dieser Slice benutzt `Validate` und die Fehlerklassen unverändert und setzt ihn voraus.
 
+**Bindung aus `slice-v1-abschluss-verbindungsende-format`** (Closure des Gebers, Planner, 2026-10-15, `AGENTS.md` §3.13; dort §6 *Ort der Formregel einer Session*): Die Formregel einer Session (höchstens ein Ende, in der letzten Interaktion) liegt als `Session.ValidateEnd() error` im Modell, und der SQLite-Leser ruft sie je Session nach den Interaktionen, statt sie nachzubauen; `Interaction.Validate` allein lehnt ein Ende in einer Interaktion vor der letzten und ein zweites Ende nicht ab. Der Schreiber setzt `meta.version` auf `model.VersionMitEnde` (2); `model.Version` bleibt 1.
+
 **Übernommen aus `slice-v1-abschluss-verbindungsende-format-schreiber`** (dort §1, Abgrenzung; Sendung des Planners, 2026-10-15, `AGENTS.md` §3.13, Schnitt von `slice-v1-abschluss-verbindungsende-format`): der YAML-Schreiber mit Version nach dem Inhalt. Der Roundtrip in beiden Formaten (DoD-Punkt 3) schreibt dieselbe Aufzeichnung als YAML und als SQLite; den YAML-Schreiber liefert jener Slice, dieser benutzt ihn und setzt ihn voraus.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
@@ -74,7 +76,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/adapters/driven/recording/sqlite.go`, `sqlite_zeilen.go`, `sqlite_json.go` | update | Schreiber: Nachricht `connection_closed`, `meta.version` in der Transaktion |
-| `internal/adapters/driven/recording/sqlite_lesen.go`, `sqlite_lesen_baum.go`, `sqlite_json_lesen.go` | update | Leser: beide Versionen, Nachricht `connection_closed`, Formregeln über `Validate` |
+| `internal/adapters/driven/recording/sqlite_lesen.go`, `sqlite_lesen_baum.go`, `sqlite_json_lesen.go` | update | Leser: beide Versionen, Nachricht `connection_closed`, Formregeln über `Validate` und `Session.ValidateEnd` (Bindung aus `slice-v1-abschluss-verbindungsende-format`) |
 | `internal/adapters/driven/recording` (Tests) | update | Schreiben (Version, Transaktion mit Fehler), Lesen (Negative je Randform), Roundtrip beider Formate |
 | `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests |
 
@@ -116,6 +118,7 @@ dasteht.
 - *Version 3 und andere:* `PGR-E3002` — `SPEC-001`.
 - *Ende mit `offset_ms`:* wie jede Interaktion — `SPEC-043`, `LH-FA-21.a`.
 - *Jeder Schreibvorgang öffnet die Datei neu und prüft sie:* die Prüfung nimmt Version 2 an — `SPEC-043` (Schreibvorgang).
+- *Formregel der Session und Konstante der Version 2* (Bindung aus `slice-v1-abschluss-verbindungsende-format`): Der Leser ruft `Session.ValidateEnd` je Session; ein Ende in einer Interaktion vor der letzten und ein zweites Ende in einer Session sind `PGR-E3003`, welche Prüfung meldet, ist nicht zugesagt (`SPEC-002`); `meta.version` 2 heißt `model.VersionMitEnde`, ein Literal ist es nicht — `SPEC-001`, `SPEC-002`.
 
 **Risiken:**
 
@@ -154,5 +157,7 @@ nicht mehr.
 Nachgezählt beim Anlegen (Planner, 2026-10-12, `AGENTS.md` §3.13): Liefer-Punkte: 3 (Schreiber, Leser, Roundtrip). Schichten: eine (Recording-Adapter, `ARC-008`). Schätzung des Planners: 400 bis 750 Zeilen mit Tests.
 
 Nachgezählt beim Eintragen der Sendung aus `slice-v1-abschluss-verbindungsende-format-schreiber` (Planner, 2026-10-15, `AGENTS.md` §3.13): Der YAML-Schreiber ist Voraussetzung und keine Lieferung dieses Slice; er gehört zu DoD-Punkt 3 (Roundtrip, der ihn im Test benutzt) und fügt weder Liefer-Punkt noch Schicht hinzu. Liefer-Punkte weiter 3, Schichten weiter eine (Recording-Adapter); Schätzung unverändert. Die Rückführung in §4 (Schnitt Schreiber | Leser bei über 1000) bleibt Sache des Architect.
+
+Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-verbindungsende-format` (Planner, 2026-10-15, `AGENTS.md` §3.13): Der Aufruf von `Session.ValidateEnd` gehört zu DoD-Punkt 2 (Leser), die Konstante `model.VersionMitEnde` zu DoD-Punkt 1 (Schreiber); beide sind Aufrufe vorhandenen Codes (der Geber liefert sie) und ein Testfall je Ablehnung (Ende in einer Interaktion vor der letzten, zweites Ende). Liefer-Punkte weiter 3, Schichten weiter eine (Recording-Adapter); die Schätzung bleibt, die Fälle kommen mit einigen Dutzend Zeilen hinzu.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
