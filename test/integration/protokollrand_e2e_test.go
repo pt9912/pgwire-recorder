@@ -3,9 +3,9 @@
 package integration_test
 
 import (
+	"bufio"
 	"context"
 	"encoding/binary"
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -14,13 +14,12 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgproto3"
 )
 
 // rohSitzung verbindet sich mit listen als Client auf der Ebene der Nachrichten und
 // liefert die Verbindung und ihren Leser; mit startup führt es den Aufbau bis zum
 // ReadyForQuery aus.
-func rohSitzung(t *testing.T, listen string, startup bool) (net.Conn, *pgproto3.Frontend) {
+func rohSitzung(t *testing.T, listen string, startup bool) (net.Conn, *bufio.Reader) {
 	t.Helper()
 	c, err := net.DialTimeout("tcp", listen, 5*time.Second)
 	if err != nil {
@@ -28,43 +27,39 @@ func rohSitzung(t *testing.T, listen string, startup bool) (net.Conn, *pgproto3.
 	}
 	t.Cleanup(func() { c.Close() })
 	_ = c.SetDeadline(time.Now().Add(15 * time.Second))
-	fe := pgproto3.NewFrontend(c, c)
-	if !startup {
-		return c, fe
+	r := bufio.NewReader(c)
+	if startup {
+		schreibe(t, c, rohStartnachricht())
+		bisTyp(t, r, 'Z')
 	}
-	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "postgres", "database": "postgres"}})
-	if err := fe.Flush(); err != nil {
-		t.Fatal(err)
-	}
-	for {
-		msg, err := fe.Receive()
-		if err != nil {
-			t.Fatalf("Aufbau: %v", err)
-		}
-		if _, ok := msg.(*pgproto3.ReadyForQuery); ok {
-			return c, fe
-		}
-	}
+	return c, r
 }
 
-// fehlerAuf liest die nächste Nachricht und liefert den Text der ErrorResponse; jede
+// fehlerAuf liest die nächste Nachricht und liefert das Feld M der ErrorResponse; jede
 // andere Nachricht beendet den Test.
-func fehlerAuf(t *testing.T, fe *pgproto3.Frontend) string {
+func fehlerAuf(t *testing.T, r *bufio.Reader) string {
 	t.Helper()
-	msg, err := fe.Receive()
-	if err != nil {
-		t.Fatalf("Fehlerantwort lesen: %v", err)
+	typ, rumpf, err := leseNachricht(r)
+	if err != nil || typ != 'E' {
+		t.Fatalf("erwartet eine ErrorResponse, erhalten %c, %v", typ, err)
 	}
-	e, ok := msg.(*pgproto3.ErrorResponse)
-	if !ok {
-		t.Fatalf("erwartet eine ErrorResponse, erhalten %T", msg)
+	for f := rumpf; len(f) > 1; {
+		i := strings.IndexByte(string(f[1:]), 0)
+		if f[0] == 'M' {
+			return string(f[1 : 1+i])
+		}
+		f = f[i+2:]
 	}
-	return e.Message
+	t.Fatalf("ErrorResponse ohne Feld M: %q", rumpf)
+	return ""
 }
 
-// rohStartnachricht ist die Startnachricht 3.0 mit dem Benutzer postgres und den Paaren.
-func rohStartnachricht(paare ...string) []byte {
-	rumpf := []byte("user\x00postgres\x00")
+// rohStartnachricht ist die Startnachricht 3.0 für den Benutzer postgres mit den Paaren.
+func rohStartnachricht(paare ...string) []byte { return rohStartFuer("postgres", paare...) }
+
+// rohStartFuer ist die Startnachricht 3.0 für user mit den Paaren aus Name und Wert.
+func rohStartFuer(user string, paare ...string) []byte {
+	rumpf := []byte("user\x00" + user + "\x00")
 	for _, p := range paare {
 		rumpf = append(append(rumpf, p...), 0)
 	}
@@ -304,33 +299,16 @@ func TestE2ERecordListenNotify(t *testing.T) {
 func TestE2EReplayAuswahl(t *testing.T) {
 	aufnahme, _ := aufnehmen(t, "SELECT 1;")
 	rep := startProzess(t, "replay", "--input", aufnahme)
-	_, fe := rohSitzung(t, rep.listen, false)
-	fe.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersionNumber, Parameters: map[string]string{"user": "gibtesnicht", "database": "nix", "options": "-c x=1"}})
-	if err := fe.Flush(); err != nil {
-		t.Fatal(err)
+	c, r := rohSitzung(t, rep.listen, false)
+	schreibe(t, c, rohStartFuer("gibtesnicht", "database", "nix", "options", "-c x=1"))
+	typ, rumpf, err := leseNachricht(r)
+	if err != nil || typ != 'R' || binary.BigEndian.Uint32(rumpf) != 0 {
+		t.Fatalf("erste Nachricht %c %v (%v) statt AuthenticationOk ohne Anforderung", typ, rumpf, err)
 	}
-	msg, err := fe.Receive()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := msg.(*pgproto3.AuthenticationOk); !ok {
-		t.Fatalf("erste Nachricht %T statt AuthenticationOk ohne Anforderung", msg)
-	}
-	for {
-		if msg, err = fe.Receive(); err != nil {
-			t.Fatal(err)
-		}
-		if _, ok := msg.(*pgproto3.ReadyForQuery); ok {
-			break
-		}
-	}
-	fe.Send(&pgproto3.Query{String: "SELECT 1;"})
-	fe.Send(&pgproto3.Terminate{})
-	if err := fe.Flush(); err != nil {
-		t.Fatal(err)
-	}
-	if typen := empfangeBis(t, fe); !strings.Contains(typen, "CommandComplete") {
-		t.Fatalf("Antworten %s", typen)
+	bisTyp(t, r, 'Z')
+	schreibe(t, c, append(clientNachricht('Q', "SELECT 1;\x00"), clientNachricht('X', "")...))
+	if typen := empfangeBis(r); !strings.Contains(typen, "C") {
+		t.Fatalf("Antworten %q", typen)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -346,14 +324,13 @@ func TestE2EReplayAuswahl(t *testing.T) {
 }
 
 // empfangeBis liest bis zum Ende der Verbindung und liefert die Typen der Nachrichten.
-func empfangeBis(t *testing.T, fe *pgproto3.Frontend) string {
-	t.Helper()
-	var typen []string
+func empfangeBis(r *bufio.Reader) string {
+	var typen []byte
 	for {
-		msg, err := fe.Receive()
+		typ, _, err := leseNachricht(r)
 		if err != nil {
-			return strings.Join(typen, " ")
+			return string(typen)
 		}
-		typen = append(typen, strings.TrimPrefix(fmt.Sprintf("%T", msg), "*pgproto3."))
+		typen = append(typen, typ)
 	}
 }
