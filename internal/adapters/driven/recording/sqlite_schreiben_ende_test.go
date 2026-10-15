@@ -455,8 +455,7 @@ func TestSQLiteSchreibenNimmtFormverletzungAn(t *testing.T) {
 // (auch in version) und gleich der geschriebenen, und von der geladenen Aufzeichnung aus ergibt Schreiben und
 // erneutes Laden dieselbe: einfach, Extended mit Sync-Gruppe, mit Flush-Gruppe, mit offset_ms an der Interaktion mit
 // Ende, mit empty_sessions; eine Datei der Version 2 ohne Ende liest mit Version 2 und ergibt beim Schreiben die
-// Version 1, sonst gleich; ein späterer Schreibvorgang an eine Datei der Version 2 ergänzt Sessions ohne Änderung der
-// Version.
+// Version 1, sonst gleich.
 func TestSQLiteRoundtripMitEnde(t *testing.T) {
 	off := int64(7)
 	mitOffset := ixEnde(1)
