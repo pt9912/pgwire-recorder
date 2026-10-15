@@ -87,7 +87,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: Die Prüfung des Architect vor dem Code schätzt den Diff mit Tests auf über 1000 Zeilen (Schätzung des Planners 650 bis 1000, Tests eingeschlossen, Verhältnis Test zu Code etwa 3 zu 1 wie bei `slice-v1-abschluss-antwortvergleich`; `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`) — Schnitt vor dem Anspruch, nicht danach (`BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`): Leser | Schreiber, Zuschnitt: Planner.
+- `in-progress` → `next`: Die Prüfung des Architect vor dem Code schätzt den Diff auf über 1000 Zeilen, gemessen als Summe aus Einfügungen und Löschungen von `git diff --numstat 63c497c..<letzter Commit des Slice> -- internal docs/user`, Tests eingeschlossen (`AGENTS.md` §3.14; Schätzung des Planners 650 bis 1000, Tests eingeschlossen, Verhältnis Test zu Code etwa 3 zu 1 wie bei `slice-v1-abschluss-antwortvergleich`, der Architect rechnet für Tabellen- und Gegenprobe-Code mit dem Doppelten des Produktcodes; `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`) — Schnitt vor dem Anspruch, nicht danach (`BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`): Leser | Schreiber, Zuschnitt: Planner.
 - `in-progress` → `next`: Die Version muss beim Schreiben von einer dritten Schicht gesetzt werden (etwa vom `RecordService`) — zurück zur Zerlegung.
 - `in-progress` → `open`: Der Nutzer ändert die Darstellung des Endes (`connection_closed` ohne Felder, letzte Nachricht) — Change Request an die Spezifikation.
 
