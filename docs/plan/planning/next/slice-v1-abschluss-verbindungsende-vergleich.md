@@ -118,7 +118,7 @@ dasteht.
 - *`--allow-recorded-errors` mit Vergleich:* ohne Wirkung, ohne dass die Kombination ein Fehler ist — `LH-FA-20.a` Optionstabelle.
 - *Verbindungsverlust ohne Fehlerantwort bei aufgezeichnetem Ende:* `PGR-E4003`, keine Abweichung — `LH-FA-24.a` *Ende der Aufzeichnung*.
 - *Zähler:* `verglichen` zählt bis zum `ReadyForQuery` oder bis zur Fehlerantwort `FATAL`/`PANIC`, `abweichend` höchstens einmal je Interaktion, `eingespielt` jede — `LH-FA-24.a` *Meldung*.
-- *Extended:* Ende in der letzten Gruppe; der Vergleich der Gruppen davor bleibt, ab der Fehlerantwort gilt die Regel des Endes — `LH-FA-24.a`.
+- *Extended:* Ende in der letzten Gruppe; der Vergleich der Gruppen davor bleibt, ab der Fehlerantwort gilt die Regel des Endes — `LH-FA-24.a`. **Bindung an `slice-v1-abschluss-verbindungsende-einspielen-extended` (g)** (Sendung des Architect, 2026-10-16, `AGENTS.md` §3.13): Endet die letzte Gruppe mit `Flush` (nur bei aufgezeichnetem Ende), liest `play` bis zur Antwort auf jede Client-Nachricht der Gruppe oder bis zu einer `ErrorResponse` und wartet nicht auf `ReadyForQuery`; die Funktion dafür (`extended`) ist die des Pfades mit Vergleich. Dieser Slice entscheidet, wie sich die gelesene Folge ohne `ready_for_query` mit der Aufzeichnung vergleicht (normale Antwort auf die letzte `Flush`-Gruppe: Abweichung an der Position von `connection_closed`, Art Nachrichtenart, nach den gewöhnlichen Regeln) und hat dafür einen Fall im Service.
 
 **Risiken:**
 
@@ -155,6 +155,8 @@ nicht mehr.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen. Treffer in der Sub-Area `REPO`: `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` (2×), `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (2×) und `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (1×; §6) — der Plan nennt Schätzung und Schnitt vorab (§4). Keine weiteren Treffer.
 
 Nachgezählt beim Anlegen (Planner, 2026-10-12, `AGENTS.md` §3.13): Liefer-Punkte: 3 (Ende im Vergleich mit Zählern, Hilfetext, E2E von Szenario 16 Satz 3). Schichten: zwei (Kern mit dem Service, `ARC-002`; CLI-Adapter, `ARC-005`, nur der Hilfetext). Schätzung des Planners: 600 bis 1000 Zeilen mit Tests.
+
+Nachgezählt beim Eintragen der Bindung aus `slice-v1-abschluss-verbindungsende-einspielen-extended` (Architect, 2026-10-16, `AGENTS.md` §3.13, Ortsangabe wie Sendung zählt): ein Fall im Service in der Zeile *Extended* von DoD Punkt 1, kein neuer Liefer-Punkt und keine Schicht: Liefer-Punkte weiter 3, Schichten weiter zwei (Kern mit dem Service; CLI-Adapter); Schätzung rund 15 bis 25 Zeilen mehr (eine Tabellenzeile mit Fake), Marke und Meldeschwelle unverändert.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
 

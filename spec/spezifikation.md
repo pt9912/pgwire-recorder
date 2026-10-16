@@ -1691,7 +1691,8 @@ pgwire-recorder play \
    Reihenfolge gesendet: bei einer einfachen Anfrage die `Query`, bei einer
    Extended-Interaktion die Nachrichten jeder Gruppe (`SPEC-041`). Nach jeder
    Interaktion wartet der Recorder auf das `ReadyForQuery`; innerhalb einer
-   Extended-Interaktion gilt *Gruppen* unten.
+   Extended-Interaktion gilt *Gruppen* unten, auch für die letzte Gruppe mit `Flush`, nach der
+   kein `ReadyForQuery` kommt.
 4. Die Serverantworten werden gelesen und verworfen, mit Ausnahme einer
    `ErrorResponse`. Ein Vergleich mit den aufgezeichneten Antworten findet nur mit
    `--compare-responses` statt (`LH-FA-24.a`); die Antworten werden dann bis zum
@@ -1907,7 +1908,12 @@ offenlässt.
   Client-Nachricht der Gruppe oder eine `ErrorResponse` gelesen hat (der Server verwirft bis
   zu einem `Sync`); hat es in einer früheren Gruppe eine `ErrorResponse` gelesen, sendet es die
   letzte Gruppe und liest danach nichts mehr. Eine Fehlerantwort `FATAL` oder `PANIC`, die es
-  dabei liest, gilt nach *Interaktion*.
+  dabei liest, gilt nach *Interaktion*. Das Warten endet mit der Zahl der Antworten, nicht mit
+  einer Frist, und gilt mit und ohne `--allow-recorded-errors`, wenn die letzte Gruppe mit `Flush`
+  endet. Nach einer `ErrorResponse` `ERROR`, die nicht abbricht, sendet `play` die übrigen Gruppen,
+  bevor es liest; scheitert dabei ein Senden, weil der Server die Verbindung nach einer `FATAL`
+  schon beendet hat, ist das `PGR-E4003`, solange `play` die Fehlerantwort nicht gelesen hat
+  (*Interaktion*; das Rennen ist nicht steuerbar, Grenze ohne Test).
 * *Interaktion.* Jede andere Server-Nachricht wird gelesen und verworfen, auch
   `NoticeResponse`, `ParameterStatus` und `NotificationResponse`. `CopyInResponse`,
   `CopyOutResponse`, `CopyBothResponse` und eine Nachricht, die sich nicht lesen lässt,
@@ -1972,7 +1978,8 @@ offenlässt.
   Mit `--finish-session-on-interrupt` laufen danach alle Interaktionen der Session,
   sonst keine; für sie gelten die Fehlerregeln wie ohne Signal. Zwischen zwei Sessions
   läuft keine, und nach dem Signal beginnt keine weitere, auch mit der Option. Eine
-  Extended-Interaktion läuft bis zu ihrem `ReadyForQuery`. Das zweite Signal sendet
+  Extended-Interaktion läuft bis zu ihrem `ReadyForQuery`, die mit `Flush` endende letzte Gruppe bis zur
+  Antwort auf jede ihrer Client-Nachrichten (*Gruppen*). Das zweite Signal sendet
   `Terminate`, soweit die Verbindung es sofort annimmt, im Aufbau nicht (*Abbruch im
   Aufbau*), schließt sie, auch während des Verbindungsversuchs, und
   beendet den Prozess; die unterbrochene Interaktion und ein unterbrochener Aufbau sind
@@ -3415,4 +3422,5 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Ende des Servers im Replay, Gruppen vor der Gruppe mit dem Ende: in einer Interaktion mit Ende nur mit `Flush` (Berichtigung des Wortlauts „mit `Sync` wie mit `Flush`“, das Format stellt anderes nicht dar), Lebendprüfung zwischen zwei Gruppen mit Zeiger auf `LH-FA-18.a` (`LH-FA-25.a`) |
 | 2026-10-16 | Herunterfahren: die laufende Extended-Interaktion nimmt ihre Client-Nachrichten bis zu ihrem Abschluss an statt bis zu ihrem `Sync` (bei Ende und `Flush` ist es dieses `Flush`; `LH-FA-13.a`, `LH-FA-18.a`) |
 | 2026-10-16 | Einspielen, Ende des Servers ohne Vergleich: Stelle der Fehlerantwort ist die Interaktion (Position der Antworten, Gruppe, nach einem `ERROR`), ein Grund der Ablehnung `PGR-E4003` ohne Reihenfolge, Verbindungsverlust trotz aufgezeichnetem Ende, Lesestand bei Sendefehler, letzte Gruppe mit `Flush` ohne Warten auf `ReadyForQuery`, kein `Terminate` nach der Fehlerantwort, Verhalten des Servers nur gegen die Referenz (`LH-FA-20.a`, `LH-FA-25.a`) |
+| 2026-10-16 | Einspielen, Ende des Servers in der Extended-Interaktion ohne Vergleich: Schritt 3 und Abbruchsignal nennen die letzte Gruppe mit `Flush` ohne `ReadyForQuery`, das Warten endet mit der Zahl der Antworten und nicht mit einer Frist, Sendefehler nach einem `ERROR`, das nicht abbricht, ist `PGR-E4003` bis zur gelesenen Fehlerantwort (Grenze ohne Test) (`LH-FA-20.a`, `LH-FA-25.a`) |
 | 2026-10-16 | Einspielen, zweites Signal und Ende des Servers: kein `Terminate` gilt nach der gelesenen und geschlossenen Fehlerantwort; ein Signal zwischen Lesen und Schließen kann `Terminate` senden, Grenze ohne Test (`LH-FA-20.a`) |
