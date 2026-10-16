@@ -81,11 +81,11 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services/replay.go`, `lebendpruefung.go` | update | Ende der einfachen Interaktion liefern (die Antworten tragen `connection_closed`, `Query` ändert dafür nichts); `ohneLebendpruefungen` behält die Lebendprüfung mit Ende; `Query` beantwortet eine eingehende Lebendprüfung, die diese Anfrage ist, nicht außer der Reihe, bei `first-request` auch vor der Zuordnung; der Pfad der Extended-Interaktion (`ClientMessage`) bleibt Gegenstand von `-replay-extended` |
+| `internal/hexagon/services/replay.go` | update | Ende der einfachen Interaktion liefern (die Antworten tragen `connection_closed`, `Query` ändert dafür nichts); `ohneLebendpruefungen` behält die Lebendprüfung mit Ende; `Query` beantwortet eine eingehende Lebendprüfung, die diese Anfrage ist (`anfrageMitEnde`), nicht außer der Reihe, bei `first-request` auch vor der Zuordnung; der Pfad der Extended-Interaktion (`ClientMessage`) bleibt Gegenstand von `-replay-extended` |
 | `internal/hexagon/ports/driving/replay.go` | update (Kommentar) | Port-Vertrag: Das Ende steht als `connection_closed` letzte Antwort der Lieferung von `Query` wie von `ClientMessage`; keine neue Methode, keine neue Signatur (Architect, 2026-10-16, `LH-FA-25.a` *Meldung des Endes im Replay*) |
-| `internal/adapters/driving/pgwire/server.go` | update | `connection_closed` ist keine PGWire-Nachricht (`toMessage`, `send`); Replay-Pfad schließt die Verbindung (`replayZustellen`) |
-| `internal/hexagon/services`, `internal/adapters/driving/pgwire` (Tests) | update | Randformen aus §6; Fake-Replayer im Adapter |
-| `test/integration` (`replay_ende_e2e_test.go`, `testdata`) | neu | Binary mit handgeschriebener Aufzeichnung, ohne PostgreSQL |
+| `internal/adapters/driving/pgwire/server.go` | update | `connection_closed` ist keine PGWire-Nachricht (`send` lässt sie als letzte Antwort aus, `toMessage` bleibt unverändert); Replay-Pfad schließt die Verbindung (`replayZustellen`, nach `Sent`) |
+| `internal/hexagon/services/replay_ende_test.go`, `internal/adapters/driving/pgwire/server_ende_test.go`, `server_test.go` (Tests) | neu, update | Randformen aus §6; Fake-Replayer im Adapter (`endeReplayer` über dem vorhandenen `fakeReplayer`); `replayVerbindung` nimmt den Port `driving.Replayer` statt des Fakes |
+| `test/integration` (`replay_ende_e2e_test.go`, `testdata/ende-fatal.yaml`, `ende-panic.yaml`, `ende-lebend.yaml`) | neu | Binary mit handgeschriebener Aufzeichnung (Version 2, je Fall eine Datei), ohne PostgreSQL; der Client ist roh (ohne Treiber), liest bis zum Ende der Verbindung und sendet nach der Anfrage mit Ende nichts |
 | `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests |
 
 ## 4. Trigger

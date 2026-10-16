@@ -15,8 +15,9 @@ import (
 // den Verbindungen zugeordnet: mit `first-request` (Standard) in der Reihenfolge
 // der ersten Anfragen, mit `connection` (ZuordnungNachVerbindung) mit der
 // Annahme der n-ten Verbindung die Session mit der Kennung n (LH-FA-12.a).
-// Lebendprüfungen beantwortet er außerhalb der Reihe, aufgezeichnete überspringt
-// er (ADR-0031).
+// Lebendprüfungen beantwortet er außerhalb der Reihe, aufgezeichnete ohne Ende
+// überspringt er, eine mit Ende ist eine Interaktion wie jede andere (ADR-0031,
+// LH-FA-09.a).
 type ReplayService struct {
 	// streng meldet nicht verbrauchte Interaktionen und nie zugeordnete
 	// Sessions als Fehler PGR-E5002 statt als Warnung PGR-W2001 (LH-FA-03.b).
@@ -77,8 +78,8 @@ func ZuordnungNachVerbindung(s *ReplayService) { s.nachVerbindung = true }
 // NewReplayService lädt die Aufzeichnung. Jede Interaktion muss Validate
 // bestehen, sonst ist die Aufzeichnung beschädigt (PGR-E3003); auf diese Form
 // verlassen sich Query und ClientMessage. Interaktionen, deren Anfrage nach
-// der Version ihrer Session eine Lebendprüfung ist, nimmt es nicht in die
-// Sessions auf; eine Session ohne
+// der Version ihrer Session eine Lebendprüfung ohne Ende ist, nimmt es nicht in
+// die Sessions auf; eine Session ohne
 // andere Interaktion ist damit eine Session ohne Interaktion (LH-FA-09.a). Eine
 // Aufzeichnung ohne Session mit Interaktion ist PGR-E3004 (LH-FA-03.a); mit
 // ZuordnungNachVerbindung und ohne `empty_sessions` in der Aufzeichnung ist es
@@ -120,17 +121,25 @@ func NewReplayService(ctx context.Context, repo driven.RecordingRepository, path
 }
 
 // ohneLebendpruefungen liefert die Interaktionen ohne die einfachen Anfragen,
-// die Lebendprüfungen sind, mit vt auch solche mit \v, in einer neuen Liste;
-// Sequence bleibt die aufgezeichnete Nummer.
+// die Lebendprüfungen ohne Ende sind, mit vt auch solche mit \v, in einer neuen
+// Liste; Sequence bleibt die aufgezeichnete Nummer. Eine Lebendprüfung mit Ende
+// bleibt (LH-FA-09.a): Hier entscheidet das Replay, was eine Interaktion ist.
 func ohneLebendpruefungen(ins []model.Interaction, vt bool) []model.Interaction {
 	out := make([]model.Interaction, 0, len(ins))
 	for _, in := range ins {
-		if in.Request.Type == model.RequestQuery && istLebendpruefung(in.Request.SQL, vt) {
+		if in.Request.Type == model.RequestQuery && istLebendpruefung(in.Request.SQL, vt) && !endetEinfach(in) {
 			continue
 		}
 		out = append(out, in)
 	}
 	return out
+}
+
+// endetEinfach liefert true, wenn die Antworten einer einfachen Anfrage mit
+// connection_closed enden (LH-FA-25.a).
+func endetEinfach(in model.Interaction) bool {
+	n := len(in.Responses)
+	return n > 0 && in.Responses[n-1].Type == model.ResponseConnectionClosed
 }
 
 // OpenConnection liefert den Handshake mit den Serverparametern der nächsten
@@ -170,13 +179,16 @@ func (s *ReplayService) OpenConnection(context.Context) (model.SessionID, []mode
 // Antworten; der Cursor rückt nur bei Gleichheit vor. Eine Lebendprüfung
 // (Leerraum nach cursor.vt) zwischen zwei Interaktionen beantwortet es mit EmptyQueryResponse und
 // ReadyForQuery im Status des letzten ReadyForQuery, ohne Cursor und Zuordnung zu
-// berühren (LH-FA-09.a). Erwartet der Cursor eine Extended-Nachricht, ist jede
+// berühren (LH-FA-09.a); steht am Cursor, bei `first-request` für eine noch nicht
+// zugeordnete Verbindung am Anfang der nächsten freien Session, eine Anfrage mit
+// Ende und demselben SQL-Text, ist sie diese Anfrage. Trägt die gelieferte
+// Interaktion ein Ende, ist connection_closed die letzte Antwort (LH-FA-25.a). Erwartet der Cursor eine Extended-Nachricht, ist jede
 // andere Anfrage eine Abweichung, mitten in einer Extended-Interaktion auch
 // eine Lebendprüfung (LH-FA-18.a).
 func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string) ([]model.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if c, ok := s.verbindung[id]; ok && !c.mitten() && istLebendpruefung(sql, c.vt) {
+	if c, ok := s.verbindung[id]; ok && !c.mitten() && istLebendpruefung(sql, c.vt) && !s.anfrageMitEnde(c, sql) {
 		return []model.Response{
 			{Type: model.ResponseEmptyQueryResponse},
 			{Type: model.ResponseReadyForQuery, TxStatus: c.status},
@@ -203,6 +215,22 @@ func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string)
 	c.ungesendet = true
 	c.merke(erwartet.Responses)
 	return erwartet.Responses, nil
+}
+
+// anfrageMitEnde liefert true, wenn die als Nächste erwartete Interaktion eine
+// einfache Anfrage mit Ende und dem SQL-Text sql ist: die am Cursor, bei einer
+// noch nicht zugeordneten Verbindung mit `first-request` die erste der nächsten
+// freien Session (LH-FA-09.a *Lebendprüfung mit Ende*).
+func (s *ReplayService) anfrageMitEnde(c *cursor, sql string) bool {
+	var erwartet []model.Interaction
+	switch {
+	case c.session != nil:
+		erwartet = c.session.Interactions[min(c.pos, len(c.session.Interactions)):]
+	case !s.nachVerbindung && len(s.frei) > 0:
+		erwartet = s.frei[0].Interactions
+	}
+	return len(erwartet) > 0 && erwartet[0].Request.Type == model.RequestQuery &&
+		erwartet[0].Request.SQL == sql && endetEinfach(erwartet[0])
 }
 
 // mitten liefert true, wenn der Cursor innerhalb einer Extended-Interaktion
@@ -358,7 +386,7 @@ type objekte struct {
 // Transaktion), enden alle Portale. SQL-Befehle, die Objekte beenden
 // (DEALLOCATE, DISCARD ALL, CLOSE, ROLLBACK TO SAVEPOINT), bildet es nicht
 // nach; danach kann die Diagnose ein beendetes Objekt als bestehend nennen.
-// Lebendprüfungen stehen nicht in der Session (NewReplayService); dass
+// Lebendprüfungen ohne Ende stehen nicht in der Session (NewReplayService); dass
 // PostgreSQL bei ihnen das unbenannte Statement entfernt, bildet es ebenfalls
 // nicht nach.
 func (c *cursor) objekte() objekte {

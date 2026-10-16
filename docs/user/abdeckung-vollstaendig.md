@@ -27,7 +27,7 @@ Messung. Die Spalte nennt die beteiligten Nachweisarten. Diese Datei liest
 | [`LH-FA-22`](../../spec/lastenheft.md) | E2E, Unit |
 | [`LH-FA-23`](../../spec/lastenheft.md) | E2E, Unit |
 | [`LH-FA-24`](../../spec/lastenheft.md) | E2E, Unit |
-| [`LH-FA-25`](../../spec/lastenheft.md) | Unit |
+| [`LH-FA-25`](../../spec/lastenheft.md) | E2E, Unit |
 | [`LH-QA-02`](../../spec/lastenheft.md) | E2E |
 | [`LH-QA-06`](../../spec/lastenheft.md) | E2E, Unit |
 | [`LH-RB-01`](../../spec/lastenheft.md) | E2E, Unit |

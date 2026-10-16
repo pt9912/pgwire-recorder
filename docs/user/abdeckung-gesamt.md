@@ -17,7 +17,7 @@ Vollständig belegte Anforderungen stehen zusätzlich in
 | [`LH-FA-06`](../../spec/lastenheft.md) | E2E | E2E | E2E, Unit | n/a | vollständig |
 | [`LH-FA-07`](../../spec/lastenheft.md) | E2E | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-FA-08`](../../spec/lastenheft.md) | — | E2E, Unit | — | n/a | teilweise |
-| [`LH-FA-09`](../../spec/lastenheft.md) | E2E | Unit | E2E, Unit | n/a | vollständig |
+| [`LH-FA-09`](../../spec/lastenheft.md) | E2E | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-FA-10`](../../spec/lastenheft.md) | E2E, Unit | Unit | E2E, Unit | n/a | vollständig |
 | [`LH-FA-11`](../../spec/lastenheft.md) | E2E, Unit | E2E | Unit | n/a | vollständig |
 | [`LH-FA-12`](../../spec/lastenheft.md) | E2E, Unit | E2E, Unit | E2E, Unit | n/a | vollständig |
@@ -30,7 +30,7 @@ Vollständig belegte Anforderungen stehen zusätzlich in
 | [`LH-FA-22`](../../spec/lastenheft.md) | E2E, Unit | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-FA-23`](../../spec/lastenheft.md) | E2E, Unit | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-FA-24`](../../spec/lastenheft.md) | E2E, Unit | E2E, Unit | E2E, Unit | n/a | vollständig |
-| [`LH-FA-25`](../../spec/lastenheft.md) | Unit | Unit | Unit | n/a | vollständig |
+| [`LH-FA-25`](../../spec/lastenheft.md) | E2E, Unit | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-QA-02`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E | vollständig |
 | [`LH-QA-06`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E, Unit | vollständig |
 | [`LH-RB-01`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E, Unit | vollständig |

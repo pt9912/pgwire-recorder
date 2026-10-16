@@ -473,7 +473,9 @@ func (s *Server) replayAntwort(ctx context.Context, be *pgproto3.Backend, id mod
 
 // replayZustellen schreibt Antworten an den Client und meldet sie dem Use Case
 // danach als gesendet, nicht, wenn das Schreiben scheitert. Ein Schreibfehler
-// nach dem Zwangsende ist erzwungen und wird nicht gemerkt.
+// nach dem Zwangsende ist erzwungen und wird nicht gemerkt. Endet die Folge mit
+// connection_closed, endet die Sitzung nach der Meldung (LH-FA-25.a): Sie liest
+// nichts mehr und schließt die Verbindung.
 func (s *Server) replayZustellen(ctx context.Context, be *pgproto3.Backend, id model.SessionID, out []model.Response) folge {
 	if err := s.send(be, out); err != nil {
 		if s.zwang.Load() {
@@ -483,7 +485,15 @@ func (s *Server) replayZustellen(ctx context.Context, be *pgproto3.Backend, id m
 		return folgeEnde
 	}
 	s.replayer.Sent(ctx, id)
+	if endetMitEnde(out) {
+		return folgeEnde
+	}
 	return folgeWeiter
+}
+
+// endetMitEnde liefert true, wenn die letzte Antwort connection_closed ist.
+func endetMitEnde(rs []model.Response) bool {
+	return len(rs) > 0 && rs[len(rs)-1].Type == model.ResponseConnectionClosed
 }
 
 // recordSitzung vermittelt eine Record-Session in zwei Richtungen, die
@@ -1036,7 +1046,14 @@ func sqlstate(code string) string {
 	}
 }
 
+// send schreibt die Antworten an den Client. connection_closed als letzte
+// Antwort ist keine PGWire-Nachricht und wird ausgelassen (LH-FA-25.a); an
+// anderer Stelle ist sie wie jeder Typ ohne Abbildung ein Fehler. Das Schließen
+// liegt beim Aufrufer.
 func (*Server) send(be *pgproto3.Backend, responses []model.Response) error {
+	if endetMitEnde(responses) {
+		responses = responses[:len(responses)-1]
+	}
 	for _, r := range responses {
 		msg, err := toMessage(r)
 		if err != nil {

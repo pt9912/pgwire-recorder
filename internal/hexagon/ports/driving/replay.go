@@ -21,13 +21,18 @@ type Replayer interface {
 	// abweichende Anfrage ist PGR-E5001, eine Anfrage ohne freie Session
 	// PGR-E5003 (LH-FA-09.a, LH-FA-10.a). Eine Lebendprüfung zwischen zwei
 	// Interaktionen beantwortet es außerhalb der Reihe mit EmptyQueryResponse
-	// und ReadyForQuery, ohne zuzuordnen und ohne den Cursor zu bewegen.
+	// und ReadyForQuery, ohne zuzuordnen und ohne den Cursor zu bewegen; ist die
+	// Interaktion am Cursor eine Anfrage mit Ende und demselben Text, ist sie
+	// diese Anfrage. Hat die Interaktion ein Ende, ist connection_closed die
+	// letzte Antwort, und der Aufrufer schließt die Verbindung nach dem Senden
+	// der Antworten davor (LH-FA-25.a).
 	Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error)
 	// ClientMessage ordnet wie Query zu und vergleicht eine Client-Nachricht
 	// des Extended Query Protocol mit der erwarteten am Cursor. Schließt sie
 	// ihre Gruppe ab (Flush oder Sync), liefert es die aufgezeichneten
 	// Server-Nachrichten der Gruppe, vorher keine; eine abweichende Nachricht
-	// ist PGR-E5001 (LH-FA-18.a).
+	// ist PGR-E5001 (LH-FA-18.a). Hat die Gruppe ein Ende, ist connection_closed
+	// die letzte Server-Nachricht (LH-FA-25.a).
 	ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) ([]model.Response, error)
 	// Shutdown fragt, ob die Verbindung beim Herunterfahren enden darf: true,
 	// wenn keine Extended-Interaktion läuft, deren Sync noch aussteht

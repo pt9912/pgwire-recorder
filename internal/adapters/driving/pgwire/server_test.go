@@ -16,6 +16,7 @@ import (
 
 	"github.com/pt9912/pgwire-recorder/internal/adapters/driving/pgwire"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driving"
 )
 
 // fakeRecorder bildet den Record-Use-Case nach. ereignisse protokolliert die
@@ -744,7 +745,7 @@ func (f *fakeReplayer) CloseConnection(context.Context, model.SessionID) (*model
 // replayVerbindung startet eine Replay-Verbindung über net.Pipe, liest den
 // Verbindungsaufbau und liefert Server, Client-Seite und Log; fertig ist
 // geschlossen, wenn die Verbindung beendet ist.
-func replayVerbindung(t *testing.T, rep *fakeReplayer) (*pgwire.Server, net.Conn, *pgproto3.Frontend, *syncBuffer, chan struct{}) {
+func replayVerbindung(t *testing.T, rep driving.Replayer) (*pgwire.Server, net.Conn, *pgproto3.Frontend, *syncBuffer, chan struct{}) {
 	t.Helper()
 	client, serverSeite := net.Pipe()
 	log := &syncBuffer{}

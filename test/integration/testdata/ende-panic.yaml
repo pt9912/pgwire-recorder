@@ -1,0 +1,10 @@
+format: pgwire-recorder
+version: 2
+sessions:
+  - id: 1
+    interactions:
+      - sequence: 1
+        request: {type: query, sql: "SELECT 1;"}
+        responses:
+          - {type: error_response, notice: {V: PANIC, S: PANIC, C: XX000, M: server panicked}}
+          - {type: connection_closed}
