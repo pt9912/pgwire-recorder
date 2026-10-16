@@ -222,7 +222,7 @@ Nur Kommentare, keine Logik; Architect: `LH-FA-13.a` „bis zu ihrem Abschluss�
 | F-3 (INFO): M17c färbt nur Tests des Gebers | verlangt nichts; Test-Idee und Grenze stehen oben |
 | F-4 (INFO): akzeptiertes Negativ zu `Terminate` am Adapter trägt | verlangt nichts |
 
-**Messung nach der Nacharbeit (§3.14).** `git diff --numstat e982c7be4073c4e54be8c04a50125389af5ee660..<letzter Commit> -- internal test docs/user`: **349** (342 plus sieben Zeilen Kommentar: `replay.go` 1 und 1, `server.go` 3 und 2 als Einfügungen und Löschungen), 70 % der Marke 500, Meldeschwelle 400 nicht erreicht. Produktcode: keine Logik, zwei Kommentare.
+**Messung nach der Nacharbeit (§3.14).** `git diff --numstat e982c7be4073c4e54be8c04a50125389af5ee660..<letzter Commit> -- internal test docs/user`: **349** (342 plus sieben Zeilen Kommentar: `replay.go` 1 und 1, `server.go` 3 und 2 als Einfügungen und Löschungen), 70 % der Marke 500, Meldeschwelle 400 nicht erreicht. Produktcode: keine Logik, zwei Kommentare. Voller `make gates` ein Lauf an `07faa02`: Exit 0, 13 min 2 s.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
