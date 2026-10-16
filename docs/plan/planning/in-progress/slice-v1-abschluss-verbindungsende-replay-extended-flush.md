@@ -76,10 +76,10 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `internal/hexagon/services/replay.go` | update (nur falls nötig) | Pfad `ClientMessage` für die Gruppe mit Ende, die mit `Flush` abschließt; der Pfad selbst liefert `slice-v1-abschluss-verbindungsende-replay-extended` |
-| `internal/adapters/driving/pgwire/server.go` | update (nur falls nötig) | Senden der Gruppe vor dem Schließen im Pfad `replayAntwort`, Lauf `flush` |
-| `internal/hexagon/services`, `internal/adapters/driving/pgwire` (Tests) | update | Randformen aus §6 für die `Flush`-Gruppe; Fake-Replayer im Adapter |
-| `test/integration` (`replay_ende_extended_e2e_test.go`, `testdata`, eine Datei je Fall) | update | Fall `Flush` in der Datei, die `slice-v1-abschluss-verbindungsende-replay-extended` anlegt; Binary mit handgeschriebener Extended-Aufzeichnung, ohne PostgreSQL |
+| `internal/hexagon/services/replay.go` | unverändert | Pfad `ClientMessage` für die Gruppe mit Ende, die mit `Flush` abschließt; der Pfad selbst liefert `slice-v1-abschluss-verbindungsende-replay-extended`; `ClientMessage` liest die Art der abschließenden Nachricht nicht, Produktcode 0 |
+| `internal/adapters/driving/pgwire/server.go` | unverändert | Senden der Gruppe vor dem Schließen im Pfad `replayAntwort`; der Lauf `flush` ist ein Test (`server_ende_test.go`), kein Code |
+| `internal/hexagon/services/replay_ende_extended_flush_test.go` (neu), `internal/adapters/driving/pgwire/server_ende_test.go` | create, update | Randformen aus §6 für die `Flush`-Gruppe (Service); Lauf `flush` im Adapter, Fake `gruppenReplayer` mit Modus `flush` |
+| `test/integration` (`replay_ende_extended_e2e_test.go`, `testdata`, eine Datei je Fall) | update | Fall `TestE2EReplayEndeExtendedFlush` in der Datei, die `slice-v1-abschluss-verbindungsende-replay-extended` anlegt, Fixture `testdata/ende-extended-flush.yaml`; Binary mit handgeschriebener Extended-Aufzeichnung, ohne PostgreSQL |
 | `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests |
 
 ## 4. Trigger

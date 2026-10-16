@@ -1,0 +1,20 @@
+format: pgwire-recorder
+version: 2
+sessions:
+  - id: 1
+    interactions:
+      - sequence: 1
+        type: extended
+        groups:
+          - client:
+              - {type: parse, statement: "", sql: "SELECT 2", param_types: []}
+              - {type: flush}
+            server:
+              - {type: parse_complete}
+          - client:
+              - {type: parse, statement: "", sql: "SELECT 3", param_types: []}
+              - {type: flush}
+            server:
+              - {type: parse_complete}
+              - {type: error_response, notice: {V: FATAL, S: FATAL, C: 57P01, M: terminating connection due to administrator command}}
+              - {type: connection_closed}

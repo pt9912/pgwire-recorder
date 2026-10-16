@@ -16,6 +16,12 @@ import (
 //go:embed testdata/ende-extended-sync.yaml
 var endeExtendedSyncYAML []byte
 
+// Die Aufzeichnung der Gruppe mit Ende, die mit Flush schließt, ist ebenso von
+// Hand geschrieben und gehört genau einem Test.
+//
+//go:embed testdata/ende-extended-flush.yaml
+var endeExtendedFlushYAML []byte
+
 // rohNachricht ist eine Client-Nachricht: Typ, Länge und Rumpf.
 func rohNachricht(typ byte, rumpf ...byte) []byte {
 	m := append([]byte{typ, 0, 0, 0, 0}, rumpf...)
@@ -58,4 +64,25 @@ func TestE2EReplayEndeExtendedSync(t *testing.T) {
 	schreibe(t, c2, []byte{'X', 0, 0, 0, 4})
 	rep.stop(t, 0)
 	keineMeldung(t, "Ende der Extended-Interaktion, nächste Session", rep.stderr.String())
+}
+
+// Abdeckung: LH-FA-25/Happy, LH-FA-18/Boundary, LH-FA-03/Boundary — replay mit
+// einer handgeschriebenen Extended-Aufzeichnung: Der Client erhält für die
+// Gruppe mit Ende, die mit Flush schließt, die Nachricht vor dem Ende und die
+// aufgezeichnete Fehlerantwort (FATAL), danach das Ende der Verbindung, ohne
+// ReadyForQuery, und der Recorder meldet nichts; die Gruppe mit Flush davor wird
+// bis ParseComplete gelesen (ihren Inhalt prüfen die Tests des Service); mit
+// --fail-on-unconsumed ist der Exit-Code 0.
+func TestE2EReplayEndeExtendedFlush(t *testing.T) {
+	rep := startProzess(t, "replay", "--input", endeDatei(t, endeExtendedFlushYAML), "--fail-on-unconsumed")
+	c, r := rohVerbindung(t, rep.listen)
+	parseSync(t, c, "SELECT 2", 'H')
+	bisTyp(t, r, '1')
+	parseSync(t, c, "SELECT 3", 'H')
+	ns := bisVerbindungsende(t, r)
+	if typen(ns) != "1E" || !bytes.Contains(ns[1].rumpf, []byte("SFATAL\x00")) || !bytes.Contains(ns[1].rumpf, []byte("C57P01\x00")) {
+		t.Fatalf("erwartet die Bestätigung, die aufgezeichnete Fehlerantwort FATAL 57P01 und das Ende, erhalten %q %q", typen(ns), ns)
+	}
+	rep.stop(t, 0)
+	keineMeldung(t, "Ende der Extended-Interaktion, Gruppe mit Flush", rep.stderr.String())
 }

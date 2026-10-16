@@ -195,24 +195,31 @@ func TestReplayEndeNurAlsLetzteAntwort(t *testing.T) {
 	}
 }
 
-// gruppenReplayer antwortet beim Flush auf die Gruppe davor, beim Sync auf die
-// Gruppe mit Ende, und protokolliert jede Lieferung als „gruppe“.
+// gruppenReplayer antwortet beim ersten Flush auf die Gruppe davor und auf die
+// Gruppe mit Ende beim Sync, mit flush beim zweiten Flush statt beim Sync, und
+// protokolliert jede Lieferung als „gruppe“.
 type gruppenReplayer struct {
 	*fakeReplayer
+	flush  bool
+	flushs int
 }
 
 func (g *gruppenReplayer) ClientMessage(_ context.Context, _ model.SessionID, m model.ClientMessage) ([]model.Response, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	ende := []model.Response{{Type: model.ResponseBindComplete}, endeFolge()[1], {Type: model.ResponseConnectionClosed}}
 	var out []model.Response
-	switch m.Type {
-	case model.ClientFlush:
+	switch {
+	case m.Type == model.ClientFlush && g.flushs == 0:
 		out = []model.Response{{Type: model.ResponseParseComplete}}
-	case model.ClientSync:
-		out = []model.Response{{Type: model.ResponseBindComplete}, endeFolge()[1], {Type: model.ResponseConnectionClosed}}
+	case m.Type == model.ClientFlush && g.flush, m.Type == model.ClientSync && !g.flush:
+		out = ende
 	default:
 		return nil, nil
 	}
-	g.mu.Lock()
-	defer g.mu.Unlock()
+	if m.Type == model.ClientFlush {
+		g.flushs++
+	}
 	g.ereignisse = append(g.ereignisse, "gruppe")
 	return out, nil
 }
@@ -225,13 +232,21 @@ func (g *gruppenReplayer) Sent(ctx context.Context, id model.SessionID) {
 }
 
 // Abdeckung: LH-FA-25/Happy, LH-FA-25/Negative, LH-FA-18/Boundary — Replay im
-// Adapter: Eine Gruppe vor der Gruppe mit Ende wird gesendet und gemeldet, die
+// Adapter, Lauf sync (die Gruppe mit Ende schließt mit Sync) und Lauf flush (mit
+// Flush): Eine Gruppe vor der Gruppe mit Ende wird gesendet und gemeldet, die
 // Verbindung bleibt offen und liest weiter; die Gruppe mit Ende wird gesendet,
 // ohne ReadyForQuery und ohne ein Byte für connection_closed, gemeldet (Sent),
 // danach schließt die Verbindung: Ablauf gruppe sent gruppe sent close
 // (LH-FA-25.a *Meldung des Endes im Replay*).
 func TestReplayEndeGruppeDavorSchliesstNicht(t *testing.T) {
-	rep := &gruppenReplayer{fakeReplayer: &fakeReplayer{}}
+	for _, flush := range []bool{false, true} {
+		gruppeDavorSchliesstNicht(t, flush)
+	}
+}
+
+func gruppeDavorSchliesstNicht(t *testing.T, flush bool) {
+	t.Helper()
+	rep := &gruppenReplayer{fakeReplayer: &fakeReplayer{}, flush: flush}
 	s, _, fe, log, fertig := replayVerbindung(t, rep)
 	fe.Send(&pgproto3.Parse{Name: "s", Query: "SELECT 1"})
 	fe.Send(&pgproto3.Flush{})
@@ -240,18 +255,22 @@ func TestReplayEndeGruppeDavorSchliesstNicht(t *testing.T) {
 		t.Fatalf("Gruppe davor: %T, %v", msg, err)
 	}
 	fe.Send(&pgproto3.Bind{PreparedStatement: "s"})
-	fe.Send(&pgproto3.Sync{})
+	if flush {
+		fe.Send(&pgproto3.Flush{})
+	} else {
+		fe.Send(&pgproto3.Sync{})
+	}
 	_ = fe.Flush()
 	typen := bisEndeGelesen(t, fe)
 	warte(t, fertig)
 	if got := strings.Join(typen, ","); got != "*pgproto3.BindComplete,ErrorResponse" {
-		t.Fatalf("Nachrichten bis zum Ende %q", got)
+		t.Fatalf("flush %v: Nachrichten bis zum Ende %q", flush, got)
 	}
 	if got := rep.protokoll(); got != "gruppe sent gruppe sent close" {
-		t.Fatalf("Ablauf %q, erwartet \"gruppe sent gruppe sent close\"", got)
+		t.Fatalf("flush %v: Ablauf %q, erwartet \"gruppe sent gruppe sent close\"", flush, got)
 	}
 	if text := log.String(); strings.Contains(text, "level=ERROR") || strings.Contains(text, "level=WARN") || s.FirstErrorCode() != "" {
-		t.Fatalf("Meldung beim Ende (erster Fehler %q): %s", s.FirstErrorCode(), text)
+		t.Fatalf("flush %v: Meldung beim Ende (erster Fehler %q): %s", flush, s.FirstErrorCode(), text)
 	}
 }
 
