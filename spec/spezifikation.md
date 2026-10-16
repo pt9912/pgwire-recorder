@@ -1535,7 +1535,8 @@ verarbeitet wurde, auch nach einem `Terminate` oder nach einem `Flush` ohne
 unvollständige Interaktion wird nicht übernommen, die vorherigen Interaktionen
 der Session bleiben erhalten. Beim kontrollierten Herunterfahren endet eine
 Session erst nach dem `ReadyForQuery` ihrer laufenden Extended-Interaktion, auch
-wenn deren `Sync` noch aussteht (LH-FA-13.a). Endet die Client-Verbindung,
+wenn deren `Sync` noch aussteht (LH-FA-13.a); trägt die Interaktion ein Ende des Servers,
+ersetzt das Ende das `ReadyForQuery` (`LH-FA-25.a` *Herunterfahren beim Aufzeichnen*). Endet die Client-Verbindung,
 während der Recorder an den Server sendet oder auf ihn wartet, endet die Session
 ohne weiteres Warten, sobald der Recorder das Ende beim Lesen vom oder Schreiben
 zum Client bemerkt, auch beim Herunterfahren. Endet eine Session, schließt der
@@ -2600,6 +2601,42 @@ Vergleich legen `LH-FA-20.a` und `LH-FA-24.a` fest.
   `PANIC` bleibt `PGR-E4003`, nach einer anderen gelesenen `ErrorResponse` `PGR-E6001`
   (`LH-FA-02.b`); ein Ende vor dem ersten `ReadyForQuery` bleibt `PGR-E4002` beziehungsweise
   `PGR-E4005` (`LH-FA-20.a` *Aufbau*). Das Ende der Client-Verbindung ist keines.
+* *Meldung des Endes beim Aufzeichnen.* Die Antworten, die der Record-Use-Case für eine Interaktion
+  mit Ende liefert, enden mit `connection_closed` als letzter Antwort, wie die der Aufzeichnung:
+  bei einer einfachen Anfrage die Antworten der Interaktion, bei einer Extended-Interaktion die
+  Server-Nachrichten, die der Recorder seit der letzten Zustellung gelesen hat, bis einschließlich
+  `connection_closed`; was der Upstream dahinter liefert, übernimmt der Use Case nicht. Der
+  PGWire-Adapter sendet die Nachrichten davor an den Client, bildet `connection_closed` auf keine
+  PGWire-Nachricht ab, meldet die Zustellung, liest nichts mehr und schließt beide Verbindungen.
+  Scheitert das Senden, auch mitten in den Nachrichten vor `connection_closed`, ist die Interaktion
+  nicht zugestellt: Sie entfällt wie jede (`LH-FA-02.b`), die Session wird mit ihren
+  vorherigen Interaktionen übernommen, es bleibt bei `PGR-E4003`, und die Aufzeichnung trägt dann
+  kein Ende.
+* *Stelle von `connection_closed` beim Aufzeichnen.* Je Stelle: Anfang oder Mitte der Antworten
+  einer Interaktion oder einer Gruppe, `connection_closed` vor der letzten Nachricht, daneben ein
+  `ready_for_query` und ein Ende ohne `FATAL`- oder `PANIC`-Fehlerantwort unmittelbar davor sind
+  nicht aufzeichenbar: Der Use Case lehnt die Interaktion mit der Prüfung der Form ab
+  (`PGR-E6001`, die Session wird nicht übernommen); direkt vor dem Ende der Antworten ist die
+  einzige Stelle. Das Ende liegt in der Gruppe, der der Recorder die Fehlerantwort zugeordnet hat
+  (*Stelle*), und das ist die letzte Gruppe der Interaktion, die zu dem Zeitpunkt begonnen ist; ist
+  sie nicht mit `Sync` oder `Flush` abgeschlossen, ist das `PGR-E6001`. Gruppen davor, auch mit
+  `Sync`, und frühere Interaktionen der Session laufen wie ohne Ende. Die Interaktion mit Ende ist
+  die letzte der Session: Der Use Case nimmt danach keine Anfrage und keine Client-Nachricht mehr
+  an, auch nicht eine, die zum Zeitpunkt des Endes schon wartete, und Interaktionen, die der Client
+  schon in die Pipeline gestellt hat, auch vollständig bis zum `Sync`, gehören nicht zur
+  Aufzeichnung (*Form*). Eine Aufzeichnung mit mehreren Sessions mit Ende hat je Session eines.
+  Eine `error_response` `FATAL` oder `PANIC`, auf die ein `ready_for_query` folgt, ist kein Ende.
+* *Reihenfolge der Gründe beim Aufzeichnen.* Ein Fehler des Upstream-Ports geht vor (`PGR-E4003`,
+  `PGR-E6001`); dann die Form der Interaktion (nicht abgeschlossene Gruppe, falsche Stelle,
+  fehlende `FATAL`/`PANIC`-Fehlerantwort), dann die Form der Session (höchstens ein Ende). Der Code
+  ist bei den beiden letzten derselbe, `PGR-E6001`, welche Meldung entsteht, ist nicht zugesagt.
+* *Herunterfahren beim Aufzeichnen.* Eine laufende Interaktion mit Ende hat kein `ReadyForQuery`:
+  Ihr Abschluss ist das Ende, und die Session endet nach dem Zustellen der Antworten bis
+  einschließlich der Fehlerantwort, auch bei einer Extended-Interaktion, deren `Sync` aussteht
+  (`LH-FA-13.a`, `LH-FA-18.a` *Abbruch*). Hat der Recorder das Ende bis zum Ablauf der Frist nicht
+  gelesen, ist es das Zwangsende mit `PGR-E4006`; hat er es gelesen, läuft keine Interaktion mehr, es
+  entsteht keine Meldung, und die Session wird mit der Interaktion geschrieben, auch wenn die
+  Zustellung noch aussteht.
 * *Replay.* Die Interaktion wird wie jede andere abgeglichen (`LH-FA-09.a`, `LH-FA-18.a`).
   Nach dem Senden ihrer aufgezeichneten Server-Nachrichten, deren letzte die Fehlerantwort ist,
   schließt der Recorder die Verbindung zum Client, ohne `ReadyForQuery`, ohne Meldung und ohne
