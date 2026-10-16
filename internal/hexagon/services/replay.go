@@ -235,7 +235,7 @@ func (s *ReplayService) anfrageMitEnde(c *cursor, sql string) bool {
 }
 
 // mitten liefert true, wenn der Cursor innerhalb einer Extended-Interaktion
-// steht: nach ihrer ersten Nachricht und vor ihrem Sync (LH-FA-18.a).
+// steht: nach ihrer ersten Nachricht und vor ihrem Abschluss (LH-FA-18.a).
 func (c *cursor) mitten() bool {
 	return c.gruppe > 0 || c.nachricht > 0
 }

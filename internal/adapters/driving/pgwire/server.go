@@ -330,8 +330,9 @@ type eingang struct {
 // Endet ctx, weckt ein Wächter das Lesen. Vor jedem weiteren Lesen fragt die
 // Sitzung dann den Use Case (Shutdown): Läuft keine Interaktion, endet die
 // Session, ohne die nächste Nachricht zu lesen; läuft eine Extended-Interaktion,
-// liest die Sitzung weiter und beantwortet ihre Nachrichten bis zu ihrem Sync
-// (LH-FA-13.a). Eine schon gelesene Nachricht wird vorher noch beantwortet.
+// liest die Sitzung weiter und beantwortet ihre Nachrichten bis zu ihrem Abschluss
+// (Sync, bei einem Ende des Servers das abschließende Flush; LH-FA-13.a,
+// LH-FA-18.a). Eine schon gelesene Nachricht wird vorher noch beantwortet.
 //
 // Das Zwangsende beim Ablauf der Frist (LH-FA-13.a) setzt die Lesefrist auf
 // jetzt und die Schreibfrist auf meldeFrist; ein Lese- oder Schreibfehler danach
