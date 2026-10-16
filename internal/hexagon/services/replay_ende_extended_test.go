@@ -33,6 +33,16 @@ func endeNachrichten() []model.ClientMessage {
 	return []model.ClientMessage{parse("s1", "SELECT $1::text"), flushNachricht(), bind("s1", text("a")), execute(), syncNachricht()}
 }
 
+// abschluss ist die Art, wie die Gruppe mit Ende schließt: ihre Interaktion, die
+// Client-Nachrichten der Interaktion mit davor und das Senden der ersten n davon.
+type abschluss struct {
+	ende        func(seq int, sev string, davor bool) model.Interaction
+	nachrichten func() []model.ClientMessage
+	bis         func(*testing.T, *services.ReplayService, model.SessionID, int) []model.Response
+}
+
+func mitSync() abschluss { return abschluss{extendedEnde, endeNachrichten, sendeBis} }
+
 // endeVerbindung lädt die Interaktionen als eine Session und öffnet die erste
 // Verbindung.
 func endeVerbindung(t *testing.T, ins []model.Interaction, opts ...services.ReplayOption) (*services.ReplayService, model.SessionID) {
@@ -125,11 +135,13 @@ func TestReplayEndeExtendedSyncDavor(t *testing.T) {
 // das Senden scheitert, ist sie es nicht: PGR-W2001, mit FailOnUnconsumed
 // PGR-E5002, beim Zwangsende PGR-E4006 mit ihrer Nummer; nach Sent weder Meldung
 // noch Zwangsfehler.
-func TestReplayEndeExtendedVerbrauch(t *testing.T) {
+func TestReplayEndeExtendedVerbrauch(t *testing.T) { endeVerbrauch(t, mitSync()) }
+
+func endeVerbrauch(t *testing.T, a abschluss) {
 	ctx := context.Background()
-	in := []model.Interaction{extendedEnde(2, "FATAL", true)}
+	in := []model.Interaction{a.ende(2, "FATAL", true)}
 	s, id := endeVerbindung(t, in)
-	sendeBis(t, s, id, 5)
+	a.bis(t, s, id, 5)
 	s.Sent(ctx, id)
 	if err := s.Forced(ctx, id); err != nil {
 		t.Fatalf("Zwangsende nach Sent: %v", err)
@@ -139,7 +151,7 @@ func TestReplayEndeExtendedVerbrauch(t *testing.T) {
 	}
 	for _, opts := range [][]services.ReplayOption{nil, {services.FailOnUnconsumed}} {
 		s, id = endeVerbindung(t, in, opts...)
-		sendeBis(t, s, id, 5)
+		a.bis(t, s, id, 5)
 		if err := s.Forced(ctx, id); code(err) != model.CodeShutdownTimeout || !strings.Contains(err.Error(), "Interaktion 2 nicht verbraucht") {
 			t.Fatalf("Zwangsende vor Sent: %v", err)
 		}
@@ -222,13 +234,17 @@ func TestReplayEndeExtendedLebendpruefungVorDerGruppe(t *testing.T) {
 // mit Ende lassen die Interaktion unverbraucht: PGR-W2001 mit der Nummer der
 // Interaktion, mit FailOnUnconsumed PGR-E5002 (LH-FA-03.b *Zeitpunkte* 1).
 func TestReplayEndeExtendedTerminateUnverbraucht(t *testing.T) {
-	ins := []model.Interaction{ausfuehrung(1, "s1", "a", "A"), extendedEnde(7, "FATAL", true)}
+	endeTerminate(t, mitSync())
+}
+
+func endeTerminate(t *testing.T, a abschluss) {
+	ins := []model.Interaction{ausfuehrung(1, "s1", "a", "A"), a.ende(7, "FATAL", true)}
 	for n := 0; n <= 4; n++ {
 		for _, opts := range [][]services.ReplayOption{nil, {services.FailOnUnconsumed}} {
 			s, id := endeVerbindung(t, ins, opts...)
 			sendeAlle(t, s, id, ins[0].Groups[0].Client...)
 			s.Sent(context.Background(), id)
-			sendeBis(t, s, id, n)
+			a.bis(t, s, id, n)
 			w, err := s.CloseConnection(context.Background(), id)
 			if opts != nil && (code(err) != model.CodeReplayUnconsumed || !strings.Contains(err.Error(), "Nummer 7")) ||
 				opts == nil && (err != nil || w == nil || w.Code != model.CodeUnconsumed || !strings.Contains(w.Msg, "1 von 2") || !strings.Contains(w.Msg, "Nummer 7")) {
@@ -244,11 +260,13 @@ func TestReplayEndeExtendedTerminateUnverbraucht(t *testing.T) {
 // davor und nach dem Senden erlaubt es; das Zwangsende ist von der ersten
 // Nachricht bis zum Senden der Gruppe mit Ende PGR-E4006 mit der Nummer der
 // Interaktion.
-func TestReplayEndeExtendedHerunterfahren(t *testing.T) {
+func TestReplayEndeExtendedHerunterfahren(t *testing.T) { endeHerunterfahren(t, mitSync()) }
+
+func endeHerunterfahren(t *testing.T, a abschluss) {
 	ctx := context.Background()
 	for i, w := range []struct{ shutdown, zwang bool }{{true, false}, {false, true}, {false, true}, {false, true}, {false, true}, {true, true}, {true, false}} {
-		s, id := endeVerbindung(t, []model.Interaction{extendedEnde(7, "FATAL", true)})
-		sendeBis(t, s, id, min(i, 5))
+		s, id := endeVerbindung(t, []model.Interaction{a.ende(7, "FATAL", true)})
+		a.bis(t, s, id, min(i, 5))
 		if i == 6 {
 			s.Sent(ctx, id)
 		}
@@ -265,11 +283,13 @@ func TestReplayEndeExtendedHerunterfahren(t *testing.T) {
 // ihrem Ende; eine Verbindung ohne freie Session erhält PGR-E5003 für die
 // richtige wie die abweichende Nachricht, nie das Ende (LH-FA-12.a, LH-FA-25.a
 // *Reihenfolge der Gründe im Replay*).
-func TestReplayEndeExtendedFirstRequest(t *testing.T) {
+func TestReplayEndeExtendedFirstRequest(t *testing.T) { endeFirstRequest(t, mitSync()) }
+
+func endeFirstRequest(t *testing.T, ab abschluss) {
 	ctx := context.Background()
-	s := ladeEnde(t, endeAufzeichnung([]model.Interaction{extendedEnde(1, "FATAL", false)}, []model.Interaction{extendedEnde(1, "PANIC", false)}))
+	s := ladeEnde(t, endeAufzeichnung([]model.Interaction{ab.ende(1, "FATAL", false)}, []model.Interaction{ab.ende(1, "PANIC", false)}))
 	a, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, a, endeNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
+	if out := sendeAlle(t, s, a, ab.nachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
 		t.Fatalf("erste Session: %#v", out)
 	}
 	if w := unassigned(t, s); w == nil || !strings.Contains(w.Msg, "1 aufgezeichnete") || !strings.Contains(w.Msg, "Kennung 2") {
@@ -279,11 +299,11 @@ func TestReplayEndeExtendedFirstRequest(t *testing.T) {
 		t.Fatalf("Session 1: %v", w)
 	}
 	b, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, b, endeNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("PANIC")) {
+	if out := sendeAlle(t, s, b, ab.nachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("PANIC")) {
 		t.Fatalf("zweite Session: %#v", out)
 	}
 	c, _ := s.OpenConnection(ctx)
-	for _, m := range []model.ClientMessage{endeNachrichten()[2], syncNachricht()} {
+	for _, m := range []model.ClientMessage{ab.nachrichten()[2], ab.nachrichten()[4]} {
 		if out, err := s.ClientMessage(ctx, c, m); code(err) != model.CodeReplaySession || out != nil {
 			t.Fatalf("%s ohne freie Session: erwartet %s, erhalten %#v, %v", m.Type, model.CodeReplaySession, out, err)
 		}
@@ -295,14 +315,16 @@ func TestReplayEndeExtendedFirstRequest(t *testing.T) {
 // Ende ändert die Zuordnung der nächsten nicht; eine Verbindung ohne Session
 // erhält PGR-E5003, auch für die Nachricht, die der Interaktion mit Ende
 // entspräche (LH-FA-12.a).
-func TestReplayEndeExtendedConnection(t *testing.T) {
+func TestReplayEndeExtendedConnection(t *testing.T) { endeConnection(t, mitSync()) }
+
+func endeConnection(t *testing.T, ab abschluss) {
 	ctx := context.Background()
-	rec := gekennzeichnet(sessionNr(1, "17.0", extendedEnde(1, "FATAL", false)), sessionNr(2, "17.0", ausfuehrung(1, "s1", "a", "A")), sessionNr(3, "17.0", extendedEnde(1, "PANIC", false)))
+	rec := gekennzeichnet(sessionNr(1, "17.0", ab.ende(1, "FATAL", false)), sessionNr(2, "17.0", ausfuehrung(1, "s1", "a", "A")), sessionNr(3, "17.0", ab.ende(1, "PANIC", false)))
 	rec.Version = model.VersionMitEnde
 	s := nachVerbindung(t, rec)
 	a, _ := s.OpenConnection(ctx)
 	b, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, a, endeNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
+	if out := sendeAlle(t, s, a, ab.nachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
 		t.Fatalf("Session 1 an Verbindung 1: %#v", out)
 	}
 	if w := gesendetSchliessen(t, s, a); w != nil {
@@ -312,11 +334,11 @@ func TestReplayEndeExtendedConnection(t *testing.T) {
 		t.Fatalf("Session 2 an Verbindung 2: %#v", out)
 	}
 	c, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, c, endeNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("PANIC")) {
+	if out := sendeAlle(t, s, c, ab.nachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("PANIC")) {
 		t.Fatalf("Session 3 an Verbindung 3 nach dem Schließen der ersten: %#v", out)
 	}
 	d, _ := s.OpenConnection(ctx)
-	if out, err := s.ClientMessage(ctx, d, endeNachrichten()[2]); code(err) != model.CodeReplaySession || out != nil {
+	if out, err := s.ClientMessage(ctx, d, ab.nachrichten()[2]); code(err) != model.CodeReplaySession || out != nil {
 		t.Fatalf("Verbindung ohne Session: erwartet %s, erhalten %#v, %v", model.CodeReplaySession, out, err)
 	}
 }

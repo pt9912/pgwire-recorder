@@ -3,7 +3,6 @@ package services_test
 import (
 	"context"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
@@ -27,6 +26,8 @@ func extendedEndeFlush(seq int, sev string, davor bool) model.Interaction {
 	g.Client = endeFlushNachrichten()[2:]
 	return in
 }
+
+func mitFlush() abschluss { return abschluss{extendedEndeFlush, endeFlushNachrichten, sendeFlushBis} }
 
 // sendeFlushBis sendet die ersten n der endeFlushNachrichten, meldet die Gruppe
 // davor als gesendet und liefert die Antworten der letzten Nachricht; die Gruppe
@@ -78,30 +79,7 @@ func TestReplayEndeExtendedFlushGruppeMitEnde(t *testing.T) {
 // Ende, die mit Flush schließt, ist mit Sent verbraucht; ohne Sent nicht:
 // PGR-W2001, mit FailOnUnconsumed PGR-E5002, beim Zwangsende PGR-E4006 mit ihrer
 // Nummer.
-func TestReplayEndeExtendedFlushVerbrauch(t *testing.T) {
-	ctx := context.Background()
-	in := []model.Interaction{extendedEndeFlush(2, "FATAL", true)}
-	s, id := endeVerbindung(t, in)
-	sendeFlushBis(t, s, id, 5)
-	s.Sent(ctx, id)
-	if err := s.Forced(ctx, id); err != nil {
-		t.Fatalf("Zwangsende nach Sent: %v", err)
-	}
-	if w := replaySchliessen(t, s, id); w != nil {
-		t.Fatalf("gesendetes Ende gilt als unverbraucht: %v", w)
-	}
-	for _, opts := range [][]services.ReplayOption{nil, {services.FailOnUnconsumed}} {
-		s, id = endeVerbindung(t, in, opts...)
-		sendeFlushBis(t, s, id, 5)
-		if err := s.Forced(ctx, id); code(err) != model.CodeShutdownTimeout || !strings.Contains(err.Error(), "Interaktion 2 nicht verbraucht") {
-			t.Fatalf("Zwangsende vor Sent: %v", err)
-		}
-		w, err := s.CloseConnection(ctx, id)
-		if opts != nil && code(err) != model.CodeReplayUnconsumed || opts == nil && (err != nil || w == nil || w.Code != model.CodeUnconsumed || !strings.Contains(w.Msg, "1 von 1")) {
-			t.Fatalf("nicht gesendet (FailOnUnconsumed %v): %v, %v", opts != nil, w, err)
-		}
-	}
-}
+func TestReplayEndeExtendedFlushVerbrauch(t *testing.T) { endeVerbrauch(t, mitFlush()) }
 
 // Abdeckung: LH-FA-25/Negative, LH-FA-10/Negative — Replay: Eine Nachricht, die
 // der erwarteten nicht gleicht, ist PGR-E5001 und liefert kein Ende, an jeder
@@ -161,97 +139,24 @@ func TestReplayEndeExtendedFlushAbweichung(t *testing.T) {
 // lassen die Interaktion unverbraucht: PGR-W2001, mit FailOnUnconsumed PGR-E5002,
 // je mit der Nummer der Interaktion (LH-FA-03.b *Zeitpunkte* 1).
 func TestReplayEndeExtendedFlushTerminateUnverbraucht(t *testing.T) {
-	ins := []model.Interaction{ausfuehrung(1, "s1", "a", "A"), extendedEndeFlush(7, "FATAL", true)}
-	for n := 0; n <= 4; n++ {
-		for _, opts := range [][]services.ReplayOption{nil, {services.FailOnUnconsumed}} {
-			s, id := endeVerbindung(t, ins, opts...)
-			sendeAlle(t, s, id, ins[0].Groups[0].Client...)
-			s.Sent(context.Background(), id)
-			sendeFlushBis(t, s, id, n)
-			w, err := s.CloseConnection(context.Background(), id)
-			if opts != nil && (code(err) != model.CodeReplayUnconsumed || !strings.Contains(err.Error(), "Nummer 7")) ||
-				opts == nil && (err != nil || w == nil || w.Code != model.CodeUnconsumed || !strings.Contains(w.Msg, "1 von 2") || !strings.Contains(w.Msg, "Nummer 7")) {
-				t.Fatalf("nach %d Nachrichten (FailOnUnconsumed %v): erwartet 1 von 2, Nummer 7: %v, %v", n, opts != nil, w, err)
-			}
-		}
-	}
+	endeTerminate(t, mitFlush())
 }
 
 // Abdeckung: LH-FA-25/Boundary, LH-FA-13/Boundary — Replay: Das Herunterfahren
 // gilt wie sonst (LH-FA-13.a): Mit dem Cursor in der Interaktion mit Ende, die mit
 // Flush schließt, erlaubt es Shutdown nicht, davor und nach dem Senden erlaubt es;
 // das Zwangsende ist bis zum Senden der Gruppe mit Ende PGR-E4006 mit der Nummer.
-func TestReplayEndeExtendedFlushHerunterfahren(t *testing.T) {
-	ctx := context.Background()
-	for i, w := range []struct{ shutdown, zwang bool }{{true, false}, {false, true}, {false, true}, {false, true}, {false, true}, {true, true}, {true, false}} {
-		s, id := endeVerbindung(t, []model.Interaction{extendedEndeFlush(7, "FATAL", true)})
-		sendeFlushBis(t, s, id, min(i, 5))
-		if i == 6 {
-			s.Sent(ctx, id)
-		}
-		err := s.Forced(ctx, id)
-		if got := s.Shutdown(ctx, id); got != w.shutdown || w.zwang != (code(err) == model.CodeShutdownTimeout && strings.Contains(err.Error(), "Interaktion 7 nicht verbraucht")) {
-			t.Fatalf("Stand %d: Shutdown %v (erwartet %v), Zwangsende %v (erwartet PGR-E4006 %v)", i, got, w.shutdown, err, w.zwang)
-		}
-	}
-}
+func TestReplayEndeExtendedFlushHerunterfahren(t *testing.T) { endeHerunterfahren(t, mitFlush()) }
 
 // Abdeckung: LH-FA-25/Boundary, LH-FA-12/Boundary — Replay mit `first-request`:
 // Die Interaktion mit Ende, die mit Flush schließt, gehört der nächsten freien
 // Session; die nächste Verbindung erhält die nächste Session mit ihrem Ende; ohne
 // freie Session ist es PGR-E5003, nie das Ende (LH-FA-12.a, LH-FA-25.a
 // *Reihenfolge der Gründe im Replay*).
-func TestReplayEndeExtendedFlushFirstRequest(t *testing.T) {
-	ctx := context.Background()
-	s := ladeEnde(t, endeAufzeichnung([]model.Interaction{extendedEndeFlush(1, "FATAL", false)}, []model.Interaction{extendedEndeFlush(1, "PANIC", false)}))
-	a, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, a, endeFlushNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
-		t.Fatalf("erste Session: %#v", out)
-	}
-	if w := unassigned(t, s); w == nil || !strings.Contains(w.Msg, "1 aufgezeichnete") || !strings.Contains(w.Msg, "Kennung 2") {
-		t.Fatalf("erste Session ist zugeordnet, die zweite nicht: %v", w)
-	}
-	if w := gesendetSchliessen(t, s, a); w != nil {
-		t.Fatalf("Session 1: %v", w)
-	}
-	b, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, b, endeFlushNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("PANIC")) {
-		t.Fatalf("zweite Session: %#v", out)
-	}
-	c, _ := s.OpenConnection(ctx)
-	for _, m := range []model.ClientMessage{endeFlushNachrichten()[2], flushNachricht()} {
-		if out, err := s.ClientMessage(ctx, c, m); code(err) != model.CodeReplaySession || out != nil {
-			t.Fatalf("%s ohne freie Session: erwartet %s, erhalten %#v, %v", m.Type, model.CodeReplaySession, out, err)
-		}
-	}
-}
+func TestReplayEndeExtendedFlushFirstRequest(t *testing.T) { endeFirstRequest(t, mitFlush()) }
 
 // Abdeckung: LH-FA-25/Boundary, LH-FA-12/Boundary — Replay mit `connection`: Die
 // n-te Verbindung erhält die Session n mit ihrem Ende, das mit Flush schließt; das
 // Schließen ändert die Zuordnung der nächsten nicht; ohne Session ist es PGR-E5003
 // (LH-FA-12.a).
-func TestReplayEndeExtendedFlushConnection(t *testing.T) {
-	ctx := context.Background()
-	rec := gekennzeichnet(sessionNr(1, "17.0", extendedEndeFlush(1, "FATAL", false)), sessionNr(2, "17.0", ausfuehrung(1, "s1", "a", "A")), sessionNr(3, "17.0", extendedEndeFlush(1, "PANIC", false)))
-	rec.Version = model.VersionMitEnde
-	s := nachVerbindung(t, rec)
-	a, _ := s.OpenConnection(ctx)
-	b, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, a, endeFlushNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
-		t.Fatalf("Session 1 an Verbindung 1: %#v", out)
-	}
-	if w := gesendetSchliessen(t, s, a); w != nil {
-		t.Fatalf("Session 1: %v", w)
-	}
-	if out := sendeAlle(t, s, b, endeNachrichten()[2:]...); zahl(out, model.ResponseConnectionClosed) != 0 || len(out) != 3 {
-		t.Fatalf("Session 2 an Verbindung 2: %#v", out)
-	}
-	c, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, c, endeFlushNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("PANIC")) {
-		t.Fatalf("Session 3 an Verbindung 3 nach dem Schließen der ersten: %#v", out)
-	}
-	d, _ := s.OpenConnection(ctx)
-	if out, err := s.ClientMessage(ctx, d, endeFlushNachrichten()[2]); code(err) != model.CodeReplaySession || out != nil {
-		t.Fatalf("Verbindung ohne Session: erwartet %s, erhalten %#v, %v", model.CodeReplaySession, out, err)
-	}
-}
+func TestReplayEndeExtendedFlushConnection(t *testing.T) { endeConnection(t, mitFlush()) }
