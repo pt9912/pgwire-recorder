@@ -200,6 +200,15 @@ nennt den Punkt. Der Implementer entscheidet keine still, sondern gibt eine nich
 zurück. Stand am 2026-10-17: C (Konstanten) 30 Codes, K (Katalog) 34, H (Handbuch) 30; die
 Zahlen „34 gegen 19“ des ersten Plans sind durch die Slices von welle-v1-abschluss überholt.
 
+**Rückgabe des Implementers, entschieden am 2026-10-17** (`SPEC-054` Punkte 1, 6 und 8; Code und
+Gegenprobe folgen im Slice, §3 unverändert, `LANGSAM` ist die richtige Stelle): ein Name `Code`
+allein und `CodeT Typ = "…"` sind Konstanten · Wortlaut und Reihenfolge der Sperren stehen in
+Punkt 8 · die Titel von H sind ganze Zeilen, K trägt das Leerzeichen als Präfix · ein
+Verzeichnis statt Datei und eine fehlende Wurzel sind `<pfad> fehlt` · ein nicht lesbares
+Verzeichnis oder eine nicht lesbare Go-Datei im Baum ist die Sperre `<pfad> nicht lesbar`
+(Exit 2) · je Zeile ein Befund mit dem ersten Literal · eine Tabellenzeile beginnt mit `|` in
+Spalte 1, braucht kein schließendes `|`, eine eingerückte zählt nicht.
+
 1. **Richtung „umgekehrt“, nicht erzeugte Codes** — Punkt 4b: K ohne C ist ein Befund, außer
    bei Endung `000`; eine Markierung im Katalog gibt es nicht, und am Stand des Starts ist
    nichts mehr offen.

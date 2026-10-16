@@ -7,16 +7,20 @@ bis 10 prüft `make meldungskatalog-check-gegenprobe`; Punkt 11 hat dort den Fal
 
 1. **Quellen.** Gelesen werden drei Dateien und ein Baum, alle relativ zur Wurzel des Repos.
    - C: jede Zeile von `internal/hexagon/model/fehler.go`, die nach beliebigem Einzug mit
-     `Code` und Wortzeichen beginnt, dann Leerraum, `=`, Leerraum und eine Zeichenkette in
-     doppelten Anführungszeichen trägt. Der Code ist der Text zwischen den Anführungszeichen.
+     `Code` und Wortzeichen beginnt (auch der Name `Code` allein), dann Leerraum, optional einen
+     Typnamen aus Wortzeichen und Punkt mit Leerraum, `=`, Leerraum und eine Zeichenkette in
+     doppelten Anführungszeichen trägt (`CodeT Typ = "…"` ist eine Konstante; sonst bliebe ein
+     Code mit Typ ungesehen, weil Punkt 6 `fehler.go` ausnimmt). Der Code ist der Text zwischen den Anführungszeichen.
      Eine Zeile mit anderem Anfang (Kommentar, Klassen-Tabelle, Funktion) ist keine Konstante.
    - K: die Zeilen der Tabelle in `spec/spezifikation.md` von der Zeile `### SPEC-034 ` bis zur
      nächsten Zeile, die mit `#` beginnt.
    - H: dieselbe Zeilenform in `docs/user/benutzerhandbuch.md` in den Abschnitten, die mit den
-     Zeilen `### Fehlercodes` und `### Warnungen` beginnen und je bis zur nächsten Zeile enden,
+     ganzen Zeilen `### Fehlercodes` und `### Warnungen` beginnen (anders als bei K, wo hinter
+     der Kennung ein Titel steht und das Leerzeichen den Präfix trägt, sind die Titel von H fest) und je bis zur nächsten Zeile enden,
      die mit `#` beginnt; beide Abschnitte zusammen sind H.
    - Eine Tabellenzeile ist eine Zeile, deren erste Zelle ein Text in Backticks ist
-     (`` | `PGR-E2001` | … ``); der Code ist dieser Text. Kopf- und Trennzeile sind keine
+     (`` | `PGR-E2001` | … ``); die Zeile beginnt mit `|` in Spalte 1 (eine eingerückte Zeile zählt
+     nicht) und braucht kein schließendes `|`; der Code ist dieser Text. Kopf- und Trennzeile sind keine
      Zeilen. Eine Zelle gilt als ein Code, auch wenn sie mehrere nennt (dann Punkt 2).
    - Der Baum für Punkt 6: die Go-Dateien unter `cmd/` und `internal/`, deren Name nicht auf
      `_test.go` endet.
@@ -38,7 +42,8 @@ bis 10 prüft `make meldungskatalog-check-gegenprobe`; Punkt 11 hat dort den Fal
    `Rückfall fehlt` mit diesem Code, am Pfad von K ohne Zeile.
 6. **Code außerhalb der Code-Tabelle.** Eine Zeile einer Datei des Baums aus Punkt 1, nicht
    `fehler.go`, mit `"PGR-` (Anführungszeichen unmittelbar davor) ist ein Befund `Code
-   außerhalb der Code-Tabelle`; der Code ist der Text ab `PGR-` aus Wortzeichen. Eine Zeichenkette
+   außerhalb der Code-Tabelle`; der Code ist der Text ab `PGR-` aus Wortzeichen. Je Zeile ein
+   Befund, mit dem ersten Literal. Eine Zeichenkette
    in Backticks, eine Konstante in `fehler.go` unter anderem Namen als `Code…` und ein
    Kommentar ohne Anführungszeichen zählen nicht (Grenze).
 7. **Zurückgezogen, reserviert.** Der Katalog hat keine Form für einen zurückgezogenen Code, und
@@ -48,11 +53,22 @@ bis 10 prüft `make meldungskatalog-check-gegenprobe`; Punkt 11 hat dort den Fal
    2026-10-17: kein Code ist zurückgezogen).
 8. **Sperren.** Nichts wird abgeglichen und es gibt keine Befund-Zeile, wenn eine dieser
    Bedingungen gilt; geprüft wird in dieser Reihenfolge, die erste gilt, und die Zeile auf
-   stderr lautet `meldungskatalog-check: <grund>`: eine der drei Dateien fehlt oder ist
-   nicht lesbar (`<pfad> fehlt`, `<pfad> nicht lesbar`), `cmd/` oder `internal/` fehlt
-   (`<verzeichnis> fehlt`), ein Abschnitt fehlt (`Abschnitt <überschrift> fehlt`), eine Quelle
-   hat keine Zeile (C: `<pfad> ohne Code`; K und H: `<pfad> ohne Codes`; H zählt beide
-   Abschnitte zusammen). Eine Sperre geht jedem Befund vor.
+   stderr lautet `meldungskatalog-check: <grund>`; innerhalb einer Klasse gilt die Reihenfolge
+   der Aufzählung:
+   - eine der drei Dateien C, K, H fehlt oder ist nicht lesbar (`<pfad> fehlt`,
+     `<pfad> nicht lesbar`); was keine reguläre Datei ist (ein Verzeichnis), und eine fehlende
+     Wurzel des Repos gelten als fehlend (bei fehlender Wurzel: `<pfad von C> fehlt`);
+   - `cmd/` oder `internal/` fehlt (`cmd/ fehlt`, `internal/ fehlt`, mit Schrägstrich);
+   - ein Verzeichnis oder eine Go-Datei des Baums aus Punkt 1 ist nicht lesbar
+     (`<pfad> nicht lesbar`, relativ zur Wurzel, der erste in Bytefolge; ein nicht lesbares
+     Verzeichnis darf kein stilles Grün ergeben);
+   - ein Abschnitt fehlt, in der Reihenfolge K, `### Fehlercodes`, `### Warnungen`
+     (`Abschnitt ### SPEC-034 fehlt`, `Abschnitt ### Fehlercodes fehlt`,
+     `Abschnitt ### Warnungen fehlt`);
+   - eine Quelle hat keine Zeile, in der Reihenfolge C, K, H (C: `<pfad> ohne Code`; K und H:
+     `<pfad> ohne Codes`; H zählt beide Abschnitte zusammen).
+
+   Eine Sperre geht jedem Befund vor.
 9. **Ausgabe und Ausgang.** Je Befund eine Zeile auf stderr,
    `meldungskatalog-check: <pfad>[:<zeile>]: <code>: <befund>`, der Pfad relativ zur Wurzel.
    Sortiert wird nach Pfad, Code und Befund in Bytefolge, danach nach der Zeile als Zahl;
