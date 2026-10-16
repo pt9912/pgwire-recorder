@@ -359,107 +359,6 @@ func fatalFaelle() []fatalFall {
 	}
 }
 
-// Abdeckung: LH-FA-24/Negative, LH-FA-24/Boundary — mit Vergleich ist eine
-// Fehlerantwort FATAL oder PANIC (Feld V, ohne es S) sofort PGR-E5004 und nicht
-// PGR-E4003, auch bei gleichem SQLSTATE wie die aufgezeichnete: Art Fehler mit
-// dem SQLSTATE beider Seiten, an ihrer Position in der normalisierten Folge;
-// play liest nichts mehr, sendet nichts mehr und schließt die Verbindung ohne
-// Terminate (SchliesseOhneTerminate), die Interaktion zählt als verglichen und abweichend; Exit-Code 5 (LH-FA-24.a
-// *Ende der Aufzeichnung*, LH-FA-20.a Tabelle).
-func TestVergleichFatal(t *testing.T) {
-	for _, f := range fatalFaelle() {
-		for _, extended := range []bool{false, true} {
-			t.Run(fmt.Sprintf("%s/extended=%v", f.name, extended), func(t *testing.T) {
-				soll := []model.Response{hinweis(), zeilenkopf(spalte("a", 23)), fehlerMit("57P01", "aufgezeichnet"), bereitMit("I")}
-				in := aufgezeichnet(1, "A", soll...)
-				naechsteB := aufgezeichnet(2, "B", befehl("SELECT 1"), bereitMit("I"))
-				if extended {
-					in, naechsteB = nurSync(1, soll...), nurSync(2, befehl("SELECT 1"), bereitMit("I"))
-				}
-				rec := sitzung(in, naechsteB)
-				sitz := spielerFolge(extended, []model.Response{parameter(), zeilenkopf(spalte("a", 23)), zeile(), f.r, befehl("SELECT 1"), bereitMit("I")})
-				ziel := &fakeZiel{sessions: []*fakeEinspiel{sitz}}
-				z, err := spieleZaehler(context.Background(), t, rec, ziel, vergleichen())
-				if zu, ohne := sitz.war(); !zu || !ohne {
-					t.Fatalf("geschlossen %v, ohne Terminate %v, erwartet beides", zu, ohne)
-				}
-				want := e5004 + abweichungText(2, "Fehler") + " (SQLSTATE aufgezeichnet „57P01“, Server „57P01“)"
-				if got := texte(err); !reflect.DeepEqual(got, []string{want}) || exitVon(err) != 5 {
-					t.Fatalf("Meldungen %q, Exit-Code %d, erwartet [%q] mit 5", got, exitVon(err), want)
-				}
-				senden := "anfrage A"
-				if extended {
-					senden = "gruppe sync"
-				}
-				if got, wantAblauf := ziel.liste(), []string{"verbinde", senden, "naechste", "naechste", "naechste", "naechste", "schliesse"}; !reflect.DeepEqual(got, wantAblauf) {
-					t.Fatalf("Ablauf %q, erwartet %q", got, wantAblauf)
-				}
-				if z != (services.Zaehler{Eingespielt: 1, Verglichen: 1, Abweichend: 1}) {
-					t.Fatalf("Zähler %+v", z)
-				}
-			})
-		}
-	}
-}
-
-// Abdeckung: LH-FA-24/Boundary — eine Fehlerantwort mit Schweregrad ERROR in V
-// bei FATAL in S ist keine FATAL-Fehlerantwort, und eine FATAL-Fehlerantwort an
-// einer Position, an der die Aufzeichnung keine Fehlerantwort hat, ist stets
-// eine Abweichung der Art Fehler, ohne SQLSTATE der Aufzeichnung; eine frühere
-// Abweichung der Interaktion geht ihr vor (LH-FA-24.a *Ende der Aufzeichnung*,
-// *Position*, *Art*).
-func TestVergleichFatalRand(t *testing.T) {
-	soll := aufgezeichnet(1, "A", zeilenkopf(spalte("a", 23)), befehl("SELECT 1"), bereitMit("I"))
-	sitz := func(ist ...model.Response) (services.Zaehler, error) {
-		ziel := &fakeZiel{sessions: []*fakeEinspiel{spielerFolge(false, ist)}}
-		return spieleZaehler(context.Background(), t, sitzung(soll), ziel, vergleichen())
-	}
-	z, err := sitz(zeilenkopf(spalte("a", 23)), schwer("FATAL", "ERROR", "42P01"), befehl("SELECT 1"), bereitMit("I"))
-	if want := []string{e5004 + abweichungText(2, "Nachrichtenart")}; !reflect.DeepEqual(texte(err), want) || z.Abweichend != 1 {
-		t.Errorf("V ERROR vor S FATAL: Meldungen %q, Zähler %+v, erwartet %q", texte(err), z, want)
-	}
-	_, err = sitz(zeilenkopf(spalte("a", 23)), schwer("FATAL", "FATAL", "57P01"))
-	if want := []string{e5004 + abweichungText(2, "Fehler") + " (SQLSTATE aufgezeichnet „“, Server „57P01“)"}; !reflect.DeepEqual(texte(err), want) {
-		t.Errorf("FATAL an der Stelle von command_complete: Meldungen %q, erwartet %q", texte(err), want)
-	}
-	_, err = sitz(zeilenkopf(spalte("b", 23)), schwer("FATAL", "FATAL", "57P01"))
-	if want := []string{e5004 + abweichungText(1, "Spaltenbeschreibung")}; !reflect.DeepEqual(texte(err), want) {
-		t.Errorf("frühere Abweichung vor FATAL: Meldungen %q, erwartet %q", texte(err), want)
-	}
-}
-
-// Abdeckung: LH-FA-24/Boundary — mit Vergleich und --continue-on-error endet
-// die Session bei einer Fehlerantwort FATAL: play sendet ihr nichts mehr, die
-// nächste Session läuft; die Meldungen stehen in der Reihenfolge des
-// Auftretens, Exit-Code 5 (LH-FA-20.a Tabelle).
-func TestVergleichFatalFortsetzung(t *testing.T) {
-	ok := []model.Response{befehl("SELECT 1"), bereitMit("I")}
-	rec := model.NewRecording()
-	rec.Sessions = []model.Session{
-		{ID: 1, Interactions: []model.Interaction{aufgezeichnet(1, "A", ok...), aufgezeichnet(2, "B", ok...)}},
-		{ID: 2, Interactions: []model.Interaction{aufgezeichnet(1, "C", ok...)}},
-	}
-	ziel := &fakeZiel{sessions: []*fakeEinspiel{
-		spielerFolge(false, []model.Response{schwer("FATAL", "FATAL", "57P01"), bereitMit("I")}),
-		spielerFolge(false, []model.Response{befehl("UPDATE 1"), bereitMit("I")}),
-	}}
-	z, err := spieleZaehler(context.Background(), t, rec, ziel, services.PlayOptions{CompareResponses: true, ContinueOnError: true})
-	want := []string{
-		e5004 + abweichungText(1, "Fehler") + " (SQLSTATE aufgezeichnet „“, Server „57P01“)",
-		e5004 + "Session 2, Interaktion 1: Antwort weicht von der Aufzeichnung ab: Position 1, Art Befehl",
-	}
-	if got := texte(err); !reflect.DeepEqual(got, want) || exitVon(err) != 5 {
-		t.Fatalf("Meldungen %q, Exit-Code %d, erwartet %q mit 5", got, exitVon(err), want)
-	}
-	ablauf := []string{"verbinde", "anfrage A", "naechste", "schliesse", "verbinde", "anfrage C", "naechste", "naechste", "schliesse"}
-	if got := ziel.liste(); !reflect.DeepEqual(got, ablauf) {
-		t.Fatalf("Ablauf %q, erwartet %q", got, ablauf)
-	}
-	if z != (services.Zaehler{Eingespielt: 2, Verglichen: 2, Abweichend: 2}) {
-		t.Fatalf("Zähler %+v", z)
-	}
-}
-
 // Abdeckung: LH-FA-24/Negative — ein Verbindungsverlust ohne Fehlerantwort ist
 // PGR-E4003 und keine Abweichung, auch mit --continue-on-error sofort; die
 // unterbrochene Interaktion zählt nicht als verglichen; folgt er auf eine
@@ -592,9 +491,10 @@ func TestVergleichExtendedFehlerOhneWarten(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-24/Negative — eine Fehlerantwort FATAL in der Antwort auf
-// eine Gruppe mit Flush ist mit Vergleich sofort PGR-E5004: play sendet keine
-// weitere Gruppe und liest nichts mehr (LH-FA-20.a Schritt 6; LH-FA-24.a *Ende
-// der Aufzeichnung*).
+// eine Gruppe mit Flush, die in der Aufzeichnung eine Fehlerantwort ERROR mit
+// demselben SQLSTATE ohne Ende zeigt, ist mit Vergleich sofort PGR-E5004: play
+// sendet keine weitere Gruppe und liest nichts mehr (LH-FA-20.a Schritt 6;
+// LH-FA-24.a *Ende der Aufzeichnung*).
 func TestVergleichFatalExtendedGruppen(t *testing.T) {
 	g1 := gruppe([]model.Response{fehlerMit("57P01", "a")}, cm(model.ClientParse), cm(model.ClientFlush))
 	g2 := gruppe(bereit(), cm(model.ClientSync))

@@ -245,12 +245,17 @@ func (s *PlayService) startup(sess model.Session) map[string]string {
 // Flush endet (extended). Die Meldung nennt von der Fehlerantwort SQLSTATE und Meldung,
 // keine weiteren Felder (LH-FA-20.a *Interaktion*, *Meldungen*, Schritt 6).
 //
-// Mit CompareResponses hält sie die Antworten bis zum ReadyForQuery und
+// Mit CompareResponses hält sie die Antworten bis zum ReadyForQuery, bei einer
+// Extended-Interaktion, deren letzte Gruppe mit Flush endet, bis zur Antwort auf
+// jede Client-Nachricht dieser Gruppe oder bis zu einer Fehlerantwort, und
 // vergleicht sie dann mit der Aufzeichnung (LH-FA-24.a): Eine Abweichung ist
 // PGR-E5004, mit ContinueOnError an weiter gereicht, ohne ihn der Fehler. Eine
-// Fehlerantwort FATAL oder PANIC ist sofort die Abweichung PGR-E5004; mit
-// ContinueOnError endet dann die Session (errSessionEnde), die nächste läuft.
-// Ein PGR-E4004 und ein erwarteter Fehler gibt es dann nicht.
+// Fehlerantwort FATAL oder PANIC beendet das Lesen sofort (fatal): Zeigt die
+// Aufzeichnung an der Stelle dasselbe Ende mit gleichem SQLSTATE, ist es
+// erwartet und die Session endet (errSessionEnde), sonst ist es die Abweichung
+// PGR-E5004; mit ContinueOnError endet dann die Session (errSessionEnde), die
+// nächste läuft. Ein PGR-E4004 gibt es dann nicht, und AllowRecordedErrors ändert
+// nichts.
 func (s *PlayService) interaktion(us driven.EinspielSession, in model.Interaction, weiter func(error)) error {
 	s.zaehler.Eingespielt++
 	l := &lauf{us: us, weiter: weiter}
@@ -393,7 +398,7 @@ func (s *PlayService) bisBereit(l *lauf) error {
 // Vergleich. Ohne Vergleich: FATAL und PANIC sind PGR-E4003, bei erwartetem Ende
 // keine Meldung (errSessionEnde); eine erwartete ist keine Meldung; jede andere
 // ist PGR-E4004, mit ContinueOnError an weiter gereicht, sonst der Fehler, den
-// sie liefert. Mit Vergleich: FATAL und PANIC sind sofort die Abweichung (fatal),
+// sie liefert. Mit Vergleich: FATAL und PANIC beenden das Lesen und gehen in fatal ein,
 // jede andere geht in den Vergleich am Ende der Interaktion ein.
 func (s *PlayService) fehlerantwort(l *lauf, r model.Response) error {
 	schwere := r.Fields["V"]
@@ -433,14 +438,23 @@ func (s *PlayService) fehlerantwort(l *lauf, r model.Response) error {
 // läuft.
 var errSessionEnde = errors.New("Session endet")
 
-// fatal stellt die Abweichung einer Fehlerantwort FATAL oder PANIC fest: Die
-// Interaktion zählt als verglichen und abweichend. Ohne ContinueOnError ist sie
-// der Fehler, der abbricht, mit ihm wird sie weiter gereicht und die Session
-// endet (LH-FA-20.a Tabelle, *Interaktion*).
+// fatal vergleicht die Interaktion nach einer Fehlerantwort FATAL oder PANIC
+// des Servers: Es fügt der Folge des Servers connection_closed an, liest nichts
+// mehr, und die Interaktion zählt als verglichen. Ist das Ende erwartet, endet
+// die Session ohne Meldung (errSessionEnde); sonst zählt die Interaktion als
+// abweichend, die Abweichung ist ohne ContinueOnError der Fehler, der abbricht,
+// mit ihm wird sie weiter gereicht und die Session endet (LH-FA-24.a *Ende der
+// Aufzeichnung*, LH-FA-20.a Tabelle, *Interaktion*).
 func (s *PlayService) fatal(l *lauf) error {
+	ende := len(l.v.ist)
+	l.v.nimm(model.Response{Type: model.ResponseConnectionClosed})
 	s.zaehler.Verglichen++
+	u := l.v.erste(ende)
+	if u == nil {
+		return errSessionEnde
+	}
 	s.zaehler.Abweichend++
-	fehler := model.Errorf(model.CodeResponseMismatch, nil, "%s", l.v.erste(true).text())
+	fehler := model.Errorf(model.CodeResponseMismatch, nil, "%s", u.text())
 	if !s.optionen.ContinueOnError {
 		return fehler
 	}
@@ -449,13 +463,14 @@ func (s *PlayService) fatal(l *lauf) error {
 }
 
 // abschluss vergleicht die Antworten einer Interaktion, die bis zu ihrem
-// ReadyForQuery gelesen sind, mit der Aufzeichnung (LH-FA-24.a): Die Interaktion
+// ReadyForQuery gelesen sind, bei der letzten Gruppe mit Flush bis zur Antwort
+// auf jede ihrer Client-Nachrichten, mit der Aufzeichnung (LH-FA-24.a): Die Interaktion
 // zählt als verglichen; weicht sie ab, zählt sie als abweichend, und die erste
 // Abweichung ist PGR-E5004, mit ContinueOnError an weiter gereicht, sonst der
 // Fehler, der abbricht.
 func (s *PlayService) abschluss(l *lauf) error {
 	s.zaehler.Verglichen++
-	u := l.v.erste(false)
+	u := l.v.erste(0)
 	if u == nil {
 		return nil
 	}

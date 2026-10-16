@@ -11,8 +11,9 @@ import (
 // Zaehler sind die Zähler der Zeile zum Ende von play (LH-FA-24.a *Meldung*,
 // LH-FA-20.a Schritt 4): Eingespielt zählt die Interaktionen, deren erste
 // Client-Nachricht der Service zu senden begann; Verglichen die Interaktionen,
-// deren Antworten mit Vergleich geprüft wurden, bis zum ReadyForQuery oder bis
-// zur Fehlerantwort FATAL oder PANIC; Abweichend die Interaktionen mit einer
+// deren Antworten mit Vergleich geprüft wurden, bis zum ReadyForQuery, bis zur
+// Fehlerantwort FATAL oder PANIC oder, bei der letzten Gruppe mit Flush, bis zur
+// Antwort auf jede ihrer Client-Nachrichten; Abweichend die Interaktionen mit einer
 // Abweichung, höchstens eine je Interaktion. Ohne CompareResponses sind
 // Verglichen und Abweichend 0.
 type Zaehler struct {
@@ -97,33 +98,40 @@ func (u unterschied) text() string {
 // aufgezeichneten oder nil (LH-FA-24.a *Randformen des Vergleichs*): die erste
 // Position, an der die Nachrichten abweichen; stimmen alle Positionen der
 // kürzeren Folge überein und die Folgen sind verschieden lang, ist es die
-// Position hinter der kürzeren, die Art Nachrichtenart. Mit fatal endet die Folge
-// des Servers in einer Fehlerantwort FATAL oder PANIC: Sie ist stets eine
-// Abweichung der Art Fehler an ihrer Position, auch bei gleichem SQLSTATE,
-// sofern nicht eine frühere Position abweicht.
-func (v *vergleich) erste(fatal bool) *unterschied {
-	grenze := min(len(v.ist), len(v.soll))
-	if fatal {
-		grenze = min(len(v.ist)-1, len(v.soll))
+// Position hinter der kürzeren, die Art Nachrichtenart. ende ist die Position der
+// Fehlerantwort FATAL oder PANIC des Servers, hinter der connection_closed
+// angefügt ist, sonst 0. Weicht die Folge an ihr oder dahinter ab, ist die
+// Abweichung die Art Fehler an dieser Position, mit dem SQLSTATE beider Seiten
+// (der aufgezeichnete leer, wenn dort keine Fehlerantwort steht); weicht eine
+// frühere Position ab, gilt diese. Ohne Abweichung ist das Ende erwartet: gleicher
+// SQLSTATE und aufgezeichnetes Ende an dieser Position (LH-FA-24.a *Ende der
+// Aufzeichnung*).
+func (v *vergleich) erste(ende int) *unterschied {
+	u := v.gewoehnlich()
+	if u == nil || ende == 0 || u.position < ende {
+		return u
 	}
+	f := &unterschied{position: ende, art: artFehler, sqlstateIs: v.ist[ende-1].Fields["C"]}
+	if ende <= len(v.soll) && v.soll[ende-1].Type == model.ResponseErrorResponse {
+		f.sqlstateSo = v.soll[ende-1].Fields["C"]
+	}
+	return f
+}
+
+// gewoehnlich liefert die erste verschiedene Position der Folge des Servers und
+// der aufgezeichneten, sonst die Position hinter der kürzeren, sonst nil.
+func (v *vergleich) gewoehnlich() *unterschied {
+	grenze := min(len(v.ist), len(v.soll))
 	for i := range grenze {
 		if u := nachrichtenUnterschied(v.ist[i], v.soll[i]); u != nil {
 			u.position = i + 1
 			return u
 		}
 	}
-	if !fatal {
-		if len(v.ist) != len(v.soll) {
-			return &unterschied{position: grenze + 1, art: artNachricht}
-		}
-		return nil
+	if len(v.ist) != len(v.soll) {
+		return &unterschied{position: grenze + 1, art: artNachricht}
 	}
-	p := len(v.ist)
-	u := &unterschied{position: p, art: artFehler, sqlstateIs: v.ist[p-1].Fields["C"]}
-	if p <= len(v.soll) && v.soll[p-1].Type == model.ResponseErrorResponse {
-		u.sqlstateSo = v.soll[p-1].Fields["C"]
-	}
-	return u
+	return nil
 }
 
 // nachrichtenUnterschied vergleicht zwei Nachrichten an derselben Position nach
