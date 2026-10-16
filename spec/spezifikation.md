@@ -2536,7 +2536,9 @@ findet kein Vergleich statt.
   Tags sind keine beschädigte Aufzeichnung (`PGR-E3003`); der Vergleich liest sie wie jeden
   anderen Tag.
 * *Fehler.* Fehlt das Feld `C` einer `ErrorResponse`, gilt es als leerer Text; zwei
-  Fehlerantworten ohne `C` sind gleich. Der Schweregrad wird nicht verglichen, außer dass
+  Fehlerantworten ohne `C` sind gleich. Der SQLSTATE zählt nur an einer `ErrorResponse`: Ein
+  Feld `C` an einer anderen Nachricht (der Leser lässt es zu) liest der Vergleich nicht, der
+  aufgezeichnete SQLSTATE ist dort leer. Der Schweregrad wird nicht verglichen, außer dass
   `FATAL` und `PANIC` des Servers nur als aufgezeichnetes Ende mit gleichem SQLSTATE
   erwartet und sonst eine Abweichung sind (*Ende der Aufzeichnung*).
 * *Serverversion.* Der Vergleich gleicht Versionen nicht aus: Ein Typ-OID, ein Tag oder
@@ -2773,8 +2775,10 @@ einzigen Schlüssel `type`, in `responses` wie in `server` einer Gruppe, einger�
 unmittelbar nach einer `error_response`, deren Schweregrad (Feld `V`, ohne es `S`) `FATAL`
 oder `PANIC` ist; jede andere Stelle macht das Recording zu einem beschädigten (`PGR-E3003`).
 
-Randformen des Endes in der Datei: Der Schweregrad ist der Wert des Feldes `V`; ist `V`
-vorhanden, auch leer, entscheidet es allein, und `S` zählt nur, wenn `V` fehlt. Der Vergleich
+Randformen des Endes in der Datei: Der Schweregrad ist der Wert des Feldes `V`; fehlt `V`
+oder ist es leer, zählt `S`. Dieselbe Lesart gilt für die Fehlerantwort des Servers beim
+Einspielen (`LH-FA-20.a`): Auf dem Draht ist ein leeres `V` von einem fehlenden nicht zu
+unterscheiden, und der Aufzeichner schreibt kein leeres Feld. Der Vergleich
 ist genau: `fatal` und `Fatal` sind kein Ende. `connection_closed` trägt neben `type` keinen
 Schlüssel, auch keinen leeren oder mit dem Wert `null`; jeder ist `PGR-E3003`. Zwischen der
 `error_response` und `connection_closed` steht keine weitere Nachricht, auch keine
@@ -3445,3 +3449,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Einspielen und Vergleich, letzte Gruppe mit `Flush` eines Endes: Wortlaut der Wartezeit nach einer `ErrorResponse` mit der Ausnahme, Grenzen (weniger Antworten als die Zählregel, `FATAL` nach vollständiger Zahl), Vergleich ohne `ready_for_query` und Zähler `verglichen` (`LH-FA-20.a`, `LH-FA-24.a`) |
 | 2026-10-16 | Vergleich mit Ende: Einleitung und Absatz zur `ErrorResponse` in der Extended-Interaktion nennen die Ausnahme der letzten Gruppe mit `Flush` wie der vierte Punkt von *Ende der Aufzeichnung*, kein Zuwachs an Regeln (`LH-FA-24.a`) |
 | 2026-10-16 | Einspielen, zweites Signal und Ende des Servers: kein `Terminate` gilt nach der gelesenen und geschlossenen Fehlerantwort; ein Signal zwischen Lesen und Schließen kann `Terminate` senden, Grenze ohne Test (`LH-FA-20.a`) |
+| 2026-10-16 | Schweregrad des Endes: ein leeres `V` gilt wie ein fehlendes, in der Datei und beim Einspielen gleich; der SQLSTATE des Vergleichs zählt nur an einer `ErrorResponse` (`LH-FA-24.a`, `LH-FA-25.a`) |
