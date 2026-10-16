@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
 nächsten Welle-Closure. Angelegt am 2026-10-15 nach Hinweis des Nutzers vom selben Tag
 (ai-harness-init `v0.7.0` löst das Präfix-Problem von `slice-mv`); die Stelle in der
-Reihenfolge ist Empfehlung des Planners (§4 *Start*).
+Reihenfolge ist Empfehlung des Planners (§4 *Start*); seit dem 2026-10-16 hinter dem Release (Entscheidung des Nutzers).
 
 **Bezug:** kein Anspruch des Produkts — der Slice ändert ein Werkzeug des Harness. Auslöser:
 [slice-harness-upgrade-v6-16](../done/slice-harness-upgrade-v6-16.md) (dokumentierter Auslöser
@@ -132,11 +132,13 @@ README-Zeile.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Slice steht in der wellenlosen Reihe unmittelbar hinter
-`slice-v1-abschluss-verbindungsende-doku` (Schritt 42 von welle-v1-abschluss) und vor
-`slice-harness-schaetzung-planner-faktor` und `slice-harness-gegenprobe-matrix-p7-flanke`
-(Empfehlung des Planners, nicht entschieden; Drift-Log der Roadmap vom 2026-10-15). Er blockiert kein
-Gate und keinen Schritt; bis dahin gehen Moves von Hand, wenn das Präfix mehrdeutig ist. WIP-Limit 1.
+**Start** (`next` → `in-progress`): Der Slice steht in der wellenlosen Reihe der fünf Harness-Slices an erster Stelle, hinter
+[welle-v1-nachtrag](../welle-v1-nachtrag.md) (in `done/`; Voraussetzung der Stelle, nicht der Technik) und vor
+`slice-harness-regeln-nach-v1-abschluss`, `slice-harness-regeln-spezifikation-satzabgleich`,
+`slice-harness-schaetzung-planner-faktor` und `slice-harness-gegenprobe-matrix-p7-flanke`. Er stand bis zum 2026-10-16
+unmittelbar hinter `slice-v1-abschluss-verbindungsende-doku` (Schritt 42 von welle-v1-abschluss, Empfehlung des Planners vom 2026-10-15)
+und ist seitdem hinter das Release verschoben (Entscheidung des Nutzers vom 2026-10-16, Drift-Log der Roadmap). Er blockiert kein
+Gate und keinen Schritt; bis dahin, also bis nach dem Release, gehen Moves von Hand, wenn das Präfix mehrdeutig ist. WIP-Limit 1.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -150,7 +152,7 @@ Gate und keinen Schritt; bis dahin gehen Moves von Hand, wenn das Präfix mehrde
   `quelle_finden` (rund 42 Zeilen) — Beleg: Tabelle von Randformen mit einer Mutation je Zusage (`AGENTS.md` §3.10); als
   Mindestwert für diese Art Plan angesetzt, ein gemessener Vorgänger mit einer Gegenprobe über einem Shell-Werkzeug liegt nicht vor
   („keine Messung“); der Architect rechnet für Tabellen- und Gegenprobe-Code zusätzlich mit rund dem Doppelten
-  des Produktcodes. Mit der Marke 400 läge die Mitte bei 81 % und der Plan wäre vor dem Anspruch zu schneiden; deshalb 500.
+  des Produktcodes. Mit der Marke 400 läge die Mitte bei 81 % der Marke; gesetzt ist 500, und geschnitten wird nur, wenn die Schätzung die Marke überschreitet (Praxis des Planners seit 2026-10-16); die Meldeschwelle bleibt.
 - `in-progress` → `next`: Der Architect findet, dass die Übernahme mehr als die Funktion `quelle_finden`, den Hilfetext und den
   Aufruf verlangt (etwa eine Änderung am Fragment oder an der Verweis-Mechanik) — zurück zur Zerlegung (§1).
 - `in-progress` → `open`: `v0.7.0` weicht von der Fassung ab, die der Planner gelesen hat, oder die Übernahme bricht die Gegenprobe
@@ -257,3 +259,5 @@ Hälften.
 Nachgezählt (Planner, 2026-10-15, `AGENTS.md` §3.13): Der Slice ist neu und trägt keine Sendung in einen anderen Slice ein; er nimmt keine an. Liefer-Punkte: 2 (Übernahme des Skripts; Gegenprobe mit Gate-Verdrahtung und README-Zeile); Mutationen und Zeile im Gate-Index sind Teile von Punkt 2. Schichten: zwei, das Werkzeug (`tools/harness`) und die Gate-Verdrahtung (`harness/mk`, `harness/README.md`); Planung zählt keine Schicht, kein Produkt-Code, keine Nutzer-Doku. Fällt `harness/sensors/slice-mv.md` an, bleibt es die Gate-Verdrahtung (Dokument desselben Gates). Geschätzt in der Metrik von §4: 280 bis 370 (Mitte 325) gegen Marke 500, 65 % der Marke und unter 70 %; der Plan bleibt ungeteilt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+Nachgezählt beim Verschieben hinter das Release (Planner, 2026-10-16, `AGENTS.md` §3.13): Start und Stelle geändert, Gegenstand und DoD unverändert; der Slice trägt keine Sendung ein und nimmt keine an: Liefer-Punkte weiter 2, Schichten weiter zwei. Kein Slice vor dem Release nennt ihn als Voraussetzung; die Moves der Schritte 39b bis 44 und der Release-Slices gehen von Hand, wo das Präfix mehrdeutig ist.

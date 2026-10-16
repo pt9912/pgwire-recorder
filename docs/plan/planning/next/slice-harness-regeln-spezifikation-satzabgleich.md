@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Eingesammelt wird er von der nächsten Welle-Closure. Angelegt am 2026-10-16 als Schnitt von `slice-harness-regeln-nach-v1-abschluss` (Planner, beim Eintragen der Sendung, `AGENTS.md` §3.13) nach dem Beschluss des Nutzers vom selben Tag („ja deine Empfehlungen“ zu den Fragen der Closure von `slice-v1-abschluss-verbindungsende-einspielen-extended`: der Architect nimmt den Abgleich der Sätze einer Spezifikationsstelle in seine Liste vor dem Code auf); eingeordnet in `next/` hinter `slice-harness-regeln-nach-v1-abschluss` und vor `slice-harness-schaetzung-planner-faktor`. Den **Wortlaut** hat der Nutzer nicht entschieden (§1).
+**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Eingesammelt wird er von der nächsten Welle-Closure. Angelegt am 2026-10-16 als Schnitt von `slice-harness-regeln-nach-v1-abschluss` (Planner, beim Eintragen der Sendung, `AGENTS.md` §3.13) nach dem Beschluss des Nutzers vom selben Tag („ja deine Empfehlungen“ zu den Fragen der Closure von `slice-v1-abschluss-verbindungsende-einspielen-extended`: der Architect nimmt den Abgleich der Sätze einer Spezifikationsstelle in seine Liste vor dem Code auf); eingeordnet in `next/` hinter `slice-harness-regeln-nach-v1-abschluss` und vor `slice-harness-schaetzung-planner-faktor`; seit dem 2026-10-16 hinter dem Release (§4 *Start*). Den **Wortlaut** hat der Nutzer nicht entschieden (§1).
 
 **Bezug:** kein Anspruch des Produkts — der Slice ändert Regeln des Harness. Bindung an das Register: `BEO-REPO/spezifikation-widerspricht-sich-im-wortlaut` (3×); Regelstellen: `AGENTS.md` §3.12 (seit slice-harness-randformen-vor-code) und `.claude/agents/architect.md`. Keine aktive ADR.
 
@@ -99,7 +99,7 @@ Tests und Gates: keine neuen. Der Slice liefert Prosa (§3.10 verlangt Mutatione
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungsende-doku` (Schritt 42) liegt in `done/` (Voraussetzung der Stelle, nicht der Technik); der Slice steht in der wellenlosen Reihe hinter `slice-harness-regeln-nach-v1-abschluss` und vor `slice-harness-schaetzung-planner-faktor` (Empfehlung des Planners). WIP-Limit 1. Der Implementer legt den Wortlaut dem Nutzer vor und committet `AGENTS.md` und `architect.md` erst nach der Bestätigung; bis dahin hält er an und gibt an den Aufrufer zurück.
+**Start** (`next` → `in-progress`): [welle-v1-nachtrag](../welle-v1-nachtrag.md) liegt in `done/` (Voraussetzung der Stelle, nicht der Technik); der Slice steht in der wellenlosen Reihe hinter `slice-harness-regeln-nach-v1-abschluss` und vor `slice-harness-schaetzung-planner-faktor` (Empfehlung des Planners) und ist seit dem 2026-10-16 hinter das Release verschoben (Entscheidung des Nutzers vom 2026-10-16, Drift-Log der Roadmap): wellenlos hinter [welle-v1-nachtrag](../welle-v1-nachtrag.md) und vor der übrigen Harness-Reihe (`slice-harness-commit-struktur-id` zuerst). Bis dahin prüft der Architect den Abgleich der Sätze einer Stelle der Spezifikation nicht aus dieser Regel (`BEO-REPO/spezifikation-widerspricht-sich-im-wortlaut`, 3×, Ausgang `geplant` bleibt). WIP-Limit 1. Der Implementer legt den Wortlaut dem Nutzer vor und committet `AGENTS.md` und `architect.md` erst nach der Bestätigung; bis dahin hält er an und gibt an den Aufrufer zurück.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -174,3 +174,5 @@ Hälften.
 Nachgezählt (Planner, 2026-10-16, `AGENTS.md` §3.13): Liefer-Punkte: 2 (§3.12-Satz, Rolle `architect.md`). Schichten: zwei, das Briefing (`AGENTS.md`) und die Agenten-Rollen (`.claude/agents/`); Planung (Register, Plan) zählt keine Schicht; kein Produkt-Code, keine Nutzer-Doku. Der Slice ist die Adresse der Sendung aus `slice-harness-regeln-nach-v1-abschluss` (Schnitt, siehe dort §8); er nimmt keinem anderen Nehmer etwas ab. Schätzung in der Metrik von §4: 20 bis 45 (Mitte 32, 32 % der Marke 100); der Plan liegt unter 70 % der Marke und bleibt ungeteilt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+Nachgezählt beim Verschieben hinter das Release (Planner, 2026-10-16, `AGENTS.md` §3.13): Start und Stelle geändert, Gegenstand und DoD unverändert; der Slice nimmt die Sendung aus `slice-harness-regeln-nach-v1-abschluss` weiter an (nicht in `done/`, §1, DoD und §3 nennen sie): Liefer-Punkte weiter 2, Schichten weiter zwei. Kein Slice vor dem Release nennt ihn als Voraussetzung.

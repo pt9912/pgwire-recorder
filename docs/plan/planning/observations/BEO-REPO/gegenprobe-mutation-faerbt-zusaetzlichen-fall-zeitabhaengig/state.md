@@ -1,3 +1,5 @@
 **Stand:** geplant — Kennung: `slice-harness-gegenprobe-matrix-p7-flanke`
 
 Die Beobachtung steht bei 3× (`evidence/`): Die Mutation `p7-int-treiber` färbt im ersten vollen `make gates` zusätzlich einen TERM-Fall der Gruppe `p7-sig`, Einzellauf und zweiter Lauf sind grün, der Slice des Laufs berührt Gate und Gegenprobe nicht. Die Ursache ist nicht untersucht; der Slice klärt sie und entscheidet in `SPEC-053`, ob die Zusage unverändert gilt oder an eine Bedingung gebunden wird.
+
+Vermerk, kein Zählerzuwachs (Urteil des Planners, 2026-10-16): Der Ausgang `geplant` bleibt mit unveränderter Kennung `slice-harness-gegenprobe-matrix-p7-flanke`; der Slice liegt hinter dem Release, Entscheidung des Nutzers vom 2026-10-16 (wellenlos, hinter welle-v1-nachtrag; Drift-Log der Roadmap). Die Adresse nimmt an, solange der Slice nicht in `done/` liegt; kein Slice vor dem Release nennt ihn als Voraussetzung. Das Rot der Gruppe `p7-sig` blockiert kein Gate; tritt es bis dahin wieder auf, ist es ein Auftreten. Der Lese-Schritt der Welle-Closure von welle-v1-abschluss weist den Eintrag nicht neu zu: Er hat einen Ausgang.

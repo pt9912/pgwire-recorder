@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
 nächsten Welle-Closure. Angelegt am 2026-10-15 bei der Closure von
 `slice-harness-randform-stelle-und-lesart` (Register-Ausgang *geplant*: das dritte Auftreten
-erreicht die Schwelle); die Stelle in der Reihenfolge ist entschieden (Nutzer, 2026-10-15; §4 *Start*).
+erreicht die Schwelle); die Stelle in der Reihenfolge war entschieden (Nutzer, 2026-10-15) und ist seit dem 2026-10-16 hinter dem Release (Entscheidung des Nutzers; §4 *Start*).
 
 **Bezug:** kein Anspruch des Produkts — die Prüfung gilt dem Gate `make test-postgres-versionen-gegenprobe`, nicht einer Zusage
 des Produkts. Bindung an das Register: `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig`;
@@ -96,7 +96,7 @@ Welche Zeile in `harness/README.md` (Sensors, `make test-postgres-versionen-gege
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Slice steht nach dem Verbindungsende-Block von welle-v1-abschluss (hinter `slice-v1-abschluss-verbindungsende-doku`, Schritt 42) und vor den wellenlosen Slices `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (Entscheidung des Nutzers vom 2026-10-15). Er blockiert kein Gate: Der Stop-Hook gab in allen drei Auftreten nach dem zweiten vollen Lauf frei. Wiederholt sich das Rot vor seinem Start in einem weiteren Slice, bleibt es ein Auftreten im Zähler dieser Beobachtung. WIP-Limit 1.
+**Start** (`next` → `in-progress`): Der Slice steht in der wellenlosen Reihe der fünf Harness-Slices an letzter Stelle, hinter `slice-harness-schaetzung-planner-faktor` und hinter [welle-v1-nachtrag](../welle-v1-nachtrag.md) (in `done/`; Voraussetzung der Stelle, nicht der Technik). Er stand bis zum 2026-10-16 nach dem Verbindungsende-Block von welle-v1-abschluss (hinter `slice-v1-abschluss-verbindungsende-doku`, Schritt 42) und vor den wellenlosen Slices `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` (Entscheidung des Nutzers vom 2026-10-15) und ist seitdem hinter das Release verschoben (Entscheidung des Nutzers vom 2026-10-16, Drift-Log der Roadmap); `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage` liegen vor dem Release. Er blockiert kein Gate: Der Stop-Hook gab in allen drei Auftreten nach dem zweiten vollen Lauf frei. Wiederholt sich das Rot vor seinem Start in einem weiteren Slice, bleibt es ein Auftreten im Zähler dieser Beobachtung. WIP-Limit 1.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -171,3 +171,5 @@ Hälften.
 Nachgezählt (Planner, 2026-10-15, `AGENTS.md` §3.13): Der Slice ist neu; die Sendung der drei Geber (dieselbe Flanke, dreimal) ist ein Gegenstand und kein zusätzlicher Liefer-Punkt. Liefer-Punkte: 2 (Ursache und Entscheidung im Vertrag; Gegenprobe). Schichten: zwei, das Gate-Werkzeug (`tools/test`) und der Vertrag (`harness/vertraege`); Planung zählt keine Schicht, kein Produkt-Code, keine Nutzer-Doku. Zieht die Zeile in `harness/README.md` mit, zählt der Architect neu; läge der Slice darüber, geht der Punkt an den Planner. Geschätzt in der Metrik von §4: 60 bis 120 (Mitte 90) gegen Marke 200, unter 70 % der Marke; der Plan bleibt ungeteilt. Der Nehmer trägt keine Sendung in einen anderen Slice ein.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+Nachgezählt beim Verschieben hinter das Release (Planner, 2026-10-16, `AGENTS.md` §3.13): Start und Stelle geändert, Gegenstand und DoD unverändert; der Slice trägt keine Sendung ein und nimmt keine an: Liefer-Punkte weiter 2, Schichten weiter zwei. Kein Slice vor dem Release nennt ihn als Voraussetzung; tritt das Rot der Gruppe `p7-sig` bis dahin wieder auf, bleibt es ein Auftreten im Zähler von `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig`.
