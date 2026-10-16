@@ -13,13 +13,16 @@ import (
 
 type fakeUpstream struct {
 	queryErr error
-	mu       sync.Mutex
+	// antworten sind die Antworten von Query je Anfrage, statt der Standardantwort.
+	antworten map[string][]model.Response
+	mu        sync.Mutex
 	// letzte ist die zuletzt geöffnete Session.
 	letzte *fakeSession
 }
 
 func (f *fakeUpstream) Open(context.Context, map[string]string, model.Anmeldung) (driven.UpstreamSession, []model.Response, error) {
 	session := neueFakeSession(f.queryErr)
+	session.antworten = f.antworten
 	f.mu.Lock()
 	f.letzte = session
 	f.mu.Unlock()
@@ -51,6 +54,10 @@ type fakeSession struct {
 	receiveErr error
 	// empfangsFehler liefert ein wartendes Receive als Fehler.
 	empfangsFehler chan error
+	// antworten sind die Antworten von Query je Anfrage; anfragen zählt, was Query
+	// erreicht hat.
+	antworten map[string][]model.Response
+	anfragen  []string
 }
 
 func neueFakeSession(err error) *fakeSession {
@@ -58,9 +65,18 @@ func neueFakeSession(err error) *fakeSession {
 }
 
 func (f *fakeSession) Query(_ context.Context, sql string) ([]model.Response, error) {
+	f.mu.Lock()
+	f.anfragen = append(f.anfragen, sql)
+	f.mu.Unlock()
 	if f.queryHalt != nil {
 		f.queryLaeuft <- struct{}{}
 		<-f.queryHalt
+	}
+	if rs, ok := f.antworten[sql]; ok {
+		return rs, nil
+	}
+	if sql == "MIT-FEHLER" {
+		return []model.Response{{Type: model.ResponseConnectionClosed}}, f.err
 	}
 	if f.err != nil && sql == "FEHLER" {
 		return nil, f.err

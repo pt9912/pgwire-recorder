@@ -45,7 +45,7 @@ type laufend struct {
 	unsupported bool
 	// offen sind die laufenden Extended-Interaktionen in Ankunftsreihenfolge:
 	// die erste nimmt Server-Nachrichten auf, die letzte Client-Nachrichten,
-	// solange ihr Sync aussteht (LH-FA-18.a).
+	// solange ihr Abschluss aussteht (LH-FA-18.a).
 	offen []*offeneInteraktion
 	// einfach: eine einfache Anfrage läuft am Upstream.
 	einfach bool
@@ -57,6 +57,10 @@ type laufend struct {
 	unzugestellt   int
 	herunterfahren bool
 	beendet        bool
+	// serverEnde: die letzte übernommene Interaktion trägt das Ende des Servers.
+	// Danach nimmt die Session nichts mehr an, und es läuft keine Interaktion mehr
+	// (LH-FA-25.a *Stelle von connection_closed beim Aufzeichnen*).
+	serverEnde bool
 }
 
 // offeneInteraktion ist eine Extended-Interaktion im Aufbau (LH-FA-18.a).
@@ -82,6 +86,13 @@ type offeneInteraktion struct {
 // oder eine Extended-Interaktion vor ihrem ReadyForQuery. Aufrufer hält mu.
 func (l *laufend) laeuft() bool {
 	return l.einfach || len(l.offen) > 0
+}
+
+// serverBeendet merkt das Ende des Servers: Es läuft keine Interaktion mehr, auch
+// keine, die der Client schon in die Pipeline gestellt hat. Aufrufer hält mu.
+func (l *laufend) serverBeendet() {
+	l.serverEnde = true
+	l.offen = nil
 }
 
 // beendetErr liefert ErrSessionEnded, wenn die Session beendet ist, sonst
@@ -189,13 +200,16 @@ func (s *RecordService) OpenSession(ctx context.Context, startup map[string]stri
 }
 
 // Query leitet die Anfrage weiter; eine Interaktion wird mit dem ReadyForQuery
-// des Servers Teil der Session (LH-FA-02.b). Laufen Extended-Interaktionen mit
+// des Servers Teil der Session (LH-FA-02.b), mit connection_closed als letzter
+// Antwort statt seiner als letzte Interaktion (LH-FA-25.a): Was der Upstream
+// hinter connection_closed liefert, übernimmt Query nicht, und danach nimmt die
+// Session nichts mehr an (ErrSessionEnded). Laufen Extended-Interaktionen mit
 // gesendetem Sync, wartet Query, bis ihre Antworten zugestellt sind. Die
 // Gegenrichtung empfängt darum nie gleichzeitig mit einer einfachen Anfrage:
 // AwaitServer braucht eine laufende Extended-Interaktion, und eine neue beginnt
 // nur über ClientMessage derselben Richtung, die gerade in Query steht. Eine
 // nicht unterstützte Serverantwort, eine Anfrage während einer
-// Extended-Interaktion vor deren Sync und eine Interaktion, die Validate
+// Extended-Interaktion vor deren Abschluss und eine Interaktion, die Validate
 // ablehnt, sind PGR-E6001 und markieren die Session als nicht übernehmbar
 // (LH-FA-18.a); die Antworten gehen dann nicht zurück. Nach Shutdown beginnt
 // eine einfache Anfrage keine Interaktion mehr: Query liefert ErrShutdown, ohne
@@ -209,6 +223,10 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 		return nil, err
 	}
 	l.mu.Lock()
+	if l.serverEnde {
+		l.mu.Unlock()
+		return nil, model.ErrSessionEnded
+	}
 	if n := len(l.offen); n > 0 && !l.offen[n-1].sync {
 		l.unsupported = true
 		l.mu.Unlock()
@@ -221,7 +239,7 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 	for !l.beendet && (len(l.offen) > 0 || l.empfaengt) {
 		l.cond.Wait()
 	}
-	if l.beendet {
+	if l.beendet || l.serverEnde {
 		l.mu.Unlock()
 		return nil, model.ErrSessionEnded
 	}
@@ -241,6 +259,7 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 	if l.beendet {
 		return nil, model.ErrSessionEnded
 	}
+	responses = bisEnde(responses)
 	in := model.Interaction{
 		Sequence:  len(l.session.Interactions) + 1,
 		OffsetMS:  s.offset(l, ankunft),
@@ -249,6 +268,9 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 	}
 	if err := l.uebernehmen(in); err != nil {
 		return nil, err
+	}
+	if endetMitEnde(responses) {
+		l.serverBeendet()
 	}
 	return responses, nil
 }
@@ -259,10 +281,11 @@ func (s *RecordService) Query(ctx context.Context, id model.SessionID, sql strin
 // Gruppe, und ab ihr gehen eintreffende Server-Nachrichten an diese Gruppe
 // (LH-FA-18.a). Mit Flush oder Sync sendet es die Client-Nachrichten der Gruppe
 // an den Upstream, ohne mu zu halten. Nach Shutdown nimmt es nur noch
-// Nachrichten der laufenden Interaktion vor deren Sync an; eine Nachricht, die
+// Nachrichten der laufenden Interaktion vor deren Abschluss an; eine Nachricht, die
 // eine neue Interaktion begänne, liefert ErrShutdown und geht nicht weiter
 // (LH-FA-13.a). Scheitert das Senden mit PGR-E6001, ist die Session nicht
-// übernehmbar, bevor der Fehler zurückgeht (LH-FA-02.b).
+// übernehmbar, bevor der Fehler zurückgeht (LH-FA-02.b). Nach dem Ende des Servers
+// nimmt es nichts mehr an (ErrSessionEnded, LH-FA-25.a).
 func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) error {
 	// Die Ordnung der Lesungen setzt nacheinander kommende Aufrufe der
 	// Client-Richtung voraus (Recorder, LH-FA-21.a Messpunkt).
@@ -272,7 +295,7 @@ func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m
 		return err
 	}
 	l.mu.Lock()
-	if l.beendet {
+	if l.beendet || l.serverEnde {
 		l.mu.Unlock()
 		return model.ErrSessionEnded
 	}
@@ -316,11 +339,15 @@ func (s *RecordService) ClientMessage(ctx context.Context, id model.SessionID, m
 // AwaitServer wartet, bis die älteste laufende Extended-Interaktion eine
 // gesendete Gruppe hat, liest dann ohne mu vom
 // Upstream und ordnet jede Nachricht der Gruppe zu, die Antworten aufnimmt. Mit
-// ReadyForQuery ist die Interaktion abgeschlossen und wird nach Validate Teil
-// der Session; lehnt Validate sie ab, ist das PGR-E6001, und die Session wird
-// nicht übernommen, ebenso nach PGR-E6001 aus dem Empfang (LH-FA-02.b,
-// LH-FA-05.a). Ein Aufruf, bevor die vorigen Nachrichten als zugestellt
-// gemeldet sind, ist ein Fehler des Aufrufers (PGR-E1000).
+// ReadyForQuery oder mit connection_closed ist die Interaktion abgeschlossen und
+// wird nach Validate Teil der Session; lehnt Validate sie ab, ist das PGR-E6001,
+// und die Session wird nicht übernommen, ebenso nach PGR-E6001 aus dem Empfang
+// (LH-FA-02.b, LH-FA-05.a). Die Antworten enden mit connection_closed, was der
+// Upstream dahinter liefert, übernimmt AwaitServer nicht; mit dem Ende des Servers
+// läuft keine Interaktion mehr, und die Session nimmt nichts mehr an, auch keine
+// Interaktion, die schon in der Pipeline steht (LH-FA-25.a). Ein Aufruf, bevor
+// die vorigen Nachrichten als zugestellt gemeldet sind, ist ein Fehler des
+// Aufrufers (PGR-E1000).
 func (s *RecordService) AwaitServer(ctx context.Context, id model.SessionID) ([]model.Response, error) {
 	l, err := s.laufende(id)
 	if err != nil {
@@ -331,10 +358,10 @@ func (s *RecordService) AwaitServer(ctx context.Context, id model.SessionID) ([]
 		l.mu.Unlock()
 		return nil, model.Errorf(model.CodeInternal, nil, "AwaitServer vor der Zustellung der vorigen Server-Nachrichten")
 	}
-	for !l.beendet && (len(l.offen) == 0 || !l.offen[0].gesendet) {
+	for !l.beendet && !l.serverEnde && (len(l.offen) == 0 || !l.offen[0].gesendet) {
 		l.cond.Wait()
 	}
-	if l.beendet {
+	if l.beendet || l.serverEnde {
 		l.mu.Unlock()
 		return nil, model.ErrSessionEnded
 	}
@@ -353,13 +380,29 @@ func (s *RecordService) AwaitServer(ctx context.Context, id model.SessionID) ([]
 	if l.beendet {
 		return nil, model.ErrSessionEnded
 	}
+	rs = bisEnde(rs)
+	if err := s.zuordnen(l, rs); err != nil {
+		return nil, err
+	}
+	return rs, nil
+}
+
+// zuordnen ordnet die Server-Nachrichten der Gruppe zu, die Antworten aufnimmt,
+// und übernimmt jede Interaktion, die mit ReadyForQuery oder connection_closed
+// endet. Aufrufer hält mu.
+func (s *RecordService) zuordnen(l *laufend, rs []model.Response) error {
 	for _, r := range rs {
+		ende := r.Type == model.ResponseConnectionClosed
 		if len(l.offen) == 0 {
-			return nil, model.Errorf(model.CodeInternal, nil, "Server-Nachricht %q ohne laufende Interaktion", r.Type)
+			if ende {
+				l.unsupported = true
+				return model.Errorf(model.CodeUnsupported, nil, "connection_closed ohne laufende Interaktion")
+			}
+			return model.Errorf(model.CodeInternal, nil, "Server-Nachricht %q ohne laufende Interaktion", r.Type)
 		}
 		o := l.offen[0]
 		o.groups[o.ziel].Server = append(o.groups[o.ziel].Server, r)
-		if r.Type != model.ResponseReadyForQuery {
+		if r.Type != model.ResponseReadyForQuery && !ende {
 			continue
 		}
 		l.offen = l.offen[1:]
@@ -370,10 +413,30 @@ func (s *RecordService) AwaitServer(ctx context.Context, id model.SessionID) ([]
 			Groups:   o.groups,
 		}
 		if err := l.uebernehmen(in); err != nil {
-			return nil, err
+			return err
+		}
+		if ende {
+			l.serverBeendet()
 		}
 	}
-	return rs, nil
+	return nil
+}
+
+// bisEnde schneidet die Antworten hinter der ersten connection_closed ab; was der
+// Upstream dahinter liefert, übernimmt der Use Case nicht (LH-FA-25.a *Meldung
+// des Endes beim Aufzeichnen*).
+func bisEnde(rs []model.Response) []model.Response {
+	for i, r := range rs {
+		if r.Type == model.ResponseConnectionClosed {
+			return rs[:i+1]
+		}
+	}
+	return rs
+}
+
+// endetMitEnde sagt, ob die letzte Antwort connection_closed ist.
+func endetMitEnde(rs []model.Response) bool {
+	return len(rs) > 0 && rs[len(rs)-1].Type == model.ResponseConnectionClosed
 }
 
 // Delivered gibt die zuletzt gelieferten Antworten als zugestellt frei. endet
@@ -436,7 +499,9 @@ func (l *laufend) uebernehmen(in model.Interaction) error {
 //     gilt das Ende als Zwangsende im Aufbau: Die Session wird nie geschrieben,
 //     auch mit LeereSessions, und es gibt keine Meldung (LH-FA-12.a
 //     *Angenommene Verbindung*).
-//   - EndShutdown, EndFailed: kein weiterer Fehler.
+//   - EndShutdown, EndFailed, EndServer: kein weiterer Fehler; mit dem Ende des
+//     Servers läuft keine Interaktion mehr, auch nach einem Zwangsende oder einem
+//     Ende des Clients (LH-FA-25.a).
 //
 // Eine laufende Interaktion steht nie in der Session. Übernommen wird die
 // Session, wenn sie keine nicht unterstützte Interaktion enthielt und danach

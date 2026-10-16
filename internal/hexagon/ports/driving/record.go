@@ -37,8 +37,13 @@ type Recorder interface {
 	OpenSession(ctx context.Context, startup map[string]string, anmeldung model.Anmeldung) (model.SessionID, []model.Response, error)
 	// Query leitet eine einfache Anfrage weiter und liefert die Serverantworten
 	// bis einschließlich ReadyForQuery. Laufen Extended-Interaktionen, deren
-	// Sync schon gesendet ist, wartet Query, bis ihre Antworten zugestellt sind.
-	// Danach gehen die Antworten an den Client, und der Adapter meldet Delivered.
+	// Abschluss schon gesendet ist, wartet Query, bis ihre Antworten zugestellt
+	// sind. Danach gehen die Antworten an den Client, und der Adapter meldet
+	// Delivered. Endet die Interaktion mit dem Ende des Servers, ist
+	// connection_closed die letzte Antwort statt des ReadyForQuery: Der Adapter
+	// sendet die Antworten davor, meldet Delivered, liest nichts mehr und beendet
+	// die Session mit EndServer (LH-FA-25.a); der Use Case nimmt nach dem Ende
+	// nichts mehr an (model.ErrSessionEnded).
 	Query(ctx context.Context, id model.SessionID, sql string) ([]model.Response, error)
 	// ClientMessage übernimmt eine Client-Nachricht einer Extended-Interaktion
 	// in Ankunftsreihenfolge (LH-FA-18.a); mit Flush oder Sync sendet es ihre
@@ -48,7 +53,8 @@ type Recorder interface {
 	// AwaitServer wartet, bis eine Gruppe gesendet ist, liest die nächsten
 	// Server-Nachrichten vom Upstream und ordnet sie ihren Gruppen zu. Der
 	// Adapter schreibt sie an den Client und meldet danach Delivered, bevor er
-	// AwaitServer erneut ruft.
+	// AwaitServer erneut ruft. Endet die Folge mit connection_closed, gilt für sie
+	// dasselbe wie bei Query.
 	AwaitServer(ctx context.Context, id model.SessionID) ([]model.Response, error)
 	// Delivered meldet, dass die zuletzt gelieferten Antworten (aus Query oder
 	// AwaitServer) beim Client sind. endet sagt, dass die Session herunterfährt

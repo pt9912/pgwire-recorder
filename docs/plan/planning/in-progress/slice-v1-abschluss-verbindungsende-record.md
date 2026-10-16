@@ -89,9 +89,10 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `internal/hexagon/services/record.go` | update | Übernahme einer Interaktion mit Ende (`Query`, `AwaitServer`, `uebernehmen`), Session als letzte, Stelle des Endes in der Gruppe, `CloseSession`; Kommentare „Sync“ auf „Abschluss“ (Feld `offen`, `Query`, `ClientMessage`; Sendung aus `slice-v1-abschluss-verbindungsende-replay-extended-flush`) |
-| `internal/hexagon/ports/driving/record.go`, `ports/driven/upstream.go` | update | Port-Verträge: wie `connection_closed` aus dem Upstream kommt und dem Adapter gemeldet wird (Name und Form wählt der Architect vor dem Code); Kommentar von `Query` „Sync“ auf „Abschluss“ (Sendung aus `slice-v1-abschluss-verbindungsende-replay-extended-flush`) |
-| `internal/adapters/driving/pgwire/server.go` | update | Record-Pfad: `serverRichtung`, `richtungen.schreibe`, Schließen beider Verbindungen |
-| `internal/hexagon/services`, `internal/adapters/driving/pgwire` (Tests) | update | Randformen aus §6; die Tests, die die alte Regel prüfen (`TestRecordExtendedFehlerantwortVorDemAbbruch`, `TestRecordExtendedSendefehlerNachFehlerantwort`, soweit sie `FATAL`/`PANIC` meinen), werden hier nachgezogen |
+| `internal/hexagon/ports/driving/record.go` | update | Port-Vertrag: `connection_closed` als letzte Antwort von `Query` und `AwaitServer` (Ende des Servers, Adapter sendet davor, meldet `Delivered`, beendet mit `EndServer`); Kommentar von `Query` „Sync“ auf „Abschluss“ (Sendung aus `slice-v1-abschluss-verbindungsende-replay-extended-flush`). `ports/driven/upstream.go` bleibt unverändert: der Upstream-Port liefert `connection_closed` schon in den Antworten |
+| `internal/hexagon/model/recording.go` | update | neues Ereignis `EndServer` (kein Fehler, keine Meldung); keine Logik |
+| `internal/adapters/driving/pgwire/server.go` | update | Record-Pfad: `richtungen.schreibe` (nach `Delivered` `EndServer`, beide Richtungen beenden); `serverRichtung` und `clientRichtung` bleiben, sie rufen `schreibe` |
+| `internal/hexagon/services`, `internal/adapters/driving/pgwire` (Tests) | update | neue Dateien `record_ende_test.go` und `server_record_ende_test.go` zu den Randformen aus §6; die Fakes `fakeUpstream`/`fakeSession` (`record_test.go`) und `fakeRecorder` (`server_test.go`) tragen konfigurierbare Antworten. `TestRecordExtendedFehlerantwortVorDemAbbruch` und `TestRecordExtendedSendefehlerNachFehlerantwort` bleiben unverändert: sie prüfen PGR-E6001 aus dem Empfang des Upstream-Ports, kein Ende mit `connection_closed` |
 | `docs/user/abdeckung-unit.md` | update (`make abdeckung`) | Tabelle aus den Deklarationen der Tests |
 
 ## 4. Trigger

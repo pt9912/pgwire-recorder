@@ -35,7 +35,9 @@ type fakeRecorder struct {
 	// Schweregrad, SQLSTATE und Meldung von „database does not exist“.
 	fehlerFelder map[string]string
 
-	ereignisse      []string
+	ereignisse []string
+	// antworten sind die Antworten von Query, wenn sie nicht nil sind.
+	antworten       []model.Response
 	client          []model.ClientMessage
 	server          chan []model.Response
 	halt            map[model.ClientMessageType]chan struct{}
@@ -153,6 +155,9 @@ func (f *fakeRecorder) Query(_ context.Context, _ model.SessionID, sql string) (
 		case <-f.zu():
 			return nil, model.ErrSessionEnded
 		}
+	}
+	if f.antworten != nil {
+		return f.antworten, nil
 	}
 	return []model.Response{
 		{Type: model.ResponseRowDescription, Columns: []model.Column{{Name: "a", TypeOID: 25, TypeSize: -1, TypeModifier: -1}, {Name: "b", TypeOID: 25, TypeSize: -1, TypeModifier: -1}}},

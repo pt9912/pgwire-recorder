@@ -132,4 +132,9 @@ const (
 	// und ohne abgeschlossene Interaktion schreibt der Record die Session nicht,
 	// auch mit LeereSessions (LH-FA-12.a).
 	EndForced
+	// EndServer heißt: Die Antworten einer Interaktion mit Ende des Servers
+	// (connection_closed als letzte Antwort) sind beim Client, bis auf die Nachricht
+	// connection_closed selbst, die keine PGWire-Nachricht ist (LH-FA-25.a *Meldung
+	// des Endes beim Aufzeichnen*). Es ist weder ein Fehler noch eine Meldung.
+	EndServer
 )
