@@ -22,9 +22,9 @@ type Einspielziel interface {
 //
 // Gleichzeitigkeit: Anfrage und Naechste laufen nacheinander. Gruppe beginnt
 // das Senden und kehrt zurück; das Senden der Gruppen läuft in der Session
-// unabhängig davon, ob Naechste liest. Schliesse darf jederzeit laufen, auch
-// während Anfrage sendet oder Gruppe sendet oder Naechste wartet, und beendet
-// sie mit einem Fehler.
+// unabhängig davon, ob Naechste liest. Schliesse und SchliesseOhneTerminate
+// dürfen jederzeit laufen, auch während Anfrage sendet oder Gruppe sendet oder
+// Naechste wartet, und beenden sie mit einem Fehler.
 type EinspielSession interface {
 	// Anfrage sendet eine einfache Anfrage; scheitert das Senden, ist das
 	// PGR-E4003.
@@ -44,6 +44,11 @@ type EinspielSession interface {
 	// über die gelieferte Nachricht hinaus.
 	Naechste() (model.Response, error)
 	// Schliesse sendet Terminate, soweit die Verbindung es sofort annimmt, und
-	// schließt sie; ein Fehler dabei bleibt ohne Folge.
+	// schließt sie; ein Fehler dabei bleibt ohne Folge. Nach einem Schließen,
+	// auch nach SchliesseOhneTerminate, ist es ohne Wirkung.
 	Schliesse()
+	// SchliesseOhneTerminate schließt die Verbindung, ohne Terminate zu senden;
+	// ein Fehler dabei bleibt ohne Folge. Nach einem Schließen, auch nach
+	// Schliesse, ist es ohne Wirkung.
+	SchliesseOhneTerminate()
 }

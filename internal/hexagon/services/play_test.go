@@ -86,7 +86,9 @@ func (z *fakeZiel) Verbinde(ctx context.Context, startup map[string]string) (dri
 // liefert Anfrage als Fehler. Je Gruppe hängt Gruppe die nächste Folge aus
 // gruppen an die noch ungelesenen Antworten an; beiGruppe läuft mit der Nummer
 // der Gruppe seit dem Aufbau (ab 1), gruppeFehler liefert Gruppe als Fehler.
-// beiSchliesse läuft in Schliesse, bevor es "schliesse" festhält.
+// beiSchliesse läuft im ersten Schließen, bevor es "schliesse" festhält; ein
+// Schließen danach bleibt ohne Wirkung. ohneTerminate hält fest, ob das erste
+// Schließen SchliesseOhneTerminate war.
 type fakeEinspiel struct {
 	ziel          *fakeZiel
 	antworten     [][]schritt
@@ -100,6 +102,10 @@ type fakeEinspiel struct {
 	beiSchliesse  func()
 	zu            chan struct{}
 	einmal        sync.Once
+
+	sm            sync.Mutex
+	geschlossen   bool
+	ohneTerminate bool
 }
 
 func (s *fakeEinspiel) Gruppe(nachrichten []model.ClientMessage) error {
@@ -153,7 +159,26 @@ func (s *fakeEinspiel) Naechste() (model.Response, error) {
 	return x.r, x.err
 }
 
-func (s *fakeEinspiel) Schliesse() {
+func (s *fakeEinspiel) Schliesse() { s.schliesse(false) }
+
+func (s *fakeEinspiel) SchliesseOhneTerminate() { s.schliesse(true) }
+
+// war meldet, ob die Session geschlossen ist und ob das erste Schließen
+// SchliesseOhneTerminate war.
+func (s *fakeEinspiel) war() (geschlossen, ohneTerminate bool) {
+	s.sm.Lock()
+	defer s.sm.Unlock()
+	return s.geschlossen, s.ohneTerminate
+}
+
+func (s *fakeEinspiel) schliesse(ohne bool) {
+	s.sm.Lock()
+	erstes := !s.geschlossen
+	s.geschlossen, s.ohneTerminate = true, s.ohneTerminate || (erstes && ohne)
+	s.sm.Unlock()
+	if !erstes {
+		return
+	}
 	if s.beiSchliesse != nil {
 		s.beiSchliesse()
 	}
@@ -261,27 +286,30 @@ func TestPlayStartup(t *testing.T) {
 // ab: PGR-E4004 mit Session, Interaktion, SQLSTATE und Meldung, keine weitere
 // Antwort gelesen, keine weitere Anfrage und keine weitere Session, die
 // Verbindung mit Schliesse beendet; mit dem Schweregrad FATAL oder PANIC aus
-// V, ohne V aus S, ist sie PGR-E4003; die Meldung nennt von der Fehlerantwort
-// SQLSTATE und Meldung, keine weiteren Felder, auch nicht den Schweregrad
-// (LH-FA-20.a *Interaktion*, *Meldungen*).
+// V, ohne V aus S, ist sie PGR-E4003 und die Verbindung mit
+// SchliesseOhneTerminate geschlossen, ohne Terminate; die Meldung nennt von der
+// Fehlerantwort SQLSTATE und Meldung, keine weiteren Felder, auch nicht den
+// Schweregrad (LH-FA-20.a *Interaktion*, *Meldungen*, *Ende einer Session*).
 func TestPlayFehlerantwort(t *testing.T) {
 	for _, f := range []struct {
 		name   string
 		felder map[string]string
 		code   string
+		ohne   bool
 	}{
-		{"ERROR", map[string]string{"S": "ERROR", "V": "ERROR", "C": "42P01", "M": "fehlt"}, model.CodeServerError},
-		{"ohne Schweregrad", map[string]string{"C": "42P01", "M": "fehlt"}, model.CodeServerError},
-		{"V ERROR vor S FATAL", map[string]string{"S": "FATAL", "V": "ERROR", "C": "42P01", "M": "fehlt"}, model.CodeServerError},
-		{"V FATAL", map[string]string{"S": "SCHWER", "V": "FATAL", "C": "57P01", "M": "fehlt"}, model.CodeConnectionLost},
-		{"S FATAL ohne V", map[string]string{"S": "FATAL", "C": "57P01", "M": "fehlt"}, model.CodeConnectionLost},
-		{"V PANIC", map[string]string{"S": "x", "V": "PANIC", "C": "XX000", "M": "fehlt"}, model.CodeConnectionLost},
-		{"S PANIC ohne V", map[string]string{"S": "PANIC", "C": "XX000", "M": "fehlt"}, model.CodeConnectionLost},
+		{"ERROR", map[string]string{"S": "ERROR", "V": "ERROR", "C": "42P01", "M": "fehlt"}, model.CodeServerError, false},
+		{"ohne Schweregrad", map[string]string{"C": "42P01", "M": "fehlt"}, model.CodeServerError, false},
+		{"V ERROR vor S FATAL", map[string]string{"S": "FATAL", "V": "ERROR", "C": "42P01", "M": "fehlt"}, model.CodeServerError, false},
+		{"V FATAL", map[string]string{"S": "SCHWER", "V": "FATAL", "C": "57P01", "M": "fehlt"}, model.CodeConnectionLost, true},
+		{"S FATAL ohne V", map[string]string{"S": "FATAL", "C": "57P01", "M": "fehlt"}, model.CodeConnectionLost, true},
+		{"V PANIC", map[string]string{"S": "x", "V": "PANIC", "C": "XX000", "M": "fehlt"}, model.CodeConnectionLost, true},
+		{"S PANIC ohne V", map[string]string{"S": "PANIC", "C": "XX000", "M": "fehlt"}, model.CodeConnectionLost, true},
 	} {
 		t.Run(f.name, func(t *testing.T) {
 			rec := model.NewRecording()
 			rec.Sessions = []model.Session{anfragen(1, nil, "A", "B"), anfragen(2, nil, "C")}
-			ziel := &fakeZiel{sessions: []*fakeEinspiel{{antworten: [][]schritt{{{r: model.Response{Type: model.ResponseDataRow}}, fehlerantwort(f.felder), bereitZuEnde()}}}}}
+			sitz := &fakeEinspiel{antworten: [][]schritt{{{r: model.Response{Type: model.ResponseDataRow}}, fehlerantwort(f.felder), bereitZuEnde()}}}
+			ziel := &fakeZiel{sessions: []*fakeEinspiel{sitz}}
 			err := spiele(context.Background(), t, nil, rec, ziel, "", "")
 			text := "[" + f.code + "]: Session 1, Interaktion 1: Fehlerantwort des Servers " + f.felder["C"] + " „fehlt“"
 			if f.code == model.CodeConnectionLost {
@@ -293,6 +321,9 @@ func TestPlayFehlerantwort(t *testing.T) {
 			want := []string{"verbinde", "anfrage A", "naechste", "naechste", "schliesse"}
 			if got := ziel.liste(); !reflect.DeepEqual(got, want) {
 				t.Fatalf("Ablauf %q, erwartet %q", got, want)
+			}
+			if zu, ohne := sitz.war(); !zu || ohne != f.ohne {
+				t.Fatalf("geschlossen %v, ohne Terminate %v, erwartet ohne Terminate %v", zu, ohne, f.ohne)
 			}
 		})
 	}

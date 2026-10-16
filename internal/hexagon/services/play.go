@@ -165,12 +165,13 @@ func (s *PlayService) Play(ctx context.Context, ablauf <-chan struct{}) error {
 
 // session spielt eine Session über eine eigene Verbindung ein. Am Ende,
 // regulär oder nach einem Fehler, sendet sie Terminate und schließt die
-// Verbindung (Schliesse); endet abbruch, schließt sie sofort und kehrt erst nach
-// dem Schließen zurück. Mit KeepTiming wartet sie vor jeder Interaktion (warte).
+// Verbindung (Schliesse); nach einer gelesenen Fehlerantwort FATAL oder PANIC
+// ist sie schon ohne Terminate geschlossen (fehlerantwort); endet abbruch,
+// schließt sie sofort und kehrt erst nach dem Schließen zurück. Mit KeepTiming wartet sie vor jeder Interaktion (warte).
 // Ein PGR-E4004 oder PGR-E5004, nach dem das Einspielen weiterläuft, hängt sie
 // mit seinem Ort an frueher an; die Session endet ohne Fehler, wenn eine
-// Fehlerantwort FATAL oder PANIC mit Vergleich weiter gereicht ist
-// (errSessionEnde).
+// Fehlerantwort FATAL oder PANIC als Ende erwartet ist oder mit Vergleich weiter
+// gereicht ist (errSessionEnde).
 func (s *PlayService) session(ctx, abbruch context.Context, sess model.Session, frueher *[]error) error {
 	zeit := s.neuerTakt()
 	us, err := s.ziel.Verbinde(abbruch, s.startup(sess))
@@ -231,8 +232,10 @@ func (s *PlayService) startup(sess model.Session) map[string]string {
 // interaktion spielt eine Interaktion ein: eine einfache Anfrage mit anfrage,
 // eine Extended-Interaktion mit extended. Ohne CompareResponses verwerfen beide
 // jede Antwort außer einer Fehlerantwort. Eine Fehlerantwort mit dem Schweregrad
-// FATAL oder PANIC (Feld V, ohne es S) ist PGR-E4003 und bricht ab, auch wenn
-// sie erwartet wäre. Jede andere ist mit AllowRecordedErrors erwartet, wenn die
+// FATAL oder PANIC (Feld V, ohne es S) ist PGR-E4003 und bricht ab, außer bei
+// einer einfachen Anfrage mit AllowRecordedErrors, deren Aufzeichnung mit
+// connection_closed endet: Dort ist das Ende erwartet, keine Meldung, und die
+// Session endet (errSessionEnde). Jede andere ist mit AllowRecordedErrors erwartet, wenn die
 // Aufzeichnung der Interaktion eine error_response trägt, und ohne Meldung;
 // sonst ist sie PGR-E4004, mit ContinueOnError an weiter gereicht, ohne ihn der
 // Fehler, nach dem die Interaktion ohne weiteres Lesen abbricht. Nach einer
@@ -253,6 +256,7 @@ func (s *PlayService) interaktion(us driven.EinspielSession, in model.Interactio
 		l.v = neuerVergleich(in)
 	} else {
 		l.erwartet = s.optionen.AllowRecordedErrors && mitFehlerantwort(in)
+		l.ende = s.optionen.AllowRecordedErrors && endetEinfach(in)
 	}
 	var err error
 	if in.Request.Type == model.RequestExtended {
@@ -267,12 +271,13 @@ func (s *PlayService) interaktion(us driven.EinspielSession, in model.Interactio
 }
 
 // lauf ist der Stand einer Interaktion beim Lesen der Antworten: die Session,
-// ob eine Fehlerantwort erwartet ist (nur ohne Vergleich), die Funktion für
-// Fehler, nach denen das Einspielen weiterläuft, und mit Vergleich dessen Stand
-// (sonst nil).
+// ob eine Fehlerantwort erwartet ist und ob ein Ende des Servers erwartet ist
+// (beides nur ohne Vergleich), die Funktion für Fehler, nach denen das
+// Einspielen weiterläuft, und mit Vergleich dessen Stand (sonst nil).
 type lauf struct {
 	us       driven.EinspielSession
 	erwartet bool
+	ende     bool
 	weiter   func(error)
 	v        *vergleich
 }
@@ -369,8 +374,10 @@ func (s *PlayService) bisBereit(l *lauf) error {
 	}
 }
 
-// fehlerantwort stuft eine Fehlerantwort ein. Ohne Vergleich: FATAL und PANIC
-// sind PGR-E4003; eine erwartete ist keine Meldung; jede andere ist PGR-E4004,
+// fehlerantwort stuft eine Fehlerantwort ein. Bei FATAL und PANIC schließt sie
+// die Verbindung sofort ohne Terminate (SchliesseOhneTerminate), mit und ohne
+// Vergleich. Ohne Vergleich: FATAL und PANIC sind PGR-E4003, bei erwartetem
+// Ende keine Meldung (errSessionEnde); eine erwartete ist keine Meldung; jede andere ist PGR-E4004,
 // mit ContinueOnError an weiter gereicht, sonst der Fehler, den sie liefert. Mit
 // Vergleich: FATAL und PANIC sind sofort die Abweichung (fatal), jede andere
 // geht in den Vergleich am Ende der Interaktion ein.
@@ -380,6 +387,9 @@ func (s *PlayService) fehlerantwort(l *lauf, r model.Response) error {
 		schwere = r.Fields["S"]
 	}
 	fatal := schwere == "FATAL" || schwere == "PANIC"
+	if fatal {
+		l.us.SchliesseOhneTerminate()
+	}
 	if l.v != nil {
 		if fatal {
 			return s.fatal(l)
@@ -387,6 +397,9 @@ func (s *PlayService) fehlerantwort(l *lauf, r model.Response) error {
 		return nil
 	}
 	if fatal {
+		if l.ende {
+			return errSessionEnde
+		}
 		return model.Errorf(model.CodeConnectionLost, nil, "Fehlerantwort des Servers %s „%s“, die Verbindung endet", r.Fields["C"], r.Fields["M"])
 	}
 	if l.erwartet {
@@ -401,8 +414,9 @@ func (s *PlayService) fehlerantwort(l *lauf, r model.Response) error {
 }
 
 // errSessionEnde meldet der Session, dass ihre Verbindung durch eine
-// Fehlerantwort FATAL oder PANIC endete, deren Abweichung weiter gereicht ist:
-// Die Session endet ohne Fehler, die nächste läuft.
+// Fehlerantwort FATAL oder PANIC endete, die als Ende erwartet oder deren
+// Abweichung weiter gereicht ist: Die Session endet ohne Fehler, die nächste
+// läuft.
 var errSessionEnde = errors.New("Session endet")
 
 // fatal stellt die Abweichung einer Fehlerantwort FATAL oder PANIC fest: Die

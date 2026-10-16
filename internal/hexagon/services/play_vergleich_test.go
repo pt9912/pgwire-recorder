@@ -363,8 +363,8 @@ func fatalFaelle() []fatalFall {
 // Fehlerantwort FATAL oder PANIC (Feld V, ohne es S) sofort PGR-E5004 und nicht
 // PGR-E4003, auch bei gleichem SQLSTATE wie die aufgezeichnete: Art Fehler mit
 // dem SQLSTATE beider Seiten, an ihrer Position in der normalisierten Folge;
-// play liest nichts mehr, sendet nichts mehr und schließt die Verbindung, die
-// Interaktion zählt als verglichen und abweichend; Exit-Code 5 (LH-FA-24.a
+// play liest nichts mehr, sendet nichts mehr und schließt die Verbindung ohne
+// Terminate (SchliesseOhneTerminate), die Interaktion zählt als verglichen und abweichend; Exit-Code 5 (LH-FA-24.a
 // *Ende der Aufzeichnung*, LH-FA-20.a Tabelle).
 func TestVergleichFatal(t *testing.T) {
 	for _, f := range fatalFaelle() {
@@ -377,8 +377,12 @@ func TestVergleichFatal(t *testing.T) {
 					in, naechsteB = nurSync(1, soll...), nurSync(2, befehl("SELECT 1"), bereitMit("I"))
 				}
 				rec := sitzung(in, naechsteB)
-				ziel := &fakeZiel{sessions: []*fakeEinspiel{spielerFolge(extended, []model.Response{parameter(), zeilenkopf(spalte("a", 23)), zeile(), f.r, befehl("SELECT 1"), bereitMit("I")})}}
+				sitz := spielerFolge(extended, []model.Response{parameter(), zeilenkopf(spalte("a", 23)), zeile(), f.r, befehl("SELECT 1"), bereitMit("I")})
+				ziel := &fakeZiel{sessions: []*fakeEinspiel{sitz}}
 				z, err := spieleZaehler(context.Background(), t, rec, ziel, vergleichen())
+				if zu, ohne := sitz.war(); !zu || !ohne {
+					t.Fatalf("geschlossen %v, ohne Terminate %v, erwartet beides", zu, ohne)
+				}
 				want := e5004 + abweichungText(2, "Fehler") + " (SQLSTATE aufgezeichnet „57P01“, Server „57P01“)"
 				if got := texte(err); !reflect.DeepEqual(got, []string{want}) || exitVon(err) != 5 {
 					t.Fatalf("Meldungen %q, Exit-Code %d, erwartet [%q] mit 5", got, exitVon(err), want)

@@ -327,15 +327,31 @@ func (s *einspielSession) Naechste() (model.Response, error) {
 
 // Schliesse beendet den Sender, sendet Terminate nur, wenn gerade nichts
 // sendet, und höchstens terminateFrist lang; danach schließt es die
-// Verbindung.
+// Verbindung. Nach einem Schließen ist es ohne Wirkung.
 func (s *einspielSession) Schliesse() {
+	s.schliesse(true)
+}
+
+// SchliesseOhneTerminate beendet den Sender und schließt die Verbindung, ohne
+// Terminate zu senden. Nach einem Schließen ist es ohne Wirkung.
+func (s *einspielSession) SchliesseOhneTerminate() {
+	s.schliesse(false)
+}
+
+// schliesse wirkt nur beim ersten Schließen der Session und sendet nur dort,
+// und nur mit terminate, ein Terminate.
+func (s *einspielSession) schliesse(terminate bool) {
 	s.zustand.Lock()
-	if !s.geschlossen {
+	erstes := !s.geschlossen
+	if erstes {
 		s.geschlossen = true
 		close(s.ende)
 	}
 	s.zustand.Unlock()
-	if s.schreiben.TryLock() {
+	if !erstes {
+		return
+	}
+	if terminate && s.schreiben.TryLock() {
 		_ = s.conn.SetWriteDeadline(time.Now().Add(terminateFrist))
 		s.fe.Send(&pgproto3.Terminate{})
 		_ = s.fe.Flush()

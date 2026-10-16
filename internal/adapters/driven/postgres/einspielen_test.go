@@ -355,6 +355,7 @@ func verbinde(t *testing.T, addr string) interface {
 	Anfrage(sql string) error
 	Naechste() (model.Response, error)
 	Schliesse()
+	SchliesseOhneTerminate()
 } {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
