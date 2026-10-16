@@ -351,6 +351,19 @@ func TestRecordEndeDanachNichts(t *testing.T) {
 			t.Fatalf("Query: %v", err)
 		}
 	})
+	t.Run("nach Ende einer einfachen Anfrage", func(t *testing.T) {
+		l := beginne(t, ende)
+		if _, err := l.einfach(); err != nil {
+			t.Fatal(err)
+		}
+		l.s.Delivered(context.Background(), l.id)
+		if _, err := l.s.Query(context.Background(), l.id, "SELECT 2"); err != model.ErrSessionEnded {
+			t.Fatalf("Query: %v", err)
+		}
+		if err := l.s.ClientMessage(context.Background(), l.id, cParse()); err != model.ErrSessionEnded {
+			t.Fatalf("ClientMessage: %v", err)
+		}
+	})
 	t.Run("Lesen des Upstreams", func(t *testing.T) {
 		l := nachEnde(t, false)
 		l.up.letzte.empfang <- []model.Response{sRFQ()}
