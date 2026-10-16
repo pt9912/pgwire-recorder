@@ -27,7 +27,7 @@ diese Liste ist der Lauf nicht reproduzierbar):
 - Slice-Plan `slice-v1-abschluss-verbindungsende-einspielen-grenzen` (§1, §3, §4, §6, §7 *Belege des Implementers*, §8)
 - Geber `slice-v1-abschluss-verbindungsende-einspielen` (38a) und `slice-v1-abschluss-verbindungsende-einspielen-extended` (38b)
 - Spezifikation `LH-FA-20.a` (*Interaktion*, Einstufung; Architect-Commits `526a50f`, `5c8c592`, `e92825a`, `51145c0`), `SPEC-034` (`PGR-E4003`)
-- `ADR-0039` und `ADR-0017` als Inline-Code gelesen: [ADR-0039](../plan/adr/0039-aufzeichnung-kennt-das-verbindungsende.md), [ADR-0017](../plan/adr/0017-einspielen-sequenziell-und-fehlersemantik.md)
+- [ADR-0039](../plan/adr/0039-aufzeichnung-kennt-das-verbindungsende.md), [ADR-0017](../plan/adr/0017-einspielen-sequenziell-und-fehlersemantik.md)
 - berührte `LH-*`-IDs: `LH-FA-20`, `LH-FA-25`
 - `AGENTS.md` (Hard Rules, §3.7 bis §3.14)
 
