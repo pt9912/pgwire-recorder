@@ -33,10 +33,9 @@ type Upstream interface {
 // Receive mit dieser Fehlerantwort und danach connection_closed statt mit
 // ReadyForQuery; die Session wartet nicht auf das Verbindungsende und liest
 // nichts dahinter. Send liefert danach keinen Fehler, auch wenn das Schreiben
-// scheitert; ohne gelesene Fehlerantwort ist ein Sendefehler PGR-E4003, nach einer
-// anderen gelesenen Fehlerantwort PGR-E6001 (LH-FA-02.b). Nach
-// connection_closed ruft der Aufrufer nur noch Close; was Query, Send und Receive
-// dann liefern, ist nicht zugesagt.
+// scheitert, und liest nichts; ohne gelesene Fehlerantwort ist ein Sendefehler
+// PGR-E4003, nach einer anderen gelesenen Fehlerantwort PGR-E6001 (LH-FA-02.b).
+// Was Query und Receive nach connection_closed liefern, ist nicht zugesagt.
 type UpstreamSession interface {
 	// Query sendet eine einfache Anfrage und liefert die Antworten bis
 	// einschließlich ReadyForQuery oder, bei einem Ende des Servers, bis

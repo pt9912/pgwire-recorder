@@ -1,13 +1,16 @@
 package postgres_test
 
 import (
+	"io"
 	"net"
 	"reflect"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
+	"github.com/pt9912/pgwire-recorder/internal/adapters/driven/postgres"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
 )
@@ -321,5 +324,65 @@ func TestSendNachDemEnde(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// zaehlendeVerbindung zählt die Aufrufe von Read.
+type zaehlendeVerbindung struct {
+	net.Conn
+	gelesen atomic.Int64
+}
+
+func (z *zaehlendeVerbindung) Read(b []byte) (int, error) {
+	z.gelesen.Add(1)
+	return z.Conn.Read(b)
+}
+
+// Abdeckung: LH-FA-25/Boundary — Upstream-Adapter, Senden nach dem Ende: Hat die Leserichtung
+// eine ErrorResponse FATAL gelesen, ruft Send Read der Verbindung nicht auf, auch wenn eine
+// weitere Nachricht des Servers wartet, und kehrt binnen zwei Sekunden zurück; die wartende
+// Nachricht bleibt unverbraucht.
+func TestSendLiestNichtNachDemEnde(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = l.Close() })
+	weiter := make(chan struct{})
+	go func() {
+		c, err := l.Accept()
+		if err != nil {
+			return
+		}
+		defer c.Close()
+		if _, err := c.Write(kodiere(t, []pgproto3.BackendMessage{beendet()})); err != nil {
+			return
+		}
+		<-weiter
+		_, _ = c.Write(kodiere(t, []pgproto3.BackendMessage{&pgproto3.ReadyForQuery{TxStatus: 'I'}}))
+		_, _ = io.Copy(io.Discard, c)
+	}()
+	roh, err := net.Dial("tcp", l.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	z := &zaehlendeVerbindung{Conn: roh}
+	s := postgres.NeueSession(z)
+	t.Cleanup(func() { _ = s.Close() })
+	rs, err := s.Receive(ctx(t))
+	if err != nil || len(rs) != 2 || rs[1].Type != model.ResponseConnectionClosed {
+		t.Fatalf("Receive: %v, %v", typen(rs), err)
+	}
+	vorher := z.gelesen.Load()
+	close(weiter)
+	var sendErr error
+	fertigBinnen(t, 2*time.Second, "Send nach dem Ende", func() {
+		sendErr = s.Send(ctx(t), []model.ClientMessage{{Type: model.ClientSync}})
+	})
+	if sendErr != nil {
+		t.Fatalf("Send nach dem Ende: %v", sendErr)
+	}
+	if nachher := z.gelesen.Load(); nachher != vorher {
+		t.Fatalf("Send ruft Read auf: %d Aufrufe vor, %d nach dem Senden", vorher, nachher)
 	}
 }
