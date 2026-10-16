@@ -239,7 +239,7 @@ Der Mutant „Warten auf `ReadyForQuery` nach dem Signal“ trifft das zweite Si
 | V-3 INFO, Zusagen von `LH-FA-24.a` ohne Test bis zum Nehmer | getragen vom Nehmer `slice-v1-abschluss-verbindungsende-vergleich` (Bindung, §6 Risiko 2); Wortlaut des Einleitungssatzes: Architect |
 | V-4 INFO, Zwischen-Commits mit Kopien des Quellbaums | nichts zu tun im Slice; Endstand sauber, die History zu bereinigen ist Entscheidung des Nutzers (Hinweis an ihn) |
 
-**Messung** (`git diff --numstat 08290f8..<letzter Commit> -- internal test docs/user`): siehe den Lauf unten; der Kommentar von `Play` kommt mit +3 Zeilen hinzu.
+**Messung** (`git diff --numstat 08290f8..<letzter Commit> -- internal test docs/user`): **539** (Einfügungen 501, Löschungen 38; Marke 1000: 54 %, Meldeschwelle 800 nicht erreicht); der Kommentar von `Play` kommt mit +3 Zeilen hinzu (Produktcode 42). Läufe: `make gates` grün, Exit-Code 0, ein Lauf, Stand des Commits mit dem Kommentar; danach nur diese Zeile in §7.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
