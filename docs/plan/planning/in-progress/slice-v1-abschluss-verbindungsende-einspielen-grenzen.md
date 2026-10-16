@@ -53,7 +53,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [x] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Gegen PostgreSQL am Binary: Eine handgeschriebene Aufzeichnung einer einfachen Anfrage mit Ende, deren Ausführung den Backend beendet (`FATAL`, SQLSTATE `57P01`), endet **ohne** `--allow-recorded-errors` mit `PGR-E4003` und Exit-Code 4; eine Aufzeichnung ohne Ende an der Stelle (aufgezeichnet `ERROR`, der Server sendet `FATAL`) endet **mit** der Option mit `PGR-E4003` und Exit-Code 4 (Integrationstest, eine Aufzeichnung als eigene Datei je Fall).
-- [ ] Je Zusage des Vertrags eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
+- [x] Je Zusage des Vertrags eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
 - [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -148,9 +148,9 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 | Mit Option, aber ohne aufgezeichnetes Ende an der Stelle ist das Ende nicht erwartet | Zeile 261 `l.ende = s.optionen.AllowRecordedErrors` (Aufzeichnung nicht geprüft) | `TestE2EPlayEndeGrenzeOhneEnde` (Ausgabe: Exit 0, `play beendet eingespielt=2`); `ohne-option` bleibt grün (Isolation) |
 | Die Meldung nennt die Stelle (Session und Interaktion) | Zeile 203 ohne `Interaktion %d` | beide Grenzfälle rot (dazu die Bestandstests der Fehlerstelle, Folge der Mutation an einer gemeinsamen Meldung) |
 | Die Meldung trägt `PGR-E4003` | Zeile 417 `CodeServerError` statt `CodeConnectionLost` | beide Grenzfälle rot (dazu `TestE2EPlayFortsetzungAbbruch`) |
-| Exit-Code 4 | keine eigene Mutation gefahren: Die Zuordnung Code zu Exit-Klasse liegt im CLI-Adapter, der Fall prüft `code != 4` und würde bei einer anderen Klasse rot; ungesehen. | — |
+| Exit-Code 4 | `internal/hexagon/model/fehler.go`, `exitCode`: `PGR-E4003` liefert 5 (Wurzel der Zuordnung, `Error.ExitCode`) | beide Grenzfälle rot (Ausgabe: „Exit-Code 5, erwartet 4“); dazu `TestE2ERecordExtendedAbbruch`, `TestE2ERecordExtendedSigtermNachBlockade`, `TestE2EPlayFortsetzungAbbruch` |
 
-Der zweite DoD-Punkt ist deshalb offen: Exit 4 hat keine gesehene Mutation (Vorschlag für den Verifier: die Klasse des Codes im CLI-Adapter ändern und `make test-integration` fahren).
+Alle Zusagen tragen eine gesehene Mutation (Exit 4 nachgeholt auf Anweisung des Koordinators, Mutant im Arbeitsbaum, `touch`, danach `git checkout`; `git diff fa149c68..HEAD -- internal` ist leer, daher kein neuer voller `make gates`).
 
 **Messung** (Metrik §4, `git diff --numstat fa149c68..670ec850 -- internal test docs/user`): Summe **92** (Marke 400, Meldeschwelle 300 nicht erreicht; Schätzung 140 bis 190, darunter): `play_ende_grenzen_e2e_test.go` 52, zwei Fixtures je 18, Abdeckungstabelle 4. Je Fall mit Testdaten 46 (92 durch zwei Fälle; die Hilfe `spieleEndeNichtErwartet` und der Kopf der Testdatei, rund 30 Zeilen, sind geteilt). Gegenüber 65 bis 70 der Geber niedriger, weil die Fälle eine gemeinsame Hilfe `spieleEndeNichtErwartet` teilen.
 
