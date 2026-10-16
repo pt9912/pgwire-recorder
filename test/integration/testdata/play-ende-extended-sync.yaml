@@ -1,0 +1,43 @@
+format: pgwire-recorder
+version: 2
+sessions:
+  - id: 1
+    startup:
+      user: postgres
+      database: postgres
+    interactions:
+      - sequence: 1
+        type: extended
+        groups:
+          - client:
+              - {type: parse, statement: "", sql: "SELECT 1", param_types: []}
+              - {type: sync}
+            server:
+              - {type: parse_complete}
+              - {type: ready_for_query, tx_status: I}
+      - sequence: 2
+        type: extended
+        groups:
+          - client:
+              - {type: parse, statement: "", sql: "SELECT pg_terminate_backend(pg_backend_pid())", param_types: []}
+              - {type: bind, portal: "", statement: "", param_formats: [], params: [], result_formats: []}
+              - {type: flush}
+            server:
+              - {type: parse_complete}
+              - {type: bind_complete}
+          - client:
+              - {type: execute, portal: "", max_rows: 0}
+              - {type: sync}
+            server:
+              - {type: error_response, notice: {V: FATAL, S: FATAL, C: 57P01, M: terminating connection due to administrator command}}
+              - {type: connection_closed}
+  - id: 2
+    startup:
+      user: postgres
+      database: postgres
+    interactions:
+      - sequence: 1
+        request: {type: query, sql: "CREATE TABLE ende_folge (n int)"}
+        responses:
+          - {type: command_complete, tag: CREATE TABLE}
+          - {type: ready_for_query, tx_status: I}

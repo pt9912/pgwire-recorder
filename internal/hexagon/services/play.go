@@ -232,9 +232,9 @@ func (s *PlayService) startup(sess model.Session) map[string]string {
 // interaktion spielt eine Interaktion ein: eine einfache Anfrage mit anfrage,
 // eine Extended-Interaktion mit extended. Ohne CompareResponses verwerfen beide
 // jede Antwort außer einer Fehlerantwort. Eine Fehlerantwort mit dem Schweregrad
-// FATAL oder PANIC (Feld V, ohne es S) ist PGR-E4003 und bricht ab, außer bei
-// einer einfachen Anfrage mit AllowRecordedErrors, deren Aufzeichnung mit
-// connection_closed endet: Dort ist das Ende erwartet, keine Meldung, und die
+// FATAL oder PANIC (Feld V, ohne es S) ist PGR-E4003 und bricht ab, außer mit
+// AllowRecordedErrors, wenn die Aufzeichnung der Interaktion mit connection_closed
+// endet (traegtEnde): Dort ist das Ende erwartet, keine Meldung, und die
 // Session endet (errSessionEnde). Jede andere ist mit AllowRecordedErrors erwartet, wenn die
 // Aufzeichnung der Interaktion eine error_response trägt, und ohne Meldung;
 // sonst ist sie PGR-E4004, mit ContinueOnError an weiter gereicht, ohne ihn der
@@ -256,7 +256,7 @@ func (s *PlayService) interaktion(us driven.EinspielSession, in model.Interactio
 		l.v = neuerVergleich(in)
 	} else {
 		l.erwartet = s.optionen.AllowRecordedErrors && mitFehlerantwort(in)
-		l.ende = s.optionen.AllowRecordedErrors && endetEinfach(in)
+		l.ende = s.optionen.AllowRecordedErrors && traegtEnde(in)
 	}
 	var err error
 	if in.Request.Type == model.RequestExtended {
@@ -305,14 +305,16 @@ func (s *PlayService) anfrage(l *lauf, sql string) error {
 // (erwarteteAntworten); nach der letzten Gruppe, die mit Sync endet, liest sie
 // bis zum ReadyForQuery. Nach einer Fehlerantwort, die nicht abbricht, zählt
 // sie nicht mehr: Sie sendet die übrigen Gruppen ohne Warten dazwischen und
-// liest dann bis zum ReadyForQuery.
+// liest dann bis zum ReadyForQuery. Endet die letzte Gruppe mit Flush (nur bei
+// aufgezeichnetem Ende), kommt kein ReadyForQuery: Die Interaktion endet mit den
+// Antworten dieser Gruppe oder mit der Fehlerantwort, ohne Frist.
 func (s *PlayService) extended(l *lauf, gruppen []model.Group) error {
 	fehlerGesehen := false
 	for _, g := range gruppen {
 		if err := l.us.Gruppe(g.Client); err != nil {
 			return err
 		}
-		if fehlerGesehen || g.Client[len(g.Client)-1].Type != model.ClientFlush {
+		if fehlerGesehen || !endetMitFlush(g) {
 			continue
 		}
 		for n := erwarteteAntworten(g.Client); n > 0; {
@@ -334,7 +336,15 @@ func (s *PlayService) extended(l *lauf, gruppen []model.Group) error {
 			}
 		}
 	}
+	if endetMitFlush(gruppen[len(gruppen)-1]) {
+		return nil
+	}
 	return s.bisBereit(l)
+}
+
+// endetMitFlush meldet, ob die Gruppe mit Flush abschließt.
+func endetMitFlush(g model.Group) bool {
+	return g.Client[len(g.Client)-1].Type == model.ClientFlush
 }
 
 // erwarteteAntworten ist die Zahl der Antworten, auf die der Server nach einer
@@ -452,6 +462,18 @@ func (s *PlayService) abschluss(l *lauf) error {
 	}
 	l.weiter(fehler)
 	return nil
+}
+
+// traegtEnde meldet, ob die Aufzeichnung der Interaktion mit connection_closed
+// endet: bei der einfachen Anfrage die letzte Antwort, bei der Extended-Interaktion
+// die letzte Server-Nachricht der letzten Gruppe (LH-FA-25.a).
+func traegtEnde(in model.Interaction) bool {
+	if in.Request.Type != model.RequestExtended {
+		return endetEinfach(in)
+	}
+	server := in.Groups[len(in.Groups)-1].Server
+	n := len(server)
+	return n > 0 && server[n-1].Type == model.ResponseConnectionClosed
 }
 
 // mitFehlerantwort meldet, ob die Aufzeichnung der Interaktion an irgendeiner
