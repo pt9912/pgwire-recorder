@@ -126,7 +126,8 @@ func NewPlayService(ctx context.Context, repo driven.RecordingRepository, path s
 // Play spielt die Sessions ein (LH-FA-20.a). Endet ctx (erstes
 // Abbruchsignal), beginnt keine weitere Session und, ohne
 // FinishSessionOnInterrupt, keine weitere Interaktion; ein laufender Aufbau
-// läuft zu Ende, eine laufende Interaktion bis zu ihrem ReadyForQuery, eine
+// läuft zu Ende, eine laufende Interaktion bis zu ihrem ReadyForQuery, bei einer
+// letzten Gruppe mit Flush bis zur Antwort auf jede ihrer Client-Nachrichten, eine
 // Wartezeit (KeepTiming) endet sofort, und danach wartet Play nicht mehr. Wird
 // ablauf geschlossen (zweites Signal), schließt es die laufende Verbindung
 // sofort; der unterbrochene Aufbau oder die unterbrochene Interaktion ist kein
