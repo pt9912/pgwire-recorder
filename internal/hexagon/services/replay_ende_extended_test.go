@@ -22,14 +22,16 @@ func endeGruppeServer(sev string) []model.Response {
 func extendedEnde(seq int, sev string, davor bool) model.Interaction {
 	in := model.Interaction{Sequence: seq, Request: model.Request{Type: model.RequestExtended}}
 	if davor {
-		in.Groups = append(in.Groups, model.Group{Client: endeNachrichten[:2], Server: []model.Response{{Type: model.ResponseParseComplete}}})
+		in.Groups = append(in.Groups, model.Group{Client: endeNachrichten()[:2], Server: []model.Response{{Type: model.ResponseParseComplete}}})
 	}
-	return model.Interaction{Sequence: seq, Request: in.Request, Groups: append(in.Groups, model.Group{Client: endeNachrichten[2:], Server: endeGruppeServer(sev)})}
+	return model.Interaction{Sequence: seq, Request: in.Request, Groups: append(in.Groups, model.Group{Client: endeNachrichten()[2:], Server: endeGruppeServer(sev)})}
 }
 
 // endeNachrichten sind die Client-Nachrichten von extendedEnde mit davor: eine
 // Gruppe mit Flush (parse, flush) und die Gruppe mit Sync (bind, execute, sync).
-var endeNachrichten = []model.ClientMessage{parse("s1", "SELECT $1::text"), flushNachricht(), bind("s1", text("a")), execute(), syncNachricht()}
+func endeNachrichten() []model.ClientMessage {
+	return []model.ClientMessage{parse("s1", "SELECT $1::text"), flushNachricht(), bind("s1", text("a")), execute(), syncNachricht()}
+}
 
 // endeVerbindung lädt die Interaktionen als eine Session und öffnet die erste
 // Verbindung.
@@ -45,7 +47,7 @@ func endeVerbindung(t *testing.T, ins []model.Interaction, opts ...services.Repl
 // Ende meldet der Aufrufer.
 func sendeBis(t *testing.T, s *services.ReplayService, id model.SessionID, n int) (out []model.Response) {
 	t.Helper()
-	for _, m := range endeNachrichten[:n] {
+	for _, m := range endeNachrichten()[:n] {
 		var err error
 		if out, err = s.ClientMessage(context.Background(), id, m); err != nil {
 			t.Fatalf("Nachricht %s: %v", m.Type, err)
@@ -82,12 +84,12 @@ func TestReplayEndeExtendedGruppeMitEnde(t *testing.T) {
 				t.Fatalf("Gruppe mit Flush davor: %#v", out)
 			}
 		}
-		for _, m := range endeNachrichten[2:4] {
+		for _, m := range endeNachrichten()[2:4] {
 			if out, err := s.ClientMessage(context.Background(), id, m); err != nil || out != nil {
 				t.Fatalf("%s: Antwort vor dem abschließenden Sync: %#v, %v", sev, out, err)
 			}
 		}
-		out, err := s.ClientMessage(context.Background(), id, endeNachrichten[4])
+		out, err := s.ClientMessage(context.Background(), id, endeNachrichten()[4])
 		if want := endeGruppeServer(sev); err != nil || !reflect.DeepEqual(out, want) {
 			t.Fatalf("%s: erwartet %#v, erhalten %#v, %v", sev, want, out, err)
 		}
@@ -192,7 +194,7 @@ func TestReplayEndeExtendedAbweichung(t *testing.T) {
 			t.Fatalf("%s: erwartet %s ohne Antworten, erhalten %#v, %v", f.name, model.CodeReplayMismatch, out, err)
 		}
 		var out []model.Response
-		for _, m := range endeNachrichten[f.vorher:] {
+		for _, m := range endeNachrichten()[f.vorher:] {
 			out, _ = s.ClientMessage(ctx, id, m)
 		}
 		if !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
@@ -267,7 +269,7 @@ func TestReplayEndeExtendedFirstRequest(t *testing.T) {
 	ctx := context.Background()
 	s := ladeEnde(t, endeAufzeichnung([]model.Interaction{extendedEnde(1, "FATAL", false)}, []model.Interaction{extendedEnde(1, "PANIC", false)}))
 	a, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, a, endeNachrichten[2:]...); !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
+	if out := sendeAlle(t, s, a, endeNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
 		t.Fatalf("erste Session: %#v", out)
 	}
 	if w := unassigned(t, s); w == nil || !strings.Contains(w.Msg, "1 aufgezeichnete") || !strings.Contains(w.Msg, "Kennung 2") {
@@ -277,11 +279,11 @@ func TestReplayEndeExtendedFirstRequest(t *testing.T) {
 		t.Fatalf("Session 1: %v", w)
 	}
 	b, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, b, endeNachrichten[2:]...); !reflect.DeepEqual(out, endeGruppeServer("PANIC")) {
+	if out := sendeAlle(t, s, b, endeNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("PANIC")) {
 		t.Fatalf("zweite Session: %#v", out)
 	}
 	c, _ := s.OpenConnection(ctx)
-	for _, m := range []model.ClientMessage{endeNachrichten[2], syncNachricht()} {
+	for _, m := range []model.ClientMessage{endeNachrichten()[2], syncNachricht()} {
 		if out, err := s.ClientMessage(ctx, c, m); code(err) != model.CodeReplaySession || out != nil {
 			t.Fatalf("%s ohne freie Session: erwartet %s, erhalten %#v, %v", m.Type, model.CodeReplaySession, out, err)
 		}
@@ -300,21 +302,21 @@ func TestReplayEndeExtendedConnection(t *testing.T) {
 	s := nachVerbindung(t, rec)
 	a, _ := s.OpenConnection(ctx)
 	b, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, a, endeNachrichten[2:]...); !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
+	if out := sendeAlle(t, s, a, endeNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("FATAL")) {
 		t.Fatalf("Session 1 an Verbindung 1: %#v", out)
 	}
 	if w := gesendetSchliessen(t, s, a); w != nil {
 		t.Fatalf("Session 1: %v", w)
 	}
-	if out := sendeAlle(t, s, b, endeNachrichten[2:]...); zahl(out, model.ResponseConnectionClosed) != 0 || len(out) != 3 {
+	if out := sendeAlle(t, s, b, endeNachrichten()[2:]...); zahl(out, model.ResponseConnectionClosed) != 0 || len(out) != 3 {
 		t.Fatalf("Session 2 an Verbindung 2: %#v", out)
 	}
 	c, _ := s.OpenConnection(ctx)
-	if out := sendeAlle(t, s, c, endeNachrichten[2:]...); !reflect.DeepEqual(out, endeGruppeServer("PANIC")) {
+	if out := sendeAlle(t, s, c, endeNachrichten()[2:]...); !reflect.DeepEqual(out, endeGruppeServer("PANIC")) {
 		t.Fatalf("Session 3 an Verbindung 3 nach dem Schließen der ersten: %#v", out)
 	}
 	d, _ := s.OpenConnection(ctx)
-	if out, err := s.ClientMessage(ctx, d, endeNachrichten[2]); code(err) != model.CodeReplaySession || out != nil {
+	if out, err := s.ClientMessage(ctx, d, endeNachrichten()[2]); code(err) != model.CodeReplaySession || out != nil {
 		t.Fatalf("Verbindung ohne Session: erwartet %s, erhalten %#v, %v", model.CodeReplaySession, out, err)
 	}
 }
