@@ -166,7 +166,7 @@ ADR nötig ist (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe aus Einfügungen und
   Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools harness`
-  liegt über 900; Basis ist der Commit des `git mv` nach `in-progress/`. Die Schätzung des
+  liegt über 900; Basis ist `8d14a918` (HEAD vor dem Anspruch; er enthält Vertrag und Plan, die Move-Commits berühren `tools` und `harness` nicht). Die Schätzung des
   Architect (2026-10-17) in dieser Metrik: Spanne 450 bis 750, Mitte 580, Obergrenze 750
   (Skript 110 bis 150; Gegenprobe 300 bis 450, das Zwei- bis Dreifache des Skripts nach dem
   Faktor aus `AGENTS.md` §3.14; Fragment, Sensor-Datei und Zeilen in `harness/README.md` und
