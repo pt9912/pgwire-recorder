@@ -224,7 +224,7 @@ Nur Kommentare, keine Logik; Architect: `LH-FA-13.a` „bis zu ihrem Abschluss�
 | F-4 (INFO): akzeptiertes Negativ zu `Terminate` am Adapter trägt | verlangt nichts |
 | V-1 (LOW, Verifikation): Kommentar von `Shutdown` im Port sagt „deren Sync noch aussteht“ | Kommentar in `ports/driving/replay.go` auf „deren Abschluss noch aussteht“ gesetzt; Suche nach weiteren Kommentaren im Replay-Pfad (`services/replay*.go`, `ports/driving/replay.go`, `server.go`): `replay.go` Z. 384 („bis zum Sync verworfen“) meint das Verwerfen bis zum Sync des Protokolls, nicht den Abschluss der Interaktion, und bleibt; sonst keiner |
 
-**Messung nach der Nacharbeit (§3.14).** `git diff --numstat e982c7be4073c4e54be8c04a50125389af5ee660..<letzter Commit> -- internal test docs/user`: **351 nach V-1** (349 nach F-1/F-2, 342 davor; Kommentarzeilen: `replay.go` 1 und 1, `server.go` 3 und 2, Port 1 und 1), 70 % der Marke 500, Meldeschwelle 400 nicht erreicht. Produktcode: keine Logik, zwei Kommentare. Voller `make gates` ein Lauf an `07faa02`: Exit 0, 13 min 2 s. Nach V-1 voller `make gates` ein Lauf an dem Commit, der V-1 behebt (SHA im Bericht): grün.
+**Messung nach der Nacharbeit (§3.14).** `git diff --numstat e982c7be4073c4e54be8c04a50125389af5ee660..<letzter Commit> -- internal test docs/user`: **351 nach V-1** (349 nach F-1/F-2, 342 davor; Kommentarzeilen: `replay.go` 1 und 1, `server.go` 3 und 2, Port 1 und 1), 70 % der Marke 500, Meldeschwelle 400 nicht erreicht. Produktcode: keine Logik, zwei Kommentare. Voller `make gates` ein Lauf an `07faa02`: Exit 0, 13 min 2 s. Nach V-1 voller `make gates` ein Lauf an `6b04534`: Exit 0, 12 min 59 s.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
