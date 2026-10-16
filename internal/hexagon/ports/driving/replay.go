@@ -34,7 +34,7 @@ type Replayer interface {
 	// ist PGR-E5001 (LH-FA-18.a).
 	ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) ([]model.Response, error)
 	// Shutdown fragt, ob die Verbindung beim Herunterfahren enden darf: true,
-	// wenn keine Extended-Interaktion läuft, deren Sync noch aussteht
+	// wenn keine Extended-Interaktion läuft, deren Abschluss noch aussteht
 	// (LH-FA-13.a). Es ändert keinen Zustand und darf mehrfach gerufen werden;
 	// dass danach keine neue Interaktion beginnt, hält der Aufrufer ein.
 	Shutdown(ctx context.Context, id model.SessionID) bool
