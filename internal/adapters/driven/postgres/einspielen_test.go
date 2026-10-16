@@ -653,41 +653,50 @@ func (c *sendeSperre) Close() error {
 
 func (c *sendeSperre) SetWriteDeadline(time.Time) error { return nil }
 
-// Abdeckung: LH-FA-20/Boundary — Schliesse (zweites Signal) schreibt nichts,
-// während Anfrage sendet: kein Terminate zwischen die Bytes der Anfrage; es
-// schließt die Verbindung, und das Senden scheitert (LH-FA-20.a
-// *Abbruchsignal*).
+// Abdeckung: LH-FA-20/Boundary — Schliesse (zweites Signal) und
+// SchliesseOhneTerminate (Fehlerantwort FATAL während eine Gruppe sendet)
+// schreiben nichts, während Anfrage sendet: kein Terminate zwischen die Bytes
+// der Anfrage; sie schließen die Verbindung, und das Senden scheitert (LH-FA-20.a
+// *Abbruchsignal*, *Ende einer Session*).
 func TestEinspielSchliesseSchreibtNichtBeimSenden(t *testing.T) {
-	conn := &sendeSperre{schreibt: make(chan struct{}), zu: make(chan struct{})}
-	s := postgres.NeueEinspielSession(conn)
-	gesendet := make(chan error, 1)
-	go func() { gesendet <- s.Anfrage("SELECT 1") }()
-	select {
-	case <-conn.schreibt:
-	case <-time.After(5 * time.Second):
-		t.Fatal("Anfrage beginnt binnen 5 s nicht zu senden")
-	}
-	geschlossen := make(chan struct{})
-	go func() {
-		s.Schliesse()
-		close(geschlossen)
-	}()
-	select {
-	case <-geschlossen:
-	case <-time.After(5 * time.Second):
-		t.Fatal("Schliesse endet binnen 5 s nicht, während Anfrage sendet")
-	}
-	select {
-	case err := <-gesendet:
-		if code(err) != model.CodeConnectionLost {
-			t.Fatalf("Anfrage nach Schliesse: %v, erwartet %s", err, model.CodeConnectionLost)
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("Anfrage endet binnen 5 s nach Schliesse nicht")
-	}
-	conn.mu.Lock()
-	defer conn.mu.Unlock()
-	if conn.gleichzeitig != 0 {
-		t.Fatalf("Schliesse schreibt %d-mal, während Anfrage sendet", conn.gleichzeitig)
+	for _, ohne := range []bool{false, true} {
+		t.Run(map[bool]string{false: "Schliesse", true: "SchliesseOhneTerminate"}[ohne], func(t *testing.T) {
+			conn := &sendeSperre{schreibt: make(chan struct{}), zu: make(chan struct{})}
+			s := postgres.NeueEinspielSession(conn)
+			gesendet := make(chan error, 1)
+			go func() { gesendet <- s.Anfrage("SELECT 1") }()
+			select {
+			case <-conn.schreibt:
+			case <-time.After(5 * time.Second):
+				t.Fatal("Anfrage beginnt binnen 5 s nicht zu senden")
+			}
+			geschlossen := make(chan struct{})
+			go func() {
+				if ohne {
+					s.SchliesseOhneTerminate()
+				} else {
+					s.Schliesse()
+				}
+				close(geschlossen)
+			}()
+			select {
+			case <-geschlossen:
+			case <-time.After(5 * time.Second):
+				t.Fatal("das Schließen endet binnen 5 s nicht, während Anfrage sendet")
+			}
+			select {
+			case err := <-gesendet:
+				if code(err) != model.CodeConnectionLost {
+					t.Fatalf("Anfrage nach dem Schließen: %v, erwartet %s", err, model.CodeConnectionLost)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("Anfrage endet binnen 5 s nach dem Schließen nicht")
+			}
+			conn.mu.Lock()
+			defer conn.mu.Unlock()
+			if conn.gleichzeitig != 0 {
+				t.Fatalf("das Schließen schreibt %d-mal, während Anfrage sendet", conn.gleichzeitig)
+			}
+		})
 	}
 }

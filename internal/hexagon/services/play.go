@@ -376,11 +376,11 @@ func (s *PlayService) bisBereit(l *lauf) error {
 
 // fehlerantwort stuft eine Fehlerantwort ein. Bei FATAL und PANIC schließt sie
 // die Verbindung sofort ohne Terminate (SchliesseOhneTerminate), mit und ohne
-// Vergleich. Ohne Vergleich: FATAL und PANIC sind PGR-E4003, bei erwartetem
-// Ende keine Meldung (errSessionEnde); eine erwartete ist keine Meldung; jede andere ist PGR-E4004,
-// mit ContinueOnError an weiter gereicht, sonst der Fehler, den sie liefert. Mit
-// Vergleich: FATAL und PANIC sind sofort die Abweichung (fatal), jede andere
-// geht in den Vergleich am Ende der Interaktion ein.
+// Vergleich. Ohne Vergleich: FATAL und PANIC sind PGR-E4003, bei erwartetem Ende
+// keine Meldung (errSessionEnde); eine erwartete ist keine Meldung; jede andere
+// ist PGR-E4004, mit ContinueOnError an weiter gereicht, sonst der Fehler, den
+// sie liefert. Mit Vergleich: FATAL und PANIC sind sofort die Abweichung (fatal),
+// jede andere geht in den Vergleich am Ende der Interaktion ein.
 func (s *PlayService) fehlerantwort(l *lauf, r model.Response) error {
 	schwere := r.Fields["V"]
 	if schwere == "" {
