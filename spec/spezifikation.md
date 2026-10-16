@@ -1897,7 +1897,8 @@ offenlässt.
   wird je Antwort, nicht je Art: Eine Antwort anderer Art als erwartet ändert das Warten
   nicht, und `DataRow`, `NoticeResponse` und `ParameterStatus` zählen nicht. Nach
   einer `ErrorResponse` wartet `play` in dieser Interaktion nur noch auf das
-  `ReadyForQuery` nach ihrem `Sync`; läuft das Einspielen weiter, sendet es die
+  `ReadyForQuery` nach ihrem `Sync` (ausgenommen die letzte Gruppe mit `Flush`, unten, nach
+  der es nichts mehr liest); läuft das Einspielen weiter, sendet es die
   übrigen Gruppen ohne Warten dazwischen. Das Senden einer Gruppe und das Lesen der
   Antworten laufen unabhängig voneinander: Ein Server, der erst weiterliest, wenn seine
   Antworten abgenommen sind, blockiert `play` auch bei einer Gruppe nicht, deren
@@ -1913,7 +1914,12 @@ offenlässt.
   endet. Nach einer `ErrorResponse` `ERROR`, die nicht abbricht, sendet `play` die übrigen Gruppen,
   bevor es liest; scheitert dabei ein Senden, weil der Server die Verbindung nach einer `FATAL`
   schon beendet hat, ist das `PGR-E4003`, solange `play` die Fehlerantwort nicht gelesen hat
-  (*Interaktion*; das Rennen ist nicht steuerbar, Grenze ohne Test).
+  (*Interaktion*; das Rennen ist nicht steuerbar, Grenze ohne Test). Sendet der Server vor
+  einer `FATAL` schon so viele Antworten, wie die Zählregel nennt, liest `play` die `FATAL`
+  nicht; sendet er weniger Antworten, als die Zählregel nennt, wartet `play` ohne Frist
+  (Grenze: das Verhalten des Servers ist gegen die Referenz geprüft, bei einem beendeten Backend
+  sendet sie die `FATAL` als erste Antwort der Gruppe, für die übrigen Hauptversionen nicht
+  durch einen Test).
 * *Interaktion.* Jede andere Server-Nachricht wird gelesen und verworfen, auch
   `NoticeResponse`, `ParameterStatus` und `NotificationResponse`. `CopyInResponse`,
   `CopyOutResponse`, `CopyBothResponse` und eine Nachricht, die sich nicht lesen lässt,
@@ -2469,6 +2475,14 @@ an, und es wartet nicht auf das Verbindungsende. Daraus folgt:
   `FATAL` oder `PANIC` (etwa `ERROR` mit `ReadyForQuery`), vergleicht sich die Folge nach den
   gewöhnlichen Regeln: Der erste verschiedene Typ oder Inhalt ist die Abweichung, bei `ERROR` mit
   gleichem SQLSTATE die Position des `connection_closed` mit der Art Nachrichtenart.
+* Endet die letzte Gruppe der aufgezeichneten Interaktion mit `Flush` (Ende, `LH-FA-25.a`), liest
+  `play` nur bis zur Antwort auf jede ihrer Client-Nachrichten oder bis zu einer `ErrorResponse`
+  und wartet nicht auf ein `ReadyForQuery` (`LH-FA-20.a` *Gruppen*); `play` fügt der Folge
+  `connection_closed` nur nach `FATAL` oder `PANIC` an. Sendet der Server keine Fehlerantwort
+  `FATAL` oder `PANIC`, vergleicht sich die gelesene Folge, die kein `ready_for_query` und kein
+  `connection_closed` trägt, nach den gewöhnlichen Regeln: der erste verschiedene Typ oder Inhalt
+  ist die Abweichung, sonst die Position der ersten Nachricht ohne Gegenstück (*Position*), mit der
+  Art Nachrichtenart; weil die Aufzeichnung auf `connection_closed` endet, gibt es sie immer.
 
 Weicht eine frühere Position ab, ist das die erste Abweichung und gilt ihre Art. Ein
 Verbindungsverlust ohne Fehlerantwort ist keine Abweichung, sondern `PGR-E4003`
@@ -2484,8 +2498,9 @@ Je Interaktion wird die erste Abweichung gemeldet. Bei jedem Ende des Laufs (auc
 Abbruch und Signal) trägt die Zeile zum Ende, eine Log-Zeile der Stufe `info` auf
 `stderr` (`SPEC-006`), die Attribute `eingespielt`, `verglichen` und
 `abweichend`, ohne Meldungscode; es entsteht keine zweite Zeile. `verglichen` zählt jede Interaktion, deren Antworten
-mit Vergleich geprüft wurden, bis zum `ReadyForQuery` oder bis zur Fehlerantwort
-`FATAL` oder `PANIC`; eine Interaktion, die ein Verbindungsverlust oder das zweite Signal
+mit Vergleich geprüft wurden, bis zum `ReadyForQuery`, bis zur Fehlerantwort
+`FATAL` oder `PANIC` oder, bei der letzten Gruppe mit `Flush` eines Endes, bis zur Antwort auf
+jede ihrer Client-Nachrichten; eine Interaktion, die ein Verbindungsverlust oder das zweite Signal
 unterbricht, zählt nicht. `abweichend` zählt Interaktionen mit einer Abweichung, höchstens
 eine je Interaktion. Ohne
 `--compare-responses` gibt es keine Vergleiche, `verglichen` und `abweichend` sind
@@ -3423,4 +3438,5 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Herunterfahren: die laufende Extended-Interaktion nimmt ihre Client-Nachrichten bis zu ihrem Abschluss an statt bis zu ihrem `Sync` (bei Ende und `Flush` ist es dieses `Flush`; `LH-FA-13.a`, `LH-FA-18.a`) |
 | 2026-10-16 | Einspielen, Ende des Servers ohne Vergleich: Stelle der Fehlerantwort ist die Interaktion (Position der Antworten, Gruppe, nach einem `ERROR`), ein Grund der Ablehnung `PGR-E4003` ohne Reihenfolge, Verbindungsverlust trotz aufgezeichnetem Ende, Lesestand bei Sendefehler, letzte Gruppe mit `Flush` ohne Warten auf `ReadyForQuery`, kein `Terminate` nach der Fehlerantwort, Verhalten des Servers nur gegen die Referenz (`LH-FA-20.a`, `LH-FA-25.a`) |
 | 2026-10-16 | Einspielen, Ende des Servers in der Extended-Interaktion ohne Vergleich: Schritt 3 und Abbruchsignal nennen die letzte Gruppe mit `Flush` ohne `ReadyForQuery`, das Warten endet mit der Zahl der Antworten und nicht mit einer Frist, Sendefehler nach einem `ERROR`, das nicht abbricht, ist `PGR-E4003` bis zur gelesenen Fehlerantwort (Grenze ohne Test) (`LH-FA-20.a`, `LH-FA-25.a`) |
+| 2026-10-16 | Einspielen und Vergleich, letzte Gruppe mit `Flush` eines Endes: Wortlaut der Wartezeit nach einer `ErrorResponse` mit der Ausnahme, Grenzen (weniger Antworten als die Zählregel, `FATAL` nach vollständiger Zahl), Vergleich ohne `ready_for_query` und Zähler `verglichen` (`LH-FA-20.a`, `LH-FA-24.a`) |
 | 2026-10-16 | Einspielen, zweites Signal und Ende des Servers: kein `Terminate` gilt nach der gelesenen und geschlossenen Fehlerantwort; ein Signal zwischen Lesen und Schließen kann `Terminate` senden, Grenze ohne Test (`LH-FA-20.a`) |
