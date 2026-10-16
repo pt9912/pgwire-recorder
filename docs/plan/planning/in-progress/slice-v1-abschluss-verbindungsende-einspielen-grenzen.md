@@ -52,9 +52,9 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Gegen PostgreSQL am Binary: Eine handgeschriebene Aufzeichnung einer einfachen Anfrage mit Ende, deren Ausführung den Backend beendet (`FATAL`, SQLSTATE `57P01`), endet **ohne** `--allow-recorded-errors` mit `PGR-E4003` und Exit-Code 4; eine Aufzeichnung ohne Ende an der Stelle (aufgezeichnet `ERROR`, der Server sendet `FATAL`) endet **mit** der Option mit `PGR-E4003` und Exit-Code 4 (Integrationstest, eine Aufzeichnung als eigene Datei je Fall).
+- [x] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Gegen PostgreSQL am Binary: Eine handgeschriebene Aufzeichnung einer einfachen Anfrage mit Ende, deren Ausführung den Backend beendet (`FATAL`, SQLSTATE `57P01`), endet **ohne** `--allow-recorded-errors` mit `PGR-E4003` und Exit-Code 4; eine Aufzeichnung ohne Ende an der Stelle (aufgezeichnet `ERROR`, der Server sendet `FATAL`) endet **mit** der Option mit `PGR-E4003` und Exit-Code 4 (Integrationstest, eine Aufzeichnung als eigene Datei je Fall).
 - [ ] Je Zusage des Vertrags eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
-- [ ] `make gates` grün.
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -133,6 +133,28 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+### Belege des Implementers
+
+**Stand:** Basis `fa149c68`, Lieferung `670ec850`; Server `postgres:17-alpine` (Referenz). Kein Produktcode geändert (`git diff fa149c68..HEAD -- internal` leer); kein Befund an `play.go`, keine Rückführung, keine Randform außerhalb von §6.
+
+**Läufe:** `make test-integration` mit der Lieferung grün (beide Fälle `PASS`); `make abdeckung` schrieb 4 Zeilen in `docs/user/abdeckung-e2e.md`; `make gates` ein Lauf, Exit 0 (darin `abdeckung-check`, `a-check`, `lint`, `test-integration`, `test-postgres-versionen`, Gegenproben), Nachweis geschrieben.
+
+**Mutationen** (Wegwerf im Arbeitsbaum, nach jedem Lauf `git checkout`, `touch` vor dem Lauf; Stellen in `internal/hexagon/services/play.go`; je ein voller `make test-integration`, Exit 2):
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Ohne `--allow-recorded-errors` ist das Ende nicht erwartet, auch wenn es aufgezeichnet ist (`PGR-E4003`, Exit 4) | Zeile 261 `l.ende = traegtEnde(in)` (Option nicht geprüft) | `TestE2EPlayEndeGrenzeOhneOption`; `ohne-ende` bleibt grün (Isolation) |
+| Mit Option, aber ohne aufgezeichnetes Ende an der Stelle ist das Ende nicht erwartet | Zeile 261 `l.ende = s.optionen.AllowRecordedErrors` (Aufzeichnung nicht geprüft) | `TestE2EPlayEndeGrenzeOhneEnde` (Ausgabe: Exit 0, `play beendet eingespielt=2`); `ohne-option` bleibt grün (Isolation) |
+| Die Meldung nennt die Stelle (Session und Interaktion) | Zeile 203 ohne `Interaktion %d` | beide Grenzfälle rot (dazu die Bestandstests der Fehlerstelle, Folge der Mutation an einer gemeinsamen Meldung) |
+| Die Meldung trägt `PGR-E4003` | Zeile 417 `CodeServerError` statt `CodeConnectionLost` | beide Grenzfälle rot (dazu `TestE2EPlayFortsetzungAbbruch`) |
+| Exit-Code 4 | keine eigene Mutation gefahren: Die Zuordnung Code zu Exit-Klasse liegt im CLI-Adapter, der Fall prüft `code != 4` und würde bei einer anderen Klasse rot; ungesehen. | — |
+
+Der zweite DoD-Punkt ist deshalb offen: Exit 4 hat keine gesehene Mutation (Vorschlag für den Verifier: die Klasse des Codes im CLI-Adapter ändern und `make test-integration` fahren).
+
+**Messung** (Metrik §4, `git diff --numstat fa149c68..670ec850 -- internal test docs/user`): Summe **92** (Marke 400, Meldeschwelle 300 nicht erreicht; Schätzung 140 bis 190, darunter): `play_ende_grenzen_e2e_test.go` 52, zwei Fixtures je 18, Abdeckungstabelle 4. Je Fall mit Testdaten 46 (92 durch zwei Fälle; die Hilfe `spieleEndeNichtErwartet` und der Kopf der Testdatei, rund 30 Zeilen, sind geteilt). Gegenüber 65 bis 70 der Geber niedriger, weil die Fälle eine gemeinsame Hilfe `spieleEndeNichtErwartet` teilen.
+
+**Beobachtungen:** Der Plan schätzte 140 bis 190; gemessen 92, die Hilfe über zwei Fälle senkt den Satz je Fall (Beleg für `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` in der Gegenrichtung, Planner entscheidet über Aufnahme). Die E2E-Mutanten kosten einen vollen `make test-integration` (rund 2,5 Minuten) je Mutant.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
