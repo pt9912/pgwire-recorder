@@ -2565,6 +2565,8 @@ findet kein Vergleich statt.
 Ein *Ende des Servers* (kurz *Ende*) liegt vor, wenn der Upstream in einer laufenden
 Interaktion eine `ErrorResponse` mit dem Schweregrad `FATAL` oder `PANIC` sendet (Feld `V`,
 ohne es `S`) und danach die Verbindung beendet. Jeder andere Schweregrad ist kein Ende.
+Der Schweregrad wird beim Aufzeichnen gelesen wie in der Datei und beim Einspielen: ein leeres `V`
+gilt wie ein fehlendes, der Vergleich ist genau (`SPEC-002`, *Randformen des Endes in der Datei*).
 Dieser Abschnitt legt Aufzeichnen, Wiedergeben und Version fest; das Einspielen und den
 Vergleich legen `LH-FA-20.a` und `LH-FA-24.a` fest.
 
@@ -2593,7 +2595,12 @@ Vergleich legen `LH-FA-20.a` und `LH-FA-24.a` fest.
   `idle_session_timeout`), ist das Ende nur aufzeichenbar, wenn der Client danach noch eine
   Anfrage sendet: Die Fehlerantwort gehört dann zu dieser Anfrage, nach den Nachrichten
   zwischen den Interaktionen (`LH-FA-05.a`). Scheitert das Senden dieser Anfrage an den
-  geschlossenen Upstream, ist das kein Fehler und ändert die Einstufung nicht. Sendet der
+  geschlossenen Upstream, bevor der Recorder die Fehlerantwort gelesen hat, ist es `PGR-E4003`
+  (`LH-FA-02.b` *Gelesen*): Die Fehlerantwort, die der Upstream gesendet hat, zählt nicht, und
+  der Recorder liest nach einem Sendefehler nicht weiter. Das Ende im Leerlauf ist damit
+  aufzeichenbar, wenn der Upstream die Verbindung ohne Reset schließt und das erste Senden
+  danach annimmt; schließt er mit einem Reset und scheitert das Senden, ist es
+  nicht aufzeichenbar. Sendet der
   Client keine Anfrage mehr (`Terminate`, Ende der Client-Verbindung), endet die Session
   regulär nach dem `ReadyForQuery` der letzten Interaktion (`LH-FA-02.b`), und die
   Fehlerantwort wird nicht aufgezeichnet.
@@ -2601,6 +2608,12 @@ Vergleich legen `LH-FA-20.a` und `LH-FA-24.a` fest.
   `PANIC` bleibt `PGR-E4003`, nach einer anderen gelesenen `ErrorResponse` `PGR-E6001`
   (`LH-FA-02.b`); ein Ende vor dem ersten `ReadyForQuery` bleibt `PGR-E4002` beziehungsweise
   `PGR-E4005` (`LH-FA-20.a` *Aufbau*). Das Ende der Client-Verbindung ist keines.
+* *Senden nach dem Ende.* Hat der Recorder in der laufenden Interaktion die Fehlerantwort
+  `FATAL` oder `PANIC` gelesen, liefert das Senden einer Client-Nachricht an den Upstream keinen
+  Fehler, auch wenn das Schreiben scheitert, und es wird nichts mehr gelesen; das Senden ist Teil
+  des Endes (`LH-FA-02.b` *Gelesen*). Vor dem Lesen der Fehlerantwort bleibt ein Sendefehler
+  `PGR-E4003`. Nach dem Ende ruft der Use Case den Upstream nur noch zum Schließen auf; was
+  Anfrage und Lesen danach liefern, ist nicht zugesagt.
 * *Meldung des Endes beim Aufzeichnen.* Die Antworten, die der Record-Use-Case für eine Interaktion
   mit Ende liefert, enden mit `connection_closed` als letzter Antwort, wie die der Aufzeichnung:
   bei einer einfachen Anfrage die Antworten der Interaktion, bei einer Extended-Interaktion die
@@ -3509,3 +3522,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Einspielen, zweites Signal und Ende des Servers: kein `Terminate` gilt nach der gelesenen und geschlossenen Fehlerantwort; ein Signal zwischen Lesen und Schließen kann `Terminate` senden, Grenze ohne Test (`LH-FA-20.a`) |
 | 2026-10-16 | Schweregrad des Endes: ein leeres `V` gilt wie ein fehlendes, in der Datei und beim Einspielen gleich; der SQLSTATE des Vergleichs zählt nur an einer `ErrorResponse` (`LH-FA-24.a`, `LH-FA-25.a`) |
 | 2026-10-16 | Hilfe von `play` zum Ende des Servers bei `--allow-recorded-errors` und `--compare-responses` (`LH-FA-20.a`); `SPEC-029` Punkt 2: „die Anmeldung mit Klartext-Passwort und die mit MD5“ (Berichtigung des Numerus, keine Aussage geändert) |
+| 2026-10-16 | Ende des Servers beim Aufzeichnen, Upstream-Adapter: Sendefehler an den geschlossenen Upstream im Leerlauf ist `PGR-E4003` statt „kein Fehler“ (Berichtigung gegen *Gelesen*: nach einem Sendefehler wird nicht weitergelesen), Senden nach gelesener Fehlerantwort ohne Fehler, Aufrufe nach dem Ende nicht zugesagt, Schweregrad wie in der Datei (`LH-FA-25.a`, `LH-FA-02.b`) |
