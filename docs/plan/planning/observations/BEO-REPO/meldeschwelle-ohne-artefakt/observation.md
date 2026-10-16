@@ -8,3 +8,8 @@ bevor er sie überschreitet). Sie steht in keinem Artefakt des Repos (Plan, `AGE
 
 Abgrenzung zu `BEO-REPO/groessenprobe-ohne-messbaren-stand`: Dort nennt die Marke ihre Metrik nicht. Hier
 ist die Marke messbar, die Schwelle davor fehlt als Artefakt.
+
+Erweitert am 2026-10-16 (Entscheidung des Nutzers): Die Beobachtung gilt auch für die Entscheidung nach der
+Meldung. Meldet der Implementer das Erreichen der Meldeschwelle und entscheidet der Planner „weiter“ oder
+„schneiden“, steht die Entscheidung nur als Satz im Bericht, ohne datierte Zeile in einem Artefakt des
+Plans (Review F-5, Verifikation V-3 in `slice-v1-abschluss-verbindungsende-replay`).
