@@ -3270,7 +3270,8 @@ Hauptversion. „Unterstützt" heißt genau:
    die Anmeldung mit SCRAM-SHA-256 und der Abgleich der Lebendprüfung mit dem Server.
 2. Gegen die Referenz 17 läuft zusätzlich die volle Integrationssuite. Die Anmeldung mit
    Klartext-Passwort und die mit MD5 sind nur dort geprüft. Das erwartete Verbindungsende beim
-   Einspielen (Abnahmeszenario 16, dritter Satz) ist nur dort geprüft.
+   Einspielen (Abnahmeszenario 16, dritter Satz) ist nur dort geprüft. Das Abnahmeszenario 18 ist
+   nur dort geprüft.
 
 ## 7. Querschnittsvorgaben
 
