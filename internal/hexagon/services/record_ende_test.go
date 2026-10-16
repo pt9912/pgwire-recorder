@@ -44,13 +44,19 @@ type endeLauf struct {
 // beginne öffnet die Session; die Anfrage „ENDE“ beantwortet der Upstream mit rs.
 func beginne(t *testing.T, rs []model.Response, opts ...services.RecordOption) *endeLauf {
 	t.Helper()
+	return oeffne(t, rs, []string{"SELECT 1"}, opts...)
+}
+
+// oeffne öffnet die Session und führt vorher die Anfragen aus.
+func oeffne(t *testing.T, rs []model.Response, vorher []string, opts ...services.RecordOption) *endeLauf {
+	t.Helper()
 	up := &fakeUpstream{antworten: map[string][]model.Response{"ENDE": rs}}
 	repo := &fakeRepo{}
 	s, err := services.NewRecordService(context.Background(), up, repo, "rec.yaml", false, opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &endeLauf{t: t, s: s, repo: repo, up: up, id: session(t, s, "SELECT 1")}
+	return &endeLauf{t: t, s: s, repo: repo, up: up, id: session(t, s, vorher...)}
 }
 
 func (l *endeLauf) einfach() ([]model.Response, error) {
@@ -68,6 +74,14 @@ func (l *endeLauf) erweitert(rs []model.Response, gruppen ...[]model.ClientMessa
 	var err error
 	warte(l.t, "AwaitServer", func() { out, err = l.s.AwaitServer(context.Background(), l.id) })
 	return out, err
+}
+
+// lies ruft AwaitServer und liefert den Fehler; der Aufruf kehrt binnen zwei Sekunden
+// zurück.
+func (l *endeLauf) lies() error {
+	var err error
+	warte(l.t, "AwaitServer", func() { _, err = l.s.AwaitServer(context.Background(), l.id) })
+	return err
 }
 
 func (l *endeLauf) schliessen(end model.SessionEnd) error {
@@ -286,42 +300,48 @@ func TestRecordEndePortfehlerVorForm(t *testing.T) {
 // (LH-FA-25.a *Stelle von connection_closed beim Aufzeichnen*).
 func TestRecordEndeDanachNichts(t *testing.T) {
 	ende := []model.Response{endeFehler("FATAL", "FATAL"), sEnde()}
-	nachEnde := func(t *testing.T, l *endeLauf) {
-		t.Helper()
-		out, err := l.erweitert(ende, gSync())
-		endeAngenommen(ende)(t, l, out, err)
-	}
 	// zustellen liest die Antworten des Endes und meldet sie als zugestellt.
 	zustellen := func(t *testing.T, l *endeLauf) {
 		t.Helper()
-		if _, err := l.s.AwaitServer(context.Background(), l.id); err != nil {
+		if err := l.lies(); err != nil {
 			t.Fatal(err)
 		}
 		l.s.Delivered(context.Background(), l.id)
 	}
-	t.Run("Anfrage", func(t *testing.T) {
+	// nachEnde lässt den Upstream das Ende liefern und lässt die Session offen; mit
+	// herunterfahren hat der Adapter danach Shutdown gemeldet.
+	nachEnde := func(t *testing.T, herunterfahren bool) *endeLauf {
+		t.Helper()
 		l := beginne(t, nil)
-		_, _ = l.erweitert(ende, gSync())
-		l.s.Delivered(context.Background(), l.id)
-		if _, err := l.s.Query(context.Background(), l.id, "SELECT 2"); err != model.ErrSessionEnded {
-			t.Fatalf("Query: %v", err)
+		client(t, l.s, l.id, gSync()...)
+		l.up.letzte.empfang <- ende
+		zustellen(t, l)
+		if herunterfahren {
+			l.s.Shutdown(context.Background(), l.id)
 		}
-		if got := l.up.letzte.anfragen; !reflect.DeepEqual(got, []string{"SELECT 1"}) {
-			t.Fatalf("Anfragen am Upstream %q", got)
-		}
-	})
-	t.Run("Client-Nachricht", func(t *testing.T) {
-		l := beginne(t, nil)
-		nachEnde(t, l)
-		if err := l.s.ClientMessage(context.Background(), l.id, cParse()); err != model.ErrSessionEnded {
-			t.Fatalf("ClientMessage: %v", err)
-		}
-	})
+		return l
+	}
+	for _, herunterfahren := range []bool{false, true} {
+		t.Run(fmt.Sprintf("Anfrage, herunterfahren %v", herunterfahren), func(t *testing.T) {
+			l := nachEnde(t, herunterfahren)
+			if _, err := l.s.Query(context.Background(), l.id, "SELECT 2"); err != model.ErrSessionEnded {
+				t.Fatalf("Query: %v", err)
+			}
+			if got := l.up.letzte.anfragen; !reflect.DeepEqual(got, []string{"SELECT 1"}) {
+				t.Fatalf("Anfragen am Upstream %q", got)
+			}
+		})
+		t.Run(fmt.Sprintf("Client-Nachricht, herunterfahren %v", herunterfahren), func(t *testing.T) {
+			l := nachEnde(t, herunterfahren)
+			if err := l.s.ClientMessage(context.Background(), l.id, cParse()); err != model.ErrSessionEnded {
+				t.Fatalf("ClientMessage: %v", err)
+			}
+		})
+	}
 	t.Run("Lesen des Upstreams", func(t *testing.T) {
-		l := beginne(t, nil)
-		nachEnde(t, l)
+		l := nachEnde(t, false)
 		l.up.letzte.empfang <- []model.Response{sRFQ()}
-		if _, err := l.s.AwaitServer(context.Background(), l.id); err != model.ErrSessionEnded || len(l.up.letzte.empfang) != 1 {
+		if err := l.lies(); err != model.ErrSessionEnded || len(l.up.letzte.empfang) != 1 {
 			t.Fatalf("AwaitServer: %v, wartende Folgen %d", err, len(l.up.letzte.empfang))
 		}
 	})
@@ -354,7 +374,7 @@ func TestRecordEndeDanachNichts(t *testing.T) {
 		l.up.letzte.empfang <- ende
 		zustellen(t, l)
 		l.up.letzte.empfang <- []model.Response{sRFQ()}
-		if _, err := l.s.AwaitServer(context.Background(), l.id); err != model.ErrSessionEnded || len(l.up.letzte.empfang) != 1 {
+		if err := l.lies(); err != model.ErrSessionEnded || len(l.up.letzte.empfang) != 1 {
 			t.Fatalf("AwaitServer: %v, wartende Folgen %d", err, len(l.up.letzte.empfang))
 		}
 		if err := l.schliessen(model.EndServer); err != nil {
@@ -387,11 +407,11 @@ func TestRecordEndeEnden(t *testing.T) {
 					t.Fatal("Shutdown gibt das Ende mitten in der Interaktion frei")
 				}
 				l.up.letzte.empfang <- ende
-				if _, err := l.s.AwaitServer(context.Background(), l.id); err != nil {
+				if err := l.lies(); err != nil {
 					t.Fatal(err)
 				}
 				if !l.s.Delivered(context.Background(), l.id) {
-					t.Fatal("Delivered gibt das Ende nach dem Ende des Servers nicht frei")
+					t.Error("Delivered gibt das Ende nach dem Ende des Servers nicht frei")
 				}
 				if err := l.schliessen(end); err != nil {
 					t.Fatalf("Ende %d meldet %v", end, err)
@@ -488,5 +508,30 @@ func TestRecordEndeZeitUndLeereSessions(t *testing.T) {
 				t.Fatalf("offset_ms %v, Sessions %#v, empty_sessions %v", got, rec.Sessions, rec.EmptySessions)
 			}
 		})
+	}
+}
+
+// Abdeckung: LH-FA-25/Boundary, LH-FA-12/Boundary — Record im Kern: Ist die Interaktion mit
+// Ende die einzige der Session, wird die Session geschrieben, auch beim Zwangsende (kein
+// Zwangsende im Aufbau, LH-FA-12.a *Angenommene Verbindung*), mit und ohne
+// LeereSessions (eine Session mit Ende ist nie leer).
+func TestRecordEndeEinzigeInteraktion(t *testing.T) {
+	ende := []model.Response{endeFehler("FATAL", "FATAL"), sEnde()}
+	for _, leere := range []bool{false, true} {
+		for _, end := range []model.SessionEnd{model.EndServer, model.EndForced} {
+			t.Run(fmt.Sprintf("leere %v, Ende %d", leere, end), func(t *testing.T) {
+				l := oeffne(t, nil, nil, services.LeereSessions(leere))
+				if _, err := l.erweitert(ende, gSync()); err != nil {
+					t.Fatal(err)
+				}
+				l.s.Delivered(context.Background(), l.id)
+				if err := l.schliessen(end); err != nil {
+					t.Fatalf("Ende %d meldet %v", end, err)
+				}
+				if got := l.repo.last(t).Sessions; len(got) != 1 || got[0].ID != 1 || len(got[0].Interactions) != 1 {
+					t.Fatalf("Sessions %#v", got)
+				}
+			})
+		}
 	}
 }
