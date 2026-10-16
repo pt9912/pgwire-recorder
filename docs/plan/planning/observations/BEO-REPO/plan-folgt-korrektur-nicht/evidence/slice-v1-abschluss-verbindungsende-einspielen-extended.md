@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-einspielen-extended
+**Fund (Urteil des Planners bei der Closure, kein Finding des Reviews oder der Verifikation):** §3 des Plans führte `spec/spezifikation.md` nicht, der Diff ändert sie (Architect: `e92825a` vor dem Code, `51145c0` nach dem Review); dieselbe Lücke wie `slice-v1-abschluss-verbindungsende-einspielen` (F-5). Nachgezogen mit der Closure (Zeile in §3).

@@ -47,3 +47,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbind
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-replay-extended` (V-2, V-3) — §6 nannte Arten des Endes, die der Port nicht kennt, und eine Zahl in §7 folgte der Nacharbeit nicht (Beleg `evidence/slice-v1-abschluss-verbindungsende-replay-extended.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-einspielen` (F-5) — zwei Dateien des Diffs standen nicht in §3 (Beleg `evidence/slice-v1-abschluss-verbindungsende-einspielen.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-einspielen-extended` — die Spezifikation, vom Architect im Slice geändert, stand nicht in §3 (Beleg `evidence/slice-v1-abschluss-verbindungsende-einspielen-extended.md`). Urteil des Planners bei der Closure: Review und Verifikation fanden es nicht (der Review hielt §3 für folgend, weil die Dateien der Metrik stimmten); der Zähler folgt dem Urteil, das der Nutzer streichen kann.

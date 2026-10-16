@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-einspielen-extended
+**Fund (Review F-2, LOW; F-7, INFO):** Das Abbruchsignal bei der letzten Gruppe mit `Flush` stand nicht als Randform in §6 (der Architect nahm es nach dem Review in §6 und `LH-FA-20.a` *Abbruchsignal* auf); die Frage, ob PostgreSQL vor der `FATAL` noch `DataRow` oder `CommandComplete` sendet, tauchte beim Schreiben der Fixtures auf und stand zunächst in §7, nicht in §6 (Grenze in `LH-FA-20.a` *Gruppen*, `51145c0`).

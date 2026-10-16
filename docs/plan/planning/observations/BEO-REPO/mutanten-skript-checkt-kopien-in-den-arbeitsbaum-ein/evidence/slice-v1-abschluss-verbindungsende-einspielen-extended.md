@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-einspielen-extended
+**Fund (Verifikation V-4, INFO; §7 Nacharbeit nach dem Review):** Ein Aufruf des Mutanten-Skripts mit einem Namen aus mehreren Wörtern legte Verzeichnisse im Arbeitsbaum an (`nicht/`, `Signal)/`); `git add -A` nahm sie in `bf4fa5b` und `8b673fd` auf, `12e46f6` entfernte sie, der erste Lauf von `make gates` war deshalb rot (`abdeckung-check`). Der Endstand ist sauber; die History zu bereinigen ist Entscheidung des Nutzers.

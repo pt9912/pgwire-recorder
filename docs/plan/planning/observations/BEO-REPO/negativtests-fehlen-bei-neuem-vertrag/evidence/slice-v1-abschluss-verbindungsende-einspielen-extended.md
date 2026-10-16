@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-einspielen-extended
+**Fund (Review F-2, LOW):** Der neue Satz zum Abbruchsignal in `LH-FA-20.a` (letzte Gruppe mit `Flush`: bis zur Antwort auf jede Client-Nachricht) hatte keinen Test; `TestPlayExtendedSignal` führte nur eine letzte Gruppe mit `Sync`, und §6 nannte das Signal bei der letzten `Flush`-Gruppe nicht. Behoben in `bf4fa5b`: je ein Fall für das erste und das zweite Signal, beide mit einem Mutanten, der nur ihn bricht (Tabelle in §7).

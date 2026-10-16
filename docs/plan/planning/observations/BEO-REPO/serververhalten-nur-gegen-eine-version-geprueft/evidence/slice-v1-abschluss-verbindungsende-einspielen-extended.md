@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-einspielen-extended
+**Fund (Risiko aus §6, Ausgang *weiter offen*):** Das Ende einer Extended-Ausführung (`57P01` bei `pg_terminate_backend`) ist nur gegen die Referenz 17 geprüft; dazu die Grenzen des Lesens nach der letzten `Flush`-Gruppe (eine `FATAL` nach vollständiger Antwortzahl wird nicht gelesen; weniger Antworten als die Zählregel nennt, heißt Warten ohne Frist) in `LH-FA-20.a` *Gruppen*, für die übrigen Hauptversionen nicht durch Test. Zwei Zeilen in §6, ein Zählerschritt.
