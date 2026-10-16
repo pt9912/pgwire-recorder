@@ -11,7 +11,23 @@ import (
 
 	"github.com/pt9912/pgwire-recorder/internal/adapters/driven/postgres"
 	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/ports/driven"
 )
+
+// fuerBeideArten führt f einmal mit Schliesse und einmal mit
+// SchliesseOhneTerminate als Teilfall aus.
+func fuerBeideArten(t *testing.T, f func(t *testing.T, schliesse func(driven.EinspielSession))) {
+	t.Helper()
+	for _, a := range []struct {
+		name      string
+		schliesse func(driven.EinspielSession)
+	}{
+		{"Schliesse", func(s driven.EinspielSession) { s.Schliesse() }},
+		{"SchliesseOhneTerminate", func(s driven.EinspielSession) { s.SchliesseOhneTerminate() }},
+	} {
+		t.Run(a.name, func(t *testing.T) { f(t, a.schliesse) })
+	}
+}
 
 // Abdeckung: LH-FA-20/Boundary, LH-FA-25/Happy — SchliesseOhneTerminate
 // schließt die Verbindung, ohne dass der Server nach der Anfrage ein Byte liest:
@@ -86,4 +102,29 @@ func TestEinspielSchliesseNurEinmal(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Abdeckung: LH-FA-20/Boundary — Schliesse und SchliesseOhneTerminate beenden
+// ein wartendes Naechste: Es kehrt binnen 5 s mit dem Verbindungsende
+// (PGR-E4003) zurück (LH-FA-20.a *Ende einer Session*).
+func TestEinspielSchliesseBeendetNaechste(t *testing.T) {
+	fuerBeideArten(t, func(t *testing.T, schliesse func(driven.EinspielSession)) {
+		conn := neueSteuerConn(func(b []byte) (int, error) { return len(b), nil })
+		s := postgres.NeueEinspielSession(conn)
+		fertig := make(chan error, 1)
+		go func() {
+			_, err := s.Naechste()
+			fertig <- err
+		}()
+		time.Sleep(50 * time.Millisecond)
+		schliesse(s)
+		select {
+		case err := <-fertig:
+			if code(err) != model.CodeConnectionLost {
+				t.Fatalf("Naechste nach dem Schließen: %v, erwartet %s", err, model.CodeConnectionLost)
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatal("Naechste endet binnen 5 s nach dem Schließen nicht")
+		}
+	})
 }

@@ -357,12 +357,16 @@ func TestEinspielGruppeSendefehler(t *testing.T) {
 	s.Schliesse()
 }
 
-// Abdeckung: LH-FA-20/Boundary — Schliesse beendet den Sender: Es endet, während
+// Abdeckung: LH-FA-20/Boundary — Schliesse und SchliesseOhneTerminate beenden den Sender: Er endet, während
 // eine Gruppe sendet, ohne auf das Senden zu warten und ohne Terminate zwischen
 // die Bytes zu schreiben; das gescheiterte Senden danach bleibt ohne Folge: Es
 // ist kein Fehler des Sendens für Naechste, und weitere Gruppen nimmt die
 // Session nicht mehr an (LH-FA-20.a *Gruppen*, *Abbruchsignal*).
 func TestEinspielGruppeSchliesseBeimSenden(t *testing.T) {
+	fuerBeideArten(t, einspielGruppeSchliesseBeimSenden)
+}
+
+func einspielGruppeSchliesseBeimSenden(t *testing.T, schliesse func(driven.EinspielSession)) {
 	angefangen := make(chan struct{})
 	var conn *steuerConn
 	conn = neueSteuerConn(func([]byte) (int, error) {
@@ -381,7 +385,7 @@ func TestEinspielGruppeSchliesseBeimSenden(t *testing.T) {
 	}
 	geschlossen := make(chan struct{})
 	go func() {
-		s.Schliesse()
+		schliesse(s)
 		close(geschlossen)
 	}()
 	select {
@@ -420,10 +424,14 @@ func senderZahl() int {
 	return strings.Count(b.String(), "(*einspielSession).sender(")
 }
 
-// Abdeckung: LH-FA-20/Boundary — Schliesse beendet den Sender auch, wenn er
+// Abdeckung: LH-FA-20/Boundary — Schliesse und SchliesseOhneTerminate beenden den Sender auch, wenn er
 // nichts sendet: Nach der letzten Gruppe läuft ein Sender, nach Schliesse keiner
 // mehr (LH-FA-20.a *Gruppen*).
 func TestEinspielGruppeSchliesseBeendetSender(t *testing.T) {
+	fuerBeideArten(t, einspielGruppeSchliesseBeendetSender)
+}
+
+func einspielGruppeSchliesseBeendetSender(t *testing.T, schliesse func(driven.EinspielSession)) {
 	// Sender früherer Tests enden nach ihrem Schliesse, aber nicht synchron.
 	bis := time.Now().Add(5 * time.Second)
 	for senderZahl() != 0 {
@@ -445,7 +453,7 @@ func TestEinspielGruppeSchliesseBeendetSender(t *testing.T) {
 		}
 		time.Sleep(time.Millisecond)
 	}
-	s.Schliesse()
+	schliesse(s)
 	bis = time.Now().Add(5 * time.Second)
 	for senderZahl() != vorher {
 		if time.Now().After(bis) {
@@ -469,10 +477,14 @@ func warteAufKeinenSender(t *testing.T, meldung string) {
 	}
 }
 
-// Abdeckung: LH-FA-20/Boundary — Schliesse verwirft die eingereihten Gruppen:
-// Nach Schliesse sendet der Sender keine weitere Gruppe, auch wenn das Senden der
+// Abdeckung: LH-FA-20/Boundary — Schliesse und SchliesseOhneTerminate verwerfen die eingereihten Gruppen:
+// Nach dem Schließen sendet der Sender keine weitere Gruppe, auch wenn das Senden der
 // laufenden erst danach gelingt (LH-FA-20.a *Gruppen*).
 func TestEinspielGruppeSchliesseVerwirftWarteschlange(t *testing.T) {
+	fuerBeideArten(t, einspielGruppeSchliesseVerwirftWarteschlange)
+}
+
+func einspielGruppeSchliesseVerwirftWarteschlange(t *testing.T, schliesse func(driven.EinspielSession)) {
 	warteAufKeinenSender(t, "Sender früherer Tests")
 	angefangen, frei := make(chan struct{}), make(chan struct{})
 	var einmal sync.Once
@@ -493,7 +505,7 @@ func TestEinspielGruppeSchliesseVerwirftWarteschlange(t *testing.T) {
 	if err := gruppeBinnen(t, s, "zweite Gruppe hinter der sendenden", model.ClientMessage{Type: model.ClientFlush}); err != nil {
 		t.Fatal(err)
 	}
-	s.Schliesse()
+	schliesse(s)
 	close(frei)
 	warteAufKeinenSender(t, "nach Schliesse")
 	if schreibt, _ := conn.zaehler(); schreibt != 1 {

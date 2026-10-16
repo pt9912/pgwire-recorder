@@ -222,8 +222,9 @@ func TestPlayExtendedFortsetzung(t *testing.T) {
 // es wird keine weitere Gruppe gesendet und keine weitere Antwort gelesen; die
 // Verbindung ist ohne Terminate geschlossen. Das gilt auch, wenn die
 // Aufzeichnung der Interaktion mit connection_closed endet: Das Ende einer
-// Extended-Interaktion ist noch nicht erwartet, es bleibt PGR-E4003 (Zwischenstand
-// bis zur Einstufung der Extended-Interaktion; LH-FA-20.a *Interaktion*).
+// Extended-Interaktion ist hier nicht erwartet, es bleibt PGR-E4003;
+// slice-v1-abschluss-verbindungsende-einspielen-extended kehrt den Fall um
+// (LH-FA-20.a *Interaktion*).
 func TestPlayExtendedFatal(t *testing.T) {
 	fatal := fehlerantwort(map[string]string{"S": "FATAL", "V": "FATAL", "C": "57P01", "M": "beendet"})
 	fehlerAufgezeichnet := model.Response{Type: model.ResponseErrorResponse, Fields: map[string]string{"C": "XX000", "M": "aufgezeichnet"}}
