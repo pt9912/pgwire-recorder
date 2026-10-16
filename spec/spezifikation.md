@@ -2451,15 +2451,19 @@ Stück für Stück verglichen:
 
 Zeilenwerte und Zeilenzahlen werden nicht verglichen. Eine `ErrorResponse` des
 Servers in einer Extended-Interaktion ändert den Vergleich nicht: die Folge ab dem
-Fehler bis zum `ReadyForQuery` wird wie aufgezeichnet verglichen.
+Fehler bis zum `ReadyForQuery` wird wie aufgezeichnet verglichen; ausgenommen ist die letzte
+Gruppe mit `Flush` eines Endes, die mit der `ErrorResponse` endet (*Ende der Aufzeichnung*,
+vierter Punkt).
 
 **Ende der Aufzeichnung.** Jede aufgezeichnete Interaktion endet mit `ready_for_query` oder,
 bei einem Ende des Servers (`LH-FA-25.a`), mit einer `error_response` `FATAL` oder `PANIC` und
 `connection_closed`; eine andere macht die Aufzeichnung zu einer beschädigten
 (`LH-FA-02.b` *Replay*, `PGR-E3003`). Die Folge des Servers wird bis zum `ReadyForQuery`
-verglichen, oder, wenn der Server eine `ErrorResponse` mit dem Schweregrad `FATAL` oder `PANIC`
-sendet, bis zu ihr: Sie beendet die Verbindung, `play` fügt der Folge `connection_closed`
-an, und es wartet nicht auf das Verbindungsende. Daraus folgt:
+verglichen. Zwei Ausnahmen: Sendet der Server eine `ErrorResponse` mit dem Schweregrad `FATAL`
+oder `PANIC`, reicht sie bis zu ihr; die Fehlerantwort beendet die Verbindung, `play` fügt der
+Folge `connection_closed` an, und es wartet nicht auf das Verbindungsende. Und die letzte Gruppe
+mit `Flush` einer Interaktion mit Ende reicht bis zur Antwort auf jede ihrer Client-Nachrichten
+oder bis zu einer `ErrorResponse` (vierter Punkt). Daraus folgt:
 
 * Trägt die Aufzeichnung an derselben Position eine `error_response` `FATAL` oder `PANIC`
   mit `connection_closed` dahinter und ist der SQLSTATE (Feld `C`) beider Seiten gleich, ist
@@ -3439,4 +3443,5 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Einspielen, Ende des Servers ohne Vergleich: Stelle der Fehlerantwort ist die Interaktion (Position der Antworten, Gruppe, nach einem `ERROR`), ein Grund der Ablehnung `PGR-E4003` ohne Reihenfolge, Verbindungsverlust trotz aufgezeichnetem Ende, Lesestand bei Sendefehler, letzte Gruppe mit `Flush` ohne Warten auf `ReadyForQuery`, kein `Terminate` nach der Fehlerantwort, Verhalten des Servers nur gegen die Referenz (`LH-FA-20.a`, `LH-FA-25.a`) |
 | 2026-10-16 | Einspielen, Ende des Servers in der Extended-Interaktion ohne Vergleich: Schritt 3 und Abbruchsignal nennen die letzte Gruppe mit `Flush` ohne `ReadyForQuery`, das Warten endet mit der Zahl der Antworten und nicht mit einer Frist, Sendefehler nach einem `ERROR`, das nicht abbricht, ist `PGR-E4003` bis zur gelesenen Fehlerantwort (Grenze ohne Test) (`LH-FA-20.a`, `LH-FA-25.a`) |
 | 2026-10-16 | Einspielen und Vergleich, letzte Gruppe mit `Flush` eines Endes: Wortlaut der Wartezeit nach einer `ErrorResponse` mit der Ausnahme, Grenzen (weniger Antworten als die Zählregel, `FATAL` nach vollständiger Zahl), Vergleich ohne `ready_for_query` und Zähler `verglichen` (`LH-FA-20.a`, `LH-FA-24.a`) |
+| 2026-10-16 | Vergleich mit Ende: Einleitung und Absatz zur `ErrorResponse` in der Extended-Interaktion nennen die Ausnahme der letzten Gruppe mit `Flush` wie der vierte Punkt von *Ende der Aufzeichnung*, kein Zuwachs an Regeln (`LH-FA-24.a`) |
 | 2026-10-16 | Einspielen, zweites Signal und Ende des Servers: kein `Terminate` gilt nach der gelesenen und geschlossenen Fehlerantwort; ein Signal zwischen Lesen und Schließen kann `Terminate` senden, Grenze ohne Test (`LH-FA-20.a`) |
