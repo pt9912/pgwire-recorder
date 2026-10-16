@@ -2617,7 +2617,19 @@ Vergleich legen `LH-FA-20.a` und `LH-FA-24.a` fest.
   `ready_for_query` und ein Ende ohne `FATAL`- oder `PANIC`-Fehlerantwort unmittelbar davor sind
   nicht aufzeichenbar: Der Use Case lehnt die Interaktion mit der Prüfung der Form ab
   (`PGR-E6001`, die Session wird nicht übernommen); direkt vor dem Ende der Antworten ist die
-  einzige Stelle. Das Ende liegt in der Gruppe, der der Recorder die Fehlerantwort zugeordnet hat
+  einzige Stelle. Die Stelle bemisst sich an den Nachrichten bis zur ersten `connection_closed`:
+  was der Upstream dahinter liefert, übernimmt der Use Case nicht (*Meldung des Endes*) und
+  zählt für die Stelle nicht. „Mitte“ und „Anfang“ sind damit `connection_closed` hinter einer
+  Nachricht, die keine `FATAL`- oder `PANIC`-Fehlerantwort ist, oder ohne Nachricht davor;
+  „vor der letzten Nachricht“ trifft eine Folge, die die Prüfung der Form des Modells sieht, nicht
+  eine, die der Use Case aus dem Upstream übernimmt. Ein `ready_for_query` hinter dem Ende fällt
+  unter *dahinter*, ein `ready_for_query` davor unter *daneben*. Kommt `connection_closed`
+  in einer Extended-Interaktion, wenn keine Interaktion läuft (ein `ready_for_query` hat die
+  vorige geschlossen), gilt „daneben ein `ready_for_query`“ ebenso: `PGR-E6001`, die Session wird
+  nicht übernommen. Jede andere Server-Nachricht ohne laufende Interaktion bleibt ein
+  innerer Fehler (`PGR-E1000`); eine Folge `ready_for_query`, `FATAL`-Fehlerantwort,
+  `connection_closed` in der Extended-Interaktion endet deshalb bei der Fehlerantwort mit
+  `PGR-E1000`. Die Zeile „`ready_for_query` davor“ entscheidet nur die einfache Anfrage. Das Ende liegt in der Gruppe, der der Recorder die Fehlerantwort zugeordnet hat
   (*Stelle*), und das ist die letzte Gruppe der Interaktion, die zu dem Zeitpunkt begonnen ist; ist
   sie nicht mit `Sync` oder `Flush` abgeschlossen, ist das `PGR-E6001`. Gruppen davor, auch mit
   `Sync`, und frühere Interaktionen der Session laufen wie ohne Ende. Die Interaktion mit Ende ist
