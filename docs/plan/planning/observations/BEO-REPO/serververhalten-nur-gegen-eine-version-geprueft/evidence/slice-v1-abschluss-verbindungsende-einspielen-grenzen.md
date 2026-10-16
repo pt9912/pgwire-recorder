@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-einspielen-grenzen
+**Fund (Risiko aus §6, Ausgang *weiter offen*):** Dass ein Server den Backend bei `pg_terminate_backend` mit `FATAL` `57P01` beendet und die Verbindung schließt, ist für die beiden Grenzfälle nur gegen die Referenz 17 geprüft (`make test-integration`); `make test-postgres-versionen` fährt die Fälle dieses Slice nicht. Ein Zählerschritt.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-einspielen-grenzen
+**Fund (Review F-1, F-2; Verifikation V-2; INFO):** Der Helfer `spieleEndeNichtErwartet` prüft die Stelle und den Code als Teilstrings des ganzen stderr, nicht in derselben Zeile, und weder SQLSTATE `57P01` noch den Schweregrad; ein Mutant, der SQLSTATE und Meldung aus der Fehlerzeile streicht, bleibt in `make test-integration` grün. Gegenrichtung: der Wortlaut „Session 1, Interaktion 2“ ist Wortlaut des Codes, nicht der Spezifikation.

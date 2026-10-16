@@ -55,13 +55,13 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [x] [`LH-FA-25`](../../../../spec/lastenheft.md#lh-fa-25--verbindungsende-durch-den-server), [`LH-FA-20`](../../../../spec/lastenheft.md#lh-fa-20--einspielen-einer-aufzeichnung): Gegen PostgreSQL am Binary: Eine handgeschriebene Aufzeichnung einer einfachen Anfrage mit Ende, deren Ausführung den Backend beendet (`FATAL`, SQLSTATE `57P01`), endet **ohne** `--allow-recorded-errors` mit `PGR-E4003` und Exit-Code 4; eine Aufzeichnung ohne Ende an der Stelle (aufgezeichnet `ERROR`, der Server sendet `FATAL`) endet **mit** der Option mit `PGR-E4003` und Exit-Code 4 (Integrationstest, eine Aufzeichnung als eigene Datei je Fall).
 - [x] Je Zusage des Vertrags eine Mutation, vom Implementer rot gesehen; die Tabelle (Zusage · Mutation · roter Test) steht in §7 (`AGENTS.md` §3.10).
 - [x] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -113,10 +113,10 @@ dasteht.
 
 **Risiken:**
 
-- Die Fälle sind bei Beginn grün (das Binary erfüllt sie), ein grüner Test belegt ohne Mutation nichts — **Ausgang:** offen bis Closure (erwartet: entfallen, Mutationen in §7 rot gesehen).
-- Handgeschriebene Aufzeichnungen bilden nur ab, was die Spezifikation sagt (`BEO-REPO/handgeschriebene-aufzeichnung-ohne-beleg-gegen-den-server`, 3×); die Fälle belegen das Einspielen gegen PostgreSQL, nicht das Aufzeichnen (`slice-v1-abschluss-verbindungsende-upstream-extended`) — **Ausgang:** offen bis Closure (erwartet: weiter offen, keine neue Adresse).
-- Das Verhalten des Servers (`57P01`) ist nur gegen die Referenzversion 17 geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×) — **Ausgang:** offen bis Closure (erwartet: weiter offen).
-- Ein Befund verlangt Produktcode (zweite Rückführung in §4) — **Ausgang:** offen bis Closure (erwartet: entfallen).
+- Die Fälle sind bei Beginn grün (das Binary erfüllt sie), ein grüner Test belegt ohne Mutation nichts — **Ausgang:** *entfallen*: Mutanten 1 bis 6 (§7 und Verifikation) rot gesehen, die beiden Zusagen der Fälle färben je nur ihren Fall (Isolation von Review und Verifikation nachgefahren).
+- Handgeschriebene Aufzeichnungen bilden nur ab, was die Spezifikation sagt (`BEO-REPO/handgeschriebene-aufzeichnung-ohne-beleg-gegen-den-server`, 3×); die Fälle belegen das Einspielen gegen PostgreSQL, nicht das Aufzeichnen (`slice-v1-abschluss-verbindungsende-upstream-extended`) — **Ausgang:** *weiter offen* → `BEO-REPO/handgeschriebene-aufzeichnung-ohne-beleg-gegen-den-server` (Zähler 5, Stand `geplant` bleibt; keine neue Adresse).
+- Das Verhalten des Servers (`57P01`) ist nur gegen die Referenzversion 17 geprüft (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 3× bei Beginn) — **Ausgang:** *weiter offen* → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (Zähler 4).
+- Ein Befund verlangt Produktcode (zweite Rückführung in §4) — **Ausgang:** *entfallen*: `git diff fa149c68..HEAD -- internal cmd` ist leer, Review und Verifikation bestätigen es, keine Rückführung.
 
 ## 7. Closure-Notiz
 
@@ -155,6 +155,53 @@ Alle Zusagen tragen eine gesehene Mutation (Exit 4 nachgeholt auf Anweisung des 
 **Messung** (Metrik §4, `git diff --numstat fa149c68..670ec850 -- internal test docs/user`): Summe **92** (Marke 400, Meldeschwelle 300 nicht erreicht; Schätzung 140 bis 190, darunter): `play_ende_grenzen_e2e_test.go` 52, zwei Fixtures je 18, Abdeckungstabelle 4. Je Fall mit Testdaten 46 (92 durch zwei Fälle; die Hilfe `spieleEndeNichtErwartet` und der Kopf der Testdatei, rund 30 Zeilen, sind geteilt). Gegenüber 65 bis 70 der Geber niedriger, weil die Fälle eine gemeinsame Hilfe `spieleEndeNichtErwartet` teilen.
 
 **Beobachtungen:** Der Plan schätzte 140 bis 190; gemessen 92, die Hilfe über zwei Fälle senkt den Satz je Fall (Beleg für `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` in der Gegenrichtung, Planner entscheidet über Aufnahme). Die E2E-Mutanten kosten einen vollen `make test-integration` (rund 2,5 Minuten) je Mutant.
+
+### Closure des Planners (2026-10-16)
+
+**Gate-Nachweis.** Voller `make gates` ein Lauf grün, Exit 0 (Stand der Lieferung `670ec850`, Belege oben). Die Commits danach ändern nur Pfade der Positivliste (`docs/plan/planning/`, `docs/reviews/`, `docs/user/`); `git diff fa149c68..HEAD -- internal cmd` ist leer; die Verifikation fuhr `make gates-schnell` grün. `make kopf-check` und `make docs-check` laufen nach der Closure nacheinander.
+
+**Gegenstand:** geliefert (kein Fall von „übernommen“ oder „entfallen“): zwei Fälle am Binary gegen PostgreSQL, kein Produktcode.
+
+**Review und Verifikation.** Review (`docs/reviews/2026-10-16-review-slice-v1-abschluss-verbindungsende-einspielen-grenzen.md`): 0 HIGH, 0 MEDIUM, 0 LOW, 4 INFO (F-1 bis F-4); fünf Mutanten der Tabelle selbst nachgefahren. Verifikation (`docs/reviews/2026-10-16-verify-slice-v1-abschluss-verbindungsende-einspielen-grenzen.md`): bestanden, V-1 bis V-4 INFO; sieben Mutanten gefahren (Nr. 1 bis 6 rot am erwarteten Grund und isoliert, Nr. 7 grün). Ausgang je Befund: F-1/V-2 akzeptiertes Negativ (SQLSTATE und Meldung der Fehlerantwort sind keine Zusage dieses Slice, §6 *Zähler und Nachricht*; den Wortlaut trägt der Test des Service, von der Verifikation gelesen, nicht nachgefahren), Register `BEO-REPO/e2e-meldung-bindung-weicht-von-zusage-ab` (neu, 1×); F-2 akzeptiert, derselbe Eintrag (Gegenrichtung); F-3/V-3 akzeptiert, die Zeile sagt zu, was der Test prüft (kein Zuwachs bei `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`); F-4/V-1 kein Befund am Diff, Frage an den Nutzer unten, Register `BEO-REPO/spezifikation-weicht-vom-lastenheft-ab` (neu, 1×); V-4 Datenpunkt unten.
+
+**Größe.** 92 in der Metrik von §4 (Messung oben), 23 % der Marke 400, Meldeschwelle 300 nicht erreicht; Schätzung des Planners 140 bis 190, Mitte 165: **unter der Untergrenze** (66 % von 140, 56 % der Mitte), die Obergrenze ist nicht überschritten. Nach der Zählregel vom 2026-10-16 (Obergrenze überschritten = Auftreten) kein Auftreten bei `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`; Vermerk als Gegenrichtung: Die zwei Fälle teilen die Hilfe `spieleEndeNichtErwartet` und den Kopf (rund 30 Zeilen), der E2E-Fall mit Testdaten maß 46 statt 65 bis 70 (Geber) und 70,5 (`-einspielen-extended`). Faktor Tests zu Produktcode entfällt (kein Produktcode). Kein Auftreten bei `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`: Die Rückführung trat nicht ein.
+
+**Risiken aus §6 — Ausgang je Risiko** (geschlossene Menge; die Zeilen stehen in §6 am Risiko selbst):
+
+| Risiko | Ausgang | Folge-Slice bzw. Begründung |
+|---|---|---|
+| Grüner Test ohne Mutation | entfallen | Mutanten 1 bis 6 rot gesehen (Implementer, Review, Verifikation); die zwei Zusagen der Fälle färben je nur ihren Fall; Mutant 7 (SQLSTATE und Meldung) ist keine Zusage des Slice |
+| Handgeschriebene Aufzeichnungen ohne Beleg gegen den Server | weiter offen | Register `BEO-REPO/handgeschriebene-aufzeichnung-ohne-beleg-gegen-den-server` (Zähler 5, Stand `geplant`: `slice-v1-abschluss-verbindungsende-upstream` für die einfache Hälfte, `-upstream-extended` für die Extended-Hälfte) |
+| `57P01` nur gegen die Referenz 17 | weiter offen | Register `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (Zähler 4) |
+| Ein Befund verlangt Produktcode | entfallen | `git diff fa149c68..HEAD -- internal cmd` leer; Rückführung nicht eingetreten |
+
+Ob die Ausgänge tragen: *Entfallen* (Mutation) trägt an der Verifikation, die die Mutanten selbst nachbaute, *entfallen* (Produktcode) am Diff, nicht am Bericht. *Weiter offen* zu den handgeschriebenen Aufzeichnungen trägt, weil die Adresse besteht: Die einfache Hälfte liegt bei `slice-v1-abschluss-verbindungsende-upstream` (§1 *Übernommen aus* `-replay`, Fixtures `ende-fatal.yaml`, `ende-lebend.yaml`); ob deren Form die der beiden Fixtures dieses Slice trägt (`FATAL` mit `connection_closed`; `ERROR` mit `ready_for_query`), urteilt die Verifikation jenes Slice, nicht dieser Eintrag. Der Eintrag steht bei 5× mit Zuweisung, die Schwelle 3× ist überschritten und durch die Zuweisung getragen.
+
+**Sendungen und Bindungen.** Der Slice weist keinem Nehmer etwas zu. Die Übernahme aus `slice-v1-abschluss-verbindungsende-einspielen-extended` (§1) ist mit der Lieferung getragen. Keine Nachzählung bei einem anderen Slice.
+
+**Register** (Zähler = Dateien unter `evidence/`; Vermerke zählen nicht):
+
+| Eintrag | Zähler | Fund | Stand |
+|---|---|---|---|
+| `BEO-REPO/handgeschriebene-aufzeichnung-ohne-beleg-gegen-den-server` | 5 (vorher 4) | Risiko aus §6, *weiter offen* | geplant (`slice-v1-abschluss-verbindungsende-upstream-extended`) |
+| `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` | 4 (vorher 3) | Risiko aus §6, *weiter offen* | offen, ohne Verkörperung (Frage unten) |
+| `BEO-REPO/e2e-meldung-bindung-weicht-von-zusage-ab` | 1 (neu) | F-1, F-2, V-2: Meldung als Teilstrings des stderr gebunden, SQLSTATE und Meldung nicht, Wortlaut des Codes gebunden | offen |
+| `BEO-REPO/spezifikation-weicht-vom-lastenheft-ab` | 1 (neu) | F-4, V-1: `LH-FA-25.a` *Negative* gegen `LH-FA-20.a` *Interaktion* | offen, Frage unten |
+| `BEO-REPO/spezifikation-widerspricht-sich-im-wortlaut` | 3 | Vermerk: V-1 zählt hier nicht mit (zwei Straten, nicht zwei Stellen); Frage an den Nutzer | offen |
+| `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` | 9 | kein Auftreten: 92 unter der Untergrenze 140; Gegenrichtung als Vermerk | geplant, Vermerk |
+| `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` | 2 | kein Auftreten: Rückführung nicht eingetreten, 23 % der Marke | offen, Vermerk |
+| `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` | 67 | kein Auftreten: F-3 ist Lesbarkeit der Abdeckungs-Zeile | verkörpert, Vermerk |
+| `BEO-REPO/test-prueft-teilstring-gegen-meldung-mit-zufallspfad` | 1 | kein Auftreten: kein Pfad in den Teilstrings | offen, Vermerk |
+
+*Einordnung der Befunde (Urteil des Planners):* F-1 und V-2 sind eine eigene Klasse (Bindung der Meldung am Binary), nicht `test-prueft-teilstring-gegen-meldung-mit-zufallspfad` (kein Pfad) und nicht `abwesenheitszusage-an-wortlaut-der-meldung-geprueft` (keine Abwesenheitszusage). Kein Zuwachs bei `BEO-REPO/plan-folgt-korrektur-nicht`: §1, §3, §4, §6 und §7 folgen dem Diff (Review: Negativbefund zu §3.9). Kein Zuwachs bei `BEO-REPO/liste-gruener-mutanten-unvollstaendig`: Mutant 7 ist keine Mutation einer Zusage des Slice, sondern die Sonde der Verifikation. Kein Eintrag für `BEO-REPO/meldeschwelle-ohne-artefakt`: Die Schwelle wurde nicht erreicht.
+
+**Lerneintrag — benannte Spec-Lücke und eine Beobachtung, keine geänderte Regel.** Geändert wird keine Regel, kein `liegt in` (`AGENTS.md` und `.claude/` ändert der Planner nicht). (1) *Benannte Spec-Lücke: Lastenheft und Spezifikation sagen für ein Ende mit anderem SQLSTATE bei `--allow-recorded-errors` Verschiedenes (F-4, V-1).* `LH-FA-25.a` *Negative* nennt für ein Ende, das die Aufzeichnung „mit einem anderen Fehlercode“ zeigt, einen Verbindungsfehler; `LH-FA-20.a` *Interaktion* lässt das Ende mit der Option erwartet sein, „gleich welcher SQLSTATE“. Das Binary folgt der Spezifikation; beide Fixtures tragen `57P01` und lassen die Frage offen. Das Lastenheft rangiert höher; die Abweichung entscheidet der Nutzer (Frage unten). Gefunden hat es das Review beim Vergleich der beiden Texte, nicht ein Test: Ein Slice, der „die Grenzen“ am Binary belegt, belegt nur die Grenzen, die die Spezifikation zieht. (2) *Was funktionierte:* Die Mutationstabelle nannte je Mutant, welchen der beiden Fälle er färbt und welchen nicht; Review und Verifikation prüften die Isolation, nicht nur das Rotwerden, und fanden sie bestätigt. Die Verifikation baute zusätzlich Mutant 3 (Fehlerantwort erwartet, sobald die Aufzeichnung eine trägt), der am selben Fall fällt, und Mutant 7, der grün bleibt und damit die Grenze des Slice zeigt. (3) *Beobachtung zur Schätzung:* Der Satz je E2E-Fall hängt an den geteilten Hilfen; siehe den Vermerk bei `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`. (4) *Neuer Sensor: keiner.*
+
+**Fragen an den Nutzer.** (a) *Lastenheft-Abweichung (V-1/F-4).* Das Lastenheft ist `Draft`; vor `Accepted` ist es ohne Change Request änderbar, der Planner ändert es nicht. Drei Wege: (i) Lastenheft angleichen: In `LH-FA-25.a` *Negative* nennt der Satz zum Ende „mit einem anderen Fehlercode“ den Fall ohne Vergleich nicht als Verbindungsfehler, wenn der Anwender `--allow-recorded-errors` gesetzt hat (Empfehlung des Planners: Die Option sagt ausdrücklich, dass aufgezeichnete Fehler als erwartet gelten; der Wortlaut der Spezifikation „gleich welcher SQLSTATE“ ist dazu die Lesart, die das Binary seit Schritt 38a zeigt); (ii) Spezifikation und Binary angleichen: mit der Option ist ein Ende mit anderem SQLSTATE `PGR-E4003`; das ist eine Verhaltensänderung des Service, ein eigener Slice mit Mutation und Fall am Binary, und die Fixtures dieses Slice wären um einen dritten Fall zu ergänzen; (iii) beides stehen lassen und die Lesart in `LH-FA-25.a` klarstellen. Eine Entscheidung steht aus; bis dahin bleibt der Eintrag `BEO-REPO/spezifikation-weicht-vom-lastenheft-ab` offen. (b) Zählt V-1 bei `BEO-REPO/spezifikation-widerspricht-sich-im-wortlaut` mit (dann 4×, kein Strata-Unterschied)? Der Planner zählt es nicht mit. (c) Die Zählung von `docs/user/` (Abdeckungstabelle) als Schicht steht weiter aus: Dieser Slice zählt eine Schicht, konservativ zwei (§8).
+
+**Schätzung des nächsten Schritts, `slice-v1-abschluss-verbindungsende-vergleich` (Schritt 39):** Der Plan nennt als Rückführung die Marke 1000 in der Metrik von `AGENTS.md` §3.14 (Summe aus Einfügungen und Löschungen über `internal test docs/user`), Schätzung des Planners im Plan 600 bis 1000; eine Meldeschwelle und eine Basis stehen dort nicht (die Basis trägt der Planner beim Anspruch ein). Gerechnet mit den Maßen der Geber: Produktcode (Ende im Vergleich in `play.go` und `play_vergleich.go`, Hilfetext, drei Kommentare) 50 bis 90; Tests im Service (acht Randformen aus §6, zwei Fälle der letzten `Flush`-Gruppe, die vier nachzuziehenden Bestandstests) 300 bis 560; CLI-Test 20 bis 40; E2E (zwei Fälle zu 46 bis 70, dazu `TestE2EPlayVergleichFatal` nachziehen) 110 bis 180; Tabellen (`abdeckung-unit.md`, `abdeckung-e2e.md`) 20 bis 40; Zeilen für die Parametrisierung der Bestandstests unter dem Lint-Profil `dupl` (Geber: 100 in `-einspielen`, Nacharbeit +89 in `-einspielen-extended`) 0 bis 100. Summe **570 bis 1010, Mitte rund 790 (79 % der Marke)**; das obere Ende erreicht die Marke. Die 15 bis 25 Zeilen des Architect für den Einleitungssatz von `LH-FA-24.a` stehen in `spec/` und zählen in der Metrik nicht. Drei Liefer-Punkte, zwei Schichten (Kern, CLI-Adapter; `docs/user` konservativ als dritte markiert). **Ob zu schneiden ist:** Nach Zahl der Liefer-Punkte und Schichten ist der Plan nicht zu groß; nach der Spanne liegt der Mittelwert unter der Marke, das obere Ende bei ihr. Empfehlung des Planners: Nicht jetzt schneiden, die Prüfung des Architect vor dem Code entscheidet beim Anspruch (wie bei 38a, 38b); schätzt er über 900, ist die im Plan genannte Linie *Service | Hilfetext und E2E* zu ziehen (der erste Teil liefert das Verhalten gegen den Fake, der zweite belegt es am Binary mit Szenario 16 Satz 3, wie 38c es für die Grenzen tat), und der Planner trägt dann Meldeschwelle 800 und Basis ein. Die Entscheidung dazu fällt beim Anspruch.
+
+**Paarungen.** (a) Anker: Der Lerneintrag trägt kein Feld `liegt in`, keine Verkörperung; nichts zu prüfen. (b) Folge-Slice: Kein Risiko trägt den Ausgang *eingetreten*; genannt sind `slice-v1-abschluss-verbindungsende-upstream` und `slice-v1-abschluss-verbindungsende-upstream-extended` als bestehende Adressen des Registers (`geplant`), beide in `next/`, nicht geschlossen. (c) Register: Alle genannten Kennungen `BEO-REPO/…` bestehen als Verzeichnis, jedes mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

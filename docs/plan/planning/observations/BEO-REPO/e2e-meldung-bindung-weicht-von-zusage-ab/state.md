@@ -1,0 +1,3 @@
+**Stand:** offen
+
+Zähler 1 (`slice-v1-abschluss-verbindungsende-einspielen-grenzen`, Review F-1, F-2, Verifikation V-2, alle INFO): Der Helfer der beiden Grenzfälle prüft `code=PGR-E4003` und `Session 1, Interaktion 2` als zwei Teilstrings des Ausgabestroms (zu lose, F-1); ein Mutant ohne SQLSTATE und Meldung der Fehlerantwort bleibt grün (V-2, Mutant 7 der Verifikation); der Wortlaut „Session 1, Interaktion 2“ stammt aus dem Code, die Spezifikation nennt nur `id` und `sequence` (zu eng, F-2). Akzeptiertes Negativ: Die Zusage des Slice ist `PGR-E4003`, Exit 4 und Stelle; SQLSTATE und Meldung trägt der Test des Service (`play_ende_test.go`, gelesen, nicht nachgefahren). Beleg `evidence/slice-v1-abschluss-verbindungsende-einspielen-grenzen.md`. Unter der Schwelle 3×.
