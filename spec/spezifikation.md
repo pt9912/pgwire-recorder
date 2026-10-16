@@ -811,7 +811,10 @@ mit einer Anfrage ohne Anweisung, etwa `-- ping`.
   Session-Zuordnung (`LH-FA-12.a`) und für die nicht verbrauchten Interaktionen, und ihre
   Antworten werden verwendet. Steht der Cursor auf ihr, ist eine eingehende Lebendprüfung
   mit gleichem SQL-Text diese Anfrage und wird nicht außer der Reihe beantwortet; mit
-  anderem Text gilt der Schritt 1 wie sonst.
+  anderem Text gilt der Schritt 1 wie sonst. Bei `first-request` steht der Cursor einer noch nicht
+  zugeordneten Verbindung auf der ersten Interaktion der nächsten Session mit Interaktion: Ist
+  diese eine Lebendprüfung mit Ende und gleichem SQL-Text, ist die eingehende Lebendprüfung diese
+  Anfrage und löst die Zuordnung aus (`LH-FA-12.a`).
 
 ---
 
@@ -934,7 +937,8 @@ Session mit Interaktionen, die nie zugeordnet wird, gilt als nicht verbraucht
 Eine Lebendprüfung (LH-FA-09.a) ist für die Zuordnung im Replay keine Anfrage:
 Sie löst keine Zuordnung aus, auch nicht, wenn keine Session mehr frei ist, und
 eine Verbindung, die nur Lebendprüfungen stellt, ist eine Verbindung ohne
-Anfrage. Für das Replay ist eine Session, deren Interaktionen alle
+Anfrage. Ausgenommen ist die eingehende Lebendprüfung, die nach `LH-FA-09.a`
+*Lebendprüfung mit Ende* die aufgezeichnete Lebendprüfung mit Ende ist: Sie ist eine Anfrage. Für das Replay ist eine Session, deren Interaktionen alle
 Lebendprüfungen ohne Ende des Servers sind (`LH-FA-09.a`), eine Session ohne Interaktion: Bei `first-request` wird
 sie übersprungen; bei `connection` erhält die n-te Verbindung sie wie jede
 Session ohne Interaktion. Das Einspielen behandelt Lebendprüfungen wie jede
@@ -2534,6 +2538,33 @@ Vergleich legen `LH-FA-20.a` und `LH-FA-24.a` fest.
   in der das Ende liegt; die Gruppen davor laufen wie sonst. Für Lebendprüfungen gilt
   `LH-FA-09.a`, für die Session-Zuordnung `LH-FA-12.a`, für nicht verbrauchte Interaktionen
   `LH-FA-03.b`.
+* *Meldung des Endes im Replay.* Die Antworten, die der Replay-Use-Case für eine Interaktion mit
+  Ende liefert, enden mit `connection_closed` als letzter Antwort, unverändert aus der Aufzeichnung:
+  bei einer einfachen Anfrage die Antworten der Interaktion, bei einer Extended-Interaktion die
+  Server-Nachrichten der Gruppe mit dem Ende. Eine eigene Meldung gibt es nicht. Der PGWire-Adapter
+  sendet die Nachrichten davor, bildet `connection_closed` auf keine PGWire-Nachricht ab, liest nichts
+  mehr und schließt die Verbindung zum Client. Die Interaktion ist verbraucht, sobald die Nachrichten
+  vor `connection_closed` gesendet sind (`LH-FA-03.b`); scheitert das Senden, ist sie es nicht. Hat der
+  Client schon weitere Nachrichten gesendet, ist nicht zugesichert, dass er die Antworten vor dem Ende
+  der Verbindung liest.
+* *Stelle von `connection_closed` im Replay.* Das Format lässt die Nachricht nur als letzte Nachricht
+  der letzten Interaktion einer Session zu (`SPEC-001`, `PGR-E3003`), bei einer Extended-Interaktion
+  als letzte Server-Nachricht der letzten Gruppe, die mit `Sync` oder `Flush` endet; das Replay prüft
+  das nicht noch einmal. Je Stelle: Anfang oder Mitte der Antworten, einer Gruppe oder der Session
+  gibt es nicht; direkt vor dem Ende der Antworten ist die einzige Stelle; die letzte Interaktion der
+  Session ist immer die mit Ende, und eine Anfrage des Clients nach ihr erreicht das Replay nicht;
+  eine Aufzeichnung mit mehreren Sessions mit Ende hat je Session ein Ende, die Zuordnung ist die
+  von `LH-FA-12.a`. Die Gruppe mit dem Ende ist in einer `Sync`- wie in einer `Flush`-Gruppe die
+  letzte, ihre Server-Nachrichten vor dem Ende werden gesendet.
+* *Reihenfolge der Gründe im Replay.* Das Ende wird nur geliefert, wenn die Anfrage oder die
+  Client-Nachricht abgeglichen ist: Eine Ablehnung geht ihm voraus, in der Reihenfolge Zuordnung ohne
+  freie Session (`PGR-E5003`), dann Abweichung von der erwarteten Anfrage oder Nachricht
+  (`PGR-E5001`). Bei einer Extended-Interaktion wird die Gruppe erst mit ihrem abschließenden
+  `Sync` oder `Flush` geliefert (`LH-FA-18.a`); eine Abweichung davor ist `PGR-E5001`, die Interaktion
+  bleibt unverbraucht, und das Ende kommt nicht.
+* *Herunterfahren.* Das Herunterfahren während der Gruppen vor der Gruppe mit dem Ende und das
+  Zwangsende gelten wie sonst (`LH-FA-13.a`); die Interaktion ist bis zum Senden der Gruppe mit dem
+  Ende nicht verbraucht.
 * *Version.* Eine Aufzeichnung mit mindestens einem Ende trägt `version: 2`, jede andere
   `version: 1` (`SPEC-001`). In `yaml` bestimmt der Inhalt der Aufzeichnung die Version bei
   jedem Schreiben. In `sqlite` legt der erste Schreibvorgang `meta.version` = 1 an, und die
@@ -3332,3 +3363,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-15 | Protokollrand: Parameter `_pq_.` ist `PGR-E6001` vor `PGR-E6003` (Reihenfolge ausdrücklich, `LH-FA-23.a` nennt ihn); beim `CancelRequest` liest die Bibliothek Prozess-ID und Schlüssel, der Recorder wertet sie nicht aus (`LH-FA-05.e`) |
 | 2026-10-15 | Aufzeichnungsformat `sqlite`, Ende des Servers: Darstellung als Zeile von `message`, Stelle nach den Nummern statt nach der Reihenfolge der Zeilen, Version 1 und 2 im Leser, Rangfolge `PGR-E3002` vor `PGR-E3003`, Meldung zu `PGR-E3002` ohne Version, Schreiber prüft die Form nicht (`LH-FA-25.a`, `SPEC-001`, `SPEC-043`) |
 | 2026-10-15 | Aufzeichnungsformat `sqlite`, Schreiben des Endes: Version 1 beim Anlegen unabhängig vom Feld des Modells, Session mit Ende ohne Prüfung der Stelle, nur die erste Transaktion mit Ende setzt die Version 2 (genau die Zeile mit dem Wert 1, sonst `PGR-E3001`), Rollback hält die Version 1, Schließen nach der Transaktion, Abbruch, `user_version`, Zeile des Endes an der Stelle des Modells, Felder werden geschrieben, Form wird nicht geprüft, Roundtrip beider Formate (`LH-FA-22.a`, `LH-FA-25.a`, `SPEC-001`, `SPEC-043`) |
+| 2026-10-16 | Ende des Servers im Replay: Meldung als letzte Antwort `connection_closed` (einfache Anfrage wie Gruppe), Stellen von `connection_closed`, Reihenfolge der Gründe, Abweichung vor dem abschließenden `Sync`/`Flush`, Herunterfahren, ungelesene Nachrichten nach dem Ende; eingehende Lebendprüfung mit Ende vor der Zuordnung bei `first-request` ist die Anfrage (`LH-FA-25.a`, `LH-FA-09.a`, `LH-FA-12.a`) |
