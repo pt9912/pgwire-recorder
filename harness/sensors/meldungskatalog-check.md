@@ -55,10 +55,13 @@ eine Befund-Zeile nennt einen Pfad und einen Code, eine Sperre nur den Grund. Au
 | `<pfad> fehlt`, `<pfad> nicht lesbar` | `make meldungskatalog-check` in der Wurzel des Repos starten; Datei lesbar machen |
 | `cmd/ fehlt` | in der Wurzel des Repos starten |
 | `<pfad> nicht lesbar` für ein Verzeichnis oder eine Go-Datei unter `cmd/` und `internal/` | Rechte herstellen; gemeldet wird der erste Pfad in Bytefolge |
+| `<pfad> ist ein Symlink` für einen Symlink unter oder an `cmd/` und `internal/` | den Symlink durch die Datei oder das Verzeichnis ersetzen; gemeldet wird der erste Pfad in Bytefolge, nach „nicht lesbar“ |
 | `Abschnitt <überschrift> fehlt` | die Überschrift `### SPEC-034 `, `### Fehlercodes` bzw. `### Warnungen` wiederherstellen |
 | `<pfad> ohne Code`, `<pfad> ohne Codes` | die Quelle trägt keine Tabellenzeile bzw. keine Konstante in der Form des Vertrags |
 
 Die Reihenfolge der Sperren nennt Punkt 8 des Vertrags; die erste gilt.
+
+Grün heißt auch bei `make meldungskatalog-check-gegenprobe`: jeder Fall, der lief. Als root sind die Fälle mit nicht lesbaren Pfaden, ohne die Locale `de_DE.UTF-8` der Fall `nr9-bytefolge` nicht herstellbar; sie werden auf stderr als übersprungen gemeldet, und der Lauf endet dennoch mit Exit 0.
 
 ## Bindung
 

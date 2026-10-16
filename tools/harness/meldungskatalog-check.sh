@@ -7,7 +7,7 @@
 #
 # GEPRÜFT DURCH tools/harness/meldungskatalog-check-gegenprobe.sh, Fälle nach Punkt (nr<n>-*):
 #   (1) Quellen, (2) Form, (3) doppelt, (4) Mengen (nr4a bis nr4d), (5) Rückfall je Klasse,
-#   (6) Code außerhalb der Code-Tabelle, (8) Sperren und ihre Reihenfolge, (9) Ausgabe und Ausgang,
+#   (6) Code außerhalb der Code-Tabelle, (8) Sperren und ihre Reihenfolge (auch nicht lesbar und Symlink im Baum), (9) Ausgabe und Ausgang,
 #   (10) Aufrufarten, (11) Anschluss ohne Stufung
 set -euo pipefail
 export LC_ALL=C
@@ -29,19 +29,25 @@ for verzeichnis in cmd internal; do
 done
 
 # Der Baum für Punkt 6: Go-Dateien unter cmd/ und internal/ ohne Tests und ohne die Code-Tabelle.
-# Ein nicht lesbares Verzeichnis oder eine nicht lesbare Datei des Baums ist eine Sperre; gemeldet
-# wird der erste Pfad in Bytefolge.
+# Ein nicht lesbares Verzeichnis oder eine nicht lesbare Datei des Baums ist eine Sperre, danach ein
+# Symlink im Baum (auch cmd oder internal selbst); gemeldet wird je Sperre der erste Pfad in Bytefolge.
 baum=()
 unlesbar=()
+symlinks=()
 while IFS= read -r -d '' pfad; do
-  if [ -d "$pfad" ]; then
+  if [ -L "$pfad" ]; then
+    symlinks+=("$pfad")
+  elif [ -d "$pfad" ]; then
     { [ -r "$pfad" ] && [ -x "$pfad" ]; } || unlesbar+=("$pfad")
   else
     [ -r "$pfad" ] && baum+=("$pfad") || unlesbar+=("$pfad")
   fi
-done < <(find cmd internal \( -type d -o \( -type f -name '*.go' ! -name '*_test.go' ! -path "$C" \) \) -print0 2>/dev/null)
+done < <(find cmd internal \( -type d -o -type l -o \( -type f -name '*.go' ! -name '*_test.go' ! -path "$C" \) \) -print0 2>/dev/null)
 if [ "${#unlesbar[@]}" -gt 0 ]; then
   sperre "$(printf '%s\n' "${unlesbar[@]}" | sort | head -n 1) nicht lesbar"
+fi
+if [ "${#symlinks[@]}" -gt 0 ]; then
+  sperre "$(printf '%s\n' "${symlinks[@]}" | sort | head -n 1) ist ein Symlink"
 fi
 
 # Je Befund eine Zeile pfad<TAB>code<TAB>befund<TAB>zeile; awk endet mit 2 bei einer Sperre.

@@ -55,7 +55,7 @@ z() { grep -nF -- "$2" "$w/$1" | sed -n "${3:-1}p" | cut -d: -f1; }   # Zeile <n
 
 lauf() {
   set +e
-  bash "$skript" "$1" >"$arbeit/out" 2>"$arbeit/err"
+  (cd "${arbeitsdir:-.}" && bash "$skript" "$1") >"$arbeit/out" 2>"$arbeit/err"
   code=$?
   set -e
   aus="$(cat "$arbeit/out")"; err="$(cat "$arbeit/err")"
@@ -111,6 +111,18 @@ bau; sk $'### SPEC-035 — Folge\n\n| `PGR-E9001` | danach |'; gruen nr1-k-danac
 bau; sed -i '1i | `PGR-E9001` | davor |' "$w/$B"; gruen nr1-h-davor "$w"
 bau; sed -i '/^### Warnungen$/i ### Anderes\n\n| `PGR-E9001` | x |\n' "$w/$B"; gruen nr1-h-zwischen "$w"
 bau; printf '\n### Anderes\n\n| `PGR-E9001` | x |\n' >> "$w/$B"; gruen nr1-h-danach "$w"
+
+bau; sk $'## Folge\n\n| `PGR-E9001` | danach |'; gruen nr1-k-ende-ebene-2 "$w"
+bau; printf '\n# Folge\n\n| `PGR-E9001` | x |\n' >> "$w/$B"; gruen nr1-h-ende-ebene-1 "$w"
+bau; sk $'|\t`PGR-E9001` | x |'; rot nr1-k-zelle-tab-vor "$w" "$S:$(z $S PGR-E9001): PGR-E9001: nicht in der Code-Tabelle"
+bau; sk $'| `PGR-E9001`\t| x |'; rot nr1-k-zelle-tab-nach "$w" "$S:$(z $S PGR-E9001): PGR-E9001: nicht in der Code-Tabelle"
+bau; sk '| `` | leer |'; rot nr1-k-zelle-leer "$w" "$S:$(z $S '`` |'): : Form"
+KR="PGR-E1000 PGR-E2000 PGR-E3000 PGR-E4000 PGR-E5000 PGR-E6000"
+bau "PGR-E123" "$KR" "PGR-E1000" ""; rot nr1-c-nur-form-zeilen "$w" "$B:$(z $B PGR-E1000): PGR-E1000: nicht in der Code-Tabelle" "$F:$(z $F PGR-E123): PGR-E123: Form"
+bau "PGR-E1000" "PGR-X0001" "PGR-E1000" ""; rot nr1-k-nur-form-zeilen "$w" "$F:$(z $F PGR-E1000): PGR-E1000: nicht im Katalog" \
+  "$S: PGR-E1000: Rückfall fehlt" "$S: PGR-E2000: Rückfall fehlt" "$S: PGR-E3000: Rückfall fehlt" "$S: PGR-E4000: Rückfall fehlt" "$S: PGR-E5000: Rückfall fehlt" "$S: PGR-E6000: Rückfall fehlt" \
+  "$S:$(z $S PGR-X0001): PGR-X0001: Form"
+bau "PGR-E1000" "$KR" "PGR-E123" ""; rot nr1-h-nur-form-zeilen "$w" "$B:$(z $B PGR-E123): PGR-E123: Form" "$F:$(z $F PGR-E1000): PGR-E1000: nicht im Handbuch"
 
 # --- Nr. 2: Form ---------------------------------------------------------------
 bau "$BC PGR-E123"; rot nr2-form-c "$w" "$F:$(z $F PGR-E123): PGR-E123: Form"
@@ -172,7 +184,7 @@ for q in F S B; do
   else sp "nr8-unlesbar-$q" "$w" "${!q} nicht lesbar"; chmod 644 "$w/${!q}"; fi
 done
 bau; rm "$w/$F"; mkdir "$w/$F"; sp nr8-c-verzeichnis "$w" "$F fehlt"
-bau; sp nr8-wurzel-fehlt "$arbeit/nirgends" "$F fehlt"
+bau; arbeitsdir="$w" sp nr8-wurzel-fehlt "$arbeit/nirgends" "$F fehlt"
 # Nicht lesbare Pfade des Baums (Rechte 000; als root bleiben sie lesbar, dann laut übersprungen).
 unles() {   # unles <name> <grund> <pfad>… — setzt die Rechte 000, erwartet die Sperre, stellt die Rechte her
   local name="$1" grund="$2" p
@@ -192,6 +204,16 @@ bau; printf 'package a\n' > "$w/internal/a.go"; chmod 000 "$w/internal/a.go"; mv
 if [ -r "$w/internal/a.go" ]; then echo "meldungskatalog-check-gegenprobe: Fall 'nr8-reihenfolge-verzeichnis-vor-baum' übersprungen — Pfad mit Rechten 000 ist lesbar (root?)" >&2
 else sp nr8-reihenfolge-verzeichnis-vor-baum "$w" "cmd/ fehlt"; fi
 chmod 644 "$w/internal/a.go"
+# Symlinks im Baum: gesperrt, auch cmd/ und internal/ selbst, gleich welchen Namens und Ziels.
+printf 'package l\nvar a = "PGR-E2001"\n' > "$arbeit/lit-real.go"
+bau; ln -s "$arbeit/lit-real.go" "$w/cmd/x/l.go"; sp nr8-symlink-datei "$w" "cmd/x/l.go ist ein Symlink"
+bau; mkdir "$w/ziel"; ln -s "$w/ziel" "$w/internal/lnk"; sp nr8-symlink-verzeichnis "$w" "internal/lnk ist ein Symlink"
+bau; mv "$w/cmd" "$w/cmd.alt"; ln -s "$w/cmd.alt" "$w/cmd"; sp nr8-symlink-startpunkt "$w" "cmd ist ein Symlink"
+bau; ln -s "$arbeit/lit-real.go" "$w/cmd/x/l.txt"; sp nr8-symlink-name "$w" "cmd/x/l.txt ist ein Symlink"
+bau; printf 'package a\n' > "$w/internal/a.go"; ln -s "$arbeit/lit-real.go" "$w/cmd/x/l.go"; unles nr8-reihenfolge-unlesbar-vor-symlink "internal/a.go nicht lesbar" internal/a.go
+bau; for i in $(seq 20 -1 1); do printf 'package x\n' > "$w/cmd/x/f$(printf %02d "$i").go"; done
+unles nr8-unlesbar-erste-sortiert "cmd/x/f01.go nicht lesbar" $(for i in $(seq 1 20); do echo "cmd/x/f$(printf %02d "$i").go"; done)
+bau; for i in $(seq 20 -1 1); do ln -s "$arbeit/lit-real.go" "$w/cmd/x/l$(printf %02d "$i").go"; done; sp nr8-symlink-erste-sortiert "$w" "cmd/x/l01.go ist ein Symlink"
 bau; sed -i 's/^### SPEC-034 /### SPEC-0341 /' "$w/$S"; sp nr8-abschnitt-k "$w" "Abschnitt ### SPEC-034 fehlt"
 bau; sed -i 's/^### Fehlercodes$/### Fehlercodes und mehr/' "$w/$B"; sp nr8-abschnitt-fehlercodes "$w" "Abschnitt ### Fehlercodes fehlt"
 bau; sed -i 's/^### Warnungen$/#### Warnungen/' "$w/$B"; sp nr8-abschnitt-warnungen "$w" "Abschnitt ### Warnungen fehlt"
