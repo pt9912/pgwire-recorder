@@ -29,7 +29,7 @@ fehler=0
 melde() { echo "gates-schnell-gegenprobe: ROT — $*" >&2; fehler=1; }
 
 SCHNELL="docs-check kopf-check baseline-verify abdeckung-check lint test build a-check"
-LANGSAM="lint-gegenprobe kopf-check-gegenprobe abdeckung-gegenprobe hook-gegenprobe stop-hook-gegenprobe a-check-negativ test-integration test-postgres-versionen test-postgres-versionen-gegenprobe"
+LANGSAM="lint-gegenprobe kopf-check-gegenprobe abdeckung-gegenprobe hook-gegenprobe meldungskatalog-check-gegenprobe stop-hook-gegenprobe a-check-negativ test-integration test-postgres-versionen test-postgres-versionen-gegenprobe"
 
 # gate_variable <wurzel> <name> — Wörter der Make-Variable aus der Datenbank von make.
 gate_variable() {
