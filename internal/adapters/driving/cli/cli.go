@@ -212,8 +212,10 @@ const optionenPlay = `Optionen von play:
               PGWIRE_RECORDER_CONTINUE_ON_ERROR
   --allow-recorded-errors[=true|false]
               eine Fehlerantwort mit dem Schweregrad ERROR ist kein Fehler,
-              wenn die aufgezeichnete Anfrage ebenfalls eine trägt;
-              Umgebungsvariable
+              wenn die aufgezeichnete Anfrage ebenfalls eine trägt; ebenso ein
+              Ende des Servers (FATAL oder PANIC), wenn die aufgezeichnete
+              Anfrage es ebenfalls trägt; dann läuft die nächste Session; mit
+              --compare-responses ohne Wirkung; Umgebungsvariable
               PGWIRE_RECORDER_ALLOW_RECORDED_ERRORS
   --upstream-tls[=true|false]
               die Verbindung zum Server nutzt TLS und prüft sein Zertifikat
@@ -248,8 +250,10 @@ const optionenPlay = `Optionen von play:
   --compare-responses[=true|false]
               vergleicht die Struktur der Serverantworten jeder Interaktion
               mit der Aufzeichnung; eine Abweichung ist PGR-E5004
-              (Exit-Code 5); Standard false; Umgebungsvariable
-              PGWIRE_RECORDER_COMPARE_RESPONSES
+              (Exit-Code 5); ein Ende des Servers (FATAL oder PANIC) ist
+              erwartet, wenn die Aufzeichnung es an derselben Stelle mit
+              demselben SQLSTATE zeigt, sonst eine Abweichung; Standard false;
+              Umgebungsvariable PGWIRE_RECORDER_COMPARE_RESPONSES
 ` + optionLogLevel + optionConfig + optionUmgebung
 
 const optionUmgebung = `
