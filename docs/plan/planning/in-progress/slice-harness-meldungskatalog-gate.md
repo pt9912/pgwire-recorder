@@ -275,8 +275,8 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
-**Stand.** Basis der Marke `8d14a918`; Code-Commit `9b7ff671` (Prüfskript, Gegenprobe, Fragment, Sensor-Datei,
-Zeilen in `harness/README.md`, `GATE_SCHNELL_AUSNAHME`, `LANGSAM`). Das Gate startet grün am Stand des
+**Stand.** Basis der Marke `8d14a918`; Code-Commits `9b7ff671` (Prüfskript, Gegenprobe, Fragment, Sensor-Datei,
+Zeilen in `harness/README.md`, `GATE_SCHNELL_AUSNAHME`, `LANGSAM`) und `0e581db3` (Entscheidungen des Architect aus `db77c937`). Das Gate startet grün am Stand des
 Starts: `bash tools/harness/meldungskatalog-check.sh` endet mit 0 ohne Ausgabe (C 30 Codes, K 34, H 30;
 `fehler.go`, `SPEC-034`, Handbuch unverändert).
 
@@ -284,7 +284,7 @@ Starts: `bash tools/harness/meldungskatalog-check.sh` endet mit 0 ohne Ausgabe (
 (kein Docker, kein Build-Kontext; die mtime-Regel gilt nicht), im Skript, im Fragment `meldungskatalog-check.mk` oder in
 `gates-schnell.mk` genau eine Zeichenkette ersetzt (der Lauf bricht ab, wenn sie nicht genau einmal vorkommt), dann die
 Gegenprobe aus der Kopie gefahren; die roten Fälle sind die Namen `Fall '…'` auf stderr. Der Läufer steht am Ende dieses
-Abschnitts im Wortlaut; die Spalte *Mutation* nennt die Änderung, der Läufer die Zeichenketten. 109 Mutanten: 107 färben mindestens
+Abschnitts im Wortlaut; die Spalte *Mutation* nennt die Änderung, der Läufer die Zeichenketten. 124 Mutanten: 122 färben mindestens
 den gezielten Fall ihrer Zusage rot, 2 sind äquivalent (unten).
 
 **Mutationstabelle** (Zusage · Mutation · roter Fall). Bei Mutanten, die jeden Gutfall treffen (Anzahl in Klammern),
@@ -296,38 +296,33 @@ Baum die Quelle benutzt; das ist ihre Invariante, kein Mangel des gezielten Fall
 |---|---|---|
 | 1 C: beliebiger Einzug | Einzug nur Tabulator | `nr1-c-einzug-leerzeichen` |
 | 1 C: beliebiger Einzug (auch keiner) | Einzug Pflicht | `nr1-c-ohne-einzug` |
-| 1 C: Leerraum vor `=` | nur Leerzeichen vor `=` | `nr1-c-leerraum-tab` |
 | 1 C: Leerraum nach `=` | nur Leerzeichen nach `=` | `nr1-c-leerraum-tab` |
-| 1 C: Name `Code` allein ist Konstante | Name braucht ein Zeichen nach `Code` | `nr1-c-nur-code` |
-| 1 C: Wortzeichen im Namen | Unterstrich kein Wortzeichen | `nr1-c-wortzeichen` |
 | 1 C: Zeile beginnt mit `Code` (Kommentar, anderer Anfang zählt nicht) | Zeilenanfang nicht verankert | `nr1-c-anderer-name` `nr1-c-kommentar` |
-| 1 C: Name beginnt mit `Code` | Namenspräfix nicht verlangt | `nr1-c-anderer-name` `nr6-fehler-go-anderer-name` |
-| 1 C: Leerraum, dann `=` | Typname vor `=` zugelassen | `nr1-c-typisiert` |
 | 1 C: Zeichenkette in doppelten Anführungszeichen | Backtick-Wert zugelassen | `nr1-c-backtick` |
-| 1: erste Zelle in Backticks; Kopf- und Trennzeile keine Zeile | Backticks nicht verlangt | `nr1-k-keine-zeile` (68 Fälle) |
+| 1: erste Zelle in Backticks; Kopf- und Trennzeile keine Zeile | Backticks nicht verlangt | `nr1-k-keine-zeile` `(72 Fälle)` |
 | 1 K: nur der Abschnitt | Lesen beginnt vor der Überschrift | `nr1-k-davor` |
 | 1 H: nur die beiden Abschnitte | Lesen beginnt vor der Überschrift | `nr1-h-davor` |
 | 1 K: Abschnitt endet an der nächsten `#`-Zeile | Ende nicht erkannt | `nr1-k-danach` |
 | 1 H: Abschnitt endet an der nächsten `#`-Zeile | Ende nicht erkannt | `nr1-h-danach` `nr1-h-zwischen` |
-| 1 H: `### Warnungen` gehört zu H | Abschnitt nicht gelesen | `nr4d-warnung` `nr8-h-nur-warnungen` (63 Fälle) |
-| 1 H: `### Fehlercodes` gehört zu H | Abschnitt nicht gelesen | `nr4c-fehler` `nr8-h-nur-fehlercodes` (64 Fälle) |
-| 8: H zählt beide Abschnitte zusammen | Sperre, wenn `### Fehlercodes` leer | `nr8-h-nur-warnungen` (66 Fälle) |
-| 4b: `…000` in K ohne C zugelassen | Ausnahme entfernt | `nr4b-rueckfall-w` `nr4b-endung-00` (65 Fälle) |
+| 1 H: `### Warnungen` gehört zu H | Abschnitt nicht gelesen | `nr4d-warnung` `nr8-h-nur-warnungen` `(67 Fälle)` |
+| 1 H: `### Fehlercodes` gehört zu H | Abschnitt nicht gelesen | `nr4c-fehler` `nr8-h-nur-fehlercodes` `(68 Fälle)` |
+| 8: H zählt beide Abschnitte zusammen | Sperre, wenn `### Fehlercodes` leer | `nr8-h-nur-warnungen` `(70 Fälle)` |
+| 4b: `…000` in K ohne C zugelassen | Ausnahme entfernt | `nr4b-rueckfall-w` `nr4b-endung-00` `(69 Fälle)` |
 | 4b: Ausnahme gilt für jede Schwere | nur `E…000` | `nr4b-rueckfall-w` |
 | 4b: Ausnahme gilt nur für Endung `000` | Endung `00` genügt | `nr4b-endung-00` |
 | 2: Form ganz (Ende) | Endanker entfernt | `nr2-form-zu-lang` `nr2-form-zwei-codes` |
 | 2: Form ganz (Anfang) | Anfangsanker entfernt | `nr2-form-vorsatz` `nr2-form-zwei-codes` |
 | 2: Schwere `I` gehört zur Form | `I` nicht zugelassen | `nr2-schwere-i` |
-| 2: Form-Code nimmt an 3 bis 5 nicht teil | Form-Code läuft weiter | `nr2-form-c` `nr9-zeile-numerisch` (8 Fälle) |
+| 2: Form-Code nimmt an 3 bis 5 nicht teil | Form-Code läuft weiter | `nr2-form-c` `nr9-zeile-numerisch` `(8 Fälle)` |
 | 3: je Code und Quelle einmal | jede Wiederholung gemeldet | `nr3-doppelt-dreifach` |
 | 3: an der zweiten Fundstelle | Zeile der ersten | `nr3-doppelt-c` `nr3-doppelt-dreifach` `nr3-doppelt-h` `nr3-doppelt-h-abschnitte` `nr3-doppelt-k` `nr9-befund-vor-zeile` |
 | 3: der Code zählt einmal | Wiederholung trägt in die Liste ein | `nr9-befund-vor-zeile` |
 | 3: in C | nicht erkannt | `nr3-doppelt-c` `nr3-doppelt-dreifach` `nr9-befund-vor-zeile` |
 | 3: in K | nicht erkannt | `nr3-doppelt-k` |
 | 3: in H (auch über beide Abschnitte) | nicht erkannt | `nr3-doppelt-h` `nr3-doppelt-h-abschnitte` |
-| 4a | Regel entfernt | `nr4a-nicht-im-katalog` (14 Fälle) |
-| 4b | Regel entfernt | `nr2-schwere-i` `nr4b-endung-00` `nr4b-nicht-in-c` `nr9-bytefolge` `nr9-sortiert` |
-| 4c | Regel entfernt | `nr4c-fehler` `nr4c-warnung` (13 Fälle) |
+| 4a | Regel entfernt | `nr4a-nicht-im-katalog` `(16 Fälle)` |
+| 4b | Regel entfernt | `nr1-k-ohne-schlusszeichen` `nr2-schwere-i` `nr4b-endung-00` `nr4b-nicht-in-c` `nr9-bytefolge` `nr9-sortiert` |
+| 4c | Regel entfernt | `nr4c-fehler` `nr4c-warnung` `(15 Fälle)` |
 | 4d | Regel entfernt | `nr4d-in-k` `nr4d-nicht-in-k` `nr4d-warnung` `nr9-sortiert` |
 | 4d: auch wenn K den Code führt | nur wenn K ihn nicht führt | `nr4d-in-k` |
 | 5: Klasse 6 | Schleife bis 5 | `nr5-klasse-6` |
@@ -337,26 +332,47 @@ Baum die Quelle benutzt; das ist ihre Invariante, kein Mangel des gezielten Fall
 | 5: Klasse 4 | Klasse übersprungen | `nr5-klasse-4` |
 | 5: Klasse 5 | Klasse übersprungen | `nr5-klasse-5` |
 | 5: Rückfall-Befund ohne Zeile | Zeile `0` | `nr5-klasse-1` `nr5-klasse-2` `nr5-klasse-3` `nr5-klasse-4` `nr5-klasse-5` `nr5-klasse-6` |
-| 6: `cmd/` | nicht durchsucht | `nr6-cmd` `nr6-kommentar-mit-anfuehrung` `nr9-sortiert` |
+| 6: `cmd/` | nicht durchsucht | `nr6-cmd` `nr6-kommentar-mit-anfuehrung` `(10 Fälle)` |
 | 6: `internal/` | nicht durchsucht | `nr6-anderes-fehler-go` `nr6-internal` |
 | 6: Test-Dateien ausgenommen | `_test.go` gelesen | `nr6-test` |
-| 6/Grenze: `test/` nicht gelesen | `test/` durchsucht | `nr6-test-verzeichnis` (76 Fälle) |
+| 6/Grenze: `test/` nicht gelesen | `test/` durchsucht | `nr6-test-verzeichnis` |
 | 6: nur Go-Dateien | jede Datei | `nr6-nicht-go` |
 | 6: nur die Code-Tabelle ausgenommen | jede `fehler.go` ausgenommen | `nr6-anderes-fehler-go` |
-| 6: Code-Tabelle ausgenommen | Code-Tabelle durchsucht | `nr6-fehler-go-anderer-name` (65 Fälle) |
-| 6: Anführungszeichen unmittelbar davor | `PGR-` ohne Anführungszeichen | `nr6-backtick` `nr6-kommentar-ohne-anfuehrung` (7 Fälle) |
-| 6: Code aus Wortzeichen | Code bis Leerzeichen | `nr6-anderes-fehler-go` `nr6-cmd` `nr6-internal` `nr6-kommentar-mit-anfuehrung` `nr9-sortiert` |
+| 6: Code-Tabelle ausgenommen | Code-Tabelle durchsucht | `nr6-fehler-go-anderer-name` `(69 Fälle)` |
+| 6: Anführungszeichen unmittelbar davor | `PGR-` ohne Anführungszeichen | `nr6-backtick` `nr6-kommentar-ohne-anfuehrung` `(8 Fälle)` |
+| 6: Code aus Wortzeichen | Code bis Leerzeichen | `nr6-anderes-fehler-go` `nr6-cmd` `nr6-internal` `nr6-kommentar-mit-anfuehrung` `nr6-zwei-literale` `nr9-sortiert` |
 | 8: Reihenfolge C vor K | getauscht | `nr8-reihenfolge-c-vor-k` |
 | 8: Reihenfolge K vor H | getauscht | `nr8-reihenfolge-k-vor-h` |
 | 8: Dateien vor Verzeichnissen | getauscht | `nr8-reihenfolge-datei-vor-verzeichnis` |
-| 8: `<pfad> fehlt` für C | Prüfung für C entfernt | `nr8-c-fehlt` `nr8-reihenfolge-c-vor-k` |
+| 8: `<pfad> fehlt` für C | Prüfung für C entfernt | `nr8-c-fehlt` `nr8-c-verzeichnis` `nr8-reihenfolge-c-vor-k` |
 | 8: `nicht lesbar` für C | Prüfung für C entfernt | `nr8-unlesbar-F` |
 | 8: `<pfad> fehlt` für K | Prüfung für K entfernt | `nr8-k-fehlt` `nr8-reihenfolge-k-vor-h` |
 | 8: `nicht lesbar` für K | Prüfung für K entfernt | `nr8-unlesbar-S` |
 | 8: `<pfad> fehlt` für H | Prüfung für H entfernt | `nr8-h-fehlt` `nr8-reihenfolge-datei-vor-verzeichnis` |
 | 8: `nicht lesbar` für H | Prüfung für H entfernt | `nr8-unlesbar-B` |
-| 8: `cmd/ fehlt` | Prüfung entfernt | `nr8-cmd-fehlt` `nr8-reihenfolge-verzeichnis-vor-abschnitt` |
-| 8: Verzeichnisse vor Abschnitten | Prüfung entfernt (awk-Sperre gilt zuerst) | `nr8-cmd-fehlt` `nr8-reihenfolge-verzeichnis-vor-abschnitt` |
+| 1 C: Leerraum vor `=` | nur Leerzeichen vor `=` | `nr1-c-leerraum-tab` |
+| 1 C: Name `Code` allein ist Konstante | Name braucht ein Zeichen nach `Code` | `nr1-c-nur-code` |
+| 1 C: Wortzeichen im Namen | Unterstrich kein Wortzeichen | `nr1-c-wortzeichen` |
+| 1 C: Name beginnt mit `Code` | Namenspräfix nicht verlangt | `nr1-c-anderer-name` `nr6-fehler-go-anderer-name` |
+| 1 C: optionaler Typname (`CodeT Typ = …` ist Konstante) | Typname nicht zugelassen | `nr1-c-typ-punkt` `nr1-c-typisiert` |
+| 1 C: Punkt im Typnamen | Punkt nicht zugelassen | `nr1-c-typ-punkt` |
+| 1: Tabellenzeile braucht kein schließendes `|` | schließendes `|` verlangt | `nr1-k-ohne-schlusszeichen` |
+| 1: Tabellenzeile beginnt in Spalte 1 | Einzug zugelassen | `nr1-k-eingerueckt` |
+| 6: Befund mit dem ersten Literal | letztes Literal | `nr6-zwei-literale` |
+| 6: ein Befund je Zeile | Befund je Literal | `nr6-zwei-literale` |
+| 8: Verzeichnis statt Datei ist `fehlt` | `-f` zu `-e` | `nr8-c-verzeichnis` |
+| 8: fehlende Wurzel: `<C> fehlt` | anderer Text | `nr8-wurzel-fehlt` |
+| 8: fehlende Wurzel ist eine Sperre | `cd` ohne Sperre | `nr8-wurzel-fehlt` |
+| 8: nicht lesbares Verzeichnis im Baum | Prüfung entfernt | `nr8-unlesbar-verzeichnis` `nr8-unlesbar-verzeichnis-ohne-r` `nr8-unlesbar-verzeichnis-ohne-x` |
+| 8: Verzeichnis ohne `x` | `-x` entfernt | `nr8-unlesbar-verzeichnis-ohne-x` |
+| 8: Verzeichnis ohne `r` | `-r` entfernt | `nr8-unlesbar-verzeichnis-ohne-r` |
+| 8: nicht lesbare Go-Datei im Baum | Prüfung entfernt | `nr8-reihenfolge-baum-vor-abschnitt` `nr8-unlesbar-baumdatei` `nr8-unlesbar-erste` |
+| 8: der erste Pfad in Bytefolge | `sort -r` | `nr8-unlesbar-erste` `nr8-unlesbar-verzeichnis-ohne-x` |
+| 8: `cmd/ fehlt` vor Baum | Reihenfolge getauscht | `nr8-reihenfolge-verzeichnis-vor-baum` |
+| 8: Baum vor Abschnitten | Reihenfolge getauscht | `nr8-reihenfolge-baum-vor-abschnitt` |
+| 8: `internal/ fehlt` | Prüfung entfernt | keiner (äquivalent, siehe unten) |
+| 8: `cmd/ fehlt` | Prüfung entfernt | `nr8-cmd-fehlt` `nr8-reihenfolge-verzeichnis-vor-abschnitt` `nr8-reihenfolge-verzeichnis-vor-baum` |
+| 8: Verzeichnisse vor Abschnitten | Prüfung entfernt (awk-Sperre gilt zuerst) | `nr8-cmd-fehlt` `nr8-reihenfolge-verzeichnis-vor-abschnitt` `nr8-reihenfolge-verzeichnis-vor-baum` |
 | 8: Abschnitt K vor `### Fehlercodes` | getauscht | `nr8-reihenfolge-abschnitt-k-vor-f` |
 | 8: `### Fehlercodes` vor `### Warnungen` | getauscht | `nr8-reihenfolge-abschnitt-f-vor-w` |
 | 8: Abschnitte vor `ohne Code` | getauscht | `nr8-reihenfolge-abschnitt-vor-quelle` |
@@ -366,25 +382,25 @@ Baum die Quelle benutzt; das ist ihre Invariante, kein Mangel des gezielten Fall
 | 8: Zeile `### Fehlercodes` ganz | Präfix genügt | `nr8-abschnitt-fehlercodes` |
 | 8: Zeile `### Warnungen` ganz | enthalten genügt | `nr8-abschnitt-warnungen` |
 | 8: keine Befund-Zeile bei Sperre | Befunde vor der Sperre ausgegeben | `nr8-sperre-vor-befund` |
-| 9: Ausgang 2 (Sperre in der Shell) | Exit 1 | `nr8-c-fehlt` `nr8-cmd-fehlt` (11 Fälle) |
+| 9: Ausgang 2 (Sperre in der Shell) | Exit 1 | `nr8-c-fehlt` `nr8-cmd-fehlt` `(20 Fälle)` |
 | 9: Ausgang 2 (Sperre im awk) | awk endet mit 1 | keiner (äquivalent, siehe unten) |
-| 9: Ausgang 2 (Sperre aus awk) | Exit 1 | `nr8-abschnitt-k` `nr8-c-ohne-code` (12 Fälle) |
+| 9: Ausgang 2 (Sperre aus awk) | Exit 1 | `nr8-abschnitt-k` `nr8-c-ohne-code` `(12 Fälle)` |
 | 9: sortiert nach Pfad | Schlüssel entfernt | `nr5-klasse-1` `nr9-sortiert` |
 | 9: sortiert nach Code | Schlüssel entfernt | `nr9-bytefolge` `nr9-code-vor-zeile` |
 | 9: sortiert nach Befund | Schlüssel entfernt | `nr9-befund-vor-zeile` |
 | 9: Zeile als Zahl | lexikalisch | `nr9-zeile-numerisch` |
 | 9: Bytefolge | `LC_ALL=C` entfernt | `nr9-bytefolge` |
-| 9: stdout leer | Ausgabe auf stdout | `nr2-form-c` `nr3-doppelt-c` (41 Fälle) |
-| 9: Ausgang 1 bei Befund | Exit 0 | `nr2-form-c` `nr3-doppelt-c` (42 Fälle) |
+| 9: stdout leer | Ausgabe auf stdout | `nr2-form-c` `nr3-doppelt-c` `(45 Fälle)` |
+| 9: Ausgang 1 bei Befund | Exit 0 | `nr2-form-c` `nr3-doppelt-c` `(46 Fälle)` |
 | 9: `<pfad>[:<zeile>]`, Zeile fehlt bei Rückfall | Zeile immer ausgegeben | `nr5-klasse-1` `nr5-klasse-2` `nr5-klasse-3` `nr5-klasse-4` `nr5-klasse-5` `nr5-klasse-6` |
 | 9: Zeilenform | Präfix geändert | `nr5-klasse-1` `nr5-klasse-2` `nr5-klasse-3` `nr5-klasse-4` `nr5-klasse-5` `nr5-klasse-6` |
-| 2: Befund `Form` | Text geändert | `nr2-form-c` `nr2-form-k` (8 Fälle) |
+| 2: Befund `Form` | Text geändert | `nr2-form-c` `nr2-form-k` `(8 Fälle)` |
 | 3: Befund `doppelt` | Text geändert | `nr3-doppelt-c` `nr3-doppelt-dreifach` `nr3-doppelt-h` `nr3-doppelt-h-abschnitte` `nr3-doppelt-k` `nr9-befund-vor-zeile` |
-| 4a: Befund `nicht im Katalog` | Text geändert | `nr4a-nicht-im-katalog` (14 Fälle) |
-| 4c: Befund `nicht im Handbuch` | Text geändert | `nr4c-fehler` `nr4c-warnung` (13 Fälle) |
+| 4a: Befund `nicht im Katalog` | Text geändert | `nr4a-nicht-im-katalog` `(16 Fälle)` |
+| 4c: Befund `nicht im Handbuch` | Text geändert | `nr4c-fehler` `nr4c-warnung` `(15 Fälle)` |
 | 5: Befund `Rückfall fehlt` | Text geändert | `nr5-klasse-1` `nr5-klasse-2` `nr5-klasse-3` `nr5-klasse-4` `nr5-klasse-5` `nr5-klasse-6` |
-| 6: Befund `Code außerhalb der Code-Tabelle` | Text geändert | `nr6-anderes-fehler-go` `nr6-cmd` `nr6-internal` `nr6-kommentar-mit-anfuehrung` `nr9-sortiert` |
-| 9: Befund `nicht in der Code-Tabelle` (K) | Text geändert | `nr2-schwere-i` `nr4b-endung-00` `nr4b-nicht-in-c` `nr9-bytefolge` `nr9-sortiert` |
+| 6: Befund `Code außerhalb der Code-Tabelle` | Text geändert | `nr6-anderes-fehler-go` `nr6-cmd` `nr6-internal` `nr6-kommentar-mit-anfuehrung` `nr6-zwei-literale` `nr9-sortiert` |
+| 9: Befund `nicht in der Code-Tabelle` (K) | Text geändert | `nr1-k-ohne-schlusszeichen` `nr2-schwere-i` `nr4b-endung-00` `nr4b-nicht-in-c` `nr9-bytefolge` `nr9-sortiert` |
 | 9: Befund `nicht in der Code-Tabelle` (H) | Text geändert | `nr4d-in-k` `nr4d-nicht-in-k` `nr4d-warnung` `nr9-sortiert` |
 | 10: `MAKEFLAGS=-n` ändert die Aussage nicht | Skript endet 0 bei `-n` | `nr10-makeflags-n` |
 | 10: `MAKEFLAGS=-q` ändert die Aussage nicht | Skript endet 0 bei `-q` | `nr10-makeflags-q` |
@@ -402,7 +418,7 @@ Baum die Quelle benutzt; das ist ihre Invariante, kein Mangel des gezielten Fall
 | 10: `make -t` hinterlässt nichts | `.PHONY` entfernt | `nr11-make-i` `nr11-make-t` `nr11-makeflags-umgebung` |
 | 11: Gegenprobe in der Ausnahmeliste | entfernt | `nr11-ausnahme-gegenprobe` |
 | 11: Prüfung in der schnellen Kette | Prüfung in der Ausnahmeliste | `nr11-schnelle-kette` |
-| 8: `internal/ fehlt` | Prüfung entfernt | keiner (äquivalent, siehe unten) |
+
 
 **Äquivalente Mutanten.**
 
@@ -416,38 +432,34 @@ Baum die Quelle benutzt; das ist ihre Invariante, kein Mangel des gezielten Fall
 **Messung der Größe** (Metrik §4: Summe Einfügungen und Löschungen von
 `git diff --numstat 8d14a918..<letzter Commit> -- tools harness`).
 
-Summe 488 (Marke 900, Meldeschwelle 750, nicht erreicht), gemessen am Code-Commit `9b7ff671` mit `git diff --numstat 8d14a918..9b7ff671 -- tools harness`;
-das Plan-Commit danach berührt `docs/` und `tools`/`harness` nicht. Aufschlüsselung (Einfügungen + Löschungen): `tools/harness/meldungskatalog-check.sh` 132;
-`tools/harness/meldungskatalog-check-gegenprobe.sh` 261 (das Zweifache des Skripts; Schätzung des Architect 300 bis 450 für die Gegenprobe);
-`harness/sensors/meldungskatalog-check.md` 71; `harness/mk/meldungskatalog-check.mk` 18; `harness/README.md` 2; `harness/mk/gates-schnell.mk` 2;
-`tools/harness/gates-schnell-gegenprobe.sh` 2. Die Schätzung 450 bis 750 (Mitte 580) trifft mit 488 den unteren Teil der Spanne.
+Summe 560 (Marke 900, Meldeschwelle 750, nicht erreicht), gemessen am Code-Commit `0e581db3` mit `git diff --numstat 8d14a918..0e581db3 -- tools harness`.
+Darin 36 Zeilen `SPEC-054` aus dem Commit `db77c937` des Architect; die eigenen Zeilen sind 524. Aufschlüsselung (Einfügungen + Löschungen): `tools/harness/meldungskatalog-check.sh` 142;
+`tools/harness/meldungskatalog-check-gegenprobe.sh` 286; `harness/sensors/meldungskatalog-check.md` 72; `harness/mk/meldungskatalog-check.mk` 18;
+`harness/vertraege/SPEC-054-meldungskatalog.md` 36; `harness/README.md` 2; `harness/mk/gates-schnell.mk` 2; `tools/harness/gates-schnell-gegenprobe.sh` 2.
+Die Schätzung 450 bis 750 (Mitte 580) trifft.
 
 **Läufe.**
 
-- `bash tools/harness/meldungskatalog-check.sh` am Stand des Starts: Exit 0, keine Ausgabe.
-- `make meldungskatalog-check-gegenprobe`: grün (Ausgabe `gruen — Fehlformen je Punkt von SPEC-054 abgelehnt, Gutfälle angenommen`); `make gates-schnell-gegenprobe`: grün.
-- Mutanten: 109 gefahren, 107 rot, 2 äquivalent (oben); die Mutanten nach der Korrektur der Fälle `nr1-k-davor`, `nr1-h-davor` und `nr8-sperre-vor-befund`
-  (anfangs grün: der Anfangszustand im Abschnitt und die Befunde vor der Sperre hatten keinen Fall, der sie erreichte) sind erneut gefahren.
-- `make gates-schnell`: Exit 0. `make kopf-check`: Exit 0, keine Ausgabe. `make docs-check`: `938 Datei(en) geprüft, 0 Befund(e)`.
-- `make lint`: nicht gesondert gefahren; kein Go-Code berührt (`cmd/`, `internal/`, `test/`, `.golangci.yml` unverändert), die Stufe lief in `make gates-schnell` und `make gates` aus dem Zwischenspeicher grün.
-- `make gates` (ein Lauf, im Hintergrund über das Werkzeug gestartet, Stand: HEAD `9b7ff671` mit dem Plan, wie er vor dieser Zeile stand): Exit 0, darin `meldungskatalog-check-gegenprobe: gruen` und `stop-hook-gegenprobe: gruen — 139 Fälle`.
+- `bash tools/harness/meldungskatalog-check.sh` am Stand des Starts: Exit 0, keine Ausgabe (nach den Entscheidungen erneut).
+- `make meldungskatalog-check-gegenprobe`: grün; `make gates-schnell-gegenprobe`: grün. Die Fälle `nr8-unlesbar-*` und `nr8-reihenfolge-baum-vor-abschnitt`/`-verzeichnis-vor-baum` liefen als Nutzer ohne Rechte von root (nicht übersprungen).
+- Mutanten: 124 gefahren, 122 rot, 2 äquivalent (oben), jeweils aus einer Kopie.
+- `make gates` (ein Lauf, im Hintergrund über das Werkzeug gestartet, Stand: HEAD `0e581db3`): Exit 0, darin `meldungskatalog-check-gegenprobe: gruen` und `stop-hook-gegenprobe: gruen — 139 Fälle`.
+- `make gates-schnell`, `make kopf-check`, `make docs-check`: nach dem Plan-Commit, siehe Bericht; `make lint`: kein Go-Code berührt.
 
-**Rückgabe an den Architect: Randform · Frage.** Der Vertrag nennt die folgenden Punkte nicht oder nur durch einen Platzhalter;
-der Code trägt jeweils die in der Spalte *vorläufig* genannte Form, und die Gegenprobe zeigt sie. Der Slice bleibt in
-`in-progress/`, bis der Architect entschieden hat; jede Entscheidung ändert eine Zeile und einen Fall.
+**Entscheidungen des Architect zur Rückgabe (Commit `db77c937`, `SPEC-054` Punkte 1, 6, 8) und ihre Umsetzung.**
 
-| Randform | Frage | vorläufig im Code (Fall) |
+| Randform | Entscheidung | Umsetzung (Fall) |
 |---|---|---|
-| Name einer Konstante in C | Ist ein Name genau `Code` eine Konstante („`Code` und Wortzeichen“)? | ja (`nr1-c-nur-code`) |
-| Konstante mit Typangabe | Ist `CodeT Typ = "…"` eine Konstante (Punkt 1: „Leerraum, `=`, Leerraum“)? | nein (`nr1-c-typisiert`) |
-| Wortlaut der Sperre | Was setzt `<überschrift>` und `<verzeichnis>` ein? | `Abschnitt ### SPEC-034 fehlt`, `Abschnitt ### Fehlercodes fehlt`, `Abschnitt ### Warnungen fehlt`, `cmd/ fehlt` (`nr8-abschnitt-*`, `nr8-cmd-fehlt`) |
-| Reihenfolge innerhalb einer Sperrklasse | Punkt 8 ordnet die Klassen, nicht die Glieder: Dateien, Abschnitte, Quellen | C, K, H; K, Fehlercodes, Warnungen; C, K, H (`nr8-reihenfolge-*`) |
-| Überschrift der Handbuch-Abschnitte | Ist `### Fehlercodes` die ganze Zeile oder ein Präfix? Punkt 1 schreibt bei K das Leerzeichen mit, bei H nicht | ganze Zeile (`nr8-abschnitt-fehlercodes`, `nr8-abschnitt-warnungen`); K: Präfix mit Leerzeichen (`nr8-abschnitt-k`) |
-| Pfad ist ein Verzeichnis, Wurzel fehlt | „fehlt oder ist nicht lesbar“ | `<pfad> fehlt` für alles, was keine reguläre Datei ist; fehlende Wurzel: `<C> fehlt` (nicht durch einen Fall belegt) |
-| Nicht lesbares Verzeichnis oder nicht lesbare Datei im Baum für Punkt 6 | Punkt 8 nennt nur die drei Dateien. Gemessen: ein Verzeichnis mit Rechten 000 unter `cmd/` endet mit Exit 0 und einer Meldung von `find` (die Datei darin ist ungeprüft, grün); eine Datei mit Rechten 000 endet mit Exit 2 und der Meldung von `awk`. | beides ungeregelt, kein Fall; das stille Grün entspricht `BEO-REPO/gate-uebergeht-ablage-eintrag-still` |
-| Mehrere `"PGR-` in einer Zeile; Tabellenzeile mit Einzug oder ohne schließendes `|` | Punkt 6 und Punkt 1 sagen „eine Zeile“ bzw. „erste Zelle“ | eine Zeile ein Befund, mit dem ersten Literal; Tabellenzeile beginnt mit `|` in Spalte 1 und braucht kein schließendes `|` (kein Fall) |
+| Name `Code` allein | Konstante | unverändert (`nr1-c-nur-code`) |
+| Konstante mit Typangabe | Konstante, Typname aus Wortzeichen und Punkt | Regex um den optionalen Typnamen erweitert (`nr1-c-typisiert`, `nr1-c-typ-punkt`) |
+| Wortlaut der Sperren, Reihenfolge innerhalb einer Klasse | bestätigt | kein Code |
+| Überschrift H ganze Zeile, K Präfix mit Leerzeichen | bestätigt | kein Code |
+| Verzeichnis statt Datei, fehlende Wurzel | `<pfad> fehlt` | `nr8-c-verzeichnis`, `nr8-wurzel-fehlt` |
+| Nicht lesbares Verzeichnis oder Go-Datei im Baum | Sperre `<pfad> nicht lesbar`, der erste in Bytefolge, nach `cmd/ fehlt` und vor den Abschnitten | `nr8-unlesbar-verzeichnis` (000), `-ohne-x` (444), `-ohne-r` (333), `-baumdatei`, `-erste`, `nr8-reihenfolge-baum-vor-abschnitt`, `nr8-reihenfolge-verzeichnis-vor-baum`; als root laut übersprungen |
+| Mehrere `"PGR-` in einer Zeile | ein Befund mit dem ersten | `nr6-zwei-literale` |
+| Tabellenzeile ohne schließendes `|`; eingerückte Zeile | ohne `|` gilt; eingerückt zählt nicht (akzeptiertes Negativ) | `nr1-k-ohne-schlusszeichen`, `nr1-k-eingerueckt` |
 
-**Abweichung von der Vorgabe des Architect.** Die Vorgabe „LANGSAM bleibt unverändert“ in `tools/harness/gates-schnell-gegenprobe.sh`
+**Abweichung von der Vorgabe des Architect (von ihm bestätigt, `LANGSAM` bleibt wie geändert).** Die Vorgabe „LANGSAM bleibt unverändert“ in `tools/harness/gates-schnell-gegenprobe.sh`
 trägt nicht: Die Attrappen dieser Gegenprobe kopieren `harness/mk/gates-schnell.mk` des Arbeitsbaums, und jeder Eintrag der Ausnahmeliste, den
 `LANGSAM` nicht führt, ist in jeder Kopie ein `p4-eintrag`. Gemessen: mit dem neuen Eintrag in `GATE_SCHNELL_AUSNAHME` und ohne ihn
 in `LANGSAM` endet `make gates-schnell-gegenprobe` rot und meldet Mutanten wie `m-hash-vor-dem-lauf` neben ihrem Punkt auch mit
@@ -459,9 +471,9 @@ selbst, ihre Fälle und ihr Vertrag sind unberührt.
 
 **Beobachtungen für die Closure** (Register nicht fortgeschrieben, das ist Sache der Closure).
 
-- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (2×): mit diesem Slice zum dritten Mal berührt; die Tabelle oben ist die Liste, die der
-  Vertrag nicht entschied.
-- `BEO-REPO/gate-uebergeht-ablage-eintrag-still`: ein nicht lesbares Verzeichnis im Baum für Punkt 6 bleibt still (Tabelle oben).
+- `BEO-REPO/harness-lesart-ohne-entscheidungsort` (2×): mit diesem Slice zum dritten Mal berührt; die Liste der acht Randformen, die der
+  Vertrag nicht entschied, ist durch die Entscheidungen oben beantwortet.
+- `BEO-REPO/gate-uebergeht-ablage-eintrag-still`: ein nicht lesbares Verzeichnis im Baum für Punkt 6 blieb still (Exit 0); gemessen vor der Entscheidung, jetzt eine Sperre mit Fällen.
 - Eine Vorgabe des Architect über eine Datei, die der Slice nicht berührt, ohne Messung (`LANGSAM`, oben): Der Lauf von
   `make gates-schnell-gegenprobe` vor der Vorgabe hätte sie widerlegt.
 - Mutanten, die einen Aufbau aller Gutfälle brechen (Kopf- und Trennzeile von K und H, die Ausnahme `…000`, `4a`), sind nur über Fälle zu
@@ -484,13 +496,8 @@ def m(name, key, old, new, n=1):
 CR = '/^[ \\t]*Code[A-Za-z0-9_]*[ \\t]+=[ \\t]+"[^"]*"/'
 m("c-einzug-nur-tab", "sk", '/^[ \\t]*Code', '/^[\\t]*Code')
 m("c-einzug-pflicht", "sk", '/^[ \\t]*Code', '/^[ \\t][ \\t]*Code')
-m("c-leerraum-vor-gleich", "sk", 'Code[A-Za-z0-9_]*[ \\t]+=', 'Code[A-Za-z0-9_]* +=')
 m("c-leerraum-nach-gleich", "sk", '=[ \\t]+"[^"]*"/', '= +"[^"]*"/')
-m("c-nur-code", "sk", 'Code[A-Za-z0-9_]*[ \\t]+=', 'Code[A-Za-z0-9_]+[ \\t]+=')
-m("c-wortzeichen-unterstrich", "sk", 'Code[A-Za-z0-9_]*[ \\t]+=', 'Code[A-Za-z0-9]*[ \\t]+=')
 m("c-anker-weg", "sk", '/^[ \\t]*Code', '/[ \\t]*Code')
-m("c-name-code-weg", "sk", 'Code[A-Za-z0-9_]*[ \\t]+=', '[A-Za-z0-9_]*[ \\t]+=')
-m("c-typisiert", "sk", 'Code[A-Za-z0-9_]*[ \\t]+=', 'Code[A-Za-z0-9_]*[ \\t]+([A-Za-z0-9_]+[ \\t]+)?=')
 m("c-backtick", "sk", '=[ \\t]+"[^"]*"/', '=[ \\t]+["`][^"`]*["`]/')
 m("k-backtick-pflicht", "sk", ' || substr(s, 1, 1) != "`" || substr(s, length(s), 1) != "`") return 0', ') return 0')
 m("k-davor", "sk", 'imabschnitt = 0\n  }\n  art == "C"', 'imabschnitt = (art == "K")\n  }\n  art == "C"')
@@ -538,6 +545,29 @@ m("8-verzeichnis-vor-datei", "sk", 'for datei in "$C" "$K" "$H"; do', '[ -d cmd 
 for q in ("C","K","H"):
     m("8-fehlt-nicht-%s"%q, "sk", '[ -f "$datei" ] || sperre', '[ -f "$datei" ] || [ "$datei" = "$%s" ] || sperre'%q)
     m("8-lesbar-nicht-%s"%q, "sk", '[ -r "$datei" ] || sperre', '[ -r "$datei" ] || [ "$datei" = "$%s" ] || sperre'%q)
+T = 'Code[A-Za-z0-9_]*[ \\t]+('
+m("c-leerraum-vor-gleich", "sk", T, 'Code[A-Za-z0-9_]* +(')
+m("c-nur-code", "sk", T, 'Code[A-Za-z0-9_]+[ \\t]+(')
+m("c-wortzeichen-unterstrich", "sk", T, 'Code[A-Za-z0-9]*[ \\t]+(')
+m("c-name-code-weg", "sk", T, '[A-Za-z0-9_]*[ \\t]+(')
+m("c-typname-nicht-zugelassen", "sk", '[ \\t]+([A-Za-z0-9_.]+[ \\t]+)?=', '[ \\t]+=')
+m("c-typname-ohne-punkt", "sk", '[A-Za-z0-9_.]+', '[A-Za-z0-9_]+')
+m("k-ohne-schlusszeichen", "sk", 'if (i > 0) s = substr(s, 1, i - 1)', 'if (i > 0) s = substr(s, 1, i - 1); else return 0')
+m("k-einzug-zugelassen", "sk", '  function tabellenzeile(s,    i) {\n', '  function tabellenzeile(s,    i) {\n    sub(/^[ \\t]+/, "", s)\n')
+m("6-letztes-literal", "sk", 'p = index($0, "\\"PGR-")', 'p = 0; for (j = 1; j <= length($0); j++) if (substr($0, j, 5) == "\\"PGR-") p = j')
+m("6-befund-je-literal", "sk", '    p = index($0, "\\"PGR-")\n    if (p > 0) {\n      rest = substr($0, p + 5)', '    zr = $0\n    while ((p = index(zr, "\\"PGR-")) > 0) {\n      rest = substr(zr, p + 5); zr = rest')
+m("8-verzeichnis-statt-datei", "sk", '[ -f "$datei" ] || sperre', '[ -e "$datei" ] || sperre')
+m("8-wurzel-text", "sk", '|| sperre "$C fehlt"', '|| sperre "Wurzel fehlt"')
+m("8-wurzel-ohne-sperre", "sk", 'cd -- "$wurzel" 2>/dev/null || sperre "$C fehlt"', 'cd -- "$wurzel" 2>/dev/null || true')
+m("8-baum-verzeichnis-ungeprueft", "sk", '{ [ -r "$pfad" ] && [ -x "$pfad" ]; } || unlesbar+=("$pfad")', ':')
+m("8-baum-verzeichnis-ohne-x", "sk", ' && [ -x "$pfad" ]', '')
+m("8-baum-verzeichnis-ohne-r", "sk", '{ [ -r "$pfad" ] && [ -x "$pfad" ]; }', '{ [ -x "$pfad" ]; }')
+m("8-baum-datei-ungeprueft", "sk", '[ -r "$pfad" ] && baum+=("$pfad") || unlesbar+=("$pfad")', 'baum+=("$pfad")')
+m("8-baum-nicht-sortiert-umgekehrt", "sk", "| sort | head -n 1", "| sort -r | head -n 1")
+LOOP = 'for verzeichnis in cmd internal; do\n  [ -d "$verzeichnis" ] || sperre "$verzeichnis/ fehlt"\ndone\n'
+BLK = 'if [ "${#unlesbar[@]}" -gt 0 ]; then\n  sperre "$(printf \'%s\\n\' "${unlesbar[@]}" | sort | head -n 1) nicht lesbar"\nfi\n'
+m("8-baum-vor-verzeichnis-fehlt", "sk", [(LOOP, ''), (BLK, BLK + LOOP)], None)
+m("8-baum-nach-abschnitt", "sk", [(BLK, ''), ('if [ -z "$befunde" ]; then', BLK + 'if [ -z "$befunde" ]; then')], None)
 m("8-ohne-internal", "sk", "for verzeichnis in cmd internal", "for verzeichnis in cmd")
 m("8-ohne-cmd", "sk", 'for verzeichnis in cmd internal', 'for verzeichnis in internal')
 m("8-verzeichnis-nach-abschnitt", "sk", '[ -d "$verzeichnis" ] || sperre "$verzeichnis/ fehlt"', 'true')
@@ -592,56 +622,14 @@ for name, key, old, new, n in M:
         os.makedirs(os.path.dirname(os.path.join(t, rel)) or t, exist_ok=True)
         shutil.copy(os.path.join(R, rel), os.path.join(t, rel))
     p = os.path.join(t, FILES[key]); s = open(p).read()
-    if s.count(old) != n:
-        print("%s: ALT-STRING %d x gefunden" % (name, s.count(old))); shutil.rmtree(t); continue
-    open(p, "w").write(s.replace(old, new))
+    pairs = old if isinstance(old, list) else [(old, new)]
+    bad = [a for a, b in pairs if s.count(a) != n]
+    if bad:
+        print("%s: ALT-STRING %d x gefunden" % (name, s.count(bad[0]))); shutil.rmtree(t); continue
+    for a, b in pairs: s = s.replace(a, b)
+    open(p, "w").write(s)
     r = subprocess.run(["bash", os.path.join(t, GP)], capture_output=True, text=True)
     red = sorted(set(re.findall(r"Fall '([^']*)'", r.stderr)))
     print("%s [exit %d]: %s" % (name, r.returncode, " ".join(red) if red else "GRÜN (Mutant überlebt)"))
     shutil.rmtree(t)
 ```
-
-## 8. Sub-Area-Prüfungen und Modus-Begründung
-
-Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
-§Ziel-Form: Sub-Area-Modus-Begründung — dort die **zwei vorgelagerten
-Schritte** (sie stehen in jedem Slice-Plan, unabhängig von Modus und
-Slice-Typ) und die **vier Pflichtkriterien** (Konventionen-Dichte ·
-Phase-Reife · Evidenz-/Diskrepanz-Risiko · Reconciliation-Aufwand), vier und
-nicht mehr.
-
-**Der Abschnitt selbst entfällt nie.** Die zwei vorgelagerten Prüfungen laufen
-in **jedem** Slice-Plan — sie hängen weder am Modus noch am Slice-Typ. Bedingt
-ist allein der Modus-Begründungsblock am Ende; deshalb nennt der Titel beide
-Hälften.
-
-**Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
-
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (gemergter Stand, 2026-10-07); alle Einträge liegen in `REPO`. Einschlägig:
-
-- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — 13×, über der Schwelle, verkörpert ([`AGENTS.md`](../../../../AGENTS.md) §3.10); die Gegenprobe ist eigener Liefer-Punkt (§2).
-- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — 17×, verkörpert (§3.11); Sensor-Datei und Zeile in `harness/README.md` sagen nur zu, was Skript und Gegenprobe prüfen.
-- `BEO-REPO/spec-randform-erst-im-review-entschieden` — 11×, verkörpert (§3.12); die Randformen stehen in §6 und sind vor dem Code zu entscheiden.
-- `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` — 1×; der Slice ist wellenlos, §4 nennt die Entscheidung des Architects vor dem Code.
-- `BEO-REPO/harness-lesart-ohne-entscheidungsort` — 2×; mit diesem Slice das dritte Mal berührt, falls eine Lesart erst im Code entschieden wird (§6).
-- `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` — 3×, verkörpert (§3.13); die Geber nennen diesen Slice, dieser nennt sie in §1.
-- `BEO-REPO/gate-uebergeht-ablage-eintrag-still` — 1×; ein Gate, das Dateien sucht, darf eine nicht lesbare Quelle nicht still übergehen (§6, Punkt 7).
-- `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` — 2×; das Fragment unter `harness/mk/` muss so an `GATE_CHECKS` hängen, wie es sich liest (Gegenprobe mit Makefile, §2).
-
-Die Einträge über der Schwelle bekommen ihren Ausgang bei der Closure ihrer Welle, nicht hier.
-
-**Nachgezählt** mit der Sendung aus `slice-harness-vertraege-umzug-gate-kette` (Ort neuer
-Kennungen: `harness/vertraege/`, nächste freie Nummer 053; `AGENTS.md` §3.13): drei
-Liefer-Punkte (§2: Prüfung, Gegenprobe, Sensor-Datei, unverändert). Schichten ohne die bedingte
-Zeile von §3 (Bestands-Befund in `internal/hexagon/model/fehler.go` und `SPEC-034`): eine,
-Harness (Vertragsdatei, `tools/`, `harness/mk/`, `harness/sensors/`, `harness/README.md`). Mit
-der bedingten Zeile kämen Produkt-Code und Spezifikation dazu, also drei; das war vor der
-Sendung ebenso (die Vertragsdatei lag in der Spezifikation) und ist Sache der Entscheidung des
-Architects zu *Bestand* in §6, die Sendung ändert daran nichts.
-
-**Nachgezählt** mit der Vorprüfung des Architect (2026-10-17, `AGENTS.md` §3.13): drei
-Liefer-Punkte (§2: Prüfung mit Anschluss, Gegenprobe, Sensor-Datei mit Zeilen in
-`harness/README.md`). Schichten: eine, Harness; die bedingte Zeile für `fehler.go` und
-`SPEC-034` ist entfallen (Bestand grün). Das Handbuch wird gelesen, nicht geändert.
-
-**Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Spezifikation führt, der Code folgt ihr; `harness/conventions.md` deklariert `*` als Greenfield).
