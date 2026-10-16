@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-hilfetext-binary
+**Fund (Risiko aus §6, Ausgang *weiter offen*):** Abnahmeszenario 16 Satz 3 (`TestE2EPlayEndeVergleichGleich`, `TestE2EPlayEndeVergleichAnders`) stützt sich auf `pg_terminate_backend` und `57P01` und läuft nur gegen die Referenz 17 (`make test-integration`); `make test-postgres-versionen` fährt die Fälle nicht (akzeptiertes Negativ, Entscheidung des Nutzers vom 2026-10-12). Die Grenze steht in `SPEC-029` Punkt 2 und `SPEC-053` Punkt 14 (5).
