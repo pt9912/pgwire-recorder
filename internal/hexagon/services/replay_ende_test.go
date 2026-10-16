@@ -334,3 +334,43 @@ func TestReplayConnectionEndeBleibtZugeordnet(t *testing.T) {
 		t.Fatalf("die Session 4 mit Ende ist nie zugeordnet: %v", w)
 	}
 }
+
+// Abdeckung: LH-FA-09/Boundary, LH-FA-12/Boundary — Replay mit `connection`: Eine
+// Verbindung ohne Session (ihre Nummer übersteigt die Zahl der Sessions) hat
+// keine Interaktion am Cursor; eine Lebendprüfung, die wie die erste Interaktion
+// einer Session mit Ende lautet, ist keine Anfrage und wird außer der Reihe
+// beantwortet, eine andere Anfrage ist PGR-E5003 (LH-FA-12.a *Mehr Verbindungen
+// als Sessions*, LH-FA-09.a *Lebendprüfung mit Ende*, die Zuordnung der Anfrage
+// gilt nur bei `first-request`).
+func TestReplayConnectionOhneSessionLebendpruefungMitEnde(t *testing.T) {
+	ctx := context.Background()
+	rec := gekennzeichnet(sessionNr(1, "17.0", lebendMitEnde(1, "-- ping")))
+	rec.Version = model.VersionMitEnde
+	s := nachVerbindung(t, rec)
+	_, _ = s.OpenConnection(ctx)
+	b, _ := s.OpenConnection(ctx)
+	pruefeLebend(t, s, b, "-- ping", "I")
+	if _, err := s.Query(ctx, b, "SELECT 1"); code(err) != model.CodeReplaySession {
+		t.Fatalf("Anfrage ohne Session: erwartet %s, erhalten %v", model.CodeReplaySession, err)
+	}
+}
+
+// Abdeckung: LH-FA-09/Boundary — Replay: Eine Extended-Interaktion mit Ende am
+// Cursor ist keine einfache Anfrage mit Ende; eine eingehende leere
+// Lebendprüfung vor der Zuordnung wird außer der Reihe beantwortet.
+func TestReplayEndeExtendedIstKeineEinfacheAnfrage(t *testing.T) {
+	ctx := context.Background()
+	in := model.Interaction{Sequence: 1, Request: model.Request{Type: model.RequestExtended}, Groups: []model.Group{{
+		Client: []model.ClientMessage{{Type: model.ClientParse, Statement: "s", SQL: ""}, {Type: model.ClientSync}},
+		Server: endeAntworten("FATAL"),
+	}}}
+	s := ladeEnde(t, endeAufzeichnung([]model.Interaction{in}))
+	id, _ := s.OpenConnection(ctx)
+	pruefeLebend(t, s, id, "", "I")
+	if _, err := s.ClientMessage(ctx, id, in.Groups[0].Client[0]); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ClientMessage(ctx, id, in.Groups[0].Client[1]); err != nil {
+		t.Fatal(err)
+	}
+}

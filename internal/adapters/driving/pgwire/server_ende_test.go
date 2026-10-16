@@ -125,7 +125,7 @@ func TestReplayEndeSendetDavorUndSchliesst(t *testing.T) {
 // Abdeckung: LH-FA-25/Negative — Replay im Adapter: Nach dem Ende liest der
 // Adapter nichts mehr. Eine Nachricht, die der Client schon vor dem Ende der
 // Verbindung gesendet hat, erreicht den Use Case nicht (kein zweiter Aufruf von
-// Query oder ClientMessage); ein Terminate danach ändert nichts.
+// Query oder ClientMessage).
 func TestReplayEndeLiestNichtsMehr(t *testing.T) {
 	rep := &endeReplayer{fakeReplayer: &fakeReplayer{}, antworten: endeFolge()}
 	_, _, fe, _, fertig := replayVerbindung(t, rep)
@@ -183,7 +183,9 @@ func TestReplayEndeNurAlsLetzteAntwort(t *testing.T) {
 	s, _, fe, _, fertig := replayVerbindung(t, rep)
 	fe.Send(&pgproto3.Query{String: "SELECT 1"})
 	_ = fe.Flush()
-	_ = bisEndeGelesen(t, fe)
+	if got := bisEndeGelesen(t, fe); len(got) != 0 {
+		t.Fatalf("Nachrichten trotz nicht abbildbarer Antwort gesendet: %v", got)
+	}
 	warte(t, fertig)
 	if n := rep.sentAufrufe(); n != 0 {
 		t.Fatalf("Sent bei nicht abbildbarer Antwort gemeldet (%d)", n)

@@ -18,10 +18,13 @@ import (
 )
 
 // Die Aufzeichnungen sind von Hand geschrieben (Version 2, ohne PostgreSQL);
-// jede gehört einem Fall.
+// jede gehört genau einem Test.
 //
 //go:embed testdata/ende-fatal.yaml
 var endeFatalYAML []byte
+
+//go:embed testdata/ende-terminate.yaml
+var endeTerminateYAML []byte
 
 //go:embed testdata/ende-panic.yaml
 var endePanicYAML []byte
@@ -159,7 +162,7 @@ func TestE2EReplayEndePanic(t *testing.T) {
 // Exit-Code 5.
 func TestE2EReplayEndeTerminateDavor(t *testing.T) {
 	for _, streng := range []bool{false, true} {
-		args, exit, code := []string{"--input", endeDatei(t, endeFatalYAML)}, 0, "PGR-W2001"
+		args, exit, code := []string{"--input", endeDatei(t, endeTerminateYAML)}, 0, "PGR-W2001"
 		if streng {
 			args, exit, code = append(args, "--fail-on-unconsumed"), 5, "PGR-E5002"
 		}

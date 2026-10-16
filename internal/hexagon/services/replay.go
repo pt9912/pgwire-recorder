@@ -220,7 +220,9 @@ func (s *ReplayService) Query(_ context.Context, id model.SessionID, sql string)
 // anfrageMitEnde liefert true, wenn die als Nächste erwartete Interaktion eine
 // einfache Anfrage mit Ende und dem SQL-Text sql ist: die am Cursor, bei einer
 // noch nicht zugeordneten Verbindung mit `first-request` die erste der nächsten
-// freien Session (LH-FA-09.a *Lebendprüfung mit Ende*).
+// freien Session (LH-FA-09.a *Lebendprüfung mit Ende*). Eine Extended-Interaktion
+// trägt keine Antworten außerhalb ihrer Gruppen (Interaction.Validate) und ist
+// keine einfache Anfrage mit Ende.
 func (s *ReplayService) anfrageMitEnde(c *cursor, sql string) bool {
 	var erwartet []model.Interaction
 	switch {
@@ -229,8 +231,7 @@ func (s *ReplayService) anfrageMitEnde(c *cursor, sql string) bool {
 	case !s.nachVerbindung && len(s.frei) > 0:
 		erwartet = s.frei[0].Interactions
 	}
-	return len(erwartet) > 0 && erwartet[0].Request.Type == model.RequestQuery &&
-		erwartet[0].Request.SQL == sql && endetEinfach(erwartet[0])
+	return len(erwartet) > 0 && erwartet[0].Request.SQL == sql && endetEinfach(erwartet[0])
 }
 
 // mitten liefert true, wenn der Cursor innerhalb einer Extended-Interaktion
