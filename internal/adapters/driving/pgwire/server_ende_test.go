@@ -194,3 +194,63 @@ func TestReplayEndeNurAlsLetzteAntwort(t *testing.T) {
 		t.Fatalf("erster Fehler %q, erwartet %s", s.FirstErrorCode(), model.CodeInternal)
 	}
 }
+
+// gruppenReplayer antwortet beim Flush auf die Gruppe davor, beim Sync auf die
+// Gruppe mit Ende, und protokolliert jede Lieferung als „gruppe“.
+type gruppenReplayer struct {
+	*fakeReplayer
+}
+
+func (g *gruppenReplayer) ClientMessage(_ context.Context, _ model.SessionID, m model.ClientMessage) ([]model.Response, error) {
+	var out []model.Response
+	switch m.Type {
+	case model.ClientFlush:
+		out = []model.Response{{Type: model.ResponseParseComplete}}
+	case model.ClientSync:
+		out = []model.Response{{Type: model.ResponseBindComplete}, endeFolge()[1], {Type: model.ResponseConnectionClosed}}
+	default:
+		return nil, nil
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.ereignisse = append(g.ereignisse, "gruppe")
+	return out, nil
+}
+
+func (g *gruppenReplayer) Sent(ctx context.Context, id model.SessionID) {
+	g.fakeReplayer.Sent(ctx, id)
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.ereignisse = append(g.ereignisse, "sent")
+}
+
+// Abdeckung: LH-FA-25/Happy, LH-FA-25/Negative, LH-FA-18/Boundary — Replay im
+// Adapter: Eine Gruppe vor der Gruppe mit Ende wird gesendet und gemeldet, die
+// Verbindung bleibt offen und liest weiter; die Gruppe mit Ende wird gesendet,
+// ohne ReadyForQuery und ohne ein Byte für connection_closed, gemeldet (Sent),
+// danach schließt die Verbindung: Ablauf gruppe sent gruppe sent close
+// (LH-FA-25.a *Meldung des Endes im Replay*).
+func TestReplayEndeGruppeDavorSchliesstNicht(t *testing.T) {
+	rep := &gruppenReplayer{fakeReplayer: &fakeReplayer{}}
+	s, _, fe, log, fertig := replayVerbindung(t, rep)
+	fe.Send(&pgproto3.Parse{Name: "s", Query: "SELECT 1"})
+	fe.Send(&pgproto3.Flush{})
+	_ = fe.Flush()
+	if msg, err := fe.Receive(); err != nil || typName(msg) != "*pgproto3.ParseComplete" {
+		t.Fatalf("Gruppe davor: %T, %v", msg, err)
+	}
+	fe.Send(&pgproto3.Bind{PreparedStatement: "s"})
+	fe.Send(&pgproto3.Sync{})
+	_ = fe.Flush()
+	typen := bisEndeGelesen(t, fe)
+	warte(t, fertig)
+	if got := strings.Join(typen, ","); got != "*pgproto3.BindComplete,ErrorResponse" {
+		t.Fatalf("Nachrichten bis zum Ende %q", got)
+	}
+	if got := rep.protokoll(); got != "gruppe sent gruppe sent close" {
+		t.Fatalf("Ablauf %q, erwartet \"gruppe sent gruppe sent close\"", got)
+	}
+	if text := log.String(); strings.Contains(text, "level=ERROR") || strings.Contains(text, "level=WARN") || s.FirstErrorCode() != "" {
+		t.Fatalf("Meldung beim Ende (erster Fehler %q): %s", s.FirstErrorCode(), text)
+	}
+}
