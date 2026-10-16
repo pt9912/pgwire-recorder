@@ -1709,12 +1709,14 @@ pgwire-recorder play \
    am Ende der Interaktion festgestellt (Schritt 4); der Abbruch erfolgt dann vor der
    nächsten Interaktion. Ausgenommen ist die Fehlerantwort `FATAL` oder `PANIC`, die
    die Verbindung beendet: Sie wird sofort eingestuft, als erwartetes Ende, als
-   Abweichung oder ohne Vergleich als Verbindungsfehler (Tabelle).
+   Abweichung oder ohne Vergleich als Verbindungsfehler (Tabelle); nach ihr schließt der
+   Recorder die Verbindung ohne `Terminate` (*Ende einer Session*).
 7. **Abbruchsignal:** Bei `SIGINT` oder `SIGTERM` endet das Einspielen nach der
    laufenden Interaktion; eine Wartezeit (`LH-FA-21.a`) wird abgebrochen. Mit
    `--finish-session-on-interrupt` zuvor nach der laufenden Session. Ein zweites
    Signal beendet den Prozess sofort. Die Verbindung wird mit `Terminate`
-   geschlossen. Der Exit-Code folgt der Tabelle.
+   geschlossen, außer nach einem Ende des Servers (*Ende einer Session*). Der Exit-Code
+   folgt der Tabelle.
 
 **Fehlerregeln beim Einspielen.** Die Tabelle und der Absatz darunter legen Code,
 Exit-Code und Abbruch je Ursache fest; die Schritte beschreiben den Ablauf und
@@ -1898,6 +1900,13 @@ offenlässt.
   Antworten laufen unabhängig voneinander: Ein Server, der erst weiterliest, wenn seine
   Antworten abgenommen sind, blockiert `play` auch bei einer Gruppe nicht, deren
   Nachrichten und Antworten groß sind. Scheitert das Senden, gilt *Interaktion*.
+  Endet die letzte Gruppe einer Interaktion mit `Flush` (nur bei einem aufgezeichneten Ende,
+  `LH-FA-25.a`), sendet `play` kein `Sync`, und es kommt kein `ReadyForQuery`: Nach dieser
+  Gruppe wartet `play` nicht darauf. Die Interaktion endet, sobald es die Antwort auf jede
+  Client-Nachricht der Gruppe oder eine `ErrorResponse` gelesen hat (der Server verwirft bis
+  zu einem `Sync`); hat es in einer früheren Gruppe eine `ErrorResponse` gelesen, sendet es die
+  letzte Gruppe und liest danach nichts mehr. Eine Fehlerantwort `FATAL` oder `PANIC`, die es
+  dabei liest, gilt nach *Interaktion*.
 * *Interaktion.* Jede andere Server-Nachricht wird gelesen und verworfen, auch
   `NoticeResponse`, `ParameterStatus` und `NotificationResponse`. `CopyInResponse`,
   `CopyOutResponse`, `CopyBothResponse` und eine Nachricht, die sich nicht lesen lässt,
@@ -1907,7 +1916,22 @@ offenlässt.
   (`LH-FA-25.a`). Ohne `--compare-responses` ist sie sofort `PGR-E4003`; mit
   `--allow-recorded-errors` ist sie erwartet, wenn die aufgezeichnete Interaktion ein Ende
   des Servers trägt (`connection_closed`), gleich welcher SQLSTATE und an welcher Stelle,
-  sonst bleibt sie `PGR-E4003`. Mit `--compare-responses` entscheidet der Vergleich
+  sonst bleibt sie `PGR-E4003`. Die Interaktion trägt ein Ende, wenn die letzte Antwort der
+  einfachen Anfrage, bei einer Extended-Interaktion die letzte Server-Nachricht der letzten
+  Gruppe, `connection_closed` ist; eine andere Stelle stellt das Format nicht dar (`SPEC-002`).
+  *Stelle* ist die Interaktion: Die Fehlerantwort des Servers muss weder an der Position der
+  aufgezeichneten stehen noch, bei einer Extended-Interaktion, in der Gruppe mit dem Ende;
+  sie gilt auch in einer früheren Gruppe mit `Flush` und nach einer `ErrorResponse` `ERROR`,
+  nach der `play` weiterläuft. Es gibt einen Grund der Ablehnung, `PGR-E4003`, und keine
+  Reihenfolge von Gründen; `--continue-on-error` ändert ihn nicht. Ein Verbindungsverlust ohne
+  Fehlerantwort bleibt `PGR-E4003`, auch wenn die Aufzeichnung ein Ende trägt. Nach der
+  gelesenen Fehlerantwort liest und sendet `play` nichts mehr. Scheitert das Senden einer
+  Gruppe vor dem Lesen der Fehlerantwort, ist das `PGR-E4003`: Maßgeblich ist der Lesestand
+  (`LH-FA-02.b`), und eine Fehlerantwort, die der Server gesendet und `play` nicht gelesen hat,
+  zählt nicht. Das Ende bewirkt der Server, nicht `play`; dass ein Server die Sitzung mit
+  `FATAL` beendet und mit welchem SQLSTATE, ist sein Verhalten, geprüft gegen die Referenz
+  (`SPEC-029`), für die übrigen Hauptversionen nicht durch einen Test (Grenze). Mit
+  `--compare-responses` entscheidet der Vergleich
   (`LH-FA-24.a` *Ende der Aufzeichnung*): erwartetes Ende oder sofort die Abweichung `PGR-E5004`
   (Tabelle). Ob ein Fehler bei `--allow-recorded-errors` erwartet ist, entscheidet allein,
   ob die aufgezeichnete Interaktion an irgendeiner Stelle eine `error_response` enthält,
@@ -3387,3 +3411,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Ende des Servers im Replay, Extended-Interaktion mit `Sync`: Abweichung zählt bis einschließlich der abschließenden Nachricht und für Anfrage und Lebendprüfung mitten in der Gruppe, `Terminate` und Abbruch mitten in der Gruppe, Gruppe mit Ende als einzige Gruppe, Gruppen davor schließen nicht, teilweises Senden, Schweregrad ändert die Wiedergabe nicht (`LH-FA-25.a`) |
 | 2026-10-16 | Ende des Servers im Replay, Gruppen vor der Gruppe mit dem Ende: in einer Interaktion mit Ende nur mit `Flush` (Berichtigung des Wortlauts „mit `Sync` wie mit `Flush`“, das Format stellt anderes nicht dar), Lebendprüfung zwischen zwei Gruppen mit Zeiger auf `LH-FA-18.a` (`LH-FA-25.a`) |
 | 2026-10-16 | Herunterfahren: die laufende Extended-Interaktion nimmt ihre Client-Nachrichten bis zu ihrem Abschluss an statt bis zu ihrem `Sync` (bei Ende und `Flush` ist es dieses `Flush`; `LH-FA-13.a`, `LH-FA-18.a`) |
+| 2026-10-16 | Einspielen, Ende des Servers ohne Vergleich: Stelle der Fehlerantwort ist die Interaktion (Position der Antworten, Gruppe, nach einem `ERROR`), ein Grund der Ablehnung `PGR-E4003` ohne Reihenfolge, Verbindungsverlust trotz aufgezeichnetem Ende, Lesestand bei Sendefehler, letzte Gruppe mit `Flush` ohne Warten auf `ReadyForQuery`, kein `Terminate` nach der Fehlerantwort, Verhalten des Servers nur gegen die Referenz (`LH-FA-20.a`, `LH-FA-25.a`) |
