@@ -2559,8 +2559,10 @@ Vergleich legen `LH-FA-20.a` und `LH-FA-24.a` fest.
   eine Aufzeichnung mit mehreren Sessions mit Ende hat je Session ein Ende, die Zuordnung ist die
   von `LH-FA-12.a`. Die Gruppe mit dem Ende ist in einer `Sync`- wie in einer `Flush`-Gruppe die
   letzte, ihre Server-Nachrichten vor dem Ende werden gesendet. Sie ist die letzte Gruppe der
-  Interaktion, auch wenn es keine Gruppe davor gibt (die einzige Gruppe); die Gruppen davor, mit
-  `Sync` wie mit `Flush`, laufen wie ohne Ende und schließen die Verbindung nicht.
+  Interaktion, auch wenn es keine Gruppe davor gibt (die einzige Gruppe). In einer Interaktion mit
+  Ende enden die Gruppen davor mit `Flush` (das Format lässt `Sync` nur am Ende der letzten Gruppe
+  zu, `SPEC-001`). Die Gruppen davor laufen wie ohne Ende und schließen die
+  Verbindung nicht, ebenso jede Gruppe einer früheren Interaktion der Session, auch die mit `Sync`.
 * *Reihenfolge der Gründe im Replay.* Das Ende wird nur geliefert, wenn die Anfrage oder die
   Client-Nachricht abgeglichen ist: Eine Ablehnung geht ihm voraus, in der Reihenfolge Zuordnung ohne
   freie Session (`PGR-E5003`), dann Abweichung von der erwarteten Anfrage oder Nachricht
@@ -2568,7 +2570,9 @@ Vergleich legen `LH-FA-20.a` und `LH-FA-24.a` fest.
   `Sync` oder `Flush` geliefert (`LH-FA-18.a`); eine Abweichung davor ist `PGR-E5001`, die Interaktion
   bleibt unverbraucht, und das Ende kommt nicht. Als Abweichung zählt jede Nachricht der Gruppe bis
   einschließlich der abschließenden (auch `Flush` statt `Sync` und umgekehrt) sowie eine einfache
-  Anfrage oder eine Lebendprüfung mitten in der Gruppe (`LH-FA-18.a`). `Terminate` oder das Ende der
+  Anfrage oder eine Lebendprüfung mitten in der Gruppe, auch zwischen zwei Gruppen derselben
+  Interaktion (beides entscheidet `LH-FA-18.a`: jede `Query` nach der ersten Nachricht und vor dem
+  `Sync` der Interaktion). `Terminate` oder das Ende der
   Client-Verbindung vor der abschließenden Nachricht, auch mitten in der Gruppe, lässt die
   Interaktion unverbraucht (`LH-FA-03.b`).
 * *Herunterfahren.* Das Herunterfahren während der Gruppen vor der Gruppe mit dem Ende und das
@@ -3374,3 +3378,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-15 | Aufzeichnungsformat `sqlite`, Schreiben des Endes: Version 1 beim Anlegen unabhängig vom Feld des Modells, Session mit Ende ohne Prüfung der Stelle, nur die erste Transaktion mit Ende setzt die Version 2 (genau die Zeile mit dem Wert 1, sonst `PGR-E3001`), Rollback hält die Version 1, Schließen nach der Transaktion, Abbruch, `user_version`, Zeile des Endes an der Stelle des Modells, Felder werden geschrieben, Form wird nicht geprüft, Roundtrip beider Formate (`LH-FA-22.a`, `LH-FA-25.a`, `SPEC-001`, `SPEC-043`) |
 | 2026-10-16 | Ende des Servers im Replay: Meldung als letzte Antwort `connection_closed` (einfache Anfrage wie Gruppe), Stellen von `connection_closed`, Reihenfolge der Gründe, Abweichung vor dem abschließenden `Sync`/`Flush`, Herunterfahren, ungelesene Nachrichten nach dem Ende; eingehende Lebendprüfung mit Ende vor der Zuordnung bei `first-request` ist die Anfrage (`LH-FA-25.a`, `LH-FA-09.a`, `LH-FA-12.a`) |
 | 2026-10-16 | Ende des Servers im Replay, Extended-Interaktion mit `Sync`: Abweichung zählt bis einschließlich der abschließenden Nachricht und für Anfrage und Lebendprüfung mitten in der Gruppe, `Terminate` und Abbruch mitten in der Gruppe, Gruppe mit Ende als einzige Gruppe, Gruppen davor schließen nicht, teilweises Senden, Schweregrad ändert die Wiedergabe nicht (`LH-FA-25.a`) |
+| 2026-10-16 | Ende des Servers im Replay, Gruppen vor der Gruppe mit dem Ende: in einer Interaktion mit Ende nur mit `Flush` (Berichtigung des Wortlauts „mit `Sync` wie mit `Flush`“, das Format stellt anderes nicht dar), Lebendprüfung zwischen zwei Gruppen mit Zeiger auf `LH-FA-18.a` (`LH-FA-25.a`) |
