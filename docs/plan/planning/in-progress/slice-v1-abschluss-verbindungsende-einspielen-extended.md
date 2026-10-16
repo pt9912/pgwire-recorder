@@ -228,7 +228,7 @@ Der Mutant „Warten auf `ReadyForQuery` nach dem Signal“ trifft das zweite Si
 
 **Messung neu** (`git diff --numstat 08290f8..bf4fa5b -- internal test docs/user`): **536** (Einfügungen 499, Löschungen 37; Marke 1000: 54 %; Meldeschwelle 800 nicht erreicht). Produktcode 39 (`play.go` 32 + 7), Tests im Service 338 (236 + 74 + 28), E2E 141, Tabellen 18. Gegenüber 447 kommen 89 hinzu: Produktcode +5 (Kommentare), Tests +82 (Signal-Fälle), Tabellen +2.
 
-**Läufe der Nacharbeit:** am Ende dieser Sektion.
+**Läufe der Nacharbeit** (Stand `12e46f6`, Arbeitsbaum sauber): `make test` (gofmt, vet, Unit) grün; `make abdeckung` und `make abdeckung-check` grün; `make docs-check` und `make kopf-check` grün; `make gates` grün, Exit-Code 0, ein Lauf. Ein erster Lauf von `make gates` war rot (`abdeckung-check`): Ein Aufruf meines Mutanten-Skripts mit einem Namen aus mehreren Wörtern legte Verzeichnisse im Arbeitsbaum an, die `git add -A` in `bf4fa5b` und `8b673fd` mit eingecheckt hat; `12e46f6` entfernt sie, danach sind Tabellen und Gates grün. Der Diff in den Pfaden der Metrik ist davon nicht berührt.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
