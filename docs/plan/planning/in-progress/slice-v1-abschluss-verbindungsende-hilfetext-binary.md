@@ -159,6 +159,53 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Commits:** `cc4ca898` (Hilfetext und `TestPlayEndeHilfe`), `f4e9defb` (zwei E2E-Tests, zwei Fixtures, `SPEC-029` Punkt 2, Deklaration von `TestE2EPlayVergleichFatal`, Tabellen, Plan). Der Satz in `SPEC-029` Punkt 2 steht erst in `f4e9defb`, dem Commit der Tests (`AGENTS.md` §3.11); §3 weist die Änderung dem Implementer zu, es gab keine Rückgabe.
+
+**Abweichung vom Wortlaut des Plans, gemessen und in §6 nachgezogen:** Die Fixtures tragen nicht `SELECT 1` und nicht `SELECT pg_terminate_backend(pg_backend_pid())`. Der erste Lauf (`make test-integration`, Fall „gleich“) endete mit Exit-Code 5 und `PGR-E5004`, `Session 1, Interaktion 2 … Position 1, Art Nachrichtenart`: Die Aufzeichnung von Hand trägt keine `row_description`, und die erste Nachricht des Servers auf `SELECT pg_terminate_backend(...)` war nicht das aufgezeichnete FATAL. Jetzt: Session 1 `CREATE TABLE ende_vor (n int)` (nur `command_complete`), dann der DO-Block mit `pg_terminate_backend(pg_backend_pid())` und `pg_sleep(5)` wie in `TestE2EPlayVergleichFatal`; Session 2 unverändert. Zähler und Meldung bleiben, wie geplant (3/3/0, 2/2/1). Keine Randform des Vertrags berührt: Der Inhalt einer handgeschriebenen Fixture entscheidet keine Zusage.
+
+**Mutationen des Hilfetextes** (Unit, Kopie des Arbeitsbaums im Image `deps` mit `--network=none`, `touch` nach der Änderung; jeder Mutant färbt genau den genannten Teilfall von `TestPlayEndeHilfe`, `TestParsePlayHilfe` bleibt grün):
+
+| Zusage | Mutation in `optionenPlay` | roter Teilfall |
+|---|---|---|
+| allow: ERROR-Satz | `Schweregrad ERROR ist` → `Schweregrad WARNING ist` | `--allow-recorded-errors: eine Fehlerantwort mit dem Schweregrad ERROR …` |
+| allow: Ende des Servers | `ebenso ein` → `ein` | `--allow-recorded-errors: ebenso ein Ende des Servers (FATAL oder PANIC), …` |
+| allow: FATAL | `(FATAL oder PANIC), wenn` → `(PANIC), wenn` | derselbe Teilfall |
+| allow: PANIC | `(FATAL oder PANIC), wenn` → `(FATAL), wenn` | derselbe Teilfall |
+| allow: nächste Session | `dann läuft die nächste Session` → `dann endet play` | `--allow-recorded-errors: dann läuft die nächste Session` |
+| allow: ohne Wirkung | `--compare-responses ohne Wirkung` → `--compare-responses mit Wirkung` | `--allow-recorded-errors: mit --compare-responses ohne Wirkung` |
+| compare: Ende erwartet | `erwartet, wenn die Aufzeichnung es` → `erlaubt, wenn …` | `--compare-responses: ein Ende des Servers (FATAL oder PANIC) ist erwartet, …` |
+| compare: FATAL | `(FATAL oder PANIC) ist` → `(PANIC) ist` | derselbe Teilfall |
+| compare: PANIC | `(FATAL oder PANIC) ist` → `(FATAL) ist` | derselbe Teilfall |
+| compare: an derselben Stelle | `an derselben Stelle` → `an einer Stelle` | `--compare-responses: an derselben Stelle` |
+| compare: mit demselben SQLSTATE | `demselben SQLSTATE zeigt` → `einem SQLSTATE zeigt` | `--compare-responses: mit demselben SQLSTATE zeigt` |
+| compare: sonst eine Abweichung | `sonst eine Abweichung` → `sonst ein Ende` | `--compare-responses: sonst eine Abweichung` |
+
+Die Tests suchen im Block der Option (Zeile der Option bis zur nächsten Option, Leerraum zusammengezogen); ein Satz im Block der anderen Option bestünde nicht. Ein Mutant, der einen Satz in den Block der anderen Option verschöbe, ist nicht gefahren.
+
+**Mutationen der Fälle am Binary** (Wegwerf-Änderung im Arbeitsbaum, vor dem Lauf committed, `make test-integration`, danach `git reset --hard HEAD~1` auf den eigenen Wegwerf-Commit; Ausgaben in der Sitzung):
+
+| Zusage | Mutation (Service) | roter Test |
+|---|---|---|
+| gleiche Stelle, gleicher SQLSTATE: Ende erwartet | M1 `fatal`: `u == nil` wird nie wahr (Ende nie erwartet) | nur `TestE2EPlayEndeVergleichGleich` (Exit-Code 5, `Position 1, Art Fehler (SQLSTATE aufgezeichnet „“, Server „“)`); „anders“ bleibt grün |
+| anderer SQLSTATE: `PGR-E5004`, Exit-Code 5 | M2 `fatal`: `u` immer nil (jedes Ende erwartet) | `TestE2EPlayEndeVergleichAnders` beide Läufe, dazu der Bestand `TestE2EPlayVergleichFatal`; „gleich“ grün |
+| `--allow-recorded-errors` ohne Wirkung mit Vergleich | M3 `fatal`: `if u == nil \|\| s.optionen.AllowRecordedErrors` | nur `TestE2EPlayEndeVergleichAnders/play_ende_vergleich_anders_allow`; der Lauf ohne die Option und „gleich“ grün |
+| Meldung nennt beide SQLSTATE in der Reihenfolge aufgezeichnet, Server | M4 `text()`: Argumente vertauscht | `TestE2EPlayEndeVergleichAnders` beide Läufe, dazu die Bestandstests `…VergleichAbweichung/anderer_SQLSTATE`, `…VergleichFatal`, `…VergleichExtendedFehler`; „gleich“ grün |
+| Zeile zum Ende: `verglichen` zählt die Interaktion mit Ende | M5 `fatal`: `Verglichen++` entfernt | `TestE2EPlayEndeVergleichGleich` (3/2/0), beide Läufe von „anders“ (2/1/1), `TestE2EPlayVergleichFatal` |
+
+Nicht mit eigenem Mutanten belegt: (a) „kein `PGR-E4003`“ — `PGR-E4003` entstünde in `fehlerantwort` (ohne Vergleich); ein Mutant, der mit Vergleich diesen Weg nähme, ändert Exit-Code, Meldung und Zähler zugleich, die Prüfung „kein `PGR-E4003`“ ist von der auf Exit-Code 5 und die eine Meldung `PGR-E5004` nicht zu trennen (Mitprüfung, keine eigene Zusage); (b) `to_regclass` („die nächste Session lief / lief nicht“) — ein Mutant, der die nächste Session startet, ändert zugleich `eingespielt` im Zähler (3 statt 2), die Datenbankprobe ist hier eine zweite Sicht auf dieselbe Zusage, kein eigener Wächter; (c) „früher/später/ohne Ende“ am Binary — akzeptiertes Negativ des Plans (Service beim Geber).
+
+**Wege:** Unit-Mutanten: `docker build --target deps -t pgr-deps:impl .`, Kopie von `cmd internal test go.mod go.sum` in ein frisches Verzeichnis im Scratchpad je Mutant, `docker run --network=none -v <Kopie>:/src … go test -count=1 -run 'TestPlayEndeHilfe|TestParsePlayHilfe'`, `touch` auf `cli.go`. E2E-Mutanten: Änderung, `touch`, `git add` einer Datei nach `git status`, Commit, `make test-integration`, `git reset --hard HEAD~1`; Arbeitsbaum danach sauber (`git status`), HEAD wieder `f4e9defb`.
+
+**Messung** (Metrik §4: `git diff --numstat 1de25738..HEAD -- internal test docs/user`, Summe Einfügungen und Löschungen): **222** (213 + 9) nach `f4e9defb`, unter der Meldeschwelle 300 und bei 56 % der Marke 400; Schätzung des Architect 145 bis 355. Aufschlüsselung: `cli.go` 12; `play_ende_hilfe_test.go` 60; `play_ende_vergleich_e2e_test.go` 78 (Kopf, Embeds und Hilfe `endeVergleichLauf` 33, `TestE2EPlayEndeVergleichGleich` mit Deklaration 19, `TestE2EPlayEndeVergleichAnders` mit Deklaration 24, zwei Leerzeilen); beide Fixtures je 28; `play_vergleich_e2e_test.go` 9 (Deklaration); Tabellen 7. Zeilen je E2E-Fall mit Testdaten: gleich 19 + 28 = 47, anders 24 + 28 = 52, dazu 33 gemeinsam.
+
+**Läufe:** `make test` (gofmt, vet, Unit) grün nach dem Hilfetext; `make test-integration` grün mit beiden neuen Tests (Lauf 2; Lauf 1 rot, siehe Abweichung); `make abdeckung`, `make abdeckung-check` Exit-Code 0; `make gates`: siehe unten.
+
+**Durchsicht nach der Klasse „Quantor“ und altem Wortlaut:** `grep` nach `ebenfalls eine trägt`, `vergleicht die Struktur`, `Struktur der Serverantworten` über `internal`, `test`, `spec`, `docs/user`: nur `cli.go` (geändert) und `spec/spezifikation.md` `LH-FA-20.a` (Architect, `179ab424`). Der Hilfetext trägt keine Quantoren („jede“, „alle“, „immer“, „nie“) im neuen Satz; „jeder Interaktion“ in `--compare-responses` ist Bestand und unverändert. Handbuch und README: nicht berührt (§1).
+
+**Beobachtungen:** (1) Die Fixture einer Aufzeichnung von Hand für den Vergleich braucht die Form der Antworten, die das Binary vergleicht (`row_description`, DO-Block statt `SELECT pg_terminate_backend`); der Plan nannte `SELECT 1` und die SELECT-Form, der erste Lauf zeigte beides — Muster `BEO-REPO/handgeschriebene-aufzeichnung-ohne-beleg-gegen-den-server` (Auftreten bei diesem Slice, Eintrag bei der Closure). (2) Der Bestandstest `TestE2EPlayVergleichFatal` färbt sich bei M2, M4 und M5 mit; die Aufzählung der Mutanten in §6 („Zusage 1/2/3“) nennt nur die Fälle dieses Slice.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
