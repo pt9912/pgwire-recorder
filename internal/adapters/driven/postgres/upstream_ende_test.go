@@ -339,7 +339,7 @@ func (z *zaehlendeVerbindung) Read(b []byte) (int, error) {
 }
 
 // Abdeckung: LH-FA-25/Boundary — Upstream-Adapter, Senden nach dem Ende: Hat die Leserichtung
-// eine ErrorResponse FATAL gelesen, ruft Send Read der Verbindung nicht auf, auch wenn eine
+// eine ErrorResponse FATAL gelesen, ruft Send, dessen Schreiben scheitert, Read der Verbindung nicht auf, auch wenn eine
 // weitere Nachricht des Servers wartet, und kehrt binnen zwei Sekunden zurück; die wartende
 // Nachricht bleibt unverbraucht.
 func TestSendLiestNichtNachDemEnde(t *testing.T) {
@@ -374,6 +374,9 @@ func TestSendLiestNichtNachDemEnde(t *testing.T) {
 		t.Fatalf("Receive: %v, %v", typen(rs), err)
 	}
 	vorher := z.gelesen.Load()
+	if err := roh.(*net.TCPConn).CloseWrite(); err != nil {
+		t.Fatal(err)
+	}
 	close(weiter)
 	var sendErr error
 	fertigBinnen(t, 2*time.Second, "Send nach dem Ende", func() {
