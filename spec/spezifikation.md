@@ -1658,6 +1658,14 @@ in `LH-FA-17.a`):
 | `--finish-session-on-interrupt` | ein Abbruchsignal beendet zuvor die laufende Session |
 | `--keep-timing`, `--timing-mode`, `--timing-reference` | zeitgetreues Einspielen (`LH-FA-21.a`) |
 
+Die Hilfe von `play` sagt zu `--allow-recorded-errors` viererlei: Eine `ErrorResponse` mit dem
+Schweregrad `ERROR` ist kein Fehler, wenn die aufgezeichnete Anfrage ebenfalls eine trägt; ebenso
+ein Ende des Servers (`FATAL` oder `PANIC`), das die aufgezeichnete Anfrage ebenfalls trägt; dann
+läuft die nächste Session; die Option ist mit `--compare-responses` ohne Wirkung. Zu
+`--compare-responses` sagt sie, dass ein Ende des Servers (`FATAL` oder `PANIC`) erwartet ist, wenn
+die Aufzeichnung es an derselben Stelle mit demselben SQLSTATE zeigt, und sonst eine Abweichung.
+Ein Test je Aussage prüft sie.
+
 Beispiel:
 
 ```bash
@@ -3199,7 +3207,7 @@ Hauptversion. „Unterstützt" heißt genau:
    das Abspielen ohne Server (Abnahmeszenario 2), das erweiterte Protokoll (Abnahmeszenario 7),
    die Anmeldung mit SCRAM-SHA-256 und der Abgleich der Lebendprüfung mit dem Server.
 2. Gegen die Referenz 17 läuft zusätzlich die volle Integrationssuite. Die Anmeldung mit
-   Klartext-Passwort und mit MD5 sind nur dort geprüft.
+   Klartext-Passwort und die mit MD5 sind nur dort geprüft.
 
 ## 7. Querschnittsvorgaben
 
@@ -3450,3 +3458,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Vergleich mit Ende: Einleitung und Absatz zur `ErrorResponse` in der Extended-Interaktion nennen die Ausnahme der letzten Gruppe mit `Flush` wie der vierte Punkt von *Ende der Aufzeichnung*, kein Zuwachs an Regeln (`LH-FA-24.a`) |
 | 2026-10-16 | Einspielen, zweites Signal und Ende des Servers: kein `Terminate` gilt nach der gelesenen und geschlossenen Fehlerantwort; ein Signal zwischen Lesen und Schließen kann `Terminate` senden, Grenze ohne Test (`LH-FA-20.a`) |
 | 2026-10-16 | Schweregrad des Endes: ein leeres `V` gilt wie ein fehlendes, in der Datei und beim Einspielen gleich; der SQLSTATE des Vergleichs zählt nur an einer `ErrorResponse` (`LH-FA-24.a`, `LH-FA-25.a`) |
+| 2026-10-16 | Hilfe von `play` zum Ende des Servers bei `--allow-recorded-errors` und `--compare-responses` (`LH-FA-20.a`); `SPEC-029` Punkt 2: „die Anmeldung mit Klartext-Passwort und die mit MD5“ (Berichtigung des Numerus, keine Aussage geändert) |
