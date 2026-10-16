@@ -17,7 +17,7 @@ in der wellenlosen Reihe nach `slice-harness-integration-wait` und vor
 
 **Bezug:** [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler) (stabile Meldungscodes je Ursache). Bindung an Entscheidungen: [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) (Folgepflicht: ein Gate, das Code-Tabelle und Katalog abgleicht).
 
-**Berührte Spec-Stellen:** `SPEC-034` (gelesen, Tabelle der Codes; geändert nur, wenn der Architect einen Bestands-Befund dort berichtigt) · `harness/vertraege/` (neue Kennung für den Vertrag des Gates, vergeben vom Architect vor dem Code; die nächste freie Nummer ist 053)
+**Berührte Spec-Stellen:** `SPEC-034` (gelesen, Tabelle der Codes; geändert nur, wenn der Architect einen Bestands-Befund dort berichtigt) · [`SPEC-054`](../../../../harness/vertraege/SPEC-054-meldungskatalog.md) (Vertrag des Gates, vom Architect vor dem Code geschrieben; die nächste freie Nummer ist danach 055) · `SPEC-052` Punkt 13 (Beleg des Handbuchs in der schnellen Kette, vom Architect nachgezogen)
 
 **Verantwortlich:** pt9912
 
@@ -36,10 +36,11 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** Ein Gate meldet rot, wenn ein Meldungscode `PGR-…` im Go-Code nicht im
 Meldungskatalog der Spezifikation (Tabelle in `SPEC-034`) steht, und umgekehrt, wenn
-ein Code des Katalogs im Go-Code fehlt. Was als Code im Go-Code zählt, was als
-Katalog-Zeile und wie „umgekehrt“ für Codes gilt, die der Code noch nicht erzeugt,
-entscheidet der Architect vor dem ersten Code-Commit im Vertrag des Gates
-(`harness/vertraege/`); die Randformen dazu stehen in §6. Geliefert wie
+ein Code des Katalogs im Go-Code fehlt, es sei denn, er ist ein Rückfall `…000`; und
+wenn die Codes der Fehlercode- und Warnungstabellen des Handbuchs nicht genau die der
+Code-Tabelle sind. Was als Quelle, Code, Befund und Sperre zählt, entscheidet
+[`SPEC-054`](../../../../harness/vertraege/SPEC-054-meldungskatalog.md) (Architect,
+vor dem ersten Code-Commit); die Randformen dazu stehen in §6 mit ihrem Punkt. Geliefert wie
 `make kopf-check` und `make abdeckung-check`: ein Prüfskript unter `tools/harness/`
 mit Gate-Ziel, eine Gegenprobe als eigenes Gate-Ziel, beide über ein Fragment unter
 `harness/mk/` an `GATE_CHECKS`, eine Sensor-Datei unter `harness/sensors/` und je eine
@@ -54,7 +55,10 @@ Folgepflicht keine Slice-Kennung hat (Nebenbefund 4 in
 `slice-v1-abschluss-container` §1 nannten das Gate als „Folge-Slice“ ohne Kennung.
 Entscheidung des Nutzers vom 2026-10-07 (Audit nach [`AGENTS.md`](../../../../AGENTS.md)
 §3.13, Fund 1): eigener wellenloser Slice, verglichen wird der Go-Code mit dem Katalog
-der Spezifikation.
+der Spezifikation. Das Handbuch kommt als dritte Quelle dazu (Empfehlung des Architect
+vom 2026-10-17, §6 Punkt 8; der Nutzer hat es nicht ausgeschlossen): Es kostet eine
+Funktion im Skript und schützt `slice-v1-abschluss-container`, bevor der den Katalog der
+Betriebsdokumentation fortschreibt.
 
 **Übernommen aus welle-v1-abschluss** (dort §6, Out-of-Scope) **und aus
 `slice-v1-abschluss-container`** (dort §1, Abgrenzung): das Gate für Code-Tabelle und
@@ -63,10 +67,9 @@ Katalog; das ist das Ziel oben.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Codes erzeugen, die der Katalog führt und der Code noch nicht — Schicht-Abgrenzung:
-  kein Verhalten im Produkt-Code; an `internal/hexagon/model/fehler.go` ändert der
-  Slice höchstens die Code-Tabelle, und nur nach §6 *Bestand*. Die Codes der offenen Anforderungen liefern die Slices von
-  welle-v1-abschluss, die sie umsetzen; wie das Gate bis dahin mit ihnen umgeht, ist
-  eine Randform (§6), keine Arbeit am Produkt.
+  kein Verhalten im Produkt-Code und keine Änderung an `internal/hexagon/model/fehler.go`
+  oder `SPEC-034`; das Gate ist am Stand des Starts grün (§6 *Bestand*), die vier Codes des
+  Katalogs ohne Konstante sind Rückfälle, die `SPEC-054` Punkt 4b zulässt.
 - Klasse, Exit Code und Form des Fehlertexts eines Codes prüfen — Bestand bleibt
   stehen: Das prüfen die Tests aus `slice-replay-semantik-meldungscodes`
   (`fehler_test.go`, Kopf und Exit Code in `cli_test.go`, `bootstrap_test.go`); das
@@ -88,14 +91,16 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler):
-      Der Vertrag des Gates steht vor dem ersten Code-Commit in `harness/vertraege/`
-      unter einer neuen Kennung und entscheidet jede Randform aus §6; das Prüfskript
-      (bash, ohne Docker) hängt mit seinem Ziel über ein Fragment unter `harness/mk/`
-      an `GATE_CHECKS` und ist am Stand des Starts grün, ein Befund des Bestands ist nach
-      Entscheidung des Architects berichtigt (§6, *Bestand*).
-- [ ] Gegenprobe als eigenes Gate-Ziel in Temp-Bäumen: je Randform aus §6 ein Fall, der
-      abgelehnt bzw. angenommen werden muss — mindestens ein Code nur im Go-Code, ein
-      Code nur im Katalog, ein Code in falscher Form; dazu in einem Temp-Baum mit
+      Der Vertrag `SPEC-054` steht vor dem ersten Code-Commit in `harness/vertraege/`
+      und entscheidet jede Randform aus §6; das Prüfskript (bash und awk, ohne Docker)
+      hängt mit seinem Ziel über ein Fragment unter `harness/mk/` an `GATE_CHECKS`, ist
+      am Stand des Starts grün, ohne dass `fehler.go` oder `SPEC-034` sich ändern, und
+      steht in der schnellen Kette; die Gegenprobe steht in `GATE_SCHNELL_AUSNAHME`
+      (`harness/mk/gates-schnell.mk`).
+- [ ] Gegenprobe als eigenes Gate-Ziel in Temp-Bäumen: je Punkt von `SPEC-054` und je
+      Element einer Aufzählung darin (`AGENTS.md` §3.10) ein Fall, der abgelehnt bzw.
+      angenommen werden muss — darunter ein Code nur im Go-Code, nur im Katalog, nur im
+      Handbuch, in falscher Form; dazu in einem Temp-Baum mit
       Makefile und Fragment, dass beide Ziele an `GATE_CHECKS` hängen und über `make`
       bei rotem Skript mit Exit ungleich 0 enden. Je Zusage des Skripts ist die Mutation
       vom Implementer rot gesehen ([`AGENTS.md`](../../../../AGENTS.md) §3.10); die
@@ -122,14 +127,14 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `harness/vertraege/` (neue Datei der Kennung 053, Historie im `README.md` des Ordners) | neu (Architect, vor Code) | Vertrag des Gates: Gegenstand, Fundort, Richtung, Form, Ausgabe, Grenze; je Randform aus §6 ein nummerierter Punkt |
-| `docs/plan/adr/` (neue ADR, Index) | new, update (bedingt, Architect) | nur wenn die Richtung „umgekehrt“ (§6) zwischen Alternativen entschieden wird, die [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) nicht trägt; sonst genügt der Vertrag |
-| `tools/harness/meldungskatalog-check.sh` | neu | liest die Codes aus dem Go-Code und aus der Tabelle in `SPEC-034` und vergleicht die Mengen |
+| `harness/vertraege/SPEC-054-meldungskatalog.md`, `README.md` des Ordners, `SPEC-052-gate-kette.md` Punkt 13 | neu, update (Architect, vor Code, geliefert) | Vertrag des Gates; Beleg des Handbuchs in der schnellen Kette |
+| `docs/plan/adr/` | keine ADR | [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) trägt die Folgepflicht, die Form folgt dem Muster der Sensoren; die Gründe (Handbuch als dritte Quelle, Rückfälle zugelassen, Go-Test unmöglich wegen des Build-Kontexts) stehen im Vertrag |
+| `tools/harness/meldungskatalog-check.sh` | neu | liest die Codes aus `fehler.go`, aus der Tabelle in `SPEC-034` und aus den Tabellen des Handbuchs und vergleicht die Mengen (`SPEC-054`) |
 | `tools/harness/meldungskatalog-check-gegenprobe.sh` | neu | Fehlformen in Temp-Bäumen je Punkt des Vertrags, wie `tools/harness/kopf-check-gegenprobe.sh`; dazu der Fall mit Makefile und Fragment |
 | `harness/mk/meldungskatalog-check.mk` | neu | zwei Ziele, Prüfung und Gegenprobe, beide an `GATE_CHECKS` |
+| `harness/mk/gates-schnell.mk` | update | `meldungskatalog-check-gegenprobe` in `GATE_SCHNELL_AUSNAHME` |
 | `harness/sensors/meldungskatalog-check.md` | neu | Vertrag-Zeiger, Grenze, Ausgabe und Ausgänge, Sperren |
 | `harness/README.md` §Sensors | update | zwei Zeilen mit Bindung |
-| `internal/hexagon/model/fehler.go`, `spec/spezifikation.md` (`SPEC-034`) | update (bedingt) | nur ein Bestands-Befund, den der Vertrag rot macht, nach Entscheidung des Architects (§6, *Bestand*) |
 
 ## 4. Trigger
 
@@ -159,10 +164,15 @@ ADR nötig ist (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Vertrag zieht den Katalog
-  der Betriebsdokumentation als dritte Quelle hinzu (§6) und Skript, Gegenprobe und
-  Bestands-Berichtigung sind nicht mehr in einer Review-Sitzung prüfbar; dann bleibt
-  hier der Abgleich mit `SPEC-034`, die dritte Quelle geht in einen eigenen Slice.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe aus Einfügungen und
+  Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools harness`
+  liegt über 900; Basis ist der Commit des `git mv` nach `in-progress/`. Die Schätzung des
+  Architect (2026-10-17) in dieser Metrik: Spanne 450 bis 750, Mitte 580, Obergrenze 750
+  (Skript 110 bis 150; Gegenprobe 300 bis 450, das Zwei- bis Dreifache des Skripts nach dem
+  Faktor aus `AGENTS.md` §3.14; Fragment, Sensor-Datei und Zeilen in `harness/README.md` und
+  `gates-schnell.mk` rund 80); die Schätzung liegt unter der Marke, ein Schnitt vor dem Code
+  ist nicht geboten. Meldeschwelle: Stehen bei 750 noch Fälle der Gegenprobe aus, meldet der
+  Implementer es dem Architect, bevor er weiterschreibt.
 - `in-progress` → `open` (blockiert — Carveout?): Die Richtung „umgekehrt“ (§6) ist
   nur als Gleichheit entscheidbar und färbt das Gate am Stand des Starts rot, ohne dass
   der Nutzer eine Stufung oder einen Carveout entschieden hat.
@@ -182,77 +192,57 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen des neuen Vertrags** ([`AGENTS.md`](../../../../AGENTS.md) §3.12). Keine
-ist entschieden; der Architect entscheidet jede vor dem ersten Code-Commit im Vertrag
-(`harness/vertraege/`), eine Entscheidung des Nutzers wird dort festgehalten. Der
-Implementer entscheidet keine still, sondern gibt eine nicht genannte zurück.
+**Randformen des neuen Vertrags** ([`AGENTS.md`](../../../../AGENTS.md) §3.12). Der Architect
+hat jede am 2026-10-17 im Vertrag
+[`SPEC-054`](../../../../harness/vertraege/SPEC-054-meldungskatalog.md) entschieden; die Nummer
+nennt den Punkt. Der Implementer entscheidet keine still, sondern gibt eine nicht genannte
+zurück. Stand am 2026-10-17: C (Konstanten) 30 Codes, K (Katalog) 34, H (Handbuch) 30; die
+Zahlen „34 gegen 19“ des ersten Plans sind durch die Slices von welle-v1-abschluss überholt.
 
-1. **Richtung „umgekehrt“ und Codes, die der Code noch nicht erzeugt.** Stand
-   2026-10-07: Der Katalog in `SPEC-034` führt 34 Codes, die Code-Tabelle in
-   `internal/hexagon/model/fehler.go` 19; 15 stehen nur im Katalog — die Rückfälle
-   `PGR-E2000`, `PGR-E3000`, `PGR-E5000`, `PGR-E6000` und die Codes offener Slices von
-   welle-v1-abschluss (`PGR-E2003` bis `PGR-E2007`, `PGR-E4004` bis `PGR-E4006`,
-   `PGR-E5004`, `PGR-E6003`, `PGR-W3002`). Die Code-Tabelle führt nach
-   `slice-replay-semantik-meldungscodes` „nur die Codes, die der Code erzeugt“. Eine
-   Gleichheit beider Mengen wäre am Stand des Starts rot. Zu entscheiden: Gleichheit,
-   Teilmenge (Go-Code im Katalog) mit einer Markierung im Katalog für vergebene, noch
-   nicht erzeugte Codes, oder eine andere Form; und ob die Markierung mit dem Slice
-   fällt, der den Code erzeugt.
-2. **Rückfall-Codes und Klassen ohne eigenen Code.** `SPEC-034` sagt, jede Klasse hat
-   einen Rückfall `…000`; die Code-Tabelle führt nur `PGR-E1000` und `PGR-E4000`. Ob ein
-   Rückfall, den der Code nie erzeugt, im Code stehen muss, und ob das Gate prüft, dass
-   jede Klasse ihren Rückfall im Katalog hat.
-3. **Reservierte und zurückgezogene Codes.** Schwere `I` und Warnbereich 9 sind
-   reserviert; ein entfallener Code bleibt vergeben (`SPEC-034` §Stabilität). Der
-   Katalog hat heute keine Form für „zurückgezogen“; ob das Gate eine verlangt und wie
-   ein zurückgezogener Code im Go-Code gewertet wird.
-4. **Fundort im Code.** Nur die Konstanten der Code-Tabelle in `fehler.go`, oder jedes
-   Literal `PGR-…` in Go-Dateien unter `internal/` und `cmd/` — heute stehen Literale in
-   Kommentaren von Produkt-Dateien, etwa `PGR-E4006` in
-   `internal/adapters/driving/pgwire/server.go`, das die Code-Tabelle nicht führt. Ob
-   eine Konstante außerhalb von `fehler.go` als Code-Tabelle gilt.
-5. **Codes in Tests und Kommentaren.** Ob `_test.go`-Dateien und `test/integration`
-   zählen (ein Test, der einen nicht katalogisierten Code erwartet), und ob ein Code in
-   einem Kommentar ein Befund ist oder nicht gelesen wird.
-6. **Form.** Gilt nur die ERE aus `SPEC-034` (`PGR-[EWI][0-9]{4}`)? Ist eine Zeichenkette
-   wie `PGR-E123`, `PGR-X0001` oder der Platzhalter `PGR-…` ein Befund „falsche Form“
-   oder kein Code? Doppelte Konstante für denselben Code, doppelte Katalog-Zeile.
-7. **Grenze des Katalogs.** Nur die erste Spalte der Tabelle in `SPEC-034`, oder auch
-   Codes in Prosa von `SPEC-034` und anderen Kennungen; was gilt, wenn die Tabelle
-   fehlt oder der Abschnitt nicht zu finden ist (Sperre mit eigenem Exit, wie bei
-   `make kopf-check`).
-8. **Katalog der Betriebsdokumentation.** [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md)
-   und `SPEC-034` §Stabilität nennen den Katalog in der Betriebsdokumentation; das
-   Benutzerhandbuch führt ihn heute in §7 *Fehlercodes*, mit Zeilen, die zwei Codes
-   tragen (`PGR-E2000`, `PGR-E2001`). Die Entscheidung des Nutzers nennt die
-   Spezifikation; ob das Handbuch als dritte Quelle in diesen Slice gehört oder eine
-   eigene Adresse bekommt, ist zu entscheiden (Rückführung in §4).
-9. **Prüfung der Klasse.** Ob das Gate nur Mengen abgleicht oder auch, dass die Spalte
-   *Klasse / Bereich* zur ersten Ziffer passt (`SPEC-034` *Fehler*, *Warnungen*); ohne
-   Entscheidung gilt die Abgrenzung in §1.
-10. **Form der Meldung und Ausgänge.** Zeile je Befund auf stderr, etwa
-    `meldungskatalog-check: <quelle>: <code>: <befund>`, Sortierung, Exit 0, 1 und 2,
-    keine Ausgabe bei Grün — wie `harness/sensors/kopf-check.md`; zu entscheiden sind
-    Quelle (Pfad mit Zeile?) und Befund-Texte.
-11. **Gegenprobe.** Welche Fälle je Punkt des Vertrags abgelehnt bzw. angenommen werden
-    müssen, welche akzeptierten Negative sie annimmt, und dass der Fall mit Makefile
-    und Fragment beide Ziele an `GATE_CHECKS` zeigt.
+1. **Richtung „umgekehrt“, nicht erzeugte Codes** — Punkt 4b: K ohne C ist ein Befund, außer
+   bei Endung `000`; eine Markierung im Katalog gibt es nicht, und am Stand des Starts ist
+   nichts mehr offen.
+2. **Rückfälle** — Punkt 4b und 5: Ein nicht erzeugter Rückfall muss nicht im Code stehen; je
+   Klasse 1 bis 6 steht `PGR-E<k>000` in K.
+3. **Reserviert, zurückgezogen** — Punkt 7: keine Form; der Slice, der zurückzieht, ändert den
+   Vertrag.
+4. **Fundort im Code** — Punkt 1 (nur die Konstanten `Code…` in `fehler.go`) und 6 (ein
+   Literal `"PGR-` in einer anderen Nicht-Test-Datei unter `cmd/` und `internal/` ist ein
+   Befund).
+5. **Tests und Kommentare** — Grenze: nicht gelesen.
+6. **Form** — Punkte 2 und 3: ERE `PGR-[EWI][0-9]{4}` ganz; doppelte Konstante, Katalog- und
+   Handbuch-Zeile sind `doppelt`.
+7. **Grenze des Katalogs; fehlende Tabelle** — Punkte 1 und 8: nur die erste Zelle der
+   Tabellenzeilen im Abschnitt `### SPEC-034 `; fehlende Datei, Abschnitt oder Zeilen sind
+   eine Sperre (Exit 2).
+8. **Katalog der Betriebsdokumentation** — Punkt 4c und 4d: Das Handbuch ist dritte Quelle und
+   führt genau die Codes der Code-Tabelle. Empfehlung des Architect, nicht Entscheidung des
+   Nutzers; sie gilt, bis er widerspricht. Die Rückführung in §4 bindet nicht an die Quelle,
+   sondern an die Größe: Die Schätzung liegt unter der Marke.
+9. **Klasse** — Grenze: Die Spalten werden nicht gelesen.
+10. **Form der Meldung und Ausgänge** — Punkte 9 und 8: Zeile, Sortierung, Exit 0, 1 und 2.
+11. **Gegenprobe** — Punkt 11 und DoD: je Punkt ein Fall; der Anschluss-Fall mit Makefile und
+    Fragment.
+12. **Aufrufarten** — Punkt 10: kein Stand und kein Ergebnis außer dem Ausgang; keine
+    Sonderbehandlung von `-n`, `-q`, `-t`, `-i`.
+13. **Wahl der Kette** — Punkt 11: `meldungskatalog-check` in der schnellen Kette (`SPEC-052`
+    Punkt 13), die Gegenprobe in der Ausnahmeliste.
 
 **Risiken:**
 
-- **Bestand.** Je nach Entscheidung zu 1, 2 und 4 ist das Gate am Stand des Starts rot.
-  Berichtigt wird nur nach Entscheidung des Architects: in der Code-Tabelle (ohne
-  Verhalten) oder im Katalog von `SPEC-034`; ein Rot, das erst die Slices von
-  welle-v1-abschluss auflösen, braucht eine Stufung im Vertrag oder einen Carveout
-  ([`AGENTS.md`](../../../../AGENTS.md) §3.6), kein stilles Rot — **Ausgang:** offen bis
-  Closure.
+- **Bestand.** Am Stand des Starts (2026-10-17) ist das Gate nach `SPEC-054` grün: C ist
+  Teilmenge von K, K ohne C sind vier Rückfälle, H gleich C, kein Literal außerhalb von
+  `fehler.go`. Ändert sich der Stand bis zum Start, ist ein Rot ein Befund für den
+  Architect, kein stilles Rot und keine Stufung ([`AGENTS.md`](../../../../AGENTS.md) §3.6)
+  — **Ausgang:** offen bis Closure.
 - **Folgelast für welle-v1-abschluss.** Jeder Slice, der einen Code einführt, muss ab
   diesem Slice Katalog und Code-Tabelle zusammen ändern; das Gate macht das sichtbar,
   die Pläne nennen es heute nicht — **Ausgang:** offen bis Closure.
 - **Adresse aus `slice-v1-abschluss-container`.** Dieser Slice schließt vor dem
   Container-Slice; der verweist auf ihn als Liefernden, nicht als späteren Folge-Slice.
   Schreibt der Container-Slice den Katalog der Betriebsdokumentation fort, hält dieses
-  Gate nur, was Punkt 8 entscheidet — **Ausgang:** offen bis Closure.
+  Gate die Tabellen `### Fehlercodes` und `### Warnungen` des Handbuchs (`SPEC-054` Punkt 1),
+  nicht andere Betriebsdokumente — **Ausgang:** offen bis Closure.
 - **Lesart ohne Entscheidungsort.** Ein Werkzeug-Vertrag, dessen Lesarten erst im Code
   festgelegt werden, wiederholt `BEO-REPO/harness-lesart-ohne-entscheidungsort` (2×) —
   **Ausgang:** offen bis Closure.
@@ -310,5 +300,10 @@ Harness (Vertragsdatei, `tools/`, `harness/mk/`, `harness/sensors/`, `harness/RE
 der bedingten Zeile kämen Produkt-Code und Spezifikation dazu, also drei; das war vor der
 Sendung ebenso (die Vertragsdatei lag in der Spezifikation) und ist Sache der Entscheidung des
 Architects zu *Bestand* in §6, die Sendung ändert daran nichts.
+
+**Nachgezählt** mit der Vorprüfung des Architect (2026-10-17, `AGENTS.md` §3.13): drei
+Liefer-Punkte (§2: Prüfung mit Anschluss, Gegenprobe, Sensor-Datei mit Zeilen in
+`harness/README.md`). Schichten: eine, Harness; die bedingte Zeile für `fehler.go` und
+`SPEC-034` ist entfallen (Bestand grün). Das Handbuch wird gelesen, nicht geändert.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Spezifikation führt, der Code folgt ihr; `harness/conventions.md` deklariert `*` als Greenfield).

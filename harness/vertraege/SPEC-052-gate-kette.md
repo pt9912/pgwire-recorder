@@ -151,8 +151,9 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     `*_test.go`, nicht inert) ist von Hand möglich und wird von `abdeckung-check` rot gemeldet,
     sodass die schnelle Kette sie fängt; deshalb nicht ausgenommen, kein Rückfall auf die
     volle Kette. Das Handbuch und die `README.md` liest von den Gates der schnellen Kette
-    `docs-check` (Verweise, Anker; `.d-check.yml`, Wurzel `.`). Die Aufnahme gilt, solange
-    (a) `docs-check` und `abdeckung-check` in der schnellen Kette stehen (die Gegenprobe der
+    `docs-check` (Verweise, Anker; `.d-check.yml`, Wurzel `.`) und `meldungskatalog-check` (die Codes der
+    Fehlercode- und Warnungstabellen des Handbuchs, `SPEC-054`). Die Aufnahme gilt, solange
+    (a) `docs-check`, `abdeckung-check` und `meldungskatalog-check` in der schnellen Kette stehen (die Gegenprobe der
     Kette hält die Ausnahmeliste, Punkt 4) und (b) der Build-Kontext `docs/` und `README.md`
     nicht freigibt; beides sind Änderungen an Gates oder `.dockerignore`, also nicht inert und
     im vollen Lauf. Die schnelle Kette fährt für eine Handbuch-Änderung kein Gate weniger über
