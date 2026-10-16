@@ -90,14 +90,14 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler):
+- [x] [`LH-QA-05`](../../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler):
       Der Vertrag `SPEC-054` steht vor dem ersten Code-Commit in `harness/vertraege/`
       und entscheidet jede Randform aus §6; das Prüfskript (bash und awk, ohne Docker)
       hängt mit seinem Ziel über ein Fragment unter `harness/mk/` an `GATE_CHECKS`, ist
       am Stand des Starts grün, ohne dass `fehler.go` oder `SPEC-034` sich ändern, und
       steht in der schnellen Kette; die Gegenprobe steht in `GATE_SCHNELL_AUSNAHME`
       (`harness/mk/gates-schnell.mk`) und in `LANGSAM` von `tools/harness/gates-schnell-gegenprobe.sh`.
-- [ ] Gegenprobe als eigenes Gate-Ziel in Temp-Bäumen: je Punkt von `SPEC-054` und je
+- [x] Gegenprobe als eigenes Gate-Ziel in Temp-Bäumen: je Punkt von `SPEC-054` und je
       Element einer Aufzählung darin (`AGENTS.md` §3.10) ein Fall, der abgelehnt bzw.
       angenommen werden muss — darunter ein Code nur im Go-Code, nur im Katalog, nur im
       Handbuch, in falscher Form; dazu in einem Temp-Baum mit
@@ -105,18 +105,18 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       bei rotem Skript mit Exit ungleich 0 enden. Je Zusage des Skripts ist die Mutation
       vom Implementer rot gesehen ([`AGENTS.md`](../../../../AGENTS.md) §3.10); die
       Tabelle Zusage · Mutation · roter Test steht in §7.
-- [ ] Sensor-Datei `harness/sensors/meldungskatalog-check.md` (Vertrag, Grenze, Ausgabe
+- [x] Sensor-Datei `harness/sensors/meldungskatalog-check.md` (Vertrag, Grenze, Ausgabe
       und Ausgänge, wie `harness/sensors/kopf-check.md`) und je eine Zeile für beide
       Ziele in `harness/README.md` §Sensors mit Bindung an
       [ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md) und den neuen Vertrag.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -249,18 +249,18 @@ Spalte 1, braucht kein schließendes `|`, eine eingerückte zählt nicht.
   Teilmenge von K, K ohne C sind vier Rückfälle, H gleich C, kein Literal außerhalb von
   `fehler.go`. Ändert sich der Stand bis zum Start, ist ein Rot ein Befund für den
   Architect, kein stilles Rot und keine Stufung ([`AGENTS.md`](../../../../AGENTS.md) §3.6)
-  — **Ausgang:** offen bis Closure.
+  — **Ausgang:** *entfallen*: Das Gate war am Stand des Starts und ist am Endstand grün (`make meldungskatalog-check` Exit 0 ohne Ausgabe, von der Verifikation am Endstand wiederholt); `fehler.go`, `SPEC-034` und das Handbuch sind unverändert (`git diff --stat 8d14a918..HEAD` über `internal`, `spec`, `docs/user`, `cmd`, `test` leer); ein Rot ist nie eingetreten, also gab es nichts zu stufen.
 - **Folgelast für welle-v1-abschluss.** Jeder Slice, der einen Code einführt, muss ab
   diesem Slice Katalog und Code-Tabelle zusammen ändern; das Gate macht das sichtbar,
-  die Pläne nennen es heute nicht — **Ausgang:** offen bis Closure.
+  die Pläne nennen es heute nicht — **Ausgang:** *entfallen*: Das Gate hängt an `GATE_CHECKS` und in der schnellen Kette; jede Abweichung zwischen Code-Tabelle, Katalog und Handbuch färbt ab dem ersten Lauf `make gates` und `make gates-schnell` rot, ohne dass ein Plan es nennt. Von den Slices der Welle ist nur noch `slice-v1-abschluss-container` offen, und der führt keinen Code ein; eine Folge-Slice-ID wäre eine Adresse ohne Gegenstand.
 - **Adresse aus `slice-v1-abschluss-container`.** Dieser Slice schließt vor dem
   Container-Slice; der verweist auf ihn als Liefernden, nicht als späteren Folge-Slice.
   Schreibt der Container-Slice den Katalog der Betriebsdokumentation fort, hält dieses
   Gate die Tabellen `### Fehlercodes` und `### Warnungen` des Handbuchs (`SPEC-054` Punkt 1),
-  nicht andere Betriebsdokumente — **Ausgang:** offen bis Closure.
+  nicht andere Betriebsdokumente — **Ausgang:** *entfallen*: Der Nehmer nimmt an. `slice-v1-abschluss-container` nennt dieses Gate in §1 (`grep` findet die Kennung); die Planner-Closure trägt dort im selben Commit nach, dass das Gate die zwei Handbuch-Tabellen seit diesem Slice mitprüft (`SPEC-054` Punkt 1, 4c, 4d), und zählt den Nehmer nach (§8 dort: zwei Liefer-Punkte, zwei Schichten, unverändert). Einen eigenen Liefer-Punkt braucht die Bindung nicht: Die Gleichheit der Tabellen mit der Code-Tabelle hält das Gate selbst, ein Verstoß färbt `make gates` des Nehmers rot. Andere Betriebsdokumente sind nicht Gegenstand der Zusage und dort nicht genannt.
 - **Lesart ohne Entscheidungsort.** Ein Werkzeug-Vertrag, dessen Lesarten erst im Code
   festgelegt werden, wiederholt `BEO-REPO/harness-lesart-ohne-entscheidungsort` (2×) —
-  **Ausgang:** offen bis Closure.
+  **Ausgang:** *weiter offen* → Register, unter den Einträgen, die die Klasse heute tragen: `BEO-REPO/harness-lesart-ohne-entscheidungsort` steht auf `gestrichen` (der Ort ist entschieden: die Spezifikation, `AGENTS.md` §3.12), und sein `state.md` weist ein Wiederauftreten an `BEO-REPO/spec-randform-erst-im-review-entschieden` und `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`. Eingetreten ist die Klasse an zwei Stellen: Randformen, die der Code entschied und der Implementer zurückgab (acht, `randform-im-code-entschieden-dann-zurueckgegeben`, +1), und drei, die erst das Review fand (Tabulator in einer Zelle, CRLF, Symlink; F-3, `spec-randform-erst-im-review-entschieden`, +1). Beide Evidence-Dateien liegen mit dieser Closure; im gestrichenen Eintrag entsteht keine.
 
 ## 7. Closure-Notiz
 
@@ -275,8 +275,6 @@ diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
 aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
-
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
@@ -678,6 +676,35 @@ for name, key, old, new, n in M:
     shutil.rmtree(t)
 ```
 
+### Closure des Planners (2026-10-17)
+
+**Gate-Nachweis.** Voller `make gates` am Code-Stand `2ab2ee55`: Exit 0 (Nachweis `.harness/state/gates-passed.diffsha`, Verifikation). Seither ändern die Commits nur Dateien auf der Positivliste des Stop-Hooks (`docs/plan/planning/`, `docs/reviews/`); `git diff --name-only 2ab2ee55..HEAD` nennt vor dieser Closure nur Plan und Reports. `make kopf-check` und `make docs-check` laufen nach der Closure nacheinander.
+
+**Gegenstand:** geliefert (kein Fall von „übernommen“ oder „entfallen“): Prüfskript und Gegenprobe als Gate-Ziele, Vertrag `SPEC-054`, Sensor-Datei, Zeilen in `harness/README.md`.
+
+**Review und Verifikation.** Review (`docs/reviews/2026-10-17-review-slice-harness-meldungskatalog-gate.md`): 0 HIGH, 3 MEDIUM, 2 LOW, 1 INFO. Verifikation (`docs/reviews/2026-10-17-verify-slice-harness-meldungskatalog-gate.md`): bestanden, V-1 und V-2 LOW. Ausgang je Befund (Vorgabe des Nutzers: LOW und INFO sind „akzeptiert, mit Ausgang in §7“):
+
+| Befund | Ausgang |
+|---|---|
+| F-1 (MEDIUM) §8 beim Umschreiben von §7 verloren | behoben `9c22cf8a` (Fassung aus `fe68464c`, Nachzählung ergänzt); Register `plan-folgt-korrektur-nicht` |
+| F-2 (MEDIUM) Zusage-Elemente ohne Mutation, die nur sie bricht | behoben `2ab2ee55`: je Element ein Fall und eine Mutation (Tabelle oben); Register `negativtests-fehlen-bei-neuem-vertrag` |
+| F-3 (MEDIUM) Randformen im Code entschieden (Tabulator, CRLF, Symlink) | Architect entschied in `8871ebb8` (Tabulator und CRLF akzeptierte Negative, Symlink eine Sperre mit Fällen); Register `spec-randform-erst-im-review-entschieden` |
+| F-4 (LOW) Rot-Beleg von `nr8-wurzel-fehlt` hängt am Arbeitsverzeichnis | behoben `2ab2ee55`: der Fall läuft in einem Verzeichnis mit gültigem Baum; der Mutant `8-wurzel-ohne-sperre` ist aus der Wurzel und aus einem leeren Verzeichnis rot |
+| F-5 (LOW) Zusage in Prosa weiter als die Prüfung unter root | behoben `2ab2ee55`: ein Satz in der Sensor-Datei; Register `zusage-im-kommentar-weiter-als-pruefung` |
+| F-6 (INFO) Kopfsatz des Vertrags zählt Punkt 7 mit | akzeptiert: Der Architect hat den Wortlaut berichtigt, der Satz „Die Punkte 1 bis 10 prüft“ steht nicht mehr im Vertrag (`grep` leer); `harness/README.md` nennt „1 bis 6 und 8 bis 10“, Punkt 7 hat keinen eigenen Fall; kein Folge-Slice |
+| V-1 (LOW) Sichtung in §8 veraltet, ein Eintrag fehlte | behoben: §8 nennt den Stand vom 2026-10-17 (Zähler = Dateien in `evidence/`) und `gruener-mutant-faelschlich-aequivalent` (5×) |
+| V-2 (LOW) zwei Risiken ohne Ausgang, Nehmer nennt die Tabellen nicht | behoben: Ausgänge in §6 (siehe unten); `slice-v1-abschluss-container` §1 trägt das Gate samt Tabellen, §8 dort zählt nach |
+
+**Messung der Marke** (§4): 607 gegen Marke 900, Meldeschwelle 750 nicht erreicht; die Schätzung 450 bis 750 (Mitte 580) traf mit 105 % der Mitte, innerhalb der Spanne. Die Rückführung trat nicht ein.
+
+**Risiken aus §6 — Ausgang je Risiko** (die Zeilen stehen in §6 am Risiko): (1) Bestand *entfallen* (nie rot, Stand unverändert); (2) Folgelast *entfallen* (das Gate meldet ab dem ersten Lauf, kein Slice der Welle außer dem Container ist offen, der führt keinen Code ein); (3) Adresse aus `slice-v1-abschluss-container` *entfallen* (der Nehmer nimmt an, §1 dort trägt das Gate und die zwei Tabellen, die Gleichheit hält das Gate selbst); (4) Lesart ohne Entscheidungsort *weiter offen* → `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (19× → 20×) und `BEO-REPO/spec-randform-erst-im-review-entschieden` (37× → 38×), beide verkörpert; `harness-lesart-ohne-entscheidungsort` ist `gestrichen`, die Klasse zählt dort nicht mehr. Ob die Ausgänge tragen: (1) und (3) am `grep` und am Lauf des Gates, den die Verifikation wiederholte; (2) an `GATE_CHECKS` und der schnellen Kette (Fall `nr11-gate-checks`, `nr11-schnelle-kette`); (4) an den Evidence-Dateien, die beide Einträge bestehen lassen.
+
+**Register** (Zähler = Dateien unter `evidence/`): `negativtests-fehlen-bei-neuem-vertrag` 44 → 45 (F-2, `verkörpert`, bleibt); `plan-folgt-korrektur-nicht` 57 → 58 (F-1, `verkörpert`, bleibt); `zusage-im-kommentar-weiter-als-pruefung` 68 → 69 (F-5, `verkörpert`, bleibt); `spec-randform-erst-im-review-entschieden` 37 → 38 (F-3, `verkörpert`, bleibt); `randform-im-code-entschieden-dann-zurueckgegeben` 19 → 20 (acht Rückgaben, `verkörpert`, bleibt); `gate-uebergeht-ablage-eintrag-still` 1 → 2 (nicht lesbares Verzeichnis im Baum blieb still, jetzt eine Sperre mit Fällen; `offen`, unter der Schwelle). Vermerk ohne Zuwachs: `gruener-mutant-faelschlich-aequivalent` (5×, offen): die zwei äquivalenten Mutanten tragen Invariante und Ort (§7 oben), Review und Verifikation bestätigten sie, die grünen Mutanten des Reviews (F-2) waren keine als äquivalent eingestufte. Kein Auftreten: `schaetzung-in-zeilen-unterschaetzt-tests` (607 in der Spanne 450 bis 750). Kein Eintrag erreicht neu 3× ohne Verkörperung und ohne `geplant`.
+
+**Lerneintrag — neuer Sensor und eine Beobachtung.** Neuer Sensor: `make meldungskatalog-check` mit `make meldungskatalog-check-gegenprobe` ([ADR-0011](../../adr/0011-meldungscodes-praefix-pgr.md), Folgepflicht erfüllt; Herkunfts-Anker `seit slice-harness-meldungskatalog-gate` in `harness/README.md` §Sensors). Beobachtung, keine geänderte Regel: Die Vorgabe des Architect „`LANGSAM` bleibt unverändert“ betraf eine Datei, die der Slice nicht berührte, und kam ohne Messung; ein Lauf von `make gates-schnell-gegenprobe` vor der Vorgabe hätte sie widerlegt (`p4-eintrag` in jeder Kopie). Der Implementer maß, gab zurück, der Architect bestätigte. Eine Vorgabe über eine ungeänderte Datei braucht den Lauf, der sie trägt; im Register steht dafür kein eigener Eintrag (Nutzervorgabe). Spec-Lücke: keine.
+
+**Paarungen.** (a) Anker: Der Lerneintrag nennt `seit slice-harness-meldungskatalog-gate` für den Sensor; die Zeile in `harness/README.md` trägt ihn. (b) Folge-Slice: Kein Risiko hat den Ausgang *eingetreten*; die Bindung an `slice-v1-abschluss-container` nennt dieser Slice in §1 und der Nehmer die Kennung dieses Gebers in §1 (`grep` findet sie). (c) Register: Alle genannten `BEO-REPO/…` bestehen als Verzeichnis mit nicht leerem `evidence/`.
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
@@ -694,16 +721,19 @@ Hälften.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (gemergter Stand, 2026-10-07); alle Einträge liegen in `REPO`. Einschlägig:
+**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (gemergter Stand, 2026-10-17, vor den Evidence-Dateien dieser Closure; Zähler = Dateien in `evidence/`); alle Einträge liegen in `REPO`. Einschlägig:
 
-- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — 13×, über der Schwelle, verkörpert ([`AGENTS.md`](../../../../AGENTS.md) §3.10); die Gegenprobe ist eigener Liefer-Punkt (§2).
-- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — 17×, verkörpert (§3.11); Sensor-Datei und Zeile in `harness/README.md` sagen nur zu, was Skript und Gegenprobe prüfen.
-- `BEO-REPO/spec-randform-erst-im-review-entschieden` — 11×, verkörpert (§3.12); die Randformen stehen in §6 und sind vor dem Code zu entscheiden.
+- `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` — 44×, über der Schwelle, verkörpert ([`AGENTS.md`](../../../../AGENTS.md) §3.10); die Gegenprobe ist eigener Liefer-Punkt (§2).
+- `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` — 68×, verkörpert (§3.11); Sensor-Datei und Zeile in `harness/README.md` sagen nur zu, was Skript und Gegenprobe prüfen.
+- `BEO-REPO/spec-randform-erst-im-review-entschieden` — 37×, verkörpert (§3.12); die Randformen stehen in §6 und sind vor dem Code zu entscheiden.
+- `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` — 19×, verkörpert (`implement-slice.md`, Randform-Rückgabe); der Implementer gab acht Randformen zurück (§7).
 - `BEO-REPO/randform-wellenlos-ohne-architect-vor-code` — 1×; der Slice ist wellenlos, §4 nennt die Entscheidung des Architects vor dem Code.
-- `BEO-REPO/harness-lesart-ohne-entscheidungsort` — 2×; mit diesem Slice das dritte Mal berührt, falls eine Lesart erst im Code entschieden wird (§6).
-- `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` — 3×, verkörpert (§3.13); die Geber nennen diesen Slice, dieser nennt sie in §1.
+- `BEO-REPO/harness-lesart-ohne-entscheidungsort` — 2×, `gestrichen` (der Ort ist die Spezifikation, §3.12); eine Lesart, die erst im Code entschieden wird, zählt bei den beiden Einträgen darüber (§6).
+- `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` — 13×, verkörpert (§3.13); die Geber nennen diesen Slice, dieser nennt sie in §1.
 - `BEO-REPO/gate-uebergeht-ablage-eintrag-still` — 1×; ein Gate, das Dateien sucht, darf eine nicht lesbare Quelle nicht still übergehen (§6, Punkt 7).
 - `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen` — 2×; das Fragment unter `harness/mk/` muss so an `GATE_CHECKS` hängen, wie es sich liest (Gegenprobe mit Makefile, §2).
+- `BEO-REPO/plan-folgt-korrektur-nicht` — 57×, verkörpert (§3.9); der Plan verlor beim Umschreiben von §7 den Abschnitt 8 (Review F-1).
+- `BEO-REPO/gruener-mutant-faelschlich-aequivalent` — 5×, offen, über der Schwelle ohne Verkörperung (die Welle-Closure von welle-v1-abschluss gibt ihm den Ausgang); die zwei äquivalenten Mutanten dieses Slice nennen Invariante und Ort (§7), Review und Verifikation bestätigten sie.
 
 Die Einträge über der Schwelle bekommen ihren Ausgang bei der Closure ihrer Welle, nicht hier.
 
@@ -724,5 +754,7 @@ Liefer-Punkte (§2: Prüfung mit Anschluss, Gegenprobe, Sensor-Datei mit Zeilen 
 **Nachgezählt** mit der Nacharbeit nach dem Review (2026-10-17, `AGENTS.md` §3.13): drei Liefer-Punkte (unverändert), Schichten: eine, Harness
 (die Entscheidungen des Architect aus `db77c937` und `8871ebb8` berühren nur `harness/vertraege/`; die Nacharbeit nur `tools/harness/` und
 `harness/sensors/`). Messung: Summe 607 nach der Metrik aus §4 (Marke 900, Meldeschwelle 750 nicht erreicht), Aufschlüsselung in §7.
+
+**Nachgezählt** mit der Closure (2026-10-17, `AGENTS.md` §3.13): drei Liefer-Punkte, Schichten: eine, Harness; der Nehmer `slice-v1-abschluss-container` ist mit der Sendung dieses Slice (Gate und Handbuch-Tabellen in §1) in seinem §8 nachgezählt.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Spezifikation führt, der Code folgt ihr; `harness/conventions.md` deklariert `*` als Greenfield).

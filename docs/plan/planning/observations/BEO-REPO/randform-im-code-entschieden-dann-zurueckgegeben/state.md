@@ -21,3 +21,5 @@ Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-
 Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-v1-abschluss-verbindungsende-format` (F-1) — der Implementer bemerkte zwei Lesarten und nannte sie in §7, gab sie aber nicht zurück; das Review fand sie (Beleg `evidence/slice-v1-abschluss-verbindungsende-format.md`; dieselbe Randform wie unter `BEO-REPO/spec-randform-erst-im-review-entschieden`).
 
 Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-v1-abschluss-verbindungsende-replay-extended` (F-2) — der Implementer nannte das Gegenbeispiel in §7 und gab es nicht zurück; das Review fand es (Beleg `evidence/slice-v1-abschluss-verbindungsende-replay-extended.md`; dieselbe Randform wie unter `BEO-REPO/spec-randform-erst-im-review-entschieden`).
+
+Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-harness-meldungskatalog-gate` — acht Randformen im Code berührt, zurückgegeben und vom Architect entschieden (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).

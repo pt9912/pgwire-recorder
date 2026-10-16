@@ -71,3 +71,5 @@ Vermerk, kein Zählerzuwachs (Urteil des Planners, `slice-v1-abschluss-verbindun
 Vermerk, kein Zählerzuwachs (Urteil des Planners, `slice-v1-abschluss-verbindungsende-hilfetext-binary`, 2026-10-16): Review F-2 / Verifikation V-2 — der Beleg in §7 nannte die Prüfung „kein `PGR-E4003`“ nicht trennbar; sie ist eine eigene Klausel und trennbar (Mutant X2 des Reviews rot). Der Beleg sagte weniger zu, als die Prüfung trägt, nicht mehr; berichtigt in §7. Der Zähler bleibt bei 67.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-verbindungsende-upstream` (F-2, V-2) — ein Satz über den Aufrufer („nur noch `Close`“) im Port-Kommentar und in `LH-FA-25.a` ohne Test; der Port-Kommentar ist enger gefasst, der Satz der Spezifikation steht beim Architect (Beleg `evidence/slice-v1-abschluss-verbindungsende-upstream.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-meldungskatalog-gate` (F-5) — Prosa über ein Gate sagte zu, was unter root übersprungen wird; behoben (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).

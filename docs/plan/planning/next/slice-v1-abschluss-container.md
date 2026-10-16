@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten)
 
-**Berührte Spec-Stellen:** `LH-FA-16.a` · `SPEC-031` · `SPEC-035`
+**Berührte Spec-Stellen:** `LH-FA-16.a` · `SPEC-031` · `SPEC-035` · [`SPEC-054`](../../../../harness/vertraege/SPEC-054-meldungskatalog.md) (gelesen: das Gate hält die zwei Handbuch-Tabellen)
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Der Veröffentlichungs-Mechanismus der Registries (`ghcr.io`, `docker.io`) — Gegenstand des Release-Verfahrens in `docs/maintainer/releasing.md`; dieser Slice liefert das Image.
-- Gate für Code-Tabelle und Katalog — liefert `slice-harness-meldungskatalog-gate` (wellenlos, Entscheidung des Nutzers vom 2026-10-07) direkt vor diesem Slice (Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)); dieser Slice hält das Gate grün, wenn er den Meldungskatalog der Betriebsdokumentation fortschreibt, und ob das Gate diesen Katalog mitprüft, entscheidet jener Slice (dort §6, Punkt 8).
+- Gate für Code-Tabelle und Katalog — liefert `slice-harness-meldungskatalog-gate` (wellenlos, Entscheidung des Nutzers vom 2026-10-07) direkt vor diesem Slice (Reihenfolge nach Entscheidung des Nutzers vom 2026-10-08 in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)); das Gate liegt in `done/` und prüft seit `slice-harness-meldungskatalog-gate` (`SPEC-054` Punkt 1, 4c, 4d) auch die Tabellen `### Fehlercodes` und `### Warnungen` des Handbuchs: Ihre Codes sind genau die der Code-Tabelle, andere Betriebsdokumente liest es nicht. Schreibt dieser Slice diese Tabellen fort, hält er `make meldungskatalog-check` grün; das Gate selbst hält die Gleichheit, ein eigener Liefer-Punkt dafür entfällt.
 
 ## 2. Definition of Done
 
@@ -78,6 +78,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- Dockerfile harness tools test docs/user docs/maintainer README.md` liegt über 1200; Basis ist der letzte Commit vor dem Anspruch. Marke und Schätzung (Planner, 2026-10-17, vorläufig; der Architect schärft sie im Vorlauf vor dem Code, `AGENTS.md` §3.14): Spanne 550 bis 1050, Mitte 800, Meldeschwelle 1000 (Dockerfile und Fragmente 80 bis 150, Prüfung der Reproduzierbarkeit je Zielplattform 60 bis 120 und ihre Gegenprobe 150 bis 300 nach dem Faktor Zwei bis Drei, Smoke im Container 100 bis 200, Handbuch, README und Betriebsdokumentation 150 bis 300). Geber: `slice-harness-meldungskatalog-gate` 607 (Skript mit Gegenprobe), `slice-v1-abschluss-verbindungsende-doku` 287 (Handbuch). Die Schätzung liegt unter der Marke, ein Schnitt vor dem Code ist nicht geboten.
 - `in-progress` → `next`: die Doku wächst über einen Liefer-Punkt hinaus — zurück zur Zerlegung.
 - `in-progress` → `open`: Das Binary lässt sich ohne Entscheidung zu Build-Flags und Toolchain-Pin nicht reproduzierbar bauen — Carveout.
 
@@ -95,6 +96,10 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Offene Risiken werden bei Closure aufgelöst — **jedes** Risiko bekommt genau
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
+
+**Randformen des neuen Vertrags** (`AGENTS.md` §3.12): Die Prüfsumme je Zielplattform ist ein neuer Vertrag (zwei Builds desselben Quellstands, dieselbe Prüfsumme, `SPEC-035`). Der Architect nennt und entscheidet vor dem ersten Code-Commit seine Randformen (etwa fehlende oder unbekannte Zielplattform, abweichende Toolchain, Aufrufarten von `make` nach §3.12, je Randform der Ort in der Spezifikation oder unter `harness/vertraege/`); der Implementer entscheidet keine still. Zu jeder Zusage steht eine Mutation (§3.10).
+
+**Risiken:**
 
 - Handbuch und Releasing-Dokument beschreiben Verhalten vor der Software; Abweichungen zeigen sich erst im Bau — **Ausgang:** offen bis Closure.
 
@@ -125,8 +130,10 @@ nicht mehr.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen; es trägt nur seine `README.md` — keine Treffer.
+**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (gemergter Stand, 2026-10-17): Das Register ist seither gefüllt, aber kein Eintrag nennt Container, Image oder reproduzierbaren Build; einschlägig sind `BEO-REPO/verhalten-nur-unter-linux-geprueft` und `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` für Aussagen des Handbuchs über Umgebungen, sowie `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` für die Schätzung in §4.
 
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: zwei Schichten (Dockerfile mit Fragmenten, Dokumentation).
+
+**Nachgezählt** mit der Sendung aus `slice-harness-meldungskatalog-gate` (2026-10-17, `AGENTS.md` §3.13; Gate und Handbuch-Tabellen in §1, Marke und Schätzung in §4): zwei Liefer-Punkte (§2: Image mit Smoke und Handbuch, reproduzierbarer Build mit Betriebsdokumentation), unverändert; Schichten: zwei (Dockerfile mit Fragmenten, Dokumentation), die Prüfung der Reproduzierbarkeit und der Smoke gehören zur ersten; die Bindung ist kein Liefer-Punkt, das Gate hält sie. Die Vorgabe der Marke steht beim Architect.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (das Repo enthält noch keinen Produktionscode).

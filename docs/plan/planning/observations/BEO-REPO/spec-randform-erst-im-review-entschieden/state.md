@@ -35,3 +35,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-verbin
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-verbindungsende-vergleich` (F-6) — das leere Feld `V` einer Fehlerantwort war in Service und Modell verschieden gelesen und in §6 nicht genannt; das Review fand es, der Architect entschied danach (Beleg `evidence/slice-v1-abschluss-verbindungsende-vergleich.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-verbindungsende-record` (F-4) — der Vorrang zweier Fehlerwerte nach dem Ende stand weder in §6 noch in der Spezifikation und war im Code entschieden (Beleg `evidence/slice-v1-abschluss-verbindungsende-record.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-meldungskatalog-gate` (F-3) — drei Randformen (Tabulator, CRLF, Symlink) fand erst das Review; der Architect entschied danach (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).

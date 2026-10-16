@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-meldungskatalog-gate
+**Fund:** Acht Randformen des Vertrags (Name `Code` allein, Konstante mit Typangabe, Wortlaut und Reihenfolge der Sperren, Titel von H und K, Verzeichnis statt Datei und fehlende Wurzel, nicht lesbares Verzeichnis oder Go-Datei, mehrere Literale in einer Zeile, Tabellenzeile ohne schließendes `|`) wurden im Code berührt, bevor der Vertrag sie nannte; der Implementer gab sie zurück, der Architect entschied am 2026-10-17 (`db77c937`), der Code folgte (`0e581db3`).

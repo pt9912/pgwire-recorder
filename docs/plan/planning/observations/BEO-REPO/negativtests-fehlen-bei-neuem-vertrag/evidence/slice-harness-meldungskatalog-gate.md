@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-meldungskatalog-gate
+**Fund:** Review F-2 (MEDIUM): Zusage-Elemente von `SPEC-054` ohne Mutation, die nur sie bricht — Ende des Abschnitts bei jeder `#`-Zeile, Leerraum und leere Zelle, eine Quelle nur aus `Form`-Befunden, `sort` in der Sperre „erster Pfad in Bytefolge“; das Review fuhr vier Mutanten grün. Behoben in `2ab2ee55` mit je einem Fall und einer Mutation (139 Mutanten, Tabelle in §7).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-meldungskatalog-gate
+**Fund:** Review F-3 (MEDIUM): Drei Randformen entschied der Code still und weder `SPEC-054` noch §6 nannten sie — ein Tabulator im Code-Text einer Zelle zerbrach die Ausgabe, ein Handbuch mit CRLF ergab die Sperre `Abschnitt ### Fehlercodes fehlt`, ein Symlink auf `cmd` oder eine Go-Datei ergab Exit 0 trotz Literal dahinter. Der Architect entschied in `8871ebb8` (Tabulator und CRLF akzeptierte Negative, Symlink eine Sperre mit Fällen).

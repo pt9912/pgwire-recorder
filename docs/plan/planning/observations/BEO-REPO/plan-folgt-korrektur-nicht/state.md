@@ -55,3 +55,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbind
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-upstream` (V-1, F-4) — Plan §6 folgte der Korrektur des Port-Kommentars nicht (Beleg `evidence/slice-v1-abschluss-verbindungsende-upstream.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-doku` (F-1) — DoD-Punkt 1 verlangte einen Satz, den die Probe nicht belegte und das Handbuch nicht enthält (Beleg `evidence/slice-v1-abschluss-verbindungsende-doku.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-meldungskatalog-gate` (F-1, V-1) — §8 beim Umschreiben von §7 verloren, danach die Sichtung mit veraltetem Stand; behoben (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).

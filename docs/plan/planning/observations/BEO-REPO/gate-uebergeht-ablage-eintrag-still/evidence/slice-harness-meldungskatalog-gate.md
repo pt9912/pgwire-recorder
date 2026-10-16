@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-meldungskatalog-gate
+**Fund:** Ein nicht lesbares Verzeichnis im Baum für Punkt 6 (Literal `"PGR-` außerhalb der Code-Tabelle) blieb im ersten Stand des Prüfskripts still (Exit 0), gemessen vor der Entscheidung des Architect; jetzt eine Sperre `<pfad> nicht lesbar` (Exit 2) mit Fällen (`nr8-unlesbar-*`), ebenso ein Symlink (`nr8-symlink-*`). Die Lücke wurde laut gemacht, bevor das Gate sie still ließ.
