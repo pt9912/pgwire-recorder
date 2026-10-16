@@ -78,7 +78,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/hexagon/services/replay.go` | unverändert | Pfad `ClientMessage` für die Gruppe mit Ende, die mit `Flush` abschließt; der Pfad selbst liefert `slice-v1-abschluss-verbindungsende-replay-extended`; `ClientMessage` liest die Art der abschließenden Nachricht nicht, Produktcode 0 |
 | `internal/adapters/driving/pgwire/server.go` | unverändert | Senden der Gruppe vor dem Schließen im Pfad `replayAntwort`; der Lauf `flush` ist ein Test (`server_ende_test.go`), kein Code |
-| `internal/hexagon/services/replay_ende_extended_flush_test.go` (neu), `internal/adapters/driving/pgwire/server_ende_test.go` | create, update | Randformen aus §6 für die `Flush`-Gruppe (Service); Lauf `flush` im Adapter, Fake `gruppenReplayer` mit Modus `flush` |
+| `internal/hexagon/services/replay_ende_extended_flush_test.go` (neu), `internal/hexagon/services/replay_ende_extended_test.go` (Parameter `abschluss` statt Kopie, `dupl`), `internal/adapters/driving/pgwire/server_ende_test.go` | create, update | Randformen aus §6 für die `Flush`-Gruppe (Service); Lauf `flush` im Adapter, Fake `gruppenReplayer` mit Modus `flush` |
 | `test/integration` (`replay_ende_extended_e2e_test.go`, `testdata`, eine Datei je Fall) | update | Fall `TestE2EReplayEndeExtendedFlush` in der Datei, die `slice-v1-abschluss-verbindungsende-replay-extended` anlegt, Fixture `testdata/ende-extended-flush.yaml`; Binary mit handgeschriebener Extended-Aufzeichnung, ohne PostgreSQL |
 | `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests |
 
@@ -140,7 +140,76 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+Die Belege des Implementers stehen zuerst, die Closure des Planners danach (bei der Closure gefüllt, vor dem `git mv` nach `done/`).
+
+### Belege des Implementers
+
+**Stand.** Code und Tests an `245d245`; Produktcode 0 Zeilen (`git diff --stat e982c7b..245d245 -- internal ':!*_test.go'` ist leer; `replay.go` und `server.go` unberührt). Geändert sind Tests: neue Datei `replay_ende_extended_flush_test.go` (sieben Tests), `replay_ende_extended_test.go` des Gebers (Parameter `abschluss` für Verbrauch, `Terminate`, Herunterfahren, `first-request`, `connection`), `server_ende_test.go` (Fake `gruppenReplayer` mit Modus `flush`, Test mit den Unterfällen `sync` und `flush`), `replay_ende_extended_e2e_test.go` mit Fixture `ende-extended-flush.yaml`, die zwei Abdeckungstabellen.
+
+**Läufe.** `make test-integration` an `3d02a29`: grün, 2 min 27 s, mit `TestE2EReplayEndeExtendedFlush` (der E2E-Code ist danach unverändert). `make abdeckung` und `make abdeckung-check` grün (die Tabellen stehen an `eaec1f3`). Ein erster voller `make gates` an `eaec1f3` war rot an `make lint` (`dupl`: die Kopien von Verbrauch, `first-request` mit `connection` und `Terminate` gleichen den Tests des Gebers; keine Ausnahme im Profil, `AGENTS.md` §3.2), behoben in `245d245` mit dem Parameter `abschluss` (auch für Herunterfahren, derselben Form); danach `make lint` und `make test` einzeln grün. **Voller `make gates` ein Lauf an `245d245`: Exit 0, 11 min 24 s** (10:00:24 bis 10:11:48). Danach nur Plan (Pfade der Positivliste).
+
+**Wege der Mutanten.** Service und Adapter: Kopie von `go.mod`, `go.sum`, `internal/` in ein frisches Verzeichnis je Mutant (kein mtime-Problem), ein Perl-Textersatz auf der Kopie, `go test -count=1` im Image `deps` (`docker build --target deps`) mit `--network=none`, Bind-Mount der Kopie und eines Go-Caches; die Ausgabe nennt den roten Test, bei Tabellen die Zeile (Fehlertext). Der Lauf der 55 Mutanten des Service steht an `245d245`; die sechs des Adapters an `eaec1f3` mit `-run TestReplayEndeGruppeDavorSchliesstNicht/flush` (der Test ist danach unverändert). E2E: Mutant im Arbeitsbaum, `touch`, `make test-integration`, danach `git checkout -- internal`. Mutanten liegen nicht im Repo. Namen ohne Präfix `TestReplayEndeExtendedFlush`: Gruppe = `GruppeMitEnde`, Verbrauch, Abweichung, Terminate = `TerminateUnverbraucht`, Herunterfahren, First = `FirstRequest`, Conn = `Connection`; der Geber heißt „Bestand“.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Server-Nachrichten der Gruppe in aufgezeichneter Reihenfolge | letzte Nachricht an die erste Stelle (M1) | Gruppe, Abweichung, First, Conn |
+| `connection_closed` als letzte Antwort | letzte Antwort gestrichen (M2) | Gruppe, Abweichung, First, Conn |
+| … auch als einzige Gruppe (PANIC) | nur bei genau einer Gruppe gestrichen (M7) | Gruppe, First, Conn |
+| ohne `ready_for_query` (verneinend) | `ready_for_query` vor `connection_closed` eingefügt (M4) | Gruppe, Abweichung, First, Conn |
+| Gruppe davor mit `Flush` liefert kein `connection_closed` | an die Gruppe davor gehängt (M5b) | Gruppe (nur dieser Test des Slice; Bestand `TestReplayExtendedGruppen`, Sync-`Gruppe`) |
+| Gruppe mit `Sync` davor (frühere Interaktion) liefert kein `connection_closed` | an eine Gruppe mit `ready_for_query` gehängt (M5a) | Conn (Session 2); Bestand |
+| Lieferung erst mit dem abschließenden `Flush` | Lieferung bei der ersten Nachricht der Gruppe mit Ende (M3) | Gruppe, Abweichung, Verbrauch, Terminate, Herunterfahren, First, Conn |
+| … nicht schon bei der mittleren Nachricht | Lieferung bei der zweiten Nachricht (M3b) | dieselben sieben |
+| Verbrauch, Seite „Senden scheitert“: unverbraucht ohne `Sent` | `ungesendet` nicht gesetzt (M8) | Verbrauch (Zwangsende vor `Sent`), Herunterfahren |
+| Verbrauch, Seite „Senden gelingt“: mit `Sent` verbraucht, keine Meldung | `Sent` löscht nichts (M9) | Verbrauch (Zwangsende nach `Sent`), Terminate, Herunterfahren, First, Conn |
+| … ohne `Sent` mit Option `PGR-E5002` | Option ignoriert (M10) | Verbrauch, Terminate |
+| … `PGR-E4006` mit der Nummer | `Sequence + 1` (M11) | Verbrauch, Herunterfahren |
+| … Zwangsende, Zweig „geliefert, nicht gesendet“ | Zweig entfernt (M20a) | Verbrauch, Herunterfahren |
+| … Zwangsende, Zweig „mitten in der Interaktion“ | Zweig entfernt (M20b) | Herunterfahren |
+| `Terminate`/Abbruch (für den Service `CloseConnection`): unverbraucht, vor der Gruppe | Cursor vor der Gruppe zählt als verbraucht (T0) | Terminate (Fall „nach 0 Nachrichten“), Verbrauch |
+| … mitten in der Gruppe davor | Cursor dort zählt als verbraucht (T1) | Terminate (Fall „nach 1“) |
+| … nach der Gruppe davor | dto. (T2) | Terminate (Fall „nach 2“) |
+| … mitten in der Gruppe mit Ende, nach der ersten Nachricht | dto. (T3) | Terminate (Fall „nach 3“) |
+| … nach der zweiten Nachricht (vor dem `Flush`) | dto. (T4) | Terminate (Fall „nach 4“) |
+| … jede Stelle mitten in einer Interaktion | Cursor mitten in der Interaktion zählt als verbraucht (M19) | Terminate; Bestand |
+| `Shutdown` erlaubt nur außerhalb der Interaktion (Glied `c.gruppe == 0`) | auf `c.nachricht == 0` verkürzt (M18a) | Herunterfahren; Bestand |
+| … (Glied `c.nachricht == 0`) | auf `c.gruppe == 0` verkürzt (M18b) | Herunterfahren; Bestand |
+| `Shutdown` je Stand 0 bis 6 (davor, mitten in der Gruppe davor, nach ihr, zwei Stellen in der Gruppe mit Ende, geliefert ohne `Sent`, nach `Sent`) | je Stand ein Mutant, der dort das Gegenteil liefert (S0 bis S6) | Herunterfahren, je Mutant der Fall „Stand i“ |
+| Zwangsende je Stand 0 bis 6 | je Stand ein Mutant, der dort das Gegenteil liefert (F0b für Stand 0, F1 bis F6) | Herunterfahren, je Mutant der Fall „Stand i“ |
+| Abweichung: erste Nachricht der Interaktion `PGR-E5001` | Vergleich bei Gruppe 1, Nachricht 1 ausgesetzt (M16a) | Abweichung (Zeile „erste Nachricht der Interaktion“) |
+| … `Sync` statt `Flush` in der Gruppe davor | Vergleich bei Gruppe 1, Nachricht 2 ausgesetzt (M16e) | Abweichung (nur diese Zeile) |
+| … erste Nachricht der Gruppe mit Ende | Gruppe 2, Nachricht 1 (M16b) | Abweichung (Zeile) |
+| … mittlere Nachricht der Gruppe mit Ende | Gruppe 2, Nachricht 2 (M16c) | Abweichung (Zeile) |
+| … `Sync` statt `Flush` als abschließende | Gruppe 2, Nachricht 3 (M16d) | Abweichung (nur diese Zeile) |
+| … einfache Anfrage vor den Gruppen | Art-Prüfung für Gruppe 1, Nachricht 1 und SQL-Vergleich ausgesetzt (M-q0); Glied `istLebendpruefung` entfernt (M17b) | Abweichung (Zeile „vor den Gruppen“) |
+| … einfache Anfrage nach der Gruppe davor | dto. für Gruppe 2, Nachricht 1 (M-q2) | Abweichung (Zeile) |
+| … einfache Anfrage mitten in der Gruppe mit Ende | dto. für Gruppe 2, Nachricht 2 (M-q3) | Abweichung (Zeile) |
+| … Lebendprüfung mitten in der Gruppe davor (Glied `c.nachricht > 0` von `mitten`) | `mitten` auf `c.gruppe > 0` verkürzt (M17f) | Abweichung (Zeile), Herunterfahren; Bestand |
+| … Lebendprüfung nach der Gruppe davor, zwischen zwei Gruppen (Glied `c.gruppe > 0`) | `mitten` auf `c.nachricht > 0` verkürzt (M17e) | Abweichung (Zeile), Herunterfahren; Bestand |
+| … Lebendprüfung mitten in der Gruppe mit Ende (beide Glieder) | `!c.mitten()` dort aufgehoben (M17g) | Abweichung (nur diese Zeile) |
+| Abweichung liefert kein Ende (verneinend) | Abweichung der Art liefert die Server-Nachrichten der letzten Gruppe (M22) | Abweichung; Bestand |
+| Cursor bleibt nach der Abweichung stehen | Cursor rückt bei Abweichung der Art vor (M23) | Abweichung (rot durch Laufzeitfehler „Index außerhalb“, wie beim Geber; kein Fehlschlag der Prüfung) |
+| `first-request`: Zuordnung ohne freie Session ist `PGR-E5003` vor Abweichung und Ende | ohne freie Session wird die letzte zugeordnet (M12) | First |
+| … nächste freie Session | letzte statt erster freier Session (M13) | First |
+| `connection`: Verbindung ohne Session ist `PGR-E5003` | Zweig `s.nachVerbindung` ausgeschaltet (M14) | Conn |
+| … n-te Verbindung erhält die Session n | Session 1 für jede Verbindung (M14b) | Conn |
+| … Schließen ändert die Zuordnung nicht | `s.next--` beim Schließen (M15) | Conn |
+| Adapter: Gruppe davor wird gesendet und gemeldet, schließt nicht | jede gelieferte Folge schließt (MA1) | `TestReplayEndeGruppeDavorSchliesstNicht/flush` (auch `/sync`) |
+| Adapter: Gruppe mit Ende gesendet, dann `Sent`, dann Schließen (Lauf `flush`) | Schließen vor `Sent` (MA2) / `Sent` fehlt (MA3) | `…/flush` (auch `/sync`) |
+| Adapter: ohne `ReadyForQuery` nach dem Ende (verneinend) | `ReadyForQuery` nach dem Ende gesendet (MA4) | `…/flush` (auch `/sync`) |
+| Adapter: kein Byte für `connection_closed` | Auslassung entfernt (MA5) | `…/flush` (auch `/sync`) |
+| Adapter: `Flush` des Clients erreicht den Service als `Flush` | `pgproto3.Flush` wird als `sync` abgebildet (MA6) | `…/flush` (auch `/sync`, drei Bestandstests) |
+| Binary: nach dem Ende schließt die Verbindung | Adapter schließt nicht (E2a) | E2E `TestE2EReplayEndeExtendedFlush` (Zeitüberschreitung 10 s), Sync, Fatal, Panic, Lebendprüfung |
+| Binary: die Gruppe davor schließt nicht | `connection_closed` an die Gruppe davor gehängt (E2b) | E2E `TestE2EReplayEndeExtendedFlush`, `…Sync` und fünf Bestandstests |
+| Binary: `Flush` des Clients wird als `Flush` verglichen | Abbildung `Flush` auf `sync` (E2c) | E2E `TestE2EReplayEndeExtendedFlush` (und 16 weitere Tests, darunter `…Sync`) |
+
+**Grüne Mutanten.** Keiner der 55 Mutanten des Service und der 6 des Adapters blieb grün. **Nicht gespiegelt, über die Schnittstelle fangbar:** M17c (`endetEinfach` aus `anfrageMitEnde` entfernt) färbt nur Tests des Gebers (`…IstKeineEinfacheAnfrage`, `…LebendpruefungVorDerGruppe`, `TestReplayExtendedAmCursor`), keinen Test dieses Slice; Test-Idee: der Fall „Lebendprüfung, auch die leere, vor der Interaktion mit Ende ist außer der Reihe“ mit `extendedEndeFlush`. Er ist hier nicht geschrieben, weil `anfrageMitEnde` die Antworten einer Extended-Interaktion liest, die keine trägt (`Interaction.Validate`), die Art der abschließenden Nachricht also nie erreicht; der Geber-Test deckt die Zeile. Ebenso nicht gespiegelt: „Interaktion mit `Sync` vor der Interaktion mit Ende“ als eigener Test (Geber `SyncDavor`); M5a färbt hier `Connection` (Session 2 ist eine Interaktion mit `Sync`).
+
+**Akzeptierte Negative, nicht getestet:** (1) `Terminate` und Abbruch mitten in einer Gruppe, die mit `Flush` schließt, am Adapter: kein Fall im Adapter-Test. `TestReplayEndeTerminateMittenInDerGruppe` (Geber) sendet die abschließende Nachricht nie, `replayAntwort` behandelt `Terminate` unabhängig vom Stand der Gruppe; ein Mutant, der nur die `Flush`-Gruppe bricht, existiert nicht. Die Mutanten des Gebers (`Terminate` ignoriert, Lesefehler beendet nicht) stehen in dessen §7. (2) Wie beim Geber: teilweises Senden der Gruppe mit Ende (`replayZustellen`, `TestReplayEndeSchreibfehlerBleibtUnverbraucht`), Abweichung am Binary, ein Fall je Schweregrad (Unit-Fall `PANIC` als einzige Gruppe, E2E `FATAL`).
+
+**Messung (§3.14).** `git diff --numstat e982c7be4073c4e54be8c04a50125389af5ee660..245d245 -- internal test docs/user`: **342** (Einfügungen 306, Löschungen 36; Marke 500 nicht erreicht, Meldeschwelle 400 nicht erreicht; Höchststand 377 an `eaec1f3`, vor der Parametrisierung des Gebers). Aufschlüsselung: Produktcode 0; Service-Tests 222 (neue Datei 162 für sieben Tests, Parameter `abschluss` im Geber 41 Einfügungen und 19 Löschungen; ohne die Parametrisierung hatte die Datei 257); Adapter-Test 50 (36 und 14); E2E 27, Fixture 20, zusammen 47; Abdeckungstabellen 23 (20 und 3). Schätzung 160 bis 330, Mitte 245: gemessen 342 liegt 12 darüber, bei 140 % der Mitte und 68 % der Marke; die Service-Tests (222) lagen über der Schätzung des Architect (bis 175), weil die Parametrisierung Zeilen im Geber kostet und die Abweichungstabelle eine Zeile mehr trägt (einfache Anfrage nach der Gruppe davor). **Zeilen je E2E-Fall:** der Fall mit Einbettung der Fixture 27, Fixture 20, Tabellenzeilen 3, zusammen 50 (Geber: 63); Hilfen (`rohNachricht`, `parseSync`) wiederverwendet. 55 Mutanten in Unit-Läufen im Service, 6 im Adapter, 3 E2E-Läufe.
+
+**Beobachtungen.** (1) `dupl` im Lint-Profil (Schwelle 150) lehnt kopierte Spiegel-Tests ab, sobald ein Test über rund 16 Zeilen dem des Gebers gleicht; der Hinweis (2) des Architect („Zeilen mit Parameter, sonst eigene Tests“) trägt das nicht ohne Ausnahme: drei Funde (vier Tests, dazu Herunterfahren derselben Form) mussten den Parameter `abschluss` bekommen, der Plan zählte sie als eigene Tests. (2) `git checkout -- internal` nach einem E2E-Mutanten setzt auch nicht eingecheckte Änderungen unter `internal` zurück; eine Änderung am Adapter-Test ging so einmal verloren und wurde neu gemacht. Vor einem E2E-Mutanten ist der Arbeitsbaum committet. (3) Der Kommentar von `mitten()` in `replay.go` (Zeile 238) und der Kopf der Sitzung in `server.go` (Zeile 333) sagen „vor ihrem Sync“ bzw. „bis zu ihrem Sync“; mit `Flush` als Abschluss ist `Flush` gemeint (`LH-FA-18.a` *Interaktion*). Produktcode 0 war die Erwartung, deshalb unverändert; zu entscheiden ist, ob ein Wort im Kommentar zu ändern ist (Architect oder Planner). (4) Die Zeile der Abdeckung für `TestReplayEndeExtendedFlushAbweichung` nennt „an jeder Stelle“; die Tabelle der Fälle führt alle fünf Nachrichtenstellen der Interaktion als Zeilen. (5) Keine Randform war offen; kein Halt, keine Rückgabe an den Architect.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -168,3 +237,5 @@ Vermerk bei der Closure des Gebers (Planner, 2026-10-16, `AGENTS.md` §3.13, §3
 Nachgezählt beim Anspruch (Planner, 2026-10-16, `AGENTS.md` §3.13, §3.14; Quelle: Messung 532 und Maß des Gebers in dessen §7): Der Geber schrieb neun Service-Tests mit 322 Zeilen (rund 36 je Test), nicht als Tabellenzeilen. Die `Flush`-Gruppe braucht einen eigenen Aufbau der Interaktion (Gegenstück zu `extendedEnde`) und spiegelt die Fälle der Ergänzungen (Hauptfall, `Sync` statt `Flush`, einfache Anfrage und Lebendprüfung mitten in der Gruppe, `Terminate` und Abbruch, einzige Gruppe, Verbrauch); wo der Geber Tabellen führt (`TestReplayEndeExtendedAbweichung`), sind es Zeilen, sonst eigene Tests. Service-Tests deshalb 60 bis 150 statt 60 bis 130, Adapter-Test Lauf `flush` 30 bis 60, E2E ein Fall mit Fixture 63 bis 70, Tabellen 6 bis 12, Nacharbeit bis 10 vom Hundert: **rund 160 bis 330, Mitte 245, 49 % der Marke 500**, oberes Ende 66 %, unter 70 %: nicht geschnitten. Marke 500 und Meldeschwelle 400 bleiben. Liefer-Punkte 2, Schichten zwei (drei konservativ mit `docs/user/`, Nutzerentscheidung steht aus). §1 (Ausschlüsse) und §6 unverändert; der Punkt „Wortlaut von `LH-FA-18.a`“ bleibt beim Architect.
 
 Nachgezählt bei der Prüfung des Architect vor dem Code (2026-10-16, `AGENTS.md` §3.13, §3.14): Liefer-Punkte 2, Schichten zwei (Kern, PGWire-Adapter; `docs/user/` konservativ als dritte, Nutzerentscheidung steht aus). Die Entscheidung zu V-5 ist ein Satz in der Spezifikation und verlangt keinen Code. Der Service liefert die Gruppe mit Ende und `Flush` schon durch (`ClientMessage` gibt `g.Server` unabhängig von der Art zurück, `replayZustellen` schließt bei `connection_closed`): Produktcode 0, die zweite Rückführung in §4 (Pfad, Port, Abbildung) wird dadurch nicht berührt. Schätzung 160 bis 330, Mitte 245, Marke 500, Meldeschwelle 400 bestätigt; die Service-Tests liegen bei getrennten Tests am oberen Ende (bis 175), die Summe bleibt unter 400.
+
+Nachgezählt bei der Übergabe (Implementer, 2026-10-16, `AGENTS.md` §3.13, §3.14): Liefer-Punkte 2, Schichten zwei (Kern, PGWire-Adapter; `docs/user/` konservativ als dritte, Nutzerentscheidung steht aus). Gemessen 342 in der Metrik von §4 (Messung in §7), 68 % der Marke 500, Meldeschwelle 400 nicht erreicht; Schätzung 160 bis 330, Mitte 245: 12 darüber. Produktcode 0, die zweite Rückführung in §4 trat nicht ein; die Marke ebenso nicht. §1 (Ausschlüsse) und §6 unverändert; die Tests des Gebers sind um den Parameter `abschluss` geändert (§3), ohne Änderung ihrer Aussagen.
