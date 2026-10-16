@@ -45,3 +45,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbind
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-replay` (F-3, V-1) — eine Plan-Zeile („je Fall eine Datei“) weiter als der Diff, und eine Aufschlüsselung der Messung in §7 auf dem Stand vor der Nacharbeit, nur die Summe nachgezogen, wie bei `slice-v1-abschluss-postgres-versionen-matrix` (V-3) (Beleg `evidence/slice-v1-abschluss-verbindungsende-replay.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-replay-extended` (V-2, V-3) — §6 nannte Arten des Endes, die der Port nicht kennt, und eine Zahl in §7 folgte der Nacharbeit nicht (Beleg `evidence/slice-v1-abschluss-verbindungsende-replay-extended.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-einspielen` (F-5) — zwei Dateien des Diffs standen nicht in §3 (Beleg `evidence/slice-v1-abschluss-verbindungsende-einspielen.md`).

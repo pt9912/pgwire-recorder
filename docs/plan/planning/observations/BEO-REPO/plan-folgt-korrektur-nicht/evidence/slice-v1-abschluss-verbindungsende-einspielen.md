@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-einspielen
+**Fund (Review F-5, LOW):** §3 des Plans nannte `play_laufsteuerung_test.go` und `spec/spezifikation.md` nicht, der Diff änderte beide (Kommentar von `TestPlayErwarteterFehler`; Spezifikation durch den Architect vor dem Code); §7 Beobachtung (3) nannte die Datei erst im Nachhinein. Nachgezogen in `43ae580`; die Verifikation bestätigte, dass §3 jede Datei des Diffs unter `internal`, `test`, `spec` und `docs/user` führt.

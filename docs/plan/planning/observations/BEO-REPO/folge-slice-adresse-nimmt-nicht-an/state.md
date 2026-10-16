@@ -13,3 +13,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.13): `slice-v1-abschluss-sessio
 Geschärft: der Satz zur Nahtstelle des Architect in `.claude/agents/planner.md` (jeder Punkt in §1 und §6 des bindenden Nehmers, mit Nachzählung, bevor der Geber nach `done/` geht; `grep` nach der Kennung des Gebers in jedem Nehmer der Reihe) — Herkunfts-Anker `seit slice-v1-abschluss-sessions`.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.13): `slice-harness-vertraege-umzug-ordner` (Review F-1) — eine bewusst stehen gelassene Ortsangabe (Zwischenstand) ist eine Sendung an die Nehmer des Umzugs (Beleg `evidence/slice-harness-vertraege-umzug-ordner.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.13): `slice-v1-abschluss-verbindungsende-einspielen` (F-3, V-2) — eine Bindung des Nehmers an einen Test des Gebers, den der Geber nicht führte; danach nannte der Nehmer für ihn die falsche Stelle (Beleg `evidence/slice-v1-abschluss-verbindungsende-einspielen.md`). Abgegrenzt gegen `BEO-REPO/plan-nennt-test-der-nicht-existiert`: Der Name stand in einer Sendung, nicht im Beleg einer Zusage.

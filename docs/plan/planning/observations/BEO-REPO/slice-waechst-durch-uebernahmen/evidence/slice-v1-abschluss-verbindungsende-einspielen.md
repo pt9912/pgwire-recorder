@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-einspielen
+**Fund (Verifikation V-1, LOW):** Die Bindung „Adapter-Test von `SchliesseOhneTerminate` mit Gruppen in der Warteschlange ist Lieferung des Gebers“ (`5c8c592`, Architect) trug der Nehmer `slice-v1-abschluss-verbindungsende-einspielen-extended` in §1 und §6 mit dem Satz „Zählung unverändert“, aber ohne Nachzählung in dessen §8; der Nehmer lag nach eigener Schätzung bei 69 % der Marke. Nachgezählt in `49cbace`, in §8 des Nehmers, mit der Kennung des Gebers und neu gerechneter Schätzung.
