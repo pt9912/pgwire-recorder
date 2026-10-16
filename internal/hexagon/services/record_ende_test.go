@@ -338,6 +338,19 @@ func TestRecordEndeDanachNichts(t *testing.T) {
 			}
 		})
 	}
+	t.Run("Anfrage vor der Zustellung", func(t *testing.T) {
+		l := beginne(t, nil)
+		client(t, l.s, l.id, gSync()...)
+		l.up.letzte.empfang <- ende
+		if err := l.lies(); err != nil {
+			t.Fatal(err)
+		}
+		var err error
+		warte(t, "Query", func() { _, err = l.s.Query(context.Background(), l.id, "SELECT 2") })
+		if err != model.ErrSessionEnded {
+			t.Fatalf("Query: %v", err)
+		}
+	})
 	t.Run("Lesen des Upstreams", func(t *testing.T) {
 		l := nachEnde(t, false)
 		l.up.letzte.empfang <- []model.Response{sRFQ()}
@@ -538,4 +551,24 @@ func TestRecordEndeEinzigeInteraktion(t *testing.T) {
 			})
 		}
 	}
+}
+
+// Abdeckung: LH-FA-25/Boundary, LH-FA-13/Boundary — Record im Kern: Hat der Recorder das Ende
+// gelesen und steht die Zustellung noch aus, entsteht beim Zwangsende keine Meldung
+// (kein PGR-E4006), und die Session wird mit der Interaktion geschrieben
+// (LH-FA-25.a *Herunterfahren beim Aufzeichnen*).
+func TestRecordEndeZwangsendeVorZustellung(t *testing.T) {
+	rs := []model.Response{endeFehler("FATAL", "FATAL"), sEnde()}
+	jeWeg(t, rs, func(t *testing.T, l *endeLauf, out []model.Response, err error) {
+		t.Helper()
+		if err != nil || len(out) != 2 {
+			t.Fatalf("Antworten %#v, Fehler %v", out, err)
+		}
+		if err := l.schliessen(model.EndForced); err != nil {
+			t.Fatalf("Zwangsende nach gelesenem Ende meldet %v", err)
+		}
+		if got := l.repo.last(t).Sessions[0].Interactions; len(got) != 2 {
+			t.Fatalf("Interaktionen %#v", got)
+		}
+	})
 }
