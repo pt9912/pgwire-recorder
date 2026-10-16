@@ -2,7 +2,7 @@
 
 Version: 0.9  
 Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
-Stand: 15.10.2026  
+Stand: 16.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für das Binary `pgwire-recorder`, gebaut aus dem Repository (Ausgabe von `pgwire-recorder version`: `pgwire-recorder dev`)
 
@@ -24,6 +24,8 @@ Das Werkzeug arbeitet in drei Betriebsarten:
   [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen))
   und mit der Zeit seit der Startup-Nachricht, zu der jede Anfrage eintraf (siehe
   [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)).
+  Beendet die Datenbank eine Verbindung selbst, zeichnet es auch das auf (siehe
+  [Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank)).
 * **Wiedergeben (`replay`):** Ihre Anwendung verbindet sich wieder mit
   `pgwire-recorder`. Das Werkzeug beantwortet die Anfragen aus der Datei. Eine
   Datenbank ist nicht nötig.
@@ -223,7 +225,8 @@ Sitzung ist, steht unter
   der umask `022` also `0644`); eine ersetzte behält ihre Zugriffsrechte. Ersetzt
   das Werkzeug eine Verknüpfung auf eine Datei, erhält die Zieldatei die
   Zugriffsrechte dieser Datei.
-* Eine Verbindung Ihrer Anwendung, die mindestens eine Anfrage abgeschlossen hat, wird
+* Eine Verbindung Ihrer Anwendung, die mindestens eine Anfrage abgeschlossen hat (auch eine,
+  die mit dem Ende der Verbindung durch die Datenbank endet), wird
   als eigene Sitzung aufgezeichnet, auch wenn mehrere Verbindungen gleichzeitig offen
   sind; antwortet die Datenbank ihr mit einem COPY-Datenstrom, sendet sie ihr bis zum Ende
   ihrer letzten Anfrage eine Benachrichtigung oder sendet Ihre Anwendung nach dem Aufbau
@@ -439,14 +442,18 @@ Die Datei hat vier Tabellen:
 
 | Tabelle | Inhalt |
 |---|---|
-| `meta` | Zeilen mit `key` und `value`: `format` (`pgwire-recorder`), `version` und, mit `--record-empty-sessions`, `empty_sessions` (Wert `true`) |
+| `meta` | Zeilen mit `key` und `value`: `format` (`pgwire-recorder`), `version` (1, mit einem Ende der Verbindung durch die Datenbank 2) und, mit `--record-empty-sessions`, `empty_sessions` (Wert `true`) |
 | `session` | eine Zeile je aufgezeichneter Sitzung: `id` (ab 1), `startup` und `server_parameters` als JSON-Text |
 | `interaction` | eine Zeile je Anfrage oder Folge des erweiterten Protokolls: `session_id`, `sequence`, `type` (`query` oder `extended`), `offset_ms` (die Zeitangabe, ohne `--record-timing` ohne Wert, also `NULL`) und `sql` (der Text einer einfachen Anfrage, bei `extended` ohne Wert, also `NULL`) |
 | `message` | die Nachrichten einer Interaktion: `session_id`, `sequence`, `position`, `direction` (`client` oder `server`), `group_no`, `kind` und `fields` als JSON-Text |
 
 Bei einer einfachen Anfrage stehen in `message` nur die Antworten des Servers; die
 Anfrage steht in `interaction.sql`. Der SQL-Text einer erweiterten Anfrage steht im Feld
-`sql` der Nachricht mit `kind = 'parse'`. Zum Beispiel:
+`sql` der Nachricht mit `kind = 'parse'`. Das Ende der Verbindung durch die Datenbank steht als
+letzte Nachricht seiner Interaktion mit `kind = 'connection_closed'`, `direction = 'server'`
+und `fields = '{}'` (siehe
+[Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank)).
+Zum Beispiel:
 
 ```bash
 sqlite3 ./recordings/users.sqlite "select session_id, sequence, sql from interaction where type = 'query'"
@@ -474,7 +481,10 @@ Werkzeug erkennt das Format selbst (siehe
 #### Ergebnis
 
 Ihre Anwendung erhält die aufgezeichneten Antworten, in der aufgezeichneten
-Reihenfolge, auch Fehlerantworten der Datenbank.
+Reihenfolge, auch Fehlerantworten der Datenbank. Endet eine Sitzung der Aufzeichnung
+mit dem Ende der Verbindung durch die Datenbank, endet auch die Verbindung Ihrer Anwendung
+an dieser Stelle (siehe
+[Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank)).
 
 #### Hinweise
 
@@ -534,7 +544,8 @@ Reihenfolge, auch Fehlerantworten der Datenbank.
 ### Mehrere Verbindungen aufzeichnen und wiedergeben
 
 Eine Anwendung öffnet oft mehrere Verbindungen zur Datenbank, etwa über einen
-Connection-Pool. `record` zeichnet eine Verbindung, die eine Anfrage abgeschlossen hat, als
+Connection-Pool. `record` zeichnet eine Verbindung, die eine Anfrage abgeschlossen hat (auch eine,
+die mit dem Ende der Verbindung durch die Datenbank endet), als
 eigene Sitzung auf, auch wenn mehrere gleichzeitig offen sind; antwortet die Datenbank ihr
 mit einem COPY-Datenstrom, sendet sie ihr bis zum Ende ihrer letzten Anfrage eine Benachrichtigung
 oder sendet Ihre Anwendung nach dem Aufbau eine Nachricht `p` oder `CopyData`, zeichnet `record` sie
@@ -797,27 +808,32 @@ Interaktionen öffnet `play` keine Verbindung.
 #### Hinweise
 
 * Die drei folgenden Hinweise zu Fehlerantworten der Datenbank beschreiben das
-  Einspielen ohne `--compare-responses`; mit der Option gilt
+  Einspielen ohne `--compare-responses`; ein Ende der Verbindung durch die Datenbank
+  beschreibt
+  [Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank).
+  Mit der Option gilt
   [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen).
   Ebenso beschreiben die Hinweise zu Anmeldung und TLS, zu COPY und zu
   `--finish-session-on-interrupt` das Einspielen ohne diese Option.
-* Antwortet die Datenbank auf eine Anfrage mit einem Fehler, bricht das Einspielen
-  ab (`PGR-E4004`, Exit-Code 4). Mit `--continue-on-error` läuft es mit der
+* Antwortet die Datenbank auf eine Anfrage mit einem Fehler, der die Verbindung nicht
+  beendet, bricht das Einspielen ab (`PGR-E4004`, Exit-Code 4). Mit `--continue-on-error` läuft es mit der
   nächsten Anfrage weiter und meldet jeden dieser Fehler im Log; der Exit-Code ist
   dann 4. Bricht
   danach ein anderer Fehler das Einspielen ab, etwa eine Antwort, die das Werkzeug
   nicht verarbeiten kann (`PGR-E6001`), oder das Ende der Verbindung
   (`PGR-E4003`), ist der Exit-Code der dieses Fehlers (6 bzw. 4).
 * Antwortet die Datenbank auf eine Anfrage des erweiterten Protokolls mit einem
-  Fehler, führt sie die übrigen Nachrichten dieser Folge bis zu deren `Sync` nicht
+  Fehler, der die Verbindung nicht beendet, führt sie die übrigen Nachrichten dieser Folge bis zu deren `Sync` nicht
   aus. Mit `--continue-on-error` macht das Einspielen danach mit der nächsten
   Folge weiter, der Exit-Code ist dann 4.
 * Mit `--allow-recorded-errors` gilt ein Fehler der Datenbank mit dem Schweregrad
   `ERROR` nicht als Fehler, wenn auch die aufgezeichnete Anfrage mit einem Fehler
   beantwortet wurde. Bei einer Folge des erweiterten Protokolls genügt eine
   Fehlerantwort an irgendeiner Stelle der aufgezeichneten Folge. Ein Fehler mit dem
-  Schweregrad `FATAL` beendet die Verbindung
-  und bricht das Einspielen auch dann ab (`PGR-E4003`).
+  Schweregrad `FATAL` oder `PANIC` beendet die Verbindung. Er gilt nur als erwartet, wenn die
+  aufgezeichnete Anfrage ein Ende der Verbindung durch die Datenbank trägt; sonst bricht er
+  das Einspielen ab (`PGR-E4003`). Siehe
+  [Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank).
 * Ohne Wunsch nach TLS verbindet sich das Werkzeug ohne TLS mit der Datenbank. Lehnt
   sie die Anmeldung ab, etwa weil der Benutzer fehlt oder das Passwort falsch ist,
   oder fehlt das Passwort, das sie verlangt, endet das Einspielen mit `PGR-E4005`
@@ -938,20 +954,23 @@ time=2026-10-12T14:03:12.482+02:00 level=INFO msg="play beendet" eingespielt=1 v
   weiteren Interaktionen zählen nicht als eingespielt. Mit `--continue-on-error` macht es
   mit der nächsten Interaktion weiter und meldet jede Interaktion mit einer Abweichung;
   der Exit-Code ist dann 5. Ohne `--compare-responses` findet kein Vergleich statt.
-* Antwortet die Datenbank mit einem Fehler, den die Aufzeichnung an dieser Stelle nicht
-  trägt, ist das mit Vergleich `PGR-E5004` (Art `Nachrichtenart`) und nicht `PGR-E4004`.
-  Trägt die Aufzeichnung an dieser Stelle eine Fehlerantwort mit demselben SQLSTATE, ist
-  das keine Abweichung, auch bei einem anderen Text; `play` macht mit der nächsten
-  Interaktion weiter, ohne `--continue-on-error`. Ein anderer SQLSTATE ist `PGR-E5004`
-  mit der Art `Fehler`.
-* Mit Vergleich hat `--allow-recorded-errors` keine Wirkung: Ein Fehler ohne Vorbild oder
-  mit einem anderen SQLSTATE bleibt `PGR-E5004`, einer mit demselben SQLSTATE ist auch
-  ohne die Option erwartet.
+* Antwortet die Datenbank mit einem Fehler (Schweregrad `ERROR`), den die Aufzeichnung an
+  dieser Stelle nicht trägt, ist das mit Vergleich `PGR-E5004` (Art `Nachrichtenart`) und
+  nicht `PGR-E4004`.
+  Trägt die Aufzeichnung an dieser Stelle eine Fehlerantwort mit demselben SQLSTATE, die kein
+  Ende der Verbindung durch die Datenbank ist, ist das keine Abweichung, auch bei einem
+  anderen Text; `play` macht mit der nächsten Interaktion weiter, ohne `--continue-on-error`.
+  Hat diese Fehlerantwort einen anderen SQLSTATE, ist das `PGR-E5004` mit der Art `Fehler`.
+* Mit Vergleich hat `--allow-recorded-errors` keine Wirkung: Ein Fehler (Schweregrad
+  `ERROR`) ohne Vorbild oder mit einem anderen SQLSTATE bleibt `PGR-E5004`, einer mit
+  demselben SQLSTATE ist auch ohne die Option erwartet.
 * Beendet die Datenbank die Verbindung mit einer Fehlerantwort `FATAL` oder `PANIC`, ist
-  das mit Vergleich `PGR-E5004`, auch wenn die Aufzeichnung an dieser Stelle einen Fehler
-  mit demselben SQLSTATE trägt. Die Art ist `Fehler` an der Position der Fehlerantwort;
-  weicht davor schon eine Antwort ab, nennt die Meldung diese Abweichung. Ohne Vergleich
-  ist es `PGR-E4003`.
+  das mit Vergleich erwartet, wenn die Aufzeichnung an derselben Stelle ein Ende der
+  Verbindung durch die Datenbank mit demselben SQLSTATE zeigt; sonst ist es `PGR-E5004`,
+  auch wenn die Aufzeichnung an dieser Stelle einen Fehler mit demselben SQLSTATE trägt,
+  der kein Ende ist. Die Art ist `Fehler` an der Position der Fehlerantwort; weicht davor
+  schon eine Antwort ab, nennt die Meldung diese Abweichung. Ohne Vergleich gilt
+  [Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank).
 * Bricht die Verbindung ohne Fehlerantwort der Datenbank ab, ist das `PGR-E4003` mit
   Exit-Code 4, auch nach einer Abweichung; beide Meldungen stehen im Log.
 * Das erste Abbruchsignal (`Strg+C`, `SIGTERM`) beendet die laufende Interaktion mit
@@ -966,6 +985,199 @@ time=2026-10-12T14:03:12.482+02:00 level=INFO msg="play beendet" eingespielt=1 v
   `compare_responses` im Abschnitt `record:` oder `replay:` ist `PGR-E2004`, ebenso ein
   anderer Wert als `true` oder `false`. Die Umgebungsvariable mit einem anderen Wert ist
   `PGR-E2001`.
+
+### Das Ende der Verbindung durch die Datenbank
+
+Eine Datenbank beendet eine Verbindung selbst, wenn ein Administrator ihr Backend beendet
+(`pg_terminate_backend`, SQLSTATE `57P01`) oder die Verbindung zu lange untätig ist
+(`idle_session_timeout`, SQLSTATE `57P05`): Sie sendet eine Fehlerantwort mit dem
+Schweregrad `FATAL` und schließt die Verbindung. Dieses Handbuch nennt das das *Ende der
+Verbindung durch die Datenbank*, kurz das Ende. `record` zeichnet es auf, `replay` gibt es
+wieder, und `play` erwartet es auf Wunsch. Das Werkzeug behandelt eine Fehlerantwort mit dem
+Schweregrad `PANIC` ebenso.
+
+#### Voraussetzung
+
+Wie beim Aufzeichnen, Wiedergeben und Einspielen. Geprüft ist das Ende mit `FATAL`
+gegen PostgreSQL 17.11, mit `pg_terminate_backend` (`57P01`) und mit
+`idle_session_timeout` (`57P05`); als Anwendung diente `psql` aus libpq 17.11. Andere
+Versionen der Datenbank und andere Treiber sind nicht geprüft. `PANIC` ist mit einem
+Ersatz-Server geprüft, der `PANIC` sendet, nicht mit PostgreSQL.
+
+#### Vorgehen
+
+1. Starten Sie das Aufzeichnen:
+
+   ```bash
+   pgwire-recorder record \
+     --listen 0.0.0.0:15432 \
+     --upstream postgres:5432 \
+     --output ./recordings/ende.yaml
+   ```
+
+2. Lassen Sie die Datenbank die Verbindung Ihrer Anwendung beenden, hier mit `psql`:
+
+   ```bash
+   psql "host=localhost port=15432 user=app dbname=app sslmode=disable" -c "select pg_terminate_backend(pg_backend_pid())"
+   ```
+
+3. Öffnen Sie eine weitere Verbindung, zum Beispiel:
+
+   ```bash
+   psql "host=localhost port=15432 user=app dbname=app sslmode=disable" -c "select 2"
+   ```
+
+4. Beenden Sie das Werkzeug mit `Strg+C`.
+5. Geben Sie die Aufzeichnung wieder, und führen Sie die beiden `psql`-Aufrufe erneut aus:
+
+   ```bash
+   pgwire-recorder replay \
+     --listen 0.0.0.0:15432 \
+     --input ./recordings/ende.yaml
+   ```
+
+6. Spielen Sie die Aufzeichnung ein; ohne `--allow-recorded-errors` bricht das Einspielen
+   am Ende der ersten Sitzung ab (siehe unten):
+
+   ```bash
+   pgwire-recorder play \
+     --upstream postgres:5432 \
+     --input ./recordings/ende.yaml \
+     --allow-recorded-errors
+   ```
+
+#### Ergebnis
+
+Beim Aufzeichnen meldet `psql` im zweiten Schritt, dass die Datenbank die Verbindung
+beendet hat:
+
+```text
+FATAL:  terminating connection due to administrator command
+server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+connection to server was lost
+```
+
+Der Aufruf im dritten Schritt liefert die Zeile mit dem Wert 2. Die Aufzeichnung hat zwei
+Sitzungen; die erste endet mit der Fehlerantwort der Datenbank und danach der Nachricht
+`connection_closed`, und die Datei trägt `version: 2`:
+
+```yaml
+format: pgwire-recorder
+version: 2
+```
+
+```yaml
+          - type: error_response
+            notice:
+              C: 57P01
+              F: postgres.c
+              L: "3316"
+              M: terminating connection due to administrator command
+              R: ProcessInterrupts
+              S: FATAL
+              V: FATAL
+          - type: connection_closed
+```
+
+Beim Wiedergeben endet der erste Aufruf mit derselben Meldung von `psql`, der zweite
+liefert die Zeile mit dem Wert 2. Das Einspielen endet mit Exit-Code 0:
+
+```text
+time=2026-10-16T21:53:29.688Z level=INFO msg="play beendet" eingespielt=2 verglichen=0 abweichend=0
+```
+
+#### Hinweise zum Aufzeichnen
+
+* `record` zeichnet ein Ende auf, wenn die Datenbank in einer laufenden Anfrage eine
+  Fehlerantwort mit dem Schweregrad `FATAL` oder `PANIC` sendet und danach die Verbindung
+  beendet. Die Aufzeichnung enthält die Antworten der Anfrage bis einschließlich der
+  Fehlerantwort und danach `connection_closed` statt `ready_for_query`; diese Anfrage
+  ist die letzte der Sitzung. Eine Verbindung, deren erste Anfrage so endet, ist eine
+  Sitzung.
+* Ihre Anwendung erhält die Antworten bis einschließlich der Fehlerantwort der Datenbank, aber
+  kein `ReadyForQuery`; danach endet ihre Verbindung. Das
+  Werkzeug schreibt dazu keine Meldung, und der Exit-Code ändert sich nicht (0, wenn kein
+  anderer Fehler auftrat). Andere Verbindungen laufen weiter und werden aufgezeichnet, auch
+  eine, die zu diesem Zeitpunkt schon offen war. Die Aufzeichnung kann mehrere Sitzungen mit
+  einem Ende enthalten.
+* Beendet die Datenbank eine Verbindung im Leerlauf, zwischen zwei Anfragen, zeichnet
+  `record` das Ende nur auf, wenn Ihre Anwendung danach noch eine Anfrage sendet: Die
+  Fehlerantwort steht dann in den Antworten auf diese Anfrage. Sendet sie keine mehr, ist
+  das kein Ende; die Aufzeichnung trägt die Fehlerantwort nicht und hat `version: 1`.
+* Bricht die Verbindung zur Datenbank ohne Fehlerantwort ab, ist das kein Ende, sondern
+  `PGR-E4003` (Exit-Code 4). Sendet die Datenbank eine Fehlerantwort mit einem anderen
+  Schweregrad als `FATAL` oder `PANIC` und beendet danach die Verbindung ohne
+  `ReadyForQuery`, ist das `PGR-E6001` (Exit-Code 6), und die Verbindung ist keine Sitzung;
+  geprüft ist das mit einem Ersatz-Server, PostgreSQL tut es nicht.
+* Eine Fehlerantwort `FATAL` in der Anmeldung, etwa für eine Datenbank, die es nicht gibt, ist
+  kein Ende: Ihre Anwendung erhält sie, das Werkzeug schreibt keine Meldung, und die
+  Verbindung ist keine Sitzung (siehe
+  [Eine Anwendung mit Passwort-Anmeldung aufzeichnen](#eine-anwendung-mit-passwort-anmeldung-aufzeichnen)).
+* Eine Aufzeichnung mit einem Ende hat `version: 2` (SQLite: den Wert 2 in `meta`, sobald eine
+  Sitzung mit Ende in der Datei steht), eine ohne Ende `version: 1`. Bei SQLite steht das Ende als Nachricht mit `kind = 'connection_closed'`:
+
+  ```bash
+  sqlite3 ./recordings/ende.sqlite "select key, value from meta"
+  sqlite3 ./recordings/ende.sqlite "select session_id, sequence, kind from message where kind = 'connection_closed'"
+  ```
+
+  Für die Aufzeichnung des Ablaufs oben mit `--format sqlite` liefern sie
+  `format|pgwire-recorder`, `version|2` und `1|1|connection_closed`.
+
+#### Hinweise zum Wiedergeben
+
+* `replay` sendet die aufgezeichneten Antworten bis einschließlich der Fehlerantwort und
+  schließt dann die Verbindung Ihrer Anwendung, ohne `ReadyForQuery`, ohne Meldung und
+  ohne Fehler (Exit-Code 0). Das gilt für `FATAL` wie für `PANIC` und für beide
+  Formate.
+* Die Sitzung gilt damit als abgeschlossen: `replay` meldet sie nicht als unvollständig
+  (`PGR-W2001`), auch nicht mit `--fail-on-unconsumed`. Die nächste Verbindung erhält die
+  nächste Sitzung der Aufzeichnung.
+
+#### Hinweise zum Einspielen
+
+* Ohne `--allow-recorded-errors` und ohne `--compare-responses` ist ein Ende der Datenbank
+  `PGR-E4003` (Exit-Code 4), auch wenn die Aufzeichnung an dieser Stelle ein Ende trägt, und
+  das Einspielen bricht ab. Auch `--continue-on-error` ändert das nicht.
+* Mit `--allow-recorded-errors` ist ein Ende der Datenbank (`FATAL` oder `PANIC`) erwartet,
+  wenn die aufgezeichnete Anfrage ein Ende trägt, gleich welcher SQLSTATE: Das Einspielen
+  meldet nichts, und die nächste Sitzung läuft, auch ohne `--continue-on-error`. Trägt die
+  aufgezeichnete Anfrage kein Ende, auch wenn sie mit einem Fehler beantwortet wurde, ist es
+  `PGR-E4003`.
+* Mit `--compare-responses` entscheidet der Vergleich: Ein Ende der Datenbank ist erwartet,
+  wenn die Aufzeichnung an derselben Stelle ein Ende mit demselben SQLSTATE zeigt; die
+  Interaktion zählt als verglichen. Ein anderer SQLSTATE ist `PGR-E5004` (Art `Fehler`,
+  mit dem SQLSTATE beider Seiten), ebenso ein Ende, dessen Vorbild in der Aufzeichnung ein
+  Fehler ohne Ende ist (siehe
+  [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen)). Mit
+  `--continue-on-error` läuft nach einer solchen Abweichung die nächste Sitzung.
+  `--allow-recorded-errors` hat dabei keine Wirkung.
+* Antwortet die Datenbank ohne Ende, obwohl die Aufzeichnung eines zeigt (etwa weil
+  `play` nicht auf den Ablauf der Zeit wartet, die `idle_session_timeout` braucht), meldet
+  `play` ohne `--compare-responses` nichts; mit der Option ist es `PGR-E5004`.
+
+#### Fehlerbilder
+
+`play` ohne `--allow-recorded-errors` gegen die Aufzeichnung oben (Exit-Code 4):
+
+```text
+time=2026-10-16T21:53:30.168Z level=ERROR msg=Fehler code=PGR-E4003 error="Netzwerk [PGR-E4003]: Session 1, Interaktion 1: Fehlerantwort des Servers 57P01 „terminating connection due to administrator command“, die Verbindung endet"
+time=2026-10-16T21:53:30.168Z level=INFO msg="play beendet" eingespielt=1 verglichen=0 abweichend=0
+```
+
+`play --compare-responses` gegen eine Aufzeichnung, deren Ende `idle_session_timeout`
+verursachte (Exit-Code 5):
+
+```text
+time=2026-10-16T21:53:46.306Z level=ERROR msg=Fehler code=PGR-E5004 error="Replay [PGR-E5004]: Session 1, Interaktion 2: Antwort weicht von der Aufzeichnung ab: Position 1, Art Nachrichtenart"
+time=2026-10-16T21:53:46.306Z level=INFO msg="play beendet" eingespielt=2 verglichen=2 abweichend=1
+```
+
+Eine Datei der Version 1, die `connection_closed` enthält, lehnen `replay` und `play` mit
+`PGR-E3003` ab (Exit-Code 3); eine Datei mit einer anderen Version als 1 und 2 ist
+`PGR-E3002`.
 
 ### Zeitangaben aufzeichnen und einspielen
 
@@ -1729,11 +1941,11 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | `PGR-E2006` | Klartext-Passwort in der Konfigurationsdatei | Die Meldung nennt die Verbindung. Ersetzen Sie das Passwort in der URL durch genau einen Platzhalter `${VAR}`, und entfernen Sie einen Parameter `password`. Das gilt für jede Verbindung der Datei, auch eine, die Sie nicht benutzen. |
 | `PGR-E2007` | Datei von `--upstream-ca`, `--tls-cert` oder `--tls-key` nicht verwendbar | Die Datei fehlt, ist nicht lesbar, ist keine reguläre Datei oder enthält keine Zertifikate im PEM-Format. Bei `--tls-cert` und `--tls-key` außerdem: das Zertifikat ist abgelaufen oder noch nicht gültig, der Schlüssel ist verschlüsselt oder passt nicht zum Zertifikat, oder eine Datei hat einen anderen Inhalt, als die Option verlangt (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)). Die Meldung nennt die Option und den Grund, nicht den Pfad; der Exit-Code ist 2. Prüfen Sie Pfad, Rechte und Inhalt der Datei. |
 | `PGR-E3001` | Aufzeichnung nicht lesbar oder nicht schreibbar | Die Datei fehlt, Sie haben keine Rechte, `--output` ist ein Verzeichnis, oder das Verzeichnis von `--output` fehlt. Bei `sqlite` außerdem: Neben dem Zielpfad liegt eine Datei `<Zielpfad>-journal`, oder eine SQLite-Datei ist länger als fünf Sekunden gesperrt. Prüfen Sie Pfad und Dateirechte, und siehe [Das Format der Aufzeichnung festlegen](#das-format-der-aufzeichnung-festlegen). |
-| `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei stammt aus einer anderen Programmversion; das gilt für beide Formate. Zeichnen Sie mit der verwendeten Version erneut auf. |
-| `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Bei einer SQLite-Datei auch: Sie ist keine SQLite-Datei oder eine fremde, eine Tabelle oder Spalte fehlt, sie ist abgeschnitten, oder ihr Inhalt ist ungültig (zum Beispiel falsche Formatkennung, keine lückenlose Nummerierung, ein Eintrag ohne zugehörige Sitzung). Auch: Ein `offset_ms` ist keine ganze Zahl ab 0, oder ein Wert ist kleiner als der vorige derselben Sitzung; die Meldung nennt die Sitzung und die Anfrage, nie den Wert (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Zeichnen Sie erneut auf. |
+| `PGR-E3002` | unbekannte Version der Aufzeichnung | Die Datei trägt eine andere Version als 1 und 2, sie stammt aus einer anderen Programmversion; das gilt für beide Formate. Zeichnen Sie mit der verwendeten Version erneut auf. |
+| `PGR-E3003` | Aufzeichnung beschädigt | Die Datei ist unvollständig oder verändert. Bei einer SQLite-Datei auch: Sie ist keine SQLite-Datei oder eine fremde, eine Tabelle oder Spalte fehlt, sie ist abgeschnitten, oder ihr Inhalt ist ungültig (zum Beispiel falsche Formatkennung, keine lückenlose Nummerierung, ein Eintrag ohne zugehörige Sitzung). Auch: Eine Datei der Version 1 enthält `connection_closed`, das Ende der Verbindung durch die Datenbank (siehe [Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank)). Auch: Ein `offset_ms` ist keine ganze Zahl ab 0, oder ein Wert ist kleiner als der vorige derselben Sitzung; die Meldung nennt die Sitzung und die Anfrage, nie den Wert (siehe [Zeitangaben aufzeichnen und einspielen](#zeitangaben-aufzeichnen-und-einspielen)). Zeichnen Sie erneut auf. |
 | `PGR-E3004` | Aufzeichnung ohne verwendbare Sitzung | `replay` meldet den Fehler beim Start. Beim Aufzeichnen hat keine Verbindung eine Anfrage gestellt, auch wenn `--record-empty-sessions` Sitzungen ohne Interaktionen aufgezeichnet hat, oder die Verbindungen haben nur Lebendprüfungen gesendet (Anfragen nur aus Leerraum und Kommentaren, siehe [Mit einem Datenbanktreiber arbeiten](#mit-einem-datenbanktreiber-arbeiten)). Zeichnen Sie einen Ablauf mit mindestens einer anderen Anfrage auf. |
 | `PGR-E4000` | Verbindung nicht anzunehmen | Das Werkzeug konnte eine eingehende Verbindung nicht annehmen, zum Beispiel weil zu viele Dateien offen sind. Es nimmt danach weiter Verbindungen an. Prüfen Sie die Grenzen des Systems. |
-| `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab, oder beim Aufzeichnen hat die Datenbank sie in der Anmeldung beendet. Prüfen Sie Netzwerk, Datenbank und Anwendung. |
+| `PGR-E4003` | Verbindung unerwartet beendet | Die Verbindung brach mitten in einer Anfrage ab, oder beim Aufzeichnen hat die Datenbank sie in der Anmeldung beendet. Beim Einspielen auch: Die Datenbank hat die Verbindung mit einer Fehlerantwort `FATAL` oder `PANIC` beendet, und die Aufzeichnung trägt dort kein Ende der Verbindung durch die Datenbank oder `--allow-recorded-errors` fehlt (siehe [Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank)). Prüfen Sie Netzwerk, Datenbank und Anwendung. |
 | `PGR-E4001` | Adresse nicht nutzbar | Der Port aus `--listen` ist belegt oder nicht erlaubt. Wählen Sie einen freien Port. |
 | `PGR-E4002` | Datenbank nicht erreichbar | Prüfen Sie `--upstream`, die Datenbank und das Netzwerk. Beim Aufzeichnen auch: Die Datenbank hat in der Anmeldung eine lesbare Nachricht außerhalb der Reihenfolge gesendet; die Meldung nennt deren Code. Bei `play` mit TLS gehört dazu: Die Antwort auf die Anfrage nach Verschlüsselung ist weder `S` noch `N`, oder die Verbindung endet davor. |
 | `PGR-E4004` | Datenbank beantwortet eine eingespielte Anfrage mit einem Fehler | Die Meldung nennt die Sitzung und die Nummer der Anfrage in der Aufzeichnung, dazu SQLSTATE und Meldung der Datenbank, nicht den Text der Anfrage. Prüfen Sie Benutzer, Rechte und den Zustand der Datenbank, oder starten Sie mit `--continue-on-error`. Mit `--compare-responses` ist ein Fehler, den die Aufzeichnung an dieser Stelle nicht trägt, `PGR-E5004`. |
@@ -1742,8 +1954,8 @@ für den Exit-Code, außer bei `play` mit `--compare-responses` (siehe Exit-Code
 | `PGR-E5001` | Abweichung bei der Wiedergabe | Ihre Anwendung hat eine andere Anfrage gestellt als aufgezeichnet, oder mit `--session-assignment connection` eine Anfrage auf einer Verbindung, deren Sitzung keine Interaktionen hat. Die Meldung nennt die erwartete und die empfangene Anfrage; erwartet die Aufzeichnung keine, nennt sie das und die empfangene. Zeichnen Sie erneut auf, oder korrigieren Sie die Anwendung. |
 | `PGR-E5002` | aufgezeichnete Anfragen oder Sitzungen nicht verbraucht | Ihr Test hat weniger Anfragen gestellt oder weniger Verbindungen geöffnet als aufgezeichnet, und `--fail-on-unconsumed` ist gesetzt. Eine Sitzung ohne Interaktionen zählt nicht dazu. |
 | `PGR-E5003` | Anfrage ohne aufgezeichnete Sitzung | Ihre Anwendung hat auf mehr Verbindungen Anfragen gestellt, als Sitzungen mit Interaktionen aufgezeichnet sind; mit `--session-assignment connection` hat sie auf einer Verbindung eine Anfrage gestellt, zu der es keine Sitzung mit der Nummer der Verbindung gibt. Zeichnen Sie den Ablauf erneut auf, oder öffnen Sie weniger Verbindungen. |
-| `PGR-E5004` | Antwort der Datenbank weicht von der Aufzeichnung ab | `play` mit `--compare-responses` hat bei einer Interaktion eine andere Antwort erhalten als aufgezeichnet. Die Meldung nennt Sitzung, Nummer der Interaktion, Position und Art der ersten Abweichung, bei der Art `Fehler` die SQLSTATE beider Seiten. Prüfen Sie, ob die Datenbank dieselbe Struktur hat wie die, gegen die Sie aufgezeichnet haben, oder zeichnen Sie erneut auf; siehe [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen). Der Exit-Code ist 5. |
-| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt: einen Parameter, dessen Name mit `_pq_.` beginnt, in der Startnachricht (eine Protokollerweiterung; auch mit `--tls-cert`, wenn die Anwendung ohne Verschlüsselung beginnt, dann statt `PGR-E6003`), eine Startnachricht mit nicht lesbarem Rumpf (zum Beispiel ohne abschließendes Nullbyte), eine Nachricht `p` (Passwort) oder COPY-Daten (`CopyData`) nach dem Aufbau, oder auf einer verschlüsselten Verbindung eine weitere Anfrage nach Verschlüsselung. Beim Aufzeichnen außerdem: Das Werkzeug trifft in der Anmeldung auf die Anforderung eines Verfahrens, das es nicht vermittelt (nicht Klartext-Passwort, MD5 oder SCRAM-SHA-256); die Datenbank antwortet auf eine Anfrage mit einem COPY-Datenstrom (`COPY … TO STDOUT`, `COPY … FROM STDIN`); oder die Datenbank sendet einer Verbindung bis zum Ende ihrer letzten Anfrage eine Benachrichtigung (`NotificationResponse`, durch `LISTEN` und `NOTIFY`). Bei `play` ist es ein COPY-Datenstrom der Datenbank. Stellen Sie den Treiber so ein, dass er keine Protokollerweiterung (`_pq_.`) sendet; verwenden Sie `COPY` mit Datenstrom nicht im aufgezeichneten Ablauf, und zeichnen Sie keinen Ablauf auf, in dem eine Verbindung eine Benachrichtigung erhält (`LISTEN` und `NOTIFY` für sich sind kein Fehler); verlangt die Datenbank beim Aufzeichnen ein nicht vermitteltes Verfahren, lassen Sie für den Benutzer eines der drei vermittelten Verfahren zu. Die Meldung zu einem Verfahren nennt dessen Code. |
+| `PGR-E5004` | Antwort der Datenbank weicht von der Aufzeichnung ab | `play` mit `--compare-responses` hat bei einer Interaktion eine andere Antwort erhalten als aufgezeichnet. Die Meldung nennt Sitzung, Nummer der Interaktion, Position und Art der ersten Abweichung, bei der Art `Fehler` die SQLSTATE beider Seiten. Auch ein Ende der Verbindung durch die Datenbank kann abweichen: mit einem anderen SQLSTATE als das aufgezeichnete, oder die Aufzeichnung zeigt eines und die Datenbank nicht (siehe [Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank)). Prüfen Sie, ob die Datenbank dieselbe Struktur hat wie die, gegen die Sie aufgezeichnet haben, oder zeichnen Sie erneut auf; siehe [Antworten beim Einspielen vergleichen](#antworten-beim-einspielen-vergleichen). Der Exit-Code ist 5. |
+| `PGR-E6001` | nicht unterstützte Nachricht oder Funktion | Die Anwendung nutzt eine Funktion, die das Werkzeug nicht unterstützt: einen Parameter, dessen Name mit `_pq_.` beginnt, in der Startnachricht (eine Protokollerweiterung; auch mit `--tls-cert`, wenn die Anwendung ohne Verschlüsselung beginnt, dann statt `PGR-E6003`), eine Startnachricht mit nicht lesbarem Rumpf (zum Beispiel ohne abschließendes Nullbyte), eine Nachricht `p` (Passwort) oder COPY-Daten (`CopyData`) nach dem Aufbau, oder auf einer verschlüsselten Verbindung eine weitere Anfrage nach Verschlüsselung. Beim Aufzeichnen außerdem: Das Werkzeug trifft in der Anmeldung auf die Anforderung eines Verfahrens, das es nicht vermittelt (nicht Klartext-Passwort, MD5 oder SCRAM-SHA-256); die Datenbank antwortet auf eine Anfrage mit einem COPY-Datenstrom (`COPY … TO STDOUT`, `COPY … FROM STDIN`); oder die Datenbank sendet einer Verbindung bis zum Ende ihrer letzten Anfrage eine Benachrichtigung (`NotificationResponse`, durch `LISTEN` und `NOTIFY`); oder die Datenbank beendet die Verbindung nach einer Fehlerantwort mit einem anderen Schweregrad als `FATAL` und `PANIC`, ohne `ReadyForQuery` (siehe [Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank)). Bei `play` ist es ein COPY-Datenstrom der Datenbank. Stellen Sie den Treiber so ein, dass er keine Protokollerweiterung (`_pq_.`) sendet; verwenden Sie `COPY` mit Datenstrom nicht im aufgezeichneten Ablauf, und zeichnen Sie keinen Ablauf auf, in dem eine Verbindung eine Benachrichtigung erhält (`LISTEN` und `NOTIFY` für sich sind kein Fehler); verlangt die Datenbank beim Aufzeichnen ein nicht vermitteltes Verfahren, lassen Sie für den Benutzer eines der drei vermittelten Verfahren zu. Die Meldung zu einem Verfahren nennt dessen Code. |
 | `PGR-E6002` | nicht unterstützte Protokollversion | Das Werkzeug unterstützt Version 3.0 des PostgreSQL-Protokolls; eine Startnachricht mit einer anderen Version, zum Beispiel 3.2, ist `PGR-E6002`, und das Werkzeug handelt keine Version aus. Verwenden Sie einen Treiber, der Version 3.0 nutzt; bei libpq 18 legt `max_protocol_version=3.0` ihn darauf fest. |
 | `PGR-E6003` | unverschlüsselte Verbindung nicht zugelassen | `record` oder `replay` läuft mit `--tls-cert`, und die Anwendung beginnt ohne Verschlüsselung. Das Werkzeug beendet die Verbindung und zeichnet sie nicht auf; der Exit-Code ist 6. Steht in der Startnachricht ein Parameter `_pq_.`, ist es `PGR-E6001`. Verbinden Sie die Anwendung mit TLS (`sslmode=require`), oder starten Sie das Werkzeug mit `--allow-plaintext` (siehe [Verschlüsselte Verbindungen der Anwendung annehmen](#verschlüsselte-verbindungen-der-anwendung-annehmen)). |
 
@@ -1823,6 +2035,8 @@ Werkzeugs.
 | Upstream | die echte Datenbank, an die `record` weiterleitet |
 | Meldungscode | Kennung einer Meldung des Werkzeugs, zum Beispiel `PGR-E5001` |
 | Interaktion | eine einfache Anfrage oder eine Folge des erweiterten Protokolls bis zu ihrem `Sync`, mit den Antworten der Datenbank; ihre Nummer in der Aufzeichnung steht in den Meldungen von `play` |
+| Ende der Verbindung durch die Datenbank | die Fehlerantwort der Datenbank mit dem Schweregrad `FATAL` oder `PANIC` und danach das Ende der Verbindung; in der Aufzeichnung die letzte Antwort `connection_closed` (siehe [Das Ende der Verbindung durch die Datenbank](#das-ende-der-verbindung-durch-die-datenbank)) |
+| `ReadyForQuery` | Antwort der Datenbank, die das Ende der Antworten auf eine Anfrage anzeigt |
 | Zeitangabe | das Feld `offset_ms` einer Anfrage in der Aufzeichnung: die Millisekunden seit der Startup-Nachricht der Verbindung bis zum Eintreffen der Anfrage, aufgezeichnet mit `--record-timing` |
 
 ## 10. Support und Kontakt

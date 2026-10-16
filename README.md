@@ -24,13 +24,18 @@ stehen; mit `--fail-on-unconsumed` endet `replay` mit einem Fehler, wenn
 aufgezeichnete Interaktionen nicht abgerufen wurden. `pgwire-recorder play` spielt
 die Anfragen einer Aufzeichnung, einfache wie vorbereitete Anweisungen, gegen eine
 Datenbank ein; ohne `--compare-responses` bricht es nach einer Fehlerantwort der
-Datenbank ab, mit `--continue-on-error` läuft es weiter, und mit
+Datenbank ab, die die Verbindung nicht beendet, mit `--continue-on-error` läuft es weiter, und mit
 `--finish-session-on-interrupt` endet es nach einem Abbruchsignal erst nach der laufenden
 Sitzung. Mit `--compare-responses` vergleicht `play` die Antworten der Datenbank mit der
 Aufzeichnung (Art und Reihenfolge der Antworten, Spalten, Befehl, SQLSTATE eines Fehlers,
 Transaktionsstatus; nicht Zeilenwerte und Hinweise) und meldet eine Abweichung als
 `PGR-E5004` mit Exit-Code 5. Ohne `--compare-responses` endet `play`, wenn die Datenbank
-mit einem COPY-Datenstrom antwortet, mit `PGR-E6001`. `record` und `replay` nehmen
+mit einem COPY-Datenstrom antwortet, mit `PGR-E6001`.
+Beendet die Datenbank eine Verbindung selbst (eine Fehlerantwort `FATAL` oder `PANIC`, danach
+das Ende der Verbindung), zeichnet `record` das als Ende der Sitzung auf; die Aufzeichnung hat dann
+`version: 2`. `replay` sendet die Antworten bis zur Fehlerantwort und schließt die Verbindung der
+Anwendung, und `play` erwartet das Ende mit `--allow-recorded-errors` oder, mit `--compare-responses`,
+bei gleichem SQLSTATE; sonst ist es ohne Vergleich `PGR-E4003`, mit Vergleich `PGR-E5004`. `record` und `replay` nehmen
 Verbindungen der Anwendung ohne TLS an; mit `--tls-cert` und `--tls-key` (PEM-Dateien) nehmen
 sie TLS an (mindestens TLS 1.2, ohne ein Zertifikat der Anwendung zu verlangen) und weisen eine
 Anwendung ohne TLS mit `PGR-E6003` ab, es sei denn, `--allow-plaintext` lässt beides zu;
@@ -51,8 +56,8 @@ einer Verbindung), gemessen ab der vorigen Anfrage (`relative`, Standard) oder a
 `offset_ms`, endet `play --keep-timing` mit `PGR-E2003`; ein ungültiges oder absteigendes
 `offset_ms` lehnen `replay` und `play` mit `PGR-E3003` ab.
 
-`record` zeichnet eine Verbindung, die eine Anfrage abgeschlossen hat, als eigene Sitzung auf,
-auch mehrere gleichzeitig; antwortet die Datenbank ihr mit einem COPY-Datenstrom, sendet sie ihr
+`record` zeichnet eine Verbindung, die eine Anfrage abgeschlossen hat (auch eine, die mit dem Ende
+der Verbindung durch die Datenbank endet), als eigene Sitzung auf, auch mehrere gleichzeitig; antwortet die Datenbank ihr mit einem COPY-Datenstrom, sendet sie ihr
 bis zum Ende ihrer letzten Anfrage eine Benachrichtigung (`LISTEN` mit `NOTIFY`) oder sendet die
 Anwendung nach dem Aufbau eine Nachricht `p` oder `CopyData`, zeichnet `record` sie nicht auf
 (`PGR-E6001`).
