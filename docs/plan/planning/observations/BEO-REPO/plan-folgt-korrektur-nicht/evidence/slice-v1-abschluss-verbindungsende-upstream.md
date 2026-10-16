@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-upstream
+**Fund (Verifikation V-1, LOW; Review F-4, LOW):** Plan §6 sagte zum Aufruf nach `connection_closed` weiter „der Use Case ruft nur `Close` (der Port-Kommentar sagt es)“, nachdem der Port-Kommentar mit `cf06cfdd` den Satz gestrichen hatte (`ClientMessage` ruft `Send` neben `Receive`); der Vermerk „kein Aufrufer“ stimmte für `Send` nicht. Dazu folgte die Zeile von `upstream.go` in §3 dem Code einen Commit später (F-4). Beides ein Vorgang, eine Datei. Behoben mit der Closure: §6 auf den Stand des Port-Kommentars gezogen.

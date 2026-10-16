@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-upstream
+**Fund (Risiko aus §6, Ausgang *weiter offen*):** Das Ende des Servers (`57P01` bei `pg_terminate_backend`, `57P05` bei `idle_session_timeout` ab PostgreSQL 14) ist in Abnahmeszenario 18 nur gegen die Referenz 17 geprüft; `make test-postgres-versionen` fährt das Szenario nicht (Akzeptiertes Negativ, Entscheidung des Nutzers vom 2026-10-12; der Satz steht in `SPEC-029` Punkt 2). Ein Zählerschritt.

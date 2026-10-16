@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-upstream
+**Fund (Review F-2, LOW; Verifikation V-2, INFO):** Der Port-Kommentar sagte, nach `connection_closed` rufe der Aufrufer nur noch `Close`; kein Test prüft den Aufrufer, und der Use Case ruft `Send` neben dem lesenden `Receive` auf. Behoben im Port-Kommentar mit `cf06cfdd` (er sagt zu, was getestet ist). Derselbe Satz steht in `spec/spezifikation.md`, `LH-FA-25.a` *Senden nach dem Ende*, ohne Test; der Planner ändert die Spezifikation nicht, Hinweis an den Architect.
