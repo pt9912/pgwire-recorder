@@ -250,7 +250,7 @@ func (c *cursor) merke(rs []model.Response) {
 
 // keineWeitere nennt in der Diagnose, was die Aufzeichnung am Ende der Session
 // erwartet: nach der letzten erwarteten Interaktion, aufgezeichnete
-// Lebendprüfungen nicht gezählt, keine weitere; eine Session ohne Interaktion
+// Lebendprüfungen ohne Ende nicht gezählt, keine weitere; eine Session ohne Interaktion
 // (mit `connection` zugeordnet) erwartet keine (LH-FA-12.a).
 func (c *cursor) keineWeitere() string {
 	if n := len(c.session.Interactions); n > 0 {

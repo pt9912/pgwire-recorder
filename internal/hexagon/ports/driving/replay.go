@@ -31,8 +31,7 @@ type Replayer interface {
 	// des Extended Query Protocol mit der erwarteten am Cursor. Schließt sie
 	// ihre Gruppe ab (Flush oder Sync), liefert es die aufgezeichneten
 	// Server-Nachrichten der Gruppe, vorher keine; eine abweichende Nachricht
-	// ist PGR-E5001 (LH-FA-18.a). Hat die Gruppe ein Ende, ist connection_closed
-	// die letzte Server-Nachricht (LH-FA-25.a).
+	// ist PGR-E5001 (LH-FA-18.a).
 	ClientMessage(ctx context.Context, id model.SessionID, m model.ClientMessage) ([]model.Response, error)
 	// Shutdown fragt, ob die Verbindung beim Herunterfahren enden darf: true,
 	// wenn keine Extended-Interaktion läuft, deren Sync noch aussteht

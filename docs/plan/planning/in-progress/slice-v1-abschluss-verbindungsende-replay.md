@@ -152,7 +152,51 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+Closure-Notiz und Lerneintrag folgen bei der Closure (Planner). Die Belege des Implementers:
+
+### Belege des Implementers
+
+**Wege der Mutanten.** Service und Adapter: Kopie von `go.mod`, `go.sum`, `internal/` außerhalb des Repos, je Mutant ein Textersatz in der Kopie, Testbinary im Image `deps` (`docker build --target deps`) mit `--network=none`, Bind-Mount der Kopie und eines Go-Caches, kein Build-Kontext (kein mtime-Problem), Lauf von `go test -count=1 -run 'Ende|Connection|Lebend|ReplaySent|ReplayModus|FirstRequest'` über `internal/hexagon/services` und `internal/adapters/driving/pgwire`; ohne Mutant beide Pakete `ok`. E2E: Mutant im Arbeitsbaum, `touch` auf die Datei, `make test-integration`, danach `git checkout -- internal`; ohne Mutant grün (Stand 9826736). Mutanten liegen nicht im Repo.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Lebendprüfung mit Ende bleibt Interaktion (`ohneLebendpruefungen` die eine Stelle) | `&& !endetEinfach(in)` entfernt | `TestReplayEndeLebendpruefungMitEndeBleibtInteraktion`, `…FirstRequestLebendpruefungVorZuordnung`, `TestReplayConnectionEndeBleibtZugeordnet`; E2E `TestE2EReplayEndeLebendpruefung` |
+| eingehende Lebendprüfung mit gleichem Text ist die Anfrage | `&& !s.anfrageMitEnde(c, sql)` entfernt | dieselben drei Unit-Tests |
+| … nur bei gleichem Text, anderer Text außer der Reihe | Textvergleich in `anfrageMitEnde` entfernt | `TestReplayEndeLebendpruefungAndererTextAusserDerReihe`, `…FirstRequestLebendpruefungVorZuordnung` |
+| first-request: vor der Zuordnung gilt die erste Interaktion der nächsten freien Session | Zweig auf `false` | `…AndererTextAusserDerReihe`, `…FirstRequestLebendpruefungVorZuordnung` |
+| … die erste, nicht eine spätere Session | Suche über alle freien Sessions | `…MitEndeBleibtInteraktion`, `…FirstRequestLebendpruefungVorZuordnung` |
+| … nur die Interaktion am Cursor (zugeordnete Session) | letzte Interaktion der Session statt Cursor | `…MitEndeBleibtInteraktion` (Lebendprüfung mitten in der Session außer der Reihe) |
+| connection: Session mit der Annahme, Cursor auf ihr | zugeordnete Session ignoriert | `…MitEndeBleibtInteraktion`, `TestReplayConnectionEndeBleibtZugeordnet` |
+| Schließen nach Ende ändert die Zuordnung nicht | `s.next--` beim Schließen nach Ende | `TestReplayConnectionEndeBleibtZugeordnet` |
+| Session mit Ende zählt für Unassigned | Sessions mit Ende aus `Unassigned` | `TestReplayEndeMehrereSessionsMitEnde`, `…FirstRequestLebendpruefungVorZuordnung`, `TestReplayConnectionEndeBleibtZugeordnet` |
+| nächste Verbindung erhält die nächste Session; Session mit Ende wird nicht wieder frei | Session nach Ende wieder vorn in `frei` | `TestReplayEndeMehrereSessionsMitEnde` |
+| Reihenfolge: PGR-E5001 vor dem Ende | Textvergleich für Interaktion mit Ende übersprungen | `TestReplayEndeAblehnungVorDemEnde` |
+| Reihenfolge: PGR-E5003 vor PGR-E5001 und vor dem Ende | ohne freie Session die letzte zuordnen | `TestReplayEndeAblehnungVorDemEnde`, `TestReplayLebendpruefungAusserDerReihe` |
+| Antworten unverändert, letzte `connection_closed`, FATAL | bei FATAL ohne `connection_closed` | `TestReplayEndeAntwortenMitConnectionClosed` (Lauf FATAL), E2E `…EndeFatal`, `…EndeLebendpruefung` (Zeitüberschreitung) |
+| … PANIC | bei PANIC ohne `connection_closed` | `TestReplayEndeAntwortenMitConnectionClosed` (Lauf PANIC), `…MehrereSessionsMitEnde` |
+| ohne `ready_for_query` nach dem Ende (Service) | `ready_for_query` angehängt | `TestReplayEndeAntwortenMitConnectionClosed` u. a. |
+| ohne `ready_for_query` nach dem Ende (Adapter) | Adapter sendet `ReadyForQuery` | `TestReplayEndeSendetDavorUndSchliesst`; E2E alle drei Fälle mit Ende |
+| Interaktion verbraucht mit dem Senden, Cursor rückt vor | Cursor rückt bei Ende nicht vor | `TestReplayEndeVerbrauchtMitSent` |
+| … nicht vor `Sent` | Ende gilt ohne `Sent` als gesendet | `TestReplayEndeVerbrauchtMitSent` (Teil Schreibfehler) |
+| … nach `Sent` verbraucht | Ende nach `Sent` nie verbraucht | `TestReplayEndeVerbrauchtMitSent` |
+| `Terminate` vor der Ende-Interaktion: unverbraucht (W2001/E5002) | Ende-Interaktion beim Schließen nicht gezählt | `TestReplayEndeTerminateDavorLaesstUnverbraucht`; E2E `TestE2EReplayEndeTerminateDavor` |
+| Adapter lässt `connection_closed` als letzte aus | Auslassung entfernt | `TestReplayEndeSendetDavorUndSchliesst`, `…SentVorSchliessen`; E2E `…EndeFatal`, `…EndePanic`, `…EndeLebendpruefung` |
+| … nur `connection_closed` | letzte Antwort gleich welchen Typs ausgelassen | `TestReplayEndeSendetDavorUndSchliesst` (u. a., über Zeitüberschreitung) |
+| … nur als letzte | überall ausgelassen | `TestReplayEndeNurAlsLetzteAntwort` |
+| Adapter schließt nach dem Ende | Rückgabe `folgeWeiter` | `TestReplayEndeSendetDavorUndSchliesst`, `…SentVorSchliessen` (Zeitüberschreitung), E2E (Zeitüberschreitung) |
+| Adapter liest nichts mehr | wie vorige | `TestReplayEndeLiestNichtsMehr` (Use Case 2-mal gefragt) |
+| `Sent` vor dem Schließen | Schließen vor `Sent` | `TestReplayEndeSentVorSchliessen` |
+| Schreibfehler: nicht als gesendet gemeldet | `Sent` vor dem Senden | `TestReplayEndeSchreibfehlerBleibtUnverbraucht`, `TestReplaySent` |
+| ohne Meldung und ohne Fehler am Ende | Adapter merkt PGR-E4003 | `TestReplayEndeSendetDavorUndSchliesst` |
+| Schließen auch im Pfad der Extended-Nachricht (Fake, nicht zugesagt als Wiedergabe der Extended-Interaktion) | Pfad sendet ohne Schließen | `TestReplayEndeSendetDavorUndSchliesst` (Lauf `sync`) |
+
+Rot „über Zeitüberschreitung“ heißt: der Test liest bis zum Ende der Verbindung und scheitert nach 5 s (Pipe) bzw. 10 s (E2E), weil sie offen bleibt. E2E-Läufe: Mutanten Lebendprüfung übersprungen (`…EndeLebendpruefung`), Terminate-Fall (`…EndeTerminateDavor`, zusätzlich vier Bestandstests), Adapter ohne Auslassung und ohne Schließen und mit `ReadyForQuery` (`…EndeFatal`, `…EndePanic`, `…EndeLebendpruefung`), FATAL ohne Ende (`…EndeFatal`, `…EndeLebendpruefung`; `…EndePanic` bleibt grün, wie es sein muss). Der Mutant „Schließen nur im Query-Pfad“ färbt nur den Sync-Lauf des Adapter-Tests.
+
+**Grüne Mutanten.** Keiner im Endlauf. Zwei frühe Läufe waren grün und wurden behoben: „letzte Interaktion statt Cursor“ (Test hatte die Lebendprüfung nicht mitten in der Session; Fall ergänzt) und „Zuordnung bei connection löschen“ (äquivalent: `alle` wird nur beim Annehmen gelesen; ersetzt durch den Mutanten `s.next--`).
+
+**Messung (§3.14).** `git diff --numstat 13c23a4559fb0df9e5718bf078c32053cdf10a5b..<HEAD> -- internal test docs/user` bei 9826736: 881 Einfügungen, 17 Löschungen, Summe 898 (Marke 1000, Meldeschwelle 800 überschritten und gemeldet; der Planner entschied: weiter, kein Schnitt). Aufschlüsselung: Produktcode 65 (`replay.go` 48, `server.go` 19, Port-Kommentar 9, abzüglich Überschneidung; Zeilen laut numstat 38+10, 18+1, 7+2), Unit-Tests 530 (`replay_ende_test.go` 336, `server_ende_test.go` 194, `server_test.go` 3), E2E 199 mit Testdaten 49, Abdeckungstabellen 39. Faktor Tests zu Produktcode rund 9,6 (Tests ohne Tabellen und Testdaten 732 gegen Produktcode 76); Schätzung des Architect 500 bis 850, Mitte 680, Messung darüber: Datenpunkt zu `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`. Die Zahl nach der Nacharbeit dieses Laufs steht im Bericht.
+
+**Beobachtungen.** (1) Das Schließen nach dem Ende hängt am Schreiben der Antworten vor ihm; der Adapter-Test über `net.Pipe` sieht das Ende des Stroms als `io.EOF` oder `io.ErrUnexpectedEOF`, beide nimmt der Test an. (2) `send` lässt `connection_closed` auch im Record-Pfad aus, wenn es dort je letzte Antwort wäre; der Record-Pfad liefert sie bis `slice-v1-abschluss-verbindungsende-record` nicht (Adresse `-record`, dessen §1 die Abbildung als gegeben nennt). (3) Ein Client, der nach einer Lebendprüfung mit Ende weiter sendet, ist wie jede Nachricht nach der Anfrage mit Ende akzeptiertes Negativ (§6); kein Test, keine Zusage im Code. (4) Die Zeilen der Schätzung lagen wieder unter der Messung (siehe oben). (5) `replayVerbindung` nimmt den Port statt des Fakes (3 Zeilen, nötig für `endeReplayer`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
