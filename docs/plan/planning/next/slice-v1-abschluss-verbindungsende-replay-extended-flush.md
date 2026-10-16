@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-25.a` · `LH-FA-03.a` · `LH-FA-03.b` · `LH-FA-18.a` · `ARC-002` · `ARC-006`
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-16.
 
@@ -164,3 +164,4 @@ Nachgezählt beim Eintragen der Sendung V-5 (Planner, 2026-10-16, `AGENTS.md` §
 
 Vermerk bei der Closure des Gebers (Planner, 2026-10-16, `AGENTS.md` §3.13, §3.14; Schätzung und Plan bleiben unverändert): `slice-v1-abschluss-verbindungsende-replay-extended` maß 532 in der Metrik von §4 (Schätzung des Architect 360 bis 545, Produktcode 0, Service-Tests 322 für neun Tests, Adapter-Tests 87, E2E 61 und Fixture 36, Tabellen 26; Nacharbeit nach dem Review +30). Das Maß je E2E-Fall war 27 Zeilen Fall und 36 Fixture, rund 66 mit der Tabellenzeile; die Hilfen des Gebers (33) nutzt dieser Slice wieder. Gerechnet für diesen Slice, der den Pfad nur spiegelt: Service-Tests als weitere Zeilen derselben Tabellen und Fälle 60 bis 130, Adapter-Test Lauf `flush` 30 bis 60, E2E ein Fall 63 bis 70, Tabellen 6 bis 12, Nacharbeit nach dem Review bis 10 vom Hundert: **rund 160 bis 300, Mitte 230, 46 % der Marke 500**, oberes Ende 60 %; das liegt in der Spanne 170 bis 325 oben und in deren unterer Hälfte. Marke 500 und Meldeschwelle 400 bleiben.
 
+Nachgezählt beim Anspruch (Planner, 2026-10-16, `AGENTS.md` §3.13, §3.14; Quelle: Messung 532 und Maß des Gebers in dessen §7): Der Geber schrieb neun Service-Tests mit 322 Zeilen (rund 36 je Test), nicht als Tabellenzeilen. Die `Flush`-Gruppe braucht einen eigenen Aufbau der Interaktion (Gegenstück zu `extendedEnde`) und spiegelt die Fälle der Ergänzungen (Hauptfall, `Sync` statt `Flush`, einfache Anfrage und Lebendprüfung mitten in der Gruppe, `Terminate` und Abbruch, einzige Gruppe, Verbrauch); wo der Geber Tabellen führt (`TestReplayEndeExtendedAbweichung`), sind es Zeilen, sonst eigene Tests. Service-Tests deshalb 60 bis 150 statt 60 bis 130, Adapter-Test Lauf `flush` 30 bis 60, E2E ein Fall mit Fixture 63 bis 70, Tabellen 6 bis 12, Nacharbeit bis 10 vom Hundert: **rund 160 bis 330, Mitte 245, 49 % der Marke 500**, oberes Ende 66 %, unter 70 %: nicht geschnitten. Marke 500 und Meldeschwelle 400 bleiben. Liefer-Punkte 2, Schichten zwei (drei konservativ mit `docs/user/`, Nutzerentscheidung steht aus). §1 (Ausschlüsse) und §6 unverändert; der Punkt „Wortlaut von `LH-FA-18.a`“ bleibt beim Architect.
