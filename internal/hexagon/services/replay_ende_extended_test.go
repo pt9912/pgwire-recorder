@@ -154,8 +154,8 @@ func TestReplayEndeExtendedVerbrauch(t *testing.T) {
 // der erwarteten nicht gleicht, ist PGR-E5001 und liefert kein Ende, an jeder
 // Stelle: die erste Nachricht der Interaktion, die erste und die mittlere der
 // Gruppe mit Ende, Flush statt Sync als abschließende, Sync statt Flush in der
-// Gruppe davor, eine einfache Anfrage und eine Lebendprüfung vor und mitten in
-// den Gruppen. Der Cursor bleibt stehen: die richtigen Nachrichten danach
+// Gruppe davor, eine einfache Anfrage vor und mitten in den Gruppen und eine
+// Lebendprüfung mitten in einer Gruppe (auch nach der Gruppe davor). Der Cursor bleibt stehen: die richtigen Nachrichten danach
 // liefern das Ende noch (LH-FA-25.a *Reihenfolge der Gründe im Replay*,
 // LH-FA-18.a).
 func TestReplayEndeExtendedAbweichung(t *testing.T) {
