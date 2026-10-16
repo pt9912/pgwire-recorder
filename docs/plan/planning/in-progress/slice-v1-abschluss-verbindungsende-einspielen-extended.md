@@ -81,7 +81,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/hexagon/services/play.go` | update (Umfang vom Architect 2026-10-16 festgelegt) | zwei Stellen: (1) `l.ende` in `interaktion` gilt für beide Arten, eine Funktion `traegtEnde(in)` (einfache Anfrage: `endetEinfach`; Extended-Interaktion: letzte Server-Nachricht der letzten Gruppe ist `connection_closed`) ersetzt `endetEinfach(in)` an dieser Stelle; (2) `extended` kehrt nach der Schleife ohne `bisBereit` zurück, wenn die letzte Gruppe mit `Flush` endet (g), die Prüfung ist der Helfer `endetMitFlush`, den auch die Schleife benutzt; `fehlerantwort`, `session` und `errSessionEnde` bleiben; Produktcode 25 bis 45 mit Kommentaren |
 | `internal/adapters/driven/postgres/einspielen.go`, Port `einspielziel.go` | keine Änderung | Port und Schließen liefert `slice-v1-abschluss-verbindungsende-einspielen`; (g) braucht weder Port noch Adapter (Begründung in §6 *Letzte Gruppe mit `Flush`*); ein Befund der Tests an dieser Stelle ist die zweite Rückführung in §4 |
-| `internal/hexagon/services` (Tests: `play_ende_extended_test.go`, `play_extended_test.go`) | neu, update | Randformen aus §6; Fälle der Gruppen im Service als Tabellen von `endeFall` mit einem Läufer (`pruefeEndeExtended`) in `play_ende_extended_test.go` (`TestPlayEndeExtendedErwartet`, `…NichtErwartet`, `…NachError`, `…LetzteFlush`), `TestPlayExtendedFatal` wird umgekehrt (`play_extended_test.go`); die Hilfen des Gebers (`endeAufgezeichnet`, `fatalFaelle`, `spielerFolge`, `spieleZaehler`) werden benutzt. Kein Test im Adapter: Was dort zu belegen ist (kein `Terminate`, Warteschlange), hat der Geber geliefert |
+| `internal/hexagon/services` (Tests: `play_ende_extended_test.go`, `play_extended_test.go`) | neu, update | Randformen aus §6; Fälle der Gruppen im Service als Tabellen von `endeFall` mit einem Läufer (`pruefeEndeExtended`) in `play_ende_extended_test.go` (`TestPlayEndeExtendedErwartet`, `…NichtErwartet`, `…NachError`, `…LetzteFlush`), `TestPlayExtendedFatal` wird umgekehrt und `TestPlayExtendedSignal` führt das erste und das zweite Signal bei letzter Gruppe mit `Flush` (`play_extended_test.go`, Review F-2); die Hilfen des Gebers (`endeAufgezeichnet`, `fatalFaelle`, `spielerFolge`, `spieleZaehler`) werden benutzt. Kein Test im Adapter: Was dort zu belegen ist (kein `Terminate`, Warteschlange), hat der Geber geliefert |
 | `test/integration` (`play_ende_extended_e2e_test.go`, `testdata`, eine Datei je Fall) | neu | Binary gegen PostgreSQL mit handgeschriebenen Aufzeichnungen: Extended mit `Sync`, Extended mit `Flush`; Datei: `play_ende_extended_e2e_test.go`; Aufzeichnungen unter `testdata/` je Fall eine: `play-ende-extended-sync.yaml`, `play-ende-extended-flush.yaml` (Namen des Architect, 2026-10-16; die Fixtures des Gebers heißen `play-ende-erwartet.yaml` und werden nicht geteilt; `play-ende-grenze-*.yaml` und `play_ende_grenzen_e2e_test.go` gehören `-einspielen-grenzen`) |
 | `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests |
 
@@ -200,6 +200,35 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 **Kommentare** (`AGENTS.md` §3.7, §3.11): neu oder geändert sind die Kommentare von `interaktion`, `extended`, `endetMitFlush`, `traegtEnde` in `play.go` und die Köpfe der Tests; jeder Satz hat einen Test (Tabelle oben). Das alte Wort („außer bei einer einfachen Anfrage“, „Zwischenstand“, „ist hier nicht erwartet“) ist über `internal/` und `test/` gesucht: kein Treffer mehr. Handbuch und `README.md` unberührt (§1).
 
 **Beobachtungen.** (1) Der Lauf des Runners mit `PGR_TESTS_1` hat eine rote Phase ohne PostgreSQL, weil deren Daten die erste Phase der vollen Suite schreibt; der Mutanten-Lauf liest deshalb die Zeilen der Phase 1 (Weg oben). (2) Mutant 4 färbt `NachError` mit, weil er `l.ende` im Lauf-Zustand löscht; ein Mutant, der den Zustand wiederherstellt, wäre feiner und färbt dort nichts; die Zusage (d) ist mit den acht Fällen „frühere Gruppe“ belegt. (3) Mutationen an der Schwere (18 bis 20) färben alle Fälle ihrer Klasse, weil `fehlerantwort` dieselbe Funktion für beide Arten ist; sie gehören zu den Mutanten des Gebers und sind hier nur für die Extended-Fälle wiederholt.
+
+### Nacharbeit nach dem Review (Report vom 2026-10-16, `bcab0c6`; Prüfung des Architect `51145c0`)
+
+**Ausgang je Finding** (0 HIGH, 1 MEDIUM, 2 LOW, 6 INFO):
+
+| Finding | Ausgang |
+|---|---|
+| F-1 MEDIUM, Bindung (g) im Nehmer `slice-v1-abschluss-verbindungsende-vergleich` nur in §6 und §8 | behoben vom Architect in `51145c0` (Nehmer nachgezogen); kein Code dieses Slice |
+| F-2 LOW, Satz *Abbruchsignal* ohne Test | behoben in `bf4fa5b`: `TestPlayExtendedSignal` ist eine Tabelle mit drei Fällen: erstes Signal bei letzter Gruppe mit `Sync` (der Bestand), erstes Signal bei letzter Gruppe mit `Flush`, zweites Signal bei letzter Gruppe mit `Flush`; die Randform steht in §6 (Architect) |
+| F-3 LOW, Kommentar von `extended` | behoben in `bf4fa5b`: „liest dann, wenn die letzte Gruppe mit Sync endet, bis zum ReadyForQuery“, bei `Flush` endet die Interaktion mit den Antworten der Gruppe oder ihrer Fehlerantwort, und nach einem früheren ERROR, das nicht abbricht, sendet `play` die Gruppe und liest nichts mehr; der Kommentar von `interaktion` nimmt diesen Fall aus („liest sie weiter bis zum ReadyForQuery, außer …“). Das alte Wort („liest dann bis zum ReadyForQuery“, „ohne Frist“) ist über `internal/` und `test/` gesucht: übrig sind die Kommentare von Tests, deren letzte Gruppe `Sync` ist (`play_vergleich_test.go`, `play_extended_test.go`), und der Satz zum Vergleich in `interaktion`; sie bleiben unverändert, weil sie nur diesen Fall nennen |
+| F-4 INFO, Mutant 4 färbt `NachError` als Artefakt | akzeptiert, Einordnung in „Beobachtungen“ (2) oben bestätigt |
+| F-5 INFO, grüne Mutanten 15 und 6 am Binary | akzeptiertes Negativ laut Architect, Einordnung oben bestätigt |
+| F-6 INFO, grüne Mutanten A (`n > 0`) und B (irgendeine statt der letzten Nachricht) in `traegtEnde` | akzeptiertes Negativ laut Architect: beide sind für geladene Aufzeichnungen äquivalent, das Format (`Group.validate`, `pruefeEnde`) garantiert Form und Stelle |
+| F-7 INFO, Frage zu `DataRow` und `CommandComplete` vor der `FATAL` | Grenze in `LH-FA-20.a` und Randform in §6, vom Architect in `51145c0` |
+| F-8 INFO, Hängen bei kleinerer Antwortzahl | Grenze in `LH-FA-20.a`, §6 und Risiko, vom Architect in `51145c0` |
+| F-9 INFO, Wortlaut in *Gruppen* | berichtigt vom Architect in `51145c0` |
+
+**Mutationen zu F-2** (Wege wie oben, Kopie im Image `deps`, `--network=none`, nach dem Commit `bf4fa5b`):
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Das erste Signal lässt die letzte Gruppe mit `Flush` bis zur Antwort auf jede Client-Nachricht laufen und wartet nicht auf `ReadyForQuery` | Warten auf `ReadyForQuery` nach der letzten Gruppe (die Rückkehr vor `bisBereit` entfällt, Mutant 15 oben) | `TestPlayExtendedSignal/erstes Signal, letzte Gruppe mit Flush` (ein `naechste` mehr im Ablauf); der Fall mit `Sync` bleibt grün; außerdem die fünf Fälle von `TestPlayEndeExtendedLetzteFlush` |
+| Das zweite Signal unterbricht die Interaktion, die in der letzten Gruppe mit `Flush` auf eine Antwort wartet, sofort und ohne Fehler | der Rückruf des zweiten Signals schließt die Verbindung nicht mehr (`us.Schliesse()` entfällt in `session`) | `TestPlayExtendedSignal/zweites Signal, letzte Gruppe mit Flush` (Play endet nicht binnen 30 s), dazu die Bestandstests des zweiten Signals |
+
+Der Mutant „Warten auf `ReadyForQuery` nach dem Signal“ trifft das zweite Signal nicht: Dort blockiert der Fake in der Antwort der Gruppe, nicht danach; die Zusage des zweiten Signals trägt der zweite Mutant.
+
+**Messung neu** (`git diff --numstat 08290f8..bf4fa5b -- internal test docs/user`): **536** (Einfügungen 499, Löschungen 37; Marke 1000: 54 %; Meldeschwelle 800 nicht erreicht). Produktcode 39 (`play.go` 32 + 7), Tests im Service 338 (236 + 74 + 28), E2E 141, Tabellen 18. Gegenüber 447 kommen 89 hinzu: Produktcode +5 (Kommentare), Tests +82 (Signal-Fälle), Tabellen +2.
+
+**Läufe der Nacharbeit:** am Ende dieser Sektion.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

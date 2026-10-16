@@ -1,0 +1,856 @@
+package pgwire_test
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"net"
+	"os"
+	"reflect"
+	"slices"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgproto3"
+
+	"github.com/pt9912/pgwire-recorder/internal/adapters/driving/pgwire"
+	"github.com/pt9912/pgwire-recorder/internal/hexagon/model"
+)
+
+// verbindeExtended startet den Handler im Record-Modus mit einem Recorder, der
+// Server-Nachrichten aus seinem Kanal liefert.
+func verbindeExtended(ctx context.Context, t *testing.T, rec *fakeRecorder) (net.Conn, *pgproto3.Frontend, *pgwire.Server) {
+	t.Helper()
+	if rec.server == nil {
+		rec.server = make(chan []model.Response, 4)
+	}
+	client, serverSeite := net.Pipe()
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	go pgwire.Handle(ctx, s, serverSeite)
+	t.Cleanup(func() { client.Close() })
+	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	return client, fe, s
+}
+
+// nebenher liefert eine Funktion, die Nachrichten an fe nebenher schreibt;
+// net.Pipe blockiert, bis der Server liest. Ihre Sperre hält den Schreibpuffer
+// von fe von Send bis zum Ende des nebenher laufenden Flush: Ein weiterer Aufruf
+// derselben Funktion wartet, bis der Server die vorigen gelesen hat.
+func nebenher(fe *pgproto3.Frontend) func(msgs ...pgproto3.FrontendMessage) {
+	var mu sync.Mutex
+	return func(msgs ...pgproto3.FrontendMessage) {
+		mu.Lock()
+		for _, m := range msgs {
+			fe.Send(m)
+		}
+		go func() {
+			defer mu.Unlock()
+			_ = fe.Flush()
+		}()
+	}
+}
+
+// warteAuf wartet, bis das Protokoll des Recorders want enthält.
+func warteAuf(t *testing.T, rec *fakeRecorder, want string) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for !strings.Contains(rec.protokoll(), want) {
+		if time.Now().After(deadline) {
+			t.Fatalf("Protokoll %q enthält %q nicht", rec.protokoll(), want)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// empfange liest n Nachrichten und liefert ihre Go-Typen.
+func empfange(t *testing.T, fe *pgproto3.Frontend, n int) []string {
+	t.Helper()
+	var typen []string
+	for i := 0; i < n; i++ {
+		msg, err := fe.Receive()
+		if err != nil {
+			t.Fatalf("Nachricht %d: %v", i+1, err)
+		}
+		typen = append(typen, strings.TrimPrefix(reflect.TypeOf(msg).String(), "*pgproto3."))
+	}
+	return typen
+}
+
+func endeName(e model.SessionEnd) string { return fmt.Sprintf("ende:%d", e) }
+
+// Abdeckung: LH-FA-18/Happy — Record-Hälfte: die Client-Nachrichten gehen in
+// Ankunftsreihenfolge an den Use Case, jede mit genau den Feldern ihres Typs,
+// auch die ohne Warten nach dem Sync gesendeten; die Server-Nachrichten gehen
+// in Reihenfolge an den Client und werden danach als zugestellt gemeldet.
+func TestExtendedSyncGruppe(t *testing.T) {
+	rec := &fakeRecorder{}
+	_, fe, s := verbindeExtended(context.Background(), t, rec)
+	sende := nebenher(fe)
+	sende(
+		&pgproto3.Parse{Name: "s1", Query: "SELECT $1, $2, $3", ParameterOIDs: []uint32{23, 25, 25}},
+		&pgproto3.Bind{DestinationPortal: "p", PreparedStatement: "s1", ParameterFormatCodes: []int16{0}, Parameters: [][]byte{[]byte("1"), nil, {}}, ResultFormatCodes: []int16{1}},
+		&pgproto3.Describe{ObjectType: 'P', Name: "p"},
+		&pgproto3.Execute{Portal: "p", MaxRows: 5},
+		&pgproto3.Sync{},
+		&pgproto3.Close{ObjectType: 'S', Name: "s1"},
+		&pgproto3.Sync{},
+	)
+	warteAuf(t, rec, "c:parse c:bind c:describe c:execute c:sync c:close c:sync")
+	want := []model.ClientMessage{
+		{Type: model.ClientParse, Statement: "s1", SQL: "SELECT $1, $2, $3", ParamTypes: []uint32{23, 25, 25}},
+		{Type: model.ClientBind, Portal: "p", Statement: "s1", ParamFormats: []int16{0}, Params: []model.Value{{Bytes: []byte("1")}, {Null: true}, {Bytes: []byte{}}}, ResultFormats: []int16{1}},
+		{Type: model.ClientDescribe, Target: model.TargetPortal, Name: "p"},
+		{Type: model.ClientExecute, Portal: "p", MaxRows: 5},
+		{Type: model.ClientSync},
+		{Type: model.ClientClose, Target: model.TargetStatement, Name: "s1"},
+		{Type: model.ClientSync},
+	}
+	rec.mu.Lock()
+	gotClient := rec.client
+	rec.mu.Unlock()
+	if !reflect.DeepEqual(gotClient, want) {
+		t.Fatalf("Client-Nachrichten:\n%#v\nerwartet\n%#v", gotClient, want)
+	}
+
+	rec.server <- []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}}
+	rec.server <- []model.Response{
+		{Type: model.ResponseRowDescription, Columns: []model.Column{{Name: "a", TypeOID: 23, TypeSize: 4, TypeModifier: -1, Format: 1}}},
+		{Type: model.ResponseDataRow, Values: []model.Value{{Bytes: []byte{0, 0, 0, 1}}}},
+		{Type: model.ResponsePortalSuspended},
+		{Type: model.ResponseReadyForQuery, TxStatus: "I"},
+	}
+	if got := strings.Join(empfange(t, fe, 6), " "); got != "ParseComplete BindComplete RowDescription DataRow PortalSuspended ReadyForQuery" {
+		t.Fatalf("an den Client: %s", got)
+	}
+	rec.server <- []model.Response{{Type: model.ResponseCloseComplete}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+	if got := strings.Join(empfange(t, fe, 2), " "); got != "CloseComplete ReadyForQuery" {
+		t.Fatalf("an den Client: %s", got)
+	}
+	warteAuf(t, rec, "zugestellt zugestellt zugestellt")
+	sende(&pgproto3.Terminate{})
+	if end := rec.lastEnd(t); end != model.EndTerminate || s.FirstErrorCode() != "" {
+		t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-18/Happy — Record-Hälfte: die beiden Richtungen blockieren
+// unabhängig: solange der Use Case beim Senden einer Gruppe wartet (der Server
+// liest nicht), gehen Server-Nachrichten an den Client, und weitere
+// Client-Nachrichten warten nicht auf das Lesen der Antworten.
+func TestExtendedZweiRichtungen(t *testing.T) {
+	halt := make(chan struct{})
+	rec := &fakeRecorder{halt: map[model.ClientMessageType]chan struct{}{model.ClientSync: halt}}
+	_, fe, _ := verbindeExtended(context.Background(), t, rec)
+	sende := nebenher(fe)
+	sende(&pgproto3.Parse{Query: "SELECT 1"}, &pgproto3.Bind{}, &pgproto3.Execute{}, &pgproto3.Sync{})
+	warteAuf(t, rec, "c:sync")
+	rec.server <- []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}}
+	if got := strings.Join(empfange(t, fe, 2), " "); got != "ParseComplete BindComplete" {
+		t.Fatalf("an den Client: %s", got)
+	}
+	warteAuf(t, rec, "zugestellt")
+	close(halt)
+	rec.server <- []model.Response{{Type: model.ResponseCommandComplete, Tag: "SELECT 1"}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+	empfange(t, fe, 2)
+}
+
+// Abdeckung: LH-FA-18/Happy — Record-Hälfte: nach einem Flush gehen die
+// Server-Nachrichten an den Client, ohne dass ein Sync folgt.
+func TestExtendedFlush(t *testing.T) {
+	rec := &fakeRecorder{}
+	_, fe, _ := verbindeExtended(context.Background(), t, rec)
+	sende := nebenher(fe)
+	sende(&pgproto3.Parse{Name: "s1", Query: "SELECT $1"}, &pgproto3.Describe{ObjectType: 'S', Name: "s1"}, &pgproto3.Flush{})
+	warteAuf(t, rec, "c:flush")
+	rec.server <- []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseParameterDescription, ParamTypes: []uint32{23}}, {Type: model.ResponseNoData}}
+	var oids []uint32
+	for i := 0; i < 3; i++ {
+		msg, err := fe.Receive()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if pd, ok := msg.(*pgproto3.ParameterDescription); ok {
+			oids = append(oids, pd.ParameterOIDs...)
+		}
+		if i == 2 {
+			if _, ok := msg.(*pgproto3.NoData); !ok {
+				t.Fatalf("dritte Nachricht %T", msg)
+			}
+		}
+	}
+	if !reflect.DeepEqual(oids, []uint32{23}) {
+		t.Fatalf("ParameterDescription: %v", oids)
+	}
+}
+
+// Abdeckung: LH-FA-13/Negative — der Adapter meldet, was an der Verbindung
+// geschah, und merkt den Fehler, den der Use Case daraus ableitet:
+// Verbindungsende EndClosed, Terminate EndTerminate, ein Schreibfehler zum
+// Client EndWriteFailed, ein Fehler aus AwaitServer geht als FATAL an den Client
+// und endet mit EndFailed; danach schließt der Adapter die Verbindung, auch wenn
+// die Client-Richtung gerade liest. Jede Session endet genau einmal.
+func TestExtendedEreignisse(t *testing.T) {
+	verloren := model.Errorf(model.CodeConnectionLost, nil, "vom Use Case")
+	cases := []struct {
+		name     string
+		ablauf   func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder)
+		wantEnd  model.SessionEnd
+		wantCode string
+	}{
+		{"Verbindungsende", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
+			sende := nebenher(fe)
+			sende(&pgproto3.Parse{Query: "SELECT 1"})
+			warteAuf(t, rec, "c:parse")
+			client.Close()
+		}, model.EndClosed, model.CodeConnectionLost},
+		{"Terminate", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
+			sende := nebenher(fe)
+			sende(&pgproto3.Parse{Query: "SELECT 1"}, &pgproto3.Flush{})
+			warteAuf(t, rec, "c:flush")
+			sende(&pgproto3.Terminate{})
+		}, model.EndTerminate, model.CodeConnectionLost},
+		{"Schreibfehler, während ClientMessage wartet", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
+			sende := nebenher(fe)
+			rec.mu.Lock()
+			rec.halt = map[model.ClientMessageType]chan struct{}{model.ClientSync: make(chan struct{})}
+			rec.mu.Unlock()
+			sende(&pgproto3.Sync{})
+			warteAuf(t, rec, "c:sync")
+			client.Close()
+			rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+		}, model.EndWriteFailed, model.CodeConnectionLost},
+		{"Fehler aus AwaitServer", func(t *testing.T, client net.Conn, fe *pgproto3.Frontend, rec *fakeRecorder) {
+			sende := nebenher(fe)
+			sende(&pgproto3.Sync{})
+			warteAuf(t, rec, "c:sync")
+			close(rec.server)
+			e := fehlerantwort(t, fe)
+			if !strings.Contains(e.Message, model.CodeConnectionLost) {
+				t.Fatalf("ErrorResponse: %+v", e)
+			}
+			// Die Client-Richtung endet mit: der Adapter schließt die Verbindung.
+			if _, err := fe.Receive(); !geschlossen(err) && !errors.Is(err, io.ErrUnexpectedEOF) {
+				t.Fatalf("Verbindung nach dem Ende nicht geschlossen: %v", err)
+			}
+		}, model.EndFailed, model.CodeConnectionLost},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rec := &fakeRecorder{}
+			if c.wantEnd != model.EndFailed {
+				rec.closeErr = verloren
+			}
+			client, fe, s := verbindeExtended(context.Background(), t, rec)
+			c.ablauf(t, client, fe, rec)
+			if end := rec.lastEnd(t); end != c.wantEnd {
+				t.Fatalf("Session-Ende %v, erwartet %v", end, c.wantEnd)
+			}
+			time.Sleep(20 * time.Millisecond)
+			if got := s.FirstErrorCode(); got != c.wantCode {
+				t.Fatalf("erster Fehler %q, erwartet %q", got, c.wantCode)
+			}
+			rec.mu.Lock()
+			n := len(rec.ends)
+			rec.mu.Unlock()
+			if n != 1 {
+				t.Fatalf("%d Session-Enden gemeldet", n)
+			}
+		})
+	}
+}
+
+// Abdeckung: LH-FA-06/Negative — ein Describe mit einer anderen Zielart als 'S'
+// oder 'P', im Record- wie im Replay-Modus, und ein Fehler des Use Case zu einer
+// Client-Nachricht beenden die Verbindung mit PGR-E6001 (SQLSTATE 0A000); im
+// Record-Modus meldet der Adapter EndUnsupported beziehungsweise EndFailed, im
+// Replay-Modus erreicht die Nachricht den Use Case nicht.
+func TestExtendedNichtUnterstuetzt(t *testing.T) {
+	t.Run("Zielart", func(t *testing.T) {
+		rec := &fakeRecorder{}
+		client, fe, s := verbindeExtended(context.Background(), t, rec)
+		go func() { _, _ = client.Write([]byte{'D', 0, 0, 0, 6, 'X', 0}) }()
+		e := fehlerantwort(t, fe)
+		if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) {
+			t.Fatalf("ErrorResponse: %+v", e)
+		}
+		if end := rec.lastEnd(t); end != model.EndUnsupported || s.FirstErrorCode() != model.CodeUnsupported {
+			t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+		}
+		if strings.Contains(rec.protokoll(), "c:") {
+			t.Fatalf("an den Use Case übergeben: %s", rec.protokoll())
+		}
+	})
+	t.Run("Fehler des Use Case", func(t *testing.T) {
+		rec := &fakeRecorder{clientErr: model.Errorf(model.CodeUnsupported, nil, "Form")}
+		_, fe, s := verbindeExtended(context.Background(), t, rec)
+		sende := nebenher(fe)
+		sende(&pgproto3.Sync{})
+		e := fehlerantwort(t, fe)
+		if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) {
+			t.Fatalf("ErrorResponse: %+v", e)
+		}
+		if end := rec.lastEnd(t); end != model.EndFailed || s.FirstErrorCode() != model.CodeUnsupported {
+			t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+		}
+	})
+	t.Run("Replay", func(t *testing.T) {
+		rep := &fakeReplayer{}
+		client, serverSeite := net.Pipe()
+		s := pgwire.NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		go pgwire.Handle(context.Background(), s, serverSeite)
+		defer client.Close()
+		_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+		fe := pgproto3.NewFrontend(client, client)
+		startup(t, fe)
+		go func() { _, _ = client.Write([]byte{'D', 0, 0, 0, 6, 'X', 0}) }()
+		e := fehlerantwort(t, fe)
+		if e.Code != "0A000" || !strings.Contains(e.Message, model.CodeUnsupported) {
+			t.Fatalf("ErrorResponse: %+v", e)
+		}
+		if n := rep.nachrichten(); len(n) != 0 {
+			t.Fatalf("an den Use Case übergeben: %#v", n)
+		}
+	})
+}
+
+// verbindeReplay startet den Handler im Replay-Modus.
+func verbindeReplay(ctx context.Context, t *testing.T, rep *fakeReplayer) (*pgproto3.Frontend, *pgwire.Server) {
+	t.Helper()
+	client, serverSeite := net.Pipe()
+	s := pgwire.NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	go pgwire.Handle(ctx, s, serverSeite)
+	t.Cleanup(func() { client.Close() })
+	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	return fe, s
+}
+
+// Abdeckung: LH-FA-18/Happy — Replay-Hälfte im Adapter: jede Extended-Nachricht
+// geht in Ankunftsreihenfolge mit den Feldern ihres Typs an den
+// Replay-Use-Case, und was er zurückgibt, geht in Reihenfolge an den Client.
+func TestReplayExtended(t *testing.T) {
+	rep := &fakeReplayer{}
+	fe, s := verbindeReplay(context.Background(), t, rep)
+	sende := nebenher(fe)
+	msgs := []pgproto3.FrontendMessage{
+		&pgproto3.Parse{Name: "s1", Query: "SELECT $1::text", ParameterOIDs: []uint32{25}},
+		&pgproto3.Bind{PreparedStatement: "s1", ParameterFormatCodes: []int16{0}, Parameters: [][]byte{[]byte("a")}},
+		&pgproto3.Execute{MaxRows: 3},
+		&pgproto3.Sync{},
+	}
+	sende(msgs...)
+	if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
+		t.Fatalf("an den Client: %s", got)
+	}
+	var want []model.ClientMessage
+	for _, m := range msgs {
+		cm, err := pgwire.ToClientMessage(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want = append(want, cm)
+	}
+	if got := rep.nachrichten(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("an den Use Case:\n%#v\nstatt\n%#v", got, want)
+	}
+	if s.FirstErrorCode() != "" {
+		t.Fatalf("Fehler gemerkt: %s", s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-10/Happy — Replay im Adapter: meldet der Use Case zu einer
+// Extended-Nachricht eine Abweichung, erhält der Client eine ErrorResponse mit
+// PGR-E5001, der Lauf merkt sich die Klasse 5, und der Adapter schließt die
+// Verbindung, ohne eine weitere Nachricht des Clients zu lesen.
+func TestReplayExtendedAbweichungImAdapter(t *testing.T) {
+	rep := &fakeReplayer{}
+	fe, s := verbindeReplay(context.Background(), t, rep)
+	sende := nebenher(fe)
+	sende(&pgproto3.Execute{Portal: "abweichend"})
+	e := fehlerantwort(t, fe)
+	if !strings.Contains(e.Message, model.CodeReplayMismatch) {
+		t.Fatalf("ErrorResponse: %+v", e)
+	}
+	if _, err := fe.Receive(); !geschlossen(err) {
+		t.Fatalf("Verbindung nach der Abweichung nicht geschlossen: %v", err)
+	}
+	if n := rep.nachrichten(); len(n) != 1 {
+		t.Fatalf("nach der Abweichung weitergelesen: %#v", n)
+	}
+	if s.FirstErrorCode() != model.CodeReplayMismatch {
+		t.Fatalf("erster Fehler: %q", s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — beim Herunterfahren fragt der Adapter den Use
+// Case: gibt er das Ende frei, endet die Session mit EndShutdown; sonst liest
+// der Adapter weiter, bis Delivered das Ende freigibt. Eine Anfrage, die beim
+// Beginn schon gelesen ist, wird noch beantwortet (LH-FA-13.a).
+func TestExtendedHerunterfahren(t *testing.T) {
+	t.Run("laufende Interaktion", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		rec := &fakeRecorder{}
+		_, fe, s := verbindeExtended(ctx, t, rec)
+		sende := nebenher(fe)
+		sende(&pgproto3.Parse{Query: "SELECT 1"})
+		warteAuf(t, rec, "c:parse")
+		cancel()
+		warteAuf(t, rec, "shutdown")
+		time.Sleep(50 * time.Millisecond)
+		sende(&pgproto3.Bind{}, &pgproto3.Execute{}, &pgproto3.Sync{})
+		warteAuf(t, rec, "c:sync")
+		if strings.Contains(rec.protokoll(), "ende") {
+			t.Fatalf("Session vor dem ReadyForQuery beendet: %s", rec.protokoll())
+		}
+		rec.mu.Lock()
+		rec.zugestelltEndet = true
+		rec.shutdownEndet = true
+		rec.mu.Unlock()
+		rec.server <- []model.Response{{Type: model.ResponseParseComplete}, {Type: model.ResponseBindComplete}, {Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+		empfange(t, fe, 3)
+		if end := rec.lastEnd(t); end != model.EndShutdown || s.FirstErrorCode() != "" {
+			t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+		}
+		if got := rec.protokoll(); !strings.HasSuffix(got, "zugestellt shutdown "+endeName(model.EndShutdown)) {
+			t.Fatalf("Protokoll %q", got)
+		}
+	})
+	t.Run("ruhend", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		rec := &fakeRecorder{shutdownEndet: true}
+		_, _, s := verbindeExtended(ctx, t, rec)
+		cancel()
+		if end := rec.lastEnd(t); end != model.EndShutdown || s.FirstErrorCode() != "" {
+			t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+		}
+	})
+	t.Run("gelesene Anfrage", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		halt := make(chan struct{})
+		rec := &fakeRecorder{queryHalt: halt, shutdownEndet: true, zugestelltEndet: true}
+		_, fe, _ := verbindeExtended(ctx, t, rec)
+		sende := nebenher(fe)
+		sende(&pgproto3.Query{String: "SELECT 1"})
+		warteAuf(t, rec, "q:SELECT 1")
+		cancel()
+		time.Sleep(50 * time.Millisecond)
+		close(halt)
+		if got := strings.Join(empfange(t, fe, 4), " "); got != "RowDescription DataRow CommandComplete ReadyForQuery" {
+			t.Fatalf("an den Client: %s", got)
+		}
+		if end := rec.lastEnd(t); end != model.EndShutdown {
+			t.Fatalf("Ende %v", end)
+		}
+		if got := rec.protokoll(); got != "q:SELECT 1 zugestellt shutdown "+endeName(model.EndShutdown) {
+			t.Fatalf("Protokoll %q: Herunterfahren nicht erst nach der gelesenen Anfrage gemeldet", got)
+		}
+	})
+	t.Run("neue Interaktion nach dem Beginn", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		rec := &fakeRecorder{neueNachShutdown: true}
+		_, fe, s := verbindeExtended(ctx, t, rec)
+		sende := nebenher(fe)
+		sende(&pgproto3.Sync{})
+		warteAuf(t, rec, "c:sync")
+		cancel()
+		warteAuf(t, rec, "shutdown")
+		sende(&pgproto3.Parse{Query: "SELECT 2"}, &pgproto3.Bind{}, &pgproto3.Sync{})
+		warteAuf(t, rec, "c:parse")
+		rec.mu.Lock()
+		rec.shutdownEndet = true
+		rec.zugestelltEndet = true
+		rec.mu.Unlock()
+		rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+		empfange(t, fe, 1)
+		if end := rec.lastEnd(t); end != model.EndShutdown || s.FirstErrorCode() != "" {
+			t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+		}
+		if got := rec.protokoll(); strings.Contains(got, "c:bind") {
+			t.Fatalf("nach der abgelehnten Nachricht weitergelesen: %q", got)
+		}
+	})
+}
+
+// Ein Wecken während des Fragens geht nicht verloren: Gibt Shutdown das Ende
+// nicht frei, und gibt Delivered es frei, während die Client-Richtung noch
+// fragt, endet die Session mit EndShutdown, ohne dass der Client weiter sendet.
+func TestHerunterfahrenWeckenNichtVerloren(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	halt := make(chan struct{})
+	rec := &fakeRecorder{shutdownAntworten: []bool{false, false}, shutdownHalt: map[int]chan struct{}{2: halt}}
+	_, fe, s := verbindeExtended(ctx, t, rec)
+	sende := nebenher(fe)
+	sende(&pgproto3.Sync{})
+	warteAuf(t, rec, "c:sync")
+	cancel()
+	warteAuf(t, rec, "shutdown shutdown")
+	rec.mu.Lock()
+	rec.zugestelltEndet = true
+	rec.shutdownEndet = true
+	rec.mu.Unlock()
+	rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+	empfange(t, fe, 1)
+	warteAuf(t, rec, "zugestellt")
+	close(halt)
+	if end := rec.lastEnd(t); end != model.EndShutdown || s.FirstErrorCode() != "" {
+		t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+	}
+}
+
+// Nach dem Wecken setzt die Client-Richtung die Lesefrist nicht zurück: Das
+// nächste Lesen scheitert noch an ihr. Ohne weiteres Wecken setzt sie sie danach
+// zurück und liest die nächste Nachricht.
+func TestWeiterlesenNachWecken(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rec := &fakeRecorder{}
+	client, serverSeite := net.Pipe()
+	spion := &fristSpion{Conn: serverSeite}
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	go pgwire.Handle(ctx, s, spion)
+	t.Cleanup(func() { client.Close() })
+	if err := client.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	sende := nebenher(fe)
+	sende(&pgproto3.Sync{})
+	warteAuf(t, rec, "c:sync")
+	cancel()
+	deadline := time.Now().Add(2 * time.Second)
+	for !spion.enthaelt("zurück") {
+		if time.Now().After(deadline) {
+			t.Fatalf("Lesefrist nicht zurückgesetzt, %d Ereignisse an der Verbindung", spion.anzahl())
+		}
+		time.Sleep(time.Millisecond)
+	}
+	time.Sleep(50 * time.Millisecond)
+	if got := spion.protokoll(); got != "frist abgelaufen abgelaufen zurück" {
+		t.Fatalf("Lesefrist und Lesen an der Verbindung: %q", got)
+	}
+	sende(&pgproto3.Parse{Query: "SELECT 1"})
+	warteAuf(t, rec, "c:parse")
+}
+
+// fristSpion protokolliert an einer Verbindung jedes Setzen der Lesefrist,
+// „frist“ oder für die Nullzeit „zurück“, bevor es sie setzt, und jedes Lesen,
+// das an ihr scheitert, als „abgelaufen“.
+type fristSpion struct {
+	net.Conn
+	mu         sync.Mutex
+	ereignisse []string
+}
+
+func (c *fristSpion) merke(e string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.ereignisse = append(c.ereignisse, e)
+}
+
+func (c *fristSpion) protokoll() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return strings.Join(c.ereignisse, " ")
+}
+
+func (c *fristSpion) enthaelt(e string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return slices.Contains(c.ereignisse, e)
+}
+
+func (c *fristSpion) anzahl() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.ereignisse)
+}
+
+func (c *fristSpion) SetReadDeadline(t time.Time) error {
+	if t.IsZero() {
+		c.merke("zurück")
+	} else {
+		c.merke("frist")
+	}
+	return c.Conn.SetReadDeadline(t)
+}
+
+func (c *fristSpion) Read(p []byte) (int, error) {
+	n, err := c.Conn.Read(p)
+	if errors.Is(err, os.ErrDeadlineExceeded) {
+		c.merke("abgelaufen")
+	}
+	return n, err
+}
+
+// Abdeckung: LH-FA-13/Boundary — endet eine Session, schließt der Adapter die
+// Client-Verbindung; ein Schreiben an einen Client, der nicht liest, endet
+// damit, und die Sitzung kehrt zurück.
+func TestEndeSchliesstVerbindung(t *testing.T) {
+	rec := &fakeRecorder{server: make(chan []model.Response, 1)}
+	client, serverSeite := net.Pipe()
+	defer client.Close()
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	zurueck := make(chan struct{})
+	go func() {
+		pgwire.Handle(context.Background(), s, serverSeite)
+		close(zurueck)
+	}()
+	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	sende := nebenher(fe)
+	sende(&pgproto3.Sync{})
+	warteAuf(t, rec, "c:sync")
+	// Der Client liest nicht: das Schreiben der Server-Richtung blockiert.
+	rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+	time.Sleep(50 * time.Millisecond)
+	sende(&pgproto3.Terminate{})
+	select {
+	case <-zurueck:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Sitzung kehrt nach Terminate nicht zurück, solange der Client nicht liest")
+	}
+	if end := rec.lastEnd(t); end != model.EndTerminate {
+		t.Fatalf("Ende %v", end)
+	}
+}
+
+// Die Abbildung belegt je Client-Nachricht genau die Felder ihres Typs
+// (SPEC-041), eine leere Liste als nil, und kopiert Werte aus dem Puffer der
+// Bibliothek.
+func TestToClientMessage(t *testing.T) {
+	param := []byte("x")
+	cases := []struct {
+		in   pgproto3.FrontendMessage
+		want model.ClientMessage
+	}{
+		{&pgproto3.Parse{Name: "s", Query: "q", ParameterOIDs: []uint32{}}, model.ClientMessage{Type: model.ClientParse, Statement: "s", SQL: "q"}},
+		{&pgproto3.Bind{DestinationPortal: "p", PreparedStatement: "s", ParameterFormatCodes: []int16{}, Parameters: [][]byte{param}, ResultFormatCodes: []int16{}},
+			model.ClientMessage{Type: model.ClientBind, Portal: "p", Statement: "s", Params: []model.Value{{Bytes: []byte("x")}}}},
+		{&pgproto3.Describe{ObjectType: 'S', Name: "n"}, model.ClientMessage{Type: model.ClientDescribe, Target: model.TargetStatement, Name: "n"}},
+		{&pgproto3.Close{ObjectType: 'P', Name: "n"}, model.ClientMessage{Type: model.ClientClose, Target: model.TargetPortal, Name: "n"}},
+		{&pgproto3.Execute{Portal: "p", MaxRows: 3}, model.ClientMessage{Type: model.ClientExecute, Portal: "p", MaxRows: 3}},
+		{&pgproto3.Flush{}, model.ClientMessage{Type: model.ClientFlush}},
+		{&pgproto3.Sync{}, model.ClientMessage{Type: model.ClientSync}},
+	}
+	for _, c := range cases {
+		got, err := pgwire.ToClientMessage(c.in)
+		if err != nil || !reflect.DeepEqual(got, c.want) {
+			t.Fatalf("%T: %#v, %v; erwartet %#v", c.in, got, err, c.want)
+		}
+	}
+	got, _ := pgwire.ToClientMessage(&pgproto3.Bind{Parameters: [][]byte{param}})
+	param[0] = 'y'
+	if string(got.Params[0].Bytes) != "x" {
+		t.Fatal("Parameterwert nicht kopiert")
+	}
+	if _, err := pgwire.ToClientMessage(&pgproto3.Close{ObjectType: 'X'}); err == nil {
+		t.Fatal("Close mit Zielart X angenommen")
+	}
+}
+
+// Die Server-Nachrichten des Extended Query Protocol werden auf ihre
+// PGWire-Nachricht abgebildet.
+func TestToMessageExtended(t *testing.T) {
+	cases := map[model.ResponseType]pgproto3.BackendMessage{
+		model.ResponseParseComplete:        &pgproto3.ParseComplete{},
+		model.ResponseBindComplete:         &pgproto3.BindComplete{},
+		model.ResponseCloseComplete:        &pgproto3.CloseComplete{},
+		model.ResponseParameterDescription: &pgproto3.ParameterDescription{ParameterOIDs: []uint32{23, 25}},
+		model.ResponseNoData:               &pgproto3.NoData{},
+		model.ResponsePortalSuspended:      &pgproto3.PortalSuspended{},
+	}
+	for typ, want := range cases {
+		got, err := pgwire.ToMessage(model.Response{Type: typ, ParamTypes: []uint32{23, 25}})
+		if typ != model.ResponseParameterDescription {
+			got, err = pgwire.ToMessage(model.Response{Type: typ})
+		}
+		if err != nil || !reflect.DeepEqual(got, want) {
+			t.Fatalf("%s: %#v, %v", typ, got, err)
+		}
+	}
+}
+
+// Abdeckung: LH-FA-13/Negative — endet eine Session mit einer Fehlerantwort,
+// während die Server-Richtung an einem Client schreibt, der nicht liest,
+// schreibt der Adapter höchstens 1 s lang (SPEC-051), meldet PGR-E6001 und
+// kehrt binnen 2 s zurück.
+func TestFehlerantwortMitFrist(t *testing.T) {
+	rec := &fakeRecorder{server: make(chan []model.Response, 1)}
+	client, serverSeite := net.Pipe()
+	defer client.Close()
+	s := pgwire.NewRecordServer(rec, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	zurueck := make(chan struct{})
+	go func() {
+		pgwire.Handle(context.Background(), s, serverSeite)
+		close(zurueck)
+	}()
+	_ = client.SetDeadline(time.Now().Add(10 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	sende := nebenher(fe)
+	sende(&pgproto3.Sync{})
+	warteAuf(t, rec, "c:sync")
+	// Der Client liest nicht: das Schreiben der Server-Richtung blockiert.
+	rec.server <- []model.Response{{Type: model.ResponseReadyForQuery, TxStatus: "I"}}
+	time.Sleep(50 * time.Millisecond)
+	sende(&pgproto3.FunctionCall{Function: 1})
+	// Die Schranke steht als Literal: meldeFrist ist 1 s (SPEC-051), dazu 1 s
+	// für den Lauf.
+	select {
+	case <-zurueck:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Sitzung kehrt nicht binnen 2 s zurück, solange der Client nicht liest")
+	}
+	if end := rec.lastEnd(t); end != model.EndUnsupported || s.FirstErrorCode() != model.CodeUnsupported {
+		t.Fatalf("Ende %v, Fehler %q", end, s.FirstErrorCode())
+	}
+}
+
+// Abdeckung: LH-FA-13/Boundary — Replay im Adapter: beim Herunterfahren
+// beantwortet der Adapter eine laufende Extended-Interaktion bis zu ihrem Sync
+// und schließt danach die Verbindung, ohne eine weitere Nachricht zu lesen;
+// läuft keine Interaktion, schließt er sie sofort.
+func TestReplayHerunterfahren(t *testing.T) {
+	t.Run("laufende Interaktion", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		rep := &fakeReplayer{}
+		fe, s := verbindeReplay(ctx, t, rep)
+		sende := nebenher(fe)
+		sende(&pgproto3.Parse{Name: "s1", Query: "SELECT 1"})
+		deadline := time.Now().Add(2 * time.Second)
+		for len(rep.nachrichten()) < 1 {
+			if time.Now().After(deadline) {
+				t.Fatal("Parse erreicht den Use Case nicht")
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		cancel()
+		time.Sleep(100 * time.Millisecond)
+		sende(&pgproto3.Bind{PreparedStatement: "s1"}, &pgproto3.Execute{}, &pgproto3.Sync{})
+		if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
+			t.Fatalf("an den Client: %s", got)
+		}
+		if _, err := fe.Receive(); !geschlossen(err) {
+			t.Fatalf("Verbindung nach dem Sync nicht geschlossen: %v", err)
+		}
+		if n := len(rep.nachrichten()); n != 4 || s.FirstErrorCode() != "" {
+			t.Fatalf("%d Nachrichten, Fehler %q", n, s.FirstErrorCode())
+		}
+	})
+	t.Run("ohne laufende Interaktion", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		rep := &fakeReplayer{}
+		fe, _ := verbindeReplay(ctx, t, rep)
+		sende := nebenher(fe)
+		sende(&pgproto3.Parse{Name: "s1", Query: "SELECT 1"}, &pgproto3.Sync{})
+		empfange(t, fe, 5)
+		cancel()
+		if _, err := fe.Receive(); !geschlossen(err) {
+			t.Fatalf("Verbindung nach dem Herunterfahren nicht geschlossen: %v", err)
+		}
+	})
+}
+
+// geschlossen meldet, ob ein Lesefehler des Clients das Schließen der
+// Verbindung durch den Server ist und nicht die Frist des Clients.
+func geschlossen(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)
+}
+
+// spaeteFrist hält jedes Setzen einer Lesefrist außer dem Zurücksetzen an,
+// bis freigabe geschlossen ist, und schließt danach gesetzt; liest meldet, ob
+// gerade ein Read auf der Verbindung wartet.
+type spaeteFrist struct {
+	net.Conn
+	freigabe chan struct{}
+	gesetzt  chan struct{}
+	liest    *atomic.Bool
+}
+
+func (c spaeteFrist) SetReadDeadline(t time.Time) error {
+	if t.IsZero() {
+		return c.Conn.SetReadDeadline(t)
+	}
+	<-c.freigabe
+	err := c.Conn.SetReadDeadline(t)
+	close(c.gesetzt)
+	return err
+}
+
+func (c spaeteFrist) Read(p []byte) (int, error) {
+	c.liest.Store(true)
+	defer c.liest.Store(false)
+	return c.Conn.Read(p)
+}
+
+// Abdeckung: LH-FA-13/Boundary — Replay im Adapter: setzt der Wächter die
+// Lesefrist erst, nachdem die Sitzung beim Herunterfahren eine Nachricht der
+// laufenden Interaktion verarbeitet hat, wartet die Sitzung darauf, bevor sie
+// die Frist zurücksetzt; die Interaktion wird bis zu ihrem Sync beantwortet.
+func TestReplayHerunterfahrenSpaeteFrist(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rep := &fakeReplayer{}
+	client, serverSeite := net.Pipe()
+	conn := spaeteFrist{Conn: serverSeite, freigabe: make(chan struct{}), gesetzt: make(chan struct{}), liest: &atomic.Bool{}}
+	s := pgwire.NewReplayServer(rep, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	go pgwire.Handle(ctx, s, conn)
+	t.Cleanup(func() { client.Close() })
+	_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+	fe := pgproto3.NewFrontend(client, client)
+	startup(t, fe)
+	sende := nebenher(fe)
+
+	// bis wartet, bis bedingung gilt, höchstens frist lang, und meldet, ob sie
+	// galt.
+	bis := func(frist time.Duration, bedingung func() bool) bool {
+		deadline := time.Now().Add(frist)
+		for !bedingung() {
+			if time.Now().After(deadline) {
+				return false
+			}
+			time.Sleep(time.Millisecond)
+		}
+		return true
+	}
+	sende(&pgproto3.Parse{Name: "s1", Query: "SELECT 1"})
+	// Die Sitzung hat das Parse verarbeitet und wartet im nächsten Read; erst
+	// dann endet ctx, und der Wächter hängt bis zur Freigabe.
+	if !bis(2*time.Second, func() bool { return len(rep.nachrichten()) == 1 && conn.liest.Load() }) {
+		t.Fatal("Sitzung liest nach dem Parse nicht weiter")
+	}
+	cancel()
+	sende(&pgproto3.Bind{PreparedStatement: "s1"})
+	if !bis(2*time.Second, func() bool { return len(rep.nachrichten()) == 2 }) {
+		t.Fatal("Bind erreicht den Use Case nicht")
+	}
+	// Richtig wartet die Sitzung jetzt auf geweckt und liest nicht; ohne das
+	// Warten stünde sie schon wieder im Read. Freigegeben wird nach diesem
+	// Stand oder nach 200 ms.
+	bis(200*time.Millisecond, conn.liest.Load)
+	close(conn.freigabe)
+	<-conn.gesetzt
+	sende(&pgproto3.Execute{}, &pgproto3.Sync{})
+	if got := strings.Join(empfange(t, fe, 5), ","); got != "ParseComplete,BindComplete,DataRow,CommandComplete,ReadyForQuery" {
+		t.Fatalf("an den Client: %s", got)
+	}
+	if _, err := fe.Receive(); !geschlossen(err) {
+		t.Fatalf("Verbindung nach dem Sync nicht geschlossen: %v", err)
+	}
+}
