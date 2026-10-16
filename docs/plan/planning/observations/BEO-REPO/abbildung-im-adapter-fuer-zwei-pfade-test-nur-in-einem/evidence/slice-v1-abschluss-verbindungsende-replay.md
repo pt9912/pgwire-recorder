@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-replay
+**Fund (Review F-7, INFO; Risiko aus §6):** `send` lässt `connection_closed` als letzte Antwort für jeden Aufrufer aus, auch im Record-Pfad; dort liefert niemand sie vor `slice-v1-abschluss-verbindungsende-record`, ein Test des Record-Pfads dazu liegt nicht vor. Die Aufteilung (Auslassung in `send`, Schließen beim Aufrufer) entschied der Architect am 2026-10-16; eine spätere Änderung träfe beide Pfade.

@@ -41,3 +41,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbind
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-randform-stelle-und-lesart` (F-2, V-3) — §3 trug nach der Lieferung den Entwurf des Wortlauts statt des gelieferten, und §6 trug noch das Wort „Entwurf“ (Beleg `evidence/slice-harness-randform-stelle-und-lesart.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-format-schreiber` (F-2, F-6) — §1 und DoD nannten Text-Fixtures statt Modelle, §8 nannte keinen Nehmer trotz der Bindung in `-record` (Beleg `evidence/slice-v1-abschluss-verbindungsende-format-schreiber.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-replay` (F-3, V-1) — eine Plan-Zeile („je Fall eine Datei“) weiter als der Diff, und eine Aufschlüsselung der Messung in §7 auf dem Stand vor der Nacharbeit, nur die Summe nachgezogen, wie bei `slice-v1-abschluss-postgres-versionen-matrix` (V-3) (Beleg `evidence/slice-v1-abschluss-verbindungsende-replay.md`).

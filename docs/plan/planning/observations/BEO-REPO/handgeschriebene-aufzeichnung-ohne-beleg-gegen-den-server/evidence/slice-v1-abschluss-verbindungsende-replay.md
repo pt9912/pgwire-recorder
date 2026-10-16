@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-replay
+**Fund (Risiko aus §6):** Der E2E-Test von `slice-v1-abschluss-verbindungsende-replay` zeichnet nicht auf, sondern spielt handgeschriebene Aufzeichnungen (`ende-fatal.yaml`, `ende-panic.yaml`, `ende-lebend.yaml`, `ende-terminate.yaml`) ab; sie bilden nur ab, was `LH-FA-25.a` sagt. Die Entsprechung zu PostgreSQL (Fehlerantwort `FATAL` mit `57P01`, danach das Ende der Verbindung) belegt erst der E2E-Test von Abnahmeszenario 18 in `slice-v1-abschluss-verbindungsende-upstream`.
