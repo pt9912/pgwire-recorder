@@ -162,6 +162,8 @@ Die Belege des Implementers stehen zuerst, die Closure des Planners danach (bei 
 
 **Stand.** Code und Tests an `1d1ca81` (Mutanten und E2E-Läufe an `271e0c1`; der Folge-Commit machte nur die Testdaten zu einer Funktion statt einer globalen Variable, Lint `gochecknoglobals`); Produktcode 0 Zeilen (`replay.go` und `server.go` unberührt). Ohne Mutant: `go test` der Pakete `internal/hexagon/services` und `internal/adapters/driving/pgwire` grün, `make test-integration` grün (auch `TestE2EReplayEndeExtendedSync`).
 
+**Läufe.** `make abdeckung` und `make abdeckung-check` grün (Tabellen geschrieben, Kopf-Check `make kopf-check` grün); voller `make gates` ein Lauf an `09cd471`, Exit 0, 12 min 59 s. Ein früherer voller Lauf an `151edff` war rot an `make lint` (`gochecknoglobals`: Testdaten als globale Variable), behoben im Folge-Commit.
+
 **Wege der Mutanten.** Service und Adapter: Kopie von `go.mod`, `go.sum`, `internal/` außerhalb des Repos, je Mutant eine frische Kopie mit einem Textersatz, Lauf von `go test -count=1` über beide Pakete im Image `deps` (`docker build --target deps`) mit `--network=none`, Bind-Mount der Kopie und eines Go-Caches, kein Build-Kontext (kein mtime-Problem). E2E: Mutant im Arbeitsbaum, `touch` auf die Datei, `make test-integration`, danach `git checkout -- internal` (Arbeitsbaum danach sauber). Mutanten liegen nicht im Repo. Namen der Tests in der Tabelle ohne Präfix `TestReplayEndeExtended`: Gruppe = `GruppeMitEnde`, Sync = `SyncDavor`, Verbrauch, Abweichung, Lebend = `LebendpruefungVorDerGruppe`, Terminate = `TerminateUnverbraucht`, Herunterfahren, First = `FirstRequest`, Conn = `Connection`; Bestandstests von 37a und älter tragen ihren vollen Namen.
 
 | Zusage | Mutation | roter Test |
