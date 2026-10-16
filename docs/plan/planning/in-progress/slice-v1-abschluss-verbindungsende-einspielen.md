@@ -153,6 +153,52 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+**Läufe** (Basis `33e5eab`, Stand der Commits des Implementers): `make test` grün (gofmt, vet, Unit-Tests); `make lint` 0 issues; `make a-check` 0 Befunde (der Hinweis auf 37 Dateien ohne Schicht besteht unverändert); `make test-integration` grün, `TestE2EPlayEndeErwartet` PASS gegen `postgres:17-alpine` (Digest `harness/mk/integration.mk`); `make abdeckung` und `make abdeckung-check` grün; voller `make gates` grün (ein Lauf, 12 min 59 s, einschließlich `make test-postgres-versionen` und `kopf-check`). Unit-Mutanten liefen in einer Kopie des Arbeitsbaums im Image der Stufe `deps` (`--network=none`, Bind-Mount, `go test -count=1`, Datei je Mutant neu geschrieben und `touch`), die E2E-Mutanten im Arbeitsbaum per `make test-integration` nach dem Commit `00e91cf` und danach `git checkout` der Datei (Arbeitsbaum sauber).
+
+**Mutationstabelle** (Zusage · Mutation · roter Test; Unit, `play.go` und `einspielen.go`):
+
+| Zusage | Mutation | roter Test (nur dieser Fall, wenn nicht anders genannt) |
+|---|---|---|
+| V `FATAL` ist Ende | `FATAL` zählt nur ohne Feld `V` | `TestPlayEndeErwartet/V_FATAL` (und `…mit_--continue-on-error`), `TestPlayFehlerantwort/V_FATAL`, `TestVergleichFatal/V_FATAL`; die Zeilen `S_FATAL_ohne_V` bleiben grün |
+| S `FATAL` ohne V ist Ende | `FATAL` zählt nur mit Feld `V` | `TestPlayEndeErwartet/S_FATAL_ohne_V` (beide), `TestPlayFehlerantwort/S_FATAL_ohne_V`, `TestVergleichFatal/S_FATAL_ohne_V`, `TestPlayErwarteterFehler/FATAL` |
+| V `PANIC` ist Ende | `PANIC` zählt nur ohne `V` | `TestPlayEndeErwartet/V_PANIC` (beide), `TestPlayFehlerantwort/V_PANIC`, `TestVergleichFatal/V_PANIC` |
+| S `PANIC` ohne V ist Ende | `PANIC` zählt nur mit `V` | `TestPlayEndeErwartet/S_PANIC_ohne_V` (beide), `TestPlayFehlerantwort/S_PANIC_ohne_V`, `TestVergleichFatal/S_PANIC_ohne_V` |
+| Erwartet braucht die Option | `l.ende = endetEinfach(in)` | `TestPlayEndeNichtErwartet/ohne_Option` und `…ohne_Option_mit_--continue-on-error` |
+| Erwartet braucht ein aufgezeichnetes Ende an der Stelle | `l.ende = AllowRecordedErrors` | `TestPlayEndeNichtErwartet/ohne_Ende_an_der_Stelle`, `…aufgezeichnet_ERROR`, `…FATAL_in_früherer_Interaktion`, `TestPlayErwarteterFehler/FATAL`, `TestPlayExtendedFatal` (beide) |
+| Erwartet gilt nur an der aufgezeichneten Interaktion (früher) | `l.ende` zusätzlich wahr in Interaktion 1 | `TestPlayEndeNichtErwartet/FATAL_in_früherer_Interaktion`, `TestPlayErwarteterFehler/FATAL`, `TestPlayExtendedFatal` (beide); die Fälle „ohne Option“ und „ohne Ende“ bleiben grün. Der Mutant ist gestellt (Sequenz 1 statt einer Suche über die Session): `play.go` hat keinen Zugriff auf die Session in `interaktion`, und das Ende ist das letzte Ereignis seiner Session (§6 (b)) |
+| Erwartet gilt auch mit `--continue-on-error` | `&& !ContinueOnError` | `TestPlayEndeErwartet/*_mit_--continue-on-error` (vier Zeilen) |
+| `--continue-on-error` ändert `PGR-E4003` nicht | `PGR-E4003` bei `FATAL` ohne erwartetes Ende wird weiter gereicht, die Session endet | `TestPlayEndeNichtErwartet/ohne_Option_mit_--continue-on-error`, `…aufgezeichnet_ERROR`, `TestPlayFortsetzungAbbruch/FATAL` |
+| Extended bleibt `PGR-E4003` (Zwischenstand) | `l.ende` auch für das Ende der letzten Gruppe | `TestPlayExtendedFatal/mit_aufgezeichnetem_Ende` (die Zeile „mit aufgezeichnetem Fehler“ bleibt grün) |
+| Verbindungsverlust trotz Ende ist `PGR-E4003`, Schließen mit `Terminate` | Lesefehler bei `l.ende` beendet die Session | `TestPlayEndeOhneFehlerantwort/Verbindungsverlust` |
+| `ERROR` in Interaktion mit Ende ist gewöhnlich | `ERROR` bei `l.ende` beendet die Session | `TestPlayEndeOhneFehlerantwort/ERROR` |
+| Verbindungsverlust trotz Ende: Schließen mit `Terminate` | Lesefehler ruft `SchliesseOhneTerminate` | `TestPlayEndeOhneFehlerantwort/Verbindungsverlust` |
+| Normale Antwort auf Interaktion mit Ende ist kein Fehler | Fehler, wenn `l.ende` und keine Fehlerantwort | `TestPlayEndeOhneFehlerantwort/normale_Antwort` und `…/ERROR` |
+| `eingespielt` zählt die Interaktion | `Eingespielt--` beim erwarteten Ende | `TestPlayEndeErwartet` (acht Zeilen) |
+| `verglichen` bleibt 0 | `Verglichen++` beim erwarteten Ende | `TestPlayEndeErwartet` (acht Zeilen) |
+| `abweichend` bleibt 0 | `Abweichend++` beim erwarteten Ende | `TestPlayEndeErwartet` (acht Zeilen) |
+| Die Session liest und sendet nichts mehr | `errSessionEnde` durch `nil` ersetzt (liest weiter) | `TestPlayEndeErwartet` (acht Zeilen: zusätzliches `naechste`) |
+| Die nächste Session läuft | Schleife über die erste Session | `TestPlayEndeErwartet` (acht Zeilen), dazu `TestPlayReihenfolge` u. a. |
+| Die Session endet ohne Fehler | `errSessionEnde` in `session` als Fehler zurückgegeben | `TestPlayEndeErwartet` (acht Zeilen), `TestVergleichFatalFortsetzung` |
+| Aufruf `SchliesseOhneTerminate` ohne Vergleich | Aufruf nur mit Vergleich | `TestPlayEndeErwartet`, `TestPlayEndeNichtErwartet`, `TestPlayFehlerantwort` (FATAL/PANIC-Zeilen), `TestPlayExtendedFatal` (beide); `TestVergleichFatal` bleibt grün |
+| Aufruf `SchliesseOhneTerminate` mit Vergleich | Aufruf nur ohne Vergleich | `TestVergleichFatal` (acht Zeilen); die Tests ohne Vergleich bleiben grün |
+| Aufruf entfällt oder ist `Schliesse` | Aufruf entfernt bzw. `l.us.Schliesse()` | alle der beiden Zeilen darüber |
+| Adapter: kein `Terminate` auf der Leitung | `SchliesseOhneTerminate` ruft `schliesse(true)` | `TestEinspielSchliesseOhneTerminate` (Leitung des Fake-Servers, `danach` nicht leer), `TestEinspielSchliesseNurEinmal/SchliesseOhneTerminate,_*` |
+| Adapter: zweites Schließen ohne Wirkung | Schutz `if !erstes { return }` entfernt | `TestEinspielSchliesseNurEinmal/Schliesse,_Schliesse` und `SchliesseOhneTerminate,_Schliesse` |
+| Adapter: `Schliesse` sendet `Terminate` | `Schliesse` ruft `schliesse(false)` | `TestEinspielNaechste`, `TestEinspielAufbauVerworfen` u. a. (Bestand), `TestEinspielSchliesseNurEinmal/Schliesse,_*` |
+| Port: `SchliesseOhneTerminate` darf während des Sendens laufen | Pfad ohne `Terminate` wartet auf den Schreiber | `TestEinspielSchliesseSchreibtNichtBeimSenden/SchliesseOhneTerminate` (Frist 5 s) |
+| Gegen PostgreSQL: Exit-Code 0, nächste Session, Zähler | E2E: `l.ende = false` | `TestE2EPlayEndeErwartet` (Exit-Code 4 statt 0, stderr in der Fehlermeldung des Tests); die übrigen E2E-Tests grün |
+| Gegen PostgreSQL: nächste Session läuft, Zähler `3/0/0` | E2E: nur erste Session; `Verglichen++` | `TestE2EPlayEndeErwartet` (Zähler und Datenbank), bei „nur erste Session“ auch fünf weitere Play-Tests; bei `Verglichen++` nur `TestE2EPlayEndeErwartet` (`verglichen=1`) |
+
+**Grüne Mutanten, eingeordnet:** (1) `errSessionEnde` in `session` als `continue` statt `return nil`: äquivalent für das erwartete Ende, weil das Ende die letzte Interaktion seiner Session ist (§6 (b)) und keine folgt; den Vergleichspfad (mit `--continue-on-error` folgen Interaktionen) fängt `TestVergleichFatalFortsetzung`. (2) Das Schließen eines gescheiterten Sendens vor der gelesenen Fehlerantwort und ein Fehler beim Schließen sind ohne Test: Fehler beim Schließen ist ohne Rückgabe des Ports (Tautologie, DoD Punkt 2), „Sendefehler vor dem Lesen der Fehlerantwort“ ist `PGR-E4003` (§6, Grenze ohne Test, wie vom Architect entschieden).
+
+**Akzeptiertes Negativ:** Das Verhalten bei `pg_terminate_backend` (`FATAL`, `57P01`) ist nur gegen `postgres:17-alpine` geprüft (E2E-Lauf oben); 14 bis 16 und 18 sind ungeprüft, die Versionsmatrix fährt den Fall nicht (§6, `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`).
+
+**Messung** (Metrik §4: Summe Einfügungen und Löschungen von `git diff --numstat 33e5eab..<letzter Commit> -- internal test docs/user`): **665** (Marke 1000, Meldeschwelle 800 nicht erreicht; 67 % der Marke; Schätzung 500 bis 880, Mitte 690). Aufschlüsselung: Produktcode 81 (`play.go` 46, `einspielen.go` 22, `einspielziel.go` 13), Tests und Testdaten 558 (`play_ende_test.go` 211, `einspielen_ende_test.go` 89, `einspielen_test.go` 80, `play_test.go` 57, `play_extended_test.go` 41, `play_vergleich_test.go` 10, `play_laufsteuerung_test.go` 5, `play_ende_e2e_test.go` 37, `play-ende-erwartet.yaml` 28), Abdeckungstabellen 26. Faktor Tests/Produktcode 6,9 (mit Tabellen 7,2), unter dem angesetzten Faktor 10. Zeilen je Fall: Service-Tests `TestPlayEndeErwartet` 44, `TestPlayEndeNichtErwartet` 72 (fünf Fälle), `TestPlayEndeOhneFehlerantwort` 56 (drei Fälle); Adapter-Tests 19 und 35 (`TestEinspielSchliesseOhneTerminate`, `TestEinspielSchliesseNurEinmal`); E2E-Fall 65 (Test 37, Aufzeichnung 28).
+
+**Beobachtungen:** (1) Eine Aufzeichnung mit Ende muss `FATAL` oder `PANIC` unmittelbar vor `connection_closed` tragen (Fehler `PGR-E3003` beim Laden, `Session.ValidateEnd`); Tests, die ein Ende der Extended-Interaktion bauen, mussten die Gruppe so bauen, die erste Fassung scheiterte im Start — Kosten eines Hilfsbaus, den ein gemeinsamer Helfer `endeAufgezeichnet` trägt. (2) Der Plan führt „Port ohne Rückgabe, jederzeit aufrufbar“ als Zusage; ihr Test für `SchliesseOhneTerminate` während des Sendens fehlte im Plan und kam hier dazu (Parametrisierung von `TestEinspielSchliesseSchreibtNichtBeimSenden`). (3) Ein veralteter Satz („auch wenn sie erwartet wäre“) stand im Kommentar von `TestPlayErwarteterFehler`; die Suche über `internal/` nach dem Wortlaut fand ihn, er ist enger gefasst. Handbuch und README unberührt (`slice-v1-abschluss-verbindungsende-doku`).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`

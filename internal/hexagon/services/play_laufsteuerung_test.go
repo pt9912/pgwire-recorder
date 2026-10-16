@@ -172,8 +172,9 @@ func mitAufgezeichnetemFehler() model.Recording {
 // ReadyForQuery und die nächste Interaktion laufen, auch ohne
 // --continue-on-error. Trägt die Aufzeichnung keine, ist sie PGR-E4004 wie
 // ohne Option; ohne Option ist auch die erste PGR-E4004; FATAL ist PGR-E4003,
-// auch wenn sie erwartet wäre; mit --continue-on-error zählt nur die
-// unerwartete (LH-FA-20.a *Interaktion*, Schritt 6).
+// auch wenn die Aufzeichnung eine error_response, aber kein connection_closed
+// trägt; mit --continue-on-error zählt nur die unerwartete (LH-FA-20.a
+// *Interaktion*, Schritt 6).
 func TestPlayErwarteterFehler(t *testing.T) {
 	fatal := fehlerantwort(map[string]string{"S": "FATAL", "C": "57P01", "M": "beendet"})
 	for _, f := range []struct {
