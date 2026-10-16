@@ -112,6 +112,11 @@ func (v *vergleich) erste(ende int) *unterschied {
 		return u
 	}
 	f := &unterschied{position: ende, art: artFehler, sqlstateIs: v.ist[ende-1].Fields["C"]}
+	// Eine Aufzeichnung, die Validate besteht, endet mit ready_for_query oder
+	// connection_closed, die Folge des Servers trägt beides nicht vor der
+	// Fehlerantwort: soll reicht bis zu ihrer Position, der Schutz der Länge greift
+	// nur bei einer Folge, die Validate nicht besteht. Den SQLSTATE liefert nur eine
+	// error_response (LH-FA-24.a *Fehler*).
 	if ende <= len(v.soll) && v.soll[ende-1].Type == model.ResponseErrorResponse {
 		f.sqlstateSo = v.soll[ende-1].Fields["C"]
 	}

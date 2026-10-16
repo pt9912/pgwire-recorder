@@ -356,6 +356,7 @@ func fatalFaelle() []fatalFall {
 		{"S FATAL ohne V", schwer("FATAL", "", "57P01")},
 		{"V PANIC", schwer("x", "PANIC", "57P01")},
 		{"S PANIC ohne V", schwer("PANIC", "", "57P01")},
+		{"V leer, S FATAL", model.Response{Type: model.ResponseErrorResponse, Fields: map[string]string{"V": "", "S": "FATAL", "C": "57P01", "M": "geheim"}}},
 	}
 }
 

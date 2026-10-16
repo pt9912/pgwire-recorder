@@ -147,7 +147,7 @@ func pruefeEndeFaelle(t *testing.T, faelle []endeFall) {
 
 // Abdeckung: LH-FA-25/Happy — der Leser von sqlite lädt das Ende des Servers aus einer Zeile von message
 // (kind connection_closed, direction server, fields {}) als letzte Antwort der letzten Interaktion
-// einer Session: in einer einfachen Interaktion nach FATAL, PANIC und nach S FATAL ohne V, in einer
+// einer Session: in einer einfachen Interaktion nach FATAL, PANIC nach S FATAL ohne V und nach S FATAL mit leerem V, in einer
 // Extended-Interaktion mit Sync- und mit Flush-Gruppe, mit offset_ms, in einer Session, die nicht die letzte
 // ist, und auch dann, wenn die Zeile des Endes in der Datei vor der der Fehlerantwort steht (die
 // Stelle folgt den Nummern); die Aufzeichnung trägt die Version der Datei (1 oder 2, auch 2 ohne Ende),
@@ -159,6 +159,7 @@ func TestLesenEndeAngenommen(t *testing.T) {
 		{"einfach", "2", "", false, einSession(einf(fatal(), ende())), 1, ""},
 		{"einfach, PANIC", "2", "", false, einSession(einf(srv("error_response", panikFeld), ende())), 1, ""},
 		{"einfach, V fehlt, S FATAL", "2", "", false, einSession(einf(srv("error_response", nurS), ende())), 1, ""},
+		{"einfach, V leer, S FATAL", "2", "", false, einSession(einf(srv("error_response", `{"notice":{"V":"","S":"FATAL"}}`), ende())), 1, ""},
 		{"extended, Sync-Gruppe", "2", "", false, einSession(endeInGruppe(sync)), 1, ""},
 		{"extended, Flush-Gruppe", "2", "", false, einSession(endeInGruppe(flush)), 1, ""},
 		{"extended, vordere Flush-Gruppe", "2", "", false, einSession(erw(parse(1), flush(1), srvG(1, "parse_complete", `{}`), parse(2), sync(2), srvG(2, "error_response", fatalFelder), srvG(2, "connection_closed", `{}`))), 1, ""},
@@ -202,7 +203,7 @@ func TestLesenEndeAbgelehntDarstellung(t *testing.T) {
 // Abdeckung: LH-FA-25/Negative — der Leser von sqlite lehnt mit PGR-E3003 ab: connection_closed an
 // jeder falschen Stelle, je Stelle eine Datei von Hand gebaut (in der ersten Nachricht, mitten in der
 // Interaktion, vor der Fehlerantwort, nach einer Meldung zwischen Fehlerantwort und Ende, nach ERROR,
-// nach V leer mit S FATAL, nach Fatal in Kleinschreibung, mit ready_for_query vor und nach dem Ende,
+// nach Fatal in Kleinschreibung, mit ready_for_query vor und nach dem Ende,
 // zweimal in derselben Interaktion, in der Interaktion 1 von 2, in zwei Interaktionen einer Session,
 // bei Extended nicht in der letzten Gruppe, nicht als letzte Server-Nachricht der Gruppe, mit
 // ready_for_query in der Gruppe, hinter einer Sync-Gruppe und in einer letzten Gruppe ohne Sync und
@@ -219,7 +220,6 @@ func TestLesenEndeAbgelehntStelle(t *testing.T) {
 		f("vor der Fehlerantwort", einf(srv("command_complete", `{"tag":"x"}`), ende(), fatal())),
 		f("Meldung zwischen Fehlerantwort und Ende", einf(fatal(), meldung, ende())),
 		f("nach ERROR", einf(srv("error_response", fehlerFeld), ende())),
-		f("V leer, S FATAL", einf(srv("error_response", `{"notice":{"V":"","S":"FATAL"}}`), ende())),
 		f("Fatal in Kleinschreibung", einf(srv("error_response", `{"notice":{"V":"Fatal"}}`), ende())),
 		f("ready_for_query vor dem Ende", einf(fatal(), rfq, ende())),
 		f("ready_for_query nach dem Ende", einf(fatal(), ende(), rfq)),

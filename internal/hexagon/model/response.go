@@ -116,14 +116,14 @@ func (r Response) ohneFelder() bool {
 }
 
 // beendetVerbindung ist wahr für eine error_response, deren Schweregrad FATAL oder
-// PANIC ist: der Wert des Feldes "V"; ist "V" vorhanden, auch leer, entscheidet es
-// allein, und "S" zählt nur, wenn "V" fehlt. Der Vergleich ist genau (SPEC-002).
+// PANIC ist: der Wert des Feldes "V"; fehlt "V" oder ist es leer, zählt "S". Der
+// Vergleich ist genau (SPEC-002).
 func (r Response) beendetVerbindung() bool {
 	if r.Type != ResponseErrorResponse {
 		return false
 	}
-	schweregrad, ok := r.Fields["V"]
-	if !ok {
+	schweregrad := r.Fields["V"]
+	if schweregrad == "" {
 		schweregrad = r.Fields["S"]
 	}
 	return schweregrad == "FATAL" || schweregrad == "PANIC"

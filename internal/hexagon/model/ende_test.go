@@ -36,8 +36,8 @@ func fatalFelder() map[string]string {
 	return map[string]string{"V": "FATAL", "S": "FATAL", "C": "57P01"}
 }
 
-// Gültige Formen des Endes (LH-FA-25.a): FATAL und PANIC, der Schweregrad aus V oder, ohne V,
-// aus S, einfache Anfrage und Extended mit sync oder flush am Ende der letzten Gruppe.
+// Gültige Formen des Endes (LH-FA-25.a): FATAL und PANIC, der Schweregrad aus V oder, ohne V
+// oder mit leerem V, aus S, einfache Anfrage und Extended mit sync oder flush am Ende der letzten Gruppe.
 func TestValidateEndeGueltig(t *testing.T) {
 	for name, i := range map[string]model.Interaction{
 		"query FATAL":                             queryEnde(fehler(fatalFelder()), ende()),
@@ -45,6 +45,7 @@ func TestValidateEndeGueltig(t *testing.T) {
 		"query FATAL nur in S":                    queryEnde(fehler(map[string]string{"S": "FATAL"}), ende()),
 		"query PANIC nur in S":                    queryEnde(fehler(map[string]string{"S": "PANIC"}), ende()),
 		"query V FATAL gegen S ERROR":             queryEnde(fehler(map[string]string{"V": "FATAL", "S": "ERROR"}), ende()),
+		"query leeres V gegen S FATAL":            queryEnde(fehler(map[string]string{"V": "", "S": "FATAL"}), ende()),
 		"query nach Hinweis und Daten":            queryEnde(model.Response{Type: model.ResponseNoticeResponse}, model.Response{Type: model.ResponseDataRow}, fehler(fatalFelder()), ende()),
 		"extended mit sync":                       extendedEnde(model.ClientSync, fehler(fatalFelder()), ende()),
 		"extended mit flush":                      extendedEnde(model.ClientFlush, fehler(fatalFelder()), ende()),
@@ -99,7 +100,6 @@ func TestValidateEndeFehler(t *testing.T) {
 		{"query ohne Schweregrad", queryEnde(fehler(map[string]string{"C": "57P01"}), ende()), fatalNur},
 		{"query ohne Felder", queryEnde(fehler(nil), ende()), fatalNur},
 		{"query V ERROR gegen S FATAL", queryEnde(fehler(map[string]string{"V": "ERROR", "S": "FATAL"}), ende()), fatalNur},
-		{"query leeres V gegen S FATAL", queryEnde(fehler(map[string]string{"V": "", "S": "FATAL"}), ende()), fatalNur},
 		{"query fatal klein in V", queryEnde(fehler(map[string]string{"V": "fatal"}), ende()), fatalNur},
 		{"query fatal klein in S", queryEnde(fehler(map[string]string{"S": "fatal"}), ende()), fatalNur},
 		{"query panic klein in V", queryEnde(fehler(map[string]string{"V": "panic"}), ende()), fatalNur},

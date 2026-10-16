@@ -53,7 +53,7 @@ func gruppeEnde(abschluss string, server ...string) string {
 
 // Abdeckung: LH-FA-25/Happy — der Leser lädt connection_closed ohne Felder als letzte Antwort
 // der letzten Interaktion einer Session unmittelbar nach einer error_response FATAL oder PANIC
-// (Schweregrad aus V, ohne V aus S), in einer einfachen Interaktion und in einer Extended-Interaktion,
+// (Schweregrad aus V, ohne V oder mit leerem V aus S), in einer einfachen Interaktion und in einer Extended-Interaktion,
 // deren letzte Gruppe mit sync oder flush endet; auch mit offset_ms, empty_sessions und
 // Version 2 ohne Ende. Das Feld version des Modells trägt die Version der Datei.
 func TestUnmarshalEnde(t *testing.T) {
@@ -65,6 +65,7 @@ func TestUnmarshalEnde(t *testing.T) {
 		{"einfach, FATAL", mitEnde("2"), 2, true},
 		{"einfach, PANIC", endeKopf("2", "") + endeSession(1, einfach(1, "", "{type: error_response, notice: {V: PANIC}}", endeNachricht)), 2, true},
 		{"einfach, FATAL nur in S", endeKopf("2", "") + endeSession(1, einfach(1, "", "{type: error_response, notice: {S: FATAL}}", endeNachricht)), 2, true},
+		{"einfach, leeres V gegen S FATAL", endeKopf("2", "") + endeSession(1, einfach(1, "", "{type: error_response, notice: {V: '', S: FATAL}}", endeNachricht)), 2, true},
 		{"einfach, PANIC nur in S", endeKopf("2", "") + endeSession(1, einfach(1, "", "{type: error_response, notice: {S: PANIC}}", endeNachricht)), 2, true},
 		{"einfach, V FATAL gegen S ERROR", endeKopf("2", "") + endeSession(1, einfach(1, "", "{type: error_response, notice: {V: FATAL, S: ERROR}}", endeNachricht)), 2, true},
 		{"einfach, Ende in Blockform", endeKopf("2", "") + endeSession(1, einfach(1, "", fatalNachricht, "type: connection_closed")), 2, true},
@@ -112,7 +113,7 @@ func endeIn(i model.Interaction) bool {
 // Abdeckung: LH-FA-25/Negative — der Leser lehnt mit PGR-E3003 ab: connection_closed in Version 1, nicht
 // als letzte Nachricht, nicht in der letzten Interaktion einer Session, zweimal in einer Session, mit
 // einem Schlüssel neben type (mit Wert, leer, null), nicht nach FATAL oder PANIC (nach ERROR, ohne
-// Fehlerantwort, V vor S, leeres V, fatal in Kleinschreibung), mit einer Nachricht zwischen
+// Fehlerantwort, V vor S, fatal in Kleinschreibung), mit einer Nachricht zwischen
 // Fehlerantwort und Ende, in einer Extended-Gruppe mit ready_for_query, in einer vorderen Gruppe und
 // bei einer letzten Gruppe ohne Ende mit flush, mit ready_for_query an jeder Stelle einer einfachen Interaktion
 // mit Ende (am Anfang, in der Mitte, direkt vor und nach der Fehlerantwort) und mit connection_closed an
@@ -153,7 +154,6 @@ func TestUnmarshalEndeAbgelehnt(t *testing.T) {
 		{"ohne Fehlerantwort", einfachEnde("{type: command_complete, tag: x}", endeNachricht), "nach einer error_response FATAL oder PANIC"},
 		{"nur Ende", einfachEnde(endeNachricht), "nach einer error_response FATAL oder PANIC"},
 		{"V ERROR gegen S FATAL", einfachEnde("{type: error_response, notice: {V: ERROR, S: FATAL}}", endeNachricht), "nach einer error_response FATAL oder PANIC"},
-		{"leeres V gegen S FATAL", einfachEnde("{type: error_response, notice: {V: '', S: FATAL}}", endeNachricht), "nach einer error_response FATAL oder PANIC"},
 		{"fatal klein", einfachEnde("{type: error_response, notice: {V: fatal}}", endeNachricht), "nach einer error_response FATAL oder PANIC"},
 		{"Hinweis zwischen Fehler und Ende", einfachEnde(fatalNachricht, "{type: notice_response}", endeNachricht), "nach einer error_response FATAL oder PANIC"},
 		{"ready_for_query in der Gruppe mit Ende", extendedEndeText(fatalNachricht, rfqNachricht, endeNachricht), "ready_for_query nur als letzte"},

@@ -29,7 +29,11 @@ func formFlush() vform { return vform{name: "Extended Flush", vorspann: 2, schlu
 
 func alleFormen() []vform { return []vform{formEinfach(), formSync(), formFlush()} }
 
-// ohneFlush sind die Formen, deren letzte Gruppe bis zum ReadyForQuery liest.
+// ohneFlush sind die Formen, deren letzte Gruppe bis zum ReadyForQuery liest. Fälle,
+// die nur sie fahren, haben aufgezeichnet kein Ende (eine Gruppe mit Flush gibt es
+// nur bei aufgezeichnetem Ende) oder erreichen die Fehlerantwort des Servers in
+// der Form Extended Flush nicht: Das Lesen endet dort mit der Antwortzahl der
+// Gruppe vor ihr (Server später, frühere Abweichung).
 func ohneFlush() []vform { return []vform{formEinfach(), formSync()} }
 
 // interaktion ist B mit den aufgezeichneten Antworten soll.
@@ -78,8 +82,9 @@ func (f vform) ablauf(gelesen int) []string {
 // (gelesenFlush statt gelesen bei Extended Flush, wenn nicht 0), die erste
 // Abweichung (position 0: keine; ab 1 in der einfachen Form, in Extended um
 // vorspann verschoben) mit Art und Zusatz der Meldung, ob play die Verbindung
-// ohne Terminate schließt (ohne) und ob der Server die Verbindung nach ist
-// verliert (verlust).
+// ohne Terminate schließt (ohne), ob der Server die Verbindung nach ist
+// verliert (verlust) und ob in Session 1 eine Interaktion D hinter B steht
+// (danach): play sendet sie nicht.
 type vendeFall struct {
 	name         string
 	formen       []vform
@@ -90,6 +95,7 @@ type vendeFall struct {
 	art, zusatz  string
 	ohne         bool
 	verlust      bool
+	danach       bool
 }
 
 // dann ist r, gefolgt von den Antworten, die der Server nach der Fehlerantwort
@@ -130,6 +136,9 @@ func pruefeVergleichEnde(t *testing.T, c vendeFall, f vform, o services.PlayOpti
 	rec.Sessions = []model.Session{
 		{ID: 1, Interactions: []model.Interaction{aufgezeichnet(1, "A", ok...), f.interaktion(c.soll)}},
 		{ID: 2, Interactions: []model.Interaction{aufgezeichnet(1, "C", ok...)}},
+	}
+	if c.danach {
+		rec.Sessions[0].Interactions = append(rec.Sessions[0].Interactions, aufgezeichnet(3, "D", ok...))
 	}
 	gelesen := c.gelesen
 	if f.schluss == model.ClientFlush && c.gelesenFlush != 0 {
@@ -182,7 +191,7 @@ func pruefeVergleichEnde(t *testing.T, c vendeFall, f vform, o services.PlayOpti
 }
 
 // Abdeckung: LH-FA-24/Happy, LH-FA-25/Happy — mit Vergleich ist eine
-// Fehlerantwort FATAL oder PANIC (Feld V, ohne es S) des Servers, wenn die
+// Fehlerantwort FATAL oder PANIC (Feld V; fehlt es oder ist es leer, Feld S) des Servers, wenn die
 // Aufzeichnung an der Stelle eine error_response FATAL oder PANIC mit
 // connection_closed dahinter und denselben SQLSTATE (Feld C) zeigt, das erwartete
 // Ende: keine Meldung, Exit-Code 0, keine Abweichung; play liest nichts mehr,
@@ -239,6 +248,7 @@ func TestVergleichEndeAbweichung(t *testing.T) {
 		nichtErwartet("anderer SQLSTATE", alleFormen(), endeAufgezeichnet(), dann(schwer("FATAL", "FATAL", "40P01")), 1, 1, "Fehler", sqlstates("57P01", "40P01")),
 		nichtErwartet("ohne Fehlerantwort der Aufzeichnung", ohneFlush(), ohneFehler, append([]model.Response{zeilenkopf(spalte("a", 23))}, dann(fatal)...), 2, 2, "Fehler", sqlstates("", "57P01")),
 		nichtErwartet("Server früher", alleFormen(), []model.Response{befehl("SELECT 1"), fatal, {Type: model.ResponseConnectionClosed}}, dann(fatal), 1, 1, "Fehler", sqlstates("", "57P01")),
+		nichtErwartet("Server früher, Feld C an command_complete", alleFormen(), []model.Response{{Type: model.ResponseCommandComplete, Tag: "SELECT 1", Fields: map[string]string{"C": "99999"}}, fatal, {Type: model.ResponseConnectionClosed}}, dann(fatal), 1, 1, "Fehler", sqlstates("", "57P01")),
 		nichtErwartet("Server später", ohneFlush(), endeAufgezeichnet(), append([]model.Response{befehl("SELECT 1")}, dann(fatal)...), 2, 1, "Nachrichtenart", ""),
 		nichtErwartet("frühere Abweichung", ohneFlush(), ohneFehler, append([]model.Response{zeilenkopf(spalte("b", 23))}, dann(fatal)...), 2, 1, "Spaltenbeschreibung", ""),
 	)
@@ -285,4 +295,21 @@ func TestVergleichEndeGewoehnlich(t *testing.T) {
 // Tabelle).
 func TestVergleichEndeVerbindungsverlust(t *testing.T) {
 	laufVergleichEnde(t, []vendeFall{{name: "Verbindungsverlust", formen: alleFormen(), soll: endeAufgezeichnet(), gelesen: 1, verlust: true}})
+}
+
+// Abdeckung: LH-FA-24/Boundary, LH-FA-25/Boundary — nach einem Ende mit Vergleich, erwartet
+// oder als Abweichung mit --continue-on-error, endet die Session: play sendet eine
+// weitere Interaktion derselben Session nicht, die nächste Session läuft. Der Fall
+// des erwarteten Endes trägt eine Aufzeichnung, in der das Ende nicht die letzte
+// Interaktion der Session ist; das prüft der Leser (PGR-E3003), nicht der Service
+// (LH-FA-24.a *Ende der Aufzeichnung*, LH-FA-20.a Tabelle, *Ende einer Session*).
+func TestVergleichEndeSessionEndet(t *testing.T) {
+	soll := []model.Response{hinweis(), zeilenkopf(spalte("a", 23)), fehlerMit("57P01", "aufgezeichnet"), bereitMit("I")}
+	laufVergleichEnde(t, []vendeFall{
+		{name: "erwartetes Ende", formen: alleFormen(), soll: endeAufgezeichnet(), ist: dann(schwer("FATAL", "FATAL", "57P01")), gelesen: 1, ohne: true, danach: true},
+		{
+			name: "Abweichung", formen: ohneFlush(), soll: soll, gelesen: 4, position: 2, art: "Fehler", zusatz: sqlstates("57P01", "57P01"), ohne: true, danach: true,
+			ist: append([]model.Response{parameter(), zeilenkopf(spalte("a", 23)), zeile()}, dann(schwer("FATAL", "FATAL", "57P01"))...),
+		},
+	})
 }
