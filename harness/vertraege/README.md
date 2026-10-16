@@ -31,6 +31,7 @@ ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/
 | `SPEC-052` | `gates-schnell`, `stop-hook-gegenprobe` | [`SPEC-052-gate-kette.md`](SPEC-052-gate-kette.md) |
 | `SPEC-053` | `test-postgres-versionen` | [`SPEC-053-postgres-versionen.md`](SPEC-053-postgres-versionen.md) |
 | `SPEC-054` | `meldungskatalog-check` | [`SPEC-054-meldungskatalog.md`](SPEC-054-meldungskatalog.md) |
+| `SPEC-055` | `binaries`, `test-container` | [`SPEC-055-container-und-binaries.md`](SPEC-055-container-und-binaries.md) |
 
 ## Historie
 
@@ -54,3 +55,4 @@ ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/
 | 2026-10-14 | Harness-Werkzeuge: Reihenfolge der Prüfungen des Hooks, Positivliste an einer Stelle und Selbständerung, Art `X`, Zulässigkeit der Pfade, Symlink-Einzelheiten (Spiegelregel mit Vorfahr, absolutes Ziel), Vergleich des Hashes der schnellen Kette, Freigabe in Unterverzeichnis und leerer Umgebung (`SPEC-052`) |
 | 2026-10-14 | Harness-Werkzeuge: Versionsmatrix der Integrationstests mit Liste, Teilmenge, Eingabefehlern, Prüfung der Hauptversion des Servers, Ablauf, Aufräumen, Aufrufarten des Treibers und Grenzen (`SPEC-053`); Ausnahmeliste der schnellen Kette um `test-postgres-versionen` (`SPEC-052`) |
 | 2026-10-17 | Harness-Werkzeuge: Abgleich von Code-Tabelle, Meldungskatalog der Spezifikation und Fehlercode-Tabellen des Handbuchs mit Quellen, Form, Mengenregeln (Rückfälle ohne Konstante zugelassen), Sperren, Ausgabe und Anschluss ohne Stufung (`SPEC-054`); Beleg des Handbuchs in der schnellen Kette (`SPEC-052`, Punkt 13) |
+| 2026-10-17 | Harness-Werkzeuge: Binaries je Zielplattform mit `SHA256SUMS`, Gate über zwei Builds ohne Cache, Kopf der Binaries, Image je Plattform, Smoke im Container, Aufräumen, Aufrufarten des Treibers und Grenzen (`SPEC-055`) |
