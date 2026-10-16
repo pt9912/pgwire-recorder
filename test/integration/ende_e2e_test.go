@@ -264,9 +264,10 @@ func TestE2ERecordEndeLeerlauf(t *testing.T) {
 	})
 }
 
-// kappProxy leitet Verbindungen an ziel weiter und kappt beide Seiten, sobald die Anfrage
-// durchgeleitet ist, deren Text marke enthält; von diesem Zeitpunkt an geht keine Antwort des
-// Ziels mehr zurück. Er liefert die Adresse, auf der er lauscht.
+// kappProxy leitet Verbindungen an ziel weiter und schließt beide Seiten, sobald die Anfrage
+// durchgeleitet ist, deren Text marke enthält. Das Flag gekappt verwirft Bytes, die das Ziel
+// zwischen der Weiterleitung und dem Schließen sendet; es schließt ein Zeitfenster und hat
+// keinen Test, der seinen Wegfall fängt. Er liefert die Adresse, auf der er lauscht.
 func kappProxy(t *testing.T, ziel, marke string) string {
 	t.Helper()
 	l, err := net.Listen("tcp", "127.0.0.1:0")
