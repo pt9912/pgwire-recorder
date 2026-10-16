@@ -324,27 +324,71 @@ func TestPlayExtendedErwarteterFehler(t *testing.T) {
 }
 
 // Abdeckung: LH-FA-20/Boundary — das erste Abbruchsignal (ctx endet) in einer
-// Extended-Interaktion lässt sie bis zu ihrem ReadyForQuery laufen: alle
-// übrigen Gruppen werden gesendet und gelesen; danach beginnt keine weitere
-// Interaktion, die Verbindung wird geschlossen, ohne Fehler (LH-FA-20.a
-// *Abbruchsignal*).
+// Extended-Interaktion lässt sie bis zu ihrem Ende laufen: alle übrigen Gruppen
+// werden gesendet und gelesen, bei der letzten Gruppe mit Sync bis zum
+// ReadyForQuery, bei der letzten Gruppe mit Flush (aufgezeichnetes Ende) bis zur
+// Antwort auf jede ihrer Client-Nachrichten, ohne auf ein ReadyForQuery zu
+// warten; danach beginnt keine weitere Interaktion, die Verbindung wird
+// geschlossen, ohne Fehler. Das zweite Signal (ablauf geschlossen) unterbricht
+// eine Interaktion, die in der letzten Gruppe mit Flush auf eine Antwort wartet,
+// sofort, ohne Fehler (LH-FA-20.a *Abbruchsignal*).
 func TestPlayExtendedSignal(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	rec := sitzung(zweiGruppen(), interaktion(2, "B", "SELECT 1"))
-	ziel := &fakeZiel{sessions: []*fakeEinspiel{{
-		beiGruppe: func(n int) {
-			if n == 1 {
-				cancel()
-			}
+	flush := func() model.Recording { return sitzung(endeExtended(1, model.ClientFlush)) }
+	for _, f := range []struct {
+		name    string
+		rec     model.Recording
+		gruppen [][]schritt
+		zweites bool
+		ablauf  []string
+	}{
+		{
+			name:    "erstes Signal, letzte Gruppe mit Sync",
+			rec:     sitzung(zweiGruppen(), interaktion(2, "B", "SELECT 1")),
+			gruppen: [][]schritt{{antwort(model.ResponseParseComplete), antwort(model.ResponseBindComplete)}, {antwort(model.ResponseCommandComplete)}, {antwort(model.ResponseReadyForQuery)}},
+			ablauf:  []string{"verbinde", "gruppe parse,bind,flush", "naechste", "naechste", "gruppe execute,flush", "naechste", "gruppe sync", "naechste", "schliesse"},
 		},
-		gruppen: [][]schritt{{antwort(model.ResponseParseComplete), antwort(model.ResponseBindComplete)}, {antwort(model.ResponseCommandComplete)}, {antwort(model.ResponseReadyForQuery)}},
-	}}}
-	if err := spiele(ctx, t, nil, rec, ziel, "", ""); err != nil {
-		t.Fatalf("Play: %v", err)
-	}
-	want := []string{"verbinde", "gruppe parse,bind,flush", "naechste", "naechste", "gruppe execute,flush", "naechste", "gruppe sync", "naechste", "schliesse"}
-	if got := ziel.liste(); !reflect.DeepEqual(got, want) {
-		t.Fatalf("Ablauf %q, erwartet %q", got, want)
+		{
+			name:    "erstes Signal, letzte Gruppe mit Flush",
+			rec:     flush(),
+			gruppen: [][]schritt{{antwort(model.ResponseParseComplete)}, {antwort(model.ResponseBindComplete), antwort(model.ResponseCommandComplete)}},
+			ablauf:  []string{"verbinde", "gruppe parse,flush", "naechste", "gruppe bind,execute,flush", "naechste", "naechste", "schliesse"},
+		},
+		{
+			name: "zweites Signal, letzte Gruppe mit Flush", rec: flush(), zweites: true,
+			gruppen: [][]schritt{{antwort(model.ResponseParseComplete)}, {antwort(model.ResponseBindComplete), {blockiert: true}}},
+			ablauf:  []string{"verbinde", "gruppe parse,flush", "naechste", "gruppe bind,execute,flush", "naechste", "naechste", "schliesse"},
+		},
+	} {
+		t.Run(f.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			sitz := &fakeEinspiel{gruppen: f.gruppen}
+			if !f.zweites {
+				sitz.beiGruppe = func(n int) {
+					if n == 1 {
+						cancel()
+					}
+				}
+			}
+			ziel := &fakeZiel{sessions: []*fakeEinspiel{sitz}}
+			s, err := services.NewPlayService(context.Background(), ladeRepo{rec: f.rec}, "r.yaml", ziel, services.PlayOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			ablauf := make(chan struct{})
+			err = warteAufPlay(ctx, t, s, ablauf, func() {
+				if f.zweites {
+					bis(t, func() bool { return len(ziel.liste()) >= 6 }, "Play wartet nicht binnen 30 s auf die Antwort der letzten Gruppe")
+					close(ablauf)
+				}
+			})
+			if err != nil {
+				t.Fatalf("Play: %v", err)
+			}
+			if got := ziel.liste(); !reflect.DeepEqual(got, f.ablauf) {
+				t.Fatalf("Ablauf %q, erwartet %q", got, f.ablauf)
+			}
+		})
 	}
 }
 

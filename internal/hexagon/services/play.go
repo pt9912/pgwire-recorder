@@ -240,7 +240,8 @@ func (s *PlayService) startup(sess model.Session) map[string]string {
 // sonst ist sie PGR-E4004, mit ContinueOnError an weiter gereicht, ohne ihn der
 // Fehler, nach dem die Interaktion ohne weiteres Lesen abbricht. Nach einer
 // erwarteten oder weitergereichten Fehlerantwort liest sie weiter bis zum
-// ReadyForQuery. Die Meldung nennt von der Fehlerantwort SQLSTATE und Meldung,
+// ReadyForQuery, außer bei einer Extended-Interaktion, deren letzte Gruppe mit
+// Flush endet (extended). Die Meldung nennt von der Fehlerantwort SQLSTATE und Meldung,
 // keine weiteren Felder (LH-FA-20.a *Interaktion*, *Meldungen*, Schritt 6).
 //
 // Mit CompareResponses hält sie die Antworten bis zum ReadyForQuery und
@@ -305,9 +306,11 @@ func (s *PlayService) anfrage(l *lauf, sql string) error {
 // (erwarteteAntworten); nach der letzten Gruppe, die mit Sync endet, liest sie
 // bis zum ReadyForQuery. Nach einer Fehlerantwort, die nicht abbricht, zählt
 // sie nicht mehr: Sie sendet die übrigen Gruppen ohne Warten dazwischen und
-// liest dann bis zum ReadyForQuery. Endet die letzte Gruppe mit Flush (nur bei
-// aufgezeichnetem Ende), kommt kein ReadyForQuery: Die Interaktion endet mit den
-// Antworten dieser Gruppe oder mit der Fehlerantwort, ohne Frist.
+// liest dann, wenn die letzte Gruppe mit Sync endet, bis zum ReadyForQuery.
+// Endet die letzte Gruppe mit Flush (nur bei aufgezeichnetem Ende), kommt kein
+// ReadyForQuery: Die Interaktion endet mit den Antworten dieser Gruppe oder mit
+// ihrer Fehlerantwort; nach einer früheren Fehlerantwort, die nicht abbricht,
+// sendet sie die Gruppe und liest nichts mehr.
 func (s *PlayService) extended(l *lauf, gruppen []model.Group) error {
 	fehlerGesehen := false
 	for _, g := range gruppen {
