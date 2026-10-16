@@ -1,4 +1,6 @@
-**Stand:** offen
+**Stand:** verkörpert
+
+Zielort: `spec/spezifikation.md` `LH-FA-20.a` *Gruppen* und *Interaktion* (jeweils der Satz „Grenze: …“, das Verhalten des Servers ist gegen die Referenz geprüft, für die übrigen Hauptversionen nicht durch einen Test) — Herkunfts-Anker `seit slice-v1-abschluss-verbindungsende-einspielen` (*Interaktion*) und `seit slice-v1-abschluss-verbindungsende-einspielen-extended` (*Gruppen*). Die Matrix von `make test-postgres-versionen` wird nicht erweitert. Entscheidung des Nutzers vom 2026-10-16 („ja deine Empfehlungen“, Antwort auf Frage (b) der Closure von `slice-v1-abschluss-verbindungsende-einspielen-extended`): `verkörpert` als dokumentierte Grenze statt Aufnahme der Szenarien mit Ende in die Matrix. *Ende einer Session* trägt diese Grenze nicht (dort steht nur die Grenze des Rennens beim zweiten Signal); die Stellen sind *Gruppen* und *Interaktion*. Die Nehmer `slice-v1-abschluss-verbindungsende-vergleich` (Szenario 16 Satz 3, `SPEC-029` Punkt 2) und künftige Slices mit Verhalten des Servers zählen weiter als Auftreten, wenn sie das Risiko als *weiter offen* melden.
 
 Kein Auftreten: `slice-v1-abschluss-tls-client-doku` — betrifft die Version des Clients (libpq 17), nicht des Servers; das Handbuch nennt sie seit der Nacharbeit zu V-1 im Satz. Der Zähler bleibt bei 1.
 

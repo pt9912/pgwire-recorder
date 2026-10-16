@@ -1,4 +1,6 @@
-**Stand:** offen
+**Stand:** geplant — Kennung: `slice-harness-regeln-spezifikation-satzabgleich`
+
+Ausgang `geplant` (Beschluss des Nutzers vom 2026-10-16, „ja deine Empfehlungen“, Antwort auf Frage (a) der Closure von `slice-v1-abschluss-verbindungsende-einspielen-extended`): `slice-harness-regeln-spezifikation-satzabgleich` (`next/`) nimmt den Abgleich der Sätze einer Stelle der Spezifikation (Einleitung, Aufzählung, Tabelle) in die Liste des Architect vor dem Code auf (`.claude/agents/architect.md`, `AGENTS.md` §3.12); er nimmt die Sendung in §1 (*Geschnitten aus*), §2 (Liefer-Punkte 1 und 2) und §3 an und liegt hinter `slice-harness-regeln-nach-v1-abschluss`; der Wortlaut ist Empfehlung, bis der Nutzer ihn bestätigt. Die Frage, ob F-1 aus `slice-v1-abschluss-verbindungsende-replay-extended` mitzählt (dann 4×), bleibt offen und ändert den Ausgang nicht.
 
 Zähler 2, unter der Schwelle: `slice-v1-abschluss-protokollrand` (F-2) — die Zeile zu abgelehnten Verbindungen in `LH-FA-05.e` und die *Zählung der Verbindungen* in `LH-FA-12.a` sagten verschieden, was zählt; der Architect glich die Spezifikation an, Lastenheft und Code blieben (Beleg `evidence/slice-v1-abschluss-protokollrand.md`). Offen; erreicht der Eintrag 3×, liest ihn die Welle-Closure.
 
