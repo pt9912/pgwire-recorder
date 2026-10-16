@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-replay-extended
+**Fund (Review F-7, INFO):** Das akzeptierte Negativ „`Terminate` oder Abbruch mitten in der Gruppe: durch vorhandene Tests des Adapters getragen“ nannte keinen Test; die Zusage steht in `LH-FA-25.a`, und kein Test des Adapters fuhr sie im Replay mitten in einer Extended-Gruppe (`TestReplayEndeLiestNichtsMehr` fährt `Query`). Behoben in `62c82c7` mit `TestReplayEndeTerminateMittenInDerGruppe`; die Verifikation färbte ihn mit vier eigenen Mutanten (AM1 bis AM4).

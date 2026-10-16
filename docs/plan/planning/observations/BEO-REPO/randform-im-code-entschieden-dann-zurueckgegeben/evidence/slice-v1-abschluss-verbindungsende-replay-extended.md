@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-replay-extended
+**Fund (Review F-2, LOW):** Der Implementer bemerkte das Gegenbeispiel zur Zusage „Gruppen davor mit `Sync`“ (Beobachtung 1 in §7) und nannte es als „zur Kenntnis für den Architect“, ohne anzuhalten und es als Artefakt zurückzugeben (`AGENTS.md` §3.12: ein Satz im Bericht ist keine Rückgabe). Zurückgegeben mit `9ef7dfb` durch Review und Planner.

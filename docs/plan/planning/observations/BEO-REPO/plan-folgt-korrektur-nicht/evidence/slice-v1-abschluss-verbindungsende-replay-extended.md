@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-replay-extended
+**Fund (Verifikation V-2, INFO; V-3, INFO):** Nach dem Nachziehen von §7 nannte §6 für den Adapter-Test noch `EndTerminate`/`EndClosed` und „der Unterschied liegt im Adapter“, obwohl der Port `Replayer.CloseConnection` keine Art kennt (V-2; berichtigt in der Closure). Die Zählung der Mutanten in §7 *Messung* (38) folgte der Nacharbeit nicht (40; V-3, behoben in `dc6543c`).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-replay-extended
+**Fund (Review F-1, MEDIUM):** `LH-FA-25.a` und §6 nannten „Gruppen davor mit `Sync` wie mit `Flush`“ als Fälle; `Interaction.Validate` (`validateAbschluss`, `SPEC-001`) lässt `Sync` nur am Ende der letzten Gruppe zu, eine Gruppe mit `Sync` vor der Gruppe mit Ende ist nicht darstellbar (`PGR-E3003`). Ursache: Die Randform war entschieden, aber ohne Abgleich mit der Validierung des Formats. Behoben in `9ef7dfb` (Architect: Spezifikation, §6 und DoD berichtigt, kein Code betroffen).
