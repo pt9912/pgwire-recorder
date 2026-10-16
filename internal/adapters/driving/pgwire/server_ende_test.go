@@ -254,3 +254,30 @@ func TestReplayEndeGruppeDavorSchliesstNicht(t *testing.T) {
 		t.Fatalf("Meldung beim Ende (erster Fehler %q): %s", s.FirstErrorCode(), text)
 	}
 }
+
+// Abdeckung: LH-FA-25/Negative, LH-FA-03/Boundary — Replay im Adapter: `Terminate`
+// und der Abbruch der Verbindung mitten in einer Extended-Gruppe (nach `Parse`,
+// vor `Sync`) beenden die Sitzung mit genau einem CloseConnection; der Adapter
+// fragt den Use Case danach nicht mehr (ein Aufruf von ClientMessage, für
+// `Parse`) und sendet nichts an den Client (LH-FA-25.a *Reihenfolge der Gründe im
+// Replay*).
+func TestReplayEndeTerminateMittenInDerGruppe(t *testing.T) {
+	for _, weg := range []string{"terminate", "abbruch"} {
+		rep := &endeReplayer{fakeReplayer: &fakeReplayer{}, antworten: endeFolge()}
+		_, client, fe, _, fertig := replayVerbindung(t, rep)
+		fe.Send(&pgproto3.Parse{Name: "s", Query: "SELECT 1"})
+		if weg == "terminate" {
+			fe.Send(&pgproto3.Terminate{})
+		}
+		_ = fe.Flush()
+		if weg == "abbruch" {
+			client.Close()
+		} else if got := bisEndeGelesen(t, fe); len(got) != 0 {
+			t.Fatalf("%s: Nachrichten an den Client: %v", weg, got)
+		}
+		warte(t, fertig)
+		if got := rep.protokoll(); got != "close" || rep.zahl() != 1 {
+			t.Fatalf("%s: Ablauf %q, ClientMessage-Aufrufe %d, erwartet \"close\" und 1", weg, got, rep.zahl())
+		}
+	}
+}

@@ -32,12 +32,13 @@ func parseSync(t *testing.T, c net.Conn, sql string, abschluss byte) {
 }
 
 // Abdeckung: LH-FA-25/Happy, LH-FA-18/Boundary, LH-FA-03/Boundary — replay mit
-// einer handgeschriebenen Extended-Aufzeichnung: Die Interaktion mit Sync und die
-// Gruppe mit Flush davor laufen wie sonst; für die Gruppe mit Ende, die mit Sync
-// schließt, erhält der Client die Nachrichten vor dem Ende und die aufgezeichnete
-// Fehlerantwort (FATAL), danach das Ende der Verbindung, ohne ReadyForQuery, und
-// der Recorder meldet nichts; die nächste Verbindung erhält die nächste Session;
-// mit --fail-on-unconsumed ist der Exit-Code 0.
+// einer handgeschriebenen Extended-Aufzeichnung: Der Client erhält für die
+// Gruppe mit Ende, die mit Sync schließt, die Nachricht vor dem Ende und die
+// aufgezeichnete Fehlerantwort (FATAL), danach das Ende der Verbindung, ohne
+// ReadyForQuery, und der Recorder meldet nichts; die Interaktion mit Sync und die
+// Gruppe mit Flush davor werden bis ReadyForQuery bzw. ParseComplete gelesen
+// (ihren Inhalt prüfen die Tests des Service); die nächste Verbindung erhält die
+// nächste Session; mit --fail-on-unconsumed ist der Exit-Code 0.
 func TestE2EReplayEndeExtendedSync(t *testing.T) {
 	rep := startProzess(t, "replay", "--input", endeDatei(t, endeExtendedSyncYAML), "--fail-on-unconsumed")
 	c, r := rohVerbindung(t, rep.listen)
