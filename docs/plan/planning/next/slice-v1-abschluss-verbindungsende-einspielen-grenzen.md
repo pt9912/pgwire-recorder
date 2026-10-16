@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `LH-FA-25.a` · `LH-FA-20.a`
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-16.
 
@@ -84,7 +84,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- internal test docs/user`, Tests eingeschlossen, wobei die Basis der Stand des Hauptzweigs vor dem Anspruch ist (**Basis:** vom Planner beim Anspruch einzutragen, danach nicht mehr geändert); **über 400** geht der Slice zurück zur Zerlegung. **Meldeschwelle 300:** Erreicht die Summe 300, hält der Implementer an und meldet dem Planner, bevor er weiterarbeitet (`BEO-REPO/meldeschwelle-ohne-artefakt`). Schätzung des Planners in dieser Metrik (gemessen im Geber: E2E-Fall mit Testdaten 65): **140 bis 190, Mitte 165 und damit 41 % der Marke** (zwei Fälle zu 65 bis 80, Tabelle 10 bis 30).
+- `in-progress` → `next`: **Marke mit Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- internal test docs/user`, Tests eingeschlossen, wobei die Basis der Stand des Hauptzweigs vor dem Anspruch ist (**Basis:** `fa149c68`, Stand des Hauptzweigs beim Anspruch, danach nicht mehr geändert; die Commits danach tragen `Verantwortlich:`, den Move und die Roadmap ein und ändern keinen Pfad der Metrik); **über 400** geht der Slice zurück zur Zerlegung. **Meldeschwelle 300:** Erreicht die Summe 300, hält der Implementer an und meldet dem Planner, bevor er weiterarbeitet (`BEO-REPO/meldeschwelle-ohne-artefakt`). Schätzung des Planners in dieser Metrik (gemessen im Geber: E2E-Fall mit Testdaten 65): **140 bis 190, Mitte 165 und damit 41 % der Marke** (zwei Fälle zu 65 bis 80, Tabelle 10 bis 30).
 - `in-progress` → `next`: Ein Fall am Binary verlangt eine Änderung an Produktcode (Service, Port, Adapter, Bootstrap) — das Verhalten gehört `slice-v1-abschluss-verbindungsende-einspielen`; zurück zur Zerlegung (Architect und Planner), nicht still im Code.
 - `in-progress` → `open`: Der Nutzer ändert, was `--allow-recorded-errors` ohne Vergleich erlaubt — Change Request an die Spezifikation.
 
@@ -148,5 +148,7 @@ nicht mehr.
 **Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen. Treffer in der Sub-Area `REPO`: `BEO-REPO/handgeschriebene-aufzeichnung-ohne-beleg-gegen-den-server` (3×), `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (1×; §6) und `BEO-REPO/schnitt-laesst-haelfte-an-der-grenze` (Anlass dieses Schnitts: geschnitten beim Anspruch, nicht in `in-progress/` zurückgeführt). Keine weiteren Treffer. Der Zähler-Stand ist beim Anspruch aus dem Register zu lesen.
 
 Nachgezählt beim Anlegen (Planner, 2026-10-16, `AGENTS.md` §3.13, §3.14; Schnitt von `slice-v1-abschluss-verbindungsende-einspielen-extended`): Liefer-Punkte: 1 (zwei Fälle am Binary mit Aufzeichnungen). Schichten: eine (Integrationstests, `test/integration`); **konservativ gezählt mit `docs/user` (Abdeckungstabelle) als zweiter Schicht: zwei** — markiert, bis der Nutzer entscheidet; kein Produktcode, Bootstrap und CLI-Adapter unberührt. Die Sendung (zwei Fälle) liegt unter 3 Liefer-Punkten und 2 Schichten. Schätzung in der Metrik von §4: E2E zwei Fälle zu 65 bis 80 (130 bis 160), Tabelle 10 bis 30: **140 bis 190, Mitte 165, 41 % der Marke 400**; Meldeschwelle 300.
+
+Geprüft beim Anspruch (Planner, 2026-10-16, `AGENTS.md` §3.13, §3.14): Maße des Gebers `-einspielen` (E2E-Fall 65, Test 37 und Aufzeichnung 28) und des Nehmers `-einspielen-extended` (70,5 je Fall, Aufzeichnung 43, geteilter Kopf 36) gegen den Bestand `play_ende_e2e_test.go` gelesen: Die Hilfen (`endeDatei`, `leereDatenbank`, `starteBisFrist`, `zaehler`, `wert`) liegen im Paket und werden nicht neu geschrieben, der Kopf mit zwei Einbettungen kostet rund 15 Zeilen, zwei Aufzeichnungen mit einer Session und ein bis zwei Interaktionen 20 bis 30 je Stück. Schätzung **bestätigt: 140 bis 190, Mitte 165 (41 % der Marke 400)**, das untere Ende rechnerisch bei rund 110, das obere unter der Meldeschwelle 300. Zählung bestätigt: Liefer-Punkte 1, Schichten 1, konservativ 2 mit `docs/user`; die Nutzerentscheidung dazu steht aus (Regel-Slice `slice-harness-regeln-nach-v1-abschluss`). Mutierbarkeit gegen `play.go` gelesen (`l.ende = AllowRecordedErrors && traegtEnde(in)`): Der Mutant „Ende immer erwartet“ (`traegtEnde(in)` allein) färbt nur `ohne-option`, „Option allein genügt“ (`AllowRecordedErrors` allein) nur `ohne-ende`. Die Nachzählung im Nehmer `-vergleich` (§4: Metrik der Marke) berührt dessen Größe nicht.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (Spezifikation und [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md) gehen dem Code voraus).
