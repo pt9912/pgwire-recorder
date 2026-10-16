@@ -154,7 +154,9 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
-**Stand:** Code und Tests in `5cab7bf`; HEAD vor §7 `5cab7bf`. Läufe am Ende dieser Sektion.
+**Stand:** Code und Tests in `5cab7bf`, Plan und diese Belege in `4b659e5`.
+
+**Läufe** (Stand `4b659e5`, Arbeitsbaum sauber, je ein Lauf, nacheinander): `make abdeckung` und `make abdeckung-check` grün (Tabellen in `5cab7bf` erzeugt); `make lint` grün (0 issues, `dupl` nicht ausgelöst); `make docs-check` 0 Befunde; `make kopf-check` grün; `make gates` grün, Exit-Code 0, 12 min 44 s, darin `test` (gofmt, vet, Unit), `test-integration` volle Suite, `test-postgres-versionen` (Version 18 grün), `lint`, `a-check`, Gegenproben. Die zwei E2E-Tests dieses Slice liefen in `make test-integration` grün (Server 17), einzeln auch mit der Auswahl `PGR_TESTS_1`.
 
 **Wege.** Unit-Mutanten: Kopie von `go.mod`, `go.sum`, `internal`, `cmd` in ein frisches Verzeichnis je Mutant, Ersetzung in `internal/hexagon/services/play.go` (genau ein Treffer erzwungen), `touch`, `docker run --rm --network=none` im Image `deps` (`docker build --target deps`), `go test -count=1 ./internal/hexagon/services/`; der Arbeitsbaum blieb unberührt. E2E-Mutanten: Ersetzung im Arbeitsbaum nach dem Commit `5cab7bf`, `PGR_TESTS_1="TestE2EPlayEndeExtendedSync TestE2EPlayEndeExtendedFlush" make test-integration` (die Auswahl wählt die zwei Tests der Phase 1; die Phase ohne PostgreSQL ist bei dieser Auswahl rot, weil ihre Daten fehlen, das ist nicht der Mutant), danach `git checkout` der Datei. `S`, `V` meint das Feld der Fehlerantwort. „Rot“ nennt die Tests, die rot wurden; `fatalFaelle` heißt vier Fälle (V FATAL, S FATAL ohne V, V PANIC, S PANIC ohne V), jeder mit und ohne `--continue-on-error`.
 
