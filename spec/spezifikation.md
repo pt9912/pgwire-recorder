@@ -1519,7 +1519,12 @@ bekannte Kommando, seine Hilfe die von `config show` (LH-FA-01.a). `config` ohne
 
 **Interaktion.** Eine Extended-Interaktion beginnt mit der ersten
 Extended-Nachricht nach dem Sessionbeginn oder nach dem `Sync` der vorherigen
-Interaktion und endet mit dem `ReadyForQuery`, das auf ihr `Sync` folgt.
+Interaktion und endet mit dem `ReadyForQuery`, das auf ihr `Sync` folgt. Trägt sie ein
+Ende des Servers (`LH-FA-25.a`), endet sie mit dem Ende statt mit dem `ReadyForQuery`,
+und ihre letzte Gruppe schließt mit `Sync` oder `Flush`. Ihr *Abschluss* ist ihr `Sync`;
+hat sie ein Ende und schließt ihre letzte Gruppe mit `Flush`, ist es dieses `Flush`.
+Wo diese Spezifikation „vor deren `Sync`“ oder „vor dem `Sync` der Interaktion“ sagt,
+meint sie „vor ihrem Abschluss“.
 Client-Nachrichten, die nach einem `Sync` eintreffen, bevor dessen
 `ReadyForQuery` eingetroffen ist, gehören zur nächsten Interaktion. Eine Session
 mischt Simple- und Extended-Interaktionen in der aufgezeichneten Reihenfolge.
@@ -1551,7 +1556,7 @@ Nicht unterstützt (`PGR-E6001`, die Session wird nicht übernommen, LH-FA-05.a)
 sind im Record:
 
 * eine `Query` während einer laufenden Extended-Interaktion, also nach deren
-  erster Nachricht und vor deren `Sync`,
+  erster Nachricht und vor deren Abschluss,
 * ein `Describe` oder `Close` mit einer anderen Zielart als Statement (`S`) oder
   Portal (`P`),
 * eine Interaktion, einfach oder Extended, deren Nachrichten nicht die Form nach
@@ -1599,7 +1604,8 @@ Eine Client-Nachricht der falschen Protokollart am Cursor ist ein Mismatch
 (`PGR-E5001`): eine Extended-Nachricht, wo eine einfache Anfrage erwartet wird,
 und eine `Query`, wo eine Extended-Interaktion erwartet wird. Dazu gehört jede
 `Query` mitten in einer Extended-Interaktion, also nach deren erster Nachricht
-und vor deren `Sync`, auch eine Lebendprüfung. Ausgenommen ist nur eine
+und vor deren Abschluss, auch eine Lebendprüfung, ebenso zwischen zwei Gruppen derselben
+Interaktion und in einer Interaktion, die mit einem Ende und `Flush` schließt. Ausgenommen ist nur eine
 Lebendprüfung zwischen zwei Interaktionen (LH-FA-09.a), auch wenn am Cursor eine
 Extended-Interaktion steht. Ein `Parse` mit leerem SQL-Text ist keine
 Lebendprüfung und wird verglichen wie jede andere Nachricht.
@@ -2572,7 +2578,8 @@ Vergleich legen `LH-FA-20.a` und `LH-FA-24.a` fest.
   einschließlich der abschließenden (auch `Flush` statt `Sync` und umgekehrt) sowie eine einfache
   Anfrage oder eine Lebendprüfung mitten in der Gruppe, auch zwischen zwei Gruppen derselben
   Interaktion (beides entscheidet `LH-FA-18.a`: jede `Query` nach der ersten Nachricht und vor dem
-  `Sync` der Interaktion). `Terminate` oder das Ende der
+  Abschluss der Interaktion, bei einer Interaktion mit Ende, die mit `Flush` schließt, vor
+  diesem `Flush`). `Terminate` oder das Ende der
   Client-Verbindung vor der abschließenden Nachricht, auch mitten in der Gruppe, lässt die
   Interaktion unverbraucht (`LH-FA-03.b`).
 * *Herunterfahren.* Das Herunterfahren während der Gruppen vor der Gruppe mit dem Ende und das
