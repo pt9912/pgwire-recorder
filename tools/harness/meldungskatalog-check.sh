@@ -29,10 +29,20 @@ for verzeichnis in cmd internal; do
 done
 
 # Der Baum für Punkt 6: Go-Dateien unter cmd/ und internal/ ohne Tests und ohne die Code-Tabelle.
+# Ein nicht lesbares Verzeichnis oder eine nicht lesbare Datei des Baums ist eine Sperre; gemeldet
+# wird der erste Pfad in Bytefolge.
 baum=()
-while IFS= read -r -d '' datei; do
-  baum+=("$datei")
-done < <(find cmd internal -type f -name '*.go' ! -name '*_test.go' ! -path "$C" -print0)
+unlesbar=()
+while IFS= read -r -d '' pfad; do
+  if [ -d "$pfad" ]; then
+    { [ -r "$pfad" ] && [ -x "$pfad" ]; } || unlesbar+=("$pfad")
+  else
+    [ -r "$pfad" ] && baum+=("$pfad") || unlesbar+=("$pfad")
+  fi
+done < <(find cmd internal \( -type d -o \( -type f -name '*.go' ! -name '*_test.go' ! -path "$C" \) \) -print0 2>/dev/null)
+if [ "${#unlesbar[@]}" -gt 0 ]; then
+  sperre "$(printf '%s\n' "${unlesbar[@]}" | sort | head -n 1) nicht lesbar"
+fi
 
 # Je Befund eine Zeile pfad<TAB>code<TAB>befund<TAB>zeile; awk endet mit 2 bei einer Sperre.
 if ! befunde="$(awk -v c="$C" -v k="$K" -v h="$H" '
@@ -65,7 +75,7 @@ if ! befunde="$(awk -v c="$C" -v k="$K" -v h="$H" '
     imabschnitt = 0
   }
   art == "C" {
-    if ($0 ~ /^[ \t]*Code[A-Za-z0-9_]*[ \t]+=[ \t]+"[^"]*"/) {
+    if ($0 ~ /^[ \t]*Code[A-Za-z0-9_]*[ \t]+([A-Za-z0-9_.]+[ \t]+)?=[ \t]+"[^"]*"/) {
       match($0, /"[^"]*"/)
       eintrag("C", c, FNR, substr($0, RSTART + 1, RLENGTH - 2))
     }

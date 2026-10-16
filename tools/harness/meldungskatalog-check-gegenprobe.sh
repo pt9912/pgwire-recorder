@@ -8,7 +8,7 @@
 # Spezifikation und Planungsbaum des Arbeitsbaums liest sie nicht.
 #
 # GRENZE der Gegenprobe: Als root bleibt eine Datei mit Rechten 000 lesbar; dann sind die Fälle
-# nr8-unlesbar-* nicht herstellbar und werden laut übersprungen. Der Fall nr9-bytefolge braucht die
+# nr8-unlesbar-* und nr8-reihenfolge-baum-vor-abschnitt und -verzeichnis-vor-baum nicht herstellbar und werden laut übersprungen. Der Fall nr9-bytefolge braucht die
 # Locale de_DE.UTF-8 und wird ohne sie laut übersprungen. Eine Sperre `internal/ fehlt` ist nicht
 # erreichbar, weil die Code-Tabelle unter internal/ liegt und ihr Fehlen zuerst gilt.
 #
@@ -100,10 +100,13 @@ c_gelesen nr1-c-nur-code $'\tCode = "PGR-E9001"'
 c_gelesen nr1-c-wortzeichen $'\tCodeA_1b = "PGR-E9001"'
 c_nicht nr1-c-kommentar $'\t// CodeK = "PGR-E9001"'
 c_nicht nr1-c-anderer-name $'\tKlasse1 = "PGR-E9001"\n\tNotCode = "PGR-E9001"'
-c_nicht nr1-c-typisiert $'\tCodeT Typ = "PGR-E9001"'
+c_gelesen nr1-c-typisiert $'\tCodeT Typ = "PGR-E9001"'
+c_gelesen nr1-c-typ-punkt $'\tCodeT pkg.Typ = "PGR-E9001"'
 c_nicht nr1-c-backtick $'\tCodeB = `PGR-E9001`'
 bau; sk '| PGR-E9001 | ohne Backticks |'; sk '| Text | `PGR-E9001` |'; gruen nr1-k-keine-zeile "$w"
 bau; sed -i '1i | `PGR-E9001` | davor |' "$w/$S"; gruen nr1-k-davor "$w"
+bau; sk ' | `PGR-E9001` | eingerückt |'; gruen nr1-k-eingerueckt "$w"
+bau; sk '| `PGR-E9001`'; rot nr1-k-ohne-schlusszeichen "$w" "$S:$(z $S PGR-E9001): PGR-E9001: nicht in der Code-Tabelle"
 bau; sk $'### SPEC-035 — Folge\n\n| `PGR-E9001` | danach |'; gruen nr1-k-danach "$w"
 bau; sed -i '1i | `PGR-E9001` | davor |' "$w/$B"; gruen nr1-h-davor "$w"
 bau; sed -i '/^### Warnungen$/i ### Anderes\n\n| `PGR-E9001` | x |\n' "$w/$B"; gruen nr1-h-zwischen "$w"
@@ -150,6 +153,7 @@ lit x cmd/x/lit.go '"PGR-E2001: Text"'; rot nr6-cmd "$w" "cmd/x/lit.go:3: PGR-E2
 lit x internal/adapter/a.go 'fmt.Sprint("PGR-W9999")'; rot nr6-internal "$w" "internal/adapter/a.go:3: PGR-W9999: Code außerhalb der Code-Tabelle"
 lit x internal/adapter/fehler.go '"PGR-E2001"'; rot nr6-anderes-fehler-go "$w" "internal/adapter/fehler.go:3: PGR-E2001: Code außerhalb der Code-Tabelle"
 lit x cmd/x/lit.go '1 // "PGR-E2001"'; rot nr6-kommentar-mit-anfuehrung "$w" "cmd/x/lit.go:3: PGR-E2001: Code außerhalb der Code-Tabelle"
+lit x cmd/x/lit.go '1; b = "PGR-E2001" + "PGR-E2002"'; rot nr6-zwei-literale "$w" "cmd/x/lit.go:3: PGR-E2001: Code außerhalb der Code-Tabelle"
 lit x cmd/x/lit_test.go '"PGR-E2001"'; mkdir -p "$w/internal/adapter"; printf 'package p\nvar a = "PGR-E2001"\n' > "$w/internal/adapter/a_test.go"; gruen nr6-test "$w"
 lit x cmd/x/lit.go '`PGR-E2001`'; gruen nr6-backtick "$w"
 lit x cmd/x/lit.go '1 // siehe PGR-E2001'; gruen nr6-kommentar-ohne-anfuehrung "$w"
@@ -167,6 +171,27 @@ for q in F S B; do
   if [ -r "$w/${!q}" ]; then echo "meldungskatalog-check-gegenprobe: Fall 'nr8-unlesbar-$q' übersprungen — Datei mit Rechten 000 ist lesbar (root?)" >&2
   else sp "nr8-unlesbar-$q" "$w" "${!q} nicht lesbar"; chmod 644 "$w/${!q}"; fi
 done
+bau; rm "$w/$F"; mkdir "$w/$F"; sp nr8-c-verzeichnis "$w" "$F fehlt"
+bau; sp nr8-wurzel-fehlt "$arbeit/nirgends" "$F fehlt"
+# Nicht lesbare Pfade des Baums (Rechte 000; als root bleiben sie lesbar, dann laut übersprungen).
+unles() {   # unles <name> <grund> <pfad>… — setzt die Rechte 000, erwartet die Sperre, stellt die Rechte her
+  local name="$1" grund="$2" p
+  shift 2
+  for p in "$@"; do chmod "${modus:-000}" "$w/$p"; done
+  if [ "$(id -u)" -eq 0 ]; then echo "meldungskatalog-check-gegenprobe: Fall '$name' übersprungen — Rechte wirken nicht (root)" >&2
+  else sp "$name" "$w" "$grund"; fi
+  for p in "$@"; do chmod 755 "$w/$p"; done
+}
+bau; unles nr8-unlesbar-verzeichnis "cmd/x nicht lesbar" cmd/x
+bau; modus=444 unles nr8-unlesbar-verzeichnis-ohne-x "cmd/x nicht lesbar" cmd/x
+bau; modus=333 unles nr8-unlesbar-verzeichnis-ohne-r "cmd/x nicht lesbar" cmd/x
+bau; unles nr8-unlesbar-baumdatei "cmd/x/main.go nicht lesbar" cmd/x/main.go
+bau; printf 'package a\n' > "$w/internal/a.go"; unles nr8-unlesbar-erste "cmd/x/main.go nicht lesbar" internal/a.go cmd/x/main.go
+bau; sed -i 's/^### SPEC-034 /### SPEC-0341 /' "$w/$S"; unles nr8-reihenfolge-baum-vor-abschnitt "cmd/x/main.go nicht lesbar" cmd/x/main.go
+bau; printf 'package a\n' > "$w/internal/a.go"; chmod 000 "$w/internal/a.go"; mv "$w/cmd" "$w/cmd.alt"
+if [ -r "$w/internal/a.go" ]; then echo "meldungskatalog-check-gegenprobe: Fall 'nr8-reihenfolge-verzeichnis-vor-baum' übersprungen — Pfad mit Rechten 000 ist lesbar (root?)" >&2
+else sp nr8-reihenfolge-verzeichnis-vor-baum "$w" "cmd/ fehlt"; fi
+chmod 644 "$w/internal/a.go"
 bau; sed -i 's/^### SPEC-034 /### SPEC-0341 /' "$w/$S"; sp nr8-abschnitt-k "$w" "Abschnitt ### SPEC-034 fehlt"
 bau; sed -i 's/^### Fehlercodes$/### Fehlercodes und mehr/' "$w/$B"; sp nr8-abschnitt-fehlercodes "$w" "Abschnitt ### Fehlercodes fehlt"
 bau; sed -i 's/^### Warnungen$/#### Warnungen/' "$w/$B"; sp nr8-abschnitt-warnungen "$w" "Abschnitt ### Warnungen fehlt"

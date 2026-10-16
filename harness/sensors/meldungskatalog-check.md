@@ -54,6 +54,7 @@ eine Befund-Zeile nennt einen Pfad und einen Code, eine Sperre nur den Grund. Au
 |---|---|
 | `<pfad> fehlt`, `<pfad> nicht lesbar` | `make meldungskatalog-check` in der Wurzel des Repos starten; Datei lesbar machen |
 | `cmd/ fehlt` | in der Wurzel des Repos starten |
+| `<pfad> nicht lesbar` für ein Verzeichnis oder eine Go-Datei unter `cmd/` und `internal/` | Rechte herstellen; gemeldet wird der erste Pfad in Bytefolge |
 | `Abschnitt <überschrift> fehlt` | die Überschrift `### SPEC-034 `, `### Fehlercodes` bzw. `### Warnungen` wiederherstellen |
 | `<pfad> ohne Code`, `<pfad> ohne Codes` | die Quelle trägt keine Tabellenzeile bzw. keine Konstante in der Form des Vertrags |
 
