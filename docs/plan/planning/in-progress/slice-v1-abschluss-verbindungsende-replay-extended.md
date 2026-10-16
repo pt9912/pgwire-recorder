@@ -156,7 +156,61 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+Die Belege des Implementers stehen zuerst, die Closure des Planners danach (bei der Closure gefüllt, vor dem `git mv` nach `done/`).
+
+### Belege des Implementers
+
+**Stand.** Code und Tests an `271e0c1`; Produktcode 0 Zeilen (`replay.go` und `server.go` unberührt). Ohne Mutant: `go test` der Pakete `internal/hexagon/services` und `internal/adapters/driving/pgwire` grün, `make test-integration` grün (auch `TestE2EReplayEndeExtendedSync`).
+
+**Wege der Mutanten.** Service und Adapter: Kopie von `go.mod`, `go.sum`, `internal/` außerhalb des Repos, je Mutant eine frische Kopie mit einem Textersatz, Lauf von `go test -count=1` über beide Pakete im Image `deps` (`docker build --target deps`) mit `--network=none`, Bind-Mount der Kopie und eines Go-Caches, kein Build-Kontext (kein mtime-Problem). E2E: Mutant im Arbeitsbaum, `touch` auf die Datei, `make test-integration`, danach `git checkout -- internal` (Arbeitsbaum danach sauber). Mutanten liegen nicht im Repo. Namen der Tests in der Tabelle ohne Präfix `TestReplayEndeExtended`: Gruppe = `GruppeMitEnde`, Sync = `SyncDavor`, Verbrauch, Abweichung, Lebend = `LebendpruefungVorDerGruppe`, Terminate = `TerminateUnverbraucht`, Herunterfahren, First = `FirstRequest`, Conn = `Connection`; Bestandstests von 37a und älter tragen ihren vollen Namen.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Server-Nachrichten der Gruppe mit Ende in aufgezeichneter Reihenfolge | `bind_complete` und Fehlerantwort vertauscht (M1) | Gruppe, Sync, Abweichung, Lebend, First, Conn |
+| `connection_closed` als letzte Antwort | letzte Antwort gestrichen (M2) | Gruppe, Sync, Abweichung, Lebend, First, Conn |
+| … auch als einzige Gruppe (PANIC) | bei genau einer Gruppe gestrichen (M7) | Gruppe, Sync, First, Conn |
+| Lieferung erst mit dem abschließenden `Sync` | Gruppe mit Ende wird bei der ersten Nachricht der Gruppe geliefert (M3) | Gruppe, Sync, Verbrauch, Abweichung, Lebend, Terminate, Herunterfahren, First, Conn; Bestand `TestReplayEndeExtendedIstKeineEinfacheAnfrage` |
+| ohne `ready_for_query` (verneinend) | `ready_for_query` an die Gruppe mit Ende gehängt (M4) | Gruppe, Sync, Abweichung, Lebend, First, Conn |
+| Gruppe davor mit `Flush` liefert kein `connection_closed` | an eine Gruppe mit `Flush` gehängt (M5b) | Gruppe; Bestand `TestReplayExtendedGruppen`; E2E `TestE2EReplayEndeExtendedSync` (und fünf Bestandstests) |
+| Gruppe davor mit `Sync` (frühere Interaktion) liefert kein `connection_closed` | an eine Gruppe gehängt, die mit `ready_for_query` endet (M5a) | Sync, Conn und Bestandstests; E2E `TestE2EReplayEndeExtendedSync` (und sechs Bestandstests) |
+| Interaktion verbraucht erst mit `Sent` | `c.ungesendet = true` in `ClientMessage` entfernt (M8) | Verbrauch, Herunterfahren; Bestand `TestReplayVerbraucht`, `TestReplayZwangsende` |
+| … nach `Sent` verbraucht | `Sent` löscht nichts (M9) | Sync, Verbrauch, Terminate, Herunterfahren, First, Conn und Bestand; E2E `TestE2EReplayEndeExtendedSync` (und 16 Bestandstests) |
+| … ohne `Sent` mit Option `PGR-E5002` | Option ignoriert (M10) | Verbrauch, Terminate; Bestand |
+| … `PGR-E4006` mit der Nummer | `in.Sequence + 1` (M11) | Verbrauch, Herunterfahren |
+| … Zwangsende: Zweig „geliefert, nicht gesendet“ | Zweig entfernt (M20a) | Verbrauch, Herunterfahren; Bestand |
+| … Zwangsende: Zweig „mitten in der Interaktion“ | Zweig entfernt (M20b) | Herunterfahren; Bestand |
+| `Terminate` oder Abbruch vor, mitten und nach der Gruppe davor und mitten in der Gruppe mit Ende: unverbraucht | Cursor mitten in der Interaktion zählt als verbraucht (M19) | Terminate; Bestand |
+| `Shutdown` erlaubt nur außerhalb der Interaktion (Glied `c.gruppe == 0`) | Bedingung auf `c.nachricht == 0` verkürzt (M18a) | Herunterfahren; Bestand `TestReplayExtendedHerunterfahren` |
+| … (Glied `c.nachricht == 0`) | Bedingung auf `c.gruppe == 0` verkürzt (M18b) | Herunterfahren; Bestand |
+| `mitten` (Glied `c.gruppe > 0`) | auf `c.nachricht > 0` verkürzt (M17e) | Abweichung, Herunterfahren; Bestand |
+| … (Glied `c.nachricht > 0`) | auf `c.gruppe > 0` verkürzt (M17f) | Abweichung, Herunterfahren; Bestand |
+| Abweichung der ersten Nachricht der Interaktion: `PGR-E5001` | Vergleich bei Gruppe 1, Nachricht 1 ausgesetzt (M16a) | Abweichung; Bestand |
+| … `Sync` statt `Flush` in der Gruppe davor | Vergleich bei Gruppe 1, Nachricht 2 ausgesetzt (M16e) | Abweichung (nur dieser) |
+| … erste Nachricht der Gruppe mit Ende | Vergleich bei Gruppe 2, Nachricht 1 ausgesetzt (M16b) | Abweichung; Bestand |
+| … mittlere Nachricht der Gruppe mit Ende | Vergleich bei Gruppe 2, Nachricht 2 ausgesetzt (M16c) | Abweichung; Bestand |
+| … `Flush` statt `Sync` als abschließende | Vergleich bei Gruppe 2, Nachricht 3 ausgesetzt (M16d) | Abweichung (nur dieser) |
+| Abweichung liefert kein Ende (verneinend) | Abweichung der Art liefert die Server-Nachrichten der letzten Gruppe (M22) | Abweichung; Bestand |
+| Cursor bleibt nach der Abweichung stehen | Cursor rückt bei Abweichung der Art vor (M23) | Abweichung (rot durch Laufzeitfehler im Test: Index außerhalb der Gruppe, kein Fehlschlag der Prüfung) |
+| Lebendprüfung mitten in der Gruppe ist `PGR-E5001` (Glied `!c.mitten()`) | Glied entfernt (M17a) | Abweichung; Bestand `TestReplayLebendpruefungExtended` |
+| einfache Anfrage vor den Gruppen ist `PGR-E5001` (Glied `istLebendpruefung`) | Glied entfernt (M17b) | Abweichung; Bestand |
+| Lebendprüfung vor der Interaktion mit Ende ist außer der Reihe, die Interaktion keine einfache Anfrage mit Ende | `endetEinfach` aus `anfrageMitEnde` entfernt (M17c) | Lebend; Bestand `…IstKeineEinfacheAnfrage` |
+| Zuordnung ohne freie Session ist `PGR-E5003` vor Abweichung und Ende | ohne freie Session wird die letzte zugeordnet (M12) | First; Bestand |
+| `first-request`: nächste freie Session | letzte statt erster freier Session (M13) | First; Bestand; E2E `TestE2EReplayEndeExtendedSync` (und neun Bestandstests) |
+| `connection`: Verbindung ohne Session ist `PGR-E5003` | Zweig `s.nachVerbindung` ausgeschaltet (M14) | Conn; Bestand |
+| `connection`: Schließen ändert die Zuordnung nicht | `s.next--` beim Schließen (M15) | Conn; Bestand |
+| Adapter: Gruppe mit Ende wird gesendet, danach `Sent`, dann Schließen | `Sent` fehlt (MA3) / Schließen vor `Sent` (MA2) | `TestReplayEndeGruppeDavorSchliesstNicht`, `TestReplayEndeSentVorSchliessen`; MA3 auch `TestReplaySent` |
+| Adapter: Gruppe davor schließt nicht | jede gelieferte Folge schließt (MA1) | `TestReplayEndeGruppeDavorSchliesstNicht`, Bestand `TestReplaySent`, `TestInfoOhneZeileJeVerbindung` |
+| Adapter: ohne `ReadyForQuery` nach dem Ende (verneinend) | `ReadyForQuery` nach dem Ende gesendet (MA4) | `TestReplayEndeGruppeDavorSchliesstNicht`, `TestReplayEndeSendetDavorUndSchliesst` |
+| Adapter: kein Byte für `connection_closed` | Auslassung entfernt (MA5) | `TestReplayEndeGruppeDavorSchliesstNicht` und drei Bestandstests |
+| Binary: nach dem Ende schließt die Verbindung | Adapter schließt nicht (E2) | E2E `TestE2EReplayEndeExtendedSync` (Zeitüberschreitung nach 10 s), `…EndeFatal`, `…EndePanic`, `…EndeLebendpruefung` |
+
+**Grüne Mutanten.** Einer, äquivalent für diesen Slice: Das Glied `!s.anfrageMitEnde(c, sql)` der Bedingung in `Query` (M17d) färbt keinen Test dieses Slice, weil `anfrageMitEnde` für eine Extended-Interaktion immer falsch ist (`endetEinfach` liest `Responses`, die eine Extended-Interaktion nicht trägt); das Glied gehört der einfachen Anfrage mit Ende und ist dort belegt: M17d färbt `TestReplayEndeLebendpruefungMitEndeBleibtInteraktion`, `…AndererTextAusserDerReihe`, `…FirstRequestLebendpruefungVorZuordnung`, `TestReplayConnectionEndeBleibtZugeordnet` (`slice-v1-abschluss-verbindungsende-replay`). Ein Fall dafür in diesem Slice wäre nicht erreichbar.
+
+**Akzeptierte Negative (§6), nicht getestet:** teilweises Senden der Gruppe mit Ende (Pfad `replayZustellen` ist derselbe wie bei `Query`, `TestReplayEndeSchreibfehlerBleibtUnverbraucht` färbt eine Mutation dort), Abweichung am Binary, ein Fall je Schweregrad (der Service liest ihn nicht; Unit-Fall FATAL mit Gruppe davor, PANIC als einzige Gruppe, E2E FATAL).
+
+**Messung (§3.14).** `git diff --numstat 1896db3ea5103e462a7aec895ea877f43b7b6338..271e0c1 -- internal test docs/user`: 500 (Einfügungen 500, Löschungen 0; Marke 700 nicht erreicht, Meldeschwelle 550 nicht erreicht). Aufschlüsselung: Produktcode 0, Service-Tests 320 (`replay_ende_extended_test.go`, neun Tests, Architect schätzte 200 bis 290), Adapter-Test 60 (45 bis 80), E2E 60 und Fixture 36 (zusammen 96, geschätzt 100 bis 140), Abdeckungstabellen 24 (15 bis 25), Summe 500 in 360 bis 545 (Mitte 450, gemessen 111 % der Mitte, 71 % der Marke). Faktor Tests zu Produktcode nicht bestimmbar (Produktcode 0); Datenpunkt: 320 Zeilen für neun Service-Tests, rund 36 Zeilen je Test; 38 Mutanten in Unit-Läufen (33 im Service, fünf im Adapter) und fünf E2E-Läufe. **Zeilen je E2E-Fall** (Maß für `-flush`): der Fall selbst 27 Zeilen (Kommentar 7, Funktion 20) und Fixture 36, zusammen 63; die Hilfen des Slice (`rohNachricht`, `parseSync`, Einbettung, Kopf) 33, die `-flush` wiederverwendet. Ein weiterer Fall in der Art kostet damit rund 27 plus Fixture (rund 30) plus 3 Zeilen Tabelle, rund 60.
+
+**Beobachtungen.** (1) Das Format lässt `Sync` nur am Ende der letzten Gruppe zu (`Interaction.Validate`, geprüft von den Tests des Modells): „Gruppe davor mit `Sync`“ aus §6 und DoD 1 ist nur als frühere Interaktion mit `Sync` darstellbar, in einer Interaktion mit Ende steht davor nur eine Gruppe mit `Flush`. Beide Formen sind getestet (`SyncDavor`, `GruppeMitEnde`, E2E); der Wortlaut „Gruppen davor, mit `Sync` wie mit `Flush`“ in `LH-FA-25.a` und §6 bleibt für den Architect zur Kenntnis (keine Änderung am Code, keine Randform entschieden). (2) `TestReplayEndeExtendedIstKeineEinfacheAnfrage` (37a) und die neuen Tests teilen den Präfix `TestReplayEndeExtended`; ein `-run`-Muster mit diesem Präfix fasst beide.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
