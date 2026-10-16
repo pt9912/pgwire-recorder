@@ -1715,7 +1715,8 @@ pgwire-recorder play \
    laufenden Interaktion; eine Wartezeit (`LH-FA-21.a`) wird abgebrochen. Mit
    `--finish-session-on-interrupt` zuvor nach der laufenden Session. Ein zweites
    Signal beendet den Prozess sofort. Die Verbindung wird mit `Terminate`
-   geschlossen, außer nach einem Ende des Servers (*Ende einer Session*). Der Exit-Code
+   geschlossen, außer nach einem Ende des Servers, dessen Fehlerantwort `play` schon
+   gelesen und geschlossen hat (*Ende einer Session*). Der Exit-Code
    folgt der Tabelle.
 
 **Fehlerregeln beim Einspielen.** Die Tabelle und der Absatz darunter legen Code,
@@ -1962,7 +1963,9 @@ offenlässt.
 * *Ende einer Session.* Nach ihrer letzten Interaktion sendet `play` `Terminate` und
   schließt die Verbindung; nach einem Ende des Servers (erwartet oder nicht) sendet es
   kein `Terminate`, sondern schließt die Verbindung; ein Fehler dabei ist keine Meldung und ändert den Exit-Code
-  nicht. Eine offene Transaktion am Ende setzt der Server mit dem Verbindungsende
+  nicht. Kommt das zweite Signal zwischen der gelesenen Fehlerantwort und diesem Schließen, kann
+  sein `Terminate` auf die beendete Verbindung gehen (Grenze: das Rennen ist nicht
+  steuerbar und ohne Test; die Folge bleibt aus, ein Fehler dabei ist keine Meldung). Eine offene Transaktion am Ende setzt der Server mit dem Verbindungsende
   zurück.
 * *Abbruchsignal.* Eine Session läuft ab dem Beginn ihres Verbindungsaufbaus. Trifft
   das erste Signal während des Aufbaus ein, läuft er zu Ende; ein Fehler darin zählt.
@@ -3412,3 +3415,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Ende des Servers im Replay, Gruppen vor der Gruppe mit dem Ende: in einer Interaktion mit Ende nur mit `Flush` (Berichtigung des Wortlauts „mit `Sync` wie mit `Flush`“, das Format stellt anderes nicht dar), Lebendprüfung zwischen zwei Gruppen mit Zeiger auf `LH-FA-18.a` (`LH-FA-25.a`) |
 | 2026-10-16 | Herunterfahren: die laufende Extended-Interaktion nimmt ihre Client-Nachrichten bis zu ihrem Abschluss an statt bis zu ihrem `Sync` (bei Ende und `Flush` ist es dieses `Flush`; `LH-FA-13.a`, `LH-FA-18.a`) |
 | 2026-10-16 | Einspielen, Ende des Servers ohne Vergleich: Stelle der Fehlerantwort ist die Interaktion (Position der Antworten, Gruppe, nach einem `ERROR`), ein Grund der Ablehnung `PGR-E4003` ohne Reihenfolge, Verbindungsverlust trotz aufgezeichnetem Ende, Lesestand bei Sendefehler, letzte Gruppe mit `Flush` ohne Warten auf `ReadyForQuery`, kein `Terminate` nach der Fehlerantwort, Verhalten des Servers nur gegen die Referenz (`LH-FA-20.a`, `LH-FA-25.a`) |
+| 2026-10-16 | Einspielen, zweites Signal und Ende des Servers: kein `Terminate` gilt nach der gelesenen und geschlossenen Fehlerantwort; ein Signal zwischen Lesen und Schließen kann `Terminate` senden, Grenze ohne Test (`LH-FA-20.a`) |
