@@ -3,7 +3,8 @@
 `make meldungskatalog-check` gleicht die Meldungscodes `PGR-…` dreier Quellen ab, ohne über
 Inhalt zu urteilen: die Code-Tabelle im Quelltext (C), den Katalog der Spezifikation (K, Tabelle
 in `SPEC-034`) und die Fehlercode- und Warnungstabellen des Benutzerhandbuchs (H). Die Punkte 1
-bis 10 prüft `make meldungskatalog-check-gegenprobe`; Punkt 11 hat dort den Fall mit Makefile.
+bis 6 und 8 bis 10 prüft `make meldungskatalog-check-gegenprobe`; Punkt 11 hat dort den Fall mit Makefile.
+Punkt 7 sagt, was das Werkzeug nicht kennt, und hat keinen Fall.
 
 1. **Quellen.** Gelesen werden drei Dateien und ein Baum, alle relativ zur Wurzel des Repos.
    - C: jede Zeile von `internal/hexagon/model/fehler.go`, die nach beliebigem Einzug mit
@@ -58,10 +59,14 @@ bis 10 prüft `make meldungskatalog-check-gegenprobe`; Punkt 11 hat dort den Fal
    - eine der drei Dateien C, K, H fehlt oder ist nicht lesbar (`<pfad> fehlt`,
      `<pfad> nicht lesbar`); was keine reguläre Datei ist (ein Verzeichnis), und eine fehlende
      Wurzel des Repos gelten als fehlend (bei fehlender Wurzel: `<pfad von C> fehlt`);
-   - `cmd/` oder `internal/` fehlt (`cmd/ fehlt`, `internal/ fehlt`, mit Schrägstrich);
+   - `cmd/` oder `internal/` fehlt (`cmd/ fehlt`, `internal/ fehlt`, mit Schrägstrich;
+     `internal/ fehlt` ist nicht erreichbar, weil C unter `internal/` liegt und seine Sperre
+     vorgeht);
    - ein Verzeichnis oder eine Go-Datei des Baums aus Punkt 1 ist nicht lesbar
      (`<pfad> nicht lesbar`, relativ zur Wurzel, der erste in Bytefolge; ein nicht lesbares
-     Verzeichnis darf kein stilles Grün ergeben);
+     Verzeichnis darf kein stilles Grün ergeben); danach ein Symlink im Baum, an `cmd`,
+     `internal` oder darunter, gleich welchen Namens (`<pfad> ist ein Symlink`, der erste in
+     Bytefolge; das Werkzeug folgt keinem Symlink, und einer ergäbe sonst ein stilles Grün);
    - ein Abschnitt fehlt, in der Reihenfolge K, `### Fehlercodes`, `### Warnungen`
      (`Abschnitt ### SPEC-034 fehlt`, `Abschnitt ### Fehlercodes fehlt`,
      `Abschnitt ### Warnungen fehlt`);
@@ -73,7 +78,10 @@ bis 10 prüft `make meldungskatalog-check-gegenprobe`; Punkt 11 hat dort den Fal
    `meldungskatalog-check: <pfad>[:<zeile>]: <code>: <befund>`, der Pfad relativ zur Wurzel.
    Sortiert wird nach Pfad, Code und Befund in Bytefolge, danach nach der Zeile als Zahl;
    stdout bleibt leer. Ausgang 0 ohne Befund und ohne Ausgabe, 1 bei mindestens einem Befund
-   (alle sind gelesen und ausgegeben), 2 bei einer Sperre.
+   (alle sind gelesen und ausgegeben), 2 bei einer Sperre. Ein Steuerzeichen, etwa ein Tabulator
+   im Text einer Zelle, ist ein Form-Befund (Punkt 2) und verschiebt die Felder seiner Zeile;
+   Befund und Ausgang 1 bleiben (akzeptiertes Negativ: die Zeile ist dann schlecht lesbar,
+   aber nicht grün).
 10. **Aufrufarten.** Das Werkzeug nimmt höchstens die Wurzel als Argument (ohne: das aktuelle
     Verzeichnis), schreibt nichts und hinterlässt keinen Stand; was `make` mit `-n`, `-q`, `-t`,
     `-i` oder `MAKEFLAGS` aus der Umgebung tut, ändert seine Aussage nicht, weil kein Hook und
@@ -95,6 +103,8 @@ bis 10 prüft `make meldungskatalog-check-gegenprobe`; Punkt 11 hat dort den Fal
 eines Codes im Verhalten, und ob das Handbuch eine Zeile sinnvoll beschreibt. Ob K eine
 vergebene Zeile ohne Konstante nur als Rückfall führt, regelt Punkt 4b; ein Code, der vergeben
 und noch nicht erzeugt ist, hat in diesem Stand keine Form. Die Abschnitts-Erkennung folgt den
-Zeilen `#`: Eine Zeile `#` in einem Codeblock beendet einen Abschnitt. Die Form ist ein
+Zeilen `#`: Eine Zeile `#` in einem Codeblock beendet einen Abschnitt. Zeilenenden mit CRLF
+sind nicht unterstützt: im Handbuch ergibt das die Sperre `Abschnitt ### Fehlercodes fehlt`, also
+kein stilles Grün (akzeptiertes Negativ). Die Form ist ein
 Shell-Werkzeug mit `awk` auf dem Host und nicht ein Go-Test, weil der Build-Kontext des Stage
 `test` weder `spec/` noch `docs/` enthält.
