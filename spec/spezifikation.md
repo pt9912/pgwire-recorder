@@ -992,7 +992,7 @@ Windows entspricht der Konsolenabbruch (`Strg+C`, `Strg+Break`) einem `SIGINT`:
   neue Interaktion: Eine Client-Nachricht, die eine neue begänne (eine `Query`
   oder eine Nachricht nach dem `Sync` einer Extended-Interaktion), wird nicht
   weitergeleitet, und die Session endet regulär nach der laufenden Interaktion;
-  diese nimmt bis zu ihrem `Sync` noch ihre Client-Nachrichten an,
+  diese nimmt bis zu ihrem Abschluss (`LH-FA-18.a`) noch ihre Client-Nachrichten an,
 - das Recording schreiben (LH-FA-07.a); schlägt das Schreiben fehl, bleibt die
   Zieldatei der letzte vollständig geschriebene Stand.
 
@@ -3386,3 +3386,4 @@ schärft, deklariert die ADR aufwärts in ihrem `Schärft:`-Feld
 | 2026-10-16 | Ende des Servers im Replay: Meldung als letzte Antwort `connection_closed` (einfache Anfrage wie Gruppe), Stellen von `connection_closed`, Reihenfolge der Gründe, Abweichung vor dem abschließenden `Sync`/`Flush`, Herunterfahren, ungelesene Nachrichten nach dem Ende; eingehende Lebendprüfung mit Ende vor der Zuordnung bei `first-request` ist die Anfrage (`LH-FA-25.a`, `LH-FA-09.a`, `LH-FA-12.a`) |
 | 2026-10-16 | Ende des Servers im Replay, Extended-Interaktion mit `Sync`: Abweichung zählt bis einschließlich der abschließenden Nachricht und für Anfrage und Lebendprüfung mitten in der Gruppe, `Terminate` und Abbruch mitten in der Gruppe, Gruppe mit Ende als einzige Gruppe, Gruppen davor schließen nicht, teilweises Senden, Schweregrad ändert die Wiedergabe nicht (`LH-FA-25.a`) |
 | 2026-10-16 | Ende des Servers im Replay, Gruppen vor der Gruppe mit dem Ende: in einer Interaktion mit Ende nur mit `Flush` (Berichtigung des Wortlauts „mit `Sync` wie mit `Flush`“, das Format stellt anderes nicht dar), Lebendprüfung zwischen zwei Gruppen mit Zeiger auf `LH-FA-18.a` (`LH-FA-25.a`) |
+| 2026-10-16 | Herunterfahren: die laufende Extended-Interaktion nimmt ihre Client-Nachrichten bis zu ihrem Abschluss an statt bis zu ihrem `Sync` (bei Ende und `Flush` ist es dieses `Flush`; `LH-FA-13.a`, `LH-FA-18.a`) |
