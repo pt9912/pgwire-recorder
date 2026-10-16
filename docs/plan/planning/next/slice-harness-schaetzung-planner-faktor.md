@@ -132,6 +132,7 @@ dasteht.
 
 **Risiken:**
 
+- Die geübte Praxis des Planners seit dem 2026-10-16 (Entscheidung des Nutzers: nicht mehr schneiden, solange die Schätzung die Marke selbst nicht überschreitet; die Meldeschwelle bleibt) weicht vom Entwurf ab, der ab 70 % der Marke schneidet (Liefer-Punkt 1, §3, Entwurf für `plan-welle.md`); der Entwurf ist unverändert und eine Empfehlung bis zur Bestätigung — **Ausgang:** offen bis Closure (erwartet: eingetreten und beim Bestätigen des Wortlauts durch den Nutzer entschieden, die 70 % bleiben oder entfallen aus dem Wortlaut; Frage an den Nutzer).
 - Der Nutzer ändert den Wortlaut oder die Zahlen (70 %, Mindestwert 5, Mitte statt Obergrenze), oder bestätigt ihn nicht — **Ausgang:** offen bis Closure (erwartet: entfallen, der bestätigte Wortlaut steht in `AGENTS.md`; bei Ablehnung geht der Slice zurück nach `open/`, §4).
 - Das Verhältnis des Faktors zum Satz „rund das Doppelte des Produktcodes“ (Architect, §3.14) bleibt im Wortlaut unklar und der Planner und der Architect rechnen verschieden — **Ausgang:** offen bis Closure (erwartet: entfallen, der bestätigte Wortlaut nennt beide Sätze und ihren Zusammenhang oder streicht keinen).
 - Die Regel ist Prosa ohne Sensor: ein Plan ohne Faktor oder Meldeschwelle bleibt unbemerkt, bis das Review ihn findet (`BEO-REPO/meldeschwelle-ohne-artefakt` als Fundstelle der fehlenden Prüfbarkeit) — **Ausgang:** weiter offen: → `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` (Auftreten trotz der Regel zählt weiter; ein Sensor wird erst dann ein Slice, §1).
