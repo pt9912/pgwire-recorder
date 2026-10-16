@@ -51,3 +51,5 @@ Kein Auftreten, Datenpunkt für `slice-harness-schaetzung-planner-faktor` (Urtei
 Kein Auftreten (Urteil des Planners, `slice-v1-abschluss-verbindungsende-record`, 2026-10-16): Geschätzt 750 bis 1350 in der Metrik von `AGENTS.md` §3.14 (Architect, Mitte 1050), gemessen 873 (Produktcode 130, Tests 674 zuzüglich Nacharbeit, Faktor 5,2 gegen angesetzte 8 bis 14); die Messung liegt in der Spanne. Der Zähler bleibt.
 
 Kein Auftreten, Datenpunkt für `slice-harness-schaetzung-planner-faktor` (Urteil des Planners, `slice-v1-abschluss-verbindungsende-upstream`, 2026-10-16): Geschätzt 780 bis 1050, Mitte 910 (Architect), gemessen 941 in der Metrik von `AGENTS.md` §3.14 (Produktcode 65, Port-Kommentar 14, Tests des Adapters 469, E2E 370, Tabellen 23), 78 % der Marke 1200; in der Spanne, Obergrenze nicht überschritten. Der Zähler bleibt bei 9.
+
+Kein Auftreten (Urteil des Planners, `slice-v1-abschluss-verbindungsende-doku`, 2026-10-17): Geschätzt 200 bis 450, Mitte 300, gemessen 287 in der Metrik von `AGENTS.md` §3.14 (Marke 600, Meldeschwelle 480 nicht erreicht); in der Spanne. Der Zähler bleibt bei 9.

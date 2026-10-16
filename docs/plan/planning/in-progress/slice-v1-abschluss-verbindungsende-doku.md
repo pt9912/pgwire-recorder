@@ -59,16 +59,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Das Benutzerhandbuch beschreibt, was die Slices des Verbindungsendes liefern, im Ist-Zustand des gebauten Binaries (Probe am Binary, gegen PostgreSQL und gegen handgeschriebene Aufzeichnungen): wann `record` ein Ende aufzeichnet und wann nicht (Fehlerantwort `FATAL`/`PANIC` in laufender Anfrage; Ende im Leerlauf nur mit nachfolgender Anfrage; Netzwerkabbruch, Ende im Aufbau und `ERROR` mit Abbruch nicht), was der Client sieht, das Format (`version` 1 und 2 in YAML und SQLite, ein Ende macht die Version 2; jede andere Version als 1 und 2 lehnt das Programm mit `PGR-E3002` ab), was `replay` wiedergibt, wie `play` ein aufgezeichnetes Ende behandelt (`--allow-recorded-errors` mit und ohne `--compare-responses`, `PGR-E4003`, `PGR-E5004`, Zähler) und die Zeilen der Meldungscodes, dazu das Ende des Servers im Zusammenhang mehrerer Verbindungen und Sitzungen (aus `slice-v1-abschluss-sessions-doku`, §1); die Sätze, die dieser Stand überholt, sind ersetzt. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11).
-- [ ] `README.md` nennt, was die Slices des Verbindungsendes liefern, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Stand überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Das Benutzerhandbuch beschreibt, was die Slices des Verbindungsendes liefern, im Ist-Zustand des gebauten Binaries (Probe am Binary, gegen PostgreSQL und gegen handgeschriebene Aufzeichnungen): wann `record` ein Ende aufzeichnet und wann nicht (Fehlerantwort `FATAL`/`PANIC` in laufender Anfrage; Ende im Leerlauf nur mit nachfolgender Anfrage; Netzwerkabbruch, Ende im Aufbau und `ERROR` mit Abbruch nicht), was der Client sieht, das Format (`version` 1 und 2 in YAML und SQLite, ein Ende macht die Version 2; jede andere Version als 1 und 2 lehnt das Programm mit `PGR-E3002` ab), was `replay` wiedergibt, wie `play` ein aufgezeichnetes Ende behandelt (`--allow-recorded-errors` mit und ohne `--compare-responses`, `PGR-E4003`, `PGR-E5004`, Zähler) und die Zeilen der Meldungscodes, dazu das Ende des Servers im Zusammenhang mehrerer Verbindungen und Sitzungen (aus `slice-v1-abschluss-sessions-doku`, §1); die Sätze, die dieser Stand überholt, sind ersetzt. Jede Option steht gegen `--help` des Binaries, jeder Meldungscode im Katalog (`internal/hexagon/model/fehler.go`) und ausgelöst durch einen Test oder eine Probe, jedes Beispiel läuft als Datei gegen das Binary (`AGENTS.md` §3.11).
+- [x] `README.md` nennt, was die Slices des Verbindungsendes liefern, im Ist-Zustand des gebauten Binaries, ohne Chronik und ohne Zielstand; die Sätze, die dieser Stand überholt, sind ersetzt, Verweise auf `spec/` und `docs/plan/` bleiben ohne Aussage über einen Stand (`slice-doku-ist-stand` §6, *Verweise im README*).
+- [x] Gate-Lauf grün: `make gates-schnell` (Exit 0 am Arbeitsbaum). Der Diff berührt nur Pfade der Positivliste des Stop-Hooks (`docs/user/`, `README.md`, `docs/plan/planning/`, `docs/reviews/`) und kein Produkt-Code; ein voller `make gates` ist dafür nicht verlangt (Verifikation V-1, Stand der schnellen Kette gleich dem Hash des Arbeitsbaums).
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen“ in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -114,9 +114,9 @@ dasteht.
 
 **Risiken:**
 
-- Das Handbuch sagt das Ende einer Extended-Interaktion beim Aufzeichnen gegen PostgreSQL zu, obwohl `slice-v1-abschluss-verbindungsende-upstream-extended` hinter dem Release liegt und es nicht belegt hat — **Ausgang:** offen bis Closure (erwartet: entfallen, die Probe sucht den Wortlaut nach und der Befund bleibt aus; Gegenmittel ist die Bindung in §1).
-- Das Handbuch sagt zu, was nur gegen PostgreSQL 17 und handgeschriebene Aufzeichnungen geprüft ist (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×); es nennt keine Version, die die Probe nicht gefahren hat — **Ausgang:** offen bis Closure.
-- Bis `slice-v1-abschluss-verbindungsende-vergleich` (Schritt 39a) beschreiben die Sätze von `slice-v1-abschluss-antwortvergleich-doku` zu `FATAL`/`PANIC` den Ist-Zustand; zwischen den Code-Slices und diesem Slice ist der Satz für eine handgeschriebene Aufzeichnung mit Ende nicht mehr wahr; die Lücke ist akzeptiert (Entscheidung des Nutzers vom 2026-10-12, §1; `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** offen bis Closure (erwartet: eingetreten und mit diesem Slice ersetzt).
+- Das Handbuch sagt das Ende einer Extended-Interaktion beim Aufzeichnen gegen PostgreSQL zu, obwohl `slice-v1-abschluss-verbindungsende-upstream-extended` hinter dem Release liegt und es nicht belegt hat — **Ausgang:** *entfallen*: Die Suche im Diff nach `erweitert|Extended|Sync|Flush` im neuen Abschnitt und im README ist ohne Treffer, die Verifikation wiederholte sie; die Bindung aus §1 ist eingehalten, das Handbuch sagt zum Aufzeichnen einer Extended-Interaktion mit Ende gegen PostgreSQL nichts.
+- Das Handbuch sagt zu, was nur gegen PostgreSQL 17 und handgeschriebene Aufzeichnungen geprüft ist (`BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft`, 1×); es nennt keine Version, die die Probe nicht gefahren hat — **Ausgang:** *weiter offen* → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (Zähler 6 → 7, Beleg `evidence/slice-v1-abschluss-verbindungsende-doku.md`). Das Handbuch nennt PostgreSQL 17.11 und `psql` 17.11 als geprüft und `PANIC` und `ERROR` mit Abbruch als nur mit dem Ersatz-Server geprüft (Verifikation), eine Zusage über 17 hinaus steht nicht darin; offen bleibt die Grenze selbst, die der Eintrag führt.
+- Bis `slice-v1-abschluss-verbindungsende-vergleich` (Schritt 39a) beschreiben die Sätze von `slice-v1-abschluss-antwortvergleich-doku` zu `FATAL`/`PANIC` den Ist-Zustand; zwischen den Code-Slices und diesem Slice ist der Satz für eine handgeschriebene Aufzeichnung mit Ende nicht mehr wahr; die Lücke ist akzeptiert (Entscheidung des Nutzers vom 2026-10-12, §1; `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht`, 1×) — **Ausgang:** *entfallen*: Die Lücke bestand nur zwischen Schritt 39a und diesem Slice, ein Release lag nicht dazwischen; dieser Slice ersetzt die Sätze (Zeilen 16 bis 19 der Zusagen in §7, am Binary bestätigt von Implementer, Review und Verifikation), die Suche nach den alten Wortlauten findet nichts Verbliebenes. Der Teil ist geliefert, kein Auftreten von `BEO-REPO/folge-slice-liefert-handbuch-teil-nicht` (Zähler bleibt 1×).
 
 ## 7. Closure-Notiz
 
@@ -197,7 +197,32 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 **Restrisiken.** Die Ersatz-Server-Proben (`PANIC`, `ERROR` mit Abbruch) belegen das Verhalten des Binaries, nicht das von PostgreSQL; das Handbuch sagt es. `psql` ist die einzige geprüfte Anwendung (die Ausgabe der Meldungen ist die von libpq 17.11). Die Zeitstempel in den Log-Blöcken sind die der Läufe.
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+### Closure des Planners (2026-10-17)
+
+**Gate-Nachweis.** Implementer und Verifikation fuhren `make gates-schnell` (Exit 0); `git diff --name-only e9f61167..HEAD` nennt vor dieser Closure nur `docs/user/benutzerhandbuch.md`, `README.md`, den Plan und die Reports unter `docs/reviews/` (Positivliste des Stop-Hooks). Ein voller `make gates` lief nicht und ist für diesen Diff nicht verlangt (V-1: Die Zeile in DoD-Punkt 3 nennt jetzt `make gates-schnell`). `make kopf-check` und `make docs-check` laufen nach der Closure nacheinander.
+
+**Gegenstand:** geliefert (kein Fall von „übernommen“ oder „entfallen“): Handbuch und README beschreiben das Verbindungsende durch den Server im Ist-Zustand des gebauten Binaries; die Sätze zu `FATAL`/`PANIC` bei `--compare-responses` (Übernahme aus `slice-v1-abschluss-antwortvergleich-doku`) und der Sitzungs-Abschnitt (aus `slice-v1-abschluss-sessions-doku`) sind ersetzt bzw. geprüft.
+
+**Review und Verifikation.** Review (`docs/reviews/2026-10-17-review-slice-v1-abschluss-verbindungsende-doku.md`): 0 HIGH, 1 MEDIUM, 3 INFO. Verifikation (`docs/reviews/2026-10-17-verify-slice-v1-abschluss-verbindungsende-doku.md`): bestanden, V-1 LOW, V-2 und V-3 INFO; die Stichprobe am Binary (Aufzeichnen, Wiedergeben, `play` mit und ohne Option, `PGR-E5004`, `PGR-E3002`/`E3003`, Abbruch) stimmt mit dem Handbuch. Ausgang je Befund (Vorgabe des Nutzers: LOW und INFO sind „akzeptiert, mit Ausgang in §7“):
+
+| Befund | Ausgang |
+|---|---|
+| F-1 (MEDIUM) DoD verlangte „ältere Programmversionen lehnen Version 2 ab“, nicht belegbar | behoben `3d3d31ca`: Satz aus DoD-Punkt 1 gestrichen, §1 nennt den Ausschluss mit Grund, kein Folge-Slice; Register `plan-folgt-korrektur-nicht` |
+| F-2 (INFO), V-3 (INFO) Beispiele laufen in keinem Gate gegen das Binary | akzeptiert: Plan §3 und §1 schließen Beispiel-Dateien und einen Sensor aus (ein Sensor wäre ein neues Gate mit eigenem Vertrag); belegt durch den Handlauf des Implementers (§7) und die Stichprobe der Verifikation. Eine spätere Änderung am Binary färbt kein Gate; kein Folge-Slice |
+| F-3 (INFO) Zeile `PGR-E5004` nennt zwei von drei Formen der Abweichung | akzeptiert: Die Zeile sagt „kann“, der Abschnitt „Antworten beim Einspielen vergleichen“ nennt die dritte Form; kein Widerspruch |
+| F-4 (INFO) „Ersatz-Server“ im Handbuch unerklärt | akzeptiert: Zusage und Prüfung decken sich (Tests der Services), das Handbuch sagt an beiden Stellen, dass es kein Lauf gegen PostgreSQL ist; die Lesbarkeit leidet, kein Folge-Slice |
+| V-1 (LOW) DoD-Punkt 3 nennt `make gates`, belegt ist `make gates-schnell` | behoben: DoD-Punkt 3 auf `make gates-schnell` mit der Positivliste als Begründung gezogen |
+| V-2 (INFO) Kopfdatum des Handbuchs `Stand: 16.10.2026` liegt vor dem Abschluss | akzeptiert: Der Planner ändert den Handbuchtext nicht; der Inhalt änderte sich seit dem 16.10. nicht, kein sachlicher Fehler. Der Implementer kann das Datum beim nächsten Handbuch-Slice mitziehen |
+
+**Messung der Marke** (§4): 287 (Einfügungen plus Löschungen von `git diff --numstat e9f61167 HEAD -- docs/user README.md test/integration`) bei Marke 600, Meldeschwelle 480 nicht erreicht; die Schätzung 200 bis 450, Mitte 300 traf (96 % der Mitte). Die Rückführung trat nicht ein.
+
+**Risiken aus §6 — Ausgang je Risiko** (die Zeilen stehen in §6 am Risiko): (1) Extended-Aufzeichnung mit Ende gegen PostgreSQL im Handbuch *entfallen* (Suche ohne Treffer, Bindung aus §1 eingehalten); (2) Zusage über PostgreSQL 17 hinaus *weiter offen* → `BEO-REPO/serververhalten-nur-gegen-eine-version-geprueft` (7×); (3) Handbuch-Lücke zu `FATAL`/`PANIC` *entfallen* (mit diesem Slice ersetzt, ein Release lag nicht dazwischen). Ob die Ausgänge tragen: (1) und (3) an der Suche nach Wortlaut, die die Verifikation wiederholte; (2) am Eintrag im Register, dessen Grenze in der Spezifikation steht.
+
+**Register** (Zähler = Dateien unter `evidence/`): `plan-folgt-korrektur-nicht` 56 → 57 (F-1: DoD folgte dem Diff nicht; `verkörpert`, bleibt); `serververhalten-nur-gegen-eine-version-geprueft` 6 → 7 (Risiko 2, *weiter offen*; `verkörpert`, bleibt). Kein Auftreten: `folge-slice-liefert-handbuch-teil-nicht` (Teil geliefert, Zähler bleibt 1×), `schaetzung-in-zeilen-unterschaetzt-tests` (287 in der Spanne 200 bis 450; Zähler bleibt 9), `zusage-im-kommentar-weiter-als-pruefung` (die Befunde betreffen weder einen Kommentar noch eine Zusage ohne Test). Kein Eintrag erreicht neu 3× ohne Verkörperung und ohne `geplant`.
+
+**Lerneintrag — keine geänderte Regel, eine Beobachtung.** Eine DoD, die für einen Doku-Slice einen Satz wörtlich verlangt (hier eine Zusage des Lastenhefts zum Produkt), aber keine Probe benennt, die ihn am Binary belegt, ist ein Plan-Defekt: Der Implementer hält sich an §1 („was sie nicht zeigt, bleibt draußen“) und die DoD widerspricht dem Diff (`BEO-REPO/plan-folgt-korrektur-nicht`, `AGENTS.md` §3.9 trägt). Neuer Sensor: keiner. Spec-Lücke: keine.
+
+**Paarungen.** (a) Anker: Der Lerneintrag trägt kein Feld `liegt in`; nichts zu prüfen. (b) Folge-Slice: Kein Risiko hat den Ausgang *eingetreten*; die Bindung der Klasse 1 nennt `slice-v1-abschluss-verbindungsende-upstream-extended` (`next/`, nennt diese Kennung in §1 und DoD). (c) Register: Alle genannten `BEO-REPO/…` bestehen als Verzeichnis mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

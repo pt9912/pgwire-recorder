@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-doku
+**Fund (Review F-1, MEDIUM):** DoD-Punkt 1 verlangte im Handbuch den Satz „ältere Programmversionen lehnen Version 2 ab“; der Implementer nahm ihn nicht auf (nicht belegbar ohne ältere Programmversion), die DoD blieb unverändert und widersprach dem Diff und §1. Behoben mit `3d3d31ca`: Satz aus DoD-Punkt 1 gestrichen, §1 nennt den Ausschluss mit Grund.

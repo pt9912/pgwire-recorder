@@ -23,3 +23,5 @@ Kein Auftreten (Urteil des Planners, `slice-v1-abschluss-verbindungsende-verglei
 Zähler 5 (`slice-v1-abschluss-verbindungsende-hilfetext-binary`): Szenario 16 Satz 3 läuft nur gegen 17, Risiko aus §6 *weiter offen* (Beleg `evidence/slice-v1-abschluss-verbindungsende-hilfetext-binary.md`); die Grenze steht in `SPEC-029` Punkt 2 (Satz im Commit des Tests) und `SPEC-053` Punkt 14 (5). Der Stand `verkörpert` bleibt.
 
 Zähler 6 (`slice-v1-abschluss-verbindungsende-upstream`): Abnahmeszenario 18 (`57P01`, `57P05`) nur gegen 17, Risiko aus §6 *weiter offen* (Beleg `evidence/slice-v1-abschluss-verbindungsende-upstream.md`); die Grenze steht in `SPEC-029` Punkt 2. Der Stand `verkörpert` bleibt.
+
+Zähler 7 (`slice-v1-abschluss-verbindungsende-doku`): Das Handbuch zum Ende des Servers gilt nur für PostgreSQL 17.11 und sagt es, Risiko aus §6 *weiter offen* (Beleg `evidence/slice-v1-abschluss-verbindungsende-doku.md`). Der Stand `verkörpert` bleibt.

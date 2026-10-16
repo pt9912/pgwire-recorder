@@ -53,3 +53,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbind
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-vergleich` (F-2, V-1) — §3 nannte mehr Formen je Fall, als der Diff trug, und §1 *Ziel* nannte die Änderung des Ladens (leeres `V`) nicht (Beleg `evidence/slice-v1-abschluss-verbindungsende-vergleich.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-upstream` (V-1, F-4) — Plan §6 folgte der Korrektur des Port-Kommentars nicht (Beleg `evidence/slice-v1-abschluss-verbindungsende-upstream.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-doku` (F-1) — DoD-Punkt 1 verlangte einen Satz, den die Probe nicht belegte und das Handbuch nicht enthält (Beleg `evidence/slice-v1-abschluss-verbindungsende-doku.md`).
