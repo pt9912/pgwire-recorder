@@ -91,7 +91,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: Die Prüfung des Architect vor dem Code schätzt den Diff mit Tests auf über 1000 Zeilen (Schätzung des Planners 600 bis 1000) — Schnitt vor dem Anspruch: Service | Hilfetext und E2E, Zuschnitt: Planner (`BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`).
+- `in-progress` → `next`: Die Prüfung des Architect vor dem Code schätzt den Diff mit Tests auf über 1000 Zeilen (Schätzung des Planners 600 bis 1000) — **Metrik** (`AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- internal test docs/user`, Tests eingeschlossen; **Basis:** vom Planner beim Anspruch einzutragen, danach nicht mehr geändert; beide Zahlen sind in dieser Zahl zu lesen — Schnitt vor dem Anspruch: Service | Hilfetext und E2E, Zuschnitt: Planner (`BEO-REPO/schnitt-laesst-haelfte-an-der-grenze`).
 - `in-progress` → `next`: Der Einspiel-Adapter oder der Port `Einspielziel` muss sich noch einmal ändern — dritte Schicht, zurück zur Zerlegung (der Vorgänger sollte ihn abschließen).
 - `in-progress` → `open`: Der Nutzer ändert die Regel „gleiche Stelle, gleicher SQLSTATE“ — Change Request an die Spezifikation.
 
