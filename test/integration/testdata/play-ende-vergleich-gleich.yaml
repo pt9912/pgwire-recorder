@@ -1,0 +1,28 @@
+format: pgwire-recorder
+version: 2
+sessions:
+  - id: 1
+    startup:
+      user: postgres
+      database: postgres
+    interactions:
+      - sequence: 1
+        request: {type: query, sql: "CREATE TABLE ende_vor (n int)"}
+        responses:
+          - {type: command_complete, tag: CREATE TABLE}
+          - {type: ready_for_query, tx_status: I}
+      - sequence: 2
+        request: {type: query, sql: "DO $$ BEGIN PERFORM pg_terminate_backend(pg_backend_pid()); PERFORM pg_sleep(5); END $$"}
+        responses:
+          - {type: error_response, notice: {V: FATAL, S: FATAL, C: 57P01, M: terminating connection due to administrator command}}
+          - {type: connection_closed}
+  - id: 2
+    startup:
+      user: postgres
+      database: postgres
+    interactions:
+      - sequence: 1
+        request: {type: query, sql: "CREATE TABLE ende_folge (n int)"}
+        responses:
+          - {type: command_complete, tag: CREATE TABLE}
+          - {type: ready_for_query, tx_status: I}

@@ -158,10 +158,11 @@ func TestE2EPlayVergleichFortsetzung(t *testing.T) {
 	}
 }
 
-// Abdeckung: LH-FA-24/Negative — eine Fehlerantwort FATAL ist mit Vergleich
-// PGR-E5004 und nicht PGR-E4003, auch mit --continue-on-error ohne weitere
-// Interaktion der Session; die Meldung nennt den SQLSTATE beider Seiten;
-// Exit-Code 5 (Abnahmeszenario 16, LH-FA-24.a *Ende der Aufzeichnung*).
+// Abdeckung: LH-FA-24/Negative — eine Fehlerantwort FATAL, die die Aufzeichnung nicht als
+// Ende zeigt, ist mit Vergleich PGR-E5004 und nicht PGR-E4003, auch mit
+// --continue-on-error ohne weitere Interaktion der Session; die Meldung nennt den
+// SQLSTATE beider Seiten; Exit-Code 5 (Abnahmeszenario 16, LH-FA-24.a *Ende der
+// Aufzeichnung*).
 func TestE2EPlayVergleichFatal(t *testing.T) {
 	leereDatenbank(t, "vgl_quelle_x")
 	input := nimmAufVergleich(t, "vgl_quelle_x")
