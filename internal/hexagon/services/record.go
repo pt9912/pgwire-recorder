@@ -500,8 +500,8 @@ func (l *laufend) uebernehmen(in model.Interaction) error {
 //     auch mit LeereSessions, und es gibt keine Meldung (LH-FA-12.a
 //     *Angenommene Verbindung*).
 //   - EndShutdown, EndFailed, EndServer: kein weiterer Fehler; mit dem Ende des
-//     Servers läuft keine Interaktion mehr, auch nach einem Zwangsende oder einem
-//     Ende des Clients (LH-FA-25.a).
+//     Servers läuft keine Interaktion mehr, auch nach EndClosed oder EndForced
+//     (LH-FA-25.a).
 //
 // Eine laufende Interaktion steht nie in der Session. Übernommen wird die
 // Session, wenn sie keine nicht unterstützte Interaktion enthielt und danach

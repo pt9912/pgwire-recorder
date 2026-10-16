@@ -389,9 +389,8 @@ func TestRecordEndeDanachNichts(t *testing.T) {
 // Abdeckung: LH-FA-25/Happy, LH-FA-13/Boundary — Record im Kern: Das Ende des Servers
 // und das Zwangsende: Nach der Interaktion mit Ende läuft keine mehr, auch keine
 // in die Pipeline gestellte; EndServer, EndClosed und EndForced melden keinen Fehler
-// (kein PGR-E4003, kein PGR-E4006), und die Session wird mit der Interaktion
-// geschrieben, auch wenn es ihre einzige ist (kein Zwangsende im Aufbau, LH-FA-12.a);
-// Shutdown meldet mitten in der Interaktion nicht das Ende, Delivered nach dem Ende
+// (kein PGR-E4003, kein PGR-E4006), die Session wird mit der Interaktion geschrieben
+// und der Upstream geschlossen; Shutdown meldet mitten in der Interaktion nicht das Ende, Delivered nach dem Ende
 // gibt es frei (LH-FA-25.a *Herunterfahren beim Aufzeichnen*).
 func TestRecordEndeEnden(t *testing.T) {
 	ende := []model.Response{endeFehler("FATAL", "FATAL"), sEnde()}
@@ -418,6 +417,11 @@ func TestRecordEndeEnden(t *testing.T) {
 				}
 				if got := l.repo.last(t).Sessions[0].Interactions; len(got) != 2 {
 					t.Fatalf("Interaktionen %#v", got)
+				}
+				select {
+				case <-l.up.letzte.zu:
+				default:
+					t.Error("Upstream nach dem Ende nicht geschlossen")
 				}
 			})
 		}

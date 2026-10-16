@@ -632,8 +632,9 @@ func (r *richtungen) zwangsende(ctx context.Context) {
 // zugestellt; gibt der Use Case damit das Ende frei, weckt es die
 // Client-Richtung. Scheitert das Schreiben, beendet es die Session. Endet die
 // Folge mit connection_closed, beendet es die Session nach der Meldung mit
-// EndServer (LH-FA-25.a): kein ReadyForQuery, keine Meldung, beide
-// Verbindungen geschlossen. Es meldet, ob die Richtung weitermacht.
+// EndServer (LH-FA-25.a): kein ReadyForQuery, keine Meldung, die Verbindung zum
+// Client geschlossen; den Upstream schließt der Use Case. Es meldet, ob die
+// Richtung weitermacht.
 func (r *richtungen) schreibe(ctx context.Context, rs []model.Response) bool {
 	r.schreiben.Lock()
 	err := r.s.send(r.be, rs)
