@@ -224,36 +224,33 @@ func oeffne(t *testing.T, addr string) driven.UpstreamSession {
 	return s
 }
 
+// fehlerAntwort ist eine ErrorResponse mit dem Schweregrad ERROR.
+func fehlerAntwort(code, meldung string) *pgproto3.ErrorResponse {
+	return &pgproto3.ErrorResponse{Severity: "ERROR", SeverityUnlocalized: "ERROR", Code: code, Message: meldung}
+}
+
 // Abdeckung: LH-FA-11/Negative — endet die Verbindung zum Upstream nach einer
-// ErrorResponse vor dem ReadyForQuery, liefert der Upstream-Adapter PGR-E6001
-// mit SQLSTATE und Meldung der letzten ErrorResponse im Text: bei FATAL, ERROR und
-// PANIC, nach Ergebnissen einer einfachen Anfrage, als Nachricht zwischen zwei
-// Interaktionen und im Extended Query Protocol nach einer schon gelieferten
-// ErrorResponse. Ohne ErrorResponse und nach einer ErrorResponse, auf die ein
-// ReadyForQuery folgte, ist es PGR-E4003.
+// ErrorResponse, die kein Ende des Servers ist (Schweregrad ERROR), vor dem
+// ReadyForQuery, liefert der Upstream-Adapter PGR-E6001 mit SQLSTATE und
+// Meldung der letzten ErrorResponse im Text: nach Ergebnissen einer einfachen
+// Anfrage, als Nachricht zwischen zwei Interaktionen und im Extended Query
+// Protocol nach einer schon gelieferten ErrorResponse. Ohne ErrorResponse und
+// nach einer ErrorResponse, auf die ein ReadyForQuery folgte, ist es PGR-E4003.
 func TestFehlerantwortVorDemAbbruch(t *testing.T) {
-	for _, c := range []struct {
-		name   string
-		fehler *pgproto3.ErrorResponse
-	}{
-		{"nach Ergebnissen, FATAL", beendet()},
-		{"Schweregrad ERROR", &pgproto3.ErrorResponse{Severity: "ERROR", SeverityUnlocalized: "ERROR", Code: "XX000", Message: "interner Fehler"}},
-		{"Schweregrad PANIC", &pgproto3.ErrorResponse{Severity: "PANIC", SeverityUnlocalized: "PANIC", Code: "XX000", Message: "Panik"}},
-	} {
-		t.Run(c.name, func(t *testing.T) {
-			s := oeffne(t, abbruchServer(t, nil, mit(ergebnis(), c.fehler)))
-			out, err := s.Query(ctx(t), "SELECT 1; SELECT pg_terminate_backend(pg_backend_pid())")
-			pruefeAbbruch(t, err, model.CodeUnsupported, c.fehler)
-			if len(out) != 4 || out[3].Type != model.ResponseErrorResponse {
-				t.Fatalf("Antworten vor dem Abbruch: %#v", out)
-			}
-		})
-	}
+	fehler := fehlerAntwort("XX000", "interner Fehler")
+	t.Run("nach Ergebnissen", func(t *testing.T) {
+		s := oeffne(t, abbruchServer(t, nil, mit(ergebnis(), fehler)))
+		out, err := s.Query(ctx(t), "SELECT 1; SELECT 1/0")
+		pruefeAbbruch(t, err, model.CodeUnsupported, fehler)
+		if len(out) != 4 || out[3].Type != model.ResponseErrorResponse {
+			t.Fatalf("Antworten vor dem Abbruch: %#v", out)
+		}
+	})
 	t.Run("zwei Fehlerantworten, die letzte zählt", func(t *testing.T) {
-		erste := &pgproto3.ErrorResponse{Severity: "ERROR", Code: "XX001", Message: "erste"}
-		s := oeffne(t, abbruchServer(t, nil, mit(ergebnis(), erste, beendet())))
+		letzte := fehlerAntwort("XX002", "zweite")
+		s := oeffne(t, abbruchServer(t, nil, mit(ergebnis(), fehlerAntwort("XX001", "erste"), letzte)))
 		_, err := s.Query(ctx(t), "SELECT 1")
-		pruefeAbbruch(t, err, model.CodeUnsupported, beendet())
+		pruefeAbbruch(t, err, model.CodeUnsupported, letzte)
 		if strings.Contains(err.Error(), "XX001") {
 			t.Fatalf("Text nennt die erste Fehlerantwort: %v", err)
 		}
@@ -264,7 +261,7 @@ func TestFehlerantwortVorDemAbbruch(t *testing.T) {
 		pruefeAbbruch(t, err, model.CodeConnectionLost, nil)
 	})
 	t.Run("ReadyForQuery nach der Fehlerantwort", func(t *testing.T) {
-		s := oeffne(t, abbruchServer(t, nil, []pgproto3.BackendMessage{beendet(), &pgproto3.ReadyForQuery{TxStatus: 'I'}}, nil))
+		s := oeffne(t, abbruchServer(t, nil, []pgproto3.BackendMessage{fehler, &pgproto3.ReadyForQuery{TxStatus: 'I'}}, nil))
 		if _, err := s.Query(ctx(t), "SELECT 1/0"); err != nil {
 			t.Fatal(err)
 		}
@@ -272,28 +269,28 @@ func TestFehlerantwortVorDemAbbruch(t *testing.T) {
 		pruefeAbbruch(t, err, model.CodeConnectionLost, nil)
 	})
 	t.Run("zwischen zwei Interaktionen", func(t *testing.T) {
-		s := oeffne(t, abbruchServer(t, []pgproto3.BackendMessage{beendet()}, nil))
+		s := oeffne(t, abbruchServer(t, []pgproto3.BackendMessage{fehler}, nil))
 		out, err := s.Query(ctx(t), "SELECT 1")
-		pruefeAbbruch(t, err, model.CodeUnsupported, beendet())
-		if len(out) != 1 || out[0].Fields["C"] != "57P01" {
+		pruefeAbbruch(t, err, model.CodeUnsupported, fehler)
+		if len(out) != 1 || out[0].Fields["C"] != "XX000" {
 			t.Fatalf("Antworten vor dem Abbruch: %#v", out)
 		}
 	})
 	t.Run("Extended", func(t *testing.T) {
-		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet()}, nil})
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{fehler}, nil})
 		s := oeffne(t, addr)
 		if err := s.Send(ctx(t), []model.ClientMessage{{Type: model.ClientParse, SQL: "SELECT 1"}, {Type: model.ClientFlush}}); err != nil {
 			t.Fatal(err)
 		}
 		rs, err := s.Receive(ctx(t))
-		if err != nil || len(rs) != 1 || rs[0].Type != model.ResponseErrorResponse || rs[0].Fields["C"] != "57P01" {
+		if err != nil || len(rs) != 1 || rs[0].Type != model.ResponseErrorResponse || rs[0].Fields["C"] != "XX000" {
 			t.Fatalf("Receive: %#v, %v", rs, err)
 		}
 		if err := s.Send(ctx(t), []model.ClientMessage{{Type: model.ClientSync}}); err != nil {
 			t.Fatal(err)
 		}
 		_, err = s.Receive(ctx(t))
-		pruefeAbbruch(t, err, model.CodeUnsupported, beendet())
+		pruefeAbbruch(t, err, model.CodeUnsupported, fehler)
 	})
 }
 
@@ -414,11 +411,14 @@ func schreibhaelfteZu(t *testing.T, s driven.UpstreamSession) {
 
 // Abdeckung: LH-FA-11/Negative — scheitert im Extended Query Protocol das
 // Senden, nachdem die Leserichtung eine ErrorResponse der laufenden
-// Interaktion gelesen hat, liefert Send PGR-E6001 mit deren SQLSTATE; ohne
-// gelesene ErrorResponse und nach einem ReadyForQuery ist es PGR-E4003.
+// Interaktion gelesen hat, die kein Ende des Servers ist, liefert Send
+// PGR-E6001 mit deren SQLSTATE; ohne gelesene ErrorResponse und nach einem
+// ReadyForQuery ist es PGR-E4003. Nach einem Ende des Servers liefert Send
+// keinen Fehler (TestSendNachDemEnde).
 func TestSendNachFehlerantwort(t *testing.T) {
 	parse := []model.ClientMessage{{Type: model.ClientParse, SQL: "SELECT 1"}, {Type: model.ClientFlush}}
 	sync := []model.ClientMessage{{Type: model.ClientSync}}
+	fehler := fehlerAntwort("XX000", "interner Fehler")
 	lies := func(t *testing.T, s driven.UpstreamSession, bis model.ResponseType) {
 		t.Helper()
 		for {
@@ -432,14 +432,14 @@ func TestSendNachFehlerantwort(t *testing.T) {
 		}
 	}
 	t.Run("ErrorResponse gelesen", func(t *testing.T) {
-		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet()}})
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{fehler}})
 		s := oeffne(t, addr)
 		if err := s.Send(ctx(t), parse); err != nil {
 			t.Fatal(err)
 		}
 		lies(t, s, model.ResponseErrorResponse)
 		schreibhaelfteZu(t, s)
-		pruefeAbbruch(t, s.Send(ctx(t), sync), model.CodeUnsupported, beendet())
+		pruefeAbbruch(t, s.Send(ctx(t), sync), model.CodeUnsupported, fehler)
 	})
 	t.Run("ohne ErrorResponse", func(t *testing.T) {
 		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{&pgproto3.ParseComplete{}}})
@@ -452,7 +452,7 @@ func TestSendNachFehlerantwort(t *testing.T) {
 		pruefeAbbruch(t, s.Send(ctx(t), sync), model.CodeConnectionLost, nil)
 	})
 	t.Run("ErrorResponse und ReadyForQuery gelesen", func(t *testing.T) {
-		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{beendet(), &pgproto3.ReadyForQuery{TxStatus: 'I'}}})
+		addr, _ := extendedServer(t, [][]pgproto3.BackendMessage{{fehler, &pgproto3.ReadyForQuery{TxStatus: 'I'}}})
 		s := oeffne(t, addr)
 		if err := s.Send(ctx(t), append(parse[:1:1], sync...)); err != nil {
 			t.Fatal(err)
@@ -475,7 +475,7 @@ func TestNichtLesbareServerantwort(t *testing.T) {
 		roh    []byte
 	}{
 		{"unbekannter Typ", nil, rohNachricht('Y', "")},
-		{"unbekannter Typ nach ErrorResponse", []pgproto3.BackendMessage{beendet()}, rohNachricht('Y', "")},
+		{"unbekannter Typ nach ErrorResponse", []pgproto3.BackendMessage{fehlerAntwort("57P01", "Meldung")}, rohNachricht('Y', "")},
 		{"ReadyForQuery ohne Status", nil, rohNachricht('Z', "")},
 	} {
 		t.Run(c.name, func(t *testing.T) {

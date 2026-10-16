@@ -27,16 +27,27 @@ type Upstream interface {
 // Receive, und von jeder Operation läuft höchstens ein Aufruf. Close darf
 // jederzeit laufen, blockiert nicht an einem Server, der nicht liest, und
 // beendet ein wartendes Send, Receive oder Query mit einem Fehler.
+//
+// Ende des Servers (LH-FA-25.a): Liest die Session in der laufenden Interaktion
+// eine Fehlerantwort FATAL oder PANIC, endet die Antwortfolge von Query und
+// Receive mit dieser Fehlerantwort und danach connection_closed statt mit
+// ReadyForQuery; die Session wartet nicht auf das Verbindungsende und liest
+// nichts dahinter. Send liefert danach keinen Fehler, auch wenn das Schreiben
+// scheitert; ohne gelesene Fehlerantwort ist ein Sendefehler PGR-E4003, nach einer
+// anderen gelesenen Fehlerantwort PGR-E6001 (LH-FA-02.b). Nach
+// connection_closed ruft der Aufrufer nur noch Close; was Query, Send und Receive
+// dann liefern, ist nicht zugesagt.
 type UpstreamSession interface {
 	// Query sendet eine einfache Anfrage und liefert die Antworten bis
-	// einschließlich ReadyForQuery.
+	// einschließlich ReadyForQuery oder, bei einem Ende des Servers, bis
+	// einschließlich connection_closed.
 	Query(ctx context.Context, sql string) ([]model.Response, error)
 	// Send sendet die Client-Nachrichten einer Gruppe einer Extended-Interaktion
 	// unverändert und in ihrer Reihenfolge an den Server.
 	Send(ctx context.Context, msgs []model.ClientMessage) error
 	// Receive wartet auf die nächste Server-Nachricht einer Extended-Interaktion
 	// und liefert sie zusammen mit den Nachrichten, die schon dahinter empfangen
-	// sind, höchstens bis einschließlich ReadyForQuery.
+	// sind, höchstens bis einschließlich ReadyForQuery oder connection_closed.
 	Receive(ctx context.Context) ([]model.Response, error)
 	Close() error
 }

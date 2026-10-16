@@ -82,7 +82,7 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `internal/adapters/driven/postgres/upstream.go` | update | `Query`, `Send`, `Receive`, `lies`, `verbindungsende`: Ende erkennen, `connection_closed` liefern, nicht weiterlesen; Einstufung `PGR-E4003`/`PGR-E6001` |
 | `internal/hexagon/ports/driven/upstream.go` | update (nur Kommentar, keine Logik, keine Schicht nach `AGENTS.md` §3.13) | Dokumentation des Port-Vertrags: wann `connection_closed` kommt und dass danach nichts mehr gelesen wird (Name und Form hat der Vorgänger festgelegt) |
-| `internal/adapters/driven/postgres` (Tests) | update | Randformen aus §6; die Tests, die die alte Regel prüfen (`TestFehlerantwortVorDemAbbruch` für `FATAL` und `PANIC`, `TestSendNachFehlerantwort`), werden hier nachgezogen |
+| `internal/adapters/driven/postgres` (Tests: neu `upstream_ende_test.go`, nachgezogen `upstream_test.go`) | update | Randformen aus §6; die Tests, die die alte Regel prüfen (`TestFehlerantwortVorDemAbbruch` für `FATAL` und `PANIC`, `TestSendNachFehlerantwort`), werden hier nachgezogen: `FATAL` und `PANIC` sind ein Ende (`TestEnde*`, `TestSendNachDemEnde`), die bestehenden Tests prüfen `ERROR` |
 | `test/integration` (`ende_e2e_test.go`; `TestE2ERecordExtendedAbbruch` bleibt für `ERROR`) | neu/update | Abnahmeszenario 18 gegen PostgreSQL 17 in YAML und SQLite, Leerlauf, Netzwerkabbruch |
 | `docs/user/abdeckung-unit.md`, `docs/user/abdeckung-e2e.md` | update (`make abdeckung`) | Tabellen aus den Deklarationen der Tests |
 

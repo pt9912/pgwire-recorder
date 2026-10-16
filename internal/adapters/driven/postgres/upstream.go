@@ -107,6 +107,10 @@ func newSession(conn net.Conn) *session {
 // terminateFrist begrenzt das Senden von Terminate in Close.
 const terminateFrist = 100 * time.Millisecond
 
+// Query liefert die Antworten bis einschließlich ReadyForQuery. Liest es eine
+// ErrorResponse FATAL oder PANIC, sind die Antworten bis einschließlich dieser
+// ErrorResponse die Interaktion, gefolgt von connection_closed; es wartet nicht
+// auf das Verbindungsende und liest nichts dahinter (LH-FA-25.a).
 func (s *session) Query(_ context.Context, sql string) ([]model.Response, error) {
 	s.schreiben.Lock()
 	s.fe.Send(&pgproto3.Query{String: sql})
@@ -117,11 +121,14 @@ func (s *session) Query(_ context.Context, sql string) ([]model.Response, error)
 	}
 	var responses []model.Response
 	for {
-		r, err := s.lies()
+		r, ende, err := s.lies()
 		if err != nil {
 			return responses, err
 		}
 		responses = append(responses, r)
+		if ende {
+			return append(responses, model.Response{Type: model.ResponseConnectionClosed}), nil
+		}
 		if r.Type == model.ResponseReadyForQuery {
 			return responses, nil
 		}
@@ -131,7 +138,8 @@ func (s *session) Query(_ context.Context, sql string) ([]model.Response, error)
 // Send bildet die Client-Nachrichten auf PGWire ab und sendet sie in einem
 // Schreibvorgang; es blockiert, solange der Server nicht liest. Scheitert das
 // Senden, stuft es wie lies nach einer gelesenen ErrorResponse ein
-// (LH-FA-02.b).
+// (LH-FA-02.b); nach einer gelesenen FATAL oder PANIC ist der Sendefehler kein
+// Fehler (LH-FA-25.a *Senden nach dem Ende*).
 func (s *session) Send(_ context.Context, msgs []model.ClientMessage) error {
 	s.schreiben.Lock()
 	defer s.schreiben.Unlock()
@@ -143,6 +151,9 @@ func (s *session) Send(_ context.Context, msgs []model.ClientMessage) error {
 		s.fe.Send(msg)
 	}
 	if err := s.fe.Flush(); err != nil {
+		if s.endeGelesen() {
+			return nil
+		}
 		return s.verbindungsende(err, "Nachrichten an den Upstream nicht zu senden")
 	}
 	return nil
@@ -150,15 +161,20 @@ func (s *session) Send(_ context.Context, msgs []model.ClientMessage) error {
 
 // Receive wartet auf eine Server-Nachricht und liest weiter, solange der
 // Lesepuffer schon Bytes der nächsten enthält; ein ReadyForQuery beendet die
-// Folge.
+// Folge. Liest es eine ErrorResponse FATAL oder PANIC, endet die Folge mit ihr
+// und connection_closed; was im Lesepuffer dahinter liegt, bleibt ungelesen
+// (LH-FA-25.a).
 func (s *session) Receive(context.Context) ([]model.Response, error) {
 	var out []model.Response
 	for {
-		r, err := s.lies()
+		r, ende, err := s.lies()
 		if err != nil {
 			return nil, err
 		}
 		out = append(out, r)
+		if ende {
+			return append(out, model.Response{Type: model.ResponseConnectionClosed}), nil
+		}
 		if r.Type == model.ResponseReadyForQuery || s.fe.ReadBufferLen() == 0 {
 			return out, nil
 		}
@@ -166,29 +182,50 @@ func (s *session) Receive(context.Context) ([]model.Response, error) {
 }
 
 // lies liest die nächste Server-Nachricht und bildet sie ab. Eine
-// ErrorResponse merkt es sich bis zum nächsten ReadyForQuery. Endet die
-// Verbindung (istVerbindungsende), stuft verbindungsende ein; jeder andere
-// Lesefehler ist eine nicht lesbare Serverantwort, PGR-E6001 ohne Blick auf
-// den Merker (LH-FA-02.b, LH-FA-05.a).
-func (s *session) lies() (model.Response, error) {
+// ErrorResponse merkt es sich bis zum nächsten ReadyForQuery; ende ist wahr,
+// wenn sie das Ende des Servers ist (beendetVerbindung). Endet die Verbindung
+// (istVerbindungsende), stuft verbindungsende ein; jeder andere Lesefehler ist
+// eine nicht lesbare Serverantwort, PGR-E6001 ohne Blick auf den Merker
+// (LH-FA-02.b, LH-FA-05.a).
+func (s *session) lies() (r model.Response, ende bool, err error) {
 	msg, err := s.fe.Receive()
 	if err != nil {
 		if istVerbindungsende(err) {
-			return model.Response{}, s.verbindungsende(err, "Verbindung zum Upstream vor ReadyForQuery beendet")
+			return model.Response{}, false, s.verbindungsende(err, "Verbindung zum Upstream vor ReadyForQuery beendet")
 		}
-		return model.Response{}, model.Errorf(model.CodeUnsupported, err, "Serverantwort des Upstreams nicht lesbar")
+		return model.Response{}, false, model.Errorf(model.CodeUnsupported, err, "Serverantwort des Upstreams nicht lesbar")
 	}
-	r, err := toResponse(msg)
+	r, err = toResponse(msg)
 	if err != nil {
-		return model.Response{}, err
+		return model.Response{}, false, err
 	}
 	switch r.Type {
 	case model.ResponseErrorResponse:
 		s.merke(r.Fields)
+		ende = beendetVerbindung(r.Fields)
 	case model.ResponseReadyForQuery:
 		s.merke(nil)
 	}
-	return r, nil
+	return r, ende, nil
+}
+
+// beendetVerbindung sagt, ob die Felder einer ErrorResponse ein Ende des
+// Servers sind: Der Schweregrad ist genau FATAL oder PANIC, gelesen aus V, ohne
+// V (auch leer) aus S (LH-FA-25.a).
+func beendetVerbindung(fehler map[string]string) bool {
+	schwere := fehler["V"]
+	if schwere == "" {
+		schwere = fehler["S"]
+	}
+	return schwere == "FATAL" || schwere == "PANIC"
+}
+
+// endeGelesen sagt, ob die letzte gelesene ErrorResponse seit dem letzten
+// ReadyForQuery ein Ende des Servers ist.
+func (s *session) endeGelesen() bool {
+	s.merker.Lock()
+	defer s.merker.Unlock()
+	return s.fehler != nil && beendetVerbindung(s.fehler)
 }
 
 func (s *session) merke(fehler map[string]string) {
