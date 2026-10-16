@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-record
+**Fund (Review F-2, MEDIUM; Verifikation V-2, LOW):** §7 nannte `slice-v1-abschluss-verbindungsende-upstream` als Adresse für die Test-Idee „Schreibfehler in `serverRichtung` (Extended)“; dessen §1 und DoD führten die Sendung nicht, und der Nehmer lag schon bei 3 Liefer-Punkten und 2 Schichten. Der Implementer nahm die Adresse nach dem Review zurück; der Planner strich die Idee bei der Closure mit Begründung (Kommentare sagen dazu nichts zu), keine Sendung.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-record
+**Fund (Review F-4, INFO):** Der Vorrang von `ErrSessionEnded` vor `ErrShutdown` nach dem Ende (Anfrage und Client-Nachricht bei gemeldetem `Shutdown`) war im Code und im Test entschieden, in §6 und der Spezifikation nicht genannt; dazu zwei Lesarten der *Stelle* („Mitte“ gegen „was dahinter liefert, übernimmt der Use Case nicht“), die der Implementer im Code vereinte (`bisEnde`, §7 Beobachtung 3) und der Architect nachträglich bestätigte. Festgelegt im Test und im Port-Kommentar, keine Änderung der Spezifikation.
