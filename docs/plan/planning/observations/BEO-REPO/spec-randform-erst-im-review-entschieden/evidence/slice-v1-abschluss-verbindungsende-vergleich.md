@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-vergleich
+**Fund (Review F-6, INFO):** Ob ein vorhandenes, aber leeres Feld `V` einer Fehlerantwort den Schweregrad allein entscheidet oder auf `S` zurückfällt, war in §6 nicht genannt: `fehlerantwort` im Service fiel bei leerem `V` auf `S` zurück, `beendetVerbindung` im Modell ließ das leere `V` allein entscheiden (`SPEC-002`: „genau“). Das Review fand die verschiedenen Lesarten; der Architect entschied (`ccbb1073`: leeres `V` wie fehlendes), der Code folgte in `a1904b57`.

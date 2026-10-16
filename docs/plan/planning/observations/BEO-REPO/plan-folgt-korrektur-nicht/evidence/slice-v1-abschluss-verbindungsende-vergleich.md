@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-verbindungsende-vergleich
+**Fund (Review F-2, LOW; Verifikation V-1, LOW):** (1) §3 und DoD sagten „je Fall in den Formen einfach, Extended Sync und Extended Flush“, der Diff fuhr acht der elf Fälle von `TestVergleichEndeAbweichung` in zwei Formen; der Grund stand weder im Plan noch im Kommentar von `ohneFlush`. Nachgezogen in `a1904b57`. (2) Die Aufnahme von F-6 (leeres `V` wie fehlendes, Modell und Tests beider Leser) stand in §3, DoD und §6, aber §1 *Ziel* nannte die Änderung des Ladens nicht; nachgezogen mit der Closure.

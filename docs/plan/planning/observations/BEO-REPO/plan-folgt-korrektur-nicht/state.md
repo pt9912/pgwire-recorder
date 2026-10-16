@@ -49,3 +49,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbind
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-einspielen` (F-5) — zwei Dateien des Diffs standen nicht in §3 (Beleg `evidence/slice-v1-abschluss-verbindungsende-einspielen.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-einspielen-extended` — die Spezifikation, vom Architect im Slice geändert, stand nicht in §3 (Beleg `evidence/slice-v1-abschluss-verbindungsende-einspielen-extended.md`). Urteil des Planners bei der Closure: Review und Verifikation fanden es nicht (der Review hielt §3 für folgend, weil die Dateien der Metrik stimmten); der Zähler folgt dem Urteil, das der Nutzer streichen kann.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbindungsende-vergleich` (F-2, V-1) — §3 nannte mehr Formen je Fall, als der Diff trug, und §1 *Ziel* nannte die Änderung des Ladens (leeres `V`) nicht (Beleg `evidence/slice-v1-abschluss-verbindungsende-vergleich.md`).
