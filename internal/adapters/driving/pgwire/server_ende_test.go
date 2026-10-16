@@ -239,8 +239,11 @@ func (g *gruppenReplayer) Sent(ctx context.Context, id model.SessionID) {
 // danach schließt die Verbindung: Ablauf gruppe sent gruppe sent close
 // (LH-FA-25.a *Meldung des Endes im Replay*).
 func TestReplayEndeGruppeDavorSchliesstNicht(t *testing.T) {
-	for _, flush := range []bool{false, true} {
-		gruppeDavorSchliesstNicht(t, flush)
+	for _, lauf := range []struct {
+		name  string
+		flush bool
+	}{{"sync", false}, {"flush", true}} {
+		t.Run(lauf.name, func(t *testing.T) { gruppeDavorSchliesstNicht(t, lauf.flush) })
 	}
 }
 
