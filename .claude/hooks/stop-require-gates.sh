@@ -13,8 +13,8 @@
 #   (ein frischer Klon sperrt den ersten Stop, bis `make gates` lief).
 # - Ein Eintrag, der fehlt, neu ist oder abweicht (Inhalt, Link-Ziel, gelöschte, umbenannte,
 #   untracked Datei), sperrt, sofern sein Pfad nicht auf der Positivliste liegt.
-# - Positivliste (`inert`): `docs/plan/planning/`, `docs/reviews/`, `docs/user/` und die
-#   Wurzel-`README.md`, bytegenau und case-sensitiv; die Grenze steht mit dem Schrägstrich.
+# - Positivliste (`inert`): `docs/plan/planning/`, `docs/reviews/`, `docs/user/`,
+#   `docs/developer/` und die Wurzel-`README.md`, bytegenau und case-sensitiv; die Grenze steht mit dem Schrägstrich.
 #   Ein Pfad mit absolutem Anfang oder mit Segment `.`, `..` oder leerem Segment im Unterschied
 #   ist nie inert; ein geänderter Eintrag der Art X ist nie inert.
 # - Ein Symlink im Unterschied ist inert, wenn Link-Pfad und das lexikalisch aufgelöste Ziel
@@ -99,6 +99,7 @@ inert() {
     docs/plan/planning/*) return 0 ;;
     docs/reviews/*) return 0 ;;
     docs/user/*) return 0 ;;
+    docs/developer/*) return 0 ;;
     README.md) return 0 ;;
   esac
   return 1
@@ -178,7 +179,7 @@ link_inert() {
 spiegelt() {
   inert "$1" && return 0
   case "$1" in
-    docs/plan/planning | docs/reviews | docs/user) return 0 ;;
+    docs/plan/planning | docs/reviews | docs/user | docs/developer) return 0 ;;
   esac
   case "$1" in
     docs | docs/plan) return 0 ;;

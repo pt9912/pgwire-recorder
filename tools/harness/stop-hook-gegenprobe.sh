@@ -144,7 +144,7 @@ menge() { local t="${TPL_MENGE//@OPT@/$1}"; t="${t//@E@/$EINTRAG}"; printf '%s' 
 # --- Temp-Repo und Läufer ------------------------------------------------------------
 # Dateien des Temp-Repos auf der Positivliste und daneben (Pfade der Fälle der Punkte 9 bis 15).
 DATEIEN_FIXTURE="docs/plan/planning/p.md docs/reviews/r.md docs/user/u.md docs/user/abdeckung-e2e.md
-  docs/user/benutzerhandbuch.md README.md harness/README.md internal/x.go .golangci.yml tools/x.sh
+  docs/user/benutzerhandbuch.md docs/developer/d.md README.md harness/README.md internal/x.go .golangci.yml tools/x.sh
   Dockerfile go.mod .dockerignore .d-check.yml spec/spezifikation.md
   harness/vertraege/SPEC-052-gate-kette.md"
 # fixture <name> — legt das Temp-Repo an (Makefile, Fragment, Skripte, Hook) und setzt w.
@@ -170,6 +170,7 @@ fixture() {
     printf 'inhalt\n' > "$w/$d"
   done
   ln -s u.md "$w/docs/user/ln"
+  ln -s d.md "$w/docs/developer/ln"
   git -C "$w" init -q -b main
   git -C "$w" add -A
   git -C "$w" commit -q -m basis
@@ -265,6 +266,9 @@ FAELLE=(
   p15-ziel-ausserhalb-liste p15-ziel-verzeichnis p15-art-datei-zu-link p15-art-link-zu-datei
   p15-spiegel-liste p15-spiegel-verzeichnis p15-spiegel-vorfahr p15-spiegel-wurzel
   p15-spiegel-absolut p22-freigabe-unterverzeichnis p22-freigabe-leere-umgebung
+  p12-developer p12-developer-tief p15-link-inert-developer p12-grenze-developer-alt
+  p12-grenze-developers p12-grenze-datei-developer p12-case-developer p15-ziel-aussen-developer
+  p15-ziel-verzeichnis-developer p15-spiegel-developer p12-art-x-developer
 )
 
 f_p16_identisch() { kopie p16-identisch; stand; hook; ist p16-identisch approve; }
@@ -660,6 +664,8 @@ f_p16_schnell_fremd() {
 f_p12_planning_tief() { pfad_fall p12-planning-tief approve docs/plan/planning/a/b/c.md; }
 f_p12_reviews_tief() { pfad_fall p12-reviews-tief approve docs/reviews/a/b/c.md; }
 f_p12_user_tief() { pfad_fall p12-user-tief approve docs/user/a/b/c.md; }
+f_p12_developer() { pfad_fall p12-developer approve docs/developer/d.md; }
+f_p12_developer_tief() { pfad_fall p12-developer-tief approve docs/developer/a/b/c.md; }
 f_p12_readme() { pfad_fall p12-readme approve README.md; }
 f_p13_docs_user() { pfad_fall p13-docs-user approve docs/user/benutzerhandbuch.md docs/user/abdeckung-e2e.md; }
 # Grenze der Einträge (Punkt 12): der Pfad daneben gibt nicht frei.
@@ -670,6 +676,10 @@ f_p12_grenze_datei_reviews() { nach_stand p12-grenze-datei-reviews block ersetze
 f_p12_grenze_datei_user() { nach_stand p12-grenze-datei-user block ersetze_durch_datei docs/user; }
 # ersetze_durch_datei <pfad> — das Verzeichnis des Pfades in c wird eine Datei.
 ersetze_durch_datei() { rm -rf "${c:?}/${1:?}"; echo x > "$c/$1"; }
+f_p12_grenze_developer_alt() { pfad_fall p12-grenze-developer-alt block docs/developer-alt/n.md; }
+f_p12_grenze_developers() { pfad_fall p12-grenze-developers block docs/developers/n.md; }
+f_p12_grenze_datei_developer() { nach_stand p12-grenze-datei-developer block ersetze_durch_datei docs/developer; }
+f_p12_case_developer() { pfad_fall p12-case-developer block docs/Developer/n.md; }
 f_p12_grenze_readme_bak() { pfad_fall p12-grenze-readme-bak block README.md.bak; }
 f_p12_case_planning() { pfad_fall p12-case-planning block docs/Plan/planning/n.md; }
 f_p12_case_readme() { pfad_fall p12-case-readme block readme.md; }
@@ -715,6 +725,13 @@ f_p12_art_x() {
   stand; rmdir "$c/docs/user/sub"; schnell; hook; ist p12-art-x block
 }
 
+f_p12_art_x_developer() {
+  kopie p12-art-x-developer
+  mkdir -p "$c/docs/developer/sub"
+  git -C "$c" update-index --add --cacheinfo "160000,$(git -C "$c" rev-parse HEAD),docs/developer/sub"
+  stand; rmdir "$c/docs/developer/sub"; schnell; hook; ist p12-art-x-developer block
+}
+
 # Symlink (Punkt 15): der Link docs/user/ln zeigt anders; Link-Pfad und Ziel müssen inert sein.
 ziel_neu() { ln -sfn "$1" "$c/docs/user/ln"; }
 f_p15_link_inert() { nach_stand p15-link-inert approve ziel_neu abdeckung-e2e.md; }
@@ -739,6 +756,11 @@ spiegel_fall() {
 }
 f_p15_spiegel_liste() { spiegel_fall p15-spiegel-liste docs/user/u.md sp1; }
 f_p15_spiegel_verzeichnis() { spiegel_fall p15-spiegel-verzeichnis docs/user sp2; }
+ziel_neu_dev() { ln -sfn "$1" "$c/docs/developer/ln"; }
+f_p15_link_inert_developer() { nach_stand p15-link-inert-developer approve ziel_neu_dev x.md; }
+f_p15_ziel_aussen_developer() { nach_stand p15-ziel-aussen-developer block ziel_neu_dev ../../internal/x.go; }
+f_p15_ziel_verzeichnis_developer() { nach_stand p15-ziel-verzeichnis-developer block ziel_neu_dev ../developer/; }
+f_p15_spiegel_developer() { spiegel_fall p15-spiegel-developer docs/developer sp6; }
 f_p15_spiegel_vorfahr() { spiegel_fall p15-spiegel-vorfahr docs sp3; }
 f_p15_spiegel_wurzel() { spiegel_fall p15-spiegel-wurzel .. dir/up; }
 f_p15_spiegel_absolut() { spiegel_fall p15-spiegel-absolut ABS sp5; }
@@ -1052,6 +1074,9 @@ aufnahme 'docs/reviews-*' p12-grenze-reviews-alt
 aufnahme 'docs/users/*' p12-grenze-users
 aufnahme 'docs/reviews' p12-grenze-datei-reviews
 aufnahme 'docs/user' p12-grenze-datei-user
+aufnahme 'docs/developer-*' p12-grenze-developer-alt
+aufnahme 'docs/developers/*' p12-grenze-developers
+aufnahme 'docs/developer' p12-grenze-datei-developer
 aufnahme 'README.md.bak' p12-grenze-readme-bak
 aufnahme 'harness/README.md' p12-harness-readme
 
@@ -1059,12 +1084,17 @@ aufnahme 'harness/README.md' p12-harness-readme
 L_PLANNING='    docs/plan/planning/*) return 0 ;;'
 L_REVIEWS='    docs/reviews/*) return 0 ;;'
 L_USER='    docs/user/*) return 0 ;;'
+L_DEVELOPER='    docs/developer/*) return 0 ;;'
 fixture m-ohne-planning
 ersetze $HOOK "$L_PLANNING" ''; rot p12-planning-tief
 fixture m-ohne-reviews
 ersetze $HOOK "$L_REVIEWS" ''; rot p12-reviews-tief
 fixture m-ohne-user
 ersetze $HOOK "$L_USER" ''; rot "p12-user-tief p13-docs-user p9-freigabe"
+fixture m-ohne-developer
+ersetze $HOOK "$L_DEVELOPER" ''; rot "p12-developer p12-developer-tief p15-link-inert-developer"
+fixture m-developer-erste-ebene
+ersetze $HOOK "$L_DEVELOPER" '    docs/developer/*/*) ;;'$'\n'"$L_DEVELOPER"; rot p12-developer-tief "p12-developer p15-link-inert-developer"
 fixture m-ohne-readme
 ersetze $HOOK "$L_README" ''; rot p12-readme
 fixture m-planning-erste-ebene
@@ -1074,7 +1104,7 @@ ersetze $HOOK "$L_REVIEWS" '    docs/reviews/*/*) ;;'$'\n'"$L_REVIEWS"; rot p12-
 fixture m-user-erste-ebene
 ersetze $HOOK "$L_USER" '    docs/user/*/*) ;;'$'\n'"$L_USER"; rot p12-user-tief p9-freigabe
 fixture m-case-egal
-ersetze $HOOK 'export LC_ALL=C' 'export LC_ALL=C; shopt -s nocasematch'; rot "p12-case-planning p12-case-readme" p9-freigabe
+ersetze $HOOK 'export LC_ALL=C' 'export LC_ALL=C; shopt -s nocasematch'; rot "p12-case-planning p12-case-readme p12-case-developer" p9-freigabe
 fixture m-readme-jede-tiefe
 ersetze $HOOK "$L_README" '    README.md | */README.md) return 0 ;;'; rot p12-harness-readme p12-readme
 
@@ -1106,14 +1136,14 @@ fixture m-nur-stand
 sedmut $HOOK '/^diff_bilden() {/,/^}/ s/for p in \${AP\[@\]+"\${AP\[@\]}"}; do/for p in ${SP[@]+"${SP[@]}"}; do/'
 rot "p14-umbenennung-von-inert p14-neu-nicht-inert p18-untracked-nicht-inert" "p14-geloescht-nicht-inert p14-geloescht-index-nicht-inert p14-umbenennung-nach-inert"
 fixture m-art-x-wie-datei
-ersetze $HOOK "$L_ARTX" ''; rot p12-art-x
+ersetze $HOOK "$L_ARTX" ''; rot "p12-art-x p12-art-x-developer"
 
 # Symlink (Punkt 15): je Element nur dieses Element gelockert.
 fixture m-link-ohne-ziel
 ersetze $HOOK "$L_LINK" ''
-rot "p15-ziel-aussen p15-ziel-ueber-wurzel p15-ziel-absolut p15-ziel-absolut-aussen p15-ziel-ausserhalb-liste p15-ziel-verzeichnis p15-art-datei-zu-link p15-art-link-zu-datei" p15-link-inert
+rot "p15-ziel-aussen p15-ziel-ueber-wurzel p15-ziel-absolut p15-ziel-absolut-aussen p15-ziel-ausserhalb-liste p15-ziel-verzeichnis p15-art-datei-zu-link p15-art-link-zu-datei p15-ziel-aussen-developer p15-ziel-verzeichnis-developer" "p15-link-inert p15-link-inert-developer"
 fixture m-verzeichnis-inert
-ersetze $HOOK '  inert "$ZIEL"' '  inert "$ZIEL" || inert "$ZIEL/"'; rot p15-ziel-verzeichnis "p15-ziel-ausserhalb-liste p15-link-inert"
+ersetze $HOOK '  inert "$ZIEL"' '  inert "$ZIEL" || inert "$ZIEL/"'; rot "p15-ziel-verzeichnis p15-ziel-verzeichnis-developer" "p15-ziel-ausserhalb-liste p15-link-inert p15-ziel-aussen-developer"
 fixture m-ueber-wurzel-bleibt-innen
 ersetze $HOOK "      ..) [ \"\${#STAPEL[@]}\" -gt 0 ] || return 1; unset 'STAPEL[\${#STAPEL[@]}-1]' ;;" "      ..) if [ \"\${#STAPEL[@]}\" -gt 0 ]; then unset 'STAPEL[\${#STAPEL[@]}-1]'; fi ;;"
 rot "p15-ziel-aussen p15-ziel-ueber-wurzel" "p15-ziel-ausserhalb-liste p15-link-inert"
@@ -1127,14 +1157,17 @@ fixture m-art-nur-arbeitsbaum
 ersetze $HOOK "$L_SEITEN" '    for seite in a; do'; rot p15-art-link-zu-datei p15-art-datei-zu-link
 
 # Spiegelregel (Punkt 15): ganz entfernt, und je Zieltyp.
-SPIEGEL_ALLE="p15-spiegel-liste p15-spiegel-verzeichnis p15-spiegel-vorfahr p15-spiegel-wurzel p15-spiegel-absolut"
+SPIEGEL_ALLE="p15-spiegel-liste p15-spiegel-verzeichnis p15-spiegel-vorfahr p15-spiegel-wurzel p15-spiegel-absolut p15-spiegel-developer"
 fixture m-ohne-spiegel
 ersetze $HOOK "$L_SPIEGEL" ''; rot "$SPIEGEL_ALLE"
 fixture m-spiegel-ohne-liste
 ersetze $HOOK '  inert "$1" && return 0' ''; rot p15-spiegel-liste "p15-spiegel-verzeichnis p15-spiegel-vorfahr p15-spiegel-wurzel p15-spiegel-absolut"
 fixture m-spiegel-ohne-verzeichnis
-ersetze $HOOK '    docs/plan/planning | docs/reviews | docs/user) return 0 ;;' ''
-rot "p15-spiegel-verzeichnis p15-spiegel-absolut" "p15-spiegel-liste p15-spiegel-vorfahr p15-spiegel-wurzel"
+ersetze $HOOK '    docs/plan/planning | docs/reviews | docs/user | docs/developer) return 0 ;;' ''
+rot "p15-spiegel-verzeichnis p15-spiegel-absolut p15-spiegel-developer" "p15-spiegel-liste p15-spiegel-vorfahr p15-spiegel-wurzel"
+fixture m-spiegel-ohne-developer
+ersetze $HOOK '    docs/plan/planning | docs/reviews | docs/user | docs/developer) return 0 ;;' '    docs/plan/planning | docs/reviews | docs/user) return 0 ;;'
+rot p15-spiegel-developer "p15-spiegel-verzeichnis p15-spiegel-absolut p15-spiegel-liste"
 fixture m-spiegel-ohne-vorfahr
 ersetze $HOOK '    docs | docs/plan) return 0 ;;' ''; rot p15-spiegel-vorfahr "p15-spiegel-liste p15-spiegel-verzeichnis p15-spiegel-wurzel"
 fixture m-spiegel-ohne-wurzel

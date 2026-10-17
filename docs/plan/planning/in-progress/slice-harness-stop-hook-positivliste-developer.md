@@ -144,7 +144,7 @@ Pflichten der Closure:
   `aufnahme 'docs/developer-*'` → `p12-grenze-developer-alt`, `aufnahme 'docs/developers/*'` →
   `p12-grenze-developers`, `aufnahme 'docs/developer'` → `p12-grenze-datei-developer`,
   `m-spiegel-ohne-developer` (nur `| docs/developer` aus der Zeile der Verzeichnisse in `spiegelt` →
-  `p15-spiegel-developer`, `p15-ziel-verzeichnis-developer`), `nocasematch` (bestehende Mutation, der
+  `p15-spiegel-developer`), `m-verzeichnis-inert` (bestehend, `inert "$ZIEL/"`: `p15-ziel-verzeichnis-developer` kommt in seine rote Menge; der Fall hängt an `link_inert`, nicht an `spiegelt`), `nocasematch` (bestehende Mutation, der
   Fall `p12-case-developer` kommt in ihre rote Menge).
 - Bestehende Mutationen bleiben gültig (die erwartete Menge der „nur sie“-Prüfung wird geprüft:
   `m-ohne-user` färbt `p12-user-tief`, `p13-docs-user`, `p9-freigabe`, weiterhin nicht die neuen Fälle).
@@ -259,6 +259,35 @@ Risiken:
 ## 7. Closure-Notiz
 
 (leer — wird bei der Closure geschrieben)
+
+### Belege des Implementers
+
+Stand: erster Code-Commit nach `4e0e221a`. Die Gegenprobe (`make stop-hook-gegenprobe`) bricht ab (`melde`), wenn ein
+Mutant einen genannten Fall nicht rot färbt oder einen genannten grünen Fall mitfärbt; ihr grüner Lauf (150 Fälle, vorher 139)
+ist damit der Beleg, dass jede Mutation rot gesehen wurde.
+
+| Zusage (`SPEC-052`) | Mutation | roter Test (nur er) |
+|---|---|---|
+| Punkt 12: `docs/developer/` ist inert | `m-ohne-developer` (Zeile aus `inert`) | `p12-developer`, `p12-developer-tief`, `p15-link-inert-developer` |
+| Punkt 12: in jeder Tiefe | `m-developer-erste-ebene` | `p12-developer-tief` (`p12-developer` grün) |
+| Punkt 12: Grenze `docs/developer-alt/…` | `aufnahme 'docs/developer-*'` | `p12-grenze-developer-alt` |
+| Punkt 12: Grenze `docs/developers/…` | `aufnahme 'docs/developers/*'` | `p12-grenze-developers` |
+| Punkt 12: Datei namens `docs/developer` | `aufnahme 'docs/developer'` | `p12-grenze-datei-developer` |
+| Punkt 12: case-sensitiv | `m-case-egal` (`nocasematch`) | `p12-case-developer` (neben `p12-case-planning`, `p12-case-readme`) |
+| Punkt 12: Art `X` nie inert | `m-art-x-wie-datei` | `p12-art-x-developer` (neben `p12-art-x`) |
+| Punkt 15: Link mit inertem Ziel | `m-link-ohne-ziel` | `p15-ziel-aussen-developer`, `p15-ziel-verzeichnis-developer` (`p15-link-inert-developer` bleibt grün) |
+| Punkt 15: Ziel ist Verzeichnis `docs/developer/` | `m-verzeichnis-inert` | `p15-ziel-verzeichnis-developer` (`p15-ziel-aussen-developer` grün) |
+| Punkt 15: Spiegelregel für `docs/developer` | `m-spiegel-ohne-developer` | `p15-spiegel-developer` (die übrigen Spiegelfälle grün); `m-ohne-spiegel` und `m-spiegel-ohne-verzeichnis` färben ihn mit |
+
+Abweichung vom Plan §3: `p15-ziel-verzeichnis-developer` entscheidet `link_inert`, nicht `spiegelt`; seine Mutation ist
+`m-verzeichnis-inert`, nicht `m-spiegel-ohne-developer` (ein Link unter `docs/developer/` ist inert und wird von der Spiegelregel
+übergangen).
+
+Beleg Punkt 13, wiederholt: `grep -rn "docs/developer"` über `tools`, `harness/mk`, `Makefile`, `Dockerfile`, `.dockerignore`,
+`.a-check.yml`, `.golangci.yml`, `.d-check.yml`, `.claude`, `.githooks` findet außer Hook und Gegenprobe keine Zeile. Links im Bestand
+(`git ls-files -s | awk '$1==120000'`): fünf, alle unter `.claude/rules/`, keiner mit Ziel `docs/developer`. Die Texte in
+`.claude/commands/` und `harness/conventions.md` zeigen auf `inert` im Hook, nennen die Pfade nicht (`grep` nach `Positivliste`,
+`docs/user`): unverändert.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
