@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-01`](../../../../spec/lastenheft.md#lh-fa-01--kommandozeilenanwendung), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
 
-**Berührte Spec-Stellen:** `LH-FA-16.a` · `LH-FA-19.a` · `SPEC-031` · `SPEC-035` · `SPEC-055` (gelesen: Voraussetzung `slice-v1-abschluss-container`)
+**Berührte Spec-Stellen:** `LH-FA-16.a` · `LH-FA-19.a` · `SPEC-031` · `SPEC-035` · `SPEC-055` (gelesen: Voraussetzung `slice-v1-abschluss-container`, `slice-v1-abschluss-container-doku`)
 
 **Verantwortlich:** pt9912
 **Autor:** pt9912. **Datum:** 2026-10-03.
@@ -49,7 +49,7 @@ liefert):
 
 Die Randformen dieser Punkte sind offen und gehen vor dem Code an den Architect (§6).
 
-**Voraussetzung `slice-v1-abschluss-container`** (Hinweis des Architect, 2026-10-17; keine Sendung, kein Eintrag in §8): Die Binaries entstehen mit `make binaries` (`dist/` mit `SHA256SUMS`, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md)); die Pipeline hängt `dist/` an und baut kein zweites Mal, die Reproduzierbarkeit (zwei Builds, dieselben Summen) hält dort `make test-container`.
+**Voraussetzung `slice-v1-abschluss-container` und `slice-v1-abschluss-container-doku`** (Hinweis des Architect, 2026-10-17; `-container-doku` seit dem Schnitt vom 2026-10-17 (Handbuch, README, `docs/maintainer/releasing.md`): die Pipeline und das Release-Dokument bauen auf deren Stand auf; keine Sendung, kein Eintrag in §8): Die Binaries entstehen mit `make binaries` (`dist/` mit `SHA256SUMS`, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md)); die Pipeline hängt `dist/` an und baut kein zweites Mal, die Reproduzierbarkeit (zwei Builds, dieselben Summen) hält dort `make test-container`.
 
 **Abgegeben** an `slice-erster-release-freigabe` (dort §1, *Übernimmt*, mit der Kennung dieses
 Slice), nach dem Schnitt vom 2026-10-09 vor dem Start (Entscheidung des Nutzers, §4): die
