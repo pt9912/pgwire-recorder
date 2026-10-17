@@ -283,6 +283,24 @@ Punkt 7; der Implementer sieht jede Mutation selbst rot und nennt sie im Bericht
 *Zusage · Mutation · roter Fall*. Hinweis zu den Kosten: Die Fälle `p5-*` starten den Runner bis
 zum Container `$pg` (wenige Sekunden); alle übrigen kommen mit `docker create` ohne Start aus.
 
+**Prüfung des Architect nach der Umsetzung (2026-10-17, Rückgaben des Implementers aus §7):**
+
+1. Zweites `SIGTERM` während des Aufräumens: **nicht zugesagt**, akzeptiertes Negativ mit Grund in `SPEC-057` Punkt 5
+   (Kosten eines Falls mit langsamem `docker rm` stehen nicht im Verhältnis; ein Stopper, der zweimal sendet, endet bei
+   `SIGKILL` ohnehin ohne Aufräumen). Der Mutant „Falle für `TERM` entfällt“ ist äquivalent und steht so in Punkt 7; zugesagt ist das
+   Ende, nicht die Falle.
+2. Falle für `INT`: Folge der Zusage von Punkt 5, keine neue Randform; der Nachtrag stimmt mit dem Code (`trap 'trap "" INT; exit 130' INT`)
+   und mit `p5-sigint` überein. Die Behauptung „ist nötig“ hatte keinen Mutanten: **Rückgabe an den Implementer**, siehe unten.
+3. Punkt 7 nennt je Mutation die Menge der roten Fälle statt „nur ihn“ (Menge aus der Tabelle in §7 übernommen); die Gegenprobe verlangt genau diese.
+4. `SPEC-057` Punkt 8 nennt die nur auf 29.9.0 gemessene Version jetzt als akzeptiertes Negativ mit Grund.
+5. `d-check.mk` und `a-check.mk` tragen `--rm` (geprüft); da sie nicht geändert werden, genügt die Nachführung in §7, §3 bleibt.
+6. `SPEC-055` Punkt 9 stimmt mit dem Diff (`rm -fv` für alle Container, `$pg` zweimal gemutet); die übrigen Container ohne Fall sind als akzeptiertes
+   Negativ nachgetragen. `SPEC-052` Punkt 13 stimmt (Gegenprobe liest nur `tools/test/` in Kopien).
+
+**Rückgabe an den Implementer:** `tools/test/integration-volumes-gegenprobe.sh`: Mutant `p5-int-entfaellt` (Zeile 305, `trap 'trap "" INT; exit 130' INT # S-INT` durch `:`)
+mit dem roten Fall `p5-sigint`. Wird er nicht rot, entfällt der Satz „Die Falle für `INT` ist nötig“ in `SPEC-057` Punkt 5 samt Zeile in Punkt 7 und die Rückgabe ist
+dem Architect zu melden. Die Gegenprobe prüft sonst die Mengen der Tabelle in Punkt 7 (`p2-grundfall`+`p2-ohne-v`, `p3-angelegt`+`p4-rest-rot` usw.); weicht ein Mutant ab, melden.
+
 **Risiken:**
 
 - Die Gegenprobe verlängert `make gates` (`BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`, 1×):

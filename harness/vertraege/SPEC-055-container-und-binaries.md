@@ -93,7 +93,9 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
    `docker rm -f` ohne `-v` auf dem Host lässt. Das Gate entfernt deshalb jeden Container des Laufs mit `rm -fv`, auch
    `$pg` vor dem Wiedergeben (Punkt 7) und im Aufräumen am Ende; es gilt für grünen und roten Lauf, `SIGINT` und
    `SIGTERM` wie für Container, Netz und Tags (je Ende ein Fall `p9-*-volume`). Die Attrappe von `docker` legt für
-   `$pg` ein Volume an und entfernt es nur mit `-v`; die Mutation ist `rm -f` statt `rm -fv` an beiden Stellen, einzeln.
+   `$pg` ein Volume an und entfernt es nur mit `-v`; die Mutation ist `rm -f` statt `rm -fv` an beiden Stellen, einzeln. Die übrigen Container des Laufs
+   (`$rec`, `$rep`, `$img`, `version`, `psql`) entfernt das Gate ebenfalls mit `-v`; ohne `VOLUME` im Image
+   unterscheidet kein Fall es (akzeptiertes Negativ; Grund: dieselbe Messung, `.Config.Volumes` ohne Eintrag).
    Das Gate liest keine Namen und prüft nicht nach (anders als `SPEC-057` Punkt 4; akzeptiertes Negativ; Grund: Nur
    `$pg` trägt ein `VOLUME`, und die Gegenprobe fängt das Weglassen von `-v`). Am echten Docker belegt der Slice es
    einmal von Hand, nach Namen vor und nach einem Lauf. Volumes, die der Lauf nicht angelegt hat, rührt das Gate nicht an.

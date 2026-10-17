@@ -10,7 +10,8 @@ angelegt hat.
 Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft. Die Gegenprobe
 fährt gegen reales Docker (über `DOCKER`), legt Container und Volumes unter dem Namenspräfix
 `pgr-ivg-` an und entfernt sie per Name; sie ruft weder `prune` auf noch berührt sie ein Objekt
-mit anderem Namen. Die unveränderte Kopie ist grün, und je Fall bricht eine Mutation genau ihn.
+mit anderem Namen. Die unveränderte Kopie ist grün, und je Fall bricht eine Mutation ihn; die Menge der roten Fälle je
+Mutation legt Punkt 7 fest, und die Gegenprobe verlangt genau diese Menge.
 
 1. **Gegenstand.** Die Container des Laufs sind `$pg` und `$tests` (Namen `<Kennung>-pg` und
    `<Kennung>-tests`, Kennung `PGR_LAUF` oder `pgr-it-<PID>`). Gezählt werden die Mounts vom Typ
@@ -36,10 +37,15 @@ mit anderem Namen. Die unveränderte Kopie ist grün, und je Fall bricht eine Mu
 5. **Ende des Laufs.** Der Runner ruft Entfernen, Lesen und Prüfung aus seiner Falle `EXIT`; sie
    läuft bei jedem Ende, das der Runner selbst beendet: grüner und roter Lauf, Fehler des Aufbaus
    (auch Start des Servers gescheitert), `SIGINT` und `SIGTERM`. Der Runner trägt je eine Falle
-   für `TERM` (Exit-Code 143) und `INT` (130), die in die Falle `EXIT` führen. Die Falle für `INT`
-   ist nötig: Trifft `SIGINT` nur den Runner, während ein Kind läuft, das nicht am Signal endet
-   (`docker` endet auf `SIGINT` mit dem Exit-Code 2), setzt bash fort, und der Lauf geht weiter.
-   Die Falle für `TERM` ändert den Exit-Code nicht (Punkt 7, Fall `p5-sigterm`). Die Gegenprobe prüft die
+   für `TERM` (Exit-Code 143) und `INT` (130), die in die Falle `EXIT` führen; die Falle `EXIT`
+   ist Folge der Zusage dieses Punktes, keine eigene Randform. Die Falle für `INT` ist nötig: Trifft
+   `SIGINT` nur den Runner, während ein Kind läuft, das nicht am Signal endet (`docker` endet auf
+   `SIGINT` mit dem Exit-Code 2), setzt bash fort, und der Lauf geht weiter (Mutant
+   `p5-int-entfaellt`, Punkt 7). Zugesagt ist das Ende (Aufräumen, Prüfung, Exit-Code), nicht die
+   Falle für `TERM`: Ohne sie endet bash ebenso mit 143 und führt die Falle `EXIT` aus. Ein zweites
+   `SIGTERM` oder `SIGINT` während des Aufräumens ist nicht zugesagt (akzeptiertes Negativ; Grund:
+   Es bräuchte einen Fall mit langsamem `docker rm` für den Unterschied der Falle zum Fehlen, und
+   ein Stopper, der zweimal sendet, folgt bei `SIGKILL`, das ohnehin nichts auffängt). Die Gegenprobe prüft die
    Funktionen (Punkte 2 bis 4) und das Ende durch `SIGINT` und `SIGTERM` (je ein Fall). Ein
    roter Lauf und ein Fehler des Aufbaus gehen durch dieselbe Falle; einen eigenen Fall dafür
    gibt es nicht (akzeptiertes Negativ; Grund: er brauchte das Testimage und einen Lauf der
@@ -51,26 +57,29 @@ mit anderem Namen. Die unveränderte Kopie ist grün, und je Fall bricht eine Mu
    Gegenprobe laden sie; die Gegenprobe prüft damit den Code des Runners, nicht eine Kopie. Die
    Mutanten ersetzen genau eine Stelle in einer Kopie der Datei oder des Runners; trifft die
    Ersetzung nichts oder mehr als eine Stelle, bricht die Gegenprobe ab.
-7. **Fälle der Gegenprobe.** Je Fall die Mutation, die nur ihn bricht:
+7. **Fälle der Gegenprobe.** Je Fall eine Mutation, die ihn rot färbt. Einige Mutationen färben
+   weitere Fälle, weil Fälle dieselbe Funktion prüfen; die Spalte nennt die Menge, die die Gegenprobe
+   verlangt (mehr und weniger rote Fälle machen sie rot):
 
-   | Fall | Zusage | Mutation |
-   |---|---|---|
-   | `p2-grundfall` | nach dem Aufräumen existiert kein gelesenes Volume (Container aus `docker create` des PostgreSQL-Images) | — |
-   | `p2-ohne-v` | ohne `-v` bleibt ein Rest, die Meldung nennt den Namen | `rm -f` statt `rm -fv` |
-   | `p3-angelegt` | die Namen werden im Zustand `created` gelesen | Namen erst nach dem Entfernen lesen |
-   | `p3-kein-container` | kein Container ergibt eine leere Liste ohne Fehler und Meldung | leere Liste wird ein Fehler |
-   | `p4-fremd` | fremde Volumes (ein benanntes, ein anonymes) bleiben | die Prüfung entfernt jedes Volume ohne Container |
-   | `p4-rest-rot` | ein Rest macht den Lauf rot (Exit 1), auch bei grünen Tests | der Exit-Code der Prüfung wird verworfen |
-   | `p4-vorrang` | ein Lauf-Code ungleich 0 behält Vorrang | die Prüfung setzt immer 1 |
-   | `p5-sigterm` | Aufräumen und Prüfung laufen nach `SIGTERM`, der Exit-Code ist 143 | die Falle für `TERM` beendet den Runner ohne Aufräumen (`kill -KILL`) |
-   | `p5-sigint` | Aufräumen und Prüfung laufen nach `SIGINT`, der Exit-Code ist 130 | die Falle für `INT` beendet den Runner ohne Aufräumen (`kill -KILL`) |
+   | Fall | Zusage | Mutation | rote Fälle |
+   |---|---|---|---|
+   | `p2-grundfall` | nach dem Aufräumen existiert kein gelesenes Volume (Container aus `docker create` des PostgreSQL-Images) | `rm -f` statt `rm -fv` | `p2-grundfall`, `p2-ohne-v` |
+   | `p2-ohne-v` | ohne `-v` bleibt ein Rest, die Meldung nennt den Namen | dieselbe Mutation | wie oben |
+   | `p3-angelegt` | die Namen werden im Zustand `created` gelesen | Namen erst nach dem Entfernen lesen | `p3-angelegt`, `p4-rest-rot` |
+   | `p3-kein-container` | kein Container ergibt eine leere Liste ohne Fehler und Meldung | leere Liste wird ein Fehler | `p3-kein-container`, `p5-sigint`, `p5-sigterm` |
+   | `p4-fremd` | fremde Volumes (ein benanntes, ein anonymes) bleiben | die Prüfung entfernt jedes Volume ohne Container | `p4-fremd` |
+   | `p4-rest-rot` | ein Rest macht den Lauf rot (Exit 1), auch bei grünen Tests | der Exit-Code der Prüfung wird verworfen | `p3-angelegt`, `p4-rest-rot` |
+   | `p4-vorrang` | ein Lauf-Code ungleich 0 behält Vorrang | die Prüfung setzt immer 1 | `p4-vorrang` |
+   | `p5-sigterm` | Aufräumen und Prüfung laufen nach `SIGTERM`, der Exit-Code ist 143 | die Falle für `TERM` beendet den Runner ohne Aufräumen (`kill -KILL`) | `p5-sigterm` |
+   | `p5-sigint` | Aufräumen und Prüfung laufen nach `SIGINT`, der Exit-Code ist 130 | die Falle für `INT` beendet den Runner ohne Aufräumen (`kill -KILL`) | `p5-sigint` |
+   | `p5-sigint` | ohne Falle für `INT` geht das Signal verloren (Punkt 5) | die Falle für `INT` entfällt (`p5-int-entfaellt`) | `p5-sigint` |
 
    Entfällt die Falle für `TERM`, läuft die Falle `EXIT` trotzdem, und bash endet mit 143; dieser
    Mutant ist äquivalent, kein Fall wird rot (gemessen mit bash 5.2.21; die Gegenprobe führt ihn
    als `p5-term-entfaellt` ohne roten Fall). Je Element der Punkte 1, 2 und 4 hat die Gegenprobe
-   weitere Mutanten, die nur ein Element brechen (nur `$pg` oder nur `$tests` gelesen oder
-   entfernt, `$daten` nicht ausgenommen, Rest nicht entfernt, Meldung ohne Namen, Prüfung endet mit
-   0); die Art des Mounts (`.Type`) ändert die Namen nicht, ihr Wegfall ist ebenfalls äquivalent.
+   weitere Mutanten (nur `$pg` oder nur `$tests` gelesen oder entfernt, `$daten` nicht ausgenommen,
+   Rest nicht entfernt, Meldung ohne Namen, Prüfung endet mit 0), deren rote Fälle sie ebenfalls
+   festlegt; die Art des Mounts (`.Type`) ändert die Namen nicht, ihr Wegfall ist äquivalent.
 
    Die Fälle `p5-*` starten den Runner (Kopie) mit `PGR_BAUEN=0` und `PGR_LAUF` unter dem
    Präfix, mit einem `docker`, das `rm -fv` zu `rm -f` macht (der Rest, den die Prüfung finden
@@ -82,8 +91,10 @@ mit anderem Namen. Die unveränderte Kopie ist grün, und je Fall bricht eine Mu
    `tools/test/postgres-versionen-gegenprobe.sh`.
 8. **Docker-Version.** Gemessen ist Docker 29.9.0: `docker inspect` nennt die Mounts schon im
    Zustand `created`. Eine Version, die das nicht tut, macht `p2-ohne-v` grün statt rot und
-   damit die Gegenprobe rot; die Blindheit wird sichtbar. Weitere Versionen sind nicht
-   zugesagt; `DOCKER` bleibt der einzige Parameter.
+   damit die Gegenprobe rot; die Blindheit wird sichtbar. Auf einer anderen Version als der
+   gemessenen ist nichts zugesagt (akzeptiertes Negativ; Grund: Der Runner läuft dort weiter, ein
+   Rest eines Containers im Zustand `created` bliebe aber unentdeckt, und die Gegenprobe meldet
+   es erst, wenn jemand sie dort fährt); `DOCKER` bleibt der einzige Parameter.
 9. **Aufrufarten des Treibers.** Das Ziel schreibt keinen Stand; geglaubt wird allein sein
    Exit-Code in der Kette von `make gates`. Das Rezept ist eine Zeile ohne `$(MAKE)` und ohne
    `+`. Ob `make -n`, `-q`, `-t` oder `-i` das Gate leerlaufen lassen oder überlesen, ist
