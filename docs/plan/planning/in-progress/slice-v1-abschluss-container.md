@@ -107,7 +107,7 @@ dasteht.
 **Randformen des neuen Vertrags** (`AGENTS.md` §3.12), vom Architect am 2026-10-17 vor dem ersten Code-Commit entschieden; die Stelle ist [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md), der Punkt in Klammern. Zu jeder Zusage steht eine Mutation (§3.10), vom Implementer selbst rot gesehen; der Bericht nennt je Zusage: Zusage · Mutation · roter Test.
 
 - Fehlende, leere, unbekannte, doppelte oder zu kleine Liste der Zielplattformen und eine Image-Plattform außerhalb der Binaries (Punkt 1, Eingabe: kein `docker` aufgerufen); die Listen sind keine Eingabe des Aufrufers.
-- Fehlende, leere oder unzulässige `VERSION` (Punkt 2); Wert in `-ldflags` und Dateiname.
+- Fehlende, leere oder unzulässige `VERSION` (Punkt 2); Wert in `-ldflags` und Dateiname. Review F-1, Architect 2026-10-17: Die Vorgabe `dev` maskiert ein fehlendes `-X main.version=`; `test-container` setzt `VERSION := 0.0.0-test` und lehnt `dev` vor `docker` ab, der Smoke am echten `Dockerfile` belegt den Wert; die Gegenprobe prüft dazu die Vorgabe, die Ablehnung und die Zeile `-X main.version=$VERSION` im `Dockerfile`.
 - `DIST` vorhanden und nicht leer, leerer Wert von `DIST`, Sortierung von `SHA256SUMS` in Byte-Reihenfolge, Teilmenge bei einem fehlgeschlagenen Build, Format von `SHA256SUMS`, Endung `.exe` (Punkt 3).
 - Zwei Builds: abweichende Summe je Plattform (sechs Fälle), Umgehen des Caches der Stufen `build` und `dist` als Voraussetzung dafür, dass der zweite Build ein Build ist (Punkt 4). Akzeptiertes Negativ: Das Gate vergleicht auf demselben Docker-Server mit denselben Eingangs-Images; ein zweiter Host und der Pin der Images werden nicht geprüft (Punkt 13, Grenze 2), weil Anhebungen bewusste Commits sind ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)) und es keine zweite Umgebung zur Abnahme gibt.
 - Zeitstempel und VCS-Stempel: kein Fall; sie gehen nicht in das Binary ein (`-buildvcs=false`, Go schreibt keinen Zeitstempel), und ein Build mit eingeschleustem Zeitstempel wird von Punkt 4 rot (der Implementer zeigt es einmal von Hand und nennt es im Bericht; keine Gegenprobe mit echtem Docker, Punkt 12).
@@ -116,7 +116,7 @@ dasteht.
 - Image: falsche Plattform in den Metadaten, abweichende Summe der Datei im Image, Bau ohne Emulation (Punkt 6).
 - Smoke: Plattform des Docker-Servers außerhalb von `amd64` und `arm64`; `version`; Aufzeichnen und Wiedergeben, leere und ungleiche Sicht, Exit-Code 0 nach `SIGTERM`, PostgreSQL vor dem Wiedergeben entfernt, kein `--user`, Volume oder Bind-Mount (Punkt 7); Schreibrecht des Benutzers `nonroot` auf `/tmp` ist damit belegt.
 - Reihenfolge der Gründe bei mehreren roten Punkten (Punkt 8).
-- Abbruch und Herunterfahren: Aufräumen nach rotem Lauf, `SIGINT`, `SIGTERM` (Punkt 9). Akzeptiertes Negativ: `SIGKILL` und Ausfall des Docker-Dienstes (Punkt 13, Grenze 6), wie bei `SPEC-053`.
+- Abbruch und Herunterfahren: Aufräumen nach rotem Lauf, `SIGINT`, `SIGTERM`, auch des Stage-Verzeichnisses von `make binaries`; `DIST` bleibt bei einem Fehler leer (Punkte 3 und 9; Review F-7). Akzeptiertes Negativ: `SIGKILL` und Ausfall des Docker-Dienstes (Punkt 13, Grenze 6), wie bei `SPEC-053`.
 - Aufrufarten von `make`: `-n`, `-q`, `-t`, `-i`, `MAKEFLAGS` aus der Umgebung, auch in Kombination, je Ziel `binaries` und `test-container` (Punkt 11); Aufruf-Voraussetzung: nacheinander, `make -j gates` nicht zugesagt (Punkt 13, Grenze 5).
 - Ausnahmeliste der schnellen Kette und Lesen des Arbeitsbaums (Punkte 10 und 12).
 - Verhalten je Serverversion: Der Smoke läuft gegen die Referenz-PostgreSQL-Version (`POSTGRES_IMAGE`); die Matrix bleibt bei `SPEC-053`, kein Fall.
@@ -198,6 +198,9 @@ Punkt 2 (`VERSION`):
 | führendes `-` unzulässig | `-` in `erst` | `p2-fuehrendes-minus` |
 | `.`, `+`, `_`, `-` zulässig (je ein Zeichen) | Zeichen aus `rest` entfernt (vier Mutationen) | `p2-gueltig` |
 | `VERSION` geht in den Namen/Build ein | feste Zeichenkette `dev` im Vergleich der Ausgabe | `p2-gueltig` |
+| Vorgabe am Ziel `test-container` ist `0.0.0-test` | Zeile `test-container: VERSION := 0.0.0-test` entfernt | `p2-vorgabe-test` |
+| `dev` am Gate ist rot vor `docker` | Prüfung in `run-container.sh` entfernt | `p2-dev-gate` |
+| `-X main.version=$VERSION` im echten `Dockerfile` | Zeile in der Kopie entfernt | `p2-dockerfile-x` |
 
 Punkt 3 (`make binaries`):
 

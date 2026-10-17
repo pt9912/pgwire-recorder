@@ -20,15 +20,22 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
    sechs Plattformen der Binaries oder eine der zwei der Images fehlt, (f) Image-Plattform, die
    nicht in der Liste der Binaries steht. Die Listen sind keine Eingabe des Aufrufers; ein
    überschriebener Wert fällt unter (a) bis (f). Jede Form hat einen Fall und eine Mutation, die nur sie bricht.
-2. **Version.** `VERSION` (Vorgabe `dev`) geht in `-X main.version` des Builds ein und in den
-   Dateinamen. Sie passt auf `^[0-9A-Za-z][0-9A-Za-z.+_-]*$`, sonst rot vor dem ersten Aufruf von
+2. **Version.** `VERSION` (Vorgabe `dev`; am Ziel `test-container` `0.0.0-test`) geht in
+   `-X main.version` des Builds ein und in den Dateinamen. Am Ziel `test-container` ist `dev` als
+   `VERSION` rot vor dem ersten Aufruf von `docker`, mit Nennung des Werts, denn `dev` ist die
+   Vorgabe des Codes: Fehlte `-X main.version=` im `Dockerfile`, gäbe `version` dasselbe aus, und
+   der Smoke (Punkt 7a) belegte nichts. Ein Aufruf mit `VERSION` auf der Befehlszeile gilt vor
+   dem Vorgabewert; eine Variable der Umgebung gilt nicht. Ob das echte `Dockerfile` den Wert
+   einsetzt, zeigt der Smoke des Gates mit einem Wert, der nicht `dev` ist; die Gegenprobe prüft an
+   der Attrappe die Vorgabe, die Ablehnung von `dev` und, dass das `Dockerfile` die Zeile
+   `-X main.version=$VERSION` enthält. Sie passt auf `^[0-9A-Za-z][0-9A-Za-z.+_-]*$`, sonst rot vor dem ersten Aufruf von
    `docker`: leer, mit Leerzeichen, mit `$`, mit Anführungszeichen, mit führendem `-`, je ein Fall
    und eine Mutation. Zwei Builds derselben `VERSION` sind das, was Punkt 4 vergleicht; andere
    `VERSION` ergibt andere Summen, und das ist keine Verletzung.
 3. **Binaries (`make binaries`).** Je Plattform ein Build der Stufe `dist` des `Dockerfile`; die
    Datei heißt `pgwire-recorder_<VERSION>_<os>_<arch>`, bei `windows` mit Endung `.exe`, und
    liegt in `DIST` (Vorgabe `dist`). `DIST` fehlt (wird angelegt) oder ist leer, sonst rot vor
-   dem ersten Aufruf von `docker`; ein leerer Wert von `DIST` ist ungültige Eingabe, rot mit Meldung vor dem ersten Aufruf von `docker`; ein Lauf mischt sich nie mit einem früheren. `SHA256SUMS` hat
+   dem ersten Aufruf von `docker`; ein leerer Wert von `DIST` ist ungültige Eingabe, rot mit Meldung vor dem ersten Aufruf von `docker`; ein Lauf mischt sich nie mit einem früheren. Gebaut wird in ein Stage-Verzeichnis außerhalb von `DIST`; erst nach dem letzten Build gehen Binaries und `SHA256SUMS` nach `DIST`, bei einem Fehler bleibt `DIST` leer. `SHA256SUMS` hat
    das Format von `sha256sum` (Summe, zwei Leerzeichen, Name), je Binary eine Zeile, nach Name in Byte-Reihenfolge
    (C-Locale) sortiert, mit LF, und `sha256sum -c` darin ist grün. Scheitert ein Build, ist das Ziel rot und
    nennt die Plattform; `SHA256SUMS` entsteht dann nicht (keine Teilmenge). Das Ziel ist ein
@@ -80,10 +87,10 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
    Punkt 4 den Bau der Images (Punkt 6) verhindert.
 9. **Aufräumen.** Container, Netz und Tags der Images des Laufs sind nach Ende entfernt, auch nach
    einem roten Lauf und nach `SIGINT` und `SIGTERM`; je Fall des Endes ein Fall. Die Namen tragen die
-   Kennung des Laufs. Die temporären Verzeichnisse der Punkte 4 und 7 sind ebenfalls entfernt.
-10. **Arbeitsbaum.** Das Gate schreibt nichts in den Arbeitsbaum und liest nur, was der
+   Kennung des Laufs. Die temporären Verzeichnisse der Punkte 4 und 7 und das Stage-Verzeichnis von `make binaries` (Punkt 3) sind ebenfalls entfernt, auch bei Fehler, `SIGINT` und `SIGTERM`.
+10. **Arbeitsbaum.** Das Gate schreibt nichts in den Arbeitsbaum (die Gegenprobe vergleicht die Liste der Dateinamen vor und nach einem Lauf; das Überschreiben einer vorhandenen Datei fängt sie nicht) und liest nur, was der
     Build-Kontext (`.dockerignore`) zulässt, dazu `harness/mk/container.mk` und das Fragment der
-    Integration. Es liest nichts unter `docs/plan/planning/`, `docs/reviews/`, `docs/user/` und nicht
+    Integration. Dass es nur dies liest, hat keinen Fall. Es liest nichts unter `docs/plan/planning/`, `docs/reviews/`, `docs/user/` und nicht
     die `README.md` (SPEC-052 Punkt 13).
 11. **Aufrufarten des Treibers.** Das Gate schreibt keinen Stand; geglaubt wird allein sein
     Exit-Code in der Kette von `make gates` ([SPEC-052](SPEC-052-gate-kette.md) Punkt 1). Das Rezept
