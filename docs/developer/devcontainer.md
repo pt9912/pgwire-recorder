@@ -408,7 +408,7 @@ Sieh die Commits durch, bevor du mergst.
 
 Schreiben beide Seiten auf `main`, weist der zweite Push ab (`! [rejected] main -> main (fetch first)`).
 Dann `git fetch container`, `container/main` in den eigenen `main` mergen und erneut pushen; im Klon holt
-`git switch main && git pull` den Stand (gelaufen auf `main`; ein Branch ohne Upstream, wie `thema` in §6, ist nicht gelaufen). Deshalb arbeitet der Container nicht auf `main`.
+`git switch main && git pull` den Stand (gelaufen auf `main`; auf `thema` aus §6, ohne Upstream, endet `git pull` mit Exit 1 und `There is no tracking information for the current branch.`). Deshalb arbeitet der Container nicht auf `main`.
 
 `core.sshCommand` gilt für das ganze Host-Repo, nicht für ein Remote: Ein `git ls-remote` auf eine
 `ssh://`-URL, die kein Remote ist, rief denselben Befehl mit demselben Schlüssel auf (`origin` über `ssh` ist
