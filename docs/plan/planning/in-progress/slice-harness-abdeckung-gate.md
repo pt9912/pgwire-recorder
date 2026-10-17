@@ -187,7 +187,7 @@ Tests eingeschlossen. Basis: `cbeb3381`, der Elternteil des Anspruchs-Commits (`
 700): `abdeckung.sh` rund 170 Zeilen (Gate-Kopf, Teile und Querprüfungen, Tabelle, Darstellung der Teile,
 Ausgang 2), die Gegenprobe mit dem Doppelten davon (rund 300 bei rund 30 Fällen), Tabellen unter
 `docs/user`, Gate-Index, Sensor-Datei, Kopf der Lint-Gegenprobe und `.d-check.yml` zusammen rund 50;
-`SPEC-048` liegt mit dem Anspruch im Bestand und zählt nicht, eine ADR entfällt (§1). Meldeschwelle
+`SPEC-048` liegt mit dem Anspruch im Bestand; ihr Pfad steht in der Metrik, die Entscheidungen des Architect nach der Umsetzung (32 Zeilen) zählen mit, eine ADR entfällt (§1). Meldeschwelle
 und Marke bleiben. **Meldeschwelle 800:** Wer im Lauf
 darüber liegt oder liegen wird, meldet es dem Planner, bevor er weiterbaut. **Marke 1000:**
 darüber gilt die Rückführung unten, ohne Ermessen.
@@ -340,7 +340,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 ### Belege des Implementers
 
-**Größe** (§4, Metrik `git diff --numstat cbeb3381..<letzter Commit> -- tools/test tools/harness/lint-gegenprobe.sh harness/README.md harness/sensors/abdeckung-check.md harness/vertraege/SPEC-048-abdeckung.md docs/user .d-check.yml`): Summe aus Einfügungen und Löschungen **823** (Skript 271, Gegenprobe 474, `harness/sensors/abdeckung-check.md` 32, Tabellen unter `docs/user` 26, `.d-check.yml` 11, `harness/README.md` 6, Kopf der Lint-Gegenprobe 3; `harness/mk/abdeckung.mk` liegt außerhalb der Pfade der Metrik). Über der Meldeschwelle 800 (dem Planner im Bericht gemeldet), unter der Marke 1000, die Schätzung 450 bis 700 ist überschritten; die Gegenprobe trägt rund 58 Prozent des Diffs. Schichten: Harness-Werkzeug und Nutzer-Doku, zwei; Liefer-Punkte drei. Die Zählung hält, die Erweiterung ändert die Form der bestehenden Tabellen und Test-Deklarationen nicht (E2E- und Unit-Tabelle byte-gleich).
+**Größe** (§4, Metrik `git diff --numstat cbeb3381..<letzter Commit> -- tools/test tools/harness/lint-gegenprobe.sh harness/README.md harness/sensors/abdeckung-check.md harness/vertraege/SPEC-048-abdeckung.md docs/user .d-check.yml`): Summe aus Einfügungen und Löschungen **909** am Stand `74446efb` (Skript 273, Gegenprobe 526, `harness/sensors/abdeckung-check.md` 32, `SPEC-048` 32 aus der Entscheidung des Architect, Tabellen unter `docs/user` 26, `.d-check.yml` 11, `harness/README.md` 6, Kopf der Lint-Gegenprobe 3; `harness/mk/abdeckung.mk` liegt außerhalb der Pfade). Über der Meldeschwelle 800 (gemeldet), unter der Marke 1000; die Schätzung 450 bis 700 ist überschritten. Schichten zwei, Liefer-Punkte drei; die E2E- und die Unit-Tabelle sind byte-gleich geblieben.
 
 **Vorher und nachher** (`make abdeckung`): `abdeckung-gesamt.md` führt LH-QA-07 vorher nicht, nachher `| LH-QA-07 | n/a | n/a | n/a | 1/3 Gate; 2/3 —; 3/3 Gate | teilweise |`; `abdeckung-vollstaendig.md` führt sie nicht; neu `abdeckung-gate.md` mit zwei Zeilen (`Messung-1-von-3`, `Messung-3-von-3`, Nachweis `tools/harness/lint-gegenprobe.sh`). RTM (`make doc-trace`, `Coverage`-Spalte): LH-QA-07 `—`, LH-QA-02, LH-QA-06 und LH-RB-01 `Abdeckung`. Mit einem Mutanten, der eine geteilte Messung schon bei einem belegten Teil als vollständig zählt (Kopie des Repos, `return 1` → `return 0` in `vollstaendig`), schreibt `make abdeckung` LH-QA-07 in `abdeckung-vollstaendig.md`, und `d-check --trace` zeigt sie mit `Abdeckung`: Das Risiko *RTM zählt eine Teilabdeckung als belegt* ist damit sichtbar, und die Gegenprobe fängt den Mutanten (`t-voll-irgendein-teil`, unten).
 
@@ -411,7 +411,13 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 | Zeile einer mehrzeiligen Deklaration ist ihr Anfang | Zeile bei jeder Fortsetzungszeile neu gesetzt | `gate-zeile-mehrzeilig` |
 | Symlink auf eine Gegenprobe wird nicht gelesen | `-type f` entfernt | `gate-nicht-gelesen-symlink` |
 
+Review F-1 und F-2 nachgezogen (Zusage · Mutation · roter Test): eingerückte Test-Deklaration mit Leerzeichen · Muster auf `[\t]+` · `eingerueckt-leerzeichen`; Vorzeichen `-` an i, an n · `[-]?` am Ziffernmuster · `teil-zahlform-Messung--1-von-2`, `…-1-von--2`; Tab als Leerraum an i, an n · `\t?` · `…-\t1-von-2`, `…-1-von-\t2`; nachgestellter Leerraum (Leerzeichen, Tab) hinter n · `[ ]?` bzw. `\t?` vor `$` · `…-1-von-2 `, `…-1-von-2\t` (je auch als Gate). Dabei gefunden und behoben: `cut -f2` kürzte die Meldung an einem Tab in der Deklaration; jetzt `sed`.
+
 Neu fallen auch die Fälle `gate-nach-kopf-zeile` (Zeile 3). Die Fragen 1 bis 5 sind beantwortet; die Äquivalenz-Liste oben und der Kopf der Gegenprobe führen die verbliebenen Fälle.
+
+**Bewusste Auswahl der Deklaration:** Teil 1 der Lint-Gegenprobe nennt `p6-*` (kein `//nolint`, Ausnahmen zentral) und nicht `p9-*` wie der Hinweis des Architect in §6; Messmethode 1 verlangt „Ausnahmen stehen zentral und begründet, nicht im Code“, das trägt `p6-*`, die Fälle `p9-*` betreffen die Ausgabe des Gates.
+
+**Akzeptiertes Negativ (Verdrahtung):** Kein Fall der Gegenprobe zeigt, dass das Rezept von `abdeckung-check` in `harness/mk/abdeckung.mk` das Skript mit `--check` ruft und dass beide Ziele an `GATE_CHECKS` hängen (Bestand; in diesem Slice berührt nur der Kommentar die Datei). Grund: Beides ist Verdrahtung des Treibers `make`, die Gegenprobe prüft das Skript; ADR-0033 (Konsequenzen) nennt den Anschluss als Review. `harness/mk/abdeckung.mk` und `harness/sensors/abdeckung-check.md` sagen das so.
 
 **Läufe:** `make abdeckung-check`, `make abdeckung-gegenprobe` (rund 6 s), `make docs-check` (992 Dateien, 0 Befunde), `make kopf-check`, `make doc-trace` am Stand dieses Commits grün; `make lint-gegenprobe` und `make lint` laufen im vollen `make gates`. `make gates` am Endstand (Stand der Arbeitsbaum-Datei `gates-passed.dateiliste` vom 2026-10-17 16:00): Exit 0, `abdeckung-check`, `abdeckung-gegenprobe`, `lint`, `lint-gegenprobe` und alle übrigen Gates grün; ein erster Lauf als Hintergrundjob der Shell scheiterte an `container-gegenprobe` (SIGINT wird von einem so gestarteten Prozess geerbt ignoriert, Fälle `p9-*INT`), der zweite, über das Werkzeug gestartet, lief grün; keine Flake (`p7-int-treiber`, `p9-ungenutzt-allein`) trat auf.
 
