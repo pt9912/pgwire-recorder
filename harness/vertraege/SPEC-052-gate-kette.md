@@ -130,13 +130,14 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     `docs/user/` oder `docs/developer/` oder die `README.md`: die Docker-Gates (`test-integration`,
     `test-postgres-versionen` (dieselbe Stufe des `Dockerfile`), `test-container` (baut mit dem
     Build-Kontext und liest die Fragmente `harness/mk/container.mk` und `harness/mk/integration.mk`),
-    `lint-gegenprobe` über `docker build` einer Kopie des Arbeitsbaums, ebenso `build`, `test`,
+    `lint-gegenprobe` und `coverage-gegenprobe` über `docker build` einer Kopie des Arbeitsbaums
+    unter eigenem Temp-Pfad ([`SPEC-056`](SPEC-056-testabdeckung-schwelle.md) Punkt 11), ebenso `build`, `test`,
     `lint`) sehen nur den Build-Kontext, und der ist eine Allowlist, die `docs/` und
     `README.md` nicht freigibt (`.dockerignore`: `*`, dann nur `go.mod`, `go.sum`, `cmd/`,
-    `internal/`, `test/`, `.golangci.yml`, `tools/harness/lint.sh`); ein Go-Test, der dort
+    `internal/`, `test/`, `.golangci.yml`, `tools/harness/lint.sh`, `tools/harness/coverage.sh`); ein Go-Test, der dort
     läse, wäre im Container rot. `a-check-negativ` kopiert den Baum, aber `a-check` liest nach
     `.a-check.yml` nur `**/*.go`. Jedes Gate der Ausnahmeliste, dessen Name auf `-gegenprobe` endet, außer
-    `lint-gegenprobe` (oben), fährt in Temp-Bäumen, die es selbst anlegt, und liest
+    `lint-gegenprobe` und `coverage-gegenprobe` (oben), fährt in Temp-Bäumen, die es selbst anlegt, und liest
     `docs/user/`, `docs/developer/` und die `README.md` des Arbeitsbaums nicht (`abdeckung-gegenprobe` baut ihr
     eigenes `docs/user/`; die Temp-Repos von `gates-schnell-gegenprobe` und
     `stop-hook-gegenprobe` tragen nur Makefile, Fragmente, Skripte und Hook; `integration-volumes-gegenprobe` legt Kopien von

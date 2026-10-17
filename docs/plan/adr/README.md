@@ -47,6 +47,7 @@
 | [0041](0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md) | Anmeldung im Record-Modus als Rückruf des Upstream-Ports | Accepted | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
 | [0042](0042-versionsmatrix-der-integrationstests.md) | Versionsmatrix der Integrationstests als Teilmenge gegen die jüngsten Hauptversionen | Accepted | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
 | [0043](0043-binaries-und-container-gate.md) | Binaries je Zielplattform und Container-Image als ein Gate mit Smoke | Accepted | [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung) |
+| [0044](0044-schwelle-der-anweisungsabdeckung.md) | Schwelle der Anweisungsabdeckung der Unit-Tests in der Stufe test | Proposed | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 
 ## Konventionen
 
@@ -83,3 +84,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0041](0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md) | ergänzt [0004](0004-postgresql-upstream-ist-driven-adapter.md) und [0030](0030-full-duplex-im-record-pfad.md) um den Rückruf des Upstream-Ports für die Anmeldung beim Aufbau; die Gleichzeitigkeit und den Zustand der Session aus [0030](0030-full-duplex-im-record-pfad.md) lässt sie unverändert; ersetzt keine ADR |
 | [0042](0042-versionsmatrix-der-integrationstests.md) | ergänzt [0026](0026-build-und-test-im-multistage-dockerfile.md) um eine Versionsmatrix: Teilmenge der Integrationstests gegen die übrigen Hauptversionen, die volle Suite gegen die Referenz bleibt; ersetzt keine ADR |
 | [0043](0043-binaries-und-container-gate.md) | ergänzt [0026](0026-build-und-test-im-multistage-dockerfile.md) um Binaries je Zielplattform, Prüfsummen und Smoke des Images als Gate; ersetzt keine ADR |
+| [0044](0044-schwelle-der-anweisungsabdeckung.md) | ergänzt [0026](0026-build-und-test-im-multistage-dockerfile.md) um die Messung der Anweisungsabdeckung und eine Schwelle in der Stufe `test`; ersetzt keine ADR |
