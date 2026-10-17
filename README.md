@@ -80,8 +80,11 @@ Beim Beenden warten `record` und `replay` höchstens `--shutdown-timeout`
 (Standard 5 Sekunden) auf laufende Anfragen; was das im Container bedeutet, sagt das
 Benutzerhandbuch.
 
-- `make build` baut das Image `pgwire-recorder:dev` mit dem Binary; `make gates`
-  führt die Gates aus, `make help` zeigt alle Targets.
+- `make build` baut das Image `pgwire-recorder:dev` mit dem Binary; `make binaries` baut
+  die Binaries für Linux, macOS und Windows, je `amd64` und `arm64`, mit `SHA256SUMS` nach
+  `dist/`; `make gates` führt die Gates aus, `make help` zeigt alle Targets. Das Image für
+  `linux/amd64` ist in `make test-container` gestartet und mit Aufzeichnen und Wiedergeben
+  geprüft; die übrigen Binaries und das Image für `linux/arm64` sind gebaut, nicht ausgeführt.
 - Das [Benutzerhandbuch](docs/user/benutzerhandbuch.md) beschreibt Bau, Aufruf und
   Verhalten des Binaries.
 

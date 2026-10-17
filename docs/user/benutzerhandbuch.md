@@ -2,7 +2,7 @@
 
 Version: 0.9  
 Software-Version: `dev` (Ausgabe von `pgwire-recorder version`)  
-Stand: 16.10.2026  
+Stand: 17.10.2026  
 Autor: Projektteam pgwire-recorder  
 Gültigkeitsbereich: gilt für das Binary `pgwire-recorder`, gebaut aus dem Repository (Ausgabe von `pgwire-recorder version`: `pgwire-recorder dev`)
 
@@ -64,6 +64,13 @@ CI-Systemen ausführen.
 * Zum Bauen: Docker und GNU `make`. Zum Ausführen: Linux auf der Architektur des
   Rechners, auf dem Sie gebaut haben, oder ein Container-Laufzeitsystem (siehe
   [Installation](#2-installation)).
+* Das Werkzeug lässt sich für sechs Plattformen bauen: Linux, macOS (`darwin`) und Windows,
+  je für `amd64` und `arm64`. Das Image baut das `Dockerfile` für `linux/amd64` und
+  `linux/arm64`. Gestartet und mit Aufzeichnen und Wiedergeben geprüft ist nur das Image
+  für `linux/amd64`, auf einem Docker-Server mit `amd64` (Docker 29.9.0). Von den übrigen
+  Binaries und vom Image für `linux/arm64` ist geprüft, dass sie gebaut sind: bei einem
+  Binary zeigt der Dateikopf Format und Architektur seiner Plattform, beim Image nennen die
+  Metadaten Betriebssystem und Architektur. Ausgeführt sind sie nicht.
 * Die Verbindung Ihrer Anwendung zum Werkzeug läuft ohne Verschlüsselung, solange Sie
   `record` oder `replay` ohne `--tls-cert` starten: Sie lehnen eine Anfrage nach
   Verschlüsselung dann ab. Ein Treiber mit `sslmode=prefer` verbindet sich dann
@@ -113,7 +120,61 @@ docker rm pgwire-recorder-binary
 Die Beispiele dieses Handbuchs rufen das Binary als `pgwire-recorder` auf. Legen Sie
 es dafür in ein Verzeichnis Ihres Suchpfads.
 
+### Binaries für alle Plattformen bauen
+
+`make binaries` baut das Binary für jede der sechs Plattformen (Linux, macOS und Windows, je
+`amd64` und `arm64`) und legt es mit einer Prüfsummen-Datei in das Verzeichnis `dist/`:
+
+```bash
+make binaries
+```
+
+In `dist/` liegen danach sechs Binaries und `SHA256SUMS`. Der Name eines Binaries ist
+`pgwire-recorder_<VERSION>_<Betriebssystem>_<Architektur>`, unter Windows mit der Endung
+`.exe`. Ohne Angabe ist `<VERSION>` gleich `dev`:
+
+```text
+pgwire-recorder_dev_darwin_amd64
+pgwire-recorder_dev_darwin_arm64
+pgwire-recorder_dev_linux_amd64
+pgwire-recorder_dev_linux_arm64
+pgwire-recorder_dev_windows_amd64.exe
+pgwire-recorder_dev_windows_arm64.exe
+```
+
+Mit `make binaries VERSION=1.2.3` tragen die Namen `1.2.3` statt `dev`, und `version` gibt
+`pgwire-recorder 1.2.3` aus. `SHA256SUMS` hat eine Zeile je Binary im Format von
+`sha256sum`. So prüfen Sie die Binaries:
+
+```bash
+cd dist
+sha256sum -c SHA256SUMS
+```
+
+Jede Zeile der Ausgabe endet auf `OK`. Das Verzeichnis `dist/` muss leer sein oder fehlen;
+sonst bricht `make binaries` mit einer Meldung ab.
+
+Auf einem Linux-Rechner mit `amd64` starten Sie das Binary direkt:
+
+```bash
+./dist/pgwire-recorder_dev_linux_amd64 version
+```
+
+Die Ausgabe ist `pgwire-recorder dev`. Die Binaries für macOS und Windows sind gebaut, aber
+nicht ausgeführt, ebenso das Binary für Linux auf `arm64`.
+
 ### Container
+
+Das `Dockerfile` baut das Image für `linux/amd64` und `linux/arm64`; `make build` baut es für
+die Plattform des Docker-Servers. Ein Image für eine bestimmte Plattform baut dieser Aufruf, hier für
+`linux/arm64`:
+
+```bash
+docker build --target runtime --platform linux/arm64 -t pgwire-recorder:dev-arm64 .
+docker image inspect --format '{{.Os}}/{{.Architecture}}' pgwire-recorder:dev-arm64
+```
+
+Die zweite Zeile gibt `linux/arm64` aus. Gestartet ist nur das Image für `linux/amd64`.
 
 Im Image ist das Binary der Einstiegspunkt: Die Argumente nach dem Image-Namen sind
 Kommando und Optionen. Das Image läuft als Benutzer `nonroot` (UID 65532); ein

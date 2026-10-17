@@ -1,7 +1,7 @@
 # Releasing: Release-Prozess für Maintainer
 
-Version: 0.5
-Stand: 2026-10-09
+Version: 0.6
+Stand: 2026-10-17
 
 ## 1. Zweck und Zielgruppe
 
@@ -14,9 +14,10 @@ wird. Es richtet sich an Maintainer, die einen Release-Tag setzen; es liegt unte
 **Stand:** Der Quelltext von Record, Replay und Konfiguration existiert. Das
 `Dockerfile` baut das Binary in mehreren Stufen, die Stufe `runtime` ist das
 Produkt-Image; `make build` baut beide für die Plattform des Hosts
-(`pgwire-recorder:dev`). Einen Release-Mechanismus gibt es nicht: keinen Workflow,
-der auf einen Tag reagiert, keinen Build für alle Zielplattformen, keine
-Veröffentlichung in einer Registry und keine Formel im Tap. Es ist noch kein Tag
+(`pgwire-recorder:dev`), `make binaries` baut die Binaries aller Zielplattformen mit
+`SHA256SUMS`, und `make test-container` prüft sie (§2). Einen Release-Mechanismus gibt es
+nicht: keinen Workflow, der auf einen Tag reagiert, keine Veröffentlichung in einer
+Registry und keine Formel im Tap. Es ist noch kein Tag
 gesetzt worden. Was ein Slice erst liefert, nennt dieses Dokument mit seiner
 Kennung („liefert `slice-…`“), nicht als Zusage. Sobald ein Mechanismus existiert,
 wird er hier beschrieben, einschließlich eines Belegs, dass er mit einem echten Tag
@@ -45,10 +46,24 @@ Ein Release liefert:
 dieselbe Plattform liefern dieselbe Prüfsumme (`LH-QA-01`). Für das Image gilt das
 nicht; es wird über seinen Digest identifiziert.
 
-Den Build für alle Zielplattformen, die Prüfsummen und die Veröffentlichung in beiden
-Registries liefert `slice-erster-release-veroeffentlichung`, den Scan des Images vor dem Push
-und den ersten echten Tag `slice-erster-release-freigabe`; das Image selbst
-`slice-v1-abschluss-container`; das Verfahren der Formel `slice-v1-abschluss-homebrew`.
+Die Pipeline, die beim Tag baut, und die Veröffentlichung in beiden Registries liefert
+`slice-erster-release-veroeffentlichung`, den Scan des Images vor dem Push und den ersten
+echten Tag `slice-erster-release-freigabe`; das Verfahren der Formel
+`slice-v1-abschluss-homebrew`.
+
+**Was lokal läuft:** `make binaries` baut je Zielplattform ein Binary in das Verzeichnis
+`dist/` und schreibt `SHA256SUMS`; die Namen tragen `VERSION` (Vorgabe `dev`), unter Windows
+mit `.exe`, und `dist/` muss leer sein oder fehlen. `make test-container` baut die Binaries
+mit `VERSION=0.0.0-test` zweimal in Verzeichnisse außerhalb des Arbeitsbaums und vergleicht
+die Summen, prüft den Dateikopf jedes Binaries, baut das Image für `linux/amd64` und
+`linux/arm64` und prüft Betriebssystem, Architektur und Summe der Datei darin, und startet
+das Image der Plattform des Docker-Servers: Aufzeichnen und Wiedergeben, mit entferntem
+PostgreSQL beim Wiedergeben. Beide laufen nacheinander; gleichzeitige Läufe sind nicht
+zugesagt. Eine Manifestliste entsteht dabei nicht.
+
+**Abnahme-Umgebungen:** Gestartet und geprüft ist das Image für `linux/amd64` auf einem
+Docker-Server mit `amd64`. Die Binaries für `darwin` und `windows` und das Image für
+`linux/arm64` sind gebaut; belegt sind Bau, Dateikopf und Summe, ausgeführt sind sie nicht.
 
 ## 3. Versionierung, Probe-Tag, Probe-Tap
 
@@ -166,3 +181,4 @@ liefert `slice-erster-release-veroeffentlichung`; heute gibt es keinen Lauf.
 | 0.3 | 2026-10-04 | Reproduzierbarkeit nur für das Binary; Plattformen und Registries aus dem Lastenheft |
 | 0.4 | 2026-10-09 | Stand auf Code, `Dockerfile` und `make build` gezogen; neue Gliederung; `SHA256SUMS` und Formel nur bei stabilen Tags; Vorbedingungen um die Start-Bedingung von `welle-erster-release` ergänzt; was erst ein Slice liefert, mit Kennung |
 | 0.5 | 2026-10-09 | Nach dem Schnitt des Release-Slice: Scan, Freshness-Audit, Checkliste und erster echter Tag bei `slice-erster-release-freigabe`; Fehlertabelle und Wiederanlauf bei `slice-erster-release-veroeffentlichung` |
+| 0.6 | 2026-10-17 | `make binaries` und `make test-container` im Ist-Zustand; Abnahme-Umgebungen |
