@@ -38,11 +38,14 @@ Mutation legt Punkt 7 fest, und die Gegenprobe verlangt genau diese Menge.
    läuft bei jedem Ende, das der Runner selbst beendet: grüner und roter Lauf, Fehler des Aufbaus
    (auch Start des Servers gescheitert), `SIGINT` und `SIGTERM`. Der Runner trägt je eine Falle
    für `TERM` (Exit-Code 143) und `INT` (130), die in die Falle `EXIT` führen; die Falle `EXIT`
-   ist Folge der Zusage dieses Punktes, keine eigene Randform. Die Falle für `INT` ist nötig: Trifft
-   `SIGINT` nur den Runner, während ein Kind läuft, das nicht am Signal endet (`docker` endet auf
-   `SIGINT` mit dem Exit-Code 2), setzt bash fort, und der Lauf geht weiter (Mutant
-   `p5-int-entfaellt`, Punkt 7). Zugesagt ist das Ende (Aufräumen, Prüfung, Exit-Code), nicht die
-   Falle für `TERM`: Ohne sie endet bash ebenso mit 143 und führt die Falle `EXIT` aus. Ein zweites
+   ist Folge der Zusage dieses Punktes, keine eigene Randform. Zugesagt ist das Ende
+   (Aufräumen, Prüfung, Exit-Code), nicht die Fallen: Ohne die Falle für `TERM` endet bash ebenso mit
+   143 und führt die Falle `EXIT` aus; ohne die Falle für `INT` endet es im `wait` des Falls mit 130.
+   Die Falle für `INT` schützt zusätzlich ein Vordergrundkommando (`docker exec`), das nicht am Signal
+   endet (`docker` endet auf `SIGINT` mit dem Exit-Code 2), sonst setzt bash fort; diesen Fall
+   prüft kein Fall der Gegenprobe (akzeptiertes Negativ; Grund: Er braucht einen Runner im
+   Vordergrundkommando zum Zeitpunkt des Signals, den kein stabiler Fall trifft, und der Runner
+   trägt die Falle ohnehin) Ein zweites
    `SIGTERM` oder `SIGINT` während des Aufräumens ist nicht zugesagt (akzeptiertes Negativ; Grund:
    Es bräuchte einen Fall mit langsamem `docker rm` für den Unterschied der Falle zum Fehlen, und
    ein Stopper, der zweimal sendet, folgt bei `SIGKILL`, das ohnehin nichts auffängt). Die Gegenprobe prüft die
@@ -65,18 +68,18 @@ Mutation legt Punkt 7 fest, und die Gegenprobe verlangt genau diese Menge.
    |---|---|---|---|
    | `p2-grundfall` | nach dem Aufräumen existiert kein gelesenes Volume (Container aus `docker create` des PostgreSQL-Images) | `rm -f` statt `rm -fv` | `p2-grundfall`, `p2-ohne-v` |
    | `p2-ohne-v` | ohne `-v` bleibt ein Rest, die Meldung nennt den Namen | dieselbe Mutation | wie oben |
-   | `p3-angelegt` | die Namen werden im Zustand `created` gelesen | Namen erst nach dem Entfernen lesen | `p3-angelegt`, `p4-rest-rot` |
+   | `p3-angelegt` | die Namen werden im Zustand `created` gelesen | Namen erst nach dem Entfernen lesen | `p3-angelegt`, `p4-rest-rot`, `p5-sigint`, `p5-sigterm` |
    | `p3-kein-container` | kein Container ergibt eine leere Liste ohne Fehler und Meldung | leere Liste wird ein Fehler | `p3-kein-container`, `p5-sigint`, `p5-sigterm` |
    | `p4-fremd` | fremde Volumes (ein benanntes, ein anonymes) bleiben | die Prüfung entfernt jedes Volume ohne Container | `p4-fremd` |
    | `p4-rest-rot` | ein Rest macht den Lauf rot (Exit 1), auch bei grünen Tests | der Exit-Code der Prüfung wird verworfen | `p3-angelegt`, `p4-rest-rot` |
    | `p4-vorrang` | ein Lauf-Code ungleich 0 behält Vorrang | die Prüfung setzt immer 1 | `p4-vorrang` |
    | `p5-sigterm` | Aufräumen und Prüfung laufen nach `SIGTERM`, der Exit-Code ist 143 | die Falle für `TERM` beendet den Runner ohne Aufräumen (`kill -KILL`) | `p5-sigterm` |
    | `p5-sigint` | Aufräumen und Prüfung laufen nach `SIGINT`, der Exit-Code ist 130 | die Falle für `INT` beendet den Runner ohne Aufräumen (`kill -KILL`) | `p5-sigint` |
-   | `p5-sigint` | ohne Falle für `INT` geht das Signal verloren (Punkt 5) | die Falle für `INT` entfällt (`p5-int-entfaellt`) | `p5-sigint` |
 
    Entfällt die Falle für `TERM`, läuft die Falle `EXIT` trotzdem, und bash endet mit 143; dieser
    Mutant ist äquivalent, kein Fall wird rot (gemessen mit bash 5.2.21; die Gegenprobe führt ihn
-   als `p5-term-entfaellt` ohne roten Fall). Je Element der Punkte 1, 2 und 4 hat die Gegenprobe
+   als `p5-term-entfaellt` ohne roten Fall); ebenso der Mutant ohne Falle für `INT`
+   (`p5-int-entfaellt`, ohne roten Fall). Je Element der Punkte 1, 2 und 4 hat die Gegenprobe
    weitere Mutanten (nur `$pg` oder nur `$tests` gelesen oder entfernt, `$daten` nicht ausgenommen,
    Rest nicht entfernt, Meldung ohne Namen, Prüfung endet mit 0), deren rote Fälle sie ebenfalls
    festlegt; die Art des Mounts (`.Type`) ändert die Namen nicht, ihr Wegfall ist äquivalent.

@@ -290,16 +290,15 @@ zum Container `$pg` (wenige Sekunden); alle übrigen kommen mit `docker create` 
    `SIGKILL` ohnehin ohne Aufräumen). Der Mutant „Falle für `TERM` entfällt“ ist äquivalent und steht so in Punkt 7; zugesagt ist das
    Ende, nicht die Falle.
 2. Falle für `INT`: Folge der Zusage von Punkt 5, keine neue Randform; der Nachtrag stimmt mit dem Code (`trap 'trap "" INT; exit 130' INT`)
-   und mit `p5-sigint` überein. Die Behauptung „ist nötig“ hatte keinen Mutanten: **Rückgabe an den Implementer**, siehe unten.
+   und mit `p5-sigint` überein. Der Mutant `p5-int-entfaellt` blieb grün (der Runner steht im Fall im `wait`): Die Zusage „nötig“ entfällt, die Falle ist nicht zugesagt (akzeptiertes Negativ in `SPEC-057` Punkt 5, Nachtrag 2026-10-17).
 3. Punkt 7 nennt je Mutation die Menge der roten Fälle statt „nur ihn“ (Menge aus der Tabelle in §7 übernommen); die Gegenprobe verlangt genau diese.
 4. `SPEC-057` Punkt 8 nennt die nur auf 29.9.0 gemessene Version jetzt als akzeptiertes Negativ mit Grund.
 5. `d-check.mk` und `a-check.mk` tragen `--rm` (geprüft); da sie nicht geändert werden, genügt die Nachführung in §7, §3 bleibt.
 6. `SPEC-055` Punkt 9 stimmt mit dem Diff (`rm -fv` für alle Container, `$pg` zweimal gemutet); die übrigen Container ohne Fall sind als akzeptiertes
    Negativ nachgetragen. `SPEC-052` Punkt 13 stimmt (Gegenprobe liest nur `tools/test/` in Kopien).
 
-**Rückgabe an den Implementer:** `tools/test/integration-volumes-gegenprobe.sh`: Mutant `p5-int-entfaellt` (Zeile 305, `trap 'trap "" INT; exit 130' INT # S-INT` durch `:`)
-mit dem roten Fall `p5-sigint`. Wird er nicht rot, entfällt der Satz „Die Falle für `INT` ist nötig“ in `SPEC-057` Punkt 5 samt Zeile in Punkt 7 und die Rückgabe ist
-dem Architect zu melden. Die Gegenprobe prüft sonst die Mengen der Tabelle in Punkt 7 (`p2-grundfall`+`p2-ohne-v`, `p3-angelegt`+`p4-rest-rot` usw.); weicht ein Mutant ab, melden.
+**Rückgabe an den Implementer:** `tools/test/integration-volumes-gegenprobe.sh`: Der Mutant `p5-int-entfaellt` bleibt ohne roten Fall (wie `p5-term-entfaellt`, äquivalent);
+die Zeile `p3-nach-entfernen` verlangt die roten Fälle `p3-angelegt`, `p4-rest-rot`, `p5-sigint`, `p5-sigterm` (`SPEC-057` Punkt 7). Die Gegenprobe prüft sonst die Mengen der Tabelle in Punkt 7 (`p2-grundfall`+`p2-ohne-v`, `p3-angelegt`+`p4-rest-rot` usw.); weicht ein Mutant ab, melden.
 
 **Risiken:**
 
