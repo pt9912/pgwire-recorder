@@ -11,8 +11,8 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein Abnahmeszenario und
 kein Meilenstein hängt an ihm. Angelegt am 2026-10-17 nach Entscheidung des Nutzers vom selben Tag
-(„ja, Austausch-Repo-Umbau einplanen“); eingeordnet in `next/`, aber nicht beansprucht, solange
-`slice-harness-integration-volumes` in `in-progress/` liegt (WIP-Limit 1, §4 *Start*).
+(„ja, Austausch-Repo-Umbau einplanen“); eingeordnet in `next/`; beansprucht am 2026-10-17 nach dem Schließen von `slice-harness-integration-volumes`,
+als paralleler Lauf neben `slice-harness-abdeckung-gate` (§4 *Start*, §6 *Paralleler Lauf*).
 
 **Bezug:** kein Anspruch des Produkts und kein Lastenheft-Bezug — der Slice ändert die Beschreibung der
 Arbeitsumgebung der Entwickler. Vorgänger: `slice-harness-devcontainer-doku` (`done/`), dessen Kopf
@@ -44,7 +44,7 @@ Der Container sieht damit den ganzen Arbeitsbaum des Hosts (auch uncommittete un
 `.harness/state/` und `.claude/`), `PGR_REPO` ist Pflichtvariable, und der Rückweg läuft per `git fetch`
 über SSH auf den ausgecheckten Klon oder per Bundle.
 
-**Zielbild — zu prüfen, nicht zu behaupten** (Vorschlag des Nutzers, 2026-10-17: lokal einen Klon anlegen,
+**Zielbild — von den Proben bestätigt, Befunde in §7** (Benennung am Host `container/container/<thema>` bei Präfix im Container; Hostschlüssel; Bare-Repo mit `--initial-branch=main`; Vorschlag des Nutzers, 2026-10-17: lokal einen Klon anlegen,
 von dem aus gepullt und gepusht wird; gemountet wird nur das Volume):
 
 - Im Volume `pgr-dev-workspace` liegt ein Bare-Repo `/workspaces/austausch.git`; daraus entsteht der
@@ -109,8 +109,10 @@ von dem aus gepullt und gepusht wird; gemountet wird nur das Volume):
 6. Zweite Instanz mit anderem Port und eigenem Remote-Namen am selben Host-Repo; zwei Remotes nebeneinander.
 7. Der Block `compose.yaml` ohne Mount `/host-repo` und ohne `PGR_REPO`: Start eines Scratch-Containers (anderer Name, Port, Volumes, wie im Vorgänger) aus den
    Codeblöcken des Dokuments; `docker inspect` zählt die Mounts.
-8. Am echten Container `/Development/pgr-dev` laufen die Schritte 1 bis 5 (Volumes unverändert, Datei `compose.yaml` des Messorts unverändert, Container nicht neu erzeugt);
-   das Bare-Repo wird danach entfernt, wenn der Nutzer es nicht behalten will (Frage unten). Schritte 6 und 7 laufen im Scratch-Container.
+8. Am echten Container `/Development/pgr-dev` waren die Schritte 1 bis 5 vorgesehen. Beim Start des Laufs (2026-10-17) lief dort kein Container
+   (`docker ps -a` leer; Image `pgr-dev:latest` und die Volumes `pgr-dev_pgr-dev-docker`, `pgr-dev_pgr-dev-workspace` vorhanden). Ihn zu starten hieße, ihn neu zu erzeugen (Festlegung 2);
+   deshalb liefen alle Schritte 1 bis 7 im Scratch-Container (Projekt `pgr-aus`, Port 2322, Dockerfile und `start.sh` aus den Codeblöcken des Dokuments, Compose-Block ohne Mount),
+   Schritt 6 mit einem zweiten (Projekt `pgr-aus2`, Port 2323). Das echte Verzeichnis, seine Volumes und das Image blieben unberührt (§7).
 
 **Docker-Last.** Die Proben starten Container und Daemon-Läufe (Scratch-Container, Volumes, Port). Sie laufen nie
 gleichzeitig mit einem Gate-Lauf oder einer Volume-Messung eines anderen Slice (`pgrep -af "make gates"` ohne Treffer, `docker volume ls -q` vorher und
@@ -125,9 +127,8 @@ nachher gleich; `docker ps -a` zeigt nur `pgr-dev` und die Scratch-Container), A
 
 ## 4. Trigger
 
-**Start** (`next` → `in-progress`): Nach dem Schließen von `slice-harness-integration-volumes` (WIP-Limit 1 und Docker: die Proben
-dieses Slice dürfen dessen Volume-Messungen nicht stören). Der Anspruch ist ein reiner `git mv` auf dem Hauptzweig vor der Arbeit.
-Der Start läuft abweichend parallel zu `slice-harness-abdeckung-gate` (§6 *Paralleler Lauf*). Die Stelle in der Reihenfolge ist Empfehlung des Planners; der Nutzer kann sie ändern.
+**Start** (`next` → `in-progress`): erfolgt nach dem Schließen von `slice-harness-integration-volumes` (`done/`). Der Anspruch ist ein reiner `git mv` auf dem Hauptzweig vor der Arbeit.
+Der Lauf geht parallel zu `slice-harness-abdeckung-gate` (§6 *Paralleler Lauf*); die Proben beachten den geteilten Docker-Daemon (§6, Festlegung 4).
 
 **Größe.** Metrik nach `AGENTS.md` §3.14: Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- docs/developer`. Basis ist der
@@ -162,13 +163,14 @@ und nicht probt, hält er an und gibt sie an den Architect zurück (`.claude/com
   gesucht, etwa Container arbeitet nur auf `container/<thema>`); `git fetch container` ohne Branch des Containers; Benennung am Host (`refs/remotes/container/…` und der Branch
   `container/<thema>` ergeben möglicherweise `container/container/<thema>`); Besitzer und Rechte im Volume (frisches Volume gehört `root`; Bare-Repo als `vscode` angelegt, UID 1000;
   andere UID am Host, `dubious ownership`); Überleben von `u-boot down` und `up`; zweiter Container mit gleichem Remote-Namen oder gleichem Port; Hostschlüssel nach Neubau des Images;
-  `core.sshCommand` je Repo statt Umgebung (`GIT_SSH_COMMAND`), Wirkung auf andere Remotes (`origin`); Abbruch mitten im Push. — **Ausgang:** bei der Closure (Planner).
+  `core.sshCommand` je Repo statt Umgebung (`GIT_SSH_COMMAND`), Wirkung auf andere Remotes (`origin`); Abbruch mitten im Push. — **Stand des Laufs:** jede Form hat eine Zeile in §7 oder steht in §13 des
+  Dokuments (nicht gelaufen: andere UID am Host, `origin` über `ssh`, Fetch aus leerem Bare-Repo über `ssh`). — **Ausgang:** bei der Closure (Planner).
 - **Das Zielbild trägt nicht ohne Eingriff in `Dockerfile` oder `start.sh`** (zum Beispiel `git` im Image fehlt, Rechte an `/workspaces`). — **Ausgang:** bei der Closure; Eintreten geht an den Nutzer
   (§1: keine Änderung dieser Dateien in diesem Slice), dann Rückführung nach §4.
 - **Hostschlüssel-Frage wird berührt** (SSH bei jedem Push und Fetch; nach Neubau des Images andere Hostschlüssel, Warnung am Host). — **Ausgang:** bei der Closure; bleibt die Entscheidung über eine Einstellung
   (`StrictHostKeyChecking`, `UserKnownHostsFile`) offen, → Register `BEO-REPO/…` neu oder bestehender Eintrag, sonst Folge-Slice nach Entscheidung des Nutzers. Das Dokument erfindet keine Einstellung.
 - **Docker-Last stört einen anderen Lauf** (Gate-Lauf oder Volume-Messung eines anderen Slice) oder umgekehrt. — **Ausgang:** bei der Closure; Gegenmittel in §3 (Vorbedingung vor jeder Probe).
-- **Probe am echten Container ändert dessen Volume** (Bare-Repo, Arbeitsklon bleibt unberührt). — **Ausgang:** bei der Closure; der Zustand vor und nach (`ls /workspaces`) steht in §7, das Bare-Repo wird entfernt oder auf Wunsch des Nutzers behalten.
+- **Probe am echten Container ändert dessen Volume** (Bare-Repo, Arbeitsklon bleibt unberührt). — **Ausgang:** bei der Closure; der Zustand vor und nach (`ls /workspaces`) steht in §7, das Bare-Repo wird entfernt oder auf Wunsch des Nutzers behalten. Im Lauf lief kein echter Container (§3 Schritt 8); die Proben liefen im Scratch-Container, der Zustand vor und nach steht in §7.
 - **Das Dokument veraltet still gegen den Container** (kein Sensor; wie im Vorgänger) und **Aussagen über die Probe hinaus** (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`; die Reviews des Vorgängers fanden sie zweimal).
   — **Ausgang:** bei der Closure; Gegenmittel: Quantoren-Durchsicht (`grep`) wie im Vorgänger, ein Gegenbeispiel je Verneinung.
 - **Größe:** Der Umbau liegt über der Marke (Vorgänger 441 gegen Schätzung 150 bis 300). — **Ausgang:** bei der Closure; Gegenmittel §4 (Meldeschwelle 350, Marke 450, 560 Zeilen).
@@ -176,7 +178,7 @@ und nicht probt, hält er an und gibt sie an den Architect zurück (`.claude/com
 **Festlegungen zu den offenen Punkten** (2026-10-17, beim Anspruch; Empfehlung, die der Nutzer nicht als Entscheidung bestätigt hat, er kann sie ändern;
 einzige Ausnahme: der Hostschlüssel, der offen bleibt):
 
-1. Das Bare-Repo, das die Probe am echten Container `/Development/pgr-dev` anlegt, wird nach der Probe entfernt.
+1. Das Bare-Repo, das die Probe am echten Container `/Development/pgr-dev` anlegt, wird nach der Probe entfernt (im Lauf gegenstandslos: Es gab keinen Container, §3 Schritt 8).
 2. Der echte Container wird nicht neu erzeugt und nicht mit `down`/`up` angefasst. Das Überleben von `down`/`up` (Probe 5) läuft im Scratch-Container; der Bestand bleibt unangetastet.
 3. Hostschlüssel: Das Dokument nennt nur, was gelaufen ist, und empfiehlt keine Einstellung (`StrictHostKeyChecking`, `UserKnownHostsFile`). Die Entscheidung darüber liegt beim Nutzer und bleibt offen; sie steht in §13 des Dokuments.
 4. Vorbedingung jeder Container-Probe: `pgrep -fa "^make gates"` ist leer, weil der Docker-Daemon mit dem Lauf von `slice-harness-abdeckung-gate` geteilt ist. Das Dokument selbst darf jederzeit geschrieben werden.
@@ -187,8 +189,59 @@ einzige Ausnahme: der Hostschlüssel, der offen bleibt):
 
 ## 7. Closure-Notiz
 
-Noch nicht geschlossen. Der Implementer führt hier die Proben (Tabelle *Aussage · Probe · Beobachtung*), die Läufe, die Größe nach §4 und die Quantoren-Durchsicht;
-der Planner schreibt bei der Closure Ausgang je Risiko, Lerneintrag und Paarungen.
+Noch nicht geschlossen. Der Planner schreibt bei der Closure Ausgang je Risiko, Lerneintrag und Paarungen.
+
+### Belege des Implementers
+
+**Umgebung der Proben** (2026-10-17). Docker-Vorbedingung vor jeder Container-Probe: `pgrep -fa "^make gates"` ohne Treffer (sechsmal geprüft, nie ein Lauf).
+Objekte nur mit Präfix `pgr-aus`: Projekte `pgr-aus` (Container `pgr-aus-dev`, Port 2322) und `pgr-aus2` (Container `pgr-aus2-dev`, Port 2323), Verzeichnisse im Scratchpad,
+die aus dem Dokument gelesen wurden: `Dockerfile`-Ergänzung (Zeilen 120 bis 140 der Fassung vor dem Umbau, ohne Änderung; `diff` gegen `/Development/pgr-dev/.devcontainer/Dockerfile` leer bis auf den Kommentar mit dem Projektnamen),
+`start.sh` (`diff` leer) und der Compose-Block ohne Mount. Kopf der Compose-Datei von `u-boot init pgr-aus` (0.9.0). Aufräumen: `docker compose down -v` je Projekt, `docker rmi pgr-aus-dev:latest pgr-aus2-dev:latest`;
+`docker volume ls -q` vorher und nachher gleich (`diff` leer), `docker ps -a` leer, keine Netze `pgr*`, Image `pgr-dev:latest` unverändert (`d7d697d39d6d`).
+Der Host-Eintrag für `known_hosts` entstand mit `ssh-keyscan` (Marke am Zeilenende) und wurde danach entfernt; `~/.ssh/known_hosts` ist wieder byte-gleich der Kopie vor dem Lauf (`cmp`).
+Der Host-Klon der Proben liegt im Scratchpad (`host`, Zweig `main` des Worktree-Repos plus ein unveröffentlichter Commit); das echte Host-Repo blieb unberührt.
+
+**Echter Container (§3 Schritt 8).** Beim Start des Laufs lief kein Container (`docker ps -a` leer); Image und Volumes `pgr-dev_*` lagen vor. Ihn zu starten hätte ihn neu erzeugt, was die Festlegung 2 ausschließt.
+Keine Probe am echten Container; er, `compose.yaml` des Messorts und seine Volumes sind nicht angefasst (`ls -la /Development/pgr-dev` ohne Änderung). Das Dokument sagt deshalb nichts über den Bestandscontainer (§13).
+
+**Befund an den Randformen aus §6** (Probe · Beobachtung; „Gegenfall“ ist die Form, die das Gegenteil des Satzes im Dokument zeigt):
+
+| Aussage im Dokument (Abschnitt) | Probe | Beobachtung |
+|---|---|---|
+| `git` und `git-receive-pack` im Image; `/workspaces` gehört `vscode`; Bare-Repo `vscode` 1000, 775 (§6) | `ssh … 'command -v git git-receive-pack; git --version; ls -ld /workspaces'`, `stat -c "%U %u %a"` | `/usr/local/bin/git`, `git-receive-pack`, `git version 2.55.0`, `drwxr-xr-x vscode vscode /workspaces`, `vscode 1000 775 /workspaces/austausch.git` |
+| ohne `--initial-branch=main` zeigt `HEAD` auf `master`; Clone danach: Warnung, keine Dateien (§6, §12) | `git init --bare` ohne Option, Push von `main`, Clone | `HEAD` `refs/heads/master`; `warning: remote HEAD refers to nonexistent ref, unable to checkout`, `ls` leer. Gegenfall: `--initial-branch=main` → `ref: refs/heads/main`, Clone checkt aus |
+| Clone vor erstem Push: leeres Repo, Exit 0 (§6) | Clone des leeren Bare-Repos | `warning: You appear to have cloned an empty repository.`, Exit 0, Branch `main`, `No commits yet` |
+| Wiederholung: `init --bare`, `clone`, `remote add` (§6) | zweiter Aufruf je Befehl | `Reinitialized existing Git repository` (Exit 0); `fatal: destination path … already exists and is not an empty directory` (Exit 128); `externes Repository container existiert bereits` (Exit 3) |
+| `git push container main` liefert ein, auch unveröffentlichte Commits (§9) | Push des Scratch-Klons mit einem lokalen Commit (`dc5081bf`) | `* [new branch] main -> main`; `git log` im Bare-Repo zeigt `dc5081bf` an der Spitze |
+| `core.sshCommand` mit Schlüssel und `IdentitiesOnly=yes` genügt (§9) | `git config core.sshCommand "ssh -i … -o IdentitiesOnly=yes"`, Push, Fetch | Push und Fetch ohne weitere Optionen erfolgreich (bei vorhandenem Hostschlüssel-Eintrag) |
+| `core.sshCommand` gilt für das ganze Repo, nicht für ein Remote (§9) | `GIT_TRACE=1 git ls-remote ssh://git@127.0.0.1:1/x` | `run_command: … 'ssh -i …/id_ed25519 -o IdentitiesOnly=yes' … -p 1 git@127.0.0.1`. `origin` über `ssh`: nicht gelaufen (§13) |
+| Clone im Container, `git config --global`, Commit ohne Identität weist ab (§6) | Clone nach dem Push; `git commit --allow-empty` vor der Konfiguration | Clone Exit 0, Branch `main`; `Author identity unknown`. Mit Konfiguration: Commit und Push von `container/thema` in das Bare-Repo |
+| Benennung am Host: `container/thema` im Container → `container/container/thema` (§9) | `git fetch container` nach Push von `container/thema` (Gegenfall: Push von `thema2`) | `* [neuer Branch] container/thema -> container/container/thema`; Gegenfall: `thema2 -> container/thema2` |
+| zweiter Push des Hosts, Pull im Klon (§6, §9) | Host-Commit `115edfc3`, `git push container main`, im Klon `git switch main; git pull` | `dc5081bf..115edfc3 main -> main`; `Fast-forward`, `h2.txt` im Klon |
+| beide schreiben auf `main`: Host-Push weist ab, Erholung (§9, §12) | Container pusht `6d772aad` auf `main`, Host pusht `107d5b11` | `! [rejected] main -> main (fetch first)`, Exit 1; danach `git fetch container`, `git merge container/main`, Push `6d772aad..440c7bd3` erfolgreich, `git pull` im Klon holt `440c7bd3` |
+| Push ohne vorhandene Quelle (nicht dokumentiert, Randform) | `git push container thema-gibts-nicht` | `error: Src-Refspec … entspricht keiner Referenz`, Exit 1 |
+| Abbruch im Push (§13) | `timeout -s KILL 0.4 git push container main` mit 30-MB-Commit | Spitze von `main` im Bare-Repo unverändert (`440c7bd3`), `git fsck` ohne Ausgabe; Wiederholung `440c7bd3..1b55652d` erfolgreich. Ob der Abbruch mitten in der Übertragung lag: nicht festgestellt (§13) |
+| Bare-Repo, Branches, Klon überleben `u-boot down`/`up`; `~/.gitconfig` nicht (§4, §6) | `u-boot down`, `u-boot up`, dann `ls /workspaces`, `git branch`, `status`, `git config --global -l` | Volumes `pgr-aus_*` bleiben; `austausch.git` mit `container/thema`, `main`, `thema2`; `## main...origin/main`; `unable to read config file '/home/vscode/.gitconfig'`. Nach `up` Push des Hosts (`1b55652d..1a8f3a73`) ohne Warnung |
+| Hostschlüssel gleich nach `down`/`up` (§4, §5) | `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` vor und nach | beide Male `SHA256:6XSFi4LleM3Ae3hAbZHwuftWqvtnG7ueUzBKSK4aJ/U root@buildkitsandbox` |
+| Hostschlüssel nach Neubau ohne Cache: andere Schlüssel, Warnung, Abbruch (§5, §12) | `docker compose build --no-cache` (35 s), zweiter Container auf Port 2322 nach `down` des ersten, `git fetch container`, `git push container main` | Fingerabdruck `SHA256:IiuSe6Bc…`; `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!`, `Host key verification failed.`, Fetch Exit 128, `ssh` Exit 255 |
+| ohne Eintrag und ohne Terminal: Abbruch (§5) | `ssh -i … -p 2322 vscode@127.0.0.1 true < /dev/null` vor dem Eintrag | `Host key verification failed.`, Exit 255; mit Terminal (Frage): nicht geprüft |
+| zweiter Container, eigener Port, eigenes Remote (§10) | Projekt `pgr-aus2`, Remote `container2`, Bare-Repo im zweiten Container | beide `healthy` gleichzeitig; Push nach `container2` mit dem Schlüssel der ersten Instanz allein: Zugriff abgewiesen; mit beiden `-i`: Push, Fetch beider Remotes, `git branch -r` zeigt `container/…` und `container2/…` |
+| Compose-Block ohne Mount: drei Mounts (§3.5, §7, §11) | `docker inspect pgr-aus-dev --format '{{len .Mounts}} …'`; `docker compose config` | `3 volume:/workspaces:true bind:/etc/pgr-dev/authorized_key.pub:false volume:/var/lib/docker:true`; Gegenfall: `docker compose config` mit zusätzlicher Mount-Zeile: 4 |
+| `u-boot up` Warnung zum Port (§4) | `u-boot up` im Scratch | `warn: Service "dev" port entry #0 (127.0.0.1:${PGR_SSH_PORT:-2222}:22) is not TCP-probable …`; danach `healthy` nach 43,7 s (Image im Cache) |
+| `docker compose up -d` mit `PGR_SSH_PORT` aus der Umgebung (§4) | `PGR_SSH_PORT=2322 docker compose up -d` im Verzeichnis von `pgr-aus2` | Container neu erzeugt, `healthy`, `127.0.0.1:2322->22/tcp` |
+
+**Mutation (Gegenbeispiel) für die Sätze, die eine Verneinung tragen.** Zusage „`/host-repo` und `PGR_REPO` kommen im Dokument nicht mehr vor“: `grep -n 'host-repo\|PGR_REPO' docs/developer/devcontainer.md` vor dem Umbau
+21 Zeilen (`git grep -c` auf `92cfaf23`), nach dem Umbau leer (Exit 1). Zusage „der Arbeitsbaum des Hosts ist in keinem der drei Mounts“: `docker compose config` auf dem Block mit einer zusätzlich eingefügten Mount-Zeile (nur Konfiguration, kein Container) zählt vier `type:`-Einträge, der Block des Dokuments drei; `docker inspect` des laufenden Scratch-Containers drei.
+
+**Quantoren-Durchsicht** (`grep -nEi 'jede|alle|immer|stets|nie|nichts|kein|jeweils|genau|nur'` über das Dokument; Entscheidung je neuem Treffer): Zeile „genau drei Mounts“ (§7): gemessen, unverändert; „Jeder Container hat sein eigenes Bare-Repo“ (§10): im zweiten
+Container eigenes Bare-Repo angelegt, im ersten nicht sichtbar, unverändert; „Jeder `ssh`-Aufruf von `git`“ (§9): eng gefasst auf einen `ls-remote` einer `ssh://`-URL; „Er bekommt nur, was du … einlieferst“ (§11): eng gefasst auf das Bare-Repo
+und die Mounts; „Stände, die nur dort lagen, auch“ (§4): gefolgert aus `Removed`, nicht an einem Inhalt gemessen, unverändert mit dieser Einordnung; „checkt nichts aus“ (§6): eng gefasst auf Dateien. Übrige Treffer sind Bestand ohne neuen Satz zum Gegenstand.
+
+**Gates.** `make docs-check`: `d-check: 991 Datei(en) geprüft, 0 Befund(e)`. `make kopf-check` und `make gates-schnell`: siehe Bericht des Laufs (unten, nach dem Lauf eingetragen).
+
+**Größe nach §4.** Messung am Endstand unten.
+
+**Hostschlüssel.** Das Dokument nennt, was lief, und empfiehlt keine Einstellung; die Entscheidung bleibt beim Nutzer (§6 Festlegung 3, Dokument §13).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
