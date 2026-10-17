@@ -77,17 +77,17 @@ von dem aus gepullt und gepusht wird; gemountet wird nur das Volume):
 
 ## 2. Definition of Done
 
-- [ ] `docs/developer/devcontainer.md` beschreibt den Austausch über das Bare-Repo nach §1; die Abschnitte
+- [x] `docs/developer/devcontainer.md` beschreibt den Austausch über das Bare-Repo nach §1; die Abschnitte
       §3.5 (Block `compose.yaml` ohne Mount und ohne `PGR_REPO`), §6, §7, §9, §10, §11, §12 und §13 sind
       nachgezogen; `/host-repo` und `PGR_REPO` kommen im Dokument nicht mehr vor (`grep`); jede Aussage ist
       durch einen Lauf am Container belegt (Tabelle *Aussage · Probe · Beobachtung* in §7) oder steht in §13.
-- [ ] `make docs-check`, `make kopf-check` und `make gates-schnell` grün auf dem Endstand (nur
+- [x] `make docs-check`, `make kopf-check` und `make gates-schnell` grün auf dem Endstand (nur
       `docs/developer/` und die Planung ändern; ein voller `make gates` ist nicht nötig, §5).
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder in §7 „keine Beobachtung“ notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder in §7 „keine Beobachtung“ notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -164,16 +164,14 @@ und nicht probt, hält er an und gibt sie an den Architect zurück (`.claude/com
   `container/<thema>` ergeben möglicherweise `container/container/<thema>`); Besitzer und Rechte im Volume (frisches Volume gehört `root`; Bare-Repo als `vscode` angelegt, UID 1000;
   andere UID am Host, `dubious ownership`); Überleben von `u-boot down` und `up`; zweiter Container mit gleichem Remote-Namen oder gleichem Port; Hostschlüssel nach Neubau des Images;
   `core.sshCommand` je Repo statt Umgebung (`GIT_SSH_COMMAND`), Wirkung auf andere Remotes (`origin`); Abbruch mitten im Push. — **Stand des Laufs:** jede Form hat eine Zeile in §7 oder steht in §13 des
-  Dokuments (nicht gelaufen: andere UID am Host, `origin` über `ssh`, Fetch aus leerem Bare-Repo über `ssh`). — **Ausgang:** bei der Closure (Planner).
-- **Das Zielbild trägt nicht ohne Eingriff in `Dockerfile` oder `start.sh`** (zum Beispiel `git` im Image fehlt, Rechte an `/workspaces`). — **Ausgang:** bei der Closure; Eintreten geht an den Nutzer
-  (§1: keine Änderung dieser Dateien in diesem Slice), dann Rückführung nach §4.
-- **Hostschlüssel-Frage wird berührt** (SSH bei jedem Push und Fetch; nach Neubau des Images andere Hostschlüssel, Warnung am Host). — **Ausgang:** bei der Closure; bleibt die Entscheidung über eine Einstellung
-  (`StrictHostKeyChecking`, `UserKnownHostsFile`) offen, → Register `BEO-REPO/…` neu oder bestehender Eintrag, sonst Folge-Slice nach Entscheidung des Nutzers. Das Dokument erfindet keine Einstellung.
-- **Docker-Last stört einen anderen Lauf** (Gate-Lauf oder Volume-Messung eines anderen Slice) oder umgekehrt. — **Ausgang:** bei der Closure; Gegenmittel in §3 (Vorbedingung vor jeder Probe).
-- **Probe am echten Container ändert dessen Volume** (Bare-Repo, Arbeitsklon bleibt unberührt). — **Ausgang:** bei der Closure; der Zustand vor und nach (`ls /workspaces`) steht in §7, das Bare-Repo wird entfernt oder auf Wunsch des Nutzers behalten. Im Lauf lief kein echter Container (§3 Schritt 8); die Proben liefen im Scratch-Container, der Zustand vor und nach steht in §7.
+  Dokuments (nicht gelaufen: andere UID am Host, `origin` über `ssh`, Fetch aus leerem Bare-Repo über `ssh`). — **Ausgang (Closure):** entfallen — jede Form hat eine Zeile in §7 oder steht in §13 des Dokuments; die nicht gelaufenen (andere UID am Host, `origin` über `ssh`, Fetch aus leerem Bare-Repo über `ssh`) sind dort als nicht geprüft geführt. Eine Randform, die das Review nachträglich fand, ist nicht darunter (F-3, F-4 betrafen Befehle, keine Randform des Ablaufs).
+- **Das Zielbild trägt nicht ohne Eingriff in `Dockerfile` oder `start.sh`** (zum Beispiel `git` im Image fehlt, Rechte an `/workspaces`). — **Ausgang (Closure):** entfallen — `git`, `git-receive-pack` und die Rechte an `/workspaces` reichen (Probe 1); Dockerfile und `start.sh` blieben unverändert (`diff` leer), die Rückführung nach §4 trat nicht ein.
+- **Hostschlüssel-Frage wird berührt** (SSH bei jedem Push und Fetch; nach Neubau des Images andere Hostschlüssel, Warnung am Host). — **Ausgang (Closure):** eingetreten, Entscheidung offen → weiter offen im Register `BEO-REPO/hostschluessel-nach-neubau-ohne-entscheidung` (neu, 1×). Die Warnung trat in der Probe auf (§7); das Dokument nennt sie in §5 und §12 und erfindet keine Einstellung; die Entscheidung trifft der Nutzer (Frage in §7).
+- **Docker-Last stört einen anderen Lauf** (Gate-Lauf oder Volume-Messung eines anderen Slice) oder umgekehrt. — **Ausgang (Closure):** entfallen — die Vorbedingung `pgrep -fa "^make gates"` war vor jeder Probe leer (sechsmal), der Zustand von Volumes, Containern und Netzen war nach dem Aufräumen gleich dem davor (§7).
+- **Probe am echten Container ändert dessen Volume** (Bare-Repo, Arbeitsklon bleibt unberührt). — **Ausgang (Closure):** entfallen — es lief kein echter Container, die Proben liefen im Scratch-Container und `/Development/pgr-dev` blieb unberührt (§7); der Zustand vor und nach (`ls /workspaces`) steht in §7, das Bare-Repo wird entfernt oder auf Wunsch des Nutzers behalten. Im Lauf lief kein echter Container (§3 Schritt 8); die Proben liefen im Scratch-Container, der Zustand vor und nach steht in §7.
 - **Das Dokument veraltet still gegen den Container** (kein Sensor; wie im Vorgänger) und **Aussagen über die Probe hinaus** (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`; die Reviews des Vorgängers fanden sie zweimal).
-  — **Ausgang:** bei der Closure; Gegenmittel: Quantoren-Durchsicht (`grep`) wie im Vorgänger, ein Gegenbeispiel je Verneinung.
-- **Größe:** Der Umbau liegt über der Marke (Vorgänger 441 gegen Schätzung 150 bis 300). — **Ausgang:** bei der Closure; Gegenmittel §4 (Meldeschwelle 350, Marke 450, 560 Zeilen).
+  — **Ausgang (Closure):** eingetreten → Auftreten im Register `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Evidence dieses Slice); das Review fand drei MEDIUM und fünf LOW dieser Klasse, alle im Dokument eingegrenzt oder nach §13 (Nacharbeit `00959d52`). Das Veralten des Dokuments gegen den Container selbst: weiter offen, im selben Eintrag geführt (kein Sensor).
+- **Größe:** Der Umbau liegt über der Marke (Vorgänger 441 gegen Schätzung 150 bis 300). — **Ausgang (Closure):** entfallen — gemessen 279 (Marke 450, Meldeschwelle 350), Dokument 559 Zeilen (Grenze 560); die Schätzung 220 bis 340 hielt (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`, kein Auftreten).
 
 **Festlegungen zu den offenen Punkten** (2026-10-17, beim Anspruch; Empfehlung, die der Nutzer nicht als Entscheidung bestätigt hat, er kann sie ändern;
 einzige Ausnahme: der Hostschlüssel, der offen bleibt):
@@ -189,7 +187,40 @@ einzige Ausnahme: der Hostschlüssel, der offen bleibt):
 
 ## 7. Closure-Notiz
 
-Noch nicht geschlossen. Der Planner schreibt bei der Closure Ausgang je Risiko, Lerneintrag und Paarungen.
+**Closure (Planner, 2026-10-17).** Der Slice liefert `docs/developer/devcontainer.md` auf Bare-Repo im Volume (ein Liefer-Punkt, eine Schicht). Belege:
+Umbau `9f8faef9`, Gate-Läufe und Größe `1e70abc3`, Verifikation `97aea4f9` (bestätigt, 2 Findings), Review `ed7cd83e` (0 HIGH, 3 MEDIUM, 6 LOW, 3 INFO, merge-blockierend),
+Nacharbeit `00959d52`. `make docs-check`, `make kopf-check` und `make gates-schnell` waren auf dem Endstand im Worktree grün (Angabe des Aufrufers, vom Planner nicht wiederholt, dazu `make docs-check` und `make kopf-check` vor den Closure-Commits).
+
+**Ausgang je Befund des Reviews.** F-1 (Vorbehalt zu `privileged`/`sudo`), F-2 (Ablage der Anmeldedaten), F-3 (`$PGR_SSH_PORT`), F-4 (Arbeitsverzeichnis des Blocks), F-5 (Fetch gegen Push), F-6 (Wortlaut zu `u-boot init`), F-9 (`git pull` auf `main` gefasst): **behoben** bzw. **eng gefasst** im Dokument.
+F-7 (Aussagen ohne Zeile in der Tabelle): **eng gefasst**, die Sätze aus der Probe des Vorgängers tragen die Kennzeichnung (siehe *Aussagen aus der Probe des Vorgängers* unten). F-8 (Plan zitiert Sätze, die nicht stehen): **behoben** im Plan.
+F-10 (gefolgert): **gekennzeichnet** im Dokument. F-11 (Locale der Meldungen): **gekennzeichnet** in §6. F-12 (Relativsatz) und V-F2: **behoben**. V-F1 (`u-boot up` selbst nicht nachgefahren): **eng gefasst** („Messung von `u-boot`“).
+Was das Dokument nicht belegt (Root-Zugriff über Gerätedateien des Hosts, Ablage der Anmeldung von `claude`, Bestandscontainer), steht in §13 des Dokuments.
+
+**Die Nacharbeit durchlief keinen erneuten Review und keine erneute Verifikation.** Sie enthält engere Fassungen, Kennzeichnungen und Einträge nach §13, aber auch einzelne neue ausführbare Zeilen, die kein Lauf belegt hat:
+§10 `export PGR_SSH_PORT=2223` bzw. `-p 2223` und der Remote `container2` im Host-Repo, §9 `git switch main && git pull`. Dazu keine neue Container-Probe nach der Nacharbeit.
+Das ist ein **bewusstes Restrisiko**; Ausgang *weiter offen* → `BEO-REPO/nacharbeit-nach-review-ohne-erneuten-lauf` (neu, 1×). Die Aussage dazu ist weder durch Review noch durch Verifikation gedeckt; sie gilt als gelesen, nicht gelaufen.
+
+**Ausgang je Risiko (§6).** Jedes Risiko trägt seinen Ausgang an Ort und Stelle: Randformen, Eingriff in `Dockerfile`/`start.sh`, Docker-Last, Probe am echten Container, Größe: entfallen mit Begründung;
+Hostschlüssel: weiter offen → `BEO-REPO/hostschluessel-nach-neubau-ohne-entscheidung`; Veralten und Aussagen über die Probe hinaus: eingetreten → `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`.
+
+**Marke §4.** `git diff --numstat 92cfaf23..00959d52 -- docs/developer` = 170 + 109 = **279** (Meldeschwelle 350, Marke 450 nicht erreicht; Schätzung 220 bis 340 hielt). Dokument **559** Zeilen (Grenze 560, ein Zeilenpuffer). Die Rückführung nach §4 trat nicht ein.
+
+**Lerneintrag.** Form: benannte Lücke, im Register geführt (keine Zeile in `AGENTS.md` oder `.claude/`). Beobachtung: Ein Dokument über Sicherheit und Isolation verlor beim Umbau einen Vorbehalt der Vorfassung
+(„gegen einen Prozess mit `sudo` ist es keine Zusage“); der Satz „also liegen darin keine Dateien des Hosts“ stand danach ohne ihn. Das Review fand es (F-1, MEDIUM), die Verifikation nicht: Sie fuhr die Kernprobe
+(drei Mounts, Austausch, `down`/`up`) und bestätigte, was das Dokument zusagt, aber nicht, was beim Umbau aus einer Sicherheitsaussage gestrichen wurde. Probe gegen Zusage fängt Gestrichenes nicht; dafür braucht es den Vergleich der Aussagen
+der Vorfassung mit der neuen. Zweitens bleibt die Nacharbeit nach dem Review unbelegt, wo sie Neues schreibt (Restrisiko oben). Vorschlag des Planners, nicht eingetragen: Beim Umbau eines Sicherheits- oder Isolationsdokuments nennt der Plan die
+Vorbehalte der Vorfassung und der Review-Auftrag vergleicht sie mit dem Diff. Ob das eine Regel wird, entscheidet der Nutzer (Frage unten). Register: `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Evidence, Auftreten Nr. 74 in den Dateien; Stand `verkörpert`, Regel bleibt),
+`BEO-REPO/plan-folgt-korrektur-nicht` (Evidence, F-8), `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` (kein Auftreten, kein Evidence), neu `BEO-REPO/nacharbeit-nach-review-ohne-erneuten-lauf` und `BEO-REPO/hostschluessel-nach-neubau-ohne-entscheidung` (je 1×).
+Keine Klasse erreicht mit diesem Slice 3× neu: `zusage-im-kommentar-weiter-als-pruefung` und `plan-folgt-korrektur-nicht` sind längst verkörpert (`AGENTS.md` §3.11 bzw. §3.9) und bleiben es; es wurde keine Regel geändert.
+
+**Paarungen.** Anker: keine neue verkörperte Regel, deshalb kein neuer `seit slice-harness-devcontainer-austausch-repo`. Folge-Slice: keiner genannt; keine Sendung an einen anderen Slice (`grep` nach der Kennung in `next/` und `open/` leer).
+Register: alle genannten Kennungen existieren als Verzeichnis und führen ein nicht leeres `evidence/`. Wellenlos: kein Eintrag in der Roadmap.
+
+**Fragen an den Nutzer (offen, nichts geändert).**
+
+1. Hostschlüssel: Soll das Dokument eine Einstellung nennen (`StrictHostKeyChecking`, `UserKnownHostsFile`) oder bleibt es bei der Beschreibung der Warnung? Die Probe am echten `/Development/pgr-dev` entfiel (Container lief nicht, Neuerzeugung ausgeschlossen); das Verhalten dort ist nicht gemessen.
+2. Soll beim Umbau eines Sicherheits- oder Isolationsdokuments der Vergleich der Vorbehalte mit der Vorfassung eine Regel werden (Vorschlag oben)?
+3. Soll die Nacharbeit mit den neuen Zeilen (§9, §10) vor dem Merge einen Lauf oder einen zweiten Review bekommen?
 
 ### Belege des Implementers
 

@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-devcontainer-austausch-repo
+**Fund:** Die Nacharbeit `00959d52` nach Review (`ed7cd83e`) und Verifikation (`97aea4f9`) enthält in `docs/developer/devcontainer.md` neue ausführbare Zeilen: §10 `export PGR_SSH_PORT=2223` bzw. `-p 2223` und der Remote `container2` im Host-Repo, §9 `git switch main && git pull`. Kein erneuter Review, keine erneute Verifikation, keine neue Container-Probe; `make docs-check`, `make kopf-check` und `make gates-schnell` prüfen keinen davon. Bewusstes Restrisiko des Slice, in der Closure als „weiter offen“ geführt.
