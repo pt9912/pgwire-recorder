@@ -62,15 +62,15 @@ Inhalt des Dokuments, je Punkt nur mit Probe am laufenden Container (§3.11):
 
 ## 2. Definition of Done
 
-- [ ] `docs/developer/devcontainer.md` liegt vor und deckt die Punkte aus §1 ab; jeder Schritt ist
+- [x] `docs/developer/devcontainer.md` liegt vor und deckt die Punkte aus §1 ab; jeder Schritt ist
       am laufenden Container nachgeführt oder als „nicht geprüft“ markiert, die Dateiinhalte
       stimmen mit denen des Versuchs überein.
 - [ ] `make kopf-check` und `make docs-check` grün; `make gates` grün (Stop-Hook, §6).
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder in §7 „keine Beobachtung“ notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder in §7 „keine Beobachtung“ notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -123,22 +123,81 @@ Verifikations-Report liegen vor, Closure-Notiz mit Lerneintrag geschrieben.
   Stop-Hooks (`docs/plan/planning/`, `docs/reviews/`, `docs/user/`, Wurzel-`README.md`); der Hook
   verlangt für diesen Slice einen vollen `make gates` vor dem Push. Dieser läuft ohnehin mit dem
   nächsten Code-Slice; die Positivliste ändert dieser Slice nicht (Regeländerung, Entscheidung
-  des Nutzers). — **Ausgang:** weiter offen: → Entscheidung des Nutzers über `docs/developer/`
-  auf der Positivliste; bis dahin trägt der volle Lauf.
+  des Nutzers). — **Ausgang (Planner, Closure):** weiter offen → Register
+  `BEO-REPO/stop-hook-positivliste-ohne-docs-developer` (1×, Beleg
+  `evidence/slice-harness-devcontainer-doku.md`). Die Frage an den Nutzer steht in §7.
 - **Das Dokument beschreibt einen Versuch außerhalb des Repos.** Wird der Container umgebaut,
-  veraltet das Dokument still; kein Sensor prüft es gegen den Container. — **Ausgang:** weiter
-  offen: → BEO-REPO/zusage-im-kommentar-weiter-als-pruefung im Register, falls der Fall bei der
-  Closure auftritt; sonst entfallen mit Begründung.
+  veraltet das Dokument still; kein Sensor prüft es gegen den Container. — **Ausgang (Planner,
+  Closure):** weiter offen → `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Beleg
+  `evidence/slice-harness-devcontainer-doku.md`: zwei Reviews fanden Aussagen über die Probe hinaus;
+  das stille Veralten selbst ist nicht eingetreten und bleibt ohne Sensor).
 - **Nicht nachführbare Schritte** (etwa der volle `make gates` im Container, Zeit nicht
-  gemessen). — **Ausgang:** entfallen: Das Dokument markiert sie als „nicht geprüft“ (§1).
-- **Hinweis an den Planner (Verifikation V-2):** Die Ausgänge der beiden ersten Risiken oben sind
-  keine geschlossene Form (der erste nennt eine Entscheidung des Nutzers, der zweite ist bedingt). Bei
-  der Closure trägt jedes Risiko genau einen der drei Ausgänge; die Wahl trifft der Planner.
+  gemessen). — **Ausgang:** entfallen: Das Dokument markiert sie als „nicht geprüft“ (§13 des
+  Dokuments, von der Verifikation gegen den Plan abgeglichen: „Stimmt“).
+- **Form der Ausgänge (Verifikation V-2):** erledigt; jedes der drei Risiken trägt oben genau einen der drei Ausgänge.
 - **Randformen:** kein neuer Vertrag, keine Randformen im Sinn von `AGENTS.md` §3.12.
 
 ## 7. Closure-Notiz
 
-*(Wird bei der Closure gefüllt.)*
+**Closure (Planner, 2026-10-17).** Der Slice liefert `docs/developer/devcontainer.md` (ein Liefer-Punkt, eine
+Schicht). Belege: Reviews `docs/reviews/2026-10-17-review-slice-harness-devcontainer-doku.md` (0 HIGH, 1 MEDIUM,
+4 LOW, 2 INFO) und `…-review-2-…` (0 HIGH, 2 MEDIUM, 5 LOW, 2 INFO), Verifikation
+`docs/reviews/2026-10-17-verify-slice-harness-devcontainer-doku.md` (bestanden mit Vorbehalt), Nacharbeit-Commits
+`6ca83617` und `983cafdf`. Alle Findings der Reviews sind in der Nacharbeit behoben oder als akzeptierte Lücke
+geführt (Nutzerlinie: LOW und INFO ohne Zusage ohne Test sind akzeptiert, Ausgang in dieser Notiz).
+
+**Stand der Closure.** DoD-Punkt 2 (`make kopf-check`, `make docs-check` und `make gates` grün auf dem Endstand)
+ist **nicht belegt**: Die Läufe stammen aus `531f357e`, vor der Nacharbeit; ein voller `make gates` lief während
+der Closure (PID 2209712), deshalb fuhr der Planner weder `docs-check` noch `kopf-check`. Das Häkchen bleibt leer, der
+Slice bleibt in `in-progress/`. Die Closure wartet auf den grünen Lauf auf dem Endstand; danach hakt der Planner
+den Punkt ab, und der reine `git mv` nach `done/` folgt.
+
+**Ausgang je Risiko (§6).** Stop-Hook und Positivliste: weiter offen → `BEO-REPO/stop-hook-positivliste-ohne-docs-developer`.
+Veralten des Dokuments: weiter offen → `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`. Nicht nachführbare
+Schritte: entfallen (Dokument §13 markiert sie, Verifikation bestätigt).
+
+**Ausgang je Befund niedriger Schwere.** R2 F-3 bis F-7 (LOW) und F-8, F-9 (INFO), V-3 bis V-5: behoben im Dokument
+oder Plan (Tabellen oben). Akzeptierte Lücken ohne Zusage im Dokument: Schreiben auf `/host-repo` mit `sudo`,
+Hostschlüssel-Frage, Fetch ins echte Host-Repo, `docker compose up -d` allein, Zeiten des Versuchs-Containers, Zugang
+eines zweiten Containers zu Port 22, Ablage der Anmeldedaten von `claude`; alle stehen in §13 des Dokuments.
+
+**Meldeschwelle (V-3), Entscheidung des Planners, 2026-10-17: weiter, kein Schnitt.** Gemessen 441 (Metrik `AGENTS.md`
+§3.14, Basis `bda6efef`), über der Meldeschwelle 400, unter der Marke 500. Gründe: ein Liefer-Punkt, eine Schicht, das
+Mehr ist die Nacharbeit zweier Reviews im selben Dokument, Review und Verifikation liegen vor, ein Schnitt trennte nur
+Abschnitte desselben Dokuments. Die Rückführung nach §4 trat nicht ein.
+
+**Lerneintrag.** Form: benannte Lücke, im Register geführt. (a) Die Schätzung 150 bis 300 lag unter der Messung
+(407 nach dem ersten Review, 441 am Endstand; Obergrenze um 141 überschritten, 47 %). Ursache: Sie rechnete mit einem Dokument,
+das die Schritte beschreibt; gemessen wurde ein Dokument, das drei Dateiinhalte wörtlich trägt und zu jeder Aussage
+die Grenze der Probe, und die Nacharbeit zweier Reviews fügte Zeilen hinzu (385 → 407 → 441, nie Löschungen). Nach der
+Zählregel vom 2026-10-16 ist das ein Auftreten von `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` (Zähler 11);
+`slice-harness-schaetzung-planner-faktor` trägt den Faktor nur für Tests zu Produktcode, nicht für Prosa-Dokumente mit
+wörtlichen Dateiinhalten; ob er dafür einen Ansatz nennt, entscheidet der Nutzer (Frage unten, keine Zuweisung).
+(b) Der zweite Review fand zwei MEDIUM (Bindung von `sshd`, Anmeldedaten) nach dem ersten, der ein MEDIUM zur
+Sicherheit gefunden und behoben hatte: Die Nacharbeit des ersten Reviews engte die Aussage *Mount `ro`* ein, prüfte
+aber die übrigen Sicherheitsaussagen nicht gegen die Bindung im Container und gegen die Lage der Zugangsdaten. Das ist
+die Klasse *Aussage über die Prüfung hinaus* (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, Auftreten Nr. 72 in
+den Dateien): Quantoren („nur Loopback“) standen für den veröffentlichten Port und wurden als Aussage über den
+Container gelesen. Die Regel `AGENTS.md` §3.11 gilt unverändert; kein neuer Satz. (c) Ein Dokument unter
+`docs/developer/` hat keinen Sensor gegen den Container und keine Positivliste im Stop-Hook; beides ist als
+Beobachtung geführt, nicht als Regel.
+
+**Paarungen.** Anker: keine neue verkörperte Regel, deshalb kein neuer `seit slice-harness-devcontainer-doku`;
+`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` behält den Stand `verkörpert` mit seinen Ankern. Folge-Slice: keiner
+neu; `slice-harness-schaetzung-planner-faktor` (`next/`) bekommt keine Sendung, der Datenpunkt steht im Register.
+Register: `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Evidence, Auftreten), `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`
+(Evidence, Zähler 11), `BEO-REPO/stop-hook-positivliste-ohne-docs-developer` (neu, 1×), `BEO-REPO/meldeschwelle-ohne-artefakt`
+(Gegenbeleg: Schwelle in §4, Entscheidung als datierte Zeile hier; Zähler bleibt 2). Wellenlos: kein Eintrag in der Roadmap.
+
+**Fragen an den Nutzer (offen, nichts geändert).**
+
+1. Soll `docs/developer/` auf die Positivliste des Stop-Hooks (Regeländerung in `tools/harness/dateiliste.sh` und
+   `SPEC-052` samt Gegenprobe)? Bis dahin verlangt jeder Commit unter `docs/developer/` einen vollen `make gates`.
+2. Braucht der Betrieb Schritte für die Zugangsdaten von `claude` im Container (Abmelden vor `u-boot down`, ein
+   Netz-Ausgang nur zu bestimmten Zielen, Verzicht auf die Anmeldung im Container)? Das Dokument nennt nur die Lage.
+3. Soll `slice-harness-schaetzung-planner-faktor` einen Ansatz für Prosa-Dokumente mit wörtlichen Dateiinhalten nennen
+   (hier: 441 gemessen gegen 150 bis 300 geschätzt)?
+
 
 ### Belege des Implementers
 

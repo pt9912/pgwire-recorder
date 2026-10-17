@@ -55,3 +55,5 @@ Kein Auftreten, Datenpunkt für `slice-harness-schaetzung-planner-faktor` (Urtei
 Kein Auftreten (Urteil des Planners, `slice-v1-abschluss-verbindungsende-doku`, 2026-10-17): Geschätzt 200 bis 450, Mitte 300, gemessen 287 in der Metrik von `AGENTS.md` §3.14 (Marke 600, Meldeschwelle 480 nicht erreicht); in der Spanne. Der Zähler bleibt bei 9.
 
 Auftreten (Urteil des Planners, `slice-v1-abschluss-container`, 2026-10-17): Geschätzt 780 bis 1080, gemessen 1191, Obergrenze um 111 überschritten, Gegenprobe 764 statt 380 bis 570 (Beleg `evidence/slice-v1-abschluss-container.md`). Der Zähler steht bei 10; die Regel bleibt (`AGENTS.md` §3.14).
+
+Auftreten (Urteil des Planners, `slice-harness-devcontainer-doku`, 2026-10-17): Geschätzt 150 bis 300, gemessen 441, Obergrenze um 141 überschritten; ein Dokument ohne Produktcode und Tests (Beleg `evidence/slice-harness-devcontainer-doku.md`). Der Zähler steht bei 11; Stand `geplant` bleibt. Ob `slice-harness-schaetzung-planner-faktor` für Prosa-Dokumente mit wörtlichen Dateiinhalten einen Ansatz nennt, entscheidet der Nutzer; eine Sendung an den Slice ist nicht eingetragen.
