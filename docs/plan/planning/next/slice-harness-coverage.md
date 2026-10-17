@@ -24,7 +24,7 @@ Abdeckung je Anforderung und Pfad), [ADR-0033](../../adr/0033-gate-nachweise-in-
 Nachweisart Gate). Die ADR des neuen Gates schreibt der Architect
 im Slice, vor dem Code; ihre Nummer vergibt der ADR-Index.
 
-**Berührte Spec-Stellen:** `harness/vertraege/` (neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice; die nächste freie Nummer ist 056; `SPEC-053` bis `SPEC-055` sind vergeben); `SPEC-052` (Punkt 4 und 13: Eintrag der Gegenprobe in die Ausnahmeliste der schnellen Kette und Beleg, dass sie `docs/user/` und `README.md` nicht liest; Architect, vor dem Code)
+**Berührte Spec-Stellen:** `harness/vertraege/` (neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice; die nächste freie Nummer ist 056, für diesen Slice vom Architect am 2026-10-17 reserviert; `SPEC-053` bis `SPEC-055` und `SPEC-057` (`slice-harness-integration-volumes`) sind vergeben); `SPEC-052` (Punkt 4 und 13: Eintrag der Gegenprobe in die Ausnahmeliste der schnellen Kette und Beleg, dass sie `docs/user/` und `README.md` nicht liest; Architect, vor dem Code)
 
 **Verantwortlich:** pt9912
 

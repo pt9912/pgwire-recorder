@@ -17,7 +17,7 @@ wird er von der nächsten Welle-Closure. Eingeschoben nach Entscheidung des Nutz
 Entscheidung vom 2026-10-07 stehen `slice-harness-commit-struktur-id`,
 `slice-harness-integration-wait` und `slice-harness-meldungskatalog-gate` davor (WIP-Limit 1); Reihenfolge in §4 *Start*.
 
-**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Nachweis der Messmethoden 1 und 3). Bindung an Entscheidungen: [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Nachweisart Gate, geteilte Messung; Folgepflicht dieser ADR), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Deklaration je Anforderung und Pfad; ihre Darstellung in der RTM ergänzt bzw. ersetzt teilweise eine neue ADR, die der Architect in diesem Slice vor dem Code schreibt, Entscheidung des Nutzers vom 2026-10-06; sonst gilt sie unverändert).
+**Bezug:** [`LH-QA-07`](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (Nachweis der Messmethoden 1 und 3). Bindung an Entscheidungen: [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Nachweisart Gate, geteilte Messung; Folgepflicht dieser ADR), [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Deklaration je Anforderung und Pfad; gilt unverändert, auch für die RTM: Empfehlung des Architect vom 2026-10-17, dass keine ergänzende ADR nötig ist, siehe §1; der Nutzer hatte am 2026-10-06 eine ADR für die Darstellung verlangt und entscheidet, ob er darauf verzichtet).
 
 **Berührte Spec-Stellen:** `SPEC-048` (Vertrag von `abdeckung` in `harness/vertraege/SPEC-048-abdeckung.md`, fortgeschrieben)
 
@@ -46,16 +46,20 @@ lehnt die Fehlformen aus §6 ab. Die Gegenprobe des Lint-Gates deklariert Teil 1
 steht damit in den Abdeckungstabellen als *teilweise*. `harness/README.md` §Sensors
 nennt die Nachweisart beim Vertrag von `make abdeckung-check`.
 
-Die RTM (`make doc-trace`) zeigt je Anforderung, welche Nachweisarten (Unit, E2E, Gate)
-sie belegen und welche Pfade gedeckt sind (Happy, Boundary, Negative bzw. die Teile
-`Messung-<i>-von-<n>`). Als belegt im Status zählt eine Anforderung weiterhin nur, wenn
-alle Pfade gedeckt sind. Heute führt `trace.coverage` in `.d-check.yml` nur
-`docs/user/abdeckung-vollstaendig.md` mit dem Label `Tests`
-([ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md)); die RTM zeigt darum
-nur „Tests“ oder `WAISE`. [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) ist Accepted (`AGENTS.md` §3.5): Die neue
-Darstellung trägt eine neue ADR, die [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) ergänzt bzw. teilweise ersetzt; der
-Architect schreibt sie vor dem ersten Code-Commit (Entscheidung des Nutzers vom
-2026-10-06).
+Die RTM (`make doc-trace`) bleibt bei einer Quelle, `docs/user/abdeckung-vollstaendig.md`, und
+zählt eine Anforderung weiterhin nur, wenn alle Pfade gedeckt sind, gleich aus welcher Nachweisart
+([ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md), [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md));
+die Nachweisarten und die gedeckten Pfade je Anforderung stehen in `abdeckung-vollstaendig.md` und
+`abdeckung-gesamt.md`. Geändert wird nur das Label der Quelle in `.d-check.yml` von `Tests` auf
+`Abdeckung`, weil ab diesem Slice eine Anforderung auch aus Gate-Nachweisen vollständig sein kann.
+**Empfehlung des Architect (2026-10-17), Entscheidung beim Nutzer:** Damit entfällt die neue ADR, die
+der Nutzer am 2026-10-06 für eine reichere Darstellung verlangt hat (Nachweisart und Pfad je
+Anforderung in der RTM selbst): Die einfachste Form, die kein stilles Grün erlaubt, ist die vorhandene
+Quelle, die nur vollständig belegte Anforderungen nennt; eine Darstellung je Nachweisart in der RTM
+bräuchte mehrere Quellen, die d-check getrennt als belegt zählt, und gäbe einer teilweise belegten
+Anforderung genau das Grün, das [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) ausschließt. Verlangt der Nutzer sie
+trotzdem, schreibt der Architect die ADR (`Proposed`, vor dem Anspruch), und der Planner legt dafür den
+Slice `slice-harness-rtm-nachweisarten` an; dieser Slice behält dann Liefer-Punkt 3 ohne die RTM.
 
 **Bindung aus `slice-harness-integration-volumes`** (Geber; `AGENTS.md` §3.13, Sendung an diesen
 Slice): `tools/test/integration-volumes-gegenprobe.sh` liegt unter `tools/**/*-gegenprobe.sh` und
@@ -120,12 +124,10 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 - [ ] Erste Gate-Deklarationen und RTM: Die Gegenprobe des Lint-Gates trägt im Kopf die
       Deklaration von LH-QA-07, Teil 1 und Teil 3 von 3; die Tabellen sind mit
       `make abdeckung` neu geschrieben, LH-QA-07 steht in der Gesamtsicht als
-      *teilweise* und nicht in `abdeckung-vollstaendig.md`; `make abdeckung-check` ist grün.
-      `trace.coverage` in `.d-check.yml` ist nach der neuen ADR (vor dem Code
-      geschrieben, ergänzt bzw. ersetzt teilweise [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md))
-      umgestellt: `make doc-trace` zeigt je Anforderung die belegenden Nachweisarten
-      (Unit, E2E, Gate) und die gedeckten Pfade; als belegt im Status zählt eine
-      Anforderung nur mit allen Pfaden.
+      *teilweise* (Messung `1/3 Gate; 2/3 —; 3/3 Gate`) und nicht in `abdeckung-vollstaendig.md`;
+      `make abdeckung-check` ist grün. Das Label von `trace.coverage` in `.d-check.yml` heißt
+      `Abdeckung` (siehe §1); `make doc-trace` zeigt LH-QA-07 nicht als belegt, eine vollständig
+      belegte Anforderung mit dem neuen Label (Beleg in §7).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -147,11 +149,11 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/test/abdeckung.sh` | update | Nachweisart Gate (Kopf von `tools/**/*-gegenprobe.sh`), Pfad `Messung-<i>-von-<n>`, Tabelle Gate, Vollständigkeit einer geteilten Messung; Grenze „ob die Gegenprobe an `GATE_CHECKS` hängt, prüft das Skript nicht“ im Skriptkopf |
 | `tools/test/abdeckung-gegenprobe.sh` | update | je Fehlform und je Gutform aus §6 ein Fall in einem Temp-Baum |
 | Gegenprobe des Lint-Gates (aus `slice-harness-lint`) | update | Kopf: Deklaration LH-QA-07, Teil 1 und 3 von 3; kein neuer Fall |
-| `docs/user/abdeckung-*.md` | update | mit `make abdeckung` neu geschrieben, dazu die Tabelle der Nachweisart Gate |
+| `docs/user/abdeckung-*.md` | update | mit `make abdeckung` neu geschrieben (nie von Hand), dazu die neue Tabelle `abdeckung-gate.md` |
+| `harness/sensors/abdeckung-check.md` | update | Ausgänge: Exit 2 auch bei Lastenheft ohne Anforderung und fehlendem `docs/user/`; Tabellen fünf statt vier |
+| `harness/vertraege/SPEC-048-abdeckung.md` | geschrieben (Architect) | Punkte 2, 3, 4, 6 fortgeschrieben, Punkte 7 und 8 neu, Grenze; liegt vor dem Anspruch; weicht der Code ab, zieht der Implementer den Vertrag im selben Commit nach (`AGENTS.md` §3.9) |
 | `harness/README.md` | update | §Sensors: Vertrag von `make abdeckung-check` und `make abdeckung-gegenprobe` |
-| `docs/plan/adr/` (neue ADR) und ADR-Index | new | Architect, vor dem Code: Darstellung der Nachweisarten und Pfade in der RTM; ergänzt bzw. ersetzt teilweise [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) |
-| `.d-check.yml` | update | `trace.coverage`: Quellen bzw. Labels je Nachweisart und Pfad nach der neuen ADR; der Status „belegt“ bleibt an die vollständige Belegung gebunden |
-| `tools/test/abdeckung.sh`, `docs/user/abdeckung-*.md` (gegebenenfalls) | update | nur falls die gewählte Darstellung eigene RTM-Quellen verlangt (etwa eine Datei je Nachweisart oder je Pfad); dann je neue Ausgabe ein Fall in `make abdeckung-gegenprobe` |
+| `.d-check.yml` | update | `trace.coverage`: Label `Tests` → `Abdeckung`; Quelle und Status „belegt nur bei vollständiger Belegung“ bleiben |
 
 ## 4. Trigger
 
@@ -173,32 +175,31 @@ keine technische Abhängigkeit, sondern die Reihenfolge des Nutzers. Grund für 
 Teil 3 gelten erst, wenn das Lint-Gate steht und `testpackage` überall scharf ist, und
 das ist es mit `slice-harness-lint`; dessen Gegenprobe trägt dann alle Fälle, die die
 Deklaration deckt.
-Vor dem ersten Code-Commit bestätigt der Architect die Randformen aus §6 und
-entscheidet die offenen (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
+Die Randformen aus §6 hat der Architect am 2026-10-17 bestätigt und die offenen in
+[`SPEC-048`](../../../../harness/vertraege/SPEC-048-abdeckung.md) entschieden
+(`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
 **Größe** (`AGENTS.md` §3.14): Metrik ist die Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test tools/harness/lint-gegenprobe.sh
-harness/README.md harness/vertraege/SPEC-048-abdeckung.md docs/user .d-check.yml docs/plan/adr`,
+harness/README.md harness/sensors/abdeckung-check.md harness/vertraege/SPEC-048-abdeckung.md docs/user .d-check.yml`,
 Tests eingeschlossen. Basis: der Commit des Anspruchs (`next` → `in-progress`), beim Anspruch
-einzutragen. Schätzung (Arbeitswert des Planners aus den Bestandsmaßen, vom Architect vor dem Code
-zu bestätigen; die Gegenprobe zählt mit dem Doppelten des Produktcodes, die neu geschriebenen
-Tabellen unter `docs/user` zählen mit): 500 bis 800, Mitte 650. **Meldeschwelle 800:** Wer im Lauf
+einzutragen. Schätzung (vom Architect am 2026-10-17 auf 450 bis 700 korrigiert, Mitte 550, Obergrenze
+700): `abdeckung.sh` rund 170 Zeilen (Gate-Kopf, Teile und Querprüfungen, Tabelle, Darstellung der Teile,
+Ausgang 2), die Gegenprobe mit dem Doppelten davon (rund 300 bei rund 30 Fällen), Tabellen unter
+`docs/user`, Gate-Index, Sensor-Datei, Kopf der Lint-Gegenprobe und `.d-check.yml` zusammen rund 50;
+`SPEC-048` liegt mit dem Anspruch im Bestand und zählt nicht, eine ADR entfällt (§1). Meldeschwelle
+und Marke bleiben. **Meldeschwelle 800:** Wer im Lauf
 darüber liegt oder liegen wird, meldet es dem Planner, bevor er weiterbaut. **Marke 1000:**
 darüber gilt die Rückführung unten, ohne Ermessen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe der Metrik liegt über 1000,
-  oder die Erweiterung ändert die
-  Form der bestehenden Tabellen oder der Test-Deklarationen so weit, dass Skript,
-  Gegenprobe und Tabellen nicht in einer Review-Sitzung prüfbar sind; dann zuerst die
-  Erweiterung ohne Deklaration, die Deklaration in einem eigenen Slice. Ebenso, wenn die
-  RTM-Darstellung (neue ADR, `.d-check.yml`, gegebenenfalls zusätzliche Quellen aus
-  `abdeckung.sh`) den dritten Liefer-Punkt über eine Review-Sitzung hinaus wachsen lässt
-  oder einen vierten verlangt; Zerlegungs-Vorschlag: Dieser Slice behält Nachweisart Gate,
-  geteilte Messung und die Lint-Deklaration, die RTM-Darstellung mit ihrer ADR geht in
-  einen eigenen Slice (Vorschlag `slice-harness-rtm-nachweisarten`) vor
-  `slice-harness-coverage`.
+  oder die Erweiterung ändert die Form der bestehenden Tabellen oder der Test-Deklarationen so weit,
+  dass Skript, Gegenprobe und Tabellen nicht in einer Review-Sitzung prüfbar sind; dann zuerst die
+  Erweiterung ohne Deklaration, die Deklaration in einem eigenen Slice. Der Zerlegungs-Vorschlag
+  `slice-harness-rtm-nachweisarten` ist gestrichen (Architect, 2026-10-17): Er trüge nur die
+  reichere RTM-Darstellung, die §1 nicht empfiehlt; verlangt sie der Nutzer, legt der Planner ihn an.
 - `in-progress` → `open` (blockiert — Carveout?): Die Gegenprobe des Lint-Gates liegt
   nicht unter `tools/**/*-gegenprobe.sh` oder führt für Messmethode 1 oder 3 keinen
   Fall, der rot wird; dann deklarierte sie, was sie nicht prüft (`AGENTS.md` §3.11),
@@ -220,77 +221,58 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen des Vertrags** (`AGENTS.md` §3.12). Vorgegeben durch
-[ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) und §6 *Nachweis* von
-`slice-lastenheft-pruefbarkeit` (Architect, 2026-10-06); vor dem Code zu bestätigen.
-**Ort** (F-406): der Ordner `harness/vertraege/` (Technik-Stratum, [`MR-002`](../../../../harness/conventions.md#mr-002)); dort steht der Vertrag von `abdeckung` unter `SPEC-048`, die dieser Slice mit den neuen Randformen fortschreibt; eine neue Kennung vergibt er nicht (eine Kennung je Werkzeug, Architect in §6 *Kennungen* von `slice-harness-vertraege-spezifikation`). Die ADR trägt Entscheidung und Gründe. Jede dort zugesagte Randform bekommt einen Fall in
-`make abdeckung-gegenprobe` (`AGENTS.md` §3.10, §3.11). Bis zum Code stehen sie hier:
+**Randformen des Vertrags** (`AGENTS.md` §3.12). **Entschieden vom Architect am 2026-10-17 in
+[`SPEC-048`](../../../../harness/vertraege/SPEC-048-abdeckung.md)** (Ort nach `MR-002`; eine neue Kennung ist nicht
+nötig, `SPEC-057` ist an `slice-harness-integration-volumes` vergeben, `SPEC-056` an
+`slice-harness-coverage` vorgemerkt); die ADR trägt Entscheidung und Gründe ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)).
+Jede zugesagte Randform bekommt einen Fall in `make abdeckung-gegenprobe` und eine Mutation, die nur ihn
+bricht (`AGENTS.md` §3.10, §3.11, je Element einer Aufzählung ein Fall). Eine nicht genannte Randform
+entscheidet der Implementer nicht, er gibt sie zurück.
 
-- **Pfad-Schreibweise** — `Messung-<i>-von-<n>` mit 2 ≤ n und 1 ≤ i ≤ n.
-- **Abgelehnt** — i > n; n < 2; verschiedene n für dieselbe Anforderung;
-  `Messung` neben einer geteilten Messung derselben Anforderung.
-- **Nachweisart Gate nur für `LH-QA` und `LH-RB`** — eine Gate-Deklaration an einer
-  `LH-FA` belegt kein Produktverhalten
-  ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), Entscheidung).
-- **Gelesen werden** — Dateien `tools/**/*-gegenprobe.sh`, die Deklaration als
-  `#`-Zeilen im Kopf.
-- **Nachweis-Spalte** — der Skriptpfad.
-- **Tabelle** — eine eigene Tabelle der Nachweisart Gate neben E2E und Unit.
-- **Vollständigkeit** — eine geteilte Messung ist vollständig, wenn alle Teile 1 bis n
-  belegt sind; sonst *teilweise*. `abdeckung-vollstaendig.md` (die RTM-Quelle) führt sie
-  erst dann.
-- **Messmethode (4) von LH-QA-07** — kein eigener Teil; die Nachweisart Gate erfüllt
-  sie ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)). Die Gesamtzahl
-  ist darum 3.
-- **Anschluss an `GATE_CHECKS`** — prüft das Skript nicht; Grenze im Skriptkopf, Review.
+| Randform | Entscheidung | Stelle in `SPEC-048` |
+|---|---|---|
+| Pfad-Schreibweise, Zahlform | `Messung-<i>-von-<n>`, i und n je `[1-9]`, i ≤ n, 2 ≤ n; mehrstellig, `01`, Vorzeichen, Leerraum sind Fehlformen (je ein Fall); n ist höchstens 9, damit die Prüfung der Vollständigkeit endlich und lesbar bleibt | 2, 8 |
+| Fehlformen der Teile | i > n; n = 1; verschiedene n für dieselbe Anforderung; `Messung` neben geteilter Messung derselben Anforderung, gleich in welcher Datei | 8 |
+| Derselbe Teil zweimal | zulässig, zwei Zeilen wie zwei Tests am selben Pfad | 8 |
+| Reihenfolge mehrerer Gründe | Form, Schreibweise einschließlich Paarung, Wertebereich, Anforderung unbekannt, Widerspruch zwischen Deklarationen; ein Element nennt einen Grund; ein Widerspruch steht an der späteren Fundstelle (Dateipfad, Zeile) und nennt die frühere | 6 |
+| Nachweisart Gate nur für `LH-QA`, `LH-RB` | an einer `LH-FA` eine Fehlform | 7 |
+| Gelesen werden | Dateien auf `-gegenprobe.sh` in jeder Tiefe unter `tools/` an der Wurzel; Kopf = zusammenhängende `#`-Zeilen ab Zeile 1 | 7 |
+| Form des Kopfes | `# Abdeckung: <Anforderung>/<Pfad>, … — <Text>` am Zeilenanfang; Trenner „ — “ Pflicht; Fortsetzung mit `# `, Ende an `#` allein, nächster Deklaration oder Kopfende; mehrere Deklarationen zulässig; eingerückt, ohne Trenner und `# Abdeckung: ` nach dem Kopf sind Fehlformen (je ein Fall) | 7 |
+| Deklaration außerhalb des Musters | überlesen, die Anforderung steht dann höchstens *teilweise* da, nie grün (akzeptiertes Negativ, Grund dort) | 7 |
+| Nachweis-Spalte, Tabelle, Dateiname | Skriptpfad; eigene Tabelle `docs/user/abdeckung-gate.md` ohne Spalte *Ort*; Kopftexte nicht zugesagt | 4 |
+| Darstellung der Teile in der Gesamtsicht | alle Teile 1 bis n, aufsteigend, `<i>/<n> <Arten>` oder `<i>/<n> —`, durch „; “ getrennt; Nachweisarten in der Folge `E2E, Gate, Unit` | 4 |
+| Vollständigkeit | alle Teile in mindestens einer Deklaration, gleich welcher Art; `abdeckung-vollstaendig.md` führt sie erst dann | 4 |
+| Geteilte Messung an Go-Tests | zulässig ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) „jeder Nachweis“), die Tabellen E2E und Unit zeigen den Pfad wie deklariert; an einer `LH-FA` eine Fehlform | 2, 8 |
+| Darstellung in der RTM | eine Quelle, Label `Abdeckung`; keine neue ADR (Empfehlung, §1) | — (`.d-check.yml`) |
+| Fehlendes `docs/user/` | Exit 2 mit Meldung, nichts geprüft, nichts angelegt | 6 |
+| `test/integration/` nur an der Wurzel | so im Vertrag; ein tieferes Verzeichnis gleichen Namens ergibt Unit (ein Fall mit Deklaration) | 3 |
+| Lastenheft ohne Anforderung | Exit 2 mit Meldung statt Exit 1 ohne Zeile; der Fall `lastenheft-ohne-anforderung` und die Datei `harness/sensors/abdeckung-check.md` ziehen nach | 6 |
+| Messmethode (4) von LH-QA-07 | kein eigener Teil, Gesamtzahl 3 ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)); Urteil dessen, der deklariert | Grenze |
+| Anschluss an `GATE_CHECKS` | prüft das Skript nicht; Grenze im Skriptkopf, Review | Grenze |
+| Aufrufarten von `make` | nicht neu: Das Ziel schreibt Tabellen und glaubt keinen Stand; kein Eintrag | — |
 
-**Offen: elf Randformen** (Last des Architect; der Planner entscheidet keine) — vor dem Code vom Architect zu entscheiden und am selben Ort festzuhalten
-(Ort oben); was dort nicht steht, entscheidet der Implementer nicht, er gibt es
-zurück:
+**Hinweise an den Implementer** (kein Vertrag):
 
-- **Form des Kopfes** — wo der Kopf einer Gegenprobe endet (nach der Shebang-Zeile bis
-  zur ersten Zeile ohne `#`?), ob Folgezeilen wie bei Tests fortsetzen, ob der Trenner
-  „ — “ Pflicht ist, und ob eine eingerückte oder eine Deklaration nach dem Kopf
-  abgelehnt wird.
-- **Derselbe Teil zweimal** — zwei Nachweise deklarieren denselben Teil i derselben
-  Anforderung: zulässig (wie zwei Tests am selben Pfad) oder Fehlform.
-- **Darstellung der Teile in der Gesamtsicht** — wie die Spalte *Messung* eine geteilte
-  Messung zeigt (belegte Teile, Nachweisart je Teil).
-- **Dateiname der neuen Tabelle** und ob der Kopftext von `abdeckung-gesamt.md` die
-  Nachweisart Gate nennt.
-- **Darstellung in der RTM** — am Verhalten von d-check zu prüfen, nicht aus der Doku
-  anzunehmen: welche Darstellungsform d-check für mehrere Quellen bzw. Labels unter
-  `trace.coverage` bietet; ob eine Quelle den Status einer Anforderung beeinflusst (nur
-  die vollständige Belegung darf „belegt“ ergeben); ob Nachweisart und Pfad als Spalten
-  oder als Labels erscheinen; wie sich die Form mit `WAISE` für eine unbelegte
-  Anforderung verträgt. Das Ergebnis trägt die neue ADR (Entscheidung und Gründe), die
-  Einzelregeln stehen am Ort oben (`AGENTS.md` §3.8).
-- **Geteilte Messung an Go-Tests** — ob `Messung-<i>-von-<n>` auch in einer
-  Deklaration an einem Test zulässig ist ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) sagt „jeder Nachweis“) oder nur
-  an Gegenproben.
-- **Deklaration außerhalb von `tools/**/*-gegenprobe.sh`** — was mit einer
-  Gate-Deklaration in einem Skript geschieht, das nicht unter das Muster fällt (etwa
-  eine Gegenprobe an der Gate-Kette mit anderem Namen): still überlesen oder Fehler,
-  wie bei der eingerückten Deklaration an Tests.
-- **Zahlform von i und n** — führende Null, Leerraum, mehrstellige Zahlen.
-- **Fehlendes `docs/user/`** (offen aus der Verifikation von
-  `slice-harness-vertraege-spezifikation`, V-70) — fehlt das Verzeichnis, endet die
-  Prüfung heute mit Exit 1 ohne Fehlform: Beim Schreiben meldet `cp` den fehlenden
-  Pfad, beim Prüfen gilt jede Tabelle als veraltet;
-  `SPEC-048` sagt dazu nichts. Offen: Fehlform mit Meldung, Abbruch mit eigenem
-  Ausgang oder Anlegen beim Schreiben.
-- **„unter `test/integration/`“ nur an der Wurzel** (offen, V-70) — die Nachweisart
-  E2E gilt heute nur für Dateien unter `test/integration/` an der Wurzel des Repos,
-  ein gleichnamiges Verzeichnis tiefer im Baum ergibt Unit; `SPEC-048` (3) sagt das
-  nicht ausdrücklich. Offen: so in den Vertrag schreiben oder ändern.
-- **Lastenheft ohne Anforderung** (offen aus der Closure von
-  `slice-harness-vertraege-spezifikation`) — führt das Lastenheft keine Überschrift
-  `### LH-…`, endet die Prüfung heute mit Exit 1 ohne eine Zeile auf stderr; `SPEC-048`
-  nennt das als *Grenze*, `lastenheft-ohne-anforderung` hält es. Der Ausgang ist von
-  einer Fehlform nur am leeren stderr zu unterscheiden. Offen: so lassen, Fehlform mit
-  Meldung oder eigener Ausgang — gemeinsam mit *Fehlendes `docs/user/`* zu entscheiden,
-  beide sind Exit 1 ohne Fehlform; ändert sich das Verhalten, folgen *Grenze*, Fall und
-  `harness/sensors/abdeckung-check.md`.
+- *Fixtures der Gegenprobe:* `tools/test/abdeckung-gegenprobe.sh` liegt selbst unter dem gelesenen
+  Muster. Eine Zeile `# Abdeckung: …` am Zeilenanfang dieser Datei außerhalb ihres Kopfes (etwa in einem
+  Heredoc) wäre eine Fehlform (Punkt 7); die Fixtures entstehen wie heute mit `printf` in einer Zeile.
+  Der Kopf dieser Datei trägt keine Deklaration (sie belegt keine Anforderung).
+- *Struktur:* Die Datei wächst um rund 30 Fälle; je Zusage ein Fall mit der Mutation, die nur ihn bricht
+  (Aufzählungen: jede Zahlform, jede Fehlform des Kopfes, jede Fehlform der Teile ein eigener Fall; die
+  Reihenfolge der Gründe je Paar ein Fall). Die Fehlformen laufen über die vorhandene Funktion
+  `abgelehnt`, die Tabellenzeilen über `zeilen`. Die Mutationen gehen gegen `tools/test/abdeckung.sh` in einer
+  Kopie; trifft eine Ersetzung nichts oder mehr als eine Stelle, ist die Mutation ungültig.
+- *Kosten:* Alle Fälle laufen in Temp-Bäumen ohne Docker und ohne Netz, je Fall ein Aufruf von `bash`;
+  die Laufzeit des Ziels bleibt im Sekundenbereich.
+- *Tabellen:* `docs/user/abdeckung-*.md` entstehen mit `make abdeckung`, nie von Hand.
+  `make abdeckung-check` ist danach grün. Vor dem Eintrag der Deklaration an der Lint-Gegenprobe
+  (`tools/harness/lint-gegenprobe.sh`) steht der Abgleich aus dem Risiko *Deklaration sagt mehr zu*:
+  vom Architect am 2026-10-17 gemacht, Messmethode 1 deckt `p0-grundlauf`, `p3-*`, `p4-*`, `p5-*` und
+  das Ausnahmen-Profil (`p8-*`, `p9-*`), Messmethode 3 beide Bedingungen (`p7-whitebox-kern`,
+  `-driven`, `-pgwire`, `-einstieg`; `p7-internal-test`, `p7-test-in-bruecke-*`); der Implementer
+  prüft die Namen gegen die Datei, wenn er den Kopf schreibt.
+- *Aufrufarten von `make`:* Kein Stand, kein Hook; `abdeckung-check` und `abdeckung-gegenprobe` hängen
+  wie bisher an `GATE_CHECKS`.
 
 **Risiken:**
 
@@ -304,17 +286,18 @@ zurück:
   Rot-Fall führt: je Paketgruppe einen White-Box-Test (der Test liegt in der Einheit)
   und die Fälle zur Brücke aus `slice-harness-lint` (Zugriff auf Internes an der
   Brücke vorbei, Test in der Brückendatei)
-  (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, 11×). Vor dem Code gegen die
-  Fälle der Lint-Gegenprobe abgleichen. — **Ausgang:** — (bei Closure)
+  (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, 11×). Der Abgleich gegen die
+  Fälle der Lint-Gegenprobe ist vom Architect gemacht (§6, Hinweise); der Implementer prüft die Namen
+  beim Schreiben des Kopfs. — **Ausgang:** — (bei Closure)
 - **Bestehende Prüfung fällt weg** — die Erweiterung tritt neben die Prüfung der
   Test-Deklarationen, nicht an ihre Stelle; die vorhandenen Fälle der Gegenprobe
   bleiben (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`, 1×). — **Ausgang:** — (bei
   Closure)
-- **RTM-Quelle verfälscht den Status** — führt `trace.coverage` Teilabdeckung als eigene
-  Quelle, kann d-check eine teilweise belegte Anforderung als belegt zählen; das bräche
-  die Entscheidung, dass nur alle Pfade „belegt“ ergeben. Vor dem Code am Verhalten von
-  d-check prüfen (Architect) und im Slice mit einer teilweise belegten Anforderung
-  (LH-QA-07) gegen `make doc-trace` nachsehen. — **Ausgang:** — (bei Closure)
+- **RTM zählt eine Teilabdeckung als belegt** — die einzige Quelle bleibt
+  `abdeckung-vollstaendig.md`, in der eine geteilte Messung erst mit allen Teilen steht. Bricht das,
+  sieht man es nur im Lauf: Der Implementer prüft mit `make doc-trace`, dass LH-QA-07 mit zwei von
+  drei Teilen nicht belegt erscheint und eine vollständige Anforderung mit dem Label `Abdeckung`
+  belegt (Beleg in §7). — **Ausgang:** — (bei Closure)
 - **Andere Gegenproben werden gelesen** — `tools/**/*-gegenprobe.sh` trifft auch die
   vorhandenen Gegenproben ohne Deklaration (`tools/harness/*-gegenprobe.sh`,
   `tools/hook/commit-msg-gegenprobe.sh`, `tools/test/postgres-versionen-gegenprobe.sh` und, aus
@@ -375,6 +358,11 @@ Dateien unter `evidence/`). Treffer:
 
 Keiner der Einträge erreicht mit diesem Slice allein die Schwelle 3×; keine neue
 Lücke vor dem Code.
+
+**Nachgezählt nach der Vorprüfung des Architect (2026-10-17):** Eine ADR und die RTM-Umstellung
+entfallen (§1), `harness/sensors/abdeckung-check.md` kommt dazu; Liefer-Punkte weiter 3, Schichten
+weiter 2: `harness/README.md` und `harness/sensors/abdeckung-check.md` zählen mit `docs/user/` zur
+Doku-Schicht, nicht zu einer dritten (`AGENTS.md` §3.13, die Wartungs-Doku ist eine Schicht).
 
 **Nachgezählt** (Stand `91a1bd02`, `AGENTS.md` §3.13) mit der Sendung aus
 `slice-harness-integration-volumes` (Kopf der Gegenprobe ohne Deklaration, Fall in der
