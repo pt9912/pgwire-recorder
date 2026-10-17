@@ -1,9 +1,10 @@
 # Vollständig abgedeckte Anforderungen
 
 Erzeugt von `make abdeckung` (`tools/test/abdeckung.sh`). Hier steht eine
-Anforderung erst, wenn Tests alle ihre Pfade belegen: bei funktionalen
-Anforderungen Happy, Boundary und Negative, bei Qualitätsanforderungen die
-Messung. Die Spalte nennt die beteiligten Nachweisarten. Diese Datei liest
+Anforderung erst, wenn Tests und Gegenproben alle ihre Pfade belegen: bei
+funktionalen Anforderungen Happy, Boundary und Negative, bei Qualitätsanforderungen
+und Randbedingungen die Messung oder alle Teile einer geteilten Messung. Die Spalte
+nennt die beteiligten Nachweisarten. Diese Datei liest
 `make doc-trace` (`trace.coverage`); Teilabdeckung steht in
 `abdeckung-gesamt.md`.
 

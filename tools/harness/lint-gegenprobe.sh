@@ -5,6 +5,9 @@
 # Aufruf: über `make lint-gegenprobe` (harness/mk/lint.mk), das DOCKER_BUILD
 # übergibt; auf dem Host mit bash, make, docker, grep, sed, awk und coreutils.
 #
+# Abdeckung: LH-QA-07/Messung-1-von-3 — Teil 1, statische Analyse nach dem Regelprofil: der Grundlauf ohne Befund (p0-grundlauf), die Linter und ihre Schwellen (p3-*, p4-*, p5-*), kein `//nolint` (p6-*) und die Ausnahmen mit Begründung im Profil (p8-*)
+# Abdeckung: LH-QA-07/Messung-3-von-3 — Teil 3, Lage der Unit-Tests: ein Test in der Einheit wird rot (p7-whitebox-*), ebenso ein Zugriff auf Internes an der Export-Test-Brücke vorbei (p7-internal-test, p7-endet-auf-export-test, p7-test-in-bruecke-*)
+#
 # Je Kopie ein Verzeichnis unter `mktemp -d`, kopiert mit `cp -R` ohne `-p` aus dem
 # Arbeitsbaum ohne .git; jede mutierte Datei bekommt danach ein `touch`, damit der
 # Build-Kontext sie neu überträgt (Grenze von SPEC-049). Je Kopie ein Lauf von

@@ -2,7 +2,7 @@
 # abdeckung-gegenprobe — prüft tools/test/abdeckung.sh gegen seinen Vertrag
 # (harness/vertraege/SPEC-048-abdeckung.md) an kleinen Bäumen in einem Temp-Verzeichnis; der
 # Arbeitsbaum bleibt unberührt. Abgelehnt werden müssen, je mit Exit 1 und einer
-# Zeile auf stderr, die die Testdatei mit Zeile nennt: eine Leerzeile zwischen
+# Zeile auf stderr, die die Datei mit Zeile nennt: eine Leerzeile zwischen
 # Deklaration und Test, eine Deklaration über einer Hilfsfunktion, zwei
 # Deklarationen über einem Test, eine Deklaration am Dateiende, eine eingerückte
 # Deklaration, ein unbekannter Pfad, ein Pfad der falschen Anforderungsart (LH-QA mit
@@ -10,16 +10,36 @@
 # TestE2E ohne Deklaration unter test/integration/ (mit der Zeile des Tests), anderswo
 # und unter einem .harness/ tiefer im Baum, und eine Deklaration ohne „ — “; abgelehnt
 # wird auch eine Anforderung, die das Lastenheft nur als Überschrift zweiter Ebene
-# führt. Ohne Lastenheft Exit 2 mit Meldung, mit einem Lastenheft ohne Überschrift
-# ### LH-… Exit 1. Angenommen werden muss ein Baum, dessen einzige Fehlform unter
-# .git/ und .harness/ an der Wurzel liegt, und ein gültiger Baum; dessen
-# vollständige Anforderungen, das maskierte `|`, die Fortsetzungszeile, die
-# Dateirechte 0644 und das Verhalten von --check (prüft, schreibt nicht, nennt jede
-# veraltete Tabelle, Exit 1) werden geprüft. Ein Baum prüft das Schreiben: nur
-# abweichende oder fehlende Tabellen, je eine Zeile auf stdout, Rechte 0644 nur für
-# geschriebene. Ein Baum mit Unit- und E2E-Tests prüft die Tabellenzeilen aller vier
-# Tabellen Zeile für Zeile, mit je einer LH-FA, der Happy, Boundary bzw. Negative
+# führt. Ohne Lastenheft, mit einem Lastenheft ohne Überschrift ### LH-… und ohne
+# docs/user/ Exit 2 mit einer Meldung, die nennt, was fehlt; in dieser Reihenfolge, ohne
+# etwas anzulegen und auch bei einer Fehlform im Baum. Angenommen werden muss ein Baum,
+# dessen einzige Fehlform unter .git/ und .harness/ an der Wurzel liegt, und ein
+# gültiger Baum; dessen vollständige Anforderungen, das maskierte `|`, die
+# Fortsetzungszeile, die Dateirechte 0644 und das Verhalten von --check (prüft, schreibt
+# nicht, nennt jede veraltete Tabelle, Exit 1) werden geprüft. Ein Baum prüft das
+# Schreiben: nur abweichende oder fehlende Tabellen, je eine Zeile auf stdout, Rechte
+# 0644 nur für geschriebene. Ein Baum mit Unit- und E2E-Tests prüft die Tabellenzeilen
+# aller Tabellen Zeile für Zeile, mit je einer LH-FA, der Happy, Boundary bzw. Negative
 # fehlt.
+#
+# Gegenproben (Punkt 7) — Fälle gate-*: gelesen wird der Kopf der Dateien auf
+# `-gegenprobe.sh` unter tools/ an der Wurzel in jeder Tiefe, nicht tools/x.sh, nicht
+# `gegenprobe.sh`, nicht `sub/tools/` und nicht außerhalb von tools/; die Form des Kopfes
+# je Fehlform und je Gutform ein Fall (eingerückt, ohne Trenner, nach dem Kopf, nach einer
+# Leerzeile hinter der Shebang-Zeile, Fortsetzung, Ende an `#` allein, an `#` ohne
+# Leerzeichen, an der nächsten Deklaration, am Kopfende, mehrere Deklarationen), LH-FA
+# an einer Gate-Deklaration. Eine Gegenprobe ohne Deklaration erzeugt weder Fehler noch Zeile.
+#
+# Geteilte Messung (Punkt 8) — Fälle teil-*, widerspruch-*, grund-*: je Zahlform an i und
+# n ein Fall, i > n, n = 1, verschiedene n, `Messung` neben einem Teil in beiden
+# Reihenfolgen, an Tests und Gegenproben; die Reihenfolge der Gründe, soweit die Klasse
+# der Meldung sie unterscheidet, der Widerspruch an der späteren Fundstelle nach Dateipfad (bytegenau)
+# und Zeile; die Darstellung in der Gesamtsicht und die Vollständigkeit.
+#
+# Nicht gezeigt, weil über die Schnittstelle nicht unterscheidbar: ein i mit mehreren Ziffern
+# neben einem n mit einer Ziffer wird auch ohne die Prüfung der Schreibweise abgelehnt (i > n);
+# der Fall `Messung-10-von-2` zeigt die Klasse der Meldung. Ebenso nicht gezeigt: welche von
+# mehreren früheren Deklarationen der Fehler eines Widerspruchs nennt, wenn mehrere widersprechen.
 #
 # Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.
 set -euo pipefail
@@ -62,6 +82,64 @@ abgelehnt() {
   fi
 }
 
+# rot <name> <wurzel> — erwartet Exit 1; stderr liegt danach in $arbeit/err.
+rot() {
+  local code
+  set +e
+  bash "$skript" "$2" >/dev/null 2>"$arbeit/err"
+  code=$?
+  set -e
+  [ "$code" -eq 1 ] || melde "Fall '$1' erwartet Exit 1, bekam $code: $(cat "$arbeit/err")"
+}
+
+# angenommen <name> <wurzel> — erwartet Exit 0 und nichts auf stderr.
+angenommen() {
+  local code
+  set +e
+  bash "$skript" "$2" >/dev/null 2>"$arbeit/err"
+  code=$?
+  set -e
+  { [ "$code" -eq 0 ] && [ ! -s "$arbeit/err" ]; } \
+    || melde "Fall '$1' erwartet Exit 0 ohne Zeile auf stderr, bekam $code: $(cat "$arbeit/err")"
+}
+
+# stderr_klasse <name> <anzahl> <muster> — stderr hat genau <anzahl> Zeilen, jede passt auf
+# das Muster; die Klasse des Grundes erkennt der Fall an der Meldung.
+stderr_klasse() {
+  local name="$1" anzahl="$2" muster="$3" ist
+  ist="$(wc -l < "$arbeit/err")"
+  [ "$ist" -eq "$anzahl" ] || melde "Fall '$name' erwartet $anzahl Zeile(n) auf stderr, bekam $ist: $(cat "$arbeit/err")"
+  if [ -s "$arbeit/err" ] && grep -qvE -- "$muster" "$arbeit/err"; then
+    melde "Fall '$name' erwartet auf jeder Zeile von stderr das Muster '$muster': $(cat "$arbeit/err")"
+  fi
+}
+
+# stderr_ist <name> <zeile>… — stderr besteht genau aus diesen Zeilen.
+stderr_ist() {
+  local name="$1" soll
+  shift
+  soll="$(printf '%s\n' "$@")"
+  [ "$(cat "$arbeit/err")" = "$soll" ] \
+    || melde "Fall '$name' erwartet auf stderr:"$'\n'"$soll"$'\n'"bekam:"$'\n'"$(cat "$arbeit/err")"
+}
+
+# tabelle <name> <wurzel> <tabelle> <zeile>… — vergleicht die Tabellenzeilen der Datei.
+tabelle() {
+  local fall="$1" w="$2" t="$3" ist soll
+  shift 3
+  ist="$(grep '^|' "$w/docs/user/$t" || true)"
+  soll="$(printf '%s\n' "$@")"
+  [ "$ist" = "$soll" ] \
+    || melde "Fall '$fall' in $t erwartet:"$'\n'"$soll"$'\n'"bekam:"$'\n'"$ist"
+}
+
+# t <deklaration> — Inhalt einer Testdatei: Deklaration in Zeile 3, Test in Zeile 4.
+t() { printf 'package a\n\n// Abdeckung: %s — x\nfunc TestA(t *testing.T) {}' "$1"; }
+
+# gate <zeile>… — Inhalt einer Gegenprobe: Shebang-Zeile, die Zeilen, danach `set -e`.
+gate() { printf '%s\n' '#!/usr/bin/env bash' "$@" 'set -e'; }
+D='# Abdeckung: '
+
 abgelehnt leerzeile internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Happy — x\n\nfunc TestA(t *testing.T) {}')"
 abgelehnt hilfsfunktion internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Happy — x\nfunc hilfe() {}')"
 abgelehnt doppelt internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Happy — x\n// Abdeckung: LH-FA-01/Boundary — y\nfunc TestA(t *testing.T) {}')"
@@ -102,19 +180,52 @@ set +e
 bash "$skript" "$wurzel" >/dev/null 2>"$arbeit/err"
 code=$?
 set -e
-{ [ "$code" -eq 2 ] && [ -s "$arbeit/err" ]; } \
-  || melde "Fall 'ohne-lastenheft' erwartet Exit 2 mit Meldung, bekam $code: $(cat "$arbeit/err")"
+{ [ "$code" -eq 2 ] && grep -qF 'spec/lastenheft.md' "$arbeit/err"; } \
+  || melde "Fall 'ohne-lastenheft' erwartet Exit 2 mit Meldung zum Lastenheft, bekam $code: $(cat "$arbeit/err")"
 
-# Grenze: Führt das Lastenheft keine Überschrift ### LH-…, endet die Prüfung mit 1
-# ohne eine Zeile auf stderr.
+# Führt das Lastenheft keine Überschrift ### LH-…, endet die Prüfung mit 2 und einer Meldung,
+# die das Lastenheft nennt; das ist der zweite Grund des Ausgangs 2.
 wurzel="$(baum lastenheft-ohne-anforderung internal/a_test.go 'package a')"
 printf '# Lastenheft\n' > "$wurzel/spec/lastenheft.md"
 set +e
 bash "$skript" "$wurzel" >/dev/null 2>"$arbeit/err"
 code=$?
 set -e
-{ [ "$code" -eq 1 ] && [ ! -s "$arbeit/err" ]; } \
-  || melde "Fall 'lastenheft-ohne-anforderung' erwartet Exit 1 ohne Zeile auf stderr, bekam $code: $(cat "$arbeit/err")"
+{ [ "$code" -eq 2 ] && grep -qF 'spec/lastenheft.md' "$arbeit/err"; } \
+  || melde "Fall 'lastenheft-ohne-anforderung' erwartet Exit 2 mit Meldung zum Lastenheft, bekam $code: $(cat "$arbeit/err")"
+
+# Fehlt docs/user/: Exit 2 mit Meldung, die das Verzeichnis nennt; nichts geprüft (auch eine
+# Fehlform im Baum bleibt ohne Exit 1) und nichts angelegt, mit und ohne --check.
+wurzel="$(baum ohne-docs-user internal/a_test.go "$(t 'LH-FA-99/Happy')")"
+rm -r "$wurzel/docs"
+for m in "" --check; do
+  set +e
+  bash "$skript" ${m:+"$m"} "$wurzel" >/dev/null 2>"$arbeit/err"
+  code=$?
+  set -e
+  { [ "$code" -eq 2 ] && grep -qF 'docs/user' "$arbeit/err" && [ "$(wc -l < "$arbeit/err")" -eq 1 ]; } \
+    || melde "Fall 'ohne-docs-user${m:+ $m}' erwartet Exit 2 mit einer Meldung zu docs/user, bekam $code: $(cat "$arbeit/err")"
+  [ ! -e "$wurzel/docs" ] || melde "Fall 'ohne-docs-user${m:+ $m}': docs/ angelegt"
+done
+
+# Reihenfolge der Gründe des Ausgangs 2: Lastenheft vor Überschrift vor docs/user/.
+wurzel="$(baum ausgang2-lastenheft-zuerst internal/a_test.go 'package a')"
+rm -r "$wurzel/spec" "$wurzel/docs"
+set +e
+bash "$skript" "$wurzel" >/dev/null 2>"$arbeit/err"
+code=$?
+set -e
+{ [ "$code" -eq 2 ] && grep -qF 'fehlt: spec/lastenheft.md' "$arbeit/err"; } \
+  || melde "Fall 'ausgang2-lastenheft-zuerst' erwartet Exit 2 mit der Meldung zum fehlenden Lastenheft, bekam $code: $(cat "$arbeit/err")"
+wurzel="$(baum ausgang2-ueberschrift-vor-docs internal/a_test.go 'package a')"
+printf '# Lastenheft\n' > "$wurzel/spec/lastenheft.md"
+rm -r "$wurzel/docs"
+set +e
+bash "$skript" "$wurzel" >/dev/null 2>"$arbeit/err"
+code=$?
+set -e
+{ [ "$code" -eq 2 ] && grep -qF 'Überschrift' "$arbeit/err" && ! grep -qF 'docs/user' "$arbeit/err"; } \
+  || melde "Fall 'ausgang2-ueberschrift-vor-docs' erwartet Exit 2 mit der Meldung zur Überschrift, bekam $code: $(cat "$arbeit/err")"
 
 # --- Gültiger Baum: Fortsetzung, Maskierung, Rechte, --check ---------------
 gueltig="$(printf '%s\n' \
@@ -160,13 +271,13 @@ else
 fi
 
 # --- Schreiben: nur abweichende oder fehlende Tabellen ----------------------
-# Der erste Lauf schreibt alle vier und meldet je eine Zeile auf stdout. Danach
-# tragen alle vier Rechte 0600 und eine ist verändert: Der zweite Lauf schreibt nur
+# Der erste Lauf schreibt alle fünf und meldet je eine Zeile auf stdout. Danach
+# tragen alle fünf Rechte 0600 und eine ist verändert: Der zweite Lauf schreibt nur
 # sie, setzt ihre Rechte auf 0644 und lässt die übrigen samt Rechten stehen.
 wurzel="$(baum schreiben internal/a_test.go "$gueltig")"
 U="$wurzel/docs/user"
-alle="$(printf 'abdeckung: docs/user/%s geschrieben\n' abdeckung-e2e.md abdeckung-unit.md abdeckung-gesamt.md abdeckung-vollstaendig.md)"
-if ! aus="$(bash "$skript" "$wurzel" 2>/dev/null)"; then
+alle="$(printf 'abdeckung: docs/user/%s geschrieben\n' abdeckung-e2e.md abdeckung-unit.md abdeckung-gate.md abdeckung-gesamt.md abdeckung-vollstaendig.md | sort)"
+if ! aus="$(bash "$skript" "$wurzel" 2>/dev/null | sort)"; then
   melde "Fall 'schreiben': gültiger Baum abgelehnt"
 elif [ "$aus" != "$alle" ]; then
   melde "Fall 'schreiben-fehlend' erwartet auf stdout:"$'\n'"$alle"$'\n'"bekam:"$'\n'"$aus"
@@ -181,13 +292,13 @@ else
     || melde "Fall 'schreiben-nur-geaendert': abdeckung-gesamt.md nicht neu geschrieben"
   [ "$(stat -c %a "$U/abdeckung-gesamt.md")" = 644 ] \
     || melde "Fall 'schreiben-rechte': geschriebene Tabelle trägt nicht 0644"
-  for t in abdeckung-e2e.md abdeckung-unit.md abdeckung-vollstaendig.md; do
+  for t in abdeckung-e2e.md abdeckung-unit.md abdeckung-gate.md abdeckung-vollstaendig.md; do
     [ "$(stat -c %a "$U/$t")" = 600 ] \
       || melde "Fall 'schreiben-unberuehrt': aktuelle Tabelle $t in ihren Rechten geändert"
   done
 fi
 
-# --- Inhalt der vier Tabellen ----------------------------------------------
+# --- Inhalt der Tabellen ----------------------------------------------
 # Unit-Tests unter internal/, E2E-Tests unter test/integration/. LH-FA-01 ist
 # teilweise belegt (Boundary fehlt), LH-FA-02 vollständig aus zwei Nachweisarten,
 # LH-QA-01 und LH-RB-01 je mit Messung; LH-FA-03 steht im Lastenheft ohne
@@ -239,6 +350,9 @@ else
     "| [\`LH-FA-05\`$L | Boundary | u3 | \`TestW\` | \`internal/a_test.go\` |" \
     "| [\`LH-FA-05\`$L | Happy | u3 | \`TestW\` | \`internal/a_test.go\` |" \
     "| [\`LH-RB-01\`$L | Messung | u2 | \`TestV\` | \`internal/a_test.go\` |"
+  zeilen inhalt-gate-leer abdeckung-gate.md \
+    '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' \
+    '| --- | --- | --- | --- |'
   zeilen inhalt-gesamt abdeckung-gesamt.md \
     '| Anforderung | Happy | Boundary | Negative | Messung | Stand |' \
     '| --- | --- | --- | --- | --- | --- |' \
@@ -256,7 +370,321 @@ else
     "| [\`LH-RB-01\`$L | Unit |"
 fi
 
+# --- Nachweisart nach Ort: ein E2E-Verzeichnis tiefer im Baum ergibt Unit ----
+wurzel="$(baum e2e-tiefer sub/test/integration/x_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Happy — x\nfunc TestE2EX(t *testing.T) {}')")"
+if bash "$skript" "$wurzel" >/dev/null 2>&1; then
+  tabelle e2e-tiefer-e2e "$wurzel" abdeckung-e2e.md \
+    '| Anforderung | Pfad | Kurzbeschreibung | Nachweis | Ort |' '| --- | --- | --- | --- | --- |'
+  tabelle e2e-tiefer-unit "$wurzel" abdeckung-unit.md \
+    '| Anforderung | Pfad | Kurzbeschreibung | Nachweis | Ort |' '| --- | --- | --- | --- | --- |' \
+    "| [\`LH-FA-01\`$L | Happy | x | \`TestE2EX\` | \`sub/test/integration/x_test.go\` |"
+else
+  melde "Fall 'e2e-tiefer': gültiger Baum abgelehnt"
+fi
+
+# --- Gegenproben: gelesen werden Dateien auf -gegenprobe.sh unter tools/ --------
+# Gutform: Zeile 2 des Kopfs, ein Eintrag in der Tabelle der Nachweisart Gate, keiner in den
+# Tabellen der Tests, ein `|` im Text maskiert.
+wurzel="$(baum gate-gutform tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung — a | b")")"
+angenommen gate-gutform "$wurzel"
+tabelle gate-gutform "$wurzel" abdeckung-gate.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' '| --- | --- | --- | --- |' \
+  "| [\`LH-QA-01\`$L | Messung | a \\| b | \`tools/x-gegenprobe.sh\` |"
+tabelle gate-gutform-unit "$wurzel" abdeckung-unit.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis | Ort |' '| --- | --- | --- | --- | --- |'
+tabelle gate-gutform-gesamt "$wurzel" abdeckung-gesamt.md \
+  '| Anforderung | Happy | Boundary | Negative | Messung | Stand |' '| --- | --- | --- | --- | --- | --- |' \
+  "| [\`LH-QA-01\`$L | n/a | n/a | n/a | Gate | vollständig |"
+tabelle gate-gutform-vollstaendig "$wurzel" abdeckung-vollstaendig.md \
+  '| Anforderung | Nachweisarten |' '| --- | --- |' "| [\`LH-QA-01\`$L | Gate |"
+
+# Randbedingung ebenso; tiefer unter tools/ und ohne Shebang-Zeile gelesen.
+wurzel="$(baum gate-tiefer tools/a/b/c-gegenprobe.sh "$(printf '%s\n' "${D}LH-RB-01/Messung — r" 'set -e')")"
+angenommen gate-tiefer "$wurzel"
+tabelle gate-tiefer "$wurzel" abdeckung-gate.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' '| --- | --- | --- | --- |' \
+  "| [\`LH-RB-01\`$L | Messung | r | \`tools/a/b/c-gegenprobe.sh\` |"
+
+# Nicht gelesen, auch mit einer Fehlform in der Deklaration: tools/x.sh, `gegenprobe.sh` ohne
+# Bindestrich, ein anderer Endung, eine Gegenprobe außerhalb von tools/ und unter einem
+# tools/ tiefer im Baum.
+for f in tools/x.sh tools/gegenprobe.sh tools/x-gegenprobe.sh.bak harness/x-gegenprobe.sh sub/tools/x-gegenprobe.sh; do
+  wurzel="$(baum "gate-nicht-gelesen-$(basename "$(dirname "$f")")-$(basename "$f")" "$f" "$(gate "${D}LH-FA-99/Happy ohne Trenner")")"
+  angenommen "gate-nicht-gelesen $f" "$wurzel"
+  tabelle "gate-nicht-gelesen $f" "$wurzel" abdeckung-gate.md \
+    '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' '| --- | --- | --- | --- |'
+done
+
+# Eine Gegenprobe ohne Deklaration im Muster erzeugt weder Fehler noch Zeile (Bindung aus
+# slice-harness-integration-volumes): Kopf mit Fließtext, ohne Zeile `Abdeckung:`.
+wurzel="$(baum gegenprobe-ohne-deklaration tools/test/x-gegenprobe.sh "$(gate '# x-gegenprobe — prüft y.' '#' '# GRENZE: Abdeckung wird hier nicht deklariert.' '#' '# Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.')" internal/a_test.go "$(t LH-FA-01/Happy)")"
+angenommen gegenprobe-ohne-deklaration "$wurzel"
+tabelle gegenprobe-ohne-deklaration "$wurzel" abdeckung-gate.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' '| --- | --- | --- | --- |'
+tabelle gegenprobe-ohne-deklaration-gesamt "$wurzel" abdeckung-gesamt.md \
+  '| Anforderung | Happy | Boundary | Negative | Messung | Stand |' '| --- | --- | --- | --- | --- | --- |' \
+  "| [\`LH-FA-01\`$L | Unit | — | — | n/a | teilweise |"
+
+# Form des Kopfes: mehrere Deklarationen; Fortsetzung mit `# ` und Text; Ende an `#` allein,
+# an `#` ohne Leerzeichen, an der nächsten Deklaration und am Kopfende.
+wurzel="$(baum gate-kopf tools/x-gegenprobe.sh "$(gate \
+  "${D}LH-QA-01/Messung-1-von-3 — eins" '# zwei' '# ' '# frei' \
+  "${D}LH-QA-01/Messung-2-von-3 — a" '# b' '#c' \
+  "${D}LH-QA-01/Messung-3-von-3 — d" '# e' "${D}LH-RB-01/Messung — f" '# g' \
+  '#' '# frei' )")"
+printf '%s\n' '# nach dem Kopf' >> "$wurzel/tools/x-gegenprobe.sh"
+angenommen gate-kopf "$wurzel"
+tabelle gate-kopf "$wurzel" abdeckung-gate.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' '| --- | --- | --- | --- |' \
+  "| [\`LH-QA-01\`$L | Messung-1-von-3 | eins zwei | \`tools/x-gegenprobe.sh\` |" \
+  "| [\`LH-QA-01\`$L | Messung-2-von-3 | a b | \`tools/x-gegenprobe.sh\` |" \
+  "| [\`LH-QA-01\`$L | Messung-3-von-3 | d e | \`tools/x-gegenprobe.sh\` |" \
+  "| [\`LH-RB-01\`$L | Messung | f g | \`tools/x-gegenprobe.sh\` |"
+# Am Kopfende endet die Fortsetzung: Die Zeile nach dem Kopf wird nicht angefügt.
+wurzel="$(baum gate-kopfende tools/x-gegenprobe.sh "$(printf '%s\n' '#!/usr/bin/env bash' "${D}LH-QA-01/Messung — eins" '# zwei' 'set -e' '# drei')")"
+angenommen gate-kopfende "$wurzel"
+tabelle gate-kopfende "$wurzel" abdeckung-gate.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' '| --- | --- | --- | --- |' \
+  "| [\`LH-QA-01\`$L | Messung | eins zwei | \`tools/x-gegenprobe.sh\` |"
+
+# Fehlformen des Kopfs, je ein Fall; die Meldung nennt Datei und Zeile.
+abgelehnt gate-eingerueckt tools/x-gegenprobe.sh "$(gate " ${D}LH-QA-01/Messung — x")"
+abgelehnt gate-eingerueckt-tab tools/x-gegenprobe.sh "$(gate $'\t'"${D}LH-QA-01/Messung — x")"
+abgelehnt gate-ohne-trenner tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung x")"
+abgelehnt gate-nach-dem-kopf tools/x-gegenprobe.sh "$(printf '%s\n' '#!/usr/bin/env bash' 'set -e' "${D}LH-QA-01/Messung — x")"
+abgelehnt gate-nach-leerzeile tools/x-gegenprobe.sh "$(printf '%s\n' '#!/usr/bin/env bash' '' "${D}LH-QA-01/Messung — x")"
+abgelehnt gate-fa tools/x-gegenprobe.sh "$(gate "${D}LH-FA-01/Happy — x")"
+abgelehnt gate-fa-messung tools/x-gegenprobe.sh "$(gate "${D}LH-FA-01/Messung — x")"
+abgelehnt gate-fa-teil tools/x-gegenprobe.sh "$(gate "${D}LH-FA-01/Messung-1-von-2 — x")"
+abgelehnt gate-pfad-happy tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Happy — x")"
+abgelehnt gate-unbekannt tools/x-gegenprobe.sh "$(gate "${D}LH-QA-99/Messung — x")"
+abgelehnt gate-teil-schreibweise tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung-01-von-2 — x")"
+abgelehnt gate-teil-bereich tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung-3-von-2 — x")"
+# Die Zeile der Meldung ist die der Deklaration (Zeile 3 im zweiten Eintrag).
+abgelehnt gate-zeile tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung — x" "${D}LH-QA-01/Happy — y")"
+grep -qF 'abdeckung: tools/x-gegenprobe.sh:3: ' "$arbeit/err" \
+  || melde "Fall 'gate-zeile': stderr nennt nicht Zeile 3 der Deklaration: $(cat "$arbeit/err")"
+# Eine Zeile `Abdeckung:` am Zeilenanfang in einer Gegenprobe außerhalb des Kopfs ist eine
+# Fehlform, auch mitten in einem Fixture (dort entstehen sie mit printf in einer Zeile).
+abgelehnt gate-nach-dem-kopf-code tools/x-gegenprobe.sh "$(printf '%s\n' '#!/usr/bin/env bash' 'cat <<EOF' "${D}LH-QA-01/Messung — x" 'EOF')"
+
+# Gate-Fehlform in einer Datei und gültige Deklaration in einer anderen: beide Dateien gelesen.
+wurzel="$(baum gate-zwei-dateien tools/a-gegenprobe.sh "$(gate "${D}LH-FA-01/Happy — x")" tools/b-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung — y")")"
+rot gate-zwei-dateien "$wurzel"
+stderr_klasse gate-zwei-dateien 1 '^abdeckung: tools/a-gegenprobe.sh:2: '
+
+# --- Geteilte Messung: Schreibweise und Zahlform (Punkt 2, 8) -----------------
+# Je Zahlform ein Fall, an i und an n; die Meldung nennt die Schreibweise.
+for zf in 'Messung-10-von-12' 'Messung-10-von-2' 'Messung-1-von-10' 'Messung-01-von-2' 'Messung-1-von-02' \
+          'Messung-+1-von-2' 'Messung-1-von-+2' 'Messung- 1-von-2' 'Messung-1-von- 2' \
+          'Messung-0-von-2' 'Messung-1-von-0' 'Messung-1von-2' 'Messung-1-von' 'Messung-' 'Messung-a-von-2'; do
+  fall="teil-zahlform-$zf"
+  abgelehnt "$fall" internal/a_test.go "$(t "LH-QA-01/$zf")"
+  stderr_klasse "$fall" 1 ' ist nicht '
+  # Dieselbe Schreibweise im Kopf einer Gegenprobe.
+  abgelehnt "gate-$fall" tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/$zf — x")"
+  stderr_klasse "gate-$fall" 1 ' ist nicht '
+done
+# Dieselbe Schreibweise als Test an einer LH-FA und als Gate-Deklaration.
+abgelehnt teil-fa internal/a_test.go "$(t 'LH-FA-01/Messung-1-von-2')"
+stderr_klasse teil-fa 1 ' ist nicht '
+
+# --- Wertebereich (Punkt 8): i > n, n = 1; an Tests und Gegenproben ---------------
+abgelehnt teil-i-ueber-n internal/a_test.go "$(t 'LH-QA-01/Messung-3-von-2')"
+stderr_klasse teil-i-ueber-n 1 'Gesamtzahl'
+abgelehnt teil-n-eins internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-1')"
+stderr_klasse teil-n-eins 1 'mindestens zwei'
+abgelehnt teil-i-ueber-n-rb internal/a_test.go "$(t 'LH-RB-01/Messung-9-von-8')"
+stderr_klasse teil-i-ueber-n-rb 1 'Gesamtzahl'
+abgelehnt gate-teil-i-ueber-n tools/x-gegenprobe.sh "$(gate "${D}LH-RB-01/Messung-9-von-8 — x")"
+stderr_klasse gate-teil-i-ueber-n 1 'Gesamtzahl'
+abgelehnt gate-teil-n-eins tools/x-gegenprobe.sh "$(gate "${D}LH-RB-01/Messung-1-von-1 — x")"
+stderr_klasse gate-teil-n-eins 1 'mindestens zwei'
+
+# --- Reihenfolge der Gründe je Paar (Punkt 6) ----------------------------------
+# (1) Form vor allem: Eine Deklaration ohne „ — “ nennt nur die Form, nicht die Elemente.
+abgelehnt grund-1-vor-2-bis-4 internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-QA-99/Messung-01-von-2 x\nfunc TestA(t *testing.T) {}')"
+stderr_klasse grund-1-vor-2-bis-4 1 'ohne „ — “'
+# (2) Schreibweise vor Wertebereich, (2) vor (4), (3) vor (4).
+abgelehnt grund-2-vor-3 internal/a_test.go "$(t 'LH-QA-01/Messung-0-von-1')"
+stderr_klasse grund-2-vor-3 1 ' ist nicht '
+abgelehnt grund-2-vor-4 internal/a_test.go "$(t 'LH-QA-99/Messung-01-von-2')"
+stderr_klasse grund-2-vor-4 1 ' ist nicht '
+abgelehnt grund-3-vor-4 internal/a_test.go "$(t 'LH-QA-99/Messung-3-von-2')"
+stderr_klasse grund-3-vor-4 1 'Gesamtzahl'
+abgelehnt grund-4 internal/a_test.go "$(t 'LH-QA-99/Messung-1-von-2')"
+stderr_klasse grund-4 1 'steht nicht im Lastenheft'
+# Ein Element nennt einen Grund: zwei Elemente mit je einem Grund, zwei Zeilen.
+abgelehnt grund-je-element internal/a_test.go "$(t 'LH-QA-99/Messung-01-von-2, LH-QA-01/Messung-3-von-2')"
+stderr_klasse grund-je-element 2 '^abdeckung: internal/a_test.go:4: '
+
+# (5) betrachtet nur Elemente ohne einen Grund aus (1) bis (4): Jeder dieser Elemente steht
+# neben einem gültigen mit anderem n und erzeugt keinen Widerspruch.
+wurzel="$(baum grund-5-ohne-4 internal/a_test.go "$(t 'LH-QA-99/Messung-1-von-2')" internal/b_test.go "$(t 'LH-QA-99/Messung-1-von-3')")"
+rot grund-5-ohne-4 "$wurzel"
+stderr_klasse grund-5-ohne-4 2 'steht nicht im Lastenheft'
+wurzel="$(baum grund-5-ohne-3 internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-2')" internal/b_test.go "$(t 'LH-QA-01/Messung-1-von-1')")"
+rot grund-5-ohne-3 "$wurzel"
+stderr_klasse grund-5-ohne-3 1 'mindestens zwei'
+wurzel="$(baum grund-5-ohne-2 internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-2')" internal/b_test.go "$(t 'LH-QA-01/Messung-01-von-3')")"
+rot grund-5-ohne-2 "$wurzel"
+stderr_klasse grund-5-ohne-2 1 ' ist nicht '
+wurzel="$(baum grund-5-ohne-1 internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-2')" internal/b_test.go "$(printf 'package a\n\n// Abdeckung: LH-QA-01/Messung-1-von-3 x\nfunc TestA(t *testing.T) {}')")"
+rot grund-5-ohne-1 "$wurzel"
+stderr_klasse grund-5-ohne-1 1 'ohne „ — “'
+
+# --- Widerspruch zwischen Deklarationen (Punkt 8) --------------------------------
+# Verschiedene n: Der Fehler steht an der späteren Fundstelle und nennt die frühere.
+wurzel="$(baum widerspruch-n internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-2')" internal/b_test.go "$(t 'LH-QA-01/Messung-2-von-3')")"
+rot widerspruch-n "$wurzel"
+stderr_ist widerspruch-n 'abdeckung: internal/b_test.go:4: LH-QA-01/Messung-2-von-3 widerspricht LH-QA-01/Messung-1-von-2 (früher: internal/a_test.go:4)'
+# Die Reihenfolge ist die der Dateipfade, bytegenau (B vor a), nicht die der Funde.
+wurzel="$(baum widerspruch-bytegenau internal/B_test.go "$(t 'LH-QA-01/Messung-1-von-2')" internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-3')")"
+rot widerspruch-bytegenau "$wurzel"
+stderr_ist widerspruch-bytegenau 'abdeckung: internal/a_test.go:4: LH-QA-01/Messung-1-von-3 widerspricht LH-QA-01/Messung-1-von-2 (früher: internal/B_test.go:4)'
+# Dateipfad vor Zeile, die Zeile numerisch (4 vor 12).
+spaet="$(printf 'package a\n\n// Abdeckung: LH-QA-01/Messung-1-von-2 — x\nfunc TestA(t *testing.T) {}\n\n\n\n\n\n\n// Abdeckung: LH-QA-01/Messung-1-von-3 — y\nfunc TestB(t *testing.T) {}')"
+wurzel="$(baum widerspruch-zeile internal/a_test.go "$spaet")"
+rot widerspruch-zeile "$wurzel"
+stderr_ist widerspruch-zeile 'abdeckung: internal/a_test.go:12: LH-QA-01/Messung-1-von-3 widerspricht LH-QA-01/Messung-1-von-2 (früher: internal/a_test.go:4)'
+# Die Elemente einer Deklaration in ihrer Folge.
+wurzel="$(baum widerspruch-element internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-2, LH-QA-01/Messung-1-von-3')")"
+rot widerspruch-element "$wurzel"
+stderr_ist widerspruch-element 'abdeckung: internal/a_test.go:4: LH-QA-01/Messung-1-von-3 widerspricht LH-QA-01/Messung-1-von-2 (früher: internal/a_test.go:4)'
+wurzel="$(baum widerspruch-element-rueckwaerts internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-3, LH-QA-01/Messung-1-von-2')")"
+rot widerspruch-element-rueckwaerts "$wurzel"
+stderr_ist widerspruch-element-rueckwaerts 'abdeckung: internal/a_test.go:4: LH-QA-01/Messung-1-von-2 widerspricht LH-QA-01/Messung-1-von-3 (früher: internal/a_test.go:4)'
+# Ein widersprechender Eintrag legt das n nicht fest: Ein dritter mit dem n des zweiten widerspricht
+# dem ersten und steht ebenfalls im Fehler.
+wurzel="$(baum widerspruch-dritter internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-2')" internal/b_test.go "$(t 'LH-QA-01/Messung-1-von-3')" internal/c_test.go "$(t 'LH-QA-01/Messung-2-von-3')")"
+rot widerspruch-dritter "$wurzel"
+stderr_klasse widerspruch-dritter 2 'widerspricht LH-QA-01/Messung-1-von-2 \(früher: internal/a_test.go:4\)$'
+# Test und Gegenprobe, gleich in welcher Datei: tools/ liegt vor zz/ und hinter internal/.
+wurzel="$(baum widerspruch-gate-frueher tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung-1-von-2 — g")" zz/z_test.go "$(t 'LH-QA-01/Messung-1-von-3')")"
+rot widerspruch-gate-frueher "$wurzel"
+stderr_ist widerspruch-gate-frueher 'abdeckung: zz/z_test.go:4: LH-QA-01/Messung-1-von-3 widerspricht LH-QA-01/Messung-1-von-2 (früher: tools/x-gegenprobe.sh:2)'
+wurzel="$(baum widerspruch-gate-spaeter tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung-1-von-2 — g")" internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-3')")"
+rot widerspruch-gate-spaeter "$wurzel"
+stderr_ist widerspruch-gate-spaeter 'abdeckung: tools/x-gegenprobe.sh:2: LH-QA-01/Messung-1-von-2 widerspricht LH-QA-01/Messung-1-von-3 (früher: internal/a_test.go:4)'
+# Zwei Gegenproben.
+wurzel="$(baum widerspruch-gate-gate tools/a-gegenprobe.sh "$(gate "${D}LH-RB-01/Messung-1-von-2 — g")" tools/b-gegenprobe.sh "$(gate "${D}LH-RB-01/Messung-2-von-3 — h")")"
+rot widerspruch-gate-gate "$wurzel"
+stderr_ist widerspruch-gate-gate 'abdeckung: tools/b-gegenprobe.sh:2: LH-RB-01/Messung-2-von-3 widerspricht LH-RB-01/Messung-1-von-2 (früher: tools/a-gegenprobe.sh:2)'
+
+# `Messung` neben einem Teil derselben Anforderung, in beiden Reihenfolgen und über Dateien.
+wurzel="$(baum widerspruch-messung-dann-teil internal/a_test.go "$(t 'LH-QA-01/Messung')" internal/b_test.go "$(t 'LH-QA-01/Messung-1-von-2')")"
+rot widerspruch-messung-dann-teil "$wurzel"
+stderr_ist widerspruch-messung-dann-teil 'abdeckung: internal/b_test.go:4: LH-QA-01/Messung-1-von-2 steht neben LH-QA-01/Messung (früher: internal/a_test.go:4)'
+wurzel="$(baum widerspruch-teil-dann-messung internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-2')" internal/b_test.go "$(t 'LH-QA-01/Messung')")"
+rot widerspruch-teil-dann-messung "$wurzel"
+stderr_ist widerspruch-teil-dann-messung 'abdeckung: internal/b_test.go:4: LH-QA-01/Messung steht neben LH-QA-01/Messung-1-von-2 (früher: internal/a_test.go:4)'
+wurzel="$(baum widerspruch-messung-gate tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung — g")" zz/z_test.go "$(t 'LH-QA-01/Messung-2-von-2')")"
+rot widerspruch-messung-gate "$wurzel"
+stderr_ist widerspruch-messung-gate 'abdeckung: zz/z_test.go:4: LH-QA-01/Messung-2-von-2 steht neben LH-QA-01/Messung (früher: tools/x-gegenprobe.sh:2)'
+
+# Gutformen: verschiedene Anforderungen mit verschiedenem n, `Messung` mehrfach, derselbe
+# Teil zweimal (zwei Zeilen), i = n, n = 9, die Pfade an Tests im Unit- und im E2E-Verzeichnis.
+wurzel="$(baum teil-gut internal/a_test.go "$(t 'LH-QA-01/Messung-2-von-2, LH-RB-01/Messung-9-von-9')" internal/b_test.go "$(t 'LH-QA-01/Messung-2-von-2')" internal/c_test.go "$(t 'LH-FA-01/Happy')")"
+angenommen teil-gut "$wurzel"
+wurzel="$(baum messung-mehrfach internal/a_test.go "$(t 'LH-QA-01/Messung')" tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung — g")")"
+angenommen messung-mehrfach "$wurzel"
+
+# --- Tabellen mit einer geteilten Messung (Punkt 4) ----------------------------------
+# QA-01 vollständig aus drei Nachweisarten, RB-01 mit Teil 1 aus allen drei und ohne Teil 2.
+wurzel="$(baum teile \
+  tools/b-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung-1-von-3 — q1" "${D}LH-RB-01/Messung-1-von-2 — aa")" \
+  tools/a-gegenprobe.sh "$(gate "${D}LH-RB-01/Messung-1-von-2 — zz" "${D}LH-QA-01/Messung-2-von-3 — q2")" \
+  internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-QA-01/Messung-3-von-3, LH-RB-01/Messung-1-von-2 — u\nfunc TestU(t *testing.T) {}')" \
+  test/integration/e_test.go "$(printf 'package e\n\n// Abdeckung: LH-QA-01/Messung-2-von-3, LH-RB-01/Messung-1-von-2 — e\nfunc TestE2EE(t *testing.T) {}')")"
+angenommen teile "$wurzel"
+tabelle teile-gate "$wurzel" abdeckung-gate.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' '| --- | --- | --- | --- |' \
+  "| [\`LH-QA-01\`$L | Messung-1-von-3 | q1 | \`tools/b-gegenprobe.sh\` |" \
+  "| [\`LH-QA-01\`$L | Messung-2-von-3 | q2 | \`tools/a-gegenprobe.sh\` |" \
+  "| [\`LH-RB-01\`$L | Messung-1-von-2 | zz | \`tools/a-gegenprobe.sh\` |" \
+  "| [\`LH-RB-01\`$L | Messung-1-von-2 | aa | \`tools/b-gegenprobe.sh\` |"
+tabelle teile-unit "$wurzel" abdeckung-unit.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis | Ort |' '| --- | --- | --- | --- | --- |' \
+  "| [\`LH-QA-01\`$L | Messung-3-von-3 | u | \`TestU\` | \`internal/a_test.go\` |" \
+  "| [\`LH-RB-01\`$L | Messung-1-von-2 | u | \`TestU\` | \`internal/a_test.go\` |"
+tabelle teile-e2e "$wurzel" abdeckung-e2e.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis | Ort |' '| --- | --- | --- | --- | --- |' \
+  "| [\`LH-QA-01\`$L | Messung-2-von-3 | e | \`TestE2EE\` | \`test/integration/e_test.go\` |" \
+  "| [\`LH-RB-01\`$L | Messung-1-von-2 | e | \`TestE2EE\` | \`test/integration/e_test.go\` |"
+tabelle teile-gesamt "$wurzel" abdeckung-gesamt.md \
+  '| Anforderung | Happy | Boundary | Negative | Messung | Stand |' '| --- | --- | --- | --- | --- | --- |' \
+  "| [\`LH-QA-01\`$L | n/a | n/a | n/a | 1/3 Gate; 2/3 E2E, Gate; 3/3 Unit | vollständig |" \
+  "| [\`LH-RB-01\`$L | n/a | n/a | n/a | 1/2 E2E, Gate, Unit; 2/2 — | teilweise |"
+tabelle teile-vollstaendig "$wurzel" abdeckung-vollstaendig.md \
+  '| Anforderung | Nachweisarten |' '| --- | --- |' "| [\`LH-QA-01\`$L | E2E, Gate, Unit |"
+
+# Derselbe Teil in zwei Nachweisarten zählt einmal; mit Teil 2 ist RB-01 vollständig.
+wurzel="$(baum teile-voll \
+  tools/a-gegenprobe.sh "$(gate "${D}LH-RB-01/Messung-1-von-2 — g")" \
+  internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-RB-01/Messung-1-von-2, LH-RB-01/Messung-2-von-2 — u\nfunc TestU(t *testing.T) {}')")"
+angenommen teile-voll "$wurzel"
+tabelle teile-voll-gesamt "$wurzel" abdeckung-gesamt.md \
+  '| Anforderung | Happy | Boundary | Negative | Messung | Stand |' '| --- | --- | --- | --- | --- | --- |' \
+  "| [\`LH-RB-01\`$L | n/a | n/a | n/a | 1/2 Gate, Unit; 2/2 Unit | vollständig |"
+tabelle teile-voll-vollstaendig "$wurzel" abdeckung-vollstaendig.md \
+  '| Anforderung | Nachweisarten |' '| --- | --- |' "| [\`LH-RB-01\`$L | Gate, Unit |"
+
+# Die Teile in der Reihenfolge ihrer Nummer, auch wenn sie anders deklariert sind.
+wurzel="$(baum teile-reihenfolge tools/a-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung-3-von-3, LH-QA-01/Messung-1-von-3, LH-QA-01/Messung-2-von-3 — t")")"
+angenommen teile-reihenfolge "$wurzel"
+tabelle teile-reihenfolge "$wurzel" abdeckung-gate.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' '| --- | --- | --- | --- |' \
+  "| [\`LH-QA-01\`$L | Messung-1-von-3 | t | \`tools/a-gegenprobe.sh\` |" \
+  "| [\`LH-QA-01\`$L | Messung-2-von-3 | t | \`tools/a-gegenprobe.sh\` |" \
+  "| [\`LH-QA-01\`$L | Messung-3-von-3 | t | \`tools/a-gegenprobe.sh\` |"
+tabelle teile-reihenfolge-gesamt "$wurzel" abdeckung-gesamt.md \
+  '| Anforderung | Happy | Boundary | Negative | Messung | Stand |' '| --- | --- | --- | --- | --- | --- |' \
+  "| [\`LH-QA-01\`$L | n/a | n/a | n/a | 1/3 Gate; 2/3 Gate; 3/3 Gate | vollständig |"
+
+# Jeder Teil zählt: fehlt der erste, ein mittlerer, der letzte oder der neunte von neun, ist die
+# Anforderung teilweise und steht nicht in der vollständigen Tabelle.
+teilweise() {
+  local fall="$1" n="$2" fehlt="$3" ids="" i darst="" w
+  for ((i = 1; i <= n; i++)); do
+    [ "$i" -eq "$fehlt" ] && { darst="${darst:+$darst; }$i/$n —"; continue; }
+    ids="${ids:+$ids, }LH-QA-01/Messung-$i-von-$n"
+    darst="${darst:+$darst; }$i/$n Gate"
+  done
+  w="$(baum "$fall" tools/a-gegenprobe.sh "$(gate "${D}$ids — t")")"
+  angenommen "$fall" "$w"
+  tabelle "$fall-gesamt" "$w" abdeckung-gesamt.md \
+    '| Anforderung | Happy | Boundary | Negative | Messung | Stand |' '| --- | --- | --- | --- | --- | --- |' \
+    "| [\`LH-QA-01\`$L | n/a | n/a | n/a | $darst | teilweise |"
+  tabelle "$fall-vollstaendig" "$w" abdeckung-vollstaendig.md '| Anforderung | Nachweisarten |' '| --- | --- |'
+}
+teilweise teil-fehlt-erster 3 1
+teilweise teil-fehlt-mittlerer 3 2
+teilweise teil-fehlt-letzter 3 3
+teilweise teil-fehlt-neunter 9 9
+teilweise teil-fehlt-erster-von-neun 9 1
+
+# n = 9 vollständig.
+ids=""
+for i in 1 2 3 4 5 6 7 8 9; do ids="${ids:+$ids, }LH-RB-01/Messung-$i-von-9"; done
+wurzel="$(baum teil-neun-voll tools/a-gegenprobe.sh "$(gate "${D}$ids — t")")"
+angenommen teil-neun-voll "$wurzel"
+tabelle teil-neun-voll "$wurzel" abdeckung-vollstaendig.md '| Anforderung | Nachweisarten |' '| --- | --- |' "| [\`LH-RB-01\`$L | Gate |"
+
+# --check kennt die Tabelle der Nachweisart Gate: veraltet oder fehlend, Exit 1 und ihr Pfad.
+wurzel="$(baum check-gate tools/a-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung — t")")"
+bash "$skript" "$wurzel" >/dev/null 2>&1 || melde "Fall 'check-gate': gültiger Baum abgelehnt"
+for ver in veraendert fehlt; do
+  if [ "$ver" = veraendert ]; then echo veraendert > "$wurzel/docs/user/abdeckung-gate.md"; else rm "$wurzel/docs/user/abdeckung-gate.md"; fi
+  set +e
+  bash "$skript" --check "$wurzel" >/dev/null 2>"$arbeit/err"
+  code=$?
+  set -e
+  { [ "$code" -eq 1 ] && grep -qF 'docs/user/abdeckung-gate.md' "$arbeit/err"; } \
+    || melde "Fall 'check-gate-$ver' erwartet Exit 1 mit dem Pfad der Tabelle, bekam $code: $(cat "$arbeit/err")"
+  bash "$skript" "$wurzel" >/dev/null 2>&1
+done
+
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "abdeckung-gegenprobe: gruen — Fehlformen abgelehnt, gültige Bäume mit dem erwarteten Inhalt der vier Tabellen, --check schreibt nicht"
+echo "abdeckung-gegenprobe: gruen — Fehlformen abgelehnt, gültige Bäume mit dem erwarteten Inhalt der fünf Tabellen, --check schreibt nicht"

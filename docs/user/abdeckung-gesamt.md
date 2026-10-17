@@ -1,9 +1,10 @@
 # Abdeckung je Anforderung
 
 Erzeugt von `make abdeckung` (`tools/test/abdeckung.sh`) aus den
-Abdeckungs-Deklarationen aller Tests. Je Anforderung zeigt die Tabelle, welche
-Nachweisart welchen Pfad belegt: bei funktionalen Anforderungen die drei
-Akzeptanzkriterien des Lastenhefts, bei Qualitätsanforderungen die Messung.
+Abdeckungs-Deklarationen aller Tests und der Gegenproben. Je Anforderung zeigt die
+Tabelle, welche Nachweisart welchen Pfad belegt: bei funktionalen Anforderungen die
+drei Akzeptanzkriterien des Lastenhefts, bei Qualitätsanforderungen und
+Randbedingungen die Messung, bei einer geteilten Messung jeden ihrer Teile.
 Vollständig belegte Anforderungen stehen zusätzlich in
 `abdeckung-vollstaendig.md`, die `make doc-trace` liest.
 
@@ -33,4 +34,5 @@ Vollständig belegte Anforderungen stehen zusätzlich in
 | [`LH-FA-25`](../../spec/lastenheft.md) | E2E, Unit | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-QA-02`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E | vollständig |
 | [`LH-QA-06`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E, Unit | vollständig |
+| [`LH-QA-07`](../../spec/lastenheft.md) | n/a | n/a | n/a | 1/3 Gate; 2/3 —; 3/3 Gate | teilweise |
 | [`LH-RB-01`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E, Unit | vollständig |

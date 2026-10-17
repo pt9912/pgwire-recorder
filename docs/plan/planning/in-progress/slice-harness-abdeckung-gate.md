@@ -105,7 +105,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Werkzeug und Vertrag: `tools/test/abdeckung.sh` liest Deklarationen im Kopf von
+- [x] Werkzeug und Vertrag: `tools/test/abdeckung.sh` liest Deklarationen im Kopf von
       Gegenproben (Nachweisart Gate) und den Pfad `Messung-<i>-von-<n>` nach den
       Randformen aus §6, schreibt die Tabelle der Nachweisart Gate und zählt eine
       geteilte Messung erst mit allen Teilen als vollständig; die Deklarationen an Tests
@@ -114,21 +114,21 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `harness/README.md` §Sensors nennt beim Vertrag von `make abdeckung-check` die
       Nachweisart Gate und die geteilte Messung, mit Bindung an [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md);
       beide sagen nur zu, was die Gegenprobe prüft (`AGENTS.md` §3.11).
-- [ ] Gegenprobe: `make abdeckung-gegenprobe` führt je Fehlform aus §6 einen Fall, der
+- [x] Gegenprobe: `make abdeckung-gegenprobe` führt je Fehlform aus §6 einen Fall, der
       abgelehnt wird, und je Gutform einen, der angenommen wird; die vorhandenen Fälle
       bleiben, dazu ein Fall, der eine Gegenprobe ohne Deklaration im Muster (nach dem Vorbild
       von `tools/test/integration-volumes-gegenprobe.sh`, Sendung aus
       `slice-harness-integration-volumes`) ohne Fehler und ohne Zeile annimmt; je Zusage ist die
       Mutation gesehen (`AGENTS.md` §3.10). Ihre Zeile in
       `harness/README.md` §Sensors nennt die neuen Fälle.
-- [ ] Erste Gate-Deklarationen und RTM: Die Gegenprobe des Lint-Gates trägt im Kopf die
+- [x] Erste Gate-Deklarationen und RTM: Die Gegenprobe des Lint-Gates trägt im Kopf die
       Deklaration von LH-QA-07, Teil 1 und Teil 3 von 3; die Tabellen sind mit
       `make abdeckung` neu geschrieben, LH-QA-07 steht in der Gesamtsicht als
       *teilweise* (Messung `1/3 Gate; 2/3 —; 3/3 Gate`) und nicht in `abdeckung-vollstaendig.md`;
       `make abdeckung-check` ist grün. Das Label von `trace.coverage` in `.d-check.yml` heißt
       `Abdeckung` (siehe §1); `make doc-trace` zeigt LH-QA-07 nicht als belegt, eine vollständig
       belegte Anforderung mit dem neuen Label (Beleg in §7).
-- [ ] `make gates` grün.
+- [x] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -153,6 +153,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `harness/sensors/abdeckung-check.md` | update | Ausgänge: Exit 2 auch bei Lastenheft ohne Anforderung und fehlendem `docs/user/`; Tabellen fünf statt vier |
 | `harness/vertraege/SPEC-048-abdeckung.md` | geschrieben (Architect) | Punkte 2, 3, 4, 6 fortgeschrieben, Punkte 7 und 8 neu, Grenze; liegt vor dem Anspruch; weicht der Code ab, zieht der Implementer den Vertrag im selben Commit nach (`AGENTS.md` §3.9) |
 | `harness/README.md` | update | §Sensors: Vertrag von `make abdeckung-check` und `make abdeckung-gegenprobe` |
+| `harness/mk/abdeckung.mk` | update | Kommentar und Hilfetexte nennen auch die Gegenproben als Quelle der Deklarationen (`AGENTS.md` §3.7); keine Änderung am Rezept |
 | `.d-check.yml` | update | `trace.coverage`: Label `Tests` → `Abdeckung`; Quelle und Status „belegt nur bei vollständiger Belegung“ bleiben |
 
 ## 4. Trigger
@@ -182,8 +183,7 @@ Die Randformen aus §6 hat der Architect am 2026-10-17 bestätigt und die offene
 **Größe** (`AGENTS.md` §3.14): Metrik ist die Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test tools/harness/lint-gegenprobe.sh
 harness/README.md harness/sensors/abdeckung-check.md harness/vertraege/SPEC-048-abdeckung.md docs/user .d-check.yml`,
-Tests eingeschlossen. Basis: der Commit des Anspruchs (`next` → `in-progress`), beim Anspruch
-einzutragen. Schätzung (vom Architect am 2026-10-17 auf 450 bis 700 korrigiert, Mitte 550, Obergrenze
+Tests eingeschlossen. Basis: `cbeb3381`, der Elternteil des Anspruchs-Commits (`next` → `in-progress`, `1ab4f9d6`). Schätzung (vom Architect am 2026-10-17 auf 450 bis 700 korrigiert, Mitte 550, Obergrenze
 700): `abdeckung.sh` rund 170 Zeilen (Gate-Kopf, Teile und Querprüfungen, Tabelle, Darstellung der Teile,
 Ausgang 2), die Gegenprobe mit dem Doppelten davon (rund 300 bei rund 30 Fällen), Tabellen unter
 `docs/user`, Gate-Index, Sensor-Datei, Kopf der Lint-Gegenprobe und `.d-check.yml` zusammen rund 50;
@@ -318,6 +318,79 @@ diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
 aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
+
+### Belege des Implementers
+
+**Größe** (§4, Metrik `git diff --numstat cbeb3381..<letzter Commit> -- tools/test tools/harness/lint-gegenprobe.sh harness/README.md harness/sensors/abdeckung-check.md harness/vertraege/SPEC-048-abdeckung.md docs/user .d-check.yml`): Summe aus Einfügungen und Löschungen **823** (Skript 271, Gegenprobe 474, `harness/sensors/abdeckung-check.md` 32, Tabellen unter `docs/user` 26, `.d-check.yml` 11, `harness/README.md` 6, Kopf der Lint-Gegenprobe 3; `harness/mk/abdeckung.mk` liegt außerhalb der Pfade der Metrik). Über der Meldeschwelle 800 (dem Planner im Bericht gemeldet), unter der Marke 1000, die Schätzung 450 bis 700 ist überschritten; die Gegenprobe trägt rund 58 Prozent des Diffs. Schichten: Harness-Werkzeug und Nutzer-Doku, zwei; Liefer-Punkte drei. Die Zählung hält, die Erweiterung ändert die Form der bestehenden Tabellen und Test-Deklarationen nicht (E2E- und Unit-Tabelle byte-gleich).
+
+**Vorher und nachher** (`make abdeckung`): `abdeckung-gesamt.md` führt LH-QA-07 vorher nicht, nachher `| LH-QA-07 | n/a | n/a | n/a | 1/3 Gate; 2/3 —; 3/3 Gate | teilweise |`; `abdeckung-vollstaendig.md` führt sie nicht; neu `abdeckung-gate.md` mit zwei Zeilen (`Messung-1-von-3`, `Messung-3-von-3`, Nachweis `tools/harness/lint-gegenprobe.sh`). RTM (`make doc-trace`, `Coverage`-Spalte): LH-QA-07 `—`, LH-QA-02, LH-QA-06 und LH-RB-01 `Abdeckung`. Mit einem Mutanten, der eine geteilte Messung schon bei einem belegten Teil als vollständig zählt (Kopie des Repos, `return 1` → `return 0` in `vollstaendig`), schreibt `make abdeckung` LH-QA-07 in `abdeckung-vollstaendig.md`, und `d-check --trace` zeigt sie mit `Abdeckung`: Das Risiko *RTM zählt eine Teilabdeckung als belegt* ist damit sichtbar, und die Gegenprobe fängt den Mutanten (`t-voll-irgendein-teil`, unten).
+
+**Abgleich der Namen** (Risiko *Deklaration sagt mehr zu*): Der Kopf von `tools/harness/lint-gegenprobe.sh` nennt `p0-grundlauf`, `p3-*`, `p4-*`, `p5-*`, `p6-*`, `p8-*` (Teil 1) und `p7-whitebox-{kern,driven,pgwire,einstieg}`, `p7-internal-test`, `p7-endet-auf-export-test`, `p7-test-in-bruecke-*` (Teil 3); jedes Präfix hat Fälle in der Datei (`grep` je Präfix: 1, 17, 18, 36, 12, 48 und 4, 1, 1, 1). Teil 2 steht bewusst nicht dort (§1).
+
+**Mutationen** (Weg: je Mutant eine Kopie von `tools/test/` im Scratchpad, genau eine Ersetzung, die Zahl der Treffer geprüft, die unveränderte Gegenprobe gegen den Mutanten; die Kopie ist ein frischer Pfad, kein Build-Kontext). Die Spalte „roter Test“ nennt die Fälle, die rot wurden; unverändert sind alle grün.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Zahlform: mehrstellig, `01`, Vorzeichen, Leerraum, je an i und n, `0` (Punkt 8) | Muster mit `[1-9][0-9]*`, `0?[1-9]`, `[+]?[1-9]`, ` ?[1-9]` an i bzw. n; `[0-9]`; Anker `$` entfernt | `teil-zahlform-<Form>` und `gate-teil-zahlform-<Form>` der jeweiligen Form, bei `01` und `0` dazu weitere Fälle derselben Form (Mutanten `zf2-*`, je Form einer) |
+| Zahlform an `LH-RB` | Muster nur für `LH-QA` (`zf-nur-qa-teil`) | `teil-i-ueber-n-rb` und die Bäume mit `LH-RB-01` |
+| geteilte Messung an `LH-FA` Fehlform | an einer `LH-FA` zugelassen | `teil-fa` |
+| i > n | `a > b + 1`; Prüfung entfernt; `continue` entfernt | `teil-i-ueber-n`, `gate-teil-i-ueber-n`, `grund-3-vor-4` |
+| n = 1 | `b < 1`; Prüfung entfernt; `continue` entfernt | `teil-n-eins`, `gate-teil-n-eins`, `grund-5-ohne-3` |
+| i = n zulässig | `a >= b` | `gate-kopf`, `teil-gut`, `teile`, … (viele) |
+| verschiedene n für dieselbe Anforderung | Prüfung entfernt; n global statt je Anforderung | `widerspruch-n`, `widerspruch-bytegenau`, `widerspruch-zeile`, `widerspruch-gate-*` bzw. `teil-gut`, `teile*` |
+| `Messung` neben Teil, Reihenfolge Messung zuerst | Prüfung entfernt | `widerspruch-messung-dann-teil`, `widerspruch-messung-gate` |
+| `Messung` neben Teil, Teil zuerst | Prüfung entfernt | `widerspruch-teil-dann-messung` |
+| Widerspruch an der späteren Fundstelle, nennt die frühere | Orte vertauscht | `widerspruch-n`, `-bytegenau`, `-zeile`, `-gate-frueher`, `-gate-spaeter`, `-gate-gate` |
+| Ordnung nach Dateipfad | Schlüssel entfernt; locale-abhängig (`f`) | `widerspruch-gate-spaeter`, `widerspruch-teil-dann-messung`; `widerspruch-bytegenau` |
+| Ordnung nach Zeile numerisch | lexikalisch | `widerspruch-zeile` |
+| Ordnung der Elemente einer Deklaration | Schlüssel entfernt; rückwärts | `widerspruch-element-rueckwaerts`; `widerspruch-element` |
+| Reihenfolge der Gründe: Form vor Elementen | Elemente nach der Formprüfung noch gelesen; Formprüfung entfernt | `grund-1-vor-2-bis-4`, `grund-5-ohne-1` |
+| (4) Anforderung unbekannt nach (3) | Prüfung (4) vor Wertebereich | `grund-3-vor-4` |
+| (5) betrachtet nur Elemente ohne Grund aus (1) bis (4) | `continue` nach (3) bzw. (4) entfernt, ungültiges Element weitergereicht | `grund-5-ohne-3`, `grund-5-ohne-4`, `grund-3-vor-4` |
+| Gate-Deklaration: nur `LH-QA`, `LH-RB` | `LH-FA` zugelassen (Zweig entfernt und Muster geweitet) | `gate-fa`, `gate-fa-messung`, `gate-fa-teil`, `gate-pfad-happy` |
+| gelesen werden Dateien auf `-gegenprobe.sh` | Muster ohne Bindestrich; mit Nachsilbe; `tools/*.sh` | `gate-nicht-gelesen tools/gegenprobe.sh`, `… tools/x-gegenprobe.sh.bak`; die dritte Mutation fällt auf `gate-nicht-gelesen tools/x.sh` |
+| nur unter `tools/` an der Wurzel | Suche ab der Wurzel des Repos | `gate-nicht-gelesen harness/…`, `… sub/tools/…` |
+| in jeder Tiefe | `-maxdepth 1` | `gate-tiefer` |
+| Kopf endet an der ersten Zeile ohne `#` | Kopf endet erst an einer Leerzeile | `gate-nach-dem-kopf`, `gate-nach-dem-kopf-code` |
+| Shebang-Zeile gehört zum Kopf; Deklaration in Zeile 1 und 2 | Shebang Pflicht; Zeile 1 übersprungen | `gate-tiefer` |
+| eingerückt (Leerzeichen, Tab) | Prüfung nur im Kopf; nur Leerzeichen | `gate-eingerueckt`, `gate-eingerueckt-tab` |
+| Deklaration ohne „ — “ | Fehlermeldung nur für Tests | `gate-ohne-trenner` |
+| `Abdeckung:` am Zeilenanfang nach dem Kopf | Zweig entfernt | `gate-nach-dem-kopf`, `gate-nach-leerzeile`, `gate-nach-dem-kopf-code` |
+| Fortsetzung `# ` + Text, Ende an `#` allein, an `# ` ohne Text, an `#` ohne Leerzeichen, an der nächsten Deklaration | Fortsetzung auch ohne Leerzeichen (`^#`); auch ohne Text; `^#` ohne Ausnahme für `#` allein; Ende an der nächsten Deklaration entfernt | `gate-kopf` (jede der drei Fortsetzungs-Mutationen); `gate-kopf`, `teile-gate`, `teile-gesamt` (nächste Deklaration) |
+| Zeile der Fehlermeldung ist die Zeile der Deklaration | `NR - 1` | `gate-zeile`, `gate-zwei-dateien`, `widerspruch-gate-*` |
+| Fortsetzung bei Tests | ohne Leerzeichen angefügt | `gueltig-maskierung` |
+| `|` im Text maskiert | `gsub` entfernt | `gueltig-maskierung`, `gate-gutform` |
+| Tabelle Gate: eigene Datei ohne Spalte *Ort*, nur Gate-Zeilen | Spalte *Ort*; Unit-Zeilen in die Gate-Tabelle | `inhalt-gate-leer`, `gegenprobe-ohne-deklaration`, `teile-gate` |
+| Tabelle Gate sortiert nach Anforderung, Pfad, Nachweis | Nachweis aus dem Schlüssel; Pfad aus dem Schlüssel | `teile-gate` (beide) |
+| Teile in der Gesamtsicht: alle 1 bis n, aufsteigend, `<i>/<n> <Arten>` oder `<i>/<n> —`, durch „; “ | Schleife bis n − 1; `—` entfernt; Trenner „, “ | `teile-gesamt`, `teile-voll-gesamt`, `teile-reihenfolge-gesamt`, `teil-fehlt-*-gesamt` |
+| Nachweisarten in der Folge `E2E, Gate, Unit` | `sort -ru` | `inhalt-gesamt`, `teile-gesamt`, `teile-voll-gesamt` |
+| Vollständig: jeder Teil 1 bis n (erster, mittlerer, letzter, neunter) | Schleife bis n − 1; irgendein Teil genügt (`t-voll-irgendein-teil`); immer Teil 1; Pfad `Messung` als einziger Maßstab | `teil-fehlt-erster`, `-mittlerer`, `-letzter`, `-neunter`, `-erster-von-neun`, `teile-vollstaendig`, `teil-neun-voll` |
+| Gesamtzahl wird aus den Deklarationen gelesen | fest 2 | `teile-gesamt`, `teil-fehlt-*` |
+| E2E-Verzeichnis nur an der Wurzel | Muster `*test/integration/*` | `e2e-tiefer-e2e`, `e2e-tiefer-unit` |
+| Ausgang 2: Lastenheft fehlt; ohne Überschrift; ohne `docs/user/` | Exit 1 an jeder der drei Stellen; Prüfung der Überschrift entfernt | `ohne-lastenheft`, `lastenheft-ohne-anforderung`, `ohne-docs-user` (ohne und mit `--check`), `ausgang2-ueberschrift-vor-docs` |
+| Reihenfolge der drei Gründe | `docs/user/` vor dem Lastenheft; vor der Überschrift | `ausgang2-lastenheft-zuerst`, `ausgang2-ueberschrift-vor-docs` |
+| `make abdeckung` legt `docs/user/` nicht an | `mkdir -p` statt Abbruch | `ohne-docs-user`, `ohne-docs-user --check` |
+| Fünf Tabellen geschrieben und geprüft | Gate-Tabelle aus der Schleife genommen | `schreiben-fehlend`, `inhalt-gate-leer`, `check-gate-veraendert`, `check-gate-fehlt` |
+| Ausgang 1 bei Fehlform; bei veralteter Tabelle (Verdrahtung des Aufrufers im Skript) | `exit 0` statt `exit 1` nach den Meldungen; `exit 0` am Ende | fast jeder Fall von `abgelehnt`; `check-veraltet`, `check-zwei-veraltet`, `check-gate-*` |
+
+**Äquivalente und nicht unterscheidbare Mutanten** (grün, eingeordnet; die Grenze trägt der Kopf der Gegenprobe):
+
+- Reihenfolge von i > n und n = 1 untereinander (beide Gründe (3), die Meldung nennt einen davon): Der Vertrag ordnet sie nicht.
+- Das Ende der Fortsetzung am Kopfende (`abschluss()` am Kopfende entfernt, oder die Fortsetzung auch nach dem Kopf zugelassen, einzeln und zusammen): Die erste Zeile nach dem Kopf ist keine `#`-Zeile und beendet die Fortsetzung selbst; der Fall `gate-kopfende` zeigt das Ergebnis, nicht den Zweig.
+- Der Zweig für `LH-FA` in der Gate-Deklaration allein (ohne das Muster zu weiten): `LH-FA` fällt dann am Muster, mit einer anderen Meldung; der Vertrag nennt die Meldung nicht.
+- Welche von mehreren früheren Deklarationen ein Widerspruch nennt (der Mutant, der die frühere durch die zuletzt gelesene ersetzt, bleibt grün): Der Vertrag sagt „die frühere“; siehe Frage unten.
+- `-type f` bei der Suche der Gegenproben: Eine Datei auf `-gegenprobe.sh`, die ein Verzeichnis ist, kommt im Vertrag nicht vor.
+- `LC_ALL=C` (Punkt 6, bytegenau): Die Umgebung des Laufs setzt kein anderes Locale; der Mutant mit `en_US.UTF-8` im Sortieren wird rot (`widerspruch-bytegenau`), das Entfernen von `export LC_ALL=C` nicht, weil die Umgebung des Laufs C ist.
+
+**Fragen an den Architect** (Randformen, die §6 nicht nennt; im Code gelesen wie unten, nicht entschieden):
+
+1. Punkt 6, Ausgang 2: Der Vertrag sagt „keine Überschrift `### LH-…`“. Der Code prüft genau das (`^### LH-`). Ein Lastenheft nur mit `### LH-XX-01 …` besteht damit die Prüfung, hat aber keine bekannte Anforderung. Gemeint so?
+2. Punkt 8: Widersprechen mehrere frühere Deklarationen, nennt der Fehler die erste, die das n festlegt; ein widersprechender Eintrag legt n nicht fest, ein dritter mit dem n des zweiten steht ebenfalls im Fehler (`widerspruch-dritter`). Der Vertrag sagt „nennt die frühere“. Genügt das, oder soll der Vertrag die Wahl nennen?
+3. Punkt 7, Zeile der Fehlermeldung einer Gate-Deklaration ist die Zeile ihrer ersten Zeile (`# Abdeckung: …`); bei einer eingerückten oder einer Deklaration nach dem Kopf die Zeile der Zeile selbst. Der Vertrag nennt „Datei und Zeile“.
+4. Punkt 7: Eine eingerückte Deklaration ist in einer Gegenprobe an jeder Stelle der Datei eine Fehlform (wie bei Tests), nicht nur im Kopf.
+5. Punkt 7: Eine Zeile `# ` (Raute und Leerzeichen) ohne Text beendet die Fortsetzung wie `#` allein.
+
+**Läufe:** `make abdeckung-check`, `make abdeckung-gegenprobe` (rund 6 s), `make docs-check` (992 Dateien, 0 Befunde), `make kopf-check`, `make doc-trace` am Stand dieses Commits grün; `make lint-gegenprobe` und `make lint` laufen im vollen `make gates`. `make gates` am Endstand (Stand der Arbeitsbaum-Datei `gates-passed.dateiliste` vom 2026-10-17 16:00): Exit 0, `abdeckung-check`, `abdeckung-gegenprobe`, `lint`, `lint-gegenprobe` und alle übrigen Gates grün; ein erster Lauf als Hintergrundjob der Shell scheiterte an `container-gegenprobe` (SIGINT wird von einem so gestarteten Prozess geerbt ignoriert, Fälle `p9-*INT`), der zweite, über das Werkzeug gestartet, lief grün; keine Flake (`p7-int-treiber`, `p9-ungenutzt-allein`) trat auf.
 
 - **Was hat funktioniert:** <…>
 - **Was ging anders als geplant:** <…>
