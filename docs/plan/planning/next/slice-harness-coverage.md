@@ -24,7 +24,7 @@ Abdeckung je Anforderung und Pfad), [ADR-0033](../../adr/0033-gate-nachweise-in-
 Nachweisart Gate). Die ADR des neuen Gates schreibt der Architect
 im Slice, vor dem Code; ihre Nummer vergibt der ADR-Index.
 
-**Berührte Spec-Stellen:** `harness/vertraege/` (neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice; die nächste freie Nummer ist 053)
+**Berührte Spec-Stellen:** `harness/vertraege/` (neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice; die nächste freie Nummer ist 056; `SPEC-053` bis `SPEC-055` sind vergeben); `SPEC-052` (Punkt 4 und 13: Eintrag der Gegenprobe in die Ausnahmeliste der schnellen Kette und Beleg, dass sie `docs/user/` und `README.md` nicht liest; Architect, vor dem Code)
 
 **Verantwortlich:** pt9912
 
@@ -59,6 +59,16 @@ keine Schwelle; es ist Kontext, kein Vorbild.
 
 **Übernommen aus `slice-harness-mutation`** (dort §1, Abgrenzung): die Anweisungs-Abdeckung
 als Gate; das ist das Ziel oben.
+
+**Sendung an die schnelle Kette** (`AGENTS.md` §3.13; Geber dieser Slice): Das Ziel der
+Gegenprobe (Name nach §6 *Benennung*) endet auf `-gegenprobe` und hängt an `GATE_CHECKS`. Es
+steht im selben Commit in `GATE_SCHNELL_AUSNAHME` (`harness/mk/gates-schnell.mk`; `SPEC-052`
+Punkt 4, sonst ist `gates-schnell-gegenprobe` rot), und `SPEC-052` Punkt 13 trägt den Beleg, dass
+die Gegenprobe `docs/user/` und `README.md` des Arbeitsbaums nicht liest (sie baut aus einer
+Kopie unter eigenem Temp-Pfad, §6; ein `docker build` sieht nur den Build-Kontext der Allowlist
+`.dockerignore`). Die Stufe `test` selbst ist kein Gate der Ausnahmeliste und bleibt in der
+schnellen Kette; ob die Schwelle im Build-Kontext liegen darf, ist eine offene Randform (§6
+*Werkzeug*).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -132,11 +142,13 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `docs/plan/adr/<NNNN>-schwelle-testabdeckung.md`, `docs/plan/adr/README.md` | neu / update | ADR des Gates (Architect, vor dem Code): Messung mit Quellstand, Regel, nach der die Schwelle folgt, `Schärft:` auf die Kennung des Gates; Index-Zeile |
-| `harness/vertraege/` (neue Datei der Kennung 053) | neu | Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
+| `harness/vertraege/` (neue Datei der Kennung 056) | neu | Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
 | `Dockerfile` | update | Stufe `test`: Profil erzeugen und gegen die Schwelle prüfen, netzlos; die bestehenden Prüfungen der Stufe bleiben |
 | Prüfung der Schwelle (Ort nach §6 *Werkzeug*) | neu | wertet das Profil aus, nennt je Paket und gesamt den Wert und die Schwelle |
 | `harness/mk/build.mk` oder eigenes Fragment unter `harness/mk/` | update / neu | Schwelle als eine benannte Stelle (Build-Argument oder Konfiguration), Ziel der Gegenprobe an `GATE_CHECKS` |
 | `tools/harness/<gegenprobe>.sh` | neu | Mutanten in einer Kopie unter eigenem Temp-Pfad: Code ohne Test hinzugefügt (rot), Stand genau an der Schwelle (grün), je Randform ein Fall; Name nach dem Muster `*-gegenprobe.sh`, im Kopf die Abdeckungs-Deklaration von LH-QA-07, Teil 2 von 3 |
+| `harness/mk/gates-schnell.mk` | update | Ziel der Gegenprobe in `GATE_SCHNELL_AUSNAHME` (`SPEC-052` Punkt 4), im Commit des Ziels; die zweite Änderung derselben Zeile mit `slice-harness-integration-volumes` (Konflikt beim Zusammenführen) |
+| `harness/vertraege/SPEC-052-gate-kette.md` | update (Architect) | Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest; vor dem ersten Code-Commit |
 | `docs/user/abdeckung-*.md` | update | mit `make abdeckung` neu geschrieben: LH-QA-07 vollständig |
 | `harness/README.md` | update | §Sensors: Vertrag von `make test` um die Schwelle ergänzt, Gegenprobe als Zeile; „Nicht behauptet“ angepasst |
 
@@ -174,9 +186,19 @@ dem Start, vor jedem Code-Commit: Der Architect misst den Stand (gesamt und je P
 mit Quellstand), entscheidet die Randformen aus §6 und schreibt die ADR mit der
 Schwelle (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
+**Größe** (`AGENTS.md` §3.14): Metrik ist die Summe aus Einfügungen und Löschungen von
+`git diff --numstat <Basis>..<letzter Commit des Slice> -- Dockerfile .dockerignore harness/mk
+tools/harness tools/test harness/vertraege harness/README.md docs/user docs/plan/adr`, Tests
+eingeschlossen. Basis: der Commit des Anspruchs (`next` → `in-progress`), beim Anspruch
+einzutragen. Schätzung (Arbeitswert des Planners aus den Bestandsmaßen, vom Architect vor dem Code
+zu bestätigen; die Gegenprobe zählt mit dem Doppelten des Produktcodes): 450 bis 750, Mitte 600.
+**Meldeschwelle 750:** Wer im Lauf darüber liegt oder liegen wird, meldet es dem Planner, bevor er
+weiterbaut. **Marke 900:** darüber gilt die Rückführung unten, ohne Ermessen.
+
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Entscheidung über die
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe der Metrik liegt über 900,
+  oder die Entscheidung über die
   Schwelle (§6) verlangt neue Tests, bevor das Gate grün sein kann — etwa eine
   Schwelle je Paket, die Pakete unter dem gemessenen Stand nicht halten. Dann entstehen
   die Tests in eigenen Slices, und dieser liefert danach das Gate auf dem dann
@@ -205,7 +227,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **offen**. Entschieden werden
-sie vor dem ersten Code-Commit vom Architect und festgehalten in `harness/vertraege/` (Technik-Stratum, Ort seit `slice-harness-vertraege-umzug-gate-kette`; ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie Kennung, heute 053, vergeben vom Slice, der es liefert); die ADR des
+sie vor dem ersten Code-Commit vom Architect und festgehalten in `harness/vertraege/` (Technik-Stratum, Ort seit `slice-harness-vertraege-umzug-gate-kette`; ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie Kennung, heute 056, vergeben vom Slice, der es liefert); die ADR des
 Gates trägt Entscheidung und Gründe und verweist mit `Schärft:` auf die Stelle. Eine
 Entscheidung des Nutzers wird dort festgehalten. Was dort nicht steht, entscheidet der
 Implementer nicht, er gibt es zurück.
@@ -250,6 +272,10 @@ Implementer nicht, er gibt es zurück.
   rot: dieselbe Ausgabe und die Differenz, Exit ≠ 0, die Stufe bricht ab. Offen: ob
   die Paket-Liste auch bei grün erscheint, Sortierung, und ob die Ausgabe ein Paket
   unter einer Paket-Schwelle beim Namen nennt.
+- **Ausnahmeliste und Beleg der schnellen Kette** (Sendung aus §1; `SPEC-052` Punkt 4 und 13) —
+  offen: Ort der Schwelle (Build-Kontext oder Build-Argument) und damit, ob die Stufe `test` in
+  der schnellen Kette bleibt; Eintrag der Gegenprobe in `GATE_SCHNELL_AUSNAHME`; Wortlaut des
+  Belegs in Punkt 13.
 - **Benennung** — „Abdeckung“ ist in diesem Repo die Abdeckung je Anforderung
   ([ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md), `make abdeckung`,
   `make abdeckung-check`). Offen: Name des Gegenproben-Ziels und Wortlaut in der
@@ -344,10 +370,16 @@ Keiner der Einträge erreicht mit diesem Slice allein die Schwelle 3×; keine ne
 Lücke vor dem Code.
 
 **Nachgezählt** mit der Sendung aus `slice-harness-vertraege-umzug-gate-kette` (Ort neuer
-Kennungen: `harness/vertraege/`, nächste freie Nummer 053; `AGENTS.md` §3.13): drei
+Kennungen: `harness/vertraege/`, nächste freie Nummer damals 053, heute 056 nach `SPEC-053` bis `SPEC-055`; `AGENTS.md` §3.13): drei
 Liefer-Punkte (§2: Gate mit Schwelle, Gegenprobe, Doku, unverändert) und zwei Schichten,
 Harness (Vertragsdatei, `Dockerfile`, `harness/mk/`, `tools/`, `harness/README.md`) und
 Nutzer-Doku (`docs/user/abdeckung-*.md`); die ADR ist Planung. Die Vertragsdatei lag vorher
 in der Spezifikation; die Sendung erhöht die Zahl der Schichten nicht.
+
+**Nachgezählt** mit der Sendung an `gates-schnell.mk` und `SPEC-052` (§1; Stand `91a1bd02`,
+`AGENTS.md` §3.13): Liefer-Punkte 3 (die Sendung wächst in Punkt 2, Gegenprobe, hinein), Schichten
+2 (Harness mit `harness/mk/gates-schnell.mk` und `harness/vertraege/SPEC-052-gate-kette.md`;
+Nutzer-Doku `docs/user/abdeckung-*.md`); `Dockerfile` und `tools/harness` liegen in der
+Harness-Schicht, die Pläne und ADR sind Planung.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
