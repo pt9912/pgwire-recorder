@@ -17,7 +17,7 @@ kein Meilenstein hängt an ihm. Angelegt am 2026-10-17 auf Entscheidung des Nutz
 
 **Berührte Spec-Stellen:** —
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig dev-container-u-boot)
 
 **Autor:** Planner. **Datum:** 2026-10-17.
 
@@ -98,7 +98,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Größe.** Metrik nach `AGENTS.md` §3.14: Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- docs/developer`. Basis ist der
-Elternteil des Commits, der diese Datei nach `in-progress/` bewegt. Das Gerüst liegt außerhalb des Repos und fehlt in dieser Zahl; sein Umfang steht im Bericht als Summe aus `git diff --no-index --numstat` zwischen altem und neuem Stand der vier Dateien. Schätzung (Planner, 2026-10-17): Dokument 200 bis 350 (drei Abschnitte mit Dockerfile, Skript und Compose-Block werden ersetzt, mehrere Abschnitte nachgezogen, eine Löschung zählt wie eine Einfügung), Gerüst 40 bis 100; Tests und Gegenprobe entfallen, der Faktor aus §3.14 greift nicht. Meldeschwelle 350, **Marke 450** (nur Dokument).
+Elternteil des Commits, der diese Datei nach `in-progress/` bewegt (`05fd1403`). Das Gerüst liegt außerhalb des Repos und fehlt in dieser Zahl; sein Umfang steht im Bericht als Summe aus `git diff --no-index --numstat` zwischen altem und neuem Stand der vier Dateien. Schätzung (Planner, 2026-10-17): Dokument 200 bis 350 (drei Abschnitte mit Dockerfile, Skript und Compose-Block werden ersetzt, mehrere Abschnitte nachgezogen, eine Löschung zählt wie eine Einfügung), Gerüst 40 bis 100; Tests und Gegenprobe entfallen, der Faktor aus §3.14 greift nicht. Meldeschwelle 350, **Marke 450** (nur Dokument).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
