@@ -283,6 +283,10 @@ Abweichung vom Plan §3: `p15-ziel-verzeichnis-developer` entscheidet `link_iner
 `m-verzeichnis-inert`, nicht `m-spiegel-ohne-developer` (ein Link unter `docs/developer/` ist inert und wird von der Spiegelregel
 übergangen).
 
+Läufe am Endstand `6d58b508`: `make stop-hook-gegenprobe` grün (150 Fälle), `make docs-check` 0 Befunde, `make kopf-check` grün,
+`make gates` beim ersten Lauf Exit 0 (kein Flake aufgetreten). Marke nach `AGENTS.md` §3.14 (Basis `97fc3339`, Pfade
+`.claude/hooks tools/harness harness`, Stand `6d58b508`): 63 Einfügungen + 26 Löschungen = 89 (Schwelle 300, Marke 400).
+
 Beleg Punkt 13, wiederholt: `grep -rn "docs/developer"` über `tools`, `harness/mk`, `Makefile`, `Dockerfile`, `.dockerignore`,
 `.a-check.yml`, `.golangci.yml`, `.d-check.yml`, `.claude`, `.githooks` findet außer Hook und Gegenprobe keine Zeile. Links im Bestand
 (`git ls-files -s | awk '$1==120000'`): fünf, alle unter `.claude/rules/`, keiner mit Ziel `docs/developer`. Die Texte in
