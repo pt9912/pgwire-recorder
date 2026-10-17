@@ -146,6 +146,150 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
+### Belege des Implementers
+
+Stand: HEAD nach 7e5ecb79 (Code), Basis der Messung `d258c0b7`. Docker Server 29.9.0, `linux/amd64`.
+
+**Läufe (jeweils einzeln, nacheinander)**
+
+| Lauf | Ergebnis |
+|---|---|
+| `make binaries` (leeres `dist/`) | sechs Binaries und `SHA256SUMS`, `sha256sum -c` grün, 29 s |
+| `make test-container` (echtes Docker) | grün, 63 s: 12 Builds, Summen gleich, Kopf von 6 Binaries, Image `linux/amd64` und `linux/arm64`, Smoke auf `linux/amd64`; danach keine Container, kein Netz, keine Tags, keine Temp-Verzeichnisse |
+| `make test-container-gegenprobe` (über `make`) | grün, 3 m 45 s |
+| `make gates-schnell` | grün, 11 s |
+| `make abdeckung-check`, `make meldungskatalog-check`, `make docs-check`, `make kopf-check` | je Exit 0 |
+| `make gates` (ein Lauf) | grün, 937 s (15 m 37 s) |
+
+**Risiko 3 (Laufzeit):** `test-container` kostet etwa 1 Minute, die Gegenprobe etwa 4 Minuten; der volle Lauf dauerte 937 s.
+
+**Risiko 4 (Abdeckung):** `make abdeckung-check` ist grün, ohne dass eine Tabelle `LH-FA-16`, `LH-QA-01` oder `LH-QA-03` führt, und verlangt keinen Beleg des Gates. Befund: keine Deklaration eingetragen ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) erlaubt sie, verlangt sie nicht).
+
+**Messung (Metrik §4, `git diff --numstat d258c0b7..HEAD -- Dockerfile harness tools test`, Stand der Code-Commits 7e5ecb79):** 1147 gesamt (1140 Einfügungen, 7 Löschungen). Aufschlüsselung: `container-gegenprobe.sh` 764, `run-container.sh` 213, `binaries.sh` 68, `container-eingabe.sh` 45, `container.mk` 30, `gates-schnell-gegenprobe.sh` 8, `SPEC-052` 7, `Dockerfile` 5, `gates-schnell.mk` 4, `harness/README.md` 3. Produktcode (`run-container.sh`, `binaries.sh`, `container-eingabe.sh`, `container.mk`, `Dockerfile`) 361; Faktor Gegenprobe/Produktcode 764 : 361, etwa 2,1 (Schätzung des Architect: 2 bis 3, absolut 380 bis 570 für die Gegenprobe, gemessen 764 wegen eines Falls je Aufzählungselement). Marke 1200 nicht erreicht.
+
+**Wege der Mutationen:** `GP_MUT='<Muster>' GP_ENTDECKE=1 bash tools/harness/container-gegenprobe.sh` nennt je Mutation die roten Fälle; `mutiere` ersetzt in einer Kopie des Baums (Textersatz, kein `cp -p`), jede Mutation hat eine eigene Kopie. Docker-teure Mutationen gibt es nicht: Die Gegenprobe läuft mit der Attrappe von `docker`; der Lauf des echten `Dockerfile` ist `make test-container`. Das Einschleusen eines Zeitstempels in das echte `Dockerfile` (SPEC-055 Punkt 4, §6) habe ich nicht gefahren; die Zusage dazu belegt der Fall der abweichenden Summe (sechs Fälle) mit der Attrappe, nicht der echte Build.
+
+**Mutationstabelle** (Zusage · Mutation · roter Fall; „nur“ heißt: die Mutation färbt in ihrer Gruppe genau diese Fälle; Datei `tools/harness/…`)
+
+Punkt 1 (Plattformen, vor dem ersten `docker`):
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| leere Liste | Zeile `P1a` entfernt (`container-eingabe.sh`) | `p1a-bin-leer`, `p1a-img-leer` |
+| Eintrag ohne `/` | `P1b1` | `p1b1-ohne-slash` |
+| leeres Betriebssystem | `P1b2` | `p1b2-os-leer` |
+| leere Architektur | `P1b3` | `p1b3-arch-leer` |
+| Betriebssystem unbekannt | `P1c1` | `p1c1-os-unbekannt` |
+| Architektur unbekannt | `P1c2` | `p1c2-arch-unbekannt` |
+| Eintrag doppelt | `P1d` | `p1d-doppelt` |
+| Plattform fehlt, je eine der sechs und der zwei | `ERF_BINARIES`/`ERF_IMAGES` ohne diese Plattform | `p1e-bin-<plattform>` (sechs, bei `darwin/arm64` auch `p1e-binaries`), `p1e-img-<plattform>` (zwei) |
+| Image-Plattform nicht in den Binaries | `P1f` | `p1f-image-nicht-in-binaries` |
+| Eingabefehler endet vor `docker` (Gate) | `P8vor-docker` (`run-container.sh`) | alle Fälle von Punkt 1 und 2, dazu `p8-1-vor-5` |
+| dasselbe bei `make binaries` | `exit 2` in `binaries.sh` entfernt | `p1e-binaries`, `p2-binaries`, `p3-dist-nicht-leer`, `p3-zweiter-lauf` |
+
+Punkt 2 (`VERSION`):
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| leer unzulässig | `-z`-Zweig vor dem Muster | `p2-leer`, `p2-binaries` |
+| Leerzeichen / `$` / `'` / `"` unzulässig | Zeichen in `rest` aufgenommen (je eins) | `p2-leerzeichen`, `p2-dollar`, `p2-einfaches-anfuehrungszeichen`, `p2-doppeltes-anfuehrungszeichen` |
+| führendes `-` unzulässig | `-` in `erst` | `p2-fuehrendes-minus` |
+| `.`, `+`, `_`, `-` zulässig (je ein Zeichen) | Zeichen aus `rest` entfernt (vier Mutationen) | `p2-gueltig` |
+| `VERSION` geht in den Namen/Build ein | feste Zeichenkette `dev` im Vergleich der Ausgabe | `p2-gueltig` |
+
+Punkt 3 (`make binaries`):
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| `DIST` nicht leer oder Datei: rot vor `docker` | `P3dist` | `p3-dist-nicht-leer`, `p3-dist-datei`, `p3-zweiter-lauf` |
+| `DIST` fehlt: wird angelegt | `mkdir -p` entfernt | `p3-dist-fehlt` und die Fälle, die in ein fehlendes `out` schreiben |
+| Endung `.exe` unter Windows | `P3exe` | `p3-namen`, `p3-exe`, `p3-sums-je-binary` |
+| Name trägt die `VERSION` | Name ohne `VERSION` | `p3-exe`, `p3-namen`, `p3-sums-format`, `p3-sums-je-binary` |
+| `VERSION` im Build | `--build-arg` entfernt | `p3-version-im-build` |
+| sortiert | `P3sort` | `p3-sums-sortiert` |
+| zwei Leerzeichen | `sha256sum --binary` | `p3-sums-format`, `p3-sums-je-binary` |
+| Summe SHA-256 | `sha1sum` | `p3-sums-format`, `p3-sums-pruefbar` |
+| Name ohne Pfad | Namen mit `./` | `p3-sums-format`, `p3-sums-je-binary` |
+| LF | `\r` angehängt | `p3-sums-lf`, `p3-sums-format`, `p3-sums-je-binary` |
+| je Binary eine Zeile (sechs) | `grep -v` einer Plattform | `p3-sums-format`, `p3-sums-je-binary` (je Plattform) |
+| Build scheitert: rot mit Plattform, keine Teilmenge | `break` statt `exit 1`; Binary direkt nach `DIST`; `SHA256SUMS` aus Teilmenge | `p3-rot-nennt-windows-arm64`, `p3-rot-ohne-sums`, `p3-rot-keine-teilmenge` (je nach Mutation) |
+| Werkzeug ohne Cache-Umgehung | Cache-Flags immer | `p3-nur-binaries` |
+
+Punkt 4 (zwei Builds):
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| abweichende Summe je Plattform (sechs) | Zeile der Plattform aus dem Vergleich genommen | `p4-abweichung-<plattform>` (bei `linux/amd64` auch `p8-4-vor-6`) |
+| Namen der abweichenden Binaries | alle Namen statt der abweichenden | sechs `p4-abweichung-*`, `p4-namen` |
+| zweiter Lauf umgeht den Cache | `P4zweiter`; `--no-cache-filter build` entfernt; `--no-cache-filter dist` entfernt | je `p4-cache-umgehen`, `p4-gruen` |
+| Verzeichnisse außerhalb des Arbeitsbaums | `DIST` relativ im Baum | `p10-arbeitsbaum` |
+
+Punkt 5 (Kopf; der Lauf endet beim ersten roten Kopf, Mutationen sind auf ihre Fälle begrenzt):
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| ELF-Magic / Maschine | `P5elf-magic` / `P5elf-maschine` | `p5-format-linux-*` / `p5-arch-linux-*` |
+| Mach-O-Magic / CPU-Typ | `P5macho-magic` / `P5macho-cpu` | `p5-format-darwin-*` / `p5-arch-darwin-*` |
+| PE `MZ` / Maschine | `P5pe-magic` / `P5pe-maschine` | `p5-format-windows-*` / `p5-arch-windows-*` |
+| Architektur je Plattform (sechs) | Wert der Plattform vertauscht | `p5-gruen`, `p5-arch-<plattform>` |
+| PE: Offset aus Byte 0x3c | fester Offset 0x84; Byte 0x38 statt 0x3c | `p5-gruen`, `p5-arch-windows-*` |
+
+Punkt 6 (Image):
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| Betriebssystem / Architektur / Summe | `P6os` / `P6arch` / `P6summe` | `p6-os-*` / `p6-arch-*` / `p6-summe-*` |
+| dasselbe je Plattform (zwei mal drei) | `|| [ "$p" = <plattform> ]` | `p6-<form>-<plattform>` |
+| Bau scheitert: rot mit Plattform | `true` statt `rot` | `p6-bau-rot` |
+| Stufe `runtime` ohne `RUN` | `RUN true` im `Dockerfile` | `p6-runtime-ohne-run` |
+
+Punkt 7 (Smoke):
+
+| Zusage | Mutation | roter Fall |
+|---|---|---|
+| Server-Plattform nur `amd64`/`arm64` | `P7server`; nur `amd64`; nur `arm64`; Tag fest `amd64` | `p7-server-fremd`, `p7-server-arm64`, `p7-gruen` |
+| Netz `--internal` | ohne `--internal` | `p7-intern` |
+| `version`: Exit 0 / genau die Ausgabe / LF / keine zweite Zeile | `|| true`; `P7a-ausgabe`; Vergleich über `$(…)`; nur erste Zeile | `p7a-exit`; `p7a-ausgabe-abweichend`, `p7a-ohne-lf`, `p7a-zusatzzeile`; `p7a-ohne-lf`; `p7a-zusatzzeile` |
+| Sicht A nicht leer / nennt `eins` (zwei leere Sichten sind gleich) | Prüfung entfernt (je) | `p7b-sicht-a-leer`, `p7b-beide-leer`; `p7b-ohne-eins` |
+| PostgreSQL bereit | `|| true` | `p7b-pg-nicht-bereit` |
+| Aufzeichnung entnommen / nicht leer | `|| true`; `P7aufz` | `p7b-cp-rot`; `p7b-aufzeichnung-leer`; `p7-cp-entnehmen` |
+| Exit 0 je Container | Ausnahme für `record` / `replay` | `p7b-exit-rec` / `p7c-exit-rep` |
+| PostgreSQL entfernt vor dem Wiedergeben | `P7pg`; `rm -f` des PostgreSQL-Containers entfernt | `p7c-pg-lebt`; `p7-pg-vor-replay` |
+| Aufzeichnung per `docker cp` in den Container | `cp` entfernt | `p7-cp-hinein` |
+| Sicht B gleich Sicht A | `P7gleich` | `p7c-sicht-ungleich` |
+| kein Terminal / `--user` / `-v` / `--mount` | Flag an der `record`-Zeile (je) | `p7-kein-terminal`, `p7-kein-user`, `p7-kein-volume`, `p7-kein-mount` |
+
+Punkt 8: `P8vor-docker` (oben); Gate fährt nach rotem Punkt 4 weiter (`rot` durch `echo` ersetzt) färbt `p8-4-vor-6`, alle `p4-abweichung-*`, `p4-namen`, `p4-cache-umgehen`.
+
+Punkt 9 (Aufräumen; Enden: grün, rot 4 bis 7, `SIGINT`, `SIGTERM`, `SIGINT` an die Gruppe, `binaries.sh` allein mit `SIGINT`/`SIGTERM`):
+
+| Zusage | Mutation | rote Fälle |
+|---|---|---|
+| Container / Netz / Tags / Temp-Verzeichnis entfernt | `P9container` / `P9netz` / `P9tags` / `P9werk` | `p9-<ende>-container` / `-netz` / `-tags` / `-werk` für die Enden, an denen die Ressource besteht |
+| nach `SIGINT` / `SIGTERM` | Fang auf `kill -KILL`; EXIT-Fang entfernt | `p9-sigINT-*`, `p9-sigTERM-*` |
+| Signal an den laufenden Aufruf weitergegeben | `kill -TERM "$laeuft"` entfernt (Gate, `binaries.sh`) | `p9-<ende>-signal` |
+| Stage von `binaries.sh` entfernt | EXIT-, INT-, TERM-Fang in `binaries.sh` | `p9-<ende>-stage`, `p9-binINT-*`, `p9-binTERM-*` |
+| Namen tragen die Kennung des Laufs | `pgr-ct-x`; `pgr-ct-1` | `p9-kennung-ziffern`, `p9-kennung-eindeutig` |
+
+Punkt 11 (Aufrufarten): `$(MAKE)` im Rezept oder `+` je Ziel färbt `-n`, `-q`, `-t`, `MAKEFLAGS=n/q/t` und die Kombinationen `-n -i`, `-q -i`, `-t -i` (je Ziel neun Fälle); ein Rezept, das unter `-i` nichts fährt, färbt `p11-<ziel>-i` und `p11-<ziel>-makeflags-i`; `$(MAKE)` oder `+` im Rezept der Gegenprobe färbt `p11-gegenprobe-rezept`.
+
+Punkt 12: Anschluss an `GATE_CHECKS` je Ziel entfernt färbt `p12-gate-checks-ziel`, `p12-gate-checks-gegenprobe`; die Ausnahmeliste der schnellen Kette färben die Mutanten in `gates-schnell-gegenprobe.sh` (`m-test-container`, `m-test-container-gegenprobe`).
+
+**Äquivalente und Grenzen**
+
+- `DIST` als reguläre Datei: Die Mutation von `P3dist` allein färbt `p3-dist-datei` nicht rot, wenn `exit 2` fehlt, weil `mkdir -p "$dist"` (`binaries.sh`, vor dem ersten Aufruf von `docker`) auf einer Datei scheitert. Invariante: `mkdir -p` auf eine Datei endet mit Exit-Code ungleich 0, bevor `docker` ruft. Mit der Mutation `%P3dist` wird der Fall rot (die Meldung fehlt).
+- `DIST=` (leerer Wert): nicht entschieden, kein Fall. Er fällt durch `mkdir -p ""` vor dem ersten Aufruf von `docker` rot aus; das ist ein akzeptiertes Negativ: Die Zusage nennt nur, was ein Fall prüft, und dieser Fall hat keinen. Offen für den Architect.
+- `LC_ALL=C` für die Sortierung von `SHA256SUMS`: Der Vertrag sagt „nach Name sortiert“ ohne Locale; der Code sortiert in Byte-Reihenfolge, die Gegenprobe prüft sie so.
+- Wartezeit auf PostgreSQL und auf die Startmeldung (je 60 s) sind Wahl des Codes, nicht des Vertrags; kein Fall prüft die Dauer.
+
+**Beobachtungen**
+
+- Der Lauf endet bei Punkt 5 beim ersten roten Kopf; die Mutationen verdecken die späteren Plattformen, darum sind sie begrenzt (`nur`).
+- `binaries.sh` läuft unter dem Gate als Hintergrundjob und ignoriert `SIGINT`; sein INT-Fang gilt nur im Aufruf allein.
+- Die Weitergabe von `SIGTERM` ist durch das folgende `wait` nur über den Vermerk der Attrappe (`term`) beobachtbar, nicht über die Zeit.
+- Die Gegenprobe hat ein Zehntel der Fälle in `lauft`-Gruppen, die einen echten Gate-Lauf der Attrappe fahren; der Umfang `nur` hält die Mutationsläufe kurz.
+- Zeile `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`: Schätzung für die Gegenprobe 380 bis 570, gemessen 764 (Faktor 2,1 zum Produktcode, nicht 2 bis 3 des Gesamtdiffs).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
