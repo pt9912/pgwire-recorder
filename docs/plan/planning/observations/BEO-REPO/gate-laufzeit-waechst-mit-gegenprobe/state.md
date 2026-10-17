@@ -7,3 +7,5 @@ Zielort: `.claude/hooks/stop-require-gates.sh` (Freigabe über die Positivliste 
 Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-v1-abschluss-postgres-versionen-matrix` — rund 195 s Zuwachs an `make gates` durch das Ziel und zwei Gegenproben; die schnelle Kette bleibt davon ausgenommen (Beleg `evidence/slice-v1-abschluss-postgres-versionen-matrix.md`).
 
 Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-v1-abschluss-container` — `make gates` 927 s am Endstand, davon Gegenprobe 3 m 40 s; sie bleibt aus der schnellen Kette (Beleg `evidence/slice-v1-abschluss-container.md`).
+
+Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-harness-integration-volumes` — `make gates` 1038 s am Endstand, die Gegenprobe des Aufräumens 42 s; sie bleibt aus der schnellen Kette (Beleg `evidence/slice-harness-integration-volumes.md`).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-integration-volumes
+**Fund:** Review F-2 (MEDIUM) und F-3 (MEDIUM): `SPEC-057` Punkt 7 sagte zu, die Gegenprobe verlange „genau diese Menge“ roter Fälle, während sieben Mutanten mehr Fälle färbten (`nur` beschnitt die Fälle); die Gate-Zeile in `harness/README.md` nannte Mutanten ohne Falle für `SIGTERM`/`SIGINT` als rot, beide sind äquivalent; ein Kopfkommentar der Gegenprobe zitierte einen Vertrag, der es nicht mehr sagt. Behoben in `2b3d12a8` (Spalte gilt je Gruppe der Mutation, Punkt 7) und `51205010` (Gate-Zeile und Kommentare enger).

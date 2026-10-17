@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-integration-volumes
+**Fund:** Review F-5 (LOW): §3 hatte keine Zeile für die geänderte `SPEC-055`, die Liste der weiteren `docker run` in §1 nannte `d-check.mk` und `a-check.mk` nicht. Verifikation F-1 und F-2 (LOW): §4 nannte die Basis der Metrik nicht, §7 führte Fragen, die §6 schon entschieden hatte. Behoben in `51205010` und im Commit der Closure; mehrere Runden, weil der Implementer Vertragstext selbst nachzog.

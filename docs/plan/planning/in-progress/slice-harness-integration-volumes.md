@@ -136,24 +136,24 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Aufräumen: Der Runner entfernt die Container `$pg` und `$tests` mit `docker rm -fv`;
+- [x] Aufräumen: Der Runner entfernt die Container `$pg` und `$tests` mit `docker rm -fv`;
       die Suche aus *Bestand* über `tools/` und `harness/mk/` ist wiederholt und belegt
       (Fundstelle, Flags, `.Config.Volumes` des Images, auch für `a-check` und `d-migrate`).
       Beleg in §7: Zahl der Volumes dieses Laufs vor und nach einem Lauf von `make test-integration`
       (nach Namen, §6, nicht als Zahl auf dem Host) und die Fundstellen.
-- [ ] Aufräumen in `test-container`: `run-container.sh` entfernt `$pg` an beiden Stellen und alle übrigen
+- [x] Aufräumen in `test-container`: `run-container.sh` entfernt `$pg` an beiden Stellen und alle übrigen
       Container des Laufs mit `rm -fv`; `container-gegenprobe.sh` hat je Ende (grün, rot, `SIGINT`,
       `SIGTERM`) einen Fall `p9-*-volume` an der Attrappe, die ein Volume für `$pg` anlegt und nur mit `-v`
       entfernt, und die Mutationen `rm -f` an je einer der zwei Stellen, selbst rot gesehen (`SPEC-055`
       Punkt 9); der Fall `p7-pg-vor-replay` zieht die neue Zeile mit. Beleg in §7: Namen der Volumes vor
       und nach einem Handlauf von `make test-container`. Dieser Punkt wächst in Liefer-Punkt 1 (Aufräumen)
       hinein, er zählt nicht als vierter.
-- [ ] Prüfung im Runner: Vor dem Entfernen liest der Runner die Namen der Volumes seiner
+- [x] Prüfung im Runner: Vor dem Entfernen liest der Runner die Namen der Volumes seiner
       Container (außer `$daten`), nach dem Entfernen prüft er, dass keines mehr existiert;
       sonst nennt die Meldung die Namen, der Lauf endet mit Exit-Code ungleich 0 (auch bei
       grünen Tests) und entfernt die Reste per Namen (§6). Die Funktionen liegen in einer
       Datei, die Runner und Gegenprobe laden.
-- [ ] Gegenprobe: `make integration-volumes-gegenprobe` hängt an `GATE_CHECKS` und fährt
+- [x] Gegenprobe: `make integration-volumes-gegenprobe` hängt an `GATE_CHECKS` und fährt
       mit realem Docker die neun Fälle aus `SPEC-057` Punkt 7 (Grundfall, Mutant ohne `-v` rot mit dem
       Namen des Volumes, Container nur angelegt, kein Container, fremde Volumes bleiben, Rest macht den
       Lauf rot, Vorrang des Codes, `SIGTERM`, `SIGINT`); je Fall die Namen der Probe vor und nach,
@@ -161,14 +161,14 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       *Zusage · Mutation · roter Fall*. Die Zeile steht in `harness/README.md` §Sensors, der Vertrag in `SPEC-057`; das Ziel steht in
       `GATE_SCHNELL_AUSNAHME` (`harness/mk/gates-schnell.mk`), und `SPEC-052` Punkt 13 trägt den
       Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest (§1, Sendungen).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -307,13 +307,16 @@ die Zeile `p3-nach-entfernen` verlangt die roten Fälle `p3-angelegt`, `p4-rest-
 **Risiken:**
 
 - Die Gegenprobe verlängert `make gates` (`BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`, 1×):
-  Containerfälle mit realem Docker kosten Sekunden je Fall — **Ausgang:** offen bis Closure; die
-  Laufzeit des Ziels steht mit Zahl in §7, ohne Lockerung von Fällen.
+  Containerfälle mit realem Docker kosten Sekunden je Fall — **Ausgang:** weiter offen, ins Register
+  (`BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`, Beleg `evidence/slice-harness-integration-volumes.md`); gemessen
+  42 s für das Ziel, 1038 s für `make gates` am Endstand (§7), ohne Lockerung von Fällen.
 - Die Platte läuft vor dem Start dieses Slice wieder voll, weil jeder Lauf von `make gates`
-  rund 75 MB hinterlässt, bis der Slice in `done/` ist — **Ausgang:** offen bis Closure; der Trigger
-  in §4 zieht den Slice vor, wenn es eintritt.
+  rund 75 MB hinterlässt, bis der Slice in `done/` ist — **Ausgang:** entfallen: Das Leck ist behoben und
+  gemessen (`make test-integration`, `make test-container` und `make gates` je kein neues Volume nach Namen, §7); der
+  Trigger in §4 trat nicht ein. Bestehende Volumes bleiben Sache des Nutzers (§1).
 - Ein neues `docker run` ohne `--rm` und ohne `-v` außerhalb des Runners legt das Leck wieder an;
-  kein Sensor sieht es, die Gegenprobe prüft nur den Runner — **Ausgang:** offen bis Closure.
+  kein Sensor sieht es, die Gegenprobe prüft nur den Runner — **Ausgang:** weiter offen, ins Register
+  (`BEO-REPO/docker-run-ohne-rm-ausserhalb-der-laeufer`, neu angelegt); Grenze (1) in `SPEC-057` Punkt 11.
 
 ## 7. Closure-Notiz
 
@@ -329,7 +332,20 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+### Closure-Notiz
+
+Stand: Planner am 2026-10-17, vor dem `git mv` nach `done/`. Review (3 MEDIUM, 2 LOW, 1 INFO) und Verifikation (bestanden, 2 LOW) liegen unter `docs/reviews/` (`2026-10-17-review-slice-harness-integration-volumes.md`, `2026-10-17-verify-slice-harness-integration-volumes.md`); alle Findings sind bearbeitet.
+
+- **Was hat funktioniert:** Namen statt Zahlen: Die Prüfung liest die Volumes der eigenen Container (`docker inspect`, auch im Zustand `created`) und erfasst so nur, was der Lauf selbst anlegte; die Gegenprobe lädt dieselbe Funktionsdatei wie der Runner und mutiert sie in Kopien. Vor der Behebung hinterließen beide Läufer je ein Volume, danach keines (`make gates` am Endstand: 49 vor, 49 nach). Der Architect hatte die Randformen vor dem ersten Code in `SPEC-057` entschieden.
+- **Was ging anders als geplant:** Der Slice brauchte mehrere Runden. Das Review fand zwei Zusagen ohne Mutation (Verdrahtung `exit "$ende"`, Inhalt der Meldung) und zwei Aussagen weiter als die Prüfung (Menge roter Fälle, Gate-Zeile zu äquivalenten Mutanten); der Verifier fand sie nicht, weil er Zusage für Zusage am Mutanten prüfte, nicht die Verdrahtung des Aufrufers. Die Runden dehnte, dass der Implementer Vertragstext selbst nachzog (Punkte 5 und 7 von `SPEC-057`); die Entscheidung gehört dem Architect.
+- **Ausgänge der Findings:** F-1 (Exit 1 im Runner) behoben als Zusage an der Funktion `integration_ende` und akzeptiertes Negativ für die Verdrahtung, `SPEC-057` Punkt 4. F-2 (Mengen roter Fälle) behoben: Die Spalte gilt je Gruppe der Mutation, `SPEC-057` Punkt 7. F-3 (Gate-Zeile, Kopfkommentar) behoben in `51205010`. F-4 (Inhalt des Volumes) Regel an den Schreiber der Meldung, nicht zugesagt, `SPEC-057` Punkt 4. F-5 (Plan folgt) behoben in `51205010`. F-6 (INFO) ohne Handlung. Verifikation F-1 (Basis der Marke) und F-2 (offene Punkte in §7) behoben.
+- **Steering-Loop-Eintrag:** Neuer Sensor `make integration-volumes-gegenprobe` mit der Prüfung nach Namen im Runner — liegt in `tools/test/integration-aufraeumen.sh`. Auslöser: `BEO-REPO/integrationstest-hinterlaesst-anonyme-volumes` (slice-walking-skeleton-record, slice-v1-abschluss-container-doku, slice-harness-integration-volumes — 3×, Ausgang verkörpert). Die Finding-Klasse „Zusage ohne Mutation an der Verdrahtung des Aufrufers“ geht als Wiederauftreten in `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (Regel `AGENTS.md` §3.10 gilt, keine Änderung von diesem Lauf; ob §3.10 die Verdrahtung ausdrücklich nennt, entscheidet der Nutzer).
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-harness-integration-volumes.md` ergänzt in `BEO-REPO/integrationstest-hinterlaesst-anonyme-volumes/` (Zähler 3×, Stand verkörpert), `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/` (48×), `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/` (73×), `BEO-REPO/plan-folgt-korrektur-nicht/` (61×) und `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe/` (7×); neu angelegt `BEO-REPO/docker-run-ohne-rm-ausserhalb-der-laeufer/` (1×, offen).
+- **Folge-Slices:** keiner. Die Sendung an `slice-harness-abdeckung-gate` (Kopf der Gegenprobe ohne Deklaration) steht in dessen §1 (`grep` findet die Kennung dieses Slice); er liegt in `next/`.
+- **Risiken aus §6:** Laufzeit weiter offen (Register), volle Platte entfallen (Leck behoben und gemessen), neues `docker run` ohne `--rm` weiter offen (Register); Begründungen in §6.
+- **Marke (`AGENTS.md` §3.14):** Summe aus Einfügungen und Löschungen von `git diff --numstat de908591..51205010` über die Pfade aus §4: **519** (+474, −45) von 900; Meldeschwelle 750 nicht erreicht.
+- **`make gates` am Endstand:** grün, rc=0, 17 min 18 s, am Stand `51205010`; seither ändert sich nur `docs/plan/planning/` (inert).
+- **Drei Paarungen:** Anker (`liegt in` oben, Zielort liegt vor) · Folge-Slice (keiner zugewiesen; Sendung an `slice-harness-abdeckung-gate` von ihm angenommen) · Register (fünf Belege ergänzt, ein Eintrag neu).
 
 ### Belege des Implementers
 

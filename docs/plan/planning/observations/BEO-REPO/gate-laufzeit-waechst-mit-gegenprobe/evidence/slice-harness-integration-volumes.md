@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-integration-volumes
+**Fund:** `make integration-volumes-gegenprobe` 42 s (59 s unter Last des Reviewers), `make gates` am Endstand `51205010` 17 min 18 s (1038 s; Lauf am Endstand der Nacharbeit, davor 1018 s, am Ende von `slice-v1-abschluss-container` 927 s). Das Ziel steht in der Ausnahmeliste der schnellen Kette (`SPEC-052` Punkt 4) und verlängert sie nicht. Risiko *Laufzeit* in §6 des Plans, Ausgang weiter offen (Register).
