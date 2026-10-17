@@ -23,7 +23,8 @@
 #   PGR_HAUPTVERSION  Hauptversion, die server_version des Servers tragen muss
 #   PGR_PHASE_DATEI   Datei, in die der Runner aufbau, 1, 2 oder fertig schreibt
 #
-# Ausgang: der Exit-Code des Testlaufs; ungleich 0, wenn der Aufbau scheitert.
+# Ausgang: der Exit-Code des Testlaufs; ungleich 0, wenn der Aufbau scheitert oder nach dem
+# Entfernen ein Volume der eigenen Container bleibt (SPEC-057 Punkt 4).
 set -euo pipefail
 
 docker="${DOCKER:-docker}"
@@ -42,14 +43,22 @@ pw_scram='GEHEIM scram $%41'
 pw_md5='GEHEIMmd5'
 pw_klartext='GEHEIMklartext'
 
+# shellcheck source=tools/test/integration-aufraeumen.sh
+. "$(dirname "${BASH_SOURCE[0]}")/integration-aufraeumen.sh"
+
+# Das Ende entfernt die Container samt ihrer anonymen Volumes und prüft nach Namen, dass keines
+# bleibt (SPEC-057); ein Code des Laufs ungleich 0 behält Vorrang, sonst macht ein Rest den Lauf rot.
 aufraeumen() {
-  "$docker" rm -f "$tests" "$pg" >/dev/null 2>&1 || true
+  local code=$? ende=0
+  integration_ende "$code" || ende=$?
   "$docker" network rm "$netz" >/dev/null 2>&1 || true
   "$docker" volume rm "$daten" >/dev/null 2>&1 || true
   rm -rf "$werk"
+  exit "$ende"
 }
 trap aufraeumen EXIT # S-EXIT
 trap 'trap "" TERM; exit 143' TERM # S-TERM
+trap 'trap "" INT; exit 130' INT # S-INT
 
 phase() { if [ -n "${PGR_PHASE_DATEI:-}" ]; then printf '%s\n' "$1" > "$PGR_PHASE_DATEI"; fi; }
 

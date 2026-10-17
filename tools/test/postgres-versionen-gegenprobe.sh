@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # postgres-versionen-gegenprobe — prüft die Versionsmatrix (harness/mk/postgres-versionen.mk,
-# tools/test/run-postgres-versionen.sh, tools/test/run-integration-tests.sh) gegen die Punkte 1
+# tools/test/run-postgres-versionen.sh, tools/test/run-integration-tests.sh, tools/test/integration-aufraeumen.sh) gegen die Punkte 1
 # bis 9 und 12 von SPEC-053 (harness/vertraege/SPEC-053-postgres-versionen.md) in Kopien des
 # Arbeitsbaums in einem Temp-Verzeichnis; der Arbeitsbaum bleibt unberührt. docker ist eine
 # Attrappe (über DOCKER): Sie protokolliert jeden Aufruf, führt Buch über Container, Netz und
@@ -131,7 +131,7 @@ fixture() {
   mkdir -p "$w/harness/mk" "$w/tools/test" "$w/.harness/state"
   cp "$wurzel/Makefile" "$w/Makefile"
   cp "$wurzel/harness/mk/integration.mk" "$wurzel/harness/mk/postgres-versionen.mk" "$w/harness/mk/"
-  cp "$wurzel/tools/test/run-integration-tests.sh" "$wurzel/tools/test/run-postgres-versionen.sh" "$w/tools/test/"
+  cp "$wurzel/tools/test/run-integration-tests.sh" "$wurzel/tools/test/integration-aufraeumen.sh" "$wurzel/tools/test/run-postgres-versionen.sh" "$w/tools/test/"
 }
 
 # lauf [VAR=wert…] -- <befehl>… — führt den Befehl in $w aus; setzt code, Ausgabe in $aus.
@@ -234,7 +234,7 @@ vor_naechster() {
   local a b
   for p in "14 15" "15 16" "16 18"; do
     read -r a b <<< "$p"
-    [ "$(zeile "^rm -f pgr-pv-[0-9]+-$a-tests")" -lt "$(zeile "^run -d --name pgr-pv-[0-9]+-$b-pg")" ] \
+    [ "$(zeile "^rm -fv pgr-pv-[0-9]+-$a-tests")" -lt "$(zeile "^run -d --name pgr-pv-[0-9]+-$b-pg")" ] \
       && [ "$(zeile "^network rm pgr-pv-[0-9]+-$a-net")" -lt "$(zeile "^network create --internal pgr-pv-[0-9]+-$b-net")" ] \
       && [ "$(zeile "^volume rm pgr-pv-[0-9]+-$a-daten")" -lt "$(zeile "^volume create pgr-pv-[0-9]+-$b-daten")" ] || return 1
   done
@@ -439,7 +439,7 @@ mut() {
   if [ "$ist" != "$soll" ]; then melde "Mutation '$name': erwartet rot: ${soll:-nichts}; rot sind: ${ist:-nichts}"; fi
 }
 
-D_=tools/test/run-postgres-versionen.sh R_=tools/test/run-integration-tests.sh F_=harness/mk/postgres-versionen.mk
+D_=tools/test/run-postgres-versionen.sh R_=tools/test/run-integration-tests.sh A_=tools/test/integration-aufraeumen.sh F_=harness/mk/postgres-versionen.mk
 
 # --- Die unveränderte Kopie besteht jeden Fall; das Gate hängt im Arbeitsbaum an GATE_CHECKS ---
 nur=""
@@ -530,7 +530,7 @@ mut p6-reihenfolge "$D_" 'for e in "${eintraege[@]}"; do
   [ "$haupt" != "$ref" ]' 'for e in $(printf "%s\n" "${eintraege[@]}" | tac); do
   haupt="${e%%=*}"
   [ "$haupt" != "$ref" ]' "p6-reihenfolge p6-zusammenfassung p7-vor-naechster" p6-reihenfolge p6-zusammenfassung p7-vor-naechster
-mut p6-nacheinander "$R_" '"$docker" rm -f "$tests" "$pg" >/dev/null 2>&1 || true' '"$docker" rm -f "$tests" >/dev/null 2>&1 || true' "p6-nacheinander p7-container" p6-nacheinander p7-container
+mut p6-nacheinander "$A_" '"$docker" rm -fv "$tests" "$pg" > /dev/null 2>&1 || true' '"$docker" rm -fv "$tests" > /dev/null 2>&1 || true' "p6-nacheinander p7-container" p6-nacheinander p7-container
 mut p6-phase2 "$R_" '  exit "$status"' '  :' "p6-meldung-phase1 p6-keine-phase2 p6-exit p6-zusammenfassung" p6-meldung-phase1 p6-keine-phase2 p6-zusammenfassung
 mut p6-weiter "$D_" 'rot+=("$haupt ($ort)") # P6-phase' 'rot+=("$haupt ($ort)"); break # P6-phase' "p6-alle-versionen p6-keine-phase2 p6-zusammenfassung" p6-alle-versionen p6-keine-phase2 p6-zusammenfassung
 mut p6-phase-fehlt "$D_" 'rot+=("$haupt ($ort)")' 'rot+=("$haupt")' "p6-meldung p6-zusammenfassung p6-exit" p6-meldung-phase1 p6-meldung-phase2 p6-meldung-aufbau p6-zusammenfassung
@@ -546,7 +546,7 @@ mut p6-build-rot-exit "$D_" 'nicht zu bauen" >&2
   exit 0' p6-build-rot p6-build-rot
 
 # --- Punkt 7: Aufräumen ---
-mut p7-container "$R_" '"$docker" rm -f "$tests" "$pg" >/dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-container p7-ende-rot p7-ende-bereit p7-ende-gruen p7-ende-version p7-ende-einrichtung p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
+mut p7-container "$A_" '"$docker" rm -fv "$tests" "$pg" > /dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-container p7-ende-rot p7-ende-bereit p7-ende-gruen p7-ende-version p7-ende-einrichtung p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
 mut p7-netz "$R_" '"$docker" network rm "$netz" >/dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-netz p7-ende-rot p7-ende-bereit p7-ende-pull p7-ende-gruen p7-ende-version p7-ende-einrichtung p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
 mut p7-volume "$R_" '"$docker" volume rm "$daten" >/dev/null 2>&1 || true' ':' "p7-container p7-netz p7-volume p7-ende p7-vor-naechster p7-sig" p7-volume p7-ende-rot p7-ende-bereit p7-ende-pull p7-ende-gruen p7-ende-version p7-ende-einrichtung p7-vor-naechster p7-sigINT-gruppe p7-sigTERM-gruppe p7-sigINT-skript p7-sigTERM-skript
 mut p7-ende-rot "$R_" '  exit "$status"' '  kill -KILL $$' p7-ende p7-ende-rot

@@ -121,6 +121,7 @@ case "$sub" in
     done
     set -- $alle
     img="$(bild "$@")"
+    if [[ "$name" == *-pg ]]; then : > "$S/v-$name"; fi
     if [ "$sub" = create ]; then : > "$S/c-$name"; echo "$img" > "$S/c-$name.bild"; exit 0; fi
     case " $alle " in
       *" version "*)
@@ -153,6 +154,7 @@ case "$sub" in
   rm)
     for n in "${@:2}"; do
       if [[ "$n" == *-pg && -n "${AT_PG_BLEIBT-}" ]]; then continue; fi
+      if [[ "$1" == -*v* && -e "$S/c-$n" ]]; then rm -f "${S:?}/v-${n:?}"; fi
       rm -f "${S:?}/c-${n:?}" "$S/c-$n.bild" "$S/c-$n.aufz"
     done ;;
   container) [ -e "$S/c-$2" ] ;;
@@ -261,12 +263,14 @@ runtime_gebaut() { [ "$(anzahl "^build .*--target runtime")" -gt 0 ]; }
 res_container() { ! ls "$st" | grep -q '^c-'; }
 res_netz() { ! ls "$st" | grep -q '^n-'; }
 res_tags() { ! ls "$st" | grep -q '^i-'; }
+res_volume() { ! ls "$st" | grep -q '^v-'; }
 res_werk() { ! ls -A "$tmp" | grep -q '^pgr-container\.'; }
 res_stage() { [ -z "$(ls -A "$tmp" | grep -v '^pgr-container\.')" ]; }
 ende() { # <Name des Endes> — vier Fälle
   ist "p9-$1-container" res_container
   ist "p9-$1-netz" res_netz
   ist "p9-$1-tags" res_tags
+  ist "p9-$1-volume" res_volume
   ist "p9-$1-werk" res_werk
   ist "p9-$1-stage" res_stage
 }
@@ -369,7 +373,7 @@ pruefe() {
     ist p7-kein-user '! grep -E "^(run|create) " "$log" | grep -qE " --user| -[a-zA-Z]*u[0-9a-zA-Z]*( |$)"'
     ist p7-kein-volume '! grep -E "^(run|create) " "$log" | grep -qE " -[a-zA-Z]*v[a-zA-Z]*( |$)| --volume"'
     ist p7-kein-mount '! grep -E "^(run|create) " "$log" | grep -qE " --mount"'
-    ist p7-pg-vor-replay '[ "$(zeile "^rm -f pgr-ct-[0-9]+-pg$")" -lt "$(zeile "^create --name pgr-ct-[0-9]+-rep ")" ] && [ "$(zeile "^rm -f pgr-ct-[0-9]+-pg$")" -lt "$(zeile "^start pgr-ct-[0-9]+-rep$")" ]'
+    ist p7-pg-vor-replay '[ "$(zeile "^rm -fv pgr-ct-[0-9]+-pg$")" -lt "$(zeile "^create --name pgr-ct-[0-9]+-rep ")" ] && [ "$(zeile "^rm -fv pgr-ct-[0-9]+-pg$")" -lt "$(zeile "^start pgr-ct-[0-9]+-rep$")" ]'
     ist p7-cp-entnehmen '[ "$(anzahl "^cp pgr-ct-[0-9]+-rec:/tmp/aufzeichnung.yaml ")" -eq 1 ]'
     ist p7-cp-hinein '[ "$(anzahl "^cp [^ ]*/aufzeichnung.yaml pgr-ct-[0-9]+-rep:/tmp/aufzeichnung.yaml$")" -eq 1 ] && [ "$(zeile "^cp [^ ]*/aufzeichnung.yaml pgr-ct-[0-9]+-rep:")" -lt "$(zeile "^start pgr-ct-[0-9]+-rep$")" ]'
     ist p10-arbeitsbaum '[ "$vor" = "$nach" ]'
@@ -377,6 +381,7 @@ pruefe() {
     ist p9-gruen-container res_container
     ist p9-gruen-netz res_netz
     ist p9-gruen-tags res_tags
+    ist p9-gruen-volume res_volume
     ist p9-gruen-werk res_werk
     ist p9-gruen-stage res_stage
     k1="$(grep '^network create' "$log" || true)"
@@ -740,20 +745,22 @@ mut p7-user-kurz "$G_" 'run -d --name "$rec"' 'run -d -u0 --name "$rec"' "p7-kei
 mut p7-mount "$G_" 'run -d --name "$rec"' 'run -d --mount type=tmpfs,dst=/x --name "$rec"' p7-kein-mount p7-kein-mount
 mut p7-cp-hinein "$G_" 'l "$docker" cp "$werk/aufzeichnung.yaml" "$rep:/tmp/aufzeichnung.yaml"' ':' p7-cp-hinein p7-cp-hinein
 mut p7-cp-entnehmen "$G_" 'l "$docker" cp "$rec:/tmp/aufzeichnung.yaml"' 'l "$docker" cp "$rec:/tmp/anders.yaml"' p7-cp-entnehmen p7-cp-entnehmen
-mut p7-rm-pg "$G_" 'l "$docker" rm -f "$pg" > /dev/null' ':' p7-pg-vor-replay p7-pg-vor-replay
+mut p7-rm-pg "$G_" 'l "$docker" rm -fv "$pg" > /dev/null' ':' p7-pg-vor-replay p7-pg-vor-replay
 
 
 # --- Punkt 8: Reihenfolge der Gründe ---
 mut p8-4-weiter "$G_" 'rot "die Summen zweier Builds weichen ab: ${abw% }"' 'echo "test-container: ROT — die Summen zweier Builds weichen ab: ${abw% }" >&2' "p4-abweichung p4-namen p4-cache p8-4" p4-abweichung-darwin-amd64 p4-abweichung-darwin-arm64 p4-abweichung-linux-amd64 p4-abweichung-linux-arm64 p4-abweichung-windows-amd64 p4-abweichung-windows-arm64 p4-namen p4-cache-umgehen p8-4-vor-6
 
 # --- Punkt 9: Aufräumen ---
-mut p9-container "$G_" %P9container p9 p9-gruen-container p9-rot7-container p9-sigINT-psql-container p9-sigTERM-psql-container
+mut p9-container "$G_" %P9container p9 p9-gruen-container p9-rot7-container p9-sigINT-psql-container p9-sigINT-psql-volume p9-sigTERM-psql-container p9-sigTERM-psql-volume
 mut p9-netz "$G_" %P9netz p9 p9-gruen-netz p9-rot7-netz p9-sigINT-psql-netz p9-sigTERM-psql-netz
 mut p9-tags "$G_" %P9tags p9 p9-gruen-tags p9-rot6-tags p9-rot7-tags p9-sigINT-psql-tags p9-sigTERM-psql-tags
 mut p9-werk "$G_" %P9werk p9 p9-gruen-werk p9-rot4-werk p9-rot5-werk p9-rot6-werk p9-rot7-werk p9-sigINT-build-werk p9-sigINTg-build-werk p9-sigINT-psql-werk p9-sigTERM-build-werk p9-sigTERM-psql-werk
-mut p9-exit "$G_" %P9exit p9 p9-gruen-container p9-gruen-netz p9-gruen-tags p9-gruen-werk p9-rot4-werk p9-rot5-werk p9-rot6-tags p9-rot6-werk p9-rot7-container p9-rot7-netz p9-rot7-tags p9-rot7-werk p9-sigINT-build-werk p9-sigINTg-build-werk p9-sigINT-psql-container p9-sigINT-psql-netz p9-sigINT-psql-tags p9-sigINT-psql-werk p9-sigTERM-build-werk p9-sigTERM-psql-container p9-sigTERM-psql-netz p9-sigTERM-psql-tags p9-sigTERM-psql-werk
-mut p9-int "$G_" "trap 'beenden 130' INT # P9int" "trap 'kill -KILL \$\$' INT # P9int" p9-sigINT p9-sigINT-build-signal p9-sigINT-build-stage p9-sigINT-build-werk p9-sigINTg-build-signal p9-sigINTg-build-stage p9-sigINTg-build-werk p9-sigINT-psql-container p9-sigINT-psql-netz p9-sigINT-psql-signal p9-sigINT-psql-tags p9-sigINT-psql-werk
-mut p9-term "$G_" "trap 'beenden 143' TERM # P9term" "trap 'kill -KILL \$\$' TERM # P9term" p9-sigTERM p9-sigTERM-build-signal p9-sigTERM-build-stage p9-sigTERM-build-werk p9-sigTERM-psql-container p9-sigTERM-psql-netz p9-sigTERM-psql-signal p9-sigTERM-psql-tags p9-sigTERM-psql-werk
+mut p9-exit "$G_" %P9exit p9 p9-gruen-container p9-gruen-netz p9-gruen-tags p9-gruen-werk p9-rot4-werk p9-rot5-werk p9-rot6-tags p9-rot6-werk p9-rot7-container p9-rot7-netz p9-rot7-tags p9-rot7-werk p9-sigINT-build-werk p9-sigINTg-build-werk p9-sigINT-psql-container p9-sigINT-psql-netz p9-sigINT-psql-tags p9-sigINT-psql-volume p9-sigINT-psql-werk p9-sigTERM-build-werk p9-sigTERM-psql-container p9-sigTERM-psql-netz p9-sigTERM-psql-tags p9-sigTERM-psql-volume p9-sigTERM-psql-werk
+mut p9-int "$G_" "trap 'beenden 130' INT # P9int" "trap 'kill -KILL \$\$' INT # P9int" p9-sigINT p9-sigINT-build-signal p9-sigINT-build-stage p9-sigINT-build-werk p9-sigINTg-build-signal p9-sigINTg-build-stage p9-sigINTg-build-werk p9-sigINT-psql-container p9-sigINT-psql-netz p9-sigINT-psql-signal p9-sigINT-psql-tags p9-sigINT-psql-volume p9-sigINT-psql-werk
+mut p9-term "$G_" "trap 'beenden 143' TERM # P9term" "trap 'kill -KILL \$\$' TERM # P9term" p9-sigTERM p9-sigTERM-build-signal p9-sigTERM-build-stage p9-sigTERM-build-werk p9-sigTERM-psql-container p9-sigTERM-psql-netz p9-sigTERM-psql-signal p9-sigTERM-psql-tags p9-sigTERM-psql-volume p9-sigTERM-psql-werk
+mut p9-volume-aufraeumen "$G_" 'rm -fv "$pg" "$rec" "$rep"' 'rm -f "$pg" "$rec" "$rep"' "p9-gruen p9-rot7 p9-sigINT-psql p9-sigTERM-psql" p9-sigINT-psql-volume p9-sigTERM-psql-volume
+mut p9-volume-replay "$G_" 'rm -fv "$pg" > /dev/null # P9pg-replay' 'rm -f "$pg" > /dev/null # P9pg-replay' "p7-pg-vor-replay p9-gruen p9-rot7 p9-sigINT-psql p9-sigTERM-psql" p7-pg-vor-replay p9-gruen-volume p9-rot7-volume
 mut p9-weiter "$G_" 'kill -TERM "$laeuft" 2> /dev/null || true' ':' p9 p9-sigINT-build-signal p9-sigINTg-build-signal p9-sigINT-psql-signal p9-sigTERM-build-signal p9-sigTERM-psql-signal
 mut p9-stage-exit "$B_" "trap 'rm -rf \"\$stage\"' EXIT" ':' p9 p9-binINT-stage p9-binTERM-stage p9-gruen-stage p9-rot4-stage p9-rot5-stage p9-rot6-stage p9-rot7-stage p9-sigINT-build-stage p9-sigINTg-build-stage p9-sigINT-psql-stage p9-sigTERM-build-stage p9-sigTERM-psql-stage
 mut p9-stage-int "$B_" "trap 'beenden 130' INT" "trap 'kill -KILL \$\$' INT" p9 p9-binINT-signal p9-binINT-stage

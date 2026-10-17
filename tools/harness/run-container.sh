@@ -34,7 +34,7 @@ pg="$lauf-pg" rec="$lauf-rec" rep="$lauf-rep" img="$lauf-img"
 laeuft=""
 
 aufraeumen() {
-  "$docker" rm -f "$pg" "$rec" "$rep" "$img" "$lauf-version" "$lauf-psql" > /dev/null 2>&1 || true # P9container
+  "$docker" rm -fv "$pg" "$rec" "$rep" "$img" "$lauf-version" "$lauf-psql" > /dev/null 2>&1 || true # P9container
   "$docker" network rm "$netz" > /dev/null 2>&1 || true # P9netz
   for p in "${img_pl[@]}"; do "$docker" rmi "$lauf:${p%/*}-${p#*/}" > /dev/null 2>&1 || true; done # P9tags
   rm -rf "$werk" # P9werk
@@ -142,7 +142,7 @@ punkt6() {
     [ "$g" = "$arch" ] || rot "Image $p nennt die Architektur '$g'" # P6arch
     l "$docker" create --name "$img" --platform "$p" "$tag" > /dev/null
     l "$docker" cp "$img:/pgwire-recorder" "$werk/image-$os-$arch"
-    l "$docker" rm -f "$img" > /dev/null
+    l "$docker" rm -fv "$img" > /dev/null
     soll="$(awk -v n="$(binaer "$os" "$arch")" '$2 == n { print $1 }' "$werk/a/SHA256SUMS")"
     g="$(sha256sum "$werk/image-$os-$arch" | cut -d' ' -f1)"
     [ "$g" = "$soll" ] || rot "Image $p trägt ein Binary mit der Summe $g statt $soll" # P6summe
@@ -195,7 +195,7 @@ punkt7() {
   l "$docker" cp "$rec:/tmp/aufzeichnung.yaml" "$werk/aufzeichnung.yaml" || rot "die Aufzeichnung ist dem Container nicht zu entnehmen" # P7cp
   [ -s "$werk/aufzeichnung.yaml" ] || rot "die Aufzeichnung ist leer" # P7aufz
   # c. Wiedergeben ohne PostgreSQL
-  l "$docker" rm -f "$pg" > /dev/null
+  l "$docker" rm -fv "$pg" > /dev/null # P9pg-replay
   if "$docker" container inspect "$pg" > /dev/null 2>&1; then rot "der PostgreSQL-Container lebt beim Start des Wiedergebens noch"; fi # P7pg
   l "$docker" create --name "$rep" --network "$netz" "$tag" replay --listen 0.0.0.0:5432 --input /tmp/aufzeichnung.yaml > /dev/null
   l "$docker" cp "$werk/aufzeichnung.yaml" "$rep:/tmp/aufzeichnung.yaml"

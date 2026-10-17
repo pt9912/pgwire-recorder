@@ -35,7 +35,11 @@ mit anderem Namen. Die unveränderte Kopie ist grün, und je Fall bricht eine Mu
    betroffen; gleichzeitige Läufe desselben Runners bleiben nicht zugesagt, `SPEC-052` Punkt 8).
 5. **Ende des Laufs.** Der Runner ruft Entfernen, Lesen und Prüfung aus seiner Falle `EXIT`; sie
    läuft bei jedem Ende, das der Runner selbst beendet: grüner und roter Lauf, Fehler des Aufbaus
-   (auch Start des Servers gescheitert), `SIGINT` und `SIGTERM`. Die Gegenprobe prüft die
+   (auch Start des Servers gescheitert), `SIGINT` und `SIGTERM`. Der Runner trägt je eine Falle
+   für `TERM` (Exit-Code 143) und `INT` (130), die in die Falle `EXIT` führen. Die Falle für `INT`
+   ist nötig: Trifft `SIGINT` nur den Runner, während ein Kind läuft, das nicht am Signal endet
+   (`docker` endet auf `SIGINT` mit dem Exit-Code 2), setzt bash fort, und der Lauf geht weiter.
+   Die Falle für `TERM` ändert den Exit-Code nicht (Punkt 7, Fall `p5-sigterm`). Die Gegenprobe prüft die
    Funktionen (Punkte 2 bis 4) und das Ende durch `SIGINT` und `SIGTERM` (je ein Fall). Ein
    roter Lauf und ein Fehler des Aufbaus gehen durch dieselbe Falle; einen eigenen Fall dafür
    gibt es nicht (akzeptiertes Negativ; Grund: er brauchte das Testimage und einen Lauf der
@@ -58,12 +62,22 @@ mit anderem Namen. Die unveränderte Kopie ist grün, und je Fall bricht eine Mu
    | `p4-fremd` | fremde Volumes (ein benanntes, ein anonymes) bleiben | die Prüfung entfernt jedes Volume ohne Container |
    | `p4-rest-rot` | ein Rest macht den Lauf rot (Exit 1), auch bei grünen Tests | der Exit-Code der Prüfung wird verworfen |
    | `p4-vorrang` | ein Lauf-Code ungleich 0 behält Vorrang | die Prüfung setzt immer 1 |
-   | `p5-sigterm` | Aufräumen und Prüfung laufen nach `SIGTERM` | die Falle für `TERM` entfällt |
-   | `p5-sigint` | Aufräumen und Prüfung laufen nach `SIGINT` | eine Falle für `INT`, die den Runner ohne Aufräumen beendet |
+   | `p5-sigterm` | Aufräumen und Prüfung laufen nach `SIGTERM`, der Exit-Code ist 143 | die Falle für `TERM` beendet den Runner ohne Aufräumen (`kill -KILL`) |
+   | `p5-sigint` | Aufräumen und Prüfung laufen nach `SIGINT`, der Exit-Code ist 130 | die Falle für `INT` beendet den Runner ohne Aufräumen (`kill -KILL`) |
+
+   Entfällt die Falle für `TERM`, läuft die Falle `EXIT` trotzdem, und bash endet mit 143; dieser
+   Mutant ist äquivalent, kein Fall wird rot (gemessen mit bash 5.2.21; die Gegenprobe führt ihn
+   als `p5-term-entfaellt` ohne roten Fall). Je Element der Punkte 1, 2 und 4 hat die Gegenprobe
+   weitere Mutanten, die nur ein Element brechen (nur `$pg` oder nur `$tests` gelesen oder
+   entfernt, `$daten` nicht ausgenommen, Rest nicht entfernt, Meldung ohne Namen, Prüfung endet mit
+   0); die Art des Mounts (`.Type`) ändert die Namen nicht, ihr Wegfall ist ebenfalls äquivalent.
 
    Die Fälle `p5-*` starten den Runner (Kopie) mit `PGR_BAUEN=0` und `PGR_LAUF` unter dem
-   Präfix, warten, bis der Container `$pg` existiert, und senden das Signal; das Testimage wird
-   nicht gebraucht. `SIGINT` setzt voraus, dass der Runner nicht als Hintergrundjob einer
+   Präfix, mit einem `docker`, das `rm -fv` zu `rm -f` macht (der Rest, den die Prüfung finden
+   muss) und nach `run` drei Sekunden wartet (der Runner steht dann in seinem `wait`), warten, bis
+   der Container `$pg` existiert, und senden das Signal an den Runner; das Testimage wird
+   nicht gebraucht. Die Fälle `p3-angelegt`, `p4-fremd`, `p4-rest-rot` und `p4-vorrang` nutzen
+   dasselbe `docker` ohne die Wartezeit. `SIGINT` setzt voraus, dass der Runner nicht als Hintergrundjob einer
    nicht interaktiven Shell startet (sonst wird es ignoriert); das Vorbild ist
    `tools/test/postgres-versionen-gegenprobe.sh`.
 8. **Docker-Version.** Gemessen ist Docker 29.9.0: `docker inspect` nennt die Mounts schon im
