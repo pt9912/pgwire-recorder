@@ -158,6 +158,46 @@ dasteht.
 
 *(wird bei der Closure geschrieben)*
 
+### Belege des Implementers
+
+Probe im Scratch-Gerüst außerhalb des Repos (Ordner `pgr-dev-probe` und `pgr-probe-zwei`, Namen `pgr-probe-dev` und `pgr-probe-zwei`, Ports 2423 und 2424); Host Linux/amd64, Docker 29.9.1,
+`u-boot` 0.10.0, `devcontainer` 0.80.2, Stand 2026-10-17, `main` bei `9007c044`. Vor der Messung war `pgrep -fa "^make gates"` am Host leer (Exit 1), nach ihr ebenso; der Hauptbaum blieb unberührt. Werte der Variablen waren Platzhalter
+(23 und 28 Zeichen), kein Zugangsdatum des Nutzers wurde gelesen. Gerüst-Dateien: Inhalt in `docs/developer/devcontainer.md` §3.3 bis §3.5.
+
+| Probe | Befehl | Ergebnis |
+|---|---|---|
+| Gerüst erzeugt | `u-boot init … --devcontainer --sandbox --no-git`, `u-boot config set …`, `u-boot generate devcontainer` | vier Dateien in `.devcontainer/`; Warnungen zu `--privileged`, `NET_ADMIN`, `sshd`, `claude-code` |
+| `u-boot doctor` | im Gerüst | 0 Fehler, 2 Warnungen (kein Dienst in `compose.yaml`; Netz-Beschränkung mit `docker`) |
+| Build und Start | `devcontainer up --workspace-folder . --override-config .devcontainer/override.json` | Exit 0, 65 s (erster Start), 70 s mit `--build-no-cache`, 45 s nach geänderter Host-Liste, 5 s bei vorhandenem Image |
+| `ssh` mit Schlüssel | `ssh -i ssh/id_ed25519 … -p 2423 vscode@127.0.0.1` | angemeldet als `vscode`; `root`: `Permission denied (publickey,password)`; anderer Schlüssel ebenso |
+| Versionen im Container | `claude --version`, `node --version`, `docker version` | 2.1.302; v24.22.0; 29.9.1 |
+| Variable im Container | Länge in `ssh`, `docker exec`, `devcontainer exec` | `ssh`/`docker exec`: nicht gesetzt; `devcontainer exec`: 23 und 28 (Host-Shell), leer ohne Variablen |
+| (b) falscher API-Schlüssel | `ANTHROPIC_API_KEY=<falsch> devcontainer exec … claude -p ok` | `Invalid API key · Fix external API key`, Exit 1 |
+| (b) Variable fehlt / leer / Leerzeichen | dito ohne, mit `=`, mit `"   "` | `Not logged in · Please run /login`, Exit 1 |
+| (b) Platzhalter-Abo-Token | `CLAUDE_CODE_OAUTH_TOKEN=<Platzhalter> … claude -p ok` | `Failed to authenticate. API Error: 401 Invalid bearer token`, Exit 1 |
+| (b) Weg über `ssh` | `ssh … 'claude -p ok'`; Wert über `stdin` | `Not logged in`; `Invalid API key` |
+| Sichtbarkeit des Werts | `ps -eo args` am Host, `/proc/<PID>/environ`, `docker inspect`, `docker logs` | Host-Prozessliste: ja (`docker exec -e …=<Wert>`); `environ`: ja; `inspect`, Log: nein |
+| (a) Egress, Hostliste | DNS-Log von `dnsmasq`; `make gates` in drei Läufen | Lauf 1 Exit 2 nach 8 s (`pkg-containers.githubusercontent.com`), Lauf 2 Exit 2 nach 25 s (`gcr.io`), Lauf 3 Exit 0; im Log nur Namen der Liste außer `http-intake.logs.us5.datadoghq.com` und `example.com` |
+| (a) `make gates` | `ssh … 'cd … && make gates'` im Klon (`thema` bei `9007c044`), frisches Volume | Exit 0, 1701 s, höchstens 4,238 GiB (`docker stats`, alle 10 s); `OOMKilled=false`; zuvor Lauf mit Cache aus Fehlläufen 1701 s, 5,424 GiB |
+| (a) Speicher | `docker system df -v` am Host, `du`, `docker system df` im Container | Image 2,15 GB; Volume `…-docker-<ID>` 12,59 GB, `…-workspace-<ID>` 27,76 MB; im Container 15 Images 6,7 GB, Build-Cache 7,6 GB |
+| Neustart ohne Neubau | `docker stop`, `devcontainer up`; `docker rm -f`, `devcontainer up` | 1,8 s und 6,4 s bis `dockerd`; Klon, Bare-Repo, 10 Images, Fingerabdruck unverändert; `~/.claude` fehlt nach `rm` |
+| Neubau | `--build-no-cache`; Änderung von `egress.allow` | Fingerabdruck des Hostschlüssels ändert sich (`WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!`) |
+| Netz nach Änderung | `example.org` in `egress.allow`, `up` bei laufendem Container; Container entfernt, `up` | löst nicht auf; löst auf (45 s Build) |
+| Verschachtelte Container | `docker run alpine:3 wget http://example.com` im Container | erreicht `example.com` |
+| Anderer Container am Port | `nc -z <IP> 2222` aus einem `alpine`-Container am Host | erreicht |
+| Zwei Instanzen | zweites Verzeichnis, `PGR_NAME`, `PGR_SSH_PORT` | beide laufen, eigene Volumes; `docker inspect`: 8000000000, 12884901888 |
+| Schlüssel fehlt | `devcontainer up` ohne `ssh/id_ed25519.pub` | `invalid mount config … bind source path does not exist`, kein Container, kein Volume |
+| `u-boot up` | im Gerüst | `no service selected`, Exit 12 |
+| Port belegt | `docker run -p` auf belegtem Port | `driver failed programming external connectivity` |
+| Gates der Dokumentation | `make docs-check`, `make kopf-check` im Worktree | 0 Befunde; Exit 0 |
+
+Hosts für `devcontainer.sandbox.egress.allow` (über die Standardliste hinaus): `gcr.io`, `pkg-containers.githubusercontent.com`. Nicht in der Liste und nicht gemessen: die Hosts der Anmeldung im Browser.
+
+Gerüst-Umfang (Summe aus Einfügungen und Löschungen, `git diff --no-index --numstat`, alt gegen neu): `u-boot.yaml` 18, `compose.yaml` 35, `.devcontainer/Dockerfile` 45, `.devcontainer/start.sh` 10 (entfällt), zusammen 108; dazu von `u-boot` erzeugt
+`docker-init.sh` 46, `egress-init.sh` 61 und `devcontainer.json` 27 Zeilen und von Hand `mk-override.sh` 15 Zeilen.
+
+Größe nach Metrik §4 (`git diff --numstat 05fd1403..HEAD -- docs/developer`): 297 Einfügungen und 301 Löschungen, Summe 598; Meldeschwelle 350 und Marke 450 sind überschritten (Rückführung nach §4, Entscheidung beim Planner).
+
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
