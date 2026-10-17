@@ -44,7 +44,8 @@ Inhalt des Dokuments, je Punkt nur mit Probe am laufenden Container (§3.11):
   gemessen und steht als solcher da.
 - Ergebnisse zurück ins Host-Repo: Branch `container/<thema>`, `git fetch` über SSH oder
   `git bundle`.
-- Parallel arbeiten (mehrere Container), Grenzen und Sicherheit (privilegiert, nur 127.0.0.1, nur
+- Mehrere Container nebeneinander (Entscheidung des Nutzers, 2026-10-17: parametrisiert über `.env` mit `COMPOSE_PROJECT_NAME`,
+  `PGR_NAME`, `PGR_SSH_PORT`, `PGR_CPUS`, `PGR_MEM`, Befehle für die zweite Instanz), Grenzen und Sicherheit (privilegiert, nur 127.0.0.1, nur
   Schlüssel, Ressourcen), Fehlersuche und Aufräumen.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
@@ -86,6 +87,12 @@ Inhalt des Dokuments, je Punkt nur mit Probe am laufenden Container (§3.11):
 - Nach dem Review (Nacharbeit): Sicherheitsaussagen sind auf das Belegte enger gefasst (Container
   privilegiert, `vscode` mit `sudo` ohne Passwort, `/host-repo` als Mount `ro` nur gegen Prozesse
   ohne `sudo`), Quellen und Lücken stehen im Dokument (§7, Abschnitt Nacharbeit).
+- Pfade des Hosts stehen im Dokument nicht fest (Entscheidung des Nutzers, 2026-10-17): `PGR_REPO` und `PGR_DEV` in
+  den Befehlen, im Block `compose.yaml` `${PGR_REPO:?…}` und ein relativer Pfad des Schlüssels. Der Block ist damit
+  nicht mehr byte-gleich zur Datei im Messort `/Development/pgr-dev`; das Dokument nennt den Unterschied (§3.5, §13).
+- Mehrere Container (Nutzer, 2026-10-17): `container_name`, `hostname`, `image`, Host-Port, `cpus`, `mem_limit` im Block
+  sind `${…:-Vorgabe}`; Abschnitt 10 des Dokuments führt die zweite Instanz. Das Netz `pgr-dev-default` steht im Kopf von
+  `u-boot` und bleibt (Kopf wörtlich, §3.1 des Dokuments).
 - Das Dokument ist Ist-Zustand ohne Chronik (§3.11); es nennt keine Kennungen dieses Repos
   (Lastenheft, Spezifikation, ADRs, Slices, Wellen). Die Kennungen, die mit `LH-` beginnen und in den
   wörtlich übernommenen Blöcken von `u-boot` stehen (Codeblöcke von `Dockerfile` und `compose.yaml`), sind
@@ -231,7 +238,7 @@ Verzeichnis `pgr-dev-probe` gelöscht.
 | §3.1 erzeugte Dateien, Block des `Dockerfile`, `services: {}`/`volumes: {}` | `u-boot init pgr-dev-probe --devcontainer --no-git` in leerem Verzeichnis | Ausgabe nennt `docker/ scripts/ docs/ .devcontainer/ README.md CHANGELOG.md compose.yaml .env.example .gitignore devcontainer.json Dockerfile u-boot.yaml`; kein `.git`; `compose.yaml` endet mit `services: {}` und `volumes: {}`; `u-boot.yaml`: `devcontainer.enabled: true` |
 | §3.1 `u-boot add` nur `postgres`; `generate devcontainer` ohne Docker-in-Docker-Option | `u-boot add --help`, `u-boot generate devcontainer --help` | „today MVP supports only postgres“; Flags nur `--allow-external-feature-sources`, `--diff`, `--dry-run` |
 | §3.2 Schlüsselpaar, Verzeichnis 700 | die Befehle des Dokuments in `P` | Exit 0, `stat -c %a ssh` = 700, `id_ed25519` 600 |
-| §3.3–3.5 Dateiinhalte | `diff` der Codeblöcke gegen `/Development/pgr-dev/…` | kein Unterschied (`D-gleich`, `S-gleich`, `C-gleich`) |
+| §3.3–3.5 Dateiinhalte | `diff` der Codeblöcke gegen `/Development/pgr-dev/…` | kein Unterschied (`D-gleich`, `S-gleich`, `C-gleich`); gilt für `compose.yaml` nur bis zur Portabilität unten |
 | §3.4 trägt den Schlüssel als `authorized_keys` ein, 1 Schlüssel | `SSH-P 'wc -l < ~/.ssh/authorized_keys; ls -ld ~/.ssh'` | 1; `drwx------ vscode` |
 | §3.4 wartet bis 60 s auf `dockerd` | `docker run` ohne `--privileged` | Meldung nach 64 s (60 s Schleife + Start) |
 | §3.4 übergibt `/workspaces` an `vscode`; §12 frisches Volume gehört `root` | `ls -ld /workspaces` in P; `docker run --rm --entrypoint bash -v neu:/workspaces … 'su vscode -c "mkdir /workspaces/x"'` | P: `vscode vscode`; frisches Volume `root root`, `mkdir: Permission denied` |
@@ -355,6 +362,47 @@ erlaubt, Verzicht auf die Claude-Anmeldung im Container)? Das Dokument erfindet 
 
 **Läufe.** `make docs-check` und `make kopf-check` nach `6ca83617` **nicht gefahren**: `pgrep -fa "^make gates"` zeigte
 PID 2209712. Der Hook verlangt nach dem Dokument-Commit einen vollen Lauf auf diesem Stand (Plan §6).
+
+### Portabilität der Pfade (2026-10-17, Wunsch des Nutzers)
+
+Das Dokument trug `/Development/…` in neun Zeilen (38, 48, 54, 191, 192, 213, 242, 341, 351). Jetzt: `PGR_REPO`
+(Host-Repo) und `PGR_DEV` (Verzeichnis `pgr-dev`) als `export` in §3; `mkdir "$PGR_DEV"`, `ssh`, `GIT_SSH_COMMAND`, `scp` mit
+`$PGR_DEV`; `compose.yaml` mit `${PGR_REPO:?PGR_REPO setzen}:/host-repo:ro` und `./ssh/id_ed25519.pub`. `grep /Development`
+im Dokument: keine Treffer. Der Messort `/Development/pgr-dev` steht nur hier.
+
+| Aussage | Probe (Kopie des Blocks im Scratchpad, Datei im Versuchs-Container unverändert) | Beobachtung |
+|---|---|---|
+| Variable aus der Umgebung ersetzt | `PGR_REPO=/x/y docker compose config` | Quelle `/x/y`; Schlüssel aufgelöst relativ zum Verzeichnis der Datei |
+| fehlende Variable bricht ab | `docker compose config` ohne Variable | `required variable PGR_REPO is missing a value: PGR_REPO setzen` |
+| `.env` im Verzeichnis ersetzt | `.env` mit `PGR_REPO=/e/f` | Quelle `/e/f` |
+| `.env` und relativer Pfad mit `-f` aus anderem Verzeichnis | `docker compose -f <Kopie>/compose.yaml config` aus `/` | Quelle `/e/f`, Schlüssel unter dem Verzeichnis der Datei |
+
+**Unterschied zur getesteten Datei:** `compose.yaml` im Dokument ist an den zwei Zeilen der Mounts nicht mehr gleich der
+Datei, mit der die Proben liefen; das Dokument sagt es in §3.5. **Nicht geprüft** (§13 des Dokuments): Start des Containers
+mit dem neuen Block; `u-boot up` mit `PGR_REPO` nur aus der Umgebung (laut Hilfetext ruft es `docker compose up -d`, die
+Weitergabe der Umgebung ist nicht gemessen). Kein Container gestartet. **Größe** nach dem Commit `bf07eea6`
+(`git diff --numstat bda6efef..bf07eea6 -- docs/developer`): 466 Einfügungen, 0 Löschungen, Summe 466; über der Meldeschwelle
+400, unter der Marke 500. `make docs-check` und `make kopf-check` siehe Bericht.
+
+### Mehrere Container (2026-10-17, Zusatzwunsch des Nutzers)
+
+Probe wie oben, Kopie im Scratchpad, kein Container, kein Docker-Rest (`docker ps -a` danach nur `pgr-dev` des Versuchs).
+
+| Aussage | Probe | Beobachtung |
+|---|---|---|
+| Volumes folgen dem Projektnamen | `docker compose config` ohne `.env` / mit `COMPOSE_PROJECT_NAME=zwei` / `-p drei` | `pgr-dev_pgr-dev-docker` / `zwei_pgr-dev-docker` / Projekt `drei` |
+| `container_name`, `hostname`, `image`, Port, `cpus`, `mem_limit` waren fest | vor der Änderung | `pgr-dev`, `pgr-dev`, `pgr-dev:latest`, `2222`, 8, 12 GiB auch bei `COMPOSE_PROJECT_NAME=zwei` |
+| Variablen aus `.env` wirken | `.env` mit `COMPOSE_PROJECT_NAME=pgr-zwei`, `PGR_NAME=pgr-zwei`, `PGR_SSH_PORT=2223`, `PGR_CPUS=4`, `PGR_MEM=6g` | Projekt, Container, Hostname, Image `pgr-zwei`; Volumes `pgr-zwei_…`; Port `2223`; 4; 6442450944 |
+| Vorgaben ohne `.env` | nur `PGR_REPO` gesetzt | `pgr-dev`, `2222`, 8, 12 GiB |
+| Netz | beide Läufe | `pgr-dev-default` fest (Kopf von `u-boot`, nicht geändert) |
+
+**Nicht geprüft** (im Dokument §13): Start einer zweiten Instanz und des geänderten Blocks; Wirkung des gemeinsamen Netzes
+bei `up`/`down` der Instanzen; `u-boot up` mit Variablen nur aus der Umgebung. Das Dokument nennt diese Lücken in §10 und §13.
+Block `compose.yaml` im Dokument weicht von der Datei im Messort nun in neun Zeilen ab (Mounts, Image, Name, Host-Name, Port, Grenzen).
+**Größe** (`git diff --numstat bda6efef..e397805b -- docs/developer`): 498 Einfügungen, 0 Löschungen, Summe 498; über der
+Meldeschwelle 400, unter der Marke 500 um 2; jede weitere Zeile im Dokument überschreitet die Marke und führt nach §4 zurück zu
+`next` (Meldung an den Planner). `make docs-check` (974 Dateien, 0 Befunde) und `make kopf-check` (0) liefen nach `e397805b`
+(kein `make gates` aktiv).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
