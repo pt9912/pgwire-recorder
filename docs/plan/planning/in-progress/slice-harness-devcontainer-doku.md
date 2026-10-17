@@ -218,7 +218,7 @@ Kollision mit 2222; `/workspaces` ↔ frisches Volume `root`, `mkdir` scheitert;
 leeres Repo scheitert; Timeout ↔ `--timeout 5` Exit 12.
 
 **Läufe.** `make docs-check` 0 (966 Dateien), `make kopf-check` 0, `make meldungskatalog-check` 0; ein
-voller `make gates` läuft nicht (Auftrag; §6 Risiko Stop-Hook). Größe nach §4: siehe unten.
+voller `make gates` läuft nicht (Auftrag; §6 Risiko Stop-Hook). Größe nach §4 (`git diff --numstat bda6efef..531f357e -- docs/developer`): 385 Einfügungen, 0 Löschungen, Summe 385; unter der Meldeschwelle 400 und der Marke 500.
 
 **Nicht geprüft** (im Dokument §13 benannt): Start von `claude` und Anmeldung; voller `make gates` im
 Container; Windows/macOS; Installation von `u-boot`; `u-boot down --volumes`; Fehler bei vollem
