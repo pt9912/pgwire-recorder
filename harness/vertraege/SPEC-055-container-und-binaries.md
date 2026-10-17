@@ -88,6 +88,15 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
 9. **Aufräumen.** Container, Netz und Tags der Images des Laufs sind nach Ende entfernt, auch nach
    einem roten Lauf und nach `SIGINT` und `SIGTERM`; je Fall des Endes ein Fall. Die Namen tragen die
    Kennung des Laufs. Die temporären Verzeichnisse der Punkte 4 und 7 und das Stage-Verzeichnis von `make binaries` (Punkt 3) sind ebenfalls entfernt, auch bei Fehler, `SIGINT` und `SIGTERM`.
+   **Volumes** (seit slice-harness-integration-volumes): Kein Volume, das ein Container des Laufs angelegt hat, bleibt
+   zurück. Das PostgreSQL-Image deklariert ein `VOLUME`; der Container `$pg` legt dafür ein anonymes Volume an, das
+   `docker rm -f` ohne `-v` auf dem Host lässt. Das Gate entfernt deshalb jeden Container des Laufs mit `rm -fv`, auch
+   `$pg` vor dem Wiedergeben (Punkt 7) und im Aufräumen am Ende; es gilt für grünen und roten Lauf, `SIGINT` und
+   `SIGTERM` wie für Container, Netz und Tags (je Ende ein Fall `p9-*-volume`). Die Attrappe von `docker` legt für
+   `$pg` ein Volume an und entfernt es nur mit `-v`; die Mutation ist `rm -f` statt `rm -fv` an beiden Stellen, einzeln.
+   Das Gate liest keine Namen und prüft nicht nach (anders als `SPEC-057` Punkt 4; akzeptiertes Negativ; Grund: Nur
+   `$pg` trägt ein `VOLUME`, und die Gegenprobe fängt das Weglassen von `-v`). Am echten Docker belegt der Slice es
+   einmal von Hand, nach Namen vor und nach einem Lauf. Volumes, die der Lauf nicht angelegt hat, rührt das Gate nicht an.
 10. **Arbeitsbaum.** Das Gate schreibt nichts in den Arbeitsbaum (die Gegenprobe vergleicht die Liste der Dateinamen vor und nach einem Lauf; das Überschreiben einer vorhandenen Datei fängt sie nicht) und liest nur, was der
     Build-Kontext (`.dockerignore`) zulässt, dazu `harness/mk/container.mk` und das Fragment der
     Integration. Dass es nur dies liest, hat keinen Fall. Es liest nichts unter `docs/plan/planning/`, `docs/reviews/`, `docs/user/` und nicht
