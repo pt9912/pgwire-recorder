@@ -26,7 +26,7 @@ diese Liste ist der Lauf nicht reproduzierbar):
 
 - Slice-Plan `slice-harness-integration-volumes` (§1 bis §8, §7 Belege des Implementers)
 - `SPEC-057` (neu), `SPEC-055` Punkt 9, `SPEC-052` Punkte 4 und 13
-- `ADR-0026` (Integrationstests im Multistage-`Dockerfile`)
+- [ADR-0026](../plan/adr/0026-build-und-test-im-multistage-dockerfile.md) (Integrationstests im Multistage-`Dockerfile`)
 - keine `LH-*`-Kennung (Plan: kein Lastenheft-Bezug)
 - `AGENTS.md` (Hard Rules §3.7 bis §3.14)
 
