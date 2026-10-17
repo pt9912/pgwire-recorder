@@ -31,4 +31,5 @@ nennt die beteiligten Nachweisarten. Diese Datei liest
 | [`LH-FA-25`](../../spec/lastenheft.md) | E2E, Unit |
 | [`LH-QA-02`](../../spec/lastenheft.md) | E2E |
 | [`LH-QA-06`](../../spec/lastenheft.md) | E2E, Unit |
+| [`LH-QA-07`](../../spec/lastenheft.md) | Gate |
 | [`LH-RB-01`](../../spec/lastenheft.md) | E2E, Unit |

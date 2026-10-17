@@ -34,5 +34,5 @@ Vollständig belegte Anforderungen stehen zusätzlich in
 | [`LH-FA-25`](../../spec/lastenheft.md) | E2E, Unit | E2E, Unit | E2E, Unit | n/a | vollständig |
 | [`LH-QA-02`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E | vollständig |
 | [`LH-QA-06`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E, Unit | vollständig |
-| [`LH-QA-07`](../../spec/lastenheft.md) | n/a | n/a | n/a | 1/3 Gate; 2/3 —; 3/3 Gate | teilweise |
+| [`LH-QA-07`](../../spec/lastenheft.md) | n/a | n/a | n/a | 1/3 Gate; 2/3 Gate; 3/3 Gate | vollständig |
 | [`LH-RB-01`](../../spec/lastenheft.md) | n/a | n/a | n/a | E2E, Unit | vollständig |
