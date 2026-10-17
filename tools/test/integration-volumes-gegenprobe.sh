@@ -4,8 +4,9 @@
 # 1 bis 8 von SPEC-057 (harness/vertraege/SPEC-057-integration-aufraeumen.md) mit realem Docker
 # (über DOCKER). Container und Volumes tragen das Präfix pgr-ivg-<PID> und werden per Namen
 # entfernt; kein prune, kein Eingriff in ein Objekt mit anderem Namen. Die unveränderte Kopie
-# besteht jeden Fall; bei jeder Mutation (Textersatz in einer Kopie, genau eine Stelle) werden von
-# den Fällen ihrer Gruppe (`nur`) genau die benannten rot. Der Name jedes Falls trägt die Nummer
+# besteht jeden Fall; bei jeder Mutation (Textersatz in einer Kopie, genau eine Stelle) sind von
+# den Fällen ihrer Gruppe (`nur`, bei einigen Mutanten alle Fälle) die benannten rot und keine weiteren;
+# für Fälle außerhalb der Gruppe ist nichts zugesagt. Der Name jedes Falls trägt die Nummer
 # seines Punktes.
 #
 # Ein Fall prüft nach Namen: Er liest die Volumes seiner Container mit einem eigenen
@@ -242,7 +243,7 @@ mutiere() {
   if [ "$n" -ne 1 ]; then echo "integration-volumes-gegenprobe: Mutation trifft $n Stellen in $1: $2" >&2; exit 1; fi
   printf '%s' "${inhalt/"$2"/"$3"}" > "$f"
 }
-# mut <name> <datei> <alt> <neu> <nur> <erwartet rot>… — bei der Mutation sind genau diese Fälle rot.
+# mut <name> <datei> <alt> <neu> <nur> <erwartet rot>… — bei der Mutation sind von den Fällen in <nur> diese rot.
 mut() {
   local name="$1" datei="$2" alt="$3" neu="$4" soll ist
   if [ -n "${GP_MUT-}" ] && ! [[ "$1" =~ $GP_MUT ]]; then return 0; fi
@@ -300,7 +301,7 @@ mut p5-ohne-pruefung "$R_" 'integration_ende "$code" || ende=$?' 'integration_en
 mut p5-ausgang-0 "$R_" 'exit "$ende"' 'exit 0' "p5" p5-sigint p5-sigterm
 mut p5-term "$R_" $'trap \'trap "" TERM; exit 143\' TERM # S-TERM' $'trap \'kill -KILL $$\' TERM # S-TERM' "p5" p5-sigterm
 # Ohne die Falle für TERM läuft die Falle EXIT trotzdem, und bash endet mit 143: Der Mutant ist
-# äquivalent, kein Fall ist rot (gemessen mit bash 5.2.21; SPEC-057 Punkt 7 nennt ihn als roten Mutanten).
+# äquivalent, kein Fall ist rot (gemessen mit bash 5.2.21; SPEC-057 Punkt 7 führt ihn ohne roten Fall).
 mut p5-term-entfaellt "$R_" $'trap \'trap "" TERM; exit 143\' TERM # S-TERM' ':' "p5"
 mut p5-int "$R_" $'trap \'trap "" INT; exit 130\' INT # S-INT' $'trap \'kill -KILL $$\' INT' "p5" p5-sigint
 # Ohne die Falle für INT endet der Runner im `wait` trotzdem mit Aufräumen und Exit 130: Der Mutant ist
@@ -309,4 +310,4 @@ mut p5-int-entfaellt "$R_" $'trap \'trap "" INT; exit 130\' INT # S-INT' ':' "p5
 
 
 if [ "$fehler" -ne 0 ]; then exit 1; fi
-echo "integration-volumes-gegenprobe: gruen — Punkte 1 bis 8 von SPEC-057: unveränderte Kopie grün, je Mutation genau die benannten Fälle rot"
+echo "integration-volumes-gegenprobe: gruen — Punkte 1 bis 8 von SPEC-057: unveränderte Kopie grün, je Mutation die benannten Fälle rot (äquivalente Mutanten ohne roten Fall)"

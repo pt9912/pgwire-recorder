@@ -21,8 +21,8 @@ Harness, keine Zusage des Produkts. Bindung an Entscheidungen:
 gegen ein gepinntes PostgreSQL-Image; der Runner ist dort der Träger).
 
 **Berührte Spec-Stellen:** `SPEC-057` (neuer Vertrag *Aufräumen der Integrationstests* in
-`harness/vertraege/`, Ort nach `MR-002`; vom Architect am 2026-10-17 geschrieben, nicht im Diff dieses
-Slice); `SPEC-055` (Punkt 9, Absatz *Volumes*: `test-container` entfernt seine Container mit `rm -fv`; Architect am 2026-10-17, nicht im Diff; Geber `slice-v1-abschluss-container`, geschlossen); `SPEC-052` (Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest;
+`harness/vertraege/`, Ort nach `MR-002`; vom Architect am 2026-10-17 vor dem Anspruch geschrieben; Punkte 4, 5 und 7 im Lauf nachgezogen, im Diff dieses
+Slice); `SPEC-055` (Punkt 9, Absatz *Volumes*: `test-container` entfernt seine Container mit `rm -fv`; Architect am 2026-10-17, vor dem Anspruch geschrieben, nicht im Diff, und mit `6978e8f6` um den Absatz zu `$rec`, `$rep`, `$img`, `version` und `psql` ergänzt, im Diff dieses Slice; Geber `slice-v1-abschluss-container`, geschlossen); `SPEC-052` (Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest;
 Architect am 2026-10-17, nicht im Diff; Punkt 4 gilt nach dem Namen ohne Änderung); `SPEC-048` (nur Bindung: Form der
 Abdeckungs-Deklaration im Kopf der Gegenprobe, §1; keine Änderung)
 
@@ -74,7 +74,7 @@ damit `make gates` scheiterten mit „PostgreSQL nicht bereit“. Der Nutzer sch
   (`:179`) tragen `--rm`; `docker create` (`:143`, `:200`) mit dem Produkt-Image. `run-postgres-versionen.sh`
   ruft `run-integration-tests.sh` je Version und legt selbst keinen Container an: Es hat kein eigenes Leck, mit
   der Behebung im Runner ist es mitbehoben.
-- Weitere `docker run` in `tools/` und `harness/mk/`: `harness/mk/build.mk:22`,
+- Weitere `docker run` in `tools/`, `harness/mk/` und den Wurzel-Fragmenten (`d-check.mk`, `a-check.mk`, beide `--rm`): `harness/mk/build.mk:22`,
   `harness/mk/schema.mk:9` und `:12`, `tools/arch/a-check-negativ.sh:83`,
   `tools/harness/traeger-fetch.sh:146`, jedes mit `--rm`; `docker create` und `docker compose`
   kommen nicht vor, `docker build` legt keine Volumes an. `docker run --rm` auf das
@@ -188,6 +188,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/test/postgres-versionen-gegenprobe.sh` | update | Gegenprobe von `SPEC-053`: die Kopie des Runners trägt jetzt `integration-aufraeumen.sh` (Fixture); die Mutanten der Zeile `rm -f "$tests" "$pg"` und die Erwartung des Falls `p7-vor-naechster` (`^rm -fv …`) folgen der Funktionsdatei |
 | `harness/mk/integration.mk` | update | Ziel `integration-volumes-gegenprobe`, an `GATE_CHECKS`, hinter `test-integration` |
 | `harness/mk/gates-schnell.mk` | update | `integration-volumes-gegenprobe` in `GATE_SCHNELL_AUSNAHME` (`SPEC-052` Punkt 4; sonst ist `gates-schnell-gegenprobe` rot), im Commit des Ziels |
+| `harness/vertraege/SPEC-055-container-und-binaries.md` | Punkt 9 (Architect, vor dem Anspruch; Absatz zu `$rec`, `$rep`, `$img`, `version`, `psql` mit `6978e8f6`, im Diff) | Volumes: `rm -fv` für alle Container des Laufs; die übrigen ohne Fall als akzeptiertes Negativ |
 | `harness/vertraege/SPEC-052-gate-kette.md` | geschrieben (Architect) | Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest; Punkt 4 gilt nach dem Namen, ohne Text; liegt vor dem Anspruch und ist nicht Teil des Diffs |
 | `harness/README.md` | update | Zeile in §Sensors für das Ziel; die Zeile von `make test-integration` nennt die Prüfung; die Zeile von `gates-schnell` nennt die Ausnahmeliste unverändert (kein Gate-Name dort) |
 | `harness/vertraege/SPEC-057-integration-aufraeumen.md`, `harness/vertraege/README.md` | geschrieben (Architect), Punkte 5 und 7 vom Implementer nachgezogen | der Vertrag mit den Entscheidungen aus §6, 9 Fälle und Mutationen in Punkt 7; nachgezogen (`AGENTS.md` §3.9), weil der Code abweicht: Falle für `INT` im Runner, Mutant `p5-sigterm` (Falle für `TERM` entfällt) ist äquivalent und durch `kill -KILL` ersetzt, die Hilfsfunktion `integration_ende` trägt Vorrang des Codes (Punkte 4 und 5), weitere Mutanten je Element |
@@ -219,8 +220,8 @@ Code-Commit hat der Architect die Randformen aus §6 am 2026-10-17 in `SPEC-057`
 
 **Größe** (`AGENTS.md` §3.14): Metrik ist die Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test tools/harness/run-container.sh
-tools/harness/container-gegenprobe.sh harness/mk/integration.mk harness/mk/gates-schnell.mk harness/README.md harness/vertraege`, Tests eingeschlossen. Basis: der Commit des Anspruchs (`next` →
-`in-progress`), beim Anspruch einzutragen. Schätzung (Arbeitswert des Planners aus den
+tools/harness/container-gegenprobe.sh harness/mk/integration.mk harness/mk/gates-schnell.mk harness/README.md harness/vertraege`, Tests eingeschlossen. Basis: `de908591` (Elternteil des Anspruchs-Commits `5fba0671`, `next` →
+`in-progress`). Schätzung (Arbeitswert des Planners aus den
 Bestandsmaßen; vom Architect am 2026-10-17 auf 350 bis 600 korrigiert, Mitte 470, Obergrenze 600; mit der Übernahme von `test-container` am selben Tag um 40 bis 70 auf 390 bis 670, Mitte 530, Obergrenze 670 (zwei Zeilen im Gate, Attrappe mit Volume rund 15, vier Fälle und zwei Mutationen rund 30 bis 50 Zeilen Gegenprobe, Gate-Index): Die Marke 900 und die Meldeschwelle 750 bleiben,
 die Obergrenze liegt 80 unter der Meldeschwelle:
 Die Verträge `SPEC-057` und `SPEC-052` liegen mit dem Anspruch schon im Bestand und zählen nicht;
@@ -446,13 +447,7 @@ Satz und Zeile in `SPEC-057` Punkt 5 und 7 entfallen oder der Architect nennt ei
 (`trap 'trap "" INT; exit 130' INT # S-INT` → `:`) steht wie `p5-term-entfaellt` ohne roten Fall in der Gegenprobe; Lauf grün, das Verhalten stimmt mit `SPEC-057` Punkt 7 überein.
 Die Absätze (b) und (c) der Nacharbeit nach `6978e8f6` sind damit entschieden. Die Tabelle oben führt die Mutation `p5-int-entfaellt` als äquivalent, kein Fall rot.
 
-**Offene Punkte für den Architect/Planner** (keine Entscheidung des Implementers):
-- `SPEC-057` Punkt 7: Der Mutant `p5-sigterm` „Falle für `TERM` entfällt“ ist äquivalent (oben); der Vertrag ist auf `kill -KILL` und den Hinweis nachgezogen. Der Architect
-  prüft, ob ein zweites `SIGTERM` während des Aufräumens zugesagt werden soll: Dort unterschiede sich die Falle (`trap "" TERM`) vom Fehlen; Randform
-  nicht in §6, daher nicht gebaut.
-- `SPEC-057` Punkt 5: Falle für `INT` im Runner ist Folge der Zusage (oben); falls der Architect das als Entscheidung statt Folge lesen will, steht sie im Vertrag.
-- Zählung der Nehmer: keine neue Sendung an einen Nehmer in diesem Lauf (`slice-harness-abdeckung-gate` wie in §1 unverändert).
-
+**Offene Punkte:** keine. Die Fragen zu `p5-sigterm`, zur Falle für `INT`, zu den roten Fällen je Gruppe und zum Inhalt des Volumes sind in `SPEC-057` Punkte 4, 5 und 7 und in §6 entschieden; keine neue Sendung an einen Nehmer in diesem Lauf.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -488,7 +483,7 @@ Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 Liefer-Punkte: 3. Schichten nach der Zählung in `AGENTS.md` §3.13: zwei (Harness-Werkzeug mit
 `tools/test` und `harness/mk`; Gate-Index und Spezifikation mit der Zeile in `harness/README.md`
 und den Verträgen `SPEC-057` und `SPEC-052`, gezählt als eigene Schicht, weil §3.13 die
-Harness-Dokumentation nicht ausnimmt; die Verträge sind vor dem Anspruch geschrieben und nicht Teil des Diffs); kein Produkt-Code, keine Nutzer-Doku.
+Harness-Dokumentation nicht ausnimmt; die Verträge sind vor dem Anspruch geschrieben; Änderungen daran im Lauf (`SPEC-057` Punkte 5 und 7, `SPEC-055` Punkt 9) stehen im Diff und in der Metrik); kein Produkt-Code, keine Nutzer-Doku.
 
 **Nachgezählt am 2026-10-17 mit der Übernahme von `test-container`** (Geber `slice-v1-abschluss-container`
 und der Befund aus `slice-v1-abschluss-container-doku`; `SPEC-055` Punkt 9 im Architect-Commit, nicht im
