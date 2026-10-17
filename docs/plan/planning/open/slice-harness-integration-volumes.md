@@ -21,9 +21,11 @@ Harness, keine Zusage des Produkts. Bindung an Entscheidungen:
 gegen ein gepinntes PostgreSQL-Image; der Runner ist dort der Träger).
 
 **Berührte Spec-Stellen:** `SPEC-038` (neuer Absatz *Aufräumen der Integrationstests*, vom
-Architect vor dem Code anzulegen)
+Architect vor dem Code anzulegen); `SPEC-052` (Punkt 4 und 13: Eintrag der neuen Gegenprobe in
+die Ausnahmeliste der schnellen Kette und der Beleg, dass sie `docs/user/` und `README.md` nicht
+liest; Architect, vor dem Code)
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** pt9912. **Datum:** 2026-10-12.
 
@@ -89,8 +91,25 @@ damit `make gates` scheiterten mit „PostgreSQL nicht bereit“. Der Nutzer sch
   anderer Vorgang: Es wäre ein neuer Vertrag am Runner mit eigenen Randformen; er braucht
   einen eigenen Slice, wenn der Nutzer ihn will, und ist nicht angelegt.
 - Produkt-Code, Tests unter `test/integration`, das `Dockerfile` und das Produkt-Image —
-  Schicht-Abgrenzung: Der Slice ändert nur Skripte unter `tools/test`, ein Make-Fragment unter
-  `harness/mk` und die Dokumentation des Gates.
+  Schicht-Abgrenzung: Der Slice ändert nur Skripte unter `tools/test`, Make-Fragmente unter
+  `harness/mk` (`integration.mk`, `gates-schnell.mk`) und die Dokumentation und Verträge des
+  Gates (`harness/README.md`, `SPEC-038`, `SPEC-052`).
+
+**Sendungen an Dritte** (`AGENTS.md` §3.13; mit der Kennung dieses Slice als Geber):
+
+- *An `harness/mk/gates-schnell.mk` und `SPEC-052`:* `integration-volumes-gegenprobe` endet auf
+  `-gegenprobe` und hängt an `GATE_CHECKS`; `SPEC-052` Punkt 4 verlangt dafür einen Eintrag in
+  `GATE_SCHNELL_AUSNAHME`, sonst ist `gates-schnell-gegenprobe` rot. Punkt 13 verlangt für jedes
+  Gate der Ausnahmeliste auf `-gegenprobe` den Beleg, dass es `docs/user/` und `README.md` des
+  Arbeitsbaums nicht liest; die Gegenprobe fährt in Kopien, die sie selbst anlegt (§3), und der
+  Beleg steht in `SPEC-052` Punkt 13 (Architect, vor dem Code). Der Eintrag und die Zeile stehen
+  im selben Commit wie das Ziel.
+- *An `slice-harness-abdeckung-gate` (Nehmer der Bindung, nicht dieser Slice):*
+  `tools/test/integration-volumes-gegenprobe.sh` liegt unter dem Muster `tools/**/*-gegenprobe.sh`,
+  das `tools/test/abdeckung.sh` mit jenem Slice mitliest. Diese Gegenprobe trägt im Kopf keine
+  `#`-Zeile in der Form einer Abdeckungs-Deklaration (`SPEC-048`); `slice-harness-abdeckung-gate`
+  hält sie mit einem Fall seiner Gegenprobe fest (dort §1 und §6, Risiko *Andere Gegenproben werden
+  gelesen*).
 
 ## 2. Definition of Done
 
@@ -113,7 +132,9 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       in Kopien des Arbeitsbaums mit realem Docker die Fälle aus §6 *Mutationen*: Grundfall
       ohne Rest, Mutant ohne `-v` rot mit dem Namen des Volumes, Abbruch durch SIGTERM, Container
       nur angelegt, fremde Volumes bleiben; je Fall die Zahl der Volumes der Probe vor und nach
-      (nach Namen). Die Zeile steht in `harness/README.md` §Sensors, der Vertrag in `SPEC-038`.
+      (nach Namen). Die Zeile steht in `harness/README.md` §Sensors, der Vertrag in `SPEC-038`; das Ziel steht in
+      `GATE_SCHNELL_AUSNAHME` (`harness/mk/gates-schnell.mk`), und `SPEC-052` Punkt 13 trägt den
+      Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest (§1, Sendungen).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
@@ -136,7 +157,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/test/integration-aufraeumen.sh` | neu | Funktionen zum Lesen der Namen, Entfernen und Prüfen; Runner und Gegenprobe laden sie, damit die Gegenprobe den Code des Runners prüft, nicht eine Kopie |
 | `tools/test/integration-volumes-gegenprobe.sh` | neu | Fälle aus §6 *Mutationen* gegen reales Docker, Mutant per Ersetzung in einer Kopie der Funktionsdatei (das Skript bricht ab, wenn die Ersetzung nichts oder mehr als eine Stelle trifft); Zahl der Volumes der Probe nach Namen |
 | `harness/mk/integration.mk` | update | Ziel `integration-volumes-gegenprobe`, an `GATE_CHECKS`, hinter `test-integration` |
-| `harness/README.md` | update | Zeile in §Sensors für das Ziel; die Zeile von `make test-integration` nennt die Prüfung |
+| `harness/mk/gates-schnell.mk` | update | `integration-volumes-gegenprobe` in `GATE_SCHNELL_AUSNAHME` (`SPEC-052` Punkt 4; sonst ist `gates-schnell-gegenprobe` rot), im Commit des Ziels |
+| `harness/vertraege/SPEC-052-gate-kette.md` | update (Architect) | Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest, und Punkt 4, soweit die Aufzählung die Gegenprobe nennt; vor dem ersten Code-Commit |
+| `harness/README.md` | update | Zeile in §Sensors für das Ziel; die Zeile von `make test-integration` nennt die Prüfung; die Zeile von `gates-schnell` nennt die Ausnahmeliste unverändert (kein Gate-Name dort) |
 | `spec/spezifikation.md` (`SPEC-038`) | update (Architect) | Absatz *Aufräumen der Integrationstests* mit den Entscheidungen aus §6, vor dem ersten Code-Commit |
 
 - Der Implementer misst die Images von `a-check` und `d-migrate` (`docker image inspect`, Feld
@@ -153,7 +176,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 welle-v1-abschluss liegen in `done/` (WIP-Limit 1); dieser Slice steht direkt vor
 `slice-harness-abdeckung-gate`, danach `slice-harness-coverage`, die Slices von
 welle-erster-release und welle-v1-nachtrag und die übrige Harness-Reihe (Drift-Log der
-Roadmap vom 2026-10-12). Technisch hängt er an nichts. Begründung des Platzes: Der Fehler
+Roadmap vom 2026-10-12; im Release-Lauf steht er hinter Schritt 44 von welle-v1-abschluss §5).
+Technisch hängt er an nichts. Begründung des Platzes: Der Fehler
 kostet Platte und keinen Test, und die Reihenfolge der Wellen-Slices steht (§5 von
 [welle-v1-abschluss](../welle-v1-abschluss.md)); er läuft vor den Slices, die nach der Welle
 am meisten Gate-Läufe brauchen. Das Leck beträgt rund 75 MB je Lauf von `make gates` (172,9 GB
@@ -163,9 +187,20 @@ vor die laufende Welle (Umplanung im Drift-Log, Entscheidung des Nutzers). Vor d
 Code-Commit entscheidet der Architect die Randformen aus §6 in `SPEC-038`
 (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
+**Größe** (`AGENTS.md` §3.14): Metrik ist die Summe aus Einfügungen und Löschungen von
+`git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test harness/mk/integration.mk
+harness/mk/gates-schnell.mk harness/README.md harness/vertraege/SPEC-052-gate-kette.md
+spec/spezifikation.md`, Tests eingeschlossen. Basis: der Commit des Anspruchs (`next` →
+`in-progress`), beim Anspruch einzutragen. Schätzung (Arbeitswert des Planners aus den
+Bestandsmaßen, vom Architect vor dem Code zu bestätigen; die Gegenprobe zählt mit dem Doppelten
+des Produktcodes): 450 bis 750, Mitte 600. **Meldeschwelle 750:** Wer im Lauf darüber liegt oder
+liegen wird, meldet es dem Planner, bevor er weiterbaut. **Marke 900:** darüber gilt die
+Rückführung unten, ohne Ermessen.
+
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Gegenprobe braucht mehr als die
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe der Metrik liegt über 900,
+  oder die Gegenprobe braucht mehr als die
   fünf Fälle aus §6 *Mutationen* oder eine eigene Laufzeitumgebung und ist nicht in einer
   Review-Sitzung prüfbar; Schnitt dann: Aufräumen und Prüfung im Runner hier, die Gegenprobe
   mit dem Ziel in einem eigenen Slice direkt dahinter.
@@ -299,7 +334,14 @@ Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Liefer-Punkte: 3. Schichten nach der Zählung in `AGENTS.md` §3.13: zwei (Harness-Werkzeug mit
 `tools/test` und `harness/mk`; Gate-Index und Spezifikation mit der Zeile in `harness/README.md`
-und dem Absatz in `SPEC-038`, gezählt als eigene Schicht, weil §3.13 die Harness-Dokumentation
-nicht ausnimmt); kein Produkt-Code, keine Nutzer-Doku.
+und den Absätzen in `SPEC-038` und `SPEC-052`, gezählt als eigene Schicht, weil §3.13 die
+Harness-Dokumentation nicht ausnimmt); kein Produkt-Code, keine Nutzer-Doku.
+
+**Nachgezählt** mit den Sendungen aus §1 (`gates-schnell.mk` und `SPEC-052`; Geber dieser Slice):
+Liefer-Punkte weiter 3 (der Eintrag in die Ausnahmeliste und der Beleg in `SPEC-052` wachsen in
+Punkt 3, Gegenprobe, hinein; sie sind keine eigenen Punkte, erhöhen aber den Umfang, daher die
+Metrik in §4), Schichten weiter 2: beide Dateien liegen in den zwei genannten Schichten
+(`harness/mk` bzw. `harness/vertraege`). Die Bindung an `slice-harness-abdeckung-gate` (§1) ändert
+den Umfang dieses Slice nicht, sie bindet den Kopf der Gegenprobe.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
