@@ -162,7 +162,7 @@ dasteht.
 
 Probe im Scratch-Gerüst außerhalb des Repos (Ordner `pgr-dev-probe` und `pgr-probe-zwei`, Namen `pgr-probe-dev` und `pgr-probe-zwei`, Ports 2423 und 2424); Host Linux/amd64, Docker 29.9.1,
 `u-boot` 0.10.0, `devcontainer` 0.80.2, Stand 2026-10-17, `main` bei `9007c044`. Vor der Messung war `pgrep -fa "^make gates"` am Host leer (Exit 1), nach ihr ebenso; der Hauptbaum blieb unberührt. Werte der Variablen waren Platzhalter
-(23 und 28 Zeichen), kein Zugangsdatum des Nutzers wurde gelesen. Gerüst-Dateien: Inhalt in `docs/developer/devcontainer.md` §3.3 bis §3.5.
+(23 und 28 Zeichen), kein Zugangsdatum des Nutzers wurde gelesen. Der DoD-Satz „beide Wege funktionieren“ ist nur mit Platzhaltern belegt (die Variable kommt an, `claude` antwortet wie in den Zeilen (b)); der echte Login beider Wege lief nicht und bleibt beim Nutzer (zwei Befehle, Dokument §7). Gerüst-Dateien: Inhalt in `docs/developer/devcontainer.md` §3.3 bis §3.5.
 
 | Probe | Befehl | Ergebnis |
 |---|---|---|
@@ -178,9 +178,9 @@ Probe im Scratch-Gerüst außerhalb des Repos (Ordner `pgr-dev-probe` und `pgr-p
 | (b) Weg über `ssh` | `ssh … 'claude -p ok'`; Wert über `stdin` | `Not logged in`; `Invalid API key` |
 | Sichtbarkeit des Werts | `ps -eo args` am Host, `/proc/<PID>/environ`, `docker inspect`, `docker logs` | Host-Prozessliste: ja (`docker exec -e …=<Wert>`); `environ`: ja; `inspect`, Log: nein |
 | (a) Egress, Hostliste | DNS-Log von `dnsmasq`; `make gates` in drei Läufen | Lauf 1 Exit 2 nach 8 s (`pkg-containers.githubusercontent.com`), Lauf 2 Exit 2 nach 25 s (`gcr.io`), Lauf 3 Exit 0; im Log nur Namen der Liste außer `http-intake.logs.us5.datadoghq.com` und `example.com` |
-| (a) `make gates` | `ssh … 'cd … && make gates'` im Klon (`thema` bei `9007c044`), frisches Volume | Exit 0, 1701 s, höchstens 4,238 GiB (`docker stats`, alle 10 s); `OOMKilled=false`; zuvor Lauf mit Cache aus Fehlläufen 1701 s, 5,424 GiB |
+| (a) `make gates` | `ssh … 'cd … && make gates'` im Klon (`thema` bei `9007c044`) | Zwei grüne Läufe, beide `dauer=1701s`, getrennt (Start 20:50:25 und 21:21:51 laut `stats.txt`). Reihenfolge: Lauf A zuerst, im Container mit den Images aus den zwei Fehlläufen (8 s, 25 s): Exit 0, höchstens 5,424 GiB. Danach Container und Volumes entfernt, neu gebaut, Lauf B auf frischem Volume: Exit 0, höchstens 4,238 GiB (`docker stats`, alle 10 s); `OOMKilled=false`. Das Log von A wurde vor B überschrieben, die 1701 s von A stehen in der Ausgabe des Laufs |
 | (a) Speicher | `docker system df -v` am Host, `du`, `docker system df` im Container | Image 2,15 GB; Volume `…-docker-<ID>` 12,59 GB, `…-workspace-<ID>` 27,76 MB; im Container 15 Images 6,7 GB, Build-Cache 7,6 GB |
-| Neustart ohne Neubau | `docker stop`, `devcontainer up`; `docker rm -f`, `devcontainer up` | 1,8 s und 6,4 s bis `dockerd`; Klon, Bare-Repo, 10 Images, Fingerabdruck unverändert; `~/.claude` fehlt nach `rm` |
+| Neustart ohne Neubau | `docker stop`, `devcontainer up`; `docker rm -f`, `devcontainer up` | `pgr-probe-dev`: 1,79 s und 6,40 s; `pgr-probe-zwei`: 1,65 s und 7,87 s bis `dockerd`; Klon, Bare-Repo, 10 Images, Fingerabdruck unverändert; `~/.claude` fehlt nach `rm` |
 | Neubau | `--build-no-cache`; Änderung von `egress.allow` | Fingerabdruck des Hostschlüssels ändert sich (`WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!`) |
 | Netz nach Änderung | `example.org` in `egress.allow`, `up` bei laufendem Container; Container entfernt, `up` | löst nicht auf; löst auf (45 s Build) |
 | Verschachtelte Container | `docker run alpine:3 wget http://example.com` im Container | erreicht `example.com` |
@@ -189,6 +189,17 @@ Probe im Scratch-Gerüst außerhalb des Repos (Ordner `pgr-dev-probe` und `pgr-p
 | Schlüssel fehlt | `devcontainer up` ohne `ssh/id_ed25519.pub` | `invalid mount config … bind source path does not exist`, kein Container, kein Volume |
 | `u-boot up` | im Gerüst | `no service selected`, Exit 12 |
 | Port belegt | `docker run -p` auf belegtem Port | `driver failed programming external connectivity` |
+| Gerüst-Inhalt | `cat` von `devcontainer.json`, `Dockerfile`, `docker-init.sh`, `egress-init.sh`, `override.json`, `mk-override.sh` im Scratch | Inhalt wie in Dokument §3.3 bis §3.5; erzeugte `runArgs` `--privileged`, `--cap-add=NET_ADMIN`, kein `forwardPorts`, kein `appPort` |
+| Konfiguration im Container | `ss -ltn`, `/etc/ssh/sshd_config`, `sudo grep … /etc/shadow`, `sudo -n -l` per `docker exec` | `0.0.0.0:2222`, `[::]:2222`; `PermitRootLogin yes`, `UsePAM yes`, `AcceptEnv LANG LC_* COLORTERM NO_COLOR`; `root:*`, `vscode:!`; `(root) NOPASSWD: ALL` |
+| Mounts, Rechte, Grenzen | `docker inspect` (Mounts, `Privileged`, `CapAdd`, `NanoCpus`, `Memory`), `cat /sys/fs/cgroup/memory.max`, `docker info` im Container | zwei Volumes und ein Bind (Schlüssel, `ro`); `Privileged=true`, `CAP_NET_ADMIN`; 8000000000, 12884901888; `memory.max` 12884901888; 20 CPUs und Speicher des Hosts |
+| Pseudo-Terminal | `script -qec "devcontainer exec … bash -c 'tty; echo ${#ANTHROPIC_API_KEY}'" /dev/null` | `/dev/pts/0`, `23` |
+| `SendEnv` wirkt nicht | `ANTHROPIC_API_KEY=<Platzhalter> ssh -o SendEnv=ANTHROPIC_API_KEY … 'echo ${#ANTHROPIC_API_KEY}'` | `0` |
+| Orte des Werts | `grep -rl <Platzhalter> ~` als `vscode`, `docker inspect \| grep -c`, `docker logs \| grep -c` | keine Treffer, 0, 0; Kindprozesse, Shell-History und `GIT_TOKEN` nicht gemessen (Dokument §13) |
+| Bare-Repo und Klon | `git init --bare --initial-branch=main`, `git push container main`, `git clone`, `git config user.*`, `make hooks-install`, `ls -ld /workspaces …`, `git --version` | `/workspaces` root, das Verzeichnis des Volumes `vscode`; `fatal: cannot mkdir … Permission denied` außerhalb des Volumes; Klon bei `9007c044`, `core.hooksPath=.githooks`, `git version 2.55.0`; ohne Identität `Author identity unknown` |
+| Bare-Repo, Randformen | zweiter `git init --bare`, zweiter `git clone`, `git init` ohne Option, Klon leer, Klon bei `master`-`HEAD`, zweites `git remote add` | `Reinitialized existing Git repository`; `destination path … already exists and is not an empty directory`; `refs/heads/master`; `warning: You appear to have cloned an empty repository.`; `remote HEAD refers to nonexistent ref`; `externes Repository container2 existiert bereits` |
+| `fetch` aus zwei Containern | `core.sshCommand` mit einem, dann beiden Schlüsseln; `git fetch container`, `git fetch container2`, `git branch -r` | ein Schlüssel: `Bitte stellen Sie sicher, dass die korrekten Zugriffsberechtigungen bestehen`; beide: Exit 0, `container/main` und `container2/main` |
+| Versionen am Host | `u-boot doctor`, Kopfzeile von `devcontainer up` | `docker 29.9.1 available (≥ 24.0)`; `@devcontainers/cli 0.80.2. Node.js v22.18.0` |
+| Entfernen der Scratch-Objekte | `docker rm -fv pgr-probe-dev pgr-probe-zwei`, `docker volume rm` der vier Namen, `docker rmi` der vier `vsc-pgr-*`-Images; danach `docker ps -a`, `docker volume ls --filter name=pgr-probe-`, `docker system df` | 0 Container, keine Volumes mit dem Präfix, Volumes wieder 49 wie vor der Probe; `alpine:3` am Host blieb stehen (ob vorher vorhanden, nicht festgestellt); kein `docker volume prune`, kein `pkill` |
 | Gates der Dokumentation | `make docs-check`, `make kopf-check` im Worktree | 0 Befunde; Exit 0 |
 
 Hosts für `devcontainer.sandbox.egress.allow` (über die Standardliste hinaus): `gcr.io`, `pkg-containers.githubusercontent.com`. Nicht in der Liste und nicht gemessen: die Hosts der Anmeldung im Browser.
