@@ -20,7 +20,7 @@ ebenfalls keinen Lastenheft-Bezug führt; der Slice schreibt dessen Dokument um.
 
 **Berührte Spec-Stellen:** —
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig slice/devcontainer-austausch-repo)
 
 **Autor:** pt9912 (Entwurf: Planner). **Datum:** 2026-10-17.
 
@@ -127,7 +127,7 @@ nachher gleich; `docker ps -a` zeigt nur `pgr-dev` und die Scratch-Container), A
 
 **Start** (`next` → `in-progress`): Nach dem Schließen von `slice-harness-integration-volumes` (WIP-Limit 1 und Docker: die Proben
 dieses Slice dürfen dessen Volume-Messungen nicht stören). Der Anspruch ist ein reiner `git mv` auf dem Hauptzweig vor der Arbeit.
-Die Stelle in der Reihenfolge ist Empfehlung des Planners; der Nutzer kann sie ändern.
+Der Start läuft abweichend parallel zu `slice-harness-abdeckung-gate` (§6 *Paralleler Lauf*). Die Stelle in der Reihenfolge ist Empfehlung des Planners; der Nutzer kann sie ändern.
 
 **Größe.** Metrik nach `AGENTS.md` §3.14: Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- docs/developer`. Basis ist der
@@ -173,11 +173,17 @@ und nicht probt, hält er an und gibt sie an den Architect zurück (`.claude/com
   — **Ausgang:** bei der Closure; Gegenmittel: Quantoren-Durchsicht (`grep`) wie im Vorgänger, ein Gegenbeispiel je Verneinung.
 - **Größe:** Der Umbau liegt über der Marke (Vorgänger 441 gegen Schätzung 150 bis 300). — **Ausgang:** bei der Closure; Gegenmittel §4 (Meldeschwelle 350, Marke 450, 560 Zeilen).
 
-**Offene Fragen an den Nutzer** (keine Entscheidung des Planners):
+**Festlegungen zu den offenen Punkten** (2026-10-17, beim Anspruch; Empfehlung, die der Nutzer nicht als Entscheidung bestätigt hat, er kann sie ändern;
+einzige Ausnahme: der Hostschlüssel, der offen bleibt):
 
-1. Soll das Bare-Repo, das die Probe am echten Container `/Development/pgr-dev` anlegt, nach der Probe stehen bleiben (der Nutzer arbeitet dann damit weiter) oder entfernt werden?
-2. Darf der Implementer den echten Container für Schritt 7 neu erzeugen (`u-boot up` nach Änderung von `compose.yaml` im Messort)? Der Plan sieht das nicht vor (Scratch-Container); mit dem echten Container wäre der Beleg
-   *Überleben von `down`/`up`* am Bestand belegt.
+1. Das Bare-Repo, das die Probe am echten Container `/Development/pgr-dev` anlegt, wird nach der Probe entfernt.
+2. Der echte Container wird nicht neu erzeugt und nicht mit `down`/`up` angefasst. Das Überleben von `down`/`up` (Probe 5) läuft im Scratch-Container; der Bestand bleibt unangetastet.
+3. Hostschlüssel: Das Dokument nennt nur, was gelaufen ist, und empfiehlt keine Einstellung (`StrictHostKeyChecking`, `UserKnownHostsFile`). Die Entscheidung darüber liegt beim Nutzer und bleibt offen; sie steht in §13 des Dokuments.
+4. Vorbedingung jeder Container-Probe: `pgrep -fa "^make gates"` ist leer, weil der Docker-Daemon mit dem Lauf von `slice-harness-abdeckung-gate` geteilt ist. Das Dokument selbst darf jederzeit geschrieben werden.
+
+**Paralleler Lauf.** Dieser Slice läuft neben `slice-harness-abdeckung-gate` (`in-progress/`, anderer Implementer-Lauf), nach WIP-Limit pro Lauf
+(Baseline-Regelwerk `modul-05-planning-harness.md`; `Verantwortlich:` unterscheidet die Läufe per Zweig). Eigener Worktree (`../pgwire-recorder-austausch`) und Zweig
+`slice/devcontainer-austausch-repo`; Fast-Forward-Push auf `main` erst nach Rebase. Konflikte unter `docs/plan/planning/` sind nicht zu erwarten (verschiedene Dateien).
 
 ## 7. Closure-Notiz
 
@@ -196,5 +202,7 @@ keine Sendung eines anderen Slice auf und trägt keine in einen anderen ein; `gr
 der Vorgänger trug ein Auftreten; Zähler bei der Closure aus den Dateien lesen), `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` (Zähler 11 laut Vorgänger; Stand *geplant*,
 `slice-harness-schaetzung-planner-faktor`; dieser Slice bekommt keine Sendung, der Spielraum der Marke in §4 folgt dem Datenpunkt des Vorgängers), `BEO-REPO/stop-hook-positivliste-ohne-docs-developer`
 (Pfad aufgenommen, kein Treffer für diesen Slice). Keine weiteren Treffer.
+
+**Paralleler Lauf** neben `slice-harness-abdeckung-gate`: eigener Worktree und Zweig, Rebase vor dem Fast-Forward-Push, geteilter Docker-Daemon (Vorbedingung §6).
 
 Alle berührten Sub-Areas GF.
