@@ -29,7 +29,7 @@ des Lastenhefts, auf den Slice-Plan angewandt); die vier Klassen des
 Ausschlusses stehen in **eben diesem Abschnitt** des Baseline-Regelwerks,
 zusammen mit der Begründungs-Pflicht je Punkt.
 
-**Ziel:** Ein Tag `v<SemVer>` wird gegen die Versionsdatei geprüft, baut die Binaries für die Zielplattformen reproduzierbar mit `SHA256SUMS` und das Docker/OCI-Image, veröffentlicht das Image mit gleichem Index-Digest in `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder` und lässt sich nach einem Fehler wieder anstoßen; belegt mit einem Probe-Tag.
+**Ziel:** Ein Tag `v<SemVer>` wird gegen die Versionsdatei geprüft, hängt die Binaries für die Zielplattformen mit `SHA256SUMS` aus `make binaries` an den GitHub-Release (die Reproduzierbarkeit der Binaries hält `make test-container`, kein zweiter Bau), baut das Docker/OCI-Image, veröffentlicht es mit gleichem Index-Digest in `ghcr.io/pt9912/pgwire-recorder` und `docker.io/pt9912/pgwire-recorder` und lässt sich nach einem Fehler wieder anstoßen; belegt mit einem Probe-Tag.
 
 **Übernommen aus `welle-erster-release`** (Entscheidungen des Nutzers vom 2026-10-09 nach dem
 Vergleich von `docs/maintainer/releasing.md` mit den Release-Dokumenten von a-check, d-check,
@@ -64,6 +64,12 @@ und der erste echte Tag. Dieser Slice belegt die Pipeline mit einem Probe-Tag.
   Scan in ihr vor dem Push läuft.
 - Die Wahl der ersten Versionsnummer — wird beim Release festgelegt; die Versionsdatei
   (Punkt 6) trägt sie, wählt sie aber nicht.
+- Konten, Namensräume und Zugangsdaten der Registries, die Sichtbarkeit der Pakete und das
+  Hinterlegen der Zugangsdaten im Repository — Handlungen des Betreibers (`docs/maintainer/releasing.md`
+  §4 Punkt 4); dieser Slice liest sie nur, wie §6 es festlegt. Die Zugangsdaten stehen nie im Repository.
+- Ein zweiter Bau der Binaries oder ein Vergleich zweier Builds in der Pipeline — das Gate
+  `make test-container` (Geber `slice-v1-abschluss-container`) hält die Zusage; die Pipeline
+  ruft `make binaries` und baut nichts ein zweites Mal.
 - Reproduzierbarkeit des Images — `LH-QA-01` verlangt sie nur für das Binary; das Image wird
   über seinen Digest identifiziert (Punkt 2).
 
@@ -75,7 +81,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Ein Probe-Tag veröffentlicht das Image mit `linux/amd64` und `linux/arm64` als eine Manifestliste in beiden Registries, und es besteht den Smoke aus Abnahmeszenario 9. Beide Registries tragen denselben Index-Digest, sonst endet der Lauf rot (Punkt 2); `:latest` wird nur bei einem stabilen Tag gesetzt, der Probe-Tag lässt es unverändert (Punkt 1). Beleg in §7: Lauf-Kennung und Digest des Probe-Tags (Test). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung). Aus `slice-doku-ist-stand` (dort §6, *Installation*): Der Slice liefert im Handbuch §2 *Installation* die Abschnitte zu den Release-Binaries (Plattformen, `SHA256SUMS`) und zu den Images aus `ghcr.io` und `docker.io` sowie die Plattform-Zeile in §1 *Voraussetzungen*, jeweils nur, soweit der Probe-Tag sie belegt; ein Abschnitt, den erst ein echter Tag belegt, bleibt aus.
-- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Die Binaries für Linux, macOS und Windows (`amd64`, `arm64`) hängen mit einer Datei `SHA256SUMS` am GitHub-Release des Probe-Tags (`LH-FA-19.a`); zwei Builds desselben Tags liefern dieselben Summen. Die Release-Notes entstehen aus der neuen Zeile der Änderungshistorie des Handbuchs; ein `CHANGELOG.md` wird nicht geführt.
+- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): Die Binaries für Linux, macOS und Windows (`amd64`, `arm64`) hängen mit einer Datei `SHA256SUMS` am GitHub-Release des Probe-Tags (`LH-FA-19.a`); die Dateien am Release sind die aus `make binaries` mit `VERSION` aus dem Tag, und eine abweichende Summe am Release endet rot (Test mit einer Attrappe; die Gleichheit zweier Builds belegt `make test-container`, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md) Punkt 4, nicht dieser Slice). Die Release-Notes entstehen aus der neuen Zeile der Änderungshistorie des Handbuchs; ein `CHANGELOG.md` wird nicht geführt.
 - [ ] Vor jedem Push prüft die Pipeline, dass der Tag die Form `v<SemVer>` hat und der Version in der Versionsdatei entspricht; sonst endet sie, bevor etwas gebaut oder veröffentlicht wird (Punkte 6 und 7, Test mit falschem Tag und abweichender Datei). `docs/maintainer/releasing.md` §11 trägt die Fehlertabelle je Schritt der Pipeline und den Wiederanlauf; ein roter Probe-Lauf ist nach ihr wieder angestoßen (Punkt 8, Beleg in §7).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -94,10 +100,10 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| Release-Verfahren (`docs/maintainer/releasing.md`) | update | vom beschriebenen auf das ausgeführte Verfahren bringen |
-| Release-Automatisierung | neu | Prüfung von Tag und Versionsdatei, Build, Veröffentlichung mit Vergleich der Index-Digests, `:latest` nur bei stabilem Tag, Prüfsummen; der Scan vor dem Push kommt mit `slice-erster-release-freigabe` dazu |
+| Release-Automatisierung (Träger und Dateinamen entscheidet der Architect, §6) | neu | Prüfung von Tag und Versionsdatei, `make binaries` mit `VERSION` aus dem Tag, Image-Bau, Veröffentlichung mit Vergleich der Index-Digests, `:latest` nur bei stabilem Tag, Anhänge am GitHub-Release; der Scan vor dem Push kommt mit `slice-erster-release-freigabe` dazu |
+| Test der Pipeline (Gegenprobe mit Attrappen für `docker`, die Registries und den GitHub-Release, ohne Netz) | neu | je Zusage eine Mutation (`AGENTS.md` §3.10): Form des Tags, Versionsdatei, Digest-Vergleich, `:latest`, Anhänge, Wiederanlauf |
 | Versionsdatei (Ort offen, §6) | neu | Version der Software, gegen den Tag geprüft |
-| `docs/maintainer/releasing.md` §3, §6, §8, §9, §11 | update | Versionsquelle, was der Tag auslöst, Kontrollen nach dem Push, Release-Notes, Fehlertabelle und Wiederanlauf |
+| `docs/maintainer/releasing.md` §3, §6, §8, §9, §11 | update | vom beschriebenen auf das ausgeführte Verfahren bringen: Versionsquelle, was der Tag auslöst, Kontrollen nach dem Push, Release-Notes, Fehlertabelle und Wiederanlauf; auf dem Stand aufbauend, den `slice-v1-abschluss-container-doku` liefert |
 | `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |
 
 ## 4. Trigger
@@ -113,14 +119,14 @@ Architect die Randformen aus §6 (`AGENTS.md` §3.12).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next`: die Release-Automatisierung verlangt mehr als drei Liefer-Punkte, oder der Diff ist nicht in einer Review-Sitzung prüfbar — zurück zur Zerlegung. Schnitt dann: *Tag und Binaries* (DoD-Punkte 2 und 3) und *Image* (DoD-Punkt 1).
+- `in-progress` → `next`: die Release-Automatisierung verlangt mehr als drei Liefer-Punkte, oder der Diff ist nicht in einer Review-Sitzung prüfbar — zurück zur Zerlegung. Schnitt dann: *Tag und Binaries* (DoD-Punkte 2 und 3) und *Image* (DoD-Punkt 1). Marke (Metrik nach `AGENTS.md` §3.14): die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'` liegt über 1800, Tests und Gegenprobe eingeschlossen; Basis: beim Anspruch (HEAD vor dem Anspruch, hier einzutragen). Schätzung des Planners in dieser Metrik (2026-10-17, ohne Basis gemessen): Automatisierung und Versionsdatei 250 bis 350, Gegenprobe mit Attrappen das Doppelte des Produktcodes (500 bis 700), `docs/maintainer/releasing.md` 150 bis 250, Handbuch und `README.md` 60 bis 100, zusammen 960 bis 1400; die Schätzung überschreitet die Marke nicht, ein Schnitt vor dem Start unterbleibt. Meldeschwelle 1400: Wer sie überschreitet, meldet es vor dem nächsten Abschnitt, und die Entscheidung („weiter“ oder „schneiden“) steht als datierte Zeile in §7. Der Maßstab des Vergleichs: `slice-v1-abschluss-container` maß beim Code 1147 für Gate und Gegenprobe ohne Registry, Manifestliste und GitHub-Release.
 
 **Schnitt vor dem Start, 2026-10-09:** Mit den sieben Entscheidungen vom 2026-10-09 trug §2 sechs
 Liefer-Punkte. Der Nutzer entschied am 2026-10-09 den Schnitt nach dem Vorschlag in §6: Die
 Pipeline bleibt hier, dazu Wiederanlauf und Fehlertabelle; Scan, Audit, Checkliste und der erste
 echte Tag gehen an `slice-erster-release-freigabe`. Der Slice lag in `next/` und hat nicht
 begonnen; ein Übergang fällt nicht an.
-- `in-progress` → `open`: Zugangsdaten für die Registries fehlen — extern klären.
+- `in-progress` → `open`: Zugangsdaten für die Registries fehlen — extern klären; ebenso, wenn `slice-v1-abschluss-container` oder `slice-v1-abschluss-container-doku` nicht liegen, was sie liefern (Voraussetzung in §1).
 
 ## 5. Closure-Trigger
 
@@ -155,7 +161,14 @@ dasteht.
   Closure.
 
 **Randformen** (`AGENTS.md` §3.12) — **alle offen für den Architect**, zu entscheiden vor dem
-ersten Code-Commit in der Spezifikation oder einer ADR:
+ersten Code-Commit in der Spezifikation (für das Werkzeug unter `harness/vertraege/`) mit ADR für Entscheidung und Gründe. Vorbereitet vom Planner am 2026-10-17 (kein Beschluss):
+
+- *Träger der Automatisierung* — im Repository liegt kein Workflow (`.github/` fehlt); welcher Träger auf den Push eines Tags reagiert (GitHub Actions oder anderes), wie `AGENTS.md` §3.1 (Docker-only, Aufruf über `make`) und die netzlose Gegenprobe damit zusammengehen, ob Aktionen von Dritten verwendet werden und wie sie gepinnt sind.
+- *Reihenfolge der Schritte* — Prüfung von Tag und Versionsdatei, `make binaries`, Bau des Images, Push in `ghcr.io`, Push in `docker.io`, Vergleich der Digests, Manifestliste, `:latest`, GitHub-Release mit Anhängen; welcher Schritt zuerst Außenwirkung hat und was ein Abbruch dahinter hinterlässt (Fehlertabelle, Punkt 8).
+- *Manifestliste und Image-Bau* — womit eine Manifestliste für `linux/amd64` und `linux/arm64` entsteht ([ADR-0043](../../adr/0043-binaries-und-container-gate.md) Option D: der Standard-Treiber kann es nicht); ob das Image im Push das Binary aus `dist/` trägt (Gleichheit mit dem Anhang am Release, [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md) Punkt 6) oder neu gebaut wird; Emulation (die Stufe `runtime` führt keinen `RUN` aus).
+- *Registry-Namen und Tags* — Tag-Satz je Version (nur `<SemVer>`, oder auch `<MAJOR>.<MINOR>` und `<MAJOR>`), Tag mit oder ohne `v` im Image; Sichtbarkeit des Pakets in `ghcr.io` (`LH-FA-16`: öffentlich abrufbar) und die Prüfung des Zugriffs ohne Anmeldung; Existenz des Repositorys auf Docker Hub.
+- *Zugangsdaten* — Namen der Geheimnisse, Rechte, wie die Pipeline sie liest, dass sie in keinem Log erscheinen; fehlendes Geheimnis als Eingabefehler vor dem ersten Push.
+- *Anhänge am GitHub-Release* — welche Dateien (sechs Binaries, `SHA256SUMS`, sonst nichts), Name, Vorabversion-Kennzeichen (`prerelease`) für Tags mit `-…`, Text aus der Zeile der Änderungshistorie (§9 von `releasing.md`) und was bei fehlender Zeile geschieht.
 
 - *`:latest` (Punkt 1)* — Vorabversion und Probe-Tag (unverändert, so entschieden); stabiler
   Tag mit kleinerer Version als der, auf den `:latest` zeigt (Patch eines älteren Zweigs);
@@ -224,5 +237,7 @@ der Entscheidungen vom 2026-10-09. Treffer:
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026-10-10, Entscheidung des Nutzers, `AGENTS.md` §3.13): Die Dokumentation ist eine Schicht; der Handbuch- und README-Teil liegt im ersten Liefer-Punkt und in denselben zwei Dateien, kein neuer Liefer-Punkt. Schichten: zwei Schichten (Release-Automatisierung, Dokumentation).
+
+**Nachgezählt am 2026-10-17** (Planner, Vorbereitung des Anspruchs, `AGENTS.md` §3.13): Seit dem Eintrag von `slice-v1-abschluss-container` (Voraussetzung, keine Sendung) und der Metrik in §4 hat sich nichts an den Liefer-Punkten geändert. Liefer-Punkte: drei (§2: Image mit Manifestliste und Digest-Vergleich | Binaries mit `SHA256SUMS` am GitHub-Release | Prüfung von Tag und Versionsdatei samt Fehlertabelle und Wiederanlauf); Handbuch- und `README.md`-Teil liegt im ersten Punkt. Schichten: zwei (Release-Automatisierung; Dokumentation: `docs/user/`, `docs/maintainer/`, `README.md`). Die Randformen aus §6 (Träger, Reihenfolge, Manifestliste) können einen dritten Bereich öffnen (Dockerfile, wenn das Image das Binary aus `dist/` übernimmt); der Architect zählt es mit der Entscheidung nach, und läge der Slice darüber, schneidet der Planner (§4).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
