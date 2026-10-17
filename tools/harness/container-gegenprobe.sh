@@ -394,6 +394,8 @@ pruefe() {
     ist p3-dist-leer '[ "$code" -eq 0 ] && [ -f "$w/leer/SHA256SUMS" ]'
     mkdir -p "$w/voll"; echo x > "$w/voll/frueher"; ma=(DIST=voll); werkz
     ist p3-dist-nicht-leer '[ "$code" -ne 0 ] && [ ! -s "$log" ] && in_aus "DIST '"'"'voll'"'"' ist nicht leer" && [ "$(ls "$w/voll")" = frueher ]'
+    ma=(DIST=); werkz
+    ist p3-dist-leerer-wert '[ "$code" -ne 0 ] && [ ! -s "$log" ] && in_aus "DIST ist leer"'
     echo x > "$w/datei"; ma=(DIST=datei); werkz
     ist p3-dist-datei '[ "$code" -ne 0 ] && [ ! -s "$log" ] && in_aus "DIST '"'"'datei'"'"' ist nicht leer"'
     ma=(DIST=zweimal); werkz; werkz
@@ -636,6 +638,7 @@ mut p2-dev "$G_" "'pgwire-recorder %s\\n' \"\$VERSION\"" "'pgwire-recorder %s\\n
 
 
 # --- Punkt 3: das Werkzeug ---
+mut p3-dist-leer "$B_" %P3distleer "p3-dist" p3-dist-leerer-wert
 mut p3-dist "$B_" %P3dist "p3-dist p3-zweiter" p3-dist-nicht-leer p3-dist-datei p3-zweiter-lauf
 mut p3-exe "$B_" %P3exe p3 p3-namen p3-exe p3-sums-je-binary
 mut p3-name "$B_" 'datei="pgwire-recorder_${VERSION}_${os}_${arch}"' 'datei="pgwire-recorder_${os}_${arch}"' p3 p3-exe p3-namen p3-sums-format p3-sums-je-binary

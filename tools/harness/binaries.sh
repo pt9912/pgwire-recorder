@@ -20,6 +20,7 @@ read -r -a plattformen <<< "${BINARY_PLATTFORMEN-}"
 liste_pruefen "der Binaries" "$ERF_BINARIES" "${plattformen[@]}"
 version_pruefen
 dist="${DIST-}"
+[ -n "$dist" ] || eingabe "DIST ist leer" # P3distleer
 [ -z "$(ls -A "$dist" 2> /dev/null)" ] || eingabe "DIST '$dist' ist nicht leer" # P3dist
 if [ "$fehler" -ne 0 ]; then exit 2; fi
 mkdir -p "$dist"
