@@ -14,8 +14,8 @@ Claude Code läuft darin als eigene Session, getrennt von der Session am Host.
 
 Wofür er nicht gut ist:
 
-- Er ist **keine Sandbox**. Der Container ist privilegiert (§11); behandle ihn nicht als Schutz
-  des Hosts vor fremdem Code.
+- Er ist **keine Sandbox**. Der Container ist privilegiert, und `vscode` darf mit `sudo` ohne Passwort
+  alles als `root` ausführen (§11); behandle ihn nicht als Schutz des Hosts vor fremdem Code.
 - Er ersetzt weder den vollen Gate-Lauf am Host noch einen Release. Der volle `make gates` ist im
   Container **nicht gemessen** (§8).
 - Er ist **nicht Teil des Repos**: Die Dateien, die ihn bauen, stehen in diesem Dokument und liegen
@@ -62,6 +62,7 @@ Was `u-boot` erzeugt und was von Hand dazukommt:
 | `.devcontainer/start.sh` | — | ganz (§3.4) |
 | `compose.yaml` | der Kopf mit Projektname und Netz | der Service `dev` und das Volume-Verzeichnis (§3.5) |
 | `ssh/` | — | Schlüsselpaar (§3.2) |
+| `docker/`, `scripts/`, `docs/` | erzeugt, leer | — |
 
 Die Blöcke zwischen `BEGIN U-BOOT MANAGED BLOCK` und `END U-BOOT MANAGED BLOCK` gehören
 `u-boot`; die manuellen Teile stehen außerhalb davon. `u-boot add` kennt nur das Add-on
@@ -75,9 +76,11 @@ mkdir -p ssh && chmod 700 ssh
 ssh-keygen -t ed25519 -N '' -C pgr-dev -f ssh/id_ed25519
 ```
 
-Der öffentliche Teil `ssh/id_ed25519.pub` wird schreibgeschützt in den Container gemountet und ist
+Der öffentliche Teil `ssh/id_ed25519.pub` wird als Mount `ro` in den Container eingebunden und ist
 dort der einzige Schlüssel, mit dem man sich anmelden kann (§5). Der private Teil bleibt im
-Verzeichnis `ssh/` auf dem Host.
+Verzeichnis `ssh/` auf dem Host. `-N ''` legt den Schlüssel **ohne Passphrase** an: Wer die Datei
+`ssh/id_ed25519` lesen kann, kann sich am Container anmelden, und dort hat `vscode` `sudo` ohne
+Passwort (§11). Schütze das Verzeichnis (Modus 700) oder setze eine Passphrase.
 
 ### 3.3 `.devcontainer/Dockerfile`
 
@@ -195,7 +198,7 @@ Die Bestandteile:
 - `127.0.0.1:2222:22`: `sshd` ist nur auf der Loopback-Adresse des Hosts erreichbar.
 - `pgr-dev-docker` auf `/var/lib/docker`: Images und Cache des Daemons im Container.
 - `pgr-dev-workspace` auf `/workspaces`: der Klon.
-- `/Development/pgwire-recorder` auf `/host-repo`, schreibgeschützt: die Quelle für den Klon.
+- `/Development/pgwire-recorder` auf `/host-repo`, Mount `ro`: die Quelle für den Klon.
 - Der Healthcheck ist grün, wenn der Daemon im Container antwortet und `sshd` auf Port 22 lauscht.
 
 ## 4. Start, Stopp, Löschen
@@ -207,9 +210,9 @@ u-boot up        # baut das Image beim ersten Mal und wartet, bis der Container 
 docker compose ps
 ```
 
-`docker compose up -d` baut das Image, wenn es fehlt, und startet ebenso. Die Zeile
-`pull access denied for pgr-dev…` beim ersten Start ist der Versuch, das Image aus einer Registry zu
-holen; danach baut Compose es. Der Build lädt Pakete aus dem Netz. Die Probe baute mit warmem Layer-Cache
+Die Zeile `pull access denied for pgr-dev…` beim ersten Start von `u-boot up` ist der Versuch, das
+Image aus einer Registry zu holen; danach baut Compose es. Laut Hilfetext von `u-boot` ruft `u-boot up`
+`docker compose up -d` auf; `docker compose up -d` allein ist nicht geprüft. Der Build lädt Pakete aus dem Netz. Die Probe baute mit warmem Layer-Cache
 des Hosts, `u-boot up` endete nach 44 Sekunden mit `healthy`; die Zeit eines Builds ohne Cache ist nicht
 gemessen. `u-boot up` wartet standardmäßig 60 Sekunden auf den Zustand `healthy` und endet bei
 Überschreitung mit Exit 12 (`--timeout <Sekunden>` ändert das, gemessen mit `--timeout 5`); der
@@ -232,24 +235,28 @@ anderen Rechnern ist der Container nicht erreichbar. `sshd` lässt nur Schlüsse
 (`PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `PermitRootLogin no`,
 `AllowUsers vscode`); eine Anmeldung ohne Schlüssel endet mit `Permission denied (publickey)`.
 
+Bei der ersten Verbindung fragt `ssh` nach dem Hostschlüssel (`StrictHostKeyChecking ask`, wenn du
+nichts anderes eingestellt hast); prüfe den Fingerabdruck, bevor du bestätigst. Diese Frage ist nicht
+geprüft: Die Probe verband sich mit bereits gespeichertem Hostschlüssel.
+
 Im Container läuft ein eigener Daemon: `docker info` nennt den Namen `pgr-dev`, und `docker ps -a`
 listet nicht die Container des Hosts, auch nicht `pgr-dev` selbst.
 
 ## 6. Klon im Container
 
-Das Host-Repo liegt schreibgeschützt unter `/host-repo`. Der Klon entsteht im Volume:
+Das Host-Repo liegt unter `/host-repo`, als Mount `ro`. Der Klon entsteht im Volume:
 
 ```bash
-git config --global --add safe.directory /host-repo
 git clone /host-repo /workspaces/pgwire-recorder
 cd /workspaces/pgwire-recorder
 git config --global user.name "Dein Name"
 git config --global user.email "du@example.org"
 ```
 
-`safe.directory` ist in der Probe nicht nötig gewesen: Der Host-Benutzer und `vscode` haben beide die
-UID 1000, und `git clone` lief auch ohne den Eintrag. Bei einer anderen UID des Host-Benutzers ist das
-nicht geprüft. Name und E-Mail setzt du selbst; ohne sie weist `git commit` mit „Author identity
+Ein Eintrag `git config --global --add safe.directory /host-repo` ist in der Probe nicht nötig
+gewesen: Der Host-Benutzer und `vscode` haben beide die UID 1000, und `git clone` lief ohne ihn. Bei
+einer anderen UID des Host-Benutzers ist das nicht geprüft; meldet `git` dort `dubious ownership`,
+trage den Eintrag vor dem Klonen ein. Name und E-Mail setzt du selbst; ohne sie weist `git commit` mit „Author identity
 unknown“ ab. Der Klon
 enthält die **committeten** Stände des Host-Repos zum Zeitpunkt des Klonens, nicht uncommittete
 Änderungen. Ein späterer Stand des Hosts kommt mit `git pull` aus `/host-repo`.
@@ -262,7 +269,7 @@ claude
 ```
 
 Die Anmeldung geschieht im Container selbst; du kopierst keine Zugangsdaten vom Host. Der Container
-hat genau vier Mounts: das Host-Repo (schreibgeschützt), den öffentlichen Schlüssel (schreibgeschützt)
+hat genau vier Mounts: das Host-Repo (Mount `ro`), den öffentlichen Schlüssel (Mount `ro`)
 und die beiden Volumes aus §3.5 (`docker inspect pgr-dev`); Verzeichnisse mit Zugangsdaten sind nicht
 darunter. `claude --version` läuft im Container. Der Start von `claude` und
 die Anmeldung sind **nicht geprüft**, weil sie interaktiv sind.
@@ -277,7 +284,10 @@ make gates-schnell
 make test
 ```
 
-Gemessene Zeiten im Container (Stand 2026-10-17, je Zeile die Läufe, die es gab):
+Gemessene Zeiten im Container (Stand 2026-10-17, je Zeile die Läufe, die es gab). Die jeweils erste
+Zahl stammt aus einem Skript des Nutzers am Versuchs-Container (`scripts/nachweis2.sh`,
+`scripts/nachweis3.sh`); sie ist nicht wiederholt. Die zweite stammt aus der Probe in einem frischen
+Container:
 
 | Target | Zeit | Bedingung |
 |---|---|---|
@@ -294,8 +304,9 @@ legt sie im Volume `pgr-dev-docker` ab; die Images des Host-Daemons stehen ihm n
 ## 9. Ergebnisse zurück ins Host-Repo
 
 Am Host-Repo ist für den Container nichts eingerichtet: Kein Remote zeigt auf ihn (das Repo kennt
-nur `origin` auf GitHub), und der Container kann nicht nach `/host-repo` schreiben. Die Ergebnisse holst du vom
-Host aus; der Vorschlag dafür:
+nur `origin` auf GitHub), und `/host-repo` ist als Mount `ro` eingebunden: Ein Prozess ohne `sudo` kann dort nicht schreiben
+(`touch` endete mit „Read-only file system“). Das ist keine Zusage der Isolation (§11). Die Ergebnisse
+holst du vom Host aus; der Vorschlag dafür:
 
 Im Container auf einem Branch `container/<thema>` committen:
 
@@ -324,7 +335,9 @@ git fetch ./x.bundle container/<thema>:container/<thema>
 
 Das Bundle setzt voraus, dass das Host-Repo den Stand enthält, von dem der Branch abzweigt; fehlt er,
 meldet `git fetch` „Dem Repository fehlen folgende vorausgesetzte Commits“. Danach liegt der Branch
-`container/<thema>` im Host-Repo und wird dort wie jeder andere geprüft und gemergt.
+`container/<thema>` im Host-Repo und wird dort wie jeder andere geprüft und gemergt. Geprüft ist der
+Fetch in einen Scratch-Klon und in ein leeres Repo, nicht in das echte Host-Repo. Der Inhalt kommt aus
+einem Container, in dem `vscode` `root` werden kann: Sieh die Commits durch, bevor du mergst.
 
 ## 10. Parallel arbeiten
 
@@ -342,14 +355,19 @@ braucht den Platz dafür noch einmal (§11). `cpus` und `mem_limit` begrenzen je
 
 ## 11. Grenzen und Sicherheit
 
-- **Privilegiert:** `privileged: true` gibt dem Container weitgehenden Zugriff auf den Kernel des
-  Hosts. Was ein Prozess darin am Host ändern könnte, ist nicht geprüft; behandle den Container nicht
-  als Sandbox.
+- **Privilegiert, `sudo` ohne Passwort:** `privileged: true` gibt dem Container weitgehenden Zugriff
+  auf den Kernel des Hosts, und `sudo -n -l` zeigt für `vscode` `(root) NOPASSWD: ALL`; dazu ist
+  `vscode` in der Gruppe `docker`. Was ein Prozess darin am Host ändern könnte, ist nicht geprüft.
+  Aus den Rechten folgt, dass ein Prozess mit `sudo` den Mount `/host-repo` neu einbinden und
+  schreiben könnte; das ist **nicht ausgeführt**, nur gefolgert. Behandle den Container deshalb nicht
+  als Sandbox: Lass darin nur Arbeit laufen, der du traust, und prüfe Ergebnisse, die du zurückholst
+  (§9), als Branch oder Bundle, bevor du sie mergst.
 - **Nur Loopback, nur Schlüssel:** `sshd` ist an `127.0.0.1` gebunden und lässt nur den einen
   öffentlichen Schlüssel aus §3.2 zu.
 - **Docker-Socket des Hosts:** nicht gemountet (die vier Mounts stehen in §7). Der Socket im Container gehört dem Daemon im
   Container.
-- **Host-Repo:** schreibgeschützt als `/host-repo`.
+- **Host-Repo:** als Mount `ro` unter `/host-repo`. Das hält Prozesse ohne `sudo` vom Schreiben ab
+  (`touch` scheiterte); gegen einen Prozess mit `sudo` ist es keine Zusage (siehe oben).
 - **Volumes:** `pgr-dev-workspace` (Klon) und `pgr-dev-docker` (Daemon im Container) überleben
   `u-boot down` und Neustart; `docker compose down -v` löscht sie.
 - **Platz:** Das Image `pgr-dev:latest` belegt 2,05 GB, das Volume `pgr-dev-docker`
@@ -383,3 +401,7 @@ braucht den Platz dafür noch einmal (§11). `cpus` und `mem_limit` begrenzen je
 - Der Fehler bei vollem Docker-Speicher im Container (§12).
 - Andere Benutzerkennungen als 1000 am Host (§6).
 - Neue SSH-Hostschlüssel nach einem Neubau des Images.
+- Die Frage nach dem Hostschlüssel bei der ersten Verbindung (§5).
+- Der Fetch in das echte Host-Repo (§9); geprüft sind ein Scratch-Klon und ein leeres Repo.
+- Ob ein Prozess mit `sudo` den Mount `/host-repo` beschreiben kann (§11).
+- `docker compose up -d` allein (§4).
