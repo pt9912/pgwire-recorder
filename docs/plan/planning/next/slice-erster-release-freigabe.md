@@ -62,7 +62,13 @@ jenes Slice hierher (§6 unten).
 - Ein Sensor für das Freshness-Audit — `harness/conventions.md` führt den Audit als Handlung,
   nicht als Sensor, weil er Netz über `bash`, `git` und `docker` hinaus braucht; Bestand bleibt
   bewusst stehen.
-- Die Wahl der ersten Versionsnummer — wird beim Release festgelegt.
+- Die Wahl der ersten Versionsnummer — wird beim Release festgelegt (Entscheidung des Nutzers
+  vor dem Tag; dieser Slice trägt sie in die Versionsdatei und die Checkliste ein, wählt sie nicht).
+- Konten, Namensräume, Zugangsdaten und Sichtbarkeit der Pakete in den Registries — Handlungen
+  des Betreibers (`docs/maintainer/releasing.md` §4 Punkt 4); die Pipeline liest sie so, wie
+  `slice-erster-release-veroeffentlichung` es festlegt.
+- Ein Nachziehen von Baseline oder d-check, das das Audit findet — ein eigener Slice; dieser
+  Slice dokumentiert den Befund (und entscheidet nach §6, ob er den Tag sperrt).
 
 ## 2. Definition of Done
 
@@ -112,7 +118,17 @@ Architect die Randformen aus §6 (`AGENTS.md` §3.12).
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Der Scan verlangt einen Umbau der
   Pipeline, der den Diff über eine Review-Sitzung hebt; Schnitt dann: *Scan* (DoD-Punkt 1)
-  und *Freigabe mit erstem Tag* (DoD-Punkte 2 und 3).
+  und *Freigabe mit erstem Tag* (DoD-Punkte 2 und 3). Marke (Metrik nach `AGENTS.md` §3.14): die
+  Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- . ':(exclude)docs/plan' ':(exclude)docs/reviews'`
+  liegt über 1200, Tests und Gegenprobe eingeschlossen; Basis: beim Anspruch (HEAD vor dem
+  Anspruch, hier einzutragen). Schätzung des Planners in dieser Metrik (2026-10-17, ohne Basis
+  gemessen): Scan in der Pipeline 120 bis 200, Gegenprobe des Scans mit Attrappe das Doppelte
+  (240 bis 400), `docs/maintainer/releasing.md` §5 und §10 150 bis 250, Handbuch und `README.md`
+  40 bis 80, zusammen 550 bis 930; die Schätzung überschreitet die Marke nicht, ein Schnitt vor dem
+  Start unterbleibt. Meldeschwelle 900: Wer sie überschreitet, meldet es vor dem nächsten
+  Abschnitt, und die Entscheidung („weiter“ oder „schneiden“) steht als datierte Zeile in §7. Die
+  Schätzung hängt an der Wahl des Scanners (§6) und am Zuschnitt der Pipeline durch den Vorgänger;
+  der Planner rechnet sie nach dessen Closure nach, bevor der Slice den Anspruch bekommt.
 - `in-progress` → `open` (blockiert — Carveout?): Der Scan meldet für das Basis-Image einen
   Befund über der Schwelle ohne verfügbare Behebung; dann zuerst die Entscheidung des Nutzers
   zur Schwelle oder ein Carveout, kein Tag.
@@ -140,6 +156,12 @@ dasteht.
 - Das Freshness-Audit kann einen neueren Stand von Baseline oder d-check finden; ob das den Tag
   sperrt, ist eine Randform (unten), und ein Nachziehen wäre ein eigener Slice — **Ausgang:**
   offen bis Closure.
+- Der erste Tag setzt Außenwirkung in zwei Registries und am GitHub-Release; bricht die Pipeline
+  dazwischen ab, liegt ein halber erster Release vor, und der Tag ist nicht zu verändern
+  (`docs/maintainer/releasing.md` §11) — **Ausgang:** offen bis Closure; die Randform
+  *Abbruch beim ersten Tag* (unten) fängt ihn.
+- Der Nutzer gibt den Tag frei: Das Veröffentlichen ist eine eigene, ausdrückliche Entscheidung des
+  Nutzers und kein Schritt, den der Implementer von sich aus tut — **Ausgang:** offen bis Closure.
 
 **Randformen** (`AGENTS.md` §3.12) — **alle offen für den Architect**, zu entscheiden vor dem
 ersten Code-Commit in der Spezifikation oder einer ADR; sie zogen mit dem Schnitt vom
@@ -151,6 +173,18 @@ ersten Code-Commit in der Spezifikation oder einer ADR; sie zogen mit dem Schnit
 - *Freshness-Audit (Punkt 4)* — was als frisch gilt; ob ein neuerer Stand der Baseline oder
   von d-check den Tag sperrt oder nur dokumentiert wird; Beleg des Audits. Der Audit braucht
   Netz; `harness/conventions.md` führt ihn als Handlung, nicht als Sensor.
+- *Abbruch beim ersten Tag und Wiederholung* — ob ein roter Lauf des ersten echten Tags mit
+  demselben Tag wieder angestoßen werden darf (nach `slice-erster-release-veroeffentlichung`,
+  Punkt 8) oder einen höheren verlangt; was mit einem in einer Registry schon liegenden Image
+  geschieht (Rollback-Regel: Tags werden nicht verändert); wer den Lauf anstößt.
+- *Reihenfolge von Checkliste, Versionszeile und Tag* — die Zeile der Änderungshistorie und die
+  Versionsdatei stehen vor dem Tag (§5 von `releasing.md`), das Handbuch nennt im Kopf die
+  Version, die das veröffentlichte Binary meldet; ob der Kopf nach dem Release die Version oder
+  weiter `dev` für Builds aus dem Repository nennt (`make build` meldet `dev`), und in welchem Commit
+  (vor dem Tag) das steht.
+- *Form des Tags und Probe-Tags* — ob der erste echte Tag mit `v0.` oder `v1.` beginnt (Entscheidung
+  des Nutzers, nicht des Architect), und ob ein Probe-Tag desselben Kerns (`-probe.<N>`) vor dem
+  echten Tag in den Registries bleibt oder entfernt ist, bevor `:latest` gesetzt wird.
 - *Image-Scan (Punkt 5)* — Scanner und sein Pin; Schwelle (Schweregrad, nur behebbare
   Befunde?); Ausnahmen und ihr Ort (`AGENTS.md` §3.2, Suppression-Verbot); Scan je Plattform
   der Manifestliste; Netz für die Schwachstellen-Datenbank; ob auch der Probe-Tag gescannt
@@ -210,6 +244,10 @@ unter `evidence/`). Treffer:
 
 Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
+Nachgesichtet am 2026-10-17 (Planner, Vorbereitung des Anspruchs): `BEO-REPO/postgres-versionsliste-altert` (2×, offen) betrifft den Smoke aus Abnahmeszenario 9 mit `POSTGRES_IMAGE` nur mittelbar; der Release ändert die Liste nicht. `BEO-REPO/verhalten-nur-unter-linux-geprueft` trifft die Aussage des Handbuchs zu den Plattformen: Binaries für `darwin` und `windows` sind nur gebaut, nicht gelaufen (`SPEC-055` Punkt 13, Grenze 4); die Plattform-Zeile in §1 des Handbuchs sagt nur das zu.
+
 Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, `AGENTS.md` §3.13): Kopf und §11 des Handbuchs liegen in den zwei Dateien, die §3 schon führt, und in DoD-Punkt 3; kein neuer Liefer-Punkt. Schichten nach der Zählweise von `slice-harness-d-check-v0-85` §8 (Nutzer- und Wartungs-Doku `docs/user/` und `docs/maintainer/` sind eine Schicht): Release-Automatisierung und Dokumentation, zwei; die Sendung fügt keine hinzu.
+
+Nachgezählt am 2026-10-17 (Planner, `AGENTS.md` §3.13; keine neue Sendung, Stand nach den Schnitten von `slice-v1-abschluss-container` und `-container-doku`): Liefer-Punkte drei (§2: Scan mit Handbuch- und `README.md`-Teil | Freshness-Audit in `releasing.md` §5 | Checkliste und erster Tag mit Handbuch-Kopf), Schichten zwei. Die Wahl des Scanners (§6) kann `Dockerfile` oder `harness/` als Bereich öffnen; der Architect zählt mit der Entscheidung nach, und läge der Slice darüber, schneidet der Planner entlang der Linie aus §4.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
