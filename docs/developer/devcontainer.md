@@ -190,14 +190,14 @@ services:
     build:
       context: .devcontainer
       dockerfile: Dockerfile
-    image: pgr-dev:latest
-    container_name: pgr-dev
-    hostname: pgr-dev
+    image: ${PGR_NAME:-pgr-dev}:latest
+    container_name: ${PGR_NAME:-pgr-dev}
+    hostname: ${PGR_NAME:-pgr-dev}
     privileged: true
-    cpus: 8
-    mem_limit: 12g
+    cpus: ${PGR_CPUS:-8}
+    mem_limit: ${PGR_MEM:-12g}
     ports:
-      - "127.0.0.1:2222:22"
+      - "127.0.0.1:${PGR_SSH_PORT:-2222}:22"
     volumes:
       - pgr-dev-docker:/var/lib/docker
       - pgr-dev-workspace:/workspaces
@@ -225,10 +225,10 @@ Die Bestandteile:
 
 - `privileged: true`: Der Container darf `dockerd` mit eigenem Speicher-Treiber und eigenen Netzen
   starten.
-- `cpus` und `mem_limit`: Obergrenze des Containers (hier 8 CPUs, 12 GiB).
-- `127.0.0.1:2222:22`: `sshd` ist nur auf der Loopback-Adresse des Hosts erreichbar.
-- `pgr-dev-docker` auf `/var/lib/docker`: Images und Cache des Daemons im Container.
-- `pgr-dev-workspace` auf `/workspaces`: der Klon.
+- `cpus` und `mem_limit`: Obergrenze des Containers (Vorgabe 8 CPUs, 12 GiB).
+- `127.0.0.1:${PGR_SSH_PORT:-2222}:22` (Vorgabe `2222`): `sshd` ist nur auf der Loopback-Adresse des Hosts erreichbar.
+- `pgr-dev-docker` (Compose setzt den Projektnamen davor) auf `/var/lib/docker`: Images und Cache des Daemons im Container.
+- `pgr-dev-workspace` (ebenso) auf `/workspaces`: der Klon.
 - `${PGR_REPO}` auf `/host-repo`, Mount `ro`: die Quelle für den Klon. Ist `PGR_REPO` weder in der
   Umgebung noch in `.env` gesetzt, bricht Compose mit `PGR_REPO setzen` ab.
   Eine Datei `.env` im Verzeichnis `pgr-dev` mit der Zeile `PGR_REPO=<Pfad des Host-Repos>` genügt
@@ -257,16 +257,16 @@ Container läuft danach weiter.
 |---|---|---|
 | Stoppen | `u-boot down` | Container und Netz entfallen; Volumes (Klon, Docker-Cache) und Image bleiben, nach `u-boot up` ist der Klon wieder da (gemessen). `/home/vscode` liegt im Dateisystem des Containers, in keinem der vier Mounts (§7): `~/.gitconfig` (§6) und die Anmeldung von Claude Code (§7) entfallen damit mit dem Container (aus den Mounts gefolgert, `down` und `up` mit diesen Dateien nicht ausgeführt) |
 | Alles löschen | `docker compose down -v` | zusätzlich die beiden Volumes: der Klon und der Docker-Cache im Container sind weg |
-| Image löschen | `docker rmi pgr-dev:latest` | danach baut der nächste Start neu |
+| Image löschen | `docker rmi ${PGR_NAME:-pgr-dev}:latest` | danach baut der nächste Start neu |
 
 ## 5. Verbinden per SSH
 
 ```bash
-ssh -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes -p 2222 vscode@127.0.0.1
+ssh -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes -p "${PGR_SSH_PORT:-2222}" vscode@127.0.0.1
 ```
 
 Benutzer ist `vscode` (Mitglied der Gruppe `docker`). Der Host-Port ist an `127.0.0.1` veröffentlicht
-(`docker port`: `127.0.0.1:2222`); von anderen Rechnern ist der Container darüber nicht erreichbar.
+(`docker port` in der Probe mit Vorgabe: `127.0.0.1:2222`); von anderen Rechnern ist der Container darüber nicht erreichbar.
 `sshd` selbst lauscht im Container auf allen Adressen (`ss -ltn`: `0.0.0.0:22` und `[::]:22`). `sshd` lässt nur Schlüssel zu
 (`PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `PermitRootLogin no`,
 `AllowUsers vscode`); eine Anmeldung ohne Schlüssel endet mit `Permission denied (publickey)`.
@@ -362,7 +362,7 @@ git commit -m "<nachricht>"
 
 ```bash
 export GIT_SSH_COMMAND="ssh -i $PGR_DEV/ssh/id_ed25519 -o IdentitiesOnly=yes"
-git fetch ssh://vscode@127.0.0.1:2222/workspaces/pgwire-recorder container/<thema>:container/<thema>
+git fetch ssh://vscode@127.0.0.1:${PGR_SSH_PORT:-2222}/workspaces/pgwire-recorder container/<thema>:container/<thema>
 ```
 
 **Variante B, `git bundle` und `scp`:**
@@ -371,7 +371,7 @@ git fetch ssh://vscode@127.0.0.1:2222/workspaces/pgwire-recorder container/<them
 # im Container
 git bundle create /tmp/x.bundle main..container/<thema>
 # am Host
-scp -P 2222 -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes vscode@127.0.0.1:/tmp/x.bundle .
+scp -P "${PGR_SSH_PORT:-2222}" -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes vscode@127.0.0.1:/tmp/x.bundle .
 git fetch ./x.bundle container/<thema>:container/<thema>
 ```
 
@@ -381,19 +381,51 @@ meldet `git fetch` „Dem Repository fehlen folgende vorausgesetzte Commits“. 
 Fetch in einen Scratch-Klon und in ein leeres Repo, nicht in das echte Host-Repo. Der Inhalt kommt aus
 einem Container, in dem `vscode` `root` werden kann: Sieh die Commits durch, bevor du mergst.
 
-## 10. Parallel arbeiten
+## 10. Mehrere Container nebeneinander
 
-Mehrere Container nebeneinander sind möglich. In der Probe liefen zwei gleichzeitig, jeder im
-eigenen Verzeichnis mit eigenem `u-boot init`, beide `healthy`. Sie unterschieden sich in:
+Jede Instanz hat ein eigenes Verzeichnis (eigener Ordnername) mit eigenem `u-boot init`, eigenem
+Schlüsselpaar und einer eigenen `.env`. Vier Werte unterscheiden die Instanzen; `compose.yaml` (§3.5) liest sie
+aus der `.env` und nennt Vorgaben:
 
-- dem Projektnamen (`name:` und dem Netz im Kopf der `compose.yaml`; er präfixiert die Volumes:
-  `pgr-dev-probe_pgr-dev-docker`),
-- `container_name`, `hostname` und `image`,
-- dem Host-Port in `ports:` (`127.0.0.1:2223:22` neben `127.0.0.1:2222:22`).
+| Variable | Wirkung | Vorgabe |
+|---|---|---|
+| `COMPOSE_PROJECT_NAME` | Projektname; er präfixiert die Volumes (`<name>_pgr-dev-docker`, `<name>_pgr-dev-workspace`) | `pgr-dev` (`name:` im Kopf der Datei) |
+| `PGR_NAME` | `container_name`, `hostname` und Tag des Images | `pgr-dev` |
+| `PGR_SSH_PORT` | Host-Port von `sshd` | `2222` |
+| `PGR_CPUS`, `PGR_MEM` | `cpus` und `mem_limit` | `8`, `12g` |
 
-Welche dieser Werte einzeln eindeutig sein müssen, ist nicht geprüft, außer dem Host-Port: Ein belegter
+Zweite Instanz (Name `pgr-zwei`, Port 2223), mit `PGR_REPO` wie in §3:
+
+```bash
+export PGR_DEV=<Pfad>/pgr-zwei
+mkdir "$PGR_DEV" && cd "$PGR_DEV"
+u-boot init pgr-zwei --devcontainer --no-git
+# Schlüssel (§3.2), .devcontainer/ und compose.yaml (§3.3 bis §3.5) wie für die erste Instanz
+cat > .env <<EOF
+PGR_REPO=$PGR_REPO
+COMPOSE_PROJECT_NAME=pgr-zwei
+PGR_NAME=pgr-zwei
+PGR_SSH_PORT=2223
+EOF
+u-boot up
+ssh -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes -p 2223 vscode@127.0.0.1
+```
+
+`u-boot init pgr-zwei` schreibt `name: pgr-zwei` in den Kopf; `COMPOSE_PROJECT_NAME` in der `.env`
+setzt denselben Namen. Gemessen (`docker compose config`, kein Container gestartet): mit dieser `.env` ergeben sich
+Projekt `pgr-zwei`, Container, Hostname und Image `pgr-zwei`, Volumes `pgr-zwei_pgr-dev-docker` und
+`pgr-zwei_pgr-dev-workspace`, Port `2223`, 4 CPUs und 6 GiB bei `PGR_CPUS=4` und `PGR_MEM=6g`; ohne `.env`
+die Vorgaben. `COMPOSE_PROJECT_NAME` in der Umgebung ersetzt `name:` im Kopf. Das Netz heißt in jedem Verzeichnis
+`pgr-dev-default` (der Kopf gehört `u-boot`, §3.1): Zwei Instanzen hängen am selben Netz; ob das
+Starten oder `u-boot down` der einen die andere stört, ist nicht geprüft.
+
+Gestartet und gemessen sind zwei Container gleichzeitig, jeder im eigenen Verzeichnis, beide `healthy`;
+sie unterschieden sich in Projektname, `container_name`, `hostname`, `image` und Port, von Hand eingetragen,
+nicht über die `.env` dieses Abschnitts. Ein belegter
 Port lässt den Start scheitern (§12). Jeder Container hat seinen eigenen Docker-Cache im eigenen Volume und
 braucht den Platz dafür noch einmal (§11). `cpus` und `mem_limit` begrenzen jeden Container einzeln.
+Die Befehle der übrigen Abschnitte (`ssh`, `scp`, `git fetch`) nehmen `-p "$PGR_SSH_PORT"` und `PGR_DEV` der
+Instanz; `docker compose` und `u-boot` laufen im Verzeichnis der Instanz.
 
 ## 11. Grenzen und Sicherheit
 
@@ -456,7 +488,7 @@ der Klon darin 47 MB mit `.git` und 18 MB ohne (`du -sh` im Versuchs-Container).
 - Der Fetch in das echte Host-Repo (§9); geprüft sind ein Scratch-Klon und ein leeres Repo.
 - Ob ein Prozess mit `sudo` den Mount `/host-repo` beschreiben kann (§11).
 - `docker compose up -d` allein (§4).
-- Der Start des Containers mit dem Block aus §3.5 in dieser Form (`${PGR_REPO}`, relativer Pfad des
+- Der Start einer zweiten Instanz nach §10 und der Start mit dem Block aus §3.5 in dieser Form (`${PGR_REPO}`, relativer Pfad des
   Schlüssels) und `u-boot up` mit `PGR_REPO` nur aus der Umgebung.
 - Die Zeiten des Versuchs-Containers in §8 (5 s, 201 s, 1 s): nicht wiederholt.
 - Der Zustand des Daemon-Caches bei den Zeiten von `make docs-check` (§8).
