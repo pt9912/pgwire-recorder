@@ -35,7 +35,7 @@ Proben). Windows- und macOS-Hosts sind nicht geprüft.
   dort; dieses Dokument prüft es nicht.
 - Git.
 - Am Host ein SSH-Client mit `ssh-keygen` und `scp` (§3.2, §5, §9).
-- Schreibrecht in dem Verzeichnis, in dem `pgr-dev` angelegt wird (im Versuch `/Development`).
+- Schreibrecht in dem Verzeichnis, in dem `pgr-dev` angelegt wird.
 - Netz für den Build des Images (§3.3, §4).
 - Das Schlüsselpaar aus §3.2 liegt vor dem ersten `u-boot up` an dem Pfad, den `compose.yaml` nennt.
   Was Docker bei einer fehlenden Datei am Mount-Pfad tut, ist nicht geprüft.
@@ -44,14 +44,27 @@ Proben). Windows- und macOS-Hosts sind nicht geprüft.
 
 ## 3. Einrichten
 
-Das Verzeichnis liegt **außerhalb** des Repos. Im Folgenden heißt es `pgr-dev`; die Pfade
-`/Development/pgr-dev` und `/Development/pgwire-recorder` in `compose.yaml` sind die des
-Versuchs und werden an den eigenen Host angepasst.
+Das Verzeichnis liegt **außerhalb** des Repos. Im Folgenden heißt es `pgr-dev`. Zwei Pfade sind
+Sache des Hosts und stehen als Variablen in den Befehlen:
+
+| Variable | Bedeutung |
+|---|---|
+| `PGR_DEV` | absoluter Pfad des Verzeichnisses `pgr-dev` am Host (wird in §3.1 angelegt) |
+| `PGR_REPO` | absoluter Pfad dieses Repos am Host (die Quelle für den Klon) |
+
+```bash
+export PGR_REPO=<Pfad des Host-Repos>
+export PGR_DEV=<Pfad, unter dem pgr-dev angelegt wird>/pgr-dev
+```
+
+`compose.yaml` (§3.5) enthält `PGR_DEV` nicht: Der Pfad des Schlüssels ist relativ zum
+Verzeichnis der Datei. `PGR_REPO` liest Compose aus der Umgebung des Aufrufs oder aus einer Datei
+`.env` im Verzeichnis `pgr-dev` (§3.5).
 
 ### 3.1 Gerüst mit `u-boot`
 
 ```bash
-mkdir /Development/pgr-dev && cd /Development/pgr-dev
+mkdir "$PGR_DEV" && cd "$PGR_DEV"
 u-boot init pgr-dev --devcontainer --no-git
 ```
 
@@ -188,8 +201,8 @@ services:
     volumes:
       - pgr-dev-docker:/var/lib/docker
       - pgr-dev-workspace:/workspaces
-      - /Development/pgwire-recorder:/host-repo:ro
-      - /Development/pgr-dev/ssh/id_ed25519.pub:/etc/pgr-dev/authorized_key.pub:ro
+      - ${PGR_REPO:?PGR_REPO setzen}:/host-repo:ro
+      - ./ssh/id_ed25519.pub:/etc/pgr-dev/authorized_key.pub:ro
     healthcheck:
       test: ["CMD-SHELL", "docker info >/dev/null 2>&1 && ss -ltn | grep -q ':22 '"]
       interval: 10s
@@ -202,6 +215,12 @@ volumes:
   pgr-dev-workspace:
 ```
 
+Der Block weicht an zwei Stellen von der Datei ab, mit der die Proben liefen: Dort standen die
+absoluten Pfade des Versuchs-Hosts; hier stehen `${PGR_REPO:?…}` und der relative Pfad `./ssh/…`.
+Mit dem Block in dieser Form wurde kein Container gestartet; `docker compose config` löst beide Stellen
+auf (aus Umgebung, aus `.env`, auch mit `-f` aus einem anderen Verzeichnis). Dass `u-boot up` die
+Variable aus der Umgebung weiterreicht, ist nicht geprüft (§13); `.env` liest Compose selbst.
+
 Die Bestandteile:
 
 - `privileged: true`: Der Container darf `dockerd` mit eigenem Speicher-Treiber und eigenen Netzen
@@ -210,7 +229,11 @@ Die Bestandteile:
 - `127.0.0.1:2222:22`: `sshd` ist nur auf der Loopback-Adresse des Hosts erreichbar.
 - `pgr-dev-docker` auf `/var/lib/docker`: Images und Cache des Daemons im Container.
 - `pgr-dev-workspace` auf `/workspaces`: der Klon.
-- `/Development/pgwire-recorder` auf `/host-repo`, Mount `ro`: die Quelle für den Klon.
+- `${PGR_REPO}` auf `/host-repo`, Mount `ro`: die Quelle für den Klon. Ist `PGR_REPO` weder in der
+  Umgebung noch in `.env` gesetzt, bricht Compose mit `PGR_REPO setzen` ab.
+  Eine Datei `.env` im Verzeichnis `pgr-dev` mit der Zeile `PGR_REPO=<Pfad des Host-Repos>` genügt
+  (`docker compose config` setzt den Wert ein, gemessen).
+- `./ssh/id_ed25519.pub`: der Pfad ist relativ zum Verzeichnis von `compose.yaml`.
 - Der Healthcheck ist grün, wenn der Daemon im Container antwortet und `sshd` auf Port 22 lauscht.
 
 ## 4. Start, Stopp, Löschen
@@ -239,7 +262,7 @@ Container läuft danach weiter.
 ## 5. Verbinden per SSH
 
 ```bash
-ssh -i /Development/pgr-dev/ssh/id_ed25519 -o IdentitiesOnly=yes -p 2222 vscode@127.0.0.1
+ssh -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes -p 2222 vscode@127.0.0.1
 ```
 
 Benutzer ist `vscode` (Mitglied der Gruppe `docker`). Der Host-Port ist an `127.0.0.1` veröffentlicht
@@ -338,7 +361,7 @@ git commit -m "<nachricht>"
 **Variante A, `git fetch` über SSH** (im Host-Repo):
 
 ```bash
-export GIT_SSH_COMMAND='ssh -i /Development/pgr-dev/ssh/id_ed25519 -o IdentitiesOnly=yes'
+export GIT_SSH_COMMAND="ssh -i $PGR_DEV/ssh/id_ed25519 -o IdentitiesOnly=yes"
 git fetch ssh://vscode@127.0.0.1:2222/workspaces/pgwire-recorder container/<thema>:container/<thema>
 ```
 
@@ -348,7 +371,7 @@ git fetch ssh://vscode@127.0.0.1:2222/workspaces/pgwire-recorder container/<them
 # im Container
 git bundle create /tmp/x.bundle main..container/<thema>
 # am Host
-scp -P 2222 -i /Development/pgr-dev/ssh/id_ed25519 -o IdentitiesOnly=yes vscode@127.0.0.1:/tmp/x.bundle .
+scp -P 2222 -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes vscode@127.0.0.1:/tmp/x.bundle .
 git fetch ./x.bundle container/<thema>:container/<thema>
 ```
 
@@ -433,6 +456,8 @@ der Klon darin 47 MB mit `.git` und 18 MB ohne (`du -sh` im Versuchs-Container).
 - Der Fetch in das echte Host-Repo (§9); geprüft sind ein Scratch-Klon und ein leeres Repo.
 - Ob ein Prozess mit `sudo` den Mount `/host-repo` beschreiben kann (§11).
 - `docker compose up -d` allein (§4).
+- Der Start des Containers mit dem Block aus §3.5 in dieser Form (`${PGR_REPO}`, relativer Pfad des
+  Schlüssels) und `u-boot up` mit `PGR_REPO` nur aus der Umgebung.
 - Die Zeiten des Versuchs-Containers in §8 (5 s, 201 s, 1 s): nicht wiederholt.
 - Der Zustand des Daemon-Caches bei den Zeiten von `make docs-check` (§8).
 - Was nach `u-boot down` und `u-boot up` mit `~/.gitconfig` und der Anmeldung von Claude Code geschieht
