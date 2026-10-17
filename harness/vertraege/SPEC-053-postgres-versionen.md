@@ -95,7 +95,7 @@ die unveränderte Kopie ist grün, und je Fall bricht eine Mutation genau ihn.
 13. **Ausnahmeliste der schnellen Kette.** `test-postgres-versionen` steht in der Ausnahmeliste
     (SPEC-052 Punkt 2 und 4): Es startet PostgreSQL-Container wie `test-integration`, und die
     schnelle Kette fährt solche Gates nicht. Seine Gegenprobe steht dort nach ihrem Namen. Das
-    Ziel liest nichts unter `docs/plan/planning/`, `docs/reviews/`, `docs/user/` und nicht
+    Ziel liest nichts unter `docs/plan/planning/`, `docs/reviews/`, `docs/user/`, `docs/developer/` und nicht
     die `README.md` (SPEC-052 Punkt 13): Der Build-Kontext schließt sie aus, und die Gegenprobe
     legt ihre Bäume selbst an.
 14. **Grenzen.** (1) Die Release-Liste von PostgreSQL liest kein Lauf; das Gate prüft weder,

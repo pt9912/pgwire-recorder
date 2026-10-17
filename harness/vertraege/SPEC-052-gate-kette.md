@@ -101,10 +101,11 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     Ausführungs-Modus gehört nicht zum Eintrag (akzeptiertes Negativ: wie der Hash heute; eine
     Modusänderung ohne Inhaltsänderung bleibt ungeprüft).
 12. **Positivliste, Grenze der Pfade, Groß- und Kleinschreibung.** Inert ist ein Pfad, der mit
-    `docs/plan/planning/`, `docs/reviews/` oder `docs/user/` beginnt, einschließlich des
+    `docs/plan/planning/`, `docs/reviews/`, `docs/user/` oder `docs/developer/` beginnt, einschließlich des
     Schrägstrichs, oder genau `README.md` ist (Wurzel), bytegenau und case-sensitiv.
-    `docs/plan/planning-x/…`, `docs/reviews-alt/…`, `docs/users/…`, `docs/Plan/planning/…`,
-    eine Datei namens `docs/reviews` oder `docs/user`, `readme.md`, `README.md.bak` und
+    `docs/plan/planning-x/…`, `docs/reviews-alt/…`, `docs/users/…`, `docs/developer-alt/…`,
+    `docs/developers/…`, `docs/Developer/…`, `docs/Plan/planning/…`,
+    eine Datei namens `docs/reviews`, `docs/user` oder `docs/developer`, `readme.md`, `README.md.bak` und
     `harness/README.md` sind nicht inert (`harness/README.md` bleibt draußen: der Beleg von
     Punkt 13 gilt nur für die Wurzel-`README.md`; wer sie aufnehmen will, belegt sie). Ein
     Pfad mit Segment `.`, `..` oder leerem Segment (auch am Ende: der Pfad endet auf `/`), ein
@@ -124,9 +125,9 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     er sich nicht selbst freigibt); eine Abweichung zwischen der Liste im Hook und dieser
     Stelle fängt nur der Fall je Pfadklasse der Gegenprobe, kein Vergleich.
 13. **Beleg für die Positivliste (`docs/plan/planning/`, `docs/reviews/`, `docs/user/`,
-    `README.md`); Abdeckungstabellen.** Alle vier sind ohne Ausnahme aufgenommen. Kein Gate der
-    Ausnahmeliste (Punkt 2) liest eine Datei unter `docs/plan/planning/`, `docs/reviews/` oder
-    `docs/user/` oder die `README.md`: die Docker-Gates (`test-integration`,
+    `docs/developer/`, `README.md`); Abdeckungstabellen.** Alle fünf sind ohne Ausnahme aufgenommen. Kein Gate der
+    Ausnahmeliste (Punkt 2) liest eine Datei unter `docs/plan/planning/`, `docs/reviews/`,
+    `docs/user/` oder `docs/developer/` oder die `README.md`: die Docker-Gates (`test-integration`,
     `test-postgres-versionen` (dieselbe Stufe des `Dockerfile`), `test-container` (baut mit dem
     Build-Kontext und liest die Fragmente `harness/mk/container.mk` und `harness/mk/integration.mk`),
     `lint-gegenprobe` über `docker build` einer Kopie des Arbeitsbaums, ebenso `build`, `test`,
@@ -136,7 +137,7 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     läse, wäre im Container rot. `a-check-negativ` kopiert den Baum, aber `a-check` liest nach
     `.a-check.yml` nur `**/*.go`. Jedes Gate der Ausnahmeliste, dessen Name auf `-gegenprobe` endet, außer
     `lint-gegenprobe` (oben), fährt in Temp-Bäumen, die es selbst anlegt, und liest
-    `docs/user/` und die `README.md` des Arbeitsbaums nicht (`abdeckung-gegenprobe` baut ihr
+    `docs/user/`, `docs/developer/` und die `README.md` des Arbeitsbaums nicht (`abdeckung-gegenprobe` baut ihr
     eigenes `docs/user/`; die Temp-Repos von `gates-schnell-gegenprobe` und
     `stop-hook-gegenprobe` tragen nur Makefile, Fragmente, Skripte und Hook; `integration-volumes-gegenprobe` legt Kopien von
     Dateien unter `tools/test/` in einem Temp-Verzeichnis an und spricht Docker an, [`SPEC-057`](SPEC-057-integration-aufraeumen.md) Punkt 10). Den Planungsbaum
@@ -146,7 +147,9 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     nie aus dem Index des Arbeitsbaums; sonst kann eine Lifecycle-Bewegung unter
     `docs/plan/planning/` das Gate rot machen, ohne dass die schnelle Kette es fährt).
     `docs/plan/planning/` lesen von der schnellen Kette `docs-check` und `kopf-check`;
-    `docs/reviews/` liest `docs-check`. Ein künftiges Gate
+    `docs/reviews/` und `docs/developer/` liest `docs-check` (`.d-check.yml`: Wurzel `.`, `docs/developer/` steht nicht
+    in `scan.ignore`; Stand 2026-10-17: kein Gate der Ausnahmeliste nennt den Pfad, ein Gate der schnellen Kette außer
+    `docs-check` auch nicht; ob Schritte des Dokuments gegen den Container laufen, prüft kein Gate). Ein künftiges Gate
     dieser Art, das beide liest, ist eine Änderung an einem Gate: nicht inert, voller Lauf. Die Tabellen `docs/user/abdeckung-*.md` liest nur `abdeckung-check`
     (`tools/test/abdeckung.sh --check`), und das läuft in der schnellen Kette (kein Name auf
     `-gegenprobe`): Eine Änderung an ihnen ohne Änderung an Tests (die Deklarationen stehen in
@@ -164,7 +167,7 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     das gebaute Binary läuft, prüft kein Gate, sondern die Probe von Implementer und Verifier;
     sie bleibt Pflicht der Rollen und wird durch die schnelle Kette nicht ersetzt. Akzeptiertes
     Negativ (Grund: gleiche Folge wie beim akzeptierten Negativ der Positivliste): Ein
-    künftiger Leser von `docs/plan/planning/`, `docs/reviews/`, `docs/user/` oder `README.md`
+    künftiger Leser von `docs/plan/planning/`, `docs/reviews/`, `docs/user/`, `docs/developer/` oder `README.md`
     in einem Host-Skript eines langsamen
     Gates ändert Skript oder Gate und löst den vollen Lauf aus; der Beleg ist dann beim Review
     dieser Änderung neu zu führen, eine eigene Sperre dafür entfällt.
@@ -179,11 +182,11 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     auflösbares ist nicht inert. Gespiegelt: Liegt irgendwo im Arbeitsbaum ein Link außerhalb
     der Positivliste, dessen Ziel auf sie zeigt, liest ein Gate über ihn inerte Pfade; dann
     gilt jede Änderung als nicht inert. Der Bestand hat Links nur unter `.claude/rules/` mit
-    Zielen außerhalb der Positivliste. Einzelheiten: Geprüft wird je geändertem Link jeder
+    Zielen außerhalb der Positivliste, keinen auf `docs/developer` (Stand 2026-10-17). Einzelheiten: Geprüft wird je geändertem Link jeder
     Eintrag `L`, der ihn trägt (Stand und Arbeitsbaum, auch bei einem Wechsel der Art, etwa
     Datei zu Link). Ziel „auf der Positivliste“ heißt für die Inertheit: ein Pfad unter einem
     Verzeichnis-Eintrag mit Schrägstrich oder genau `README.md`; ein Ziel, das ein Verzeichnis
-    der Liste selbst benennt (`docs/user`, `docs/user/`), ist nicht inert. Für die Spiegelregel
+    der Liste selbst benennt (`docs/user`, `docs/user/`, `docs/developer`, `docs/developer/`), ist nicht inert. Für die Spiegelregel
     zählt weiter: Ein Ziel, das auf der Liste liegt, ein Verzeichnis der Liste benennt oder
     ein Vorfahr davon ist (`docs`, `docs/plan`, die Wurzel `.`), spiegelt; maßgeblich ist die
     Liste des Arbeitsbaums. Ein absolutes Ziel unter der Wurzel des Repos wird gegen sie

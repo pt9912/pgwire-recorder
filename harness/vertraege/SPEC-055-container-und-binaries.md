@@ -99,7 +99,7 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
    einmal von Hand, nach Namen vor und nach einem Lauf. Volumes, die der Lauf nicht angelegt hat, rührt das Gate nicht an.
 10. **Arbeitsbaum.** Das Gate schreibt nichts in den Arbeitsbaum (die Gegenprobe vergleicht die Liste der Dateinamen vor und nach einem Lauf; das Überschreiben einer vorhandenen Datei fängt sie nicht) und liest nur, was der
     Build-Kontext (`.dockerignore`) zulässt, dazu `harness/mk/container.mk` und das Fragment der
-    Integration. Dass es nur dies liest, hat keinen Fall. Es liest nichts unter `docs/plan/planning/`, `docs/reviews/`, `docs/user/` und nicht
+    Integration. Dass es nur dies liest, hat keinen Fall. Es liest nichts unter `docs/plan/planning/`, `docs/reviews/`, `docs/user/`, `docs/developer/` und nicht
     die `README.md` (SPEC-052 Punkt 13).
 11. **Aufrufarten des Treibers.** Das Gate schreibt keinen Stand; geglaubt wird allein sein
     Exit-Code in der Kette von `make gates` ([SPEC-052](SPEC-052-gate-kette.md) Punkt 1). Das Rezept

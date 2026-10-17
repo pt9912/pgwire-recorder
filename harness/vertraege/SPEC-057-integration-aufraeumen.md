@@ -79,7 +79,7 @@ mit anderem Namen. Die unveränderte Kopie ist grün, und je Fall bricht eine Mu
 10. **Ausnahmeliste der schnellen Kette.** `integration-volumes-gegenprobe` hängt an
     `GATE_CHECKS` und steht in der Ausnahmeliste (`SPEC-052` Punkte 2 und 4): Es startet Container
     und läuft in der schnellen Kette nicht. Es liest nichts unter `docs/plan/planning/`,
-    `docs/reviews/`, `docs/user/` und nicht die `README.md` (`SPEC-052` Punkt 13): Es legt Kopien
+    `docs/reviews/`, `docs/user/`, `docs/developer/` und nicht die `README.md` (`SPEC-052` Punkt 13): Es legt Kopien
     von Dateien unter `tools/test/` in einem Temp-Verzeichnis an und spricht Docker an.
 11. **Grenzen.** (1) Ein `docker run` außerhalb des Runners ohne `--rm` und ohne `-v` legt das
     Leck wieder an; kein Gate sieht es (die übrigen `docker run` des Repos tragen `--rm`, belegt

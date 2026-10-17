@@ -218,6 +218,29 @@ ersten Code-Commit in `SPEC-052` (der Architect prüft die Liste):
 - **Aufruf-Voraussetzung (Ordnung über mehrere Aufrufe):** nicht berührt; der Vertrag sagt dazu nichts zu.
 - **Stelle einer Nachricht:** keine Nachricht im Vertrag.
 
+**Prüfung des Architect (2026-10-17, vor dem Code):**
+
+- **Nehmer-Verträge:** entschieden, nachgezogen. Die Sätze in `SPEC-053` Punkt 13, `SPEC-055` Punkt 10 und
+  `SPEC-057` Punkt 10 bleiben ohne den Pfad wahr, nennen aber die Liste von `SPEC-052` Punkt 13 und würden
+  hinter ihr zurückbleiben (`AGENTS.md` §3.9); ein Satzteil je Datei, im selben Commit wie die Änderung von
+  `SPEC-052` (Spec-Commit des Architect, vor dem Code). Der DoD-Punkt „Vertrag“ ist damit erfüllt; der
+  Implementer prüft die Fassung beim Review gegen den Hook.
+- **ADR:** keine. §3.6 gilt für Senkungen von Schwellen und Strenge; eine Positivliste, die auf Beleg wächst,
+  senkt keine Schwelle, und [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) sieht weitere Pfade bei Beleg vor und legt die Liste in die
+  Spezifikation (§3.8). Wie bei `docs/user/`.
+- **Beleg Punkt 13 gegengeprüft:** `grep` nach `docs/developer` über `tools`, `harness/mk`, `Makefile`,
+  `Dockerfile`, `.dockerignore`, `.a-check.yml`, `.golangci.yml`, `.d-check.yml`, `harness/`, `.claude`,
+  `.githooks` findet nur die Zeilen, die dieser Architect-Commit schreibt; `.dockerignore` gibt `docs/` nicht
+  frei; `.d-check.yml` hat `scan.roots: ["."]` und führt den Pfad nicht in `scan.ignore`. Kein Gate führt
+  Codeblöcke oder Compose-Dateien aus `docs/developer/` aus (`grep` nach `devcontainer` in `tools`, `Makefile`,
+  `Dockerfile`, `harness/mk` leer); das Dokument wird allein von `docs-check` gelesen. Der Beleg steht in
+  `SPEC-052` Punkt 13.
+- **Randformen:** die Liste in §6 ist vollständig für diesen Vertrag; sie ist eine Erweiterung um einen Pfad,
+  und Verfahren (Punkte 14 bis 22) bleibt pfadunabhängig. Weitere Fälle als in §3 verlangt der Architect nicht.
+- **Zählung §8:** tragfähig (drei Liefer-Punkte, zwei Schichten); Schätzung 120 bis 220 in der Metrik von §3.14
+  glaubwürdig, weil die Gegenprobe etwa 13 Fälle und 7 Mutationen trägt. Akzeptiertes Negativ: die
+  Spec-Dateien des Architect-Commits zählen in `harness` zur Summe; der Plan hält die Marke 400 trotzdem.
+
 Risiken:
 
 - Ein künftiges Gate liest `docs/developer/` (zum Beispiel ein Schritt von `u-boot` oder ein
