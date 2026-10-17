@@ -83,6 +83,9 @@ Inhalt des Dokuments, je Punkt nur mit Probe am laufenden Container (§3.11):
 - Zusätzlich baut der Implementer den Container in einem Scratch-Verzeichnis (anderer Name, Port 2223)
   aus den Codeblöcken des Dokuments neu auf; die Befehle und Beobachtungen stehen in §7. Das Dokument
   führt über die Liste aus §1 hinaus die Abschnitte Parallel arbeiten, Fehlersuche und Nicht geprüft.
+- Nach dem Review (Nacharbeit): Sicherheitsaussagen sind auf das Belegte enger gefasst (Container
+  privilegiert, `vscode` mit `sudo` ohne Passwort, `/host-repo` als Mount `ro` nur gegen Prozesse
+  ohne `sudo`), Quellen und Lücken stehen im Dokument (§7, Abschnitt Nacharbeit).
 - Das Dokument ist Ist-Zustand ohne Chronik (§3.11); es nennt keine Kennungen von Lastenheft,
   Spezifikation, ADRs, Slices oder Wellen. Nennt es doch eine ADR-Kennung, ist sie ein Link
   (`.d-check.yml`: `ids` mit `link-policy: always`).
@@ -223,8 +226,30 @@ voller `make gates` läuft nicht (Auftrag; §6 Risiko Stop-Hook). Größe nach �
 **Nicht geprüft** (im Dokument §13 benannt): Start von `claude` und Anmeldung; voller `make gates` im
 Container; Windows/macOS; Installation von `u-boot`; `u-boot down --volumes`; Fehler bei vollem
 Docker-Speicher im Container; andere UID als 1000 am Host (`safe.directory`); neue SSH-Hostschlüssel nach
-Neubau des Images (nach `u-boot down`/`up` meldete `ssh` mit gespeichertem Schlüssel keine Warnung; ein Satz dazu steht
-nicht im Dokument).
+Neubau des Images (nach `u-boot down`/`up` meldete `ssh` mit gespeichertem Schlüssel keine Warnung); seit der Nacharbeit
+zusätzlich Hostschlüssel-Frage der Erstverbindung, Fetch ins echte Host-Repo, Schreiben auf `/host-repo` mit `sudo`,
+`docker compose up -d` allein.
+
+### Nacharbeit nach dem Review (2026-10-17)
+
+Review `docs/reviews/2026-10-17-review-slice-harness-devcontainer-doku.md` (0 HIGH, 1 MEDIUM, 4 LOW, 2 INFO).
+Nur Text in `docs/developer/devcontainer.md` und diesem Plan.
+
+| Befund | Ausgang |
+|---|---|
+| F-1 MEDIUM Sicherheitsaussagen | behoben: `sudo -n -l` am Versuchs-Container (nur lesend) zeigt `(root) NOPASSWD: ALL`; §1, §3.2, §7, §9, §11 sagen „Mount `ro`“ statt „schreibgeschützt“ und nennen, dass ein Prozess mit `sudo` den Mount ändern könnte (nicht ausgeführt, nur gefolgert), dazu den Umgang (nur vertrauenswürdige Arbeit, Rückholen als Branch/Bundle prüfen). Durchsicht der übrigen Quantoren: „nur Loopback“ (belegt durch `docker port`, `ss`) und „nur Schlüssel“ (belegt durch drei Abweisungen) unverändert |
+| F-2 Quelle der Zeiten | behoben: §8 nennt `scripts/nachweis2.sh`/`nachweis3.sh` des Nutzers als Quelle der jeweils ersten Zahl, nicht wiederholt |
+| F-3 Lücken | behoben: §13 um Hostschlüssel-Frage, Fetch ins echte Host-Repo, Schreiben mit `sudo` und `docker compose up -d` ergänzt; §5 und §9 erwähnen die ersten beiden |
+| F-4 `compose up -d` | behoben: auf „laut Hilfetext von `u-boot`“ eingegrenzt, `docker compose up -d` allein in §13 |
+| F-5 Tabelle §3.1 | behoben: Zeile `docker/`, `scripts/`, `docs/` (leer erzeugt; `ls` am Versuchs-Container gelesen) |
+| F-6 `safe.directory` | behoben: aus dem Codeblock von §6 genommen, im Absatz als Eintrag bei fremder UID beschrieben |
+| F-7 Passphrase / Kennung | behoben für das Dokument: §3.2 nennt Schlüssel ohne Passphrase samt Folge. Beobachtung: der Plan-Kopf trägt die Commit-Kennung-Frage; kein History-Eingriff |
+
+**Größe nach der Nacharbeit** (§4, `git diff --numstat bda6efef..d725a22c -- docs/developer`): 407 Einfügungen,
+0 Löschungen, Summe 407; über der Meldeschwelle 400, unter der Marke 500.
+
+**Akzeptierte Lücken:** Schreiben auf `/host-repo` mit `sudo` nicht ausgeführt; Hostschlüssel-Frage, Fetch ins echte
+Host-Repo, `docker compose up -d` allein, Zeiten des Versuchs-Containers nicht geprüft bzw. nicht wiederholt.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
