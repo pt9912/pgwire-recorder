@@ -57,6 +57,12 @@ Darstellung trägt eine neue ADR, die [ADR-0028](../../adr/0028-abdeckung-je-anf
 Architect schreibt sie vor dem ersten Code-Commit (Entscheidung des Nutzers vom
 2026-10-06).
 
+**Bindung aus `slice-harness-integration-volumes`** (Geber; `AGENTS.md` §3.13, Sendung an diesen
+Slice): `tools/test/integration-volumes-gegenprobe.sh` liegt unter `tools/**/*-gegenprobe.sh` und
+trägt keine Abdeckungs-Deklaration; das Skript liest sie mit und erzeugt dort weder Fehler noch
+Zeilen. Der Fall steht in der Gegenprobe dieses Slice (DoD, Liefer-Punkt 2) und in §6 (Risiko
+*Andere Gegenproben werden gelesen*).
+
 **Herkunft:** Bei `slice-lastenheft-pruefbarkeit` hat das Team entschieden, dass
 LH-QA-07 in den Abdeckungstabellen nicht als unbelegt stehen bleibt (2026-10-06). Den
 Nachweis-Weg hat der Architect vorgeschlagen; der Nutzer hat am 2026-10-06
@@ -65,6 +71,11 @@ Slice mit seinem Platz in der Reihe entschieden.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
+- Eingriff in die vorhandenen Gegenproben unter `tools/` außer dem Kopf der Lint-Gegenprobe —
+  Bestand bleibt bewusst stehen: Sie tragen keine Deklaration und werden vom Skript nur mitgelesen;
+  die Bindung an `tools/test/integration-volumes-gegenprobe.sh` (Sendung aus
+  `slice-harness-integration-volumes`, §1: kein Kopf in Deklarationsform) hält dieser Slice mit
+  einem Fall seiner Gegenprobe fest, ändert die Datei aber nicht.
 - Teil 2 (Anweisungsabdeckung) von LH-QA-07 — die Deklaration gehört an die Gegenprobe
   des Coverage-Gates, die es erst mit `slice-harness-coverage` gibt; der deklariert ihn
   dort, und erst dann ist die Anforderung vollständig.
@@ -101,7 +112,10 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       beide sagen nur zu, was die Gegenprobe prüft (`AGENTS.md` §3.11).
 - [ ] Gegenprobe: `make abdeckung-gegenprobe` führt je Fehlform aus §6 einen Fall, der
       abgelehnt wird, und je Gutform einen, der angenommen wird; die vorhandenen Fälle
-      bleiben; je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10). Ihre Zeile in
+      bleiben, dazu ein Fall, der eine Gegenprobe ohne Deklaration im Muster (nach dem Vorbild
+      von `tools/test/integration-volumes-gegenprobe.sh`, Sendung aus
+      `slice-harness-integration-volumes`) ohne Fehler und ohne Zeile annimmt; je Zusage ist die
+      Mutation gesehen (`AGENTS.md` §3.10). Ihre Zeile in
       `harness/README.md` §Sensors nennt die neuen Fälle.
 - [ ] Erste Gate-Deklarationen und RTM: Die Gegenprobe des Lint-Gates trägt im Kopf die
       Deklaration von LH-QA-07, Teil 1 und Teil 3 von 3; die Tabellen sind mit
@@ -162,9 +176,20 @@ Deklaration deckt.
 Vor dem ersten Code-Commit bestätigt der Architect die Randformen aus §6 und
 entscheidet die offenen (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
+**Größe** (`AGENTS.md` §3.14): Metrik ist die Summe aus Einfügungen und Löschungen von
+`git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test tools/harness/lint-gegenprobe.sh
+harness/README.md harness/vertraege/SPEC-048-abdeckung.md docs/user .d-check.yml docs/plan/adr`,
+Tests eingeschlossen. Basis: der Commit des Anspruchs (`next` → `in-progress`), beim Anspruch
+einzutragen. Schätzung (Arbeitswert des Planners aus den Bestandsmaßen, vom Architect vor dem Code
+zu bestätigen; die Gegenprobe zählt mit dem Doppelten des Produktcodes, die neu geschriebenen
+Tabellen unter `docs/user` zählen mit): 500 bis 800, Mitte 650. **Meldeschwelle 800:** Wer im Lauf
+darüber liegt oder liegen wird, meldet es dem Planner, bevor er weiterbaut. **Marke 1000:**
+darüber gilt die Rückführung unten, ohne Ermessen.
+
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Erweiterung ändert die
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe der Metrik liegt über 1000,
+  oder die Erweiterung ändert die
   Form der bestehenden Tabellen oder der Test-Deklarationen so weit, dass Skript,
   Gegenprobe und Tabellen nicht in einer Review-Sitzung prüfbar sind; dann zuerst die
   Erweiterung ohne Deklaration, die Deklaration in einem eigenen Slice. Ebenso, wenn die
@@ -219,7 +244,7 @@ dasteht.
   ist darum 3.
 - **Anschluss an `GATE_CHECKS`** — prüft das Skript nicht; Grenze im Skriptkopf, Review.
 
-**Offen** — vor dem Code vom Architect zu entscheiden und am selben Ort festzuhalten
+**Offen: elf Randformen** (Last des Architect; der Planner entscheidet keine) — vor dem Code vom Architect zu entscheiden und am selben Ort festzuhalten
 (Ort oben); was dort nicht steht, entscheidet der Implementer nicht, er gibt es
 zurück:
 
@@ -291,8 +316,11 @@ zurück:
   d-check prüfen (Architect) und im Slice mit einer teilweise belegten Anforderung
   (LH-QA-07) gegen `make doc-trace` nachsehen. — **Ausgang:** — (bei Closure)
 - **Andere Gegenproben werden gelesen** — `tools/**/*-gegenprobe.sh` trifft auch die
-  vorhandenen Gegenproben ohne Deklaration; sie dürfen weder Fehler noch Zeilen
-  erzeugen. — **Ausgang:** — (bei Closure)
+  vorhandenen Gegenproben ohne Deklaration (`tools/harness/*-gegenprobe.sh`,
+  `tools/hook/commit-msg-gegenprobe.sh`, `tools/test/postgres-versionen-gegenprobe.sh` und, aus
+  `slice-harness-integration-volumes`, `tools/test/integration-volumes-gegenprobe.sh`); sie dürfen
+  weder Fehler noch Zeilen erzeugen, und ein Fall der Gegenprobe zeigt es an einer Datei ohne
+  Deklaration im Muster. — **Ausgang:** — (bei Closure)
 
 ## 7. Closure-Notiz
 
@@ -347,5 +375,14 @@ Dateien unter `evidence/`). Treffer:
 
 Keiner der Einträge erreicht mit diesem Slice allein die Schwelle 3×; keine neue
 Lücke vor dem Code.
+
+**Nachgezählt** (Stand `91a1bd02`, `AGENTS.md` §3.13) mit der Sendung aus
+`slice-harness-integration-volumes` (Kopf der Gegenprobe ohne Deklaration, Fall in der
+Gegenprobe) und dem Schätzwert aus §4: Liefer-Punkte 3 (Werkzeug und Vertrag · Gegenprobe · erste
+Gate-Deklarationen und RTM; die Sendung wächst in Punkt 2 hinein, ein Fall mehr). Schichten 2:
+Harness-Werkzeug (`tools/test`, `tools/harness/lint-gegenprobe.sh`, `.d-check.yml`,
+`harness/README.md`, `harness/vertraege/`) und Nutzer-Doku (`docs/user/abdeckung-*.md`, erzeugte
+Tabellen); die ADR ist Planung. Kein `gates-schnell.mk`-Eintrag: das Ziel `abdeckung-gegenprobe`
+steht schon in der Ausnahmeliste (`SPEC-052`), und es kommt kein neues Gate hinzu.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
