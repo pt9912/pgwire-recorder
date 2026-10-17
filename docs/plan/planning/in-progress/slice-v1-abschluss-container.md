@@ -165,9 +165,11 @@ Stand: HEAD nach 7e5ecb79 (Code), Basis der Messung `d258c0b7`. Docker Server 29
 
 **Risiko 4 (Abdeckung):** `make abdeckung-check` ist grün, ohne dass eine Tabelle `LH-FA-16`, `LH-QA-01` oder `LH-QA-03` führt, und verlangt keinen Beleg des Gates. Befund: keine Deklaration eingetragen ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) erlaubt sie, verlangt sie nicht).
 
-**Messung (Metrik §4, `git diff --numstat d258c0b7..HEAD -- Dockerfile harness tools test`, Stand nach der Umsetzung von `DIST=`):** 1157 gesamt (1147 Einfügungen, 10 Löschungen; darin 6 Zeilen von `SPEC-055` des Architect). Davor 1147 (Stand 7e5ecb79). Aufschlüsselung: `container-gegenprobe.sh` 764, `run-container.sh` 213, `binaries.sh` 68, `container-eingabe.sh` 45, `container.mk` 30, `gates-schnell-gegenprobe.sh` 8, `SPEC-052` 7, `Dockerfile` 5, `gates-schnell.mk` 4, `harness/README.md` 3. Produktcode (`run-container.sh`, `binaries.sh`, `container-eingabe.sh`, `container.mk`, `Dockerfile`) 361; Faktor Gegenprobe/Produktcode 764 : 361, etwa 2,1 (Schätzung des Architect: 2 bis 3, absolut 380 bis 570 für die Gegenprobe, gemessen 764 wegen eines Falls je Aufzählungselement). Marke 1200 nicht erreicht.
+**Messung (Metrik §4, `git diff --numstat d258c0b7..HEAD -- Dockerfile harness tools test`, Stand nach der Nacharbeit zum Review):** 1191 gesamt (1176 Einfügungen, 15 Löschungen). Marke 1200 nicht erreicht, Meldeschwelle 1000 überschritten (gemeldet).
 
 **Handlauf Zeitstempel (SPEC-055 Punkt 4, §6):** Kopie des Baums (`git ls-files` nach `…/scratchpad/zeit`, außerhalb des Arbeitsbaums), in der Stufe `build` des `Dockerfile` der Kopie `-X main.version=$VERSION` durch `-X main.version=${VERSION}-$(date +%s%N)` ersetzt (`sed -i`), dort `make test-container`. Ausgang, Exit 2 nach 1 m 47 s: `test-container: ROT — die Summen zweier Builds weichen ab: pgwire-recorder_dev_darwin_amd64 pgwire-recorder_dev_darwin_arm64 pgwire-recorder_dev_linux_amd64 pgwire-recorder_dev_linux_arm64 pgwire-recorder_dev_windows_amd64.exe pgwire-recorder_dev_windows_arm64.exe`. Rot bei Punkt 4 mit den Namen aller sechs Binaries, wie erwartet; kein Image gebaut. Kopie entfernt; danach keine Container, Netze, Tags oder Temp-Verzeichnisse des Gates.
+
+**Handlauf `-X main.version` (Review F-1, SPEC-055 Punkt 2):** Kopie des Baums (`git ls-files` nach `…/scratchpad/xver`, außerhalb des Arbeitsbaums), in der Stufe `build` des `Dockerfile` der Kopie ` -X main.version=$VERSION` per `sed -i` entfernt (`-ldflags="-s -w"`), dort `make test-container` (Vorgabe `VERSION=0.0.0-test`). Ausgang nach 1 m 56 s: Punkte 4 bis 6 grün, `test-container: ROT — version gibt 'pgwire-recorder dev' aus statt 'pgwire-recorder 0.0.0-test' und LF` (Schritt 7a, Smoke `version`), Exit 1, `make` 2. Kopie entfernt; keine Container, Netze, Tags oder Temp-Verzeichnisse des Gates zurück.
 
 **Wege der Mutationen:** `GP_MUT='<Muster>' GP_ENTDECKE=1 bash tools/harness/container-gegenprobe.sh` nennt je Mutation die roten Fälle; `mutiere` ersetzt in einer Kopie des Baums (Textersatz, kein `cp -p`), jede Mutation hat eine eigene Kopie. Docker-teure Mutationen gibt es nicht: Die Gegenprobe läuft mit der Attrappe von `docker`; der Lauf des echten `Dockerfile` ist `make test-container`. Das Einschleusen eines Zeitstempels in das echte `Dockerfile` (SPEC-055 Punkt 4, §6) habe ich nicht gefahren. Entscheidung des Architect 2026-10-17: Der Implementer zeigt es einmal von Hand in einer Kopie des Baums außerhalb des Arbeitsbaums (in der Stufe `build` des `Dockerfile` `-X main.version=${VERSION}-$(date +%s%N)` einsetzen, dort `make test-container` fahren; erwartet rot bei Punkt 4 mit den Namen der Binaries) und hält Befehl und Ausgang hier fest: Ergebnis offen. Die sechs Fälle der Attrappe belegen nur den Vergleich, nicht das echte `Dockerfile` (§3.11); ohne Handlauf bliebe die Aussage „ein eingeschleuster Zeitstempel wird rot“ ungeprüft und dürfte nirgends stehen.
 
@@ -200,6 +202,7 @@ Punkt 2 (`VERSION`):
 | `VERSION` geht in den Namen/Build ein | feste Zeichenkette `dev` im Vergleich der Ausgabe | `p2-gueltig` |
 | Vorgabe am Ziel `test-container` ist `0.0.0-test` | Zeile `test-container: VERSION := 0.0.0-test` entfernt | `p2-vorgabe-test` |
 | `dev` am Gate ist rot vor `docker` | Prüfung in `run-container.sh` entfernt | `p2-dev-gate` |
+| das `Dockerfile` setzt `-X main.version=$VERSION` | Text aus dem `Dockerfile` der Kopie entfernt | `p2-dockerfile-x` |
 | `-X main.version=$VERSION` im echten `Dockerfile` | Zeile in der Kopie entfernt | `p2-dockerfile-x` |
 
 Punkt 3 (`make binaries`):
@@ -264,6 +267,7 @@ Punkt 7 (Smoke):
 | Aufzeichnung per `docker cp` in den Container | `cp` entfernt | `p7-cp-hinein` |
 | Sicht B gleich Sicht A | `P7gleich` | `p7c-sicht-ungleich` |
 | kein Terminal / `--user` / `-v` / `--mount` | Flag an der `record`-Zeile (je) | `p7-kein-terminal`, `p7-kein-user`, `p7-kein-volume`, `p7-kein-mount` |
+| kein `-v` / `-u` als Kurzflag | `run -dv /tmp:/tmp`; `run -d -u0` an der `record`-Zeile | `p7-kein-volume`; `p7-kein-user` (je nur dieser) |
 
 Punkt 8: `P8vor-docker` (oben); Gate fährt nach rotem Punkt 4 weiter (`rot` durch `echo` ersetzt) färbt `p8-4-vor-6`, alle `p4-abweichung-*`, `p4-namen`, `p4-cache-umgehen`.
 
@@ -285,6 +289,8 @@ Punkt 12: Anschluss an `GATE_CHECKS` je Ziel entfernt färbt `p12-gate-checks-zi
 
 - `DIST` als reguläre Datei: Die Mutation von `P3dist` allein färbt `p3-dist-datei` nicht rot, wenn `exit 2` fehlt, weil `mkdir -p "$dist"` (`binaries.sh`, vor dem ersten Aufruf von `docker`) auf einer Datei scheitert. Invariante: `mkdir -p` auf eine Datei endet mit Exit-Code ungleich 0, bevor `docker` ruft. Mit der Mutation `%P3dist` wird der Fall rot (die Meldung fehlt).
 - `DIST=` (leerer Wert): vom Architect am 2026-10-17 entschieden, `SPEC-055` Punkt 3: ungültige Eingabe mit Meldung vor dem ersten `docker` (Marke `P3distleer` in `binaries.sh`, Fall `p3-dist-leerer-wert`, Mutation `%P3distleer`); umgesetzt, Mutation `%P3distleer` färbt genau `p3-dist-leerer-wert` (`p3-dist-nicht-leer`, `p3-dist-datei`, `p3-zweiter-lauf` bleiben grün). Wird das `exit 2` entfernt (Mutation `p3-vor-docker`), bleibt der Fall grün, weil `mkdir -p ""` vor dem ersten `docker` scheitert; die Meldung bleibt.
+- `LC_ALL=C sort` zu `sort` in `binaries.sh` (Review F-8): äquivalent. Invariante: Die sechs Namen unterscheiden sich nur in Betriebssystem und Architektur bei gleichem Präfix (`darwin_amd64` bis `windows_arm64.exe`); die Reihenfolge ist in jeder Locale gleich. Ort: Namensschema `pgwire-recorder_<VERSION>_<os>_<arch>` in `binaries.sh`. `P3sort` entfernt das ganze `sort` und ist nicht äquivalent.
+- Akzeptiertes Negativ (Review F-10): `bereit` in `run-container.sh` liest `docker logs … | grep -q` unter `pipefail`; endet `grep -q` vor dem letzten Schreiben von `docker logs`, kann die Pipeline mit 141 als nicht gefunden gelten. Grund: Die Ausgabe ist eine Meldung, der Fall trat in keinem Lauf auf; es gibt keinen Fall. Flackert das Gate, ist das ein Befund.
 - `LC_ALL=C` für die Sortierung von `SHA256SUMS`: `SPEC-055` Punkt 3 nennt seit dem 2026-10-17 die Byte-Reihenfolge (C-Locale); der Code bleibt, Fall `p3-sums-sortiert` (`LC_ALL=C sort -c`), Mutation `P3sort`.
 - Wartezeit auf PostgreSQL und auf die Startmeldung (je 60 s) sind Wahl des Codes, nicht des Vertrags; kein Fall prüft die Dauer.
 
@@ -294,7 +300,7 @@ Punkt 12: Anschluss an `GATE_CHECKS` je Ziel entfernt färbt `p12-gate-checks-zi
 - `binaries.sh` läuft unter dem Gate als Hintergrundjob und ignoriert `SIGINT`; sein INT-Fang gilt nur im Aufruf allein.
 - Die Weitergabe von `SIGTERM` ist durch das folgende `wait` nur über den Vermerk der Attrappe (`term`) beobachtbar, nicht über die Zeit.
 - Die Gegenprobe hat ein Zehntel der Fälle in `lauft`-Gruppen, die einen echten Gate-Lauf der Attrappe fahren; der Umfang `nur` hält die Mutationsläufe kurz.
-- Zeile `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`: Schätzung für die Gegenprobe 380 bis 570, gemessen 764 (Faktor 2,1 zum Produktcode, nicht 2 bis 3 des Gesamtdiffs).
+- Zeile `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`: Schätzung für die Gegenprobe 380 bis 570, gemessen etwa 770 Zeilen für die Gegenprobe (nach der Nacharbeit mehr).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
