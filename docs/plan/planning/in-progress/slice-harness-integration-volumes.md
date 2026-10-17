@@ -181,14 +181,16 @@ Aussagen-Berührung steht hier gar nicht.
 |---|---|---|
 | `tools/harness/run-container.sh` | update | `rm -fv` an den zwei Stellen für `$pg` (`:198`, im Aufräumen `:37`); eine Zeile je Stelle (`SPEC-055` Punkt 9) |
 | `tools/harness/container-gegenprobe.sh` | update | Attrappe legt für `$pg` ein Volume an und entfernt es nur mit `-v`; Fälle `p9-*-volume` je Ende; Mutationen `rm -f`; die Erwartung von `p7-pg-vor-replay` (`^rm -f …-pg$`) nennt die neue Form |
-| `tools/test/run-integration-tests.sh` | update | `rm -fv` statt `rm -f` für `$tests` und `$pg`; ruft die Prüfung aus der geladenen Datei nach dem Entfernen; die Namen liest sie unmittelbar vor dem Entfernen (§6) |
+| `tools/test/run-integration-tests.sh` | update | `rm -fv` statt `rm -f` für `$tests` und `$pg`; ruft die Prüfung aus der geladenen Datei nach dem Entfernen; die Namen liest sie unmittelbar vor dem Entfernen (§6); neben der Falle für `TERM` eine für `INT` (Exit-Code 130), weil bash ein Signal sonst verwirft, solange ein Kind (`docker`, Exit-Code 2) läuft (`SPEC-057` Punkt 5) |
 | `tools/test/integration-aufraeumen.sh` | neu | Funktionen zum Lesen der Namen, Entfernen und Prüfen; Runner und Gegenprobe laden sie, damit die Gegenprobe den Code des Runners prüft, nicht eine Kopie |
 | `tools/test/integration-volumes-gegenprobe.sh` | neu | Fälle aus §6 *Mutationen* gegen reales Docker, Mutant per Ersetzung in einer Kopie der Funktionsdatei (das Skript bricht ab, wenn die Ersetzung nichts oder mehr als eine Stelle trifft); Zahl der Volumes der Probe nach Namen |
+| `tools/harness/gates-schnell-gegenprobe.sh` | update | die Liste `LANGSAM` der Kopien nennt `integration-volumes-gegenprobe`; ohne sie ist die Ausnahmeliste der Kopie ein Eintrag ohne Gate (`p4-eintrag`, im Gate-Lauf rot gesehen) |
+| `tools/test/postgres-versionen-gegenprobe.sh` | update | Gegenprobe von `SPEC-053`: die Kopie des Runners trägt jetzt `integration-aufraeumen.sh` (Fixture); die Mutanten der Zeile `rm -f "$tests" "$pg"` und die Erwartung des Falls `p7-vor-naechster` (`^rm -fv …`) folgen der Funktionsdatei |
 | `harness/mk/integration.mk` | update | Ziel `integration-volumes-gegenprobe`, an `GATE_CHECKS`, hinter `test-integration` |
 | `harness/mk/gates-schnell.mk` | update | `integration-volumes-gegenprobe` in `GATE_SCHNELL_AUSNAHME` (`SPEC-052` Punkt 4; sonst ist `gates-schnell-gegenprobe` rot), im Commit des Ziels |
 | `harness/vertraege/SPEC-052-gate-kette.md` | geschrieben (Architect) | Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest; Punkt 4 gilt nach dem Namen, ohne Text; liegt vor dem Anspruch und ist nicht Teil des Diffs |
 | `harness/README.md` | update | Zeile in §Sensors für das Ziel; die Zeile von `make test-integration` nennt die Prüfung; die Zeile von `gates-schnell` nennt die Ausnahmeliste unverändert (kein Gate-Name dort) |
-| `harness/vertraege/SPEC-057-integration-aufraeumen.md`, `harness/vertraege/README.md` | geschrieben (Architect) | der Vertrag mit den Entscheidungen aus §6, 9 Fälle und Mutationen in Punkt 7; weicht der Code ab, zieht der Implementer den Vertrag im selben Commit nach (`AGENTS.md` §3.9) |
+| `harness/vertraege/SPEC-057-integration-aufraeumen.md`, `harness/vertraege/README.md` | geschrieben (Architect), Punkte 5 und 7 vom Implementer nachgezogen | der Vertrag mit den Entscheidungen aus §6, 9 Fälle und Mutationen in Punkt 7; nachgezogen (`AGENTS.md` §3.9), weil der Code abweicht: Falle für `INT` im Runner, Mutant `p5-sigterm` (Falle für `TERM` entfällt) ist äquivalent und durch `kill -KILL` ersetzt, die Hilfsfunktion `integration_ende` trägt Vorrang des Codes (Punkte 4 und 5), weitere Mutanten je Element |
 
 - Der Implementer misst die Images von `a-check` und `d-migrate` (`docker image inspect`, Feld
   `.Config.Volumes`) für den Beleg in §7; die Messung ändert nichts am Umfang.
@@ -307,6 +309,117 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+### Belege des Implementers
+
+Stand: Implementer-Lauf am 2026-10-17, Basis `de908591` (Elternteil des Anspruchs `5fba0671`), Code-Commit `5e15247b`.
+Namen statt Zahlen: Die Listen der Volumes (`docker volume ls -q | sort`) vor und nach dem Lauf, Vergleich mit
+`comm`. Auf dem Host liefen fremde Prozesse: Zwischen zwei Messungen verschwanden fünf Volumes, die nicht aus
+diesem Lauf stammen (anonyme Volumes eines `--rm`-Containers anderer Herkunft); sie zählen nicht, geprüft wird
+„neu hinzugekommen“ (`comm -13`).
+
+**Aufräumen im Runner (DoD 1), Handlauf `make test-integration`:** vor 54 Volumes, nach 54, neu: 0 (`comm -13` leer);
+Lauf grün (`run-integration-tests: gruen`, Exit 0, 2 min 20 s). Gegenstück vor der Behebung: der Runner aus `5fba0671`
+(`git show 5fba0671:tools/test/run-integration-tests.sh`, Stand vor dem Code-Commit) hinterließ bei demselben
+Lauf genau ein Volume (`a2035760fb25…`, 54 → 55), das der Implementer danach per Namen entfernte.
+
+**Aufräumen in `test-container` (DoD 2), Handlauf `make test-container`:** vor 49, nach 49, neu: 0; Lauf grün (1 min 55 s).
+Gegenstück: `run-container.sh` aus `5fba0671` hinterließ ein Volume (`dbd4b69c7873…`, 49 → 50), per Namen entfernt.
+
+**Fundstellen (Suche wiederholt, Stand dieses Laufs):** `docker run`/`docker create` in `tools/`, `harness/mk/` und den
+Wurzel-Fragmenten:
+`harness/mk/build.mk:22`, `harness/mk/schema.mk:9` und `:12`, `tools/arch/a-check-negativ.sh:83`,
+`tools/harness/traeger-fetch.sh:146`, `tools/harness/run-container.sh:169` (`psql`), `:179` (`version`), `d-check.mk` (alle
+`run`-Zeilen), `a-check.mk:16` und `:19` tragen `--rm`; ohne `--rm` und ohne `-v` waren `tools/test/run-integration-tests.sh`
+`$pg` (`run -d`, jetzt `rm -fv`), `run-container.sh` `$pg` (`:183`), `$rec` (`:189`), `$rep` (`:200`, `create`), `$img` (`:143`, `create`).
+Die Plan-Liste nannte `d-check.mk` und `a-check.mk` im Wurzelverzeichnis nicht; beide tragen `--rm`.
+`.Config.Volumes` (`docker image inspect`):
+`ghcr.io/pt9912/a-check@sha256:e820…` null · `ghcr.io/pt9912/d-check:v0.86.1` null · `golang:1.27-alpine` null ·
+`pgwire-recorder:integration` null · Produkt-Image (`--target runtime`, aus dem `Dockerfile` gebaut) null (`grep VOLUME Dockerfile` ohne
+Treffer) · `postgres:17-alpine@sha256:b0f9…` `{"/var/lib/postgresql/data":{}}` ·
+`ghcr.io/pt9912/d-migrate@sha256:af9d…` `{"/work":{}}`. Letzteres ist die Ausnahme der Annahme „null“: Das Rezept von
+`schema-validate` bindet `tools/schema` nach `/work` (Bind-Mount über dem deklarierten `VOLUME`), und ein Handlauf
+`make schema-validate` ließ kein neues Volume zurück (Namen vor und nach, neu: 0). `--rm` genügt auch dort.
+Bei `$rec`, `$rep`, `$img` (Produkt-Image, `.Config.Volumes` null) legt Docker kein Volume an; `rm -fv` an diesen
+Stellen ist daher in der Attrappe nicht unterscheidbar (Attrappe legt nur für `$pg` ein Volume an): kein Mutant dafür, aus diesem Grund
+(gemessen: null) und weil `SPEC-055` Punkt 9 „Nur `$pg` trägt ein `VOLUME`“ nennt.
+
+**Zusage · Mutation · roter Fall.** Zu `SPEC-057` (Gegenprobe `integration-volumes-gegenprobe`, `GP_ENTDECKE=1`,
+Mutant per Textersatz genau einer Stelle in einer Kopie von `integration-aufraeumen.sh` bzw. `run-integration-tests.sh`):
+
+| Zusage | Mutation | rote Fälle (gesehen) |
+|---|---|---|
+| P1 Namen aus `$tests` und `$pg`: nur `$pg` | `for c in "$tests" "$pg"` → `"$pg"` (`p1-nur-pg`) | `p3-angelegt` |
+| P1 … nur `$tests` | → `"$tests"` (`p1-nur-tests`) | `p3-angelegt` |
+| P1 außer `$daten` | Ausnahme entfällt (`p1-mit-daten`) | `p2-grundfall` |
+| P1 Mounts vom Typ `volume` (Bind-Mounts zählen nicht) | `.Type`-Prüfung entfällt (`p1-ohne-typ`) | keiner: äquivalent, ein Mount ohne Volume trägt keinen Namen, die Namensliste bleibt gleich |
+| P2 `rm -fv` für `$tests` und `$pg` | `rm -f` (`p2-ohne-v`) | `p2-grundfall`, `p2-ohne-v` |
+| P2 … je Element | `$tests` entfällt (`p2-ohne-tests`), `$pg` entfällt (`p2-ohne-pg`) | je `p2-grundfall`, `p2-ohne-v` |
+| P3 Namen vor dem Entfernen, auch Zustand `created` | erst nach dem Entfernen lesen (`p3-nach-entfernen`) | `p3-angelegt`, `p4-rest-rot` |
+| P3 kein Container: leere Liste ohne Fehler und Meldung | fehlender Container wird Fehler (`p3-leer-fehler`) | `p3-kein-container`, `p5-sigint`, `p5-sigterm` |
+| P4 Rest nur per Namen entfernt | entfernt jedes Volume ohne Container, beschränkt auf die Namen der Probe (`p4-alles-entfernen`) | `p4-fremd` |
+| P4 Rest wird entfernt | Entfernen entfällt (`p4-nicht-entfernen`) | `p3-angelegt` |
+| P4 Meldung nennt die Namen | Meldung ohne Namen (`p4-ohne-namen`) | `p3-angelegt` |
+| P4 Rest macht den Lauf rot (Exit 1) | Prüfung endet mit 0 (`p4-pruefen-0`) · Code der Prüfung verworfen (`p4-code-verworfen`) | je `p3-angelegt`, `p4-rest-rot` |
+| P4 Code des Laufs ungleich 0 behält Vorrang | Rückgabe immer 1 (`p4-immer-1`) | `p4-vorrang` |
+| P5 Falle `EXIT` | `trap aufraeumen EXIT` entfällt (`p5-exit`) | `p5-sigint`, `p5-sigterm` |
+| P5 Prüfung läuft in der Falle | Falle ruft nur das Entfernen (`p5-ohne-pruefung`) | `p5-sigint`, `p5-sigterm` |
+| P5 Exit-Code des Laufs (143, 130) | `exit 0` am Ende der Falle (`p5-ausgang-0`) | `p5-sigint`, `p5-sigterm` |
+| P5 `SIGTERM` | Falle für `TERM` beendet mit `kill -KILL` (`p5-term`) | `p5-sigterm` |
+| P5 `SIGINT` | Falle für `INT` beendet mit `kill -KILL` (`p5-int`) | `p5-sigint` |
+| P5 `SIGTERM` | Falle für `TERM` entfällt (`p5-term-entfaellt`, Mutant aus der Tabelle von `SPEC-057` Punkt 7) | keiner: äquivalent. bash führt die Falle `EXIT` auch ohne Falle für `TERM` aus und endet mit 143 (gemessen mit bash 5.2.21, 8 Läufe von `p5-sigterm` und ein Handversuch); `SPEC-057` Punkt 7 ist nachgezogen |
+
+Der Grundfall hat „—“ als Mutation und wird von jedem Mutanten rot, der das Entfernen trifft (`p2-ohne-v` und `p2-grundfall` beide);
+das ist der Wortlaut „nur sie“ nicht, aber die Zusage („nach dem Aufräumen existiert kein gelesenes Volume“) ist die des Grundfalls.
+`p3-angelegt` hängt für `p3-nach-entfernen` an derselben Prüfung wie `p4-rest-rot` (beide brauchen die gelesenen Namen für den Rest).
+Zu `SPEC-055` Punkt 9 (`container-gegenprobe`, `GP_MUT=… GP_ENTDECKE=1`):
+
+| Zusage | Mutation | rote Fälle (gesehen) |
+|---|---|---|
+| Aufräumen am Ende entfernt `$pg` mit Volume | `rm -f` statt `rm -fv` in der Zeile des Aufräumens (`p9-volume-aufraeumen`) | `p9-sigINT-psql-volume`, `p9-sigTERM-psql-volume` |
+| Entfernen von `$pg` vor dem Wiedergeben mit Volume | `rm -f` statt `rm -fv` an der Stelle (`p9-volume-replay`) | `p7-pg-vor-replay`, `p9-gruen-volume`, `p9-rot7-volume` |
+| je Ende ein Fall `p9-*-volume` | die vorhandenen Mutanten des Aufräumens färben den Fall des Endes mit: Zeile des Aufräumens entfällt (`p9-container`), Falle `EXIT` entfällt (`p9-exit`), Fallen `INT`/`TERM` ohne Aufräumen (`p9-int`, `p9-term`) | `p9-sigINT-psql-volume` · `p9-sigTERM-psql-volume` (je nach Mutant), mit den bisherigen roten Fällen |
+| `p7-pg-vor-replay` kennt die neue Zeile | Erwartung `^rm -fv …-pg$`; Mutant `p7-rm-pg` (Zeile entfällt) | `p7-pg-vor-replay` |
+
+Die Fälle `p9-*-volume` der Enden `rot4` bis `rot6` und der `sig*-build`-Enden sind vom Aufbau her trivial grün (der Container `$pg` ist
+dort noch nicht angelegt); die Mutanten fangen nur Enden mit lebendem `$pg` (`sig*-psql`) und das Ende nach dem Wiedergeben (`gruen`, `rot7`).
+
+**Befund im Runner (vor dem Code gemessen, nicht in §6):** Die erste Fassung der Fälle `p5-*` schickte `SIGINT` an den Runner (nur den
+Prozess); der Lauf ging weiter. Messung: Ein Kind, das nicht am Signal endet (das Go-Programm `docker` endet auf `SIGINT` mit Exit-Code 2),
+lässt bash nach `SIGINT` fortsetzen; ohne Falle für `INT` geht ein `SIGINT` an einen Runner im Vordergrundkommando verloren (an den Prozess
+allein hing der erste Lauf; an die Prozessgruppe endete von drei Läufen einer mit Exit-Code 2 durch `set -e` am `docker exec`, einer hing). Mit `trap 'trap "" INT; exit 130' INT` im Runner hielten acht Läufe von `p5` (TERM 143, INT 130). Die Zusage von `SPEC-057` Punkt 5 braucht diese
+Falle; der Vertrag ist im selben Commit nachgezogen. Das ist eine Folge der Zusage, keine neue Randform.
+
+**Laufzeit des Ziels** (Risiko in §6): `make integration-volumes-gegenprobe` 42 s (Wanduhr), danach keine Container, Netze oder neuen Volumes
+des Präfixes `pgr-ivg-` auf dem Host (Namen vor und nach, neu: 0). `make test-postgres-versionen-gegenprobe` mit der angepassten Kopie: grün.
+
+**Größe der Marke** (`AGENTS.md` §3.14): `git diff --numstat de908591..5e15247b -- tools/test tools/harness/run-container.sh
+tools/harness/container-gegenprobe.sh harness/mk/integration.mk harness/mk/gates-schnell.mk harness/README.md harness/vertraege`:
+Summe aus Einfügungen und Löschungen **457** (+429, −28); Meldeschwelle 750 und Marke 900 nicht erreicht. Schichten: zwei
+(Harness-Werkzeug `tools/test`, `tools/harness`, `harness/mk`; Gate-Index und Vertrag `harness/README.md`, `SPEC-057`); Liefer-Punkte drei. Die Zählung hält.
+`tools/test/postgres-versionen-gegenprobe.sh` (6+6 Zeilen) gehört zu `tools/test`.
+
+**Beobachtung für das Register:** Der Plan nannte die Fälle von `SPEC-057` Punkt 7 so, als bräche jede Mutation nur den eigenen Fall; die Zusammenhänge
+(Grundfall rot bei `rm -f`, `p4-rest-rot` rot bei „Namen nach dem Entfernen“) und ein äquivalenter Mutant (`TERM`-Falle) standen nicht im Vertrag.
+
+**`make gates` am Endstand** (`dc6da5fa`; Läufe im Hintergrund, Log im Scratchpad; Ergebnis aus Log und `rc`):
+1. Lauf rot nach 349 s: `gates-schnell-gegenprobe` meldete „Kopie 'ok' ist nicht grün: p4-eintrag“. Ursache: Die Liste `LANGSAM` in
+   `tools/harness/gates-schnell-gegenprobe.sh` kannte `integration-volumes-gegenprobe` nicht, die Ausnahmeliste der Kopie nannte ein Gate ohne
+   Eintrag in `GATE_CHECKS`. Behoben in `dc6da5fa` (eine Zeile; die Datei steht nicht in der Pfadliste der Marke, +1/−1).
+2. Lauf rot: `test-postgres-versionen-gegenprobe`, Mutant `p7-int-treiber` (rot waren `p7-sigINT-gruppe`, `p7-sigINT-skript` und `p7-sigTERM-skript`,
+   erwartet die ersten beiden): der bekannte Flake. Das Gate einzeln wiederholt: zweimal grün; ein dritter grüner Einzellauf lag davor (mit der
+   Anpassung der Kopie). Fünf Einzelläufe insgesamt, einer rot.
+3. Lauf **grün**, `rc=0`, 1018 s (Wanduhr), `integration-volumes-gegenprobe` darin grün. Namen der Volumes vor und nach dem ganzen Lauf: 49 und 49, neu 0,
+   verschwunden 0 (vorher: ein Lauf von `make gates` erhöhte die Zahl um mindestens eins, §1). Kein Container mit dem Präfix `pgr-` danach.
+Nicht in `make gates` und einzeln gefahren: `make schema-validate` (Volumes), `make test-integration` und `make test-container` als Handläufe (oben).
+
+**Offene Punkte für den Architect/Planner** (keine Entscheidung des Implementers):
+- `SPEC-057` Punkt 7: Der Mutant `p5-sigterm` „Falle für `TERM` entfällt“ ist äquivalent (oben); der Vertrag ist auf `kill -KILL` und den Hinweis nachgezogen. Der Architect
+  prüft, ob ein zweites `SIGTERM` während des Aufräumens zugesagt werden soll: Dort unterschiede sich die Falle (`trap "" TERM`) vom Fehlen; Randform
+  nicht in §6, daher nicht gebaut.
+- `SPEC-057` Punkt 5: Falle für `INT` im Runner ist Folge der Zusage (oben); falls der Architect das als Entscheidung statt Folge lesen will, steht sie im Vertrag.
+- Zählung der Nehmer: keine neue Sendung an einen Nehmer in diesem Lauf (`slice-harness-abdeckung-gate` wie in §1 unverändert).
+
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
