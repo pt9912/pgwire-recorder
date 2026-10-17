@@ -16,10 +16,9 @@ Die unveränderte Kopie ist grün, und je Fall bricht eine Mutation genau ihn. U
 10 zählt jedes Element der Aufzählung einzeln.
 
 1. **Schwelle.** Die Schwelle steht an einer Stelle, in dieser Datei, in der Zeile
-
-   **Schwelle:** `94` Prozent der Anweisungen.
-
-   (Zeilenanfang, `**Schwelle:** `, der Wert in Backticks). Einheit: Prozent der Anweisungen, ganze
+**Schwelle:** `94` Prozent der Anweisungen.
+   (Die Zeile steht ohne Einrückung am Zeilenanfang, in der Quelle ohne Leerzeile davor; sie
+   beginnt mit `**Schwelle:** `, der Wert steht in Backticks. Eine eingerückte Zeile zählt nicht.) Einheit: Prozent der Anweisungen, ganze
    Zahl. Grund: gemessen 94,45 % (4201 von 4448 Anweisungen) bei Quellstand `69aaf3f7`, auf die ganze
    Zahl abgerundet; der Abstand von 19 Anweisungen ist der Spielraum für Umbauten. Die Regel, nach der
    die Zahl folgt, steht in der Entscheidung. `make test` liest den Wert aus dieser Zeile und gibt
@@ -51,7 +50,11 @@ Die unveränderte Kopie ist grün, und je Fall bricht eine Mutation genau ihn. U
    Block (Datei und Bereich) kommt zweimal vor, (f) die Summe der Anweisungen ist 0, (g) Schwelle
    fehlt oder ist leer, (h) Schwelle ist keine ganze Zahl von 1 bis 100 in Dezimalschreibweise ohne
    führende Null (`94.5`, `094`, `0`, `101`, `94 94` und `-1` sind abgelehnt). Zwei Zeilen
-   `**Schwelle:**` in dieser Datei ergeben `94 94` und damit (h).
+   `**Schwelle:**` in dieser Datei ergeben `94 94` und damit (h). Hat eine Eingabe mehrere
+   Gründe, gilt die Reihenfolge (a), (b), (c), (g), (h), dann (d), (e), (f): Profil und Schwelle
+   werden vor den Zeilen geprüft; die Zeilen werden der Reihe nach gelesen, und die erste Zeile,
+   die (d) oder (e) verletzt, bestimmt die Meldung; (f) folgt erst, wenn alle Zeilen
+   angenommen sind.
 7. **Ausgabe.** Der Prüfschritt schreibt, bei grün und bei rot gleich, je Paket eine Zeile mit
    Importpfad, Wert und Zahl der Anweisungen, aufsteigend nach Importpfad, dann als letzte Zeile
    den Gesamtwert mit Schwelle. Bei rot steht in der Gesamtzeile zusätzlich die Differenz (Schwelle
@@ -74,7 +77,7 @@ Die unveränderte Kopie ist grün, und je Fall bricht eine Mutation genau ihn. U
    Punkt 21) und hat keinen eigenen Fall.
 10. **Gegenprobe.** Fälle ohne Docker (Profile, die sie schreibt): Punkt 3 (Gewicht nach
     Anweisungen, nicht Mittel der Pakete), Punkt 4 (a) bis (c), Punkt 5 (genau an der Schwelle grün,
-    eine Anweisung darunter rot, angezeigter Wert abgerundet), Punkt 6 (a) bis (h) je Form, Punkt 7
+    eine Anweisung darunter rot, angezeigter Wert abgerundet), Punkt 6 (a) bis (h) je Form und die Reihenfolge der Gründe je benachbartem Paar der Folge (a)/(b), (b)/(c), (c)/(g), (g)/(h), (h)/(d), (d)/(e), (e)/(f) sowie (d) und (e) in vertauschter Zeilenfolge, Punkt 1 (eine eingerückte Zeile zählt nicht, eine Zeile mitten im Text zählt nicht), Punkt 7
     (Liste bei grün und bei rot, Reihenfolge, Gesamtzeile zuletzt, Differenz nur bei rot). Fälle
     mit Docker, je einer: Schwelle 100 in dieser Datei der Kopie wird rot (die Schwelle kommt in der
     Stufe an; die Mutation setzt einen Vorgabewert im `Dockerfile`), Zeile `**Schwelle:**` fehlt

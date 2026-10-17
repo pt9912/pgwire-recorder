@@ -158,7 +158,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `Dockerfile` | update | Stufe `test`: `ARG` ohne Vorgabewert; `gofmt`, `go vet` und `go test -covermode=set -coverprofile` (ohne `-coverpkg`) bleiben eine Schicht, der Prüfschritt ist die nächste (die Schicht der Prüfung läuft bei geänderter Schwelle neu, die Tests nicht); netzlos |
 | `.dockerignore` | update | Allowlist: `!tools/harness/coverage.sh` |
 | `tools/harness/coverage.sh` | neu | Prüfschritt nach `SPEC-056` Punkt 3 bis 7 (POSIX-Shell und `awk` des Images der Stufe, keine bash) |
-| `harness/mk/build.mk`, `harness/mk/coverage.mk` | update / neu | `test` liest die Schwelle aus `SPEC-056` (`$(shell sed)` auf die Zeile `**Schwelle:**` mit der Einrückung des Listenpunkts, ein Einzeiler als Rezept, Punkt 9); `coverage.mk` trägt das Ziel der Gegenprobe an `GATE_CHECKS` |
+| `harness/mk/build.mk`, `harness/mk/coverage.mk` | update / neu | `test` liest die Schwelle aus `SPEC-056` (`$(shell sed)` auf die Zeile `**Schwelle:**` am Zeilenanfang, Muster `^\*\*Schwelle:\*\*` ohne führende Leerzeichen, ein Einzeiler als Rezept, Punkt 9); `coverage.mk` trägt das Ziel der Gegenprobe an `GATE_CHECKS` |
 | `tools/harness/coverage-gegenprobe.sh` | neu | Fälle und Mutationen nach `SPEC-056` Punkt 10 (Profile ohne Docker; Kopien unter eigenem Temp-Pfad mit Docker); im Kopf die Abdeckungs-Deklaration von LH-QA-07, Teil 2 von 3 |
 | `harness/mk/gates-schnell.mk`, `tools/harness/gates-schnell-gegenprobe.sh` | update | `coverage-gegenprobe` in `GATE_SCHNELL_AUSNAHME` (`SPEC-052` Punkt 4) und in der Liste `LANGSAM` der Gegenprobe der Kette (deren Kopie nimmt das echte Fragment und ein Modell von `GATE_CHECKS`), im Commit des Ziels |
 | `harness/vertraege/SPEC-052-gate-kette.md` | update (Architect, erledigt) | Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest; Allowlist mit dem Prüfschritt |
@@ -247,6 +247,11 @@ Implementer nicht, er gibt es zurück.
 
 - **Die Zahl** (Punkt 1) — gemessen 94,45 % (4201 von 4448 Anweisungen, Quellstand `69aaf3f7`), Schwelle auf die ganze Zahl
   abgerundet: 94. Abstand 19 Anweisungen. Eine Anhebung folgt derselben Regel.
+- **Stelle der Zeile `**Schwelle:**`** (Punkt 1) — entschieden am 2026-10-17: am echten Zeilenanfang, ohne Einrückung;
+  `build.mk` liest mit `^\*\*Schwelle:\*\*`, die Gegenprobe (`^ *` an drei Stellen) zieht nach, ein Fall „eingerückte Zeile
+  zählt nicht“.
+- **Reihenfolge mehrerer Gründe** (Punkt 6) — entschieden am 2026-10-17: (a), (b), (c), (g), (h), dann (d), (e), (f); (d) und
+  (e) nach Zeilenfolge. Fälle je benachbartem Paar und (d)/(e) vertauscht, je mit einer Mutation, die nur die Reihenfolge ändert.
 - **Gesamt oder je Paket** (Punkt 3, 7) — ein Gesamtwert nach Anweisungen; keine Schwelle je Paket (sie verlangte neue Tests,
   §4); die Ausgabe nennt jedes Paket.
 - **Integrationstests über `GOCOVERDIR`** (Punkt 2) — zählen nicht; nur die Unit-Tests der Stufe `test`.
@@ -359,7 +364,7 @@ Stand der Läufe: Quelle `7f1f6ead` plus die Commits dieses Slice bis zur Überg
 | 1 Wert aus der Datei, nicht fest | Zahl 94 im Rezept; Zahl im `Dockerfile` statt Argument | `p1-wert-aus-datei`; `p1-schwelle-kommt-an`, `p1-zeile-fehlt-stufe` |
 | 1 Schwelle kommt in der Stufe an (Mutation des Vertrags) | `ARG COVERAGE_SCHWELLE=1` und kein `--build-arg` | `p1-schwelle-kommt-an`, `p1-wert-aus-datei` |
 | 1 zwei Zeilen ergeben `94 94`; eine fehlende einen leeren Wert | `sed ...;q`; Vorgabe 94 bei leerem Wert; Argument ohne Anführungszeichen | `p1-zeile-doppelt`; `p1-zeile-fehlt`, `p1-zeile-fehlt-stufe`; `p1-zeile-doppelt` |
-| 1 nur eine Zeile am Zeilenanfang (Einrückung des Listenpunkts zulässig) | `sed` ohne Anker `^`; ohne Einrückung; mit `-` zugelassen | `p1-zeile-mitten-im-text`; `p1-wert-94`, `p1-zeile-mitten-im-text`; `p1-zeile-mitten-im-text` |
+| 1 nur eine Zeile am Zeilenanfang (eine eingerückte Zeile zählt nicht) | `sed` ohne Anker `^`; mit `^ *` (Einrückung zugelassen); mit `-` zugelassen | `p1-zeile-mitten-im-text`; `p1-wert-94`, `p1-zeile-mitten-im-text`; `p1-zeile-mitten-im-text` |
 | 8 `gofmt` bricht die Stufe | `gofmt` entfernt | `p8-format` |
 | 8 `go vet` über den Integrationstests | `go vet ./...` ohne `-tags integration` | `p8-vet-integration` |
 | 8 ein roter Test bricht die Stufe | `go test ... || true` | `p8-test-rot` |
@@ -374,7 +379,7 @@ Stand der Läufe: Quelle `7f1f6ead` plus die Commits dieses Slice bis zur Überg
 **Läufe.** `make test` grün (94,44 % bei Schwelle 94); `make coverage-gegenprobe` grün; `make gates-schnell-gegenprobe` grün (Liste `LANGSAM` um `coverage-gegenprobe` ergänzt); `make abdeckung`, danach `make abdeckung-check`, `make docs-check`, `make kopf-check` grün; `make gates` einmal am Endstand (siehe Bericht).
 
 **Größe** (`AGENTS.md` §3.14, Metrik §4): wird mit der Übergabe aus `git diff --numstat 9ee6387d..<letzter Commit>` genannt; die Meldeschwelle 750 war vor der Übergabe überschritten und ist dem Planner gemeldet.
-
+ **Beantwortet am 2026-10-17 vom Architect:** beide in `SPEC-056` entschieden (Punkt 1 am echten Zeilenanfang, Punkt 6 Reihenfolge); §6 oben nennt sie.
 **Rückgaben an den Architect** (Randform · Frage): `SPEC-056` Punkt 1 sagt „Zeilenanfang“, die Zeile steht in der Datei mit drei Leerzeichen als Fortsetzung eines Listenpunkts; `make test` liest sie mit führenden Leerzeichen (`^ *`), sonst fände es keine Zeile. Frage: gilt das so, oder wird die Zeile in der Spezifikation anders gesetzt. Ferner: nennt Punkt 6 keine Reihenfolge mehrerer Gründe in einer Eingabe (der Prüfschritt meldet in der Folge (a), (b), (c), (g), (h), dann (d), (e), (f)); jeder Fall der Gegenprobe hat genau einen Grund.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
