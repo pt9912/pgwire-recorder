@@ -262,6 +262,11 @@ Implementer nicht, er gibt sie zurück.
   startet; ein neues `docker run` außerhalb des Runners bleibt unberührt (kein Sensor dafür,
   siehe Risiko unten).
 - *Leere Namensliste* — Empfehlung: kein Fehler, keine Meldung.
+- *Ausnahmeliste und Beleg der schnellen Kette* (Sendung aus §1, `SPEC-052` Punkt 4 und 13) —
+  Empfehlung: `integration-volumes-gegenprobe` steht in `GATE_SCHNELL_AUSNAHME`; der Beleg in
+  Punkt 13 sagt, dass die Gegenprobe nur Skripte unter `tools/test` und `harness/mk` in ihre
+  Kopien legt und `docs/user/`, `README.md` und `docs/plan/planning/` weder kopiert noch liest; ein
+  Fall der Gegenprobe der Kette (`gates-schnell-gegenprobe`) hält die Ausnahmeliste.
 
 **Mutationen** (`AGENTS.md` §3.10, für das Gate): je Zusage der Fall der Gegenprobe, vom
 Implementer selbst rot gesehen, im Bericht als *Zusage · Mutation · roter Fall*.
