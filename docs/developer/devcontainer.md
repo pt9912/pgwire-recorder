@@ -34,7 +34,7 @@ nicht geprüft.
 
 ## 2. Voraussetzungen
 
-- Docker Engine ≥ 24 (das fordert `u-boot doctor`, §12).
+- Docker Engine ≥ 24 (`u-boot doctor` prüft das und meldete `docker 29.9.1 available (≥ 24.0)`).
 - `u-boot`, das Werkzeug, das Konfiguration und Dev-Container-Gerüst erzeugt
   (<https://github.com/pt9912/u-boot>), in der Version 0.10.0, mit der die Proben liefen (`u-boot
   --version`). Die Features `sshd` und `claude-code` und das Profil `sandbox` mit `nestedRuntime: docker`
@@ -47,7 +47,7 @@ nicht geprüft.
 - Schreibrecht in dem Verzeichnis, in dem `pgr-dev` angelegt wird.
 - Netz für den Build des Images (§3.4, §4).
 - Das Schlüsselpaar aus §3.2 liegt vor dem ersten `devcontainer up` an dem Pfad, den `mk-override.sh`
-  nennt ; fehlt die Datei, endet `devcontainer up` mit `invalid mount config … bind source path does not exist`, ohne dass Container oder Volumes entstehen (gemessen).
+  nennt; fehlt die Datei, endet `devcontainer up` mit `invalid mount config … bind source path does not exist`, ohne dass Container oder Volumes entstehen (gemessen).
 - Freier Platz im Docker-Speicher des Hosts: Der Container baut ein Image und legt den Docker-Cache
   des Repos in einem Volume ab (§11).
 
@@ -183,7 +183,7 @@ fs.writeFileSync(".devcontainer/override.json", JSON.stringify(j, null, 2) + "\n
 '
 ```
 
-Die Zusätze: Name, `cpus` und `mem_limit` (Vorgabe 8 CPUs, 12 GiB; `docker inspect` zeigt `8000000000` und `12884901888`), den
+Die Zusätze: Name, `--cpus` und `--memory` (Vorgabe 8 CPUs, 12 GiB; `docker inspect` zeigt `8000000000` und `12884901888`), den
 Port `127.0.0.1:<PGR_SSH_PORT>:2222` (Vorgabe `2222` am Host), den Schlüssel als Mount `ro` und die zweite Variable
 `CLAUDE_CODE_OAUTH_TOKEN` (§7). Das Skript läuft nach jedem `u-boot generate devcontainer` neu; `.devcontainer/override.json` ist abgeleitet
 und gehört nicht in die Pflege. Das Skript braucht `node` am Host (die CLI braucht es ohnehin).
@@ -328,7 +328,7 @@ in keiner Kommandozeile steht: `printf %s "$ANTHROPIC_API_KEY" | ssh … vscode@
 
 **Wo der Wert sichtbar ist** (gemessen mit einem Platzhalter): in der Umgebung des Prozesses im Container (`/proc/<PID>/environ`), und in der
 Prozessliste des Hosts: `devcontainer exec` ruft `docker exec -e ANTHROPIC_API_KEY=<Wert> …` auf, `ps -eo args` am Host zeigt den Wert, solange der
-Aufruf läuft. Nicht gefunden wurde er in `docker inspect`, im Log des Containers und in Dateien unter `/home/vscode`. Behandle beide Variablen wie das Konto, aus dem sie stammen.
+Aufruf läuft. Nicht gefunden wurde er in `docker inspect`, im Log des Containers und in Dateien unter `/home/vscode` (`grep -rl`). Kindprozesse des Aufrufs und die Shell-History sind nicht gemessen (§13). Die Variable `GIT_TOKEN`, die `u-boot` ebenfalls als Verweis in `remoteEnv` einträgt, ist nicht gemessen; ob sie sich wie die anderen verhält, ist nicht belegt (§13). Behandle beide Variablen wie das Konto, aus dem sie stammen.
 
 **Verhalten von `claude -p ok` im Container** (Version 2.1.302, Egress wie in §11, jeweils Exit 1):
 
@@ -344,7 +344,7 @@ Aufruf läuft. Nicht gefunden wurde er in `docker inspect`, im Log des Container
 Die Meldung kommt beim Start des Aufrufs. Eine erneuerte Variable gilt ab dem nächsten `devcontainer exec` aus der Shell des Hosts; ein Neustart
 des Containers ist dafür nicht nötig. Dass ein abgelaufenes Token mitten in einer Sitzung eine Meldung zeigt, ist nicht geprüft (§13).
 
-Der echte Login mit einem gültigen Schlüssel oder Token **lief nicht**: Die Proben hatten keinen. Der Nutzer führt je Weg einen Befehl aus (Platzhalter ersetzen,
+Der echte Login mit einem gültigen Schlüssel oder Token **lief nicht**: Die Proben hatten keinen. Dass beide Wege funktionieren, ist damit **nicht belegt**; belegt ist nur, dass die Variable ankommt und `claude` auf Platzhalter wie in der Tabelle antwortet. Der Nutzer führt je Weg einen Befehl aus (Platzhalter ersetzen,
 Wert nicht in die Shell-History legen):
 
 ```bash
@@ -354,7 +354,7 @@ CLAUDE_CODE_OAUTH_TOKEN=<Token> devcontainer exec --workspace-folder . --overrid
 ```
 
 Die Abo-Anmeldung per `/login` im Container und der Weg über ein Abo-Token sind bei `u-boot` nicht zugesagt. Die Hosts der Anmeldung (`claude.ai`,
-`platform.claude.com`, `claude.com`) stehen nicht in `egress.allow`; das Token wurde von `api.anthropic.com` geprüft (`401 Invalid bearer token`). Meldet ein
+`platform.claude.com`, `claude.com`) stehen nicht in `egress.allow`; die Antwort `401 Invalid bearer token` kam bei diesem Egress; in der Namensliste des DNS-Servers stand von den Hosts der Anthropic-Dienste nur `api.anthropic.com` (und der Telemetrie-Host, §11). Das ist kein Login. Meldet ein
 gültiges Token einen Netzfehler, trage den Host nach §11 ein.
 
 Der Container hat genau drei Mounts: die beiden Volumes aus §3.4 und den öffentlichen Schlüssel (Mount `ro`; `docker inspect` am Scratch-Container);
@@ -363,8 +363,9 @@ Verzeichnisse mit Zugangsdaten und der Arbeitsbaum des Hosts sind nicht darunter
 ## 8. Arbeiten im Container
 
 **Annahme: pro Sitzung ein Slice** (Entscheidung des Nutzers vom 2026-10-17). Eine Sitzung ist die Zeit zwischen zwei Starts des
-Containers; nach dem Slice stoppst du den Container und startest ihn neu (§4, rund 2 Sekunden, Klon und Images bleiben), das Zugangstoken
-ist beim Start frisch. Dauert ein Slice länger als rund 8 Stunden, startest du ebenfalls neu. Die 8 Stunden sind die Grenze des Nutzers, nicht gemessen.
+Containers; nach dem Slice stoppst du den Container und startest ihn neu (§4, rund 2 Sekunden, Klon und Images bleiben); Prozesse und Zustand des Containers
+beginnen dabei neu. Dauert ein Slice länger als rund 8 Stunden, startest du ebenfalls neu. Die 8 Stunden sind die Grenze des Nutzers, nicht gemessen. Das Zugangstoken
+hängt nicht am Neustart: `devcontainer exec` liest die Variable bei jedem Aufruf aus der Shell des Hosts (§7).
 
 Im Klon laufen die Targets wie am Host; sie benutzen den Docker-Daemon des Containers:
 
@@ -380,8 +381,8 @@ dem Lauf leer und nach ihm leer):
 
 | Target | Zeit | Bedingung |
 |---|---|---|
-| `make gates` | 1701 s (28 min 21 s), Exit 0 | frisches Volume, Daemon im Container ohne Images; höchstens 4,2 GiB Speicher des Containers (`docker stats`, alle 10 s) |
-| `make gates` | 1701 s, Exit 0 | wiederholt in einem Container, dessen Daemon die Images aus zwei abgebrochenen Läufen hatte (beide Läufe sind unabhängig, die Gleichheit der Sekunden ist Zufall) |
+| `make gates` | 1701 s (28 min 21 s), Exit 0 | erster grüner Lauf (Start 20:50 Uhr): der Daemon im Container hatte die Images aus zwei abgebrochenen Läufen; höchstens 5,42 GiB Speicher des Containers (`docker stats`, alle 10 s) |
+| `make gates` | 1701 s, Exit 0 | danach, ab 21:21 Uhr, in einem neu gebauten Container mit frischen Volumes (Daemon ohne Images); höchstens 4,24 GiB. Beide Läufe meldeten 1701 s; sie sind getrennt (Start 20:50:25 und 21:21:51 laut `docker stats`-Protokoll) |
 | `make docs-check` | 2 s | warmer Daemon nach `make gates` |
 | `make test` | 2 s | warmer Daemon nach `make gates` |
 | `make gates-schnell` | 12 s | warmer Daemon nach `make gates` |
@@ -495,7 +496,7 @@ in §5 und §9 lösen `${PGR_SSH_PORT:-2222}` ohne gesetzte Variable zu `2222` a
   **Gemessen, was `make gates` braucht:** die Auflösungen im Container beim Lauf (`registry-1.docker.io`, `auth.docker.io`, `production.cloudfront.docker.com`,
   `ghcr.io`) sind in der Standardliste; zusätzlich fehlten `pkg-containers.githubusercontent.com` (Blobs von `ghcr.io`, ohne es `docker run … a-check` mit
   `failed to copy: httpReadSeeker … pkg-containers.githubusercontent.com`) und `gcr.io` (das Runtime-Image `distroless`, ohne es `make build` mit
-  `failed to resolve source metadata for gcr.io/distroless/…`); mit beiden lief `make gates` grün. Die Anmeldung von Claude Code erreichte `api.anthropic.com`; `http-intake.logs.us5.datadoghq.com`
+  `failed to resolve source metadata for gcr.io/distroless/…`); mit beiden lief `make gates` grün. Die Aufrufe von `claude -p` mit Platzhalter lösten `api.anthropic.com` auf und erhielten eine Antwort (kein Login); `http-intake.logs.us5.datadoghq.com`
   (Telemetrie) wurde angefragt und blieb gesperrt, `claude -p` lief trotzdem. Die Hosts der Anmeldung im Browser sind nicht gemessen (§7). **Die Beschränkung gilt nicht für verschachtelte Container:** ein
   `alpine`-Container im Daemon des Containers erreichte `example.com` (gemessen), und mit `--privileged` kann jeder Prozess die Regeln lösen. `u-boot doctor` warnt
   bei `nestedRuntime: docker` mit Beschränkung genau davor; ein Build, der im Container einen Befehl mit `RUN` (Netz) ausführt, ist also nicht auf die Liste beschränkt.
@@ -516,7 +517,7 @@ in §5 und §9 lösen `${PGR_SSH_PORT:-2222}` ohne gesetzte Variable zu `2222` a
   des Repos; beobachte den Speicher des Hosts (`docker system df`, `df -h` auf dem Docker-Verzeichnis). Dass ein voller Speicher Builds und Tests scheitern lässt,
   ist im Container nicht ausgelöst (§12).
 - **Ressourcen:** `--cpus=8` und `--memory=12g` sind Obergrenzen des Containers (`docker inspect`: `8000000000`, `12884901888`; `cgroup memory.max` im Container: 12884901888);
-  im Container zeigt `docker info` trotzdem die CPUs (20) und den Speicher des Hosts. `make gates` brauchte höchstens 4,2 GiB (§8); der Kernel hat den Container dabei nicht beendet (`OOMKilled=false`).
+  im Container zeigt `docker info` trotzdem die CPUs (20) und den Speicher des Hosts. `make gates` brauchte höchstens 5,42 GiB (§8); der Kernel hat den Container dabei nicht beendet (`OOMKilled=false`).
 
 ## 12. Fehlersuche
 
@@ -537,6 +538,7 @@ in §5 und §9 lösen `${PGR_SSH_PORT:-2222}` ohne gesetzte Variable zu `2222` a
 
 ## 13. Nicht geprüft
 
+- **Kindprozesse des Aufrufs und die Shell-History** als Orte des Werts (§7), und die Variable `GIT_TOKEN` (von `u-boot` in `remoteEnv` eingetragen): Sichtbarkeit und Wirkung nicht gemessen.
 - **Der echte Login von Claude Code mit gültigem Zugang**: API-Schlüssel und Abo-Token lagen den Proben nicht vor. Der Nutzer führt die zwei Befehle aus §7 aus. Auch der
   Start der interaktiven Oberfläche von `claude` (nur `claude -p` lief) und das Verhalten eines Tokens, das mitten in einer Sitzung abläuft.
 - **Entscheidung `podman` oder `docker` als `nestedRuntime` (offen, Nutzer):** gemessen ist `docker` (Daemon im Container, `make gates` grün). `u-boot` 0.10.0 nennt für `podman`
