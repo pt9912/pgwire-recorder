@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- Welle [welle-v1-abschluss](welle-v1-abschluss.md) done, und `slice-harness-coverage` liegt in `done/` (Abnahmeszenario 17, M3 vor M4; Entscheidung des Nutzers vom 2026-10-08), dazu `slice-harness-devcontainer-u-boot-0-10` und `slice-harness-devcontainer-einrichten` in `done/` (wellenlos; Entscheidung des Nutzers vom 2026-10-17: lang laufende Slices laufen im Dev-Container, damit `main` nicht durch Implementer-Läufe gesperrt ist).
+- Welle [welle-v1-abschluss](welle-v1-abschluss.md) done, und `slice-harness-coverage` liegt in `done/` (Abnahmeszenario 17, M3 vor M4; Entscheidung des Nutzers vom 2026-10-08), dazu `slice-harness-devcontainer-u-boot-0-10` in `done/` (wellenlos; Entscheidung des Nutzers vom 2026-10-17: lang laufende Slices laufen im Dev-Container, damit `main` nicht durch Implementer-Läufe gesperrt ist; `slice-harness-devcontainer-einrichten` ist nicht Bedingung, Entscheidung des Nutzers vom 2026-10-17).
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -58,7 +58,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
 - Blockiert: Welle [welle-v1-nachtrag](welle-v1-nachtrag.md).
-- Wird blockiert von: Welle [welle-v1-abschluss](welle-v1-abschluss.md) und den wellenlosen Slices `slice-harness-abdeckung-gate`, `slice-harness-coverage`, `slice-harness-devcontainer-u-boot-0-10` und `slice-harness-devcontainer-einrichten`.
+- Wird blockiert von: Welle [welle-v1-abschluss](welle-v1-abschluss.md) und den wellenlosen Slices `slice-harness-abdeckung-gate`, `slice-harness-coverage` und `slice-harness-devcontainer-u-boot-0-10` (nicht an `slice-harness-devcontainer-einrichten`).
 - Innerhalb der Welle: `slice-erster-release-freigabe` setzt `slice-erster-release-veroeffentlichung` voraus (der Scan läuft in dessen Pipeline vor dem Push).
 
 **Reihenfolge** (Entscheidungen des Nutzers vom 2026-10-08: Wellen vor Harness, M3 vor M4; Schnitt von `slice-erster-release-veroeffentlichung` vom 2026-10-09; Umplanung von `slice-erster-release-homebrew-nachweis` nach `welle-v1-nachtrag` vom 2026-10-11; WIP-Limit 1):
@@ -66,7 +66,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 1. `slice-erster-release-veroeffentlichung` — Pipeline für Binaries und Image, belegt mit einem Probe-Tag.
 2. `slice-erster-release-freigabe` — Scan, Freshness-Audit, Freigabe-Checkliste und der erste echte Tag (setzt 1 voraus).
 
-Vor dieser Welle liegen die Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; wellenlos, Entscheidung des Nutzers vom 2026-10-13), `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage`: Mit Coverage wird Abnahmeszenario 17 nachweisbar, M3 ist damit vor M4 erreicht. Hinter Coverage stehen wellenlos `slice-harness-devcontainer-u-boot-0-10` und `slice-harness-devcontainer-einrichten` (in dieser Reihenfolge, Entscheidung des Nutzers vom 2026-10-17), vor der Closure von welle-v1-abschluss und vor den Slices dieser Welle. Danach folgt [welle-v1-nachtrag](welle-v1-nachtrag.md), dann die übrigen Harness-Slices, beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
+Vor dieser Welle liegen die Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harness-gate-kette-stop-hook-liste`, `slice-harness-gate-kette-stop-hook-freigabe`; wellenlos, Entscheidung des Nutzers vom 2026-10-13), `slice-harness-integration-volumes`, `slice-harness-abdeckung-gate` und `slice-harness-coverage`: Mit Coverage wird Abnahmeszenario 17 nachweisbar, M3 ist damit vor M4 erreicht. Hinter Coverage stehen wellenlos `slice-harness-devcontainer-u-boot-0-10` (vor der Closure von welle-v1-abschluss und vor den Slices dieser Welle) und danach `slice-harness-devcontainer-einrichten` (hinter jenem, ohne Bindung an Closure und Release; Entscheidung des Nutzers vom 2026-10-17). Danach folgt [welle-v1-nachtrag](welle-v1-nachtrag.md), dann die übrigen Harness-Slices, beginnend mit `slice-harness-commit-struktur-id`; ihre Reihenfolge steht in deren §4.
 
 ## 6. Out-of-Scope für diese Welle
 
