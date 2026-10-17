@@ -72,7 +72,8 @@ Kopie unter eigenem Temp-Pfad, §6; ein `docker build` sieht nur den Build-Konte
 schnellen Kette (`SPEC-056` Punkt 8): Die Schwelle steht in `SPEC-056` und liegt nicht im Build-Kontext, das
 Ziel `make test` liest sie auf dem Host; in die Allowlist von `.dockerignore` kommt nur der Prüfschritt
 `tools/harness/coverage.sh` (`SPEC-052` Punkt 13 nennt ihn). Die Zeile `GATE_SCHNELL_AUSNAHME` nennt
-`integration-volumes-gegenprobe` schon (Stand `69aaf3f7`); es bleibt ein Eintrag zu ergänzen.
+`coverage-gegenprobe`; die Liste `LANGSAM` in `tools/harness/gates-schnell-gegenprobe.sh` führt es
+ebenfalls (sonst ist `gates-schnell-gegenprobe` rot, `p4-eintrag`).
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -157,9 +158,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `Dockerfile` | update | Stufe `test`: `ARG` ohne Vorgabewert; `gofmt`, `go vet` und `go test -covermode=set -coverprofile` (ohne `-coverpkg`) bleiben eine Schicht, der Prüfschritt ist die nächste (die Schicht der Prüfung läuft bei geänderter Schwelle neu, die Tests nicht); netzlos |
 | `.dockerignore` | update | Allowlist: `!tools/harness/coverage.sh` |
 | `tools/harness/coverage.sh` | neu | Prüfschritt nach `SPEC-056` Punkt 3 bis 7 (POSIX-Shell und `awk` des Images der Stufe, keine bash) |
-| `harness/mk/build.mk`, `harness/mk/coverage.mk` | update / neu | `test` liest die Schwelle aus `SPEC-056` (`$(shell)`, ein Einzeiler als Rezept, Punkt 9); `coverage.mk` trägt das Ziel der Gegenprobe an `GATE_CHECKS` |
+| `harness/mk/build.mk`, `harness/mk/coverage.mk` | update / neu | `test` liest die Schwelle aus `SPEC-056` (`$(shell sed)` auf die Zeile `**Schwelle:**` mit der Einrückung des Listenpunkts, ein Einzeiler als Rezept, Punkt 9); `coverage.mk` trägt das Ziel der Gegenprobe an `GATE_CHECKS` |
 | `tools/harness/coverage-gegenprobe.sh` | neu | Fälle und Mutationen nach `SPEC-056` Punkt 10 (Profile ohne Docker; Kopien unter eigenem Temp-Pfad mit Docker); im Kopf die Abdeckungs-Deklaration von LH-QA-07, Teil 2 von 3 |
-| `harness/mk/gates-schnell.mk` | update | `coverage-gegenprobe` in `GATE_SCHNELL_AUSNAHME` (`SPEC-052` Punkt 4), im Commit des Ziels |
+| `harness/mk/gates-schnell.mk`, `tools/harness/gates-schnell-gegenprobe.sh` | update | `coverage-gegenprobe` in `GATE_SCHNELL_AUSNAHME` (`SPEC-052` Punkt 4) und in der Liste `LANGSAM` der Gegenprobe der Kette (deren Kopie nimmt das echte Fragment und ein Modell von `GATE_CHECKS`), im Commit des Ziels |
 | `harness/vertraege/SPEC-052-gate-kette.md` | update (Architect, erledigt) | Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest; Allowlist mit dem Prüfschritt |
 | `docs/user/abdeckung-*.md` | update | mit `make abdeckung` neu geschrieben: LH-QA-07 vollständig |
 | `harness/README.md` | update | §Sensors: Vertrag von `make test` um die Schwelle ergänzt, Gegenprobe als Zeile; „Nicht behauptet“ angepasst |
@@ -319,6 +320,62 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Beobachtungs-Register (`../observations/`):** <…>
 - **Folge-Slices:** <…>
 - **Risiken aus §6:** <…>
+
+### Belege des Implementers
+
+Stand der Läufe: Quelle `7f1f6ead` plus die Commits dieses Slice bis zur Übergabe (Basis der Größenmetrik `9ee6387d`).
+
+**Messung** (`make test`, Stufe `test`, `COVERAGE_SCHWELLE=94`): Gesamtwert 94,44 % (4201 von 4448 Anweisungen), angezeigt abgerundet; `SPEC-056` Punkt 1 nennt 94,45 % (gerundet, derselbe Bruch 4201/4448 = 94,4469 %). Je Paket wie in der ADR (`bootstrap/tlsproxy` 49,09 %, `cmd/pgwire-recorder`, `bootstrap/offsetlese` und `testpki` 0,00 %). Der Bestand ist grün, Abstand 19 Anweisungen.
+
+**Mutationen.** Jede Mutation wurde in einer Kopie gefahren und färbt die genannten Fälle von `make coverage-gegenprobe` rot (Fälle mit Docker auch, die ohne Docker nicht). Weitere rote Fälle derselben Mutation sind nicht aufgeführt. Treiber: Textersatz in einer Kopie des Baums, danach `touch`, je Mutant frischer Pfad.
+
+| Zusage (SPEC-056) | Mutation | roter Fall |
+|---|---|---|
+| 3 Gewicht nach Anweisungen, nicht nach Blöcken | `gesamt += 1` statt `+= $2` | `p3-gewicht-gruen`, `p3-gewicht-rot` |
+| 3 nicht Mittel der Pakete | Vergleich auf den Mittelwert der Paketwerte | `p3-gewicht-gruen`, `p3-gewicht-rot` |
+| 3 ausgeführt zählt die Anweisungen des Blocks, nicht den Zähler | `+= $3` statt `+= $2` | `p3-zaehler-ist-nicht-anzahl` |
+| 4 (a) `main` ohne Test zählt | Blöcke unter `/cmd/` ausgenommen | `p4-main-ohne-test` |
+| 4 (b) Hilfspaket ohne Test zählt | Pfad `testpki` ausgenommen | `p4-hilfspaket-ohne-test` |
+| 4 (c) Block mit Anzahl 0 zählt nichts | Anzahl 0 zählt als 1 | `p4-anzahl-null` |
+| 4 ein Paket ohne Test zählt nur seine Tests (Punkt 2) | `-coverpkg=./...` im `Dockerfile` | `p2-paket-ohne-test` |
+| 5 genau an der Schwelle grün | `>` statt `>=` | `p5-genau` |
+| 5 keine Rundung vor dem Vergleich | Vergleich auf `int(Wert + 0,5)` | `p5-eins-darunter` |
+| 5 Anzeige abgerundet | `int(Wert + 0,5)` in anzeige | `p5-abgerundet` |
+| 6 (a) Profil fehlt / nicht lesbar | Prüfung entfernt; nur ohne `-f`; nur ohne `-r` | `p6-a-fehlt`, `p6-a-ohne-argumente`; `p6-a-verzeichnis`; `p6-a-nicht-lesbar` |
+| 6 (b) Profil leer | `-s` entfernt | `p6-b-leer` |
+| 6 (c) `mode: set` | Prüfung entfernt; nur `mode:`; nur Präfix; erste Zeile mit `mode` statt Zeile 1 | `p6-c-*`; `p6-c-count`, `p6-c-atomic`; `p6-c-zusatz`; `p6-c-leere-erste-zeile` |
+| 6 (d) Form je Element | je Element der Aufzählung ein Mutant, der nur es lockert: Datei leer, Bereich leer, ohne `:`, Anzahl Text/Dezimal/negativ, Zähler Text/Dezimal/negativ, ein/zwei/vier Felder, ohne `^`, `$` gelockert, doppeltes Leerzeichen, Tab als Trenner, Leerzeile übersprungen | `p6-d-<Element>` je ein Fall |
+| 6 (d) jede Zeile geprüft | nur Zeile 2; erste Zeile übersprungen; letzte übersprungen | `p6-d-pos-letzte`; `p6-d-pos-erste`; `p6-d-pos-letzte` |
+| 6 (e) Block = Datei und Bereich, zweimal | Prüfung entfernt; Schlüssel nur Datei; nur Bereich; nur benachbart; ganze Zeile | `p6-e-doppelt`; `p6-e-anderer-bereich`; `p6-e-andere-datei`; `p6-e-getrennt`; `p6-e-anderer-zaehler`, `p6-e-andere-anzahl` |
+| 6 (f) Summe 0 | Prüfung entfernt; nur Kopfzeile | `p6-f-nur-kopf`, `p6-f-nur-null-bloecke`; `p6-f-nur-null-bloecke` |
+| 6 (g) Schwelle fehlt/leer | `-n`-Prüfung entfernt | `p6-g-fehlt`, `p6-g-leer` |
+| 6 (h) Schwelle 1 bis 100 | je akzeptierter Wert ein Mutant (`0`, `101`, `94.5`, `094`, `94 94`, `-1`, `+94`, `abc`, `" 94"`, `"94 "`, `1e2`, `00`, `1000`, Zeilenumbruch); `100`, einstellig, zweistellig entfernt; alles akzeptiert | `p6-h-[<Wert>]`, `p6-h-zeilenumbruch`; `p6-h-grenze-100`; `p6-h-grenze-1`/`-9`; `p6-h-grenze-10` |
+| 6 Ablehnung nennt die Form und schreibt nichts auf stdout | Meldung auf stdout (Shell, awk) | `p6-a-fehlt`, `p6-g-fehlt`, `p6-d-*`, `p6-e-doppelt` |
+| 7 Liste aufsteigend nach Importpfad | ohne `sort`; `sort -r` | `p7-gruen-ausgabe`, `p7-rot-ausgabe` |
+| 7 Gesamtzeile zuletzt | `close(sortiert)` entfernt (awk des Images) | `p7-gesamtzeile-zuletzt-in-der-stufe` |
+| 7 Differenz nur bei rot | immer; nie; um 0,01 falsch | `p7-gruen-ausgabe`; `p7-rot-ausgabe`, `p5-eins-darunter`; `p7-rot-ausgabe`, `p5-eins-darunter` |
+| 7 Liste bei grün und rot | keine Liste bei rot; keine bei grün | `p7-rot-ausgabe`, `p4-main-ohne-test`; `p7-gruen-ausgabe`, `p4-anzahl-null` |
+| 7 Exit 1 nur bei rot | Exit immer 0; immer 1 | `p5-eins-darunter`, `p7-rot-ausgabe`; `p5-genau`, `p7-gruen-ausgabe` |
+| 1 Wert aus der Datei, nicht fest | Zahl 94 im Rezept; Zahl im `Dockerfile` statt Argument | `p1-wert-aus-datei`; `p1-schwelle-kommt-an`, `p1-zeile-fehlt-stufe` |
+| 1 Schwelle kommt in der Stufe an (Mutation des Vertrags) | `ARG COVERAGE_SCHWELLE=1` und kein `--build-arg` | `p1-schwelle-kommt-an`, `p1-wert-aus-datei` |
+| 1 zwei Zeilen ergeben `94 94`; eine fehlende einen leeren Wert | `sed ...;q`; Vorgabe 94 bei leerem Wert; Argument ohne Anführungszeichen | `p1-zeile-doppelt`; `p1-zeile-fehlt`, `p1-zeile-fehlt-stufe`; `p1-zeile-doppelt` |
+| 1 nur eine Zeile am Zeilenanfang (Einrückung des Listenpunkts zulässig) | `sed` ohne Anker `^`; ohne Einrückung; mit `-` zugelassen | `p1-zeile-mitten-im-text`; `p1-wert-94`, `p1-zeile-mitten-im-text`; `p1-zeile-mitten-im-text` |
+| 8 `gofmt` bricht die Stufe | `gofmt` entfernt | `p8-format` |
+| 8 `go vet` über den Integrationstests | `go vet ./...` ohne `-tags integration` | `p8-vet-integration` |
+| 8 ein roter Test bricht die Stufe | `go test ... || true` | `p8-test-rot` |
+| 8 der Prüfschritt bricht die Stufe | `|| true` hinter dem Prüfschritt; Prüfschritt entfernt | `p1-schwelle-kommt-an`, `p1-zeile-fehlt-stufe`, `p2-paket-ohne-test` |
+| 8 Allowlist nennt den Prüfschritt | Zeile aus `.dockerignore` entfernt | `p8-grundlauf` und alle Fälle der Stufe |
+| 6/8 `mode: set` | `-covermode=atomic` | `p8-grundlauf` |
+| 9 Rezept ohne `$(MAKE)` | `+` vor dem Rezept; `# $(MAKE)` im Rezept | `p9-flag-n`, `p9-flag-q`, `p9-flag-t`, `p9-makeflags-n`, `-q`, `-t` (alle sechs) |
+| 11 Anschluss an `GATE_CHECKS` und Ausnahmeliste | Zeile aus `coverage.mk`; Eintrag aus `GATE_SCHNELL_AUSNAHME` | `p11-gate-checks`; `p11-ausnahmeliste` |
+
+**Grüne Mutanten, eingeordnet.** (1) Vergleich auf den angezeigten (abgerundeten) Wert statt auf das Verhältnis: äquivalent, denn Anzeige unter der Schwelle ⇔ Verhältnis unter der Schwelle (Beweis: `floor(x) < n` für ganzes `n` ⇔ `x < n`); die Spezifikation sagt es in Punkt 5. (2) `close(sortiert)` entfernt: auf dem awk des Hosts (gawk) äquivalent, es schließt Pipes vor dem Leeren von stdout; auf dem awk des Images rot (`p7-gesamtzeile-zuletzt-in-der-stufe`). (3) `exit 0` statt `exit 1` in der Fehlerfunktion von awk: äquivalent für (d) und (e), weil `END` bei gesetztem Merker mit 1 endet; für (f) rot (`p6-f-nur-kopf`, `p6-f-nur-null-bloecke`). (4) `-covermode=set` ohne Angabe: `go test -coverprofile` wählt `set`, solange `-race` fehlt; nicht gefahren. Offen, ohne Fall (Kopf der Gegenprobe, Abschnitt OFFEN): Punkt 4 (d), Punkt 7 Ausgabe nur bei laufender Schicht (Cache), Punkt 8 netzlos und nichts in den Arbeitsbaum, Punkt 9 `-i`, Aufräumen der Kopien und Image-Tags.
+
+**Läufe.** `make test` grün (94,44 % bei Schwelle 94); `make coverage-gegenprobe` grün; `make gates-schnell-gegenprobe` grün (Liste `LANGSAM` um `coverage-gegenprobe` ergänzt); `make abdeckung`, danach `make abdeckung-check`, `make docs-check`, `make kopf-check` grün; `make gates` einmal am Endstand (siehe Bericht).
+
+**Größe** (`AGENTS.md` §3.14, Metrik §4): wird mit der Übergabe aus `git diff --numstat 9ee6387d..<letzter Commit>` genannt; die Meldeschwelle 750 war vor der Übergabe überschritten und ist dem Planner gemeldet.
+
+**Rückgaben an den Architect** (Randform · Frage): `SPEC-056` Punkt 1 sagt „Zeilenanfang“, die Zeile steht in der Datei mit drei Leerzeichen als Fortsetzung eines Listenpunkts; `make test` liest sie mit führenden Leerzeichen (`^ *`), sonst fände es keine Zeile. Frage: gilt das so, oder wird die Zeile in der Spezifikation anders gesetzt. Ferner: nennt Punkt 6 keine Reihenfolge mehrerer Gründe in einer Eingabe (der Prüfschritt meldet in der Folge (a), (b), (c), (g), (h), dann (d), (e), (f)); jeder Fall der Gegenprobe hat genau einen Grund.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

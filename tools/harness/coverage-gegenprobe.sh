@@ -22,7 +22,8 @@
 #
 # GEPRÜFT WIRD — Fälle je Punkt von SPEC-056:
 #   (1) Schwelle — p1-wert-aus-datei (die Zeile in der Datei der Kopie, nicht eine feste
-#       Zahl), p1-wert-94, p1-zeile-doppelt (`94 94`), p1-zeile-fehlt (leerer Wert);
+#       Zahl), p1-wert-94, p1-zeile-doppelt (`94 94`), p1-zeile-fehlt (leerer Wert),
+#       p1-zeile-mitten-im-text (eine Zeile, die nicht mit `**Schwelle:**` beginnt, zählt nicht);
 #       in der Stufe: p1-schwelle-kommt-an (100 in der Datei der Kopie wird rot),
 #       p1-zeile-fehlt-stufe
 #   (2) Messung — p2-paket-ohne-test (ein Paket ohne Test, nur von einem Test eines
@@ -38,7 +39,8 @@
 #       (p6-d-pos-*); (e) p6-e-*; (f) p6-f-*; (g) p6-g-*; (h) p6-h-*, dazu die Grenzen
 #       1 und 100 als grüne Fälle
 #   (7) Ausgabe — p7-gruen-ausgabe, p7-rot-ausgabe (Liste, Reihenfolge, Gesamtzeile
-#       zuletzt, Differenz nur bei rot)
+#       zuletzt, Differenz nur bei rot); in der Stufe (awk des Images):
+#       p7-gesamtzeile-zuletzt-in-der-stufe
 #   (8) Stufe — p8-grundlauf (die unveränderte Kopie ist grün), p8-format, p8-vet-integration,
 #       p8-test-rot (jeder bleibt bei erfüllter Schwelle rot)
 #   (9) Aufrufarten — p9-ohne-flag, p9-flag-n, p9-flag-q, p9-flag-t, p9-makeflags-n,
@@ -52,6 +54,8 @@
 #   - Punkt 7, Ausgabe nur bei laufender Schicht: BuildKit entscheidet über den Cache.
 #   - Punkt 8, netzlos und ohne Schreiben in den Arbeitsbaum: die Stufe läuft mit
 #     `--network=none`; kein Fall vergleicht den Arbeitsbaum vor und nach einem Lauf.
+#   - Aufräumen: dass die Image-Tags `pgr-cgp-<PID>-*` am Ende entfernt werden und die Kopien
+#     verschwinden, prüft kein Fall.
 #   - Punkt 9, `-i`: wie bei jedem Gate (SPEC-052 Punkt 21), kein eigener Fall.
 #   - Punkt 12: Grenzen.
 #   - Die Reihenfolge, in der mehrere Gründe einer Eingabe gemeldet werden, ist nicht
@@ -391,6 +395,9 @@ make_attrappe "$m" -- test; log_hat p1-wert-aus-datei 'COVERAGE_SCHWELLE=77'
 miniatur doppelt
 awk '{ print } /^ *\*\*Schwelle:\*\* `/ { print }' "$m/$SPEC" > "$m/spec.neu" && mv "$m/spec.neu" "$m/$SPEC"
 make_attrappe "$m" -- test; log_hat p1-zeile-doppelt 'COVERAGE_SCHWELLE=94 94'
+miniatur mitte
+printf 'Im Text steht **Schwelle:** `77` mitten in der Zeile.\n- **Schwelle:** `66` als Listenpunkt.\n' >> "$m/$SPEC"
+make_attrappe "$m" -- test; log_hat p1-zeile-mitten-im-text 'COVERAGE_SCHWELLE=94'
 miniatur fehlt
 sed -i '/^ *\*\*Schwelle:\*\* `/d' "$m/$SPEC"
 make_attrappe "$m" -- test; log_hat p1-zeile-fehlt 'COVERAGE_SCHWELLE='
@@ -550,6 +557,9 @@ fall
   || melde "Fall 'p8-grundlauf': erwartet Ausgang 0 der Stufe, Lauf endete mit $(cat "$arbeit/p8-grundlauf.exit")"
 
 docker_rot p1-schwelle-kommt-an 'Schwelle 100 %' 'unter der Schwelle'
+fall
+grep -E 'coverage: (github\.com|gesamt)' "$arbeit/p1-schwelle-kommt-an.log" | tail -n 1 | grep -F 'coverage: gesamt' > /dev/null \
+  || melde "Fall 'p7-gesamtzeile-zuletzt-in-der-stufe': die letzte Zeile des Prüfschritts im Lauf ist nicht die Gesamtzeile"
 docker_rot p1-zeile-fehlt-stufe 'coverage: Schwelle fehlt'
 docker_rot p2-paket-ohne-test 'coverage: github.com/pt9912/pgwire-recorder/internal/cgpviel 0.00 % (301 Anweisungen)' 'unter der Schwelle'
 docker_rot p8-format 'nicht gofmt-formatiert' 'internal/cgpformat/f.go'
