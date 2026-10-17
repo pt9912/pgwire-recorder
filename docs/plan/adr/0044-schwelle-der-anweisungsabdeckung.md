@@ -1,6 +1,6 @@
 # ADR-0044: Schwelle der Anweisungsabdeckung der Unit-Tests in der Stufe test
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-17
 
@@ -58,5 +58,6 @@ Wenn ein Paket mit eigener Logik dauerhaft hinter dem Gesamtwert liegt und das R
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-17 | Proposed: Empfehlung des Architect | — |
+| 2026-10-17 | Accepted: Entscheidung des Nutzers, Schwelle 94 % und Randformen wie in SPEC-056 | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

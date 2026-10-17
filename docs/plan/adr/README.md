@@ -47,7 +47,7 @@
 | [0041](0041-anmeldung-im-record-als-rueckruf-des-upstream-ports.md) | Anmeldung im Record-Modus als Rückruf des Upstream-Ports | Accepted | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
 | [0042](0042-versionsmatrix-der-integrationstests.md) | Versionsmatrix der Integrationstests als Teilmenge gegen die jüngsten Hauptversionen | Accepted | [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol) |
 | [0043](0043-binaries-und-container-gate.md) | Binaries je Zielplattform und Container-Image als ein Gate mit Smoke | Accepted | [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung) |
-| [0044](0044-schwelle-der-anweisungsabdeckung.md) | Schwelle der Anweisungsabdeckung der Unit-Tests in der Stufe test | Proposed | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
+| [0044](0044-schwelle-der-anweisungsabdeckung.md) | Schwelle der Anweisungsabdeckung der Unit-Tests in der Stufe test | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 
 ## Konventionen
 
