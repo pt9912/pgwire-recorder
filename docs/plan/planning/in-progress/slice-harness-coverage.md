@@ -21,10 +21,10 @@ Slice (WIP-Limit 1); Reihenfolge in §4 *Start*.
 Stufe `test` des Multistage-`Dockerfile`, netzlos),
 [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abgrenzung:
 Abdeckung je Anforderung und Pfad), [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Teil 2 der geteilten Messung,
-Nachweisart Gate). Die ADR des neuen Gates schreibt der Architect
-im Slice, vor dem Code; ihre Nummer vergibt der ADR-Index.
+Nachweisart Gate). Die ADR des Gates ist [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md)
+(Proposed, Empfehlung des Architect vom 2026-10-17, bis der Nutzer entschieden hat).
 
-**Berührte Spec-Stellen:** `harness/vertraege/` (neue Kennung des Gates mit Schwelle und Randformen, vergeben von diesem Slice; die nächste freie Nummer ist 056, für diesen Slice vom Architect am 2026-10-17 reserviert; `SPEC-053` bis `SPEC-055` und `SPEC-057` (`slice-harness-integration-volumes`) sind vergeben); `SPEC-052` (Punkt 4 und 13: Eintrag der Gegenprobe in die Ausnahmeliste der schnellen Kette und Beleg, dass sie `docs/user/` und `README.md` nicht liest; Architect, vor dem Code)
+**Berührte Spec-Stellen:** `SPEC-056` (Schwelle mit Randformen; vom Architect am 2026-10-17 angelegt, vor dem Code); `SPEC-052` (Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest, und Allowlist des Build-Kontexts mit dem Prüfschritt; Architect, am 2026-10-17 nachgezogen; Punkt 2 und 4 gelten für den Namen `…-gegenprobe` ohne Änderung)
 
 **Verantwortlich:** pt9912
 
@@ -44,10 +44,12 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ziel:** Die Stufe `test` des `Dockerfile` misst die Anweisungs-Abdeckung der
 Unit-Tests (`go test -coverprofile`) und bricht ab, wenn sie unter der Schwelle
 liegt; das Gate ist damit Teil von `make gates`. Die Schwelle ist eine Zahl aus der
-Messung des heutigen Stands und steht nach Entscheidung des Nutzers vom 2026-10-06 in der Datei der Kennung des Gates in `harness/vertraege/`, als
-Konstante mit Einheit und Begründung; die ADR des Gates hält Mechanismus, Messung mit
+Messung des heutigen Stands und steht nach Entscheidung des Nutzers vom 2026-10-06 in `SPEC-056` Punkt 1, als
+Konstante mit Einheit und Begründung (Empfehlung des Architect: 94 Prozent der Anweisungen, gemessen 94,45 %
+bei Quellstand `69aaf3f7`); [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md) hält Mechanismus, Messung mit
 Quellstand und die Regel, nach der die Zahl folgt, und setzt `Schärft:` auf die
-Kennung — nicht in diesem Plan.
+Kennung — nicht in diesem Plan. Gemessen und gezählt wird nach `SPEC-056` Punkt 2 bis 5: nur die
+Unit-Tests der Stufe `test`, ein Gesamtwert nach Anweisungen, alle Pakete mit Anweisungen, ein Stand genau an der Schwelle ist grün.
 Die Gegenprobe zeigt, dass das Gate rot werden kann (`AGENTS.md` §3.10), und trägt die
 Abdeckungs-Deklaration von Teil 2 von LH-QA-07. Eine
 spätere Senkung der Schwelle braucht eine neue ADR (`AGENTS.md` §3.6).
@@ -67,8 +69,10 @@ Punkt 4, sonst ist `gates-schnell-gegenprobe` rot), und `SPEC-052` Punkt 13 trä
 die Gegenprobe `docs/user/` und `README.md` des Arbeitsbaums nicht liest (sie baut aus einer
 Kopie unter eigenem Temp-Pfad, §6; ein `docker build` sieht nur den Build-Kontext der Allowlist
 `.dockerignore`). Die Stufe `test` selbst ist kein Gate der Ausnahmeliste und bleibt in der
-schnellen Kette; ob die Schwelle im Build-Kontext liegen darf, ist eine offene Randform (§6
-*Werkzeug*).
+schnellen Kette (`SPEC-056` Punkt 8): Die Schwelle steht in `SPEC-056` und liegt nicht im Build-Kontext, das
+Ziel `make test` liest sie auf dem Host; in die Allowlist von `.dockerignore` kommt nur der Prüfschritt
+`tools/harness/coverage.sh` (`SPEC-052` Punkt 13 nennt ihn). Die Zeile `GATE_SCHNELL_AUSNAHME` nennt
+`integration-volumes-gegenprobe` schon (Stand `69aaf3f7`); es bleibt ein Eintrag zu ergänzen.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -84,6 +88,13 @@ schnellen Kette; ob die Schwelle im Build-Kontext liegen darf, ist eine offene R
 - Neue Tests, um eine Zielzahl über dem gemessenen Stand zu erreichen — die Schwelle
   folgt der Messung; eine höhere Zielzahl ist eigene Arbeit mit eigenem Slice,
   aus der Messung heraus, nicht vorab.
+- Eine Schwelle je Paket und neue Tests für `bootstrap/tlsproxy` (49,1 %), `cmd/pgwire-recorder`,
+  `bootstrap/offsetlese` und `testpki` (0 %) — Bestand bleibt bewusst stehen (Klasse 2): Eine
+  Schwelle je Paket verlangte diese Tests vor dem Gate (Rückführung in §4); die Pakete zählen mit
+  ihrem Wert im Gesamtwert und stehen in der Ausgabe (`SPEC-056` Punkt 3, 4 und 7).
+- Die Integrationstests in der Messung (`GOCOVERDIR`) und `-coverpkg` — ein anderer Vorgang (Klasse 3):
+  `LH-QA-07` verlangt die Unit-Tests, und ein Weg aus dem Container der Integrationstests ist eine eigene
+  Entscheidung (`SPEC-056` Punkt 2, [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md) Option C und D).
 - Ein Lint-Gate — übernimmt `slice-harness-lint`; die Umstellung der Tests auf
   Black-Box-Pakete übernehmen die vier Umstellungs-Slices aus §4.
 - Eine Schwelle, die sich selbst anhebt (Ratsche) — ein anderer Vertrag mit
@@ -103,16 +114,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Gate mit Schwelle: Die Stufe `test` erzeugt das Profil, prüft es gegen die
-      Schwelle aus der Kennung des Gates in `harness/vertraege/`
-      (nach den Randformen aus §6) und endet rot
+- [ ] Gate mit Schwelle: Die Stufe `test` erzeugt das Profil, prüft es mit
+      `tools/harness/coverage.sh` gegen die Schwelle aus `SPEC-056` Punkt 1
+      (nach den Randformen aus §6; `make test` liest sie und gibt sie als Build-Argument ohne Vorgabewert) und endet rot
       darunter; `gofmt`, `go vet` und die Unit-Tests der Stufe bleiben unverändert. Die
       Messung des Stands, aus der die Schwelle folgt, steht mit Quellstand in der ADR;
       der Bestand ist grün.
-- [ ] Gegenprobe als eigenes Ziel an `GATE_CHECKS`: ein Stand unter der Schwelle wird
-      abgelehnt, einer genau an der Schwelle angenommen; dazu je entschiedener Randform
-      aus §6, die eine Mutation fangen kann, ein Fall (Paket ohne Tests, ausgenommener
-      Pfad, Rundung). Je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10). Die
+- [ ] Gegenprobe `coverage-gegenprobe` als eigenes Ziel an `GATE_CHECKS` und in `GATE_SCHNELL_AUSNAHME`: ein Stand unter der Schwelle wird
+      abgelehnt, einer genau an der Schwelle angenommen; dazu je Punkt und je Element der Aufzählungen von
+      `SPEC-056` Punkt 4, 6 und 10 ein Fall mit einer Mutation, die nur ihn bricht (Paket ohne Tests, Profil,
+      Schwelle, Rundung, Ausgabe, Stufe). Je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10). Die
       Gegenprobe ist der Nachweis von Teil 2 (Anweisungsabdeckung) von LH-QA-07 und
       trägt nach [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) dessen Abdeckungs-Deklaration (Nachweisart Gate, Teil 2
       von 3); mit Teil 1 und 3 aus `slice-harness-abdeckung-gate` ist LH-QA-07 in den
@@ -120,7 +131,7 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       führen sie, und das Abnahmeszenario 17 ist nachweisbar (Tabellen mit
       `make abdeckung` neu geschrieben, `make abdeckung-check` grün).
 - [ ] Doku: `harness/README.md` §Sensors führt die Schwelle beim Vertrag von
-      `make test` und die Gegenprobe mit Bindung an die ADR; die Zeile „Nicht
+      `make test` (mit `SPEC-056`) und die Gegenprobe mit Bindung an [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md); die Zeile „Nicht
       behauptet“ nennt keine Testabdeckung mehr und grenzt gegen die Abdeckung je
       Anforderung ab.
 - [ ] `make gates` grün.
@@ -141,14 +152,15 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `docs/plan/adr/<NNNN>-schwelle-testabdeckung.md`, `docs/plan/adr/README.md` | neu / update | ADR des Gates (Architect, vor dem Code): Messung mit Quellstand, Regel, nach der die Schwelle folgt, `Schärft:` auf die Kennung des Gates; Index-Zeile |
-| `harness/vertraege/` (neue Datei der Kennung 056) | neu | Kennung des Gates mit der Schwelle als Konstante mit Einheit und Begründung und den Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
-| `Dockerfile` | update | Stufe `test`: Profil erzeugen und gegen die Schwelle prüfen, netzlos; die bestehenden Prüfungen der Stufe bleiben |
-| Prüfung der Schwelle (Ort nach §6 *Werkzeug*) | neu | wertet das Profil aus, nennt je Paket und gesamt den Wert und die Schwelle |
-| `harness/mk/build.mk` oder eigenes Fragment unter `harness/mk/` | update / neu | Schwelle als eine benannte Stelle (Build-Argument oder Konfiguration), Ziel der Gegenprobe an `GATE_CHECKS` |
-| `tools/harness/<gegenprobe>.sh` | neu | Mutanten in einer Kopie unter eigenem Temp-Pfad: Code ohne Test hinzugefügt (rot), Stand genau an der Schwelle (grün), je Randform ein Fall; Name nach dem Muster `*-gegenprobe.sh`, im Kopf die Abdeckungs-Deklaration von LH-QA-07, Teil 2 von 3 |
-| `harness/mk/gates-schnell.mk` | update | Ziel der Gegenprobe in `GATE_SCHNELL_AUSNAHME` (`SPEC-052` Punkt 4), im Commit des Ziels; die zweite Änderung derselben Zeile mit `slice-harness-integration-volumes` (Konflikt beim Zusammenführen) |
-| `harness/vertraege/SPEC-052-gate-kette.md` | update (Architect) | Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest; vor dem ersten Code-Commit |
+| `docs/plan/adr/0044-schwelle-der-anweisungsabdeckung.md`, `docs/plan/adr/README.md` | neu / update (Architect, erledigt) | ADR des Gates: Messung mit Quellstand, Regel der Zahl, `Schärft:` auf `SPEC-056`; Index-Zeilen; Status wird mit der Entscheidung des Nutzers `Accepted` |
+| `harness/vertraege/SPEC-056-testabdeckung-schwelle.md`, `harness/vertraege/README.md` | neu / update (Architect, erledigt) | Schwelle als Konstante mit Einheit und Begründung und die Randformen aus §6 (Entscheidung des Nutzers vom 2026-10-06) |
+| `Dockerfile` | update | Stufe `test`: `ARG` ohne Vorgabewert; `gofmt`, `go vet` und `go test -covermode=set -coverprofile` (ohne `-coverpkg`) bleiben eine Schicht, der Prüfschritt ist die nächste (die Schicht der Prüfung läuft bei geänderter Schwelle neu, die Tests nicht); netzlos |
+| `.dockerignore` | update | Allowlist: `!tools/harness/coverage.sh` |
+| `tools/harness/coverage.sh` | neu | Prüfschritt nach `SPEC-056` Punkt 3 bis 7 (POSIX-Shell und `awk` des Images der Stufe, keine bash) |
+| `harness/mk/build.mk`, `harness/mk/coverage.mk` | update / neu | `test` liest die Schwelle aus `SPEC-056` (`$(shell)`, ein Einzeiler als Rezept, Punkt 9); `coverage.mk` trägt das Ziel der Gegenprobe an `GATE_CHECKS` |
+| `tools/harness/coverage-gegenprobe.sh` | neu | Fälle und Mutationen nach `SPEC-056` Punkt 10 (Profile ohne Docker; Kopien unter eigenem Temp-Pfad mit Docker); im Kopf die Abdeckungs-Deklaration von LH-QA-07, Teil 2 von 3 |
+| `harness/mk/gates-schnell.mk` | update | `coverage-gegenprobe` in `GATE_SCHNELL_AUSNAHME` (`SPEC-052` Punkt 4), im Commit des Ziels |
+| `harness/vertraege/SPEC-052-gate-kette.md` | update (Architect, erledigt) | Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest; Allowlist mit dem Prüfschritt |
 | `docs/user/abdeckung-*.md` | update | mit `make abdeckung` neu geschrieben: LH-QA-07 vollständig |
 | `harness/README.md` | update | §Sensors: Vertrag von `make test` um die Schwelle ergänzt, Gegenprobe als Zeile; „Nicht behauptet“ angepasst |
 
@@ -190,10 +202,11 @@ Schwelle (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- Dockerfile .dockerignore harness/mk
 tools/harness tools/test harness/vertraege harness/README.md docs/user docs/plan/adr`, Tests
 eingeschlossen. Basis: der Commit des Anspruchs (`next` → `in-progress`), `9ee6387d`, beim Anspruch
-einzutragen. Schätzung (Arbeitswert des Planners aus den Bestandsmaßen, vom Architect vor dem Code
-zu bestätigen; die Gegenprobe zählt mit dem Doppelten des Produktcodes): 450 bis 750, Mitte 600.
+einzutragen. Schätzung des Architect vom 2026-10-17 (ersetzt den Arbeitswert 450 bis 750; Produktcode rund 130 Zeilen:
+Prüfschritt 70, `Dockerfile`, Fragmente, `.dockerignore` 40, Handbuch der Doku 20; Gegenprobe mit dem Doppelten, rund 300; `SPEC-056` rund 110 Zeilen,
+[ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md) rund 60 und `SPEC-052`, Indizes rund 20 aus den Commits des Architect, die in die Metrik fallen): 600 bis 800, Mitte 700.
 **Meldeschwelle 750:** Wer im Lauf darüber liegt oder liegen wird, meldet es dem Planner, bevor er
-weiterbaut. **Marke 900:** darüber gilt die Rückführung unten, ohne Ermessen.
+weiterbaut; die Schätzung reicht bis 800, der Planner kennt das. **Marke 900:** darüber gilt die Rückführung unten, ohne Ermessen.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -226,61 +239,38 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **einen** Ausgang, und kein Slice geht nach `done/`, während eines ohne Ausgang
 dasteht.
 
-**Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **offen**. Entschieden werden
-sie vor dem ersten Code-Commit vom Architect und festgehalten in `harness/vertraege/` (Technik-Stratum, Ort seit `slice-harness-vertraege-umzug-gate-kette`; ein bestehendes Werkzeug schreibt seine Kennung fort, ein neues bekommt die nächste freie Kennung, heute 056, vergeben vom Slice, der es liefert); die ADR des
-Gates trägt Entscheidung und Gründe und verweist mit `Schärft:` auf die Stelle. Eine
-Entscheidung des Nutzers wird dort festgehalten. Was dort nicht steht, entscheidet der
+**Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **entschieden** vom Architect am 2026-10-17,
+vor dem ersten Code-Commit, in `SPEC-056` (Punkt in Klammern); [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md)
+trägt Entscheidung und Gründe. Die Schwelle selbst ist eine Empfehlung, bis der Nutzer die ADR annimmt. Was dort nicht steht, entscheidet der
 Implementer nicht, er gibt es zurück.
 
-- **Die Zahl** — erst nach der Messung des heutigen Stands; die Messung steht mit
-  Quellstand in der ADR, die Zahl in der Kennung des Gates in der Spezifikation
-  (Entscheidung des Nutzers vom 2026-10-06). Offen: Schwelle gleich dem gemessenen
-  Wert, abgerundet auf welche Stelle, oder
-  mit Abstand darunter (Spielraum für Refactorings, aber weniger Biss).
-- **Gesamt oder je Paket** — eine Schwelle über alle Pakete (ein gut getestetes Paket
-  verdeckt ein schwaches), je Paket (strenger; Pakete wie `bootstrap` oder `cli` mit
-  wenig Logik können die Zahl der Kernpakete nicht halten) oder beides mit eigenen
-  Zahlen. Gewichtung gesamt: nach Anweisungen (wie `go tool cover -func`) oder Mittel
-  der Pakete.
-- **Integrationstests über `GOCOVERDIR`** — `test/integration` startet das Binary
-  als eigenen Prozess gegen PostgreSQL (`make test-integration`); mitgezählt würden
-  sie nur mit einem `-cover`-Binary, `GOCOVERDIR` im Container und dem Zusammenführen
-  der Profile über zwei Läufe hinweg. Offen: zählen sie mit, oder misst das Gate nur
-  die Unit-Tests der Stufe `test` (und sagt das).
-- **`-coverpkg`** — ohne die Option zählt ein Paket nur die eigenen Tests; mit
-  `-coverpkg=./...` zählen auch Tests anderer Pakete (die Services-Tests decken
-  Teile von `model`). Offen, welche Lesart die Zahl hat.
-- **`cmd/` und Pakete ohne Anweisungen** — `cmd/pgwire-recorder` ist `main` ohne
-  Test; die Port-Pakete und die `doc.go`-Pakete tragen keine Anweisung. Offen:
-  ausgenommen (mit `Why:` an einer Stelle) oder mitgezählt; ob ein Paket ohne
-  Anweisung 0 % oder „keine Aussage“ ist.
-- **Paket ohne Tests** — neueres Go führt ein Paket mit Code, aber ohne Testdatei mit
-  0 % im Profil. Offen: zählt es (dann zieht jedes neue Paket ohne Test die Zahl) oder
-  ist es ein eigener Befund (Paket ohne Tests, rot) oder erlaubt.
-- **Generierter Code** — der Bestand hat keinen (`Code generated` kommt nicht vor).
-  Offen: Regel für später (Ausnahme nach Kopfzeile) oder ausdrücklich keine, bis es
-  ihn gibt.
-- **Vergleich und Rundung** — `≥ Schwelle` oder `>`, auf wie viele Nachkommastellen;
-  der Stand genau an der Schwelle ist grün oder rot.
-- **Werkzeug** — Auswertung mit Bordmitteln (`go tool cover -func` und ein kurzer
-  Prüfschritt in der Stufe) oder ein Fremdwerkzeug (neues Modul oder Image, Pin,
-  Netz in `deps`). Offen, ebenso, wo die Schwelle steht (Build-Argument aus dem
-  Makefile, Konfigurationsdatei im Build-Kontext — dann `.dockerignore`).
-- **`covermode`** — `set` (Default) oder `atomic`/`count`; mit `-race` wäre `atomic`
-  Pflicht. Offen, ob die Zahl nur „mindestens einmal ausgeführt“ meint.
-- **Ausgabe** — grün: eine Zeile gesamt mit Wert und Schwelle, je Paket der Wert;
-  rot: dieselbe Ausgabe und die Differenz, Exit ≠ 0, die Stufe bricht ab. Offen: ob
-  die Paket-Liste auch bei grün erscheint, Sortierung, und ob die Ausgabe ein Paket
-  unter einer Paket-Schwelle beim Namen nennt.
-- **Ausnahmeliste und Beleg der schnellen Kette** (Sendung aus §1; `SPEC-052` Punkt 4 und 13) —
-  offen: Ort der Schwelle (Build-Kontext oder Build-Argument) und damit, ob die Stufe `test` in
-  der schnellen Kette bleibt; Eintrag der Gegenprobe in `GATE_SCHNELL_AUSNAHME`; Wortlaut des
-  Belegs in Punkt 13.
-- **Benennung** — „Abdeckung“ ist in diesem Repo die Abdeckung je Anforderung
-  ([ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md), `make abdeckung`,
-  `make abdeckung-check`). Offen: Name des Gegenproben-Ziels und Wortlaut in der
-  Sensors-Zeile, die beides nicht verwechselbar machen (etwa
-  „Testabdeckung (Anweisungen)“ und ein Ziel `coverage-gegenprobe`).
+- **Die Zahl** (Punkt 1) — gemessen 94,45 % (4201 von 4448 Anweisungen, Quellstand `69aaf3f7`), Schwelle auf die ganze Zahl
+  abgerundet: 94. Abstand 19 Anweisungen. Eine Anhebung folgt derselben Regel.
+- **Gesamt oder je Paket** (Punkt 3, 7) — ein Gesamtwert nach Anweisungen; keine Schwelle je Paket (sie verlangte neue Tests,
+  §4); die Ausgabe nennt jedes Paket.
+- **Integrationstests über `GOCOVERDIR`** (Punkt 2) — zählen nicht; nur die Unit-Tests der Stufe `test`.
+- **`-coverpkg`** (Punkt 2, 10) — nicht gesetzt; ein Paket zählt nur seine eigenen Tests; Fall mit Mutation `-coverpkg=./...`.
+- **`cmd/` und Pakete ohne Anweisungen** (Punkt 4) — `cmd/` zählt mit 0 %; ein Paket ohne Anweisung hat keinen Block und
+  steht nicht in der Ausgabe; Blöcke mit Anzahl 0 zählen nichts.
+- **Paket ohne Tests** (Punkt 4) — zählt mit 0 % im Gesamtwert, kein eigener Befund, auch ein Hilfspaket für Tests.
+- **Generierter Code** (Punkt 4) — keine Regel; der Prüfschritt liest nur das Profil.
+- **Vergleich und Rundung** (Punkt 5) — `>=` in ganzen Zahlen (`ausgeführt * 100 >= Schwelle * gesamt`), genau an der
+  Schwelle grün, keine Rundung vor dem Vergleich, Anzeige abgerundet auf zwei Stellen.
+- **Werkzeug und Ort der Schwelle** (Punkt 1, 8) — Bordmittel (`go test -coverprofile`, ein POSIX-Skript mit `awk`); die Schwelle steht
+  in `SPEC-056`, `make test` liest sie auf dem Host und reicht sie als Build-Argument ohne Vorgabewert; sie liegt nicht im
+  Build-Kontext, nur `tools/harness/coverage.sh` kommt in die Allowlist. Die Stufe `test` bleibt in der schnellen Kette.
+- **`covermode`** (Punkt 2, 6) — `set`; ein anderer Modus im Profil ist abgelehnt.
+- **Ausgabe** (Punkt 7) — je Paket eine Zeile bei grün und rot (aufsteigend nach Importpfad), zuletzt der Gesamtwert mit
+  Schwelle, bei rot mit Differenz; die Ausgabe erscheint nur, wenn die Schicht läuft.
+- **Eingabe des Prüfschritts** (Punkt 6) — Profil fehlt, leer, Kopfzeile, Zeilenform, doppelter Block, keine Anweisung, Schwelle
+  fehlt oder ungültig: je Form rot.
+- **Ausnahmeliste und Beleg der schnellen Kette** (Punkt 11, `SPEC-052` Punkt 13) — `coverage-gegenprobe` steht in der
+  Ausnahmeliste; der Beleg steht in Punkt 13; die Allowlist nennt den Prüfschritt.
+- **Aufrufarten des Treibers** (Punkt 9) — Rezept von `test` ein Einzeiler ohne `$(MAKE)`; `-n`, `-q`, `-t` und `MAKEFLAGS`
+  je ein Fall, `-i` wie bei jedem Gate.
+- **Benennung** — Ziel `coverage-gegenprobe`, Skripte `tools/harness/coverage.sh` und `coverage-gegenprobe.sh`, Fragment
+  `harness/mk/coverage.mk`; „Coverage“ nennt die Anweisungsabdeckung, „Abdeckung“ bleibt die je Anforderung. Die Zeile in
+  `harness/README.md` §Sensors sagt „Anweisungsabdeckung der Unit-Tests“.
 
 **Risiken:**
 
@@ -375,6 +365,11 @@ Liefer-Punkte (§2: Gate mit Schwelle, Gegenprobe, Doku, unverändert) und zwei 
 Harness (Vertragsdatei, `Dockerfile`, `harness/mk/`, `tools/`, `harness/README.md`) und
 Nutzer-Doku (`docs/user/abdeckung-*.md`); die ADR ist Planung. Die Vertragsdatei lag vorher
 in der Spezifikation; die Sendung erhöht die Zahl der Schichten nicht.
+
+**Nachgezählt** nach der Entscheidung der Randformen (Stand `9f56eeec`): Liefer-Punkte 3 (Gate mit Schwelle, Gegenprobe, Doku),
+Schichten 2 (Harness mit `Dockerfile`, `.dockerignore`, `harness/mk/`, `tools/harness/`; Nutzer-Doku `docs/user/abdeckung-*.md`);
+`Dockerfile`, Prüfschritt und Fragmente liegen in der Harness-Schicht, `SPEC-056`, [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md) und die Pläne sind Planung. Die Größe
+steht in §4 (600 bis 800); die Meldeschwelle 750 liegt in der Schätzung.
 
 **Nachgezählt** mit der Sendung an `gates-schnell.mk` und `SPEC-052` (§1; Stand `91a1bd02`,
 `AGENTS.md` §3.13): Liefer-Punkte 3 (die Sendung wächst in Punkt 2, Gegenprobe, hinein), Schichten
