@@ -207,7 +207,7 @@ Hosts für `devcontainer.sandbox.egress.allow` (über die Standardliste hinaus):
 Gerüst-Umfang (Summe aus Einfügungen und Löschungen, `git diff --no-index --numstat`, alt gegen neu): `u-boot.yaml` 18, `compose.yaml` 35, `.devcontainer/Dockerfile` 45, `.devcontainer/start.sh` 10 (entfällt), zusammen 108; dazu von `u-boot` erzeugt
 `docker-init.sh` 46, `egress-init.sh` 61 und `devcontainer.json` 27 Zeilen und von Hand `mk-override.sh` 15 Zeilen.
 
-Größe nach Metrik §4 (`git diff --numstat 05fd1403..HEAD -- docs/developer`): 297 Einfügungen und 301 Löschungen, Summe 598; Meldeschwelle 350 und Marke 450 sind überschritten (Rückführung nach §4, Entscheidung beim Planner).
+Größe nach Metrik §4 (`git diff --numstat 05fd1403..HEAD -- docs/developer`): 299 Einfügungen und 301 Löschungen, Summe 600 (nach der Nacharbeit zu Review und Verifikation; vorher 598); Meldeschwelle 350 und Marke 450 sind überschritten (Rückführung nach §4, Entscheidung beim Planner).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
