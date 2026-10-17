@@ -372,7 +372,7 @@ Mutant per Textersatz genau einer Stelle in einer Kopie von `integration-aufraeu
 | P1 Mounts vom Typ `volume` (Bind-Mounts zählen nicht) | `.Type`-Prüfung entfällt (`p1-ohne-typ`) | keiner: äquivalent, ein Mount ohne Volume trägt keinen Namen, die Namensliste bleibt gleich |
 | P2 `rm -fv` für `$tests` und `$pg` | `rm -f` (`p2-ohne-v`) | `p2-grundfall`, `p2-ohne-v` |
 | P2 … je Element | `$tests` entfällt (`p2-ohne-tests`), `$pg` entfällt (`p2-ohne-pg`) | je `p2-grundfall`, `p2-ohne-v` |
-| P3 Namen vor dem Entfernen, auch Zustand `created` | erst nach dem Entfernen lesen (`p3-nach-entfernen`) | `p3-angelegt`, `p4-rest-rot` |
+| P3 Namen vor dem Entfernen, auch Zustand `created` | erst nach dem Entfernen lesen (`p3-nach-entfernen`) | `p3-angelegt`, `p4-rest-rot`, `p5-sigint`, `p5-sigterm` |
 | P3 kein Container: leere Liste ohne Fehler und Meldung | fehlender Container wird Fehler (`p3-leer-fehler`) | `p3-kein-container`, `p5-sigint`, `p5-sigterm` |
 | P4 Rest nur per Namen entfernt | entfernt jedes Volume ohne Container, beschränkt auf die Namen der Probe (`p4-alles-entfernen`) | `p4-fremd` |
 | P4 Rest wird entfernt | Entfernen entfällt (`p4-nicht-entfernen`) | `p3-angelegt` |
@@ -385,6 +385,7 @@ Mutant per Textersatz genau einer Stelle in einer Kopie von `integration-aufraeu
 | P5 `SIGTERM` | Falle für `TERM` beendet mit `kill -KILL` (`p5-term`) | `p5-sigterm` |
 | P5 `SIGINT` | Falle für `INT` beendet mit `kill -KILL` (`p5-int`) | `p5-sigint` |
 | P5 `SIGTERM` | Falle für `TERM` entfällt (`p5-term-entfaellt`, Mutant aus der Tabelle von `SPEC-057` Punkt 7) | keiner: äquivalent. bash führt die Falle `EXIT` auch ohne Falle für `TERM` aus und endet mit 143 (gemessen mit bash 5.2.21, 8 Läufe von `p5-sigterm` und ein Handversuch); `SPEC-057` Punkt 7 ist nachgezogen |
+| P5 `SIGINT` | Falle für `INT` entfällt (`p5-int-entfaellt`) | keiner: äquivalent im Fall, der Runner steht im `wait` und endet mit Aufräumen und 130 |
 
 Der Grundfall hat „—“ als Mutation und wird von jedem Mutanten rot, der das Entfernen trifft (`p2-ohne-v` und `p2-grundfall` beide);
 das ist der Wortlaut „nur sie“ nicht, aber die Zusage („nach dem Aufräumen existiert kein gelesenes Volume“) ist die des Grundfalls.
@@ -437,6 +438,10 @@ färbt über alle Fälle `p3-angelegt`, `p4-rest-rot`, `p5-sigint` und `p5-sigte
 läuft im committeten Stand mit `nur` = `p3 p4`. (c) **Mutant `p5-int-entfaellt` (Zeile `trap 'trap "" INT; exit 130' INT # S-INT` durch `:`) färbt keinen Fall:**
 `p5-sigint` bleibt grün, weil der Runner im Fall in seinem `wait` steht (`IVG_NACH_RUN=3`) und bash dort ohne Falle ebenfalls aufräumt (Exit 130). Die Zeile ist nicht eingebaut;
 Satz und Zeile in `SPEC-057` Punkt 5 und 7 entfallen oder der Architect nennt einen Fall, der die Falle fängt (der Verlust des Signals trat im Vordergrundkommando auf, `docker exec`).
+
+**Nacharbeit nach `6fb43cd4`:** `p3-nach-entfernen` läuft über alle Fälle und verlangt genau `p3-angelegt`, `p4-rest-rot`, `p5-sigint`, `p5-sigterm` (gesehen). `p5-int-entfaellt`
+(`trap 'trap "" INT; exit 130' INT # S-INT` → `:`) steht wie `p5-term-entfaellt` ohne roten Fall in der Gegenprobe; Lauf grün, das Verhalten stimmt mit `SPEC-057` Punkt 7 überein.
+Die Absätze (b) und (c) der Nacharbeit nach `6978e8f6` sind damit entschieden. Die Tabelle oben führt die Mutation `p5-int-entfaellt` als äquivalent, kein Fall rot.
 
 **Offene Punkte für den Architect/Planner** (keine Entscheidung des Implementers):
 - `SPEC-057` Punkt 7: Der Mutant `p5-sigterm` „Falle für `TERM` entfällt“ ist äquivalent (oben); der Vertrag ist auf `kill -KILL` und den Hinweis nachgezogen. Der Architect

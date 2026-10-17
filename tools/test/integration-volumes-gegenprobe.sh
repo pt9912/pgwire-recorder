@@ -279,7 +279,7 @@ mut p1-mit-daten "$F_" 'if [ "$name" != "$daten" ]; then' 'if true; then' "p2-gr
 # Die Art des Mounts ändert die Namen nicht: Ein Mount ohne Volume trägt keinen Namen (Mutant äquivalent).
 mut p1-ohne-typ "$F_" '{{if eq .Type "volume"}}{{.Name}} {{end}}' '{{.Name}} ' "p2-grundfall p3-angelegt"
 # Punkt 3: die Namen werden vor dem Entfernen gelesen, in jedem Zustand.
-mut p3-nach-entfernen "$F_" $'  namen="$(integration_volumen_lesen)" || return 1\n  integration_entfernen\n' $'  integration_entfernen\n  namen="$(integration_volumen_lesen)" || return 1\n' "p3 p4" p3-angelegt p4-rest-rot
+mut p3-nach-entfernen "$F_" $'  namen="$(integration_volumen_lesen)" || return 1\n  integration_entfernen\n' $'  integration_entfernen\n  namen="$(integration_volumen_lesen)" || return 1\n' "" p3-angelegt p4-rest-rot p5-sigint p5-sigterm
 mut p3-leer-fehler "$F_" '2> /dev/null)" || continue' '2> /dev/null)" || return 1' "" p3-kein-container p5-sigint p5-sigterm
 # Punkt 4: Rest, Exit-Code, Vorrang, nur eigene Namen.
 mut p4-alles-entfernen "$F_" 'for n in $rest; do "$docker" volume rm "$n" > /dev/null 2>&1 || true; done' '"$docker" volume ls -q -f dangling=true | grep -Fx -f "$IVG_SICHER" | xargs -r "$docker" volume rm > /dev/null 2>&1 || true' "p4-fremd" p4-fremd
@@ -303,6 +303,9 @@ mut p5-term "$R_" $'trap \'trap "" TERM; exit 143\' TERM # S-TERM' $'trap \'kill
 # äquivalent, kein Fall ist rot (gemessen mit bash 5.2.21; SPEC-057 Punkt 7 nennt ihn als roten Mutanten).
 mut p5-term-entfaellt "$R_" $'trap \'trap "" TERM; exit 143\' TERM # S-TERM' ':' "p5"
 mut p5-int "$R_" $'trap \'trap "" INT; exit 130\' INT # S-INT' $'trap \'kill -KILL $$\' INT' "p5" p5-sigint
+# Ohne die Falle für INT endet der Runner im `wait` trotzdem mit Aufräumen und Exit 130: Der Mutant ist
+# im Fall äquivalent, kein Fall ist rot (SPEC-057 Punkt 7).
+mut p5-int-entfaellt "$R_" $'trap \'trap "" INT; exit 130\' INT # S-INT' ':' "p5"
 
 
 if [ "$fehler" -ne 0 ]; then exit 1; fi
