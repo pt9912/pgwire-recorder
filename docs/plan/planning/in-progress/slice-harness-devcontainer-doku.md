@@ -66,7 +66,7 @@ Inhalt des Dokuments, je Punkt nur mit Probe am laufenden Container (§3.11):
 - [x] `docs/developer/devcontainer.md` liegt vor und deckt die Punkte aus §1 ab; jeder Schritt ist
       am laufenden Container nachgeführt oder als „nicht geprüft“ markiert, die Dateiinhalte
       stimmen mit denen des Versuchs überein.
-- [ ] `make kopf-check` und `make docs-check` grün; `make gates` grün (Stop-Hook, §6).
+- [x] `make kopf-check` und `make docs-check` grün; `make gates` grün (Stop-Hook, §6).
 - [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`).
 - [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
 - [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder in §7 „keine Beobachtung“ notiert.
@@ -344,7 +344,7 @@ lesbar; `du -sh` Klon 47 MB, ohne `.git` 18 MB; `docker system df -v` Volume `pg
 | R2 F-7 LOW Voraussetzungen | behoben: §2 (Version 0.9.0, `ssh-keygen`/`scp`, Schreibrecht, Netz, Schlüsselpaar vorab; fehlendes Paar nicht geprüft) |
 | R2 F-8 INFO fremde Kennungen | behoben: ein Satz in §3.1 des Dokuments, Blöcke unverändert; Plan §3 nachgezogen (V-4) |
 | R2 F-9 INFO Lieferkette | behoben: §3.3 nennt Tag ohne Digest, `curl … \| bash -` als `root`, Herkunft nicht geprüft |
-| V-1 MEDIUM Beleg der Gates | offen: ein voller `make gates` läuft (PID 2209712 beim Start), deshalb weder `make docs-check` noch `make kopf-check` nach dem Dokument-Commit `6ca83617` gefahren; der Beleg für den Endstand steht aus (der volle Lauf, oder ein Lauf nach seinem Ende) |
+| V-1 MEDIUM Beleg der Gates | behoben: Beleg im Absatz „Läufe“ unten (Endstand `22f34d82`) |
 | V-2 MEDIUM Form der Ausgänge | an den Planner: Hinweis in §6; Ausgang wird dort nicht umgeschrieben |
 | V-3 LOW Meldeschwelle | **Meldung:** Größe 441 (Einfügungen 441, Löschungen 0; `git diff --numstat bda6efef..6ca83617 -- docs/developer`), über der Meldeschwelle 400, unter der Marke 500; vor der Nacharbeit 407 (`d725a22c`), 385 (`531f357e`). Folge benennt der Planner bei der Closure |
 | V-4 INFO Kennungen | behoben: Plan §3 |
@@ -360,8 +360,13 @@ tragen im Dokument „gefolgert“ und stehen in §13.
 Zugangsdaten im Container (zum Beispiel Abmelden vor `u-boot down`, ein Netz-Ausgang, der nur bestimmte Ziele
 erlaubt, Verzicht auf die Claude-Anmeldung im Container)? Das Dokument erfindet keine; es nennt nur die Lage.
 
-**Läufe.** `make docs-check` und `make kopf-check` nach `6ca83617` **nicht gefahren**: `pgrep -fa "^make gates"` zeigte
-PID 2209712. Der Hook verlangt nach dem Dokument-Commit einen vollen Lauf auf diesem Stand (Plan §6).
+**Läufe (Beleg V-1, 2026-10-17).** Endstand `22f34d82`, Arbeitsbaum sauber: `make docs-check` (974 Dateien, 0 Befunde) und
+`make kopf-check` grün; voller `make gates` grün, Ende `EXIT 0` (Log `gates4.log`, 08:47). Zwei volle Läufe davor endeten
+rot an Gegenproben, die keine Änderung dieses Slice berühren (nur `docs/developer/` und der Plan): `lint-gegenprobe`
+(07:49, mehrere Fälle der Punkte 8 und 9 rot, Ausgang 2) und `test-postgres-versionen-gegenprobe` (08:26, Mutation
+`p7-int-treiber`: zusätzlich zu den erwarteten Fällen war `p7-sigTERM-gruppe` rot, Ausgang 2). Beide Gegenproben liefen im
+folgenden Lauf ohne Änderung des Codes grün; als Flake gewertet, Ursache nicht ermittelt (zeitabhängige Signal- und
+Last-Fälle, gefolgert, nicht gemessen).
 
 ### Portabilität der Pfade (2026-10-17, Wunsch des Nutzers)
 
