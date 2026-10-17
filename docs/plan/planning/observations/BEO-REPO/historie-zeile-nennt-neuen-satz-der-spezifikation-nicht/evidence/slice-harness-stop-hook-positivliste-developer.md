@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-stop-hook-positivliste-developer
+**Fund (Review F-1, INFO):** Die Historie in `harness/vertraege/README.md` hat keine Zeile für die Änderung von `SPEC-052` (Aufnahme von `docs/developer/` in die Positivliste) und der Sätze in `SPEC-053`, `SPEC-055`, `SPEC-057`; frühere Änderungen an diesen Verträgen tragen eine. Gleiche Klasse wie beim ersten Beleg, hier an den Verträgen der Werkzeuge statt an `spec/spezifikation.md`.

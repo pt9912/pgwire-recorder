@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-stop-hook-positivliste-developer
+**Fund (Review F-2, Verifikation V-1, INFO):** `SPEC-052` Punkt 15 nennt als Ziel `docs/developer` und `docs/developer/`; der Fall `p15-ziel-verzeichnis-developer` setzt nur `../developer/`. Die Form ohne Schrägstrich fängt die Mutation `docs/developer*` über andere Fälle, nicht über einen eigenen. Der Bestandsfall für `docs/user` hat die umgekehrte Lücke.

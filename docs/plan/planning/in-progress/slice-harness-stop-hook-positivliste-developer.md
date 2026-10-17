@@ -71,25 +71,25 @@ Positivliste wird um `docs/developer/` erweitert. Nur dieser Pfad.
 
 Liefer-Punkte (drei):
 
-- [ ] **Hook und Gegenprobe:** `inert` und `spiegelt` in `.claude/hooks/stop-require-gates.sh` nennen
+- [x] **Hook und Gegenprobe:** `inert` und `spiegelt` in `.claude/hooks/stop-require-gates.sh` nennen
       `docs/developer/` (Kopf-Kommentar des Hooks nachgezogen); `tools/harness/stop-hook-gegenprobe.sh` hat
       die Fälle und Mutationen aus §3, `make stop-hook-gegenprobe` grün.
-- [ ] **Vertrag:** `SPEC-052` Punkte 12, 13 und 15 nennen `docs/developer/` samt Grenzen und Beleg (§3);
+- [x] **Vertrag:** `SPEC-052` Punkte 12, 13 und 15 nennen `docs/developer/` samt Grenzen und Beleg (§3);
       die Frage der Sätze in `SPEC-053`, `SPEC-055`, `SPEC-057` ist vom Architect entschieden und umgesetzt.
-- [ ] **Gate-Index:** die Zeile `make stop-hook-gegenprobe` in `harness/README.md` nennt `docs/developer/`.
+- [x] **Gate-Index:** die Zeile `make stop-hook-gegenprobe` in `harness/README.md` nennt `docs/developer/`.
 
 Pflichten der Closure:
 
-- [ ] `make kopf-check` und `make docs-check` grün; `make gates` einmal am Ende grün (nicht pro Commit;
+- [x] `make kopf-check` und `make docs-check` grün; `make gates` einmal am Ende grün (nicht pro Commit;
       Hook, Vertrag und Gegenprobe sind nicht inert, `SPEC-052` Punkt 12).
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`).
-- [ ] Je Zusage des geänderten Vertrags Zusage · Mutation · roter Test im Bericht (`AGENTS.md` §3.10, je
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor (`.harness/skills/reviewer.md`).
+- [x] Je Zusage des geänderten Vertrags Zusage · Mutation · roter Test im Bericht (`AGENTS.md` §3.10, je
       Element der Aufzählung).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben: `evidence/slice-harness-stop-hook-positivliste-developer.md`
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben: `evidence/slice-harness-stop-hook-positivliste-developer.md`
       in `BEO-REPO/stop-hook-positivliste-ohne-docs-developer/`; **kein Zähler wird gesetzt**.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -258,7 +258,39 @@ Risiken:
 
 ## 7. Closure-Notiz
 
-(leer — wird bei der Closure geschrieben)
+**Closure (Planner, 2026-10-17).** Der Slice nimmt `docs/developer/` auf die Positivliste des Stop-Hooks auf (Hook,
+Gegenprobe mit 150 Fällen, `SPEC-052` Punkte 12, 13, 15, Sätze in `SPEC-053`, `SPEC-055`, `SPEC-057`, Zeile in
+`harness/README.md`). Belege: Review `docs/reviews/2026-10-17-review-slice-harness-stop-hook-positivliste-developer.md`
+(0 HIGH, 0 MEDIUM, 0 LOW, 2 INFO) und Verifikation `docs/reviews/2026-10-17-verify-slice-harness-stop-hook-positivliste-developer.md`
+(bestätigt, 2 INFO). Marke nach `AGENTS.md` §3.14: 89 (Schwelle 300, Marke 400), die Rückführung nach §4 trat nicht ein.
+
+**Gate-Nachweis.** Voller `make gates` im Lauf des Implementers: Exit 0 auf dem Codestand `cfbd99f6` (Log endet mit
+`exit 0`, 2026-10-17 10:40); der Verifier fuhr ihn nicht nach (V-2). Seitdem änderte sich nur `docs/reviews/` und
+`docs/plan/planning/` (`git diff --stat cfbd99f6..HEAD`: zwei Report-Dateien, 150 Einfügungen), beides inert nach `SPEC-052`
+Punkt 12. `make kopf-check` und `make docs-check` grün. Der Stop-Hook gibt nach `make gates-schnell` am Endstand `approve`.
+
+**Ausgang je Befund (Nutzerlinie: LOW und INFO ohne Zusage ohne Test sind akzeptiert, Ausgang hier).**
+
+- F-1 (INFO): Die Historie in `harness/vertraege/README.md` hat keine Zeile für die Änderung. Akzeptiert; Verträge und
+  Historie gehören dem Architect, der Slice ändert sie nicht. Register: `BEO-REPO/historie-zeile-nennt-neuen-satz-der-spezifikation-nicht` (Zähler 2).
+- F-2 / V-1 (INFO): Die Form ohne Schrägstrich des Verzeichnis-Ziels (`docs/developer`) hat keinen eigenen Fall; sie wird über
+  andere Fälle gefangen (Mutation `docs/developer*` färbt `p15-ziel-verzeichnis-developer` mit). Akzeptiert, keine Zusage ohne
+  Prüfung. Register: `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (Evidence, Regel bleibt).
+- V-2 (INFO): voller `make gates` vom Verifier nicht nachgefahren. Akzeptiert; der Nachweis steht oben, der Hook bestätigt ihn.
+
+**Ausgang je Risiko (§6).** (1) Ein künftiges Gate liest `docs/developer/`: weiter offen → `BEO-REPO/stop-hook-positivliste-ohne-docs-developer` (Zähler 2).
+(2) Sätze in `SPEC-053`, `SPEC-055`, `SPEC-057`: entfallen, der Architect entschied sie vor dem Code, der Diff trägt sie und das Review
+fand keine Überzusage. (3) Zählung §8: entfallen, der Slice nimmt keine Sendung an; `grep` nach seiner Kennung in anderen Plänen ist leer.
+
+**Lerneintrag.** Form: geschärfte Regel. Beobachtung: Für ein Dokument unter `docs/developer/` liefen vier volle
+`make gates`, weil der Pfad nicht auf der Positivliste stand. Ausgang: Der Pfad ist aufgenommen (`inert` und `spiegelt` im Hook,
+`SPEC-052` Punkte 12, 13, 15, Gegenprobe); eine Änderung nur unter `docs/developer/` gibt nach grüner schneller Kette frei. Die Beobachtung
+steht bei 2× und bekommt unter 3× keinen Ausgang. Die Schätzung (120 bis 220) lag über der Messung (89); kein Auftreten von
+`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`.
+
+**Paarungen.** Anker: keiner neu, der Zähler steht unter 3×. Folge-Slice: keiner. Register: `BEO-REPO/stop-hook-positivliste-ohne-docs-developer`
+(Evidence, 2×, `observation.md` auf den Stand der Liste), `BEO-REPO/historie-zeile-nennt-neuen-satz-der-spezifikation-nicht` (Evidence, 2×),
+`BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (Evidence). Wellenlos: kein Eintrag in der Roadmap.
 
 ### Belege des Implementers
 

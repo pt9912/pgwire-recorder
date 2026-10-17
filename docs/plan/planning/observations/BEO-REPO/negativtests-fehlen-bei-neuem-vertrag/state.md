@@ -43,3 +43,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-v1-abschluss-verbin
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-harness-meldungskatalog-gate` (F-2) — vier Elemente von Aufzählungen und Ortsangaben ohne Mutation, die nur sie bricht; behoben mit je einem Fall (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-v1-abschluss-container` (F-1, F-2) — eine Zusage am echten `Dockerfile`, die ein Vorgabewert maskierte, und eine Aufzählung von Kurzflags mit nur einer gefangenen Schreibweise; behoben mit je einem Fall (Beleg `evidence/slice-v1-abschluss-container.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-harness-stop-hook-positivliste-developer` (F-2, V-1, INFO) — die Form ohne Schrägstrich eines Verzeichnis-Ziels (`docs/developer`) hat keinen eigenen Fall, eine Mutation färbt sie nur über andere Fälle; akzeptiert mit Ausgang in §7 des Slice (Nutzerlinie: INFO, Zusage durch andere Fälle gefangen; Beleg `evidence/slice-harness-stop-hook-positivliste-developer.md`).

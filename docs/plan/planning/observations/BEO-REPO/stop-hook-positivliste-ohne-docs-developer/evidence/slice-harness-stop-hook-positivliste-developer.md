@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-stop-hook-positivliste-developer
+**Fund:** Der Slice nimmt `docs/developer/` auf die Positivliste des Stop-Hooks auf (Entscheidung des Nutzers vom 2026-10-17), mit `SPEC-052` Punkte 12, 13, 15 und 150 Fällen der Gegenprobe. Zuvor verlangte die Änderung eines Dokuments unter `docs/developer/` vier volle `make gates`-Läufe. Risiko 1 aus §6 (ein künftiges Gate liest den Pfad und die Aufnahme gibt zu früh frei): weiter offen; der Beleg nach `SPEC-052` Punkt 13 wird beim Review jeder Änderung an einem Gate oder an `.dockerignore` neu geführt.
