@@ -81,7 +81,7 @@ punkt4() {
       || { cat "$werk/bin-$n.log" >&2; rot "Bau $n der Binaries gescheitert"; }
   done
   if ! cmp -s "$werk/a/SHA256SUMS" "$werk/b/SHA256SUMS"; then # P4cmp
-    abw="$(diff <(cat "$werk/a/SHA256SUMS") <(cat "$werk/b/SHA256SUMS") | sed -n 's/^< [0-9a-f]*  //p' | tr '\n' ' ')" # P4namen
+    abw="$(diff <(cat "$werk/a/SHA256SUMS") <(cat "$werk/b/SHA256SUMS") | sed -n 's/^< [0-9a-f]*  //p' | tr '\n' ' ')" || true # P4namen
     rot "die Summen zweier Builds weichen ab: ${abw% }"
   fi
   echo "test-container: Punkt 4 grün — zwei Builds, dieselben Summen"

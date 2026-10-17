@@ -40,6 +40,6 @@ images_in_binaries() {
 }
 
 version_pruefen() {
-  local re='^[0-9A-Za-z][0-9A-Za-z.+_-]*$' # P2re
-  [[ "${VERSION-}" =~ $re ]] || eingabe "VERSION '${VERSION-}' ist ungültig" # P2
+  local erst="0-9A-Za-z" rest="0-9A-Za-z.+_-" # P2zeichen
+  [[ "${VERSION-}" =~ ^[$erst][$rest]*$ ]] || eingabe "VERSION '${VERSION-}' ist ungültig" # P2
 }
