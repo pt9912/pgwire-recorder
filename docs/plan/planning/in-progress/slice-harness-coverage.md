@@ -115,13 +115,13 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] Gate mit Schwelle: Die Stufe `test` erzeugt das Profil, prüft es mit
+- [x] Gate mit Schwelle: Die Stufe `test` erzeugt das Profil, prüft es mit
       `tools/harness/coverage.sh` gegen die Schwelle aus `SPEC-056` Punkt 1
       (nach den Randformen aus §6; `make test` liest sie und gibt sie als Build-Argument ohne Vorgabewert) und endet rot
       darunter; `gofmt`, `go vet` und die Unit-Tests der Stufe bleiben unverändert. Die
       Messung des Stands, aus der die Schwelle folgt, steht mit Quellstand in der ADR;
       der Bestand ist grün.
-- [ ] Gegenprobe `coverage-gegenprobe` als eigenes Ziel an `GATE_CHECKS` und in `GATE_SCHNELL_AUSNAHME`: ein Stand unter der Schwelle wird
+- [x] Gegenprobe `coverage-gegenprobe` als eigenes Ziel an `GATE_CHECKS` und in `GATE_SCHNELL_AUSNAHME`: ein Stand unter der Schwelle wird
       abgelehnt, einer genau an der Schwelle angenommen; dazu je Punkt und je Element der Aufzählungen von
       `SPEC-056` Punkt 4, 6 und 10 ein Fall mit einer Mutation, die nur ihn bricht (Paket ohne Tests, Profil,
       Schwelle, Rundung, Ausgabe, Stufe). Je Zusage ist die Mutation gesehen (`AGENTS.md` §3.10). Die
@@ -131,18 +131,18 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       Abdeckungstabellen vollständig, `abdeckung-vollstaendig.md` und damit die RTM
       führen sie, und das Abnahmeszenario 17 ist nachweisbar (Tabellen mit
       `make abdeckung` neu geschrieben, `make abdeckung-check` grün).
-- [ ] Doku: `harness/README.md` §Sensors führt die Schwelle beim Vertrag von
+- [x] Doku: `harness/README.md` §Sensors führt die Schwelle beim Vertrag von
       `make test` (mit `SPEC-056`) und die Gegenprobe mit Bindung an [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md); die Zeile „Nicht
       behauptet“ nennt keine Testabdeckung mehr und grenzt gegen die Abdeckung je
       Anforderung ab.
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -284,26 +284,24 @@ Implementer nicht, er gibt es zurück.
   (`slice-lint-bestand-kern-driven`, `slice-lint-bestand-driving`) oder vor der
   Black-Box-Umstellung (Black-Box-Tests
   erreichen unexportierte Pfade seltener), wäre die Zahl beim Einschalten schon
-  überholt; darum die Reihenfolge in §4. — **Ausgang:** — (bei Closure)
+  überholt; darum die Reihenfolge in §4. — **Ausgang (Planner, Closure):** entfallen: Der Slice startete nach den Bereinigungs- und Black-Box-Slices (alle in `done/`, §4 *Start*), und der Architect maß den Stand erst danach (94,45 % bei `69aaf3f7`, Schwelle 94, [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md)); der Bestand am Endstand ist grün (`make test` 94,44 % bei Schwelle 94, 4201 von 4448 Anweisungen, Abstand 19). Die Schwelle misst den Stand, der beim Einschalten galt.
 - **Die Zahl wird zum Ziel** — Tests, die Zeilen ausführen, ohne etwas zu prüfen,
   heben die Zahl, nicht die Prüfung. Die Schwelle ersetzt nicht §3.10 (je Zusage eine
-  Mutation); Review bleibt Urteil darüber. — **Ausgang:** — (bei Closure)
+  Mutation); Review bleibt Urteil darüber. — **Ausgang (Planner, Closure):** weiter offen → Register: `BEO-REPO/anweisungsabdeckung-wird-zum-ziel` (neu, `offen`, ohne Evidence). Das Risiko ist strukturell und nicht aufzulösen; das Gate sagt nur, dass Anweisungen laufen. Ob ein Test prüft, bleibt Urteil von Review und Verifikation (`AGENTS.md` §3.10).
 - **Bestehende Prüfung fällt weg** — der Umbau der Stufe `test` verliert `gofmt`,
   `go vet -tags integration` oder einen Testlauf
   (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`, 1×). Die Gegenprobe prüft, dass die
-  Stufe bei einem Formatfehler weiter rot wird. — **Ausgang:** — (bei Closure)
+  Stufe bei einem Formatfehler weiter rot wird. — **Ausgang (Planner, Closure):** entfallen: Die Gegenprobe färbt `p8-format` (`gofmt` entfernt), `p8-vet-integration` (`go vet` ohne `-tags integration`) und `p8-test-rot` (`|| true` hinter den Tests) rot; die Mutationen sind in §7 gesehen. Der Prüfschritt ersetzt keine Prüfung, er folgt ihnen in einer eigenen Schicht.
 - **Gegenprobe sieht den Mutanten nicht** — BuildKit überträgt eine Datei gleicher
   Größe und mtime nicht neu (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`, 1×).
-  Die Gegenprobe baut aus einer Kopie unter eigenem Temp-Pfad. — **Ausgang:** — (bei
-  Closure)
+  Die Gegenprobe baut aus einer Kopie unter eigenem Temp-Pfad. — **Ausgang (Planner, Closure):** entfallen: Die Gegenprobe baut aus einer Kopie unter eigenem Temp-Pfad, der Treiber setzt `touch` und je Mutant einen frischen Pfad; der Implementer-Bericht belegt kein Wiederauftreten der Falle, daher keine Evidence-Datei in `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (bleibt bei 1).
 - **Konfiguration wirkt anders, als sie gelesen wird** — ein Ausschluss-Muster für
   `cmd/` greift nicht, oder die Schwelle kommt als Build-Argument nicht in der Stufe an
   und ein Default gilt (`BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`, 1×).
-  Je Ausschluss und für die Schwelle ein Fall der Gegenprobe. — **Ausgang:** — (bei
-  Closure)
+  Je Ausschluss und für die Schwelle ein Fall der Gegenprobe. — **Ausgang (Planner, Closure):** entfallen: Die Schwelle kommt als Build-Argument an (`p1-schwelle-kommt-an`, `p1-wert-aus-datei`, Mutation `ARG COVERAGE_SCHWELLE=1` ohne `--build-arg` rot), ein Muster, das `cmd/` ausnimmt, gibt es nicht (`p4-main-ohne-test` rot unter Mutation); die Lesart der Zeile am Zeilenanfang klärte der Architect vor dem Gate (`p1-zeile-*`, eingerückt, mitten im Text, doppelt, fehlend). Kein Eintrag in `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`: Der Unterschied betraf Text der Spezifikation gegen die Datei, nicht das Gate.
 - **Laufzeit** — `-coverprofile` verlängert die Unit-Tests leicht und hebt den
   Build-Cache der Stufe `test` bei jeder Code-Änderung ohnehin auf; kein neuer Engpass
-  erwartet. — **Ausgang:** — (bei Closure)
+  erwartet. — **Ausgang (Planner, Closure):** weiter offen → Register: `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` (`evidence/slice-harness-coverage.md`): `-coverprofile` ist kein Engpass (der Prüfschritt liegt in einer eigenen Schicht), die Gegenprobe braucht 89 s für 121 Prüfungen und bleibt aus der schnellen Kette.
 
 ## 7. Closure-Notiz
 
@@ -319,12 +317,13 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
+- **Was hat funktioniert:** Die Reihenfolge der Rollen trug: Der Architect maß den Stand vor dem Code und entschied die Randformen (`SPEC-056`, [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md)); der Implementer gab zwei offene Randformen zurück (Stelle der Zeile `**Schwelle:**`, Reihenfolge mehrerer Gründe), statt sie im Code zu entscheiden (`AGENTS.md` §3.12). Die Gegenprobe (121 Prüfungen, 89 s) fängt je Element der Aufzählungen eine Mutation; Verifier und Review fanden unabhängig von ihr keinen Defekt im Code, nur in der Zusage und in zwei Texten. `make gates` ist am Endstand grün (Log `gates-coverage2.log`, Exit 0). Gemessen 94,44 % (4201 von 4448 Anweisungen) bei Schwelle 94.
+- **Was ging anders als geplant:** (1) *Größe.* Die Metrik aus §4 ergab 903 bei `201b9fe5` (Review F-1, Verifikation F-2; 901 am Endstand `bd4b0357`: Gegenprobe 601, `SPEC-056` 97, Prüfschritt 75, [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md) 63, übrige 65), die Schätzung des Architect 600 bis 800, die Meldeschwelle 750 war überschritten und gemeldet. Die Gegenprobe trug zwei Drittel der Summe, rund das Achtfache des Prüfschritts statt des Doppelten. (2) *Abweichung von §4 (Entscheidung des Nutzers vom 2026-10-17):* Die Marke 900 galt „ohne Ermessen“ als Rückführung `in-progress` → `next`; sie wurde nicht gezogen. Begründung des Nutzers: die Arbeit ist fertig, grün und mutationsgeprüft; die Überschreitung beträgt 3 Zeilen (903 gegen 900); rund 170 bis 190 Zeilen stammen aus dem Schritt des Architect (`SPEC-056`, [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md), `SPEC-052`, Indizes); die Ursache ist die in `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` geführte, der Faktor des Doppelten für Gegenprobe-Code lag unter der Messung. Der Slice geht also mit überschrittener Marke nach `done/`; die Abweichung ist ausdrücklich diese Entscheidung, keine Ermessens-Lesart des Planners. (3) *Zusage ohne Mutation (Review F-2):* `SPEC-056` Punkt 1 sagte „ohne Leerzeile davor“ zu, kein Fall fing sie; der Architect strich die Zusage (akzeptiertes Negativ). (4) *Nachlauf der Texte:* Der Kopf der Gegenprobe widersprach dem nachgezogenen Vertrag (F-3), der Plan nannte die angenommene ADR eine Empfehlung (F-4); beide behoben in `bd4b0357`. (5) *Hauptbaum:* Der Lauf des Implementers hielt den Stop-Hook über zwei Stunden mit mehr als 20 Sperren für andere Sitzungen. (6) *Zwei Rückgaben* an den Architect (Zeilenanfang, Reihenfolge) kosteten einen Nachzug in Spezifikation, Skript, Gegenprobe und Plan nach dem ersten Stand.
+- **Steering-Loop-Eintrag:** benannte Spec-Lücke, keine neue Regel. Die Regel zur Rückführung (Modul 5, §4 jedes Plans) kennt den Fall „Marke bei der Übergabe überschritten, Arbeit fertig und grün“ nicht: „ohne Ermessen“ zwingt zum Zurückschneiden fertiger Arbeit, ein Zurück bringt keine kleinere Prüfung; der Nutzer entschied den Fall für diesen Slice. Ebenso offen: ob Zeilen des Architect-Schritts in die Metrik der Marke zählen (hier 170 bis 190 von 901, die Schätzung zählte sie mit). **Vorschlag, nicht entschieden und nicht umgesetzt** (Regeländerungen an `AGENTS.md` und `.claude/` sind Sache des Nutzers): (a) `AGENTS.md` §3.14 oder die Vorlage des Plans nennt neben der Marke, wer bei einer Überschreitung nach fertiger Arbeit entscheidet und wo (§7, Zeile „Abweichung“); (b) ein Satz, dass der Architect eine Zusage nur in die Spezifikation schreibt, wenn ein Fall sie prüfen kann, und ein Darstellungsdetail (Leerzeile) nicht als Zusage (F-2); (c) den Faktor Tests zu Produktcode für eine Gegenprobe mit einem Fall je Element nicht mit „rund das Doppelte“, sondern mit dem Messwert aus `slice-harness-schaetzung-planner-faktor` (hier rund 8). Für (a) und (b) liegt keine Beobachtung über der Schwelle vor, sie sind Vorschläge dieser Closure; (c) ist der Auftrag von `slice-harness-schaetzung-planner-faktor`. Es entstand kein Eintrag mit „liegt in“.
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-harness-coverage.md` ergänzt in `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests/` (13×, Stand `geplant` bleibt), `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/` (50×, F-2, F-6), `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/` (76×, F-3), `BEO-REPO/plan-folgt-korrektur-nicht/` (64×, F-4), `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe/` (8×, 89 s) und, neu angelegt, `BEO-REPO/implementer-im-hauptbaum-sperrt-stop-hook/` (1×, erste Evidence: über zwei Stunden, mehr als 20 Sperren, Nutzer „wir werden wieder ausgebremst“). Neu ohne Evidence: `BEO-REPO/anweisungsabdeckung-wird-zum-ziel` (Ausgang des Risikos in §6). Kein Eintrag in `BEO-REPO/mutant-kommt-im-build-kontext-nicht-an` (die Falle trat nicht auf, Treiber mit `touch` und frischem Pfad) und keiner in `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`. Die Zähler folgen aus den Dateien; alle Einträge über 3× haben ihren Ausgang schon (verkörpert oder geplant); kein Eintrag erreicht mit diesem Slice die Schwelle erstmals. Rückgabe des Implementers (Randform erst im Code gefragt, nicht entschieden) ist die Regel in Funktion und kein Beleg für `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben`.
+- **Folge-Slices:** keine neuen. Nachlauf bei Bestand: `slice-harness-schaetzung-planner-faktor` (`next/`) erhält den Messwert über den Beleg im Register, keine Sendung in dessen §1; `slice-harness-devcontainer-u-boot-0-10` und `slice-harness-devcontainer-einrichten` tragen die Gegenmaßnahme zum Hauptbaum-Hook (Beleg im Register, keine Zuweisung der Beobachtung). Die Zusagen ohne Fall im Kopf der Gegenprobe (Punkt 4 (d), Ausgabe nur bei laufender Schicht, netzlos und kein Schreiben in den Arbeitsbaum, Aufräumen der Image-Tags und Kopien, `-i`, Punkt 12) sind akzeptierte Negative mit Grund im Kopf (`AGENTS.md` §3.10), kein Folge-Slice: Punkt 4 (d) und der Hinweis auf generierten Code folgen aus der Eingabe (der Prüfschritt liest nur das Profil), der Cache liegt bei BuildKit, netzlos trägt `--network=none` im `Dockerfile` ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)), `-i` gilt wie bei jedem Gate (`SPEC-052` Punkt 21). Sie stehen als Beleg in `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (Register-Ausgang *weiter offen*). `p6-a-nicht-lesbar` und `p6-r-a-b` laufen als root nicht und werden mit Hinweis übersprungen (Review F-6, INFO): akzeptiert, der Lauf ist als Nicht-root vollständig; kein Folge-Slice. F-5 und F-7 (INFO) zur Kenntnis: eine angenommene ADR wird nicht überschrieben (§3.5), fremde Commits im Diffbereich liegen außerhalb der Metrikpfade.
+- **Die drei Paarungen:** Anker · keiner (keine verkörperte Regel, kein „liegt in“) · Folge-Slice: keiner neu; die Adressen oben nehmen nichts an, was nicht schon bei ihnen steht (`slice-harness-schaetzung-planner-faktor` Liefer-Punkt 1 nennt den Faktor „mindestens 5“; die Hauptbaum-Gegenmaßnahme ist Gegenstand der beiden Dev-Container-Slices) · Register: sieben Einträge wie oben.
+- **Risiken aus §6:** je ein Ausgang, siehe die Zeilen in §6: Stand der Schwelle *entfallen*; Zahl wird zum Ziel *weiter offen → Register*; Prüfung fällt weg *entfallen*; Mutant im Build-Kontext *entfallen*; Konfiguration wirkt anders *entfallen*; Laufzeit *weiter offen → Register*. Keines trat ein.
 
 ### Belege des Implementers
 
@@ -384,11 +383,11 @@ Stand der Läufe: Quelle `7f1f6ead` plus die Commits dieses Slice bis zur Überg
 
 **Grüne Mutanten, eingeordnet.** (1) Vergleich auf den angezeigten (abgerundeten) Wert statt auf das Verhältnis: äquivalent, denn Anzeige unter der Schwelle ⇔ Verhältnis unter der Schwelle (Beweis: `floor(x) < n` für ganzes `n` ⇔ `x < n`); die Spezifikation sagt es in Punkt 5. (2) `close(sortiert)` entfernt: auf dem awk des Hosts (gawk) äquivalent, es schließt Pipes vor dem Leeren von stdout; auf dem awk des Images rot (`p7-gesamtzeile-zuletzt-in-der-stufe`). (3) `exit 0` statt `exit 1` in der Fehlerfunktion von awk: äquivalent für (d) und (e), weil `END` bei gesetztem Merker mit 1 endet; für (f) rot (`p6-f-nur-kopf`, `p6-f-nur-null-bloecke`). (4) `-covermode=set` ohne Angabe: `go test -coverprofile` wählt `set`, solange `-race` fehlt; nicht gefahren. Offen, ohne Fall (Kopf der Gegenprobe, Abschnitt OFFEN): Punkt 4 (d), Punkt 7 Ausgabe nur bei laufender Schicht (Cache), Punkt 8 netzlos und nichts in den Arbeitsbaum, Punkt 9 `-i`, Aufräumen der Kopien und Image-Tags.
 
-**Läufe.** `make test` grün (94,44 % bei Schwelle 94); `make coverage-gegenprobe` grün; `make gates-schnell-gegenprobe` grün (Liste `LANGSAM` um `coverage-gegenprobe` ergänzt); `make abdeckung`, danach `make abdeckung-check`, `make docs-check`, `make kopf-check` grün; `make gates` einmal am Endstand (siehe Bericht).
+**Läufe.** `make test` grün (94,44 % bei Schwelle 94); `make coverage-gegenprobe` grün; `make gates-schnell-gegenprobe` grün (Liste `LANGSAM` um `coverage-gegenprobe` ergänzt); `make abdeckung`, danach `make abdeckung-check`, `make docs-check`, `make kopf-check` grün; `make gates` am Endstand `bd4b0357` grün (Log `gates-coverage2.log`, Exit 0; `coverage-gegenprobe: 121 Prüfungen wie erwartet`).
 
-**Größe** (`AGENTS.md` §3.14, Metrik §4): wird mit der Übergabe aus `git diff --numstat 9ee6387d..<letzter Commit>` genannt; die Meldeschwelle 750 war vor der Übergabe überschritten und ist dem Planner gemeldet.
- **Beantwortet am 2026-10-17 vom Architect:** beide in `SPEC-056` entschieden (Punkt 1 am echten Zeilenanfang, Punkt 6 Reihenfolge); §6 oben nennt sie.
-**Rückgaben an den Architect** (Randform · Frage): `SPEC-056` Punkt 1 sagt „Zeilenanfang“, die Zeile steht in der Datei mit drei Leerzeichen als Fortsetzung eines Listenpunkts; `make test` liest sie mit führenden Leerzeichen (`^ *`), sonst fände es keine Zeile. Frage: gilt das so, oder wird die Zeile in der Spezifikation anders gesetzt. Ferner: nennt Punkt 6 keine Reihenfolge mehrerer Gründe in einer Eingabe (der Prüfschritt meldet in der Folge (a), (b), (c), (g), (h), dann (d), (e), (f)); jeder Fall der Gegenprobe hat genau einen Grund.
+**Größe** (`AGENTS.md` §3.14, Metrik §4): 903 bei `201b9fe5`, 901 am Endstand `bd4b0357` (Gegenprobe 601); Marke 900 überschritten, Abweichung von der Rückführung nach Entscheidung des Nutzers (oben, *Was ging anders*).
+
+**Beantwortet am 2026-10-17 vom Architect:** die beiden Rückgaben des Implementers (Punkt 1: Zeile am echten Zeilenanfang; Punkt 6: Reihenfolge mehrerer Gründe) sind in `SPEC-056` entschieden; §6 oben nennt sie.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

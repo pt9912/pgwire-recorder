@@ -6,4 +6,4 @@ Der Stop-Hook am Host (`.claude/hooks/stop-require-gates.sh`) verlangt für Änd
 
 ## Benannt, nicht gezählt
 
-- 2026-10-17: Der Implementer-Lauf an `slice-harness-coverage` (`Dockerfile`, `harness/`, `tools/` im Hauptbaum) hält den Hook für die Planungsarbeit am selben Tag; der Vorgang ist nicht abgeschlossen, daher keine Evidence-Datei. Die erste Datei entsteht bei der Closure von `slice-harness-coverage`, wenn der Lauf die Sperre bestätigt. Anlass der Entscheidung des Nutzers vom 2026-10-17, lang laufende Slices im Dev-Container zu fahren (`slice-harness-devcontainer-u-boot-0-10`, `slice-harness-devcontainer-einrichten`).
+- 2026-10-17: Der Implementer-Lauf an `slice-harness-coverage` (`Dockerfile`, `harness/`, `tools/` im Hauptbaum) hält den Hook für die Planungsarbeit am selben Tag; die Sperre dauerte über zwei Stunden (Beleg `evidence/slice-harness-coverage.md`). Anlass der Entscheidung des Nutzers vom 2026-10-17, lang laufende Slices im Dev-Container zu fahren (`slice-harness-devcontainer-u-boot-0-10`, `slice-harness-devcontainer-einrichten`).

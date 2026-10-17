@@ -9,3 +9,5 @@ Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-v1-abschluss-postgre
 Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-v1-abschluss-container` — `make gates` 927 s am Endstand, davon Gegenprobe 3 m 40 s; sie bleibt aus der schnellen Kette (Beleg `evidence/slice-v1-abschluss-container.md`).
 
 Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-harness-integration-volumes` — `make gates` 1038 s am Endstand, die Gegenprobe des Aufräumens 42 s; sie bleibt aus der schnellen Kette (Beleg `evidence/slice-harness-integration-volumes.md`).
+
+Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-harness-coverage` — die Gegenprobe 89 s; sie bleibt aus der schnellen Kette (Beleg `evidence/slice-harness-coverage.md`).

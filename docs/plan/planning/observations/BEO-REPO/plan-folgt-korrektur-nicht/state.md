@@ -66,3 +66,4 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-integration-
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-abdeckung-gate` (F-3, V-1, V-2) — Größe in §7 veraltet gegen den Diff, Auswahl der Deklaration unbegründet; behoben (Beleg `evidence/slice-harness-abdeckung-gate.md`). Zähler 62.
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-devcontainer-austausch-repo` (F-8) — §7 des Plans zitierte zwei Sätze, die im Dokument nicht stehen; behoben (Beleg `evidence/slice-harness-devcontainer-austausch-repo.md`). Zähler 63.
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-coverage` (F-4) — Plan nannte eine angenommene ADR eine Empfehlung; behoben (Beleg `evidence/slice-harness-coverage.md`). Zähler 64.

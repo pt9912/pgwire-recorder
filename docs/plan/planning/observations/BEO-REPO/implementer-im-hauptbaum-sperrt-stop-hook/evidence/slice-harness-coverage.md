@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-coverage
+**Fund:** Der Implementer-Lauf an `slice-harness-coverage` hielt den Stop-Hook im Hauptbaum über zwei Stunden; mehr als 20 Sperren für andere Sitzungen am Host (Planner, Architect, Nutzer). Der Nutzer am 2026-10-17: „wir werden wieder ausgebremst“. Anlass der Entscheidung vom selben Tag, lang laufende Slices im Dev-Container zu fahren (`slice-harness-devcontainer-u-boot-0-10`, `slice-harness-devcontainer-einrichten`).
