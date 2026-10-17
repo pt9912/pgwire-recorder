@@ -22,7 +22,7 @@ Stufe `test` des Multistage-`Dockerfile`, netzlos),
 [ADR-0028](../../adr/0028-abdeckung-je-anforderung-und-pfad.md) (Abgrenzung:
 Abdeckung je Anforderung und Pfad), [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Teil 2 der geteilten Messung,
 Nachweisart Gate). Die ADR des Gates ist [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md)
-(Proposed, Empfehlung des Architect vom 2026-10-17, bis der Nutzer entschieden hat).
+(Accepted am 2026-10-17, Entscheidung des Nutzers).
 
 **Berührte Spec-Stellen:** `SPEC-056` (Schwelle mit Randformen; vom Architect am 2026-10-17 angelegt, vor dem Code); `SPEC-052` (Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest, und Allowlist des Build-Kontexts mit dem Prüfschritt; Architect, am 2026-10-17 nachgezogen; Punkt 2 und 4 gelten für den Namen `…-gegenprobe` ohne Änderung)
 
@@ -45,7 +45,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 Unit-Tests (`go test -coverprofile`) und bricht ab, wenn sie unter der Schwelle
 liegt; das Gate ist damit Teil von `make gates`. Die Schwelle ist eine Zahl aus der
 Messung des heutigen Stands und steht nach Entscheidung des Nutzers vom 2026-10-06 in `SPEC-056` Punkt 1, als
-Konstante mit Einheit und Begründung (Empfehlung des Architect: 94 Prozent der Anweisungen, gemessen 94,45 %
+Konstante mit Einheit und Begründung (Entscheidung des Nutzers vom 2026-10-17: 94 Prozent der Anweisungen, gemessen 94,45 %
 bei Quellstand `69aaf3f7`); [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md) hält Mechanismus, Messung mit
 Quellstand und die Regel, nach der die Zahl folgt, und setzt `Schärft:` auf die
 Kennung — nicht in diesem Plan. Gemessen und gezählt wird nach `SPEC-056` Punkt 2 bis 5: nur die
@@ -242,7 +242,7 @@ dasteht.
 
 **Randformen des Vertrags** (`AGENTS.md` §3.12) — alle **entschieden** vom Architect am 2026-10-17,
 vor dem ersten Code-Commit, in `SPEC-056` (Punkt in Klammern); [ADR-0044](../../adr/0044-schwelle-der-anweisungsabdeckung.md)
-trägt Entscheidung und Gründe. Die Schwelle selbst ist eine Empfehlung, bis der Nutzer die ADR annimmt. Was dort nicht steht, entscheidet der
+trägt Entscheidung und Gründe. Die Schwelle selbst hat der Nutzer mit der Annahme der ADR am 2026-10-17 entschieden. Was dort nicht steht, entscheidet der
 Implementer nicht, er gibt es zurück.
 
 - **Die Zahl** (Punkt 1) — gemessen 94,45 % (4201 von 4448 Anweisungen, Quellstand `69aaf3f7`), Schwelle auf die ganze Zahl

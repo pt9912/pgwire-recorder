@@ -61,8 +61,6 @@
 #     verschwinden, prüft kein Fall.
 #   - Punkt 9, `-i`: wie bei jedem Gate (SPEC-052 Punkt 21), kein eigener Fall.
 #   - Punkt 12: Grenzen.
-#   - Die Reihenfolge, in der mehrere Gründe einer Eingabe gemeldet werden, ist nicht
-#     zugesagt; jeder Fall hat genau einen Grund.
 #
 # Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.
 set -euo pipefail
