@@ -17,7 +17,7 @@ kein Meilenstein hängt an ihm. Angelegt am 2026-10-17 auf Entscheidung des Nutz
 
 **Berührte Spec-Stellen:** —
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** Planner. **Datum:** 2026-10-17.
 
