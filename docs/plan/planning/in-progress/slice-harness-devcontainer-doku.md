@@ -86,8 +86,10 @@ Inhalt des Dokuments, je Punkt nur mit Probe am laufenden Container (§3.11):
 - Nach dem Review (Nacharbeit): Sicherheitsaussagen sind auf das Belegte enger gefasst (Container
   privilegiert, `vscode` mit `sudo` ohne Passwort, `/host-repo` als Mount `ro` nur gegen Prozesse
   ohne `sudo`), Quellen und Lücken stehen im Dokument (§7, Abschnitt Nacharbeit).
-- Das Dokument ist Ist-Zustand ohne Chronik (§3.11); es nennt keine Kennungen von Lastenheft,
-  Spezifikation, ADRs, Slices oder Wellen. Nennt es doch eine ADR-Kennung, ist sie ein Link
+- Das Dokument ist Ist-Zustand ohne Chronik (§3.11); es nennt keine Kennungen dieses Repos
+  (Lastenheft, Spezifikation, ADRs, Slices, Wellen). Die Kennungen, die mit `LH-` beginnen und in den
+  wörtlich übernommenen Blöcken von `u-boot` stehen (Codeblöcke von `Dockerfile` und `compose.yaml`), sind
+  Kennungen von `u-boot`; ein Satz in §3.1 des Dokuments sagt es. Nennt es doch eine ADR-Kennung, ist sie ein Link
   (`.d-check.yml`: `ids` mit `link-policy: always`).
 - `.d-check.yml` schließt `docs/developer/` nicht aus (`scan.roots: ["."]`, `ignore` ohne den
   Pfad): Links und Anker im Dokument werden geprüft. `harness/README.md` braucht keinen Eintrag
@@ -129,6 +131,9 @@ Verifikations-Report liegen vor, Closure-Notiz mit Lerneintrag geschrieben.
   Closure auftritt; sonst entfallen mit Begründung.
 - **Nicht nachführbare Schritte** (etwa der volle `make gates` im Container, Zeit nicht
   gemessen). — **Ausgang:** entfallen: Das Dokument markiert sie als „nicht geprüft“ (§1).
+- **Hinweis an den Planner (Verifikation V-2):** Die Ausgänge der beiden ersten Risiken oben sind
+  keine geschlossene Form (der erste nennt eine Entscheidung des Nutzers, der zweite ist bedingt). Bei
+  der Closure trägt jedes Risiko genau einen der drei Ausgänge; die Wahl trifft der Planner.
 - **Randformen:** kein neuer Vertrag, keine Randformen im Sinn von `AGENTS.md` §3.12.
 
 ## 7. Closure-Notiz
@@ -221,7 +226,7 @@ Kollision mit 2222; `/workspaces` ↔ frisches Volume `root`, `mkdir` scheitert;
 leeres Repo scheitert; Timeout ↔ `--timeout 5` Exit 12.
 
 **Läufe.** `make docs-check` 0 (966 Dateien), `make kopf-check` 0, `make meldungskatalog-check` 0; ein
-voller `make gates` läuft nicht (Auftrag; §6 Risiko Stop-Hook). Größe nach §4 (`git diff --numstat bda6efef..531f357e -- docs/developer`): 385 Einfügungen, 0 Löschungen, Summe 385; unter der Meldeschwelle 400 und der Marke 500.
+voller `make gates` läuft nicht (Auftrag; §6 Risiko Stop-Hook). Größe vor der Nacharbeit (Stand `531f357e`, `git diff --numstat bda6efef..531f357e -- docs/developer`): 385 Einfügungen, 0 Löschungen, Summe 385; spätere Stände siehe Nacharbeit unten. `make docs-check` und `make kopf-check` stammen aus diesem Stand.
 
 **Nicht geprüft** (im Dokument §13 benannt): Start von `claude` und Anmeldung; voller `make gates` im
 Container; Windows/macOS; Installation von `u-boot`; `u-boot down --volumes`; Fehler bei vollem
@@ -250,6 +255,47 @@ Nur Text in `docs/developer/devcontainer.md` und diesem Plan.
 
 **Akzeptierte Lücken:** Schreiben auf `/host-repo` mit `sudo` nicht ausgeführt; Hostschlüssel-Frage, Fetch ins echte
 Host-Repo, `docker compose up -d` allein, Zeiten des Versuchs-Containers nicht geprüft bzw. nicht wiederholt.
+
+### Nacharbeit nach Review 2 und Verifikation (2026-10-17)
+
+Reports `docs/reviews/2026-10-17-review-2-slice-harness-devcontainer-doku.md` (0 HIGH, 2 MEDIUM, 5 LOW, 2 INFO)
+und `docs/reviews/2026-10-17-verify-slice-harness-devcontainer-doku.md` (V-1 bis V-5). Nur Text in
+`docs/developer/devcontainer.md` und diesem Plan; Dokument-Commit `6ca83617`. Neue lesende Proben am
+Versuchs-Container (SSH, nichts verändert): `ss -ltn` = `0.0.0.0:22`, `[::]:22` (und `127.0.0.11` für den
+Docker-DNS); `findmnt`: die vier Mounts, `/home/vscode` liegt im Overlay des Containers, mit `.gitconfig`;
+`ls -a /host-repo` zeigt `.git`, `.claude`, `.harness`, `recordings`, `.harness/state/` (ignoriert) ist
+lesbar; `du -sh` Klon 47 MB, ohne `.git` 18 MB; `docker system df -v` Volume `pgr-dev_pgr-dev-workspace`
+37,14 MB; `u-boot --version` 0.9.0; `ssh-keygen`, `scp` am Host vorhanden.
+
+| Befund | Ausgang |
+|---|---|
+| R2 F-1 MEDIUM `sshd` an Loopback | behoben: §5, §11 trennen veröffentlichten Host-Port (Loopback) und Bindung im Container (alle Adressen); Zugang anderer Container auf Port 22 aus der Bindung gefolgert, nicht ausgeführt (§13) |
+| R2 F-2 MEDIUM Zugangsdaten | behoben im Dokument: §7 und §11 (neuer Punkt) nennen Ablage im Container außerhalb der Volumes, Lesbarkeit mit `sudo`, nicht eingeschränkten Netz-Ausgang, Entfallen mit dem Container; wo `claude` ablegt, ist nicht geprüft (§13). `u-boot down` entfernt Container und Netz (gemessen); Home und Anmeldung: gefolgert. Frage an den Nutzer unten |
+| R2 F-3 LOW Lebensdauer | behoben: §4 (Zeile Stoppen), §6 (`--global`), §13 |
+| R2 F-4 LOW Klon-Größe | behoben: §11 nennt 37,14 MB (`docker system df -v`), 47 MB mit `.git` und 18 MB ohne (`du -sh`); „28“ gestrichen |
+| R2 F-5 LOW Cache | behoben: §8 nennt die offene Bedingung, §13 |
+| R2 F-6 LOW Socket, Arbeitsbaum | behoben: §11 (Socket keine Grenze; Mount zeigt Arbeitsbaum), §6 |
+| R2 F-7 LOW Voraussetzungen | behoben: §2 (Version 0.9.0, `ssh-keygen`/`scp`, Schreibrecht, Netz, Schlüsselpaar vorab; fehlendes Paar nicht geprüft) |
+| R2 F-8 INFO fremde Kennungen | behoben: ein Satz in §3.1 des Dokuments, Blöcke unverändert; Plan §3 nachgezogen (V-4) |
+| R2 F-9 INFO Lieferkette | behoben: §3.3 nennt Tag ohne Digest, `curl … \| bash -` als `root`, Herkunft nicht geprüft |
+| V-1 MEDIUM Beleg der Gates | offen: ein voller `make gates` läuft (PID 2209712 beim Start), deshalb weder `make docs-check` noch `make kopf-check` nach dem Dokument-Commit `6ca83617` gefahren; der Beleg für den Endstand steht aus (der volle Lauf, oder ein Lauf nach seinem Ende) |
+| V-2 MEDIUM Form der Ausgänge | an den Planner: Hinweis in §6; Ausgang wird dort nicht umgeschrieben |
+| V-3 LOW Meldeschwelle | **Meldung:** Größe 441 (Einfügungen 441, Löschungen 0; `git diff --numstat bda6efef..6ca83617 -- docs/developer`), über der Meldeschwelle 400, unter der Marke 500; vor der Nacharbeit 407 (`d725a22c`), 385 (`531f357e`). Folge benennt der Planner bei der Closure |
+| V-4 INFO Kennungen | behoben: Plan §3 |
+| V-5 INFO Zeiten | behoben: §13 des Dokuments nennt „Zeiten des Versuchs-Containers nicht wiederholt“ |
+
+**Mutation je Aussage der Nacharbeit** (Dokument, kein Code): die neuen Sätze sind Aussagen über den
+Versuchs-Container; ein Gegenbeispiel ist die Probe, die sie widerlegte: `sshd` lauscht an Loopback ↔ `ss -ltn`
+zeigt `0.0.0.0:22`; Klon 28 MB ↔ `du` 47 MB/18 MB; Home im Volume ↔ `findmnt` (vier Mounts, `/home/vscode` im Overlay).
+Nicht gesehen: das Verschwinden von `~/.gitconfig` nach `down`/`up` und der Zugang eines zweiten Containers; beide
+tragen im Dokument „gefolgert“ und stehen in §13.
+
+**Frage an den Nutzer (aus R2 F-2, keine Entscheidung des Implementers):** Braucht der Betrieb Schritte für die
+Zugangsdaten im Container (zum Beispiel Abmelden vor `u-boot down`, ein Netz-Ausgang, der nur bestimmte Ziele
+erlaubt, Verzicht auf die Claude-Anmeldung im Container)? Das Dokument erfindet keine; es nennt nur die Lage.
+
+**Läufe.** `make docs-check` und `make kopf-check` nach `6ca83617` **nicht gefahren**: `pgrep -fa "^make gates"` zeigte
+PID 2209712. Der Hook verlangt nach dem Dokument-Commit einen vollen Lauf auf diesem Stand (Plan §6).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
