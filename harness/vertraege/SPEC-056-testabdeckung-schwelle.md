@@ -17,7 +17,7 @@ Die unveränderte Kopie ist grün, und je Fall bricht eine Mutation genau ihn. U
 
 1. **Schwelle.** Die Schwelle steht an einer Stelle, in dieser Datei, in der Zeile
 **Schwelle:** `94` Prozent der Anweisungen.
-   (Die Zeile steht ohne Einrückung am Zeilenanfang, in der Quelle ohne Leerzeile davor; sie
+   (Die Zeile steht ohne Einrückung am Zeilenanfang; was davor steht, ist gleich; sie
    beginnt mit `**Schwelle:** `, der Wert steht in Backticks. Eine eingerückte Zeile zählt nicht.) Einheit: Prozent der Anweisungen, ganze
    Zahl. Grund: gemessen 94,45 % (4201 von 4448 Anweisungen) bei Quellstand `69aaf3f7`, auf die ganze
    Zahl abgerundet; der Abstand von 19 Anweisungen ist der Spielraum für Umbauten. Die Regel, nach der

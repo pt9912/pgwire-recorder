@@ -247,7 +247,7 @@ Implementer nicht, er gibt es zurück.
 
 - **Die Zahl** (Punkt 1) — gemessen 94,45 % (4201 von 4448 Anweisungen, Quellstand `69aaf3f7`), Schwelle auf die ganze Zahl
   abgerundet: 94. Abstand 19 Anweisungen. Eine Anhebung folgt derselben Regel.
-- **Stelle der Zeile `**Schwelle:**`** (Punkt 1) — entschieden am 2026-10-17: am echten Zeilenanfang, ohne Einrückung;
+- **Stelle der Zeile `**Schwelle:**`** (Punkt 1) — entschieden am 2026-10-17: am echten Zeilenanfang, ohne Einrückung; eine Leerzeile davor ist ohne Belang (Darstellungsdetail, das das Gate nicht erzwingt, Entscheidung des Architect 2026-10-17);
   `build.mk` liest mit `^\*\*Schwelle:\*\*`, die Gegenprobe (`^ *` an drei Stellen) zieht nach, ein Fall „eingerückte Zeile
   zählt nicht“.
 - **Reihenfolge mehrerer Gründe** (Punkt 6) — entschieden am 2026-10-17: (a), (b), (c), (g), (h), dann (d), (e), (f); (d) und
