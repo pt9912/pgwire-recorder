@@ -136,9 +136,9 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ### Belege des Implementers
 
-Stand: Basis `2e89f594`, Docker Server 29.9.0 `linux/amd64`, Probe-Läufe am 2026-10-17 nach dem Ende des vollen `make gates` (Nachweis 06:28).
+Stand: Basis `2e89f594`, Docker Server 29.9.0 `linux/amd64`, Probe-Läufe am 2026-10-17 nach dem Ende des vollen `make gates` (Nachweis 06:28); Messung der Marke am Ende (§4).
 
-**Halt:** `make test-container` ist in zwei Läufen nach dem Gate-Lauf **rot** (`PostgreSQL nicht bereit`, je 2 m 01 s), obwohl er im vollen `make gates` desselben Stands grün war (`test-container: grün`, Punkte 4 bis 7). Ursache gemessen: Der Dateisystem-Speicher des Docker-Servers (`/docker`) ist zu 100 % belegt (`df`: 450G von 472G, 0 verfügbar); `initdb` des Containers aus dem PostgreSQL-Image endet mit `could not create directory "/var/lib/postgresql/data/pg_wal": No space left on device`. 668 anonyme Volumes ohne Container belegen 169,6 GB. Dass `docker rm -f` auf einen Container aus dem PostgreSQL-Image ein Volume zurücklässt, ist gemessen (`docker create` + `docker rm -f`: 668 → 669 Volumes ohne Container); `tools/harness/run-container.sh` Zeile 37 räumt mit `rm -f` ohne `-v`. Das Gate belegt „Container, Netz und Tags entfernt“ (`SPEC-055` Punkt 9), nennt Volumes nicht. Rückgabe an Planner und Architect, kein Eingriff in den Code dieses Slice (§1). Ich habe die Volumes nicht entfernt.
+**Hinweis an Architect und Planner (Befund gegen den Geber `slice-v1-abschluss-container`, Ausgang dort):** Zwei Läufe von `make test-container` waren rot (`PostgreSQL nicht bereit`, je 2 m 01 s), weil der Docker-Speicher voll war (`initdb`: `No space left on device`; 668 Volumes ohne Container, 169,6 GB). Ein Container aus dem PostgreSQL-Image hinterlässt beim `docker rm -f` ein Volume (`docker create` + `docker rm -f`: 668 → 669), und `tools/harness/run-container.sh` Zeile 37 räumt ohne `-v`. Gemessen am Lauf nach dem Aufräumen: Volumes ohne Container vor `make test-container` 47, danach 48, also ein Volume je Lauf; `SPEC-055` Punkt 9 nennt Volumes nicht. Dieser Slice ändert nichts daran (Gate-Code, §1).
 
 **Läufe (nacheinander)**
 
@@ -151,11 +151,11 @@ Stand: Basis `2e89f594`, Docker Server 29.9.0 `linux/amd64`, Probe-Läufe am 202
 | `make binaries VERSION=1.2.3` (`dist/` entfernt) | Namen `pgwire-recorder_1.2.3_…`, unter Windows `.exe`; `version` gibt `pgwire-recorder 1.2.3`; `sha256sum -c` `OK` |
 | `docker build --target runtime --platform linux/arm64 -t pgwire-recorder:dev-arm64 .` und `docker image inspect --format '{{.Os}}/{{.Architecture}}'` | `linux/arm64`; Tag danach entfernt |
 | `make build`, `docker image inspect …`, `docker run --rm pgwire-recorder:dev version` | `linux/amd64`, `pgwire-recorder dev` |
-| `make test-container` | rot, 2 mal (siehe Halt); grün im vollen `make gates` (Log: Punkte 4 bis 7 grün, `test-container: grün`) |
+| `make test-container` (nach dem Aufräumen des Speichers, kalter Cache) | grün, 2 m 09 s: Punkte 4 bis 7 grün; danach keine Container außer `pgr-dev`, keine Netze/Tags `pgr-ct-*`, keine `pgr-container.*`; ein Volume ohne Container mehr (47 → 48). Zuvor zwei rote Läufe wegen vollen Speichers (Hinweis oben); grün auch im vollen `make gates` |
 | `make docs-check` | 959 Dateien, 0 Befunde |
 | `make kopf-check`, `make meldungskatalog-check`, `make abdeckung-check` | je Exit 0 |
 | `make gates-schnell` | grün, 10 s |
-| `dist/` entfernt | ja; Container `pgr-ct-*`, Netze und Temp-Verzeichnisse `pgr-container.*` nach `test-container` nicht vorhanden; zurück bleiben die Volumes (siehe Halt) |
+| `dist/` entfernt | ja; Container `pgr-ct-*`, Netze und Temp-Verzeichnisse `pgr-container.*` nach `test-container` nicht vorhanden; zurück bleibt ein Volume je Lauf (siehe Hinweis) |
 
 **Zusagen** (Satz · Probe · Beobachtung)
 
@@ -169,9 +169,9 @@ Stand: Basis `2e89f594`, Docker Server 29.9.0 `linux/amd64`, Probe-Läufe am 202
 | Auf Linux mit `amd64` startet `./dist/…_linux_amd64 version` | Aufruf | `pgwire-recorder dev` |
 | `make build` baut das Image für die Plattform des Docker-Servers | `docker image inspect` | `linux/amd64` |
 | `docker build --target runtime --platform linux/arm64 …` baut das Image für `linux/arm64`; die Zeile `inspect` gibt `linux/arm64` aus | Aufruf | `linux/arm64` |
-| Gestartet und mit Aufzeichnen und Wiedergeben geprüft ist nur das Image für `linux/amd64`, Docker 29.9.0 | voller `make gates` (Punkt 7 grün); eigener Lauf rot wegen des vollen Speichers | **nur der Lauf im vollen Gate belegt es**; Lauf des Verifiers nach Freigabe des Speichers nötig |
-| Die übrigen Binaries und das Image für `linux/arm64` sind gebaut, Kopf und Metadaten gezeigt, nicht ausgeführt | Gate Punkte 5 und 6 (grün im vollen Lauf); Handlauf `inspect` | wie behauptet; „nicht ausgeführt“ belegt kein Lauf, es ist die Grenze des Gates (`SPEC-055` Punkt 13) |
-| `releasing.md`: `make test-container` baut zweimal, vergleicht Summen, prüft Kopf und Image, startet das Image der Plattform des Servers, PostgreSQL beim Wiedergeben entfernt | Gate-Lauf (grün), Vertrag `SPEC-055` Punkte 4 bis 7 | Prosa folgt dem Vertrag, der Lauf des Verifiers steht aus |
+| Gestartet und mit Aufzeichnen und Wiedergeben geprüft ist nur das Image für `linux/amd64`, Docker 29.9.0 | `make test-container`, Punkt 7 | grün, Smoke auf `linux/amd64` |
+| Die übrigen Binaries und das Image für `linux/arm64` sind gebaut, Kopf und Metadaten gezeigt, nicht ausgeführt | `make test-container` Punkte 5 und 6 (grün); Handlauf `inspect` | wie behauptet; „nicht ausgeführt“ belegt kein Lauf, es ist die Grenze des Gates (`SPEC-055` Punkt 13) |
+| `releasing.md`: `make test-container` baut zweimal, vergleicht Summen, prüft Kopf und Image, startet das Image der Plattform des Servers, PostgreSQL beim Wiedergeben entfernt | `make test-container` grün (Punkte 4 bis 7) | Prosa folgt dem Vertrag und dem Lauf |
 
 **Quantoren-Durchsicht** (neue und angrenzende Sätze): „jede Zeile der Ausgabe endet auf `OK`“ — sechs Zeilen beobachtet, eng gefasst auf `sha256sum -c`; „sechs Plattformen“, „alle sechs“ — „alle sechs Binaries“ ist nicht Text geblieben (ersetzt durch „die übrigen“); „muss leer sein oder fehlen“ — beide Fälle: fehlend (erster Lauf), nicht leer (zweiter Lauf), leeres vorhandenes `dist/` (`mkdir dist`, `make binaries`): sechs Binaries und `SHA256SUMS`, sieben Dateien; „nur das Image für `linux/amd64`“ — Grenze des Gates; unverändert: „Das Binary im Image ist ein statisch gebundenes Linux-Programm für die Architektur des Rechners“ (`make build` auf `amd64` gibt `linux/amd64`, läuft in `distroless/static`).
 
