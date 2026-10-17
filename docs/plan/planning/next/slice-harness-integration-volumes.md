@@ -20,10 +20,11 @@ Harness, keine Zusage des Produkts. Bindung an Entscheidungen:
 [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md) (Integrationstests
 gegen ein gepinntes PostgreSQL-Image; der Runner ist dort der Träger).
 
-**Berührte Spec-Stellen:** `SPEC-038` (neuer Absatz *Aufräumen der Integrationstests*, vom
-Architect vor dem Code anzulegen); `SPEC-052` (Punkt 4 und 13: Eintrag der neuen Gegenprobe in
-die Ausnahmeliste der schnellen Kette und der Beleg, dass sie `docs/user/` und `README.md` nicht
-liest; Architect, vor dem Code); `SPEC-048` (nur Bindung: Form der Abdeckungs-Deklaration im Kopf der Gegenprobe, §1; keine Änderung)
+**Berührte Spec-Stellen:** `SPEC-057` (neuer Vertrag *Aufräumen der Integrationstests* in
+`harness/vertraege/`, Ort nach `MR-002`; vom Architect am 2026-10-17 geschrieben, nicht im Diff dieses
+Slice); `SPEC-052` (Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest;
+Architect am 2026-10-17, nicht im Diff; Punkt 4 gilt nach dem Namen ohne Änderung); `SPEC-048` (nur Bindung: Form der
+Abdeckungs-Deklaration im Kopf der Gegenprobe, §1; keine Änderung)
 
 **Verantwortlich:** pt9912
 
@@ -93,7 +94,7 @@ damit `make gates` scheiterten mit „PostgreSQL nicht bereit“. Der Nutzer sch
 - Produkt-Code, Tests unter `test/integration`, das `Dockerfile` und das Produkt-Image —
   Schicht-Abgrenzung: Der Slice ändert nur Skripte unter `tools/test`, Make-Fragmente unter
   `harness/mk` (`integration.mk`, `gates-schnell.mk`) und die Dokumentation und Verträge des
-  Gates (`harness/README.md`, `SPEC-038`, `SPEC-052`).
+  Gates (`harness/README.md`; die Verträge `SPEC-057` und `SPEC-052` sind vor dem Code geschrieben).
 
 **Sendungen an Dritte** (`AGENTS.md` §3.13; mit der Kennung dieses Slice als Geber):
 
@@ -102,7 +103,7 @@ damit `make gates` scheiterten mit „PostgreSQL nicht bereit“. Der Nutzer sch
   `GATE_SCHNELL_AUSNAHME`, sonst ist `gates-schnell-gegenprobe` rot. Punkt 13 verlangt für jedes
   Gate der Ausnahmeliste auf `-gegenprobe` den Beleg, dass es `docs/user/` und `README.md` des
   Arbeitsbaums nicht liest; die Gegenprobe fährt in Kopien, die sie selbst anlegt (§3), und der
-  Beleg steht in `SPEC-052` Punkt 13 (Architect, vor dem Code). Der Eintrag und die Zeile stehen
+  Beleg steht in `SPEC-052` Punkt 13 (Architect, geschrieben). Der Eintrag und die Zeile stehen
   im selben Commit wie das Ziel.
 - *An `slice-harness-abdeckung-gate` (Nehmer der Bindung, nicht dieser Slice):*
   `tools/test/integration-volumes-gegenprobe.sh` liegt unter dem Muster `tools/**/*-gegenprobe.sh`,
@@ -129,10 +130,11 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       grünen Tests) und entfernt die Reste per Namen (§6). Die Funktionen liegen in einer
       Datei, die Runner und Gegenprobe laden.
 - [ ] Gegenprobe: `make integration-volumes-gegenprobe` hängt an `GATE_CHECKS` und fährt
-      in Kopien des Arbeitsbaums mit realem Docker die Fälle aus §6 *Mutationen*: Grundfall
-      ohne Rest, Mutant ohne `-v` rot mit dem Namen des Volumes, Abbruch durch SIGTERM, Container
-      nur angelegt, fremde Volumes bleiben; je Fall die Zahl der Volumes der Probe vor und nach
-      (nach Namen). Die Zeile steht in `harness/README.md` §Sensors, der Vertrag in `SPEC-038`; das Ziel steht in
+      mit realem Docker die neun Fälle aus `SPEC-057` Punkt 7 (Grundfall, Mutant ohne `-v` rot mit dem
+      Namen des Volumes, Container nur angelegt, kein Container, fremde Volumes bleiben, Rest macht den
+      Lauf rot, Vorrang des Codes, `SIGTERM`, `SIGINT`); je Fall die Namen der Probe vor und nach,
+      nicht die Zahl auf dem Host; je Zusage die Mutation selbst rot gesehen, im Bericht
+      *Zusage · Mutation · roter Fall*. Die Zeile steht in `harness/README.md` §Sensors, der Vertrag in `SPEC-057`; das Ziel steht in
       `GATE_SCHNELL_AUSNAHME` (`harness/mk/gates-schnell.mk`), und `SPEC-052` Punkt 13 trägt den
       Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest (§1, Sendungen).
 - [ ] `make gates` grün.
@@ -158,9 +160,9 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/test/integration-volumes-gegenprobe.sh` | neu | Fälle aus §6 *Mutationen* gegen reales Docker, Mutant per Ersetzung in einer Kopie der Funktionsdatei (das Skript bricht ab, wenn die Ersetzung nichts oder mehr als eine Stelle trifft); Zahl der Volumes der Probe nach Namen |
 | `harness/mk/integration.mk` | update | Ziel `integration-volumes-gegenprobe`, an `GATE_CHECKS`, hinter `test-integration` |
 | `harness/mk/gates-schnell.mk` | update | `integration-volumes-gegenprobe` in `GATE_SCHNELL_AUSNAHME` (`SPEC-052` Punkt 4; sonst ist `gates-schnell-gegenprobe` rot), im Commit des Ziels |
-| `harness/vertraege/SPEC-052-gate-kette.md` | update (Architect) | Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest, und Punkt 4, soweit die Aufzählung die Gegenprobe nennt; vor dem ersten Code-Commit |
+| `harness/vertraege/SPEC-052-gate-kette.md` | geschrieben (Architect) | Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest; Punkt 4 gilt nach dem Namen, ohne Text; liegt vor dem Anspruch und ist nicht Teil des Diffs |
 | `harness/README.md` | update | Zeile in §Sensors für das Ziel; die Zeile von `make test-integration` nennt die Prüfung; die Zeile von `gates-schnell` nennt die Ausnahmeliste unverändert (kein Gate-Name dort) |
-| `spec/spezifikation.md` (`SPEC-038`) | update (Architect) | Absatz *Aufräumen der Integrationstests* mit den Entscheidungen aus §6, vor dem ersten Code-Commit |
+| `harness/vertraege/SPEC-057-integration-aufraeumen.md`, `harness/vertraege/README.md` | geschrieben (Architect) | der Vertrag mit den Entscheidungen aus §6, 9 Fälle und Mutationen in Punkt 7; weicht der Code ab, zieht der Implementer den Vertrag im selben Commit nach (`AGENTS.md` §3.9) |
 
 - Der Implementer misst die Images von `a-check` und `d-migrate` (`docker image inspect`, Feld
   `.Config.Volumes`) für den Beleg in §7; die Messung ändert nichts am Umfang.
@@ -184,16 +186,18 @@ am meisten Gate-Läufe brauchen. Das Leck beträgt rund 75 MB je Lauf von `make 
 in zehn Tagen), die Platte hat nach der Bereinigung Reserve. Meldet `make test-integration`
 vor dem Start wieder „PostgreSQL nicht bereit“ bei voller Platte, zieht der Planner den Slice
 vor die laufende Welle (Umplanung im Drift-Log, Entscheidung des Nutzers). Vor dem ersten
-Code-Commit entscheidet der Architect die Randformen aus §6 in `SPEC-038`
+Code-Commit hat der Architect die Randformen aus §6 am 2026-10-17 in `SPEC-057` entschieden
 (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
 **Größe** (`AGENTS.md` §3.14): Metrik ist die Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test harness/mk/integration.mk
-harness/mk/gates-schnell.mk harness/README.md harness/vertraege/SPEC-052-gate-kette.md
-spec/spezifikation.md`, Tests eingeschlossen. Basis: der Commit des Anspruchs (`next` →
+harness/mk/gates-schnell.mk harness/README.md harness/vertraege`, Tests eingeschlossen. Basis: der Commit des Anspruchs (`next` →
 `in-progress`), beim Anspruch einzutragen. Schätzung (Arbeitswert des Planners aus den
-Bestandsmaßen, vom Architect vor dem Code zu bestätigen; die Gegenprobe zählt mit dem Doppelten
-des Produktcodes): 450 bis 750, Mitte 600. **Meldeschwelle 750:** Wer im Lauf darüber liegt oder
+Bestandsmaßen; vom Architect am 2026-10-17 auf 350 bis 600 korrigiert, Mitte 470, Obergrenze 600:
+Die Verträge `SPEC-057` und `SPEC-052` liegen mit dem Anspruch schon im Bestand und zählen nicht;
+Produktcode rund 150 Zeilen (Runner, Funktionsdatei, Fragmente, Gate-Index), Gegenprobe mit dem
+Doppelten des Produktcodes und neun Fällen rund 200 bis 300): Die Meldeschwelle bleibt bei 750.
+**Meldeschwelle 750:** Wer im Lauf darüber liegt oder
 liegen wird, meldet es dem Planner, bevor er weiterbaut. **Marke 900:** darüber gilt die
 Rückführung unten, ohne Ermessen.
 
@@ -201,12 +205,12 @@ Rückführung unten, ohne Ermessen.
 
 - `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe der Metrik liegt über 900,
   oder die Gegenprobe braucht mehr als die
-  fünf Fälle aus §6 *Mutationen* oder eine eigene Laufzeitumgebung und ist nicht in einer
+  neun Fälle aus `SPEC-057` Punkt 7 oder eine eigene Laufzeitumgebung und ist nicht in einer
   Review-Sitzung prüfbar; Schnitt dann: Aufräumen und Prüfung im Runner hier, die Gegenprobe
   mit dem Ziel in einem eigenen Slice direkt dahinter.
 - `in-progress` → `open` (blockiert — Carveout?): `docker inspect` nennt die Volumes eines
   Containers nicht verlässlich (im Zustand `created`, auf einem Docker, den der Nutzer
-  einsetzt); dann entscheidet der Architect einen anderen Weg zu den Namen (etwa Volumes
+  einsetzt; `SPEC-057` Punkt 8 fängt es in der Gegenprobe ab); dann entscheidet der Architect einen anderen Weg zu den Namen (etwa Volumes
   unter eigenem Namen in `docker run`), bevor der Slice weitergeht.
 
 ## 5. Closure-Trigger
@@ -226,58 +230,29 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 dasteht.
 
 **Randformen** (`AGENTS.md` §3.12) — der Slice liefert einen neuen Vertrag (die Prüfung im
-Runner, die Gegenprobe als Gate). **Zu entscheiden vom Architect vor dem ersten Code-Commit,
-Ort: `SPEC-038`, Absatz *Aufräumen der Integrationstests*;** die Empfehlung des Planners steht
-je Punkt dabei und gilt, bis der Architect oder der Nutzer anderes sagt (der Nutzer hat verfügt,
-ohne Nachfrage weiterzumachen). Eine nicht genannte oder offene Randform entscheidet der
-Implementer nicht, er gibt sie zurück.
+Runner, die Gegenprobe als Gate). **Entschieden vom Architect am 2026-10-17 in
+[`SPEC-057`](../../../../harness/vertraege/SPEC-057-integration-aufraeumen.md)** (Ort nach `MR-002`, nicht
+`SPEC-038`: Der Runner ist ein Harness-Werkzeug); die Empfehlungen des Planners sind bis auf die
+Fälle unten übernommen. Eine nicht genannte oder offene Randform entscheidet der Implementer nicht, er gibt sie
+zurück.
 
-- *Abbruch mitten im Lauf* — Empfehlung: SIGINT und SIGTERM beenden den Runner über den
-  `trap … EXIT`, das Aufräumen läuft, die Prüfung auch; SIGKILL und ein Absturz des Hosts
-  räumen nichts auf (akzeptiertes Negativ, kein Gegenmittel im Skript: ein Neustart des
-  Runners findet die Container des alten Laufs nicht, weil ihr Name die PID trägt). Die
-  Gegenprobe prüft den Fall SIGTERM mit Containern im Zustand `created`.
-- *Parallele Läufe* (zwei `make test-integration` auf demselben Host, auch anderer Projekte) —
-  Empfehlung: Die Prüfung liest und prüft nur die Namen aus `docker inspect` der Container
-  des eigenen Laufs (Präfix `pgr-it-<PID>`); nie die Zahl der Volumes auf dem Host, nie
-  `docker volume ls --filter dangling=true`, nie ein Name, den dieser Lauf nicht gelesen hat.
-  Die Gegenprobe zählt deshalb je Fall nur die Namen ihrer eigenen Container.
-- *Fehlgeschlagener Start* — Empfehlung: Scheitert `docker run -d` nach dem Anlegen des
-  Containers (Netz fehlt, Port, Image-Start), steht der Container im Zustand `created` und das
-  Volume schon in `Mounts`; das Aufräumen liest die Namen für jeden Zustand unmittelbar vor
-  `rm -fv`. Existiert der Container nicht (Image nicht ladbar), gibt es keine Namen, und die
-  Prüfung ist ohne Fehler leer. Der Runner endet dann wie heute mit dem Fehler des Starts.
-- *Welche Volumes zählen* — Empfehlung: alle Mounts vom Typ `volume` der Container `$pg` und
-  `$tests` außer `$daten`; `$daten` entfernt weiter `volume rm` unter seinem Namen. Ob ein
-  Volume „anonym“ heißt, entscheidet nicht das Skript, sondern die Herkunft aus dem Container.
-- *Rest nach dem Entfernen* — Empfehlung: Die Prüfung nennt die Namen, entfernt sie per Namen
-  (nur diese) und setzt den Exit-Code auf 1, sofern der Lauf nicht schon mit einem Code
-  ungleich 0 endet; der Code des Testlaufs behält Vorrang. Die Meldung nennt keinen Inhalt des
-  Volumes (ein PostgreSQL-Datenverzeichnis kann Zugangsdaten tragen).
-- *Docker-Versionen* — Empfehlung: `docker inspect` mit `Mounts` im Zustand `created` ist mit
-  Docker 29.9.0 gemessen (2026-10-12); ältere Versionen sind nicht gemessen (akzeptiertes
-  Negativ, `DOCKER` bleibt der einzige Parameter wie heute).
-- *Image mit ungeprüftem `VOLUME`* — Empfehlung: Ein künftiges Image im Runner, das ein
-  `VOLUME` deklariert, erfasst die Prüfung ohne Änderung, solange es als Container des Laufs
-  startet; ein neues `docker run` außerhalb des Runners bleibt unberührt (kein Sensor dafür,
-  siehe Risiko unten).
-- *Leere Namensliste* — Empfehlung: kein Fehler, keine Meldung.
-- *Ausnahmeliste und Beleg der schnellen Kette* (Sendung aus §1, `SPEC-052` Punkt 4 und 13) —
-  Empfehlung: `integration-volumes-gegenprobe` steht in `GATE_SCHNELL_AUSNAHME`; der Beleg in
-  Punkt 13 sagt, dass die Gegenprobe nur Skripte unter `tools/test` und `harness/mk` in ihre
-  Kopien legt und `docs/user/`, `README.md` und `docs/plan/planning/` weder kopiert noch liest; ein
-  Fall der Gegenprobe der Kette (`gates-schnell-gegenprobe`) hält die Ausnahmeliste.
-
-**Mutationen** (`AGENTS.md` §3.10, für das Gate): je Zusage der Fall der Gegenprobe, vom
-Implementer selbst rot gesehen, im Bericht als *Zusage · Mutation · roter Fall*.
-
-| Zusage | Mutation (nur sie) | roter Fall |
+| Randform | Entscheidung | Stelle |
 |---|---|---|
-| Nach einem Lauf bleibt kein Volume der eigenen Container | `rm -f` statt `rm -fv` in der Kopie der Funktionsdatei | Grundfall der Gegenprobe, Meldung nennt den Namen |
-| Die Prüfung liest die Namen vor dem Entfernen, auch im Zustand `created` | Namen werden erst nach dem Entfernen gelesen | Fall *Container nur angelegt* |
-| Das Aufräumen läuft beim Abbruch | `trap` entfällt in der Kopie des Runners | Fall *SIGTERM* |
-| Das Werkzeug berührt kein fremdes Volume | die Prüfung entfernt alle Volumes ohne Container | Fall *fremde Volumes* |
-| Rest macht den Lauf rot, auch bei grünen Tests | der Exit-Code der Prüfung wird verworfen | Grundfall des Mutanten ohne `-v` (Exit-Code) |
+| Abbruch mitten im Lauf | `SIGINT` und `SIGTERM` laufen durch die Falle `EXIT`, je ein Fall (Empfehlung war nur `SIGTERM`: §3.10 zählt je Element); `SIGKILL`, Ausfall des Hosts, Docker-Dienst weg: nicht zugesagt | Punkt 5 |
+| Parallele Läufe | nur Namen aus `docker inspect` der eigenen zwei Container, nie Zahl oder Filter des Hosts; Fall *fremde Volumes* | Punkt 4, Fall `p4-fremd` |
+| Fehlgeschlagener Start | Namen werden vor dem Entfernen in jedem Zustand gelesen; kein Container ergibt eine leere Liste ohne Fehler | Punkt 3 |
+| Welche Volumes zählen | Mounts vom Typ `volume` der zwei Container außer `$daten`; Herkunft, nicht Name | Punkt 1 |
+| Rest nach dem Entfernen | Namen melden (kein Inhalt), per Namen entfernen, Exit 1; ein Code ungleich 0 des Laufs behält Vorrang (Fall `p4-vorrang`, neu) | Punkt 4 |
+| Docker-Versionen | gemessen 29.9.0; eine blinde Version macht `p2-ohne-v` grün und die Gegenprobe rot, sonst nicht zugesagt | Punkt 8 |
+| Image mit ungeprüftem `VOLUME` | erfasst, solange es als Container des Runners läuft; `docker run` außerhalb: Grenze | Punkt 1 und 11 |
+| Leere Namensliste | kein Fehler, keine Meldung (Fall `p3-kein-container`) | Punkt 3 |
+| Ausnahmeliste und Beleg (Sendung aus §1) | `integration-volumes-gegenprobe` steht in `GATE_SCHNELL_AUSNAHME` (der Implementer trägt die Zeile ein); Beleg in `SPEC-052` Punkt 13 geschrieben | Punkt 10, `SPEC-052` Punkt 13 |
+| Aufrufarten von `make` (`-n`, `-q`, `-t`, `-i`, `MAKEFLAGS`) | kein Stand, nur Exit-Code; akzeptiertes Negativ mit Grund | Punkt 9 |
+
+**Mutationen** (`AGENTS.md` §3.10): die Tabelle *Fall · Zusage · Mutation* steht in `SPEC-057`
+Punkt 7; der Implementer sieht jede Mutation selbst rot und nennt sie im Bericht als
+*Zusage · Mutation · roter Fall*. Hinweis zu den Kosten: Die Fälle `p5-*` starten den Runner bis
+zum Container `$pg` (wenige Sekunden); alle übrigen kommen mit `docker create` ohne Start aus.
 
 **Risiken:**
 
@@ -339,8 +314,8 @@ Keiner der Einträge erreicht mit diesem Plan die Schwelle 3× neu.
 
 Liefer-Punkte: 3. Schichten nach der Zählung in `AGENTS.md` §3.13: zwei (Harness-Werkzeug mit
 `tools/test` und `harness/mk`; Gate-Index und Spezifikation mit der Zeile in `harness/README.md`
-und den Absätzen in `SPEC-038` und `SPEC-052`, gezählt als eigene Schicht, weil §3.13 die
-Harness-Dokumentation nicht ausnimmt); kein Produkt-Code, keine Nutzer-Doku.
+und den Verträgen `SPEC-057` und `SPEC-052`, gezählt als eigene Schicht, weil §3.13 die
+Harness-Dokumentation nicht ausnimmt; die Verträge sind vor dem Anspruch geschrieben und nicht Teil des Diffs); kein Produkt-Code, keine Nutzer-Doku.
 
 **Nachgezählt** mit den Sendungen aus §1 (`gates-schnell.mk` und `SPEC-052`; Geber dieser Slice):
 Liefer-Punkte weiter 3 (der Eintrag in die Ausnahmeliste und der Beleg in `SPEC-052` wachsen in

@@ -32,6 +32,7 @@ ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/
 | `SPEC-053` | `test-postgres-versionen` | [`SPEC-053-postgres-versionen.md`](SPEC-053-postgres-versionen.md) |
 | `SPEC-054` | `meldungskatalog-check` | [`SPEC-054-meldungskatalog.md`](SPEC-054-meldungskatalog.md) |
 | `SPEC-055` | `binaries`, `test-container` | [`SPEC-055-container-und-binaries.md`](SPEC-055-container-und-binaries.md) |
+| `SPEC-057` | `test-integration` (Aufräumen), `integration-volumes-gegenprobe` | [`SPEC-057-integration-aufraeumen.md`](SPEC-057-integration-aufraeumen.md) |
 
 ## Historie
 
@@ -56,3 +57,4 @@ ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/
 | 2026-10-14 | Harness-Werkzeuge: Versionsmatrix der Integrationstests mit Liste, Teilmenge, Eingabefehlern, Prüfung der Hauptversion des Servers, Ablauf, Aufräumen, Aufrufarten des Treibers und Grenzen (`SPEC-053`); Ausnahmeliste der schnellen Kette um `test-postgres-versionen` (`SPEC-052`) |
 | 2026-10-17 | Harness-Werkzeuge: Abgleich von Code-Tabelle, Meldungskatalog der Spezifikation und Fehlercode-Tabellen des Handbuchs mit Quellen, Form, Mengenregeln (Rückfälle ohne Konstante zugelassen), Sperren, Ausgabe und Anschluss ohne Stufung (`SPEC-054`); Beleg des Handbuchs in der schnellen Kette (`SPEC-052`, Punkt 13) |
 | 2026-10-17 | Harness-Werkzeuge: Binaries je Zielplattform mit `SHA256SUMS`, Gate über zwei Builds ohne Cache, Kopf der Binaries, Image je Plattform, Smoke im Container, Aufräumen, Aufrufarten des Treibers und Grenzen (`SPEC-055`) |
+| 2026-10-17 | Harness-Werkzeuge: Aufräumen der Integrationstests mit Gegenstand (Mounts vom Typ `volume`), `rm -fv`, Lesen vor dem Entfernen, Rest und Vorrang des Codes, Ende des Laufs, Fälle und Mutationen der Gegenprobe, Docker-Version und Grenzen (`SPEC-057`); Beleg der Gegenprobe für `docs/user/` und `README.md` (`SPEC-052`, Punkt 13) |
