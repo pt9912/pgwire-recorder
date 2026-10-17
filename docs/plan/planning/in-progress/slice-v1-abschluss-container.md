@@ -188,7 +188,7 @@ Punkt 1 (Plattformen, vor dem ersten `docker`):
 | Eintrag doppelt | `P1d` | `p1d-doppelt` |
 | Plattform fehlt, je eine der sechs und der zwei | `ERF_BINARIES`/`ERF_IMAGES` ohne diese Plattform | `p1e-bin-<plattform>` (sechs, bei `darwin/arm64` auch `p1e-binaries`), `p1e-img-<plattform>` (zwei) |
 | Image-Plattform nicht in den Binaries | `P1f` | `p1f-image-nicht-in-binaries` |
-| Eingabefehler endet vor `docker` (Gate) | `P8vor-docker` (`run-container.sh`) | alle Fälle von Punkt 1 und 2, dazu `p8-1-vor-5` |
+| Eingabefehler endet vor `docker` (Gate) | `P8vor-docker` (`run-container.sh`) | alle Fälle von Punkt 1 und 2, dazu `p2-dev-gate`, `p8-1-vor-5` |
 | dasselbe bei `make binaries` | `exit 2` in `binaries.sh` entfernt | `p1e-binaries`, `p2-binaries`, `p3-dist-nicht-leer`, `p3-zweiter-lauf` |
 
 Punkt 2 (`VERSION`):
