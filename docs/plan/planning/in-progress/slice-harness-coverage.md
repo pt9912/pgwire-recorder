@@ -189,7 +189,7 @@ Schwelle (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 **Größe** (`AGENTS.md` §3.14): Metrik ist die Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- Dockerfile .dockerignore harness/mk
 tools/harness tools/test harness/vertraege harness/README.md docs/user docs/plan/adr`, Tests
-eingeschlossen. Basis: der Commit des Anspruchs (`next` → `in-progress`), beim Anspruch
+eingeschlossen. Basis: der Commit des Anspruchs (`next` → `in-progress`), `9ee6387d`, beim Anspruch
 einzutragen. Schätzung (Arbeitswert des Planners aus den Bestandsmaßen, vom Architect vor dem Code
 zu bestätigen; die Gegenprobe zählt mit dem Doppelten des Produktcodes): 450 bis 750, Mitte 600.
 **Meldeschwelle 750:** Wer im Lauf darüber liegt oder liegen wird, meldet es dem Planner, bevor er
