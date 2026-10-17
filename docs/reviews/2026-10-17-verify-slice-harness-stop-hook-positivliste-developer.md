@@ -2,7 +2,7 @@
 
 **Rolle:** Verifier (Modul 11) · **Frage:** Bauen wir es richtig, gegen Plan, DoD und Vertrag?
 **Gegenstand:** Diff `97fc3339..HEAD` (Code-Stand `6d58b508`, danach nur Beleg in §7 und Review-Report); Review `docs/reviews/2026-10-17-review-slice-harness-stop-hook-positivliste-developer.md` (0 HIGH, 0 MEDIUM, 0 LOW, 2 INFO), erst nach dem eigenen Urteil gelesen.
-**Eingangs-Kontext:** Slice-Plan (§1 bis §8, Abweichung `p15-ziel-verzeichnis-developer`), `SPEC-052` Punkte 12, 13, 15, `AGENTS.md` §3.9 bis §3.14, ADR-0038, Register `BEO-REPO/stop-hook-positivliste-ohne-docs-developer`. `closure-note-reviewer` nicht einschlägig (Closure steht aus).
+**Eingangs-Kontext:** Slice-Plan (§1 bis §8, Abweichung `p15-ziel-verzeichnis-developer`), `SPEC-052` Punkte 12, 13, 15, `AGENTS.md` §3.9 bis §3.14, [ADR-0038](../plan/adr/0038-gate-kette-voll-und-schnell.md), Register `BEO-REPO/stop-hook-positivliste-ohne-docs-developer`. `closure-note-reviewer` nicht einschlägig (Closure steht aus).
 
 ## Eigene Läufe
 
