@@ -22,7 +22,7 @@ gegen ein gepinntes PostgreSQL-Image; der Runner ist dort der Träger).
 
 **Berührte Spec-Stellen:** `SPEC-057` (neuer Vertrag *Aufräumen der Integrationstests* in
 `harness/vertraege/`, Ort nach `MR-002`; vom Architect am 2026-10-17 geschrieben, nicht im Diff dieses
-Slice); `SPEC-052` (Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest;
+Slice); `SPEC-055` (Punkt 9, Absatz *Volumes*: `test-container` entfernt seine Container mit `rm -fv`; Architect am 2026-10-17, nicht im Diff; Geber `slice-v1-abschluss-container`, geschlossen); `SPEC-052` (Punkt 13: Beleg, dass die Gegenprobe `docs/user/` und `README.md` nicht liest;
 Architect am 2026-10-17, nicht im Diff; Punkt 4 gilt nach dem Namen ohne Änderung); `SPEC-048` (nur Bindung: Form der
 Abdeckungs-Deklaration im Kopf der Gegenprobe, §1; keine Änderung)
 
@@ -45,7 +45,13 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 Host, das einer seiner Container angelegt hat: Das Aufräumen entfernt die anonymen Volumes
 der eigenen Container mit (`docker rm -fv`), der Runner prüft es nach Namen, und eine
 Gegenprobe im Gate zeigt, dass die Prüfung rot wird, wenn jemand die Option wieder
-weglässt.
+weglässt. Dasselbe gilt seit dem 2026-10-17 für `make test-container`: `tools/harness/run-container.sh`
+entfernt seine Container (`$pg` vor dem Wiedergeben und im Aufräumen) mit `rm -fv`, und die Gegenprobe
+`test-container-gegenprobe` hat je Ende einen Fall `p9-*-volume` mit der Mutation `rm -f`
+(`SPEC-055` Punkt 9). Der Befund dort (669 Volumes, 169,6 GB, `test-container` rot am vollen
+Docker-Speicher) ist derselbe Befund, gemessen vom Implementer von `slice-v1-abschluss-container-doku`.
+Geber der Sendung: `slice-v1-abschluss-container` (geschlossen, daher keine Adresse), der Befund kam aus
+`slice-v1-abschluss-container-doku`; dieser Slice nimmt an (Empfehlung des Architect vom 2026-10-17; der Nutzer hat nicht entschieden).
 
 **Befund** (Register: `BEO-REPO/integrationstest-hinterlaesst-anonyme-volumes`, 1×):
 `tools/test/run-integration-tests.sh` ruft im Aufräumen `docker rm -f "$tests" "$pg"` ohne
@@ -62,6 +68,12 @@ damit `make gates` scheiterten mit „PostgreSQL nicht bereit“. Der Nutzer sch
 - Im Runner startet nur `run -d --name "$pg"` (`run-integration-tests.sh:42`) ohne `--rm`; die
   zwei `run --rm` (`:73`, `:84`) laufen mit dem Testimage, dessen `.Config.Volumes` leer ist.
   Das Aufräumen (`:33`) ist `rm -f` ohne `-v`.
+- `tools/harness/run-container.sh` (Stand 2026-10-17): `run -d --name "$pg"` (PostgreSQL-Image, `:183`) ohne
+  `--rm`, entfernt mit `rm -f` in Zeile `:198` (vor dem Wiedergeben, im Lauf) und im Aufräumen (`:37`); `$rec`
+  (`:189`) läuft mit dem Produkt-Image, `.Config.Volumes` misst der Implementer; `psql` (`:169`) und `version`
+  (`:179`) tragen `--rm`; `docker create` (`:143`, `:200`) mit dem Produkt-Image. `run-postgres-versionen.sh`
+  ruft `run-integration-tests.sh` je Version und legt selbst keinen Container an: Es hat kein eigenes Leck, mit
+  der Behebung im Runner ist es mitbehoben.
 - Weitere `docker run` in `tools/` und `harness/mk/`: `harness/mk/build.mk:22`,
   `harness/mk/schema.mk:9` und `:12`, `tools/arch/a-check-negativ.sh:83`,
   `tools/harness/traeger-fetch.sh:146`, jedes mit `--rm`; `docker create` und `docker compose`
@@ -87,6 +99,11 @@ damit `make gates` scheiterten mit „PostgreSQL nicht bereit“. Der Nutzer sch
 - Die übrigen `docker run` (siehe *Bestand*) — Bestand bleibt bewusst stehen: Sie tragen
   `--rm`, das anonyme Volumes beim Ende des Containers mit entfernt (Probe), und kein Image
   davon ist ein Befund; der Slice belegt es in §7 und ändert sie nicht.
+- Eine Prüfung nach Namen in `run-container.sh` (Namen lesen, nachprüfen, Rest entfernen wie `SPEC-057`
+  Punkt 4) — Bestand bleibt bewusst einfach: Nur `$pg` trägt ein `VOLUME`, und die Gegenprobe fängt das
+  Weglassen von `-v`; die Prüfung wäre ein zweiter Vertrag am Gate (`SPEC-055` Punkt 9, akzeptiertes Negativ).
+  Ein gemeinsamer Hilfsaufruf für beide Läufer ist benannt, nicht angelegt: Entstünde ein dritter Läufer mit
+  einem Container eines Images mit `VOLUME`, wäre das der Anlass.
 - Eine Diagnose der vollen Platte im Runner („PostgreSQL nicht bereit“ nennt die Ursache
   nicht, `docker logs` des PostgreSQL-Containers erscheinen nur nach einem roten Testlauf) —
   anderer Vorgang: Es wäre ein neuer Vertrag am Runner mit eigenen Randformen; er braucht
@@ -124,6 +141,13 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       (Fundstelle, Flags, `.Config.Volumes` des Images, auch für `a-check` und `d-migrate`).
       Beleg in §7: Zahl der Volumes dieses Laufs vor und nach einem Lauf von `make test-integration`
       (nach Namen, §6, nicht als Zahl auf dem Host) und die Fundstellen.
+- [ ] Aufräumen in `test-container`: `run-container.sh` entfernt `$pg` an beiden Stellen und alle übrigen
+      Container des Laufs mit `rm -fv`; `container-gegenprobe.sh` hat je Ende (grün, rot, `SIGINT`,
+      `SIGTERM`) einen Fall `p9-*-volume` an der Attrappe, die ein Volume für `$pg` anlegt und nur mit `-v`
+      entfernt, und die Mutationen `rm -f` an je einer der zwei Stellen, selbst rot gesehen (`SPEC-055`
+      Punkt 9); der Fall `p7-pg-vor-replay` zieht die neue Zeile mit. Beleg in §7: Namen der Volumes vor
+      und nach einem Handlauf von `make test-container`. Dieser Punkt wächst in Liefer-Punkt 1 (Aufräumen)
+      hinein, er zählt nicht als vierter.
 - [ ] Prüfung im Runner: Vor dem Entfernen liest der Runner die Namen der Volumes seiner
       Container (außer `$daten`), nach dem Entfernen prüft er, dass keines mehr existiert;
       sonst nennt die Meldung die Namen, der Lauf endet mit Exit-Code ungleich 0 (auch bei
@@ -155,6 +179,8 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
+| `tools/harness/run-container.sh` | update | `rm -fv` an den zwei Stellen für `$pg` (`:198`, im Aufräumen `:37`); eine Zeile je Stelle (`SPEC-055` Punkt 9) |
+| `tools/harness/container-gegenprobe.sh` | update | Attrappe legt für `$pg` ein Volume an und entfernt es nur mit `-v`; Fälle `p9-*-volume` je Ende; Mutationen `rm -f`; die Erwartung von `p7-pg-vor-replay` (`^rm -f …-pg$`) nennt die neue Form |
 | `tools/test/run-integration-tests.sh` | update | `rm -fv` statt `rm -f` für `$tests` und `$pg`; ruft die Prüfung aus der geladenen Datei nach dem Entfernen; die Namen liest sie unmittelbar vor dem Entfernen (§6) |
 | `tools/test/integration-aufraeumen.sh` | neu | Funktionen zum Lesen der Namen, Entfernen und Prüfen; Runner und Gegenprobe laden sie, damit die Gegenprobe den Code des Runners prüft, nicht eine Kopie |
 | `tools/test/integration-volumes-gegenprobe.sh` | neu | Fälle aus §6 *Mutationen* gegen reales Docker, Mutant per Ersetzung in einer Kopie der Funktionsdatei (das Skript bricht ab, wenn die Ersetzung nichts oder mehr als eine Stelle trifft); Zahl der Volumes der Probe nach Namen |
@@ -190,10 +216,11 @@ Code-Commit hat der Architect die Randformen aus §6 am 2026-10-17 in `SPEC-057`
 (`BEO-REPO/randform-wellenlos-ohne-architect-vor-code`).
 
 **Größe** (`AGENTS.md` §3.14): Metrik ist die Summe aus Einfügungen und Löschungen von
-`git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test harness/mk/integration.mk
-harness/mk/gates-schnell.mk harness/README.md harness/vertraege`, Tests eingeschlossen. Basis: der Commit des Anspruchs (`next` →
+`git diff --numstat <Basis>..<letzter Commit des Slice> -- tools/test tools/harness/run-container.sh
+tools/harness/container-gegenprobe.sh harness/mk/integration.mk harness/mk/gates-schnell.mk harness/README.md harness/vertraege`, Tests eingeschlossen. Basis: der Commit des Anspruchs (`next` →
 `in-progress`), beim Anspruch einzutragen. Schätzung (Arbeitswert des Planners aus den
-Bestandsmaßen; vom Architect am 2026-10-17 auf 350 bis 600 korrigiert, Mitte 470, Obergrenze 600:
+Bestandsmaßen; vom Architect am 2026-10-17 auf 350 bis 600 korrigiert, Mitte 470, Obergrenze 600; mit der Übernahme von `test-container` am selben Tag um 40 bis 70 auf 390 bis 670, Mitte 530, Obergrenze 670 (zwei Zeilen im Gate, Attrappe mit Volume rund 15, vier Fälle und zwei Mutationen rund 30 bis 50 Zeilen Gegenprobe, Gate-Index): Die Marke 900 und die Meldeschwelle 750 bleiben,
+die Obergrenze liegt 80 unter der Meldeschwelle:
 Die Verträge `SPEC-057` und `SPEC-052` liegen mit dem Anspruch schon im Bestand und zählen nicht;
 Produktcode rund 150 Zeilen (Runner, Funktionsdatei, Fragmente, Gate-Index), Gegenprobe mit dem
 Doppelten des Produktcodes und neun Fällen rund 200 bis 300): Die Meldeschwelle bleibt bei 750.
@@ -316,6 +343,14 @@ Liefer-Punkte: 3. Schichten nach der Zählung in `AGENTS.md` §3.13: zwei (Harne
 `tools/test` und `harness/mk`; Gate-Index und Spezifikation mit der Zeile in `harness/README.md`
 und den Verträgen `SPEC-057` und `SPEC-052`, gezählt als eigene Schicht, weil §3.13 die
 Harness-Dokumentation nicht ausnimmt; die Verträge sind vor dem Anspruch geschrieben und nicht Teil des Diffs); kein Produkt-Code, keine Nutzer-Doku.
+
+**Nachgezählt am 2026-10-17 mit der Übernahme von `test-container`** (Geber `slice-v1-abschluss-container`
+und der Befund aus `slice-v1-abschluss-container-doku`; `SPEC-055` Punkt 9 im Architect-Commit, nicht im
+Diff): Liefer-Punkte weiter 3 (die Behebung wächst in Punkt 1 *Aufräumen* und die Fälle in Punkt 3
+*Gegenprobe* hinein; sie sind keine eigenen Punkte, erhöhen aber den Umfang, daher die Metrik in §4),
+Schichten weiter 2: `tools/harness` ist wie `tools/test` und `harness/mk` die Schicht Harness-Werkzeug, die
+Verträge mit dem Gate-Index die zweite. Die Schnittlinie für die Rückführung bleibt: die Gegenprobe von
+`test-container` zuerst abgeben, nicht die Behebung.
 
 **Nachgezählt** mit den Sendungen aus §1 (`gates-schnell.mk` und `SPEC-052`; Geber dieser Slice):
 Liefer-Punkte weiter 3 (der Eintrag in die Ausnahmeliste und der Beleg in `SPEC-052` wachsen in
