@@ -81,3 +81,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-contai
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-devcontainer-doku` (Review 1 F-1, F-4; Review 2 F-1, F-2, F-4) — Quantoren und Sicherheitsaussagen über den veröffentlichten Port hinaus, auf den Container gelesen; im Dokument eingegrenzt (Beleg `evidence/slice-harness-devcontainer-doku.md`). Ausgang des Risikos „Dokument veraltet still“ aus diesem Slice: weiter offen, hier geführt.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-integration-volumes` (F-2, F-3) — Vertragsaussage über Mengen roter Fälle und Gate-Zeile über äquivalente Mutanten weiter als die Prüfung; im Vertrag und in der Gate-Zeile eingegrenzt (Beleg `evidence/slice-harness-integration-volumes.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-abdeckung-gate` (F-5, INFO) — Kommentar nennt ein Programm, das das Skript nicht ruft; behoben (Beleg `evidence/slice-harness-abdeckung-gate.md`). Zähler 74.

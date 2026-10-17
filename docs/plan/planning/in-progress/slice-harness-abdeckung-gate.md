@@ -129,13 +129,13 @@ Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
       `Abdeckung` (siehe §1); `make doc-trace` zeigt LH-QA-07 nicht als belegt, eine vollständig
       belegte Anforderung mit dem neuen Label (Beleg in §7).
 - [x] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben — neues Verzeichnis `BEO-<KUERZEL>/<slug>/` oder eine weitere Datei in dessen `evidence/`; **kein Zaehler wird gesetzt**, er folgt aus den Dateien. Keine Beobachtung angefallen ist ebenfalls eine Antwort und wird in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen — im Repo **ohne** Wellen-Betrieb hier geprüft, im Repo **mit** Wellen von der nächsten Welle-Closure (auch für Slices ohne Wellen-Zugehörigkeit).
 
 ## 3. Plan (vor Code)
 
@@ -299,7 +299,10 @@ akzeptiertes Negativ, die Zusage „bytegenau“ trägt der Mutant mit anderer S
   Urteil dessen, der deklariert; das Skript fängt nur verschiedene n für dieselbe
   Anforderung, eine einheitlich falsche Zahl fängt nur das Review
   ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md), Re-Evaluierungs-
-  Trigger). — **Ausgang:** — (bei Closure)
+  Trigger). — **Ausgang (Planner, Closure):** weiter offen → Register
+  `BEO-REPO/gesamtzahl-geteilter-messung-einheitlich-falsch` (1×, Beleg
+  `evidence/slice-harness-abdeckung-gate.md`); kein Auftreten, Teil 2 von `LH-QA-07` kommt mit
+  `slice-harness-coverage`.
 - **Deklaration sagt mehr zu, als die Gegenprobe prüft** — Teil 3 an der
   Lint-Gegenprobe trägt nur, wenn sie für beide Bedingungen von Messmethode 3 einen
   Rot-Fall führt: je Paketgruppe einen White-Box-Test (der Test liegt in der Einheit)
@@ -307,22 +310,32 @@ akzeptiertes Negativ, die Zusage „bytegenau“ trägt der Mutant mit anderer S
   Brücke vorbei, Test in der Brückendatei)
   (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`, 11×). Der Abgleich gegen die
   Fälle der Lint-Gegenprobe ist vom Architect gemacht (§6, Hinweise); der Implementer prüft die Namen
-  beim Schreiben des Kopfs. — **Ausgang:** — (bei Closure)
+  beim Schreiben des Kopfs. — **Ausgang (Planner, Closure):** entfallen: Jedes Präfix des Kopfs der
+  Lint-Gegenprobe hat Fälle in der Datei (§7 *Abgleich der Namen*, von der Verifikation nachgemessen),
+  Teil 1 nennt bewusst `p6-*` statt `p9-*` (§7), und Teil 2 steht nicht dort; Review und Verifikation
+  fanden keine Überzusage.
 - **Bestehende Prüfung fällt weg** — die Erweiterung tritt neben die Prüfung der
   Test-Deklarationen, nicht an ihre Stelle; die vorhandenen Fälle der Gegenprobe
-  bleiben (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`, 1×). — **Ausgang:** — (bei
-  Closure)
+  bleiben (`BEO-REPO/gate-regel-ersetzt-statt-ergaenzt`, 1×). — **Ausgang (Planner, Closure):** entfallen:
+  Die vorhandenen Fälle bleiben, nur `lastenheft-ohne-anforderung` wurde auf Exit 2 gedreht (Vertrag
+  Punkt 6); die Gegenprobe wuchs von 13 auf 56 Aufrufe, und der Mutant `exit 0` ist rot (Verifikation).
 - **RTM zählt eine Teilabdeckung als belegt** — die einzige Quelle bleibt
   `abdeckung-vollstaendig.md`, in der eine geteilte Messung erst mit allen Teilen steht. Bricht das,
   sieht man es nur im Lauf: Der Implementer prüft mit `make doc-trace`, dass LH-QA-07 mit zwei von
   drei Teilen nicht belegt erscheint und eine vollständige Anforderung mit dem Label `Abdeckung`
-  belegt (Beleg in §7). — **Ausgang:** — (bei Closure)
+  belegt (Beleg in §7). — **Ausgang (Planner, Closure):** entfallen: Am Repo steht LH-QA-07 mit `—`;
+  im Gegenbeweis der Verifikation (Kopie mit allen drei Teilen, mit Teil 1 entfernt) zeigt
+  `make doc-trace` sie nur bei Vollständigkeit mit `Abdeckung`, und die Gegenprobe fängt den Mutanten
+  `t-voll-irgendein-teil`.
 - **Andere Gegenproben werden gelesen** — `tools/**/*-gegenprobe.sh` trifft auch die
   vorhandenen Gegenproben ohne Deklaration (`tools/harness/*-gegenprobe.sh`,
   `tools/hook/commit-msg-gegenprobe.sh`, `tools/test/postgres-versionen-gegenprobe.sh` und, aus
   `slice-harness-integration-volumes`, `tools/test/integration-volumes-gegenprobe.sh`); sie dürfen
   weder Fehler noch Zeilen erzeugen, und ein Fall der Gegenprobe zeigt es an einer Datei ohne
-  Deklaration im Muster. — **Ausgang:** — (bei Closure)
+  Deklaration im Muster. — **Ausgang (Planner, Closure):** entfallen: Der Fall
+  `gegenprobe-ohne-deklaration` nimmt eine Datei nach dem Vorbild von
+  `tools/test/integration-volumes-gegenprobe.sh` ohne Fehler und ohne Zeile an, und `make
+  abdeckung-check` ist am Repo grün.
 
 ## 7. Closure-Notiz
 
@@ -421,13 +434,21 @@ Neu fallen auch die Fälle `gate-nach-kopf-zeile` (Zeile 3). Die Fragen 1 bis 5 
 
 **Läufe:** `make abdeckung-check`, `make abdeckung-gegenprobe` (rund 6 s), `make docs-check` (992 Dateien, 0 Befunde), `make kopf-check`, `make doc-trace` am Stand dieses Commits grün; `make lint-gegenprobe` und `make lint` laufen im vollen `make gates`. `make gates` am Endstand (Stand der Arbeitsbaum-Datei `gates-passed.dateiliste` vom 2026-10-17 16:00): Exit 0, `abdeckung-check`, `abdeckung-gegenprobe`, `lint`, `lint-gegenprobe` und alle übrigen Gates grün; ein erster Lauf als Hintergrundjob der Shell scheiterte an `container-gegenprobe` (SIGINT wird von einem so gestarteten Prozess geerbt ignoriert, Fälle `p9-*INT`), der zweite, über das Werkzeug gestartet, lief grün; keine Flake (`p7-int-treiber`, `p9-ungenutzt-allein`) trat auf.
 
-- **Was hat funktioniert:** <…>
-- **Was ging anders als geplant:** <…>
-- **Steering-Loop-Eintrag:** <…>
-- **Beobachtungs-Register (`../observations/`):** <…>
-- **Folge-Slices:** <…>
-- **Risiken aus §6:** <…>
-- **Drei Paarungen:** <…>
+### Closure-Notiz
+
+Stand: Planner am 2026-10-17, vor dem `git mv` nach `done/`. Review (2 MEDIUM, 2 LOW, 1 INFO) und Verifikation (bestanden, 2 LOW) liegen unter `docs/reviews/` (`2026-10-17-review-slice-harness-abdeckung-gate.md`, `2026-10-17-verify-slice-harness-abdeckung-gate.md`). `make gates` am Endstand `63619f98`: Exit 0, vom Hauptagenten über das Werkzeug gefahren; seither ändert sich nur dieser Plan und `docs/plan/planning/` (inert).
+
+- **Was hat funktioniert:** Die Randformen standen vor dem Code im Vertrag, die Rückgabe des Implementers erreichte den Architect (`cacaf26a`), und die Gegenprobe wuchs von 13 auf 56 Aufrufe mit Mutation je Zusage. LH-QA-07 steht in der Gesamtsicht als *teilweise* (`1/3 Gate; 2/3 —; 3/3 Gate`), nie grün; die Tabellen E2E und Unit blieben byte-gleich.
+- **Was ging anders als geplant:** Die Schätzung 450 bis 700 lag unter der Messung 909 (Meldeschwelle 800 erreicht, Marke 1000 nicht). Das Review fand zwei Lücken, die weder Implementer noch Verifier fanden: zwei Aufzählungen der Zusage (Leerzeichen und Tab bei Test-Deklarationen; Vorzeichen und Leerraum in der Zahlform) ohne Fall je Element. Die neuen Fälle fanden einen Code-Defekt, den kein Fall vorher zeigte: `cut -f2` kürzte die Fehlermeldung an einem Tab in der Deklaration (jetzt `sed`).
+- **Ausgänge der Findings:** F-1 und F-2 (MEDIUM) behoben in `74446efb`: je ein Fall und eine Mutation je Element. F-3 (Größe in §7 veraltet) behoben in `33ab3e4b` (909 am Endstand). F-4 (Verdrahtung `--check` und `GATE_CHECKS` ohne Fall) akzeptiertes Negativ, Fundort §7 *Akzeptiertes Negativ (Verdrahtung)* und `harness/sensors/abdeckung-check.md`: Beides ist Verdrahtung des Treibers `make`, [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) (Konsequenzen) nennt den Anschluss als Review. F-5 (INFO, Kommentar nennt `stat`) behoben in `74446efb`. Verifikation F-1 (Größe) behoben wie Review F-3, F-2 (`p6-*` statt `p9-*`) in §7 *Bewusste Auswahl* begründet.
+- **Steering-Loop-Eintrag:** Neuer Sensor: `make abdeckung-check` liest Gate-Deklarationen im Kopf von Gegenproben (Nachweisart *Gate*) und den Pfad `Messung-<i>-von-<n>`; `make abdeckung-gegenprobe` führt 56 Aufrufe mit Mutation je Zusage — liegt in `tools/test/abdeckung.sh` und `tools/test/abdeckung-gegenprobe.sh`, Vertrag `SPEC-048` Punkte 6 bis 8. Keine geschärfte Regel von diesem Lauf: Die Lücken F-1 und F-2 trafen §3.10 (Aufzählung je Element), die schon gilt; sie gehen als Wiederauftreten ins Register, `AGENTS.md` bleibt unberührt (Entscheidung des Nutzers). Die Klassen erreichten alle die Schwelle schon vorher und stehen auf *verkörpert* beziehungsweise *geplant*.
+- **Beobachtungs-Register (`../observations/`):** `evidence/slice-harness-abdeckung-gate.md` ergänzt in `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag/` (49×), `BEO-REPO/plan-folgt-korrektur-nicht/` (62×), `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung/` (74×), `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests/` (12×, Stand `geplant` bleibt) und `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben/` (21×); `BEO-REPO/randform-wellenlos-ohne-architect-vor-code/` Kein Auftreten (1×); neu angelegt `BEO-REPO/gesamtzahl-geteilter-messung-einheitlich-falsch/` (1×, offen) und `BEO-REPO/lauf-ignoriert-sigint-nach-nohup/` (1×, offen). Kein Eintrag wechselte seinen Ausgang.
+- **Parallel-Lauf (Befund, keine Regeländerung):** Dieser Slice lief auf dem Hauptzweig `main`, zugleich mit `slice-harness-devcontainer-austausch-repo` im Worktree `../pgwire-recorder-austausch` auf dem Zweig `slice/devcontainer-austausch-repo`. `Verantwortlich:` blieb `pt9912` ohne Zweig, weil der Lauf auf `main` stand und die Form `<Person> (Zweig <branch-name>)` einen Zweig braucht, den es für diesen Lauf nicht gab; der Plan des anderen Slice trägt die Zweigform. Die Ablage unterschied die beiden Läufe über die Verzeichnis-Position und die Commits; ob der Hauptzweig als Zweig zu benennen ist, entscheidet der Nutzer.
+- **Folge-Slices:** keiner.
+- **Marke (`AGENTS.md` §3.14):** Summe aus Einfügungen und Löschungen, Metrik aus §4: **909** am Stand `74446efb` (Meldeschwelle 800 erreicht und gemeldet, Marke 1000 nicht).
+- **Risiken aus §6:** Gesamtzahl weiter offen (Register); die übrigen vier entfallen mit Beleg; Begründungen in §6.
+- **`make gates` am Endstand:** Exit 0 am Stand `63619f98`. Der erste Lauf des Implementers, mit `nohup` gestartet, war ohne Codeänderung rot (`container-gegenprobe`, `SIGINT` wird von einem so gestarteten Prozess geerbt ignoriert); der Lauf über `run_in_background` war grün. Als Beobachtung ins Register (`BEO-REPO/lauf-ignoriert-sigint-nach-nohup`, 1×, offen).
+- **Drei Paarungen:** Anker (kein `liegt in`: keine Regel verkörpert; der neue Sensor liegt im Repo, `SPEC-048` und `harness/README.md` §Sensors tragen ihn mit `· seit slice-harness-abdeckung-gate`) · Folge-Slice (keiner zugewiesen; Teil 2 von LH-QA-07 gehört `slice-harness-coverage`, dessen §1 und DoD die Kennung dieses Slice nennen, `grep` findet sie dort) · Register (fünf Belege ergänzt, ein Kein-Auftreten, zwei Einträge neu).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 

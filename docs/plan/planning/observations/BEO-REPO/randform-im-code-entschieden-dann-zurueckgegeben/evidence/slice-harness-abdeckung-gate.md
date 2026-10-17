@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-abdeckung-gate
+**Fund:** Sechs Randformen berührte der Code, ohne dass §6 sie vor dem Code entschied (Lastenheft nur mit `### LH-XX-01`, Widerspruch gegen mehrere frühere Deklarationen, Zeile im Fehler einer Gate-Deklaration, Einrückung an jeder Stelle, `# ` ohne Text, Symlink); der Implementer gab sie zurück, der Architect entschied sie in `cacaf26a` (`SPEC-048` Punkte 6 bis 8), die Fälle folgten in `d7fede16`. Der Architect hatte die übrigen Randformen vor dem Code entschieden.

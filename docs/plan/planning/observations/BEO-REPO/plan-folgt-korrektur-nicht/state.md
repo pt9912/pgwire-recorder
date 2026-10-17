@@ -63,3 +63,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-contain
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-container-doku` (F-4) — §7 nannte einen Stand der Spezifikation („Punkt 9 nennt Volumes nicht“), den ein früherer Commit schon geändert hatte (Beleg `evidence/slice-v1-abschluss-container-doku.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-integration-volumes` (F-5; V-1, V-2) — §3 und §1 folgten dem Diff nicht, Basis der Marke fehlte, §7 führte entschiedene Fragen als offen; behoben (Beleg `evidence/slice-harness-integration-volumes.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-abdeckung-gate` (F-3, V-1, V-2) — Größe in §7 veraltet gegen den Diff, Auswahl der Deklaration unbegründet; behoben (Beleg `evidence/slice-harness-abdeckung-gate.md`). Zähler 62.

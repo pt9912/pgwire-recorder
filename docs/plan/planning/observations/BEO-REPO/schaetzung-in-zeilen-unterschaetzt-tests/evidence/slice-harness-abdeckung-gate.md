@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-abdeckung-gate
+**Fund:** Geschätzt 450 bis 700 (vom Architect am 2026-10-17 korrigiert), gemessen 909 (Skript 273, Gegenprobe 526, übrige 110), Obergrenze um 209 überschritten, Meldeschwelle 800 erreicht und gemeldet, Marke 1000 nicht. Die Gegenprobe trägt 58 Prozent der Summe, wie der Faktor des Doppelten erwartet, wuchs aber durch die Fälle nach den Randformen des Architect (`cacaf26a`) und des Reviews (`74446efb`).
