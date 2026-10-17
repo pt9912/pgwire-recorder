@@ -59,3 +59,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-verbind
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-meldungskatalog-gate` (F-1, V-1) — §8 beim Umschreiben von §7 verloren, danach die Sichtung mit veraltetem Stand; behoben (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-container` (F-6) — die Aufschlüsselung der Messung in §7 folgte der Nacharbeit nicht; behoben (Beleg `evidence/slice-v1-abschluss-container.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-v1-abschluss-container-doku` (F-4) — §7 nannte einen Stand der Spezifikation („Punkt 9 nennt Volumes nicht“), den ein früherer Commit schon geändert hatte (Beleg `evidence/slice-v1-abschluss-container-doku.md`).

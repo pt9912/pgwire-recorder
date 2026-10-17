@@ -50,16 +50,16 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität): `docs/user/benutzerhandbuch.md` nennt in §1 *Voraussetzungen* die Plattformen zum Bauen und Ausführen und in §2 *Installation* das Image (Plattformen `linux/amd64`, `linux/arm64`), `make binaries` mit `SHA256SUMS` und das Binary aus dem Image. Jedes Beispiel läuft im Handlauf gegen das gebaute Binary bzw. das gebaute Image (`AGENTS.md` §3.11; als Datei nicht, §7); das Handbuch verweist nicht auf Spezifikation, ADRs, Slices oder Reviews und enthält keine Chronik; `make meldungskatalog-check` bleibt grün.
-- [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten): `README.md` und `docs/maintainer/releasing.md` im Ist-Zustand (Image, `make binaries`, `make test-container`, Abnahme-Umgebungen); die Betriebsdokumentation benennt die Abnahme-Umgebungen; `README.md` ohne Chronik und ohne zu sagen, was noch kommt.
-- [ ] `make gates` grün (nach `make gates-schnell`, wenn die Positivliste des Stop-Hooks genügt: nur `docs/user`, `docs/maintainer`, `README.md` und `docs/plan/planning/` ändern sich).
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität): `docs/user/benutzerhandbuch.md` nennt in §1 *Voraussetzungen* die Plattformen zum Bauen und Ausführen und in §2 *Installation* das Image (Plattformen `linux/amd64`, `linux/arm64`), `make binaries` mit `SHA256SUMS` und das Binary aus dem Image. Jedes Beispiel läuft im Handlauf gegen das gebaute Binary bzw. das gebaute Image (`AGENTS.md` §3.11; als Datei nicht, §7); das Handbuch verweist nicht auf Spezifikation, ADRs, Slices oder Reviews und enthält keine Chronik; `make meldungskatalog-check` bleibt grün.
+- [x] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [`LH-RB-01`](../../../../spec/lastenheft.md#lh-rb-01--umgang-mit-sensiblen-daten): `README.md` und `docs/maintainer/releasing.md` im Ist-Zustand (Image, `make binaries`, `make test-container`, Abnahme-Umgebungen); die Betriebsdokumentation benennt die Abnahme-Umgebungen; `README.md` ohne Chronik und ohne zu sagen, was noch kommt.
+- [x] `make gates` grün (nach `make gates-schnell`, wenn die Positivliste des Stop-Hooks genügt: nur `docs/user`, `docs/maintainer`, `README.md` und `docs/plan/planning/` ändern sich).
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 
 ## 3. Plan (vor Code)
 
@@ -114,9 +114,9 @@ dasteht.
 
 **Risiken:**
 
-- Handbuch und Releasing-Dokument beschreiben Verhalten vor der Software; Abweichungen zeigen sich erst im Bau (aus `slice-v1-abschluss-container` §6, dort *entfallen* mit Verweis hierher) — **Ausgang:** offen bis Closure.
-- Ein Handbuch-Beispiel gilt gelesen gegen den Code als richtig und wird vom Binary oder Image abgelehnt (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`) — **Ausgang:** offen bis Closure; Gegenmittel: jedes Beispiel als Datei gegen das gebaute Binary bzw. Image.
-- Die Voraussetzung `slice-v1-abschluss-container` lag in `in-progress/`; ändert das Review dort einen Namen oder Aufruf, zieht dieser Slice nach — Voraussetzung erfüllt (der Geber liegt in `done/`), **Ausgang:** *entfallen* bei Closure. Aus der Closure-Notiz des Gebers (§7): Die Dateinamen von `make binaries` tragen `VERSION` (Vorgabe `dev`; das Gate nutzt `0.0.0-test`); die Beispiele zeigen die Namen so, wie `make binaries` sie erzeugt.
+- Handbuch und Releasing-Dokument beschreiben Verhalten vor der Software; Abweichungen zeigen sich erst im Bau (aus `slice-v1-abschluss-container` §6, dort *entfallen* mit Verweis hierher) — **Ausgang: *entfallen*** — jedes Beispiel lief im Handlauf gegen das gebaute Binary und das Image (Implementer §7, Review, Verifikation V-1 bis V-3), keine Abweichung zum Bau; die Doku folgte dem Geber in `done/`.
+- Ein Handbuch-Beispiel gilt gelesen gegen den Code als richtig und wird vom Binary oder Image abgelehnt (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`) — **Ausgang:** offen bis Closure; Gegenmittel: jedes Beispiel als Datei gegen das gebaute Binary bzw. Image. **Ausgang: *weiter offen*** — Register `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Beleg `evidence/slice-v1-abschluss-container-doku.md`, Zähler verkörpert/über 3×, Regel bleibt). Im Handlauf lief kein Beispiel an Binary oder Image vorbei (Implementer, Review, Verifikation), die Gegenmaßnahme „als Datei“ fehlt als akzeptierte Lücke (Nutzerlinie).
+- Die Voraussetzung `slice-v1-abschluss-container` lag in `in-progress/`; ändert das Review dort einen Namen oder Aufruf, zieht dieser Slice nach — Voraussetzung erfüllt (der Geber liegt in `done/`), **Ausgang: *entfallen*** — der Geber liegt in `done/`, Namen mit `VERSION` übernommen (Verifikation V-2). Aus der Closure-Notiz des Gebers (§7): Die Dateinamen von `make binaries` tragen `VERSION` (Vorgabe `dev`; das Gate nutzt `0.0.0-test`); die Beispiele zeigen die Namen so, wie `make binaries` sie erzeugt.
 
 ## 7. Closure-Notiz
 
@@ -132,7 +132,21 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+Closure am 2026-10-17 (Planner), Belege: Review `docs/reviews/2026-10-17-review-slice-v1-abschluss-container-doku.md` (0 HIGH, 0 MEDIUM, 4 LOW, 2 INFO, behandelt), Verifikation `docs/reviews/2026-10-17-verify-slice-v1-abschluss-container-doku.md` (bestanden).
+
+### Closure-Notiz
+
+**Ergebnis:** Handbuch §1 und §2, `README.md` und `docs/maintainer/releasing.md` beschreiben Image (`linux/amd64`, `linux/arm64`), `make binaries` mit `SHA256SUMS` und die Abnahme-Umgebungen im Ist-Zustand; Messung der Marke 111 von 500 (§4). Kriterien: Verifikation bestanden (DoD 1 und 2 gegen Diff und eigene Läufe), `make docs-check`, `make kopf-check`, `make meldungskatalog-check` grün.
+
+**Risiko-Ausgänge** (§6): Doku vor der Software *entfallen* (Handlauf ohne Abweichung); Beispiel vom Binary abgelehnt *weiter offen* (Register `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`); Voraussetzung Geber *entfallen* (Geber in `done/`).
+
+**Ausgänge der Findings** (Nutzerlinie: LOW/INFO akzeptiert mit Ausgang): F-1 bis F-3, F-5, F-6 behoben (Nacharbeit `535e0dfe`, `c2505b44`), F-4 behoben (`c2505b44`); V-1 bis V-3 (INFO) ohne Handlungsbedarf (voller `make gates` vom Hook gefahren, Schätzung 180 bis 280 lag über der Messung 111).
+
+**Lerneintrag — neuer Sensor (geplant), plus Register:** Ein Doku-Slice, der das Gate seines Gebers zum ersten Mal gegen ein volles Docker laufen lässt, findet den Fehler des Gates: `run-container.sh` hinterließ ein Volume je Lauf (47 → 48; 669 Volumes, 169,6 GB, `test-container` rot an `initdb`). Kein Test des Gebers sah es, weil `SPEC-055` Punkt 9 Volumes nicht nannte. Der Sensor ist der Fall `p9-*-volume` mit der Mutation `rm -f` in `test-container-gegenprobe` — Kennung `slice-harness-integration-volumes` (nimmt an: §1 Ziel, DoD und §8 dort nennen `test-container` und diesen Slice; Architect-Empfehlung, Nutzer nicht entschieden). Dazu die Finding-Klassen des Reviews (Quantor „übrigen“ ohne Bezugsmenge · Beispielfolge nicht als Folge belegt · Bestandssatz widerspricht neuer Zusage · Beobachtung als Zusage lesbar · Beleg-Tabelle unvollständig): alle in `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (Regel `AGENTS.md` §3.11 gilt, Zähler weit über 3×, Regel bleibt); „Plan folgt der Korrektur nicht“ in `BEO-REPO/plan-folgt-korrektur-nicht` (Regel `AGENTS.md` §3.9 bleibt). `BEO-REPO/integrationstest-hinterlaesst-anonyme-volumes` trägt die Evidenz dieses Slice schon (Zähler 2×, offen; Zuweisung ab 3×, bis dahin Verweis auf `slice-harness-integration-volumes`).
+
+**Offen für den Nutzer:** (1) Ob das Merkmal „übrige/andere/restliche“ ohne benannte Bezugsmenge eine Zeile in Schritt 17 von `implement-slice` bekommt (Vorschlag des Planners, nicht verkörpert). (2) Ob die Lücke „Handbuch-Beispiele nur per Handlauf, nicht als Datei“ (`AGENTS.md` §3.11 verlangt die Datei) einen Sensor bekommt; heute kein Nehmer.
+
+**Paarungen:** Anker — nichts verkörpert, kein `liegt in`; Folge-Slice — `slice-harness-integration-volumes` (Volume-Leck von `test-container`, `grep` nach `slice-v1-abschluss-container-doku` findet die Sendung dort in §1 und §8); Register — fortgeschrieben (zwei Evidence-Dateien dieses Slice, eine bereits vorhanden).
 
 ### Belege des Implementers
 
