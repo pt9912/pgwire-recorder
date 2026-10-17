@@ -23,7 +23,7 @@ gegen ein gepinntes PostgreSQL-Image; der Runner ist dort der Träger).
 **Berührte Spec-Stellen:** `SPEC-038` (neuer Absatz *Aufräumen der Integrationstests*, vom
 Architect vor dem Code anzulegen); `SPEC-052` (Punkt 4 und 13: Eintrag der neuen Gegenprobe in
 die Ausnahmeliste der schnellen Kette und der Beleg, dass sie `docs/user/` und `README.md` nicht
-liest; Architect, vor dem Code)
+liest; Architect, vor dem Code); `SPEC-048` (nur Bindung: Form der Abdeckungs-Deklaration im Kopf der Gegenprobe, §1; keine Änderung)
 
 **Verantwortlich:** pt9912
 
