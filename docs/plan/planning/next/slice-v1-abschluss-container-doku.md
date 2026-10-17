@@ -81,11 +81,11 @@ Die Beispiele des Handbuchs liegen als Dateien vor und laufen gegen das gebaute 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-container` liegt in `done/` (der Geber liefert, was die Beispiele ruft). Die Basis der Metrik ist der HEAD vor dem Anspruch und wird beim Anspruch in diesem Absatz eingetragen.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-container` liegt in `done/` (der Geber liefert, was die Beispiele ruft). **Basis:** `2e89f594` (HEAD vor dem Anspruch; die Commits des Anspruchs ändern keinen der gemessenen Pfade).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
-- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- docs/user docs/maintainer README.md` liegt über 500 (Marke); Basis: beim Anspruch. Schätzung des Planners (in dieser Metrik, `AGENTS.md` §3.14): 180 bis 280, Meldeschwelle 400. Wer 400 überschreitet, meldet es vor dem nächsten Abschnitt. Der natürliche Schnitt liegt zwischen Handbuch und `README.md` mit `releasing.md`.
+- `in-progress` → `next` (zu groß, zurück zur Zerlegung): Die Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- docs/user docs/maintainer README.md` liegt über 500 (Marke); Basis: `2e89f594`. Schätzung des Planners (in dieser Metrik, `AGENTS.md` §3.14): 180 bis 280, Meldeschwelle 400. Wer 400 überschreitet, meldet es vor dem nächsten Abschnitt. Der natürliche Schnitt liegt zwischen Handbuch und `README.md` mit `releasing.md`.
 - `in-progress` → `open`: Ein Beispiel läuft gegen das gebaute Binary oder Image nicht, weil der Geber etwas anderes liefert, als sein Gate belegt — zurück an den Geber (Review-Befund dort), kein Carveout im Handbuch.
 
 ## 5. Closure-Trigger
@@ -114,7 +114,7 @@ dasteht.
 
 - Handbuch und Releasing-Dokument beschreiben Verhalten vor der Software; Abweichungen zeigen sich erst im Bau (aus `slice-v1-abschluss-container` §6, dort *entfallen* mit Verweis hierher) — **Ausgang:** offen bis Closure.
 - Ein Handbuch-Beispiel gilt gelesen gegen den Code als richtig und wird vom Binary oder Image abgelehnt (`BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`) — **Ausgang:** offen bis Closure; Gegenmittel: jedes Beispiel als Datei gegen das gebaute Binary bzw. Image.
-- Die Voraussetzung `slice-v1-abschluss-container` liegt noch in `in-progress/`; ändert das Review dort einen Namen oder Aufruf, zieht dieser Slice nach — **Ausgang:** offen bis Closure.
+- Die Voraussetzung `slice-v1-abschluss-container` lag in `in-progress/`; ändert das Review dort einen Namen oder Aufruf, zieht dieser Slice nach — Voraussetzung erfüllt (der Geber liegt in `done/`), **Ausgang:** *entfallen* bei Closure. Aus der Closure-Notiz des Gebers (§7): Die Dateinamen von `make binaries` tragen `VERSION` (Vorgabe `dev`; das Gate nutzt `0.0.0-test`); die Beispiele zeigen die Namen so, wie `make binaries` sie erzeugt.
 
 ## 7. Closure-Notiz
 
