@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-devcontainer-u-boot-0-10
+**Fund:** Review F-2 und Verifikation (Plan-vs-Code, Punkt 1 bis 4 und 8): §1, §2, §3, §4 und §6 führten `compose.yaml`, `start.sh` und `u-boot down`/`up`, der Kopf nannte als Host-Voraussetzungen nur `ssh` und `u-boot`; geliefert ist ein Gerüst mit `devcontainer`-CLI und `mk-override.sh`. Der Plan folgte dem Diff nicht, bis der Planner ihn bei der Closure nachzog (Commit `2439a4b7`).
