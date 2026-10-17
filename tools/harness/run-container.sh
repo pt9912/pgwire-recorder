@@ -6,8 +6,8 @@
 # Plattform), 7 (Smoke); der erste rote Punkt beendet den Lauf. Die Marken `# P…` am Zeilenende
 # benennen die Form für die Gegenprobe.
 #
-# Ausgang: 2 bei einem Fehler der Eingabe (vor dem ersten Aufruf von docker), 1 bei einem roten
-# Punkt, sonst 0. SIGINT und SIGTERM beenden den laufenden Aufruf und räumen auf.
+# Ausgang: ungleich 0 bei einem Fehler der Eingabe (vor dem ersten Aufruf von docker) und bei einem
+# roten Punkt, sonst 0. SIGINT und SIGTERM beenden den laufenden Aufruf und räumen auf.
 set -euo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,6 +23,7 @@ liste_pruefen "der Binaries" "$ERF_BINARIES" "${bin_pl[@]}"
 liste_pruefen "der Images" "$ERF_IMAGES" "${img_pl[@]}"
 images_in_binaries "${BINARY_PLATTFORMEN-}" "${img_pl[@]}"
 version_pruefen
+[ "${VERSION-}" != dev ] || eingabe "VERSION 'dev' ist am Gate unzulässig" # P2dev
 if [ "$fehler" -ne 0 ]; then exit 2; fi # P8vor-docker
 
 pg_image="${POSTGRES_IMAGE-}"

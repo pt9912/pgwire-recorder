@@ -13,8 +13,8 @@
 # PostgreSQL und kein Container. Ob zwei echte Builds dieselbe Summe liefern, ob die Stufen
 # `dist` und `runtime` bauen, ob das Image Aufzeichnen und Wiedergeben besteht und ob
 # `--no-cache-filter` den Cache umgeht, zeigt nur `make test-container` (SPEC-055 Punkt 12).
-# Ein Zeitstempel im Binary (Punkt 4) ist kein Fall: Er färbt Punkt 4 rot, und der Fall
-# der abweichenden Summe belegt das. Die Signale gehen an das Skript, nicht an `make`; sie
+# Der Fall der abweichenden Summe belegt den Vergleich; dass ein Zeitstempel im echten
+# `Dockerfile` Punkt 4 färbt, zeigte ein einmaliger Handlauf (Plan §7), kein Gate. Die Signale gehen an das Skript, nicht an `make`; sie
 # setzen voraus, dass diese Gegenprobe SIGINT nicht ignoriert (kein Start als Hintergrundjob).
 # Punkt 10 prüft der Fall des unveränderten Arbeitsbaums; Punkt 13 ist eine Grenze ohne Fall.
 #
@@ -225,7 +225,7 @@ zeile() { grep -nE -- "$1" "$log" | head -1 | cut -d: -f1; }
 dateien() { (cd "$w" && find . -type f | sort); }
 ohne() { local x r=""; for x in $1; do if [ "$x" != "$2" ]; then r+="$x "; fi; done; echo "${r% }"; }
 dt() { echo "${1//\//-}"; }
-bname() { local n="pgwire-recorder_${3:-dev}_$1_$2"; if [ "$1" = windows ]; then n+=".exe"; fi; echo "$n"; }
+bname() { local n="pgwire-recorder_${3:-0.0.0-test}_$1_$2"; if [ "$1" = windows ]; then n+=".exe"; fi; echo "$n"; }
 
 sel() {
   local p
@@ -286,7 +286,7 @@ signalfall() {
     : > "$gesendet"
   ) &
   wp=$!
-  lauf VERSION=dev BINARY_PLATTFORMEN="$ERF" IMAGE_PLATTFORMEN="$IMG" POSTGRES_IMAGE="$refbild" DOCKER="$bin/docker" DIST=dist \
+  lauf VERSION=0.0.0-test BINARY_PLATTFORMEN="$ERF" IMAGE_PLATTFORMEN="$IMG" POSTGRES_IMAGE="$refbild" DOCKER="$bin/docker" DIST=dist \
     AT_HANGT="$marke" AT_HANG_ORT="$2" -- \
     setsid bash -c 'echo $$ > "$1"; shift; exec "$@"' x "$pidf" bash "tools/harness/$([ "${4-}" = werkzeug ] && echo binaries.sh || echo run-container.sh)"
   wait "$wp" || true
@@ -336,6 +336,16 @@ pruefe() {
     ma=(VERSION=); werkz
     { [ "$code" -ne 0 ] && [ ! -s "$log" ] && in_aus "VERSION '' ist ungültig"; } || echo p2-binaries
   fi
+  # Das Gate setzt die Vorgabe 0.0.0-test, lehnt dev ab und das echte Dockerfile setzt VERSION ein.
+  if sel p2-vorgabe-test; then
+    ma=(); gate
+    ist p2-vorgabe-test 'gruen && [ "$(anzahl "^build .*--target dist .*--build-arg VERSION=0.0.0-test ")" -eq 12 ]'
+  fi
+  if sel p2-dev-gate; then
+    ma=(VERSION=dev); gate
+    ist p2-dev-gate '[ "$code" -ne 0 ] && [ ! -s "$log" ] && in_aus "VERSION ${q}dev${q} ist am Gate unzulässig"'
+  fi
+  ist p2-dockerfile-x 'grep -qF -- "-X main.version=\$VERSION" "$w/Dockerfile"'
   # Eine gültige Version geht in den Build und in den Dateinamen ein.
   if lauft p2-gueltig; then
     ma=("VERSION=1.0.0-rc.1+b_2"); gate
@@ -356,8 +366,8 @@ pruefe() {
     ist p7-gruen 'in_aus "Punkt 7 grün — Smoke auf linux/amd64" && [ "$(anzahl "^run --rm --name [^ ]*-version ")" -eq 1 ]'
     ist p7-intern '[ "$(anzahl "^network create --internal pgr-ct-[0-9]+-net$")" -eq 1 ]'
     ist p7-kein-terminal '! grep -E "^(run|create) " "$log" | grep -qE " -[a-zA-Z]*t[a-zA-Z]*( |$)| --tty"'
-    ist p7-kein-user '! grep -E "^(run|create) " "$log" | grep -qE " --user| -u "'
-    ist p7-kein-volume '! grep -E "^(run|create) " "$log" | grep -qE " -v | --volume"'
+    ist p7-kein-user '! grep -E "^(run|create) " "$log" | grep -qE " --user| -[a-zA-Z]*u[0-9a-zA-Z]*( |$)"'
+    ist p7-kein-volume '! grep -E "^(run|create) " "$log" | grep -qE " -[a-zA-Z]*v[a-zA-Z]*( |$)| --volume"'
     ist p7-kein-mount '! grep -E "^(run|create) " "$log" | grep -qE " --mount"'
     ist p7-pg-vor-replay '[ "$(zeile "^rm -f pgr-ct-[0-9]+-pg$")" -lt "$(zeile "^create --name pgr-ct-[0-9]+-rep ")" ] && [ "$(zeile "^rm -f pgr-ct-[0-9]+-pg$")" -lt "$(zeile "^start pgr-ct-[0-9]+-rep$")" ]'
     ist p7-cp-entnehmen '[ "$(anzahl "^cp pgr-ct-[0-9]+-rec:/tmp/aufzeichnung.yaml ")" -eq 1 ]'
@@ -419,7 +429,7 @@ pruefe() {
   done
   if lauft p4-namen; then
     ma=(); gate AT_ABWEICH="linux/amd64 darwin/arm64"
-    ist p4-namen '[ "$code" -ne 0 ] && grep -qxF "test-container: ROT — die Summen zweier Builds weichen ab: pgwire-recorder_dev_darwin_arm64 pgwire-recorder_dev_linux_amd64" "$aus"'
+    ist p4-namen '[ "$code" -ne 0 ] && grep -qxF "test-container: ROT — die Summen zweier Builds weichen ab: pgwire-recorder_0.0.0-test_darwin_arm64 pgwire-recorder_0.0.0-test_linux_amd64" "$aus"'
   fi
   if lauft p4-cache; then
     ma=(); gate AT_NICHT_REPRO=1
@@ -475,9 +485,9 @@ pruefe() {
   }
   gfall p7-server-arm64 AT_SERVER_ARCH=arm64 'in_aus "Smoke auf linux/arm64" && [ "$(anzahl "^run --rm --name [^ ]*-version pgr-ct-[0-9]+:linux-arm64 version$")" -eq 1 ]'
   gfall p7-server-fremd AT_SERVER_ARCH=riscv64 'rot "Plattform riscv64 des Docker-Servers ist weder amd64 noch arm64" && ! grep -q "^run " "$log"'
-  gfall p7a-ausgabe-abweichend "AT_VERSION_AUS=pgwire-recorder_x" 'rot "version gibt ${q}pgwire-recorder_x${q} aus statt ${q}pgwire-recorder dev${q} und LF"'
-  gfall p7a-zusatzzeile "AT_VERSION_AUS=pgwire-recorder dev"$'\n'"zweite Zeile" '[ "$code" -ne 0 ] && in_aus "version gibt ${q}pgwire-recorder dev"'
-  gfall p7a-ohne-lf AT_VERSION_OHNE_LF=1 'rot "version gibt ${q}pgwire-recorder dev${q} aus statt"'
+  gfall p7a-ausgabe-abweichend "AT_VERSION_AUS=pgwire-recorder_x" 'rot "version gibt ${q}pgwire-recorder_x${q} aus statt ${q}pgwire-recorder 0.0.0-test${q} und LF"'
+  gfall p7a-zusatzzeile "AT_VERSION_AUS=pgwire-recorder 0.0.0-test"$'\n'"zweite Zeile" '[ "$code" -ne 0 ] && in_aus "version gibt ${q}pgwire-recorder 0.0.0-test"'
+  gfall p7a-ohne-lf AT_VERSION_OHNE_LF=1 'rot "version gibt ${q}pgwire-recorder 0.0.0-test${q} aus statt"'
   gfall p7a-exit AT_VERSION_ROT=1 'rot "version endet mit einem Exit-Code ungleich 0"'
   gfall p7b-pg-nicht-bereit AT_NICHT_BEREIT=1 'rot "PostgreSQL nicht bereit"'
   gfall p7b-kein-start AT_KEIN_START=1 '[ "$code" -ne 0 ] && in_aus "-rec meldet keinen Start"'
@@ -632,6 +642,9 @@ mut p2-gueltig-punkt "$L_" 'rest="0-9A-Za-z.+_-"' 'rest="0-9A-Za-z+_-"' p2-guelt
 mut p2-gueltig-plus "$L_" 'rest="0-9A-Za-z.+_-"' 'rest="0-9A-Za-z._-"' p2-gueltig p2-gueltig
 mut p2-gueltig-unterstrich "$L_" 'rest="0-9A-Za-z.+_-"' 'rest="0-9A-Za-z.+-"' p2-gueltig p2-gueltig
 mut p2-gueltig-minus "$L_" 'rest="0-9A-Za-z.+_-"' 'rest="0-9A-Za-z.+_"' p2-gueltig p2-gueltig
+mut p2-vorgabe "$F_" 'test-container: VERSION := 0.0.0-test' '' p2-vorgabe-test p2-vorgabe-test
+mut p2-dev-gate "$G_" %P2dev p2-dev-gate p2-dev-gate
+mut p2-dockerfile-x Dockerfile ' -X main.version=$VERSION' '' p2-dockerfile-x p2-dockerfile-x
 mut p2-dev "$G_" "'pgwire-recorder %s\\n' \"\$VERSION\"" "'pgwire-recorder %s\\n' dev" "p2-gueltig" p2-gueltig
 
 
@@ -722,6 +735,8 @@ mut p7c-gleich "$G_" %P7gleich p7c-sicht-ungleich p7c-sicht-ungleich
 mut p7-terminal "$G_" 'run -d --name "$rec"' 'run -d -t --name "$rec"' p7-kein-terminal p7-kein-terminal
 mut p7-user "$G_" 'run -d --name "$rec"' 'run -d --user 0 --name "$rec"' p7-kein-user p7-kein-user
 mut p7-volume "$G_" 'run -d --name "$rec"' 'run -d -v /tmp:/tmp --name "$rec"' p7-kein-volume p7-kein-volume
+mut p7-volume-kurz "$G_" 'run -d --name "$rec"' 'run -dv /tmp:/tmp --name "$rec"' "p7-kein-volume p7-kein-user" p7-kein-volume
+mut p7-user-kurz "$G_" 'run -d --name "$rec"' 'run -d -u0 --name "$rec"' "p7-kein-volume p7-kein-user" p7-kein-user
 mut p7-mount "$G_" 'run -d --name "$rec"' 'run -d --mount type=tmpfs,dst=/x --name "$rec"' p7-kein-mount p7-kein-mount
 mut p7-cp-hinein "$G_" 'l "$docker" cp "$werk/aufzeichnung.yaml" "$rep:/tmp/aufzeichnung.yaml"' ':' p7-cp-hinein p7-cp-hinein
 mut p7-cp-entnehmen "$G_" 'l "$docker" cp "$rec:/tmp/aufzeichnung.yaml"' 'l "$docker" cp "$rec:/tmp/anders.yaml"' p7-cp-entnehmen p7-cp-entnehmen

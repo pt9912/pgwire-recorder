@@ -21,6 +21,7 @@ export VERSION DIST BINARY_PLATTFORMEN IMAGE_PLATTFORMEN
 binaries: ## Binaries aller Zielplattformen mit SHA256SUMS nach DIST bauen (Werkzeug, kein Gate)
 	@DOCKER='$(DOCKER)' bash tools/harness/binaries.sh
 
+test-container: VERSION := 0.0.0-test
 test-container: ## zwei Builds mit gleichen Summen, Kopf der Binaries, Image je Plattform, Smoke im Container
 	@POSTGRES_IMAGE='$(POSTGRES_IMAGE)' DOCKER='$(DOCKER)' bash tools/harness/run-container.sh
 

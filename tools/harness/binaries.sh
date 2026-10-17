@@ -5,8 +5,8 @@
 # BINARY_PLATTFORMEN (durch Leerraum getrennt) und DOCKER; OHNE_CACHE=1 umgeht den Cache
 # der Stufen `build` und `dist`.
 #
-# Ausgang: 2 bei einem Fehler der Eingabe (vor dem ersten Aufruf von docker, auch bei einem
-# DIST, das nicht leer ist), 1 bei einem gescheiterten Build (DIST bleibt leer), sonst 0.
+# Ausgang: ungleich 0 bei einem Fehler der Eingabe (vor dem ersten Aufruf von docker, auch bei einem
+# DIST, das nicht leer ist) und bei einem gescheiterten Build (DIST bleibt leer), sonst 0.
 set -euo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
