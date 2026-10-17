@@ -84,7 +84,7 @@ Benutzerhandbuch.
   die Binaries für Linux, macOS und Windows, je `amd64` und `arm64`, mit `SHA256SUMS` nach
   `dist/`; `make gates` führt die Gates aus, `make help` zeigt alle Targets. Das Image für
   `linux/amd64` ist in `make test-container` gestartet und mit Aufzeichnen und Wiedergeben
-  geprüft; die übrigen Binaries und das Image für `linux/arm64` sind gebaut, nicht ausgeführt.
+  geprüft; die fünf Binaries außer dem für Linux auf `amd64` und das Image für `linux/arm64` sind gebaut, nicht ausgeführt.
 - Das [Benutzerhandbuch](docs/user/benutzerhandbuch.md) beschreibt Bau, Aufruf und
   Verhalten des Binaries.
 

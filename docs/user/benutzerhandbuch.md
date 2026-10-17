@@ -61,14 +61,14 @@ CI-Systemen ausführen.
   nennen Sie es `play` (siehe [Einstellungen](#5-einstellungen)). Auf Wunsch verbindet
   `play` mit TLS (siehe
   [Eine Aufzeichnung in eine Datenbank einspielen](#eine-aufzeichnung-in-eine-datenbank-einspielen)).
-* Zum Bauen: Docker und GNU `make`. Zum Ausführen: Linux auf der Architektur des
-  Rechners, auf dem Sie gebaut haben, oder ein Container-Laufzeitsystem (siehe
+* Zum Bauen: Docker und GNU `make`. Zum Ausführen: das Binary Ihrer Plattform aus
+  `make binaries` oder ein Container-Laufzeitsystem (siehe
   [Installation](#2-installation)).
 * Das Werkzeug lässt sich für sechs Plattformen bauen: Linux, macOS (`darwin`) und Windows,
   je für `amd64` und `arm64`. Das Image baut das `Dockerfile` für `linux/amd64` und
   `linux/arm64`. Gestartet und mit Aufzeichnen und Wiedergeben geprüft ist nur das Image
-  für `linux/amd64`, auf einem Docker-Server mit `amd64` (Docker 29.9.0). Von den übrigen
-  Binaries und vom Image für `linux/arm64` ist geprüft, dass sie gebaut sind: bei einem
+  für `linux/amd64`, auf einem Docker-Server mit `amd64`. Von den fünf Binaries außer dem für
+  Linux auf `amd64` und vom Image für `linux/arm64` ist geprüft, dass sie gebaut sind: bei einem
   Binary zeigt der Dateikopf Format und Architektur seiner Plattform, beim Image nennen die
   Metadaten Betriebssystem und Architektur. Ausgeführt sind sie nicht.
 * Die Verbindung Ihrer Anwendung zum Werkzeug läuft ohne Verschlüsselung, solange Sie
@@ -106,8 +106,8 @@ auf Ihrem Rechner brauchen Sie dafür nur Docker und GNU `make`.
 
 ### Das Binary aus dem Image
 
-Das Binary im Image ist ein statisch gebundenes Linux-Programm für die Architektur
-des Rechners, auf dem Sie gebaut haben. So kopieren Sie es in das aktuelle
+Das Binary im Image ist ein statisch gebundenes Linux-Programm für die Plattform
+des Images, das Sie gebaut haben (bei `make build` die des Docker-Servers). So kopieren Sie es in das aktuelle
 Verzeichnis:
 
 ```bash
@@ -147,8 +147,7 @@ Mit `make binaries VERSION=1.2.3` tragen die Namen `1.2.3` statt `dev`, und `ver
 `sha256sum`. So prüfen Sie die Binaries:
 
 ```bash
-cd dist
-sha256sum -c SHA256SUMS
+( cd dist && sha256sum -c SHA256SUMS )
 ```
 
 Jede Zeile der Ausgabe endet auf `OK`. Das Verzeichnis `dist/` muss leer sein oder fehlen;
