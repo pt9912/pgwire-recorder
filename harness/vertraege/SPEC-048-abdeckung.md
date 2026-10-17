@@ -16,7 +16,7 @@ Messung (Punkte 7 und 8) stehen in [ADR-0033](../../docs/plan/adr/0033-gate-nach
    ```
 
    Folgezeilen mit `//` setzen sie fort und werden mit einem Leerzeichen angefügt.
-   Fehlformen sind: eine eingerückte Deklaration, eine Deklaration ohne „ — “ und eine
+   Fehlformen sind: eine eingerückte Deklaration (Leerzeichen oder Tab), eine Deklaration ohne „ — “ und eine
    Deklaration, auf die nicht unmittelbar ein Test folgt (Leerzeile, andere Funktion,
    weitere Deklaration, Dateiende).
 2. **Anforderung und Pfad.** Der Pfad ist bei funktionalen Anforderungen (`LH-FA`)
@@ -66,16 +66,26 @@ Messung (Punkte 7 und 8) stehen in [ADR-0033](../../docs/plan/adr/0033-gate-nach
    Deklaration die Zeile des Tests), oder beim Prüfen bei mindestens einer veralteten
    Tabelle. Sie endet mit 2 und einer Meldung auf stderr, die nennt, was fehlt, und
    prüft dann nichts, wenn (in dieser Reihenfolge) das Lastenheft
-   fehlt, das Lastenheft keine Überschrift `### LH-…` führt oder das Verzeichnis `docs/user/`
-   fehlt; `make abdeckung` legt es nicht an. **Reihenfolge der Gründe** je Deklaration und
+   fehlt, das Lastenheft keine Zeile führt, die mit `### LH-` beginnt, oder das Verzeichnis `docs/user/`
+   fehlt; `make abdeckung` legt es nicht an. Ob eine solche Überschrift die Form einer Anforderung
+   hat, prüft dieser Ausgang nicht: Ein Lastenheft nur mit `### LH-XX-01` besteht ihn, und jede
+   Deklaration scheitert dann an (4) mit Exit 1 (akzeptiertes Negativ: ohne Deklaration bleiben die
+   Tabellen leer, und ein Lastenheft ohne Anforderung fällt beim ersten Test auf). **Reihenfolge der Gründe** je Deklaration und
    Element, ein Element nennt höchstens einen: (1) Form der Deklaration (Punkte 1 und 7),
    (2) Schreibweise von Anforderung und Pfad einschließlich der Paarung und der Zahlform
    (Punkt 2, 8), (3) Wertebereich von i und n, (4) die Anforderung steht nicht im Lastenheft,
    (5) Widerspruch zwischen Deklarationen (Punkt 8). Die Prüfung (5) betrachtet nur Elemente
    ohne einen Grund aus (1) bis (4). Ein Fehler aus (5) steht an der späteren Fundstelle,
-   geordnet nach Dateipfad (bytegenau) und Zeile, und nennt die frühere.
-7. **Deklaration im Kopf einer Gegenprobe (Nachweisart Gate).** Gelesen werden die Dateien,
-   deren Name auf `-gegenprobe.sh` endet, in `tools/` an der Wurzel des Repos in jeder
+   geordnet nach Dateipfad (bytegenau) und Zeile, und nennt die frühere: bei verschiedenen n die
+   erste Deklaration (in dieser Ordnung), die das n der Anforderung festlegt, bei `Messung` neben
+   einer geteilten Messung die erste Deklaration des jeweils anderen Pfads; ein Element, das
+   widerspricht, legt nichts fest, und jedes weitere Element mit dem widersprechenden n steht
+   ebenfalls im Fehler. Die Zeile ist die Zeile der Deklaration, bei einer Deklaration im Kopf
+   einer Gegenprobe die Zeile ihres Anfangs `# Abdeckung: …`, bei einer eingerückten Deklaration
+   und einer Deklaration nach dem Kopf die Zeile selbst. Der Wortlaut der Meldung ist nicht
+   zugesagt, nur Datei, Zeile und der Grund nach der Reihenfolge.
+7. **Deklaration im Kopf einer Gegenprobe (Nachweisart Gate).** Gelesen werden die regulären Dateien
+   (ein Symlink nicht), deren Name auf `-gegenprobe.sh` endet, in `tools/` an der Wurzel des Repos in jeder
    Tiefe; eine Zeile `# Abdeckung: …` in jeder anderen Datei wird nicht gelesen (eine
    Deklaration dort fehlt in den Tabellen, die Anforderung steht dann höchstens als
    `teilweise`; akzeptiertes Negativ). Der Kopf einer Datei sind ihre ersten zusammenhängenden
@@ -87,9 +97,10 @@ Messung (Punkte 7 und 8) stehen in [ADR-0033](../../docs/plan/adr/0033-gate-nach
    ```
 
    Folgezeilen, die mit `# ` und Text beginnen, setzen sie fort (mit einem Leerzeichen
-   angefügt); sie endet an einer Zeile `#` ohne Text, an der nächsten Deklaration und am Ende
-   des Kopfs. Mehrere Deklarationen in einem Kopf sind zulässig. Fehlformen sind: eine
-   eingerückte Deklaration (Leerraum vor `#`), eine Deklaration ohne „ — “, eine Zeile
+   angefügt); sie endet an einer Zeile aus `#` und höchstens Leerzeichen, an jeder anderen Zeile des
+   Kopfs, die nicht mit `# ` beginnt, an der nächsten Deklaration und am Ende des Kopfs. Mehrere Deklarationen in einem Kopf sind zulässig. Fehlformen sind: eine
+   eingerückte Deklaration (Leerzeichen oder Tab vor `# Abdeckung:`, an jeder Stelle der Datei, nicht
+   nur im Kopf; anderer Leerraum wird nicht geprüft), eine Deklaration ohne „ — “, eine Zeile
    `# Abdeckung: ` am Zeilenanfang nach dem Kopf und eine Anforderung `LH-FA` (eine
    Gate-Deklaration belegt kein Produktverhalten). Eine Gegenprobe ohne Deklaration erzeugt
    weder Fehler noch Zeile.
@@ -97,7 +108,8 @@ Messung (Punkte 7 und 8) stehen in [ADR-0033](../../docs/plan/adr/0033-gate-nach
    Teilen, bei `LH-QA` und `LH-RB`, in der Deklaration eines Tests wie in der einer Gegenprobe.
    i und n sind einstellige Dezimalzahlen ohne Vorzeichen, Leerraum und führende Null
    (`[1-9]`); es gilt i ≤ n und 2 ≤ n. Fehlformen sind: eine andere Schreibweise (mehrstellig,
-   `01`, Vorzeichen, Leerraum), i > n, n = 1, verschiedene n für dieselbe Anforderung und
+   `01`, Vorzeichen, Leerraum), i > n, n = 1 (verletzt ein Element beide, i > n und n = 1, nennt die Meldung einen der beiden Gründe; welchen,
+   ist nicht zugesagt), verschiedene n für dieselbe Anforderung und
    `Messung` neben einer geteilten Messung derselben Anforderung, gleich in welcher Datei.
    Derselbe Teil in zwei Deklarationen ist zulässig und ergibt zwei Zeilen wie zwei Tests am
    selben Pfad. Vollständig ist eine geteilte Messung, wenn jeder Teil 1 bis n in mindestens

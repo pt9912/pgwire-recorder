@@ -274,6 +274,25 @@ entscheidet der Implementer nicht, er gibt sie zurück.
 - *Aufrufarten von `make`:* Kein Stand, kein Hook; `abdeckung-check` und `abdeckung-gegenprobe` hängen
   wie bisher an `GATE_CHECKS`.
 
+**Prüfung des Architect nach der Umsetzung** (2026-10-17, Rückgabe des Implementers aus §7; entschieden in
+[`SPEC-048`](../../../../harness/vertraege/SPEC-048-abdeckung.md) Punkt 6 bis 8, Code unverändert wörtlich richtig):
+
+| Randform | Entscheidung | Rückgabe an den Implementer |
+|---|---|---|
+| Lastenheft nur mit `### LH-XX-01` | Ausgang 2 prüft die Zeile `### LH-`, nicht die Form; Deklarationen scheitern an (4) mit Exit 1; akzeptiertes Negativ (ein Lastenheft ohne Anforderung fällt beim ersten Test auf) | Fall `lastenheft-fremde-kennung` in `tools/test/abdeckung-gegenprobe.sh`: Exit 1 mit „steht nicht im Lastenheft“, nicht 2 |
+| Widerspruch gegen mehrere frühere | Der Fehler nennt die erste festlegende Deklaration; ein Widersprechender legt nichts fest; weitere mit dem widersprechenden n stehen ebenfalls im Fehler | Fall: zwei frühere Deklarationen mit n = 3, danach n = 2, die Meldung nennt die erste (Mutant „zuletzt gelesene“ wird rot); ebenso `Messung` zweimal, dann ein Teil; Satz im Kopf der Gegenprobe („Ebenso nicht gezeigt …“) streichen |
+| Zeile im Fehler einer Gate-Deklaration | Zeile des Anfangs `# Abdeckung: …`, bei eingerückt und nach dem Kopf die Zeile selbst; gepinnt ist nur `datei:zeile`, nicht der Wortlaut | Fälle `gate-zeile` genügen; je ein Fall mit mehrzeiliger Deklaration (Anfang, nicht Fortsetzung) und eingerückt/nach dem Kopf prüfen, sonst ergänzen |
+| Eingerückt an jeder Stelle | Fehlform in jeder Stelle der Datei, Leerzeichen und Tab; anderer Leerraum nicht geprüft | Fall `gate-eingerueckt-nach-kopf` (Leerzeichen und Tab nach dem Kopf); Mutant „nur im Kopf“ wird rot |
+| `# ` ohne Text | beendet die Fortsetzung wie `#` allein (Zeile aus `#` und höchstens Leerzeichen); jede andere Kopfzeile ohne `# ` beendet sie ebenfalls | Fälle sind in `gate-kopf` vorhanden (§7, Mutationen); keine |
+| Symlink auf `-gegenprobe.sh` | nicht gelesen (reguläre Dateien); `-type f` ist damit nicht äquivalent | Fall `gate-nicht-gelesen` mit Symlink ergänzen |
+
+**Äquivalente Mutanten aus §7, geführt ohne Zusage** (`AGENTS.md` §3.11; der Vertrag sagt nichts, was sie brechen):
+Reihenfolge von i > n und n = 1 (Vertrag: Meldung nennt einen der beiden, nicht welchen, Punkt 8); Ende der Fortsetzung am
+Kopfende (die Zusage ist das Ergebnis, nicht der Zweig); `LH-FA`-Zweig allein (Wortlaut der Meldung nicht zugesagt, Punkt 6);
+Wahl der früheren Deklaration (nicht äquivalent, seit heute zugesagt, siehe oben); `-type f` bei einem Verzeichnis (kein Fall des
+Vertrags, bei einem Symlink nicht äquivalent, siehe oben). `LC_ALL=C` entfernen bleibt grün, weil die Umgebung des Laufs C ist:
+akzeptiertes Negativ, die Zusage „bytegenau“ trägt der Mutant mit anderer Sortierung, das Skript setzt das Locale selbst.
+
 **Risiken:**
 
 - **Falsche Gesamtzahl n** — Gesamtzahl und Zuordnung eines Teils zur Messmethode sind
