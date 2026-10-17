@@ -1,10 +1,10 @@
 # ADR-0043: Binaries je Zielplattform und Container-Image als ein Gate mit Smoke
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-17
 
-**Autor:** Architect
+**Autor:** Architect; angenommen durch Entscheidung des Nutzers vom 2026-10-17 (Auswahl „Annehmen“)
 
 **Bezug:** [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-01`](../../../spec/lastenheft.md#lh-qa-01--determinismus), [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [ADR-0026](0026-build-und-test-im-multistage-dockerfile.md), [ADR-0038](0038-gate-kette-voll-und-schnell.md)
 
@@ -54,5 +54,6 @@ Wenn die Laufzeit des Ziels die Kette dominiert, wenn das Lastenheft das Image r
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-17 | Proposed | — |
+| 2026-10-17 | Accepted: Entscheidung des Nutzers (Auswahl „Annehmen“) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
