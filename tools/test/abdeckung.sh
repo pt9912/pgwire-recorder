@@ -176,7 +176,7 @@ END { abschluss() }
     }' >> "$arbeit/decl.tsv"
 
 if grep -q '^FEHLER' "$arbeit/decl.tsv"; then
-  grep '^FEHLER' "$arbeit/decl.tsv" | cut -f2 | sed 's/^/abdeckung: /' >&2
+  grep '^FEHLER' "$arbeit/decl.tsv" | sed 's/^FEHLER\t/abdeckung: /' >&2
   exit 1
 fi
 

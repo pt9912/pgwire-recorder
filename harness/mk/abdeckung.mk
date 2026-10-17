@@ -1,9 +1,10 @@
 # harness/mk/abdeckung.mk — Abdeckungstabellen je Anforderung und Pfad (ADR-0028, ADR-0033).
-# `abdeckung-check` und `abdeckung-gegenprobe` haengen an GATE_CHECKS: das eine
-# prueft, dass die Tabellen unter docs/user/abdeckung-*.md den Deklarationen der
-# Tests und der Gegenproben entsprechen, das andere, dass das Skript Fehlformen ablehnt. Beide laufen
-# auf dem Host (bash, awk, sort, find, cmp, stat). Geschrieben werden die
-# Tabellen nur ueber `make abdeckung` (Werkzeug, kein Gate).
+# `abdeckung-check` ruft das Skript mit `--check` (prueft, schreibt nichts),
+# `abdeckung-gegenprobe` die Gegenprobe des Skripts; beide haengen an GATE_CHECKS
+# und laufen auf dem Host (bash, awk, sort, find, cmp). Geschrieben werden die
+# Tabellen nur ueber `make abdeckung` (Werkzeug, kein Gate). Weder das Rezept
+# mit `--check` noch der Anschluss an GATE_CHECKS ist durch einen Fall der
+# Gegenprobe gezeigt; das bleibt Review.
 .PHONY: abdeckung abdeckung-check abdeckung-gegenprobe
 
 abdeckung: ## Abdeckungstabellen aus den Deklarationen der Tests und Gegenproben schreiben (Werkzeug, kein Gate)

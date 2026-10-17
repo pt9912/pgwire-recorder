@@ -22,7 +22,7 @@ entstehen, sagt der Vertrag; diese Datei entscheidet nichts davon.
    Grenze von `SPEC-048`, akzeptiertes Negativ der Bindung.
 2. **Ob die Tests grün laufen** — aus demselben Grund; das sagen `make test` und
    `make test-integration`.
-3. **Ob eine Gegenprobe an der Kette der Gates hängt, ob die Gesamtzahl n einer geteilten
+3. **Ob `abdeckung-check` das Skript mit `--check` ruft und an der Kette der Gates hängt (ebenso `abdeckung-gegenprobe`; das Rezept in `harness/mk/abdeckung.mk` zeigt kein Fall), ob eine Gegenprobe an der Kette der Gates hängt, ob die Gesamtzahl n einer geteilten
    Messung stimmt und ob ein Teil zur richtigen Messmethode gehört** — der Lauf prüft nur,
    dass n für eine Anforderung einheitlich ist; das übrige bleibt Review. Permanent: Grenze
    von `SPEC-048`.

@@ -151,6 +151,7 @@ abgelehnt hilfsfunktion internal/a_test.go "$(printf 'package a\n\n// Abdeckung:
 abgelehnt doppelt internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Happy — x\n// Abdeckung: LH-FA-01/Boundary — y\nfunc TestA(t *testing.T) {}')"
 abgelehnt dateiende internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Happy — x')"
 abgelehnt eingerueckt internal/a_test.go "$(printf 'package a\n\n\t// Abdeckung: LH-FA-01/Happy — x\nfunc TestA(t *testing.T) {}')"
+abgelehnt eingerueckt-leerzeichen internal/a_test.go "$(printf 'package a\n\n  // Abdeckung: LH-FA-01/Happy — x\nfunc TestA(t *testing.T) {}')"
 abgelehnt pfad internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Irgendwie — x\nfunc TestA(t *testing.T) {}')"
 abgelehnt qa-happy internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-QA-01/Happy — x\nfunc TestA(t *testing.T) {}')"
 abgelehnt fa-messung internal/a_test.go "$(printf 'package a\n\n// Abdeckung: LH-FA-01/Messung — x\nfunc TestA(t *testing.T) {}')"
@@ -508,6 +509,7 @@ stderr_klasse gate-zwei-dateien 1 '^abdeckung: tools/a-gegenprobe.sh:2: '
 # Je Zahlform ein Fall, an i und an n; die Meldung nennt die Schreibweise.
 for zf in 'Messung-10-von-12' 'Messung-10-von-2' 'Messung-1-von-10' 'Messung-01-von-2' 'Messung-1-von-02' \
           'Messung-+1-von-2' 'Messung-1-von-+2' 'Messung- 1-von-2' 'Messung-1-von- 2' \
+          'Messung--1-von-2' 'Messung-1-von--2' $'Messung-\t1-von-2' $'Messung-1-von-\t2' 'Messung-1-von-2 ' $'Messung-1-von-2\t' \
           'Messung-0-von-2' 'Messung-1-von-0' 'Messung-1von-2' 'Messung-1-von' 'Messung-' 'Messung-a-von-2'; do
   fall="teil-zahlform-$zf"
   abgelehnt "$fall" internal/a_test.go "$(t "LH-QA-01/$zf")"
