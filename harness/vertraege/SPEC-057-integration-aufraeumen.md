@@ -27,9 +27,13 @@ Mutation legt Punkt 7 fest, und die Gegenprobe verlangt genau diese Menge.
    Start gescheitert vor dem Anlegen, `$tests` nach `--rm`), gibt es keine Namen: die Liste ist leer,
    ohne Fehler und ohne Meldung.
 4. **Prüfung nach dem Entfernen und Rest.** Nach dem Entfernen prüft der Runner, dass keines der
-   gelesenen Volumes mehr existiert. Ein Rest wird mit Namen gemeldet (kein Inhalt des Volumes: ein
-   PostgreSQL-Datenverzeichnis kann Zugangsdaten tragen), per Namen entfernt (nur diese) und macht
-   den Lauf rot: Exit-Code 1, auch bei grünen Tests. Endet der Lauf ohnehin mit einem Code ungleich
+   gelesenen Volumes mehr existiert. Ein Rest wird mit Namen gemeldet, per Namen entfernt (nur diese) und macht
+   den Lauf rot: Exit-Code 1, auch bei grünen Tests (die Gegenprobe prüft ihn an der Funktion
+   `integration_ende`; die Verdrahtung `exit "$ende"` im Runner prüft kein Fall, akzeptiertes Negativ;
+   Grund: Ein grüner Testlauf braucht das Testimage und einen Lauf der Tests, und ein Fall mit
+   Attrappe der Tests wäre ein neuer Mechanismus für eine Zeile). Regel an den Schreiber der Meldung
+   (kein Fall prüft sie): Sie nennt nie den Inhalt eines Volumes, ein PostgreSQL-Datenverzeichnis kann
+   Zugangsdaten tragen. Endet der Lauf ohnehin mit einem Code ungleich
    0, behält dieser Vorrang (zum Beispiel 143 nach `SIGTERM`). Gelesen werden nur Namen aus den
    eigenen Containern; die Prüfung entfernt nie ein Volume, dessen Name sie nicht so gelesen hat,
    und zählt nie die Volumes des Hosts (parallele Läufe, auch anderer Projekte, sind damit nicht
@@ -61,10 +65,13 @@ Mutation legt Punkt 7 fest, und die Gegenprobe verlangt genau diese Menge.
    Mutanten ersetzen genau eine Stelle in einer Kopie der Datei oder des Runners; trifft die
    Ersetzung nichts oder mehr als eine Stelle, bricht die Gegenprobe ab.
 7. **Fälle der Gegenprobe.** Je Fall eine Mutation, die ihn rot färbt. Einige Mutationen färben
-   weitere Fälle, weil Fälle dieselbe Funktion prüfen; die Spalte nennt die Menge, die die Gegenprobe
-   verlangt (mehr und weniger rote Fälle machen sie rot):
+   weitere Fälle, weil Fälle dieselbe Funktion prüfen. Die Gegenprobe fährt je Mutation nur die Fälle
+   ihrer Gruppe (Laufzeit: die Fälle `p5-*` kosten Sekunden) und verlangt, dass darin genau die Fälle
+   der Spalte rot sind (mehr und weniger machen sie rot). Außerhalb der Gruppe sagt dieser Vertrag
+   nichts zu; dort färben einzelne Mutanten weitere Fälle (zum Beispiel `rm -fv` nur für `$pg` auch
+   `p3-angelegt`, `p5-sigint` und `p5-sigterm`), ohne dass es geprüft wäre:
 
-   | Fall | Zusage | Mutation | rote Fälle |
+   | Fall | Zusage | Mutation | rote Fälle in der Gruppe |
    |---|---|---|---|
    | `p2-grundfall` | nach dem Aufräumen existiert kein gelesenes Volume (Container aus `docker create` des PostgreSQL-Images) | `rm -f` statt `rm -fv` | `p2-grundfall`, `p2-ohne-v` |
    | `p2-ohne-v` | ohne `-v` bleibt ein Rest, die Meldung nennt den Namen | dieselbe Mutation | wie oben |

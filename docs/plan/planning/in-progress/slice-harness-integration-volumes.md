@@ -297,6 +297,9 @@ zum Container `$pg` (wenige Sekunden); alle übrigen kommen mit `docker create` 
 6. `SPEC-055` Punkt 9 stimmt mit dem Diff (`rm -fv` für alle Container, `$pg` zweimal gemutet); die übrigen Container ohne Fall sind als akzeptiertes
    Negativ nachgetragen. `SPEC-052` Punkt 13 stimmt (Gegenprobe liest nur `tools/test/` in Kopien).
 
+7. Review F-1/F-2/F-4 (2026-10-17): „Exit 1 bei Rest“ ist an der Funktion `integration_ende` zugesagt, die Verdrahtung im Runner ist akzeptiertes Negativ
+   (`SPEC-057` Punkt 4); die Spalte „rote Fälle“ gilt je Gruppe der Mutation (`nur`), Punkt 7; „kein Inhalt des Volumes“ ist Regel an den Schreiber, nicht zugesagt.
+
 **Rückgabe an den Implementer:** `tools/test/integration-volumes-gegenprobe.sh`: Der Mutant `p5-int-entfaellt` bleibt ohne roten Fall (wie `p5-term-entfaellt`, äquivalent);
 die Zeile `p3-nach-entfernen` verlangt die roten Fälle `p3-angelegt`, `p4-rest-rot`, `p5-sigint`, `p5-sigterm` (`SPEC-057` Punkt 7). Die Gegenprobe prüft sonst die Mengen der Tabelle in Punkt 7 (`p2-grundfall`+`p2-ohne-v`, `p3-angelegt`+`p4-rest-rot` usw.); weicht ein Mutant ab, melden.
 
