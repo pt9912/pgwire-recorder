@@ -397,17 +397,21 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - Reihenfolge von i > n und n = 1 untereinander (beide Gründe (3), die Meldung nennt einen davon): Der Vertrag ordnet sie nicht.
 - Das Ende der Fortsetzung am Kopfende (`abschluss()` am Kopfende entfernt, oder die Fortsetzung auch nach dem Kopf zugelassen, einzeln und zusammen): Die erste Zeile nach dem Kopf ist keine `#`-Zeile und beendet die Fortsetzung selbst; der Fall `gate-kopfende` zeigt das Ergebnis, nicht den Zweig.
 - Der Zweig für `LH-FA` in der Gate-Deklaration allein (ohne das Muster zu weiten): `LH-FA` fällt dann am Muster, mit einer anderen Meldung; der Vertrag nennt die Meldung nicht.
-- Welche von mehreren früheren Deklarationen ein Widerspruch nennt (der Mutant, der die frühere durch die zuletzt gelesene ersetzt, bleibt grün): Der Vertrag sagt „die frühere“; siehe Frage unten.
-- `-type f` bei der Suche der Gegenproben: Eine Datei auf `-gegenprobe.sh`, die ein Verzeichnis ist, kommt im Vertrag nicht vor.
+- (entfallen) Welche frühere Deklaration ein Widerspruch nennt: seit der Entscheidung des Architect (SPEC-048 Punkt 6) fangen `widerspruch-erste-n`, `-erste-messung`, `-erster-teil` den Mutanten „zuletzt gelesene“.
 - `LC_ALL=C` (Punkt 6, bytegenau): Die Umgebung des Laufs setzt kein anderes Locale; der Mutant mit `en_US.UTF-8` im Sortieren wird rot (`widerspruch-bytegenau`), das Entfernen von `export LC_ALL=C` nicht, weil die Umgebung des Laufs C ist.
 
-**Fragen an den Architect** (Randformen, die §6 nicht nennt; im Code gelesen wie unten, nicht entschieden):
+**Randformen nach der Entscheidung des Architect** (Commit `cacaf26a`, SPEC-048 Punkte 6 bis 8): Nachgearbeitet nur in der Gegenprobe. Zusage · Mutation · roter Test:
 
-1. Punkt 6, Ausgang 2: Der Vertrag sagt „keine Überschrift `### LH-…`“. Der Code prüft genau das (`^### LH-`). Ein Lastenheft nur mit `### LH-XX-01 …` besteht damit die Prüfung, hat aber keine bekannte Anforderung. Gemeint so?
-2. Punkt 8: Widersprechen mehrere frühere Deklarationen, nennt der Fehler die erste, die das n festlegt; ein widersprechender Eintrag legt n nicht fest, ein dritter mit dem n des zweiten steht ebenfalls im Fehler (`widerspruch-dritter`). Der Vertrag sagt „nennt die frühere“. Genügt das, oder soll der Vertrag die Wahl nennen?
-3. Punkt 7, Zeile der Fehlermeldung einer Gate-Deklaration ist die Zeile ihrer ersten Zeile (`# Abdeckung: …`); bei einer eingerückten oder einer Deklaration nach dem Kopf die Zeile der Zeile selbst. Der Vertrag nennt „Datei und Zeile“.
-4. Punkt 7: Eine eingerückte Deklaration ist in einer Gegenprobe an jeder Stelle der Datei eine Fehlform (wie bei Tests), nicht nur im Kopf.
-5. Punkt 7: Eine Zeile `# ` (Raute und Leerzeichen) ohne Text beendet die Fortsetzung wie `#` allein.
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Lastenheft nur mit `### LH-XX-01`: Exit 1 mit „steht nicht im Lastenheft“, nicht 2 | Ausgang 2 prüft `### LH-(FA|QA|RB)-` | `lastenheft-fremde-kennung` |
+| Widerspruch nennt die erste Deklaration, die n festlegt | n und Ort bei jedem gültigen Element neu gesetzt | `widerspruch-erste-n`, `widerspruch-erster-teil` |
+| bei `Messung` neben einem Teil die erste Deklaration des anderen Pfads | Ort von `Messung` bei jeder Deklaration neu gesetzt | `widerspruch-erste-messung` |
+| eingerückt (Leerzeichen, Tab) an jeder Stelle, Zeile selbst | Prüfung nur im Kopf; nur Leerzeichen; Zeile − 1 | `gate-eingerueckt-nach-kopf`, `-tab`, `gate-eingerueckt-zeile` (Leerzeichen und Tab: `…-tab`) |
+| Zeile einer mehrzeiligen Deklaration ist ihr Anfang | Zeile bei jeder Fortsetzungszeile neu gesetzt | `gate-zeile-mehrzeilig` |
+| Symlink auf eine Gegenprobe wird nicht gelesen | `-type f` entfernt | `gate-nicht-gelesen-symlink` |
+
+Neu fallen auch die Fälle `gate-nach-kopf-zeile` (Zeile 3). Die Fragen 1 bis 5 sind beantwortet; die Äquivalenz-Liste oben und der Kopf der Gegenprobe führen die verbliebenen Fälle.
 
 **Läufe:** `make abdeckung-check`, `make abdeckung-gegenprobe` (rund 6 s), `make docs-check` (992 Dateien, 0 Befunde), `make kopf-check`, `make doc-trace` am Stand dieses Commits grün; `make lint-gegenprobe` und `make lint` laufen im vollen `make gates`. `make gates` am Endstand (Stand der Arbeitsbaum-Datei `gates-passed.dateiliste` vom 2026-10-17 16:00): Exit 0, `abdeckung-check`, `abdeckung-gegenprobe`, `lint`, `lint-gegenprobe` und alle übrigen Gates grün; ein erster Lauf als Hintergrundjob der Shell scheiterte an `container-gegenprobe` (SIGINT wird von einem so gestarteten Prozess geerbt ignoriert, Fälle `p9-*INT`), der zweite, über das Werkzeug gestartet, lief grün; keine Flake (`p7-int-treiber`, `p9-ungenutzt-allein`) trat auf.
 

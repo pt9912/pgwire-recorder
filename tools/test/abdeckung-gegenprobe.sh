@@ -36,10 +36,16 @@
 # der Meldung sie unterscheidet, der Widerspruch an der späteren Fundstelle nach Dateipfad (bytegenau)
 # und Zeile; die Darstellung in der Gesamtsicht und die Vollständigkeit.
 #
-# Nicht gezeigt, weil über die Schnittstelle nicht unterscheidbar: ein i mit mehreren Ziffern
-# neben einem n mit einer Ziffer wird auch ohne die Prüfung der Schreibweise abgelehnt (i > n);
-# der Fall `Messung-10-von-2` zeigt die Klasse der Meldung. Ebenso nicht gezeigt: welche von
-# mehreren früheren Deklarationen der Fehler eines Widerspruchs nennt, wenn mehrere widersprechen.
+# Gelesen werden nur reguläre Dateien (ein Symlink auf eine Gegenprobe nicht). Ein Widerspruch
+# nennt die erste Deklaration, die das n festlegt, bzw. die erste des anderen Pfads; ein
+# widersprechendes Element legt nichts fest (widerspruch-erste-*, widerspruch-dritter). Eine
+# eingerückte Deklaration ist an jeder Stelle der Datei eine Fehlform, mit der Zeile selbst; ein
+# Lastenheft nur mit `### LH-XX-01` besteht den Ausgang 2 und scheitert an (4) mit Exit 1.
+#
+# Nicht gezeigt, weil über die Schnittstelle nicht unterscheidbar: die Reihenfolge von i > n und
+# n = 1 untereinander (der Vertrag lässt offen, welcher Grund genannt wird); das Ende der
+# Fortsetzung am Kopfende (die erste Zeile ohne `#` beendet sie selbst); der Zweig für `LH-FA` in
+# der Gate-Deklaration allein (das Muster der Pfade lehnt sie mit einer anderen Meldung ab).
 #
 # Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.
 set -euo pipefail
@@ -415,6 +421,13 @@ for f in tools/x.sh tools/gegenprobe.sh tools/x-gegenprobe.sh.bak harness/x-gege
     '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' '| --- | --- | --- | --- |'
 done
 
+# Ein Symlink auf eine Datei mit gültiger Deklaration wird nicht gelesen (nur reguläre Dateien).
+wurzel="$(baum gate-nicht-gelesen-symlink tools/ziel.sh "$(gate "${D}LH-QA-01/Messung — x")")"
+ln -s ziel.sh "$wurzel/tools/x-gegenprobe.sh"
+angenommen gate-nicht-gelesen-symlink "$wurzel"
+tabelle gate-nicht-gelesen-symlink "$wurzel" abdeckung-gate.md \
+  '| Anforderung | Pfad | Kurzbeschreibung | Nachweis |' '| --- | --- | --- | --- |'
+
 # Eine Gegenprobe ohne Deklaration im Muster erzeugt weder Fehler noch Zeile (Bindung aus
 # slice-harness-integration-volumes): Kopf mit Fließtext, ohne Zeile `Abdeckung:`.
 wurzel="$(baum gegenprobe-ohne-deklaration tools/test/x-gegenprobe.sh "$(gate '# x-gegenprobe — prüft y.' '#' '# GRENZE: Abdeckung wird hier nicht deklariert.' '#' '# Ausgang: 0, wenn jeder Fall wie erwartet endet, sonst 1.')" internal/a_test.go "$(t LH-FA-01/Happy)")"
@@ -464,6 +477,24 @@ abgelehnt gate-teil-bereich tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung-
 abgelehnt gate-zeile tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung — x" "${D}LH-QA-01/Happy — y")"
 grep -qF 'abdeckung: tools/x-gegenprobe.sh:3: ' "$arbeit/err" \
   || melde "Fall 'gate-zeile': stderr nennt nicht Zeile 3 der Deklaration: $(cat "$arbeit/err")"
+# Eingerückt hinter dem Kopf (Leerzeichen, Tab) ist ebenfalls eine Fehlform; die Meldung nennt die Zeile selbst.
+abgelehnt gate-eingerueckt-nach-kopf tools/x-gegenprobe.sh "$(gate 'echo x' " ${D}LH-QA-01/Messung — x")"
+grep -qF 'abdeckung: tools/x-gegenprobe.sh:3: ' "$arbeit/err" \
+  || melde "Fall 'gate-eingerueckt-nach-kopf': stderr nennt nicht Zeile 3: $(cat "$arbeit/err")"
+abgelehnt gate-eingerueckt-nach-kopf-tab tools/x-gegenprobe.sh "$(gate 'echo x' $'\t'"${D}LH-QA-01/Messung — x")"
+grep -qF 'abdeckung: tools/x-gegenprobe.sh:3: ' "$arbeit/err" \
+  || melde "Fall 'gate-eingerueckt-nach-kopf-tab': stderr nennt nicht Zeile 3: $(cat "$arbeit/err")"
+# Die eingerückte Deklaration im Kopf nennt ihre Zeile (2), die nach dem Kopf ebenso (3).
+abgelehnt gate-eingerueckt-zeile tools/x-gegenprobe.sh "$(gate " ${D}LH-QA-01/Messung — x")"
+grep -qF 'abdeckung: tools/x-gegenprobe.sh:2: ' "$arbeit/err" \
+  || melde "Fall 'gate-eingerueckt-zeile': stderr nennt nicht Zeile 2: $(cat "$arbeit/err")"
+abgelehnt gate-nach-kopf-zeile tools/x-gegenprobe.sh "$(printf '%s\n' '#!/usr/bin/env bash' 'set -e' "${D}LH-QA-01/Messung — x")"
+grep -qF 'abdeckung: tools/x-gegenprobe.sh:3: ' "$arbeit/err" \
+  || melde "Fall 'gate-nach-kopf-zeile': stderr nennt nicht Zeile 3: $(cat "$arbeit/err")"
+# Eine mehrzeilige Deklaration nennt ihren Anfang (Zeile 2), nicht die Fortsetzung.
+abgelehnt gate-zeile-mehrzeilig tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Happy — x" '# Fortsetzung' '# noch eine')"
+grep -qF 'abdeckung: tools/x-gegenprobe.sh:2: ' "$arbeit/err" \
+  || melde "Fall 'gate-zeile-mehrzeilig': stderr nennt nicht Zeile 2: $(cat "$arbeit/err")"
 # Eine Zeile `Abdeckung:` am Zeilenanfang in einer Gegenprobe außerhalb des Kopfs ist eine
 # Fehlform, auch mitten in einem Fixture (dort entstehen sie mit printf in einer Zeile).
 abgelehnt gate-nach-dem-kopf-code tools/x-gegenprobe.sh "$(printf '%s\n' '#!/usr/bin/env bash' 'cat <<EOF' "${D}LH-QA-01/Messung — x" 'EOF')"
@@ -559,6 +590,25 @@ stderr_ist widerspruch-element-rueckwaerts 'abdeckung: internal/a_test.go:4: LH-
 wurzel="$(baum widerspruch-dritter internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-2')" internal/b_test.go "$(t 'LH-QA-01/Messung-1-von-3')" internal/c_test.go "$(t 'LH-QA-01/Messung-2-von-3')")"
 rot widerspruch-dritter "$wurzel"
 stderr_klasse widerspruch-dritter 2 'widerspricht LH-QA-01/Messung-1-von-2 \(früher: internal/a_test.go:4\)$'
+# Die frühere Deklaration ist die erste, die das n festlegt: zwei frühere mit n = 3, danach n = 2.
+wurzel="$(baum widerspruch-erste-n internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-3')" internal/b_test.go "$(t 'LH-QA-01/Messung-2-von-3')" internal/c_test.go "$(t 'LH-QA-01/Messung-1-von-2')")"
+rot widerspruch-erste-n "$wurzel"
+stderr_ist widerspruch-erste-n 'abdeckung: internal/c_test.go:4: LH-QA-01/Messung-1-von-2 widerspricht LH-QA-01/Messung-1-von-3 (früher: internal/a_test.go:4)'
+# Bei `Messung` neben einem Teil die erste Deklaration des anderen Pfads, in beiden Richtungen.
+wurzel="$(baum widerspruch-erste-messung internal/a_test.go "$(t 'LH-QA-01/Messung')" internal/b_test.go "$(t 'LH-QA-01/Messung')" internal/c_test.go "$(t 'LH-QA-01/Messung-1-von-2')")"
+rot widerspruch-erste-messung "$wurzel"
+stderr_ist widerspruch-erste-messung 'abdeckung: internal/c_test.go:4: LH-QA-01/Messung-1-von-2 steht neben LH-QA-01/Messung (früher: internal/a_test.go:4)'
+wurzel="$(baum widerspruch-erster-teil internal/a_test.go "$(t 'LH-QA-01/Messung-1-von-2')" internal/b_test.go "$(t 'LH-QA-01/Messung-2-von-2')" internal/c_test.go "$(t 'LH-QA-01/Messung')")"
+rot widerspruch-erster-teil "$wurzel"
+stderr_ist widerspruch-erster-teil 'abdeckung: internal/c_test.go:4: LH-QA-01/Messung steht neben LH-QA-01/Messung-1-von-2 (früher: internal/a_test.go:4)'
+
+# Ein Lastenheft nur mit einer fremden Kennung besteht den Ausgang 2; die Deklaration scheitert
+# an (4) mit Exit 1.
+wurzel="$(baum lastenheft-fremde-kennung internal/a_test.go "$(t 'LH-FA-01/Happy')")"
+printf '### LH-XX-01 — Fremd\n' > "$wurzel/spec/lastenheft.md"
+rot lastenheft-fremde-kennung "$wurzel"
+stderr_klasse lastenheft-fremde-kennung 1 'steht nicht im Lastenheft'
+
 # Test und Gegenprobe, gleich in welcher Datei: tools/ liegt vor zz/ und hinter internal/.
 wurzel="$(baum widerspruch-gate-frueher tools/x-gegenprobe.sh "$(gate "${D}LH-QA-01/Messung-1-von-2 — g")" zz/z_test.go "$(t 'LH-QA-01/Messung-1-von-3')")"
 rot widerspruch-gate-frueher "$wurzel"
