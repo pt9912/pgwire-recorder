@@ -233,9 +233,17 @@ Keine Probe am echten Container; er, `compose.yaml` des Messorts und seine Volum
 **Mutation (Gegenbeispiel) für die Sätze, die eine Verneinung tragen.** Zusage „`/host-repo` und `PGR_REPO` kommen im Dokument nicht mehr vor“: `grep -n 'host-repo\|PGR_REPO' docs/developer/devcontainer.md` vor dem Umbau
 21 Zeilen (`git grep -c` auf `92cfaf23`), nach dem Umbau leer (Exit 1). Zusage „der Arbeitsbaum des Hosts ist in keinem der drei Mounts“: `docker compose config` auf dem Block mit einer zusätzlich eingefügten Mount-Zeile (nur Konfiguration, kein Container) zählt vier `type:`-Einträge, der Block des Dokuments drei; `docker inspect` des laufenden Scratch-Containers drei.
 
-**Quantoren-Durchsicht** (`grep -nEi 'jede|alle|immer|stets|nie|nichts|kein|jeweils|genau|nur'` über das Dokument; Entscheidung je neuem Treffer): Zeile „genau drei Mounts“ (§7): gemessen, unverändert; „Jeder Container hat sein eigenes Bare-Repo“ (§10): im zweiten
-Container eigenes Bare-Repo angelegt, im ersten nicht sichtbar, unverändert; „Jeder `ssh`-Aufruf von `git`“ (§9): eng gefasst auf einen `ls-remote` einer `ssh://`-URL; „Er bekommt nur, was du … einlieferst“ (§11): eng gefasst auf das Bare-Repo
-und die Mounts; „Stände, die nur dort lagen, auch“ (§4): gefolgert aus `Removed`, nicht an einem Inhalt gemessen, unverändert mit dieser Einordnung; „checkt nichts aus“ (§6): eng gefasst auf Dateien. Übrige Treffer sind Bestand ohne neuen Satz zum Gegenstand.
+**Aussagen aus der Probe des Vorgängers.** Diese Sätze des Dokuments stammen aus `slice-harness-devcontainer-doku` und haben hier keine Zeile in der Tabelle; das Dokument nennt sie „Probe des Vorgängers“ oder „Versuchs-Container“:
+Zeiten in §8 (5 s, 201 s, 1 s, 191 s), Platzangaben in §11 (2,05 GB, 5,87 GB, 37,14 MB, 47 MB), `ss -ltn` und `docker port` in §5, die Fehlerzeilen in §12 (`iptables`, `Permission denied (publickey)`, `Permission denied` beim Klonen), `u-boot up` nach 44 s. Dieser Umbau hat sie nicht wiederholt.
+Aus diesem Umbau gemessen sind `u-boot up` 43,7 s, `docker compose build --no-cache` 35 s (nicht im Dokument), drei Mounts und alles in der Tabelle.
+
+**Quantoren-Durchsicht** (`grep -nEi 'jede|alle|immer|stets|nie|nichts|kein|jeweils|genau|nur'` über das Dokument; Entscheidung je neuem Treffer): „genau drei Mounts“ (§7): gemessen, unverändert; „Jeder Container hat sein eigenes Bare-Repo“ (§10): im zweiten
+Container eigenes Bare-Repo angelegt, im ersten nicht sichtbar, unverändert; §9 „`core.sshCommand` gilt für das ganze Host-Repo, nicht für ein Remote“: eng gefasst auf einen `ls-remote` einer `ssh://`-URL, die kein Remote ist;
+§11 Host-Repo: „ein Prozess ohne `sudo` sieht ihn also nicht“, Root über Gerätedateien nicht geprüft (§13 des Dokuments); §4 „Stände, die nur dort lagen, auch“: als gefolgert gekennzeichnet; §6 „checkt keine Dateien aus“: eng gefasst;
+§7/§11 Ablageort der Anmeldung von Claude Code: keine Verneinung mehr, nicht geprüft (§13); §9 „im Klon holt `git switch main && git pull` den Stand“: auf den gelaufenen Fall `main` gefasst. Übrige Treffer sind Bestand ohne neuen Satz zum Gegenstand.
+
+**Nacharbeit nach Review und Verifikation** (Commit nach `1e70abc3`): zitierte Meldungen als Locale des Probe-Hosts gekennzeichnet (§6), `$PGR_SSH_PORT`-Sätze in §10 auf den Fall der zweiten Instanz gefasst, Ort der `git remote add container2`-Befehle genannt,
+Wortlaut zu `u-boot init` und Messort in §3.5, §4 Fetch → Push, Relativsatz in §1, `u-boot up` 44 s als Messung von `u-boot` benannt. Keine neue Container-Probe; jede Änderung ist eine engere Fassung oder ein Eintrag in §13.
 
 **Gates.** `make docs-check`: `d-check: 991 Datei(en) geprüft, 0 Befund(e)`. `make kopf-check`: Exit 0. `make gates-schnell` auf `9f8faef9`: Exit 0, 1 min 59,8 s (Stufe `lint`: `0 issues.`). Ein voller `make gates` ist nicht gelaufen (§5: nur `docs/developer/` und Planung ändern).
 

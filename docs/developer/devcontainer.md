@@ -7,7 +7,7 @@ Stand: 2026-10-17
 
 Der Dev-Container ist ein privilegierter Docker-Container mit einem **eigenen Docker-Daemon**
 (`dockerd`), `sshd`, Node.js und Claude Code. Das Repo liegt als Klon in einem Volume des
-Containers, der aus einem Bare-Repo im selben Volume entsteht; der Host liefert mit `git push` ein und
+Containers; der Klon entsteht aus einem Bare-Repo im selben Volume, der Host liefert mit `git push` ein und
 holt mit `git fetch` zurück (§6, §9). Der Arbeitsbaum des Hosts ist nicht eingebunden. Die Images, Tags, Netze und Container, die `make` im Container anlegt, liegen im
 Daemon des Containers, nicht im Daemon des Hosts: Derselbe Tag (`pgwire-recorder:dev`) hat dort eine
 andere Image-ID als am Host, und der Container sieht weder die Container noch die Netze des Hosts.
@@ -212,8 +212,9 @@ volumes:
   pgr-dev-workspace:
 ```
 
-Der Block weicht an einer Stelle von der Datei ab, die `u-boot` mit `init` erzeugt: Der Pfad des
-Schlüssels ist relativ (`./ssh/…`). Mit dem Block in dieser Form (`Dockerfile` und `start.sh` aus §3.3 und
+Der Block ist der Kopf, den `u-boot init` schreibt, mit dem Teil von Hand, der `services: {}` und
+`volumes: {}` ersetzt. Er weicht an einer Stelle von der Datei am Messort ab: Dort ist der Pfad des
+Schlüssels absolut, hier relativ (`./ssh/…`). Mit dem Block in dieser Form (`Dockerfile` und `start.sh` aus §3.3 und
 §3.4, jeweils aus diesem Dokument übernommen) lief ein Scratch-Container mit eigenem Projektnamen, Namen
 und Port aus einer `.env` (§10): `docker inspect` zählt drei Mounts, und `u-boot up` endet `healthy`.
 Der Kopf oben trägt `name: pgr-dev` und das Netz `pgr-dev-default`; der Scratch-Container lief mit dem
@@ -243,7 +244,7 @@ docker compose ps
 Die Zeile `pull access denied for pgr-dev…` beim ersten Start von `u-boot up` ist der Versuch, das
 Image aus einer Registry zu holen; danach baut Compose es. Laut Hilfetext von `u-boot` ruft `u-boot up`
 `docker compose up -d` auf; `docker compose up -d` allein lief nur für einen vorhandenen Container, den eine geänderte Variable aus der Umgebung (`PGR_SSH_PORT`) neu erzeugte (danach `healthy`), nicht als erster Start. Der Build lädt Pakete aus dem Netz. Die Probe baute mit warmem Layer-Cache
-des Hosts, `u-boot up` endete nach 44 Sekunden mit `healthy`; die Zeit eines Builds ohne Cache ist nicht
+des Hosts, `u-boot up` endete nach 44 Sekunden mit `healthy` (Probe des Vorgängers, gemessen an `u-boot up`; ein `docker compose up -d` baute in einem Lauf in 37 Sekunden); die Zeit eines Builds ohne Cache ist nicht
 gemessen. `u-boot up` wartet standardmäßig 60 Sekunden auf den Zustand `healthy` und endet bei
 Überschreitung mit Exit 12 (`--timeout <Sekunden>` ändert das, gemessen mit `--timeout 5`); der
 Container läuft danach weiter. `u-boot up` meldet zusätzlich `warn: Service "dev" port entry #0 (127.0.0.1:${PGR_SSH_PORT:-2222}:22)
@@ -251,8 +252,8 @@ is not TCP-probable; stabilization will rely on healthcheck or running-only`; de
 
 | Ziel | Befehl | Folge |
 |---|---|---|
-| Stoppen | `u-boot down` | Container und Netz entfallen; Volumes (Bare-Repo, Klon, Docker-Cache) und Image bleiben; nach `u-boot up` sind Bare-Repo, Branches und Klon wieder da, und der Host-Schlüssel von `sshd` ist derselbe Fingerabdruck wie vorher (gemessen, `git fetch` ohne Warnung). `/home/vscode` liegt im Dateisystem des Containers, in keinem der drei Mounts (§7): `~/.gitconfig` (§6) ist danach weg (gemessen); die Anmeldung von Claude Code (§7) entfällt damit ebenfalls (aus den Mounts gefolgert, nicht ausgeführt) |
-| Alles löschen | `docker compose down -v` | zusätzlich die beiden Volumes (`Removed`): das Bare-Repo, der Klon und der Docker-Cache im Container sind weg; Stände, die nur dort lagen, auch |
+| Stoppen | `u-boot down` | Container und Netz entfallen; Volumes (Bare-Repo, Klon, Docker-Cache) und Image bleiben; nach `u-boot up` sind Bare-Repo, Branches und Klon wieder da, und der Host-Schlüssel von `sshd` ist derselbe Fingerabdruck wie vorher; ein `git push` des Hosts danach lief ohne Warnung (gemessen). `/home/vscode` liegt im Dateisystem des Containers, in keinem der drei Mounts (§7): `~/.gitconfig` (§6) ist danach weg (gemessen); ob die Anmeldung von Claude Code (§7) entfällt, ist nicht geprüft, weil ihr Ablageort nicht geprüft ist (§13) |
+| Alles löschen | `docker compose down -v` | zusätzlich die beiden Volumes (`Removed`): das Bare-Repo, der Klon und der Docker-Cache im Container sind weg; Stände, die nur dort lagen, auch (gefolgert aus `Removed`, an einem Inhalt nicht geprüft) |
 | Image löschen | `docker rmi ${PGR_NAME:-pgr-dev}:latest` | danach baut der nächste Start neu |
 
 ## 5. Verbinden per SSH
@@ -262,7 +263,7 @@ ssh -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes -p "${PGR_SSH_PORT:-2222}
 ```
 
 Benutzer ist `vscode` (Mitglied der Gruppe `docker`). Der Host-Port ist an `127.0.0.1` veröffentlicht
-(`docker port` in der Probe mit Vorgabe: `127.0.0.1:2222`); von anderen Rechnern ist der Container darüber nicht erreichbar.
+(`docker port` in der Probe des Vorgängers mit Vorgabe: `127.0.0.1:2222`); von anderen Rechnern ist der Container darüber nicht erreichbar.
 `sshd` selbst lauscht im Container auf allen Adressen (`ss -ltn`: `0.0.0.0:22` und `[::]:22`). `sshd` lässt nur Schlüssel zu
 (`PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `PermitRootLogin no`,
 `AllowUsers vscode`); eine Anmeldung ohne Schlüssel endet mit `Permission denied (publickey)`.
@@ -315,6 +316,9 @@ meldet `Reinitialized existing Git repository`, ein zweiter `git clone` in ein v
 bricht mit `fatal: destination path … already exists and is not an empty directory` ab (Exit 128), und ein
 zweites `git remote add container …` am Host mit `externes Repository container existiert bereits` (Exit 3).
 
+Meldungen von `git` und `ssh` stehen im Dokument, wie sie der Host (deutsche Locale) oder der Container
+(englische Locale) ausgab; in einer anderen Locale lauten sie anders.
+
 Name und E-Mail setzt du selbst; ohne sie weist `git commit` mit „Author identity unknown“ ab.
 `--global` schreibt `~/.gitconfig` im Dateisystem des Containers, nicht in ein Volume: Nach `u-boot down`
 und `u-boot up` ist die Datei weg (`git config --global -l`: `unable to read config file
@@ -337,8 +341,8 @@ claude
 ```
 
 Die Anmeldung geschieht im Container selbst; du kopierst keine Zugangsdaten vom Host. Die Anmeldedaten
-liegen danach im Container, nicht im Host-Repo und in keinem Volume (wo `claude` sie ablegt, ist nicht
-geprüft). Jeder Prozess im Container kann sie mit `sudo` lesen, und nichts in
+liegen danach im Container und nicht im Host-Repo; wo `claude` sie ablegt, auch ob in einem Volume,
+ist nicht geprüft. Jeder Prozess im Container kann sie mit `sudo` lesen, und nichts in
 `compose.yaml` beschränkt den Netz-Ausgang (§11). Der Container
 hat genau drei Mounts: den öffentlichen Schlüssel (Mount `ro`)
 und die beiden Volumes aus §3.5 (`docker inspect` am Scratch-Container); Verzeichnisse mit Zugangsdaten
@@ -357,7 +361,7 @@ make test
 
 Gemessene Zeiten im Container (Stand 2026-10-17, je Zeile die Läufe, die es gab). Die jeweils erste
 Zahl stammt aus einem Skript des Nutzers am Versuchs-Container (`scripts/nachweis2.sh`,
-`scripts/nachweis3.sh`); sie ist nicht wiederholt. Die zweite stammt aus der Probe in einem frischen
+`scripts/nachweis3.sh`); sie ist nicht wiederholt. Die zweite stammt aus der Probe des Vorgängers in einem frischen
 Container:
 
 | Target | Zeit | Bedingung |
@@ -403,8 +407,8 @@ Branch geprüft und gemergt. Der Inhalt kommt aus einem Container, in dem `vscod
 Sieh die Commits durch, bevor du mergst.
 
 Schreiben beide Seiten auf `main`, weist der zweite Push ab (`! [rejected] main -> main (fetch first)`).
-Dann `git fetch container`, `container/main` in den eigenen `main` mergen und erneut pushen; im Container
-holt `git pull` den Stand. Deshalb arbeitet der Container nicht auf `main`.
+Dann `git fetch container`, `container/main` in den eigenen `main` mergen und erneut pushen; im Klon holt
+`git switch main && git pull` den Stand (gelaufen auf `main`; ein Branch ohne Upstream, wie `thema` in §6, ist nicht gelaufen). Deshalb arbeitet der Container nicht auf `main`.
 
 `core.sshCommand` gilt für das ganze Host-Repo, nicht für ein Remote: Ein `git ls-remote` auf eine
 `ssh://`-URL, die kein Remote ist, rief denselben Befehl mit demselben Schlüssel auf (`origin` über `ssh` ist
@@ -459,18 +463,21 @@ braucht den Platz dafür noch einmal (§11). `cpus` und `mem_limit` begrenzen je
 
 Austausch mit zwei Containern: Jeder Container hat sein eigenes Bare-Repo (§6) und am Host ein Remote
 mit eigenem Namen und eigenem Port. `core.sshCommand` (§9) kennt einen Befehl je Host-Repo; mit einem Schlüssel
-je Instanz nennt er beide:
+je Instanz nennt er beide. Die Befehle laufen im Host-Repo (nicht im Verzeichnis der Instanz):
 
 ```bash
 git remote add container2 ssh://vscode@127.0.0.1:2223/workspaces/austausch.git
-git config core.sshCommand "ssh -i <PGR_DEV der ersten>/ssh/id_ed25519 -i $PGR_DEV/ssh/id_ed25519 -o IdentitiesOnly=yes"
+git config core.sshCommand "ssh -i <PGR_DEV der ersten>/ssh/id_ed25519 -i <PGR_DEV der zweiten>/ssh/id_ed25519 -o IdentitiesOnly=yes"
 ```
 
 Mit dem Schlüssel der ersten Instanz allein wies der zweite Container ab (`git push container2 main`
 endete mit „Bitte stellen Sie sicher, dass die korrekten Zugriffsberechtigungen bestehen“); mit beiden Schlüsseln
 liefen `git push container2 main`, `git fetch container` und `git fetch container2`, und `git branch -r` führte
 `container/…` und `container2/…` nebeneinander. Die Befehle der übrigen Abschnitte (`ssh`, `git push`, `git fetch`)
-nehmen `-p "$PGR_SSH_PORT"` und `PGR_DEV` der Instanz; `docker compose` und `u-boot` laufen im Verzeichnis der Instanz.
+nehmen Port und Schlüssel der Instanz. `PGR_SSH_PORT` steht nur in der `.env` von Compose, nicht in der Shell: Die Befehle
+in §5 und §9 lösen `${PGR_SSH_PORT:-2222}` ohne gesetzte Variable zu `2222` auf. Für die zweite Instanz setzt du
+`export PGR_SSH_PORT=2223` in der Shell oder schreibst `-p 2223` bzw. `:2223` in die URL; `docker compose` und `u-boot` laufen
+im Verzeichnis der Instanz.
 
 ## 11. Grenzen und Sicherheit
 
@@ -487,13 +494,14 @@ nehmen `-p "$PGR_SSH_PORT"` und `PGR_DEV` der Instanz; `docker compose` und `u-b
   Adresse erreichen (aus der Bindung gefolgert, mit einem zweiten Container nicht ausgeführt). Geschützt
   ist er dort nur durch den einen öffentlichen Schlüssel aus §3.2.
 - **Zugangsdaten und Netz:** Die Anmeldung von Claude Code (§7) und Name und E-Mail von Git (§6) liegen
-  im Dateisystem des Containers (kein Volume). Jeder Prozess darin, ein Build, ein Test oder ein
-  Paket-Skript, kann sie mit `sudo` lesen, und der Netz-Ausgang ist nicht eingeschränkt. Sie entfallen mit dem
-  Container (§4).
+  im Dateisystem des Containers; `~/.gitconfig` ist nach `u-boot down` und `up` weg (gemessen), der Ablageort der
+  Anmeldung von Claude Code ist nicht geprüft. Jeder Prozess darin, ein Build, ein Test oder ein
+  Paket-Skript, kann sie mit `sudo` lesen, und der Netz-Ausgang ist nicht eingeschränkt.
 - **Docker-Socket des Hosts:** nicht gemountet (die drei Mounts stehen in §7). Der Socket im Container gehört dem Daemon im
   Container. Bei einem privilegierten Container ist das keine Grenze zum Host (siehe oben).
-- **Host-Repo:** kein Mount; der Arbeitsbaum des Hosts ist in keinem der drei Mounts (`docker inspect`), also
-  liegen darin keine uncommitteten oder ignorierten Dateien des Hosts. Das Bare-Repo enthält, was du mit
+- **Host-Repo:** kein Mount; der Arbeitsbaum des Hosts ist in keinem der drei Mounts (`docker inspect`), ein
+  Prozess ohne `sudo` sieht ihn also nicht. Ob ein Prozess mit `root` ihn bei `privileged: true` über
+  Gerätedateien lesen kann, ist nicht geprüft (§13). Das Bare-Repo enthält, was du mit
   `git push` einlieferst (§9).
 - **Volumes:** `pgr-dev-workspace` (Bare-Repo und Klon) und `pgr-dev-docker` (Daemon im Container) überleben
   `u-boot down` und Neustart; `docker compose down -v` löscht sie.
@@ -513,9 +521,9 @@ der Klon darin 47 MB mit `.git` und 18 MB ohne (`du -sh` im Versuchs-Container; 
 |---|---|
 | Voraussetzungen unklar | `u-boot doctor` im Verzeichnis `pgr-dev`: prüft Docker, Compose, Git, `compose.yaml`, `devcontainer.json` und `Dockerfile` |
 | Container nicht `healthy` | `docker compose ps`, dann `docker logs pgr-dev`; das Log von `dockerd` liegt auch im Container unter `/var/log/dockerd.log` |
-| `docker logs` endet mit „dockerd nicht bereit“ und `failed to create NAT chain DOCKER: iptables failed` | der Container läuft ohne `privileged: true` (so gestartet in der Probe); `compose.yaml` prüfen. `start.sh` wartet 60 Sekunden, bevor es das meldet |
-| `ssh` meldet `Permission denied (publickey)` | anderer Schlüssel als `ssh/id_ed25519` oder Benutzer `root` (beides in der Probe abgewiesen); Benutzer ist `vscode` |
-| `git clone` nach `/workspaces` meldet `Permission denied` | ein frisches Volume gehört `root`; `start.sh` übergibt `/workspaces` bei jedem Start an `vscode`. In der Probe trat es auf, als der Entrypoint übergangen wurde |
+| `docker logs` endet mit „dockerd nicht bereit“ und `failed to create NAT chain DOCKER: iptables failed` | der Container läuft ohne `privileged: true` (so gestartet in der Probe des Vorgängers); `compose.yaml` prüfen. `start.sh` wartet 60 Sekunden, bevor es das meldet |
+| `ssh` meldet `Permission denied (publickey)` | anderer Schlüssel als `ssh/id_ed25519` oder Benutzer `root` (beides in der Probe des Vorgängers abgewiesen); Benutzer ist `vscode` |
+| `git clone` nach `/workspaces` meldet `Permission denied` | ein frisches Volume gehört `root`; `start.sh` übergibt `/workspaces` bei jedem Start an `vscode`. In der Probe des Vorgängers trat es auf, als der Entrypoint übergangen wurde |
 | `git clone` aus dem Bare-Repo meldet `warning: remote HEAD refers to nonexistent ref, unable to checkout` | `HEAD` des Bare-Repos zeigt auf `master` (angelegt ohne `--initial-branch=main`); mit `--initial-branch=main` anlegen (§6) |
 | `git push container main` meldet `! [rejected] main -> main (fetch first)` | der Container hat `main` weitergeschrieben; holen, mergen, erneut pushen (§9) |
 | `ssh` oder `git` meldet `REMOTE HOST IDENTIFICATION HAS CHANGED!` | der Container läuft mit einem anderen Hostschlüssel als der Eintrag in `~/.ssh/known_hosts` (Neubau des Images, §5); die Entscheidung darüber liegt bei dir (§13) |
@@ -534,6 +542,8 @@ der Klon darin 47 MB mit `.git` und 18 MB ohne (`du -sh` im Versuchs-Container; 
 - Die Frage der Erstverbindung am Terminal und jede Einstellung dazu (`StrictHostKeyChecking`,
   `UserKnownHostsFile`): Die Entscheidung darüber liegt beim Nutzer und ist offen (§5).
 - Der Austausch im echten Host-Repo (§9); geprüft ist ein Scratch-Klon.
+- Ob ein Prozess mit `root` im Container bei `privileged: true` über Gerätedateien den Arbeitsbaum des Hosts lesen
+  kann (§11).
 - `git fetch` vom Host aus einem leeren Bare-Repo im Container, ein `git push`, der mitten in der Übertragung
   abbricht (gelaufen ist ein `SIGKILL` an `git` nach 0,4 s: `main` im Bare-Repo blieb unverändert, die
   Wiederholung lieferte ein; ob der Abbruch mitten in der Übertragung lag, ist nicht festgestellt), und `origin`
@@ -544,6 +554,6 @@ der Klon darin 47 MB mit `.git` und 18 MB ohne (`du -sh` im Versuchs-Container; 
 - Die Zeiten des Versuchs-Containers in §8 (5 s, 201 s, 1 s): nicht wiederholt.
 - Der Zustand des Daemon-Caches bei den Zeiten von `make docs-check` (§8).
 - Was nach `u-boot down` und `u-boot up` mit der Anmeldung von Claude Code geschieht (§4); wo `claude`
-  seine Anmeldedaten ablegt (§7).
+  seine Anmeldedaten ablegt und ob in einem Volume (§7, §11).
 - Ein Zugriff auf Port 22 des Containers von einem anderen Container aus (§11).
 - Das Verhalten bei fehlendem Schlüsselpaar vor dem ersten Start (§2) und andere `u-boot`-Versionen als 0.9.0.
