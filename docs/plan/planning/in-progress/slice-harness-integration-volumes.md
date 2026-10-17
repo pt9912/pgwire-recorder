@@ -431,6 +431,14 @@ Summe aus Einfügungen und Löschungen **457** (+429, −28); Meldeschwelle 750 
    verschwunden 0 (vorher: ein Lauf von `make gates` erhöhte die Zahl um mindestens eins, §1). Kein Container mit dem Präfix `pgr-` danach.
 Nicht in `make gates` und einzeln gefahren: `make schema-validate` (Volumes), `make test-integration` und `make test-container` als Handläufe (oben).
 
+**Nacharbeit nach `6978e8f6`:** (a) Die Mutanten `p2-ohne-v`, `p3-leer-fehler` und `p4-code-verworfen` laufen jetzt über alle Fälle (`nur` leer), sodass
+mehr rote Fälle als die Spalte „rote Fälle“ von `SPEC-057` Punkt 7 die Gegenprobe rot machen; gesehen: `rm -f` → `p2-grundfall`, `p2-ohne-v`; Exit-Code verworfen →
+`p3-angelegt`, `p4-rest-rot`; fehlender Container als Fehler → `p3-kein-container`, `p5-sigint`, `p5-sigterm`. (b) **Abweichung, nicht entschieden:** „Namen erst nach dem Entfernen lesen“
+färbt über alle Fälle `p3-angelegt`, `p4-rest-rot`, `p5-sigint` und `p5-sigterm` (die Fälle `p5-*` prüfen, dass die Meldung den Namen nennt); die Spalte nennt nur die ersten zwei. Der Mutant
+läuft im committeten Stand mit `nur` = `p3 p4`. (c) **Mutant `p5-int-entfaellt` (Zeile `trap 'trap "" INT; exit 130' INT # S-INT` durch `:`) färbt keinen Fall:**
+`p5-sigint` bleibt grün, weil der Runner im Fall in seinem `wait` steht (`IVG_NACH_RUN=3`) und bash dort ohne Falle ebenfalls aufräumt (Exit 130). Die Zeile ist nicht eingebaut;
+Satz und Zeile in `SPEC-057` Punkt 5 und 7 entfallen oder der Architect nennt einen Fall, der die Falle fängt (der Verlust des Signals trat im Vordergrundkommando auf, `docker exec`).
+
 **Offene Punkte für den Architect/Planner** (keine Entscheidung des Implementers):
 - `SPEC-057` Punkt 7: Der Mutant `p5-sigterm` „Falle für `TERM` entfällt“ ist äquivalent (oben); der Vertrag ist auf `kill -KILL` und den Hinweis nachgezogen. Der Architect
   prüft, ob ein zweites `SIGTERM` während des Aufräumens zugesagt werden soll: Dort unterschiede sich die Falle (`trap "" TERM`) vom Fehlen; Randform

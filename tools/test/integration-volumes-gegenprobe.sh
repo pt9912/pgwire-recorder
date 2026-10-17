@@ -269,7 +269,7 @@ if [ -z "${GP_MUT-}" ] || [ -n "${GP_BASIS-}" ]; then
 fi
 
 # Punkt 2: ohne -v bleibt ein Rest.
-mut p2-ohne-v "$F_" '"$docker" rm -fv "$tests" "$pg"' '"$docker" rm -f "$tests" "$pg"' "p2" p2-grundfall p2-ohne-v
+mut p2-ohne-v "$F_" '"$docker" rm -fv "$tests" "$pg"' '"$docker" rm -f "$tests" "$pg"' "" p2-grundfall p2-ohne-v
 mut p2-ohne-tests "$F_" '"$docker" rm -fv "$tests" "$pg"' '"$docker" rm -fv "$pg"' "p2" p2-grundfall p2-ohne-v
 mut p2-ohne-pg "$F_" '"$docker" rm -fv "$tests" "$pg"' '"$docker" rm -fv "$tests"' "p2" p2-grundfall p2-ohne-v
 # Punkt 1: Gegenstand der Namen.
@@ -280,7 +280,7 @@ mut p1-mit-daten "$F_" 'if [ "$name" != "$daten" ]; then' 'if true; then' "p2-gr
 mut p1-ohne-typ "$F_" '{{if eq .Type "volume"}}{{.Name}} {{end}}' '{{.Name}} ' "p2-grundfall p3-angelegt"
 # Punkt 3: die Namen werden vor dem Entfernen gelesen, in jedem Zustand.
 mut p3-nach-entfernen "$F_" $'  namen="$(integration_volumen_lesen)" || return 1\n  integration_entfernen\n' $'  integration_entfernen\n  namen="$(integration_volumen_lesen)" || return 1\n' "p3 p4" p3-angelegt p4-rest-rot
-mut p3-leer-fehler "$F_" '2> /dev/null)" || continue' '2> /dev/null)" || return 1' "p2-grundfall p3 p5" p3-kein-container p5-sigint p5-sigterm
+mut p3-leer-fehler "$F_" '2> /dev/null)" || continue' '2> /dev/null)" || return 1' "" p3-kein-container p5-sigint p5-sigterm
 # Punkt 4: Rest, Exit-Code, Vorrang, nur eigene Namen.
 mut p4-alles-entfernen "$F_" 'for n in $rest; do "$docker" volume rm "$n" > /dev/null 2>&1 || true; done' '"$docker" volume ls -q -f dangling=true | grep -Fx -f "$IVG_SICHER" | xargs -r "$docker" volume rm > /dev/null 2>&1 || true' "p4-fremd" p4-fremd
 mut p4-nicht-entfernen "$F_" 'for n in $rest; do "$docker" volume rm "$n" > /dev/null 2>&1 || true; done' ':' "p3-angelegt p4" p3-angelegt
@@ -292,7 +292,7 @@ mut p4-pruefen-0 "$F_" '  return 1
 }
 
 # integration_aufraeumen' "p3-angelegt p4" p3-angelegt p4-rest-rot
-mut p4-code-verworfen "$F_" 'integration_aufraeumen || ende_rest=1' 'integration_aufraeumen || ende_rest=0' "p3-angelegt p4" p3-angelegt p4-rest-rot
+mut p4-code-verworfen "$F_" 'integration_aufraeumen || ende_rest=1' 'integration_aufraeumen || ende_rest=0' "" p3-angelegt p4-rest-rot
 mut p4-immer-1 "$F_" 'if [ "$ende_code" -ne 0 ]; then return "$ende_code"; fi' 'if [ "$ende_code" -ne 0 ]; then return 1; fi' "p4" p4-vorrang
 # Punkt 5: Ende durch SIGTERM und SIGINT, aus der Falle EXIT, mit Prüfung und Code.
 mut p5-exit "$R_" 'trap aufraeumen EXIT # S-EXIT' ':' "p5" p5-sigint p5-sigterm
@@ -303,6 +303,7 @@ mut p5-term "$R_" $'trap \'trap "" TERM; exit 143\' TERM # S-TERM' $'trap \'kill
 # äquivalent, kein Fall ist rot (gemessen mit bash 5.2.21; SPEC-057 Punkt 7 nennt ihn als roten Mutanten).
 mut p5-term-entfaellt "$R_" $'trap \'trap "" TERM; exit 143\' TERM # S-TERM' ':' "p5"
 mut p5-int "$R_" $'trap \'trap "" INT; exit 130\' INT # S-INT' $'trap \'kill -KILL $$\' INT' "p5" p5-sigint
+
 
 if [ "$fehler" -ne 0 ]; then exit 1; fi
 echo "integration-volumes-gegenprobe: gruen — Punkte 1 bis 8 von SPEC-057: unveränderte Kopie grün, je Mutation genau die benannten Fälle rot"
