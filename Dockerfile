@@ -13,16 +13,23 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 # --- source: der Quellstand; .dockerignore lässt nur go.mod, go.sum, cmd/,
-# internal/, test/, .golangci.yml und tools/harness/lint.sh in den Kontext.
+# internal/, test/, .golangci.yml, tools/harness/lint.sh und tools/harness/coverage.sh in den
+# Kontext.
 FROM deps AS source
 COPY . .
 
 # --- test: Formatierung (gofmt; nennt die nicht formatierten Dateien), vet
-# über allen Code einschließlich der Integrationstests, dazu die Unit-Tests.
+# über allen Code einschließlich der Integrationstests, dazu die Unit-Tests mit
+# Profil (`-covermode=set`, ohne `-coverpkg`). Die zweite Schicht vergleicht das
+# Profil mit der Schwelle (tools/harness/coverage.sh; Vertrag SPEC-056). Die Schwelle
+# kommt als Build-Argument ohne Vorgabewert von `make test`; sie steht nur in SPEC-056.
 # Formatierung · seit slice-extended-query-record.
 FROM source AS test
 RUN --network=none f="$(gofmt -l .)" && { [ -z "$f" ] || { echo "nicht gofmt-formatiert:"; echo "$f"; exit 1; }; } \
- && go vet -tags integration ./... && go test -trimpath -buildvcs=false ./...
+ && go vet -tags integration ./... \
+ && go test -trimpath -buildvcs=false -covermode=set -coverprofile=/tmp/coverage.out ./...
+ARG COVERAGE_SCHWELLE
+RUN --network=none sh tools/harness/coverage.sh /tmp/coverage.out "$COVERAGE_SCHWELLE"
 
 # --- build: das Binary für die Zielplattform, reproduzierbar (-trimpath,
 # ohne VCS-Stempel).

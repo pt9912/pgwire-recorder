@@ -9,3 +9,4 @@
 !test/
 !.golangci.yml
 !tools/harness/lint.sh
+!tools/harness/coverage.sh
