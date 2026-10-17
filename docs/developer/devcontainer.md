@@ -297,9 +297,8 @@ Nach dem Einliefern vom Host (`git push container main`, §9):
 ```bash
 git clone /workspaces/austausch.git /workspaces/pgwire-recorder
 cd /workspaces/pgwire-recorder
-git config --global user.name "Dein Name"
-git config --global user.email "du@example.org"
 git switch -c thema
+make hooks-install
 ```
 
 Gemessen am frischen Volume: `/workspaces` gehört `vscode` (UID 1000, `start.sh` übergibt es), das Bare-Repo
@@ -319,10 +318,19 @@ zweites `git remote add container …` am Host mit `externes Repository containe
 Meldungen von `git` und `ssh` stehen im Dokument, wie sie der Host (deutsche Locale) oder der Container
 (englische Locale) ausgab; in einer anderen Locale lauten sie anders.
 
-Name und E-Mail setzt du selbst; ohne sie weist `git commit` mit „Author identity unknown“ ab.
-`--global` schreibt `~/.gitconfig` im Dateisystem des Containers, nicht in ein Volume: Nach `u-boot down`
-und `u-boot up` ist die Datei weg (`git config --global -l`: `unable to read config file
-'/home/vscode/.gitconfig'`), und du setzt beide Werte neu.
+Name und E-Mail des Klons kommen aus der Git-Konfiguration deines Host-Repos, nicht aus dem Dokument.
+Dieser Aufruf am Host bricht ab, wenn dort eine der beiden fehlt, und setzt sie im Klon lokal; `--global`
+(`~/.gitconfig` im Container-Dateisystem) ist nach `u-boot down` und `up` weg, der Klon liegt im Volume.
+Ohne Identität weist `git commit` mit „Author identity unknown“ ab:
+
+```bash
+n=$(git config user.name) e=$(git config user.email)
+test -n "$n" -a -n "$e" && ssh -p ${PGR_SSH_PORT:-2222} -i $PGR_DEV/ssh/id_ed25519 vscode@127.0.0.1 \
+  "cd /workspaces/pgwire-recorder && git config user.name $(printf %q "$n") && git config user.email $(printf %q "$e")"
+```
+
+`make hooks-install` aktiviert den Commit-Wächter `.githooks/commit-msg` (`core.hooksPath` ist pro Klon); der
+Träger `ai-harness-init` fehlt im frischen Klon (gitignoriert) und kommt mit `make traeger-fetch` (Netz nötig).
 
 Im Container arbeitest du auf einem Branch, den du nicht `main` nennst, und pushst ihn in das Bare-Repo
 (`origin` des Klons):
@@ -533,6 +541,7 @@ der Klon darin 47 MB mit `.git` und 18 MB ohne (`du -sh` im Versuchs-Container; 
 ## 13. Nicht geprüft
 
 - Der Start von `claude` und die Anmeldung (interaktiv).
+- Die Aufrufe aus §6 für Identität, `make hooks-install` und `make traeger-fetch` im Container-Klon.
 - Der volle `make gates` im Container.
 - Windows- und macOS-Hosts, andere Docker-Versionen als in §1 genannt.
 - Wie `u-boot` zu installieren ist.
