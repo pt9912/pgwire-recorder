@@ -237,9 +237,9 @@ Keine Probe am echten Container; er, `compose.yaml` des Messorts und seine Volum
 Container eigenes Bare-Repo angelegt, im ersten nicht sichtbar, unverändert; „Jeder `ssh`-Aufruf von `git`“ (§9): eng gefasst auf einen `ls-remote` einer `ssh://`-URL; „Er bekommt nur, was du … einlieferst“ (§11): eng gefasst auf das Bare-Repo
 und die Mounts; „Stände, die nur dort lagen, auch“ (§4): gefolgert aus `Removed`, nicht an einem Inhalt gemessen, unverändert mit dieser Einordnung; „checkt nichts aus“ (§6): eng gefasst auf Dateien. Übrige Treffer sind Bestand ohne neuen Satz zum Gegenstand.
 
-**Gates.** `make docs-check`: `d-check: 991 Datei(en) geprüft, 0 Befund(e)`. `make kopf-check` und `make gates-schnell`: siehe Bericht des Laufs (unten, nach dem Lauf eingetragen).
+**Gates.** `make docs-check`: `d-check: 991 Datei(en) geprüft, 0 Befund(e)`. `make kopf-check`: Exit 0. `make gates-schnell` auf `9f8faef9`: Exit 0, 1 min 59,8 s (Stufe `lint`: `0 issues.`). Ein voller `make gates` ist nicht gelaufen (§5: nur `docs/developer/` und Planung ändern).
 
-**Größe nach §4.** Messung am Endstand unten.
+**Größe nach §4.** `git diff --numstat 92cfaf23..9f8faef9 -- docs/developer`: 151 Einfügungen, 100 Löschungen, Summe 251 (Meldeschwelle 350, Marke 450; Schätzung 220 bis 340). Länge des Dokuments: 498 Zeilen vorher, 549 nachher (Grenze 560). Basis `92cfaf23` ist der Elternteil des Anspruchs-Commits `38a9b20a`.
 
 **Hostschlüssel.** Das Dokument nennt, was lief, und empfiehlt keine Einstellung; die Entscheidung bleibt beim Nutzer (§6 Festlegung 3, Dokument §13).
 
