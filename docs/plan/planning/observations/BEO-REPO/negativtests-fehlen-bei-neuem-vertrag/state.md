@@ -41,3 +41,5 @@ Kein Auftreten (Urteil des Planners, `slice-v1-abschluss-verbindungsende-hilfete
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-v1-abschluss-verbindungsende-record` (F-1, V-1) — der Zustand zwischen Lesen des Endes und Zustellen und der Weg über `Query` für „nach dem Ende nichts mehr“ hatten keine fangende Mutation; behoben mit je einem Fall (Beleg `evidence/slice-v1-abschluss-verbindungsende-record.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-harness-meldungskatalog-gate` (F-2) — vier Elemente von Aufzählungen und Ortsangaben ohne Mutation, die nur sie bricht; behoben mit je einem Fall (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.10): `slice-v1-abschluss-container` (F-1, F-2) — eine Zusage am echten `Dockerfile`, die ein Vorgabewert maskierte, und eine Aufzählung von Kurzflags mit nur einer gefangenen Schreibweise; behoben mit je einem Fall (Beleg `evidence/slice-v1-abschluss-container.md`).

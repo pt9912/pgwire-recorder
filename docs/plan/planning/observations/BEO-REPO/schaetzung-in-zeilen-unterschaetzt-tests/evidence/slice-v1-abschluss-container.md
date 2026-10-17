@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-container
+**Fund:** Geschätzt 780 bis 1080 (Architect: Produktcode 190, Gegenprobe 380 bis 570, Ausnahmeliste und Vertrag 30 bis 40), gemessen 1191 in der Metrik von `AGENTS.md` §3.14 (Basis `d258c0b7`, Pfade `Dockerfile harness tools test`): Obergrenze um 111 überschritten, Marke 1200 nicht erreicht. Die Gegenprobe trägt 764 Zeilen statt 380 bis 570 (Faktor 2,1 gegen den angesetzten Doppelten des Produktcodes). Urteil des Planners nach der Zählregel vom 2026-10-16 (Überschreitung der Obergrenze zählt als Auftreten): Auftreten.

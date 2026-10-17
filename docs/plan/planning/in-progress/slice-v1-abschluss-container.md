@@ -53,15 +53,15 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst — die
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
-- [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus) (Container-Bau mit Gate): `make binaries` schreibt die Binaries aller Zielplattformen aus `SPEC-035` mit `SHA256SUMS`; `make test-container` baut sie zweimal mit derselben Prüfsumme (Reproduzierbarkeit verlangt `LH-QA-01` nur für das Binary), prüft den Kopf je Binary, baut das Image je Linux-Plattform mit demselben Binary und besteht auf der Plattform des Docker-Servers den Walking-Skeleton-Smoke im Container (`replay` ohne PostgreSQL); die Gegenprobe `make test-container-gegenprobe` fängt je Zusage eine Mutation (`AGENTS.md` §3.10).
-- [ ] `make gates` grün.
-- [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
+- [x] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-04`](../../../../spec/lastenheft.md#lh-qa-04--automatisierbarkeit), [`LH-QA-01`](../../../../spec/lastenheft.md#lh-qa-01--determinismus) (Container-Bau mit Gate): `make binaries` schreibt die Binaries aller Zielplattformen aus `SPEC-035` mit `SHA256SUMS`; `make test-container` baut sie zweimal mit derselben Prüfsumme (Reproduzierbarkeit verlangt `LH-QA-01` nur für das Binary), prüft den Kopf je Binary, baut das Image je Linux-Plattform mit demselben Binary und besteht auf der Plattform des Docker-Servers den Walking-Skeleton-Smoke im Container (`replay` ohne PostgreSQL); die Gegenprobe `make test-container-gegenprobe` fängt je Zusage eine Mutation (`AGENTS.md` §3.10).
+- [x] `make gates` grün.
+- [x] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
-- [ ] Closure-Notiz mit Steering-Loop-Lerneintrag.
-- [ ] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
-- [ ] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
-- [ ] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
+- [x] Closure-Notiz mit Steering-Loop-Lerneintrag.
+- [x] Beobachtungs-Register (`../observations/`) fortgeschrieben oder „keine Beobachtung angefallen" in §7 notiert.
+- [x] Jedes Risiko aus §6 trägt einen Ausgang (eingetreten / entfallen / weiter offen).
+- [x] Die drei Paarungen (Anker · Folge-Slice · Register) sind getragen.
 ## 3. Plan (vor Code)
 
 Regeln dieser Sektion: Baseline-Regelwerk `grundlagen-bootstrap.md`
@@ -110,7 +110,7 @@ dasteht.
 - Fehlende, leere oder unzulässige `VERSION` (Punkt 2); Wert in `-ldflags` und Dateiname. Review F-1, Architect 2026-10-17: Die Vorgabe `dev` maskiert ein fehlendes `-X main.version=`; `test-container` setzt `VERSION := 0.0.0-test` und lehnt `dev` vor `docker` ab, der Smoke am echten `Dockerfile` belegt den Wert; die Gegenprobe prüft dazu die Vorgabe, die Ablehnung und die Zeile `-X main.version=$VERSION` im `Dockerfile`.
 - `DIST` vorhanden und nicht leer, leerer Wert von `DIST`, Sortierung von `SHA256SUMS` in Byte-Reihenfolge, Teilmenge bei einem fehlgeschlagenen Build, Format von `SHA256SUMS`, Endung `.exe` (Punkt 3).
 - Zwei Builds: abweichende Summe je Plattform (sechs Fälle), Umgehen des Caches der Stufen `build` und `dist` als Voraussetzung dafür, dass der zweite Build ein Build ist (Punkt 4). Akzeptiertes Negativ: Das Gate vergleicht auf demselben Docker-Server mit denselben Eingangs-Images; ein zweiter Host und der Pin der Images werden nicht geprüft (Punkt 13, Grenze 2), weil Anhebungen bewusste Commits sind ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)) und es keine zweite Umgebung zur Abnahme gibt.
-- Zeitstempel und VCS-Stempel: kein Fall; sie gehen nicht in das Binary ein (`-buildvcs=false`, Go schreibt keinen Zeitstempel), und ein Build mit eingeschleustem Zeitstempel wird von Punkt 4 rot (der Implementer zeigt es einmal von Hand und nennt es im Bericht; keine Gegenprobe mit echtem Docker, Punkt 12).
+- Zeitstempel und VCS-Stempel: kein Fall; sie gehen nicht in das Binary ein (`-buildvcs=false`, Go schreibt keinen Zeitstempel), und ein Build mit eingeschleustem Zeitstempel wird von Punkt 4 rot (der Implementer zeigt es einmal von Hand und nennt es im Bericht, geschehen in §7; keine Gegenprobe mit echtem Docker, Punkt 12).
 - Netz im Build: nur die Stufe `deps` hat Netz, `build` läuft mit `--network=none` ([ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md)); der Bau mit kaltem Cache braucht einmal Netz, wie `make build` (kein Fall).
 - Kopf der Binaries je Format und Architektur, anderes Format (Punkt 5).
 - Image: falsche Plattform in den Metadaten, abweichende Summe der Datei im Image, Bau ohne Emulation (Punkt 6).
@@ -127,8 +127,8 @@ dasteht.
 
 - Handbuch und Releasing-Dokument beschreiben Verhalten vor der Software; Abweichungen zeigen sich erst im Bau — **Ausgang:** entfallen: Handbuch und `releasing.md` gehören seit dem Schnitt vom 2026-10-17 nicht mehr zu diesem Slice; das Risiko steht in §6 von `slice-v1-abschluss-container-doku`, dessen Beispiele gegen das gebaute Binary und das Image laufen.
 - Die [ADR-0043](../../adr/0043-binaries-und-container-gate.md) war `Proposed` — **Ausgang:** entfallen; der Nutzer hat sie am 2026-10-17 angenommen (`Accepted`).
-- Die Gate-Laufzeit wächst um die Zahl der Builds (zwölf der Stufe `build` ohne Cache, zwei Images, ein Smoke); der Lauf des Gates in `make gates` ist die Probe — **Ausgang:** offen bis Closure; der Bericht nennt die Dauer.
-- Die Abdeckungstabellen (`make abdeckung-check`, `SPEC-048`, `[ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)`) könnten für `LH-FA-16`, `LH-QA-01` oder `LH-QA-03` einen Beleg des Gates verlangen; der Implementer prüft es mit dem ersten Lauf und deklariert dann nach `[ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)` im Kopf der Gegenprobe, ohne den Vertrag von `SPEC-048` zu ändern — **Ausgang:** offen bis Closure.
+- Die Gate-Laufzeit wächst um die Zahl der Builds (zwölf der Stufe `build` ohne Cache, zwei Images, ein Smoke); der Lauf des Gates in `make gates` ist die Probe; der Bericht nennt die Dauer — **Ausgang:** *weiter offen* → Register `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` (verkörpert, +1, `evidence/slice-v1-abschluss-container.md`): Eingetreten ist ein Zuwachs von rund 5 Minuten (Gate etwa 1 Minute, Gegenprobe 3 m 40 s bis 3 m 45 s, `make gates` am Endstand 927 s); er liegt innerhalb dessen, was die Klasse trägt, kein Carveout und keine Lockerung (`AGENTS.md` §3.6), und die Gegenprobe steht in der Ausnahmeliste der schnellen Kette.
+- Die Abdeckungstabellen (`make abdeckung-check`, `SPEC-048`, `[ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)`) könnten für `LH-FA-16`, `LH-QA-01` oder `LH-QA-03` einen Beleg des Gates verlangen; der Implementer prüft es mit dem ersten Lauf und deklariert dann nach `[ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)` im Kopf der Gegenprobe, ohne den Vertrag von `SPEC-048` zu ändern — **Ausgang:** *entfallen*: `make abdeckung-check` ist am Endstand grün, ohne dass eine Tabelle `LH-FA-16`, `LH-QA-01` oder `LH-QA-03` führt, und verlangt keinen Beleg des Gates ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) erlaubt die Deklaration, verlangt sie nicht); es wurde keine eingetragen, `SPEC-048` blieb unverändert.
 
 ## 7. Closure-Notiz
 
@@ -144,11 +144,9 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
 
-Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
-
 ### Belege des Implementers
 
-Stand: HEAD nach 7e5ecb79 (Code), Basis der Messung `d258c0b7`. Docker Server 29.9.0, `linux/amd64`.
+Stand: Endstand `e365401f` (Code `91a1bd02`, `7e5ecb79`; Nacharbeit `39c07812`, `62a287cb`, `e365401f`), Basis der Messung `d258c0b7`. Docker Server 29.9.0, `linux/amd64`. Die Läufe unten nennen, wo sie vom Endstand abweichen.
 
 **Läufe (jeweils einzeln, nacheinander)**
 
@@ -156,12 +154,14 @@ Stand: HEAD nach 7e5ecb79 (Code), Basis der Messung `d258c0b7`. Docker Server 29
 |---|---|
 | `make binaries` (leeres `dist/`) | sechs Binaries und `SHA256SUMS`, `sha256sum -c` grün, 29 s |
 | `make test-container` (echtes Docker) | grün, 63 s: 12 Builds, Summen gleich, Kopf von 6 Binaries, Image `linux/amd64` und `linux/arm64`, Smoke auf `linux/amd64`; danach keine Container, kein Netz, keine Tags, keine Temp-Verzeichnisse |
-| `make test-container-gegenprobe` (über `make`) | grün, 3 m 45 s |
-| `make gates-schnell` | grün, 11 s |
-| `make abdeckung-check`, `make meldungskatalog-check`, `make docs-check`, `make kopf-check` | je Exit 0 |
-| `make gates` (ein Lauf) | grün, 937 s (15 m 37 s) |
+| `make test-container-gegenprobe` (über `make`, Endstand `e365401f`) | grün, 3 m 40 s |
+| `make gates-schnell` (Endstand) | grün; Verifier 10 s |
+| `make abdeckung-check`, `make meldungskatalog-check`, `make kopf-check` (Endstand) | je Exit 0 |
+| `make gates` (Endstand `e365401f`) | grün, 927 s (15 m 27 s) im dritten Anlauf; im zweiten trat der Flake `p7-int-treiber` auf (`BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig`, nicht dieser Slice); der Nachweis `.harness/state/gates-passed.diffsha` passt zum Arbeitsbaum, die Verifikation hat ihn geprüft |
+| Verifier am Endstand | `make test-container` grün in 1 m 08 s, `make binaries` 29 s, Stichprobe der Mutationen aus allen Gruppen wie behauptet rot |
+| Zeile davor (Stand `7e5ecb79`, vor der Nacharbeit) | `make test-container` 63 s, Gegenprobe 3 m 45 s, `make gates` 937 s |
 
-**Risiko 3 (Laufzeit):** `test-container` kostet etwa 1 Minute, die Gegenprobe etwa 4 Minuten; der volle Lauf dauerte 937 s.
+**Risiko 3 (Laufzeit):** `test-container` kostet etwa 1 Minute, die Gegenprobe 3 m 40 s bis 3 m 45 s; der volle Lauf dauerte 927 s (Endstand) bzw. 937 s (davor).
 
 **Risiko 4 (Abdeckung):** `make abdeckung-check` ist grün, ohne dass eine Tabelle `LH-FA-16`, `LH-QA-01` oder `LH-QA-03` führt, und verlangt keinen Beleg des Gates. Befund: keine Deklaration eingetragen ([ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) erlaubt sie, verlangt sie nicht).
 
@@ -171,7 +171,7 @@ Stand: HEAD nach 7e5ecb79 (Code), Basis der Messung `d258c0b7`. Docker Server 29
 
 **Handlauf `-X main.version` (Review F-1, SPEC-055 Punkt 2):** Kopie des Baums (`git ls-files` nach `…/scratchpad/xver`, außerhalb des Arbeitsbaums), in der Stufe `build` des `Dockerfile` der Kopie ` -X main.version=$VERSION` per `sed -i` entfernt (`-ldflags="-s -w"`), dort `make test-container` (Vorgabe `VERSION=0.0.0-test`). Ausgang nach 1 m 56 s: Punkte 4 bis 6 grün, `test-container: ROT — version gibt 'pgwire-recorder dev' aus statt 'pgwire-recorder 0.0.0-test' und LF` (Schritt 7a, Smoke `version`), Exit 1, `make` 2. Kopie entfernt; keine Container, Netze, Tags oder Temp-Verzeichnisse des Gates zurück.
 
-**Wege der Mutationen:** `GP_MUT='<Muster>' GP_ENTDECKE=1 bash tools/harness/container-gegenprobe.sh` nennt je Mutation die roten Fälle; `mutiere` ersetzt in einer Kopie des Baums (Textersatz, kein `cp -p`), jede Mutation hat eine eigene Kopie. Docker-teure Mutationen gibt es nicht: Die Gegenprobe läuft mit der Attrappe von `docker`; der Lauf des echten `Dockerfile` ist `make test-container`. Das Einschleusen eines Zeitstempels in das echte `Dockerfile` (SPEC-055 Punkt 4, §6) habe ich nicht gefahren. Entscheidung des Architect 2026-10-17: Der Implementer zeigt es einmal von Hand in einer Kopie des Baums außerhalb des Arbeitsbaums (in der Stufe `build` des `Dockerfile` `-X main.version=${VERSION}-$(date +%s%N)` einsetzen, dort `make test-container` fahren; erwartet rot bei Punkt 4 mit den Namen der Binaries) und hält Befehl und Ausgang hier fest: Ergebnis offen. Die sechs Fälle der Attrappe belegen nur den Vergleich, nicht das echte `Dockerfile` (§3.11); ohne Handlauf bliebe die Aussage „ein eingeschleuster Zeitstempel wird rot“ ungeprüft und dürfte nirgends stehen.
+**Wege der Mutationen:** `GP_MUT='<Muster>' GP_ENTDECKE=1 bash tools/harness/container-gegenprobe.sh` nennt je Mutation die roten Fälle; `mutiere` ersetzt in einer Kopie des Baums (Textersatz, kein `cp -p`), jede Mutation hat eine eigene Kopie. Docker-teure Mutationen gibt es nicht: Die Gegenprobe läuft mit der Attrappe von `docker`; der Lauf des echten `Dockerfile` ist `make test-container`. Das Einschleusen eines Zeitstempels in das echte `Dockerfile` (SPEC-055 Punkt 4, §6) ist als Handlauf oben gefahren, kein Gate wiederholt es. Entscheidung des Architect 2026-10-17: Der Implementer zeigt es einmal von Hand in einer Kopie des Baums außerhalb des Arbeitsbaums (in der Stufe `build` des `Dockerfile` `-X main.version=${VERSION}-$(date +%s%N)` einsetzen, dort `make test-container` fahren; erwartet rot bei Punkt 4 mit den Namen der Binaries) und hält Befehl und Ausgang hier fest; das ist der Handlauf Zeitstempel oben. Die sechs Fälle der Attrappe belegen nur den Vergleich, nicht das echte `Dockerfile` (§3.11); ohne Handlauf bliebe die Aussage „ein eingeschleuster Zeitstempel wird rot“ ungeprüft und dürfte nirgends stehen.
 
 **Mutationstabelle** (Zusage · Mutation · roter Fall; „nur“ heißt: die Mutation färbt in ihrer Gruppe genau diese Fälle; Datei `tools/harness/…`)
 
@@ -300,7 +300,42 @@ Punkt 12: Anschluss an `GATE_CHECKS` je Ziel entfernt färbt `p12-gate-checks-zi
 - `binaries.sh` läuft unter dem Gate als Hintergrundjob und ignoriert `SIGINT`; sein INT-Fang gilt nur im Aufruf allein.
 - Die Weitergabe von `SIGTERM` ist durch das folgende `wait` nur über den Vermerk der Attrappe (`term`) beobachtbar, nicht über die Zeit.
 - Die Gegenprobe hat ein Zehntel der Fälle in `lauft`-Gruppen, die einen echten Gate-Lauf der Attrappe fahren; der Umfang `nur` hält die Mutationsläufe kurz.
-- Zeile `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`: Schätzung für die Gegenprobe 380 bis 570, gemessen etwa 770 Zeilen für die Gegenprobe (nach der Nacharbeit mehr).
+- Zeile `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`: Schätzung für die Gegenprobe 380 bis 570, gemessen 764 Zeilen für die Gegenprobe am Endstand (Faktor 2,1 gegen die Schätzung; Messung in der Closure des Planners unten).
+
+### Closure des Planners (2026-10-17)
+
+**Gate-Nachweis.** Voller `make gates` am Code-Stand `e365401f` grün (927 s, siehe Tabelle oben); seither liegen nur Review, Verifikation und diese Closure (Positivliste des Stop-Hooks). `make kopf-check` und `make docs-check` laufen nach der Closure nacheinander.
+
+**Gegenstand:** geliefert: `make binaries`, Stufe `dist`, Gate `make test-container` mit Smoke, Gegenprobe `make test-container-gegenprobe`, `SPEC-055` (Architect), Ausnahmeliste und Zeilen in `harness/README.md`.
+
+**Review und Verifikation.** Review (`docs/reviews/2026-10-17-review-slice-v1-abschluss-container.md`): 0 HIGH, 1 MEDIUM, 6 LOW, 5 INFO. Verifikation (`docs/reviews/2026-10-17-verify-slice-v1-abschluss-container.md`): konform, V-1 LOW, V-2 INFO. Vorgabe des Nutzers: LOW und INFO ohne Zusage ohne Test sind „akzeptiert, mit Ausgang in §7“. Ausgang je Befund:
+
+| Befund | Ausgang |
+|---|---|
+| F-1 (MEDIUM) `-X main.version=$VERSION` im echten `Dockerfile` ohne roten Fall (Vorgabe `dev` maskiert) | behoben `39c07812`: `VERSION := 0.0.0-test` am Gate, `dev` vor `docker` abgelehnt, Fälle `p2-vorgabe-test`, `p2-dev-gate`, `p2-dockerfile-x`; Handlauf `-X main.version` oben und Brechprobe des Verifiers rot; Register `negativtests-fehlen-bei-neuem-vertrag` |
+| F-2 (LOW) `p7-kein-volume`/`-user` nur eine Schreibweise | behoben `39c07812` (Kurzflags `-dv`, `-u0`), vom Verifier gebrochen: je nur der eigene Fall rot; Register `negativtests-fehlen-bei-neuem-vertrag` (Aufzählung je Element, `AGENTS.md` §3.10) |
+| F-3 (LOW) Kopf nennt Exit 2/1, kein Fall | behoben `39c07812`: Köpfe enger gefasst; Register `zusage-im-kommentar-weiter-als-pruefung` |
+| F-4 (LOW) Kopf der Gegenprobe: Zeitstempel „belegt“ | behoben `39c07812`: Kopf nennt den Handlauf als einmalig; Register `zusage-im-kommentar-weiter-als-pruefung` |
+| F-5 (LOW) `harness/README.md` „schreibt nichts in den Arbeitsbaum“ weiter als `p10-arbeitsbaum` | erledigt: der Satz in `harness/README.md` §Sensors ist enger gefasst („legt nichts im Arbeitsbaum an“, Punkt 10); Register `zusage-im-kommentar-weiter-als-pruefung` |
+| F-6 (LOW) Aufschlüsselung der Messung in §7 veraltet | behoben `62a287cb` (Aufschlüsselung entfernt, Messung 1191 nachgerechnet); Register `plan-folgt-korrektur-nicht` |
+| F-7 (LOW) Stage-Verzeichnis von `binaries.sh` im Vertrag nicht genannt | Vertrag erledigt (`SPEC-055` Punkt 3 und 9 nennen das Stage-Verzeichnis); Register `spec-randform-erst-im-review-entschieden` (der Implementer hatte es im Code entschieden und nicht zurückgegeben; `randform-im-code-entschieden-dann-zurueckgegeben` trifft nicht zu: keine Rückgabe) |
+| F-8 (INFO) `LC_ALL=C sort` äquivalent | akzeptiert: Invariante und Ort in §7 (Äquivalente und Grenzen), der Verifier prüfte unter vier Locales; zählt nicht zu `gruener-mutant-faelschlich-aequivalent` |
+| F-9 (INFO) Bestätigung der Äquivalenz `DIST` als Datei | akzeptiert: kein Befund |
+| F-10 (INFO) `grep -q` unter `pipefail` in `bereit` | akzeptiert: Negativ mit Grund in §7; flackert das Gate, ist das ein Befund, kein Folge-Slice |
+| F-11 (INFO) Wartezeiten, Mutationen ohne Tabellenzeile | akzeptiert: Dauer ist Wahl des Codes, keine Zusage; die Mutationen sind rot (Review gefahren) |
+| F-12 (INFO) Größe, Aufbau der Gegenprobe | akzeptiert: Messung 1191 von 1200 nachgerechnet (Verifikation); kein Eingriff |
+| V-1 (LOW) §7 ohne Läufe am Endstand | behoben mit dieser Closure: Stand `e365401f`, Läufe und Dauer in der Tabelle oben |
+| V-2 (INFO) `SPEC-055` Punkt 2 „eine Variable der Umgebung gilt nicht“ ohne Fall | **Hinweis an den Architect:** bei der nächsten Berührung von `SPEC-055` den Satz enger fassen oder streichen oder einen Fall nachziehen (`AGENTS.md` §3.10, §3.11); die Spezifikation ändert der Planner nicht, und eine Änderung unter `harness/` verlangt einen vollen `make gates`. Ausgang: akzeptiert; die Zusage hat keinen Fall und steht hier benannt (Register `zusage-im-kommentar-weiter-als-pruefung`, derselbe Eintrag wie F-3 bis F-5, ein Evidence je Vorgang) |
+
+**Messung der Marke** (§4, Metrik `AGENTS.md` §3.14): 1191 (1176 Einfügungen, 15 Löschungen) gegen Marke 1200; Meldeschwelle 1000 überschritten und gemeldet; der Schnitt in `-container-doku` stand im Drift-Log der Roadmap (2026-10-17). Die Rückführung `in-progress` → `next` trat nicht ein. Schätzung des Architect 780 bis 1080 (Produktcode 190, Gegenprobe 380 bis 570, Ausnahmeliste und Vertrag 30 bis 40): Obergrenze um 111 überschritten; Gegenprobe 764 statt 380 bis 570 (Faktor 2,1 gegen den angesetzten Doppelten des Produktcodes). Nach der Zählregel vom 2026-10-16 ist das ein Auftreten von `schaetzung-in-zeilen-unterschaetzt-tests`.
+
+**Risiken aus §6 — Ausgang je Risiko** (die Zeilen stehen in §6 am Risiko): (1) Handbuch beschreibt vor der Software *entfallen* (Schnitt, steht im Nehmer); (2) [ADR-0043](../../adr/0043-binaries-und-container-gate.md) `Proposed` *entfallen* (`Accepted`); (3) Gate-Laufzeit *weiter offen* → Register `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` (+1; abweichend vom Vorschlag der Verifikation, *entfallen*: Der Zuwachs von rund 5 Minuten ist eingetreten und gehört zur Klasse, die der Eintrag zählt); (4) Abdeckung *entfallen* (`make abdeckung-check` verlangt keinen Beleg, [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md)). Ob die Ausgänge tragen: (1) und (2) am Nehmer und an der ADR (`Accepted`); (3) an der Evidence-Datei; (4) am Lauf von `make abdeckung-check`, den die Verifikation wiederholte.
+
+**Register** (Zähler = Dateien unter `evidence/`; alle `verkörpert` oder `geplant` und bleiben): `negativtests-fehlen-bei-neuem-vertrag` 45 → 46 (F-1, F-2); `zusage-im-kommentar-weiter-als-pruefung` 69 → 70 (F-3, F-4, F-5, V-2); `spec-randform-erst-im-review-entschieden` 38 → 39 (F-7); `plan-folgt-korrektur-nicht` 58 → 59 (F-6); `schaetzung-in-zeilen-unterschaetzt-tests` 9 → 10 (1191 gegen 780 bis 1080); `gate-laufzeit-waechst-mit-gegenprobe` 5 → 6 (Risiko 3); `gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig` 3 → 4 (Flake `p7-int-treiber` im zweiten Gate-Lauf, Ausgang `geplant` auf `slice-harness-gegenprobe-matrix-p7-flanke` bleibt). Vermerk ohne Zuwachs: `schnitt-laesst-haelfte-an-der-grenze` und `groesse-erst-in-der-pruefung-des-architect-sichtbar` (der Schnitt kam beim Erreichen der Meldeschwelle vor der Marke, die Größe war vor der Prüfung des Architect bekannt); `gruener-mutant-faelschlich-aequivalent` (F-8 bestätigt äquivalent). Kein Eintrag erreicht neu 3× ohne Verkörperung und ohne `geplant`. Die Verifikation-Klasse „Zusage am echten Artefakt, die eine Attrappe nur mittelbar sieht“ passt in `negativtests-fehlen-bei-neuem-vertrag` (Zusage ohne fangende Mutation), kein eigener Eintrag.
+
+**Lerneintrag — neuer Sensor und eine Beobachtung.** Neuer Sensor: `make binaries`, `make test-container` und `make test-container-gegenprobe` ([ADR-0043](../../adr/0043-binaries-und-container-gate.md), Herkunfts-Anker `seit slice-v1-abschluss-container` in `harness/README.md` §Sensors). Beobachtung, keine geänderte Regel: Ein Vorgabewert des Codes (`VERSION=dev`) maskierte eine Zusage am echten `Dockerfile`, die die Attrappe nur mittelbar sah; erst der Wert, der nicht die Vorgabe ist (`0.0.0-test`), plus Smoke am echten Artefakt fängt den Bruch. Wer eine Zusage am echten Artefakt gibt, wählt am Gate einen Wert, der von der Vorgabe des Codes abweicht (`AGENTS.md` §3.10 trägt die Klasse, im Register kein eigener Eintrag). Spec-Lücke benannt: `SPEC-055` Punkt 2, Satz „eine Variable der Umgebung gilt nicht“ ohne Fall (V-2, beim Architect).
+
+**Paarungen.** (a) Anker: Der Lerneintrag nennt `seit slice-v1-abschluss-container` für den Sensor; die Zeilen in `harness/README.md` tragen ihn. (b) Folge-Slice: Kein Risiko hat den Ausgang *eingetreten*; die Sendung an `slice-v1-abschluss-container-doku` (§1 *Abgegeben*) nimmt der Nehmer an (`grep` nach dieser Kennung findet sie dort in §1, §6 und §8). (c) Register: Alle genannten `BEO-REPO/…` bestehen als Verzeichnis mit nicht leerem `evidence/`.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
@@ -318,5 +353,7 @@ nicht mehr.
 **Nachgezählt beim Schnitt** (2026-10-17, Planner, `AGENTS.md` §3.13; die Sendung geht an `slice-v1-abschluss-container-doku`, dort ebenfalls nachgezählt): ein Liefer-Punkt (§2: Container-Bau mit Gate: `make binaries`, `make test-container`, Image, Smoke, Gegenprobe), vorher zwei; Schichten: eine (Container-Bau und Harness: `Dockerfile`, Fragmente, Skripte, Vertrag, Gate-Index). Der Produktcode (`cmd/`, `internal/`) wird nicht berührt. Die frühere Zählung (zwei Schichten, die Dokumentation als zweite, 2026-10-10 bis 2026-10-17) gilt für den Nehmer. `dist/` steht in `.gitignore` (außerhalb der Pfade der Marke), damit `make binaries` den Hash des Arbeitsbaums nicht ändert.
 
 Die Prüfung des Architect vom 2026-10-17 (zwei Liefer-Punkte, zwei Schichten) und die Zählung mit der Sendung aus `slice-harness-meldungskatalog-gate` sind im Schnitt aufgegangen; eine Sendung an andere Slices geht außer an `slice-v1-abschluss-container-doku` nicht hinaus: `slice-erster-release-veroeffentlichung` ruft `make binaries`, das ist eine Voraussetzung dort (jetzt auch von `-container-doku`), kein Eintrag hier.
+
+**Stand bei der Closure** (2026-10-17): Die Zähler der einschlägigen Einträge stehen in §7 (*Register*); `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` ist der Eintrag, den dieser Slice über die Spanne des Architect führte.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF (die Sub-Area `REPO` ist GF).

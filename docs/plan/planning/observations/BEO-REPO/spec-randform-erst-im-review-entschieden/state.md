@@ -37,3 +37,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-verbin
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-verbindungsende-record` (F-4) — der Vorrang zweier Fehlerwerte nach dem Ende stand weder in §6 noch in der Spezifikation und war im Code entschieden (Beleg `evidence/slice-v1-abschluss-verbindungsende-record.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-meldungskatalog-gate` (F-3) — drei Randformen (Tabulator, CRLF, Symlink) fand erst das Review; der Architect entschied danach (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-container` (F-7) — das Stage-Verzeichnis von `make binaries` war im Code entschieden und im Vertrag nicht genannt; der Architect trug es nach (Beleg `evidence/slice-v1-abschluss-container.md`).

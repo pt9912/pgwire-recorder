@@ -1,0 +1,2 @@
+**Vorgang:** slice-v1-abschluss-container
+**Fund:** `make test-container` kostet rund 1 Minute (63 bis 68 s), `make test-container-gegenprobe` 3 m 40 s bis 3 m 46 s (Attrappe von `docker`, rund 190 Fälle); `make gates` am Endstand `e365401f` 927 s (davor 937 s). Die Gegenprobe steht in der Ausnahmeliste der schnellen Kette (`SPEC-052` Punkt 2 und 4) und verlängert sie nicht. Risiko *Laufzeit* in §6 des Plans, Ausgang weiter offen (Register).

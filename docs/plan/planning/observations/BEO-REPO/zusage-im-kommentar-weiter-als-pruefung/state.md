@@ -73,3 +73,5 @@ Vermerk, kein Zählerzuwachs (Urteil des Planners, `slice-v1-abschluss-verbindun
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-verbindungsende-upstream` (F-2, V-2) — ein Satz über den Aufrufer („nur noch `Close`“) im Port-Kommentar und in `LH-FA-25.a` ohne Test; der Port-Kommentar ist enger gefasst, der Satz der Spezifikation steht beim Architect (Beleg `evidence/slice-v1-abschluss-verbindungsende-upstream.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-meldungskatalog-gate` (F-5) — Prosa über ein Gate sagte zu, was unter root übersprungen wird; behoben (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-v1-abschluss-container` (F-3, F-4, F-5, V-2) — drei Köpfe/Zeilen sagten weiter zu als geprüft, behoben; ein Satz der Spezifikation (Variable der Umgebung) ohne Fall steht beim Architect (Beleg `evidence/slice-v1-abschluss-container.md`).

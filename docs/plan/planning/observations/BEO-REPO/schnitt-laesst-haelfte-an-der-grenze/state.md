@@ -19,3 +19,5 @@ Kein Auftreten (Urteil des Planners, `slice-v1-abschluss-verbindungsende-verglei
 Kein Auftreten (Urteil des Planners, `slice-v1-abschluss-verbindungsende-hilfetext-binary`, 2026-10-16): Die vorab benannte Rückführung (Marke 400) trat nicht ein, gemessen 222 (56 % der Marke, Meldeschwelle 300 nicht erreicht); die Hälfte nach dem Schnitt lag unter ihrer Schätzung (Mitte 250 = 62 % der Marke). Der Zähler bleibt bei 2×.
 
 Kein Auftreten, Gegenrichtung (Urteil des Planners, `slice-v1-abschluss-verbindungsende-record`, 2026-10-16): Der Architect empfahl den Schnitt (Spanne 750 bis 1350), der Plan blieb auf Vorgabe des Nutzers ungeschnitten (Marke 1400, Meldeschwelle 1000); gemessen 873, die Meldeschwelle wurde nicht erreicht, die Review lief in einer Sitzung. Der ungeschnittene Slice trat nicht ein. Der Zähler bleibt bei 2×.
+
+Kein Auftreten, Vermerk (Urteil des Planners, `slice-v1-abschluss-container`, 2026-10-17): Der Schnitt in `-container-doku` kam beim Erreichen der Meldeschwelle, nach Messung 1147 des Codes und vor der Marke; der Code-Teil schloss bei 1191 von 1200, die Review lief in einer Sitzung. Kein Evidence, der Zähler bleibt bei 2×.
