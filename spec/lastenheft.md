@@ -816,18 +816,22 @@ ohne (LH-QA-06); Aufzeichnungen ohne Verbindungsende behalten ihr Format.
   zu dieser Anfrage; given eine Aufzeichnung mit Verbindungsende, when sie
   eingespielt wird und der Server an derselben Stelle mit demselben Fehlercode
   endet, then gilt das Ende als erwartet, wenn der Anwender den Vergleich wünscht
-  (LH-FA-24) oder aufgezeichnete Fehler ausdrücklich als erwartet gelten lässt
-  (LH-FA-20); given eine Aufzeichnung ohne Verbindungsende, when sie aufgezeichnet
+  (LH-FA-24); lässt der Anwender stattdessen aufgezeichnete Fehler ausdrücklich
+  als erwartet gelten (LH-FA-20), gilt jedes Ende des Servers in der Interaktion
+  als erwartet, deren Aufzeichnung ein Verbindungsende zeigt, gleich mit welchem
+  Fehlercode; given eine Aufzeichnung ohne Verbindungsende, when sie aufgezeichnet
   wird, then entsteht sie im bisherigen Format.
 - **Negative:** Given ein Verbindungsende ohne Fehlerantwort des Servers (etwa
   ein Netzwerkabbruch), ein Ende vor dem Abschluss des Verbindungsaufbaus oder ein
   Abbruch nach einer Fehlerantwort anderer Schwere, when sie im Record auftreten,
   then werden sie nicht als Verbindungsende aufgezeichnet, sondern wie bisher als
   Verbindungsfehler beziehungsweise als nicht unterstützte Interaktion gemeldet;
-  given ein Verbindungsende des Servers beim Einspielen, das die Aufzeichnung
-  nicht an dieser Stelle oder mit einem anderen Fehlercode zeigt, when
-  eingespielt wird, then bleibt es ein Verbindungsfehler beziehungsweise (mit
-  Vergleich) eine Abweichung; given ein aufgezeichnetes Verbindungsende, when
+  given ein Verbindungsende des Servers beim Einspielen mit Vergleich, das die
+  Aufzeichnung nicht an dieser Stelle oder mit einem anderen Fehlercode zeigt,
+  when eingespielt wird, then ist es eine Abweichung; given ein Verbindungsende
+  des Servers beim Einspielen ohne Vergleich, das die Aufzeichnung der
+  Interaktion nicht zeigt (auch wenn sie mit einem Fehler beantwortet wurde),
+  when eingespielt wird, then bleibt es ein Verbindungsfehler; given ein aufgezeichnetes Verbindungsende, when
   eingespielt wird, ohne dass der Anwender den Vergleich wünscht oder
   aufgezeichnete Fehler als erwartet gelten lässt, then ist das Ende des Servers
   ein Verbindungsfehler.
