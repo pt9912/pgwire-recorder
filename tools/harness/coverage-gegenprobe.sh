@@ -23,7 +23,8 @@
 # GEPRÜFT WIRD — Fälle je Punkt von SPEC-056:
 #   (1) Schwelle — p1-wert-aus-datei (die Zeile in der Datei der Kopie, nicht eine feste
 #       Zahl), p1-wert-94, p1-zeile-doppelt (`94 94`), p1-zeile-fehlt (leerer Wert),
-#       p1-zeile-mitten-im-text (eine Zeile, die nicht mit `**Schwelle:**` beginnt, zählt nicht);
+#       p1-zeile-mitten-im-text (eine Zeile, die nicht mit `**Schwelle:**` beginnt, zählt nicht),
+#       p1-zeile-eingerueckt (eine eingerückte Zeile zählt nicht);
 #       in der Stufe: p1-schwelle-kommt-an (100 in der Datei der Kopie wird rot),
 #       p1-zeile-fehlt-stufe
 #   (2) Messung — p2-paket-ohne-test (ein Paket ohne Test, nur von einem Test eines
@@ -37,7 +38,9 @@
 #       (b) p6-b-leer; (c) p6-c-ohne-mode, p6-c-count, p6-c-atomic, p6-c-zusatz,
 #       p6-c-leere-erste-zeile; (d) p6-d-<form> je Form einer Zeile an drei Stellen
 #       (p6-d-pos-*); (e) p6-e-*; (f) p6-f-*; (g) p6-g-*; (h) p6-h-*, dazu die Grenzen
-#       1 und 100 als grüne Fälle
+#       1 und 100 als grüne Fälle;
+#       Reihenfolge der Gründe je benachbartem Paar: p6-r-a-b, p6-r-b-c, p6-r-c-g, p6-r-g-h,
+#       p6-r-h-d, p6-r-d-e-zeile, p6-r-d-e-folge (e vor d in der Zeilenfolge), p6-r-e-f
 #   (7) Ausgabe — p7-gruen-ausgabe, p7-rot-ausgabe (Liste, Reihenfolge, Gesamtzeile
 #       zuletzt, Differenz nur bei rot); in der Stufe (awk des Images):
 #       p7-gesamtzeile-zuletzt-in-der-stufe
@@ -311,6 +314,27 @@ printf 'mode: set\n%s 5 0\n' "$B" > "$arbeit/p/leer-ausgefuehrt"
 lauf "$arbeit/p/leer-ausgefuehrt" 1; fall
 [ "$st" -eq 1 ] || melde "Fall 'p6-h-grenze-1-rot': erwartet Ausgang 1 bei 0 % und Schwelle 1, Ausgang $st"
 
+# Reihenfolge der Gründe (Punkt 6): je Eingabe zwei Gründe, gemeldet wird der frühere der Folge
+# (a), (b), (c), (g), (h), dann (d), (e), (f); die Zeilen werden der Reihe nach gelesen.
+cp "$G" "$arbeit/p/r-gesperrt"; : > "$arbeit/p/r-gesperrt"; chmod 000 "$arbeit/p/r-gesperrt"
+if [ -r "$arbeit/p/r-gesperrt" ]; then
+  echo "coverage-gegenprobe: p6-r-a-b übersprungen (der Aufrufer liest auch gesperrte Dateien)" >&2
+else
+  lauf "$arbeit/p/r-gesperrt" 94; rot p6-r-a-b 'Profil fehlt oder ist nicht lesbar'
+fi
+lauf "$arbeit/p/leer" 94; rot p6-r-b-c 'Profil ist leer'
+printf 'mode: count\n%s 5 1\n' "$B" > "$arbeit/p/c-count"
+lauf "$arbeit/p/c-count" ''; rot p6-r-c-g "'mode: set'"
+lauf "$G" ''; rot p6-r-g-h 'Schwelle fehlt'
+printf 'mode: set\nm/a/x.go:1.1,2.2 5\n' > "$arbeit/p/r-h-d"
+lauf "$arbeit/p/r-h-d" 0; rot p6-r-h-d 'keine ganze Zahl'
+printf 'mode: set\n%s 5 1\n%s x 1\n' "$B" "$B" > "$arbeit/p/r-d-e-zeile"
+lauf "$arbeit/p/r-d-e-zeile" 94; rot p6-r-d-e-zeile 'nicht die Form'
+printf 'mode: set\n%s 5 1\n%s 5 1\nm/b/x.go:1.1,2.2 5\n' "$B" "$B" > "$arbeit/p/r-d-e-folge"
+lauf "$arbeit/p/r-d-e-folge" 94; rot p6-r-d-e-folge 'zweimal'
+printf 'mode: set\n%s 0 0\n%s 0 0\n' "$B" "$B" > "$arbeit/p/r-e-f"
+lauf "$arbeit/p/r-e-f" 94; rot p6-r-e-f 'zweimal'
+
 # (7) Ausgabe: Liste, Reihenfolge, Gesamtzeile zuletzt, Differenz nur bei rot
 pf p7 <<EOF
 mode: set
@@ -393,13 +417,16 @@ miniatur wert
 sed -i 's/^\( *\)\*\*Schwelle:\*\* `94`/\1**Schwelle:** `77`/' "$m/$SPEC"; touch "$m/$SPEC"
 make_attrappe "$m" -- test; log_hat p1-wert-aus-datei 'COVERAGE_SCHWELLE=77'
 miniatur doppelt
-awk '{ print } /^ *\*\*Schwelle:\*\* `/ { print }' "$m/$SPEC" > "$m/spec.neu" && mv "$m/spec.neu" "$m/$SPEC"
+awk '{ print } /^\*\*Schwelle:\*\* `/ { print }' "$m/$SPEC" > "$m/spec.neu" && mv "$m/spec.neu" "$m/$SPEC"
 make_attrappe "$m" -- test; log_hat p1-zeile-doppelt 'COVERAGE_SCHWELLE=94 94'
 miniatur mitte
 printf 'Im Text steht **Schwelle:** `77` mitten in der Zeile.\n- **Schwelle:** `66` als Listenpunkt.\n' >> "$m/$SPEC"
 make_attrappe "$m" -- test; log_hat p1-zeile-mitten-im-text 'COVERAGE_SCHWELLE=94'
+miniatur eingerueckt
+printf '   **Schwelle:** `55` eingerückt.\n' >> "$m/$SPEC"
+make_attrappe "$m" -- test; log_hat p1-zeile-eingerueckt 'COVERAGE_SCHWELLE=94'
 miniatur fehlt
-sed -i '/^ *\*\*Schwelle:\*\* `/d' "$m/$SPEC"
+sed -i '/^\*\*Schwelle:\*\* `/d' "$m/$SPEC"
 make_attrappe "$m" -- test; log_hat p1-zeile-fehlt 'COVERAGE_SCHWELLE='
 
 # (11) Ausnahmeliste und Anschluss an GATE_CHECKS: Wörter der Make-Variablen aus der Datenbank von make.
@@ -485,7 +512,7 @@ sed -i 's/^\( *\)\*\*Schwelle:\*\* `94`/\1**Schwelle:** `100`/' "$k/$SPEC"
 starte p1-schwelle-kommt-an
 
 kopie p1-zeile-fehlt-stufe
-sed -i '/^ *\*\*Schwelle:\*\* `/d' "$k/$SPEC"
+sed -i '/^\*\*Schwelle:\*\* `/d' "$k/$SPEC"
 starte p1-zeile-fehlt-stufe
 
 # p2: 301 Anweisungen in einem Paket ohne Test; ein Test eines anderen Pakets führt sie aus.

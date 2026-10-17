@@ -5,8 +5,8 @@
 #
 # `test` liest die Schwelle der Anweisungsabdeckung beim Einlesen des Makefiles aus
 # harness/vertraege/SPEC-056-testabdeckung-schwelle.md (Punkt 1: die Zeile mit
-# `**Schwelle:**`, Wert in Backticks; fuehrende Leerzeichen der Listeneinrueckung
-# gelten nicht) und reicht sie der Stufe als Build-Argument; das Rezept ist eine Zeile ohne $(MAKE)
+# `**Schwelle:**` am Zeilenanfang, Wert in Backticks; eine eingerueckte Zeile zaehlt
+# nicht) und reicht sie der Stufe als Build-Argument; das Rezept ist eine Zeile ohne $(MAKE)
 # (SPEC-056 Punkt 9). Zwei Zeilen dort ergeben "94 94", eine fehlende einen leeren Wert;
 # beides lehnt der Pruefschritt ab.
 #
@@ -14,7 +14,7 @@
 # Netz im gepinnten Go-Image und schreibt beide in den Arbeitsbaum.
 GO_IMAGE ?= golang:1.27-alpine@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414
 
-COVERAGE_SCHWELLE := $(shell sed -n 's/^ *\*\*Schwelle:\*\* `\([^`]*\)`.*/\1/p' harness/vertraege/SPEC-056-testabdeckung-schwelle.md)
+COVERAGE_SCHWELLE := $(shell sed -n 's/^\*\*Schwelle:\*\* `\([^`]*\)`.*/\1/p' harness/vertraege/SPEC-056-testabdeckung-schwelle.md)
 
 DOCKER ?= docker
 DOCKER_BUILD ?= $(DOCKER) build --progress=plain

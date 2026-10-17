@@ -351,6 +351,14 @@ Stand der Läufe: Quelle `7f1f6ead` plus die Commits dieses Slice bis zur Überg
 | 6 (c) `mode: set` | Prüfung entfernt; nur `mode:`; nur Präfix; erste Zeile mit `mode` statt Zeile 1 | `p6-c-*`; `p6-c-count`, `p6-c-atomic`; `p6-c-zusatz`; `p6-c-leere-erste-zeile` |
 | 6 (d) Form je Element | je Element der Aufzählung ein Mutant, der nur es lockert: Datei leer, Bereich leer, ohne `:`, Anzahl Text/Dezimal/negativ, Zähler Text/Dezimal/negativ, ein/zwei/vier Felder, ohne `^`, `$` gelockert, doppeltes Leerzeichen, Tab als Trenner, Leerzeile übersprungen | `p6-d-<Element>` je ein Fall |
 | 6 (d) jede Zeile geprüft | nur Zeile 2; erste Zeile übersprungen; letzte übersprungen | `p6-d-pos-letzte`; `p6-d-pos-erste`; `p6-d-pos-letzte` |
+| 6 Reihenfolge (a) vor (b) | Prüfung (b) vor (a) | `p6-r-a-b` |
+| 6 Reihenfolge (b) vor (c) | Prüfung (c) vor (b) | `p6-r-b-c` |
+| 6 Reihenfolge (c) vor (g) | Prüfungen (g), (h) vor (c) | `p6-r-c-g` |
+| 6 Reihenfolge (g) vor (h) | Prüfung (h) vor (g) | `p6-r-g-h` |
+| 6 Reihenfolge (h) vor (d) | Zeilenprüfung (d) vor den Prüfungen der Schwelle | `p6-r-h-d` |
+| 6 Reihenfolge (d) vor (e) in einer Zeile | (e) vor (d) | `p6-r-d-e-zeile` |
+| 6 (d) und (e) nach Zeilenfolge, nicht (d) zuerst | (e) bis zum Ende zurückgestellt, vor (f) gemeldet | `p6-r-d-e-folge` |
+| 6 Reihenfolge (e) vor (f) | (e) bis zum Ende zurückgestellt, nach (f) gemeldet | `p6-r-e-f` |
 | 6 (e) Block = Datei und Bereich, zweimal | Prüfung entfernt; Schlüssel nur Datei; nur Bereich; nur benachbart; ganze Zeile | `p6-e-doppelt`; `p6-e-anderer-bereich`; `p6-e-andere-datei`; `p6-e-getrennt`; `p6-e-anderer-zaehler`, `p6-e-andere-anzahl` |
 | 6 (f) Summe 0 | Prüfung entfernt; nur Kopfzeile | `p6-f-nur-kopf`, `p6-f-nur-null-bloecke`; `p6-f-nur-null-bloecke` |
 | 6 (g) Schwelle fehlt/leer | `-n`-Prüfung entfernt | `p6-g-fehlt`, `p6-g-leer` |
@@ -364,7 +372,7 @@ Stand der Läufe: Quelle `7f1f6ead` plus die Commits dieses Slice bis zur Überg
 | 1 Wert aus der Datei, nicht fest | Zahl 94 im Rezept; Zahl im `Dockerfile` statt Argument | `p1-wert-aus-datei`; `p1-schwelle-kommt-an`, `p1-zeile-fehlt-stufe` |
 | 1 Schwelle kommt in der Stufe an (Mutation des Vertrags) | `ARG COVERAGE_SCHWELLE=1` und kein `--build-arg` | `p1-schwelle-kommt-an`, `p1-wert-aus-datei` |
 | 1 zwei Zeilen ergeben `94 94`; eine fehlende einen leeren Wert | `sed ...;q`; Vorgabe 94 bei leerem Wert; Argument ohne Anführungszeichen | `p1-zeile-doppelt`; `p1-zeile-fehlt`, `p1-zeile-fehlt-stufe`; `p1-zeile-doppelt` |
-| 1 nur eine Zeile am Zeilenanfang (eine eingerückte Zeile zählt nicht) | `sed` ohne Anker `^`; mit `^ *` (Einrückung zugelassen); mit `-` zugelassen | `p1-zeile-mitten-im-text`; `p1-wert-94`, `p1-zeile-mitten-im-text`; `p1-zeile-mitten-im-text` |
+| 1 nur eine Zeile am Zeilenanfang (eine eingerückte Zeile zählt nicht) | `sed` ohne Anker `^`; mit `^ *` (Einrückung zugelassen); mit `-` zugelassen | `p1-zeile-mitten-im-text`; `p1-zeile-eingerueckt`; `p1-zeile-mitten-im-text` |
 | 8 `gofmt` bricht die Stufe | `gofmt` entfernt | `p8-format` |
 | 8 `go vet` über den Integrationstests | `go vet ./...` ohne `-tags integration` | `p8-vet-integration` |
 | 8 ein roter Test bricht die Stufe | `go test ... || true` | `p8-test-rot` |
@@ -438,5 +446,7 @@ steht in §4 (600 bis 800); die Meldeschwelle 750 liegt in der Schätzung.
 2 (Harness mit `harness/mk/gates-schnell.mk` und `harness/vertraege/SPEC-052-gate-kette.md`;
 Nutzer-Doku `docs/user/abdeckung-*.md`); `Dockerfile` und `tools/harness` liegen in der
 Harness-Schicht, die Pläne und ADR sind Planung.
+
+**Nachgezählt** mit dem Nachzug nach der Entscheidung des Architect vom 2026-10-17 (Zeile am Zeilenanfang, Reihenfolge der Gründe): Liefer-Punkte 3 (Gate mit Schwelle, Gegenprobe, Doku, unverändert; die neuen Fälle wachsen in Punkt 2 hinein), Schichten 2 (Harness mit `harness/mk/build.mk` und `tools/harness/coverage-gegenprobe.sh`; Nutzer-Doku `docs/user/abdeckung-*.md`); Größe der Metrik aus §4 siehe §7.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
