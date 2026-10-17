@@ -28,9 +28,9 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
 3. **Binaries (`make binaries`).** Je Plattform ein Build der Stufe `dist` des `Dockerfile`; die
    Datei heißt `pgwire-recorder_<VERSION>_<os>_<arch>`, bei `windows` mit Endung `.exe`, und
    liegt in `DIST` (Vorgabe `dist`). `DIST` fehlt (wird angelegt) oder ist leer, sonst rot vor
-   dem ersten Aufruf von `docker`; ein Lauf mischt sich nie mit einem früheren. `SHA256SUMS` hat
-   das Format von `sha256sum` (Summe, zwei Leerzeichen, Name), je Binary eine Zeile, nach Name
-   sortiert, mit LF, und `sha256sum -c` darin ist grün. Scheitert ein Build, ist das Ziel rot und
+   dem ersten Aufruf von `docker`; ein leerer Wert von `DIST` ist ungültige Eingabe, rot mit Meldung vor dem ersten Aufruf von `docker`; ein Lauf mischt sich nie mit einem früheren. `SHA256SUMS` hat
+   das Format von `sha256sum` (Summe, zwei Leerzeichen, Name), je Binary eine Zeile, nach Name in Byte-Reihenfolge
+   (C-Locale) sortiert, mit LF, und `sha256sum -c` darin ist grün. Scheitert ein Build, ist das Ziel rot und
    nennt die Plattform; `SHA256SUMS` entsteht dann nicht (keine Teilmenge). Das Ziel ist ein
    Werkzeug, kein Gate: Es fährt allein, ohne Punkt 4 bis 7.
 4. **Zwei Builds, dieselbe Summe.** Das Gate fährt Punkt 3 zweimal in zwei Verzeichnissen
