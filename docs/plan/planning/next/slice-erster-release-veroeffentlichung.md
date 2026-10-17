@@ -113,7 +113,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `welle-v1-abschluss` ist `done`, und
 `slice-harness-abdeckung-gate` und `slice-harness-coverage` liegen in `done/` (Start-Trigger von
-welle-erster-release). Schritt 1 der Reihenfolge in §5 von
+welle-erster-release), dazu `slice-harness-devcontainer-u-boot-0-10` und
+`slice-harness-devcontainer-einrichten` (wellenlos; Entscheidung des Nutzers vom 2026-10-17, Drift-Log der Roadmap). Schritt 1 der Reihenfolge in §5 von
 [welle-erster-release](../welle-erster-release.md). Vor dem ersten Code-Commit entscheidet der
 Architect die Randformen aus §6 (`AGENTS.md` §3.12).
 
