@@ -29,9 +29,16 @@ Proben). Windows- und macOS-Hosts sind nicht geprüft.
 
 - Docker Engine ≥ 24 und Docker Compose ≥ 2.20 (das fordert `u-boot doctor`, §12).
 - `u-boot`, das Werkzeug, das Verzeichnis, Compose-Gerüst und Dev-Container-Gerüst erzeugt
-  (<https://github.com/pt9912/u-boot>). Wie es zu installieren ist, steht dort; dieses Dokument
-  prüft es nicht.
+  (<https://github.com/pt9912/u-boot>), in der Version 0.9.0, mit der die Proben liefen (`u-boot
+  --version`). Die Optionen `--devcontainer` und `--no-git` aus §3.1 und die Aussage zu `u-boot add`
+  gelten für diese Version; andere Versionen sind nicht geprüft. Wie es zu installieren ist, steht
+  dort; dieses Dokument prüft es nicht.
 - Git.
+- Am Host ein SSH-Client mit `ssh-keygen` und `scp` (§3.2, §5, §9).
+- Schreibrecht in dem Verzeichnis, in dem `pgr-dev` angelegt wird (im Versuch `/Development`).
+- Netz für den Build des Images (§3.3, §4).
+- Das Schlüsselpaar aus §3.2 liegt vor dem ersten `u-boot up` an dem Pfad, den `compose.yaml` nennt.
+  Was Docker bei einer fehlenden Datei am Mount-Pfad tut, ist nicht geprüft.
 - Freier Platz im Docker-Speicher des Hosts: Der Container baut ein Image und legt den Docker-Cache
   des Repos in einem Volume ab (§11).
 
@@ -65,7 +72,9 @@ Was `u-boot` erzeugt und was von Hand dazukommt:
 | `docker/`, `scripts/`, `docs/` | erzeugt, leer | — |
 
 Die Blöcke zwischen `BEGIN U-BOOT MANAGED BLOCK` und `END U-BOOT MANAGED BLOCK` gehören
-`u-boot`; die manuellen Teile stehen außerhalb davon. `u-boot add` kennt nur das Add-on
+`u-boot`; die manuellen Teile stehen außerhalb davon. Die Kennungen, die in diesen Blöcken stehen
+(sie beginnen mit `LH-`), sind Kennungen von `u-boot`, nicht dieses Repos; die Blöcke sind wörtlich
+übernommen. `u-boot add` kennt nur das Add-on
 `postgres`, und `u-boot generate devcontainer` hat keine Option für Docker-in-Docker; der Dev-Container
 wird deshalb von Hand ergänzt.
 
@@ -120,7 +129,10 @@ ENTRYPOINT ["/usr/local/bin/start.sh"]
 
 Das Image installiert Docker Engine, Node.js (die LTS-Reihe von NodeSource) und Claude Code ohne feste
 Version. Der Versuch und die Probe hatten Engine 29.9.1, Node.js v24.22.0 und Claude Code 2.1.302; ein
-späterer Build kann andere Versionen holen. Der Build braucht Netz.
+späterer Build kann andere Versionen holen. Der Build braucht Netz. Das Basis-Image
+`mcr.microsoft.com/devcontainers/base:debian` ist nur mit einem Tag angegeben, nicht mit einem Digest,
+und der Build führt das Skript `setup_lts.x` von NodeSource per `curl … | bash -` als `root` aus und
+holt Docker-Schlüssel und Pakete aus dem Netz. Die Herkunft dieser Quellen ist nicht geprüft.
 
 ### 3.4 `.devcontainer/start.sh`
 
@@ -220,7 +232,7 @@ Container läuft danach weiter.
 
 | Ziel | Befehl | Folge |
 |---|---|---|
-| Stoppen | `u-boot down` | Container und Netz entfallen; Volumes (Klon, Docker-Cache) und Image bleiben, nach `u-boot up` ist der Klon wieder da |
+| Stoppen | `u-boot down` | Container und Netz entfallen; Volumes (Klon, Docker-Cache) und Image bleiben, nach `u-boot up` ist der Klon wieder da (gemessen). `/home/vscode` liegt im Dateisystem des Containers, in keinem der vier Mounts (§7): `~/.gitconfig` (§6) und die Anmeldung von Claude Code (§7) entfallen damit mit dem Container (aus den Mounts gefolgert, `down` und `up` mit diesen Dateien nicht ausgeführt) |
 | Alles löschen | `docker compose down -v` | zusätzlich die beiden Volumes: der Klon und der Docker-Cache im Container sind weg |
 | Image löschen | `docker rmi pgr-dev:latest` | danach baut der nächste Start neu |
 
@@ -230,8 +242,9 @@ Container läuft danach weiter.
 ssh -i /Development/pgr-dev/ssh/id_ed25519 -o IdentitiesOnly=yes -p 2222 vscode@127.0.0.1
 ```
 
-Benutzer ist `vscode` (Mitglied der Gruppe `docker`). Der Port ist an `127.0.0.1` gebunden; von
-anderen Rechnern ist der Container nicht erreichbar. `sshd` lässt nur Schlüssel zu
+Benutzer ist `vscode` (Mitglied der Gruppe `docker`). Der Host-Port ist an `127.0.0.1` veröffentlicht
+(`docker port`: `127.0.0.1:2222`); von anderen Rechnern ist der Container darüber nicht erreichbar.
+`sshd` selbst lauscht im Container auf allen Adressen (`ss -ltn`: `0.0.0.0:22` und `[::]:22`). `sshd` lässt nur Schlüssel zu
 (`PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `PermitRootLogin no`,
 `AllowUsers vscode`); eine Anmeldung ohne Schlüssel endet mit `Permission denied (publickey)`.
 
@@ -257,9 +270,12 @@ Ein Eintrag `git config --global --add safe.directory /host-repo` ist in der Pro
 gewesen: Der Host-Benutzer und `vscode` haben beide die UID 1000, und `git clone` lief ohne ihn. Bei
 einer anderen UID des Host-Benutzers ist das nicht geprüft; meldet `git` dort `dubious ownership`,
 trage den Eintrag vor dem Klonen ein. Name und E-Mail setzt du selbst; ohne sie weist `git commit` mit „Author identity
-unknown“ ab. Der Klon
+unknown“ ab. `--global` schreibt `~/.gitconfig` im Dateisystem des Containers, nicht in ein Volume:
+Nach `u-boot down` und `u-boot up` setzt du beide Werte neu (aus den Mounts gefolgert, nicht
+ausgeführt, §4). Der Klon
 enthält die **committeten** Stände des Host-Repos zum Zeitpunkt des Klonens, nicht uncommittete
-Änderungen. Ein späterer Stand des Hosts kommt mit `git pull` aus `/host-repo`.
+Änderungen. `/host-repo` selbst zeigt dagegen den ganzen Arbeitsbaum des Host-Repos, auch
+uncommittete und ignorierte Dateien (gelesen: `.harness/state/`, `.claude/`). Ein späterer Stand des Hosts kommt mit `git pull` aus `/host-repo`.
 
 ## 7. Claude Code im Container
 
@@ -268,7 +284,10 @@ cd /workspaces/pgwire-recorder
 claude
 ```
 
-Die Anmeldung geschieht im Container selbst; du kopierst keine Zugangsdaten vom Host. Der Container
+Die Anmeldung geschieht im Container selbst; du kopierst keine Zugangsdaten vom Host. Die Anmeldedaten
+liegen danach im Container, nicht im Host-Repo und in keinem Volume (die vier Mounts unten, wo `claude`
+sie ablegt, ist nicht geprüft). Jeder Prozess im Container kann sie mit `sudo` lesen, und nichts in
+`compose.yaml` beschränkt den Netz-Ausgang (§11). Der Container
 hat genau vier Mounts: das Host-Repo (Mount `ro`), den öffentlichen Schlüssel (Mount `ro`)
 und die beiden Volumes aus §3.5 (`docker inspect pgr-dev`); Verzeichnisse mit Zugangsdaten sind nicht
 darunter. `claude --version` läuft im Container. Der Start von `claude` und
@@ -291,7 +310,7 @@ Container:
 
 | Target | Zeit | Bedingung |
 |---|---|---|
-| `make docs-check` | 5 s; 1 s | erster Lauf im Versuchs-Container; Probe im Klon eines zweiten, frischen Containers |
+| `make docs-check` | 5 s; 1 s | erster Lauf im Versuchs-Container; Probe im Klon eines zweiten, frischen Containers. Der Zustand des Daemon-Caches (Image `d-check` geladen oder nicht) ist bei beiden nicht festgehalten; 1 s ist nur mit geladenem Image denkbar, ein kalter Daemon lädt es zuerst (nicht gemessen) |
 | `make gates-schnell` | 201 s; 191 s | kalter Cache des Daemons: Versuchs-Container; frischer Container der Probe, Exit 0 |
 | `make test` | 1 s; 1 s | warmer Cache: Versuchs-Container; derselbe frische Container nach `make gates-schnell` |
 
@@ -362,17 +381,26 @@ braucht den Platz dafür noch einmal (§11). `cpus` und `mem_limit` begrenzen je
   schreiben könnte; das ist **nicht ausgeführt**, nur gefolgert. Behandle den Container deshalb nicht
   als Sandbox: Lass darin nur Arbeit laufen, der du traust, und prüfe Ergebnisse, die du zurückholst
   (§9), als Branch oder Bundle, bevor du sie mergst.
-- **Nur Loopback, nur Schlüssel:** `sshd` ist an `127.0.0.1` gebunden und lässt nur den einen
-  öffentlichen Schlüssel aus §3.2 zu.
+- **Schlüssel, Loopback am Host-Port:** Veröffentlicht ist nur der Host-Port, und der ist an
+  `127.0.0.1` gebunden. Im Container lauscht `sshd` auf `0.0.0.0:22` und `[::]:22`; andere Container auf
+  dem Host (das Netz `pgr-dev-default` ist ein Bridge-Netz) können Port 22 des Containers über dessen
+  Adresse erreichen (aus der Bindung gefolgert, mit einem zweiten Container nicht ausgeführt). Geschützt
+  ist er dort nur durch den einen öffentlichen Schlüssel aus §3.2.
+- **Zugangsdaten und Netz:** Die Anmeldung von Claude Code (§7) und Name und E-Mail von Git (§6) liegen
+  im Dateisystem des Containers (kein Volume). Jeder Prozess darin, ein Build, ein Test oder ein
+  Paket-Skript, kann sie mit `sudo` lesen, und der Netz-Ausgang ist nicht eingeschränkt. Sie entfallen mit dem
+  Container (§4).
 - **Docker-Socket des Hosts:** nicht gemountet (die vier Mounts stehen in §7). Der Socket im Container gehört dem Daemon im
-  Container.
+  Container. Bei einem privilegierten Container ist das keine Grenze zum Host (siehe oben).
 - **Host-Repo:** als Mount `ro` unter `/host-repo`. Das hält Prozesse ohne `sudo` vom Schreiben ab
-  (`touch` scheiterte); gegen einen Prozess mit `sudo` ist es keine Zusage (siehe oben).
+  (`touch` scheiterte); gegen einen Prozess mit `sudo` ist es keine Zusage (siehe oben). Der Mount
+  zeigt den ganzen Arbeitsbaum des Host-Repos lesbar, auch uncommittete und ignorierte Dateien (§6).
 - **Volumes:** `pgr-dev-workspace` (Klon) und `pgr-dev-docker` (Daemon im Container) überleben
   `u-boot down` und Neustart; `docker compose down -v` löscht sie.
 - **Platz:** Das Image `pgr-dev:latest` belegt 2,05 GB, das Volume `pgr-dev-docker`
   5,87 GB nach einem Lauf von `make gates-schnell` (`docker system df -v` am Host; im Versuchs-Container und
-  im frischen Container der Probe gleich), der Klon 28 bis 37 MB. Der Docker-Cache des Repos
+  im frischen Container der Probe gleich), das Volume `pgr-dev-workspace` 37,14 MB (`docker system df -v` am Host, Versuchs-Container);
+der Klon darin 47 MB mit `.git` und 18 MB ohne (`du -sh` im Versuchs-Container). Die Größe wächst mit dem Host-Repo. Der Docker-Cache des Repos
   wächst im Volume; beobachte den Speicher des Hosts (`docker system df`, `df -h` auf dem
   Docker-Verzeichnis). Dass ein voller Speicher Builds und Tests scheitern lässt, ist im Container nicht
   ausgelöst (§12).
@@ -405,3 +433,9 @@ braucht den Platz dafür noch einmal (§11). `cpus` und `mem_limit` begrenzen je
 - Der Fetch in das echte Host-Repo (§9); geprüft sind ein Scratch-Klon und ein leeres Repo.
 - Ob ein Prozess mit `sudo` den Mount `/host-repo` beschreiben kann (§11).
 - `docker compose up -d` allein (§4).
+- Die Zeiten des Versuchs-Containers in §8 (5 s, 201 s, 1 s): nicht wiederholt.
+- Der Zustand des Daemon-Caches bei den Zeiten von `make docs-check` (§8).
+- Was nach `u-boot down` und `u-boot up` mit `~/.gitconfig` und der Anmeldung von Claude Code geschieht
+  (§4, §6); wo `claude` seine Anmeldedaten ablegt (§7).
+- Ein Zugriff auf Port 22 des Containers von einem anderen Container aus (§11).
+- Das Verhalten bei fehlendem Schlüsselpaar vor dem ersten Start (§2) und andere `u-boot`-Versionen als 0.9.0.
