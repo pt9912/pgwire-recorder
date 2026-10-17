@@ -41,7 +41,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Regeln aus dem Verbindungsende-Block (erzeugte Abdeckungstabellen als Schicht, Wortlaut-Suche, Arbeitsbaum vor E2E-Mutanten, vier offene Fragen zu `AGENTS.md` §3.10) — `slice-harness-regeln-nach-v1-abschluss` (Klasse 1): andere Abschnitte, anderer Nutzer-Entscheid, andere Rolle.
-- Der Abgleich zwischen Lastenheft und Spezifikation (Stratum gegen Stratum) — `BEO-REPO/spezifikation-weicht-vom-lastenheft-ab` (1×, Frage an den Nutzer offen): Die Angleichung nach unten ist keine Entscheidung des Architect, und die Beobachtung hat noch keinen Ausgang (Klasse 3, anderer Vorgang als der Abgleich innerhalb einer Stelle).
+- Der Abgleich zwischen Lastenheft und Spezifikation (Stratum gegen Stratum) — `BEO-REPO/spezifikation-weicht-vom-lastenheft-ab` (entschieden: Lastenheft angeglichen, Entscheidung des Nutzers vom 2026-10-17, Stand `gestrichen`): Klasse 3, anderer Vorgang als der Abgleich innerhalb einer Stelle.
 - Ein Sensor, der Widersprüche in der Spezifikation findet — anderer Vorgang (Werkzeug statt Regel): ein Sensor bekäme einen Vertrag in `harness/vertraege/` und eine Gegenprobe; ob der Wortlaut ein Widerspruch ist, ist Urteil.
 - Rückwirkendes Bereinigen von Stellen der Spezifikation — Bestand bleibt bewusst stehen: Der Abgleich gilt für Stellen, die ein Slice berührt oder neu schreibt; niemand hat den Rest entschieden.
 - Änderung an `.claude/agents/planner.md`, `reviewer.md`, `.harness/skills/`, `plan-welle.md`, `close-welle.md` und an den Hooks — Schicht-Abgrenzung und Größe: Die Regel gehört in die Liste des Architect und in das Briefing; eine dritte Datei brächte einen dritten Liefer-Punkt.
@@ -169,7 +169,7 @@ Hälften.
 
 **Vorgelagert — Sub-Area-Wahl prüfen:** Das Repo deklariert eine Sub-Area für das gesamte Repo (`harness/conventions.md`, Kürzel `REPO`); der Slice berührt sie, die Schwelle ≥ 2 von 3 Achsen ist nicht berührt.
 
-**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (gemergter Stand, 2026-10-16). Treffer in der Sub-Area `REPO`: `BEO-REPO/spezifikation-widerspricht-sich-im-wortlaut` (3×, Stand `geplant` mit diesem Slice) — sie ist der Auslöser (§1, Beleg-Stand); `BEO-REPO/spec-randform-erst-im-review-entschieden` und `BEO-REPO/spezifikation-weicht-vom-lastenheft-ab` (1×) sind abgegrenzt (§1, §6). Eine Schwelle wird mit diesem Slice nicht neu erreicht (keine Evidence-Datei entsteht).
+**Vorgelagert — offene Beobachtungen sichten:** Register durchgegangen (gemergter Stand, 2026-10-16). Treffer in der Sub-Area `REPO`: `BEO-REPO/spezifikation-widerspricht-sich-im-wortlaut` (3×, Stand `geplant` mit diesem Slice) — sie ist der Auslöser (§1, Beleg-Stand); `BEO-REPO/spec-randform-erst-im-review-entschieden` (1×) ist abgegrenzt (§1, §6), `BEO-REPO/spezifikation-weicht-vom-lastenheft-ab` ist entschieden (Stand `gestrichen`). Eine Schwelle wird mit diesem Slice nicht neu erreicht (keine Evidence-Datei entsteht).
 
 Nachgezählt (Planner, 2026-10-16, `AGENTS.md` §3.13): Liefer-Punkte: 2 (§3.12-Satz, Rolle `architect.md`). Schichten: zwei, das Briefing (`AGENTS.md`) und die Agenten-Rollen (`.claude/agents/`); Planung (Register, Plan) zählt keine Schicht; kein Produkt-Code, keine Nutzer-Doku. Der Slice ist die Adresse der Sendung aus `slice-harness-regeln-nach-v1-abschluss` (Schnitt, siehe dort §8); er nimmt keinem anderen Nehmer etwas ab. Schätzung in der Metrik von §4: 20 bis 45 (Mitte 32, 32 % der Marke 100); der Plan liegt unter 70 % der Marke und bleibt ungeteilt.
 
