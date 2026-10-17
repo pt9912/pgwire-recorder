@@ -70,7 +70,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `Dockerfile` | update | Stufe `dist` (nur die Binaries, `FROM scratch`); die Bau-Stufe bleibt |
-| `harness/mk/container.mk`, `tools/harness/binaries.sh`, `tools/test/run-container.sh`, `tools/test/container-gegenprobe.sh` | neu | `binaries`, `test-container`, `test-container-gegenprobe` nach `SPEC-055` |
+| `.gitignore`, `harness/mk/container.mk`, `tools/harness/binaries.sh`, `tools/harness/run-container.sh`, `tools/harness/container-eingabe.sh`, `tools/harness/container-gegenprobe.sh` | neu | `binaries`, `test-container`, `test-container-gegenprobe` nach `SPEC-055`; `container-eingabe.sh` trägt die Prüfung der Eingabe (Punkt 1, 2) für beide Skripte; `.gitignore` nennt `dist/`, damit `make binaries` den Hash des Arbeitsbaums nicht ändert |
 | `harness/mk/gates-schnell.mk`, `tools/harness/gates-schnell-gegenprobe.sh`, `harness/vertraege/SPEC-052-gate-kette.md`, `harness/README.md` | update | `test-container` und seine Gegenprobe in die Ausnahmeliste (SPEC-052 Punkt 2 und 4); Zeilen in §Sensors |
 | `docs/user/benutzerhandbuch.md`, `docs/maintainer/releasing.md` | update | auf den Stand der umgesetzten Funktionen prüfen und anpassen; Optionen, Exit-Codes, Meldungskatalog stehen im Handbuch, neu sind die Abnahme-Umgebungen (`LH-QA-03`) und §2 *Installation* |
 | `docs/user/benutzerhandbuch.md`, `README.md` | update | Ist-Zustand des gelieferten Verhaltens (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung) |

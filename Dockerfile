@@ -34,6 +34,11 @@ RUN --network=none GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -buildvc
       -ldflags="-s -w -X main.version=$VERSION" \
       -o /out/pgwire-recorder ./cmd/pgwire-recorder
 
+# --- dist: nur das Binary der Zielplattform; `make binaries` und `make test-container`
+# lesen es per `--output type=local` aus (Vertrag SPEC-055).
+FROM scratch AS dist
+COPY --from=build /out/pgwire-recorder /pgwire-recorder
+
 # --- integration: Testbinary der Integrationstests und das Binary des
 # Bau-Hosts in einem Image; `make test-integration` startet es im Netz einer
 # PostgreSQL-Instanz.
