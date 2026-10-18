@@ -144,7 +144,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 ### Belege des Implementers
 
-Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `c92ed918` (Gate `7a66cc39`, Gegenprobe `a207e17c`, Gate-Index `0c30b767`, Symlink-Fall `c92ed918`), im Dev-Container pgr-dev3 (Docker-in-Docker, bash 5, mawk). Basis der Größenmetrik: `a98d0b9e`.
+Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `1bdaaefe` (Gate `7a66cc39`, Gegenprobe `a207e17c`, Gate-Index `0c30b767`, Symlink-Fall `c92ed918`, Review-Nacharbeit `1bdaaefe` und `6f4058fe`), im Dev-Container pgr-dev3 (Docker-in-Docker, bash 5, mawk). Basis der Größenmetrik: `a98d0b9e`.
 
 **Randform-Rückgabe vor dem Code** (Image-Herkunft und Rechte des Nicht-root-Images): vom Architect in `SPEC-063` Punkte 3 und 12 entschieden (Commit `2890e31f`); das Fragment trägt `rhysd/actionlint@sha256:887a259a…147e9` (Index-Digest von Tag 1.7.7, Docker Hub).
 
@@ -152,10 +152,11 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `c92ed918` (Gate `7a66cc39
 
 | Lauf | Ergebnis |
 |---|---|
-| `make workflows-check-gegenprobe` | grün, 83 Läufe (unveränderte Kopie und 82 Mutationen), 87 Fälle, davon 3 echte gegen die Images von `actionlint` und d-check; rund 35 s mit `GP_PARALLEL=6` |
+| `make workflows-check-gegenprobe` | grün, 100 Läufe (unveränderte Kopie und 99 Mutationen), 98 Fälle, davon 3 echte gegen die Images von `actionlint` und d-check; als root (`sudo -n`, ebenfalls im Container) grün mit 97 Läufen, die drei Fälle mit Rechten und ihre drei Mutationen entfallen und stehen am Ende auf stderr |
 | `make gates-schnell-gegenprobe` | grün (Ausnahmeliste deckt `GATE_CHECKS`, Namensregel von `SPEC-060` Punkt 2 am Arbeitsbaum mit der neuen Gegenprobe) |
-| `make gates` | Exit 0; `workflows-check` meldet im Arbeitsbaum „keine Workflow-Dateien unter .github/workflows“ (Grenze des Vertrags, Punkt 2 und 11) |
-| `make docs-check` | 0 Befund(e) nach dem Eintrag in `harness/README.md` |
+| `make gates` | endet an `docs-check` mit Exit 2: drei Befunde `id-unlinked` (die drei ADR-Kennungen der Eingangs-Zeile) in `docs/reviews/2026-10-18-review-slice-harness-ci-workflows.md` Zeile 15, dem Report des Reviewers, nicht in Dateien dieses Slice. `make -k gates` fährt alle übrigen Gates grün (Build, Test, Lint, a-check, `workflows-check` mit „keine Workflow-Dateien unter .github/workflows“, Kopf, Abdeckung, Meldungskatalog, Container, Integration, Postgres-Versionen); der Nachweis des vollen Laufs ist damit nicht geschrieben, bis der Report Links trägt |
+| `make docs-check` | 3 Befunde, nur im Report des Reviewers (siehe oben); ohne den Report 0 Befunde |
+| `make gates-schnell-gegenprobe` | grün am Endstand |
 | echter Lauf des Gates | an einer Datei mit Ausdrucksfehler, `permissions: read-all`, `timeout-minutes: 99`, einem Job ohne Zeitgrenze und `contents: admin`: 10 Befunde (4 von `actionlint`, 5 eigene, 1 Bindung), Exit 1 |
 | d-check (`real-pins`) | `uses: actions/checkout@v4` ⇒ `uses-pin-missing`, voller SHA ohne Kommentar ⇒ `uses-pin-untagged`, mit Tag-Kommentar ⇒ 0 Befunde (Image `DCHECK_REF`, v0.86.1) |
 
@@ -163,7 +164,7 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `c92ed918` (Gate `7a66cc39
 
 | Zusage | Mutation | Name | rote Fälle |
 |---|---|---|---|
-| P1 Endung `.yml` wird geprüft | Prüfbereich nur `.yaml` (breit: jeder Fall mit `.yml`-Datei) | `m-p1-nur-yaml` | `p1-symlink` `p1-unterverzeichnis` `p1-yml` `p10-i` `p10-rezept` `p10-unterverzeichnis` … (60 Fälle) |
+| P1 Endung `.yml` wird geprüft | Prüfbereich nur `.yaml` (breit: jeder Fall mit `.yml`-Datei) | `m-p1-nur-yaml` | `p1-symlink` `p1-symlink-andere-endung` `p1-unterverzeichnis` `p1-yml` `p10-i` `p10-rezept` … (70 Fälle) |
 | P1 Endung `.yaml` wird geprüft | Prüfbereich nur `.yml` | `m-p1-nur-yml` | `p1-yaml` `p3-e6` `p9-gruen` |
 | P1/P3/P9 Reihenfolge der Namen | `sort -rz` statt `sort -z` | `m-p1-reihenfolge` | `p3-e6` `p9-reihenfolge` |
 | P1 kein Unterverzeichnis | rekursive Suche | `m-p1-rekursiv` | `p1-unterverzeichnis` |
@@ -204,27 +205,27 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `c92ed918` (Gate `7a66cc39
 | P5 E2 späterer Job-Schlüssel mit Einzug 1 oder 3 | Einzug 1/3 nicht geprüft | `m-p5-einzug-spaeter` | `p5-einzug-spaeter` |
 | P5 Schritt-Eigenschaft ist keine Job-Eigenschaft | Suche auf jedem Einzug ab 4 | `m-p5-jeder-einzug` | `p5-schritt-ist-kein-job` `p6-job-wert` |
 | P5 E3 `jobs:` allein in der Zeile | Wert hinter `jobs:` angenommen | `m-p5-jobs-flow` | `p5-jobs-flow` |
-| P5 E1 Tabulator im Einzug | Tabulator still angenommen | `m-p5-tab` | `p5-tab` |
+| P5 E1 Tabulator im Einzug | Tabulator still angenommen | `m-p5-tab` | `p5-form-ohne-regeln` `p5-tab` |
 | P6 oben fehlt `permissions`: Befund | fehlendes `permissions` angenommen | `m-p6-fehlt-angenommen` | `p1-yaml` `p1-yml` `p6-fehlt` `p9-alle-befunde` `p9-reihenfolge` |
 | P6 Flow-Mapping mit Einträgen am Job ist Befund | Flow-Mapping am Job angenommen | `m-p6-flow-am-job` | `p6-job-flow-eintrag` |
 | P6 oben nur `{}` | jeder Wert oben angenommen | `m-p6-jeder-wert-oben` | `p6-block` `p6-flow-eintrag` `p6-read-all` `p6-write-all` |
-| P6 `permissions` am Job nicht verlangt | `permissions` am Job verlangt (breit) | `m-p6-job-pflicht` | `p1-symlink` `p1-unterverzeichnis` `p1-yaml` `p1-yml` `p10-rezept` `p3-e1` … (47 Fälle) |
+| P6 `permissions` am Job nicht verlangt | `permissions` am Job verlangt (breit) | `m-p6-job-pflicht` | `p1-symlink` `p1-symlink-andere-endung` `p1-unterverzeichnis` `p1-yaml` `p1-yml` `p10-rezept` … (55 Fälle) |
 | P6 Skalar am Job ist Befund | Skalar am Job angenommen | `m-p6-skalar-am-job` | `p6-job-read-all` `p6-job-write-all` `p9-alle-befunde` |
 | P6 Wert im Block nur read, write, none | unbekannter Wert angenommen | `m-p6-unbekannter-wert` | `p6-job-wert` |
 | P7 Ausdruck ist Befund | Ausdruck angenommen | `m-p7-ausdruck-angenommen` | `p7-ausdruck` |
 | P7 Job ohne `runs-on` ausgenommen | Job ohne `runs-on` geprüft | `m-p7-job-ohne-runs-on` | `p7-uses-job-ok` |
-| P7 `30.5` ist Befund | Nicht-Ganzzahl angenommen | `m-p7-nicht-ganzzahl-angenommen` | `p7-nicht-ganzzahl` |
+| P7 `30.5` ist Befund | Nicht-Ganzzahl angenommen | `m-p7-nicht-ganzzahl-angenommen` | `p7-dezimal` `p7-nicht-ganzzahl` |
 | P7 0 ist Befund | 0 angenommen | `m-p7-null-angenommen` | `p7-0` |
 | P7 Obergrenze unter 360 | Obergrenze 360 | `m-p7-obergrenze-360` | `p7-61` |
 | P7 Obergrenze 60 | Obergrenze 61 | `m-p7-obergrenze-61` | `p7-61` |
 | P7 Zeitgrenze Pflicht | Pflicht entfällt | `m-p7-pflicht-entfaellt` | `p5-schritt-ist-kein-job` `p7-fehlt` `p9-alle-befunde` `p9-reihenfolge` |
 | P7 Untergrenze 1 | Untergrenze 2 | `m-p7-untergrenze` | `p7-1-ok` |
 | P7 Wort ist Befund | Wort angenommen | `m-p7-wort-angenommen` | `p7-wort` |
-| P8 (a) `modules:` führt `workflows` | (a) nicht geprüft | `m-p8-a` | `p8-modules` |
+| P8 (a) `modules:` führt `workflows` | (a) nicht geprüft | `m-p8-a` | `p8-modules` `p8-modules-praefix` `p8-modules-suffix` |
 | P8 `"…"` zulässig | doppelte Anführungszeichen nicht zugelassen | `m-p8-anfuehrung-doppelt` | `p8-ok-doppelt` |
 | P8 `'…'` zulässig | einfache Anführungszeichen nicht zugelassen | `m-p8-anfuehrung-einfach` | `p8-ok-einfach` |
 | P8 (b) Zeile `workflows:` | (b) nicht geprüft | `m-p8-b` | `p8-block` |
-| P8 (c) `dir: .github/workflows` | (c) nicht geprüft | `m-p8-c` | `p8-dir` `p8-dir-schraeg` |
+| P8 (c) `dir: .github/workflows` | (c) nicht geprüft | `m-p8-c` | `p8-dir` `p8-dir-danach` `p8-dir-davor` `p8-dir-schraeg` |
 | P8 fehlende `.d-check.yml` ist Befund | fehlende Datei angenommen | `m-p8-datei-fehlt-angenommen` | `p8-ohne-datei` `p9-reihenfolge` |
 | P8 das Gate meldet Pins nicht selbst | Skript meldet unpinnte Referenz | `m-p8-pins-selbst` | `p8-pins-nicht-hier` |
 | P8 ohne schließenden Schrägstrich | Schrägstrich am Ende zugelassen | `m-p8-schraegstrich` | `p8-dir-schraeg` |
@@ -234,7 +235,7 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `c92ed918` (Gate `7a66cc39
 | P9 Befunde ohne Datei zuletzt | Befunde ohne Datei vor den Datei-Befunden | `m-p9-global-vor-datei` | `p9-reihenfolge` |
 | P9 nicht lesbare Datei: Exit 2 | Datei still übergangen | `m-p9-nicht-lesbar` | `p9-nicht-lesbar` |
 | P9 Befunde nach Zeile | Sortierung entfällt | `m-p9-ohne-sortierung` | `p9-alle-befunde` |
-| P9 Summe beider Quellen | Summe zählt nur `actionlint` (breit) | `m-p9-summe-nur-al` | `p1-symlink` `p1-yaml` `p1-yml` `p4-yaml` `p4-yml` `p5-einzug` … (32 Fälle) |
+| P9 Summe beider Quellen | Summe zählt nur `actionlint` (breit) | `m-p9-summe-nur-al` | `p1-symlink` `p1-yaml` `p1-yml` `p2-nur-symlink` `p4-yaml` `p4-yml` … (41 Fälle) |
 | P9 Summe beider Quellen | Summe ohne `actionlint` | `m-p9-summe-ohne-al` | `p10-unterverzeichnis` `p3-exit1` `p3-exit1-leer` `p9-reihenfolge` |
 | P9 Umgebungsfehler ist Exit 2 | Exit 1 | `m-p9-umgebung-exit1` | `p3-exit125` `p3-exit2` `p3-exit3` `p3-exit3-rechte` `p3-kein-docker` `p9-umgebung-vor-befund` |
 | Gate hängt an `GATE_CHECKS` | Zeile entfällt | `m-p10-kette-gate` | `p10-kette-gate` |
@@ -245,14 +246,48 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `c92ed918` (Gate `7a66cc39
 | P10 Rezept ruft das Skript genau einmal | Rezept doppelt | `m-p10-zweimal` | `p10-i` `p10-rezept` |
 | P12 echtes Image findet den Ausdrucksfehler | Image durch Attrappe mit Exit 0 ersetzt (Umgebung) | `m-real-attrappe-image` | `real-ausdruck` |
 | P12 d-check meldet Pins mit `workflows` in `modules:` | `modules:` ohne `workflows` (Umgebung) | `m-real-modules` | `real-pins` |
+| P1 Symlink mit anderer Endung ist Hinweis `(Endung)`, kein Befund | wird Befund | `m-p1-symlink-andere-befund` | `p1-symlink-andere-endung` |
+| P1 Hinweis für Symlink mit anderer Endung | Hinweis entfällt | `m-p1-symlink-andere-still` | `p1-symlink-andere-endung` |
+| P1 Hinweis für Datei mit anderer Endung | Hinweis entfällt | `m-p1-hinweis-endung-fehlt` | `p1-andere-endung` |
+| P1 Grund `(Endung)` im Hinweis | Grund `(Name)` | `m-p1-hinweis-grund-endung` | `p1-andere-endung` |
+| P1 Hinweis für Datei im Unterverzeichnis | Hinweis entfällt | `m-p1-hinweis-unterverz-fehlt` | `p1-unterverzeichnis` |
+| P1 Grund `(Unterverzeichnis)` im Hinweis | Grund `(Ordner)` | `m-p1-hinweis-grund-unterverz` | `p1-unterverzeichnis` |
+| P3 Zeilen von `actionlint` unverändert in der Ausgabe | Zeile bekommt ein Präfix | `m-p3-al-zeilen-veraendert` | `p3-exit1` |
+| P3 stderr des Aufrufs hängt an der Meldung | Anhang entfällt | `m-p3-stderr-anhang-fehlt` | `p3-exit125` `p3-exit2` `p3-exit3` |
+| P5 bei `form` laufen die Regeln 6 und 7 nicht | `exit` nach den Form-Befunden entfällt | `m-p5-regeln-laufen` | `p5-form-ohne-regeln` |
+| P7 Normalform ohne führende Null | führende Null angenommen | `m-p7-fuehrende-null-angenommen` | `p7-fuehrende-null` |
+| P7 Normalform ohne Vorzeichen | Vorzeichen angenommen | `m-p7-vorzeichen-angenommen` | `p7-vorzeichen` |
+| P7 `5.0` ist Befund | Dezimalform angenommen | `m-p7-dezimal-angenommen` | `p7-dezimal` |
+| P8 (c) `dir:` unter `workflows:` (nicht davor, nicht in anderem Block) | `dir:` zählt ohne Block | `m-p8-dir-ohne-block` | `p8-dir-danach` `p8-dir-davor` |
+| P8 (c) `dir:` vor dem nächsten Schlüssel in Spalte 1 | Rücksetzung bei Schlüssel in Spalte 1 entfällt | `m-p8-ohne-ruecksetzung` | `p8-dir-danach` |
+| P8 (a) das Element ist genau `workflows` | Element als Muster `~ /workflows/` | `m-p8-modules-muster` | `p8-modules-praefix` `p8-modules-suffix` |
+| P9 Verzeichnis ohne Leserecht: Exit 2 | Prüfung `-r` entfällt | `m-p9-verzeichnis-r-fehlt` | `p9-verzeichnis-ohne-r` |
+| P9 Verzeichnis ohne Durchsuchrecht: Exit 2 | Prüfung `-x` entfällt | `m-p9-verzeichnis-x-fehlt` | `p9-verzeichnis-ohne-x` |
 
-**Grüne Mutanten:** keiner. Alle 82 Mutationen färben mindestens einen Fall; es gibt deshalb keinen Mutanten, der als äquivalent einzuordnen wäre.
+**Grüne Mutanten:** keiner. Alle 99 Mutationen färben mindestens einen Fall; es gibt deshalb keinen Mutanten, der als äquivalent einzuordnen wäre.
 
 **Befundzeilen vorher und nachher:** kein Bestand (das Gate liegt vor der ersten Workflow-Datei; `.github/workflows/` fehlt im Arbeitsbaum).
 
-**Metrik gegen die Marke von §4** (Summe aus Einfügungen und Löschungen von `git diff --numstat a98d0b9e..c92ed918 -- .github tools harness Makefile`): 849 (834 Einfügungen, 15 Löschungen), davon 32 aus den Vertragsdateien des Architect (`harness/vertraege`); ohne sie 817. Meldeschwelle 700 überschritten, Marke 900 nicht. Die Schätzung des Architect (545 bis 695) lag unter der Messung; die Gegenprobe trägt zwei Drittel des Diffs.
+**Metrik gegen die Marke von §4** (Summe aus Einfügungen und Löschungen von `git diff --numstat a98d0b9e..6f4058fe -- .github tools harness Makefile`): 899 (878 Einfügungen, 21 Löschungen), davon 44 aus den Vertragsdateien des Architect (`harness/vertraege`); ohne sie 855 (`workflows-check-gegenprobe.sh` 589, `workflows-check.sh` 240, `workflows.mk` 24, `harness/README.md` 2). Meldeschwelle 700 überschritten, Marke 900 nicht (um eine Zeile unterschritten); jede weitere Zeile in diesen Pfaden überschreitet sie.
 
 **Rückgabe an den Architect, erledigt:** Prüfbereich nur aus Symlinks (`SPEC-063` Punkt 2, F4): Der Architect hat entschieden (Befund `symlink`, Exit 1, kein Aufruf von `docker`, Punkte 4 und 8 nicht geprüft). Das Skript brauchte keine Änderung; der Fall `p2-nur-symlink` war an der unveränderten Kopie grün, die zwei Mutationen färben ihn. Weil weder Skript noch Fragment sich änderten, ist nach dem Fall kein neuer `make gates` gelaufen; der Lauf von oben (Skript und Fragment gleich) gilt. Gelaufen nach dem Fall: die volle `make workflows-check-gegenprobe` (grün, 83 Läufe) und `make docs-check` (0 Befunde).
+
+### Findings des Reviews (`docs/reviews/2026-10-18-review-slice-harness-ci-workflows.md`) und ihr Ausgang
+
+| ID | Ausgang |
+|---|---|
+| F-1 (MEDIUM) | behoben: Fälle `p8-dir-davor`, `p8-dir-danach`, `p8-modules-praefix`, `p8-modules-suffix`; Mutationen `m-p8-dir-ohne-block`, `m-p8-ohne-ruecksetzung`, `m-p8-modules-muster`, je rot gesehen |
+| F-2 (MEDIUM) | behoben: Fälle `p9-verzeichnis-ohne-r` (Modus 311) und `p9-verzeichnis-ohne-x` (Modus 444) mit den Mutationen `m-p9-verzeichnis-r-fehlt` und `m-p9-verzeichnis-x-fehlt`; je Element der Prüfung `-r` und `-x` ein Fall |
+| F-3 (MEDIUM) | behoben: als root entfallen die drei Fälle mit Rechten und ihre drei Mutationen, am Ende nennt die Gegenprobe sie auf stderr; die Gegenprobe lief als root im Container (`sudo -n`): grün, 97 Läufe, die sechs Namen stehen auf stderr |
+| F-4 (LOW) | behoben: Fall `p5-form-ohne-regeln` (Tabulator plus Job ohne Zeitgrenze und ohne `permissions` oben: nur `form`), Mutation `m-p5-regeln-laufen` |
+| F-5 (LOW) | behoben: Mutationen `m-p1-hinweis-endung-fehlt`, `m-p1-hinweis-grund-endung`, `m-p1-hinweis-unterverz-fehlt`, `m-p1-hinweis-grund-unterverz`, `m-p3-al-zeilen-veraendert`, `m-p3-stderr-anhang-fehlt` in der Tabelle; der Fall `p3-exit1` prüft jetzt die Ausgabe vollständig (der Vergleich mit `grep -F` über zwei Zeilen war zu schwach, `m-p3-al-zeilen-veraendert` blieb damit grün, bis er verschärft war) |
+| F-6 (LOW) | behoben: Zeile in `harness/README.md` nennt die drei breiten Mutationen und das Verhalten als root |
+| F-7 (LOW) | behoben: §6-Einleitung („vom Architect entschieden“) und DoD Liefer-Punkt 1 („Pfad, Zeile und Regel“) |
+| F-8 (INFO) | Metrik oben neu gemessen |
+| F-9 (INFO) | unverändert: `export DOCKER` global; der Vertrag nennt die Schnittstelle (`DOCKER` aus `build.mk` als Umgebung des Skripts) und verlangt keinen engeren Export. Kopplung für den, der ein Skript ändert, das `DOCKER` aus der Umgebung liest. Ein zielgebundener Export (`target: export VAR`) kennt GNU make ohne Zuweisung nicht (am Gate gemessen: „No rule to make target export“) |
+| F-10 (INFO, Architect) | umgesetzt nach `SPEC-063` Punkte 1 und 7: Skript prüft die Normalform (`^(0|[1-9][0-9]*)$`); Fälle `p7-fuehrende-null` (`010`, `0060`, `00`), `p7-vorzeichen`, `p7-dezimal`, `p1-symlink-andere-endung` mit je einer Mutation (zwei für den Symlink) |
+
+**Offene Rückgabe:** Der Review-Report enthält in Zeile 15 drei ADR-Kennungen ohne Link; `make docs-check` meldet das (und damit `make gates`). Der Report ist Lauf-Beleg des Reviewers; ich habe ihn nicht geändert.
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
