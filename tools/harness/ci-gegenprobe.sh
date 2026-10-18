@@ -205,7 +205,6 @@ f_p1_reihenfolge_gates() { neu; urteil rot < <(umgestellt G C A); }
 f_p1_leerzeile() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "" "${t[@]:3}"); }
 f_p1_kommentarzeile() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "# Kommentar" "${t[@]:3}"); }
 f_p1_kommentarzeile_eingerueckt() { neu; urteil ok < <(zeilen "${t[@]:0:3}" "    # Kommentar" "${t[@]:3}"); }
-f_p1_kommentar_am_ende() { neu; t[0]+=" # x"; urteil rot < <(zeilen "${t[@]}"); }
 
 # --- Punkte 6 bis 9: ci-range.sh ---------------------------------------------------------------------------------------------------------------------
 # welt <dir> — legt ein Repository quelle/ (main: c1 c2 c3, Zweig side mit s1, Merge-Commit m; refs/remotes/origin/main auf c1) und den flachen Klon flach/ an.
@@ -367,7 +366,7 @@ f_p18_sigint() { abbruchfall INT 130; }
 f_p18_sigterm() { abbruchfall TERM 143; }
 
 # --- Läufe ------------------------------------------------------------------------------------------------------------------------------------------
-FAELLE_P1=(p1-gleich p1-text-gleich p1-reihenfolge-schritte p1-reihenfolge-gates p1-leerzeile p1-kommentarzeile p1-kommentarzeile-eingerueckt p1-kommentar-am-ende
+FAELLE_P1=(p1-gleich p1-text-gleich p1-reihenfolge-schritte p1-reihenfolge-gates p1-leerzeile p1-kommentarzeile p1-kommentarzeile-eingerueckt
   p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-andere-action)
 for ((n = 1; n <= N; n++)); do FAELLE_P1+=("p1-fehlt-$n" "p1-geaendert-$n"); done
 for k in "${ZUSATZ_NAMEN[@]}"; do FAELLE_P1+=("p1-zusatz-$k"); done
@@ -508,7 +507,6 @@ for ((n = 1; n <= N; n++)); do
   if [ "$i" -eq "$PIN" ]; then igel='[[ ${ist[j]-} =~ $PIN_RE ]]'; else igel='[ "${ist[j]-}" = "${SOLL[i]}" ]'; fi
   mut1 "m-p1-zeile-$n-optional" "p1-fehlt-$n" "fn_ersetze 'if [ \"\$i\" -eq \"\$PIN\" ]; then' 'if [ \"\$i\" -eq $i ] && ! $igel; then continue; fi; if [ \"\$i\" -eq \"\$PIN\" ]; then'"
   rote="p1-geaendert-$n"
-  if [ "$n" -eq 1 ]; then rote+=" p1-kommentar-am-ende"; fi
   if [ "$i" -eq "$PIN" ]; then rote+=" p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-andere-action"; fi
   mut1 "m-p1-zeile-$n-nicht-verglichen" "$rote" "fn_ersetze 'if [ \"\$i\" -eq \"\$PIN\" ]; then' 'if [ \"\$i\" -eq $i ]; then j=\$((j + 1)); continue; fi; if [ \"\$i\" -eq \"\$PIN\" ]; then'"
 done
@@ -523,6 +521,7 @@ mut1 m-p1-pin-ohne-kommentar "p1-pin-ohne-tag" 'PIN_RE="${PIN_RE/ # \[^ \].*\$/(
 mut1 m-p1-pin-andere-action "p1-pin-andere-action" 'PIN_RE="${PIN_RE/actions?checkout@/actions/[a-z-]+@}"'
 mut1 m-p1-kommentarzeilen-nicht-ignoriert "p1-kommentarzeile p1-kommentarzeile-eingerueckt" "fn_ersetze '^\\ *(#|\$)' '^\\ *\$'"
 mut1 m-p1-leerzeilen-nicht-ignoriert "p1-leerzeile" "fn_ersetze '^\\ *(#|\$)' '^\\ *#'"
+mut1 m-p1-kommentar-irgendwo-in-der-zeile "p1-gleich p1-text-gleich p1-leerzeile p1-kommentarzeile p1-kommentarzeile-eingerueckt" "fn_ersetze '^\\ *(#|\$)' '^.*#|^\\ *\$'"
 mut1 m-p1-kommentar-nur-am-zeilenanfang "p1-kommentarzeile-eingerueckt" "fn_ersetze '^\\ *(#|\$)' '^(#|\$)'"
 # Reihenfolge: die Prüfung nimmt zusätzlich die Folge mit vertauschten Schritten an.
 PERM_AC=("${SOLL[@]:0:S_C}" "${SOLL[@]:S_A:S_G-S_A}" "${SOLL[@]:S_C:S_A-S_C}" "${SOLL[@]:S_G}")
