@@ -37,6 +37,7 @@ haupt() {
   [ -d "$ablage" ] || { melde marke "kein Verzeichnis: $ablage"; return 0; }
   # (2) Werkzeuge, (3) Ablage (Punkt 13)
   for t in git flock setsid make pgrep; do command -v "$t" > /dev/null 2>&1 || { melde werkzeug "$t fehlt"; return 0; }; done
+  env --default-signal=INT,QUIT true > /dev/null 2>&1 || { melde werkzeug "env fehlt (Option --default-signal)"; return 0; }
   probe="$(mktemp "$ablage/.probe.XXXXXX" 2> /dev/null)" || { melde ablage "nicht schreibbar: $ablage"; return 0; }; rm -f "${probe:?}"
   # (4) je Zeile (Punkte 3, 4, 8)
   while IFS= read -r zeile || [ -n "$zeile" ]; do
@@ -57,8 +58,8 @@ haupt() {
     args+=("$n" "$zweig" "$neu")
   done
   if [ "${#args[@]}" -gt 0 ]; then
-    # `setsid -f` statt `cmd &`: ein einfacher Hintergrundbefehl einer Shell ohne Jobsteuerung startet mit ignoriertem SIGINT und SIGQUIT, und seine Kinder erben es.
-    # `env --default-signal=INT,QUIT` setzt beide für den Lauf zurück, auch wenn der Aufrufer des Hooks sie ignoriert (coreutils ab 8.31).
+    # `setsid -f` startet den Lauf mit den Signalen des Standards; ein einfacher Hintergrundbefehl `cmd &` einer Shell ohne Jobsteuerung ließe SIGINT und SIGQUIT
+    # ignoriert (Abgrenzung; Fälle `p11-*`, Mutation `m-p11-hook-mit-und`). `env --default-signal=INT,QUIT` setzt beide auch dann zurück, wenn der Aufrufer sie ignoriert.
     # Das Kind schließt vor dem Lauf jeden Deskriptor über 2, den git an den Hook reicht (sonst hält der Lauf die Leitung des Pushs offen).
     setsid -f env --default-signal=INT,QUIT "$BASH" -c 'for f in /proc/self/fd/*; do n="${f##*/}"; [ "$n" -gt 2 ] 2> /dev/null && eval "exec $n>&-"; done; exec "$BASH" "$@"' \
       _ "$self" --lauf "$bare" "$ablage" "${args[@]}" < /dev/null > /dev/null 2>&1

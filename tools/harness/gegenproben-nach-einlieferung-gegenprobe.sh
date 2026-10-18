@@ -5,7 +5,7 @@
 # Aufruf, Umgebung und Arbeitsbaum). Die unveränderte Kopie muss jeden Fall bestehen; je Mutation (Textersatz in der Kopie) müssen genau die benannten Fälle rot
 # werden. Der Name jedes Falls trägt die Nummer des Punktes. Docker wird nicht gerufen. Hook-Aufrufe starten mit TZ=UTC, außer in den Zeitzonen-Fällen.
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Mutationen, deren Name passt (die unveränderte Kopie nur, wenn das Muster `ok` trifft); GP_ENTDECKE=1 nennt je
-# Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Mutationen. Braucht bash ≥ 5, sh, git, flock, setsid, pgrep, timeout und env mit --default-signal (coreutils ≥ 8.31).
+# Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Mutationen. Braucht bash ≥ 5.1 (sonst Exit 2 mit `bash >= 5.1 nötig`; GP_BASH_VERSION ersetzt die Version nur für diese Prüfung), sh, git, flock, setsid, pgrep, timeout und env mit --default-signal (coreutils ≥ 8.31).
 # Die Fälle p13-ablage-weg und p13-mktemp verlangen einen Benutzer ohne root (chmod sperrt root nicht aus); als root endet die Gegenprobe mit Exit 2.
 # Wartezeiten: Aussagen über etwas, das nicht geschehen darf, warten bis zum Ende der Läufe der Gruppe (bis_fertig) statt fest; Fristen bis zu 15 s in Schritten von 0,1 s (WA);
 # der Fall p9-sigterm-wartet-waise zählt die Prozesse der Sitzung des Hintergrundlaufs (pgrep -s), nicht die des Hosts.
@@ -16,6 +16,8 @@ set -uo pipefail
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 skript="$hier/gegenproben-nach-einlieferung.sh"
+bv="${GP_BASH_VERSION:-$BASH_VERSION}"; bv_major="${bv%%.*}"; bv_rest="${bv#*.}"; bv_minor="${bv_rest%%.*}"
+if ! { [ "$bv_major" -gt 5 ] || { [ "$bv_major" -eq 5 ] && [ "$bv_minor" -ge 1 ]; }; }; then echo "gegenproben-nach-einlieferung-gegenprobe: bash >= 5.1 nötig (hier $bv)" >&2; exit 2; fi
 if [ "$(id -u)" -eq 0 ]; then echo "gegenproben-nach-einlieferung-gegenprobe: nicht als root (Fälle p13-ablage-weg und p13-mktemp)" >&2; exit 2; fi
 arbeit="$(mktemp -d)"
 trap 'pkill -KILL -f -- "$arbeit" 2> /dev/null; chmod -R u+rwX "${arbeit:?}"; rm -rf "${arbeit:?}"' EXIT
@@ -31,8 +33,8 @@ FAELLE=(p1-kopie p1-echter-push p2-fehlt p2-leer p2-relativ p2-zwei-zeilen p2-ke
   p9-gruen p9-rot p9-marke p9-nicht-vorher p9-log p9-zeitzone-ost p9-zeitzone-west p9-beginn-nach-sperre p9-sigterm-lauf p9-sigterm-enkel p9-sigterm-wartet p9-sigterm-wartet-waise
   p10-argv p11-sigint-lauf p11-sigint-make p11-sigquit-make p11-sigint-kind p11-sigquit-kind p11-sigint-enkel p11-sigquit-enkel p11-erbt-int p11-erbt-quit p11-makeflags p11-mflags p11-gnumakeflags p11-makelevel p11-makeoverrides p11-git-dir p11-git-quarantaene p11-git-weitere
   p12-stand p12-entfernt-gruen p12-entfernt-rot p12-bare-unveraendert p12-rest
-  p13-werkzeug-git p13-werkzeug-flock p13-werkzeug-setsid p13-werkzeug-make p13-werkzeug-pgrep p13-werkzeug-erstes p13-ablage-weg p13-sperre p13-sperre-vor-arbeitsbaum p13-hash-fehlt
-  p13-make-127 p13-make-signal p13-ref-vor-form p13-form-vor-laenge p13-mktemp p13-marke-vor-werkzeug p13-werkzeug-vor-ablage p13-ablage-vor-zeile)
+  p13-werkzeug-git p13-werkzeug-flock p13-werkzeug-setsid p13-werkzeug-make p13-werkzeug-pgrep p13-werkzeug-env p13-werkzeug-erstes p13-ablage-weg p13-sperre p13-sperre-vor-arbeitsbaum p13-hash-fehlt
+  p13-make-127 p13-make-signal p13-ref-vor-form p13-form-vor-laenge p13-mktemp p13-marke-vor-werkzeug p13-werkzeug-vor-ablage p13-ablage-vor-zeile p5-bash-version)
 Z0=0000000000000000000000000000000000000000
 Z64="$(printf '0%.0s' {1..64})"
 
@@ -503,6 +505,11 @@ g13() {
     { nichts && grep -q "^gegenproben-nach-einlieferung: werkzeug: $w " "$g/h.err"; } || echo "p13-werkzeug-$w"
     zurueck
   done
+  pfad="$g/pfad-env"; cp -a "$g/pfad" "$pfad"
+  printf '#!/bin/sh\n[ "${1#--default-signal}" != "$1" ] && { echo "env: unrecognized option" >&2; exit 125; }\nexec /usr/bin/env "$@"\n' > "$pfad/env"; chmod +x "$pfad/env"
+  haken "$(zl main "$h1")"; bis_fertig
+  { nichts && grep -q '^gegenproben-nach-einlieferung: werkzeug: env ' "$g/h.err"; } || echo p13-werkzeug-env
+  zurueck; pfad=""
   cp -a "$g/pfad" "$g/pfad-gf"; rm -f "${g:?}/pfad-gf/git" "${g:?}/pfad-gf/flock"; pfad="$g/pfad-gf"
   haken "$(zl main "$h1")"; bis_fertig
   { nichts && grep -q '^gegenproben-nach-einlieferung: werkzeug: git ' "$g/h.err"; } || echo p13-werkzeug-erstes
@@ -547,10 +554,21 @@ g13() {
   { grep -q 'ablage: ' "$g/h.err" && ! grep -q 'zeile: ' "$g/h.err"; } || echo p13-ablage-vor-zeile
 }
 
+# bashv_fall <Gegenprobe> — startet die Gegenprobe mit vorgetäuschter Version (GP_BASH_VERSION, ohne Fälle): unter 5.1 Exit 2 mit der Meldung, ab 5.1 Exit 0.
+bashv_fall() {
+  local v
+  for v in 4.4.0:2 5.0.19:2 5.1.0:0 5.2.37:0 6.0.0:0; do
+    GP_BASH_VERSION="${v%%:*}" GP_MUT='^$' "$BASH" "$1" > "$fx/bv.out" 2> "$fx/bv.err"
+    [ "$?" = "${v##*:}" ] || { echo p5-bash-version; return; }
+    if [ "${v##*:}" = 2 ]; then grep -q 'bash >= 5.1 nötig' "$fx/bv.err" || { echo p5-bash-version; return; }; fi
+  done
+}
+g5v() { bashv_fall "${BASH_SOURCE[0]}"; }
+
 # pruefe — schreibt die Namen der roten Fälle, einen je Zeile; die Gruppen laufen gleichzeitig.
 pruefe() {
   local f
-  for f in g1 g2 g3 g4 g5 g5e3 g5e5 g5e7 g5e12 g5f g6 g7 g8 g9 g9s g10 g11 g11s g11e g12 g13; do ("$f" > "$fx/rot.$f" 2> "$fx/err.$f") & done
+  for f in g1 g2 g3 g4 g5 g5e3 g5e5 g5e7 g5e12 g5f g6 g7 g8 g9 g9s g10 g11 g11s g11e g12 g13 g5v; do ("$f" > "$fx/rot.$f" 2> "$fx/err.$f") & done
   wait
   cat "$fx"/rot.g*
   pkill -KILL -f -- "$fx/" 2> /dev/null
@@ -597,6 +615,22 @@ if [[ ok =~ ${GP_MUT:-.} ]]; then
     [ -z "$ist" ] || melde "unveränderte Kopie ist nicht grün: $ist"
   ) &
 fi
+
+# metag <name> <alt> <neu> — Textersatz in der Gegenprobe selbst; die Prüfung der bash-Version muss rot werden.
+metag() {
+  local name="$1"
+  [[ $name =~ ${GP_MUT:-.} ]] || return 0
+  wartejob
+  (
+    fx="$arbeit/$name"; mkdir -p "$fx"
+    inhalt="$(cat "${BASH_SOURCE[0]}"; printf x)"; inhalt="${inhalt%x}"
+    if [[ $inhalt != *"$2"* ]]; then melde "Mutation '$name': Textstelle nicht gefunden: $2"; exit 0; fi
+    printf '%s' "${inhalt/"$2"/"$3"}" > "$fx/gp.sh"
+    ist="$(bashv_fall "$fx/gp.sh")"
+    echo "$name" >> "$arbeit/gefahren"
+    [ "$ist" = p5-bash-version ] || melde "Mutation '$name': erwartet rot: p5-bash-version; rot sind: ${ist:-nichts}"
+  ) &
+}
 
 NL=$'\n'
 SIGL='  [ "${#zeilen[@]}" -eq 1 ] || { melde marke "keine einzelne Zeile in $marke"; return 0; }'
@@ -665,6 +699,19 @@ mut m-p5-nur-ueber-3 "p5-eof-fd3" "$NUMMER" '[ "$n" -gt 3 ] 2> /dev/null &&'
 mut m-p5-schliesst-fd2 "p5-fd-2" "$NUMMER" '[ "$n" -ge 2 ] 2> /dev/null &&'
 mut m-p5-lauf-ohne-exec "" 'exec "$BASH" "$@"' '"$BASH" "$@"'
 mut m-p5-lauf-als-kind "p5-ein-prozess" 'exec "$BASH" "$@"' '"$BASH" "$@"; :'
+ENVL='  env --default-signal=INT,QUIT true > /dev/null 2>&1 || { melde werkzeug "env fehlt (Option --default-signal)"; return 0; }'
+mut m-p13-ohne-env "p13-werkzeug-env" "$ENVL" '  :'
+mut m-p11-hook-nur-int "p11-erbt-quit" "$SETSID" 'setsid -f env --default-signal=INT "$BASH" -c'
+mut m-p11-hook-nur-quit "p11-erbt-int" "$SETSID" 'setsid -f env --default-signal=QUIT "$BASH" -c'
+mut m-p5-ausser-5 "p5-eof-fd5 p5-fd-kind p5-fd-lauf p5-fd-make" "$NUMMER" '[ "$n" -gt 2 ] 2> /dev/null && [ "$n" != 5 ] &&'
+mut m-p5-ausser-7 "p5-eof-fd7" "$NUMMER" '[ "$n" -gt 2 ] 2> /dev/null && [ "$n" != 7 ] &&'
+metag m-bash-ab-5-0 '[ "$bv_minor" -ge 1 ]' '[ "$bv_minor" -ge 0 ]'
+metag m-bash-ab-5-2 '[ "$bv_minor" -ge 1 ]' '[ "$bv_minor" -ge 2 ]'
+metag m-bash-major-ab-4 '[ "$bv_major" -gt 5 ]' '[ "$bv_major" -gt 3 ]'
+metag m-bash-major-nicht-6 '[ "$bv_major" -gt 5 ]' '[ "$bv_major" -gt 6 ]'
+metag m-bash-nicht-5 '[ "$bv_major" -eq 5 ]' '[ "$bv_major" -eq 4 ]'
+metag m-bash-ohne-meldung 'bash >= 5.1 nötig (hier $bv)' 'zu alt'
+metag m-bash-exit-1 'nötig (hier $bv)" >&2; exit 2' 'nötig (hier $bv)" >&2; exit 1'
 mut m-p5-make-mit-sperre "p5-fd-kind p5-fd-make" '> "$log" 2>&1 9>&- &' '> "$log" 2>&1 &'
 mut m-p11-hook-mit-und "p11-erbt-int p11-erbt-quit p11-sigint-enkel p11-sigint-kind p11-sigint-lauf p11-sigint-make p11-sigquit-enkel p11-sigquit-kind p11-sigquit-make" "$SETSID" 'setsid "$BASH" -c' "$START" "$START &"
 mut m-p11-hook-ohne-reset "p11-erbt-int p11-erbt-quit" "$SETSID" 'setsid -f "$BASH" -c'
@@ -759,7 +806,7 @@ mut m-p13-ohne-ablage-probe "p13-ablage-vor-zeile p13-ablage-weg" "$PROBE" '  :'
 mut m-p13-werkzeug-vor-marke "p13-marke-vor-werkzeug" '  # (1) Marke des Containers (Punkt 2)' "$WERK"
 mut m-p13-ablage-vor-werkzeug "p13-werkzeug-vor-ablage" '  # (2) Werkzeuge, (3) Ablage (Punkt 13)' "$PROBE"
 mut m-p13-zeile-vor-ablage "p13-ablage-vor-zeile" "$PROBE" '  :' "$HASHL" "$HASHL"$'\n'"$PROBE"
-mut m-p13-exit1 "p1-kopie p13-ablage-weg p13-form-vor-laenge p13-hash-fehlt p13-ref-vor-form p13-sperre p13-werkzeug-erstes p13-werkzeug-flock p13-werkzeug-git p13-werkzeug-make p13-werkzeug-pgrep p13-werkzeug-setsid p2-fehlt p2-kein-verzeichnis p2-leer p2-relativ p2-zwei-zeilen p3-headsx p3-notes p3-tag p4-ergebnis-bleibt p4-feld-fehlt p4-hash-41 p4-hash-gross p4-hash-kurz p4-null40 p4-null64 p4-stdin-leer p4-vier-felder p5-gestartet-zeile p8-lang-mehrbyte" $'haupt\nexit 0' $'haupt\nexit 1'
+mut m-p13-exit1 "p1-kopie p13-ablage-weg p13-form-vor-laenge p13-hash-fehlt p13-ref-vor-form p13-sperre p13-werkzeug-env p13-werkzeug-erstes p13-werkzeug-flock p13-werkzeug-git p13-werkzeug-make p13-werkzeug-pgrep p13-werkzeug-setsid p2-fehlt p2-kein-verzeichnis p2-leer p2-relativ p2-zwei-zeilen p3-headsx p3-notes p3-tag p4-ergebnis-bleibt p4-feld-fehlt p4-hash-41 p4-hash-gross p4-hash-kurz p4-null40 p4-null64 p4-stdin-leer p4-vier-felder p5-gestartet-zeile p8-lang-mehrbyte" $'haupt\nexit 0' $'haupt\nexit 1'
 mut m-p13-gruen-bei-sperre "p13-sperre" "$SPERRE" "$SPERRE"$' printf \'ergebnis=gruen\\n\' > "$ablage/$n";'
 mut m-p13-gruen-bei-arbeitsbaum "p13-hash-fehlt" "$WTFEHL" $'    printf \'ergebnis=gruen\\n\' > "$ablage/$n"; rm -rf "${wt:?}"; wt=""; exec 9>&-; return 0'
 mut m-p13-marke-weg-bei-sperre "p13-sperre" "$SPERRE" "$SPERRE"$' rm -f "${ablage:?}/${n:?}.laeuft";'
