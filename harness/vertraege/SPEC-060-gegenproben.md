@@ -123,9 +123,11 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
    `harness/mk/gegenproben.mk`. Beide sind `.PHONY`, kein Gate, nicht in `GATE_CHECKS`, nicht in der Ausnahmeliste, hängen
    nicht voneinander ab, und `make gates` und `make gates-schnell` fahren keines von beiden. Ein Ziel fährt die Liste des
    anderen nie. Fälle: `p4-container` (nur die Einzelziele der Liste für den Container laufen), `p4-host` (nur die der
-   Liste für den Host), `p4-kein-gate` (`make -n gates` nennt keines der beiden Sammelziele, und beide stehen nicht in `GATE_CHECKS`). Mutationen: das
+   Liste für den Host), `p4-kein-gate` (`make -n gates` nennt keines der beiden Sammelziele, und beide stehen nicht in `GATE_CHECKS`), `p4-kein-ausnahme` (keines
+   steht in `GATE_SCHNELL_AUSNAHME`). Mutationen: das
    Ziel für den Container fährt auch die Liste für den Host; das Ziel für den Host fährt auch die Liste für den
-   Container; das eine hängt an dem anderen; ein Sammelziel steht in `GATE_CHECKS`.
+   Container; das eine hängt an dem anderen (je Richtung); je Sammelziel einzeln: es steht in `GATE_CHECKS` (`p4-kein-gate`), es steht in
+   `GATE_SCHNELL_AUSNAHME` (`p4-kein-ausnahme`).
 5. **Nacheinander, in der Reihenfolge der Liste.** Jedes Einzelziel beginnt nach dem Ende des vorigen, in der
    Reihenfolge der Liste, auch unter `-j` (eine Schleife im Skript, kein Fächer von Prerequisites). Fälle: `p5-reihenfolge`
    (die Attrappen schreiben `beginn`/`ende` und warten kurz; die Folge im Protokoll ist `beginn a, ende a, beginn b, …` in
@@ -148,15 +150,20 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
    (Folge des Hintergrundstarts, den die Behandlung der Signale braucht, Punkt 8); ein Einzelziel, das liest, bekommt Ende der Eingabe
    (akzeptiertes Negativ, ohne Fall; Grund: ein Terminal als Eingang wäre mit dem Abbruch nicht zu vereinbaren). Zeilen von `make`
    selbst (Verzeichniswechsel, Warnungen zum Jobserver unter `-j`) sind nicht zugesagt. Fall `p7-ausgabe`: die
-   Attrappe schreibt eine Zeile auf stdout und eine auf stderr; beide erscheinen auf ihrem Strom. Mutationen: stderr nach
-   stdout geleitet; stdout verworfen.
+   Attrappe schreibt eine Zeile auf stdout und eine auf stderr; beide erscheinen auf ihrem Strom. Fall `p7-eingabe`: der Standardeingang jedes Einzelziels ist `/dev/null`
+   (Eingabe leer, Ende sofort). Mutationen: stderr nach stdout geleitet; stdout verworfen; der Eingang ist `/dev/zero` statt `/dev/null`.
 8. **Abbruch.** Ein `SIGINT` oder `SIGTERM` beendet das laufende Einzelziel und startet kein weiteres; das Skript endet
    mit 130 (`SIGINT`) oder 143 (`SIGTERM`) und schreibt keine Zusammenfassung. Die Zusage gilt für ein Signal an die
    Prozessgruppe und für ein Signal nur an das Skript. Fälle: je Signal und Adressat einer, vier insgesamt
    (`p8-sigint-gruppe`, `p8-sigterm-gruppe`, `p8-sigint-skript`, `p8-sigterm-skript`); die Attrappe des mittleren von drei Zielen
-   wartet, das dritte schreibt bei Beginn in das Protokoll; geprüft werden Exit-Code, dass die Attrappe beendet ist, dass das
-   dritte Ziel nicht begann und dass keine Zusammenfassung erscheint. Mutationen: das nächste Ziel startet nach dem Signal;
-   die Exit-Codes 130 und 143 vertauscht; das laufende Einzelziel bleibt am Leben (sichtbar nur im Fall mit dem Signal an das Skript); eine Zusammenfassung erscheint.
+   wartet, das dritte schreibt bei Beginn in das Protokoll; die Attrappe startet außerdem ein Hintergrundkind (`sleep 31`); geprüft werden Exit-Code, dass die Attrappe **und ihre Nachkommen** beendet sind, dass das
+   dritte Ziel nicht begann und dass keine Zusammenfassung erscheint. Das Skript beendet das laufende Einzelziel samt seinen Nachkommen
+   (Voraussetzung `pgrep`, Kopf). **Voraussetzung:** Das Skript wird mit nicht ignoriertem `SIGINT` gestartet; ein Aufrufer, der es mit
+   ignoriertem `SIGINT` startet, ist nicht zugesagt (akzeptiertes Negativ; Grund: eine ignorierte Disposition erbt jedes Kind, und die
+   Gegenprobe setzt sie für ihren Hintergrundstart zurück). Mutationen: das nächste Ziel startet nach dem Signal; die Exit-Codes
+   130 und 143 vertauscht; je Signal einer: `SIGINT` endet mit 143 (färbt die beiden Fälle mit `SIGINT`), `SIGTERM` endet mit 130 (die beiden mit `SIGTERM`);
+   die Behandlung von `SIGINT` gestrichen (färbt `p8-sigint-skript`); die von `SIGTERM` gestrichen (färbt `p8-sigterm-skript`); das laufende Einzelziel bleibt am Leben (sichtbar nur im Fall mit dem Signal an das Skript);
+   die Nachkommen des Einzelziels bleiben am Leben (ebenso); eine Zusammenfassung erscheint.
    `SIGKILL` und ein Ausfall von Docker sind nicht zugesagt (Punkt 15).
 9. **Leere Liste.** Eine leere Liste ist ein Fehler, kein stilles Grün: Exit 2, eine Zeile `<sammelziel>: Liste leer` auf stderr, kein
    Einzelziel. Fälle `p9-container` und `p9-host`, je Sammelziel einer (das Fragment der Kopie hängt nichts an die Liste). Mutationen:
@@ -178,9 +185,10 @@ das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
     (Exit 0 statt 2); `i` gilt vor `n` (Exit 2 statt 0 bei `p10-in`); das Skript liest das ganze `MAKEFLAGS` statt des ersten Worts; ohne `k` bricht
     das Skript beim ersten roten ab; `j` startet die Einzelziele gleichzeitig.
 11. **Kein Stand, kein Nachweis.** Ein Lauf eines Sammelziels, ob grün, rot, abgebrochen oder unter `-n`, `-q`, `-t`, legt keine Datei im
-    Arbeitsbaum an und ändert keine, auch nichts unter `.harness/state/`; kein Hook und kein anderes Gate liest sein Ergebnis. Fall
-    `p11-kein-stand`: die Dateiliste des Arbeitsbaums der Kopie (Pfade und Inhalte) ist nach einem grünen, einem roten Lauf und unter
-    `-n` unverändert. Mutation: das Skript schreibt nach grünem Lauf eine Datei unter `.harness/state/`.
+    Arbeitsbaum an und ändert keine, auch nichts unter `.harness/state/`; kein Hook und kein anderes Gate liest sein Ergebnis. Fälle
+    `p11-gruen`, `p11-rot`, `p11-abbruch`, `p11-n`, `p11-q`, `p11-t`: die Dateiliste des Arbeitsbaums der Kopie (Pfade und Inhalte) ist nach
+    einem grünen Lauf, einem roten, einem abgebrochenen und unter `-n`, `-q`, `-t` unverändert. Mutationen, je Fall eine, die nur ihren
+    Fall färbt: das Skript schreibt eine Datei unter `.harness/state/` im grünen Lauf, im roten, beim Abbruch, unter `-n`, `-q`, `-t`.
 12. **Reihenfolge der Gründe.** Das Skript prüft in dieser Reihenfolge und endet beim ersten Treffer: (1) `-n`, `-q`, `-t`: Exit 0, nichts; (2) `-i`:
     Exit 2; (3) leere Liste: Exit 2; (4) die Einzelziele. Fälle: `p12-n-leer` (`-n` bei leerer Liste: Exit 0, keine Meldung), `p12-i-leer` (`-i` bei
     leerer Liste: die Meldung nennt `-i`, nicht die Liste); das Paar (1)/(2) deckt `p10-in`. Mutationen: die Prüfung der Liste vor `-n`; die Prüfung der Liste vor
