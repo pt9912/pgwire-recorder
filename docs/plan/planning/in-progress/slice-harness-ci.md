@@ -72,12 +72,12 @@ Aussagen-Berührung steht hier gar nicht.
 
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
-| `.github/workflows/ci.yml` | neu | Auslöser, Rechte, Zeitgrenze, `make gates`, Range-Prüfung; Vorbild d-check `ci.yml` |
-| `tools/harness/ci-range.sh` | neu | `RANGE` aus dem Ereignis; fail-closed |
-| `harness/mk/ci-gegenprobe.mk`, `tools/harness/ci-gegenprobe.sh` (Namen: Architect) | neu | Gegenprobe der Zusagen von `ci.yml` und der Range; Eintrag in `GEGENPROBEN_CONTAINER` |
-| `.d-check.yml` | update | Eintrag der Pins (`SPEC-063` Punkt 8); Sendung von `slice-harness-ci-workflows`. Die Blöcke `commits` und `vcs` sind bei `slice-harness-ci-range-konfiguration` |
+| `.github/workflows/ci.yml` | neu | Text wörtlich nach `SPEC-064` Punkt 1 (Auslöser, Rechte, Zeitgrenze, Range-Prüfung, `make gates`); `actions/checkout` auf den Commit des Tags v7.0.1 gepinnt |
+| `tools/harness/ci-range.sh` | neu | `RANGE` aus dem Ereignis; fail-closed (Exit 0, 1, 2 nach `SPEC-064` Punkte 6 bis 9) |
+| `harness/mk/ci.mk`, `tools/harness/ci-gegenprobe.sh` | neu | Gegenprobe der Zusagen von `ci.yml` und der Range: 143 Fälle (`p1` 98, `p6` 24, `p7` 10, `p8` 3, `p9` 6, `p18` 2), 141 Mutationen (98 am Text von `ci.yml`, 37 an `ci-range.sh`, 6 am Skript); Eintrag in `GEGENPROBEN_CONTAINER` |
+| `.d-check.yml` | update | Eintrag der Pins (`workflows` in `modules:` und `workflows.dir`, `SPEC-063` Punkt 8); Sendung von `slice-harness-ci-workflows`. Die Blöcke `commits` und `vcs` sind bei `slice-harness-ci-range-konfiguration` |
 | `harness/vertraege/SPEC-064-…md` | neu (Architect) | Vertrag; vor dem Code |
-| `harness/README.md` §Sensors | update | Zeile der Gegenprobe; Grenze Branch-Schutz; Verhältnis zum Stop-Hook |
+| `harness/README.md` §Sensors | update | Zeile von `make ci-gegenprobe`; Grenze Branch-Schutz (Job `ci-gates`); Verhältnis zum Stop-Hook |
 
 ## 4. Trigger
 
@@ -159,6 +159,88 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
+
+### Belege des Implementers
+
+Stand: Code-Commits `4190a5c3` und `a31f4a7f` (die Belege gelten für diesen Stand, wo sie nichts anderes nennen); Zweig `impl-ci`, Basis der Metrik `39f1ce8a`. Die Läufe stehen im Dev-Container pgr-dev3 (Benutzer `vscode`, Klon `/workspaces/pgr-dev3/impl-ci-klon`, Docker-in-Docker, d-check v0.86.1, Digest `3e0b9779…`, git 2.55.0, bash 5.2.37). **Nicht belegt in diesem Abschnitt:** ein Lauf von `ci.yml` auf GitHub (Nummer, Dauer, ein roter Lauf mit Verstoß gegen die Range): `ci.yml` ging nicht nach GitHub; die Probe ist eine Handlung des Koordinators mit Zustimmung des Nutzers (§5), DoD Liefer-Punkt 1 ist damit zur Hälfte belegt (Datei, Gates), zur Hälfte offen (Lauf).
+
+**Pin (Risiko 4).** `actions/checkout`: `git ls-remote https://github.com/actions/checkout` aus dem Container nennt `refs/tags/v7.0.1` mit `3d3c42e5aac5ba805825da76410c181273ba90b1` (kein `^{}`-Eintrag, der Tag zeigt unmittelbar auf einen Commit; `v7` zeigt auf denselben); `git fetch --depth 1 … 3d3c42e5…` ergibt Typ `commit`, Betreff `prep v7.0.1 release (#2531)`, Datum 2026-07-17; `v6.1.0` ist die ältere Linie. Die Zeile in `ci.yml` ist `uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1`. Die Ermittlung lief im Container mit Netz zu github.com; eine zweite Ermittlung am Host ist eine Handlung des Koordinators.
+
+**Gates am Arbeitsbaum.** `make workflows-check`: `1 Datei(en) geprüft, kein Befund`; `make docs-check`: `1196 Datei(en) geprüft, 0 Befund(e)` (mit `workflows` in `modules:` und `workflows.dir`). Rot gesehen (Risiko 4): `checkout@v7` ⇒ `uses-pin-missing` (`kein voller 40-stelliger Commit-SHA`), der SHA ohne ` # v7.0.1` ⇒ `uses-pin-untagged`, jeweils `1 Befund(e)`, Exit 2 von `make`; `timeout-minutes: 0` ⇒ `workflows-check: 2 Befund(e)`.
+
+**Die Schritte von `ci.yml` lokal gefahren** (nicht ein Lauf auf GitHub): `ci-range.sh` mit `CI_EVENT=push`, `CI_PUSH_BEFORE` aus Nullen, `CI_DEFAULT_BRANCH=main` ergibt `5e51b0c8…..4190a5c3…` (Exit 0), `pull_request` mit `CI_PR_BASE=origin/main` dieselbe Range; `make doc-commits RANGE=39f1ce8a…..4190a5c3…` und `make doc-immutable RANGE=…`: je `3 Commit(s) — OK` und `d-check: 1196 Datei(en) geprüft, 0 Befund(e)`.
+
+**Läufe am Endstand** (Code-Commit `a31f4a7f`, nacheinander, ohne parallele volle Läufe): `make ci-gegenprobe` `grün (144 Läufe)` (58 s); `make gates-schnell-gegenprobe` grün (60 s); `make gates` Exit 0 (262 s = 4 min 22 s, Nachweis geschrieben); `make docs-check` 0 Befunde. **Dauer von `make gates` gegen die Zeitgrenze (Risiko 2):** 262 s im Dev-Container gegen 1800 s (`timeout-minutes: 30`), 15 Prozent; auf dem Runner (2 vCPU, kalte Docker-Layer, Pull der gepinnten Images) ist sie nicht gemessen, das zeigt nur der Lauf auf GitHub.
+
+**Fälle (143).** `p1-*` (98): `gleich` (der Arbeitsbaum), `text-gleich` (die Kopie aus dem Text), je Zeile n des Textes (n = 1 bis 39) `fehlt-n` und `geaendert-n` (erstes Zeichen der Zeile durch `Z` ersetzt), `zusatz-<Wort>` (`concurrency`, `workflow-dispatch`, `pull-request-target`, `workflow-run`, `strategy`, `continue-on-error`, `secrets`, `schritt-cache`, `schritt-artefakt`, jeweils eine Zeile am Ende der Datei), `pin-kurz` (39 Ziffern), `pin-gross`, `pin-ohne-tag`, `pin-andere-action`, `reihenfolge-schritte` (ADR-Schritt vor Commit-Schritt), `reihenfolge-gates` (Gates vor beiden), `leerzeile`, `kommentarzeile`, `kommentarzeile-eingerueckt` (die letzten drei grün erwartet). `p6-*` (24): `event-fehlt|leer|unbekannt|schedule`, je Variable `CI_HEAD`, `CI_PR_BASE`, `CI_PUSH_BEFORE` fünf Formen (`fehlt`, `ungueltig` mit `g`, `kurz` mit 39, `lang` mit 41, `gross` mit `A`), `default-fehlt|ungueltig`, `ungenutzt`, `ungenutzt-prbase`, `ungenutzt-default`. `p7-*` (10): `pr`, `pr-merge-kopf`, `pr-basis-fehlt-im-klon`, `pr-kopf-fehlt-im-klon`, `push`, `push-neu`, `push-neu-ohne-standard`, `push-vorgaenger-fehlt`, `leer`, `flach`. `p8-*` (3): `stdout-eine-zeile`, `fehler-stdout-leer` (acht Formen mit Exit ungleich 0: Stdout leer, jede Zeile von stderr mit `ci-range:`), `git-fehler`. `p9-*` (6): `ereignis-vor-head`, `head-vor-prbase`, `head-vor-before`, `eingabe-vor-flach`, `flach-vor-aufloesung`, `aufloesung-vor-leer`. `p18-*` (2): `sigint`, `sigterm`. Ein Fall besteht, wenn Exit, stdout und stderr vollständig dem erwarteten Text entsprechen (jede Zeile mit Zeilenende) bzw. `pruefe_ci` das erwartete Urteil fällt. Die Köder: jeder Fall von `ci-range.sh` setzt alle fünf Variablen gültig (die vom Ereignis nicht gelesenen als Köder mit anderer Range), dann die Abweichung des Falls. Der Name eines Falls ohne Funktion zählt als roter Fall (Lauf `fall-ohne-funktion`).
+
+**Mutationen (141): Zusage · Mutation · roter Test.** Jede Mutation ist ein Textersatz in `pruefe_ci` (Quelltext aus `declare -f`, ausgewertet im Lauf) bzw. in einer Kopie von `ci-range.sh` bzw. im Skript (`m-p18-*`); rot sind genau die benannten Fälle (die Gegenprobe verlangt diese Menge); mit `GP_ENTDECKE=1` gesehen, dann der volle Lauf grün (144 Läufe: 141 Mutationen, die unveränderte Kopie, `rekursion-schutz`, `fall-ohne-funktion`). Fälle, die eine Mutation außerhalb der Aufzählung färbt, sind gemessen und je Zeile begründet.
+
+Text von `ci.yml` (98):
+
+| Mutation | Zusage / Element | rote Fälle |
+|---|---|---|
+| `m-p1-zeile-<n>-optional` (n = 1 bis 39, 39 Mutationen) | Zeile n ist Pflicht (fehlt sie, rückt die Prüfung nicht weiter) | `p1-fehlt-<n>` |
+| `m-p1-zeile-<n>-nicht-verglichen` (39) | der Inhalt von Zeile n ist Teil des Textes | `p1-geaendert-<n>`; für n = 25 (die Zeile mit dem Pin) dazu `p1-pin-kurz`, `-gross`, `-ohne-tag`, `-andere-action` (alle ändern diese Zeile) |
+| `m-p1-zusatz-<Wort>-erlaubt` (9) | die Zeile mit `<Wort>` ist verboten | `p1-zusatz-<Wort>` |
+| `m-p1-zusatzzeilen-erlaubt` | keine Zeile über den Text hinaus | alle neun `p1-zusatz-*` |
+| `m-p1-pin-grossbuchstaben` | SHA in Kleinschrift | `p1-pin-gross` |
+| `m-p1-pin-39-ziffern` | SHA mit 40 Ziffern | `p1-pin-kurz` |
+| `m-p1-pin-ohne-kommentar` | Tag-Kommentar hinter dem SHA | `p1-pin-ohne-tag` |
+| `m-p1-pin-andere-action` | nur `actions/checkout` | `p1-pin-andere-action` |
+| `m-p1-kommentarzeilen-nicht-ignoriert` | Kommentarzeilen zählen nicht | `p1-kommentarzeile`, `p1-kommentarzeile-eingerueckt` |
+| `m-p1-leerzeilen-nicht-ignoriert` | Leerzeilen zählen nicht | `p1-leerzeile` |
+| `m-p1-kommentar-nur-am-zeilenanfang` | erstes Zeichen außer Leerzeichen `#` (eingerückt) | `p1-kommentarzeile-eingerueckt` |
+| `m-p1-kommentar-irgendwo-in-der-zeile` | `#` in der Zeile macht sie nicht zur Kommentarzeile (die Zeile des Pins trägt `# v7.0.1`) | `p1-gleich`, `p1-text-gleich`, `p1-leerzeile`, `p1-kommentarzeile`, `p1-kommentarzeile-eingerueckt` (jede grün erwartete Datei hat die Pin-Zeile) |
+| `m-p1-reihenfolge-commit-adr-tauschbar` | `Commit-Messages` vor `ADR-Immutabilität` | `p1-reihenfolge-schritte` |
+| `m-p1-reihenfolge-gates-zuerst` | `Gates` nach den beiden Range-Schritten | `p1-reihenfolge-gates` |
+
+`ci-range.sh` (37):
+
+| Mutation | Zusage / Element | rote Fälle |
+|---|---|---|
+| `m-p6-event-ungeprueft` | `CI_EVENT` ist `pull_request` oder `push` | `p6-event-fehlt`, `-leer`, `-unbekannt`, `-schedule`, `p8-fehler-stdout-leer` (Form `event`), `p9-ereignis-vor-head` |
+| `m-p6-event-leer-erlaubt` | leeres/fehlendes `CI_EVENT` ist ungültig | `p6-event-fehlt`, `p6-event-leer`, `p8-fehler-stdout-leer`, `p9-ereignis-vor-head` (der Code unterscheidet fehlend und leer nicht) |
+| `m-p6-event-dispatch-erlaubt` / `m-p6-event-schedule-erlaubt` | `workflow_dispatch` / `schedule` sind ungültig | `p6-event-unbekannt` / `p6-event-schedule` |
+| `m-p6-head-ungeprueft` | `CI_HEAD` ist 40 Hexziffern | die fünf `p6-head-*`, `p9-head-vor-prbase`, `p9-head-vor-before`, `p9-eingabe-vor-flach` (diese drei haben `CI_HEAD` fehlend) |
+| `m-p6-prbase-ungeprueft` / `m-p6-before-ungeprueft` | `CI_PR_BASE` / `CI_PUSH_BEFORE` ist 40 Hexziffern | die fünf `p6-prbase-*` / die fünf `p6-before-*` |
+| `m-p6-default-ungeprueft` | `CI_DEFAULT_BRANCH` ist ein Zweigname | `p6-default-fehlt`, `p6-default-ungueltig` |
+| `m-p6-default-leer-erlaubt` | leerer Zweigname ist ungültig | `p6-default-fehlt` |
+| `m-p6-default-format-ungeprueft` | Zweigname nach `git check-ref-format --branch` | `p6-default-ungueltig` |
+| `m-p6-pr-liest-before` / `m-p6-push-liest-prbase` / `m-p6-push-liest-standard` | eine vom Ereignis nicht gelesene Variable wird nicht geprüft | `p6-ungenutzt` / `p6-ungenutzt-prbase` / `p6-ungenutzt-default` |
+| `m-p6-form-39-ziffern` / `-41-ziffern` / `-grossbuchstaben` / `-nicht-hex` | 40 Ziffern genau, Kleinschrift, hexadezimal | `p6-{head,prbase,before}-kurz` / `-lang` / `-gross` / `-ungueltig` (je drei) |
+| `m-p7-pr-nimmt-vorgaenger` | Pull-Request: Basis ist `CI_PR_BASE` | `p7-pr`, `p7-pr-merge-kopf`, `p7-pr-basis-fehlt-im-klon`, `p6-ungenutzt`, die fünf `p6-prbase-*`, `p8-fehler-stdout-leer` (Form `basis`), `p9-aufloesung-vor-leer` |
+| `m-p7-push-nimmt-pr-basis` | Push: Basis ist `CI_PUSH_BEFORE` | `p7-push`, `p7-push-vorgaenger-fehlt`, `p7-push-neu-ohne-standard`, `p6-ungenutzt-prbase`, `p6-ungenutzt-default`, die fünf `p6-before-*`, `p6-default-fehlt`, `p6-default-ungueltig`, `p8-fehler-stdout-leer`, `p8-stdout-eine-zeile` (Köder `CI_PR_BASE` ist gleich dem Stand des Standard-Zweigs, darum bleiben `p7-push-neu` und `p7-leer` grün) |
+| `m-p7-nullen-kein-neuer-zweig` | Nullen als Vorgänger: neuer Zweig, Basis ist der Standard-Zweig | `p7-push-neu`, `p7-push-neu-ohne-standard`, `p7-leer`, `p6-default-fehlt`, `p6-default-ungueltig` (die Mutante nimmt den Weg „Vorgänger fehlt“ und schreibt dessen Hinweis) |
+| `m-p7-standard-fehlt-ohne-exit` | fehlt der Standard-Zweig, Exit 2 | `p7-push-neu-ohne-standard` |
+| `m-p7-vorgaenger-fehlt-exit-2` | Vorgänger nicht im Klon: Basis ist der Standard-Zweig | `p7-push-vorgaenger-fehlt`, `p8-stdout-eine-zeile` |
+| `m-p7-basis-fehlt-ohne-exit` | Basis eines Pull-Requests nicht im Klon: Exit 2 | `p7-pr-basis-fehlt-im-klon`, `p8-fehler-stdout-leer`, `p9-aufloesung-vor-leer` |
+| `m-p7-kopf-fehlt-ohne-exit` | Kopf nicht im Klon: Exit 2 | `p7-pr-kopf-fehlt-im-klon`, `p8-fehler-stdout-leer` |
+| `m-p7-leer-exit-0` | leere Range: Exit 1 | `p7-leer`, `p8-fehler-stdout-leer` |
+| `m-p7-flach-nicht-erkannt` | flacher Klon: Exit 2 | `p7-flach`, `p9-flach-vor-aufloesung` (`p8-fehler-stdout-leer` bleibt grün: die Mutante endet im Fall `flach` mit Exit 1, leere Range, ohne Ausgabe auf stdout) |
+| `m-p7-merge-kopf-abgelehnt` | der Kopf darf ein Merge-Commit sein | `p7-pr-merge-kopf` |
+| `m-p7-namen-statt-shas` | Ausgabe mit aufgelösten SHAs | `p7-push-neu`, `p7-push-vorgaenger-fehlt`, `p7-leer`, `p8-stdout-eine-zeile` |
+| `m-p8-hinweis-auf-stdout` | Hinweis auf stderr | `p7-push-vorgaenger-fehlt`, `p8-stdout-eine-zeile` |
+| `m-p8-teil-range-auf-stdout` | Fehler: stdout leer | `p7-pr-kopf-fehlt-im-klon`, `p8-fehler-stdout-leer` |
+| `m-p8-git-fehler-ignoriert` | git-Fehler: Exit 2 mit Meldung | `p8-git-fehler` |
+| `m-p9-ereignis-nach-head` / `m-p9-head-nach-prbase` / `m-p9-head-nach-before` | Reihenfolge Ereignis, `CI_HEAD`, `CI_PR_BASE` bzw. `CI_PUSH_BEFORE` | `p9-ereignis-vor-head` / `p9-head-vor-prbase` / `p9-head-vor-before` |
+| `m-p9-flach-vor-eingabe` | Variablen vor flachem Klon | `p9-eingabe-vor-flach`, `p8-fehler-stdout-leer`, `p8-git-fehler` (die Mutante ruft `git` ohne Meldung mit Präfix) |
+| `m-p9-aufloesung-vor-flach` | flacher Klon vor Auflösung | `p9-flach-vor-aufloesung`, `p8-git-fehler` (außerhalb eines Klons meldet die Mutante die Basis) |
+| `m-p9-leer-vor-aufloesung` | Auflösung vor leerer Range | `p9-aufloesung-vor-leer` |
+
+Abbruch (6): `m-p18-int-falle-fehlt`, `m-p18-int-kinder-bleiben`, `m-p18-int-verzeichnis-zu-frueh` ⇒ `p18-sigint`; `m-p18-term-*` ebenso ⇒ `p18-sigterm`.
+
+Kein Mutant blieb grün. Äquivalente Mutanten: keine behauptet.
+
+**Weitere Sonden (rot gesehen, nicht im Lauf).** (1) Die Zeile `declare -F …` der Fallliste in einer Kopie gestrichen, Lauf `fall-ohne-funktion`: `ROT — Fall ohne Funktion: erwartet rot: p1-tippfehler; rot sind: nichts`. (2) Die Zeile `[ -z "${GP_INNEN-}" ] || return 0` in `mut18` einer Kopie ersetzt: der Lauf `rekursion-schutz` meldet `Rekursionsschutz …`, mit der Zeile grün. (3) `timeout-minutes: 31` im Arbeitsbaum: `p1-gleich` rot (`ci.yml des Arbeitsbaums weicht von Punkt 1 ab`), die unveränderte Kopie ist nicht grün. (4) `exit 1` der leeren Range im Arbeitsbaum zu `exit 0`: `unveränderte Kopie ist nicht grün: p7-leer p8-fehler-stdout-leer`. (5) Vor `a31f4a7f` (damals 143 Läufe): als root (`sudo`), volle Gegenprobe `grün (143 Läufe)`; als Benutzer mit `umask 077`, `LC_ALL=en_US.utf8`, `TZ=Asia/Tokyo` und `GP_PARALLEL=8` ebenfalls `grün (143 Läufe)`; am Endstand mit dem Vorgabewert 4 `grün (144 Läufe)`. (6) Drei Läufe der sechs Mutationen des Abbruchs hintereinander mit derselben roten Menge. Kein Fall hängt von Dateirechten ab.
+
+**Messung Zeilenende und Leerzeichen (SPEC-064 Punkt 17; keine Zusage, kein Fall).** `pruefe_ci` an Kopien des Arbeitsbaums mit der Funktion aus dem Skript: jede Zeile mit `\r\n` ⇒ rot; eine Zeile nur aus einem Tabulator zwischen Zeile 3 und 4 ⇒ rot; eine Zeile nur aus drei Leerzeichen ⇒ grün (Leerzeile).
+
+**Kommentare (Schritt 20).** Neu geschrieben: Kopf und Zeilen von `ci-range.sh`, `ci-gegenprobe.sh`, `ci.mk`, Zeile in `harness/README.md`, Kommentar in `.d-check.yml`. Zusagen und Test: „Bei Exit ungleich 0 bleibt stdout leer“ ⇒ `p8-fehler-stdout-leer`; „Exit 0 nicht leer, 1 leer, 2 …“ ⇒ `p7-*`, `p8-*`; Reihenfolge der Gründe ⇒ `p9-*`; „GEPRÜFT DURCH …“ ⇒ der Lauf von `make ci-gegenprobe`; „bei `SIGINT` und `SIGTERM` entfernt sie ihr Temp-Verzeichnis …“ ⇒ `p18-*` mit den Mutationen; „Kein Fall hängt von Dateirechten ab“ ⇒ Sonde (5); „Aufrufarten von `make` haben keinen Fall“ ist die Grenze aus Punkt 14, kein Satz über einen Test. `ci-range.sh` nennt „Braucht bash und git; eine Version prüft das Skript nicht“; die Werkzeugliste im Kopf von `ci-gegenprobe.sh` und die Schleife der Vorprüfung nennen dieselben Werkzeuge.
+
+**Metrik gegen die Marke von §4** (`git diff --numstat 39f1ce8a..a31f4a7f -- .github tools harness .d-check.yml Makefile`): Summe aus Einfügungen und Löschungen **720** (Gegenprobe 587, `ci-range.sh` 75, `ci.yml` 39, Fragment 11, `.d-check.yml` 7, `harness/README.md` 1) gegen die Marke 900 und die Schätzung 510 bis 890 (Mitte 670, Nachschätzung des Architect Mitte rund 770): unter der Marke, die Meldeschwelle 700 ist überschritten (Zwischenmessung bei Abschluss des Codes: 721), keine Rückführung. Die Gegenprobe trägt 82 Prozent.
+
+**Randformen und Rückgaben an den Architect.** Der Vertrag entscheidet nicht (Liste *Randform · Frage*, kein Code-Commit trägt sie in §6; der Code hat die Antwort gewählt, die der Fall hält, und sie steht hier zur Bestätigung): (1) Texte der Meldungen von `ci-range.sh` ohne Vorgabe in Punkt 7 und 8: `ci-range: Basis <sha> nicht im Klon`, `ci-range: Kopf <sha> nicht im Klon`, `ci-range: Standard-Zweig refs/remotes/origin/<Zweig> fehlt im Klon`, `ci-range: git rev-parse --is-shallow-repository schlug fehl` (außerhalb eines Klons) — Frage: in Punkt 7/8 festschreiben oder dem Code überlassen? (2) Sind Basis und Kopf beide nicht aufzulösen, meldet das Skript die Basis (Auflösung in der Folge Basis, dann Kopf; Fall `p9-aufloesung-vor-leer` nutzt es) — Frage: Reihenfolge innerhalb von Punkt 9 (4) festschreiben? (3) „Leerzeilen“ in Punkt 1 sind Zeilen aus Leerzeichen und leere Zeilen; eine Zeile nur aus Tabulatoren ist eine Zusatzzeile (rot) — Frage: bestätigen? (4) Der Tag-Kommentar hinter dem Pin: `# ` und ein erstes Zeichen, das kein Leerzeichen ist — Frage: bestätigen? (5) Push mit unbekanntem Vorgänger und ungültigem `CI_DEFAULT_BRANCH`: der Hinweis zum Vorgänger steht vor der Meldung `CI_DEFAULT_BRANCH fehlt oder ist ungültig` auf stderr, Exit 2 — die Reihenfolge ist nirgends entschieden, kein Fall hält sie.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
