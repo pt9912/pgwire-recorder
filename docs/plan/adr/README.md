@@ -50,6 +50,7 @@
 | [0044](0044-schwelle-der-anweisungsabdeckung.md) | Schwelle der Anweisungsabdeckung der Unit-Tests in der Stufe test | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0045](0045-container-start-als-werkzeug-im-repo.md) | Start des Dev-Containers als Werkzeug im Repo mit Gegenprobe | Accepted | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 | [0046](0046-gegenprobe-ueberspringt-im-dev-container.md) | Gegenprobe des Container-Starts überspringt im Dev-Container, was dort fehlt | Accepted | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
+| [0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) | Gegenprobe des Container-Starts ist ein Ziel für den Host und kein Gate | Proposed | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 
 ## Konventionen
 
@@ -89,3 +90,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0044](0044-schwelle-der-anweisungsabdeckung.md) | ergänzt [0026](0026-build-und-test-im-multistage-dockerfile.md) um die Messung der Anweisungsabdeckung und eine Schwelle in der Stufe `test`; ersetzt keine ADR |
 | [0045](0045-container-start-als-werkzeug-im-repo.md) | ergänzt [0026](0026-build-und-test-im-multistage-dockerfile.md) und [0038](0038-gate-kette-voll-und-schnell.md) um ein Werkzeug im Repo für den Start des Dev-Containers; ersetzt keine ADR |
 | [0046](0046-gegenprobe-ueberspringt-im-dev-container.md) | ergänzt [0045](0045-container-start-als-werkzeug-im-repo.md) um das Überspringen der Fälle mit `u-boot` und `devcontainer` im Dev-Container; ersetzt keine ADR |
+| [0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) | ersetzt [0046](0046-gegenprobe-ueberspringt-im-dev-container.md) (Vorschlag, Annahme steht aus) und ergänzt [0045](0045-container-start-als-werkzeug-im-repo.md) um die Aussage, die Gegenprobe sei ein Ziel nur für den Host und kein Gate |

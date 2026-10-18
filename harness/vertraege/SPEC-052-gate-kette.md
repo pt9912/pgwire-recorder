@@ -141,7 +141,7 @@ Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes, den er prüft
     `docs/user/`, `docs/developer/` und die `README.md` des Arbeitsbaums nicht (`abdeckung-gegenprobe` baut ihr
     eigenes `docs/user/`; die Temp-Repos von `gates-schnell-gegenprobe` und
     `stop-hook-gegenprobe` tragen nur Makefile, Fragmente, Skripte und Hook; `integration-volumes-gegenprobe` legt Kopien von
-    Dateien unter `tools/test/` in einem Temp-Verzeichnis an und spricht Docker an, [`SPEC-057`](SPEC-057-integration-aufraeumen.md) Punkt 10; `container-start-gegenprobe` legt Gerüste und Attrappen in Temp-Verzeichnissen an und spricht Docker an, [`SPEC-058`](SPEC-058-container-start.md) Punkt 16). Den Planungsbaum
+    Dateien unter `tools/test/` in einem Temp-Verzeichnis an und spricht Docker an, [`SPEC-057`](SPEC-057-integration-aufraeumen.md) Punkt 10). Den Planungsbaum
     liest von den Gates der Ausnahmeliste keines aus dem Arbeitsbaum: `kopf-check-gegenprobe`
     baut ihren eigenen, und `hook-gegenprobe` legt die Slices und Wellen ihrer Fälle in einem
     eigenen Temp-Repo an (Regel an den Schreiber dieses Gates: ein Fall bezieht Slice und Welle
