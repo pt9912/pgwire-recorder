@@ -74,3 +74,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-gegenproben-
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-ci-workflows` (F-7, V-2) — Einleitung von §6, Wortlaut der DoD und §7 folgten dem Diff nicht; nachgezogen vor der Closure (Beleg `evidence/slice-harness-ci-workflows.md`). Zähler 67.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-gegenproben-aus-gates-fahrstelle-umgebung` (F-3) — Titel, §1 Ziel und DoD folgten der Entscheidung des Architect zu `SIGQUIT` im Lauf nicht; nachgezogen bei der Closure (Beleg `evidence/slice-harness-gegenproben-aus-gates-fahrstelle-umgebung.md`). Zähler 68.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-ci-range-konfiguration` (P-1, F-9) — Kopf, §1 und DoD folgten der Nacharbeit (Punkt 18, Form der Muster, zwei Läufe) nicht, weil die Nacharbeit nur §3 und §7 ändern durfte; nachgezogen bei der Closure (Beleg `evidence/slice-harness-ci-range-konfiguration.md`). Zähler 69.

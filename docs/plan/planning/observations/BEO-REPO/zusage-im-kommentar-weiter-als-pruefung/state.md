@@ -99,3 +99,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-gegenproben
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-ci-workflows` (F-6 LOW; V-4 gering) — die Zeile in `harness/README.md` sagte „nur die Fälle ihrer Gruppe“, drei Mutationen sind breit, und die Werkzeugliste im Kopf des Fragments war unvollständig; behoben (Beleg `evidence/slice-harness-ci-workflows.md`). Zähler 82.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-gegenproben-aus-gates-fahrstelle-umgebung` (V-1 LOW; F-4 LOW) — ein Kommentar der Gegenprobe weiter als die Prüfung (`SIGQUIT` im Lauf), ein Verweis der README-Zeile, der nicht auflöste; behoben (Beleg `evidence/slice-harness-gegenproben-aus-gates-fahrstelle-umgebung.md`). Zähler 83.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-ci-range-konfiguration` (F-5 LOW, F-8 INFO; V-4 LOW) — Versionen im Kopf des Skripts ohne Prüfung, der Schlusssatz einer Messung als Aussage über das Werkzeug, ein Kommentar zu `GP_INNEN` weiter als der Code; behoben (Beleg `evidence/slice-harness-ci-range-konfiguration.md`). Zähler 84.

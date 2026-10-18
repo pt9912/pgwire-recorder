@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-ci-range-konfiguration
+**Fund:** Messung zu `SPEC-064` Punkt 17 an d-check v0.86.1: In einer Commit-Message mit `\r\n` ist das `\r` Teil des Betreffs (die Meldung zeigt `x ` ohne sichtbares Zeichen); in einer `Accepted`-ADR mit umgestelltem Zeilenende ergab die Umstellung allein keinen `core-drift-vcs`. Der Architect nannte LF und UTF-8 als zugesagt und CRLF als Grenze; die Messung ist keine Zusage. Quelle: §7 des Plans, *Messung Zeilenende und Kodierung* (Planner, Closure, 2026-10-18).

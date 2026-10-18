@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-ci-range-konfiguration
+**Fund:** Review F-10 (INFO): `make doc-commits` und `make doc-immutable` liefen im Worktree des Reviews nicht (`kein lesbares git-Repository unter /repo: lstat /repo/.git/config: not a directory`); die Belege des Implementers (Range des Slice, Bestand) wurden dort nicht wiederholt, die Verifikation nutzte einen frischen Klon. Der Implementer ordnete es als Eigenschaft der Treiber ein, ohne Arbeit. Quelle: Review-Report F-10, Verifikations-Report, Abschnitt Wirkung (Planner, Closure, 2026-10-18).

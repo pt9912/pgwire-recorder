@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-ci-range-konfiguration
+**Fund:** Verifikation P-1 (LOW) und Review F-9 (INFO): Weil die Nacharbeit nur §3 und §7 ändern durfte, trugen Kopf (`Berührte Spec-Stellen`), §1 und DoD Liefer-Punkt 2 den Abbruch (`SPEC-064` Punkt 18), die Form der Muster und die beiden Läufe `fall-ohne-funktion` und `rekursion-schutz` nicht; nachgezogen bei der Closure. Quelle: Verifikations-Report, Plan-vs-Code-Diff (Planner, Closure, 2026-10-18).

@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-ci-range-konfiguration
+**Fund:** Review F-5 (LOW): Der Kopf des Skripts nannte „bash ≥ 4“ und „git ≥ 2.32“, keine Stelle prüft eine Version (`wait -n` braucht bash 4.3); Review F-1: der Satz „je Zusage und Element eine Mutation“ im Fragment reichte weiter als die Prüfung; Review F-8: der Schlusssatz der CRLF-Messung las sich als Aussage über das Werkzeug; Verifikation V-4 (LOW): der Kommentar zu `GP_INNEN` sagte mehr, als der Code tat. Alle behoben. Quelle: Review-Report und Verifikations-Report (Planner, Closure, 2026-10-18).

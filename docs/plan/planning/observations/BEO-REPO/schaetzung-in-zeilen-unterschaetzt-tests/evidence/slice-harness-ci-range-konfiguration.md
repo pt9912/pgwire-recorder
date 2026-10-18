@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-ci-range-konfiguration
+**Fund:** Geschätzt 300 bis 405 (Architect, Metrik von §3.14), gemessen 433 (Gegenprobe 386, `.d-check.yml` 19, Fragment 11, `SPEC-064` 16, `harness/README.md` 1); die Obergrenze liegt um 28 darunter. Die Nachschätzung nach dem Review (365 bis 415) lag ebenfalls um 18 darunter; die Gegenprobe trägt 89 Prozent des Diffs. Die Marke 500 ist nicht erreicht. Quelle: §7 des Plans, *Metrik gegen die Marke* (Planner, Closure, 2026-10-18).
