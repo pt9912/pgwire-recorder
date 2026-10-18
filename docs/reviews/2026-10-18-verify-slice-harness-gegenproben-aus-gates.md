@@ -1,7 +1,7 @@
 # Verifikations-Report: slice-harness-gegenproben-aus-gates (Kettenumbau) — 2026-10-18
 
 **Rolle:** Verifier. **Stand:** Zweig `rev-kette`, Commit `2f9717fc` (Basis `b4ce87d3`), Worktree `/Development/pgwire-recorder-revkette`, Host (Locale `de_DE.UTF-8`, GNU make 4.3, u-boot, node, ssh-keygen, Docker vorhanden).
-**Plan:** [slice-harness-gegenproben-aus-gates](../plan/planning/in-progress/slice-harness-gegenproben-aus-gates.md) (§2 DoD, §7 Belege). **Verträge:** [SPEC-060](../../harness/vertraege/SPEC-060-gegenproben.md) Teil 1, [SPEC-052](../../harness/vertraege/SPEC-052-gate-kette.md), [ADR-0048](../plan/adr/0048-gegenproben-verlassen-die-gate-kette.md) (Accepted).
+**Plan:** [slice-harness-gegenproben-aus-gates](../plan/planning/done/slice-harness-gegenproben-aus-gates.md) (§2 DoD, §7 Belege). **Verträge:** [SPEC-060](../../harness/vertraege/SPEC-060-gegenproben.md) Teil 1, [SPEC-052](../../harness/vertraege/SPEC-052-gate-kette.md), [ADR-0048](../plan/adr/0048-gegenproben-verlassen-die-gate-kette.md) (Accepted).
 **Regel des engsten Sensors:** `make gates` wurde nicht gefahren; die Belege des Implementers (261 s grün, vorher 1630 s, zwölf Gegenproben einzeln grün) sind nicht nachgemessen und hier als Behauptung des Implementers geführt.
 
 ## Verdikt
