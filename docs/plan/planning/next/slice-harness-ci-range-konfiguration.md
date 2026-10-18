@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-064` Teil 3 (Punkte 10 bis 12, die Konfiguration, und Punkt 16, der Aufbau von `range-konfiguration-gegenprobe`; die Teilung der Gegenprobe in ein eigenes Ziel hat der Architect am 2026-10-18 in `SPEC-064` vorgenommen; Punkt 17, Zeilenende und Kodierung, gelesen) · `SPEC-060` Teil 1 (gelesen: Namens- und Zuordnungsregel, Liste `GEGENPROBEN_CONTAINER`) · [`SPEC-050`](../../../../harness/vertraege/SPEC-050-struktur-kennungen-im-commit.md) (gelesen: Kennungen im Commit, Strenge des Hooks) · `SPEC-063` (gelesen: Punkt 8, der Eintrag der Pins gehört `slice-harness-ci`).
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-ci-range-konfiguration)
 **Autor:** Planner. **Datum:** 2026-10-18.
 
 ---
