@@ -474,7 +474,7 @@ cases() {
   c p11-erster-versuch && { gruen; [ "$(grep -c '^ssh ' "$w/log")" = 1 ] || rot; }
   c p11-nach-drei && { gruen AT_SSH_AB=3; [ "$(grep -c '^ssh ' "$w/log")" = 3 ] || rot; }
   c p11-nie && { v=$SECONDS; lauf PGR_WARTEN=2 AT_SSH_AB=0; v=$((SECONDS - v)); a=$(grep -c '^ssh ' "$w/log"); ex 5 'container-start: warten: ' "SSH-ERR-$a"
-    { [ "$v" -ge 2 ] && [ "$a" -ge 2 ] && [ "$a" -le 3 ] && ! zerstoert && ! grep -q 'SSH-ERR-1' "$w/err"; } || rot; }
+    { [ "$v" -ge 2 ] && [ "$a" = 3 ] && ! zerstoert && ! grep -q 'SSH-ERR-1' "$w/err"; } || rot; }
   c p11-vorgabe-warten && { lauf AT_SSH_AB=0; a=$(grep -c '^ssh ' "$w/log"); { [ "$a" -ge 60 ] && [ "$a" -le 61 ]; } || rot; }
   for p in schluessel identitiesonly batchmode connecttimeout stricthostkeychecking userknownhostsfile loglevel port benutzer-adresse befehl; do
     c "p11-opt-$p" && { gruen PGR_SSH_PORT=2999
@@ -752,7 +752,7 @@ mut p14-make m $'\t@bash tools/harness/container-start.sh' $'\t@bash tools/harne
 mut p14-phony m '.PHONY: container-start' '.PHONY: nichts' 'p14-.*' p14-makeflags-t p14-phony p14-t
 # Punkt 15
 mut p15-ende p $'[ "$GP_PROBE" = ende ] && exit 0' $'[ "$GP_PROBE" = ende ] && kill -KILL $$' 'p15-(praefix|aufraeumen-.*)' p15-aufraeumen-ende
-mut p15-exit-trap p 'trap aufraeumen EXIT' ':' 'p15-(praefix|aufraeumen-.*|docker-.*)' p15-aufraeumen-ende p15-aufraeumen-int p15-aufraeumen-term p15-docker-INT p15-docker-TERM p15-docker-ende
+mut p15-exit-trap p 'trap aufraeumen EXIT' ':' 'p15-(praefix|aufraeumen-.*|docker-.*)' p15-aufraeumen-ende p15-aufraeumen-int p15-aufraeumen-term p15-docker-INT p15-docker-TERM p15-docker-ende p15-docker-rest
 mut p15-int p $'trap \'exit 130\' INT' ':' 'p15-(praefix|aufraeumen-.*|docker-.*)'
 mut p15-term p $'trap \'exit 143\' TERM' ':' 'p15-(praefix|aufraeumen-.*|docker-.*)'
 mut p15-praefix p 'mktemp -d -t pgr-cs-XXXXXX' 'mktemp -d "${GP_PROBE_DATEI%/*}/xyz-XXXXXX"' 'p15-(praefix|aufraeumen-.*)' p15-aufraeumen-ende p15-aufraeumen-int p15-aufraeumen-term p15-praefix
@@ -778,7 +778,7 @@ SW='p11-(bereit-meldung|erster-versuch|nach-drei|nie|opt-.*|known-hosts-unveraen
 mut p9-kollision s 'if [ -n "$nm" ] && [[ $'"'"'\n'"'"'$lab$'"'"'\n'"'"' != *$'"'"'\n'"'"'$PGR_NAME$'"'"'\n'"'"'* ]]; then' 'if false; then' "$SC" p1-keine-zerstoerung-kollision p13-kollision-vor-port p9-doppelt p9-kollision p9-name-punkt-kollision
 mut p9-kollision-zerstoert s 'ende 4 "der Container $nm trägt' 'docker rm -f "$nm"; ende 4 "der Container $nm trägt' "p1-keine-zerstoerung-kollision|$P4S" p1-keine-zerstoerung-kollision p4-nichts-geaendert
 mut p9-anderer-name s 'ende 4 "der Container des Gerüsts heißt $n, nicht $PGR_NAME"' ':' "$SC" p9-label-anderer-name
-mut p9-port-nicht-geprueft s '[ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ] || ende 4' ':; true || ende 4' "$SC" p9-adresse-weicht-ab p9-port-weicht-ab
+mut p9-port-nicht-geprueft s '[ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ] || ende 4' ':; true || ende 4' "$SC" p9-adresse-weicht-ab p9-kein-port p9-port-weicht-ab
 mut p9-port-ohne-adresse s '[ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ]' '[[ $bind == *":$PGR_SSH_PORT " ]]' "$SC" p9-adresse-weicht-ab
 mut p9-adresse-ohne-port s '[ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ]' '[[ $bind == "127.0.0.1:"* ]]' "$SC" p9-port-weicht-ab
 mut p9-laeuft-immer s 'exited|created) zc=gestoppt ;;' 'exited|created) zc=laeuft ;;' "$SC" p10-belegt-gestoppt p9-created p9-exited
@@ -830,7 +830,7 @@ mut p11-port s '-p "$PGR_SSH_PORT"' '-p 2222' "$SW" p11-opt-port
 mut p11-benutzer s 'vscode@' 'root@' "$SW" p11-opt-benutzer-adresse
 mut p11-adresse s '@127.0.0.1 true' '@localhost true' "$SW" p11-opt-benutzer-adresse
 mut p11-befehl s '@127.0.0.1 true' '@127.0.0.1 false' "$SW" p11-opt-befehl
-mut p11-kein-sleep s '    sleep 1' '    :' "$SW" p11-nie
+mut p11-kein-sleep s 'kt=$SECONDS; while (( SECONDS == kt )); do sleep 0.1; done' ':' "$SW" p11-nie
 mut p11-zu-kurz s 'SECONDS - t0 < PGR_WARTEN ))' 'SECONDS - t0 < PGR_WARTEN - 1 ))' "$SW" p11-nie
 mut p11-ausgabe-summiert s $'  kausg=\n  if (( m ))' '  if (( m ))' "$SW" p11-nie
 mut p11-erfolg-exit s 'if [ "$kcode" = 0 ]; then echo' 'if true; then echo' "$SW" p11-nach-drei p11-nie

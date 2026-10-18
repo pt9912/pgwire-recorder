@@ -270,7 +270,7 @@ s_warten() {
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -p "$PGR_SSH_PORT" vscode@127.0.0.1 true
     if [ "$kcode" = 0 ]; then echo "container-start: bereit $PGR_NAME 127.0.0.1:$PGR_SSH_PORT"; return 0; fi
     (( SECONDS - t0 < PGR_WARTEN )) || ende 5 "nach $PGR_WARTEN Sekunden keine Anmeldung, letzte Ausgabe von ssh: ${kausg%$'\n'}"
-    sleep 1
+    kt=$SECONDS; while (( SECONDS == kt )); do sleep 0.1; done # die nächste Probe beginnt mit der nächsten Sekunde von $SECONDS
   done
 }
 
