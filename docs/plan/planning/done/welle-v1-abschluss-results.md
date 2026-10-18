@@ -78,6 +78,12 @@ Der Zähler steht in [`../observations/`](../observations/). Was in dieser Welle
 
 - `slice-harness-schaetzung-planner-faktor`, `slice-harness-gegenprobe-matrix-p7-flanke`, `slice-harness-regeln-spezifikation-satzabgleich`, `slice-harness-lint-warten-ohne-frist`, `slice-harness-commit-struktur-id`, `slice-v1-abschluss-verbindungsende-upstream-extended` (Ausgang `geplant` im Register; jeder Folge-Slice nennt die Kennung seiner Beobachtung, `grep` auf `BEO-REPO/<slug>` findet sie in jeder der sieben Dateien).
 
+## Archivierung
+
+- `make archive-welle WELLE=welle-v1-abschluss` (Träger `.harness/state/bin/ai-harness-init`) hat 85 Slice-Dateien (53 Mitglieder, 32 wellenlose seit der letzten Closure) und den Welle-Plan nach `done/welle-v1-abschluss/archiv.zip` archiviert, Stubs daneben; zwei Commits (reiner Move, dann Archiv, Stubs und Verweis-Nachzug). Review-Reports archivierte der Lauf keine (Zählung des Werkzeugs: 0); `docs/reviews/` bleibt unverändert.
+- Geltungsbereich der Sensoren vor dem Lauf geprüft: `make docs-check` ist nach dem Lauf grün (0 Befunde); der Commit-Träger (`.githooks/commit-msg`) sucht eine Slice-Kennung mit `docs/plan/planning/*/<kennung>.md` und findet die Stubs. **Nicht mehr erfasst:** `make doc-trace` liest als Slice nur Dateien flach in `done/` (`harness/README.md` §Werkzeuge), die archivierten Slices fehlen deshalb in der Anforderungs-Rückverfolgung, bis die Quelle `trace.slices` in `.d-check.yml` die Archiv-Ordner mitliest (Zusage der Matrix gilt für Stubs nicht mehr, ungelöst, kein Folge-Slice angelegt — Urteil des Nutzers).
+- Der Lauf hat einen Pfad in `.claude/commands/implement-slice.md` nachgezogen (`done/slice-doku-ist-stand.md` → `done/welle-v1-abschluss/slice-doku-ist-stand.md`); sonst keine Regel geändert.
+
 ## Verifikation
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md` §Wellen-Closure-Prozedur, Schritt 1.
