@@ -4,7 +4,7 @@
 # Die Listen der Plattformen stehen hier und nur hier (SPEC-055 Punkt 1); sie sind keine
 # Eingabe des Aufrufers. `binaries` schreibt die Binaries mit SHA256SUMS nach DIST und ist
 # ein Werkzeug; `test-container` baut sie zweimal und vergleicht die Summen, prüft Kopf,
-# Image und Smoke; die Gegenprobe fährt es mit einer Attrappe von docker. Das Rezept jedes
+# Image und Smoke; die Gegenprobe (GEGENPROBEN_CONTAINER, SPEC-060) fährt es mit einer Attrappe von docker. Das Rezept jedes
 # Ziels ist eine Zeile ohne $(MAKE).
 # GEPRÜFT DURCH tools/harness/container-gegenprobe.sh.
 VERSION ?= dev
@@ -28,4 +28,5 @@ test-container: ## zwei Builds mit gleichen Summen, Kopf der Binaries, Image je 
 test-container-gegenprobe: ## Gegenprobe von binaries und test-container: Eingabe, Summen, Kopf, Image, Smoke, Aufräumen, Aufrufarten, mit Attrappe von docker
 	@bash tools/harness/container-gegenprobe.sh
 
-GATE_CHECKS += test-container test-container-gegenprobe
+GATE_CHECKS += test-container
+GEGENPROBEN_CONTAINER += test-container-gegenprobe

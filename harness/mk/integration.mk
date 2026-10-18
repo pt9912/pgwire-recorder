@@ -1,5 +1,6 @@
 # harness/mk/integration.mk — Integrationstests gegen eine reale PostgreSQL-Instanz
-# (ADR-0026). Haengt an GATE_CHECKS. Der Runner startet das gepinnte
+# (ADR-0026). `test-integration` haengt an GATE_CHECKS, `integration-volumes-gegenprobe` an
+# GEGENPROBEN_CONTAINER (SPEC-060). Der Runner startet das gepinnte
 # PostgreSQL-Image und das Testimage (Dockerfile, Stufe integration) in einem
 # eigenen Docker-Netz; er schreibt nichts in den Arbeitsbaum. Eine zweite Phase
 # stoppt PostgreSQL und spielt eine Aufzeichnung der ersten ab
@@ -17,4 +18,5 @@ test-integration: ## Integrationstests gegen PostgreSQL in Docker
 integration-volumes-gegenprobe: ## Gegenprobe des Aufräumens der Integrationstests: Volumes der eigenen Container, mit realem Docker
 	@POSTGRES_IMAGE='$(POSTGRES_IMAGE)' DOCKER='$(DOCKER)' bash tools/test/integration-volumes-gegenprobe.sh
 
-GATE_CHECKS += test-integration integration-volumes-gegenprobe
+GATE_CHECKS += test-integration
+GEGENPROBEN_CONTAINER += integration-volumes-gegenprobe

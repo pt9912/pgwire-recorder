@@ -4,7 +4,8 @@
 # Die Liste der Versionen und die Teilmenge der Tests stehen hier und nur hier.
 # `test-postgres-versionen` fährt die Teilmenge gegen jede Version der Liste außer
 # der Referenz (die fährt `test-integration` mit der vollen Suite); die Gegenprobe
-# fährt es in Kopien des Arbeitsbaums mit einer Attrappe von docker.
+# fährt es in Kopien des Arbeitsbaums mit einer Attrappe von docker und steht in
+# GEGENPROBEN_CONTAINER (SPEC-060).
 # Bestätigt am 2026-10-14 gegen die Release-Liste von PostgreSQL: 14 bis 18. Die Liste
 # wird von Hand gepflegt (SPEC-053 Punkt 14).
 # GEPRÜFT DURCH tools/test/postgres-versionen-gegenprobe.sh.
@@ -28,4 +29,5 @@ test-postgres-versionen: ## Teilmenge der Integrationstests gegen jede Version d
 test-postgres-versionen-gegenprobe: ## Gegenprobe der Versionsmatrix: Eingabe, Teilmenge, Ablauf, Aufräumen, Aufrufarten, mit Attrappe von docker
 	@bash tools/test/postgres-versionen-gegenprobe.sh
 
-GATE_CHECKS += test-postgres-versionen test-postgres-versionen-gegenprobe
+GATE_CHECKS += test-postgres-versionen
+GEGENPROBEN_CONTAINER += test-postgres-versionen-gegenprobe
