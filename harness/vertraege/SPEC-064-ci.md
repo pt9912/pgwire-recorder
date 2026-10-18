@@ -3,21 +3,23 @@
 Jede Integration (ein Pull-Request, ein Push auf einen Zweig) läuft auf GitHub durch `make gates` und durch die Prüfung ihrer Commit-Range,
 unabhängig vom Klon und vom lokalen Hook: `.github/workflows/ci.yml` hat genau den Text von Punkt 1; die Range berechnet das Skript
 `tools/harness/ci-range.sh` aus dem Ereignis (Teil 2); `make doc-commits` und `make doc-immutable` prüfen sie mit der Konfiguration von
-Teil 3. `make ci-gegenprobe` hält alle drei: den Text der Datei, das Skript und die Konfiguration, die ohne die Gegenprobe still nichts
-prüfte. Die CI ist **kein** Gate der Kette; sie ist ein Lauf auf GitHub, den dieses Repo nicht fährt. Warum die CI auf GitHub Actions läuft und
+Teil 3. Zwei Gegenproben halten sie: `make ci-gegenprobe` den Text der Datei und das Skript, `make range-konfiguration-gegenprobe` die Konfiguration, die ohne
+sie still nichts prüfte. Die CI ist **kein** Gate der Kette; sie ist ein Lauf auf GitHub, den dieses Repo nicht fährt. Warum die CI auf GitHub Actions läuft und
 den lokalen Hook ergänzt, steht in [ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md); diese Kennung wiederholt es nicht.
 
 **Stand der Entscheidung.** Der Nutzer hat [ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md) am 2026-10-18 angenommen und bestätigt: `runs-on: ubuntu-24.04` statt `ubuntu-latest` (Punkt 2, Grund dort) sowie den Verzicht auf `concurrency` und `workflow_dispatch` (Punkt 2).
 
-**Schnittstelle.** Das Fragment `harness/mk/ci.mk` definiert `ci-gegenprobe` (`.PHONY`), das `tools/harness/ci-gegenprobe.sh` ruft und in
-`GEGENPROBEN_CONTAINER` steht, nicht in `GATE_CHECKS` ([`SPEC-060`](SPEC-060-gegenproben.md) Punkte 1 bis 3). Es übergibt `DCHECK_REF` (aus `d-check.mk`)
-und `DOCKER` als Umgebung. `ci-range.sh` liest fünf Umgebungsvariablen (Punkt 6) und schreibt die Range auf stdout; es ist kein Make-Ziel.
+**Zwei Slices, zwei Ziele** (Entscheidung des Architect, 2026-10-18; Schnitt des Planners). Der Slice `slice-harness-ci-range-konfiguration` liefert Teil 3: die Punkte 10, 11, 12 und 16, die Blöcke `commits` und `vcs` in `.d-check.yml` und das Ziel `range-konfiguration-gegenprobe` (Fragment `harness/mk/range-konfiguration.mk`, Skript `tools/harness/range-konfiguration-gegenprobe.sh`). Der Slice `slice-harness-ci` liefert Teil 1 und 2: die Punkte 1 bis 9, 13 bis 15, `ci.yml`, `ci-range.sh`, den Eintrag der Pin-Prüfung (`workflows` in `.d-check.yml`, Punkt 13, [`SPEC-063`](SPEC-063-workflows-check.md) Punkt 8) und das Ziel `ci-gegenprobe`. Die Fälle `p1-*` bis `p9-*` und `p14-*` gehören zu `ci-gegenprobe`, die Fälle `p11-*` und `p12-*` zu `range-konfiguration-gegenprobe`; `ci-range.sh` und `ci.yml` kennen die Konfiguration nicht, und die Konfiguration kennt beide nicht (Naht: `make doc-commits RANGE=…` und `make doc-immutable RANGE=…`).
+
+**Schnittstelle.** Das Fragment `harness/mk/ci.mk` definiert `ci-gegenprobe` (`.PHONY`), das `tools/harness/ci-gegenprobe.sh` ruft; das Fragment `harness/mk/range-konfiguration.mk` definiert `range-konfiguration-gegenprobe`, das `tools/harness/range-konfiguration-gegenprobe.sh` ruft. Beide Ziele stehen in
+`GEGENPROBEN_CONTAINER`, nicht in `GATE_CHECKS` ([`SPEC-060`](SPEC-060-gegenproben.md) Punkte 1 bis 3; ihre Namen enden auf `-gegenprobe`). Das zweite übergibt `DCHECK_REF` (aus `d-check.mk`)
+und `DOCKER` als Umgebung; `ci-gegenprobe` braucht beides nicht. `ci-range.sh` liest fünf Umgebungsvariablen (Punkt 6) und schreibt die Range auf stdout; es ist kein Make-Ziel.
 
 **Plattform** (`AGENTS.md` §3.12, Plattform von [`LH-QA-03`](../../spec/lastenheft.md#lh-qa-03--portabilität)). Die CI läuft auf `linux/amd64`
 (`ubuntu-24.04`, Docker vorhanden); mehr ist nicht zugesagt. Andere Plattformen der Binaries baut `make test-container` per Cross-Kompilierung
 innerhalb von `make gates`; ein Lauf auf `arm64`, macOS oder Windows als Runner ist nicht zugesagt (akzeptiertes Negativ; Grund: das Gate
 `make gates` setzt Linux-Docker voraus, und die Veröffentlichung prüft `linux/arm64` als Image in ihrer eigenen Pipeline). `ci-range.sh` braucht bash und
-`git` (≥ 2.30); `ci-gegenprobe` zusätzlich `make`, Docker, `mktemp` und GNU-Werkzeuge.
+`git` (≥ 2.30); `ci-gegenprobe` zusätzlich `mktemp` und GNU-Werkzeuge (ohne Docker und ohne `make`); `range-konfiguration-gegenprobe` zusätzlich `make`, `mktemp`, GNU-Werkzeuge und Docker.
 
 Der Name jedes Falls der Gegenprobe trägt die Nummer des Punktes. Je Zusage und je Element einer Aufzählung gibt es einen Fall und eine Mutation, die nur die
 Fälle ihrer Gruppe färbt (`AGENTS.md` §3.10); die unveränderte Kopie ist grün.
@@ -40,7 +42,11 @@ Fälle ihrer Gruppe färbt (`AGENTS.md` §3.10); die unveränderte Kopie ist gr�
 | 12 Gebündelte Prüfung | 1, 2 |
 | 13 Netz, Docker Hub | 5 |
 | Reihenfolge der Gründe von `ci-range.sh` | 9 |
-| Konfiguration der Range-Prüfungen | 10 bis 13 |
+| Konfiguration der Range-Prüfungen | 10 bis 12, 16 |
+| Zeilenende und Kodierung (Workflow-Datei, Messages, ADR-Dateien) | 17 |
+| Aufrufarten von `make` für beide Gegenproben | 14 |
+| Plattform | Kopf dieser Kennung |
+| Reihenfolge mehrerer Gründe der Konfiguration | 12 (rot gewinnt je Lauf; ein Lauf prüft eine Range, die Reihenfolge ist die der Module: `make doc-commits` vor `make doc-immutable` in `ci.yml`, Punkt 2) |
 
 ## Teil 1: Die Datei `ci.yml`
 
@@ -159,19 +165,19 @@ Fälle ihrer Gruppe färbt (`AGENTS.md` §3.10); die unveränderte Kopie ist gr�
 
 10. **Ausgangslage und Zusage.** `make doc-commits` und `make doc-immutable` lesen ihre Regeln aus `.d-check.yml`. Ohne die Blöcke `commits` und `vcs` sind beide Module
     inert: sie melden „0 Befund(e)“, Exit 0, über jeder Range, und der Vorlauf `history-range-guard` fängt nur eine leere oder unauflösbare Range. Die CI wäre grün, ohne etwas zu
-    prüfen. Diese Kennung legt deshalb die Blöcke fest (Punkte 11 und 12) und die Gegenprobe zeigt, dass sie wirken (Punkt 14).
+    prüfen. Diese Kennung legt deshalb die Blöcke fest (Punkte 11 und 12) und die Gegenprobe zeigt, dass sie wirken (Punkt 16).
 11. **`commits`.** `.d-check.yml` führt `commits.id-patterns` mit genau diesen vier Mustern: `ADR-[0-9]{4}`, `LH-[A-Z]{2}-[0-9]{2}`, `MR-[0-9]{3}`, `(slice|welle)-[a-z0-9]+(-[a-z0-9]+)*`,
     und `commits.exempt-pattern` mit `^(Merge |Revert )` (der Betreff ohne Kennung ist erlaubt, wie im lokalen Hook). Geprüft wird die Anwesenheit einer Kennung nach diesen Mustern
     in jeder Nicht-Merge-Message der Range; nicht geprüft werden die Existenz der genannten Slice- oder Welle-Datei (der lokale Hook prüft sie am Index; akzeptiertes Negativ, Grund:
     ein Commit der Range kann einen Slice nennen, der in einem späteren Commit derselben Range umbenannt wurde, und eine Prüfung am Index der Spitze lehnte alte Commits zu Unrecht ab),
     und nicht die Struktur-Kennungen (`SPEC-`, `ARC-`), die der lokale Hook ablehnt ([`SPEC-050`](SPEC-050-struktur-kennungen-im-commit.md)); die CI lehnt sie weder ab noch zählt sie als Kennung.
-    Fälle (Punkt 14): `p11-ohne-kennung` (rot, `commit-untraceable`); je Muster ein Fall mit einer Message, die nur diese Kennung trägt (`p11-adr`, `p11-lh`, `p11-mr`, `p11-slice`, `p11-welle`: grün);
+    Fälle (Punkt 16): `p11-ohne-kennung` (rot, `commit-untraceable`); je Muster ein Fall mit einer Message, die nur diese Kennung trägt (`p11-adr`, `p11-lh`, `p11-mr`, `p11-slice`, `p11-welle`: grün);
     `p11-revert` und `p11-merge-betreff` (Betreff `Revert "x"`, `Merge x` ohne Kennung: grün); `p11-kennung-im-rumpf` (Kennung nur in Zeile 3: grün); `p11-kennung-im-kommentar`
     (Kennung nur in einer `#`-Zeile: rot). Mutationen: der Block `commits` fehlt (färbt `p11-ohne-kennung`, `p11-kennung-im-kommentar`); ein Muster fehlt (je Muster, färbt den Fall dieses Musters),
     die Ausnahme fehlt (färbt `p11-revert`, `p11-merge-betreff`).
 12. **`vcs`.** `.d-check.yml` führt `vcs.paths` mit `docs/plan/adr/[0-9]*.md`, `vcs.immutable-when` mit `^\*\*Status:\*\* Accepted`, `vcs.exclude-sections` mit `[Geschichte]`, `vcs.status-line` mit
     `^\*\*Status:\*\*`, `vcs.head-allow` mit `^\*\*Status:\*\* (Accepted|Superseded by )` und `vcs.ignore-link-targets` mit `true`. Das heißt: eine ADR, die in der Basis `Accepted` war, ändert sich in der
-    Range nur im Abschnitt `Geschichte`, in einem nachgezogenen Link-Ziel und im Übergang zu `Superseded by`; eine ADR in anderem Status ändert sich frei; der Index `docs/plan/adr/README.md` trägt keine Status-Zeile und ist damit nie unveränderlich. Das ist [`AGENTS.md`](../../AGENTS.md) §3.5, mechanisch. Fälle (Punkt 14): `p12-kern` (Text einer `Accepted`-ADR geändert: rot, `core-drift-vcs`), `p12-geschichte` (nur eine Zeile
+    Range nur im Abschnitt `Geschichte`, in einem nachgezogenen Link-Ziel und im Übergang zu `Superseded by`; eine ADR in anderem Status ändert sich frei; der Index `docs/plan/adr/README.md` trägt keine Status-Zeile und ist damit nie unveränderlich. Das ist [`AGENTS.md`](../../AGENTS.md) §3.5, mechanisch. Fälle (Punkt 16): `p12-kern` (Text einer `Accepted`-ADR geändert: rot, `core-drift-vcs`), `p12-geschichte` (nur eine Zeile
     im Abschnitt `Geschichte`: grün), `p12-ersetzt` (Status wird `Superseded by [ADR-…]`: grün), `p12-ersetzt-anders` (Status wird `Rejected`: rot), `p12-vorschlag` (`Proposed`, Text geändert: grün),
     `p12-geloescht` (`Accepted`-ADR gelöscht: rot), `p12-link-ziel` (Link-Ziel einer umgezogenen Datei nachgezogen: grün). Mutationen: `vcs` fehlt (färbt `p12-kern`,
     `p12-ersetzt-anders`, `p12-geloescht`); `exclude-sections` fehlt (färbt `p12-geschichte`); `head-allow` fehlt (färbt `p12-ersetzt-anders`) bzw. ist zu eng (färbt `p12-ersetzt`);
@@ -179,16 +185,18 @@ Fälle ihrer Gruppe färbt (`AGENTS.md` §3.10); die unveränderte Kopie ist gr�
 13. **`workflows`.** Die Bindung der Pin-Prüfung (`modules:` und `workflows.dir`) steht in `.d-check.yml`, sobald `ci.yml` existiert; sie ist Gegenstand von [`SPEC-063`](SPEC-063-workflows-check.md)
     Punkt 8, und `make workflows-check` hält sie am Arbeitsbaum. Diese Kennung wiederholt sie nicht. Das Modul meldet ohne Datei und ohne `uses:` einen Befund (leere Prüfmenge): der Eintrag kommt mit
     der ersten Workflow-Datei, nicht früher.
-14. **Aufbau der Gegenprobe.** `make ci-gegenprobe` legt je Fall einen Temp-Baum an und räumt ihn weg; der Arbeitsbaum bleibt unberührt. *Punkt 1:* Kopien der Datei in Temp-Verzeichnissen, geprüft
+14. **Aufbau von `ci-gegenprobe`.** Das Ziel legt je Fall einen Temp-Baum an und räumt ihn weg; der Arbeitsbaum bleibt unberührt. *Punkt 1:* Kopien der Datei in Temp-Verzeichnissen, geprüft
     von der Funktion, die den Text hält. *Teil 2:* kleine Git-Repositories in Temp-Verzeichnissen mit Commits, Zweigen, einem Remote-Zweig `refs/remotes/origin/main` (per `git update-ref`) und einem flachen Klon
-    (`git clone --depth 1`); `ci-range.sh` läuft mit den Variablen des Falls. *Teil 3:* je Fall ein Git-Repository mit Kopien von `.d-check.yml`, `d-check.mk`, `harness/mk/doc-gate.mk` und
-    `tools/harness/history-range-guard.sh` und einem Makefile, das beide Fragmente einbindet; `make doc-commits RANGE=…` und `make doc-immutable RANGE=…` laufen mit dem echten Image von d-check (`DCHECK_REF`)
-    gegen die Range des Falls; erwartet ist Exit 0 ohne Befund oder Exit 1 mit dem Code des Falls. Mutationen von Teil 3 ändern die Kopie von `.d-check.yml`. Voraussetzung: Docker und das Image von d-check
-    (der erste Lauf zieht es, danach läuft die Gegenprobe ohne Netz). Die Gegenprobe trägt keine Abdeckungs-Deklaration (keine Anforderung des Lastenhefts; [`SPEC-048`](SPEC-048-abdeckung.md)). Aufrufarten von
-    `make` (`-n`, `-q`, `-t`, `-i`, `MAKEFLAGS`) haben hier keinen Fall: kein Hook und kein Stand liest das Ergebnis, und die Sammelziele behandeln die Flags ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 10);
+    (`git clone --depth 1`); `ci-range.sh` läuft mit den Variablen des Falls. Die Fälle `p1-*` bis `p9-*` gehören hierher, kein Fall der Punkte 11 und 12. Die Gegenprobe trägt keine Abdeckungs-Deklaration (keine Anforderung des Lastenhefts; [`SPEC-048`](SPEC-048-abdeckung.md)). Aufrufarten von
+    `make` (`-n`, `-q`, `-t`, `-i`, `MAKEFLAGS`) haben bei **beiden** Gegenproben keinen Fall: kein Hook und kein Stand liest ihr Ergebnis, und die Sammelziele behandeln die Flags ([`SPEC-060`](SPEC-060-gegenproben.md) Punkt 10);
     `ci-range.sh` läuft nie unter `make`.
 15. **Grenzen** (akzeptierte Negative, jeweils mit Grund). Die Basis eines Pull-Requests kommt aus der Nutzlast des Ereignisses; wandert die Basis zwischen Ereignis und Lauf, prüft der Lauf mehr Commits,
     die inzwischen in die Basis gelangt sind, nie weniger. Hat ein Pull-Request einen Merge-Konflikt, startet GitHub keinen Lauf für `pull_request` (Verhalten von GitHub); der Push-Lauf des Zweigs bleibt. Die erste Probe auf
     GitHub prüft die Range des ersten Push; enthält sie ältere Commits, die gegen Teil 3 verstoßen, ist der Lauf rot, ohne dass die CI falsch läuft (Bestand wird nicht geändert). Ein Löschen der Blöcke aus
-    Teil 3 färbt die Gegenprobe, nicht die CI; Grund: die CI kann ihre eigene Konfiguration nicht von ihrer Abwesenheit unterscheiden, und das Review sieht die Änderung von `.d-check.yml`. Ob ein Lauf auf GitHub grün
+    Teil 3 färbt `range-konfiguration-gegenprobe`, nicht die CI; Grund: die CI kann ihre eigene Konfiguration nicht von ihrer Abwesenheit unterscheiden, und das Review sieht die Änderung von `.d-check.yml`. Ob ein Lauf auf GitHub grün
     endet, belegt ein Lauf, kein Gate; der Beleg steht im Slice, und diese Kennung sagt es nicht zu.
+16. **Aufbau von `range-konfiguration-gegenprobe`** (Slice `slice-harness-ci-range-konfiguration`). Das Ziel legt je Fall einen Temp-Baum an und räumt ihn weg; der Arbeitsbaum bleibt unberührt. Je Fall ein Git-Repository mit Kopien von `.d-check.yml`, `d-check.mk`, `harness/mk/doc-gate.mk` und
+    `tools/harness/history-range-guard.sh` (unverändert; die Treiber sind nicht der Gegenstand) und einem Makefile, das beide Fragmente einbindet; `make doc-commits RANGE=…` und `make doc-immutable RANGE=…` laufen mit dem echten Image von d-check (`DCHECK_REF`)
+    gegen die Range des Falls; erwartet ist Exit 0 ohne Befund oder Exit 1 mit dem Code des Falls. Die Fälle sind die der Punkte 11 und 12 (`p11-*`, `p12-*`); ihre Mutationen ändern die Kopie von `.d-check.yml`. Voraussetzung: Docker und das Image von d-check
+    (der erste Lauf zieht es, danach läuft die Gegenprobe ohne Netz); die Temp-Bäume sind für andere lesbar (`chmod -R a+rX`), weil das Image als Nicht-root liest. Keine Abdeckungs-Deklaration; keine Fälle für Aufrufarten von `make` (Punkt 14).
+17. **Zeilenende und Kodierung** (`AGENTS.md` §3.12; Entscheidung des Architect, 2026-10-18, zu `BEO-REPO/zeilenende-crlf-im-gelesenen-wert`). Zugesagt ist LF und UTF-8 für die Dateien und Messages der Fälle. Mit `\r\n` endende Zeilen in einer Workflow-Datei, einer Commit-Message oder einer ADR-Datei sind **nicht zugesagt** (akzeptiertes Negativ; Grund: ein Checkout unter Windows mit `autocrlf` erzeugt sie, die Plattform ist für die Gates dieses Repos nicht zugesagt, und jede Lesart des Zeilenendes in d-check oder im Skript wäre eine Zusage ohne gemessene Plattform): Ein Gate liest das `\r` als Teil des Werts; das Ergebnis ist rot oder grün je nach Muster, und eine Meldung kann den Wert ohne sichtbares `\r` zeigen (V-3 der Verifikation von `workflows-check`; [`SPEC-063`](SPEC-063-workflows-check.md) Punkt 11 nennt dieselbe Grenze für die Workflow-Dateien). Eine Änderung des Zeilenendes einer `Accepted`-ADR in der Range ist eine Änderung der Datei und fällt unter Punkt 12 wie jede andere Änderung des Textes; ob sie `core-drift-vcs` ergibt, ist nicht zugesagt. Der Implementer von `range-konfiguration-gegenprobe` misst beides einmal (eine Message mit `\r\n`, eine ADR mit umgestelltem Zeilenende) und trägt das Ergebnis in §7 des Slice ein; es wird keine Zusage und kein Fall. Nicht UTF-8 kodierter Text ist ebenso nicht zugesagt.

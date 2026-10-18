@@ -153,7 +153,7 @@ eine Mutation.
     außerhalb von `.github/workflows/` und `.github/dependabot.yml` nicht; Grund: das Repo führt keine, und ein Zusatz ist eine Änderung dieser Kennung.
     Die Regeln lesen nur die Blockform von Punkt 5; ein Anker oder `<<` in der Datei wird nicht aufgelöst, und `permissions` oder `timeout-minutes`, die ein
     Anker einträgt, gelten als fehlend; Grund: ein zweiter Parser stünde neben dem von `actionlint` und von d-check. Grün über leerem Prüfbereich
-    (Punkt 2). `shellcheck` in `actionlint` kennt nur die Shells, die es bedient; ein `run:` mit `shell: pwsh` ist für diese Prüfung nicht gelesen.
+    (Punkt 2). Zeilenende `\r\n` (etwa nach einem Checkout unter Windows mit `autocrlf`): nicht zugesagt; die Regeln lesen das `\r` als Teil des Werts, der Befund ist falsch-positiv und damit sicher, und seine Meldung kann einen Wert zeigen, der richtig aussieht (`gelesen: {}`); Grund: die Plattform ist für die Gates dieses Repos nicht zugesagt, und `actionlint` selbst nimmt solche Dateien an ([`SPEC-064`](SPEC-064-ci.md) Punkt 17). `shellcheck` in `actionlint` kennt nur die Shells, die es bedient; ein `run:` mit `shell: pwsh` ist für diese Prüfung nicht gelesen.
 12. **Gegenprobe.** `make workflows-check-gegenprobe` fährt das Skript an Temp-Bäumen mit einer Attrappe von `docker` (über `DOCKER`), die ihre Argumente
     aufzeichnet und Ausgabe und Exit-Code je Fall vorgibt; die Fälle der Punkte 1 bis 10 laufen ohne Netz. Dazu drei **echte** Fälle gegen das Image aus
     dem Fragment (die Temp-Bäume der echten Fälle sind mit `chmod -R a+rX` lesbar, weil das Image als Nicht-root liest) und das Image von d-check aus `DCHECK_REF` (`make` übergibt beide): `real-gruen` (eine gültige Datei, Exit 0), `real-ausdruck` (eine Datei
