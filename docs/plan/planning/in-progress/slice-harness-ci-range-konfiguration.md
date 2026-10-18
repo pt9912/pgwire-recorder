@@ -71,7 +71,7 @@ Aussagen-Berührung steht hier gar nicht.
 | Datei / Komponente | Änderungs-Art | Begründung |
 |---|---|---|
 | `.d-check.yml` | update | Blöcke `commits` und `vcs` nach `SPEC-064` Punkte 11, 12 (Sendung aus `slice-harness-ci`, ursprünglich `slice-harness-ci-workflows`) |
-| `harness/mk/range-konfiguration.mk` und `tools/harness/range-konfiguration-gegenprobe.sh` | neu | Gegenprobe der Konfiguration mit echtem Image von d-check; Eintrag in `GEGENPROBEN_CONTAINER` |
+| `harness/mk/range-konfiguration.mk` und `tools/harness/range-konfiguration-gegenprobe.sh` | neu | Gegenprobe der Konfiguration mit echtem Image von d-check; 20 Fälle (12 `p11-*`, 8 `p12-*`, darunter drei über den Vertrag hinaus: `p11-exempt-nicht-am-anfang`, `p11-struktur-allein`, `p12-index`) und 29 Mutationen von `.d-check.yml`; Eintrag in `GEGENPROBEN_CONTAINER` |
 | `harness/vertraege/SPEC-064-…md` | update (Architect, erledigt 2026-10-18) | Teilung: Punkt 16 `range-konfiguration-gegenprobe`, Punkt 17 Zeilenende; nicht Gegenstand dieses Slice |
 | `harness/README.md` §Sensors | update | Zeile der Gegenprobe; Prosa nach §3.11 |
 
@@ -135,6 +135,73 @@ diese Sektion die Zeile `Gegenstand:` mit Kennung oder Grund und jedes Risiko
 aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 (`modul-05-planning-harness.md` §Ein Slice, dessen Gegenstand ein anderer
 übernimmt).
+
+### Belege des Implementers
+
+Stand: Code-Commit `6022bc9e` (`.d-check.yml`, Fragment, Gegenprobe, Zeile in `harness/README.md`); Zweig `impl-ci-range-konfiguration`, Basis der Metrik `eac90f75`. Die Gegenprobe läuft im Dev-Container pgr-dev3 (Benutzer `vscode`, uid 1000, Docker-in-Docker, d-check v0.86.1, Digest `3e0b9779…`).
+
+**Vorprüfung (Risiko 1, Rückgabe an den Architect).** Das gepinnte Image kennt alle acht Schlüssel (`d-check --print-config`: `commits.id-patterns`, `commits.exempt-pattern`, `vcs.paths`, `vcs.immutable-when`, `vcs.exclude-sections`, `vcs.status-line`, `vcs.head-allow`, `vcs.ignore-link-targets`); Meldungsform und Exit-Codes stimmen mit dem Vertrag (Exit 1, Code `commit-untraceable` bzw. `core-drift-vcs`, Summenzeile auf stderr). Beide Module stehen nicht in `modules:`; die Targets schalten sie mit `--enable` ein. Keine Rückgabe.
+
+**Befundzeilen vorher und nachher** (Temp-Repository: Basis-Commit mit `Accepted`-ADR, dann ein Commit `foo` ohne Kennung und ein Commit, der den Text der ADR ändert; `.d-check.yml` aus `368e3d43` bzw. vom Code-Commit):
+
+| Aufruf | `.d-check.yml` ohne die Blöcke (`368e3d43`) | mit den Blöcken |
+|---|---|---|
+| `--enable commits --range base..HEAD` | `d-check: 1 Datei(en) geprüft, 0 Befund(e)`, Exit 0 | `<sha>:1	<sha>	commit-untraceable	foo`, 1 Befund(e), Exit 1 |
+| `--enable vcs --range base..HEAD` | `0 Befund(e)`, Exit 0 | `docs/plan/adr/0001-eins.md:3 … core-drift-vcs	Core einer immutablen Datei hat sich über die Commit-Range geändert`, 1 Befund(e), Exit 1 |
+
+**Range dieses Slice über das Repo** (nach dem letzten Commit): `make doc-commits RANGE=368e3d43..f6e346ed` und `make doc-immutable RANGE=368e3d43..f6e346ed` (2 Commits, die beiden Code-Commits): je `history-range-guard: … 2 Commit(s) — OK` und `d-check: 1174 Datei(en) geprüft, 0 Befund(e)`, Exit 0. Über den Bestand (`d027ecc5…..f6e346ed`, 2076 Commits) beide Targets ebenfalls 0 Befund(e), Exit 0: Die erste Range auf GitHub färbt der Bestand nicht (Risiko 2, soweit der Klon die ganze Historie hat). Commits einer Probe-Range, die die Prüfung rot färbt, stehen im Temp-Repository der Gegenprobe: `foo` (ohne Kennung, Fall `p11-ohne-kennung`) und der Commit, der in `0001-eins.md` den Text ändert (Fall `p12-kern`); DoD Liefer-Punkt 1 ist damit mit Befundzeilen vorher und nachher belegt (Tabelle oben).
+
+**Fälle (20).** `p11-*` (12): `ohne-kennung`, `adr`, `lh`, `mr`, `slice`, `welle`, `revert`, `merge-betreff`, `kennung-im-rumpf`, `kennung-im-kommentar`, `exempt-nicht-am-anfang`, `struktur-allein`; `p12-*` (8): `kern`, `geschichte`, `ersetzt`, `ersetzt-anders`, `vorschlag`, `geloescht`, `link-ziel`, `index`. Über den Vertrag hinaus: `p11-exempt-nicht-am-anfang` (Ortsangabe `^` der Ausnahme), `p11-struktur-allein` (`SPEC-…` zählt nicht als Kennung), `p12-index` (Index ohne Status-Zeile ist nie unveränderlich). Die Fälle `p11-slice` und `p11-welle` nennen eine Slice- und eine Welle-Datei, die im Temp-Repository nicht existiert; sie sind zugleich der Fall zum akzeptierten Negativ „Existenz wird nicht geprüft“ (Punkt 11). Ein Fall besteht, wenn Exit-Code, stdout (ohne die Zeile des Vorlaufs `history-range-guard`) und stderr vollständig dem erwarteten Text entsprechen (SHAs, Dateizahl und Zeilennummer in `d-check.mk` normiert); Aufrufarten von `make` haben keinen Fall (Punkt 16).
+
+**Mutationen (29): Zusage · Mutation · roter Test.** Jede Mutation ist ein Textersatz in der Kopie von `.d-check.yml`; rot sind genau die benannten Fälle (die Gegenprobe verlangt diese Menge, mehr und weniger machen sie rot); mit `GP_ENTDECKE=1` gesehen, dann mit dem vollen Lauf (`30 Läufe`, grün). Die Gruppe nennt, über welche Fälle die Mutation läuft; die beiden `Block fehlt` laufen über alle 20 Fälle (kein p12-Fall wird von `commits` gefärbt und umgekehrt).
+
+| Mutation | Zusage / Element | rote Fälle |
+|---|---|---|
+| `m-p11-block-fehlt` (alle) | Block `commits` wirkt (Punkt 10/11) | `p11-ohne-kennung`, `p11-kennung-im-kommentar`, `p11-exempt-nicht-am-anfang`, `p11-struktur-allein` |
+| `m-p11-muster-adr-fehlt` | Muster `ADR-[0-9]{4}` | `p11-adr` |
+| `m-p11-muster-lh-fehlt` | Muster `LH-[A-Z]{2}-[0-9]{2}` | `p11-lh` |
+| `m-p11-muster-mr-fehlt` | Muster `MR-[0-9]{3}` | `p11-mr`, `p11-kennung-im-rumpf` (der Fall trägt `MR-001`) |
+| `m-p11-muster-slice-welle-fehlt` | Muster `(slice\|welle)-…` | `p11-slice`, `p11-welle` |
+| `m-p11-alternative-slice-fehlt` | Element `slice` der Alternative | `p11-slice` |
+| `m-p11-alternative-welle-fehlt` | Element `welle` der Alternative | `p11-welle` |
+| `m-p11-muster-verankert` | Kennung an jeder Stelle der Message (Rumpf), nicht nur am Anfang | `p11-kennung-im-rumpf` |
+| `m-p11-muster-struktur` | `SPEC-…` zählt nicht als Kennung (Muster `SPEC-[0-9]{3}` ergänzt) | `p11-struktur-allein` |
+| `m-p11-ausnahme-fehlt` | `exempt-pattern` | `p11-revert`, `p11-merge-betreff` |
+| `m-p11-ausnahme-merge-fehlt` | Element `Merge ` | `p11-merge-betreff` |
+| `m-p11-ausnahme-revert-fehlt` | Element `Revert ` | `p11-revert` |
+| `m-p11-ausnahme-ohne-anker` | Anker `^` der Ausnahme | `p11-exempt-nicht-am-anfang` |
+| `m-p12-block-fehlt` (alle) | Block `vcs` wirkt (Punkt 10/12) | `p12-kern`, `p12-ersetzt-anders`, `p12-geloescht` |
+| `m-p12-paths-leer` | `paths` | `p12-kern`, `p12-ersetzt-anders`, `p12-geloescht` |
+| `m-p12-paths-fehlt` | Eintrag `paths` | `p12-kern`, `p12-ersetzt-anders`, `p12-geloescht` |
+| `m-p12-paths-index` | Glob `[0-9]*.md`: der Index ohne Status-Zeile ist nie unveränderlich (Glob `*.md`, Index unveränderlich) | alle acht (`head-allow` lehnt jede unveränderliche Datei ohne Status-Zeile im Kopf ab; `p12-index` ist zugleich der Fall, dessen Text sich ändert) |
+| `m-p12-immutable-when-jeder-status` | nur `Accepted` ist unveränderlich | `p12-vorschlag` |
+| `m-p12-immutable-when-fehlt` | Eintrag `immutable-when` (ohne ihn ist jede Datei aus `paths` unveränderlich) | alle acht |
+| `m-p12-immutable-when-anderer-status` | Wert `Accepted` von `immutable-when` | `p12-kern`, `p12-ersetzt-anders`, `p12-geloescht` |
+| `m-p12-abschnitt-fehlt` | `exclude-sections` | `p12-geschichte` |
+| `m-p12-abschnitt-falsch` | Abschnitt `Geschichte` | `p12-geschichte` |
+| `m-p12-status-zeile-fehlt` | Eintrag `status-line` | alle außer `p12-geloescht` |
+| `m-p12-status-zeile-eng` | `status-line` zieht die Status-Zeile aus dem Core (Muster nur für `Accepted`) | `p12-ersetzt`, `p12-ersetzt-anders` |
+| `m-p12-head-allow-fehlt` | `head-allow` | `p12-ersetzt-anders` |
+| `m-p12-head-allow-eng` | Element `Superseded by ` | `p12-ersetzt` |
+| `m-p12-head-allow-ohne-accepted` | Element `Accepted` | `p12-geschichte`, `p12-index`, `p12-link-ziel`, `p12-vorschlag` (jede Datei mit `Accepted` im Kopf, auch unverändert) |
+| `m-p12-link-ziel-fehlt` | `ignore-link-targets` fehlt | `p12-link-ziel` |
+| `m-p12-link-ziel-aus` | `ignore-link-targets: false` | `p12-link-ziel` |
+
+Kein Mutant blieb grün. Ein Versuch, der verworfen wurde: Die Ausnahme `(?m)^(Merge |Revert )` und eine Message `x`, Leerzeile, `Merge y` färben nichts (die Message bleibt rot wie mit der Vorgabe); der Fall dazu entfiel, weil keine Einstellung von `.d-check.yml` ihn von der Vorgabe trennt.
+
+**Weitere Sonden (rot gesehen, nicht im Lauf).** (1) Ohne `chmod -R a+rX` und unter `umask 077` wird die unveränderte Kopie rot (alle 20 Fälle, `d-check: error: kein lesbares git-Repository unter /repo: … permission denied`); die Rechte der Temp-Bäume sind damit Bedingung. (2) `DOCKER=/tmp/dock.sh` (Hülle, die jeden Aufruf zählt): 21 Aufrufe (Vorlauf und 20 Fälle) — `DOCKER` wirkt auf `d-check.mk`; `DOCKER=/gibt/es/nicht` und ein Digest ohne Image enden mit Exit 2 und Meldung. (3) Als root (`sudo`, `LANG=de_DE.UTF-8` fällt auf `C` zurück, dort ist die Locale nicht installiert), als Benutzer mit `LC_ALL=en_US.utf8`, `TZ=Asia/Tokyo` und `umask 077`, mit `GP_PARALLEL=8` und mit dem Vorgabewert 4: jeweils `grün (30 Läufe)`.
+
+**Messung Zeilenende und Kodierung (Randform 6/7, `SPEC-064` Punkt 17; keine Zusage, kein Fall).** Commit-Message mit `\r\n` (`git commit --cleanup=verbatim`): `x\r\n\r\nslice-abc\r\n` ergibt 0 Befunde (Exit 0); `x\r\n\r\nohne\r\n` ergibt 1 Befund `commit-untraceable` (Exit 1), die Meldung zeigt den Betreff als `x ` (das `\r` ist Teil des Werts, ohne sichtbares Zeichen). ADR mit umgestelltem Zeilenende: reines Umstellen LF→CRLF und CRLF→LF einer `Accepted`-ADR ergibt 0 Befunde (Exit 0), ebenso eine neue Zeile im Abschnitt `Geschichte` einer CRLF-Datei; Textänderung in einer CRLF-ADR (mit und ohne gleichzeitiges Umstellen) ergibt `core-drift-vcs` (Exit 1); Status `Rejected` in einer CRLF-ADR ergibt `unzulässiger Status-Übergang einer immutablen Datei` (Exit 1). Das Zeilenende allein ist für `vcs` also keine Änderung des Core.
+
+**Messung Link-Ziel (nicht im Vertrag genannte Form).** `ignore-link-targets` lässt den Umzug einer verlinkten Datei in ein anderes Verzeichnis bei gleichem Dateinamen durch (`open/s.md` → `in-progress/s.md`, Fall `p12-link-ziel`, grün); eine Umbenennung der Datei (anderer Name) und ein Link auf eine nicht vorhandene Datei bleiben Drift (`core-drift-vcs`, Exit 1; so beschreibt es auch das Handbuch von d-check). `SPEC-064` Punkt 12 nennt nur den Umzug. Hinweis an den Architect, keine Rückgabe: Der Code entscheidet nichts dazu, die Konfiguration ist die des Vertrags.
+
+**Läufe.** Alle am Stand `f6e346ed` (Code-Commits `6022bc9e` und `f6e346ed`; seitdem nur Plan) im Dev-Container pgr-dev3: `make gates` Exit 0 (4 min 23 s; Nachweis `.harness/state/gates-passed.dateiliste` geschrieben); `make gates-schnell-gegenprobe` grün (1 min 00 s); `make range-konfiguration-gegenprobe` `grün (30 Läufe)` (1 min 22 s), ebenso als root (`sudo`, 1 min 12 s) und unter `umask 077` mit `LC_ALL=en_US.utf8` und `TZ=Asia/Tokyo` (1 min 10 s), beide mit `GP_PARALLEL=8`; `make docs-check` 0 Befunde. Ein früherer Lauf von `make gates` wurde von mir nach 13 Minuten beendet, weil sich Gegenprobe und Kommentar noch änderten; sein Nachweis zählt nicht.
+
+**Metrik gegen die Marke von §4** (`git diff --numstat eac90f75..<letzter Commit des Slice> -- tools harness .d-check.yml Makefile`): Summe aus Einfügungen und Löschungen **285** (`.d-check.yml` 19, `harness/README.md` 1, Fragment 11, Gegenprobe 254; Löschungen 0) gegen die Marke 500 und die Schätzung des Architect 300 bis 405: unter der Marke und unter der Schätzung; die Marke ist nicht eingetreten, keine Rückführung. Der Anteil der Gegenprobe liegt bei 89 Prozent der Summe; der Faktor des Architect (rund das Doppelte des Produktcodes für Gegenprobe-Code) wird hier nicht erreicht, weil die Fälle nur git-Befehle und eine Erwartung tragen.
+
+**Kommentare (Schritt 20).** Neu geschrieben: Kopf und Zeilen der Gegenprobe, Kommentar zu `.d-check.yml` (Zusage: Fehlt ein Block oder ein Eintrag, bei `paths` auch leer, wird `range-konfiguration-gegenprobe` rot; Test: `m-p11-block-fehlt`, `m-p12-block-fehlt`, die Mutationen „Muster fehlt“, `m-p11-ausnahme-fehlt`, `m-p12-paths-fehlt`, `m-p12-paths-leer`, `m-p12-immutable-when-fehlt`, `m-p12-abschnitt-fehlt`, `m-p12-status-zeile-fehlt`, `m-p12-head-allow-fehlt`, `m-p12-link-ziel-fehlt`), Kopf des Fragments. Jede Zusage dort hat einen Fall oder eine gesehene Sonde (oben); „Kein Fall hängt von Dateirechten ab“ ist durch den Lauf als root und unter `umask 077` belegt, „die Temp-Bäume sind lesbar … weil das Image als Nicht-root liest“ durch die Sonde (1).
+
+**Material für die Closure (Beobachtungen).** Vier meiner Erwartungen vor dem ersten Lauf mit `GP_ENTDECKE=1` waren falsch, weil `vcs` eine Konfiguration anders auswertet, als sie sich liest (Treffer `BEO-REPO/gate-konfiguration-wirkt-anders-als-gelesen`, §8): `head-allow` prüft jede unveränderliche Datei im Kopf, auch eine unveränderte (`m-p12-head-allow-ohne-accepted`, `m-p12-paths-index` färbten mehr Fälle als gedacht); `immutable-when` auf jeden Status machte die unveränderte `Proposed`-ADR in jedem Fall rot, bis `0002` nur noch im Fall `p12-vorschlag` angelegt wurde; ein `status-line`-Muster, das nichts trifft, und ein fehlender Eintrag `status-line` oder `immutable-when` färben fast alle oder alle Fälle (`vcs` schlägt dann fehl statt still zu schweigen). Dazu ein Fehler des Geschirrs: Die Hülle für `DOCKER` rief sich bei `DOCKER=docker` selbst auf (PATH-Rekursion) und lief ohne Ende, bis sie von Hand beendet wurde; sie führt `DOCKER` jetzt mit dem PATH des Aufrufers aus (`GP_PFAD`). 
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
