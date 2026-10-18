@@ -39,7 +39,7 @@ einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 - Alle Slices der Welle liegen in `done/`.
 - Das *Mehr* gegenüber den Slice-DoDs (Entscheidung des Nutzers vom 2026-10-18): Ein Lauf des Mutations-Gates nennt keinen der dort geführten Mutanten (`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`) als überlebend; der Lauf steht in der Closure-Notiz. Die DoDs der Sammel-Slices belegen ihre Tests je für sich, die DoD von `slice-harness-mutation` die Schwelle, nicht ihr Zusammenspiel.
 - Für `slice-harness-gegenprobe-baumkopie` und `slice-harness-lint-warten-ohne-frist` gibt es **kein weiteres gemeinsames *Mehr***: Ihre Bündelung ist Thema (Gegenproben und Güte der Tests), keine Closure-Bedingung.
-- `make gates` grün auf dem Endstand, dazu `make gegenproben` (Gegenproben-Container) und `make gegenproben-host` (Host) grün auf demselben Commit (Gegenproben verlassen `make gates` mit `slice-harness-gegenproben-aus-gates`; Namen laut Vertrag dort).
+- `make gates` grün auf dem Endstand, dazu ein grünes Ergebnis des Gegenproben-Containers (`make gegenproben`; fehlt es, fährt die Closure es selbst) und `make gegenproben-host` (Host) grün auf demselben Commit (Gegenproben verlassen `make gates` mit `slice-harness-gegenproben-aus-gates`; Namen laut Vertrag dort).
 - Closure-Notiz in `welle-gegenproben-und-mutanten-results.md`.
 
 ## 4. Slices in dieser Welle

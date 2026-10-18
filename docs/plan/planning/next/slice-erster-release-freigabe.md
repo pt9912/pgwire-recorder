@@ -52,7 +52,7 @@ Dazu der erste echte Tag: Jener Slice belegt die Pipeline mit einem Probe-Tag, d
 den ersten stabilen Tag mit Checkliste und Scan. Die Randformen der drei Punkte zogen aus §6
 jenes Slice hierher (§6 unten).
 
-**Bindung von `slice-harness-gegenproben-aus-gates-fahrstelle`** (eingetragen vom Planner am 2026-10-18, Entscheidung des Nutzers vom selben Tag, `AGENTS.md` §3.13): Die Freigabe-Checkliste (DoD-Punkt 3, `docs/maintainer/releasing.md` §10) führt als Punkt mit Beleg: `make gegenproben` im Gegenproben-Container und `make gegenproben-host` am Host grün auf dem Commit, der getaggt wird; die Gegenproben sind seit `slice-harness-gegenproben-aus-gates` nicht mehr Teil von `make gates`. Der Punkt gehört zum Liefer-Punkt der Checkliste, kein neuer Liefer-Punkt, keine neue Schicht.
+**Bindung von `slice-harness-gegenproben-aus-gates-fahrstelle`** (eingetragen vom Planner am 2026-10-18, Entscheidung des Nutzers vom selben Tag, `AGENTS.md` §3.13): Die Freigabe-Checkliste (DoD-Punkt 3, `docs/maintainer/releasing.md` §10) führt als Punkt mit Beleg: ein grünes Ergebnis des Gegenproben-Containers für den Commit, der getaggt wird (der `post-receive`-Hook im Bare-Repo von `pgr-gp` legt es ab; fehlt es oder ist es rot, fährt die Freigabe `make gegenproben` selbst), und `make gegenproben-host` am Host grün auf demselben Commit; die Gegenproben sind seit `slice-harness-gegenproben-aus-gates` nicht mehr Teil von `make gates`. Der Punkt gehört zum Liefer-Punkt der Checkliste, kein neuer Liefer-Punkt, keine neue Schicht.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -257,3 +257,5 @@ Nachgezählt am 2026-10-17 (Planner, `AGENTS.md` §3.13; keine neue Sendung, Sta
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 **Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle` einträgt): Der Punkt gehört in die Checkliste des dritten Liefer-Punkts (DoD 3); Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation).
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Ergänzung zur Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle` einträgt): Die Fassung des Punktes ändert nur den Beleg (Ergebnis des Gegenproben-Containers statt eigener Fahrt); Liefer-Punkte weiter drei, Schichten weiter zwei.
