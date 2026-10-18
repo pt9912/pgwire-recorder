@@ -89,7 +89,7 @@ Gates und Closure:
   1. Jeder Befehl: `ssh -i /Development/pgr-dev2/ssh/id_ed25519 -o IdentitiesOnly=yes -o UserKnownHostsFile=/Development/pgr-dev2/known_hosts -p 2223 vscode@127.0.0.1 'cd /workspaces/pgr-dev2/pgwire-recorder && <Befehl>'`. Die Datei hat der Nutzer bereitgestellt; sie ist eine Einstellung des Implementers für seine eigenen Befehle, das Ziel dieses Slice setzt sie nicht.
   2. Zweig `slice-harness-devcontainer-einrichten-geruest` im Klon, nicht `main`; Dateien als Patch über `stdin` (`git apply`) oder als Inhalt über `stdin`; Commits im Klon mit der Kennung im Text; `make hooks-install` und `make traeger-fetch` im Klon, falls noch nicht geschehen.
   3. `make gates-schnell` und `make test` im Klon; `make gates` (28 min 21 s laut Dokument §8, für diesen Stand ungeprüft) im Hintergrund (`setsid`, Log in `/tmp` im Container, Exit-Code in eine Datei), Abfrage per `ssh`. Vor einem eigenen Lauf der Gegenprobe außerhalb von `make gates` prüft der Aufrufer selbst, dass auf demselben Daemon kein anderer Lauf läuft (Regel an den Aufrufer; die Gegenprobe prüft es nicht).
-  4. *Was nur der Host kann.* Die Gegenprobe braucht `u-boot`, `node`, `ssh-keygen` (und für Teil II `devcontainer`, `docker`). Ob sie im Container von `pgr-dev2` vorliegen, ist ungemessen: Der Implementer prüft `command -v u-boot devcontainer node ssh ssh-keygen` im Container zuerst und nennt das Ergebnis im Bericht. Fehlen sie, läuft der Teil der Gegenprobe, der sie braucht, am Host mit Scratch-Verzeichnis im Präfix der Gegenprobe (nie `pgr-dev2` anfassen, nie stoppen, neu starten oder entfernen, auch nicht dessen Port 2223 belegen); der Bericht sagt, was im Container und was am Host lief.
+  4. *Was nur der Host kann.* Die Gegenprobe braucht `u-boot`, `node`, `ssh-keygen` (und für Teil II `devcontainer`, `docker`). Ob sie im Container von `pgr-dev2` vorliegen, prüft der Implementer mit `command -v u-boot devcontainer node ssh ssh-keygen` zuerst; das Ergebnis steht in §7. Fehlen sie, läuft der Teil der Gegenprobe, der sie braucht, am Host mit Scratch-Verzeichnis im Präfix der Gegenprobe (nie `pgr-dev2` anfassen, nie stoppen, neu starten oder entfernen, auch nicht dessen Port 2223 belegen); der Bericht sagt, was im Container und was am Host lief.
   5. Ergebnis zum Host: im Klon `git push origin <Zweig>`; am Host `git fetch container`, der Zweig liegt als `container/<Zweig>` zur Prüfung (Dokument §9). Der Inhalt stammt aus einem Container, in dem `vscode` `root` werden kann: Review und Verifikation sehen die Commits durch, bevor sie nach `main` gehen.
   6. Größenprobe: Die Metrik von §4 misst der Implementer im Klon mit `git diff --numstat <Basis>..<letzter Commit>`.
 - Zählung nach `AGENTS.md` §3.13 siehe §8.
@@ -122,7 +122,7 @@ Meldeschwelle 700, **Marke 900**. Die obere Hälfte liegt über der Meldeschwell
 
 ## 5. Closure-Trigger
 
-DoD vollständig, `make gates` grün auf dem Endstand, Review- und Verifikations-Report liegen vor, Closure-Notiz mit Lerneintrag geschrieben. Das Mutationsprotokoll (Zusage · Mutation · roter Test, `AGENTS.md` §3.10) steht im Bericht des Implementers. Der Fall gegen das echte `u-boot` ist einmal grün gesehen, nicht nur gegen Attrappen; die Laufzeit der Gegenprobe ist gemessen und im Bericht genannt.
+DoD vollständig, `make gates` grün auf dem Endstand, Review- und Verifikations-Report liegen vor, Closure-Notiz mit Lerneintrag geschrieben. Das Mutationsprotokoll (Zusage · Mutation · roter Test, `AGENTS.md` §3.10) steht in §7 unter *Belege des Implementers*. Der Fall gegen das echte `u-boot` ist einmal grün gesehen, nicht nur gegen Attrappen; die Laufzeit der Gegenprobe ist gemessen und im Bericht genannt.
 
 ## 6. Risiken und offene Punkte
 
@@ -169,7 +169,79 @@ Der Slice liefert einen **neuen Vertrag** (Werkzeug mit Zusagen); §3.12 gilt. D
 
 ## 7. Closure-Notiz
 
-*(wird bei der Closure geschrieben)*
+### Belege des Implementers
+
+**Stand und Läufe** (Arbeit im Klon von `pgr-dev2`, Zweig `slice-harness-devcontainer-einrichten-geruest`, Commits `8c95c53c`, `fb2b5015`, `b311d82a`):
+
+- Im Container von `pgr-dev2` liegen `docker` (Server 29.9.1), `node` (v24.22.0), `ssh` und `ssh-keygen`; `u-boot` und `devcontainer` lagen nicht vor. `u-boot` 0.10.0 (statisches Binary des Hosts, gleiche Version wie im Dokument) liegt seit diesem Lauf unter `~/.local/bin` des Benutzers im Container, die Läufe gingen mit `PATH=$HOME/.local/bin:$PATH`. `devcontainer` kommt nur als Attrappe vor, ein Lauf mit der echten CLI ist Teil II.
+- Der Fall `p7-echt-u-boot` (echtes `u-boot` 0.10.0, Attrappe von `docker`) ist im Container einmal grün gesehen; dort laufen Namen, die drei Features, `nestedRuntime: docker`, die zwei Hosts und `.devcontainer/devcontainer.json`.
+- `make gates` im Container, erster Lauf: rot an `gates-schnell-gegenprobe` (`p4-eintrag`, die Fixture ihrer Gegenprobe kannte den neuen Eintrag der Ausnahmeliste nicht); behoben in `b311d82a` (eine Zeile in `tools/harness/gates-schnell-gegenprobe.sh`, Zeile in §3), `make gates-schnell-gegenprobe` danach grün (25 s).
+- `make gates` im Container, Endstand `b311d82a`: **Exit 0, 1630 s (27 min 10 s)**; `container-start-gegenprobe` und `gates-schnell-gegenprobe` grün im Log.
+- `container-start-gegenprobe` allein im Container: 148 Fälle an der unveränderten Kopie (11 s), mit 152 Mutationen **3 min 12 s**, Exit 0.
+- Größe (Metrik `AGENTS.md` §3.14, `git diff --numstat 8b19dc66..b311d82a -- tools harness docs/developer`, im Klon): **1017** mit den Vertragsdateien des Architect (`SPEC-058` 279, `SPEC-052` 2, `harness/vertraege/README.md` 2), **734** ohne sie (Schätzung 610 bis 845; Meldeschwelle 700 überschritten, Marke 900 nicht). Davon Gegenprobe 512, Skript 197, Fragmente 19, Index und Fixture 7.
+- Befundzeilen vorher und nachher: keine; kein Sensor meldete einen Befund an den geänderten Dateien außer dem einen roten Lauf oben.
+
+**Mutationstabelle** (Zusage · Mutation · roter Test). Die Mutationen stehen mit Ersetzung und Fällen in der Tabelle am Ende von `tools/harness/container-start-gegenprobe.sh` (`mut <Name> <Datei> <alt> <neu> <Gruppe> <rote Fälle>`); rot sind je Mutation genau die genannten Fälle ihrer Gruppe, die Gegenprobe verlangt es. Gesehen mit `GP_ENTDECKE=1`, dann als Erwartung eingetragen; jede Zeile unten steht für die Mutation gleichen Namens.
+
+| Zusage | Mutation | roter Test |
+|---|---|---|
+| Punkt 1: keine Zerstörung (`stop`, `rm`, `rmi`, `volume`, `prune`) | `p1-zerstoerung` (`docker rm -f` im Schritt `werkzeuge`; die Kollision des Punktes 9 gibt es in Teil I nicht) | `p1-keine-zerstoerung`, `p4-nichts-geaendert` |
+| Punkt 1: Host-Repo unberührt | `p1-repo` (Datei in der Wurzel) | `p1-repo-unveraendert` |
+| Punkt 1: `~/.ssh` und `known_hosts` unberührt | `p1-home` | `p1-home-unveraendert`, `p4-nichts-geaendert` |
+| Punkt 1: schreibt nur unter `$PGR_DEV` | `p1-ausserhalb` | `p1-nur-unter-pgr-dev` |
+| Punkt 2: je Form von `PGR_DEV` (nicht gesetzt, leer, relativ, Leerzeichen, Tabulator, Zeilenumbruch, Nicht-ASCII, `..`, `.`, leeres Segment, `/` am Ende, Basisname groß, Basisname mit `_`) | `p2-dev-nicht-gesetzt`, `-leer`, `-relativ`, `-leerzeichen`, `-tabulator`, `-zeilenumbruch`, `-nicht-ascii`, `-segment-punktpunkt`, `-segment-punkt`, `-leeres-segment`, `-slash-am-ende`, `-basis-gross`, `-basis-unterstrich` (je die Prüfung dieser Form entfällt oder lässt das Zeichen zu) | je `p2-dev-<Form>` |
+| Punkt 2: `PGR_NAME` leer, groß; `PGR_SSH_PORT` und `PGR_WARTEN` leer | `p2-name-leer`, `p2-name-gross`, `p2-port-leer`, `p2-warten-leer` (`:-` statt `-`; Klasse erweitert) | `p2-name-leer`, `p2-name-gross`, `p2-port-leer`, `p2-warten-leer` |
+| Punkt 2: Port und Wartezeit nicht numerisch, mit Vorzeichen, führende Null, 0, über der Grenze; Grenzen 1, 65535, 1, 600 angenommen | `p2-zahl-leer`, `-ziffern`, `-vorzeichen`, `-fuehrende-null`, `-null`, `-oben`, `-eins`, `-obergrenze-streng` (je eine Prüfung der gemeinsamen Funktion `zahl`) | `p2-port-<Form>` und `p2-warten-<Form>` der Form, Grenzen `p2-grenze-*`; die Formen Vorzeichen und führende Null stehen nur beim Port, weil `SPEC-058` sie nur dort nennt |
+| Punkt 2: Vorgaben `pgr-dev`, `2222`, `8`, `12g` (sichtbar in `override.json`) | `p2-vorgabe-name`, `-port`, `-cpus`, `-speicher` | `p2-vorgaben` |
+| Punkt 2: alle Verstöße in der Reihenfolge der Tabelle | `p2-nur-der-erste`, `p2-reihenfolge` | `p2-alle-gemeldet`, `p2-reihenfolge` |
+| Punkt 2: Exit-Code 2 | `p2-exit` | `p2-dev-leer` |
+| Punkt 3: je Werkzeug (`docker`, `u-boot`, `devcontainer`, `node`, `ssh`, `ssh-keygen`) im Pfad | `p3-ohne-<Werkzeug>` (sechs) | `p3-fehlt-<Werkzeug>`, `p3-alle-fehlen` |
+| Punkt 3: alle Verstöße in der Reihenfolge; bei fehlendem Werkzeug keine Versionsprüfung | `p3-reihenfolge`, `p3-nur-das-erste`, `p3-version-trotz-fehlen` | `p3-alle-fehlen` (und `p3-fehlt-docker`, `p3-fehlt-u-boot` bei der dritten) |
+| Punkt 3 (a): `u-boot` 0.9.0 abgelehnt, 0.10.0, 0.100.0, 1.0.0 angenommen, unlesbar abgelehnt | `p3-u-boot-lexikalisch`, `-groesser`, `-hauptversion`, `-nicht-geprueft`, `-unlesbar` | `p3-u-boot-0.9.0` (lexikalisch und nicht geprüft), `-0.10.0`, `-1.0.0`, `-unlesbar` |
+| Punkt 3 (b): Daemon erreichbar, Server 23 abgelehnt, 24 angenommen | `p3-docker-info`, `-version`, `-groesser` | `p3-docker-daemon`, `-23`, `-24` |
+| Punkt 3: Exit-Code 3 | `p3-exit` | `p3-fehlt-ssh` |
+| Punkt 4: nichts geändert, nur lesende Aufrufe, Form der Meldung, stdout leer | `p4-schreibt-vor-pruefung`, `p4-ruft-up`, `p4-meldung-form`, `p4-meldung-stdout` | `p4-nichts-geaendert`, `p4-meldung-form` (und die Fälle mit vollem Meldungstext) |
+| Punkt 5: Pfad in der Wurzel, die Wurzel selbst, über Symlink, nur textlich beginnend mit dem Namen der Wurzel angenommen | `p5-nicht-aufgeloest`, `p5-wurzel`, `p5-praefix`, `p5-arbeitsverzeichnis` | `p5-im-repo-symlink`, `p5-wurzel-selbst`, `p5-praefix-ohne-slash`; bei `p5-arbeitsverzeichnis` (Wurzel statt des Verzeichnisses des Skripts das Arbeitsverzeichnis) dreizehn Fälle der Gruppe |
+| Punkt 5: Elternpfad fehlt, ist Datei, nie `mkdir -p` | `p5-mkdir-p`, `p5-eltern-datei` | `p5-elternpfad-fehlt`, `p5-elternpfad-ist-datei` |
+| Punkt 5: Pfad ist Datei; leer angenommen; fehlend angelegt | `p5-kein-verzeichnis`, `p5-leer`, `p5-nicht-anlegen` | `p5-kein-verzeichnis`, `p5-leer`, `p5-fehlt` |
+| Punkt 5: Gerüst vorhanden ohne Aufruf; fortsetzen ohne `init` | `p5-vorhanden`, `p5-devcontainer-json`, `p5-fortsetzen-mit-init` | `p5-vorhanden-ohne-aufruf` (beide), `p7-fortsetzen-ohne-init` |
+| Punkt 5: fremder Inhalt und anderer Name abgelehnt, Exit 4 | `p5-fremd`, `p5-fremd-vergleich`, `p5-exit` | `p5-fremd-datei`, `p5-fremd-anderer-name`, `p13-fremd-vor-schluessel`; `p5-fremd-datei` |
+| Punkt 6: Paar fehlt: `ssh/` 700, privat 600, Kommentar, Typ, ohne Passphrase | `p6-modus-ordner`, `p6-modus-privat`, `p6-kommentar`, `p6-typ`, `p6-passphrase-anlegen` | `p6-modus-ordner`, `p6-modus-privat`, `p6-kommentar`, `p6-typ`, `p6-ohne-passphrase` |
+| Punkt 6: vorhandenes Paar nie neu erzeugt | `p6-ueberschreibt` | `p6-gueltig-unveraendert`, `p6-kommentar-ignoriert` |
+| Punkt 6: nur eine Datei abgelehnt | `p6-eine-datei` | `p6-nur-privat`, `p6-nur-oeffentlich` |
+| Punkt 6: (a) Rechte von `ssh/` und der privaten Datei, (b) Passphrase, (c) fremde `.pub`; Typ und Schlüsselteil, nicht der Kommentar | `p6-a-ordner`, `p6-a-privat`, `p6-b`, `p6-c`, `p6-c-ganze-zeile` | `p6-ordner-750`, `p6-privat-640`, `p6-passphrase` und `p6-leere-datei`, `p6-pub-anderer`, `p6-kommentar-ignoriert` |
+| Punkt 7: acht Aufrufe, jedes Argument | `p7-init-devcontainer`, `-sandbox`, `-no-git`, `-name`, `p7-node`, `-sshd`, `-claude`, `-runtime`, `-egress`, `-allow-gcr`, `-allow-pkg`, `-generate` | `p7-aufruf-<k>` (dazu `p7-echt-u-boot` bei zehn) |
+| Punkt 7: Reihenfolge; kein `up`, kein `doctor` | `p7-reihenfolge`, `p7-up`, `p7-doctor` | `p7-reihenfolge`, `p7-kein-up-doctor` |
+| Punkt 7: Fehler beendet mit Exit 5, kein Folgeaufruf; Warnung bei Exit 0 ist Erfolg | `p7-fehler-uebersehen`, `p7-fehler-exit`, `p7-warnung-als-fehler` | `p7-fehler-1` bis `-8`, `p7-warnung` |
+| Punkt 7: Ausgabe auf stdout und stderr unverändert; im Verzeichnis `$PGR_DEV` | `p7-stdout-verschluckt`, `p7-stderr-verschluckt`, `p7-kein-cd` | `p7-ausgabe-stdout`, `p7-ausgabe-stderr` (und `p7-fehler-*`, `p7-warnung`), `p7-im-verzeichnis` |
+| Punkt 8: (a) Name, (b) CPUs, (c) Speicher, (d) Port auf `127.0.0.1`, (e) Mount `readonly` auf `authorized_keys`, (f) Verweis statt Wert, Rest gleich | `p8-name`, `-name-wert`, `-cpus`, `-speicher`, `-adresse`, `-port`, `-readonly`, `-mount-quelle`, `-mount-ziel`, `-mount-bind`, `-verweis-wert`, `-verweis-fehlt`, `-rest` | `p8-name`, `p8-cpus`, `p8-speicher`, `p8-port`, `p8-mount`, `p8-env`, `p8-rest` |
+| Punkt 8: vorhandenes `mk-override.sh` bleibt und läuft; Modus 755; Fehler Exit 5 | `p8-ueberschreiben`, `p8-skript-laeuft-nicht`, `p8-modus`, `p8-skript-fehler` | `p8-vorhanden-bleibt` (und die Fälle, die das Skript ersetzen), `p8-vorhanden-laeuft`, `p8-skript-modus`, `p8-skript-fehler` |
+| Punkt 8: das Skript erhält die vier Variablen | `p8-export-name`, `-port`, `-cpus`, `-speicher` | `p8-skript-env-<Variable>` |
+| Punkt 8: keine der drei Zugangsvariablen in der Umgebung eines Kindes (je Variable); kein Wert in Datei und Ausgabe | `p8-behalte-oauth`, `-apikey`, `-gittoken`; `p8-ausgabe-apikey`, `-oauth` | `p8-umgebung-<Variable>`; `p8-keine-werte` |
+| Punkt 13: Nachbarpaare ohne Container | `p13-eingabe-nach-werkzeug`, `-werkzeug-nach-zustand`, `-verzeichnis-vor-repo`, `-schluessel-vor-verzeichnis` | `p13-eingabe-vor-werkzeug`, `p13-werkzeug-vor-repo`, `p13-repo-vor-fremd`, `p13-fremd-vor-schluessel` |
+| Punkt 13: Zwischenstand Exit 6, nie `bereit`, nie 0 | `p13-exit-null`, `p13-bereit` | `p13-zwischenstand`, `p14-j`, `p14-k`, `p14-makeflags-j`, `-k` |
+| Punkt 14: Rezept ohne `$(MAKE)` und `+`; `.PHONY` ohne Voraussetzung; `-n`, `-q`, `-t`, `-n -i`, `-i`, `-k`, `-j`, `MAKEFLAGS` | `p14-plus`, `p14-make`, `p14-phony` | `p14-n`, `-q`, `-t`, `-n-i`, `-makeflags-*`, `p14-rezept`; `p14-phony`, `p14-t`, `p14-makeflags-t` |
+| Punkt 15: Aufräumen bei Ende, `SIGINT`, `SIGTERM`; Präfix | `p15-ende`, `p15-exit-trap`, `p15-praefix` | `p15-aufraeumen-ende`; `-ende`, `-int`, `-term`; `p15-praefix` und die drei Aufräumfälle |
+| Punkt 16: Gate in `GATE_CHECKS`, in der Ausnahmeliste, `container-start` kein Gate, rotes Skript wird Exit ungleich 0 | `p16-gate-checks`, `p16-ausnahme`, `p16-ziel-gate`, `p16-scharf` | `p16-GATE_CHECKS`, `p16-GATE_SCHNELL_AUSNAHME`, `p16-ziel-kein-gate`, `p16-scharf` (Teilprüfungen des Falls `p16-gate-kette`) |
+
+**Grüne Mutanten** (vier; je Invariante · Ort · Sonde):
+
+- `p2-vorgabe-warten` (Vorgabe `61` statt `60`): Der Wert von `PGR_WARTEN` wird in diesem Slice nur geprüft, nie benutzt (die Wartezeit gehört zu Teil II, Punkt 11); Ort `PGR_WARTEN=${PGR_WARTEN-60}` in `container-start.sh`, einziger Leser ist `pruefe_PGR_WARTEN`; Sonde `grep -n PGR_WARTEN tools/harness/container-start.sh` (Zeilen 6, 36, 59, 60, 63). Über die Schnittstelle fangbar erst mit der Wartezeit von Teil II, Adresse `slice-harness-devcontainer-einrichten-start` (dessen §1 nennt `PGR_WARTEN` nur als Wartezeit der Probe, A8, nicht die Vorgabe; Punkt an den Planner, siehe Bericht).
+- `p15-int` und `p15-term` (Falle für `INT` beziehungsweise `TERM` entfällt): bash führt bei Tod durch `SIGINT` und `SIGTERM` die Falle `EXIT` aus und endet mit 130 beziehungsweise 143; Ort bash selbst; Sonde der Lauf `GP_ENTDECKE=1 GP_MUT='^p15-(int|term)$' bash tools/harness/container-start-gegenprobe.sh` (leere Menge roter Fälle, im Container gelaufen). Wie `SPEC-057` Punkt 7.
+- `p15-schutz` (der Vergleich auf das Präfix vor `rm -rf` entfällt): `$arbeit` trägt das Präfix immer, weil es aus `mktemp -d -t pgr-cs-XXXXXX` stammt; die Mutation `p15-praefix` (Vorlage geändert) färbt `p15-praefix` und die drei Aufräumfälle, die Vorlage ist also gedeckt; der Vergleich ist die Absicherung daneben. Eine Eingabe, die einen Namen von außen liefert, gibt es in Teil I nicht, ein Fall zu `SPEC-058` Punkt 15 (e) „Name aus der Umgebung“ fehlt deshalb.
+
+**Gemessen statt angenommen:** (1) bash führt bei Tod durch `SIGINT`/`SIGTERM` die Falle `EXIT` aus (Sonde der grünen Mutanten). (2) Ein Syntaxfehler im Skript endet mit Exit 2, dem Code von `eingaben`; die Fälle prüfen deshalb den Text der Meldung, nicht nur den Code (Beleg: der erste Lauf mit `[[ $t1 $k1 == … ]]` meldete Exit 2 mit der Meldung von bash). (3) `ssh-keygen -y` lehnt eine private Datei mit Modus 640 ab; der Fall `p6-privat-640` nennt deshalb (a), die Meldung kann zusätzlich (b) nennen.
+
+**Offene Punkte, an den Architect zurückgegeben** (Randform · Frage; solange der Architect nicht entschieden hat, tut der Code das hier Genannte):
+
+- R1 Fehlt `u-boot` im Pfad des Gates, ist `make gates` rot (`container-start-gegenprobe` bricht ab): Soll die Gegenprobe ohne `u-boot` den Fall `p7-echt-u-boot` laut überspringen (Muster der Grenzen anderer Gegenproben) oder bleibt es bei rot (Voraussetzung des Gates)?
+- R2 `ssh/` besteht ohne Schlüssel mit Modus ungleich 700: `mkdir -p -m 700` setzt den Modus eines vorhandenen Verzeichnisses nicht; der nächste Aufruf lehnt das Paar mit (a) ab. Soll `schluessel` den Modus setzen?
+- R3 `docker version --format '{{.Server.Version}}'` liefert nichts Lesbares: Der Code lehnt ab („älter als 24“); `SPEC-058` Punkt 3 (b) sagt es nicht. Ebenso `u-boot --version` mit Exit ungleich 0 (unlesbar).
+- R4 Die Ausgabe von `u-boot` steht auf stdout und stderr unverändert (Punkt 7); Punkt 4 sagt, auf stdout stehe nur die Schlussmeldung des Erfolgs. Gilt Punkt 4 für die eigene Ausgabe des Ziels?
+- R5 Punkt 5 nennt `.devcontainer/` und `ssh/` byteweise gleich im Fall „Gerüst vorhanden“; `override.json` liegt in `.devcontainer/` und wird bei jedem Lauf neu geschrieben (gleich nur bei gleichen Eingaben). Gemeint ist ohne `override.json`?
+- R6 Die Mutation „bei Kollision `docker rm -f`“ (Punkt 1) gibt es in Teil I nicht (Kollision ist Punkt 9); der Fall `p1-keine-zerstoerung` prüft die Aufrufe der Teil-I-Schritte, die Mutation sitzt in `werkzeuge`. Die Kollision gehört zu `slice-harness-devcontainer-einrichten-start`.
+
+*(Die Closure-Notiz mit Lerneintrag schreibt der Planner bei der Closure.)*
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
