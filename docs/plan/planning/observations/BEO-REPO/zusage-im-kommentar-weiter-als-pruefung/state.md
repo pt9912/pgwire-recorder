@@ -91,3 +91,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-devcontaine
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-gegenproben-aus-gates` (F-5, F-6 LOW) — Zahl im Kommentar weicht vom Code ab, Prosa im Gate-Index weiter als die Prüfung; behoben (Beleg `evidence/slice-harness-gegenproben-aus-gates.md`). Zähler 78.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-gegenproben-aus-gates-sammelziele` (F-4, F-5 LOW) — Prosa im Gate-Index weiter als die Fälle (Flags, Voraussetzungen), Kommentar zur Ausnahmeliste ohne Fall; behoben (Beleg `evidence/slice-harness-gegenproben-aus-gates-sammelziele.md`). Zähler 79.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.11): `slice-harness-devcontainer-einrichten-start` (F-2 MEDIUM, F-6, F-8 LOW; V-3, V-4) — Aussagen des Dokuments und eine Abschlusszeile weiter als Messung und Test (Quantor „jeder Aufruf“, „höchstens“, ein Image statt zwei, eine Messung ohne Beleg im Plan); behoben (Beleg `evidence/slice-harness-devcontainer-einrichten-start.md`). Das Risiko „Dokument veraltet still“ des Plans (§6) geht in diesen Eintrag. Zähler 80.

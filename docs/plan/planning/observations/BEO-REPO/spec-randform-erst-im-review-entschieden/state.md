@@ -39,3 +39,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-verbin
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-meldungskatalog-gate` (F-3) — drei Randformen (Tabulator, CRLF, Symlink) fand erst das Review; der Architect entschied danach (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-container` (F-7) — das Stage-Verzeichnis von `make binaries` war im Code entschieden und im Vertrag nicht genannt; der Architect trug es nach (Beleg `evidence/slice-v1-abschluss-container.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-devcontainer-einrichten-start` (F-5, F-10) — ein Metazeichen in einem zulässigen Namen (Punkt im Filter) und ein Symlink-Segment in `PGR_DEV` standen weder in §6 noch in der Spezifikation; das Review fand sie (Beleg `evidence/slice-harness-devcontainer-einrichten-start.md`).

@@ -25,3 +25,5 @@ Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-
 Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-harness-meldungskatalog-gate` — acht Randformen im Code berührt, zurückgegeben und vom Architect entschieden (Beleg `evidence/slice-harness-meldungskatalog-gate.md`).
 
 Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-harness-abdeckung-gate` — sechs Randformen im Code berührt, zurückgegeben und vom Architect entschieden (Beleg `evidence/slice-harness-abdeckung-gate.md`).
+
+Wiederaufgetreten, Regel bleibt (`.claude/commands/implement-slice.md` Randform-Rückgabe): `slice-harness-devcontainer-einrichten-start` (F-4) — sechs Randformen im Code berührt und danach zurückgegeben, vom Architect mit `SPEC-058` Punkt 9 (a) bis (e) und Punkt 13 entschieden (Beleg `evidence/slice-harness-devcontainer-einrichten-start.md`).
