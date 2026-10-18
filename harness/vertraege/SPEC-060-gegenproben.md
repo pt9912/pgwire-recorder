@@ -21,7 +21,7 @@ gibt es einen Fall und eine Mutation, die nur ihn rot färbt (`AGENTS.md` §3.10
 genau diese Menge roter Fälle je Mutation (mehr und weniger machen sie rot).
 
 **Plattform.** Zugesagt ist ein Linux-Host oder -Container mit bash ≥ 4, GNU `make` und GNU-Werkzeugen;
-die Gegenprobe der Sammelziele braucht zusätzlich `setsid`. macOS- und Windows-Hosts sind nicht zugesagt
+das Skript der Sammelziele braucht zusätzlich `pgrep` (procps), die Gegenprobe der Sammelziele `setsid`, `pgrep` und `timeout`. macOS- und Windows-Hosts sind nicht zugesagt
 (akzeptiertes Negativ; Grund: kein solcher Host steht zur Messung bereit, und die Einzelziele brauchen
 Docker mit Linux-Semantik; die Skripte lehnen sie nicht ab). Die Sammelziele fahren Einzelziele, deren
 Plattform ihr eigener Vertrag nennt.
@@ -112,6 +112,12 @@ Plattform ihr eigener Vertrag nennt.
 
 **Teil 2: die Sammelziele.**
 
+**Exit-Codes und Naht der Gegenprobe** (Entscheidung des Architect): Die Exit-Codes der Punkte 6, 8, 9, 10 und 12 sind die des **Skripts**
+`tools/harness/gegenproben.sh`. `make` selbst gibt jedem scheiternden Rezept Exit 2 (bei `-i` Exit 0); über `make` ist deshalb nur
+„Exit ungleich 0“, das Ziel, die Ausgabe und die Reihenfolge zugesagt. Die Gegenprobe prüft die Codes am Skript, das sie mit einer Attrappe
+als `make` ruft (Aufruf `gegenproben.sh <make> <sammelziel> <ziel>…`; Punkt 13 gilt dem Aufrufer, nicht der Gegenprobe), und über `make`
+das Rezept und die Ausgabe. Bei `-i` bleibt über `make` nur die Meldung.
+
 4. **Zwei Ziele, ein Skript.** `make gegenproben` fährt `GEGENPROBEN_CONTAINER`, `make gegenproben-host` fährt
    `GEGENPROBEN_HOST`, beide über dasselbe Skript `tools/harness/gegenproben.sh` aus dem Fragment
    `harness/mk/gegenproben.mk`. Beide sind `.PHONY`, kein Gate, nicht in `GATE_CHECKS`, nicht in der Ausnahmeliste, hängen
@@ -126,7 +132,8 @@ Plattform ihr eigener Vertrag nennt.
    der Reihenfolge der Liste), `p5-j` (dasselbe unter `-j4`). Mutationen: Einzelziele im Hintergrund gestartet; die Liste
    rückwärts gefahren; die Einzelziele als Prerequisites des Sammelziels statt in der Schleife.
 6. **Rotes Einzelziel, Ausgang, Zusammenfassung.** Alle Einzelziele der Liste laufen, auch nach einem roten;
-   ein Einzelziel ist rot bei jedem Exit-Code ungleich 0, auch 127 (Werkzeug fehlt) und 2 (kein Ziel); das Sammelziel
+   ein Einzelziel ist rot bei jedem Exit-Code ungleich 0, auch 127 (Werkzeug fehlt) und 2 (kein Ziel); `<n>` ist der Exit von `<make> <ziel>`:
+   bei einem scheiternden Rezept unter echtem `make` immer 2, 127 nur, wenn `make` selbst fehlt (der Fall `p6-127` läuft an der Attrappe); das Sammelziel
    meldet das fehlende Werkzeug nicht selbst und prüft vorab nichts. Der Exit-Code des Sammelziels ist 0, wenn alle
    grün sind, sonst 1. Nach der Ausgabe des letzten Einzelziels steht auf stderr je Einzelziel in der Reihenfolge der Liste eine
    Zeile `<sammelziel>: <ziel>: grün` oder `<sammelziel>: <ziel>: rot (Exit <n>)`; sonst schreibt das
@@ -136,7 +143,10 @@ Plattform ihr eigener Vertrag nennt.
    beim ersten roten; Exit 0 trotz rotem; Exit-Code nur des letzten Einzelziels; Zusammenfassung nur der roten;
    Zusammenfassung ohne Exit-Code; Zusammenfassung vor der Ausgabe des letzten Ziels.
 7. **Ausgabe.** Die Ausgabe jedes Einzelziels (stdout und stderr) erscheint unverändert und auf demselben Strom;
-   das Skript schreibt außer der Zusammenfassung und den Meldungen der Punkte 9, 10 und 12 nichts. Zeilen von `make`
+   das Skript schreibt außer der Zusammenfassung und den Meldungen der Punkte 9, 10 und 12 nichts. Vom Wortlaut der Meldung bei `-i`
+   (Punkt 10 b) ist nur der Anfang `<sammelziel>: -i ` zugesagt und geprüft. Der Standardeingang jedes Einzelziels ist `/dev/null`
+   (Folge des Hintergrundstarts, den die Behandlung der Signale braucht, Punkt 8); ein Einzelziel, das liest, bekommt Ende der Eingabe
+   (akzeptiertes Negativ, ohne Fall; Grund: ein Terminal als Eingang wäre mit dem Abbruch nicht zu vereinbaren). Zeilen von `make`
    selbst (Verzeichniswechsel, Warnungen zum Jobserver unter `-j`) sind nicht zugesagt. Fall `p7-ausgabe`: die
    Attrappe schreibt eine Zeile auf stdout und eine auf stderr; beide erscheinen auf ihrem Strom. Mutationen: stderr nach
    stdout geleitet; stdout verworfen.
@@ -150,7 +160,10 @@ Plattform ihr eigener Vertrag nennt.
    `SIGKILL` und ein Ausfall von Docker sind nicht zugesagt (Punkt 15).
 9. **Leere Liste.** Eine leere Liste ist ein Fehler, kein stilles Grün: Exit 2, eine Zeile `<sammelziel>: Liste leer` auf stderr, kein
    Einzelziel. Fälle `p9-container` und `p9-host`, je Sammelziel einer (das Fragment der Kopie hängt nichts an die Liste). Mutationen:
-   Exit 0; die Prüfung liest die Liste des anderen Sammelziels.
+   Exit 0;
+   das Fragment übergibt dem Skript die Liste des anderen Sammelziels (Rezepte mit vertauschten Listen; das Skript kennt nur die ihm
+   übergebene Liste). Diese Mutation färbt außer `p9-*` auch Fälle der Punkte 4, 5, 6 und 10 (`p4-*`, `p5-*`, `p6-erstes-rot`, `p10-j`,
+   `p10-k`); die Gegenprobe verlangt genau diese Menge.
 10. **Aufrufarten von `make`.** Zugesagt ist das Ergebnis, nicht der Mechanismus; das Rezept übergibt `$(MAKE)` an das Skript, `make`
     führt es deshalb auch unter `-n`, `-q` und `-t` aus, und das Skript entscheidet an den Buchstaben im ersten Wort von
     `MAKEFLAGS`, wenn es nicht mit `-` beginnt (wie [`SPEC-052`](SPEC-052-gate-kette.md) Punkt 6).
