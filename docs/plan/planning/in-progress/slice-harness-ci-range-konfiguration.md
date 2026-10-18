@@ -239,6 +239,18 @@ Ausgang je Finding (die Entscheidung des Architect steht in `SPEC-064` Punkte 11
 | F-9 INFO Plan-Nachzug | §3 nachgezogen (27 Fälle, 41 Mutationen); `make kopf-check` im `make gates` grün |
 | F-10 INFO Worktree ohne `.git`-Verzeichnis | Eigenschaft der Treiber, keine Arbeit; die Läufe hier im Klon des Containers |
 
+### Nacharbeit nach der Verifikation (`docs/reviews/2026-10-18-verify-slice-harness-ci-range-konfiguration.md`)
+
+| Befund | Ausgang |
+|---|---|
+| V-1 MEDIUM Rekursion bei `GP_MUT=m-p18-*` | behoben: Die Kopie des Skripts startet mit `env -u GP_MUT -u GP_ENTDECKE -u GP_FALL` und `GP_PARALLEL=2`; `GP_INNEN=1` schaltet in jedem Lauf der Kopie die p18-Fälle (`faelle p18` liefert nichts) und die Mutationen `m-p18-*` (`mut18` kehrt sofort zurück) ab. Fall: Lauf `rekursion-schutz` (eine Kopie mit `GP_INNEN=1` und `GP_MUT=m-p18` fährt nichts, Exit 1, Meldung „keine Mutation und keine Kopie gefahren“, unter `timeout 60`). Mutation (Sonde, nicht im Lauf): die Zeile `[ -z "${GP_INNEN-}" ] \|\| return 0` in `mut18` gestrichen, dann endet der Lauf `rekursion-schutz` nicht mit Exit 1 (rot, die Meldung enthält die Läufe der inneren Kopie). |
+| V-4 LOW Kommentar zu `GP_INNEN` | Kopf berichtigt (Wortlaut oben im Skript): nennt `env -u …`, `GP_PARALLEL=2` und die abgeschalteten Fälle und Mutationen |
+| V-2 MEDIUM, V-3 INFO Zeichenklassen, Schwanz, Leerzeichen | keine Mutation, kein Fall: Der Architect hat Zeichenklasse der Muster und Leerzeichen der Ausnahme als Grenze in `SPEC-064` Punkt 11 genannt; zugesagt sind Stellung, Länge und Ziffernzahl. Kein Satz in Fragment, Skriptkopf oder README-Zeile sagt „je Zeichenklasse“ zu (durchgesehen; der Kopf nennt die Grenze jetzt). Der Schwanz `(-[a-z0-9]+)*` des Slice-Musters ist für die Anwesenheitsprüfung äquivalent: Invariante: ein Treffer des längeren Musters enthält einen Treffer des kürzeren; Ort: die Suche nach dem Muster in der Zeile, kein Ganzzeichen-Vergleich; Sonde (Verifikation, Mutant `v-schwanz`): kein Fall wird rot, Original und Mutant trennen sich nicht |
+
+**Läufe nach der Verifikation** (Stand `c1d2b1f3`, nacheinander): `make range-konfiguration-gegenprobe` `grün (44 Läufe)` (2 min 28 s; 41 Mutationen, `ok`, `fall-ohne-funktion`, `rekursion-schutz`); `make gates-schnell-gegenprobe` grün (59 s); `make gates` Exit 0 (4 min 21 s); `make docs-check` 0 Befunde vor jedem Commit.
+
+**Messung V-1** (Container pgr-dev3, jede Zeile unter `timeout`, Prozesse mit `ps -e` gezählt, alle 0,3 s abgetastet): `GP_MUT=m-p18-int-falle-fehlt GP_ENTDECKE=1 timeout 100 bash tools/harness/range-konfiguration-gegenprobe.sh`: `m-p18-int-falle-fehlt => p18-sigint` und `grün (1 Läufe)`; Prozesse vorher 16, Spitze 53, nachher 16 (die Kopie fährt ihre Läufe mit der Attrappe von `docker`; es bleibt kein Prozess des Skripts zurück). Vorher, im Stand `d8086425`, lief dieselbe Zeile ohne Ende.
+
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
