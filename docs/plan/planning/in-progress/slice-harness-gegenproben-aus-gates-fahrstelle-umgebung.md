@@ -128,6 +128,9 @@ dasteht.
 | Mehrere Zweige in einem Push: ein Lauf je Zweig, jeder mit denselben Zusagen | Bestand, `SPEC-061` Punkt 16 (4) |
 | Kein `/proc` (macOS, minimale Umgebung) | Architect, `SPEC-061` Kopf, Plattform (nur Linux zugesagt; der Gegenproben-Container ist Linux, der Hook nur dort aufgesetzt) |
 | Aufruf von Hand oder aus `make` statt durch `git receive-pack` | Bestand, `SPEC-061` Punkt 5 |
+| Mindestversion von bash für den Hook und die Gegenprobe; Äquivalenz des Mutanten ohne `exec` | Architect, `SPEC-061` Punkt 5 (Hook bash ≥ 4; Gegenprobe bash ≥ 5.1, gemessen mit `bash:4.4` bis `bash:5.2`: das Auslassen des `fork` beginnt mit 5.1; die Gegenprobe prüft die Version vorab, Exit 2) |
+| `env --default-signal` (coreutils ab 8.31) und `/proc` fehlen | Architect, `SPEC-061` Punkt 13 (`env` wird geprüft, Fall und Mutation) und Kopf, Plattform (`/proc` nicht geprüft, akzeptiertes Negativ) |
+| Echter `git push` über `ssh` | Architect, `SPEC-061` Punkt 16 (11) |
 
 **Aufrufarten des Treibers (§3.12):** nicht Gegenstand dieses Slice (`SPEC-061` Punkte 10, 11 und 14 sind Bestand des Gebers). **Aufruf-Voraussetzung:** Die Zusagen des Punktes 5 gelten für jeden Aufrufer, der den Hook startet, gleich welche Deskriptoren und Signalzustände er vererbt; gleichzeitig laufende Hooks sind Punkt 6.
 
