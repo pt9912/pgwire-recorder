@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates-fahrstelle-umgebung
+**Fund:** Review F-1 (LOW): Die Mutationstabelle hatte für die Aufzählungen von Punkt 11 und Punkt 5 keine Mutation je Element (`env --default-signal=INT` allein, `=QUIT` allein, "alle Deskriptoren außer 5", "außer 7"); die Fälle `p11-erbt-*` und `p5-eof-fd*` fingen sie, gefahren hatte sie niemand. Behoben mit vier Mutationen (Commit `9230dbab`). Die Schärfung vom 2026-10-13 galt (Aufzählung zählt je Element); das Review fand die Lücke trotzdem.

@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates-fahrstelle-umgebung
+**Fund:** Review F-3 (LOW): Titel, §1 Ziel (2) und DoD Liefer-Punkt 1 sagten "weder `SIGINT` noch `SIGQUIT`" für den Lauf; `SPEC-061` Punkt 11 in der Fassung des Architect nimmt `SIGQUIT` in der Shell des Laufs aus (bash ignoriert es selbst), der Code liefert das. Der Plan folgte der Entscheidung des Architect nicht; der Implementer ändert dort nichts (nur §7). Nachgezogen bei der Closure (Planner): Titel, Kopf, §1, DoD, §3 und der Titel in `welle-gegenproben-und-mutanten` §4.
