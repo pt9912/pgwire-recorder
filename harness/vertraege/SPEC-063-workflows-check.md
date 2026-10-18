@@ -62,11 +62,15 @@ eine Mutation.
    innerhalb des Baums. Fälle: `p1-yml`, `p1-yaml` (je eine Datei mit Befund aus Punkt 6, rot, Datei genannt),
    `p1-andere-endung` (Dateien `x.YML`, `x.yml.bak` und `x.txt` mit Befund: grün, drei Hinweise), `p1-unterverzeichnis`,
    `p1-symlink`. Mutationen: Prüfbereich nur `.yml`; nur `.yaml`; Endung als Teilstring (`*.yml*`); rekursive Suche; Symlink gefolgt.
-2. **Kein Prüfbereich.** Fehlt das Verzeichnis (F1), ist es leer (F2) oder enthält es nur Dateien, die Punkt 1 nicht prüft (F3), meldet das
+2. **Kein Prüfbereich.** Fehlt das Verzeichnis (F1), ist es leer (F2) oder enthält es nur Dateien, die Punkt 1 weder prüft noch als Symlink beanstandet (F3), meldet das
    Skript auf stdout `workflows-check: keine Workflow-Dateien unter .github/workflows` und endet mit Exit 0, **ohne** `docker` zu rufen
    und ohne die Prüfungen der Punkte 4 und 8. Das ist grün über leerem Prüfbereich und gilt bis zur ersten Datei (Grenze, Punkt 11); die
    Meldung ist deshalb Pflicht. Fälle: `p2-kein-verzeichnis`, `p2-leer`, `p2-nur-andere` (Exit 0, Meldung, Attrappe von `docker` nicht
-   gerufen). Mutationen je Form: F1 endet mit Exit 2; F2 endet still; F3 ruft `docker`.
+   gerufen). Mutationen je Form: F1 endet mit Exit 2; F2 endet still; F3 ruft `docker`. **Symlinks gehen vor:** Besteht das Verzeichnis nur aus Symlinks mit einer Endung
+   von Punkt 1 (F4), gibt es keinen Kandidaten, aber einen Befund: Der Befund `symlink` gilt (Punkt 1), nicht die Meldung „keine Workflow-Dateien“; das Skript endet mit Exit 1 und der Schlusszeile
+   von Punkt 9, ruft `docker` nicht (keine Dateiliste) und prüft weder Punkt 4 noch Punkt 8 (beide brauchen einen Kandidaten bzw. `actionlint`). Ein Symlink neben einem regulären Kandidaten
+   ändert nichts am Lauf der übrigen Punkte; sein Befund kommt hinzu (Punkt 9). Fall `p2-nur-symlink` (Exit 1, Befundzeile `symlink`, Summe 1, Attrappe nicht gerufen, die Meldung
+   „keine Workflow-Dateien“ fehlt); Mutationen: ein Verzeichnis nur mit Symlinks endet mit Exit 0 und der Meldung von F3; das Skript ruft bei F4 `docker`.
 3. **Aufruf von `actionlint`.** Das Skript ruft genau einmal `"$DOCKER" run --rm --network none -v "<Wurzel>:/repo:ro" -w /repo
    "$WORKFLOWS_ACTIONLINT" -oneline <Dateien>`; `<Dateien>` sind die Kandidaten aus Punkt 1 ohne Symlinks als Pfade
    `.github/workflows/<Name>` in der Reihenfolge der Namen. Elemente: `--rm` (E1), `--network none` (E2), Mount mit `:ro` (E3), das Image
@@ -119,7 +123,7 @@ eine Mutation.
    grün; `make docs-check` meldet sie (Punkt 12, Fall `real-pins`). Fälle: `p8-ok`, `p8-modules` (Element fehlt), `p8-block` (Zeile fehlt), `p8-dir`
    (anderer Wert), `p8-ohne-datei`, `p8-pins-nicht-hier` (unpinnte Referenz, Konfiguration gebunden: grün). Mutationen: (a) nicht geprüft; (b) nicht
    geprüft; (c) nicht geprüft; fehlende Datei angenommen; das Skript meldet unpinnte Referenzen selbst.
-9. **Ausgabe, Exit-Codes, Reihenfolge der Gründe.** Reihenfolge: (1) kein Prüfbereich: Exit 0 (Punkt 2); (2) `docker` oder `actionlint` nicht lauffähig:
+9. **Ausgabe, Exit-Codes, Reihenfolge der Gründe.** Reihenfolge: (1) kein Prüfbereich und kein Symlink: Exit 0 (Punkt 2); nur Symlinks: Exit 1 ohne Aufruf von `docker` (Punkt 2, F4); (2) `docker` oder `actionlint` nicht lauffähig:
    Exit 2 sofort, **ohne** die Zeilen der Gruppen (b) und (c), weil eine unvollständige Liste Befunde vortäuscht (Punkt 3); (3) sonst laufen alle Gruppen in
    einem Lauf und nennen alle Befunde: zuerst die Zeilen von `actionlint` in ihrer Reihenfolge, dann je Datei in der Reihenfolge der Namen die
    eigenen Befunde nach Zeile, zuletzt die Befunde ohne einzelne Datei (`konfiguration`, `pins-ungeprueft`). Eine Befundzeile des Skripts lautet
