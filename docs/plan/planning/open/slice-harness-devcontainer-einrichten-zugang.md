@@ -9,8 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein Abnahmeszenario und
-kein Meilenstein hängt an ihm. Angelegt am 2026-10-18 durch den Schnitt von `slice-harness-devcontainer-einrichten` (Entscheidung des Nutzers vom 2026-10-18: Der Zugang von Claude Code im Container wird nicht gebraucht; kein Login, die Hostsitzung treibt die Arbeit per `ssh` und Befehl im Container). Der Slice bleibt als Plan erhalten, wird aber nicht priorisiert (§4).
+**Welle:** welle-dev-container (Entscheidung des Nutzers vom 2026-10-18; bis dahin ohne Welle). Angelegt am 2026-10-18 durch den Schnitt von `slice-harness-devcontainer-einrichten` (Entscheidung des Nutzers vom 2026-10-18: Der Zugang von Claude Code im Container wird nicht gebraucht; kein Login, die Hostsitzung treibt die Arbeit per `ssh` und Befehl im Container). Der Slice bleibt als Plan erhalten, wird aber nicht priorisiert (§4).
 
 **Bezug:** [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität) nur insoweit, als die Host-Voraussetzungen des Repos berührt sind (dieselbe Frage wie im Vorgänger; die `devcontainer`-CLI kommt dort an); kein Anspruch des Produkts.
 Vorgänger in dieser Reihenfolge: `slice-harness-devcontainer-einrichten-geruest` (liefert das Ziel `container-start` und schreibt `mk-override.sh`), `slice-harness-devcontainer-einrichten` (liefert das Ziel `container-einrichten`; dieser Slice erweitert dessen Skript) und `slice-harness-devcontainer-u-boot-0-10` (`done/`; Geber der Sendung „Quellenauflösung“ und der Befunde zu `remoteEnv`). Keine aktive ADR; der Architect legt eine an oder ergänzt die des Vorgängers (§6).

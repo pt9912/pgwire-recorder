@@ -9,8 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein Abnahmeszenario und
-kein Meilenstein hängt an ihm. Angelegt am 2026-10-18 durch den Schnitt von `slice-harness-devcontainer-einrichten` (dessen Schätzung 995 bis 1480 lag mit dem ganzen Spektrum über der Marke 900; Regel des Nutzers: schneiden, wenn die Schätzung die Marke selbst überschreitet).
+**Welle:** welle-dev-container (Entscheidung des Nutzers vom 2026-10-18; bis dahin ohne Welle). Angelegt am 2026-10-18 durch den Schnitt von `slice-harness-devcontainer-einrichten` (dessen Schätzung 995 bis 1480 lag mit dem ganzen Spektrum über der Marke 900; Regel des Nutzers: schneiden, wenn die Schätzung die Marke selbst überschreitet).
 
 **Bezug:** [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität) nur insoweit, als die Host-Voraussetzungen des Repos berührt sind (neu, noch nicht entschieden: `u-boot`, `devcontainer`-CLI, `node`, `ssh-keygen`, §1); kein Anspruch des Produkts.
 Vorgänger: `slice-harness-devcontainer-austausch-repo` und `slice-harness-devcontainer-doku` (beide `done/`) und `slice-harness-devcontainer-u-boot-0-10` (`done/`; Geber des gemessenen Gerüsts auf `u-boot` v0.10.0 und der Messung von `make gates` im Container). Folge-Slices in dieser Reihenfolge: `slice-harness-devcontainer-einrichten` (Bare-Repo, Einlieferung, Klon, Zweig; setzt den Container dieses Slice voraus), dann gegebenenfalls `slice-harness-devcontainer-einrichten-zugang`. Keine aktive ADR; der Architect legt eine an (§6).
