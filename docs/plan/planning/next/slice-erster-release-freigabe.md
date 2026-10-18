@@ -52,7 +52,7 @@ Dazu der erste echte Tag: Jener Slice belegt die Pipeline mit einem Probe-Tag, d
 den ersten stabilen Tag mit Checkliste und Scan. Die Randformen der drei Punkte zogen aus §6
 jenes Slice hierher (§6 unten).
 
-**Bindung von `slice-harness-gegenproben-aus-gates-fahrstelle`** (eingetragen vom Planner am 2026-10-18, Entscheidung des Nutzers vom selben Tag, `AGENTS.md` §3.13): Die Freigabe-Checkliste (DoD-Punkt 3, `docs/maintainer/releasing.md` §10) führt als Punkt mit Beleg: ein grünes Ergebnis des Gegenproben-Containers für den Commit, der getaggt wird (der `post-receive`-Hook im Bare-Repo von `pgr-gp` legt es ab; fehlt es oder ist es rot, fährt die Freigabe `make gegenproben` selbst), und `make gegenproben-host` am Host grün auf demselben Commit; die Gegenproben sind seit `slice-harness-gegenproben-aus-gates` nicht mehr Teil von `make gates`. Der Punkt gehört zum Liefer-Punkt der Checkliste, kein neuer Liefer-Punkt, keine neue Schicht.
+**Bindung von `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb`** (eingetragen vom Planner am 2026-10-18, Entscheidung des Nutzers vom selben Tag, `AGENTS.md` §3.13): Die Freigabe-Checkliste (DoD-Punkt 3, `docs/maintainer/releasing.md` §10) führt als Punkt mit Beleg: ein grünes Ergebnis des Gegenproben-Containers für den Commit, der getaggt wird (der `post-receive`-Hook im Bare-Repo von `pgr-gp` legt es ab; fehlt es oder ist es rot, fährt die Freigabe `make gegenproben` selbst), und `make gegenproben-host` am Host grün auf demselben Commit; die Gegenproben sind seit `slice-harness-gegenproben-aus-gates` nicht mehr Teil von `make gates`. Der Punkt gehört zum Liefer-Punkt der Checkliste, kein neuer Liefer-Punkt, keine neue Schicht. **Geber nach dem Schnitt vom 2026-10-18:** `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb` (Pflicht, Abschnitt im Dokument, erste Fahrt); der Hook, der das Ergebnis ablegt, liegt in `slice-harness-gegenproben-aus-gates-fahrstelle`. Die Bindung ruht auf beiden; `grep` nach `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb` findet sie in §1, §6 und §8 dieses Slice.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -198,7 +198,7 @@ ersten Code-Commit in der Spezifikation oder einer ADR; sie zogen mit dem Schnit
   der Manifestliste; Netz für die Schwachstellen-Datenbank; ob auch der Probe-Tag gescannt
   wird.
 
-- **Gegenproben nicht Teil von `make gates`** (Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle`): Ein grünes `make gates` vor dem Tag sagt nichts über die Gegenproben; ohne den Punkt in der Checkliste bliebe eine Regression im Werkzeug unbemerkt. — **Ausgang (vorgesehen):** entfallen, wenn die Checkliste den Punkt mit Beleg trägt; sonst eingetreten → Folge-Slice mit Kennung vom Planner. Reihenfolge: Die Welle dieses Slice liegt vor den Harness-Wellen; trägt `slice-harness-gegenproben-aus-gates-fahrstelle` nach, wenn dieser Slice schon `done/` ist, ist das Risiko eingetreten.
+- **Gegenproben nicht Teil von `make gates`** (Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb`): Ein grünes `make gates` vor dem Tag sagt nichts über die Gegenproben; ohne den Punkt in der Checkliste bliebe eine Regression im Werkzeug unbemerkt. — **Ausgang (vorgesehen):** entfallen, wenn die Checkliste den Punkt mit Beleg trägt; sonst eingetreten → Folge-Slice mit Kennung vom Planner. Reihenfolge: Die Welle dieses Slice liegt vor den Harness-Wellen; trägt `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb` nach, wenn dieser Slice schon `done/` ist, ist das Risiko eingetreten.
 
 ## 7. Closure-Notiz
 
@@ -262,8 +262,10 @@ Nachgezählt am 2026-10-17 (Planner, `AGENTS.md` §3.13; keine neue Sendung, Sta
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
-**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle` einträgt): Der Punkt gehört in die Checkliste des dritten Liefer-Punkts (DoD 3); Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation).
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb` einträgt): Der Punkt gehört in die Checkliste des dritten Liefer-Punkts (DoD 3); Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation).
 
-**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Ergänzung zur Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle` einträgt): Die Fassung des Punktes ändert nur den Beleg (Ergebnis des Gegenproben-Containers statt eigener Fahrt); Liefer-Punkte weiter drei, Schichten weiter zwei.
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Ergänzung zur Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb` einträgt): Die Fassung des Punktes ändert nur den Beleg (Ergebnis des Gegenproben-Containers statt eigener Fahrt); Liefer-Punkte weiter drei, Schichten weiter zwei.
 
 **Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Bindung aus `slice-harness-ci-freshness` einträgt): Die Bindung ändert den Beleg von Punkt 4 (Ergebnis des Nachtlaufs statt eigener Handlung) und den Start-Trigger; sie ist Teil des zweiten Liefer-Punkts (Freshness-Audit in `releasing.md` §5), kein neuer. Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation).
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der `slice-harness-gegenproben-aus-gates-fahrstelle` schneidet): Die Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle` wechselt den Geber zu `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb` (Pflicht, Abschnitt im Dokument, erste Fahrt); der Inhalt des Punktes der Checkliste ändert sich nicht. Der Punkt gehört weiter zur Checkliste des dritten Liefer-Punkts (DoD 3); Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation).

@@ -36,7 +36,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Die Sammelziele `make gegenproben` und `make gegenproben-host` und die Listen — `slice-harness-gegenproben-aus-gates-sammelziele` (Geber, vor diesem Slice); dieser Slice ruft sie und ändert sie nicht.
-- Die Pflicht-Fahrstelle (der eigene Dev-Container, am Ende jeder Welle und vor dem Release) — `slice-harness-gegenproben-aus-gates-fahrstelle`; der Nachtlauf ergänzt sie, er ersetzt sie nicht (Frage 1), und der Wortlaut von `AGENTS.md` §6 ist Entscheidung des Nutzers vom 2026-10-18.
+- Die Pflicht-Fahrstelle (der eigene Dev-Container, am Ende jeder Welle und vor dem Release) — `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb` (Pflicht in den Anweisungen, Abschnitt im Dokument, erste Fahrt; der Hook für die Einlieferung liegt in `slice-harness-gegenproben-aus-gates-fahrstelle`); der Nachtlauf ergänzt sie, er ersetzt sie nicht (Frage 1), und der Wortlaut von `AGENTS.md` §6 ist Entscheidung des Nutzers vom 2026-10-18.
 - `ci.yml`, `make gates`, die Range-Prüfung — `slice-harness-ci`; ein roter Nachtlauf sperrt keinen Merge.
 - Aktualität der Pins — `slice-harness-ci-freshness`; ein Nachtlauf über Fremdbestände ist ein anderer Workflow mit anderer Fehlersemantik.
 - Die Prüfung der Datei auf Pins, Rechte, Zeitgrenze und Syntax — `make workflows-check` aus `slice-harness-ci-workflows`; dieser Slice baut keinen zweiten Prüfer.
