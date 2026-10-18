@@ -7,7 +7,7 @@ scan:
   # .harness/**: tool-interne Ablage (gefetchtes Sprachskelett-Staging) —
   # keine Adopter-Doku, vom Doc-Gate ausgenommen.
   ignore: ["**/*.template.md", ".tmp/**", ".harness/**"]
-modules: [links, anchors, ids, matrix, spans]
+modules: [links, anchors, ids, matrix, spans, workflows]
 ids:
   patterns:
     - {regex: 'ADR-([A-Z]+-)?\d{4}', target: docs/plan/adr/, link-policy: always}
@@ -137,6 +137,11 @@ vcs:
   status-line: '^\*\*Status:\*\*'
   head-allow: '^\*\*Status:\*\* (Accepted|Superseded by )'
   ignore-link-targets: true
+
+# Pins der Workflow-Dateien (SPEC-063 Punkt 8, SPEC-064 Punkt 13): Das Modul workflows prueft jede Aktion auf SHA mit Tag-Kommentar.
+# make workflows-check haelt diese Bindung am Arbeitsbaum; ohne Datei unter dir meldet das Modul einen Befund.
+workflows:
+  dir: .github/workflows
 
 # Quellen der Requirements Traceability Matrix (make doc-trace). Die Kennungen dieses
 # Repos tragen das Praefix LH und eine laufende Nummer (LH-FA-01, LH-QA-01, LH-RB-01);

@@ -1,0 +1,39 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+permissions: {}
+jobs:
+  gates:
+    name: ci-gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      CI_EVENT: ${{ github.event_name }}
+      CI_HEAD: ${{ github.sha }}
+      CI_PR_BASE: ${{ github.event.pull_request.base.sha }}
+      CI_PUSH_BEFORE: ${{ github.event.before }}
+      CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Commit-Messages der Range
+        run: |
+          range="$(bash tools/harness/ci-range.sh)"
+          make doc-commits RANGE="$range"
+      - name: ADR-Immutabilität der Range
+        if: ${{ !cancelled() }}
+        run: |
+          range="$(bash tools/harness/ci-range.sh)"
+          make doc-immutable RANGE="$range"
+      - name: Gates
+        run: make gates
