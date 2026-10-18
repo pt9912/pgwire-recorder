@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-060` Teil 1 (Punkte 1 bis 3: Listen, Namens- und Zuordnungsregel; Vertrag in `harness/vertraege/`, vom Architect am 2026-10-18 geschrieben; Teil 2, die Sammelziele, gehört `slice-harness-gegenproben-aus-gates-sammelziele`); `SPEC-058` liegt vor (Gegenprobe des Container-Starts, Host-Ziel); [`SPEC-052`](../../../../harness/vertraege/SPEC-052-gate-kette.md) Punkte 1, 2, 3, 4, 9 und 13; [`SPEC-053`](../../../../harness/vertraege/SPEC-053-postgres-versionen.md) Punkte 12 und 13; [`SPEC-054`](../../../../harness/vertraege/SPEC-054-meldungskatalog.md) Punkt 11; [`SPEC-055`](../../../../harness/vertraege/SPEC-055-container-und-binaries.md) Punkt 12; [`SPEC-056`](../../../../harness/vertraege/SPEC-056-testabdeckung-schwelle.md) Punkt 11; [`SPEC-057`](../../../../harness/vertraege/SPEC-057-integration-aufraeumen.md) Punkt 10; [`SPEC-047`](../../../../harness/vertraege/SPEC-047-kopf-der-plaene.md) Punkt 9 und [`SPEC-049`](../../../../harness/vertraege/SPEC-049-lint-profil.md) Punkt 10 nur in dem, was ihre Gegenprobe zum Anschluss prüft; `SPEC-058` (Stand des Zweigs) Punkte zur Ausnahmeliste und zur Erkennung des Dev-Containers.
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig slice-harness-gegenproben-aus-gates)
 
 **Autor:** Planner. **Datum:** 2026-10-18.
 
