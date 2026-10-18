@@ -1,7 +1,7 @@
 # Review slice-v1-abschluss-anmeldung-doku
 
 Rolle: Reviewer. Datum: 2026-10-14.
-Gegenstand: Diff `ea5019b..6a44529` (Move-Commit bis HEAD, fünf Commits) gegen den Plan [`slice-v1-abschluss-anmeldung-doku`](../plan/planning/done/slice-v1-abschluss-anmeldung-doku.md), den Code-Slice [`slice-v1-abschluss-anmeldung`](../plan/planning/done/slice-v1-abschluss-anmeldung.md), [LH-FA-05](../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), `LH-FA-05.b` (Randformen der Vermittlung, Record) in der [Spezifikation](../../spec/spezifikation.md) und `AGENTS.md` §3.7, §3.9, §3.11, §3.13, §3.14.
+Gegenstand: Diff `ea5019b..6a44529` (Move-Commit bis HEAD, fünf Commits) gegen den Plan [`slice-v1-abschluss-anmeldung-doku`](../plan/planning/done/welle-v1-abschluss/slice-v1-abschluss-anmeldung-doku.md), den Code-Slice [`slice-v1-abschluss-anmeldung`](../plan/planning/done/welle-v1-abschluss/slice-v1-abschluss-anmeldung.md), [LH-FA-05](../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), `LH-FA-05.b` (Randformen der Vermittlung, Record) in der [Spezifikation](../../spec/spezifikation.md) und `AGENTS.md` §3.7, §3.9, §3.11, §3.13, §3.14.
 
 **Summary: 0 HIGH · 1 MEDIUM · 2 LOW · 4 INFO.**
 

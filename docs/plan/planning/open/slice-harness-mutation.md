@@ -150,7 +150,7 @@ die drei Slices der Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harne
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
 `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
 `slice-harness-mutation`; die Reihenfolge
-der Wellen-Slices steht in §5 von [welle-v1-abschluss](../done/welle-v1-abschluss.md). Dieser Slice ist der letzte der Reihe.
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](../done/welle-v1-abschluss/welle-v1-abschluss.md). Dieser Slice ist der letzte der Reihe.
 Grund der Reihenfolge, keine technische Abhängigkeit: Lint-Bereinigung und
 Black-Box-Umstellung ändern die Tests, gegen die Mutanten laufen; eine Messung davor
 wäre veraltet, bevor das Gate greift. Nach den beiden Sammel-Slices, damit

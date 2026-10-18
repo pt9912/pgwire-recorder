@@ -1,6 +1,6 @@
 # Verifikation: slice-harness-vertraege-umzug-gate-kette
 
-**Rolle:** Verifier. **Datum:** 2026-10-13. **Spanne:** `8b1ede6` bis `491ef31` (HEAD). **Gegenstand:** [slice-harness-vertraege-umzug-gate-kette](../plan/planning/done/slice-harness-vertraege-umzug-gate-kette.md) gegen DoD (§2), [ADR-0040](../plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), [ADR-0038](../plan/adr/0038-gate-kette-voll-und-schnell.md), [MR-002](../../harness/conventions.md#mr-002) und Spezifikation. Review: [Review-Report](2026-10-13-review-slice-harness-vertraege-umzug-gate-kette.md).
+**Rolle:** Verifier. **Datum:** 2026-10-13. **Spanne:** `8b1ede6` bis `491ef31` (HEAD). **Gegenstand:** [slice-harness-vertraege-umzug-gate-kette](../plan/planning/done/welle-v1-abschluss/slice-harness-vertraege-umzug-gate-kette.md) gegen DoD (§2), [ADR-0040](../plan/adr/0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md), [ADR-0038](../plan/adr/0038-gate-kette-voll-und-schnell.md), [MR-002](../../harness/conventions.md#mr-002) und Spezifikation. Review: [Review-Report](2026-10-13-review-slice-harness-vertraege-umzug-gate-kette.md).
 
 Alle Belege unten sind in diesem Lauf selbst erzeugt, nicht aus §7 übernommen.
 

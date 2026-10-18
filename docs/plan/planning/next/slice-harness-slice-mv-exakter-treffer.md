@@ -16,7 +16,7 @@ nächsten Welle-Closure. Angelegt am 2026-10-15 nach Hinweis des Nutzers vom sel
 Reihenfolge ist Empfehlung des Planners (§4 *Start*); seit dem 2026-10-16 hinter dem Release (Entscheidung des Nutzers).
 
 **Bezug:** kein Anspruch des Produkts — der Slice ändert ein Werkzeug des Harness. Auslöser:
-[slice-harness-upgrade-v6-16](../done/slice-harness-upgrade-v6-16.md) (dokumentierter Auslöser
+[slice-harness-upgrade-v6-16](../done/welle-v1-abschluss/slice-harness-upgrade-v6-16.md) (dokumentierter Auslöser
 der Übernahme) und der Beleg in
 [der Verifikation von slice-harness-gate-kette-stop-hook-freigabe](../../../reviews/2026-10-13-verifikation-slice-harness-gate-kette-stop-hook-freigabe.md)
 (Zeile 49); die Moves von Schritt 35b und 36a gingen von Hand, weil das Muster `-sqlite` gegen

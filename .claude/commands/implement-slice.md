@@ -175,7 +175,7 @@ slice-harness-randform-stelle-und-lesart, `BEO-REPO/randform-im-code-entschieden
     Datei an“); ein Satz ohne Zeile wird gestrichen oder bekommt sie. Ein Wort, das einen
     Zustand benennt („leer“), nennt ihn so, wie die Probe ihn zeigt („ohne Wert, `NULL`“)
     (seit slice-v1-abschluss-sqlite-format-doku).
-    Die Befehlsfolge aus `done/slice-doku-ist-stand.md` §7 (Optionen, Variablen und Codes des
+    Die Befehlsfolge aus `done/welle-v1-abschluss/slice-doku-ist-stand.md` §7 (Optionen, Variablen und Codes des
     Handbuchs gegen `--help` und Katalog) bleibt dort eingefroren und meldet
     `PGWIRE_RECORDER_PASSWORD` bei jedem Lauf (Variable ohne Option, Handbuch §5). Der Plan, der
     sie fährt, nennt diese Ausnahme und zieht die Variable in der Variablen-Zeile ab

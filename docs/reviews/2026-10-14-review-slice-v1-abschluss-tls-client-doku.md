@@ -1,7 +1,7 @@
 # Review slice-v1-abschluss-tls-client-doku
 
 Rolle: Reviewer. Datum: 2026-10-14.
-Gegenstand: Diff `59e14db..77efd06` (Move-Commit bis HEAD, drei Commits) gegen den Plan [`slice-v1-abschluss-tls-client-doku`](../plan/planning/done/slice-v1-abschluss-tls-client-doku.md), den Code-Slice [`slice-v1-abschluss-tls-client`](../plan/planning/done/slice-v1-abschluss-tls-client.md), [LH-FA-23](../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client), `LH-FA-23.a`, `LH-FA-17.a` und `AGENTS.md` §3.7, §3.9, §3.11, §3.13, §3.14.
+Gegenstand: Diff `59e14db..77efd06` (Move-Commit bis HEAD, drei Commits) gegen den Plan [`slice-v1-abschluss-tls-client-doku`](../plan/planning/done/welle-v1-abschluss/slice-v1-abschluss-tls-client-doku.md), den Code-Slice [`slice-v1-abschluss-tls-client`](../plan/planning/done/welle-v1-abschluss/slice-v1-abschluss-tls-client.md), [LH-FA-23](../../spec/lastenheft.md#lh-fa-23--verschlüsselung-zum-client), `LH-FA-23.a`, `LH-FA-17.a` und `AGENTS.md` §3.7, §3.9, §3.11, §3.13, §3.14.
 
 Der Report wurde vom Reviewer als Text geliefert, weil dessen Schreibzugriff abgelehnt wurde; der Orchestrator hat ihn unverändert abgelegt.
 

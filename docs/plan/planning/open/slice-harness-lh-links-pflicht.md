@@ -48,7 +48,7 @@ vom 2026-10-09 *DoD berichtigen + eigener Slice*):
   Code nicht erfüllbar: §1 des Gebers lässt `.d-check.yml` unverändert, und das `ids`-Muster
   für Lastenheft-Kennungen steht dort nur als Kommentar; aktiv ist allein das Muster für
   `ADR-` (Gegenprobe in §7 des Gebers, unter d-check `v0.82.0` und `v0.85.0` gleich; ebenso
-  `done/slice-lastenheft-pruefbarkeit.md` §1). Dieser Slice aktiviert das Muster als
+  `done/welle-v1-abschluss/slice-lastenheft-pruefbarkeit.md` §1). Dieser Slice aktiviert das Muster als
   Entscheidung über das Gate — eine Verschärfung, keine Lockerung (`AGENTS.md` §3.6 greift
   nicht).
 - **Prüfauftrag `MR-`:** Heute fängt das Gate eine blanke MR-Kennung nur in den drei
