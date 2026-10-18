@@ -144,7 +144,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 ### Belege des Implementers
 
-Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `0c30b767` (Gate `7a66cc39`, Gegenprobe `a207e17c`, Gate-Index `0c30b767`), im Dev-Container pgr-dev3 (Docker-in-Docker, bash 5, mawk). Basis der Größenmetrik: `a98d0b9e`.
+Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `c92ed918` (Gate `7a66cc39`, Gegenprobe `a207e17c`, Gate-Index `0c30b767`, Symlink-Fall `c92ed918`), im Dev-Container pgr-dev3 (Docker-in-Docker, bash 5, mawk). Basis der Größenmetrik: `a98d0b9e`.
 
 **Randform-Rückgabe vor dem Code** (Image-Herkunft und Rechte des Nicht-root-Images): vom Architect in `SPEC-063` Punkte 3 und 12 entschieden (Commit `2890e31f`); das Fragment trägt `rhysd/actionlint@sha256:887a259a…147e9` (Index-Digest von Tag 1.7.7, Docker Hub).
 
@@ -152,7 +152,7 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `0c30b767` (Gate `7a66cc39
 
 | Lauf | Ergebnis |
 |---|---|
-| `make workflows-check-gegenprobe` | grün, 81 Läufe (unveränderte Kopie und 80 Mutationen), 86 Fälle, davon 3 echte gegen die Images von `actionlint` und d-check; rund 35 s mit `GP_PARALLEL=6` |
+| `make workflows-check-gegenprobe` | grün, 83 Läufe (unveränderte Kopie und 82 Mutationen), 87 Fälle, davon 3 echte gegen die Images von `actionlint` und d-check; rund 35 s mit `GP_PARALLEL=6` |
 | `make gates-schnell-gegenprobe` | grün (Ausnahmeliste deckt `GATE_CHECKS`, Namensregel von `SPEC-060` Punkt 2 am Arbeitsbaum mit der neuen Gegenprobe) |
 | `make gates` | Exit 0; `workflows-check` meldet im Arbeitsbaum „keine Workflow-Dateien unter .github/workflows“ (Grenze des Vertrags, Punkt 2 und 11) |
 | `make docs-check` | 0 Befund(e) nach dem Eintrag in `harness/README.md` |
@@ -167,12 +167,14 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `0c30b767` (Gate `7a66cc39
 | P1 Endung `.yaml` wird geprüft | Prüfbereich nur `.yml` | `m-p1-nur-yml` | `p1-yaml` `p3-e6` `p9-gruen` |
 | P1/P3/P9 Reihenfolge der Namen | `sort -rz` statt `sort -z` | `m-p1-reihenfolge` | `p3-e6` `p9-reihenfolge` |
 | P1 kein Unterverzeichnis | rekursive Suche | `m-p1-rekursiv` | `p1-unterverzeichnis` |
-| P1 Symlink ist Befund, nicht gefolgt | Symlink wie reguläre Datei | `m-p1-symlink-gefolgt` | `p1-symlink` |
+| P1 Symlink ist Befund, nicht gefolgt | Symlink wie reguläre Datei | `m-p1-symlink-gefolgt` | `p1-symlink` `p2-nur-symlink` |
 | P1 Endung ist das Ende des Namens | Endung als Teilstring (`*.yml*`) | `m-p1-teilstring` | `p1-andere-endung` |
 | P2 F1 kein Verzeichnis: Exit 0 mit Meldung | F1 endet mit Exit 2 | `m-p2-f1-exit2` | `p2-kein-verzeichnis` |
 | P2 F2 leeres Verzeichnis: Meldung | F2 endet still | `m-p2-f2-still` | `p2-leer` `p2-ohne-4` |
-| P2 F3 nur andere Dateien: kein `docker` | F3 geht weiter und ruft `docker` | `m-p2-f3-docker` | `p1-andere-endung` `p2-nur-andere` `p2-ohne-8` |
+| P2 F3 nur andere Dateien: kein `docker` | F3 geht weiter und ruft `docker` | `m-p2-f3-docker` | `p1-andere-endung` `p2-nur-andere` `p2-nur-symlink` `p2-ohne-8` |
 | P2 ohne die Prüfung von Punkt 4 | Punkt 4 läuft vor der Meldung | `m-p2-punkt4` | `p2-ohne-4` |
+| P2 F4 nur Symlinks: Befund `symlink`, Exit 1, keine Meldung von F3 | Verzeichnis nur mit Symlinks endet mit Exit 0 und der Meldung von F3 | `m-p2-f4-wie-f3` | `p2-nur-symlink` |
+| P2 F4 ohne Aufruf von `docker` | Skript ruft bei F4 `docker` | `m-p2-f4-docker` | `p2-nur-symlink` |
 | P2 ohne die Prüfung von Punkt 8 | Punkt 8 läuft vor der Meldung | `m-p2-punkt8` | `p1-andere-endung` `p2-kein-verzeichnis` `p2-leer` `p2-nur-andere` `p2-ohne-4` `p2-ohne-8` |
 | P3 Digest hat 64 Hexziffern | 63 Hexziffern | `m-p3-digest-kurz` | `p3-digest-form` |
 | P3 Repository `rhysd/actionlint` | `ghcr.io/rhysd/actionlint` | `m-p3-digest-repository` | `p3-digest-form` |
@@ -244,13 +246,13 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `0c30b767` (Gate `7a66cc39
 | P12 echtes Image findet den Ausdrucksfehler | Image durch Attrappe mit Exit 0 ersetzt (Umgebung) | `m-real-attrappe-image` | `real-ausdruck` |
 | P12 d-check meldet Pins mit `workflows` in `modules:` | `modules:` ohne `workflows` (Umgebung) | `m-real-modules` | `real-pins` |
 
-**Grüne Mutanten:** keiner. Alle 80 Mutationen färben mindestens einen Fall; es gibt deshalb keinen Mutanten, der als äquivalent einzuordnen wäre.
+**Grüne Mutanten:** keiner. Alle 82 Mutationen färben mindestens einen Fall; es gibt deshalb keinen Mutanten, der als äquivalent einzuordnen wäre.
 
 **Befundzeilen vorher und nachher:** kein Bestand (das Gate liegt vor der ersten Workflow-Datei; `.github/workflows/` fehlt im Arbeitsbaum).
 
-**Metrik gegen die Marke von §4** (Summe aus Einfügungen und Löschungen von `git diff --numstat a98d0b9e..0c30b767 -- .github tools harness Makefile`): 830 (818 Einfügungen, 12 Löschungen), davon 22 aus den Vertragsdateien des Architect (`harness/vertraege`); ohne sie 808 (`workflows-check-gegenprobe.sh` 542, `workflows-check.sh` 240, `workflows.mk` 24, `harness/README.md` 2). Meldeschwelle 700 überschritten, Marke 900 nicht. Die Schätzung des Architect (545 bis 695) liegt unter der Messung; die Gegenprobe trägt zwei Drittel des Diffs.
+**Metrik gegen die Marke von §4** (Summe aus Einfügungen und Löschungen von `git diff --numstat a98d0b9e..c92ed918 -- .github tools harness Makefile`): 849 (834 Einfügungen, 15 Löschungen), davon 32 aus den Vertragsdateien des Architect (`harness/vertraege`); ohne sie 817. Meldeschwelle 700 überschritten, Marke 900 nicht. Die Schätzung des Architect (545 bis 695) lag unter der Messung; die Gegenprobe trägt zwei Drittel des Diffs.
 
-**Offener Punkt für den Architect** (nicht entschieden, nicht getestet): Besteht der Prüfbereich nur aus einem Symlink mit Endung `.yml`/`.yaml`, nennt Punkt 1 einen Befund `symlink`, Punkt 2 aber „nur Dateien, die Punkt 1 nicht prüft“ als Fall ohne Prüfbereich. Das Skript meldet den Symlink als Befund (Exit 1), ruft `docker` nicht (keine Dateiliste) und prüft Punkt 8 nicht (keine reguläre Datei).
+**Rückgabe an den Architect, erledigt:** Prüfbereich nur aus Symlinks (`SPEC-063` Punkt 2, F4): Der Architect hat entschieden (Befund `symlink`, Exit 1, kein Aufruf von `docker`, Punkte 4 und 8 nicht geprüft). Das Skript brauchte keine Änderung; der Fall `p2-nur-symlink` war an der unveränderten Kopie grün, die zwei Mutationen färben ihn. Weil weder Skript noch Fragment sich änderten, ist nach dem Fall kein neuer `make gates` gelaufen; der Lauf von oben (Skript und Fragment gleich) gilt. Gelaufen nach dem Fall: die volle `make workflows-check-gegenprobe` (grün, 83 Läufe) und `make docs-check` (0 Befunde).
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
