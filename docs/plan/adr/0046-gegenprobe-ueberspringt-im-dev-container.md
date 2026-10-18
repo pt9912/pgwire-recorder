@@ -1,6 +1,6 @@
 # ADR-0046: Die Gegenprobe des Container-Starts überspringt im Dev-Container, was dort fehlt
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md)
 
 **Datum:** 2026-10-18
 
@@ -53,5 +53,6 @@ Wenn `u-boot` und `devcontainer` im Gerüst des Containers liegen, wenn die Erke
 |---|---|---|
 | 2026-10-18 | Proposed (Empfehlung des Architect nach Entscheidung des Nutzers in der Sache) | — |
 | 2026-10-18 | Accepted: Entscheidung des Nutzers, Fassung mit der Erkennung durch `/.dockerenv` und `u-boot-docker-init` | — |
+| 2026-10-18 | Superseded by ADR-0047 | [ADR-0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

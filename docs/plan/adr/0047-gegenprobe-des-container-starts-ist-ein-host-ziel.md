@@ -1,10 +1,10 @@
 # ADR-0047: Die Gegenprobe des Container-Starts ist ein Ziel für den Host und kein Gate
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-18
 
-**Autor:** Architect. Die Sache hat der Nutzer am 2026-10-18 entschieden („Wir können Gegenproben aufteilen. Einen speziellen, der nur im Host (u-boot und devcontainer) läuft“); die Annahme dieser Fassung steht aus. Die Einzelheiten sind bis dahin Empfehlung.
+**Autor:** Architect; angenommen durch Entscheidung des Nutzers am 2026-10-18 („Wir können Gegenproben aufteilen. Einen speziellen, der nur im Host (u-boot und devcontainer) läuft“, danach „Annehmen“ zu dieser Fassung).
 
 **Bezug:** [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [ADR-0045](0045-container-start-als-werkzeug-im-repo.md), [ADR-0046](0046-gegenprobe-ueberspringt-im-dev-container.md), [ADR-0038](0038-gate-kette-voll-und-schnell.md)
 
@@ -22,7 +22,7 @@
 
 ## Entscheidung
 
-Empfehlung: `container-start-gegenprobe` ist ein Ziel für den Host. Sie hängt nicht an `GATE_CHECKS`, steht nicht in der Ausnahmeliste der schnellen Kette und gehört nicht zum Sammelziel für den Dev-Container; ihr Sammelziel für den Host heißt `gegenproben-host`, das für den Dev-Container `gegenproben` (Namen sind Vorschlag). Fehlt am Host ein Werkzeug, ist sie rot und nennt es; Erkennung und Überspringen im Dev-Container entfallen. [ADR-0046](0046-gegenprobe-ueberspringt-im-dev-container.md) wird ersetzt. Von [ADR-0045](0045-container-start-als-werkzeug-im-repo.md) bleibt die Entscheidung (Ort im Repo, Host-Voraussetzungen); überholt ist nur die Aussage, die Gegenprobe sei ein Gate der Kette. Die Einzelregeln stehen in [`SPEC-058`](../../../harness/vertraege/SPEC-058-container-start.md) Punkte 15 und 16.
+Wir entscheiden: `container-start-gegenprobe` ist ein Ziel für den Host. Sie hängt nicht an `GATE_CHECKS`, steht nicht in der Ausnahmeliste der schnellen Kette und gehört nicht zum Sammelziel für den Dev-Container; ihr Sammelziel für den Host heißt `gegenproben-host`, das für den Dev-Container `gegenproben` (Namen sind Vorschlag). Fehlt am Host ein Werkzeug, ist sie rot und nennt es; Erkennung und Überspringen im Dev-Container entfallen. [ADR-0046](0046-gegenprobe-ueberspringt-im-dev-container.md) wird ersetzt. Von [ADR-0045](0045-container-start-als-werkzeug-im-repo.md) bleibt die Entscheidung (Ort im Repo, Host-Voraussetzungen); überholt ist nur die Aussage, die Gegenprobe sei ein Gate der Kette. Die Einzelregeln stehen in [`SPEC-058`](../../../harness/vertraege/SPEC-058-container-start.md) Punkte 15 und 16.
 
 ## Verglichene Alternativen
 
@@ -53,5 +53,6 @@ Wenn `u-boot` und `devcontainer` in jedem Dev-Container liegen, wenn der Lauf am
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-18 | Proposed (Empfehlung des Architect nach Entscheidung des Nutzers in der Sache) | — |
+| 2026-10-18 | Accepted: Entscheidung des Nutzers, Gegenprobe des Container-Starts als Ziel nur für den Host | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
