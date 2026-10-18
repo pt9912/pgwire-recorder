@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-erster-release, dritte Stelle der Reihenfolge, direkt hinter `slice-harness-ci` und vor `slice-harness-ci-freshness` und `slice-erster-release-veroeffentlichung` (Auftrag des Nutzers vom 2026-10-18; Schnitt und Reihenfolge darin: Empfehlung des Planners, siehe `slice-harness-ci-workflows` §6 Frage 1). Start-Trigger weicht von der Welle ab: `slice-harness-ci` und `slice-harness-gegenproben-aus-gates-sammelziele` in `done/` (§4); `gegenproben` und `gegenproben-host` entstehen erst im zweiten.
+**Welle:** welle-ci-nachtlaeufe (Entscheidung des Nutzers vom 2026-10-18), erste Stelle der Reihenfolge ([welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) §5; bis zur Entscheidung vom 2026-10-18 dritte Stelle von welle-erster-release, die Welle verlässt dieser Slice). Start-Trigger weicht von der Welle ab: `slice-harness-ci` und `slice-harness-gegenproben-aus-gates-sammelziele` in `done/` (§4); `gegenproben` und `gegenproben-host` entstehen erst im zweiten; dazu der Start-Trigger der Welle, `welle-erster-release` in `done/`.
 
 **Bezug:** Kein Anspruch des Produkts (`LH-*`): der Slice lässt die Gegenproben des Harness regelmäßig an einem Ort laufen, den kein Agentenlauf stört. Aktive ADRs: [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) (Gate-Kette ohne Gegenproben), [ADR-0045](../../adr/0045-container-start-als-werkzeug-im-repo.md) und [ADR-0047](../../adr/0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) (Host-Voraussetzungen und Host-Liste). Die ADR dieses Slice (Beschaffung der Host-Werkzeuge auf dem Runner) schreibt der Architect vor dem Code (Entscheidung des Nutzers).
 
@@ -80,7 +80,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-ci` und `slice-harness-gegenproben-aus-gates-sammelziele` liegen in `done/`, dazu der Start-Trigger von [welle-erster-release](../welle-erster-release.md), und der Architect hat `SPEC-065` und die ADR geschrieben, jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Schritt 3 der Reihenfolge in §5 der Welle.
+**Start** (`next` → `in-progress`): `slice-harness-ci` und `slice-harness-gegenproben-aus-gates-sammelziele` liegen in `done/`, dazu der Start-Trigger von [welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) (`welle-erster-release` in `done/`), und der Architect hat `SPEC-065` und die ADR geschrieben, jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Schritt 1 der Reihenfolge in §5 der Welle.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -156,3 +156,5 @@ Slice-Typ) und die **vier Pflichtkriterien**.
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 **Zählung nach `AGENTS.md` §3.13 (Planner, 2026-10-18, im Commit, der den Plan anlegt):** Der Slice trägt keine Sendung eines Gebers (`SPEC-060`, `SPEC-063`, `SPEC-064`, `SPEC-058` sind gelesen). Liefer-Punkte 3 (Container-Job | Host-Job | Gegenprobe samt Gate-Index). Schichten 2: Workflows und Harness; Planung, Vertrag und ADR sind keine Schicht; Wartungs-Doku und Handbuch bleiben unberührt. Schätzung 420 bis 660 (§4), unter der Marke.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Welle wechselt; Entscheidung des Nutzers vom 2026-10-18: der erste Release hat Vorrang vor den Nachtläufen): Der Slice wechselt von welle-erster-release in welle-ci-nachtlaeufe und startet nach `welle-erster-release` in `done/`; Inhalt, Sendungen, Liefer-Punkte und Schichten bleiben unverändert (Liefer-Punkte und Schichten wie in der Zählung oben, Marke in §4 unverändert).

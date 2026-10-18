@@ -13,7 +13,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Bezug:** [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung), [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew)
 
-**Berührte Spec-Stellen:** `LH-FA-16.a` · `SPEC-031` · `SPEC-066` (gelesen: Exit-Arten und Form des Nachtlaufs gegen upstream; Sendung aus `slice-harness-ci-freshness`, §1; Nummer vorläufig, der Architect vergibt sie)
+**Berührte Spec-Stellen:** `LH-FA-16.a` · `SPEC-031`
 
 **Verantwortlich:** pt9912
 
@@ -61,13 +61,13 @@ jenes Slice hierher (§6 unten).
   er liegt vor diesem Slice, und der Scan setzt sich in dessen Pipeline vor den Push.
 - Die Homebrew-Formel im Tap und ihr Nachweis — `slice-erster-release-homebrew-nachweis` (`welle-v1-nachtrag`); er
   setzt den ersten stabilen Tag dieses Slice voraus.
-- Ein Sensor für das Freshness-Audit — `slice-harness-ci-freshness` (Baseline und d-check) und
-  `slice-harness-ci-freshness-images` (Image-Pins) liefern ihn vor diesem Slice als Nachtlauf
-  `upstream-drift.yml` außerhalb der Gates (Auftrag des Nutzers vom 2026-10-18; Schnitt: Empfehlung
-  des Planners). **Bindung (Sendung nach `AGENTS.md` §3.13):** Der Audit vor dem Tag (Punkt 4) liest
-  dessen Ergebnis als Beleg und baut keinen eigenen Sensor; die Handlung, den Befund zu bewerten
-  und einen Sprung zu entscheiden, bleibt hier. Der Satz in `harness/conventions.md` zum Sensor
-  wird mit `slice-harness-ci-freshness` nachgezogen (dort Frage 3), nicht in diesem Slice.
+- Ein Sensor für das Freshness-Audit — `harness/conventions.md` führt den Audit als Handlung,
+  nicht als Sensor, weil er Netz über `bash`, `git` und `docker` hinaus braucht; Bestand bleibt
+  bewusst stehen. Der Audit vor dem ersten Tag läuft von Hand (Entscheidung des Nutzers vom
+  2026-10-18: der erste Release hat Vorrang vor den Nachtläufen). Einen Sensor liefern danach
+  `slice-harness-ci-freshness` und `slice-harness-ci-freshness-images` in
+  [welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) (Start: welle-erster-release in `done/`); dieser Slice
+  baut keinen und liest keinen Nachtlauf als Beleg.
 - Die Wahl der ersten Versionsnummer — wird beim Release festgelegt (Entscheidung des Nutzers
   vor dem Tag; dieser Slice trägt sie in die Versionsdatei und die Checkliste ein, wählt sie nicht).
 - Konten, Namensräume, Zugangsdaten und Sichtbarkeit der Pakete in den Registries — Handlungen
@@ -84,7 +84,7 @@ gehört zurück zur Zerlegung. Gezählt wird nur, was mit dem Umfang wächst —
 Gate-Läufe und die fünf Closure-Pflichten darunter zählen nicht mit.
 
 - [ ] [`LH-FA-16`](../../../../spec/lastenheft.md#lh-fa-16--container-eignung): Die Pipeline scannt das Image jeder Plattform der Manifestliste vor dem Push; ein Befund über der Schwelle beendet den Lauf, bevor eine Registry etwas erhält (Punkt 5, Test mit einem Image über der Schwelle; Beleg in §7: Zusage · Mutation · roter Test, `AGENTS.md` §3.10). Benutzerhandbuch und `README.md` beschreiben, was dieser Slice liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, ADRs, Slices oder Reviews (`AGENTS.md` §3.11, seit slice-v1-abschluss-einspielen-laufsteuerung).
-- [ ] `docs/maintainer/releasing.md` §5 beschreibt das Freshness-Audit der vendored Baseline und des gepinnten d-check vor dem Tag mit der Form seines Belegs; das Audit vor dem ersten echten Tag ist mit diesem Beleg ausgeführt (Punkt 4); der Beleg ist das Ergebnis des Nachtlaufs `upstream-drift.yml` (Bindung aus `slice-harness-ci-freshness`, §1).
+- [ ] `docs/maintainer/releasing.md` §5 beschreibt das Freshness-Audit der vendored Baseline und des gepinnten d-check vor dem Tag mit der Form seines Belegs; das Audit vor dem ersten echten Tag ist mit diesem Beleg ausgeführt (Punkt 4).
 - [ ] [`LH-QA-03`](../../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-FA-19`](../../../../spec/lastenheft.md#lh-fa-19--bereitstellung-über-homebrew): `docs/maintainer/releasing.md` §10 trägt die Freigabe-Checkliste mit Beleg je Punkt, Anti-Punkten und Incident-Klausel (Punkt 3). Der erste echte, stabile Tag ist nach ihr freigegeben: Binaries mit `SHA256SUMS` am Release, Image in beiden Registries mit gleichem Index-Digest und `:latest`, Smoke aus Abnahmeszenario 9 bestanden. Der ausgefüllte Eintrag steht in der Closure von welle-erster-release. Aus `slice-doku-ist-stand`: Das Benutzerhandbuch nennt im Kopf (*Software-Version*, *Gültigkeitsbereich*) die Version des veröffentlichten Binaries und trägt in §11 die Zeile des Releases an Stelle von „Es gibt keine veröffentlichte Version.“ (Beleg: `grep` im Handbuch und `version` des veröffentlichten Binaries).
 - [ ] `make gates` grün.
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
@@ -116,7 +116,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-erster-release-veroeffentlichung` liegt in `done/`
-(Pipeline mit Probe-Tag belegt). `slice-harness-ci-freshness` und `slice-harness-ci-freshness-images` liegen in `done/` (Bindung in §1: ihr Nachtlauf ist der Beleg von Punkt 4). Schritt 7 der Reihenfolge in §5 von
+(Pipeline mit Probe-Tag belegt). Schritt 4 der Reihenfolge in §5 von
 [welle-erster-release](../welle-erster-release.md). Vor dem ersten Code-Commit entscheidet der
 Architect die Randformen aus §6 (`AGENTS.md` §3.12).
 
@@ -177,10 +177,8 @@ ersten Code-Commit in der Spezifikation oder einer ADR; sie zogen mit dem Schnit
   welche Anti-Punkte; Inhalt der Incident-Klausel (Auslöser, wer, wo festgehalten); wo der
   ausgefüllte Eintrag eines späteren Releases ohne Welle steht.
 - *Freshness-Audit (Punkt 4)* — was als frisch gilt; ob ein neuerer Stand der Baseline oder
-  von d-check den Tag sperrt oder nur dokumentiert wird; Beleg des Audits. Seit der Bindung in §1
-  ist der Beleg ein Lauf von `upstream-drift.yml` auf dem Stand des Tags (oder des Standard-Zweigs):
-  welches Alter des Laufs gilt, ob ein übersprungener Teil (Netzfehler) den Beleg ungültig macht,
-  und was ein roter Lauf für den Tag bedeutet (`SPEC-066`, `slice-harness-ci-freshness`).
+  von d-check den Tag sperrt oder nur dokumentiert wird; Beleg des Audits. Der Audit braucht
+  Netz; `harness/conventions.md` führt ihn als Handlung, nicht als Sensor.
 - *Abbruch beim ersten Tag und Wiederholung* — ob ein roter Lauf des ersten echten Tags mit
   demselben Tag wieder angestoßen werden darf (nach `slice-erster-release-veroeffentlichung`,
   Punkt 8) oder einen höheren verlangt; was mit einem in einer Registry schon liegenden Image
@@ -269,3 +267,5 @@ Nachgezählt am 2026-10-17 (Planner, `AGENTS.md` §3.13; keine neue Sendung, Sta
 **Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Bindung aus `slice-harness-ci-freshness` einträgt): Die Bindung ändert den Beleg von Punkt 4 (Ergebnis des Nachtlaufs statt eigener Handlung) und den Start-Trigger; sie ist Teil des zweiten Liefer-Punkts (Freshness-Audit in `releasing.md` §5), kein neuer. Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation).
 
 **Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der `slice-harness-gegenproben-aus-gates-fahrstelle` schneidet): Die Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle` wechselt den Geber zu `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb` (Pflicht, Abschnitt im Dokument, erste Fahrt); der Inhalt des Punktes der Checkliste ändert sich nicht. Der Punkt gehört weiter zur Checkliste des dritten Liefer-Punkts (DoD 3); Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation).
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Bindung aus `slice-harness-ci-freshness` zurücknimmt; Entscheidung des Nutzers vom 2026-10-18: der erste Release hat Vorrang vor den Nachtläufen): Der Audit vor dem Tag (Punkt 4) läuft wieder von Hand, der Nachtlauf ist weder Beleg noch Start-Trigger, `SPEC-066` ist aus dem Kopf entfernt, der Ausschluss eines Sensors im Abschnitt *Ausdrücklich NICHT* gilt wieder; der Sensor folgt in [welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md). Die Rücknahme ändert nur den Beleg von Punkt 4 und den Start-Trigger, sie ist Teil des zweiten Liefer-Punkts (Freshness-Audit in `releasing.md` §5), kein neuer. Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation); Schätzung und Marke in §4 unverändert (Marke 1200, Meldeschwelle 900).

@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-erster-release, fünfte Stelle der Reihenfolge, direkt hinter `slice-harness-ci-freshness` und vor `slice-erster-release-veroeffentlichung` (Auftrag des Nutzers vom 2026-10-18; Schnitt und Reihenfolge darin: Empfehlung des Planners, siehe `slice-harness-ci-workflows` §6 Frage 1). Start-Trigger weicht von der Welle ab: `slice-harness-ci-freshness` in `done/` (Skript, Workflow und Vertrag, die dieser Slice erweitert).
+**Welle:** welle-ci-nachtlaeufe (Entscheidung des Nutzers vom 2026-10-18), dritte Stelle der Reihenfolge, direkt hinter `slice-harness-ci-freshness` ([welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) §5; bis zur Entscheidung vom 2026-10-18 fünfte Stelle von welle-erster-release, die Welle verlässt dieser Slice). Start-Trigger weicht von der Welle ab: `slice-harness-ci-freshness` in `done/` (Skript, Workflow und Vertrag, die dieser Slice erweitert); dazu der Start-Trigger der Welle, `welle-erster-release` in `done/`.
 
 **Bezug:** Kein Anspruch des Produkts (`LH-*`): der Slice lässt die Pins der Werkzeug- und Produkt-Images nachts gegen ihre Registries prüfen. Aktive ADRs: [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md) (Images im `Dockerfile` und in `harness/mk/`, Docker-only), [ADR-0042](../../adr/0042-versionsmatrix-der-integrationstests.md) (die Liste der PostgreSQL-Versionen mit Digest). Eine neue ADR schreibt der Architect nur, wenn eine Entscheidung dieses Slice nicht schon die ADR von `slice-harness-ci-freshness` trägt (Randform 1).
 
@@ -79,7 +79,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-ci-freshness` liegt in `done/`, dazu der Start-Trigger von [welle-erster-release](../welle-erster-release.md), und der Architect hat `SPEC-066` erweitert, jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Schritt 5 der Reihenfolge in §5 der Welle.
+**Start** (`next` → `in-progress`): `slice-harness-ci-freshness` liegt in `done/`, dazu der Start-Trigger von [welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) (`welle-erster-release` in `done/`), und der Architect hat `SPEC-066` erweitert, jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Schritt 3 der Reihenfolge in §5 der Welle.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -158,3 +158,5 @@ Slice-Typ) und die **vier Pflichtkriterien**.
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 **Zählung nach `AGENTS.md` §3.13 (Planner, 2026-10-18, im Commit, der den Plan anlegt):** Der Slice trägt keine Sendung eines Gebers; er erweitert das Skript, den Workflow und den Vertrag von `slice-harness-ci-freshness` (Geber der Erweiterung, dort §1 genannt). Liefer-Punkte 3 (Tag-Achse | Digest-Achse | Gegenprobe samt Index). Schichten 2: Workflows (`upstream-drift.yml`, zwei Schritte) und Harness; Planung, Vertrag und ADR sind keine Schicht; Wartungs-Doku und Handbuch bleiben unberührt. Schätzung 490 bis 770 (§4), unter der Marke.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Welle wechselt; Entscheidung des Nutzers vom 2026-10-18: der erste Release hat Vorrang vor den Nachtläufen): Der Slice wechselt von welle-erster-release in welle-ci-nachtlaeufe und startet nach `welle-erster-release` in `done/`; Inhalt, Sendungen, Liefer-Punkte und Schichten bleiben unverändert (Liefer-Punkte und Schichten wie in der Zählung oben, Marke in §4 unverändert).

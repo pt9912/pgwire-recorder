@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-erster-release, vierte Stelle der Reihenfolge, direkt hinter `slice-harness-ci-gegenproben` und vor `slice-harness-ci-freshness-images` und `slice-erster-release-veroeffentlichung` (Auftrag des Nutzers vom 2026-10-18; Schnitt und Reihenfolge darin: Empfehlung des Planners, siehe `slice-harness-ci-workflows` §6 Frage 1). Start-Trigger weicht von der Welle ab: `slice-harness-ci` in `done/` (die Konventionen der Workflows und `make workflows-check` stehen dort).
+**Welle:** welle-ci-nachtlaeufe (Entscheidung des Nutzers vom 2026-10-18), zweite Stelle der Reihenfolge, direkt hinter `slice-harness-ci-gegenproben` und vor `slice-harness-ci-freshness-images` ([welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) §5; bis zur Entscheidung vom 2026-10-18 vierte Stelle von welle-erster-release, die Welle verlässt dieser Slice). Start-Trigger weicht von der Welle ab: `slice-harness-ci` in `done/` (die Konventionen der Workflows und `make workflows-check` stehen dort); dazu der Start-Trigger der Welle, `welle-erster-release` in `done/`.
 
 **Bezug:** Kein Anspruch des Produkts (`LH-*`): der Slice macht den Alterungs-Audit der gepinnten Fremdbestände zu einem Lauf mit Netz außerhalb der Gates. Aktive ADRs: [ADR-0026](../../adr/0026-build-und-test-im-multistage-dockerfile.md) (Docker-only; Werkzeuge laufen in gepinnten Images). Die ADR dieses Slice (Nachtlauf gegen upstream: wann rot, wann Meldung) schreibt der Architect vor dem Code (Entscheidung des Nutzers).
 
@@ -81,7 +81,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-harness-ci` liegt in `done/`, dazu der Start-Trigger von [welle-erster-release](../welle-erster-release.md), und der Architect hat `SPEC-066` und die ADR geschrieben, jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Schritt 4 der Reihenfolge in §5 der Welle.
+**Start** (`next` → `in-progress`): `slice-harness-ci` liegt in `done/`, dazu der Start-Trigger von [welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) (`welle-erster-release` in `done/`), und der Architect hat `SPEC-066` und die ADR geschrieben, jede Randform aus §6 entschieden (`AGENTS.md` §3.12). Schritt 2 der Reihenfolge in §5 der Welle.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -159,4 +159,6 @@ Slice-Typ) und die **vier Pflichtkriterien**.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
-**Zählung nach `AGENTS.md` §3.13 (Planner, 2026-10-18, im Commit, der den Plan anlegt):** Der Slice trägt keine Sendung eines Gebers (`SPEC-063` und `SPEC-064` sind gelesen). Die Zusage an den Nehmer `slice-erster-release-freigabe` (Beleg des Audits vor dem Tag) und an `slice-harness-ci-freshness-images` (Erweiterung des Skripts) tragen diese Nehmer in ihrem §1 mit der Kennung dieses Slice. Liefer-Punkte 3 (Skript und Ziele | Workflow | Gegenprobe samt Index). Schichten 2: Workflows und Harness (`tools/harness`, `harness/mk`, `harness/vertraege`, `harness/README.md`, `harness/conventions.md`); Planung, Vertrag und ADR sind keine Schicht; Wartungs-Doku und Handbuch bleiben unberührt. Schätzung 555 bis 800 (§4), unter der Marke.
+**Zählung nach `AGENTS.md` §3.13 (Planner, 2026-10-18, im Commit, der den Plan anlegt):** Der Slice trägt keine Sendung eines Gebers (`SPEC-063` und `SPEC-064` sind gelesen). Die Zusage an den Nehmer `slice-harness-ci-freshness-images` (Erweiterung des Skripts) trägt dieser Nehmer in seinem §1 mit der Kennung dieses Slice; die Zusage an `slice-erster-release-freigabe` (Beleg des Audits vor dem Tag) ist seit der Entscheidung des Nutzers vom 2026-10-18 zurückgenommen, der Audit vor dem ersten Tag läuft von Hand. Liefer-Punkte 3 (Skript und Ziele | Workflow | Gegenprobe samt Index). Schichten 2: Workflows und Harness (`tools/harness`, `harness/mk`, `harness/vertraege`, `harness/README.md`, `harness/conventions.md`); Planung, Vertrag und ADR sind keine Schicht; Wartungs-Doku und Handbuch bleiben unberührt. Schätzung 555 bis 800 (§4), unter der Marke.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Welle wechselt; Entscheidung des Nutzers vom 2026-10-18: der erste Release hat Vorrang vor den Nachtläufen): Der Slice wechselt von welle-erster-release in welle-ci-nachtlaeufe und startet nach `welle-erster-release` in `done/`; Inhalt, Sendungen, Liefer-Punkte und Schichten bleiben unverändert (Liefer-Punkte und Schichten wie in der Zählung oben, Marke in §4 unverändert).

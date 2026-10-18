@@ -116,7 +116,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`): `welle-v1-abschluss` ist `done`, und
 `slice-harness-abdeckung-gate` und `slice-harness-coverage` liegen in `done/` (Start-Trigger von
 welle-erster-release), dazu `slice-harness-devcontainer-u-boot-0-10`
-(wellenlos, nicht `slice-harness-devcontainer-einrichten`; Entscheidung des Nutzers vom 2026-10-17, Drift-Log der Roadmap). `slice-harness-ci-workflows` und `slice-harness-ci` liegen in `done/` (Sendung in §1; Auftrag des Nutzers vom 2026-10-18). Schritt 6 der Reihenfolge in §5 von
+(wellenlos, nicht `slice-harness-devcontainer-einrichten`; Entscheidung des Nutzers vom 2026-10-17, Drift-Log der Roadmap). `slice-harness-ci-workflows` und `slice-harness-ci` liegen in `done/` (Sendung in §1; Auftrag des Nutzers vom 2026-10-18). Schritt 3 der Reihenfolge in §5 von
 [welle-erster-release](../welle-erster-release.md). Vor dem ersten Code-Commit entscheidet der
 Architect die Randformen aus §6 (`AGENTS.md` §3.12).
 
@@ -246,3 +246,5 @@ Nachgezählt beim Eintragen der Schichtzählung aus `slice-doku-ist-stand` (2026
 **Nachgezählt am 2026-10-18** (Planner, `AGENTS.md` §3.13, im Commit, der die Sendung aus `slice-harness-ci-workflows` und `slice-harness-ci` einträgt): Die Sendung ist ein Akzeptanzkriterium der Datei der Pipeline (Pins, Rechte, Zeitgrenze, `concurrency`), die Punkt 1 und 2 schon liefern, und der Zusatz zu Punkt 3 nennt es; Liefer-Punkte weiter drei (Image mit Manifestliste und Digest-Vergleich | Binaries mit `SHA256SUMS` am GitHub-Release | Prüfung von Tag und Versionsdatei samt Fehlertabelle und Wiederanlauf). Schichten weiter zwei (Release-Automatisierung; Dokumentation). Die Größe ändert sich nicht (die Prüfung der Form trägt `make workflows-check`, die Datei besteht sie oder nicht); die Schätzung in §4 bleibt, der Architect zählt mit der Entscheidung der Randformen nach.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Reihenfolge der Welle auf den kritischen Pfad kürzt; Entscheidung des Nutzers vom 2026-10-18: der erste Release hat Vorrang vor den Nachtläufen): Die Sendung aus `slice-harness-ci-workflows` und `slice-harness-ci` (Pins und Härtung) bleibt unverändert; der Slice steht jetzt an dritter Stelle der Welle (Schritt 3) und setzt weiter nur diese beiden voraus. Die Nachtläufe (`slice-harness-ci-gegenproben`, `-ci-freshness`, `-ci-freshness-images`) liegen in [welle-ci-nachtlaeufe](../welle-ci-nachtlaeufe.md) hinter dieser Welle und sind keine Voraussetzung. Der Inhalt der Sendung ändert sich nicht; Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation); Schätzung und Marke in §4 unverändert.
