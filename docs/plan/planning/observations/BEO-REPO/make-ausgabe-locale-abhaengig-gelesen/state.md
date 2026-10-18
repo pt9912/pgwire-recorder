@@ -1,3 +1,5 @@
 **Stand:** offen
 
 Erstes Auftreten: `slice-harness-gegenproben-aus-gates` (Beleg `evidence/slice-harness-gegenproben-aus-gates.md`); unter der Schwelle, `offen`. Der Fall `p2-locale` fängt die Rückkehr der Form in dieser Regel; `SPEC-060` Punkt 2 nennt die Sprache von `make` als Voraussetzung und Punkt 15 (00) die Grenze. Eine Regel für andere Werkzeuge ist nicht zugewiesen; Vorschlag des Planners an den Nutzer (nicht entschieden): `AGENTS.md` §3.12 nennt die Sprache der Umgebung als Randform, wenn ein Werkzeug die Ausgabe eines anderen liest, sobald die Beobachtung wiederkehrt.
+
+Kein Auftreten (Urteil des Planners, `slice-harness-gegenproben-aus-gates-sammelziele`, 2026-10-18): Weder `tools/harness/gegenproben.sh` (liest nur die Buchstaben von `MAKEFLAGS` und Exit-Codes) noch `tools/harness/gegenproben-gegenprobe.sh` (filtert Zeilen mit `^make` heraus, vergleicht Exit-Codes und eigene Ausgaben, sortiert mit `LC_ALL=C`) liest Text von `make`; Review F-8 fuhr die Gegenprobe unter `de_DE.UTF-8` mit `LANGUAGE=de` grün (27 s). Es gibt dafür keinen Fall; die Beobachtung führt keine Evidence-Datei, der Zähler bleibt bei 1.

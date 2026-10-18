@@ -1,0 +1,3 @@
+**Stand:** offen
+
+Erstes Auftreten: `slice-harness-gegenproben-aus-gates-sammelziele` (Beleg `evidence/slice-harness-gegenproben-aus-gates-sammelziele.md`); unter der Schwelle, `offen`. Behoben im Vertrag: Der Absatz „Exit-Codes und Naht der Gegenprobe“ vor Punkt 4 von `SPEC-060` sagt, dass die Codes die des Skripts sind, über `make` nur „ungleich 0“ zugesagt ist, und dass die Gegenprobe die Codes am Skript prüft. Eine Regel ist nicht zugewiesen; Vorschlag des Planners an den Nutzer (nicht entschieden): Randformen eines Make-Ziels nennen in §6 den Exit-Code, den das Ziel über `make` liefert (`AGENTS.md` §3.12, Aufrufarten des Treibers), sobald die Beobachtung wiederkehrt.
