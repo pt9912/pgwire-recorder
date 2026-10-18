@@ -18,6 +18,9 @@ Closure-Kriterien stehen in der Welle-Datei, nicht hier.
 
 - [welle-erster-release](../welle-erster-release.md)
 - [welle-v1-nachtrag](../welle-v1-nachtrag.md)
+- [welle-dev-container](../welle-dev-container.md)
+- [welle-gegenproben-und-mutanten](../welle-gegenproben-und-mutanten.md)
+- [welle-harness-regeln](../welle-harness-regeln.md)
 
 ## Nächste Wellen
 
@@ -59,6 +62,9 @@ flowchart LR
     W4[welle-v1-abschluss]
     W5[welle-erster-release]
     W6[welle-v1-nachtrag]
+    W7[welle-dev-container]
+    W8[welle-gegenproben-und-mutanten]
+    W9[welle-harness-regeln]
 
     W1 --> W2
     W2 --> W3
@@ -66,7 +72,11 @@ flowchart LR
     W4 --> C[slice-harness-coverage]
     C --> W5
     W5 --> W6
+    W6 --> W8
+    W6 --> W9
 ```
+
+Die Welle `welle-dev-container` (W7) hängt an keiner anderen Welle (Start: `slice-harness-devcontainer-u-boot-0-10` in `done/`). Zwischen `welle-gegenproben-und-mutanten` und `welle-harness-regeln` liegen Bindungen auf Slice-Ebene, keine Welle-Kante: `slice-tests-ueberlebende-mutanten` setzt `slice-harness-commit-struktur-id` voraus, `slice-harness-lh-links-pflicht` steht hinter `slice-harness-mutation`.
 
 ## Abgeschlossene Wellen
 
@@ -162,3 +172,5 @@ Roadmap, jede Zeile voll heißt treibende.
 | 2026-10-17 | `slice-v1-abschluss-container` (Schritt 44) beim Erreichen der Meldeschwelle geschnitten: Er behält den *Container-Bau* (Schritt 44a: `make binaries`, Gate `make test-container`, Image, Smoke, Gegenprobe); Handbuch §1 und §2, `README.md` und `docs/maintainer/releasing.md` sind in `slice-v1-abschluss-container-doku` (Schritt 44b, neu, welle-v1-abschluss, `next/`, setzt 44a voraus) aufgegangen; `slice-erster-release-veroeffentlichung` nennt `-container-doku` als Voraussetzung; die Voraussetzung von welle-erster-release (welle-v1-abschluss done) schließt 44b ein; keine Meilensteine geändert | Marke überschritten: Messung des Codes 1147 von 1200 (Metrik von `AGENTS.md` §3.14, Basis `d258c0b7`), der Doku-Teil schätzt 180 bis 280, zusammen rund 1330 bis 1430; Schnitt vor dem Handbuch nach Lieferwert, wie der Plan ihn zwischen den zwei Liefer-Punkten vorsah; Zuschnitt und Kennung: Planner (Nutzervorgabe: nur schneiden, wenn die Schätzung die Marke überschreitet) |
 | 2026-10-17 | `slice-harness-devcontainer-doku` (wellenlos, `next/`) angelegt; er steht hinter `slice-v1-abschluss-container-doku` und vor den wellenlosen Slices vor dem Release oder parallel dazu, ohne Voraussetzung eines Schritts | Wunsch des Nutzers vom 2026-10-17: ein Dokument unter `docs/developer/` zum Arbeiten im Dev-Container |
 | 2026-10-17 | `slice-harness-devcontainer-u-boot-0-10` (wellenlos, `next/`) angelegt und `slice-harness-devcontainer-einrichten` (wellenlos, `open/`, jetzt hinter ihm) in der Reihenfolge nach `slice-harness-coverage` und vor der Closure von welle-v1-abschluss gesetzt; die Start-Trigger von welle-erster-release und von `slice-erster-release-veroeffentlichung` verlangen nur `slice-harness-devcontainer-u-boot-0-10` in `done/`, `slice-harness-devcontainer-einrichten` steht dahinter ohne Bindung an Closure und Release (Entscheidung des Nutzers vom 2026-10-17); die Schritte von welle-v1-abschluss, die Reihenfolge der Release-Slices und welle-v1-nachtrag bleiben, keine neuen Nummern, keine Meilensteine geändert | Entscheidung des Nutzers vom 2026-10-17: zuerst der Dev-Container, dann laufen die lang laufenden Slices darin, und `main` wird nicht mehr durch Implementer-Läufe blockiert (`BEO-REPO/implementer-im-hauptbaum-sperrt-stop-hook`); `u-boot` v0.10.0 liefert die Features `sshd` und `claude-code`, daher der Umbau des Gerüsts als eigener Slice vor dem Make-Ziel `container-einrichten` |
+| 2026-10-18 | Die wellenlosen Slices sind in drei Wellen gegliedert (Planungsdokumente, keine Vorbedingung des Starts der Slices): `welle-dev-container` (`slice-harness-devcontainer-einrichten-geruest`, `-start`, `slice-harness-devcontainer-einrichten`, `-zugang`), `welle-gegenproben-und-mutanten` (`slice-harness-mutation`, `slice-tests-ueberlebende-mutanten`, `-driving`, `slice-harness-gegenprobe-matrix-p7-flanke`, `-baumkopie`, `slice-harness-lint-warten-ohne-frist`) und `welle-harness-regeln` (`slice-harness-regeln-nach-v1-abschluss`, `-spezifikation-satzabgleich`, `slice-harness-schaetzung-planner-faktor`, `slice-harness-commit-struktur-id`, `slice-harness-lh-links-bestand`, `-pflicht`, `slice-harness-slice-mv-exakter-treffer`, `slice-harness-gate-index-werkzeug-teil`); die beiden letzten starten nach welle-v1-nachtrag; Reihenfolge der Slices und Start-Trigger bleiben; keine Meilensteine geändert; `slice-harness-devcontainer-einrichten-start` liegt nur im Zweig `architekt-geruest` und trägt die Welle erst mit dem Merge | Entscheidung des Nutzers vom 2026-10-18: Die Harness-Slices sollen in Wellen gegliedert sein; Zuschnitt und Reihenfolge: Planner |
+| 2026-10-18 | `slice-v1-abschluss-verbindungsende-upstream-extended` (bis dahin wellenlos, `next/`) in welle-v1-nachtrag aufgegangen, als Schritt 0 vor den drei Slices der Welle; Start-Trigger und Reihenfolge des Slice bleiben (hinter welle-erster-release); M5 und die Closure-Bedingung Abnahmeszenario 11 bleiben unverändert, der Slice liefert keine Anforderung | Entscheidung des Nutzers vom 2026-10-18; der Eintrag vom 2026-10-16, er passe nicht in das Ziel von welle-v1-nachtrag, ist damit überholt: das Ziel nennt ihn seit heute als Nachtrag an Tests und Testdaten |
