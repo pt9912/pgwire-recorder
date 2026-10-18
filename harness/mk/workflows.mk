@@ -5,7 +5,7 @@
 # Zeitgrenzen und darauf, dass .d-check.yml die Pin-Pruefung bindet (Vertrag
 # harness/vertraege/SPEC-063-workflows-check.md); die Pins selbst prueft allein `docs-check`. Die Gegenprobe haelt
 # das Skript an Temp-Baeumen und faehrt drei Faelle gegen die echten Images. Das Gate braucht bash, awk,
-# find, sort und Docker; die Gegenprobe dazu make, mktemp, GNU sed und die Werkzeuge von coreutils.
+# find, sort, readlink, mktemp und Docker; die Gegenprobe dazu make, mktemp, sed, cksum und die Werkzeuge von coreutils.
 # DOCKER kommt aus build.mk; DCHECK_REF aus d-check.mk.
 .PHONY: workflows-check workflows-check-gegenprobe
 
