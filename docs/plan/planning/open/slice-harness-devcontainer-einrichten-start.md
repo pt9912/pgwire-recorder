@@ -16,7 +16,7 @@ Vorgänger in dieser Reihenfolge: `slice-harness-devcontainer-einrichten-geruest
 
 **Berührte Spec-Stellen:** [`SPEC-058`](../../../../harness/vertraege/SPEC-058-container-start.md) Teil II (Punkte 9 bis 12) und, soweit sie Teil II betreffen, die Punkte 1, 4, 13, 14, 15, 16 und 17; [`SPEC-052`](../../../../harness/vertraege/SPEC-052-gate-kette.md) (Punkt 8: gleichzeitige Läufe); [`SPEC-057`](../../../../harness/vertraege/SPEC-057-integration-aufraeumen.md) (Punkte 3, 4 und 7: Aufräumen, Fallen); [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität).
 
-**Verantwortlich:** —
+**Verantwortlich:** pt9912
 
 **Autor:** Planner. **Datum:** 2026-10-18.
 
@@ -147,6 +147,7 @@ Der Slice liefert die zweite Hälfte eines **neuen Vertrags**; §3.12 gilt. Die 
 - **Gegenprobe wächst und dauert** (Image-Bau, Erststart je Lauf; `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`, `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`). — **Ausgang (Closure):** entfallen mit gemessener Laufzeit und Mutationsprotokoll, oder weiter offen → Register, wenn die Laufzeit den vollen Lauf dominiert (Re-Evaluierungs-Trigger von [ADR-0045](../../adr/0045-container-start-als-werkzeug-im-repo.md)).
 - **Das Label trägt die Annahme von Punkt 9 nicht** (`devcontainer.local_folder` fehlt oder hat eine andere Form). — **Ausgang (Closure):** entfallen, wenn der Implementer das Label vor dem Code misst und der Bericht die Messung nennt; sonst eingetreten → Rückgabe an den Architect, Rückführung nach `open/` (§4).
 - **Größe über Schätzung wegen der Gegenprobe** (`BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests`; Faktor eingerechnet, Rückführung §4). — **Ausgang (Closure):** entfallen mit gemessener Summe unter 900, oder eingetreten → Folge-Slice mit Kennung (vom Planner bei Rückführung vergeben).
+- **Überschneidung mit `slice-harness-gegenproben-aus-gates`** (Kettenumbau, eigener Zweig; ändert `harness/README.md` §Sensors und §Werkzeuge und die Köpfe der Fragmente `container-start*.mk`): Reihenfolge der Merges, der zweite rebased. Keine Sendung, keine Nachzählung. — **Ausgang (Closure):** entfallen, weil der zweite Merge rebased und keine Zusage des einen die des anderen berührt; sonst eingetreten → Folge-Slice mit Kennung.
 - **Konflikt an Skript, Gegenprobe, `harness/README.md`** mit dem Geber und mit `slice-harness-devcontainer-einrichten`. — **Ausgang (Closure):** entfallen, weil die Reihenfolge diesen Slice hinter den Geber und den Nehmer hinter diesen Slice setzt (Start-Trigger).
 - **Das Dokument veraltet still gegen das Ziel** (kein Sensor; `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`). — **Ausgang (Closure):** weiter offen im selben Eintrag, oder eingetreten (Evidence dieses Slice).
 - **Umbau des Dokuments verliert Vorbehalte der Vorfassung** (Sicherheitsaussagen aus §11, „Behandle den Container nicht als Sandbox“). — **Ausgang (Closure):** entfallen mit Vergleich der Vorbehalte der Vorfassung mit dem Diff im Review; ein Befund ist *eingetreten* und geht in `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung`.
