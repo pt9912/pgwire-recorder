@@ -245,6 +245,26 @@ Mutation je Zusage zählte sie als eine (`BEO-REPO/negativtests-fehlen-bei-neuem
 Entfernen oder Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit
 slice-harness-gate-kette-stop-hook-liste wieder aufgetreten?
 
+**Ein grüner Mutant gilt als äquivalent erst mit Invariante, Ort und Sonde** (seit welle-v1-abschluss,
+Entscheidung des Nutzers vom 2026-10-18): Wer in §7 einen grünen Mutanten äquivalent nennt, nennt (a) die
+Invariante, aus der gleiches Verhalten folgt, (b) den Ort, der sie erzwingt (Typ, `Validate`, Leser, eine
+vorgelagerte Prüfung im selben Pfad; ein Kommentar oder die Dokumentation des Modells ist kein Ort) und (c)
+eine Sonde, die Original und Mutant trennen würde, wenn die Invariante nicht gälte, mit ihrem Lauf. Ist die
+Invariante die Zusage, die der Slice liefert, oder gilt sie nur laut Dokumentation, ist der Mutant nicht
+äquivalent und bekommt einen Fall. Eine Prüfung wird nicht als überflüssig entfernt, solange (a) bis (c) in
+§7 fehlen.
+
+**Falsch:** §7 führt „`Send` liest nach dem Ende“ als äquivalent, Invariante „`Send` enthält keinen
+Lesezugriff“; das ist die Zusage selbst, und der Mutant bleibt grün (F-1 in
+`slice-v1-abschluss-verbindungsende-upstream`).
+**Richtig:** §7 nennt die Invariante, den Ort, der sie erzwingt, und die Sonde mit Ergebnis „gleich“; fehlt
+eines davon, bekommt der Mutant einen Test.
+
+**Begründung:** Die Begründung eines äquivalenten Mutanten stützt sich auf die Eingaben, an die der
+Implementer gedacht hat; eine andere unterscheidet ihn, und erst Review oder Verifikation finden sie
+(`BEO-REPO/gruener-mutant-faelschlich-aequivalent`, fünf Slices). Entfernen oder Lockern setzt den
+Retirement-Check voraus: Ist die Beobachtung seit welle-v1-abschluss wieder aufgetreten?
+
 ### 3.11 Ein Kommentar sagt nur zu, was ein Test prüft (seit welle-extended-query)
 
 Kommentar, Hilfetext, Abdeckungs-Deklaration, Plan-Zeile und Benutzerhandbuch sagen
@@ -347,6 +367,22 @@ Folge stehen dürfen; der Implementer entscheidet beide im Code, und das Review 
 `slice-v1-abschluss-verbindungsende-format`).
 **Richtig:** §6 führt je Nachricht die Stellen auf und zeigt auf die Stelle der Spezifikation, die jede entscheidet; dann folgt der
 Code.
+
+**Die Plattform gehört dazu** (seit welle-v1-abschluss, Entscheidung des Nutzers vom 2026-10-18): Sagt ein
+Vertrag eine Eigenschaft zu, die vom Betriebssystem oder Dateisystem abhängt (atomares Verschieben, Sperren,
+Transaktionen auf einer Datei, Signale, Pfadform, Zeilenende), nennt §6 als Randform die Plattformen von
+`LH-QA-03`, auf denen sie geprüft ist, und je übrige Plattform eine Entscheidung: Grenze in der Spezifikation
+an der Zusage („geprüft nur unter Linux“) oder eine Zusage mit Test. Die Spezifikation trägt die Grenze; ein
+Handbuchsatz über die Eigenschaft nennt nur die geprüfte Plattform (§3.11).
+
+**Falsch:** Die Zusage „atomar“ steht ohne Plattform, die Tests laufen unter Linux, und die Grenze für macOS
+und Windows steht als Risiko in §6 mit dem Ausgang „weiter offen“ (drei Slices in Folge).
+**Richtig:** §6 nennt Linux (geprüft), macOS und Windows (Grenze) und zeigt auf die Stelle der Spezifikation,
+die sie als Grenze festhält; dann folgt der Code.
+
+**Begründung:** Die Plattformgrenze trat als Risiko in drei Slices auf, jedes Mal erst im Review oder als
+§6-Risiko mit dem Ausgang „weiter offen“ (`BEO-REPO/verhalten-nur-unter-linux-geprueft`). Entfernen oder
+Lockern setzt den Retirement-Check voraus: Ist die Beobachtung seit welle-v1-abschluss wieder aufgetreten?
 
 **Begründung:** Was der Code still entscheidet, findet erst das Review, Runde um Runde
 eine weitere Randform (`BEO-REPO/spec-randform-erst-im-review-entschieden`). Ein Diff,

@@ -71,6 +71,10 @@ bewusst kurz (Ergänzungs-Kanal, nicht Hauptkanal).
   Gebers, ein Punkt unter *Ausdrücklich NICHT* trifft sie, oder der Nehmer liegt in
   `done/`. Jede solche Adresse wird gegen §1 und DoD des Nehmers gelesen; mindestens
   MEDIUM, gegen `AGENTS.md` §3.13 (seit slice-lint-bestand-kern-driven)
+- **Äquivalenter Mutant ohne Invariante, Ort oder Sonde** — §7 führt einen grünen Mutanten als
+  äquivalent, und Invariante, der Ort, der sie erzwingt, oder die Sonde mit Lauf fehlt; der Reviewer
+  sondiert jeden so geführten Mutanten mit einer Eingabe, an die der Autor nicht dachte. Mindestens
+  MEDIUM, gegen `AGENTS.md` §3.10 (seit welle-v1-abschluss)
 - **Nehmer nicht nachgezählt** — der Diff trägt eine Sendung in einen Nehmer ein (§1 oder
   DoD des Nehmers), und §8 des Nehmers nennt die Zählung seiner Liefer-Punkte und
   Schichten mit der Sendung nicht im selben Commit, oder der Nehmer liegt mit ihr über drei Liefer-Punkten

@@ -1,4 +1,6 @@
-**Stand:** offen
+**Stand:** verkörpert
+
+Zielorte: `AGENTS.md §3.12` (die Plattform gehört zu den Randformen vor dem Code) und `.claude/agents/architect.md` — Herkunfts-Anker `seit welle-v1-abschluss` (Entscheidung des Nutzers vom 2026-10-18, Dialogantwort „Beide verkörpern“; keine Querschnittszeile in der Spezifikation, die Grenze steht an der Zusage). Die Regel sagt, dass die Grenze genannt wird; sie macht keine Plattform geprüft. Ein Sensor wäre ein Lauf auf macOS und Windows, den ein Repo mit den Host-Abhängigkeiten `bash`, `git` und `docker` nicht hat.
 
 `LH-FA-07.a` Schritt 2 nennt die Grenze: geprüft ist das Verschieben nur unter Linux im selben Dateisystem, unter macOS und Windows nicht (Entscheidung des Nutzers, `36b9d56`; keine Schärfung je Plattform). Dieselbe Grenze nennt `LH-FA-22.a` *Schreiben von `sqlite`* unter *Grenzen* (Verschieben wie in `LH-FA-07.a` Schritt 2; Transaktionen nur unter Linux auf einem lokalen Dateisystem; Stromausfall nicht belegt). Für `sqlite` ist die Bibliothek auf allen sechs Plattformen gebaut, ihr Verhalten nur unter `linux/amd64` geprüft; der Windows-Zweig der URI-Bildung hat keine Zusage (`evidence/slice-v1-abschluss-sqlite-format.md`). Das Lesen übernimmt die Grenze in `slice-v1-abschluss-sqlite-format-lesen` §6.
 

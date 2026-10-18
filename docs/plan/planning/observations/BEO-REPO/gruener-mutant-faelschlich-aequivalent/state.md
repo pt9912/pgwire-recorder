@@ -1,4 +1,6 @@
-**Stand:** offen
+**Stand:** verkörpert
+
+Zielorte: `AGENTS.md §3.10` (ein grüner Mutant gilt als äquivalent erst mit Invariante, Ort und Sonde), `.claude/commands/implement-slice.md` Schritt 19 und `.harness/skills/reviewer.md` (Klassifikation MEDIUM) — Herkunfts-Anker `seit welle-v1-abschluss` (Entscheidung des Nutzers vom 2026-10-18, Dialogantwort „Beide verkörpern“). Kein Sensor: Äquivalenz zweier Programme ist nicht entscheidbar; ein Gate könnte nur prüfen, dass §7 Invariante und Ort nennt, nicht ob sie tragen.
 
 Kein Auftreten, Gegenbeleg (Urteil des Planners, `slice-v1-abschluss-verbindungsende-sqlite`, 2026-10-15): Beide als äquivalent eingestuften Mutanten (Richtung `client` in einer Extended-Gruppe; `Fassung <Zahl>` allein in `kopfVorpruefung`) fuhr die Verifikation nach und fand sie äquivalent. Beide Begründungen stützen sich auf eine Invariante der Struktur (Client-Nachrichten vor Server-Nachrichten in der Gruppe; `pruefeMeta` lehnt jede fremde Zahl vor `Unmarshal` ab), nicht auf erdachte Eingaben. Kein Evidence, der Zähler bleibt.
 
