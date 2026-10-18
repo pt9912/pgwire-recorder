@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates-fahrstelle-umgebung
+**Fund:** Verifikation V-1 (LOW): Der Kommentar `g11s` in der Gegenprobe sagte "SIGINT und SIGQUIT in Lauf, make und Kind", die Funktion prüft `SIGQUIT` im Lauf bewusst nicht; behoben (Commit `3d8ba0a0`). Review F-4 (LOW): Der Verweis "Punkt 16 (10)" für das Negativ "echter `git push` über `ssh`" in der README-Zeile löste nicht auf; behoben ("Punkt 16 (11)", Commit `9230dbab`).
