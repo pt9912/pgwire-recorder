@@ -51,6 +51,7 @@
 | [0045](0045-container-start-als-werkzeug-im-repo.md) | Start des Dev-Containers als Werkzeug im Repo mit Gegenprobe | Accepted | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 | [0046](0046-gegenprobe-ueberspringt-im-dev-container.md) | Gegenprobe des Container-Starts überspringt im Dev-Container, was dort fehlt | Superseded by [0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 | [0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) | Gegenprobe des Container-Starts ist ein Ziel für den Host und kein Gate | Accepted | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
+| [0048](0048-gegenproben-verlassen-die-gate-kette.md) | Die Gegenproben verlassen die Gate-Kette, zwei Sammelziele fahren sie | Proposed | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 
 ## Konventionen
 
@@ -91,3 +92,4 @@ Ergänzende und teilweise ersetzende ADRs sind keine `Supersedes`; die angenomme
 | [0045](0045-container-start-als-werkzeug-im-repo.md) | ergänzt [0026](0026-build-und-test-im-multistage-dockerfile.md) und [0038](0038-gate-kette-voll-und-schnell.md) um ein Werkzeug im Repo für den Start des Dev-Containers; ersetzt keine ADR |
 | [0046](0046-gegenprobe-ueberspringt-im-dev-container.md) | ergänzt [0045](0045-container-start-als-werkzeug-im-repo.md) um das Überspringen der Fälle mit `u-boot` und `devcontainer` im Dev-Container; ersetzt keine ADR |
 | [0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) | ersetzt [0046](0046-gegenprobe-ueberspringt-im-dev-container.md) und ergänzt [0045](0045-container-start-als-werkzeug-im-repo.md) um die Aussage, die Gegenprobe sei ein Ziel nur für den Host und kein Gate |
+| [0048](0048-gegenproben-verlassen-die-gate-kette.md) | Proposed; ersetzt Teile von [0038](0038-gate-kette-voll-und-schnell.md) (Punkt 2 der Entscheidung, den einzigen Nachweis in Punkt 1 und die Verwerfung der Alternative D: die Gegenproben verlassen die Gate-Kette, die Ausnahmeliste der schnellen Kette schrumpft auf drei Gates) und liest [0033](0033-gate-nachweise-in-der-abdeckung.md) so, dass „hängt an der Gate-Kette“ „steht in einer der beiden Listen“ heißt; Positivliste, Dateiliste und Wahl am Pfad der 0038 bleiben; ersetzt keine ADR im Ganzen |
