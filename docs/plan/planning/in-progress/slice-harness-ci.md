@@ -137,6 +137,8 @@ dasteht.
 
 18. **Abbruch und Herunterfahren von `ci-gegenprobe`.** **Entschieden:** `SPEC-064` Punkt 18 (Aufräumen bei Ende, `SIGINT`, `SIGTERM`; Fälle `p18-sigint`, `p18-sigterm`; ohne Unterprozesse bei dieser Gegenprobe, die Mutation „Unterprozesse nicht beendet“ entfällt).
 
+19. **Meldungstexte, Reihenfolge innerhalb einer Stufe, Zusatzzeile aus Leerraum, Tag-Kommentar, Hinweis bei Fehler** (Rückgabe des Implementers). **Entschieden:** `SPEC-064` Punkt 8 (Wortlaut nicht zugesagt), Punkt 9 (Reihenfolge innerhalb einer Stufe nicht zugesagt), Punkt 1 (leere Zeilen und Kommentarzeilen frei; Leerraum-Zeile nicht zugesagt; Tag beginnt mit einem Zeichen, das kein Leerzeichen ist, Fall `p1-pin-tag-leer`).
+
 **Fragen an den Nutzer** (jede mit Empfehlung des Planners; eine Empfehlung ist keine Entscheidung):
 
 1. **Repo öffentlich oder privat?** Es bestimmt Runner-Größe, Minutenbudget und die Wahl in Randform 10. Empfehlung: den Vertrag mit der Annahme „privat, 2 vCPU, 7 GB“ schreiben, denn sie ist die knappere.

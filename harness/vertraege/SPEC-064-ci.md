@@ -51,9 +51,9 @@ Fälle ihrer Gruppe färbt (`AGENTS.md` §3.10); die unveränderte Kopie ist gr�
 
 ## Teil 1: Die Datei `ci.yml`
 
-1. **Der Text.** `.github/workflows/ci.yml` besteht, außer Leerzeilen und Kommentarzeilen (erstes Zeichen außer Leerzeichen `#`), aus genau diesen
+1. **Der Text.** `.github/workflows/ci.yml` besteht, außer leeren Zeilen und Kommentarzeilen (erstes Zeichen außer Leerzeichen `#`), aus genau diesen
    Zeilen in dieser Reihenfolge; Einzug und Anführungszeichen sind Teil des Textes. Für die Zeile mit `<SHA>` und `<Tag>` gilt: `<SHA>` sind 40 Hexziffern
-   in Kleinschrift, `<Tag>` ein nicht leerer Text; beide stehen nicht in dieser Kennung (sie altern; die Prüfung der Pins gehört
+   in Kleinschrift, `<Tag>` ein nicht leerer Text, der mit einem Zeichen beginnt, das kein Leerzeichen ist (`# ` allein ist kein Tag); beide stehen nicht in dieser Kennung (sie altern; die Prüfung der Pins gehört
    [`SPEC-063`](SPEC-063-workflows-check.md)).
 
    ```
@@ -98,14 +98,14 @@ Fälle ihrer Gruppe färbt (`AGENTS.md` §3.10); die unveränderte Kopie ist gr�
            run: make gates
    ```
 
-   Jede Änderung der Datei ist eine Änderung dieser Kennung. Fälle: `p1-gleich` (die Datei des Arbeitsbaums entspricht dem Text, grün); je Zeile des Textes ein
+   Jede Änderung der Datei ist eine Änderung dieser Kennung. Zugesagt ist, dass leere Zeilen und Kommentarzeilen frei sind; eine Zeile aus Leerzeichen oder Tabulatoren ist nicht zugesagt (akzeptiertes Negativ; Grund: kein Schreiber braucht sie, und die Gegenprobe hat dazu keinen Fall; gemessen: eine Zeile nur aus Tabulatoren ist eine Zusatzzeile und rot). Fälle: `p1-gleich` (die Datei des Arbeitsbaums entspricht dem Text, grün); je Zeile des Textes ein
    Fall `p1-fehlt-<n>` an einer Kopie ohne diese Zeile und ein Fall `p1-geaendert-<n>` an einer Kopie, in der die Zeile um ein Zeichen verändert ist (rot);
    `p1-zusatz-<Wort>` an Kopien mit je einer zusätzlichen Zeile, die `concurrency:`, `workflow_dispatch:`, `pull_request_target:`, `workflow_run:`, `strategy:`,
    `continue-on-error: true` oder `${{ secrets.X }}` (Element je Wort) trägt (rot); `p1-zusatz-schritt` (ein zusätzlicher Schritt `uses: actions/cache@…` bzw.
-   `actions/upload-artifact@…`, rot); `p1-pin-kurz` (SHA mit 39 Ziffern), `p1-pin-gross` (Großbuchstaben), `p1-pin-ohne-tag` (kein Kommentar), `p1-pin-andere-action`
+   `actions/upload-artifact@…`, rot); `p1-pin-kurz` (SHA mit 39 Ziffern), `p1-pin-gross` (Großbuchstaben), `p1-pin-ohne-tag` (kein Kommentar), `p1-pin-tag-leer` (`# ` ohne Text), `p1-pin-andere-action`
    (rot); `p1-reihenfolge-schritte` (die Schritte `Commit-Messages` und `ADR-Immutabilität` vertauscht), `p1-reihenfolge-gates` (der Schritt `Gates` vor den beiden anderen).
    Mutationen: die Prüfung ignoriert eine Zeile (je Zeile eine Mutation, erzeugt in einer Schleife über den Text); die Prüfung lässt zusätzliche Zeilen zu;
-   die Prüfung ignoriert die Reihenfolge; der Pin akzeptiert Großbuchstaben, 39 Ziffern oder einen fehlenden Kommentar (je eine). Die Gegenprobe trägt den Text
+   die Prüfung ignoriert die Reihenfolge; der Pin akzeptiert einen Kommentar `# ` ohne Text (färbt `p1-pin-tag-leer`); der Pin akzeptiert Großbuchstaben, 39 Ziffern oder einen fehlenden Kommentar (je eine). Die Gegenprobe trägt den Text
    wörtlich als eigene Kopie; weicht sie von diesem Punkt ab, ist das ein Fehler der Gegenprobe, den der Fall `p1-gleich` am Arbeitsbaum zeigt.
 2. **Was der Text entscheidet** (Gründe kurz; die Abwägung steht in der ADR). *Auslöser:* `pull_request` und `push` auf Zweigen, Tags ausgenommen (Tags gehören der
    Veröffentlichung). Ein Pull-Request aus demselben Repo löst beide aus, zwei Läufe je Commit; das ist hingenommen (akzeptiertes Negativ; Grund: ein Pull-Request prüft
@@ -157,10 +157,10 @@ Fälle ihrer Gruppe färbt (`AGENTS.md` §3.10); die unveränderte Kopie ist gr�
 8. **Ausgabe und Ausgang.** stdout trägt bei Erfolg genau eine Zeile, die Range; alles andere (Hinweise, Fehler) steht auf stderr mit dem Präfix `ci-range:`; bei Exit ungleich 0 bleibt stdout leer.
    Exit 0 heißt eine nicht leere Range; 1 eine leere; 2 eine Eingabe, einen Klon oder eine Auflösung, die nicht möglich ist (auch ein `git`-Fehler). Fälle:
    `p8-stdout-eine-zeile` (auch beim Hinweis des Force-Push), `p8-fehler-stdout-leer` (jede Form mit Exit ungleich 0 ohne Ausgabe auf stdout). Mutationen: der Hinweis steht auf stdout;
-   ein Fehler schreibt eine Teil-Range auf stdout.
+   ein Fehler schreibt eine Teil-Range auf stdout. Der **Wortlaut** der Meldungen (etwa „Basis nicht im Klon“, „Kopf nicht im Klon“, „Standard-Zweig fehlt im Klon“, der Fehler von `git rev-parse --is-shallow-repository`, der Hinweis zu einem unbekannten Vorgänger) ist nicht zugesagt; zugesagt sind das Präfix `ci-range:`, der Ausgang und, bei Erfolg mit unbekanntem Vorgänger, der Hinweis aus Punkt 7. Die Meldung zum flachen Klon und die zu einer fehlenden oder ungültigen Variable nennen den Grund so, dass ein Mensch den Ort findet (Variable bzw. `fetch-depth: 0`); das ist Lesart, kein Fall.
 9. **Reihenfolge der Gründe.** (1) Ereignis, (2) die vom Ereignis gelesenen Variablen in der Folge `CI_HEAD`, `CI_PR_BASE` bzw. `CI_PUSH_BEFORE`, `CI_DEFAULT_BRANCH`, (3) flacher Klon, (4) Auflösung von Basis und
    Kopf, (5) leere Range. Fälle: `p9-eingabe-vor-flach` (flacher Klon und ungültige Variable: Meldung der Variable), `p9-flach-vor-aufloesung` (flacher Klon, dessen Basis nicht aufzulösen ist:
-   Meldung zum Klon), `p9-aufloesung-vor-leer`. Mutation je Paar: die Reihenfolge vertauscht.
+   Meldung zum Klon), `p9-aufloesung-vor-leer`. Mutation je Paar: die Reihenfolge vertauscht. Sind **mehrere** Gründe derselben Stufe gegeben (Basis und Kopf beide nicht aufzulösen; bei einem Push mit unbekanntem Vorgänger zugleich ein ungültiger Standard-Zweig), endet der Lauf mit Exit 2 und nennt mindestens einen von ihnen; welchen zuerst, ist nicht zugesagt (akzeptiertes Negativ; Grund: der Ausgang ist derselbe, und die Reihenfolge innerhalb einer Stufe ändert nichts, was ein Aufrufer lesen kann außer dem Wortlaut). Ein Hinweis zum Vorgänger (Punkt 7) vor einer Fehlermeldung ist darum kein Widerspruch.
 
 ## Teil 3: Konfiguration der Range-Prüfungen
 
