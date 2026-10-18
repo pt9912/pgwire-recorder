@@ -90,7 +90,7 @@ Gates und Closure:
 
 **Start** (`next` → `in-progress`): `slice-harness-devcontainer-einrichten-geruest` liegt in `done/` (Reihenfolge: Geber, dieser Slice, `slice-harness-devcontainer-einrichten`, dann gegebenenfalls `slice-harness-devcontainer-einrichten-zugang`). Der Slice liegt in `open/`, bis der Nutzer ihn priorisiert und den Anspruch trägt; `Verantwortlich:` setzt dieser Übergang.
 
-**Größe.** Metrik nach `AGENTS.md` §3.14: Summe aus Einfügungen und Löschungen von
+**Basis der Größenmetrik: aad621a8.** **Größe.** Metrik nach `AGENTS.md` §3.14: Summe aus Einfügungen und Löschungen von
 `git diff --numstat <Basis>..<letzter Commit des Slice> -- tools harness docs/developer`. Basis ist der
 Elternteil des Commits, der diese Datei nach `in-progress/` bewegt; Vertrag und ADR zählen nicht.
 
