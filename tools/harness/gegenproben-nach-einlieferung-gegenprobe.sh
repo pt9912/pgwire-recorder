@@ -625,7 +625,7 @@ mut m-p2-legt-an "p2-fehlt p2-kein-verzeichnis p2-leer p2-relativ p2-zwei-zeilen
 # --- Punkt 3
 mut m-p3-refs-stern "p13-ref-vor-form p3-headsx p3-notes p3-tag" "$REFL" '    case "$ref" in refs/*) ;; *) continue ;; esac'
 mut m-p3-heads-ohne-schraeg "p3-headsx" "$REFL" '    case "$ref" in refs/heads*) ;; *) continue ;; esac'
-mut m-p3-gleichzeitig "p3-mehrere p6-nacheinander p9-beginn-nach-sperre p9-sigterm-enkel p9-sigterm-lauf p9-sigterm-wartet" 'do lauf "$1" "$2" "$3"; shift 3; done' 'do lauf "$1" "$2" "$3" & sleep 0.1; shift 3; done; wait' "$FLOCK" '  : & pid=$!'
+mut m-p3-gleichzeitig "p3-mehrere p5-ein-prozess p6-nacheinander p9-beginn-nach-sperre p9-sigterm-enkel p9-sigterm-lauf p9-sigterm-wartet" 'do lauf "$1" "$2" "$3"; shift 3; done' 'do lauf "$1" "$2" "$3" & sleep 0.1; shift 3; done; wait' "$FLOCK" '  : & pid=$!'
 mut m-p3-rueckwaerts "p3-mehrere" '    args+=("$n" "$zweig" "$neu")' '    args=("$n" "$zweig" "$neu" "${args[@]}")'
 mut m-p3-nur-erste "p3-mehrere p4-leerzeichen-zeile p4-leerzeile p7-anderer-zweig p8-eindeutig p8-grenze p8-lang p8-nichtascii p8-prozent p8-sonderzeichen p8-unveraendert p9-rot" '    args+=("$n" "$zweig" "$neu")' '    args+=("$n" "$zweig" "$neu"); break'
 mut m-p3-meldet-fremde-refs "p13-ref-vor-form p3-headsx p3-notes p3-tag" "$REFL" '    case "$ref" in refs/heads/*) ;; *) melde zeile "kein Zweig"; continue ;; esac'
