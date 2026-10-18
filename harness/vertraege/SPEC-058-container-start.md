@@ -254,7 +254,11 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
     `PGR_MEM=2g`; (d) Entfernen nur per Name: `docker rm -fv`, danach die Prüfung, dass keines der zuvor aus `docker inspect` gelesenen Volumes
     (Typ `volume`) bleibt (`SPEC-057` Punkte 3 und 4; ein Rest wird gemeldet, per Name entfernt und färbt die Gegenprobe rot), `docker rmi`
     nur für Images mit dem Präfix; kein `prune`; (e) kein Name ohne Präfix wird angefasst (Fall: die Gegenprobe bricht ab, wenn ein Name aus
-    der Umgebung das Präfix nicht trägt); (f) das Aufräumen läuft bei Ende, `SIGINT` und `SIGTERM`. Eine Vorbedingung „kein `make gates` läuft“
+    der Umgebung das Präfix nicht trägt); (f) das Aufräumen läuft bei Ende, `SIGINT` und `SIGTERM`; (g) entfernt wird nur,
+    was der eigene Lauf angelegt hat: die Gegenprobe merkt sich die Namen ihrer Verzeichnisse, Container, Volumes und Images und sucht nie
+    per Präfix; gleichzeitige Läufe am Host mit demselben Präfix `pgr-cs-` beeinflussen sich nicht (Entscheidung des Architect nach Befund
+    V-3 des Verifiers; Fall `p15-fremdes-verzeichnis`: ein fremdes leeres Verzeichnis `pgr-cs-*` bleibt stehen, auch nach `SIGINT` und
+    `SIGTERM` des eigenen Laufs; Mutation: Aufräumen per Präfix statt per gemerktem Namen). Eine Vorbedingung „kein `make gates` läuft“
     gibt es nicht: gleichzeitige Läufe auf einem Daemon sind nicht zugesagt (`SPEC-052`
     Punkt 8); die Regel „nie gleichzeitig mit dem Lauf eines anderen Slice und nie gegen den Container, in dem gearbeitet wird“ richtet sich an
     den Aufrufer. Die Mutanten ersetzen genau eine Stelle in einer Kopie des Skripts; trifft die Ersetzung nichts oder mehr als eine Stelle,
