@@ -144,18 +144,18 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 
 ### Belege des Implementers
 
-Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `1bdaaefe` (Gate `7a66cc39`, Gegenprobe `a207e17c`, Gate-Index `0c30b767`, Symlink-Fall `c92ed918`, Review-Nacharbeit `1bdaaefe` und `6f4058fe`), im Dev-Container pgr-dev3 (Docker-in-Docker, bash 5, mawk). Basis der Größenmetrik: `a98d0b9e`.
+Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `bdfbedf5` (Gate `7a66cc39`, Gegenprobe `a207e17c`, Gate-Index `0c30b767`, Symlink-Fall `c92ed918`, Review-Nacharbeit `1bdaaefe` und `6f4058fe`, Werkzeugliste im Kopf des Fragments `bdfbedf5`), im Dev-Container pgr-dev3 (Docker-in-Docker, bash 5, mawk). Basis der Größenmetrik: `a98d0b9e`.
 
 **Randform-Rückgabe vor dem Code** (Image-Herkunft und Rechte des Nicht-root-Images): vom Architect in `SPEC-063` Punkte 3 und 12 entschieden (Commit `2890e31f`); das Fragment trägt `rhysd/actionlint@sha256:887a259a…147e9` (Index-Digest von Tag 1.7.7, Docker Hub).
 
-**Läufe am Endstand (alle im Container):**
+**Läufe am Endstand (alle im Container; nach V-4 lief die Gegenprobe einmal, grün, 100 Läufe):**
 
 | Lauf | Ergebnis |
 |---|---|
 | `make workflows-check-gegenprobe` | grün, 100 Läufe (unveränderte Kopie und 99 Mutationen), 98 Fälle, davon 3 echte gegen die Images von `actionlint` und d-check; als root (`sudo -n`, ebenfalls im Container) grün mit 97 Läufen, die drei Fälle mit Rechten und ihre drei Mutationen entfallen und stehen am Ende auf stderr |
 | `make gates-schnell-gegenprobe` | grün (Ausnahmeliste deckt `GATE_CHECKS`, Namensregel von `SPEC-060` Punkt 2 am Arbeitsbaum mit der neuen Gegenprobe) |
-| `make gates` | endet an `docs-check` mit Exit 2: drei Befunde `id-unlinked` (die drei ADR-Kennungen der Eingangs-Zeile) in `docs/reviews/2026-10-18-review-slice-harness-ci-workflows.md` Zeile 15, dem Report des Reviewers, nicht in Dateien dieses Slice. `make -k gates` fährt alle übrigen Gates grün (Build, Test, Lint, a-check, `workflows-check` mit „keine Workflow-Dateien unter .github/workflows“, Kopf, Abdeckung, Meldungskatalog, Container, Integration, Postgres-Versionen); der Nachweis des vollen Laufs ist damit nicht geschrieben, bis der Report Links trägt |
-| `make docs-check` | 3 Befunde, nur im Report des Reviewers (siehe oben); ohne den Report 0 Befunde |
+| `make gates` | am Stand `6f4058fe` bis auf `docs-check` grün (`make -k gates`); `docs-check` meldete drei Befunde `id-unlinked` im Review-Report, behoben im Commit `e9219f59` des Reviewers (Links). Ein voller Lauf von `make gates` am Endstand ist in diesem Container nicht gefahren; er (Verifikation V-1) steht beim Host am Integrationsstand |
+| `make docs-check` | 0 Befunde am Stand `bdfbedf5` (nach `e9219f59`) |
 | `make gates-schnell-gegenprobe` | grün am Endstand |
 | echter Lauf des Gates | an einer Datei mit Ausdrucksfehler, `permissions: read-all`, `timeout-minutes: 99`, einem Job ohne Zeitgrenze und `contents: admin`: 10 Befunde (4 von `actionlint`, 5 eigene, 1 Bindung), Exit 1 |
 | d-check (`real-pins`) | `uses: actions/checkout@v4` ⇒ `uses-pin-missing`, voller SHA ohne Kommentar ⇒ `uses-pin-untagged`, mit Tag-Kommentar ⇒ 0 Befunde (Image `DCHECK_REF`, v0.86.1) |
@@ -268,7 +268,7 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `1bdaaefe` (Gate `7a66cc39
 
 **Befundzeilen vorher und nachher:** kein Bestand (das Gate liegt vor der ersten Workflow-Datei; `.github/workflows/` fehlt im Arbeitsbaum).
 
-**Metrik gegen die Marke von §4** (Summe aus Einfügungen und Löschungen von `git diff --numstat a98d0b9e..6f4058fe -- .github tools harness Makefile`): 899 (878 Einfügungen, 21 Löschungen), davon 44 aus den Vertragsdateien des Architect (`harness/vertraege`); ohne sie 855 (`workflows-check-gegenprobe.sh` 589, `workflows-check.sh` 240, `workflows.mk` 24, `harness/README.md` 2). Meldeschwelle 700 überschritten, Marke 900 nicht (um eine Zeile unterschritten); jede weitere Zeile in diesen Pfaden überschreitet sie.
+**Metrik gegen die Marke von §4** (Summe aus Einfügungen und Löschungen von `git diff --numstat a98d0b9e..bdfbedf5 -- .github tools harness Makefile`): 899 (878 Einfügungen, 21 Löschungen), davon 44 aus den Vertragsdateien des Architect (`harness/vertraege`); ohne sie 855 (`workflows-check-gegenprobe.sh` 589, `workflows-check.sh` 240, `workflows.mk` 24, `harness/README.md` 2). Meldeschwelle 700 überschritten, Marke 900 nicht (um eine Zeile unterschritten); jede weitere Zeile in diesen Pfaden überschreitet sie.
 
 **Rückgabe an den Architect, erledigt:** Prüfbereich nur aus Symlinks (`SPEC-063` Punkt 2, F4): Der Architect hat entschieden (Befund `symlink`, Exit 1, kein Aufruf von `docker`, Punkte 4 und 8 nicht geprüft). Das Skript brauchte keine Änderung; der Fall `p2-nur-symlink` war an der unveränderten Kopie grün, die zwei Mutationen färben ihn. Weil weder Skript noch Fragment sich änderten, ist nach dem Fall kein neuer `make gates` gelaufen; der Lauf von oben (Skript und Fragment gleich) gilt. Gelaufen nach dem Fall: die volle `make workflows-check-gegenprobe` (grün, 83 Läufe) und `make docs-check` (0 Befunde).
 
@@ -287,7 +287,7 @@ Stand: Zweig `impl-ci-workflows`, letzter Code-Commit `1bdaaefe` (Gate `7a66cc39
 | F-9 (INFO) | unverändert: `export DOCKER` global; der Vertrag nennt die Schnittstelle (`DOCKER` aus `build.mk` als Umgebung des Skripts) und verlangt keinen engeren Export. Kopplung für den, der ein Skript ändert, das `DOCKER` aus der Umgebung liest. Ein zielgebundener Export (`target: export VAR`) kennt GNU make ohne Zuweisung nicht (am Gate gemessen: „No rule to make target export“) |
 | F-10 (INFO, Architect) | umgesetzt nach `SPEC-063` Punkte 1 und 7: Skript prüft die Normalform (`^(0|[1-9][0-9]*)$`); Fälle `p7-fuehrende-null` (`010`, `0060`, `00`), `p7-vorzeichen`, `p7-dezimal`, `p1-symlink-andere-endung` mit je einer Mutation (zwei für den Symlink) |
 
-**Offene Rückgabe:** Der Review-Report enthält in Zeile 15 drei ADR-Kennungen ohne Link; `make docs-check` meldet das (und damit `make gates`). Der Report ist Lauf-Beleg des Reviewers; ich habe ihn nicht geändert.
+**Offene Rückgabe:** keine. Der Befund im Review-Report (Kennungen ohne Link) ist mit `e9219f59` erledigt. Die Werkzeugliste im Kopf von `harness/mk/workflows.mk` (V-4) ist ergänzt; geändert ist nur eine Kommentar-Zeile, die Summe der Metrik bleibt 899.
 
 Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 
