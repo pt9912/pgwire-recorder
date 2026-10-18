@@ -16,7 +16,7 @@ Vorgänger in dieser Reihenfolge: `slice-harness-devcontainer-einrichten-geruest
 
 **Berührte Spec-Stellen:** [`SPEC-058`](../../../../harness/vertraege/SPEC-058-container-start.md) Teil II (Punkte 9 bis 12) und, soweit sie Teil II betreffen, die Punkte 1, 4, 13, 14, 15, 16 und 17; [`SPEC-052`](../../../../harness/vertraege/SPEC-052-gate-kette.md) (Punkt 8: gleichzeitige Läufe); [`SPEC-057`](../../../../harness/vertraege/SPEC-057-integration-aufraeumen.md) (Punkte 3, 4 und 7: Aufräumen, Fallen); [LH-QA-03](../../../../spec/lastenheft.md#lh-qa-03--portabilität).
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig slice-harness-devcontainer-einrichten-start)
 
 **Autor:** Planner. **Datum:** 2026-10-18.
 
