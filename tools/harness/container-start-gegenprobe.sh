@@ -32,7 +32,7 @@ GP_SELF=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/$(basename "${BASH_SOUR
 quelle=${GP_QUELLE:-$(cd "$(dirname "$GP_SELF")/../.." && pwd -P)}
 arbeit=$(mktemp -d -t pgr-cs-XXXXXX)
 bg=
-PSDS=() DKC=() DKV=()
+PSDS=() DKC=() DKV=() DKI=()
 rest=0
 nm=${GP_NAME:-pgr-cs-$$}
 node=$(command -v node) sshkeygen=$(command -v ssh-keygen) realub=$(command -v u-boot)
@@ -52,7 +52,7 @@ dk_raeumen() {
     elif docker volume inspect "$v" > /dev/null 2>&1; then echo "container-start-gegenprobe: ROT — Volume $v bleibt nach docker rm -fv" >&2; rest=1; docker volume rm "$v" > /dev/null 2>&1; fi
   done
   [ "${1-}" = bilder ] || return 0
-  for k in 1 2; do for i in $(docker images --format '{{.Repository}}:{{.Tag}}' 2> /dev/null | grep "^vsc-$nm-"); do docker rmi "$i" > /dev/null 2>&1; done; done
+  for i in "${DKI[@]}"; do [[ $i == vsc-pgr-cs-* ]] && docker rmi "$i" > /dev/null 2>&1; done
 }
 aufraeumen() { [ -z "$bg" ] || kill "$bg" 2> /dev/null; [ -z "${lk-}" ] || kill "$lk" 2> /dev/null; dk_raeumen bilder; sonden_raeumen; [[ ${arbeit##*/} == pgr-cs-* ]] && [ -d "$arbeit" ] && rm -rf -- "$arbeit"; (( rest == 0 )) || exit 1; }
 trap aufraeumen EXIT
@@ -71,7 +71,7 @@ freier_port() {
 dk_sonde() { # legt Image, Container, ein benanntes und ein anonymes Volume des Präfixes an, startet nichts und nennt sie
   local im=vsc-$nm-sonde c=$nm-sonde
   tar -cT /dev/null | docker import - "$im" > /dev/null || return 1
-  DKC+=("$c") dkb=1
+  DKC+=("$c") DKI+=("$im") dkb=1
   docker create --name "$c" -v /anon -v "$c-vol:/benannt" "$im" /x > /dev/null || return 1
   printf '%s\n%s\n%s\n' "$c" "$c-vol" "$im"
   docker inspect --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}{{"\n"}}{{end}}{{end}}' "$c" | grep .
@@ -174,7 +174,7 @@ neu() {
 }
 c() {
   fn=$1; [[ $1 =~ ^($SEL)$ ]] || return 1
-  [[ -n ${GP_KIND-} && $1 =~ ^p15-(voraussetzung|sonden-raeumen|rekursion) ]] && return 1
+  [[ -n ${GP_KIND-} && $1 =~ ^(p15-(voraussetzung|sonden-raeumen|rekursion|docker|fremde)|p11-vorgabe) ]] && return 1
   [ -z "${GP_LISTE-}" ] || echo "$1" >> "$GP_LISTE"
   neu
 }
@@ -236,6 +236,7 @@ dk_weg() { # entfernt, was eine rote Sonde hinterließ, per Name
 }
 sonde() { # <Modus> [<Signal> [<Zeilen der Sondendatei>]]: startet die Gegenprobe im Sondenmodus; setzt pcode und psd
   local d=$w/sonde k
+  : > "$d"
   if [ -n "${2-}" ]; then
     ( for k in $(seq 100); do [ -s "$d" ] && [ "$(wc -l < "$d")" -ge "${3:-2}" ] && break; sleep 0.1; done; kill -"$2" "$(sed -n 2p "$d")" ) &
   fi
@@ -272,6 +273,7 @@ dk_gruppe() {
   sel p9-docker-erststart && { { [ "$(ins '{{.Name}}')" = "/$nm" ] && [ "$(ins '{{index .Config.Labels "devcontainer.local_folder"}}')" = "$dd" ] && [ "$(ins '{{.State.Running}}')" = true ]; } || rot p9-docker-erststart; }
   sel p15-docker-praefix && { { [[ $nm == pgr-cs-* && ${dd##*/} == pgr-cs-* && $(ins '{{.Config.Image}}') == vsc-pgr-cs-* ]]; } || rot p15-docker-praefix; }
   sel p15-docker-grenzen && { [ "$(ins '{{.HostConfig.NanoCpus}} {{.HostConfig.Memory}}')" = '2000000000 2147483648' ] || rot p15-docker-grenzen; }
+  id1=$(ins '{{.Config.Image}}'); DKI+=("$id1" "${id1%-uid}")
   id1=$(ins '{{.Id}}'); t1=$(ins '{{.State.StartedAt}}'); v1=$(ins '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}} {{end}}{{end}}')
   sel p9-docker-zweiter-aufruf && { dk; { [ "$code" = 0 ] && [ "$(ins '{{.State.StartedAt}}')" = "$t1" ] && [ "$(ins '{{.Id}}')" = "$id1" ]; } || rot p9-docker-zweiter-aufruf; }
   sel p10-docker-port-belegt && { d2=$dd-zwei; DKC+=("$nm-zwei"); dd=$d2 dk PGR_NAME="$nm-zwei"
@@ -500,7 +502,12 @@ cases() {
     c "p15-voraussetzung-$t" && { kind "$t"; [ "$code" != 0 ] && grep -qF "$t fehlt im Pfad" "$w/err" && ! grep -q übersprungen "$w/err" || rot; }
   done
   c p15-rekursion && { (GP_KIND=1; eval "$(sed -n '/^kind() {/,/^}/p' "$gpk")"; kind nichts) > /dev/null 2> "$w/err"; [ $? = 1 ] && grep -q Rekursion "$w/err" || rot; }
-  c p15-fremdes-verzeichnis && { mkdir "$w/tmp"; a=$(mktemp -d "$w/tmp/pgr-cs-XXXXXX"); TMPDIR=$w/tmp sonde ende; { [ -d "$a" ] && [ "$pcode" = 0 ]; } || rot; rmdir -- "$a" 2> /dev/null; }
+  c p15-fremdes-verzeichnis && { mkdir "$w/tmp"; a=$(mktemp -d "$w/tmp/pgr-cs-XXXXXX"); TMPDIR=$w/tmp sonde ende; { [ -d "$a" ] && [ "$pcode" = 0 ]; } || rot
+    TMPDIR=$w/tmp sonde warten INT; { [ -d "$a" ] && [ "$pcode" = 130 ]; } || rot; TMPDIR=$w/tmp sonde warten TERM; { [ -d "$a" ] && [ "$pcode" = 143 ]; } || rot; rmdir -- "$a" 2> /dev/null; }
+  c p15-fremde-docker-objekte && { f=pgr-cs-fremd-$$; tar -cT /dev/null | docker import - "vsc-$f-c" > /dev/null; tar -cT /dev/null | docker import - "vsc-$f" > /dev/null
+    docker volume create "$f-vol" > /dev/null; docker create --name "$f" "vsc-$f-c" /x > /dev/null
+    sonde docker-ende; x=0; docker inspect "$f" > /dev/null 2>&1 || x=1; docker volume inspect "$f-vol" > /dev/null 2>&1 || x=1; docker image inspect "vsc-$f" > /dev/null 2>&1 || x=1
+    { [ "$x" = 0 ] && [ "$pcode" = 0 ]; } || rot; docker rm -fv "$f" > /dev/null 2>&1; docker volume rm "$f-vol" > /dev/null 2>&1; docker rmi "vsc-$f" "vsc-$f-c" > /dev/null 2>&1; mapfile -t pl < "$w/sonde"; dk_weg; }
   c p15-sonden-raeumen && { kind nichts '^p15-ende$'; [ "$code" = 0 ] || rot; }
   c p15-name-ohne-praefix && { (cd "$w" && env -i PATH="$PATH" HOME="$w" TMPDIR="$w" GP_KIND=1 GP_NAME=foo GP_NUR=p15-aufraeumen-ende GP_MUT='^$' GP_QUELLE="$quelle" "$BASH" "$gpk" > "$w/out" 2> "$w/err"); code=$?
     { [ "$code" != 0 ] && grep -qF 'trägt das Präfix pgr-cs- nicht' "$w/err"; } || rot; }
@@ -811,6 +818,9 @@ mut p15-container-bleibt p 'docker rm -fv "$n" > /dev/null 2>&1' ':' 'p15-docker
 mut p15-volume-bleibt p 'if [[ $v == pgr-cs-* ]]; then docker volume rm "$v" > /dev/null 2>&1' 'if [[ $v == pgr-cs-* ]]; then :' 'p15-docker-.*' p15-docker-INT p15-docker-TERM p15-docker-ende
 mut p15-volume-rest-entfernen p 'rest=1; docker volume rm "$v" > /dev/null 2>&1' 'rest=1' 'p15-docker-.*'
 mut p15-image-bleibt p 'docker rmi "$i" > /dev/null 2>&1' ':' 'p15-docker-.*' p15-docker-INT p15-docker-TERM p15-docker-ende
+mut p15-container-per-praefix p 'for n in "${DKC[@]}"; do' $'for n in $(docker ps -a --format \'{{.Names}}\' | grep \'^pgr-cs-\'); do' 'p15-fremde-docker-objekte' p15-fremde-docker-objekte
+mut p15-volume-per-praefix p 'for v in "${DKV[@]}"; do' $'for v in "${DKV[@]}" $(docker volume ls -q | grep \'^pgr-cs-\'); do' 'p15-fremde-docker-objekte' p15-fremde-docker-objekte
+mut p15-image-per-praefix p 'for i in "${DKI[@]}"; do' $'for i in "${DKI[@]}" $(docker images --format \'{{.Repository}}:{{.Tag}}\' | grep \'^vsc-pgr-cs-\'); do' 'p15-fremde-docker-objekte' p15-fremde-docker-objekte
 # Gruppe Docker (echtes Docker)
 mut p9-docker-neue-volumes s 'j.mounts = [...j.mounts, "type=bind' 'j.mounts = j.mounts.map((m) => m.replace("-workspace-", "-ws" + Date.now() + "-")); j.mounts = [...j.mounts, "type=bind' 'p9-docker-.*' p9-docker-rm-neustart
 mut p9-docker-neustart-ersetzt s '  kind devcontainer up ' '  [ "$zc" != gestoppt ] || docker rm -f "$PGR_NAME"; kind devcontainer up ' "p9-(exited|created)|p9-docker-stop-start" p9-created p9-docker-stop-start p9-exited
