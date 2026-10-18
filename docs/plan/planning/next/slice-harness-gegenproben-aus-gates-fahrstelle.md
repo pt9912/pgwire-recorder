@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** der Vertrag des Hooks für die Einlieferung [`SPEC-061`](../../../../harness/vertraege/SPEC-061-gegenproben-nach-einlieferung.md) Punkte 1 bis 14 und 16 (vom Architect geschrieben, vor dem Code); der Vertrag der Sammelziele [`SPEC-060`](../../../../harness/vertraege/SPEC-060-gegenproben.md) Punkt 2 (Namensregel, Liste `GEGENPROBEN_CONTAINER`) und Punkt 10 b (`MAKEFLAGS`), nur gelesen. Punkt 15 von `SPEC-061` (Lesen des Ergebnisses) ist Regel an den Leser und gehört zu `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb`.
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig slice-harness-gegenproben-aus-gates-fahrstelle)
 
 **Autor:** Planner. **Datum:** 2026-10-18.
 
