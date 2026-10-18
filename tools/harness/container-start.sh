@@ -168,13 +168,14 @@ zust_schluessel() {
     (( ${#mangel[@]} == 0 )) || ende 4 "Schlüsselpaar abgelehnt, nichts wird verändert: ${mangel[*]}"
   fi
 }
-# Punkt 9: Der Container des Gerüsts trägt das Label devcontainer.local_folder gleich $PGR_DEV. zc ist keiner,
-# gestoppt oder laeuft; bei Kollision, anderem Namen und abweichendem Port endet der Schritt mit Exit 4.
+# Punkt 9: Der Container des Gerüsts trägt das Label devcontainer.local_folder gleich $PGR_DEV. Reihenfolge der Ablehnungen
+# (alle Exit 4): Kollision des Namens, anderer Name, Port, Zustand, Verzeichnis ohne Gerüst. zc ist keiner, gestoppt oder laeuft.
+# Ein Fehler von docker ist nie "kein Container".
 zust_container() {
-  local lab nm n i bind
+  local lab nm n i bind re=${PGR_NAME//./\\.}
   zc=keiner
-  lab=$(docker ps -a --filter "label=devcontainer.local_folder=$PGR_DEV" --format '{{.Names}}')
-  nm=$(docker ps -a --filter "name=^/$PGR_NAME\$" --format '{{.Names}}')
+  lab=$(docker ps -a --filter "label=devcontainer.local_folder=$PGR_DEV" --format '{{.Names}}') || ende 4 "docker ps (Label) endete mit Exit ungleich 0"
+  nm=$(docker ps -a --filter "name=^/$re\$" --format '{{.Names}}') || ende 4 "docker ps (Name) endete mit Exit ungleich 0"
   if [ -n "$nm" ] && [[ $'\n'$lab$'\n' != *$'\n'$PGR_NAME$'\n'* ]]; then
     ende 4 "der Container $nm trägt das Label des Gerüsts nicht (Kollision), nichts wird angefasst"
   fi
@@ -182,11 +183,15 @@ zust_container() {
     [ -z "$n" ] || [ "$n" = "$PGR_NAME" ] || ende 4 "der Container des Gerüsts heißt $n, nicht $PGR_NAME"
   done <<< "$lab"
   [ -n "$lab" ] || return 0
-  i=$(docker inspect --format '{{.State.Status}} {{range (index .HostConfig.PortBindings "2222/tcp")}}{{.HostIp}}:{{.HostPort}} {{end}}' "$PGR_NAME")
+  i=$(docker inspect --format '{{.State.Status}} {{range (index .HostConfig.PortBindings "2222/tcp")}}{{.HostIp}}:{{.HostPort}} {{end}}' "$PGR_NAME") || ende 4 "docker inspect endete mit Exit ungleich 0"
   bind=${i#* }
   [ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ] || ende 4 "der Container $PGR_NAME veröffentlicht Port 2222 als ${bind:-keinen}, nicht als 127.0.0.1:$PGR_SSH_PORT"
-  zc=gestoppt
-  [ "${i%% *}" != running ] || zc=laeuft
+  case "${i%% *}" in
+    running) zc=laeuft ;;
+    exited|created) zc=gestoppt ;;
+    *) ende 4 "der Container $PGR_NAME hat den Zustand ${i%% *}, nichts wird angefasst" ;;
+  esac
+  [ -f "$PGR_DEV/.devcontainer/devcontainer.json" ] || ende 4 "der Container $PGR_NAME besteht, aber $PGR_DEV trägt kein Gerüst (.devcontainer/devcontainer.json), nichts wird angefasst"
 }
 # Punkt 10: Läuft der Container nicht, darf am Port keine Verbindung zustande kommen.
 zust_port() {

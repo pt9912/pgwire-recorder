@@ -21,7 +21,10 @@
 # als Hintergrundjob einer Shell ohne Jobsteuerung). Die Fälle der Gruppe Docker laufen nicht neben dem Lauf
 # eines anderen Slice auf demselben Daemon und nie gegen den Container, in dem gearbeitet wird (Regel an den Aufrufer).
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur Mutationen, deren Name passt; GP_ENTDECKE=1 nennt je Mutation die
-# roten Fälle.
+# roten Fälle; GP_NUR=<Muster> wählt für die unveränderte Kopie die Fälle, deren Name passt (GP_MUT='^$' fährt dann keine
+# Mutation). Nur die Gruppe Attrappen, ohne Docker-Läufe und ohne die 60 Sekunden von p11-vorgabe-warten:
+# GP_NUR='p(1|2|3|4|5|6|7|8|10|12|13|14)-.*|p9-(kollision|doppelt|name-punkt-.*|label.*|adresse.*|port.*|kein-port|zustand-.*|ohne-geruest-.*|docker-ps-.*|docker-inspect|laeuft|exited|created|keiner|kein-update|up-.*|ausgabe.*|umgebung)|p11-(bereit.*|erster.*|nach.*|nie|opt.*|known.*)';
+# docker und devcontainer müssen auch dann im Pfad liegen (Voraussetzung).
 #
 # Ausgang: 0, wenn jeder Fall und jede Mutation wie erwartet endet, sonst 1.
 set -uo pipefail
@@ -32,7 +35,7 @@ GP_SELF=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/$(basename "${BASH_SOUR
 quelle=${GP_QUELLE:-$(cd "$(dirname "$GP_SELF")/../.." && pwd -P)}
 arbeit=$(mktemp -d -t pgr-cs-XXXXXX)
 bg=
-PSDS=() DKC=() DKV=() DKI=()
+PSDS=() DKC=() DKV=() DKI=() GRUEN=()
 rest=0
 nm=${GP_NAME:-pgr-cs-$$}
 node=$(command -v node) sshkeygen=$(command -v ssh-keygen) realub=$(command -v u-boot)
@@ -76,10 +79,18 @@ dk_sonde() { # legt Image, Container, ein benanntes und ein anonymes Volume des 
   printf '%s\n%s\n%s\n' "$c" "$c-vol" "$im"
   docker inspect --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}{{"\n"}}{{end}}{{end}}' "$c" | grep .
 }
+dk_rest() { # legt ein anonymes Volume an, das nach dem Entfernen des Containers ohne -v bleibt, und nennt es
+  local c=$nm-rest v
+  tar -cT /dev/null | docker import - "vsc-$c" > /dev/null || return 1
+  DKI+=("vsc-$c") dkb=1
+  docker create --name "$c" -v /anon "vsc-$c" /x > /dev/null || return 1
+  v=$(docker inspect --format '{{range .Mounts}}{{.Name}}{{end}}' "$c"); docker rm -f "$c" > /dev/null; DKV+=("$v"); echo "$v"
+}
 if [ -n "${GP_PROBE-}" ]; then # Sondenmodus: macht das Aufräumen von außen beobachtbar
   printf '%s\n%s\n' "$arbeit" "$$" > "$GP_PROBE_DATEI"
   [ "$GP_PROBE" = ende ] && exit 0
   [ "$GP_PROBE" != port ] || { freier_port >> "$GP_PROBE_DATEI"; exit 0; }
+  [ "$GP_PROBE" != docker-rest ] || { dk_rest >> "$GP_PROBE_DATEI"; exit 0; }
   [[ $GP_PROBE != docker-* ]] || dk_sonde >> "$GP_PROBE_DATEI"
   [ "$GP_PROBE" != docker-ende ] || exit 0
   sleep 60 & bg=$!
@@ -110,8 +121,12 @@ case $n in
   docker) case $1 in
       info) exit "${AT_DK_INFO-0}" ;;
       version) echo "${AT_DK_VER-29.9.1}"; exit "${AT_DK_VEXIT-0}" ;;
-      ps) case "$*" in *label=*) x=${AT_DK_LABEL-} ;; *) x=${AT_DK_NAME-} ;; esac; [ -z "$x" ] || echo "$x"; exit 0 ;;
-      inspect) echo "${AT_DK_INSPECT-}"; exit 0 ;;
+      ps) case "$*" in
+          *label=*) x=${AT_DK_LABEL-} e=${AT_DK_LABEL_EXIT-0} ;;
+          *name=*) x=${AT_DK_NAME-} e=${AT_DK_NAME_EXIT-0}; for a; do [[ $a != name=* ]] || [[ /$x =~ ${a#name=} ]] || x=; done ;; # der Filter ist ein regulärer Ausdruck
+          *) x=${AT_DK_NAME-} e=0 ;;
+        esac; [ -z "$x" ] || echo "$x"; exit "$e" ;;
+      inspect) echo "${AT_DK_INSPECT-}"; exit "${AT_DK_INSPECT_EXIT-0}" ;;
     esac ;;
   devcontainer)
     [ -z "${AT_DC_WARTEN-}" ] || warten
@@ -216,6 +231,7 @@ hoere() { # Listener auf einem freien Port: lp (Port), lk (Prozess)
   coproc LST { exec "$node" -e 'const s=require("net").createServer(()=>{}).listen(0,"127.0.0.1",()=>console.log(s.address().port))' < /dev/null; }
   read -r lp <&"${LST[0]}"; lk=$LST_PID
 }
+ger() { mkdir -p "$dev/.devcontainer"; echo '{"runArgs":[],"mounts":[],"remoteEnv":{}}' > "$dev/.devcontainer/devcontainer.json"; printf 'project:\n    name: pgr-cs-dev\n' > "$dev/u-boot.yaml"; } # ein vorhandenes Gerüst
 up_ok() { grep -qx 'devcontainer up --workspace-folder . --override-config .devcontainer/override.json' "$w/log"; }
 zerstoert() { grep -qE '^docker (stop|rm|rmi|kill|volume|network|image|container|system)|prune' "$w/log"; }
 sig_lauf() { # <Schritt> <Signal>: sendet das Signal, sobald das Kind des Schrittes wartet; v ist der Stand des Verzeichnisses vor start
@@ -417,28 +433,40 @@ cases() {
   # Punkt 9: Container und zweiter Aufruf
   DK=(AT_DK_LABEL=pgr-dev AT_DK_NAME=pgr-dev)
   GS=("${DK[@]}" 'AT_DK_INSPECT=exited 127.0.0.1:2222 ')
+  c p9-doppelt && { lauf AT_DK_NAME=pgr-dev AT_DK_LABEL=pgr-anders; ex 4 '(Kollision)'; ! grep -q 'heißt' "$w/err" || rot; }
+  c p9-name-punkt-fremd && { gruen PGR_NAME=a.b AT_DK_NAME=axb; }
+  c p9-name-punkt-kollision && { lauf PGR_NAME=a.b AT_DK_NAME=a.b; ex 4 'der Container a.b trägt das Label des Gerüsts nicht (Kollision)'; }
   c p9-kollision && { lauf AT_DK_NAME=pgr-dev; ex 4 'der Container pgr-dev trägt das Label des Gerüsts nicht (Kollision)'; }
   c p9-label-anderer-name && { lauf AT_DK_LABEL=pgr-anders; ex 4 'heißt pgr-anders, nicht pgr-dev'; }
+  for t in paused restarting removing dead; do
+    c "p9-zustand-$t" && { lauf "${DK[@]}" "AT_DK_INSPECT=$t 127.0.0.1:2222 "; ex 4 "pgr-dev hat den Zustand $t"; }
+  done
+  c p9-kein-port && { lauf "${DK[@]}" 'AT_DK_INSPECT=exited '; ex 4 'als keinen'; }
+  c p9-ohne-geruest-leer && { mkdir "$dev"; lauf "${DK[@]}" 'AT_DK_INSPECT=running 127.0.0.1:2222 '; ex 4 "$dev trägt kein Gerüst"; }
+  c p9-ohne-geruest-ohne-json && { gruen; rm "$dev/.devcontainer/devcontainer.json"; lauf "${DK[@]}" 'AT_DK_INSPECT=exited 127.0.0.1:2222 '; ex 4 "$dev trägt kein Gerüst"; }
+  c p9-docker-ps-label && { lauf AT_DK_LABEL_EXIT=1; ex 4 'docker ps (Label) endete mit Exit ungleich 0'; }
+  c p9-docker-ps-name && { lauf AT_DK_NAME_EXIT=1; ex 4 'docker ps (Name) endete mit Exit ungleich 0'; }
+  c p9-docker-inspect && { lauf "${DK[@]}" AT_DK_INSPECT_EXIT=1; ex 4 'docker inspect endete mit Exit ungleich 0'; }
   c p9-adresse-weicht-ab && { lauf "${DK[@]}" 'AT_DK_INSPECT=running 0.0.0.0:2222 '; ex 4 'als 0.0.0.0:2222'; }
   c p9-port-weicht-ab && { lauf "${DK[@]}" 'AT_DK_INSPECT=running 127.0.0.1:2999 '; ex 4 'als 127.0.0.1:2999'; }
-  c p9-laeuft && { hoere; lauf PGR_SSH_PORT=$lp "${DK[@]}" "AT_DK_INSPECT=running 127.0.0.1:$lp "; kill "$lk"; ex 0
+  c p9-laeuft && { ger; hoere; lauf PGR_SSH_PORT=$lp "${DK[@]}" "AT_DK_INSPECT=running 127.0.0.1:$lp "; kill "$lk"; ex 0
     { ! grep -q '^devcontainer' "$w/log" && [ ! -e "$dev/.devcontainer/override.json" ] && grep -q '^container-start: bereit ' "$w/out"; } || rot; }
   for t in exited created; do
-    c "p9-$t" && { lauf "${DK[@]}" "AT_DK_INSPECT=$t 127.0.0.1:2222 "; ex 0; { grep -q '^devcontainer up ' "$w/log" && [ -f "$dev/.devcontainer/override.json" ] && ! zerstoert; } || rot; }
+    c "p9-$t" && { ger; lauf "${DK[@]}" "AT_DK_INSPECT=$t 127.0.0.1:2222 "; ex 0; { grep -q '^devcontainer up ' "$w/log" && [ -f "$dev/.devcontainer/override.json" ] && ! zerstoert; } || rot; }
   done
-  c p9-kein-update && { lauf PGR_MEM=3g "${DK[@]}" 'AT_DK_INSPECT=running 127.0.0.1:2222 '; ex 0; }
+  c p9-kein-update && { ger; lauf PGR_MEM=3g "${DK[@]}" 'AT_DK_INSPECT=running 127.0.0.1:2222 '; ex 0; }
   c p9-keiner && { gruen; grep -q '^devcontainer up ' "$w/log" || rot; }
-  c p9-up-aufruf && { gruen "${GS[@]}"; up_ok || rot; }
-  c p9-up-verzeichnis && { gruen "${GS[@]}"; grep -qx "CWD $dev" "$w/log" || rot; }
-  c p9-up-ohne-outcome && { lauf "${GS[@]}" AT_DC_OUT=nichts; ex 5 'container-start: start: ' 'outcome'; }
-  c p9-up-exit1 && { lauf "${GS[@]}" AT_DC_EXIT=1; ex 5 'container-start: start: devcontainer up endete mit Exit 1'; }
-  c p9-ausgabe-stdout && { gruen "${GS[@]}"; grep -qx DC-STDOUT "$w/out" || rot; }
-  c p9-ausgabe-stderr && { gruen "${GS[@]}"; grep -qx DC-STDERR "$w/err" || rot; }
-  c p9-umgebung && { gruen "${GS[@]}" CLAUDE_CODE_OAUTH_TOKEN=SENTINEL-1 ANTHROPIC_API_KEY=SENTINEL-2 GIT_TOKEN=SENTINEL-3; ! grep -q '^ENV! ' "$w/log" || rot; }
+  c p9-up-aufruf && { ger; gruen "${GS[@]}"; up_ok || rot; }
+  c p9-up-verzeichnis && { ger; gruen "${GS[@]}"; grep -qx "CWD $dev" "$w/log" || rot; }
+  c p9-up-ohne-outcome && { ger; lauf "${GS[@]}" AT_DC_OUT=nichts; ex 5 'container-start: start: ' 'outcome'; }
+  c p9-up-exit1 && { ger; lauf "${GS[@]}" AT_DC_EXIT=1; ex 5 'container-start: start: devcontainer up endete mit Exit 1'; }
+  c p9-ausgabe-stdout && { ger; gruen "${GS[@]}"; grep -qx DC-STDOUT "$w/out" || rot; }
+  c p9-ausgabe-stderr && { ger; gruen "${GS[@]}"; grep -qx DC-STDERR "$w/err" || rot; }
+  c p9-umgebung && { ger; gruen "${GS[@]}" CLAUDE_CODE_OAUTH_TOKEN=SENTINEL-1 ANTHROPIC_API_KEY=SENTINEL-2 GIT_TOKEN=SENTINEL-3; ! grep -q '^ENV! ' "$w/log" || rot; }
 
   # Punkt 10: Port belegt
   c p10-belegt && { hoere; lauf PGR_SSH_PORT=$lp; kill "$lk"; ex 4 "der Port $lp ist belegt"; }
-  c p10-belegt-gestoppt && { hoere; lauf PGR_SSH_PORT=$lp "${DK[@]}" "AT_DK_INSPECT=exited 127.0.0.1:$lp "; kill "$lk"; ex 4 "der Port $lp ist belegt"; }
+  c p10-belegt-gestoppt && { ger; hoere; lauf PGR_SSH_PORT=$lp "${DK[@]}" "AT_DK_INSPECT=exited 127.0.0.1:$lp "; kill "$lk"; ex 4 "der Port $lp ist belegt"; }
 
   # Punkt 11: Bereitschaft
   c p4-stdout-nur-bereit && { gruen; ! grep -qvE '^(UB-STDOUT-[0-9]+|DC-STDOUT|\{"outcome":"success"\}|container-start: bereit .*)$' "$w/out" || rot; }
@@ -470,6 +498,7 @@ cases() {
   c p13-repo-vor-fremd && { mkdir "$root/pgr-cs-xdir"; echo x > "$root/pgr-cs-xdir/datei"; lauf PGR_DEV="$root/pgr-cs-xdir"; ex 4 'liegt im Repo'; ! grep -q 'ist fremd' "$w/err" || rot; }
   c p13-fremd-vor-schluessel && { mkdir -p "$w/f/ssh"; echo x > "$w/f/datei"; "$sshkeygen" -q -t ed25519 -N '' -f "$w/f/ssh/id_ed25519" < /dev/null; rm "$w/f/ssh/id_ed25519.pub"
     lauf PGR_DEV="$w/f"; ex 4 'ist fremd'; ! grep -q 'nur eine' "$w/err" || rot; }
+  c p13-fehler-vor-signal && { ger; lauf "${GS[@]}" AT_DC_EXIT=1; ex 5 'container-start: start: devcontainer up endete mit Exit 1'; ! grep -q abgebrochen "$w/err" || rot; }
   c p13-schluessel-vor-kollision && { gruen; rm "$dev/ssh/id_ed25519.pub"; lauf AT_DK_NAME=pgr-dev; ex 4 'nur eine der beiden Dateien'; ! grep -q Kollision "$w/err" || rot; }
   c p13-kollision-vor-port && { hoere; lauf PGR_SSH_PORT=$lp AT_DK_NAME=pgr-dev; kill "$lk"; ex 4 '(Kollision)'; ! grep -q belegt "$w/err" || rot; }
 
@@ -502,6 +531,7 @@ cases() {
     c "p15-voraussetzung-$t" && { kind "$t"; [ "$code" != 0 ] && grep -qF "$t fehlt im Pfad" "$w/err" && ! grep -q übersprungen "$w/err" || rot; }
   done
   c p15-rekursion && { (GP_KIND=1; eval "$(sed -n '/^kind() {/,/^}/p' "$gpk")"; kind nichts) > /dev/null 2> "$w/err"; [ $? = 1 ] && grep -q Rekursion "$w/err" || rot; }
+  c p15-docker-rest && { sonde docker-rest; a=$(sed -n 3p "$w/sonde"); x=0; ! docker volume inspect "$a" > /dev/null 2>&1 || { x=1; docker volume rm "$a" > /dev/null 2>&1; }; { [ "$pcode" = 1 ] && [ "$x" = 0 ]; } || rot; }
   c p15-fremdes-verzeichnis && { mkdir "$w/tmp"; a=$(mktemp -d "$w/tmp/pgr-cs-XXXXXX"); TMPDIR=$w/tmp sonde ende; { [ -d "$a" ] && [ "$pcode" = 0 ]; } || rot
     TMPDIR=$w/tmp sonde warten INT; { [ -d "$a" ] && [ "$pcode" = 130 ]; } || rot; TMPDIR=$w/tmp sonde warten TERM; { [ -d "$a" ] && [ "$pcode" = 143 ]; } || rot; rmdir -- "$a" 2> /dev/null; }
   c p15-fremde-docker-objekte && { f=pgr-cs-fremd-$$; tar -cT /dev/null | docker import - "vsc-$f-c" > /dev/null; tar -cT /dev/null | docker import - "vsc-$f" > /dev/null
@@ -547,6 +577,7 @@ mut() {
   local name=$1 key=$2 alt=$3 repl=$4 d f c r got exp
   SEL=$5; shift 5
   [[ $name =~ ${GP_MUT:-.} ]] || return 0
+  (( $# )) || GRUEN+=("$name")
   d=$arbeit/m-$name; baue "$d"
   f=$d/${FILE[$key]}; c=$(cat "$f"; echo x); c=${c%x}
   nach=; [ "$key" != p ] || { nach=$'\n'$MARKE${c#*$'\n'$MARKE}; c=${c%%$'\n'$MARKE*}; } # die Tabelle der Mutationen nennt jede Zeichenfolge selbst
@@ -741,23 +772,37 @@ mut p16-scharf g $'\t@bash tools/harness/container-start-gegenprobe.sh' $'\t-@ba
 mut p16-ausnahme k 'GATE_SCHNELL_AUSNAHME := test-container ' 'GATE_SCHNELL_AUSNAHME := container-start-gegenprobe test-container ' 'p16-.*' p16-GATE_SCHNELL_AUSNAHME
 mut p16-ziel-gate m '.PHONY: container-start' $'GATE_CHECKS += container-start\n.PHONY: container-start' 'p16-.*' p16-ziel-kein-gate
 # Punkt 9 bis 12 (Gruppe Attrappen)
-SC='p9-(kollision|label-anderer-name|adresse-weicht-ab|port-weicht-ab|laeuft|exited|created|kein-update)|p10-belegt.*|p13-(schluessel-vor-kollision|kollision-vor-port)|p1-keine-zerstoerung-kollision'
+SC='p9-(kollision|doppelt|name-punkt-.*|label-anderer-name|adresse-weicht-ab|port-weicht-ab|kein-port|zustand-.*|ohne-geruest-.*|docker-ps-label|docker-ps-name|docker-inspect|laeuft|exited|created|kein-update)|p10-belegt.*|p13-(schluessel-vor-kollision|kollision-vor-port)|p1-keine-zerstoerung-kollision'
 SU='p9-(up-.*|keiner|exited|created|ausgabe-.*|umgebung)'
 SW='p11-(bereit-meldung|erster-versuch|nach-drei|nie|opt-.*|known-hosts-unveraendert)'
-mut p9-kollision s 'if [ -n "$nm" ] && [[ $'"'"'\n'"'"'$lab$'"'"'\n'"'"' != *$'"'"'\n'"'"'$PGR_NAME$'"'"'\n'"'"'* ]]; then' 'if false; then' "$SC" p1-keine-zerstoerung-kollision p13-kollision-vor-port p9-kollision
+mut p9-kollision s 'if [ -n "$nm" ] && [[ $'"'"'\n'"'"'$lab$'"'"'\n'"'"' != *$'"'"'\n'"'"'$PGR_NAME$'"'"'\n'"'"'* ]]; then' 'if false; then' "$SC" p1-keine-zerstoerung-kollision p13-kollision-vor-port p9-doppelt p9-kollision p9-name-punkt-kollision
 mut p9-kollision-zerstoert s 'ende 4 "der Container $nm trägt' 'docker rm -f "$nm"; ende 4 "der Container $nm trägt' "p1-keine-zerstoerung-kollision|$P4S" p1-keine-zerstoerung-kollision p4-nichts-geaendert
 mut p9-anderer-name s 'ende 4 "der Container des Gerüsts heißt $n, nicht $PGR_NAME"' ':' "$SC" p9-label-anderer-name
 mut p9-port-nicht-geprueft s '[ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ] || ende 4' ':; true || ende 4' "$SC" p9-adresse-weicht-ab p9-port-weicht-ab
 mut p9-port-ohne-adresse s '[ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ]' '[[ $bind == *":$PGR_SSH_PORT " ]]' "$SC" p9-adresse-weicht-ab
 mut p9-adresse-ohne-port s '[ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ]' '[[ $bind == "127.0.0.1:"* ]]' "$SC" p9-port-weicht-ab
-mut p9-laeuft-immer s '[ "${i%% *}" != running ] || zc=laeuft' 'zc=laeuft' "$SC" p10-belegt-gestoppt p9-created p9-exited
-mut p9-created-laeuft s '[ "${i%% *}" != running ] || zc=laeuft' '[ "${i%% *}" = exited ] || zc=laeuft' "$SC" p9-created
-mut p9-exited-laeuft s '[ "${i%% *}" != running ] || zc=laeuft' '[ "${i%% *}" = created ] || zc=laeuft' "$SC" p10-belegt-gestoppt p9-exited
+mut p9-laeuft-immer s 'exited|created) zc=gestoppt ;;' 'exited|created) zc=laeuft ;;' "$SC" p10-belegt-gestoppt p9-created p9-exited
+mut p9-created-laeuft s 'exited|created) zc=gestoppt ;;' 'exited) zc=gestoppt ;; created) zc=laeuft ;;' "$SC" p9-created
+mut p9-exited-laeuft s 'exited|created) zc=gestoppt ;;' 'created) zc=gestoppt ;; exited) zc=laeuft ;;' "$SC" p10-belegt-gestoppt p9-exited
 mut p9-up-bei-laeuft s $'  [ "$zc" != laeuft ] || return 0\n  kind devcontainer up' '  kind devcontainer up' "$SC" p9-laeuft
 mut p9-override-bei-laeuft s $'s_override() {\n  [ "$zc" != laeuft ] || return 0\n' $'s_override() {\n' "$SC" p9-laeuft
 mut p9-ohne-override s $'s_override() {\n  [ "$zc" != laeuft ] || return 0\n' $'s_override() {\n  return 0\n' "$SC" p9-created p9-exited
 mut p9-kein-up-ohne-container s $'  [ "$zc" != laeuft ] || return 0\n  kind devcontainer up' $'  [ "$zc" = gestoppt ] || return 0\n  kind devcontainer up' "$SU" p9-keiner
-mut p9-update s '[ "${i%% *}" != running ] || zc=laeuft' '[ "${i%% *}" != running ] || { zc=laeuft; docker update --memory "$PGR_MEM" --memory-swap "$PGR_MEM" "$PGR_NAME"; }' "$SC" p9-kein-update
+mut p9-update s 'running) zc=laeuft ;;' 'running) zc=laeuft; docker update --memory "$PGR_MEM" --memory-swap "$PGR_MEM" "$PGR_NAME" ;;' "$SC" p9-kein-update
+mut p9-update-gestoppt s '  kind devcontainer up ' '  [ "$zc" != gestoppt ] || docker update --memory "$PGR_MEM" "$PGR_NAME"; kind devcontainer up ' 'p9-(exited|keiner|kein-update)' p9-kein-update
+mut p9-update-keiner s '  kind devcontainer up ' '  [ "$zc" != keiner ] || docker update --memory "$PGR_MEM" "$PGR_NAME"; kind devcontainer up ' 'p9-(exited|keiner|kein-update)' p9-kein-update
+for z in paused restarting removing dead; do mut "p9-zustand-$z" s 'exited|created) zc=gestoppt ;;' "exited|created|$z) zc=gestoppt ;;" "$SC" "p9-zustand-$z"; done
+mut p9-zustand-geprueft s '    *) ende 4 "der Container $PGR_NAME hat den Zustand ${i%% *}, nichts wird angefasst" ;;' '    *) zc=gestoppt ;;' "$SC" p9-zustand-dead p9-zustand-paused p9-zustand-removing p9-zustand-restarting
+mut p9-leere-bindung s '[ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ]' '[ -z "$bind" ] || [ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ]' "$SC" p9-kein-port
+mut p9-geruest-geprueft s '  [ -f "$PGR_DEV/.devcontainer/devcontainer.json" ] || ende 4' '  : || ende 4' "$SC" p9-ohne-geruest-leer p9-ohne-geruest-ohne-json
+mut p9-geruest-nur-verzeichnis s '[ -f "$PGR_DEV/.devcontainer/devcontainer.json" ] || ende 4' '[ -d "$PGR_DEV" ] || ende 4' "$SC" p9-ohne-geruest-leer p9-ohne-geruest-ohne-json
+mut p9-geruest-nur-ordner s '[ -f "$PGR_DEV/.devcontainer/devcontainer.json" ] || ende 4' '[ -d "$PGR_DEV/.devcontainer" ] || ende 4' "$SC" p9-ohne-geruest-ohne-json
+mut p9-ps-label-fehler s ' || ende 4 "docker ps (Label) endete mit Exit ungleich 0"' '' "$SC" p9-docker-ps-label
+mut p9-ps-name-fehler s ' || ende 4 "docker ps (Name) endete mit Exit ungleich 0"' '' "$SC" p9-docker-ps-name
+mut p9-inspect-fehler s ' || ende 4 "docker inspect endete mit Exit ungleich 0"' '' "$SC" p9-docker-inspect
+mut p9-kollision-nach-name s 'if [ -n "$nm" ] && [[ $'"'"'\n'"'"'$lab' 'if [ -n "$nm" ] && [ -z "$lab" ] && [[ $'"'"'\n'"'"'$lab' "$SC" p9-doppelt
+mut p9-name-regex s 're=${PGR_NAME//./\\.}' 're=$PGR_NAME' "$SC" p9-name-punkt-fremd
+mut p13-fehler-als-signal s 'ende 5 "devcontainer up endete mit Exit $kcode"' 'abbruch 130' 'p13-fehler-vor-signal|p9-up-exit1' p13-fehler-vor-signal p9-up-exit1
 mut p9-outcome s $'  [[ $kausg == *\'"outcome":"success"\'* ]] || ende 5 \'devcontainer up meldete kein "outcome":"success"\'' ':' "$SU" p9-up-ohne-outcome
 mut p9-up-exit s '  [ "$kcode" = 0 ] || ende 5 "devcontainer up endete mit Exit $kcode"' ':' "$SU" p9-up-exit1
 mut p9-stdout-verschluckt s 'kind devcontainer up --workspace-folder . --override-config .devcontainer/override.json' 'kind devcontainer up --workspace-folder . --override-config .devcontainer/override.json > /dev/null' "$SU" p9-ausgabe-stdout
@@ -816,7 +861,8 @@ mut p15-port-fremd p 'grep -qF ":$p->"' 'grep -qF "nie"' 'p15-port.*' p15-port-f
 mut p15-rm-ohne-v p 'docker rm -fv "$n"' 'docker rm -f "$n"' 'p15-docker-.*' p15-docker-INT p15-docker-TERM p15-docker-ende
 mut p15-container-bleibt p 'docker rm -fv "$n" > /dev/null 2>&1' ':' 'p15-docker-.*' p15-docker-INT p15-docker-TERM p15-docker-ende
 mut p15-volume-bleibt p 'if [[ $v == pgr-cs-* ]]; then docker volume rm "$v" > /dev/null 2>&1' 'if [[ $v == pgr-cs-* ]]; then :' 'p15-docker-.*' p15-docker-INT p15-docker-TERM p15-docker-ende
-mut p15-volume-rest-entfernen p 'rest=1; docker volume rm "$v" > /dev/null 2>&1' 'rest=1' 'p15-docker-.*'
+mut p15-volume-rest-entfernen p 'rest=1; docker volume rm "$v" > /dev/null 2>&1' 'rest=1' 'p15-docker-.*' p15-docker-rest
+mut p15-volume-rest-melden p 'rest=1; docker volume rm "$v" > /dev/null 2>&1' 'docker volume rm "$v" > /dev/null 2>&1' 'p15-docker-.*' p15-docker-rest
 mut p15-image-bleibt p 'docker rmi "$i" > /dev/null 2>&1' ':' 'p15-docker-.*' p15-docker-INT p15-docker-TERM p15-docker-ende
 mut p15-container-per-praefix p 'for n in "${DKC[@]}"; do' $'for n in $(docker ps -a --format \'{{.Names}}\' | grep \'^pgr-cs-\'); do' 'p15-fremde-docker-objekte' p15-fremde-docker-objekte
 mut p15-volume-per-praefix p 'for v in "${DKV[@]}"; do' $'for v in "${DKV[@]}" $(docker volume ls -q | grep \'^pgr-cs-\'); do' 'p15-fremde-docker-objekte' p15-fremde-docker-objekte
@@ -837,4 +883,4 @@ for k in "${!ROT[@]}"; do melde "Fall $k ist an der unveränderten Kopie rot"; d
 sonden_raeumen
 for d in "${PSDS[@]}"; do [ ! -e "$d" ] || melde "Verzeichnis der Sonde bleibt: $d"; done
 [ "$fehler" = 0 ] || exit 1
-echo "container-start-gegenprobe: gruen — SPEC-058: Fälle der Punkte 1 bis 16 und je Zusage eine Mutation"
+echo "container-start-gegenprobe: gruen — SPEC-058: Fälle der Punkte 1 bis 16; Mutationen mit genau den benannten roten Fällen, ausgenommen die ohne roten Fall (äquivalent oder durch einen anderen Fall belegt, §7 des Plans): ${GRUEN[*]}"
