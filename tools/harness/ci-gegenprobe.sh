@@ -186,6 +186,7 @@ for k in "${!ZUSATZ[@]}"; do eval "f_p1_zusatz_${ZUSATZ_NAMEN[k]//-/_}() { zusat
 pin() { neu; t[PIN]="        $1"; urteil rot < <(zeilen "${t[@]}"); }
 f_p1_pin_kurz() { pin "uses: actions/checkout@${SHA_PROBE:1} # v7.0.1"; }
 f_p1_pin_gross() { pin "uses: actions/checkout@${SHA_PROBE^^} # v7.0.1"; }
+f_p1_pin_tag_leer() { pin "uses: actions/checkout@$SHA_PROBE # "; }
 f_p1_pin_ohne_tag() { pin "uses: actions/checkout@$SHA_PROBE"; }
 f_p1_pin_andere_action() { pin "uses: actions/cache@$SHA_PROBE # v4"; }
 # umgestellt <C|A|G>… — der Text mit den Schritten in der genannten Reihenfolge (C: Commit-Messages, A: ADR-Immutabilität, G: Gates; der Checkout bleibt vorn).
@@ -259,45 +260,57 @@ erwarte() {
     printf 'erwartet: Exit %s\nstdout:\n%s\nstderr:\n%s\ngelesen: Exit %s\nstdout:\n%s\nstderr:\n%s\n' "$1" "$eo" "$ee" "$code" "$out" "$err" >> "$run/log.$fallname"
   fi
 }
+# erwarte_grund <Exit> <Teiltext> — Exit-Code, leere stdout und eine stderr, deren Zeilen alle mit `ci-range:` beginnen und die den Teiltext nennen (der Wortlaut der
+# Meldungen ist nicht zugesagt, SPEC-064 Punkt 8; der Teiltext ist der Ort: Variable oder fetch-depth).
+erwarte_grund() {
+  local z ok=1
+  [ "$code" -eq "$1" ] && [ -z "$out" ] && [ -n "$err" ] || ok=0
+  [[ $err == *"$2"* ]] || ok=0
+  while IFS= read -r z; do [[ $z == "ci-range: "* ]] || ok=0; done <<< "${err%$'\n'}"
+  if [ "$ok" -eq 0 ]; then
+    bad=1
+    printf 'erwartet: Exit %s, stdout leer, stderr mit Präfix und %s\ngelesen: Exit %s\nstdout:\n%s\nstderr:\n%s\n' "$1" "$2" "$code" "$out" "$err" >> "$run/log.$fallname"
+  fi
+}
 UNGUELTIG="fehlt oder ist ungültig"
 # Punkt 6
-f_p6_event_fehlt() { kopie quelle; umg pull_request -CI_EVENT; lauf; erwarte 2 "" "ci-range: CI_EVENT $UNGUELTIG"; }
-f_p6_event_leer() { kopie quelle; umg "" ; lauf; erwarte 2 "" "ci-range: CI_EVENT $UNGUELTIG"; }
-f_p6_event_unbekannt() { kopie quelle; umg workflow_dispatch; lauf; erwarte 2 "" "ci-range: CI_EVENT $UNGUELTIG"; }
-f_p6_event_schedule() { kopie quelle; umg schedule; lauf; erwarte 2 "" "ci-range: CI_EVENT $UNGUELTIG"; }
+f_p6_event_fehlt() { kopie quelle; umg pull_request -CI_EVENT; lauf; erwarte_grund 2 CI_EVENT; }
+f_p6_event_leer() { kopie quelle; umg "" ; lauf; erwarte_grund 2 CI_EVENT; }
+f_p6_event_unbekannt() { kopie quelle; umg workflow_dispatch; lauf; erwarte_grund 2 CI_EVENT; }
+f_p6_event_schedule() { kopie quelle; umg schedule; lauf; erwarte_grund 2 CI_EVENT; }
 FORMEN=(fehlt ungueltig kurz lang gross)
 wert() { case "$1" in ungueltig) printf 'g%.0s' $(seq 1 40) ;; kurz) printf 'a%.0s' $(seq 1 39) ;; lang) printf 'a%.0s' $(seq 1 41) ;; gross) printf 'A%.0s' $(seq 1 40) ;; esac; }
 ungueltige_variable() { # <Ereignis> <Variable> <Form>
   if [ "$3" = fehlt ]; then umg "$1" "-$2"; else umg "$1" "$2=$(wert "$3")"; fi
-  kopie quelle; lauf; erwarte 2 "" "ci-range: $2 $UNGUELTIG"
+  kopie quelle; lauf; erwarte_grund 2 "$2"
 }
 for f in "${FORMEN[@]}"; do
   eval "f_p6_head_$f() { ungueltige_variable pull_request CI_HEAD $f; }
         f_p6_prbase_$f() { ungueltige_variable pull_request CI_PR_BASE $f; }
         f_p6_before_$f() { ungueltige_variable push CI_PUSH_BEFORE $f; }"
 done
-f_p6_default_fehlt() { umg push "CI_PUSH_BEFORE=$NULL" -CI_DEFAULT_BRANCH; kopie quelle; lauf; erwarte 2 "" "ci-range: CI_DEFAULT_BRANCH $UNGUELTIG"; }
-f_p6_default_ungueltig() { umg push "CI_PUSH_BEFORE=$NULL" CI_DEFAULT_BRANCH=a..b; kopie quelle; lauf; erwarte 2 "" "ci-range: CI_DEFAULT_BRANCH $UNGUELTIG"; }
+f_p6_default_fehlt() { umg push "CI_PUSH_BEFORE=$NULL" -CI_DEFAULT_BRANCH; kopie quelle; lauf; erwarte_grund 2 CI_DEFAULT_BRANCH; }
+f_p6_default_ungueltig() { umg push "CI_PUSH_BEFORE=$NULL" CI_DEFAULT_BRANCH=a..b; kopie quelle; lauf; erwarte_grund 2 CI_DEFAULT_BRANCH; }
 f_p6_ungenutzt() { umg pull_request CI_PUSH_BEFORE=x; kopie quelle; lauf; erwarte 0 "$c1..$c3" ""; }
 f_p6_ungenutzt_prbase() { umg push CI_PR_BASE=x; kopie quelle; lauf; erwarte 0 "$c2..$c3" ""; }
 f_p6_ungenutzt_default() { umg push CI_DEFAULT_BRANCH=a..b; kopie quelle; lauf; erwarte 0 "$c2..$c3" ""; }
 # Punkt 7
 f_p7_pr() { umg pull_request; kopie quelle; lauf; erwarte 0 "$c1..$c3" ""; }
 f_p7_pr_merge_kopf() { umg pull_request "CI_HEAD=$m"; kopie quelle; lauf; erwarte 0 "$c1..$m" ""; }
-f_p7_pr_basis_fehlt_im_klon() { umg pull_request "CI_PR_BASE=$EINS"; kopie quelle; lauf; erwarte 2 "" "ci-range: Basis $EINS nicht im Klon"; }
-f_p7_pr_kopf_fehlt_im_klon() { umg pull_request "CI_HEAD=$ZWEI"; kopie quelle; lauf; erwarte 2 "" "ci-range: Kopf $ZWEI nicht im Klon"; }
+f_p7_pr_basis_fehlt_im_klon() { umg pull_request "CI_PR_BASE=$EINS"; kopie quelle; lauf; erwarte_grund 2 ""; }
+f_p7_pr_kopf_fehlt_im_klon() { umg pull_request "CI_HEAD=$ZWEI"; kopie quelle; lauf; erwarte_grund 2 ""; }
 f_p7_push() { umg push; kopie quelle; lauf; erwarte 0 "$c2..$c3" ""; }
 f_p7_push_neu() { umg push "CI_PUSH_BEFORE=$NULL"; kopie quelle; lauf; erwarte 0 "$c1..$c3" ""; }
 f_p7_push_neu_ohne_standard() {
   umg push "CI_PUSH_BEFORE=$NULL"; kopie quelle; git -C "$w" update-ref -d refs/remotes/origin/main; lauf
-  erwarte 2 "" "ci-range: Standard-Zweig refs/remotes/origin/main fehlt im Klon"
+  erwarte_grund 2 ""
 }
 f_p7_push_vorgaenger_fehlt() {
   umg push "CI_PUSH_BEFORE=$EINS"; kopie quelle; lauf
   erwarte 0 "$c1..$c3" "ci-range: Vorgänger $EINS nicht im Klon, Basis ist der Standard-Zweig"
 }
 f_p7_leer() { umg push "CI_PUSH_BEFORE=$NULL" "CI_HEAD=$c1"; kopie quelle; lauf; erwarte 1 "" "ci-range: Range $c1..$c1 ist leer"; }
-f_p7_flach() { umg push "CI_PUSH_BEFORE=$fh" "CI_HEAD=$fh"; kopie flach; lauf; erwarte 2 "" "ci-range: flacher Klon, der Checkout braucht fetch-depth: 0"; }
+f_p7_flach() { umg push "CI_PUSH_BEFORE=$fh" "CI_HEAD=$fh"; kopie flach; lauf; erwarte_grund 2 "fetch-depth: 0"; }
 # Punkt 8
 f_p8_stdout_eine_zeile() {
   umg push "CI_PUSH_BEFORE=$EINS"; kopie quelle; lauf
@@ -325,14 +338,14 @@ f_p8_fehler_stdout_leer() {
     if [ "$r" -ne 0 ]; then bad=1; printf 'Form %s: Exit %s\nstdout:\n%s\nstderr:\n%s\n' "$form" "$code" "$out" "$err" >> "$run/log.$fallname"; fi
   done
 }
-f_p8_git_fehler() { umg pull_request; kopie quelle; rm -rf "$w/.git"; lauf; erwarte 2 "" "ci-range: git rev-parse --is-shallow-repository schlug fehl"; }
+f_p8_git_fehler() { umg pull_request; kopie quelle; rm -rf "$w/.git"; lauf; erwarte_grund 2 ""; }
 # Punkt 9
-f_p9_ereignis_vor_head() { umg pull_request -CI_EVENT -CI_HEAD; kopie quelle; lauf; erwarte 2 "" "ci-range: CI_EVENT $UNGUELTIG"; }
-f_p9_head_vor_prbase() { umg pull_request -CI_HEAD -CI_PR_BASE; kopie quelle; lauf; erwarte 2 "" "ci-range: CI_HEAD $UNGUELTIG"; }
-f_p9_head_vor_before() { umg push -CI_HEAD -CI_PUSH_BEFORE; kopie quelle; lauf; erwarte 2 "" "ci-range: CI_HEAD $UNGUELTIG"; }
-f_p9_eingabe_vor_flach() { umg pull_request -CI_HEAD; kopie flach; lauf; erwarte 2 "" "ci-range: CI_HEAD $UNGUELTIG"; }
-f_p9_flach_vor_aufloesung() { umg pull_request "CI_PR_BASE=$EINS" "CI_HEAD=$fh"; kopie flach; lauf; erwarte 2 "" "ci-range: flacher Klon, der Checkout braucht fetch-depth: 0"; }
-f_p9_aufloesung_vor_leer() { umg pull_request "CI_PR_BASE=$EINS" "CI_HEAD=$EINS"; kopie quelle; lauf; erwarte 2 "" "ci-range: Basis $EINS nicht im Klon"; }
+f_p9_ereignis_vor_head() { umg pull_request -CI_EVENT -CI_HEAD; kopie quelle; lauf; erwarte_grund 2 CI_EVENT; }
+f_p9_head_vor_prbase() { umg pull_request -CI_HEAD -CI_PR_BASE; kopie quelle; lauf; erwarte_grund 2 CI_HEAD; }
+f_p9_head_vor_before() { umg push -CI_HEAD -CI_PUSH_BEFORE; kopie quelle; lauf; erwarte_grund 2 CI_HEAD; }
+f_p9_eingabe_vor_flach() { umg pull_request -CI_HEAD; kopie flach; lauf; erwarte_grund 2 CI_HEAD; }
+f_p9_flach_vor_aufloesung() { umg pull_request "CI_PR_BASE=$EINS" "CI_HEAD=$fh"; kopie flach; lauf; erwarte_grund 2 "fetch-depth: 0"; }
+f_p9_aufloesung_vor_leer() { umg pull_request "CI_PR_BASE=$EINS" "CI_HEAD=$EINS"; kopie quelle; lauf; erwarte_grund 2 ""; }
 
 # --- Punkt 18: Abbruch ------------------------------------------------------------------------------------------------------------------------------
 warte_auf() { local i; for i in $(seq 1 300); do if "$@"; then return 0; fi; sleep 0.1; done; return 1; }
@@ -367,7 +380,7 @@ f_p18_sigterm() { abbruchfall TERM 143; }
 
 # --- Läufe ------------------------------------------------------------------------------------------------------------------------------------------
 FAELLE_P1=(p1-gleich p1-text-gleich p1-reihenfolge-schritte p1-reihenfolge-gates p1-leerzeile p1-kommentarzeile p1-kommentarzeile-eingerueckt
-  p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-andere-action)
+  p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-tag-leer p1-pin-andere-action)
 for ((n = 1; n <= N; n++)); do FAELLE_P1+=("p1-fehlt-$n" "p1-geaendert-$n"); done
 for k in "${ZUSATZ_NAMEN[@]}"; do FAELLE_P1+=("p1-zusatz-$k"); done
 FAELLE_P6=(p6-event-fehlt p6-event-leer p6-event-unbekannt p6-event-schedule p6-default-fehlt p6-default-ungueltig p6-ungenutzt p6-ungenutzt-prbase p6-ungenutzt-default)
@@ -507,7 +520,7 @@ for ((n = 1; n <= N; n++)); do
   if [ "$i" -eq "$PIN" ]; then igel='[[ ${ist[j]-} =~ $PIN_RE ]]'; else igel='[ "${ist[j]-}" = "${SOLL[i]}" ]'; fi
   mut1 "m-p1-zeile-$n-optional" "p1-fehlt-$n" "fn_ersetze 'if [ \"\$i\" -eq \"\$PIN\" ]; then' 'if [ \"\$i\" -eq $i ] && ! $igel; then continue; fi; if [ \"\$i\" -eq \"\$PIN\" ]; then'"
   rote="p1-geaendert-$n"
-  if [ "$i" -eq "$PIN" ]; then rote+=" p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-andere-action"; fi
+  if [ "$i" -eq "$PIN" ]; then rote+=" p1-pin-kurz p1-pin-gross p1-pin-ohne-tag p1-pin-tag-leer p1-pin-andere-action"; fi
   mut1 "m-p1-zeile-$n-nicht-verglichen" "$rote" "fn_ersetze 'if [ \"\$i\" -eq \"\$PIN\" ]; then' 'if [ \"\$i\" -eq $i ]; then j=\$((j + 1)); continue; fi; if [ \"\$i\" -eq \"\$PIN\" ]; then'"
 done
 for k in "${!ZUSATZ[@]}"; do
@@ -518,6 +531,7 @@ mut1 m-p1-zusatzzeilen-erlaubt "$(printf 'p1-zusatz-%s ' "${ZUSATZ_NAMEN[@]}")" 
 mut1 m-p1-pin-grossbuchstaben "p1-pin-gross" 'PIN_RE="${PIN_RE/0-9a-f/0-9a-fA-F}"'
 mut1 m-p1-pin-39-ziffern "p1-pin-kurz" 'PIN_RE="${PIN_RE/"{40}"/"{39,40}"}"'
 mut1 m-p1-pin-ohne-kommentar "p1-pin-ohne-tag" 'PIN_RE="${PIN_RE/ # \[^ \].*\$/( # [^ ].*)?\$}"'
+mut1 m-p1-pin-kommentar-ohne-text "p1-pin-tag-leer" 'PIN_RE="${PIN_RE/"[^ ]"/}"'
 mut1 m-p1-pin-andere-action "p1-pin-andere-action" 'PIN_RE="${PIN_RE/actions?checkout@/actions/[a-z-]+@}"'
 mut1 m-p1-kommentarzeilen-nicht-ignoriert "p1-kommentarzeile p1-kommentarzeile-eingerueckt" "fn_ersetze '^\\ *(#|\$)' '^\\ *\$'"
 mut1 m-p1-leerzeilen-nicht-ignoriert "p1-leerzeile" "fn_ersetze '^\\ *(#|\$)' '^\\ *#'"
@@ -551,12 +565,12 @@ mutr m-p6-form-39-ziffern "p6-head-kurz p6-prbase-kurz p6-before-kurz" "HEX='^[0
 mutr m-p6-form-41-ziffern "p6-head-lang p6-prbase-lang p6-before-lang" "HEX='^[0-9a-f]{40}\$'" "HEX='^[0-9a-f]{40,41}\$'"
 mutr m-p6-form-grossbuchstaben "p6-head-gross p6-prbase-gross p6-before-gross" "HEX='^[0-9a-f]{40}\$'" "HEX='^[0-9a-fA-F]{40}\$'"
 mutr m-p6-form-nicht-hex "p6-head-ungueltig p6-prbase-ungueltig p6-before-ungueltig" "HEX='^[0-9a-f]{40}\$'" "HEX='^[0-9a-z]{40}\$'"
-mutr m-p7-pr-nimmt-vorgaenger "$(printf 'p6-prbase-%s ' "${FORMEN[@]}") p6-ungenutzt p7-pr p7-pr-merge-kopf p7-pr-basis-fehlt-im-klon p8-fehler-stdout-leer p9-aufloesung-vor-leer" '  basis_roh="${CI_PR_BASE-}"' '  basis_roh="${CI_PUSH_BEFORE-}"'
+mutr m-p7-pr-nimmt-vorgaenger "$(printf 'p6-prbase-%s ' "${FORMEN[@]}") p6-ungenutzt p7-pr p7-pr-merge-kopf p7-pr-basis-fehlt-im-klon p8-fehler-stdout-leer" '  basis_roh="${CI_PR_BASE-}"' '  basis_roh="${CI_PUSH_BEFORE-}"'
 mutr m-p7-push-nimmt-pr-basis "$(printf 'p6-before-%s ' "${FORMEN[@]}") p6-default-fehlt p6-default-ungueltig p6-ungenutzt-prbase p6-ungenutzt-default p7-push p7-push-neu-ohne-standard p7-push-vorgaenger-fehlt p8-fehler-stdout-leer p8-stdout-eine-zeile" '  basis_roh="${CI_PUSH_BEFORE-}"' '  basis_roh="${CI_PR_BASE-}"'
-mutr m-p7-nullen-kein-neuer-zweig "p7-push-neu p7-push-neu-ohne-standard p7-leer p6-default-fehlt p6-default-ungueltig" 'if [[ $basis_roh =~ $NULLEN ]]; then' 'if false; then'
+mutr m-p7-nullen-kein-neuer-zweig "p7-push-neu p7-leer" 'if [[ $basis_roh =~ $NULLEN ]]; then' 'if false; then'
 mutr m-p7-standard-fehlt-ohne-exit "p7-push-neu-ohne-standard" '|| fehler "Standard-Zweig refs/remotes/origin/$standard fehlt im Klon"' '|| true'
 mutr m-p7-vorgaenger-fehlt-exit-2 "p7-push-vorgaenger-fehlt p8-stdout-eine-zeile" '  [ "$event" = push ] || fehler "Basis $basis_roh nicht im Klon"' '  fehler "Basis $basis_roh nicht im Klon"'
-mutr m-p7-basis-fehlt-ohne-exit "p7-pr-basis-fehlt-im-klon p8-fehler-stdout-leer p9-aufloesung-vor-leer" '  [ "$event" = push ] || fehler "Basis $basis_roh nicht im Klon"' '  [ "$event" = push ] || true'
+mutr m-p7-basis-fehlt-ohne-exit "p7-pr-basis-fehlt-im-klon p8-fehler-stdout-leer" '  [ "$event" = push ] || fehler "Basis $basis_roh nicht im Klon"' '  [ "$event" = push ] || true'
 mutr m-p7-kopf-fehlt-ohne-exit "p7-pr-kopf-fehlt-im-klon p8-fehler-stdout-leer" '|| fehler "Kopf $kopf_roh nicht im Klon"' '|| true'
 mutr m-p7-leer-exit-0 "p7-leer p8-fehler-stdout-leer" $'ist leer" >&2\n  exit 1' $'ist leer" >&2\n  exit 0'
 mutr m-p7-flach-nicht-erkannt "p7-flach p9-flach-vor-aufloesung" '  true) fehler "flacher Klon, der Checkout braucht fetch-depth: 0" ;;' '  true) ;;'
@@ -564,12 +578,11 @@ mutr m-p7-merge-kopf-abgelehnt "p7-pr-merge-kopf" $'kopf="$(aufloesen "$kopf_roh
 mutr m-p7-namen-statt-shas "p7-push-neu p7-push-vorgaenger-fehlt p7-leer p8-stdout-eine-zeile" 'git rev-parse --verify --quiet "$1^{commit}" 2> /dev/null' 'git rev-parse --verify --quiet "$1^{commit}" > /dev/null 2>&1 && echo "$1"'
 mutr m-p8-hinweis-auf-stdout "p7-push-vorgaenger-fehlt p8-stdout-eine-zeile" 'Basis ist der Standard-Zweig" >&2' 'Basis ist der Standard-Zweig"'
 mutr m-p8-teil-range-auf-stdout "p7-pr-kopf-fehlt-im-klon p8-fehler-stdout-leer" '|| fehler "Kopf $kopf_roh nicht im Klon"' '|| { echo "$basis.."; fehler "Kopf $kopf_roh nicht im Klon"; }'
-mutr m-p8-git-fehler-ignoriert "p8-git-fehler" ' || fehler "git rev-parse --is-shallow-repository schlug fehl"' ''
 mutr m-p9-ereignis-nach-head "p9-ereignis-vor-head" $'# (1) Ereignis\n' $'# (1) Ereignis\n[[ ${CI_HEAD-} =~ $HEX ]] || ungueltig CI_HEAD\n'
 mutr m-p9-head-nach-prbase "p9-head-vor-prbase" $'kopf_roh="${CI_HEAD-}"\n' $'[ "$event" != pull_request ] || [[ ${CI_PR_BASE-} =~ $HEX ]] || ungueltig CI_PR_BASE\nkopf_roh="${CI_HEAD-}"\n'
 mutr m-p9-head-nach-before "p9-head-vor-before" $'kopf_roh="${CI_HEAD-}"\n' $'[ "$event" != push ] || [[ ${CI_PUSH_BEFORE-} =~ $HEX ]] || ungueltig CI_PUSH_BEFORE\nkopf_roh="${CI_HEAD-}"\n'
 mutr m-p9-flach-vor-eingabe "p9-eingabe-vor-flach p8-fehler-stdout-leer p8-git-fehler" $'# (2) Variablen, die das Ereignis liest\n' $'[ "$(git rev-parse --is-shallow-repository)" != true ] || fehler "flacher Klon, der Checkout braucht fetch-depth: 0"\n'
-mutr m-p9-aufloesung-vor-flach "p9-flach-vor-aufloesung p8-git-fehler" $'# (3) flacher Klon\n' $'[ "$event" != pull_request ] || aufloesen "$basis_roh" > /dev/null || fehler "Basis $basis_roh nicht im Klon"\n'
+mutr m-p9-aufloesung-vor-flach "p9-flach-vor-aufloesung" $'# (3) flacher Klon\n' $'[ "$event" != pull_request ] || aufloesen "$basis_roh" > /dev/null || fehler "Basis $basis_roh nicht im Klon"\n'
 mutr m-p9-leer-vor-aufloesung "p9-aufloesung-vor-leer" $'# (4) Auflösung von Basis und Kopf\n' $'[ "$basis_roh" != "$kopf_roh" ] || { echo "ci-range: Range ist leer" >&2; exit 1; }\n'
 # Punkt 18
 mut18 m-p18-int-falle-fehlt "p18-sigint" $'\ntrap abbruch_int INT\n' $'\n'
