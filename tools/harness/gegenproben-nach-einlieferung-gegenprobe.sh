@@ -741,7 +741,7 @@ mut m-p11-nur-git-dir "p11-git-quarantaene p11-git-weitere" 'for v in $(compgen 
 # --- Punkt 12
 mut m-p12-im-bare "p12-stand p3-mehrere p9-rot" "$MAKEL" '(cd "$bare" && exec make gegenproben)'
 mut m-p12-spitze "p12-entfernt-rot p12-stand p13-hash-fehlt p13-make-127 p3-mehrere p4-leerzeichen-zeile p4-leerzeile p4-ohne-umbruch p4-zeile-kaputt-dann-gut p6-kein-abbruch p6-nacheinander p7-anderer-zweig p8-eindeutig p8-grenze p8-locale p8-nichtascii p8-prozent p8-schraeg p8-sonderzeichen p8-unveraendert p9-beginn-nach-sperre p9-gruen p9-log p9-marke p9-rot p9-sigterm-enkel p9-sigterm-lauf p9-zeitzone-ost p9-zeitzone-west" "$WTADD" 'git --git-dir="$bare" worktree add --detach "$wt" "refs/heads/$zweig"'
-mut m-p12-nicht-losgeloest "p11-git-quarantaene p11-git-weitere p12-bare-unveraendert p12-stand p13-make-signal p4-leerzeichen-zeile p4-ohne-umbruch p5-gruppe p7-force p7-neu p8-locale p9-log p9-zeitzone-ost p9-zeitzone-west" "$WTADD" 'git --git-dir="$bare" worktree add -b "gp-$n" "$wt" "$hash"'
+mut m-p12-nicht-losgeloest "p11-erbt-quit p11-git-quarantaene p11-git-weitere p12-bare-unveraendert p12-stand p13-make-signal p4-leerzeichen-zeile p4-ohne-umbruch p5-gruppe p7-force p7-neu p8-locale p9-log p9-zeitzone-ost p9-zeitzone-west" "$WTADD" 'git --git-dir="$bare" worktree add -b "gp-$n" "$wt" "$hash"'
 mut m-p12-bleibt-nach-gruen "p12-entfernt-gruen p12-entfernt-rot" "$MARKE_WEG"$'\n  raeume' "$MARKE_WEG"$'\n  [ "$rc" -eq 0 ] && wt=""\n  raeume'
 mut m-p12-bleibt-nach-rot "p12-entfernt-rot" "$MARKE_WEG"$'\n  raeume' "$MARKE_WEG"$'\n  [ "$rc" -ne 0 ] && wt=""\n  raeume'
 mut m-p12-fester-name "p12-stand" 'mktemp -d "$ablage/arbeitsbaum.XXXXXX"' 'echo "$ablage/arbeitsbaum.fest"; mkdir -p "$ablage/arbeitsbaum.fest"'
