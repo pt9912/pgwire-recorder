@@ -12,7 +12,7 @@
 **Eingangs-Kontext:**
 
 - `slice-harness-ci-workflows` (Plan in `in-progress/`, §7 *Belege des Implementers*: Mutationstabelle, Läufe, Metrik; der Bericht des Implementers lag nicht vor)
-- ADR-0050 (Accepted 2026-10-18), ADR-0038, ADR-0047
+- [ADR-0050](../plan/adr/0050-ci-auf-github-actions.md) (Accepted 2026-10-18), [ADR-0038](../plan/adr/0038-gate-kette-voll-und-schnell.md), [ADR-0047](../plan/adr/0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md)
 - SPEC-063 (alle Punkte), SPEC-060 Teil 1 (Listen, Namensregel), SPEC-052 Punkte 1 bis 4 (Aufrufarten, Ausnahmeliste)
 - Nehmer `slice-harness-ci` (§1, DoD, §8: Sendung `.d-check.yml` aus Punkt 8, gelesen)
 - `AGENTS.md` (Hard Rules §3.2, §3.7 bis §3.12, §3.14)
