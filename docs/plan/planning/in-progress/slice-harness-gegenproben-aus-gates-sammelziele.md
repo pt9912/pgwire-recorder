@@ -170,40 +170,43 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Risiken aus §6:** —
 - **Drei Paarungen:** —
 
-**Belege des Implementers** (Stand 2026-10-18, Zweig `slice-harness-gegenproben-aus-gates-sammelziele`, Code-Commit `0fe98aec`):
+**Belege des Implementers** (Stand 2026-10-18; Code-Commit `0fe98aec`, Nacharbeit zum Review in `f5b4abad`):
 
-- **Metrik** (`AGENTS.md` §3.14): `git diff --numstat 09d35ed8..0fe98aec -- tools harness AGENTS.md` = Einfügungen 426, Löschungen 2, Summe **428**. Ohne Vertrag und ADR gerechnet ist sie dieselbe (beide liegen vor der Basis): `gegenproben-gegenprobe.sh` 340, `gegenproben.sh` 53, `gegenproben.mk` 17, `gegenproben-gegenprobe.mk` 11, `harness/README.md` 5, `AGENTS.md` 2. Unter der Meldeschwelle 700 und der Marke 900; Schätzung des Architect 350 bis 600.
-- **Läufe am Endstand:** `make gates` grün, 261 s (Container `pgr-dev2`); `make gates-schnell-gegenprobe` grün, 58 s; `make gegenproben-gegenprobe` grün, 25 s (Mutationen vier gleichzeitig); `make gegenproben` im Container grün, 1095 s, alle 13 Einträge der Liste grün; `make gegenproben-host` am Host in einem Wegwerf-Worktree des eingelieferten Commits grün, 260 s (`container-start-gegenprobe` grün; Worktree entfernt, kein Container und kein Volume mit Präfix `pgr-cs-` geblieben); `make docs-check` 0 Befunde. **Der Container-Lauf folgte auf `make gates` im selben Container, war also kein frischer Container:** das Risiko 1 aus §6 (grün ohne vorheriges `make gates`) ist damit nicht belegt.
-- **Zusage · Mutation · roter Test** (jede Mutation ist ein Textersatz in der Kopie, `mut` in `tools/harness/gegenproben-gegenprobe.sh`; die Gegenprobe verlangt je Mutation genau die genannten Fälle rot, einmal rot gesehen mit `GP_ENTDECKE=1`; „+" = Folgefälle, die dieselbe Ausgabe oder denselben Aufruf prüfen):
+- **Metrik** (`AGENTS.md` §3.14): `git diff --numstat 09d35ed8..f5b4abad -- tools harness AGENTS.md` = Einfügungen 484, Löschungen 6, Summe **490** (zuvor 428 am Commit `0fe98aec`). Ohne die Änderung des Vertrags durch den Architect nach der Basis (`harness/vertraege`: 17 und 4) ist sie **469**: `gegenproben-gegenprobe.sh` 381, `gegenproben.sh` 53, `gegenproben.mk` 17, `gegenproben-gegenprobe.mk` 11, `harness/README.md` 5, `AGENTS.md` 2. Unter der Meldeschwelle 700 und der Marke 900.
+- **Läufe am Endstand `f5b4abad`:** `make gates` grün, 267 s (Container `pgr-dev2`); `make gegenproben-gegenprobe` grün, 42 s (vier Mutationen gleichzeitig); `make gegenproben-host` am Host in einem Wegwerf-Worktree des eingelieferten Commits grün, 255 s (vorher keine Gegenprobe in `pgr-dev3`; Worktree entfernt, kein Container und kein Volume mit Präfix `pgr-cs-` geblieben); `make docs-check` 0 Befunde. `make gegenproben` im Container lief zuletzt am Commit `0fe98aec` grün (1095 s, alle 13 Einträge; danach änderten sich `gegenproben.sh` um eine Zeile und die Gegenprobe der Sammelziele, die sie selbst fährt, `make gates-schnell-gegenprobe` unverändert). **Dieser Lauf folgte auf `make gates` im selben Container und war kein frischer:** das Risiko 1 aus §6 bleibt unbelegt (Befund F-10 des Review, geht an den Planner).
+- **Zusage · Mutation · roter Test** (Textersatz in der Kopie, `mut` in `tools/harness/gegenproben-gegenprobe.sh`, 48 Mutationen, 44 Fälle; die Gegenprobe verlangt je Mutation genau die genannten Fälle rot, mit `GP_ENTDECKE=1` einmal gesehen; „+" = Folgefälle derselben Ausgabe):
 
 | Punkt | Zusage | Mutation | rote Fälle |
 |---|---|---|---|
-| 4 | Container-Ziel fährt nur die Liste für den Container | fährt auch die für den Host; hängt an `gegenproben-host` | `p4-container` (+ `p9-container`, `p10-j`, `p10-k` bei der ersten) |
-| 4 | Host-Ziel fährt nur die Liste für den Host | fährt auch die für den Container; hängt an `gegenproben` | `p4-host` (+ `p9-host` bei der ersten) |
-| 4 | kein Gate | `GATE_CHECKS += gegenproben` | `p4-kein-gate` |
-| 5 | nacheinander in Reihenfolge der Liste, auch unter `-j` | Hintergrund; rückwärts; Prerequisites statt Schleife | `p5-reihenfolge`, `p5-j` (+ Folgefälle der Zusammenfassung und des Abbruchs); Prerequisites nur `p5-j` (+ `p9-container`, `p10-i*`, `p10-j`, `p10-k`) |
-| 6 | alle laufen nach einem roten | Abbruch beim ersten (und ohne `k`) | `p6-erstes-rot`, `p6-mittleres-rot`, `p6-zwei-rot`, `p6-127`, `p10-j`, `p10-k` (ohne `k`: nicht `p10-k`) |
-| 6 | Exit 1 bei rotem | Exit 0; Exit des letzten Einzelziels | `p6-*-rot`, `p6-127`, `p10-j`, `p10-k` (letzter: nur wo ein früheres rot und das letzte grün ist) |
-| 6 | Zusammenfassung: alle Ziele, mit Exit-Code, zuletzt | nur die roten; ohne Exit-Code; vor der Ausgabe des letzten Ziels | `p6-alle-gruen` (nur die erste und die dritte), `p6-*-rot`, `p6-127`, `p10-j`, `p10-k` |
+| 4 | Container-Ziel fährt nur seine Liste | fährt auch die Host-Liste; hängt an `gegenproben-host` | `p4-container` (+ `p9-container`, `p10-j`, `p10-k` bei der ersten) |
+| 4 | Host-Ziel fährt nur seine Liste | fährt auch die Container-Liste; hängt an `gegenproben` | `p4-host` (+ `p9-host`) |
+| 4 | kein Gate | `GATE_CHECKS += gegenproben`; `+= gegenproben-host` | `p4-kein-gate` |
+| 4 | nicht in der Ausnahmeliste | `GATE_SCHNELL_AUSNAHME += gegenproben`; `+= gegenproben-host` | `p4-kein-ausnahme` |
+| 5 | nacheinander in Reihenfolge, auch unter `-j` | Hintergrund; rückwärts; Prerequisites | `p5-reihenfolge`, `p5-j` (+ Zusammenfassung, Abbruch); Prerequisites `p5-j` (+ `p9-container`, `p10-i*`, `p10-j`, `p10-k`) |
+| 6 | alle laufen nach einem roten | Abbruch beim ersten; ohne `k` | `p6-erstes-rot`, `p6-mittleres-rot`, `p6-zwei-rot`, `p6-127`, `p10-j`, `p10-k` (ohne `k`: nicht `p10-k`) |
+| 6 | Exit 1 bei rotem | Exit 0; Exit des letzten Ziels | `p6-*-rot`, `p6-127`, `p10-j`, `p10-k`; letzter: nur wo ein früheres rot, das letzte grün ist |
+| 6 | Zusammenfassung vollständig, mit Exit-Code, zuletzt | nur die roten; ohne Exit-Code; vor der Ausgabe des letzten Ziels | `p6-alle-gruen` (erste und dritte), `p6-*-rot`, `p6-127`, `p10-j`, `p10-k` |
 | 7 | Ausgabe unverändert, gleicher Strom | stderr nach stdout; stdout verworfen | `p7-ausgabe` |
-| 8 | Abbruch, kein weiteres Ziel, 130 und 143, keine Zusammenfassung, Signal an Gruppe und an Skript | nächstes startet; Codes vertauscht; Zusammenfassung erscheint | `p8-sigint-gruppe`, `p8-sigterm-gruppe`, `p8-sigint-skript`, `p8-sigterm-skript` |
-| 8 | das laufende Einzelziel endet | Einzelziel bleibt am Leben | nur `p8-sigint-skript`, `p8-sigterm-skript` |
-| 9 | leere Liste: Exit 2, Meldung, kein Ziel | Exit 0; Listen vertauscht | `p9-container`, `p9-host` (Listen vertauscht: + `p4-*`, `p5-*`, `p6-erstes-rot`, `p10-j`, `p10-k`) |
+| 7 | Standardeingang `/dev/null` | `< /dev/zero` | `p7-eingabe` |
+| 8 | Abbruch: kein weiteres Ziel, keine Zusammenfassung | nächstes startet; Zusammenfassung erscheint | alle vier `p8-*` |
+| 8 | 130 für `SIGINT`, 143 für `SIGTERM` | beide vertauscht; nur `INT` nach 143; nur `TERM` nach 130 | alle vier; `p8-sigint-gruppe`, `p8-sigint-skript`; `p8-sigterm-gruppe`, `p8-sigterm-skript` |
+| 8 | Signal nur an das Skript wirkt | Trap für `INT` gestrichen; Trap für `TERM` gestrichen | nur `p8-sigint-skript`; nur `p8-sigterm-skript` |
+| 8 | das laufende Einzelziel endet | Einzelziel bleibt am Leben | `p8-sigint-skript`, `p8-sigterm-skript` |
+| 8 | seine Nachkommen enden (die Attrappe startet ein Hintergrundkind) | Schleife über `pgrep -P` gestrichen | `p8-sigint-skript`, `p8-sigterm-skript` |
+| 9 | leere Liste: Exit 2, Meldung, kein Ziel | Exit 0; Listen vertauscht | `p9-container`, `p9-host` (vertauscht: + `p4-*`, `p5-*`, `p6-erstes-rot`, `p10-j`, `p10-k`) |
 | 10 | `-n`, `-q`, `-t` fahren nichts | je Buchstabe übersehen | `p10-n` (+ `-env`, `p10-in`, `p12-n-leer`); `p10-q` (+ `-env`, `p10-iq`); `p10-t` (+ `-env`, `p10-it`) |
-| 10 | `-i` lehnt ab (Exit 2, Meldung) | `i` fällt aus; `i` wie `n` | `p10-i`, `p10-i-env`, `p10-i-lang`, `p10-i-k`, `p10-i-j`, `p12-i-leer` |
+| 10 | `-i` lehnt ab (Exit 2, Meldung) | `i` fällt aus; `i` wie `n` | die fünf `p10-i*` und `p12-i-leer` |
 | 10 | `n`, `q`, `t` gelten vor `i` | `i` vor `n` | `p10-in`, `p10-iq`, `p10-it` |
 | 10 | nur das erste Wort von `MAKEFLAGS` | ganzes `MAKEFLAGS` | `p5-j`, `p10-i-j`, `p10-j` |
-| 10 | `-j` ändert nichts | `j` startet gleichzeitig | `p5-j`, `p10-j` |
-| 11 | kein Stand | Datei unter `.harness/state/` nach grünem Lauf | `p11-kein-stand` |
+| 10 | `-j` ändert nichts | `j` gleichzeitig | `p5-j`, `p10-j` |
+| 11 | kein Stand, je Element | schreibt nach grünem Lauf; bei rotem; beim Abbruch; nur unter `-n`; nur unter `-q`; nur unter `-t` | `p11-gruen`; `p11-rot`; `p11-abbruch`; `p11-n`; `p11-q`; `p11-t` (je nur der eine) |
 | 12 | Reihenfolge der Gründe | Liste vor `-n`; Liste vor `-i` | `p12-n-leer`, `p12-i-leer`; `p12-i-leer` |
 
-- **Grüne Mutanten:** keine. Jede der 34 Mutationen färbt genau die oben genannten Fälle rot; die unveränderte Kopie ist grün. Nicht gefangen und ohne Fall: ein Signal nur an `make` (Punkt 15, Grenze), `SIGKILL`.
-- **Rückgaben an den Architect** (Vertrag nicht geändert; Datei `harness/vertraege/SPEC-060-gegenproben.md`):
-  1. Punkte 6, 9, 10 (b), 8: Die Exit-Codes 1, 2, 130 und 143 sind die des Skripts. `make` gibt jedem Fehler eines Rezepts Exit 2 und jedem `-i` Exit 0; die Gegenprobe prüft die Codes am Skript (Attrappe als Aufruf von `make`) und über `make` nur Exit ungleich 0, Ziel, Ausgabe und Reihenfolge. Vorschlag: Punkt 6 und 9 nennen „Exit des Skripts“ und „über `make` Exit ungleich 0“; bei `-i` über `make` bleibt nur die Meldung.
-  2. Punkt 6: Die Zeile `rot (Exit n)` trägt den Exit von `make <ziel>`, nicht den der Gegenprobe; `make` meldet 2 für jedes Rezept, das scheitert. `Exit 127` entsteht nur, wenn `make` selbst fehlt. Vorschlag: Punkt 6 sagt, dass `n` der Exit von `make <ziel>` ist.
-  3. Plattform (Kopf): Das Skript beendet beim Abbruch die Nachkommen des laufenden Einzelziels mit `pgrep -P` und startet es mit zurückgesetztem `SIGINT`/`SIGTERM`; die Gegenprobe braucht `setsid`, `pgrep` und `timeout`. Vorschlag: Kopf nennt `pgrep` (procps).
-  4. Nicht entschieden in Punkt 7: Der Standardeingang der Einzelziele ist `/dev/null` (Folge des Hintergrundstarts); ein Einzelziel, das liest, sieht Ende der Eingabe. Wortlaut der Meldung bei `-i` ist `<sammelziel>: -i ist nicht zugesagt …`, nur der Anfang ist im Vertrag.
-  5. Punkt 9, Mutation „Prüfung liest die Liste des anderen“: Das Skript kennt nur seine eigene Liste; die Mutation ist umgesetzt als Rezepte mit vertauschten Listen und färbt daher auch die Fälle der Punkte 4 und 5.
+- **Nachgeführt zum Review:** F-1 Attrappe mit Hintergrundkind in allen vier Abbruch-Fällen, Mutation `m-p8-nachkommen-bleiben`; F-2 sechs Fälle und Mutationen zu Punkt 11 (statt eines Falls); F-3 vier Mutationen je Signal (`m-p8-int-nach-143`, `m-p8-term-nach-130`, `m-p8-trap-int-gestrichen`, `m-p8-trap-term-gestrichen`); F-4, F-9 Gate-Index (Flags, Voraussetzungen, `make -i` Exit 0, Standardeingang); F-5 Fall `p4-kein-ausnahme` und Mutation für `gegenproben-host` in `GATE_CHECKS`; F-11 siehe nächster Punkt.
+- **F-11, `trap - INT TERM` im Unterprozess:** Die Mutation „Zeile gestrichen" färbte keinen Fall. Grund (gemessen): Das Skript trapt `INT` und `TERM` vor dem Start, und gefangene Signale setzt `exec` auf den Standard zurück; die Zeile bewirkte nichts. Ich habe sie aus `tools/harness/gegenproben.sh` entfernt (damit auch ein Host-Lauf am geänderten Skript). Unterstützt ist, dass das Skript mit nicht ignoriertem `SIGINT` startet (ein im Hintergrund einer nicht interaktiven Shell gestartetes Skript kann `INT` nicht fangen; die Gegenprobe setzt es dafür zurück).
+- **Invariante ohne Mutation:** Der Fall `p10-i*` verlangt über `make -i` Exit 0 (Verhalten von `make`, kein Code dieses Slice); eine Mutation, die ihn bricht, gibt es nicht.
+- **Grüne Mutanten:** keine. Ohne Fall bleiben ein Signal nur an `make` und `SIGKILL` (Punkt 15).
+- **Rückgaben:** Die fünf Rückgaben aus dem ersten Lauf hat der Architect am 2026-10-18 im Vertrag entschieden (`cff2d59a`); offen bleibt F-10 (Risiko 1, frischer Container) beim Planner.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
