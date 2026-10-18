@@ -142,6 +142,7 @@ Der Slice liefert einen **neuen Vertrag** (Werkzeug mit Zusagen); §3.12 gilt. D
 | A2 | `PGR_DEV` fehlt, ist leer, relativ, mit Leerzeichen, Tabulator, Zeilenumbruch, Nicht-ASCII, mit Segment `..`, `.`, leerem Segment, `/` am Ende, Basisname mit Großbuchstaben oder Unterstrich; Pfad im Repo (auch über Symlink), Elternpfad fehlt, Pfad ist kein Verzeichnis | Punkt 2 (Form), Punkt 5 (Lage im Repo, Elternpfad) |
 | A3 | Verzeichnis `$PGR_DEV` besteht schon: leer, mit Gerüst, mit `u-boot.yaml` aber ohne `devcontainer.json`, fremder Inhalt, anderer Name in `u-boot.yaml` | Punkt 5 |
 | A4 | Form von `PGR_SSH_PORT` (leer, nicht numerisch, führende Null, Vorzeichen, 0, 65536; Grenzen 1 und 65535); belegt prüft Teil II | Punkt 2 (Form) |
+| A6b | `ssh` besteht und ist kein Verzeichnis (Datei, Symlink auf Datei): Exit 4 in `zustand`, nichts geändert, kein `u-boot`-Aufruf (Fall `p6-ssh-ist-datei`) | Punkt 6 |
 | A6 | Schlüsselpaar: fehlt, gültig, nur ein Teil, Rechte von `ssh/` und privater Datei, Passphrase, `.pub` eines anderen Schlüssels, leere Datei; nie überschreiben | Punkt 6 |
 | A7 | `u-boot` meldet Warnung bei Exit 0 (Erfolg), scheitert (Exit 5, kein Folgeaufruf), Ausgabe unverändert; Fortsetzen ohne `init`; kein `up`, kein `doctor` | Punkt 7 |
 | A11 | Reihenfolge der Gründe: Nachbarpaare ohne Container (Eingabe vor Werkzeug; Werkzeug vor Pfad im Repo; Pfad im Repo vor fremdem Verzeichnis; fremdes Verzeichnis vor Schlüsselmangel) und Exit-Code jedes Grundes | Punkt 13 |

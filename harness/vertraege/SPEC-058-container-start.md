@@ -128,6 +128,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
      nennt den Pfad und welche der drei Bedingungen. Die Dateien bleiben in allen Fällen byteweise gleich und
      werden nie neu erzeugt, auch nicht bei Mängeln.
    - Nur eine der beiden Dateien: abgelehnt, Exit 4 (nie überschreiben).
+   - `ssh` besteht und ist kein Verzeichnis (Datei, Symlink auf eine Datei): abgelehnt in `zustand`, Exit 4, die Meldung nennt den Pfad; bis dahin ist nichts geändert (Fall `p6-ssh-ist-datei`, `$PGR_DEV` danach unverändert, kein Aufruf von `u-boot`; Mutation: die Prüfung entfällt, dann scheitert `schluessel` erst nach `geruest`).
    Fälle `p6-*`: Paar fehlt (Rechte 700 und 600, Kommentar), Paar gültig unverändert, nur privat, nur öffentlich, Rechte
    von `ssh/` 750, Rechte der privaten Datei 640, Passphrase, `.pub` eines anderen Schlüssels, leere private
    Datei. Mutationen: überschreibt, prüft (a), (b), (c) nicht, setzt Rechte nicht, legt mit Passphrase an.
