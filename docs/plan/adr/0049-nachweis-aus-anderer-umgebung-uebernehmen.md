@@ -1,10 +1,10 @@
 # ADR-0049: Der Nachweis des vollen Laufs darf aus einer anderen Umgebung übernommen werden, wenn die Dateiliste des Baums gleich ist
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-18
 
-**Autor:** Architect; die Annahme ist Entscheidung des Nutzers, bis dahin steht hier eine Empfehlung.
+**Autor:** Architect; angenommen durch Entscheidung des Nutzers am 2026-10-18 (Option B).
 
 **Bezug:** [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes), [ADR-0038](0038-gate-kette-voll-und-schnell.md), [ADR-0048](0048-gegenproben-verlassen-die-gate-kette.md)
 
@@ -22,7 +22,7 @@ Bisher gilt die Lesart: Der Hook glaubt den Nachweis, den `make gates` in dieser
 
 ## Entscheidung
 
-Wir empfehlen **Option B: ein Werkzeug `make nachweis-uebernehmen` legt den Nachweis einer Quelle im Arbeitsbaum ab, genau dann, wenn die frisch berechnete Dateiliste des Arbeitsbaums byte-gleich mit der Liste der Quelle ist, die Liste unbeschädigt ist und der Hash zur Liste gehört; sonst lehnt es ab und ändert nichts.**
+Wir wählen **Option B: ein Werkzeug `make nachweis-uebernehmen` legt den Nachweis einer Quelle im Arbeitsbaum ab, genau dann, wenn die frisch berechnete Dateiliste des Arbeitsbaums byte-gleich mit der Liste der Quelle ist, die Liste unbeschädigt ist und der Hash zur Liste gehört; sonst lehnt es ab und ändert nichts.**
 
 Der Nachweis bleibt der eines vollen Laufs von `make gates`. Neu ist nur, dass seine Bytes den Weg über eine Umgebungsgrenze nehmen dürfen, und zwar auf einem Weg, der prüft, dass sie diesen Baum beschreiben. Der Hook bleibt unverändert und liest weiter nur die Liste. Die Regeln im Einzelnen (Bedingungen, Reihenfolge der Gründe, Ablehnung ohne Änderung, Aufrufarten, Grenzen) stehen in [`SPEC-062`](../../../harness/vertraege/SPEC-062-nachweis-uebernehmen.md).
 
@@ -63,6 +63,7 @@ Wenn ein übernommener Nachweis einen Baum freigab, dessen `make gates` in diese
 
 | Datum | Ereignis | Verweis |
 |---|---|---|
-| 2026-10-18 | Proposed (Empfehlung des Architect nach dem Auftrag des Nutzers); Annahme steht aus | — |
+| 2026-10-18 | Proposed (Empfehlung des Architect nach dem Auftrag des Nutzers) | — |
+| 2026-10-18 | Accepted: Entscheidung des Nutzers, Option B (zweiter Schreiber des Nachweises, Übernahme bei byte-gleicher Dateiliste) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

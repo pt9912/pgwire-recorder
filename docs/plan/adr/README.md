@@ -52,7 +52,7 @@
 | [0046](0046-gegenprobe-ueberspringt-im-dev-container.md) | Gegenprobe des Container-Starts überspringt im Dev-Container, was dort fehlt | Superseded by [0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 | [0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md) | Gegenprobe des Container-Starts ist ein Ziel für den Host und kein Gate | Accepted | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 | [0048](0048-gegenproben-verlassen-die-gate-kette.md) | Die Gegenproben verlassen die Gate-Kette, zwei Sammelziele fahren sie | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
-| [0049](0049-nachweis-aus-anderer-umgebung-uebernehmen.md) | Der Nachweis des vollen Laufs darf aus einer anderen Umgebung übernommen werden, wenn die Dateiliste gleich ist | Proposed | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
+| [0049](0049-nachweis-aus-anderer-umgebung-uebernehmen.md) | Der Nachweis des vollen Laufs darf aus einer anderen Umgebung übernommen werden, wenn die Dateiliste gleich ist | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 
 ## Konventionen
 
