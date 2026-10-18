@@ -52,6 +52,8 @@ Dazu der erste echte Tag: Jener Slice belegt die Pipeline mit einem Probe-Tag, d
 den ersten stabilen Tag mit Checkliste und Scan. Die Randformen der drei Punkte zogen aus §6
 jenes Slice hierher (§6 unten).
 
+**Bindung von `slice-harness-gegenproben-aus-gates-fahrstelle`** (eingetragen vom Planner am 2026-10-18, Entscheidung des Nutzers vom selben Tag, `AGENTS.md` §3.13): Die Freigabe-Checkliste (DoD-Punkt 3, `docs/maintainer/releasing.md` §10) führt als Punkt mit Beleg: `make gegenproben` im Gegenproben-Container und `make gegenproben-host` am Host grün auf dem Commit, der getaggt wird; die Gegenproben sind seit `slice-harness-gegenproben-aus-gates` nicht mehr Teil von `make gates`. Der Punkt gehört zum Liefer-Punkt der Checkliste, kein neuer Liefer-Punkt, keine neue Schicht.
+
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
 - Prüfung von Tag und Versionsdatei, Build, `SHA256SUMS`, Veröffentlichung mit gleichem
@@ -190,6 +192,8 @@ ersten Code-Commit in der Spezifikation oder einer ADR; sie zogen mit dem Schnit
   der Manifestliste; Netz für die Schwachstellen-Datenbank; ob auch der Probe-Tag gescannt
   wird.
 
+- **Gegenproben nicht Teil von `make gates`** (Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle`): Ein grünes `make gates` vor dem Tag sagt nichts über die Gegenproben; ohne den Punkt in der Checkliste bliebe eine Regression im Werkzeug unbemerkt. — **Ausgang (vorgesehen):** entfallen, wenn die Checkliste den Punkt mit Beleg trägt; sonst eingetreten → Folge-Slice mit Kennung vom Planner. Reihenfolge: Die Welle dieses Slice liegt vor den Harness-Wellen; trägt `slice-harness-gegenproben-aus-gates-fahrstelle` nach, wenn dieser Slice schon `done/` ist, ist das Risiko eingetreten.
+
 ## 7. Closure-Notiz
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
@@ -251,3 +255,5 @@ Nachgezählt beim Eintragen der Sendung aus `slice-doku-ist-stand` (2026-10-10, 
 Nachgezählt am 2026-10-17 (Planner, `AGENTS.md` §3.13; keine neue Sendung, Stand nach den Schnitten von `slice-v1-abschluss-container` und `-container-doku`): Liefer-Punkte drei (§2: Scan mit Handbuch- und `README.md`-Teil | Freshness-Audit in `releasing.md` §5 | Checkliste und erster Tag mit Handbuch-Kopf), Schichten zwei. Die Wahl des Scanners (§6) kann `Dockerfile` oder `harness/` als Bereich öffnen; der Architect zählt mit der Entscheidung nach, und läge der Slice darüber, schneidet der Planner entlang der Linie aus §4.
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der die Bindung aus `slice-harness-gegenproben-aus-gates-fahrstelle` einträgt): Der Punkt gehört in die Checkliste des dritten Liefer-Punkts (DoD 3); Liefer-Punkte weiter drei, Schichten weiter zwei (Release-Automatisierung, Dokumentation).

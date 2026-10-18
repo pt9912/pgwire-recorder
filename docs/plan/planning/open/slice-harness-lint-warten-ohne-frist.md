@@ -144,7 +144,7 @@ nicht im Bericht.
       `record_extended_test.go:529` und `:812` werden unter einem Mutanten, der die
       einfache Anfrage vor dem Upstream anhält, binnen ihrer Frist rot statt an der
       Zeitgrenze von `go test` (Beleg in §7). Kein Produkt-Code.
-- [ ] `make gates` grün.
+- [ ] `make gates` grün und `make lint-gegenprobe` grün (die Gegenprobe hängt seit `slice-harness-gegenproben-aus-gates` nicht mehr an `make gates`).
 - [ ] Review durchgeführt, Report unter `docs/reviews/` liegt vor
       (`.harness/skills/reviewer.md`) — Rollenwechsel nach Schritt 8 des
       Minimal Agent Workflow (`AGENTS.md` §6), kein Self-Review (Modul 8).
@@ -417,3 +417,5 @@ keine neue Lücke.
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
 
 **Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit des Neuschnitts der Wellen 2 und 3): Der Commit trägt die Reihenfolge zu `slice-harness-gegenprobe-baumkopie` in §4 und §6 ein; Gegenstand, Liefer-Punkte und Schichten ändern sich nicht: Liefer-Punkte 3 (Prüfung, Gegenprobe, Bestand), Schichten 3 wie oben, der Plan liegt weiter über der Grenze von zwei Schichten, und der vorgemerkte Schnitt vor dem `open → next` bleibt. Die Welle-Zeile nennt weiter welle-gegenproben-und-mutanten.
+
+**Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit, der `slice-harness-gegenproben-aus-gates` anlegt): Die DoD-Zeile `make gates` nennt `make lint-gegenprobe` zusätzlich, weil `lint-gegenprobe` die Kette verlässt; Liefer-Punkte und Schichten ändern sich nicht.
