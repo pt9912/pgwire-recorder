@@ -10,7 +10,7 @@
 # prüfen über make, was make zeigt (Ziel, Reihenfolge, Ausgabe, kein Lauf, Exit ungleich 0).
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Mutationen, deren Name passt (die unveränderte Kopie nur, wenn das Muster
 # `ok` trifft); GP_ENTDECKE=1 nennt je Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der
-# gleichzeitigen Mutationen. Braucht bash ≥ 5, make, setsid, pgrep, timeout.
+# gleichzeitigen Mutationen. Braucht bash ≥ 5 (das Skript selbst läuft ab bash 4), make, setsid, pgrep, timeout.
 # GRENZE: Die Einzelziele sind Attrappen; ob die echten Gegenproben grün sind, sagt `make gegenproben`. Ein Signal nur an
 # make (Punkt 15) hat keinen Fall.
 set -uo pipefail
@@ -36,7 +36,12 @@ z="$1"
 echo "beginn $z" >> "$LOG"
 echo "aus $z"
 echo "fehl $z" >&2
-if [ "${BLOCK:-}" = "$z" ]; then echo $$ > "$ARBEIT/block.pid"; exec sleep 20; fi
+[ -z "${LIES:-}" ] || echo "eingabe $z $(head -c 1 | wc -c)" >> "$LOG"
+if [ "${BLOCK:-}" = "$z" ]; then
+  echo $$ > "$ARBEIT/block.pid"
+  if [ -n "${KIND:-}" ]; then (trap - INT TERM; exec sleep 31) & echo $! > "$ARBEIT/kind.pid"; fi
+  exec sleep 20
+fi
 [ -z "${WARTE:-}" ] || sleep "$WARTE"
 echo "ende $z" >> "$LOG"
 for p in ${EXITE:-}; do [ "${p%%=*}" = "$z" ] && exit "${p#*=}"; done
@@ -55,8 +60,9 @@ ifneq ($(LEER),host)
 GEGENPROBEN_HOST += ha hb
 endif
 GATE_CHECKS += g1
+GATE_SCHNELL_AUSNAHME := g1
 EOF
-  mf=""; warte=""; leer=""; exite=""
+  mf=""; warte=""; leer=""; exite=""; lies=""
 }
 
 # lauf <make-Argument>… — make in der Kopie; setzt mcode; Ausgabe in $st/out und $st/err (ohne Zeilen von make), Protokoll $st/log.
@@ -65,7 +71,7 @@ lauf() {
   rm -f "$st/block.pid"
   mcode=0
   (cd "$w" && env -u MAKELEVEL -u MFLAGS MAKEFLAGS="$mf" LOG="$st/log" ARBEIT="$st" WARTE="$warte" EXITE="$exite" \
-    LEER="$leer" BLOCK="" timeout 60 make -s "$@" > "$st/out" 2> "$st/err.raw") || mcode=$?
+    LEER="$leer" LIES="$lies" BLOCK="" timeout 60 make -s "$@" > "$st/out" 2> "$st/err.raw") || mcode=$?
   grep -v '^make' "$st/err.raw" > "$st/err" || true
 }
 
@@ -78,7 +84,7 @@ direkt() {
   scode=0
   # shellcheck disable=SC2086
   (cd "$w" && env -u MAKELEVEL -u MFLAGS MAKEFLAGS="$2" LOG="$st/log" ARBEIT="$st" WARTE="$warte" EXITE="$exite" \
-    LEER="$leer" BLOCK="" timeout 60 bash tools/harness/gegenproben.sh "$w/tools/harness/attrappe.sh" "$1" $liste \
+    LEER="$leer" LIES="$lies" BLOCK="" timeout 60 bash tools/harness/gegenproben.sh "$w/tools/harness/attrappe.sh" "$1" $liste \
     > "$st/out" 2> "$st/err") || scode=$?
 }
 
@@ -92,10 +98,10 @@ warte_auf() { local i; for i in $(seq 1 100); do if "$@"; then return 0; fi; sle
 
 # abbruchfall <name> <Signal> <gruppe|skript> <Exit> — Punkt 8: das mittlere von drei Zielen wartet.
 abbruchfall() {
-  local name="$1" sig="$2" wer="$3" soll="$4" bg pid rc bp ok=1
+  local name="$1" sig="$2" wer="$3" soll="$4" bg pid rc bp kp ok=1
   : > "$st/log"
-  rm -f "$st/block.pid" "$st/pid"
-  (trap - INT TERM; cd "$w" && exec env -u MAKELEVEL -u MFLAGS MAKEFLAGS= LOG="$st/log" ARBEIT="$st" BLOCK=zb WARTE= EXITE= LEER= \
+  rm -f "$st/block.pid" "$st/pid" "$st/kind.pid"
+  (trap - INT TERM; cd "$w" && exec env -u MAKELEVEL -u MFLAGS MAKEFLAGS= LOG="$st/log" ARBEIT="$st" BLOCK=zb KIND=1 WARTE= EXITE= LEER= \
     setsid bash -c 'echo $$ > "$ARBEIT/pid"; exec bash tools/harness/gegenproben.sh "$1" gegenproben za zb zc' _ \
     "$w/tools/harness/attrappe.sh" > "$st/out" 2> "$st/err") &
   bg=$!
@@ -111,6 +117,8 @@ abbruchfall() {
   [ "$rc" -eq "$soll" ] || ok=0
   bp="$(cat "$st/block.pid" 2> /dev/null || echo 0)"
   if [ "$bp" -gt 1 ] && kill -0 "$bp" 2> /dev/null; then ok=0; kill -KILL "$bp" 2> /dev/null; fi
+  kp="$(cat "$st/kind.pid" 2> /dev/null || echo 0)"
+  if [ "$kp" -gt 1 ] && kill -0 "$kp" 2> /dev/null; then ok=0; kill -KILL "$kp" 2> /dev/null; fi
   if grep -qx 'beginn zc' "$st/log"; then ok=0; fi
   if grep -q '^gegenproben: ' "$st/err"; then ok=0; fi
   if [ "$pid" -gt 1 ]; then kill -KILL -- "-$pid" 2> /dev/null || true; fi
@@ -137,6 +145,7 @@ flagfall() {
     if grep -q '^gegenproben' "$st/err"; then ok=0; fi
   else
     grep -q '^gegenproben: -i' "$st/err" || ok=0
+    [ "$mcode" -eq 0 ] || ok=0
   fi
   direkt gegenproben "$dmf"
   if grep -q ' z' "$st/log"; then ok=0; fi
@@ -150,6 +159,20 @@ flagfall() {
 
 # stand — Pfade und Inhalte des Arbeitsbaums der Kopie.
 stand() { (cd "$w" && find . -type f -print0 | sort -z | xargs -0 sha256sum); }
+
+# standfall <name> <gruen|rot|abbruch|n|q|t> — Punkt 11: der Lauf legt im Arbeitsbaum der Kopie nichts an und ändert nichts.
+standfall() {
+  local vor
+  rm -rf "$w/.harness"; mkdir -p "$w/.harness/state"
+  vor="$(stand)"
+  case "$2" in
+    gruen) direkt gegenproben "" ;;
+    rot) exite="zb=1"; direkt gegenproben ""; exite="" ;;
+    abbruch) abbruchfall "$1" INT skript 130 > /dev/null ;;
+    *) direkt gegenproben "$2" ;;
+  esac
+  [ "$(stand)" = "$vor" ] || echo "$1"
+}
 
 # pruefe — schreibt die Namen der roten Fälle, einen je Zeile.
 pruefe() {
@@ -167,6 +190,11 @@ pruefe() {
   for x in $gw; do case "$x" in gegenproben | gegenproben-host) ok=0 ;; esac; done
   case " $gw " in *" g1 "*) ;; *) ok=0 ;; esac
   [ "$ok" -eq 1 ] || echo p4-kein-gate
+  gw="$(cd "$w" && env -u MAKELEVEL -u MFLAGS MAKEFLAGS= make -s --eval 'gp-lesen: ; @echo $(GATE_SCHNELL_AUSNAHME)' gp-lesen)"
+  ok=1
+  for x in $gw; do case "$x" in gegenproben | gegenproben-host) ok=0 ;; esac; done
+  case " $gw " in *" g1 "*) ;; *) ok=0 ;; esac
+  [ "$ok" -eq 1 ] || echo p4-kein-ausnahme
 
   # Punkt 5
   warte=0.15
@@ -191,6 +219,9 @@ pruefe() {
   # Punkt 7
   direkt gegenproben ""
   { grep -qx 'aus za' "$st/out" && ! grep -q 'fehl' "$st/out" && grep -qx 'fehl za' "$st/err" && ! grep -q '^aus' "$st/err"; } || echo p7-ausgabe
+
+  lies=1; direkt gegenproben "" <<< x; lies=""
+  { grep -qx 'eingabe za 0' "$st/log" && grep -qx 'eingabe zb 0' "$st/log" && grep -qx 'eingabe zc 0' "$st/log"; } || echo p7-eingabe
 
   # Punkt 8
   abbruchfall p8-sigint-gruppe INT gruppe 130
@@ -231,12 +262,7 @@ pruefe() {
     && [ "$(summe gegenproben)" = "$(erw 'za: grün' 'zb: rot (Exit 2)' 'zc: grün')" ]; } || echo p10-j
 
   # Punkt 11
-  rm -rf "$w/.harness"; mkdir -p "$w/.harness/state"
-  vor="$(stand)"
-  direkt gegenproben ""
-  exite="zb=1"; direkt gegenproben ""; exite=""
-  lauf -n gegenproben
-  [ "$(stand)" = "$vor" ] || echo p11-kein-stand
+  for x in gruen rot abbruch n q t; do standfall "p11-$x" "$x"; done
 
   # Punkt 12
   leer=container
@@ -293,6 +319,9 @@ mut m-p4-host-mit-container $M "p4-host p9-host" 'gegenproben-host $(GEGENPROBEN
 mut m-p4-container-haengt-an-host $M "p4-container" 'gegenproben: ## Fährt die Gegenproben der Liste für den Dev' 'gegenproben: gegenproben-host ## Fährt die Gegenproben der Liste für den Dev'
 mut m-p4-host-haengt-an-container $M "p4-host" 'gegenproben-host: ## ' 'gegenproben-host: gegenproben ## '
 mut m-p4-in-gate-checks $M "p4-kein-gate" '.PHONY: gegenproben gegenproben-host' ".PHONY: gegenproben gegenproben-host${NL}GATE_CHECKS += gegenproben"
+mut m-p4-host-in-gate-checks $M "p4-kein-gate" '.PHONY: gegenproben gegenproben-host' ".PHONY: gegenproben gegenproben-host${NL}GATE_CHECKS += gegenproben-host"
+mut m-p4-ausnahme-container $M "p4-kein-ausnahme" '.PHONY: gegenproben gegenproben-host' ".PHONY: gegenproben gegenproben-host${NL}GATE_SCHNELL_AUSNAHME += gegenproben"
+mut m-p4-ausnahme-host $M "p4-kein-ausnahme" '.PHONY: gegenproben gegenproben-host' ".PHONY: gegenproben gegenproben-host${NL}GATE_SCHNELL_AUSNAHME += gegenproben-host"
 # --- Punkt 5: nacheinander, in der Reihenfolge der Liste ---------------------------------------------
 mut m-p5-hintergrund $S "p5-reihenfolge p5-j p6-erstes-rot p6-mittleres-rot p6-letztes-rot p6-zwei-rot p6-127 p8-sigint-gruppe p8-sigterm-gruppe p8-sigint-skript p8-sigterm-skript p10-j p10-k" '  wait "$pid"; rc=$?' '  sleep 0.01; rc=0'
 mut m-p5-rueckwaerts $S "p5-reihenfolge p5-j p6-alle-gruen p6-erstes-rot p6-mittleres-rot p6-letztes-rot p6-zwei-rot p6-127 p8-sigint-gruppe p8-sigterm-gruppe p8-sigint-skript p8-sigterm-skript p10-j p10-k" 'for z in "$@"; do' 'for z in $(printf "%s\n" "$@" | tac); do'
@@ -303,7 +332,7 @@ mut m-p6-exit0 $S "p6-erstes-rot p6-mittleres-rot p6-letztes-rot p6-zwei-rot p6-
 mut m-p6-exit-des-letzten $S "p6-erstes-rot p6-mittleres-rot p6-127 p10-j p10-k" 'grün"); else' 'grün"); rot=0; else'
 mut m-p6-nur-rote $S "p6-alle-gruen p6-erstes-rot p6-mittleres-rot p6-letztes-rot p6-zwei-rot p6-127 p10-j p10-k" 'zeilen+=("$sammel: $z: grün"); ' ':; '
 mut m-p6-ohne-exit $S "p6-erstes-rot p6-mittleres-rot p6-letztes-rot p6-zwei-rot p6-127 p10-j p10-k" ' (Exit $rc)' ''
-mut m-p6-zusammenfassung-vor-ausgabe $S "p6-alle-gruen p6-erstes-rot p6-mittleres-rot p6-letztes-rot p6-zwei-rot p6-127 p10-j p10-k" '  ( trap - INT TERM; exec' "  if [ \"\$z\" = \"\${!#}\" ]; then printf '%s\\n' \"\${zeilen[@]}\" >&2; fi${NL}  ( trap - INT TERM; exec"
+mut m-p6-zusammenfassung-vor-ausgabe $S "p6-alle-gruen p6-erstes-rot p6-mittleres-rot p6-letztes-rot p6-zwei-rot p6-127 p10-j p10-k" '  ( exec' "  if [ \"\$z\" = \"\${!#}\" ]; then printf '%s\\n' \"\${zeilen[@]}\" >&2; fi${NL}  ( exec"
 # --- Punkt 7: Ausgabe unverändert, auf demselben Strom ------------------------------------------------
 mut m-p7-stderr-nach-stdout $S "p7-ausgabe" 'exec "$make_bin" "$z" )' 'exec "$make_bin" "$z" 2>&1 )'
 mut m-p7-stdout-verworfen $S "p7-ausgabe" 'exec "$make_bin" "$z" )' 'exec "$make_bin" "$z" > /dev/null )'
@@ -312,6 +341,12 @@ mut m-p8-naechstes-startet $S "p8-sigint-gruppe p8-sigterm-gruppe p8-sigint-skri
 mut m-p8-vertauscht $S "p8-sigint-gruppe p8-sigterm-gruppe p8-sigint-skript p8-sigterm-skript" "abbruch INT 130" "abbruch INT 143" "abbruch TERM 143" "abbruch TERM 130"
 mut m-p8-ziel-bleibt $S "p8-sigint-skript p8-sigterm-skript" 'if [ -n "$pid" ]; then beende "$pid" "$1"; wait "$pid" 2> /dev/null; fi; ' ''
 mut m-p8-zusammenfassung $S "p8-sigint-gruppe p8-sigterm-gruppe p8-sigint-skript p8-sigterm-skript" "trap '' INT TERM; if" "trap '' INT TERM; printf '%s\\n' \"\${zeilen[@]}\" >&2; if"
+mut m-p7-eingabe-zero $S "p7-eingabe" 'exec "$make_bin" "$z" )' 'exec "$make_bin" "$z" < /dev/zero )'
+mut m-p8-int-nach-143 $S "p8-sigint-gruppe p8-sigint-skript" "abbruch INT 130" "abbruch INT 143"
+mut m-p8-term-nach-130 $S "p8-sigterm-gruppe p8-sigterm-skript" "abbruch TERM 143" "abbruch TERM 130"
+mut m-p8-trap-int-gestrichen $S "p8-sigint-skript" "trap 'abbruch INT 130' INT${NL}" ""
+mut m-p8-trap-term-gestrichen $S "p8-sigterm-skript" "trap 'abbruch TERM 143' TERM${NL}" ""
+mut m-p8-nachkommen-bleiben $S "p8-sigint-skript p8-sigterm-skript" 'for k in $(pgrep -P "$1" 2> /dev/null); do beende "$k" "$2"; done; ' ''
 # --- Punkt 9: leere Liste ------------------------------------------------------------------------------
 mut m-p9-exit0 $S "p9-container p9-host" "Liste leer\" >&2${NL}  exit 2" "Liste leer\" >&2${NL}  exit 0"
 mut m-p9-liste-des-anderen $M "p4-container p4-host p5-reihenfolge p5-j p6-erstes-rot p9-container p9-host p10-j p10-k" 'gegenproben $(GEGENPROBEN_CONTAINER)' 'gegenproben $(GEGENPROBEN_HOST)' 'gegenproben-host $(GEGENPROBEN_HOST)' 'gegenproben-host $(GEGENPROBEN_CONTAINER)'
@@ -326,7 +361,13 @@ mut m-p10-ganzes-makeflags $S "p5-j p10-i-j p10-j" 'erstes="${flags%% *}"' 'erst
 mut m-p10-ohne-k $S "p6-erstes-rot p6-mittleres-rot p6-zwei-rot p6-127 p10-j" 'rot=1; fi' 'rot=1; case "$buchstaben" in *k*) ;; *) break ;; esac; fi'
 mut m-p10-j-gleichzeitig $S "p5-j p10-j" '  wait "$pid"; rc=$?' '  case "$flags" in *-j*) rc=0 ;; *) wait "$pid"; rc=$? ;; esac'
 # --- Punkt 11: kein Stand ---------------------------------------------------------------------------------
-mut m-p11-schreibt $S "p11-kein-stand" 'exit "$rot"' "mkdir -p .harness/state; echo x > .harness/state/gegenproben-passed${NL}exit \"\$rot\""
+SCHREIBE='mkdir -p .harness/state; echo x > .harness/state/gegenproben-passed'
+mut m-p11-gruen-schreibt $S "p11-gruen" 'exit "$rot"' "if [ \"\$rot\" -eq 0 ]; then ${SCHREIBE}; fi${NL}exit \"\$rot\""
+mut m-p11-rot-schreibt $S "p11-rot" 'exit "$rot"' "if [ \"\$rot\" -eq 1 ]; then ${SCHREIBE}; fi${NL}exit \"\$rot\""
+mut m-p11-abbruch-schreibt $S "p11-abbruch" "abbruch() { trap '' INT TERM; " "abbruch() { trap '' INT TERM; ${SCHREIBE}; "
+mut m-p11-n-schreibt $S "p11-n" '*n*) trocken=1 ;;' "*n*) trocken=1; ${SCHREIBE} ;;"
+mut m-p11-q-schreibt $S "p11-q" '*q*) trocken=1 ;;' "*q*) trocken=1; ${SCHREIBE} ;;"
+mut m-p11-t-schreibt $S "p11-t" '*t*) trocken=1 ;;' "*t*) trocken=1; ${SCHREIBE} ;;"
 # --- Punkt 12: Reihenfolge der Gründe ---------------------------------------------------------------------
 LEERPRUEFUNG="if [ \"\$#\" -eq 0 ]; then echo \"\$sammel: Liste leer\" >&2; exit 2; fi"
 mut m-p12-liste-vor-n $S "p12-n-leer p12-i-leer" "shift 2${NL}" "shift 2${NL}${LEERPRUEFUNG}${NL}"
@@ -337,4 +378,4 @@ if [ -s "$arbeit/fehler" ]; then
   cat "$arbeit/fehler" >&2
   exit 1
 fi
-echo "gegenproben-gegenprobe: gruen — Punkte 4 bis 12 von SPEC-060 mit 37 Fällen, je Mutation genau die benannten Fälle rot, unveränderte Kopie grün"
+echo "gegenproben-gegenprobe: gruen — Punkte 4 bis 12 von SPEC-060 mit 44 Fällen, je Mutation genau die benannten Fälle rot, unveränderte Kopie grün"

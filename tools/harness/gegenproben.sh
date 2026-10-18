@@ -43,7 +43,7 @@ trap 'abbruch TERM 143' TERM
 zeilen=()
 rot=0
 for z in "$@"; do
-  ( trap - INT TERM; exec "$make_bin" "$z" ) &
+  ( exec "$make_bin" "$z" ) &
   pid=$!
   wait "$pid"; rc=$?
   pid=""
