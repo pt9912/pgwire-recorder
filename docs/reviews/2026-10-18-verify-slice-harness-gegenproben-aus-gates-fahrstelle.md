@@ -1,7 +1,7 @@
 # Verifikation slice-harness-gegenproben-aus-gates-fahrstelle (Teil A: Hook-Skript)
 
 Stand: Zweig `rev-fahr`, Implementer-Stand `d5e15f14`, Basis der Metrik `0f066c04`, Vergleichsbasis des Plans `dff05377`.
-Maßstab: [Plan](../plan/planning/in-progress/slice-harness-gegenproben-aus-gates-fahrstelle.md) §2 und §7,
+Maßstab: [Plan](../plan/planning/done/slice-harness-gegenproben-aus-gates-fahrstelle.md) §2 und §7,
 [SPEC-061](../../harness/vertraege/SPEC-061-gegenproben-nach-einlieferung.md), [ADR-0048](../plan/adr/0048-gegenproben-verlassen-die-gate-kette.md).
 Host-Läufe als Benutzer `db` (uid 1000, kein root), `LANG=de_DE.UTF-8`, Host-Zeitzone CEST.
 
