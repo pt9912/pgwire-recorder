@@ -1,10 +1,10 @@
 # ADR-0046: Die Gegenprobe des Container-Starts überspringt im Dev-Container, was dort fehlt
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-18
 
-**Autor:** Architect. Die Sache hat der Nutzer am 2026-10-18 entschieden (Dialogantwort „Im Container überspringen“); die Annahme dieser Fassung steht aus. Die Einzelheiten sind bis dahin Empfehlung.
+**Autor:** Architect. Angenommen durch Entscheidung des Nutzers am 2026-10-18 (Dialogantwort „Im Container überspringen“, danach „Annehmen“ zu dieser Fassung).
 
 **Bezug:** [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [ADR-0045](0045-container-start-als-werkzeug-im-repo.md), [ADR-0038](0038-gate-kette-voll-und-schnell.md)
 
@@ -20,7 +20,7 @@
 
 ## Entscheidung
 
-Empfehlung: Die Gegenprobe `container-start-gegenprobe` überspringt im Dev-Container die Fälle, die `u-boot` oder `devcontainer` echt brauchen, wenn eines davon fehlt, meldet es laut und endet mit Exit 0, wenn alles Übrige grün ist. Am Host bleibt sie rot bei jedem fehlenden Werkzeug. Berechtigt zum Überspringen sind nur diese beiden Werkzeuge; jede andere Voraussetzung bleibt Pflicht. Die Erkennung des Dev-Containers, die Fälle und Mutationen stehen in [`SPEC-058`](../../../harness/vertraege/SPEC-058-container-start.md) Punkt 15. [ADR-0045](0045-container-start-als-werkzeug-im-repo.md) bleibt in Kraft; diese ADR ergänzt seine Konsequenz „`make gates` ist dort rot“ für den Dev-Container.
+Wir wählen: Die Gegenprobe `container-start-gegenprobe` überspringt im Dev-Container die Fälle, die `u-boot` oder `devcontainer` echt brauchen, wenn eines davon fehlt, meldet es laut und endet mit Exit 0, wenn alles Übrige grün ist. Am Host bleibt sie rot bei jedem fehlenden Werkzeug. Berechtigt zum Überspringen sind nur diese beiden Werkzeuge; jede andere Voraussetzung bleibt Pflicht. Die Erkennung des Dev-Containers, die Fälle und Mutationen stehen in [`SPEC-058`](../../../harness/vertraege/SPEC-058-container-start.md) Punkt 15. [ADR-0045](0045-container-start-als-werkzeug-im-repo.md) bleibt in Kraft; diese ADR ergänzt seine Konsequenz „`make gates` ist dort rot“ für den Dev-Container.
 
 ## Verglichene Alternativen
 
@@ -52,5 +52,6 @@ Wenn `u-boot` und `devcontainer` im Gerüst des Containers liegen, wenn die Erke
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-18 | Proposed (Empfehlung des Architect nach Entscheidung des Nutzers in der Sache) | — |
+| 2026-10-18 | Accepted: Entscheidung des Nutzers, Fassung mit der Erkennung durch `/.dockerenv` und `u-boot-docker-init` | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).

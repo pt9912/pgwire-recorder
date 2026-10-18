@@ -49,7 +49,7 @@
 | [0043](0043-binaries-und-container-gate.md) | Binaries je Zielplattform und Container-Image als ein Gate mit Smoke | Accepted | [`LH-FA-16`](../../../spec/lastenheft.md#lh-fa-16--container-eignung) |
 | [0044](0044-schwelle-der-anweisungsabdeckung.md) | Schwelle der Anweisungsabdeckung der Unit-Tests in der Stufe test | Accepted | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | [0045](0045-container-start-als-werkzeug-im-repo.md) | Start des Dev-Containers als Werkzeug im Repo mit Gegenprobe | Accepted | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
-| [0046](0046-gegenprobe-ueberspringt-im-dev-container.md) | Gegenprobe des Container-Starts überspringt im Dev-Container, was dort fehlt | Proposed | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
+| [0046](0046-gegenprobe-ueberspringt-im-dev-container.md) | Gegenprobe des Container-Starts überspringt im Dev-Container, was dort fehlt | Accepted | [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität) |
 
 ## Konventionen
 
