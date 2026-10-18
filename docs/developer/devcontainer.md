@@ -1,7 +1,7 @@
 # Arbeiten im Dev-Container
 
-Version: 0.3
-Stand: 2026-10-17
+Version: 0.4
+Stand: 2026-10-18
 
 ## 1. Wofür der Dev-Container gut ist
 
@@ -34,6 +34,7 @@ nicht geprüft.
 
 ## 2. Voraussetzungen
 
+- `make` und `bash`; `make container-start` (§3) braucht außerdem `docker`, `u-boot`, `devcontainer`, `node`, `ssh` und `ssh-keygen` im Pfad.
 - Docker Engine ≥ 24 (`u-boot doctor` prüft das und meldete `docker 29.9.1 available (≥ 24.0)`).
 - `u-boot`, das Werkzeug, das Konfiguration und Dev-Container-Gerüst erzeugt
   (<https://github.com/pt9912/u-boot>), in der Version 0.10.0, mit der die Proben liefen (`u-boot
@@ -47,29 +48,37 @@ nicht geprüft.
 - Schreibrecht in dem Verzeichnis, in dem `pgr-dev` angelegt wird.
 - Netz für den Build des Images (§3.4, §4).
 - Das Schlüsselpaar aus §3.2 liegt vor dem ersten `devcontainer up` an dem Pfad, den `mk-override.sh`
-  nennt; fehlt die Datei, endet `devcontainer up` mit `invalid mount config … bind source path does not exist`, ohne dass Container oder Volumes entstehen (gemessen).
+  nennt (`make container-start` legt es an); fehlt die Datei, endet `devcontainer up` mit `invalid mount config … bind source path does not exist`, ohne dass Container oder Volumes entstehen (gemessen).
 - Freier Platz im Docker-Speicher des Hosts: Der Container baut ein Image und legt den Docker-Cache
   des Repos in einem Volume ab (§11).
 
 ## 3. Einrichten
 
-Das Verzeichnis liegt **außerhalb** des Repos. Im Folgenden heißt es `pgr-dev`. Ein Pfad ist
-Sache des Hosts und steht als Variable in den Befehlen:
+Das Verzeichnis liegt **außerhalb** des Repos. Im Folgenden heißt es `pgr-dev`. `make container-start` legt es an, wenn es fehlt
+(§3.1 bis §3.5), und startet den Container (§4). Die Eingaben kommen aus der Umgebung; gesetzt und leer ist ungültig, nicht gesetzt ergibt die Vorgabe:
 
-| Variable | Bedeutung |
-|---|---|
-| `PGR_DEV` | absoluter Pfad des Verzeichnisses `pgr-dev` am Host (wird in §3.1 angelegt) |
+| Variable | Bedeutung | Vorgabe |
+|---|---|---|
+| `PGR_DEV` | absoluter Pfad des Verzeichnisses `pgr-dev` am Host; sein Basisname (`a-z0-9-`) ist der Projektname | keine, Pflicht |
+| `PGR_NAME` | Name des Containers | `pgr-dev` |
+| `PGR_SSH_PORT` | Host-Port von `sshd` (§5) | `2222` |
+| `PGR_WARTEN` | Sekunden, die der Start auf die Anmeldung wartet (§4) | `60` |
+| `PGR_CPUS`, `PGR_MEM` | `--cpus` und `--memory` (§10.1) | `8`, `8g` |
 
 ```bash
 export PGR_DEV=<Pfad, unter dem pgr-dev angelegt wird>/pgr-dev
+make container-start
 ```
 
-Das Host-Repo kommt in der Konfiguration nicht vor (§6, §9).
+Das Ziel ist kein Gate. Es endet mit der Zeile `container-start: bereit <Name> 127.0.0.1:<Port>` und Exit 0. Ein Fehler endet mit
+`container-start: <Schritt>: <Grund>` auf stderr und Exit 2 (Eingabe), 3 (Werkzeug), 4 (Zustand: Verzeichnis, Schlüsselpaar, Container oder Port)
+oder 5 (ein Schritt scheiterte); `SIGINT` und `SIGTERM` enden mit 130 und 143, ohne Rückbau. Jeder Aufruf lässt sich wiederholen. Das Host-Repo kommt in der Konfiguration nicht vor (§6, §9).
 
 ### 3.1 Gerüst mit `u-boot`
 
+Das Ziel führt im Verzeichnis `$PGR_DEV` aus (hier zur Erklärung):
+
 ```bash
-mkdir "$PGR_DEV" && cd "$PGR_DEV"
 u-boot init pgr-dev --devcontainer --sandbox --no-git
 u-boot config set devcontainer.features.node.enabled true
 u-boot config set devcontainer.features.sshd.enabled true
@@ -92,8 +101,8 @@ Was `u-boot` erzeugt und was von Hand dazukommt:
 | `u-boot.yaml` | erzeugt und durch die `config set`-Befehle ergänzt (§3.3) | — |
 | `.devcontainer/devcontainer.json`, `.devcontainer/Dockerfile`, `.devcontainer/docker-init.sh`, `.devcontainer/egress-init.sh` | `u-boot generate devcontainer` (§3.4) | — |
 | `compose.yaml`, `.env.example`, `.gitignore`, `README.md`, `CHANGELOG.md`, `docker/`, `scripts/`, `docs/` | erzeugt | nicht gebraucht: `compose.yaml` hat keinen Dienst (`u-boot doctor` warnt, §12), die übrigen Dateien nutzt der Dev-Container nicht |
-| `mk-override.sh` | — | ganz (§3.5) |
-| `ssh/` | — | Schlüsselpaar (§3.2) |
+| `mk-override.sh` | — | vom Ziel angelegt (§3.5) |
+| `ssh/` | — | vom Ziel angelegt: Schlüsselpaar (§3.2) |
 
 Die Blöcke zwischen `BEGIN U-BOOT MANAGED BLOCK` und `END U-BOOT MANAGED BLOCK` gehören `u-boot`;
 `u-boot generate devcontainer` überschreibt sie. Die Kennungen, die dort stehen (sie beginnen mit
@@ -101,10 +110,9 @@ Die Blöcke zwischen `BEGIN U-BOOT MANAGED BLOCK` und `END U-BOOT MANAGED BLOCK`
 
 ### 3.2 Schlüsselpaar
 
-```bash
-mkdir -p ssh && chmod 700 ssh
-ssh-keygen -t ed25519 -N '' -C pgr-dev -f ssh/id_ed25519
-```
+Fehlen beide Dateien, legt das Ziel `ssh/` mit Modus 700 und ein Paar `ssh/id_ed25519` (Modus 600, Kommentar: der Projektname) ohne Passphrase an. Ein
+vorhandenes Paar nutzt es unverändert, wenn `ssh/` und die private Datei für Gruppe und andere nicht zugänglich sind, die private Datei ohne Passphrase lesbar ist und
+die öffentliche zu ihr gehört; sonst und bei nur einer Datei endet es mit Exit 4 und ändert nichts.
 
 Der öffentliche Teil `ssh/id_ed25519.pub` wird als Mount `ro` auf `~/.ssh/authorized_keys` von `vscode`
 eingebunden (§3.5) und ist dort der einzige Schlüssel, mit dem man sich anmelden kann (§5). Der private Teil bleibt im
@@ -165,47 +173,31 @@ Features, `mcr.microsoft.com`) ist nicht geprüft.
 erzeugt dafür nichts (Port 2222 des Features wird nicht veröffentlicht). `--override-config` **ersetzt** die
 `devcontainer.json`; das Skript schreibt deshalb eine Kopie mit Zusätzen:
 
-```bash
-#!/bin/bash
-# erzeugt .devcontainer/override.json aus der von u-boot erzeugten devcontainer.json
-set -euo pipefail
-cd "$(dirname "$0")"
-node -e '
-const fs = require("fs");
-const j = JSON.parse(fs.readFileSync(".devcontainer/devcontainer.json", "utf8").replace(/^\s*\/\/.*$/mg, ""));
-const port = process.env.PGR_SSH_PORT || "2222";
-j.runArgs = [...j.runArgs, "--name=" + (process.env.PGR_NAME || "pgr-dev"),
-  "--cpus=" + (process.env.PGR_CPUS || "8"), "--memory=" + (process.env.PGR_MEM || "12g")];
-j.appPort = ["127.0.0.1:" + port + ":2222"];
-j.mounts = [...j.mounts, "type=bind,source=${localWorkspaceFolder}/ssh/id_ed25519.pub,target=/home/vscode/.ssh/authorized_keys,readonly"];
-j.remoteEnv.CLAUDE_CODE_OAUTH_TOKEN = "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}";
-fs.writeFileSync(".devcontainer/override.json", JSON.stringify(j, null, 2) + "\n");
-'
-```
+Das Ziel legt `mk-override.sh` im Verzeichnis `pgr-dev` an, wenn es fehlt (Modus 755); ein vorhandenes bleibt unberührt. Es liest `.devcontainer/devcontainer.json` und schreibt `.devcontainer/override.json`.
 
-Die Zusätze: Name, `--cpus` und `--memory` (Vorgabe 8 CPUs, 12 GiB; `docker inspect` zeigt `8000000000` und `12884901888`), den
+Die Zusätze: Name, `--cpus` und `--memory` (Vorgabe 8 CPUs, 8 GiB, §10.1), den
 Port `127.0.0.1:<PGR_SSH_PORT>:2222` (Vorgabe `2222` am Host), den Schlüssel als Mount `ro` und die zweite Variable
-`CLAUDE_CODE_OAUTH_TOKEN` (§7). Das Skript läuft nach jedem `u-boot generate devcontainer` neu; `.devcontainer/override.json` ist abgeleitet
+`CLAUDE_CODE_OAUTH_TOKEN` (§7). Das Ziel führt das Skript bei jedem Start eines nicht laufenden Containers aus; nach einem `u-boot generate devcontainer` läuft es neu; `.devcontainer/override.json` ist abgeleitet
 und gehört nicht in die Pflege. Das Skript braucht `node` am Host (die CLI braucht es ohnehin).
 
 ## 4. Start, Stopp, Löschen
 
-Aus dem Verzeichnis `pgr-dev` (die Variablen für Claude Code: §7):
-
 ```bash
-./mk-override.sh
-devcontainer up --workspace-folder . --override-config .devcontainer/override.json
+make container-start
 ```
 
-`devcontainer up` baut das Image beim ersten Mal, startet den Container und führt `postStartCommand` aus; es endet mit
-`{"outcome":"success",…}`. Es gibt kein `healthy` wie bei Compose: Bereit ist der Container, wenn `ssh` (§5) antwortet. Der Build
+Nach `override` führt das Ziel `devcontainer up --workspace-folder . --override-config .devcontainer/override.json` im Verzeichnis `pgr-dev` aus; es baut das Image beim ersten Mal,
+startet den Container und führt `postStartCommand` aus. Erfolg ist Exit 0 und die Ausgabe `{"outcome":"success",…}`. Danach probt das Ziel jede Sekunde, höchstens `PGR_WARTEN` Sekunden,
+ob `ssh` als `vscode` mit dem Schlüssel des Gerüsts auf `127.0.0.1:<PGR_SSH_PORT>` den Befehl `true` ausführt; die Probe schreibt weder `known_hosts` noch `~/.ssh/config` (§5). Das ist die Bereitschaft; ob `dockerd` im Container antwortet,
+prüft das Ziel nicht. Ein laufender Container bleibt stehen: der zweite Aufruf probt nur die Anmeldung. Ein Container, der den Namen `PGR_NAME` trägt, aber nicht zum Verzeichnis gehört, ein Container des Verzeichnisses mit anderem
+Namen oder anderem veröffentlichten Port und ein belegter Port (bei nicht laufendem Container) enden mit Exit 4, ohne etwas anzufassen. Die Limits eines vorhandenen Containers ändert das Ziel nie (§10.1). Der Build
 lädt Pakete aus dem Netz. Gemessen (Docker-Cache des Hosts warm, Basis-Image und Features lokal vorhanden): 65 Sekunden (`devcontainer up`, erster Start);
 mit `--build-no-cache` 70 Sekunden. Ein Build ohne warmen Cache des Hosts (Basis-Image nicht lokal) ist nicht gemessen.
 
 | Ziel | Befehl | Folge |
 |---|---|---|
-| Stoppen und neu starten | `docker stop pgr-dev`, dann `devcontainer up …` | derselbe Container; 1,7 bis 1,8 Sekunden bis `ssh` und `dockerd` antworten; Bare-Repo, Klon (auch eine nicht versionierte Datei), die Images im Daemon des Containers und der Fingerabdruck des Hostschlüssels waren danach unverändert (gemessen) |
-| Container entfernen | `docker rm -f pgr-dev`, dann `devcontainer up …` | neuer Container aus dem vorhandenen Image; die Volumes blieben und mit ihnen Bare-Repo, Klon und Images (gemessen, 6,4 und 7,9 Sekunden bis `ssh` und `dockerd` antworten); `/home/vscode` liegt im Dateisystem des Containers: `~/.gitconfig` und die Ablage von `claude` sind danach weg (`~/.claude` fehlte, gemessen) |
+| Stoppen und neu starten | `docker stop pgr-dev`, dann `make container-start` | derselbe Container; 1,7 bis 1,8 Sekunden bis `ssh` und `dockerd` antworten; Bare-Repo, Klon (auch eine nicht versionierte Datei), die Images im Daemon des Containers und der Fingerabdruck des Hostschlüssels waren danach unverändert (gemessen) |
+| Container entfernen | `docker rm -f pgr-dev`, dann `make container-start` | neuer Container aus dem vorhandenen Image; die Volumes blieben und mit ihnen Bare-Repo, Klon und Images (gemessen, 6,4 und 7,9 Sekunden bis `ssh` und `dockerd` antworten); `/home/vscode` liegt im Dateisystem des Containers: `~/.gitconfig` und die Ablage von `claude` sind danach weg (`~/.claude` fehlte, gemessen) |
 | Alles löschen | `docker rm -fv pgr-dev`, dann `docker volume rm <Namen der beiden Volumes>` (`docker volume ls`) | Bare-Repo, Klon und Docker-Cache im Container sind weg |
 | Image löschen | `docker rmi <Image>` (`docker images`, Name beginnt mit `vsc-`) | danach baut der nächste Start neu |
 
@@ -393,6 +385,18 @@ Die Zahlen hängen an Host, Cache und Last und sind keine Zusage. Der Speicher n
 Der Daemon im Container lädt die Images der Gates (zum Beispiel `d-check` und `a-check` von `ghcr.io`, `golang` von Docker Hub, `distroless` von `gcr.io`) selbst und
 legt sie im Volume `pgr-dev-docker-<ID>` ab; die Images des Host-Daemons stehen ihm nicht zur Verfügung.
 
+### 8.1 Zwei Arten zu arbeiten
+
+| | (a) Der Agent läuft am Host und treibt den Klon per `ssh` | (b) Der Agent läuft im Container |
+|---|---|---|
+| Start | `make container-start` (§3), dann Befehle wie `ssh -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes -p "${PGR_SSH_PORT:-2222}" vscode@127.0.0.1 'cd /workspaces/pgr-dev/pgwire-recorder && make docs-check'` (§5) | `devcontainer exec … claude` (§7) |
+| Dateien | über `stdin` des `ssh`-Befehls (`ssh … 'cat > <Datei>' < <lokale Datei>`) | im Klon |
+| Ergebnis | `git push origin <Branch>` im Klon, am Host `git fetch container` (§9) | wie (a) |
+| Zugang | keiner im Container: der Agent und sein Zugang bleiben am Host | Umgebungsvariablen des Hosts nur über `devcontainer exec` (§7) |
+| Belegt | gelaufen: Befehle, Dateien über `stdin`, `git push` und `git fetch` (dieses Dokument entstand so) | `claude -p` mit Platzhaltern (§7); der echte Login lief nicht (§13) |
+
+Bei (a) sieht der Container den Agenten nicht; was der Agent im Container ausführt, läuft wie jeder Befehl aus §8 mit `sudo` ohne Passwort (§11). Bei (b) liegt der Zugang des Agenten im Container (§7, §11). Welcher Weg der bessere ist, entscheidet dieses Dokument nicht.
+
 ## 9. Austausch mit dem Host
 
 Der Host schreibt in das Bare-Repo aus §6 und liest aus ihm; der Container sieht den Arbeitsbaum des
@@ -442,7 +446,7 @@ der Volumes), eigenem Schlüsselpaar und eigenen Werten für vier Variablen, die
 |---|---|---|
 | `PGR_NAME` | Name des Containers (`--name`) | `pgr-dev` |
 | `PGR_SSH_PORT` | Host-Port von `sshd` | `2222` |
-| `PGR_CPUS`, `PGR_MEM` | `--cpus` und `--memory` | `8`, `12g` |
+| `PGR_CPUS`, `PGR_MEM` | `--cpus` und `--memory` (§10.1) | `8`, `8g` |
 
 Zweite Instanz (Name `pgr-zwei`, Port 2423):
 
@@ -457,9 +461,9 @@ ssh -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes -p 2423 vscode@127.0.0.1
 ```
 
 Gemessen mit den Namen `pgr-probe-dev` und `pgr-probe-zwei` (Ports 2423 und 2424): beide Container liefen gleichzeitig, jeder mit eigenen Volumes (`pgr-probe-zwei-docker-<ID>`,
-`pgr-probe-zwei-workspace-<ID>`, die `<ID>` der beiden Ordner waren verschieden) und eigenem Hostschlüssel; `docker inspect` zeigt für `pgr-probe-zwei` ohne `PGR_CPUS` und `PGR_MEM` `8000000000` und `12884901888`.
+`pgr-probe-zwei-workspace-<ID>`, die `<ID>` der beiden Ordner waren verschieden) und eigenem Hostschlüssel; `docker inspect` zeigt für `pgr-probe-zwei` ohne `PGR_CPUS` und `PGR_MEM` `8000000000` und `12884901888` (damalige Vorgabe `12g`).
 Der Schlüssel der einen Instanz meldete an der anderen `Permission denied (publickey,password)` beziehungsweise `Host key verification failed.`
-(der Eintrag in `known_hosts` fehlte). `PGR_CPUS` und `PGR_MEM` mit anderen Werten sind nicht gelaufen. Ein belegter Port ist nicht gelaufen (§13). Jeder Container hat seinen eigenen
+(der Eintrag in `known_hosts` fehlte). `PGR_CPUS=2` und `PGR_MEM=2g` sind gelaufen (`docker inspect`: `2000000000` und `2147483648`), ebenso ein belegter Port (`make container-start` endet mit Exit 4). Jeder Container hat seinen eigenen
 Docker-Cache im eigenen Volume und braucht den Platz dafür noch einmal (§11). `--cpus` und `--memory` begrenzen jeden Container einzeln.
 
 Austausch mit zwei Containern: Jeder Container hat sein eigenes Bare-Repo (§6) und am Host ein Remote
@@ -477,6 +481,19 @@ Zugriffsberechtigungen bestehen“); mit beiden Schlüsseln liefen `git fetch co
 nehmen Port und Schlüssel der Instanz. `PGR_SSH_PORT` steht nur in der Shell, die `mk-override.sh` ruft: Die Befehle
 in §5 und §9 lösen `${PGR_SSH_PORT:-2222}` ohne gesetzte Variable zu `2222` auf. Für die zweite Instanz setzt du
 `export PGR_SSH_PORT=2423` in der Shell oder schreibst `-p 2423` bzw. `:2423` in die URL.
+
+### 10.1 Limits
+
+`--cpus` und `--memory` begrenzen jeden Container einzeln; ein Limit reserviert nichts, es schützt den Host.
+
+| Variable | Vorgabe | Messwert |
+|---|---|---|
+| `PGR_CPUS` | `8` | `make gates` lief mit 8 CPUs 1701 s (§8) |
+| `PGR_MEM` | `8g` | Spitze 5,42 GiB und 4,24 GiB bei Limit `12g` (`docker stats`, alle 10 s), `OOMKilled=false`; Leerlauf 0,2 bis 0,5 GiB; Host 31 GiB Speicher und 20 CPUs |
+
+Messen: `docker stats` im Lauf (alle 10 s) und `docker inspect --format '{{.State.OOMKilled}}' <Name>`. Ändern: für neue Container die Variable setzen. Ein vorhandener Container behält seine Limits: `make container-start` ändert sie nie, auch nicht bei
+laufendem Container und abweichender Variable. Ein laufender Container nimmt neue Werte an mit `docker update --memory <x> --memory-swap <x> <Name>` (beide Werte gleich, sonst bleibt der Swap des alten Wertes); das gilt bis zum Neubau. Nicht gemessen:
+ein Lauf von `make gates` bei `8g` mit Zeitmessung, und mehrere Container zugleich unter Last.
 
 ## 11. Grenzen und Sicherheit
 
@@ -516,7 +533,7 @@ in §5 und §9 lösen `${PGR_SSH_PORT:-2222}` ohne gesetzte Variable zu `2222` a
   `pgr-dev-workspace-<ID>` 27,76 MB; der Klon darin 32 MB, das Bare-Repo 124 KB (`du -sh` im Container). Die Größe wächst mit dem Host-Repo und mit dem Docker-Cache
   des Repos; beobachte den Speicher des Hosts (`docker system df`, `df -h` auf dem Docker-Verzeichnis). Dass ein voller Speicher Builds und Tests scheitern lässt,
   ist im Container nicht ausgelöst (§12).
-- **Ressourcen:** `--cpus=8` und `--memory=12g` sind Obergrenzen des Containers (`docker inspect`: `8000000000`, `12884901888`; `cgroup memory.max` im Container: 12884901888);
+- **Ressourcen:** `--cpus=8` und `--memory=12g` (Vorgabe zur Zeit der Messung, jetzt `8g`, §10.1) sind Obergrenzen des Containers (`docker inspect`: `8000000000`, `12884901888`; `cgroup memory.max` im Container: 12884901888);
   im Container zeigt `docker info` trotzdem die CPUs (20) und den Speicher des Hosts. `make gates` brauchte höchstens 5,42 GiB (§8); der Kernel hat den Container dabei nicht beendet (`OOMKilled=false`).
 
 ## 12. Fehlersuche
@@ -560,7 +577,7 @@ in §5 und §9 lösen `${PGR_SSH_PORT:-2222}` ohne gesetzte Variable zu `2222` a
   Wiederholung lieferte ein; ob der Abbruch mitten in der Übertragung lag, ist nicht festgestellt), und `origin`
   des Host-Repos über `ssh` bei gesetztem `core.sshCommand` (§9).
 - Ein Lauf von `make gates` mit leerem Cache des Hosts, ein zweiter Lauf mit warmem Daemon und ein Lauf unter Last am Host (§8); die 8-Stunden-Grenze (§8).
-- `PGR_CPUS` und `PGR_MEM` mit anderen Werten, ein belegter Port bei `devcontainer up` (gemessen nur mit `docker run`), ein Start ohne Daemon (`nestedRuntime` wirkungslos, §12).
+- Ein Lauf von `make gates` bei `PGR_MEM=8g` (§10.1), ein Start ohne Daemon (`nestedRuntime` wirkungslos, §12).
 - Ein Build ohne warmen Cache des Hosts, bei dem das Basis-Image nicht lokal vorhanden ist (§4), und die Herkunft des Basis-Images, der Features und des Docker-APT-Repositorys (§3.4).
 - Die Hosts, die Claude Code für die Anmeldung im Browser braucht (`claude.ai`, `platform.claude.com`, `claude.com`), und die Updates, Plugins und MCP-Connectors (§7, §11).
 - Die Meldung des Hostschlüssels bei der Erstverbindung ohne `UserKnownHostsFile`-Option (die Proben liefen mit einer Datei im Scratch).
