@@ -12,4 +12,4 @@ Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-harness-integration-
 
 Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-harness-coverage` — die Gegenprobe 89 s; sie bleibt aus der schnellen Kette (Beleg `evidence/slice-harness-coverage.md`).
 
-Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-harness-devcontainer-einrichten-geruest` — die Gegenprobe des Container-Starts 4 min 18 s; sie hängt nicht an `make gates` (Host-Ziel, ADR-0047), die Laufzeit der Kette wächst nicht (Beleg `evidence/slice-harness-devcontainer-einrichten-geruest.md`).
+Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-harness-devcontainer-einrichten-geruest` — die Gegenprobe des Container-Starts 4 min 18 s; sie hängt nicht an `make gates` (Host-Ziel, [ADR-0047](../../../../adr/0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md)), die Laufzeit der Kette wächst nicht (Beleg `evidence/slice-harness-devcontainer-einrichten-geruest.md`).
