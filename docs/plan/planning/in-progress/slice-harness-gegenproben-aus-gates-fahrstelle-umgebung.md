@@ -120,14 +120,17 @@ dasteht.
 
 | Randform | Wo entschieden |
 |---|---|
-| Deskriptor 3, ein höherer Deskriptor (etwa 5 wie in der Fahrt) und mehrere zugleich; Deskriptor an einer Pipe, einer Datei, einem Socket | Architect, `SPEC-061` Punkt 5 (offen) |
-| Deskriptor, den der Hook selbst für die Sperre öffnet (`flock`): im Lauf nötig oder geschlossen | Architect (offen) |
-| Obergrenze der Deskriptoren (`ulimit -n` sehr hoch): Schleife über `/proc/self/fd` statt über Zahlen | Architect (offen) |
-| `SIGINT` und `SIGQUIT` ignoriert beim Aufruf (`trap '' INT QUIT`, Aufruf mit `&` in einer Shell ohne Jobsteuerung); `SIGHUP`, `SIGPIPE`, `SIGTERM` | Architect (offen) |
-| Wo `SigIgn` gelesen wird: Lauf, `make`, Kinder von `make` | Architect (offen) |
+| Deskriptor 3, ein höherer Deskriptor (etwa 5 wie in der Fahrt) und mehrere zugleich; Deskriptor an einer Pipe, einer Datei, einem Socket | Architect, `SPEC-061` Punkt 5 (alle Deskriptoren über 2 vor dem Lauf geschlossen, ohne Nummernliste; Mutation „schließt erst nach dem Start von `make`“ entfällt mit Grund) |
+| Deskriptor, den der Hook selbst für die Sperre öffnet (`flock`): im Lauf nötig oder geschlossen | Architect, `SPEC-061` Punkt 5 (Sperre nur im Lauf, nicht in `make` und Nachkommen) |
+| Obergrenze der Deskriptoren (`ulimit -n` sehr hoch): Schleife über `/proc/self/fd` statt über Zahlen | Architect, `SPEC-061` Punkt 5 (Schleife über `/proc/self/fd`) |
+| `SIGINT` und `SIGQUIT` ignoriert beim Aufruf (`trap '' INT QUIT`, Aufruf mit `&` in einer Shell ohne Jobsteuerung); `SIGHUP`, `SIGPIPE`, `SIGTERM` | Architect, `SPEC-061` Punkt 11: der Lauf `SIGINT` nicht ignoriert, `make` und Nachkommen `SIGINT` und `SIGQUIT`; `SIGQUIT` im Lauf selbst Grenze (bash ignoriert es selbst); der Hook setzt beide für den Lauf zurück, wenn der Aufrufer sie ignoriert (`env --default-signal=INT,QUIT`, Fälle `p11-erbt-*`); `SIGHUP`, `SIGPIPE` nicht zugesagt, `SIGTERM` Punkt 9 |
+| Wo `SigIgn` gelesen wird: Lauf, `make`, Kinder von `make` | Architect, `SPEC-061` Punkt 11 (Lauf, `make`, Kind und Enkel; Fälle `p11-sigint-enkel`, `p11-sigquit-enkel`) |
 | Mehrere Zweige in einem Push: ein Lauf je Zweig, jeder mit denselben Zusagen | Bestand, `SPEC-061` Punkt 16 (4) |
-| Kein `/proc` (macOS, minimale Umgebung) | Architect (offen; der Gegenproben-Container ist Linux, der Hook nur dort aufgesetzt) |
+| Kein `/proc` (macOS, minimale Umgebung) | Architect, `SPEC-061` Kopf, Plattform (nur Linux zugesagt; der Gegenproben-Container ist Linux, der Hook nur dort aufgesetzt) |
 | Aufruf von Hand oder aus `make` statt durch `git receive-pack` | Bestand, `SPEC-061` Punkt 5 |
+| Mindestversion von bash für den Hook und die Gegenprobe; Äquivalenz des Mutanten ohne `exec` | Architect, `SPEC-061` Punkt 5 (Hook und Gegenprobe bash ≥ 5.1, Entscheidung des Nutzers vom 2026-10-18: festgelegt; Messung der Äquivalenz mit `bash:4.4` bis `bash:5.2`: das Auslassen des `fork` beginnt mit 5.1; die Gegenprobe prüft die Version vorab, Exit 2) |
+| `env --default-signal` (coreutils ab 8.31) und `/proc` fehlen | Architect, `SPEC-061` Punkt 13 (`env` wird geprüft, Fall und Mutation) und Kopf, Plattform (`/proc` nicht geprüft, akzeptiertes Negativ) |
+| Echter `git push` über `ssh` | Architect, `SPEC-061` Punkt 16 (11) |
 
 **Aufrufarten des Treibers (§3.12):** nicht Gegenstand dieses Slice (`SPEC-061` Punkte 10, 11 und 14 sind Bestand des Gebers). **Aufruf-Voraussetzung:** Die Zusagen des Punktes 5 gelten für jeden Aufrufer, der den Hook startet, gleich welche Deskriptoren und Signalzustände er vererbt; gleichzeitig laufende Hooks sind Punkt 6.
 
@@ -153,6 +156,60 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 übernimmt).
 
 (Wird bei der Closure geschrieben.)
+
+### Belege des Implementers
+
+Stand: Zweig `slice-harness-gegenproben-aus-gates-fahrstelle-umgebung`, Basis `02a606eb`. Code-Commits `7b4eabcc`, `51b5ba8d`, `c26c9092`, danach nach der Entscheidung des Architect (`SPEC-061` Punkte 5, 9, 11, Commit `597f2ed0`) `6c740c67` und `3d7b32e8`. Dieser Abschnitt ist der einzige Teil des Plans, den der Implementer geändert hat (`git diff 02a606eb..HEAD -- docs/plan` zeigt neben den §6-Zeilen des Architect nur §7). Nach dem Review (`0761194d`, Findings F-1 bis F-8) und der Entscheidung des Architect zu ihm (`b393f1cc`) sowie der Festlegung des Nutzers „bash ≥ 5.1“ (`58f047ba`): Code `9230dbab`.
+
+**Rückgaben:** Die fünf Rückgaben der ersten Runde sind vom Architect entschieden und umgesetzt. Offen ist eine Anmerkung zu den Listen im Vertrag (kein Randfall): `SPEC-061` Punkt 11 nennt für die Mutation „der Hook startet den Lauf mit `cmd &`“ die sieben Fälle ohne `erbt` und für `trap '' INT`, `trap '' QUIT` und „`make` mit `cmd &`“ Mengen ohne `p11-erbt-*`. Gemessen färbt jede dieser Mutationen auch den passenden Fall `p11-erbt-*` (er fährt `make` ebenfalls; der Mutant „Hook mit `cmd &`“ enthält zudem kein `env --default-signal`, das die ignorierten Signale zurücksetzte, ein `cmd &` nach dem `env` gibt es nicht). Die Mengen unten sind die gemessenen; der Architect möge die Listen im Vertrag angleichen. Zum Review (0 HIGH, 1 MEDIUM, 3 LOW, 4 INFO) steht jeder Befund mit Ausgang unter *Findings des Reviews*.
+
+**Messungen (Container `pgr-dev2`, bash 5.2.37, util-linux 2.41.5, coreutils 9.7):**
+
+- M1 — bash ignoriert `SIGQUIT` selbst: `env --default-signal=INT,QUIT bash z.sh`, `z.sh` liest `/proc/$$/status` mit dem Builtin `read` (kein Kindprozess): `SigIgn: 0000000000000004`; ein Handler (`trap 'echo q' QUIT`) setzt es auf `0`; `env --default-signal=QUIT sh -c '…'` (dash): `0`.
+- M2 — `timeout` setzt `SIGINT` zurück: `setsid -w sh -c 'trap "" INT; exec env -i sh -c "grep SigIgn /proc/\$\$/status"'` zeigt `0000000000000002`; mit `timeout 30` vor dem inneren `sh`: `0000000000000000`. Die Fälle `p11-erbt-*` rufen den Hook deshalb ohne `timeout`.
+- M3 — Ein Kind der `ssh`-Sitzung erbt kein ignoriertes `SIGQUIT`: `ssh … 'env -i sh -c "grep SigIgn /proc/\$\$/status"'` zeigt `0`; die `bash -c`-Shell der Sitzung selbst zeigt Bit 3 (M1).
+- M4 — `bash -c '( exec bash -c "grep SigIgn …" ) & wait'` aus einer Shell ohne Jobsteuerung: Kind `0`; `sleep 5 & grep SigIgn /proc/$!/status`: `0000000000000006`.
+
+**Befunde vorher und nachher:** (1) Hook aus `02a606eb` mit der Gegenprobe des Standes `51b5ba8d`: die unveränderte Kopie ist rot an genau `p11-sigint-kind p11-sigint-lauf p11-sigint-make p11-sigquit-kind p11-sigquit-make p5-eof-fd12 p5-eof-fd3 p5-eof-fd5 p5-eof-fd7 p5-fd-kind p5-fd-lauf p5-fd-make`, sonst nichts. (2) Hook aus `405999db` (ohne `env --default-signal`) mit der Gegenprobe dieses Standes: rot an genau `p11-erbt-int p11-erbt-quit`. Nach der Änderung: unveränderte Kopie grün, 113 Fälle, 156 Mutationen.
+
+**Mutationstabelle** (rote Menge gemessen mit `GP_ENTDECKE=1`; der volle Lauf verlangt genau diese Mengen):
+
+| Zusage (SPEC-061) | Mutation | rote Fälle |
+|---|---|---|
+| 5: kein Deskriptor über 2 im Lauf, ohne Liste fester Nummern | `eval "exec $n>&-"` entfällt | `p5-eof-fd3 p5-eof-fd5 p5-eof-fd7 p5-eof-fd12 p5-fd-lauf p5-fd-make p5-fd-kind` |
+| 5: … Deskriptor 3 (untere Grenze) | geschlossen wird nur über 3 | `p5-eof-fd3` |
+| 5: … nicht nur 5 | nur Deskriptor 5 | `p5-eof-fd3 p5-eof-fd7 p5-eof-fd12` |
+| 5: … nicht nur 3 bis 9 | nur 3 bis 9 | `p5-eof-fd12` |
+| 5: … 0 bis 2 bleiben offen | geschlossen wird ab 2 | `p5-fd-2` |
+| 5: `make` und Nachkommen tragen die Sperre nicht | `9>&-` entfällt | `p5-fd-make p5-fd-kind` |
+| 5: der Hook kehrt zurück, bevor `make` endet; `setsid -f` | `setsid -w` | `p1-echter-push p5-ein-prozess p5-eof-fd3 p5-eof-fd5 p5-eof-fd7 p5-eof-fd12 p5-fd-0 p5-fd-1 p5-fd-2 p5-leitung-stderr p5-leitung-stdout p5-vor-ende p7-altes-weg p9-marke p9-nicht-vorher` |
+| 5, 16 (10): ein Hintergrundprozess je Push | die `bash -c`-Stufe bleibt als Elternprozess (`"$BASH" "$@"; :`) | `p5-ein-prozess` |
+| 5: eigene Sitzung | ohne `setsid`, mit `&`, Signale per `env --default-signal` zurückgesetzt | `p5-gruppe` |
+| 11: `SIGINT`/`SIGQUIT` in `make`, Kind, Enkel; `SIGINT` im Lauf (Start durch den Hook) | `setsid` ohne `-f`, Start mit `cmd &`, ohne `env --default-signal` | `p11-sigint-lauf p11-sigint-make p11-sigint-kind p11-sigint-enkel p11-sigquit-make p11-sigquit-kind p11-sigquit-enkel p11-erbt-int p11-erbt-quit` |
+| 11: … Start von `make` durch den Lauf | `env -C "$wt" make … &` statt `( … exec make …) &` | `p11-sigint-make p11-sigint-kind p11-sigint-enkel p11-sigquit-make p11-sigquit-kind p11-sigquit-enkel p11-erbt-int p11-erbt-quit` |
+| 11: `SIGINT` | `trap '' INT` im Lauf | `p11-sigint-lauf p11-sigint-make p11-sigint-kind p11-sigint-enkel p11-erbt-int` |
+| 11: `SIGQUIT` | `trap '' QUIT` im Lauf | `p11-sigquit-make p11-sigquit-kind p11-sigquit-enkel p11-erbt-quit` |
+| 11: der Aufrufer ändert nichts daran | `env --default-signal=INT,QUIT` entfällt | `p11-erbt-int p11-erbt-quit` |
+| 11: … nur `SIGINT` / nur `SIGQUIT` wird zurückgesetzt (Element der Aufzählung) | `--default-signal=INT` allein / `=QUIT` allein | `p11-erbt-quit` / `p11-erbt-int` |
+| 5: … jeder Deskriptor über 2, nicht „alle außer 5“ / „außer 7“ | geschlossen wird jeder außer 5 / außer 7 | `p5-eof-fd5 p5-fd-lauf p5-fd-make p5-fd-kind` / `p5-eof-fd7` |
+| 13: `env` mit `--default-signal` wird geprüft (Meldung `werkzeug`, Name `env`) | die Prüfung entfällt | `p13-werkzeug-env` |
+| Kopf, 5: die Gegenprobe prüft bash ≥ 5.1 vorab (Exit 2, `bash >= 5.1 nötig`) | `m-bash-ab-5-0` (`-ge 0`), `m-bash-ab-5-2` (`-ge 2`), `m-bash-major-ab-4` (Hauptversion über 3), `m-bash-major-nicht-6` (über 6), `m-bash-nicht-5` (`-eq 4`), `m-bash-ohne-meldung`, `m-bash-exit-1` an einer Kopie der Gegenprobe; der Fall fährt sie mit vorgetäuschter Version (`GP_BASH_VERSION` 4.4.0, 5.0.19, 5.1.0, 5.2.37, 6.0.0) | je Mutation genau `p5-bash-version` |
+
+Die Mengen der übrigen Mutationen des Bestands sind unverändert bis auf vier Zeilen mit zusätzlichen roten Fällen, je erklärt: `m-p1-liest-stdin-nicht` (der Hook liest keine Zeile, kein Lauf entsteht: alle Fälle, die einen Lauf brauchen, sind rot, auch die neuen), `m-p5-wartet` (Zeile oben: ein wartender Hook hält die Pipe, bis der Lauf endet, und `setsid -w` ist ein zweiter Prozess mit `--lauf` in der Befehlszeile), `m-p3-gleichzeitig` (+ `p5-ein-prozess`: der Lauf startet seine Läufe als Hintergrund-Subshell, ein zweiter Prozess mit `--lauf`) und `m-p12-nicht-losgeloest` (+ `p11-erbt-quit`: der Fall fährt den Hook zweimal im selben Bare-Repo mit demselben Hash, der Zweig `gp-<Name>` besteht beim zweiten Mal schon).
+
+**Grüne Mutanten:** `exec "$BASH" "$@"` → `"$BASH" "$@"` (`m-p5-lauf-ohne-exec`, erwartet: nichts rot): äquivalent **ab bash 5.1**, der vom Nutzer festgelegten Mindestversion für Hook und Gegenprobe. (a) Invariante: `bash -c` führt den letzten einfachen Befehl eines `-c`-Strings ab 5.1 im selben Prozess aus, ohne `fork`. (b) Ort: das Verhalten von bash; im Repo erzwingt es die Versionsprüfung der Gegenprobe (`bash >= 5.1 nötig`, Fall `p5-bash-version`, sieben Mutationen `m-bash-*`), die Äquivalenz ist an die Version gebunden. (c) Sonde: Messung des Architect am 2026-10-18 mit den Images `bash:4.4`, `bash:5.0`, `bash:5.1`, `bash:5.2` (ab 5.1 gleicher Prozess, bis 5.0 mit `fork`); eigener Lauf im Container (bash 5.2.37): der Mutant bleibt grün, `"$BASH" "$@"; :` (`m-p5-lauf-als-kind`) ist rot an `p5-ein-prozess`. Weitere grüne Mutanten gibt es nicht; `SigIgn` eines Enkels ist gedeckt (`p11-sigint-enkel`, `p11-sigquit-enkel`). **Keine Mutation, die nur Kind oder nur Enkel bricht:** Ein ignoriertes Signal erbt nach unten; wer es für das Kind setzt, setzt es für den Enkel mit, und jeder Weg, `make` zu brechen, trifft das Kind mit. Die Fälle `-kind` und `-enkel` färben deshalb immer gemeinsam (F-8 des Reviews zur Kenntnis).
+
+**Sonde:** Der Fall `p5-eof-*` prüft vorab, dass der Deskriptor eine offene Pipe ist. Eine Kopie, in der `eof_gruppe` den Deskriptor an `/dev/null` legt, ist rot mit `p5-eof-fdn: Deskriptor n ist im Fall keine offene Pipe` (gefahren für 5, 7 und 12 vor dem Fall `-fd3`, derselbe Code).
+
+**Akzeptierte Negative:** Dass ein echter `git push` über `ssh` zurückkehrt, prüft die Gegenprobe nicht (`SPEC-061` Punkt 16 (11)); den Beleg trägt die erste Fahrt in `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb`. Für `SIGQUIT` in der Shell des Laufs gibt es keine Zusage (Punkt 11, M1). Fehlendes `/proc` prüft der Hook nicht (Plattform, Kopf des Vertrags).
+
+**Größe:** Summe aus Einfügungen und Löschungen von `git diff --numstat 4219bab6..HEAD -- tools harness/mk harness/README.md`: 224 (199 Einfügungen, 25 Löschungen; Schätzung des Plans 90 bis 180) (Meldeschwelle 700, Marke 900).
+
+**Findings des Reviews und Ausgang:** F-1 (LOW) behoben: Mutationen `--default-signal=INT` allein, `=QUIT` allein, „außer 5“, „außer 7“ (Tabelle). F-2 (MEDIUM) behoben: Mindestversion bash ≥ 5.1 (Nutzer), Vorab-Prüfung der Gegenprobe mit Fall und sieben Mutationen, Äquivalenz mit Version, Messung und Ort (Grüne Mutanten). F-3 (LOW) beim Planner: §1 und DoD sagen noch „weder `SIGINT` noch `SIGQUIT`“ für den Lauf, der Implementer ändert dort nichts (Closure). F-4 (LOW) behoben: der Verweis lautet „Punkt 16 (11)“ in der README-Zeile und hier. F-5 (INFO) behoben: Kommentar im Hook auf den Wortlaut des Architect. F-6 (INFO) behoben: Probe `env --default-signal=INT,QUIT true` im Werkzeug-Schritt, Fall `p13-werkzeug-env`, Mutation `m-p13-ohne-env`; kein `/proc` ist akzeptiertes Negativ im Vertrag. F-7 (INFO) behoben: die erwarteten Mengen entsprechen den Listen im Vertrag (der volle Lauf verlangt sie). F-8 (INFO) zur Kenntnis: Ursache von `p2-kein-verzeichnis` unter Last ungeklärt, siehe Läufe.
+
+**Doku:** `harness/README.md` §Sensors, Zeile `make gegenproben-nach-einlieferung-gegenprobe`: Zahlen, die neuen Fälle, die Voraussetzungen (`sh`, `env` mit `--default-signal`) und das Nicht-Geprüfte (`ssh`-Push, `SIGQUIT` in der Shell des Laufs). Quantoren der neuen Sätze: „ohne geerbten Deskriptor über 2“ — Ausnahmen derselben Zeile: die Sperre (9) und der Skript-Deskriptor (255) im Lauf, beide im Muster von `p5-fd-lauf`; „`SIGINT` und `SIGQUIT` in `make` und seinen Nachkommen nicht ignoriert“ — Ausnahme: die Shell des Laufs ignoriert `SIGQUIT` selbst, in der Zeile unter „nicht geprüft“ genannt.
+
+**Läufe:** Stand `07e45e1e` (die Dateien unter `tools/` und `harness/README.md` sind seitdem unverändert). Gegenprobe im Container, UTC: 18:15:18 bis 18:22:37 UTC, Exit 0, `gruen — Punkte 1 bis 13 von SPEC-061, gefahren: 113 Fälle und 156 Mutationen, je Mutation genau die benannten Fälle rot, unveränderte Kopie grün` (bash 5.2.37). `make gates`: 18:08:42 bis 18:13:33 UTC, Exit 0. `make gates-schnell-gegenprobe`: Exit 0. `make docs-check`: Exit 0, 1156 Dateien, 0 Befunde. Zeitgrenzen `timeout 1500`, `3000`, `900`, `300`, keine ausgelöst; Prozesse im Container 94 bis 276. Auf einen Lauf mit Rot kamen zwei grüne Wiederholungen: Ein voller Lauf des Standes `a918ef2e` war rot an `m-p13-ohne-git` (der PATH der Werkzeugfälle trug `env` und `true` noch nicht; behoben in `07e45e1e`), ein voller Lauf des Standes `07e45e1e` (18:01:21 bis 18:08:42, parallel zu `make gates`) war rot, weil `m-p5-nur-ueber-3` zusätzlich `p13-werkzeug-git` rot hatte; die Wiederholung allein ist grün (Zeile oben). Mit `p2-kein-verzeichnis` (zwei frühere Läufe) sind das drei Fälle des Bestands, die bei hoher Last einmal zusätzlich rot waren (Last 30 bis 46 und parallel laufendes `make gates`); die Ursache ist ungeklärt (F-8 des Reviews). Ein Lauf mit `TZ=Europe/Berlin LANG=de_DE.UTF-8` am Stand `3d7b32e8` war grün (17:12:06 bis 17:18:38 UTC), nach der letzten Änderung nicht wiederholt.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
