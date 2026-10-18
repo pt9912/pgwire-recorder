@@ -1,7 +1,7 @@
 # Welle welle-v1-abschluss — v1-Abschluss: Sessions, Protokollrand, Betrieb, Einspielen, Zeitangaben, SQLite, Verbindungsende, Container — Closure-Notiz
 
 **Welle:** welle-v1-abschluss
-**Abschluss:** Lauf folgt (Datum des Self-Close-Commits)
+**Abschluss:** 2026-10-18
 **Verantwortlich:** pt9912
 
 ## Was wurde geliefert?
@@ -30,7 +30,14 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md` §Wellen-Closure
 
 - **Hard Rule** `AGENTS.md` §3.10 ergänzt: Ein grüner Mutant gilt als äquivalent erst mit Invariante, Ort, der sie erzwingt, und Sonde mit Lauf; ist die Invariante die Zusage oder nur dokumentiert, bekommt er einen Fall — liegt in `AGENTS.md §3.10`, `.claude/commands/implement-slice.md Schritt 19` und `.harness/skills/reviewer.md §Klassifikation` · seit welle-v1-abschluss. Auslöser: `BEO-REPO/gruener-mutant-faelschlich-aequivalent` (slice-v1-abschluss-konfigurationsdatei, slice-v1-abschluss-sqlite-format-lesen, slice-v1-abschluss-verbindungsende-vergleich, slice-v1-abschluss-verbindungsende-record, slice-v1-abschluss-verbindungsende-upstream — 5×). Ein Sensor ist nicht möglich: Äquivalenz ist nicht entscheidbar; geprüft werden kann nur, dass §7 Invariante und Ort nennt, nicht ob sie tragen.
 - **Hard Rule** `AGENTS.md` §3.12 ergänzt: Die Plattform gehört zu den Randformen eines Vertrags (Grenze oder Zusage je Plattform von `LH-QA-03`, vor dem Code) — liegt in `AGENTS.md §3.12` und `.claude/agents/architect.md` · seit welle-v1-abschluss. Auslöser: `BEO-REPO/verhalten-nur-unter-linux-geprueft` (slice-v1-abschluss-schreiben, slice-v1-abschluss-sqlite-format, slice-v1-abschluss-sqlite-format-lesen — 3×). Kein Sensor: Er wäre ein Lauf auf macOS und Windows, den ein Repo mit `bash`, `git` und `docker` nicht hat; die Spezifikation trägt die Grenze (`LH-FA-07.a`, `LH-FA-22.a`), keine Schärfung je Plattform.
-- Bereits vor dieser Closure verkörpert und im Register bei 5× oder mehr (Stand der `evidence/`-Zählung 2026-10-18): `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (77), `plan-folgt-korrektur-nicht` (65), `negativtests-fehlen-bei-neuem-vertrag` (50), `spec-randform-erst-im-review-entschieden` (39), `randform-im-code-entschieden-dann-zurueckgegeben` (21), `folge-slice-adresse-nimmt-nicht-an` (13), `slice-waechst-durch-uebernahmen` (7), `schichtteilung-je-plan-verschieden` (5), `implementer-bericht-erreicht-pruefer-nicht` (5). Nicht geprüft: ob für sie die Klausel „viertes Mal nach Prosa“ (Modul 6, Schritt 3) einen Sensor oder eine Begründung verlangt; das ist ein Urteil des Nutzers und steht aus.
+- Bereits vor dieser Closure verkörpert, im Register bei 5× oder mehr (Zählung der `evidence/`-Dateien, 2026-10-18). Urteil zur Klausel „viertes Mal nach Prosa“ (Modul 6, Schritt 3): Sie verlangt für eine Klasse, die nach der Prosa-Form wieder die Schwelle erreicht, einen benannten Sensor oder eine Begründung, warum keiner möglich ist. Je Beobachtung:
+  - `BEO-REPO/zusage-im-kommentar-weiter-als-pruefung` (77): Sensor benannt, `slice-harness-mutation` (steht in `open/`), für die Hälfte „Test fängt die Zusage“; die Hälfte „Kommentar sagt mehr als der Test“ ist Semantik und hat keinen Sensor.
+  - `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag` (50): Sensor benannt, `slice-harness-mutation`.
+  - `BEO-REPO/plan-folgt-korrektur-nicht` (65): Sensor verkörpert (`make kopf-check`, Kopf-Hälfte); ob §1, §3 und §6 dem Diff folgen, ist Urteil, kein Sensor möglich.
+  - `BEO-REPO/spec-randform-erst-im-review-entschieden` (39): kein Sensor möglich, ob eine Randform genannt ist, ist Semantik; die Gegenmaßnahme ist die Prüfung des Architect vor dem Code (`AGENTS.md` §3.12).
+  - `BEO-REPO/schichtteilung-je-plan-verschieden` (5) und `BEO-REPO/implementer-bericht-erreicht-pruefer-nicht` (5): kein Sensor möglich, die Schichtzählung ist Urteil und die zweite Beobachtung betrifft die Übergabe zwischen Rollen.
+  - Vorschlag eines Sensors, Entscheidung des Nutzers, nicht beschlossen: für `BEO-REPO/folge-slice-adresse-nimmt-nicht-an` (13) die Prüfung „die Kennung des Gebers steht in §1 oder der DoD des Nehmers“ als Skript neben `make kopf-check` (die Paarung (b) prüft sie heute per Hand-`grep`); für `BEO-REPO/slice-waechst-durch-uebernahmen` (7) die Zählung der Liefer-Punkte je Plan (Format-abhängig, daher eine Bedingung der Vorlage); für `BEO-REPO/randform-im-code-entschieden-dann-zurueckgegeben` (21) eine Suche nach „Lesart“/„Auslegung“ in §7 (liefert Treffer, kein Urteil).
+  - Keine dieser Zeilen ändert ein Gate oder eine Regel; es bleibt bei den Beschlüssen des Nutzers.
 - Ausgang `geplant` (nicht Teil dieser Closure, nur Zeiger): `BEO-REPO/schaetzung-in-zeilen-unterschaetzt-tests` und `BEO-REPO/groesse-erst-in-der-pruefung-des-architect-sichtbar` → `slice-harness-schaetzung-planner-faktor`; `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig` → `slice-harness-gegenprobe-matrix-p7-flanke`; `BEO-REPO/spezifikation-widerspricht-sich-im-wortlaut` → `slice-harness-regeln-spezifikation-satzabgleich`; `BEO-REPO/roter-lauf-haengt-bis-zum-zeitlimit` → `slice-harness-lint-warten-ohne-frist`; `BEO-REPO/commit-nennt-struktur-kennung` → `slice-harness-commit-struktur-id`; `BEO-REPO/handgeschriebene-aufzeichnung-ohne-beleg-gegen-den-server` → `slice-v1-abschluss-verbindungsende-upstream-extended`.
 
 ## Trigger-Audit
@@ -43,7 +50,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md` §Wellen-Closure
   - [ADR-0016](../../adr/0016-einspielen-anmeldung-und-tls.md), [ADR-0017](../../adr/0017-einspielen-sequenziell-und-fehlersemantik.md): Trigger eingetreten und beantwortet durch [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md) und [ADR-0020](../../adr/0020-antwortvergleich-beim-einspielen.md) (bereits vor dieser Welle).
   - [ADR-0018](../../adr/0018-tls-zum-client.md): TLS zum Client geliefert; weder Client-Zertifikate noch TLS zum Upstream im Record verlangt — bestätigt.
   - [ADR-0033](../../adr/0033-gate-nachweise-in-der-abdeckung.md) ("Review findet falsche Gesamtzahl"): nicht eingetreten (`BEO-REPO/gesamtzahl-geteilter-messung-einheitlich-falsch`, Risiko ohne Auftreten).
-  - [ADR-0042](../../adr/0042-versionsmatrix-der-integrationstests.md), [ADR-0043](../../adr/0043-binaries-und-container-gate.md), [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) (Laufzeit der Kette): Messung der Laufzeit der vollen Kette — Lauf folgt (kommt mit `make gates`).
+  - [ADR-0042](../../adr/0042-versionsmatrix-der-integrationstests.md), [ADR-0043](../../adr/0043-binaries-und-container-gate.md), [ADR-0038](../../adr/0038-gate-kette-voll-und-schnell.md) (Laufzeit der Kette): Messung am Lauf unter *Verifikation*: `make test-integration` 2 m 20 s und `make test-container` 1 m 04 s von einer vollen Kette von höchstens rund 19 Minuten (Start nicht protokolliert, Ende 04:26 laut Log); die zwei Ziele dominieren sie nicht, und die volle Kette liegt nicht unter einer Minute — kein Trigger eingetreten, bestätigt.
   - [ADR-0039](../../adr/0039-aufzeichnung-kennt-das-verbindungsende.md): von dieser Welle geliefert; die Auslöser (Ende ohne Fehlerantwort, Ende im Aufbau) nicht aufgetreten.
   - Übrige ADRs: Trigger nicht berührt (Urteil nach Lesen der Bedingung).
 - Hard Rules (`AGENTS.md` §3.2 bis §3.14): alle tragen den Retirement-Check, keine hat einen Auflösungs-Trigger, der eintrat; die zwei neuen Zeilen oben kommen hinzu.
@@ -76,7 +83,12 @@ Der Zähler steht in [`../observations/`](../observations/). Was in dieser Welle
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md` §Wellen-Closure-Prozedur, Schritt 1.
 
 - 51 von 51 Slices in `done/`: belegt (2026-10-18).
-- `make gates` grün: Lauf folgt (Koordinator), mit Build-Hash und Datum.
-- Replay-Lauf grün: Lauf folgt.
-- Abnahmeszenarien 1 bis 10, 12 bis 16 und 18 automatisiert, je Zusage rote Mutation: Lauf folgt (Verifier).
-- Zwei Builds der Binaries mit gleicher Summe, Image gebaut (`make test-container`): Lauf folgt.
+- `make gates` Exit 0 auf `d1691e7a` (Ende 04:26 am 2026-10-18; Log `gates-v1b.log`, Nachweis `.harness/state/gates-passed.diffsha` `30cea8326d2d1e1256bc5fe9125a8ebe3767c75ddcc369bb68876b0e24e91a04`). Ein Lauf davor endete um 04:07 mit Exit 2 im Doku-Gate (ADR-Kennungen in dieser Notiz ohne Link) und wurde mit `d1691e7a` behoben. Die Dauer des grünen Laufs ist nicht gemessen (Start nicht protokolliert); Obergrenze rund 19 Minuten.
+- Replay-Lauf grün: `make test-integration` 2 m 20 s, 276 PASS, kein FAIL; Phase 2 ohne PostgreSQL führt die Tests `TestE2EOhnePostgresReplay`, `TestE2EOhnePostgresExtendedReplay`, `TestE2EOhnePostgresEnde` je Format (Verifikations-Bericht `docs/reviews/2026-10-18-verify-welle-v1-abschluss.md` §1).
+- `make test-container` grün, 1 m 04 s: zwei Builds mit gleichen Summen, Kopf von sechs Binaries, Image je Linux-Plattform, Smoke auf `linux/amd64` (ebenda §1).
+- Abnahmeszenarien 1 bis 10, 12 bis 16 und 18: je Zusage eine rote Mutation (29 am Quellcode, 2 am `Dockerfile`; 27 davon im E2E rot, zwei fängt ein Unit-Test; ebenda §2). Nicht geprüft: Szenario 11 (Nachtrag), Plattformen außer Linux, nicht jedes Element der Aufzählungen (ebenda §5).
+
+### Befunde der Verifikation
+
+- F-1, F-2, F-4, F-5 (INFO): kein Mangel der Zusage; Unit-Tests fangen die zwei grünen E2E-Mutanten.
+- F-3 (LOW): Die Szenarien 5 und 9 sind über `docs/user/abdeckung-*.md` nicht auffindbar (`LH-FA-15`, `LH-QA-04`, `LH-FA-16`, `LH-QA-03` ohne Zeile). Urteil des Planners: kein Folge-Slice (unter der Schwelle, kein Welle-Trigger berührt, Szenario 9 belegt `make test-container`); als Beobachtung `BEO-REPO/anforderung-ohne-zeile-in-der-abdeckungstabelle` (1×, Beleg `welle-v1-abschluss`) ins Register.
