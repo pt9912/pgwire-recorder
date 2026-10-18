@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** `SPEC-063` (neu; Vertrag in `harness/vertraege/`, vor dem ersten Code-Commit geschrieben) · `SPEC-060` Teil 1 (gelesen: Namens- und Zuordnungsregel, Listen; Vertrag vom Architect am 2026-10-18 geschrieben) · [`SPEC-052`](../../../../harness/vertraege/SPEC-052-gate-kette.md) Punkte 1 bis 4 (gelesen: Aufrufarten des Treibers, Ausnahmeliste).
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig impl-ci-workflows)
 **Autor:** Planner. **Datum:** 2026-10-18.
 
 ---
