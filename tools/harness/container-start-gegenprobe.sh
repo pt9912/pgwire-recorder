@@ -500,7 +500,7 @@ cases() {
     c "p15-voraussetzung-$t" && { kind "$t"; [ "$code" != 0 ] && grep -qF "$t fehlt im Pfad" "$w/err" && ! grep -q übersprungen "$w/err" || rot; }
   done
   c p15-rekursion && { (GP_KIND=1; eval "$(sed -n '/^kind() {/,/^}/p' "$gpk")"; kind nichts) > /dev/null 2> "$w/err"; [ $? = 1 ] && grep -q Rekursion "$w/err" || rot; }
-  c p15-fremdes-verzeichnis && { mkdir "$w/tmp"; a=$(TMPDIR=$w/tmp mktemp -d -t pgr-cs-XXXXXX); TMPDIR=$w/tmp sonde ende; { [ -d "$a" ] && [ "$pcode" = 0 ]; } || rot; rmdir -- "$a" 2> /dev/null; }
+  c p15-fremdes-verzeichnis && { mkdir "$w/tmp"; a=$(mktemp -d "$w/tmp/pgr-cs-XXXXXX"); TMPDIR=$w/tmp sonde ende; { [ -d "$a" ] && [ "$pcode" = 0 ]; } || rot; rmdir -- "$a" 2> /dev/null; }
   c p15-sonden-raeumen && { kind nichts '^p15-ende$'; [ "$code" = 0 ] || rot; }
   c p15-name-ohne-praefix && { (cd "$w" && env -i PATH="$PATH" HOME="$w" TMPDIR="$w" GP_KIND=1 GP_NAME=foo GP_NUR=p15-aufraeumen-ende GP_MUT='^$' GP_QUELLE="$quelle" "$BASH" "$gpk" > "$w/out" 2> "$w/err"); code=$?
     { [ "$code" != 0 ] && grep -qF 'trägt das Präfix pgr-cs- nicht' "$w/err"; } || rot; }
