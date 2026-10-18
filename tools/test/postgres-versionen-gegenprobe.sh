@@ -407,9 +407,9 @@ pruefe() {
   ist p9-n-und-i 'matrix -- -n -i; [ "$code" -eq 0 ] && [ ! -s "$log" ]'
   ist p9-i 'matrix AT_ROT=1-14 -- -i; [ "$code" -eq 0 ] && in_aus "ROT — 14 (Phase 1)" && [ "$(anzahl "^run -d")" -eq 4 ]'
 
-  # Punkt 12: beide Ziele hängen an GATE_CHECKS.
+  # Punkt 12: test-postgres-versionen hängt an GATE_CHECKS, die Gegenprobe steht in der Liste für den Container.
   ist p12-gate-checks-ziel '[[ " $(make_variable "$w" GATE_CHECKS | tr "\n" " ") " == *" test-postgres-versionen "* ]]'
-  ist p12-gate-checks-gegenprobe '[[ " $(make_variable "$w" GATE_CHECKS | tr "\n" " ") " == *" test-postgres-versionen-gegenprobe "* ]]'
+  ist p12-liste-gegenprobe '[[ " $(make_variable "$w" GEGENPROBEN_CONTAINER | tr "\n" " ") " == *" test-postgres-versionen-gegenprobe "* ]]'
 }
 
 # mutiere <datei> <alt> <neu> — ersetzt das erste Vorkommen (wörtlich) in der Kopie; mit `%<marke>`
@@ -441,15 +441,15 @@ mut() {
 
 D_=tools/test/run-postgres-versionen.sh R_=tools/test/run-integration-tests.sh A_=tools/test/integration-aufraeumen.sh F_=harness/mk/postgres-versionen.mk
 
-# --- Die unveränderte Kopie besteht jeden Fall; das Gate hängt im Arbeitsbaum an GATE_CHECKS ---
+# --- Die unveränderte Kopie besteht jeden Fall; im Arbeitsbaum hängt das Gate an GATE_CHECKS, die Gegenprobe steht in der Liste ---
 nur=""
 fixture
 ist="$(pruefe "$w" | sort -u | tr '\n' ' ')"
 if [ -n "$ist" ]; then melde "die unveränderte Kopie besteht nicht: $ist"; fi
 gates=" $(make_variable "$wurzel" GATE_CHECKS | tr '\n' ' ') "
-for g in test-postgres-versionen test-postgres-versionen-gegenprobe; do
-  if [[ "$gates" != *" $g "* ]]; then melde "$g hängt im Arbeitsbaum nicht an GATE_CHECKS"; fi
-done
+if [[ "$gates" != *" test-postgres-versionen "* ]]; then melde "test-postgres-versionen hängt im Arbeitsbaum nicht an GATE_CHECKS"; fi
+gp_liste=" $(make_variable "$wurzel" GEGENPROBEN_CONTAINER | tr '\n' ' ') "
+if [[ "$gp_liste" != *" test-postgres-versionen-gegenprobe "* ]]; then melde "test-postgres-versionen-gegenprobe steht im Arbeitsbaum nicht in GEGENPROBEN_CONTAINER"; fi
 
 # --- Punkt 1 und 2: Liste und Eingabe ---
 mut p1-liste "$F_" '14-alpine@sha256:4ea9' '14-alpine@sha256:4EA9' p1 p1-liste-gueltig
@@ -578,9 +578,9 @@ mut p9-make "$F_" '@POSTGRES_VERSIONEN=' '@$(MAKE) --version >/dev/null; POSTGRE
 mut p9-plus "$F_" $'\t@POSTGRES_VERSIONEN=' $'\t+@POSTGRES_VERSIONEN=' "p9-n p9-q p9-t p9-makeflags-n p9-i" p9-n p9-q p9-t p9-makeflags-n p9-n-und-i
 mut p9-stand "$F_" 'bash tools/test/run-postgres-versionen.sh' 'bash tools/test/run-postgres-versionen.sh && touch .harness/state/stand' p9-kein-stand p9-kein-stand
 
-# --- Punkt 12: Anschluss an GATE_CHECKS ---
-mut p12-ziel "$F_" 'GATE_CHECKS += test-postgres-versionen ' 'GATE_CHECKS += ' p12 p12-gate-checks-ziel
-mut p12-gegenprobe "$F_" 'GATE_CHECKS += test-postgres-versionen test-postgres-versionen-gegenprobe' 'GATE_CHECKS += test-postgres-versionen' p12 p12-gate-checks-gegenprobe
+# --- Punkt 12: Anschluss an GATE_CHECKS und an die Liste ---
+mut p12-ziel "$F_" $'GATE_CHECKS += test-postgres-versionen\n' $'GATE_CHECKS +=\n' p12 p12-gate-checks-ziel
+mut p12-gegenprobe "$F_" 'GEGENPROBEN_CONTAINER += test-postgres-versionen-gegenprobe' 'GEGENPROBEN_CONTAINER +=' p12 p12-liste-gegenprobe
 
 if [ "$fehler" -ne 0 ]; then
   exit 1

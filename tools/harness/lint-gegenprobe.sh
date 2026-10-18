@@ -80,7 +80,8 @@
 #       p9-laden (rot ohne `lint:`-Zeile); Ausgang 1 je Art einer Zeile allein:
 #       p9-lint-zeile-allein, p9-bruecke-allein, p9-form-allein, p9-fehlt-allein,
 #       p9-schema-allein, p9-ungenutzt-allein, p9-golangci-allein
-#   (10) Gate — p10-gate-checks (`lint` und `lint-gegenprobe` an GATE_CHECKS),
+#   (10) Gate — p10-gate-checks (`lint` an GATE_CHECKS), p10-gegenprobe-liste
+#       (`lint-gegenprobe` in GEGENPROBEN_CONTAINER),
 #       p10-gates-rot (`make gates` endet bei rotem `make lint` mit Fehlerstatus),
 #       p10-gegenprobe-scharf (`make lint-gegenprobe` endet bei rotem Skript mit
 #       Fehlerstatus)
@@ -1176,8 +1177,9 @@ rot p9-lint-zeile-allein gate
 [ "$(cat "$arbeit/gate.exit")" -ne 0 ] || melde "Fall 'p10-gates-rot': make gates endet bei rotem make lint mit Exit 0"
 datenbank="$(make -C "$arbeit/gate" -pq help 2>/dev/null || true)"
 for ziel in lint lint-gegenprobe; do
-  if ! printf '%s\n' "$datenbank" | awk -v z="$ziel" '/^GATE_CHECKS :?= / { for (i = 3; i <= NF; i++) if ($i == z) t = 1 } END { exit !t }'; then
-    melde "Fall 'p10-gate-checks': $ziel hängt nicht an GATE_CHECKS"
+  if [ "$ziel" = lint ]; then liste=GATE_CHECKS fall=p10-gate-checks; else liste=GEGENPROBEN_CONTAINER fall=p10-gegenprobe-liste; fi
+  if ! printf '%s\n' "$datenbank" | awk -v z="$ziel" -v l="$liste" '$1 == l && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) if ($i == z) t = 1 } END { exit !t }'; then
+    melde "Fall '$fall': $ziel steht nicht in $liste"
   fi
 done
 printf 'exit 1\n' > "$arbeit/gate/tools/harness/lint-gegenprobe.sh"

@@ -565,9 +565,9 @@ pruefe() {
     ist p11-gegenprobe-rezept '[ "$(cat "$aus")" = "bash tools/harness/container-gegenprobe.sh" ] && [ ! -e "$w/marke-gegenprobe" ]'
   fi
 
-  # Punkt 12: beide Ziele hängen an GATE_CHECKS.
+  # Punkt 12: test-container hängt an GATE_CHECKS, die Gegenprobe steht in der Liste für den Container.
   ist p12-gate-checks-ziel '[[ " $(make_variable "$w" GATE_CHECKS | tr "\n" " ") " == *" test-container "* ]]'
-  ist p12-gate-checks-gegenprobe '[[ " $(make_variable "$w" GATE_CHECKS | tr "\n" " ") " == *" test-container-gegenprobe "* ]]'
+  ist p12-liste-gegenprobe '[[ " $(make_variable "$w" GEGENPROBEN_CONTAINER | tr "\n" " ") " == *" test-container-gegenprobe "* ]]'
 }
 q="'"
 
@@ -602,15 +602,15 @@ mut() {
 
 L_=tools/harness/container-eingabe.sh B_=tools/harness/binaries.sh G_=tools/harness/run-container.sh F_=harness/mk/container.mk
 
-# --- Die unveränderte Kopie besteht jeden Fall; beide Ziele hängen im Arbeitsbaum an GATE_CHECKS ---
+# --- Die unveränderte Kopie besteht jeden Fall; im Arbeitsbaum hängt test-container an GATE_CHECKS, die Gegenprobe steht in der Liste ---
 nur=""
 fixture
 ist="$(pruefe "$w" | sort -u | tr '\n' ' ')"
 if [ -n "$ist" ]; then melde "die unveränderte Kopie besteht nicht: $ist"; fi
 gates=" $(make_variable "$wurzel" GATE_CHECKS | tr '\n' ' ') "
-for g in test-container test-container-gegenprobe; do
-  if [[ "$gates" != *" $g "* ]]; then melde "$g hängt im Arbeitsbaum nicht an GATE_CHECKS"; fi
-done
+if [[ "$gates" != *" test-container "* ]]; then melde "test-container hängt im Arbeitsbaum nicht an GATE_CHECKS"; fi
+gp_liste=" $(make_variable "$wurzel" GEGENPROBEN_CONTAINER | tr '\n' ' ') "
+if [[ "$gp_liste" != *" test-container-gegenprobe "* ]]; then melde "test-container-gegenprobe steht im Arbeitsbaum nicht in GEGENPROBEN_CONTAINER"; fi
 
 #MUTATIONEN
 # --- Punkt 1: Plattformen ---
@@ -779,9 +779,9 @@ mut p11-i-gate "$F_" $'\t@POSTGRES_IMAGE=\'$(POSTGRES_IMAGE)\' DOCKER=\'$(DOCKER
 mut p11-make-gegenprobe "$F_" $'\t@bash tools/harness/container-gegenprobe.sh' $'\t@$(MAKE) --version >/dev/null; bash tools/harness/container-gegenprobe.sh' p11-gegenprobe p11-gegenprobe-rezept
 mut p11-plus-gegenprobe "$F_" $'\t@bash tools/harness/container-gegenprobe.sh' $'\t+@bash tools/harness/container-gegenprobe.sh' p11-gegenprobe p11-gegenprobe-rezept
 
-# --- Punkt 12: Anschluss an GATE_CHECKS ---
-mut p12-ziel "$F_" 'GATE_CHECKS += test-container ' 'GATE_CHECKS += ' p12 p12-gate-checks-ziel
-mut p12-gegenprobe "$F_" 'GATE_CHECKS += test-container test-container-gegenprobe' 'GATE_CHECKS += test-container' p12 p12-gate-checks-gegenprobe
+# --- Punkt 12: Anschluss an GATE_CHECKS und an die Liste ---
+mut p12-ziel "$F_" $'GATE_CHECKS += test-container\n' $'GATE_CHECKS +=\n' p12 p12-gate-checks-ziel
+mut p12-gegenprobe "$F_" 'GEGENPROBEN_CONTAINER += test-container-gegenprobe' 'GEGENPROBEN_CONTAINER +=' p12 p12-liste-gegenprobe
 
 if [ "$fehler" -ne 0 ]; then
   exit 1

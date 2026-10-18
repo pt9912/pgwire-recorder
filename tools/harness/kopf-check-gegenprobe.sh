@@ -297,7 +297,7 @@ set +e; (cd "$w" && bash "$skript") 2>"$arbeit/err"; code=$?; set -e
 
 # --- Nr. 9: Start ohne Stufung -----------------------------------------------
 # In einem Temp-Baum mit dem Makefile und dem Fragment des Arbeitsbaums: Beide
-# Ziele stehen in GATE_CHECKS, und beide Ziele enden über make mit Exit ungleich 0,
+# Ziele stehen in ihrer Liste (kopf-check in GATE_CHECKS, kopf-check-gegenprobe in GEGENPROBEN_CONTAINER), und beide Ziele enden über make mit Exit ungleich 0,
 # wenn ihr Skript rot ist — kopf-check gegen einen Plan mit Befund, die Gegenprobe
 # gegen ein Ersatzskript, das mit Exit 1 endet.
 neu
@@ -310,8 +310,9 @@ plan "$w/$P1" "—" "—" "SPEC-004" "-"
 # make -q endet ungleich 0, wenn das Ziel nicht aktuell ist; gelesen wird nur -p.
 datenbank="$(make -C "$w" -pq help 2>/dev/null || true)"
 for ziel in kopf-check kopf-check-gegenprobe; do
-  if ! printf '%s\n' "$datenbank" | awk -v z="$ziel" '/^GATE_CHECKS :?= / { for (i = 3; i <= NF; i++) if ($i == z) t = 1 } END { exit !t }'; then
-    melde "Fall 'nr9-gate-checks': $ziel hängt nicht an GATE_CHECKS"
+  if [ "$ziel" = kopf-check ]; then liste=GATE_CHECKS fall=nr9-gate-checks; else liste=GEGENPROBEN_CONTAINER fall=nr9-liste; fi
+  if ! printf '%s\n' "$datenbank" | awk -v z="$ziel" -v l="$liste" '$1 == l && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) if ($i == z) t = 1 } END { exit !t }'; then
+    melde "Fall '$fall': $ziel steht nicht in $liste"
   fi
   if make -s -C "$w" "$ziel" >/dev/null 2>&1; then
     melde "Fall 'nr9-scharf': make $ziel endet bei rotem Skript mit Exit 0"

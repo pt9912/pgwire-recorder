@@ -270,8 +270,8 @@ for flag in n q t i; do
 done
 
 # --- Nr. 11: Anschluss ohne Stufung --------------------------------------------
-# Makefile und Fragmente des Arbeitsbaums in einem Temp-Baum: Beide Ziele stehen in GATE_CHECKS, die
-# Prüfung in der schnellen Kette, die Gegenprobe in der Ausnahmeliste; beide enden über make bei
+# Makefile und Fragmente des Arbeitsbaums in einem Temp-Baum: Die Prüfung steht in GATE_CHECKS und in der
+# schnellen Kette, die Gegenprobe in GEGENPROBEN_CONTAINER; beide enden über make bei
 # rotem Skript mit Exit ungleich 0, und make -n, -q, -t, -i hinterlassen nichts.
 anschluss() {
   bau "$BC$1"
@@ -285,12 +285,11 @@ anschluss ""; gruen_baum="$w"
 anschluss " PGR-E2003"
 datenbank="$(make -C "$w" -pq help 2>/dev/null || true)"
 for ziel in meldungskatalog-check meldungskatalog-check-gegenprobe; do
-  printf '%s\n' "$datenbank" | awk -v z="$ziel" '/^GATE_CHECKS :?= / { for (i = 3; i <= NF; i++) if ($i == z) t = 1 } END { exit !t }' \
-    || melde "Fall 'nr11-gate-checks': $ziel hängt nicht an GATE_CHECKS"
+  if [ "$ziel" = meldungskatalog-check ]; then liste=GATE_CHECKS fall=nr11-gate-checks; else liste=GEGENPROBEN_CONTAINER fall=nr11-liste; fi
+  printf '%s\n' "$datenbank" | awk -v z="$ziel" -v l="$liste" '$1 == l && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) if ($i == z) t = 1 } END { exit !t }' \
+    || melde "Fall '$fall': $ziel steht nicht in $liste"
   if make -s -C "$w" "$ziel" >/dev/null 2>&1; then melde "Fall 'nr11-scharf': make $ziel endet bei rotem Skript mit Exit 0"; fi
 done
-printf '%s\n' "$datenbank" | awk '/^GATE_SCHNELL_AUSNAHME :?= / { for (i = 3; i <= NF; i++) if ($i == "meldungskatalog-check-gegenprobe") t = 1 } END { exit !t }' \
-  || melde "Fall 'nr11-ausnahme-gegenprobe': meldungskatalog-check-gegenprobe fehlt in GATE_SCHNELL_AUSNAHME"
 ! printf '%s\n' "$datenbank" | awk '/^GATE_SCHNELL_AUSNAHME :?= / { for (i = 3; i <= NF; i++) if ($i == "meldungskatalog-check") t = 1 } END { exit !t }' \
   || melde "Fall 'nr11-schnelle-kette': meldungskatalog-check steht in GATE_SCHNELL_AUSNAHME"
 make -s -C "$gruen_baum" meldungskatalog-check >/dev/null 2>&1 || melde "Fall 'nr11-ziel-gruen': make meldungskatalog-check endet im grünen Baum ungleich 0"

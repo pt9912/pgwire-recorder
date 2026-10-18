@@ -48,7 +48,7 @@
 #       p8-test-rot (jeder bleibt bei erfüllter Schwelle rot)
 #   (9) Aufrufarten — p9-ohne-flag, p9-flag-n, p9-flag-q, p9-flag-t, p9-makeflags-n,
 #       p9-makeflags-q, p9-makeflags-t (kein Aufruf von docker)
-#   (11) Ausnahmeliste — p11-gate-checks, p11-ausnahmeliste
+#   (11) Liste der Gegenproben — p11-gegenprobe-liste
 #
 # OFFEN — Zusagen ohne Fall:
 #   - Punkt 4 (d), (Paket ohne Anweisung steht nicht in der Ausgabe) und der Hinweis auf
@@ -427,14 +427,13 @@ miniatur fehlt
 sed -i '/^\*\*Schwelle:\*\* `/d' "$m/$SPEC"
 make_attrappe "$m" -- test; log_hat p1-zeile-fehlt 'COVERAGE_SCHWELLE='
 
-# (11) Ausnahmeliste und Anschluss an GATE_CHECKS: Wörter der Make-Variablen aus der Datenbank von make.
+# (11) Anschluss an die Liste für den Container: Wörter der Make-Variablen aus der Datenbank von make.
 miniatur liste
 variable() {
   env -u MAKEFLAGS -u MFLAGS -u MAKELEVEL make -s --no-print-directory -C "$m" -pq help 2>/dev/null \
     | awk -v n="$1" '$1 == n && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) print $i }' || true
 }
-fall; variable GATE_CHECKS | grep -x coverage-gegenprobe > /dev/null || melde "Fall 'p11-gate-checks': coverage-gegenprobe steht nicht in GATE_CHECKS"
-fall; variable GATE_SCHNELL_AUSNAHME | grep -x coverage-gegenprobe > /dev/null || melde "Fall 'p11-ausnahmeliste': coverage-gegenprobe steht nicht in GATE_SCHNELL_AUSNAHME"
+fall; variable GEGENPROBEN_CONTAINER | grep -x coverage-gegenprobe > /dev/null || melde "Fall 'p11-gegenprobe-liste': coverage-gegenprobe steht nicht in GEGENPROBEN_CONTAINER"
 
 # --- Fälle mit Docker: die Stufe test in Kopien -------------------------------
 dockerwrap="$arbeit/docker"

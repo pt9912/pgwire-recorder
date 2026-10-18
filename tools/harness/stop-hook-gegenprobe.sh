@@ -1176,17 +1176,17 @@ fixture m-spiegel-ohne-absolut
 sedmut $HOOK 's/^    \[ "\$LAGE" = innen \] || continue$/    [ "$LAGE" = innen ] \&\& [ "$ABS" -eq 0 ] || continue/'
 rot p15-spiegel-absolut "p15-spiegel-liste p15-spiegel-verzeichnis p15-spiegel-vorfahr p15-spiegel-wurzel"
 
-# --- Anschluss: das Gate hängt an GATE_CHECKS, sein Exit gilt -------------------------
+# --- Anschluss: die Gegenprobe steht in GEGENPROBEN_CONTAINER, ihr Exit gilt ----------
 gate_variable() {
   { make -s --no-print-directory -C "$1" -pq help 2> /dev/null || true; } \
     | awk -v n="$2" '$1 == n && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) print $i }'
 }
 anschluss() {
   local g ok=0
-  for g in $(gate_variable "$1" GATE_CHECKS); do
+  for g in $(gate_variable "$1" GEGENPROBEN_CONTAINER); do
     if [ "$g" = stop-hook-gegenprobe ]; then ok=1; fi
   done
-  [ "$ok" -eq 1 ] || echo anschluss-gate-checks
+  [ "$ok" -eq 1 ] || echo anschluss-liste
 }
 anschluss_exit() {
   local code=0
@@ -1201,12 +1201,12 @@ fixture_anschluss() {
   cp "$wurzel/Makefile" "$w/Makefile"
   cp "$wurzel/harness/mk/enforce.mk" "$wurzel/harness/mk/stop-hook-gegenprobe.mk" "$w/harness/mk/"
 }
-[ -z "$(anschluss "$wurzel")" ] || melde "Arbeitsbaum: stop-hook-gegenprobe steht nicht in GATE_CHECKS"
+[ -z "$(anschluss "$wurzel")" ] || melde "Arbeitsbaum: stop-hook-gegenprobe steht nicht in GEGENPROBEN_CONTAINER"
 fixture_anschluss anschluss-ok
 [ -z "$(anschluss "$w")$(anschluss_exit "$w")" ] || melde "Kopie 'anschluss-ok' ist nicht grün"
 fixture_anschluss m-ohne-anschluss
-sedmut harness/mk/stop-hook-gegenprobe.mk '/^GATE_CHECKS += stop-hook-gegenprobe$/d'
-[ -n "$(anschluss "$w")" ] || melde "Mutant 'm-ohne-anschluss' färbt 'anschluss-gate-checks' nicht rot"
+sedmut harness/mk/stop-hook-gegenprobe.mk '/^GEGENPROBEN_CONTAINER += stop-hook-gegenprobe$/d'
+[ -n "$(anschluss "$w")" ] || melde "Mutant 'm-ohne-anschluss' färbt 'anschluss-liste' nicht rot"
 fixture_anschluss m-exit-ignoriert
 sedmut harness/mk/stop-hook-gegenprobe.mk 's|^\t@bash tools/harness/stop-hook-gegenprobe.sh|\t-@bash tools/harness/stop-hook-gegenprobe.sh|'
 [ -n "$(anschluss_exit "$w")" ] || melde "Mutant 'm-exit-ignoriert' färbt 'anschluss-exit' nicht rot"
@@ -1214,4 +1214,4 @@ sedmut harness/mk/stop-hook-gegenprobe.mk 's|^\t@bash tools/harness/stop-hook-ge
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "stop-hook-gegenprobe: gruen — ${#FAELLE[@]} Fälle der Punkte 1, 9 bis 22 je Mutant rot, unveränderte Kopie grün, Anschluss an GATE_CHECKS"
+echo "stop-hook-gegenprobe: gruen — ${#FAELLE[@]} Fälle der Punkte 1, 9 bis 22 je Mutant rot, unveränderte Kopie grün, Anschluss an GEGENPROBEN_CONTAINER"

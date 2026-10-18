@@ -7,7 +7,8 @@
 # mit --check prüft es nur; ohne Wurzel das aktuelle Verzeichnis)
 #
 # Grenze: Das Skript liest Deklarationen, es führt weder Tests noch Gegenproben aus. Es
-# prüft nicht, ob eine Gegenprobe an GATE_CHECKS hängt (das bleibt Review), nicht, ob die
+# prüft nicht, in welcher Liste eine Gegenprobe steht (`make gates-schnell-gegenprobe` hält nur,
+# dass es genau eine ist, SPEC-060 Punkt 3), nicht, ob die
 # Gesamtzahl n einer geteilten Messung stimmt (nur, dass sie je Anforderung einheitlich
 # ist), und nicht, ob ein Teil zur richtigen Messmethode gehört.
 #

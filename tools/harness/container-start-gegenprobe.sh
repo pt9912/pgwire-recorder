@@ -547,7 +547,7 @@ mut p15-voraussetzung-ohne-u-boot p 'for t in make node ssh-keygen u-boot; do' '
 # Punkt 16
 mut p16-gate-checks g '.PHONY: container-start-gegenprobe' $'GATE_CHECKS += container-start-gegenprobe\n.PHONY: container-start-gegenprobe' 'p16-.*' p16-GATE_CHECKS
 mut p16-scharf g $'\t@bash tools/harness/container-start-gegenprobe.sh' $'\t-@bash tools/harness/container-start-gegenprobe.sh' 'p16-.*' p16-scharf
-mut p16-ausnahme k 'GATE_SCHNELL_AUSNAHME := abdeckung-gegenprobe ' 'GATE_SCHNELL_AUSNAHME := container-start-gegenprobe abdeckung-gegenprobe ' 'p16-.*' p16-GATE_SCHNELL_AUSNAHME
+mut p16-ausnahme k 'GATE_SCHNELL_AUSNAHME := test-container ' 'GATE_SCHNELL_AUSNAHME := container-start-gegenprobe test-container ' 'p16-.*' p16-GATE_SCHNELL_AUSNAHME
 mut p16-ziel-gate m '.PHONY: container-start' $'GATE_CHECKS += container-start\n.PHONY: container-start' 'p16-.*' p16-ziel-kein-gate
 baue "$arbeit/orig"
 sk=$arbeit/orig/tools/harness/container-start.sh root=$arbeit/orig gpk=$GP_SELF SEL=${GP_NUR:-'.*'}
