@@ -9,9 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein
-Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
-nächsten Welle-Closure. Angelegt am 2026-10-15 bei der Closure von
+**Welle:** welle-gegenproben-und-mutanten (Entscheidung des Nutzers vom 2026-10-18; bis dahin ohne Welle). Angelegt am 2026-10-15 bei der Closure von
 `slice-harness-randform-stelle-und-lesart` (Register-Ausgang *geplant*: das dritte Auftreten
 erreicht die Schwelle); die Stelle in der Reihenfolge war entschieden (Nutzer, 2026-10-15) und ist seit dem 2026-10-16 hinter dem Release (Entscheidung des Nutzers; §4 *Start*).
 
