@@ -1,6 +1,6 @@
 # Verifikation: slice-harness-gegenproben-aus-gates-sammelziele
 
-Verifier, 2026-10-18. Stand: Zweig `rev-sz`, Implementer-Stand `16477376`, Basis `09d35ed8`. Plan: [slice-harness-gegenproben-aus-gates-sammelziele](../plan/planning/in-progress/slice-harness-gegenproben-aus-gates-sammelziele.md) (§2 DoD, §7 Belege). Vertrag: [SPEC-060](../../harness/vertraege/SPEC-060-gegenproben.md) Teil 2. Entscheidung: [ADR-0048](../plan/adr/0048-gegenproben-verlassen-die-gate-kette.md). Gefahren am Host, nur die engsten Sensoren; die Läufe des Implementers (`make gates`, `make gegenproben` im Container, `make gegenproben-host`) wurden nicht wiederholt.
+Verifier, 2026-10-18. Stand: Zweig `rev-sz`, Implementer-Stand `16477376`, Basis `09d35ed8`. Plan: [slice-harness-gegenproben-aus-gates-sammelziele](../plan/planning/done/slice-harness-gegenproben-aus-gates-sammelziele.md) (§2 DoD, §7 Belege). Vertrag: [SPEC-060](../../harness/vertraege/SPEC-060-gegenproben.md) Teil 2. Entscheidung: [ADR-0048](../plan/adr/0048-gegenproben-verlassen-die-gate-kette.md). Gefahren am Host, nur die engsten Sensoren; die Läufe des Implementers (`make gates`, `make gegenproben` im Container, `make gegenproben-host`) wurden nicht wiederholt.
 
 ## Ergebnis je Punkt
 
