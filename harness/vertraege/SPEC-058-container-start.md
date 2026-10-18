@@ -57,7 +57,19 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
    | `PGR_NAME` | `pgr-dev` | `[a-z0-9][a-z0-9_.-]*` |
    | `PGR_SSH_PORT` | `2222` | ganze Zahl 1 bis 65535, Dezimalziffern, keine führende Null, kein Vorzeichen |
    | `PGR_WARTEN` | `60` | ganze Zahl 1 bis 600, Form wie der Port (Sekunden, Punkt 11) |
-   | `PGR_CPUS`, `PGR_MEM` | `8`, `12g` | nicht geprüft: unverändert an `mk-override.sh` gereicht (Punkt 8); ein ungültiger Wert zeigt sich als Fehler von Docker in Schritt `start` (Punkt 17, Grenze) |
+   | `PGR_CPUS`, `PGR_MEM` | `8`, `8g` | nicht geprüft: unverändert an `mk-override.sh` gereicht (Punkt 8); ein ungültiger Wert zeigt sich als Fehler von Docker in Schritt `start` (Punkt 17, Grenze) |
+
+   **Grund der Vorgaben** (Entscheidung des Architect nach Empfehlung des Planners; der Nutzer legte am 2026-10-18 fest, dass die Limits niedriger
+   werden und das Ziel sie anpasst). Gemessen: `make gates` im Container mit Limit `12g` brauchte höchstens 5,42 GiB (zweiter Lauf 4,24 GiB,
+   `docker stats`, alle 10 s), `OOMKilled=false`; im Leerlauf 0,2 bis 0,5 GiB; Host 31 GiB Speicher und 20 CPUs. Ein Limit reserviert nichts: es
+   schützt den Host (etwa vor einer Rekursion) und macht die Überbuchung bei drei bis sechs Containern planbar. `8g` liegt rund 48 % über der
+   gemessenen Spitze; `12g` lag bei mehr als dem Doppelten und erlaubte bei drei Containern 36 GiB auf einem Host mit 31 GiB. `8` CPUs bleiben:
+   nur diese Zahl ist gemessen (Lauf von 1701 s), ein kleinerer Wert verlängerte den Lauf um ein Maß, das niemand kennt, und das CPU-Limit ist
+   eine Quote, die ruhende Container nicht beansprucht. **Nicht gemessen:** ein Lauf von `make gates` bei `8g` mit Zeitmessung; mehrere
+   Container zugleich unter Last. Wer mehr Container zugleich unter Last fährt, senkt `PGR_CPUS` oder `PGR_MEM` für sie.
+   **Ändern ohne Neustart:** Ein laufender Container nimmt neue Werte mit `docker update --memory <x> --memory-swap <x> <Name>` an (beide Werte
+   gleich, sonst bleibt der Swap des alten Wertes); das ist Hinweis im Dokument `docs/developer/devcontainer.md`, nicht Teil des Ziels
+   (Punkt 9).
 
    Schritt `eingaben` endet bei einem Verstoß mit Exit-Code 2, ändert nichts und ruft kein Werkzeug auf. Er
    meldet **alle** Verstöße, je einer in einer Zeile, die die Variable nennt, in der Reihenfolge der Tabelle.
@@ -180,7 +192,12 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
    mit Exit 5 (`start`), ohne Rückbau. Seine Ausgabe erscheint unverändert; er läuft ohne die drei Variablen aus Punkt 8 in der Umgebung (Fall `p9-umgebung`: die Attrappe von `devcontainer` sieht keine; Mutation: `env -u` entfällt). Ein Container, den Docker beim Fehler im Zustand `created`
    hinterlässt, ist beim nächsten Aufruf „besteht, läuft nicht“. **Stopp und Neustart (E6, Empfehlung):** kein zweites Ziel; Stopp ist
    `docker stop <Name>`, Neustart der zweite Aufruf, ebenso nach `docker rm` (neuer Container, Volumes bleiben; was im
-   Dateisystem des Containers lag, ist weg). Das Ziel baut nach einer Änderung von `egress.allow` nicht um; der Nutzer ruft `u-boot generate devcontainer`
+   Dateisystem des Containers lag, ist weg). **Limits eines vorhandenen Containers** ändert das Ziel nie: kein Aufruf von `docker update`,
+   auch nicht bei laufendem Container und abweichenden `PGR_CPUS` oder `PGR_MEM` (Entscheidung des Architect, Empfehlung des Planners;
+   Grund: ein Ziel, das stillschweigend Limits eines laufenden Containers ändert, widerspräche „läuft: nichts tun“, und der Vergleich ist
+   nach Punkt 17 (3) nicht zugesagt; der Weg ohne Neustart steht in Punkt 2). Fall `p9-kein-update`: in keinem Fall der Gruppe Attrappen
+   enthält das Protokoll von `docker` einen Aufruf `update`, auch nicht bei laufendem Container mit `PGR_MEM`, das vom Container abweicht;
+   Mutation: das Ziel ruft bei laufendem Container `docker update` mit den Werten. Das Ziel baut nach einer Änderung von `egress.allow` nicht um; der Nutzer ruft `u-boot generate devcontainer`
    und entfernt den Container von Hand. Attrappen-Fälle `p9-*` (Protokoll der Aufrufe): Kollision, Name weicht ab, Port weicht ab, läuft
    (kein `up`), gestoppt (`up`), `created` (`up`), keiner (`up`), `up` ohne `"outcome":"success"` trotz Exit 0, `up` Exit 1; Mutationen:
    Prüfung entfällt oder `up` bei laufendem Container. Fälle gegen reales Docker (Gruppe Docker): Erststart mit dem Gerüst aus Punkt 7
@@ -270,7 +287,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
 17. **Grenzen.** (1) Nicht geprüft: Version von `devcontainer`, `node` und `ssh`; die Herkunft von Basis-Image, Features und APT-Repository;
     ein Build ohne warmen Cache des Hosts. (2) Inhalt von `u-boot.yaml` jenseits des Namens, Version von `u-boot`, die das Gerüst erzeugte, und Inhalt
     eines vorhandenen `mk-override.sh`: das Ziel startet das Gerüst, wie es ist. (3) `PGR_CPUS` und `PGR_MEM`: kein Wert wird geprüft, einer
-    eines vorhandenen Containers nicht verglichen; ein ungültiger Wert endet als Fehler von Docker in `start` (Exit 5, ein Container im Zustand
+    eines vorhandenen Containers nicht verglichen und nicht angepasst (Punkt 9); die Vorgaben sind nur gemessen, wie Punkt 2 sagt; ein ungültiger Wert endet als Fehler von Docker in `start` (Exit 5, ein Container im Zustand
     `created` bleibt). (4) Ob `dockerd` im Container bereit ist, und das, was im Container liegt. (5) Ein Port, der auf einer anderen Adresse
     als `127.0.0.1` oder ohne Listener belegt ist (Punkt 10). (6) Gleichzeitige Aufrufe mit demselben `PGR_DEV` (Grund: ein Nutzer, ein Terminal;
     eine Sperre brauchte ein Aufräumen nach `SIGKILL`). (7) Ein Hostschlüssel, der sich nach einem Neubau ändert, ist Sache des Nutzers
