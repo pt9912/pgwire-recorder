@@ -50,12 +50,12 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 
 | Slice | Titel | Bezug |
 |---|---|---|
-| slice-harness-devcontainer-einrichten-geruest | Make-Ziel `container-start` legt das Gerüst des Dev-Containers an und startet ihn (Teil I; Plan auf `main`, `in-progress/`) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (nur Host-Voraussetzungen); kein Anspruch des Produkts |
-| slice-harness-devcontainer-einrichten-start | `container-start` startet den Container, prüft Port und Bereitschaft und fängt den Abbruch ab (Teil II; geplant, **nachzuziehen**: liegt nur im Zweig `architekt-geruest`, noch nicht auf `main`) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (nur Host-Voraussetzungen); kein Anspruch des Produkts |
+| slice-harness-devcontainer-einrichten-geruest | Make-Ziel `container-start` legt das Gerüst des Dev-Containers an und startet ihn (Teil I) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (nur Host-Voraussetzungen); kein Anspruch des Produkts |
+| slice-harness-devcontainer-einrichten-start | `container-start` startet den Container, prüft Port und Bereitschaft und fängt den Abbruch ab (Teil II; `open/`) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (nur Host-Voraussetzungen); kein Anspruch des Produkts |
 | slice-harness-devcontainer-einrichten | Make-Ziel `container-einrichten` richtet Bare-Repo, Einlieferung, Klon und Zweig ein (`docs/developer/devcontainer.md`) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (neu: `ssh` am Host); kein Anspruch des Produkts |
 | slice-harness-devcontainer-einrichten-zugang | `container-einrichten` löst den Zugang von Claude Code auf und reicht ihn an den Container (zurzeit nicht gebraucht, Entscheidung des Nutzers vom 2026-10-18) | kein Anspruch des Produkts |
 
-**Nachzuziehen beim Merge.** `slice-harness-devcontainer-einrichten-start` liegt nur im Zweig `architekt-geruest` (Worktree `pgwire-recorder-arch`), nicht auf `main`; die Zeile steht hier, damit die Welle ihren Bestand kennt. Seine Datei trägt `Welle: welle-dev-container` erst, wenn der Zweig gemergt ist (Eintrag im Kopf beim Merge, `**Welle:** ohne Welle.` ersetzen). Bis dahin ist die Zeile hier eine Adresse ohne Datei auf `main`. Ebenso trägt die Fassung von `slice-harness-devcontainer-einrichten-geruest` auf dem Zweig des Implementers im Container die Zeile `Welle:` nicht, bis sie nachgezogen ist.
+`slice-harness-devcontainer-einrichten-start` trägt `Welle: welle-dev-container` (Entscheidung des Nutzers vom 2026-10-18), ebenso `slice-harness-devcontainer-einrichten-geruest`.
 
 ## 5. Abhängigkeiten
 
