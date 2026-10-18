@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice. Eingesammelt wird er
+**Welle:** welle-harness-regeln (Entscheidung des Nutzers vom 2026-10-18; bis dahin ohne Welle). Eingesammelt wird er
 von der nächsten Welle-Closure. Geschnitten aus `slice-harness-lh-links-pflicht` am
 2026-10-09 (Review F-556 zu `slice-harness-d-check-v0-85`); er steht in der Harness-Reihe
 unmittelbar vor jenem (§4 *Start*).

@@ -9,9 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein
-Abnahmeszenario und kein Meilenstein hängt an ihm. Eingesammelt wird er von der
-nächsten Welle-Closure. Angelegt am 2026-10-15 nach Hinweis des Nutzers vom selben Tag
+**Welle:** welle-harness-regeln (Entscheidung des Nutzers vom 2026-10-18; bis dahin ohne Welle). Angelegt am 2026-10-15 nach Hinweis des Nutzers vom selben Tag
 (ai-harness-init `v0.7.0` löst das Präfix-Problem von `slice-mv`); die Stelle in der
 Reihenfolge ist Empfehlung des Planners (§4 *Start*); seit dem 2026-10-16 hinter dem Release (Entscheidung des Nutzers).
 
