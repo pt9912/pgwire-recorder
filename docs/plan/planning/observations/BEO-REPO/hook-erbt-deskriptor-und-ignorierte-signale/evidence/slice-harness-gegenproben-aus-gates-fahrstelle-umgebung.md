@@ -1,0 +1,3 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates-fahrstelle-umgebung
+**Größe:** Deskriptor über 2 an der Leitung des Pushs; `SIGINT` und `SIGQUIT` ignoriert.
+**Fund:** Erste echte Fahrt des Hooks im Gegenproben-Container (2026-10-18, Arbeitsort `pgr-dev2`; Geber `slice-harness-gegenproben-aus-gates-fahrstelle`, `done/`): Der `ssh`-Push hing rund 70 s, weil der Lauf von `git receive-pack` einen weiteren Deskriptor erbte (`/proc/<pid>/fd`: `5 -> pipe`, getragen nur von Lauf, `make` und `gegenproben.sh`); `container-gegenprobe` wurde rot (`p9-binINT-signal …`), weil der Lauf mit `&` ohne Jobsteuerung `SIGINT` ignoriert. Die Gegenprobe des Gebers fand beides nicht (Attrappen, lokaler Push). Eingetragen vom Planner beim Anlegen des Slice, nicht bei dessen Closure.

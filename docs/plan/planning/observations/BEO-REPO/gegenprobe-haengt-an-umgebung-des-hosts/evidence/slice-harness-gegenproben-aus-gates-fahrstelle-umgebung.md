@@ -1,0 +1,3 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates-fahrstelle-umgebung
+**Größe:** Aufrufer des Hooks (`git receive-pack` über `ssh`): geerbte Deskriptoren und ignorierte Signale.
+**Fund:** Die erste echte Fahrt des Hooks im Gegenproben-Container (2026-10-18) zeigte zwei Fehler, die die Gegenprobe des Gebers `slice-harness-gegenproben-aus-gates-fahrstelle` mit Attrappen und lokalem Push nicht fand: `ssh`-Push hing rund 70 s (Deskriptor 5 an einer Pipe im Lauf), `container-gegenprobe` rot an `SIGINT` (Lauf mit `&` ohne Jobsteuerung). Ursache am Ort: `BEO-REPO/hook-erbt-deskriptor-und-ignorierte-signale/evidence/slice-harness-gegenproben-aus-gates-fahrstelle-umgebung.md`. Eingetragen vom Planner beim Anlegen des Slice.

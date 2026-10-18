@@ -1,0 +1,7 @@
+# Ein Hook, den `git` im Hintergrund startet, erbt Deskriptoren und Signalzustände seines Aufrufers, die eine Gegenprobe mit Attrappen nicht kennt
+
+**Sub-Area:** `*` (gesamtes Repo, Kürzel `REPO`)
+
+Ein Hook, der einen Lauf im Hintergrund startet (`setsid … &` in `tools/harness/gegenproben-nach-einlieferung.sh`), erbt von seinem Aufrufer (`git receive-pack`, über `ssh`) Deskriptoren über 2 (`/proc/<pid>/fd`: `5 -> pipe`) und, bei `&` in einer Shell ohne Jobsteuerung, `SIGINT` und `SIGQUIT` auf „ignoriert“. Ein geerbter Deskriptor an der Leitung des Pushs hält sie offen, `git` wartet auf ihr Ende, der Push hängt; ein ignoriertes Signal bleibt in der Kindkette und färbt Gegenproben, die es senden, rot. Die Gegenprobe des Hooks prüft nur Deskriptor 0 bis 2 und ruft ihn aus einem lokalen Push mit Attrappen, in dem beides fehlt.
+
+Abgrenzung zu `BEO-REPO/gegenprobe-haengt-an-umgebung-des-hosts`: Dort ist der Ort der Ausführung eine Einstellung des Hosts (Locale, Zeitzone, Benutzer, Last); hier ist der Aufrufer ein anderes Programm (`git receive-pack`) mit geerbtem Zustand eines Prozesses. Beide Klassen treffen dieselbe Lücke (die Gegenprobe läuft in einer ruhigeren Umgebung als der Betrieb); ein Vorgang kann in beiden zählen. Abgrenzung zu `BEO-REPO/negativtests-fehlen-bei-neuem-vertrag`: Dort fehlt ein Test zu einer Zusage; hier steht die Zusage (Punkt 5 von `SPEC-061`), und ihr Fall prüft eine zu enge Aufzählung der Deskriptoren.
