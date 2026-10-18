@@ -8,8 +8,9 @@ Stand glaubt ihr Ergebnis, geglaubt wird allein der Exit-Code, den der Aufrufer 
 fest, wann ein Ziel in welche Liste gehört, wie die Gegenprobe der Kette das hält, was die Sammelziele
 zusagen, woran sie scheitern und was die Pflicht zum Fahren ist. Der Grund der Aufteilung steht in
 [ADR-0048](../../docs/plan/adr/0048-gegenproben-verlassen-die-gate-kette.md); diese Kennung wiederholt
-ihn nicht. Die Namen der Listen und Sammelziele sind bis zur Annahme der ADR eine Empfehlung des
-Architect; ändert der Nutzer sie, ändert sich nur diese Kennung mit den Fragmenten.
+ihn nicht. Die Namen der Listen und Sammelziele und die Entscheidungen, dass `make gates-schnell`
+vorerst bleibt und weder ein Stand der Gegenproben noch ein Hook, der ihn liest, entsteht, sind
+Entscheidung des Nutzers vom 2026-10-18; ändert er sie, ändert sich nur diese Kennung mit den Fragmenten.
 
 Der Vertrag hat zwei Teile an einer Naht: **Teil 1** (Punkte 1 bis 3) legt Listen und Namensregel fest und
 wird von `make gates-schnell-gegenprobe` geprüft; **Teil 2** (Punkte 4 bis 12) legt die Sammelziele fest und
