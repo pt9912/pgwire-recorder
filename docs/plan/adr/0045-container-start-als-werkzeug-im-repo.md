@@ -1,10 +1,10 @@
 # ADR-0045: Start des Dev-Containers als Werkzeug im Repo mit Gegenprobe und eigenen Host-Voraussetzungen
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-18
 
-**Autor:** Architect; die Annahme ist Entscheidung des Nutzers und steht aus. Alles unter *Entscheidung* ist bis dahin eine Empfehlung.
+**Autor:** Architect; angenommen durch Entscheidung des Nutzers am 2026-10-18 (Option A mit allen Empfehlungen).
 
 **Bezug:** [`LH-QA-03`](../../../spec/lastenheft.md#lh-qa-03--portabilität), [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes), [ADR-0026](0026-build-und-test-im-multistage-dockerfile.md), [ADR-0038](0038-gate-kette-voll-und-schnell.md), [ADR-0040](0040-vertraege-der-harness-werkzeuge-im-ordner-harness.md)
 
@@ -20,9 +20,9 @@
 
 ## Entscheidung
 
-Empfehlung: **Option A.** Ein Make-Ziel `container-start` im Repo (Fragment unter `harness/mk/`, Skript unter `tools/harness/`), kein Gate, im Abschnitt *Werkzeuge* von `harness/README.md`. Seine Gegenprobe `container-start-gegenprobe` ist ein Gate in der Ausnahmeliste der schnellen Kette ([ADR-0038](0038-gate-kette-voll-und-schnell.md)) und fährt gegen Scratch-Container eines eigenen Namenspräfixes. Die Host-Voraussetzungen `u-boot` ab 0.10.0, `devcontainer`, `node`, `ssh` und `ssh-keygen` gelten nur für dieses Ziel und seine Gegenprobe; kein anderes Ziel und kein anderes Gate braucht sie. Stoppen ist `docker stop`, Neustart der zweite Aufruf; ein zweites Ziel gibt es nicht. Die Einzelregeln stehen in [`SPEC-058`](../../../harness/vertraege/SPEC-058-container-start.md).
+Wir wählen **Option A.** Ein Make-Ziel `container-start` im Repo (Fragment unter `harness/mk/`, Skript unter `tools/harness/`), kein Gate, im Abschnitt *Werkzeuge* von `harness/README.md`. Seine Gegenprobe `container-start-gegenprobe` ist ein Gate in der Ausnahmeliste der schnellen Kette ([ADR-0038](0038-gate-kette-voll-und-schnell.md)) und fährt gegen Scratch-Container eines eigenen Namenspräfixes. Die Host-Voraussetzungen `u-boot` ab 0.10.0, `devcontainer`, `node`, `ssh` und `ssh-keygen` gelten nur für dieses Ziel und seine Gegenprobe; kein anderes Ziel und kein anderes Gate braucht sie. Stoppen ist `docker stop`, Neustart der zweite Aufruf; ein zweites Ziel gibt es nicht. Die Einzelregeln stehen in [`SPEC-058`](../../../harness/vertraege/SPEC-058-container-start.md).
 
-Was davon der Nutzer schon entschieden hat: `ssh` als Voraussetzung am Host (2026-10-17). Was nach Empfehlung gilt, ohne dass der Nutzer es entschieden hätte: `u-boot`, `devcontainer`, `node`, `ssh-keygen`, der Ort im Repo, das Fehlen eines zweiten Ziels und die Probe der Bereitschaft mit Optionen, die den Hostschlüssel nur für die Probe außer Kraft setzen (`BEO-REPO/hostschluessel-nach-neubau-ohne-entscheidung`).
+Der Nutzer hat am 2026-10-18 die Empfehlung des Architect angenommen: der Ort im Repo, die Host-Voraussetzungen `u-boot` ab 0.10.0, `devcontainer`, `node`, `ssh-keygen` (`ssh` am Host hat er schon am 2026-10-17 entschieden), das Fehlen eines zweiten Ziels und die Probe der Bereitschaft mit Optionen, die den Hostschlüssel nur für die Probe außer Kraft setzen (`BEO-REPO/hostschluessel-nach-neubau-ohne-entscheidung`).
 
 ## Verglichene Alternativen
 
@@ -55,5 +55,6 @@ Wenn der Nutzer eine der Host-Voraussetzungen streicht, wenn `u-boot` den Start 
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-18 | Proposed (Empfehlung des Architect) | — |
+| 2026-10-18 | Accepted: Entscheidung des Nutzers, Option A mit allen Empfehlungen (Ort im Repo, Host-Voraussetzungen, Stopp und Neustart als zweiter Aufruf, Probe mit Optionen für den Hostschlüssel) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
