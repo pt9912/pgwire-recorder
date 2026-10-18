@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates-fahrstelle
+**Fund:** Review F-7 (MEDIUM) und die sechs Rückgaben des Implementers: leere Zeile, mehr als drei Felder, letzte Zeile ohne Umbruch, `pgrep` als Werkzeug, `make` durch ein Signal beendet, Gegenprobe nur als Benutzer ohne root — der Code hatte sie entschieden, bevor sie zurückgegeben wurden. Der Architect entschied alle sechs in `SPEC-061` (Commit `33d34bbc`: Punkt 4, Punkt 13, Kopf). Quelle: Review-Bericht F-7, §7 des Plans (Planner, Closure, 2026-10-18).

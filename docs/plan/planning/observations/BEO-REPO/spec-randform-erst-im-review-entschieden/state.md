@@ -41,3 +41,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-meldungskat
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-v1-abschluss-container` (F-7) — das Stage-Verzeichnis von `make binaries` war im Code entschieden und im Vertrag nicht genannt; der Architect trug es nach (Beleg `evidence/slice-v1-abschluss-container.md`).
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-devcontainer-einrichten-start` (F-5, F-10) — ein Metazeichen in einem zulässigen Namen (Punkt im Filter) und ein Symlink-Segment in `PGR_DEV` standen weder in §6 noch in der Spezifikation; das Review fand sie (Beleg `evidence/slice-harness-devcontainer-einrichten-start.md`).
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.12): `slice-harness-gegenproben-aus-gates-fahrstelle` (F-8, F-9, F-13; V-1) — `GNUMAKEFLAGS` in der Umgebung des Treibers, der Fehler von `mktemp -d`, der Benutzer ohne root und die Zeitzone standen weder in §6 noch in der Spezifikation; Review und Verifikation fanden sie, der Architect entschied sie in `SPEC-061` (Beleg `evidence/slice-harness-gegenproben-aus-gates-fahrstelle.md`). Zähler 41.

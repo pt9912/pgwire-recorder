@@ -1,0 +1,3 @@
+**Vorgang:** slice-harness-devcontainer-einrichten-geruest
+**Größe:** Werkzeuge des Hosts (das echte `u-boot doctor` im Pfad der Gegenprobe).
+**Fund:** Die Mutation `p7-doctor` von `container-start-gegenprobe` färbte am Host zusätzlich `p7-echt-u-boot`; das echte `u-boot doctor` endete im Pfad der Gegenprobe mit Exit 11. Behoben durch Verengung der Gruppe der Mutation. Beleg am Ort der Ursache: `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig/evidence/slice-harness-devcontainer-einrichten-geruest.md`. Nachgetragen vom Planner (Closure von `slice-harness-gegenproben-aus-gates-fahrstelle`, 2026-10-18).

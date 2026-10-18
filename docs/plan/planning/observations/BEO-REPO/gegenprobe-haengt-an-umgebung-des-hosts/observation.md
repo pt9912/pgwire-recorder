@@ -1,0 +1,9 @@
+# Eine Gegenprobe ist in der Umgebung grün, in der sie entstand, und in einer anderen rot oder grün aus dem falschen Grund
+
+**Sub-Area:** `*` (gesamtes Repo, Kürzel `REPO`)
+
+Eine Gegenprobe läuft nach der Namensregel im Dev-Container (Locale C, Zeitzone UTC, Benutzer `vscode`, ruhiger Host) und, wo sie `u-boot` oder `devcontainer` braucht, am Host. Review und Verifikation fahren sie gezielt am Host (Locale `de_DE.UTF-8`, Zeitzone CEST, Last von fremden Prozessen). Hängt ein Fall an einer dieser Größen (Sprache einer Ausgabe, Zeitzone eines Zeitstempels, Benutzer root oder nicht, Last, Werkzeuge des Hosts), ist die Gegenprobe in der Umgebung des Schreibers grün und am Host rot (oder unter Last grün, wo sie rot sein müsste). Die Umgebung ist eine Randform der Gegenprobe selbst, die §3.12 nicht nennt: Sie betrifft nicht den Vertrag des geprüften Werkzeugs, sondern den Ort, an dem die Prüfung läuft.
+
+Die vier Vorgänge treffen fünf verschiedene Größen: Sprache von `make` (`slice-harness-gegenproben-aus-gates`), Werkzeuge des Hosts (`slice-harness-devcontainer-einrichten-geruest`), Last (`slice-harness-devcontainer-einrichten-start`), Zeitzone, Benutzer root und Last (`slice-harness-gegenproben-aus-gates-fahrstelle`). Jede ist in ihrem Slice behoben; die Klasse ist es nicht.
+
+Abgrenzung zu `BEO-REPO/make-ausgabe-locale-abhaengig-gelesen`, `BEO-REPO/lastabhaengige-zaehlung` und `BEO-REPO/gegenprobe-mutation-faerbt-zusaetzlichen-fall-zeitabhaengig`: Diese drei führen je eine Ursache (Sprache von `make` gelesen, Aufrufe im Zeitfenster gezählt, eine Mutation färbt einen fremden Fall); hier steht die Klasse, die sie verbindet. Ein Vorgang zählt hier einmal, auch wenn er mehrere Größen traf. Abgrenzung zu `BEO-REPO/verhalten-nur-unter-linux-geprueft`: Dort fehlt eine Plattform; hier hängt dasselbe Verhalten an der Einstellung derselben Plattform.

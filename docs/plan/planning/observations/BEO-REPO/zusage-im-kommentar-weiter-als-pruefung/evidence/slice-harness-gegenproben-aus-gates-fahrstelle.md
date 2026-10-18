@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates-fahrstelle
+**Fund:** Review F-12 (LOW), F-4 der Verifikation (LOW): Der Kopf der Gegenprobe sagte "der Arbeitsbaum bleibt unberührt" ohne Fall und Messung, die Schlusszeile meldete "74 Fällen und 113 Mutationen", auch wenn `GP_MUT` nur die unveränderte Kopie gefahren hatte, und die Zeile in `harness/README.md` nannte nicht alle Werkzeuge der Gegenprobe. Behoben (enger gefasst, die Zeile nennt `pgrep`, `timeout` und den Benutzer ohne root). Quelle: Review-Bericht F-12, Verifikations-Bericht (Planner, Closure, 2026-10-18).

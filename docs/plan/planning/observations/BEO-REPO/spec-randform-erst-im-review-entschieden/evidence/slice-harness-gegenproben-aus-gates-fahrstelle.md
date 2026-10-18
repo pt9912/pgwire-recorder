@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates-fahrstelle
+**Fund:** Review F-8 und F-9 (LOW), F-13 (INFO) und Verifikation V-1: `GNUMAKEFLAGS` fehlte in der Liste von Punkt 11 (`SPEC-061`) und blieb gesetzt, ein Fehler von `mktemp -d` beendete den ganzen Lauf, die Gegenprobe verlangte einen Benutzer ohne root, ohne dass der Vertrag es nannte, und die Gegenprobe hing an der Zeitzone des Hosts. Der Architect entschied alle nach dem Code in `SPEC-061` (Commits `33d34bbc`, `794bf990`). Quelle: Review-Bericht, Verifikations-Bericht (Planner, Closure, 2026-10-18).
