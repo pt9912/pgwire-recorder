@@ -1,10 +1,10 @@
 # ADR-0048: Die Gegenproben verlassen die Gate-Kette, zwei Sammelziele fahren sie, eine Pflicht und ein eigener Container tragen den Beleg
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-18
 
-**Autor:** Architect; Empfehlung. Die Richtung hat der Nutzer im Dialog vom 2026-10-18 entschieden (Wortlaut unter *Entscheidung*); Annahme dieser Fassung, Namen und die offenen Fragen darunter sind seine Entscheidung und stehen bis dahin als Empfehlung.
+**Autor:** Architect; angenommen durch Entscheidung des Nutzers am 2026-10-18 (Richtung im Dialog, danach „Annehmen“ zu dieser Fassung; `make gates-schnell` bleibt vorerst, der Wortlaut der Pflicht in `AGENTS.md` §6 ist bestätigt).
 
 **Bezug:** [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes), [ADR-0038](0038-gate-kette-voll-und-schnell.md), [ADR-0047](0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md), [ADR-0033](0033-gate-nachweise-in-der-abdeckung.md)
 
@@ -30,7 +30,7 @@ Vom Nutzer entschieden, im Dialog vom 2026-10-18 (Wortlaut vom Koordinator über
 2. Die Pflicht zum Fahren: bei einer Änderung am geprüften Werkzeug oder Gate, an der Gegenprobe oder ihrem Vertrag die betroffene Gegenprobe; am Ende jeder Welle und vor dem Release beide Sammelziele (Entscheidung des Nutzers vom 2026-10-18, so vom Koordinator übermittelt; der Wortlaut liegt dem Architect nicht vor).
 3. Der automatische Lauf liegt nur in einem eigenen Gegenproben-Container, der auf dem eingelieferten Stand eines Zweigs fährt, während am Host und im Arbeitscontainer weitergearbeitet wird.
 
-**Empfehlung des Architect, vom Nutzer nicht entschieden:**
+**Entscheidung des Nutzers vom 2026-10-18 (Empfehlung des Architect angenommen):**
 
 - Die Namen `gegenproben` (Dev-Container) und `gegenproben-host`, die Variablen der Listen und die Namensregel stehen in [`SPEC-060`](../../../harness/vertraege/SPEC-060-gegenproben.md).
 - Kein Stand der Gegenproben und kein Hook, der ihn liest. Der Stop-Hook glaubt weiter allein den Nachweis von `make gates`, und der schließt die Gegenproben nicht ein.
@@ -78,5 +78,6 @@ Wenn eine Regression eines geprüften Werkzeugs unbemerkt blieb, die eine nicht 
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-18 | Proposed (Empfehlung des Architect nach der Richtung des Nutzers im Dialog) | — |
+| 2026-10-18 | Accepted: Entscheidung des Nutzers, Option C mit Pflicht und eigenem Container; `make gates-schnell` bleibt vorerst | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
