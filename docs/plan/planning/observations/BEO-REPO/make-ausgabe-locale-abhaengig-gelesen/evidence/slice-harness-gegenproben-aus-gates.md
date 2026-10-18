@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates
+**Fund:** Review F-1 und Verifikation V-1: `make gates-schnell-gegenprobe` am Host mit `LANG=de_DE.UTF-8` rot (13 Fälle der Regel, `p2-v6-container` und `p2-v6-host` für jeden Eintrag), mit `LC_ALL=C` grün; im Dev-Container grün. Behoben in der Nacharbeit (`LC_ALL=C` im Aufruf von `make`, Fall `p2-locale`, Nachverifikation am Host mit `LANG=de_DE.UTF-8` grün, 59 s). Quelle: Review- und Verifikations-Report, §7 des Plans (Planner, Closure, 2026-10-18).

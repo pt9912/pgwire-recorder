@@ -1,0 +1,7 @@
+# Ohne die Gegenprobe in der Kette bleibt eine Regression eines Gates unbemerkt, bis jemand sie fährt
+
+**Sub-Area:** `*` (gesamtes Repo, Kürzel `REPO`)
+
+Seit `slice-harness-gegenproben-aus-gates` fährt `make gates` keine Gegenprobe mehr (Entscheidung des Nutzers vom 2026-10-18, [ADR-0048](../../../../adr/0048-gegenproben-verlassen-die-gate-kette.md)); der Stop-Hook gibt auf den Nachweis von `make gates` frei. Ändert jemand ein Gate, eine Gegenprobe oder einen Vertrag und fährt die betroffene Gegenprobe nicht, sagt kein Gate etwas darüber, und die Regression bleibt unbemerkt. Was dagegen steht, ist eine Pflicht (`AGENTS.md` §6 Schritt 6: die betroffene Gegenprobe fahren) und, ab `slice-harness-gegenproben-aus-gates-sammelziele`, die Fahrt am Ende jeder Welle und vor dem Release. Es fehlt ein Sensor für den Auslöser „geprüftes Werkzeug geändert“: Eine Zuordnung Werkzeug zu Gegenprobe wäre die Eingabeliste, die der verworfene Zuschnitt „nur bei geänderten Eingaben“ brauchte, und eine unvollständige Liste ist ein stilles Grün ([ADR-0038](../../../../adr/0038-gate-kette-voll-und-schnell.md) Befund 2). Die Beobachtung ist eine Lücke mit Wächter in der Pflicht, kein Grund für eine Lockerung zurück (`AGENTS.md` §3.6).
+
+Abgrenzung zu `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`: Dort wächst die Laufzeit der Kette mit jeder Gegenprobe; hier ist die Kette schnell, und die Gegenprobe prüft niemanden mehr bei jedem Lauf.

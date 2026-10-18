@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates
+**Fund:** Review F-5 und F-6: der Kopf von `gates-schnell-gegenprobe.sh` sagte „elf Fälle“, das Skript führt dreizehn der Regel; die Zeile von `container-start-gegenprobe` im Gate-Index führte einen eingefügten Halbsatz („sie steht in `GEGENPROBEN_HOST`“) mitten in einer Aufzählung, und dass sie dort steht und allein steht, prüft kein Fall. Behoben in der Nacharbeit. Quelle: Review-Report (Planner, Closure, 2026-10-18).

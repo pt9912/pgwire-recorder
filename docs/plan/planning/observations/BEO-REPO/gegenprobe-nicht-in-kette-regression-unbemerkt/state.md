@@ -1,0 +1,3 @@
+**Stand:** offen
+
+Erstes Auftreten (Risiko 1, 2 und 6 aus §6): `slice-harness-gegenproben-aus-gates` (Beleg `evidence/slice-harness-gegenproben-aus-gates.md`); unter der Schwelle, `offen`. Ausgang *weiter offen* aus der Closure jenes Slice. Gegenmittel: die Pflicht in `AGENTS.md` §6 Schritt 6 (erste Hälfte), die Fahrten aus `slice-harness-gegenproben-aus-gates-sammelziele` und `slice-harness-gegenproben-aus-gates-fahrstelle` (Rollen-Anweisungen). Tritt eine unbemerkte Regression auf, ist das ein weiteres Auftreten und die Frage, ob ein Stand der Gegenproben (Frage 4 im Plan jenes Slice) oder der Zuschnitt „nur bei geänderten Eingaben“ entsteht; entscheidet der Nutzer.

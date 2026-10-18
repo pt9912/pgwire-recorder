@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates
+**Fund:** Befund der eigenen Arbeit des Implementers (§7 des Plans, *Befund der eigenen Arbeit, als Klasse behoben*): Die Variable `liste` im Kopf von `postgres-versionen-gegenprobe.sh` und `container-gegenprobe.sh` kollidierte mit der Variable des Skripts, 15 Mutationen färbten unbeteiligte Fälle; Merkmal: eine neue Variable im Hauptteil eines Skripts, deren Name das Skript schon führt. Umbenannt in `gp_liste` (Planner, Closure, 2026-10-18).

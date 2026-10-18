@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-gegenproben-aus-gates
+**Fund:** Geschätzt 260 bis 500 Zeilen (Architect, Metrik von `AGENTS.md` §3.14, ohne Vertrag), gemessen 540 ohne Vertrag (401 + 139) und 818 wörtlich mit dem Vertrag des Architect (278 Zeilen); Obergrenze um 40 überschritten, Marke 900 nicht erreicht. Die Nacharbeit zu Review und Verifikation trug rund 100 Zeilen (Fälle für Sprache, Liste aus Variable, Arbeitsbaum, schnelle Kette, Mutation je Name). Quelle: §4 *Gemessen* und §7 des Plans (Planner, Closure, 2026-10-18).
