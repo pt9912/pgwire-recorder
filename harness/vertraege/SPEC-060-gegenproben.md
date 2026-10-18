@@ -59,7 +59,13 @@ Plattform ihr eigener Vertrag nennt.
    Eintrag ist der Name eines Make-Ziels, ohne Leerraum und ohne führendes `-`. Die Reihenfolge einer Liste
    ist die, in der `make` sie ausgibt. Die Sammelziele selbst stehen in keiner Liste. Die Liste für den
    Dev-Container nimmt jede Gegenprobe, die weder `u-boot` noch `devcontainer` aufruft; die Liste für den Host
-   nimmt jede, die eines von beiden aufruft (Punkt 3).
+   nimmt jede, die eines von beiden aufruft (Punkt 3). **Keine Initialisierung** (Entscheidung des Architect): Beide Listen
+   werden nirgends mit `:=` gesetzt, weil das Makefile generiert ist und ein Fragment, das setzt, je nach Reihenfolge der
+   Fragmente Einträge verwirft. `+=` auf eine ungesetzte Variable ergibt eine rekursive Variable; zugesagt ist deshalb nur der
+   **ausgewertete** Wert, den `make` im Rezept und in einer Regel mit `$(…)` liefert, nicht der Text in `make -p`. Wer die Liste liest
+   (die Sammelziele, die Regel von Punkt 2), liest ihn ausgewertet; ein Fragment darf einen Eintrag aus einer Variable bilden. Fall
+   `p1-liste-aus-variable`: ein Eintrag, der aus einer Variable gebildet wird, ist in der Liste und läuft im Sammelziel; Mutation: die
+   Regel oder das Sammelziel liest den unausgewerteten Text (`make -p`).
 2. **Namensregel und Eindeutigkeit.** Als Gegenprobe im Sinn dieser Kennung gilt jedes Ziel mit Rezept in einem
    Fragment unter `harness/mk/`, dessen Name auf `-gegenprobe` endet (Element N1), und `a-check-negativ`
    (Element N2). Jedes solche Ziel steht in genau einer der beiden Listen, in dieser genau einmal, und in
@@ -67,12 +73,15 @@ Plattform ihr eigener Vertrag nennt.
    mit Rezept. Eine Verletzung macht `make gates-schnell-gegenprobe` rot, im Arbeitsbaum selbst wie in
    der Kopie. Der Name `gegenproben-gegenprobe` (die Gegenprobe der Sammelziele) steht in der Liste für den
    Dev-Container. Fälle, je einer für N1 und N2: (V1) das Ziel steht in `GATE_CHECKS`; (V2) es steht in beiden Listen;
-   (V3) es steht in keiner Liste; (V4) es steht zweimal in derselben Liste; dazu je Liste ein Fall (V6) mit einem Eintrag
+   (V3) es steht in keiner Liste; (V4) es steht zweimal in derselben Liste (Fälle `p2-v4-n1` und `p2-v4-n2` in der Liste für den Container, `p2-v4-host` in der für den Host); dazu je Liste ein Fall (V6) mit einem Eintrag
    ohne Ziel; dazu ein Fall `p2-andere-namen`: `gegenproben`, `gegenproben-host`, ein Ziel `x-negativ`, ein Ziel
    `x-gegenprobe-alt` und ein Ziel `gegenprobe` stehen in `GATE_CHECKS` und in keiner Liste ohne Befund (die Regel
    erkennt nur den Namen; akzeptiertes Negativ, Grund: eine Regel am Namen ist so weit wie der Name). Mutationen: je
    Fall die Prüfung, die ihn fängt, gestrichen; für `p2-andere-namen` eine Prüfung, die den Teilstring `gegenprobe`
-   statt des Endes `-gegenprobe` sucht. Die grüne Kopie hat beide Listen mit Einträgen. Die Ausnahmeliste der
+   statt des Endes `-gegenprobe` sucht. Fall `p2-rezept-ausserhalb-fragment`: ein Ziel mit Namen auf `-gegenprobe`, dessen Rezept im
+   `Makefile` und nicht in einem Fragment unter `harness/mk/` steht, ohne Befund (die Regel gilt dem Fragment; akzeptiertes Negativ,
+   Grund: das `Makefile` ist generiert und trägt kein Ziel mit Rezept außer den Hilfsmitteln); Mutation: die Regel sucht auch außerhalb
+   des Verzeichnisses (`p2-rezept-ohne-herkunft`). Die grüne Kopie hat beide Listen mit Einträgen. Die Ausnahmeliste der
    schnellen Kette nennt kein Ziel dieser Kennung: ein Eintrag, der nicht in `GATE_CHECKS` steht, macht
    [`SPEC-052`](SPEC-052-gate-kette.md) Punkt 4 rot, ein Eintrag, der dort steht, Punkt 2 dieser Kennung (V1); eine eigene Prüfung gibt es dafür nicht.
 3. **Zuordnung ist Entscheidung des Schreibers.** Wer eine Gegenprobe anlegt, wählt die Liste mit einer Zeile im
@@ -167,7 +176,7 @@ Plattform ihr eigener Vertrag nennt.
     Gegenproben, und `make gates` grün sagt nichts über sie (akzeptiertes Negativ; Grund: ein Stand der Gegenproben brächte die Laufzeit zurück,
     die die Entscheidung streicht; die Folge einer nicht gefahrenen Gegenprobe ist ein unbemerkter Bruch des geprüften Werkzeugs bis zur
     nächsten Fahrt, `BEO-REPO/gegenprobe-nicht-in-kette-regression-unbemerkt`).
-15. **Grenzen.** (1) Ein Zeitlimit des ganzen Laufs gibt es nicht; `SIGKILL` und der Ausfall des Docker-Dienstes sind nicht zugesagt. (2) Ein
+15. **Grenzen.** (0) Der Kommentar in Zeile 2 des generierten `Makefile` („jedes Fragment haengt seine Checks an `GATE_CHECKS`“) gilt für die Gate-Fragmente; die Fragmente, die eine Gegenprobe definieren, hängen sie an eine der beiden Listen. Die Abweichung bleibt stehen (Grund: ein Lauf von `ai-harness-init` schreibt die Datei neu, und eine Änderung hier ginge verloren); kein Fall. (1) Ein Zeitlimit des ganzen Laufs gibt es nicht; `SIGKILL` und der Ausfall des Docker-Dienstes sind nicht zugesagt. (2) Ein
     Signal nur an `make` (nicht an das Skript und nicht an die Prozessgruppe) ist Verhalten von `make` und nicht zugesagt; ein Fall auf den
     Zeitpunkt nach dem Ende von `make` wäre zeitabhängig. (3) Die Warnung von `make` zum Jobserver unter `-j` ist weder zugesagt noch
     ausgeschlossen (Punkt 7). (4) Ob eine Gegenprobe das prüft, was ihr Gate zusagt, ist Gegenstand des Vertrags ihres Gates, nicht dieser
