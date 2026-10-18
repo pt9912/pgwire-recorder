@@ -11,9 +11,9 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Welle:** ohne Welle. Die Closure-Bedingung ist die DoD dieses Slice; kein Abnahmeszenario und kein Meilenstein hängt an ihm. Angelegt am 2026-10-18 nach dem Fund des Nutzers vom selben Tag (ein voller Lauf von `make gates` brach in `a-check-negativ` mit `tar: ./.harness/state/spans: Datei hat sich beim Lesen geändert` ab, weil die Hooks laufender Agenten dort schreiben; der Vorschlag, die Kopie nach `git ls-files` aufzubauen, ist ein Vorschlag des Nutzers, die Randformen in §6 sind Empfehlungen des Planners). Der Slice liegt in `open/`: Er ist nicht priorisiert, und Vertrag und ADR des Architect liegen nicht vor (§4 *Start*).
 
-**Bezug:** [LH-QA-07](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) nur insoweit, als zwei der drei Gegenproben dessen Messung 1 und 3 tragen (Abdeckungs-Deklaration im Kopf der Gegenproben); kein Anspruch des Produkts, der Slice ändert Werkzeuge des Harness. Bindung an das Register: `BEO-REPO/gate-kopie-bricht-bei-laufenden-agenten` (neu, 1×, Beleg `evidence/slice-harness-gegenprobe-baumkopie.md`). Keine aktive ADR; ob eine entsteht, entscheidet der Architect (§4 *Start*).
+**Bezug:** [LH-QA-07](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) nur insoweit, als zwei der drei Gegenproben dessen Messung 1 und 3 tragen (Abdeckungs-Deklaration im Kopf der Gegenproben); kein Anspruch des Produkts, der Slice ändert Werkzeuge des Harness. Bindung an das Register: `BEO-REPO/gate-kopie-bricht-bei-laufenden-agenten` (neu, 1×, Beleg `evidence/slice-harness-devcontainer-einrichten-geruest.md`). Keine aktive ADR; ob eine entsteht, entscheidet der Architect (§4 *Start*).
 
-**Berührte Spec-Stellen:** neuer Vertrag des Helfers und seiner Gegenprobe in `harness/vertraege/` (Nummer vergibt der Architect; die nächste freie ist 058); Ortsangaben „Kopie des Arbeitsbaums“ in [`SPEC-052`](../../../../harness/vertraege/SPEC-052-gate-kette.md) (Punkt 13, Absatz zu `lint-gegenprobe`, `coverage-gegenprobe`, `a-check-negativ`) und [`SPEC-056`](../../../../harness/vertraege/SPEC-056-testabdeckung-schwelle.md) (Punkt 11); [`SPEC-049`](../../../../harness/vertraege/SPEC-049-lint-profil.md) (Gegenprobe des Lint-Gates in Kopien des Arbeitsbaums, Grenze des `touch`).
+**Berührte Spec-Stellen:** neuer Vertrag des Helfers und seiner Gegenprobe in `harness/vertraege/` (Nummer vergibt der Architect; nächste freie Nummer nach `SPEC-058`, also 059; `SPEC-058` ist durch `container-start` vergeben (Zweig architekt-geruest, noch nicht auf main); der Architect vergibt sie); Ortsangaben „Kopie des Arbeitsbaums“ in [`SPEC-052`](../../../../harness/vertraege/SPEC-052-gate-kette.md) (Punkt 13, Absatz zu `lint-gegenprobe`, `coverage-gegenprobe`, `a-check-negativ`) und [`SPEC-056`](../../../../harness/vertraege/SPEC-056-testabdeckung-schwelle.md) (Punkt 11); [`SPEC-049`](../../../../harness/vertraege/SPEC-049-lint-profil.md) (Gegenprobe des Lint-Gates in Kopien des Arbeitsbaums, Grenze des `touch`).
 
 **Verantwortlich:** —
 
@@ -149,7 +149,7 @@ dasteht.
 - **Was hat funktioniert:** —
 - **Was ging anders als geplant:** —
 - **Steering-Loop-Eintrag:** —
-- **Beobachtungs-Register (`../observations/`):** `BEO-REPO/gate-kopie-bricht-bei-laufenden-agenten/` neu angelegt am 2026-10-18 (Planner), Beleg `evidence/slice-harness-gegenprobe-baumkopie.md`, Zähler 1×
+- **Beobachtungs-Register (`../observations/`):** `BEO-REPO/gate-kopie-bricht-bei-laufenden-agenten/` neu angelegt am 2026-10-18 (Planner), Beleg `evidence/slice-harness-devcontainer-einrichten-geruest.md`, Zähler 1×
 - **Folge-Slices:** —
 - **Risiken aus §6:** —
 - **Drei Paarungen:** —

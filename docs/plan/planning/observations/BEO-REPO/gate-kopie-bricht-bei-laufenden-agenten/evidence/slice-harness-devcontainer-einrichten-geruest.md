@@ -1,2 +1,2 @@
-**Vorgang:** slice-harness-gegenprobe-baumkopie (Anlass der Planung; der Lauf, in dem der volle `make gates` brach, ist unbenannt, Rückfrage an den Aufrufer)
+**Vorgang:** slice-harness-devcontainer-einrichten-geruest
 **Fund (Nutzer, 2026-10-18):** Ein voller Lauf von `make gates` brach in `a-check-negativ` ab mit `tar: ./.harness/state/spans: Datei hat sich beim Lesen geändert`. Die Hooks anderer laufender Agenten schreiben dort Spans; der Lauf war sonst grün. Der Nutzer schlägt vor, die Kopie nach `git ls-files` aufzubauen (versionierte und nicht ignorierte, unversionierte Dateien), nicht per Klon von `origin` oder `git clone .` (nur der committete Stand, Netz).
