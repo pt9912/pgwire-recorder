@@ -170,7 +170,90 @@ Der Slice liefert die zweite Hälfte eines **neuen Vertrags**; §3.12 gilt. Die 
 
 ## 7. Closure-Notiz
 
-*(wird bei der Closure geschrieben)*
+*(Closure-Notiz wird bei der Closure geschrieben.)*
+
+### Belege des Implementers
+
+**Arbeitsort.** Klon im Dev-Container `pgr-dev3` (ssh-Port 2224), Zweig `slice-harness-devcontainer-einrichten-start`; Dateien über `stdin` des `ssh`-Befehls, `git push origin <Zweig>` im Bare-Repo, der Host holt mit `git fetch container3`. Läufe mit Docker und `devcontainer` am Host (Wegwerf-Worktree des Zweigs); der Container hat kein `u-boot` und kein `devcontainer`. Der Zweig ist auf `origin/main` (`5e51b0c8`, Kettenumbau, `SPEC-060`) rebasiert; `arch-limits` (PGR_MEM 8g, `p9-kein-update`) ist Teil des Zweigs, der Commit `02d715d3` (Punkt 15 (g)) kommt über `main`. Die Randformen aus der Rückgabe sind von `642037bd` (Punkt 9 (a) bis (e) und Punkt 13 von `SPEC-058`) entschieden und umgesetzt. Der Plan ist auf dem Stand von `main`; dieser Lauf ändert nur diesen Abschnitt (Review F-1, Verifikation V-1 und V-2: der frühere Commit hatte §4 bis §7 überschrieben).
+
+**Messung des Labels (Punkt 9, vor dem Code).** Scratch-Container `pgr-cs-mess` am Host (`PGR_DEV=/tmp/pgr-cs-bTyDX6/pgr-cs-mess`, Port 2931, Docker 29.9.1, `devcontainer` 0.80.2): `docker inspect` zeigt `devcontainer.local_folder` gleich `$PGR_DEV` wörtlich, `devcontainer.config_file` gleich `<PGR_DEV>/.devcontainer/devcontainer.json`; der Container nach `docker stop` trägt das Label weiter, `docker ps -a --filter label=devcontainer.local_folder=<Pfad>` findet ihn. Die Annahme von Punkt 9 trägt. Fund für die Umsetzung: `docker port` meldet für einen gestoppten Container nichts (`no public port '2222/tcp' published`); das Skript liest den Port aus `docker inspect` (`.HostConfig.PortBindings`). Der zweite `devcontainer up` bei gestopptem Container ergab dieselbe ID in 1,9 s. Nicht gemessen (F-10): ein `PGR_DEV` mit Symlink-Segment; das Dokument nennt es in §13.
+
+**Messung zum Dokument (Scratch `pgr-cs-man`, `PGR_CPUS=2`, `PGR_MEM=2g`, Image warm).** Erststart 48 s, zweiter Aufruf bei laufendem Container 1 s, `docker stop` und Aufruf 2 s, `docker rm -fv` und Aufruf 6 s. `docker update --memory 3g --memory-swap 3g`: `Memory` 3221225472; nach `docker stop` und Aufruf 3221225472 (der Aufruf ändert es nicht), mit `PGR_MEM=1g` im Aufruf ebenso; nach `docker rm -fv` und Aufruf 2147483648 (der neue Container nimmt `PGR_MEM`). Alle Objekte per Name entfernt.
+
+**Läufe auf dem Endstand** (`git diff` gegen `origin/main`, letzter Commit `Probe im Takt von SECONDS`).
+
+- Gegenprobe vollständig am Host (`GP_ENTDECKE=1`, alle Fälle, 264 Mutationen, Gruppe Docker eingeschlossen): grün, **19 min 38 s** (13:57:49 bis 14:17:27). Frühere vollständige Läufe auf früheren Ständen: 26 min 29 s, 19 min 36 s, 20 min 50 s (rot durch drei falsche Erwartungen und eine von der Last abhängige Zählung, behoben: die Probe läuft jetzt im Takt von `SECONDS`, 61 Aufrufe bei 60, unabhängig von der Last; `p11-vorgabe-warten` und `p11-zu-kurz` waren unter Last grün geblieben).
+- `make gates` im Container `pgr-dev3` mit der neuen Kette: Exit 0, **4 min 37 s** (14:17:42 bis 14:22:19 Ortszeit).
+- Vor jedem Docker-Lauf `pgrep -fa "^make gates"` in `pgr-dev2` leer. Prozesszahl des Hosts während des vollen Laufs 678 bis 759, keine Rekursion (`GP_KIND` schützt; die Fälle der Gruppe Docker und `p11-vorgabe-warten` laufen in Kind-Läufen nicht). Danach keine Container, Volumes und Images mit dem Präfix `pgr-cs-` am Host.
+- Funde der Läufe: (1) `coproc` verlor Ausgabe nach dem Ende des Kindes (Variablen von `coproc` verschwinden beim Reapen), ersetzt durch Prozess-Substitution mit `$!`; (2) `sonde` las die Datei des Vorlaufs (Signal an einen toten Prozess), die Datei wird vor jedem Aufruf geleert; (3) `p11-nie` und `p11-vorgabe-warten` zählten Aufrufe in einem Fenster, das bei Last den Mutanten einschloss (Vorgabe 61 lieferte 61 statt 62); behoben wie oben.
+- Gegenprobe ohne die Gruppe Docker (V-5): kein Schalter; der Kopf der Gegenprobe nennt den Weg über `GP_NUR` (Muster der Attrappen-Fälle) und `GP_MUT='^$'`; `docker` und `devcontainer` müssen auch dann im Pfad liegen.
+
+**Befund des Verifiers zum Aufräumen (V-3 der Gegenprobe).** `/tmp/pgr-cs-H2D7L6` des Verifiers verschwand mitten im Lauf: Ursache war ein `rm -rf /tmp/pgr-cs-H2D7L6` des Implementers (verwechselt mit einem Rest des eigenen Laufs), nicht die Gegenprobe (`sonden_raeumen` läuft über `PSDS`, die selbst angelegten Namen). Seitdem Fall `p15-fremdes-verzeichnis` (ende, `SIGINT`, `SIGTERM`) und `p15-fremde-docker-objekte` mit je einer Mutation für Verzeichnis, Container, Volume und Image, die per Präfix räumt (`SPEC-058` Punkt 15 (g)).
+
+**Behandlung von Review und Verifikation.** F-1, V-1, V-2: Plan auf `main`, hier nur §7. F-2: Messungen und Läufe oben. F-3: Fall `p15-docker-rest` mit Sonde, die den Zweig durchläuft, und je Mutation für Melden und Entfernen. F-4 und die Rückgaben 1 bis 6: entschieden von `SPEC-058` Punkt 9 (a) bis (e) und Punkt 13, umgesetzt in `zust_container` mit Fällen und Mutationen (Tabelle). F-5: Punkt im Namensfilter maskiert, Fall `p9-name-punkt-fremd` und Mutation. F-6: Dokument §12 trennt Beobachtung, Messung und Folgerung. F-7: Mutationen `p9-update-gestoppt` und `p9-update-keiner`. F-8: die Abschlusszeile der Gegenprobe nennt die Mutationen ohne roten Fall aus der Ausführung (`p2-vorgabe-warten`, `p15-int`, `p15-term`, `p15-schutz`, `p15-raeumen-name`). F-9: hingenommen (Hinweis). F-10: Dokument §13. F-11: Plan auf `main`. V-3: Dokument nennt die zwei akzeptierten Negative der Wiederholung und die Überschreitung der Wartezeit um eine Probe. V-4: Dokument §4 nennt beide Images. V-5: siehe oben.
+
+**Größe.** Metrik `AGENTS.md` §3.14. Die Basis `aad621a8` gilt seit dem Rebase auf `main` nicht mehr (`git diff --numstat aad621a8..HEAD -- tools harness docs/developer` zählt den Kettenumbau von `main` mit: 1236 und 311, Summe 1547); gemessen gegen den Elternteil des Zweigs auf `main` (`git diff --numstat origin/main..HEAD -- tools harness docs/developer`, `5e51b0c8`): 588 Einfügungen und 130 Löschungen, **Summe 718**; davon 49 Zeilen in `harness/vertraege/` (Änderungen des Architect aus `arch-limits` und den Randformen), ohne sie **669**. Über der Meldeschwelle 700 (wörtlich), unter der Marke 900. Vor dem Rebase und den Entscheidungen des Architect waren es 642 und 613.
+
+**Mutationsprotokoll (Zusage · Mutation · roter Fall).** Eine Zeile je Zusage oder Element; die Läufe unter `GP_ENTDECKE=1` nennen je Mutation die roten Fälle, und `mut` verlangt genau diese Menge.
+
+| Zusage | Mutation | rot |
+|---|---|---|
+| Kollision (Name ohne Label) Exit 4 | Prüfung entfällt; Skript ruft `docker rm -f` | `p9-kollision`, `p13-kollision-vor-port`, `p1-keine-zerstoerung-kollision`; `p1-keine-zerstoerung-kollision`, `p4-nichts-geaendert` |
+| Label mit anderem Namen Exit 4 | Prüfung entfällt | `p9-label-anderer-name` |
+| Port 2222 weicht ab, Adresse und Port je einzeln | Prüfung entfällt; nur Port verglichen; nur Adresse verglichen | `p9-adresse-weicht-ab`+`p9-port-weicht-ab`; `p9-adresse-weicht-ab`; `p9-port-weicht-ab` |
+| läuft: kein `up`, kein `override` | `up` bei laufendem; `override` bei laufendem | `p9-laeuft` |
+| exited und created je einzeln: `override` und `up` | alles läuft; created als läuft; exited als läuft; `override` entfällt | `p9-exited`+`p9-created`+`p10-belegt-gestoppt`; `p9-created`; `p9-exited`+`p10-belegt-gestoppt`; `p9-exited`+`p9-created` |
+| keiner: `up` | kein `up` ohne Container | `p9-keiner` |
+| kein `docker update` | Aufruf bei laufendem Container | `p9-kein-update` |
+| `up` Erfolg = Exit 0 und `"outcome":"success"`, je Bedingung | Zeile nicht geprüft; Exit nicht geprüft | `p9-up-ohne-outcome`; `p9-up-exit1` |
+| Ausgabe von `up` unverändert, je Strom | stdout verschluckt; stderr verschluckt | `p9-ausgabe-stdout`; `p9-ausgabe-stderr` |
+| Aufruf `devcontainer up --workspace-folder . --override-config .devcontainer/override.json` im Verzeichnis, je Element | Unterbefehl; Ordner; Option; Datei; Verzeichnis | `p9-up-aufruf` (je Element), dazu `p9-created`, `p9-exited`, `p9-keiner` beim Unterbefehl; `p9-up-verzeichnis` |
+| Umgebung der Kinder ohne die drei Variablen (`p9-umgebung`) | je Variable behalten | `p8-umgebung-<Variable>`+`p9-umgebung` |
+| stdout nur Werkzeugausgabe und `bereit` | `echo` in `start` | `p4-stdout-nur-bereit` |
+| Port belegt Exit 4: ohne Container, gestoppt | Prüfung entfällt; nur ohne Container; bei laufendem Container | `p10-belegt`+`p10-belegt-gestoppt`; `p10-belegt-gestoppt`; `p9-laeuft` |
+| Probe: `-i`, `IdentitiesOnly`, `BatchMode`, `ConnectTimeout`, `StrictHostKeyChecking`, `UserKnownHostsFile`, `LogLevel`, `-p`, Benutzer, Adresse, `true`, je Element | Option entfernt oder geändert | `p11-opt-<Element>`; `UserKnownHostsFile` zusätzlich `p11-known-hosts-unveraendert` |
+| `known_hosts` unverändert | Skript schreibt eine Zeile | `p11-known-hosts-unveraendert` |
+| Probe jede Sekunde, mindestens `PGR_WARTEN` Sekunden, letzte Ausgabe | kein `sleep`; Zeitgrenze minus 1; Ausgaben summiert | `p11-nie` |
+| Erfolg nach mehreren Versuchen, Exit der Probe zählt | `true` statt Exit | `p11-nach-drei`+`p11-nie` |
+| Meldung `bereit <Name> 127.0.0.1:<Port>` auf stdout, je Element | Name; Port; stderr | `p11-bereit-meldung` |
+| Vorgabe `PGR_WARTEN` 60 (`p11-vorgabe-warten`, aus V-3 des Gebers) | Vorgabe 61 | `p11-vorgabe-warten` (62 Aufrufe) |
+| Abbruch: Kind beendet, je Schritt (`u-boot`, `devcontainer`, `ssh`) | Kind bleibt (je Schritt) | `p12-sig<INT/TERM>-<Schritt>` |
+| `SIGINT` und `SIGTERM`, je Signal | Falle entfällt; Exit 1 statt 130/143 | `p12-sigINT-*` bzw. `p12-sigTERM-*` |
+| Meldung `<Schritt>: abgebrochen` | ohne Meldung | alle sechs `p12-sig*` |
+| kein Rückbau | `docker rm -f` im Handler; Verzeichnis verändert | alle sechs; `p12-sig*-start` |
+| Wiederholung setzt fort | `init` auch beim Fortsetzen | `p12-wiederholung`, `p7-fortsetzen-ohne-init` |
+| Reihenfolge Schlüssel vor Kollision, Kollision vor Port | vertauscht | `p13-schluessel-vor-kollision`; `p13-kollision-vor-port` |
+| `-i`: Fehler in `start` und `warten` ohne `bereit`; `-k`, `-j` mit `bereit` | (Fälle `p14-i-start`, `p14-i-warten`, `p14-k`, `p14-j`, je mit `MAKEFLAGS`) | `p14-*` rot unter `+`/`$(MAKE)` nur bei `-n`, `-q`, `-t` (unverändert zum Geber) |
+| Gruppe Docker: Volumes bleiben beim Neustart nach `docker rm -fv` | Namen der Volumes ändern sich je Aufruf | `p9-docker-rm-neustart` |
+| Gruppe Docker: stop und Aufruf, dieselbe ID | Container ersetzt statt gestartet | `p9-docker-stop-start`, `p9-exited`, `p9-created` |
+| Gruppe Docker: Port belegt Exit 4 | Prüfung entfällt (Exit 5) | `p10-docker-port-belegt` |
+| Gruppe Docker: Port-Prüfung nicht bei laufendem | Prüfung auch bei laufendem | `p9-docker-zweiter-aufruf`, `p9-laeuft` |
+| Gruppe Docker: Bereitschaft mit dem Schlüssel; Fehler mit anderem | falscher Schlüssel; Erfolg ohne Exit | `p11-docker-bereit`; `p11-docker-anderer-schluessel` |
+| Gruppe Docker: `PGR_CPUS=2`, `PGR_MEM=2g` | Vorgabe statt Variable | `p15-docker-grenzen`+`p8-cpus`/`p8-speicher` |
+| (a) bis (f), (g) Aufräumen der Gruppe Docker | `rm -f` statt `-fv`; Container, benanntes Volume, Image bleibt; EXIT-Falle entfällt | `p15-docker-ende`, `p15-docker-INT`, `p15-docker-TERM` |
+| (e) Name ohne Präfix, (b) Port | Schutz entfällt; `2222` erlaubt; fremder Container nicht beachtet | `p15-name-ohne-praefix`; `p15-port-2222`; `p15-port-fremd` |
+| (g) nur Selbstangelegtes: Verzeichnis, Container, Volume, Image | Aufräumen per Präfix (je Art) | `p15-fremdes-verzeichnis`; `p15-fremde-docker-objekte` |
+| (a) Voraussetzungen `docker`, `devcontainer`, `ssh` | Prüfung entfällt | `p15-voraussetzung-<Werkzeug>` |
+| Container: Kollision vor anderem Namen (Punkt 9 (a)) | Reihenfolge vertauscht | `p9-doppelt` |
+| Zustand (b): `paused`, `restarting`, `removing`, `dead`, je Zustand | der Zustand gilt als „läuft nicht“ (je Zustand); Zustände nicht mehr geprüft | `p9-zustand-<Zustand>`; alle vier |
+| kein veröffentlichter Port (c) | leere Bindung durchgelassen | `p9-kein-port` |
+| Container ohne Gerüst (d), leer und ohne `devcontainer.json` | Prüfung entfällt; nur Verzeichnis; nur Ordner `.devcontainer` | `p9-ohne-geruest-leer`+`-ohne-json`; beide; `-ohne-json` |
+| Fehler von `docker` (e), je Aufruf: `ps` (Label), `ps` (Name), `inspect` | Fehler als leere Ausgabe gelesen | `p9-docker-ps-label`; `p9-docker-ps-name`; `p9-docker-inspect` |
+| Namensfilter ohne Regex-Punkt (F-5) | Punkt nicht maskiert | `p9-name-punkt-fremd` (`p9-name-punkt-kollision` grün) |
+| Fehler eines Schrittes (5) vor Signal | Fehler als Signal gemeldet (130) | `p13-fehler-vor-signal`, `p9-up-exit1` |
+| kein `docker update` in `gestoppt` und `keiner` (F-7) | Aufruf im Zweig | `p9-kein-update` (SEL `p9-exited`, `p9-keiner`) |
+| Rest eines anonymen Volumes wird gemeldet und per Name entfernt (F-3, Punkt 15 (d)) | Meldung entfällt; Entfernen entfällt | `p15-docker-rest` (Sonde `docker-rest`: Container ohne `-v` entfernt, Exit 1 und Volume weg) |
+
+**Grüne Mutanten (äquivalent: Invariante, Ort, Sonde).** Die Ausgabe der Gegenprobe nennt sie: `p2-vorgabe-warten p15-int p15-term p15-schutz p15-raeumen-name`.
+
+- `p2-vorgabe-warten` (Vorgabe `PGR_WARTEN` 61 in der Zeile der Eingaben, SEL `p2-vorgaben`): Invariante: die Vorgabe ist nur über die Dauer der Probe beobachtbar, nicht über die Form des Wertes, die `p2-vorgaben` liest; Ort: die Zeile der Eingaben; Sonde: derselbe Mutant als `p11-vorgabe-warten` gefahren färbt `p11-vorgabe-warten` rot (62 statt 61 Aufrufe, Lauf `full6`), die Zeile des Gebers bleibt deshalb ohne roten Fall.
+- `p15-int`, `p15-term` (Falle für `SIGINT`/`SIGTERM` der Gegenprobe entfällt): Invariante: ein unbehandeltes Signal beendet bash mit 130 beziehungsweise 143 und führt die `EXIT`-Falle aus; Ort: `trap aufraeumen EXIT`; Sonde: `p15-aufraeumen-int/-term` und `p15-docker-INT/-TERM` laufen mit entfernter Falle grün.
+- `p15-schutz` (Präfixprüfung des Arbeitsverzeichnisses beim Löschen entfällt): Invariante: `arbeit` stammt aus `mktemp -t pgr-cs-XXXXXX`; Ort: diese Zeile; Sonde: `p15-praefix`.
+- `p15-raeumen-name` (Präfixprüfung der Container in `dk_raeumen` entfällt): Invariante: `nm` trägt das Präfix, sonst endete die Gegenprobe am Anfang; Ort: der Namensschutz (Mutation `p15-name` rot); Sonde: `p15-name-ohne-praefix`.
+
+**Rückgaben.** An den Architect: keine offen; die sechs Randformen der ersten Rückgabe sind von `SPEC-058` Punkt 9 (a) bis (e) und Punkt 13 entschieden und umgesetzt (Reihenfolge Kollision, anderer Name, Port, Zustand, Gerüst; Zustände; kein Port; Container ohne Gerüst; Fehler von `docker`; Signal und Fehler eines Schrittes als Ereignisse). An den Planner: (1) §3 nennt `pgr-dev2` und Port 2223 für die Arbeit; dieser Lauf war in `pgr-dev3` (2224). (2) Die Basis der Metrik `aad621a8` passt seit dem Rebase nicht mehr zum Zweig (siehe Größe).
+
+**Dokument.** Sätze mit Verhaltensaussage und ihre Probe: Exit-Codes und Meldungsform (`p2`–`p5`, `p9`–`p12`, `p13`), Ziel schreibt `known_hosts` nicht (`p1-home-unveraendert`, `p11-known-hosts-unveraendert`), Container-Kollision, anderer Name, anderer oder kein Port, Zustand, Container ohne Gerüst, Fehler von `docker`, belegter Port (`p9-*`, `p10-*`, Docker `p10-docker-port-belegt`), laufender Container bleibt stehen (`p9-laeuft`, `p9-docker-zweiter-aufruf`), Limits ändert das Ziel nie (`p9-kein-update` in den Zweigen läuft, gestoppt und keiner; Messung `docker update` oben), `PGR_CPUS=2`/`PGR_MEM=2g` (`p15-docker-grenzen`), Schlüsselpaar (`p6-*`), `mk-override.sh` angelegt, vorhanden bleibt (`p8-skript-modus`, `p8-vorhanden-bleibt`), Wiederholung (`p12-wiederholung`, `p9-docker-*`; die zwei Ausnahmen stehen im Dokument), zwei Images (Messung in `V-4`: Lauf des Verifiers, hier durch die Gegenprobe bestätigt, sie löscht beide). „Zwei Arten zu arbeiten“: (a) gelaufen in diesem Slice (Befehle, Dateien über `stdin`, `git push`, `git fetch`); (b) verweist auf §7 und §13 des Dokuments. §12 Absturz des Daemons: Beobachtung des Koordinators vom 2026-10-18 (Klon unverändert, `fetch` ging); alles Weitere als Folgerung gekennzeichnet.
 
 ## 8. Sub-Area-Prüfungen und Modus-Begründung
 
