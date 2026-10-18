@@ -70,6 +70,6 @@ Grün heißt auch bei `make meldungskatalog-check-gegenprobe`: jeder Fall, der l
 
 `make meldungskatalog-check` fährt in der schnellen Kette (`make gates-schnell`), weil die Positivliste
 von [`SPEC-052`](../vertraege/SPEC-052-gate-kette.md) Änderungen am Handbuch ohne vollen Lauf zulässt.
-An der Gate-Kette von `make gates` hängt neben ihm seine Gegenprobe `make meldungskatalog-check-gegenprobe`;
-sie steht in der Ausnahmeliste der schnellen Kette, prüft, ob das Werkzeug richtig ist, und ihr Vertrag
+Seine Gegenprobe `make meldungskatalog-check-gegenprobe` hängt nicht an der Gate-Kette von `make gates`;
+sie steht in `GEGENPROBEN_CONTAINER`, prüft, ob das Werkzeug richtig ist, und ihr Vertrag
 steht in ihrer Zeile in [`../README.md` §Sensors](../README.md#sensors-feedback-gates).

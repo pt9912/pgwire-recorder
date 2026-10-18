@@ -89,6 +89,6 @@ golangci-lint nicht.
 [`SPEC-049`](../vertraege/SPEC-049-lint-profil.md#spec-049--lint-profil-lint) · Image
 `golangci/golangci-lint` per Digest im `Dockerfile` (Stufe `lint`)
 
-An der Gate-Kette von `make gates` hängt neben `make lint` auch seine Gegenprobe
-`make lint-gegenprobe`; sie prüft, ob das Werkzeug richtig ist, und ihr Vertrag steht
+`make lint` hängt an der Gate-Kette von `make gates`, seine Gegenprobe
+`make lint-gegenprobe` nicht: Sie steht in `GEGENPROBEN_CONTAINER`, prüft, ob das Werkzeug richtig ist, und ihr Vertrag steht
 in ihrer Zeile in [`../README.md` §Sensors](../README.md#sensors-feedback-gates).

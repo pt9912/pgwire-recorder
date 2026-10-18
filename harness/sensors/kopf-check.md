@@ -64,6 +64,6 @@ nachzutragen oder die Nennung in §1 oder §2 zu berichtigen (`AGENTS.md` §3.9)
 [ADR-0032](../../docs/plan/adr/0032-kopf-sensor-fuer-slice-plaene.md) · Vertrag
 [`SPEC-047`](../vertraege/SPEC-047-kopf-der-plaene.md#spec-047--kopf-der-pläne-kopf-check)
 
-An der Gate-Kette von `make gates` hängt neben `make kopf-check` auch seine
-Gegenprobe `make kopf-check-gegenprobe`; sie prüft, ob das Werkzeug richtig ist,
+`make kopf-check` hängt an der Gate-Kette von `make gates`, seine
+Gegenprobe `make kopf-check-gegenprobe` nicht: Sie steht in `GEGENPROBEN_CONTAINER`, prüft, ob das Werkzeug richtig ist,
 und ihr Vertrag steht in ihrer Zeile in [`../README.md` §Sensors](../README.md#sensors-feedback-gates).
