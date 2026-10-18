@@ -57,7 +57,10 @@ haupt() {
     args+=("$n" "$zweig" "$neu")
   done
   if [ "${#args[@]}" -gt 0 ]; then
-    setsid "$BASH" "$self" --lauf "$bare" "$ablage" "${args[@]}" < /dev/null > /dev/null 2>&1 &
+    # `setsid -f` statt `&`: ein mit `&` gestarteter Prozess einer Shell ohne Jobsteuerung ignoriert SIGINT und SIGQUIT, und alle Kinder erben es.
+    # Das Kind schließt vor dem Lauf jeden Deskriptor über 2, den git an den Hook reicht (sonst hält der Lauf die Leitung des Pushs offen).
+    setsid -f "$BASH" -c 'for f in /proc/self/fd/*; do n="${f##*/}"; [ "$n" -gt 2 ] 2> /dev/null && eval "exec $n>&-"; done; exec "$BASH" "$@"' \
+      _ "$self" --lauf "$bare" "$ablage" "${args[@]}" < /dev/null > /dev/null 2>&1
   fi
   return 0
 }

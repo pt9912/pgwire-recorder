@@ -5,10 +5,11 @@
 # Aufruf, Umgebung und Arbeitsbaum). Die unveränderte Kopie muss jeden Fall bestehen; je Mutation (Textersatz in der Kopie) müssen genau die benannten Fälle rot
 # werden. Der Name jedes Falls trägt die Nummer des Punktes. Docker wird nicht gerufen. Hook-Aufrufe starten mit TZ=UTC, außer in den Zeitzonen-Fällen.
 # Zum Arbeiten: GP_MUT=<Muster> fährt nur die Mutationen, deren Name passt (die unveränderte Kopie nur, wenn das Muster `ok` trifft); GP_ENTDECKE=1 nennt je
-# Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Mutationen. Braucht bash ≥ 5, git, flock, setsid, pgrep, timeout.
+# Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Mutationen. Braucht bash ≥ 5, sh, git, flock, setsid, pgrep, timeout und env mit --default-signal (coreutils ≥ 8.31).
 # Die Fälle p13-ablage-weg und p13-mktemp verlangen einen Benutzer ohne root (chmod sperrt root nicht aus); als root endet die Gegenprobe mit Exit 2.
 # Wartezeiten: Aussagen über etwas, das nicht geschehen darf, warten bis zum Ende der Läufe der Gruppe (bis_fertig) statt fest; Fristen bis zu 15 s in Schritten von 0,1 s (WA);
 # der Fall p9-sigterm-wartet-waise zählt die Prozesse der Sitzung des Hintergrundlaufs (pgrep -s), nicht die des Hosts.
+# Die Fälle p11-sigint-*, p11-sigquit-* prüfen vorab, dass der Aufruf des Hooks (env -i, timeout) SIGINT und SIGQUIT nicht ignoriert; SigIgn von make und Kindern lesen sh-Prozesse (rec, kind), weil eine bash SIGQUIT selbst ignoriert.
 # GRENZE: Die Attrappe ersetzt `make gegenproben`; ob die echten Gegenproben grün sind, sagt die erste Fahrt im Container. SIGKILL, ein Neustart und die
 # Gleichzeitigkeit zweier Aufrufe mit gleichem Namen (Punkte 14, 16) haben keinen Fall.
 set -uo pipefail
@@ -24,18 +25,21 @@ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 PFAD="$PATH"
 FAELLE=(p1-kopie p1-echter-push p2-fehlt p2-leer p2-relativ p2-zwei-zeilen p2-kein-verzeichnis p3-tag p3-notes p3-headsx p3-mehrere
   p4-null40 p4-null64 p4-ergebnis-bleibt p4-hash-kurz p4-hash-gross p4-hash-41 p4-hash-64 p4-feld-fehlt p4-stdin-leer p4-leerzeile p4-leerzeichen-zeile p4-vier-felder p4-ohne-umbruch p4-zeile-kaputt-dann-gut
-  p5-vor-ende p5-gestartet-zeile p5-stdout-leer p5-fd-0 p5-fd-1 p5-fd-2 p5-leitung-stdout p5-leitung-stderr p5-gruppe p6-nacheinander p6-kein-abbruch
+  p5-vor-ende p5-gestartet-zeile p5-stdout-leer p5-fd-0 p5-fd-1 p5-fd-2 p5-leitung-stdout p5-leitung-stderr p5-gruppe p5-eof-fd5 p5-eof-fd7 p5-eof-fd12 p5-fd-lauf p5-fd-make p5-fd-kind
+  p6-nacheinander p6-kein-abbruch
   p7-neu p7-altes-weg p7-force p7-anderer-zweig p8-schraeg p8-prozent p8-nichtascii p8-sonderzeichen p8-unveraendert p8-eindeutig p8-lang p8-grenze p8-lang-mehrbyte p8-locale
   p9-gruen p9-rot p9-marke p9-nicht-vorher p9-log p9-zeitzone-ost p9-zeitzone-west p9-beginn-nach-sperre p9-sigterm-lauf p9-sigterm-enkel p9-sigterm-wartet p9-sigterm-wartet-waise
-  p10-argv p11-makeflags p11-mflags p11-gnumakeflags p11-makelevel p11-makeoverrides p11-git-dir p11-git-quarantaene p11-git-weitere
+  p10-argv p11-sigint-lauf p11-sigint-make p11-sigquit-make p11-sigint-kind p11-sigquit-kind p11-makeflags p11-mflags p11-gnumakeflags p11-makelevel p11-makeoverrides p11-git-dir p11-git-quarantaene p11-git-weitere
   p12-stand p12-entfernt-gruen p12-entfernt-rot p12-bare-unveraendert p12-rest
   p13-werkzeug-git p13-werkzeug-flock p13-werkzeug-setsid p13-werkzeug-make p13-werkzeug-pgrep p13-werkzeug-erstes p13-ablage-weg p13-sperre p13-sperre-vor-arbeitsbaum p13-hash-fehlt
   p13-make-127 p13-make-signal p13-ref-vor-form p13-form-vor-laenge p13-mktemp p13-marke-vor-werkzeug p13-werkzeug-vor-ablage p13-ablage-vor-zeile)
 Z0=0000000000000000000000000000000000000000
 Z64="$(printf '0%.0s' {1..64})"
 
-# Die Attrappe von make: legt je Aufruf ein Verzeichnis aufruf.<n> in steuer/ an (argv, env, cwd, Arbeitsbaum) und liest ihre Steuerung aus steuer/.
-cat > "$arbeit/attrappe" <<'EOT'
+# Die Attrappe von make: legt je Aufruf ein Verzeichnis aufruf.<n> in steuer/ an (argv, env, cwd, Arbeitsbaum, SigIgn und Deskriptoren von Lauf, make und Kindern) und liest ihre Steuerung aus steuer/.
+# Sie besteht aus einem sh-Vorspann (make), dem bash-Teil (make.bash) und den Hilfen rec und kind: eine bash selbst ignoriert SIGQUIT (gemessen), SigIgn von make und Kindern
+# wird deshalb in sh-Prozessen gelesen, die den Zustand erben, den der Aufrufer ihnen gibt.
+cat > "$arbeit/attrappe.bash" <<'EOT'
 #!/usr/bin/env bash
 st="$(cd "$(dirname "$0")/../steuer" && pwd)"
 n=$(($(cat "$st/zaehler" 2> /dev/null || echo 0) + 1)); echo "$n" > "$st/zaehler"
@@ -44,18 +48,47 @@ printf '%s\n' "$@" > "$d/argv"
 env | LC_ALL=C sort > "$d/env"
 pwd -P > "$d/cwd"; git rev-parse HEAD > "$d/head" 2>&1; git status --porcelain > "$d/status" 2>&1
 git symbolic-ref -q HEAD > "$d/symref" 2>&1; echo $? > "$d/symrc"
+b="$(cd "$(dirname "$0")/../bin" && pwd)"
+mv "$st/vor-make.sig" "$d/make.sig"; mv "$st/vor-make.fd" "$d/make.fd"
+"$b/kind" "$b" "$d/kind"
+"$b/kind" "$b" "$d/bgkind" "$d/enkel" &
+wait $!
+"$b/rec" "$d/lauf" "$PPID"
 echo "beginn $n $(date +%s.%N)" >> "$st/protokoll"
 echo aus; echo fehl >&2
 if [ -e "$st/block" ]; then (trap - TERM; sleep 31 & echo $! > "$st/enkel.pid"; wait) & echo $! > "$st/kind.pid"; echo $$ > "$st/block.pid"; exec sleep 30; fi
 [ ! -e "$st/sigkill" ] || kill -KILL $$
 [ ! -s "$st/warte" ] || sleep "$(cat "$st/warte")"
+[ ! -e "$st/haelt" ] || for i in $(seq 200); do [ -e "$st/weiter" ] && break; sleep 0.1; done
 h="$(git rev-parse HEAD 2> /dev/null)"
 [ ! -e "$st/rot.$h" ] || cat "$st/rot.$h" >&2
 echo "ende $n $(date +%s.%N)" >> "$st/protokoll"
 if [ -s "$st/exit.$h" ]; then exit "$(cat "$st/exit.$h")"; fi
 exit "$(sed -n "${n}p" "$st/exits" 2> /dev/null | grep . || echo 0)"
 EOT
-chmod +x "$arbeit/attrappe"
+cat > "$arbeit/attrappe" <<'EOT'
+#!/bin/sh
+b="$(cd "$(dirname "$0")/../bin" && pwd)"
+"$b/rec" "$b/../steuer/vor-make" $$ "$0"
+exec bash "$b/make.bash" "$@"
+EOT
+cat > "$arbeit/rec" <<'EOT'
+#!/bin/sh
+# rec <Präfix> <pid> [<Datei>] — schreibt <Präfix>.sig (die Zeile SigIgn) und <Präfix>.fd (die Nummern der Deskriptoren des Prozesses, ohne die der Datei).
+grep -m1 '^SigIgn' "/proc/$2/status" > "$1.sig"
+: > "$1.fd"
+for f in /proc/$2/fd/*; do
+  t="$(readlink "$f")"
+  [ "$t" = "${3:-}" ] || echo "${f##*/}" >> "$1.fd"
+done
+EOT
+cat > "$arbeit/kind" <<'EOT'
+#!/bin/sh
+# kind <bin> <Präfix> [<Präfix des Enkels>] — nimmt den eigenen Zustand auf und startet, wenn ein zweites Präfix da ist, einen Enkel
+"$1/rec" "$2" $$ "$0"
+[ -z "${3:-}" ] || "$1/kind" "$1" "$3"
+EOT
+chmod +x "$arbeit/attrappe" "$arbeit/attrappe.bash" "$arbeit/rec" "$arbeit/kind"
 
 warte_auf() { local i; for i in $(seq 1 "${WA:-100}"); do if "$@"; then return 0; fi; sleep 0.1; done; return 1; }
 fertig() { ! pgrep -f -- "post-receive --lauf $g/bare" > /dev/null; }
@@ -79,18 +112,21 @@ aufbau() {
     eval "h$i=\$(git -C \"\$g/arb\" rev-parse HEAD)"
   done
   git -C "$g/arb" push -q "$g/bare" main
-  cp "$arbeit/attrappe" "$g/bin/make"
+  cp "$arbeit/attrappe" "$g/bin/make"; cp "$arbeit/attrappe.bash" "$g/bin/make.bash"; cp "$arbeit/rec" "$arbeit/kind" "$g/bin/"
   echo "$g/ablage" > "$g/bare/gegenproben-ablage"
   install -m 755 "$hook" "$g/bare/hooks/post-receive"
   pfad=""; hskript=""
 }
+
+# AUFRUF — wie der Hook aufgerufen wird: leere Umgebung.
+AUFRUF=(env -i)
 
 # haken <Eingabe> [VAR=Wert…] — ruft den Hook wie git (Arbeitsverzeichnis Bare-Repo, GIT_DIR=., leere Umgebung); setzt hrc; Ausgabe in $g/h.out und $g/h.err.
 haken() {
   local z="$1"; shift
   hrc=0
   (cd "$g/bare" && { if [ -n "${roh:-}" ]; then printf '%s' "$z"; elif [ -n "$z" ]; then printf '%s\n' "$z"; fi; } \
-    | env -i PATH="${pfad:-$g/bin:$PFAD}" HOME="$g" TZ=UTC GIT_DIR=. "$@" "$(command -v timeout)" 30 "$BASH" "${hskript:-hooks/post-receive}" \
+    | "${AUFRUF[@]}" PATH="${pfad:-$g/bin:$PFAD}" HOME="$g" TZ=UTC GIT_DIR=. "$@" "$(command -v timeout)" 30 "$BASH" "${hskript:-hooks/post-receive}" \
     > "$g/h.out" 2> "$g/h.err") || hrc=$?
 }
 nichts() { [ "$hrc" -eq 0 ] && [ ! -s "$g/h.out" ] && [ -z "$(ls -A "$g/ablage")" ] && [ ! -e "$g/steuer/zaehler" ]; }
@@ -199,6 +235,39 @@ g5() {
   if [ "$pgid" -gt 1 ]; then kill -TERM -- "-$pgid" 2> /dev/null; fi
   bis_fertig
   { [ "$(feld "$(res main "$h1")" exit)" = 0 ] && [ ! -e "$(res main "$h1").laeuft" ]; } || echo p5-gruppe
+}
+
+# eof_gruppe <n> — der Hook startet mit dem Deskriptor n auf dem Schreibende einer Pipe; das Lesende bekommt EOF, bevor die Attrappe weiterläuft (sie wartet auf steuer/weiter).
+eof_gruppe() {
+  local n="$1"
+  aufbau "p5e$n"
+  : > "$g/steuer/haelt"
+  (
+    eval "exec $n>&1 1> /dev/null"
+    case "$(readlink "/proc/self/fd/$n")" in pipe:*) ;; *) : > "$g/zu" ;; esac
+    haken "$(zl main "$h1")"
+    eval "exec $n>&-"
+  ) | { timeout 10 cat > /dev/null && : > "$g/eof"; : > "$g/steuer/weiter"; }
+  bis_fertig
+  if [ -e "$g/zu" ]; then melde "p5-eof-fd$n: Deskriptor $n ist im Fall keine offene Pipe"; echo "p5-eof-fd$n"; return; fi
+  { [ -e "$g/eof" ] && grep -qs ende "$g/steuer/protokoll"; } || echo "p5-eof-fd$n"
+}
+g5e5() { eof_gruppe 5; }
+g5e7() { eof_gruppe 7; }
+g5e12() { eof_gruppe 12; }
+
+# nur <Datei> <Muster> — die Datei ist nicht leer, und jede Zeile passt auf das Muster.
+nur() { [ -s "$1" ] && ! grep -qvE "^($2)$" "$1"; }
+
+# g5f — Deskriptoren von Lauf, make und Kindern; der Hook erbt einen Deskriptor 5 (wie von git receive-pack).
+g5f() {
+  local a
+  aufbau p5f
+  ( exec 5> "$g/zusatz"; haken "$(zl main "$h1")" ); bis_fertig
+  a="$g/steuer/aufruf.1"
+  nur "$a/lauf.fd" '[012]|9|255' || echo p5-fd-lauf
+  nur "$a/make.fd" '[012]' || echo p5-fd-make
+  { nur "$a/kind.fd" '[012]' && nur "$a/bgkind.fd" '[012]' && nur "$a/enkel.fd" '[012]'; } || echo p5-fd-kind
 }
 
 # --- Punkt 6 und p9-beginn-nach-sperre ------------------------------------------------------------------------------------
@@ -366,6 +435,25 @@ g11() {
   { [ -s "$e" ] && ! grep -Eq '^GIT_(WORK_TREE|INDEX_FILE|PUSH_OPTION_COUNT)=' "$e"; } || echo p11-git-weitere
 }
 
+# g11s — SIGINT und SIGQUIT in Lauf, make und Kind (SigIgn aus /proc/<pid>/status).
+g11s() {
+  local a h s
+  aufbau p11s
+  h="$("${AUFRUF[@]}" "$(command -v timeout)" 30 sh -c 'sed -n "s/^SigIgn:[[:space:]]*//p" /proc/$$/status')"
+  if (( 0x${h:-0} & 6 )); then
+    melde "p11-sigint-lauf: der Aufruf des Hooks ignoriert SIGINT oder SIGQUIT (SigIgn $h)"
+    printf 'p11-sig%s-%s\n' int lauf int make quit make int kind quit kind
+    return
+  fi
+  haken "$(zl main "$h1")"; bis_fertig
+  a="$g/steuer/aufruf.1"
+  for s in lauf make kind; do
+    h="$(sed -n 's/^SigIgn:[[:space:]]*//p' "$a/$s.sig" 2> /dev/null)"
+    { [ -n "$h" ] && ! (( 0x$h & 2 )); } || echo "p11-sigint-$s"
+    [ "$s" = lauf ] || { [ -n "$h" ] && ! (( 0x$h & 4 )); } || echo "p11-sigquit-$s"
+  done
+}
+
 # --- Punkt 12 -------------------------------------------------------------------------------------------------------------
 g12() {
   local a vor
@@ -447,7 +535,7 @@ g13() {
 # pruefe — schreibt die Namen der roten Fälle, einen je Zeile; die Gruppen laufen gleichzeitig.
 pruefe() {
   local f
-  for f in g1 g2 g3 g4 g5 g6 g7 g8 g9 g9s g10 g11 g12 g13; do ("$f" > "$fx/rot.$f" 2> "$fx/err.$f") & done
+  for f in g1 g2 g3 g4 g5 g5e5 g5e7 g5e12 g5f g6 g7 g8 g9 g9s g10 g11 g11s g12 g13; do ("$f" > "$fx/rot.$f" 2> "$fx/err.$f") & done
   wait
   cat "$fx"/rot.g*
   pkill -KILL -f -- "$fx/" 2> /dev/null
@@ -506,7 +594,12 @@ REFL='    case "$ref" in refs/heads/*) ;; *) continue ;; esac'
 ALTL='    rm -f "${ablage:?}/${n:?}"'
 MARKE_WEG='  rm -f "${ablage:?}/${n:?}.laeuft"'
 FLOCK='  flock 9 & pid=$!'
-START='< /dev/null > /dev/null 2>&1 &'
+START='< /dev/null > /dev/null 2>&1'
+SETSID='setsid -f "$BASH" -c'
+SCHLIESSE='eval "exec $n>&-"'
+NUMMER='[ "$n" -gt 2 ] 2> /dev/null &&'
+MAKEUND='(cd "$wt" && exec make gegenproben) > "$log" 2>&1 9>&- &'
+TRAP_TERM='  trap abbruch TERM'
 KODE=$'      *) out+="$(printf \'%%%02X\' "\'$c")" ;;'
 WTADD='git --git-dir="$bare" worktree add --detach "$wt" "$hash"'
 MAKEL='(cd "$wt" && exec make gegenproben)'
@@ -515,7 +608,7 @@ WTFEHL='    rm -rf "${wt:?}"; wt=""; exec 9>&-; return 0'
 SPERRE='"$sig: sperre: Sperre nicht angelegt" > "$log";'
 # --- Punkt 1
 mut m-p1-laedt-nach "p1-kopie p13-ref-vor-form p3-headsx p3-notes p3-tag p4-ergebnis-bleibt p4-hash-64 p4-null40 p4-null64 p4-ohne-umbruch p4-stdin-leer p5-gestartet-zeile" 'sig="gegenproben-nach-einlieferung"' $'sig="gegenproben-nach-einlieferung"\n. "$(dirname "${BASH_SOURCE[0]}")/bibliothek.sh"'
-mut m-p1-liest-stdin-nicht "p1-echter-push p1-kopie p10-argv p11-git-dir p11-git-quarantaene p11-git-weitere p11-gnumakeflags p11-makeflags p11-makelevel p11-makeoverrides p11-mflags p12-entfernt-rot p12-stand p13-form-vor-laenge p13-hash-fehlt p13-make-127 p13-make-signal p13-sperre p13-sperre-vor-arbeitsbaum p3-mehrere p4-feld-fehlt p4-hash-41 p4-hash-64 p4-hash-gross p4-hash-kurz p4-leerzeichen-zeile p4-leerzeile p4-ohne-umbruch p4-vier-felder p4-zeile-kaputt-dann-gut p5-fd-0 p5-fd-1 p5-fd-2 p5-gestartet-zeile p5-gruppe p6-kein-abbruch p6-nacheinander p7-anderer-zweig p7-force p7-neu p8-eindeutig p8-grenze p8-lang p8-lang-mehrbyte p8-locale p8-nichtascii p8-prozent p8-schraeg p8-sonderzeichen p8-unveraendert p9-beginn-nach-sperre p9-gruen p9-log p9-marke p9-rot p9-zeitzone-ost p9-zeitzone-west" 'while IFS= read -r zeile || [ -n "$zeile" ]; do' 'while IFS= read -r zeile < /dev/null || [ -n "$zeile" ]; do'
+mut m-p1-liest-stdin-nicht "p1-echter-push p1-kopie p10-argv p11-git-dir p11-git-quarantaene p11-git-weitere p11-gnumakeflags p11-makeflags p11-makelevel p11-makeoverrides p11-mflags p11-sigint-kind p11-sigint-lauf p11-sigint-make p11-sigquit-kind p11-sigquit-make p12-entfernt-rot p12-stand p13-form-vor-laenge p13-hash-fehlt p13-make-127 p13-make-signal p13-sperre p13-sperre-vor-arbeitsbaum p3-mehrere p4-feld-fehlt p4-hash-41 p4-hash-64 p4-hash-gross p4-hash-kurz p4-leerzeichen-zeile p4-leerzeile p4-ohne-umbruch p4-vier-felder p4-zeile-kaputt-dann-gut p5-eof-fd12 p5-eof-fd5 p5-eof-fd7 p5-fd-0 p5-fd-1 p5-fd-2 p5-fd-kind p5-fd-lauf p5-fd-make p5-gestartet-zeile p5-gruppe p6-kein-abbruch p6-nacheinander p7-anderer-zweig p7-force p7-neu p8-eindeutig p8-grenze p8-lang p8-lang-mehrbyte p8-locale p8-nichtascii p8-prozent p8-schraeg p8-sonderzeichen p8-unveraendert p9-beginn-nach-sperre p9-gruen p9-log p9-marke p9-rot p9-zeitzone-ost p9-zeitzone-west" 'while IFS= read -r zeile || [ -n "$zeile" ]; do' 'while IFS= read -r zeile < /dev/null || [ -n "$zeile" ]; do'
 # --- Punkt 2
 mut m-p2-zeilenzahl "p2-zwei-zeilen" "$SIGL" '  :'
 mut m-p2-absolut "p2-relativ" "$ABSL" '  :'
@@ -544,11 +637,19 @@ mut m-p4-loeschung-entfernt-ergebnis "p4-ergebnis-bleibt" "$NULLL" '    [[ $neu 
 mut m-p4-loeschung-meldet "p4-ergebnis-bleibt p4-null40 p4-null64" "$NULLL" '    [[ $neu =~ ^(0{40}|0{64})$ ]] && { melde zeile "geloescht"; continue; }'
 mut m-p4-leere-eingabe-meldet "p13-ref-vor-form p3-headsx p3-notes p3-tag p4-ergebnis-bleibt p4-feld-fehlt p4-null40 p4-null64 p4-stdin-leer" '  if [ "${#args[@]}" -gt 0 ]; then' $'  [ "${#args[@]}" -gt 0 ] || melde zeile "keine Eingabe"\n  if [ "${#args[@]}" -gt 0 ]; then'
 # --- Punkt 5
-mut m-p5-wartet "p1-echter-push p5-fd-0 p5-fd-1 p5-fd-2 p5-leitung-stderr p5-leitung-stdout p5-vor-ende p7-altes-weg p9-marke p9-nicht-vorher" "$START" '< /dev/null > /dev/null 2>&1'
-mut m-p5-erbt-stdout "p1-echter-push p5-fd-1 p5-leitung-stdout" "$START" '< /dev/null >&1 2> /dev/null &'
-mut m-p5-erbt-stderr "p1-echter-push p5-fd-2 p5-leitung-stderr" "$START" '< /dev/null > /dev/null 2>&2 &'
-mut m-p5-erbt-stdin "p5-fd-0" "$START" '<&0 > /dev/null 2>&1 &'
-mut m-p5-gleiche-sitzung "p5-gruppe" 'setsid "$BASH" "$self"' '"$BASH" "$self"'
+mut m-p5-wartet "p1-echter-push p5-eof-fd12 p5-eof-fd5 p5-eof-fd7 p5-fd-0 p5-fd-1 p5-fd-2 p5-leitung-stderr p5-leitung-stdout p5-vor-ende p7-altes-weg p9-marke p9-nicht-vorher" "$SETSID" 'setsid -w "$BASH" -c'
+mut m-p5-erbt-stdout "p1-echter-push p5-fd-1 p5-leitung-stdout" "$START" '< /dev/null >&1 2> /dev/null'
+mut m-p5-erbt-stderr "p1-echter-push p5-fd-2 p5-leitung-stderr" "$START" '< /dev/null > /dev/null 2>&2'
+mut m-p5-erbt-stdin "p5-fd-0" "$START" '<&0 > /dev/null 2>&1'
+mut m-p5-gleiche-sitzung "p5-gruppe" "$SETSID" 'env --default-signal=INT,QUIT "$BASH" -c' "$START" "$START &"
+mut m-p5-keine-fd-schliessen "p5-eof-fd12 p5-eof-fd5 p5-eof-fd7 p5-fd-kind p5-fd-lauf p5-fd-make" "$SCHLIESSE" ':'
+mut m-p5-nur-fd5 "p5-eof-fd12 p5-eof-fd7" "$NUMMER" '[ "$n" = 5 ] &&'
+mut m-p5-nur-3-bis-9 "p5-eof-fd12" "$NUMMER" '[ "$n" -gt 2 ] 2> /dev/null && [ "$n" -le 9 ] &&'
+mut m-p5-make-mit-sperre "p5-fd-kind p5-fd-make" '> "$log" 2>&1 9>&- &' '> "$log" 2>&1 &'
+mut m-p11-hook-mit-und "p11-sigint-kind p11-sigint-lauf p11-sigint-make p11-sigquit-kind p11-sigquit-make" "$SETSID" 'setsid "$BASH" -c' "$START" "$START &"
+mut m-p11-make-mit-und "p11-sigint-kind p11-sigint-make p11-sigquit-kind p11-sigquit-make" "$MAKEUND" 'env -C "$wt" make gegenproben > "$log" 2>&1 9>&- &'
+mut m-p11-lauf-trap-int "p11-sigint-kind p11-sigint-lauf p11-sigint-make" "$TRAP_TERM" "$TRAP_TERM; trap '' INT"
+mut m-p11-lauf-trap-quit "p11-sigquit-kind p11-sigquit-make" "$TRAP_TERM" "$TRAP_TERM; trap '' QUIT"
 mut m-p5-stdout-zeile "p5-stdout-leer" '    melde gestartet "$zweig $neu"' $'    melde gestartet "$zweig $neu"\n    echo hallo'
 mut m-p5-gestartet-fehlt "p1-kopie p4-hash-64 p4-leerzeichen-zeile p4-leerzeile p4-ohne-umbruch p4-zeile-kaputt-dann-gut p5-gestartet-zeile" '    melde gestartet "$zweig $neu"' '    :'
 # --- Punkt 6
