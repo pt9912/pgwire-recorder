@@ -1,7 +1,7 @@
 # Verifikation slice-harness-gegenproben-aus-gates-fahrstelle-umgebung
 
 Stand: Zweig `rev-fu`, Kopf `205ffcc0`, Basis der Implementierung `02a606eb`, Basis der Metrik `4219bab6`.
-Maßstab: [Plan](../plan/planning/in-progress/slice-harness-gegenproben-aus-gates-fahrstelle-umgebung.md) §2 und §7,
+Maßstab: [Plan](../plan/planning/done/slice-harness-gegenproben-aus-gates-fahrstelle-umgebung.md) §2 und §7,
 [SPEC-061](../../harness/vertraege/SPEC-061-gegenproben-nach-einlieferung.md) (Plattform bash ≥ 5.1: Entscheidung des Nutzers, nicht gemessen),
 [ADR-0048](../plan/adr/0048-gegenproben-verlassen-die-gate-kette.md), `AGENTS.md`.
 Host-Läufe als Benutzer `db` (kein root), bash 5.2.21, coreutils 9.4. Keine volle Gegenprobe, kein `make gates` (Auftrag; die volle Gegenprobe lief laut §7 im Container grün).
