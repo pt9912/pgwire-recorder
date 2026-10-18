@@ -15,7 +15,7 @@ Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 
 **Berührte Spec-Stellen:** der Vertrag des Hooks für die Einlieferung [`SPEC-061`](../../../../harness/vertraege/SPEC-061-gegenproben-nach-einlieferung.md) Punkt 5 (erweitert vom Architect im Zweig `arch-fd`: keine geerbten Deskriptoren über 2 im Lauf, `SIGINT` und `SIGQUIT` nicht ignoriert). Der Slice ändert den Vertrag nicht; der Architect trägt ihn vor dem ersten Code-Commit.
 
-**Verantwortlich:** pt9912
+**Verantwortlich:** pt9912 (Zweig slice-harness-gegenproben-aus-gates-fahrstelle-umgebung)
 
 **Autor:** Planner. **Datum:** 2026-10-18.
 
