@@ -9,11 +9,11 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-gegenproben-und-mutanten, zweite Stelle der Reihenfolge, direkt hinter `slice-harness-gegenproben-aus-gates` und vor `slice-harness-gegenprobe-baumkopie` (Entscheidung des Nutzers vom 2026-10-18; wie jener Slice aus der Reihenfolge der Wellen gelöst: Start-Trigger ist `slice-harness-gegenproben-aus-gates` in `done/`, nicht `welle-harness-regeln`; der Schnitt vom Planner am selben Tag, damit der Kettenumbau unter der Marke bleibt). Angelegt am 2026-10-18 als Folge-Slice von `slice-harness-gegenproben-aus-gates`. Der Slice liegt in `open/`: Er ist nicht priorisiert, den Anspruch trägt der Nutzer.
+**Welle:** welle-gegenproben-und-mutanten, dritte Stelle der Reihenfolge, direkt hinter `slice-harness-gegenproben-aus-gates-sammelziele` und vor `slice-harness-gegenprobe-baumkopie` (Entscheidung des Nutzers vom 2026-10-18; wie jener Slice aus der Reihenfolge der Wellen gelöst: Start-Trigger ist `slice-harness-gegenproben-aus-gates-sammelziele` in `done/` (das seinerseits `slice-harness-gegenproben-aus-gates` voraussetzt), nicht `welle-harness-regeln`; der Schnitt vom Planner am selben Tag, damit der Kettenumbau unter der Marke bleibt). Angelegt am 2026-10-18 als Folge-Slice von `slice-harness-gegenproben-aus-gates`. Der Slice liegt in `open/`: Er ist nicht priorisiert, den Anspruch trägt der Nutzer.
 
 **Bezug:** [LH-QA-07](../../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) nur insoweit, als die Gegenproben dessen Messungen tragen; kein Anspruch des Produkts, der Slice ändert Rollen-Anweisungen und Wartungs-Doku des Harness. Bindung an das Register: `BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe` und das mit `slice-harness-gegenproben-aus-gates` entstehende `BEO-REPO/gegenprobe-nicht-in-kette-regression-unbemerkt`. Keine aktive ADR berührt.
 
-**Berührte Spec-Stellen:** der Vertrag der Sammelziele aus `slice-harness-gegenproben-aus-gates` (`SPEC-060`, Nummer vergibt der Architect dort; dieser Slice ändert ihn nicht und liest die Namen der Ziele daraus); neuer Vertrag des Hooks für die Einlieferung in `harness/vertraege/` (nächste freie Nummer nach `SPEC-060`, also `SPEC-061`; der Architect vergibt sie vor dem Code).
+**Berührte Spec-Stellen:** der Vertrag der Sammelziele aus `slice-harness-gegenproben-aus-gates-sammelziele` (`SPEC-060`, Nummer vergibt der Architect dort; dieser Slice ändert ihn nicht und liest die Namen der Ziele daraus); neuer Vertrag des Hooks für die Einlieferung in `harness/vertraege/` (nächste freie Nummer nach `SPEC-060`, also `SPEC-061`; der Architect vergibt sie vor dem Code).
 
 **Verantwortlich:** —
 
@@ -44,7 +44,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
-- Der Kettenumbau, die Sammelziele, ihre Namen, Listen und Gegenprobe, `AGENTS.md` §6 Schritt 6 als Satz — `slice-harness-gegenproben-aus-gates`; dieser Slice setzt dessen `done/` voraus (die Ziele müssen existieren, bevor eine Anweisung sie nennt).
+- Der Kettenumbau, die Listen und die Namensregel, die erste Hälfte des Satzes in `AGENTS.md` §6 Schritt 6 — `slice-harness-gegenproben-aus-gates`; die Sammelziele, ihre Namen und Gegenprobe und die zweite Hälfte des Satzes — `slice-harness-gegenproben-aus-gates-sammelziele`; dieser Slice setzt beider `done/` voraus (die Ziele müssen existieren, bevor eine Anweisung sie nennt).
 - Ein Scheduler, eine CI-Pipeline, ein Warteschlangen-Dienst oder eine Benachrichtigung — Entscheidung des Nutzers: Der Container wird von Hand oder von einem Agenten gestartet; der `post-receive`-Hook im Bare-Repo von `pgr-gp` ist die kleinste Form, die Einlieferung und Fahrt verbindet, und nicht mehr.
 - Der Hook in den Bare-Repos der Arbeits-Container (`pgr-dev`, `pgr-dev2`, …) — Schicht-Abgrenzung und Last: Der Arbeits-Container soll nicht ausgebremst werden; eine Fahrt von `make gegenproben` belegt Docker-Daemon und Kerne (§6, Ressourcen), und der Arbeits-Container ist der, in dem der Implementer arbeitet. Das Skript lehnt den Lauf ab, wo die Marke des Gegenproben-Containers fehlt (§6, H9).
 - Ein Ziel, das den Gegenproben-Container anlegt, einliefert und startet (`make container-einrichten` und ein Ziel für die Fahrt) — `slice-harness-devcontainer-einrichten` automatisiert Bare-Repo, Einlieferung, Klon und Zweig; dieser Slice beschreibt das Aufsetzen mit den Einzelbefehlen und einer Zeile für den Hook und ruft kein Ziel, das es noch nicht gibt. Ein Ziel für das Aufsetzen selbst ist ein anderer Vorgang (Werkzeug statt Beschreibung); eine Adresse gibt es nicht, ein Slice legt der Planner an, wenn der Nutzer es entscheidet.
@@ -88,7 +88,7 @@ Aussagen-Berührung steht hier gar nicht.
 | `tools/harness/gegenproben-nach-einlieferung.sh` | neu | Inhalt des `post-receive`-Hooks: liest die Zeilen von `git` auf stdin, startet je Zweig einen Lauf im Hintergrund, legt das Ergebnis ab |
 | `tools/harness/gegenproben-nach-einlieferung-gegenprobe.sh`, `harness/mk/gegenproben-nach-einlieferung-gegenprobe.mk` | neu | Gegenprobe in Temp-Repos mit Attrappe als `make` (kein Docker): je Randform ein Fall und eine Mutation |
 | `.claude/agents/implementer.md`, `reviewer.md`, `verifier.md`, `.harness/skills/reviewer.md` | update | Stichprobe nach der Regel des engsten Sensors; Reviewer und Verifier fahren die betroffene Gegenprobe gezielt |
-| `AGENTS.md` | update | §6 Schritt 6 (der Satz aus `slice-harness-gegenproben-aus-gates` wird um die Auslöser ergänzt, falls dort kürzer) |
+| `AGENTS.md` | update | §6 Schritt 6 (der Satz aus `slice-harness-gegenproben-aus-gates` und `slice-harness-gegenproben-aus-gates-sammelziele` wird um die Auslöser ergänzt, falls dort kürzer) |
 | `docs/developer/devcontainer.md` | update | Abschnitt über den Gegenproben-Container, Zeile in §8 |
 | `harness/README.md` | update | Fahrstelle in der Zeile der Sammelziele |
 | `docs/plan/planning/next/slice-erster-release-freigabe.md` | update (Planner, im Commit des Plans) | Sendung der Checkliste (§1, §6, §8) |
@@ -98,7 +98,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): Der Slice liegt in `open/`, bis der Nutzer ihn priorisiert und den Anspruch trägt; `Verantwortlich:` setzt dieser Übergang. **Vorbedingung:** `slice-harness-gegenproben-aus-gates` liegt in `done/` (die Ziele und ihre Namen stehen); der Architect hat den Vertrag des Hook-Skripts in `harness/vertraege/` geschrieben, mit der Entscheidung je Randform aus Gruppe H (`AGENTS.md` §3.12), und entscheidet, ob eine ADR entsteht (Commits des Architect vor dem Move nach `in-progress/`); der Dev-Container-Ablauf von `slice-harness-devcontainer-einrichten-geruest` liegt in `done/` (der Abschnitt baut auf `make container-start`, soweit es dann steht; sonst auf §3 bis §6 des Dokuments). Reihenfolge: erste Stelle nach `slice-harness-gegenproben-aus-gates`; der Slice wartet nicht auf `welle-harness-regeln` (Drift-Log der Roadmap). `Verantwortlich:` trägt beim Start Person und Zweig; er läuft auf eigenem Zweig.
+**Start** (`next` → `in-progress`): Der Slice liegt in `open/`, bis der Nutzer ihn priorisiert und den Anspruch trägt; `Verantwortlich:` setzt dieser Übergang. **Vorbedingung:** `slice-harness-gegenproben-aus-gates` und `slice-harness-gegenproben-aus-gates-sammelziele` liegen in `done/` (die Listen, die Ziele und ihre Namen stehen); der Architect hat den Vertrag des Hook-Skripts in `harness/vertraege/` geschrieben, mit der Entscheidung je Randform aus Gruppe H (`AGENTS.md` §3.12), und entscheidet, ob eine ADR entsteht (Commits des Architect vor dem Move nach `in-progress/`); der Dev-Container-Ablauf von `slice-harness-devcontainer-einrichten-geruest` liegt in `done/` (der Abschnitt baut auf `make container-start`, soweit es dann steht; sonst auf §3 bis §6 des Dokuments). Reihenfolge: erste Stelle nach `slice-harness-gegenproben-aus-gates-sammelziele`; der Slice wartet nicht auf `welle-harness-regeln` (Drift-Log der Roadmap). `Verantwortlich:` trägt beim Start Person und Zweig; er läuft auf eigenem Zweig.
 
 **Größe.** Metrik nach `AGENTS.md` §3.14: Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice> -- AGENTS.md .claude .harness/skills docs/developer harness/README.md`. Basis ist der Elternteil des Commits, der diese Datei nach `in-progress/` bewegt.
 
@@ -118,7 +118,7 @@ Meldeschwelle 700, **Marke 900**. Die Mitte (590) liegt bei 66 % der Marke, die 
 **Rückführungen — vorab benannt:**
 
 - `in-progress` → `next` (zu groß): Die Summe nach der Metrik liegt über 900, oder der Vertrag des Hooks verlangt mehr als 11 Randformen (dann Schnitt: Hook-Skript mit Gegenprobe getrennt von Rollen-Anweisungen und Dokument).
-- `in-progress` → `open` (blockiert): Die Fahrt von `make gegenproben` ist im Gegenproben-Container nicht grün (Befund an den Planner, Rückgabe an `slice-harness-gegenproben-aus-gates`, Risiko *Zustand eines anderen Gates* dort).
+- `in-progress` → `open` (blockiert): Die Fahrt von `make gegenproben` ist im Gegenproben-Container nicht grün (Befund an den Planner, Rückgabe an `slice-harness-gegenproben-aus-gates-sammelziele`, Risiko *Zustand eines anderen Gates* dort).
 
 ## 5. Closure-Trigger
 
@@ -187,3 +187,5 @@ Risiken:
 alle berührten Sub-Areas GF (`REPO`).
 
 **Zählung nach `AGENTS.md` §3.13 (Planner, 2026-10-18, im Commit, der die Ergänzung „nur Gegenproben, Hook bei Einlieferung“ einträgt):** Liefer-Punkte 3 (Rollen-Anweisungen mit Prüfung des Ergebnisses in der Closure | Hook-Skript mit Gegenprobe | Fahrstelle im Dokument mit einer Einlieferung als Beleg). Schichten 2: Harness-Werkzeug und -Artefakte (Hook-Skript mit Gegenprobe, Rollen-Anweisungen, `AGENTS.md`, `harness/README.md` als Gate-Index) und Wartungs-Doku (`docs/developer/`, nach der Teilung von `slice-harness-d-check-v0-85` §8 und `AGENTS.md` §3.13 eine Schicht); Planung, Vertrag und ADR sind keine. Schätzung 410 bis 770 in der Metrik von §4, Marke 900, Meldeschwelle 700 (Obergrenze darüber). Der Plan trägt zwei Sendungen und eine Bindung ein: `slice-erster-release-freigabe` (Ergebnis des Gegenproben-Containers oder Fahrt in der Checkliste; Nachzählung dort in §8, im selben Commit), die Welle-Closure (Liefer-Punkt 1 dieses Slice; `welle-gegenproben-und-mutanten` §3 nennt sie) und `slice-harness-devcontainer-einrichten` (Bindung an §6 und §9 des Dokuments, unverändert).
+
+**Nachgezählt** (`AGENTS.md` §3.13, Planner, 2026-10-18, im Commit, der `slice-harness-gegenproben-aus-gates` schneidet): Der Kettenumbau und die Sammelziele liegen in zwei Slices (`slice-harness-gegenproben-aus-gates`, `slice-harness-gegenproben-aus-gates-sammelziele`); dieser Slice setzt beide voraus, nennt die Sammelziele aus dem zweiten und trägt seinen Satz in `AGENTS.md` §6 als Ergänzung zu beiden Hälften. Liefer-Punkte (3) und Schichten (2) ändern sich nicht; die Schätzung (410 bis 770) bleibt.
