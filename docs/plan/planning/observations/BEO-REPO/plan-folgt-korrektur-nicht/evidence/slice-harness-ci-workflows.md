@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-ci-workflows
+**Fund:** Review F-7 (LOW) und Verifikation V-2 (gering): §6 leitete die Randformen mit „alle offen für den Architect" ein, obwohl jede als entschieden stand; DoD Liefer-Punkt 1 sagte „Datei, Job und Regel" statt „Pfad, Zeile und Regel"; §7 *Läufe am Endstand* und *Offene Rückgabe* beschrieben einen behobenen Zustand. Nachgezogen vor der Closure. Quelle: Review-Report und Verifikations-Report (Planner, Closure, 2026-10-18).

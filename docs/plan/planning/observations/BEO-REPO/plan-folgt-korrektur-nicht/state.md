@@ -70,3 +70,5 @@ Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-coverage` (F
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-devcontainer-u-boot-0-10` (F-2, F-3; Verifikation Punkt 1 bis 4, 8) — Gerüst, Neustart und Host-Voraussetzungen im Plan nach dem Auftrag statt nach der Lieferung; nachgezogen bei der Closure (Beleg `evidence/slice-harness-devcontainer-u-boot-0-10.md`). Zähler 65.
 
 Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-gegenproben-aus-gates` (F-7) — Plan folgt dem Diff nicht (Fallzahl, drei Dateien, ein verlangter Nachzug, Zeitpunkt des Vertrags, „Empfehlung“ nach Annahme); nachgezogen bei der Closure (Beleg `evidence/slice-harness-gegenproben-aus-gates.md`). Zähler 66.
+
+Wiederaufgetreten, Regel bleibt (`AGENTS.md` §3.9): `slice-harness-ci-workflows` (F-7, V-2) — Einleitung von §6, Wortlaut der DoD und §7 folgten dem Diff nicht; nachgezogen vor der Closure (Beleg `evidence/slice-harness-ci-workflows.md`). Zähler 67.

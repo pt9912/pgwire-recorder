@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-ci-workflows
+**Fund:** Review F-6 (LOW) und Verifikation V-4 (gering): Die Zeile von `make workflows-check-gegenprobe` in `harness/README.md` sagte „Mutationen …, die nur die Fälle ihrer Gruppe rot färben", drei Mutationen sind breit; die Werkzeugliste im Kopf von `workflows.mk` ließ `readlink`, `mktemp` und `sed` des Skripts weg. Behoben (die Zeile nennt die drei breiten Mutationen und das Verhalten als root, die Liste die Werkzeuge). Quelle: Review-Report und Verifikations-Report (Planner, Closure, 2026-10-18).
