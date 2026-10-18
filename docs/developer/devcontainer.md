@@ -72,7 +72,7 @@ make container-start
 
 Das Ziel ist kein Gate. Es endet mit der Zeile `container-start: bereit <Name> 127.0.0.1:<Port>` und Exit 0. Ein Fehler endet mit
 `container-start: <Schritt>: <Grund>` auf stderr und Exit 2 (Eingabe), 3 (Werkzeug), 4 (Zustand: Verzeichnis, Schlüsselpaar, Container oder Port)
-oder 5 (ein Schritt scheiterte); `SIGINT` und `SIGTERM` enden mit 130 und 143, ohne Rückbau. Jeder Aufruf lässt sich wiederholen. Das Host-Repo kommt in der Konfiguration nicht vor (§6, §9).
+oder 5 (ein Schritt scheiterte); `SIGINT` und `SIGTERM` enden mit 130 und 143, ohne Rückbau. Jeder Aufruf lässt sich wiederholen, mit zwei Ausnahmen: Bricht `u-boot init` ab und hinterlässt Dateien ohne `u-boot.yaml`, ist das Verzeichnis beim nächsten Aufruf fremd (Exit 4); bricht der Lauf zwischen den zwei Dateien von `ssh-keygen` ab, meldet der nächste Aufruf „nur eine der beiden Dateien“ (Exit 4). In beiden Fällen räumst du das Verzeichnis. Das Host-Repo kommt in der Konfiguration nicht vor (§6, §9).
 
 ### 3.1 Gerüst mit `u-boot`
 
@@ -187,10 +187,10 @@ make container-start
 ```
 
 Nach `override` führt das Ziel `devcontainer up --workspace-folder . --override-config .devcontainer/override.json` im Verzeichnis `pgr-dev` aus; es baut das Image beim ersten Mal,
-startet den Container und führt `postStartCommand` aus. Erfolg ist Exit 0 und die Ausgabe `{"outcome":"success",…}`. Danach probt das Ziel jede Sekunde, höchstens `PGR_WARTEN` Sekunden,
+startet den Container und führt `postStartCommand` aus. Erfolg ist Exit 0 und die Ausgabe `{"outcome":"success",…}`. Danach probt das Ziel jede Sekunde, bis `PGR_WARTEN` Sekunden verstrichen sind (eine Probe dauert bis `ConnectTimeout=5`, die Wartezeit kann die Grenze um eine Probe überschreiten; nicht gemessen),
 ob `ssh` als `vscode` mit dem Schlüssel des Gerüsts auf `127.0.0.1:<PGR_SSH_PORT>` den Befehl `true` ausführt; die Probe schreibt weder `known_hosts` noch `~/.ssh/config` (§5). Das ist die Bereitschaft; ob `dockerd` im Container antwortet,
 prüft das Ziel nicht. Ein laufender Container bleibt stehen: der zweite Aufruf probt nur die Anmeldung. Ein Container, der den Namen `PGR_NAME` trägt, aber nicht zum Verzeichnis gehört, ein Container des Verzeichnisses mit anderem
-Namen oder anderem veröffentlichten Port und ein belegter Port (bei nicht laufendem Container) enden mit Exit 4, ohne etwas anzufassen. Die Limits eines vorhandenen Containers ändert das Ziel nie (§10.1). Der Build
+Namen oder anderem oder keinem veröffentlichten Port, ein Container in einem anderen Zustand als `running`, `exited` und `created`, ein Container des Verzeichnisses bei fehlendem Gerüst, ein Fehler von `docker ps` oder `docker inspect` und ein belegter Port (bei nicht laufendem Container) enden mit Exit 4, ohne etwas anzufassen. Die Limits eines vorhandenen Containers ändert das Ziel nie (§10.1). Der Build
 lädt Pakete aus dem Netz. Gemessen (Docker-Cache des Hosts warm, Basis-Image und Features lokal vorhanden): 65 Sekunden (`devcontainer up`, erster Start);
 mit `--build-no-cache` 70 Sekunden. Ein Build ohne warmen Cache des Hosts (Basis-Image nicht lokal) ist nicht gemessen.
 
@@ -199,7 +199,7 @@ mit `--build-no-cache` 70 Sekunden. Ein Build ohne warmen Cache des Hosts (Basis
 | Stoppen und neu starten | `docker stop pgr-dev`, dann `make container-start` | derselbe Container; 1,7 bis 1,8 Sekunden bis `ssh` und `dockerd` antworten; Bare-Repo, Klon (auch eine nicht versionierte Datei), die Images im Daemon des Containers und der Fingerabdruck des Hostschlüssels waren danach unverändert (gemessen) |
 | Container entfernen | `docker rm -f pgr-dev`, dann `make container-start` | neuer Container aus dem vorhandenen Image; die Volumes blieben und mit ihnen Bare-Repo, Klon und Images (gemessen, 6,4 und 7,9 Sekunden bis `ssh` und `dockerd` antworten); `/home/vscode` liegt im Dateisystem des Containers: `~/.gitconfig` und die Ablage von `claude` sind danach weg (`~/.claude` fehlte, gemessen) |
 | Alles löschen | `docker rm -fv pgr-dev`, dann `docker volume rm <Namen der beiden Volumes>` (`docker volume ls`) | Bare-Repo, Klon und Docker-Cache im Container sind weg |
-| Image löschen | `docker rmi <Image>` (`docker images`, Name beginnt mit `vsc-`) | danach baut der nächste Start neu |
+| Image löschen | `docker rmi` für zwei Images (`docker images`, Namen beginnen mit `vsc-<Name>-`): zuerst `vsc-<Name>-<Hash>-uid`, dann `vsc-<Name>-<Hash>:latest` (gemessen: `docker rmi` des ersten ließ das zweite stehen) | danach baut der nächste Start neu |
 
 `u-boot up` startet diesen Container nicht: Es steuert den Compose-Stack, und `compose.yaml` hat keinen Dienst
 (`no service selected`, Exit 12, gemessen).
@@ -552,7 +552,7 @@ ein Lauf von `make gates` bei `8g` mit Zeitmessung, und mehrere Container zuglei
 | Docker meldet `driver failed programming external connectivity … ` beim Start | der Host-Port ist belegt (gemessen mit `docker run -p` auf einem belegten Port); anderen Port wählen (§10) |
 | `docker pull` im Container scheitert mit einem Fehler zu einem Host, den die Liste nicht nennt | der Host fehlt in `egress.allow` (§11): eintragen, `u-boot generate devcontainer`, `./mk-override.sh`, Container entfernen (`docker rm -f`) und `devcontainer up`: Der Build läuft neu (45 s gemessen) und der Host löst auf; ein `devcontainer up` bei laufendem Container ändert nichts (gemessen mit `example.org`). Der Hostschlüssel ändert sich dabei (§5) |
 | `No space left on device` beim Bau oder in einem Test, der PostgreSQL startet | der Docker-Speicher ist voll: `docker system df`, ungenutzte Volumes und Images räumen. Im Container **nicht ausgelöst**; am Host wurde der Fehler bei vollem Docker-Speicher beobachtet |
-| Der Docker-Daemon des Hosts stürzte ab oder wurde neu gestartet | die Dev-Container sind gestoppt (Exit 0); Klon, Bare-Repo und Images im Volume bleiben (gemessen am 2026-10-18: Klon unverändert, `git fetch` ging nach dem Neustart). Wiederherstellen mit demselben Aufruf wie der Erststart (`make container-start` mit den Variablen des Containers): nur `postStartCommand` stellt die Netzbeschränkung (`egress-init.sh`) und den Daemon im Container wieder her. Nicht `docker start` und keine Neustart-Richtlinie (`--restart`): Folgerung aus dem Aufbau von `postStartCommand`, nicht gemessen |
+| Der Docker-Daemon des Hosts stürzte ab oder wurde neu gestartet | die Dev-Container waren gestoppt (Beobachtung vom 2026-10-18; der Exit-Code der Container ist nicht gemessen). Klon, Bare-Repo und Images im Volume blieben (gemessen: Klon unverändert, `git fetch` ging nach dem Neustart). Wiederherstellen: derselbe Aufruf wie nach `docker stop` (`make container-start` mit den Variablen des Containers; gemessen ist `docker stop` und Aufruf, derselbe Container); nach einem Absturz des Daemons ist der Aufruf nicht gelaufen. Dass nur `postStartCommand` die Netzbeschränkung (`egress-init.sh`) und den Daemon im Container wiederherstellt und dass `docker start` oder eine Neustart-Richtlinie (`--restart`) sie nicht liefern, ist Folgerung aus dem Aufbau von `postStartCommand`, nicht gemessen |
 
 ## 13. Nicht geprüft
 
@@ -578,6 +578,7 @@ ein Lauf von `make gates` bei `8g` mit Zeitmessung, und mehrere Container zuglei
   Wiederholung lieferte ein; ob der Abbruch mitten in der Übertragung lag, ist nicht festgestellt), und `origin`
   des Host-Repos über `ssh` bei gesetztem `core.sshCommand` (§9).
 - Ein Lauf von `make gates` mit leerem Cache des Hosts, ein zweiter Lauf mit warmem Daemon und ein Lauf unter Last am Host (§8); die 8-Stunden-Grenze (§8).
+- Ein `PGR_DEV` mit einem Symlink-Segment: ob die `devcontainer`-CLI das Label `devcontainer.local_folder` mit dem aufgelösten Pfad setzt, ist nicht gemessen; bei Abweichung hielte das Ziel den vorhandenen Container für fremd (Exit 4).
 - Ein Lauf von `make gates` bei `PGR_MEM=8g` (§10.1), ein Start ohne Daemon (`nestedRuntime` wirkungslos, §12).
 - Ein Build ohne warmen Cache des Hosts, bei dem das Basis-Image nicht lokal vorhanden ist (§4), und die Herkunft des Basis-Images, der Features und des Docker-APT-Repositorys (§3.4).
 - Die Hosts, die Claude Code für die Anmeldung im Browser braucht (`claude.ai`, `platform.claude.com`, `claude.com`), und die Updates, Plugins und MCP-Connectors (§7, §11).
