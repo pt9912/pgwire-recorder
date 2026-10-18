@@ -119,6 +119,25 @@ matrix:
   exempt-paths: ["docs/plan/adr/README.md", "docs/reviews/**"]
   exclude-sections: [Geschichte]
 
+# Range-Pruefungen (make doc-commits, make doc-immutable; Vertrag SPEC-064 Punkte 11 und 12).
+# Beide Module stehen nicht in modules:, die Targets aktivieren sie mit --enable. Ohne diese
+# Bloecke melden beide Targets ueber jeder Range "0 Befund(e)"; range-konfiguration-gegenprobe
+# faerbt sich rot, wenn ein Block oder ein Eintrag fehlt.
+commits:
+  id-patterns:
+    - 'ADR-[0-9]{4}'
+    - 'LH-[A-Z]{2}-[0-9]{2}'
+    - 'MR-[0-9]{3}'
+    - '(slice|welle)-[a-z0-9]+(-[a-z0-9]+)*'
+  exempt-pattern: '^(Merge |Revert )'
+vcs:
+  paths: ["docs/plan/adr/[0-9]*.md"]
+  immutable-when: '^\*\*Status:\*\* Accepted'
+  exclude-sections: [Geschichte]
+  status-line: '^\*\*Status:\*\*'
+  head-allow: '^\*\*Status:\*\* (Accepted|Superseded by )'
+  ignore-link-targets: true
+
 # Quellen der Requirements Traceability Matrix (make doc-trace). Die Kennungen dieses
 # Repos tragen das Praefix LH und eine laufende Nummer (LH-FA-01, LH-QA-01, LH-RB-01);
 # die Slices heissen slice-<welle>-<aspekt>. Als Nachweis zaehlen nur Slices in done/:
