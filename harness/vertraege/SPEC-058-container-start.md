@@ -45,7 +45,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
    kein Remote, kein `core.sshCommand`, keine Datei im Arbeitsbaum), kein `~/.ssh` und kein `known_hosts`.
    Es entfernt, stoppt und baut nie etwas ab: kein `docker stop`, `docker rm`, `docker rmi`,
    `docker volume rm`, `prune`. Die Gegenprobe zeigt es an einer Attrappe von `docker`, die jeden Aufruf
-   protokolliert (Fall `p1-keine-zerstoerung`; Mutation: bei Kollision (Punkt 9) ruft das Skript `docker rm -f`).
+   protokolliert (Fall `p1-keine-zerstoerung`; Mutation in Teil I: ein Schritt von Teil I, etwa `werkzeuge`, ruft `docker rm -f`; mit Teil II zusätzlich: das Skript ruft bei Kollision (Punkt 9) `docker rm -f`).
    Stoppen ist `docker stop <Name>` von Hand; ein zweites Ziel gibt es nicht (Punkt 9).
 
 2. **Eingaben.** Sie kommen aus der Umgebung. Ein Wert, der gesetzt und leer ist, ist ungültig (kein
@@ -73,13 +73,13 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
    `ssh-keygen` müssen im Pfad liegen. Dazu: (a) `u-boot --version` nennt die erste Zeichenfolge
    `<x>.<y>.<z>` aus Dezimalziffern; sie ist, Teil für Teil als Zahl verglichen, nicht kleiner als `0.10.0`
    (`0.9.0` ist kleiner, `0.100.0` ist nicht kleiner); ohne eine solche Zeichenfolge ist die Version
-   unlesbar und abgelehnt; (b) `docker info` endet mit Exit-Code 0, und die Hauptversion des Servers
-   (`docker version --format '{{.Server.Version}}'`) ist nicht kleiner als 24. Version von `devcontainer`,
+   unlesbar und abgelehnt (Meldung `u-boot: Version unlesbar`); `u-boot --version` mit Exit-Code ungleich 0 ist ebenso unlesbar, gleich was es ausgab; (b) `docker info` endet mit Exit-Code 0, und die Hauptversion des Servers
+   (`docker version --format '{{.Server.Version}}'`) ist nicht kleiner als 24. Liefert `docker version --format '{{.Server.Version}}'` Exit-Code ungleich 0 oder keine mit Dezimalziffern beginnende Hauptversion, ist die Version unlesbar und abgelehnt (Meldung `docker: Version des Servers unlesbar`, verschieden von „kleiner als 24“; Exit 3). Version von `devcontainer`,
    `node`, `ssh`: nicht geprüft (Punkt 17). Ein Verstoß endet mit Exit-Code 3 und ändert nichts. Der Schritt meldet **alle**
    Verstöße, je einer in einer Zeile mit dem Namen des Werkzeugs, in der Reihenfolge `docker`, `u-boot`,
    `devcontainer`, `node`, `ssh`, `ssh-keygen`; bei einem fehlenden Werkzeug entfällt dessen Versionsprüfung.
    Fälle `p3-*`: je Werkzeug fehlt (sechs), `u-boot` 0.9.0 abgelehnt, 0.10.0, 0.100.0 und 1.0.0 angenommen,
-   unlesbare Version abgelehnt, Daemon nicht erreichbar, Server 23 abgelehnt und 24 angenommen, alle fehlen
+   unlesbare Version abgelehnt (auch `u-boot --version` mit Exit 1, auch `docker version` ohne Ziffern oder mit Exit 1), Daemon nicht erreichbar, Server 23 abgelehnt und 24 angenommen, alle fehlen
    (Reihenfolge). Mutationen: das Werkzeug wird nicht geprüft, lexikalischer statt numerischer Vergleich, `>`
    statt `>=`, Docker-Version nicht geprüft, Reihenfolge vertauscht. **E2:** Diese Voraussetzungen gelten nur
    für `container-start` und seine Gegenprobe; kein anderes Ziel und kein Gate braucht sie. Stand: `ssh` ist
@@ -93,7 +93,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
    `version`, `ps`, `inspect` und `port` auf. Fall `p4-nichts-geaendert` je Verstoß der Schritte 2, 3, 5, 6, 9
    und 10: `$PGR_DEV` (Existenz, Inhalt, Rechte) ist unverändert, das Protokoll der Attrappen nennt keinen
    anderen Aufruf; Mutation: ein Schritt schreibt vor seiner Prüfung. Jede Fehlermeldung nennt den Schritt
-   (`container-start: <Schritt>: <Grund>`, auf stderr); auf stdout steht nur die Schlussmeldung des Erfolgs
+   (`container-start: <Schritt>: <Grund>`, auf stderr); auf stdout steht von der eigenen Ausgabe des Ziels nur die Schlussmeldung des Erfolgs; die Ausgabe eines aufgerufenen Werkzeugs (`u-boot`, in Teil II `devcontainer` und die letzte Ausgabe von `ssh` in der Meldung) erscheint unverändert auf dem Strom, auf dem das Werkzeug sie schrieb, und ist davon ausgenommen (Punkt 7)
    (Punkt 11).
 
 5. **Das Verzeichnis `$PGR_DEV`.** Zustand in Schritt `zustand`, Anlegen in `geruest`. Gleichwertig ist
@@ -108,7 +108,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
      läuft in ihm (Punkt 7).
    - Enthält es eine Datei `u-boot.yaml` mit der Zeile `    name: <Projektname>` und das Verzeichnis
      `.devcontainer/` mit `devcontainer.json`: **Gerüst vorhanden**. Es folgt kein Aufruf von `u-boot`
-     außer `--version`; Dateien des Gerüsts (`u-boot.yaml`, `.devcontainer/`, `mk-override.sh`, `ssh/`) bleiben byteweise gleich
+     außer `--version`; Dateien des Gerüsts (`u-boot.yaml`, `.devcontainer/`, `mk-override.sh`, `ssh/`) bleiben byteweise gleich, `.devcontainer/` ohne `override.json` (diese Datei schreibt Schritt `override` bei jedem Lauf neu, Punkt 8)
      (Fall: Prüfsummen vor und nach dem Lauf; Mutation: das Ziel ruft `u-boot generate devcontainer`).
    - Enthält es `u-boot.yaml` mit dem Namen, aber kein `.devcontainer/devcontainer.json`: ein früherer Lauf
      brach in `u-boot` ab; der Lauf setzt mit den `config set`-Zeilen und `generate` fort, ohne `init`.
@@ -121,7 +121,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
 
 6. **Schlüsselpaar.** `ssh/id_ed25519` und `ssh/id_ed25519.pub` unter `$PGR_DEV`. Zustand in `zustand` (nur lesen).
    - Beide fehlen: `schluessel` legt `ssh/` mit Modus 700 an und erzeugt das Paar ohne Passphrase mit dem
-     Kommentar `<Projektname>`; die private Datei hat Modus 600.
+     Kommentar `<Projektname>`; die private Datei hat Modus 600. Besteht `ssh/` schon ohne die zwei Dateien, setzt `schluessel` seinen Modus auf 700 (Fall `p6-modus-ordner-vorhanden`, `ssh/` mit Modus 755 und leer; Mutation: das Setzen entfällt); andere Dateien in `ssh/` bleiben unberührt.
    - Beide vorhanden: sie werden genutzt, wenn (a) `ssh/` und die private Datei für Gruppe und andere weder lesbar
      noch schreibbar noch ausführbar sind, (b) `ssh-keygen -y -P ''` die private Datei ohne Passphrase liest und
      (c) dessen Ausgabe in Typ und Schlüsselteil der `.pub` entspricht. Sonst abgelehnt, Exit 4, die Meldung
@@ -201,7 +201,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
     **A9 (Empfehlung des Architect, Entscheidung des Nutzers):** Die zwei Optionen für den Hostschlüssel gelten nur für diese Probe:
     Sie prüft die Erreichbarkeit der eigenen Schleife des Hosts, kein Vertrauen. Das Ziel schreibt und ändert nie `known_hosts`,
     `~/.ssh/config` oder `core.sshCommand` und setzt keine Einstellung für spätere Aufrufe; die Entscheidung über den Hostschlüssel
-    bleibt beim Nutzer. Die Probe wiederholt sich jede Sekunde bis `PGR_WARTEN` Sekunden verstrichen sind. Erfolg: Meldung auf stdout
+    bleibt beim Nutzer. Die Probe wiederholt sich jede Sekunde bis `PGR_WARTEN` Sekunden verstrichen sind; die Vorgabe 60 aus Punkt 2 wird hier beobachtbar (Fall `p11-vorgabe-warten` mit nicht gesetztem `PGR_WARTEN` und einer Attrappe von `ssh`, die nie gelingt: die Zahl ihrer Aufrufe liegt bei 60 oder 61; Mutation: Vorgabe 61 liefert 62 oder mehr; in Teil I ist der Wert nur in der Form geprüft, ein Mutant der Vorgabe bleibt dort grün, akzeptiertes Negativ bis Teil II). Erfolg: Meldung auf stdout
     `container-start: bereit <Name> 127.0.0.1:<Port>`, Exit 0. Kein Erfolg bis zur Zeitgrenze: Exit 5, die Meldung nennt `warten`
     und die letzte Ausgabe von `ssh`; der Container bleibt stehen. Ob `dockerd` im Container bereit ist, prüft das Ziel nicht
     (`devcontainer up` endet nach `postStartCommand`; Punkt 17). Fälle `p11-*` an einer Attrappe von `ssh`: Erfolg im ersten Versuch,
@@ -248,7 +248,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
     läuft in Temp-Verzeichnissen mit Attrappen von `docker`, `u-boot`, `devcontainer` und `ssh` in einem vorangestellten Pfad, ohne Docker
     und ohne Netz, mit echtem `node` und `ssh-keygen`; jede Attrappe protokolliert Aufruf und Argumente. *Gruppe Docker* (die Fälle gegen
     reales Docker aus den Punkten 7 bis 11) fährt gegen den Daemon des Hosts und höchstens einen Container des Gerüsts zugleich. Regeln der
-    Gruppe Docker (Zuordnung: (a) für Verzeichnisse und (e), (f) für Verzeichnisse und Temp-Pfade gelten schon in Teil I, mit dem Fall gegen das echte `u-boot` aus Punkt 7, der eine Attrappe von `docker` nutzt, weil Schritt `werkzeuge` nur `info` und `version` ruft; (a) für Container und Image, (b), (c), (d) und (e), (f) für Container und Volumes erst mit Teil II): (a) Namenspräfix `pgr-cs-` für jeden Container, jedes Verzeichnis (unter `mktemp -d`), jedes Image (`vsc-pgr-cs-`);
+    Gruppe Docker (Zuordnung: (a) für Verzeichnisse und (f) für Verzeichnisse und Temp-Pfade gelten schon in Teil I, mit dem Fall gegen das echte `u-boot` aus Punkt 7, der eine Attrappe von `docker` nutzt, weil Schritt `werkzeuge` nur `info` und `version` ruft; (a) für Container und Image, (b), (c), (d), (e) und (f) für Container und Volumes erst mit Teil II; (e) hat in Teil I keinen Fall, weil dort kein Name von außen kommt: das Verzeichnis stammt aus `mktemp` mit dem Präfix, der Vergleich vor dem Entfernen ist Absicherung ohne Fall (akzeptiertes Negativ; Grund: ein Fall bräuchte eine Eingabe, die es in Teil I nicht gibt)): (a) Namenspräfix `pgr-cs-` für jeden Container, jedes Verzeichnis (unter `mktemp -d`), jedes Image (`vsc-pgr-cs-`);
     (b) der Port ist einer, der zum Zeitpunkt frei ist, nie 2222 und nie ein Port eines Containers ohne Präfix; (c) `PGR_CPUS=2` und
     `PGR_MEM=2g`; (d) Entfernen nur per Name: `docker rm -fv`, danach die Prüfung, dass keines der zuvor aus `docker inspect` gelesenen Volumes
     (Typ `volume`) bleibt (`SPEC-057` Punkte 3 und 4; ein Rest wird gemeldet, per Name entfernt und färbt die Gegenprobe rot), `docker rmi`
@@ -257,7 +257,7 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
     gibt es nicht: Die Gegenprobe läuft selbst in `make gates`, und gleichzeitige Läufe auf einem Daemon sind nicht zugesagt (`SPEC-052`
     Punkt 8); die Regel „nie gleichzeitig mit dem Lauf eines anderen Slice und nie gegen den Container, in dem gearbeitet wird“ richtet sich an
     den Aufrufer. Die Mutanten ersetzen genau eine Stelle in einer Kopie des Skripts; trifft die Ersetzung nichts oder mehr als eine Stelle,
-    bricht die Gegenprobe ab. Die Laufzeit ist zu messen und im Plan zu nennen.
+    bricht die Gegenprobe ab. **Voraussetzung des Gates:** Die Gegenprobe braucht `u-boot` (echt, Fall aus Punkt 7), `node` und `ssh-keygen` im Pfad; in Teil II zusätzlich Docker und `devcontainer`. Fehlt eines, endet sie mit Exit-Code ungleich 0 und nennt das Werkzeug, bevor ein Fall läuft; sie überspringt keinen Fall (Entscheidung R1: ein Gate, das ohne Voraussetzung grün würde, belegte den Fall nicht, und der Preis, `make gates` auf einem Host ohne diese Werkzeuge rot zu sehen, ist mit der Entscheidung für den Ort im Repo angenommen). Fall `p15-voraussetzung` je Werkzeug mit einem Pfad ohne dieses; Mutation: der Fall wird bei fehlendem Werkzeug übersprungen. Die Laufzeit ist zu messen und im Plan zu nennen.
 
 16. **Ausnahmeliste und Gate-Kette.** `container-start-gegenprobe` hängt an `GATE_CHECKS` und steht in der Ausnahmeliste der schnellen Kette
     (`SPEC-052` Punkte 2 und 4): Sie startet Container und läuft dort nicht. Sie legt ihre Verzeichnisse in Temp-Pfaden an und liest nichts unter
