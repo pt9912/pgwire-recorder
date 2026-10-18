@@ -5,5 +5,5 @@
 # Es braucht docker, u-boot, devcontainer, node, ssh und ssh-keygen am Host (SPEC-058 Punkt 3).
 .PHONY: container-start
 
-container-start: ## Dev-Container-Gerüst unter $PGR_DEV anlegen — KEIN Gate
+container-start: ## Dev-Container-Gerüst unter $PGR_DEV anlegen und den Container starten — KEIN Gate
 	@bash tools/harness/container-start.sh

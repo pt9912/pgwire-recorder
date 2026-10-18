@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# container-start — legt am Host das Gerüst des Dev-Containers an (Schritte eingaben, werkzeuge,
-# zustand, geruest, schluessel, override) und endet nach override mit Exit 6 (Zwischenstand).
-# Vertrag: harness/vertraege/SPEC-058-container-start.md Teil I (Punkte 1 bis 8 und die Teile der
-# Punkte 13 und 14 ohne Container). Kein Gate. Eingaben aus der Umgebung: PGR_DEV (Pflicht),
-# PGR_NAME, PGR_SSH_PORT, PGR_WARTEN, PGR_CPUS, PGR_MEM.
-# Exit-Codes: 2 eingaben · 3 werkzeuge · 4 zustand · 5 Fehler eines Schrittes · 6 Zwischenstand.
+# container-start — legt am Host das Gerüst des Dev-Containers an und startet den Container (Schritte
+# eingaben, werkzeuge, zustand, geruest, schluessel, override, start, warten); endet mit der Zeile `bereit`.
+# Vertrag: harness/vertraege/SPEC-058-container-start.md (Punkte 1 bis 14). Kein Gate. Eingaben aus der
+# Umgebung: PGR_DEV (Pflicht), PGR_NAME, PGR_SSH_PORT, PGR_WARTEN, PGR_CPUS, PGR_MEM.
+# Exit-Codes: 0 bereit · 2 eingaben · 3 werkzeuge · 4 zustand · 5 Fehler eines Schrittes · 130 SIGINT · 143 SIGTERM.
 #
 # GEPRÜFT DURCH tools/harness/container-start-gegenprobe.sh (Fälle p<Punkt>-*).
 set -uo pipefail
@@ -19,6 +18,28 @@ fehl() { echo "container-start: $schritt: $*" >&2; }
 ende() { local c=$1; shift; fehl "$@"; exit "$c"; }
 bad=0
 meld() { fehl "$@"; bad=1; }
+
+# Punkt 12: SIGINT und SIGTERM beenden das laufende Kind und den Lauf; nichts wird zurückgebaut.
+kpid=
+abbruch() { [ -z "$kpid" ] || kill "$kpid" 2> /dev/null; ende "$1" abgebrochen; }
+trap 'abbruch 130' INT
+trap 'abbruch 143' TERM
+# kind [-m] <Befehl…>: Kindprozess im Hintergrund, damit ein Signal sofort wirkt. Seine Standardausgabe geht
+# unverändert nach stdout und steht in $kausg (mit -m samt Standardfehler nur in $kausg); $kcode ist sein Exit-Code.
+kind() {
+  local m=0 z r fd; [ "${1-}" != -m ] || { m=1; shift; }
+  kausg=
+  if (( m )); then exec {fd}< <(exec "$@" 2>&1 < /dev/null); else exec {fd}< <(exec "$@" < /dev/null); fi
+  kpid=$!
+  while :; do
+    IFS= read -r z <&"$fd"; r=$?
+    (( r == 0 )) && z+=$'\n'
+    kausg+=$z; (( m )) || printf '%s' "$z"
+    (( r == 0 )) || break
+  done
+  exec {fd}<&-
+  wait "$kpid"; kcode=$?; kpid=
+}
 
 # zahl <Wert> <Höchstwert>: Dezimalziffern, kein Vorzeichen, keine führende Null, 1 bis Höchstwert.
 zahl() {
@@ -38,7 +59,7 @@ PGR_NAME=${PGR_NAME-pgr-dev}
 PGR_SSH_PORT=${PGR_SSH_PORT-2222}
 PGR_WARTEN=${PGR_WARTEN-60}
 PGR_CPUS=${PGR_CPUS-8}
-PGR_MEM=${PGR_MEM-12g}
+PGR_MEM=${PGR_MEM-8g}
 pruefe_PGR_DEV() {
   local w=${PGR_DEV-} q zeichen='^/[A-Za-z0-9._+/-]*$'
   q=$(printf '%q' "$w")
@@ -147,10 +168,35 @@ zust_schluessel() {
     (( ${#mangel[@]} == 0 )) || ende 4 "Schlüsselpaar abgelehnt, nichts wird verändert: ${mangel[*]}"
   fi
 }
-s_zustand() { zust_repo; zust_verzeichnis; zust_schluessel; }
+# Punkt 9: Der Container des Gerüsts trägt das Label devcontainer.local_folder gleich $PGR_DEV. zc ist keiner,
+# gestoppt oder laeuft; bei Kollision, anderem Namen und abweichendem Port endet der Schritt mit Exit 4.
+zust_container() {
+  local lab nm n i bind
+  zc=keiner
+  lab=$(docker ps -a --filter "label=devcontainer.local_folder=$PGR_DEV" --format '{{.Names}}')
+  nm=$(docker ps -a --filter "name=^/$PGR_NAME\$" --format '{{.Names}}')
+  if [ -n "$nm" ] && [[ $'\n'$lab$'\n' != *$'\n'$PGR_NAME$'\n'* ]]; then
+    ende 4 "der Container $nm trägt das Label des Gerüsts nicht (Kollision), nichts wird angefasst"
+  fi
+  while IFS= read -r n; do
+    [ -z "$n" ] || [ "$n" = "$PGR_NAME" ] || ende 4 "der Container des Gerüsts heißt $n, nicht $PGR_NAME"
+  done <<< "$lab"
+  [ -n "$lab" ] || return 0
+  i=$(docker inspect --format '{{.State.Status}} {{range (index .HostConfig.PortBindings "2222/tcp")}}{{.HostIp}}:{{.HostPort}} {{end}}' "$PGR_NAME")
+  bind=${i#* }
+  [ "$bind" = "127.0.0.1:$PGR_SSH_PORT " ] || ende 4 "der Container $PGR_NAME veröffentlicht Port 2222 als ${bind:-keinen}, nicht als 127.0.0.1:$PGR_SSH_PORT"
+  zc=gestoppt
+  [ "${i%% *}" != running ] || zc=laeuft
+}
+# Punkt 10: Läuft der Container nicht, darf am Port keine Verbindung zustande kommen.
+zust_port() {
+  [ "$zc" != laeuft ] || return 0
+  ! ( exec 3<> "/dev/tcp/127.0.0.1/$PGR_SSH_PORT" ) 2> /dev/null || ende 4 "der Port $PGR_SSH_PORT ist belegt"
+}
+s_zustand() { zust_repo; zust_verzeichnis; zust_schluessel; zust_container; zust_port; }
 
 # Punkt 7: geruest. Die Ausgabe von u-boot erscheint unverändert; ein Fehler beendet den Lauf mit Exit 5.
-ub() { u-boot "$@" || { c=$?; ende 5 "u-boot $* endete mit Exit $c"; }; }
+ub() { kind u-boot "$@"; [ "$kcode" = 0 ] || ende 5 "u-boot $* endete mit Exit $kcode"; }
 s_geruest() {
   [ "$zv" != vorhanden ] || return 0
   [ -d "$PGR_DEV" ] || mkdir -- "$PGR_DEV" || ende 5 "$PGR_DEV ließ sich nicht anlegen"
@@ -174,6 +220,7 @@ s_schluessel() {
 
 # Punkt 8: override. Ein vorhandenes mk-override.sh bleibt unberührt; es läuft mit den vier Variablen.
 s_override() {
+  [ "$zc" != laeuft ] || return 0
   cd -- "$PGR_DEV" || ende 5 "$PGR_DEV ist als Ort von mk-override.sh nicht erreichbar"
   if [ ! -e mk-override.sh ]; then
     cat > mk-override.sh <<'MKOVERRIDE'
@@ -186,7 +233,7 @@ const fs = require("fs");
 const j = JSON.parse(fs.readFileSync(".devcontainer/devcontainer.json", "utf8").replace(/^\s*\/\/.*$/mg, ""));
 const port = process.env.PGR_SSH_PORT || "2222";
 j.runArgs = [...j.runArgs, "--name=" + (process.env.PGR_NAME || "pgr-dev"),
-  "--cpus=" + (process.env.PGR_CPUS || "8"), "--memory=" + (process.env.PGR_MEM || "12g")];
+  "--cpus=" + (process.env.PGR_CPUS || "8"), "--memory=" + (process.env.PGR_MEM || "8g")];
 j.appPort = ["127.0.0.1:" + port + ":2222"];
 j.mounts = [...j.mounts, "type=bind,source=${localWorkspaceFolder}/ssh/id_ed25519.pub,target=/home/vscode/.ssh/authorized_keys,readonly"];
 j.remoteEnv.CLAUDE_CODE_OAUTH_TOKEN = "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}";
@@ -199,7 +246,28 @@ MKOVERRIDE
   bash ./mk-override.sh || ende 5 "mk-override.sh endete mit Exit $?"
 }
 
+# Punkt 9: start, im Verzeichnis, das override betreten hat. Ein laufender Container bleibt stehen; sonst legt
+# devcontainer up ihn an oder startet ihn.
+# Erfolg ist Exit 0 und die Ausgabe "outcome":"success"; ohne Rückbau bei einem Fehler.
+s_start() {
+  [ "$zc" != laeuft ] || return 0
+  kind devcontainer up --workspace-folder . --override-config .devcontainer/override.json
+  [ "$kcode" = 0 ] || ende 5 "devcontainer up endete mit Exit $kcode"
+  [[ $kausg == *'"outcome":"success"'* ]] || ende 5 'devcontainer up meldete kein "outcome":"success"'
+}
+
+# Punkt 11: warten. ssh als vscode mit dem Schlüssel des Gerüsts, jede Sekunde, bis PGR_WARTEN Sekunden verstrichen
+# sind. Die zwei Optionen für den Hostschlüssel gelten nur für diese Probe; das Ziel schreibt kein known_hosts.
+s_warten() {
+  local t0=$SECONDS
+  while :; do
+    kind -m ssh -i "$PGR_DEV/ssh/id_ed25519" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=5 \
+      -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -p "$PGR_SSH_PORT" vscode@127.0.0.1 true
+    if [ "$kcode" = 0 ]; then echo "container-start: bereit $PGR_NAME 127.0.0.1:$PGR_SSH_PORT"; return 0; fi
+    (( SECONDS - t0 < PGR_WARTEN )) || ende 5 "nach $PGR_WARTEN Sekunden keine Anmeldung, letzte Ausgabe von ssh: ${kausg%$'\n'}"
+    sleep 1
+  done
+}
+
 # Punkt 13: Die Reihenfolge der Gründe ist die Reihenfolge der Schritte; der erste Verstoß beendet den Lauf.
-for schritt in eingaben werkzeuge zustand geruest schluessel override; do "s_$schritt"; done
-# Zwischenstand: Teil II fehlt; der Lauf endet nie mit 0 und schreibt nie `bereit`.
-ende 6 "Teil II fehlt, Gerüst liegt, kein Container gestartet"
+for schritt in eingaben werkzeuge zustand geruest schluessel override start warten; do "s_$schritt"; done
