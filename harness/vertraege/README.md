@@ -34,6 +34,7 @@ ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/
 | `SPEC-055` | `binaries`, `test-container` | [`SPEC-055-container-und-binaries.md`](SPEC-055-container-und-binaries.md) |
 | `SPEC-056` | `test` (Schwelle der Anweisungsabdeckung), `coverage-gegenprobe` | [`SPEC-056-testabdeckung-schwelle.md`](SPEC-056-testabdeckung-schwelle.md) |
 | `SPEC-057` | `test-integration` (Aufräumen), `integration-volumes-gegenprobe` | [`SPEC-057-integration-aufraeumen.md`](SPEC-057-integration-aufraeumen.md) |
+| `SPEC-058` | `container-start`, `container-start-gegenprobe` | [`SPEC-058-container-start.md`](SPEC-058-container-start.md) |
 
 ## Historie
 
@@ -60,3 +61,4 @@ ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/
 | 2026-10-17 | Harness-Werkzeuge: Binaries je Zielplattform mit `SHA256SUMS`, Gate über zwei Builds ohne Cache, Kopf der Binaries, Image je Plattform, Smoke im Container, Aufräumen, Aufrufarten des Treibers und Grenzen (`SPEC-055`) |
 | 2026-10-17 | Harness-Werkzeuge: Aufräumen der Integrationstests mit Gegenstand (Mounts vom Typ `volume`), `rm -fv`, Lesen vor dem Entfernen, Rest und Vorrang des Codes, Ende des Laufs, Fälle und Mutationen der Gegenprobe, Docker-Version und Grenzen (`SPEC-057`); Beleg der Gegenprobe für `docs/user/` und `README.md` (`SPEC-052`, Punkt 13) |
 | 2026-10-17 | Harness-Werkzeuge: Schwelle der Anweisungsabdeckung der Unit-Tests in der Stufe `test` mit Messung (nur Unit-Tests, ohne `-coverpkg`), Gesamtwert nach Anweisungen, Paketen ohne Test, Vergleich ohne Rundung, Eingaben des Prüfschritts, Ausgabe, Aufrufarten und Grenzen (`SPEC-056`); Beleg der Gegenprobe für `docs/user/` und `README.md` (`SPEC-052`, Punkt 13) |
+| 2026-10-18 | Harness-Werkzeuge: Start des Dev-Containers mit Eingaben, Voraussetzungen am Host, Zustand von Verzeichnis, Schlüsselpaar und Container, `u-boot`-Aufrufen, `override.json`, Bereitschaft, Abbruch, Reihenfolge der Gründe und Exit-Codes, Aufrufarten des Treibers, Gegenprobe gegen Scratch-Container und Grenzen (`SPEC-058`); Beleg der Gegenprobe für `docs/user/`, `docs/developer/` und `README.md` (`SPEC-052`, Punkt 13) |
