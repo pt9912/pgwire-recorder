@@ -188,6 +188,24 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
    - Er besteht, läuft nicht (`exited`, `created`): `override` und `devcontainer up --workspace-folder . --override-config .devcontainer/override.json`
      im Verzeichnis (Neustart; derselbe Container).
    - Es besteht keiner: ebenso (neuer Container; vorhandene Volumes bleiben, die Namen tragen die `devcontainerId` des Verzeichnisses).
+   - **Randformen** (Entscheidung des Architect, Rückgabe des Implementers): (a) *Reihenfolge der Ablehnungen im Container:* Kollision des
+     Namens (Name ohne Label) vor anderem Namen vor Port vor Zustand (b) und Verzeichnis (d); treffen Kollision und anderer Name zugleich zu,
+     meldet das Ziel die Kollision. (b) *Zustand:* nur `running` gilt als läuft, nur `exited` und `created` als besteht, läuft nicht; jeder
+     andere Zustand (`paused`, `restarting`, `removing`, `dead`) ist abgelehnt, Exit 4, die Meldung nennt Zustand und Namen, nichts wird
+     angefasst (Grund: `devcontainer up` auf einen solchen Container ist nicht gemessen, und ein Neustart oder ein zweiter Container
+     verschlimmerte den Zustand). (c) *Kein veröffentlichter Port 2222* gilt als abweichend: Exit 4, die Meldung nennt „keinen“.
+     (d) *Container ohne Gerüst:* besteht ein Container mit dem Label und ist das Verzeichnis fehlend, leer oder ohne
+     `.devcontainer/devcontainer.json`, ist der Lauf abgelehnt, Exit 4, die Meldung nennt das Verzeichnis; kein Schritt danach läuft
+     (Grund: ein neu erzeugtes Gerüst und Schlüsselpaar passten nicht zu dem Container, der noch das alte hält). (e) *Docker-Fehler:*
+     endet `docker ps` (nach Label oder nach Name) oder `docker inspect` in `zustand` mit Exit ungleich 0, ist der Lauf abgelehnt, Exit 4,
+     die Meldung nennt den Aufruf; eine leere Ausgabe nach einem Fehler gilt nie als „kein Container“ (Grund: sonst startete das Ziel
+     einen zweiten Container). Fälle an Attrappen: `p9-zustand-paused`, `-restarting`, `-removing`, `-dead` (je Zustand einer, kein `up`,
+     Exit 4), `p9-kein-port` (Container ohne Bindung, Exit 4, Meldung mit „keinen“), `p9-ohne-geruest` (läuft, Verzeichnis leer; und
+     gestoppt, Verzeichnis ohne `devcontainer.json`: je Exit 4, kein `u-boot`, kein `up`), `p9-docker-ps-label`, `p9-docker-ps-name`,
+     `p9-docker-inspect` (Exit ungleich 0 und leere Ausgabe: Exit 4, kein `up`), `p9-doppelt` (Name ohne Label und anderer Container mit
+     Label: Meldung der Kollision). Mutationen: ein Zustand wird als „läuft nicht“ behandelt (je Zustand, falls getrennt gelesen); die
+     Prüfung des Ports lässt eine leere Bindung durch; die Prüfung (d) entfällt; der Fehler eines der drei Aufrufe wird als leer gelesen
+     (je Aufruf); die Reihenfolge von Kollision und anderem Namen ist vertauscht.
    `devcontainer up` gilt als erfolgreich bei Exit-Code 0 **und** einer Ausgabezeile mit `"outcome":"success"`; sonst endet der Lauf
    mit Exit 5 (`start`), ohne Rückbau. Seine Ausgabe erscheint unverändert; er läuft ohne die drei Variablen aus Punkt 8 in der Umgebung (Fall `p9-umgebung`: die Attrappe von `devcontainer` sieht keine; Mutation: `env -u` entfällt). Ein Container, den Docker beim Fehler im Zustand `created`
    hinterlässt, ist beim nächsten Aufruf „besteht, läuft nicht“. **Stopp und Neustart (E6, Empfehlung):** kein zweites Ziel; Stopp ist
@@ -245,10 +263,14 @@ Messung bereit, und das Ziel lehnt sie nicht ab, damit ein Nutzer es dort auf ei
     von `eingaben` und `werkzeuge` werden alle Verstöße des Schrittes gemeldet, Punkte 2 und 3):
     1. `eingaben` (Exit 2), 2. `werkzeuge` (3), 3. in `zustand` (4): Lage des Pfades im Repo, Zustand des Verzeichnisses (Punkt 5), Zustand
     des Schlüsselpaars (6), Zustand des Containers (9), Port belegt (10), 4. Fehler eines Schrittes `geruest`, `schluessel`, `override`,
-    `start`, `warten` (5), 5. Signal (130, 143). Exit-Code 0 heißt „bereit“ (auch beim zweiten Aufruf); 1 und alle anderen sind nicht
+    `start`, `warten` (5), 5. Signal (130, 143). **Signal und Fehler eines Schrittes (5) sind Ereignisse, keine Zustände:** das erste beendet den Lauf. Trifft ein Signal ein, während
+    ein Kindprozess läuft, beendet der Abbruch das Kind und der Lauf endet mit 130 oder 143, nie mit 5 (Fall `p12-*` des Abbruchs, Punkt 12);
+    hat ein Schritt schon mit 5 geendet, bleibt es bei 5. Nicht zugesagt und nicht prüfbar ist das Ergebnis bei Gleichzeitigkeit beider
+    (akzeptiertes Negativ; Grund: kein deterministischer Fall); geprüft wird nur die Reihenfolge der Ereignisse (Fall `p13-fehler-vor-signal`: Schritt scheitert, danach
+    kein Signal, Exit 5; Mutation: der Fehler wird als Signal gemeldet). Exit-Code 0 heißt „bereit“ (auch beim zweiten Aufruf); 1 und alle anderen sind nicht
     belegt. **Zwischenstand, nicht zugesagt:** Solange Teil II nicht geliefert ist, endet ein Lauf, der alle Schritte bis `override` besteht, mit Exit-Code 6 und der Zeile `container-start: override: Teil II fehlt, Gerüst liegt, kein Container gestartet` auf stderr; er schreibt nie `bereit` und endet nie mit 0. Mit Teil II entfallen Exit 6 und die Zeile (kein Code und keine Zeile des Vertrags nennen ihn danach); die Fälle des Zwischenstandes (`p13-zwischenstand`, Mutation: Exit 0 oder Zeile `bereit`) fallen mit ihm weg. Fälle `p13-*`: je Nachbarpaar der Reihenfolge ein Fall, in dem beide Gründe zutreffen und der frühere gemeldet wird (Eingabe vor
     Werkzeug; Werkzeug vor Pfad im Repo; Pfad im Repo vor fremdem Verzeichnis; fremdes Verzeichnis vor Schlüsselmangel; Schlüsselmangel vor
-    Kollision des Containers; Kollision vor belegtem Port) und der Exit-Code jedes Grundes; Mutation: die beiden Prüfungen vertauscht.
+    Kollision des Containers; Kollision vor belegtem Port; Kollision vor anderem Namen, Punkt 9 (a)) und der Exit-Code jedes Grundes; Mutation: die beiden Prüfungen vertauscht.
 
 14. **Aufrufarten des Treibers.** Das Ergebnis ist der Exit-Code des Skripts und die Meldung `bereit`; kein Stand und kein Hook glaubt es.
     Das Rezept von `container-start` ist eine Zeile ohne `$(MAKE)` und ohne `+`, das Ziel `.PHONY` ohne Voraussetzungen. Unter `-n`
