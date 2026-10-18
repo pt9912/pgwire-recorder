@@ -300,6 +300,22 @@ for flag in -n -q -t -i; do
 done
 MAKEFLAGS=-n make -s -C "$w" meldungskatalog-check >/dev/null 2>&1 || true
 [ "$vorher" = "$(bestand "$w")" ] || melde "Fall 'nr11-makeflags-umgebung': MAKEFLAGS=-n hat den Baum verändert"
+# Mutationen: ohne die Zeile der Gegenprobe (Liste), ohne die Zeile der Prüfung (GATE_CHECKS) und mit der Prüfung in der
+# Ausnahmeliste färben sich die Fälle nr11-liste, nr11-gate-checks und nr11-schnelle-kette.
+for zeile in 'GEGENPROBEN_CONTAINER += meldungskatalog-check-gegenprobe:meldungskatalog-check-gegenprobe:GEGENPROBEN_CONTAINER:nr11-liste' 'GATE_CHECKS += meldungskatalog-check:meldungskatalog-check:GATE_CHECKS:nr11-gate-checks'; do
+  IFS=: read -r text ziel liste fall <<< "$zeile"
+  anschluss ""
+  grep -qx "$text" "$w/harness/mk/meldungskatalog-check.mk" || melde "Mutation '$fall-gestrichen': die Zeile fehlt in meldungskatalog-check.mk"
+  sed -i "/^$text\$/d" "$w/harness/mk/meldungskatalog-check.mk"
+  datenbank="$(make -C "$w" -pq help 2>/dev/null || true)"
+  if printf '%s\n' "$datenbank" | awk -v z="$ziel" -v l="$liste" '$1 == l && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) if ($i == z) t = 1 } END { exit !t }'; then melde "Mutation '$fall-gestrichen': der Fall '$fall' bleibt grün"; fi
+done
+anschluss ""
+sed -i 's/^GATE_SCHNELL_AUSNAHME := .*/& meldungskatalog-check/' "$w/harness/mk/gates-schnell.mk"
+datenbank="$(make -C "$w" -pq help 2>/dev/null || true)"
+if ! printf '%s\n' "$datenbank" | awk '/^GATE_SCHNELL_AUSNAHME :?= / { for (i = 3; i <= NF; i++) if ($i == "meldungskatalog-check") t = 1 } END { exit !t }'; then
+  melde "Mutation 'nr11-schnelle-kette-gesetzt': die Prüfung in der Ausnahmeliste ist nicht zu sehen"
+fi
 
 if [ "$fehler" -ne 0 ]; then
   exit 1

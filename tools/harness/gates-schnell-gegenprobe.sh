@@ -10,9 +10,11 @@
 # zusätzlich gegen den Arbeitsbaum selbst: ein neues Gate dieser Namen macht die
 # Gegenprobe rot, bis jemand es in die Liste aufnimmt oder bewusst schnell lässt. Die Namensregel
 # läuft ebenfalls gegen den Arbeitsbaum: ein Ziel auf -gegenprobe oder a-check-negativ in
-# GATE_CHECKS, in beiden oder in keiner Liste macht sie rot. Ihre elf Fälle (p2-*) legt je eine
-# Kopie an, und je Fall mutiert eine Kopie der Regel genau die Prüfung, die ihn fängt (rot sind
-# dann genau die benannten Fälle).
+# GATE_CHECKS, in beiden oder in keiner Liste macht sie rot (Fall p2-arbeitsbaum: eine Kopie der
+# Gegenprobe als eigener Arbeitsbaum mit einer Verletzung wird rot, und ohne die Zeile der Prüfung bliebe
+# sie grün). Ihre dreizehn Fälle der Regel (p2-*) legt je eine Kopie an, dazu p1-liste-aus-variable
+# und p2-locale; je Fall mutiert eine Kopie der Regel die Prüfung, die ihn fängt (rot sind dann genau
+# die benannten Fälle). GP_NUR_ARBEITSBAUM=1 fährt nur die Prüfung des Arbeitsbaums.
 # Das Abbrechen eines Gates (Punkt 6) fährt ein Gate, das seine Prozessgruppe
 # beendet; der Lauf der Kopie steht dafür in einer eigenen Sitzung (setsid).
 #
@@ -48,11 +50,6 @@ gate_variable() {
     | awk -v n="$2" '$1 == n && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) print $i }'
 }
 
-# datenbank <wurzel> — die Datenbank von make (Variablen und Ziele mit Rezept), für namensregel.
-datenbank() {
-  make -s --no-print-directory -C "$1" -pq help 2> /dev/null || true
-}
-
 # in_liste <wort> <wort>… — Exit 0, wenn das erste Wort unter den übrigen steht.
 in_liste() {
   local g="$1" x
@@ -73,8 +70,7 @@ deckung() {
   for g in test-container test-integration test-postgres-versionen; do
     in_liste "$g" "${ausnahme[@]}" || echo "p4-name"
   done
-  datenbank "$1" > "$arbeit/db-deckung"
-  namensregel "$arbeit/db-deckung"
+  namensregel "$1"
 }
 
 # fixture <name> — legt eine Kopie an und setzt w auf ihre Wurzel.
@@ -92,8 +88,8 @@ fixture() {
     printf 'FAKE := $(sort $(FAKE_SCHNELL) $(FAKE_LANGSAM) %s %s)\n.PHONY: $(FAKE)\n$(FAKE):\n' "$GP_CONTAINER" "$GP_HOST"
     printf '\t@echo $@ >> "$(LOG)"; if [ "$(FAIL)" = "$@" ]; then exit 1; fi; if [ "$(ABBRUCH)" = "$@" ]; then kill -KILL 0; fi; if [ "$(AENDERE)" = "$@" ]; then echo x >> aenderung; fi\n'
     printf 'GATE_CHECKS += $(FAKE_SCHNELL) $(FAKE_LANGSAM)\n'
-    printf 'GEGENPROBEN_CONTAINER := %s\n' "$GP_CONTAINER"
-    printf 'GEGENPROBEN_HOST := %s\n' "$GP_HOST"
+    printf 'GEGENPROBEN_CONTAINER += %s\n' "$GP_CONTAINER"
+    printf 'GEGENPROBEN_HOST += %s\n' "$GP_HOST"
   } > "$w/harness/mk/fake.mk"
   git -C "$w" init -q
 }
@@ -126,6 +122,7 @@ pruefe() {
   for g in $LANGSAM; do grep -qxF "$g" "$arbeit/log" && echo "p2-langsam"; done
   for g in $SCHNELL; do grep -qxF "$g" "$arbeit/log" || echo "p2-schnell"; done
   grep -qxF neu-x "$arbeit/log" || echo "p3-neu"
+  for g in $GP_CONTAINER $GP_HOST; do grep -qxF "$g" "$arbeit/log" && echo "p2-gegenprobe-in-schnell"; done
   if [ ! -f "$stand" ] || [ "$(cat "$stand")" != "$(cd "$w" && bash tools/harness/working-tree-hash.sh)" ]; then
     echo "p5-stand"
   fi
@@ -246,10 +243,30 @@ rot() {
 
 AUSNAHME_ZEILE='/^GATE_SCHNELL_AUSNAHME/'
 
-# --- Unveränderte Kopie, und Deckung im Arbeitsbaum --------------------------------
-fixture ok; gruen ok
+# --- Deckung und Namensregel im Arbeitsbaum, unveränderte Kopie ----------------------
 ist="$(deckung "$wurzel" | sort -u | tr '\n' ' ')"
-[ -z "$ist" ] || melde "Arbeitsbaum: Ausnahmeliste und GATE_CHECKS decken sich nicht: $ist"
+[ -z "$ist" ] || melde "Arbeitsbaum: Ausnahmeliste, GATE_CHECKS und Listen der Gegenproben stimmen nicht: $ist"
+if [ -n "${GP_NUR_ARBEITSBAUM-}" ]; then exit "$fehler"; fi
+fixture ok; gruen ok
+
+# Fall p2-arbeitsbaum: Eine Kopie dieser Gegenprobe ist ein eigener Arbeitsbaum, in dem lint-gegenprobe in
+# GATE_CHECKS steht; die Prüfung des Arbeitsbaums färbt sie rot. Mutation: ohne die Zeile der Prüfung bleibt sie grün.
+selbst="$arbeit/selbst"
+mkdir -p "$selbst/tools/harness"
+cp "$wurzel/Makefile" "$selbst/"
+cp -r "$wurzel/harness" "$selbst/harness"
+cp "$hier/gates-schnell-gegenprobe.sh" "$hier/gegenproben-regel.sh" "$selbst/tools/harness/"
+sed -i 's/^GATE_CHECKS += lint$/GATE_CHECKS += lint lint-gegenprobe/' "$selbst/harness/mk/lint.mk"
+if (GP_NUR_ARBEITSBAUM=1 bash "$selbst/tools/harness/gates-schnell-gegenprobe.sh" > /dev/null 2>&1); then
+  melde "Fall 'p2-arbeitsbaum': der Arbeitsbaum mit lint-gegenprobe in GATE_CHECKS bleibt grün"
+fi
+cp "$selbst/tools/harness/gates-schnell-gegenprobe.sh" "$arbeit/selbst-alt.sh"
+sed -i 's/^ist="\$(deckung "\$wurzel" .*$/ist=""/' "$selbst/tools/harness/gates-schnell-gegenprobe.sh"
+if cmp -s "$arbeit/selbst-alt.sh" "$selbst/tools/harness/gates-schnell-gegenprobe.sh"; then
+  melde "Mutation 'p2-arbeitsbaum-gestrichen' ändert die Gegenprobe nicht"
+elif ! (GP_NUR_ARBEITSBAUM=1 bash "$selbst/tools/harness/gates-schnell-gegenprobe.sh" > /dev/null 2>&1); then
+  melde "Mutation 'p2-arbeitsbaum-gestrichen': die Gegenprobe ohne Prüfung des Arbeitsbaums ist rot"
+fi
 
 # --- Punkt 2: kein langsames Gate ---------------------------------------------------
 fixture m-test-integration
@@ -262,6 +279,11 @@ sed -i "${AUSNAHME_ZEILE}s/ test-postgres-versionen\$//" "$w/harness/mk/gates-sc
 # --- Punkt 2: jedes andere Gate -----------------------------------------------------
 fixture m-schnelles-gate-in-liste
 sed -i "${AUSNAHME_ZEILE}s/\$/ kopf-check/" "$w/harness/mk/gates-schnell.mk"; rot m-schnelles-gate-in-liste p2-schnell
+
+# --- Punkt 2: keine Gegenprobe in der schnellen Kette ---------------------------------
+fixture m-liste-in-schnell
+sed -i 's/\$(filter-out \$(GATE_SCHNELL_AUSNAHME),\$(GATE_CHECKS))/& $(GEGENPROBEN_CONTAINER)/' "$w/harness/mk/gates-schnell.mk"
+rot m-liste-in-schnell p2-gegenprobe-in-schnell
 
 # --- Punkt 3: neues Gate läuft in beiden Ketten -------------------------------------
 fixture m-positivliste
@@ -356,24 +378,32 @@ fixture m-gegenprobe-exit-ignoriert
 sed -i 's|^\t@bash tools/harness/gates-schnell-gegenprobe.sh|\t-@bash tools/harness/gates-schnell-gegenprobe.sh|' "$w/harness/mk/gates-schnell.mk"
 rot m-gegenprobe-exit-ignoriert anschluss-exit-gegenprobe
 
-# --- SPEC-060 Punkt 2: die Namensregel, ein Fall je Verletzung und je Fall eine Mutation der Regel ---
-# Jede Kopie hat beide Listen mit Einträgen; die Regel liest die Datenbank von make, nicht die Kopie.
-declare -A RERW=()
+# --- SPEC-060 Punkte 1 und 2: die Namensregel, ein Fall je Verletzung und je Fall eine Mutation der Regel ---
+# Jede Kopie hat beide Listen mit Einträgen (wie die Fragmente mit +=); die Regel fragt make in der Kopie.
+declare -A RERW=() RDIR=() RENV=()
 RNAMEN=()
-# regelfall <name> <erwarteter Befund> <sed-Argument>… — eine Kopie, geändert durch sed auf fake.mk
-# (oder auf der Datei in $rdatei).
-regelfall() {
-  fixture "r-$1"
-  sed -i "${@:3}" "$w/${rdatei:-harness/mk/fake.mk}"
-  datenbank "$w" > "$arbeit/db-$1"
+# regelname <name> <erwarteter Befund> — ein Fall auf der Kopie in $w.
+regelname() {
   RNAMEN+=("$1")
+  RDIR[$1]="$w"
   RERW[$1]="${2:+$2 }"
+}
+# regelfall <name> <erwarteter Befund> <sed-Argument>… — eine Kopie, geändert durch sed auf fake.mk
+# (oder auf der Datei in $rdatei); trifft sed keine Zeile, ist der Fall wirkungslos und die Gegenprobe rot.
+regelfall() {
+  local datei="$arbeit/r-$1"
+  fixture "r-$1"
+  cp "$w/${rdatei:-harness/mk/fake.mk}" "$datei.vor"
+  sed -i "${@:3}" "$w/${rdatei:-harness/mk/fake.mk}"
+  if cmp -s "$datei.vor" "$w/${rdatei:-harness/mk/fake.mk}"; then melde "Fall '$1' ändert die Kopie nicht"; fi
+  regelname "$1" "$2"
 }
 # regelrot <regeldatei> — die Fälle, deren Befund vom erwarteten abweicht, sortiert in einer Zeile.
 regelrot() {
   local n
   for n in "${RNAMEN[@]}"; do
-    [ "$( ( . "$1"; namensregel "$arbeit/db-$n" ) | sort -u | tr '\n' ' ')" = "${RERW[$n]}" ] || echo "$n"
+    # shellcheck disable=SC2086
+    [ "$( ( export ${RENV[$n]:-LC_ALL=C}; . "$1"; namensregel "${RDIR[$n]}" ) | sort -u | tr '\n' ' ')" = "${RERW[$n]}" ] || echo "$n"
   done | sort | tr '\n' ' '
 }
 # regelmut <name> <alt> <neu> <rote Fälle> — eine Kopie der Regel mit der Änderung; rot sind genau die benannten Fälle.
@@ -387,23 +417,33 @@ regelmut() {
   if [ "$ist" != "${4:+$4 }" ]; then melde "Mutation '$1': erwartet rot: ${4:-nichts}; rot sind: ${ist:-nichts}"; fi
 }
 
-regelfall ok "" -e 's/^$//'
+fixture r-ok; regelname ok ""
 regelfall p2-v1-n1 p2-v1-n1 -e 's/^GATE_CHECKS += .*/& lint-gegenprobe/'
 regelfall p2-v1-n2 p2-v1-n2 -e 's/^GATE_CHECKS += .*/& a-check-negativ/'
-regelfall p2-v2-n1 p2-v2-n1 -e 's/^GEGENPROBEN_HOST := .*/& lint-gegenprobe/'
-regelfall p2-v2-n2 p2-v2-n2 -e 's/^GEGENPROBEN_HOST := .*/& a-check-negativ/'
-regelfall p2-v3-n1 p2-v3-n1 -e 's/^\(GEGENPROBEN_CONTAINER := .*\) coverage-gegenprobe/\1/'
-regelfall p2-v3-n2 p2-v3-n2 -e 's/^\(GEGENPROBEN_CONTAINER := .*\) a-check-negativ/\1/'
-regelfall p2-v4-n1 p2-v4-n1 -e 's/^GEGENPROBEN_CONTAINER := .*/& lint-gegenprobe/'
-regelfall p2-v4-n2 p2-v4-n2 -e 's/^GEGENPROBEN_CONTAINER := .*/& a-check-negativ/'
-regelfall p2-v4-host p2-v4-n1 -e 's/^GEGENPROBEN_HOST := .*/& container-start-gegenprobe/'
-regelfall p2-v6-container p2-v6-container -e 's/^GEGENPROBEN_CONTAINER := .*/& phantom/'
-regelfall p2-v6-host p2-v6-host -e 's/^GEGENPROBEN_HOST := .*/& phantom/'
+regelfall p2-v2-n1 p2-v2-n1 -e 's/^GEGENPROBEN_HOST += .*/& lint-gegenprobe/'
+regelfall p2-v2-n2 p2-v2-n2 -e 's/^GEGENPROBEN_HOST += .*/& a-check-negativ/'
+regelfall p2-v3-n1 p2-v3-n1 -e 's/^\(GEGENPROBEN_CONTAINER += .*\) coverage-gegenprobe/\1/'
+regelfall p2-v3-n2 p2-v3-n2 -e 's/^\(GEGENPROBEN_CONTAINER += .*\) a-check-negativ/\1/'
+regelfall p2-v4-n1 p2-v4-n1 -e 's/^GEGENPROBEN_CONTAINER += .*/& lint-gegenprobe/'
+regelfall p2-v4-n2 p2-v4-n2 -e 's/^GEGENPROBEN_CONTAINER += .*/& a-check-negativ/'
+regelfall p2-v4-host p2-v4-n1 -e 's/^GEGENPROBEN_HOST += .*/& container-start-gegenprobe/'
+regelfall p2-v6-container p2-v6-container -e 's/^GEGENPROBEN_CONTAINER += .*/& phantom/'
+regelfall p2-v6-host p2-v6-host -e 's/^GEGENPROBEN_HOST += .*/& phantom/'
 regelfall p2-andere-namen "" -e 's/^GATE_CHECKS += .*/& gegenproben gegenproben-host x-negativ x-gegenprobe-alt gegenprobe/' \
   -e '$a\gegenproben gegenproben-host x-negativ x-gegenprobe-alt gegenprobe: ; @:'
-
 # Ein Ziel mit Namen auf -gegenprobe, dessen Rezept nicht aus einem Fragment unter harness/mk/ stammt, ist keine Gegenprobe im Sinn der Regel.
 rdatei=Makefile regelfall p2-rezept-ausserhalb-fragment "" -e '$a\x-ausserhalb-gegenprobe: ; @:'
+# Punkt 1: Ein Eintrag, den ein Fragment aus einer Variable bildet, steht in der Liste (ausgewertet).
+regelfall p1-liste-aus-variable "" -e 's/^\(GEGENPROBEN_CONTAINER += .*\) coverage-gegenprobe/\1/' \
+  -e '$a\GP_VAR = coverage-gegenprobe' -e '$a\GEGENPROBEN_CONTAINER += $(GP_VAR)'
+# Die Rezept-Zeile von make -p steht je Locale in anderer Sprache; der Fall erzwingt die deutsche Ausgabe
+# (LANGUAGE=de gilt, sobald die Locale nicht C ist) und verlangt den Befund der Kopie ohne Locale.
+LOC="$(locale -a 2> /dev/null | grep -iE '^(de_DE|en_US)\.utf-?8$' | head -n 1 || true)"
+fixture r-locale; regelname p2-locale ""
+RENV[p2-locale]="LC_ALL=${LOC:-C} LANGUAGE=de"
+if [ -z "$LOC" ] || ! (export LC_ALL="$LOC" LANGUAGE=de; { make -s -C "$w" -pq help 2> /dev/null || true; } | grep -q 'Rezept (aus'); then
+  melde "Fall 'p2-locale': die Locale ${LOC:-(keine de_DE oder en_US installiert)} erzwingt nicht die deutsche Ausgabe von make -p"
+fi
 
 ist="$(regelrot "$hier/gegenproben-regel.sh")"
 [ -z "$ist" ] || melde "Regel: Fälle rot, die grün sein müssen: $ist"
@@ -418,13 +458,21 @@ regelmut p2-v4-nur-host 'if [ "$(gp_anzahl "$g" "${lc[@]}")" -gt 1 ] || ' 'if fa
 regelmut p2-v4-nur-container ' || [ "$(gp_anzahl "$g" "${lh[@]}")" -gt 1 ]; then' '; then' "p2-v4-host"
 regelmut p2-v6-container 'echo "p2-v6-container"' ':' "p2-v6-container"
 regelmut p2-v6-host 'echo "p2-v6-host"' ':' "p2-v6-host"
+# p2-andere-namen: der Teilstring statt des Endes, dann je Name eine Mutation, die nur ihn als Gegenprobe liest.
 regelmut p2-andere-teilstring '*-gegenprobe) echo n1' '*-gegenprobe*) echo n1' "p2-andere-namen"
-regelmut p2-andere-ohne-strich '*-gegenprobe) echo n1' '*gegenprobe) echo n1' "p2-andere-namen"
-regelmut p2-andere-praefix '*-gegenprobe) echo n1' 'gegenprobe*|*-gegenprobe) echo n1' "p2-andere-namen"
+for name in gegenproben gegenproben-host x-gegenprobe-alt gegenprobe; do
+  regelmut "p2-andere-$name" '*-gegenprobe) echo n1' "*-gegenprobe | $name) echo n1" "p2-andere-namen"
+done
+regelmut p2-andere-x-negativ 'a-check-negativ) echo n2' 'a-check-negativ | x-negativ) echo n2' "p2-andere-namen"
 regelmut p2-rezept-ohne-herkunft '.harness\/mk\/' '' "p2-rezept-ausserhalb-fragment"
-regelmut p2-andere-negativ 'a-check-negativ) echo n2' '*-negativ) echo n2' "p2-andere-namen"
+# Punkt 1: die Regel liest den unausgewerteten Text von make -p.
+ALT_LISTE='gp_make "$1" --eval "gp-lesen: ; @printf '"'"'%s\\n'"'"' \$($2)" gp-lesen | grep -v '"'"'^$'"'"' || true'
+NEU_LISTE='gp_make "$1" -pq help | awk -v n="$2" '"'"'$1 == n && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) print $i }'"'"''
+regelmut p1-liste-unausgewertet "$ALT_LISTE" "$NEU_LISTE" "p1-liste-aus-variable"
+# Die Sprache von make ist nicht auf C gesetzt.
+regelmut p2-locale-nicht-c 'LC_ALL=C env -u MAKEFLAGS' 'env -u MAKEFLAGS' "p2-locale"
 
 if [ "$fehler" -ne 0 ]; then
   exit 1
 fi
-echo "gates-schnell-gegenprobe: gruen — Punkte 1 bis 7 von SPEC-052 (Punkt 5 mit Ende des Laufs, Punkt 6 mit Make-Flags) und Anschluss je Mutant rot, unveränderte Kopie grün, Ausnahmeliste deckt GATE_CHECKS; Namensregel von SPEC-060 Punkt 2 mit dreizehn Fällen und je Fall einer Mutation der Regel"
+echo "gates-schnell-gegenprobe: gruen — Punkte 1 bis 7 von SPEC-052 (Punkt 5 mit Ende des Laufs, Punkt 6 mit Make-Flags) und Anschluss je Mutant rot, unveränderte Kopie grün, Ausnahmeliste deckt GATE_CHECKS; Namensregel von SPEC-060 Punkt 2 mit dreizehn Fällen der Regel, dem Fall p1-liste-aus-variable, dem Fall p2-locale und je Fall einer Mutation der Regel"

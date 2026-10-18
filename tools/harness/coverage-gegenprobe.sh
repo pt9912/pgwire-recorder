@@ -434,6 +434,11 @@ variable() {
     | awk -v n="$1" '$1 == n && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) print $i }' || true
 }
 fall; variable GEGENPROBEN_CONTAINER | grep -x coverage-gegenprobe > /dev/null || melde "Fall 'p11-gegenprobe-liste': coverage-gegenprobe steht nicht in GEGENPROBEN_CONTAINER"
+# Mutation: ohne die Zeile des Fragments färbt sich der Fall p11-gegenprobe-liste.
+miniatur listemut
+grep -qx 'GEGENPROBEN_CONTAINER += coverage-gegenprobe' "$m/harness/mk/coverage.mk" || melde "Mutation 'p11-gegenprobe-liste-gestrichen': die Zeile fehlt in coverage.mk"
+sed -i '/^GEGENPROBEN_CONTAINER += coverage-gegenprobe$/d' "$m/harness/mk/coverage.mk"
+if variable GEGENPROBEN_CONTAINER | grep -x coverage-gegenprobe > /dev/null; then melde "Mutation 'p11-gegenprobe-liste-gestrichen': der Fall 'p11-gegenprobe-liste' bleibt grün"; fi
 
 # --- Fälle mit Docker: die Stufe test in Kopien -------------------------------
 dockerwrap="$arbeit/docker"

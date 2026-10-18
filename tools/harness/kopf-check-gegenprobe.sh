@@ -318,6 +318,16 @@ for ziel in kopf-check kopf-check-gegenprobe; do
     melde "Fall 'nr9-scharf': make $ziel endet bei rotem Skript mit Exit 0"
   fi
 done
+# Mutationen: ohne die Zeile der Gegenprobe (Liste) und ohne die Zeile von kopf-check (GATE_CHECKS) färben sich die Fälle.
+for zeile in 'GEGENPROBEN_CONTAINER += kopf-check-gegenprobe:kopf-check-gegenprobe:GEGENPROBEN_CONTAINER:nr9-liste' 'GATE_CHECKS += kopf-check:kopf-check:GATE_CHECKS:nr9-gate-checks'; do
+  IFS=: read -r text ziel liste fall <<< "$zeile"
+  grep -qx "$text" "$w/harness/mk/kopf-check.mk" || melde "Mutation '$fall-gestrichen': die Zeile fehlt in kopf-check.mk"
+  cp "$w/harness/mk/kopf-check.mk" "$arbeit/kopf-check.mk.vor"
+  sed -i "/^$text\$/d" "$w/harness/mk/kopf-check.mk"
+  datenbank="$(make -C "$w" -pq help 2>/dev/null || true)"
+  if printf '%s\n' "$datenbank" | awk -v z="$ziel" -v l="$liste" '$1 == l && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) if ($i == z) t = 1 } END { exit !t }'; then melde "Mutation '$fall-gestrichen': der Fall '$fall' bleibt grün"; fi
+  cp "$arbeit/kopf-check.mk.vor" "$w/harness/mk/kopf-check.mk"
+done
 
 # --- Grenze (SPEC-047; akzeptierte Negative von ADR-0032) ------------------
 einzeln_gruen neg-existenz "LH-ZZ-99" "SPEC-999" "LH-ZZ-99 und SPEC-999" "-"

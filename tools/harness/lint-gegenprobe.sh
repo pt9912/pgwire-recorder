@@ -1186,6 +1186,16 @@ printf 'exit 1\n' > "$arbeit/gate/tools/harness/lint-gegenprobe.sh"
 if make -s -C "$arbeit/gate" lint-gegenprobe >/dev/null 2>&1; then
   melde "Fall 'p10-gegenprobe-scharf': make lint-gegenprobe endet bei rotem Skript mit Exit 0"
 fi
+# Mutationen: ohne die Zeile der Gegenprobe (Liste) und ohne die Zeile von lint (GATE_CHECKS) färben sich die Fälle.
+for zeile in 'GEGENPROBEN_CONTAINER += lint-gegenprobe:lint-gegenprobe:GEGENPROBEN_CONTAINER:p10-gegenprobe-liste' 'GATE_CHECKS += lint:lint:GATE_CHECKS:p10-gate-checks'; do
+  IFS=: read -r text ziel liste fall <<< "$zeile"
+  grep -qx "$text" "$arbeit/gate/harness/mk/lint.mk" || melde "Mutation '$fall-gestrichen': die Zeile fehlt in lint.mk"
+  cp "$arbeit/gate/harness/mk/lint.mk" "$arbeit/lint.mk.vor"
+  sed -i "/^$text\$/d" "$arbeit/gate/harness/mk/lint.mk"
+  datenbank="$(make -C "$arbeit/gate" -pq help 2>/dev/null || true)"
+  if printf '%s\n' "$datenbank" | awk -v z="$ziel" -v l="$liste" '$1 == l && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) if ($i == z) t = 1 } END { exit !t }'; then melde "Mutation '$fall-gestrichen': der Fall '$fall' bleibt grün"; fi
+  cp "$arbeit/lint.mk.vor" "$arbeit/gate/harness/mk/lint.mk"
+done
 # Grenze.
 kein_befund neg-main-test "$S" cmd/gegenprobe/main_test.go 'package main' testpackage
 kein_befund neg-generiert "$S" "$G/generiert/fall.go" 'var generiertGlobal' gochecknoglobals

@@ -2,8 +2,10 @@
 # gegenproben-regel — Namens- und Zuordnungsregel der Gegenproben (harness/vertraege/SPEC-060-gegenproben.md,
 # Punkt 2). Kein Make-Ziel und kein Gate: tools/harness/gates-schnell-gegenprobe.sh lädt die Datei und ruft
 # `namensregel` für den Arbeitsbaum und für jede Kopie.
-# namensregel <datei>: <datei> ist die Ausgabe von `make -pq`. Die Funktion schreibt je Verletzung den Namen
-# des Falls, einen je Zeile, und nichts, wenn die Regel gilt. Als Gegenprobe gilt jedes Ziel mit Rezept in einem
+# namensregel <wurzel>: Die Funktion fragt `make` im Verzeichnis <wurzel> und schreibt je Verletzung den Namen
+# des Falls, einen je Zeile, und nichts, wenn die Regel gilt. Die Listen liest sie ausgewertet (ein Eintrag darf
+# aus einer Variable gebildet sein, SPEC-060 Punkt 1), die Ziele mit Rezept aus `make -pq`. Jeder Aufruf von
+# `make` läuft mit LC_ALL=C: `make -p` schreibt die Rezept-Zeile je Locale in anderer Sprache. Als Gegenprobe gilt jedes Ziel mit Rezept in einem
 # Fragment unter harness/mk/, dessen Name auf -gegenprobe endet (Klasse n1), und a-check-negativ (Klasse n2):
 #   p2-v1-<k>  das Ziel steht in GATE_CHECKS
 #   p2-v2-<k>  es steht in beiden Listen
@@ -12,15 +14,20 @@
 #   p2-v6-container, p2-v6-host  ein Eintrag der Liste hat kein Ziel mit Rezept
 # GEPRÜFT DURCH tools/harness/gates-schnell-gegenprobe.sh: die Fälle p2-* und je Fall eine Mutation dieser Datei.
 
-# gp_variable <name> <datei> — Wörter der Make-Variablen.
-gp_variable() {
-  awk -v n="$1" '$1 == n && ($2 == ":=" || $2 == "=") { for (i = 3; i <= NF; i++) print $i }' "$2"
+# gp_make <wurzel> <make-argument>… — make in <wurzel>, ohne Umgebung von make, in der Sprache C.
+gp_make() {
+  LC_ALL=C env -u MAKEFLAGS -u MFLAGS -u MAKELEVEL make -s --no-print-directory -C "$1" "${@:2}" 2> /dev/null || true
 }
 
-# gp_rezeptziele <datei> — Namen der Ziele, deren Rezept aus einem Fragment unter harness/mk/ stammt.
+# gp_variable <wurzel> <name> — Wörter der Make-Variablen, ausgewertet.
+gp_variable() {
+  gp_make "$1" --eval "gp-lesen: ; @printf '%s\\n' \$($2)" gp-lesen | grep -v '^$' || true
+}
+
+# gp_rezeptziele <wurzel> — Namen der Ziele, deren Rezept aus einem Fragment unter harness/mk/ stammt.
 gp_rezeptziele() {
-  awk '/^[A-Za-z0-9_.%-]+:( |$)/ { z = $1; sub(/:$/, "", z); next }
-       /^#  recipe to execute \(from .harness\/mk\// { if (z != "") print z }' "$1"
+  gp_make "$1" -pq help | awk '/^[A-Za-z0-9_.%-]+:( |$)/ { z = $1; sub(/:$/, "", z); next }
+       /^#  recipe to execute \(from .harness\/mk\// { if (z != "") print z }'
 }
 
 # gp_klasse <ziel> — n1 für einen Namen auf -gegenprobe, n2 für a-check-negativ, sonst nichts.
@@ -42,12 +49,12 @@ gp_anzahl() {
 }
 
 namensregel() {
-  local db="$1" g k e
+  local w="$1" g k e
   local -a gates lc lh ziele
-  mapfile -t gates < <(gp_variable GATE_CHECKS "$db")
-  mapfile -t lc < <(gp_variable GEGENPROBEN_CONTAINER "$db")
-  mapfile -t lh < <(gp_variable GEGENPROBEN_HOST "$db")
-  mapfile -t ziele < <(gp_rezeptziele "$db" | sort -u)
+  mapfile -t gates < <(gp_variable "$w" GATE_CHECKS)
+  mapfile -t lc < <(gp_variable "$w" GEGENPROBEN_CONTAINER)
+  mapfile -t lh < <(gp_variable "$w" GEGENPROBEN_HOST)
+  mapfile -t ziele < <(gp_rezeptziele "$w" | sort -u)
   for g in "${ziele[@]}"; do
     k="$(gp_klasse "$g")"
     if [ -z "$k" ]; then continue; fi
