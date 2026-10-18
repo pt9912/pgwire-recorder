@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-harness-regeln (Entscheidung des Nutzers vom 2026-10-18; bis dahin ohne Welle). Angelegt von
+**Welle:** ohne Welle (Entscheidung des Nutzers vom 2026-10-18; Neuschnitt der Wellen 2 und 3 am selben Tag, vorher welle-harness-regeln: Eine Welle, die auf Fremdes wartet, schließt nie, und der Auslöser ist ein Lauf von ai-harness-init). Angelegt von
 `slice-harness-upgrade-v6-16` als Ausgang eines Befunds aus dem Abgleich
 v6.13.0 → v6.16.0; Start in §4.
 

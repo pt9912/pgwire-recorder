@@ -9,7 +9,7 @@ aus `open/` oder `next/` nach `done/` — §7 nennt in der Zeile `Gegenstand:`
 Kennung oder Grund, die Liefer-Punkte der DoD bleiben leer
 (§Ein Slice, dessen Gegenstand ein anderer übernimmt).
 
-**Welle:** welle-gegenproben-und-mutanten (Entscheidung des Nutzers vom 2026-10-18; bis dahin ohne Welle). Angelegt am 2026-10-15 bei der Closure von
+**Welle:** welle-harness-regeln (Entscheidung des Nutzers vom 2026-10-18; Neuschnitt der Wellen 2 und 3 am selben Tag, vorher welle-gegenproben-und-mutanten; bis dahin ohne Welle). Angelegt am 2026-10-15 bei der Closure von
 `slice-harness-randform-stelle-und-lesart` (Register-Ausgang *geplant*: das dritte Auftreten
 erreicht die Schwelle); die Stelle in der Reihenfolge war entschieden (Nutzer, 2026-10-15) und ist seit dem 2026-10-16 hinter dem Release (Entscheidung des Nutzers; §4 *Start*).
 

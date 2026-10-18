@@ -208,6 +208,13 @@ beim Start unter DoD-Punkt 3. *Warum vor `slice-harness-mutation`.* Dessen Randf
 wird; mit dieser Prüfung wartet kein Test mehr ohne Frist auf einen Kanal oder ein
 Prozessende, und ein solcher Mutant wird binnen der Frist rot.
 
+*Reihenfolge zu `slice-harness-gegenprobe-baumkopie`* (Entscheidung des Nutzers vom
+2026-10-18, Neuschnitt der Wellen 2 und 3): Beide ändern `tools/harness/lint-gegenprobe.sh`,
+und die Baumkopie behebt die Flake der Läufe (eine Datei im Arbeitsbaum ändert sich während
+der Kopie). `slice-harness-gegenprobe-baumkopie` startet deshalb vor diesem Slice, in
+derselben Welle (welle-gegenproben-und-mutanten, §5 dort), und dieser rebased auf dessen
+Stand. Das ist eine Reihenfolge, kein neuer Start-Trigger: die Bedingungen oben bleiben.
+
 Erster Schritt nach dem Start, vor jedem Code-Commit: Der Architect entscheidet die
 Randformen aus §6 und schreibt den neuen Punkt in `SPEC-049`
 (`harness/vertraege/SPEC-049-lint-profil.md`)
@@ -331,6 +338,12 @@ Stand `bb36f2d` (§1).
 - **Laufzeit der Gegenprobe** — jeder neue Fall läuft die Stufe `lint` in einer Kopie
   (`BEO-REPO/gate-laufzeit-waechst-mit-gegenprobe`, 1×); Laufzeit vorher und nachher in
   §7. — **Ausgang:** — (bei Closure)
+- **Gemeinsame Datei `tools/harness/lint-gegenprobe.sh`** — `slice-harness-gegenprobe-baumkopie`
+  ersetzt dort die Funktion `kopie` durch den Helfer; dieser Slice startet nach ihm (§4,
+  Entscheidung des Nutzers vom 2026-10-18) und baut seine Fälle auf der geänderten Datei auf.
+  Es ist keine Sendung (kein Gegenstand wandert), die Bindung steht in §4. — **Ausgang:**
+  — (bei Closure; vorgesehen *entfallen*, sobald `slice-harness-gegenprobe-baumkopie` in
+  `done/` liegt und die Fälle auf seinem Stand grün sind)
 - **Mutant kommt im Build-Kontext nicht an** — eine Mutation mit unveränderter Größe und
   mtime überträgt BuildKit nicht (`BEO-REPO/mutant-kommt-im-build-kontext-nicht-an`,
   1×); die Mutanten laufen in frischen Kopien. — **Ausgang:** — (bei Closure)
@@ -402,3 +415,5 @@ keine neue Lücke.
 **Nachgezählt** (`AGENTS.md` §3.13, mit der Sendung aus `slice-harness-vertraege-umzug-lint`, die nur den Ort des Vertrags ändert): Liefer-Punkte 3 (Prüfung, Gegenprobe, Bestand). Schichten 3: Harness (`tools/harness/`, `harness/`), Kern (`internal/hexagon/services/record_extended_test.go`) und Driven-Adapter Postgres (`upstream_extended_test.go`); Tests der Hexagon-Schichten zählen als Schicht, die Planung nicht. **Der Plan liegt über der Grenze von zwei Schichten**, und das schon vor dieser Sendung; sie ändert die Zählung nicht. Vor dem `open → next` schneidet der Planner: Der Bestand-Punkt (Bereinigung der Tests in Kern und Driven-Adaptern) wird ein eigener Slice vor diesem (Rückführung in §4), die Kennung vergibt der Planner dann; dieser Slice behält Prüfung und Gegenprobe (zwei Liefer-Punkte, Schicht Harness). Nicht jetzt geschnitten, weil die Zahl der Stellen an den Randformen hängt, die der Architect erst beim Start entscheidet (`BEO-REPO/slice-waechst-durch-uebernahmen`, Evidence `slice-harness-vertraege-umzug-lint`).
 
 **Modus-Begründungsblock:** alle berührten Sub-Areas GF.
+
+**Nachgezählt** (`AGENTS.md` §3.9, §3.13, Planner, 2026-10-18, im Commit des Neuschnitts der Wellen 2 und 3): Der Commit trägt die Reihenfolge zu `slice-harness-gegenprobe-baumkopie` in §4 und §6 ein; Gegenstand, Liefer-Punkte und Schichten ändern sich nicht: Liefer-Punkte 3 (Prüfung, Gegenprobe, Bestand), Schichten 3 wie oben, der Plan liegt weiter über der Grenze von zwei Schichten, und der vorgemerkte Schnitt vor dem `open → next` bleibt. Die Welle-Zeile nennt weiter welle-gegenproben-und-mutanten.

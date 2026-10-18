@@ -18,7 +18,7 @@ zwei Positionen, nicht drei.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Wann Arbeit eine Welle braucht.
 
-Die Tests und Gegenproben des Bestands halten, was sie zusagen: Die bekannten überlebenden Mutanten, die das Verhalten ändern, haben Tests (`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`), ein Mutations-Gate meldet rot, wenn zu viele Mutanten die Tests überleben (`slice-harness-mutation`), und die Gegenproben der Gates sind geschärft: eine Mutation färbt nur Fälle ihrer Gruppe (`slice-harness-gegenprobe-matrix-p7-flanke`), die Kopie des Arbeitsbaums bricht bei laufenden Agenten nicht (`slice-harness-gegenprobe-baumkopie`), und Warten ohne Frist in Tests meldet der Lint (`slice-harness-lint-warten-ohne-frist`). Der Nutzer hat am 2026-10-18 entschieden, diese bis dahin wellenlosen Slices zu einer Welle zu gliedern. Es gibt kein Abnahmeszenario und keinen Meilenstein, der an ihr hängt.
+Die Tests und Gegenproben des Bestands halten, was sie zusagen: Die Kopie des Arbeitsbaums in den Gegenproben bricht bei laufenden Agenten nicht (`slice-harness-gegenprobe-baumkopie`), die bekannten überlebenden Mutanten, die das Verhalten ändern, haben Tests (`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`), Warten ohne Frist in Tests meldet der Lint (`slice-harness-lint-warten-ohne-frist`), und ein Mutations-Gate meldet rot, wenn zu viele Mutanten die Tests überleben (`slice-harness-mutation`). Der Nutzer hat am 2026-10-18 entschieden, diese bis dahin wellenlosen Slices zu einer Welle zu gliedern, und am selben Tag, die Wellen 2 und 3 entlang der Harness-Reihe neu zu schneiden: Diese Welle ist die zweite der drei, hinter [welle-harness-regeln](welle-harness-regeln.md) und vor [welle-lh-links](welle-lh-links.md). Die Gegenprobe der Versionsmatrix (`slice-harness-gegenprobe-matrix-p7-flanke`) liegt seitdem in welle-harness-regeln. Es gibt kein Abnahmeszenario und keinen Meilenstein, der an ihr hängt.
 
 ## 2. Trigger (Welle startet)
 
@@ -28,7 +28,7 @@ Mensch ohne Rückfrage sagen kann, ob er eingetreten ist; ein Datum darf erwähn
 werden, aber nie Trigger sein. Und der **Start**-Trigger ist **kein Ergebnis
 dieser Welle**: Steht er in der Slice-Liste unten, ist er falsch platziert.
 
-- [welle-erster-release](welle-erster-release.md) und [welle-v1-nachtrag](welle-v1-nachtrag.md) sind `done` (Wellen vor Harness, Entscheidung des Nutzers vom 2026-10-08; die Harness-Reihe steht hinter beiden).
+- [welle-harness-regeln](welle-harness-regeln.md) ist `done` (Neuschnitt der Wellen 2 und 3, Entscheidung des Nutzers vom 2026-10-18; die Wellen laufen strikt nacheinander). Damit sind auch [welle-erster-release](welle-erster-release.md) und [welle-v1-nachtrag](welle-v1-nachtrag.md) `done` (Wellen vor Harness, Entscheidung des Nutzers vom 2026-10-08).
 
 ## 3. Closure-Trigger (Welle schließt)
 
@@ -37,8 +37,8 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 einzelnen Slice-DoDs benennen; kann er das nicht, liegt keine Welle vor.
 
 - Alle Slices der Welle liegen in `done/`.
-- Das *Mehr* gegenüber den Slice-DoDs (**Empfehlung des Planners, vom Nutzer nicht entschieden**): Ein Lauf des Mutations-Gates über den Bestand, nachdem `slice-tests-ueberlebende-mutanten` und `slice-tests-ueberlebende-mutanten-driving` in `done/` liegen, nennt keinen der dort geführten Mutanten als überlebend; der Lauf steht in der Closure-Notiz. Die DoDs der Sammel-Slices belegen ihre Tests je für sich, die DoD von `slice-harness-mutation` die Schwelle, nicht ihr Zusammenspiel.
-- Für `slice-harness-gegenprobe-matrix-p7-flanke`, `slice-harness-gegenprobe-baumkopie` und `slice-harness-lint-warten-ohne-frist` gibt es **kein gemeinsames *Mehr***: Ihre Bündelung ist Thema (Gegenproben und Güte der Tests), keine Closure-Bedingung. Verwirft der Nutzer das Kriterium oben, gilt das für die ganze Welle.
+- Das *Mehr* gegenüber den Slice-DoDs (Entscheidung des Nutzers vom 2026-10-18): Ein Lauf des Mutations-Gates nennt keinen der dort geführten Mutanten (`slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`) als überlebend; der Lauf steht in der Closure-Notiz. Die DoDs der Sammel-Slices belegen ihre Tests je für sich, die DoD von `slice-harness-mutation` die Schwelle, nicht ihr Zusammenspiel.
+- Für `slice-harness-gegenprobe-baumkopie` und `slice-harness-lint-warten-ohne-frist` gibt es **kein weiteres gemeinsames *Mehr***: Ihre Bündelung ist Thema (Gegenproben und Güte der Tests), keine Closure-Bedingung.
 - `make gates` grün auf dem Endstand.
 - Closure-Notiz in `welle-gegenproben-und-mutanten-results.md`.
 
@@ -50,27 +50,25 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 
 | Slice | Titel | Bezug |
 |---|---|---|
-| slice-harness-gegenprobe-matrix-p7-flanke | Eine Mutation der Gruppe `p7-sig` färbt nur Fälle ihrer Gruppe, oder die Voraussetzung dafür steht im Vertrag | kein Anspruch des Produkts |
+| slice-harness-gegenprobe-baumkopie | Gegenproben kopieren den Arbeitsbaum nach `git ls-files` statt mit `tar` und `cp -R`, durch einen gemeinsamen Helfer | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (nur Messung 1 und 3 der Gegenproben); kein Anspruch des Produkts |
 | slice-tests-ueberlebende-mutanten | Tests für überlebende Mutanten, die das Verhalten ändern | [`LH-FA-02`](../../../spec/lastenheft.md#lh-fa-02--record-modus), [`LH-FA-10`](../../../spec/lastenheft.md#lh-fa-10--abweichende-anfrage), [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-QA-05`](../../../spec/lastenheft.md#lh-qa-05--nachvollziehbare-fehler), [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | slice-tests-ueberlebende-mutanten-driving | Tests für überlebende Mutanten im PGWire-Adapter und im Bootstrap | [`LH-FA-03`](../../../spec/lastenheft.md#lh-fa-03--replay-modus), [`LH-FA-05`](../../../spec/lastenheft.md#lh-fa-05--simple-query-protocol), [`LH-FA-13`](../../../spec/lastenheft.md#lh-fa-13--prozessbeendigung-und-fehlerstatus), [`LH-FA-18`](../../../spec/lastenheft.md#lh-fa-18--extended-query-protocol), [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) |
 | slice-harness-lint-warten-ohne-frist | Lint meldet Warten ohne Frist in Tests | kein Anspruch des Produkts |
 | slice-harness-mutation | Mutationstests als Gate | kein Anspruch des Produkts |
-| slice-harness-gegenprobe-baumkopie | Gegenproben kopieren den Arbeitsbaum nach `git ls-files` statt mit `tar` und `cp -R`, durch einen gemeinsamen Helfer | [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes) (nur Messung 1 und 3 der Gegenproben); kein Anspruch des Produkts |
 
 ## 5. Abhängigkeiten
 
 Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 §Roadmap-Struktur: fünf Abschnitte.
 
-- Blockiert: —
-- Wird blockiert von: Welle [welle-v1-nachtrag](welle-v1-nachtrag.md) (Start-Trigger). Auf Slice-Ebene außerdem von `slice-harness-commit-struktur-id` aus [welle-harness-regeln](welle-harness-regeln.md): Dessen Start-Trigger verlangt `slice-harness-commit-struktur-id` in `done/` oder ausdrücklich zurückgestellt, und die Harness-Reihe führt ihn als ersten der übrigen Harness-Slices. Die Welle verschiebt diese Bindung nicht; sie liegt im Plan des Slice.
-- Innerhalb der Welle: `slice-tests-ueberlebende-mutanten-driving` setzt `slice-tests-ueberlebende-mutanten` voraus (Sammelregel), `slice-harness-lint-warten-ohne-frist` den zweiten Sammel-Slice, `slice-harness-mutation` alle drei davor.
+- Blockiert: Welle [welle-lh-links](welle-lh-links.md) (deren Start-Trigger verlangt diese Welle in `done/`); auf Slice-Ebene steht `slice-harness-lh-links-pflicht` hinter `slice-harness-mutation` (Drift-Log der Roadmap, 2026-10-09), das ergibt sich jetzt aus der Reihenfolge der Wellen.
+- Wird blockiert von: Welle [welle-harness-regeln](welle-harness-regeln.md) (Start-Trigger; die Wellen laufen strikt nacheinander). Die Bindung auf Slice-Ebene bleibt im Plan von `slice-tests-ueberlebende-mutanten` stehen (er setzt `slice-harness-commit-struktur-id` voraus, den letzten Slice jener Welle) und ist mit dem Start dieser Welle erfüllt, außer der Slice dort ist ausdrücklich zurückgestellt.
+- Innerhalb der Welle: `slice-tests-ueberlebende-mutanten-driving` setzt `slice-tests-ueberlebende-mutanten` voraus (Sammelregel), `slice-harness-lint-warten-ohne-frist` den zweiten Sammel-Slice, `slice-harness-mutation` alle drei davor; `slice-harness-gegenprobe-baumkopie` steht vor `slice-harness-lint-warten-ohne-frist` (beide ändern `tools/harness/lint-gegenprobe.sh`, die Baumkopie behebt die Flake der Läufe; Reihenfolge, kein Start-Trigger).
 
-**Reihenfolge** (nach den Start-Triggern der Slices; WIP-Limit 1; die Welle ordnet nicht neu):
+**Reihenfolge** (nach den Start-Triggern der Slices; WIP-Limit 1; die Welle ordnet nicht neu; Reihenfolge der drei Wellen strikt: [welle-harness-regeln](welle-harness-regeln.md), diese, [welle-lh-links](welle-lh-links.md), Entscheidung des Nutzers vom 2026-10-18):
 
-1. `slice-harness-gegenprobe-matrix-p7-flanke` — letzter der fünf wellenlosen Slices hinter dem Release, hinter `slice-harness-schaetzung-planner-faktor` aus [welle-harness-regeln](welle-harness-regeln.md).
+1. `slice-harness-gegenprobe-baumkopie` — Stelle vor `slice-harness-lint-warten-ohne-frist` (Entscheidung des Nutzers vom 2026-10-18): Beide ändern `tools/harness/lint-gegenprobe.sh`, und die Baumkopie behebt die Flake der Läufe (`tar` bricht bei Änderungen im Arbeitsbaum). Vorbedingung des Starts ist der Vertrag des Architect (§4 des Slice).
 2. `slice-tests-ueberlebende-mutanten`, danach `slice-tests-ueberlebende-mutanten-driving`, danach `slice-harness-lint-warten-ohne-frist`, danach `slice-harness-mutation` (Reihe der Harness-Slices, Entscheidung des Nutzers vom 2026-10-08).
-3. `slice-harness-gegenprobe-baumkopie` — **Stelle nicht entschieden**: keine Abhängigkeit von einem anderen Slice; er ändert wie `slice-harness-lint-warten-ohne-frist` die Datei `tools/harness/lint-gegenprobe.sh`, welcher zuerst startet, entscheidet der Nutzer, der zweite rebased (§6 des Plans). Die Stelle hier ist ein Platzhalter, keine Entscheidung.
 
 ## 6. Out-of-Scope für diese Welle
 
@@ -82,7 +80,8 @@ der Closure-Trigger unerreichbar wird.
 - Neue Produkt-Anforderungen oder Produktcode — die Welle ändert Tests, Gates und Gegenproben, nicht das Produkt.
 - Neue Tests für Mutanten, die erst die Messung des Mutations-Gates findet — eigene Arbeit mit eigenem Slice nach `slice-harness-mutation` (§1 dort).
 - Mutationen in den Integrationstests — anderer Vorgang (§1 von `slice-harness-mutation`).
-- Die Regel-Slices der Harness-Reihe — [welle-harness-regeln](welle-harness-regeln.md).
+- Die Regel-Slices der Harness-Reihe und die Gegenprobe der Versionsmatrix (`slice-harness-gegenprobe-matrix-p7-flanke`) — [welle-harness-regeln](welle-harness-regeln.md).
+- Lastenheft- und MR-Kennungen als Links und deren Pflicht im Doku-Gate — [welle-lh-links](welle-lh-links.md).
 
 ## 7. Closure-Notiz
 
