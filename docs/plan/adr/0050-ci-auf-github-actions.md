@@ -1,10 +1,10 @@
 # ADR-0050: Die CI läuft auf GitHub Actions, gehärtet durch Pins, leere Rechte und Zeitgrenzen, mit einem Gate für die Workflows; sie ergänzt den lokalen Hook
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Datum:** 2026-10-18
 
-**Autor:** Architect; Empfehlung, bis der Nutzer sie annimmt.
+**Autor:** Architect; angenommen vom Nutzer am 2026-10-18.
 
 **Bezug:** [`LH-QA-07`](../../../spec/lastenheft.md#lh-qa-07--prüfbarkeit-des-quellcodes), [`LH-QA-01`](../../../spec/lastenheft.md#lh-qa-01--determinismus), [ADR-0026](0026-build-und-test-im-multistage-dockerfile.md), [ADR-0038](0038-gate-kette-voll-und-schnell.md), [ADR-0048](0048-gegenproben-verlassen-die-gate-kette.md)
 
@@ -32,7 +32,7 @@ Wir empfehlen **Option A: die CI läuft auf GitHub Actions; `ci.yml` fährt `mak
 
 Die Regeln im Einzelnen (Text der Datei, Formen der Range, Konfiguration, Fälle, Grenzen) stehen in [`SPEC-064`](../../../harness/vertraege/SPEC-064-ci.md) und [`SPEC-063`](../../../harness/vertraege/SPEC-063-workflows-check.md).
 
-Zur Entscheidung des Nutzers vorgelegt (Empfehlung des Architect, keine Annahme): die Annahme dieser ADR; `ubuntu-24.04` statt `ubuntu-latest`, abweichend vom Auftrag; der Verzicht auf `concurrency` und `workflow_dispatch`.
+Der Nutzer hat am 2026-10-18 die ADR angenommen, `ubuntu-24.04` statt `ubuntu-latest` (abweichend vom ursprünglichen Auftrag) und den Verzicht auf `concurrency` und `workflow_dispatch` bestätigt.
 
 ## Verglichene Alternativen
 
@@ -73,5 +73,6 @@ Wenn ein Lauf auf GitHub rot endet, den ein Gate dieses Repos hätte fangen soll
 | Datum | Ereignis | Verweis |
 |---|---|---|
 | 2026-10-18 | Proposed (Empfehlung des Architect nach dem Auftrag des Nutzers, die CI vor die Veröffentlichung zu legen) | — |
+| 2026-10-18 | Accepted (Nutzer) | — |
 
 Nach `Accepted` wird diese Datei **nicht mehr inhaltlich überschrieben**. Spätere Korrekturen oder Schärfungen entstehen als neue ADR mit `Supersedes ADR-NNNN` (Baseline-Regelwerk `modul-04-adrs.md` §Hard Rule für Accepted-ADRs).
