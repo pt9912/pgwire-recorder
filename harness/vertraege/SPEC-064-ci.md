@@ -7,10 +7,7 @@ Teil 3. `make ci-gegenprobe` hält alle drei: den Text der Datei, das Skript und
 prüfte. Die CI ist **kein** Gate der Kette; sie ist ein Lauf auf GitHub, den dieses Repo nicht fährt. Warum die CI auf GitHub Actions läuft und
 den lokalen Hook ergänzt, steht in [ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md); diese Kennung wiederholt es nicht.
 
-**Stand der Entscheidung.** Alles in dieser Kennung ist Entscheidung des Architect und **Empfehlung**, bis der Nutzer
-[ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md) annimmt. Zwei Punkte weichen vom Auftrag des Nutzers vom 2026-10-18 ab oder
-konkretisieren ihn und sind damit ausdrücklich zur Entscheidung vorgelegt: `runs-on: ubuntu-24.04` statt `ubuntu-latest` (Punkt 2, Grund dort) und
-der Verzicht auf `concurrency` und `workflow_dispatch` (Punkt 2).
+**Stand der Entscheidung.** Der Nutzer hat [ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md) am 2026-10-18 angenommen und bestätigt: `runs-on: ubuntu-24.04` statt `ubuntu-latest` (Punkt 2, Grund dort) sowie den Verzicht auf `concurrency` und `workflow_dispatch` (Punkt 2).
 
 **Schnittstelle.** Das Fragment `harness/mk/ci.mk` definiert `ci-gegenprobe` (`.PHONY`), das `tools/harness/ci-gegenprobe.sh` ruft und in
 `GEGENPROBEN_CONTAINER` steht, nicht in `GATE_CHECKS` ([`SPEC-060`](SPEC-060-gegenproben.md) Punkte 1 bis 3). Es übergibt `DCHECK_REF` (aus `d-check.mk`)

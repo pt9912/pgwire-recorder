@@ -12,8 +12,7 @@ Kette ([`SPEC-052`](SPEC-052-gate-kette.md) Punkt 4); es braucht Docker wie `doc
 Warum die CI auf GitHub Actions läuft und die Dateien ein Gate bestehen, steht in
 [ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md); diese Kennung wiederholt es nicht.
 
-**Stand der Entscheidung.** Alles in dieser Kennung ist Entscheidung des Architect und **Empfehlung**, bis der Nutzer
-[ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md) annimmt; ändert er sie, ändert sich nur diese Kennung mit
+**Stand der Entscheidung.** Der Nutzer hat [ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md) am 2026-10-18 angenommen; ändert er diese Kennung, ändert sich nur sie mit
 Fragment und Skripten. Auftrag des Nutzers vom 2026-10-18 („Erst das Release voranbringen“): die CI vor die Veröffentlichung.
 
 **Schnittstelle.** Das Fragment `harness/mk/workflows.mk` definiert `workflows-check` und `workflows-check-gegenprobe`
