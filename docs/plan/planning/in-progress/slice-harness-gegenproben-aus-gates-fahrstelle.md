@@ -151,6 +151,8 @@ Der Slice liefert einen neuen Vertrag im Sinne von `AGENTS.md` §3.10 (ein Skrip
 **Aufrufarten des Treibers (§3.12):** Der Hook ruft `make gegenproben` ohne Flags und ohne `MAKEFLAGS` aus der Umgebung des Pushs; ein geerbtes `-i` ließe das Sammelskript den Lauf ablehnen (`SPEC-060` Punkt 10 b). Es gibt kein Rezept, das `make` aufruft; `-n`, `-q`, `-t` entfallen für den Hook (`SPEC-061` Punkte 11 und 14). **Aufruf-Voraussetzung (§3.12):** Zusage nur für Läufe nacheinander über die Sperre (H3); gleichzeitige Aufrufe des Hooks mit gleichem Namen haben vor der Sperre keine Zusage (akzeptiertes Negativ, `SPEC-061` Punkt 14).
 
 **Mit dem Betrieb verwandte Randformen** (Eingeliefert gegen Arbeitsbaum, zwei Container desselben Klons, Ressourcen, Wegfall der Dev-Container-Erkennung, Fahrt ohne Netz, wer die Pflicht auslöst) gehören zu `slice-harness-gegenproben-aus-gates-fahrstelle-betrieb` (dessen §6).
+13. **Rückgaben des Implementers (Architect, 2026-10-18).** Leere Zeile (schweigend übersprungen), mehr als drei Felder (Meldung `zeile`), letzte Zeile ohne Umbruch (verarbeitet): `SPEC-061` Punkt 4. `pgrep` in der Werkzeugliste und `make` durch Signal beendet (Ergebnis `rot`, `exit=` über 128): `SPEC-061` Punkt 13. Gegenprobe nur als Benutzer ohne root: `SPEC-061` Kopf.
+
 
 Risiken:
 
