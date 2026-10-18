@@ -18,9 +18,11 @@ Fragment und Skripten. Auftrag des Nutzers vom 2026-10-18 („Erst das Release v
 **Schnittstelle.** Das Fragment `harness/mk/workflows.mk` definiert `workflows-check` und `workflows-check-gegenprobe`
 (beide `.PHONY`). Das Rezept von `workflows-check` ist `@bash tools/harness/workflows-check.sh`, ohne `$(MAKE)` und ohne
 `+`; die Variable `DOCKER` kommt aus `harness/mk/build.mk`, die Variable `WORKFLOWS_ACTIONLINT` (Image mit Digest,
-Herkunft `ghcr.io/rhysd/actionlint`, Tag als Kommentar daneben) steht im Fragment und wird dem Skript als Umgebung
+Herkunft Docker Hub, `rhysd/actionlint@sha256:<Index-Digest>`, Tag als Kommentar daneben; `ghcr.io/rhysd/actionlint` ist anonym nicht ziehbar, gemessen am 2026-10-18) steht im Fragment und wird dem Skript als Umgebung
 übergeben. Version und Digest stehen nicht in dieser Kennung (sie altern); der Implementer ermittelt sie mit Netz beim
-Anlegen des Fragments (Punkt 3, Element Digest). Das Skript nimmt als erstes Argument eine Wurzel; ohne Argument ist die
+Anlegen des Fragments (Punkt 3, Element Digest). Der Digest ist der des **Index** (Multi-Arch-Manifest), nicht der einer Plattform: er gilt
+auf `amd64` wie auf `arm64`, die Attrappe der Gegenprobe und der Lauf der CI lesen dieselbe Zeichenkette, und Docker wählt die Plattform des Servers.
+Das Limit anonymer Pulls des Docker Hub gilt für dieses Image wie für die übrigen Images der Gates ([ADR-0050](../../docs/plan/adr/0050-ci-auf-github-actions.md)). Das Skript nimmt als erstes Argument eine Wurzel; ohne Argument ist die
 Wurzel das Verzeichnis zwei Ebenen über dem Skript (die Gegenprobe ruft es mit Wurzeln von Temp-Bäumen).
 
 **Plattform** (`AGENTS.md` §3.12, Plattform von [`LH-QA-03`](../../spec/lastenheft.md#lh-qa-03--portabilität)). Zugesagt ist
@@ -73,11 +75,11 @@ eine Mutation.
    das Element fehlt (E1 bis E6) bzw. kommt hinzu (E7, E8). **Exit-Code von `actionlint`:** 0 heißt keine Befunde dieser Gruppe; 1 heißt Befunde,
    deren Zeilen (stdout der Attrappe) unverändert in die Ausgabe kommen (Punkt 9); jeder andere Wert (2, 3, 125 beim Pull-Fehler, 127), ein
    fehlendes `docker` und ein Pull-Fehler enden mit Exit 2 und der Meldung `workflows-check: actionlint nicht lauffähig (Exit <n>)` samt
-   stderr des Aufrufs; ein Fehler ist nie „keine Befunde“. Fälle `p3-exit0`, `p3-exit1`, `p3-exit2`, `p3-exit125`, `p3-kein-docker`; Mutationen: Exit 1
+   stderr des Aufrufs; ein Fehler ist nie „keine Befunde“. Das Image läuft als Nicht-root: Exit 3 mit `permission denied` im stderr heißt, dass Wurzel oder `.github/workflows` für andere nicht lesbar sind (etwa ein Verzeichnis mit Modus 700); das Skript hängt dann die Zeile `workflows-check: Hinweis: der Container liest als Nicht-root; Wurzel und .github/workflows brauchen Leserechte für alle` an. Das Gate kopiert den Baum nicht und ändert keine Rechte (Punkt 10, es schreibt nichts); ein Baum mit Modus 700 ist Exit 2, nicht grün. Die Gegenprobe legt ihre Temp-Bäume für die echten Fälle mit `chmod -R a+rX` lesbar an (Punkt 12). Fall `p3-exit3-rechte` (Attrappe: Exit 3, stderr `permission denied`: Exit 2 und Hinweiszeile); Mutation: der Hinweis fehlt. Fälle `p3-exit0`, `p3-exit1`, `p3-exit2`, `p3-exit3` (fehlende Datei), `p3-exit125`, `p3-kein-docker`; Mutationen: Exit 1
    gilt als 0; jeder Exit ungleich 0 gilt als 1; ein fehlendes `docker` gilt als keine Befunde. **Digest** (E4): das Fragment trägt für
-   `WORKFLOWS_ACTIONLINT` die Form `<Repository>@sha256:<64 Hexziffern>`; Fall `p3-digest-form` an Kopien des Fragments; Mutation: ein Tag
+   `WORKFLOWS_ACTIONLINT` die Form `<Repository>@sha256:<64 Hexziffern>` mit `<Repository>` = `rhysd/actionlint`; Fall `p3-digest-form` an Kopien des Fragments; Mutation: ein Tag
    statt des Digest. Das Skript bricht ab mit Exit 2, wenn `WORKFLOWS_ACTIONLINT` leer ist (Fall `p3-image-leer`; Mutation: leeres Image
-   wird gerufen). Die Gegenprobe fährt daneben drei echte Fälle (Punkt 12).
+   wird gerufen). Die Gegenprobe fährt daneben drei echte Fälle (Punkt 12). Gemessen am echten Image (2026-10-18): `-oneline`, `--network none` und `:ro` gehen, Exit 1 bei Befunden, Zeilenform `<Pfad>:<Zeile>:<Spalte>: …`, Exit 3 bei fehlender Datei.
 4. **Einstufung.** Jede Zeile von `actionlint` ist ein Befund, auch die der eingebauten Prüfungen von `shellcheck` und `pyflakes`; es gibt keine
    Ausnahmeliste und keine Option dafür. Existiert `.github/actionlint.yaml` (E1) oder `.github/actionlint.yml` (E2), ist das ein Befund
    `konfiguration` (Zeile 1 der Datei): `actionlint` läse sie und könnte Befunde ausblenden. Eine Ausnahme ist eine Änderung dieser Kennung, kein
@@ -150,7 +152,7 @@ eine Mutation.
     (Punkt 2). `shellcheck` in `actionlint` kennt nur die Shells, die es bedient; ein `run:` mit `shell: pwsh` ist für diese Prüfung nicht gelesen.
 12. **Gegenprobe.** `make workflows-check-gegenprobe` fährt das Skript an Temp-Bäumen mit einer Attrappe von `docker` (über `DOCKER`), die ihre Argumente
     aufzeichnet und Ausgabe und Exit-Code je Fall vorgibt; die Fälle der Punkte 1 bis 10 laufen ohne Netz. Dazu drei **echte** Fälle gegen das Image aus
-    dem Fragment und das Image von d-check aus `DCHECK_REF` (`make` übergibt beide): `real-gruen` (eine gültige Datei, Exit 0), `real-ausdruck` (eine Datei
+    dem Fragment (die Temp-Bäume der echten Fälle sind mit `chmod -R a+rX` lesbar, weil das Image als Nicht-root liest) und das Image von d-check aus `DCHECK_REF` (`make` übergibt beide): `real-gruen` (eine gültige Datei, Exit 0), `real-ausdruck` (eine Datei
     mit einer Eigenschaft, die `github.event` nicht kennt: Exit 1, die Zeile von `actionlint` mit Dateiname) und `real-pins` (in einem Temp-Baum mit
     `.d-check.yml` aus Punkt 8: `uses: actions/checkout@v4` ⇒ Befund `uses-pin-missing`, ein voller SHA ohne Kommentar ⇒ `uses-pin-untagged`, ein voller
     SHA mit Tag-Kommentar ⇒ grün; je ein Aufruf des Images von d-check). Mutationen der echten Fälle: das Image des Fragments wird durch eine Attrappe ersetzt, die
