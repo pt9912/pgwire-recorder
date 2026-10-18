@@ -87,7 +87,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-harness-gegenproben-aus-gates-fahrstelle` liegt in `done/` (erfüllt). Der Architect hat `SPEC-061` Punkt 5 (keine geerbten Deskriptoren über 2, `SIGINT` und `SIGQUIT` nicht ignoriert, Fälle) im Vertrag festgehalten und die Randformen aus §6 mit „Wo entschieden“ versehen (Zweig `arch-fd`). Den Anspruch trägt der Nutzer; `Verantwortlich:` setzt `open` → `next`.
 
-**Größe.** Metrik nach `AGENTS.md` §3.14: Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice>` über die Pfade am Ende dieses Absatzes, Tests eingeschlossen. Basis ist der Elternteil des Commits, der diese Datei nach `in-progress/` bewegt: <wird beim Übergang eingetragen>. **Pfade:** `-- tools harness/mk harness/README.md`; `harness/vertraege` liegt nicht darin (der Architect schreibt dort).
+**Größe.** Metrik nach `AGENTS.md` §3.14: Summe aus Einfügungen und Löschungen von `git diff --numstat <Basis>..<letzter Commit des Slice>` über die Pfade am Ende dieses Absatzes, Tests eingeschlossen. Basis ist der Elternteil des Commits, der diese Datei nach `in-progress/` bewegt: `4219bab6`. **Pfade:** `-- tools harness/mk harness/README.md`; `harness/vertraege` liegt nicht darin (der Architect schreibt dort).
 
 **Schätzung (Planner, Metrik wie oben; Gegenprobe mit dem Doppelten des Produktcodes, `AGENTS.md` §3.14):**
 
