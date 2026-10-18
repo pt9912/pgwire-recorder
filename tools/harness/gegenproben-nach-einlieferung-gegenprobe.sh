@@ -25,7 +25,7 @@ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 PFAD="$PATH"
 FAELLE=(p1-kopie p1-echter-push p2-fehlt p2-leer p2-relativ p2-zwei-zeilen p2-kein-verzeichnis p3-tag p3-notes p3-headsx p3-mehrere
   p4-null40 p4-null64 p4-ergebnis-bleibt p4-hash-kurz p4-hash-gross p4-hash-41 p4-hash-64 p4-feld-fehlt p4-stdin-leer p4-leerzeile p4-leerzeichen-zeile p4-vier-felder p4-ohne-umbruch p4-zeile-kaputt-dann-gut
-  p5-vor-ende p5-gestartet-zeile p5-stdout-leer p5-fd-0 p5-fd-1 p5-fd-2 p5-leitung-stdout p5-leitung-stderr p5-gruppe p5-eof-fd5 p5-eof-fd7 p5-eof-fd12 p5-fd-lauf p5-fd-make p5-fd-kind
+  p5-vor-ende p5-gestartet-zeile p5-stdout-leer p5-fd-0 p5-fd-1 p5-fd-2 p5-leitung-stdout p5-leitung-stderr p5-gruppe p5-eof-fd3 p5-eof-fd5 p5-eof-fd7 p5-eof-fd12 p5-fd-lauf p5-fd-make p5-fd-kind p5-ein-prozess
   p6-nacheinander p6-kein-abbruch
   p7-neu p7-altes-weg p7-force p7-anderer-zweig p8-schraeg p8-prozent p8-nichtascii p8-sonderzeichen p8-unveraendert p8-eindeutig p8-lang p8-grenze p8-lang-mehrbyte p8-locale
   p9-gruen p9-rot p9-marke p9-nicht-vorher p9-log p9-zeitzone-ost p9-zeitzone-west p9-beginn-nach-sperre p9-sigterm-lauf p9-sigterm-enkel p9-sigterm-wartet p9-sigterm-wartet-waise
@@ -252,6 +252,7 @@ eof_gruppe() {
   if [ -e "$g/zu" ]; then melde "p5-eof-fd$n: Deskriptor $n ist im Fall keine offene Pipe"; echo "p5-eof-fd$n"; return; fi
   { [ -e "$g/eof" ] && grep -qs ende "$g/steuer/protokoll"; } || echo "p5-eof-fd$n"
 }
+g5e3() { eof_gruppe 3; }
 g5e5() { eof_gruppe 5; }
 g5e7() { eof_gruppe 7; }
 g5e12() { eof_gruppe 12; }
@@ -259,11 +260,15 @@ g5e12() { eof_gruppe 12; }
 # nur <Datei> <Muster> — die Datei ist nicht leer, und jede Zeile passt auf das Muster.
 nur() { [ -s "$1" ] && ! grep -qvE "^($2)$" "$1"; }
 
-# g5f — Deskriptoren von Lauf, make und Kindern; der Hook erbt einen Deskriptor 5 (wie von git receive-pack).
+# g5f — Deskriptoren von Lauf, make und Kindern und Zahl der Hintergrundprozesse; der Hook erbt einen Deskriptor 5 (wie von git receive-pack).
 g5f() {
   local a
   aufbau p5f
-  ( exec 5> "$g/zusatz"; haken "$(zl main "$h1")" ); bis_fertig
+  echo 2 > "$g/steuer/warte"
+  ( exec 5> "$g/zusatz"; haken "$(zl main "$h1")" )
+  warte_auf grep -qs beginn "$g/steuer/protokoll"
+  [ "$(pgrep -fc -- "post-receive --lauf $g/bare")" = 1 ] || echo p5-ein-prozess
+  bis_fertig
   a="$g/steuer/aufruf.1"
   nur "$a/lauf.fd" '[012]|9|255' || echo p5-fd-lauf
   nur "$a/make.fd" '[012]' || echo p5-fd-make
@@ -535,7 +540,7 @@ g13() {
 # pruefe — schreibt die Namen der roten Fälle, einen je Zeile; die Gruppen laufen gleichzeitig.
 pruefe() {
   local f
-  for f in g1 g2 g3 g4 g5 g5e5 g5e7 g5e12 g5f g6 g7 g8 g9 g9s g10 g11 g11s g12 g13; do ("$f" > "$fx/rot.$f" 2> "$fx/err.$f") & done
+  for f in g1 g2 g3 g4 g5 g5e3 g5e5 g5e7 g5e12 g5f g6 g7 g8 g9 g9s g10 g11 g11s g12 g13; do ("$f" > "$fx/rot.$f" 2> "$fx/err.$f") & done
   wait
   cat "$fx"/rot.g*
   pkill -KILL -f -- "$fx/" 2> /dev/null
@@ -564,7 +569,8 @@ mut() {
     done
     printf '%s' "$neu" > "$hook"; chmod 755 "$hook"
     ist="$(ergebnis)"
-    erwartet="$(printf '%s\n' $rote | LC_ALL=C sort -u | tr '\n' ' ')"
+    erwartet=""
+    if [ -n "$rote" ]; then erwartet="$(printf '%s\n' $rote | LC_ALL=C sort -u | tr '\n' ' ')"; fi
     if [ -n "${GP_ENTDECKE-}" ]; then echo "$name => ${ist:-nichts}" >&2; fi
     echo "$name" >> "$arbeit/gefahren"
     unbekannt "$ist"
@@ -608,7 +614,7 @@ WTFEHL='    rm -rf "${wt:?}"; wt=""; exec 9>&-; return 0'
 SPERRE='"$sig: sperre: Sperre nicht angelegt" > "$log";'
 # --- Punkt 1
 mut m-p1-laedt-nach "p1-kopie p13-ref-vor-form p3-headsx p3-notes p3-tag p4-ergebnis-bleibt p4-hash-64 p4-null40 p4-null64 p4-ohne-umbruch p4-stdin-leer p5-gestartet-zeile" 'sig="gegenproben-nach-einlieferung"' $'sig="gegenproben-nach-einlieferung"\n. "$(dirname "${BASH_SOURCE[0]}")/bibliothek.sh"'
-mut m-p1-liest-stdin-nicht "p1-echter-push p1-kopie p10-argv p11-git-dir p11-git-quarantaene p11-git-weitere p11-gnumakeflags p11-makeflags p11-makelevel p11-makeoverrides p11-mflags p11-sigint-kind p11-sigint-lauf p11-sigint-make p11-sigquit-kind p11-sigquit-make p12-entfernt-rot p12-stand p13-form-vor-laenge p13-hash-fehlt p13-make-127 p13-make-signal p13-sperre p13-sperre-vor-arbeitsbaum p3-mehrere p4-feld-fehlt p4-hash-41 p4-hash-64 p4-hash-gross p4-hash-kurz p4-leerzeichen-zeile p4-leerzeile p4-ohne-umbruch p4-vier-felder p4-zeile-kaputt-dann-gut p5-eof-fd12 p5-eof-fd5 p5-eof-fd7 p5-fd-0 p5-fd-1 p5-fd-2 p5-fd-kind p5-fd-lauf p5-fd-make p5-gestartet-zeile p5-gruppe p6-kein-abbruch p6-nacheinander p7-anderer-zweig p7-force p7-neu p8-eindeutig p8-grenze p8-lang p8-lang-mehrbyte p8-locale p8-nichtascii p8-prozent p8-schraeg p8-sonderzeichen p8-unveraendert p9-beginn-nach-sperre p9-gruen p9-log p9-marke p9-rot p9-zeitzone-ost p9-zeitzone-west" 'while IFS= read -r zeile || [ -n "$zeile" ]; do' 'while IFS= read -r zeile < /dev/null || [ -n "$zeile" ]; do'
+mut m-p1-liest-stdin-nicht "p1-echter-push p1-kopie p10-argv p11-git-dir p11-git-quarantaene p11-git-weitere p11-gnumakeflags p11-makeflags p11-makelevel p11-makeoverrides p11-mflags p11-sigint-kind p11-sigint-lauf p11-sigint-make p11-sigquit-kind p11-sigquit-make p12-entfernt-rot p12-stand p13-form-vor-laenge p13-hash-fehlt p13-make-127 p13-make-signal p13-sperre p13-sperre-vor-arbeitsbaum p3-mehrere p4-feld-fehlt p4-hash-41 p4-hash-64 p4-hash-gross p4-hash-kurz p4-leerzeichen-zeile p4-leerzeile p4-ohne-umbruch p4-vier-felder p4-zeile-kaputt-dann-gut p5-ein-prozess p5-eof-fd12 p5-eof-fd3 p5-eof-fd5 p5-eof-fd7 p5-fd-0 p5-fd-1 p5-fd-2 p5-fd-kind p5-fd-lauf p5-fd-make p5-gestartet-zeile p5-gruppe p6-kein-abbruch p6-nacheinander p7-anderer-zweig p7-force p7-neu p8-eindeutig p8-grenze p8-lang p8-lang-mehrbyte p8-locale p8-nichtascii p8-prozent p8-schraeg p8-sonderzeichen p8-unveraendert p9-beginn-nach-sperre p9-gruen p9-log p9-marke p9-rot p9-zeitzone-ost p9-zeitzone-west" 'while IFS= read -r zeile || [ -n "$zeile" ]; do' 'while IFS= read -r zeile < /dev/null || [ -n "$zeile" ]; do'
 # --- Punkt 2
 mut m-p2-zeilenzahl "p2-zwei-zeilen" "$SIGL" '  :'
 mut m-p2-absolut "p2-relativ" "$ABSL" '  :'
@@ -637,14 +643,18 @@ mut m-p4-loeschung-entfernt-ergebnis "p4-ergebnis-bleibt" "$NULLL" '    [[ $neu 
 mut m-p4-loeschung-meldet "p4-ergebnis-bleibt p4-null40 p4-null64" "$NULLL" '    [[ $neu =~ ^(0{40}|0{64})$ ]] && { melde zeile "geloescht"; continue; }'
 mut m-p4-leere-eingabe-meldet "p13-ref-vor-form p3-headsx p3-notes p3-tag p4-ergebnis-bleibt p4-feld-fehlt p4-null40 p4-null64 p4-stdin-leer" '  if [ "${#args[@]}" -gt 0 ]; then' $'  [ "${#args[@]}" -gt 0 ] || melde zeile "keine Eingabe"\n  if [ "${#args[@]}" -gt 0 ]; then'
 # --- Punkt 5
-mut m-p5-wartet "p1-echter-push p5-eof-fd12 p5-eof-fd5 p5-eof-fd7 p5-fd-0 p5-fd-1 p5-fd-2 p5-leitung-stderr p5-leitung-stdout p5-vor-ende p7-altes-weg p9-marke p9-nicht-vorher" "$SETSID" 'setsid -w "$BASH" -c'
+mut m-p5-wartet "p1-echter-push p5-ein-prozess p5-eof-fd12 p5-eof-fd3 p5-eof-fd5 p5-eof-fd7 p5-fd-0 p5-fd-1 p5-fd-2 p5-leitung-stderr p5-leitung-stdout p5-vor-ende p7-altes-weg p9-marke p9-nicht-vorher" "$SETSID" 'setsid -w "$BASH" -c'
 mut m-p5-erbt-stdout "p1-echter-push p5-fd-1 p5-leitung-stdout" "$START" '< /dev/null >&1 2> /dev/null'
 mut m-p5-erbt-stderr "p1-echter-push p5-fd-2 p5-leitung-stderr" "$START" '< /dev/null > /dev/null 2>&2'
 mut m-p5-erbt-stdin "p5-fd-0" "$START" '<&0 > /dev/null 2>&1'
 mut m-p5-gleiche-sitzung "p5-gruppe" "$SETSID" 'env --default-signal=INT,QUIT "$BASH" -c' "$START" "$START &"
-mut m-p5-keine-fd-schliessen "p5-eof-fd12 p5-eof-fd5 p5-eof-fd7 p5-fd-kind p5-fd-lauf p5-fd-make" "$SCHLIESSE" ':'
-mut m-p5-nur-fd5 "p5-eof-fd12 p5-eof-fd7" "$NUMMER" '[ "$n" = 5 ] &&'
+mut m-p5-keine-fd-schliessen "p5-eof-fd12 p5-eof-fd3 p5-eof-fd5 p5-eof-fd7 p5-fd-kind p5-fd-lauf p5-fd-make" "$SCHLIESSE" ':'
+mut m-p5-nur-fd5 "p5-eof-fd12 p5-eof-fd3 p5-eof-fd7" "$NUMMER" '[ "$n" = 5 ] &&'
 mut m-p5-nur-3-bis-9 "p5-eof-fd12" "$NUMMER" '[ "$n" -gt 2 ] 2> /dev/null && [ "$n" -le 9 ] &&'
+mut m-p5-nur-ueber-3 "p5-eof-fd3" "$NUMMER" '[ "$n" -gt 3 ] 2> /dev/null &&'
+mut m-p5-schliesst-fd2 "p5-fd-2" "$NUMMER" '[ "$n" -ge 2 ] 2> /dev/null &&'
+mut m-p5-lauf-ohne-exec "" 'exec "$BASH" "$@"' '"$BASH" "$@"'
+mut m-p5-lauf-als-kind "p5-ein-prozess" 'exec "$BASH" "$@"' '"$BASH" "$@"; :'
 mut m-p5-make-mit-sperre "p5-fd-kind p5-fd-make" '> "$log" 2>&1 9>&- &' '> "$log" 2>&1 &'
 mut m-p11-hook-mit-und "p11-sigint-kind p11-sigint-lauf p11-sigint-make p11-sigquit-kind p11-sigquit-make" "$SETSID" 'setsid "$BASH" -c' "$START" "$START &"
 mut m-p11-make-mit-und "p11-sigint-kind p11-sigint-make p11-sigquit-kind p11-sigquit-make" "$MAKEUND" 'env -C "$wt" make gegenproben > "$log" 2>&1 9>&- &'
