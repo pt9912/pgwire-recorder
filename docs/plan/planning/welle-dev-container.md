@@ -51,7 +51,7 @@ Lifecycle-Verzeichnis und wird hier **nicht** gespiegelt.
 | Slice | Titel | Bezug |
 |---|---|---|
 | slice-harness-devcontainer-einrichten-geruest | Make-Ziel `container-start` legt das Gerüst des Dev-Containers an und startet ihn (Teil I) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (nur Host-Voraussetzungen); kein Anspruch des Produkts |
-| slice-harness-devcontainer-einrichten-start | `container-start` startet den Container, prüft Port und Bereitschaft und fängt den Abbruch ab (Teil II; `open/`) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (nur Host-Voraussetzungen); kein Anspruch des Produkts |
+| slice-harness-devcontainer-einrichten-start | `container-start` startet den Container, prüft Port und Bereitschaft und fängt den Abbruch ab (Teil II) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (nur Host-Voraussetzungen); kein Anspruch des Produkts |
 | slice-harness-devcontainer-einrichten | Make-Ziel `container-einrichten` richtet Bare-Repo, Einlieferung, Klon und Zweig ein (`docs/developer/devcontainer.md`) | [LH-QA-03](../../../spec/lastenheft.md#lh-qa-03--portabilität) (neu: `ssh` am Host); kein Anspruch des Produkts |
 | slice-harness-devcontainer-einrichten-zugang | `container-einrichten` löst den Zugang von Claude Code auf und reicht ihn an den Container (zurzeit nicht gebraucht, Entscheidung des Nutzers vom 2026-10-18) | kein Anspruch des Produkts |
 
