@@ -540,7 +540,7 @@ Pro Slice:
 3. Betroffene Requirement-/ADR-IDs identifizieren.
 4. Kleinste sinnvolle Änderung planen.
 5. Engsten nützlichen Sensor laufen lassen.
-6. Repo-weiten Gate-Lauf vor Handoff (`make gates`). Wer ein Gate, eine Gegenprobe oder einen Vertrag ändert, fährt die betroffene Gegenprobe (`make <name>`, Zuordnung in `harness/README.md` §Sensors).
+6. Repo-weiten Gate-Lauf vor Handoff (`make gates`). Wer ein Gate, eine Gegenprobe oder einen Vertrag ändert, fährt die betroffene Gegenprobe (`make <name>`, Zuordnung in `harness/README.md` §Sensors); am Ende jeder Welle und vor dem Release fahren `make gegenproben` im Gegenproben-Container und `make gegenproben-host` am Host.
 7. Doku/Indizes aktualisieren, falls ein öffentlicher Vertrag berührt.
 8. Ausgeführte Sensors und verbleibende Risiken berichten — keine Erfolgsmeldung ohne Gate-Ausführung.
 
