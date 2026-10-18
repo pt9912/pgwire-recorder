@@ -10,7 +10,8 @@
 # GP_ENTDECKE=1 nennt je Mutation die roten Fälle; GP_PARALLEL=<n> (Vorgabe 4) setzt die Zahl der gleichzeitigen Läufe;
 # GP_FALL=<name> gibt für die unveränderte Kopie das Protokoll dieses Falls aus.
 # Braucht bash ≥ 4, make, mktemp, awk, find, sort, cksum und Docker für die echten Fälle.
-# GRENZE: Als root bleibt eine Datei mit Rechten 000 lesbar; dann ist p9-nicht-lesbar nicht herstellbar und wird laut übersprungen.
+# GRENZE: Als root bleibt jede Datei und jedes Verzeichnis lesbar; dann sind p9-nicht-lesbar, p9-verzeichnis-ohne-r und p9-verzeichnis-ohne-x nicht herstellbar,
+# ihre Mutationen entfallen, und das Ende der Gegenprobe nennt sie auf stderr.
 # Abdeckung der Punkte 11 (Grenzen) und der Lauffähigkeit auf GitHub hat die Gegenprobe nicht: es sind akzeptierte Negative des Vertrags.
 set -uo pipefail
 
@@ -47,17 +48,17 @@ chmod +x "$arbeit/attrappe"
 attrappe="$arbeit/attrappe"
 
 FAELLE=(
-  p1-yml p1-yaml p1-andere-endung p1-unterverzeichnis p1-symlink
+  p1-yml p1-yaml p1-andere-endung p1-unterverzeichnis p1-symlink p1-symlink-andere-endung
   p2-kein-verzeichnis p2-leer p2-nur-andere p2-ohne-4 p2-ohne-8 p2-nur-symlink
   p3-e1 p3-e2 p3-e3 p3-e4 p3-e5 p3-e6 p3-e7 p3-e8 p3-einmal
   p3-exit0 p3-exit1 p3-exit1-leer p3-exit2 p3-exit3 p3-exit3-rechte p3-exit125 p3-kein-docker p3-digest-form p3-image-leer
   p4-yaml p4-yml
-  p5-tab p5-einzug p5-einzug-spaeter p5-jobs-flow p5-schritt-ist-kein-job
+  p5-tab p5-einzug p5-einzug-spaeter p5-jobs-flow p5-schritt-ist-kein-job p5-form-ohne-regeln
   p6-fehlt p6-leer-ok p6-leer-kommentar-ok p6-read-all p6-write-all p6-block p6-flow-eintrag
   p6-job-block-ok p6-job-leer-ok p6-job-ohne-ok p6-job-write-all p6-job-read-all p6-job-flow-eintrag p6-job-wert
-  p7-fehlt p7-1-ok p7-60-ok p7-61 p7-0 p7-ausdruck p7-nicht-ganzzahl p7-wort p7-uses-job-ok
-  p8-ok p8-ok-doppelt p8-ok-einfach p8-modules p8-block p8-dir p8-dir-schraeg p8-ohne-datei p8-pins-nicht-hier
-  p9-reihenfolge p9-alle-befunde p9-umgebung-vor-befund p9-gruen p9-nicht-lesbar
+  p7-fehlt p7-1-ok p7-60-ok p7-61 p7-0 p7-ausdruck p7-nicht-ganzzahl p7-wort p7-fuehrende-null p7-vorzeichen p7-dezimal p7-uses-job-ok
+  p8-ok p8-ok-doppelt p8-ok-einfach p8-modules p8-block p8-dir p8-dir-schraeg p8-dir-davor p8-dir-danach p8-modules-praefix p8-modules-suffix p8-ohne-datei p8-pins-nicht-hier
+  p9-reihenfolge p9-alle-befunde p9-umgebung-vor-befund p9-gruen p9-nicht-lesbar p9-verzeichnis-ohne-r p9-verzeichnis-ohne-x
   p10-n p10-q p10-t p10-i p10-makeflags p10-rezept p10-unterverzeichnis p10-schreibt-nichts p10-kette-gate p10-kette-gegenprobe
   real-gruen real-ausdruck real-pins
 )
@@ -149,6 +150,7 @@ f_p1_unterverzeichnis() {
   gruen; chk out_hat "hinweis: .github/workflows/sub/b.yml wird nicht geprüft (Unterverzeichnis)"
   chk out_hat "1 Datei(en) geprüft"
 }
+f_p1_symlink_andere_endung() { neu; schreibe a.yml "$(gut)"; ln -s a.yml "$w/.github/workflows/x.txt"; lauf; gruen; chk out_hat "hinweis: .github/workflows/x.txt wird nicht geprüft (Endung)"; }
 f_p1_symlink() {
   neu; schreibe a.yml "$(gut)"; ln -s a.yml "$w/.github/workflows/l.yml"
   lauf
@@ -191,7 +193,7 @@ f_p3_exit0() { einfach; AT_EXIT=0 lauf; gruen; chk out_hat "1 Datei(en) geprüft
 f_p3_exit1() {
   einfach; AT_EXIT=1 AT_OUT=$'.github/workflows/a.yml:3:1: boom [x]\n.github/workflows/a.yml:4:1: bam [y]' lauf
   rot al al
-  chk err_hat $'.github/workflows/a.yml:3:1: boom [x]\n.github/workflows/a.yml:4:1: bam [y]\nworkflows-check: 2 Befund(e)'
+  chk test "$err" = $'.github/workflows/a.yml:3:1: boom [x]\n.github/workflows/a.yml:4:1: bam [y]\nworkflows-check: 2 Befund(e)'
 }
 f_p3_exit1_leer() { einfach; AT_EXIT=1 lauf; chk code_ist 1; chk err_hat "ohne Zeile"; }
 f_p3_exit2() {
@@ -234,6 +236,8 @@ f_p5_schritt_ist_kein_job() {
   lauf; rot timeout-fehlt
 }
 
+f_p5_form_ohne_regeln() { neu; schreibe a.yml $'name: x\non: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n\tx: 1\n'; lauf; rot form; }
+
 # --- Punkt 6: Rechte --------------------------------------------------------------------------------------------------------------------------------
 f_p6_fehlt() { neu; schreibe a.yml "$(bau "" "$J0")"; lauf; rot permissions-fehlt; }
 f_p6_leer_ok() { neu; schreibe a.yml "$(gut)"; lauf; gruen; }
@@ -261,6 +265,9 @@ f_p7_0() { zeit $'    timeout-minutes: 0\n'; rot timeout-wert; chk err_hat "time
 f_p7_ausdruck() { zeit $'    timeout-minutes: ${{ 10 }}\n'; rot timeout-wert; chk err_hat 'timeout-minutes ${{ 10 }}'; }
 f_p7_nicht_ganzzahl() { zeit $'    timeout-minutes: 30.5\n'; rot timeout-wert; chk err_hat "timeout-minutes 30.5"; }
 f_p7_wort() { zeit $'    timeout-minutes: bald\n'; rot timeout-wert; chk err_hat "timeout-minutes bald"; }
+f_p7_fuehrende_null() { local v; for v in 010 0060 00; do zeit "    timeout-minutes: $v"$'\n'; rot timeout-wert; chk err_hat "timeout-minutes $v"; done; }
+f_p7_vorzeichen() { zeit $'    timeout-minutes: +5\n'; rot timeout-wert; chk err_hat "timeout-minutes +5"; }
+f_p7_dezimal() { zeit $'    timeout-minutes: 5.0\n'; rot timeout-wert; chk err_hat "timeout-minutes 5.0"; }
 f_p7_uses_job_ok() {
   neu; schreibe a.yml "$(gut)"$'\n  c:\n    uses: ./.github/workflows/w.yml\n'; lauf; gruen
 }
@@ -274,6 +281,11 @@ f_p8_modules() { bindung $'modules: [links]\nworkflows:\n  dir: .github/workflow
 f_p8_block() { bindung $'modules: [workflows]\n'; rot pins-ungeprueft; chk err_hat "Zeile workflows: fehlt"; }
 f_p8_dir() { bindung $'modules: [workflows]\nworkflows:\n  dir: docs\n'; rot pins-ungeprueft; chk err_hat "dir: .github/workflows unter workflows: fehlt"; }
 f_p8_dir_schraeg() { bindung $'modules: [workflows]\nworkflows:\n  dir: .github/workflows/\n'; rot pins-ungeprueft; chk err_hat "dir: .github/workflows unter workflows: fehlt"; }
+dbl() { bindung "$1"; rot pins-ungeprueft; chk err_hat "$2"; }
+f_p8_dir_davor() { dbl $'modules: [workflows]\nandere:\n  dir: .github/workflows\nworkflows:\n  x: 1\n' "dir: .github/workflows unter workflows: fehlt"; }
+f_p8_dir_danach() { dbl $'modules: [workflows]\nworkflows:\n  x: 1\nandere:\n  dir: .github/workflows\n' "dir: .github/workflows unter workflows: fehlt"; }
+f_p8_modules_praefix() { dbl $'modules: [workflows-x]\nworkflows:\n  dir: .github/workflows\n' "modules: führt workflows nicht"; }
+f_p8_modules_suffix() { dbl $'modules: [xworkflows]\nworkflows:\n  dir: .github/workflows\n' "modules: führt workflows nicht"; }
 f_p8_ohne_datei() { neu; rm "$w/.d-check.yml"; schreibe a.yml "$(gut)"; lauf; rot pins-ungeprueft; chk err_hat ".d-check.yml fehlt"; }
 f_p8_pins_nicht_hier() {
   neu; schreibe a.yml "$(bau "$T0" "$J0" | sed 's|echo hi|echo hi\n      - uses: actions/checkout@v4|')"
@@ -300,8 +312,12 @@ f_p9_umgebung_vor_befund() {
   umgebung; chk err_hat_nicht "permissions-fehlt"; chk err_hat_nicht "Befund(e)"
 }
 f_p9_gruen() { neu; schreibe a.yml "$(gut)"; schreibe b.yaml "$(gut)"; lauf; gruen; chk test "$out" = "workflows-check: 2 Datei(en) geprüft, kein Befund"; }
+nur_nichtroot() { [ "$(id -u)" -ne 0 ] || { echo "$fallname" >> "$arbeit/uebersprungen"; return 1; }; }
+verz() { nur_nichtroot || return 0; neu; schreibe a.yml "$(gut)"; chmod "$1" "$w/.github/workflows"; lauf; chmod 755 "$w/.github/workflows"; umgebung; chk err_hat ".github/workflows nicht lesbar"; }
+f_p9_verzeichnis_ohne_r() { verz 311; }
+f_p9_verzeichnis_ohne_x() { verz 444; }
 f_p9_nicht_lesbar() {
-  if [ "$(id -u)" -eq 0 ]; then echo "workflows-check-gegenprobe: p9-nicht-lesbar übersprungen (root liest jede Datei)" >&2; return 0; fi
+  nur_nichtroot || return 0
   neu; schreibe a.yml "$(gut)"; chmod 000 "$w/.github/workflows/a.yml"; lauf
   chmod 644 "$w/.github/workflows/a.yml"
   umgebung; chk err_hat ".github/workflows/a.yml nicht lesbar"
@@ -393,6 +409,10 @@ mut() {
   shift 3
   [[ $name =~ ${GP_MUT:-.} ]] || return 0
   [[ " $rote " == *" real-"* ]] && mit=1
+  if [ "$(id -u)" -eq 0 ]; then
+    for x in p9-nicht-lesbar p9-verzeichnis-ohne-r p9-verzeichnis-ohne-x; do rote="${rote//$x/}"; done
+    [ -n "${rote// /}" ] || { echo "$name" >> "$arbeit/uebersprungen"; return 0; }
+  fi
   wartejob
   (
     run="$arbeit/$name"; mkdir -p "$run/tools/harness" "$run/harness/mk"
@@ -486,13 +506,22 @@ mut m-p3-digest-kurz "p3-digest-form" fragment 'e9# 1.7.7' 'e# 1.7.7'
 mut m-p3-digest-repository "p3-digest-form" fragment ':= rhysd/actionlint@' ':= ghcr.io/rhysd/actionlint@'
 mut m-p3-image-leer "p3-image-leer" skript '  [ -n "${WORKFLOWS_ACTIONLINT:-}" ] || sperre "WORKFLOWS_ACTIONLINT ist leer"' '  :'
 # Punkt 4
+mut m-p1-symlink-andere-befund "p1-symlink-andere-endung" skript 'if [ "$endung" -eq 1 ]; then geordnet+=("s:$n"); else' 'if true; then geordnet+=("s:$n"); else'
+mut m-p1-symlink-andere-still "p1-symlink-andere-endung" skript 'else hinweise+=("hinweis: $WF/$n wird nicht geprüft (Endung)"); fi' 'else :; fi'
+mut m-p1-hinweis-endung-fehlt "p1-andere-endung" skript $'    hinweise+=("hinweis: $WF/$n wird nicht geprüft (Endung)")\n  fi' $'    :\n  fi'
+mut m-p1-hinweis-grund-endung "p1-andere-endung" skript $'    hinweise+=("hinweis: $WF/$n wird nicht geprüft (Endung)")\n  fi' $'    hinweise+=("hinweis: $WF/$n wird nicht geprüft (Name)")\n  fi'
+mut m-p1-hinweis-unterverz-fehlt "p1-unterverzeichnis" skript 'hinweise+=("hinweis: ${q#"$wurzel/"} wird nicht geprüft (Unterverzeichnis)")' ':'
+mut m-p1-hinweis-grund-unterverz "p1-unterverzeichnis" skript 'wird nicht geprüft (Unterverzeichnis)")' 'wird nicht geprüft (Ordner)")'
+mut m-p3-al-zeilen-veraendert "p3-exit1" skript 'bef_al+=("$z")' 'bef_al+=("al: $z")'
+mut m-p3-stderr-anhang-fehlt "p3-exit2 p3-exit3 p3-exit125" skript '      cat "$errf" >&2' '      :'
 mut m-p4-yaml-nicht "p4-yaml" skript 'for k in actionlint.yaml actionlint.yml; do' 'for k in actionlint.yml; do'
 mut m-p4-yml-nicht "p4-yml" skript 'for k in actionlint.yaml actionlint.yml; do' 'for k in actionlint.yaml; do'
 # Punkt 5
-mut m-p5-tab "p5-tab" skript '{ form(NR, "Tabulator im Einzug"); next }' '{ next }'
+mut m-p5-tab "p5-tab p5-form-ohne-regeln" skript '{ form(NR, "Tabulator im Einzug"); next }' '{ next }'
 mut m-p5-einzug "p5-einzug" skript 'if (ind != 2) form(NR, "Job-Schlüssel mit Einzug " ind " statt 2")' ''
 mut m-p5-einzug-spaeter "p5-einzug-spaeter" skript '{ form(NR, "Job-Schlüssel mit Einzug " ind " statt 2"); next }' '{ next }'
 mut m-p5-jobs-flow "p5-jobs-flow" skript 'if (val != "") form(NR, "jobs: mit Wert in der Zeile: " val)' ''
+mut m-p5-regeln-laufen "p5-form-ohne-regeln" skript 'print fl[i] "\tform\t" ft[i]; exit }' 'print fl[i] "\tform\t" ft[i] }'
 mut m-p5-jeder-einzug "p5-schritt-ist-kein-job p6-job-wert" skript '  if (ind == 4 && haskey) {' '  if (ind >= 4 && haskey) {'
 # Punkt 6
 mut m-p6-fehlt-angenommen "p6-fehlt p1-yml p1-yaml p9-alle-befunde p9-reihenfolge" skript '  if (!sawperm) regel(' '  if (0) regel('
@@ -509,13 +538,19 @@ mut m-p7-obergrenze-360 "p7-61" skript 'length(tval) > 3 || z < 1 || z > 60' 'z 
 mut m-p7-untergrenze "p7-1-ok" skript 'z < 1' 'z < 2'
 mut m-p7-null-angenommen "p7-0" skript 'z < 1' 'z < 0'
 mut m-p7-ausdruck-angenommen "p7-ausdruck" skript '      else bad = 1' '      else bad = (tval !~ /^\$\{\{.*\}\}$/)'
-mut m-p7-nicht-ganzzahl-angenommen "p7-nicht-ganzzahl" skript '      else bad = 1' '      else bad = (tval !~ /^[0-9]+\.[0-9]+$/)'
+mut m-p7-nicht-ganzzahl-angenommen "p7-nicht-ganzzahl p7-dezimal" skript '      else bad = 1' '      else bad = (tval !~ /^[0-9]+\.[0-9]+$/)'
+mut m-p7-fuehrende-null-angenommen "p7-fuehrende-null" skript 'tval ~ /^(0|[1-9][0-9]*)$/' 'tval ~ /^[0-9]+$/'
+mut m-p7-vorzeichen-angenommen "p7-vorzeichen" skript '      else bad = 1' '      else bad = (tval !~ /^\+[0-9]+$/)'
+mut m-p7-dezimal-angenommen "p7-dezimal" skript '      else bad = 1' '      else bad = (tval !~ /^[0-9]+\.0$/)'
 mut m-p7-wort-angenommen "p7-wort" skript '      else bad = 1' '      else bad = (tval !~ /^[A-Za-z]+$/)'
 mut m-p7-job-ohne-runs-on "p7-uses-job-ok" skript '  if (injob && hasruns) {' '  if (injob) {'
 # Punkt 8
-mut m-p8-a "p8-modules" skript 'if [ "${bindung:0:1}" != "1" ]; then fehlt=' 'if false; then fehlt='
+mut m-p8-a "p8-modules p8-modules-praefix p8-modules-suffix" skript 'if [ "${bindung:0:1}" != "1" ]; then fehlt=' 'if false; then fehlt='
+mut m-p8-dir-ohne-block "p8-dir-davor p8-dir-danach" skript 'inb && /^  dir:' '/^  dir:'
+mut m-p8-ohne-ruecksetzung "p8-dir-danach" skript '/^[^ \t#]/ { inb = 0 }' ''
+mut m-p8-modules-muster "p8-modules-praefix p8-modules-suffix" skript 'if (x == "workflows") a = 1' 'if (x ~ /workflows/) a = 1'
 mut m-p8-b "p8-block" skript 'if [ "${bindung:1:1}" != "1" ]; then' 'if false; then'
-mut m-p8-c "p8-dir p8-dir-schraeg" skript 'elif [ "${bindung:2:1}" != "1" ]; then' 'elif false; then'
+mut m-p8-c "p8-dir p8-dir-schraeg p8-dir-davor p8-dir-danach" skript 'elif [ "${bindung:2:1}" != "1" ]; then' 'elif false; then'
 mut m-p8-datei-fehlt-angenommen "p8-ohne-datei p9-reihenfolge" skript 'fehlt=".d-check.yml fehlt"' 'fehlt=""'
 mut m-p8-anfuehrung-doppelt "p8-ok-doppelt" skript '["'"'"']?\.github\/workflows["'"'"']?[ \t]*(#.*)?$/ { c = 1 }' "'?\\.github\\/workflows'?[ \\t]*(#.*)?\$/ { c = 1 }"
 mut m-p8-anfuehrung-einfach "p8-ok-einfach" skript '["'"'"']?\.github\/workflows["'"'"']?[ \t]*(#.*)?$/ { c = 1 }' '"?\.github\/workflows"?[ \t]*(#.*)?$/ { c = 1 }'
@@ -531,6 +566,8 @@ mut m-p9-summe-nur-al "MUSS:p9-alle-befunde p9-reihenfolge NICHT:p3-exit1 p3-exi
 mut m-p3-exit1-leer-angenommen "p3-exit1-leer" skript 'if [ "${#bef_al[@]}" -eq 0 ]; then bef_al+=("workflows-check: actionlint endete mit Exit 1 ohne Zeile"); fi' ':'
 mut m-p9-umgebung-exit1 "p3-exit2 p3-exit3 p3-exit3-rechte p3-exit125 p3-kein-docker p9-umgebung-vor-befund" skript $'      exit 2\n      ;;' $'      exit 1\n      ;;'
 mut m-p9-eigene-vor-umgebung "p9-umgebung-vor-befund" skript $'      echo "workflows-check: actionlint nicht lauffähig (Exit $rc)" >&2' $'      printf \'%s\\n\' "${bef_datei[@]}" "${bef_global[@]}" >&2\n      echo "workflows-check: actionlint nicht lauffähig (Exit $rc)" >&2'
+mut m-p9-verzeichnis-r-fehlt "p9-verzeichnis-ohne-r" skript '{ [ -r "$dir" ] && [ -x "$dir" ]; } ||' '{ [ -x "$dir" ]; } ||'
+mut m-p9-verzeichnis-x-fehlt "p9-verzeichnis-ohne-x" skript '{ [ -r "$dir" ] && [ -x "$dir" ]; } ||' '{ [ -r "$dir" ]; } ||'
 mut m-p9-nicht-lesbar "p9-nicht-lesbar" skript '[ -r "$dir/$n" ] || sperre "$WF/$n nicht lesbar"' '[ -r "$dir/$n" ] || :'
 # Punkt 10
 mut m-p10-plus "p10-n p10-q p10-t p10-makeflags" fragment $'\t@bash tools/harness/workflows-check.sh' $'\t+@bash tools/harness/workflows-check.sh'
@@ -545,6 +582,7 @@ mut m-real-modules "real-pins" env REAL_MODULES '[links]'
 
 wait
 fehler=0
+if [ -s "$arbeit/uebersprungen" ]; then echo "workflows-check-gegenprobe: übersprungen (root liest jede Datei und jedes Verzeichnis): $(sort -u "$arbeit/uebersprungen" | tr '\n' ' ')" >&2; fi
 if [ -s "$arbeit/fehler" ]; then cat "$arbeit/fehler" >&2; fehler=1; fi
 if [ "$(wc -l < "$arbeit/gefahren")" -eq 0 ]; then echo "workflows-check-gegenprobe: keine Mutation und keine Kopie gefahren (GP_MUT passt auf nichts)" >&2; fehler=1; fi
 if [ "$fehler" -eq 0 ]; then echo "workflows-check-gegenprobe: grün ($(wc -l < "$arbeit/gefahren") Läufe)"; fi

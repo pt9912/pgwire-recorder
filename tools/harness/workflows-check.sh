@@ -76,7 +76,7 @@ function jobende(   z, bad) {
     if (!tseen) {
       regel(jline, "timeout-fehlt", "Job " jname ": timeout-minutes fehlt")
     } else {
-      if (tval ~ /^[0-9]+$/) { z = tval + 0; bad = (length(tval) > 3 || z < 1 || z > 60) }
+      if (tval ~ /^(0|[1-9][0-9]*)$/) { z = tval + 0; bad = (length(tval) > 3 || z < 1 || z > 60) }
       else bad = 1
       if (bad) regel(tline, "timeout-wert", "Job " jname ": timeout-minutes " (tval == "" ? "ohne Wert" : tval) " ist keine Ganzzahl von 1 bis 60")
     }
