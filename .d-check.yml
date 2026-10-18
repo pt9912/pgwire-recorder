@@ -121,8 +121,8 @@ matrix:
 
 # Range-Pruefungen (make doc-commits, make doc-immutable; Vertrag SPEC-064 Punkte 11 und 12).
 # Beide Module stehen nicht in modules:, die Targets aktivieren sie mit --enable. Ohne diese
-# Bloecke melden beide Targets ueber jeder Range "0 Befund(e)"; range-konfiguration-gegenprobe
-# faerbt sich rot, wenn ein Block oder ein Eintrag fehlt.
+# Bloecke melden beide Targets ueber jeder Range "0 Befund(e)"; fehlt ein Block oder ein Eintrag
+# (bei paths auch leer), wird range-konfiguration-gegenprobe rot.
 commits:
   id-patterns:
     - 'ADR-[0-9]{4}'

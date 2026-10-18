@@ -204,6 +204,9 @@ E_AUS=$'  exempt-pattern: \'^(Merge |Revert )\'\n'
 V_ACC='immutable-when: '"'"'^\*\*Status:\*\* Accepted'"'"
 V_EXCL=$'  exclude-sections: [Geschichte]\n  status-line'
 V_STAT='status-line: '"'"'^\*\*Status:\*\*'"'"
+V_PATHZ='  paths: ["docs/plan/adr/[0-9]*.md"]'$'\n'
+V_ACCZ='  immutable-when: '"'"'^\*\*Status:\*\* Accepted'"'"$'\n'
+V_STATZ='  status-line: '"'"'^\*\*Status:\*\*'"'"$'\n'
 V_HEAD='head-allow: '"'"'^\*\*Status:\*\* (Accepted|Superseded by )'"'"
 V_IGN=$'  ignore-link-targets: true\n'
 V_PATHS='paths: ["docs/plan/adr/[0-9]*.md"]'
@@ -228,11 +231,14 @@ mut m-p11-ausnahme-ohne-anker "p11-exempt-nicht-am-anfang" p11 '^(Merge |Revert 
 mut m-p12-block-fehlt "p12-kern p12-ersetzt-anders p12-geloescht" alle "$BLOCK_VCS" ''
 mut m-p12-paths-leer "p12-kern p12-ersetzt-anders p12-geloescht" p12 "$V_PATHS" 'paths: []'
 # Der Index wird unveränderlich; head-allow prüft jede unveränderliche Datei im Kopf und lehnt eine ohne Status-Zeile ab, deshalb sind alle acht Fälle rot.
+mut m-p12-paths-fehlt "p12-kern p12-ersetzt-anders p12-geloescht" p12 "$V_PATHZ" ''
 mut m-p12-paths-index "p12-kern p12-geschichte p12-ersetzt p12-ersetzt-anders p12-vorschlag p12-geloescht p12-link-ziel p12-index" p12 "$V_PATHS" 'paths: ["docs/plan/adr/*.md"]' "$V_ACC" "immutable-when: '^(\\*\\*Status:\\*\\* Accepted|# ADR-Index)'"
 mut m-p12-immutable-when-jeder-status "p12-vorschlag" p12 "$V_ACC" "immutable-when: '^\\*\\*Status:\\*\\*'"
 mut m-p12-immutable-when-anderer-status "p12-kern p12-ersetzt-anders p12-geloescht" p12 "$V_ACC" "immutable-when: '^\\*\\*Status:\\*\\* Rejected'"
+mut m-p12-immutable-when-fehlt "p12-kern p12-geschichte p12-ersetzt p12-ersetzt-anders p12-vorschlag p12-geloescht p12-link-ziel p12-index" p12 "$V_ACCZ" ''
 mut m-p12-abschnitt-fehlt "p12-geschichte" p12 "$V_EXCL" '  status-line'
 mut m-p12-abschnitt-falsch "p12-geschichte" p12 "$V_EXCL" $'  exclude-sections: [Historie]\n  status-line'
+mut m-p12-status-zeile-fehlt "p12-kern p12-geschichte p12-ersetzt p12-ersetzt-anders p12-vorschlag p12-link-ziel p12-index" p12 "$V_STATZ" ''
 mut m-p12-status-zeile-eng "p12-ersetzt p12-ersetzt-anders" p12 "$V_STAT" "status-line: '^\\*\\*Status:\\*\\* Accepted'"
 mut m-p12-head-allow-fehlt "p12-ersetzt-anders" p12 "  $V_HEAD"$'\n' ''
 mut m-p12-head-allow-eng "p12-ersetzt" p12 "$V_HEAD" "head-allow: '^\\*\\*Status:\\*\\* Accepted'"
