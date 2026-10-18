@@ -1,7 +1,7 @@
 # Verifikation slice-harness-ci-workflows
 
 Stand: Zweig `rev-ci-workflows`, Kopf `e9219f59`, Basis des Plans (Metrik) `a98d0b9e`, Basis der Änderung `79b82a0e`.
-Maßstab: [Plan](../plan/planning/in-progress/slice-harness-ci-workflows.md) §1, §2, §3, §6, §7,
+Maßstab: [Plan](../plan/planning/done/slice-harness-ci-workflows.md) §1, §2, §3, §6, §7,
 [SPEC-063](../../harness/vertraege/SPEC-063-workflows-check.md), [ADR-0050](../plan/adr/0050-ci-auf-github-actions.md), `AGENTS.md`.
 Eingang: DoD-Bestätigung und Belege des Implementers (§7, *Belege des Implementers* und *Findings des Reviews*), Review-Report
 [2026-10-18-review-slice-harness-ci-workflows.md](2026-10-18-review-slice-harness-ci-workflows.md) (0 HIGH, 3 MEDIUM, 4 LOW, 3 INFO).
