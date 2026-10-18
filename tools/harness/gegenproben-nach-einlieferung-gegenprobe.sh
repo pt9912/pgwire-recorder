@@ -497,7 +497,7 @@ g13() {
   aufbau p13
   h40="$(printf 'c%.0s' {1..40})"
   mkdir "$g/pfad"
-  for t in git flock setsid mktemp rm pgrep date; do ln -s "$(command -v "$t")" "$g/pfad/$t"; done
+  for t in git flock setsid mktemp rm pgrep date env true; do ln -s "$(type -P "$t")" "$g/pfad/$t"; done
   ln -s "$g/bin/make" "$g/pfad/make"
   for w in git flock setsid make pgrep; do
     pfad="$g/pfad-$w"; cp -a "$g/pfad" "$pfad"; rm -f "${pfad:?}/${w:?}"
@@ -506,7 +506,7 @@ g13() {
     zurueck
   done
   pfad="$g/pfad-env"; cp -a "$g/pfad" "$pfad"
-  printf '#!/bin/sh\n[ "${1#--default-signal}" != "$1" ] && { echo "env: unrecognized option" >&2; exit 125; }\nexec /usr/bin/env "$@"\n' > "$pfad/env"; chmod +x "$pfad/env"
+  rm -f "${pfad:?}/env"; printf '#!/bin/sh\n[ "${1#--default-signal}" != "$1" ] && { echo "env: unrecognized option" >&2; exit 125; }\nexec /usr/bin/env "$@"\n' > "$pfad/env"; chmod +x "$pfad/env"
   haken "$(zl main "$h1")"; bis_fertig
   { nichts && grep -q '^gegenproben-nach-einlieferung: werkzeug: env ' "$g/h.err"; } || echo p13-werkzeug-env
   zurueck; pfad=""
