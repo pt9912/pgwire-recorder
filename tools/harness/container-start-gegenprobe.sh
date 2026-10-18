@@ -284,7 +284,7 @@ dk_gruppe() {
   sel p9-docker-stop-start && { docker stop "$nm" > /dev/null; dk; { [ "$code" = 0 ] && [ "$(ins '{{.Id}}')" = "$id1" ] && [ "$(ins '{{.State.Running}}')" = true ]; } || rot p9-docker-stop-start; }
   sel p9-docker-rm-neustart && { docker rm -fv "$nm" > /dev/null; dk
     { [ "$code" = 0 ] && [ "$(ins '{{.Id}}')" != "$id1" ] && [ "$(ins '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}} {{end}}{{end}}')" = "$v1" ]; } || rot p9-docker-rm-neustart; }
-  DKV+=($v1); dk_raeumen; DKC=() DKV=(); rm -rf -- "$dd" "$dd-zwei"
+  DKV+=($v1); id1=$(docker inspect --format '{{.Config.Image}}' "$nm-zwei" 2> /dev/null) && DKI+=("$id1" "${id1%-uid}"); dk_raeumen; DKC=() DKV=(); rm -rf -- "$dd" "$dd-zwei"
 }
 
 cases() {
