@@ -195,7 +195,7 @@ neu (§1 *Ausdrücklich NICHT*). Reihenfolge nach Entscheidung des Nutzers vom 2
 welle-erster-release und welle-v1-nachtrag, danach `slice-harness-commit-struktur-id`,
 `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
 `slice-harness-lint-warten-ohne-frist`, `slice-harness-mutation`; die Reihenfolge der
-Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md).
+Wellen-Slices steht in §5 von [welle-v1-abschluss](../done/welle-v1-abschluss.md).
 
 *Warum nach den beiden Sammel-Slices.* `make lint` ist ein Gate, und `SPEC-049` Punkt 8
 lässt keine Ausnahme für Bestand zu: Die Prüfung kommt erst, wenn der Bestand ohne Befund

@@ -97,7 +97,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-postgres-versionen-matrix` liegt in `done/`, die bestätigte Liste und die Namen der Nahtstelle stehen in §1 (eingetragen vom Planner bei der Closure der Matrix, 2026-10-14), und `slice-v1-abschluss-anmeldung-doku` liegt in `done/` (erfüllt). Der Slice steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) als Schritt 32b direkt hinter der Matrix.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-postgres-versionen-matrix` liegt in `done/`, die bestätigte Liste und die Namen der Nahtstelle stehen in §1 (eingetragen vom Planner bei der Closure der Matrix, 2026-10-14), und `slice-v1-abschluss-anmeldung-doku` liegt in `done/` (erfüllt). Der Slice steht in §5 von [welle-v1-abschluss](welle-v1-abschluss.md) als Schritt 32b direkt hinter der Matrix.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

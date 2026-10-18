@@ -80,7 +80,7 @@ Verbindung und der Schlüssel `upstream` sind geprüft, und ein Klartext-Passwor
   und wird dort getestet (`slice-v1-abschluss-einspielen`, dort §1, *Übernommen aus* diesem
   Slice).
 - TLS zum Upstream bei `record` — nicht Teil des Produkts in dieser Welle
-  ([welle-v1-abschluss](../welle-v1-abschluss.md) §6); `sslmode=require` ist bei `record` ein
+  ([welle-v1-abschluss](welle-v1-abschluss.md) §6); `sslmode=require` ist bei `record` ein
   Fehler.
 - Im Benutzerhandbuch die Wirkung einer Verbindung bei `play` (Passwort aus dem Platzhalter,
   `PGWIRE_RECORDER_PASSWORD`, `sslmode=require` mit TLS) — `slice-v1-abschluss-einspielen`
@@ -152,7 +152,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-verbindungen-platzhalter` liegt in
 `done/` (Zerlegung der URL mit Platzhaltern, Schlüssel `upstream`, `PGR-E2006`). Schritt 6 der
-Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) (Schnitt vom 2026-10-09).
+Reihenfolge in §5 von [welle-v1-abschluss](welle-v1-abschluss.md) (Schnitt vom 2026-10-09).
 Die Randformen aus §6 entschied der Architect am 2026-10-08 und 2026-10-09 vor dem Code; vor
 dem ersten Code-Commit prüft er die Liste gegen diesen Zuschnitt und gegen die Form, in der
 das Laden die zerlegte URL ablegt (`AGENTS.md` §3.12).
@@ -495,7 +495,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
   Liste nach V-125; dazu das dritte Risiko aus §6). `slice-v1-abschluss-tls-client` (`next/`;
   F-532: die Kombinationen von `record` vor jedem Fehler von `--upstream`, mit Test, zu seinem
   DoD-Punkt 2; mit dieser Closure in seinem §1 eingetragen). Der nächste Schritt nach §5 von
-  [welle-v1-abschluss](../welle-v1-abschluss.md) ist `slice-v1-abschluss-schreiben`.
+  [welle-v1-abschluss](welle-v1-abschluss.md) ist `slice-v1-abschluss-schreiben`.
 - **Risiken aus §6:** vier. *Größe*: **entfallen**, 712 Zeilen in der Schätzung, eine
   Review-Sitzung (F-536). *Form der Ablage*: **entfallen** vor dem Code (Prüfung des
   Architect). *Handbuch im Zielstand*: **eingetreten** (V-125), in diesem Slice für `record`

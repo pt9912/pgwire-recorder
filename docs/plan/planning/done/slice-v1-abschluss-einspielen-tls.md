@@ -71,7 +71,7 @@ von TLS und Zertifikat im Aufbau hält sie (§6, *Bindung an den Vertrag der Por
   *Übernimmt*); beide hängen nur am Kern, nicht aneinander. Getestet wird hier gegen einen
   Server ohne Passwort-Anmeldung.
 - TLS zum Upstream bei `record` — nicht Teil des Produkts in dieser Welle
-  ([welle-v1-abschluss](../welle-v1-abschluss.md) §6); `sslmode=require` bleibt bei `record`
+  ([welle-v1-abschluss](welle-v1-abschluss.md) §6); `sslmode=require` bleibt bei `record`
   `PGR-E2004`.
 - TLS zum Client bei `record` und `replay` — `slice-v1-abschluss-tls-client`; das ist die
   andere Seite der Verbindung und ein anderer Vorgang.
@@ -147,7 +147,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` liegt in `done/`
 (Kommando `play`, Verbindungsaufbau ohne TLS, Einstufung der Fehler im Aufbau). Schritt 14
-der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md), direkt nach
+der Reihenfolge in §5 von [welle-v1-abschluss](welle-v1-abschluss.md), direkt nach
 `slice-v1-abschluss-einspielen-anmeldung`, ohne von ihm abzuhängen (Schnitt vom 2026-10-09).
 Die Randformen aus §6 entschied der Architect am 2026-10-09 vor dem Code in `LH-FA-20.a`
 und `LH-FA-17.a`; vor dem ersten Code-Commit prüft er die Liste gegen den gelieferten Kern und

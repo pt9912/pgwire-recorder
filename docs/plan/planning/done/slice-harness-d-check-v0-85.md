@@ -177,7 +177,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` liegt in `done/` (WIP-Limit
 1). Vorgezogen vor `slice-v1-abschluss-einspielen-laufsteuerung`, Schritt 9 der Reihenfolge
-in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md); danach geht die Welle dort weiter.
+in §5 von [welle-v1-abschluss](welle-v1-abschluss.md); danach geht die Welle dort weiter.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -344,7 +344,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
 - **Folge-Slices:** keiner neu. Nehmer aus §1: `slice-harness-lh-links-pflicht` (`open/`) und
   dessen abgeschnittener Teil `slice-harness-lh-links-bestand` (`open/`). Kein Upgrade-Slice
   auf `v6.17.0` (Nutzer, 2026-10-10). Nächster Schritt nach §5 von
-  [welle-v1-abschluss](../welle-v1-abschluss.md) ist `slice-v1-abschluss-einspielen-laufsteuerung`.
+  [welle-v1-abschluss](welle-v1-abschluss.md) ist `slice-v1-abschluss-einspielen-laufsteuerung`.
 - **Risiken aus §6:** zwei, beide **entfallen** (Begründung je in §6): neues Image wertet
   anders aus — vier Versionen messen gleich; Delta bis `v6.17.0` berührt eine verkörperte
   Regel — der Audit hielt den ganzen Baum, das Delta regelt nichts, was dieses Repo verkörpert.

@@ -171,7 +171,7 @@ die drei Slices der Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harne
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
 `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
 `slice-harness-mutation`; die Reihenfolge
-der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Die Slices zwischen `slice-harness-lint` und diesem sind
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](welle-v1-abschluss.md). Die Slices zwischen `slice-harness-lint` und diesem sind
 keine technische Abhängigkeit, sondern die Reihenfolge des Nutzers. Grund für den Platz nach `slice-harness-lint`: Teil 1 und
 Teil 3 gelten erst, wenn das Lint-Gate steht und `testpackage` überall scharf ist, und
 das ist es mit `slice-harness-lint`; dessen Gegenprobe trägt dann alle Fälle, die die

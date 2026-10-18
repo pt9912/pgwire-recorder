@@ -152,7 +152,7 @@ die drei Slices der Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harne
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
 `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
 `slice-harness-mutation`; die Reihenfolge
-der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Technisch hängt
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](welle-v1-abschluss.md). Technisch hängt
 dieser Slice an keinem davon; die Code-Tabelle und der Katalog liegen seit
 welle-replay-semantik vor. Er steht direkt vor `slice-v1-abschluss-container`, dessen §1
 das Gate als vorher geliefert nennt: Es misst die Codes, die die Slices der Welle

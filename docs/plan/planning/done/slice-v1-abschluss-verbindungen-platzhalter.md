@@ -88,7 +88,7 @@ Slice gilt ein Wert mit `$` wörtlich, und eine URL wird nicht zerlegt.
   `slice-v1-abschluss-upstream-verbinden`); `play` gibt es erst mit ihm. Hier wird `sslmode`
   geprüft.
 - TLS zum Upstream bei `record` — nicht Teil des Produkts in dieser Welle
-  ([welle-v1-abschluss](../welle-v1-abschluss.md) §6); `sslmode=require` bei `record` prüft
+  ([welle-v1-abschluss](welle-v1-abschluss.md) §6); `sslmode=require` bei `record` prüft
   `slice-v1-abschluss-upstream-verbinden`.
 - Code im Kern, im PGWire-Adapter, in den Driven-Adaptern und im Bootstrap —
   Schicht-Abgrenzung: Der Slice ändert nur das Laden im CLI-Adapter; die Code-Tabelle im
@@ -151,7 +151,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-konfigurationsdatei` liegt in `done/`
 (Laden der Datei, Form von `connections:`, Konstanten `PGR-E2005` und `PGR-E2006`). Schritt 5
-der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) (Schnitt vom
+der Reihenfolge in §5 von [welle-v1-abschluss](welle-v1-abschluss.md) (Schnitt vom
 2026-10-09). Die Randformen aus §6 entschied der Architect am 2026-10-08 vor dem Code; vor
 dem ersten Code-Commit prüfte er die Liste am 2026-10-09 noch einmal gegen den Zuschnitt
 (`AGENTS.md` §3.12).
@@ -691,7 +691,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
   `white-box-liste-vor-code-nur-namenssuche` 3× gestrichen).
 - **Folge-Slices:** `slice-v1-abschluss-upstream-verbinden` (§1 *Abgegeben*: das Benutzen der
   Verbindung, Handbuch zu Verbindungen und Platzhaltern; Risiko 1 aus §6; F-528 als Randform
-  dort; der nächste Schritt nach §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)).
+  dort; der nächste Schritt nach §5 von [welle-v1-abschluss](welle-v1-abschluss.md)).
   Aus §1 *Ausdrücklich NICHT*: `slice-v1-abschluss-einspielen` (Wirkung bei `play`), über den
   Nehmer, der sie weitergibt. `slice-v1-abschluss-konfigurationsdatei` (`done/`) ist Geber,
   kein Folge-Slice.

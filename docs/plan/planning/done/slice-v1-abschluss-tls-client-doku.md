@@ -34,7 +34,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Lieferumfang im Handbuch** (`AGENTS.md` §3.9, nachgezogen nach Review F-1): der Abschnitt *Verschlüsselte Verbindungen der Anwendung annehmen*, die Grenz-Sätze in §1, §4 und §7, die Einstellungen in §5, die Fehlercode-Tabelle, die Sitzungs-Sätze unter *Mehrere Verbindungen aufzeichnen und wiedergeben* (Verbindungen mit `PGR-W3002` und `PGR-E6003` zählen bei `record` und bei `replay` mit `first-request` nicht als Sitzung) und der Satz, dass `config show` die Dateien `tls_cert` und `tls_key` nicht liest.
 
-**Herkunft:** Doku-Folge-Slice von `slice-v1-abschluss-tls-client`, abgeschnitten nach Entscheidung des Nutzers vom 2026-10-10 („Dafür haben wir die Welle – man kann dafür einen weiteren Slice anlegen“) bei der Closure von `slice-doku-ist-stand` (Verifikation V-151): Mit dem Handbuch- und README-Teil als Dokumentation, einer eigenen Schicht (`AGENTS.md` §3.13), läge `slice-v1-abschluss-tls-client` über zwei Schichten. Der Teil, den jener Slice in DoD und §3 trug, liegt hier; er setzt jenen Slice voraus (§4) und steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) direkt dahinter. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen, und die Welle schließt erst mit beiden.
+**Herkunft:** Doku-Folge-Slice von `slice-v1-abschluss-tls-client`, abgeschnitten nach Entscheidung des Nutzers vom 2026-10-10 („Dafür haben wir die Welle – man kann dafür einen weiteren Slice anlegen“) bei der Closure von `slice-doku-ist-stand` (Verifikation V-151): Mit dem Handbuch- und README-Teil als Dokumentation, einer eigenen Schicht (`AGENTS.md` §3.13), läge `slice-v1-abschluss-tls-client` über zwei Schichten. Der Teil, den jener Slice in DoD und §3 trug, liegt hier; er setzt jenen Slice voraus (§4) und steht in §5 von [welle-v1-abschluss](welle-v1-abschluss.md) direkt dahinter. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen, und die Welle schließt erst mit beiden.
 
 **Übernommen aus `slice-v1-abschluss-umgebung-anderes-kommando`** (dort §7, offene Frage zu V-3; Planner, 2026-10-12, `AGENTS.md` §3.13): Das Handbuch nennt `--tls-cert`, `--tls-key` und `--allow-plaintext` erst mit `slice-v1-abschluss-tls-client` und nennt dann zu jeder Option ihre Umgebungsvariable mit den Kommandos, bei denen sie gilt; die Variable beim anderen Kommando ist `PGR-E2001` (Satz zur Meldung `PGR-E2001` im Handbuch, §5 *Einstellungen*). Das Handbuch beschreibt die Variable, nachdem das gebaute Binary sie liest.
 
@@ -84,7 +84,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-tls-client` liegt in `done/` (Voraussetzung; Schritt 28 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md), direkt hinter jenem Slice; WIP-Limit 1). Vor dem ersten Commit am Handbuch entscheidet der Architect die Randformen aus §6.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-tls-client` liegt in `done/` (Voraussetzung; Schritt 28 der Reihenfolge in §5 von [welle-v1-abschluss](welle-v1-abschluss.md), direkt hinter jenem Slice; WIP-Limit 1). Vor dem ersten Commit am Handbuch entscheidet der Architect die Randformen aus §6.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

@@ -163,7 +163,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-konfiguration` liegt in `done/` (der
 allgemeine Leser, aus dessen Anmeldung die Schlüssel folgen). Schritt 4 der Reihenfolge in §5
-von [welle-v1-abschluss](../welle-v1-abschluss.md) (Entscheidung des Nutzers vom 2026-10-08).
+von [welle-v1-abschluss](welle-v1-abschluss.md) (Entscheidung des Nutzers vom 2026-10-08).
 Die zwölf Randformen und den Ort der Konstanten aus §6 entschied der Architect am 2026-10-08
 vor dem Code (`AGENTS.md` §3.12).
 
@@ -533,7 +533,7 @@ bleibt dort, das zu [ADR-0036](../../adr/0036-yaml-bibliothek-fuer-die-konfigura
   eingetreten, Folge-Slice `slice-v1-abschluss-verbindungen-platzhalter`. Mit dieser Closure
   liegt der Stand auf dem Hauptzweig; der Nehmer führt `PGR-E2006` in jeder Verbindung, auch
   bei `config show` (dort DoD-Punkt 3), und ist nach §5 von
-  [welle-v1-abschluss](../welle-v1-abschluss.md) der nächste Schritt. Kein Tag und kein
+  [welle-v1-abschluss](welle-v1-abschluss.md) der nächste Schritt. Kein Tag und kein
   Release liegen dazwischen (Review F-516, Verifikation Abschnitt 2).
 
 ## 7. Closure-Notiz
@@ -709,7 +709,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   `white-box-liste-vor-code-nur-namenssuche` 3× gestrichen).
 - **Folge-Slices:** `slice-v1-abschluss-verbindungen-platzhalter` (früherer DoD-Punkt 3,
   Risiko 1 und 3 aus §6, V-121 als offene Randform; der nächste Schritt nach §5 von
-  [welle-v1-abschluss](../welle-v1-abschluss.md)). Aus §1 *Ausdrücklich NICHT*:
+  [welle-v1-abschluss](welle-v1-abschluss.md)). Aus §1 *Ausdrücklich NICHT*:
   `slice-v1-abschluss-schreiben` (atomares Schreiben, vorhandenes `--output`),
   `slice-v1-abschluss-einspielen` (Optionen von `play`, Abschnitt `play:`). Der allgemeine
   Leser liegt in `slice-v1-abschluss-konfiguration` (`done/`); er ist Geber, kein

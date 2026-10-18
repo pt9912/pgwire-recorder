@@ -39,7 +39,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 (4) die feste Auswahl im Replay: `AuthenticationOk` ohne Anforderung, eine Nachricht `p` nach dem Aufbau ist `PGR-E6001`, `require_auth` als Grenze;
 (5) die COPY-Antworten des Servers. Die Beispiele laufen als Datei gegen das gebaute Binary, das Handbuch beschreibt nur, was das Binary zeigt (`AGENTS.md` §3.11).
 
-**Herkunft:** Doku-Folge-Slice von `slice-v1-abschluss-protokollrand`, abgeschnitten nach Entscheidung des Nutzers vom 2026-10-10 („Dafür haben wir die Welle – man kann dafür einen weiteren Slice anlegen“) bei der Closure von `slice-doku-ist-stand` (Verifikation V-151): Mit dem Handbuch- und README-Teil als Dokumentation, einer eigenen Schicht (`AGENTS.md` §3.13), läge `slice-v1-abschluss-protokollrand` über zwei Schichten. Der Teil, den jener Slice in DoD und §3 trug, liegt hier; er setzt jenen Slice voraus (§4) und steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) direkt dahinter. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen, und die Welle schließt erst mit beiden.
+**Herkunft:** Doku-Folge-Slice von `slice-v1-abschluss-protokollrand`, abgeschnitten nach Entscheidung des Nutzers vom 2026-10-10 („Dafür haben wir die Welle – man kann dafür einen weiteren Slice anlegen“) bei der Closure von `slice-doku-ist-stand` (Verifikation V-151): Mit dem Handbuch- und README-Teil als Dokumentation, einer eigenen Schicht (`AGENTS.md` §3.13), läge `slice-v1-abschluss-protokollrand` über zwei Schichten. Der Teil, den jener Slice in DoD und §3 trug, liegt hier; er setzt jenen Slice voraus (§4) und steht in §5 von [welle-v1-abschluss](welle-v1-abschluss.md) direkt dahinter. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen, und die Welle schließt erst mit beiden.
 
 **Ausdrücklich NICHT in diesem Slice** — je Punkt mit Begründung:
 
@@ -88,7 +88,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-protokollrand` liegt in `done/` (Voraussetzung; Schritt 33 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md), direkt hinter jenem Slice; WIP-Limit 1). Vor dem ersten Commit am Handbuch entscheidet der Architect die Randformen aus §6.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-protokollrand` liegt in `done/` (Voraussetzung; Schritt 33 der Reihenfolge in §5 von [welle-v1-abschluss](welle-v1-abschluss.md), direkt hinter jenem Slice; WIP-Limit 1). Vor dem ersten Commit am Handbuch entscheidet der Architect die Randformen aus §6.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

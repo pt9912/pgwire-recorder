@@ -183,7 +183,7 @@ die Slices von welle-v1-abschluss, darin `slice-harness-integration-wait` direkt
 `slice-harness-coverage`, dann die Slices von welle-erster-release, danach
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
 `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-mutation`; die Reihenfolge
-der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Technisch hängt dieser Slice nur an
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](welle-v1-abschluss.md). Technisch hängt dieser Slice nur an
 `slice-harness-lint`: Ab ihm ist `make lint` Gate auch für `test/integration`. Er steht
 direkt vor `slice-v1-abschluss-herunterfahren`, der die Tests mit Signal und Frist über dieselben
 Helfer schreibt; deren Mutationen (Prozess endet nach dem Signal nicht) sind genau der

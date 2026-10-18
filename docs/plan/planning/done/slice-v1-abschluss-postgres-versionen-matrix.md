@@ -106,7 +106,7 @@ Nicht in dieser Tabelle, weil nach einer Rückführung (§4) in einem eigenen Sl
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-anmeldung` liegt in `done/` (Entscheidung des Nutzers vom 2026-10-07: die Matrix fährt den Fall SCRAM-SHA-256 seines Anmeldetests, §1), und `slice-extended-query-lebendpruefung` ist `done`; beides ist erfüllt. Er steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) als Schritt 32a, direkt hinter `slice-v1-abschluss-anmeldung-doku`. Erster Schritt nach dem Start: den Versionsbereich gegen die Release-Liste von PostgreSQL bestätigen (§6).
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-anmeldung` liegt in `done/` (Entscheidung des Nutzers vom 2026-10-07: die Matrix fährt den Fall SCRAM-SHA-256 seines Anmeldetests, §1), und `slice-extended-query-lebendpruefung` ist `done`; beides ist erfüllt. Er steht in §5 von [welle-v1-abschluss](welle-v1-abschluss.md) als Schritt 32a, direkt hinter `slice-v1-abschluss-anmeldung-doku`. Erster Schritt nach dem Start: den Versionsbereich gegen die Release-Liste von PostgreSQL bestätigen (§6).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

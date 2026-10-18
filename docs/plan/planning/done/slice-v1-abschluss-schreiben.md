@@ -110,7 +110,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-konfiguration` und
 `slice-v1-abschluss-konfigurationsdatei` liegen in `done/` (`--force` wird über den allgemeinen
-Leser gelesen, auch aus der Datei). Schritt 7 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)
+Leser gelesen, auch aus der Datei). Schritt 7 der Reihenfolge in §5 von [welle-v1-abschluss](welle-v1-abschluss.md)
 (Entscheidung des Nutzers vom 2026-10-08, nach den beiden Schnitten vom 2026-10-09 zwei Schritte später). Vor dem ersten Code-Commit prüft der Architect
 die Randformen aus §6 und entscheidet die offenen (`AGENTS.md` §3.12).
 
@@ -347,7 +347,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
 - **Folge-Slices:** keiner neu. `slice-v1-abschluss-sqlite-format` (`next/`) ist Adresse für die
   *Abgrenzung zu `sqlite`* aus §6 und führt sie seit `278d929` in §1 unter *Übernommen von
   `slice-v1-abschluss-schreiben`*. Der nächste Schritt nach §5 von
-  [welle-v1-abschluss](../welle-v1-abschluss.md) ist `slice-v1-abschluss-einspielen`.
+  [welle-v1-abschluss](welle-v1-abschluss.md) ist `slice-v1-abschluss-einspielen`.
 - **Risiken aus §6:** eines. *Atomarität plattformabhängig*: **weiter offen**, ins Register
   als `BEO-REPO/verhalten-nur-unter-linux-geprueft`; Begründung in §6. Die Randformen in §6
   sind Entscheidungen, keine Risiken.

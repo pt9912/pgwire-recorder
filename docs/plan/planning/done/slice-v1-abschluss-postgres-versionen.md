@@ -157,7 +157,7 @@ aus §6 seinen Ausgang; die Liefer-Punkte der DoD bleiben leer
   Lieferwert, Matrix zuerst, weil eine Zusage nur sagt, was das Gate belegt (`AGENTS.md` §3.11).
   Jede Übernahme aus §1 hat genau einen Nehmer; die Liefer-Punkte der DoD bleiben leer. Die
   Wellen-Zugehörigkeit wandert mit dem Gegenstand: `slice-v1-abschluss-postgres-versionen-matrix` ist Schritt 32a, `slice-v1-abschluss-postgres-versionen-zusage` Schritt 32b in §5 von
-  [welle-v1-abschluss](../welle-v1-abschluss.md); Drift-Log der Roadmap vom 2026-10-14.
+  [welle-v1-abschluss](welle-v1-abschluss.md); Drift-Log der Roadmap vom 2026-10-14.
 - **Was hat funktioniert:** Die Übernahmen standen mit ihrem Geber in §1 und §6; jedes der acht
   Risiken ließ sich einem Nehmer zuweisen, ohne eines zu teilen. Der Nutzer entschied den Schnitt
   mit der Reihenfolge, die die Regel der Zusage verlangt (`AGENTS.md` §3.11).

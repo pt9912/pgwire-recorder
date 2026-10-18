@@ -60,7 +60,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-06-roadmap.md`
 
 - Blockiert: —
 - Wird blockiert von: Welle [welle-erster-release](welle-erster-release.md).
-- Innerhalb der Welle: `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` aus [welle-v1-abschluss](welle-v1-abschluss.md) voraus (der übrige Protokollrand); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` aus [welle-v1-abschluss](welle-v1-abschluss.md) voraus (Release-Artefakte); `slice-erster-release-homebrew-nachweis` setzt `slice-v1-abschluss-homebrew` (das Verfahren der Formel) und `slice-erster-release-freigabe` aus [welle-erster-release](welle-erster-release.md) voraus (erster stabiler Tag).
+- Innerhalb der Welle: `slice-v1-abschluss-cancel-ohne-schluessel` setzt `slice-v1-abschluss-protokollrand` aus [welle-v1-abschluss](done/welle-v1-abschluss.md) voraus (der übrige Protokollrand); `slice-v1-abschluss-homebrew` setzt `slice-v1-abschluss-container` aus [welle-v1-abschluss](done/welle-v1-abschluss.md) voraus (Release-Artefakte); `slice-erster-release-homebrew-nachweis` setzt `slice-v1-abschluss-homebrew` (das Verfahren der Formel) und `slice-erster-release-freigabe` aus [welle-erster-release](welle-erster-release.md) voraus (erster stabiler Tag).
 
 **Reihenfolge** (Entscheidung des Nutzers vom 2026-10-11; WIP-Limit 1):
 

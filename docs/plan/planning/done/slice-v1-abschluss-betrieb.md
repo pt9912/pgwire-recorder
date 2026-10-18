@@ -96,7 +96,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, `slice-harness-integration-wait` liegt in `done/` (§1: die Tests mit Signal und Frist entstehen über dessen Helfer; Entscheidung des Nutzers vom 2026-10-08, Wellen vor Harness, Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)), und der Schnitt nach F-345 ist entschieden (§1).
+**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, `slice-harness-integration-wait` liegt in `done/` (§1: die Tests mit Signal und Frist entstehen über dessen Helfer; Entscheidung des Nutzers vom 2026-10-08, Wellen vor Harness, Reihenfolge in §5 von [welle-v1-abschluss](welle-v1-abschluss.md)), und der Schnitt nach F-345 ist entschieden (§1).
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

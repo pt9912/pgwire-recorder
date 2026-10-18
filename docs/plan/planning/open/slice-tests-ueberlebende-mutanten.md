@@ -241,7 +241,7 @@ die drei Slices der Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harne
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
 `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
 `slice-harness-mutation`; die Reihenfolge
-der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Die Slices beider Wellen ändern
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](../done/welle-v1-abschluss.md). Die Slices beider Wellen ändern
 den Code, auf dem die gesammelten Mutanten liegen; vor dem Start prüft der Architect
 jeden gegen den Code nach den Wellen, ob er noch besteht und noch überlebt.
 

@@ -32,7 +32,7 @@ zusammen mit der Begründungs-Pflicht je Punkt.
 
 **Ziel:** `docs/user/benutzerhandbuch.md` und `README.md` beschreiben das Verhalten, das `slice-v1-abschluss-einspielen-extended` liefert, im Ist-Zustand des gebauten Binaries: ohne Chronik, ohne Zielstand, im Handbuch ohne Verweis auf Spezifikation, Lastenheft, ADRs, Slices, Wellen oder Reviews (`AGENTS.md` §3.11).
 
-**Herkunft:** Doku-Folge-Slice von `slice-v1-abschluss-einspielen-extended`, abgeschnitten nach Entscheidung des Nutzers vom 2026-10-10 („Dafür haben wir die Welle – man kann dafür einen weiteren Slice anlegen“) bei der Closure von `slice-doku-ist-stand` (Verifikation V-151): Mit dem Handbuch- und README-Teil als Dokumentation, einer eigenen Schicht (`AGENTS.md` §3.13), läge `slice-v1-abschluss-einspielen-extended` über zwei Schichten. Der Teil, den jener Slice in DoD und §3 trug, liegt hier; er setzt jenen Slice voraus (§4) und steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) direkt dahinter. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen, und die Welle schließt erst mit beiden.
+**Herkunft:** Doku-Folge-Slice von `slice-v1-abschluss-einspielen-extended`, abgeschnitten nach Entscheidung des Nutzers vom 2026-10-10 („Dafür haben wir die Welle – man kann dafür einen weiteren Slice anlegen“) bei der Closure von `slice-doku-ist-stand` (Verifikation V-151): Mit dem Handbuch- und README-Teil als Dokumentation, einer eigenen Schicht (`AGENTS.md` §3.13), läge `slice-v1-abschluss-einspielen-extended` über zwei Schichten. Der Teil, den jener Slice in DoD und §3 trug, liegt hier; er setzt jenen Slice voraus (§4) und steht in §5 von [welle-v1-abschluss](welle-v1-abschluss.md) direkt dahinter. Zwischen beiden Slices hinkt das Handbuch dem Binary hinterher; ein Release liegt nicht dazwischen, und die Welle schließt erst mit beiden.
 
 **Nachtrag der Closure von `slice-v1-abschluss-einspielen-extended` (2026-10-10):** `play --help` und die Optionen blieben unverändert; geliefert ist das Einspielen von Extended-Interaktionen mit Warten je Gruppe, Abbruch, Fortsetzung, erwartetem Fehler und Abbruchsignal innerhalb der Interaktion. Die Sätze dazu stehen in der DoD; Kennung des Gebers: `slice-v1-abschluss-einspielen-extended`.
 
@@ -82,7 +82,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen-extended` liegt in `done/` (Voraussetzung; Schritt 11 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md), direkt hinter jenem Slice; WIP-Limit 1). Vor dem ersten Commit am Handbuch entscheidet der Architect die Randformen aus §6.
+**Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen-extended` liegt in `done/` (Voraussetzung; Schritt 11 der Reihenfolge in §5 von [welle-v1-abschluss](welle-v1-abschluss.md), direkt hinter jenem Slice; WIP-Limit 1). Vor dem ersten Commit am Handbuch entscheidet der Architect die Randformen aus §6.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 

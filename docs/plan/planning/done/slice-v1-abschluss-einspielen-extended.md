@@ -144,7 +144,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` und
 `slice-v1-abschluss-einspielen-laufsteuerung` liegen in `done/`. Schritt 10 der Reihenfolge
-in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) (zweiter Schnitt vom 2026-10-09).
+in §5 von [welle-v1-abschluss](welle-v1-abschluss.md) (zweiter Schnitt vom 2026-10-09).
 Die Randformen aus §6 entschied der Architect am 2026-10-09 vor dem Code in `LH-FA-20.a`; vor
 dem ersten Code-Commit prüft er die Liste gegen den gelieferten Kern und die gelieferte
 Laufsteuerung, besonders gegen die Form, in der der Upstream-Adapter eine Interaktion sendet

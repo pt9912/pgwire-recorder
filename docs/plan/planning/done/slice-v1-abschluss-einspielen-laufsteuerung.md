@@ -162,7 +162,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-einspielen` liegt in `done/`
 (Kommando `play`, Einspielen einfacher Anfragen, Abbruch bei einer Fehlerantwort,
 Abbruchsignal). Schritt 9 der Reihenfolge in §5 von
-[welle-v1-abschluss](../welle-v1-abschluss.md) (zweiter Schnitt vom 2026-10-09). Die
+[welle-v1-abschluss](welle-v1-abschluss.md) (zweiter Schnitt vom 2026-10-09). Die
 Randformen aus §6 entschied der Architect am 2026-10-09 vor dem Code in `LH-FA-20.a`; vor dem
 ersten Code-Commit prüft er die Liste gegen den gelieferten Kern, besonders gegen die Form,
 in der der Kern Optionen und Signale an den Play-Service reicht (`AGENTS.md` §3.12). Dazu prüft er

@@ -147,7 +147,7 @@ Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
 **Start** (`next` → `in-progress`): `slice-v1-abschluss-herunterfahren` liegt in `done/` (der allgemeine Leser
-übernimmt dessen Umgebungsvariable). Schritt 3 der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md)
+übernimmt dessen Umgebungsvariable). Schritt 3 der Reihenfolge in §5 von [welle-v1-abschluss](welle-v1-abschluss.md)
 (Entscheidung des Nutzers vom 2026-10-08). Vor dem ersten Code-Commit prüft der Architect
 die Randformen aus §6 und entscheidet die offenen (`AGENTS.md` §3.12).
 

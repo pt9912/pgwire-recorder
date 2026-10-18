@@ -148,7 +148,7 @@ vom 2026-10-08 (Wellen vor Harness, M3 vor M4): die Slices von welle-v1-abschlus
 welle-erster-release und welle-v1-nachtrag, danach dieser Slice als erster der übrigen Harness-Slices,
 `slice-tests-ueberlebende-mutanten`, `slice-tests-ueberlebende-mutanten-driving`,
 `slice-harness-lint-warten-ohne-frist`, `slice-harness-mutation`. Die Reihenfolge der
-Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) und
+Wellen-Slices steht in §5 von [welle-v1-abschluss](../done/welle-v1-abschluss.md) und
 [welle-erster-release](../welle-erster-release.md) und [welle-v1-nachtrag](../welle-v1-nachtrag.md). Zwischen diesem Slice und
 den übrigen Harness-Slices besteht keine technische Abhängigkeit; dieser steht unter
 ihnen vorn, weil jeder weitere Commit das Muster wiederholen kann. Vor dem ersten

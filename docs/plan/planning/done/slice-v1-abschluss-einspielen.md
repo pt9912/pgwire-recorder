@@ -64,7 +64,7 @@ Architect (Marken [L], [E] und [L·E]), die seit dem Schnitt in §6 des Nehmers 
   Gruppe, Signal innerhalb der Interaktion —, aus Ziel und DoD-Punkt 1 bis zum Schnitt
   „einfach und Extended“, die Ablösung des Zwischenstands *Aufzeichnung mit
   Extended-Interaktion* und die Randformen [L·E], weil er in der Reihenfolge nach der
-  Laufsteuerung liegt (§5 von [welle-v1-abschluss](../welle-v1-abschluss.md)).
+  Laufsteuerung liegt (§5 von [welle-v1-abschluss](welle-v1-abschluss.md)).
 
 Die Laufsteuerung hängt nur an diesem Slice, der Slice für Extended an diesem und an der
 Laufsteuerung ([L·E]); Anmeldung und TLS hängen an keinem der beiden. Bis zur Laufsteuerung
@@ -128,7 +128,7 @@ Aussagen-Berührung steht hier gar nicht.
 Regeln dieser Sektion: Baseline-Regelwerk `modul-05-planning-harness.md`
 §Trigger je Lifecycle-Übergang und WIP-Limit.
 
-**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, und `slice-v1-abschluss-herunterfahren`, `slice-v1-abschluss-konfiguration`, `slice-v1-abschluss-konfigurationsdatei`, `slice-v1-abschluss-verbindungen-platzhalter` und `slice-v1-abschluss-upstream-verbinden` sind `done` (Signalbehandlung, allgemeiner Leser, Konfigurationsdatei, Laden und Benutzen benannter Verbindungen; alle aus `slice-v1-abschluss-betrieb` hervorgegangen), dazu nach der Reihenfolge in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) `slice-v1-abschluss-schreiben`, und [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md) ist `Accepted`.
+**Start** (`next` → `in-progress`): `welle-replay-semantik` ist `done`, und `slice-v1-abschluss-herunterfahren`, `slice-v1-abschluss-konfiguration`, `slice-v1-abschluss-konfigurationsdatei`, `slice-v1-abschluss-verbindungen-platzhalter` und `slice-v1-abschluss-upstream-verbinden` sind `done` (Signalbehandlung, allgemeiner Leser, Konfigurationsdatei, Laden und Benutzen benannter Verbindungen; alle aus `slice-v1-abschluss-betrieb` hervorgegangen), dazu nach der Reihenfolge in §5 von [welle-v1-abschluss](welle-v1-abschluss.md) `slice-v1-abschluss-schreiben`, und [ADR-0019](../../adr/0019-eigene-zertifizierungsstelle-beim-einspielen.md) ist `Accepted`.
 
 **Rückführungen — vorab benennen, nicht erst im Nachhinein begründen:**
 
@@ -578,7 +578,7 @@ Wird bei Closure gefüllt (vor dem `git mv` nach `done/`).
   - Einmalig und nicht eingetragen: F-553 und F-554 (Hinweise, eingeordnet oben). Mit diesem
     Slice erreicht kein Eintrag ohne Ausgang die Schwelle 3× neu.
 - **Folge-Slices:** keiner neu. Die Nehmer aus §1 (*Abgegeben*, *Ausdrücklich NICHT*) liegen
-  in `next/`; nächster Schritt nach §5 von [welle-v1-abschluss](../welle-v1-abschluss.md) ist
+  in `next/`; nächster Schritt nach §5 von [welle-v1-abschluss](welle-v1-abschluss.md) ist
   `slice-v1-abschluss-einspielen-laufsteuerung`, davor zieht die Roadmap den wellenlosen
   `slice-harness-d-check-v0-85` vor (Entscheidung des Nutzers).
 - **Risiken aus §6:** vier. *Fehlgebrauch gegen eine falsche Instanz*: **weiter offen**, ins

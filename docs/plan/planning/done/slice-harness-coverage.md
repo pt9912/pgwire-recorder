@@ -184,7 +184,7 @@ die drei Slices der Gate-Kette (`slice-harness-gate-kette-schnell`, `slice-harne
 `slice-harness-commit-struktur-id`, `slice-tests-ueberlebende-mutanten`,
 `slice-tests-ueberlebende-mutanten-driving`, `slice-harness-lint-warten-ohne-frist`,
 `slice-harness-mutation`; die Reihenfolge
-der Wellen-Slices steht in §5 von [welle-v1-abschluss](../welle-v1-abschluss.md). Dieser Slice ist der letzte
+der Wellen-Slices steht in §5 von [welle-v1-abschluss](welle-v1-abschluss.md). Dieser Slice ist der letzte
 vor M3: Mit ihm wird Abnahmeszenario 17 nachweisbar, nach der Entscheidung vom
 2026-10-08 vor welle-erster-release, damit M3 vor M4 erreicht ist. Nach ihm folgen
 welle-erster-release und welle-v1-nachtrag, dann `slice-harness-commit-struktur-id`,

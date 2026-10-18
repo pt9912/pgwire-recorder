@@ -210,7 +210,7 @@ welle-erster-release und welle-v1-nachtrag und die übrige Harness-Reihe (Drift-
 Roadmap vom 2026-10-12; im Release-Lauf steht er hinter Schritt 44 von welle-v1-abschluss §5).
 Technisch hängt er an nichts. Begründung des Platzes: Der Fehler
 kostet Platte und keinen Test, und die Reihenfolge der Wellen-Slices steht (§5 von
-[welle-v1-abschluss](../welle-v1-abschluss.md)); er läuft vor den Slices, die nach der Welle
+[welle-v1-abschluss](welle-v1-abschluss.md)); er läuft vor den Slices, die nach der Welle
 am meisten Gate-Läufe brauchen. Das Leck beträgt rund 75 MB je Lauf von `make gates` (172,9 GB
 in zehn Tagen), die Platte hat nach der Bereinigung Reserve. Meldet `make test-integration`
 vor dem Start wieder „PostgreSQL nicht bereit“ bei voller Platte, zieht der Planner den Slice
