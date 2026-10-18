@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-devcontainer-einrichten-geruest
+**Fund:** Die Nacharbeit zu Review und Verifikation ließ `container-start-gegenprobe` über den Fall `p15-sonden-raeumen` eine Kind-Gegenprobe starten, die denselben Fall wieder ausführte (Rekursion). Der Implementer fing sie ab (Ausnahme in `c`, Schutz in `kind`, Fall `p15-rekursion`, Mutation `p15-rekursion-schutz`) und fuhr die Läufe danach mit `timeout` und Beobachtung der Prozesszahl (höchstens 27). Quelle: §7 des Plans, *Belege des Implementers* (Planner, Closure, 2026-10-18).

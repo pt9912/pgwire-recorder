@@ -1,0 +1,2 @@
+**Vorgang:** slice-harness-devcontainer-einrichten-geruest
+**Fund:** `container-start-gegenprobe` 4 min 18 s am Host und 4 min 24 s im Container von `pgr-dev2` (165 Mutationen, Planner nach §7 des Plans, 2026-10-18). Sie ist ein Ziel für den Host und nicht Teil von `make gates` und der Ausnahmeliste der schnellen Kette ([ADR-0047](../../../../../adr/0047-gegenprobe-des-container-starts-ist-ein-host-ziel.md)); die Laufzeit von `make gates` wächst damit nicht.

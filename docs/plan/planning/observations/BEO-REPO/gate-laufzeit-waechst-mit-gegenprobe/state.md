@@ -11,3 +11,5 @@ Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-v1-abschluss-contain
 Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-harness-integration-volumes` — `make gates` 1038 s am Endstand, die Gegenprobe des Aufräumens 42 s; sie bleibt aus der schnellen Kette (Beleg `evidence/slice-harness-integration-volumes.md`).
 
 Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-harness-coverage` — die Gegenprobe 89 s; sie bleibt aus der schnellen Kette (Beleg `evidence/slice-harness-coverage.md`).
+
+Weiteres Auftreten, Regel bleibt (Zielort wie oben): `slice-harness-devcontainer-einrichten-geruest` — die Gegenprobe des Container-Starts 4 min 18 s; sie hängt nicht an `make gates` (Host-Ziel, ADR-0047), die Laufzeit der Kette wächst nicht (Beleg `evidence/slice-harness-devcontainer-einrichten-geruest.md`).
