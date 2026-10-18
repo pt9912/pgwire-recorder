@@ -23,11 +23,11 @@ kodiere() {
 }
 
 haupt() {
-  local self bare marke zeilen ablage t probe zeile neu ref zweig name n v args=()
+  local self bare marke zeilen ablage t probe zeile neu ref rest zweig name n v args=()
   self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/$(basename "${BASH_SOURCE[0]}")"
   bare="$(cd "${GIT_DIR:-.}" 2> /dev/null && pwd -P)"
   for v in $(compgen -v GIT_); do unset "$v"; done
-  unset MAKEFLAGS MFLAGS MAKELEVEL MAKEOVERRIDES
+  unset MAKEFLAGS MFLAGS GNUMAKEFLAGS MAKELEVEL MAKEOVERRIDES
   # (1) Marke des Containers (Punkt 2)
   marke="$bare/gegenproben-ablage"
   mapfile -t zeilen 2> /dev/null < "$marke"
@@ -36,12 +36,14 @@ haupt() {
   case "$ablage" in /*) ;; *) melde marke "kein absoluter Pfad: $ablage"; return 0 ;; esac
   [ -d "$ablage" ] || { melde marke "kein Verzeichnis: $ablage"; return 0; }
   # (2) Werkzeuge, (3) Ablage (Punkt 13)
-  for t in git flock setsid make; do command -v "$t" > /dev/null 2>&1 || { melde werkzeug "$t fehlt"; return 0; }; done
+  for t in git flock setsid make pgrep; do command -v "$t" > /dev/null 2>&1 || { melde werkzeug "$t fehlt"; return 0; }; done
   probe="$(mktemp "$ablage/.probe.XXXXXX" 2> /dev/null)" || { melde ablage "nicht schreibbar: $ablage"; return 0; }; rm -f "${probe:?}"
   # (4) je Zeile (Punkte 3, 4, 8)
   while IFS= read -r zeile || [ -n "$zeile" ]; do
-    read -r _ neu ref <<< "$zeile"
+    [[ -n "${zeile//[[:space:]]/}" ]] || continue
+    read -r _ neu ref rest <<< "$zeile"
     [ -n "$ref" ] || { melde zeile "Feld fehlt: $zeile"; continue; }
+    [ -z "$rest" ] || { melde zeile "mehr als drei Felder: $zeile"; continue; }
     case "$ref" in refs/heads/*) ;; *) continue ;; esac
     [[ $neu =~ ^(0{40}|0{64})$ ]] && continue
     [[ $neu =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] || { melde zeile "Form des Hashes: $zeile"; continue; }
@@ -81,7 +83,7 @@ lauf() {
   wait "$pid"; rc=$?; pid=""
   [ "$rc" -eq 0 ] || { echo "$sig: sperre: flock endete mit $rc" > "$log"; exec 9>&-; return 0; }
   # (6) Arbeitsbaum
-  wt="$(mktemp -d "$ablage/arbeitsbaum.XXXXXX")"
+  wt="$(mktemp -d "$ablage/arbeitsbaum.XXXXXX" 2> /dev/null)" || { echo "$sig: arbeitsbaum: Verzeichnis nicht angelegt" > "$log"; wt=""; exec 9>&-; return 0; }
   if ! aus="$(git --git-dir="$bare" worktree add --detach "$wt" "$hash" 2>&1)"; then
     { echo "$aus"; echo "$sig: arbeitsbaum: Arbeitsbaum nicht angelegt"; } > "$log"
     rm -rf "${wt:?}"; wt=""; exec 9>&-; return 0
@@ -97,7 +99,7 @@ lauf() {
   while IFS= read -r z || [ -n "$z" ]; do
     [[ $z =~ ^gegenproben:\ ([^:\ ]+):\ rot\ \(Exit\ [0-9]+\)$ ]] && rot+="${rot:+ }${BASH_REMATCH[1]}"
   done < "$log"
-  tmp="$ablage/.$n.$$"
+  tmp="$(mktemp "$ablage/.$n.XXXXXX")"
   printf 'zweig=%s\nhash=%s\nexit=%s\nergebnis=%s\nbeginn=%s\nende=%s\nrot=%s\n' "$zweig" "$hash" "$rc" "$erg" "$beginn" "$ende" "$rot" > "$tmp" \
     && mv -f "$tmp" "$ablage/$n"
   rm -f "${ablage:?}/${n:?}.laeuft"
