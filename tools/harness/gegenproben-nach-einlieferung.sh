@@ -57,9 +57,10 @@ haupt() {
     args+=("$n" "$zweig" "$neu")
   done
   if [ "${#args[@]}" -gt 0 ]; then
-    # `setsid -f` statt `&`: ein mit `&` gestarteter Prozess einer Shell ohne Jobsteuerung ignoriert SIGINT und SIGQUIT, und alle Kinder erben es.
+    # `setsid -f` statt `cmd &`: ein einfacher Hintergrundbefehl einer Shell ohne Jobsteuerung startet mit ignoriertem SIGINT und SIGQUIT, und seine Kinder erben es.
+    # `env --default-signal=INT,QUIT` setzt beide für den Lauf zurück, auch wenn der Aufrufer des Hooks sie ignoriert (coreutils ab 8.31).
     # Das Kind schließt vor dem Lauf jeden Deskriptor über 2, den git an den Hook reicht (sonst hält der Lauf die Leitung des Pushs offen).
-    setsid -f "$BASH" -c 'for f in /proc/self/fd/*; do n="${f##*/}"; [ "$n" -gt 2 ] 2> /dev/null && eval "exec $n>&-"; done; exec "$BASH" "$@"' \
+    setsid -f env --default-signal=INT,QUIT "$BASH" -c 'for f in /proc/self/fd/*; do n="${f##*/}"; [ "$n" -gt 2 ] 2> /dev/null && eval "exec $n>&-"; done; exec "$BASH" "$@"' \
       _ "$self" --lauf "$bare" "$ablage" "${args[@]}" < /dev/null > /dev/null 2>&1
   fi
   return 0
