@@ -18,9 +18,8 @@ dieser Ordner für die Werkzeuge. Das Lastenheft bleibt die Decke. Grundlage ist
 
 Eine Datei je Kennung, `SPEC-<NNN>-<kurztitel>.md`; die Überschrift der Datei nennt die Kennung
 und den Titel. Die Reihe der Kennungen zählt über beide Orte fortlaufend: Die nächste freie Nummer
-ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/`, plus eins. Ausgenommen sind
-Nummern, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsbaums in den Gegenproben) und `SPEC-061`
-(Hook für die Einlieferung in den Gegenproben-Container) sind noch nicht vergeben.
+ist die höchste vergebene in `spec/spezifikation.md` und in `harness/vertraege/`, plus eins. Ausgenommen ist
+eine Nummer, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsbaums in den Gegenproben) ist noch nicht vergeben.
 
 ## Verträge
 
@@ -38,6 +37,7 @@ Nummern, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsbaums
 | `SPEC-057` | `test-integration` (Aufräumen), `integration-volumes-gegenprobe` | [`SPEC-057-integration-aufraeumen.md`](SPEC-057-integration-aufraeumen.md) |
 | `SPEC-058` | `container-start`, `container-start-gegenprobe` | [`SPEC-058-container-start.md`](SPEC-058-container-start.md) |
 | `SPEC-060` | `gegenproben`, `gegenproben-host`, `gegenproben-gegenprobe`; Namensregel der Gegenproben | [`SPEC-060-gegenproben.md`](SPEC-060-gegenproben.md) |
+| `SPEC-061` | `gegenproben-nach-einlieferung` (Hook im Bare-Repo des Gegenproben-Containers), `gegenproben-nach-einlieferung-gegenprobe` | [`SPEC-061-gegenproben-nach-einlieferung.md`](SPEC-061-gegenproben-nach-einlieferung.md) |
 
 ## Historie
 
@@ -67,3 +67,4 @@ Nummern, die ein geplanter Vertrag freihält: `SPEC-059` (Kopie des Arbeitsbaums
 | 2026-10-18 | Harness-Werkzeuge: Start des Dev-Containers mit Eingaben, Voraussetzungen am Host, Zustand von Verzeichnis, Schlüsselpaar und Container, `u-boot`-Aufrufen, `override.json`, Bereitschaft, Abbruch, Reihenfolge der Gründe und Exit-Codes, Aufrufarten des Treibers, Gegenprobe gegen Scratch-Container und Grenzen (`SPEC-058`) |
 | 2026-10-18 | Start des Dev-Containers: `container-start-gegenprobe` ist ein Ziel für den Host, kein Teil von `GATE_CHECKS` und der Ausnahmeliste; Voraussetzung am Host ohne Überspringen (`SPEC-058`, Punkte 15 und 16) |
 | 2026-10-18 | Gegenproben außerhalb der Gate-Kette: zwei Listen (Container, Host), Namens- und Eindeutigkeitsregel, zwei Sammelziele mit Reihenfolge, rotem Einzelziel, Ausgabe, Abbruch, leerer Liste, Aufrufarten von `make` und Reihenfolge der Gründe, Pflicht zum Fahren, Grenzen und Plattform (`SPEC-060`); Ausnahmeliste der schnellen Kette auf drei Gates, Nachweis ohne Gegenproben, Beleg der Positivliste als Regel an den Schreiber einer Gegenprobe (`SPEC-052`); Anschluss der Gegenproben an die Liste statt an `GATE_CHECKS` (`SPEC-053` Punkte 12 und 13, `SPEC-054` Punkt 11, `SPEC-055` Punkt 12, `SPEC-056` Punkt 11, `SPEC-057` Punkt 10, `SPEC-058` Punkt 16) |
+| 2026-10-18 | Hook für die Einlieferung in den Gegenproben-Container: Marke, Refs, Löschung und Form der Zeilen, Hintergrundlauf, Sperre, derselbe Hash, Kodierung des Zweignamens, Ergebnis und Marke des laufenden Laufs, nur `make gegenproben`, Umgebung, Arbeitsbaum je Lauf, Reihenfolge der Gründe, Lesen des Ergebnisses und Grenzen (`SPEC-061`) |
