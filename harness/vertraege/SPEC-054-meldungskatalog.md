@@ -87,13 +87,14 @@ Punkt 7 sagt, was das Werkzeug nicht kennt, und hat keinen Fall.
     `-i` oder `MAKEFLAGS` aus der Umgebung tut, ändert seine Aussage nicht, weil kein Hook und
     kein Gate mehr als den Ausgang liest. Dass `-i` den roten Ausgang überliest, fängt der
     Nachweis des vollen Laufs (`SPEC-052`, Punkt 21), nicht dieses Werkzeug.
-11. **Anschluss ohne Stufung.** `meldungskatalog-check` und `meldungskatalog-check-gegenprobe`
-    hängen über das Fragment `harness/mk/meldungskatalog-check.mk` an `GATE_CHECKS` und enden bei
+11. **Anschluss ohne Stufung.** `meldungskatalog-check` hängt über das Fragment
+    `harness/mk/meldungskatalog-check.mk` an `GATE_CHECKS`, `meldungskatalog-check-gegenprobe` steht dort in der
+    Liste für den Container ([`SPEC-060`](SPEC-060-gegenproben.md) Punkte 1 und 2); beide enden bei
     rotem Lauf mit Ausgang ungleich 0. Die Prüfung ist vom ersten Lauf an scharf und am Stand
     2026-10-17 grün (C 30 Codes, K 34, H 30; die vier Codes von K ohne Konstante sind die
     Rückfälle `PGR-E2000`, `PGR-E3000`, `PGR-E5000`, `PGR-E6000`). Die Prüfung fährt in der
     schnellen Kette und muss dort bleiben, weil die Positivliste von `SPEC-052` Änderungen am
-    Handbuch ohne vollen Lauf zulässt; die Gegenprobe steht in der Ausnahmeliste. Die Gegenprobe
+    Handbuch ohne vollen Lauf zulässt. Die Gegenprobe
     baut ihre Bäume selbst und liest weder Handbuch noch Spezifikation des Arbeitsbaums; für
     diesen Punkt kopiert sie nur Makefile und Fragment.
 

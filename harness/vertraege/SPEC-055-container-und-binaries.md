@@ -112,9 +112,10 @@ Punkt 4 über den echten Build zeigt, belegt der Lauf des Gates selbst (Punkt 12
     (SPEC-052 Punkt 6 und 21). Bei Kombination von `-n`, `-q` oder `-t` mit `-i` gilt `-n`, `-q`,
     `-t`: kein Docker. Je Flag `-n`, `-q`, `-t`, `-i`, je `MAKEFLAGS` aus der Umgebung ein Fall am
     Ziel `test-container` und einer am Ziel `binaries`; die Mutation ist ein Rezept mit `$(MAKE)`.
-12. **Ausnahmeliste und Gegenprobe.** `test-container` und `test-container-gegenprobe` hängen an
-    `GATE_CHECKS` und stehen in der Ausnahmeliste der schnellen Kette (SPEC-052 Punkt 2 und 4):
-    das erste startet Container und baut zwölf Binaries, die zweite hängt am Namen. Die
+12. **Ausnahmeliste und Gegenprobe.** `test-container` hängt an `GATE_CHECKS` und steht in der
+    Ausnahmeliste der schnellen Kette (SPEC-052 Punkt 2 und 4): Es startet Container und baut zwölf
+    Binaries. `test-container-gegenprobe` steht in der Liste für den Container
+    ([`SPEC-060`](SPEC-060-gegenproben.md) Punkte 1 und 2), nicht in `GATE_CHECKS`. Die
     Gegenprobe prüft die Punkte 1 bis 11 an der Attrappe; ob das `Dockerfile` selbst
     deterministisch baut, zeigt jeder Lauf des Gates, nicht die Gegenprobe (Punkt 13).
 13. **Grenzen.** (1) Reproduzierbar ist das Binary, nicht das Image; das Image wird über seinen

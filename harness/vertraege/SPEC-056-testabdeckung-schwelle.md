@@ -86,9 +86,10 @@ Die unveränderte Kopie ist grün, und je Fall bricht eine Mutation genau ihn. U
     Formatfehler und ein roter Test bleiben bei erfüllter Schwelle rot (Punkt 8). Die Gegenprobe
     nennt in `harness/README.md` §Sensors ihre Bindung und trägt die Abdeckungs-Deklaration von
     Teil 2 von `LH-QA-07` ([`SPEC-048`](SPEC-048-abdeckung.md)).
-11. **Ausnahmeliste der schnellen Kette.** `coverage-gegenprobe` steht in der Ausnahmeliste
-    (`SPEC-052` Punkt 2 und 4), weil sie `docker build` fährt. Sie liest `docs/user/` und die
-    `README.md` des Arbeitsbaums nicht (`SPEC-052` Punkt 13): Sie baut aus einer Kopie unter
+11. **Anschluss der Gegenprobe.** `coverage-gegenprobe` steht in der Liste für den Container
+    ([`SPEC-060`](SPEC-060-gegenproben.md) Punkte 1 und 2), nicht in `GATE_CHECKS`; sie fährt `docker build`.
+    Sie liest `docs/user/` und die `README.md` des Arbeitsbaums nicht (Regel an den Schreiber,
+    `SPEC-052` Punkt 13): Sie baut aus einer Kopie unter
     eigenem Temp-Pfad, und der Build-Kontext schließt beides aus.
 12. **Grenzen.** (1) Die Zahl sagt, dass Anweisungen laufen, nicht, dass etwas geprüft wird; die
     Prüfung bleibt `AGENTS.md` §3.10. (2) Ein Profil mit `atomic` oder `count` (etwa mit `-race`)

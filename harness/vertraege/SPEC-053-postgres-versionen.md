@@ -87,14 +87,15 @@ die unveränderte Kopie ist grün, und je Fall bricht eine Mutation genau ihn.
     führende Ziffer macht den Test rot. Weicht eine Version von der Grenze ab, ist das Ziel rot;
     die Berichtigung der Grenze gehört nicht zu diesem Vertrag, sie ist ein eigener Slice mit
     Berichtigung der Produktspezifikation.
-12. **Gegenprobe.** `test-postgres-versionen-gegenprobe` hängt an `GATE_CHECKS`. Die
+12. **Gegenprobe.** `test-postgres-versionen-gegenprobe` steht in der Liste für den Container
+    ([`SPEC-060`](SPEC-060-gegenproben.md) Punkte 1 und 2), nicht in `GATE_CHECKS`. Die
     Attrappe von `docker` protokolliert ihre Aufrufe, liefert Version und Testausgabe nach
     Vorgabe des Falls und lässt Punkt 2 bis 9 prüfen: kein Aufruf bei Eingabefehlern, genau ein
     `build`, die Reihenfolge, die Zusammenfassung roter Versionen, die Entfernung von
     Container, Netz und Volume.
 13. **Ausnahmeliste der schnellen Kette.** `test-postgres-versionen` steht in der Ausnahmeliste
     (SPEC-052 Punkt 2 und 4): Es startet PostgreSQL-Container wie `test-integration`, und die
-    schnelle Kette fährt solche Gates nicht. Seine Gegenprobe steht dort nach ihrem Namen. Das
+    schnelle Kette fährt solche Gates nicht. Seine Gegenprobe steht nicht in der Kette. Das
     Ziel liest nichts unter `docs/plan/planning/`, `docs/reviews/`, `docs/user/`, `docs/developer/` und nicht
     die `README.md` (SPEC-052 Punkt 13): Der Build-Kontext schließt sie aus, und die Gegenprobe
     legt ihre Bäume selbst an.

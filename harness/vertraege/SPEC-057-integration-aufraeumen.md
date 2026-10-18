@@ -111,10 +111,10 @@ Mutation legt Punkt 7 fest, und die Gegenprobe verlangt genau diese Menge.
    nicht Gegenstand dieser Kennung (akzeptiertes Negativ; Grund: kein Hook und kein Stand
    glaubt dieses Gate allein, den Nachweis des vollen Laufs schreibt `make gates` nur ohne diese
    Flags, `SPEC-052` Punkte 6 und 21).
-10. **Ausnahmeliste der schnellen Kette.** `integration-volumes-gegenprobe` hängt an
-    `GATE_CHECKS` und steht in der Ausnahmeliste (`SPEC-052` Punkte 2 und 4): Es startet Container
-    und läuft in der schnellen Kette nicht. Es liest nichts unter `docs/plan/planning/`,
-    `docs/reviews/`, `docs/user/`, `docs/developer/` und nicht die `README.md` (`SPEC-052` Punkt 13): Es legt Kopien
+10. **Anschluss der Gegenprobe.** `integration-volumes-gegenprobe` steht in der Liste für den
+    Container ([`SPEC-060`](SPEC-060-gegenproben.md) Punkte 1 und 2), nicht in `GATE_CHECKS`: Es startet
+    Container und läuft in keiner Kette. Es liest nichts unter `docs/plan/planning/`,
+    `docs/reviews/`, `docs/user/`, `docs/developer/` und nicht die `README.md` (Regel an den Schreiber, `SPEC-052` Punkt 13): Es legt Kopien
     von Dateien unter `tools/test/` in einem Temp-Verzeichnis an und spricht Docker an.
 11. **Grenzen.** (1) Ein `docker run` außerhalb des Runners ohne `--rm` und ohne `-v` legt das
     Leck wieder an; kein Gate sieht es (die übrigen `docker run` des Repos tragen `--rm`, belegt
