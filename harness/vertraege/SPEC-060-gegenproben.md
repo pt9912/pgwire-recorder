@@ -63,7 +63,8 @@ Plattform ihr eigener Vertrag nennt.
    werden nirgends mit `:=` gesetzt, weil das Makefile generiert ist und ein Fragment, das setzt, je nach Reihenfolge der
    Fragmente Einträge verwirft. `+=` auf eine ungesetzte Variable ergibt eine rekursive Variable; zugesagt ist deshalb nur der
    **ausgewertete** Wert, den `make` im Rezept und in einer Regel mit `$(…)` liefert, nicht der Text in `make -p`. Wer die Liste liest
-   (die Sammelziele, die Regel von Punkt 2), liest ihn ausgewertet; ein Fragment darf einen Eintrag aus einer Variable bilden. Fall
+   (die Sammelziele, die Regel von Punkt 2), liest ihn ausgewertet; die Regel liest die Listen und `GATE_CHECKS` über `make --eval`
+   mit einem Ziel, das den Wert ausgibt; ein Fragment darf einen Eintrag aus einer Variable bilden. Fall
    `p1-liste-aus-variable`: ein Eintrag, der aus einer Variable gebildet wird, ist in der Liste und läuft im Sammelziel; Mutation: die
    Regel oder das Sammelziel liest den unausgewerteten Text (`make -p`).
 2. **Namensregel und Eindeutigkeit.** Als Gegenprobe im Sinn dieser Kennung gilt jedes Ziel mit Rezept in einem
@@ -78,12 +79,21 @@ Plattform ihr eigener Vertrag nennt.
    `x-gegenprobe-alt` und ein Ziel `gegenprobe` stehen in `GATE_CHECKS` und in keiner Liste ohne Befund (die Regel
    erkennt nur den Namen; akzeptiertes Negativ, Grund: eine Regel am Namen ist so weit wie der Name). Mutationen: je
    Fall die Prüfung, die ihn fängt, gestrichen; für `p2-andere-namen` eine Prüfung, die den Teilstring `gegenprobe`
-   statt des Endes `-gegenprobe` sucht. Fall `p2-rezept-ausserhalb-fragment`: ein Ziel mit Namen auf `-gegenprobe`, dessen Rezept im
+   statt des Endes `-gegenprobe` sucht, und je Name der Aufzählung (`gegenproben`, `gegenproben-host`, `x-negativ`, `x-gegenprobe-alt`,
+   `gegenprobe`) eine Mutation, die nur ihn als Gegenprobe liest (`p2-andere-<Name>`). Fall `p2-rezept-ausserhalb-fragment`: ein Ziel mit Namen auf `-gegenprobe`, dessen Rezept im
    `Makefile` und nicht in einem Fragment unter `harness/mk/` steht, ohne Befund (die Regel gilt dem Fragment; akzeptiertes Negativ,
    Grund: das `Makefile` ist generiert und trägt kein Ziel mit Rezept außer den Hilfsmitteln); Mutation: die Regel sucht auch außerhalb
    des Verzeichnisses (`p2-rezept-ohne-herkunft`). Die grüne Kopie hat beide Listen mit Einträgen. Die Ausnahmeliste der
    schnellen Kette nennt kein Ziel dieser Kennung: ein Eintrag, der nicht in `GATE_CHECKS` steht, macht
    [`SPEC-052`](SPEC-052-gate-kette.md) Punkt 4 rot, ein Eintrag, der dort steht, Punkt 2 dieser Kennung (V1); eine eigene Prüfung gibt es dafür nicht.
+   **Sprache von `make`** (Voraussetzung): Die Regel ruft `make` immer mit `LC_ALL=C` auf; die Ausgabe von `make -p` und der Meldungen, die sie
+   liest, hängt sonst von der Sprache des Hosts ab (GNU make 4.3 in `de_DE.UTF-8` meldet „Rezept (aus …“ statt „recipe to execute (from …“).
+   Fall `p2-locale`: `LC_ALL=en_US.utf8` mit `LANGUAGE=de` erzwingt die deutsche Ausgabe auch ohne installierte Locale `de_DE`; der Fall
+   prüft vorab mit `grep` auf „Rezept (aus“, dass sie so erzwungen ist, und die Regel bleibt grün; ist keine Locale installiert, die das
+   erzwingt, ist er rot und nennt es (kein Überspringen). Mutation `p2-locale-nicht-c`: `LC_ALL=C` entfällt. **Arbeitsbaum:** Fall
+   `p2-arbeitsbaum`: eine Kopie der Gegenprobe als eigener Arbeitsbaum, in dem `lint-gegenprobe` in `GATE_CHECKS` steht, endet mit Exit
+   ungleich 0 (die Zusage „im Arbeitsbaum selbst wie in der Kopie“); Mutation `p2-arbeitsbaum-gestrichen`: die Prüfung des Arbeitsbaums
+   ist durch `ist=""` ersetzt, und die Kopie bleibt grün.
 3. **Zuordnung ist Entscheidung des Schreibers.** Wer eine Gegenprobe anlegt, wählt die Liste mit einer Zeile im
    Fragment: Host, wenn sie `u-boot` oder `devcontainer` aufruft, sonst Container. Die Gegenprobe der Kette prüft
    nicht die Wahl, nur dass es eine einzige gibt (Punkt 2), weil sie nicht weiß, was ein Skript aufruft
@@ -176,7 +186,7 @@ Plattform ihr eigener Vertrag nennt.
     Gegenproben, und `make gates` grün sagt nichts über sie (akzeptiertes Negativ; Grund: ein Stand der Gegenproben brächte die Laufzeit zurück,
     die die Entscheidung streicht; die Folge einer nicht gefahrenen Gegenprobe ist ein unbemerkter Bruch des geprüften Werkzeugs bis zur
     nächsten Fahrt, `BEO-REPO/gegenprobe-nicht-in-kette-regression-unbemerkt`).
-15. **Grenzen.** (0) Der Kommentar in Zeile 2 des generierten `Makefile` („jedes Fragment haengt seine Checks an `GATE_CHECKS`“) gilt für die Gate-Fragmente; die Fragmente, die eine Gegenprobe definieren, hängen sie an eine der beiden Listen. Die Abweichung bleibt stehen (Grund: ein Lauf von `ai-harness-init` schreibt die Datei neu, und eine Änderung hier ginge verloren); kein Fall. (1) Ein Zeitlimit des ganzen Laufs gibt es nicht; `SIGKILL` und der Ausfall des Docker-Dienstes sind nicht zugesagt. (2) Ein
+15. **Grenzen.** (00) Die Sprache von `make` ist Voraussetzung des Hosts, kein Wert, den ein Aufrufer setzt: Die Regel erzwingt `LC_ALL=C` (Punkt 2); Aufrufe von `make` außerhalb der Regel behalten die Sprache des Hosts (kein Fall; Grund: nur die Regel liest die Ausgabe). (0) Der Kommentar in Zeile 2 des generierten `Makefile` („jedes Fragment haengt seine Checks an `GATE_CHECKS`“) gilt für die Gate-Fragmente; die Fragmente, die eine Gegenprobe definieren, hängen sie an eine der beiden Listen. Die Abweichung bleibt stehen (Grund: ein Lauf von `ai-harness-init` schreibt die Datei neu, und eine Änderung hier ginge verloren); kein Fall. (1) Ein Zeitlimit des ganzen Laufs gibt es nicht; `SIGKILL` und der Ausfall des Docker-Dienstes sind nicht zugesagt. (2) Ein
     Signal nur an `make` (nicht an das Skript und nicht an die Prozessgruppe) ist Verhalten von `make` und nicht zugesagt; ein Fall auf den
     Zeitpunkt nach dem Ende von `make` wäre zeitabhängig. (3) Die Warnung von `make` zum Jobserver unter `-j` ist weder zugesagt noch
     ausgeschlossen (Punkt 7). (4) Ob eine Gegenprobe das prüft, was ihr Gate zusagt, ist Gegenstand des Vertrags ihres Gates, nicht dieser
