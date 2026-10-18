@@ -120,13 +120,13 @@ dasteht.
 
 | Randform | Wo entschieden |
 |---|---|
-| Deskriptor 3, ein höherer Deskriptor (etwa 5 wie in der Fahrt) und mehrere zugleich; Deskriptor an einer Pipe, einer Datei, einem Socket | Architect, `SPEC-061` Punkt 5 (offen) |
-| Deskriptor, den der Hook selbst für die Sperre öffnet (`flock`): im Lauf nötig oder geschlossen | Architect (offen) |
-| Obergrenze der Deskriptoren (`ulimit -n` sehr hoch): Schleife über `/proc/self/fd` statt über Zahlen | Architect (offen) |
-| `SIGINT` und `SIGQUIT` ignoriert beim Aufruf (`trap '' INT QUIT`, Aufruf mit `&` in einer Shell ohne Jobsteuerung); `SIGHUP`, `SIGPIPE`, `SIGTERM` | Architect (offen) |
-| Wo `SigIgn` gelesen wird: Lauf, `make`, Kinder von `make` | Architect (offen) |
+| Deskriptor 3, ein höherer Deskriptor (etwa 5 wie in der Fahrt) und mehrere zugleich; Deskriptor an einer Pipe, einer Datei, einem Socket | Architect, `SPEC-061` Punkt 5 (alle Deskriptoren über 2 vor dem Lauf geschlossen, ohne Nummernliste; Mutation „schließt erst nach dem Start von `make`“ entfällt mit Grund) |
+| Deskriptor, den der Hook selbst für die Sperre öffnet (`flock`): im Lauf nötig oder geschlossen | Architect, `SPEC-061` Punkt 5 (Sperre nur im Lauf, nicht in `make` und Nachkommen) |
+| Obergrenze der Deskriptoren (`ulimit -n` sehr hoch): Schleife über `/proc/self/fd` statt über Zahlen | Architect, `SPEC-061` Punkt 5 (Schleife über `/proc/self/fd`) |
+| `SIGINT` und `SIGQUIT` ignoriert beim Aufruf (`trap '' INT QUIT`, Aufruf mit `&` in einer Shell ohne Jobsteuerung); `SIGHUP`, `SIGPIPE`, `SIGTERM` | Architect, `SPEC-061` Punkt 11: der Lauf `SIGINT` nicht ignoriert, `make` und Nachkommen `SIGINT` und `SIGQUIT`; `SIGQUIT` im Lauf selbst Grenze (bash ignoriert es selbst); der Hook setzt beide für den Lauf zurück, wenn der Aufrufer sie ignoriert (`env --default-signal=INT,QUIT`, Fälle `p11-erbt-*`); `SIGHUP`, `SIGPIPE` nicht zugesagt, `SIGTERM` Punkt 9 |
+| Wo `SigIgn` gelesen wird: Lauf, `make`, Kinder von `make` | Architect, `SPEC-061` Punkt 11 (Lauf, `make`, Kind und Enkel; Fälle `p11-sigint-enkel`, `p11-sigquit-enkel`) |
 | Mehrere Zweige in einem Push: ein Lauf je Zweig, jeder mit denselben Zusagen | Bestand, `SPEC-061` Punkt 16 (4) |
-| Kein `/proc` (macOS, minimale Umgebung) | Architect (offen; der Gegenproben-Container ist Linux, der Hook nur dort aufgesetzt) |
+| Kein `/proc` (macOS, minimale Umgebung) | Architect, `SPEC-061` Kopf, Plattform (nur Linux zugesagt; der Gegenproben-Container ist Linux, der Hook nur dort aufgesetzt) |
 | Aufruf von Hand oder aus `make` statt durch `git receive-pack` | Bestand, `SPEC-061` Punkt 5 |
 
 **Aufrufarten des Treibers (§3.12):** nicht Gegenstand dieses Slice (`SPEC-061` Punkte 10, 11 und 14 sind Bestand des Gebers). **Aufruf-Voraussetzung:** Die Zusagen des Punktes 5 gelten für jeden Aufrufer, der den Hook startet, gleich welche Deskriptoren und Signalzustände er vererbt; gleichzeitig laufende Hooks sind Punkt 6.
